@@ -221,6 +221,7 @@ func refundBond(ctx cosmos.Context, tx common.Tx, nodeAcc NodeAccount, keeper Ke
 			VaultPubKey: vault.PubKey,
 			InHash:      tx.ID,
 			Coin:        common.NewCoin(common.RuneAsset(), nodeAcc.Bond),
+			ModuleName:  BondName,
 		}
 		_, err = txOut.TryAddTxOutItem(ctx, txOutItem)
 		if err != nil {
