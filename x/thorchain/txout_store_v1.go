@@ -273,13 +273,12 @@ func (tos *TxOutStorageV1) nativeTxOut(ctx cosmos.Context, toi *TxOutItem) error
 		return err
 	}
 
-	coin, err := toi.Coin.Native()
-	if err != nil {
-		return err
+	if toi.ModuleName == "" {
+		toi.ModuleName = AsgardName
 	}
 
-	// send funds from asgard module
-	sdkErr := supplier.SendCoinsFromModuleToAccount(ctx, AsgardName, addr, cosmos.NewCoins(coin))
+	// send funds from module
+	sdkErr := tos.keeper.SendFromModuleToAccount(ctx, toi.ModuleName, addr, toi.Coin)
 	if sdkErr != nil {
 		return errors.New(sdkErr.Error())
 	}

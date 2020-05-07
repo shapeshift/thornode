@@ -547,11 +547,12 @@ func (vm *validatorMgrV1) ragnarokBond(ctx cosmos.Context, nth int64) error {
 
 		// refund bond
 		txOutItem := &TxOutItem{
-			Chain:     common.RuneAsset().Chain,
-			ToAddress: na.BondAddress,
-			InHash:    common.BlankTxID,
-			Coin:      common.NewCoin(common.RuneAsset(), amt),
-			Memo:      NewRagnarokMemo(ctx.BlockHeight()).String(),
+			Chain:      common.RuneAsset().Chain,
+			ToAddress:  na.BondAddress,
+			InHash:     common.BlankTxID,
+			Coin:       common.NewCoin(common.RuneAsset(), amt),
+			Memo:       NewRagnarokMemo(ctx.BlockHeight()).String(),
+			ModuleName: BondName,
 		}
 		ok, err := txOutStore.TryAddTxOutItem(ctx, txOutItem)
 		if err != nil {
