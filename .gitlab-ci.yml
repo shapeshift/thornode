@@ -28,6 +28,7 @@ unit_tests:
   coverage: '/total:\s+\(statements\)\s+(\d+.\d+\%)/'
   script:
     - make test-coverage
+    - NATIVE=true make test-coverage
     - go tool cover -func=coverage.out
     - go tool cover -html=coverage.out -o coverage.html
 
