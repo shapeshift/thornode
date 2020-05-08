@@ -355,7 +355,7 @@ func (s *ThorchainSuite) TestRagnarok(c *C) {
 			NewReserveContributor(contrib1, cosmos.NewUint(400_000_000*common.One)),
 			NewReserveContributor(contrib2, cosmos.NewUint(100_000*common.One)),
 		}
-		resHandler := NewReserveContributorHandler(keeper)
+		resHandler := NewReserveContributorHandler(keeper, versionedEventManagerDummy)
 		for _, res := range reserves {
 			asgard.AddFunds(common.Coins{
 				common.NewCoin(common.RuneAsset(), res.Amount),

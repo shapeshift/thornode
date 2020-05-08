@@ -60,10 +60,6 @@ func (h YggdrasilHandler) validateV1(ctx cosmos.Context, msg MsgYggdrasil) cosmo
 		ctx.Logger().Error(err.Error())
 		return err
 	}
-
-	if !isSignedByActiveNodeAccounts(ctx, h.keeper, msg.GetSigners()) {
-		return cosmos.ErrUnauthorized("not signed by an active node account")
-	}
 	return nil
 }
 

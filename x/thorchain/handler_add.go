@@ -56,9 +56,6 @@ func (ah AddHandler) validateV1(ctx cosmos.Context, msg MsgAdd) cosmos.Error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
-	if !isSignedByActiveNodeAccounts(ctx, ah.keeper, msg.GetSigners()) {
-		return cosmos.ErrUnauthorized("Not authorized")
-	}
 	return nil
 }
 

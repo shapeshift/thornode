@@ -49,7 +49,7 @@ func (msg MsgSetStakeData) ValidateBasic() cosmos.Error {
 	if msg.RuneAddress.IsEmpty() {
 		return cosmos.ErrUnknownRequest("rune address cannot be empty")
 	}
-	if !msg.Asset.Chain.IsBNB() {
+	if !msg.Asset.Chain.Equals(common.RuneAsset().Chain) {
 		if msg.AssetAddress.IsEmpty() {
 			return cosmos.ErrUnknownRequest("asset address cannot be empty")
 		}
