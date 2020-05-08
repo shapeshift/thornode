@@ -715,7 +715,7 @@ func queryCompEvents(ctx cosmos.Context, path []string, req abci.RequestQuery, k
 		if !chain.IsEmpty() && !evtChain.Equals(chain) && !evtChain.IsEmpty() {
 			continue
 		}
-		if evtChain.IsEmpty() && !chain.IsBNB() && !chain.IsEmpty() {
+		if evtChain.IsEmpty() && !chain.Equals(common.RuneAsset().Chain) && !chain.IsEmpty() {
 			continue
 		}
 		if event.Empty() {

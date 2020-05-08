@@ -25,7 +25,7 @@ type TestBanKeeper struct {
 	modules   map[string]int64
 }
 
-func (k *TestBanKeeper) SendFromModuleToModule(_ sdk.Context, from, to string, coin common.Coin) sdk.Error {
+func (k *TestBanKeeper) SendFromModuleToModule(_ cosmos.Context, from, to string, coin common.Coin) cosmos.Error {
 	k.modules[from] -= int64(coin.Amount.Uint64())
 	k.modules[to] += int64(coin.Amount.Uint64())
 	return nil

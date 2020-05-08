@@ -63,15 +63,6 @@ func (h UnstakeHandler) validateV1(ctx cosmos.Context, msg MsgSetUnStake) cosmos
 		ctx.Logger().Error("unstake msg fail validation", "error", err.ABCILog())
 		return cosmos.NewError(DefaultCodespace, CodeUnstakeFailValidation, err.Error())
 	}
-	if !isSignedByActiveNodeAccounts(ctx, h.keeper, msg.GetSigners()) {
-		ctx.Logger().Error("message signed by unauthorized account",
-			"request tx hash", msg.Tx.ID,
-			"rune address", msg.RuneAddress,
-			"asset", msg.Asset,
-			"withdraw basis points", msg.UnstakeBasisPoints)
-		return cosmos.ErrUnauthorized("not authorized")
-	}
-
 	pool, err := h.keeper.GetPool(ctx, msg.Asset)
 	if err != nil {
 		errMsg := fmt.Sprintf("fail to get pool(%s)", msg.Asset)

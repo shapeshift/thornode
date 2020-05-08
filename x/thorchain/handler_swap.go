@@ -49,11 +49,6 @@ func (h SwapHandler) validateV1(ctx cosmos.Context, msg MsgSwap) error {
 		ctx.Logger().Error(err.Error())
 		return err
 	}
-
-	if !isSignedByActiveNodeAccounts(ctx, h.keeper, msg.GetSigners()) {
-		ctx.Logger().Error(notAuthorized.Error())
-		return notAuthorized
-	}
 	return nil
 }
 
