@@ -50,9 +50,6 @@ func (msg MsgSwap) ValidateBasic() cosmos.Error {
 	if msg.Destination.IsEmpty() {
 		return cosmos.ErrUnknownRequest("Swap Destination cannot be empty")
 	}
-	if !msg.Destination.IsChain(msg.TargetAsset.Chain) {
-		return cosmos.ErrUnknownRequest("swap destination and swap target asset must be the same chain")
-	}
 	return nil
 }
 
