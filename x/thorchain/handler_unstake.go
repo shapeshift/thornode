@@ -127,31 +127,6 @@ func (h UnstakeHandler) handle(ctx cosmos.Context, msg MsgSetUnStake, version se
 		memo = NewRagnarokMemo(ctx.BlockHeight()).String()
 	}
 	toi := &TxOutItem{
-		Chain:     common.RuneAsset().Chain,
-		InHash:    msg.Tx.ID,
-		ToAddress: staker.RuneAddress,
-		Coin:      common.NewCoin(common.RuneAsset(), runeAmt),
-		Memo:      memo,
-	}
-	if !common.RuneAsset().Chain.Equals(common.THORChain) {
-		if !gasAsset.IsZero() {
-			if msg.Asset.IsBNB() {
-				toi.MaxGas = common.Gas{
-					common.NewCoin(common.RuneAsset().Chain.GetGasAsset(), gasAsset.QuoUint64(2)),
-				}
-			}
-		}
-	}
-	ok, err := txOutStore.TryAddTxOutItem(ctx, toi)
-	if err != nil {
-		ctx.Logger().Error("fail to prepare outbound tx", "error", err)
-		return nil, cosmos.NewError(DefaultCodespace, CodeFailAddOutboundTx, "fail to prepare outbound tx")
-	}
-	if !ok {
-		return nil, cosmos.NewError(DefaultCodespace, CodeFailAddOutboundTx, "prepare outbound tx not successful")
-	}
-
-	toi = &TxOutItem{
 		Chain:     msg.Asset.Chain,
 		InHash:    msg.Tx.ID,
 		ToAddress: staker.AssetAddress,
@@ -170,6 +145,31 @@ func (h UnstakeHandler) handle(ctx cosmos.Context, msg MsgSetUnStake, version se
 		}
 	}
 
+	ok, err := txOutStore.TryAddTxOutItem(ctx, toi)
+	if err != nil {
+		ctx.Logger().Error("fail to prepare outbound tx", "error", err)
+		return nil, cosmos.NewError(DefaultCodespace, CodeFailAddOutboundTx, "fail to prepare outbound tx")
+	}
+	if !ok {
+		return nil, cosmos.NewError(DefaultCodespace, CodeFailAddOutboundTx, "prepare outbound tx not successful")
+	}
+
+	toi = &TxOutItem{
+		Chain:     common.RuneAsset().Chain,
+		InHash:    msg.Tx.ID,
+		ToAddress: staker.RuneAddress,
+		Coin:      common.NewCoin(common.RuneAsset(), runeAmt),
+		Memo:      memo,
+	}
+	if !common.RuneAsset().Chain.Equals(common.THORChain) {
+		if !gasAsset.IsZero() {
+			if msg.Asset.IsBNB() {
+				toi.MaxGas = common.Gas{
+					common.NewCoin(common.RuneAsset().Chain.GetGasAsset(), gasAsset.QuoUint64(2)),
+				}
+			}
+		}
+	}
 	ok, err = txOutStore.TryAddTxOutItem(ctx, toi)
 	if err != nil {
 		ctx.Logger().Error("fail to prepare outbound tx", "error", err)
