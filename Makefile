@@ -1,7 +1,25 @@
 include Makefile.cicd
-.PHONY: test tools export healthcheck
+.PHONY: build test tools export healthcheck
 
 GOBIN?=${GOPATH}/bin
+NOW=$(shell date +'%Y-%m-%d_%T')
+COMMIT:=$(shell git log -1 --format='%H')
+VERSION:=$(shell cat version)
+TAG?=testnet
+
+ldflags = -X gitlab.com/thorchain/thornode/constants.Version=$(VERSION) \
+		  -X gitlab.com/thorchain/thornode/constants.GitCommit=$(COMMIT) \
+		  -X gitlab.com/thorchain/thornode/constants.BuildTime=${NOW} \
+		  -X github.com/cosmos/cosmos-sdk/version.Name=THORChain \
+	      -X github.com/cosmos/cosmos-sdk/version.ServerName=thord \
+		  -X github.com/cosmos/cosmos-sdk/version.ClientName=thorcli \
+	      -X github.com/cosmos/cosmos-sdk/version.Version=$(VERSION) \
+	      -X github.com/cosmos/cosmos-sdk/version.Commit=$(COMMIT) \
+		  -X github.com/cosmos/cosmos-sdk/version.BuildTags=$(TAG)
+
+BUILD_FLAGS := -ldflags '$(ldflags)' -tags ${TAG} -a
+
+BINARIES=./cmd/thorcli ./cmd/thord ./cmd/bifrost ./tools/generate
 
 # variables default for healthcheck against full stack in docker
 CHAIN_API?=localhost:1317
@@ -9,16 +27,11 @@ MIDGARD_API?=localhost:8080
 
 all: lint install
 
+build:
+	go build ${BUILD_FLAGS} ${BINARIES}
+
 install: go.sum
-	go install -tags "${TAG}" ./cmd/thorcli
-	go install -tags "${TAG}" ./cmd/thord
-	go install ./cmd/bifrost
-
-install-testnet:
-	TAG=testnet make install
-
-install-mocknet:
-	TAG=mocknet make install
+	go install ${BUILD_FLAGS} ${BINARIES}
 
 tools:
 	go install ./tools/generate
@@ -29,7 +42,7 @@ go.sum: go.mod
 	go mod verify
 
 test-coverage:
-	@go test -v -tags testnet -coverprofile cover.txt ./...
+	@go test ${BUILD_FLAGS} -v -coverprofile coverage.out ./...
 
 coverage-report: test-coverage
 	@go tool cover -html=cover.txt
@@ -38,10 +51,10 @@ clear:
 	clear
 
 test:
-	@go test -tags testnet ./...
+	@go test ${BUILD_FLAGS} ./...
 
 test-watch: clear
-	@gow -c test -tags testnet -mod=readonly ./...
+	@gow -c test ${BUILD_FLAGS} -mod=readonly ./...
 
 format:
 	@gofumpt -w .
@@ -56,9 +69,6 @@ lint: lint-pre
 
 lint-verbose: lint-pre
 	@golangci-lint run -v
-
-build:
-	@go build -tags "${TAG}" ./...
 
 start-daemon:
 	thord start --log_level "main:info,state:debug,*:error"
