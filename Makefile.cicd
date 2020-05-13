@@ -1,6 +1,6 @@
 # Image Hashes
 STATE_CHAIN_IMAGE_HASH=$(shell  grep "Successfully built" ./log/state-chain-build.log | cut -d ' ' -f 3)
-BRANCH=$(shell git rev-parse --abbrev-ref HEAD | 's/build-versions/mocknet/g' | sed 's/master/mocknet/g')
+BRANCH=$(shell git rev-parse --abbrev-ref HEAD | sed 's/master/mocknet/g')
 GITREF=$(shell git rev-parse --short HEAD)
 
 ifeq (${NOCACHE}, TRUE)
