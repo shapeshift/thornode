@@ -56,6 +56,7 @@ build-thornode:
   only:
     - master # build mocknet image
     - testnet
+    - build-versions
     - chaosnet
     - mainnet
   services:
