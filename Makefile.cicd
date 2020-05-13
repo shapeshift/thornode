@@ -58,5 +58,5 @@ docker-gitlab-push:
 	docker push registry.gitlab.com/thorchain/thornode:${BRANCH}
 
 docker-gitlab-build:
-	docker build -f build/docker/Dockerfile $(shell bash build/docker/semver_tags.bash registry.gitlab.com/thorchain/thornode ${BRANCH} $(shell cat version)) -t registry.gitlab.com/thorchain/thornode:${GITREF} --build-arg TAG=${BRANCH} .
+	docker build -f build/docker/Dockerfile $(shell sh ./build/docker/semver_tags.sh registry.gitlab.com/thorchain/thornode ${BRANCH} $(shell cat version)) -t registry.gitlab.com/thorchain/thornode:${GITREF} --build-arg TAG=${BRANCH} .
 # ------------------------------------------------------------------ #
