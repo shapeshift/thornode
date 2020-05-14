@@ -18,6 +18,7 @@ import (
 	"gitlab.com/thorchain/thornode/bifrost/metrics"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient"
 	"gitlab.com/thorchain/thornode/common"
+	"gitlab.com/thorchain/thornode/constants"
 )
 
 type PubKeyValidator interface {
@@ -195,7 +196,7 @@ func (pkm *PubKeyManager) updatePubKeys() {
 		select {
 		case <-pkm.stopChan:
 			return
-		case <-time.After(time.Minute):
+		case <-time.After(constants.ThorchainBlockTime):
 			pkm.FetchPubKeys()
 		}
 	}
