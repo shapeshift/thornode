@@ -18,7 +18,7 @@ func (s *HandlerMimirSuite) SetUpSuite(c *C) {
 func (s *HandlerMimirSuite) TestValidate(c *C) {
 	ctx, keeper := setupKeeperForTest(c)
 
-	addr, _ := sdk.AccAddressFromBech32(ADMIN)
+	addr, _ := sdk.AccAddressFromBech32(ADMINS[0])
 	handler := NewMimirHandler(keeper)
 	// happy path
 	ver := constants.SWVersion
