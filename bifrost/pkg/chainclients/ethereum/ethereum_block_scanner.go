@@ -129,7 +129,7 @@ func (e *BlockScanner) processBlock(block blockscanner.Block) (stypes.TxIn, erro
 		if txInItem != nil {
 			txIn.TxArray = append(txIn.TxArray, *txInItem)
 			e.m.GetCounter(metrics.BlockWithTxIn("ETH")).Inc()
-			e.logger.Info().Str("hash", hash).Msg("THORNode got one tx")
+			e.logger.Info().Str("hash", hash).Msgf("%s got %d tx", e.cfg.ChainID, 1)
 		}
 	}
 	if len(txIn.TxArray) == 0 {

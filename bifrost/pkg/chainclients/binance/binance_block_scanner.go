@@ -175,7 +175,7 @@ func (b *BinanceBlockScanner) processBlock(block blockscanner.Block) (stypes.TxI
 		if len(txItemIns) > 0 {
 			txIn.TxArray = append(txIn.TxArray, txItemIns...)
 			b.m.GetCounter(metrics.BlockWithTxIn("BNB")).Inc()
-			b.logger.Info().Str("hash", hash).Msg("THORNode got one tx")
+			b.logger.Info().Str("hash", hash).Msgf("%s got %d tx", b.cfg.ChainID, len(txItemIns))
 		}
 	}
 	if len(txIn.TxArray) == 0 {
