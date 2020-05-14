@@ -24,7 +24,7 @@ import (
 
 var m *metrics.Metrics
 
-func SetupStateChainForTest(c *C) (config.ClientConfiguration, cKeys.Info, func()) {
+func SetupThorchainForTest(c *C) (config.ClientConfiguration, cKeys.Info, func()) {
 	thorchain.SetupConfigForTest()
 	thorcliDir := SetupThorCliDirForTest()
 	cfg := config.ClientConfiguration{
@@ -73,7 +73,7 @@ func (s *BlockScannerTestSuite) SetUpSuite(c *C) {
 	})
 	c.Assert(m, NotNil)
 	c.Assert(err, IsNil)
-	s.cfg, _, s.cleanup = SetupStateChainForTest(c)
+	s.cfg, _, s.cleanup = SetupThorchainForTest(c)
 	s.bridge, err = thorclient.NewThorchainBridge(s.cfg, s.m)
 	c.Assert(err, IsNil)
 }

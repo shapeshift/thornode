@@ -19,7 +19,7 @@ import (
 
 var m *metrics.Metrics
 
-func SetupStateChainForTest(c *C) (config.ClientConfiguration, cKeys.Info, func()) {
+func SetupThorchainForTest(c *C) (config.ClientConfiguration, cKeys.Info, func()) {
 	thorchain.SetupConfigForTest()
 	thorcliDir := SetupThorCliDirForTest()
 	cfg := config.ClientConfiguration{

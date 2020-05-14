@@ -116,7 +116,7 @@ func (s TypeObservedTxSuite) TestVoter(c *C) {
 	c.Check(voter.Key().Equals(txID), Equals, true)
 	c.Check(voter.String() == txID.String(), Equals, true)
 
-	statechainCoins := common.Coins{
+	thorchainCoins := common.Coins{
 		common.NewCoin(common.RuneAsset(), sdk.NewUint(100)),
 		common.NewCoin(common.BNBAsset, sdk.NewUint(100)),
 	}
@@ -139,19 +139,19 @@ func (s TypeObservedTxSuite) TestVoter(c *C) {
 			observePoolAddr: observePoolAddr,
 		},
 		{
-			coins:           statechainCoins,
+			coins:           thorchainCoins,
 			memo:            "",
 			sender:          bnb,
 			observePoolAddr: observePoolAddr,
 		},
 		{
-			coins:           statechainCoins,
+			coins:           thorchainCoins,
 			memo:            "test",
 			sender:          common.NoAddress,
 			observePoolAddr: observePoolAddr,
 		},
 		{
-			coins:           statechainCoins,
+			coins:           thorchainCoins,
 			memo:            "test",
 			sender:          bnb,
 			observePoolAddr: common.EmptyPubKey,

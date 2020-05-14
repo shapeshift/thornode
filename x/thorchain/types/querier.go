@@ -25,11 +25,11 @@ type QueryResHeights struct {
 	Chain            common.Chain `json:"chain"`
 	LastChainHeight  int64        `json:"lastobservedin"`
 	LastSignedHeight int64        `json:"lastsignedout"`
-	Statechain       int64        `json:"statechain"`
+	Thorchain        int64        `json:"thorchain"`
 }
 
 func (h QueryResHeights) String() string {
-	return fmt.Sprintf("Chain: %d, Signed: %d, Statechain: %d", h.LastChainHeight, h.LastSignedHeight, h.Statechain)
+	return fmt.Sprintf("Chain: %d, Signed: %d, THORChain: %d", h.LastChainHeight, h.LastSignedHeight, h.Thorchain)
 }
 
 type ResTxOut struct {

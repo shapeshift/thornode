@@ -766,7 +766,7 @@ func queryHeights(ctx sdk.Context, path []string, req abci.RequestQuery, keeper 
 		Chain:            chain,
 		LastChainHeight:  chainHeight,
 		LastSignedHeight: signed,
-		Statechain:       ctx.BlockHeight(),
+		Thorchain:        ctx.BlockHeight(),
 	})
 	if err != nil {
 		ctx.Logger().Error("fail to marshal events to json", "error", err)

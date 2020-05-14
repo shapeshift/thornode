@@ -29,9 +29,9 @@ func (b *ThorchainBridge) GetLastSignedOutHeight() (int64, error) {
 func (b *ThorchainBridge) GetBlockHeight() (int64, error) {
 	lastblock, err := b.getLastBlock("")
 	if err != nil {
-		return 0, fmt.Errorf("failed to GetStatechainHeight: %w", err)
+		return 0, fmt.Errorf("failed to GetThorchainHeight: %w", err)
 	}
-	return lastblock.Statechain, nil
+	return lastblock.Thorchain, nil
 }
 
 // getLastBlock calls the /lastblock/{chain} endpoint and Unmarshal's into the QueryResHeights type
