@@ -22,7 +22,7 @@ func NewBanHandler(keeper Keeper) BanHandler {
 	}
 }
 
-// Run it the main entry point to execute Ban logic
+// Run is the main entry point to execute Ban logic
 func (h BanHandler) Run(ctx sdk.Context, m sdk.Msg, version semver.Version, constAccessor constants.ConstantValues) sdk.Result {
 	msg, ok := m.(MsgBan)
 	if !ok {
