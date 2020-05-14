@@ -21,6 +21,7 @@ import (
 	"gitlab.com/thorchain/tss/go-tss/blame"
 
 	"gitlab.com/thorchain/thornode/common"
+	"gitlab.com/thorchain/thornode/constants"
 	stypes "gitlab.com/thorchain/thornode/x/thorchain/types"
 
 	"gitlab.com/thorchain/thornode/bifrost/config"
@@ -384,7 +385,7 @@ func (b *ThorchainBridge) WaitToCatchUp() error {
 			break
 		}
 		b.logger.Info().Msg("thorchain is not caught up... waiting...")
-		time.Sleep(5 * time.Second)
+		time.Sleep(constants.ThorchainBlockTime)
 	}
 	return nil
 }
