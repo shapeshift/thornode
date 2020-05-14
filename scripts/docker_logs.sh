@@ -1,8 +1,7 @@
 set -ex
 
-docker ps -a
-
 mkdir logs
-for id in $(docker ps -q); do
-  docker logs $id > ./logs/$id.log
+docker ps -a >& ./log/ps.log
+for name in $(docker ps --format '{{.Names}}'); do
+  docker logs $name >& ./logs/$name.log
 done
