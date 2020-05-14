@@ -13,6 +13,16 @@ START_BLOCK_HEIGHT="${START_BLOCK_HEIGHT:=1}"
 
 $(dirname "$0")/wait-for-thorchain-api.sh $CHAIN_API
 
+# create thorchain user, if it doesn't already
+thorcli keys show $SIGNER_NAME
+if [ $? -gt 0 ]; then
+    if [ "$SIGNER_SEED_PHRASE" != "" ]; then
+        printf "$SIGNER_PASSWD\n$SIGNER_SEED_PHRASE\n" | thorcli keys add $SIGNER_NAME --recover
+    else
+        printf $SIGNER_PASSWD | thorcli --trace keys add $SIGNER_NAME
+    fi
+fi
+
 if [ ! -z "$PEER" ]; then
     PEER="/ip4/$PEER/tcp/5040/ipfs/$(curl http://$PEER:6040/p2pid)"
 fi
