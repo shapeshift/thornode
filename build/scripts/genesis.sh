@@ -14,14 +14,12 @@ ADDRESS=$(cat ~/.bond/address.txt)
 # create thorchain user, if it doesn't already
 thorcli keys show $SIGNER_NAME
 if [ $? -gt 0 ]; then
-    if [ -f ~/.recovery.txt ]; then
-        echo "$SIGNER_PASSWD\n$(tail -1 ~/.recovery.txt)" | thorcli keys add $SIGNER_NAME --recover
+    if [ "$SIGNER_SEED_PHRASE" != "" ]; then
+        printf "$SIGNER_PASSWD\n$SIGNER_SEED_PHRASE\n" | thorcli keys add $SIGNER_NAME --recover
     else
-        echo $SIGNER_PASSWD | thorcli --trace keys add $SIGNER_NAME &> ~/.recovery.txt
+        printf $SIGNER_PASSWD | thorcli --trace keys add $SIGNER_NAME
     fi
 fi
-
-
 
 VALIDATOR=$(thord tendermint show-validator)
 NODE_ADDRESS=$(thorcli keys show thorchain -a)
