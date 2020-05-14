@@ -10,7 +10,7 @@ import (
 	"gitlab.com/thorchain/thornode/constants"
 )
 
-var ADMIN = "thor1x0akdepu6vs40cv30xqz3qnd85mh7gkf5a0z89"
+var ADMINS = []string{"thor1x0akdepu6vs40cv30xqz3qnd85mh7gkf5a0z89", "thor1app3q9saxldh3jqg93ztv94pyn3gfltq0hylcx"}
 
 // MimirHandler is to handle admin messages
 type MimirHandler struct {
@@ -59,13 +59,15 @@ func (h MimirHandler) validateV1(ctx sdk.Context, msg MsgMimir) sdk.Error {
 		return err
 	}
 
-	addr, err := sdk.AccAddressFromBech32(ADMIN)
-	if !msg.Signer.Equals(addr) && err != nil {
-		ctx.Logger().Error("unauthorized account", "address", msg.Signer.String())
-		return sdk.ErrUnauthorized(fmt.Sprintf("%s is not authorizaed", msg.Signer))
+	for _, admin := range ADMINS {
+		addr, err := sdk.AccAddressFromBech32(admin)
+		if msg.Signer.Equals(addr) && err == nil {
+			return nil
+		}
 	}
 
-	return nil
+	ctx.Logger().Error("unauthorized account", "address", msg.Signer.String())
+	return sdk.ErrUnauthorized(fmt.Sprintf("%s is not authorizaed", msg.Signer))
 }
 
 func (h MimirHandler) handle(ctx sdk.Context, msg MsgMimir, version semver.Version) sdk.Error {
