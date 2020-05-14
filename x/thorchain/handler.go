@@ -168,7 +168,10 @@ func fetchMemo(ctx sdk.Context, constAccessor constants.ConstantValues, keeper K
 	var memo string
 	// attempt to pull memo from tx marker
 	hash := tx.Hash()
-	marks, _ := keeper.ListTxMarker(ctx, hash) // ignore err
+	marks, err := keeper.ListTxMarker(ctx, hash)
+	if err != nil {
+		ctx.Logger().Error("fail to get tx marker", "error", err)
+	}
 	if len(marks) > 0 {
 		// filter out expired tx markers
 		period := constAccessor.GetInt64Value(constants.SigningTransactionPeriod) * 3
@@ -279,7 +282,7 @@ func processOneTxIn(ctx sdk.Context, keeper Keeper, tx ObservedTx, signer sdk.Ac
 func getMsgNoOpFromMemo(tx ObservedTx, signer sdk.AccAddress) (sdk.Msg, error) {
 	for _, coin := range tx.Tx.Coins {
 		if !coin.Asset.IsBNB() {
-			return nil, errors.New("Only accepts BNB coins")
+			return nil, errors.New("only accepts BNB coins")
 		}
 	}
 	return NewMsgNoOp(tx, signer), nil
@@ -320,14 +323,14 @@ func getMsgStakeFromMemo(ctx sdk.Context, memo StakeMemo, tx ObservedTx, signer 
 	assetAmount := sdk.ZeroUint()
 	asset := memo.GetAsset()
 	if asset.IsEmpty() {
-		return nil, errors.New("Unable to determine the intended pool for this stake")
+		return nil, errors.New("unable to determine the intended pool for this stake")
 	}
 	// There is no dedicate pool for RUNE ,because every pool will have RUNE , that's by design
 	if asset.IsRune() {
 		return nil, errors.New("invalid pool asset")
 	}
 	// Extract the Rune amount and the asset amount from the transaction. At least one of them must be
-	// nonzero. If we saw two types of coins, one of them must be the asset coin.
+	// nonzero. If THORNode saw two types of coins, one of them must be the asset coin.
 	for _, coin := range tx.Tx.Coins {
 		ctx.Logger().Info("coin", "asset", coin.Asset.String(), "amount", coin.Amount.String())
 		if coin.Asset.IsRune() {

@@ -13,10 +13,7 @@ import (
 
 // TXTYPE:STATE1:STATE2:STATE3:FINALMEMO
 
-type (
-	TxType    uint8
-	adminType uint8
-)
+type TxType uint8
 
 const (
 	TxUnknown TxType = iota
@@ -183,13 +180,6 @@ type SwapMemo struct {
 	MemoBase
 	Destination common.Address
 	SlipLimit   sdk.Uint
-}
-
-type AdminMemo struct {
-	MemoBase
-	Key   string
-	Value string
-	Type  adminType
 }
 
 type OutboundMemo struct {
@@ -534,8 +524,6 @@ func (m MemoBase) IsEmpty() bool                  { return m.TxType.IsEmpty() }
 func (m UnstakeMemo) GetAmount() string            { return m.Amount }
 func (m SwapMemo) GetDestination() common.Address  { return m.Destination }
 func (m SwapMemo) GetSlipLimit() sdk.Uint          { return m.SlipLimit }
-func (m AdminMemo) GetKey() string                 { return m.Key }
-func (m AdminMemo) GetValue() string               { return m.Value }
 func (m BondMemo) GetAccAddress() sdk.AccAddress   { return m.NodeAddress }
 func (m StakeMemo) GetDestination() common.Address { return m.Address }
 func (m OutboundMemo) GetTxID() common.TxID        { return m.TxID }

@@ -23,7 +23,7 @@ func NewAddHandler(keeper Keeper, versionedEventManager VersionedEventManager) A
 	}
 }
 
-// Run it the main entry point to execute Ack logic
+// Run is the main entry point to execute Add logic
 func (ah AddHandler) Run(ctx sdk.Context, m sdk.Msg, version semver.Version, _ constants.ConstantValues) sdk.Result {
 	msg, ok := m.(MsgAdd)
 	if !ok {
@@ -62,7 +62,7 @@ func (ah AddHandler) validateV1(ctx sdk.Context, msg MsgAdd) sdk.Error {
 	return nil
 }
 
-// handleMsgAdd
+// handle  process MsgAdd
 func (ah AddHandler) handle(ctx sdk.Context, msg MsgAdd, version semver.Version) sdk.Error {
 	pool, err := ah.keeper.GetPool(ctx, msg.Asset)
 	if err != nil {
@@ -79,7 +79,7 @@ func (ah AddHandler) handle(ctx sdk.Context, msg MsgAdd, version semver.Version)
 	}
 
 	if err := ah.keeper.SetPool(ctx, pool); err != nil {
-		return sdk.ErrInternal(fmt.Errorf("fail to set pool(%s): %w", pool, err).Error())
+		return sdk.ErrInternal(fmt.Sprintf("fail to set pool(%s): %s", pool, err))
 	}
 	eventMgr, err := ah.versionedEventManager.GetEventManager(ctx, version)
 	if err != nil {

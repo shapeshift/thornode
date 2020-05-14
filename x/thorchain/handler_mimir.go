@@ -24,7 +24,7 @@ func NewMimirHandler(keeper Keeper) MimirHandler {
 	}
 }
 
-// Run it the main entry point to execute ip address logic
+// Run is the main entry point to execute mimir logic
 func (h MimirHandler) Run(ctx sdk.Context, m sdk.Msg, version semver.Version, _ constants.ConstantValues) sdk.Result {
 	msg, ok := m.(MsgMimir)
 	if !ok {
