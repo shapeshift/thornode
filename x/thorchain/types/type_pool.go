@@ -99,9 +99,8 @@ func NewPool() Pool {
 
 func (ps Pool) Valid() error {
 	if ps.Empty() {
-		return errors.New("Pool asset cannot be empty")
+		return errors.New("pool asset cannot be empty")
 	}
-
 	return nil
 }
 

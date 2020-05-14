@@ -6,6 +6,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	abci "github.com/tendermint/tendermint/abci/types"
 	tmtypes "github.com/tendermint/tendermint/types"
+
 	"gitlab.com/thorchain/thornode/common"
 )
 
@@ -62,7 +63,7 @@ func ValidateGenesis(data GenesisState) error {
 
 	for k, v := range data.Gas {
 		if len(v) == 0 {
-			return fmt.Errorf("Gas %s cannot have empty units", k)
+			return fmt.Errorf("gas %s cannot have empty units", k)
 		}
 	}
 
@@ -182,6 +183,18 @@ func InitGenesis(ctx sdk.Context, keeper Keeper, data GenesisState) []abci.Valid
 	return validators
 }
 
+func getStakers(ctx sdk.Context, k Keeper, asset common.Asset) []Staker {
+	stakers := make([]Staker, 0)
+	iterator := k.GetStakerIterator(ctx, asset)
+	defer iterator.Close()
+	for ; iterator.Valid(); iterator.Next() {
+		var ps Staker
+		k.Cdc().MustUnmarshalBinaryBare(iterator.Value(), &ps)
+		stakers = append(stakers, ps)
+	}
+	return stakers
+}
+
 // ExportGenesis export the data in Genesis
 func ExportGenesis(ctx sdk.Context, k Keeper) GenesisState {
 	var iterator sdk.Iterator
@@ -194,13 +207,7 @@ func ExportGenesis(ctx sdk.Context, k Keeper) GenesisState {
 
 	var stakers []Staker
 	for _, pool := range pools {
-		iterator := k.GetStakerIterator(ctx, pool.Asset)
-		defer iterator.Close()
-		for ; iterator.Valid(); iterator.Next() {
-			var ps Staker
-			k.Cdc().MustUnmarshalBinaryBare(iterator.Value(), &ps)
-			stakers = append(stakers, ps)
-		}
+		stakers = append(stakers, getStakers(ctx, k, pool.Asset)...)
 	}
 
 	var nodeAccounts NodeAccounts
