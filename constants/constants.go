@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/blang/semver"
 )
@@ -21,6 +22,9 @@ var (
 
 // The version of this software
 var SWVersion, _ = semver.Make(Version)
+
+// Block time of THORChain
+var ThorchainBlockTime = 5 * time.Second
 
 // ConstantValue010 implement ConstantValues interface for version 0.1.0
 type ConstantValue010 struct {
