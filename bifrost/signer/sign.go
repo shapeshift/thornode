@@ -71,7 +71,7 @@ func NewSigner(cfg config.SignerConfiguration,
 		if !na.PubKeySet.Secp256k1.IsEmpty() {
 			break
 		}
-		time.Sleep(5 * time.Second)
+		time.Sleep(constants.ThorchainBlockTime)
 		fmt.Println("Waiting for node account to be registered...")
 	}
 	for _, item := range na.SignerMembership {
