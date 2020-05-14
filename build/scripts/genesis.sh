@@ -14,19 +14,19 @@ ADDRESS=$(cat ~/.bond/address.txt)
 # create thorchain user, if it doesn't already
 thorcli keys show $SIGNER_NAME
 if [ $? -gt 0 ]; then
-    if [ -f ~/.recovery.txt ]; then
-        echo "$SIGNER_PASSWD\n$(tail -1 ~/.recovery.txt)" | thorcli keys add $SIGNER_NAME --recover
+    if [ "$SIGNER_SEED_PHRASE" != "" ]; then
+        printf "$SIGNER_PASSWD\n$SIGNER_SEED_PHRASE\n" | thorcli keys add $SIGNER_NAME --recover
     else
-        echo $SIGNER_PASSWD | thorcli --trace keys add $SIGNER_NAME &> ~/.recovery.txt
+        printf $SIGNER_PASSWD | thorcli --trace keys add $SIGNER_NAME
     fi
 fi
-
-
 
 VALIDATOR=$(thord tendermint show-validator)
 NODE_ADDRESS=$(thorcli keys show thorchain -a)
 NODE_PUB_KEY=$(thorcli keys show thorchain -p)
 VERSION=$(fetch_version)
+
+mkdir -p /tmp/shared
 
 if [ "$SEED" = "$(hostname)" ]; then
     echo "I AM THE SEED NODE"
@@ -61,7 +61,7 @@ if [ "$SEED" = "$(hostname)" ]; then
         NODE_IP_ADDRESS=$(curl -s http://whatismyip.akamai.com/)
 
         # add node accounts to genesis file
-        for f in /tmp/shared/node_*.json; do 
+        for f in /tmp/shared/node_*.json; do
             if [ ! -z ${VAULT_PUBKEY+x} ]; then
                 add_node_account $(cat $f | awk '{print $1}') $(cat $f | awk '{print $2}') $(cat $f | awk '{print $3}') $(cat $f | awk '{print $4}') $(cat $f | awk '{print $5}') $NODE_IP_ADDRESS $VAULT_PUBKEY
             else
@@ -86,7 +86,7 @@ fi
 if [ "$SEED" != "$(hostname)" ]; then
     if [ ! -f ~/.thord/config/genesis.json ]; then
         echo "I AM NOT THE SEED"
-        
+
         init_chain $NODE_ADDRESS
         fetch_genesis $SEED
         NODE_ID=$(fetch_node_id $SEED)
