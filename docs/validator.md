@@ -38,12 +38,12 @@ TODO
 To setup `thord`, we'll need to run the following commands.
 
 ```bash
-thord init local --chain-id statechain
+thord init local --chain-id thorchain
 
 thorcli keys add operator
 thorcli keys add observer
 
-thorcli config chain-id statechain
+thorcli config chain-id thorchain
 thorcli config output json
 thorcli config indent true
 thorcli config trust-node true

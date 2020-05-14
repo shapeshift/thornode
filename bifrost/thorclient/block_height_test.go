@@ -29,7 +29,7 @@ func (s *BlockHeightSuite) SetUpSuite(c *C) {
 		}
 	}))
 
-	s.cfg, _, s.cleanup = SetupStateChainForTest(c)
+	s.cfg, _, s.cleanup = SetupThorchainForTest(c)
 	s.cfg.ChainHost = s.server.Listener.Addr().String()
 	var err error
 	s.bridge, err = NewThorchainBridge(s.cfg, GetMetricForTest(c))
