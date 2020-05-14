@@ -82,6 +82,46 @@ func (b *BinanceBlockScanner) getTxHash(encodedTx string) (string, error) {
 	return fmt.Sprintf("%X", sha256.Sum256(decodedTx)), nil
 }
 
+func (b *BinanceBlockScanner) FetchLastHeight() (int64, error) {
+	u, err := url.Parse(b.cfg.RPCHost)
+	if err != nil {
+		return 0, fmt.Errorf("unable to parse dex host: %w", err)
+	}
+	u.Path = "abci_info"
+	resp, err := b.http.Get(u.String())
+	if err != nil {
+		return 0, fmt.Errorf("fail to get request(%s): %w", u.String(), err) // fmt.Errorf("Get request failed: %w", err)
+	}
+
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Error().Err(err).Msg("fail to close resp body")
+		}
+	}()
+
+	data, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return 0, fmt.Errorf("fail to read resp body: %w", err)
+	}
+
+	type ABCIinfo struct {
+		Jsonrpc string `json:"jsonrpc"`
+		ID      string `json:"id"`
+		Result  struct {
+			Response struct {
+				BlockHeight string `json:"last_block_height"`
+			} `json:"response"`
+		} `json:"result"`
+	}
+
+	var abci ABCIinfo
+	if err := json.Unmarshal(data, &abci); err != nil {
+		return 0, fmt.Errorf("failed to unmarshal: %w", err)
+	}
+
+	return strconv.ParseInt(abci.Result.Response.BlockHeight, 10, 64)
+}
+
 func (b *BinanceBlockScanner) updateFees(height int64) error {
 	url := fmt.Sprintf("%s/abci_query?path=\"/param/fees\"&height=%d", b.cfg.RPCHost, height)
 	resp, err := b.http.Get(url)
