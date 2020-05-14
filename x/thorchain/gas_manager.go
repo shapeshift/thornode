@@ -6,6 +6,7 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 )
 
+// GasManager define all the methods required to manage gas
 type GasManager interface {
 	BeginBlock()
 	EndBlock(ctx sdk.Context, keeper Keeper, eventManager EventManager)
@@ -14,15 +15,15 @@ type GasManager interface {
 	GetGas() common.Gas
 }
 
-// GasManangerImp implement a GasManager which will store the gas related events happened in thorchain in memory
-// emit GasEvent every block if there are any
+// GasMgr implement GasManager interface which will store the gas related events happened in thorchain to memory
+// emit GasEvent per block if there are any
 type GasMgr struct {
 	gasEvent *EventGas
 	gas      common.Gas
 	gasCount map[common.Asset]int64
 }
 
-// NewGasMgr create a new instance of GasManager
+// NewGasMgr create a new instance of GasMgr
 func NewGasMgr() *GasMgr {
 	return &GasMgr{
 		gasEvent: NewEventGas(),
@@ -31,7 +32,7 @@ func NewGasMgr() *GasMgr {
 	}
 }
 
-// BeginBlock when a new block created , update the internal EventGas to new one
+// BeginBlock need to be called when a new block get created , update the internal EventGas to new one
 func (gm *GasMgr) BeginBlock() {
 	gm.gasEvent = NewEventGas()
 	gm.gas = common.Gas{}
@@ -82,7 +83,7 @@ func (gm *GasMgr) ProcessGas(ctx sdk.Context, keeper Keeper) {
 			continue
 		}
 		if err := pool.Valid(); err != nil {
-			ctx.Logger().Error("fail to get pool", "pool", gas.Asset, "error", err)
+			ctx.Logger().Error("invalid pool", "pool", gas.Asset, "error", err)
 			continue
 		}
 		runeGas := pool.AssetValueInRune(gas.Amount) // Convert to Rune (gas will never be RUNE)
