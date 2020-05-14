@@ -85,6 +85,11 @@ func (e *BlockScanner) GetGasPrice() *big.Int {
 	return e.gasPrice
 }
 
+func (e *BlockScanner) FetchLastHeight() (int64, error) {
+	// TODO
+	return 0, nil
+}
+
 // processBlock extracts transactions from block
 func (e *BlockScanner) processBlock(block blockscanner.Block) (stypes.TxIn, error) {
 	noTx := stypes.TxIn{}

@@ -288,6 +288,11 @@ func (c *Client) confirmTx(txHash *chainhash.Hash) bool {
 	return true
 }
 
+func (c *Client) FetchLastHeight() (int64, error) {
+	// TODO
+	return 0, nil
+}
+
 // FetchTxs retrieves txs for a block height
 func (c *Client) FetchTxs(height int64) (types.TxIn, error) {
 	block, err := c.getBlock(height)
