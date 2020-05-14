@@ -27,7 +27,6 @@ add_gas_config () {
     shift
 
     # add asset to gas
-    echo "[\"app_state\", \"thorchain\", \"gas\", \"$asset\"]"
     jq --argjson path "[\"app_state\", \"thorchain\", \"gas\", \"$asset\"]" 'getpath($path) = []' ~/.thord/config/genesis.json > /tmp/genesis.json
     mv /tmp/genesis.json ~/.thord/config/genesis.json
 
