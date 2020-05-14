@@ -9,7 +9,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"strconv"
 	"strings"
 
 	"github.com/binance-chain/go-sdk/common/types"
@@ -185,43 +184,7 @@ func (b *Binance) GetChain() common.Chain {
 }
 
 func (b *Binance) GetHeight() (int64, error) {
-	u, err := url.Parse(b.cfg.RPCHost)
-	if err != nil {
-		return 0, fmt.Errorf("unable to parse dex host: %w", err)
-	}
-	u.Path = "abci_info"
-	resp, err := b.client.Get(u.String())
-	if err != nil {
-		return 0, fmt.Errorf("fail to get request(%s): %w", u.String(), err) // fmt.Errorf("Get request failed: %w", err)
-	}
-
-	defer func() {
-		if err := resp.Body.Close(); err != nil {
-			log.Error().Err(err).Msg("fail to close resp body")
-		}
-	}()
-
-	data, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return 0, fmt.Errorf("fail to read resp body: %w", err)
-	}
-
-	type ABCIinfo struct {
-		Jsonrpc string `json:"jsonrpc"`
-		ID      string `json:"id"`
-		Result  struct {
-			Response struct {
-				BlockHeight string `json:"last_block_height"`
-			} `json:"response"`
-		} `json:"result"`
-	}
-
-	var abci ABCIinfo
-	if err := json.Unmarshal(data, &abci); err != nil {
-		return 0, fmt.Errorf("failed to unmarshal: %w", err)
-	}
-
-	return strconv.ParseInt(abci.Result.Response.BlockHeight, 10, 64)
+	return b.bnbScanner.FetchLastHeight()
 }
 
 func (b *Binance) input(addr types.AccAddress, coins types.Coins) msg.Input {
@@ -330,7 +293,7 @@ func (b *Binance) SignTx(tx stypes.TxOutItem, height int64) ([]byte, error) {
 		return nil, fmt.Errorf("invalid send msg: %w", err)
 	}
 
-	currentHeight, err := b.GetHeight()
+	currentHeight, err := b.bnbScanner.FetchLastHeight()
 	if err != nil {
 		b.logger.Error().Err(err).Msg("fail to get current binance block height")
 		return nil, err
