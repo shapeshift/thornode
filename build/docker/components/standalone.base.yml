@@ -20,6 +20,7 @@ services:
       ETH_HOST: ${ETH_HOST:-http://ethereum-localnet:8545}
       PEER: ${PEER}
       SIGNER_PASSWD: ${SIGNER_PASSWD}
+      SIGNER_SEED_PHRASE: ${SIGNER_SEED_PHRASE:-about scheme grain alley pencil flame situate robot year match glove knife essay exotic boss edge police favorite where angry better faith elevator laundry}
     entrypoint:
       /docker/scripts/bifrost.sh
     volumes:
@@ -50,6 +51,7 @@ services:
       SEED: thor-daemon
       NET: ${NET}
       SIGNER_PASSWD: ${SIGNER_PASSWD}
+      SIGNER_SEED_PHRASE: ${SIGNER_SEED_PHRASE:-about scheme grain alley pencil flame situate robot year match glove knife essay exotic boss edge police favorite where angry better faith elevator laundry}
     ports:
       - "26657:26657"
       - "26656:26656"

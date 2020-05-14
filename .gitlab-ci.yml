@@ -85,7 +85,7 @@ smoke-test:thornode:
     - apk update
     - apk add git make
     - (git clone --single-branch -b $CI_COMMIT_BRANCH https://gitlab.com/thorchain/heimdall.git && make -C heimdall build) || git clone --single-branch -b master https://gitlab.com/thorchain/heimdall.git
-    - (git clone --single-branch -b $CI_COMMIT_BRANCH https://gitlab.com/thorchain/midgard.git && cd midgard && make docker-gitlab-build && cd ..) || true
+    - (git clone --single-branch -b $CI_COMMIT_BRANCH https://gitlab.com/thorchain/midgard.git && cd midgard && make docker-gitlab-build && docker tag registry.gitlab.com/thorchain/midgard:latest registry.gitlab.com/thorchain/midgard:mocknet && cd ..) || true
     - DOCKER_TLS_CERTDIR="/certs" make -C build/docker reset-mocknet-standalone
   except:
     - schedules
