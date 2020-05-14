@@ -32,7 +32,7 @@ var _ = Suite(&ThorchainSuite{})
 func (s *ThorchainSuite) SetUpSuite(c *C) {
 	cfg2 := sdk.GetConfig()
 	cfg2.SetBech32PrefixForAccount(cmd.Bech32PrefixAccAddr, cmd.Bech32PrefixAccPub)
-	s.cfg, _, s.cleanup = SetupStateChainForTest(c)
+	s.cfg, _, s.cleanup = SetupThorchainForTest(c)
 	s.server = httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		switch {
 		case strings.HasPrefix(req.RequestURI, AuthAccountEndpoint):
