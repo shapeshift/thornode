@@ -69,6 +69,10 @@ func (b *ThorchainBlockScan) GetKeygenMessages() <-chan ttypes.KeygenBlock {
 	return b.keygenChan
 }
 
+func (b *ThorchainBlockScan) FetchLastHeight() (int64, error) {
+	return b.thorchain.GetBlockHeight()
+}
+
 func (b *ThorchainBlockScan) FetchTxs(height int64) (stypes.TxIn, error) {
 	if err := b.processTxOutBlock(height); err != nil {
 		time.Sleep(b.cfg.BlockHeightDiscoverBackoff)

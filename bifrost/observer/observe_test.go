@@ -88,7 +88,7 @@ func (s *ObserverSuite) NewMockBinanceInstance(c *C, jsonData string) {
 	blockRetryInterval, _ := time.ParseDuration("10s")
 	httpRequestTimeout, _ := time.ParseDuration("30s")
 	s.b, err = binance.NewBinance(s.thorKeys, config.ChainConfiguration{RPCHost: server.URL, BlockScanner: config.BlockScannerConfiguration{
-		RPCHost:                    "http://" + server.URL,
+		RPCHost:                    server.URL,
 		BlockScanProcessors:        1,
 		BlockHeightDiscoverBackoff: blockHeightDiscoverBackoff,
 		BlockRetryInterval:         blockRetryInterval,
