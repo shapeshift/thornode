@@ -1,5 +1,3 @@
-set -ex
-
 mkdir logs
 docker ps -a >& ./logs/ps.log
 for name in $(docker ps --format '{{.Names}}'); do
