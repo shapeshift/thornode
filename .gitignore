@@ -30,7 +30,6 @@ c.out
 .envrc
 log
 blockscannertest/
-statechaintest/
 *.log
 *.ldb
 */observer_db

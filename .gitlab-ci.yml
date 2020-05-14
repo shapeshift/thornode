@@ -26,9 +26,6 @@ unit_tests:
   except:
     - schedules
   coverage: '/total:\s+\(statements\)\s+(\d+.\d+\%)/'
-  variables:
-    SignerName: "statechain"
-    SignerPasswd: "password"
   script:
     - make test-coverage
     - go tool cover -func=coverage.out

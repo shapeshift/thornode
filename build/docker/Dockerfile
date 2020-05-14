@@ -36,10 +36,3 @@ COPY --from=build /go/bin/thorcli /usr/bin/
 COPY --from=build /go/bin/bifrost /usr/bin/
 
 COPY build/scripts /scripts
-
-# Add users.
-RUN adduser -Ds /bin/sh www-data -G www-data
-
-# TODO Move away from needing nginx
-# Setup Nginx.
-ADD etc/nginx/nginx.conf /etc/nginx/
