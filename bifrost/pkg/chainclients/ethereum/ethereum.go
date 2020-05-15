@@ -138,11 +138,7 @@ func (c *Client) GetChain() common.Chain {
 }
 
 func (c *Client) GetHeight() (int64, error) {
-	block, err := c.client.BlockByNumber(context.Background(), nil)
-	if err != nil {
-		return -1, err
-	}
-	return block.Number().Int64(), nil
+	return c.ethScanner.GetHeight()
 }
 
 // GetAddress return current signer address, it will be bech32 encoded address

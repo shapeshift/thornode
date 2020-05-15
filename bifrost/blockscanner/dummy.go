@@ -18,6 +18,6 @@ func (d DummyFetcher) FetchTxs(height int64) (types.TxIn, error) {
 	return d.Tx, d.Err
 }
 
-func (d DummyFetcher) FetchLastHeight() (int64, error) {
+func (d DummyFetcher) GetHeight() (int64, error) {
 	return 0, nil
 }

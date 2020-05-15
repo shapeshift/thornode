@@ -85,9 +85,12 @@ func (e *BlockScanner) GetGasPrice() *big.Int {
 	return e.gasPrice
 }
 
-func (e *BlockScanner) FetchLastHeight() (int64, error) {
-	// TODO
-	return 0, nil
+func (e *BlockScanner) GetHeight() (int64, error) {
+	block, err := e.client.BlockByNumber(context.Background(), nil)
+	if err != nil {
+		return -1, err
+	}
+	return block.Number().Int64(), nil
 }
 
 // processBlock extracts transactions from block
