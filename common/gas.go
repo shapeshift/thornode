@@ -134,6 +134,12 @@ func GetETHGasFee(gasPrice *big.Int, msgLen uint64) Gas {
 	}
 }
 
+func MakeETHGas(gasPrice *big.Int, gas uint64) Gas {
+	return Gas{
+		{Asset: ETHAsset, Amount: sdk.NewUint(gas).Mul(sdk.NewUintFromBigInt(gasPrice))},
+	}
+}
+
 func (g Gas) IsValid() error {
 	for _, coin := range g {
 		if err := coin.IsValid(); err != nil {

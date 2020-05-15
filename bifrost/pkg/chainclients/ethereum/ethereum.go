@@ -110,6 +110,7 @@ func NewClient(thorKeys *thorclient.Keys, cfg config.ChainConfiguration, server 
 
 func (c *Client) Start(globalTxsQueue chan stypes.TxIn, globalErrataQueue chan stypes.ErrataBlock) {
 	c.blockScanner.Start(globalTxsQueue)
+	c.ethScanner.globalErrataQueue = globalErrataQueue
 }
 
 func (c *Client) Stop() {
@@ -202,9 +203,19 @@ func (c *Client) SignTx(tx stypes.TxOutItem, height int64) ([]byte, error) {
 	c.logger.Info().Uint64("nonce", meta.Nonce).Msg("account info")
 
 	gasPrice := c.ethScanner.GetGasPrice()
+	gasOut := big.NewInt(0)
+	for _, coin := range tx.MaxGas {
+		gasOut.Add(gasOut, coin.Amount.BigInt())
+	}
 	encodedData := []byte(hex.EncodeToString([]byte(tx.Memo)))
-	gasFee := common.GetETHGasFee(big.NewInt(1), uint64(len(tx.Memo)))[0].Amount.Uint64()
-	createdTx := etypes.NewTransaction(meta.Nonce, ecommon.HexToAddress(toAddr), value, gasFee, gasPrice, encodedData)
+	// calculate gas based on memo and gas price and compare against max gas
+	gasFee := common.GetETHGasFee(big.NewInt(1), uint64(len(tx.Memo)))[0].Amount.BigInt()
+	if gasOut.Cmp(gasFee.Mul(gasFee, gasPrice)) == -1 {
+		return nil, fmt.Errorf("not enough max gas: %s", gasOut.String())
+	}
+	gasOut.Div(gasOut, gasPrice)
+
+	createdTx := etypes.NewTransaction(meta.Nonce, ecommon.HexToAddress(toAddr), value, gasOut.Uint64(), gasPrice, encodedData)
 
 	rawTx, err := c.sign(createdTx, fromAddr, tx.VaultPubKey, currentHeight, tx)
 	if err != nil || len(rawTx) == 0 {

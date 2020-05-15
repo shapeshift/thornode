@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+
+	"github.com/syndtr/goleveldb/leveldb"
 )
 
 const MockErrorBlockHeight = 1024
@@ -69,5 +71,9 @@ func (mss *MockScannerStorage) GetBlocksForRetry(failedOnly bool) ([]Block, erro
 }
 
 func (mss *MockScannerStorage) Close() error {
+	return nil
+}
+
+func (mss *MockScannerStorage) GetInternalDb() *leveldb.DB {
 	return nil
 }

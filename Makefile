@@ -105,3 +105,4 @@ pull:
 	docker pull registry.gitlab.com/thorchain/midgard
 	docker pull registry.gitlab.com/thorchain/bepswap/bepswap-web-ui
 	docker pull registry.gitlab.com/thorchain/bepswap/mock-binance
+	docker pull registry.gitlab.com/thorchain/ethereum-mock
