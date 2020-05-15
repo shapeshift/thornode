@@ -69,7 +69,7 @@ func (b *ThorchainBlockScan) GetKeygenMessages() <-chan ttypes.KeygenBlock {
 	return b.keygenChan
 }
 
-func (b *ThorchainBlockScan) FetchLastHeight() (int64, error) {
+func (b *ThorchainBlockScan) GetHeight() (int64, error) {
 	return b.thorchain.GetBlockHeight()
 }
 

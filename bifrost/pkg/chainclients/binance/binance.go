@@ -184,7 +184,7 @@ func (b *Binance) GetChain() common.Chain {
 }
 
 func (b *Binance) GetHeight() (int64, error) {
-	return b.bnbScanner.FetchLastHeight()
+	return b.bnbScanner.GetHeight()
 }
 
 func (b *Binance) input(addr types.AccAddress, coins types.Coins) msg.Input {
@@ -293,7 +293,7 @@ func (b *Binance) SignTx(tx stypes.TxOutItem, height int64) ([]byte, error) {
 		return nil, fmt.Errorf("invalid send msg: %w", err)
 	}
 
-	currentHeight, err := b.bnbScanner.FetchLastHeight()
+	currentHeight, err := b.bnbScanner.GetHeight()
 	if err != nil {
 		b.logger.Error().Err(err).Msg("fail to get current binance block height")
 		return nil, err

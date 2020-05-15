@@ -82,7 +82,7 @@ func (b *BinanceBlockScanner) getTxHash(encodedTx string) (string, error) {
 	return fmt.Sprintf("%X", sha256.Sum256(decodedTx)), nil
 }
 
-func (b *BinanceBlockScanner) FetchLastHeight() (int64, error) {
+func (b *BinanceBlockScanner) GetHeight() (int64, error) {
 	u, err := url.Parse(b.cfg.RPCHost)
 	if err != nil {
 		return 0, fmt.Errorf("unable to parse dex host: %w", err)

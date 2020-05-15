@@ -19,7 +19,7 @@ import (
 
 type BlockScannerFetcher interface {
 	FetchTxs(height int64) (types.TxIn, error)
-	FetchLastHeight() (int64, error)
+	GetHeight() (int64, error)
 }
 
 type Block struct {
@@ -168,7 +168,7 @@ func (b *BlockScanner) FetchLastHeight() (int64, error) {
 		}
 	}
 
-	return b.chainScanner.FetchLastHeight()
+	return b.chainScanner.GetHeight()
 }
 
 func (b *BlockScanner) Stop() {
