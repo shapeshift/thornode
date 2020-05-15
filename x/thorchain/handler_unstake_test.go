@@ -76,9 +76,6 @@ func (mfp *MockUnstakeKeeper) SetStaker(_ sdk.Context, staker Staker) {
 	mfp.staker = staker
 }
 
-func (mfp *MockUnstakeKeeper) GetAdminConfigDefaultPoolStatus(_ sdk.Context, _ sdk.AccAddress) PoolStatus {
-	return PoolEnabled
-}
 func (mfp *MockUnstakeKeeper) UpsertEvent(ctx sdk.Context, event Event) error { return nil }
 
 func (mfp *MockUnstakeKeeper) GetGas(ctx sdk.Context, asset common.Asset) ([]sdk.Uint, error) {
