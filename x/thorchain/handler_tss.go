@@ -13,13 +13,15 @@ import (
 type TssHandler struct {
 	keeper                Keeper
 	versionedVaultManager VersionedVaultManager
+	versionedEventManager VersionedEventManager
 }
 
 // NewTssHandler create a new handler to process MsgTssPool
-func NewTssHandler(keeper Keeper, versionedVaultManager VersionedVaultManager) TssHandler {
+func NewTssHandler(keeper Keeper, versionedVaultManager VersionedVaultManager, versionedEventManager VersionedEventManager) TssHandler {
 	return TssHandler{
 		keeper:                keeper,
 		versionedVaultManager: versionedVaultManager,
+		versionedEventManager: versionedEventManager,
 	}
 }
 
@@ -92,8 +94,21 @@ func (h TssHandler) handleV1(ctx sdk.Context, msg MsgTssPool, version semver.Ver
 		voter.PoolPubKey = msg.PoolPubKey
 		voter.PubKeys = msg.PubKeys
 	}
-
-	voter.Sign(msg.Signer, msg.Chains)
+	slasher, err := NewSlasher(h.keeper, version, h.versionedEventManager)
+	if err != nil {
+		ctx.Logger().Error("fail to create slasher", "error", err)
+		return sdk.ErrInternal("fail to create slasher").Result()
+	}
+	constAccessor := constants.GetConstantValues(version)
+	observeSlashPoints := constAccessor.GetInt64Value(constants.ObserveSlashPoints)
+	slasher.IncSlashPoints(ctx, observeSlashPoints, msg.Signer)
+	if !voter.Sign(msg.Signer, msg.Chains) {
+		ctx.Logger().Info("signer already signed MsgTssPool", "signer", msg.Signer.String(), "txid", msg.ID)
+		return sdk.Result{
+			Code:      sdk.CodeOK,
+			Codespace: DefaultCodespace,
+		}
+	}
 	h.keeper.SetTssVoter(ctx, voter)
 	// doesn't have consensus yet
 	if !voter.HasConsensus() {
@@ -107,6 +122,7 @@ func (h TssHandler) handleV1(ctx sdk.Context, msg MsgTssPool, version semver.Ver
 	if voter.BlockHeight == 0 {
 		voter.BlockHeight = ctx.BlockHeight()
 		h.keeper.SetTssVoter(ctx, voter)
+		slasher.DecSlashPoints(ctx, observeSlashPoints, voter.Signers...)
 		if msg.IsSuccess() {
 			vaultType := YggdrasilVault
 			if msg.KeygenType == AsgardKeygen {
@@ -180,6 +196,14 @@ func (h TssHandler) handleV1(ctx sdk.Context, msg MsgTssPool, version semver.Ver
 			}
 
 		}
+		return sdk.Result{
+			Code:      sdk.CodeOK,
+			Codespace: DefaultCodespace,
+		}
+	}
+
+	if voter.BlockHeight == ctx.BlockHeight() {
+		slasher.DecSlashPoints(ctx, observeSlashPoints, msg.Signer)
 	}
 
 	return sdk.Result{

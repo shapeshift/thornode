@@ -78,8 +78,21 @@ func (h ErrataTxHandler) handleV1(ctx sdk.Context, msg MsgErrataTx, version semv
 	if err != nil {
 		return sdk.ErrInternal(err.Error()).Result()
 	}
-
-	voter.Sign(msg.Signer)
+	slasher, err := NewSlasher(h.keeper, version, h.versionedEventManager)
+	if err != nil {
+		ctx.Logger().Error("fail to create slasher", "error", err)
+		return sdk.ErrInternal("fail to create slasher").Result()
+	}
+	constAccessor := constants.GetConstantValues(version)
+	observeSlashPoints := constAccessor.GetInt64Value(constants.ObserveSlashPoints)
+	slasher.IncSlashPoints(ctx, observeSlashPoints, msg.Signer)
+	if !voter.Sign(msg.Signer) {
+		ctx.Logger().Info("signer already signed MsgErrataTx", "signer", msg.Signer.String(), "txid", msg.TxID)
+		return sdk.Result{
+			Code:      sdk.CodeOK,
+			Codespace: DefaultCodespace,
+		}
+	}
 	h.keeper.SetErrataTxVoter(ctx, voter)
 	// doesn't have consensus yet
 	if !voter.HasConsensus(active) {
@@ -91,6 +104,9 @@ func (h ErrataTxHandler) handleV1(ctx sdk.Context, msg MsgErrataTx, version semv
 	}
 
 	if voter.BlockHeight > 0 {
+		if voter.BlockHeight == ctx.BlockHeight() {
+			slasher.DecSlashPoints(ctx, observeSlashPoints, msg.Signer)
+		}
 		// errata tx already processed
 		return sdk.Result{
 			Code:      sdk.CodeOK,
@@ -100,7 +116,8 @@ func (h ErrataTxHandler) handleV1(ctx sdk.Context, msg MsgErrataTx, version semv
 
 	voter.BlockHeight = ctx.BlockHeight()
 	h.keeper.SetErrataTxVoter(ctx, voter)
-
+	// decrease the slash points
+	slasher.DecSlashPoints(ctx, observeSlashPoints, voter.Signers...)
 	observedVoter, err := h.keeper.GetObservedTxVoter(ctx, msg.TxID)
 	if err != nil {
 		return sdk.ErrInternal(err.Error()).Result()
