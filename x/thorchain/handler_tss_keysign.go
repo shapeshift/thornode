@@ -10,14 +10,16 @@ import (
 
 // TssKeysignHandler is design to process MsgTssKeysignFail
 type TssKeysignHandler struct {
-	keeper Keeper
+	keeper                Keeper
+	versionedEventManager VersionedEventManager
 }
 
 // NewTssKeysignHandler create a new instance of TssKeysignHandler
 // when a signer fail to join tss keysign , thorchain need to slash their node account
-func NewTssKeysignHandler(keeper Keeper) TssKeysignHandler {
+func NewTssKeysignHandler(keeper Keeper, versionedEventManager VersionedEventManager) TssKeysignHandler {
 	return TssKeysignHandler{
-		keeper: keeper,
+		keeper:                keeper,
+		versionedEventManager: versionedEventManager,
 	}
 }
 
@@ -77,8 +79,21 @@ func (h TssKeysignHandler) handleV1(ctx sdk.Context, msg MsgTssKeysignFail, vers
 	if err != nil {
 		return sdk.ErrInternal(err.Error()).Result()
 	}
-
-	voter.Sign(msg.Signer)
+	slasher, err := NewSlasher(h.keeper, version, h.versionedEventManager)
+	if err != nil {
+		ctx.Logger().Error("fail to create slasher", "error", err)
+		return sdk.ErrInternal("fail to create slasher").Result()
+	}
+	constAccessor := constants.GetConstantValues(version)
+	observeSlashPoints := constAccessor.GetInt64Value(constants.ObserveSlashPoints)
+	slasher.IncSlashPoints(ctx, observeSlashPoints, msg.Signer)
+	if !voter.Sign(msg.Signer) {
+		ctx.Logger().Info("signer already signed MsgTssKeysignFail", "signer", msg.Signer.String(), "txid", msg.ID)
+		return sdk.Result{
+			Code:      sdk.CodeOK,
+			Codespace: DefaultCodespace,
+		}
+	}
 	h.keeper.SetTssKeysignFailVoter(ctx, voter)
 	// doesn't have consensus yet
 	if !voter.HasConsensus(active) {
@@ -111,6 +126,14 @@ func (h TssKeysignHandler) handleV1(ctx sdk.Context, msg MsgTssKeysignFail, vers
 				ctx.Logger().Error("fail to inc slash points", "error", err)
 			}
 		}
+		slasher.DecSlashPoints(ctx, observeSlashPoints, voter.Signers...)
+		return sdk.Result{
+			Code:      sdk.CodeOK,
+			Codespace: DefaultCodespace,
+		}
+	}
+	if voter.Height == ctx.BlockHeight() {
+		slasher.DecSlashPoints(ctx, observeSlashPoints, msg.Signer)
 	}
 
 	return sdk.Result{

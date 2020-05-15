@@ -45,10 +45,9 @@ func (tx ObservedTx) Valid() error {
 	if err := tx.Tx.IsValid(); err != nil {
 		return err
 	}
-	// Ideally memo should not be empty, THORNode check it here, but if
-	// THORNode check it empty here, then the tx will be rejected by thorchain
-	// given that THORNode is not going to refund the transaction, thus THORNode
-	// will allow ObservedTx has empty to get into thorchain. Thorchain will refund user
+
+	// Memo should not be empty, but it can't be checked here, because a message failed validation will be rejected by THORNode.
+	// Thus THORNode can't refund customer accordingly , which will result fund lost
 	if tx.BlockHeight == 0 {
 		return errors.New("block height can't be zero")
 	}
@@ -86,10 +85,14 @@ func (tx ObservedTx) HasSigned(signer sdk.AccAddress) bool {
 	return false
 }
 
-func (tx *ObservedTx) Sign(signer sdk.AccAddress) {
-	if !tx.HasSigned(signer) {
-		tx.Signers = append(tx.Signers, signer)
+// Sign add the given node account to signers list
+// if the given signer is already in the list, it will return false, otherwise true
+func (tx *ObservedTx) Sign(signer sdk.AccAddress) bool {
+	if tx.HasSigned(signer) {
+		return false
 	}
+	tx.Signers = append(tx.Signers, signer)
+	return true
 }
 
 func (tx *ObservedTx) SetDone(hash common.TxID, numOuts int) {
@@ -112,14 +115,12 @@ func (tx *ObservedTx) IsDone(numOuts int) bool {
 }
 
 type ObservedTxVoter struct {
-	TxID         common.TxID `json:"tx_id"`
-	Tx           ObservedTx  `json:"tx"` // final consensus transaction
-	Height       int64       `json:"height"`
-	ProcessedIn  bool        `json:"processed_in"`  // used to track if has been processed txin
-	ProcessedOut bool        `json:"processed_out"` // used to track if has been processed txout
-	Txs          ObservedTxs `json:"in_tx"`         // copies of tx in by various observers.
-	Actions      []TxOutItem `json:"actions"`       // outbound txs set to be sent
-	OutTxs       common.Txs  `json:"out_txs"`       // observed outbound transactions
+	TxID    common.TxID `json:"tx_id"`
+	Tx      ObservedTx  `json:"tx"` // final consensus transaction
+	Height  int64       `json:"height"`
+	Txs     ObservedTxs `json:"in_tx"`   // copies of tx in by various observers.
+	Actions []TxOutItem `json:"actions"` // outbound txs set to be sent
+	OutTxs  common.Txs  `json:"out_txs"` // observed outbound transactions
 }
 
 type ObservedTxVoters []ObservedTxVoter
@@ -133,7 +134,7 @@ func NewObservedTxVoter(txID common.TxID, txs []ObservedTx) ObservedTxVoter {
 
 func (tx ObservedTxVoter) Valid() error {
 	if tx.TxID.IsEmpty() {
-		return errors.New("Cannot have an empty tx id")
+		return errors.New("cannot have an empty tx id")
 	}
 
 	for _, in := range tx.Txs {
@@ -193,27 +194,33 @@ func (tx *ObservedTxVoter) IsDone() bool {
 	return len(tx.Actions) <= len(tx.OutTxs)
 }
 
-func (tx *ObservedTxVoter) Add(observedTx ObservedTx, signer sdk.AccAddress) {
+// Add is trying to add the given observed tx into the voter , if the signer already sign , they will not add twice , it simply return false
+func (tx *ObservedTxVoter) Add(observedTx ObservedTx, signer sdk.AccAddress) bool {
 	// check if this signer has already signed, no take backs allowed
-	for _, transaction := range tx.Txs {
+	votedIdx := -1
+	for idx, transaction := range tx.Txs {
+		if !transaction.Equals(observedTx) {
+			continue
+		}
+		votedIdx = idx
+		// check whether the signer is already in the list
 		for _, siggy := range transaction.Signers {
 			if siggy.Equals(signer) {
-				return
+				return false
 			}
 		}
-	}
 
-	for i := range tx.Txs {
-		if tx.Txs[i].Equals(observedTx) {
-			tx.Txs[i].Sign(signer)
-			return
-		}
+	}
+	if votedIdx != -1 {
+		return tx.Txs[votedIdx].Sign(signer)
 	}
 
 	observedTx.Signers = []sdk.AccAddress{signer}
 	tx.Txs = append(tx.Txs, observedTx)
+	return true
 }
 
+// HasConsensus is to check whether any of the tx in this ObservedTxVoter reach consensus
 func (tx ObservedTxVoter) HasConsensus(nodeAccounts NodeAccounts) bool {
 	for _, txIn := range tx.Txs {
 		var count int
@@ -230,6 +237,7 @@ func (tx ObservedTxVoter) HasConsensus(nodeAccounts NodeAccounts) bool {
 	return false
 }
 
+// GetTx return the tx that has super majority
 func (tx *ObservedTxVoter) GetTx(nodeAccounts NodeAccounts) ObservedTx {
 	if !tx.Tx.IsEmpty() {
 		return tx.Tx
