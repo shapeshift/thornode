@@ -18,6 +18,7 @@ type ScannerStorage interface {
 	RemoveBlockStatus(block int64) error
 
 	GetBlocksForRetry(failedOnly bool) ([]Block, error)
+	GetInternalDb() *leveldb.DB
 	io.Closer
 }
 

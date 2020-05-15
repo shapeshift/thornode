@@ -20,6 +20,14 @@ func (s *GasSuite) TestETHGasFee(c *C) {
 		true,
 		Commentf("%d", amt.Uint64()),
 	)
+	gas = MakeETHGas(big.NewInt(20), 50000)
+	amt = gas[0].Amount
+	c.Check(
+		amt.Equal(sdk.NewUint(1000000)),
+		Equals,
+		true,
+		Commentf("%d", amt.Uint64()),
+	)
 }
 
 func (s *GasSuite) TestIsEmpty(c *C) {
