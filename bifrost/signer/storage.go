@@ -238,3 +238,7 @@ func (s *SignerStore) OrderedLists() map[string][]TxOutStoreItem {
 func (s *SignerStore) Close() error {
 	return s.db.Close()
 }
+
+func (s *SignerStore) GetInternalDb() *leveldb.DB {
+	return s.db
+}
