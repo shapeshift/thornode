@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+
 	"gitlab.com/thorchain/thornode/common"
 )
 
@@ -32,10 +33,12 @@ func (errata ErrataTxVoter) HasSigned(signer sdk.AccAddress) bool {
 }
 
 // Sign this voter with given signer address
-func (errata *ErrataTxVoter) Sign(signer sdk.AccAddress) {
-	if !errata.HasSigned(signer) {
-		errata.Signers = append(errata.Signers, signer)
+func (errata *ErrataTxVoter) Sign(signer sdk.AccAddress) bool {
+	if errata.HasSigned(signer) {
+		return false
 	}
+	errata.Signers = append(errata.Signers, signer)
+	return true
 }
 
 // Determine if this errata has enough signers

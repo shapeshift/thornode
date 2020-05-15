@@ -90,16 +90,30 @@ func (h ObservedTxInHandler) handle(ctx sdk.Context, msg MsgObservedTxIn, versio
 	}
 }
 
-func (h ObservedTxInHandler) preflight(ctx sdk.Context, voter ObservedTxVoter, nas NodeAccounts, tx ObservedTx, signer sdk.AccAddress) (ObservedTxVoter, bool) {
-	voter.Add(tx, signer)
-
+func (h ObservedTxInHandler) preflight(ctx sdk.Context, voter ObservedTxVoter, nas NodeAccounts, tx ObservedTx, signer sdk.AccAddress, slasher *Slasher, version semver.Version) (ObservedTxVoter, bool) {
+	constAccessor := constants.GetConstantValues(version)
+	observeSlashPoints := constAccessor.GetInt64Value(constants.ObserveSlashPoints)
+	slasher.IncSlashPoints(ctx, observeSlashPoints, signer)
 	ok := false
-	if voter.HasConsensus(nas) && !voter.ProcessedIn {
-		ok = true
-		voter.Height = ctx.BlockHeight()
-		voter.ProcessedIn = true
-		// this is the tx that has consensus
-		voter.Tx = voter.GetTx(nas)
+	if !voter.Add(tx, signer) {
+		return voter, ok
+	}
+	if voter.HasConsensus(nas) {
+		if voter.Height == 0 {
+			ok = true
+			voter.Height = ctx.BlockHeight()
+			// this is the tx that has consensus
+			voter.Tx = voter.GetTx(nas)
+
+			// tx has consensus now, so decrease the slashing points for all the signers whom had voted for it
+			slasher.DecSlashPoints(ctx, observeSlashPoints, voter.Tx.Signers...)
+		} else {
+			// event the tx had been processed , given the signer just a bit late , so still take away their slash points
+			// but only when the tx signer are voting is the tx that already reached consensus
+			if ctx.BlockHeight() == voter.Height && voter.Tx.Equals(tx) {
+				slasher.DecSlashPoints(ctx, observeSlashPoints, signer)
+			}
+		}
 	}
 	h.keeper.SetObservedTxVoter(ctx, voter)
 
@@ -130,13 +144,17 @@ func (h ObservedTxInHandler) handleV1(ctx sdk.Context, version semver.Version, m
 		ctx.Logger().Error("fail to get event manager", "error", err)
 		return errFailGetEventManager.Result()
 	}
+	slasher, err := NewSlasher(h.keeper, version, h.versionedEventManager)
+	if err != nil {
+		ctx.Logger().Error("fail to create slasher", "error", err)
+		return sdk.ErrInternal("fail to create slasher").Result()
+	}
 	handler := NewInternalHandler(h.keeper, h.versionedTxOutStore, h.validatorMgr, h.versionedVaultManager, h.versionedObserverManager, h.versionedGasMgr, h.versionedEventManager)
-
 	for _, tx := range msg.Txs {
 
 		// check we are sending to a valid vault
 		if !h.keeper.VaultExists(ctx, tx.ObservedPubKey) {
-			ctx.Logger().Info("Not valid Observed Pubkey", tx.ObservedPubKey)
+			ctx.Logger().Info("Not valid Observed Pubkey", "observed pub key", tx.ObservedPubKey)
 			continue
 		}
 
@@ -145,7 +163,7 @@ func (h ObservedTxInHandler) handleV1(ctx sdk.Context, version semver.Version, m
 			return sdk.ErrInternal(err.Error()).Result()
 		}
 
-		voter, ok := h.preflight(ctx, voter, activeNodeAccounts, tx, msg.Signer)
+		voter, ok := h.preflight(ctx, voter, activeNodeAccounts, tx, msg.Signer, slasher, version)
 		if !ok {
 			if voter.Height == ctx.BlockHeight() {
 				// we've already process the transaction, but we should still

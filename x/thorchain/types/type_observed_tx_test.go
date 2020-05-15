@@ -51,13 +51,13 @@ func (s TypeObservedTxSuite) TestVoter(c *C) {
 	c.Assert(voter.Txs[0].Signers, HasLen, 2)
 
 	voter.Add(obTx2, acc1) // same validator seeing a different version of tx
-	c.Assert(voter.Txs, HasLen, 1)
+	c.Assert(voter.Txs, HasLen, 2)
 	c.Assert(voter.Txs[0].Signers, HasLen, 2)
 
 	voter.Add(obTx2, acc3) // second version
 	c.Assert(voter.Txs, HasLen, 2)
 	c.Assert(voter.Txs[0].Signers, HasLen, 2)
-	c.Assert(voter.Txs[1].Signers, HasLen, 1)
+	c.Assert(voter.Txs[1].Signers, HasLen, 2)
 
 	trusts3 := NodeAccounts{
 		NodeAccount{
