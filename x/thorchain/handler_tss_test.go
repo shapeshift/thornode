@@ -276,12 +276,12 @@ func (s *HandlerTssSuite) TestTssHandler(c *C) {
 				tssMsg := NewMsgTssPool(helper.members, helper.poolPk, AsgardKeygen, helper.ctx.BlockHeight(), blame.Blame{}, common.Chains{common.RuneAsset().Chain}, helper.signer)
 				voter, err := helper.keeper.GetTssVoter(helper.ctx, tssMsg.ID)
 				c.Assert(err, IsNil)
-				for i, pk := range helper.members {
-					if i == 0 {
-						continue
-					}
+				for _, pk := range helper.members {
 					addr, err := pk.GetThorAddress()
 					c.Assert(err, IsNil)
+					if addr.Equals(helper.signer) {
+						continue
+					}
 					voter.Signers = append(voter.Signers, addr)
 				}
 				helper.keeper.SetTssVoter(helper.ctx, voter)
@@ -334,12 +334,12 @@ func (s *HandlerTssSuite) TestTssHandler(c *C) {
 				tssMsg := NewMsgTssPool(helper.members, GetRandomPubKey(), AsgardKeygen, helper.ctx.BlockHeight(), b, common.Chains{common.RuneAsset().Chain}, helper.signer)
 				voter, err := helper.keeper.GetTssVoter(helper.ctx, tssMsg.ID)
 				c.Assert(err, IsNil)
-				for i, pk := range helper.members {
-					if i == 0 {
-						continue
-					}
+				for _, pk := range helper.members {
 					addr, err := pk.GetThorAddress()
 					c.Assert(err, IsNil)
+					if addr.Equals(helper.signer) {
+						continue
+					}
 					voter.Signers = append(voter.Signers, addr)
 				}
 				helper.keeper.SetTssVoter(helper.ctx, voter)
@@ -369,12 +369,12 @@ func (s *HandlerTssSuite) TestTssHandler(c *C) {
 				tssMsg := NewMsgTssPool(helper.members, GetRandomPubKey(), AsgardKeygen, helper.ctx.BlockHeight(), b, common.Chains{common.RuneAsset().Chain}, helper.signer)
 				voter, err := helper.keeper.GetTssVoter(helper.ctx, tssMsg.ID)
 				c.Assert(err, IsNil)
-				for i, pk := range helper.members {
-					if i == 0 {
-						continue
-					}
+				for _, pk := range helper.members {
 					addr, err := pk.GetThorAddress()
 					c.Assert(err, IsNil)
+					if addr.Equals(helper.signer) {
+						continue
+					}
 					voter.Signers = append(voter.Signers, addr)
 				}
 				helper.keeper.SetTssVoter(helper.ctx, voter)
@@ -418,12 +418,12 @@ func (s *HandlerTssSuite) TestTssHandler(c *C) {
 				tssMsg := NewMsgTssPool(helper.members, GetRandomPubKey(), AsgardKeygen, helper.ctx.BlockHeight(), b, common.Chains{common.RuneAsset().Chain}, helper.signer)
 				voter, err := helper.keeper.GetTssVoter(helper.ctx, tssMsg.ID)
 				c.Assert(err, IsNil)
-				for i, pk := range helper.members {
-					if i == 0 {
-						continue
-					}
+				for _, pk := range helper.members {
 					addr, err := pk.GetThorAddress()
 					c.Assert(err, IsNil)
+					if addr.Equals(helper.signer) {
+						continue
+					}
 					voter.Signers = append(voter.Signers, addr)
 				}
 				helper.keeper.SetTssVoter(helper.ctx, voter)
@@ -450,12 +450,12 @@ func (s *HandlerTssSuite) TestTssHandler(c *C) {
 				tssMsg := NewMsgTssPool(helper.members, GetRandomPubKey(), AsgardKeygen, helper.ctx.BlockHeight(), b, common.Chains{common.RuneAsset().Chain}, helper.signer)
 				voter, err := helper.keeper.GetTssVoter(helper.ctx, tssMsg.ID)
 				c.Assert(err, IsNil)
-				for i, pk := range helper.members {
-					if i == 0 {
-						continue
-					}
+				for _, pk := range helper.members {
 					addr, err := pk.GetThorAddress()
 					c.Assert(err, IsNil)
+					if addr.Equals(helper.signer) {
+						continue
+					}
 					voter.Signers = append(voter.Signers, addr)
 				}
 				helper.keeper.SetTssVoter(helper.ctx, voter)
@@ -493,12 +493,12 @@ func (s *HandlerTssSuite) TestTssHandler(c *C) {
 				tssMsg := NewMsgTssPool(helper.members, GetRandomPubKey(), AsgardKeygen, helper.ctx.BlockHeight(), b, common.Chains{common.RuneAsset().Chain}, helper.signer)
 				voter, err := helper.keeper.GetTssVoter(helper.ctx, tssMsg.ID)
 				c.Assert(err, IsNil)
-				for i, pk := range helper.members {
-					if i == 0 {
-						continue
-					}
+				for _, pk := range helper.members {
 					addr, err := pk.GetThorAddress()
 					c.Assert(err, IsNil)
+					if addr.Equals(helper.signer) {
+						continue
+					}
 					voter.Signers = append(voter.Signers, addr)
 				}
 				helper.keeper.SetTssVoter(helper.ctx, voter)
@@ -527,12 +527,12 @@ func (s *HandlerTssSuite) TestTssHandler(c *C) {
 				tssMsg := NewMsgTssPool(helper.members, GetRandomPubKey(), AsgardKeygen, helper.ctx.BlockHeight(), b, common.Chains{common.RuneAsset().Chain}, helper.signer)
 				voter, err := helper.keeper.GetTssVoter(helper.ctx, tssMsg.ID)
 				c.Assert(err, IsNil)
-				for i, pk := range helper.members {
-					if i == 0 {
-						continue
-					}
+				for _, pk := range helper.members {
 					addr, err := pk.GetThorAddress()
 					c.Assert(err, IsNil)
+					if addr.Equals(helper.signer) {
+						continue
+					}
 					voter.Signers = append(voter.Signers, addr)
 				}
 				helper.keeper.SetTssVoter(helper.ctx, voter)
@@ -556,12 +556,12 @@ func (s *HandlerTssSuite) TestTssHandler(c *C) {
 				tssMsg := NewMsgTssPool(helper.members, GetRandomPubKey(), AsgardKeygen, helper.ctx.BlockHeight(), b, common.Chains{common.RuneAsset().Chain}, helper.signer)
 				voter, err := helper.keeper.GetTssVoter(helper.ctx, tssMsg.ID)
 				c.Assert(err, IsNil)
-				for i, pk := range helper.members {
-					if i == 0 {
-						continue
-					}
+				for _, pk := range helper.members {
 					addr, err := pk.GetThorAddress()
 					c.Assert(err, IsNil)
+					if addr.Equals(helper.signer) {
+						continue
+					}
 					voter.Signers = append(voter.Signers, addr)
 				}
 				helper.keeper.SetTssVoter(helper.ctx, voter)
@@ -577,7 +577,7 @@ func (s *HandlerTssSuite) TestTssHandler(c *C) {
 	for _, tc := range testCases {
 		c.Log(tc.name)
 		helper := newTssHandlerTestHelper(c)
-		handler := NewTssHandler(helper.keeper, helper.vaultManager)
+		handler := NewTssHandler(helper.keeper, helper.vaultManager, NewVersionedEventMgr())
 		msg := tc.messageCreator(helper)
 		result := tc.runner(handler, msg, helper)
 		c.Assert(result.Code, Equals, tc.expectedResult, Commentf("name:%s, %s", tc.name, result.Log))
