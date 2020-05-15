@@ -42,7 +42,7 @@ go.sum: go.mod
 	go mod verify
 
 test-coverage:
-	@go test ${BUILD_FLAGS} -v -coverprofile coverage.out ./...
+	@go test -tags testnet -v -coverprofile coverage.out ./...
 
 coverage-report: test-coverage
 	@go tool cover -html=cover.txt
@@ -51,10 +51,10 @@ clear:
 	clear
 
 test:
-	@go test ${BUILD_FLAGS} ./...
+	@go test -tags testnet ./...
 
 test-watch: clear
-	@gow -c test ${BUILD_FLAGS} -mod=readonly ./...
+	@gow -c test -tags testnet -mod=readonly ./...
 
 format:
 	@gofumpt -w .

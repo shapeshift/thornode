@@ -12,12 +12,12 @@ import (
 )
 
 var (
-	GitCommit       string // sha1 revision used to build the program
-	BuildTime       string // when the executable was built
-	Version         string // software version
-	int64Overrides  = map[ConstantName]int64{}
-	boolOverrides   = map[ConstantName]bool{}
-	stringOverrides = map[ConstantName]string{}
+	GitCommit       string = "null"  // sha1 revision used to build the program
+	BuildTime       string = "null"  // when the executable was built
+	Version         string = "0.1.0" // software version
+	int64Overrides         = map[ConstantName]int64{}
+	boolOverrides          = map[ConstantName]bool{}
+	stringOverrides        = map[ConstantName]string{}
 )
 
 // The version of this software

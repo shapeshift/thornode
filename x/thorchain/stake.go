@@ -58,7 +58,22 @@ func stake(ctx sdk.Context, keeper Keeper,
 
 	// if THORNode have no balance, set the default pool status
 	if pool.BalanceAsset.IsZero() && pool.BalanceRune.IsZero() {
-		defaultPoolStatus := constAccessor.GetStringValue(constants.DefaultPoolStatus)
+		defaultPoolStatus := PoolEnabled.String()
+
+		// if we have pools that are already enabled, use the default status
+		iterator := keeper.GetPoolIterator(ctx)
+		defer iterator.Close()
+		for ; iterator.Valid(); iterator.Next() {
+			var p Pool
+			err := keeper.Cdc().UnmarshalBinaryBare(iterator.Value(), &p)
+			if err != nil {
+				continue
+			}
+			if p.Status == PoolEnabled {
+				defaultPoolStatus = constAccessor.GetStringValue(constants.DefaultPoolStatus)
+				break
+			}
+		}
 		pool.Status = GetPoolStatus(defaultPoolStatus)
 	}
 
