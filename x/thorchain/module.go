@@ -205,7 +205,11 @@ func (am AppModule) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.V
 	if err := slasher.LackSigning(ctx, constantValues, txStore); err != nil {
 		ctx.Logger().Error("Unable to slash for lack of signing:", "error", err)
 	}
-	newPoolCycle := constantValues.GetInt64Value(constants.NewPoolCycle)
+
+	newPoolCycle, err := am.keeper.GetMimir(ctx, constants.NewPoolCycle.String())
+	if newPoolCycle < 0 || err != nil {
+		newPoolCycle = constantValues.GetInt64Value(constants.NewPoolCycle)
+	}
 	// Enable a pool every newPoolCycle
 	if ctx.BlockHeight()%newPoolCycle == 0 {
 		if err := enableNextPool(ctx, am.keeper, eventMgr); err != nil {
