@@ -11,8 +11,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.3'
-          memory: 100M
+          cpus: '0.02'
+          memory: 30M
     volumes:
       - "../../scripts:/docker/scripts"
     entrypoint: "/docker/scripts/ethereum-mock.sh"

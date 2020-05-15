@@ -5,12 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"net/http"
 	"strconv"
 	"strings"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/ethereum/go-ethereum"
+	ecommon "github.com/ethereum/go-ethereum/common"
 	etypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/prometheus/client_golang/prometheus"
@@ -28,56 +28,54 @@ import (
 
 const (
 	DefaultObserverLevelDBFolder = `observer_data`
-	GasPriceUpdateInterval       = 100
-	DefaultGasPrice              = 1
-	ETHTransferGas               = uint64(21000)
+	BlockCacheSize               = 200
 )
 
 // BlockScanner is to scan the blocks
 type BlockScanner struct {
-	cfg        config.BlockScannerConfiguration
-	logger     zerolog.Logger
-	httpClient *http.Client
-	db         blockscanner.ScannerStorage
-	m          *metrics.Metrics
-	errCounter *prometheus.CounterVec
-	gasPrice   *big.Int
-	client     *ethclient.Client
+	cfg               config.BlockScannerConfiguration
+	logger            zerolog.Logger
+	db                blockscanner.ScannerStorage
+	m                 *metrics.Metrics
+	errCounter        *prometheus.CounterVec
+	gasPrice          *big.Int
+	client            *ethclient.Client
+	blockMetaAccessor BlockMetaAccessor
+	globalErrataQueue chan<- stypes.ErrataBlock
 }
 
 // NewBlockScanner create a new instance of BlockScan
-func NewBlockScanner(cfg config.BlockScannerConfiguration, scanStorage blockscanner.ScannerStorage, chainID types.ChainID, client *ethclient.Client, m *metrics.Metrics) (*BlockScanner, error) {
-	if scanStorage == nil {
-		return nil, errors.New("scanStorage is nil")
+func NewBlockScanner(cfg config.BlockScannerConfiguration, storage blockscanner.ScannerStorage, chainID types.ChainID, client *ethclient.Client, m *metrics.Metrics) (*BlockScanner, error) {
+	if storage == nil {
+		return nil, errors.New("storage is nil")
 	}
 	if m == nil {
 		return nil, errors.New("metrics is nil")
+	}
+	if client == nil {
+		return nil, errors.New("client is nil")
 	}
 	eipSigner = etypes.NewEIP155Signer(big.NewInt(int64(chainID)))
 	gasPrice, err := client.SuggestGasPrice(context.Background())
 	if err != nil {
 		return nil, err
 	}
-	return &BlockScanner{
-		cfg:        cfg,
-		logger:     log.Logger.With().Str("module", "blockscanner").Str("chain", common.ETHChain.String()).Logger(),
-		db:         scanStorage,
-		errCounter: m.GetCounterVec(metrics.BlockScanError(common.ETHChain)),
-		client:     client,
-		gasPrice:   gasPrice,
-		httpClient: &http.Client{
-			Timeout: cfg.HttpRequestTimeout,
-		},
-	}, nil
-}
 
-// GetTxHash return hex formatted value of tx hash
-func GetTxHash(encodedTx string) (string, error) {
-	var tx *etypes.Transaction = &etypes.Transaction{}
-	if err := tx.UnmarshalJSON([]byte(encodedTx)); err != nil {
-		return "", err
+	blockMetaAccessor, err := NewLevelDBBlockMetaAccessor(storage.GetInternalDb())
+	if err != nil {
+		return nil, fmt.Errorf("fail to create block meta accessor: %w", err)
 	}
-	return fmt.Sprintf("%s", tx.Hash().Hex()), nil
+
+	return &BlockScanner{
+		cfg:               cfg,
+		logger:            log.Logger.With().Str("module", "blockscanner").Str("chain", common.ETHChain.String()).Logger(),
+		errCounter:        m.GetCounterVec(metrics.BlockScanError(common.ETHChain)),
+		client:            client,
+		db:                storage,
+		m:                 m,
+		gasPrice:          gasPrice,
+		blockMetaAccessor: blockMetaAccessor,
+	}, nil
 }
 
 // GetGasPrice returns current gas price
@@ -93,43 +91,94 @@ func (e *BlockScanner) GetHeight() (int64, error) {
 	return block.Number().Int64(), nil
 }
 
-// processBlock extracts transactions from block
-func (e *BlockScanner) processBlock(block blockscanner.Block) (stypes.TxIn, error) {
-	noTx := stypes.TxIn{}
-	var err error
-
-	strBlock := strconv.FormatInt(block.Height, 10)
-	if err = e.db.SetBlockScanStatus(block, blockscanner.Processing); err != nil {
-		e.errCounter.WithLabelValues("fail_set_block_status", strBlock).Inc()
-		return noTx, fmt.Errorf("fail to set block scan status for block %d: %w", block.Height, err)
+func (e *BlockScanner) FetchTxs(height int64) (stypes.TxIn, error) {
+	block, err := e.getRPCBlock(height)
+	if err != nil {
+		return stypes.TxIn{}, err
+	}
+	rawTxs, err := e.getTransactionsFromBlock(block)
+	if err != nil {
+		return stypes.TxIn{}, err
 	}
 
-	if len(block.Txs) == 0 {
+	txIn, err := e.processBlock(block, rawTxs)
+	if err != nil {
+		if errStatus := e.db.SetBlockScanStatus(blockscanner.Block{Height: height, Txs: rawTxs}, blockscanner.Failed); errStatus != nil {
+			e.errCounter.WithLabelValues("fail_set_block_status", "").Inc()
+			e.logger.Error().Err(err).Int64("height", height).Msg("fail to set block to fail status")
+		}
+		e.errCounter.WithLabelValues("fail_search_block", "").Inc()
+		e.logger.Error().Err(err).Int64("height", height).Msg("fail to search tx in block")
+		// THORNode will have a retry go routine to check it.
+		return txIn, err
+	}
+	// set a block as success
+	if err := e.db.RemoveBlockStatus(height); err != nil {
+		e.errCounter.WithLabelValues("fail_remove_block_status", "").Inc()
+		e.logger.Error().Err(err).Int64("block", height).Msg("fail to remove block status from data store, thus block will be re processed")
+	}
+
+	pruneHeight := height - BlockCacheSize
+	if pruneHeight > 0 {
+		defer func() {
+			if err := e.blockMetaAccessor.PruneBlockMeta(pruneHeight); err != nil {
+				e.logger.Err(err).Msgf("fail to prune block meta, height(%d)", pruneHeight)
+			}
+		}()
+	}
+	return txIn, nil
+}
+
+func (e *BlockScanner) updateGasPrice() {
+	gasPrice, err := e.client.SuggestGasPrice(context.Background())
+	if err != nil {
+		return
+	}
+	e.gasPrice = gasPrice
+}
+
+// processBlock extracts transactions from block
+func (e *BlockScanner) processBlock(block *etypes.Block, rawTxs []string) (stypes.TxIn, error) {
+	noTx := stypes.TxIn{}
+
+	height := int64(block.NumberU64())
+	if err := e.db.SetBlockScanStatus(blockscanner.Block{Height: height, Txs: rawTxs}, blockscanner.Processing); err != nil {
+		e.errCounter.WithLabelValues("fail_set_block_status", "").Inc()
+		return noTx, fmt.Errorf("fail to set block scan status for block %d: %w", height, err)
+	}
+
+	// Update gas price
+	e.updateGasPrice()
+
+	if err := e.processReorg(block); err != nil {
+		e.logger.Error().Err(err).Msgf("fail to process reorg for block %d", height)
+		return noTx, err
+	}
+
+	if len(rawTxs) == 0 {
 		e.m.GetCounter(metrics.BlockWithoutTx("ETH")).Inc()
 		return noTx, nil
 	}
-	// Update gas price once per 100 blocks
-	if block.Height%GasPriceUpdateInterval == 0 {
-		gasPrice, err := e.client.SuggestGasPrice(context.Background())
-		if err != nil {
-			return noTx, nil
-		}
-		e.gasPrice = gasPrice
+	txIn, err := e.extractTxs(block)
+	if err != nil {
+		return noTx, err
 	}
 
-	var txIn stypes.TxIn
-	for _, txn := range block.Txs {
-		hash, err := GetTxHash(txn)
-		if err != nil {
-			e.errCounter.WithLabelValues("fail_get_tx_hash", strBlock).Inc()
-			e.logger.Error().Err(err).Str("tx", txn).Msg("fail to get tx hash from raw data")
-			return noTx, fmt.Errorf("fail to get tx hash from tx raw data: %w", err)
-		}
+	blockMeta := types.NewBlockMeta(block)
+	if err := e.blockMetaAccessor.SaveBlockMeta(blockMeta.Height, blockMeta); err != nil {
+		e.logger.Err(err).Msgf("fail to save block meta of height: %d ", blockMeta.Height)
+	}
+	return txIn, nil
+}
 
-		txInItem, err := e.fromTxToTxIn(txn)
+func (e *BlockScanner) extractTxs(block *etypes.Block) (stypes.TxIn, error) {
+	noTx := stypes.TxIn{}
+	var txIn stypes.TxIn
+	for _, tx := range block.Transactions() {
+		txInItem, err := e.fromTxToTxIn(tx)
 		if err != nil {
-			e.errCounter.WithLabelValues("fail_get_tx", strBlock).Inc()
-			e.logger.Error().Err(err).Str("hash", hash).Msg("fail to get one tx from server")
+			e.errCounter.WithLabelValues("fail_get_tx", "").Inc()
+			e.logger.Error().Err(err).Str("hash", tx.Hash().Hex()).Msg("fail to get one tx from server")
 			// if THORNode fail to get one tx hash from server, then THORNode should bail, because THORNode might miss tx
 			// if THORNode bail here, then THORNode should retry later
 			return noTx, fmt.Errorf("fail to get one tx from server: %w", err)
@@ -137,49 +186,98 @@ func (e *BlockScanner) processBlock(block blockscanner.Block) (stypes.TxIn, erro
 		if txInItem != nil {
 			txIn.TxArray = append(txIn.TxArray, *txInItem)
 			e.m.GetCounter(metrics.BlockWithTxIn("ETH")).Inc()
-			e.logger.Info().Str("hash", hash).Msgf("%s got %d tx", e.cfg.ChainID, 1)
+			e.logger.Info().Str("hash", tx.Hash().Hex()).Msgf("%s got %d tx", e.cfg.ChainID, 1)
 		}
 	}
 	if len(txIn.TxArray) == 0 {
 		e.m.GetCounter(metrics.BlockNoTxIn("ETH")).Inc()
-		e.logger.Debug().Int64("block", block.Height).Msg("no tx need to be processed in this block")
+		e.logger.Debug().Int64("block", int64(block.NumberU64())).Msg("no tx need to be processed in this block")
 		return noTx, nil
 	}
-
-	txIn.BlockHeight = strconv.FormatInt(block.Height, 10)
+	txIn.BlockHeight = block.Number().String()
 	txIn.Count = strconv.Itoa(len(txIn.TxArray))
 	txIn.Chain = common.ETHChain
 	return txIn, nil
 }
 
-func (e *BlockScanner) FetchTxs(height int64) (stypes.TxIn, error) {
-	rawTxs, err := e.getRPCBlock(height)
+func (e *BlockScanner) processReorg(block *etypes.Block) error {
+	previousHeight := int64(block.NumberU64()) - 1
+	prevBlockMeta, err := e.blockMetaAccessor.GetBlockMeta(previousHeight)
 	if err != nil {
-		return stypes.TxIn{}, err
+		return fmt.Errorf("fail to get block meta of height(%d) : %w", previousHeight, err)
+	}
+	if prevBlockMeta == nil {
+		return nil
+	}
+	// the block's previous hash need to be the same as the block hash chain client recorded in block meta
+	// blockMetas[PreviousHeight].BlockHash == Block.PreviousHash
+	if strings.EqualFold(prevBlockMeta.BlockHash, block.ParentHash().Hex()) {
+		return nil
 	}
 
-	block := blockscanner.Block{Height: height, Txs: rawTxs}
-	txIn, err := e.processBlock(block)
-	if err != nil {
-		if errStatus := e.db.SetBlockScanStatus(block, blockscanner.Failed); errStatus != nil {
-			e.errCounter.WithLabelValues("fail_set_block_status", "").Inc()
-			e.logger.Error().Err(err).Int64("height", block.Height).Msg("fail to set block to fail status")
-		}
-		e.errCounter.WithLabelValues("fail_search_block", "").Inc()
-		e.logger.Error().Err(err).Int64("height", block.Height).Msg("fail to search tx in block")
-		// THORNode will have a retry go routine to check it.
-		return txIn, err
-	}
-	// set a block as success
-	if err := e.db.RemoveBlockStatus(block.Height); err != nil {
-		e.errCounter.WithLabelValues("fail_remove_block_status", "").Inc()
-		e.logger.Error().Err(err).Int64("block", block.Height).Msg("fail to remove block status from data store, thus block will be re processed")
-	}
-	return txIn, nil
+	e.logger.Info().Msgf("re-org detected, current block height:%d ,previous block hash is : %s , however block meta at height: %d, block hash is %s", block.NumberU64(), block.ParentHash().Hex(), prevBlockMeta.Height, prevBlockMeta.BlockHash)
+	return e.reprocessTxs()
 }
 
-func (e *BlockScanner) getRPCBlock(height int64) ([]string, error) {
-	block, err := e.client.BlockByNumber(context.Background(), big.NewInt(height))
+// reprocessTx will be kicked off only when chain client detected a re-org on ethereum chain
+// it will read through all the block meta data from local storage, and go through all the txs.
+// For each transaction, it will send a RPC request to ethereuem chain, double check whether the TX exist or not
+// if the tx still exist, then it is all good, if a transaction previous we detected, however doesn't exist anymore, that means
+// the transaction had been removed from chain, chain client should report to thorchain
+func (e *BlockScanner) reprocessTxs() error {
+	blockMetas, err := e.blockMetaAccessor.GetBlockMetas()
+	if err != nil {
+		return fmt.Errorf("fail to get block metas from local storage: %w", err)
+	}
+
+	for _, blockMeta := range blockMetas {
+		var errataTxs []stypes.ErrataTx
+		for _, tx := range blockMeta.Transactions {
+			if e.checkTransaction(tx.Hash) {
+				e.logger.Info().Msgf("block height: %d, tx: %s still exist", blockMeta.Height, tx.Hash)
+				continue
+			}
+			// this means the tx doesn't exist in chain ,thus should errata it
+			errataTxs = append(errataTxs, stypes.ErrataTx{
+				TxID:  common.TxID(tx.Hash),
+				Chain: common.ETHChain,
+			})
+		}
+		if len(errataTxs) == 0 {
+			continue
+		}
+		e.globalErrataQueue <- stypes.ErrataBlock{
+			Height: blockMeta.Height,
+			Txs:    errataTxs,
+		}
+		// Let's get the block again to fix the block hash
+		block, err := e.getBlock(blockMeta.Height)
+		if err != nil {
+			e.logger.Err(err).Msgf("fail to get block verbose tx result: %d", blockMeta.Height)
+		}
+		blockMeta.PreviousHash = block.ParentHash().Hex()
+		blockMeta.BlockHash = block.Hash().Hex()
+		if err := e.blockMetaAccessor.SaveBlockMeta(blockMeta.Height, blockMeta); err != nil {
+			e.logger.Err(err).Msgf("fail to save block meta of height: %d ", blockMeta.Height)
+		}
+	}
+	return nil
+}
+
+func (e *BlockScanner) checkTransaction(hash string) bool {
+	receipt, err := e.client.TransactionReceipt(context.Background(), ecommon.HexToHash(hash))
+	if err != nil || receipt == nil {
+		return false
+	}
+	return true
+}
+
+func (e *BlockScanner) getBlock(height int64) (*etypes.Block, error) {
+	return e.client.BlockByNumber(context.Background(), big.NewInt(height))
+}
+
+func (e *BlockScanner) getRPCBlock(height int64) (*etypes.Block, error) {
+	block, err := e.getBlock(height)
 	if err == ethereum.NotFound {
 		return nil, btypes.UnavailableBlock
 	}
@@ -187,11 +285,7 @@ func (e *BlockScanner) getRPCBlock(height int64) ([]string, error) {
 		e.logger.Error().Err(err).Int64("block", height).Msg("fail to fetch block")
 		return nil, err
 	}
-	rawTxs, err := e.getTransactionsFromBlock(block)
-	if err != nil {
-		e.errCounter.WithLabelValues("fail_to_get_txs", e.cfg.RPCHost).Inc()
-	}
-	return rawTxs, err
+	return block, nil
 }
 
 func (e *BlockScanner) getTransactionsFromBlock(block *etypes.Block) ([]string, error) {
@@ -206,15 +300,7 @@ func (e *BlockScanner) getTransactionsFromBlock(block *etypes.Block) ([]string, 
 	return txs, nil
 }
 
-func (e *BlockScanner) fromTxToTxIn(encodedTx string) (*stypes.TxInItem, error) {
-	if len(encodedTx) == 0 {
-		return nil, errors.New("tx is empty")
-	}
-	var tx *etypes.Transaction = &etypes.Transaction{}
-	if err := tx.UnmarshalJSON([]byte(encodedTx)); err != nil {
-		return nil, err
-	}
-
+func (e *BlockScanner) fromTxToTxIn(tx *etypes.Transaction) (*stypes.TxInItem, error) {
 	txInItem := &stypes.TxInItem{
 		Tx: tx.Hash().Hex()[2:],
 	}
@@ -239,6 +325,5 @@ func (e *BlockScanner) fromTxToTxIn(encodedTx string) (*stypes.TxInItem, error) 
 
 	txInItem.Coins = append(txInItem.Coins, common.NewCoin(asset, sdk.NewUintFromBigInt(tx.Value())))
 	txInItem.Gas = common.GetETHGasFee(e.gasPrice, uint64(len(txInItem.Memo)))
-
 	return txInItem, nil
 }
