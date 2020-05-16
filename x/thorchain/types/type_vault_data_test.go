@@ -1,10 +1,10 @@
 package types
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 type VaultDataSuite struct{}
@@ -13,23 +13,23 @@ var _ = Suite(&VaultDataSuite{})
 
 func (s *VaultDataSuite) TestCalcNodeRewards(c *C) {
 	vault := VaultData{
-		TotalBondUnits: sdk.NewUint(100),
-		BondRewardRune: sdk.NewUint(3000),
+		TotalBondUnits: cosmos.NewUint(100),
+		BondRewardRune: cosmos.NewUint(3000),
 	}
-	reward := vault.CalcNodeRewards(sdk.NewUint(5))
+	reward := vault.CalcNodeRewards(cosmos.NewUint(5))
 	c.Check(reward.Uint64(), Equals, uint64(150))
 
 	vault = VaultData{
-		TotalBondUnits: sdk.NewUint(7357),
-		BondRewardRune: sdk.NewUint(275.357 * common.One),
+		TotalBondUnits: cosmos.NewUint(7357),
+		BondRewardRune: cosmos.NewUint(275.357 * common.One),
 	}
-	reward = vault.CalcNodeRewards(sdk.NewUint(78))
+	reward = vault.CalcNodeRewards(cosmos.NewUint(78))
 	c.Check(reward.Uint64(), Equals, uint64(291937556))
 
 	vault = VaultData{
-		TotalBondUnits: sdk.NewUint(7357),
-		BondRewardRune: sdk.ZeroUint(),
+		TotalBondUnits: cosmos.NewUint(7357),
+		BondRewardRune: cosmos.ZeroUint(),
 	}
-	reward = vault.CalcNodeRewards(sdk.NewUint(78))
+	reward = vault.CalcNodeRewards(cosmos.NewUint(78))
 	c.Check(reward.Uint64(), Equals, uint64(0))
 }

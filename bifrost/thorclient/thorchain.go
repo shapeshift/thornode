@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/cosmos/cosmos-sdk/codec"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/prometheus/client_golang/prometheus"
@@ -21,6 +20,7 @@ import (
 	"gitlab.com/thorchain/tss/go-tss/blame"
 
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 	stypes "gitlab.com/thorchain/thornode/x/thorchain/types"
 
@@ -98,13 +98,13 @@ func NewThorchainBridge(cfg config.ClientConfiguration, m *metrics.Metrics) (*Th
 // MakeCodec creates codec
 func MakeCodec() *codec.Codec {
 	cdc := codec.New()
-	sdk.RegisterCodec(cdc)
+	cosmos.RegisterCodec(cdc)
 	stypes.RegisterCodec(cdc)
 	codec.RegisterCrypto(cdc)
 	return cdc
 }
 
-func makeStdTx(msgs []sdk.Msg) *authtypes.StdTx {
+func makeStdTx(msgs []cosmos.Msg) *authtypes.StdTx {
 	stdTx := authtypes.NewStdTx(
 		msgs,
 		authtypes.NewStdFee(5000000000000000, nil), // fee
@@ -215,7 +215,7 @@ func (b *ThorchainBridge) PostKeysignFailure(blame blame.Blame, height int64, me
 	}()
 	msg := stypes.NewMsgTssKeysignFail(height, blame, memo, coins, b.keys.GetSignerInfo().GetAddress())
 	stdTx := authtypes.NewStdTx(
-		[]sdk.Msg{msg},
+		[]cosmos.Msg{msg},
 		authtypes.NewStdFee(100000000, nil), // fee
 		nil,                                 // signatures
 		"",                                  // memo
@@ -232,7 +232,7 @@ func (b *ThorchainBridge) GetErrataStdTx(txID common.TxID, chain common.Chain) (
 
 	msg := stypes.NewMsgErrataTx(txID, chain, b.keys.GetSignerInfo().GetAddress())
 
-	return makeStdTx([]sdk.Msg{msg}), nil
+	return makeStdTx([]cosmos.Msg{msg}), nil
 }
 
 // GetKeygenStdTx get keygen tx from params
@@ -243,7 +243,7 @@ func (b *ThorchainBridge) GetKeygenStdTx(poolPubKey common.PubKey, blame blame.B
 	}()
 	msg := stypes.NewMsgTssPool(inputPks, poolPubKey, keygenType, height, blame, chains, b.keys.GetSignerInfo().GetAddress())
 
-	return makeStdTx([]sdk.Msg{msg}), nil
+	return makeStdTx([]cosmos.Msg{msg}), nil
 }
 
 // GetObservationsStdTx get observations tx from txIns
@@ -280,7 +280,7 @@ func (b *ThorchainBridge) GetObservationsStdTx(txIns stypes.ObservedTxs) (*autht
 		}
 	}
 
-	var msgs []sdk.Msg
+	var msgs []cosmos.Msg
 	if len(inbound) > 0 {
 		msgs = append(msgs, stypes.NewMsgObservedTxIn(inbound, b.keys.GetSignerInfo().GetAddress()))
 	}

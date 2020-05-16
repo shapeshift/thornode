@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"os"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	atypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/tendermint/tendermint/crypto/secp256k1"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	. "gopkg.in/check.v1"
 )
 
@@ -136,7 +136,7 @@ func (s *PubKeyTestSuite) SetUpSuite(c *C) {
 // TestPubKey implementation
 func (s *PubKeyTestSuite) TestPubKey(c *C) {
 	_, pubKey, _ := atypes.KeyTestPubAddr()
-	spk, err := sdk.Bech32ifyAccPub(pubKey)
+	spk, err := cosmos.Bech32ifyAccPub(pubKey)
 	c.Assert(err, IsNil)
 	pk, err := NewPubKey(spk)
 	c.Assert(err, IsNil)
@@ -157,7 +157,7 @@ func (s *PubKeyTestSuite) TestPubKey(c *C) {
 
 func (s *PubKeyTestSuite) TestPubKeySet(c *C) {
 	_, pubKey, _ := atypes.KeyTestPubAddr()
-	spk, err := sdk.Bech32ifyAccPub(pubKey)
+	spk, err := cosmos.Bech32ifyAccPub(pubKey)
 	c.Assert(err, IsNil)
 	pk, err := NewPubKey(spk)
 	c.Assert(err, IsNil)
@@ -193,7 +193,7 @@ func (s *PubKeyTestSuite) TestPubKeyGetAddress(c *C) {
 
 		c.Assert(hex.EncodeToString(pub), Equals, hex.EncodeToString(pubB))
 
-		pubBech32, err := sdk.Bech32ifyAccPub(pubKey)
+		pubBech32, err := cosmos.Bech32ifyAccPub(pubKey)
 		c.Assert(err, IsNil)
 
 		pk, err := NewPubKey(pubBech32)

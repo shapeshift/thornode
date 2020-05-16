@@ -4,9 +4,9 @@ import (
 	"fmt"
 
 	"github.com/blang/semver"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 )
 
@@ -23,7 +23,7 @@ func NewBanHandler(keeper Keeper) BanHandler {
 }
 
 // Run is the main entry point to execute Ban logic
-func (h BanHandler) Run(ctx sdk.Context, m sdk.Msg, version semver.Version, constAccessor constants.ConstantValues) sdk.Result {
+func (h BanHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) cosmos.Result {
 	msg, ok := m.(MsgBan)
 	if !ok {
 		return errInvalidMessage.Result()
@@ -35,7 +35,7 @@ func (h BanHandler) Run(ctx sdk.Context, m sdk.Msg, version semver.Version, cons
 	return h.handle(ctx, msg, version, constAccessor)
 }
 
-func (h BanHandler) validate(ctx sdk.Context, msg MsgBan, version semver.Version) sdk.Error {
+func (h BanHandler) validate(ctx cosmos.Context, msg MsgBan, version semver.Version) cosmos.Error {
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, msg)
 	} else {
@@ -43,19 +43,19 @@ func (h BanHandler) validate(ctx sdk.Context, msg MsgBan, version semver.Version
 	}
 }
 
-func (h BanHandler) validateV1(ctx sdk.Context, msg MsgBan) sdk.Error {
+func (h BanHandler) validateV1(ctx cosmos.Context, msg MsgBan) cosmos.Error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
 
 	if !isSignedByActiveNodeAccounts(ctx, h.keeper, msg.GetSigners()) {
-		return sdk.ErrUnauthorized(notAuthorized.Error())
+		return cosmos.ErrUnauthorized(notAuthorized.Error())
 	}
 
 	return nil
 }
 
-func (h BanHandler) handle(ctx sdk.Context, msg MsgBan, version semver.Version, constAccessor constants.ConstantValues) sdk.Result {
+func (h BanHandler) handle(ctx cosmos.Context, msg MsgBan, version semver.Version, constAccessor constants.ConstantValues) cosmos.Result {
 	ctx.Logger().Info("handleMsgBan request", "node address", msg.NodeAddress.String())
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.handleV1(ctx, msg, constAccessor)
@@ -65,44 +65,44 @@ func (h BanHandler) handle(ctx sdk.Context, msg MsgBan, version semver.Version, 
 	}
 }
 
-func (h BanHandler) handleV1(ctx sdk.Context, msg MsgBan, constAccessor constants.ConstantValues) sdk.Result {
+func (h BanHandler) handleV1(ctx cosmos.Context, msg MsgBan, constAccessor constants.ConstantValues) cosmos.Result {
 	toBan, err := h.keeper.GetNodeAccount(ctx, msg.NodeAddress)
 	if err != nil {
 		err = wrapError(ctx, err, "fail to get to ban node account")
-		return sdk.ErrInternal(err.Error()).Result()
+		return cosmos.ErrInternal(err.Error()).Result()
 	}
 	if err := toBan.IsValid(); err != nil {
-		return sdk.ErrInternal(err.Error()).Result()
+		return cosmos.ErrInternal(err.Error()).Result()
 	}
 	if toBan.ForcedToLeave {
 		// already ban, no need to ban again
-		return sdk.Result{
-			Code:      sdk.CodeOK,
+		return cosmos.Result{
+			Code:      cosmos.CodeOK,
 			Codespace: DefaultCodespace,
 		}
 	}
 	if toBan.Status != NodeActive {
-		return sdk.ErrInternal("cannot ban a node account that is not current active").Result()
+		return cosmos.ErrInternal("cannot ban a node account that is not current active").Result()
 	}
 
 	banner, err := h.keeper.GetNodeAccount(ctx, msg.Signer)
 	if err != nil {
 		err = wrapError(ctx, err, "fail to get banner node account")
-		return sdk.ErrInternal(err.Error()).Result()
+		return cosmos.ErrInternal(err.Error()).Result()
 	}
 	if err := banner.IsValid(); err != nil {
-		return sdk.ErrInternal(err.Error()).Result()
+		return cosmos.ErrInternal(err.Error()).Result()
 	}
 
 	active, err := h.keeper.ListActiveNodeAccounts(ctx)
 	if err != nil {
 		err = wrapError(ctx, err, "fail to get list of active node accounts")
-		return sdk.ErrInternal(err.Error()).Result()
+		return cosmos.ErrInternal(err.Error()).Result()
 	}
 
 	voter, err := h.keeper.GetBanVoter(ctx, msg.NodeAddress)
 	if err != nil {
-		return sdk.ErrInternal(err.Error()).Result()
+		return cosmos.ErrInternal(err.Error()).Result()
 	}
 
 	if !voter.HasSigned(msg.Signer) && voter.BlockHeight == 0 {
@@ -111,7 +111,7 @@ func (h BanHandler) handleV1(ctx sdk.Context, msg MsgBan, constAccessor constant
 		if minBond < 0 || err != nil {
 			minBond = constAccessor.GetInt64Value(constants.MinimumBondInRune)
 		}
-		slashAmount := sdk.NewUint(uint64(minBond)).QuoUint64(1000)
+		slashAmount := cosmos.NewUint(uint64(minBond)).QuoUint64(1000)
 		banner.Bond = common.SafeSub(banner.Bond, slashAmount)
 
 		if common.RuneAsset().Chain.Equals(common.THORChain) {
@@ -124,18 +124,18 @@ func (h BanHandler) handleV1(ctx sdk.Context, msg MsgBan, constAccessor constant
 			vaultData, err := h.keeper.GetVaultData(ctx)
 			if err != nil {
 				err = fmt.Errorf("fail to get vault data: %w", err)
-				return sdk.ErrInternal(err.Error()).Result()
+				return cosmos.ErrInternal(err.Error()).Result()
 			}
 			vaultData.TotalReserve = vaultData.TotalReserve.Add(slashAmount)
 			if err := h.keeper.SetVaultData(ctx, vaultData); err != nil {
 				err = fmt.Errorf("fail to save vault data: %w", err)
-				return sdk.ErrInternal(err.Error()).Result()
+				return cosmos.ErrInternal(err.Error()).Result()
 			}
 		}
 
 		if err := h.keeper.SetNodeAccount(ctx, banner); err != nil {
 			err = fmt.Errorf("fail to save node account: %w", err)
-			return sdk.ErrInternal(err.Error()).Result()
+			return cosmos.ErrInternal(err.Error()).Result()
 		}
 	}
 
@@ -144,16 +144,16 @@ func (h BanHandler) handleV1(ctx sdk.Context, msg MsgBan, constAccessor constant
 	// doesn't have consensus yet
 	if !voter.HasConsensus(active) {
 		ctx.Logger().Info("not having consensus yet, return")
-		return sdk.Result{
-			Code:      sdk.CodeOK,
+		return cosmos.Result{
+			Code:      cosmos.CodeOK,
 			Codespace: DefaultCodespace,
 		}
 	}
 
 	if voter.BlockHeight > 0 {
 		// ban already processed
-		return sdk.Result{
-			Code:      sdk.CodeOK,
+		return cosmos.Result{
+			Code:      cosmos.CodeOK,
 			Codespace: DefaultCodespace,
 		}
 	}
@@ -165,11 +165,11 @@ func (h BanHandler) handleV1(ctx sdk.Context, msg MsgBan, constAccessor constant
 	toBan.LeaveHeight = ctx.BlockHeight()
 	if err := h.keeper.SetNodeAccount(ctx, toBan); err != nil {
 		err = fmt.Errorf("fail to save node account: %w", err)
-		return sdk.ErrInternal(err.Error()).Result()
+		return cosmos.ErrInternal(err.Error()).Result()
 	}
 
-	return sdk.Result{
-		Code:      sdk.CodeOK,
+	return cosmos.Result{
+		Code:      cosmos.CodeOK,
 		Codespace: DefaultCodespace,
 	}
 }

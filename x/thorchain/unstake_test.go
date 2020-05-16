@@ -4,10 +4,10 @@ import (
 	"errors"
 	"fmt"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
@@ -31,37 +31,37 @@ func NewUnstakeTestKeeper() *UnstakeTestKeeper {
 	}
 }
 
-func (k *UnstakeTestKeeper) PoolExist(ctx sdk.Context, asset common.Asset) bool {
+func (k *UnstakeTestKeeper) PoolExist(ctx cosmos.Context, asset common.Asset) bool {
 	if asset.Equals(common.Asset{Chain: common.BNBChain, Symbol: "NOTEXIST", Ticker: "NOTEXIST"}) {
 		return false
 	}
 	return true
 }
 
-func (k *UnstakeTestKeeper) GetPool(ctx sdk.Context, asset common.Asset) (types.Pool, error) {
+func (k *UnstakeTestKeeper) GetPool(ctx cosmos.Context, asset common.Asset) (types.Pool, error) {
 	if asset.Equals(common.Asset{Chain: common.BNBChain, Symbol: "NOTEXIST", Ticker: "NOTEXIST"}) {
 		return types.Pool{}, nil
 	} else {
 		return types.Pool{
-			BalanceRune:  sdk.NewUint(100).MulUint64(common.One),
-			BalanceAsset: sdk.NewUint(100).MulUint64(common.One),
-			PoolUnits:    sdk.NewUint(100).MulUint64(common.One),
+			BalanceRune:  cosmos.NewUint(100).MulUint64(common.One),
+			BalanceAsset: cosmos.NewUint(100).MulUint64(common.One),
+			PoolUnits:    cosmos.NewUint(100).MulUint64(common.One),
 			Status:       types.Enabled,
 			Asset:        asset,
 		}, nil
 	}
 }
 
-func (k *UnstakeTestKeeper) SetPool(ctx sdk.Context, ps Pool) error {
+func (k *UnstakeTestKeeper) SetPool(ctx cosmos.Context, ps Pool) error {
 	k.store[ps.Asset.String()] = ps
 	return nil
 }
 
-func (k *UnstakeTestKeeper) GetGas(ctx sdk.Context, asset common.Asset) ([]sdk.Uint, error) {
-	return []sdk.Uint{sdk.NewUint(37500), sdk.NewUint(30000)}, nil
+func (k *UnstakeTestKeeper) GetGas(ctx cosmos.Context, asset common.Asset) ([]cosmos.Uint, error) {
+	return []cosmos.Uint{cosmos.NewUint(37500), cosmos.NewUint(30000)}, nil
 }
 
-func (p *UnstakeTestKeeper) GetStaker(ctx sdk.Context, asset common.Asset, addr common.Address) (Staker, error) {
+func (p *UnstakeTestKeeper) GetStaker(ctx cosmos.Context, asset common.Asset, addr common.Address) (Staker, error) {
 	if asset.Equals(common.Asset{Chain: common.BNBChain, Symbol: "NOTEXISTSTICKER", Ticker: "NOTEXISTSTICKER"}) {
 		return types.Staker{}, errors.New("you asked for it")
 	}
@@ -71,8 +71,8 @@ func (p *UnstakeTestKeeper) GetStaker(ctx sdk.Context, asset common.Asset, addr 
 	staker := Staker{
 		Asset:       asset,
 		RuneAddress: addr,
-		Units:       sdk.ZeroUint(),
-		PendingRune: sdk.ZeroUint(),
+		Units:       cosmos.ZeroUint(),
+		PendingRune: cosmos.ZeroUint(),
 	}
 	key := p.GetKey(ctx, prefixStaker, staker.Key())
 	if res, ok := p.store[key]; ok {
@@ -81,7 +81,7 @@ func (p *UnstakeTestKeeper) GetStaker(ctx sdk.Context, asset common.Asset, addr 
 	return staker, nil
 }
 
-func (p *UnstakeTestKeeper) SetStaker(ctx sdk.Context, staker Staker) {
+func (p *UnstakeTestKeeper) SetStaker(ctx cosmos.Context, staker Staker) {
 	key := p.GetKey(ctx, prefixStaker, staker.Key())
 	p.store[key] = staker
 }
@@ -89,101 +89,101 @@ func (p *UnstakeTestKeeper) SetStaker(ctx sdk.Context, staker Staker) {
 func (s UnstakeSuite) TestCalculateUnsake(c *C) {
 	inputs := []struct {
 		name                 string
-		poolUnit             sdk.Uint
-		poolRune             sdk.Uint
-		poolAsset            sdk.Uint
-		stakerUnit           sdk.Uint
-		percentage           sdk.Uint
-		expectedUnstakeRune  sdk.Uint
-		expectedUnstakeAsset sdk.Uint
-		expectedUnitLeft     sdk.Uint
+		poolUnit             cosmos.Uint
+		poolRune             cosmos.Uint
+		poolAsset            cosmos.Uint
+		stakerUnit           cosmos.Uint
+		percentage           cosmos.Uint
+		expectedUnstakeRune  cosmos.Uint
+		expectedUnstakeAsset cosmos.Uint
+		expectedUnitLeft     cosmos.Uint
 		expectedErr          error
 	}{
 		{
 			name:                 "zero-poolunit",
-			poolUnit:             sdk.ZeroUint(),
-			poolRune:             sdk.ZeroUint(),
-			poolAsset:            sdk.ZeroUint(),
-			stakerUnit:           sdk.ZeroUint(),
-			percentage:           sdk.ZeroUint(),
-			expectedUnstakeRune:  sdk.ZeroUint(),
-			expectedUnstakeAsset: sdk.ZeroUint(),
-			expectedUnitLeft:     sdk.ZeroUint(),
+			poolUnit:             cosmos.ZeroUint(),
+			poolRune:             cosmos.ZeroUint(),
+			poolAsset:            cosmos.ZeroUint(),
+			stakerUnit:           cosmos.ZeroUint(),
+			percentage:           cosmos.ZeroUint(),
+			expectedUnstakeRune:  cosmos.ZeroUint(),
+			expectedUnstakeAsset: cosmos.ZeroUint(),
+			expectedUnitLeft:     cosmos.ZeroUint(),
 			expectedErr:          errors.New("poolUnits can't be zero"),
 		},
 
 		{
 			name:                 "zero-poolrune",
-			poolUnit:             sdk.NewUint(500 * common.One),
-			poolRune:             sdk.ZeroUint(),
-			poolAsset:            sdk.ZeroUint(),
-			stakerUnit:           sdk.ZeroUint(),
-			percentage:           sdk.ZeroUint(),
-			expectedUnstakeRune:  sdk.ZeroUint(),
-			expectedUnstakeAsset: sdk.ZeroUint(),
-			expectedUnitLeft:     sdk.ZeroUint(),
+			poolUnit:             cosmos.NewUint(500 * common.One),
+			poolRune:             cosmos.ZeroUint(),
+			poolAsset:            cosmos.ZeroUint(),
+			stakerUnit:           cosmos.ZeroUint(),
+			percentage:           cosmos.ZeroUint(),
+			expectedUnstakeRune:  cosmos.ZeroUint(),
+			expectedUnstakeAsset: cosmos.ZeroUint(),
+			expectedUnitLeft:     cosmos.ZeroUint(),
 			expectedErr:          errors.New("pool rune balance can't be zero"),
 		},
 
 		{
 			name:                 "zero-poolasset",
-			poolUnit:             sdk.NewUint(500 * common.One),
-			poolRune:             sdk.NewUint(500 * common.One),
-			poolAsset:            sdk.ZeroUint(),
-			stakerUnit:           sdk.ZeroUint(),
-			percentage:           sdk.ZeroUint(),
-			expectedUnstakeRune:  sdk.ZeroUint(),
-			expectedUnstakeAsset: sdk.ZeroUint(),
-			expectedUnitLeft:     sdk.ZeroUint(),
+			poolUnit:             cosmos.NewUint(500 * common.One),
+			poolRune:             cosmos.NewUint(500 * common.One),
+			poolAsset:            cosmos.ZeroUint(),
+			stakerUnit:           cosmos.ZeroUint(),
+			percentage:           cosmos.ZeroUint(),
+			expectedUnstakeRune:  cosmos.ZeroUint(),
+			expectedUnstakeAsset: cosmos.ZeroUint(),
+			expectedUnitLeft:     cosmos.ZeroUint(),
 			expectedErr:          errors.New("pool asset balance can't be zero"),
 		},
 		{
 			name:                 "negative-stakerUnit",
-			poolUnit:             sdk.NewUint(500 * common.One),
-			poolRune:             sdk.NewUint(500 * common.One),
-			poolAsset:            sdk.NewUint(5100 * common.One),
-			stakerUnit:           sdk.ZeroUint(),
-			percentage:           sdk.ZeroUint(),
-			expectedUnstakeRune:  sdk.ZeroUint(),
-			expectedUnstakeAsset: sdk.ZeroUint(),
-			expectedUnitLeft:     sdk.ZeroUint(),
+			poolUnit:             cosmos.NewUint(500 * common.One),
+			poolRune:             cosmos.NewUint(500 * common.One),
+			poolAsset:            cosmos.NewUint(5100 * common.One),
+			stakerUnit:           cosmos.ZeroUint(),
+			percentage:           cosmos.ZeroUint(),
+			expectedUnstakeRune:  cosmos.ZeroUint(),
+			expectedUnstakeAsset: cosmos.ZeroUint(),
+			expectedUnitLeft:     cosmos.ZeroUint(),
 			expectedErr:          errors.New("staker unit can't be zero"),
 		},
 
 		{
 			name:                 "percentage-larger-than-100",
-			poolUnit:             sdk.NewUint(500 * common.One),
-			poolRune:             sdk.NewUint(500 * common.One),
-			poolAsset:            sdk.NewUint(500 * common.One),
-			stakerUnit:           sdk.NewUint(100 * common.One),
-			percentage:           sdk.NewUint(12000),
-			expectedUnstakeRune:  sdk.ZeroUint(),
-			expectedUnstakeAsset: sdk.ZeroUint(),
-			expectedUnitLeft:     sdk.ZeroUint(),
-			expectedErr:          fmt.Errorf("withdraw basis point %s is not valid", sdk.NewUint(12000)),
+			poolUnit:             cosmos.NewUint(500 * common.One),
+			poolRune:             cosmos.NewUint(500 * common.One),
+			poolAsset:            cosmos.NewUint(500 * common.One),
+			stakerUnit:           cosmos.NewUint(100 * common.One),
+			percentage:           cosmos.NewUint(12000),
+			expectedUnstakeRune:  cosmos.ZeroUint(),
+			expectedUnstakeAsset: cosmos.ZeroUint(),
+			expectedUnitLeft:     cosmos.ZeroUint(),
+			expectedErr:          fmt.Errorf("withdraw basis point %s is not valid", cosmos.NewUint(12000)),
 		},
 		{
 			name:                 "unstake-1",
-			poolUnit:             sdk.NewUint(700 * common.One),
-			poolRune:             sdk.NewUint(700 * common.One),
-			poolAsset:            sdk.NewUint(700 * common.One),
-			stakerUnit:           sdk.NewUint(200 * common.One),
-			percentage:           sdk.NewUint(10000),
-			expectedUnitLeft:     sdk.ZeroUint(),
-			expectedUnstakeAsset: sdk.NewUint(200 * common.One),
-			expectedUnstakeRune:  sdk.NewUint(200 * common.One),
+			poolUnit:             cosmos.NewUint(700 * common.One),
+			poolRune:             cosmos.NewUint(700 * common.One),
+			poolAsset:            cosmos.NewUint(700 * common.One),
+			stakerUnit:           cosmos.NewUint(200 * common.One),
+			percentage:           cosmos.NewUint(10000),
+			expectedUnitLeft:     cosmos.ZeroUint(),
+			expectedUnstakeAsset: cosmos.NewUint(200 * common.One),
+			expectedUnstakeRune:  cosmos.NewUint(200 * common.One),
 			expectedErr:          nil,
 		},
 		{
 			name:                 "unstake-2",
-			poolUnit:             sdk.NewUint(100),
-			poolRune:             sdk.NewUint(15 * common.One),
-			poolAsset:            sdk.NewUint(155 * common.One),
-			stakerUnit:           sdk.NewUint(100),
-			percentage:           sdk.NewUint(1000),
-			expectedUnitLeft:     sdk.NewUint(90),
-			expectedUnstakeAsset: sdk.NewUint(1550000000),
-			expectedUnstakeRune:  sdk.NewUint(150000000),
+			poolUnit:             cosmos.NewUint(100),
+			poolRune:             cosmos.NewUint(15 * common.One),
+			poolAsset:            cosmos.NewUint(155 * common.One),
+			stakerUnit:           cosmos.NewUint(100),
+			percentage:           cosmos.NewUint(1000),
+			expectedUnitLeft:     cosmos.NewUint(90),
+			expectedUnstakeAsset: cosmos.NewUint(1550000000),
+			expectedUnstakeRune:  cosmos.NewUint(150000000),
 			expectedErr:          nil,
 		},
 	}
@@ -219,7 +219,7 @@ func (s UnstakeSuite) TestValidateUnstake(c *C) {
 			name: "empty-rune-address",
 			msg: MsgSetUnStake{
 				RuneAddress:        "",
-				UnstakeBasisPoints: sdk.NewUint(10000),
+				UnstakeBasisPoints: cosmos.NewUint(10000),
 				Asset:              common.BNBAsset,
 				Tx:                 common.Tx{ID: "28B40BF105A112389A339A64BD1A042E6140DC9082C679586C6CF493A9FDE3FE"},
 				Signer:             accountAddr,
@@ -230,7 +230,7 @@ func (s UnstakeSuite) TestValidateUnstake(c *C) {
 			name: "empty-withdraw-basis-points",
 			msg: MsgSetUnStake{
 				RuneAddress:        runeAddress,
-				UnstakeBasisPoints: sdk.ZeroUint(),
+				UnstakeBasisPoints: cosmos.ZeroUint(),
 				Asset:              common.BNBAsset,
 				Tx:                 common.Tx{ID: "28B40BF105A112389A339A64BD1A042E6140DC9082C679586C6CF493A9FDE3FE"},
 				Signer:             accountAddr,
@@ -241,7 +241,7 @@ func (s UnstakeSuite) TestValidateUnstake(c *C) {
 			name: "empty-request-txhash",
 			msg: MsgSetUnStake{
 				RuneAddress:        runeAddress,
-				UnstakeBasisPoints: sdk.NewUint(10000),
+				UnstakeBasisPoints: cosmos.NewUint(10000),
 				Asset:              common.BNBAsset,
 				Tx:                 common.Tx{},
 				Signer:             accountAddr,
@@ -252,7 +252,7 @@ func (s UnstakeSuite) TestValidateUnstake(c *C) {
 			name: "empty-asset",
 			msg: MsgSetUnStake{
 				RuneAddress:        runeAddress,
-				UnstakeBasisPoints: sdk.NewUint(10000),
+				UnstakeBasisPoints: cosmos.NewUint(10000),
 				Asset:              common.Asset{},
 				Tx:                 common.Tx{ID: "28B40BF105A112389A339A64BD1A042E6140DC9082C679586C6CF493A9FDE3FE"},
 				Signer:             accountAddr,
@@ -263,7 +263,7 @@ func (s UnstakeSuite) TestValidateUnstake(c *C) {
 			name: "invalid-basis-point",
 			msg: MsgSetUnStake{
 				RuneAddress:        runeAddress,
-				UnstakeBasisPoints: sdk.NewUint(10001),
+				UnstakeBasisPoints: cosmos.NewUint(10001),
 				Asset:              common.BNBAsset,
 				Tx:                 common.Tx{ID: "28B40BF105A112389A339A64BD1A042E6140DC9082C679586C6CF493A9FDE3FE"},
 				Signer:             accountAddr,
@@ -274,7 +274,7 @@ func (s UnstakeSuite) TestValidateUnstake(c *C) {
 			name: "invalid-pool-notexist",
 			msg: MsgSetUnStake{
 				RuneAddress:        runeAddress,
-				UnstakeBasisPoints: sdk.NewUint(10000),
+				UnstakeBasisPoints: cosmos.NewUint(10000),
 				Asset:              common.Asset{Chain: common.BNBChain, Ticker: "NOTEXIST", Symbol: "NOTEXIST"},
 				Tx:                 common.Tx{ID: "28B40BF105A112389A339A64BD1A042E6140DC9082C679586C6CF493A9FDE3FE"},
 				Signer:             accountAddr,
@@ -285,7 +285,7 @@ func (s UnstakeSuite) TestValidateUnstake(c *C) {
 			name: "all-good",
 			msg: MsgSetUnStake{
 				RuneAddress:        runeAddress,
-				UnstakeBasisPoints: sdk.NewUint(10000),
+				UnstakeBasisPoints: cosmos.NewUint(10000),
 				Asset:              common.BNBAsset,
 				Tx:                 common.Tx{ID: "28B40BF105A112389A339A64BD1A042E6140DC9082C679586C6CF493A9FDE3FE"},
 				Signer:             accountAddr,
@@ -319,149 +319,149 @@ func (UnstakeSuite) TestUnstake(c *C) {
 		name          string
 		msg           MsgSetUnStake
 		ps            Keeper
-		runeAmount    sdk.Uint
-		assetAmount   sdk.Uint
+		runeAmount    cosmos.Uint
+		assetAmount   cosmos.Uint
 		expectedError error
 	}{
 		{
 			name: "empty-rune-address",
 			msg: MsgSetUnStake{
 				RuneAddress:        "",
-				UnstakeBasisPoints: sdk.NewUint(10000),
+				UnstakeBasisPoints: cosmos.NewUint(10000),
 				Asset:              common.BNBAsset,
 				Tx:                 common.Tx{ID: "28B40BF105A112389A339A64BD1A042E6140DC9082C679586C6CF493A9FDE3FE"},
 				Signer:             accountAddr,
 			},
 			ps:            ps,
-			runeAmount:    sdk.ZeroUint(),
-			assetAmount:   sdk.ZeroUint(),
-			expectedError: sdk.NewError(DefaultCodespace, CodeUnstakeFailValidation, "empty rune address"),
+			runeAmount:    cosmos.ZeroUint(),
+			assetAmount:   cosmos.ZeroUint(),
+			expectedError: cosmos.NewError(DefaultCodespace, CodeUnstakeFailValidation, "empty rune address"),
 		},
 		{
 			name: "empty-withdraw-basis-points",
 			msg: MsgSetUnStake{
 				RuneAddress:        runeAddress,
-				UnstakeBasisPoints: sdk.ZeroUint(),
+				UnstakeBasisPoints: cosmos.ZeroUint(),
 				Asset:              common.BNBAsset,
 				Tx:                 common.Tx{ID: "28B40BF105A112389A339A64BD1A042E6140DC9082C679586C6CF493A9FDE3FE"},
 				Signer:             accountAddr,
 			},
 			ps:            ps,
-			runeAmount:    sdk.ZeroUint(),
-			assetAmount:   sdk.ZeroUint(),
-			expectedError: sdk.NewError(DefaultCodespace, CodeNoStakeUnitLeft, "nothing to withdraw"),
+			runeAmount:    cosmos.ZeroUint(),
+			assetAmount:   cosmos.ZeroUint(),
+			expectedError: cosmos.NewError(DefaultCodespace, CodeNoStakeUnitLeft, "nothing to withdraw"),
 		},
 		{
 			name: "empty-request-txhash",
 			msg: MsgSetUnStake{
 				RuneAddress:        runeAddress,
-				UnstakeBasisPoints: sdk.NewUint(10000),
+				UnstakeBasisPoints: cosmos.NewUint(10000),
 				Asset:              common.BNBAsset,
 				Tx:                 common.Tx{},
 				Signer:             accountAddr,
 			},
 			ps:            ps,
-			runeAmount:    sdk.ZeroUint(),
-			assetAmount:   sdk.ZeroUint(),
-			expectedError: sdk.NewError(DefaultCodespace, CodeUnstakeFailValidation, "request tx hash is empty"),
+			runeAmount:    cosmos.ZeroUint(),
+			assetAmount:   cosmos.ZeroUint(),
+			expectedError: cosmos.NewError(DefaultCodespace, CodeUnstakeFailValidation, "request tx hash is empty"),
 		},
 		{
 			name: "empty-asset",
 			msg: MsgSetUnStake{
 				RuneAddress:        runeAddress,
-				UnstakeBasisPoints: sdk.NewUint(10000),
+				UnstakeBasisPoints: cosmos.NewUint(10000),
 				Asset:              common.Asset{},
 				Tx:                 common.Tx{ID: "28B40BF105A112389A339A64BD1A042E6140DC9082C679586C6CF493A9FDE3FE"},
 				Signer:             accountAddr,
 			},
 			ps:            ps,
-			runeAmount:    sdk.ZeroUint(),
-			assetAmount:   sdk.ZeroUint(),
-			expectedError: sdk.NewError(DefaultCodespace, CodeUnstakeFailValidation, "empty asset"),
+			runeAmount:    cosmos.ZeroUint(),
+			assetAmount:   cosmos.ZeroUint(),
+			expectedError: cosmos.NewError(DefaultCodespace, CodeUnstakeFailValidation, "empty asset"),
 		},
 
 		{
 			name: "invalid-basis-point",
 			msg: MsgSetUnStake{
 				RuneAddress:        runeAddress,
-				UnstakeBasisPoints: sdk.NewUint(10001),
+				UnstakeBasisPoints: cosmos.NewUint(10001),
 				Asset:              common.BNBAsset,
 				Tx:                 common.Tx{ID: "28B40BF105A112389A339A64BD1A042E6140DC9082C679586C6CF493A9FDE3FE"},
 				Signer:             accountAddr,
 			},
 			ps:            ps,
-			runeAmount:    sdk.ZeroUint(),
-			assetAmount:   sdk.ZeroUint(),
-			expectedError: sdk.NewError(DefaultCodespace, CodeUnstakeFailValidation, "withdraw basis points 10001 is invalid"),
+			runeAmount:    cosmos.ZeroUint(),
+			assetAmount:   cosmos.ZeroUint(),
+			expectedError: cosmos.NewError(DefaultCodespace, CodeUnstakeFailValidation, "withdraw basis points 10001 is invalid"),
 		},
 		{
 			name: "invalid-pool-notexist",
 			msg: MsgSetUnStake{
 				RuneAddress:        runeAddress,
-				UnstakeBasisPoints: sdk.NewUint(10000),
+				UnstakeBasisPoints: cosmos.NewUint(10000),
 				Asset:              common.Asset{Chain: common.BNBChain, Ticker: "NOTEXIST", Symbol: "NOTEXIST"},
 				Tx:                 common.Tx{ID: "28B40BF105A112389A339A64BD1A042E6140DC9082C679586C6CF493A9FDE3FE"},
 				Signer:             accountAddr,
 			},
 			ps:            ps,
-			runeAmount:    sdk.ZeroUint(),
-			assetAmount:   sdk.ZeroUint(),
-			expectedError: sdk.NewError(DefaultCodespace, CodeUnstakeFailValidation, "pool-BNB.NOTEXIST doesn't exist"),
+			runeAmount:    cosmos.ZeroUint(),
+			assetAmount:   cosmos.ZeroUint(),
+			expectedError: cosmos.NewError(DefaultCodespace, CodeUnstakeFailValidation, "pool-BNB.NOTEXIST doesn't exist"),
 		},
 		{
 			name: "invalid-pool-staker-notexist",
 			msg: MsgSetUnStake{
 				RuneAddress:        runeAddress,
-				UnstakeBasisPoints: sdk.NewUint(10000),
+				UnstakeBasisPoints: cosmos.NewUint(10000),
 				Asset:              common.Asset{Chain: common.BNBChain, Ticker: "NOTEXISTSTICKER", Symbol: "NOTEXISTSTICKER"},
 				Tx:                 common.Tx{ID: "28B40BF105A112389A339A64BD1A042E6140DC9082C679586C6CF493A9FDE3FE"},
 				Signer:             accountAddr,
 			},
 			ps:            ps,
-			runeAmount:    sdk.ZeroUint(),
-			assetAmount:   sdk.ZeroUint(),
-			expectedError: sdk.NewError(DefaultCodespace, CodeStakerNotExist, "staker doesn't exist"),
+			runeAmount:    cosmos.ZeroUint(),
+			assetAmount:   cosmos.ZeroUint(),
+			expectedError: cosmos.NewError(DefaultCodespace, CodeStakerNotExist, "staker doesn't exist"),
 		},
 		{
 			name: "nothing-to-withdraw",
 			msg: MsgSetUnStake{
 				RuneAddress:        runeAddress,
-				UnstakeBasisPoints: sdk.NewUint(0),
+				UnstakeBasisPoints: cosmos.NewUint(0),
 				Asset:              common.BNBAsset,
 				Tx:                 common.Tx{ID: "28B40BF105A112389A339A64BD1A042E6140DC9082C679586C6CF493A9FDE3FE"},
 				Signer:             accountAddr,
 			},
 			ps:            ps,
-			runeAmount:    sdk.ZeroUint(),
-			assetAmount:   sdk.ZeroUint(),
-			expectedError: sdk.NewError(DefaultCodespace, CodeNoStakeUnitLeft, "nothing to withdraw"),
+			runeAmount:    cosmos.ZeroUint(),
+			assetAmount:   cosmos.ZeroUint(),
+			expectedError: cosmos.NewError(DefaultCodespace, CodeNoStakeUnitLeft, "nothing to withdraw"),
 		},
 		{
 			name: "all-good",
 			msg: MsgSetUnStake{
 				RuneAddress:        runeAddress,
-				UnstakeBasisPoints: sdk.NewUint(10000),
+				UnstakeBasisPoints: cosmos.NewUint(10000),
 				Asset:              common.BNBAsset,
 				Tx:                 common.Tx{ID: "28B40BF105A112389A339A64BD1A042E6140DC9082C679586C6CF493A9FDE3FE"},
 				Signer:             accountAddr,
 			},
 			ps:            getUnstakeTestKeeper(c),
-			runeAmount:    sdk.NewUint(100 * common.One),
-			assetAmount:   sdk.NewUint(100 * common.One).Sub(sdk.NewUint(75000)),
+			runeAmount:    cosmos.NewUint(100 * common.One),
+			assetAmount:   cosmos.NewUint(100 * common.One).Sub(cosmos.NewUint(75000)),
 			expectedError: nil,
 		},
 		{
 			name: "all-good-half",
 			msg: MsgSetUnStake{
 				RuneAddress:        runeAddress,
-				UnstakeBasisPoints: sdk.NewUint(5000),
+				UnstakeBasisPoints: cosmos.NewUint(5000),
 				Asset:              common.BNBAsset,
 				Tx:                 common.Tx{ID: "28B40BF105A112389A339A64BD1A042E6140DC9082C679586C6CF493A9FDE3FE"},
 				Signer:             accountAddr,
 			},
 			ps:            getUnstakeTestKeeper(c),
-			runeAmount:    sdk.NewUint(50 * common.One),
-			assetAmount:   sdk.NewUint(50 * common.One),
+			runeAmount:    cosmos.NewUint(50 * common.One),
+			assetAmount:   cosmos.NewUint(50 * common.One),
 			expectedError: nil,
 		},
 	}
@@ -496,10 +496,10 @@ func getUnstakeTestKeeper(c *C) Keeper {
 
 	store := NewUnstakeTestKeeper()
 	pool := Pool{
-		BalanceRune:  sdk.NewUint(100 * common.One),
-		BalanceAsset: sdk.NewUint(100 * common.One),
+		BalanceRune:  cosmos.NewUint(100 * common.One),
+		BalanceAsset: cosmos.NewUint(100 * common.One),
 		Asset:        common.BNBAsset,
-		PoolUnits:    sdk.NewUint(100 * common.One),
+		PoolUnits:    cosmos.NewUint(100 * common.One),
 		PoolAddress:  runeAddress,
 		Status:       PoolEnabled,
 	}
@@ -508,8 +508,8 @@ func getUnstakeTestKeeper(c *C) Keeper {
 		Asset:        pool.Asset,
 		RuneAddress:  runeAddress,
 		AssetAddress: runeAddress,
-		Units:        sdk.NewUint(100 * common.One),
-		PendingRune:  sdk.ZeroUint(),
+		Units:        cosmos.NewUint(100 * common.One),
+		PendingRune:  cosmos.ZeroUint(),
 	}
 	store.SetStaker(ctx, staker)
 	return store

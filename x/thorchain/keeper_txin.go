@@ -1,32 +1,31 @@
 package thorchain
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
-
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 type KeeperObservedTx interface {
-	SetObservedTxVoter(ctx sdk.Context, tx ObservedTxVoter)
-	GetObservedTxVoterIterator(ctx sdk.Context) sdk.Iterator
-	GetObservedTxVoter(ctx sdk.Context, hash common.TxID) (ObservedTxVoter, error)
+	SetObservedTxVoter(ctx cosmos.Context, tx ObservedTxVoter)
+	GetObservedTxVoterIterator(ctx cosmos.Context) cosmos.Iterator
+	GetObservedTxVoter(ctx cosmos.Context, hash common.TxID) (ObservedTxVoter, error)
 }
 
 // SetObservedTxVoter - save a txin voter object
-func (k KVStore) SetObservedTxVoter(ctx sdk.Context, tx ObservedTxVoter) {
+func (k KVStore) SetObservedTxVoter(ctx cosmos.Context, tx ObservedTxVoter) {
 	store := ctx.KVStore(k.storeKey)
 	key := k.GetKey(ctx, prefixObservedTx, tx.String())
 	store.Set([]byte(key), k.cdc.MustMarshalBinaryBare(tx))
 }
 
 // GetObservedTxVoterIterator iterate tx in voters
-func (k KVStore) GetObservedTxVoterIterator(ctx sdk.Context) sdk.Iterator {
+func (k KVStore) GetObservedTxVoterIterator(ctx cosmos.Context) cosmos.Iterator {
 	store := ctx.KVStore(k.storeKey)
-	return sdk.KVStorePrefixIterator(store, []byte(prefixObservedTx))
+	return cosmos.KVStorePrefixIterator(store, []byte(prefixObservedTx))
 }
 
 // GetObservedTx - gets information of a tx hash
-func (k KVStore) GetObservedTxVoter(ctx sdk.Context, hash common.TxID) (ObservedTxVoter, error) {
+func (k KVStore) GetObservedTxVoter(ctx cosmos.Context, hash common.TxID) (ObservedTxVoter, error) {
 	key := k.GetKey(ctx, prefixObservedTx, hash.String())
 
 	store := ctx.KVStore(k.storeKey)

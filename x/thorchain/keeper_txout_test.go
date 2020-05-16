@@ -1,10 +1,10 @@
 package thorchain
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 type KeeperTxOutSuite struct{}
@@ -18,7 +18,7 @@ func (KeeperTxOutSuite) TestKeeperTxOut(c *C) {
 		Chain:       common.BNBChain,
 		ToAddress:   GetRandomBNBAddress(),
 		VaultPubKey: GetRandomPubKey(),
-		Coin:        common.NewCoin(common.BNBAsset, sdk.NewUint(100*common.One)),
+		Coin:        common.NewCoin(common.BNBAsset, cosmos.NewUint(100*common.One)),
 		Memo:        "hello",
 	}
 	txOut.TxArray = append(txOut.TxArray, txOutItem)

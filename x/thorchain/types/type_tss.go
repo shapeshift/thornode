@@ -1,18 +1,17 @@
 package types
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
-
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 type TssVoter struct {
-	ID          string           `json:"id"` // checksum of sorted input pubkeys
-	PoolPubKey  common.PubKey    `json:"pool_pub_key"`
-	PubKeys     common.PubKeys   `json:"pubkeys"`
-	BlockHeight int64            `json:"block_height"`
-	Chains      common.Chains    `json:"chains"`
-	Signers     []sdk.AccAddress `json:"signers"`
+	ID          string              `json:"id"` // checksum of sorted input pubkeys
+	PoolPubKey  common.PubKey       `json:"pool_pub_key"`
+	PubKeys     common.PubKeys      `json:"pubkeys"`
+	BlockHeight int64               `json:"block_height"`
+	Chains      common.Chains       `json:"chains"`
+	Signers     []cosmos.AccAddress `json:"signers"`
 }
 
 func NewTssVoter(id string, pks common.PubKeys, pool common.PubKey) TssVoter {
@@ -24,7 +23,7 @@ func NewTssVoter(id string, pks common.PubKeys, pool common.PubKey) TssVoter {
 }
 
 // HasSigned - check if given address has signed
-func (tss TssVoter) HasSigned(signer sdk.AccAddress) bool {
+func (tss TssVoter) HasSigned(signer cosmos.AccAddress) bool {
 	for _, sign := range tss.Signers {
 		if sign.Equals(signer) {
 			return true
@@ -34,7 +33,7 @@ func (tss TssVoter) HasSigned(signer sdk.AccAddress) bool {
 }
 
 // Sign this voter with given signer address
-func (tss *TssVoter) Sign(signer sdk.AccAddress, chains common.Chains) bool {
+func (tss *TssVoter) Sign(signer cosmos.AccAddress, chains common.Chains) bool {
 	if tss.HasSigned(signer) {
 		return false
 	}

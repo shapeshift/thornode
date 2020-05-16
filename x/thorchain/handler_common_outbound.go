@@ -4,9 +4,9 @@ import (
 	"fmt"
 
 	"github.com/blang/semver"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 // CommonOutboundTxHandler is the place where those common logic can be shared between multiple different kind of outbound tx handler
@@ -24,7 +24,7 @@ func NewCommonOutboundTxHandler(k Keeper, versionedEventManager VersionedEventMa
 	}
 }
 
-func (h CommonOutboundTxHandler) slash(ctx sdk.Context, version semver.Version, tx ObservedTx) error {
+func (h CommonOutboundTxHandler) slash(ctx cosmos.Context, version semver.Version, tx ObservedTx) error {
 	var returnErr error
 	slasher, err := NewSlasher(h.keeper, version, h.versionedEventManager)
 	if err != nil {
@@ -39,11 +39,11 @@ func (h CommonOutboundTxHandler) slash(ctx sdk.Context, version semver.Version, 
 	return returnErr
 }
 
-func (h CommonOutboundTxHandler) handle(ctx sdk.Context, version semver.Version, tx ObservedTx, inTxID common.TxID, status EventStatus) sdk.Result {
+func (h CommonOutboundTxHandler) handle(ctx cosmos.Context, version semver.Version, tx ObservedTx, inTxID common.TxID, status EventStatus) cosmos.Result {
 	voter, err := h.keeper.GetObservedTxVoter(ctx, inTxID)
 	if err != nil {
 		ctx.Logger().Error("fail to get observed tx voter", "error", err)
-		return sdk.ErrInternal("fail to get observed tx voter").Result()
+		return cosmos.ErrInternal("fail to get observed tx voter").Result()
 	}
 
 	if voter.Height > 0 {
@@ -55,7 +55,7 @@ func (h CommonOutboundTxHandler) handle(ctx sdk.Context, version semver.Version,
 	txOut, err := h.keeper.GetTxOut(ctx, voter.Height)
 	if err != nil {
 		ctx.Logger().Error("unable to get txOut record", "error", err)
-		return sdk.ErrUnknownRequest(err.Error()).Result()
+		return cosmos.ErrUnknownRequest(err.Error()).Result()
 	}
 
 	// Save TxOut back with the TxID only when the TxOut on the block height is
@@ -87,7 +87,7 @@ func (h CommonOutboundTxHandler) handle(ctx sdk.Context, version semver.Version,
 
 	if shouldSlash {
 		if err := h.slash(ctx, version, tx); err != nil {
-			return sdk.ErrInternal("fail to slash account").Result()
+			return cosmos.ErrInternal("fail to slash account").Result()
 		}
 	}
 
@@ -98,7 +98,7 @@ func (h CommonOutboundTxHandler) handle(ctx sdk.Context, version semver.Version,
 		err := completeEvents(ctx, h.keeper, inTxID, voter.OutTxs, status)
 		if err != nil {
 			ctx.Logger().Error("unable to complete events", "error", err)
-			return sdk.ErrInternal(err.Error()).Result()
+			return cosmos.ErrInternal(err.Error()).Result()
 		}
 		eventMgr, err := h.versionedEventManager.GetEventManager(ctx, version)
 		if err != nil {
@@ -108,13 +108,13 @@ func (h CommonOutboundTxHandler) handle(ctx sdk.Context, version semver.Version,
 		for _, item := range voter.OutTxs {
 			if err := eventMgr.EmitOutboundEvent(ctx, NewEventOutbound(inTxID, item)); err != nil {
 				ctx.Logger().Error("fail to emit outbound event", "error", err)
-				return sdk.ErrInternal("fail to emit outbound event").Result()
+				return cosmos.ErrInternal("fail to emit outbound event").Result()
 			}
 		}
 	}
 
-	return sdk.Result{
-		Code:      sdk.CodeOK,
+	return cosmos.Result{
+		Code:      cosmos.CodeOK,
 		Codespace: DefaultCodespace,
 	}
 }

@@ -5,23 +5,24 @@ import (
 	"strings"
 
 	"github.com/cosmos/cosmos-sdk/codec"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/bank"
 	"github.com/cosmos/cosmos-sdk/x/supply"
 	"github.com/tendermint/tendermint/libs/log"
+
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 type Keeper interface {
 	Cdc() *codec.Codec
 	Supply() supply.Keeper
 	CoinKeeper() bank.Keeper
-	Logger(ctx sdk.Context) log.Logger
-	GetKey(ctx sdk.Context, prefix dbPrefix, key string) string
-	GetRuneBalaceOfModule(ctx sdk.Context, moduleName string) sdk.Uint
-	SendFromModuleToModule(ctx sdk.Context, from, to string, coin common.Coin) sdk.Error
-	SendFromAccountToModule(ctx sdk.Context, from sdk.AccAddress, to string, coin common.Coin) sdk.Error
-	SendFromModuleToAccount(ctx sdk.Context, from string, to sdk.AccAddress, coin common.Coin) sdk.Error
+	Logger(ctx cosmos.Context) log.Logger
+	GetKey(ctx cosmos.Context, prefix dbPrefix, key string) string
+	GetRuneBalaceOfModule(ctx cosmos.Context, moduleName string) cosmos.Uint
+	SendFromModuleToModule(ctx cosmos.Context, from, to string, coin common.Coin) cosmos.Error
+	SendFromAccountToModule(ctx cosmos.Context, from cosmos.AccAddress, to string, coin common.Coin) cosmos.Error
+	SendFromModuleToAccount(ctx cosmos.Context, from string, to cosmos.AccAddress, coin common.Coin) cosmos.Error
 
 	// Keeper Interfaces
 	KeeperPool
@@ -88,7 +89,7 @@ const (
 	prefixMimir              dbPrefix = "mimir/"
 )
 
-func dbError(ctx sdk.Context, wrapper string, err error) error {
+func dbError(ctx cosmos.Context, wrapper string, err error) error {
 	err = fmt.Errorf("KVStore Error: %s: %w", wrapper, err)
 	ctx.Logger().Error(err.Error())
 	return err
@@ -98,12 +99,12 @@ func dbError(ctx sdk.Context, wrapper string, err error) error {
 type KVStore struct {
 	coinKeeper   bank.Keeper
 	supplyKeeper supply.Keeper
-	storeKey     sdk.StoreKey // Unexposed key to access store from sdk.Context
-	cdc          *codec.Codec // The wire codec for binary encoding/decoding.
+	storeKey     cosmos.StoreKey // Unexposed key to access store from cosmos.Context
+	cdc          *codec.Codec    // The wire codec for binary encoding/decoding.
 }
 
 // NewKVStore creates new instances of the thorchain Keeper
-func NewKVStore(coinKeeper bank.Keeper, supplyKeeper supply.Keeper, storeKey sdk.StoreKey, cdc *codec.Codec) KVStore {
+func NewKVStore(coinKeeper bank.Keeper, supplyKeeper supply.Keeper, storeKey cosmos.StoreKey, cdc *codec.Codec) KVStore {
 	return KVStore{
 		coinKeeper:   coinKeeper,
 		supplyKeeper: supplyKeeper,
@@ -124,39 +125,39 @@ func (k KVStore) CoinKeeper() bank.Keeper {
 	return k.coinKeeper
 }
 
-func (k KVStore) Logger(ctx sdk.Context) log.Logger {
+func (k KVStore) Logger(ctx cosmos.Context) log.Logger {
 	return ctx.Logger().With("module", fmt.Sprintf("x/%s", ModuleName))
 }
 
-func (k KVStore) GetKey(ctx sdk.Context, prefix dbPrefix, key string) string {
+func (k KVStore) GetKey(ctx cosmos.Context, prefix dbPrefix, key string) string {
 	version := getVersion(k.GetLowestActiveVersion(ctx), prefix)
 	return fmt.Sprintf("%s%d/%s", prefix, version.Minor, strings.ToUpper(key))
 }
 
-func (k KVStore) GetRuneBalaceOfModule(ctx sdk.Context, moduleName string) sdk.Uint {
+func (k KVStore) GetRuneBalaceOfModule(ctx cosmos.Context, moduleName string) cosmos.Uint {
 	addr := k.supplyKeeper.GetModuleAddress(moduleName)
 	coins := k.coinKeeper.GetCoins(ctx, addr)
 	amt := coins.AmountOf(common.RuneNative.Native())
-	return sdk.NewUintFromBigInt(amt.BigInt())
+	return cosmos.NewUintFromBigInt(amt.BigInt())
 }
 
-func (k KVStore) SendFromModuleToModule(ctx sdk.Context, from, to string, coin common.Coin) sdk.Error {
-	coins := sdk.NewCoins(
-		sdk.NewCoin(coin.Asset.Native(), sdk.NewIntFromBigInt(coin.Amount.BigInt())),
+func (k KVStore) SendFromModuleToModule(ctx cosmos.Context, from, to string, coin common.Coin) cosmos.Error {
+	coins := cosmos.NewCoins(
+		cosmos.NewCoin(coin.Asset.Native(), cosmos.NewIntFromBigInt(coin.Amount.BigInt())),
 	)
 	return k.Supply().SendCoinsFromModuleToModule(ctx, from, to, coins)
 }
 
-func (k KVStore) SendFromAccountToModule(ctx sdk.Context, from sdk.AccAddress, to string, coin common.Coin) sdk.Error {
-	coins := sdk.NewCoins(
-		sdk.NewCoin(coin.Asset.Native(), sdk.NewIntFromBigInt(coin.Amount.BigInt())),
+func (k KVStore) SendFromAccountToModule(ctx cosmos.Context, from cosmos.AccAddress, to string, coin common.Coin) cosmos.Error {
+	coins := cosmos.NewCoins(
+		cosmos.NewCoin(coin.Asset.Native(), cosmos.NewIntFromBigInt(coin.Amount.BigInt())),
 	)
 	return k.Supply().SendCoinsFromAccountToModule(ctx, from, to, coins)
 }
 
-func (k KVStore) SendFromModuleToAccount(ctx sdk.Context, from string, to sdk.AccAddress, coin common.Coin) sdk.Error {
-	coins := sdk.NewCoins(
-		sdk.NewCoin(coin.Asset.Native(), sdk.NewIntFromBigInt(coin.Amount.BigInt())),
+func (k KVStore) SendFromModuleToAccount(ctx cosmos.Context, from string, to cosmos.AccAddress, coin common.Coin) cosmos.Error {
+	coins := cosmos.NewCoins(
+		cosmos.NewCoin(coin.Asset.Native(), cosmos.NewIntFromBigInt(coin.Amount.BigInt())),
 	)
 	return k.Supply().SendCoinsFromModuleToAccount(ctx, from, to, coins)
 }

@@ -17,7 +17,6 @@ import (
 	ttypes "github.com/binance-chain/go-sdk/types"
 	"github.com/binance-chain/go-sdk/types/msg"
 	btx "github.com/binance-chain/go-sdk/types/tx"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	tssp "gitlab.com/thorchain/tss/go-tss/tss"
@@ -29,6 +28,7 @@ import (
 	stypes "gitlab.com/thorchain/thornode/bifrost/thorclient/types"
 	"gitlab.com/thorchain/thornode/bifrost/tss"
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/x/thorchain"
 )
 
@@ -240,9 +240,9 @@ func (b *Binance) GetAddress(poolPubKey common.PubKey) string {
 
 func (b *Binance) getGasFee(count uint64) common.Gas {
 	coins := make(common.Coins, count)
-	gasInfo := []sdk.Uint{
-		sdk.NewUint(b.bnbScanner.singleFee),
-		sdk.NewUint(b.bnbScanner.multiFee),
+	gasInfo := []cosmos.Uint{
+		cosmos.NewUint(b.bnbScanner.singleFee),
+		cosmos.NewUint(b.bnbScanner.multiFee),
 	}
 	return common.CalcGasPrice(common.Tx{Coins: coins}, common.BNBAsset, gasInfo)
 }
@@ -486,7 +486,7 @@ func (b *Binance) BroadcastTx(tx stypes.TxOutItem, hexTx []byte) error {
 		// drop and ignore. The reason being, thorchain will attempt to again
 		// later.
 		// Error code 5 is insufficient funds, ignore theses
-		if badCommit.Code > 0 && badCommit.Code != int(sdk.CodeUnauthorized) && badCommit.Code != int(sdk.CodeInsufficientFunds) {
+		if badCommit.Code > 0 && badCommit.Code != int(cosmos.CodeUnauthorized) && badCommit.Code != int(cosmos.CodeInsufficientFunds) {
 			err := errors.New(badCommit.Log)
 			b.logger.Error().Err(err).Msg("fail to broadcast")
 			return fmt.Errorf("fail to broadcast: %w", err)

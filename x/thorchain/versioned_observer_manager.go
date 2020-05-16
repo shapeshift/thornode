@@ -2,12 +2,12 @@ package thorchain
 
 import (
 	"github.com/blang/semver"
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 // VersionedObserverManager
 type VersionedObserverManager interface {
-	GetObserverManager(ctx sdk.Context, version semver.Version) (ObserverManager, error)
+	GetObserverManager(ctx cosmos.Context, version semver.Version) (ObserverManager, error)
 }
 
 // VersionedObserverMgr implements the VersionedObserverManager interface
@@ -23,7 +23,7 @@ func NewVersionedObserverMgr() *VersionedObserverMgr {
 
 // GetObserverManager return an instance that implements ObserverManager interface
 // when there is no version can match the given semver , it will return nil
-func (m *VersionedObserverMgr) GetObserverManager(ctx sdk.Context, version semver.Version) (ObserverManager, error) {
+func (m *VersionedObserverMgr) GetObserverManager(ctx cosmos.Context, version semver.Version) (ObserverManager, error) {
 	if version.GTE(semver.MustParse("0.1.0")) {
 		if m.observerManagerV1 == nil {
 			m.observerManagerV1 = NewObserverMgr()

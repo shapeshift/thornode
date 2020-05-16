@@ -5,9 +5,9 @@ import (
 	"fmt"
 
 	"github.com/blang/semver"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 )
 
@@ -33,7 +33,7 @@ func NewVaultMgr(k Keeper, versionedTxOutStore VersionedTxOutStore, versionedEve
 	}
 }
 
-func (vm *VaultMgr) processGenesisSetup(ctx sdk.Context) error {
+func (vm *VaultMgr) processGenesisSetup(ctx cosmos.Context) error {
 	if ctx.BlockHeight() != genesisBlockHeight {
 		return nil
 	}
@@ -68,7 +68,7 @@ func (vm *VaultMgr) processGenesisSetup(ctx sdk.Context) error {
 }
 
 // EndBlock move funds from retiring asgard vaults
-func (vm *VaultMgr) EndBlock(ctx sdk.Context, version semver.Version, constAccessor constants.ConstantValues) error {
+func (vm *VaultMgr) EndBlock(ctx cosmos.Context, version semver.Version, constAccessor constants.ConstantValues) error {
 	if ctx.BlockHeight() == genesisBlockHeight {
 		return vm.processGenesisSetup(ctx)
 	}
@@ -199,7 +199,7 @@ func (vm *VaultMgr) EndBlock(ctx sdk.Context, version semver.Version, constAcces
 }
 
 // TriggerKeygen generate a record to instruct signer kick off keygen process
-func (vm *VaultMgr) TriggerKeygen(ctx sdk.Context, nas NodeAccounts) error {
+func (vm *VaultMgr) TriggerKeygen(ctx cosmos.Context, nas NodeAccounts) error {
 	var members common.PubKeys
 	for i := range nas {
 		members = append(members, nas[i].PubKeySet.Secp256k1)
@@ -219,7 +219,7 @@ func (vm *VaultMgr) TriggerKeygen(ctx sdk.Context, nas NodeAccounts) error {
 	return vm.k.SetKeygenBlock(ctx, keygenBlock)
 }
 
-func (vm *VaultMgr) RotateVault(ctx sdk.Context, vault Vault) error {
+func (vm *VaultMgr) RotateVault(ctx cosmos.Context, vault Vault) error {
 	active, err := vm.k.GetAsgardVaultsByStatus(ctx, ActiveVault)
 	if err != nil {
 		return err
@@ -235,8 +235,8 @@ func (vm *VaultMgr) RotateVault(ctx sdk.Context, vault Vault) error {
 				}
 
 				ctx.EventManager().EmitEvent(
-					sdk.NewEvent(EventTypeInactiveVault,
-						sdk.NewAttribute("set asgard vault to inactive", asgard.PubKey.String())))
+					cosmos.NewEvent(EventTypeInactiveVault,
+						cosmos.NewAttribute("set asgard vault to inactive", asgard.PubKey.String())))
 				break
 			}
 		}
@@ -259,14 +259,14 @@ func (vm *VaultMgr) RotateVault(ctx sdk.Context, vault Vault) error {
 	}
 
 	ctx.EventManager().EmitEvent(
-		sdk.NewEvent(EventTypeActiveVault,
-			sdk.NewAttribute("add new asgard vault", vault.PubKey.String())))
+		cosmos.NewEvent(EventTypeActiveVault,
+			cosmos.NewAttribute("add new asgard vault", vault.PubKey.String())))
 	return nil
 }
 
 // manageChains - checks to see if we have any chains that we are ragnaroking,
 // and ragnaroks them
-func (vm *VaultMgr) manageChains(ctx sdk.Context, constAccessor constants.ConstantValues) error {
+func (vm *VaultMgr) manageChains(ctx cosmos.Context, constAccessor constants.ConstantValues) error {
 	chains, err := vm.findChainsToRetire(ctx)
 	if err != nil {
 		return err
@@ -309,7 +309,7 @@ func (vm *VaultMgr) manageChains(ctx sdk.Context, constAccessor constants.Consta
 // findChainsToRetire - evaluates the chains associated with active asgard
 // vaults vs retiring asgard vaults to detemine if any chains need to be
 // ragnarok'ed
-func (vm *VaultMgr) findChainsToRetire(ctx sdk.Context) (common.Chains, error) {
+func (vm *VaultMgr) findChainsToRetire(ctx cosmos.Context) (common.Chains, error) {
 	chains := make(common.Chains, 0)
 
 	active, err := vm.k.GetAsgardVaultsByStatus(ctx, ActiveVault)
@@ -347,7 +347,7 @@ func (vm *VaultMgr) findChainsToRetire(ctx sdk.Context) (common.Chains, error) {
 
 // recallChainFunds - sends a message to bifrost nodes to send back all funds
 // associated with given chain
-func (vm *VaultMgr) recallChainFunds(ctx sdk.Context, chain common.Chain) error {
+func (vm *VaultMgr) recallChainFunds(ctx cosmos.Context, chain common.Chain) error {
 	version := vm.k.GetLowestActiveVersion(ctx)
 	allNodes, err := vm.k.ListNodeAccountsWithBond(ctx)
 	if err != nil {
@@ -398,7 +398,7 @@ func (vm *VaultMgr) recallChainFunds(ctx sdk.Context, chain common.Chain) error 
 				ToAddress:   toAddr,
 				InHash:      common.BlankTxID,
 				VaultPubKey: ygg.PubKey,
-				Coin:        common.NewCoin(common.RuneAsset(), sdk.ZeroUint()),
+				Coin:        common.NewCoin(common.RuneAsset(), cosmos.ZeroUint()),
 				Memo:        NewYggdrasilReturn(ctx.BlockHeight()).String(),
 			}
 			// yggdrasil- will not set coin field here, when signer see a
@@ -416,7 +416,7 @@ func (vm *VaultMgr) recallChainFunds(ctx sdk.Context, chain common.Chain) error 
 
 // ragnarokChain - ends a chain by unstaking all stakers of any pool that's
 // asset is on the given chain
-func (vm *VaultMgr) ragnarokChain(ctx sdk.Context, chain common.Chain, nth int64, constAccessor constants.ConstantValues) error {
+func (vm *VaultMgr) ragnarokChain(ctx cosmos.Context, chain common.Chain, nth int64, constAccessor constants.ConstantValues) error {
 	version := vm.k.GetLowestActiveVersion(ctx)
 	nas, err := vm.k.ListActiveNodeAccounts(ctx)
 	if err != nil {
@@ -460,7 +460,7 @@ func (vm *VaultMgr) ragnarokChain(ctx sdk.Context, chain common.Chain, nth int64
 			unstakeMsg := NewMsgSetUnStake(
 				common.GetRagnarokTx(pool.Asset.Chain, staker.RuneAddress, staker.RuneAddress),
 				staker.RuneAddress,
-				sdk.NewUint(uint64(MaxUnstakeBasisPoints/100*(nth*10))),
+				cosmos.NewUint(uint64(MaxUnstakeBasisPoints/100*(nth*10))),
 				pool.Asset,
 				na.NodeAddress,
 			)

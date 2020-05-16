@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	sdk "github.com/binance-chain/go-sdk/client"
+	"github.com/binance-chain/go-sdk/client"
 	"github.com/binance-chain/go-sdk/keys"
 
 	ctypes "github.com/binance-chain/go-sdk/common/types"
@@ -30,7 +30,7 @@ func main() {
 		log.Panic(err)
 	}
 
-	if _, err := sdk.NewDexClient(*apiAddr, n, keyManager); err != nil {
+	if _, err := client.NewDexClient(*apiAddr, n, keyManager); err != nil {
 		log.Panic(err)
 	}
 

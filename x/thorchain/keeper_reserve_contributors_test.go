@@ -1,10 +1,10 @@
 package thorchain
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 type KeeperReserveContributorsSuite struct{}
@@ -13,8 +13,8 @@ var _ = Suite(&KeeperReserveContributorsSuite{})
 
 func (KeeperReserveContributorsSuite) TestReserveContributors(c *C) {
 	ctx, k := setupKeeperForTest(c)
-	c.Assert(k.AddFeeToReserve(ctx, sdk.NewUint(common.One*100)), IsNil)
-	contributor := NewReserveContributor(GetRandomBNBAddress(), sdk.NewUint(common.One*1000))
+	c.Assert(k.AddFeeToReserve(ctx, cosmos.NewUint(common.One*100)), IsNil)
+	contributor := NewReserveContributor(GetRandomBNBAddress(), cosmos.NewUint(common.One*1000))
 	contributors := ReserveContributors{
 		contributor,
 	}

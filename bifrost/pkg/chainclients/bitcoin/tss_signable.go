@@ -5,7 +5,6 @@ import (
 	"math/big"
 
 	"github.com/btcsuite/btcd/btcec"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/tendermint/tendermint/crypto/secp256k1"
@@ -13,6 +12,7 @@ import (
 	"gitlab.com/thorchain/thornode/bifrost/thorclient"
 	"gitlab.com/thorchain/thornode/bifrost/tss"
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 // TssSignable is a signable implementation backed by tss
@@ -58,7 +58,7 @@ func (ts *TssSignable) Sign(payload []byte) (*btcec.Signature, error) {
 }
 
 func (ts *TssSignable) GetPubKey() *btcec.PublicKey {
-	cpk, err := sdk.GetAccPubKeyBech32(ts.poolPubKey.String())
+	cpk, err := cosmos.GetAccPubKeyBech32(ts.poolPubKey.String())
 	if err != nil {
 		ts.logger.Err(err).Str("pubkey", ts.poolPubKey.String()).Msg("fail to get pubic key from the bech32 pool public key string")
 		return nil

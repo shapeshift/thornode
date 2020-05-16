@@ -3,18 +3,18 @@ package thorchain
 import (
 	"strconv"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 type KeeperTxOut interface {
-	SetTxOut(ctx sdk.Context, blockOut *TxOut) error
-	AppendTxOut(ctx sdk.Context, height int64, item *TxOutItem) error
-	GetTxOutIterator(ctx sdk.Context) sdk.Iterator
-	GetTxOut(ctx sdk.Context, height int64) (*TxOut, error)
+	SetTxOut(ctx cosmos.Context, blockOut *TxOut) error
+	AppendTxOut(ctx cosmos.Context, height int64, item *TxOutItem) error
+	GetTxOutIterator(ctx cosmos.Context) cosmos.Iterator
+	GetTxOut(ctx cosmos.Context, height int64) (*TxOut, error)
 }
 
 // AppendTxOut - append a given item to txOut
-func (k KVStore) AppendTxOut(ctx sdk.Context, height int64, item *TxOutItem) error {
+func (k KVStore) AppendTxOut(ctx cosmos.Context, height int64, item *TxOutItem) error {
 	block, err := k.GetTxOut(ctx, height)
 	if err != nil {
 		return err
@@ -24,7 +24,7 @@ func (k KVStore) AppendTxOut(ctx sdk.Context, height int64, item *TxOutItem) err
 }
 
 // SetTxOut - write the given txout information to key values tore
-func (k KVStore) SetTxOut(ctx sdk.Context, blockOut *TxOut) error {
+func (k KVStore) SetTxOut(ctx cosmos.Context, blockOut *TxOut) error {
 	store := ctx.KVStore(k.storeKey)
 	key := k.GetKey(ctx, prefixTxOut, strconv.FormatInt(blockOut.Height, 10))
 	buf, err := k.cdc.MarshalBinaryBare(blockOut)
@@ -36,13 +36,13 @@ func (k KVStore) SetTxOut(ctx sdk.Context, blockOut *TxOut) error {
 }
 
 // GetTxOutIterator iterate tx out
-func (k KVStore) GetTxOutIterator(ctx sdk.Context) sdk.Iterator {
+func (k KVStore) GetTxOutIterator(ctx cosmos.Context) cosmos.Iterator {
 	store := ctx.KVStore(k.storeKey)
-	return sdk.KVStorePrefixIterator(store, []byte(prefixTxOut))
+	return cosmos.KVStorePrefixIterator(store, []byte(prefixTxOut))
 }
 
 // GetTxOut - write the given txout information to key values tore
-func (k KVStore) GetTxOut(ctx sdk.Context, height int64) (*TxOut, error) {
+func (k KVStore) GetTxOut(ctx cosmos.Context, height int64) (*TxOut, error) {
 	txOut := NewTxOut(height)
 	store := ctx.KVStore(k.storeKey)
 	key := k.GetKey(ctx, prefixTxOut, strconv.FormatInt(height, 10))

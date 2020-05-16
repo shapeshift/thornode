@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 type Staker struct {
@@ -14,8 +14,8 @@ type Staker struct {
 	AssetAddress      common.Address `json:"asset_address"`
 	LastStakeHeight   int64          `json:"last_stake"`
 	LastUnStakeHeight int64          `json:"last_unstake"`
-	Units             sdk.Uint       `json:"units"`
-	PendingRune       sdk.Uint       `json:"pending_rune"` // number of rune coins
+	Units             cosmos.Uint    `json:"units"`
+	PendingRune       cosmos.Uint    `json:"pending_rune"` // number of rune coins
 }
 
 func (staker Staker) IsValid() error {

@@ -19,7 +19,6 @@ import (
 	"github.com/btcsuite/btcutil"
 	"github.com/cosmos/cosmos-sdk/client/keys"
 	cKeys "github.com/cosmos/cosmos-sdk/crypto/keys"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/storage"
 	"github.com/tendermint/tendermint/crypto/secp256k1"
@@ -32,6 +31,7 @@ import (
 	stypes "gitlab.com/thorchain/thornode/bifrost/thorclient/types"
 	"gitlab.com/thorchain/thornode/bifrost/tss"
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/x/thorchain"
 	types2 "gitlab.com/thorchain/thornode/x/thorchain/types"
 )
@@ -155,10 +155,10 @@ func (s *BitcoinSignerSuite) TestSignTx(c *C) {
 		VaultPubKey: types2.GetRandomPubKey(),
 		SeqNo:       0,
 		Coins: common.Coins{
-			common.NewCoin(common.BTCAsset, sdk.NewUint(10)),
+			common.NewCoin(common.BTCAsset, cosmos.NewUint(10)),
 		},
 		MaxGas: common.Gas{
-			common.NewCoin(common.BTCAsset, sdk.NewUint(1)),
+			common.NewCoin(common.BTCAsset, cosmos.NewUint(1)),
 		},
 		InHash:  "",
 		OutHash: "",
@@ -208,10 +208,10 @@ func (s *BitcoinSignerSuite) TestSignTxHappyPathWithPrivateKey(c *C) {
 		VaultPubKey: "thorpub1addwnpepqw2k68efthm08f0f5akhjs6fk5j2pze4wkwt4fmnymf9yd463puru988m2y",
 		SeqNo:       0,
 		Coins: common.Coins{
-			common.NewCoin(common.BTCAsset, sdk.NewUint(10)),
+			common.NewCoin(common.BTCAsset, cosmos.NewUint(10)),
 		},
 		MaxGas: common.Gas{
-			common.NewCoin(common.BTCAsset, sdk.NewUint(1)),
+			common.NewCoin(common.BTCAsset, cosmos.NewUint(1)),
 		},
 		InHash:  "",
 		OutHash: "",
@@ -251,10 +251,10 @@ func (s *BitcoinSignerSuite) TestSignTxWithTSS(c *C) {
 		VaultPubKey: "thorpub1addwnpepqts24euwrgly2vtez3zdvusmk6u3cwf8leuzj8m4ynvmv5cst7us2vltqrh",
 		SeqNo:       0,
 		Coins: common.Coins{
-			common.NewCoin(common.BTCAsset, sdk.NewUint(10)),
+			common.NewCoin(common.BTCAsset, cosmos.NewUint(10)),
 		},
 		MaxGas: common.Gas{
-			common.NewCoin(common.BTCAsset, sdk.NewUint(1)),
+			common.NewCoin(common.BTCAsset, cosmos.NewUint(1)),
 		},
 		InHash:  "",
 		OutHash: "",
@@ -292,10 +292,10 @@ func (s *BitcoinSignerSuite) TestBroadcastTx(c *C) {
 		VaultPubKey: types2.GetRandomPubKey(),
 		SeqNo:       0,
 		Coins: common.Coins{
-			common.NewCoin(common.BTCAsset, sdk.NewUint(10)),
+			common.NewCoin(common.BTCAsset, cosmos.NewUint(10)),
 		},
 		MaxGas: common.Gas{
-			common.NewCoin(common.BTCAsset, sdk.NewUint(1)),
+			common.NewCoin(common.BTCAsset, cosmos.NewUint(1)),
 		},
 		InHash:  "",
 		OutHash: "",

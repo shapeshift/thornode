@@ -1,10 +1,10 @@
 package types
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 type MsgSetNodeKeysSuite struct{}
@@ -29,7 +29,7 @@ func (MsgSetNodeKeysSuite) TestMsgSetNodeKeys(c *C) {
 	msgUpdateNodeAccount1 := NewMsgSetNodeKeys(pubKeys, "", acc1)
 	c.Assert(msgUpdateNodeAccount1.ValidateBasic(), NotNil)
 
-	msgUpdateNodeAccount2 := NewMsgSetNodeKeys(pubKeys, consensPubKey, sdk.AccAddress{})
+	msgUpdateNodeAccount2 := NewMsgSetNodeKeys(pubKeys, consensPubKey, cosmos.AccAddress{})
 	c.Assert(msgUpdateNodeAccount2.ValidateBasic(), NotNil)
 
 	emptyPubKeySet := NewMsgSetNodeKeys(common.PubKeySet{}, consensPubKey, acc1)

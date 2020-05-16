@@ -4,28 +4,27 @@ import (
 	"encoding/json"
 	"fmt"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 // EventManager define methods need to be support to manage events
 type EventManager interface {
-	CompleteEvents(ctx sdk.Context, keeper Keeper, height int64, txID common.TxID, txs common.Txs, eventStatus EventStatus)
-	EmitPoolEvent(ctx sdk.Context, keeper Keeper, txIn common.TxID, status EventStatus, poolEvt EventPool) error
-	EmitErrataEvent(ctx sdk.Context, keeper Keeper, txIn common.TxID, errataEvent EventErrata) error
-	EmitGasEvent(ctx sdk.Context, keeper Keeper, gasEvent *EventGas) error
-	EmitStakeEvent(ctx sdk.Context, keeper Keeper, inTx common.Tx, stakeEvent EventStake) error
-	EmitRewardEvent(ctx sdk.Context, keeper Keeper, rewardEvt EventRewards) error
-	EmitReserveEvent(ctx sdk.Context, keeper Keeper, reserveEvent EventReserve) error
-	EmitUnstakeEvent(ctx sdk.Context, keeper Keeper, unstakeEvt EventUnstake) error
-	EmitSwapEvent(ctx sdk.Context, keeper Keeper, swap EventSwap) error
-	EmitRefundEvent(ctx sdk.Context, keeper Keeper, refundEvt EventRefund, status EventStatus) error
-	EmitBondEvent(ctx sdk.Context, keeper Keeper, bondEvent EventBond) error
-	EmitAddEvent(ctx sdk.Context, keeper Keeper, addEvt EventAdd) error
-	EmitFeeEvent(ctx sdk.Context, keeper Keeper, feeEvent EventFee) error
-	EmitSlashEvent(ctx sdk.Context, keeper Keeper, slashEvt EventSlash) error
-	EmitOutboundEvent(ctx sdk.Context, outbound EventOutbound) error
+	CompleteEvents(ctx cosmos.Context, keeper Keeper, height int64, txID common.TxID, txs common.Txs, eventStatus EventStatus)
+	EmitPoolEvent(ctx cosmos.Context, keeper Keeper, txIn common.TxID, status EventStatus, poolEvt EventPool) error
+	EmitErrataEvent(ctx cosmos.Context, keeper Keeper, txIn common.TxID, errataEvent EventErrata) error
+	EmitGasEvent(ctx cosmos.Context, keeper Keeper, gasEvent *EventGas) error
+	EmitStakeEvent(ctx cosmos.Context, keeper Keeper, inTx common.Tx, stakeEvent EventStake) error
+	EmitRewardEvent(ctx cosmos.Context, keeper Keeper, rewardEvt EventRewards) error
+	EmitReserveEvent(ctx cosmos.Context, keeper Keeper, reserveEvent EventReserve) error
+	EmitUnstakeEvent(ctx cosmos.Context, keeper Keeper, unstakeEvt EventUnstake) error
+	EmitSwapEvent(ctx cosmos.Context, keeper Keeper, swap EventSwap) error
+	EmitRefundEvent(ctx cosmos.Context, keeper Keeper, refundEvt EventRefund, status EventStatus) error
+	EmitBondEvent(ctx cosmos.Context, keeper Keeper, bondEvent EventBond) error
+	EmitAddEvent(ctx cosmos.Context, keeper Keeper, addEvt EventAdd) error
+	EmitFeeEvent(ctx cosmos.Context, keeper Keeper, feeEvent EventFee) error
+	EmitSlashEvent(ctx cosmos.Context, keeper Keeper, slashEvt EventSlash) error
+	EmitOutboundEvent(ctx cosmos.Context, outbound EventOutbound) error
 }
 
 // EventMgr implement EventManager interface
@@ -38,11 +37,11 @@ func NewEventMgr() *EventMgr {
 }
 
 // CompleteEvents Mark an event in the given block height to the given status
-func (m *EventMgr) CompleteEvents(ctx sdk.Context, keeper Keeper, height int64, txID common.TxID, txs common.Txs, eventStatus EventStatus) {
+func (m *EventMgr) CompleteEvents(ctx cosmos.Context, keeper Keeper, height int64, txID common.TxID, txs common.Txs, eventStatus EventStatus) {
 }
 
 // EmitPoolEvent is going to save a pool event to storage
-func (m *EventMgr) EmitPoolEvent(ctx sdk.Context, keeper Keeper, txIn common.TxID, status EventStatus, poolEvt EventPool) error {
+func (m *EventMgr) EmitPoolEvent(ctx cosmos.Context, keeper Keeper, txIn common.TxID, status EventStatus, poolEvt EventPool) error {
 	bytes, err := json.Marshal(poolEvt)
 	if err != nil {
 		return fmt.Errorf("fail to marshal pool event: %w", err)
@@ -65,7 +64,7 @@ func (m *EventMgr) EmitPoolEvent(ctx sdk.Context, keeper Keeper, txIn common.TxI
 }
 
 // EmitErrataEvent generate an errata event
-func (m *EventMgr) EmitErrataEvent(ctx sdk.Context, keeper Keeper, txIn common.TxID, errataEvent EventErrata) error {
+func (m *EventMgr) EmitErrataEvent(ctx cosmos.Context, keeper Keeper, txIn common.TxID, errataEvent EventErrata) error {
 	errataBuf, err := json.Marshal(errataEvent)
 	if err != nil {
 		ctx.Logger().Error("fail to marshal errata event to buf", "error", err)
@@ -90,7 +89,7 @@ func (m *EventMgr) EmitErrataEvent(ctx sdk.Context, keeper Keeper, txIn common.T
 	return nil
 }
 
-func (m *EventMgr) EmitGasEvent(ctx sdk.Context, keeper Keeper, gasEvent *EventGas) error {
+func (m *EventMgr) EmitGasEvent(ctx cosmos.Context, keeper Keeper, gasEvent *EventGas) error {
 	if gasEvent == nil {
 		return nil
 	}
@@ -114,7 +113,7 @@ func (m *EventMgr) EmitGasEvent(ctx sdk.Context, keeper Keeper, gasEvent *EventG
 }
 
 // EmitStakeEvent add the stake event to block
-func (m *EventMgr) EmitStakeEvent(ctx sdk.Context, keeper Keeper, inTx common.Tx, stakeEvent EventStake) error {
+func (m *EventMgr) EmitStakeEvent(ctx cosmos.Context, keeper Keeper, inTx common.Tx, stakeEvent EventStake) error {
 	stakeBytes, err := json.Marshal(stakeEvent)
 	if err != nil {
 		return fmt.Errorf("fail to marshal stake event to json: %w", err)
@@ -141,7 +140,7 @@ func (m *EventMgr) EmitStakeEvent(ctx sdk.Context, keeper Keeper, inTx common.Tx
 }
 
 // EmitRewardEvent save the reward event to keyvalue store and also use event manager
-func (m *EventMgr) EmitRewardEvent(ctx sdk.Context, keeper Keeper, rewardEvt EventRewards) error {
+func (m *EventMgr) EmitRewardEvent(ctx cosmos.Context, keeper Keeper, rewardEvt EventRewards) error {
 	evtBytes, err := json.Marshal(rewardEvt)
 	if err != nil {
 		return fmt.Errorf("fail to marshal reward event to json: %w", err)
@@ -164,7 +163,7 @@ func (m *EventMgr) EmitRewardEvent(ctx sdk.Context, keeper Keeper, rewardEvt Eve
 	return nil
 }
 
-func (m *EventMgr) EmitSwapEvent(ctx sdk.Context, keeper Keeper, swap EventSwap) error {
+func (m *EventMgr) EmitSwapEvent(ctx cosmos.Context, keeper Keeper, swap EventSwap) error {
 	buf, err := json.Marshal(swap)
 	if err != nil {
 		return fmt.Errorf("fail to marshal swap event to json: %w", err)
@@ -189,7 +188,7 @@ func (m *EventMgr) EmitSwapEvent(ctx sdk.Context, keeper Keeper, swap EventSwap)
 }
 
 // EmitReserveEvent emit reserve event both save it to local key value store , and also event manager
-func (m *EventMgr) EmitReserveEvent(ctx sdk.Context, keeper Keeper, reserveEvent EventReserve) error {
+func (m *EventMgr) EmitReserveEvent(ctx cosmos.Context, keeper Keeper, reserveEvent EventReserve) error {
 	buf, err := json.Marshal(reserveEvent)
 	if nil != err {
 		return err
@@ -207,7 +206,7 @@ func (m *EventMgr) EmitReserveEvent(ctx sdk.Context, keeper Keeper, reserveEvent
 }
 
 // EmitRefundEvent emit refund event , save it to local key value store and also emit through event manager
-func (m *EventMgr) EmitRefundEvent(ctx sdk.Context, keeper Keeper, refundEvt EventRefund, status EventStatus) error {
+func (m *EventMgr) EmitRefundEvent(ctx cosmos.Context, keeper Keeper, refundEvt EventRefund, status EventStatus) error {
 	buf, err := json.Marshal(refundEvt)
 	if err != nil {
 		return fmt.Errorf("fail to marshal refund event: %w", err)
@@ -225,7 +224,7 @@ func (m *EventMgr) EmitRefundEvent(ctx sdk.Context, keeper Keeper, refundEvt Eve
 	return nil
 }
 
-func (m *EventMgr) EmitBondEvent(ctx sdk.Context, keeper Keeper, bondEvent EventBond) error {
+func (m *EventMgr) EmitBondEvent(ctx cosmos.Context, keeper Keeper, bondEvent EventBond) error {
 	buf, err := json.Marshal(bondEvent)
 	if err != nil {
 		return fmt.Errorf("fail to marshal bond event: %w", err)
@@ -244,7 +243,7 @@ func (m *EventMgr) EmitBondEvent(ctx sdk.Context, keeper Keeper, bondEvent Event
 }
 
 // EmitUnstakeEvent save unstake event to local key value store , and also add it to event manager
-func (m *EventMgr) EmitUnstakeEvent(ctx sdk.Context, keeper Keeper, unstakeEvt EventUnstake) error {
+func (m *EventMgr) EmitUnstakeEvent(ctx cosmos.Context, keeper Keeper, unstakeEvt EventUnstake) error {
 	unstakeBytes, err := json.Marshal(unstakeEvt)
 	if err != nil {
 		return fmt.Errorf("fail to marshal unstake event: %w", err)
@@ -271,7 +270,7 @@ func (m *EventMgr) EmitUnstakeEvent(ctx sdk.Context, keeper Keeper, unstakeEvt E
 }
 
 // EmitAddEvent save add event to local key value store , and add it to event manager
-func (m *EventMgr) EmitAddEvent(ctx sdk.Context, keeper Keeper, addEvt EventAdd) error {
+func (m *EventMgr) EmitAddEvent(ctx cosmos.Context, keeper Keeper, addEvt EventAdd) error {
 	buf, err := json.Marshal(addEvt)
 	if err != nil {
 		return fmt.Errorf("fail to marshal add event: %w", err)
@@ -284,7 +283,7 @@ func (m *EventMgr) EmitAddEvent(ctx sdk.Context, keeper Keeper, addEvt EventAdd)
 		EventSuccess,
 	)
 	if err := keeper.UpsertEvent(ctx, evt); err != nil {
-		return sdk.ErrInternal(fmt.Errorf("fail to save event: %w", err).Error())
+		return cosmos.ErrInternal(fmt.Errorf("fail to save event: %w", err).Error())
 	}
 	events, err := addEvt.Events()
 	if err != nil {
@@ -295,7 +294,7 @@ func (m *EventMgr) EmitAddEvent(ctx sdk.Context, keeper Keeper, addEvt EventAdd)
 }
 
 // EmitSlashEvent
-func (m *EventMgr) EmitSlashEvent(ctx sdk.Context, keeper Keeper, slashEvt EventSlash) error {
+func (m *EventMgr) EmitSlashEvent(ctx cosmos.Context, keeper Keeper, slashEvt EventSlash) error {
 	slashBuf, err := json.Marshal(slashEvt)
 	if err != nil {
 		return fmt.Errorf("fail to marshal slash event to buf: %w", err)
@@ -319,7 +318,7 @@ func (m *EventMgr) EmitSlashEvent(ctx sdk.Context, keeper Keeper, slashEvt Event
 }
 
 // EmitFeeEvent emit a fee event through event manager
-func (m *EventMgr) EmitFeeEvent(ctx sdk.Context, keeper Keeper, feeEvent EventFee) error {
+func (m *EventMgr) EmitFeeEvent(ctx cosmos.Context, keeper Keeper, feeEvent EventFee) error {
 	if err := updateEventFee(ctx, keeper, feeEvent.TxID, feeEvent.Fee); err != nil {
 		return fmt.Errorf("fail to update event fee: %w", err)
 	}
@@ -332,7 +331,7 @@ func (m *EventMgr) EmitFeeEvent(ctx sdk.Context, keeper Keeper, feeEvent EventFe
 }
 
 // EmitOutboundEvent emit an outbound event
-func (m *EventMgr) EmitOutboundEvent(ctx sdk.Context, outbound EventOutbound) error {
+func (m *EventMgr) EmitOutboundEvent(ctx cosmos.Context, outbound EventOutbound) error {
 	events, err := outbound.Events()
 	if err != nil {
 		return fmt.Errorf("fail to emit outbound event: %w", err)

@@ -17,7 +17,6 @@ import (
 	"github.com/binance-chain/go-sdk/common/types"
 	bmsg "github.com/binance-chain/go-sdk/types/msg"
 	"github.com/binance-chain/go-sdk/types/tx"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -30,6 +29,7 @@ import (
 	btypes "gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/binance/types"
 	stypes "gitlab.com/thorchain/thornode/bifrost/thorclient/types"
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 // BinanceBlockScanner is to scan the blocks
@@ -368,7 +368,7 @@ func (b *BinanceBlockScanner) getCoinsForTxIn(outputs []bmsg.Output) (common.Coi
 				b.errCounter.WithLabelValues("fail_create_ticker", c.Denom).Inc()
 				return nil, fmt.Errorf("fail to create asset, %s is not valid: %w", c.Denom, err)
 			}
-			amt := sdk.NewUint(uint64(c.Amount))
+			amt := cosmos.NewUint(uint64(c.Amount))
 			cc = append(cc, common.NewCoin(asset, amt))
 		}
 	}
@@ -419,7 +419,7 @@ func (b *BinanceBlockScanner) fromStdTx(hash string, stdTx tx.StdTx) ([]stypes.T
 			}
 
 			// Calculate gas for this tx
-			txInItem.Gas = common.CalcGasPrice(common.Tx{Coins: txInItem.Coins}, common.BNBAsset, []sdk.Uint{sdk.NewUint(b.singleFee), sdk.NewUint(b.multiFee)})
+			txInItem.Gas = common.CalcGasPrice(common.Tx{Coins: txInItem.Coins}, common.BNBAsset, []cosmos.Uint{cosmos.NewUint(b.singleFee), cosmos.NewUint(b.multiFee)})
 
 			txs = append(txs, txInItem)
 		default:

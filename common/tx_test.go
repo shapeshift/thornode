@@ -1,7 +1,7 @@
 package common
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	. "gopkg.in/check.v1"
 )
 
@@ -32,7 +32,7 @@ func (s TxSuite) TestTx(c *C) {
 		id,
 		Address("bnb1lejrrtta9cgr49fuh7ktu3sddhe0ff7wenlpn6"),
 		Address("bnb1lejrrtta9cgr49fuh7ktu3sddhe0ff7wenlpn6"),
-		Coins{NewCoin(BNBAsset, sdk.NewUint(5*One))},
+		Coins{NewCoin(BNBAsset, cosmos.NewUint(5*One))},
 		BNBGasFeeSingleton,
 		"hello memo",
 	)
@@ -41,6 +41,6 @@ func (s TxSuite) TestTx(c *C) {
 	c.Check(tx.FromAddress.IsEmpty(), Equals, false)
 	c.Check(tx.ToAddress.IsEmpty(), Equals, false)
 	c.Assert(tx.Coins, HasLen, 1)
-	c.Check(tx.Coins[0].Equals(NewCoin(BNBAsset, sdk.NewUint(5*One))), Equals, true)
+	c.Check(tx.Coins[0].Equals(NewCoin(BNBAsset, cosmos.NewUint(5*One))), Equals, true)
 	c.Check(tx.Memo, Equals, "hello memo")
 }

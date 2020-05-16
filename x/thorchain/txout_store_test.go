@@ -1,10 +1,10 @@
 package thorchain
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 )
 
@@ -26,8 +26,8 @@ func (s TxOutStoreSuite) TestAddOutTxItem(c *C) {
 	w := getHandlerTestWrapper(c, 1, true, true)
 	vault := GetRandomVault()
 	vault.Coins = common.Coins{
-		common.NewCoin(common.RuneAsset(), sdk.NewUint(10000*common.One)),
-		common.NewCoin(common.BNBAsset, sdk.NewUint(10000*common.One)),
+		common.NewCoin(common.RuneAsset(), cosmos.NewUint(10000*common.One)),
+		common.NewCoin(common.BNBAsset, cosmos.NewUint(10000*common.One)),
 	}
 	w.keeper.SetVault(w.ctx, vault)
 
@@ -41,7 +41,7 @@ func (s TxOutStoreSuite) TestAddOutTxItem(c *C) {
 	ygg := NewVault(w.ctx.BlockHeight(), ActiveVault, YggdrasilVault, acc1.PubKeySet.Secp256k1, common.Chains{common.BNBChain})
 	ygg.AddFunds(
 		common.Coins{
-			common.NewCoin(common.BNBAsset, sdk.NewUint(40*common.One)),
+			common.NewCoin(common.BNBAsset, cosmos.NewUint(40*common.One)),
 		},
 	)
 	c.Assert(w.keeper.SetVault(w.ctx, ygg), IsNil)
@@ -49,7 +49,7 @@ func (s TxOutStoreSuite) TestAddOutTxItem(c *C) {
 	ygg = NewVault(w.ctx.BlockHeight(), ActiveVault, YggdrasilVault, acc2.PubKeySet.Secp256k1, common.Chains{common.BNBChain})
 	ygg.AddFunds(
 		common.Coins{
-			common.NewCoin(common.BNBAsset, sdk.NewUint(50*common.One)),
+			common.NewCoin(common.BNBAsset, cosmos.NewUint(50*common.One)),
 		},
 	)
 	c.Assert(w.keeper.SetVault(w.ctx, ygg), IsNil)
@@ -57,7 +57,7 @@ func (s TxOutStoreSuite) TestAddOutTxItem(c *C) {
 	ygg = NewVault(w.ctx.BlockHeight(), ActiveVault, YggdrasilVault, acc3.PubKeySet.Secp256k1, common.Chains{common.BNBChain})
 	ygg.AddFunds(
 		common.Coins{
-			common.NewCoin(common.BNBAsset, sdk.NewUint(100*common.One)),
+			common.NewCoin(common.BNBAsset, cosmos.NewUint(100*common.One)),
 		},
 	)
 	c.Assert(w.keeper.SetVault(w.ctx, ygg), IsNil)
@@ -66,7 +66,7 @@ func (s TxOutStoreSuite) TestAddOutTxItem(c *C) {
 	inTxID := GetRandomTxHash()
 	voter := NewObservedTxVoter(inTxID, ObservedTxs{
 		ObservedTx{
-			Signers: []sdk.AccAddress{w.activeNodeAccount.NodeAddress, acc1.NodeAddress, acc2.NodeAddress},
+			Signers: []cosmos.AccAddress{w.activeNodeAccount.NodeAddress, acc1.NodeAddress, acc2.NodeAddress},
 		},
 	})
 	w.keeper.SetObservedTxVoter(w.ctx, voter)
@@ -76,7 +76,7 @@ func (s TxOutStoreSuite) TestAddOutTxItem(c *C) {
 		Chain:     common.BNBChain,
 		ToAddress: GetRandomBNBAddress(),
 		InHash:    inTxID,
-		Coin:      common.NewCoin(common.BNBAsset, sdk.NewUint(20*common.One)),
+		Coin:      common.NewCoin(common.BNBAsset, cosmos.NewUint(20*common.One)),
 	}
 	version := constants.SWVersion
 	txOutStore, err := w.versionedTxOutStore.GetTxOutStore(w.ctx, w.keeper, version)
@@ -86,7 +86,7 @@ func (s TxOutStoreSuite) TestAddOutTxItem(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(msgs, HasLen, 1)
 	c.Assert(msgs[0].VaultPubKey.String(), Equals, acc2.PubKeySet.Secp256k1.String())
-	c.Assert(msgs[0].Coin.Amount.Equal(sdk.NewUint(19*common.One)), Equals, true)
+	c.Assert(msgs[0].Coin.Amount.Equal(cosmos.NewUint(19*common.One)), Equals, true)
 
 	// Should get acc1. Acc3 hasn't signed and acc1 now has the highest amount
 	// of coin.
@@ -94,7 +94,7 @@ func (s TxOutStoreSuite) TestAddOutTxItem(c *C) {
 		Chain:     common.BNBChain,
 		ToAddress: GetRandomBNBAddress(),
 		InHash:    inTxID,
-		Coin:      common.NewCoin(common.BNBAsset, sdk.NewUint(20*common.One)),
+		Coin:      common.NewCoin(common.BNBAsset, cosmos.NewUint(20*common.One)),
 	}
 	success, err := txOutStore.TryAddTxOutItem(w.ctx, item)
 	c.Assert(success, Equals, true)
@@ -108,7 +108,7 @@ func (s TxOutStoreSuite) TestAddOutTxItem(c *C) {
 		Chain:     common.BNBChain,
 		ToAddress: GetRandomBNBAddress(),
 		InHash:    inTxID,
-		Coin:      common.NewCoin(common.BNBAsset, sdk.NewUint(1000*common.One)),
+		Coin:      common.NewCoin(common.BNBAsset, cosmos.NewUint(1000*common.One)),
 	}
 	success, err = txOutStore.TryAddTxOutItem(w.ctx, item)
 	c.Assert(err, IsNil)
@@ -123,7 +123,7 @@ func (s TxOutStoreSuite) TestAddOutTxItemWithoutBFT(c *C) {
 	w := getHandlerTestWrapper(c, 1, true, true)
 	vault := GetRandomVault()
 	vault.Coins = common.Coins{
-		common.NewCoin(common.BNBAsset, sdk.NewUint(100*common.One)),
+		common.NewCoin(common.BNBAsset, cosmos.NewUint(100*common.One)),
 	}
 	w.keeper.SetVault(w.ctx, vault)
 
@@ -132,7 +132,7 @@ func (s TxOutStoreSuite) TestAddOutTxItemWithoutBFT(c *C) {
 		Chain:     common.BNBChain,
 		ToAddress: GetRandomBNBAddress(),
 		InHash:    inTxID,
-		Coin:      common.NewCoin(common.BNBAsset, sdk.NewUint(20*common.One)),
+		Coin:      common.NewCoin(common.BNBAsset, cosmos.NewUint(20*common.One)),
 	}
 	version := constants.SWVersion
 	txOutStore, err := w.versionedTxOutStore.GetTxOutStore(w.ctx, w.keeper, version)
@@ -143,5 +143,5 @@ func (s TxOutStoreSuite) TestAddOutTxItemWithoutBFT(c *C) {
 	msgs, err := txOutStore.GetOutboundItems(w.ctx)
 	c.Assert(err, IsNil)
 	c.Assert(msgs, HasLen, 1)
-	c.Assert(msgs[0].Coin.Amount.Equal(sdk.NewUint(19*common.One)), Equals, true)
+	c.Assert(msgs[0].Coin.Amount.Equal(cosmos.NewUint(19*common.One)), Equals, true)
 }

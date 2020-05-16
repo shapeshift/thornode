@@ -4,57 +4,56 @@ import (
 	"errors"
 	"fmt"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 )
 
 // THORChain error code start at 101
 const (
 	// CodeBadVersion error code for bad version
-	CodeBadVersion            sdk.CodeType = 101
-	CodeInvalidMessage        sdk.CodeType = 102
-	CodeConstantsNotAvailable sdk.CodeType = 103
-	CodeInvalidVault          sdk.CodeType = 104
-	CodeInvalidMemo           sdk.CodeType = 105
-	CodeValidationError       sdk.CodeType = 106
-	CodeInvalidPoolStatus     sdk.CodeType = 107
+	CodeBadVersion            cosmos.CodeType = 101
+	CodeInvalidMessage        cosmos.CodeType = 102
+	CodeConstantsNotAvailable cosmos.CodeType = 103
+	CodeInvalidVault          cosmos.CodeType = 104
+	CodeInvalidMemo           cosmos.CodeType = 105
+	CodeValidationError       cosmos.CodeType = 106
+	CodeInvalidPoolStatus     cosmos.CodeType = 107
 
-	CodeSwapFail                 sdk.CodeType = 108
-	CodeSwapFailTradeTarget      sdk.CodeType = 109
-	CodeSwapFailNotEnoughFee     sdk.CodeType = 110
-	CodeSwapFailZeroEmitAsset    sdk.CodeType = 111
-	CodeSwapFailPoolNotExist     sdk.CodeType = 112
-	CodeSwapFailInvalidAmount    sdk.CodeType = 113
-	CodeSwapFailInvalidBalance   sdk.CodeType = 114
-	CodeSwapFailNotEnoughBalance sdk.CodeType = 115
+	CodeSwapFail                 cosmos.CodeType = 108
+	CodeSwapFailTradeTarget      cosmos.CodeType = 109
+	CodeSwapFailNotEnoughFee     cosmos.CodeType = 110
+	CodeSwapFailZeroEmitAsset    cosmos.CodeType = 111
+	CodeSwapFailPoolNotExist     cosmos.CodeType = 112
+	CodeSwapFailInvalidAmount    cosmos.CodeType = 113
+	CodeSwapFailInvalidBalance   cosmos.CodeType = 114
+	CodeSwapFailNotEnoughBalance cosmos.CodeType = 115
 
-	CodeStakeFailValidation    sdk.CodeType = 120
-	CodeFailGetStaker          sdk.CodeType = 122
-	CodeStakeMismatchAssetAddr sdk.CodeType = 123
-	CodeStakeInvalidPoolAsset  sdk.CodeType = 124
-	CodeStakeRUNEOverLimit     sdk.CodeType = 125
-	CodeStakeRUNEMoreThanBond  sdk.CodeType = 126
+	CodeStakeFailValidation    cosmos.CodeType = 120
+	CodeFailGetStaker          cosmos.CodeType = 122
+	CodeStakeMismatchAssetAddr cosmos.CodeType = 123
+	CodeStakeInvalidPoolAsset  cosmos.CodeType = 124
+	CodeStakeRUNEOverLimit     cosmos.CodeType = 125
+	CodeStakeRUNEMoreThanBond  cosmos.CodeType = 126
 
-	CodeUnstakeFailValidation sdk.CodeType = 130
-	CodeFailAddOutboundTx     sdk.CodeType = 131
-	CodeFailSaveEvent         sdk.CodeType = 132
-	CodeStakerNotExist        sdk.CodeType = 133
-	CodeNoStakeUnitLeft       sdk.CodeType = 135
-	CodeUnstakeWithin24Hours  sdk.CodeType = 136
-	CodeUnstakeFail           sdk.CodeType = 137
-	CodeEmptyChain            sdk.CodeType = 138
-	CodeFailEventManager      sdk.CodeType = 139
+	CodeUnstakeFailValidation cosmos.CodeType = 130
+	CodeFailAddOutboundTx     cosmos.CodeType = 131
+	CodeFailSaveEvent         cosmos.CodeType = 132
+	CodeStakerNotExist        cosmos.CodeType = 133
+	CodeNoStakeUnitLeft       cosmos.CodeType = 135
+	CodeUnstakeWithin24Hours  cosmos.CodeType = 136
+	CodeUnstakeFail           cosmos.CodeType = 137
+	CodeEmptyChain            cosmos.CodeType = 138
+	CodeFailEventManager      cosmos.CodeType = 139
 )
 
 var (
 	notAuthorized          = fmt.Errorf("not authorized")
 	errInvalidVersion      = fmt.Errorf("bad version")
-	errBadVersion          = sdk.NewError(DefaultCodespace, CodeBadVersion, errInvalidVersion.Error())
-	errInvalidMessage      = sdk.NewError(DefaultCodespace, CodeInvalidMessage, "invalid message")
-	errConstNotAvailable   = sdk.NewError(DefaultCodespace, CodeConstantsNotAvailable, "constant values not available")
-	errFailGetEventManager = sdk.NewError(DefaultCodespace, CodeFailEventManager, "fail to get event manager")
+	errBadVersion          = cosmos.NewError(DefaultCodespace, CodeBadVersion, errInvalidVersion.Error())
+	errInvalidMessage      = cosmos.NewError(DefaultCodespace, CodeInvalidMessage, "invalid message")
+	errConstNotAvailable   = cosmos.NewError(DefaultCodespace, CodeConstantsNotAvailable, "constant values not available")
+	errFailGetEventManager = cosmos.NewError(DefaultCodespace, CodeFailEventManager, "fail to get event manager")
 )
 
 // NewExternalHandler returns a handler for "thorchain" type messages.
@@ -64,11 +63,11 @@ func NewExternalHandler(keeper Keeper,
 	versionedVaultManager VersionedVaultManager,
 	versionedObserverManager VersionedObserverManager,
 	versionedGasMgr VersionedGasManager,
-	versionedEventManager VersionedEventManager) sdk.Handler {
+	versionedEventManager VersionedEventManager) cosmos.Handler {
 	handlerMap := getHandlerMapping(keeper, versionedTxOutStore, validatorMgr, versionedVaultManager, versionedObserverManager, versionedGasMgr, versionedEventManager)
 
-	return func(ctx sdk.Context, msg sdk.Msg) sdk.Result {
-		ctx = ctx.WithEventManager(sdk.NewEventManager())
+	return func(ctx cosmos.Context, msg cosmos.Msg) cosmos.Result {
+		ctx = ctx.WithEventManager(cosmos.NewEventManager())
 		version := keeper.GetLowestActiveVersion(ctx)
 		constantValues := constants.GetConstantValues(version)
 		if constantValues == nil {
@@ -77,7 +76,7 @@ func NewExternalHandler(keeper Keeper,
 		h, ok := handlerMap[msg.Type()]
 		if !ok {
 			errMsg := fmt.Sprintf("Unrecognized thorchain Msg type: %v", msg.Type())
-			return sdk.ErrUnknownRequest(errMsg).Result()
+			return cosmos.ErrUnknownRequest(errMsg).Result()
 		}
 		result := h.Run(ctx, msg, version, constantValues)
 		if len(ctx.EventManager().Events()) > 0 {
@@ -117,10 +116,10 @@ func NewInternalHandler(keeper Keeper,
 	versionedVaultManager VersionedVaultManager,
 	versionedObserverManager VersionedObserverManager,
 	versionedGasMgr VersionedGasManager,
-	versionedEventManager VersionedEventManager) sdk.Handler {
+	versionedEventManager VersionedEventManager) cosmos.Handler {
 	handlerMap := getInternalHandlerMapping(keeper, versionedTxOutStore, validatorMgr, versionedVaultManager, versionedObserverManager, versionedGasMgr, versionedEventManager)
 
-	return func(ctx sdk.Context, msg sdk.Msg) sdk.Result {
+	return func(ctx cosmos.Context, msg cosmos.Msg) cosmos.Result {
 		version := keeper.GetLowestActiveVersion(ctx)
 		constantValues := constants.GetConstantValues(version)
 		if constantValues == nil {
@@ -129,7 +128,7 @@ func NewInternalHandler(keeper Keeper,
 		h, ok := handlerMap[msg.Type()]
 		if !ok {
 			errMsg := fmt.Sprintf("Unrecognized thorchain Msg type: %v", msg.Type())
-			return sdk.ErrUnknownRequest(errMsg).Result()
+			return cosmos.ErrUnknownRequest(errMsg).Result()
 		}
 		return h.Run(ctx, msg, version, constantValues)
 	}
@@ -160,7 +159,7 @@ func getInternalHandlerMapping(keeper Keeper,
 	return m
 }
 
-func fetchMemo(ctx sdk.Context, constAccessor constants.ConstantValues, keeper Keeper, tx common.Tx) string {
+func fetchMemo(ctx cosmos.Context, constAccessor constants.ConstantValues, keeper Keeper, tx common.Tx) string {
 	if len(tx.Memo) > 0 {
 		return tx.Memo
 	}
@@ -192,70 +191,70 @@ func fetchMemo(ctx sdk.Context, constAccessor constants.ConstantValues, keeper K
 	return memo
 }
 
-func processOneTxIn(ctx sdk.Context, keeper Keeper, tx ObservedTx, signer sdk.AccAddress) (sdk.Msg, sdk.Error) {
+func processOneTxIn(ctx cosmos.Context, keeper Keeper, tx ObservedTx, signer cosmos.AccAddress) (cosmos.Msg, cosmos.Error) {
 	if len(tx.Tx.Coins) == 0 {
-		return nil, sdk.ErrUnknownRequest("no coin found")
+		return nil, cosmos.ErrUnknownRequest("no coin found")
 	}
 
 	memo, err := ParseMemo(tx.Tx.Memo)
 	if err != nil {
 		ctx.Logger().Error("fail to parse memo", "error", err)
-		return nil, sdk.NewError(DefaultCodespace, CodeInvalidMemo, err.Error())
+		return nil, cosmos.NewError(DefaultCodespace, CodeInvalidMemo, err.Error())
 	}
 	// THORNode should not have one tx across chain, if it is cross chain it should be separate tx
-	var newMsg sdk.Msg
+	var newMsg cosmos.Msg
 	// interpret the memo and initialize a corresponding msg event
 	switch m := memo.(type) {
 	case StakeMemo:
 		newMsg, err = getMsgStakeFromMemo(ctx, m, tx, signer)
 		if err != nil {
-			return nil, sdk.NewError(DefaultCodespace, CodeInvalidMemo, "invalid stake memo:%s", err.Error())
+			return nil, cosmos.NewError(DefaultCodespace, CodeInvalidMemo, "invalid stake memo:%s", err.Error())
 		}
 
 	case UnstakeMemo:
 		newMsg, err = getMsgUnstakeFromMemo(m, tx, signer)
 		if err != nil {
-			return nil, sdk.NewError(DefaultCodespace, CodeInvalidMemo, "invalid withdraw memo:%s", err.Error())
+			return nil, cosmos.NewError(DefaultCodespace, CodeInvalidMemo, "invalid withdraw memo:%s", err.Error())
 		}
 	case SwapMemo:
 		newMsg, err = getMsgSwapFromMemo(m, tx, signer)
 		if err != nil {
-			return nil, sdk.NewError(DefaultCodespace, CodeInvalidMemo, "invalid swap memo:%s", err.Error())
+			return nil, cosmos.NewError(DefaultCodespace, CodeInvalidMemo, "invalid swap memo:%s", err.Error())
 		}
 	case AddMemo:
 		newMsg, err = getMsgAddFromMemo(m, tx, signer)
 		if err != nil {
-			return nil, sdk.NewError(DefaultCodespace, CodeInvalidMemo, "invalid add memo:%s", err.Error())
+			return nil, cosmos.NewError(DefaultCodespace, CodeInvalidMemo, "invalid add memo:%s", err.Error())
 		}
 	case GasMemo:
 		newMsg, err = getMsgNoOpFromMemo(tx, signer)
 		if err != nil {
-			return nil, sdk.NewError(DefaultCodespace, CodeInvalidMemo, "invalid noop memo:%s", err.Error())
+			return nil, cosmos.NewError(DefaultCodespace, CodeInvalidMemo, "invalid noop memo:%s", err.Error())
 		}
 	case RefundMemo:
 		newMsg, err = getMsgRefundFromMemo(m, tx, signer)
 		if err != nil {
-			return nil, sdk.NewError(DefaultCodespace, CodeInvalidMemo, "invalid refund memo:%s", err.Error())
+			return nil, cosmos.NewError(DefaultCodespace, CodeInvalidMemo, "invalid refund memo:%s", err.Error())
 		}
 	case OutboundMemo:
 		newMsg, err = getMsgOutboundFromMemo(m, tx, signer)
 		if err != nil {
-			return nil, sdk.NewError(DefaultCodespace, CodeInvalidMemo, "invalid outbound memo:%s", err.Error())
+			return nil, cosmos.NewError(DefaultCodespace, CodeInvalidMemo, "invalid outbound memo:%s", err.Error())
 		}
 	case MigrateMemo:
 		newMsg, err = getMsgMigrateFromMemo(m, tx, signer)
 		if err != nil {
-			return nil, sdk.NewError(DefaultCodespace, CodeInvalidMemo, "invalid migrate memo: %s", err.Error())
+			return nil, cosmos.NewError(DefaultCodespace, CodeInvalidMemo, "invalid migrate memo: %s", err.Error())
 		}
 	case BondMemo:
 		newMsg, err = getMsgBondFromMemo(m, tx, signer)
 		if err != nil {
-			return nil, sdk.NewError(DefaultCodespace, CodeInvalidMemo, "invalid bond memo:%s", err.Error())
+			return nil, cosmos.NewError(DefaultCodespace, CodeInvalidMemo, "invalid bond memo:%s", err.Error())
 		}
 	case RagnarokMemo:
 		newMsg, err = getMsgRagnarokFromMemo(m, tx, signer)
 		if err != nil {
-			return nil, sdk.NewError(DefaultCodespace, CodeInvalidMemo, "invalid ragnarok memo: %s", err.Error())
+			return nil, cosmos.NewError(DefaultCodespace, CodeInvalidMemo, "invalid ragnarok memo: %s", err.Error())
 		}
 	case LeaveMemo:
 		newMsg = NewMsgLeave(tx.Tx, signer)
@@ -270,16 +269,16 @@ func processOneTxIn(ctx sdk.Context, keeper Keeper, tx ObservedTx, signer sdk.Ac
 		newMsg = NewMsgSwitch(tx.Tx, memo.GetDestination(), signer)
 
 	default:
-		return nil, sdk.NewError(DefaultCodespace, CodeInvalidMemo, "invalid memo")
+		return nil, cosmos.NewError(DefaultCodespace, CodeInvalidMemo, "invalid memo")
 	}
 
 	if err := newMsg.ValidateBasic(); err != nil {
-		return nil, sdk.NewError(DefaultCodespace, CodeInvalidMemo, "invalid message:%s", err.Error())
+		return nil, cosmos.NewError(DefaultCodespace, CodeInvalidMemo, "invalid message:%s", err.Error())
 	}
 	return newMsg, nil
 }
 
-func getMsgNoOpFromMemo(tx ObservedTx, signer sdk.AccAddress) (sdk.Msg, error) {
+func getMsgNoOpFromMemo(tx ObservedTx, signer cosmos.AccAddress) (cosmos.Msg, error) {
 	for _, coin := range tx.Tx.Coins {
 		if !coin.Asset.IsBNB() {
 			return nil, errors.New("only accepts BNB coins")
@@ -288,7 +287,7 @@ func getMsgNoOpFromMemo(tx ObservedTx, signer sdk.AccAddress) (sdk.Msg, error) {
 	return NewMsgNoOp(tx, signer), nil
 }
 
-func getMsgSwapFromMemo(memo SwapMemo, tx ObservedTx, signer sdk.AccAddress) (sdk.Msg, error) {
+func getMsgSwapFromMemo(memo SwapMemo, tx ObservedTx, signer cosmos.AccAddress) (cosmos.Msg, error) {
 	if len(tx.Tx.Coins) > 1 {
 		return nil, errors.New("not expecting multiple coins in a swap")
 	}
@@ -305,22 +304,22 @@ func getMsgSwapFromMemo(memo SwapMemo, tx ObservedTx, signer sdk.AccAddress) (sd
 	return NewMsgSwap(tx.Tx, memo.GetAsset(), memo.Destination, memo.SlipLimit, signer), nil
 }
 
-func getMsgUnstakeFromMemo(memo UnstakeMemo, tx ObservedTx, signer sdk.AccAddress) (sdk.Msg, error) {
-	withdrawAmount := sdk.NewUint(MaxUnstakeBasisPoints)
+func getMsgUnstakeFromMemo(memo UnstakeMemo, tx ObservedTx, signer cosmos.AccAddress) (cosmos.Msg, error) {
+	withdrawAmount := cosmos.NewUint(MaxUnstakeBasisPoints)
 	if len(memo.GetAmount()) > 0 {
-		withdrawAmount = sdk.NewUintFromString(memo.GetAmount())
+		withdrawAmount = cosmos.NewUintFromString(memo.GetAmount())
 	}
 	return NewMsgSetUnStake(tx.Tx, tx.Tx.FromAddress, withdrawAmount, memo.GetAsset(), signer), nil
 }
 
-func getMsgStakeFromMemo(ctx sdk.Context, memo StakeMemo, tx ObservedTx, signer sdk.AccAddress) (sdk.Msg, error) {
+func getMsgStakeFromMemo(ctx cosmos.Context, memo StakeMemo, tx ObservedTx, signer cosmos.AccAddress) (cosmos.Msg, error) {
 	// when staker stake to a pool ,usually it will be two coins, RUNE and the asset of the pool.
 	// if it is multi-chain , like NOT Binance chain , it is using two asymmetric staking
 	if len(tx.Tx.Coins) > 2 {
 		return nil, errors.New("not expecting more than two coins in a stake")
 	}
-	runeAmount := sdk.ZeroUint()
-	assetAmount := sdk.ZeroUint()
+	runeAmount := cosmos.ZeroUint()
+	assetAmount := cosmos.ZeroUint()
 	asset := memo.GetAsset()
 	if asset.IsEmpty() {
 		return nil, errors.New("unable to determine the intended pool for this stake")
@@ -377,9 +376,9 @@ func getMsgStakeFromMemo(ctx sdk.Context, memo StakeMemo, tx ObservedTx, signer 
 	), nil
 }
 
-func getMsgAddFromMemo(memo AddMemo, tx ObservedTx, signer sdk.AccAddress) (sdk.Msg, error) {
-	runeAmount := sdk.ZeroUint()
-	assetAmount := sdk.ZeroUint()
+func getMsgAddFromMemo(memo AddMemo, tx ObservedTx, signer cosmos.AccAddress) (cosmos.Msg, error) {
+	runeAmount := cosmos.ZeroUint()
+	assetAmount := cosmos.ZeroUint()
 	for _, coin := range tx.Tx.Coins {
 		if coin.Asset.IsRune() {
 			runeAmount = coin.Amount
@@ -396,7 +395,7 @@ func getMsgAddFromMemo(memo AddMemo, tx ObservedTx, signer sdk.AccAddress) (sdk.
 	), nil
 }
 
-func getMsgRefundFromMemo(memo RefundMemo, tx ObservedTx, signer sdk.AccAddress) (sdk.Msg, error) {
+func getMsgRefundFromMemo(memo RefundMemo, tx ObservedTx, signer cosmos.AccAddress) (cosmos.Msg, error) {
 	return NewMsgRefundTx(
 		tx,
 		memo.GetTxID(),
@@ -404,7 +403,7 @@ func getMsgRefundFromMemo(memo RefundMemo, tx ObservedTx, signer sdk.AccAddress)
 	), nil
 }
 
-func getMsgOutboundFromMemo(memo OutboundMemo, tx ObservedTx, signer sdk.AccAddress) (sdk.Msg, error) {
+func getMsgOutboundFromMemo(memo OutboundMemo, tx ObservedTx, signer cosmos.AccAddress) (cosmos.Msg, error) {
 	return NewMsgOutboundTx(
 		tx,
 		memo.GetTxID(),
@@ -412,16 +411,16 @@ func getMsgOutboundFromMemo(memo OutboundMemo, tx ObservedTx, signer sdk.AccAddr
 	), nil
 }
 
-func getMsgMigrateFromMemo(memo MigrateMemo, tx ObservedTx, signer sdk.AccAddress) (sdk.Msg, error) {
+func getMsgMigrateFromMemo(memo MigrateMemo, tx ObservedTx, signer cosmos.AccAddress) (cosmos.Msg, error) {
 	return NewMsgMigrate(tx, memo.GetBlockHeight(), signer), nil
 }
 
-func getMsgRagnarokFromMemo(memo RagnarokMemo, tx ObservedTx, signer sdk.AccAddress) (sdk.Msg, error) {
+func getMsgRagnarokFromMemo(memo RagnarokMemo, tx ObservedTx, signer cosmos.AccAddress) (cosmos.Msg, error) {
 	return NewMsgRagnarok(tx, memo.GetBlockHeight(), signer), nil
 }
 
-func getMsgBondFromMemo(memo BondMemo, tx ObservedTx, signer sdk.AccAddress) (sdk.Msg, error) {
-	runeAmount := sdk.ZeroUint()
+func getMsgBondFromMemo(memo BondMemo, tx ObservedTx, signer cosmos.AccAddress) (cosmos.Msg, error) {
+	runeAmount := cosmos.ZeroUint()
 	for _, coin := range tx.Tx.Coins {
 		if coin.Asset.IsRune() {
 			runeAmount = coin.Amount

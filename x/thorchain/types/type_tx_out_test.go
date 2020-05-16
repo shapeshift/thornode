@@ -1,10 +1,10 @@
 package types
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 type TxOutTestSuite struct{}
@@ -24,7 +24,7 @@ func (TxOutTestSuite) TestTxOut(c *C) {
 		VaultPubKey: pk,
 		ToAddress:   toAddr,
 		InHash:      GetRandomTxHash(),
-		Coin:        common.NewCoin(common.BNBAsset, sdk.NewUint(100*common.One)),
+		Coin:        common.NewCoin(common.BNBAsset, cosmos.NewUint(100*common.One)),
 	}
 	txOut.TxArray = append(txOut.TxArray, txOutItem)
 	c.Assert(txOut.TxArray, NotNil)
@@ -51,7 +51,7 @@ func (TxOutTestSuite) TestTxOut(c *C) {
 		InHash:      GetRandomTxHash(),
 		ToAddress:   "",
 		VaultPubKey: pk,
-		Coin:        common.NewCoin(common.BNBAsset, sdk.NewUint(100*common.One)),
+		Coin:        common.NewCoin(common.BNBAsset, cosmos.NewUint(100*common.One)),
 	})
 	c.Assert(txOut2.Valid(), NotNil)
 	txOut3 := NewTxOut(4)
@@ -60,7 +60,7 @@ func (TxOutTestSuite) TestTxOut(c *C) {
 		InHash:      GetRandomTxHash(),
 		ToAddress:   toAddr,
 		VaultPubKey: common.EmptyPubKey,
-		Coin:        common.NewCoin(common.BNBAsset, sdk.NewUint(100*common.One)),
+		Coin:        common.NewCoin(common.BNBAsset, cosmos.NewUint(100*common.One)),
 	})
 	c.Assert(txOut3.Valid(), NotNil)
 }

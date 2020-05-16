@@ -1,19 +1,18 @@
 package types
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
-
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 // MsgLeave when an operator don't want to be a validator anymore
 type MsgLeave struct {
-	Tx     common.Tx      `json:"tx"`
-	Signer sdk.AccAddress `json:"signer"`
+	Tx     common.Tx         `json:"tx"`
+	Signer cosmos.AccAddress `json:"signer"`
 }
 
 // NewMsgLeave create a new instance of MsgLeave
-func NewMsgLeave(tx common.Tx, signer sdk.AccAddress) MsgLeave {
+func NewMsgLeave(tx common.Tx, signer cosmos.AccAddress) MsgLeave {
 	return MsgLeave{
 		Tx:     tx,
 		Signer: signer,
@@ -27,25 +26,25 @@ func (msg MsgLeave) Route() string { return RouterKey }
 func (msg MsgLeave) Type() string { return "validator_leave" }
 
 // ValidateBasic runs stateless checks on the message
-func (msg MsgLeave) ValidateBasic() sdk.Error {
+func (msg MsgLeave) ValidateBasic() cosmos.Error {
 	if msg.Tx.FromAddress.IsEmpty() {
-		return sdk.ErrUnknownRequest("from address cannot be empty")
+		return cosmos.ErrUnknownRequest("from address cannot be empty")
 	}
 	if msg.Tx.ID.IsEmpty() {
-		return sdk.ErrUnknownRequest("tx id hash cannot be empty")
+		return cosmos.ErrUnknownRequest("tx id hash cannot be empty")
 	}
 	if msg.Signer.Empty() {
-		return sdk.ErrUnknownRequest("signer cannot be empty ")
+		return cosmos.ErrUnknownRequest("signer cannot be empty ")
 	}
 	return nil
 }
 
 // GetSignBytes encodes the message for signing
 func (msg MsgLeave) GetSignBytes() []byte {
-	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(msg))
+	return cosmos.MustSortJSON(ModuleCdc.MustMarshalJSON(msg))
 }
 
 // GetSigners defines whose signature is required
-func (msg MsgLeave) GetSigners() []sdk.AccAddress {
-	return []sdk.AccAddress{msg.Signer}
+func (msg MsgLeave) GetSigners() []cosmos.AccAddress {
+	return []cosmos.AccAddress{msg.Signer}
 }

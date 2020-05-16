@@ -6,9 +6,9 @@ import (
 	. "gopkg.in/check.v1"
 
 	"github.com/blang/semver"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 )
 
@@ -31,41 +31,41 @@ type TestRagnarokChainKeeper struct {
 	err         error
 }
 
-func (k *TestRagnarokChainKeeper) ListNodeAccountsWithBond(_ sdk.Context) (NodeAccounts, error) {
+func (k *TestRagnarokChainKeeper) ListNodeAccountsWithBond(_ cosmos.Context) (NodeAccounts, error) {
 	return NodeAccounts{k.na}, k.err
 }
 
-func (k *TestRagnarokChainKeeper) ListActiveNodeAccounts(_ sdk.Context) (NodeAccounts, error) {
+func (k *TestRagnarokChainKeeper) ListActiveNodeAccounts(_ cosmos.Context) (NodeAccounts, error) {
 	return NodeAccounts{k.na}, k.err
 }
 
-func (k *TestRagnarokChainKeeper) GetNodeAccount(ctx sdk.Context, signer sdk.AccAddress) (NodeAccount, error) {
+func (k *TestRagnarokChainKeeper) GetNodeAccount(ctx cosmos.Context, signer cosmos.AccAddress) (NodeAccount, error) {
 	if k.na.NodeAddress.Equals(signer) {
 		return k.na, nil
 	}
 	return NodeAccount{}, nil
 }
 
-func (k *TestRagnarokChainKeeper) GetAsgardVaultsByStatus(_ sdk.Context, vt VaultStatus) (Vaults, error) {
+func (k *TestRagnarokChainKeeper) GetAsgardVaultsByStatus(_ cosmos.Context, vt VaultStatus) (Vaults, error) {
 	if vt == ActiveVault {
 		return Vaults{k.activeVault}, k.err
 	}
 	return Vaults{k.retireVault}, k.err
 }
 
-func (k *TestRagnarokChainKeeper) VaultExists(_ sdk.Context, _ common.PubKey) bool {
+func (k *TestRagnarokChainKeeper) VaultExists(_ cosmos.Context, _ common.PubKey) bool {
 	return true
 }
 
-func (k *TestRagnarokChainKeeper) GetVault(_ sdk.Context, _ common.PubKey) (Vault, error) {
+func (k *TestRagnarokChainKeeper) GetVault(_ cosmos.Context, _ common.PubKey) (Vault, error) {
 	return k.yggVault, k.err
 }
 
-func (k *TestRagnarokChainKeeper) GetPools(_ sdk.Context) (Pools, error) {
+func (k *TestRagnarokChainKeeper) GetPools(_ cosmos.Context) (Pools, error) {
 	return k.pools, k.err
 }
 
-func (k *TestRagnarokChainKeeper) GetPool(_ sdk.Context, asset common.Asset) (Pool, error) {
+func (k *TestRagnarokChainKeeper) GetPool(_ cosmos.Context, asset common.Asset) (Pool, error) {
 	for _, pool := range k.pools {
 		if pool.Asset.Equals(asset) {
 			return pool, nil
@@ -74,7 +74,7 @@ func (k *TestRagnarokChainKeeper) GetPool(_ sdk.Context, asset common.Asset) (Po
 	return Pool{}, errors.New("pool not found")
 }
 
-func (k *TestRagnarokChainKeeper) SetPool(_ sdk.Context, pool Pool) error {
+func (k *TestRagnarokChainKeeper) SetPool(_ cosmos.Context, pool Pool) error {
 	for i, p := range k.pools {
 		if p.Asset.Equals(pool.Asset) {
 			k.pools[i] = pool
@@ -83,11 +83,11 @@ func (k *TestRagnarokChainKeeper) SetPool(_ sdk.Context, pool Pool) error {
 	return k.err
 }
 
-func (k *TestRagnarokChainKeeper) PoolExist(_ sdk.Context, _ common.Asset) bool {
+func (k *TestRagnarokChainKeeper) PoolExist(_ cosmos.Context, _ common.Asset) bool {
 	return true
 }
 
-func (k *TestRagnarokChainKeeper) GetStakerIterator(ctx sdk.Context, _ common.Asset) sdk.Iterator {
+func (k *TestRagnarokChainKeeper) GetStakerIterator(ctx cosmos.Context, _ common.Asset) cosmos.Iterator {
 	cdc := makeTestCodec()
 	iter := NewDummyIterator()
 	for _, staker := range k.stakers {
@@ -96,7 +96,7 @@ func (k *TestRagnarokChainKeeper) GetStakerIterator(ctx sdk.Context, _ common.As
 	return iter
 }
 
-func (k *TestRagnarokChainKeeper) GetStaker(_ sdk.Context, asset common.Asset, addr common.Address) (Staker, error) {
+func (k *TestRagnarokChainKeeper) GetStaker(_ cosmos.Context, asset common.Asset, addr common.Address) (Staker, error) {
 	if asset.Equals(common.BTCAsset) {
 		for i, staker := range k.stakers {
 			if addr.Equals(staker.RuneAddress) {
@@ -107,7 +107,7 @@ func (k *TestRagnarokChainKeeper) GetStaker(_ sdk.Context, asset common.Asset, a
 	return Staker{}, k.err
 }
 
-func (k *TestRagnarokChainKeeper) SetStaker(_ sdk.Context, staker Staker) {
+func (k *TestRagnarokChainKeeper) SetStaker(_ cosmos.Context, staker Staker) {
 	for i, skr := range k.stakers {
 		if staker.RuneAddress.Equals(skr.RuneAddress) {
 			k.stakers[i] = staker
@@ -115,7 +115,7 @@ func (k *TestRagnarokChainKeeper) SetStaker(_ sdk.Context, staker Staker) {
 	}
 }
 
-func (k *TestRagnarokChainKeeper) RemoveStaker(_ sdk.Context, staker Staker) {
+func (k *TestRagnarokChainKeeper) RemoveStaker(_ cosmos.Context, staker Staker) {
 	for i, skr := range k.stakers {
 		if staker.RuneAddress.Equals(skr.RuneAddress) {
 			k.stakers[i] = staker
@@ -123,23 +123,23 @@ func (k *TestRagnarokChainKeeper) RemoveStaker(_ sdk.Context, staker Staker) {
 	}
 }
 
-func (k *TestRagnarokChainKeeper) GetGas(_ sdk.Context, _ common.Asset) ([]sdk.Uint, error) {
-	return []sdk.Uint{sdk.NewUint(10)}, k.err
+func (k *TestRagnarokChainKeeper) GetGas(_ cosmos.Context, _ common.Asset) ([]cosmos.Uint, error) {
+	return []cosmos.Uint{cosmos.NewUint(10)}, k.err
 }
 
-func (k *TestRagnarokChainKeeper) GetLowestActiveVersion(_ sdk.Context) semver.Version {
+func (k *TestRagnarokChainKeeper) GetLowestActiveVersion(_ cosmos.Context) semver.Version {
 	return constants.SWVersion
 }
 
-func (k *TestRagnarokChainKeeper) AddFeeToReserve(_ sdk.Context, _ sdk.Uint) error {
+func (k *TestRagnarokChainKeeper) AddFeeToReserve(_ cosmos.Context, _ cosmos.Uint) error {
 	return k.err
 }
 
-func (k *TestRagnarokChainKeeper) UpsertEvent(_ sdk.Context, _ Event) error {
+func (k *TestRagnarokChainKeeper) UpsertEvent(_ cosmos.Context, _ Event) error {
 	return k.err
 }
 
-func (k *TestRagnarokChainKeeper) IsActiveObserver(_ sdk.Context, _ sdk.AccAddress) bool {
+func (k *TestRagnarokChainKeeper) IsActiveObserver(_ cosmos.Context, _ cosmos.AccAddress) bool {
 	return true
 }
 
@@ -155,21 +155,21 @@ func (s *ValidatorManagerTestSuite) TestRagnarokChain(c *C) {
 	yggVault := GetRandomVault()
 	yggVault.Type = YggdrasilVault
 	yggVault.Coins = common.Coins{
-		common.NewCoin(common.BTCAsset, sdk.NewUint(3*common.One)),
-		common.NewCoin(common.RuneAsset(), sdk.NewUint(300*common.One)),
+		common.NewCoin(common.BTCAsset, cosmos.NewUint(3*common.One)),
+		common.NewCoin(common.RuneAsset(), cosmos.NewUint(300*common.One)),
 	}
 
 	btcPool := NewPool()
 	btcPool.Asset = common.BTCAsset
-	btcPool.BalanceRune = sdk.NewUint(1000 * common.One)
-	btcPool.BalanceAsset = sdk.NewUint(10 * common.One)
-	btcPool.PoolUnits = sdk.NewUint(1600)
+	btcPool.BalanceRune = cosmos.NewUint(1000 * common.One)
+	btcPool.BalanceAsset = cosmos.NewUint(10 * common.One)
+	btcPool.PoolUnits = cosmos.NewUint(1600)
 
 	bnbPool := NewPool()
 	bnbPool.Asset = common.BNBAsset
-	bnbPool.BalanceRune = sdk.NewUint(1000 * common.One)
-	bnbPool.BalanceAsset = sdk.NewUint(10 * common.One)
-	bnbPool.PoolUnits = sdk.NewUint(1600)
+	bnbPool.BalanceRune = cosmos.NewUint(1000 * common.One)
+	bnbPool.BalanceAsset = cosmos.NewUint(10 * common.One)
+	bnbPool.PoolUnits = cosmos.NewUint(1600)
 
 	addr := GetRandomRUNEAddress()
 	stakers := []Staker{
@@ -177,13 +177,13 @@ func (s *ValidatorManagerTestSuite) TestRagnarokChain(c *C) {
 			RuneAddress:     addr,
 			LastStakeHeight: 5,
 			Units:           btcPool.PoolUnits.QuoUint64(2),
-			PendingRune:     sdk.ZeroUint(),
+			PendingRune:     cosmos.ZeroUint(),
 		},
 		Staker{
 			RuneAddress:     GetRandomRUNEAddress(),
 			LastStakeHeight: 10,
 			Units:           btcPool.PoolUnits.QuoUint64(2),
-			PendingRune:     sdk.ZeroUint(),
+			PendingRune:     cosmos.ZeroUint(),
 		},
 	}
 
@@ -205,7 +205,7 @@ func (s *ValidatorManagerTestSuite) TestRagnarokChain(c *C) {
 	c.Assert(err, IsNil)
 	c.Check(keeper.pools[1].Asset.Equals(common.BTCAsset), Equals, true)
 	c.Check(keeper.pools[1].PoolUnits.IsZero(), Equals, true, Commentf("%d\n", keeper.pools[1].PoolUnits.Uint64()))
-	c.Check(keeper.pools[0].PoolUnits.Equal(sdk.NewUint(1600)), Equals, true)
+	c.Check(keeper.pools[0].PoolUnits.Equal(cosmos.NewUint(1600)), Equals, true)
 	for _, skr := range keeper.stakers {
 		c.Check(skr.Units.IsZero(), Equals, true)
 	}

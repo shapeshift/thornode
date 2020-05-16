@@ -4,9 +4,9 @@ import (
 	"fmt"
 
 	"github.com/blang/semver"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 )
 
@@ -25,7 +25,7 @@ func NewErrataTxHandler(keeper Keeper, versionedEventManager VersionedEventManag
 }
 
 // Run it the main entry point to execute ErrataTx logic
-func (h ErrataTxHandler) Run(ctx sdk.Context, m sdk.Msg, version semver.Version, _ constants.ConstantValues) sdk.Result {
+func (h ErrataTxHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, _ constants.ConstantValues) cosmos.Result {
 	msg, ok := m.(MsgErrataTx)
 	if !ok {
 		return errInvalidMessage.Result()
@@ -37,7 +37,7 @@ func (h ErrataTxHandler) Run(ctx sdk.Context, m sdk.Msg, version semver.Version,
 	return h.handle(ctx, msg, version)
 }
 
-func (h ErrataTxHandler) validate(ctx sdk.Context, msg MsgErrataTx, version semver.Version) sdk.Error {
+func (h ErrataTxHandler) validate(ctx cosmos.Context, msg MsgErrataTx, version semver.Version) cosmos.Error {
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, msg)
 	} else {
@@ -45,19 +45,19 @@ func (h ErrataTxHandler) validate(ctx sdk.Context, msg MsgErrataTx, version semv
 	}
 }
 
-func (h ErrataTxHandler) validateV1(ctx sdk.Context, msg MsgErrataTx) sdk.Error {
+func (h ErrataTxHandler) validateV1(ctx cosmos.Context, msg MsgErrataTx) cosmos.Error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
 
 	if !isSignedByActiveNodeAccounts(ctx, h.keeper, msg.GetSigners()) {
-		return sdk.ErrUnauthorized(notAuthorized.Error())
+		return cosmos.ErrUnauthorized(notAuthorized.Error())
 	}
 
 	return nil
 }
 
-func (h ErrataTxHandler) handle(ctx sdk.Context, msg MsgErrataTx, version semver.Version) sdk.Result {
+func (h ErrataTxHandler) handle(ctx cosmos.Context, msg MsgErrataTx, version semver.Version) cosmos.Result {
 	ctx.Logger().Info("handleMsgErrataTx request", "txid", msg.TxID.String())
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.handleV1(ctx, msg, version)
@@ -67,29 +67,29 @@ func (h ErrataTxHandler) handle(ctx sdk.Context, msg MsgErrataTx, version semver
 	}
 }
 
-func (h ErrataTxHandler) handleV1(ctx sdk.Context, msg MsgErrataTx, version semver.Version) sdk.Result {
+func (h ErrataTxHandler) handleV1(ctx cosmos.Context, msg MsgErrataTx, version semver.Version) cosmos.Result {
 	active, err := h.keeper.ListActiveNodeAccounts(ctx)
 	if err != nil {
 		err = wrapError(ctx, err, "fail to get list of active node accounts")
-		return sdk.ErrInternal(err.Error()).Result()
+		return cosmos.ErrInternal(err.Error()).Result()
 	}
 
 	voter, err := h.keeper.GetErrataTxVoter(ctx, msg.TxID, msg.Chain)
 	if err != nil {
-		return sdk.ErrInternal(err.Error()).Result()
+		return cosmos.ErrInternal(err.Error()).Result()
 	}
 	slasher, err := NewSlasher(h.keeper, version, h.versionedEventManager)
 	if err != nil {
 		ctx.Logger().Error("fail to create slasher", "error", err)
-		return sdk.ErrInternal("fail to create slasher").Result()
+		return cosmos.ErrInternal("fail to create slasher").Result()
 	}
 	constAccessor := constants.GetConstantValues(version)
 	observeSlashPoints := constAccessor.GetInt64Value(constants.ObserveSlashPoints)
 	slasher.IncSlashPoints(ctx, observeSlashPoints, msg.Signer)
 	if !voter.Sign(msg.Signer) {
 		ctx.Logger().Info("signer already signed MsgErrataTx", "signer", msg.Signer.String(), "txid", msg.TxID)
-		return sdk.Result{
-			Code:      sdk.CodeOK,
+		return cosmos.Result{
+			Code:      cosmos.CodeOK,
 			Codespace: DefaultCodespace,
 		}
 	}
@@ -97,8 +97,8 @@ func (h ErrataTxHandler) handleV1(ctx sdk.Context, msg MsgErrataTx, version semv
 	// doesn't have consensus yet
 	if !voter.HasConsensus(active) {
 		ctx.Logger().Info("not having consensus yet, return")
-		return sdk.Result{
-			Code:      sdk.CodeOK,
+		return cosmos.Result{
+			Code:      cosmos.CodeOK,
 			Codespace: DefaultCodespace,
 		}
 	}
@@ -108,8 +108,8 @@ func (h ErrataTxHandler) handleV1(ctx sdk.Context, msg MsgErrataTx, version semv
 			slasher.DecSlashPoints(ctx, observeSlashPoints, msg.Signer)
 		}
 		// errata tx already processed
-		return sdk.Result{
-			Code:      sdk.CodeOK,
+		return cosmos.Result{
+			Code:      cosmos.CodeOK,
 			Codespace: DefaultCodespace,
 		}
 	}
@@ -120,18 +120,18 @@ func (h ErrataTxHandler) handleV1(ctx sdk.Context, msg MsgErrataTx, version semv
 	slasher.DecSlashPoints(ctx, observeSlashPoints, voter.Signers...)
 	observedVoter, err := h.keeper.GetObservedTxVoter(ctx, msg.TxID)
 	if err != nil {
-		return sdk.ErrInternal(err.Error()).Result()
+		return cosmos.ErrInternal(err.Error()).Result()
 	}
 	if observedVoter.Tx.IsEmpty() {
-		return sdk.ErrInternal(fmt.Sprintf("cannot find tx: %s", msg.TxID)).Result()
+		return cosmos.ErrInternal(fmt.Sprintf("cannot find tx: %s", msg.TxID)).Result()
 	}
 
 	tx := observedVoter.Tx.Tx
 
 	if !tx.Chain.Equals(msg.Chain) {
 		// does not match chain
-		return sdk.Result{
-			Code:      sdk.CodeOK,
+		return cosmos.Result{
+			Code:      cosmos.CodeOK,
 			Codespace: DefaultCodespace,
 		}
 	}
@@ -139,8 +139,8 @@ func (h ErrataTxHandler) handleV1(ctx sdk.Context, msg MsgErrataTx, version semv
 	memo, _ := ParseMemo(tx.Memo)
 	if !memo.IsType(TxSwap) && !memo.IsType(TxStake) {
 		// must be a swap transaction
-		return sdk.Result{
-			Code:      sdk.CodeOK,
+		return cosmos.Result{
+			Code:      cosmos.CodeOK,
 			Codespace: DefaultCodespace,
 		}
 	}
@@ -149,12 +149,12 @@ func (h ErrataTxHandler) handleV1(ctx sdk.Context, msg MsgErrataTx, version semv
 	pool, err := h.keeper.GetPool(ctx, memo.GetAsset())
 	if err != nil {
 		ctx.Logger().Error("fail to get pool for errata tx", "error", err)
-		return sdk.ErrInternal(err.Error()).Result()
+		return cosmos.ErrInternal(err.Error()).Result()
 	}
 
 	// subtract amounts from pool balances
-	runeAmt := sdk.ZeroUint()
-	assetAmt := sdk.ZeroUint()
+	runeAmt := cosmos.ZeroUint()
+	assetAmt := cosmos.ZeroUint()
 	for _, coin := range tx.Coins {
 		if coin.Asset.IsRune() {
 			runeAmt = coin.Amount
@@ -170,12 +170,12 @@ func (h ErrataTxHandler) handleV1(ctx sdk.Context, msg MsgErrataTx, version semv
 		staker, err := h.keeper.GetStaker(ctx, memo.GetAsset(), tx.FromAddress)
 		if err != nil {
 			ctx.Logger().Error("fail to get staker", "error", err)
-			return sdk.ErrInternal(err.Error()).Result()
+			return cosmos.ErrInternal(err.Error()).Result()
 		}
 
 		// since this address is being malicious, zero their staking units
 		pool.PoolUnits = common.SafeSub(pool.PoolUnits, staker.Units)
-		staker.Units = sdk.ZeroUint()
+		staker.Units = cosmos.ZeroUint()
 		staker.LastStakeHeight = ctx.BlockHeight()
 
 		h.keeper.SetStaker(ctx, staker)
@@ -197,10 +197,10 @@ func (h ErrataTxHandler) handleV1(ctx sdk.Context, msg MsgErrataTx, version semv
 	}
 	if err := eventMgr.EmitErrataEvent(ctx, h.keeper, msg.TxID, eventErrata); err != nil {
 		ctx.Logger().Error("fail to emit errata event", "error", err)
-		return sdk.ErrInternal("fail to emit errata event").Result()
+		return cosmos.ErrInternal("fail to emit errata event").Result()
 	}
-	return sdk.Result{
-		Code:      sdk.CodeOK,
+	return cosmos.Result{
+		Code:      cosmos.CodeOK,
 		Codespace: DefaultCodespace,
 	}
 }

@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"strings"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/ethereum/go-ethereum"
 	ecommon "github.com/ethereum/go-ethereum/common"
 	etypes "github.com/ethereum/go-ethereum/core/types"
@@ -24,6 +23,7 @@ import (
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/ethereum/types"
 	stypes "gitlab.com/thorchain/thornode/bifrost/thorclient/types"
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 const (
@@ -323,7 +323,7 @@ func (e *BlockScanner) fromTxToTxIn(tx *etypes.Transaction) (*stypes.TxInItem, e
 		return nil, fmt.Errorf("fail to create asset, ETH is not valid: %w", err)
 	}
 
-	txInItem.Coins = append(txInItem.Coins, common.NewCoin(asset, sdk.NewUintFromBigInt(tx.Value())))
+	txInItem.Coins = append(txInItem.Coins, common.NewCoin(asset, cosmos.NewUintFromBigInt(tx.Value())))
 	txInItem.Gas = common.GetETHGasFee(e.gasPrice, uint64(len(txInItem.Memo)))
 	return txInItem, nil
 }

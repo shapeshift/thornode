@@ -1,23 +1,21 @@
 package thorchain
 
-import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
-)
+import cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 
 type KeeperBanVoter interface {
-	SetBanVoter(_ sdk.Context, _ BanVoter)
-	GetBanVoter(_ sdk.Context, _ sdk.AccAddress) (BanVoter, error)
+	SetBanVoter(_ cosmos.Context, _ BanVoter)
+	GetBanVoter(_ cosmos.Context, _ cosmos.AccAddress) (BanVoter, error)
 }
 
 // SetBanVoter - save a ban voter object
-func (k KVStore) SetBanVoter(ctx sdk.Context, ban BanVoter) {
+func (k KVStore) SetBanVoter(ctx cosmos.Context, ban BanVoter) {
 	store := ctx.KVStore(k.storeKey)
 	key := k.GetKey(ctx, prefixBanVoter, ban.String())
 	store.Set([]byte(key), k.cdc.MustMarshalBinaryBare(ban))
 }
 
 // GetBanVoter - gets information of a tx hash
-func (k KVStore) GetBanVoter(ctx sdk.Context, addr sdk.AccAddress) (BanVoter, error) {
+func (k KVStore) GetBanVoter(ctx cosmos.Context, addr cosmos.AccAddress) (BanVoter, error) {
 	ban := NewBanVoter(addr)
 	key := k.GetKey(ctx, prefixBanVoter, ban.String())
 

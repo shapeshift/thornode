@@ -3,11 +3,11 @@ package thorchain
 import (
 	"encoding/json"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	abci "github.com/tendermint/tendermint/abci/types"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
@@ -20,7 +20,7 @@ type TestQuerierKeeper struct {
 	txOut *TxOut
 }
 
-func (k *TestQuerierKeeper) GetTxOut(_ sdk.Context, _ int64) (*TxOut, error) {
+func (k *TestQuerierKeeper) GetTxOut(_ cosmos.Context, _ int64) (*TxOut, error) {
 	return k.txOut, nil
 }
 
@@ -36,7 +36,7 @@ func (s *QuerierSuite) TestQueryKeysign(c *C) {
 		VaultPubKey: pk,
 		ToAddress:   toAddr,
 		InHash:      GetRandomTxHash(),
-		Coin:        common.NewCoin(common.BNBAsset, sdk.NewUint(100*common.One)),
+		Coin:        common.NewCoin(common.BNBAsset, cosmos.NewUint(100*common.One)),
 	}
 	txOut.TxArray = append(txOut.TxArray, txOutItem)
 	keeper := &TestQuerierKeeper{
@@ -79,11 +79,11 @@ func (s *QuerierSuite) TestQueryPool(c *C) {
 
 	poolBNB := NewPool()
 	poolBNB.Asset = common.BNBAsset
-	poolBNB.PoolUnits = sdk.NewUint(100)
+	poolBNB.PoolUnits = cosmos.NewUint(100)
 
 	poolBTC := NewPool()
 	poolBTC.Asset = common.BTCAsset
-	poolBTC.PoolUnits = sdk.NewUint(0)
+	poolBTC.PoolUnits = cosmos.NewUint(0)
 
 	err := keeper.SetPool(ctx, poolBNB)
 	c.Assert(err, IsNil)
@@ -99,7 +99,7 @@ func (s *QuerierSuite) TestQueryPool(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(len(out), Equals, 1)
 
-	poolBTC.PoolUnits = sdk.NewUint(100)
+	poolBTC.PoolUnits = cosmos.NewUint(100)
 	err = keeper.SetPool(ctx, poolBTC)
 	c.Assert(err, IsNil)
 
@@ -126,7 +126,7 @@ func (s *QuerierSuite) TestQueryNodeAccounts(c *C) {
 	signer := GetRandomBech32Addr()
 	bondAddr := GetRandomBNBAddress()
 	emptyPubKeySet := common.PubKeySet{}
-	bond := sdk.NewUint(common.One * 100)
+	bond := cosmos.NewUint(common.One * 100)
 	nodeAccount := NewNodeAccount(signer, NodeActive, emptyPubKeySet, "", bond, bondAddr, ctx.BlockHeight())
 	c.Assert(keeper.SetNodeAccount(ctx, nodeAccount), IsNil)
 
@@ -141,7 +141,7 @@ func (s *QuerierSuite) TestQueryNodeAccounts(c *C) {
 	signer = GetRandomBech32Addr()
 	bondAddr = GetRandomBNBAddress()
 	emptyPubKeySet = common.PubKeySet{}
-	bond = sdk.NewUint(common.One * 200)
+	bond = cosmos.NewUint(common.One * 200)
 	nodeAccount2 := NewNodeAccount(signer, NodeActive, emptyPubKeySet, "", bond, bondAddr, ctx.BlockHeight())
 	c.Assert(keeper.SetNodeAccount(ctx, nodeAccount2), IsNil)
 
@@ -152,7 +152,7 @@ func (s *QuerierSuite) TestQueryNodeAccounts(c *C) {
 	c.Assert(err1, IsNil)
 	c.Assert(len(out), Equals, 2)
 
-	nodeAccount2.Bond = sdk.NewUint(0)
+	nodeAccount2.Bond = cosmos.NewUint(0)
 	c.Assert(keeper.SetNodeAccount(ctx, nodeAccount2), IsNil)
 
 	res, err = querier(ctx, path, abci.RequestQuery{})
@@ -181,15 +181,15 @@ func (s *QuerierSuite) TestQueryCompEvents(c *C) {
 		GetRandomBNBAddress(),
 		GetRandomBNBAddress(),
 		common.Coins{
-			common.NewCoin(common.BNBAsset, sdk.NewUint(320000000)),
-			common.NewCoin(common.RuneAsset(), sdk.NewUint(420000000)),
+			common.NewCoin(common.BNBAsset, cosmos.NewUint(320000000)),
+			common.NewCoin(common.RuneAsset(), cosmos.NewUint(420000000)),
 		},
 		BNBGasFeeSingleton,
 		"SWAP:BNB.BNB",
 	)
 	stake := NewEventStake(
 		common.BNBAsset,
-		sdk.NewUint(5),
+		cosmos.NewUint(5),
 		txIn,
 	)
 	stakeBytes, _ := json.Marshal(stake)

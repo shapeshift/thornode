@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/blang/semver"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 )
 
@@ -23,20 +23,20 @@ func NewStakeHandler(keeper Keeper, versionedEventManager VersionedEventManager)
 	}
 }
 
-func (h StakeHandler) validate(ctx sdk.Context, msg MsgSetStakeData, version semver.Version, constAccessor constants.ConstantValues) sdk.Error {
+func (h StakeHandler) validate(ctx cosmos.Context, msg MsgSetStakeData, version semver.Version, constAccessor constants.ConstantValues) cosmos.Error {
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, msg, constAccessor)
 	}
 	return errBadVersion
 }
 
-func (h StakeHandler) validateV1(ctx sdk.Context, msg MsgSetStakeData, constAccessor constants.ConstantValues) sdk.Error {
+func (h StakeHandler) validateV1(ctx cosmos.Context, msg MsgSetStakeData, constAccessor constants.ConstantValues) cosmos.Error {
 	if err := msg.ValidateBasic(); err != nil {
 		ctx.Logger().Error(err.ABCILog())
-		return sdk.NewError(DefaultCodespace, CodeStakeFailValidation, err.Error())
+		return cosmos.NewError(DefaultCodespace, CodeStakeFailValidation, err.Error())
 	}
 	if !isSignedByActiveNodeAccounts(ctx, h.keeper, msg.GetSigners()) {
-		return sdk.ErrUnauthorized("msg is not signed by an active node account")
+		return cosmos.ErrUnauthorized("msg is not signed by an active node account")
 	}
 
 	ensureStakeNoLargerThanBond := constAccessor.GetBoolValue(constants.StrictBondStakeRatio)
@@ -44,7 +44,7 @@ func (h StakeHandler) validateV1(ctx sdk.Context, msg MsgSetStakeData, constAcce
 	totalStakeRUNE, err := h.getTotalStakeRUNE(ctx)
 	if err != nil {
 		ctx.Logger().Error("fail to get total staked RUNE", err)
-		return sdk.ErrInternal("fail to get total staked RUNE")
+		return cosmos.ErrInternal("fail to get total staked RUNE")
 	}
 
 	// total staked RUNE after current stake
@@ -54,8 +54,8 @@ func (h StakeHandler) validateV1(ctx sdk.Context, msg MsgSetStakeData, constAcce
 		maximumStakeRune = constAccessor.GetInt64Value(constants.MaximumStakeRune)
 	}
 	if maximumStakeRune > 0 {
-		if totalStakeRUNE.GT(sdk.NewUint(uint64(maximumStakeRune))) {
-			return sdk.NewError(DefaultCodespace, CodeStakeRUNEOverLimit, "total staked RUNE is more than %d", maximumStakeRune)
+		if totalStakeRUNE.GT(cosmos.NewUint(uint64(maximumStakeRune))) {
+			return cosmos.NewError(DefaultCodespace, CodeStakeRUNEOverLimit, "total staked RUNE is more than %d", maximumStakeRune)
 		}
 	}
 
@@ -65,18 +65,18 @@ func (h StakeHandler) validateV1(ctx sdk.Context, msg MsgSetStakeData, constAcce
 	totalBondRune, err := h.getTotalBond(ctx)
 	if err != nil {
 		ctx.Logger().Error("fail to get total bond RUNE", err)
-		return sdk.ErrInternal("fail to get total bond RUNE")
+		return cosmos.ErrInternal("fail to get total bond RUNE")
 	}
 	if totalStakeRUNE.GT(totalBondRune) {
 		ctx.Logger().Info(fmt.Sprintf("total stake RUNE(%s) is more than total Bond(%s)", totalStakeRUNE, totalBondRune))
-		return sdk.NewError(DefaultCodespace, CodeStakeRUNEMoreThanBond, "total stake RUNE is more than bond")
+		return cosmos.NewError(DefaultCodespace, CodeStakeRUNEMoreThanBond, "total stake RUNE is more than bond")
 	}
 
 	return nil
 }
 
 // Run execute the handler
-func (h StakeHandler) Run(ctx sdk.Context, m sdk.Msg, version semver.Version, constAccessor constants.ConstantValues) sdk.Result {
+func (h StakeHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) cosmos.Result {
 	msg, ok := m.(MsgSetStakeData)
 	if !ok {
 		return errInvalidMessage.Result()
@@ -94,28 +94,28 @@ func (h StakeHandler) Run(ctx sdk.Context, m sdk.Msg, version semver.Version, co
 		return err.Result()
 	}
 
-	return sdk.Result{
-		Code:      sdk.CodeOK,
+	return cosmos.Result{
+		Code:      cosmos.CodeOK,
 		Codespace: DefaultCodespace,
 	}
 }
 
-func (h StakeHandler) handle(ctx sdk.Context, msg MsgSetStakeData, version semver.Version, constAccessor constants.ConstantValues) (errResult sdk.Error) {
+func (h StakeHandler) handle(ctx cosmos.Context, msg MsgSetStakeData, version semver.Version, constAccessor constants.ConstantValues) (errResult cosmos.Error) {
 	pool, err := h.keeper.GetPool(ctx, msg.Asset)
 	if err != nil {
-		return sdk.ErrInternal(fmt.Errorf("fail to get pool: %w", err).Error())
+		return cosmos.ErrInternal(fmt.Errorf("fail to get pool: %w", err).Error())
 	}
 
 	if pool.Empty() {
 		ctx.Logger().Info("pool doesn't exist yet, create a new one", "symbol", msg.Asset.String(), "creator", msg.RuneAddress)
 		pool.Asset = msg.Asset
 		if err := h.keeper.SetPool(ctx, pool); err != nil {
-			return sdk.ErrInternal(fmt.Errorf("fail to save pool to key value store: %w", err).Error())
+			return cosmos.ErrInternal(fmt.Errorf("fail to save pool to key value store: %w", err).Error())
 		}
 	}
 	if err := pool.EnsureValidPoolStatus(msg); err != nil {
 		ctx.Logger().Error("fail to check pool status", "error", err)
-		return sdk.NewError(DefaultCodespace, CodeInvalidPoolStatus, err.Error())
+		return cosmos.NewError(DefaultCodespace, CodeInvalidPoolStatus, err.Error())
 	}
 	stakeUnits, err := stake(
 		ctx,
@@ -129,17 +129,17 @@ func (h StakeHandler) handle(ctx sdk.Context, msg MsgSetStakeData, version semve
 		constAccessor,
 	)
 	if err != nil {
-		return sdk.ErrUnknownRequest(fmt.Errorf("fail to process stake request: %w", err).Error())
+		return cosmos.ErrUnknownRequest(fmt.Errorf("fail to process stake request: %w", err).Error())
 	}
 
 	if err := h.processStakeEvent(ctx, version, msg, stakeUnits); err != nil {
-		return sdk.ErrInternal(fmt.Errorf("fail to save stake event: %w", err).Error())
+		return cosmos.ErrInternal(fmt.Errorf("fail to save stake event: %w", err).Error())
 	}
 
 	return nil
 }
 
-func (h StakeHandler) processStakeEvent(ctx sdk.Context, version semver.Version, msg MsgSetStakeData, stakeUnits sdk.Uint) error {
+func (h StakeHandler) processStakeEvent(ctx cosmos.Context, version semver.Version, msg MsgSetStakeData, stakeUnits cosmos.Uint) error {
 	eventMgr, err := h.versionedEventManager.GetEventManager(ctx, version)
 	if err != nil {
 		return errFailGetEventManager
@@ -153,12 +153,12 @@ func (h StakeHandler) processStakeEvent(ctx sdk.Context, version semver.Version,
 }
 
 // getTotalBond
-func (h StakeHandler) getTotalBond(ctx sdk.Context) (sdk.Uint, error) {
+func (h StakeHandler) getTotalBond(ctx cosmos.Context) (cosmos.Uint, error) {
 	nodeAccounts, err := h.keeper.ListNodeAccountsWithBond(ctx)
 	if err != nil {
-		return sdk.ZeroUint(), err
+		return cosmos.ZeroUint(), err
 	}
-	total := sdk.ZeroUint()
+	total := cosmos.ZeroUint()
 	for _, na := range nodeAccounts {
 		if na.Status == NodeDisabled {
 			continue
@@ -169,12 +169,12 @@ func (h StakeHandler) getTotalBond(ctx sdk.Context) (sdk.Uint, error) {
 }
 
 // getTotalStakeRUNE we have in all pools
-func (h StakeHandler) getTotalStakeRUNE(ctx sdk.Context) (sdk.Uint, error) {
+func (h StakeHandler) getTotalStakeRUNE(ctx cosmos.Context) (cosmos.Uint, error) {
 	pools, err := h.keeper.GetPools(ctx)
 	if err != nil {
-		return sdk.ZeroUint(), fmt.Errorf("fail to get pools from data store: %w", err)
+		return cosmos.ZeroUint(), fmt.Errorf("fail to get pools from data store: %w", err)
 	}
-	total := sdk.ZeroUint()
+	total := cosmos.ZeroUint()
 	for _, p := range pools {
 		// ignore suspended pools
 		if p.Status == PoolSuspended {

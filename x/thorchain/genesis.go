@@ -3,25 +3,25 @@ package thorchain
 import (
 	"fmt"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	abci "github.com/tendermint/tendermint/abci/types"
 	tmtypes "github.com/tendermint/tendermint/types"
 
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 // GenesisState strcture that used to store the data THORNode put in genesis
 type GenesisState struct {
-	Pools            []Pool                `json:"pools"`
-	Stakers          []Staker              `json:"stakers"`
-	ObservedTxVoters ObservedTxVoters      `json:"observed_tx_voters"`
-	TxOuts           []TxOut               `json:"txouts"`
-	NodeAccounts     NodeAccounts          `json:"node_accounts"`
-	CurrentEventID   int64                 `json:"current_event_id"`
-	Events           Events                `json:"events"`
-	Vaults           Vaults                `json:"vaults"`
-	Gas              map[string][]sdk.Uint `json:"gas"`
-	Reserve          uint64                `json:"reserve"`
+	Pools            []Pool                   `json:"pools"`
+	Stakers          []Staker                 `json:"stakers"`
+	ObservedTxVoters ObservedTxVoters         `json:"observed_tx_voters"`
+	TxOuts           []TxOut                  `json:"txouts"`
+	NodeAccounts     NodeAccounts             `json:"node_accounts"`
+	CurrentEventID   int64                    `json:"current_event_id"`
+	Events           Events                   `json:"events"`
+	Vaults           Vaults                   `json:"vaults"`
+	Gas              map[string][]cosmos.Uint `json:"gas"`
+	Reserve          uint64                   `json:"reserve"`
 }
 
 // NewGenesisState create a new instance of GenesisState
@@ -81,12 +81,12 @@ func DefaultGenesisState() GenesisState {
 		Events:           make(Events, 0),
 		Vaults:           make(Vaults, 0),
 		ObservedTxVoters: make(ObservedTxVoters, 0),
-		Gas:              make(map[string][]sdk.Uint, 0),
+		Gas:              make(map[string][]cosmos.Uint, 0),
 	}
 }
 
 // InitGenesis read the data in GenesisState and apply it to data store
-func InitGenesis(ctx sdk.Context, keeper Keeper, data GenesisState) []abci.ValidatorUpdate {
+func InitGenesis(ctx cosmos.Context, keeper Keeper, data GenesisState) []abci.ValidatorUpdate {
 	for _, record := range data.Pools {
 		if err := keeper.SetPool(ctx, record); err != nil {
 			panic(err)
@@ -101,7 +101,7 @@ func InitGenesis(ctx sdk.Context, keeper Keeper, data GenesisState) []abci.Valid
 	for _, nodeAccount := range data.NodeAccounts {
 		if nodeAccount.Status == NodeActive {
 			// Only Active node will become validator
-			pk, err := sdk.GetConsPubKeyBech32(nodeAccount.ValidatorConsPubKey)
+			pk, err := cosmos.GetConsPubKeyBech32(nodeAccount.ValidatorConsPubKey)
 			if err != nil {
 				ctx.Logger().Error("fail to parse consensus public key", "key", nodeAccount.ValidatorConsPubKey, "error", err)
 				panic(err)
@@ -153,11 +153,11 @@ func InitGenesis(ctx sdk.Context, keeper Keeper, data GenesisState) []abci.Valid
 
 	if common.RuneAsset().Chain.Equals(common.THORChain) {
 		// Mint coins into the reserve
-		coin, err := common.NewCoin(common.RuneNative, sdk.NewUint(data.Reserve)).Native()
+		coin, err := common.NewCoin(common.RuneNative, cosmos.NewUint(data.Reserve)).Native()
 		if err != nil {
 			panic(err)
 		}
-		coins := sdk.NewCoins(coin)
+		coins := cosmos.NewCoins(coin)
 		if err := keeper.Supply().MintCoins(ctx, ModuleName, coins); err != nil {
 			panic(err)
 		}
@@ -167,12 +167,12 @@ func InitGenesis(ctx sdk.Context, keeper Keeper, data GenesisState) []abci.Valid
 	}
 
 	for _, admin := range ADMINS {
-		addr, err := sdk.AccAddressFromBech32(admin)
+		addr, err := cosmos.AccAddressFromBech32(admin)
 		if err != nil {
 			panic(err)
 		}
 		// give mimir gas
-		coinsToMint, err := sdk.ParseCoins("1000thor")
+		coinsToMint, err := cosmos.ParseCoins("1000thor")
 		if err != nil {
 			panic(err)
 		}
@@ -189,7 +189,7 @@ func InitGenesis(ctx sdk.Context, keeper Keeper, data GenesisState) []abci.Valid
 	return validators
 }
 
-func getStakers(ctx sdk.Context, k Keeper, asset common.Asset) []Staker {
+func getStakers(ctx cosmos.Context, k Keeper, asset common.Asset) []Staker {
 	stakers := make([]Staker, 0)
 	iterator := k.GetStakerIterator(ctx, asset)
 	defer iterator.Close()
@@ -202,8 +202,8 @@ func getStakers(ctx sdk.Context, k Keeper, asset common.Asset) []Staker {
 }
 
 // ExportGenesis export the data in Genesis
-func ExportGenesis(ctx sdk.Context, k Keeper) GenesisState {
-	var iterator sdk.Iterator
+func ExportGenesis(ctx cosmos.Context, k Keeper) GenesisState {
+	var iterator cosmos.Iterator
 	currentEventID, _ := k.GetCurrentEventID(ctx)
 
 	pools, err := k.GetPools(ctx)
@@ -252,11 +252,11 @@ func ExportGenesis(ctx sdk.Context, k Keeper) GenesisState {
 		events = append(events, e)
 	}
 
-	gas := make(map[string][]sdk.Uint, 0)
+	gas := make(map[string][]cosmos.Uint, 0)
 	iterator = k.GetGasIterator(ctx)
 	defer iterator.Close()
 	for ; iterator.Valid(); iterator.Next() {
-		var g []sdk.Uint
+		var g []cosmos.Uint
 		k.Cdc().MustUnmarshalBinaryBare(iterator.Value(), &g)
 		gas[string(iterator.Key())] = g
 	}

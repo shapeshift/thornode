@@ -5,9 +5,9 @@ import (
 	"fmt"
 
 	"github.com/blang/semver"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 )
 
@@ -36,7 +36,7 @@ func NewYggdrasilHandler(keeper Keeper, txOutStore VersionedTxOutStore, validato
 }
 
 // Run execute the logic in Yggdrasil Handler
-func (h YggdrasilHandler) Run(ctx sdk.Context, m sdk.Msg, version semver.Version, constAccessor constants.ConstantValues) sdk.Result {
+func (h YggdrasilHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) cosmos.Result {
 	msg, ok := m.(MsgYggdrasil)
 	if !ok {
 		return errInvalidMessage.Result()
@@ -47,7 +47,7 @@ func (h YggdrasilHandler) Run(ctx sdk.Context, m sdk.Msg, version semver.Version
 	return h.handle(ctx, msg, version, constAccessor)
 }
 
-func (h YggdrasilHandler) validate(ctx sdk.Context, msg MsgYggdrasil, version semver.Version) sdk.Error {
+func (h YggdrasilHandler) validate(ctx cosmos.Context, msg MsgYggdrasil, version semver.Version) cosmos.Error {
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, msg)
 	}
@@ -55,19 +55,19 @@ func (h YggdrasilHandler) validate(ctx sdk.Context, msg MsgYggdrasil, version se
 	return errBadVersion
 }
 
-func (h YggdrasilHandler) validateV1(ctx sdk.Context, msg MsgYggdrasil) sdk.Error {
+func (h YggdrasilHandler) validateV1(ctx cosmos.Context, msg MsgYggdrasil) cosmos.Error {
 	if err := msg.ValidateBasic(); err != nil {
 		ctx.Logger().Error(err.Error())
 		return err
 	}
 
 	if !isSignedByActiveNodeAccounts(ctx, h.keeper, msg.GetSigners()) {
-		return sdk.ErrUnauthorized("not signed by an active node account")
+		return cosmos.ErrUnauthorized("not signed by an active node account")
 	}
 	return nil
 }
 
-func (h YggdrasilHandler) handle(ctx sdk.Context, msg MsgYggdrasil, version semver.Version, constAccessor constants.ConstantValues) sdk.Result {
+func (h YggdrasilHandler) handle(ctx cosmos.Context, msg MsgYggdrasil, version semver.Version, constAccessor constants.ConstantValues) cosmos.Result {
 	ctx.Logger().Info("receive MsgYggdrasil", "pubkey", msg.PubKey.String(), "add_funds", msg.AddFunds, "coins", msg.Coins)
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.handleV1(ctx, msg, version)
@@ -77,7 +77,7 @@ func (h YggdrasilHandler) handle(ctx sdk.Context, msg MsgYggdrasil, version semv
 	}
 }
 
-func (h YggdrasilHandler) slash(ctx sdk.Context, version semver.Version, pk common.PubKey, coins common.Coins) error {
+func (h YggdrasilHandler) slash(ctx cosmos.Context, version semver.Version, pk common.PubKey, coins common.Coins) error {
 	var returnErr error
 	slasher, err := NewSlasher(h.keeper, version, h.versionedEventManager)
 	if err != nil {
@@ -92,12 +92,12 @@ func (h YggdrasilHandler) slash(ctx sdk.Context, version semver.Version, pk comm
 	return returnErr
 }
 
-func (h YggdrasilHandler) handleV1(ctx sdk.Context, msg MsgYggdrasil, version semver.Version) sdk.Result {
+func (h YggdrasilHandler) handleV1(ctx cosmos.Context, msg MsgYggdrasil, version semver.Version) cosmos.Result {
 	// update txOut record with our TxID that sent funds out of the pool
 	txOut, err := h.keeper.GetTxOut(ctx, msg.BlockHeight)
 	if err != nil {
 		ctx.Logger().Error("unable to get txOut record", "error", err)
-		return sdk.ErrUnknownRequest(err.Error()).Result()
+		return cosmos.ErrUnknownRequest(err.Error()).Result()
 	}
 
 	shouldSlash := true
@@ -132,14 +132,14 @@ func (h YggdrasilHandler) handleV1(ctx sdk.Context, msg MsgYggdrasil, version se
 
 	if shouldSlash {
 		if err := h.slash(ctx, version, msg.PubKey, msg.Tx.Coins); err != nil {
-			return sdk.ErrInternal("fail to slash account").Result()
+			return cosmos.ErrInternal("fail to slash account").Result()
 		}
 	}
 
 	vault, err := h.keeper.GetVault(ctx, msg.PubKey)
 	if err != nil && !stdErrors.Is(err, ErrVaultNotFound) {
 		ctx.Logger().Error("fail to get yggdrasil", "error", err)
-		return sdk.ErrInternal(err.Error()).Result()
+		return cosmos.ErrInternal(err.Error()).Result()
 	}
 	if len(vault.Type) == 0 {
 		vault.Status = ActiveVault
@@ -154,62 +154,62 @@ func (h YggdrasilHandler) handleV1(ctx sdk.Context, msg MsgYggdrasil, version se
 	return h.handleYggdrasilReturn(ctx, msg, vault, version)
 }
 
-func (h YggdrasilHandler) handleYggdrasilFund(ctx sdk.Context, msg MsgYggdrasil, vault Vault) sdk.Result {
+func (h YggdrasilHandler) handleYggdrasilFund(ctx cosmos.Context, msg MsgYggdrasil, vault Vault) cosmos.Result {
 	if vault.Type == AsgardVault {
 		ctx.EventManager().EmitEvent(
-			sdk.NewEvent("asgard_fund_yggdrasil",
-				sdk.NewAttribute("pubkey", vault.PubKey.String()),
-				sdk.NewAttribute("coins", msg.Coins.String()),
-				sdk.NewAttribute("tx", msg.Tx.ID.String())))
+			cosmos.NewEvent("asgard_fund_yggdrasil",
+				cosmos.NewAttribute("pubkey", vault.PubKey.String()),
+				cosmos.NewAttribute("coins", msg.Coins.String()),
+				cosmos.NewAttribute("tx", msg.Tx.ID.String())))
 	}
 	if vault.Type == YggdrasilVault {
 		ctx.EventManager().EmitEvent(
-			sdk.NewEvent("yggdrasil_receive_fund",
-				sdk.NewAttribute("pubkey", vault.PubKey.String()),
-				sdk.NewAttribute("coins", msg.Coins.String()),
-				sdk.NewAttribute("tx", msg.Tx.ID.String())))
+			cosmos.NewEvent("yggdrasil_receive_fund",
+				cosmos.NewAttribute("pubkey", vault.PubKey.String()),
+				cosmos.NewAttribute("coins", msg.Coins.String()),
+				cosmos.NewAttribute("tx", msg.Tx.ID.String())))
 	}
 	// Yggdrasil usually comes from Asgard , Asgard --> Yggdrasil
 	// It will be an outbound tx from Asgard pool , and it will be an Inbound tx form Yggdrasil pool
 	// incoming fund will be added to Vault as part of ObservedTxInHandler
 	// Yggdrasil handler doesn't need to do anything
-	return sdk.Result{
-		Code:      sdk.CodeOK,
+	return cosmos.Result{
+		Code:      cosmos.CodeOK,
 		Codespace: DefaultCodespace,
 	}
 }
 
-func (h YggdrasilHandler) handleYggdrasilReturn(ctx sdk.Context, msg MsgYggdrasil, vault Vault, version semver.Version) sdk.Result {
+func (h YggdrasilHandler) handleYggdrasilReturn(ctx cosmos.Context, msg MsgYggdrasil, vault Vault, version semver.Version) cosmos.Result {
 	// observe an outbound tx from yggdrasil vault
 	if vault.Type == YggdrasilVault {
 		asgardVaults, err := h.keeper.GetAsgardVaultsByStatus(ctx, ActiveVault)
 		if err != nil {
 			ctx.Logger().Error("unable to get asgard vaults", "error", err)
-			return sdk.ErrInternal("unable to get asgard vaults").Result()
+			return cosmos.ErrInternal("unable to get asgard vaults").Result()
 		}
 		isAsgardReceipient, err := asgardVaults.HasAddress(msg.Tx.Chain, msg.Tx.ToAddress)
 		if err != nil {
 			ctx.Logger().Error(fmt.Sprintf("unable to determinate whether %s is an Asgard vault", msg.Tx.ToAddress), "error", err)
-			return sdk.ErrInternal("unable to check recipient against active Asgards").Result()
+			return cosmos.ErrInternal("unable to check recipient against active Asgards").Result()
 		}
 
 		if !isAsgardReceipient {
 			// not sending to asgard , slash the node account
 			if err := h.slash(ctx, version, msg.PubKey, msg.Tx.Coins); err != nil {
 				ctx.Logger().Error("fail to slash account for sending fund to a none asgard vault using yggdrasil-", "error", err)
-				return sdk.ErrInternal("fail to slash account").Result()
+				return cosmos.ErrInternal("fail to slash account").Result()
 			}
 		}
 
 		na, err := h.keeper.GetNodeAccountByPubKey(ctx, msg.PubKey)
 		if err != nil {
 			ctx.Logger().Error("unable to get node account", "error", err)
-			return sdk.ErrInternal(err.Error()).Result()
+			return cosmos.ErrInternal(err.Error()).Result()
 		}
 		if na.Status == NodeActive {
 			// node still active , no refund bond
-			return sdk.Result{
-				Code:      sdk.CodeOK,
+			return cosmos.Result{
+				Code:      cosmos.CodeOK,
 				Codespace: DefaultCodespace,
 			}
 		}
@@ -227,11 +227,11 @@ func (h YggdrasilHandler) handleYggdrasilReturn(ctx sdk.Context, msg MsgYggdrasi
 			}
 			if err := refundBond(ctx, msg.Tx, na, h.keeper, txOutStore, eventMgr); err != nil {
 				ctx.Logger().Error("fail to refund bond", "error", err)
-				return sdk.ErrInternal(err.Error()).Result()
+				return cosmos.ErrInternal(err.Error()).Result()
 			}
 		}
-		return sdk.Result{
-			Code:      sdk.CodeOK,
+		return cosmos.Result{
+			Code:      cosmos.CodeOK,
 			Codespace: DefaultCodespace,
 		}
 	}
@@ -240,13 +240,13 @@ func (h YggdrasilHandler) handleYggdrasilReturn(ctx sdk.Context, msg MsgYggdrasi
 	if vault.Type == AsgardVault {
 		// Yggdrasil return fund back to Asgard
 		ctx.EventManager().EmitEvent(
-			sdk.NewEvent("yggdrasil_return",
-				sdk.NewAttribute("pubkey", vault.PubKey.String()),
-				sdk.NewAttribute("coins", msg.Coins.String()),
-				sdk.NewAttribute("tx", msg.Tx.ID.String())))
+			cosmos.NewEvent("yggdrasil_return",
+				cosmos.NewAttribute("pubkey", vault.PubKey.String()),
+				cosmos.NewAttribute("coins", msg.Coins.String()),
+				cosmos.NewAttribute("tx", msg.Tx.ID.String())))
 	}
-	return sdk.Result{
-		Code:      sdk.CodeOK,
+	return cosmos.Result{
+		Code:      cosmos.CodeOK,
 		Codespace: DefaultCodespace,
 	}
 }

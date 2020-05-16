@@ -5,10 +5,10 @@ import (
 	"os"
 
 	"github.com/blang/semver"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
@@ -27,29 +27,29 @@ type TestSwapKeeper struct {
 	KVStoreDummy
 }
 
-func (k *TestSwapKeeper) PoolExist(ctx sdk.Context, asset common.Asset) bool {
+func (k *TestSwapKeeper) PoolExist(ctx cosmos.Context, asset common.Asset) bool {
 	if asset.Equals(common.Asset{Chain: common.BNBChain, Symbol: "NOTEXIST", Ticker: "NOTEXIST"}) {
 		return false
 	}
 	return true
 }
 
-func (k *TestSwapKeeper) GetPool(ctx sdk.Context, asset common.Asset) (types.Pool, error) {
+func (k *TestSwapKeeper) GetPool(ctx cosmos.Context, asset common.Asset) (types.Pool, error) {
 	if asset.Equals(common.Asset{Chain: common.BNBChain, Symbol: "NOTEXIST", Ticker: "NOTEXIST"}) {
 		return types.Pool{}, nil
 	} else {
 		return types.Pool{
-			BalanceRune:  sdk.NewUint(100).MulUint64(common.One),
-			BalanceAsset: sdk.NewUint(100).MulUint64(common.One),
-			PoolUnits:    sdk.NewUint(100).MulUint64(common.One),
+			BalanceRune:  cosmos.NewUint(100).MulUint64(common.One),
+			BalanceAsset: cosmos.NewUint(100).MulUint64(common.One),
+			PoolUnits:    cosmos.NewUint(100).MulUint64(common.One),
 			Status:       types.Enabled,
 			Asset:        asset,
 		}, nil
 	}
 }
-func (k *TestSwapKeeper) SetPool(ctx sdk.Context, ps types.Pool) error { return nil }
+func (k *TestSwapKeeper) SetPool(ctx cosmos.Context, ps types.Pool) error { return nil }
 
-func (k *TestSwapKeeper) GetStaker(ctx sdk.Context, asset common.Asset, addr common.Address) (types.Staker, error) {
+func (k *TestSwapKeeper) GetStaker(ctx cosmos.Context, asset common.Asset, addr common.Address) (types.Staker, error) {
 	if asset.Equals(common.Asset{Chain: common.BNBChain, Symbol: "NOTEXISTSTICKER", Ticker: "NOTEXISTSTICKER"}) {
 		return types.Staker{}, errors.New("you asked for it")
 	}
@@ -57,28 +57,28 @@ func (k *TestSwapKeeper) GetStaker(ctx sdk.Context, asset common.Asset, addr com
 		Asset:        asset,
 		RuneAddress:  addr,
 		AssetAddress: addr,
-		Units:        sdk.NewUint(100),
-		PendingRune:  sdk.ZeroUint(),
+		Units:        cosmos.NewUint(100),
+		PendingRune:  cosmos.ZeroUint(),
 	}, nil
 }
 
-func (k *TestSwapKeeper) SetStaker(ctx sdk.Context, ps types.Staker) {}
+func (k *TestSwapKeeper) SetStaker(ctx cosmos.Context, ps types.Staker) {}
 
-func (k *TestSwapKeeper) AddToLiquidityFees(ctx sdk.Context, asset common.Asset, fs sdk.Uint) error {
+func (k *TestSwapKeeper) AddToLiquidityFees(ctx cosmos.Context, asset common.Asset, fs cosmos.Uint) error {
 	return nil
 }
 
-func (k *TestSwapKeeper) GetLowestActiveVersion(ctx sdk.Context) semver.Version {
+func (k *TestSwapKeeper) GetLowestActiveVersion(ctx cosmos.Context) semver.Version {
 	return constants.SWVersion
 }
 
-func (k *TestSwapKeeper) AddFeeToReserve(ctx sdk.Context, fee sdk.Uint) error { return nil }
-func (k *TestSwapKeeper) UpsertEvent(ctx sdk.Context, event Event) error {
+func (k *TestSwapKeeper) AddFeeToReserve(ctx cosmos.Context, fee cosmos.Uint) error { return nil }
+func (k *TestSwapKeeper) UpsertEvent(ctx cosmos.Context, event Event) error {
 	return nil
 }
 
-func (k *TestSwapKeeper) GetGas(ctx sdk.Context, _ common.Asset) ([]sdk.Uint, error) {
-	return []sdk.Uint{sdk.NewUint(37500), sdk.NewUint(30000)}, nil
+func (k *TestSwapKeeper) GetGas(ctx cosmos.Context, _ common.Asset) ([]cosmos.Uint, error) {
+	return []cosmos.Uint{cosmos.NewUint(37500), cosmos.NewUint(30000)}, nil
 }
 
 func (s *SwapSuite) TestSwap(c *C) {
@@ -89,12 +89,12 @@ func (s *SwapSuite) TestSwap(c *C) {
 		requestTxHash common.TxID
 		source        common.Asset
 		target        common.Asset
-		amount        sdk.Uint
+		amount        cosmos.Uint
 		requester     common.Address
 		destination   common.Address
-		returnAmount  sdk.Uint
-		tradeTarget   sdk.Uint
-		expectedErr   sdk.Error
+		returnAmount  cosmos.Uint
+		tradeTarget   cosmos.Uint
+		expectedErr   cosmos.Error
 		events        []Event
 	}{
 		{
@@ -102,104 +102,104 @@ func (s *SwapSuite) TestSwap(c *C) {
 			requestTxHash: "hash",
 			source:        common.Asset{},
 			target:        common.BNBAsset,
-			amount:        sdk.NewUint(100 * common.One),
+			amount:        cosmos.NewUint(100 * common.One),
 			requester:     "tester",
 			destination:   "whatever",
-			returnAmount:  sdk.ZeroUint(),
-			expectedErr:   sdk.NewError(DefaultCodespace, CodeValidationError, "Denom cannot be empty"),
+			returnAmount:  cosmos.ZeroUint(),
+			expectedErr:   cosmos.NewError(DefaultCodespace, CodeValidationError, "Denom cannot be empty"),
 		},
 		{
 			name:          "empty-target",
 			requestTxHash: "hash",
 			source:        common.RuneAsset(),
 			target:        common.Asset{},
-			amount:        sdk.NewUint(100 * common.One),
+			amount:        cosmos.NewUint(100 * common.One),
 			requester:     "tester",
 			destination:   "whatever",
-			returnAmount:  sdk.ZeroUint(),
-			expectedErr:   sdk.NewError(DefaultCodespace, CodeValidationError, "target is empty"),
+			returnAmount:  cosmos.ZeroUint(),
+			expectedErr:   cosmos.NewError(DefaultCodespace, CodeValidationError, "target is empty"),
 		},
 		{
 			name:          "empty-requestTxHash",
 			requestTxHash: "",
 			source:        common.RuneAsset(),
 			target:        common.BNBAsset,
-			amount:        sdk.NewUint(100 * common.One),
+			amount:        cosmos.NewUint(100 * common.One),
 			requester:     "tester",
 			destination:   "whatever",
-			returnAmount:  sdk.ZeroUint(),
-			expectedErr:   sdk.NewError(DefaultCodespace, CodeValidationError, "Tx ID cannot be empty"),
+			returnAmount:  cosmos.ZeroUint(),
+			expectedErr:   cosmos.NewError(DefaultCodespace, CodeValidationError, "Tx ID cannot be empty"),
 		},
 		{
 			name:          "empty-amount",
 			requestTxHash: "hash",
 			source:        common.RuneAsset(),
 			target:        common.BNBAsset,
-			amount:        sdk.ZeroUint(),
+			amount:        cosmos.ZeroUint(),
 			requester:     "tester",
 			destination:   "whatever",
-			returnAmount:  sdk.ZeroUint(),
-			expectedErr:   sdk.NewError(DefaultCodespace, CodeValidationError, "Amount cannot be zero"),
+			returnAmount:  cosmos.ZeroUint(),
+			expectedErr:   cosmos.NewError(DefaultCodespace, CodeValidationError, "Amount cannot be zero"),
 		},
 		{
 			name:          "empty-requester",
 			requestTxHash: "hash",
 			source:        common.RuneAsset(),
 			target:        common.BNBAsset,
-			amount:        sdk.NewUint(100 * common.One),
+			amount:        cosmos.NewUint(100 * common.One),
 			requester:     "",
 			destination:   "whatever",
-			returnAmount:  sdk.ZeroUint(),
-			expectedErr:   sdk.NewError(DefaultCodespace, CodeValidationError, "From address cannot be empty"),
+			returnAmount:  cosmos.ZeroUint(),
+			expectedErr:   cosmos.NewError(DefaultCodespace, CodeValidationError, "From address cannot be empty"),
 		},
 		{
 			name:          "empty-destination",
 			requestTxHash: "hash",
 			source:        common.RuneAsset(),
 			target:        common.BNBAsset,
-			amount:        sdk.NewUint(100 * common.One),
+			amount:        cosmos.NewUint(100 * common.One),
 			requester:     GetRandomBNBAddress(),
 			destination:   "",
-			returnAmount:  sdk.ZeroUint(),
-			expectedErr:   sdk.NewError(DefaultCodespace, CodeValidationError, "To address cannot be empty"),
+			returnAmount:  cosmos.ZeroUint(),
+			expectedErr:   cosmos.NewError(DefaultCodespace, CodeValidationError, "To address cannot be empty"),
 		},
 		{
 			name:          "pool-not-exist",
 			requestTxHash: "hash",
 			source:        common.Asset{Chain: common.BNBChain, Ticker: "NOTEXIST", Symbol: "NOTEXIST"},
 			target:        common.RuneAsset(),
-			amount:        sdk.NewUint(100 * common.One),
+			amount:        cosmos.NewUint(100 * common.One),
 			requester:     GetRandomBNBAddress(),
 			destination:   GetRandomBNBAddress(),
-			tradeTarget:   sdk.NewUint(110000000),
-			returnAmount:  sdk.ZeroUint(),
-			expectedErr:   sdk.NewError(DefaultCodespace, CodeSwapFailPoolNotExist, "BNB.NOTEXIST pool doesn't exist"),
+			tradeTarget:   cosmos.NewUint(110000000),
+			returnAmount:  cosmos.ZeroUint(),
+			expectedErr:   cosmos.NewError(DefaultCodespace, CodeSwapFailPoolNotExist, "BNB.NOTEXIST pool doesn't exist"),
 		},
 		{
 			name:          "pool-not-exist-1",
 			requestTxHash: "hash",
 			source:        common.RuneAsset(),
 			target:        common.Asset{Chain: common.BNBChain, Ticker: "NOTEXIST", Symbol: "NOTEXIST"},
-			amount:        sdk.NewUint(100 * common.One),
+			amount:        cosmos.NewUint(100 * common.One),
 			requester:     "tester",
 			destination:   "don'tknow",
-			tradeTarget:   sdk.NewUint(120000000),
-			returnAmount:  sdk.ZeroUint(),
-			expectedErr:   sdk.NewError(DefaultCodespace, CodeSwapFailPoolNotExist, "BNB.NOTEXIST pool doesn't exist"),
+			tradeTarget:   cosmos.NewUint(120000000),
+			returnAmount:  cosmos.ZeroUint(),
+			expectedErr:   cosmos.NewError(DefaultCodespace, CodeSwapFailPoolNotExist, "BNB.NOTEXIST pool doesn't exist"),
 		},
 		{
 			name:          "swap-no-global-sliplimit",
 			requestTxHash: "hash",
 			source:        common.RuneAsset(),
 			target:        common.BNBAsset,
-			amount:        sdk.NewUint(50 * common.One),
+			amount:        cosmos.NewUint(50 * common.One),
 			requester:     "tester",
 			destination:   "don't know",
-			returnAmount:  sdk.NewUint(2222222222),
-			tradeTarget:   sdk.ZeroUint(),
+			returnAmount:  cosmos.NewUint(2222222222),
+			tradeTarget:   cosmos.ZeroUint(),
 			expectedErr:   nil,
 			events: []Event{
-				Event{ID: 0, Height: 18, Type: "swap", InTx: common.Tx{ID: "hash", Chain: "BNB", FromAddress: "tester", ToAddress: "don't know", Coins: common.Coins{common.NewCoin(common.RuneAsset(), sdk.NewUint(5000000000))}, Gas: common.Gas{common.NewCoin(common.BNBAsset, sdk.NewUint(37500))}}},
+				Event{ID: 0, Height: 18, Type: "swap", InTx: common.Tx{ID: "hash", Chain: "BNB", FromAddress: "tester", ToAddress: "don't know", Coins: common.Coins{common.NewCoin(common.RuneAsset(), cosmos.NewUint(5000000000))}, Gas: common.Gas{common.NewCoin(common.BNBAsset, cosmos.NewUint(37500))}}},
 			},
 		},
 		{
@@ -207,26 +207,26 @@ func (s *SwapSuite) TestSwap(c *C) {
 			requestTxHash: "hash",
 			source:        common.RuneAsset(),
 			target:        common.BNBAsset,
-			amount:        sdk.NewUint(9 * common.One),
+			amount:        cosmos.NewUint(9 * common.One),
 			requester:     "tester",
 			destination:   "don'tknow",
-			returnAmount:  sdk.ZeroUint(),
-			tradeTarget:   sdk.NewUint(9 * common.One),
-			expectedErr:   sdk.NewError(DefaultCodespace, CodeSwapFailTradeTarget, "emit asset 757511993 less than price limit 900000000"),
+			returnAmount:  cosmos.ZeroUint(),
+			tradeTarget:   cosmos.NewUint(9 * common.One),
+			expectedErr:   cosmos.NewError(DefaultCodespace, CodeSwapFailTradeTarget, "emit asset 757511993 less than price limit 900000000"),
 		},
 		{
 			name:          "swap-no-target-price-no-protection",
 			requestTxHash: "hash",
 			source:        common.RuneAsset(),
 			target:        common.BNBAsset,
-			amount:        sdk.NewUint(8 * common.One),
+			amount:        cosmos.NewUint(8 * common.One),
 			requester:     "tester",
 			destination:   "don'tknow",
-			returnAmount:  sdk.NewUint(685871056),
-			tradeTarget:   sdk.ZeroUint(),
+			returnAmount:  cosmos.NewUint(685871056),
+			tradeTarget:   cosmos.ZeroUint(),
 			expectedErr:   nil,
 			events: []Event{
-				Event{ID: 0, Height: 18, Type: "swap", InTx: common.Tx{ID: "hash", Chain: "BNB", FromAddress: "tester", ToAddress: "don'tknow", Coins: common.Coins{common.NewCoin(common.RuneAsset(), sdk.NewUint(800000000))}, Gas: common.Gas{common.NewCoin(common.BNBAsset, sdk.NewUint(37500))}}},
+				Event{ID: 0, Height: 18, Type: "swap", InTx: common.Tx{ID: "hash", Chain: "BNB", FromAddress: "tester", ToAddress: "don'tknow", Coins: common.Coins{common.NewCoin(common.RuneAsset(), cosmos.NewUint(800000000))}, Gas: common.Gas{common.NewCoin(common.BNBAsset, cosmos.NewUint(37500))}}},
 			},
 		},
 		{
@@ -234,14 +234,14 @@ func (s *SwapSuite) TestSwap(c *C) {
 			requestTxHash: "hash",
 			source:        common.RuneAsset(),
 			target:        common.BNBAsset,
-			amount:        sdk.NewUint(5 * common.One),
+			amount:        cosmos.NewUint(5 * common.One),
 			requester:     "tester",
 			destination:   "don'tknow",
-			returnAmount:  sdk.NewUint(453514739),
-			tradeTarget:   sdk.NewUint(453514738),
+			returnAmount:  cosmos.NewUint(453514739),
+			tradeTarget:   cosmos.NewUint(453514738),
 			expectedErr:   nil,
 			events: []Event{
-				Event{ID: 0, Height: 18, Type: "swap", InTx: common.Tx{ID: "hash", Chain: "BNB", FromAddress: "tester", ToAddress: "don'tknow", Coins: common.Coins{common.NewCoin(common.RuneAsset(), sdk.NewUint(500000000))}, Gas: common.Gas{common.NewCoin(common.BNBAsset, sdk.NewUint(37500))}}},
+				Event{ID: 0, Height: 18, Type: "swap", InTx: common.Tx{ID: "hash", Chain: "BNB", FromAddress: "tester", ToAddress: "don'tknow", Coins: common.Coins{common.NewCoin(common.RuneAsset(), cosmos.NewUint(500000000))}, Gas: common.Gas{common.NewCoin(common.BNBAsset, cosmos.NewUint(37500))}}},
 			},
 		},
 		{
@@ -249,15 +249,15 @@ func (s *SwapSuite) TestSwap(c *C) {
 			requestTxHash: "hash",
 			source:        common.Asset{Chain: common.BTCChain, Ticker: "BTC", Symbol: "BTC"},
 			target:        common.BNBAsset,
-			amount:        sdk.NewUint(5 * common.One),
+			amount:        cosmos.NewUint(5 * common.One),
 			requester:     "tester",
 			destination:   "don'tknow",
-			returnAmount:  sdk.NewUint(415017809),
-			tradeTarget:   sdk.NewUint(415017809),
+			returnAmount:  cosmos.NewUint(415017809),
+			tradeTarget:   cosmos.NewUint(415017809),
 			expectedErr:   nil,
 			events: []Event{
-				Event{ID: 0, Height: 18, Type: "swap", InTx: common.Tx{ID: "hash", Chain: "BNB", FromAddress: "tester", ToAddress: "don'tknow", Coins: common.Coins{common.NewCoin(common.BTCAsset, sdk.NewUint(5*common.One))}, Gas: common.Gas{common.NewCoin(common.BNBAsset, sdk.NewUint(37500))}}},
-				Event{ID: 0, Height: 18, Type: "swap", InTx: common.Tx{ID: "hash", Chain: "BNB", FromAddress: "tester", ToAddress: "don'tknow", Coins: common.Coins{common.NewCoin(common.RuneAsset(), sdk.NewUint(453514739))}, Gas: nil}},
+				Event{ID: 0, Height: 18, Type: "swap", InTx: common.Tx{ID: "hash", Chain: "BNB", FromAddress: "tester", ToAddress: "don'tknow", Coins: common.Coins{common.NewCoin(common.BTCAsset, cosmos.NewUint(5*common.One))}, Gas: common.Gas{common.NewCoin(common.BNBAsset, cosmos.NewUint(37500))}}},
+				Event{ID: 0, Height: 18, Type: "swap", InTx: common.Tx{ID: "hash", Chain: "BNB", FromAddress: "tester", ToAddress: "don'tknow", Coins: common.Coins{common.NewCoin(common.RuneAsset(), cosmos.NewUint(453514739))}, Gas: nil}},
 			},
 		},
 	}
@@ -275,7 +275,7 @@ func (s *SwapSuite) TestSwap(c *C) {
 			"",
 		)
 		tx.Chain = common.BNBChain
-		amount, evts, err := swap(ctx, poolStorage, tx, item.target, item.destination, item.tradeTarget, sdk.NewUint(1000_000))
+		amount, evts, err := swap(ctx, poolStorage, tx, item.target, item.destination, item.tradeTarget, cosmos.NewUint(1000_000))
 		if item.expectedErr == nil {
 			c.Assert(err, IsNil)
 			c.Assert(evts, HasLen, len(item.events))
@@ -309,7 +309,7 @@ func (s SwapSuite) TestValidateMessage(c *C) {
 			GetRandomBNBAddress(),
 			GetRandomBNBAddress(),
 			common.Coins{
-				common.NewCoin(common.RuneAsset(), sdk.NewUint(3429850000)),
+				common.NewCoin(common.RuneAsset(), cosmos.NewUint(3429850000)),
 			},
 			BNBGasFeeSingleton,
 			"",
@@ -323,7 +323,7 @@ func (s SwapSuite) TestValidateMessage(c *C) {
 			GetRandomBNBAddress(),
 			GetRandomBNBAddress(),
 			common.Coins{
-				common.NewCoin(common.RuneAsset(), sdk.NewUint(3429850000)),
+				common.NewCoin(common.RuneAsset(), cosmos.NewUint(3429850000)),
 			},
 			BNBGasFeeSingleton,
 			"",
@@ -337,7 +337,7 @@ func (s SwapSuite) TestValidateMessage(c *C) {
 			GetRandomBNBAddress(),
 			GetRandomBNBAddress(),
 			common.Coins{
-				common.NewCoin(common.Asset{}, sdk.NewUint(3429850000)),
+				common.NewCoin(common.Asset{}, cosmos.NewUint(3429850000)),
 			},
 			BNBGasFeeSingleton,
 			"",
@@ -351,7 +351,7 @@ func (s SwapSuite) TestValidateMessage(c *C) {
 			GetRandomBNBAddress(),
 			GetRandomBNBAddress(),
 			common.Coins{
-				common.NewCoin(common.RuneAsset(), sdk.NewUint(3429850000)),
+				common.NewCoin(common.RuneAsset(), cosmos.NewUint(3429850000)),
 			},
 			BNBGasFeeSingleton,
 			"",
@@ -365,7 +365,7 @@ func (s SwapSuite) TestValidateMessage(c *C) {
 			GetRandomBNBAddress(),
 			GetRandomBNBAddress(),
 			common.Coins{
-				common.NewCoin(common.RuneAsset(), sdk.ZeroUint()),
+				common.NewCoin(common.RuneAsset(), cosmos.ZeroUint()),
 			},
 			BNBGasFeeSingleton,
 			"",
@@ -379,7 +379,7 @@ func (s SwapSuite) TestValidateMessage(c *C) {
 			"",
 			GetRandomBNBAddress(),
 			common.Coins{
-				common.NewCoin(common.RuneAsset(), sdk.NewUint(3429850000)),
+				common.NewCoin(common.RuneAsset(), cosmos.NewUint(3429850000)),
 			},
 			BNBGasFeeSingleton,
 			"",
@@ -393,7 +393,7 @@ func (s SwapSuite) TestValidateMessage(c *C) {
 			GetRandomBNBAddress(),
 			GetRandomBNBAddress(),
 			common.Coins{
-				common.NewCoin(common.RuneAsset(), sdk.NewUint(3429850000)),
+				common.NewCoin(common.RuneAsset(), cosmos.NewUint(3429850000)),
 			},
 			BNBGasFeeSingleton,
 			"",
@@ -404,9 +404,9 @@ func (s SwapSuite) TestValidateMessage(c *C) {
 }
 
 func (s SwapSuite) TestCalculators(c *C) {
-	X := sdk.NewUint(100 * common.One)
-	x := sdk.NewUint(10 * common.One)
-	Y := sdk.NewUint(100 * common.One)
+	X := cosmos.NewUint(100 * common.One)
+	x := cosmos.NewUint(10 * common.One)
+	Y := cosmos.NewUint(100 * common.One)
 
 	// These calculations are verified by using the spreadsheet
 	// https://docs.google.com/spreadsheets/d/1wJHYBRKBdw_WP7nUyVnkySPkOmPUNoiRGsEqgBVVXKU/edit#gid=0

@@ -1,8 +1,8 @@
 package thorchain
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	. "gopkg.in/check.v1"
 )
 
@@ -13,9 +13,9 @@ var _ = Suite(&KeeperGasSuite{})
 func (s *KeeperGasSuite) TestGas(c *C) {
 	ctx, k := setupKeeperForTest(c)
 
-	bnbGas := []sdk.Uint{
-		sdk.NewUint(37500),
-		sdk.NewUint(30000),
+	bnbGas := []cosmos.Uint{
+		cosmos.NewUint(37500),
+		cosmos.NewUint(30000),
 	}
 
 	k.SetGas(ctx, common.BNBAsset, bnbGas)
@@ -23,6 +23,6 @@ func (s *KeeperGasSuite) TestGas(c *C) {
 	gas, err := k.GetGas(ctx, common.BNBAsset)
 	c.Assert(err, IsNil)
 	c.Assert(gas, HasLen, 2)
-	c.Assert(gas[0].Equal(sdk.NewUint(37500)), Equals, true)
-	c.Assert(gas[1].Equal(sdk.NewUint(30000)), Equals, true)
+	c.Assert(gas[0].Equal(cosmos.NewUint(37500)), Equals, true)
+	c.Assert(gas[1].Equal(cosmos.NewUint(30000)), Equals, true)
 }

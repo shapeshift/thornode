@@ -9,7 +9,6 @@ import (
 	ctypes "github.com/binance-chain/go-sdk/common/types"
 	"github.com/binance-chain/go-sdk/keys"
 	"github.com/binance-chain/go-sdk/types/tx"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/tendermint/btcd/btcec"
@@ -19,6 +18,7 @@ import (
 	tss "gitlab.com/thorchain/tss/go-tss/tss"
 
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 // KeySign is a proxy between signer and TSS
@@ -61,7 +61,7 @@ func (s *KeySign) ExportAsKeyStore(password string) (*keys.EncryptedKeyJSON, err
 
 func (s *KeySign) makeSignature(msg tx.StdSignMsg, poolPubKey string, signerPubKeys common.PubKeys) (sig tx.StdSignature, err error) {
 	var stdSignature tx.StdSignature
-	pk, err := sdk.GetAccPubKeyBech32(poolPubKey)
+	pk, err := cosmos.GetAccPubKeyBech32(poolPubKey)
 	if err != nil {
 		return stdSignature, fmt.Errorf("fail to get pub key: %w", err)
 	}

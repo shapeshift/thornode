@@ -3,17 +3,17 @@ package types
 import (
 	"net"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 // MsgSetIPAddress defines a MsgSetIPAddress message
 type MsgSetIPAddress struct {
-	IPAddress string         `json:"ip_address"`
-	Signer    sdk.AccAddress `json:"signer"`
+	IPAddress string            `json:"ip_address"`
+	Signer    cosmos.AccAddress `json:"signer"`
 }
 
 // NewMsgSetIPAddress is a constructor function for NewMsgSetIPAddress
-func NewMsgSetIPAddress(ip string, signer sdk.AccAddress) MsgSetIPAddress {
+func NewMsgSetIPAddress(ip string, signer cosmos.AccAddress) MsgSetIPAddress {
 	return MsgSetIPAddress{
 		IPAddress: ip,
 		Signer:    signer,
@@ -27,22 +27,22 @@ func (msg MsgSetIPAddress) Route() string { return RouterKey }
 func (msg MsgSetIPAddress) Type() string { return "set_ip_address" }
 
 // ValidateBasic runs stateless checks on the message
-func (msg MsgSetIPAddress) ValidateBasic() sdk.Error {
+func (msg MsgSetIPAddress) ValidateBasic() cosmos.Error {
 	if msg.Signer.Empty() {
-		return sdk.ErrInvalidAddress(msg.Signer.String())
+		return cosmos.ErrInvalidAddress(msg.Signer.String())
 	}
 	if net.ParseIP(msg.IPAddress) == nil {
-		return sdk.ErrUnknownRequest("invalid IP address")
+		return cosmos.ErrUnknownRequest("invalid IP address")
 	}
 	return nil
 }
 
 // GetSignBytes encodes the message for signing
 func (msg MsgSetIPAddress) GetSignBytes() []byte {
-	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(msg))
+	return cosmos.MustSortJSON(ModuleCdc.MustMarshalJSON(msg))
 }
 
 // GetSigners defines whose signature is required
-func (msg MsgSetIPAddress) GetSigners() []sdk.AccAddress {
-	return []sdk.AccAddress{msg.Signer}
+func (msg MsgSetIPAddress) GetSigners() []cosmos.AccAddress {
+	return []cosmos.AccAddress{msg.Signer}
 }

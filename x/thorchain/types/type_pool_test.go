@@ -3,8 +3,8 @@ package types
 import (
 	"encoding/json"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	. "gopkg.in/check.v1"
 )
 
@@ -17,10 +17,10 @@ func (PoolTestSuite) TestPool(c *C) {
 	c.Check(p.Empty(), Equals, true)
 	p.Asset = common.BNBAsset
 	c.Check(p.Empty(), Equals, false)
-	p.BalanceRune = sdk.NewUint(100 * common.One)
-	p.BalanceAsset = sdk.NewUint(50 * common.One)
-	c.Check(p.AssetValueInRune(sdk.NewUint(25*common.One)).Equal(sdk.NewUint(50*common.One)), Equals, true)
-	c.Check(p.RuneValueInAsset(sdk.NewUint(50*common.One)).Equal(sdk.NewUint(25*common.One)), Equals, true)
+	p.BalanceRune = cosmos.NewUint(100 * common.One)
+	p.BalanceAsset = cosmos.NewUint(50 * common.One)
+	c.Check(p.AssetValueInRune(cosmos.NewUint(25*common.One)).Equal(cosmos.NewUint(50*common.One)), Equals, true)
+	c.Check(p.RuneValueInAsset(cosmos.NewUint(50*common.One)).Equal(cosmos.NewUint(25*common.One)), Equals, true)
 	c.Log(p.String())
 
 	signer := GetRandomBech32Addr()
@@ -32,12 +32,12 @@ func (PoolTestSuite) TestPool(c *C) {
 		GetRandomBNBAddress(),
 		GetRandomBNBAddress(),
 		common.Coins{
-			common.NewCoin(common.BNBAsset, sdk.NewUint(1)),
+			common.NewCoin(common.BNBAsset, cosmos.NewUint(1)),
 		},
 		BNBGasFeeSingleton,
 		"",
 	)
-	m := NewMsgSwap(tx, common.BNBAsset, bnbAddress, sdk.NewUint(2), signer)
+	m := NewMsgSwap(tx, common.BNBAsset, bnbAddress, cosmos.NewUint(2), signer)
 
 	c.Check(p.EnsureValidPoolStatus(m), IsNil)
 	msgNoop := NewMsgNoOp(GetRandomObservedTx(), signer)

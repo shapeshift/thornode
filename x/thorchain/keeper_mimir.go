@@ -1,16 +1,14 @@
 package thorchain
 
-import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
-)
+import cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 
 type KeeperMimir interface {
-	GetMimir(_ sdk.Context, key string) (int64, error)
-	SetMimir(_ sdk.Context, key string, value int64)
-	GetMimirIterator(ctx sdk.Context) sdk.Iterator
+	GetMimir(_ cosmos.Context, key string) (int64, error)
+	SetMimir(_ cosmos.Context, key string, value int64)
+	GetMimirIterator(ctx cosmos.Context) cosmos.Iterator
 }
 
-func (k KVStore) GetMimir(ctx sdk.Context, key string) (int64, error) {
+func (k KVStore) GetMimir(ctx cosmos.Context, key string) (int64, error) {
 	key = k.GetKey(ctx, prefixMimir, key)
 	store := ctx.KVStore(k.storeKey)
 	if !store.Has([]byte(key)) {
@@ -25,14 +23,14 @@ func (k KVStore) GetMimir(ctx sdk.Context, key string) (int64, error) {
 	return value, nil
 }
 
-func (k KVStore) SetMimir(ctx sdk.Context, key string, value int64) {
+func (k KVStore) SetMimir(ctx cosmos.Context, key string, value int64) {
 	store := ctx.KVStore(k.storeKey)
 	key = k.GetKey(ctx, prefixMimir, key)
 	store.Set([]byte(key), k.cdc.MustMarshalBinaryBare(value))
 }
 
 // GetMimirIterator iterate gas units
-func (k KVStore) GetMimirIterator(ctx sdk.Context) sdk.Iterator {
+func (k KVStore) GetMimirIterator(ctx cosmos.Context) cosmos.Iterator {
 	store := ctx.KVStore(k.storeKey)
-	return sdk.KVStorePrefixIterator(store, []byte(prefixMimir))
+	return cosmos.KVStorePrefixIterator(store, []byte(prefixMimir))
 }

@@ -15,7 +15,6 @@ import (
 	ctypes "github.com/binance-chain/go-sdk/common/types"
 	"github.com/cosmos/cosmos-sdk/client/keys"
 	cKeys "github.com/cosmos/cosmos-sdk/crypto/keys"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/rs/zerolog/log"
 	"github.com/tendermint/tendermint/crypto"
 
@@ -29,6 +28,7 @@ import (
 	"gitlab.com/thorchain/thornode/bifrost/thorclient"
 	stypes "gitlab.com/thorchain/thornode/bifrost/thorclient/types"
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/x/thorchain"
 	types2 "gitlab.com/thorchain/thornode/x/thorchain/types"
 )
@@ -192,7 +192,7 @@ func (b *MockChainClient) GetHeight() (int64, error) {
 
 func (b *MockChainClient) GetGasFee(count uint64) common.Gas {
 	coins := make(common.Coins, count)
-	return common.CalcGasPrice(common.Tx{Coins: coins}, common.BNBAsset, []sdk.Uint{sdk.NewUint(37500), sdk.NewUint(30000)})
+	return common.CalcGasPrice(common.Tx{Coins: coins}, common.BNBAsset, []cosmos.Uint{cosmos.NewUint(37500), cosmos.NewUint(30000)})
 }
 
 func (b *MockChainClient) CheckIsTestNet() (string, bool) {

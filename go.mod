@@ -20,6 +20,7 @@ require (
 	github.com/ipfs/go-datastore v0.4.4 // indirect
 	github.com/ipfs/go-log v1.0.2
 	github.com/libp2p/go-libp2p-kad-dht v0.5.0 // indirect
+	github.com/mitranim/gow v0.0.0-20200310140433-1453861c60a5 // indirect
 	github.com/multiformats/go-multiaddr v0.2.1
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/pelletier/go-toml v1.6.0 // indirect
@@ -45,6 +46,7 @@ require (
 	go.uber.org/multierr v1.5.0 // indirect
 	golang.org/x/crypto v0.0.0-20200414173820-0848c9571904 // indirect
 	golang.org/x/lint v0.0.0-20200302205851-738671d3881b // indirect
+	golang.org/x/sys v0.0.0-20200515095857-1151b9dac4a9 // indirect
 	golang.org/x/tools v0.0.0-20200409210453-700752c24408 // indirect
 	google.golang.org/genproto v0.0.0-20200304201815-d429ff31ee6c // indirect
 	google.golang.org/grpc v1.27.1 // indirect

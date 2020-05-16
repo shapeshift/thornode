@@ -1,17 +1,16 @@
 package thorchain
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
-
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 // GasManager define all the methods required to manage gas
 type GasManager interface {
 	BeginBlock()
-	EndBlock(ctx sdk.Context, keeper Keeper, eventManager EventManager)
+	EndBlock(ctx cosmos.Context, keeper Keeper, eventManager EventManager)
 	AddGasAsset(gas common.Gas)
-	ProcessGas(ctx sdk.Context, keeper Keeper)
+	ProcessGas(ctx cosmos.Context, keeper Keeper)
 	GetGas() common.Gas
 }
 
@@ -52,7 +51,7 @@ func (gm *GasMgr) GetGas() common.Gas {
 }
 
 // EndBlock emit the events
-func (gm *GasMgr) EndBlock(ctx sdk.Context, keeper Keeper, eventManager EventManager) {
+func (gm *GasMgr) EndBlock(ctx cosmos.Context, keeper Keeper, eventManager EventManager) {
 	gm.ProcessGas(ctx, keeper)
 
 	if len(gm.gasEvent.Pools) == 0 {
@@ -65,7 +64,7 @@ func (gm *GasMgr) EndBlock(ctx sdk.Context, keeper Keeper, eventManager EventMan
 }
 
 // ProcessGas to subsidise the pool with RUNE for the gas they have spent
-func (gm *GasMgr) ProcessGas(ctx sdk.Context, keeper Keeper) {
+func (gm *GasMgr) ProcessGas(ctx cosmos.Context, keeper Keeper) {
 	vault, err := keeper.GetVaultData(ctx)
 	if err != nil {
 		ctx.Logger().Error("fail to get vault data", "error", err)

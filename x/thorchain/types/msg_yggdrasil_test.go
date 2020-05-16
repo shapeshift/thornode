@@ -1,10 +1,10 @@
 package types
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 type MsgYggdrasilSuite struct{}
@@ -15,8 +15,8 @@ func (s *MsgYggdrasilSuite) TestMsgYggdrasil(c *C) {
 	tx := GetRandomTx()
 	pk := GetRandomPubKey()
 	coins := common.Coins{
-		common.NewCoin(common.BNBAsset, sdk.NewUint(500*common.One)),
-		common.NewCoin(common.BTCAsset, sdk.NewUint(400*common.One)),
+		common.NewCoin(common.BNBAsset, cosmos.NewUint(500*common.One)),
+		common.NewCoin(common.BTCAsset, cosmos.NewUint(400*common.One)),
 	}
 	signer := GetRandomBech32Addr()
 	msg := NewMsgYggdrasil(tx, pk, 12, true, coins, signer)

@@ -5,7 +5,6 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/store"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/bank"
 	"github.com/cosmos/cosmos-sdk/x/params"
@@ -16,6 +15,7 @@ import (
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
@@ -37,7 +37,7 @@ func makeTestCodec() *codec.Codec {
 	auth.RegisterCodec(cdc)
 	RegisterCodec(cdc)
 	supply.RegisterCodec(cdc)
-	sdk.RegisterCodec(cdc)
+	cosmos.RegisterCodec(cdc)
 	codec.RegisterCrypto(cdc)
 	return cdc
 }
@@ -46,26 +46,26 @@ var (
 	multiPerm    = "multiple permissions account"
 	randomPerm   = "random permission"
 	holder       = "holder"
-	keyThorchain = sdk.NewKVStoreKey(StoreKey)
+	keyThorchain = cosmos.NewKVStoreKey(StoreKey)
 )
 
-func setupKeeperForTest(c *C) (sdk.Context, Keeper) {
-	keyAcc := sdk.NewKVStoreKey(auth.StoreKey)
-	keyParams := sdk.NewKVStoreKey(params.StoreKey)
-	tkeyParams := sdk.NewTransientStoreKey(params.TStoreKey)
-	keySupply := sdk.NewKVStoreKey(supply.StoreKey)
+func setupKeeperForTest(c *C) (cosmos.Context, Keeper) {
+	keyAcc := cosmos.NewKVStoreKey(auth.StoreKey)
+	keyParams := cosmos.NewKVStoreKey(params.StoreKey)
+	tkeyParams := cosmos.NewTransientStoreKey(params.TStoreKey)
+	keySupply := cosmos.NewKVStoreKey(supply.StoreKey)
 
 	db := dbm.NewMemDB()
 	ms := store.NewCommitMultiStore(db)
-	ms.MountStoreWithDB(keyAcc, sdk.StoreTypeIAVL, db)
-	ms.MountStoreWithDB(keySupply, sdk.StoreTypeIAVL, db)
-	ms.MountStoreWithDB(keyParams, sdk.StoreTypeIAVL, db)
-	ms.MountStoreWithDB(keyThorchain, sdk.StoreTypeIAVL, db)
-	ms.MountStoreWithDB(tkeyParams, sdk.StoreTypeTransient, db)
+	ms.MountStoreWithDB(keyAcc, cosmos.StoreTypeIAVL, db)
+	ms.MountStoreWithDB(keySupply, cosmos.StoreTypeIAVL, db)
+	ms.MountStoreWithDB(keyParams, cosmos.StoreTypeIAVL, db)
+	ms.MountStoreWithDB(keyThorchain, cosmos.StoreTypeIAVL, db)
+	ms.MountStoreWithDB(tkeyParams, cosmos.StoreTypeTransient, db)
 	err := ms.LoadLatestVersion()
 	c.Assert(err, IsNil)
 
-	ctx := sdk.NewContext(ms, abci.Header{ChainID: "thorchain"}, false, log.NewNopLogger())
+	ctx := cosmos.NewContext(ms, abci.Header{ChainID: "thorchain"}, false, log.NewNopLogger())
 	ctx = ctx.WithBlockHeight(18)
 	cdc := makeTestCodec()
 
@@ -86,20 +86,20 @@ func setupKeeperForTest(c *C) (sdk.Context, Keeper) {
 		BondName:              {supply.Staking},
 	}
 	supplyKeeper := supply.NewKeeper(cdc, keySupply, ak, bk, maccPerms)
-	totalSupply := sdk.NewCoins(sdk.NewCoin("bep", sdk.NewInt(1000*common.One)))
+	totalSupply := cosmos.NewCoins(cosmos.NewCoin("bep", cosmos.NewInt(1000*common.One)))
 	supplyKeeper.SetSupply(ctx, supply.NewSupply(totalSupply))
 	k := NewKVStore(bk, supplyKeeper, keyThorchain, cdc)
 
 	// set bnb gas
-	k.SetGas(ctx, common.BNBAsset, []sdk.Uint{
-		sdk.NewUint(37500),
-		sdk.NewUint(30000),
+	k.SetGas(ctx, common.BNBAsset, []cosmos.Uint{
+		cosmos.NewUint(37500),
+		cosmos.NewUint(30000),
 	})
 	return ctx, k
 }
 
 type handlerTestWrapper struct {
-	ctx                  sdk.Context
+	ctx                  cosmos.Context
 	keeper               Keeper
 	validatorMgr         VersionedValidatorManager
 	versionedTxOutStore  VersionedTxOutStore
@@ -119,8 +119,8 @@ func getHandlerTestWrapper(c *C, height int64, withActiveNode, withActieBNBPool 
 		c.Assert(err, IsNil)
 		p.Asset = common.BNBAsset
 		p.Status = PoolEnabled
-		p.BalanceRune = sdk.NewUint(100 * common.One)
-		p.BalanceAsset = sdk.NewUint(100 * common.One)
+		p.BalanceRune = cosmos.NewUint(100 * common.One)
+		p.BalanceAsset = cosmos.NewUint(100 * common.One)
 		c.Assert(k.SetPool(ctx, p), IsNil)
 	}
 	ver := constants.SWVersion
@@ -149,11 +149,11 @@ func getHandlerTestWrapper(c *C, height int64, withActiveNode, withActieBNBPool 
 func (HandlerSuite) TestIsSignedByActiveNodeAccounts(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	nodeAddr := GetRandomBech32Addr()
-	c.Check(isSignedByActiveNodeAccounts(ctx, k, []sdk.AccAddress{}), Equals, false)
-	c.Check(isSignedByActiveNodeAccounts(ctx, k, []sdk.AccAddress{nodeAddr}), Equals, false)
+	c.Check(isSignedByActiveNodeAccounts(ctx, k, []cosmos.AccAddress{}), Equals, false)
+	c.Check(isSignedByActiveNodeAccounts(ctx, k, []cosmos.AccAddress{nodeAddr}), Equals, false)
 	nodeAccount1 := GetRandomNodeAccount(NodeWhiteListed)
 	c.Assert(k.SetNodeAccount(ctx, nodeAccount1), IsNil)
-	c.Check(isSignedByActiveNodeAccounts(ctx, k, []sdk.AccAddress{nodeAccount1.NodeAddress}), Equals, false)
+	c.Check(isSignedByActiveNodeAccounts(ctx, k, []cosmos.AccAddress{nodeAccount1.NodeAddress}), Equals, false)
 }
 
 func (HandlerSuite) TestHandleTxInUnstakeMemo(c *C) {
@@ -161,17 +161,17 @@ func (HandlerSuite) TestHandleTxInUnstakeMemo(c *C) {
 
 	vault := GetRandomVault()
 	vault.Coins = common.Coins{
-		common.NewCoin(common.BNBAsset, sdk.NewUint(100*common.One)),
-		common.NewCoin(common.RuneAsset(), sdk.NewUint(100*common.One)),
+		common.NewCoin(common.BNBAsset, cosmos.NewUint(100*common.One)),
+		common.NewCoin(common.RuneAsset(), cosmos.NewUint(100*common.One)),
 	}
 	w.keeper.SetVault(w.ctx, vault)
 	vaultAddr, err := vault.PubKey.GetAddress(common.BNBChain)
 
 	pool := NewPool()
 	pool.Asset = common.BNBAsset
-	pool.BalanceAsset = sdk.NewUint(100 * common.One)
-	pool.BalanceRune = sdk.NewUint(100 * common.One)
-	pool.PoolUnits = sdk.NewUint(100)
+	pool.BalanceAsset = cosmos.NewUint(100 * common.One)
+	pool.BalanceRune = cosmos.NewUint(100 * common.One)
+	pool.PoolUnits = cosmos.NewUint(100)
 	c.Assert(w.keeper.SetPool(w.ctx, pool), IsNil)
 
 	runeAddr := GetRandomRUNEAddress()
@@ -179,8 +179,8 @@ func (HandlerSuite) TestHandleTxInUnstakeMemo(c *C) {
 		Asset:        common.BNBAsset,
 		RuneAddress:  runeAddr,
 		AssetAddress: GetRandomBNBAddress(),
-		PendingRune:  sdk.ZeroUint(),
-		Units:        sdk.NewUint(100),
+		PendingRune:  cosmos.ZeroUint(),
+		Units:        cosmos.NewUint(100),
 	}
 	w.keeper.SetStaker(w.ctx, staker)
 
@@ -188,7 +188,7 @@ func (HandlerSuite) TestHandleTxInUnstakeMemo(c *C) {
 		ID:    GetRandomTxHash(),
 		Chain: common.BNBChain,
 		Coins: common.Coins{
-			common.NewCoin(common.RuneAsset(), sdk.NewUint(1*common.One)),
+			common.NewCoin(common.RuneAsset(), cosmos.NewUint(1*common.One)),
 		},
 		Memo:        "withdraw:BNB.BNB",
 		FromAddress: staker.RuneAddress,
@@ -196,7 +196,7 @@ func (HandlerSuite) TestHandleTxInUnstakeMemo(c *C) {
 		Gas:         BNBGasFeeSingleton,
 	}
 
-	msg := NewMsgSetUnStake(tx, staker.RuneAddress, sdk.NewUint(uint64(MaxUnstakeBasisPoints)), common.BNBAsset, w.activeNodeAccount.NodeAddress)
+	msg := NewMsgSetUnStake(tx, staker.RuneAddress, cosmos.NewUint(uint64(MaxUnstakeBasisPoints)), common.BNBAsset, w.activeNodeAccount.NodeAddress)
 	ver := constants.SWVersion
 	constAccessor := constants.GetConstantValues(ver)
 	txOutStore, err := w.versionedTxOutStore.GetTxOutStore(w.ctx, w.keeper, ver)
@@ -212,7 +212,7 @@ func (HandlerSuite) TestHandleTxInUnstakeMemo(c *C) {
 	FundModule(c, w.ctx, w.keeper, AsgardName, 500)
 
 	result := handler(w.ctx, msg)
-	c.Assert(result.Code, Equals, sdk.CodeOK, Commentf("%s\n", result.Log))
+	c.Assert(result.Code, Equals, cosmos.CodeOK, Commentf("%s\n", result.Log))
 
 	pool, err = w.keeper.GetPool(w.ctx, common.BNBAsset)
 	c.Assert(err, IsNil)
@@ -228,8 +228,8 @@ func (HandlerSuite) TestRefund(c *C) {
 
 	pool := Pool{
 		Asset:        common.BNBAsset,
-		BalanceRune:  sdk.NewUint(100 * common.One),
-		BalanceAsset: sdk.NewUint(100 * common.One),
+		BalanceRune:  cosmos.NewUint(100 * common.One),
+		BalanceAsset: cosmos.NewUint(100 * common.One),
 	}
 	c.Assert(w.keeper.SetPool(w.ctx, pool), IsNil)
 
@@ -241,7 +241,7 @@ func (HandlerSuite) TestRefund(c *C) {
 			ID:    GetRandomTxHash(),
 			Chain: common.BNBChain,
 			Coins: common.Coins{
-				common.NewCoin(common.BNBAsset, sdk.NewUint(100*common.One)),
+				common.NewCoin(common.BNBAsset, cosmos.NewUint(100*common.One)),
 			},
 			Memo:        "withdraw:BNB.BNB",
 			FromAddress: GetRandomBNBAddress(),
@@ -256,7 +256,7 @@ func (HandlerSuite) TestRefund(c *C) {
 	txOutStore, err := w.versionedTxOutStore.GetTxOutStore(w.ctx, w.keeper, ver)
 	eventMgr := NewEventMgr()
 	c.Assert(err, IsNil)
-	c.Assert(refundTx(w.ctx, txin, txOutStore, w.keeper, constAccessor, sdk.CodeInternal, "refund", eventMgr), IsNil)
+	c.Assert(refundTx(w.ctx, txin, txOutStore, w.keeper, constAccessor, cosmos.CodeInternal, "refund", eventMgr), IsNil)
 	items, err := txOutStore.GetOutboundItems(w.ctx)
 	c.Assert(err, IsNil)
 	c.Assert(items, HasLen, 1)
@@ -265,10 +265,10 @@ func (HandlerSuite) TestRefund(c *C) {
 	// the asset sent.
 	lokiAsset, _ := common.NewAsset(fmt.Sprintf("BNB.LOKI"))
 	txin.Tx.Coins = common.Coins{
-		common.NewCoin(lokiAsset, sdk.NewUint(100*common.One)),
+		common.NewCoin(lokiAsset, cosmos.NewUint(100*common.One)),
 	}
 
-	c.Assert(refundTx(w.ctx, txin, txOutStore, w.keeper, constAccessor, sdk.CodeInternal, "refund", eventMgr), IsNil)
+	c.Assert(refundTx(w.ctx, txin, txOutStore, w.keeper, constAccessor, cosmos.CodeInternal, "refund", eventMgr), IsNil)
 	items, err = txOutStore.GetOutboundItems(w.ctx)
 	c.Assert(err, IsNil)
 	c.Assert(items, HasLen, 1)
@@ -276,16 +276,16 @@ func (HandlerSuite) TestRefund(c *C) {
 	pool, err = w.keeper.GetPool(w.ctx, lokiAsset)
 	c.Assert(err, IsNil)
 	// pool should be zero since we drop coins we don't recognize on the floor
-	c.Assert(pool.BalanceAsset.Equal(sdk.ZeroUint()), Equals, true, Commentf("%d", pool.BalanceAsset.Uint64()))
+	c.Assert(pool.BalanceAsset.Equal(cosmos.ZeroUint()), Equals, true, Commentf("%d", pool.BalanceAsset.Uint64()))
 
 	// doing it a second time should keep it at zero
-	c.Assert(refundTx(w.ctx, txin, txOutStore, w.keeper, constAccessor, sdk.CodeInternal, "refund", eventMgr), IsNil)
+	c.Assert(refundTx(w.ctx, txin, txOutStore, w.keeper, constAccessor, cosmos.CodeInternal, "refund", eventMgr), IsNil)
 	items, err = txOutStore.GetOutboundItems(w.ctx)
 	c.Assert(err, IsNil)
 	c.Assert(items, HasLen, 1)
 	pool, err = w.keeper.GetPool(w.ctx, lokiAsset)
 	c.Assert(err, IsNil)
-	c.Assert(pool.BalanceAsset.Equal(sdk.ZeroUint()), Equals, true)
+	c.Assert(pool.BalanceAsset.Equal(cosmos.ZeroUint()), Equals, true)
 }
 
 func (HandlerSuite) TestGetMsgSwapFromMemo(c *C) {
@@ -301,11 +301,11 @@ func (HandlerSuite) TestGetMsgSwapFromMemo(c *C) {
 			Coins: common.Coins{
 				common.NewCoin(
 					common.BNBAsset,
-					sdk.NewUint(100*common.One),
+					cosmos.NewUint(100*common.One),
 				),
 				common.NewCoin(
 					common.RuneAsset(),
-					sdk.NewUint(100*common.One),
+					cosmos.NewUint(100*common.One),
 				),
 			},
 			Memo:        "withdraw:BNB.BNB",
@@ -325,7 +325,7 @@ func (HandlerSuite) TestGetMsgSwapFromMemo(c *C) {
 	txin.Tx.Coins = common.Coins{
 		common.NewCoin(
 			common.BNBAsset,
-			sdk.NewUint(100*common.One),
+			cosmos.NewUint(100*common.One),
 		),
 	}
 
@@ -353,9 +353,9 @@ func (HandlerSuite) TestGetMsgStakeFromMemo(c *C) {
 			Chain: common.BNBChain,
 			Coins: common.Coins{
 				common.NewCoin(tcanAsset,
-					sdk.NewUint(100*common.One)),
+					cosmos.NewUint(100*common.One)),
 				common.NewCoin(runeAsset,
-					sdk.NewUint(100*common.One)),
+					cosmos.NewUint(100*common.One)),
 			},
 			Memo:        "withdraw:BNB.BNB",
 			FromAddress: GetRandomRUNEAddress(),
@@ -373,7 +373,7 @@ func (HandlerSuite) TestGetMsgStakeFromMemo(c *C) {
 	// Asymentic stake should works fine, only RUNE
 	txin.Tx.Coins = common.Coins{
 		common.NewCoin(runeAsset,
-			sdk.NewUint(100*common.One)),
+			cosmos.NewUint(100*common.One)),
 	}
 
 	// stake only rune should be fine
@@ -385,7 +385,7 @@ func (HandlerSuite) TestGetMsgStakeFromMemo(c *C) {
 	c.Assert(err, IsNil)
 	txin.Tx.Coins = common.Coins{
 		common.NewCoin(bnbAsset,
-			sdk.NewUint(100*common.One)),
+			cosmos.NewUint(100*common.One)),
 	}
 
 	// stake only token(BNB) should be fine
@@ -396,9 +396,9 @@ func (HandlerSuite) TestGetMsgStakeFromMemo(c *C) {
 	lokiAsset, _ := common.NewAsset(fmt.Sprintf("BNB.LOKI"))
 	txin.Tx.Coins = common.Coins{
 		common.NewCoin(tcanAsset,
-			sdk.NewUint(100*common.One)),
+			cosmos.NewUint(100*common.One)),
 		common.NewCoin(lokiAsset,
-			sdk.NewUint(100*common.One)),
+			cosmos.NewUint(100*common.One)),
 	}
 
 	// stake only token should be fine
@@ -409,9 +409,9 @@ func (HandlerSuite) TestGetMsgStakeFromMemo(c *C) {
 	// Make sure the RUNE Address and Asset Address set correctly
 	txin.Tx.Coins = common.Coins{
 		common.NewCoin(runeAsset,
-			sdk.NewUint(100*common.One)),
+			cosmos.NewUint(100*common.One)),
 		common.NewCoin(lokiAsset,
-			sdk.NewUint(100*common.One)),
+			cosmos.NewUint(100*common.One)),
 	}
 
 	lokiStakeMemo, err := ParseMemo("stake:BNB.LOKI")

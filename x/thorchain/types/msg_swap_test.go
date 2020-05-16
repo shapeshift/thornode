@@ -1,8 +1,8 @@
 package types
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	. "gopkg.in/check.v1"
 )
 
@@ -22,13 +22,13 @@ func (MsgSwapSuite) TestMsgSwap(c *C) {
 		GetRandomBNBAddress(),
 		GetRandomBNBAddress(),
 		common.Coins{
-			common.NewCoin(common.BTCAsset, sdk.NewUint(1)),
+			common.NewCoin(common.BTCAsset, cosmos.NewUint(1)),
 		},
 		BNBGasFeeSingleton,
 		"SWAP:BNB.BNB",
 	)
 
-	m := NewMsgSwap(tx, common.BNBAsset, bnbAddress, sdk.NewUint(200000000), addr)
+	m := NewMsgSwap(tx, common.BNBAsset, bnbAddress, cosmos.NewUint(200000000), addr)
 	EnsureMsgBasicCorrect(m, c)
 	c.Check(m.Type(), Equals, "swap")
 
@@ -36,91 +36,91 @@ func (MsgSwapSuite) TestMsgSwap(c *C) {
 		requestTxHash common.TxID
 		source        common.Asset
 		target        common.Asset
-		amount        sdk.Uint
+		amount        cosmos.Uint
 		requester     common.Address
 		destination   common.Address
-		targetPrice   sdk.Uint
-		signer        sdk.AccAddress
+		targetPrice   cosmos.Uint
+		signer        cosmos.AccAddress
 	}{
 		{
 			requestTxHash: common.TxID(""),
 			source:        common.RuneAsset(),
 			target:        common.BNBAsset,
-			amount:        sdk.NewUint(100000000),
+			amount:        cosmos.NewUint(100000000),
 			requester:     bnbAddress,
 			destination:   bnbAddress,
-			targetPrice:   sdk.NewUint(200000000),
+			targetPrice:   cosmos.NewUint(200000000),
 			signer:        addr,
 		},
 		{
 			requestTxHash: txID,
 			source:        common.Asset{},
 			target:        common.BNBAsset,
-			amount:        sdk.NewUint(100000000),
+			amount:        cosmos.NewUint(100000000),
 			requester:     bnbAddress,
 			destination:   bnbAddress,
-			targetPrice:   sdk.NewUint(200000000),
+			targetPrice:   cosmos.NewUint(200000000),
 			signer:        addr,
 		},
 		{
 			requestTxHash: txID,
 			source:        common.BNBAsset,
 			target:        common.BNBAsset,
-			amount:        sdk.NewUint(100000000),
+			amount:        cosmos.NewUint(100000000),
 			requester:     bnbAddress,
 			destination:   bnbAddress,
-			targetPrice:   sdk.NewUint(200000000),
+			targetPrice:   cosmos.NewUint(200000000),
 			signer:        addr,
 		},
 		{
 			requestTxHash: txID,
 			source:        common.RuneAsset(),
 			target:        common.Asset{},
-			amount:        sdk.NewUint(100000000),
+			amount:        cosmos.NewUint(100000000),
 			requester:     bnbAddress,
 			destination:   bnbAddress,
-			targetPrice:   sdk.NewUint(200000000),
+			targetPrice:   cosmos.NewUint(200000000),
 			signer:        addr,
 		},
 		{
 			requestTxHash: txID,
 			source:        common.RuneAsset(),
 			target:        common.BNBAsset,
-			amount:        sdk.ZeroUint(),
+			amount:        cosmos.ZeroUint(),
 			requester:     bnbAddress,
 			destination:   bnbAddress,
-			targetPrice:   sdk.NewUint(200000000),
+			targetPrice:   cosmos.NewUint(200000000),
 			signer:        addr,
 		},
 		{
 			requestTxHash: txID,
 			source:        common.RuneAsset(),
 			target:        common.BNBAsset,
-			amount:        sdk.NewUint(100000000),
+			amount:        cosmos.NewUint(100000000),
 			requester:     common.NoAddress,
 			destination:   bnbAddress,
-			targetPrice:   sdk.NewUint(200000000),
+			targetPrice:   cosmos.NewUint(200000000),
 			signer:        addr,
 		},
 		{
 			requestTxHash: txID,
 			source:        common.RuneAsset(),
 			target:        common.BNBAsset,
-			amount:        sdk.NewUint(100000000),
+			amount:        cosmos.NewUint(100000000),
 			requester:     bnbAddress,
 			destination:   common.NoAddress,
-			targetPrice:   sdk.NewUint(200000000),
+			targetPrice:   cosmos.NewUint(200000000),
 			signer:        addr,
 		},
 		{
 			requestTxHash: txID,
 			source:        common.RuneAsset(),
 			target:        common.BNBAsset,
-			amount:        sdk.NewUint(100000000),
+			amount:        cosmos.NewUint(100000000),
 			requester:     bnbAddress,
 			destination:   bnbAddress,
-			targetPrice:   sdk.NewUint(200000000),
-			signer:        sdk.AccAddress{},
+			targetPrice:   cosmos.NewUint(200000000),
+			signer:        cosmos.AccAddress{},
 		},
 	}
 	for _, item := range inputs {
