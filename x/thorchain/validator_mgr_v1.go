@@ -7,11 +7,11 @@ import (
 	"sort"
 
 	"github.com/blang/semver"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	abci "github.com/tendermint/tendermint/abci/types"
 	tmtypes "github.com/tendermint/tendermint/types"
 
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 )
 
@@ -36,7 +36,7 @@ func newValidatorMgrV1(k Keeper, versionedTxOutStore VersionedTxOutStore, versio
 }
 
 // BeginBlock when block begin
-func (vm *validatorMgrV1) BeginBlock(ctx sdk.Context, constAccessor constants.ConstantValues) error {
+func (vm *validatorMgrV1) BeginBlock(ctx cosmos.Context, constAccessor constants.ConstantValues) error {
 	height := ctx.BlockHeight()
 	if height == genesisBlockHeight {
 		if err := vm.setupValidatorNodes(ctx, height, constAccessor); err != nil {
@@ -135,7 +135,7 @@ func (vm *validatorMgrV1) BeginBlock(ctx sdk.Context, constAccessor constants.Co
 }
 
 // EndBlock when block end
-func (vm *validatorMgrV1) EndBlock(ctx sdk.Context, constAccessor constants.ConstantValues) []abci.ValidatorUpdate {
+func (vm *validatorMgrV1) EndBlock(ctx cosmos.Context, constAccessor constants.ConstantValues) []abci.ValidatorUpdate {
 	height := ctx.BlockHeight()
 	activeNodes, err := vm.k.ListActiveNodeAccounts(ctx)
 	if err != nil {
@@ -193,10 +193,10 @@ func (vm *validatorMgrV1) EndBlock(ctx sdk.Context, constAccessor constants.Cons
 	validators := make([]abci.ValidatorUpdate, 0, len(newNodes)+len(removedNodes))
 	for _, na := range newNodes {
 		ctx.EventManager().EmitEvent(
-			sdk.NewEvent("UpdateNodeAccountStatus",
-				sdk.NewAttribute("Address", na.NodeAddress.String()),
-				sdk.NewAttribute("Former:", na.Status.String()),
-				sdk.NewAttribute("Current:", NodeActive.String())))
+			cosmos.NewEvent("UpdateNodeAccountStatus",
+				cosmos.NewAttribute("Address", na.NodeAddress.String()),
+				cosmos.NewAttribute("Former:", na.Status.String()),
+				cosmos.NewAttribute("Current:", NodeActive.String())))
 		na.UpdateStatus(NodeActive, height)
 		na.LeaveHeight = 0
 		na.RequestedToLeave = false
@@ -204,7 +204,7 @@ func (vm *validatorMgrV1) EndBlock(ctx sdk.Context, constAccessor constants.Cons
 		if err := vm.k.SetNodeAccount(ctx, na); err != nil {
 			ctx.Logger().Error("fail to save node account", "error", err)
 		}
-		pk, err := sdk.GetConsPubKeyBech32(na.ValidatorConsPubKey)
+		pk, err := cosmos.GetConsPubKeyBech32(na.ValidatorConsPubKey)
 		if err != nil {
 			ctx.Logger().Error("fail to parse consensus public key", "key", na.ValidatorConsPubKey, "error", err)
 			continue
@@ -221,10 +221,10 @@ func (vm *validatorMgrV1) EndBlock(ctx sdk.Context, constAccessor constants.Cons
 		}
 
 		ctx.EventManager().EmitEvent(
-			sdk.NewEvent("UpdateNodeAccountStatus",
-				sdk.NewAttribute("Address", na.NodeAddress.String()),
-				sdk.NewAttribute("Former:", na.Status.String()),
-				sdk.NewAttribute("Current:", status.String())))
+			cosmos.NewEvent("UpdateNodeAccountStatus",
+				cosmos.NewAttribute("Address", na.NodeAddress.String()),
+				cosmos.NewAttribute("Former:", na.Status.String()),
+				cosmos.NewAttribute("Current:", status.String())))
 		na.UpdateStatus(status, height)
 		removedNodes = append(removedNodes, na)
 		if err := vm.k.SetNodeAccount(ctx, na); err != nil {
@@ -240,7 +240,7 @@ func (vm *validatorMgrV1) EndBlock(ctx sdk.Context, constAccessor constants.Cons
 			ctx.Logger().Error("fail to request yggdrasil funds return", "error", err)
 		}
 
-		pk, err := sdk.GetConsPubKeyBech32(na.ValidatorConsPubKey)
+		pk, err := cosmos.GetConsPubKeyBech32(na.ValidatorConsPubKey)
 		if err != nil {
 			ctx.Logger().Error("fail to parse consensus public key", "key", na.ValidatorConsPubKey, "error", err)
 			continue
@@ -256,7 +256,7 @@ func (vm *validatorMgrV1) EndBlock(ctx sdk.Context, constAccessor constants.Cons
 
 // getChangedNodes to identify which node had been removed ,and which one had been added
 // newNodes , removed nodes,err
-func (vm *validatorMgrV1) getChangedNodes(ctx sdk.Context, activeNodes NodeAccounts) (NodeAccounts, NodeAccounts, error) {
+func (vm *validatorMgrV1) getChangedNodes(ctx cosmos.Context, activeNodes NodeAccounts) (NodeAccounts, NodeAccounts, error) {
 	var newActive NodeAccounts    // store the list of new active users
 	var removedNodes NodeAccounts // nodes that had been removed
 
@@ -306,7 +306,7 @@ func (vm *validatorMgrV1) getChangedNodes(ctx sdk.Context, activeNodes NodeAccou
 }
 
 // payNodeAccountBondAward pay
-func (vm *validatorMgrV1) payNodeAccountBondAward(ctx sdk.Context, na NodeAccount) error {
+func (vm *validatorMgrV1) payNodeAccountBondAward(ctx cosmos.Context, na NodeAccount) error {
 	if na.ActiveBlockHeight == 0 || na.Bond.IsZero() {
 		return nil
 	}
@@ -340,7 +340,7 @@ func (vm *validatorMgrV1) payNodeAccountBondAward(ctx sdk.Context, na NodeAccoun
 	// Minus the number of units na has (do not include slash points)
 	vault.TotalBondUnits = common.SafeSub(
 		vault.TotalBondUnits,
-		sdk.NewUint(uint64(totalActiveBlocks)),
+		cosmos.NewUint(uint64(totalActiveBlocks)),
 	)
 
 	if err := vm.k.SetVaultData(ctx, vault); err != nil {
@@ -351,7 +351,7 @@ func (vm *validatorMgrV1) payNodeAccountBondAward(ctx sdk.Context, na NodeAccoun
 }
 
 // determines when/if to run each part of the ragnarok process
-func (vm *validatorMgrV1) processRagnarok(ctx sdk.Context, constAccessor constants.ConstantValues) error {
+func (vm *validatorMgrV1) processRagnarok(ctx cosmos.Context, constAccessor constants.ConstantValues) error {
 	// execute Ragnarok protocol, no going back
 	// THORNode have to request the fund back now, because once it get to the rotate block height ,
 	// THORNode won't have validators anymore
@@ -390,11 +390,11 @@ func (vm *validatorMgrV1) processRagnarok(ctx sdk.Context, constAccessor constan
 
 // ragnarokProtocolStage1 - request all yggdrasil pool to return the fund
 // when THORNode observe the node return fund successfully, the node's bound will be refund.
-func (vm *validatorMgrV1) ragnarokProtocolStage1(ctx sdk.Context) error {
+func (vm *validatorMgrV1) ragnarokProtocolStage1(ctx cosmos.Context) error {
 	return vm.recallYggFunds(ctx)
 }
 
-func (vm *validatorMgrV1) ragnarokProtocolStage2(ctx sdk.Context, nth int64, constAccessor constants.ConstantValues) error {
+func (vm *validatorMgrV1) ragnarokProtocolStage2(ctx cosmos.Context, nth int64, constAccessor constants.ConstantValues) error {
 	// Ragnarok Protocol
 	// If THORNode can no longer be BFT, do a graceful shutdown of the entire network.
 	// 1) THORNode will request all yggdrasil pool to return fund , if THORNode don't have yggdrasil pool THORNode will go to step 3 directly
@@ -420,7 +420,7 @@ func (vm *validatorMgrV1) ragnarokProtocolStage2(ctx sdk.Context, nth int64, con
 	return nil
 }
 
-func (vm *validatorMgrV1) ragnarokBondReward(ctx sdk.Context) error {
+func (vm *validatorMgrV1) ragnarokBondReward(ctx cosmos.Context) error {
 	active, err := vm.k.ListActiveNodeAccounts(ctx)
 	if err != nil {
 		return fmt.Errorf("fail to get all active node account: %w", err)
@@ -433,7 +433,7 @@ func (vm *validatorMgrV1) ragnarokBondReward(ctx sdk.Context) error {
 	return nil
 }
 
-func (vm *validatorMgrV1) ragnarokReserve(ctx sdk.Context, nth int64) error {
+func (vm *validatorMgrV1) ragnarokReserve(ctx cosmos.Context, nth int64) error {
 	// don't ragnarok the reserve when rune is a native token
 	if common.RuneAsset().Chain.Equals(common.THORChain) {
 		return nil
@@ -463,7 +463,7 @@ func (vm *validatorMgrV1) ragnarokReserve(ctx sdk.Context, nth int64) error {
 		return err
 	}
 	totalReserve := vaultData.TotalReserve
-	totalContributions := sdk.ZeroUint()
+	totalContributions := cosmos.ZeroUint()
 	for _, contrib := range contribs {
 		totalContributions = totalContributions.Add(contrib.Amount)
 	}
@@ -513,7 +513,7 @@ func (vm *validatorMgrV1) ragnarokReserve(ctx sdk.Context, nth int64) error {
 	return nil
 }
 
-func (vm *validatorMgrV1) ragnarokBond(ctx sdk.Context, nth int64) error {
+func (vm *validatorMgrV1) ragnarokBond(ctx cosmos.Context, nth int64) error {
 	nas, err := vm.k.ListNodeAccountsWithBond(ctx)
 	if err != nil {
 		ctx.Logger().Error("can't get nodes", "error", err)
@@ -570,7 +570,7 @@ func (vm *validatorMgrV1) ragnarokBond(ctx sdk.Context, nth int64) error {
 	return nil
 }
 
-func (vm *validatorMgrV1) ragnarokPools(ctx sdk.Context, nth int64, constAccessor constants.ConstantValues) error {
+func (vm *validatorMgrV1) ragnarokPools(ctx cosmos.Context, nth int64, constAccessor constants.ConstantValues) error {
 	nas, err := vm.k.ListActiveNodeAccounts(ctx)
 	if err != nil {
 		ctx.Logger().Error("can't get active nodes", "error", err)
@@ -637,7 +637,7 @@ func (vm *validatorMgrV1) ragnarokPools(ctx sdk.Context, nth int64, constAccesso
 			unstakeMsg := NewMsgSetUnStake(
 				common.GetRagnarokTx(pool.Asset.Chain, staker.RuneAddress, staker.RuneAddress),
 				staker.RuneAddress,
-				sdk.NewUint(uint64(basisPoints)),
+				cosmos.NewUint(uint64(basisPoints)),
 				pool.Asset,
 				na.NodeAddress,
 			)
@@ -653,7 +653,7 @@ func (vm *validatorMgrV1) ragnarokPools(ctx sdk.Context, nth int64, constAccesso
 	return nil
 }
 
-func (vm *validatorMgrV1) RequestYggReturn(ctx sdk.Context, node NodeAccount) error {
+func (vm *validatorMgrV1) RequestYggReturn(ctx cosmos.Context, node NodeAccount) error {
 	if !vm.k.VaultExists(ctx, node.PubKeySet.Secp256k1) {
 		return nil
 	}
@@ -710,7 +710,7 @@ func (vm *validatorMgrV1) RequestYggReturn(ctx sdk.Context, node NodeAccount) er
 				ToAddress:   toAddr,
 				InHash:      common.BlankTxID,
 				VaultPubKey: ygg.PubKey,
-				Coin:        common.NewCoin(common.RuneAsset(), sdk.ZeroUint()),
+				Coin:        common.NewCoin(common.RuneAsset(), cosmos.ZeroUint()),
 				Memo:        NewYggdrasilReturn(ctx.BlockHeight()).String(),
 			}
 			// yggdrasil- will not set coin field here, when signer see a TxOutItem that has memo "yggdrasil-" it will query the chain
@@ -724,7 +724,7 @@ func (vm *validatorMgrV1) RequestYggReturn(ctx sdk.Context, node NodeAccount) er
 	return nil
 }
 
-func (vm *validatorMgrV1) recallYggFunds(ctx sdk.Context) error {
+func (vm *validatorMgrV1) recallYggFunds(ctx cosmos.Context) error {
 	nodes, err := vm.k.ListNodeAccountsWithBond(ctx)
 	if err != nil {
 		return fmt.Errorf("fail to list all node accounts: %w", err)
@@ -740,7 +740,7 @@ func (vm *validatorMgrV1) recallYggFunds(ctx sdk.Context) error {
 }
 
 // setupValidatorNodes it is one off it only get called when genesis
-func (vm *validatorMgrV1) setupValidatorNodes(ctx sdk.Context, height int64, constAccessor constants.ConstantValues) error {
+func (vm *validatorMgrV1) setupValidatorNodes(ctx cosmos.Context, height int64, constAccessor constants.ConstantValues) error {
 	if height != genesisBlockHeight {
 		ctx.Logger().Info("only need to setup validator node when start up", "height", height)
 		return nil
@@ -790,7 +790,7 @@ func (vm *validatorMgrV1) setupValidatorNodes(ctx sdk.Context, height int64, con
 }
 
 // Iterate over active node accounts, finding bad actors with high slash points
-func (vm *validatorMgrV1) findBadActors(ctx sdk.Context) (NodeAccounts, error) {
+func (vm *validatorMgrV1) findBadActors(ctx cosmos.Context) (NodeAccounts, error) {
 	badActors := make(NodeAccounts, 0)
 	nas, err := vm.k.ListActiveNodeAccounts(ctx)
 	if err != nil {
@@ -806,11 +806,11 @@ func (vm *validatorMgrV1) findBadActors(ctx sdk.Context) (NodeAccounts, error) {
 	// determined by relative to how many slash points they have over how long
 	// they have been an active node account.
 	type badTracker struct {
-		Score       sdk.Dec
+		Score       cosmos.Dec
 		NodeAccount NodeAccount
 	}
 	tracker := make([]badTracker, 0, len(nas))
-	totalScore := sdk.ZeroDec()
+	totalScore := cosmos.ZeroDec()
 
 	// Find bad actor relative to age / slashpoints
 	for _, na := range nas {
@@ -822,12 +822,12 @@ func (vm *validatorMgrV1) findBadActors(ctx sdk.Context) (NodeAccounts, error) {
 			continue
 		}
 
-		age := sdk.NewDecWithPrec(ctx.BlockHeight()-na.StatusSince, 5)
-		if age.LT(sdk.NewDecWithPrec(720, 5)) {
+		age := cosmos.NewDecWithPrec(ctx.BlockHeight()-na.StatusSince, 5)
+		if age.LT(cosmos.NewDecWithPrec(720, 5)) {
 			// this node account is too new (1 hour) to be considered for removal
 			continue
 		}
-		score := age.Quo(sdk.NewDecWithPrec(slashPts, 5))
+		score := age.Quo(cosmos.NewDecWithPrec(slashPts, 5))
 		totalScore = totalScore.Add(score)
 
 		tracker = append(tracker, badTracker{
@@ -872,7 +872,7 @@ func (vm *validatorMgrV1) findBadActors(ctx sdk.Context) (NodeAccounts, error) {
 }
 
 // Iterate over active node accounts, finding the one that has been active longest
-func (vm *validatorMgrV1) findOldActor(ctx sdk.Context) (NodeAccount, error) {
+func (vm *validatorMgrV1) findOldActor(ctx cosmos.Context) (NodeAccount, error) {
 	na := NodeAccount{}
 	nas, err := vm.k.ListActiveNodeAccounts(ctx)
 	if err != nil {
@@ -892,7 +892,7 @@ func (vm *validatorMgrV1) findOldActor(ctx sdk.Context) (NodeAccount, error) {
 }
 
 // Mark an old to be churned out
-func (vm *validatorMgrV1) markActor(ctx sdk.Context, na NodeAccount, reason string) error {
+func (vm *validatorMgrV1) markActor(ctx cosmos.Context, na NodeAccount, reason string) error {
 	if !na.IsEmpty() && na.LeaveHeight == 0 {
 		ctx.Logger().Info(fmt.Sprintf("Marked Validator to be churned out %s: %s", na.NodeAddress, reason))
 		na.LeaveHeight = ctx.BlockHeight()
@@ -902,7 +902,7 @@ func (vm *validatorMgrV1) markActor(ctx sdk.Context, na NodeAccount, reason stri
 }
 
 // Mark an old actor to be churned out
-func (vm *validatorMgrV1) markOldActor(ctx sdk.Context, rate int64) error {
+func (vm *validatorMgrV1) markOldActor(ctx cosmos.Context, rate int64) error {
 	if ctx.BlockHeight()%rate == 0 {
 		na, err := vm.findOldActor(ctx)
 		if err != nil {
@@ -916,7 +916,7 @@ func (vm *validatorMgrV1) markOldActor(ctx sdk.Context, rate int64) error {
 }
 
 // Mark a bad actor to be churned out
-func (vm *validatorMgrV1) markBadActor(ctx sdk.Context, rate int64) error {
+func (vm *validatorMgrV1) markBadActor(ctx cosmos.Context, rate int64) error {
 	if ctx.BlockHeight()%rate == 0 {
 		nas, err := vm.findBadActors(ctx)
 		if err != nil {
@@ -932,7 +932,7 @@ func (vm *validatorMgrV1) markBadActor(ctx sdk.Context, rate int64) error {
 }
 
 // find any actor that are ready to become "ready" status
-func (vm *validatorMgrV1) markReadyActors(ctx sdk.Context, constAccessor constants.ConstantValues) error {
+func (vm *validatorMgrV1) markReadyActors(ctx cosmos.Context, constAccessor constants.ConstantValues) error {
 	standby, err := vm.k.ListNodeAccountsByStatus(ctx, NodeStandby)
 	if err != nil {
 		return err
@@ -977,7 +977,7 @@ func (vm *validatorMgrV1) markReadyActors(ctx sdk.Context, constAccessor constan
 		if minBond < 0 || err != nil {
 			minBond = constAccessor.GetInt64Value(constants.MinimumBondInRune)
 		}
-		if na.Bond.LT(sdk.NewUint(uint64(minBond))) {
+		if na.Bond.LT(cosmos.NewUint(uint64(minBond))) {
 			na.UpdateStatus(NodeStandby, ctx.BlockHeight())
 		}
 
@@ -995,7 +995,7 @@ func (vm *validatorMgrV1) markReadyActors(ctx sdk.Context, constAccessor constan
 }
 
 // Returns a list of nodes to include in the next pool
-func (vm *validatorMgrV1) nextVaultNodeAccounts(ctx sdk.Context, targetCount int, constAccessor constants.ConstantValues) (NodeAccounts, bool, error) {
+func (vm *validatorMgrV1) nextVaultNodeAccounts(ctx cosmos.Context, targetCount int, constAccessor constants.ConstantValues) (NodeAccounts, bool, error) {
 	rotation := false // track if are making any changes to the current active node accounts
 
 	// update list of ready actors

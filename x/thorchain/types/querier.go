@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	"github.com/blang/semver"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 // Query Result Payload for a pools query
@@ -44,28 +44,28 @@ type QueryResTxOut struct {
 }
 
 type QueryYggdrasilVaults struct {
-	Vault      Vault      `json:"vault"`
-	Status     NodeStatus `json:"status"`
-	Bond       sdk.Uint   `json:"bond"`
-	TotalValue sdk.Uint   `json:"total_value"`
+	Vault      Vault       `json:"vault"`
+	Status     NodeStatus  `json:"status"`
+	Bond       cosmos.Uint `json:"bond"`
+	TotalValue cosmos.Uint `json:"total_value"`
 }
 
 type QueryNodeAccount struct {
-	NodeAddress         sdk.AccAddress   `json:"node_address"`
-	Status              NodeStatus       `json:"status"`
-	PubKeySet           common.PubKeySet `json:"pub_key_set"`
-	ValidatorConsPubKey string           `json:"validator_cons_pub_key"`
-	Bond                sdk.Uint         `json:"bond"`
-	ActiveBlockHeight   int64            `json:"active_block_height"`
-	BondAddress         common.Address   `json:"bond_address"`
-	StatusSince         int64            `json:"status_since"`
-	SignerMembership    common.PubKeys   `json:"signer_membership"`
-	RequestedToLeave    bool             `json:"requested_to_leave"`
-	ForcedToLeave       bool             `json:"forced_to_leave"`
-	LeaveHeight         int64            `json:"leave_height"`
-	IPAddress           string           `json:"ip_address"`
-	Version             semver.Version   `json:"version"`
-	SlashPoints         int64            `json:"slash_points"`
+	NodeAddress         cosmos.AccAddress `json:"node_address"`
+	Status              NodeStatus        `json:"status"`
+	PubKeySet           common.PubKeySet  `json:"pub_key_set"`
+	ValidatorConsPubKey string            `json:"validator_cons_pub_key"`
+	Bond                cosmos.Uint       `json:"bond"`
+	ActiveBlockHeight   int64             `json:"active_block_height"`
+	BondAddress         common.Address    `json:"bond_address"`
+	StatusSince         int64             `json:"status_since"`
+	SignerMembership    common.PubKeys    `json:"signer_membership"`
+	RequestedToLeave    bool              `json:"requested_to_leave"`
+	ForcedToLeave       bool              `json:"forced_to_leave"`
+	LeaveHeight         int64             `json:"leave_height"`
+	IPAddress           string            `json:"ip_address"`
+	Version             semver.Version    `json:"version"`
+	SlashPoints         int64             `json:"slash_points"`
 }
 
 func NewQueryNodeAccount(na NodeAccount) QueryNodeAccount {

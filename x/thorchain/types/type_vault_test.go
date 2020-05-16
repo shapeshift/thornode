@@ -1,10 +1,10 @@
 package types
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 )
 
@@ -26,32 +26,32 @@ func (s *VaultSuite) TestVault(c *C) {
 	c.Check(vault.IsValid(), IsNil)
 
 	coins := common.Coins{
-		common.NewCoin(common.BNBAsset, sdk.NewUint(500*common.One)),
-		common.NewCoin(common.BTCAsset, sdk.NewUint(400*common.One)),
+		common.NewCoin(common.BNBAsset, cosmos.NewUint(500*common.One)),
+		common.NewCoin(common.BTCAsset, cosmos.NewUint(400*common.One)),
 	}
 
 	vault.AddFunds(coins)
 	c.Check(vault.HasFunds(), Equals, true)
 	c.Check(vault.HasFundsForChain(common.BNBChain), Equals, true)
 	c.Check(vault.HasFundsForChain(common.ETHChain), Equals, false)
-	c.Check(vault.GetCoin(common.BNBAsset).Amount.Equal(sdk.NewUint(500*common.One)), Equals, true)
-	c.Check(vault.GetCoin(common.BTCAsset).Amount.Equal(sdk.NewUint(400*common.One)), Equals, true)
+	c.Check(vault.GetCoin(common.BNBAsset).Amount.Equal(cosmos.NewUint(500*common.One)), Equals, true)
+	c.Check(vault.GetCoin(common.BTCAsset).Amount.Equal(cosmos.NewUint(400*common.One)), Equals, true)
 	vault.AddFunds(coins)
-	c.Check(vault.GetCoin(common.BNBAsset).Amount.Equal(sdk.NewUint(1000*common.One)), Equals, true)
-	c.Check(vault.GetCoin(common.BTCAsset).Amount.Equal(sdk.NewUint(800*common.One)), Equals, true, Commentf("%+v", vault.GetCoin(common.BTCAsset).Amount))
+	c.Check(vault.GetCoin(common.BNBAsset).Amount.Equal(cosmos.NewUint(1000*common.One)), Equals, true)
+	c.Check(vault.GetCoin(common.BTCAsset).Amount.Equal(cosmos.NewUint(800*common.One)), Equals, true, Commentf("%+v", vault.GetCoin(common.BTCAsset).Amount))
 	vault.SubFunds(coins)
-	c.Check(vault.GetCoin(common.BNBAsset).Amount.Equal(sdk.NewUint(500*common.One)), Equals, true)
-	c.Check(vault.GetCoin(common.BTCAsset).Amount.Equal(sdk.NewUint(400*common.One)), Equals, true)
+	c.Check(vault.GetCoin(common.BNBAsset).Amount.Equal(cosmos.NewUint(500*common.One)), Equals, true)
+	c.Check(vault.GetCoin(common.BTCAsset).Amount.Equal(cosmos.NewUint(400*common.One)), Equals, true)
 	vault.SubFunds(coins)
-	c.Check(vault.GetCoin(common.BNBAsset).Amount.Equal(sdk.ZeroUint()), Equals, true)
-	c.Check(vault.GetCoin(common.BTCAsset).Amount.Equal(sdk.ZeroUint()), Equals, true)
+	c.Check(vault.GetCoin(common.BNBAsset).Amount.Equal(cosmos.ZeroUint()), Equals, true)
+	c.Check(vault.GetCoin(common.BTCAsset).Amount.Equal(cosmos.ZeroUint()), Equals, true)
 	c.Check(vault.HasFunds(), Equals, false)
 	vault.SubFunds(coins)
-	c.Check(vault.GetCoin(common.BNBAsset).Amount.Equal(sdk.ZeroUint()), Equals, true)
-	c.Check(vault.GetCoin(common.BTCAsset).Amount.Equal(sdk.ZeroUint()), Equals, true)
+	c.Check(vault.GetCoin(common.BNBAsset).Amount.Equal(cosmos.ZeroUint()), Equals, true)
+	c.Check(vault.GetCoin(common.BTCAsset).Amount.Equal(cosmos.ZeroUint()), Equals, true)
 	c.Check(vault.HasFunds(), Equals, false)
 	vault.AddFunds(common.Coins{
-		common.NewCoin(common.ETHAsset, sdk.NewUint(100*common.One)),
+		common.NewCoin(common.ETHAsset, cosmos.NewUint(100*common.One)),
 	})
 	c.Assert(vault.Chains.Has(common.BNBChain), Equals, true)
 	c.Assert(vault.Chains.Has(common.ETHChain), Equals, true)
@@ -68,7 +68,7 @@ func (s *VaultSuite) TestGetTssSigners(c *C) {
 		memberShip = append(memberShip, na.PubKeySet.Secp256k1)
 	}
 	vault.Membership = memberShip
-	addrs := []sdk.AccAddress{
+	addrs := []cosmos.AccAddress{
 		nodeAccounts[0].NodeAddress,
 		nodeAccounts[1].NodeAddress,
 	}

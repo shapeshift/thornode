@@ -2,12 +2,12 @@ package thorchain
 
 import (
 	"github.com/blang/semver"
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 // VersionedGasManager
 type VersionedGasManager interface {
-	GetGasManager(ctx sdk.Context, version semver.Version) (GasManager, error)
+	GetGasManager(ctx cosmos.Context, version semver.Version) (GasManager, error)
 }
 
 // VersionedGasMgr implements the VersionedGasManager interface
@@ -23,7 +23,7 @@ func NewVersionedGasMgr() *VersionedGasMgr {
 
 // GetGasManager return an instance that implements GasManager interface
 // when there is no version can match the given semver , it will return nil
-func (m *VersionedGasMgr) GetGasManager(ctx sdk.Context, version semver.Version) (GasManager, error) {
+func (m *VersionedGasMgr) GetGasManager(ctx cosmos.Context, version semver.Version) (GasManager, error) {
 	if version.GTE(semver.MustParse("0.1.0")) {
 		if m.gasManagerV1 == nil {
 			m.gasManagerV1 = NewGasMgr()

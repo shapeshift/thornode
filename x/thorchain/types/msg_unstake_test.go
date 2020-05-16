@@ -1,10 +1,10 @@
 package types
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 type MsgUnstakeSuite struct{}
@@ -18,65 +18,65 @@ func (MsgUnstakeSuite) TestMsgUnstake(c *C) {
 		GetRandomBNBAddress(),
 		GetRandomBNBAddress(),
 		common.Coins{
-			common.NewCoin(common.BTCAsset, sdk.NewUint(100000000)),
+			common.NewCoin(common.BTCAsset, cosmos.NewUint(100000000)),
 		},
 		BNBGasFeeSingleton,
 		"",
 	)
 	runeAddr := GetRandomRUNEAddress()
 	acc1 := GetRandomBech32Addr()
-	m := NewMsgSetUnStake(tx, runeAddr, sdk.NewUint(10000), common.BNBAsset, acc1)
+	m := NewMsgSetUnStake(tx, runeAddr, cosmos.NewUint(10000), common.BNBAsset, acc1)
 	EnsureMsgBasicCorrect(m, c)
 	c.Check(m.Type(), Equals, "set_unstake")
 
 	inputs := []struct {
 		publicAddress       common.Address
-		withdrawBasisPoints sdk.Uint
+		withdrawBasisPoints cosmos.Uint
 		asset               common.Asset
 		requestTxHash       common.TxID
-		signer              sdk.AccAddress
+		signer              cosmos.AccAddress
 	}{
 		{
 			publicAddress:       common.NoAddress,
-			withdrawBasisPoints: sdk.NewUint(10000),
+			withdrawBasisPoints: cosmos.NewUint(10000),
 			asset:               common.BNBAsset,
 			requestTxHash:       txID,
 			signer:              acc1,
 		},
 		{
 			publicAddress:       runeAddr,
-			withdrawBasisPoints: sdk.NewUint(12000),
+			withdrawBasisPoints: cosmos.NewUint(12000),
 			asset:               common.BNBAsset,
 			requestTxHash:       txID,
 			signer:              acc1,
 		},
 		{
 			publicAddress:       runeAddr,
-			withdrawBasisPoints: sdk.ZeroUint(),
+			withdrawBasisPoints: cosmos.ZeroUint(),
 			asset:               common.BNBAsset,
 			requestTxHash:       txID,
 			signer:              acc1,
 		},
 		{
 			publicAddress:       runeAddr,
-			withdrawBasisPoints: sdk.NewUint(10000),
+			withdrawBasisPoints: cosmos.NewUint(10000),
 			asset:               common.Asset{},
 			requestTxHash:       txID,
 			signer:              acc1,
 		},
 		{
 			publicAddress:       runeAddr,
-			withdrawBasisPoints: sdk.NewUint(10000),
+			withdrawBasisPoints: cosmos.NewUint(10000),
 			asset:               common.BNBAsset,
 			requestTxHash:       common.TxID(""),
 			signer:              acc1,
 		},
 		{
 			publicAddress:       runeAddr,
-			withdrawBasisPoints: sdk.NewUint(10000),
+			withdrawBasisPoints: cosmos.NewUint(10000),
 			asset:               common.BNBAsset,
 			requestTxHash:       txID,
-			signer:              sdk.AccAddress{},
+			signer:              cosmos.AccAddress{},
 		},
 	}
 	for _, item := range inputs {

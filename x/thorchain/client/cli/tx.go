@@ -7,12 +7,12 @@ import (
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/codec"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/auth/client/utils"
 	"github.com/spf13/cobra"
 
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
@@ -57,7 +57,7 @@ func GetCmdMimir(cdc *codec.Codec) *cobra.Command {
 			if err := msg.ValidateBasic(); err != nil {
 				return err
 			}
-			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
+			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []cosmos.Msg{msg})
 		},
 	}
 }
@@ -72,7 +72,7 @@ func GetCmdBan(cdc *codec.Codec) *cobra.Command {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
 
-			addr, err := sdk.AccAddressFromBech32(args[0])
+			addr, err := cosmos.AccAddressFromBech32(args[0])
 			if err != nil {
 				return fmt.Errorf("invalid node address: %w", err)
 			}
@@ -81,7 +81,7 @@ func GetCmdBan(cdc *codec.Codec) *cobra.Command {
 			if err := msg.ValidateBasic(); err != nil {
 				return err
 			}
-			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
+			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []cosmos.Msg{msg})
 		},
 	}
 }
@@ -100,7 +100,7 @@ func GetCmdSetIPAddress(cdc *codec.Codec) *cobra.Command {
 			if err := msg.ValidateBasic(); err != nil {
 				return err
 			}
-			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
+			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []cosmos.Msg{msg})
 		},
 	}
 }
@@ -119,7 +119,7 @@ func GetCmdSetVersion(cdc *codec.Codec) *cobra.Command {
 			if err := msg.ValidateBasic(); err != nil {
 				return err
 			}
-			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
+			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []cosmos.Msg{msg})
 		},
 	}
 }
@@ -144,11 +144,11 @@ func GetCmdSetNodeKeys(cdc *codec.Codec) *cobra.Command {
 				return fmt.Errorf("fail to parse ed25519 pub key ,err:%w", err)
 			}
 			pk := common.NewPubKeySet(secp256k1Key, ed25519Key)
-			validatorConsPubKey, err := sdk.GetConsPubKeyBech32(args[2])
+			validatorConsPubKey, err := cosmos.GetConsPubKeyBech32(args[2])
 			if err != nil {
 				return fmt.Errorf("fail to parse validator consensus public key: %w", err)
 			}
-			validatorConsPubKeyStr, err := sdk.Bech32ifyConsPub(validatorConsPubKey)
+			validatorConsPubKeyStr, err := cosmos.Bech32ifyConsPub(validatorConsPubKey)
 			if err != nil {
 				return fmt.Errorf("fail to convert public key to string: %w", err)
 			}
@@ -157,7 +157,7 @@ func GetCmdSetNodeKeys(cdc *codec.Codec) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
+			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []cosmos.Msg{msg})
 		},
 	}
 }

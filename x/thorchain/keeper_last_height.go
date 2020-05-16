@@ -3,25 +3,24 @@ package thorchain
 import (
 	"fmt"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 type KeeperLastHeight interface {
-	SetLastSignedHeight(ctx sdk.Context, height int64)
-	GetLastSignedHeight(ctx sdk.Context) (int64, error)
-	SetLastChainHeight(ctx sdk.Context, chain common.Chain, height int64) error
-	GetLastChainHeight(ctx sdk.Context, chain common.Chain) (int64, error)
+	SetLastSignedHeight(ctx cosmos.Context, height int64)
+	GetLastSignedHeight(ctx cosmos.Context) (int64, error)
+	SetLastChainHeight(ctx cosmos.Context, chain common.Chain, height int64) error
+	GetLastChainHeight(ctx cosmos.Context, chain common.Chain) (int64, error)
 }
 
-func (k KVStore) SetLastSignedHeight(ctx sdk.Context, height int64) {
+func (k KVStore) SetLastSignedHeight(ctx cosmos.Context, height int64) {
 	store := ctx.KVStore(k.storeKey)
 	key := k.GetKey(ctx, prefixLastSignedHeight, "")
 	store.Set([]byte(key), k.cdc.MustMarshalBinaryBare(height))
 }
 
-func (k KVStore) GetLastSignedHeight(ctx sdk.Context) (int64, error) {
+func (k KVStore) GetLastSignedHeight(ctx cosmos.Context) (int64, error) {
 	var height int64
 	key := k.GetKey(ctx, prefixLastSignedHeight, "")
 	store := ctx.KVStore(k.storeKey)
@@ -35,7 +34,7 @@ func (k KVStore) GetLastSignedHeight(ctx sdk.Context) (int64, error) {
 	return height, nil
 }
 
-func (k KVStore) SetLastChainHeight(ctx sdk.Context, chain common.Chain, height int64) error {
+func (k KVStore) SetLastChainHeight(ctx cosmos.Context, chain common.Chain, height int64) error {
 	lastHeight, err := k.GetLastChainHeight(ctx, chain)
 	if err != nil {
 		return err
@@ -50,7 +49,7 @@ func (k KVStore) SetLastChainHeight(ctx sdk.Context, chain common.Chain, height 
 	return nil
 }
 
-func (k KVStore) GetLastChainHeight(ctx sdk.Context, chain common.Chain) (int64, error) {
+func (k KVStore) GetLastChainHeight(ctx cosmos.Context, chain common.Chain) (int64, error) {
 	var height int64
 	key := k.GetKey(ctx, prefixLastChainHeight, chain.String())
 	store := ctx.KVStore(k.storeKey)

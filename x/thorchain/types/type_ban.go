@@ -3,16 +3,16 @@ package types
 import (
 	"errors"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 type BanVoter struct {
-	NodeAddress sdk.AccAddress   `json:"node_address"`
-	BlockHeight int64            `json:"block_height"`
-	Signers     []sdk.AccAddress `json:"signers"` // node keys of node account saw this tx
+	NodeAddress cosmos.AccAddress   `json:"node_address"`
+	BlockHeight int64               `json:"block_height"`
+	Signers     []cosmos.AccAddress `json:"signers"` // node keys of node account saw this tx
 }
 
-func NewBanVoter(addr sdk.AccAddress) BanVoter {
+func NewBanVoter(addr cosmos.AccAddress) BanVoter {
 	return BanVoter{
 		NodeAddress: addr,
 	}
@@ -34,7 +34,7 @@ func (b BanVoter) String() string {
 }
 
 // HasSigned - check if given address has signed
-func (b BanVoter) HasSigned(signer sdk.AccAddress) bool {
+func (b BanVoter) HasSigned(signer cosmos.AccAddress) bool {
 	for _, sign := range b.Signers {
 		if sign.Equals(signer) {
 			return true
@@ -43,7 +43,7 @@ func (b BanVoter) HasSigned(signer sdk.AccAddress) bool {
 	return false
 }
 
-func (b *BanVoter) Sign(signer sdk.AccAddress) {
+func (b *BanVoter) Sign(signer cosmos.AccAddress) {
 	if !b.HasSigned(signer) {
 		b.Signers = append(b.Signers, signer)
 	}

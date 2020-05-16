@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/blang/semver"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 )
 
@@ -23,7 +23,7 @@ func NewReserveContributorHandler(keeper Keeper, versionedEventManager Versioned
 	}
 }
 
-func (h ReserveContributorHandler) Run(ctx sdk.Context, m sdk.Msg, version semver.Version, _ constants.ConstantValues) sdk.Result {
+func (h ReserveContributorHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, _ constants.ConstantValues) cosmos.Result {
 	msg, ok := m.(MsgReserveContributor)
 	if !ok {
 		return errInvalidMessage.Result()
@@ -35,34 +35,34 @@ func (h ReserveContributorHandler) Run(ctx sdk.Context, m sdk.Msg, version semve
 	return h.Handle(ctx, msg, version)
 }
 
-func (h ReserveContributorHandler) Validate(ctx sdk.Context, msg MsgReserveContributor, version semver.Version) sdk.Error {
+func (h ReserveContributorHandler) Validate(ctx cosmos.Context, msg MsgReserveContributor, version semver.Version) cosmos.Error {
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.ValidateV1(ctx, msg)
 	}
 	return errBadVersion
 }
 
-func (h ReserveContributorHandler) ValidateV1(ctx sdk.Context, msg MsgReserveContributor) sdk.Error {
+func (h ReserveContributorHandler) ValidateV1(ctx cosmos.Context, msg MsgReserveContributor) cosmos.Error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
 
 	if !isSignedByActiveNodeAccounts(ctx, h.keeper, msg.GetSigners()) {
-		return sdk.ErrUnauthorized("not authorized")
+		return cosmos.ErrUnauthorized("not authorized")
 	}
 
 	return nil
 }
 
-func (h ReserveContributorHandler) Handle(ctx sdk.Context, msg MsgReserveContributor, version semver.Version) sdk.Result {
+func (h ReserveContributorHandler) Handle(ctx cosmos.Context, msg MsgReserveContributor, version semver.Version) cosmos.Result {
 	ctx.Logger().Info("handleMsgReserveContributor request")
 	if version.GTE(semver.MustParse("0.1.0")) {
 		if err := h.HandleV1(ctx, msg, version); err != nil {
 			ctx.Logger().Error("fail to process MsgReserveContributor", "error", err)
-			return sdk.ErrInternal("fail to process reserve contributor").Result()
+			return cosmos.ErrInternal("fail to process reserve contributor").Result()
 		}
-		return sdk.Result{
-			Code:      sdk.CodeOK,
+		return cosmos.Result{
+			Code:      cosmos.CodeOK,
 			Codespace: DefaultCodespace,
 		}
 	}
@@ -71,7 +71,7 @@ func (h ReserveContributorHandler) Handle(ctx sdk.Context, msg MsgReserveContrib
 }
 
 // HandleV1  process MsgReserveContributor
-func (h ReserveContributorHandler) HandleV1(ctx sdk.Context, msg MsgReserveContributor, version semver.Version) error {
+func (h ReserveContributorHandler) HandleV1(ctx cosmos.Context, msg MsgReserveContributor, version semver.Version) error {
 	reses, err := h.keeper.GetReservesContributors(ctx)
 	if err != nil {
 		ctx.Logger().Error("fail to get reserve contributors", "error", err)

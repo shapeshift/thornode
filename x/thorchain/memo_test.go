@@ -3,7 +3,7 @@ package thorchain
 import (
 	"fmt"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	. "gopkg.in/check.v1"
 )
 
@@ -50,7 +50,7 @@ func (s *MemoSuite) TestParseWithAbbreviated(c *C) {
 	c.Check(memo.IsType(TxSwap), Equals, true, Commentf("MEMO: %+v", memo))
 	c.Check(memo.GetDestination().String(), Equals, "bnb1lejrrtta9cgr49fuh7ktu3sddhe0ff7wenlpn6")
 	c.Log(memo.GetSlipLimit().Uint64())
-	c.Check(memo.GetSlipLimit().Equal(sdk.NewUint(870000000)), Equals, true)
+	c.Check(memo.GetSlipLimit().Equal(cosmos.NewUint(870000000)), Equals, true)
 	c.Check(memo.IsInbound(), Equals, true)
 
 	memo, err = ParseMemo("=:BNB.RUNE-1BA:bnb1lejrrtta9cgr49fuh7ktu3sddhe0ff7wenlpn6")
@@ -66,7 +66,7 @@ func (s *MemoSuite) TestParseWithAbbreviated(c *C) {
 	c.Check(memo.GetAsset().String(), Equals, "BNB.RUNE-1BA")
 	c.Check(memo.IsType(TxSwap), Equals, true, Commentf("MEMO: %+v", memo))
 	c.Check(memo.GetDestination().String(), Equals, "bnb1lejrrtta9cgr49fuh7ktu3sddhe0ff7wenlpn6")
-	c.Check(memo.GetSlipLimit().Equal(sdk.ZeroUint()), Equals, true)
+	c.Check(memo.GetSlipLimit().Equal(cosmos.ZeroUint()), Equals, true)
 
 	memo, err = ParseMemo("OUTBOUND:MUKVQILIHIAUSEOVAXBFEZAJKYHFJYHRUUYGQJZGFYBYVXCXYNEMUOAIQKFQLLCX")
 	c.Assert(err, IsNil)
@@ -168,7 +168,7 @@ func (s *MemoSuite) TestParse(c *C) {
 	c.Check(memo.IsType(TxSwap), Equals, true, Commentf("MEMO: %+v", memo))
 	c.Check(memo.GetDestination().String(), Equals, "bnb1lejrrtta9cgr49fuh7ktu3sddhe0ff7wenlpn6")
 	c.Log(memo.GetSlipLimit().String())
-	c.Check(memo.GetSlipLimit().Equal(sdk.NewUint(870000000)), Equals, true)
+	c.Check(memo.GetSlipLimit().Equal(cosmos.NewUint(870000000)), Equals, true)
 
 	memo, err = ParseMemo("SWAP:BNB.RUNE-1BA:bnb1lejrrtta9cgr49fuh7ktu3sddhe0ff7wenlpn6")
 	c.Assert(err, IsNil)

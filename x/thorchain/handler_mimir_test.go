@@ -2,7 +2,7 @@ package thorchain
 
 import (
 	"github.com/blang/semver"
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 	. "gopkg.in/check.v1"
 )
@@ -18,7 +18,7 @@ func (s *HandlerMimirSuite) SetUpSuite(c *C) {
 func (s *HandlerMimirSuite) TestValidate(c *C) {
 	ctx, keeper := setupKeeperForTest(c)
 
-	addr, _ := sdk.AccAddressFromBech32(ADMINS[0])
+	addr, _ := cosmos.AccAddressFromBech32(ADMINS[0])
 	handler := NewMimirHandler(keeper)
 	// happy path
 	ver := constants.SWVersion

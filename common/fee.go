@@ -1,14 +1,14 @@
 package common
 
-import sdk "github.com/cosmos/cosmos-sdk/types"
+import cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 
 type Fee struct {
-	Coins      Coins    `json:"coins"`
-	PoolDeduct sdk.Uint `json:"pool_deduct"`
+	Coins      Coins       `json:"coins"`
+	PoolDeduct cosmos.Uint `json:"pool_deduct"`
 }
 
 // NewFee return a new instance of Fee
-func NewFee(coins Coins, poolDeduct sdk.Uint) Fee {
+func NewFee(coins Coins, poolDeduct cosmos.Uint) Fee {
 	return Fee{
 		Coins:      coins,
 		PoolDeduct: poolDeduct,

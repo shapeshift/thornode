@@ -15,7 +15,6 @@ import (
 	ctypes "github.com/binance-chain/go-sdk/common/types"
 	"github.com/cosmos/cosmos-sdk/client/keys"
 	cKeys "github.com/cosmos/cosmos-sdk/crypto/keys"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/bifrost/config"
@@ -23,6 +22,7 @@ import (
 	"gitlab.com/thorchain/thornode/bifrost/thorclient"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient/types"
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 
 	types2 "gitlab.com/thorchain/thornode/x/thorchain/types"
 )
@@ -264,10 +264,10 @@ func (s *BinancechainSuite) TestGetGasFee(c *C) {
 	c.Check(gas, HasLen, 0)
 
 	gas = b2.getGasFee(1)
-	c.Check(gas[0].Amount.Equal(sdk.NewUint(37500)), Equals, true)
+	c.Check(gas[0].Amount.Equal(cosmos.NewUint(37500)), Equals, true)
 
 	gas = b2.getGasFee(2)
-	c.Check(gas[0].Amount.Equal(sdk.NewUint(60000)), Equals, true)
+	c.Check(gas[0].Amount.Equal(cosmos.NewUint(60000)), Equals, true)
 }
 
 func getTxOutFromJsonInput(input string, c *C) types.TxOut {

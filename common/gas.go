@@ -4,16 +4,18 @@ import (
 	"math/big"
 	"sort"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 type Gas Coins
 
+type Blah cosmos.Uint
+
 var (
-	bnbSingleTxFee = sdk.NewUint(37500)
-	bnbMultiTxFee  = sdk.NewUint(30000)
-	ethTransferFee = sdk.NewUint(21000)
-	ethGasPerByte  = sdk.NewUint(68)
+	bnbSingleTxFee = cosmos.NewUint(37500)
+	bnbMultiTxFee  = cosmos.NewUint(30000)
+	ethTransferFee = cosmos.NewUint(21000)
+	ethGasPerByte  = cosmos.NewUint(68)
 )
 
 // Gas Fees
@@ -29,7 +31,7 @@ var ETHGasFeeTransfer = Gas{
 	{Asset: ETHAsset, Amount: ethTransferFee},
 }
 
-func CalcGasPrice(tx Tx, asset Asset, units []sdk.Uint) Gas {
+func CalcGasPrice(tx Tx, asset Asset, units []cosmos.Uint) Gas {
 	lenCoins := uint64(len(tx.Coins))
 
 	switch asset {
@@ -45,7 +47,7 @@ func CalcGasPrice(tx Tx, asset Asset, units []sdk.Uint) Gas {
 	return nil
 }
 
-func UpdateGasPrice(tx Tx, asset Asset, units []sdk.Uint) []sdk.Uint {
+func UpdateGasPrice(tx Tx, asset Asset, units []cosmos.Uint) []cosmos.Uint {
 	if tx.Gas.IsEmpty() {
 		// no change
 		return units
@@ -56,7 +58,7 @@ func UpdateGasPrice(tx Tx, asset Asset, units []sdk.Uint) []sdk.Uint {
 		// first unit is single txn, second unit is multiple transactions
 		if len(units) != 2 {
 			// defaults
-			units = []sdk.Uint{sdk.NewUint(37500), sdk.NewUint(30000)}
+			units = []cosmos.Uint{cosmos.NewUint(37500), cosmos.NewUint(30000)}
 		}
 		gasCoin := tx.Gas.ToCoins().GetCoin(BNBAsset)
 		lenCoins := uint64(len(tx.Coins))
@@ -69,7 +71,7 @@ func UpdateGasPrice(tx Tx, asset Asset, units []sdk.Uint) []sdk.Uint {
 		// BTC chain there is only one coin, which is bitcoin, gas is paid in bitcoin as well
 		gasCoin := tx.Gas.ToCoins().GetCoin(asset)
 		if nil == units {
-			return []sdk.Uint{gasCoin.Amount}
+			return []cosmos.Uint{gasCoin.Amount}
 		}
 		units[0] = gasCoin.Amount
 
@@ -130,13 +132,13 @@ func GetBNBGasFeeMulti(count uint64) Gas {
 func GetETHGasFee(gasPrice *big.Int, msgLen uint64) Gas {
 	gasBytes := ethGasPerByte.MulUint64(msgLen)
 	return Gas{
-		{Asset: ETHAsset, Amount: ethTransferFee.Add(gasBytes).Mul(sdk.NewUintFromBigInt(gasPrice))},
+		{Asset: ETHAsset, Amount: ethTransferFee.Add(gasBytes).Mul(cosmos.NewUintFromBigInt(gasPrice))},
 	}
 }
 
 func MakeETHGas(gasPrice *big.Int, gas uint64) Gas {
 	return Gas{
-		{Asset: ETHAsset, Amount: sdk.NewUint(gas).Mul(sdk.NewUintFromBigInt(gasPrice))},
+		{Asset: ETHAsset, Amount: cosmos.NewUint(gas).Mul(cosmos.NewUintFromBigInt(gasPrice))},
 	}
 }
 

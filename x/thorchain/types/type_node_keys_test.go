@@ -1,8 +1,8 @@
 package types
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	. "gopkg.in/check.v1"
 )
 
@@ -14,7 +14,7 @@ func (NodeKeysSuite) TestNodeKeys(c *C) {
 	bnb := GetRandomBNBAddress()
 	addr := GetRandomBech32Addr()
 	consensusAddr := GetRandomBech32ConsensusPubKey()
-	pk, err := sdk.GetConsPubKeyBech32(consensusAddr)
+	pk, err := cosmos.GetConsPubKeyBech32(consensusAddr)
 	c.Assert(err, IsNil)
 	c.Assert(pk, NotNil)
 	c.Check(addr.Empty(), Equals, false)
@@ -29,6 +29,6 @@ func (NodeKeysSuite) TestNodeKeys(c *C) {
 
 	nodeKeys1 := NewNodeKeys(common.NoAddress, addr, bepConsPubKey)
 	c.Assert(nodeKeys1.IsValid(), IsNil)
-	c.Assert(NewNodeKeys(bnb, sdk.AccAddress{}, bepConsPubKey).IsValid(), NotNil)
+	c.Assert(NewNodeKeys(bnb, cosmos.AccAddress{}, bepConsPubKey).IsValid(), NotNil)
 	c.Assert(NewNodeKeys(bnb, addr, "").IsValid(), NotNil)
 }

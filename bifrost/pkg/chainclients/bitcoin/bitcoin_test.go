@@ -16,7 +16,6 @@ import (
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/cosmos/cosmos-sdk/client/keys"
 	cKeys "github.com/cosmos/cosmos-sdk/crypto/keys"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/bifrost/config"
@@ -24,6 +23,7 @@ import (
 	"gitlab.com/thorchain/thornode/bifrost/thorclient"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient/types"
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	ttypes "gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
@@ -159,8 +159,8 @@ func (s *BitcoinSuite) TestFetchTxs(c *C) {
 	c.Assert(txs.TxArray[0].Tx, Equals, "24ed2d26fd5d4e0e8fa86633e40faf1bdfc8d1903b1cd02855286312d48818a2")
 	c.Assert(txs.TxArray[0].Sender, Equals, "tb1qdxxlx4r4jk63cve3rjpj428m26xcukjn5yegff")
 	c.Assert(txs.TxArray[0].To, Equals, "mv4rnyY3Su5gjcDNzbMLKBQkBicCtHUtFB")
-	c.Assert(txs.TxArray[0].Coins.Equals(common.Coins{common.NewCoin(common.BTCAsset, sdk.NewUint(10000000))}), Equals, true)
-	c.Assert(txs.TxArray[0].Gas.Equals(common.Gas{common.NewCoin(common.BTCAsset, sdk.NewUint(22705334))}), Equals, true)
+	c.Assert(txs.TxArray[0].Coins.Equals(common.Coins{common.NewCoin(common.BTCAsset, cosmos.NewUint(10000000))}), Equals, true)
+	c.Assert(txs.TxArray[0].Gas.Equals(common.Gas{common.NewCoin(common.BTCAsset, cosmos.NewUint(22705334))}), Equals, true)
 	c.Assert(len(txs.TxArray), Equals, 105)
 }
 
@@ -464,7 +464,7 @@ func (s *BitcoinSuite) TestGetGas(c *C) {
 	}
 	gas, err := s.client.getGas(&tx)
 	c.Assert(err, IsNil)
-	c.Assert(gas.Equals(common.Gas{common.NewCoin(common.BTCAsset, sdk.NewUint(7244430))}), Equals, true)
+	c.Assert(gas.Equals(common.Gas{common.NewCoin(common.BTCAsset, cosmos.NewUint(7244430))}), Equals, true)
 
 	tx = btcjson.TxRawResult{
 		Vin: []btcjson.Vin{
@@ -495,7 +495,7 @@ func (s *BitcoinSuite) TestGetGas(c *C) {
 	}
 	gas, err = s.client.getGas(&tx)
 	c.Assert(err, IsNil)
-	c.Assert(gas.Equals(common.Gas{common.NewCoin(common.BTCAsset, sdk.NewUint(149013))}), Equals, true)
+	c.Assert(gas.Equals(common.Gas{common.NewCoin(common.BTCAsset, cosmos.NewUint(149013))}), Equals, true)
 }
 
 func (s *BitcoinSuite) TestGetChain(c *C) {
@@ -568,7 +568,7 @@ func (s *BitcoinSuite) TestOnObservedTxIn(c *C) {
 				Sender: "bc1q2gjc0rnhy4nrxvuklk6ptwkcs9kcr59mcl2q9j",
 				To:     "bc1q0s4mg25tu6termrk8egltfyme4q7sg3h0e56p3",
 				Coins: common.Coins{
-					common.NewCoin(common.BTCAsset, sdk.NewUint(123456789)),
+					common.NewCoin(common.BTCAsset, cosmos.NewUint(123456789)),
 				},
 				Memo:                "MEMO",
 				ObservedVaultPubKey: pkey,
@@ -599,7 +599,7 @@ func (s *BitcoinSuite) TestOnObservedTxIn(c *C) {
 				Sender: "bc1q0s4mg25tu6termrk8egltfyme4q7sg3h0e56p3",
 				To:     "bc1q2gjc0rnhy4nrxvuklk6ptwkcs9kcr59mcl2q9j",
 				Coins: common.Coins{
-					common.NewCoin(common.BTCAsset, sdk.NewUint(123456)),
+					common.NewCoin(common.BTCAsset, cosmos.NewUint(123456)),
 				},
 				Memo:                "MEMO",
 				ObservedVaultPubKey: pkey,
@@ -630,7 +630,7 @@ func (s *BitcoinSuite) TestOnObservedTxIn(c *C) {
 				Sender: "bc1q0s4mg25tu6termrk8egltfyme4q7sg3h0e56p3",
 				To:     "bc1q2gjc0rnhy4nrxvuklk6ptwkcs9kcr59mcl2q9j",
 				Coins: common.Coins{
-					common.NewCoin(common.BTCAsset, sdk.NewUint(12345678)),
+					common.NewCoin(common.BTCAsset, cosmos.NewUint(12345678)),
 				},
 				Memo:                "MEMO",
 				ObservedVaultPubKey: pkey,
@@ -640,7 +640,7 @@ func (s *BitcoinSuite) TestOnObservedTxIn(c *C) {
 				Sender: "bc1q0s4mg25tu6termrk8egltfyme4q7sg3h0e56p3",
 				To:     "bc1q2gjc0rnhy4nrxvuklk6ptwkcs9kcr59mcl2q9j",
 				Coins: common.Coins{
-					common.NewCoin(common.BTCAsset, sdk.NewUint(123456)),
+					common.NewCoin(common.BTCAsset, cosmos.NewUint(123456)),
 				},
 				Memo:                "MEMO",
 				ObservedVaultPubKey: pkey,

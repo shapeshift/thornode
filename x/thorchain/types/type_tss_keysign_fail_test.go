@@ -1,10 +1,10 @@
 package types
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/tss/go-tss/blame"
 )
 
@@ -19,7 +19,7 @@ func (s *TypeTssKeysignFailTestSuite) TestVoter(c *C) {
 		blame.Node{Pubkey: GetRandomPubKey().String()},
 	}
 	b := blame.Blame{BlameNodes: nodes, FailReason: "fail to keysign"}
-	m := NewMsgTssKeysignFail(1, b, "hello", common.Coins{common.NewCoin(common.BNBAsset, sdk.NewUint(100))}, GetRandomBech32Addr())
+	m := NewMsgTssKeysignFail(1, b, "hello", common.Coins{common.NewCoin(common.BNBAsset, cosmos.NewUint(100))}, GetRandomBech32Addr())
 	tss := NewTssKeysignFailVoter(m.ID, 1)
 	c.Check(tss.Empty(), Equals, false)
 

@@ -1,10 +1,10 @@
 package thorchain
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 type EventManagerTestSuite struct{}
@@ -27,9 +27,9 @@ func (s *EventManagerTestSuite) TestEmitErrataEvent(c *C) {
 	errataEvent := NewEventErrata(GetRandomTxHash(), PoolMods{
 		PoolMod{
 			Asset:    common.BNBAsset,
-			RuneAmt:  sdk.ZeroUint(),
+			RuneAmt:  cosmos.ZeroUint(),
 			RuneAdd:  false,
-			AssetAmt: sdk.NewUint(100),
+			AssetAmt: cosmos.NewUint(100),
 			AssetAdd: true,
 		},
 	})
@@ -44,8 +44,8 @@ func (s *EventManagerTestSuite) TestEmitGasEvent(c *C) {
 	gasEvent := NewEventGas()
 	gasEvent.Pools = append(gasEvent.Pools, GasPool{
 		Asset:    common.BNBAsset,
-		AssetAmt: sdk.ZeroUint(),
-		RuneAmt:  sdk.NewUint(1024),
+		AssetAmt: cosmos.ZeroUint(),
+		RuneAmt:  cosmos.NewUint(1024),
 		Count:    1,
 	})
 	c.Assert(eventMgr.EmitGasEvent(ctx, k, gasEvent), IsNil)

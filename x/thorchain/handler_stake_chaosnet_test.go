@@ -3,10 +3,10 @@
 package thorchain
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 )
 
@@ -16,10 +16,10 @@ func (HandlerStakeSuite) TestStakeRUNEOverLimit(c *C) {
 	k := &MockStackKeeper{
 		activeNodeAccount: activeNodeAccount,
 		currentPool: Pool{
-			BalanceRune:  sdk.ZeroUint(),
-			BalanceAsset: sdk.ZeroUint(),
+			BalanceRune:  cosmos.ZeroUint(),
+			BalanceAsset: cosmos.ZeroUint(),
 			Asset:        common.BNBAsset,
-			PoolUnits:    sdk.ZeroUint(),
+			PoolUnits:    cosmos.ZeroUint(),
 			PoolAddress:  "",
 			Status:       PoolEnabled,
 		},
@@ -32,7 +32,7 @@ func (HandlerStakeSuite) TestStakeRUNEOverLimit(c *C) {
 		stakeTxHash,
 		bnbAddr,
 		GetRandomBNBAddress(),
-		common.Coins{common.NewCoin(common.BNBAsset, sdk.NewUint(common.One*5))},
+		common.Coins{common.NewCoin(common.BNBAsset, cosmos.NewUint(common.One*5))},
 		common.BNBGasFeeSingleton,
 		"stake:BNB",
 	)
@@ -40,8 +40,8 @@ func (HandlerStakeSuite) TestStakeRUNEOverLimit(c *C) {
 	msgSetStake := NewMsgSetStakeData(
 		tx,
 		common.BNBAsset,
-		sdk.NewUint(1000_000*common.One),
-		sdk.NewUint(100_000*common.One),
+		cosmos.NewUint(1000_000*common.One),
+		cosmos.NewUint(100_000*common.One),
 		bnbAddr,
 		bnbAddr,
 		activeNodeAccount.NodeAddress)

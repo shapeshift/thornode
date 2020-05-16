@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 type (
@@ -65,11 +65,11 @@ func GetRagnarokTx(chain Chain, fromAddr, toAddr Address) Tx {
 		ToAddress:   toAddr,
 		Coins: Coins{
 			// used for ragnarok, so doesn't really matter
-			NewCoin(BNBAsset, sdk.OneUint()),
+			NewCoin(BNBAsset, cosmos.OneUint()),
 		},
 		Gas: Gas{
 			// used for ragnarok, so doesn't really matter
-			NewCoin(BNBAsset, sdk.OneUint()),
+			NewCoin(BNBAsset, cosmos.OneUint()),
 		},
 		Memo: "Ragnarok",
 	}
@@ -161,13 +161,13 @@ func (tx Tx) IsValid() error {
 	return nil
 }
 
-func (tx Tx) ToAttributes() []sdk.Attribute {
-	return []sdk.Attribute{
-		sdk.NewAttribute("id", tx.ID.String()),
-		sdk.NewAttribute("chain", tx.Chain.String()),
-		sdk.NewAttribute("from", tx.FromAddress.String()),
-		sdk.NewAttribute("to", tx.ToAddress.String()),
-		sdk.NewAttribute("coin", tx.Coins.String()),
-		sdk.NewAttribute("memo", tx.Memo),
+func (tx Tx) ToAttributes() []cosmos.Attribute {
+	return []cosmos.Attribute{
+		cosmos.NewAttribute("id", tx.ID.String()),
+		cosmos.NewAttribute("chain", tx.Chain.String()),
+		cosmos.NewAttribute("from", tx.FromAddress.String()),
+		cosmos.NewAttribute("to", tx.ToAddress.String()),
+		cosmos.NewAttribute("coin", tx.Coins.String()),
+		cosmos.NewAttribute("memo", tx.Memo),
 	}
 }

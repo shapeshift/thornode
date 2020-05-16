@@ -1,10 +1,10 @@
 package types
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/tss/go-tss/blame"
 )
 
@@ -21,7 +21,7 @@ func (s MsgTssKeysignFailSuite) TestMsgTssKeysignFail(c *C) {
 		},
 	}
 	coins := common.Coins{
-		common.NewCoin(common.RuneAsset(), sdk.NewUint(100)),
+		common.NewCoin(common.RuneAsset(), cosmos.NewUint(100)),
 	}
 	msg := NewMsgTssKeysignFail(1, b, "hello", coins, GetRandomBech32Addr())
 	c.Check(msg.Type(), Equals, "set_tss_keysign_fail")
@@ -30,8 +30,8 @@ func (s MsgTssKeysignFailSuite) TestMsgTssKeysignFail(c *C) {
 	c.Check(NewMsgTssKeysignFail(1, b, "", coins, GetRandomBech32Addr()), NotNil)
 	c.Check(NewMsgTssKeysignFail(1, b, "hello", common.Coins{}, GetRandomBech32Addr()), NotNil)
 	c.Check(NewMsgTssKeysignFail(1, b, "hello", common.Coins{
-		common.NewCoin(common.BNBAsset, sdk.NewUint(100)),
-		common.NewCoin(common.EmptyAsset, sdk.ZeroUint()),
+		common.NewCoin(common.BNBAsset, cosmos.NewUint(100)),
+		common.NewCoin(common.EmptyAsset, cosmos.ZeroUint()),
 	}, GetRandomBech32Addr()), NotNil)
-	c.Check(NewMsgTssKeysignFail(1, b, "hello", coins, sdk.AccAddress{}), NotNil)
+	c.Check(NewMsgTssKeysignFail(1, b, "hello", coins, cosmos.AccAddress{}), NotNil)
 }

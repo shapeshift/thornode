@@ -6,9 +6,8 @@ import (
 	"strconv"
 	"strings"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 // TXTYPE:STATE1:STATE2:STATE3:FINALMEMO
@@ -139,11 +138,11 @@ type Memo interface {
 	GetAsset() common.Asset
 	GetAmount() string
 	GetDestination() common.Address
-	GetSlipLimit() sdk.Uint
+	GetSlipLimit() cosmos.Uint
 	GetKey() string
 	GetValue() string
 	GetTxID() common.TxID
-	GetAccAddress() sdk.AccAddress
+	GetAccAddress() cosmos.AccAddress
 	GetBlockHeight() int64
 }
 
@@ -179,7 +178,7 @@ type UnstakeMemo struct {
 type SwapMemo struct {
 	MemoBase
 	Destination common.Address
-	SlipLimit   sdk.Uint
+	SlipLimit   cosmos.Uint
 }
 
 type OutboundMemo struct {
@@ -194,7 +193,7 @@ type RefundMemo struct {
 
 type BondMemo struct {
 	MemoBase
-	NodeAddress sdk.AccAddress
+	NodeAddress cosmos.AccAddress
 }
 
 type LeaveMemo struct {
@@ -312,14 +311,14 @@ func NewRefundMemo(txID common.TxID) RefundMemo {
 	}
 }
 
-func NewBondMemo(addr sdk.AccAddress) BondMemo {
+func NewBondMemo(addr cosmos.AccAddress) BondMemo {
 	return BondMemo{
 		MemoBase:    MemoBase{TxType: TxBond},
 		NodeAddress: addr,
 	}
 }
 
-func NewSwapMemo(asset common.Asset, dest common.Address, slip sdk.Uint) SwapMemo {
+func NewSwapMemo(asset common.Asset, dest common.Address, slip cosmos.Uint) SwapMemo {
 	return SwapMemo{
 		MemoBase:    MemoBase{TxType: TxSwap, Asset: asset},
 		Destination: dest,
@@ -391,11 +390,11 @@ func ParseMemo(memo string) (Memo, error) {
 		var withdrawAmount string
 		if len(parts) > 2 {
 			withdrawAmount = parts[2]
-			wa, err := sdk.ParseUint(withdrawAmount)
+			wa, err := cosmos.ParseUint(withdrawAmount)
 			if err != nil {
 				return noMemo, err
 			}
-			if !wa.GT(sdk.ZeroUint()) || wa.GT(sdk.NewUint(MaxUnstakeBasisPoints)) {
+			if !wa.GT(cosmos.ZeroUint()) || wa.GT(cosmos.NewUint(MaxUnstakeBasisPoints)) {
 				return noMemo, fmt.Errorf("withdraw amount :%s is invalid", withdrawAmount)
 			}
 		}
@@ -416,9 +415,9 @@ func ParseMemo(memo string) (Memo, error) {
 			}
 		}
 		// price limit can be empty , when it is empty , there is no price protection
-		slip := sdk.ZeroUint()
+		slip := cosmos.ZeroUint()
 		if len(parts) > 3 && len(parts[3]) > 0 {
-			amount, err := sdk.ParseUint(parts[3])
+			amount, err := cosmos.ParseUint(parts[3])
 			if err != nil {
 				return noMemo, fmt.Errorf("swap price limit:%s is invalid", parts[3])
 			}
@@ -442,7 +441,7 @@ func ParseMemo(memo string) (Memo, error) {
 		if len(parts) < 2 {
 			return noMemo, fmt.Errorf("not enough parameters")
 		}
-		addr, err := sdk.AccAddressFromBech32(parts[1])
+		addr, err := cosmos.AccAddressFromBech32(parts[1])
 		if err != nil {
 			return noMemo, fmt.Errorf("%s is an invalid thorchain address: %w", parts[1], err)
 		}
@@ -503,30 +502,30 @@ func ParseMemo(memo string) (Memo, error) {
 }
 
 // Base Functions
-func (m MemoBase) String() string                 { return "" }
-func (m MemoBase) GetType() TxType                { return m.TxType }
-func (m MemoBase) IsType(tx TxType) bool          { return m.TxType.Equals(tx) }
-func (m MemoBase) GetAsset() common.Asset         { return m.Asset }
-func (m MemoBase) GetAmount() string              { return "" }
-func (m MemoBase) GetDestination() common.Address { return "" }
-func (m MemoBase) GetSlipLimit() sdk.Uint         { return sdk.ZeroUint() }
-func (m MemoBase) GetKey() string                 { return "" }
-func (m MemoBase) GetValue() string               { return "" }
-func (m MemoBase) GetTxID() common.TxID           { return "" }
-func (m MemoBase) GetAccAddress() sdk.AccAddress  { return sdk.AccAddress{} }
-func (m MemoBase) GetBlockHeight() int64          { return 0 }
-func (m MemoBase) IsOutbound() bool               { return m.TxType.IsOutbound() }
-func (m MemoBase) IsInbound() bool                { return m.TxType.IsInbound() }
-func (m MemoBase) IsInternal() bool               { return m.TxType.IsInternal() }
-func (m MemoBase) IsEmpty() bool                  { return m.TxType.IsEmpty() }
+func (m MemoBase) String() string                   { return "" }
+func (m MemoBase) GetType() TxType                  { return m.TxType }
+func (m MemoBase) IsType(tx TxType) bool            { return m.TxType.Equals(tx) }
+func (m MemoBase) GetAsset() common.Asset           { return m.Asset }
+func (m MemoBase) GetAmount() string                { return "" }
+func (m MemoBase) GetDestination() common.Address   { return "" }
+func (m MemoBase) GetSlipLimit() cosmos.Uint        { return cosmos.ZeroUint() }
+func (m MemoBase) GetKey() string                   { return "" }
+func (m MemoBase) GetValue() string                 { return "" }
+func (m MemoBase) GetTxID() common.TxID             { return "" }
+func (m MemoBase) GetAccAddress() cosmos.AccAddress { return cosmos.AccAddress{} }
+func (m MemoBase) GetBlockHeight() int64            { return 0 }
+func (m MemoBase) IsOutbound() bool                 { return m.TxType.IsOutbound() }
+func (m MemoBase) IsInbound() bool                  { return m.TxType.IsInbound() }
+func (m MemoBase) IsInternal() bool                 { return m.TxType.IsInternal() }
+func (m MemoBase) IsEmpty() bool                    { return m.TxType.IsEmpty() }
 
 // Transaction Specific Functions
-func (m UnstakeMemo) GetAmount() string            { return m.Amount }
-func (m SwapMemo) GetDestination() common.Address  { return m.Destination }
-func (m SwapMemo) GetSlipLimit() sdk.Uint          { return m.SlipLimit }
-func (m BondMemo) GetAccAddress() sdk.AccAddress   { return m.NodeAddress }
-func (m StakeMemo) GetDestination() common.Address { return m.Address }
-func (m OutboundMemo) GetTxID() common.TxID        { return m.TxID }
+func (m UnstakeMemo) GetAmount() string             { return m.Amount }
+func (m SwapMemo) GetDestination() common.Address   { return m.Destination }
+func (m SwapMemo) GetSlipLimit() cosmos.Uint        { return m.SlipLimit }
+func (m BondMemo) GetAccAddress() cosmos.AccAddress { return m.NodeAddress }
+func (m StakeMemo) GetDestination() common.Address  { return m.Address }
+func (m OutboundMemo) GetTxID() common.TxID         { return m.TxID }
 func (m OutboundMemo) String() string {
 	return fmt.Sprintf("OUTBOUND:%s", m.TxID.String())
 }

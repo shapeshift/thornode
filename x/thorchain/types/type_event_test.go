@@ -3,10 +3,10 @@ package types
 import (
 	"encoding/json"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 type EventSuite struct{}
@@ -16,10 +16,10 @@ var _ = Suite(&EventSuite{})
 func (s EventSuite) TestSwapEvent(c *C) {
 	evt := NewEventSwap(
 		common.BNBAsset,
-		sdk.NewUint(5),
-		sdk.NewUint(5),
-		sdk.NewUint(5),
-		sdk.ZeroUint(),
+		cosmos.NewUint(5),
+		cosmos.NewUint(5),
+		cosmos.NewUint(5),
+		cosmos.ZeroUint(),
 		GetRandomTx(),
 	)
 	c.Check(evt.Type(), Equals, "swap")
@@ -28,7 +28,7 @@ func (s EventSuite) TestSwapEvent(c *C) {
 func (s EventSuite) TestStakeEvent(c *C) {
 	evt := NewEventStake(
 		common.BNBAsset,
-		sdk.NewUint(5),
+		cosmos.NewUint(5),
 		GetRandomTx(),
 	)
 	c.Check(evt.Type(), Equals, "stake")
@@ -37,9 +37,9 @@ func (s EventSuite) TestStakeEvent(c *C) {
 func (s EventSuite) TestUnstakeEvent(c *C) {
 	evt := NewEventUnstake(
 		common.BNBAsset,
-		sdk.NewUint(6),
+		cosmos.NewUint(6),
 		5000,
-		sdk.NewDec(0),
+		cosmos.NewDec(0),
 		GetRandomTx(),
 	)
 	c.Check(evt.Type(), Equals, "unstake")
@@ -53,7 +53,7 @@ func (s EventSuite) TestPool(c *C) {
 }
 
 func (s EventSuite) TestReward(c *C) {
-	evt := NewEventRewards(sdk.NewUint(300), []PoolAmt{
+	evt := NewEventRewards(cosmos.NewUint(300), []PoolAmt{
 		{common.BNBAsset, 30},
 		{common.BTCAsset, 40},
 	})
@@ -74,18 +74,18 @@ func (s EventSuite) TestEvent(c *C) {
 		GetRandomBNBAddress(),
 		GetRandomBNBAddress(),
 		common.Coins{
-			common.NewCoin(common.BNBAsset, sdk.NewUint(320000000)),
-			common.NewCoin(common.RuneAsset(), sdk.NewUint(420000000)),
+			common.NewCoin(common.BNBAsset, cosmos.NewUint(320000000)),
+			common.NewCoin(common.RuneAsset(), cosmos.NewUint(420000000)),
 		},
 		BNBGasFeeSingleton,
 		"SWAP:BNB.BNB",
 	)
 	swap := NewEventSwap(
 		common.BNBAsset,
-		sdk.NewUint(5),
-		sdk.NewUint(5),
-		sdk.NewUint(5),
-		sdk.ZeroUint(),
+		cosmos.NewUint(5),
+		cosmos.NewUint(5),
+		cosmos.NewUint(5),
+		cosmos.ZeroUint(),
 		txIn,
 	)
 
@@ -106,15 +106,15 @@ func (s EventSuite) TestEvent(c *C) {
 		GetRandomBNBAddress(),
 		GetRandomBNBAddress(),
 		common.Coins{
-			common.NewCoin(common.BNBAsset, sdk.NewUint(320000000)),
-			common.NewCoin(common.RuneAsset(), sdk.NewUint(420000000)),
+			common.NewCoin(common.BNBAsset, cosmos.NewUint(320000000)),
+			common.NewCoin(common.RuneAsset(), cosmos.NewUint(420000000)),
 		},
 		BNBGasFeeSingleton,
 		"SWAP:BNB.BNB",
 	)
 	stake := NewEventStake(
 		common.BNBAsset,
-		sdk.NewUint(5),
+		cosmos.NewUint(5),
 		txIn,
 	)
 	stakeBytes, _ := json.Marshal(stake)
@@ -155,63 +155,63 @@ func (s EventSuite) TestEventGas(c *C) {
 	c.Assert(eg, NotNil)
 	eg.UpsertGasPool(GasPool{
 		Asset:    common.BNBAsset,
-		AssetAmt: sdk.NewUint(1000),
-		RuneAmt:  sdk.ZeroUint(),
+		AssetAmt: cosmos.NewUint(1000),
+		RuneAmt:  cosmos.ZeroUint(),
 	})
 	c.Assert(eg.Pools, HasLen, 1)
 	c.Assert(eg.Pools[0].Asset, Equals, common.BNBAsset)
-	c.Assert(eg.Pools[0].RuneAmt.Equal(sdk.ZeroUint()), Equals, true)
-	c.Assert(eg.Pools[0].AssetAmt.Equal(sdk.NewUint(1000)), Equals, true)
+	c.Assert(eg.Pools[0].RuneAmt.Equal(cosmos.ZeroUint()), Equals, true)
+	c.Assert(eg.Pools[0].AssetAmt.Equal(cosmos.NewUint(1000)), Equals, true)
 
 	eg.UpsertGasPool(GasPool{
 		Asset:    common.BNBAsset,
-		AssetAmt: sdk.NewUint(1234),
-		RuneAmt:  sdk.NewUint(1024),
+		AssetAmt: cosmos.NewUint(1234),
+		RuneAmt:  cosmos.NewUint(1024),
 	})
 	c.Assert(eg.Pools, HasLen, 1)
 	c.Assert(eg.Pools[0].Asset, Equals, common.BNBAsset)
-	c.Assert(eg.Pools[0].RuneAmt.Equal(sdk.NewUint(1024)), Equals, true)
-	c.Assert(eg.Pools[0].AssetAmt.Equal(sdk.NewUint(2234)), Equals, true)
+	c.Assert(eg.Pools[0].RuneAmt.Equal(cosmos.NewUint(1024)), Equals, true)
+	c.Assert(eg.Pools[0].AssetAmt.Equal(cosmos.NewUint(2234)), Equals, true)
 
 	eg.UpsertGasPool(GasPool{
 		Asset:    common.BTCAsset,
-		AssetAmt: sdk.NewUint(1024),
-		RuneAmt:  sdk.ZeroUint(),
+		AssetAmt: cosmos.NewUint(1024),
+		RuneAmt:  cosmos.ZeroUint(),
 	})
 	c.Assert(eg.Pools, HasLen, 2)
 	c.Assert(eg.Pools[1].Asset, Equals, common.BTCAsset)
-	c.Assert(eg.Pools[1].AssetAmt.Equal(sdk.NewUint(1024)), Equals, true)
-	c.Assert(eg.Pools[1].RuneAmt.Equal(sdk.ZeroUint()), Equals, true)
+	c.Assert(eg.Pools[1].AssetAmt.Equal(cosmos.NewUint(1024)), Equals, true)
+	c.Assert(eg.Pools[1].RuneAmt.Equal(cosmos.ZeroUint()), Equals, true)
 
 	eg.UpsertGasPool(GasPool{
 		Asset:    common.BTCAsset,
-		AssetAmt: sdk.ZeroUint(),
-		RuneAmt:  sdk.ZeroUint(),
-	})
-
-	c.Assert(eg.Pools, HasLen, 2)
-	c.Assert(eg.Pools[1].Asset, Equals, common.BTCAsset)
-	c.Assert(eg.Pools[1].AssetAmt.Equal(sdk.NewUint(1024)), Equals, true)
-	c.Assert(eg.Pools[1].RuneAmt.Equal(sdk.ZeroUint()), Equals, true)
-
-	eg.UpsertGasPool(GasPool{
-		Asset:    common.BTCAsset,
-		AssetAmt: sdk.ZeroUint(),
-		RuneAmt:  sdk.NewUint(3333),
+		AssetAmt: cosmos.ZeroUint(),
+		RuneAmt:  cosmos.ZeroUint(),
 	})
 
 	c.Assert(eg.Pools, HasLen, 2)
 	c.Assert(eg.Pools[1].Asset, Equals, common.BTCAsset)
-	c.Assert(eg.Pools[1].AssetAmt.Equal(sdk.NewUint(1024)), Equals, true)
-	c.Assert(eg.Pools[1].RuneAmt.Equal(sdk.NewUint(3333)), Equals, true)
+	c.Assert(eg.Pools[1].AssetAmt.Equal(cosmos.NewUint(1024)), Equals, true)
+	c.Assert(eg.Pools[1].RuneAmt.Equal(cosmos.ZeroUint()), Equals, true)
+
+	eg.UpsertGasPool(GasPool{
+		Asset:    common.BTCAsset,
+		AssetAmt: cosmos.ZeroUint(),
+		RuneAmt:  cosmos.NewUint(3333),
+	})
+
+	c.Assert(eg.Pools, HasLen, 2)
+	c.Assert(eg.Pools[1].Asset, Equals, common.BTCAsset)
+	c.Assert(eg.Pools[1].AssetAmt.Equal(cosmos.NewUint(1024)), Equals, true)
+	c.Assert(eg.Pools[1].RuneAmt.Equal(cosmos.NewUint(3333)), Equals, true)
 }
 
 func (s EventSuite) TestEventFee(c *C) {
 	event := NewEventFee(GetRandomTxHash(), common.Fee{
 		Coins: common.Coins{
-			common.NewCoin(common.BNBAsset, sdk.NewUint(1024)),
+			common.NewCoin(common.BNBAsset, cosmos.NewUint(1024)),
 		},
-		PoolDeduct: sdk.NewUint(1023),
+		PoolDeduct: cosmos.NewUint(1023),
 	})
 	c.Assert(event.Type(), Equals, FeeEventType)
 	evts, err := event.Events()

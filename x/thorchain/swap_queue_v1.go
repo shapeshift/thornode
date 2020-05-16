@@ -5,9 +5,9 @@ import (
 	"sort"
 
 	"github.com/blang/semver"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 )
 
@@ -20,8 +20,8 @@ type SwapQv1 struct {
 
 type swapItem struct {
 	msg  MsgSwap
-	fee  sdk.Uint
-	slip sdk.Uint
+	fee  cosmos.Uint
+	slip cosmos.Uint
 }
 type swapItems []swapItem
 
@@ -35,7 +35,7 @@ func NewSwapQv1(k Keeper, versionedTxOutStore VersionedTxOutStore, versionedEven
 }
 
 // FetchQueue - grabs all swap queue items from the kvstore and returns them
-func (vm *SwapQv1) FetchQueue(ctx sdk.Context) ([]MsgSwap, error) {
+func (vm *SwapQv1) FetchQueue(ctx cosmos.Context) ([]MsgSwap, error) {
 	msgs := make([]MsgSwap, 0)
 	iterator := vm.k.GetSwapQueueIterator(ctx)
 	defer iterator.Close()
@@ -51,7 +51,7 @@ func (vm *SwapQv1) FetchQueue(ctx sdk.Context) ([]MsgSwap, error) {
 }
 
 // EndBlock move funds from retiring asgard vaults
-func (vm *SwapQv1) EndBlock(ctx sdk.Context, version semver.Version, constAccessor constants.ConstantValues) error {
+func (vm *SwapQv1) EndBlock(ctx cosmos.Context, version semver.Version, constAccessor constants.ConstantValues) error {
 	handler := NewSwapHandler(vm.k, vm.versionedTxOutStore, vm.versionedEventManager)
 
 	txOutStore, err := vm.versionedTxOutStore.GetTxOutStore(ctx, vm.k, version)
@@ -117,7 +117,7 @@ func (vm *SwapQv1) getTodoNum(queueLen int) int {
 
 // ScoreMsgs - this takes a list of MsgSwap, and converts them to a scored
 // swapItem list
-func (vm *SwapQv1) ScoreMsgs(ctx sdk.Context, msgs []MsgSwap) (swapItems, error) {
+func (vm *SwapQv1) ScoreMsgs(ctx cosmos.Context, msgs []MsgSwap) (swapItems, error) {
 	pools := make(map[common.Asset]Pool, 0)
 	items := make(swapItems, 0)
 
@@ -132,8 +132,8 @@ func (vm *SwapQv1) ScoreMsgs(ctx sdk.Context, msgs []MsgSwap) (swapItems, error)
 
 		item := swapItem{
 			msg:  msg,
-			fee:  sdk.ZeroUint(),
-			slip: sdk.ZeroUint(),
+			fee:  cosmos.ZeroUint(),
+			slip: cosmos.ZeroUint(),
 		}
 
 		pool := pools[msg.TargetAsset]
@@ -145,7 +145,7 @@ func (vm *SwapQv1) ScoreMsgs(ctx sdk.Context, msgs []MsgSwap) (swapItems, error)
 		sourceCoin := msg.Tx.Coins[0]
 
 		// Get our X, x, Y values
-		var X, x, Y sdk.Uint
+		var X, x, Y cosmos.Uint
 		x = sourceCoin.Amount
 		if sourceCoin.Asset.IsRune() {
 			X = pool.BalanceRune

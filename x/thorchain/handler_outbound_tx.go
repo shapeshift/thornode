@@ -3,8 +3,7 @@ package thorchain
 import (
 	"github.com/blang/semver"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 )
 
@@ -21,7 +20,7 @@ func NewOutboundTxHandler(keeper Keeper, versionedEventManager VersionedEventMan
 	}
 }
 
-func (h OutboundTxHandler) Run(ctx sdk.Context, m sdk.Msg, version semver.Version, _ constants.ConstantValues) sdk.Result {
+func (h OutboundTxHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, _ constants.ConstantValues) cosmos.Result {
 	msg, ok := m.(MsgOutboundTx)
 	if !ok {
 		return errInvalidMessage.Result()
@@ -32,7 +31,7 @@ func (h OutboundTxHandler) Run(ctx sdk.Context, m sdk.Msg, version semver.Versio
 	return h.handle(ctx, msg, version)
 }
 
-func (h OutboundTxHandler) validate(ctx sdk.Context, msg MsgOutboundTx, version semver.Version) sdk.Error {
+func (h OutboundTxHandler) validate(ctx cosmos.Context, msg MsgOutboundTx, version semver.Version) cosmos.Error {
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, msg)
 	}
@@ -40,7 +39,7 @@ func (h OutboundTxHandler) validate(ctx sdk.Context, msg MsgOutboundTx, version 
 	return errBadVersion
 }
 
-func (h OutboundTxHandler) validateV1(ctx sdk.Context, msg MsgOutboundTx) sdk.Error {
+func (h OutboundTxHandler) validateV1(ctx cosmos.Context, msg MsgOutboundTx) cosmos.Error {
 	if err := msg.ValidateBasic(); err != nil {
 		ctx.Logger().Error(err.Error())
 		return err
@@ -48,12 +47,12 @@ func (h OutboundTxHandler) validateV1(ctx sdk.Context, msg MsgOutboundTx) sdk.Er
 
 	if !isSignedByActiveNodeAccounts(ctx, h.keeper, msg.GetSigners()) {
 		ctx.Logger().Error(notAuthorized.Error())
-		return sdk.ErrUnauthorized("Not Authorized")
+		return cosmos.ErrUnauthorized("Not Authorized")
 	}
 	return nil
 }
 
-func (h OutboundTxHandler) handle(ctx sdk.Context, msg MsgOutboundTx, version semver.Version) sdk.Result {
+func (h OutboundTxHandler) handle(ctx cosmos.Context, msg MsgOutboundTx, version semver.Version) cosmos.Result {
 	ctx.Logger().Info("receive MsgOutboundTx", "request outbound tx hash", msg.Tx.Tx.ID)
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.handleV1(ctx, version, msg)
@@ -62,6 +61,6 @@ func (h OutboundTxHandler) handle(ctx sdk.Context, msg MsgOutboundTx, version se
 	return errBadVersion.Result()
 }
 
-func (h OutboundTxHandler) handleV1(ctx sdk.Context, version semver.Version, msg MsgOutboundTx) sdk.Result {
+func (h OutboundTxHandler) handleV1(ctx cosmos.Context, version semver.Version, msg MsgOutboundTx) cosmos.Result {
 	return h.ch.handle(ctx, version, msg.Tx, msg.InTxID, EventSuccess)
 }

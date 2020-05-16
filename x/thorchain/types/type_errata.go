@@ -3,16 +3,15 @@ package types
 import (
 	"fmt"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 type ErrataTxVoter struct {
-	TxID        common.TxID      `json:"tx_id"`
-	Chain       common.Chain     `json:"chain"`
-	BlockHeight int64            `json:"block_height"`
-	Signers     []sdk.AccAddress `json:"signers"`
+	TxID        common.TxID         `json:"tx_id"`
+	Chain       common.Chain        `json:"chain"`
+	BlockHeight int64               `json:"block_height"`
+	Signers     []cosmos.AccAddress `json:"signers"`
 }
 
 func NewErrataTxVoter(txID common.TxID, chain common.Chain) ErrataTxVoter {
@@ -23,7 +22,7 @@ func NewErrataTxVoter(txID common.TxID, chain common.Chain) ErrataTxVoter {
 }
 
 // HasSigned - check if given address has signed
-func (errata ErrataTxVoter) HasSigned(signer sdk.AccAddress) bool {
+func (errata ErrataTxVoter) HasSigned(signer cosmos.AccAddress) bool {
 	for _, sign := range errata.Signers {
 		if sign.Equals(signer) {
 			return true
@@ -33,7 +32,7 @@ func (errata ErrataTxVoter) HasSigned(signer sdk.AccAddress) bool {
 }
 
 // Sign this voter with given signer address
-func (errata *ErrataTxVoter) Sign(signer sdk.AccAddress) bool {
+func (errata *ErrataTxVoter) Sign(signer cosmos.AccAddress) bool {
 	if errata.HasSigned(signer) {
 		return false
 	}

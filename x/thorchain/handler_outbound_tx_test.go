@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 
 	"github.com/blang/semver"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 )
 
@@ -19,7 +19,7 @@ type TestOutboundTxKeeper struct {
 	vault             Vault
 }
 
-func (k *TestOutboundTxKeeper) GetNodeAccount(_ sdk.Context, addr sdk.AccAddress) (NodeAccount, error) {
+func (k *TestOutboundTxKeeper) GetNodeAccount(_ cosmos.Context, addr cosmos.AccAddress) (NodeAccount, error) {
 	if k.activeNodeAccount.NodeAddress.Equals(addr) {
 		return k.activeNodeAccount, nil
 	}
@@ -50,7 +50,7 @@ func (s *HandlerOutboundTxSuite) TestValidate(c *C) {
 	tx := NewObservedTx(common.Tx{
 		ID:          GetRandomTxHash(),
 		Chain:       common.BNBChain,
-		Coins:       common.Coins{common.NewCoin(common.BNBAsset, sdk.NewUint(1*common.One))},
+		Coins:       common.Coins{common.NewCoin(common.BNBAsset, cosmos.NewUint(1*common.One))},
 		Memo:        "",
 		FromAddress: GetRandomBNBAddress(),
 		ToAddress:   addr,
@@ -73,11 +73,11 @@ func (s *HandlerOutboundTxSuite) TestValidate(c *C) {
 	// not signed observer
 	msgOutboundTx = NewMsgOutboundTx(tx, tx.Tx.ID, GetRandomBech32Addr())
 	sErr = handler.validate(ctx, msgOutboundTx, ver)
-	c.Assert(sErr.Code(), Equals, sdk.CodeUnauthorized)
+	c.Assert(sErr.Code(), Equals, cosmos.CodeUnauthorized)
 }
 
 type outboundTxHandlerTestHelper struct {
-	ctx           sdk.Context
+	ctx           cosmos.Context
 	pool          Pool
 	version       semver.Version
 	keeper        *outboundTxHandlerKeeperHelper
@@ -111,76 +111,76 @@ func newOutboundTxHandlerKeeperHelper(keeper Keeper) *outboundTxHandlerKeeperHel
 	}
 }
 
-func (k *outboundTxHandlerKeeperHelper) GetObservedTxVoter(ctx sdk.Context, hash common.TxID) (ObservedTxVoter, error) {
+func (k *outboundTxHandlerKeeperHelper) GetObservedTxVoter(ctx cosmos.Context, hash common.TxID) (ObservedTxVoter, error) {
 	if hash.Equals(k.observeTxVoterErrHash) {
 		return ObservedTxVoter{}, kaboom
 	}
 	return k.Keeper.GetObservedTxVoter(ctx, hash)
 }
 
-func (k *outboundTxHandlerKeeperHelper) GetPendingEventID(ctx sdk.Context, hash common.TxID) ([]int64, error) {
+func (k *outboundTxHandlerKeeperHelper) GetPendingEventID(ctx cosmos.Context, hash common.TxID) ([]int64, error) {
 	if k.failGetPendingEvent {
 		return nil, kaboom
 	}
 	return k.Keeper.GetPendingEventID(ctx, hash)
 }
 
-func (k *outboundTxHandlerKeeperHelper) GetTxOut(ctx sdk.Context, height int64) (*TxOut, error) {
+func (k *outboundTxHandlerKeeperHelper) GetTxOut(ctx cosmos.Context, height int64) (*TxOut, error) {
 	if k.errGetTxOut {
 		return nil, kaboom
 	}
 	return k.Keeper.GetTxOut(ctx, height)
 }
 
-func (k *outboundTxHandlerKeeperHelper) GetNodeAccountByPubKey(ctx sdk.Context, pk common.PubKey) (NodeAccount, error) {
+func (k *outboundTxHandlerKeeperHelper) GetNodeAccountByPubKey(ctx cosmos.Context, pk common.PubKey) (NodeAccount, error) {
 	if k.errGetNodeAccount {
 		return NodeAccount{}, kaboom
 	}
 	return k.Keeper.GetNodeAccountByPubKey(ctx, pk)
 }
 
-func (k *outboundTxHandlerKeeperHelper) GetPool(ctx sdk.Context, asset common.Asset) (Pool, error) {
+func (k *outboundTxHandlerKeeperHelper) GetPool(ctx cosmos.Context, asset common.Asset) (Pool, error) {
 	if k.errGetPool {
 		return NewPool(), kaboom
 	}
 	return k.Keeper.GetPool(ctx, asset)
 }
 
-func (k *outboundTxHandlerKeeperHelper) SetPool(ctx sdk.Context, pool Pool) error {
+func (k *outboundTxHandlerKeeperHelper) SetPool(ctx cosmos.Context, pool Pool) error {
 	if k.errSetPool {
 		return kaboom
 	}
 	return k.Keeper.SetPool(ctx, pool)
 }
 
-func (k *outboundTxHandlerKeeperHelper) SetNodeAccount(ctx sdk.Context, na NodeAccount) error {
+func (k *outboundTxHandlerKeeperHelper) SetNodeAccount(ctx cosmos.Context, na NodeAccount) error {
 	if k.errSetNodeAccount {
 		return kaboom
 	}
 	return k.Keeper.SetNodeAccount(ctx, na)
 }
 
-func (k *outboundTxHandlerKeeperHelper) GetAsgardVaultsByStatus(ctx sdk.Context, status VaultStatus) (Vaults, error) {
+func (k *outboundTxHandlerKeeperHelper) GetAsgardVaultsByStatus(ctx cosmos.Context, status VaultStatus) (Vaults, error) {
 	return k.Keeper.GetAsgardVaultsByStatus(ctx, status)
 }
 
-func (k *outboundTxHandlerKeeperHelper) GetVault(ctx sdk.Context, _ common.PubKey) (Vault, error) {
+func (k *outboundTxHandlerKeeperHelper) GetVault(ctx cosmos.Context, _ common.PubKey) (Vault, error) {
 	return k.vault, nil
 }
 
-func (k *outboundTxHandlerKeeperHelper) SetVault(ctx sdk.Context, v Vault) error {
+func (k *outboundTxHandlerKeeperHelper) SetVault(ctx cosmos.Context, v Vault) error {
 	k.vault = v
 	return nil
 }
 
-func (k *outboundTxHandlerKeeperHelper) GetVaultData(ctx sdk.Context) (VaultData, error) {
+func (k *outboundTxHandlerKeeperHelper) GetVaultData(ctx cosmos.Context) (VaultData, error) {
 	if k.errGetVaultData {
 		return VaultData{}, kaboom
 	}
 	return k.Keeper.GetVaultData(ctx)
 }
 
-func (k *outboundTxHandlerKeeperHelper) SetVaultData(ctx sdk.Context, data VaultData) error {
+func (k *outboundTxHandlerKeeperHelper) SetVaultData(ctx cosmos.Context, data VaultData) error {
 	if k.errSetVaultData {
 		return kaboom
 	}
@@ -193,8 +193,8 @@ func newOutboundTxHandlerTestHelper(c *C) outboundTxHandlerTestHelper {
 	ctx = ctx.WithBlockHeight(1023)
 	pool := NewPool()
 	pool.Asset = common.BNBAsset
-	pool.BalanceAsset = sdk.NewUint(100 * common.One)
-	pool.BalanceRune = sdk.NewUint(100 * common.One)
+	pool.BalanceAsset = cosmos.NewUint(100 * common.One)
+	pool.BalanceRune = cosmos.NewUint(100 * common.One)
 
 	version := constants.SWVersion
 	asgardVault := GetRandomVault()
@@ -206,7 +206,7 @@ func newOutboundTxHandlerTestHelper(c *C) outboundTxHandlerTestHelper {
 	tx := NewObservedTx(common.Tx{
 		ID:          GetRandomTxHash(),
 		Chain:       common.RuneAsset().Chain,
-		Coins:       common.Coins{common.NewCoin(common.BNBAsset, sdk.NewUint(1*common.One))},
+		Coins:       common.Coins{common.NewCoin(common.BNBAsset, cosmos.NewUint(1*common.One))},
 		Memo:        "SWAP:" + common.RuneAsset().String(),
 		FromAddress: GetRandomRUNEAddress(),
 		ToAddress:   addr,
@@ -221,7 +221,7 @@ func newOutboundTxHandlerTestHelper(c *C) outboundTxHandlerTestHelper {
 	nodeAccount := GetRandomNodeAccount(NodeActive)
 	nodeAccount.NodeAddress, err = yggVault.PubKey.GetThorAddress()
 	c.Assert(err, IsNil)
-	nodeAccount.Bond = sdk.NewUint(100 * common.One)
+	nodeAccount.Bond = cosmos.NewUint(100 * common.One)
 	nodeAccount.PubKeySet = common.NewPubKeySet(yggVault.PubKey, yggVault.PubKey)
 	c.Assert(keeper.SetNodeAccount(ctx, nodeAccount), IsNil)
 
@@ -234,7 +234,7 @@ func newOutboundTxHandlerTestHelper(c *C) outboundTxHandlerTestHelper {
 		Chain:       common.BNBChain,
 		ToAddress:   tx.Tx.FromAddress,
 		VaultPubKey: yggVault.PubKey,
-		Coin:        common.NewCoin(common.BNBAsset, sdk.NewUint(2*common.One)),
+		Coin:        common.NewCoin(common.BNBAsset, cosmos.NewUint(2*common.One)),
 		Memo:        NewOutboundMemo(tx.Tx.ID).String(),
 		InHash:      tx.Tx.ID,
 	}
@@ -242,7 +242,7 @@ func newOutboundTxHandlerTestHelper(c *C) outboundTxHandlerTestHelper {
 	c.Assert(err, IsNil)
 	c.Check(result, Equals, true)
 
-	swapEvent := NewEventSwap(common.BNBAsset, sdk.NewUint(common.One), sdk.NewUint(common.One), sdk.NewUint(common.One), sdk.NewUint(common.One), GetRandomTx())
+	swapEvent := NewEventSwap(common.BNBAsset, cosmos.NewUint(common.One), cosmos.NewUint(common.One), cosmos.NewUint(common.One), cosmos.NewUint(common.One), GetRandomTx())
 	buf, err := json.Marshal(swapEvent)
 	c.Assert(err, IsNil)
 	e := NewEvent(swapEvent.Type(), ctx.BlockHeight(), tx.Tx, buf, EventPending)
@@ -266,155 +266,155 @@ func newOutboundTxHandlerTestHelper(c *C) outboundTxHandlerTestHelper {
 func (s *HandlerOutboundTxSuite) TestOutboundTxHandlerShouldUpdateTxOut(c *C) {
 	testCases := []struct {
 		name           string
-		messageCreator func(helper outboundTxHandlerTestHelper, tx ObservedTx) sdk.Msg
-		runner         func(handler OutboundTxHandler, helper outboundTxHandlerTestHelper, msg sdk.Msg) sdk.Result
-		expectedResult sdk.CodeType
+		messageCreator func(helper outboundTxHandlerTestHelper, tx ObservedTx) cosmos.Msg
+		runner         func(handler OutboundTxHandler, helper outboundTxHandlerTestHelper, msg cosmos.Msg) cosmos.Result
+		expectedResult cosmos.CodeType
 	}{
 		{
 			name: "invalid message should return an error",
-			messageCreator: func(helper outboundTxHandlerTestHelper, tx ObservedTx) sdk.Msg {
+			messageCreator: func(helper outboundTxHandlerTestHelper, tx ObservedTx) cosmos.Msg {
 				return NewMsgNoOp(GetRandomObservedTx(), helper.nodeAccount.NodeAddress)
 			},
-			runner: func(handler OutboundTxHandler, helper outboundTxHandlerTestHelper, msg sdk.Msg) sdk.Result {
+			runner: func(handler OutboundTxHandler, helper outboundTxHandlerTestHelper, msg cosmos.Msg) cosmos.Result {
 				return handler.Run(helper.ctx, msg, helper.version, helper.constAccessor)
 			},
 			expectedResult: CodeInvalidMessage,
 		},
 		{
 			name: "if the version is lower than expected, it should return an error",
-			messageCreator: func(helper outboundTxHandlerTestHelper, tx ObservedTx) sdk.Msg {
+			messageCreator: func(helper outboundTxHandlerTestHelper, tx ObservedTx) cosmos.Msg {
 				return NewMsgOutboundTx(tx, tx.Tx.ID, helper.nodeAccount.NodeAddress)
 			},
-			runner: func(handler OutboundTxHandler, helper outboundTxHandlerTestHelper, msg sdk.Msg) sdk.Result {
+			runner: func(handler OutboundTxHandler, helper outboundTxHandlerTestHelper, msg cosmos.Msg) cosmos.Result {
 				return handler.Run(helper.ctx, msg, semver.MustParse("0.0.1"), helper.constAccessor)
 			},
 			expectedResult: CodeBadVersion,
 		},
 		{
 			name: "create a outbound tx with invalid observer account",
-			messageCreator: func(helper outboundTxHandlerTestHelper, tx ObservedTx) sdk.Msg {
+			messageCreator: func(helper outboundTxHandlerTestHelper, tx ObservedTx) cosmos.Msg {
 				return NewMsgOutboundTx(tx, tx.Tx.ID, GetRandomNodeAccount(NodeActive).NodeAddress)
 			},
-			runner: func(handler OutboundTxHandler, helper outboundTxHandlerTestHelper, msg sdk.Msg) sdk.Result {
+			runner: func(handler OutboundTxHandler, helper outboundTxHandlerTestHelper, msg cosmos.Msg) cosmos.Result {
 				return handler.Run(helper.ctx, msg, semver.MustParse("0.2.0"), helper.constAccessor)
 			},
-			expectedResult: sdk.CodeUnauthorized,
+			expectedResult: cosmos.CodeUnauthorized,
 		},
 		{
 			name: "fail to get observed TxVoter should result in an error",
-			messageCreator: func(helper outboundTxHandlerTestHelper, tx ObservedTx) sdk.Msg {
+			messageCreator: func(helper outboundTxHandlerTestHelper, tx ObservedTx) cosmos.Msg {
 				return NewMsgOutboundTx(tx, helper.keeper.observeTxVoterErrHash, helper.nodeAccount.NodeAddress)
 			},
-			runner: func(handler OutboundTxHandler, helper outboundTxHandlerTestHelper, msg sdk.Msg) sdk.Result {
+			runner: func(handler OutboundTxHandler, helper outboundTxHandlerTestHelper, msg cosmos.Msg) cosmos.Result {
 				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
 			},
-			expectedResult: sdk.CodeInternal,
+			expectedResult: cosmos.CodeInternal,
 		},
 		{
 			name: "fail to complete events should result in an error",
-			messageCreator: func(helper outboundTxHandlerTestHelper, tx ObservedTx) sdk.Msg {
+			messageCreator: func(helper outboundTxHandlerTestHelper, tx ObservedTx) cosmos.Msg {
 				return NewMsgOutboundTx(tx, helper.inboundTx.Tx.ID, helper.nodeAccount.NodeAddress)
 			},
-			runner: func(handler OutboundTxHandler, helper outboundTxHandlerTestHelper, msg sdk.Msg) sdk.Result {
+			runner: func(handler OutboundTxHandler, helper outboundTxHandlerTestHelper, msg cosmos.Msg) cosmos.Result {
 				helper.keeper.failGetPendingEvent = true
 				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
 			},
-			expectedResult: sdk.CodeInternal,
+			expectedResult: cosmos.CodeInternal,
 		},
 		{
 			name: "fail to get txout should result in an error",
-			messageCreator: func(helper outboundTxHandlerTestHelper, tx ObservedTx) sdk.Msg {
+			messageCreator: func(helper outboundTxHandlerTestHelper, tx ObservedTx) cosmos.Msg {
 				return NewMsgOutboundTx(tx, helper.inboundTx.Tx.ID, helper.nodeAccount.NodeAddress)
 			},
-			runner: func(handler OutboundTxHandler, helper outboundTxHandlerTestHelper, msg sdk.Msg) sdk.Result {
+			runner: func(handler OutboundTxHandler, helper outboundTxHandlerTestHelper, msg cosmos.Msg) cosmos.Result {
 				helper.keeper.errGetTxOut = true
 				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
 			},
-			expectedResult: sdk.CodeUnknownRequest,
+			expectedResult: cosmos.CodeUnknownRequest,
 		},
 		{
 			name: "fail to get node account should result in an error",
-			messageCreator: func(helper outboundTxHandlerTestHelper, tx ObservedTx) sdk.Msg {
-				tx.Tx.Coins = append(tx.Tx.Coins, common.NewCoin(common.BNBAsset, sdk.NewUint(common.One)))
+			messageCreator: func(helper outboundTxHandlerTestHelper, tx ObservedTx) cosmos.Msg {
+				tx.Tx.Coins = append(tx.Tx.Coins, common.NewCoin(common.BNBAsset, cosmos.NewUint(common.One)))
 				return NewMsgOutboundTx(tx, helper.inboundTx.Tx.ID, helper.nodeAccount.NodeAddress)
 			},
-			runner: func(handler OutboundTxHandler, helper outboundTxHandlerTestHelper, msg sdk.Msg) sdk.Result {
+			runner: func(handler OutboundTxHandler, helper outboundTxHandlerTestHelper, msg cosmos.Msg) cosmos.Result {
 				helper.keeper.errGetNodeAccount = true
 				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
 			},
-			expectedResult: sdk.CodeInternal,
+			expectedResult: cosmos.CodeInternal,
 		},
 		{
 			name: "fail to get pool should result in an error",
-			messageCreator: func(helper outboundTxHandlerTestHelper, tx ObservedTx) sdk.Msg {
-				tx.Tx.Coins = append(tx.Tx.Coins, common.NewCoin(common.BNBAsset, sdk.NewUint(common.One)))
+			messageCreator: func(helper outboundTxHandlerTestHelper, tx ObservedTx) cosmos.Msg {
+				tx.Tx.Coins = append(tx.Tx.Coins, common.NewCoin(common.BNBAsset, cosmos.NewUint(common.One)))
 				return NewMsgOutboundTx(tx, helper.inboundTx.Tx.ID, helper.nodeAccount.NodeAddress)
 			},
-			runner: func(handler OutboundTxHandler, helper outboundTxHandlerTestHelper, msg sdk.Msg) sdk.Result {
+			runner: func(handler OutboundTxHandler, helper outboundTxHandlerTestHelper, msg cosmos.Msg) cosmos.Result {
 				helper.keeper.errGetPool = true
 				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
 			},
-			expectedResult: sdk.CodeInternal,
+			expectedResult: cosmos.CodeInternal,
 		},
 		{
 			name: "fail to set pool should result in an error",
-			messageCreator: func(helper outboundTxHandlerTestHelper, tx ObservedTx) sdk.Msg {
-				tx.Tx.Coins = append(tx.Tx.Coins, common.NewCoin(common.BNBAsset, sdk.NewUint(common.One)))
+			messageCreator: func(helper outboundTxHandlerTestHelper, tx ObservedTx) cosmos.Msg {
+				tx.Tx.Coins = append(tx.Tx.Coins, common.NewCoin(common.BNBAsset, cosmos.NewUint(common.One)))
 				return NewMsgOutboundTx(tx, helper.inboundTx.Tx.ID, helper.nodeAccount.NodeAddress)
 			},
-			runner: func(handler OutboundTxHandler, helper outboundTxHandlerTestHelper, msg sdk.Msg) sdk.Result {
+			runner: func(handler OutboundTxHandler, helper outboundTxHandlerTestHelper, msg cosmos.Msg) cosmos.Result {
 				helper.keeper.errSetPool = true
 				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
 			},
-			expectedResult: sdk.CodeInternal,
+			expectedResult: cosmos.CodeInternal,
 		},
 		{
 			name: "fail to set node account should result in an error",
-			messageCreator: func(helper outboundTxHandlerTestHelper, tx ObservedTx) sdk.Msg {
-				tx.Tx.Coins = append(tx.Tx.Coins, common.NewCoin(common.BNBAsset, sdk.NewUint(common.One)))
+			messageCreator: func(helper outboundTxHandlerTestHelper, tx ObservedTx) cosmos.Msg {
+				tx.Tx.Coins = append(tx.Tx.Coins, common.NewCoin(common.BNBAsset, cosmos.NewUint(common.One)))
 				return NewMsgOutboundTx(tx, helper.inboundTx.Tx.ID, helper.nodeAccount.NodeAddress)
 			},
-			runner: func(handler OutboundTxHandler, helper outboundTxHandlerTestHelper, msg sdk.Msg) sdk.Result {
+			runner: func(handler OutboundTxHandler, helper outboundTxHandlerTestHelper, msg cosmos.Msg) cosmos.Result {
 				helper.keeper.errSetNodeAccount = true
 				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
 			},
-			expectedResult: sdk.CodeInternal,
+			expectedResult: cosmos.CodeInternal,
 		},
 		{
 			name: "fail to get vault data should result in an error",
-			messageCreator: func(helper outboundTxHandlerTestHelper, tx ObservedTx) sdk.Msg {
-				tx.Tx.Coins = append(tx.Tx.Coins, common.NewCoin(common.BNBAsset, sdk.NewUint(common.One)))
-				tx.Tx.Coins = append(tx.Tx.Coins, common.NewCoin(common.RuneAsset(), sdk.NewUint(common.One*2)))
+			messageCreator: func(helper outboundTxHandlerTestHelper, tx ObservedTx) cosmos.Msg {
+				tx.Tx.Coins = append(tx.Tx.Coins, common.NewCoin(common.BNBAsset, cosmos.NewUint(common.One)))
+				tx.Tx.Coins = append(tx.Tx.Coins, common.NewCoin(common.RuneAsset(), cosmos.NewUint(common.One*2)))
 				return NewMsgOutboundTx(tx, helper.inboundTx.Tx.ID, helper.nodeAccount.NodeAddress)
 			},
-			runner: func(handler OutboundTxHandler, helper outboundTxHandlerTestHelper, msg sdk.Msg) sdk.Result {
+			runner: func(handler OutboundTxHandler, helper outboundTxHandlerTestHelper, msg cosmos.Msg) cosmos.Result {
 				helper.keeper.errGetVaultData = true
 				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
 			},
-			expectedResult: sdk.CodeInternal,
+			expectedResult: cosmos.CodeInternal,
 		},
 		{
 			name: "fail to set vault data should result in an error",
-			messageCreator: func(helper outboundTxHandlerTestHelper, tx ObservedTx) sdk.Msg {
-				tx.Tx.Coins = append(tx.Tx.Coins, common.NewCoin(common.BNBAsset, sdk.NewUint(common.One)))
-				tx.Tx.Coins = append(tx.Tx.Coins, common.NewCoin(common.RuneAsset(), sdk.NewUint(common.One*2)))
+			messageCreator: func(helper outboundTxHandlerTestHelper, tx ObservedTx) cosmos.Msg {
+				tx.Tx.Coins = append(tx.Tx.Coins, common.NewCoin(common.BNBAsset, cosmos.NewUint(common.One)))
+				tx.Tx.Coins = append(tx.Tx.Coins, common.NewCoin(common.RuneAsset(), cosmos.NewUint(common.One*2)))
 				return NewMsgOutboundTx(tx, helper.inboundTx.Tx.ID, helper.nodeAccount.NodeAddress)
 			},
-			runner: func(handler OutboundTxHandler, helper outboundTxHandlerTestHelper, msg sdk.Msg) sdk.Result {
+			runner: func(handler OutboundTxHandler, helper outboundTxHandlerTestHelper, msg cosmos.Msg) cosmos.Result {
 				helper.keeper.errSetVaultData = true
 				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
 			},
-			expectedResult: sdk.CodeInternal,
+			expectedResult: cosmos.CodeInternal,
 		},
 		{
 			name: "valid outbound message, no event, no txout",
-			messageCreator: func(helper outboundTxHandlerTestHelper, tx ObservedTx) sdk.Msg {
+			messageCreator: func(helper outboundTxHandlerTestHelper, tx ObservedTx) cosmos.Msg {
 				return NewMsgOutboundTx(tx, helper.inboundTx.Tx.ID, helper.nodeAccount.NodeAddress)
 			},
-			runner: func(handler OutboundTxHandler, helper outboundTxHandlerTestHelper, msg sdk.Msg) sdk.Result {
+			runner: func(handler OutboundTxHandler, helper outboundTxHandlerTestHelper, msg cosmos.Msg) cosmos.Result {
 				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
 			},
-			expectedResult: sdk.CodeOK,
+			expectedResult: cosmos.CodeOK,
 		},
 	}
 
@@ -427,7 +427,7 @@ func (s *HandlerOutboundTxSuite) TestOutboundTxHandlerShouldUpdateTxOut(c *C) {
 			ID:    GetRandomTxHash(),
 			Chain: common.BNBChain,
 			Coins: common.Coins{
-				common.NewCoin(common.BNBAsset, sdk.NewUint(common.One)),
+				common.NewCoin(common.BNBAsset, cosmos.NewUint(common.One)),
 			},
 			Memo:        NewOutboundMemo(helper.inboundTx.Tx.ID).String(),
 			FromAddress: fromAddr,
@@ -450,7 +450,7 @@ func (s *HandlerOutboundTxSuite) TestOutboundTxNormalCase(c *C) {
 		ID:    GetRandomTxHash(),
 		Chain: common.BNBChain,
 		Coins: common.Coins{
-			common.NewCoin(common.BNBAsset, sdk.NewUint(common.One)),
+			common.NewCoin(common.BNBAsset, cosmos.NewUint(common.One)),
 		},
 		Memo:        NewOutboundMemo(helper.inboundTx.Tx.ID).String(),
 		FromAddress: fromAddr,
@@ -459,7 +459,7 @@ func (s *HandlerOutboundTxSuite) TestOutboundTxNormalCase(c *C) {
 	}, helper.ctx.BlockHeight(), helper.yggVault.PubKey)
 	// valid outbound message, with event, with txout
 	outMsg := NewMsgOutboundTx(tx, helper.inboundTx.Tx.ID, helper.nodeAccount.NodeAddress)
-	c.Assert(handler.Run(helper.ctx, outMsg, constants.SWVersion, helper.constAccessor).Code, Equals, sdk.CodeOK)
+	c.Assert(handler.Run(helper.ctx, outMsg, constants.SWVersion, helper.constAccessor).Code, Equals, cosmos.CodeOK)
 	// event should set to complete
 	ev, err := helper.keeper.GetEvent(helper.ctx, 1)
 	c.Assert(err, IsNil)
@@ -480,20 +480,20 @@ func (s *HandlerOutboundTxSuite) TestOuboundTxHandlerSendExtraFundShouldBeSlashe
 		ID:    GetRandomTxHash(),
 		Chain: common.BNBChain,
 		Coins: common.Coins{
-			common.NewCoin(common.RuneAsset(), sdk.NewUint(2*common.One)),
+			common.NewCoin(common.RuneAsset(), cosmos.NewUint(2*common.One)),
 		},
 		Memo:        NewOutboundMemo(helper.inboundTx.Tx.ID).String(),
 		FromAddress: fromAddr,
 		ToAddress:   helper.inboundTx.Tx.FromAddress,
 		Gas:         BNBGasFeeSingleton,
 	}, helper.ctx.BlockHeight(), helper.nodeAccount.PubKeySet.Secp256k1)
-	expectedBond := helper.nodeAccount.Bond.Sub(sdk.NewUint(2 * common.One).MulUint64(3).QuoUint64(2))
+	expectedBond := helper.nodeAccount.Bond.Sub(cosmos.NewUint(2 * common.One).MulUint64(3).QuoUint64(2))
 	vaultData, err := helper.keeper.GetVaultData(helper.ctx)
 	c.Assert(err, IsNil)
-	expectedVaultTotalReserve := vaultData.TotalReserve.Add(sdk.NewUint(common.One * 2).QuoUint64(2))
+	expectedVaultTotalReserve := vaultData.TotalReserve.Add(cosmos.NewUint(common.One * 2).QuoUint64(2))
 	// valid outbound message, with event, with txout
 	outMsg := NewMsgOutboundTx(tx, helper.inboundTx.Tx.ID, helper.nodeAccount.NodeAddress)
-	c.Assert(handler.Run(helper.ctx, outMsg, constants.SWVersion, helper.constAccessor).Code, Equals, sdk.CodeOK)
+	c.Assert(handler.Run(helper.ctx, outMsg, constants.SWVersion, helper.constAccessor).Code, Equals, cosmos.CodeOK)
 	na, err := helper.keeper.GetNodeAccount(helper.ctx, helper.nodeAccount.NodeAddress)
 	c.Assert(na.Bond.Equal(expectedBond), Equals, true)
 	vaultData, err = helper.keeper.GetVaultData(helper.ctx)
@@ -510,18 +510,18 @@ func (s *HandlerOutboundTxSuite) TestOutboundTxHandlerSendAdditionalCoinsShouldB
 		ID:    GetRandomTxHash(),
 		Chain: common.BNBChain,
 		Coins: common.Coins{
-			common.NewCoin(common.RuneAsset(), sdk.NewUint(1*common.One)),
-			common.NewCoin(common.BNBAsset, sdk.NewUint(1*common.One)),
+			common.NewCoin(common.RuneAsset(), cosmos.NewUint(1*common.One)),
+			common.NewCoin(common.BNBAsset, cosmos.NewUint(1*common.One)),
 		},
 		Memo:        NewOutboundMemo(helper.inboundTx.Tx.ID).String(),
 		FromAddress: fromAddr,
 		ToAddress:   helper.inboundTx.Tx.FromAddress,
 		Gas:         BNBGasFeeSingleton,
 	}, helper.ctx.BlockHeight(), helper.nodeAccount.PubKeySet.Secp256k1)
-	expectedBond := sdk.NewUint(9702970297)
+	expectedBond := cosmos.NewUint(9702970297)
 	// slash one BNB, and one rune
 	outMsg := NewMsgOutboundTx(tx, helper.inboundTx.Tx.ID, helper.nodeAccount.NodeAddress)
-	c.Assert(handler.Run(helper.ctx, outMsg, constants.SWVersion, helper.constAccessor).Code, Equals, sdk.CodeOK)
+	c.Assert(handler.Run(helper.ctx, outMsg, constants.SWVersion, helper.constAccessor).Code, Equals, cosmos.CodeOK)
 	na, err := helper.keeper.GetNodeAccount(helper.ctx, helper.nodeAccount.NodeAddress)
 	c.Assert(na.Bond.Equal(expectedBond), Equals, true, Commentf("%d/%d", na.Bond.Uint64(), expectedBond.Uint64()))
 }
@@ -535,8 +535,8 @@ func (s *HandlerOutboundTxSuite) TestOutboundTxHandlerInvalidObservedTxVoterShou
 		ID:    GetRandomTxHash(),
 		Chain: common.BNBChain,
 		Coins: common.Coins{
-			common.NewCoin(common.RuneAsset(), sdk.NewUint(1*common.One)),
-			common.NewCoin(common.BNBAsset, sdk.NewUint(1*common.One)),
+			common.NewCoin(common.RuneAsset(), cosmos.NewUint(1*common.One)),
+			common.NewCoin(common.BNBAsset, cosmos.NewUint(1*common.One)),
 		},
 		Memo:        NewOutboundMemo(helper.inboundTx.Tx.ID).String(),
 		FromAddress: fromAddr,
@@ -544,20 +544,20 @@ func (s *HandlerOutboundTxSuite) TestOutboundTxHandlerInvalidObservedTxVoterShou
 		Gas:         BNBGasFeeSingleton,
 	}, helper.ctx.BlockHeight(), helper.nodeAccount.PubKeySet.Secp256k1)
 
-	expectedBond := sdk.NewUint(9702970297)
+	expectedBond := cosmos.NewUint(9702970297)
 	vaultData, err := helper.keeper.GetVaultData(helper.ctx)
 	c.Assert(err, IsNil)
 	// expected 0.5 slashed RUNE be added to reserve
-	expectedVaultTotalReserve := vaultData.TotalReserve.Add(sdk.NewUint(common.One).QuoUint64(2))
+	expectedVaultTotalReserve := vaultData.TotalReserve.Add(cosmos.NewUint(common.One).QuoUint64(2))
 	pool, err := helper.keeper.GetPool(helper.ctx, common.BNBAsset)
 	c.Assert(err, IsNil)
-	poolBNB := common.SafeSub(pool.BalanceAsset, sdk.NewUint(common.One))
+	poolBNB := common.SafeSub(pool.BalanceAsset, cosmos.NewUint(common.One))
 
 	// given the outbound tx doesn't have relevant OservedTxVoter in system ,
 	// thus it should be slashed with 1.5 * the full amount of assets
 	outMsg := NewMsgOutboundTx(tx, tx.Tx.ID, helper.nodeAccount.NodeAddress)
 	na, _ := helper.keeper.GetNodeAccount(helper.ctx, helper.nodeAccount.NodeAddress)
-	c.Assert(handler.Run(helper.ctx, outMsg, constants.SWVersion, helper.constAccessor).Code, Equals, sdk.CodeOK)
+	c.Assert(handler.Run(helper.ctx, outMsg, constants.SWVersion, helper.constAccessor).Code, Equals, cosmos.CodeOK)
 	na, err = helper.keeper.GetNodeAccount(helper.ctx, helper.nodeAccount.NodeAddress)
 	c.Assert(na.Bond.Equal(expectedBond), Equals, true, Commentf("%d/%d", na.Bond.Uint64(), expectedBond.Uint64()))
 
@@ -566,6 +566,6 @@ func (s *HandlerOutboundTxSuite) TestOutboundTxHandlerInvalidObservedTxVoterShou
 	c.Assert(vaultData.TotalReserve.Equal(expectedVaultTotalReserve), Equals, true)
 	pool, err = helper.keeper.GetPool(helper.ctx, common.BNBAsset)
 	c.Assert(err, IsNil)
-	c.Assert(pool.BalanceRune.Equal(sdk.NewUint(10047029703)), Equals, true, Commentf("%d/%d", pool.BalanceRune.Uint64(), sdk.NewUint(10047029703)))
+	c.Assert(pool.BalanceRune.Equal(cosmos.NewUint(10047029703)), Equals, true, Commentf("%d/%d", pool.BalanceRune.Uint64(), cosmos.NewUint(10047029703)))
 	c.Assert(pool.BalanceAsset.Equal(poolBNB), Equals, true, Commentf("%d/%d", pool.BalanceAsset.Uint64(), poolBNB.Uint64()))
 }

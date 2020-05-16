@@ -5,9 +5,8 @@ import (
 	"fmt"
 	"sort"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 )
 
@@ -142,11 +141,11 @@ func (v Vault) GetCoin(asset common.Asset) common.Coin {
 			return coin
 		}
 	}
-	return common.NewCoin(asset, sdk.ZeroUint())
+	return common.NewCoin(asset, cosmos.ZeroUint())
 }
 
 // GetMembers return members who's address exist in the given list
-func (v Vault) GetMembers(activeObservers []sdk.AccAddress) (common.PubKeys, error) {
+func (v Vault) GetMembers(activeObservers []cosmos.AccAddress) (common.PubKeys, error) {
 	signers := common.PubKeys{}
 	for _, k := range v.Membership {
 		addr, err := k.GetThorAddress()

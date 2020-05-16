@@ -3,18 +3,18 @@ package types
 import (
 	"errors"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 type ReserveContributor struct {
 	Address common.Address `json:"address"`
-	Amount  sdk.Uint       `json:"amount"`
+	Amount  cosmos.Uint    `json:"amount"`
 }
 
 type ReserveContributors []ReserveContributor
 
-func NewReserveContributor(addr common.Address, amt sdk.Uint) ReserveContributor {
+func NewReserveContributor(addr common.Address, amt cosmos.Uint) ReserveContributor {
 	return ReserveContributor{
 		Address: addr,
 		Amount:  amt,

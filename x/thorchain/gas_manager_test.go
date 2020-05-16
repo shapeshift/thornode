@@ -1,10 +1,10 @@
 package thorchain
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 type GasManagerTestSuite struct{}
@@ -26,17 +26,17 @@ func (GasManagerTestSuite) TestGasManager(c *C) {
 	c.Assert(k.SetPool(ctx, pool), IsNil)
 
 	gasMgr.AddGasAsset(common.Gas{
-		common.NewCoin(common.BNBAsset, sdk.NewUint(37500)),
-		common.NewCoin(common.BTCAsset, sdk.NewUint(1000)),
+		common.NewCoin(common.BNBAsset, cosmos.NewUint(37500)),
+		common.NewCoin(common.BTCAsset, cosmos.NewUint(1000)),
 	})
 	c.Assert(gasMgr.GetGas(), HasLen, 2)
 	gasMgr.AddGasAsset(common.Gas{
-		common.NewCoin(common.BNBAsset, sdk.NewUint(38500)),
-		common.NewCoin(common.BTCAsset, sdk.NewUint(2000)),
+		common.NewCoin(common.BNBAsset, cosmos.NewUint(38500)),
+		common.NewCoin(common.BTCAsset, cosmos.NewUint(2000)),
 	})
 	c.Assert(gasMgr.GetGas(), HasLen, 2)
 	gasMgr.AddGasAsset(common.Gas{
-		common.NewCoin(common.ETHAsset, sdk.NewUint(38500)),
+		common.NewCoin(common.ETHAsset, cosmos.NewUint(38500)),
 	})
 	c.Assert(gasMgr.GetGas(), HasLen, 3)
 	eventMgr := NewEventMgr()

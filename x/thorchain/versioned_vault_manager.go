@@ -2,21 +2,21 @@ package thorchain
 
 import (
 	"github.com/blang/semver"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 )
 
 // VersionedVaultManager
 type VersionedVaultManager interface {
-	GetVaultManager(ctx sdk.Context, keeper Keeper, version semver.Version) (VaultManager, error)
+	GetVaultManager(ctx cosmos.Context, keeper Keeper, version semver.Version) (VaultManager, error)
 }
 
 // VaultManager interface define the contract of Vault Manager
 type VaultManager interface {
-	TriggerKeygen(ctx sdk.Context, nas NodeAccounts) error
-	RotateVault(ctx sdk.Context, vault Vault) error
-	EndBlock(ctx sdk.Context, version semver.Version, constAccessor constants.ConstantValues) error
+	TriggerKeygen(ctx cosmos.Context, nas NodeAccounts) error
+	RotateVault(ctx cosmos.Context, vault Vault) error
+	EndBlock(ctx cosmos.Context, version semver.Version, constAccessor constants.ConstantValues) error
 }
 
 // VersionedVaultMgr is an implementation of versioned Vault Manager
@@ -34,7 +34,7 @@ func NewVersionedVaultMgr(versionedTxOutStore VersionedTxOutStore, versionedEven
 }
 
 // GetVaultManager retrieve a VaultManager that is compatible with the given version
-func (v *VersionedVaultMgr) GetVaultManager(ctx sdk.Context, keeper Keeper, version semver.Version) (VaultManager, error) {
+func (v *VersionedVaultMgr) GetVaultManager(ctx cosmos.Context, keeper Keeper, version semver.Version) (VaultManager, error) {
 	if version.GTE(semver.MustParse("0.1.0")) {
 		if v.vaultMgrV1 == nil {
 			v.vaultMgrV1 = NewVaultMgr(keeper, v.versionedTxOutStore, v.versionedEventManager)

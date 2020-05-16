@@ -3,9 +3,8 @@ package types
 import (
 	. "gopkg.in/check.v1"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-
 	common "gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 type MsgSwitchSuite struct{}
@@ -15,7 +14,7 @@ var _ = Suite(&MsgSwitchSuite{})
 func (MsgSwitchSuite) TestMsgSwitchSuite(c *C) {
 	tx := GetRandomTx()
 	tx.Coins = common.Coins{
-		common.NewCoin(common.RuneAsset(), sdk.NewUint(100*common.One)),
+		common.NewCoin(common.RuneAsset(), cosmos.NewUint(100*common.One)),
 	}
 
 	acc1 := GetRandomBNBAddress()
@@ -32,8 +31,8 @@ func (MsgSwitchSuite) TestMsgSwitchSuite(c *C) {
 
 	// test too many coins
 	tx.Coins = common.Coins{
-		common.NewCoin(common.RuneAsset(), sdk.NewUint(100*common.One)),
-		common.NewCoin(common.BTCAsset, sdk.NewUint(100*common.One)),
+		common.NewCoin(common.RuneAsset(), cosmos.NewUint(100*common.One)),
+		common.NewCoin(common.BTCAsset, cosmos.NewUint(100*common.One)),
 	}
 	msg = NewMsgSwitch(tx, acc1, acc2)
 	c.Assert(msg.ValidateBasic(), NotNil)
@@ -45,7 +44,7 @@ func (MsgSwitchSuite) TestMsgSwitchSuite(c *C) {
 
 	// test non rune token
 	tx.Coins = common.Coins{
-		common.NewCoin(common.BNBAsset, sdk.NewUint(100*common.One)),
+		common.NewCoin(common.BNBAsset, cosmos.NewUint(100*common.One)),
 	}
 	msg = NewMsgSwitch(tx, acc1, acc2)
 	c.Assert(msg.ValidateBasic(), NotNil)

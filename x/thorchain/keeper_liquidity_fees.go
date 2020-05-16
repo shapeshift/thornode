@@ -4,19 +4,18 @@ import (
 	"fmt"
 	"strconv"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 type KeeperLiquidityFees interface {
-	AddToLiquidityFees(ctx sdk.Context, asset common.Asset, fee sdk.Uint) error
-	GetTotalLiquidityFees(ctx sdk.Context, height uint64) (sdk.Uint, error)
-	GetPoolLiquidityFees(ctx sdk.Context, height uint64, asset common.Asset) (sdk.Uint, error)
+	AddToLiquidityFees(ctx cosmos.Context, asset common.Asset, fee cosmos.Uint) error
+	GetTotalLiquidityFees(ctx cosmos.Context, height uint64) (cosmos.Uint, error)
+	GetPoolLiquidityFees(ctx cosmos.Context, height uint64, asset common.Asset) (cosmos.Uint, error)
 }
 
 // AddToLiquidityFees - measure of fees collected in each block
-func (k KVStore) AddToLiquidityFees(ctx sdk.Context, asset common.Asset, fee sdk.Uint) error {
+func (k KVStore) AddToLiquidityFees(ctx cosmos.Context, asset common.Asset, fee cosmos.Uint) error {
 	store := ctx.KVStore(k.storeKey)
 	currentHeight := uint64(ctx.BlockHeight())
 
@@ -42,28 +41,28 @@ func (k KVStore) AddToLiquidityFees(ctx sdk.Context, asset common.Asset, fee sdk
 	return nil
 }
 
-func (k KVStore) getLiquidityFees(ctx sdk.Context, key string) (sdk.Uint, error) {
+func (k KVStore) getLiquidityFees(ctx cosmos.Context, key string) (cosmos.Uint, error) {
 	store := ctx.KVStore(k.storeKey)
 	if !store.Has([]byte(key)) {
-		return sdk.ZeroUint(), nil
+		return cosmos.ZeroUint(), nil
 	}
 	buf := store.Get([]byte(key))
-	var liquidityFees sdk.Uint
+	var liquidityFees cosmos.Uint
 
 	if err := k.cdc.UnmarshalBinaryBare(buf, &liquidityFees); err != nil {
-		return sdk.ZeroUint(), dbError(ctx, "Unmarshal: liquidity fees", err)
+		return cosmos.ZeroUint(), dbError(ctx, "Unmarshal: liquidity fees", err)
 	}
 	return liquidityFees, nil
 }
 
 // GetTotalLiquidityFees - total of all fees collected in each block
-func (k KVStore) GetTotalLiquidityFees(ctx sdk.Context, height uint64) (sdk.Uint, error) {
+func (k KVStore) GetTotalLiquidityFees(ctx cosmos.Context, height uint64) (cosmos.Uint, error) {
 	key := k.GetKey(ctx, prefixTotalLiquidityFee, strconv.FormatUint(height, 10))
 	return k.getLiquidityFees(ctx, key)
 }
 
 // GetPoolLiquidityFees - total of fees collected in each block per pool
-func (k KVStore) GetPoolLiquidityFees(ctx sdk.Context, height uint64, asset common.Asset) (sdk.Uint, error) {
+func (k KVStore) GetPoolLiquidityFees(ctx cosmos.Context, height uint64, asset common.Asset) (cosmos.Uint, error) {
 	key := k.GetKey(ctx, prefixPoolLiquidityFee, fmt.Sprintf("%d-%s", height, asset.String()))
 	return k.getLiquidityFees(ctx, key)
 }

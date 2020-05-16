@@ -3,7 +3,7 @@ package common
 import (
 	"testing"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	. "gopkg.in/check.v1"
 )
 
@@ -14,9 +14,9 @@ type CommonSuite struct{}
 var _ = Suite(&CommonSuite{})
 
 func (s CommonSuite) TestGetShare(c *C) {
-	part := sdk.NewUint(149506590)
-	total := sdk.NewUint(50165561086)
-	alloc := sdk.NewUint(50000000)
+	part := cosmos.NewUint(149506590)
+	total := cosmos.NewUint(50165561086)
+	alloc := cosmos.NewUint(50000000)
 	share := GetShare(part, total, alloc)
-	c.Assert(share.Equal(sdk.NewUint(149013)), Equals, true)
+	c.Assert(share.Equal(cosmos.NewUint(149013)), Equals, true)
 }

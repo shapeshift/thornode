@@ -4,14 +4,13 @@ import (
 	"errors"
 	"fmt"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 )
 
 // Fund is a method to fund yggdrasil pool
-func Fund(ctx sdk.Context, keeper Keeper, txOutStore TxOutStore, constAccessor constants.ConstantValues) error {
+func Fund(ctx cosmos.Context, keeper Keeper, txOutStore TxOutStore, constAccessor constants.ConstantValues) error {
 	// Check if we have triggered the ragnarok protocol
 	ragnarokHeight, err := keeper.GetRagnarokBlockHeight(ctx)
 	if err != nil {
@@ -33,7 +32,7 @@ func Fund(ctx sdk.Context, keeper Keeper, txOutStore TxOutStore, constAccessor c
 	}
 
 	// find total bonded
-	totalBond := sdk.ZeroUint()
+	totalBond := cosmos.ZeroUint()
 	nodeAccs, err := keeper.ListActiveNodeAccounts(ctx)
 	if err != nil {
 		return err
@@ -64,7 +63,7 @@ func Fund(ctx sdk.Context, keeper Keeper, txOutStore TxOutStore, constAccessor c
 	if minBond < 0 || err != nil {
 		minBond = constAccessor.GetInt64Value(constants.MinimumBondInRune)
 	}
-	if na.Bond.LT(sdk.NewUint(uint64(minBond))) {
+	if na.Bond.LT(cosmos.NewUint(uint64(minBond))) {
 		return nil
 	}
 
@@ -92,7 +91,7 @@ func Fund(ctx sdk.Context, keeper Keeper, txOutStore TxOutStore, constAccessor c
 	}
 
 	// calculate the total value of funds of this yggdrasil vault
-	totalValue := sdk.ZeroUint()
+	totalValue := cosmos.ZeroUint()
 	for _, coin := range ygg.Coins {
 		if coin.Asset.IsRune() {
 			totalValue = totalValue.Add(coin.Amount)
@@ -154,7 +153,7 @@ func Fund(ctx sdk.Context, keeper Keeper, txOutStore TxOutStore, constAccessor c
 
 // sendCoinsToYggdrasil - adds outbound txs to send the given coins to a
 // yggdrasil pool
-func sendCoinsToYggdrasil(ctx sdk.Context, keeper Keeper, coins common.Coins, ygg Vault, txOutStore TxOutStore) (int, error) {
+func sendCoinsToYggdrasil(ctx cosmos.Context, keeper Keeper, coins common.Coins, ygg Vault, txOutStore TxOutStore) (int, error) {
 	var count int
 
 	active, err := keeper.GetAsgardVaultsByStatus(ctx, ActiveVault)
@@ -200,12 +199,12 @@ func sendCoinsToYggdrasil(ctx sdk.Context, keeper Keeper, coins common.Coins, yg
 // calcTargetYggCoins - calculate the amount of coins of each pool a yggdrasil
 // pool should have, relative to how much they have bonded (which should be
 // target == bond / 2).
-func calcTargetYggCoins(pools []Pool, ygg Vault, yggBond, totalBond sdk.Uint) (common.Coins, error) {
-	runeCoin := common.NewCoin(common.RuneAsset(), sdk.ZeroUint())
+func calcTargetYggCoins(pools []Pool, ygg Vault, yggBond, totalBond cosmos.Uint) (common.Coins, error) {
+	runeCoin := common.NewCoin(common.RuneAsset(), cosmos.ZeroUint())
 	var coins common.Coins
 
 	// calculate total rune in our pools
-	totalRune := sdk.ZeroUint()
+	totalRune := cosmos.ZeroUint()
 	for _, pool := range pools {
 		totalRune = totalRune.Add(pool.BalanceRune)
 	}
@@ -216,7 +215,7 @@ func calcTargetYggCoins(pools []Pool, ygg Vault, yggBond, totalBond sdk.Uint) (c
 
 	// figure out what percentage of the bond this yggdrasil pool has. They
 	// should get half of that value.
-	targetRune := common.GetShare(yggBond, totalBond.Mul(sdk.NewUint(2)), totalRune)
+	targetRune := common.GetShare(yggBond, totalBond.Mul(cosmos.NewUint(2)), totalRune)
 	// check if more rune would be allocated to this pool than their bond allows
 	if targetRune.GT(yggBond.QuoUint64(2)) {
 		targetRune = yggBond.QuoUint64(2)
@@ -225,7 +224,7 @@ func calcTargetYggCoins(pools []Pool, ygg Vault, yggBond, totalBond sdk.Uint) (c
 	// track how much value (in rune) we've associated with this ygg pool. This
 	// is here just to be absolutely sure THORNode never send too many assets to the
 	// ygg by accident.
-	counter := sdk.ZeroUint()
+	counter := cosmos.ZeroUint()
 	for _, pool := range pools {
 		runeAmt := common.GetShare(targetRune, totalRune, pool.BalanceRune)
 		runeCoin.Amount = runeCoin.Amount.Add(runeAmt)

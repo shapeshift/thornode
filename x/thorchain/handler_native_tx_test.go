@@ -2,9 +2,9 @@ package thorchain
 
 import (
 	"github.com/blang/semver"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 
 	. "gopkg.in/check.v1"
@@ -20,7 +20,7 @@ func (s *HandlerNativeTxSuite) TestValidate(c *C) {
 	addr := GetRandomBech32Addr()
 
 	coins := common.Coins{
-		common.NewCoin(common.RuneNative, sdk.NewUint(200*common.One)),
+		common.NewCoin(common.RuneNative, cosmos.NewUint(200*common.One)),
 	}
 	msg := NewMsgNativeTx(coins, "STAKE:BNB.BNB", addr)
 
@@ -62,12 +62,12 @@ func (s *HandlerNativeTxSuite) TestHandle(c *C) {
 	addr := GetRandomBech32Addr()
 
 	coins := common.Coins{
-		common.NewCoin(common.RuneNative, sdk.NewUint(200*common.One)),
+		common.NewCoin(common.RuneNative, cosmos.NewUint(200*common.One)),
 	}
 
-	funds, err := common.NewCoin(common.RuneNative, sdk.NewUint(300*common.One)).Native()
+	funds, err := common.NewCoin(common.RuneNative, cosmos.NewUint(300*common.One)).Native()
 	c.Assert(err, IsNil)
-	_, err = banker.AddCoins(ctx, addr, sdk.NewCoins(funds))
+	_, err = banker.AddCoins(ctx, addr, cosmos.NewCoins(funds))
 	c.Assert(err, IsNil)
 
 	msg := NewMsgNativeTx(coins, "ADD:BNB.BNB", addr)

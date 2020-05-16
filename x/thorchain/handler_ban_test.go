@@ -4,7 +4,7 @@ import (
 	"errors"
 
 	"github.com/blang/semver"
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 	. "gopkg.in/check.v1"
 )
@@ -23,11 +23,11 @@ type TestBanKeeper struct {
 	err       error
 }
 
-func (k *TestBanKeeper) ListActiveNodeAccounts(_ sdk.Context) (NodeAccounts, error) {
+func (k *TestBanKeeper) ListActiveNodeAccounts(_ cosmos.Context) (NodeAccounts, error) {
 	return NodeAccounts{k.toBan, k.banner1, k.banner2}, k.err
 }
 
-func (k *TestBanKeeper) GetNodeAccount(_ sdk.Context, addr sdk.AccAddress) (NodeAccount, error) {
+func (k *TestBanKeeper) GetNodeAccount(_ cosmos.Context, addr cosmos.AccAddress) (NodeAccount, error) {
 	if addr.Equals(k.toBan.NodeAddress) {
 		return k.toBan, k.err
 	}
@@ -40,7 +40,7 @@ func (k *TestBanKeeper) GetNodeAccount(_ sdk.Context, addr sdk.AccAddress) (Node
 	return NodeAccount{}, errors.New("could not find node account, oops")
 }
 
-func (k *TestBanKeeper) SetNodeAccount(_ sdk.Context, na NodeAccount) error {
+func (k *TestBanKeeper) SetNodeAccount(_ cosmos.Context, na NodeAccount) error {
 	if na.NodeAddress.Equals(k.toBan.NodeAddress) {
 		k.toBan = na
 		return k.err
@@ -56,20 +56,20 @@ func (k *TestBanKeeper) SetNodeAccount(_ sdk.Context, na NodeAccount) error {
 	return k.err
 }
 
-func (k *TestBanKeeper) GetVaultData(ctx sdk.Context) (VaultData, error) {
+func (k *TestBanKeeper) GetVaultData(ctx cosmos.Context) (VaultData, error) {
 	return k.vaultData, nil
 }
 
-func (k *TestBanKeeper) SetVaultData(ctx sdk.Context, data VaultData) error {
+func (k *TestBanKeeper) SetVaultData(ctx cosmos.Context, data VaultData) error {
 	k.vaultData = data
 	return nil
 }
 
-func (k *TestBanKeeper) GetBanVoter(_ sdk.Context, addr sdk.AccAddress) (BanVoter, error) {
+func (k *TestBanKeeper) GetBanVoter(_ cosmos.Context, addr cosmos.AccAddress) (BanVoter, error) {
 	return k.ban, k.err
 }
 
-func (k *TestBanKeeper) SetBanVoter(_ sdk.Context, ban BanVoter) {
+func (k *TestBanKeeper) SetBanVoter(_ cosmos.Context, ban BanVoter) {
 	k.ban = ban
 }
 
@@ -108,11 +108,11 @@ func (s *HandlerBanSuite) TestHandle(c *C) {
 	minBond := constAccessor.GetInt64Value(constants.MinimumBondInRune)
 
 	toBan := GetRandomNodeAccount(NodeActive)
-	toBan.Bond = sdk.NewUint(uint64(minBond))
+	toBan.Bond = cosmos.NewUint(uint64(minBond))
 	banner1 := GetRandomNodeAccount(NodeActive)
-	banner1.Bond = sdk.NewUint(uint64(minBond))
+	banner1.Bond = cosmos.NewUint(uint64(minBond))
 	banner2 := GetRandomNodeAccount(NodeActive)
-	banner2.Bond = sdk.NewUint(uint64(minBond))
+	banner2.Bond = cosmos.NewUint(uint64(minBond))
 
 	keeper := &TestBanKeeper{
 		ban:       NewBanVoter(toBan.NodeAddress),

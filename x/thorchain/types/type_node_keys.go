@@ -4,22 +4,22 @@ import (
 	"errors"
 	"strings"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 // NodeKeys represent those accounts THORNode can trust, and can be used to sign tx
 type NodeKeys struct {
-	SignerBNBAddress       common.Address `json:"bnb_signer_acc"`     // Is used by the signer to sign outbound tx.
-	ObserverBEPAddress     sdk.AccAddress `json:"bep_observer_acc"`   // Thor address used to relay chain observations
-	ValidatorBEPConsPubKey string         `json:"bepv_validator_acc"` // Used to sign tendermint blocks. Can be fetched via `thord tendermint show-validator`
+	SignerBNBAddress       common.Address    `json:"bnb_signer_acc"`     // Is used by the signer to sign outbound tx.
+	ObserverBEPAddress     cosmos.AccAddress `json:"bep_observer_acc"`   // Thor address used to relay chain observations
+	ValidatorBEPConsPubKey string            `json:"bepv_validator_acc"` // Used to sign tendermint blocks. Can be fetched via `thord tendermint show-validator`
 }
 
 // NodesKeys just a list of node keys
 type NodesKeys []NodeKeys
 
 // NewNodeKeys create a new instance of node keys
-func NewNodeKeys(signerBNBAddress common.Address, observerBepAddress sdk.AccAddress, validatorConsPubKey string) NodeKeys {
+func NewNodeKeys(signerBNBAddress common.Address, observerBepAddress cosmos.AccAddress, validatorConsPubKey string) NodeKeys {
 	return NodeKeys{
 		SignerBNBAddress:       signerBNBAddress,
 		ObserverBEPAddress:     observerBepAddress,

@@ -6,9 +6,8 @@ import (
 	"fmt"
 	"strings"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 // PoolStatus is an indication of what the pool state is
@@ -77,10 +76,10 @@ func GetPoolStatus(ps string) PoolStatus {
 // Pool is a struct that contains all the metadata of a pooldata
 // This is the structure THORNode will saved to the key value store
 type Pool struct {
-	BalanceRune  sdk.Uint       `json:"balance_rune"`  // how many RUNE in the pool
-	BalanceAsset sdk.Uint       `json:"balance_asset"` // how many asset in the pool
+	BalanceRune  cosmos.Uint    `json:"balance_rune"`  // how many RUNE in the pool
+	BalanceAsset cosmos.Uint    `json:"balance_asset"` // how many asset in the pool
 	Asset        common.Asset   `json:"asset"`         // what's the asset's asset
-	PoolUnits    sdk.Uint       `json:"pool_units"`    // total units of the pool
+	PoolUnits    cosmos.Uint    `json:"pool_units"`    // total units of the pool
 	PoolAddress  common.Address `json:"pool_address"`  // bnb liquidity pool address
 	Status       PoolStatus     `json:"status"`        // status
 }
@@ -90,9 +89,9 @@ type Pools []Pool
 // NewPool Returns a new Pool
 func NewPool() Pool {
 	return Pool{
-		BalanceRune:  sdk.ZeroUint(),
-		BalanceAsset: sdk.ZeroUint(),
-		PoolUnits:    sdk.ZeroUint(),
+		BalanceRune:  cosmos.ZeroUint(),
+		BalanceAsset: cosmos.ZeroUint(),
+		PoolUnits:    cosmos.ZeroUint(),
 		Status:       Enabled,
 	}
 }
@@ -124,7 +123,7 @@ func (ps Pool) String() string {
 }
 
 // EnsureValidPoolStatus
-func (ps Pool) EnsureValidPoolStatus(msg sdk.Msg) error {
+func (ps Pool) EnsureValidPoolStatus(msg cosmos.Msg) error {
 	switch ps.Status {
 	case Enabled:
 		return nil
@@ -143,17 +142,17 @@ func (ps Pool) EnsureValidPoolStatus(msg sdk.Msg) error {
 }
 
 // convert a specific amount of asset amt into its rune value
-func (ps Pool) AssetValueInRune(amt sdk.Uint) sdk.Uint {
+func (ps Pool) AssetValueInRune(amt cosmos.Uint) cosmos.Uint {
 	if ps.BalanceRune.IsZero() || ps.BalanceAsset.IsZero() {
-		return sdk.ZeroUint()
+		return cosmos.ZeroUint()
 	}
 	return common.GetShare(ps.BalanceRune, ps.BalanceAsset, amt)
 }
 
 // convert a specific amount of rune amt into its asset value
-func (ps Pool) RuneValueInAsset(amt sdk.Uint) sdk.Uint {
+func (ps Pool) RuneValueInAsset(amt cosmos.Uint) cosmos.Uint {
 	if ps.BalanceRune.IsZero() || ps.BalanceAsset.IsZero() {
-		return sdk.ZeroUint()
+		return cosmos.ZeroUint()
 	}
 	return common.GetShare(ps.BalanceAsset, ps.BalanceRune, amt)
 }

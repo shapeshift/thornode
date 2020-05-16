@@ -4,9 +4,8 @@ import (
 	"errors"
 	"strings"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 type (
@@ -22,12 +21,12 @@ const (
 
 // Meant to track if THORNode have processed a specific tx
 type ObservedTx struct {
-	Tx             common.Tx        `json:"tx"`
-	Status         status           `json:"status"`
-	OutHashes      common.TxIDs     `json:"out_hashes"` // completed chain tx hash. This is a slice to track if we've "double spent" an input
-	BlockHeight    int64            `json:"block_height"`
-	Signers        []sdk.AccAddress `json:"signers"` // node keys of node account saw this tx
-	ObservedPubKey common.PubKey    `json:"observed_pub_key"`
+	Tx             common.Tx           `json:"tx"`
+	Status         status              `json:"status"`
+	OutHashes      common.TxIDs        `json:"out_hashes"` // completed chain tx hash. This is a slice to track if we've "double spent" an input
+	BlockHeight    int64               `json:"block_height"`
+	Signers        []cosmos.AccAddress `json:"signers"` // node keys of node account saw this tx
+	ObservedPubKey common.PubKey       `json:"observed_pub_key"`
 }
 
 type ObservedTxs []ObservedTx
@@ -76,7 +75,7 @@ func (tx ObservedTx) String() string {
 }
 
 // HasSigned - check if given address has signed
-func (tx ObservedTx) HasSigned(signer sdk.AccAddress) bool {
+func (tx ObservedTx) HasSigned(signer cosmos.AccAddress) bool {
 	for _, sign := range tx.Signers {
 		if sign.Equals(signer) {
 			return true
@@ -87,7 +86,7 @@ func (tx ObservedTx) HasSigned(signer sdk.AccAddress) bool {
 
 // Sign add the given node account to signers list
 // if the given signer is already in the list, it will return false, otherwise true
-func (tx *ObservedTx) Sign(signer sdk.AccAddress) bool {
+func (tx *ObservedTx) Sign(signer cosmos.AccAddress) bool {
 	if tx.HasSigned(signer) {
 		return false
 	}
@@ -195,7 +194,7 @@ func (tx *ObservedTxVoter) IsDone() bool {
 }
 
 // Add is trying to add the given observed tx into the voter , if the signer already sign , they will not add twice , it simply return false
-func (tx *ObservedTxVoter) Add(observedTx ObservedTx, signer sdk.AccAddress) bool {
+func (tx *ObservedTxVoter) Add(observedTx ObservedTx, signer cosmos.AccAddress) bool {
 	// check if this signer has already signed, no take backs allowed
 	votedIdx := -1
 	for idx, transaction := range tx.Txs {
@@ -215,7 +214,7 @@ func (tx *ObservedTxVoter) Add(observedTx ObservedTx, signer sdk.AccAddress) boo
 		return tx.Txs[votedIdx].Sign(signer)
 	}
 
-	observedTx.Signers = []sdk.AccAddress{signer}
+	observedTx.Signers = []cosmos.AccAddress{signer}
 	tx.Txs = append(tx.Txs, observedTx)
 	return true
 }
