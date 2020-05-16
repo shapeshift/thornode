@@ -9,7 +9,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/keys"
 	"github.com/cosmos/cosmos-sdk/client/lcd"
 	"github.com/cosmos/cosmos-sdk/client/rpc"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	authcmd "github.com/cosmos/cosmos-sdk/x/auth/client/cli"
 	bankcmd "github.com/cosmos/cosmos-sdk/x/bank/client/cli"
 	"github.com/spf13/cobra"
@@ -19,6 +18,7 @@ import (
 
 	app "gitlab.com/thorchain/thornode"
 	"gitlab.com/thorchain/thornode/cmd"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 func main() {
@@ -27,7 +27,7 @@ func main() {
 	cdc := app.MakeCodec()
 
 	// Read in the configuration file for the sdk
-	config := sdk.GetConfig()
+	config := cosmos.GetConfig()
 	config.SetBech32PrefixForAccount(cmd.Bech32PrefixAccAddr, cmd.Bech32PrefixAccPub)
 	config.SetBech32PrefixForValidator(cmd.Bech32PrefixValAddr, cmd.Bech32PrefixValPub)
 	config.SetBech32PrefixForConsensusNode(cmd.Bech32PrefixConsAddr, cmd.Bech32PrefixConsPub)

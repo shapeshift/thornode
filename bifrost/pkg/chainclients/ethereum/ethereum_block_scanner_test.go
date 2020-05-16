@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	etypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	. "gopkg.in/check.v1"
@@ -18,6 +17,7 @@ import (
 	"gitlab.com/thorchain/thornode/bifrost/metrics"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/ethereum/types"
 	stypes "gitlab.com/thorchain/thornode/bifrost/thorclient/types"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 func Test(t *testing.T) { TestingT(t) }
@@ -212,12 +212,12 @@ func (s *BlockScannerTestSuite) TestFromTxToTxIn(c *C) {
 	c.Check(len(txInItem.Coins), Equals, 1)
 	c.Check(txInItem.Coins[0].Asset.String(), Equals, "ETH.ETH")
 	c.Check(
-		txInItem.Coins[0].Amount.Equal(sdk.NewUint(4290000000000000)),
+		txInItem.Coins[0].Amount.Equal(cosmos.NewUint(4290000000000000)),
 		Equals,
 		true,
 	)
 	c.Check(
-		txInItem.Gas[0].Amount.Equal(sdk.NewUint(21408)),
+		txInItem.Gas[0].Amount.Equal(cosmos.NewUint(21408)),
 		Equals,
 		true,
 	)

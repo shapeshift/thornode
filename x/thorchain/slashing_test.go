@@ -5,10 +5,10 @@ import (
 	"errors"
 
 	"github.com/blang/semver"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 )
 
@@ -22,7 +22,7 @@ func (s *SlashingSuite) SetUpSuite(c *C) {
 
 type TestSlashObservingKeeper struct {
 	KVStoreDummy
-	addrs                     []sdk.AccAddress
+	addrs                     []cosmos.AccAddress
 	nas                       NodeAccounts
 	failGetObservingAddress   bool
 	failListActiveNodeAccount bool
@@ -30,18 +30,18 @@ type TestSlashObservingKeeper struct {
 	slashPts                  map[string]int64
 }
 
-func (k *TestSlashObservingKeeper) GetObservingAddresses(_ sdk.Context) ([]sdk.AccAddress, error) {
+func (k *TestSlashObservingKeeper) GetObservingAddresses(_ cosmos.Context) ([]cosmos.AccAddress, error) {
 	if k.failGetObservingAddress {
 		return nil, kaboom
 	}
 	return k.addrs, nil
 }
 
-func (k *TestSlashObservingKeeper) ClearObservingAddresses(_ sdk.Context) {
+func (k *TestSlashObservingKeeper) ClearObservingAddresses(_ cosmos.Context) {
 	k.addrs = nil
 }
 
-func (k *TestSlashObservingKeeper) IncNodeAccountSlashPoints(_ sdk.Context, addr sdk.AccAddress, pts int64) error {
+func (k *TestSlashObservingKeeper) IncNodeAccountSlashPoints(_ cosmos.Context, addr cosmos.AccAddress, pts int64) error {
 	if _, ok := k.slashPts[addr.String()]; !ok {
 		k.slashPts[addr.String()] = 0
 	}
@@ -49,14 +49,14 @@ func (k *TestSlashObservingKeeper) IncNodeAccountSlashPoints(_ sdk.Context, addr
 	return nil
 }
 
-func (k *TestSlashObservingKeeper) ListActiveNodeAccounts(_ sdk.Context) (NodeAccounts, error) {
+func (k *TestSlashObservingKeeper) ListActiveNodeAccounts(_ cosmos.Context) (NodeAccounts, error) {
 	if k.failListActiveNodeAccount {
 		return nil, kaboom
 	}
 	return k.nas, nil
 }
 
-func (k *TestSlashObservingKeeper) SetNodeAccount(_ sdk.Context, na NodeAccount) error {
+func (k *TestSlashObservingKeeper) SetNodeAccount(_ cosmos.Context, na NodeAccount) error {
 	if k.failSetNodeAccount {
 		return kaboom
 	}
@@ -79,7 +79,7 @@ func (s *SlashingSuite) TestObservingSlashing(c *C) {
 	}
 	keeper := &TestSlashObservingKeeper{
 		nas:      nas,
-		addrs:    []sdk.AccAddress{nas[0].NodeAddress},
+		addrs:    []cosmos.AccAddress{nas[0].NodeAddress},
 		slashPts: make(map[string]int64, 0),
 	}
 	ver := constants.SWVersion
@@ -114,7 +114,7 @@ func (s *SlashingSuite) TestLackObservingErrors(c *C) {
 	}
 	keeper := &TestSlashObservingKeeper{
 		nas:      nas,
-		addrs:    []sdk.AccAddress{nas[0].NodeAddress},
+		addrs:    []cosmos.AccAddress{nas[0].NodeAddress},
 		slashPts: make(map[string]int64, 0),
 	}
 	ver := constants.SWVersion
@@ -147,46 +147,46 @@ type TestSlashingLackKeeper struct {
 	slashPts                   map[string]int64
 }
 
-func (k *TestSlashingLackKeeper) GetObservedTxVoter(_ sdk.Context, _ common.TxID) (ObservedTxVoter, error) {
+func (k *TestSlashingLackKeeper) GetObservedTxVoter(_ cosmos.Context, _ common.TxID) (ObservedTxVoter, error) {
 	if k.failGetObservedTxVoter {
 		return ObservedTxVoter{}, kaboom
 	}
 	return k.voter, nil
 }
 
-func (k *TestSlashingLackKeeper) SetObservedTxVoter(_ sdk.Context, voter ObservedTxVoter) {
+func (k *TestSlashingLackKeeper) SetObservedTxVoter(_ cosmos.Context, voter ObservedTxVoter) {
 	k.voter = voter
 }
 
-func (k *TestSlashingLackKeeper) GetVault(_ sdk.Context, pk common.PubKey) (Vault, error) {
+func (k *TestSlashingLackKeeper) GetVault(_ cosmos.Context, pk common.PubKey) (Vault, error) {
 	if k.failGetVault {
 		return Vault{}, kaboom
 	}
 	return k.vaults[0], nil
 }
 
-func (k *TestSlashingLackKeeper) GetAsgardVaultsByStatus(_ sdk.Context, _ VaultStatus) (Vaults, error) {
+func (k *TestSlashingLackKeeper) GetAsgardVaultsByStatus(_ cosmos.Context, _ VaultStatus) (Vaults, error) {
 	if k.failGetAsgardByStatus {
 		return nil, kaboom
 	}
 	return k.vaults, nil
 }
 
-func (k *TestSlashingLackKeeper) GetAllPendingEvents(_ sdk.Context) (Events, error) {
+func (k *TestSlashingLackKeeper) GetAllPendingEvents(_ cosmos.Context) (Events, error) {
 	if k.failToGetAllPendingEvents {
 		return nil, kaboom
 	}
 	return k.evts, nil
 }
 
-func (k *TestSlashingLackKeeper) GetTxOut(_ sdk.Context, _ int64) (*TxOut, error) {
+func (k *TestSlashingLackKeeper) GetTxOut(_ cosmos.Context, _ int64) (*TxOut, error) {
 	if k.failGetTxOut {
 		return nil, kaboom
 	}
 	return k.txOut, nil
 }
 
-func (k *TestSlashingLackKeeper) SetTxOut(_ sdk.Context, tx *TxOut) error {
+func (k *TestSlashingLackKeeper) SetTxOut(_ cosmos.Context, tx *TxOut) error {
 	if k.failSetTxOut {
 		return kaboom
 	}
@@ -194,7 +194,7 @@ func (k *TestSlashingLackKeeper) SetTxOut(_ sdk.Context, tx *TxOut) error {
 	return nil
 }
 
-func (k *TestSlashingLackKeeper) IncNodeAccountSlashPoints(_ sdk.Context, addr sdk.AccAddress, pts int64) error {
+func (k *TestSlashingLackKeeper) IncNodeAccountSlashPoints(_ cosmos.Context, addr cosmos.AccAddress, pts int64) error {
 	if _, ok := k.slashPts[addr.String()]; !ok {
 		k.slashPts[addr.String()] = 0
 	}
@@ -202,14 +202,14 @@ func (k *TestSlashingLackKeeper) IncNodeAccountSlashPoints(_ sdk.Context, addr s
 	return nil
 }
 
-func (k *TestSlashingLackKeeper) GetNodeAccountByPubKey(_ sdk.Context, _ common.PubKey) (NodeAccount, error) {
+func (k *TestSlashingLackKeeper) GetNodeAccountByPubKey(_ cosmos.Context, _ common.PubKey) (NodeAccount, error) {
 	if k.failGetNodeAccountByPubKey {
 		return NodeAccount{}, kaboom
 	}
 	return k.na, nil
 }
 
-func (k *TestSlashingLackKeeper) SetNodeAccount(_ sdk.Context, na NodeAccount) error {
+func (k *TestSlashingLackKeeper) SetNodeAccount(_ cosmos.Context, na NodeAccount) error {
 	if k.failSetNodeAccount {
 		return kaboom
 	}
@@ -279,18 +279,18 @@ func (s *SlashingSuite) TestNodeSignSlashErrors(c *C) {
 			GetRandomBNBAddress(),
 			GetRandomBNBAddress(),
 			common.Coins{
-				common.NewCoin(common.BNBAsset, sdk.NewUint(320000000)),
-				common.NewCoin(common.RuneAsset(), sdk.NewUint(420000000)),
+				common.NewCoin(common.BNBAsset, cosmos.NewUint(320000000)),
+				common.NewCoin(common.RuneAsset(), cosmos.NewUint(420000000)),
 			},
 			nil,
 			"SWAP:BNB.BNB",
 		)
 		swapEvt := NewEventSwap(
 			common.BNBAsset,
-			sdk.NewUint(5),
-			sdk.NewUint(5),
-			sdk.NewUint(5),
-			sdk.NewUint(5),
+			cosmos.NewUint(5),
+			cosmos.NewUint(5),
+			cosmos.NewUint(5),
+			cosmos.NewUint(5),
 			inTx,
 		)
 
@@ -308,7 +308,7 @@ func (s *SlashingSuite) TestNodeSignSlashErrors(c *C) {
 			VaultPubKey: na.PubKeySet.Secp256k1,
 			ToAddress:   GetRandomBNBAddress(),
 			Coin: common.NewCoin(
-				common.BNBAsset, sdk.NewUint(3980500*common.One),
+				common.BNBAsset, cosmos.NewUint(3980500*common.One),
 			),
 		}
 		txOut := NewTxOut(evt.Height)
@@ -352,18 +352,18 @@ func (s *SlashingSuite) TestNotSigningSlash(c *C) {
 		GetRandomBNBAddress(),
 		GetRandomBNBAddress(),
 		common.Coins{
-			common.NewCoin(common.BNBAsset, sdk.NewUint(320000000)),
-			common.NewCoin(common.RuneAsset(), sdk.NewUint(420000000)),
+			common.NewCoin(common.BNBAsset, cosmos.NewUint(320000000)),
+			common.NewCoin(common.RuneAsset(), cosmos.NewUint(420000000)),
 		},
 		nil,
 		"SWAP:BNB.BNB",
 	)
 	swapEvt := NewEventSwap(
 		common.BNBAsset,
-		sdk.NewUint(5),
-		sdk.NewUint(5),
-		sdk.NewUint(5),
-		sdk.NewUint(5),
+		cosmos.NewUint(5),
+		cosmos.NewUint(5),
+		cosmos.NewUint(5),
+		cosmos.NewUint(5),
 		inTx,
 	)
 
@@ -381,7 +381,7 @@ func (s *SlashingSuite) TestNotSigningSlash(c *C) {
 		VaultPubKey: na.PubKeySet.Secp256k1,
 		ToAddress:   GetRandomBNBAddress(),
 		Coin: common.NewCoin(
-			common.BNBAsset, sdk.NewUint(3980500*common.One),
+			common.BNBAsset, cosmos.NewUint(3980500*common.One),
 		),
 	}
 	txOut := NewTxOut(evt.Height)
@@ -424,7 +424,7 @@ func (s *SlashingSuite) TestNewSlasher(c *C) {
 	}
 	keeper := &TestSlashObservingKeeper{
 		nas:      nas,
-		addrs:    []sdk.AccAddress{nas[0].NodeAddress},
+		addrs:    []cosmos.AccAddress{nas[0].NodeAddress},
 		slashPts: make(map[string]int64, 0),
 	}
 	ver := semver.MustParse("0.0.1")
@@ -440,30 +440,30 @@ type TestDoubleSlashKeeper struct {
 	slashPoints map[string]int64
 }
 
-func (k *TestDoubleSlashKeeper) ListActiveNodeAccounts(ctx sdk.Context) (NodeAccounts, error) {
+func (k *TestDoubleSlashKeeper) ListActiveNodeAccounts(ctx cosmos.Context) (NodeAccounts, error) {
 	return NodeAccounts{k.na}, nil
 }
 
-func (k *TestDoubleSlashKeeper) SetNodeAccount(ctx sdk.Context, na NodeAccount) error {
+func (k *TestDoubleSlashKeeper) SetNodeAccount(ctx cosmos.Context, na NodeAccount) error {
 	k.na = na
 	return nil
 }
 
-func (k *TestDoubleSlashKeeper) GetVaultData(ctx sdk.Context) (VaultData, error) {
+func (k *TestDoubleSlashKeeper) GetVaultData(ctx cosmos.Context) (VaultData, error) {
 	return k.vaultData, nil
 }
 
-func (k *TestDoubleSlashKeeper) SetVaultData(ctx sdk.Context, data VaultData) error {
+func (k *TestDoubleSlashKeeper) SetVaultData(ctx cosmos.Context, data VaultData) error {
 	k.vaultData = data
 	return nil
 }
 
-func (k *TestDoubleSlashKeeper) IncNodeAccountSlashPoints(ctx sdk.Context, addr sdk.AccAddress, pts int64) error {
+func (k *TestDoubleSlashKeeper) IncNodeAccountSlashPoints(ctx cosmos.Context, addr cosmos.AccAddress, pts int64) error {
 	k.slashPoints[addr.String()] += pts
 	return nil
 }
 
-func (k *TestDoubleSlashKeeper) DecNodeAccountSlashPoints(ctx sdk.Context, addr sdk.AccAddress, pts int64) error {
+func (k *TestDoubleSlashKeeper) DecNodeAccountSlashPoints(ctx cosmos.Context, addr cosmos.AccAddress, pts int64) error {
 	k.slashPoints[addr.String()] -= pts
 	return nil
 }
@@ -473,7 +473,7 @@ func (s *SlashingSuite) TestDoubleSign(c *C) {
 	constAccessor := constants.GetConstantValues(constants.SWVersion)
 
 	na := GetRandomNodeAccount(NodeActive)
-	na.Bond = sdk.NewUint(100 * common.One)
+	na.Bond = cosmos.NewUint(100 * common.One)
 
 	keeper := &TestDoubleSlashKeeper{
 		na:        na,
@@ -482,20 +482,20 @@ func (s *SlashingSuite) TestDoubleSign(c *C) {
 	slasher, err := NewSlasher(keeper, constants.SWVersion, NewVersionedEventMgr())
 	c.Assert(err, IsNil)
 
-	pk, err := sdk.GetConsPubKeyBech32(na.ValidatorConsPubKey)
+	pk, err := cosmos.GetConsPubKeyBech32(na.ValidatorConsPubKey)
 	c.Assert(err, IsNil)
 	err = slasher.HandleDoubleSign(ctx, pk.Address(), 0, constAccessor)
 	c.Assert(err, IsNil)
 
-	c.Check(keeper.na.Bond.Equal(sdk.NewUint(9995000000)), Equals, true, Commentf("%d", keeper.na.Bond.Uint64()))
-	c.Check(keeper.vaultData.TotalReserve.Equal(sdk.NewUint(5000000)), Equals, true)
+	c.Check(keeper.na.Bond.Equal(cosmos.NewUint(9995000000)), Equals, true, Commentf("%d", keeper.na.Bond.Uint64()))
+	c.Check(keeper.vaultData.TotalReserve.Equal(cosmos.NewUint(5000000)), Equals, true)
 }
 
 func (s *SlashingSuite) TestIncreaseDecreaseSlashPoints(c *C) {
 	ctx, _ := setupKeeperForTest(c)
 
 	na := GetRandomNodeAccount(NodeActive)
-	na.Bond = sdk.NewUint(100 * common.One)
+	na.Bond = cosmos.NewUint(100 * common.One)
 
 	keeper := &TestDoubleSlashKeeper{
 		na:          na,

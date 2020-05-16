@@ -1,21 +1,21 @@
 package types
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	common "gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 // MsgAdd defines a add message
 type MsgAdd struct {
-	Asset       common.Asset   `json:"asset"`     // asset of the asset
-	AssetAmount sdk.Uint       `json:"asset_amt"` // the amount of asset
-	RuneAmount  sdk.Uint       `json:"rune"`      // the amount of rune
-	Tx          common.Tx      `json:"tx"`
-	Signer      sdk.AccAddress `json:"signer"`
+	Asset       common.Asset      `json:"asset"`     // asset of the asset
+	AssetAmount cosmos.Uint       `json:"asset_amt"` // the amount of asset
+	RuneAmount  cosmos.Uint       `json:"rune"`      // the amount of rune
+	Tx          common.Tx         `json:"tx"`
+	Signer      cosmos.AccAddress `json:"signer"`
 }
 
 // NewMsgAdd is a constructor function for MsgAdd
-func NewMsgAdd(tx common.Tx, asset common.Asset, r, amount sdk.Uint, signer sdk.AccAddress) MsgAdd {
+func NewMsgAdd(tx common.Tx, asset common.Asset, r, amount cosmos.Uint, signer cosmos.AccAddress) MsgAdd {
 	return MsgAdd{
 		Asset:       asset,
 		AssetAmount: amount,
@@ -32,25 +32,25 @@ func (msg MsgAdd) Route() string { return RouterKey }
 func (msg MsgAdd) Type() string { return "set_add" }
 
 // ValidateBasic runs stateless checks on the message
-func (msg MsgAdd) ValidateBasic() sdk.Error {
+func (msg MsgAdd) ValidateBasic() cosmos.Error {
 	if msg.Signer.Empty() {
-		return sdk.ErrInvalidAddress(msg.Signer.String())
+		return cosmos.ErrInvalidAddress(msg.Signer.String())
 	}
 	if msg.Asset.IsEmpty() {
-		return sdk.ErrUnknownRequest("Add Asset cannot be empty")
+		return cosmos.ErrUnknownRequest("Add Asset cannot be empty")
 	}
 	if err := msg.Tx.IsValid(); err != nil {
-		return sdk.ErrUnknownRequest(err.Error())
+		return cosmos.ErrUnknownRequest(err.Error())
 	}
 	return nil
 }
 
 // GetSignBytes encodes the message for signing
 func (msg MsgAdd) GetSignBytes() []byte {
-	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(msg))
+	return cosmos.MustSortJSON(ModuleCdc.MustMarshalJSON(msg))
 }
 
 // GetSigners defines whose signature is required
-func (msg MsgAdd) GetSigners() []sdk.AccAddress {
-	return []sdk.AccAddress{msg.Signer}
+func (msg MsgAdd) GetSigners() []cosmos.AccAddress {
+	return []cosmos.AccAddress{msg.Signer}
 }

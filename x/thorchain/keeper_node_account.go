@@ -7,39 +7,39 @@ import (
 	"strings"
 
 	"github.com/blang/semver"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 type KeeperNodeAccount interface {
-	TotalActiveNodeAccount(ctx sdk.Context) (int, error)
-	ListNodeAccountsWithBond(ctx sdk.Context) (NodeAccounts, error)
-	ListNodeAccountsByStatus(ctx sdk.Context, status NodeStatus) (NodeAccounts, error)
-	ListActiveNodeAccounts(ctx sdk.Context) (NodeAccounts, error)
-	GetLowestActiveVersion(ctx sdk.Context) semver.Version
-	GetMinJoinVersion(ctx sdk.Context) semver.Version
-	GetNodeAccount(ctx sdk.Context, addr sdk.AccAddress) (NodeAccount, error)
-	GetNodeAccountByPubKey(ctx sdk.Context, pk common.PubKey) (NodeAccount, error)
-	GetNodeAccountByBondAddress(ctx sdk.Context, addr common.Address) (NodeAccount, error)
-	SetNodeAccount(ctx sdk.Context, na NodeAccount) error
-	EnsureNodeKeysUnique(ctx sdk.Context, consensusPubKey string, pubKeys common.PubKeySet) error
-	GetNodeAccountIterator(ctx sdk.Context) sdk.Iterator
-	GetNodeAccountSlashPoints(_ sdk.Context, _ sdk.AccAddress) (int64, error)
-	SetNodeAccountSlashPoints(_ sdk.Context, _ sdk.AccAddress, _ int64)
-	IncNodeAccountSlashPoints(_ sdk.Context, _ sdk.AccAddress, _ int64) error
-	DecNodeAccountSlashPoints(_ sdk.Context, _ sdk.AccAddress, _ int64) error
-	ResetNodeAccountSlashPoints(_ sdk.Context, _ sdk.AccAddress)
+	TotalActiveNodeAccount(ctx cosmos.Context) (int, error)
+	ListNodeAccountsWithBond(ctx cosmos.Context) (NodeAccounts, error)
+	ListNodeAccountsByStatus(ctx cosmos.Context, status NodeStatus) (NodeAccounts, error)
+	ListActiveNodeAccounts(ctx cosmos.Context) (NodeAccounts, error)
+	GetLowestActiveVersion(ctx cosmos.Context) semver.Version
+	GetMinJoinVersion(ctx cosmos.Context) semver.Version
+	GetNodeAccount(ctx cosmos.Context, addr cosmos.AccAddress) (NodeAccount, error)
+	GetNodeAccountByPubKey(ctx cosmos.Context, pk common.PubKey) (NodeAccount, error)
+	GetNodeAccountByBondAddress(ctx cosmos.Context, addr common.Address) (NodeAccount, error)
+	SetNodeAccount(ctx cosmos.Context, na NodeAccount) error
+	EnsureNodeKeysUnique(ctx cosmos.Context, consensusPubKey string, pubKeys common.PubKeySet) error
+	GetNodeAccountIterator(ctx cosmos.Context) cosmos.Iterator
+	GetNodeAccountSlashPoints(_ cosmos.Context, _ cosmos.AccAddress) (int64, error)
+	SetNodeAccountSlashPoints(_ cosmos.Context, _ cosmos.AccAddress, _ int64)
+	IncNodeAccountSlashPoints(_ cosmos.Context, _ cosmos.AccAddress, _ int64) error
+	DecNodeAccountSlashPoints(_ cosmos.Context, _ cosmos.AccAddress, _ int64) error
+	ResetNodeAccountSlashPoints(_ cosmos.Context, _ cosmos.AccAddress)
 }
 
 // TotalActiveNodeAccount count the number of active node account
-func (k KVStore) TotalActiveNodeAccount(ctx sdk.Context) (int, error) {
+func (k KVStore) TotalActiveNodeAccount(ctx cosmos.Context) (int, error) {
 	activeNodes, err := k.ListActiveNodeAccounts(ctx)
 	return len(activeNodes), err
 }
 
 // ListNodeAccountsWithBond - gets a list of all node accounts that have bond
-func (k KVStore) ListNodeAccountsWithBond(ctx sdk.Context) (NodeAccounts, error) {
+func (k KVStore) ListNodeAccountsWithBond(ctx cosmos.Context) (NodeAccounts, error) {
 	nodeAccounts := make(NodeAccounts, 0)
 	naIterator := k.GetNodeAccountIterator(ctx)
 	defer naIterator.Close()
@@ -57,7 +57,7 @@ func (k KVStore) ListNodeAccountsWithBond(ctx sdk.Context) (NodeAccounts, error)
 
 // ListNodeAccountsByStatus - get a list of node accounts with the given status
 // if status = NodeUnknown, then it return everything
-func (k KVStore) ListNodeAccountsByStatus(ctx sdk.Context, status NodeStatus) (NodeAccounts, error) {
+func (k KVStore) ListNodeAccountsByStatus(ctx cosmos.Context, status NodeStatus) (NodeAccounts, error) {
 	nodeAccounts := make(NodeAccounts, 0)
 	naIterator := k.GetNodeAccountIterator(ctx)
 	defer naIterator.Close()
@@ -74,12 +74,12 @@ func (k KVStore) ListNodeAccountsByStatus(ctx sdk.Context, status NodeStatus) (N
 }
 
 // ListActiveNodeAccounts - get a list of active node accounts
-func (k KVStore) ListActiveNodeAccounts(ctx sdk.Context) (NodeAccounts, error) {
+func (k KVStore) ListActiveNodeAccounts(ctx cosmos.Context) (NodeAccounts, error) {
 	return k.ListNodeAccountsByStatus(ctx, NodeActive)
 }
 
 // GetMinJoinVersion - get min version to join. Min version is the most popular version
-func (k KVStore) GetMinJoinVersion(ctx sdk.Context) semver.Version {
+func (k KVStore) GetMinJoinVersion(ctx cosmos.Context) semver.Version {
 	type tmpVersionInfo struct {
 		version semver.Version
 		count   int
@@ -130,7 +130,7 @@ func (k KVStore) GetMinJoinVersion(ctx sdk.Context) semver.Version {
 }
 
 // GetLowestActiveVersion - get version number of lowest active node
-func (k KVStore) GetLowestActiveVersion(ctx sdk.Context) semver.Version {
+func (k KVStore) GetLowestActiveVersion(ctx cosmos.Context) semver.Version {
 	nodes, err := k.ListActiveNodeAccounts(ctx)
 	if err != nil {
 		_ = dbError(ctx, "Unable to list active node accounts", err)
@@ -149,7 +149,7 @@ func (k KVStore) GetLowestActiveVersion(ctx sdk.Context) semver.Version {
 }
 
 // GetNodeAccount try to get node account with the given address from db
-func (k KVStore) GetNodeAccount(ctx sdk.Context, addr sdk.AccAddress) (NodeAccount, error) {
+func (k KVStore) GetNodeAccount(ctx cosmos.Context, addr cosmos.AccAddress) (NodeAccount, error) {
 	ctx.Logger().Debug("GetNodeAccount", "node account", addr.String())
 	store := ctx.KVStore(k.storeKey)
 	key := k.GetKey(ctx, prefixNodeAccount, addr.String())
@@ -158,7 +158,7 @@ func (k KVStore) GetNodeAccount(ctx sdk.Context, addr sdk.AccAddress) (NodeAccou
 			Secp256k1: common.EmptyPubKey,
 			Ed25519:   common.EmptyPubKey,
 		}
-		return NewNodeAccount(addr, NodeUnknown, emptyPubKeySet, "", sdk.ZeroUint(), "", ctx.BlockHeight()), nil
+		return NewNodeAccount(addr, NodeUnknown, emptyPubKeySet, "", cosmos.ZeroUint(), "", ctx.BlockHeight()), nil
 	}
 
 	payload := store.Get([]byte(key))
@@ -170,7 +170,7 @@ func (k KVStore) GetNodeAccount(ctx sdk.Context, addr sdk.AccAddress) (NodeAccou
 }
 
 // GetNodeAccountByPubKey try to get node account with the given pubkey from db
-func (k KVStore) GetNodeAccountByPubKey(ctx sdk.Context, pk common.PubKey) (NodeAccount, error) {
+func (k KVStore) GetNodeAccountByPubKey(ctx cosmos.Context, pk common.PubKey) (NodeAccount, error) {
 	addr, err := pk.GetThorAddress()
 	if err != nil {
 		return NodeAccount{}, err
@@ -179,7 +179,7 @@ func (k KVStore) GetNodeAccountByPubKey(ctx sdk.Context, pk common.PubKey) (Node
 }
 
 // GetNodeAccountByBondAddress go through data store to get node account by it's signer bnb address
-func (k KVStore) GetNodeAccountByBondAddress(ctx sdk.Context, addr common.Address) (NodeAccount, error) {
+func (k KVStore) GetNodeAccountByBondAddress(ctx cosmos.Context, addr common.Address) (NodeAccount, error) {
 	naIterator := k.GetNodeAccountIterator(ctx)
 	defer naIterator.Close()
 	for ; naIterator.Valid(); naIterator.Next() {
@@ -196,7 +196,7 @@ func (k KVStore) GetNodeAccountByBondAddress(ctx sdk.Context, addr common.Addres
 }
 
 // SetNodeAccount save the given node account into datastore
-func (k KVStore) SetNodeAccount(ctx sdk.Context, na NodeAccount) error {
+func (k KVStore) SetNodeAccount(ctx cosmos.Context, na NodeAccount) error {
 	ctx.Logger().Debug("SetNodeAccount", "node account", na.String())
 	if na.IsEmpty() {
 		return nil
@@ -227,7 +227,7 @@ func (k KVStore) SetNodeAccount(ctx sdk.Context, na NodeAccount) error {
 
 // EnsureNodeKeysUnique check the given consensus pubkey and pubkey set against all the the node account
 // return an error when it is overlap with any existing account
-func (k KVStore) EnsureNodeKeysUnique(ctx sdk.Context, consensusPubKey string, pubKeys common.PubKeySet) error {
+func (k KVStore) EnsureNodeKeysUnique(ctx cosmos.Context, consensusPubKey string, pubKeys common.PubKeySet) error {
 	iter := k.GetNodeAccountIterator(ctx)
 	defer iter.Close()
 	for ; iter.Valid(); iter.Next() {
@@ -253,14 +253,14 @@ func (k KVStore) EnsureNodeKeysUnique(ctx sdk.Context, consensusPubKey string, p
 }
 
 // GetNodeAccountIterator iterate node account
-func (k KVStore) GetNodeAccountIterator(ctx sdk.Context) sdk.Iterator {
+func (k KVStore) GetNodeAccountIterator(ctx cosmos.Context) cosmos.Iterator {
 	store := ctx.KVStore(k.storeKey)
-	return sdk.KVStorePrefixIterator(store, []byte(prefixNodeAccount))
+	return cosmos.KVStorePrefixIterator(store, []byte(prefixNodeAccount))
 }
 
 // GetNodeAccountSlashPoints - get the slash points associated with the given
 // node address
-func (k KVStore) GetNodeAccountSlashPoints(ctx sdk.Context, addr sdk.AccAddress) (int64, error) {
+func (k KVStore) GetNodeAccountSlashPoints(ctx cosmos.Context, addr cosmos.AccAddress) (int64, error) {
 	store := ctx.KVStore(k.storeKey)
 	key := k.GetKey(ctx, prefixNodeSlashPoints, addr.String())
 	if !store.Has([]byte(key)) {
@@ -276,7 +276,7 @@ func (k KVStore) GetNodeAccountSlashPoints(ctx sdk.Context, addr sdk.AccAddress)
 
 // SetNodeAccountSlashPoints - set the slash points associated with the given
 // node address and uint
-func (k KVStore) SetNodeAccountSlashPoints(ctx sdk.Context, addr sdk.AccAddress, pts int64) {
+func (k KVStore) SetNodeAccountSlashPoints(ctx cosmos.Context, addr cosmos.AccAddress, pts int64) {
 	// make sure slash point doesn't go to negative
 	if pts < 0 {
 		return
@@ -288,7 +288,7 @@ func (k KVStore) SetNodeAccountSlashPoints(ctx sdk.Context, addr sdk.AccAddress,
 
 // ResetNodeAccountSlashPoints - reset the slash points to zero for associated
 // with the given node address
-func (k KVStore) ResetNodeAccountSlashPoints(ctx sdk.Context, addr sdk.AccAddress) {
+func (k KVStore) ResetNodeAccountSlashPoints(ctx cosmos.Context, addr cosmos.AccAddress) {
 	store := ctx.KVStore(k.storeKey)
 	key := k.GetKey(ctx, prefixNodeSlashPoints, addr.String())
 	store.Delete([]byte(key))
@@ -296,7 +296,7 @@ func (k KVStore) ResetNodeAccountSlashPoints(ctx sdk.Context, addr sdk.AccAddres
 
 // IncNodeAccountSlashPoints - increments the slash points associated with the
 // given node address and uint
-func (k KVStore) IncNodeAccountSlashPoints(ctx sdk.Context, addr sdk.AccAddress, pts int64) error {
+func (k KVStore) IncNodeAccountSlashPoints(ctx cosmos.Context, addr cosmos.AccAddress, pts int64) error {
 	current, err := k.GetNodeAccountSlashPoints(ctx, addr)
 	if err != nil {
 		return err
@@ -307,7 +307,7 @@ func (k KVStore) IncNodeAccountSlashPoints(ctx sdk.Context, addr sdk.AccAddress,
 
 // DecNodeAccountSlashPoints - decrements the slash points associated with the
 // given node address and uint
-func (k KVStore) DecNodeAccountSlashPoints(ctx sdk.Context, addr sdk.AccAddress, pts int64) error {
+func (k KVStore) DecNodeAccountSlashPoints(ctx cosmos.Context, addr cosmos.AccAddress, pts int64) error {
 	current, err := k.GetNodeAccountSlashPoints(ctx, addr)
 	if err != nil {
 		return err

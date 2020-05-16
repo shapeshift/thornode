@@ -4,17 +4,17 @@ import (
 	"sort"
 	"testing"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 func TestPackage(t *testing.T) { TestingT(t) }
 
 var (
-	bnbSingleTxFee = sdk.NewUint(37500)
-	bnbMultiTxFee  = sdk.NewUint(30000)
+	bnbSingleTxFee = cosmos.NewUint(37500)
+	bnbMultiTxFee  = cosmos.NewUint(30000)
 )
 
 // Gas Fees

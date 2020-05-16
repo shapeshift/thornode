@@ -1,10 +1,10 @@
 package thorchain
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 type KeeperLiquidityFeesSuite struct{}
@@ -16,9 +16,9 @@ func (s *KeeperLiquidityFeesSuite) TestLiquidityFees(c *C) {
 
 	ctx = ctx.WithBlockHeight(10)
 	height := uint64(ctx.BlockHeight())
-	err := k.AddToLiquidityFees(ctx, common.BTCAsset, sdk.NewUint(200))
+	err := k.AddToLiquidityFees(ctx, common.BTCAsset, cosmos.NewUint(200))
 	c.Assert(err, IsNil)
-	err = k.AddToLiquidityFees(ctx, common.BNBAsset, sdk.NewUint(300))
+	err = k.AddToLiquidityFees(ctx, common.BNBAsset, cosmos.NewUint(300))
 	c.Assert(err, IsNil)
 
 	i, err := k.GetTotalLiquidityFees(ctx, height)

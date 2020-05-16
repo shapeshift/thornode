@@ -3,10 +3,10 @@ package thorchain
 import (
 	"encoding/json"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 type KeeperEventsSuite struct{}
@@ -22,18 +22,18 @@ func (s *KeeperEventsSuite) TestEvents(c *C) {
 		GetRandomBNBAddress(),
 		GetRandomBNBAddress(),
 		common.Coins{
-			common.NewCoin(common.BNBAsset, sdk.NewUint(320000000)),
-			common.NewCoin(common.RuneAsset(), sdk.NewUint(420000000)),
+			common.NewCoin(common.BNBAsset, cosmos.NewUint(320000000)),
+			common.NewCoin(common.RuneAsset(), cosmos.NewUint(420000000)),
 		},
 		BNBGasFeeSingleton,
 		"SWAP:BNB.BNB",
 	)
 	swap := NewEventSwap(
 		common.BNBAsset,
-		sdk.NewUint(5),
-		sdk.NewUint(5),
-		sdk.NewUint(5),
-		sdk.NewUint(5),
+		cosmos.NewUint(5),
+		cosmos.NewUint(5),
+		cosmos.NewUint(5),
+		cosmos.NewUint(5),
 		inTx,
 	)
 	swapBytes, _ := json.Marshal(swap)

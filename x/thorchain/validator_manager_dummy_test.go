@@ -2,9 +2,9 @@ package thorchain
 
 import (
 	"github.com/blang/semver"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	abci "github.com/tendermint/tendermint/abci/types"
 
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 )
 
@@ -15,15 +15,15 @@ func NewVersionedValidatorDummyMgr() VersionedValidatorDummyMgr {
 	return VersionedValidatorDummyMgr{}
 }
 
-func (VersionedValidatorDummyMgr) BeginBlock(ctx sdk.Context, version semver.Version, constAccessor constants.ConstantValues) error {
+func (VersionedValidatorDummyMgr) BeginBlock(ctx cosmos.Context, version semver.Version, constAccessor constants.ConstantValues) error {
 	return nil
 }
 
-func (VersionedValidatorDummyMgr) EndBlock(ctx sdk.Context, version semver.Version, constAccessor constants.ConstantValues) []abci.ValidatorUpdate {
+func (VersionedValidatorDummyMgr) EndBlock(ctx cosmos.Context, version semver.Version, constAccessor constants.ConstantValues) []abci.ValidatorUpdate {
 	return nil
 }
 
-func (VersionedValidatorDummyMgr) RequestYggReturn(ctx sdk.Context, version semver.Version, node NodeAccount) error {
+func (VersionedValidatorDummyMgr) RequestYggReturn(ctx cosmos.Context, version semver.Version, node NodeAccount) error {
 	return nil
 }
 
@@ -36,11 +36,11 @@ func NewValidatorDummyMgr() *ValidatorDummyMgr {
 	return &ValidatorDummyMgr{}
 }
 
-func (vm *ValidatorDummyMgr) BeginBlock(_ sdk.Context) error { return kaboom }
-func (vm *ValidatorDummyMgr) EndBlock(_ sdk.Context, _ constants.ConstantValues) []abci.ValidatorUpdate {
+func (vm *ValidatorDummyMgr) BeginBlock(_ cosmos.Context) error { return kaboom }
+func (vm *ValidatorDummyMgr) EndBlock(_ cosmos.Context, _ constants.ConstantValues) []abci.ValidatorUpdate {
 	return nil
 }
 
-func (vm *ValidatorDummyMgr) RequestYggReturn(_ sdk.Context, _ NodeAccount, _ TxOutStore) error {
+func (vm *ValidatorDummyMgr) RequestYggReturn(_ cosmos.Context, _ NodeAccount, _ TxOutStore) error {
 	return kaboom
 }

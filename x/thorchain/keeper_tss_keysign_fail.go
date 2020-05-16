@@ -1,28 +1,28 @@
 package thorchain
 
-import sdk "github.com/cosmos/cosmos-sdk/types"
+import cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 
 type KeeperTssKeysignFail interface {
-	SetTssKeysignFailVoter(_ sdk.Context, tss TssKeysignFailVoter)
-	GetTssKeysignFailVoterIterator(_ sdk.Context) sdk.Iterator
-	GetTssKeysignFailVoter(_ sdk.Context, _ string) (TssKeysignFailVoter, error)
+	SetTssKeysignFailVoter(_ cosmos.Context, tss TssKeysignFailVoter)
+	GetTssKeysignFailVoterIterator(_ cosmos.Context) cosmos.Iterator
+	GetTssKeysignFailVoter(_ cosmos.Context, _ string) (TssKeysignFailVoter, error)
 }
 
 // SetTssKeysignFailVoter - save a txin voter object
-func (k KVStore) SetTssKeysignFailVoter(ctx sdk.Context, tss TssKeysignFailVoter) {
+func (k KVStore) SetTssKeysignFailVoter(ctx cosmos.Context, tss TssKeysignFailVoter) {
 	store := ctx.KVStore(k.storeKey)
 	key := k.GetKey(ctx, prefixTss, tss.String())
 	store.Set([]byte(key), k.cdc.MustMarshalBinaryBare(tss))
 }
 
 // GetTssKeysignFailVoterIterator iterate tx in voters
-func (k KVStore) GetTssKeysignFailVoterIterator(ctx sdk.Context) sdk.Iterator {
+func (k KVStore) GetTssKeysignFailVoterIterator(ctx cosmos.Context) cosmos.Iterator {
 	store := ctx.KVStore(k.storeKey)
-	return sdk.KVStorePrefixIterator(store, []byte(prefixTss))
+	return cosmos.KVStorePrefixIterator(store, []byte(prefixTss))
 }
 
 // GetTss - gets information of a tx hash
-func (k KVStore) GetTssKeysignFailVoter(ctx sdk.Context, id string) (TssKeysignFailVoter, error) {
+func (k KVStore) GetTssKeysignFailVoter(ctx cosmos.Context, id string) (TssKeysignFailVoter, error) {
 	key := k.GetKey(ctx, prefixTss, id)
 
 	store := ctx.KVStore(k.storeKey)

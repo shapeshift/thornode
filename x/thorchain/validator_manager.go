@@ -4,9 +4,9 @@ import (
 	"fmt"
 
 	"github.com/blang/semver"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	abci "github.com/tendermint/tendermint/abci/types"
 
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 )
 
@@ -16,9 +16,9 @@ const (
 
 // VersionedValidatorManager is an interface define the contract of validator manager that has version support
 type VersionedValidatorManager interface {
-	BeginBlock(ctx sdk.Context, version semver.Version, constAccessor constants.ConstantValues) error
-	EndBlock(ctx sdk.Context, version semver.Version, constAccessor constants.ConstantValues) []abci.ValidatorUpdate
-	RequestYggReturn(ctx sdk.Context, version semver.Version, node NodeAccount) error
+	BeginBlock(ctx cosmos.Context, version semver.Version, constAccessor constants.ConstantValues) error
+	EndBlock(ctx cosmos.Context, version semver.Version, constAccessor constants.ConstantValues) []abci.ValidatorUpdate
+	RequestYggReturn(ctx cosmos.Context, version semver.Version, node NodeAccount) error
 }
 
 // VersionedValidatorMgr
@@ -41,7 +41,7 @@ func NewVersionedValidatorMgr(k Keeper, versionedTxOutStore VersionedTxOutStore,
 }
 
 // BeginBlock start to process a new block
-func (vm *VersionedValidatorMgr) BeginBlock(ctx sdk.Context, version semver.Version, constAccessor constants.ConstantValues) error {
+func (vm *VersionedValidatorMgr) BeginBlock(ctx cosmos.Context, version semver.Version, constAccessor constants.ConstantValues) error {
 	if version.GTE(semver.MustParse("0.1.0")) {
 		if vm.v1ValidatorMgr == nil {
 			vm.v1ValidatorMgr = newValidatorMgrV1(vm.keeper, vm.versionedTxOutStore, vm.versionedVaultManager, vm.versionedEventManager)
@@ -52,7 +52,7 @@ func (vm *VersionedValidatorMgr) BeginBlock(ctx sdk.Context, version semver.Vers
 }
 
 // EndBlock when a block need to commit
-func (vm *VersionedValidatorMgr) EndBlock(ctx sdk.Context, version semver.Version, constAccessor constants.ConstantValues) []abci.ValidatorUpdate {
+func (vm *VersionedValidatorMgr) EndBlock(ctx cosmos.Context, version semver.Version, constAccessor constants.ConstantValues) []abci.ValidatorUpdate {
 	if version.GTE(semver.MustParse("0.1.0")) {
 		if vm.v1ValidatorMgr == nil {
 			vm.v1ValidatorMgr = newValidatorMgrV1(vm.keeper, vm.versionedTxOutStore, vm.versionedVaultManager, vm.versionedEventManager)
@@ -64,7 +64,7 @@ func (vm *VersionedValidatorMgr) EndBlock(ctx sdk.Context, version semver.Versio
 }
 
 // RequestYggReturn request yggdrasil pool to return fund
-func (vm *VersionedValidatorMgr) RequestYggReturn(ctx sdk.Context, version semver.Version, node NodeAccount) error {
+func (vm *VersionedValidatorMgr) RequestYggReturn(ctx cosmos.Context, version semver.Version, node NodeAccount) error {
 	if version.GTE(semver.MustParse("0.1.0")) {
 		if vm.v1ValidatorMgr == nil {
 			vm.v1ValidatorMgr = newValidatorMgrV1(vm.keeper, vm.versionedTxOutStore, vm.versionedVaultManager, vm.versionedEventManager)

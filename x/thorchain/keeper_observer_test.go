@@ -1,7 +1,7 @@
 package thorchain
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	. "gopkg.in/check.v1"
 )
 
@@ -19,7 +19,7 @@ func (s *KeeperObserverSuite) TestObserver(c *C) {
 	k.RemoveActiveObserver(ctx, addr)
 	c.Check(k.IsActiveObserver(ctx, addr), Equals, false)
 
-	k.AddObservingAddresses(ctx, []sdk.AccAddress{addr})
+	k.AddObservingAddresses(ctx, []cosmos.AccAddress{addr})
 	addrs, err := k.GetObservingAddresses(ctx)
 	c.Assert(err, IsNil)
 	c.Assert(addrs, HasLen, 1)

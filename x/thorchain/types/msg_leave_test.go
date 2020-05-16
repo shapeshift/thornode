@@ -1,8 +1,8 @@
 package types
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	. "gopkg.in/check.v1"
 )
 
@@ -28,7 +28,7 @@ func (MsgLeaveSuite) TestMsgLeave(c *C) {
 	c.Assert(msgLeave1.ValidateBasic(), IsNil)
 	msgLeave2 := NewMsgLeave(common.Tx{ID: "", FromAddress: senderBNBAddr}, nodeAddr)
 	c.Assert(msgLeave2.ValidateBasic(), NotNil)
-	msgLeave3 := NewMsgLeave(tx, sdk.AccAddress{})
+	msgLeave3 := NewMsgLeave(tx, cosmos.AccAddress{})
 	c.Assert(msgLeave3.ValidateBasic(), NotNil)
 	msgLeave4 := NewMsgLeave(common.Tx{ID: txId, FromAddress: ""}, nodeAddr)
 	c.Assert(msgLeave4.ValidateBasic(), NotNil)

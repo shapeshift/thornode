@@ -2,10 +2,10 @@ package thorchain
 
 import (
 	"github.com/blang/semver"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 )
 
@@ -19,11 +19,11 @@ func (HandlerAddSuite) TestAdd(c *C) {
 	prePool, err := w.keeper.GetPool(w.ctx, common.BNBAsset)
 	c.Assert(err, IsNil)
 	addHandler := NewAddHandler(w.keeper, NewVersionedEventMgr())
-	msg := NewMsgAdd(GetRandomTx(), common.BNBAsset, sdk.NewUint(common.One*5), sdk.NewUint(common.One*5), w.activeNodeAccount.NodeAddress)
+	msg := NewMsgAdd(GetRandomTx(), common.BNBAsset, cosmos.NewUint(common.One*5), cosmos.NewUint(common.One*5), w.activeNodeAccount.NodeAddress)
 	ver := constants.SWVersion
 	constAccessor := constants.GetConstantValues(ver)
 	result := addHandler.Run(w.ctx, msg, ver, constAccessor)
-	c.Assert(result.Code, Equals, sdk.CodeOK)
+	c.Assert(result.Code, Equals, cosmos.CodeOK)
 	afterPool, err := w.keeper.GetPool(w.ctx, common.BNBAsset)
 	c.Assert(err, IsNil)
 	c.Assert(afterPool.BalanceRune.String(), Equals, prePool.BalanceRune.Add(msg.RuneAmount).String())
@@ -40,22 +40,22 @@ func (HandlerAddSuite) TestHandleMsgAddValidation(c *C) {
 	testCases := []struct {
 		name         string
 		msg          MsgAdd
-		expectedCode sdk.CodeType
+		expectedCode cosmos.CodeType
 	}{
 		{
 			name:         "invalid signer address should fail",
-			msg:          NewMsgAdd(GetRandomTx(), common.BNBAsset, sdk.NewUint(common.One*5), sdk.NewUint(common.One*5), sdk.AccAddress{}),
-			expectedCode: sdk.CodeInvalidAddress,
+			msg:          NewMsgAdd(GetRandomTx(), common.BNBAsset, cosmos.NewUint(common.One*5), cosmos.NewUint(common.One*5), cosmos.AccAddress{}),
+			expectedCode: cosmos.CodeInvalidAddress,
 		},
 		{
 			name:         "empty asset should fail",
-			msg:          NewMsgAdd(GetRandomTx(), common.Asset{}, sdk.NewUint(common.One*5), sdk.NewUint(common.One*5), w.activeNodeAccount.NodeAddress),
-			expectedCode: sdk.CodeUnknownRequest,
+			msg:          NewMsgAdd(GetRandomTx(), common.Asset{}, cosmos.NewUint(common.One*5), cosmos.NewUint(common.One*5), w.activeNodeAccount.NodeAddress),
+			expectedCode: cosmos.CodeUnknownRequest,
 		},
 		{
 			name:         "pool doesn't exist should fail",
-			msg:          NewMsgAdd(GetRandomTx(), common.BNBAsset, sdk.NewUint(common.One*5), sdk.NewUint(common.One*5), w.activeNodeAccount.NodeAddress),
-			expectedCode: sdk.CodeUnknownRequest,
+			msg:          NewMsgAdd(GetRandomTx(), common.BNBAsset, cosmos.NewUint(common.One*5), cosmos.NewUint(common.One*5), w.activeNodeAccount.NodeAddress),
+			expectedCode: cosmos.CodeUnknownRequest,
 		},
 	}
 

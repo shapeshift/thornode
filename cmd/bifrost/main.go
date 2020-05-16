@@ -14,7 +14,6 @@ import (
 	"time"
 
 	btsskeygen "github.com/binance-chain/tss-lib/ecdsa/keygen"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	golog "github.com/ipfs/go-log"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -31,6 +30,7 @@ import (
 	"gitlab.com/thorchain/thornode/bifrost/signer"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient"
 	"gitlab.com/thorchain/thornode/cmd"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 // THORNode define version / revision here , so THORNode could inject the version from CI pipeline if THORNode want to
@@ -203,7 +203,7 @@ func main() {
 }
 
 func initPrefix() {
-	cosmosSDKConfg := sdk.GetConfig()
+	cosmosSDKConfg := cosmos.GetConfig()
 	cosmosSDKConfg.SetBech32PrefixForAccount(cmd.Bech32PrefixAccAddr, cmd.Bech32PrefixAccPub)
 	cosmosSDKConfg.Seal()
 }

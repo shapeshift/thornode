@@ -2,22 +2,22 @@ package thorchain
 
 import (
 	"github.com/blang/semver"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 )
 
 type VersionedTxOutStore interface {
-	GetTxOutStore(ctx sdk.Context, keeper Keeper, version semver.Version) (TxOutStore, error)
+	GetTxOutStore(ctx cosmos.Context, keeper Keeper, version semver.Version) (TxOutStore, error)
 }
 
 type TxOutStore interface {
 	NewBlock(height int64, constAccessor constants.ConstantValues)
-	GetBlockOut(ctx sdk.Context) (*TxOut, error)
-	ClearOutboundItems(ctx sdk.Context)
-	GetOutboundItems(ctx sdk.Context) ([]*TxOutItem, error)
-	TryAddTxOutItem(ctx sdk.Context, toi *TxOutItem) (bool, error)
-	UnSafeAddTxOutItem(ctx sdk.Context, toi *TxOutItem) error
+	GetBlockOut(ctx cosmos.Context) (*TxOut, error)
+	ClearOutboundItems(ctx cosmos.Context)
+	GetOutboundItems(ctx cosmos.Context) ([]*TxOutItem, error)
+	TryAddTxOutItem(ctx cosmos.Context, toi *TxOutItem) (bool, error)
+	UnSafeAddTxOutItem(ctx cosmos.Context, toi *TxOutItem) error
 }
 
 type VersionedTxOutStorage struct {
@@ -33,7 +33,7 @@ func NewVersionedTxOutStore(versionedEventManager VersionedEventManager) *Versio
 }
 
 // GetTxOutStore will return an implementation of the txout store that
-func (s *VersionedTxOutStorage) GetTxOutStore(ctx sdk.Context, keeper Keeper, version semver.Version) (TxOutStore, error) {
+func (s *VersionedTxOutStorage) GetTxOutStore(ctx cosmos.Context, keeper Keeper, version semver.Version) (TxOutStore, error) {
 	if version.GTE(semver.MustParse("0.1.0")) {
 		if s.txOutStorage == nil {
 			eventMgr, err := s.versionedEventManager.GetEventManager(ctx, version)

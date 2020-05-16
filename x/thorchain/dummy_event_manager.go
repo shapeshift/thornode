@@ -2,9 +2,9 @@ package thorchain
 
 import (
 	"github.com/blang/semver"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 // DummyEventMgr used for test purpose , and it implement EventManager interface
@@ -15,62 +15,62 @@ func NewDummyEventMgr() *DummyEventMgr {
 	return &DummyEventMgr{}
 }
 
-func (m *DummyEventMgr) CompleteEvents(ctx sdk.Context, keeper Keeper, height int64, txID common.TxID, txs common.Txs, eventStatus EventStatus) {
+func (m *DummyEventMgr) CompleteEvents(ctx cosmos.Context, keeper Keeper, height int64, txID common.TxID, txs common.Txs, eventStatus EventStatus) {
 }
 
-func (m *DummyEventMgr) EmitPoolEvent(ctx sdk.Context, keeper Keeper, txIn common.TxID, status EventStatus, poolEvt EventPool) error {
+func (m *DummyEventMgr) EmitPoolEvent(ctx cosmos.Context, keeper Keeper, txIn common.TxID, status EventStatus, poolEvt EventPool) error {
 	return nil
 }
 
-func (m *DummyEventMgr) EmitErrataEvent(ctx sdk.Context, keeper Keeper, txIn common.TxID, errataEvent EventErrata) error {
+func (m *DummyEventMgr) EmitErrataEvent(ctx cosmos.Context, keeper Keeper, txIn common.TxID, errataEvent EventErrata) error {
 	return nil
 }
 
-func (m *DummyEventMgr) EmitGasEvent(ctx sdk.Context, keeper Keeper, gasEvent *EventGas) error {
+func (m *DummyEventMgr) EmitGasEvent(ctx cosmos.Context, keeper Keeper, gasEvent *EventGas) error {
 	return nil
 }
 
-func (m *DummyEventMgr) EmitStakeEvent(ctx sdk.Context, keeper Keeper, inTx common.Tx, stakeEvent EventStake) error {
+func (m *DummyEventMgr) EmitStakeEvent(ctx cosmos.Context, keeper Keeper, inTx common.Tx, stakeEvent EventStake) error {
 	return nil
 }
 
-func (m *DummyEventMgr) EmitRewardEvent(ctx sdk.Context, keeper Keeper, rewardEvt EventRewards) error {
+func (m *DummyEventMgr) EmitRewardEvent(ctx cosmos.Context, keeper Keeper, rewardEvt EventRewards) error {
 	return nil
 }
 
-func (m *DummyEventMgr) EmitReserveEvent(ctx sdk.Context, keeper Keeper, reserveEvent EventReserve) error {
+func (m *DummyEventMgr) EmitReserveEvent(ctx cosmos.Context, keeper Keeper, reserveEvent EventReserve) error {
 	return nil
 }
 
-func (m *DummyEventMgr) EmitUnstakeEvent(ctx sdk.Context, keeper Keeper, unstakeEvt EventUnstake) error {
+func (m *DummyEventMgr) EmitUnstakeEvent(ctx cosmos.Context, keeper Keeper, unstakeEvt EventUnstake) error {
 	return nil
 }
 
-func (m *DummyEventMgr) EmitSwapEvent(ctx sdk.Context, keeper Keeper, swap EventSwap) error {
+func (m *DummyEventMgr) EmitSwapEvent(ctx cosmos.Context, keeper Keeper, swap EventSwap) error {
 	return nil
 }
 
-func (m *DummyEventMgr) EmitAddEvent(ctx sdk.Context, keeper Keeper, addEvt EventAdd) error {
+func (m *DummyEventMgr) EmitAddEvent(ctx cosmos.Context, keeper Keeper, addEvt EventAdd) error {
 	return nil
 }
 
-func (m *DummyEventMgr) EmitRefundEvent(ctx sdk.Context, keeper Keeper, refundEvt EventRefund, status EventStatus) error {
+func (m *DummyEventMgr) EmitRefundEvent(ctx cosmos.Context, keeper Keeper, refundEvt EventRefund, status EventStatus) error {
 	return nil
 }
 
-func (m *DummyEventMgr) EmitBondEvent(ctx sdk.Context, keeper Keeper, bondEvent EventBond) error {
+func (m *DummyEventMgr) EmitBondEvent(ctx cosmos.Context, keeper Keeper, bondEvent EventBond) error {
 	return nil
 }
 
-func (m *DummyEventMgr) EmitFeeEvent(ctx sdk.Context, keeper Keeper, feeEvent EventFee) error {
+func (m *DummyEventMgr) EmitFeeEvent(ctx cosmos.Context, keeper Keeper, feeEvent EventFee) error {
 	return nil
 }
 
-func (m *DummyEventMgr) EmitSlashEvent(ctx sdk.Context, keeper Keeper, slashEvt EventSlash) error {
+func (m *DummyEventMgr) EmitSlashEvent(ctx cosmos.Context, keeper Keeper, slashEvt EventSlash) error {
 	return nil
 }
 
-func (m *DummyEventMgr) EmitOutboundEvent(ctx sdk.Context, outbound EventOutbound) error {
+func (m *DummyEventMgr) EmitOutboundEvent(ctx cosmos.Context, outbound EventOutbound) error {
 	return nil
 }
 
@@ -80,6 +80,6 @@ func NewDummyVersionedEventMgr() *DummyVersionedEventMgr {
 	return &DummyVersionedEventMgr{}
 }
 
-func (m *DummyVersionedEventMgr) GetEventManager(ctx sdk.Context, version semver.Version) (EventManager, error) {
+func (m *DummyVersionedEventMgr) GetEventManager(ctx cosmos.Context, version semver.Version) (EventManager, error) {
 	return NewDummyEventMgr(), nil
 }

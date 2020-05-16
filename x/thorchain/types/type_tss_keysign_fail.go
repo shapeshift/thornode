@@ -1,16 +1,15 @@
 package types
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
-
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 type TssKeysignFailVoter struct {
-	ID      string           `json:"id"` // checksum of sorted input pubkeys
-	Height  int64            `json:"height"`
-	Blame   common.Blame     `json:"blame"`
-	Signers []sdk.AccAddress `json:"signers"`
+	ID      string              `json:"id"` // checksum of sorted input pubkeys
+	Height  int64               `json:"height"`
+	Blame   common.Blame        `json:"blame"`
+	Signers []cosmos.AccAddress `json:"signers"`
 }
 
 func NewTssKeysignFailVoter(id string, height int64) TssKeysignFailVoter {
@@ -21,7 +20,7 @@ func NewTssKeysignFailVoter(id string, height int64) TssKeysignFailVoter {
 }
 
 // HasSigned - check if given address has signed
-func (tss TssKeysignFailVoter) HasSigned(signer sdk.AccAddress) bool {
+func (tss TssKeysignFailVoter) HasSigned(signer cosmos.AccAddress) bool {
 	for _, sign := range tss.Signers {
 		if sign.Equals(signer) {
 			return true
@@ -31,7 +30,7 @@ func (tss TssKeysignFailVoter) HasSigned(signer sdk.AccAddress) bool {
 }
 
 // Sign this voter with given signer address
-func (tss *TssKeysignFailVoter) Sign(signer sdk.AccAddress) bool {
+func (tss *TssKeysignFailVoter) Sign(signer cosmos.AccAddress) bool {
 	if tss.HasSigned(signer) {
 		return false
 	}

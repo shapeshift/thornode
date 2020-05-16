@@ -5,20 +5,20 @@ import (
 	"testing"
 
 	"github.com/blang/semver"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/tss/go-tss/blame"
 
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 )
 
 func TestPackage(t *testing.T) { TestingT(t) }
 
 var (
-	bnbSingleTxFee = sdk.NewUint(37500)
-	bnbMultiTxFee  = sdk.NewUint(30000)
+	bnbSingleTxFee = cosmos.NewUint(37500)
+	bnbMultiTxFee  = cosmos.NewUint(30000)
 )
 
 // Gas Fees
@@ -51,18 +51,18 @@ func (s *ThorchainSuite) TestStaking(c *C) {
 	c.Assert(keeper.SetPool(ctx, pool), IsNil)
 
 	// stake for user1
-	_, err = stake(ctx, keeper, common.BNBAsset, sdk.NewUint(100*common.One), sdk.NewUint(100*common.One), user1, user1, txID, constAccessor)
+	_, err = stake(ctx, keeper, common.BNBAsset, cosmos.NewUint(100*common.One), cosmos.NewUint(100*common.One), user1, user1, txID, constAccessor)
 	c.Assert(err, IsNil)
-	_, err = stake(ctx, keeper, common.BNBAsset, sdk.NewUint(100*common.One), sdk.NewUint(100*common.One), user1, user1, txID, constAccessor)
+	_, err = stake(ctx, keeper, common.BNBAsset, cosmos.NewUint(100*common.One), cosmos.NewUint(100*common.One), user1, user1, txID, constAccessor)
 	c.Assert(err, IsNil)
 	staker1, err := keeper.GetStaker(ctx, common.BNBAsset, user1)
 	c.Assert(err, IsNil)
 	c.Check(staker1.Units.IsZero(), Equals, false)
 
 	// stake for user2
-	_, err = stake(ctx, keeper, common.BNBAsset, sdk.NewUint(75*common.One), sdk.NewUint(75*common.One), user2, user2, txID, constAccessor)
+	_, err = stake(ctx, keeper, common.BNBAsset, cosmos.NewUint(75*common.One), cosmos.NewUint(75*common.One), user2, user2, txID, constAccessor)
 	c.Assert(err, IsNil)
-	_, err = stake(ctx, keeper, common.BNBAsset, sdk.NewUint(75*common.One), sdk.NewUint(75*common.One), user2, user2, txID, constAccessor)
+	_, err = stake(ctx, keeper, common.BNBAsset, cosmos.NewUint(75*common.One), cosmos.NewUint(75*common.One), user2, user2, txID, constAccessor)
 	c.Assert(err, IsNil)
 	staker2, err := keeper.GetStaker(ctx, common.BNBAsset, user2)
 	c.Assert(err, IsNil)
@@ -70,7 +70,7 @@ func (s *ThorchainSuite) TestStaking(c *C) {
 
 	version := constants.SWVersion
 	// unstake for user1
-	msg := NewMsgSetUnStake(GetRandomTx(), user1, sdk.NewUint(10000), common.BNBAsset, GetRandomBech32Addr())
+	msg := NewMsgSetUnStake(GetRandomTx(), user1, cosmos.NewUint(10000), common.BNBAsset, GetRandomBech32Addr())
 	_, _, _, _, err = unstake(ctx, version, keeper, msg, eventManager)
 	c.Assert(err, IsNil)
 	staker1, err = keeper.GetStaker(ctx, common.BNBAsset, user1)
@@ -78,7 +78,7 @@ func (s *ThorchainSuite) TestStaking(c *C) {
 	c.Check(staker1.Units.IsZero(), Equals, true)
 
 	// unstake for user2
-	msg = NewMsgSetUnStake(GetRandomTx(), user2, sdk.NewUint(10000), common.BNBAsset, GetRandomBech32Addr())
+	msg = NewMsgSetUnStake(GetRandomTx(), user2, cosmos.NewUint(10000), common.BNBAsset, GetRandomBech32Addr())
 	_, _, _, _, err = unstake(ctx, version, keeper, msg, eventManager)
 	c.Assert(err, IsNil)
 	staker2, err = keeper.GetStaker(ctx, common.BNBAsset, user2)
@@ -93,9 +93,9 @@ func (s *ThorchainSuite) TestStaking(c *C) {
 	c.Check(pool.PoolUnits.IsZero(), Equals, true)
 
 	// stake for user1, again
-	_, err = stake(ctx, keeper, common.BNBAsset, sdk.NewUint(100*common.One), sdk.NewUint(100*common.One), user1, user1, txID, constAccessor)
+	_, err = stake(ctx, keeper, common.BNBAsset, cosmos.NewUint(100*common.One), cosmos.NewUint(100*common.One), user1, user1, txID, constAccessor)
 	c.Assert(err, IsNil)
-	_, err = stake(ctx, keeper, common.BNBAsset, sdk.NewUint(100*common.One), sdk.NewUint(100*common.One), user1, user1, txID, constAccessor)
+	_, err = stake(ctx, keeper, common.BNBAsset, cosmos.NewUint(100*common.One), cosmos.NewUint(100*common.One), user1, user1, txID, constAccessor)
 	c.Assert(err, IsNil)
 	staker1, err = keeper.GetStaker(ctx, common.BNBAsset, user1)
 	c.Assert(err, IsNil)
@@ -104,8 +104,8 @@ func (s *ThorchainSuite) TestStaking(c *C) {
 	// check pool is NOT empty
 	pool, err = keeper.GetPool(ctx, common.BNBAsset)
 	c.Assert(err, IsNil)
-	c.Check(pool.BalanceRune.Equal(sdk.NewUint(200*common.One)), Equals, true)
-	c.Check(pool.BalanceAsset.Equal(sdk.NewUint(20000075000)), Equals, true, Commentf("%d", pool.BalanceAsset.Uint64()))
+	c.Check(pool.BalanceRune.Equal(cosmos.NewUint(200*common.One)), Equals, true)
+	c.Check(pool.BalanceAsset.Equal(cosmos.NewUint(20000075000)), Equals, true, Commentf("%d", pool.BalanceAsset.Uint64()))
 	c.Check(pool.PoolUnits.IsZero(), Equals, false)
 }
 
@@ -127,10 +127,10 @@ func (s *ThorchainSuite) TestChurn(c *C) {
 	// create starting point, vault and four node active node accounts
 	vault := GetRandomVault()
 	vault.AddFunds(common.Coins{
-		common.NewCoin(common.RuneAsset(), sdk.NewUint(100*common.One)),
-		common.NewCoin(common.BNBAsset, sdk.NewUint(79*common.One)),
+		common.NewCoin(common.RuneAsset(), cosmos.NewUint(100*common.One)),
+		common.NewCoin(common.BNBAsset, cosmos.NewUint(79*common.One)),
 	})
-	addresses := make([]sdk.AccAddress, 4)
+	addresses := make([]cosmos.AccAddress, 4)
 	for i := 0; i <= 3; i++ {
 		na := GetRandomNodeAccount(NodeActive)
 		addresses[i] = na.NodeAddress
@@ -175,7 +175,7 @@ func (s *ThorchainSuite) TestChurn(c *C) {
 	tssHandler := NewTssHandler(keeper, versionedVaultMgr, NewVersionedEventMgr())
 
 	voter := NewTssVoter(msg.ID, msg.PubKeys, msg.PoolPubKey)
-	signers := make([]sdk.AccAddress, len(msg.PubKeys)-1)
+	signers := make([]cosmos.AccAddress, len(msg.PubKeys)-1)
 	for i, pk := range msg.PubKeys {
 		if i == 0 {
 			continue
@@ -273,17 +273,17 @@ func (s *ThorchainSuite) TestRagnarok(c *C) {
 
 	// add stakers
 	staker1 := GetRandomBNBAddress() // Staker1
-	_, err = stake(ctx, keeper, common.BNBAsset, sdk.NewUint(100*common.One), sdk.NewUint(10*common.One), staker1, staker1, GetRandomTxHash(), consts)
+	_, err = stake(ctx, keeper, common.BNBAsset, cosmos.NewUint(100*common.One), cosmos.NewUint(10*common.One), staker1, staker1, GetRandomTxHash(), consts)
 	c.Assert(err, IsNil)
-	_, err = stake(ctx, keeper, boltAsset, sdk.NewUint(50*common.One), sdk.NewUint(11*common.One), staker1, staker1, GetRandomTxHash(), consts)
+	_, err = stake(ctx, keeper, boltAsset, cosmos.NewUint(50*common.One), cosmos.NewUint(11*common.One), staker1, staker1, GetRandomTxHash(), consts)
 	c.Assert(err, IsNil)
 	staker2 := GetRandomBNBAddress() // staker2
-	_, err = stake(ctx, keeper, common.BNBAsset, sdk.NewUint(155*common.One), sdk.NewUint(15*common.One), staker2, staker2, GetRandomTxHash(), consts)
+	_, err = stake(ctx, keeper, common.BNBAsset, cosmos.NewUint(155*common.One), cosmos.NewUint(15*common.One), staker2, staker2, GetRandomTxHash(), consts)
 	c.Assert(err, IsNil)
-	_, err = stake(ctx, keeper, boltAsset, sdk.NewUint(20*common.One), sdk.NewUint(4*common.One), staker2, staker2, GetRandomTxHash(), consts)
+	_, err = stake(ctx, keeper, boltAsset, cosmos.NewUint(20*common.One), cosmos.NewUint(4*common.One), staker2, staker2, GetRandomTxHash(), consts)
 	c.Assert(err, IsNil)
 	staker3 := GetRandomBNBAddress() // staker3
-	_, err = stake(ctx, keeper, common.BNBAsset, sdk.NewUint(155*common.One), sdk.NewUint(15*common.One), staker3, staker3, GetRandomTxHash(), consts)
+	_, err = stake(ctx, keeper, common.BNBAsset, cosmos.NewUint(155*common.One), cosmos.NewUint(15*common.One), staker3, staker3, GetRandomTxHash(), consts)
 	c.Assert(err, IsNil)
 	stakers := []common.Address{
 		staker1, staker2, staker3,
@@ -300,7 +300,7 @@ func (s *ThorchainSuite) TestRagnarok(c *C) {
 	bonders := make(NodeAccounts, bonderCount)
 	for i := 1; i <= bonderCount; i++ {
 		na := GetRandomNodeAccount(NodeActive)
-		na.Bond = sdk.NewUint(1_000_000 * uint64(i) * common.One)
+		na.Bond = cosmos.NewUint(1_000_000 * uint64(i) * common.One)
 		c.Assert(keeper.SetNodeAccount(ctx, na), IsNil)
 		bonders[i-1] = na
 
@@ -327,8 +327,8 @@ func (s *ThorchainSuite) TestRagnarok(c *C) {
 	contrib1 := GetRandomBNBAddress()
 	contrib2 := GetRandomBNBAddress()
 	reserves := ReserveContributors{
-		NewReserveContributor(contrib1, sdk.NewUint(400_000_000*common.One)),
-		NewReserveContributor(contrib2, sdk.NewUint(100_000*common.One)),
+		NewReserveContributor(contrib1, cosmos.NewUint(400_000_000*common.One)),
+		NewReserveContributor(contrib2, cosmos.NewUint(100_000*common.One)),
 	}
 	resHandler := NewReserveContributorHandler(keeper, NewVersionedEventMgr())
 	for _, res := range reserves {
@@ -336,7 +336,7 @@ func (s *ThorchainSuite) TestRagnarok(c *C) {
 			common.NewCoin(common.RuneAsset(), res.Amount),
 		})
 		msg := NewMsgReserveContributor(GetRandomTx(), res, bonders[0].NodeAddress)
-		c.Assert(resHandler.Handle(ctx, msg, ver).Code, Equals, sdk.CodeOK)
+		c.Assert(resHandler.Handle(ctx, msg, ver).Code, Equals, cosmos.CodeOK)
 	}
 	c.Assert(keeper.SetVault(ctx, asgard), IsNil)
 
@@ -344,9 +344,9 @@ func (s *ThorchainSuite) TestRagnarok(c *C) {
 	// ////////////// Start Ragnarok Protocol /////////////////
 	// ////////////////////////////////////////////////////////
 	vd := VaultData{
-		BondRewardRune: sdk.NewUint(1000_000 * common.One),
-		TotalBondUnits: sdk.NewUint(3 * 1014), // block height * node count
-		TotalReserve:   sdk.NewUint(400_100_000 * common.One),
+		BondRewardRune: cosmos.NewUint(1000_000 * common.One),
+		TotalBondUnits: cosmos.NewUint(3 * 1014), // block height * node count
+		TotalReserve:   cosmos.NewUint(400_100_000 * common.One),
 	}
 	c.Assert(keeper.SetVaultData(ctx, vd), IsNil)
 	ctx = ctx.WithBlockHeight(1024)
@@ -426,8 +426,8 @@ func (s *ThorchainSuite) TestRagnarok(c *C) {
 
 // calculate the expected coin amount taken from a original amount at nth round
 // of ragnarok
-func calcExpectedValue(total sdk.Uint, nth int) sdk.Uint {
-	var amt sdk.Uint
+func calcExpectedValue(total cosmos.Uint, nth int) cosmos.Uint {
+	var amt cosmos.Uint
 	for i := uint64(1); i <= uint64(nth); i++ {
 		amt = total.MulUint64(i).QuoUint64(10)
 		total = total.Sub(amt)
@@ -463,17 +463,17 @@ func (s *ThorchainSuite) TestRagnarokNoOneLeave(c *C) {
 
 	// add stakers
 	staker1 := GetRandomBNBAddress() // Staker1
-	_, err = stake(ctx, keeper, common.BNBAsset, sdk.NewUint(100*common.One), sdk.NewUint(10*common.One), staker1, staker1, GetRandomTxHash(), consts)
+	_, err = stake(ctx, keeper, common.BNBAsset, cosmos.NewUint(100*common.One), cosmos.NewUint(10*common.One), staker1, staker1, GetRandomTxHash(), consts)
 	c.Assert(err, IsNil)
-	_, err = stake(ctx, keeper, boltAsset, sdk.NewUint(50*common.One), sdk.NewUint(11*common.One), staker1, staker1, GetRandomTxHash(), consts)
+	_, err = stake(ctx, keeper, boltAsset, cosmos.NewUint(50*common.One), cosmos.NewUint(11*common.One), staker1, staker1, GetRandomTxHash(), consts)
 	c.Assert(err, IsNil)
 	staker2 := GetRandomBNBAddress() // staker2
-	_, err = stake(ctx, keeper, common.BNBAsset, sdk.NewUint(155*common.One), sdk.NewUint(15*common.One), staker2, staker2, GetRandomTxHash(), consts)
+	_, err = stake(ctx, keeper, common.BNBAsset, cosmos.NewUint(155*common.One), cosmos.NewUint(15*common.One), staker2, staker2, GetRandomTxHash(), consts)
 	c.Assert(err, IsNil)
-	_, err = stake(ctx, keeper, boltAsset, sdk.NewUint(20*common.One), sdk.NewUint(4*common.One), staker2, staker2, GetRandomTxHash(), consts)
+	_, err = stake(ctx, keeper, boltAsset, cosmos.NewUint(20*common.One), cosmos.NewUint(4*common.One), staker2, staker2, GetRandomTxHash(), consts)
 	c.Assert(err, IsNil)
 	staker3 := GetRandomBNBAddress() // staker3
-	_, err = stake(ctx, keeper, common.BNBAsset, sdk.NewUint(155*common.One), sdk.NewUint(15*common.One), staker3, staker3, GetRandomTxHash(), consts)
+	_, err = stake(ctx, keeper, common.BNBAsset, cosmos.NewUint(155*common.One), cosmos.NewUint(15*common.One), staker3, staker3, GetRandomTxHash(), consts)
 	c.Assert(err, IsNil)
 	stakers := []common.Address{
 		staker1, staker2, staker3,
@@ -491,7 +491,7 @@ func (s *ThorchainSuite) TestRagnarokNoOneLeave(c *C) {
 	bonders := make(NodeAccounts, bonderCount)
 	for i := 1; i <= bonderCount; i++ {
 		na := GetRandomNodeAccount(NodeActive)
-		na.Bond = sdk.NewUint(1_000_000 * uint64(i) * common.One)
+		na.Bond = cosmos.NewUint(1_000_000 * uint64(i) * common.One)
 		c.Assert(keeper.SetNodeAccount(ctx, na), IsNil)
 		bonders[i-1] = na
 
@@ -520,8 +520,8 @@ func (s *ThorchainSuite) TestRagnarokNoOneLeave(c *C) {
 	contrib1 := GetRandomBNBAddress()
 	contrib2 := GetRandomBNBAddress()
 	reserves := ReserveContributors{
-		NewReserveContributor(contrib1, sdk.NewUint(400_000_000*common.One)),
-		NewReserveContributor(contrib2, sdk.NewUint(100_000*common.One)),
+		NewReserveContributor(contrib1, cosmos.NewUint(400_000_000*common.One)),
+		NewReserveContributor(contrib2, cosmos.NewUint(100_000*common.One)),
 	}
 	resHandler := NewReserveContributorHandler(keeper, NewVersionedEventMgr())
 	for _, res := range reserves {
@@ -529,7 +529,7 @@ func (s *ThorchainSuite) TestRagnarokNoOneLeave(c *C) {
 			common.NewCoin(common.RuneAsset(), res.Amount),
 		})
 		msg := NewMsgReserveContributor(GetRandomTx(), res, bonders[0].NodeAddress)
-		c.Assert(resHandler.Handle(ctx, msg, ver).Code, Equals, sdk.CodeOK)
+		c.Assert(resHandler.Handle(ctx, msg, ver).Code, Equals, cosmos.CodeOK)
 	}
 	c.Assert(keeper.SetVault(ctx, asgard), IsNil)
 	asgard.Membership = asgard.Membership[:len(asgard.Membership)-1]

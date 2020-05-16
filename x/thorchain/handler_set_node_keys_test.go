@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/blang/semver"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 	. "gopkg.in/check.v1"
 )
@@ -18,11 +18,11 @@ type TestSetNodeKeysKeeper struct {
 	ensure error
 }
 
-func (k *TestSetNodeKeysKeeper) GetNodeAccount(ctx sdk.Context, signer sdk.AccAddress) (NodeAccount, error) {
+func (k *TestSetNodeKeysKeeper) GetNodeAccount(ctx cosmos.Context, signer cosmos.AccAddress) (NodeAccount, error) {
 	return k.na, nil
 }
 
-func (k *TestSetNodeKeysKeeper) EnsureNodeKeysUnique(_ sdk.Context, _ string, _ common.PubKeySet) error {
+func (k *TestSetNodeKeysKeeper) EnsureNodeKeysUnique(_ cosmos.Context, _ string, _ common.PubKeySet) error {
 	return k.ensure
 }
 
@@ -88,16 +88,16 @@ type TestSetNodeKeysHandleKeeper struct {
 	na NodeAccount
 }
 
-func (k *TestSetNodeKeysHandleKeeper) GetNodeAccount(ctx sdk.Context, signer sdk.AccAddress) (NodeAccount, error) {
+func (k *TestSetNodeKeysHandleKeeper) GetNodeAccount(ctx cosmos.Context, signer cosmos.AccAddress) (NodeAccount, error) {
 	return k.na, nil
 }
 
-func (k *TestSetNodeKeysHandleKeeper) SetNodeAccount(_ sdk.Context, na NodeAccount) error {
+func (k *TestSetNodeKeysHandleKeeper) SetNodeAccount(_ cosmos.Context, na NodeAccount) error {
 	k.na = na
 	return nil
 }
 
-func (k *TestSetNodeKeysHandleKeeper) EnsureNodeKeysUnique(_ sdk.Context, consensPubKey string, pubKeys common.PubKeySet) error {
+func (k *TestSetNodeKeysHandleKeeper) EnsureNodeKeysUnique(_ cosmos.Context, consensPubKey string, pubKeys common.PubKeySet) error {
 	return nil
 }
 
@@ -124,7 +124,7 @@ func (s *HandlerSetNodeKeysSuite) TestHandle(c *C) {
 
 	msgNodeKeys := NewMsgSetNodeKeys(pubKeys, bepConsPubKey, signer)
 
-	bond := sdk.NewUint(common.One * 100)
+	bond := cosmos.NewUint(common.One * 100)
 	nodeAccount := NewNodeAccount(signer, NodeActive, emptyPubKeySet, "", bond, bondAddr, ctx.BlockHeight())
 	c.Assert(keeper.SetNodeAccount(ctx, nodeAccount), IsNil)
 
@@ -133,7 +133,7 @@ func (s *HandlerSetNodeKeysSuite) TestHandle(c *C) {
 
 	// happy path
 	success := handler.handle(ctx, msgNodeKeys, ver, constAccessor)
-	c.Check(success.Code, Equals, sdk.CodeOK)
+	c.Check(success.Code, Equals, cosmos.CodeOK)
 	c.Check(success.IsOK(), Equals, true)
 	c.Assert(keeper.na.PubKeySet, Equals, pubKeys)
 	c.Assert(keeper.na.ValidatorConsPubKey, Equals, bepConsPubKey)
@@ -142,7 +142,7 @@ func (s *HandlerSetNodeKeysSuite) TestHandle(c *C) {
 
 	// update version
 	success2 := handler.handle(ctx, msgNodeKeys, semver.MustParse("2.0.0"), constAccessor)
-	c.Check(success2.Code, Equals, sdk.CodeOK)
+	c.Check(success2.Code, Equals, cosmos.CodeOK)
 	c.Check(success2.IsOK(), Equals, true)
 	c.Check(keeper.na.Version.String(), Equals, "2.0.0")
 }

@@ -5,10 +5,10 @@ import (
 	"sort"
 	"strings"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 type NodeAccountSuite struct{}
@@ -66,7 +66,7 @@ func (NodeAccountSuite) TestNodeAccount(c *C) {
 		Ed25519:   GetRandomPubKey(),
 	}
 
-	na := NewNodeAccount(nodeAddress, Active, pubKeys, bepConsPubKey, sdk.NewUint(common.One), bondAddr, 1)
+	na := NewNodeAccount(nodeAddress, Active, pubKeys, bepConsPubKey, cosmos.NewUint(common.One), bondAddr, 1)
 	c.Assert(na.IsEmpty(), Equals, false)
 	c.Assert(na.IsValid(), IsNil)
 	c.Assert(na.Bond.Uint64(), Equals, uint64(common.One))
@@ -76,10 +76,10 @@ func (NodeAccountSuite) TestNodeAccount(c *C) {
 	c.Assert(nas.IsNodeKeys(addr), Equals, false)
 	c.Assert(nas.IsNodeKeys(nodeAddress), Equals, true)
 	c.Logf("node account:%s", na)
-	naEmpty := NewNodeAccount(sdk.AccAddress{}, Active, pubKeys, bepConsPubKey, sdk.NewUint(common.One), bondAddr, 1)
+	naEmpty := NewNodeAccount(cosmos.AccAddress{}, Active, pubKeys, bepConsPubKey, cosmos.NewUint(common.One), bondAddr, 1)
 	c.Assert(naEmpty.IsValid(), NotNil)
 	c.Assert(naEmpty.IsEmpty(), Equals, true)
-	invalidBondAddr := NewNodeAccount(sdk.AccAddress{}, Active, pubKeys, bepConsPubKey, sdk.NewUint(common.One), "", 1)
+	invalidBondAddr := NewNodeAccount(cosmos.AccAddress{}, Active, pubKeys, bepConsPubKey, cosmos.NewUint(common.One), "", 1)
 	c.Assert(invalidBondAddr.IsValid(), NotNil)
 }
 
@@ -128,7 +128,7 @@ func (NodeAccountSuite) TestNodeAccountUpdateStatusAndSort(c *C) {
 }
 
 func (NodeAccountSuite) TestTryAddSignerPubKey(c *C) {
-	na := NewNodeAccount(GetRandomBech32Addr(), Active, GetRandomPubKeySet(), GetRandomBech32ConsensusPubKey(), sdk.NewUint(100*common.One), GetRandomBNBAddress(), 1)
+	na := NewNodeAccount(GetRandomBech32Addr(), Active, GetRandomPubKeySet(), GetRandomBech32ConsensusPubKey(), cosmos.NewUint(100*common.One), GetRandomBNBAddress(), 1)
 	pk := GetRandomPubKey()
 	emptyPK := common.EmptyPubKey
 	// make sure it get added

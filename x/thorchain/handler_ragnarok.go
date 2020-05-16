@@ -4,9 +4,9 @@ import (
 	"fmt"
 
 	"github.com/blang/semver"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 )
 
@@ -22,18 +22,18 @@ func NewRagnarokHandler(keeper Keeper, versionedEventManager VersionedEventManag
 	}
 }
 
-func (h RagnarokHandler) Run(ctx sdk.Context, m sdk.Msg, version semver.Version, _ constants.ConstantValues) sdk.Result {
+func (h RagnarokHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, _ constants.ConstantValues) cosmos.Result {
 	msg, ok := m.(MsgRagnarok)
 	if !ok {
 		return errInvalidMessage.Result()
 	}
 	if err := h.validate(ctx, msg, version); err != nil {
-		return sdk.ErrInternal(err.Error()).Result()
+		return cosmos.ErrInternal(err.Error()).Result()
 	}
 	return h.handle(ctx, version, msg)
 }
 
-func (h RagnarokHandler) validate(ctx sdk.Context, msg MsgRagnarok, version semver.Version) error {
+func (h RagnarokHandler) validate(ctx cosmos.Context, msg MsgRagnarok, version semver.Version) error {
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, msg)
 	}
@@ -41,7 +41,7 @@ func (h RagnarokHandler) validate(ctx sdk.Context, msg MsgRagnarok, version semv
 	return errInvalidVersion
 }
 
-func (h RagnarokHandler) validateV1(ctx sdk.Context, msg MsgRagnarok) error {
+func (h RagnarokHandler) validateV1(ctx cosmos.Context, msg MsgRagnarok) error {
 	if err := msg.ValidateBasic(); nil != err {
 		ctx.Logger().Error(err.Error())
 		return err
@@ -54,7 +54,7 @@ func (h RagnarokHandler) validateV1(ctx sdk.Context, msg MsgRagnarok) error {
 	return nil
 }
 
-func (h RagnarokHandler) handle(ctx sdk.Context, version semver.Version, msg MsgRagnarok) sdk.Result {
+func (h RagnarokHandler) handle(ctx cosmos.Context, version semver.Version, msg MsgRagnarok) cosmos.Result {
 	ctx.Logger().Info("receive MsgRagnarok", "request tx hash", msg.Tx.Tx.ID)
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.handleV1(ctx, version, msg)
@@ -63,7 +63,7 @@ func (h RagnarokHandler) handle(ctx sdk.Context, version semver.Version, msg Msg
 	return errBadVersion.Result()
 }
 
-func (h RagnarokHandler) slash(ctx sdk.Context, version semver.Version, tx ObservedTx) error {
+func (h RagnarokHandler) slash(ctx cosmos.Context, version semver.Version, tx ObservedTx) error {
 	var returnErr error
 	slasher, err := NewSlasher(h.keeper, version, h.versionedEventManager)
 	if err != nil {
@@ -78,12 +78,12 @@ func (h RagnarokHandler) slash(ctx sdk.Context, version semver.Version, tx Obser
 	return returnErr
 }
 
-func (h RagnarokHandler) handleV1(ctx sdk.Context, version semver.Version, msg MsgRagnarok) sdk.Result {
+func (h RagnarokHandler) handleV1(ctx cosmos.Context, version semver.Version, msg MsgRagnarok) cosmos.Result {
 	// update txOut record with our TxID that sent funds out of the pool
 	txOut, err := h.keeper.GetTxOut(ctx, msg.BlockHeight)
 	if err != nil {
 		ctx.Logger().Error("unable to get txOut record", "error", err)
-		return sdk.ErrUnknownRequest(err.Error()).Result()
+		return cosmos.ErrUnknownRequest(err.Error()).Result()
 	}
 
 	shouldSlash := true
@@ -104,7 +104,7 @@ func (h RagnarokHandler) handleV1(ctx sdk.Context, version semver.Version, msg M
 			shouldSlash = false
 			if err := h.keeper.SetTxOut(ctx, txOut); nil != err {
 				ctx.Logger().Error("fail to save tx out", "error", err)
-				return sdk.ErrInternal("fail to save tx out").Result()
+				return cosmos.ErrInternal("fail to save tx out").Result()
 			}
 
 			break
@@ -113,14 +113,14 @@ func (h RagnarokHandler) handleV1(ctx sdk.Context, version semver.Version, msg M
 
 	if shouldSlash {
 		if err := h.slash(ctx, version, msg.Tx); err != nil {
-			return sdk.ErrInternal("fail to slash account").Result()
+			return cosmos.ErrInternal("fail to slash account").Result()
 		}
 	}
 
 	h.keeper.SetLastSignedHeight(ctx, msg.BlockHeight)
 
-	return sdk.Result{
-		Code:      sdk.CodeOK,
+	return cosmos.Result{
+		Code:      cosmos.CodeOK,
 		Codespace: DefaultCodespace,
 	}
 }

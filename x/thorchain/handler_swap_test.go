@@ -4,9 +4,9 @@ import (
 	"errors"
 
 	"github.com/blang/semver"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 
 	. "gopkg.in/check.v1"
@@ -36,12 +36,12 @@ func (s *HandlerSwapSuite) TestValidate(c *C) {
 		signerBNBAddr,
 		signerBNBAddr,
 		common.Coins{
-			common.NewCoin(common.RuneAsset(), sdk.OneUint()),
+			common.NewCoin(common.RuneAsset(), cosmos.OneUint()),
 		},
 		BNBGasFeeSingleton,
 		"",
 	)
-	msg := NewMsgSwap(tx, common.BNBAsset, signerBNBAddr, sdk.ZeroUint(), observerAddr)
+	msg := NewMsgSwap(tx, common.BNBAsset, signerBNBAddr, cosmos.ZeroUint(), observerAddr)
 	err := handler.validate(ctx, msg, ver)
 	c.Assert(err, IsNil)
 
@@ -55,7 +55,7 @@ func (s *HandlerSwapSuite) TestValidate(c *C) {
 	c.Assert(err, NotNil)
 
 	// not signed observer
-	msg = NewMsgSwap(tx, common.BNBAsset, signerBNBAddr, sdk.ZeroUint(), GetRandomBech32Addr())
+	msg = NewMsgSwap(tx, common.BNBAsset, signerBNBAddr, cosmos.ZeroUint(), GetRandomBech32Addr())
 	err = handler.validate(ctx, msg, ver)
 	c.Assert(err, Equals, notAuthorized)
 }
@@ -68,37 +68,37 @@ type TestSwapHandleKeeper struct {
 	hasEvent          bool
 }
 
-func (k *TestSwapHandleKeeper) PoolExist(_ sdk.Context, asset common.Asset) bool {
+func (k *TestSwapHandleKeeper) PoolExist(_ cosmos.Context, asset common.Asset) bool {
 	_, ok := k.pools[asset]
 	return ok
 }
 
-func (k *TestSwapHandleKeeper) GetPool(_ sdk.Context, asset common.Asset) (Pool, error) {
+func (k *TestSwapHandleKeeper) GetPool(_ cosmos.Context, asset common.Asset) (Pool, error) {
 	return k.pools[asset], nil
 }
 
-func (k *TestSwapHandleKeeper) SetPool(_ sdk.Context, pool Pool) error {
+func (k *TestSwapHandleKeeper) SetPool(_ cosmos.Context, pool Pool) error {
 	k.pools[pool.Asset] = pool
 	return nil
 }
 
 // IsActiveObserver see whether it is an active observer
-func (k *TestSwapHandleKeeper) IsActiveObserver(_ sdk.Context, addr sdk.AccAddress) bool {
+func (k *TestSwapHandleKeeper) IsActiveObserver(_ cosmos.Context, addr cosmos.AccAddress) bool {
 	return k.activeNodeAccount.NodeAddress.Equals(addr)
 }
 
-func (k *TestSwapHandleKeeper) GetNodeAccount(_ sdk.Context, addr sdk.AccAddress) (NodeAccount, error) {
+func (k *TestSwapHandleKeeper) GetNodeAccount(_ cosmos.Context, addr cosmos.AccAddress) (NodeAccount, error) {
 	if k.activeNodeAccount.NodeAddress.Equals(addr) {
 		return k.activeNodeAccount, nil
 	}
 	return NodeAccount{}, errors.New("not exist")
 }
 
-func (k *TestSwapHandleKeeper) AddToLiquidityFees(_ sdk.Context, _ common.Asset, _ sdk.Uint) error {
+func (k *TestSwapHandleKeeper) AddToLiquidityFees(_ cosmos.Context, _ common.Asset, _ cosmos.Uint) error {
 	return nil
 }
 
-func (k *TestSwapHandleKeeper) UpsertEvent(ctx sdk.Context, event Event) error {
+func (k *TestSwapHandleKeeper) UpsertEvent(ctx cosmos.Context, event Event) error {
 	k.event = append(k.event, event)
 	return nil
 }
@@ -130,20 +130,20 @@ func (s *HandlerSwapSuite) TestHandle(c *C) {
 		signerBNBAddr,
 		signerBNBAddr,
 		common.Coins{
-			common.NewCoin(common.RuneAsset(), sdk.OneUint()),
+			common.NewCoin(common.RuneAsset(), cosmos.OneUint()),
 		},
 		BNBGasFeeSingleton,
 		"",
 	)
 	keeper.clearEvent()
-	msg := NewMsgSwap(tx, common.BNBAsset, signerBNBAddr, sdk.ZeroUint(), observerAddr)
+	msg := NewMsgSwap(tx, common.BNBAsset, signerBNBAddr, cosmos.ZeroUint(), observerAddr)
 	res := handler.handle(ctx, msg, ver, constAccessor)
 	c.Assert(res.Code, Equals, CodeSwapFailPoolNotExist)
 	c.Assert(keeper.event, IsNil)
 	pool := NewPool()
 	pool.Asset = common.BNBAsset
-	pool.BalanceAsset = sdk.NewUint(100 * common.One)
-	pool.BalanceRune = sdk.NewUint(100 * common.One)
+	pool.BalanceAsset = cosmos.NewUint(100 * common.One)
+	pool.BalanceRune = cosmos.NewUint(100 * common.One)
 	c.Assert(keeper.SetPool(ctx, pool), IsNil)
 	keeper.clearEvent()
 	// fund is not enough to pay for transaction fee
@@ -153,13 +153,13 @@ func (s *HandlerSwapSuite) TestHandle(c *C) {
 
 	tx = common.NewTx(txID, signerBNBAddr, signerBNBAddr,
 		common.Coins{
-			common.NewCoin(common.RuneAsset(), sdk.NewUint(2*common.One)),
+			common.NewCoin(common.RuneAsset(), cosmos.NewUint(2*common.One)),
 		},
 		BNBGasFeeSingleton,
 		"",
 	)
 	keeper.clearEvent()
-	msgSwapPriceProtection := NewMsgSwap(tx, common.BNBAsset, signerBNBAddr, sdk.NewUint(2*common.One), observerAddr)
+	msgSwapPriceProtection := NewMsgSwap(tx, common.BNBAsset, signerBNBAddr, cosmos.NewUint(2*common.One), observerAddr)
 	res1 := handler.handle(ctx, msgSwapPriceProtection, ver, constAccessor)
 	c.Assert(res1.IsOK(), Equals, false)
 	c.Assert(res1.Code, Equals, CodeSwapFailTradeTarget)
@@ -169,15 +169,15 @@ func (s *HandlerSwapSuite) TestHandle(c *C) {
 	tCanAsset, err := common.NewAsset("BNB.TCAN-014")
 	c.Assert(err, IsNil)
 	poolTCAN.Asset = tCanAsset
-	poolTCAN.BalanceAsset = sdk.NewUint(334850000)
-	poolTCAN.BalanceRune = sdk.NewUint(2349500000)
+	poolTCAN.BalanceAsset = cosmos.NewUint(334850000)
+	poolTCAN.BalanceRune = cosmos.NewUint(2349500000)
 	c.Assert(keeper.SetPool(ctx, poolTCAN), IsNil)
 
 	m, err := ParseMemo("swap:BNB.RUNE-B1A:bnb18jtza8j86hfyuj2f90zec0g5gvjh823e5psn2u:124958592")
 	txIn := NewObservedTx(
 		common.NewTx(GetRandomTxHash(), signerBNBAddr, GetRandomBNBAddress(),
 			common.Coins{
-				common.NewCoin(tCanAsset, sdk.NewUint(20000000)),
+				common.NewCoin(tCanAsset, cosmos.NewUint(20000000)),
 			},
 			BNBGasFeeSingleton,
 			"swap:BNB.RUNE-B1A:bnb18jtza8j86hfyuj2f90zec0g5gvjh823e5psn2u:124958592",
@@ -193,7 +193,7 @@ func (s *HandlerSwapSuite) TestHandle(c *C) {
 	c.Assert(items, HasLen, 0)
 	res2 := handler.handle(ctx, msgSwapFromTxIn.(MsgSwap), ver, constAccessor)
 	c.Assert(res2.IsOK(), Equals, true)
-	c.Assert(res2.Code, Equals, sdk.CodeOK)
+	c.Assert(res2.Code, Equals, cosmos.CodeOK)
 	c.Assert(keeper.event, NotNil)
 	items, err = versionedTxOutStoreDummy.txoutStore.GetOutboundItems(ctx)
 	c.Assert(err, IsNil)
@@ -213,16 +213,16 @@ func (s *HandlerSwapSuite) TestDoubleSwap(c *C) {
 
 	pool := NewPool()
 	pool.Asset = common.BNBAsset
-	pool.BalanceAsset = sdk.NewUint(100 * common.One)
-	pool.BalanceRune = sdk.NewUint(100 * common.One)
+	pool.BalanceAsset = cosmos.NewUint(100 * common.One)
+	pool.BalanceRune = cosmos.NewUint(100 * common.One)
 	c.Assert(keeper.SetPool(ctx, pool), IsNil)
 
 	poolTCAN := NewPool()
 	tCanAsset, err := common.NewAsset("BNB.TCAN-014")
 	c.Assert(err, IsNil)
 	poolTCAN.Asset = tCanAsset
-	poolTCAN.BalanceAsset = sdk.NewUint(334850000)
-	poolTCAN.BalanceRune = sdk.NewUint(2349500000)
+	poolTCAN.BalanceAsset = cosmos.NewUint(334850000)
+	poolTCAN.BalanceRune = cosmos.NewUint(2349500000)
 	c.Assert(keeper.SetPool(ctx, poolTCAN), IsNil)
 
 	signerBNBAddr := GetRandomBNBAddress()
@@ -234,7 +234,7 @@ func (s *HandlerSwapSuite) TestDoubleSwap(c *C) {
 	txIn := NewObservedTx(
 		common.NewTx(GetRandomTxHash(), signerBNBAddr, GetRandomBNBAddress(),
 			common.Coins{
-				common.NewCoin(tCanAsset, sdk.NewUint(20000000)),
+				common.NewCoin(tCanAsset, cosmos.NewUint(20000000)),
 			},
 			BNBGasFeeSingleton,
 			"swap:BNB.BNB:bnb18jtza8j86hfyuj2f90zec0g5gvjh823e5psn2u",
@@ -251,7 +251,7 @@ func (s *HandlerSwapSuite) TestDoubleSwap(c *C) {
 
 	res := handler.handle(ctx, msgSwapFromTxIn.(MsgSwap), ver, constAccessor)
 	c.Assert(res.IsOK(), Equals, true, Commentf("%s", res.Log))
-	c.Assert(res.Code, Equals, sdk.CodeOK)
+	c.Assert(res.Code, Equals, cosmos.CodeOK)
 	c.Assert(keeper.event, NotNil)
 	c.Assert(len(keeper.event), Equals, 2)
 
@@ -265,7 +265,7 @@ func (s *HandlerSwapSuite) TestDoubleSwap(c *C) {
 	txIn1 := NewObservedTx(
 		common.NewTx(GetRandomTxHash(), signerBNBAddr, GetRandomBNBAddress(),
 			common.Coins{
-				common.NewCoin(tCanAsset, sdk.NewUint(10000000)),
+				common.NewCoin(tCanAsset, cosmos.NewUint(10000000)),
 			},
 			BNBGasFeeSingleton,
 			"swap:BNB.BNB:bnb18jtza8j86hfyuj2f90zec0g5gvjh823e5psn2u",

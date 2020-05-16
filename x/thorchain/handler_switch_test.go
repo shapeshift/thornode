@@ -2,8 +2,8 @@ package thorchain
 
 import (
 	"github.com/blang/semver"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 	. "gopkg.in/check.v1"
 )
@@ -23,7 +23,7 @@ func (s *HandlerSwitchSuite) TestValidate(c *C) {
 	c.Assert(k.SetNodeAccount(ctx, na), IsNil)
 	tx := GetRandomTx()
 	tx.Coins = common.Coins{
-		common.NewCoin(common.RuneA1FAsset, sdk.NewUint(100*common.One)),
+		common.NewCoin(common.RuneA1FAsset, cosmos.NewUint(100*common.One)),
 	}
 	destination := GetRandomBNBAddress()
 
@@ -52,7 +52,7 @@ func (s *HandlerSwitchSuite) TestGettingNativeTokens(c *C) {
 	c.Assert(k.SetNodeAccount(ctx, na), IsNil)
 	tx := GetRandomTx()
 	tx.Coins = common.Coins{
-		common.NewCoin(common.RuneA1FAsset, sdk.NewUint(100*common.One)),
+		common.NewCoin(common.RuneA1FAsset, cosmos.NewUint(100*common.One)),
 	}
 	destination := GetRandomTHORAddress()
 
@@ -62,31 +62,31 @@ func (s *HandlerSwitchSuite) TestGettingNativeTokens(c *C) {
 	msg := NewMsgSwitch(tx, destination, na.NodeAddress)
 	result := handler.handle(ctx, msg, constants.SWVersion)
 	c.Assert(result.IsOK(), Equals, true, Commentf("%+v", result.Log))
-	coin, err := common.NewCoin(common.RuneNative, sdk.NewUint(100*common.One)).Native()
+	coin, err := common.NewCoin(common.RuneNative, cosmos.NewUint(100*common.One)).Native()
 	c.Assert(err, IsNil)
-	addr, err := sdk.AccAddressFromBech32(destination.String())
+	addr, err := cosmos.AccAddressFromBech32(destination.String())
 	c.Assert(err, IsNil)
-	c.Check(k.CoinKeeper().HasCoins(ctx, addr, sdk.NewCoins(coin)), Equals, true)
+	c.Check(k.CoinKeeper().HasCoins(ctx, addr, cosmos.NewCoins(coin)), Equals, true)
 	vaultData, err := k.GetVaultData(ctx)
 	c.Assert(err, IsNil)
-	c.Check(vaultData.TotalBEP2Rune.Equal(sdk.NewUint(100*common.One)), Equals, true)
+	c.Check(vaultData.TotalBEP2Rune.Equal(cosmos.NewUint(100*common.One)), Equals, true)
 
 	// check that we can add more an account
 	result = handler.handle(ctx, msg, constants.SWVersion)
 	c.Assert(result.IsOK(), Equals, true, Commentf("%+v", result.Log))
-	coin, err = common.NewCoin(common.RuneNative, sdk.NewUint(200*common.One)).Native()
+	coin, err = common.NewCoin(common.RuneNative, cosmos.NewUint(200*common.One)).Native()
 	c.Assert(err, IsNil)
-	c.Check(k.CoinKeeper().HasCoins(ctx, addr, sdk.NewCoins(coin)), Equals, true)
+	c.Check(k.CoinKeeper().HasCoins(ctx, addr, cosmos.NewCoins(coin)), Equals, true)
 	vaultData, err = k.GetVaultData(ctx)
 	c.Assert(err, IsNil)
-	c.Check(vaultData.TotalBEP2Rune.Equal(sdk.NewUint(200*common.One)), Equals, true)
+	c.Check(vaultData.TotalBEP2Rune.Equal(cosmos.NewUint(200*common.One)), Equals, true)
 }
 
 func (s *HandlerSwitchSuite) TestGettingBEP2Tokens(c *C) {
 	ctx, k := setupKeeperForTest(c)
 
 	vaultData := NewVaultData()
-	vaultData.TotalBEP2Rune = sdk.NewUint(500 * common.One)
+	vaultData.TotalBEP2Rune = cosmos.NewUint(500 * common.One)
 	c.Assert(k.SetVaultData(ctx, vaultData), IsNil)
 
 	na := GetRandomNodeAccount(NodeActive)
@@ -96,13 +96,13 @@ func (s *HandlerSwitchSuite) TestGettingBEP2Tokens(c *C) {
 	tx := GetRandomTx()
 	tx.FromAddress = common.Address(from.String())
 	tx.Coins = common.Coins{
-		common.NewCoin(common.RuneNative, sdk.NewUint(100*common.One)),
+		common.NewCoin(common.RuneNative, cosmos.NewUint(100*common.One)),
 	}
 	destination := GetRandomBNBAddress()
 
-	coin, err := common.NewCoin(common.RuneNative, sdk.NewUint(800*common.One)).Native()
+	coin, err := common.NewCoin(common.RuneNative, cosmos.NewUint(800*common.One)).Native()
 	c.Assert(err, IsNil)
-	k.CoinKeeper().AddCoins(ctx, from, sdk.NewCoins(coin))
+	k.CoinKeeper().AddCoins(ctx, from, cosmos.NewCoins(coin))
 
 	versionedTxOutStoreDummy := NewVersionedTxOutStoreDummy()
 	handler := NewSwitchHandler(k, versionedTxOutStoreDummy)
@@ -111,12 +111,12 @@ func (s *HandlerSwitchSuite) TestGettingBEP2Tokens(c *C) {
 	result := handler.handle(ctx, msg, constants.SWVersion)
 	c.Assert(result.IsOK(), Equals, true, Commentf("%+v", result.Log))
 
-	coin, err = common.NewCoin(common.RuneNative, sdk.NewUint(700*common.One)).Native()
+	coin, err = common.NewCoin(common.RuneNative, cosmos.NewUint(700*common.One)).Native()
 	c.Assert(err, IsNil)
-	c.Check(k.CoinKeeper().HasCoins(ctx, from, sdk.NewCoins(coin)), Equals, true)
+	c.Check(k.CoinKeeper().HasCoins(ctx, from, cosmos.NewCoins(coin)), Equals, true)
 	vaultData, err = k.GetVaultData(ctx)
 	c.Assert(err, IsNil)
-	c.Check(vaultData.TotalBEP2Rune.Equal(sdk.NewUint(400*common.One)), Equals, true)
+	c.Check(vaultData.TotalBEP2Rune.Equal(cosmos.NewUint(400*common.One)), Equals, true)
 	items, err := versionedTxOutStoreDummy.txoutStore.GetOutboundItems(ctx)
 	c.Assert(err, IsNil)
 	c.Assert(items, HasLen, 1)
@@ -124,26 +124,26 @@ func (s *HandlerSwitchSuite) TestGettingBEP2Tokens(c *C) {
 	// check that we can subtract more an account
 	result = handler.handle(ctx, msg, constants.SWVersion)
 	c.Assert(result.IsOK(), Equals, true, Commentf("%+v", result.Log))
-	coin, err = common.NewCoin(common.RuneNative, sdk.NewUint(600*common.One)).Native()
+	coin, err = common.NewCoin(common.RuneNative, cosmos.NewUint(600*common.One)).Native()
 	c.Assert(err, IsNil)
-	c.Check(k.CoinKeeper().HasCoins(ctx, from, sdk.NewCoins(coin)), Equals, true)
+	c.Check(k.CoinKeeper().HasCoins(ctx, from, cosmos.NewCoins(coin)), Equals, true)
 	vaultData, err = k.GetVaultData(ctx)
 	c.Assert(err, IsNil)
-	c.Check(vaultData.TotalBEP2Rune.Equal(sdk.NewUint(300*common.One)), Equals, true, Commentf("%d", vaultData.TotalBEP2Rune.Uint64()))
+	c.Check(vaultData.TotalBEP2Rune.Equal(cosmos.NewUint(300*common.One)), Equals, true, Commentf("%d", vaultData.TotalBEP2Rune.Uint64()))
 	items, err = versionedTxOutStoreDummy.txoutStore.GetOutboundItems(ctx)
 	c.Assert(err, IsNil)
 	c.Assert(items, HasLen, 2)
 
 	// check that we can't overdraw
-	msg.Tx.Coins[0].Amount = sdk.NewUint(400 * common.One)
+	msg.Tx.Coins[0].Amount = cosmos.NewUint(400 * common.One)
 	result = handler.handle(ctx, msg, constants.SWVersion)
 	c.Assert(result.IsOK(), Equals, false, Commentf("%+v", result.Log))
-	coin, err = common.NewCoin(common.RuneNative, sdk.NewUint(600*common.One)).Native()
+	coin, err = common.NewCoin(common.RuneNative, cosmos.NewUint(600*common.One)).Native()
 	c.Assert(err, IsNil)
-	c.Check(k.CoinKeeper().HasCoins(ctx, from, sdk.NewCoins(coin)), Equals, true)
+	c.Check(k.CoinKeeper().HasCoins(ctx, from, cosmos.NewCoins(coin)), Equals, true)
 	vaultData, err = k.GetVaultData(ctx)
 	c.Assert(err, IsNil)
-	c.Check(vaultData.TotalBEP2Rune.Equal(sdk.NewUint(300*common.One)), Equals, true, Commentf("%d", vaultData.TotalBEP2Rune.Uint64()))
+	c.Check(vaultData.TotalBEP2Rune.Equal(cosmos.NewUint(300*common.One)), Equals, true, Commentf("%d", vaultData.TotalBEP2Rune.Uint64()))
 	items, err = versionedTxOutStoreDummy.txoutStore.GetOutboundItems(ctx)
 	c.Assert(err, IsNil)
 	c.Assert(items, HasLen, 2)

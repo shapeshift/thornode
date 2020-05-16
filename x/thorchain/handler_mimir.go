@@ -5,8 +5,8 @@ import (
 	"strconv"
 
 	"github.com/blang/semver"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 )
 
@@ -25,7 +25,7 @@ func NewMimirHandler(keeper Keeper) MimirHandler {
 }
 
 // Run is the main entry point to execute mimir logic
-func (h MimirHandler) Run(ctx sdk.Context, m sdk.Msg, version semver.Version, _ constants.ConstantValues) sdk.Result {
+func (h MimirHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, _ constants.ConstantValues) cosmos.Result {
 	msg, ok := m.(MsgMimir)
 	if !ok {
 		return errInvalidMessage.Result()
@@ -40,13 +40,13 @@ func (h MimirHandler) Run(ctx sdk.Context, m sdk.Msg, version semver.Version, _ 
 		return err.Result()
 	}
 
-	return sdk.Result{
-		Code:      sdk.CodeOK,
+	return cosmos.Result{
+		Code:      cosmos.CodeOK,
 		Codespace: DefaultCodespace,
 	}
 }
 
-func (h MimirHandler) validate(ctx sdk.Context, msg MsgMimir, version semver.Version) sdk.Error {
+func (h MimirHandler) validate(ctx cosmos.Context, msg MsgMimir, version semver.Version) cosmos.Error {
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, msg)
 	} else {
@@ -54,23 +54,23 @@ func (h MimirHandler) validate(ctx sdk.Context, msg MsgMimir, version semver.Ver
 	}
 }
 
-func (h MimirHandler) validateV1(ctx sdk.Context, msg MsgMimir) sdk.Error {
+func (h MimirHandler) validateV1(ctx cosmos.Context, msg MsgMimir) cosmos.Error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
 
 	for _, admin := range ADMINS {
-		addr, err := sdk.AccAddressFromBech32(admin)
+		addr, err := cosmos.AccAddressFromBech32(admin)
 		if msg.Signer.Equals(addr) && err == nil {
 			return nil
 		}
 	}
 
 	ctx.Logger().Error("unauthorized account", "address", msg.Signer.String())
-	return sdk.ErrUnauthorized(fmt.Sprintf("%s is not authorizaed", msg.Signer))
+	return cosmos.ErrUnauthorized(fmt.Sprintf("%s is not authorizaed", msg.Signer))
 }
 
-func (h MimirHandler) handle(ctx sdk.Context, msg MsgMimir, version semver.Version) sdk.Error {
+func (h MimirHandler) handle(ctx cosmos.Context, msg MsgMimir, version semver.Version) cosmos.Error {
 	ctx.Logger().Info("handleMsgMimir request", "key", msg.Key, "value", msg.Value)
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.handleV1(ctx, msg)
@@ -80,13 +80,13 @@ func (h MimirHandler) handle(ctx sdk.Context, msg MsgMimir, version semver.Versi
 	}
 }
 
-func (h MimirHandler) handleV1(ctx sdk.Context, msg MsgMimir) sdk.Error {
+func (h MimirHandler) handleV1(ctx cosmos.Context, msg MsgMimir) cosmos.Error {
 	h.keeper.SetMimir(ctx, msg.Key, msg.Value)
 
 	ctx.EventManager().EmitEvent(
-		sdk.NewEvent("set_mimir",
-			sdk.NewAttribute("key", msg.Key),
-			sdk.NewAttribute("value", strconv.FormatInt(msg.Value, 10))))
+		cosmos.NewEvent("set_mimir",
+			cosmos.NewAttribute("key", msg.Key),
+			cosmos.NewAttribute("value", strconv.FormatInt(msg.Value, 10))))
 
 	return nil
 }

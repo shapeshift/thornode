@@ -1,17 +1,15 @@
 package types
 
-import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
-)
+import cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 
 // MsgObservedTxIn defines a MsgObservedTxIn message
 type MsgObservedTxIn struct {
-	Txs    ObservedTxs    `json:"txs"`
-	Signer sdk.AccAddress `json:"signer"`
+	Txs    ObservedTxs       `json:"txs"`
+	Signer cosmos.AccAddress `json:"signer"`
 }
 
 // NewMsgObservedTxIn is a constructor function for MsgObservedTxIn
-func NewMsgObservedTxIn(txs ObservedTxs, signer sdk.AccAddress) MsgObservedTxIn {
+func NewMsgObservedTxIn(txs ObservedTxs, signer cosmos.AccAddress) MsgObservedTxIn {
 	return MsgObservedTxIn{
 		Txs:    txs,
 		Signer: signer,
@@ -25,29 +23,29 @@ func (msg MsgObservedTxIn) Route() string { return RouterKey }
 func (msg MsgObservedTxIn) Type() string { return "set_observed_txin" }
 
 // ValidateBasic runs stateless checks on the message
-func (msg MsgObservedTxIn) ValidateBasic() sdk.Error {
+func (msg MsgObservedTxIn) ValidateBasic() cosmos.Error {
 	if msg.Signer.Empty() {
-		return sdk.ErrInvalidAddress(msg.Signer.String())
+		return cosmos.ErrInvalidAddress(msg.Signer.String())
 	}
 	if len(msg.Txs) == 0 {
-		return sdk.ErrUnknownRequest("Txs cannot be empty")
+		return cosmos.ErrUnknownRequest("Txs cannot be empty")
 	}
 	for _, tx := range msg.Txs {
 		if err := tx.Valid(); err != nil {
-			return sdk.ErrUnknownRequest(err.Error())
+			return cosmos.ErrUnknownRequest(err.Error())
 		}
 		obAddr, err := tx.ObservedPubKey.GetAddress(tx.Tx.Coins[0].Asset.Chain)
 		if err != nil {
-			return sdk.ErrUnknownRequest(err.Error())
+			return cosmos.ErrUnknownRequest(err.Error())
 		}
 		if !tx.Tx.ToAddress.Equals(obAddr) {
-			return sdk.ErrUnknownRequest("Request is not an inbound observed transaction")
+			return cosmos.ErrUnknownRequest("Request is not an inbound observed transaction")
 		}
 		if len(tx.Signers) > 0 {
-			return sdk.ErrUnknownRequest("signers must be empty")
+			return cosmos.ErrUnknownRequest("signers must be empty")
 		}
 		if len(tx.OutHashes) > 0 {
-			return sdk.ErrUnknownRequest("out hashes must be empty")
+			return cosmos.ErrUnknownRequest("out hashes must be empty")
 		}
 	}
 
@@ -56,10 +54,10 @@ func (msg MsgObservedTxIn) ValidateBasic() sdk.Error {
 
 // GetSignBytes encodes the message for signing
 func (msg MsgObservedTxIn) GetSignBytes() []byte {
-	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(msg))
+	return cosmos.MustSortJSON(ModuleCdc.MustMarshalJSON(msg))
 }
 
 // GetSigners defines whose signature is required
-func (msg MsgObservedTxIn) GetSigners() []sdk.AccAddress {
-	return []sdk.AccAddress{msg.Signer}
+func (msg MsgObservedTxIn) GetSigners() []cosmos.AccAddress {
+	return []cosmos.AccAddress{msg.Signer}
 }

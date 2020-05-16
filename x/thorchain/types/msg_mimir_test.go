@@ -1,7 +1,7 @@
 package types
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	. "gopkg.in/check.v1"
 )
 
@@ -15,6 +15,6 @@ func (MsgMimirSuite) TestMsgMimir(c *C) {
 	c.Check(m.ValidateBasic(), IsNil)
 	c.Check(m.Type(), Equals, "set_mimir_attr")
 	EnsureMsgBasicCorrect(m, c)
-	mEmpty := NewMsgMimir("", 0, sdk.AccAddress{})
+	mEmpty := NewMsgMimir("", 0, cosmos.AccAddress{})
 	c.Assert(mEmpty.ValidateBasic(), NotNil)
 }

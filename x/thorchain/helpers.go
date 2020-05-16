@@ -5,13 +5,12 @@ import (
 	"errors"
 	"fmt"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 )
 
-func refundTx(ctx sdk.Context, tx ObservedTx, store TxOutStore, keeper Keeper, constAccessor constants.ConstantValues, refundCode sdk.CodeType, refundReason string, eventMgr EventManager) error {
+func refundTx(ctx cosmos.Context, tx ObservedTx, store TxOutStore, keeper Keeper, constAccessor constants.ConstantValues, refundCode cosmos.CodeType, refundReason string, eventMgr EventManager) error {
 	// If THORNode recognize one of the coins, and therefore able to refund
 	// withholding fees, refund all coins.
 	var refundCoins common.Coins
@@ -41,7 +40,7 @@ func refundTx(ctx sdk.Context, tx ObservedTx, store TxOutStore, keeper Keeper, c
 		}
 		// Zombie coins are just dropped.
 	}
-	eventRefund := NewEventRefund(refundCode, refundReason, tx.Tx, common.NewFee(common.Coins{}, sdk.ZeroUint()))
+	eventRefund := NewEventRefund(refundCode, refundReason, tx.Tx, common.NewFee(common.Coins{}, cosmos.ZeroUint()))
 	status := EventSuccess
 	if len(refundCoins) > 0 {
 		// create a new TX based on the coins thorchain refund , some of the coins thorchain doesn't refund
@@ -81,11 +80,11 @@ func getFee(input, output common.Coins, transactionFee int64) common.Fee {
 			fee.Coins = append(fee.Coins, common.NewCoin(in.Asset, in.Amount.Sub(outCoin.Amount)))
 		}
 	}
-	fee.PoolDeduct = sdk.NewUint(uint64(transactionFee) * uint64(assetTxCount))
+	fee.PoolDeduct = cosmos.NewUint(uint64(transactionFee) * uint64(assetTxCount))
 	return fee
 }
 
-func subsidizePoolWithSlashBond(ctx sdk.Context, keeper Keeper, ygg Vault, yggTotalStolen, slashRuneAmt sdk.Uint) error {
+func subsidizePoolWithSlashBond(ctx cosmos.Context, keeper Keeper, ygg Vault, yggTotalStolen, slashRuneAmt cosmos.Uint) error {
 	// Thorchain did not slash the node account
 	if slashRuneAmt.IsZero() {
 		return nil
@@ -94,8 +93,8 @@ func subsidizePoolWithSlashBond(ctx sdk.Context, keeper Keeper, ygg Vault, yggTo
 	slashRuneAmt = common.SafeSub(slashRuneAmt, stolenRUNE)
 	yggTotalStolen = common.SafeSub(yggTotalStolen, stolenRUNE)
 	type fund struct {
-		stolenAsset   sdk.Uint
-		subsidiseRune sdk.Uint
+		stolenAsset   cosmos.Uint
+		subsidiseRune cosmos.Uint
 	}
 	// here need to use a map to hold on to the amount of RUNE need to be subsidized to each pool
 	// reason being , if ygg pool has both RUNE and BNB coin left, these two coin share the same pool
@@ -110,8 +109,8 @@ func subsidizePoolWithSlashBond(ctx sdk.Context, keeper Keeper, ygg Vault, yggTo
 		f, ok := subsidizeAmounts[asset]
 		if !ok {
 			f = fund{
-				stolenAsset:   sdk.ZeroUint(),
-				subsidiseRune: sdk.ZeroUint(),
+				stolenAsset:   cosmos.ZeroUint(),
+				subsidiseRune: cosmos.ZeroUint(),
 			}
 		}
 
@@ -145,15 +144,15 @@ func subsidizePoolWithSlashBond(ctx sdk.Context, keeper Keeper, ygg Vault, yggTo
 
 // getTotalYggValueInRune will go through all the coins in ygg , and calculate the total value in RUNE
 // return value will be totalValueInRune,error
-func getTotalYggValueInRune(ctx sdk.Context, keeper Keeper, ygg Vault) (sdk.Uint, error) {
-	yggRune := sdk.ZeroUint()
+func getTotalYggValueInRune(ctx cosmos.Context, keeper Keeper, ygg Vault) (cosmos.Uint, error) {
+	yggRune := cosmos.ZeroUint()
 	for _, coin := range ygg.Coins {
 		if coin.Asset.IsRune() {
 			yggRune = yggRune.Add(coin.Amount)
 		} else {
 			pool, err := keeper.GetPool(ctx, coin.Asset)
 			if err != nil {
-				return sdk.ZeroUint(), err
+				return cosmos.ZeroUint(), err
 			}
 			yggRune = yggRune.Add(pool.AssetValueInRune(coin.Amount))
 		}
@@ -161,7 +160,7 @@ func getTotalYggValueInRune(ctx sdk.Context, keeper Keeper, ygg Vault) (sdk.Uint
 	return yggRune, nil
 }
 
-func refundBond(ctx sdk.Context, tx common.Tx, nodeAcc NodeAccount, keeper Keeper, txOut TxOutStore, eventMgr EventManager) error {
+func refundBond(ctx cosmos.Context, tx common.Tx, nodeAcc NodeAccount, keeper Keeper, txOut TxOutStore, eventMgr EventManager) error {
 	if nodeAcc.Status == NodeActive {
 		ctx.Logger().Info("node still active , cannot refund bond", "node address", nodeAcc.NodeAddress, "node pub key", nodeAcc.PubKeySet.Secp256k1)
 		return nil
@@ -233,7 +232,7 @@ func refundBond(ctx sdk.Context, tx common.Tx, nodeAcc NodeAccount, keeper Keepe
 		slashRune = bondBeforeSlash
 	}
 
-	nodeAcc.Bond = sdk.ZeroUint()
+	nodeAcc.Bond = cosmos.ZeroUint()
 	// disable the node account
 	nodeAcc.UpdateStatus(NodeDisabled, ctx.BlockHeight())
 	if err := keeper.SetNodeAccount(ctx, nodeAcc); err != nil {
@@ -252,11 +251,11 @@ func refundBond(ctx sdk.Context, tx common.Tx, nodeAcc NodeAccount, keeper Keepe
 }
 
 // Checks if the observed vault pubkey is a valid asgard or ygg vault
-func isCurrentVaultPubKey(ctx sdk.Context, keeper Keeper, tx ObservedTx) bool {
+func isCurrentVaultPubKey(ctx cosmos.Context, keeper Keeper, tx ObservedTx) bool {
 	return keeper.VaultExists(ctx, tx.ObservedPubKey)
 }
 
-func isSignedByActiveNodeAccounts(ctx sdk.Context, keeper Keeper, signers []sdk.AccAddress) bool {
+func isSignedByActiveNodeAccounts(ctx cosmos.Context, keeper Keeper, signers []cosmos.AccAddress) bool {
 	if len(signers) == 0 {
 		return false
 	}
@@ -282,7 +281,7 @@ func isSignedByActiveNodeAccounts(ctx sdk.Context, keeper Keeper, signers []sdk.
 	return true
 }
 
-func updateEventStatus(ctx sdk.Context, keeper Keeper, eventID int64, txs common.Txs, eventStatus EventStatus) error {
+func updateEventStatus(ctx cosmos.Context, keeper Keeper, eventID int64, txs common.Txs, eventStatus EventStatus) error {
 	event, err := keeper.GetEvent(ctx, eventID)
 	if err != nil {
 		return fmt.Errorf("fail to get event: %w", err)
@@ -322,7 +321,7 @@ func updateEventStatus(ctx sdk.Context, keeper Keeper, eventID int64, txs common
 	return keeper.UpsertEvent(ctx, event)
 }
 
-func updateEventFee(ctx sdk.Context, keeper Keeper, txID common.TxID, fee common.Fee) error {
+func updateEventFee(ctx cosmos.Context, keeper Keeper, txID common.TxID, fee common.Fee) error {
 	ctx.Logger().Info("update event fee txid", "tx", txID.String())
 	eventIDs, err := keeper.GetEventsIDByTxHash(ctx, txID)
 	if err != nil {
@@ -348,7 +347,7 @@ func updateEventFee(ctx sdk.Context, keeper Keeper, txID common.TxID, fee common
 	return keeper.UpsertEvent(ctx, event)
 }
 
-func completeEvents(ctx sdk.Context, keeper Keeper, txID common.TxID, txs common.Txs, eventStatus EventStatus) error {
+func completeEvents(ctx cosmos.Context, keeper Keeper, txID common.TxID, txs common.Txs, eventStatus EventStatus) error {
 	ctx.Logger().Info(fmt.Sprintf("txid(%s)", txID))
 	eventIDs, err := keeper.GetPendingEventID(ctx, txID)
 	if err != nil {
@@ -366,7 +365,7 @@ func completeEvents(ctx sdk.Context, keeper Keeper, txID common.TxID, txs common
 	return nil
 }
 
-func enableNextPool(ctx sdk.Context, keeper Keeper, eventManager EventManager) error {
+func enableNextPool(ctx cosmos.Context, keeper Keeper, eventManager EventManager) error {
 	var pools []Pool
 	iterator := keeper.GetPoolIterator(ctx)
 	defer iterator.Close()
@@ -402,13 +401,13 @@ func enableNextPool(ctx sdk.Context, keeper Keeper, eventManager EventManager) e
 	return keeper.SetPool(ctx, pool)
 }
 
-func wrapError(ctx sdk.Context, err error, wrap string) error {
+func wrapError(ctx cosmos.Context, err error, wrap string) error {
 	err = fmt.Errorf("%s: %w", wrap, err)
 	ctx.Logger().Error(err.Error())
 	return err
 }
 
-func AddGasFees(ctx sdk.Context, keeper Keeper, tx ObservedTx, gasManager GasManager) error {
+func AddGasFees(ctx cosmos.Context, keeper Keeper, tx ObservedTx, gasManager GasManager) error {
 	if len(tx.Tx.Gas) == 0 {
 		return nil
 	}
@@ -447,9 +446,9 @@ func AddGasFees(ctx sdk.Context, keeper Keeper, tx ObservedTx, gasManager GasMan
 
 func getErrMessageFromABCILog(content string) (string, error) {
 	var humanReadableError struct {
-		Codespace sdk.CodespaceType `json:"codespace"`
-		Code      sdk.CodeType      `json:"code"`
-		Message   string            `json:"message"`
+		Codespace cosmos.CodespaceType `json:"codespace"`
+		Code      cosmos.CodeType      `json:"code"`
+		Message   string               `json:"message"`
 	}
 	if err := json.Unmarshal([]byte(content), &humanReadableError); err != nil {
 		return "", err

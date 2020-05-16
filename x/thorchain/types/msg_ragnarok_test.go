@@ -1,10 +1,10 @@
 package types
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 type MsgRagnarokSuite struct{}
@@ -19,7 +19,7 @@ func (MsgRagnarokSuite) TestMsgRagnarokSuite(c *C) {
 		txID,
 		bnb,
 		GetRandomBNBAddress(),
-		common.Coins{common.NewCoin(common.BNBAsset, sdk.OneUint())},
+		common.Coins{common.NewCoin(common.BNBAsset, cosmos.OneUint())},
 		BNBGasFeeSingleton,
 		"ragnarok:10",
 	), 12, GetRandomPubKey())
@@ -31,7 +31,7 @@ func (MsgRagnarokSuite) TestMsgRagnarokSuite(c *C) {
 		txID        common.TxID
 		blockHeight int64
 		sender      common.Address
-		signer      sdk.AccAddress
+		signer      cosmos.AccAddress
 	}{
 		{
 			txID:        common.TxID(""),
@@ -55,7 +55,7 @@ func (MsgRagnarokSuite) TestMsgRagnarokSuite(c *C) {
 			txID:        txID,
 			blockHeight: 1,
 			sender:      bnb,
-			signer:      sdk.AccAddress{},
+			signer:      cosmos.AccAddress{},
 		},
 	}
 
@@ -64,7 +64,7 @@ func (MsgRagnarokSuite) TestMsgRagnarokSuite(c *C) {
 			item.txID,
 			item.sender,
 			GetRandomBNBAddress(),
-			common.Coins{common.NewCoin(common.BNBAsset, sdk.OneUint())},
+			common.Coins{common.NewCoin(common.BNBAsset, cosmos.OneUint())},
 			BNBGasFeeSingleton,
 			"",
 		), 12, GetRandomPubKey())

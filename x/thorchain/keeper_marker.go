@@ -3,16 +3,16 @@ package thorchain
 import (
 	"errors"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 type KeeperTxMarker interface {
-	ListTxMarker(ctx sdk.Context, hash string) (TxMarkers, error)
-	SetTxMarkers(ctx sdk.Context, hash string, marks TxMarkers) error
-	AppendTxMarker(ctx sdk.Context, hash string, mark TxMarker) error
+	ListTxMarker(ctx cosmos.Context, hash string) (TxMarkers, error)
+	SetTxMarkers(ctx cosmos.Context, hash string, marks TxMarkers) error
+	AppendTxMarker(ctx cosmos.Context, hash string, mark TxMarker) error
 }
 
-func (k KVStore) ListTxMarker(ctx sdk.Context, hash string) (TxMarkers, error) {
+func (k KVStore) ListTxMarker(ctx cosmos.Context, hash string) (TxMarkers, error) {
 	marks := make(TxMarkers, 0)
 	key := k.GetKey(ctx, prefixSupportedTxMarker, hash)
 	store := ctx.KVStore(k.storeKey)
@@ -27,7 +27,7 @@ func (k KVStore) ListTxMarker(ctx sdk.Context, hash string) (TxMarkers, error) {
 	return marks, nil
 }
 
-func (k KVStore) SetTxMarkers(ctx sdk.Context, hash string, orig TxMarkers) error {
+func (k KVStore) SetTxMarkers(ctx cosmos.Context, hash string, orig TxMarkers) error {
 	marks := make(TxMarkers, 0)
 	for _, mark := range orig {
 		if !mark.IsEmpty() {
@@ -45,7 +45,7 @@ func (k KVStore) SetTxMarkers(ctx sdk.Context, hash string, orig TxMarkers) erro
 	return nil
 }
 
-func (k KVStore) AppendTxMarker(ctx sdk.Context, hash string, mark TxMarker) error {
+func (k KVStore) AppendTxMarker(ctx cosmos.Context, hash string, mark TxMarker) error {
 	if mark.IsEmpty() {
 		return dbError(ctx, "unable to save tx marker:", errors.New("is empty"))
 	}

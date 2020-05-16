@@ -2,9 +2,9 @@ package thorchain
 
 import (
 	"github.com/blang/semver"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 
 	. "gopkg.in/check.v1"
@@ -23,7 +23,7 @@ func (s *HandlerSendSuite) TestValidate(c *C) {
 	msg := MsgSend{
 		FromAddress: addr1,
 		ToAddress:   addr2,
-		Amount:      sdk.NewCoins(sdk.NewCoin("dummy", sdk.NewInt(12))),
+		Amount:      cosmos.NewCoins(cosmos.NewCoin("dummy", cosmos.NewInt(12))),
 	}
 	handler := NewSendHandler(k)
 	err := handler.validate(ctx, msg, constants.SWVersion)
@@ -47,17 +47,17 @@ func (s *HandlerSendSuite) TestHandle(c *C) {
 	addr1 := GetRandomBech32Addr()
 	addr2 := GetRandomBech32Addr()
 
-	funds, err := common.NewCoin(common.RuneNative, sdk.NewUint(200*common.One)).Native()
+	funds, err := common.NewCoin(common.RuneNative, cosmos.NewUint(200*common.One)).Native()
 	c.Assert(err, IsNil)
-	_, err = banker.AddCoins(ctx, addr1, sdk.NewCoins(funds))
+	_, err = banker.AddCoins(ctx, addr1, cosmos.NewCoins(funds))
 	c.Assert(err, IsNil)
 
-	coin, err := common.NewCoin(common.RuneNative, sdk.NewUint(12*common.One)).Native()
+	coin, err := common.NewCoin(common.RuneNative, cosmos.NewUint(12*common.One)).Native()
 	c.Assert(err, IsNil)
 	msg := MsgSend{
 		FromAddress: addr1,
 		ToAddress:   addr2,
-		Amount:      sdk.NewCoins(coin),
+		Amount:      cosmos.NewCoins(coin),
 	}
 
 	handler := NewSendHandler(k)
@@ -65,12 +65,12 @@ func (s *HandlerSendSuite) TestHandle(c *C) {
 	c.Assert(result.IsOK(), Equals, true, Commentf("%+v", result.Log))
 
 	// insufficient funds
-	coin, err = common.NewCoin(common.RuneNative, sdk.NewUint(3000*common.One)).Native()
+	coin, err = common.NewCoin(common.RuneNative, cosmos.NewUint(3000*common.One)).Native()
 	c.Assert(err, IsNil)
 	msg = MsgSend{
 		FromAddress: addr1,
 		ToAddress:   addr2,
-		Amount:      sdk.NewCoins(coin),
+		Amount:      cosmos.NewCoins(coin),
 	}
 	result = handler.handle(ctx, msg, constants.SWVersion, constAccessor)
 	c.Assert(result.IsOK(), Equals, false, Commentf("%+v", result.Log))

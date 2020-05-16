@@ -14,7 +14,6 @@ import (
 	"github.com/btcsuite/btcd/wire"
 	"github.com/btcsuite/btcutil"
 	"github.com/btcsuite/btcutil/txsort"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/crypto/secp256k1"
 	"gitlab.com/thorchain/txscript"
@@ -22,6 +21,7 @@ import (
 	stypes "gitlab.com/thorchain/thornode/bifrost/thorclient/types"
 	"gitlab.com/thorchain/thornode/bifrost/tss"
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 const (
@@ -61,7 +61,7 @@ func (c *Client) getGasCoin(tx stypes.TxOutItem, vSize int64) common.Coin {
 	fee, vBytes, err := c.blockMetaAccessor.GetTransactionFee()
 	if err != nil {
 		c.logger.Error().Err(err).Msg("fail to get previous transaction fee from local storage")
-		return common.NewCoin(common.BTCAsset, sdk.NewUint(uint64(vSize*gasRate)))
+		return common.NewCoin(common.BTCAsset, cosmos.NewUint(uint64(vSize*gasRate)))
 	}
 	if fee != 0.0 && vSize != 0 {
 		amt, err := btcutil.NewAmount(fee)
@@ -71,7 +71,7 @@ func (c *Client) getGasCoin(tx stypes.TxOutItem, vSize int64) common.Coin {
 			gasRate = int64(amt) / int64(vBytes) // sats per vbyte
 		}
 	}
-	return common.NewCoin(common.BTCAsset, sdk.NewUint(uint64(gasRate*vSize)))
+	return common.NewCoin(common.BTCAsset, cosmos.NewUint(uint64(gasRate*vSize)))
 }
 
 // isYggdrasil - when the pubkey and node pubkey is the same that means it is signing from yggdrasil

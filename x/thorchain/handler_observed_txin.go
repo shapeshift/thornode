@@ -4,9 +4,9 @@ import (
 	"fmt"
 
 	"github.com/blang/semver"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 )
 
@@ -40,25 +40,25 @@ func NewObservedTxInHandler(keeper Keeper,
 	}
 }
 
-func (h ObservedTxInHandler) Run(ctx sdk.Context, m sdk.Msg, version semver.Version, _ constants.ConstantValues) sdk.Result {
+func (h ObservedTxInHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, _ constants.ConstantValues) cosmos.Result {
 	msg, ok := m.(MsgObservedTxIn)
 	if !ok {
 		return errInvalidMessage.Result()
 	}
 	isNewSigner, err := h.validate(ctx, msg, version)
 	if err != nil {
-		return sdk.ErrInternal(err.Error()).Result()
+		return cosmos.ErrInternal(err.Error()).Result()
 	}
 	if isNewSigner {
-		return sdk.Result{
-			Code:      sdk.CodeOK,
+		return cosmos.Result{
+			Code:      cosmos.CodeOK,
 			Codespace: DefaultCodespace,
 		}
 	}
 	return h.handle(ctx, msg, version)
 }
 
-func (h ObservedTxInHandler) validate(ctx sdk.Context, msg MsgObservedTxIn, version semver.Version) (bool, error) {
+func (h ObservedTxInHandler) validate(ctx cosmos.Context, msg MsgObservedTxIn, version semver.Version) (bool, error) {
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, msg)
 	} else {
@@ -67,7 +67,7 @@ func (h ObservedTxInHandler) validate(ctx sdk.Context, msg MsgObservedTxIn, vers
 	}
 }
 
-func (h ObservedTxInHandler) validateV1(ctx sdk.Context, msg MsgObservedTxIn) (bool, error) {
+func (h ObservedTxInHandler) validateV1(ctx cosmos.Context, msg MsgObservedTxIn) (bool, error) {
 	if err := msg.ValidateBasic(); err != nil {
 		ctx.Logger().Error(err.Error())
 		return false, err
@@ -81,7 +81,7 @@ func (h ObservedTxInHandler) validateV1(ctx sdk.Context, msg MsgObservedTxIn) (b
 	return false, nil
 }
 
-func (h ObservedTxInHandler) handle(ctx sdk.Context, msg MsgObservedTxIn, version semver.Version) sdk.Result {
+func (h ObservedTxInHandler) handle(ctx cosmos.Context, msg MsgObservedTxIn, version semver.Version) cosmos.Result {
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.handleV1(ctx, version, msg)
 	} else {
@@ -90,7 +90,7 @@ func (h ObservedTxInHandler) handle(ctx sdk.Context, msg MsgObservedTxIn, versio
 	}
 }
 
-func (h ObservedTxInHandler) preflight(ctx sdk.Context, voter ObservedTxVoter, nas NodeAccounts, tx ObservedTx, signer sdk.AccAddress, slasher *Slasher, version semver.Version) (ObservedTxVoter, bool) {
+func (h ObservedTxInHandler) preflight(ctx cosmos.Context, voter ObservedTxVoter, nas NodeAccounts, tx ObservedTx, signer cosmos.AccAddress, slasher *Slasher, version semver.Version) (ObservedTxVoter, bool) {
 	constAccessor := constants.GetConstantValues(version)
 	observeSlashPoints := constAccessor.GetInt64Value(constants.ObserveSlashPoints)
 	slasher.IncSlashPoints(ctx, observeSlashPoints, signer)
@@ -122,12 +122,12 @@ func (h ObservedTxInHandler) preflight(ctx sdk.Context, voter ObservedTxVoter, n
 }
 
 // Handle a message to observe inbound tx
-func (h ObservedTxInHandler) handleV1(ctx sdk.Context, version semver.Version, msg MsgObservedTxIn) sdk.Result {
+func (h ObservedTxInHandler) handleV1(ctx cosmos.Context, version semver.Version, msg MsgObservedTxIn) cosmos.Result {
 	constAccessor := constants.GetConstantValues(version)
 	activeNodeAccounts, err := h.keeper.ListActiveNodeAccounts(ctx)
 	if err != nil {
 		err = wrapError(ctx, err, "fail to get list of active node accounts")
-		return sdk.ErrInternal(err.Error()).Result()
+		return cosmos.ErrInternal(err.Error()).Result()
 	}
 	txOutStore, err := h.versionedTxOutStore.GetTxOutStore(ctx, h.keeper, version)
 	if err != nil {
@@ -147,7 +147,7 @@ func (h ObservedTxInHandler) handleV1(ctx sdk.Context, version semver.Version, m
 	slasher, err := NewSlasher(h.keeper, version, h.versionedEventManager)
 	if err != nil {
 		ctx.Logger().Error("fail to create slasher", "error", err)
-		return sdk.ErrInternal("fail to create slasher").Result()
+		return cosmos.ErrInternal("fail to create slasher").Result()
 	}
 	handler := NewInternalHandler(h.keeper, h.versionedTxOutStore, h.validatorMgr, h.versionedVaultManager, h.versionedObserverManager, h.versionedGasMgr, h.versionedEventManager)
 	for _, tx := range msg.Txs {
@@ -160,7 +160,7 @@ func (h ObservedTxInHandler) handleV1(ctx sdk.Context, version semver.Version, m
 
 		voter, err := h.keeper.GetObservedTxVoter(ctx, tx.Tx.ID)
 		if err != nil {
-			return sdk.ErrInternal(err.Error()).Result()
+			return cosmos.ErrInternal(err.Error()).Result()
 		}
 
 		voter, ok := h.preflight(ctx, voter, activeNodeAccounts, tx, msg.Signer, slasher, version)
@@ -180,7 +180,7 @@ func (h ObservedTxInHandler) handleV1(ctx sdk.Context, version semver.Version, m
 			// figure out the coin amounts
 			txYgg := tx.Tx
 			txYgg.Coins = common.Coins{
-				common.NewCoin(common.RuneAsset(), sdk.ZeroUint()),
+				common.NewCoin(common.RuneAsset(), cosmos.ZeroUint()),
 			}
 			tx.Tx.Memo = fetchMemo(ctx, constAccessor, h.keeper, txYgg)
 		}
@@ -192,7 +192,7 @@ func (h ObservedTxInHandler) handleV1(ctx sdk.Context, version semver.Version, m
 		vault, err := h.keeper.GetVault(ctx, tx.ObservedPubKey)
 		if err != nil {
 			ctx.Logger().Error("fail to get vault", "error", err)
-			return sdk.ErrInternal(err.Error()).Result()
+			return cosmos.ErrInternal(err.Error()).Result()
 		}
 
 		vault.AddFunds(tx.Tx.Coins)
@@ -203,7 +203,7 @@ func (h ObservedTxInHandler) handleV1(ctx sdk.Context, version semver.Version, m
 		}
 		if err := h.keeper.SetVault(ctx, vault); err != nil {
 			ctx.Logger().Error("fail to save vault", "error", err)
-			return sdk.ErrInternal(err.Error()).Result()
+			return cosmos.ErrInternal(err.Error()).Result()
 		}
 
 		if !vault.IsAsgard() {
@@ -221,14 +221,14 @@ func (h ObservedTxInHandler) handleV1(ctx sdk.Context, version semver.Version, m
 			reason := fmt.Sprintf("vault %s is not current vault", tx.ObservedPubKey)
 			ctx.Logger().Info("refund reason", reason)
 			if err := refundTx(ctx, tx, txOutStore, h.keeper, constAccessor, CodeInvalidVault, reason, eventMgr); err != nil {
-				return sdk.ErrInternal(err.Error()).Result()
+				return cosmos.ErrInternal(err.Error()).Result()
 			}
 			continue
 		}
 		// chain is empty
 		if tx.Tx.Chain.IsEmpty() {
 			if err := refundTx(ctx, tx, txOutStore, h.keeper, constAccessor, CodeEmptyChain, "chain is empty", eventMgr); err != nil {
-				return sdk.ErrInternal(err.Error()).Result()
+				return cosmos.ErrInternal(err.Error()).Result()
 			}
 			continue
 		}
@@ -238,7 +238,7 @@ func (h ObservedTxInHandler) handleV1(ctx sdk.Context, version semver.Version, m
 		if txErr != nil {
 			ctx.Logger().Error("fail to process inbound tx", "error", txErr.Error(), "tx hash", tx.Tx.ID.String())
 			if newErr := refundTx(ctx, tx, txOutStore, h.keeper, constAccessor, txErr.Code(), fmt.Sprint(txErr.Data()), eventMgr); nil != newErr {
-				return sdk.ErrInternal(newErr.Error()).Result()
+				return cosmos.ErrInternal(newErr.Error()).Result()
 			}
 			continue
 		}
@@ -249,7 +249,7 @@ func (h ObservedTxInHandler) handleV1(ctx sdk.Context, version semver.Version, m
 		}
 
 		if err := h.keeper.SetLastChainHeight(ctx, tx.Tx.Chain, tx.BlockHeight); err != nil {
-			return sdk.ErrInternal(err.Error()).Result()
+			return cosmos.ErrInternal(err.Error()).Result()
 		}
 
 		// add addresses to observing addresses. This is used to detect
@@ -263,8 +263,8 @@ func (h ObservedTxInHandler) handleV1(ctx sdk.Context, version semver.Version, m
 		if isSwap || isStake {
 			if (haltTrading > 0 && haltTrading < ctx.BlockHeight() && err == nil) || h.keeper.RagnarokInProgress(ctx) {
 				ctx.Logger().Info("trading is halted!!")
-				if newErr := refundTx(ctx, tx, txOutStore, h.keeper, constAccessor, sdk.CodeUnauthorized, "trading halted", eventMgr); nil != newErr {
-					return sdk.ErrInternal(newErr.Error()).Result()
+				if newErr := refundTx(ctx, tx, txOutStore, h.keeper, constAccessor, cosmos.CodeUnauthorized, "trading halted", eventMgr); nil != newErr {
+					return cosmos.ErrInternal(newErr.Error()).Result()
 				}
 				continue
 			}
@@ -273,10 +273,10 @@ func (h ObservedTxInHandler) handleV1(ctx sdk.Context, version semver.Version, m
 		// if its a swap, send it to our queue for processing later
 		if isSwap {
 			if err := h.keeper.SetSwapQueueItem(ctx, m.(MsgSwap)); err != nil {
-				return sdk.ErrInternal(err.Error()).Result()
+				return cosmos.ErrInternal(err.Error()).Result()
 			}
-			return sdk.Result{
-				Code:      sdk.CodeOK,
+			return cosmos.Result{
+				Code:      cosmos.CodeOK,
 				Codespace: DefaultCodespace,
 			}
 		}
@@ -288,12 +288,12 @@ func (h ObservedTxInHandler) handleV1(ctx sdk.Context, version semver.Version, m
 				ctx.Logger().Error(err.Error())
 			}
 			if err := refundTx(ctx, tx, txOutStore, h.keeper, constAccessor, result.Code, refundMsg, eventMgr); err != nil {
-				return sdk.ErrInternal(err.Error()).Result()
+				return cosmos.ErrInternal(err.Error()).Result()
 			}
 		}
 	}
-	return sdk.Result{
-		Code:      sdk.CodeOK,
+	return cosmos.Result{
+		Code:      cosmos.CodeOK,
 		Codespace: DefaultCodespace,
 	}
 }

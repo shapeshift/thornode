@@ -1,8 +1,8 @@
 package types
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	common "gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	. "gopkg.in/check.v1"
 )
 
@@ -15,7 +15,7 @@ func (MsgNativeTxSuite) TestMsgNativeTxSuite(c *C) {
 	c.Assert(acc1.Empty(), Equals, false)
 
 	coins := common.Coins{
-		common.NewCoin(common.RuneNative, sdk.NewUint(12*common.One)),
+		common.NewCoin(common.RuneNative, cosmos.NewUint(12*common.One)),
 	}
 	memo := "hello"
 	msg := NewMsgNativeTx(coins, memo, acc1)
@@ -28,7 +28,7 @@ func (MsgNativeTxSuite) TestMsgNativeTxSuite(c *C) {
 
 	// ensure non-native assets are blocked
 	coins = common.Coins{
-		common.NewCoin(common.BTCAsset, sdk.NewUint(12*common.One)),
+		common.NewCoin(common.BTCAsset, cosmos.NewUint(12*common.One)),
 	}
 	msg = NewMsgNativeTx(coins, memo, acc1)
 	c.Assert(msg.ValidateBasic(), NotNil)

@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/blang/semver"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -24,6 +23,7 @@ import (
 	"gitlab.com/thorchain/thornode/bifrost/thorclient/types"
 	"gitlab.com/thorchain/thornode/bifrost/tss"
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 	"gitlab.com/thorchain/thornode/x/thorchain"
 	ttypes "gitlab.com/thorchain/thornode/x/thorchain/types"
@@ -403,7 +403,7 @@ func (s *Signer) handleYggReturn(height int64, tx types.TxOutItem) (types.TxOutI
 			return tx, err
 		}
 		if coin.Amount > 0 {
-			amount := sdk.NewUint(coin.Amount)
+			amount := cosmos.NewUint(coin.Amount)
 			tx.Coins = append(tx.Coins, common.NewCoin(asset, amount))
 		}
 	}

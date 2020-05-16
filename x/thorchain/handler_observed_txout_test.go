@@ -4,10 +4,10 @@ import (
 	"fmt"
 
 	"github.com/blang/semver"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 )
 
@@ -18,7 +18,7 @@ type TestObservedTxOutValidateKeeper struct {
 	activeNodeAccount NodeAccount
 }
 
-func (k *TestObservedTxOutValidateKeeper) GetNodeAccount(ctx sdk.Context, signer sdk.AccAddress) (NodeAccount, error) {
+func (k *TestObservedTxOutValidateKeeper) GetNodeAccount(ctx cosmos.Context, signer cosmos.AccAddress) (NodeAccount, error) {
 	if k.activeNodeAccount.NodeAddress.Equals(signer) {
 		return k.activeNodeAccount, nil
 	}
@@ -83,108 +83,108 @@ type TestObservedTxOutHandleKeeper struct {
 	height     int64
 	pool       Pool
 	txOutStore TxOutStore
-	observing  []sdk.AccAddress
-	gas        []sdk.Uint
+	observing  []cosmos.AccAddress
+	gas        []cosmos.Uint
 }
 
-func (k *TestObservedTxOutHandleKeeper) ListActiveNodeAccounts(_ sdk.Context) (NodeAccounts, error) {
+func (k *TestObservedTxOutHandleKeeper) ListActiveNodeAccounts(_ cosmos.Context) (NodeAccounts, error) {
 	return k.nas, nil
 }
 
-func (k *TestObservedTxOutHandleKeeper) IsActiveObserver(_ sdk.Context, _ sdk.AccAddress) bool {
+func (k *TestObservedTxOutHandleKeeper) IsActiveObserver(_ cosmos.Context, _ cosmos.AccAddress) bool {
 	return true
 }
 
-func (k *TestObservedTxOutHandleKeeper) GetNodeAccountByPubKey(_ sdk.Context, _ common.PubKey) (NodeAccount, error) {
+func (k *TestObservedTxOutHandleKeeper) GetNodeAccountByPubKey(_ cosmos.Context, _ common.PubKey) (NodeAccount, error) {
 	return k.nas[0], nil
 }
 
-func (k *TestObservedTxOutHandleKeeper) SetNodeAccount(_ sdk.Context, na NodeAccount) error {
+func (k *TestObservedTxOutHandleKeeper) SetNodeAccount(_ cosmos.Context, na NodeAccount) error {
 	k.na = na
 	return nil
 }
 
-func (k *TestObservedTxOutHandleKeeper) GetObservedTxVoter(_ sdk.Context, _ common.TxID) (ObservedTxVoter, error) {
+func (k *TestObservedTxOutHandleKeeper) GetObservedTxVoter(_ cosmos.Context, _ common.TxID) (ObservedTxVoter, error) {
 	return k.voter, nil
 }
 
-func (k *TestObservedTxOutHandleKeeper) SetObservedTxVoter(_ sdk.Context, voter ObservedTxVoter) {
+func (k *TestObservedTxOutHandleKeeper) SetObservedTxVoter(_ cosmos.Context, voter ObservedTxVoter) {
 	k.voter = voter
 }
 
-func (k *TestObservedTxOutHandleKeeper) VaultExists(_ sdk.Context, _ common.PubKey) bool {
+func (k *TestObservedTxOutHandleKeeper) VaultExists(_ cosmos.Context, _ common.PubKey) bool {
 	return k.yggExists
 }
 
-func (k *TestObservedTxOutHandleKeeper) GetVault(_ sdk.Context, _ common.PubKey) (Vault, error) {
+func (k *TestObservedTxOutHandleKeeper) GetVault(_ cosmos.Context, _ common.PubKey) (Vault, error) {
 	return k.ygg, nil
 }
 
-func (k *TestObservedTxOutHandleKeeper) SetVault(_ sdk.Context, ygg Vault) error {
+func (k *TestObservedTxOutHandleKeeper) SetVault(_ cosmos.Context, ygg Vault) error {
 	k.ygg = ygg
 	return nil
 }
 
-func (k *TestObservedTxOutHandleKeeper) GetVaultData(_ sdk.Context) (VaultData, error) {
+func (k *TestObservedTxOutHandleKeeper) GetVaultData(_ cosmos.Context) (VaultData, error) {
 	return NewVaultData(), nil
 }
 
-func (k *TestObservedTxOutHandleKeeper) SetVaultData(_ sdk.Context, _ VaultData) error {
+func (k *TestObservedTxOutHandleKeeper) SetVaultData(_ cosmos.Context, _ VaultData) error {
 	return nil
 }
 
-func (k *TestObservedTxOutHandleKeeper) SetLastChainHeight(_ sdk.Context, _ common.Chain, height int64) error {
+func (k *TestObservedTxOutHandleKeeper) SetLastChainHeight(_ cosmos.Context, _ common.Chain, height int64) error {
 	k.height = height
 	return nil
 }
 
-func (k *TestObservedTxOutHandleKeeper) GetPool(_ sdk.Context, _ common.Asset) (Pool, error) {
+func (k *TestObservedTxOutHandleKeeper) GetPool(_ cosmos.Context, _ common.Asset) (Pool, error) {
 	return k.pool, nil
 }
 
-func (k *TestObservedTxOutHandleKeeper) AddIncompleteEvents(_ sdk.Context, evt Event) error {
+func (k *TestObservedTxOutHandleKeeper) AddIncompleteEvents(_ cosmos.Context, evt Event) error {
 	return nil
 }
 
-func (k *TestObservedTxOutHandleKeeper) GetTxOut(ctx sdk.Context, _ int64) (*TxOut, error) {
+func (k *TestObservedTxOutHandleKeeper) GetTxOut(ctx cosmos.Context, _ int64) (*TxOut, error) {
 	return k.txOutStore.GetBlockOut(ctx)
 }
 
-func (k *TestObservedTxOutHandleKeeper) FindPubKeyOfAddress(_ sdk.Context, _ common.Address, _ common.Chain) (common.PubKey, error) {
+func (k *TestObservedTxOutHandleKeeper) FindPubKeyOfAddress(_ cosmos.Context, _ common.Address, _ common.Chain) (common.PubKey, error) {
 	return k.ygg.PubKey, nil
 }
 
-func (k *TestObservedTxOutHandleKeeper) SetTxOut(_ sdk.Context, _ *TxOut) error {
+func (k *TestObservedTxOutHandleKeeper) SetTxOut(_ cosmos.Context, _ *TxOut) error {
 	return nil
 }
 
-func (k *TestObservedTxOutHandleKeeper) AddObservingAddresses(_ sdk.Context, addrs []sdk.AccAddress) error {
+func (k *TestObservedTxOutHandleKeeper) AddObservingAddresses(_ cosmos.Context, addrs []cosmos.AccAddress) error {
 	k.observing = addrs
 	return nil
 }
 
-func (k *TestObservedTxOutHandleKeeper) UpsertEvent(ctx sdk.Context, event Event) error {
+func (k *TestObservedTxOutHandleKeeper) UpsertEvent(ctx cosmos.Context, event Event) error {
 	return nil
 }
 
-func (k *TestObservedTxOutHandleKeeper) GetLastEventID(_ sdk.Context) (int64, error) {
+func (k *TestObservedTxOutHandleKeeper) GetLastEventID(_ cosmos.Context) (int64, error) {
 	return 0, nil
 }
 
-func (k *TestObservedTxOutHandleKeeper) GetIncompleteEvents(_ sdk.Context) (Events, error) {
+func (k *TestObservedTxOutHandleKeeper) GetIncompleteEvents(_ cosmos.Context) (Events, error) {
 	return nil, nil
 }
 
-func (k *TestObservedTxOutHandleKeeper) SetPool(ctx sdk.Context, pool Pool) error {
+func (k *TestObservedTxOutHandleKeeper) SetPool(ctx cosmos.Context, pool Pool) error {
 	k.pool = pool
 	return nil
 }
 
-func (k *TestObservedTxOutHandleKeeper) GetGas(ctx sdk.Context, asset common.Asset) ([]sdk.Uint, error) {
+func (k *TestObservedTxOutHandleKeeper) GetGas(ctx cosmos.Context, asset common.Asset) ([]cosmos.Uint, error) {
 	return k.gas, nil
 }
 
-func (k *TestObservedTxOutHandleKeeper) SetGas(ctx sdk.Context, asset common.Asset, units []sdk.Uint) {
+func (k *TestObservedTxOutHandleKeeper) SetGas(ctx cosmos.Context, asset common.Asset, units []cosmos.Uint) {
 	k.gas = units
 }
 
@@ -205,16 +205,16 @@ func (s *HandlerObservedTxOutSuite) TestHandle(c *C) {
 
 	ygg := NewVault(ctx.BlockHeight(), ActiveVault, YggdrasilVault, pk, common.Chains{common.BNBChain})
 	ygg.Coins = common.Coins{
-		common.NewCoin(common.RuneAsset(), sdk.NewUint(500)),
-		common.NewCoin(common.BNBAsset, sdk.NewUint(200*common.One)),
+		common.NewCoin(common.RuneAsset(), cosmos.NewUint(500)),
+		common.NewCoin(common.BNBAsset, cosmos.NewUint(200*common.One)),
 	}
 	keeper := &TestObservedTxOutHandleKeeper{
 		nas:   NodeAccounts{GetRandomNodeAccount(NodeActive)},
 		voter: NewObservedTxVoter(tx.ID, make(ObservedTxs, 0)),
 		pool: Pool{
 			Asset:        common.BNBAsset,
-			BalanceRune:  sdk.NewUint(200),
-			BalanceAsset: sdk.NewUint(300),
+			BalanceRune:  cosmos.NewUint(200),
+			BalanceAsset: cosmos.NewUint(300),
 		},
 		yggExists: true,
 		ygg:       ygg,
@@ -241,7 +241,7 @@ func (s *HandlerObservedTxOutSuite) TestHandle(c *C) {
 	c.Assert(items, HasLen, 0)
 	c.Check(keeper.observing, HasLen, 1)
 	// make sure the coin has been subtract from the vault
-	c.Check(ygg.Coins.GetCoin(common.BNBAsset).Amount.Equal(sdk.NewUint(19999962499)), Equals, true, Commentf("%d", ygg.Coins.GetCoin(common.BNBAsset).Amount.Uint64()))
+	c.Check(ygg.Coins.GetCoin(common.BNBAsset).Amount.Equal(cosmos.NewUint(19999962499)), Equals, true, Commentf("%d", ygg.Coins.GetCoin(common.BNBAsset).Amount.Uint64()))
 }
 
 func (s *HandlerObservedTxOutSuite) TestGasUpdate(c *C) {
@@ -254,7 +254,7 @@ func (s *HandlerObservedTxOutSuite) TestGasUpdate(c *C) {
 	tx.Gas = common.Gas{
 		{
 			Asset:  common.BNBAsset,
-			Amount: sdk.NewUint(475000),
+			Amount: cosmos.NewUint(475000),
 		},
 	}
 	tx.Memo = fmt.Sprintf("OUTBOUND:%s", tx.ID)
@@ -267,16 +267,16 @@ func (s *HandlerObservedTxOutSuite) TestGasUpdate(c *C) {
 
 	ygg := NewVault(ctx.BlockHeight(), ActiveVault, YggdrasilVault, pk, common.Chains{common.BNBChain})
 	ygg.Coins = common.Coins{
-		common.NewCoin(common.RuneAsset(), sdk.NewUint(500)),
-		common.NewCoin(common.BNBAsset, sdk.NewUint(200*common.One)),
+		common.NewCoin(common.RuneAsset(), cosmos.NewUint(500)),
+		common.NewCoin(common.BNBAsset, cosmos.NewUint(200*common.One)),
 	}
 	keeper := &TestObservedTxOutHandleKeeper{
 		nas:   NodeAccounts{GetRandomNodeAccount(NodeActive)},
 		voter: NewObservedTxVoter(tx.ID, make(ObservedTxs, 0)),
 		pool: Pool{
 			Asset:        common.BNBAsset,
-			BalanceRune:  sdk.NewUint(200),
-			BalanceAsset: sdk.NewUint(300),
+			BalanceRune:  cosmos.NewUint(200),
+			BalanceAsset: cosmos.NewUint(300),
 		},
 		yggExists: true,
 		ygg:       ygg,
@@ -295,9 +295,9 @@ func (s *HandlerObservedTxOutSuite) TestGasUpdate(c *C) {
 	result := handler.handle(ctx, msg, ver)
 	c.Assert(result.IsOK(), Equals, true)
 	gas := keeper.gas[0]
-	c.Assert(gas.Equal(sdk.NewUint(475000)), Equals, true, Commentf("%+v", gas))
+	c.Assert(gas.Equal(cosmos.NewUint(475000)), Equals, true, Commentf("%+v", gas))
 	// revert the gas change , otherwise it messed up the other tests
-	gasInfo := common.UpdateGasPrice(common.Tx{}, common.BNBAsset, []sdk.Uint{sdk.NewUint(37500), sdk.NewUint(30000)})
+	gasInfo := common.UpdateGasPrice(common.Tx{}, common.BNBAsset, []cosmos.Uint{cosmos.NewUint(37500), cosmos.NewUint(30000)})
 	keeper.SetGas(ctx, common.BNBAsset, gasInfo)
 }
 
@@ -311,31 +311,31 @@ func (s *HandlerObservedTxOutSuite) TestHandleStolenFunds(c *C) {
 	tx.Memo = "I AM A THIEF!" // bad memo
 	obTx := NewObservedTx(tx, 12, GetRandomPubKey())
 	obTx.Tx.Coins = common.Coins{
-		common.NewCoin(common.RuneAsset(), sdk.NewUint(300*common.One)),
-		common.NewCoin(common.BNBAsset, sdk.NewUint(100*common.One)),
+		common.NewCoin(common.RuneAsset(), cosmos.NewUint(300*common.One)),
+		common.NewCoin(common.BNBAsset, cosmos.NewUint(100*common.One)),
 	}
 	txs := ObservedTxs{obTx}
 	pk := GetRandomPubKey()
 	c.Assert(err, IsNil)
 
 	na := GetRandomNodeAccount(NodeActive)
-	na.Bond = sdk.NewUint(1000000 * common.One)
+	na.Bond = cosmos.NewUint(1000000 * common.One)
 	na.PubKeySet.Secp256k1 = pk
 
 	versionedTxOutStoreDummy := NewVersionedTxOutStoreDummy()
 
 	ygg := NewVault(ctx.BlockHeight(), ActiveVault, YggdrasilVault, pk, common.Chains{common.BNBChain})
 	ygg.Coins = common.Coins{
-		common.NewCoin(common.RuneAsset(), sdk.NewUint(500*common.One)),
-		common.NewCoin(common.BNBAsset, sdk.NewUint(200*common.One)),
+		common.NewCoin(common.RuneAsset(), cosmos.NewUint(500*common.One)),
+		common.NewCoin(common.BNBAsset, cosmos.NewUint(200*common.One)),
 	}
 	keeper := &TestObservedTxOutHandleKeeper{
 		nas:   NodeAccounts{na},
 		voter: NewObservedTxVoter(tx.ID, make(ObservedTxs, 0)),
 		pool: Pool{
 			Asset:        common.BNBAsset,
-			BalanceRune:  sdk.NewUint(200 * common.One),
-			BalanceAsset: sdk.NewUint(300 * common.One),
+			BalanceRune:  cosmos.NewUint(200 * common.One),
+			BalanceAsset: cosmos.NewUint(300 * common.One),
 		},
 		yggExists: true,
 		ygg:       ygg,
@@ -354,6 +354,6 @@ func (s *HandlerObservedTxOutSuite) TestHandleStolenFunds(c *C) {
 	result := handler.handle(ctx, msg, ver)
 	c.Assert(result.IsOK(), Equals, true)
 	// make sure the coin has been subtract from the vault
-	c.Check(ygg.Coins.GetCoin(common.BNBAsset).Amount.Equal(sdk.NewUint(9999962500)), Equals, true, Commentf("%d", ygg.Coins.GetCoin(common.BNBAsset).Amount.Uint64()))
-	c.Assert(keeper.na.Bond.LT(sdk.NewUint(1000000*common.One)), Equals, true, Commentf("%d", keeper.na.Bond.Uint64()))
+	c.Check(ygg.Coins.GetCoin(common.BNBAsset).Amount.Equal(cosmos.NewUint(9999962500)), Equals, true, Commentf("%d", ygg.Coins.GetCoin(common.BNBAsset).Amount.Uint64()))
+	c.Assert(keeper.na.Bond.LT(cosmos.NewUint(1000000*common.One)), Equals, true, Commentf("%d", keeper.na.Bond.Uint64()))
 }

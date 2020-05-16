@@ -3,41 +3,40 @@ package thorchain
 import (
 	"sort"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 type ObserverManager interface {
 	BeginBlock()
-	EndBlock(ctx sdk.Context, keeper Keeper)
-	AppendObserver(chain common.Chain, addrs []sdk.AccAddress)
-	List() []sdk.AccAddress
+	EndBlock(ctx cosmos.Context, keeper Keeper)
+	AppendObserver(chain common.Chain, addrs []cosmos.AccAddress)
+	List() []cosmos.AccAddress
 }
 
 // ObserverManangerImp implement a ObserverManager which will store the
 // observers in memory before written to chain
 type ObserverMgr struct {
-	chains map[common.Chain][]sdk.AccAddress
+	chains map[common.Chain][]cosmos.AccAddress
 }
 
 // NewObserverMgr create a new instance of ObserverManager
 func NewObserverMgr() *ObserverMgr {
 	return &ObserverMgr{
-		chains: make(map[common.Chain][]sdk.AccAddress, 0),
+		chains: make(map[common.Chain][]cosmos.AccAddress, 0),
 	}
 }
 
 func (om *ObserverMgr) BeginBlock() {
-	om.chains = make(map[common.Chain][]sdk.AccAddress, 0)
+	om.chains = make(map[common.Chain][]cosmos.AccAddress, 0)
 }
 
-func (om *ObserverMgr) AppendObserver(chain common.Chain, addrs []sdk.AccAddress) {
+func (om *ObserverMgr) AppendObserver(chain common.Chain, addrs []cosmos.AccAddress) {
 	// combine addresses
 	all := append(om.chains[chain], addrs...)
 
 	// ensure uniqueness
-	uniq := make([]sdk.AccAddress, 0, len(all))
+	uniq := make([]cosmos.AccAddress, 0, len(all))
 	m := make(map[string]bool)
 	for _, val := range all {
 		if _, ok := m[val.String()]; !ok {
@@ -50,8 +49,8 @@ func (om *ObserverMgr) AppendObserver(chain common.Chain, addrs []sdk.AccAddress
 }
 
 // List - gets a list of addresses that have been observed in all chains
-func (om *ObserverMgr) List() []sdk.AccAddress {
-	result := make([]sdk.AccAddress, 0)
+func (om *ObserverMgr) List() []cosmos.AccAddress {
+	result := make([]cosmos.AccAddress, 0)
 	tracker := make(map[string]int, 0)
 	for _, addrs := range om.chains {
 		for _, addr := range addrs {
@@ -65,7 +64,7 @@ func (om *ObserverMgr) List() []sdk.AccAddress {
 
 	for key, count := range tracker {
 		if count >= len(om.chains) {
-			addr, _ := sdk.AccAddressFromBech32(key)
+			addr, _ := cosmos.AccAddressFromBech32(key)
 			result = append(result, addr)
 		}
 	}
@@ -79,7 +78,7 @@ func (om *ObserverMgr) List() []sdk.AccAddress {
 }
 
 // EndBlock emit the observers
-func (om *ObserverMgr) EndBlock(ctx sdk.Context, keeper Keeper) {
+func (om *ObserverMgr) EndBlock(ctx cosmos.Context, keeper Keeper) {
 	if err := keeper.AddObservingAddresses(ctx, om.List()); err != nil {
 		ctx.Logger().Error("fail to append observers", "error", err)
 	}
