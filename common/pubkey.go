@@ -11,10 +11,11 @@ import (
 	"github.com/btcsuite/btcutil/bech32"
 
 	"github.com/cosmos/cosmos-sdk/crypto/keys"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	eth "github.com/ethereum/go-ethereum/crypto"
 	"github.com/tendermint/tendermint/crypto"
 	cryptoAmino "github.com/tendermint/tendermint/crypto/encoding/amino"
+
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 // PubKey used in thorchain, it should be bech32 encoded string
@@ -44,7 +45,7 @@ func NewPubKey(key string) (PubKey, error) {
 	if len(key) == 0 {
 		return EmptyPubKey, nil
 	}
-	_, err := sdk.GetAccPubKeyBech32(key)
+	_, err := cosmos.GetAccPubKeyBech32(key)
 	if err != nil {
 		return EmptyPubKey, fmt.Errorf("%s is not bech32 encoded pub key,err : %w", key, err)
 	}
@@ -53,7 +54,7 @@ func NewPubKey(key string) (PubKey, error) {
 
 // NewPubKeyFromCrypto
 func NewPubKeyFromCrypto(pk crypto.PubKey) (PubKey, error) {
-	s, err := sdk.Bech32ifyAccPub(pk)
+	s, err := cosmos.Bech32ifyAccPub(pk)
 	if err != nil {
 		return EmptyPubKey, fmt.Errorf("fail to create PubKey from crypto.PubKey,err:%w", err)
 	}
@@ -83,7 +84,7 @@ func (pubKey PubKey) GetAddress(chain Chain) (Address, error) {
 	chainNetwork := GetCurrentChainNetwork()
 	switch chain {
 	case BNBChain:
-		pk, err := sdk.GetAccPubKeyBech32(string(pubKey))
+		pk, err := cosmos.GetAccPubKeyBech32(string(pubKey))
 		if err != nil {
 			return NoAddress, err
 		}
@@ -93,7 +94,7 @@ func (pubKey PubKey) GetAddress(chain Chain) (Address, error) {
 		}
 		return NewAddress(str)
 	case THORChain:
-		pk, err := sdk.GetAccPubKeyBech32(string(pubKey))
+		pk, err := cosmos.GetAccPubKeyBech32(string(pubKey))
 		if err != nil {
 			return NoAddress, err
 		}
@@ -104,7 +105,7 @@ func (pubKey PubKey) GetAddress(chain Chain) (Address, error) {
 		return NewAddress(str)
 	case ETHChain:
 		// retrieve compressed pubkey bytes from bechh32 encoded str
-		pk, err := sdk.GetAccPubKeyBech32(string(pubKey))
+		pk, err := cosmos.GetAccPubKeyBech32(string(pubKey))
 		if err != nil {
 			return NoAddress, err
 		}
@@ -116,7 +117,7 @@ func (pubKey PubKey) GetAddress(chain Chain) (Address, error) {
 		str := strings.ToLower(eth.PubkeyToAddress(*pub.ToECDSA()).String())
 		return NewAddress(str)
 	case BTCChain:
-		pk, err := sdk.GetAccPubKeyBech32(string(pubKey))
+		pk, err := cosmos.GetAccPubKeyBech32(string(pubKey))
 		if err != nil {
 			return NoAddress, err
 		}
@@ -139,12 +140,12 @@ func (pubKey PubKey) GetAddress(chain Chain) (Address, error) {
 	return NoAddress, nil
 }
 
-func (pubKey PubKey) GetThorAddress() (sdk.AccAddress, error) {
+func (pubKey PubKey) GetThorAddress() (cosmos.AccAddress, error) {
 	addr, err := pubKey.GetAddress(THORChain)
 	if err != nil {
 		return nil, err
 	}
-	return sdk.AccAddressFromBech32(addr.String())
+	return cosmos.AccAddressFromBech32(addr.String())
 }
 
 // MarshalJSON to Marshals to JSON using Bech32
@@ -160,7 +161,7 @@ func (pubKey *PubKey) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	if strings.HasPrefix(s, "bnbp") {
-		buf, err := sdk.GetFromBech32(s, "bnbp")
+		buf, err := cosmos.GetFromBech32(s, "bnbp")
 		if err != nil {
 			return fmt.Errorf("fail to get from bech32 ,err:%w", err)
 		}
@@ -168,7 +169,7 @@ func (pubKey *PubKey) UnmarshalJSON(data []byte) error {
 		if err != nil {
 			return fmt.Errorf("fail to create pub key from bytes,err:%w", err)
 		}
-		s, err = sdk.Bech32ifyAccPub(pk)
+		s, err = cosmos.Bech32ifyAccPub(pk)
 		if err != nil {
 			return fmt.Errorf("fail to bech32 acc pub:%w", err)
 		}

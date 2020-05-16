@@ -2,10 +2,10 @@ package thorchain
 
 import (
 	"github.com/blang/semver"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 )
 
@@ -19,7 +19,7 @@ type TestRagnarokKeeper struct {
 	vault             Vault
 }
 
-func (k *TestRagnarokKeeper) GetNodeAccount(_ sdk.Context, addr sdk.AccAddress) (NodeAccount, error) {
+func (k *TestRagnarokKeeper) GetNodeAccount(_ cosmos.Context, addr cosmos.AccAddress) (NodeAccount, error) {
 	if k.activeNodeAccount.NodeAddress.Equals(addr) {
 		return k.activeNodeAccount, nil
 	}
@@ -44,7 +44,7 @@ func (HandlerRagnarokSuite) TestRagnarok(c *C) {
 	tx := NewObservedTx(common.Tx{
 		ID:          GetRandomTxHash(),
 		Chain:       common.BNBChain,
-		Coins:       common.Coins{common.NewCoin(common.BNBAsset, sdk.NewUint(1*common.One))},
+		Coins:       common.Coins{common.NewCoin(common.BNBAsset, cosmos.NewUint(1*common.One))},
 		Memo:        "",
 		FromAddress: GetRandomBNBAddress(),
 		ToAddress:   addr,
@@ -79,14 +79,14 @@ type TestRagnarokKeeperHappyPath struct {
 	pool              Pool
 }
 
-func (k *TestRagnarokKeeperHappyPath) GetTxOut(ctx sdk.Context, blockHeight int64) (*TxOut, error) {
+func (k *TestRagnarokKeeperHappyPath) GetTxOut(ctx cosmos.Context, blockHeight int64) (*TxOut, error) {
 	if k.txout != nil && k.txout.Height == blockHeight {
 		return k.txout, nil
 	}
 	return nil, kaboom
 }
 
-func (k *TestRagnarokKeeperHappyPath) SetTxOut(ctx sdk.Context, blockOut *TxOut) error {
+func (k *TestRagnarokKeeperHappyPath) SetTxOut(ctx cosmos.Context, blockOut *TxOut) error {
 	if k.txout.Height == blockOut.Height {
 		k.txout = blockOut
 		return nil
@@ -94,25 +94,25 @@ func (k *TestRagnarokKeeperHappyPath) SetTxOut(ctx sdk.Context, blockOut *TxOut)
 	return kaboom
 }
 
-func (k *TestRagnarokKeeperHappyPath) GetNodeAccountByPubKey(_ sdk.Context, _ common.PubKey) (NodeAccount, error) {
+func (k *TestRagnarokKeeperHappyPath) GetNodeAccountByPubKey(_ cosmos.Context, _ common.PubKey) (NodeAccount, error) {
 	return k.activeNodeAccount, nil
 }
 
-func (k *TestRagnarokKeeperHappyPath) SetNodeAccount(_ sdk.Context, na NodeAccount) error {
+func (k *TestRagnarokKeeperHappyPath) SetNodeAccount(_ cosmos.Context, na NodeAccount) error {
 	k.activeNodeAccount = na
 	return nil
 }
 
-func (k *TestRagnarokKeeperHappyPath) GetPool(_ sdk.Context, _ common.Asset) (Pool, error) {
+func (k *TestRagnarokKeeperHappyPath) GetPool(_ cosmos.Context, _ common.Asset) (Pool, error) {
 	return k.pool, nil
 }
 
-func (k *TestRagnarokKeeperHappyPath) SetPool(_ sdk.Context, p Pool) error {
+func (k *TestRagnarokKeeperHappyPath) SetPool(_ cosmos.Context, p Pool) error {
 	k.pool = p
 	return nil
 }
 
-func (k *TestRagnarokKeeperHappyPath) UpsertEvent(_ sdk.Context, _ Event) error {
+func (k *TestRagnarokKeeperHappyPath) UpsertEvent(_ cosmos.Context, _ Event) error {
 	return nil
 }
 
@@ -129,7 +129,7 @@ func (HandlerRagnarokSuite) TestRagnarokHappyPath(c *C) {
 		InHash:      common.BlankTxID,
 		ToAddress:   newVaultAddr,
 		VaultPubKey: retireVault.PubKey,
-		Coin:        common.NewCoin(common.BNBAsset, sdk.NewUint(1024)),
+		Coin:        common.NewCoin(common.BNBAsset, cosmos.NewUint(1024)),
 		Memo:        NewRagnarokMemo(1).String(),
 	})
 	keeper := &TestRagnarokKeeperHappyPath{
@@ -145,7 +145,7 @@ func (HandlerRagnarokSuite) TestRagnarokHappyPath(c *C) {
 		ID:    GetRandomTxHash(),
 		Chain: common.BNBChain,
 		Coins: common.Coins{
-			common.NewCoin(common.BNBAsset, sdk.NewUint(1024)),
+			common.NewCoin(common.BNBAsset, cosmos.NewUint(1024)),
 		},
 		Memo:        NewRagnarokMemo(1).String(),
 		FromAddress: addr,
@@ -156,7 +156,7 @@ func (HandlerRagnarokSuite) TestRagnarokHappyPath(c *C) {
 	msgRagnarok := NewMsgRagnarok(tx, 1, keeper.activeNodeAccount.NodeAddress)
 	ver := constants.SWVersion
 	result := handler.handleV1(ctx, ver, msgRagnarok)
-	c.Assert(result.Code, Equals, sdk.CodeOK)
+	c.Assert(result.Code, Equals, cosmos.CodeOK)
 	c.Assert(keeper.txout.TxArray[0].OutHash.Equals(tx.Tx.ID), Equals, true)
 }
 
@@ -171,10 +171,10 @@ func (HandlerRagnarokSuite) TestSlash(c *C) {
 
 	pool := NewPool()
 	pool.Asset = common.BNBAsset
-	pool.BalanceAsset = sdk.NewUint(100 * common.One)
-	pool.BalanceRune = sdk.NewUint(100 * common.One)
+	pool.BalanceAsset = cosmos.NewUint(100 * common.One)
+	pool.BalanceRune = cosmos.NewUint(100 * common.One)
 	na := GetRandomNodeAccount(NodeActive)
-	na.Bond = sdk.NewUint(100 * common.One)
+	na.Bond = cosmos.NewUint(100 * common.One)
 	keeper := &TestRagnarokKeeperHappyPath{
 		activeNodeAccount: na,
 		newVault:          newVault,
@@ -189,7 +189,7 @@ func (HandlerRagnarokSuite) TestSlash(c *C) {
 		ID:    GetRandomTxHash(),
 		Chain: common.BNBChain,
 		Coins: common.Coins{
-			common.NewCoin(common.BNBAsset, sdk.NewUint(1024)),
+			common.NewCoin(common.BNBAsset, cosmos.NewUint(1024)),
 		},
 		Memo:        NewRagnarokMemo(1).String(),
 		FromAddress: addr,
@@ -199,6 +199,6 @@ func (HandlerRagnarokSuite) TestSlash(c *C) {
 
 	msgRagnarok := NewMsgRagnarok(tx, 1, keeper.activeNodeAccount.NodeAddress)
 	result := handler.handleV1(ctx, constants.SWVersion, msgRagnarok)
-	c.Assert(result.Code, Equals, sdk.CodeOK, Commentf("%s", result.Log))
-	c.Assert(keeper.activeNodeAccount.Bond.Equal(sdk.NewUint(9999998464)), Equals, true, Commentf("%d", keeper.activeNodeAccount.Bond.Uint64()))
+	c.Assert(result.Code, Equals, cosmos.CodeOK, Commentf("%s", result.Log))
+	c.Assert(keeper.activeNodeAccount.Bond.Equal(cosmos.NewUint(9999998464)), Equals, true, Commentf("%d", keeper.activeNodeAccount.Bond.Uint64()))
 }

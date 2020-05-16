@@ -12,7 +12,6 @@ import (
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/rpcclient"
 	"github.com/btcsuite/btcutil"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	tssp "gitlab.com/thorchain/tss/go-tss/tss"
@@ -25,6 +24,7 @@ import (
 	"gitlab.com/thorchain/thornode/bifrost/thorclient/types"
 	"gitlab.com/thorchain/thornode/bifrost/tss"
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 // BlockCacheSize the number of block meta that get store in storage.
@@ -371,7 +371,7 @@ func (c *Client) extractTxs(block *btcjson.GetBlockVerboseTxResult) (types.TxIn,
 			Sender: sender,
 			To:     output.ScriptPubKey.Addresses[0],
 			Coins: common.Coins{
-				common.NewCoin(common.BTCAsset, sdk.NewUint(amount)),
+				common.NewCoin(common.BTCAsset, cosmos.NewUint(amount)),
 			},
 			Memo: memo,
 			Gas:  gas,
@@ -492,6 +492,6 @@ func (c *Client) getGas(tx *btcjson.TxRawResult) (common.Gas, error) {
 	}
 	totalGas := sumVin - sumVout
 	return common.Gas{
-		common.NewCoin(common.BTCAsset, sdk.NewUint(totalGas)),
+		common.NewCoin(common.BTCAsset, cosmos.NewUint(totalGas)),
 	}, nil
 }

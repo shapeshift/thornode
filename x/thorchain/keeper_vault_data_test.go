@@ -1,10 +1,10 @@
 package thorchain
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 )
 
@@ -24,7 +24,7 @@ func (KeeperVaultDataSuite) TestVaultData(c *C) {
 	c.Assert(k.UpdateVaultData(ctx, constAccessor, gasManager, NewEventMgr()), IsNil)
 
 	// add something in vault
-	vd.TotalReserve = sdk.NewUint(common.One * 100)
+	vd.TotalReserve = cosmos.NewUint(common.One * 100)
 	err = k.SetVaultData(ctx, vd)
 	c.Assert(err, IsNil)
 	c.Assert(k.UpdateVaultData(ctx, constAccessor, gasManager, NewEventMgr()), IsNil)
@@ -36,7 +36,7 @@ func (KeeperVaultDataSuite) TestGetTotalActiveNodeWithBound(c *C) {
 	node1 := GetRandomNodeAccount(NodeActive)
 	c.Assert(k.SetNodeAccount(ctx, node1), IsNil)
 	node2 := GetRandomNodeAccount(NodeActive)
-	node2.Bond = sdk.ZeroUint()
+	node2.Bond = cosmos.ZeroUint()
 	c.Assert(k.SetNodeAccount(ctx, node2), IsNil)
 	n, err := getTotalActiveNodeWithBond(ctx, k)
 	c.Assert(err, IsNil)

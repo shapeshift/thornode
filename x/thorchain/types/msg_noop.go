@@ -1,17 +1,17 @@
 package types
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 // MsgNoOp defines a no op message
 type MsgNoOp struct {
-	ObservedTx ObservedTx     `json:"observed_tx"`
-	Signer     sdk.AccAddress `json:"signer"`
+	ObservedTx ObservedTx        `json:"observed_tx"`
+	Signer     cosmos.AccAddress `json:"signer"`
 }
 
 // NewMsgNoOp is a constructor function for MsgNoOp
-func NewMsgNoOp(ObservedTx ObservedTx, signer sdk.AccAddress) MsgNoOp {
+func NewMsgNoOp(ObservedTx ObservedTx, signer cosmos.AccAddress) MsgNoOp {
 	return MsgNoOp{
 		ObservedTx: ObservedTx,
 		Signer:     signer,
@@ -25,22 +25,22 @@ func (msg MsgNoOp) Route() string { return RouterKey }
 func (msg MsgNoOp) Type() string { return "set_noop" }
 
 // ValidateBasic runs stateless checks on the message
-func (msg MsgNoOp) ValidateBasic() sdk.Error {
+func (msg MsgNoOp) ValidateBasic() cosmos.Error {
 	if err := msg.ObservedTx.Valid(); err != nil {
-		return sdk.ErrInvalidCoins(err.Error())
+		return cosmos.ErrInvalidCoins(err.Error())
 	}
 	if msg.Signer.Empty() {
-		return sdk.ErrInvalidAddress(msg.Signer.String())
+		return cosmos.ErrInvalidAddress(msg.Signer.String())
 	}
 	return nil
 }
 
 // GetSignBytes encodes the message for signing
 func (msg MsgNoOp) GetSignBytes() []byte {
-	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(msg))
+	return cosmos.MustSortJSON(ModuleCdc.MustMarshalJSON(msg))
 }
 
 // GetSigners defines whose signature is required
-func (msg MsgNoOp) GetSigners() []sdk.AccAddress {
-	return []sdk.AccAddress{msg.Signer}
+func (msg MsgNoOp) GetSigners() []cosmos.AccAddress {
+	return []cosmos.AccAddress{msg.Signer}
 }

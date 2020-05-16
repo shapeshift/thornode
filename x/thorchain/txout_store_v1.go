@@ -4,10 +4,10 @@ import (
 	"errors"
 	"fmt"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	tmtypes "github.com/tendermint/tendermint/types"
 
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 )
 
@@ -33,21 +33,21 @@ func (tos *TxOutStorageV1) NewBlock(height int64, constAccessor constants.Consta
 	tos.height = height
 }
 
-func (tos *TxOutStorageV1) GetBlockOut(ctx sdk.Context) (*TxOut, error) {
+func (tos *TxOutStorageV1) GetBlockOut(ctx cosmos.Context) (*TxOut, error) {
 	return tos.keeper.GetTxOut(ctx, tos.height)
 }
 
-func (tos *TxOutStorageV1) GetOutboundItems(ctx sdk.Context) ([]*TxOutItem, error) {
+func (tos *TxOutStorageV1) GetOutboundItems(ctx cosmos.Context) ([]*TxOutItem, error) {
 	block, err := tos.keeper.GetTxOut(ctx, tos.height)
 	return block.TxArray, err
 }
 
-func (tos *TxOutStorageV1) ClearOutboundItems(_ sdk.Context) {} // do nothing
+func (tos *TxOutStorageV1) ClearOutboundItems(_ cosmos.Context) {} // do nothing
 
 // TryAddTxOutItem add an outbound tx to block
 // return bool indicate whether the transaction had been added successful or not
 // return error indicate error
-func (tos *TxOutStorageV1) TryAddTxOutItem(ctx sdk.Context, toi *TxOutItem) (bool, error) {
+func (tos *TxOutStorageV1) TryAddTxOutItem(ctx cosmos.Context, toi *TxOutItem) (bool, error) {
 	success, err := tos.prepareTxOutItem(ctx, toi)
 	if err != nil {
 		return success, fmt.Errorf("fail to prepare outbound tx: %w", err)
@@ -64,7 +64,7 @@ func (tos *TxOutStorageV1) TryAddTxOutItem(ctx sdk.Context, toi *TxOutItem) (boo
 
 // UnSafeAddTxOutItem - blindly adds a tx out, skipping vault selection, transaction
 // fee deduction, etc
-func (tos *TxOutStorageV1) UnSafeAddTxOutItem(ctx sdk.Context, toi *TxOutItem) error {
+func (tos *TxOutStorageV1) UnSafeAddTxOutItem(ctx cosmos.Context, toi *TxOutItem) error {
 	return tos.addToBlockOut(ctx, toi)
 }
 
@@ -73,7 +73,7 @@ func (tos *TxOutStorageV1) UnSafeAddTxOutItem(ctx sdk.Context, toi *TxOutItem) e
 // 2. choose an appropriate pool,Yggdrasil or Asgard
 // 3. deduct transaction fee, keep in mind, only take transaction fee when active nodes are  more then minimumBFT
 // return bool indicated whether the given TxOutItem should be added into block or not
-func (tos *TxOutStorageV1) prepareTxOutItem(ctx sdk.Context, toi *TxOutItem) (bool, error) {
+func (tos *TxOutStorageV1) prepareTxOutItem(ctx cosmos.Context, toi *TxOutItem) (bool, error) {
 	// Default the memo to the standard outbound memo
 	if toi.Memo == "" {
 		toi.Memo = NewOutboundMemo(toi.InHash).String()
@@ -152,7 +152,7 @@ func (tos *TxOutStorageV1) prepareTxOutItem(ctx sdk.Context, toi *TxOutItem) (bo
 		}
 
 		// max gas amount is the transaction fee divided by two, in asset amount
-		maxAmt := pool.RuneValueInAsset(sdk.NewUint(uint64(transactionFee / 2)))
+		maxAmt := pool.RuneValueInAsset(cosmos.NewUint(uint64(transactionFee / 2)))
 		toi.MaxGas = common.Gas{
 			common.NewCoin(gasAsset, maxAmt),
 		}
@@ -161,15 +161,15 @@ func (tos *TxOutStorageV1) prepareTxOutItem(ctx sdk.Context, toi *TxOutItem) (bo
 	// Deduct TransactionFee from TOI and add to Reserve
 	memo, err := ParseMemo(toi.Memo) // ignore err
 	if err == nil && !memo.IsType(TxYggdrasilFund) && !memo.IsType(TxYggdrasilReturn) && !memo.IsType(TxMigrate) && !memo.IsType(TxRagnarok) {
-		var runeFee sdk.Uint
+		var runeFee cosmos.Uint
 		if toi.Coin.Asset.IsRune() {
-			if toi.Coin.Amount.LTE(sdk.NewUint(uint64(transactionFee))) {
+			if toi.Coin.Amount.LTE(cosmos.NewUint(uint64(transactionFee))) {
 				runeFee = toi.Coin.Amount // Fee is the full amount
 			} else {
-				runeFee = sdk.NewUint(uint64(transactionFee)) // Fee is the prescribed fee
+				runeFee = cosmos.NewUint(uint64(transactionFee)) // Fee is the prescribed fee
 			}
 			toi.Coin.Amount = common.SafeSub(toi.Coin.Amount, runeFee)
-			fee := common.NewFee(common.Coins{common.NewCoin(toi.Coin.Asset, runeFee)}, sdk.ZeroUint())
+			fee := common.NewFee(common.Coins{common.NewCoin(toi.Coin.Asset, runeFee)}, cosmos.ZeroUint())
 			if err := tos.eventMgr.EmitFeeEvent(ctx, tos.keeper, NewEventFee(toi.InHash, fee)); err != nil {
 				ctx.Logger().Error("Failed to emit fee event", "error", err)
 			}
@@ -186,17 +186,17 @@ func (tos *TxOutStorageV1) prepareTxOutItem(ctx sdk.Context, toi *TxOutItem) (bo
 				return false, fmt.Errorf("fail to get pool: %w", err)
 			}
 
-			assetFee := pool.RuneValueInAsset(sdk.NewUint(uint64(transactionFee))) // Get fee in Asset value
+			assetFee := pool.RuneValueInAsset(cosmos.NewUint(uint64(transactionFee))) // Get fee in Asset value
 			if toi.Coin.Amount.LTE(assetFee) {
 				assetFee = toi.Coin.Amount // Fee is the full amount
 				runeFee = pool.AssetValueInRune(assetFee)
 			} else {
-				runeFee = sdk.NewUint(uint64(transactionFee))
+				runeFee = cosmos.NewUint(uint64(transactionFee))
 			}
 
 			toi.Coin.Amount = common.SafeSub(toi.Coin.Amount, assetFee) // Deduct Asset fee
 			pool.BalanceAsset = pool.BalanceAsset.Add(assetFee)         // Add Asset fee to Pool
-			var poolDeduct sdk.Uint
+			var poolDeduct cosmos.Uint
 			if runeFee.GT(pool.BalanceRune) {
 				poolDeduct = pool.BalanceRune
 			} else {
@@ -235,7 +235,7 @@ func (tos *TxOutStorageV1) prepareTxOutItem(ctx sdk.Context, toi *TxOutItem) (bo
 	return true, nil
 }
 
-func (tos *TxOutStorageV1) addToBlockOut(ctx sdk.Context, toi *TxOutItem) error {
+func (tos *TxOutStorageV1) addToBlockOut(ctx cosmos.Context, toi *TxOutItem) error {
 	if toi.Coin.IsNative() {
 		return tos.nativeTxOut(ctx, toi)
 	}
@@ -265,10 +265,10 @@ func (tos *TxOutStorageV1) addToBlockOut(ctx sdk.Context, toi *TxOutItem) error 
 	return tos.keeper.AppendTxOut(ctx, tos.height, toi)
 }
 
-func (tos *TxOutStorageV1) nativeTxOut(ctx sdk.Context, toi *TxOutItem) error {
+func (tos *TxOutStorageV1) nativeTxOut(ctx cosmos.Context, toi *TxOutItem) error {
 	supplier := tos.keeper.Supply()
 
-	addr, err := sdk.AccAddressFromBech32(toi.ToAddress.String())
+	addr, err := cosmos.AccAddressFromBech32(toi.ToAddress.String())
 	if err != nil {
 		return err
 	}
@@ -279,7 +279,7 @@ func (tos *TxOutStorageV1) nativeTxOut(ctx sdk.Context, toi *TxOutItem) error {
 	}
 
 	// send funds from asgard module
-	sdkErr := supplier.SendCoinsFromModuleToAccount(ctx, AsgardName, addr, sdk.NewCoins(coin))
+	sdkErr := supplier.SendCoinsFromModuleToAccount(ctx, AsgardName, addr, cosmos.NewCoins(coin))
 	if sdkErr != nil {
 		return errors.New(sdkErr.Error())
 	}
@@ -332,7 +332,7 @@ func (tos *TxOutStorageV1) nativeTxOut(ctx sdk.Context, toi *TxOutItem) error {
 	return nil
 }
 
-func (tos *TxOutStorageV1) collectYggdrasilPools(ctx sdk.Context, tx ObservedTx, gasAsset common.Asset) (Vaults, error) {
+func (tos *TxOutStorageV1) collectYggdrasilPools(ctx cosmos.Context, tx ObservedTx, gasAsset common.Asset) (Vaults, error) {
 	// collect yggdrasil pools
 	var vaults Vaults
 	iterator := tos.keeper.GetVaultIterator(ctx)

@@ -1,20 +1,19 @@
 package types
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
-
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 // MsgSetNodeKeys defines a MsgSetNodeKeys message
 type MsgSetNodeKeys struct {
-	PubKeySetSet        common.PubKeySet `json:"pub_key_set"`
-	ValidatorConsPubKey string           `json:"validator_cons_pub_key"`
-	Signer              sdk.AccAddress   `json:"signer"`
+	PubKeySetSet        common.PubKeySet  `json:"pub_key_set"`
+	ValidatorConsPubKey string            `json:"validator_cons_pub_key"`
+	Signer              cosmos.AccAddress `json:"signer"`
 }
 
 // NewMsgSetNodeKeys is a constructor function for NewMsgAddNodeKeys
-func NewMsgSetNodeKeys(nodePubKeySet common.PubKeySet, validatorConsPubKey string, signer sdk.AccAddress) MsgSetNodeKeys {
+func NewMsgSetNodeKeys(nodePubKeySet common.PubKeySet, validatorConsPubKey string, signer cosmos.AccAddress) MsgSetNodeKeys {
 	return MsgSetNodeKeys{
 		PubKeySetSet:        nodePubKeySet,
 		ValidatorConsPubKey: validatorConsPubKey,
@@ -29,25 +28,25 @@ func (msg MsgSetNodeKeys) Route() string { return RouterKey }
 func (msg MsgSetNodeKeys) Type() string { return "set_node_keys" }
 
 // ValidateBasic runs stateless checks on the message
-func (msg MsgSetNodeKeys) ValidateBasic() sdk.Error {
+func (msg MsgSetNodeKeys) ValidateBasic() cosmos.Error {
 	if msg.Signer.Empty() {
-		return sdk.ErrInvalidAddress(msg.Signer.String())
+		return cosmos.ErrInvalidAddress(msg.Signer.String())
 	}
 	if len(msg.ValidatorConsPubKey) == 0 {
-		return sdk.ErrUnknownRequest("validator consensus pubkey cannot be empty")
+		return cosmos.ErrUnknownRequest("validator consensus pubkey cannot be empty")
 	}
 	if msg.PubKeySetSet.IsEmpty() {
-		return sdk.ErrUnknownRequest("node pub keys cannot be empty")
+		return cosmos.ErrUnknownRequest("node pub keys cannot be empty")
 	}
 	return nil
 }
 
 // GetSignBytes encodes the message for signing
 func (msg MsgSetNodeKeys) GetSignBytes() []byte {
-	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(msg))
+	return cosmos.MustSortJSON(ModuleCdc.MustMarshalJSON(msg))
 }
 
 // GetSigners defines whose signature is required
-func (msg MsgSetNodeKeys) GetSigners() []sdk.AccAddress {
-	return []sdk.AccAddress{msg.Signer}
+func (msg MsgSetNodeKeys) GetSigners() []cosmos.AccAddress {
+	return []cosmos.AccAddress{msg.Signer}
 }

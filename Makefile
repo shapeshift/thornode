@@ -60,7 +60,7 @@ format:
 	@gofumpt -w .
 
 lint-pre:
-	@gofumpt -l cmd x bifrost common constants tools # for display
+	@gofumpt -d cmd x bifrost common constants tools # for display
 	@test -z "$(shell gofumpt -l cmd x bifrost common constants tools)" # cause error
 	@go mod verify
 

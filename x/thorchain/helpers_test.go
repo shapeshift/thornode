@@ -2,10 +2,10 @@ package thorchain
 
 import (
 	"github.com/blang/semver"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
@@ -21,38 +21,38 @@ type TestRefundBondKeeper struct {
 	vaults Vaults
 }
 
-func (k *TestRefundBondKeeper) GetAsgardVaultsByStatus(_ sdk.Context, _ VaultStatus) (Vaults, error) {
+func (k *TestRefundBondKeeper) GetAsgardVaultsByStatus(_ cosmos.Context, _ VaultStatus) (Vaults, error) {
 	return k.vaults, nil
 }
 
-func (k *TestRefundBondKeeper) VaultExists(_ sdk.Context, pk common.PubKey) bool {
+func (k *TestRefundBondKeeper) VaultExists(_ cosmos.Context, pk common.PubKey) bool {
 	return true
 }
 
-func (k *TestRefundBondKeeper) GetVault(_ sdk.Context, pk common.PubKey) (Vault, error) {
+func (k *TestRefundBondKeeper) GetVault(_ cosmos.Context, pk common.PubKey) (Vault, error) {
 	if k.ygg.PubKey.Equals(pk) {
 		return k.ygg, nil
 	}
 	return Vault{}, kaboom
 }
 
-func (k *TestRefundBondKeeper) GetPool(_ sdk.Context, asset common.Asset) (Pool, error) {
+func (k *TestRefundBondKeeper) GetPool(_ cosmos.Context, asset common.Asset) (Pool, error) {
 	if k.pool.Asset.Equals(asset) {
 		return k.pool, nil
 	}
 	return NewPool(), kaboom
 }
 
-func (k *TestRefundBondKeeper) SetNodeAccount(_ sdk.Context, na NodeAccount) error {
+func (k *TestRefundBondKeeper) SetNodeAccount(_ cosmos.Context, na NodeAccount) error {
 	k.na = na
 	return nil
 }
 
-func (k *TestRefundBondKeeper) UpsertEvent(_ sdk.Context, e Event) error {
+func (k *TestRefundBondKeeper) UpsertEvent(_ cosmos.Context, e Event) error {
 	return nil
 }
 
-func (k *TestRefundBondKeeper) SetPool(_ sdk.Context, p Pool) error {
+func (k *TestRefundBondKeeper) SetPool(_ cosmos.Context, p Pool) error {
 	if k.pool.Asset.Equals(p.Asset) {
 		k.pool = p
 		return nil
@@ -60,7 +60,7 @@ func (k *TestRefundBondKeeper) SetPool(_ sdk.Context, p Pool) error {
 	return kaboom
 }
 
-func (k *TestRefundBondKeeper) DeleteVault(_ sdk.Context, key common.PubKey) error {
+func (k *TestRefundBondKeeper) DeleteVault(_ cosmos.Context, key common.PubKey) error {
 	if k.ygg.PubKey.Equals(key) {
 		k.ygg = NewVault(1, InactiveVault, AsgardVault, GetRandomPubKey(), common.Chains{common.BNBChain})
 	}
@@ -70,11 +70,11 @@ func (k *TestRefundBondKeeper) DeleteVault(_ sdk.Context, key common.PubKey) err
 func (s *HelperSuite) TestSubsidizePoolWithSlashBond(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	ygg := GetRandomVault()
-	c.Assert(subsidizePoolWithSlashBond(ctx, k, ygg, sdk.NewUint(100*common.One), sdk.ZeroUint()), IsNil)
+	c.Assert(subsidizePoolWithSlashBond(ctx, k, ygg, cosmos.NewUint(100*common.One), cosmos.ZeroUint()), IsNil)
 	poolBNB := NewPool()
 	poolBNB.Asset = common.BNBAsset
-	poolBNB.BalanceRune = sdk.NewUint(100 * common.One)
-	poolBNB.BalanceAsset = sdk.NewUint(100 * common.One)
+	poolBNB.BalanceRune = cosmos.NewUint(100 * common.One)
+	poolBNB.BalanceAsset = cosmos.NewUint(100 * common.One)
 	poolBNB.Status = PoolEnabled
 	c.Assert(k.SetPool(ctx, poolBNB), IsNil)
 
@@ -82,23 +82,23 @@ func (s *HelperSuite) TestSubsidizePoolWithSlashBond(c *C) {
 	tCanAsset, err := common.NewAsset("BNB.TCAN-014")
 	c.Assert(err, IsNil)
 	poolTCAN.Asset = tCanAsset
-	poolTCAN.BalanceRune = sdk.NewUint(200 * common.One)
-	poolTCAN.BalanceAsset = sdk.NewUint(200 * common.One)
+	poolTCAN.BalanceRune = cosmos.NewUint(200 * common.One)
+	poolTCAN.BalanceAsset = cosmos.NewUint(200 * common.One)
 	poolTCAN.Status = PoolEnabled
 	c.Assert(k.SetPool(ctx, poolTCAN), IsNil)
 
 	poolBTC := NewPool()
 	poolBTC.Asset = common.BTCAsset
-	poolBTC.BalanceAsset = sdk.NewUint(300 * common.One)
-	poolBTC.BalanceRune = sdk.NewUint(300 * common.One)
+	poolBTC.BalanceAsset = cosmos.NewUint(300 * common.One)
+	poolBTC.BalanceRune = cosmos.NewUint(300 * common.One)
 	poolBTC.Status = PoolEnabled
 	c.Assert(k.SetPool(ctx, poolBTC), IsNil)
 	ygg.Type = YggdrasilVault
 	ygg.Coins = common.Coins{
-		common.NewCoin(common.RuneAsset(), sdk.NewUint(1*common.One)),
-		common.NewCoin(common.BNBAsset, sdk.NewUint(1*common.One)),            // 1
-		common.NewCoin(tCanAsset, sdk.NewUint(common.One).QuoUint64(2)),       // 0.5 TCAN
-		common.NewCoin(common.BTCAsset, sdk.NewUint(common.One).QuoUint64(4)), // 0.25 BTC
+		common.NewCoin(common.RuneAsset(), cosmos.NewUint(1*common.One)),
+		common.NewCoin(common.BNBAsset, cosmos.NewUint(1*common.One)),            // 1
+		common.NewCoin(tCanAsset, cosmos.NewUint(common.One).QuoUint64(2)),       // 0.5 TCAN
+		common.NewCoin(common.BTCAsset, cosmos.NewUint(common.One).QuoUint64(4)), // 0.25 BTC
 	}
 	totalRuneLeft, err := getTotalYggValueInRune(ctx, k, ygg)
 	c.Assert(err, IsNil)
@@ -110,23 +110,23 @@ func (s *HelperSuite) TestSubsidizePoolWithSlashBond(c *C) {
 	slashAmt = common.SafeSub(slashAmt, totalRuneStolen)
 	totalRuneLeft = common.SafeSub(totalRuneLeft, totalRuneStolen)
 
-	amountBNBForBNBPool := slashAmt.Mul(poolBNB.AssetValueInRune(sdk.NewUint(common.One))).Quo(totalRuneLeft)
+	amountBNBForBNBPool := slashAmt.Mul(poolBNB.AssetValueInRune(cosmos.NewUint(common.One))).Quo(totalRuneLeft)
 	runeBNB := poolBNB.BalanceRune.Add(amountBNBForBNBPool)
-	bnbPoolAsset := poolBNB.BalanceAsset.Sub(sdk.NewUint(common.One))
+	bnbPoolAsset := poolBNB.BalanceAsset.Sub(cosmos.NewUint(common.One))
 	poolBNB, err = k.GetPool(ctx, common.BNBAsset)
 	c.Assert(err, IsNil)
 	c.Assert(poolBNB.BalanceRune.Equal(runeBNB), Equals, true)
 	c.Assert(poolBNB.BalanceAsset.Equal(bnbPoolAsset), Equals, true)
-	amountRuneForTCANPool := slashAmt.Mul(poolTCAN.AssetValueInRune(sdk.NewUint(common.One).QuoUint64(2))).Quo(totalRuneLeft)
+	amountRuneForTCANPool := slashAmt.Mul(poolTCAN.AssetValueInRune(cosmos.NewUint(common.One).QuoUint64(2))).Quo(totalRuneLeft)
 	runeTCAN := poolTCAN.BalanceRune.Add(amountRuneForTCANPool)
-	tcanPoolAsset := poolTCAN.BalanceAsset.Sub(sdk.NewUint(common.One).QuoUint64(2))
+	tcanPoolAsset := poolTCAN.BalanceAsset.Sub(cosmos.NewUint(common.One).QuoUint64(2))
 	poolTCAN, err = k.GetPool(ctx, tCanAsset)
 	c.Assert(err, IsNil)
 	c.Assert(poolTCAN.BalanceRune.Equal(runeTCAN), Equals, true)
 	c.Assert(poolTCAN.BalanceAsset.Equal(tcanPoolAsset), Equals, true)
-	amountRuneForBTCPool := slashAmt.Mul(poolBTC.AssetValueInRune(sdk.NewUint(common.One).QuoUint64(4))).Quo(totalRuneLeft)
+	amountRuneForBTCPool := slashAmt.Mul(poolBTC.AssetValueInRune(cosmos.NewUint(common.One).QuoUint64(4))).Quo(totalRuneLeft)
 	runeBTC := poolBTC.BalanceRune.Add(amountRuneForBTCPool)
-	btcPoolAsset := poolBTC.BalanceAsset.Sub(sdk.NewUint(common.One).QuoUint64(4))
+	btcPoolAsset := poolBTC.BalanceAsset.Sub(cosmos.NewUint(common.One).QuoUint64(4))
 	poolBTC, err = k.GetPool(ctx, common.BTCAsset)
 	c.Assert(err, IsNil)
 	c.Assert(poolBTC.BalanceRune.Equal(runeBTC), Equals, true)
@@ -135,19 +135,19 @@ func (s *HelperSuite) TestSubsidizePoolWithSlashBond(c *C) {
 	ygg1 := GetRandomVault()
 	ygg1.Type = YggdrasilVault
 	ygg1.Coins = common.Coins{
-		common.NewCoin(tCanAsset, sdk.NewUint(common.One*2)),       // 2 TCAN
-		common.NewCoin(common.BTCAsset, sdk.NewUint(common.One*4)), // 4 BTC
+		common.NewCoin(tCanAsset, cosmos.NewUint(common.One*2)),       // 2 TCAN
+		common.NewCoin(common.BTCAsset, cosmos.NewUint(common.One*4)), // 4 BTC
 	}
 	totalRuneLeft, err = getTotalYggValueInRune(ctx, k, ygg1)
 	c.Assert(err, IsNil)
-	slashAmt = sdk.NewUint(100 * common.One)
+	slashAmt = cosmos.NewUint(100 * common.One)
 	c.Assert(subsidizePoolWithSlashBond(ctx, k, ygg1, totalRuneLeft, slashAmt), IsNil)
-	amountRuneForTCANPool = slashAmt.Mul(poolTCAN.AssetValueInRune(sdk.NewUint(common.One * 2))).Quo(totalRuneLeft)
+	amountRuneForTCANPool = slashAmt.Mul(poolTCAN.AssetValueInRune(cosmos.NewUint(common.One * 2))).Quo(totalRuneLeft)
 	runeTCAN = poolTCAN.BalanceRune.Add(amountRuneForTCANPool)
 	poolTCAN, err = k.GetPool(ctx, tCanAsset)
 	c.Assert(err, IsNil)
 	c.Assert(poolTCAN.BalanceRune.Equal(runeTCAN), Equals, true)
-	amountRuneForBTCPool = slashAmt.Mul(poolBTC.AssetValueInRune(sdk.NewUint(common.One * 4))).Quo(totalRuneLeft)
+	amountRuneForBTCPool = slashAmt.Mul(poolBTC.AssetValueInRune(cosmos.NewUint(common.One * 4))).Quo(totalRuneLeft)
 	runeBTC = poolBTC.BalanceRune.Add(amountRuneForBTCPool)
 	poolBTC, err = k.GetPool(ctx, common.BTCAsset)
 	c.Assert(err, IsNil)
@@ -160,7 +160,7 @@ func (s *HelperSuite) TestRefundBondError(c *C) {
 	pk := GetRandomPubKey()
 	na := GetRandomNodeAccount(NodeActive)
 	na.PubKeySet.Secp256k1 = pk
-	na.Bond = sdk.NewUint(100 * common.One)
+	na.Bond = cosmos.NewUint(100 * common.One)
 	txOut := NewTxStoreDummy()
 	tx := GetRandomTx()
 	eventMgr := NewEventMgr()
@@ -181,8 +181,8 @@ func (s *HelperSuite) TestRefundBondError(c *C) {
 	// fail to get pool should fail
 	ygg = NewVault(ctx.BlockHeight(), ActiveVault, YggdrasilVault, pk, common.Chains{common.BNBChain})
 	ygg.Coins = common.Coins{
-		common.NewCoin(common.RuneAsset(), sdk.NewUint(27*common.One)),
-		common.NewCoin(common.BNBAsset, sdk.NewUint(27*common.One)),
+		common.NewCoin(common.RuneAsset(), cosmos.NewUint(27*common.One)),
+		common.NewCoin(common.BNBAsset, cosmos.NewUint(27*common.One)),
 	}
 	keeper1.ygg = ygg
 	c.Assert(refundBond(ctx, tx, na, keeper1, txOut, eventMgr), NotNil)
@@ -190,8 +190,8 @@ func (s *HelperSuite) TestRefundBondError(c *C) {
 	// when ygg asset in RUNE is more then bond , thorchain should slash the node account with all their bond
 	keeper1.pool = Pool{
 		Asset:        common.BNBAsset,
-		BalanceRune:  sdk.NewUint(1024 * common.One),
-		BalanceAsset: sdk.NewUint(167 * common.One),
+		BalanceRune:  cosmos.NewUint(1024 * common.One),
+		BalanceAsset: cosmos.NewUint(167 * common.One),
 	}
 	c.Assert(refundBond(ctx, tx, na, keeper1, txOut, eventMgr), IsNil)
 	// make sure no tx has been generated for refund
@@ -203,7 +203,7 @@ func (s *HelperSuite) TestRefundBondError(c *C) {
 func (s *HelperSuite) TestRefundBondHappyPath(c *C) {
 	ctx, _ := setupKeeperForTest(c)
 	na := GetRandomNodeAccount(NodeActive)
-	na.Bond = sdk.NewUint(12098 * common.One)
+	na.Bond = cosmos.NewUint(12098 * common.One)
 	txOut := NewTxStoreDummy()
 	eventMgr := NewEventMgr()
 	pk := GetRandomPubKey()
@@ -211,14 +211,14 @@ func (s *HelperSuite) TestRefundBondHappyPath(c *C) {
 	ygg := NewVault(ctx.BlockHeight(), ActiveVault, YggdrasilVault, pk, common.Chains{common.BNBChain})
 
 	ygg.Coins = common.Coins{
-		common.NewCoin(common.RuneAsset(), sdk.NewUint(3946*common.One)),
-		common.NewCoin(common.BNBAsset, sdk.NewUint(27*common.One)),
+		common.NewCoin(common.RuneAsset(), cosmos.NewUint(3946*common.One)),
+		common.NewCoin(common.BNBAsset, cosmos.NewUint(27*common.One)),
 	}
 	keeper := &TestRefundBondKeeper{
 		pool: Pool{
 			Asset:        common.BNBAsset,
-			BalanceRune:  sdk.NewUint(23789 * common.One),
-			BalanceAsset: sdk.NewUint(167 * common.One),
+			BalanceRune:  cosmos.NewUint(23789 * common.One),
+			BalanceAsset: cosmos.NewUint(167 * common.One),
 		},
 		ygg:    ygg,
 		vaults: Vaults{GetRandomVault()},
@@ -234,12 +234,12 @@ func (s *HelperSuite) TestRefundBondHappyPath(c *C) {
 	c.Assert(err, IsNil)
 	c.Check(items, HasLen, 1)
 	outCoin := items[0].Coin
-	c.Check(outCoin.Amount.Equal(sdk.NewUint(40981137725)), Equals, true)
+	c.Check(outCoin.Amount.Equal(cosmos.NewUint(40981137725)), Equals, true)
 	p, err := keeper.GetPool(ctx, common.BNBAsset)
 	c.Assert(err, IsNil)
-	expectedPoolRune := sdk.NewUint(23789 * common.One).Sub(sdk.NewUint(3946 * common.One)).Add(slashAmt)
+	expectedPoolRune := cosmos.NewUint(23789 * common.One).Sub(cosmos.NewUint(3946 * common.One)).Add(slashAmt)
 	c.Assert(p.BalanceRune.Equal(expectedPoolRune), Equals, true, Commentf("expect %s however we got %s", expectedPoolRune, p.BalanceRune))
-	expectedPoolBNB := sdk.NewUint(167 * common.One).Sub(sdk.NewUint(27 * common.One))
+	expectedPoolBNB := cosmos.NewUint(167 * common.One).Sub(cosmos.NewUint(27 * common.One))
 	c.Assert(p.BalanceAsset.Equal(expectedPoolBNB), Equals, true, Commentf("expected BNB in pool %s , however we got %s", expectedPoolBNB, p.BalanceAsset))
 }
 
@@ -252,15 +252,15 @@ func (s *HelperSuite) TestEnableNextPool(c *C) {
 	pool := NewPool()
 	pool.Asset = common.BNBAsset
 	pool.Status = PoolEnabled
-	pool.BalanceRune = sdk.NewUint(100 * common.One)
-	pool.BalanceAsset = sdk.NewUint(100 * common.One)
+	pool.BalanceRune = cosmos.NewUint(100 * common.One)
+	pool.BalanceAsset = cosmos.NewUint(100 * common.One)
 	c.Assert(k.SetPool(ctx, pool), IsNil)
 
 	pool = NewPool()
 	pool.Asset = common.BTCAsset
 	pool.Status = PoolBootstrap
-	pool.BalanceRune = sdk.NewUint(50 * common.One)
-	pool.BalanceAsset = sdk.NewUint(50 * common.One)
+	pool.BalanceRune = cosmos.NewUint(50 * common.One)
+	pool.BalanceAsset = cosmos.NewUint(50 * common.One)
 	c.Assert(k.SetPool(ctx, pool), IsNil)
 
 	ethAsset, err := common.NewAsset("ETH.ETH")
@@ -268,8 +268,8 @@ func (s *HelperSuite) TestEnableNextPool(c *C) {
 	pool = NewPool()
 	pool.Asset = ethAsset
 	pool.Status = PoolBootstrap
-	pool.BalanceRune = sdk.NewUint(40 * common.One)
-	pool.BalanceAsset = sdk.NewUint(40 * common.One)
+	pool.BalanceRune = cosmos.NewUint(40 * common.One)
+	pool.BalanceAsset = cosmos.NewUint(40 * common.One)
 	c.Assert(k.SetPool(ctx, pool), IsNil)
 
 	xmrAsset, err := common.NewAsset("XMR.XMR")
@@ -277,8 +277,8 @@ func (s *HelperSuite) TestEnableNextPool(c *C) {
 	pool = NewPool()
 	pool.Asset = xmrAsset
 	pool.Status = PoolBootstrap
-	pool.BalanceRune = sdk.NewUint(40 * common.One)
-	pool.BalanceAsset = sdk.NewUint(0 * common.One)
+	pool.BalanceRune = cosmos.NewUint(40 * common.One)
+	pool.BalanceAsset = cosmos.NewUint(0 * common.One)
 	c.Assert(k.SetPool(ctx, pool), IsNil)
 
 	// usdAsset
@@ -287,8 +287,8 @@ func (s *HelperSuite) TestEnableNextPool(c *C) {
 	pool = NewPool()
 	pool.Asset = usdAsset
 	pool.Status = PoolBootstrap
-	pool.BalanceRune = sdk.NewUint(140 * common.One)
-	pool.BalanceAsset = sdk.NewUint(0 * common.One)
+	pool.BalanceRune = cosmos.NewUint(140 * common.One)
+	pool.BalanceAsset = cosmos.NewUint(0 * common.One)
 	c.Assert(k.SetPool(ctx, pool), IsNil)
 	// should enable BTC
 	c.Assert(enableNextPool(ctx, k, eventMgr), IsNil)
@@ -322,35 +322,35 @@ func newAddGasFeesKeeperHelper(keeper Keeper) *addGasFeesKeeperHelper {
 	}
 }
 
-func (h *addGasFeesKeeperHelper) GetVaultData(ctx sdk.Context) (VaultData, error) {
+func (h *addGasFeesKeeperHelper) GetVaultData(ctx cosmos.Context) (VaultData, error) {
 	if h.errGetVaultData {
 		return VaultData{}, kaboom
 	}
 	return h.Keeper.GetVaultData(ctx)
 }
 
-func (h *addGasFeesKeeperHelper) SetVaultData(ctx sdk.Context, data VaultData) error {
+func (h *addGasFeesKeeperHelper) SetVaultData(ctx cosmos.Context, data VaultData) error {
 	if h.errSetVaultData {
 		return kaboom
 	}
 	return h.Keeper.SetVaultData(ctx, data)
 }
 
-func (h *addGasFeesKeeperHelper) SetPool(ctx sdk.Context, pool Pool) error {
+func (h *addGasFeesKeeperHelper) SetPool(ctx cosmos.Context, pool Pool) error {
 	if h.errSetPool {
 		return kaboom
 	}
 	return h.Keeper.SetPool(ctx, pool)
 }
 
-func (h *addGasFeesKeeperHelper) GetPool(ctx sdk.Context, asset common.Asset) (Pool, error) {
+func (h *addGasFeesKeeperHelper) GetPool(ctx cosmos.Context, asset common.Asset) (Pool, error) {
 	if h.errGetPool {
 		return Pool{}, kaboom
 	}
 	return h.Keeper.GetPool(ctx, asset)
 }
 
-func (h *addGasFeesKeeperHelper) UpsertEvent(ctx sdk.Context, event Event) error {
+func (h *addGasFeesKeeperHelper) UpsertEvent(ctx cosmos.Context, event Event) error {
 	if h.errSetEvent {
 		return kaboom
 	}
@@ -358,7 +358,7 @@ func (h *addGasFeesKeeperHelper) UpsertEvent(ctx sdk.Context, event Event) error
 }
 
 type addGasFeeTestHelper struct {
-	ctx        sdk.Context
+	ctx        cosmos.Context
 	k          *addGasFeesKeeperHelper
 	na         NodeAccount
 	gasManager GasManager
@@ -369,15 +369,15 @@ func newAddGasFeeTestHelper(c *C) addGasFeeTestHelper {
 	keeper := newAddGasFeesKeeperHelper(k)
 	pool := NewPool()
 	pool.Asset = common.BNBAsset
-	pool.BalanceAsset = sdk.NewUint(100 * common.One)
-	pool.BalanceRune = sdk.NewUint(100 * common.One)
+	pool.BalanceAsset = cosmos.NewUint(100 * common.One)
+	pool.BalanceRune = cosmos.NewUint(100 * common.One)
 	pool.Status = PoolEnabled
 	c.Assert(k.SetPool(ctx, pool), IsNil)
 
 	poolBTC := NewPool()
 	poolBTC.Asset = common.BTCAsset
-	poolBTC.BalanceAsset = sdk.NewUint(100 * common.One)
-	poolBTC.BalanceRune = sdk.NewUint(100 * common.One)
+	poolBTC.BalanceAsset = cosmos.NewUint(100 * common.One)
+	poolBTC.BalanceRune = cosmos.NewUint(100 * common.One)
 	poolBTC.Status = PoolEnabled
 	c.Assert(k.SetPool(ctx, poolBTC), IsNil)
 
@@ -419,8 +419,8 @@ func (s *HelperSuite) TestAddGasFees(c *C) {
 						FromAddress: GetRandomBNBAddress(),
 						ToAddress:   GetRandomBNBAddress(),
 						Coins: common.Coins{
-							common.NewCoin(common.BNBAsset, sdk.NewUint(5*common.One)),
-							common.NewCoin(common.RuneAsset(), sdk.NewUint(8*common.One)),
+							common.NewCoin(common.BNBAsset, cosmos.NewUint(5*common.One)),
+							common.NewCoin(common.RuneAsset(), cosmos.NewUint(8*common.One)),
 						},
 						Gas: common.Gas{
 							common.NewCoin(common.BNBAsset, BNBGasFeeSingleton[0].Amount),
@@ -430,7 +430,7 @@ func (s *HelperSuite) TestAddGasFees(c *C) {
 					Status:         types.Done,
 					OutHashes:      nil,
 					BlockHeight:    helper.ctx.BlockHeight(),
-					Signers:        []sdk.AccAddress{helper.na.NodeAddress},
+					Signers:        []cosmos.AccAddress{helper.na.NodeAddress},
 					ObservedPubKey: helper.na.PubKeySet.Secp256k1,
 				}
 				return tx
@@ -455,17 +455,17 @@ func (s *HelperSuite) TestAddGasFees(c *C) {
 						FromAddress: GetRandomBTCAddress(),
 						ToAddress:   GetRandomBTCAddress(),
 						Coins: common.Coins{
-							common.NewCoin(common.BTCAsset, sdk.NewUint(5*common.One)),
+							common.NewCoin(common.BTCAsset, cosmos.NewUint(5*common.One)),
 						},
 						Gas: common.Gas{
-							common.NewCoin(common.BTCAsset, sdk.NewUint(2000)),
+							common.NewCoin(common.BTCAsset, cosmos.NewUint(2000)),
 						},
 						Memo: "",
 					},
 					Status:         types.Done,
 					OutHashes:      nil,
 					BlockHeight:    helper.ctx.BlockHeight(),
-					Signers:        []sdk.AccAddress{helper.na.NodeAddress},
+					Signers:        []cosmos.AccAddress{helper.na.NodeAddress},
 					ObservedPubKey: helper.na.PubKeySet.Secp256k1,
 				}
 				return tx
@@ -475,7 +475,7 @@ func (s *HelperSuite) TestAddGasFees(c *C) {
 			},
 			expectError: false,
 			validator: func(helper addGasFeeTestHelper, c *C) {
-				expected := common.NewCoin(common.BTCAsset, sdk.NewUint(2000))
+				expected := common.NewCoin(common.BTCAsset, cosmos.NewUint(2000))
 				c.Assert(helper.gasManager.GetGas(), HasLen, 1)
 				c.Assert(helper.gasManager.GetGas()[0].Equals(expected), Equals, true)
 			},

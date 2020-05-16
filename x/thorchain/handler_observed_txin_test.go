@@ -2,10 +2,10 @@ package thorchain
 
 import (
 	"github.com/blang/semver"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 )
 
@@ -17,7 +17,7 @@ type TestObservedTxInValidateKeeper struct {
 	standbyAccount    NodeAccount
 }
 
-func (k *TestObservedTxInValidateKeeper) GetNodeAccount(_ sdk.Context, addr sdk.AccAddress) (NodeAccount, error) {
+func (k *TestObservedTxInValidateKeeper) GetNodeAccount(_ cosmos.Context, addr cosmos.AccAddress) (NodeAccount, error) {
 	if addr.Equals(k.standbyAccount.NodeAddress) {
 		return k.standbyAccount, nil
 	}
@@ -27,7 +27,7 @@ func (k *TestObservedTxInValidateKeeper) GetNodeAccount(_ sdk.Context, addr sdk.
 	return NodeAccount{}, kaboom
 }
 
-func (k *TestObservedTxInValidateKeeper) SetNodeAccount(_ sdk.Context, na NodeAccount) error {
+func (k *TestObservedTxInValidateKeeper) SetNodeAccount(_ cosmos.Context, na NodeAccount) error {
 	if na.NodeAddress.Equals(k.standbyAccount.NodeAddress) {
 		k.standbyAccount = na
 		return nil
@@ -90,11 +90,11 @@ type TestObservedTxInFailureKeeper struct {
 	evt  Event
 }
 
-func (k *TestObservedTxInFailureKeeper) GetPool(_ sdk.Context, _ common.Asset) (Pool, error) {
+func (k *TestObservedTxInFailureKeeper) GetPool(_ cosmos.Context, _ common.Asset) (Pool, error) {
 	return k.pool, nil
 }
 
-func (k *TestObservedTxInFailureKeeper) UpsertEvent(_ sdk.Context, evt Event) error {
+func (k *TestObservedTxInFailureKeeper) UpsertEvent(_ cosmos.Context, evt Event) error {
 	k.evt = evt
 	return nil
 }
@@ -106,8 +106,8 @@ func (s *HandlerObservedTxInSuite) TestFailure(c *C) {
 	keeper := &TestObservedTxInFailureKeeper{
 		pool: Pool{
 			Asset:        common.BNBAsset,
-			BalanceRune:  sdk.NewUint(200),
-			BalanceAsset: sdk.NewUint(300),
+			BalanceRune:  cosmos.NewUint(200),
+			BalanceAsset: cosmos.NewUint(300),
 		},
 	}
 	txOutStore := NewTxStoreDummy()
@@ -130,62 +130,62 @@ type TestObservedTxInHandleKeeper struct {
 	height    int64
 	msg       MsgSwap
 	pool      Pool
-	observing []sdk.AccAddress
+	observing []cosmos.AccAddress
 	vault     Vault
 	txOut     *TxOut
 }
 
-func (k *TestObservedTxInHandleKeeper) SetSwapQueueItem(_ sdk.Context, msg MsgSwap) error {
+func (k *TestObservedTxInHandleKeeper) SetSwapQueueItem(_ cosmos.Context, msg MsgSwap) error {
 	k.msg = msg
 	return nil
 }
 
-func (k *TestObservedTxInHandleKeeper) ListActiveNodeAccounts(_ sdk.Context) (NodeAccounts, error) {
+func (k *TestObservedTxInHandleKeeper) ListActiveNodeAccounts(_ cosmos.Context) (NodeAccounts, error) {
 	return k.nas, nil
 }
 
-func (k *TestObservedTxInHandleKeeper) GetObservedTxVoter(_ sdk.Context, _ common.TxID) (ObservedTxVoter, error) {
+func (k *TestObservedTxInHandleKeeper) GetObservedTxVoter(_ cosmos.Context, _ common.TxID) (ObservedTxVoter, error) {
 	return k.voter, nil
 }
 
-func (k *TestObservedTxInHandleKeeper) SetObservedTxVoter(_ sdk.Context, voter ObservedTxVoter) {
+func (k *TestObservedTxInHandleKeeper) SetObservedTxVoter(_ cosmos.Context, voter ObservedTxVoter) {
 	k.voter = voter
 }
 
-func (k *TestObservedTxInHandleKeeper) VaultExists(_ sdk.Context, _ common.PubKey) bool {
+func (k *TestObservedTxInHandleKeeper) VaultExists(_ cosmos.Context, _ common.PubKey) bool {
 	return k.yggExists
 }
 
-func (k *TestObservedTxInHandleKeeper) SetLastChainHeight(_ sdk.Context, _ common.Chain, height int64) error {
+func (k *TestObservedTxInHandleKeeper) SetLastChainHeight(_ cosmos.Context, _ common.Chain, height int64) error {
 	k.height = height
 	return nil
 }
 
-func (k *TestObservedTxInHandleKeeper) GetPool(_ sdk.Context, _ common.Asset) (Pool, error) {
+func (k *TestObservedTxInHandleKeeper) GetPool(_ cosmos.Context, _ common.Asset) (Pool, error) {
 	return k.pool, nil
 }
 
-func (k *TestObservedTxInHandleKeeper) AddIncompleteEvents(_ sdk.Context, evt Event) error {
+func (k *TestObservedTxInHandleKeeper) AddIncompleteEvents(_ cosmos.Context, evt Event) error {
 	return nil
 }
 
-func (k *TestObservedTxInHandleKeeper) AddObservingAddresses(_ sdk.Context, addrs []sdk.AccAddress) error {
+func (k *TestObservedTxInHandleKeeper) AddObservingAddresses(_ cosmos.Context, addrs []cosmos.AccAddress) error {
 	k.observing = addrs
 	return nil
 }
 
-func (k *TestObservedTxInHandleKeeper) UpsertEvent(_ sdk.Context, _ Event) error {
+func (k *TestObservedTxInHandleKeeper) UpsertEvent(_ cosmos.Context, _ Event) error {
 	return nil
 }
 
-func (k *TestObservedTxInHandleKeeper) GetVault(_ sdk.Context, key common.PubKey) (Vault, error) {
+func (k *TestObservedTxInHandleKeeper) GetVault(_ cosmos.Context, key common.PubKey) (Vault, error) {
 	if k.vault.PubKey.Equals(key) {
 		return k.vault, nil
 	}
 	return GetRandomVault(), kaboom
 }
 
-func (k *TestObservedTxInHandleKeeper) SetVault(_ sdk.Context, vault Vault) error {
+func (k *TestObservedTxInHandleKeeper) SetVault(_ cosmos.Context, vault Vault) error {
 	if k.vault.PubKey.Equals(vault.PubKey) {
 		k.vault = vault
 		return nil
@@ -193,25 +193,25 @@ func (k *TestObservedTxInHandleKeeper) SetVault(_ sdk.Context, vault Vault) erro
 	return kaboom
 }
 
-func (k *TestObservedTxInHandleKeeper) GetLowestActiveVersion(_ sdk.Context) semver.Version {
+func (k *TestObservedTxInHandleKeeper) GetLowestActiveVersion(_ cosmos.Context) semver.Version {
 	return constants.SWVersion
 }
 
-func (k *TestObservedTxInHandleKeeper) IsActiveObserver(_ sdk.Context, addr sdk.AccAddress) bool {
+func (k *TestObservedTxInHandleKeeper) IsActiveObserver(_ cosmos.Context, addr cosmos.AccAddress) bool {
 	if addr.Equals(k.nas[0].NodeAddress) {
 		return true
 	}
 	return false
 }
 
-func (k *TestObservedTxInHandleKeeper) GetTxOut(ctx sdk.Context, blockHeight int64) (*TxOut, error) {
+func (k *TestObservedTxInHandleKeeper) GetTxOut(ctx cosmos.Context, blockHeight int64) (*TxOut, error) {
 	if k.txOut != nil && k.txOut.Height == blockHeight {
 		return k.txOut, nil
 	}
 	return nil, kaboom
 }
 
-func (k *TestObservedTxInHandleKeeper) SetTxOut(ctx sdk.Context, blockOut *TxOut) error {
+func (k *TestObservedTxInHandleKeeper) SetTxOut(ctx cosmos.Context, blockOut *TxOut) error {
 	if k.txOut.Height == blockOut.Height {
 		k.txOut = blockOut
 		return nil
@@ -242,8 +242,8 @@ func (s *HandlerObservedTxInSuite) TestHandle(c *C) {
 		vault: vault,
 		pool: Pool{
 			Asset:        common.BNBAsset,
-			BalanceRune:  sdk.NewUint(200),
-			BalanceAsset: sdk.NewUint(300),
+			BalanceRune:  cosmos.NewUint(200),
+			BalanceAsset: cosmos.NewUint(300),
 		},
 		yggExists: true,
 	}
@@ -267,7 +267,7 @@ func (s *HandlerObservedTxInSuite) TestHandle(c *C) {
 	c.Check(keeper.observing, HasLen, 1)
 	c.Check(keeper.height, Equals, int64(12))
 	bnbCoin := keeper.vault.Coins.GetCoin(common.BNBAsset)
-	c.Assert(bnbCoin.Amount.Equal(sdk.OneUint()), Equals, true)
+	c.Assert(bnbCoin.Amount.Equal(cosmos.OneUint()), Equals, true)
 }
 
 // Test migrate memo
@@ -290,14 +290,14 @@ func (s *HandlerObservedTxInSuite) TestMigrateMemo(c *C) {
 		InHash:      common.BlankTxID,
 		ToAddress:   newVaultAddr,
 		VaultPubKey: vault.PubKey,
-		Coin:        common.NewCoin(common.BNBAsset, sdk.NewUint(1024)),
+		Coin:        common.NewCoin(common.BNBAsset, cosmos.NewUint(1024)),
 		Memo:        NewMigrateMemo(1).String(),
 	})
 	tx := NewObservedTx(common.Tx{
 		ID:    GetRandomTxHash(),
 		Chain: common.BNBChain,
 		Coins: common.Coins{
-			common.NewCoin(common.BNBAsset, sdk.NewUint(1024)),
+			common.NewCoin(common.BNBAsset, cosmos.NewUint(1024)),
 		},
 		Memo:        NewMigrateMemo(12).String(),
 		FromAddress: addr,
@@ -312,8 +312,8 @@ func (s *HandlerObservedTxInSuite) TestMigrateMemo(c *C) {
 		vault: vault,
 		pool: Pool{
 			Asset:        common.BNBAsset,
-			BalanceRune:  sdk.NewUint(200),
-			BalanceAsset: sdk.NewUint(300),
+			BalanceRune:  cosmos.NewUint(200),
+			BalanceAsset: cosmos.NewUint(300),
 		},
 		yggExists: true,
 		txOut:     txout,

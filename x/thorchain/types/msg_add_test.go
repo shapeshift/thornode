@@ -1,8 +1,8 @@
 package types
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	. "gopkg.in/check.v1"
 )
 
@@ -18,7 +18,7 @@ func (mas *MsgAddSuite) TestMsgAdd(c *C) {
 	tx := GetRandomTx()
 	addr := GetRandomBech32Addr()
 	c.Check(addr.Empty(), Equals, false)
-	ma := NewMsgAdd(tx, common.BNBAsset, sdk.NewUint(100000000), sdk.NewUint(100000000), addr)
+	ma := NewMsgAdd(tx, common.BNBAsset, cosmos.NewUint(100000000), cosmos.NewUint(100000000), addr)
 	c.Check(ma.Route(), Equals, RouterKey)
 	c.Check(ma.Type(), Equals, "set_add")
 	err := ma.ValidateBasic()
@@ -32,31 +32,31 @@ func (mas *MsgAddSuite) TestMsgAdd(c *C) {
 
 	inputs := []struct {
 		ticker common.Asset
-		rune   sdk.Uint
-		asset  sdk.Uint
+		rune   cosmos.Uint
+		asset  cosmos.Uint
 		txHash common.TxID
-		signer sdk.AccAddress
+		signer cosmos.AccAddress
 	}{
 		{
 			ticker: common.Asset{},
-			rune:   sdk.NewUint(100000000),
-			asset:  sdk.NewUint(100000000),
+			rune:   cosmos.NewUint(100000000),
+			asset:  cosmos.NewUint(100000000),
 			txHash: tx.ID,
 			signer: addr,
 		},
 		{
 			ticker: common.BNBAsset,
-			rune:   sdk.NewUint(100000000),
-			asset:  sdk.NewUint(100000000),
+			rune:   cosmos.NewUint(100000000),
+			asset:  cosmos.NewUint(100000000),
 			txHash: common.TxID(""),
 			signer: addr,
 		},
 		{
 			ticker: common.BNBAsset,
-			rune:   sdk.NewUint(100000000),
-			asset:  sdk.NewUint(100000000),
+			rune:   cosmos.NewUint(100000000),
+			asset:  cosmos.NewUint(100000000),
 			txHash: tx.ID,
-			signer: sdk.AccAddress{},
+			signer: cosmos.AccAddress{},
 		},
 	}
 	for _, item := range inputs {

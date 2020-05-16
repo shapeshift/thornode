@@ -2,8 +2,8 @@ package thorchain
 
 import (
 	"github.com/blang/semver"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 )
 
@@ -19,7 +19,7 @@ func NewVersionedVaultMgrDummy(versionedTxOutStore VersionedTxOutStore) *Version
 	}
 }
 
-func (v *VersionedVaultMgrDummy) GetVaultManager(ctx sdk.Context, keeper Keeper, version semver.Version) (VaultManager, error) {
+func (v *VersionedVaultMgrDummy) GetVaultManager(ctx cosmos.Context, keeper Keeper, version semver.Version) (VaultManager, error) {
 	if v.vaultMgrDummy == nil {
 		v.vaultMgrDummy = NewVaultMgrDummy()
 	}
@@ -35,16 +35,16 @@ func NewVaultMgrDummy() *VaultMgrDummy {
 	return &VaultMgrDummy{}
 }
 
-func (vm *VaultMgrDummy) EndBlock(ctx sdk.Context, version semver.Version, constAccessor constants.ConstantValues) error {
+func (vm *VaultMgrDummy) EndBlock(ctx cosmos.Context, version semver.Version, constAccessor constants.ConstantValues) error {
 	return nil
 }
 
-func (vm *VaultMgrDummy) TriggerKeygen(_ sdk.Context, nas NodeAccounts) error {
+func (vm *VaultMgrDummy) TriggerKeygen(_ cosmos.Context, nas NodeAccounts) error {
 	vm.nas = nas
 	return nil
 }
 
-func (vm *VaultMgrDummy) RotateVault(ctx sdk.Context, vault Vault) error {
+func (vm *VaultMgrDummy) RotateVault(ctx cosmos.Context, vault Vault) error {
 	vm.vault = vault
 	return nil
 }

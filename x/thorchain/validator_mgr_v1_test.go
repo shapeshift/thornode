@@ -1,9 +1,9 @@
 package thorchain
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	. "gopkg.in/check.v1"
 
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 )
 
@@ -92,17 +92,17 @@ func (vts *ValidatorMgrV1TestSuite) TestRagnarokBond(c *C) {
 	c.Assert(err, IsNil)
 
 	activeNode := GetRandomNodeAccount(NodeActive)
-	activeNode.Bond = sdk.NewUint(100)
+	activeNode.Bond = cosmos.NewUint(100)
 	c.Assert(k.SetNodeAccount(ctx, activeNode), IsNil)
 
 	disabledNode := GetRandomNodeAccount(NodeDisabled)
-	disabledNode.Bond = sdk.ZeroUint()
+	disabledNode.Bond = cosmos.ZeroUint()
 	c.Assert(k.SetNodeAccount(ctx, disabledNode), IsNil)
 
 	c.Assert(vMgr.ragnarokBond(ctx, 1), IsNil)
 	activeNode, err = k.GetNodeAccount(ctx, activeNode.NodeAddress)
 	c.Assert(err, IsNil)
-	c.Check(activeNode.Bond.Equal(sdk.NewUint(90)), Equals, true)
+	c.Check(activeNode.Bond.Equal(cosmos.NewUint(90)), Equals, true)
 	items, err := txOutStore.GetOutboundItems(ctx)
 	c.Assert(err, IsNil)
 	c.Check(items, HasLen, 1, Commentf("Len %d", items))
@@ -111,7 +111,7 @@ func (vts *ValidatorMgrV1TestSuite) TestRagnarokBond(c *C) {
 	c.Assert(vMgr.ragnarokBond(ctx, 2), IsNil)
 	activeNode, err = k.GetNodeAccount(ctx, activeNode.NodeAddress)
 	c.Assert(err, IsNil)
-	c.Check(activeNode.Bond.Equal(sdk.NewUint(72)), Equals, true)
+	c.Check(activeNode.Bond.Equal(cosmos.NewUint(72)), Equals, true)
 	items, err = txOutStore.GetOutboundItems(ctx)
 	c.Assert(err, IsNil)
 	c.Check(items, HasLen, 1, Commentf("Len %d", items))

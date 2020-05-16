@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 
 	"github.com/blang/semver"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 )
 
@@ -25,33 +25,33 @@ type TestErrataTxKeeper struct {
 	err        error
 }
 
-func (k *TestErrataTxKeeper) ListActiveNodeAccounts(_ sdk.Context) (NodeAccounts, error) {
+func (k *TestErrataTxKeeper) ListActiveNodeAccounts(_ cosmos.Context) (NodeAccounts, error) {
 	return NodeAccounts{k.na}, k.err
 }
 
-func (k *TestErrataTxKeeper) GetNodeAccount(_ sdk.Context, _ sdk.AccAddress) (NodeAccount, error) {
+func (k *TestErrataTxKeeper) GetNodeAccount(_ cosmos.Context, _ cosmos.AccAddress) (NodeAccount, error) {
 	return k.na, k.err
 }
 
-func (k *TestErrataTxKeeper) UpsertEvent(_ sdk.Context, evt Event) error {
+func (k *TestErrataTxKeeper) UpsertEvent(_ cosmos.Context, evt Event) error {
 	k.event = evt
 	return nil
 }
 
-func (k *TestErrataTxKeeper) GetObservedTxVoter(_ sdk.Context, txID common.TxID) (ObservedTxVoter, error) {
+func (k *TestErrataTxKeeper) GetObservedTxVoter(_ cosmos.Context, txID common.TxID) (ObservedTxVoter, error) {
 	return k.observedTx, k.err
 }
 
-func (k *TestErrataTxKeeper) GetPool(_ sdk.Context, _ common.Asset) (Pool, error) {
+func (k *TestErrataTxKeeper) GetPool(_ cosmos.Context, _ common.Asset) (Pool, error) {
 	return k.pool, k.err
 }
 
-func (k *TestErrataTxKeeper) SetPool(_ sdk.Context, pool Pool) error {
+func (k *TestErrataTxKeeper) SetPool(_ cosmos.Context, pool Pool) error {
 	k.pool = pool
 	return k.err
 }
 
-func (k *TestErrataTxKeeper) GetStaker(_ sdk.Context, asset common.Asset, addr common.Address) (Staker, error) {
+func (k *TestErrataTxKeeper) GetStaker(_ cosmos.Context, asset common.Asset, addr common.Address) (Staker, error) {
 	for _, staker := range k.stakers {
 		if staker.RuneAddress.Equals(addr) {
 			return staker, k.err
@@ -60,7 +60,7 @@ func (k *TestErrataTxKeeper) GetStaker(_ sdk.Context, asset common.Asset, addr c
 	return Staker{}, k.err
 }
 
-func (k *TestErrataTxKeeper) SetStaker(_ sdk.Context, staker Staker) {
+func (k *TestErrataTxKeeper) SetStaker(_ cosmos.Context, staker Staker) {
 	for i, skr := range k.stakers {
 		if skr.RuneAddress.Equals(staker.RuneAddress) {
 			k.stakers[i] = staker
@@ -68,7 +68,7 @@ func (k *TestErrataTxKeeper) SetStaker(_ sdk.Context, staker Staker) {
 	}
 }
 
-func (k *TestErrataTxKeeper) GetErrataTxVoter(_ sdk.Context, txID common.TxID, chain common.Chain) (ErrataTxVoter, error) {
+func (k *TestErrataTxKeeper) GetErrataTxVoter(_ cosmos.Context, txID common.TxID, chain common.Chain) (ErrataTxVoter, error) {
 	return NewErrataTxVoter(txID, chain), k.err
 }
 
@@ -103,7 +103,7 @@ func (s *HandlerErrataTxSuite) TestHandle(c *C) {
 	txID := GetRandomTxHash()
 	na := GetRandomNodeAccount(NodeActive)
 	addr := GetRandomBNBAddress()
-	totalUnits := sdk.NewUint(1600)
+	totalUnits := cosmos.NewUint(1600)
 
 	keeper := &TestErrataTxKeeper{
 		na: na,
@@ -114,7 +114,7 @@ func (s *HandlerErrataTxSuite) TestHandle(c *C) {
 					Chain:       common.BNBChain,
 					FromAddress: addr,
 					Coins: common.Coins{
-						common.NewCoin(common.RuneAsset(), sdk.NewUint(30*common.One)),
+						common.NewCoin(common.RuneAsset(), cosmos.NewUint(30*common.One)),
 					},
 					Memo: "STAKE:BNB.BNB",
 				},
@@ -123,21 +123,21 @@ func (s *HandlerErrataTxSuite) TestHandle(c *C) {
 		pool: Pool{
 			Asset:        common.BNBAsset,
 			PoolUnits:    totalUnits,
-			BalanceRune:  sdk.NewUint(100 * common.One),
-			BalanceAsset: sdk.NewUint(100 * common.One),
+			BalanceRune:  cosmos.NewUint(100 * common.One),
+			BalanceAsset: cosmos.NewUint(100 * common.One),
 		},
 		stakers: []Staker{
 			Staker{
 				RuneAddress:     addr,
 				LastStakeHeight: 5,
 				Units:           totalUnits.QuoUint64(2),
-				PendingRune:     sdk.ZeroUint(),
+				PendingRune:     cosmos.ZeroUint(),
 			},
 			Staker{
 				RuneAddress:     GetRandomBNBAddress(),
 				LastStakeHeight: 10,
 				Units:           totalUnits.QuoUint64(2),
-				PendingRune:     sdk.ZeroUint(),
+				PendingRune:     cosmos.ZeroUint(),
 			},
 		},
 	}
@@ -146,8 +146,8 @@ func (s *HandlerErrataTxSuite) TestHandle(c *C) {
 	msg := NewMsgErrataTx(txID, common.BNBChain, na.NodeAddress)
 	result := handler.handle(ctx, msg, ver)
 	c.Assert(result.IsOK(), Equals, true)
-	c.Check(keeper.pool.BalanceRune.Equal(sdk.NewUint(70*common.One)), Equals, true)
-	c.Check(keeper.pool.BalanceAsset.Equal(sdk.NewUint(100*common.One)), Equals, true)
+	c.Check(keeper.pool.BalanceRune.Equal(cosmos.NewUint(70*common.One)), Equals, true)
+	c.Check(keeper.pool.BalanceAsset.Equal(cosmos.NewUint(100*common.One)), Equals, true)
 	c.Check(keeper.stakers[0].Units.IsZero(), Equals, true, Commentf("%d", keeper.stakers[0].Units.Uint64()))
 	c.Check(keeper.stakers[0].LastStakeHeight, Equals, int64(18))
 
@@ -156,7 +156,7 @@ func (s *HandlerErrataTxSuite) TestHandle(c *C) {
 	c.Assert(json.Unmarshal(keeper.event.Event, &evt), IsNil)
 	c.Check(evt.Pools, HasLen, 1)
 	c.Check(evt.Pools[0].Asset.Equals(common.BNBAsset), Equals, true)
-	c.Check(evt.Pools[0].RuneAmt.Equal(sdk.NewUint(30*common.One)), Equals, true)
+	c.Check(evt.Pools[0].RuneAmt.Equal(cosmos.NewUint(30*common.One)), Equals, true)
 	c.Check(evt.Pools[0].RuneAdd, Equals, false)
 	c.Check(evt.Pools[0].AssetAmt.IsZero(), Equals, true)
 	c.Check(evt.Pools[0].AssetAdd, Equals, false)

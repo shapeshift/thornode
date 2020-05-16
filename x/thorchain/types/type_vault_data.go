@@ -1,30 +1,29 @@
 package types
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
-
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 // VaultData
 type VaultData struct {
-	BondRewardRune sdk.Uint `json:"bond_reward_rune"` // The total amount of awarded rune for bonders
-	TotalBondUnits sdk.Uint `json:"total_bond_units"` // Total amount of bond units
-	TotalReserve   sdk.Uint `json:"total_reserve"`    // Total amount of reserves (in rune)
-	TotalBEP2Rune  sdk.Uint `json:"total_bep2_rune"`  // Total amount of BEP2 rune held
+	BondRewardRune cosmos.Uint `json:"bond_reward_rune"` // The total amount of awarded rune for bonders
+	TotalBondUnits cosmos.Uint `json:"total_bond_units"` // Total amount of bond units
+	TotalReserve   cosmos.Uint `json:"total_reserve"`    // Total amount of reserves (in rune)
+	TotalBEP2Rune  cosmos.Uint `json:"total_bep2_rune"`  // Total amount of BEP2 rune held
 }
 
 // NewVaultData create a new instance VaultData it is empty though
 func NewVaultData() VaultData {
 	return VaultData{
-		BondRewardRune: sdk.ZeroUint(),
-		TotalBondUnits: sdk.ZeroUint(),
-		TotalReserve:   sdk.ZeroUint(),
-		TotalBEP2Rune:  sdk.ZeroUint(),
+		BondRewardRune: cosmos.ZeroUint(),
+		TotalBondUnits: cosmos.ZeroUint(),
+		TotalReserve:   cosmos.ZeroUint(),
+		TotalBEP2Rune:  cosmos.ZeroUint(),
 	}
 }
 
 // calculate node rewards
-func (v VaultData) CalcNodeRewards(nodeUnits sdk.Uint) sdk.Uint {
+func (v VaultData) CalcNodeRewards(nodeUnits cosmos.Uint) cosmos.Uint {
 	return common.GetShare(nodeUnits, v.TotalBondUnits, v.BondRewardRune)
 }

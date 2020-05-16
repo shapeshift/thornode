@@ -4,9 +4,8 @@ import (
 	"encoding/json"
 	"strconv"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 // Events bt
@@ -40,15 +39,15 @@ const (
 
 type PoolMod struct {
 	Asset    common.Asset `json:"asset"`
-	RuneAmt  sdk.Uint     `json:"rune_amt"`
+	RuneAmt  cosmos.Uint  `json:"rune_amt"`
 	RuneAdd  bool         `json:"rune_add"`
-	AssetAmt sdk.Uint     `json:"asset_amt"`
+	AssetAmt cosmos.Uint  `json:"asset_amt"`
 	AssetAdd bool         `json:"asset_add"`
 }
 
 type PoolMods []PoolMod
 
-func NewPoolMod(asset common.Asset, runeAmt sdk.Uint, runeAdd bool, assetAmt sdk.Uint, assetAdd bool) PoolMod {
+func NewPoolMod(asset common.Asset, runeAmt cosmos.Uint, runeAdd bool, assetAmt cosmos.Uint, assetAdd bool) PoolMod {
 	return PoolMod{
 		Asset:    asset,
 		RuneAmt:  runeAmt,
@@ -68,7 +67,7 @@ func NewEvent(typ string, ht int64, inTx common.Tx, evt json.RawMessage, status 
 		Status: status,
 		Fee: common.Fee{
 			Coins:      common.Coins{},
-			PoolDeduct: sdk.ZeroUint(),
+			PoolDeduct: cosmos.ZeroUint(),
 		},
 	}
 }
@@ -96,10 +95,10 @@ func (evts Events) PopByInHash(txID common.TxID) (found, events Events) {
 // EventSwap event for swap action
 type EventSwap struct {
 	Pool               common.Asset `json:"pool"`
-	PriceTarget        sdk.Uint     `json:"price_target"`
-	TradeSlip          sdk.Uint     `json:"trade_slip"`
-	LiquidityFee       sdk.Uint     `json:"liquidity_fee"`
-	LiquidityFeeInRune sdk.Uint     `json:"liquidity_fee_in_rune"`
+	PriceTarget        cosmos.Uint  `json:"price_target"`
+	TradeSlip          cosmos.Uint  `json:"trade_slip"`
+	LiquidityFee       cosmos.Uint  `json:"liquidity_fee"`
+	LiquidityFeeInRune cosmos.Uint  `json:"liquidity_fee_in_rune"`
 	//  the following two field is trying to make events change backward compatible
 	// very soon we don't need to save this event to key value store anymore , it will be removed then
 	InTx   common.Tx `json:"-"` // this is the Tx that cause the swap to happen, it is a double swap , then the txid will be blank
@@ -107,7 +106,7 @@ type EventSwap struct {
 }
 
 // NewEventSwap create a new swap event
-func NewEventSwap(pool common.Asset, priceTarget, fee, tradeSlip, liquidityFeeInRune sdk.Uint, inTx common.Tx) EventSwap {
+func NewEventSwap(pool common.Asset, priceTarget, fee, tradeSlip, liquidityFeeInRune cosmos.Uint, inTx common.Tx) EventSwap {
 	return EventSwap{
 		Pool:               pool,
 		PriceTarget:        priceTarget,
@@ -123,27 +122,27 @@ func (e EventSwap) Type() string {
 	return SwapEventType
 }
 
-func (e EventSwap) Events() (sdk.Events, error) {
-	evt := sdk.NewEvent(e.Type(),
-		sdk.NewAttribute("pool", e.Pool.String()),
-		sdk.NewAttribute("price_target", e.PriceTarget.String()),
-		sdk.NewAttribute("trade_slip", e.TradeSlip.String()),
-		sdk.NewAttribute("liquidity_fee", e.LiquidityFee.String()),
-		sdk.NewAttribute("liquidity_fee_in_rune", e.LiquidityFeeInRune.String()),
+func (e EventSwap) Events() (cosmos.Events, error) {
+	evt := cosmos.NewEvent(e.Type(),
+		cosmos.NewAttribute("pool", e.Pool.String()),
+		cosmos.NewAttribute("price_target", e.PriceTarget.String()),
+		cosmos.NewAttribute("trade_slip", e.TradeSlip.String()),
+		cosmos.NewAttribute("liquidity_fee", e.LiquidityFee.String()),
+		cosmos.NewAttribute("liquidity_fee_in_rune", e.LiquidityFeeInRune.String()),
 	)
 	evt = evt.AppendAttributes(e.InTx.ToAttributes()...)
-	return sdk.Events{evt}, nil
+	return cosmos.Events{evt}, nil
 }
 
 // EventStake stake event
 type EventStake struct {
 	Pool       common.Asset `json:"pool"`
-	StakeUnits sdk.Uint     `json:"stake_units"`
+	StakeUnits cosmos.Uint  `json:"stake_units"`
 	TxIn       common.Tx    `json:"-"`
 }
 
 // NewEventStake create a new stake event
-func NewEventStake(pool common.Asset, su sdk.Uint, txIn common.Tx) EventStake {
+func NewEventStake(pool common.Asset, su cosmos.Uint, txIn common.Tx) EventStake {
 	return EventStake{
 		Pool:       pool,
 		StakeUnits: su,
@@ -156,12 +155,12 @@ func (e EventStake) Type() string {
 	return StakeEventType
 }
 
-func (e EventStake) Events() (sdk.Events, error) {
-	evt := sdk.NewEvent(e.Type(),
-		sdk.NewAttribute("pool", e.Pool.String()),
-		sdk.NewAttribute("stake_units", e.StakeUnits.String()))
+func (e EventStake) Events() (cosmos.Events, error) {
+	evt := cosmos.NewEvent(e.Type(),
+		cosmos.NewAttribute("pool", e.Pool.String()),
+		cosmos.NewAttribute("stake_units", e.StakeUnits.String()))
 	evt = evt.AppendAttributes(e.TxIn.ToAttributes()...)
-	return sdk.Events{
+	return cosmos.Events{
 		evt,
 	}, nil
 }
@@ -169,14 +168,14 @@ func (e EventStake) Events() (sdk.Events, error) {
 // EventUnstake represent unstake
 type EventUnstake struct {
 	Pool        common.Asset `json:"pool"`
-	StakeUnits  sdk.Uint     `json:"stake_units"`
+	StakeUnits  cosmos.Uint  `json:"stake_units"`
 	BasisPoints int64        `json:"basis_points"` // 1 ==> 10,0000
-	Asymmetry   sdk.Dec      `json:"asymmetry"`    // -1.0 <==> 1.0
+	Asymmetry   cosmos.Dec   `json:"asymmetry"`    // -1.0 <==> 1.0
 	InTx        common.Tx    `json:"-"`
 }
 
 // NewEventUnstake create a new unstake event
-func NewEventUnstake(pool common.Asset, su sdk.Uint, basisPts int64, asym sdk.Dec, inTx common.Tx) EventUnstake {
+func NewEventUnstake(pool common.Asset, su cosmos.Uint, basisPts int64, asym cosmos.Dec, inTx common.Tx) EventUnstake {
 	return EventUnstake{
 		Pool:        pool,
 		StakeUnits:  su,
@@ -192,14 +191,14 @@ func (e EventUnstake) Type() string {
 }
 
 // Events
-func (e EventUnstake) Events() (sdk.Events, error) {
-	evt := sdk.NewEvent(e.Type(),
-		sdk.NewAttribute("pool", e.Pool.String()),
-		sdk.NewAttribute("stake_units", e.StakeUnits.String()),
-		sdk.NewAttribute("basis_points", strconv.FormatInt(e.BasisPoints, 10)),
-		sdk.NewAttribute("asymmetry", e.Asymmetry.String()))
+func (e EventUnstake) Events() (cosmos.Events, error) {
+	evt := cosmos.NewEvent(e.Type(),
+		cosmos.NewAttribute("pool", e.Pool.String()),
+		cosmos.NewAttribute("stake_units", e.StakeUnits.String()),
+		cosmos.NewAttribute("basis_points", strconv.FormatInt(e.BasisPoints, 10)),
+		cosmos.NewAttribute("asymmetry", e.Asymmetry.String()))
 	evt = evt.AppendAttributes(e.InTx.ToAttributes()...)
-	return sdk.Events{evt}, nil
+	return cosmos.Events{evt}, nil
 }
 
 // EventAdd represent add operation
@@ -222,11 +221,11 @@ func (e EventAdd) Type() string {
 }
 
 // Events get all events
-func (e EventAdd) Events() (sdk.Events, error) {
-	evt := sdk.NewEvent(e.Type(),
-		sdk.NewAttribute("pool", e.Pool.String()))
+func (e EventAdd) Events() (cosmos.Events, error) {
+	evt := cosmos.NewEvent(e.Type(),
+		cosmos.NewAttribute("pool", e.Pool.String()))
 	evt = evt.AppendAttributes(e.InTx.ToAttributes()...)
-	return sdk.Events{evt}, nil
+	return cosmos.Events{evt}, nil
 }
 
 // EventPool represent pool change event
@@ -248,12 +247,12 @@ func (e EventPool) Type() string {
 	return PoolEventType
 }
 
-// Events provide an instance of sdk.Events
-func (e EventPool) Events() (sdk.Events, error) {
-	return sdk.Events{
-		sdk.NewEvent(e.Type(),
-			sdk.NewAttribute("pool", e.Pool.String()),
-			sdk.NewAttribute("pool_status", e.Status.String())),
+// Events provide an instance of cosmos.Events
+func (e EventPool) Events() (cosmos.Events, error) {
+	return cosmos.Events{
+		cosmos.NewEvent(e.Type(),
+			cosmos.NewAttribute("pool", e.Pool.String()),
+			cosmos.NewAttribute("pool_status", e.Status.String())),
 	}, nil
 }
 
@@ -265,12 +264,12 @@ type PoolAmt struct {
 
 // EventRewards reward event
 type EventRewards struct {
-	BondReward  sdk.Uint  `json:"bond_reward"`
-	PoolRewards []PoolAmt `json:"pool_rewards"`
+	BondReward  cosmos.Uint `json:"bond_reward"`
+	PoolRewards []PoolAmt   `json:"pool_rewards"`
 }
 
 // NewEventRewards create a new reward event
-func NewEventRewards(bondReward sdk.Uint, poolRewards []PoolAmt) EventRewards {
+func NewEventRewards(bondReward cosmos.Uint, poolRewards []PoolAmt) EventRewards {
 	return EventRewards{
 		BondReward:  bondReward,
 		PoolRewards: poolRewards,
@@ -282,26 +281,26 @@ func (e EventRewards) Type() string {
 	return RewardEventType
 }
 
-func (e EventRewards) Events() (sdk.Events, error) {
-	evt := sdk.NewEvent(e.Type(),
-		sdk.NewAttribute("bond_reward", e.BondReward.String()),
+func (e EventRewards) Events() (cosmos.Events, error) {
+	evt := cosmos.NewEvent(e.Type(),
+		cosmos.NewAttribute("bond_reward", e.BondReward.String()),
 	)
 	for _, item := range e.PoolRewards {
-		evt = evt.AppendAttributes(sdk.NewAttribute(item.Asset.String(), strconv.FormatInt(item.Amount, 10)))
+		evt = evt.AppendAttributes(cosmos.NewAttribute(item.Asset.String(), strconv.FormatInt(item.Amount, 10)))
 	}
-	return sdk.Events{evt}, nil
+	return cosmos.Events{evt}, nil
 }
 
 // EventRefund represent a refund activity , and contains the reason why it get refund
 type EventRefund struct {
-	Code   sdk.CodeType `json:"code"`
-	Reason string       `json:"reason"`
-	InTx   common.Tx    `json:"-"`
-	Fee    common.Fee   `json:"-"`
+	Code   cosmos.CodeType `json:"code"`
+	Reason string          `json:"reason"`
+	InTx   common.Tx       `json:"-"`
+	Fee    common.Fee      `json:"-"`
 }
 
 // NewEventRefund create a new EventRefund
-func NewEventRefund(code sdk.CodeType, reason string, inTx common.Tx, fee common.Fee) EventRefund {
+func NewEventRefund(code cosmos.CodeType, reason string, inTx common.Tx, fee common.Fee) EventRefund {
 	return EventRefund{
 		Code:   code,
 		Reason: reason,
@@ -316,13 +315,13 @@ func (e EventRefund) Type() string {
 }
 
 // Events return events
-func (e EventRefund) Events() (sdk.Events, error) {
-	evt := sdk.NewEvent(e.Type(),
-		sdk.NewAttribute("code", strconv.FormatUint(uint64(e.Code), 10)),
-		sdk.NewAttribute("reason", e.Reason),
+func (e EventRefund) Events() (cosmos.Events, error) {
+	evt := cosmos.NewEvent(e.Type(),
+		cosmos.NewAttribute("code", strconv.FormatUint(uint64(e.Code), 10)),
+		cosmos.NewAttribute("reason", e.Reason),
 	)
 	evt = evt.AppendAttributes(e.InTx.ToAttributes()...)
-	return sdk.Events{evt}, nil
+	return cosmos.Events{evt}, nil
 }
 
 type BondType string
@@ -334,13 +333,13 @@ const (
 
 // EventBond bond paid or returned event
 type EventBond struct {
-	Amount   sdk.Uint  `json:"amount"`
-	BondType BondType  `json:"bond_type"`
-	TxIn     common.Tx `json:"-"`
+	Amount   cosmos.Uint `json:"amount"`
+	BondType BondType    `json:"bond_type"`
+	TxIn     common.Tx   `json:"-"`
 }
 
 // NewEventBond create a new Bond Events
-func NewEventBond(amount sdk.Uint, bondType BondType, txIn common.Tx) EventBond {
+func NewEventBond(amount cosmos.Uint, bondType BondType, txIn common.Tx) EventBond {
 	return EventBond{
 		Amount:   amount,
 		BondType: bondType,
@@ -354,20 +353,20 @@ func (e EventBond) Type() string {
 }
 
 // Events return all the event attributes
-func (e EventBond) Events() (sdk.Events, error) {
-	evt := sdk.NewEvent(e.Type(),
-		sdk.NewAttribute("amount", e.Amount.String()),
-		sdk.NewAttribute("bound_type", string(e.BondType)))
+func (e EventBond) Events() (cosmos.Events, error) {
+	evt := cosmos.NewEvent(e.Type(),
+		cosmos.NewAttribute("amount", e.Amount.String()),
+		cosmos.NewAttribute("bound_type", string(e.BondType)))
 	evt = evt.AppendAttributes(e.TxIn.ToAttributes()...)
-	return sdk.Events{evt}, nil
+	return cosmos.Events{evt}, nil
 }
 
 type GasType string
 
 type GasPool struct {
 	Asset    common.Asset `json:"asset"`
-	AssetAmt sdk.Uint     `json:"asset_amt"`
-	RuneAmt  sdk.Uint     `json:"rune_amt"`
+	AssetAmt cosmos.Uint  `json:"asset_amt"`
+	RuneAmt  cosmos.Uint  `json:"rune_amt"`
 	Count    int64        `json:"transaction_count"`
 }
 
@@ -401,14 +400,14 @@ func (e *EventGas) Type() string {
 	return GasEventType
 }
 
-func (e *EventGas) Events() (sdk.Events, error) {
-	events := make(sdk.Events, 0, len(e.Pools))
+func (e *EventGas) Events() (cosmos.Events, error) {
+	events := make(cosmos.Events, 0, len(e.Pools))
 	for _, item := range e.Pools {
-		evt := sdk.NewEvent(e.Type(),
-			sdk.NewAttribute("asset", item.Asset.String()),
-			sdk.NewAttribute("asset_amt", item.AssetAmt.String()),
-			sdk.NewAttribute("rune_amt", item.RuneAmt.String()),
-			sdk.NewAttribute("transaction_count", strconv.FormatInt(item.Count, 10)))
+		evt := cosmos.NewEvent(e.Type(),
+			cosmos.NewAttribute("asset", item.Asset.String()),
+			cosmos.NewAttribute("asset_amt", item.AssetAmt.String()),
+			cosmos.NewAttribute("rune_amt", item.RuneAmt.String()),
+			cosmos.NewAttribute("transaction_count", strconv.FormatInt(item.Count, 10)))
 		events = append(events, evt)
 	}
 	return events, nil
@@ -432,13 +431,13 @@ func (e EventReserve) Type() string {
 	return ReserveEventType
 }
 
-func (e EventReserve) Events() (sdk.Events, error) {
-	evt := sdk.NewEvent(e.Type(),
-		sdk.NewAttribute("contributor_address", e.ReserveContributor.Address.String()),
-		sdk.NewAttribute("amount", e.ReserveContributor.Amount.String()),
+func (e EventReserve) Events() (cosmos.Events, error) {
+	evt := cosmos.NewEvent(e.Type(),
+		cosmos.NewAttribute("contributor_address", e.ReserveContributor.Address.String()),
+		cosmos.NewAttribute("amount", e.ReserveContributor.Amount.String()),
 	)
 	evt = evt.AppendAttributes(e.InTx.ToAttributes()...)
-	return sdk.Events{
+	return cosmos.Events{
 		evt,
 	}, nil
 }
@@ -461,13 +460,13 @@ func (e EventSlash) Type() string {
 	return SlashEventType
 }
 
-func (e EventSlash) Events() (sdk.Events, error) {
-	evt := sdk.NewEvent(e.Type(),
-		sdk.NewAttribute("pool", e.Pool.String()))
+func (e EventSlash) Events() (cosmos.Events, error) {
+	evt := cosmos.NewEvent(e.Type(),
+		cosmos.NewAttribute("pool", e.Pool.String()))
 	for _, item := range e.SlashAmount {
-		evt.AppendAttributes(sdk.NewAttribute(item.Asset.String(), strconv.FormatInt(item.Amount, 10)))
+		evt.AppendAttributes(cosmos.NewAttribute(item.Asset.String(), strconv.FormatInt(item.Amount, 10)))
 	}
-	return sdk.Events{evt}, nil
+	return cosmos.Events{evt}, nil
 }
 
 // EventErrata represent a change in pool balance which caused by an errata transaction
@@ -489,16 +488,16 @@ func (e EventErrata) Type() string {
 }
 
 // Events
-func (e EventErrata) Events() (sdk.Events, error) {
-	events := make(sdk.Events, 0, len(e.Pools))
+func (e EventErrata) Events() (cosmos.Events, error) {
+	events := make(cosmos.Events, 0, len(e.Pools))
 	for _, item := range e.Pools {
-		evt := sdk.NewEvent(e.Type(),
-			sdk.NewAttribute("in_tx_id", e.TxID.String()),
-			sdk.NewAttribute("asset", item.Asset.String()),
-			sdk.NewAttribute("rune_amt", item.RuneAmt.String()),
-			sdk.NewAttribute("rune_add", strconv.FormatBool(item.RuneAdd)),
-			sdk.NewAttribute("asset_amt", item.AssetAmt.String()),
-			sdk.NewAttribute("asset_add", strconv.FormatBool(item.AssetAdd)))
+		evt := cosmos.NewEvent(e.Type(),
+			cosmos.NewAttribute("in_tx_id", e.TxID.String()),
+			cosmos.NewAttribute("asset", item.Asset.String()),
+			cosmos.NewAttribute("rune_amt", item.RuneAmt.String()),
+			cosmos.NewAttribute("rune_add", strconv.FormatBool(item.RuneAdd)),
+			cosmos.NewAttribute("asset_amt", item.AssetAmt.String()),
+			cosmos.NewAttribute("asset_add", strconv.FormatBool(item.AssetAdd)))
 		events = append(events, evt)
 	}
 	return events, nil
@@ -523,13 +522,13 @@ func (e EventFee) Type() string {
 	return FeeEventType
 }
 
-// Events return events of sdk.Event type
-func (e EventFee) Events() (sdk.Events, error) {
-	evt := sdk.NewEvent(e.Type(),
-		sdk.NewAttribute("tx_id", e.TxID.String()),
-		sdk.NewAttribute("coins", e.Fee.Coins.String()),
-		sdk.NewAttribute("pool_deduct", e.Fee.PoolDeduct.String()))
-	return sdk.Events{evt}, nil
+// Events return events of cosmos.Event type
+func (e EventFee) Events() (cosmos.Events, error) {
+	evt := cosmos.NewEvent(e.Type(),
+		cosmos.NewAttribute("tx_id", e.TxID.String()),
+		cosmos.NewAttribute("coins", e.Fee.Coins.String()),
+		cosmos.NewAttribute("pool_deduct", e.Fee.PoolDeduct.String()))
+	return cosmos.Events{evt}, nil
 }
 
 // EventOutbound represent an outbound message from thornode
@@ -552,9 +551,9 @@ func (e EventOutbound) Type() string {
 }
 
 // Events return sdk events
-func (e EventOutbound) Events() (sdk.Events, error) {
-	evt := sdk.NewEvent(e.Type(),
-		sdk.NewAttribute("in_tx_id", e.InTxID.String()))
+func (e EventOutbound) Events() (cosmos.Events, error) {
+	evt := cosmos.NewEvent(e.Type(),
+		cosmos.NewAttribute("in_tx_id", e.InTxID.String()))
 	evt = evt.AppendAttributes(e.Tx.ToAttributes()...)
-	return sdk.Events{evt}, nil
+	return cosmos.Events{evt}, nil
 }

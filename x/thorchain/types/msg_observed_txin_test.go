@@ -1,7 +1,7 @@
 package types
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	. "gopkg.in/check.v1"
 )
 
@@ -23,7 +23,7 @@ func (s *MsgObservedTxInSuite) TestMsgObservedTxIn(c *C) {
 
 	m1 := NewMsgObservedTxIn(nil, acc)
 	c.Assert(m1.ValidateBasic(), NotNil)
-	m2 := NewMsgObservedTxIn(ObservedTxs{tx}, sdk.AccAddress{})
+	m2 := NewMsgObservedTxIn(ObservedTxs{tx}, cosmos.AccAddress{})
 	c.Assert(m2.ValidateBasic(), NotNil)
 
 	// will not accept observations with pre-determined signers. This is

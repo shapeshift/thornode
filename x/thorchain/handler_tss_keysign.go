@@ -2,9 +2,9 @@ package thorchain
 
 import (
 	"github.com/blang/semver"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 )
 
@@ -23,7 +23,7 @@ func NewTssKeysignHandler(keeper Keeper, versionedEventManager VersionedEventMan
 	}
 }
 
-func (h TssKeysignHandler) Run(ctx sdk.Context, m sdk.Msg, version semver.Version, constAccessor constants.ConstantValues) sdk.Result {
+func (h TssKeysignHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) cosmos.Result {
 	msg, ok := m.(MsgTssKeysignFail)
 	if !ok {
 		return errInvalidMessage.Result()
@@ -36,26 +36,26 @@ func (h TssKeysignHandler) Run(ctx sdk.Context, m sdk.Msg, version semver.Versio
 	return h.handle(ctx, msg, version)
 }
 
-func (h TssKeysignHandler) validate(ctx sdk.Context, msg MsgTssKeysignFail, version semver.Version) sdk.Error {
+func (h TssKeysignHandler) validate(ctx cosmos.Context, msg MsgTssKeysignFail, version semver.Version) cosmos.Error {
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, msg)
 	}
 	return errBadVersion
 }
 
-func (h TssKeysignHandler) validateV1(ctx sdk.Context, msg MsgTssKeysignFail) sdk.Error {
+func (h TssKeysignHandler) validateV1(ctx cosmos.Context, msg MsgTssKeysignFail) cosmos.Error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
 
 	if !isSignedByActiveNodeAccounts(ctx, h.keeper, msg.GetSigners()) {
-		return sdk.ErrUnauthorized("not authorized")
+		return cosmos.ErrUnauthorized("not authorized")
 	}
 
 	return nil
 }
 
-func (h TssKeysignHandler) handle(ctx sdk.Context, msg MsgTssKeysignFail, version semver.Version) sdk.Result {
+func (h TssKeysignHandler) handle(ctx cosmos.Context, msg MsgTssKeysignFail, version semver.Version) cosmos.Result {
 	ctx.Logger().Info("handle MsgTssKeysignFail request", "ID:", msg.ID)
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.handleV1(ctx, msg, version)
@@ -64,11 +64,11 @@ func (h TssKeysignHandler) handle(ctx sdk.Context, msg MsgTssKeysignFail, versio
 }
 
 // Handle a message to observe inbound tx
-func (h TssKeysignHandler) handleV1(ctx sdk.Context, msg MsgTssKeysignFail, version semver.Version) sdk.Result {
+func (h TssKeysignHandler) handleV1(ctx cosmos.Context, msg MsgTssKeysignFail, version semver.Version) cosmos.Result {
 	active, err := h.keeper.ListActiveNodeAccounts(ctx)
 	if err != nil {
 		err = wrapError(ctx, err, "fail to get list of active node accounts")
-		return sdk.ErrInternal(err.Error()).Result()
+		return cosmos.ErrInternal(err.Error()).Result()
 	}
 
 	if !msg.Blame.IsEmpty() {
@@ -77,20 +77,20 @@ func (h TssKeysignHandler) handleV1(ctx sdk.Context, msg MsgTssKeysignFail, vers
 
 	voter, err := h.keeper.GetTssKeysignFailVoter(ctx, msg.ID)
 	if err != nil {
-		return sdk.ErrInternal(err.Error()).Result()
+		return cosmos.ErrInternal(err.Error()).Result()
 	}
 	slasher, err := NewSlasher(h.keeper, version, h.versionedEventManager)
 	if err != nil {
 		ctx.Logger().Error("fail to create slasher", "error", err)
-		return sdk.ErrInternal("fail to create slasher").Result()
+		return cosmos.ErrInternal("fail to create slasher").Result()
 	}
 	constAccessor := constants.GetConstantValues(version)
 	observeSlashPoints := constAccessor.GetInt64Value(constants.ObserveSlashPoints)
 	slasher.IncSlashPoints(ctx, observeSlashPoints, msg.Signer)
 	if !voter.Sign(msg.Signer) {
 		ctx.Logger().Info("signer already signed MsgTssKeysignFail", "signer", msg.Signer.String(), "txid", msg.ID)
-		return sdk.Result{
-			Code:      sdk.CodeOK,
+		return cosmos.Result{
+			Code:      cosmos.CodeOK,
 			Codespace: DefaultCodespace,
 		}
 	}
@@ -98,8 +98,8 @@ func (h TssKeysignHandler) handleV1(ctx sdk.Context, msg MsgTssKeysignFail, vers
 	// doesn't have consensus yet
 	if !voter.HasConsensus(active) {
 		ctx.Logger().Info("not having consensus yet, return")
-		return sdk.Result{
-			Code:      sdk.CodeOK,
+		return cosmos.Result{
+			Code:      cosmos.CodeOK,
 			Codespace: DefaultCodespace,
 		}
 	}
@@ -115,20 +115,20 @@ func (h TssKeysignHandler) handleV1(ctx sdk.Context, msg MsgTssKeysignFail, vers
 			nodePubKey, err := common.NewPubKey(node.Pubkey)
 			if err != nil {
 				ctx.Logger().Error("fail to parse pubkey")
-				return sdk.ErrInternal("fail to parse pubkey").Result()
+				return cosmos.ErrInternal("fail to parse pubkey").Result()
 			}
 			na, err := h.keeper.GetNodeAccountByPubKey(ctx, nodePubKey)
 			if err != nil {
 				ctx.Logger().Error("fail to get node from it's pub key", "error", err, "pub key", nodePubKey.String())
-				return sdk.ErrInternal("fail to get node account").Result()
+				return cosmos.ErrInternal("fail to get node account").Result()
 			}
 			if err := h.keeper.IncNodeAccountSlashPoints(ctx, na.NodeAddress, slashPoints); err != nil {
 				ctx.Logger().Error("fail to inc slash points", "error", err)
 			}
 		}
 		slasher.DecSlashPoints(ctx, observeSlashPoints, voter.Signers...)
-		return sdk.Result{
-			Code:      sdk.CodeOK,
+		return cosmos.Result{
+			Code:      cosmos.CodeOK,
 			Codespace: DefaultCodespace,
 		}
 	}
@@ -136,8 +136,8 @@ func (h TssKeysignHandler) handleV1(ctx sdk.Context, msg MsgTssKeysignFail, vers
 		slasher.DecSlashPoints(ctx, observeSlashPoints, msg.Signer)
 	}
 
-	return sdk.Result{
-		Code:      sdk.CodeOK,
+	return cosmos.Result{
+		Code:      cosmos.CodeOK,
 		Codespace: DefaultCodespace,
 	}
 }

@@ -6,22 +6,22 @@ import (
 	"sort"
 	"strings"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 type Coin struct {
-	Asset  Asset    `json:"asset"`
-	Amount sdk.Uint `json:"amount"`
+	Asset  Asset       `json:"asset"`
+	Amount cosmos.Uint `json:"amount"`
 }
 
 var NoCoin = Coin{
-	Amount: sdk.ZeroUint(),
+	Amount: cosmos.ZeroUint(),
 }
 
 type Coins []Coin
 
 // NewCoin return a new instance of Coin
-func NewCoin(asset Asset, amount sdk.Uint) Coin {
+func NewCoin(asset Asset, amount cosmos.Uint) Coin {
 	return Coin{
 		Asset:  asset,
 		Amount: amount,
@@ -63,13 +63,13 @@ func (c Coin) IsNative() bool {
 	return c.Asset.Chain.Equals(THORChain)
 }
 
-func (c Coin) Native() (sdk.Coin, error) {
+func (c Coin) Native() (cosmos.Coin, error) {
 	if !c.IsNative() {
-		return sdk.Coin{}, errors.New("coin is not on thorchain")
+		return cosmos.Coin{}, errors.New("coin is not on thorchain")
 	}
-	return sdk.NewCoin(
+	return cosmos.NewCoin(
 		strings.ToLower(c.Asset.Symbol.String()),
-		sdk.NewIntFromBigInt(c.Amount.BigInt()),
+		cosmos.NewIntFromBigInt(c.Amount.BigInt()),
 	), nil
 }
 
@@ -119,9 +119,9 @@ func (cs Coins) IsEmpty() bool {
 	return true
 }
 
-func (cs Coins) Native() (sdk.Coins, error) {
+func (cs Coins) Native() (cosmos.Coins, error) {
 	var err error
-	coins := make(sdk.Coins, len(cs))
+	coins := make(cosmos.Coins, len(cs))
 	for i, coin := range cs {
 		coins[i], err = coin.Native()
 		if err != nil {

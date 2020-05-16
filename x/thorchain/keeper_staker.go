@@ -1,33 +1,32 @@
 package thorchain
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
-
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 type KeeperStaker interface {
-	GetStakerIterator(ctx sdk.Context, _ common.Asset) sdk.Iterator
-	GetStaker(ctx sdk.Context, asset common.Asset, addr common.Address) (Staker, error)
-	SetStaker(ctx sdk.Context, staker Staker)
-	RemoveStaker(ctx sdk.Context, staker Staker)
+	GetStakerIterator(ctx cosmos.Context, _ common.Asset) cosmos.Iterator
+	GetStaker(ctx cosmos.Context, asset common.Asset, addr common.Address) (Staker, error)
+	SetStaker(ctx cosmos.Context, staker Staker)
+	RemoveStaker(ctx cosmos.Context, staker Staker)
 }
 
 // GetStakerIterator iterate stakers
-func (k KVStore) GetStakerIterator(ctx sdk.Context, asset common.Asset) sdk.Iterator {
+func (k KVStore) GetStakerIterator(ctx cosmos.Context, asset common.Asset) cosmos.Iterator {
 	store := ctx.KVStore(k.storeKey)
 	key := k.GetKey(ctx, prefixStaker, Staker{Asset: asset}.Key())
-	return sdk.KVStorePrefixIterator(store, []byte(key))
+	return cosmos.KVStorePrefixIterator(store, []byte(key))
 }
 
 // GetStaker retrieve staker from the data store
-func (k KVStore) GetStaker(ctx sdk.Context, asset common.Asset, addr common.Address) (Staker, error) {
+func (k KVStore) GetStaker(ctx cosmos.Context, asset common.Asset, addr common.Address) (Staker, error) {
 	store := ctx.KVStore(k.storeKey)
 	staker := Staker{
 		Asset:       asset,
 		RuneAddress: addr,
-		Units:       sdk.ZeroUint(),
-		PendingRune: sdk.ZeroUint(),
+		Units:       cosmos.ZeroUint(),
+		PendingRune: cosmos.ZeroUint(),
 	}
 	key := k.GetKey(ctx, prefixStaker, staker.Key())
 	if !store.Has([]byte(key)) {
@@ -41,14 +40,14 @@ func (k KVStore) GetStaker(ctx sdk.Context, asset common.Asset, addr common.Addr
 }
 
 // SetStaker store the staker to kvstore
-func (k KVStore) SetStaker(ctx sdk.Context, staker Staker) {
+func (k KVStore) SetStaker(ctx cosmos.Context, staker Staker) {
 	store := ctx.KVStore(k.storeKey)
 	key := k.GetKey(ctx, prefixStaker, staker.Key())
 	store.Set([]byte(key), k.cdc.MustMarshalBinaryBare(staker))
 }
 
 // RemoveStaker remove the staker to kvstore
-func (k KVStore) RemoveStaker(ctx sdk.Context, staker Staker) {
+func (k KVStore) RemoveStaker(ctx cosmos.Context, staker Staker) {
 	store := ctx.KVStore(k.storeKey)
 	key := k.GetKey(ctx, prefixStaker, staker.Key())
 	store.Delete([]byte(key))

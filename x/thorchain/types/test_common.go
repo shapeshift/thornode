@@ -2,20 +2,20 @@
 package types
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	atypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/tendermint/tendermint/crypto"
 	tmtypes "github.com/tendermint/tendermint/types"
 
 	"gitlab.com/thorchain/thornode/cmd"
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 )
 
 // GetRandomNodeAccount create a random generated node account , used for test purpose
 func GetRandomNodeAccount(status NodeStatus) NodeAccount {
 	v, _ := tmtypes.RandValidator(true, 100)
-	k, _ := sdk.Bech32ifyConsPub(v.PubKey)
+	k, _ := cosmos.Bech32ifyConsPub(v.PubKey)
 	pubKeys := common.PubKeySet{
 		Secp256k1: GetRandomPubKey(),
 		Ed25519:   GetRandomPubKey(),
@@ -25,11 +25,11 @@ func GetRandomNodeAccount(status NodeStatus) NodeAccount {
 	if common.RuneAsset().Chain.Equals(common.THORChain) {
 		bondAddr = common.Address(addr.String())
 	}
-	na := NewNodeAccount(addr, status, pubKeys, k, sdk.NewUint(100*common.One), bondAddr, 1)
+	na := NewNodeAccount(addr, status, pubKeys, k, cosmos.NewUint(100*common.One), bondAddr, 1)
 	na.Version = constants.SWVersion
 	if na.Status == Active {
 		na.ActiveBlockHeight = 10
-		na.Bond = sdk.NewUint(1000 * common.One)
+		na.Bond = cosmos.NewUint(1000 * common.One)
 	}
 	na.IPAddress = "192.168.0.1"
 
@@ -46,23 +46,23 @@ func GetRandomTx() common.Tx {
 		GetRandomTxHash(),
 		GetRandomBNBAddress(),
 		GetRandomBNBAddress(),
-		common.Coins{common.NewCoin(common.BNBAsset, sdk.OneUint())},
+		common.Coins{common.NewCoin(common.BNBAsset, cosmos.OneUint())},
 		common.Gas{
-			{Asset: common.BNBAsset, Amount: sdk.NewUint(37500)},
+			{Asset: common.BNBAsset, Amount: cosmos.NewUint(37500)},
 		},
 		"",
 	)
 }
 
 // GetRandomBech32Addr is an account address used for test
-func GetRandomBech32Addr() sdk.AccAddress {
+func GetRandomBech32Addr() cosmos.AccAddress {
 	name := common.RandStringBytesMask(10)
-	return sdk.AccAddress(crypto.AddressHash([]byte(name)))
+	return cosmos.AccAddress(crypto.AddressHash([]byte(name)))
 }
 
 func GetRandomBech32ConsensusPubKey() string {
 	_, pubKey, _ := atypes.KeyTestPubAddr()
-	result, err := sdk.Bech32ifyConsPub(pubKey)
+	result, err := cosmos.Bech32ifyConsPub(pubKey)
 	if err != nil {
 		panic(err)
 	}
@@ -116,14 +116,14 @@ func GetRandomVault() Vault {
 
 func GetRandomPubKey() common.PubKey {
 	_, pubKey, _ := atypes.KeyTestPubAddr()
-	bech32PubKey, _ := sdk.Bech32ifyAccPub(pubKey)
+	bech32PubKey, _ := cosmos.Bech32ifyAccPub(pubKey)
 	pk, _ := common.NewPubKey(bech32PubKey)
 	return pk
 }
 
 // SetupConfigForTest used for test purpose
 func SetupConfigForTest() {
-	config := sdk.GetConfig()
+	config := cosmos.GetConfig()
 	config.SetBech32PrefixForAccount(cmd.Bech32PrefixAccAddr, cmd.Bech32PrefixAccPub)
 	config.SetBech32PrefixForValidator(cmd.Bech32PrefixValAddr, cmd.Bech32PrefixValPub)
 	config.SetBech32PrefixForConsensusNode(cmd.Bech32PrefixConsAddr, cmd.Bech32PrefixConsPub)

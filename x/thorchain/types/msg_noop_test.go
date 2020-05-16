@@ -1,7 +1,7 @@
 package types
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	. "gopkg.in/check.v1"
 )
 
@@ -17,13 +17,13 @@ func (MsgNoopSuite) TestMsgNoop(c *C) {
 		Status:         Done,
 		OutHashes:      nil,
 		BlockHeight:    1,
-		Signers:        []sdk.AccAddress{addr},
+		Signers:        []cosmos.AccAddress{addr},
 		ObservedPubKey: GetRandomPubKey(),
 	}
 	m := NewMsgNoOp(tx, addr)
 	c.Check(m.ValidateBasic(), IsNil)
 	c.Check(m.Type(), Equals, "set_noop")
 	EnsureMsgBasicCorrect(m, c)
-	mEmpty := NewMsgNoOp(tx, sdk.AccAddress{})
+	mEmpty := NewMsgNoOp(tx, cosmos.AccAddress{})
 	c.Assert(mEmpty.ValidateBasic(), NotNil)
 }

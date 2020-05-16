@@ -1,16 +1,14 @@
 package thorchain
 
-import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
-)
+import cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 
 type KeeperRagnarok interface {
-	RagnarokInProgress(_ sdk.Context) bool
-	GetRagnarokBlockHeight(_ sdk.Context) (int64, error)
-	SetRagnarokBlockHeight(_ sdk.Context, _ int64)
+	RagnarokInProgress(_ cosmos.Context) bool
+	GetRagnarokBlockHeight(_ cosmos.Context) (int64, error)
+	SetRagnarokBlockHeight(_ cosmos.Context, _ int64)
 }
 
-func (k KVStore) RagnarokInProgress(ctx sdk.Context) bool {
+func (k KVStore) RagnarokInProgress(ctx cosmos.Context) bool {
 	height, err := k.GetRagnarokBlockHeight(ctx)
 	if err != nil {
 		ctx.Logger().Error(err.Error())
@@ -19,7 +17,7 @@ func (k KVStore) RagnarokInProgress(ctx sdk.Context) bool {
 	return height > 0
 }
 
-func (k KVStore) GetRagnarokBlockHeight(ctx sdk.Context) (int64, error) {
+func (k KVStore) GetRagnarokBlockHeight(ctx cosmos.Context) (int64, error) {
 	key := k.GetKey(ctx, prefixRagnarok, "")
 	store := ctx.KVStore(k.storeKey)
 	if !store.Has([]byte(key)) {
@@ -34,7 +32,7 @@ func (k KVStore) GetRagnarokBlockHeight(ctx sdk.Context) (int64, error) {
 	return ragnarok, nil
 }
 
-func (k KVStore) SetRagnarokBlockHeight(ctx sdk.Context, height int64) {
+func (k KVStore) SetRagnarokBlockHeight(ctx cosmos.Context, height int64) {
 	store := ctx.KVStore(k.storeKey)
 	key := k.GetKey(ctx, prefixRagnarok, "")
 	store.Set([]byte(key), k.cdc.MustMarshalBinaryBare(height))

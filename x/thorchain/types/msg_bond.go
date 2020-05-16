@@ -1,22 +1,21 @@
 package types
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
-
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 // MsgBond when a user would like to become a validator, and run a full set, they need send an `apply:bepaddress` with a bond to our pool address
 type MsgBond struct {
-	TxIn        common.Tx      `json:"tx_in"`
-	NodeAddress sdk.AccAddress `json:"node_address"`
-	Bond        sdk.Uint       `json:"bond"`
-	BondAddress common.Address `json:"bond_address"`
-	Signer      sdk.AccAddress `json:"signer"`
+	TxIn        common.Tx         `json:"tx_in"`
+	NodeAddress cosmos.AccAddress `json:"node_address"`
+	Bond        cosmos.Uint       `json:"bond"`
+	BondAddress common.Address    `json:"bond_address"`
+	Signer      cosmos.AccAddress `json:"signer"`
 }
 
 // NewMsgBond create new MsgBond message
-func NewMsgBond(txin common.Tx, nodeAddr sdk.AccAddress, bond sdk.Uint, bondAddress common.Address, signer sdk.AccAddress) MsgBond {
+func NewMsgBond(txin common.Tx, nodeAddr cosmos.AccAddress, bond cosmos.Uint, bondAddress common.Address, signer cosmos.AccAddress) MsgBond {
 	return MsgBond{
 		TxIn:        txin,
 		NodeAddress: nodeAddr,
@@ -33,31 +32,31 @@ func (msg MsgBond) Route() string { return RouterKey }
 func (msg MsgBond) Type() string { return "validator_apply" }
 
 // ValidateBasic runs stateless checks on the message
-func (msg MsgBond) ValidateBasic() sdk.Error {
+func (msg MsgBond) ValidateBasic() cosmos.Error {
 	if msg.NodeAddress.Empty() {
-		return sdk.ErrUnknownRequest("node address cannot be empty")
+		return cosmos.ErrUnknownRequest("node address cannot be empty")
 	}
 	if msg.Bond.IsZero() {
-		return sdk.ErrUnknownRequest("bond cannot be zero")
+		return cosmos.ErrUnknownRequest("bond cannot be zero")
 	}
 	if msg.BondAddress.IsEmpty() {
-		return sdk.ErrUnknownRequest("bond address cannot be empty")
+		return cosmos.ErrUnknownRequest("bond address cannot be empty")
 	}
 	if msg.TxIn.IsEmpty() {
-		return sdk.ErrUnknownRequest("request tx cannot be empty")
+		return cosmos.ErrUnknownRequest("request tx cannot be empty")
 	}
 	if msg.Signer.Empty() {
-		return sdk.ErrInvalidAddress("empty signer address")
+		return cosmos.ErrInvalidAddress("empty signer address")
 	}
 	return nil
 }
 
 // GetSignBytes encodes the message for signing
 func (msg MsgBond) GetSignBytes() []byte {
-	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(msg))
+	return cosmos.MustSortJSON(ModuleCdc.MustMarshalJSON(msg))
 }
 
 // GetSigners defines whose signature is required
-func (msg MsgBond) GetSigners() []sdk.AccAddress {
-	return []sdk.AccAddress{msg.Signer}
+func (msg MsgBond) GetSigners() []cosmos.AccAddress {
+	return []cosmos.AccAddress{msg.Signer}
 }

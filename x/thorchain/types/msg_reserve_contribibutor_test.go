@@ -1,8 +1,8 @@
 package types
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	. "gopkg.in/check.v1"
 )
 
@@ -12,7 +12,7 @@ var _ = Suite(&MsgReserveContributorSuite{})
 
 func (s *MsgReserveContributorSuite) TestMsgReserveContributor(c *C) {
 	addr := GetRandomBNBAddress()
-	amt := sdk.NewUint(378 * common.One)
+	amt := cosmos.NewUint(378 * common.One)
 	res := NewReserveContributor(addr, amt)
 	signer := GetRandomBech32Addr()
 

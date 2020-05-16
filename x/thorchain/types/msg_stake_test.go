@@ -1,8 +1,8 @@
 package types
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	. "gopkg.in/check.v1"
 )
 
@@ -22,28 +22,28 @@ func (MsgStakeSuite) TestMsgStake(c *C) {
 		runeAddress,
 		GetRandomRUNEAddress(),
 		common.Coins{
-			common.NewCoin(common.BTCAsset, sdk.NewUint(100000000)),
+			common.NewCoin(common.BTCAsset, cosmos.NewUint(100000000)),
 		},
 		BNBGasFeeSingleton,
 		"",
 	)
-	m := NewMsgSetStakeData(tx, common.BNBAsset, sdk.NewUint(100000000), sdk.NewUint(100000000), runeAddress, assetAddress, addr)
+	m := NewMsgSetStakeData(tx, common.BNBAsset, cosmos.NewUint(100000000), cosmos.NewUint(100000000), runeAddress, assetAddress, addr)
 	EnsureMsgBasicCorrect(m, c)
 	c.Check(m.Type(), Equals, "set_stakedata")
 
 	inputs := []struct {
 		asset     common.Asset
-		r         sdk.Uint
-		amt       sdk.Uint
+		r         cosmos.Uint
+		amt       cosmos.Uint
 		runeAddr  common.Address
 		assetAddr common.Address
 		txHash    common.TxID
-		signer    sdk.AccAddress
+		signer    cosmos.AccAddress
 	}{
 		{
 			asset:     common.Asset{},
-			r:         sdk.NewUint(100000000),
-			amt:       sdk.NewUint(100000000),
+			r:         cosmos.NewUint(100000000),
+			amt:       cosmos.NewUint(100000000),
 			runeAddr:  runeAddress,
 			assetAddr: assetAddress,
 			txHash:    txID,
@@ -51,8 +51,8 @@ func (MsgStakeSuite) TestMsgStake(c *C) {
 		},
 		{
 			asset:     common.BNBAsset,
-			r:         sdk.NewUint(100000000),
-			amt:       sdk.NewUint(100000000),
+			r:         cosmos.NewUint(100000000),
+			amt:       cosmos.NewUint(100000000),
 			runeAddr:  common.NoAddress,
 			assetAddr: common.NoAddress,
 			txHash:    txID,
@@ -60,8 +60,8 @@ func (MsgStakeSuite) TestMsgStake(c *C) {
 		},
 		{
 			asset:     common.BNBAsset,
-			r:         sdk.NewUint(100000000),
-			amt:       sdk.NewUint(100000000),
+			r:         cosmos.NewUint(100000000),
+			amt:       cosmos.NewUint(100000000),
 			runeAddr:  runeAddress,
 			assetAddr: assetAddress,
 			txHash:    common.TxID(""),
@@ -69,12 +69,12 @@ func (MsgStakeSuite) TestMsgStake(c *C) {
 		},
 		{
 			asset:     common.BNBAsset,
-			r:         sdk.NewUint(100000000),
-			amt:       sdk.NewUint(100000000),
+			r:         cosmos.NewUint(100000000),
+			amt:       cosmos.NewUint(100000000),
 			runeAddr:  runeAddress,
 			assetAddr: assetAddress,
 			txHash:    txID,
-			signer:    sdk.AccAddress{},
+			signer:    cosmos.AccAddress{},
 		},
 	}
 	for i, item := range inputs {
@@ -93,7 +93,7 @@ func (MsgStakeSuite) TestMsgStake(c *C) {
 	}
 }
 
-func EnsureMsgBasicCorrect(m sdk.Msg, c *C) {
+func EnsureMsgBasicCorrect(m cosmos.Msg, c *C) {
 	signers := m.GetSigners()
 	c.Check(signers, NotNil)
 	c.Check(len(signers), Equals, 1)

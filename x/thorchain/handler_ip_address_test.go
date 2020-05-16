@@ -2,7 +2,7 @@ package thorchain
 
 import (
 	"github.com/blang/semver"
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 	. "gopkg.in/check.v1"
 )
@@ -14,11 +14,11 @@ type TestIPAddresslKeeper struct {
 	na NodeAccount
 }
 
-func (k *TestIPAddresslKeeper) GetNodeAccount(_ sdk.Context, _ sdk.AccAddress) (NodeAccount, error) {
+func (k *TestIPAddresslKeeper) GetNodeAccount(_ cosmos.Context, _ cosmos.AccAddress) (NodeAccount, error) {
 	return k.na, nil
 }
 
-func (k *TestIPAddresslKeeper) SetNodeAccount(_ sdk.Context, na NodeAccount) error {
+func (k *TestIPAddresslKeeper) SetNodeAccount(_ cosmos.Context, na NodeAccount) error {
 	k.na = na
 	return nil
 }

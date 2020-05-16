@@ -5,7 +5,6 @@ import (
 	"io"
 
 	"github.com/cosmos/cosmos-sdk/server"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/genaccounts"
 	genaccscli "github.com/cosmos/cosmos-sdk/x/genaccounts/client/cli"
 	genutilcli "github.com/cosmos/cosmos-sdk/x/genutil/client/cli"
@@ -19,6 +18,7 @@ import (
 
 	app "gitlab.com/thorchain/thornode"
 	cmd "gitlab.com/thorchain/thornode/cmd"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 func main() {
@@ -26,7 +26,7 @@ func main() {
 
 	cdc := app.MakeCodec()
 
-	config := sdk.GetConfig()
+	config := cosmos.GetConfig()
 	config.SetBech32PrefixForAccount(cmd.Bech32PrefixAccAddr, cmd.Bech32PrefixAccPub)
 	config.SetBech32PrefixForValidator(cmd.Bech32PrefixValAddr, cmd.Bech32PrefixValPub)
 	config.SetBech32PrefixForConsensusNode(cmd.Bech32PrefixConsAddr, cmd.Bech32PrefixConsPub)

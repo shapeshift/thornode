@@ -4,12 +4,12 @@ import (
 	"net/http"
 
 	"github.com/cosmos/cosmos-sdk/client/context"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/rest"
 	"github.com/cosmos/cosmos-sdk/x/auth/client/utils"
 	"gitlab.com/thorchain/tss/go-tss/blame"
 
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
@@ -32,7 +32,7 @@ func newNativeTxHandler(cliCtx context.CLIContext) http.HandlerFunc {
 			return
 		}
 		baseReq.Gas = "auto"
-		addr, err := sdk.AccAddressFromBech32(req.BaseReq.From)
+		addr, err := cosmos.AccAddressFromBech32(req.BaseReq.From)
 		if err != nil {
 			rest.WriteErrorResponse(w, http.StatusBadRequest, err.Error())
 			return
@@ -45,7 +45,7 @@ func newNativeTxHandler(cliCtx context.CLIContext) http.HandlerFunc {
 			return
 		}
 
-		utils.WriteGenerateStdTxResponse(w, cliCtx, baseReq, []sdk.Msg{msg})
+		utils.WriteGenerateStdTxResponse(w, cliCtx, baseReq, []cosmos.Msg{msg})
 	}
 }
 
@@ -69,7 +69,7 @@ func newErrataTxHandler(cliCtx context.CLIContext) http.HandlerFunc {
 			return
 		}
 		baseReq.Gas = "auto"
-		addr, err := sdk.AccAddressFromBech32(req.BaseReq.From)
+		addr, err := cosmos.AccAddressFromBech32(req.BaseReq.From)
 		if err != nil {
 			rest.WriteErrorResponse(w, http.StatusBadRequest, err.Error())
 			return
@@ -81,7 +81,7 @@ func newErrataTxHandler(cliCtx context.CLIContext) http.HandlerFunc {
 			return
 		}
 
-		utils.WriteGenerateStdTxResponse(w, cliCtx, baseReq, []sdk.Msg{msg})
+		utils.WriteGenerateStdTxResponse(w, cliCtx, baseReq, []cosmos.Msg{msg})
 	}
 }
 
@@ -109,7 +109,7 @@ func newTssPoolHandler(cliCtx context.CLIContext) http.HandlerFunc {
 			return
 		}
 		baseReq.Gas = "auto"
-		addr, err := sdk.AccAddressFromBech32(req.BaseReq.From)
+		addr, err := cosmos.AccAddressFromBech32(req.BaseReq.From)
 		if err != nil {
 			rest.WriteErrorResponse(w, http.StatusBadRequest, err.Error())
 			return
@@ -121,7 +121,7 @@ func newTssPoolHandler(cliCtx context.CLIContext) http.HandlerFunc {
 			return
 		}
 
-		utils.WriteGenerateStdTxResponse(w, cliCtx, baseReq, []sdk.Msg{msg})
+		utils.WriteGenerateStdTxResponse(w, cliCtx, baseReq, []cosmos.Msg{msg})
 	}
 }
 
@@ -144,7 +144,7 @@ func postTxsHandler(cliCtx context.CLIContext) http.HandlerFunc {
 			return
 		}
 		baseReq.Gas = "auto"
-		addr, err := sdk.AccAddressFromBech32(req.BaseReq.From)
+		addr, err := cosmos.AccAddressFromBech32(req.BaseReq.From)
 		if err != nil {
 			rest.WriteErrorResponse(w, http.StatusBadRequest, err.Error())
 			return
@@ -174,7 +174,7 @@ func postTxsHandler(cliCtx context.CLIContext) http.HandlerFunc {
 			}
 		}
 
-		msgs := make([]sdk.Msg, 0)
+		msgs := make([]cosmos.Msg, 0)
 
 		if len(inbound) > 0 {
 			msg := types.NewMsgObservedTxIn(inbound, addr)

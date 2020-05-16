@@ -1,10 +1,10 @@
 package thorchain
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 type KeeperStakerSuite struct{}
@@ -22,7 +22,7 @@ func (s *KeeperStakerSuite) TestStaker(c *C) {
 
 	staker = Staker{
 		Asset:        asset,
-		Units:        sdk.NewUint(12),
+		Units:        cosmos.NewUint(12),
 		RuneAddress:  GetRandomBNBAddress(),
 		AssetAddress: GetRandomBTCAddress(),
 	}
@@ -31,5 +31,5 @@ func (s *KeeperStakerSuite) TestStaker(c *C) {
 	staker, err = k.GetStaker(ctx, asset, staker.RuneAddress)
 	c.Assert(err, IsNil)
 	c.Check(staker.Asset.Equals(asset), Equals, true)
-	c.Check(staker.Units.Equal(sdk.NewUint(12)), Equals, true)
+	c.Check(staker.Units.Equal(cosmos.NewUint(12)), Equals, true)
 }

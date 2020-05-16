@@ -1,24 +1,23 @@
 package thorchain
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
-
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 type KeeperGas interface {
-	GetGas(_ sdk.Context, asset common.Asset) ([]sdk.Uint, error)
-	SetGas(_ sdk.Context, asset common.Asset, units []sdk.Uint)
-	GetGasIterator(ctx sdk.Context) sdk.Iterator
+	GetGas(_ cosmos.Context, asset common.Asset) ([]cosmos.Uint, error)
+	SetGas(_ cosmos.Context, asset common.Asset, units []cosmos.Uint)
+	GetGasIterator(ctx cosmos.Context) cosmos.Iterator
 }
 
-func (k KVStore) GetGas(ctx sdk.Context, asset common.Asset) ([]sdk.Uint, error) {
+func (k KVStore) GetGas(ctx cosmos.Context, asset common.Asset) ([]cosmos.Uint, error) {
 	key := k.GetKey(ctx, prefixGas, asset.String())
 	store := ctx.KVStore(k.storeKey)
 	if !store.Has([]byte(key)) {
 		return nil, nil
 	}
-	var gas []sdk.Uint
+	var gas []cosmos.Uint
 	buf := store.Get([]byte(key))
 	err := k.cdc.UnmarshalBinaryBare(buf, &gas)
 	if err != nil {
@@ -27,14 +26,14 @@ func (k KVStore) GetGas(ctx sdk.Context, asset common.Asset) ([]sdk.Uint, error)
 	return gas, nil
 }
 
-func (k KVStore) SetGas(ctx sdk.Context, asset common.Asset, units []sdk.Uint) {
+func (k KVStore) SetGas(ctx cosmos.Context, asset common.Asset, units []cosmos.Uint) {
 	store := ctx.KVStore(k.storeKey)
 	key := k.GetKey(ctx, prefixGas, asset.String())
 	store.Set([]byte(key), k.cdc.MustMarshalBinaryBare(units))
 }
 
 // GetGasIterator iterate gas units
-func (k KVStore) GetGasIterator(ctx sdk.Context) sdk.Iterator {
+func (k KVStore) GetGasIterator(ctx cosmos.Context) cosmos.Iterator {
 	store := ctx.KVStore(k.storeKey)
-	return sdk.KVStorePrefixIterator(store, []byte(prefixGas))
+	return cosmos.KVStorePrefixIterator(store, []byte(prefixGas))
 }

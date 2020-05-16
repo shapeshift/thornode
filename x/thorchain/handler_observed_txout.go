@@ -4,9 +4,9 @@ import (
 	"fmt"
 
 	"github.com/blang/semver"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 )
 
@@ -38,18 +38,18 @@ func NewObservedTxOutHandler(keeper Keeper,
 	}
 }
 
-func (h ObservedTxOutHandler) Run(ctx sdk.Context, m sdk.Msg, version semver.Version, _ constants.ConstantValues) sdk.Result {
+func (h ObservedTxOutHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, _ constants.ConstantValues) cosmos.Result {
 	msg, ok := m.(MsgObservedTxOut)
 	if !ok {
 		return errInvalidMessage.Result()
 	}
 	if err := h.validate(ctx, msg, version); err != nil {
-		return sdk.ErrInternal(err.Error()).Result()
+		return cosmos.ErrInternal(err.Error()).Result()
 	}
 	return h.handle(ctx, msg, version)
 }
 
-func (h ObservedTxOutHandler) validate(ctx sdk.Context, msg MsgObservedTxOut, version semver.Version) error {
+func (h ObservedTxOutHandler) validate(ctx cosmos.Context, msg MsgObservedTxOut, version semver.Version) error {
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, msg)
 	} else {
@@ -58,7 +58,7 @@ func (h ObservedTxOutHandler) validate(ctx sdk.Context, msg MsgObservedTxOut, ve
 	}
 }
 
-func (h ObservedTxOutHandler) validateV1(ctx sdk.Context, msg MsgObservedTxOut) error {
+func (h ObservedTxOutHandler) validateV1(ctx cosmos.Context, msg MsgObservedTxOut) error {
 	if err := msg.ValidateBasic(); err != nil {
 		ctx.Logger().Error(err.Error())
 		return err
@@ -72,7 +72,7 @@ func (h ObservedTxOutHandler) validateV1(ctx sdk.Context, msg MsgObservedTxOut) 
 	return nil
 }
 
-func (h ObservedTxOutHandler) handle(ctx sdk.Context, msg MsgObservedTxOut, version semver.Version) sdk.Result {
+func (h ObservedTxOutHandler) handle(ctx cosmos.Context, msg MsgObservedTxOut, version semver.Version) cosmos.Result {
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.handleV1(ctx, version, msg)
 	} else {
@@ -81,7 +81,7 @@ func (h ObservedTxOutHandler) handle(ctx sdk.Context, msg MsgObservedTxOut, vers
 	}
 }
 
-func (h ObservedTxOutHandler) preflight(ctx sdk.Context, voter ObservedTxVoter, nas NodeAccounts, tx ObservedTx, signer sdk.AccAddress, slasher *Slasher, version semver.Version) (ObservedTxVoter, bool) {
+func (h ObservedTxOutHandler) preflight(ctx cosmos.Context, voter ObservedTxVoter, nas NodeAccounts, tx ObservedTx, signer cosmos.AccAddress, slasher *Slasher, version semver.Version) (ObservedTxVoter, bool) {
 	constAccessor := constants.GetConstantValues(version)
 	observeSlashPoints := constAccessor.GetInt64Value(constants.ObserveSlashPoints)
 	ok := false
@@ -111,12 +111,12 @@ func (h ObservedTxOutHandler) preflight(ctx sdk.Context, voter ObservedTxVoter, 
 }
 
 // Handle a message to observe outbound tx
-func (h ObservedTxOutHandler) handleV1(ctx sdk.Context, version semver.Version, msg MsgObservedTxOut) sdk.Result {
+func (h ObservedTxOutHandler) handleV1(ctx cosmos.Context, version semver.Version, msg MsgObservedTxOut) cosmos.Result {
 	constAccessor := constants.GetConstantValues(version)
 	activeNodeAccounts, err := h.keeper.ListActiveNodeAccounts(ctx)
 	if err != nil {
 		err = wrapError(ctx, err, "fail to get list of active node accounts")
-		return sdk.ErrInternal(err.Error()).Result()
+		return cosmos.ErrInternal(err.Error()).Result()
 	}
 
 	obMgr, err := h.versionedObserverManager.GetObserverManager(ctx, version)
@@ -128,12 +128,12 @@ func (h ObservedTxOutHandler) handleV1(ctx sdk.Context, version semver.Version, 
 	gasMgr, err := h.versionedGasMgr.GetGasManager(ctx, version)
 	if err != nil {
 		ctx.Logger().Error(fmt.Sprintf("gas manager that compatible with version :%s is not available", version))
-		return sdk.ErrInternal("fail to get gas manager").Result()
+		return cosmos.ErrInternal("fail to get gas manager").Result()
 	}
 	slasher, err := NewSlasher(h.keeper, version, h.versionedEventManager)
 	if err != nil {
 		ctx.Logger().Error("fail to create slasher", "error", err)
-		return sdk.ErrInternal("fail to create slasher").Result()
+		return cosmos.ErrInternal("fail to create slasher").Result()
 	}
 	handler := NewInternalHandler(h.keeper, h.versionedTxOutStore, h.validatorMgr, h.versionedVaultManager, h.versionedObserverManager, h.versionedGasMgr, h.versionedEventManager)
 
@@ -146,7 +146,7 @@ func (h ObservedTxOutHandler) handleV1(ctx sdk.Context, version semver.Version, 
 
 		voter, err := h.keeper.GetObservedTxVoter(ctx, tx.Tx.ID)
 		if err != nil {
-			return sdk.ErrInternal(err.Error()).Result()
+			return cosmos.ErrInternal(err.Error()).Result()
 		}
 
 		// check whether the tx has consensus
@@ -166,7 +166,7 @@ func (h ObservedTxOutHandler) handleV1(ctx sdk.Context, version semver.Version, 
 			// figure out the coin amounts
 			txYgg := tx.Tx
 			txYgg.Coins = common.Coins{
-				common.NewCoin(common.RuneAsset(), sdk.ZeroUint()),
+				common.NewCoin(common.RuneAsset(), cosmos.ZeroUint()),
 			}
 			tx.Tx.Memo = fetchMemo(ctx, constAccessor, h.keeper, txYgg)
 		}
@@ -209,7 +209,7 @@ func (h ObservedTxOutHandler) handleV1(ctx sdk.Context, version semver.Version, 
 
 		// Apply Gas fees
 		if err := AddGasFees(ctx, h.keeper, tx, gasMgr); err != nil {
-			return sdk.ErrInternal(fmt.Errorf("fail to add gas fee: %w", err).Error()).Result()
+			return cosmos.ErrInternal(fmt.Errorf("fail to add gas fee: %w", err).Error()).Result()
 		}
 
 		// If sending from one of our vaults, decrement coins
@@ -226,7 +226,7 @@ func (h ObservedTxOutHandler) handleV1(ctx sdk.Context, version semver.Version, 
 		}
 		if err := h.keeper.SetVault(ctx, vault); err != nil {
 			ctx.Logger().Error("fail to save vault", "error", err)
-			return sdk.ErrInternal("fail to save vault").Result()
+			return cosmos.ErrInternal("fail to save vault").Result()
 		}
 
 		// add addresses to observing addresses. This is used to detect
@@ -239,8 +239,8 @@ func (h ObservedTxOutHandler) handleV1(ctx sdk.Context, version semver.Version, 
 		}
 	}
 
-	return sdk.Result{
-		Code:      sdk.CodeOK,
+	return cosmos.Result{
+		Code:      cosmos.CodeOK,
 		Codespace: DefaultCodespace,
 	}
 }

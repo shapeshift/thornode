@@ -7,15 +7,14 @@ import (
 	"math/rand"
 	"sort"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 const (
-	DefaultCodespace    sdk.CodespaceType = ModuleName
-	SuperMajorityFactor uint64            = 3
-	MajorityFactor      uint64            = 2
+	DefaultCodespace    cosmos.CodespaceType = ModuleName
+	SuperMajorityFactor uint64               = 3
+	MajorityFactor      uint64               = 2
 )
 
 // HasSuperMajority return true when it has 2/3 majority
@@ -26,14 +25,14 @@ func HasSuperMajority(signers, total int) bool {
 	if signers <= 0 {
 		return false // edge case
 	}
-	mU := sdk.NewUint(SuperMajorityFactor)
+	mU := cosmos.NewUint(SuperMajorityFactor)
 
 	// 10*4 / (6.67*2) <= 3
 	// 4*4 / (3*2) <= 3
 	// 3*4 / (2*2) <= 3
 	// Is able to determine "majority" without needing floats or DECs
-	tU := sdk.NewUint(uint64(total))
-	sU := sdk.NewUint(uint64(signers))
+	tU := cosmos.NewUint(uint64(total))
+	sU := cosmos.NewUint(uint64(signers))
 	factor := tU.MulUint64(2).Quo(sU)
 	return mU.GTE(factor)
 }
@@ -46,11 +45,11 @@ func HasSimpleMajority(signers, total int) bool {
 	if signers <= 0 {
 		return false // edge case
 	}
-	mU := sdk.NewUint(MajorityFactor)
+	mU := cosmos.NewUint(MajorityFactor)
 
 	// Is able to determine "majority" without needing floats or DECs
-	tU := sdk.NewUint(uint64(total))
-	sU := sdk.NewUint(uint64(signers))
+	tU := cosmos.NewUint(uint64(total))
+	sU := cosmos.NewUint(uint64(signers))
 	factor := tU.Quo(sU)
 	return mU.GTE(factor)
 }

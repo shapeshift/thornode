@@ -4,9 +4,9 @@ import (
 	"fmt"
 
 	"github.com/blang/semver"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 )
 
@@ -26,7 +26,7 @@ func NewUnstakeHandler(keeper Keeper, txOutStore VersionedTxOutStore, versionedE
 	}
 }
 
-func (h UnstakeHandler) Run(ctx sdk.Context, m sdk.Msg, version semver.Version, _ constants.ConstantValues) sdk.Result {
+func (h UnstakeHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, _ constants.ConstantValues) cosmos.Result {
 	msg, ok := m.(MsgSetUnStake)
 	if !ok {
 		return errInvalidMessage.Result()
@@ -43,14 +43,14 @@ func (h UnstakeHandler) Run(ctx sdk.Context, m sdk.Msg, version semver.Version, 
 		return err.Result()
 	}
 
-	return sdk.Result{
-		Code:      sdk.CodeOK,
+	return cosmos.Result{
+		Code:      cosmos.CodeOK,
 		Data:      data,
 		Codespace: DefaultCodespace,
 	}
 }
 
-func (h UnstakeHandler) validate(ctx sdk.Context, msg MsgSetUnStake, version semver.Version) sdk.Error {
+func (h UnstakeHandler) validate(ctx cosmos.Context, msg MsgSetUnStake, version semver.Version) cosmos.Error {
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, msg)
 	} else {
@@ -58,10 +58,10 @@ func (h UnstakeHandler) validate(ctx sdk.Context, msg MsgSetUnStake, version sem
 	}
 }
 
-func (h UnstakeHandler) validateV1(ctx sdk.Context, msg MsgSetUnStake) sdk.Error {
+func (h UnstakeHandler) validateV1(ctx cosmos.Context, msg MsgSetUnStake) cosmos.Error {
 	if err := msg.ValidateBasic(); err != nil {
 		ctx.Logger().Error("unstake msg fail validation", "error", err.ABCILog())
-		return sdk.NewError(DefaultCodespace, CodeUnstakeFailValidation, err.Error())
+		return cosmos.NewError(DefaultCodespace, CodeUnstakeFailValidation, err.Error())
 	}
 	if !isSignedByActiveNodeAccounts(ctx, h.keeper, msg.GetSigners()) {
 		ctx.Logger().Error("message signed by unauthorized account",
@@ -69,29 +69,29 @@ func (h UnstakeHandler) validateV1(ctx sdk.Context, msg MsgSetUnStake) sdk.Error
 			"rune address", msg.RuneAddress,
 			"asset", msg.Asset,
 			"withdraw basis points", msg.UnstakeBasisPoints)
-		return sdk.ErrUnauthorized("not authorized")
+		return cosmos.ErrUnauthorized("not authorized")
 	}
 
 	pool, err := h.keeper.GetPool(ctx, msg.Asset)
 	if err != nil {
 		errMsg := fmt.Sprintf("fail to get pool(%s)", msg.Asset)
 		ctx.Logger().Error(errMsg, "error", err)
-		return sdk.ErrInternal(errMsg)
+		return cosmos.ErrInternal(errMsg)
 	}
 
 	if err := pool.EnsureValidPoolStatus(msg); err != nil {
 		ctx.Logger().Error("fail to check pool status", "error", err)
-		return sdk.NewError(DefaultCodespace, CodeInvalidPoolStatus, err.Error())
+		return cosmos.NewError(DefaultCodespace, CodeInvalidPoolStatus, err.Error())
 	}
 
 	return nil
 }
 
-func (h UnstakeHandler) handle(ctx sdk.Context, msg MsgSetUnStake, version semver.Version) ([]byte, sdk.Error) {
+func (h UnstakeHandler) handle(ctx cosmos.Context, msg MsgSetUnStake, version semver.Version) ([]byte, cosmos.Error) {
 	staker, err := h.keeper.GetStaker(ctx, msg.Asset, msg.RuneAddress)
 	if err != nil {
 		ctx.Logger().Error("fail to get staker", "error", err)
-		return nil, sdk.NewError(DefaultCodespace, CodeFailGetStaker, "fail to get staker")
+		return nil, cosmos.NewError(DefaultCodespace, CodeFailGetStaker, "fail to get staker")
 	}
 	eventManager, err := h.versionedEventManager.GetEventManager(ctx, version)
 	if err != nil {
@@ -100,29 +100,29 @@ func (h UnstakeHandler) handle(ctx sdk.Context, msg MsgSetUnStake, version semve
 	}
 	runeAmt, assetAmount, units, gasAsset, err := unstake(ctx, version, h.keeper, msg, eventManager)
 	if err != nil {
-		return nil, sdk.ErrInternal(fmt.Errorf("fail to process UnStake request: %w", err).Error())
+		return nil, cosmos.ErrInternal(fmt.Errorf("fail to process UnStake request: %w", err).Error())
 	}
 	res, err := h.keeper.Cdc().MarshalBinaryLengthPrefixed(struct {
-		Rune  sdk.Uint `json:"rune"`
-		Asset sdk.Uint `json:"asset"`
+		Rune  cosmos.Uint `json:"rune"`
+		Asset cosmos.Uint `json:"asset"`
 	}{
 		Rune:  runeAmt,
 		Asset: assetAmount,
 	})
 	if err != nil {
-		return nil, sdk.ErrInternal(fmt.Errorf("fail to marshal result to json: %w", err).Error())
+		return nil, cosmos.ErrInternal(fmt.Errorf("fail to marshal result to json: %w", err).Error())
 	}
 
 	unstakeEvt := NewEventUnstake(
 		msg.Asset,
 		units,
 		int64(msg.UnstakeBasisPoints.Uint64()),
-		sdk.ZeroDec(), // TODO: What is Asymmetry, how to calculate it?
+		cosmos.ZeroDec(), // TODO: What is Asymmetry, how to calculate it?
 		msg.Tx,
 	)
 	if err := eventManager.EmitUnstakeEvent(ctx, h.keeper, unstakeEvt); err != nil {
 		ctx.Logger().Error("fail to emit unstake event", "error", err)
-		return nil, sdk.NewError(DefaultCodespace, CodeFailSaveEvent, "fail to save unstake event")
+		return nil, cosmos.NewError(DefaultCodespace, CodeFailSaveEvent, "fail to save unstake event")
 	}
 	txOutStore, err := h.txOutStore.GetTxOutStore(ctx, h.keeper, version)
 	if err != nil {
@@ -152,10 +152,10 @@ func (h UnstakeHandler) handle(ctx sdk.Context, msg MsgSetUnStake, version semve
 	ok, err := txOutStore.TryAddTxOutItem(ctx, toi)
 	if err != nil {
 		ctx.Logger().Error("fail to prepare outbound tx", "error", err)
-		return nil, sdk.NewError(DefaultCodespace, CodeFailAddOutboundTx, "fail to prepare outbound tx")
+		return nil, cosmos.NewError(DefaultCodespace, CodeFailAddOutboundTx, "fail to prepare outbound tx")
 	}
 	if !ok {
-		return nil, sdk.NewError(DefaultCodespace, CodeFailAddOutboundTx, "prepare outbound tx not successful")
+		return nil, cosmos.NewError(DefaultCodespace, CodeFailAddOutboundTx, "prepare outbound tx not successful")
 	}
 
 	toi = &TxOutItem{
@@ -180,10 +180,10 @@ func (h UnstakeHandler) handle(ctx sdk.Context, msg MsgSetUnStake, version semve
 	ok, err = txOutStore.TryAddTxOutItem(ctx, toi)
 	if err != nil {
 		ctx.Logger().Error("fail to prepare outbound tx", "error", err)
-		return nil, sdk.NewError(DefaultCodespace, CodeFailAddOutboundTx, "fail to prepare outbound tx")
+		return nil, cosmos.NewError(DefaultCodespace, CodeFailAddOutboundTx, "fail to prepare outbound tx")
 	}
 	if !ok {
-		return nil, sdk.NewError(DefaultCodespace, CodeFailAddOutboundTx, "prepare outbound tx not successful")
+		return nil, cosmos.NewError(DefaultCodespace, CodeFailAddOutboundTx, "prepare outbound tx not successful")
 	}
 
 	// Get rune (if any) and donate it to the reserve

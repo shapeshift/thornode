@@ -9,9 +9,9 @@ import (
 	"strings"
 
 	"github.com/blang/semver"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 // NodeStatus Represent the Node status
@@ -85,24 +85,24 @@ func GetNodeStatus(ps string) NodeStatus {
 
 // NodeAccount represent node
 type NodeAccount struct {
-	NodeAddress         sdk.AccAddress   `json:"node_address"` // Thor address which is an operator address
-	Status              NodeStatus       `json:"status"`
-	PubKeySet           common.PubKeySet `json:"pub_key_set"`
-	ValidatorConsPubKey string           `json:"validator_cons_pub_key"`
-	Bond                sdk.Uint         `json:"bond"`
-	ActiveBlockHeight   int64            `json:"active_block_height"` // The block height when this node account became active status
-	BondAddress         common.Address   `json:"bond_address"`        // BNB Address to send bond from. It also indicates the operator address to whilelist and associate.
-	StatusSince         int64            `json:"status_since"`
-	SignerMembership    common.PubKeys   `json:"signer_membership"`
-	RequestedToLeave    bool             `json:"requested_to_leave"`
-	ForcedToLeave       bool             `json:"forced_to_leave"`
-	LeaveHeight         int64            `json:"leave_height"`
-	IPAddress           string           `json:"ip_address"`
-	Version             semver.Version   `json:"version"`
+	NodeAddress         cosmos.AccAddress `json:"node_address"` // Thor address which is an operator address
+	Status              NodeStatus        `json:"status"`
+	PubKeySet           common.PubKeySet  `json:"pub_key_set"`
+	ValidatorConsPubKey string            `json:"validator_cons_pub_key"`
+	Bond                cosmos.Uint       `json:"bond"`
+	ActiveBlockHeight   int64             `json:"active_block_height"` // The block height when this node account became active status
+	BondAddress         common.Address    `json:"bond_address"`        // BNB Address to send bond from. It also indicates the operator address to whilelist and associate.
+	StatusSince         int64             `json:"status_since"`
+	SignerMembership    common.PubKeys    `json:"signer_membership"`
+	RequestedToLeave    bool              `json:"requested_to_leave"`
+	ForcedToLeave       bool              `json:"forced_to_leave"`
+	LeaveHeight         int64             `json:"leave_height"`
+	IPAddress           string            `json:"ip_address"`
+	Version             semver.Version    `json:"version"`
 }
 
 // NewNodeAccount create new instance of NodeAccount
-func NewNodeAccount(nodeAddress sdk.AccAddress, status NodeStatus, nodePubKeySet common.PubKeySet, validatorConsPubKey string, bond sdk.Uint, bondAddress common.Address, height int64) NodeAccount {
+func NewNodeAccount(nodeAddress cosmos.AccAddress, status NodeStatus, nodePubKeySet common.PubKeySet, validatorConsPubKey string, bond cosmos.Uint, bondAddress common.Address, height int64) NodeAccount {
 	na := NodeAccount{
 		NodeAddress:         nodeAddress,
 		PubKeySet:           nodePubKeySet,
@@ -171,11 +171,11 @@ func (n NodeAccount) String() string {
 }
 
 // CalcBondUnits calculate bond
-func (n *NodeAccount) CalcBondUnits(height, slashpoints int64) sdk.Uint {
+func (n *NodeAccount) CalcBondUnits(height, slashpoints int64) cosmos.Uint {
 	// ensure slashpoints is not negative
 	slashpoints = int64(math.Max(float64(0), float64(slashpoints)))
 	if height < 0 || n.ActiveBlockHeight < 0 || slashpoints < 0 {
-		return sdk.ZeroUint()
+		return cosmos.ZeroUint()
 	}
 
 	blockCount := height - (n.ActiveBlockHeight + slashpoints)
@@ -183,16 +183,16 @@ func (n *NodeAccount) CalcBondUnits(height, slashpoints int64) sdk.Uint {
 		blockCount = 0
 	}
 
-	return sdk.NewUint(uint64(blockCount))
+	return cosmos.NewUint(uint64(blockCount))
 }
 
-func (n *NodeAccount) AddBond(amt sdk.Uint) {
+func (n *NodeAccount) AddBond(amt cosmos.Uint) {
 	n.Bond = n.Bond.Add(amt)
 }
 
-func (n *NodeAccount) SubBond(amt sdk.Uint) {
+func (n *NodeAccount) SubBond(amt cosmos.Uint) {
 	if n.Bond.LT(amt) {
-		n.Bond = sdk.ZeroUint()
+		n.Bond = cosmos.ZeroUint()
 	} else {
 		n.Bond = common.SafeSub(n.Bond, amt)
 	}
@@ -236,7 +236,7 @@ func (nas NodeAccounts) IsEmpty() bool {
 }
 
 // IsNodeKeys validate whether the given account address belongs to an currently active validator
-func (nas NodeAccounts) IsNodeKeys(addr sdk.AccAddress) bool {
+func (nas NodeAccounts) IsNodeKeys(addr cosmos.AccAddress) bool {
 	for _, na := range nas {
 		if na.Status == Active && addr.Equals(na.NodeAddress) {
 			return true

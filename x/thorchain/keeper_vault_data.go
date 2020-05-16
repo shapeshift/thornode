@@ -3,21 +3,20 @@ package thorchain
 import (
 	"fmt"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 )
 
 // KeeperVaultData func to access Vault in key value store
 type KeeperVaultData interface {
-	GetVaultData(ctx sdk.Context) (VaultData, error)
-	SetVaultData(ctx sdk.Context, data VaultData) error
-	UpdateVaultData(ctx sdk.Context, constAccessor constants.ConstantValues, gasManager GasManager, eventMgr EventManager) error
+	GetVaultData(ctx cosmos.Context) (VaultData, error)
+	SetVaultData(ctx cosmos.Context, data VaultData) error
+	UpdateVaultData(ctx cosmos.Context, constAccessor constants.ConstantValues, gasManager GasManager, eventMgr EventManager) error
 }
 
 // GetVaultData retrieve vault data from key value store
-func (k KVStore) GetVaultData(ctx sdk.Context) (VaultData, error) {
+func (k KVStore) GetVaultData(ctx cosmos.Context) (VaultData, error) {
 	data := NewVaultData()
 	key := k.GetKey(ctx, prefixVaultData, "")
 	store := ctx.KVStore(k.storeKey)
@@ -33,7 +32,7 @@ func (k KVStore) GetVaultData(ctx sdk.Context) (VaultData, error) {
 }
 
 // SetVaultData save the given vault data to key value store, it will overwrite existing vault
-func (k KVStore) SetVaultData(ctx sdk.Context, data VaultData) error {
+func (k KVStore) SetVaultData(ctx cosmos.Context, data VaultData) error {
 	key := k.GetKey(ctx, prefixVaultData, "")
 	store := ctx.KVStore(k.storeKey)
 	buf, err := k.cdc.MarshalBinaryBare(data)
@@ -44,16 +43,16 @@ func (k KVStore) SetVaultData(ctx sdk.Context, data VaultData) error {
 	return nil
 }
 
-func (k KVStore) getEnabledPoolsAndTotalStakedRune(ctx sdk.Context) (Pools, sdk.Uint, error) {
+func (k KVStore) getEnabledPoolsAndTotalStakedRune(ctx cosmos.Context) (Pools, cosmos.Uint, error) {
 	// First get active pools and total staked Rune
-	totalStaked := sdk.ZeroUint()
+	totalStaked := cosmos.ZeroUint()
 	var pools Pools
 	iterator := k.GetPoolIterator(ctx)
 	defer iterator.Close()
 	for ; iterator.Valid(); iterator.Next() {
 		var pool Pool
 		if err := k.Cdc().UnmarshalBinaryBare(iterator.Value(), &pool); err != nil {
-			return nil, sdk.ZeroUint(), fmt.Errorf("fail to unmarhsl pool: %w", err)
+			return nil, cosmos.ZeroUint(), fmt.Errorf("fail to unmarhsl pool: %w", err)
 		}
 		if pool.IsEnabled() && !pool.BalanceRune.IsZero() {
 			totalStaked = totalStaked.Add(pool.BalanceRune)
@@ -63,11 +62,11 @@ func (k KVStore) getEnabledPoolsAndTotalStakedRune(ctx sdk.Context) (Pools, sdk.
 	return pools, totalStaked, nil
 }
 
-func (k KVStore) getTotalActiveBond(ctx sdk.Context) (sdk.Uint, error) {
-	totalBonded := sdk.ZeroUint()
+func (k KVStore) getTotalActiveBond(ctx cosmos.Context) (cosmos.Uint, error) {
+	totalBonded := cosmos.ZeroUint()
 	nodes, err := k.ListActiveNodeAccounts(ctx)
 	if err != nil {
-		return sdk.ZeroUint(), fmt.Errorf("fail to get all active accounts: %w", err)
+		return cosmos.ZeroUint(), fmt.Errorf("fail to get all active accounts: %w", err)
 	}
 	for _, node := range nodes {
 		totalBonded = totalBonded.Add(node.Bond)
@@ -78,13 +77,13 @@ func (k KVStore) getTotalActiveBond(ctx sdk.Context) (sdk.Uint, error) {
 // UpdateVaultData Update the vault data to reflect changing in this block
 // TODO: there is way too much business logic her for a keeper function. Move
 // to its own file/manager
-func (k KVStore) UpdateVaultData(ctx sdk.Context, constAccessor constants.ConstantValues, gasManager GasManager, eventMgr EventManager) error {
+func (k KVStore) UpdateVaultData(ctx cosmos.Context, constAccessor constants.ConstantValues, gasManager GasManager, eventMgr EventManager) error {
 	vaultData, err := k.GetVaultData(ctx)
 	if err != nil {
 		return fmt.Errorf("fail to get existing vault data: %w", err)
 	}
 
-	totalReserve := sdk.ZeroUint()
+	totalReserve := cosmos.ZeroUint()
 	if common.RuneAsset().Chain.Equals(common.THORChain) {
 		totalReserve = k.GetRuneBalaceOfModule(ctx, ReserveName)
 	} else {
@@ -143,7 +142,7 @@ func (k KVStore) UpdateVaultData(ctx sdk.Context, constAccessor constants.Consta
 
 	if !totalPoolRewards.IsZero() { // If Pool Rewards to hand out
 
-		var rewardAmts []sdk.Uint
+		var rewardAmts []cosmos.Uint
 		// Pool Rewards are based on Fee Share
 		for _, pool := range pools {
 			fees, err := k.GetPoolLiquidityFees(ctx, currentHeight, pool.Asset)
@@ -201,12 +200,12 @@ func (k KVStore) UpdateVaultData(ctx sdk.Context, constAccessor constants.Consta
 	if err != nil {
 		return fmt.Errorf("fail to get total active node account: %w", err)
 	}
-	vaultData.TotalBondUnits = vaultData.TotalBondUnits.Add(sdk.NewUint(uint64(i))) // Add 1 unit for each active Node
+	vaultData.TotalBondUnits = vaultData.TotalBondUnits.Add(cosmos.NewUint(uint64(i))) // Add 1 unit for each active Node
 
 	return k.SetVaultData(ctx, vaultData)
 }
 
-func getTotalActiveNodeWithBond(ctx sdk.Context, k Keeper) (int64, error) {
+func getTotalActiveNodeWithBond(ctx cosmos.Context, k Keeper) (int64, error) {
 	nas, err := k.ListActiveNodeAccounts(ctx)
 	if err != nil {
 		return 0, fmt.Errorf("fail to get active node accounts: %w", err)
@@ -221,7 +220,7 @@ func getTotalActiveNodeWithBond(ctx sdk.Context, k Keeper) (int64, error) {
 }
 
 // Pays out Rewards
-func payPoolRewards(ctx sdk.Context, k Keeper, poolRewards []sdk.Uint, pools Pools) error {
+func payPoolRewards(ctx cosmos.Context, k Keeper, poolRewards []cosmos.Uint, pools Pools) error {
 	for i, reward := range poolRewards {
 		pools[i].BalanceRune = pools[i].BalanceRune.Add(reward)
 		if err := k.SetPool(ctx, pools[i]); err != nil {

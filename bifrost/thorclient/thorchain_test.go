@@ -7,12 +7,12 @@ import (
 	"strings"
 	"testing"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/bifrost/config"
 	"gitlab.com/thorchain/thornode/cmd"
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	stypes "gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
@@ -30,7 +30,7 @@ type ThorchainSuite struct {
 var _ = Suite(&ThorchainSuite{})
 
 func (s *ThorchainSuite) SetUpSuite(c *C) {
-	cfg2 := sdk.GetConfig()
+	cfg2 := cosmos.GetConfig()
 	cfg2.SetBech32PrefixForAccount(cmd.Bech32PrefixAccAddr, cmd.Bech32PrefixAccPub)
 	s.cfg, _, s.cleanup = SetupThorchainForTest(c)
 	s.server = httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
@@ -105,7 +105,7 @@ func (s *ThorchainSuite) TestSign(c *C) {
 	tx := stypes.NewObservedTx(
 		common.Tx{
 			Coins: common.Coins{
-				common.NewCoin(common.BNBAsset, sdk.NewUint(123400000)),
+				common.NewCoin(common.BNBAsset, cosmos.NewUint(123400000)),
 			},
 			Memo:        "This is my memo!",
 			FromAddress: vaultAddr,

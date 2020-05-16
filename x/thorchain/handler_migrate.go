@@ -5,9 +5,8 @@ import (
 
 	"github.com/blang/semver"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 )
 
@@ -23,18 +22,18 @@ func NewMigrateHandler(keeper Keeper, versionedEventManager VersionedEventManage
 	}
 }
 
-func (h MigrateHandler) Run(ctx sdk.Context, m sdk.Msg, version semver.Version, _ constants.ConstantValues) sdk.Result {
+func (h MigrateHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, _ constants.ConstantValues) cosmos.Result {
 	msg, ok := m.(MsgMigrate)
 	if !ok {
 		return errInvalidMessage.Result()
 	}
 	if err := h.validate(ctx, msg, version); err != nil {
-		return sdk.ErrInternal(err.Error()).Result()
+		return cosmos.ErrInternal(err.Error()).Result()
 	}
 	return h.handle(ctx, msg, version)
 }
 
-func (h MigrateHandler) validate(ctx sdk.Context, msg MsgMigrate, version semver.Version) error {
+func (h MigrateHandler) validate(ctx cosmos.Context, msg MsgMigrate, version semver.Version) error {
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, msg)
 	}
@@ -42,7 +41,7 @@ func (h MigrateHandler) validate(ctx sdk.Context, msg MsgMigrate, version semver
 	return errInvalidVersion
 }
 
-func (h MigrateHandler) validateV1(ctx sdk.Context, msg MsgMigrate) error {
+func (h MigrateHandler) validateV1(ctx cosmos.Context, msg MsgMigrate) error {
 	if err := msg.ValidateBasic(); nil != err {
 		ctx.Logger().Error(err.Error())
 		return err
@@ -55,7 +54,7 @@ func (h MigrateHandler) validateV1(ctx sdk.Context, msg MsgMigrate) error {
 	return nil
 }
 
-func (h MigrateHandler) handle(ctx sdk.Context, msg MsgMigrate, version semver.Version) sdk.Result {
+func (h MigrateHandler) handle(ctx cosmos.Context, msg MsgMigrate, version semver.Version) cosmos.Result {
 	ctx.Logger().Info("receive MsgMigrate", "request tx hash", msg.Tx.Tx.ID)
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.handleV1(ctx, version, msg)
@@ -64,7 +63,7 @@ func (h MigrateHandler) handle(ctx sdk.Context, msg MsgMigrate, version semver.V
 	return errBadVersion.Result()
 }
 
-func (h MigrateHandler) slash(ctx sdk.Context, version semver.Version, tx ObservedTx) error {
+func (h MigrateHandler) slash(ctx cosmos.Context, version semver.Version, tx ObservedTx) error {
 	var returnErr error
 	slasher, err := NewSlasher(h.keeper, version, h.versionedEventManager)
 	if err != nil {
@@ -79,12 +78,12 @@ func (h MigrateHandler) slash(ctx sdk.Context, version semver.Version, tx Observ
 	return returnErr
 }
 
-func (h MigrateHandler) handleV1(ctx sdk.Context, version semver.Version, msg MsgMigrate) sdk.Result {
+func (h MigrateHandler) handleV1(ctx cosmos.Context, version semver.Version, msg MsgMigrate) cosmos.Result {
 	// update txOut record with our TxID that sent funds out of the pool
 	txOut, err := h.keeper.GetTxOut(ctx, msg.BlockHeight)
 	if err != nil {
 		ctx.Logger().Error("unable to get txOut record", "error", err)
-		return sdk.ErrUnknownRequest(err.Error()).Result()
+		return cosmos.ErrUnknownRequest(err.Error()).Result()
 	}
 
 	shouldSlash := true
@@ -104,7 +103,7 @@ func (h MigrateHandler) handleV1(ctx sdk.Context, version semver.Version, msg Ms
 
 			if err := h.keeper.SetTxOut(ctx, txOut); nil != err {
 				ctx.Logger().Error("fail to save tx out", "error", err)
-				return sdk.ErrInternal("fail to save tx out").Result()
+				return cosmos.ErrInternal("fail to save tx out").Result()
 			}
 
 			break
@@ -113,14 +112,14 @@ func (h MigrateHandler) handleV1(ctx sdk.Context, version semver.Version, msg Ms
 
 	if shouldSlash {
 		if err := h.slash(ctx, version, msg.Tx); err != nil {
-			return sdk.ErrInternal("fail to slash account").Result()
+			return cosmos.ErrInternal("fail to slash account").Result()
 		}
 	}
 
 	h.keeper.SetLastSignedHeight(ctx, msg.BlockHeight)
 
-	return sdk.Result{
-		Code:      sdk.CodeOK,
+	return cosmos.Result{
+		Code:      cosmos.CodeOK,
 		Codespace: DefaultCodespace,
 	}
 }

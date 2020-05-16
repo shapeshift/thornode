@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/blang/semver"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 )
 
@@ -19,18 +19,18 @@ func NewSetNodeKeysHandler(keeper Keeper) SetNodeKeysHandler {
 	}
 }
 
-func (h SetNodeKeysHandler) Run(ctx sdk.Context, m sdk.Msg, version semver.Version, constAccessor constants.ConstantValues) sdk.Result {
+func (h SetNodeKeysHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) cosmos.Result {
 	msg, ok := m.(MsgSetNodeKeys)
 	if !ok {
 		return errInvalidMessage.Result()
 	}
 	if err := h.validate(ctx, msg, version); err != nil {
-		return sdk.ErrInternal(err.Error()).Result()
+		return cosmos.ErrInternal(err.Error()).Result()
 	}
 	return h.handle(ctx, msg, version, constAccessor)
 }
 
-func (h SetNodeKeysHandler) validate(ctx sdk.Context, msg MsgSetNodeKeys, version semver.Version) error {
+func (h SetNodeKeysHandler) validate(ctx cosmos.Context, msg MsgSetNodeKeys, version semver.Version) error {
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, msg)
 	} else {
@@ -39,7 +39,7 @@ func (h SetNodeKeysHandler) validate(ctx sdk.Context, msg MsgSetNodeKeys, versio
 	}
 }
 
-func (h SetNodeKeysHandler) validateV1(ctx sdk.Context, msg MsgSetNodeKeys) error {
+func (h SetNodeKeysHandler) validateV1(ctx cosmos.Context, msg MsgSetNodeKeys) error {
 	if err := msg.ValidateBasic(); err != nil {
 		ctx.Logger().Error(err.Error())
 		return err
@@ -73,7 +73,7 @@ func (h SetNodeKeysHandler) validateV1(ctx sdk.Context, msg MsgSetNodeKeys) erro
 	return nil
 }
 
-func (h SetNodeKeysHandler) handle(ctx sdk.Context, msg MsgSetNodeKeys, version semver.Version, constAccessor constants.ConstantValues) sdk.Result {
+func (h SetNodeKeysHandler) handle(ctx cosmos.Context, msg MsgSetNodeKeys, version semver.Version, constAccessor constants.ConstantValues) cosmos.Result {
 	ctx.Logger().Info("handleMsgSetNodeKeys request")
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.handleV1(ctx, msg, version, constAccessor)
@@ -84,11 +84,11 @@ func (h SetNodeKeysHandler) handle(ctx sdk.Context, msg MsgSetNodeKeys, version 
 }
 
 // Handle a message to set node keys
-func (h SetNodeKeysHandler) handleV1(ctx sdk.Context, msg MsgSetNodeKeys, version semver.Version, constAccessor constants.ConstantValues) sdk.Result {
+func (h SetNodeKeysHandler) handleV1(ctx cosmos.Context, msg MsgSetNodeKeys, version semver.Version, constAccessor constants.ConstantValues) cosmos.Result {
 	nodeAccount, err := h.keeper.GetNodeAccount(ctx, msg.Signer)
 	if err != nil {
 		ctx.Logger().Error("fail to get node account", "error", err, "address", msg.Signer.String())
-		return sdk.ErrUnauthorized(fmt.Sprintf("%s is not authorized", msg.Signer)).Result()
+		return cosmos.ErrUnauthorized(fmt.Sprintf("%s is not authorized", msg.Signer)).Result()
 	}
 
 	// Here make sure THORNode don't change the node account's bond
@@ -97,7 +97,7 @@ func (h SetNodeKeysHandler) handleV1(ctx sdk.Context, msg MsgSetNodeKeys, versio
 	nodeAccount.ValidatorConsPubKey = msg.ValidatorConsPubKey
 	if err := h.keeper.SetNodeAccount(ctx, nodeAccount); err != nil {
 		ctx.Logger().Error(fmt.Sprintf("fail to save node account: %s", nodeAccount), "error", err)
-		return sdk.ErrInternal("fail to save node account").Result()
+		return cosmos.ErrInternal("fail to save node account").Result()
 	}
 
 	// Set version number
@@ -110,14 +110,14 @@ func (h SetNodeKeysHandler) handleV1(ctx sdk.Context, msg MsgSetNodeKeys, versio
 	}
 
 	ctx.EventManager().EmitEvent(
-		sdk.NewEvent("set_node_keys",
-			sdk.NewAttribute("node_address", msg.Signer.String()),
-			sdk.NewAttribute("node_secp256k1_pubkey", msg.PubKeySetSet.Secp256k1.String()),
-			sdk.NewAttribute("node_ed25519_pubkey", msg.PubKeySetSet.Ed25519.String()),
-			sdk.NewAttribute("validator_consensus_pub_key", msg.ValidatorConsPubKey)))
+		cosmos.NewEvent("set_node_keys",
+			cosmos.NewAttribute("node_address", msg.Signer.String()),
+			cosmos.NewAttribute("node_secp256k1_pubkey", msg.PubKeySetSet.Secp256k1.String()),
+			cosmos.NewAttribute("node_ed25519_pubkey", msg.PubKeySetSet.Ed25519.String()),
+			cosmos.NewAttribute("validator_consensus_pub_key", msg.ValidatorConsPubKey)))
 
-	return sdk.Result{
-		Code:      sdk.CodeOK,
+	return cosmos.Result{
+		Code:      cosmos.CodeOK,
 		Codespace: DefaultCodespace,
 	}
 }

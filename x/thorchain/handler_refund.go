@@ -2,8 +2,8 @@ package thorchain
 
 import (
 	"github.com/blang/semver"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 )
 
@@ -24,7 +24,7 @@ func NewRefundHandler(keeper Keeper, versionedEventManager VersionedEventManager
 	}
 }
 
-func (h RefundHandler) Run(ctx sdk.Context, m sdk.Msg, version semver.Version, constAccessor constants.ConstantValues) sdk.Result {
+func (h RefundHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) cosmos.Result {
 	msg, ok := m.(MsgRefundTx)
 	if !ok {
 		return errInvalidMessage.Result()
@@ -39,24 +39,24 @@ func (h RefundHandler) Run(ctx sdk.Context, m sdk.Msg, version semver.Version, c
 	return h.handle(ctx, msg, version)
 }
 
-func (h RefundHandler) validate(ctx sdk.Context, msg MsgRefundTx, version semver.Version, constAccessor constants.ConstantValues) sdk.Error {
+func (h RefundHandler) validate(ctx cosmos.Context, msg MsgRefundTx, version semver.Version, constAccessor constants.ConstantValues) cosmos.Error {
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, version, msg, constAccessor)
 	}
 	return errBadVersion
 }
 
-func (h RefundHandler) validateV1(ctx sdk.Context, version semver.Version, msg MsgRefundTx, constAccessor constants.ConstantValues) sdk.Error {
+func (h RefundHandler) validateV1(ctx cosmos.Context, version semver.Version, msg MsgRefundTx, constAccessor constants.ConstantValues) cosmos.Error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
 
 	if !isSignedByActiveNodeAccounts(ctx, h.keeper, msg.GetSigners()) {
-		return sdk.ErrUnauthorized("msg is not signed by an active node account")
+		return cosmos.ErrUnauthorized("msg is not signed by an active node account")
 	}
 	return nil
 }
 
-func (h RefundHandler) handle(ctx sdk.Context, msg MsgRefundTx, version semver.Version) sdk.Result {
+func (h RefundHandler) handle(ctx cosmos.Context, msg MsgRefundTx, version semver.Version) cosmos.Result {
 	return h.ch.handle(ctx, version, msg.Tx, msg.InTxID, RefundStatus)
 }

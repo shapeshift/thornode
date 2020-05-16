@@ -1,10 +1,10 @@
 package types
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 type MsgRefundTxSuite struct{}
@@ -20,7 +20,7 @@ func (MsgRefundTxSuite) TestMsgRefundTx(c *C) {
 		txID,
 		bnb,
 		GetRandomBNBAddress(),
-		common.Coins{common.NewCoin(common.BNBAsset, sdk.OneUint())},
+		common.Coins{common.NewCoin(common.BNBAsset, cosmos.OneUint())},
 		BNBGasFeeSingleton,
 		"",
 	), 12, GetRandomPubKey())
@@ -32,7 +32,7 @@ func (MsgRefundTxSuite) TestMsgRefundTx(c *C) {
 		txID   common.TxID
 		inTxID common.TxID
 		sender common.Address
-		signer sdk.AccAddress
+		signer cosmos.AccAddress
 	}{
 		{
 			txID:   common.TxID(""),
@@ -56,7 +56,7 @@ func (MsgRefundTxSuite) TestMsgRefundTx(c *C) {
 			txID:   txID,
 			inTxID: inTxID,
 			sender: bnb,
-			signer: sdk.AccAddress{},
+			signer: cosmos.AccAddress{},
 		},
 	}
 
@@ -65,7 +65,7 @@ func (MsgRefundTxSuite) TestMsgRefundTx(c *C) {
 			item.txID,
 			item.sender,
 			GetRandomBNBAddress(),
-			common.Coins{common.NewCoin(common.BNBAsset, sdk.OneUint())},
+			common.Coins{common.NewCoin(common.BNBAsset, cosmos.OneUint())},
 			BNBGasFeeSingleton,
 			"",
 		), 12, GetRandomPubKey())
