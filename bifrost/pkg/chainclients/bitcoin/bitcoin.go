@@ -365,13 +365,17 @@ func (c *Client) extractTxs(block *btcjson.GetBlockVerboseTxResult) (types.TxIn,
 		}
 
 		output := c.getOutput(sender, &tx)
-		amount := uint64(output.Value * common.One)
+		amount, err := btcutil.NewAmount(output.Value)
+		if err != nil {
+			return types.TxIn{}, fmt.Errorf("fail to parse float64: %w", err)
+		}
+		amt := uint64(amount.ToUnit(btcutil.AmountSatoshi))
 		txItems = append(txItems, types.TxInItem{
 			Tx:     tx.Txid,
 			Sender: sender,
 			To:     output.ScriptPubKey.Addresses[0],
 			Coins: common.Coins{
-				common.NewCoin(common.BTCAsset, cosmos.NewUint(amount)),
+				common.NewCoin(common.BTCAsset, cosmos.NewUint(amt)),
 			},
 			Memo: memo,
 			Gas:  gas,
