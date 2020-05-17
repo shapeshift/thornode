@@ -17,49 +17,41 @@ const (
 
 // Keys manages all the keys used by thorchain
 type Keys struct {
-	chainHomeFolder string
-	signerName      string
-	password        string // TODO this is a bad way , need to fix it
-	signerInfo      ckeys.Info
-	kb              ckeys.Keybase
+	signerName string
+	password   string // TODO this is a bad way , need to fix it
+	signerInfo ckeys.Info
+	kb         ckeys.Keybase
 }
 
-// NewKeys create a new instance of keys
-func NewKeys(chainHomeFolder, signerName, password string) (*Keys, error) {
-	if len(signerName) == 0 {
-		return nil, fmt.Errorf("signer name is empty")
-	}
-	if len(password) == 0 {
-		return nil, fmt.Errorf("password is empty")
-	}
-	kb, err := getKeybase(chainHomeFolder)
-	if err != nil {
-		return nil, fmt.Errorf("fail to get keybase,err:%w", err)
-	}
-	signerInfo, err := kb.Get(signerName)
-	if err != nil {
-		return nil, fmt.Errorf("fail to get signer info,err:%w", err)
-	}
+// NewKeysWithKeybase create a new instance of Keys
+func NewKeysWithKeybase(kb ckeys.Keybase, signerInfo ckeys.Info, password string) *Keys {
 	return &Keys{
-		chainHomeFolder: chainHomeFolder,
-		signerName:      signerName,
-		signerInfo:      signerInfo,
-		password:        password,
-		kb:              kb,
-	}, nil
+		signerName: signerInfo.GetName(),
+		password:   password,
+		signerInfo: signerInfo,
+		kb:         kb,
+	}
 }
 
 // getKeybase will create an instance of Keybase
-func getKeybase(thorchainHome string) (ckeys.Keybase, error) {
+func GetKeybase(thorchainHome, signerName string) (ckeys.Keybase, ckeys.Info, error) {
 	cliDir := thorchainHome
 	if len(thorchainHome) == 0 {
 		usr, err := user.Current()
 		if err != nil {
-			return nil, fmt.Errorf("fail to get current user,err:%w", err)
+			return nil, nil, fmt.Errorf("fail to get current user,err:%w", err)
 		}
 		cliDir = filepath.Join(usr.HomeDir, thorchainCliFolderName)
 	}
-	return keys.NewKeyBaseFromDir(cliDir)
+	kb, err := keys.NewKeyBaseFromDir(cliDir)
+	if err != nil {
+		return nil, nil, fmt.Errorf("fail to create keybase from folder")
+	}
+	info, err := kb.Get(signerName)
+	if err != nil {
+		return kb, nil, fmt.Errorf("fail to get signer info(%s): %w", signerName, err)
+	}
+	return kb, info, nil
 }
 
 // GetSignerInfo return signer info

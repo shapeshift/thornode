@@ -48,9 +48,9 @@ func (kts *KeyGenTestSuite) TestNewTssKenGen(c *C) {
 		err := os.RemoveAll(folder)
 		c.Assert(err, IsNil)
 	}()
-
-	k, err := thorclient.NewKeys(folder, signerNameForTest, signerPasswordForTest)
+	kb, info, err := thorclient.GetKeybase(folder, signerNameForTest)
 	c.Assert(err, IsNil)
+	k := thorclient.NewKeysWithKeybase(kb, info, signerPasswordForTest)
 	c.Assert(k, NotNil)
 	kg, err := NewTssKeyGen(k, nil)
 	c.Assert(err, IsNil)

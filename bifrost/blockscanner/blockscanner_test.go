@@ -24,7 +24,7 @@ import (
 
 var m *metrics.Metrics
 
-func SetupThorchainForTest(c *C) (config.ClientConfiguration, cKeys.Info, func()) {
+func SetupThorchainForTest(c *C) (config.ClientConfiguration, cKeys.Info, cKeys.Keybase) {
 	thorchain.SetupConfigForTest()
 	thorcliDir := SetupThorCliDirForTest()
 	cfg := config.ClientConfiguration{
@@ -34,15 +34,10 @@ func SetupThorchainForTest(c *C) (config.ClientConfiguration, cKeys.Info, func()
 		SignerPasswd:    "password",
 		ChainHomeFolder: thorcliDir,
 	}
-	kb, err := keys.NewKeyBaseFromDir(thorcliDir)
-	c.Assert(err, IsNil)
+	kb := keys.NewInMemoryKeyBase()
 	info, _, err := kb.CreateMnemonic(cfg.SignerName, cKeys.English, cfg.SignerPasswd, cKeys.Secp256k1)
 	c.Assert(err, IsNil)
-	return cfg, info, func() {
-		if err := os.RemoveAll(thorcliDir); err != nil {
-			c.Error(err)
-		}
-	}
+	return cfg, info, kb
 }
 
 func SetupThorCliDirForTest() string {
@@ -54,10 +49,9 @@ func SetupThorCliDirForTest() string {
 }
 
 type BlockScannerTestSuite struct {
-	m       *metrics.Metrics
-	bridge  *thorclient.ThorchainBridge
-	cfg     config.ClientConfiguration
-	cleanup func()
+	m      *metrics.Metrics
+	bridge *thorclient.ThorchainBridge
+	cfg    config.ClientConfiguration
 }
 
 var _ = Suite(&BlockScannerTestSuite{})
@@ -73,13 +67,14 @@ func (s *BlockScannerTestSuite) SetUpSuite(c *C) {
 	})
 	c.Assert(m, NotNil)
 	c.Assert(err, IsNil)
-	s.cfg, _, s.cleanup = SetupThorchainForTest(c)
-	s.bridge, err = thorclient.NewThorchainBridge(s.cfg, s.m)
+	cfg, info, kb := SetupThorchainForTest(c)
+	s.cfg = cfg
+
+	s.bridge, err = thorclient.NewThorchainBridge(s.cfg, s.m, thorclient.NewKeysWithKeybase(kb, info, cfg.SignerPasswd))
 	c.Assert(err, IsNil)
 }
 
 func (s *BlockScannerTestSuite) TearDownSuite(c *C) {
-	s.cleanup()
 }
 
 func (s *BlockScannerTestSuite) TestNewBlockScanner(c *C) {

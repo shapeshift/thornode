@@ -78,9 +78,19 @@ func main() {
 	if err := m.Start(); err != nil {
 		log.Fatal().Err(err).Msg("fail to start metric collector")
 	}
-
+	if len(cfg.Thorchain.SignerName) == 0 {
+		log.Fatal().Msg("signer name is empty")
+	}
+	if len(cfg.Thorchain.SignerPasswd) == 0 {
+		log.Fatal().Msg("signer password is empty")
+	}
+	kb, si, err := thorclient.GetKeybase(cfg.Thorchain.ChainHomeFolder, cfg.Thorchain.SignerName)
+	if err != nil {
+		log.Fatal().Err(err).Msg("fail to get keyring keybase")
+	}
+	k := thorclient.NewKeysWithKeybase(kb, si, cfg.Thorchain.SignerPasswd)
 	// thorchain bridge
-	thorchainBridge, err := thorclient.NewThorchainBridge(cfg.Thorchain, m)
+	thorchainBridge, err := thorclient.NewThorchainBridge(cfg.Thorchain, m, k)
 	if err != nil {
 		log.Fatal().Err(err).Msg("fail to create new thorchain bridge")
 	}
@@ -97,14 +107,8 @@ func main() {
 		log.Fatal().Err(err).Msg("fail to start pubkey manager")
 	}
 
-	// get thorchain key manager
-	thorKeys, err := thorclient.NewKeys(cfg.Thorchain.ChainHomeFolder, cfg.Thorchain.SignerName, cfg.Thorchain.SignerPasswd)
-	if err != nil {
-		log.Fatal().Err(err).Msg("fail to load keys")
-	}
-
 	// setup TSS signing
-	priKey, err := thorKeys.GetPrivateKey()
+	priKey, err := k.GetPrivateKey()
 	if err != nil {
 		log.Fatal().Err(err).Msg("fail to get private key")
 	}
@@ -161,7 +165,7 @@ func main() {
 		}
 	}
 
-	chains := chainclients.LoadChains(thorKeys, cfg.Chains, tssIns, thorchainBridge, m)
+	chains := chainclients.LoadChains(k, cfg.Chains, tssIns, thorchainBridge, m)
 
 	// start observer
 	obs, err := observer.NewObserver(pubkeyMgr, chains, thorchainBridge, m)
@@ -173,7 +177,7 @@ func main() {
 	}
 
 	// start signer
-	sign, err := signer.NewSigner(cfg.Signer, thorchainBridge, thorKeys, pubkeyMgr, tssIns, cfg.TSS, chains, m)
+	sign, err := signer.NewSigner(cfg.Signer, thorchainBridge, k, pubkeyMgr, tssIns, cfg.TSS, chains, m)
 	if err != nil {
 		log.Fatal().Err(err).Msg("fail to create instance of signer")
 	}

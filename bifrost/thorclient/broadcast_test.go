@@ -16,7 +16,6 @@ type BroadcastSuite struct {
 	server  *httptest.Server
 	bridge  *ThorchainBridge
 	cfg     config.ClientConfiguration
-	cleanup func()
 	fixture string
 }
 
@@ -34,17 +33,17 @@ func (s *BroadcastSuite) SetUpSuite(c *C) {
 		}
 	}))
 
-	s.cfg, _, s.cleanup = SetupThorchainForTest(c)
+	cfg, info, kb := SetupThorchainForTest(c)
+	s.cfg = cfg
 	s.cfg.ChainHost = s.server.Listener.Addr().String()
 	var err error
-	s.bridge, err = NewThorchainBridge(s.cfg, GetMetricForTest(c))
+	s.bridge, err = NewThorchainBridge(s.cfg, GetMetricForTest(c), NewKeysWithKeybase(kb, info, cfg.SignerPasswd))
 	s.bridge.httpClient.RetryMax = 1
 	c.Assert(err, IsNil)
 	c.Assert(s.bridge, NotNil)
 }
 
 func (s *BroadcastSuite) TearDownSuite(c *C) {
-	s.cleanup()
 	s.server.Close()
 }
 

@@ -73,13 +73,12 @@ func (s *BinancechainSuite) SetUpSuite(c *C) {
 		ChainHomeFolder: s.thordir,
 	}
 
-	kb, err := keys.NewKeyBaseFromDir(s.thordir)
+	kb := keys.NewInMemoryKeyBase()
+	info, _, err := kb.CreateMnemonic(cfg.SignerName, cKeys.English, cfg.SignerPasswd, cKeys.Secp256k1)
 	c.Assert(err, IsNil)
-	_, _, err = kb.CreateMnemonic(cfg.SignerName, cKeys.English, cfg.SignerPasswd, cKeys.Secp256k1)
+	s.thorKeys = thorclient.NewKeysWithKeybase(kb, info, cfg.SignerPasswd)
 	c.Assert(err, IsNil)
-	s.thorKeys, err = thorclient.NewKeys(cfg.ChainHomeFolder, cfg.SignerName, cfg.SignerPasswd)
-	c.Assert(err, IsNil)
-	s.bridge, err = thorclient.NewThorchainBridge(cfg, s.m)
+	s.bridge, err = thorclient.NewThorchainBridge(cfg, s.m, s.thorKeys)
 	c.Assert(err, IsNil)
 }
 
@@ -205,7 +204,7 @@ func (s *BinancechainSuite) TestSignTx(c *C) {
 		SignerName:      "bob",
 		SignerPasswd:    "password",
 		ChainHomeFolder: s.thordir,
-	}, s.m)
+	}, s.m, s.thorKeys)
 	c.Assert(err, IsNil)
 	b2, err2 := NewBinance(s.thorKeys, config.ChainConfiguration{
 		RPCHost: server.URL,
@@ -244,7 +243,7 @@ func (s *BinancechainSuite) TestGetGasFee(c *C) {
 		SignerName:      "bob",
 		SignerPasswd:    "password",
 		ChainHomeFolder: s.thordir,
-	}, s.m)
+	}, s.m, s.thorKeys)
 	c.Assert(err, IsNil)
 	b2, err2 := NewBinance(s.thorKeys, config.ChainConfiguration{
 		RPCHost: server.URL,

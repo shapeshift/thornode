@@ -165,14 +165,12 @@ func (s *ObserverSuite) SetUpSuite(c *C) {
 		ChainHomeFolder: s.thordir,
 	}
 
-	kb, err := keys.NewKeyBaseFromDir(s.thordir)
+	kb := keys.NewInMemoryKeyBase()
+	info, _, err := kb.CreateMnemonic(cfg.SignerName, cKeys.English, cfg.SignerPasswd, cKeys.Secp256k1)
 	c.Assert(err, IsNil)
-	_, _, err = kb.CreateMnemonic(cfg.SignerName, cKeys.English, cfg.SignerPasswd, cKeys.Secp256k1)
-	c.Assert(err, IsNil)
-	s.thorKeys, err = thorclient.NewKeys(cfg.ChainHomeFolder, cfg.SignerName, cfg.SignerPasswd)
+	s.thorKeys = thorclient.NewKeysWithKeybase(kb, info, cfg.SignerPasswd)
 	c.Assert(s.thorKeys, NotNil)
-	c.Assert(err, IsNil)
-	s.bridge, err = thorclient.NewThorchainBridge(cfg, s.m)
+	s.bridge, err = thorclient.NewThorchainBridge(cfg, s.m, s.thorKeys)
 	c.Assert(s.bridge, NotNil)
 	c.Assert(err, IsNil)
 

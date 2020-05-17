@@ -7,6 +7,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/cosmos/cosmos-sdk/client/keys"
+	cKeys "github.com/cosmos/cosmos-sdk/crypto/keys"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/bifrost/config"
@@ -21,7 +23,6 @@ func TestPackage(t *testing.T) { TestingT(t) }
 type ThorchainSuite struct {
 	server             *httptest.Server
 	cfg                config.ClientConfiguration
-	cleanup            func()
 	bridge             *ThorchainBridge
 	authAccountFixture string
 	nodeAccountFixture string
@@ -32,7 +33,8 @@ var _ = Suite(&ThorchainSuite{})
 func (s *ThorchainSuite) SetUpSuite(c *C) {
 	cfg2 := cosmos.GetConfig()
 	cfg2.SetBech32PrefixForAccount(cmd.Bech32PrefixAccAddr, cmd.Bech32PrefixAccPub)
-	s.cfg, _, s.cleanup = SetupThorchainForTest(c)
+	cfg, info, kb := SetupThorchainForTest(c)
+	s.cfg = cfg
 	s.server = httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		switch {
 		case strings.HasPrefix(req.RequestURI, AuthAccountEndpoint):
@@ -55,7 +57,7 @@ func (s *ThorchainSuite) SetUpSuite(c *C) {
 	s.cfg.ChainRPC = s.server.Listener.Addr().String()
 
 	var err error
-	s.bridge, err = NewThorchainBridge(s.cfg, GetMetricForTest(c))
+	s.bridge, err = NewThorchainBridge(s.cfg, GetMetricForTest(c), NewKeysWithKeybase(kb, info, cfg.SignerPasswd))
 	s.bridge.httpClient.RetryMax = 1 // fail fast
 	c.Assert(err, IsNil)
 	c.Assert(s.bridge, NotNil)
@@ -63,7 +65,6 @@ func (s *ThorchainSuite) SetUpSuite(c *C) {
 
 func (s *ThorchainSuite) TearDownSuite(c *C) {
 	s.server.Close()
-	s.cleanup()
 }
 
 func (s *ThorchainSuite) TestGetThorChainURL(c *C) {
@@ -123,7 +124,10 @@ func (s *ThorchainSuite) TestSign(c *C) {
 
 func (ThorchainSuite) TestNewThorchainBridge(c *C) {
 	testFunc := func(cfg config.ClientConfiguration, errChecker, sbChecker Checker) {
-		sb, err := NewThorchainBridge(cfg, m)
+		kb := keys.NewInMemoryKeyBase()
+		info, _, err := kb.CreateMnemonic(cfg.SignerName, cKeys.English, cfg.SignerPasswd, cKeys.Secp256k1)
+		c.Assert(err, IsNil)
+		sb, err := NewThorchainBridge(cfg, m, NewKeysWithKeybase(kb, info, cfg.SignerPasswd))
 		c.Assert(err, errChecker)
 		c.Assert(sb, sbChecker)
 	}
@@ -140,20 +144,6 @@ func (ThorchainSuite) TestNewThorchainBridge(c *C) {
 		ChainHomeFolder: "~/.thorcli",
 		SignerName:      "signer",
 		SignerPasswd:    "signerpassword",
-	}, NotNil, IsNil)
-	testFunc(config.ClientConfiguration{
-		ChainID:         "chainid",
-		ChainHost:       "localhost",
-		ChainHomeFolder: "~/.thorcli",
-		SignerName:      "",
-		SignerPasswd:    "signerpassword",
-	}, NotNil, IsNil)
-	testFunc(config.ClientConfiguration{
-		ChainID:         "chainid",
-		ChainHost:       "localhost",
-		ChainHomeFolder: "~/.thorcli",
-		SignerName:      "signer",
-		SignerPasswd:    "",
 	}, NotNil, IsNil)
 }
 
