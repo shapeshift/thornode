@@ -142,13 +142,12 @@ func (s *SignSuite) SetUpSuite(c *C) {
 		ChainHomeFolder: s.thordir,
 	}
 
-	kb, err := keys.NewKeyBaseFromDir(s.thordir)
+	kb := keys.NewInMemoryKeyBase()
+	info, _, err := kb.CreateMnemonic(cfg.SignerName, cKeys.English, cfg.SignerPasswd, cKeys.Secp256k1)
 	c.Assert(err, IsNil)
-	_, _, err = kb.CreateMnemonic(cfg.SignerName, cKeys.English, cfg.SignerPasswd, cKeys.Secp256k1)
+	s.thorKeys = thorclient.NewKeysWithKeybase(kb, info, cfg.SignerPasswd)
 	c.Assert(err, IsNil)
-	s.thorKeys, err = thorclient.NewKeys(cfg.ChainHomeFolder, cfg.SignerName, cfg.SignerPasswd)
-	c.Assert(err, IsNil)
-	s.bridge, err = thorclient.NewThorchainBridge(cfg, s.m)
+	s.bridge, err = thorclient.NewThorchainBridge(cfg, s.m, s.thorKeys)
 	c.Assert(err, IsNil)
 	s.storage, err = NewSignerStore("", "")
 	c.Assert(err, IsNil)

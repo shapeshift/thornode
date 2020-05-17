@@ -37,12 +37,11 @@ import (
 )
 
 type BitcoinSignerSuite struct {
-	client  *Client
-	server  *httptest.Server
-	bridge  *thorclient.ThorchainBridge
-	cfg     config.ChainConfiguration
-	m       *metrics.Metrics
-	cleanup func()
+	client *Client
+	server *httptest.Server
+	bridge *thorclient.ThorchainBridge
+	cfg    config.ChainConfiguration
+	m      *metrics.Metrics
 }
 
 var _ = Suite(&BitcoinSignerSuite{})
@@ -73,12 +72,10 @@ func (s *BitcoinSignerSuite) SetUpTest(c *C) {
 		ChainHomeFolder: thordir,
 	}
 
-	kb, err := keys.NewKeyBaseFromDir(thordir)
+	kb := keys.NewInMemoryKeyBase()
+	info, _, err := kb.CreateMnemonic(cfg.SignerName, cKeys.English, cfg.SignerPasswd, cKeys.Secp256k1)
 	c.Assert(err, IsNil)
-	_, _, err = kb.CreateMnemonic(cfg.SignerName, cKeys.English, cfg.SignerPasswd, cKeys.Secp256k1)
-	c.Assert(err, IsNil)
-	thorKeys, err := thorclient.NewKeys(cfg.ChainHomeFolder, cfg.SignerName, cfg.SignerPasswd)
-	c.Assert(err, IsNil)
+	thorKeys := thorclient.NewKeysWithKeybase(kb, info, cfg.SignerPasswd)
 
 	s.server = httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		if req.RequestURI == "/thorchain/vaults/thorpub1addwnpepqts24euwrgly2vtez3zdvusmk6u3cwf8leuzj8m4ynvmv5cst7us2vltqrh/signers" {
@@ -109,7 +106,7 @@ func (s *BitcoinSignerSuite) SetUpTest(c *C) {
 
 	s.cfg.RPCHost = s.server.Listener.Addr().String()
 	cfg.ChainHost = s.server.Listener.Addr().String()
-	s.bridge, err = thorclient.NewThorchainBridge(cfg, s.m)
+	s.bridge, err = thorclient.NewThorchainBridge(cfg, s.m, thorKeys)
 	c.Assert(err, IsNil)
 	s.client, err = NewClient(thorKeys, s.cfg, nil, s.bridge, s.m)
 	storage := storage.NewMemStorage()

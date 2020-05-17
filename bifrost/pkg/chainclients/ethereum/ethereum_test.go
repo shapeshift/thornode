@@ -107,14 +107,12 @@ func (s *EthereumSuite) SetUpSuite(c *C) {
 		ChainHomeFolder: s.thordir,
 	}
 
-	kb, err := keys.NewKeyBaseFromDir(s.thordir)
-	c.Assert(err, IsNil)
-	_, _, err = kb.CreateMnemonic(cfg.SignerName, cKeys.English, cfg.SignerPasswd, cKeys.Secp256k1)
-	c.Assert(err, IsNil)
-	s.thorKeys, err = thorclient.NewKeys(cfg.ChainHomeFolder, cfg.SignerName, cfg.SignerPasswd)
-	c.Assert(err, IsNil)
+	kb := keys.NewInMemoryKeyBase()
 
-	s.bridge, err = thorclient.NewThorchainBridge(cfg, s.m)
+	info, _, err := kb.CreateMnemonic(cfg.SignerName, cKeys.English, cfg.SignerPasswd, cKeys.Secp256k1)
+	c.Assert(err, IsNil)
+	s.thorKeys = thorclient.NewKeysWithKeybase(kb, info, cfg.SignerPasswd)
+	s.bridge, err = thorclient.NewThorchainBridge(cfg, s.m, s.thorKeys)
 	c.Assert(err, IsNil)
 }
 
