@@ -143,6 +143,7 @@ func (k KVStore) UpdateVaultData(ctx cosmos.Context, constAccessor constants.Con
 	if !totalPoolRewards.IsZero() { // If Pool Rewards to hand out
 
 		var rewardAmts []cosmos.Uint
+		var rewardPools []Pool
 		// Pool Rewards are based on Fee Share
 		for _, pool := range pools {
 			if !pool.IsEnabled() {
@@ -161,9 +162,10 @@ func (k KVStore) UpdateVaultData(ctx cosmos.Context, constAccessor constants.Con
 			}
 			rewardAmts = append(rewardAmts, amt)
 			evtPools = append(evtPools, PoolAmt{Asset: pool.Asset, Amount: int64(amt.Uint64())})
+			rewardPools = append(rewardPools, pool)
 		}
 		// Pay out
-		if err := payPoolRewards(ctx, k, rewardAmts, pools); err != nil {
+		if err := payPoolRewards(ctx, k, rewardAmts, rewardPools); err != nil {
 			return err
 		}
 
