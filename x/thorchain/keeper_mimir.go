@@ -2,6 +2,8 @@ package thorchain
 
 import cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 
+const KRAKEN string = "ReleaseTheKraken"
+
 type KeeperMimir interface {
 	GetMimir(_ cosmos.Context, key string) (int64, error)
 	SetMimir(_ cosmos.Context, key string, value int64)
@@ -20,10 +22,31 @@ func (k KVStore) GetMimir(ctx cosmos.Context, key string) (int64, error) {
 	if err != nil {
 		return -1, dbError(ctx, "Unmarshal: mimir attr", err)
 	}
+	// if we have the kraken, mimir is no more, ignore him
+	if k.haveKraken(ctx) {
+		return -1, nil
+	}
 	return value, nil
 }
 
+// haveKraken - check to see if we have "released the kraken"
+func (k KVStore) haveKraken(ctx cosmos.Context) bool {
+	key := k.GetKey(ctx, prefixMimir, KRAKEN)
+	store := ctx.KVStore(k.storeKey)
+	if !store.Has([]byte(key)) {
+		return false
+	}
+	var value int64
+	buf := store.Get([]byte(key))
+	k.cdc.MustUnmarshalBinaryBare(buf, &value)
+	return value >= 0
+}
+
 func (k KVStore) SetMimir(ctx cosmos.Context, key string, value int64) {
+	// if we have the kraken, mimir is no more, ignore him
+	if k.haveKraken(ctx) {
+		return
+	}
 	store := ctx.KVStore(k.storeKey)
 	key = k.GetKey(ctx, prefixMimir, key)
 	store.Set([]byte(key), k.cdc.MustMarshalBinaryBare(value))
