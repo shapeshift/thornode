@@ -16,16 +16,17 @@ func (k KVStore) GetMimir(ctx cosmos.Context, key string) (int64, error) {
 	if !store.Has([]byte(key)) {
 		return -1, nil
 	}
+	// if we have the kraken, mimir is no more, ignore him
+	if k.haveKraken(ctx) {
+		return -1, nil
+	}
 	var value int64
 	buf := store.Get([]byte(key))
 	err := k.cdc.UnmarshalBinaryBare(buf, &value)
 	if err != nil {
 		return -1, dbError(ctx, "Unmarshal: mimir attr", err)
 	}
-	// if we have the kraken, mimir is no more, ignore him
-	if k.haveKraken(ctx) {
-		return -1, nil
-	}
+
 	return value, nil
 }
 
