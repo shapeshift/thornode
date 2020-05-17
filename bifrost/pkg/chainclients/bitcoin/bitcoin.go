@@ -488,11 +488,20 @@ func (c *Client) getGas(tx *btcjson.TxRawResult) (common.Gas, error) {
 		if err != nil {
 			return common.Gas{}, fmt.Errorf("fail to query raw tx from bitcoin node")
 		}
-		sumVin += uint64(vinTx.Vout[vin.Vout].Value * common.One)
+
+		amount, err := btcutil.NewAmount(vinTx.Vout[vin.Vout].Value)
+		if err != nil {
+			return nil, err
+		}
+		sumVin += uint64(amount.ToUnit(btcutil.AmountSatoshi))
 	}
 	var sumVout uint64 = 0
 	for _, vout := range tx.Vout {
-		sumVout += uint64(vout.Value * common.One)
+		amount, err := btcutil.NewAmount(vout.Value)
+		if err != nil {
+			return nil, err
+		}
+		sumVout += uint64(amount.ToUnit(btcutil.AmountSatoshi))
 	}
 	totalGas := sumVin - sumVout
 	return common.Gas{
