@@ -154,9 +154,8 @@ func (k KVStore) UpdateVaultData(ctx cosmos.Context, constAccessor constants.Con
 			} else {
 				fees, err := k.GetPoolLiquidityFees(ctx, currentHeight, pool.Asset)
 				if err != nil {
-					err = fmt.Errorf("fail to get fees: %w", err)
-					ctx.Logger().Error(err.Error())
-					return err
+					ctx.Logger().Error("fail to get fees", "error", err)
+					continue
 				}
 				amt = common.GetShare(fees, totalLiquidityFees, totalPoolRewards)
 			}
