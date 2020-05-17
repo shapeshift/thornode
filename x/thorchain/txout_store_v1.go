@@ -4,8 +4,6 @@ import (
 	"errors"
 	"fmt"
 
-	tmtypes "github.com/tendermint/tendermint/types"
-
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
@@ -288,19 +286,20 @@ func (tos *TxOutStorageV1) nativeTxOut(ctx cosmos.Context, toi *TxOutItem) error
 		return errors.New(sdkErr.Error())
 	}
 
-	hash := tmtypes.Tx(ctx.TxBytes()).Hash()
-	txID, err := common.NewTxID(fmt.Sprintf("%X", hash))
-	if err != nil {
-		ctx.Logger().Error("fail to get tx hash", "err", err)
-		return err
-	}
 	from, err := common.NewAddress(supplier.GetModuleAddress(AsgardName).String())
 	if err != nil {
 		ctx.Logger().Error("fail to get from address", "err", err)
 		return err
 	}
 
-	tx := common.NewTx(txID, from, toi.ToAddress, common.Coins{toi.Coin}, common.Gas{}, toi.Memo)
+	tx := common.NewTx(
+		common.BlankTxID,
+		from,
+		toi.ToAddress,
+		common.Coins{toi.Coin},
+		common.Gas{},
+		toi.Memo,
+	)
 
 	active, err := tos.keeper.GetAsgardVaultsByStatus(ctx, ActiveVault)
 	if err != nil {
