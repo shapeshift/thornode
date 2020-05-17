@@ -50,6 +50,9 @@ func refundTx(ctx cosmos.Context, tx ObservedTx, store TxOutStore, keeper Keeper
 		fee := getFee(tx.Tx.Coins, refundCoins, transactionFee)
 		eventRefund = NewEventRefund(refundCode, refundReason, newTx, fee)
 		status = EventPending
+		if common.RuneAsset().Chain.Equals(newTx.Chain) {
+			status = RefundStatus
+		}
 
 	}
 	if err := eventMgr.EmitRefundEvent(ctx, keeper, eventRefund, status); err != nil {
