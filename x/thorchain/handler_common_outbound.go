@@ -51,6 +51,26 @@ func (h CommonOutboundTxHandler) handle(ctx cosmos.Context, version semver.Versi
 		h.keeper.SetObservedTxVoter(ctx, voter)
 	}
 
+	// complete events
+	if voter.IsDone() {
+		err := completeEvents(ctx, h.keeper, inTxID, voter.OutTxs, status)
+		if err != nil {
+			ctx.Logger().Error("unable to complete events", "error", err)
+			return cosmos.ErrInternal(err.Error()).Result()
+		}
+		eventMgr, err := h.versionedEventManager.GetEventManager(ctx, version)
+		if err != nil {
+			ctx.Logger().Error("fail to get event manager", "error", err)
+			return errFailGetEventManager.Result()
+		}
+		for _, item := range voter.OutTxs {
+			if err := eventMgr.EmitOutboundEvent(ctx, NewEventOutbound(inTxID, item)); err != nil {
+				ctx.Logger().Error("fail to emit outbound event", "error", err)
+				return cosmos.ErrInternal("fail to emit outbound event").Result()
+			}
+		}
+	}
+
 	// update txOut record with our TxID that sent funds out of the pool
 	txOut, err := h.keeper.GetTxOut(ctx, voter.Height)
 	if err != nil {
