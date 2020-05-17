@@ -686,6 +686,9 @@ func queryCompEvents(ctx cosmos.Context, path []string, req abci.RequestQuery, k
 	for i := id; i <= id+limit; i++ {
 		event, _ := keeper.GetEvent(ctx, i)
 		if all {
+			if event.Empty() {
+				break
+			}
 			events = append(events, event)
 			continue
 		}
