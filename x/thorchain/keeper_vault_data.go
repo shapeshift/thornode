@@ -145,13 +145,18 @@ func (k KVStore) UpdateVaultData(ctx cosmos.Context, constAccessor constants.Con
 		var rewardAmts []cosmos.Uint
 		// Pool Rewards are based on Fee Share
 		for _, pool := range pools {
-			fees, err := k.GetPoolLiquidityFees(ctx, currentHeight, pool.Asset)
-			if err != nil {
-				err = fmt.Errorf("fail to get fees: %w", err)
-				ctx.Logger().Error(err.Error())
-				return err
+			amt := cosmos.ZeroUint()
+			if totalLiquidityFees.IsZero() {
+				amt = common.GetShare(cosmos.OneUint(), cosmos.NewUint(uint64(len(pools))), totalPoolRewards)
+			} else {
+				fees, err := k.GetPoolLiquidityFees(ctx, currentHeight, pool.Asset)
+				if err != nil {
+					err = fmt.Errorf("fail to get fees: %w", err)
+					ctx.Logger().Error(err.Error())
+					return err
+				}
+				amt = common.GetShare(fees, totalLiquidityFees, totalPoolRewards)
 			}
-			amt := common.GetShare(fees, totalLiquidityFees, totalPoolRewards)
 			rewardAmts = append(rewardAmts, amt)
 			evtPools = append(evtPools, PoolAmt{Asset: pool.Asset, Amount: int64(amt.Uint64())})
 		}
