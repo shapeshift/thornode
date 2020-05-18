@@ -209,10 +209,8 @@ func (s *Slasher) LackSigning(ctx cosmos.Context, constAccessor constants.Consta
 		}
 	}
 
-	if txs != nil {
-		if err := s.keeper.SetTxOut(ctx, txs); err != nil {
-			return fmt.Errorf("fail to save tx out : %w", err)
-		}
+	if err := s.keeper.SetTxOut(ctx, txs); err != nil {
+		return fmt.Errorf("fail to save tx out : %w", err)
 	}
 
 	return nil
