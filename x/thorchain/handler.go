@@ -106,6 +106,7 @@ func getHandlerMapping(keeper Keeper,
 	m[MsgErrataTx{}.Type()] = NewErrataTxHandler(keeper, versionedEventManager)
 	m[MsgSend{}.Type()] = NewSendHandler(keeper)
 	m[MsgMimir{}.Type()] = NewMimirHandler(keeper)
+	m[MsgBan{}.Type()] = NewBanHandler(keeper)
 	return m
 }
 
