@@ -35,9 +35,7 @@ func calcBlockRewards(totalStaked, totalBonded, totalReserve, totalLiquidityFees
 		stakerDeficit = common.SafeSub(totalLiquidityFees, stakerSplit) // Deduct existing income from split
 	}
 
-	bondReward := bonderSplit // Give bonders their split
-
-	return bondReward, poolReward, stakerDeficit
+	return bonderSplit, poolReward, stakerDeficit
 }
 
 func getPoolShare(totalStaked, totalBonded, totalRewards cosmos.Uint) cosmos.Uint {
