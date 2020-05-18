@@ -3,6 +3,7 @@ package thorchain
 import (
 	"fmt"
 
+	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	. "gopkg.in/check.v1"
 )
@@ -25,45 +26,45 @@ func (s *MemoSuite) TestTxType(c *C) {
 
 func (s *MemoSuite) TestParseWithAbbreviated(c *C) {
 	// happy paths
-	memo, err := ParseMemo("%:BNB.RUNE-1BA")
+	memo, err := ParseMemo("%:" + common.RuneAsset().String())
 	c.Assert(err, IsNil)
-	c.Check(memo.GetAsset().String(), Equals, "BNB.RUNE-1BA")
+	c.Check(memo.GetAsset().String(), Equals, common.RuneAsset().String())
 	c.Check(memo.IsType(TxAdd), Equals, true, Commentf("MEMO: %+v", memo))
 	c.Check(memo.IsInbound(), Equals, true)
 
-	memo, err = ParseMemo("+:BNB.RUNE-1BA")
+	memo, err = ParseMemo("+:" + common.RuneAsset().String())
 	c.Assert(err, IsNil)
-	c.Check(memo.GetAsset().String(), Equals, "BNB.RUNE-1BA")
+	c.Check(memo.GetAsset().String(), Equals, common.RuneAsset().String())
 	c.Check(memo.IsType(TxStake), Equals, true, Commentf("MEMO: %+v", memo))
 	c.Check(memo.IsInbound(), Equals, true)
 
-	memo, err = ParseMemo("-:BNB.RUNE-1BA:25")
+	memo, err = ParseMemo(fmt.Sprintf("-:%s:25", common.RuneAsset().String()))
 	c.Assert(err, IsNil)
-	c.Check(memo.GetAsset().String(), Equals, "BNB.RUNE-1BA")
+	c.Check(memo.GetAsset().String(), Equals, common.RuneAsset().String())
 	c.Check(memo.IsType(TxUnstake), Equals, true, Commentf("MEMO: %+v", memo))
 	c.Check(memo.GetAmount(), Equals, "25")
 	c.Check(memo.IsInbound(), Equals, true)
 
-	memo, err = ParseMemo("=:BNB.RUNE-1BA:bnb1lejrrtta9cgr49fuh7ktu3sddhe0ff7wenlpn6:870000000")
+	memo, err = ParseMemo("=:" + common.RuneAsset().String() + ":bnb1lejrrtta9cgr49fuh7ktu3sddhe0ff7wenlpn6:870000000")
 	c.Assert(err, IsNil)
-	c.Check(memo.GetAsset().String(), Equals, "BNB.RUNE-1BA")
+	c.Check(memo.GetAsset().String(), Equals, common.RuneAsset().String())
 	c.Check(memo.IsType(TxSwap), Equals, true, Commentf("MEMO: %+v", memo))
 	c.Check(memo.GetDestination().String(), Equals, "bnb1lejrrtta9cgr49fuh7ktu3sddhe0ff7wenlpn6")
 	c.Log(memo.GetSlipLimit().Uint64())
 	c.Check(memo.GetSlipLimit().Equal(cosmos.NewUint(870000000)), Equals, true)
 	c.Check(memo.IsInbound(), Equals, true)
 
-	memo, err = ParseMemo("=:BNB.RUNE-1BA:bnb1lejrrtta9cgr49fuh7ktu3sddhe0ff7wenlpn6")
+	memo, err = ParseMemo("=:" + common.RuneAsset().String() + ":bnb1lejrrtta9cgr49fuh7ktu3sddhe0ff7wenlpn6")
 	c.Assert(err, IsNil)
-	c.Check(memo.GetAsset().String(), Equals, "BNB.RUNE-1BA")
+	c.Check(memo.GetAsset().String(), Equals, common.RuneAsset().String())
 	c.Check(memo.IsType(TxSwap), Equals, true, Commentf("MEMO: %+v", memo))
 	c.Check(memo.GetDestination().String(), Equals, "bnb1lejrrtta9cgr49fuh7ktu3sddhe0ff7wenlpn6")
 	c.Check(memo.GetSlipLimit().Uint64(), Equals, uint64(0))
 	c.Check(memo.IsInbound(), Equals, true)
 
-	memo, err = ParseMemo("=:BNB.RUNE-1BA:bnb1lejrrtta9cgr49fuh7ktu3sddhe0ff7wenlpn6:")
+	memo, err = ParseMemo("=:" + common.RuneAsset().String() + ":bnb1lejrrtta9cgr49fuh7ktu3sddhe0ff7wenlpn6:")
 	c.Assert(err, IsNil)
-	c.Check(memo.GetAsset().String(), Equals, "BNB.RUNE-1BA")
+	c.Check(memo.GetAsset().String(), Equals, common.RuneAsset().String())
 	c.Check(memo.IsType(TxSwap), Equals, true, Commentf("MEMO: %+v", memo))
 	c.Check(memo.GetDestination().String(), Equals, "bnb1lejrrtta9cgr49fuh7ktu3sddhe0ff7wenlpn6")
 	c.Check(memo.GetSlipLimit().Equal(cosmos.ZeroUint()), Equals, true)
@@ -139,14 +140,14 @@ func (s *MemoSuite) TestParseWithAbbreviated(c *C) {
 
 func (s *MemoSuite) TestParse(c *C) {
 	// happy paths
-	memo, err := ParseMemo("add:BNB.RUNE-1BA")
+	memo, err := ParseMemo("add:" + common.RuneAsset().String())
 	c.Assert(err, IsNil)
-	c.Check(memo.GetAsset().String(), Equals, "BNB.RUNE-1BA")
+	c.Check(memo.GetAsset().String(), Equals, common.RuneAsset().String())
 	c.Check(memo.IsType(TxAdd), Equals, true, Commentf("MEMO: %+v", memo))
 
-	memo, err = ParseMemo("STAKE:BNB.RUNE-1BA")
+	memo, err = ParseMemo("STAKE:" + common.RuneAsset().String())
 	c.Assert(err, IsNil)
-	c.Check(memo.GetAsset().String(), Equals, "BNB.RUNE-1BA")
+	c.Check(memo.GetAsset().String(), Equals, common.RuneAsset().String())
 	c.Check(memo.IsType(TxStake), Equals, true, Commentf("MEMO: %+v", memo))
 
 	memo, err = ParseMemo("STAKE:BTC.BTC")
@@ -156,30 +157,30 @@ func (s *MemoSuite) TestParse(c *C) {
 	c.Check(memo.GetDestination().String(), Equals, "bc1qwqdg6squsna38e46795at95yu9atm8azzmyvckulcc7kytlcckxswvvzej")
 	c.Check(memo.IsType(TxStake), Equals, true, Commentf("MEMO: %+v", memo))
 
-	memo, err = ParseMemo("WITHDRAW:BNB.RUNE-1BA:25")
+	memo, err = ParseMemo("WITHDRAW:" + common.RuneAsset().String() + ":25")
 	c.Assert(err, IsNil)
-	c.Check(memo.GetAsset().String(), Equals, "BNB.RUNE-1BA")
+	c.Check(memo.GetAsset().String(), Equals, common.RuneAsset().String())
 	c.Check(memo.IsType(TxUnstake), Equals, true, Commentf("MEMO: %+v", memo))
 	c.Check(memo.GetAmount(), Equals, "25")
 
-	memo, err = ParseMemo("SWAP:BNB.RUNE-1BA:bnb1lejrrtta9cgr49fuh7ktu3sddhe0ff7wenlpn6:870000000")
+	memo, err = ParseMemo("SWAP:" + common.RuneAsset().String() + ":bnb1lejrrtta9cgr49fuh7ktu3sddhe0ff7wenlpn6:870000000")
 	c.Assert(err, IsNil)
-	c.Check(memo.GetAsset().String(), Equals, "BNB.RUNE-1BA")
+	c.Check(memo.GetAsset().String(), Equals, common.RuneAsset().String())
 	c.Check(memo.IsType(TxSwap), Equals, true, Commentf("MEMO: %+v", memo))
 	c.Check(memo.GetDestination().String(), Equals, "bnb1lejrrtta9cgr49fuh7ktu3sddhe0ff7wenlpn6")
 	c.Log(memo.GetSlipLimit().String())
 	c.Check(memo.GetSlipLimit().Equal(cosmos.NewUint(870000000)), Equals, true)
 
-	memo, err = ParseMemo("SWAP:BNB.RUNE-1BA:bnb1lejrrtta9cgr49fuh7ktu3sddhe0ff7wenlpn6")
+	memo, err = ParseMemo("SWAP:" + common.RuneAsset().String() + ":bnb1lejrrtta9cgr49fuh7ktu3sddhe0ff7wenlpn6")
 	c.Assert(err, IsNil)
-	c.Check(memo.GetAsset().String(), Equals, "BNB.RUNE-1BA")
+	c.Check(memo.GetAsset().String(), Equals, common.RuneAsset().String())
 	c.Check(memo.IsType(TxSwap), Equals, true, Commentf("MEMO: %+v", memo))
 	c.Check(memo.GetDestination().String(), Equals, "bnb1lejrrtta9cgr49fuh7ktu3sddhe0ff7wenlpn6")
 	c.Check(memo.GetSlipLimit().Uint64(), Equals, uint64(0))
 
-	memo, err = ParseMemo("SWAP:BNB.RUNE-1BA:bnb1lejrrtta9cgr49fuh7ktu3sddhe0ff7wenlpn6:")
+	memo, err = ParseMemo("SWAP:" + common.RuneAsset().String() + ":bnb1lejrrtta9cgr49fuh7ktu3sddhe0ff7wenlpn6:")
 	c.Assert(err, IsNil)
-	c.Check(memo.GetAsset().String(), Equals, "BNB.RUNE-1BA")
+	c.Check(memo.GetAsset().String(), Equals, common.RuneAsset().String())
 	c.Check(memo.IsType(TxSwap), Equals, true, Commentf("MEMO: %+v", memo))
 	c.Check(memo.GetDestination().String(), Equals, "bnb1lejrrtta9cgr49fuh7ktu3sddhe0ff7wenlpn6")
 	c.Check(memo.GetSlipLimit().Uint64(), Equals, uint64(0))

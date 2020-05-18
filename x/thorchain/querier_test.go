@@ -255,8 +255,12 @@ func (s *QuerierSuite) TestQueryCompEvents(c *C) {
 	c.Assert(err, IsNil)
 	err = keeper.Cdc().UnmarshalJSON(res, &out)
 	c.Assert(err, IsNil)
-	c.Assert(len(out), Equals, 3)
-	c.Assert(out[2].InTx.Chain.IsEmpty(), Equals, true)
+	if common.RuneAsset().Chain.Equals(common.THORChain) {
+		c.Assert(out, HasLen, 2)
+	} else {
+		c.Assert(out, HasLen, 3)
+		c.Assert(out[2].InTx.Chain.IsEmpty(), Equals, true)
+	}
 
 	// BTC events should still have the 1 event
 	path = []string{"comp_events", "1", "BTC"}

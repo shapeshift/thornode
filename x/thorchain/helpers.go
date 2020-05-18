@@ -328,7 +328,6 @@ func updateEventStatus(ctx cosmos.Context, keeper Keeper, eventID int64, txs com
 		}
 		if !duplicate {
 			event.OutTxs = append(event.OutTxs, item)
-			fmt.Printf("Added Event OutTxs: %d\n", len(event.OutTxs))
 		}
 	}
 	if eventStatus == RefundStatus {
