@@ -30,12 +30,11 @@ import (
 func TestPackage(t *testing.T) { TestingT(t) }
 
 type BitcoinSuite struct {
-	client  *Client
-	server  *httptest.Server
-	bridge  *thorclient.ThorchainBridge
-	cfg     config.ChainConfiguration
-	m       *metrics.Metrics
-	cleanup func()
+	client *Client
+	server *httptest.Server
+	bridge *thorclient.ThorchainBridge
+	cfg    config.ChainConfiguration
+	m      *metrics.Metrics
 }
 
 var _ = Suite(
@@ -86,13 +85,12 @@ func (s *BitcoinSuite) SetUpTest(c *C) {
 		ChainHomeFolder: thordir,
 	}
 
-	kb, err := keys.NewKeyBaseFromDir(thordir)
+	kb := keys.NewInMemoryKeyBase()
+	info, _, err := kb.CreateMnemonic(cfg.SignerName, cKeys.English, cfg.SignerPasswd, cKeys.Secp256k1)
 	c.Assert(err, IsNil)
-	_, _, err = kb.CreateMnemonic(cfg.SignerName, cKeys.English, cfg.SignerPasswd, cKeys.Secp256k1)
+	thorKeys := thorclient.NewKeysWithKeybase(kb, info, cfg.SignerPasswd)
 	c.Assert(err, IsNil)
-	thorKeys, err := thorclient.NewKeys(cfg.ChainHomeFolder, cfg.SignerName, cfg.SignerPasswd)
-	c.Assert(err, IsNil)
-	s.bridge, err = thorclient.NewThorchainBridge(cfg, s.m)
+	s.bridge, err = thorclient.NewThorchainBridge(cfg, s.m, thorKeys)
 	c.Assert(err, IsNil)
 
 	s.server = httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
