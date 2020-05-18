@@ -13,7 +13,39 @@ import (
 func refundTx(ctx cosmos.Context, tx ObservedTx, store TxOutStore, keeper Keeper, constAccessor constants.ConstantValues, refundCode cosmos.CodeType, refundReason string, eventMgr EventManager) error {
 	// If THORNode recognize one of the coins, and therefore able to refund
 	// withholding fees, refund all coins.
-	var refundCoins common.Coins
+
+	addEvent := func(refundCoins common.Coins) error {
+		eventRefund := NewEventRefund(refundCode, refundReason, tx.Tx, common.NewFee(common.Coins{}, cosmos.ZeroUint()))
+		status := EventSuccess
+		if len(refundCoins) > 0 {
+			// create a new TX based on the coins thorchain refund , some of the coins thorchain doesn't refund
+			// coin thorchain doesn't have pool with , likely airdrop
+			newTx := common.NewTx(tx.Tx.ID, tx.Tx.FromAddress, tx.Tx.ToAddress, tx.Tx.Coins, tx.Tx.Gas, tx.Tx.Memo)
+			transactionFee := constAccessor.GetInt64Value(constants.TransactionFee)
+			fee := getFee(tx.Tx.Coins, refundCoins, transactionFee)
+			eventRefund = NewEventRefund(refundCode, refundReason, newTx, fee)
+			status = EventPending
+		}
+		if err := eventMgr.EmitRefundEvent(ctx, keeper, eventRefund, status); err != nil {
+			return fmt.Errorf("fail to emit refund event: %w", err)
+		}
+		return nil
+	}
+
+	// for THORChain transactions, create the event before we txout. For other
+	// chains, do it after. The reason for this is we need to make sure the
+	// first event (refund) is created, before we create the outbound events
+	// (second). Because its THORChain, its safe to assume all the coins are
+	// safe to send back. Where as for external coins, we cannot make this
+	// assumption (ie coins we don't have pools for and therefore, don't know
+	// the value of it relative to rune)
+	if tx.Tx.Chain.Equals(common.THORChain) {
+		if err := addEvent(tx.Tx.Coins); err != nil {
+			return err
+		}
+	}
+
+	refundCoins := make(common.Coins, 0)
 	for _, coin := range tx.Tx.Coins {
 		pool, err := keeper.GetPool(ctx, coin.Asset)
 		if err != nil {
@@ -40,24 +72,12 @@ func refundTx(ctx cosmos.Context, tx ObservedTx, store TxOutStore, keeper Keeper
 		}
 		// Zombie coins are just dropped.
 	}
-	eventRefund := NewEventRefund(refundCode, refundReason, tx.Tx, common.NewFee(common.Coins{}, cosmos.ZeroUint()))
-	status := EventSuccess
-	if len(refundCoins) > 0 {
-		// create a new TX based on the coins thorchain refund , some of the coins thorchain doesn't refund
-		// coin thorchain doesn't have pool with , likely airdrop
-		newTx := common.NewTx(tx.Tx.ID, tx.Tx.FromAddress, tx.Tx.ToAddress, tx.Tx.Coins, tx.Tx.Gas, tx.Tx.Memo)
-		transactionFee := constAccessor.GetInt64Value(constants.TransactionFee)
-		fee := getFee(tx.Tx.Coins, refundCoins, transactionFee)
-		eventRefund = NewEventRefund(refundCode, refundReason, newTx, fee)
-		status = EventPending
-		if common.RuneAsset().Chain.Equals(newTx.Chain) {
-			status = RefundStatus
+	if !tx.Tx.Chain.Equals(common.THORChain) {
+		if err := addEvent(refundCoins); err != nil {
+			return err
 		}
+	}
 
-	}
-	if err := eventMgr.EmitRefundEvent(ctx, keeper, eventRefund, status); err != nil {
-		return fmt.Errorf("fail to emit refund event: %w", err)
-	}
 	return nil
 }
 
@@ -297,16 +317,18 @@ func updateEventStatus(ctx cosmos.Context, keeper Keeper, eventID int64, txs com
 	}
 
 	ctx.Logger().Info(fmt.Sprintf("set event to %s,eventID (%d) , txs:%s", eventStatus, eventID, txs))
-	outTxs := append(event.OutTxs, txs...)
-	for i := 0; i < len(outTxs); i++ {
+
+	for _, item := range txs {
 		duplicate := false
-		for j := i + 1; j < len(outTxs); j++ {
-			if outTxs[i].Equals(outTxs[j]) {
+		for i := 0; i < len(event.OutTxs); i++ {
+			if event.OutTxs[i].Equals(item) {
 				duplicate = true
+				break
 			}
 		}
 		if !duplicate {
-			event.OutTxs = append(event.OutTxs, outTxs[i])
+			event.OutTxs = append(event.OutTxs, item)
+			fmt.Printf("Added Event OutTxs: %d\n", len(event.OutTxs))
 		}
 	}
 	if eventStatus == RefundStatus {
@@ -316,7 +338,7 @@ func updateEventStatus(ctx cosmos.Context, keeper Keeper, eventID int64, txs com
 		if err != nil {
 			return fmt.Errorf("fail to get observed tx voter: %w", err)
 		}
-		if len(voter.Actions) == len(event.OutTxs) {
+		if len(voter.Actions) <= len(event.OutTxs) {
 			event.Status = eventStatus
 		}
 	} else {
