@@ -63,11 +63,6 @@ func (HandlerRagnarokSuite) TestRagnarok(c *C) {
 	msgRagnarok = MsgRagnarok{}
 	err = handler.validate(ctx, msgRagnarok, ver)
 	c.Assert(err, NotNil)
-
-	// not signed observer
-	msgRagnarok = NewMsgRagnarok(tx, 1, GetRandomBech32Addr())
-	err = handler.validate(ctx, msgRagnarok, ver)
-	c.Assert(err, Equals, notAuthorized)
 }
 
 type TestRagnarokKeeperHappyPath struct {

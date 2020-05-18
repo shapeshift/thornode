@@ -161,16 +161,6 @@ func (s *HandlerYggdrasilSuite) TestYggdrasilHandler(c *C) {
 			expectedResult: CodeBadVersion,
 		},
 		{
-			name: "Not signed by an active account should return an error",
-			messageCreator: func(helper yggdrasilHandlerTestHelper) cosmos.Msg {
-				return NewMsgYggdrasil(GetRandomTx(), GetRandomPubKey(), 12, false, common.Coins{common.NewCoin(common.BNBAsset, cosmos.OneUint())}, GetRandomBech32Addr())
-			},
-			runner: func(handler YggdrasilHandler, msg cosmos.Msg, helper yggdrasilHandlerTestHelper) cosmos.Result {
-				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
-			},
-			expectedResult: cosmos.CodeUnauthorized,
-		},
-		{
 			name: "empty pubkey should return an error",
 			messageCreator: func(helper yggdrasilHandlerTestHelper) cosmos.Msg {
 				return NewMsgYggdrasil(GetRandomTx(), "", 12, false, common.Coins{common.NewCoin(common.BNBAsset, cosmos.OneUint())}, GetRandomBech32Addr())

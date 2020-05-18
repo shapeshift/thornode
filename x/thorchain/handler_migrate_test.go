@@ -64,11 +64,6 @@ func (HandlerMigrateSuite) TestMigrate(c *C) {
 	msgMigrate = MsgMigrate{}
 	err = handler.validate(ctx, msgMigrate, ver)
 	c.Assert(err, NotNil)
-
-	// not signed observer
-	msgMigrate = NewMsgMigrate(tx, 1, GetRandomBech32Addr())
-	err = handler.validate(ctx, msgMigrate, ver)
-	c.Assert(err, Equals, notAuthorized)
 }
 
 type TestMigrateKeeperHappyPath struct {

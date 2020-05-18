@@ -226,16 +226,6 @@ func (s *HandlerRefundSuite) TestRefundTxHandlerShouldUpdateTxOut(c *C) {
 			expectedResult: CodeBadVersion,
 		},
 		{
-			name: "create a outbound tx with invalid observer account",
-			messageCreator: func(helper refundTxHandlerTestHelper, tx ObservedTx) cosmos.Msg {
-				return NewMsgRefundTx(tx, tx.Tx.ID, GetRandomNodeAccount(NodeActive).NodeAddress)
-			},
-			runner: func(handler RefundHandler, helper refundTxHandlerTestHelper, msg cosmos.Msg) cosmos.Result {
-				return handler.Run(helper.ctx, msg, semver.MustParse("0.2.0"), helper.constAccessor)
-			},
-			expectedResult: cosmos.CodeUnauthorized,
-		},
-		{
 			name: "fail to get observed TxVoter should result in an error",
 			messageCreator: func(helper refundTxHandlerTestHelper, tx ObservedTx) cosmos.Msg {
 				return NewMsgRefundTx(tx, helper.keeper.observeTxVoterErrHash, helper.nodeAccount.NodeAddress)

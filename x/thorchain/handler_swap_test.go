@@ -53,11 +53,6 @@ func (s *HandlerSwapSuite) TestValidate(c *C) {
 	msg = MsgSwap{}
 	err = handler.validate(ctx, msg, ver)
 	c.Assert(err, NotNil)
-
-	// not signed observer
-	msg = NewMsgSwap(tx, common.BNBAsset, signerBNBAddr, cosmos.ZeroUint(), GetRandomBech32Addr())
-	err = handler.validate(ctx, msg, ver)
-	c.Assert(err, Equals, notAuthorized)
 }
 
 type TestSwapHandleKeeper struct {
