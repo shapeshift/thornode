@@ -25,6 +25,9 @@ func (k KVStore) AppendTxOut(ctx cosmos.Context, height int64, item *TxOutItem) 
 
 // SetTxOut - write the given txout information to key values tore
 func (k KVStore) SetTxOut(ctx cosmos.Context, blockOut *TxOut) error {
+	if blockOut == nil || blockOut.IsEmpty() {
+		return nil
+	}
 	store := ctx.KVStore(k.storeKey)
 	key := k.GetKey(ctx, prefixTxOut, strconv.FormatInt(blockOut.Height, 10))
 	buf, err := k.cdc.MarshalBinaryBare(blockOut)
