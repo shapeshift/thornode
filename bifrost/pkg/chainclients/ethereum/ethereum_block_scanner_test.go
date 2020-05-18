@@ -175,6 +175,20 @@ func (s *BlockScannerTestSuite) TestFromTxToTxIn(c *C) {
 			_, err := rw.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":"0x1"}`))
 			c.Assert(err, IsNil)
 		}
+		if rpcRequest.Method == "eth_getTransactionReceipt" {
+			_, err := rw.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":{
+				"transactionHash":"0x88df016429689c079f3b2f6ad39fa052532c56795b733da78a91ebe6a713944b",
+				"transactionIndex":"0x0",
+				"blockNumber":"0x1",
+				"blockHash":"0x78bfef68fccd4507f9f4804ba5c65eb2f928ea45b3383ade88aaa720f1209cba",
+				"cumulativeGasUsed":"0xc350",
+				"gasUsed":"0x4dc",
+				"logsBloom":"0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+				"logs":[],
+				"status":"0x1"
+			}}`))
+			c.Assert(err, IsNil)
+		}
 	}))
 	ethClient, err := ethclient.Dial(server.URL)
 	c.Assert(err, IsNil)
@@ -217,7 +231,7 @@ func (s *BlockScannerTestSuite) TestFromTxToTxIn(c *C) {
 		true,
 	)
 	c.Check(
-		txInItem.Gas[0].Amount.Equal(cosmos.NewUint(21408)),
+		txInItem.Gas[0].Amount.Equal(cosmos.NewUint(50000)),
 		Equals,
 		true,
 	)
