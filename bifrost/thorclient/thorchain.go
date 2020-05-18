@@ -59,7 +59,7 @@ type ThorchainBridge struct {
 }
 
 // NewThorchainBridge create a new instance of ThorchainBridge
-func NewThorchainBridge(cfg config.ClientConfiguration, m *metrics.Metrics) (*ThorchainBridge, error) {
+func NewThorchainBridge(cfg config.ClientConfiguration, m *metrics.Metrics, k *Keys) (*ThorchainBridge, error) {
 	// main module logger
 	logger := log.With().Str("module", "thorchain_client").Logger()
 
@@ -68,16 +68,6 @@ func NewThorchainBridge(cfg config.ClientConfiguration, m *metrics.Metrics) (*Th
 	}
 	if len(cfg.ChainHost) == 0 {
 		return nil, errors.New("chain host is empty")
-	}
-	if len(cfg.SignerName) == 0 {
-		return nil, errors.New("signer name is empty")
-	}
-	if len(cfg.SignerPasswd) == 0 {
-		return nil, errors.New("signer password is empty")
-	}
-	k, err := NewKeys(cfg.ChainHomeFolder, cfg.SignerName, cfg.SignerPasswd)
-	if err != nil {
-		return nil, fmt.Errorf("fail to get keybase,err:%w", err)
 	}
 
 	httpClient := retryablehttp.NewClient()
