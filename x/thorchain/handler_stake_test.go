@@ -61,6 +61,7 @@ func (m *MockStackKeeper) GetStaker(_ cosmos.Context, asset common.Asset, addr c
 		RuneAddress:  addr,
 		AssetAddress: addr,
 		Units:        cosmos.ZeroUint(),
+		PendingRune:  cosmos.ZeroUint(),
 	}, nil
 }
 
