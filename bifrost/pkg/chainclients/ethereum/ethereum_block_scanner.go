@@ -272,6 +272,14 @@ func (e *BlockScanner) checkTransaction(hash string) bool {
 	return true
 }
 
+func (e *BlockScanner) getGasUsed(hash string) common.Gas {
+	receipt, err := e.client.TransactionReceipt(context.Background(), ecommon.HexToHash(hash))
+	if err != nil {
+		return common.MakeETHGas(e.gasPrice, 0)
+	}
+	return common.MakeETHGas(e.gasPrice, receipt.CumulativeGasUsed)
+}
+
 func (e *BlockScanner) getBlock(height int64) (*etypes.Block, error) {
 	return e.client.BlockByNumber(context.Background(), big.NewInt(height))
 }
@@ -324,6 +332,6 @@ func (e *BlockScanner) fromTxToTxIn(tx *etypes.Transaction) (*stypes.TxInItem, e
 	}
 
 	txInItem.Coins = append(txInItem.Coins, common.NewCoin(asset, cosmos.NewUintFromBigInt(tx.Value())))
-	txInItem.Gas = common.GetETHGasFee(e.gasPrice, uint64(len(txInItem.Memo)))
+	txInItem.Gas = e.getGasUsed(tx.Hash().Hex())
 	return txInItem, nil
 }
