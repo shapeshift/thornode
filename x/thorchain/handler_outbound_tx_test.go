@@ -69,11 +69,6 @@ func (s *HandlerOutboundTxSuite) TestValidate(c *C) {
 	msgOutboundTx = MsgOutboundTx{}
 	sErr = handler.validate(ctx, msgOutboundTx, ver)
 	c.Assert(sErr, NotNil)
-
-	// not signed observer
-	msgOutboundTx = NewMsgOutboundTx(tx, tx.Tx.ID, GetRandomBech32Addr())
-	sErr = handler.validate(ctx, msgOutboundTx, ver)
-	c.Assert(sErr.Code(), Equals, cosmos.CodeUnauthorized)
 }
 
 type outboundTxHandlerTestHelper struct {
@@ -289,16 +284,6 @@ func (s *HandlerOutboundTxSuite) TestOutboundTxHandlerShouldUpdateTxOut(c *C) {
 				return handler.Run(helper.ctx, msg, semver.MustParse("0.0.1"), helper.constAccessor)
 			},
 			expectedResult: CodeBadVersion,
-		},
-		{
-			name: "create a outbound tx with invalid observer account",
-			messageCreator: func(helper outboundTxHandlerTestHelper, tx ObservedTx) cosmos.Msg {
-				return NewMsgOutboundTx(tx, tx.Tx.ID, GetRandomNodeAccount(NodeActive).NodeAddress)
-			},
-			runner: func(handler OutboundTxHandler, helper outboundTxHandlerTestHelper, msg cosmos.Msg) cosmos.Result {
-				return handler.Run(helper.ctx, msg, semver.MustParse("0.2.0"), helper.constAccessor)
-			},
-			expectedResult: cosmos.CodeUnauthorized,
 		},
 		{
 			name: "fail to get observed TxVoter should result in an error",

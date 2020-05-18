@@ -131,23 +131,6 @@ func (HandlerLeaveSuite) TestLeaveValidation(c *C) {
 			}, cosmos.AccAddress{}),
 			expectedCode: cosmos.CodeUnknownRequest,
 		},
-		{
-			name: "empty signer should fail",
-			msgLeave: NewMsgLeave(common.Tx{
-				ID:          GetRandomTxHash(),
-				Chain:       common.BNBChain,
-				FromAddress: GetRandomBNBAddress(),
-				ToAddress:   GetRandomBNBAddress(),
-				Coins: common.Coins{
-					common.NewCoin(common.BNBAsset, cosmos.NewUint(common.One)),
-				},
-				Gas: common.Gas{
-					common.NewCoin(common.BNBAsset, cosmos.NewUint(common.One)),
-				},
-				Memo: "",
-			}, GetRandomNodeAccount(NodeActive).NodeAddress),
-			expectedCode: cosmos.CodeUnauthorized,
-		},
 	}
 	for _, item := range testCases {
 		c.Log(item.name)
