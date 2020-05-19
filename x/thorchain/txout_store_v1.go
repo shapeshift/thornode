@@ -4,8 +4,6 @@ import (
 	"errors"
 	"fmt"
 
-	tmtypes "github.com/tendermint/tendermint/types"
-
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
@@ -79,68 +77,70 @@ func (tos *TxOutStorageV1) prepareTxOutItem(ctx cosmos.Context, toi *TxOutItem) 
 		toi.Memo = NewOutboundMemo(toi.InHash).String()
 	}
 
-	// If THORNode don't have a pool already selected to send from, discover one.
-	if toi.VaultPubKey.IsEmpty() {
-		// When deciding which Yggdrasil pool will send out our tx out, we
-		// should consider which ones observed the inbound request tx, as
-		// yggdrasil pools can go offline. Here THORNode get the voter record and
-		// only consider Yggdrasils where their observed saw the "correct"
-		// tx.
+	if !toi.Chain.Equals(common.THORChain) {
+		// If THORNode don't have a pool already selected to send from, discover one.
+		if toi.VaultPubKey.IsEmpty() {
+			// When deciding which Yggdrasil pool will send out our tx out, we
+			// should consider which ones observed the inbound request tx, as
+			// yggdrasil pools can go offline. Here THORNode get the voter record and
+			// only consider Yggdrasils where their observed saw the "correct"
+			// tx.
 
-		activeNodeAccounts, err := tos.keeper.ListActiveNodeAccounts(ctx)
-		if len(activeNodeAccounts) > 0 && err == nil {
-			voter, err := tos.keeper.GetObservedTxVoter(ctx, toi.InHash)
+			activeNodeAccounts, err := tos.keeper.ListActiveNodeAccounts(ctx)
+			if len(activeNodeAccounts) > 0 && err == nil {
+				voter, err := tos.keeper.GetObservedTxVoter(ctx, toi.InHash)
+				if err != nil {
+					return false, fmt.Errorf("fail to get observed tx voter: %w", err)
+				}
+				tx := voter.GetTx(activeNodeAccounts)
+
+				// collect yggdrasil pools
+				yggs, err := tos.collectYggdrasilPools(ctx, tx, toi.Chain.GetGasAsset())
+				if err != nil {
+					return false, fmt.Errorf("fail to collect yggdrasil pool: %w", err)
+				}
+
+				vault := yggs.SelectByMaxCoin(toi.Coin.Asset)
+				// if none of the ygg vaults have enough funds, don't select one
+				// and we'll select an asgard vault a few lines down
+				if toi.Coin.Amount.LT(vault.GetCoin(toi.Coin.Asset).Amount) {
+					toi.VaultPubKey = vault.PubKey
+				}
+			}
+		}
+
+		// Apparently we couldn't find a yggdrasil vault to send from, so use asgard
+		if toi.VaultPubKey.IsEmpty() {
+
+			active, err := tos.keeper.GetAsgardVaultsByStatus(ctx, ActiveVault)
 			if err != nil {
-				return false, fmt.Errorf("fail to get observed tx voter: %w", err)
-			}
-			tx := voter.GetTx(activeNodeAccounts)
-
-			// collect yggdrasil pools
-			yggs, err := tos.collectYggdrasilPools(ctx, tx, toi.Chain.GetGasAsset())
-			if err != nil {
-				return false, fmt.Errorf("fail to collect yggdrasil pool: %w", err)
+				ctx.Logger().Error("fail to get active vaults", "error", err)
 			}
 
-			vault := yggs.SelectByMaxCoin(toi.Coin.Asset)
-			// if none of the ygg vaults have enough funds, don't select one
-			// and we'll select an asgard vault a few lines down
-			if toi.Coin.Amount.LT(vault.GetCoin(toi.Coin.Asset).Amount) {
-				toi.VaultPubKey = vault.PubKey
+			vault := active.SelectByMaxCoin(toi.Coin.Asset)
+			if vault.IsEmpty() {
+				return false, fmt.Errorf("empty vault, cannot send out fund: %w", err)
 			}
-		}
-	}
 
-	// Apparently we couldn't find a yggdrasil vault to send from, so use asgard
-	if toi.VaultPubKey.IsEmpty() {
+			// check that this vault has enough funds to satisfy the request
+			if toi.Coin.Amount.GT(vault.GetCoin(toi.Coin.Asset).Amount) {
+				// not enough funds
+				return false, fmt.Errorf("vault %s, does not have enough funds. Has %s, but requires %s", vault.PubKey, vault.GetCoin(toi.Coin.Asset), toi.Coin)
+			}
 
-		active, err := tos.keeper.GetAsgardVaultsByStatus(ctx, ActiveVault)
-		if err != nil {
-			ctx.Logger().Error("fail to get active vaults", "error", err)
-		}
-
-		vault := active.SelectByMaxCoin(toi.Coin.Asset)
-		if vault.IsEmpty() {
-			return false, fmt.Errorf("empty vault, cannot send out fund: %w", err)
+			toi.VaultPubKey = vault.PubKey
 		}
 
-		// check that this vault has enough funds to satisfy the request
-		if toi.Coin.Amount.GT(vault.GetCoin(toi.Coin.Asset).Amount) {
-			// not enough funds
-			return false, fmt.Errorf("vault %s, does not have enough funds. Has %s, but requires %s", vault.PubKey, vault.GetCoin(toi.Coin.Asset), toi.Coin)
+		// Ensure THORNode are not sending from and to the same address
+		fromAddr, err := toi.VaultPubKey.GetAddress(toi.Chain)
+		if err != nil || fromAddr.IsEmpty() || toi.ToAddress.Equals(fromAddr) {
+			return false, err
 		}
-
-		toi.VaultPubKey = vault.PubKey
 	}
 
 	// Ensure the InHash is set
 	if toi.InHash == "" {
 		toi.InHash = common.BlankTxID
-	}
-
-	// Ensure THORNode are not sending from and to the same address
-	fromAddr, err := toi.VaultPubKey.GetAddress(toi.Chain)
-	if err != nil || fromAddr.IsEmpty() || toi.ToAddress.Equals(fromAddr) {
-		return false, nil
 	}
 
 	transactionFee := tos.constAccessor.GetInt64Value(constants.TransactionFee)
@@ -229,6 +229,9 @@ func (tos *TxOutStorageV1) prepareTxOutItem(ctx cosmos.Context, toi *TxOutItem) 
 	if err != nil {
 		return false, fmt.Errorf("fail to get observed tx voter: %w", err)
 	}
+	if voter.Height == 0 {
+		voter.Height = ctx.BlockHeight()
+	}
 	voter.Actions = append(voter.Actions, *toi)
 	tos.keeper.SetObservedTxVoter(ctx, voter)
 
@@ -273,30 +276,30 @@ func (tos *TxOutStorageV1) nativeTxOut(ctx cosmos.Context, toi *TxOutItem) error
 		return err
 	}
 
-	coin, err := toi.Coin.Native()
-	if err != nil {
-		return err
+	if toi.ModuleName == "" {
+		toi.ModuleName = AsgardName
 	}
 
-	// send funds from asgard module
-	sdkErr := supplier.SendCoinsFromModuleToAccount(ctx, AsgardName, addr, cosmos.NewCoins(coin))
+	// send funds from module
+	sdkErr := tos.keeper.SendFromModuleToAccount(ctx, toi.ModuleName, addr, toi.Coin)
 	if sdkErr != nil {
 		return errors.New(sdkErr.Error())
 	}
 
-	hash := tmtypes.Tx(ctx.TxBytes()).Hash()
-	txID, err := common.NewTxID(fmt.Sprintf("%X", hash))
-	if err != nil {
-		ctx.Logger().Error("fail to get tx hash", "err", err)
-		return err
-	}
 	from, err := common.NewAddress(supplier.GetModuleAddress(AsgardName).String())
 	if err != nil {
 		ctx.Logger().Error("fail to get from address", "err", err)
 		return err
 	}
 
-	tx := common.NewTx(txID, from, toi.ToAddress, common.Coins{toi.Coin}, common.Gas{}, toi.Memo)
+	tx := common.NewTx(
+		common.BlankTxID,
+		from,
+		toi.ToAddress,
+		common.Coins{toi.Coin},
+		common.Gas{},
+		toi.Memo,
+	)
 
 	active, err := tos.keeper.GetAsgardVaultsByStatus(ctx, ActiveVault)
 	if err != nil {

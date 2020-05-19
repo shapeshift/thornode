@@ -35,9 +35,6 @@ func (h StakeHandler) validateV1(ctx cosmos.Context, msg MsgSetStakeData, constA
 		ctx.Logger().Error(err.ABCILog())
 		return cosmos.NewError(DefaultCodespace, CodeStakeFailValidation, err.Error())
 	}
-	if !isSignedByActiveNodeAccounts(ctx, h.keeper, msg.GetSigners()) {
-		return cosmos.ErrUnauthorized("msg is not signed by an active node account")
-	}
 
 	ensureStakeNoLargerThanBond := constAccessor.GetBoolValue(constants.StrictBondStakeRatio)
 	// the following  only applicable for chaosnet
@@ -107,7 +104,7 @@ func (h StakeHandler) handle(ctx cosmos.Context, msg MsgSetStakeData, version se
 	}
 
 	if pool.Empty() {
-		ctx.Logger().Info("pool doesn't exist yet, create a new one", "symbol", msg.Asset.String(), "creator", msg.RuneAddress)
+		ctx.Logger().Info("pool doesn't exist yet, creating a new one...", "symbol", msg.Asset.String(), "creator", msg.RuneAddress)
 		pool.Asset = msg.Asset
 		if err := h.keeper.SetPool(ctx, pool); err != nil {
 			return cosmos.ErrInternal(fmt.Errorf("fail to save pool to key value store: %w", err).Error())
@@ -129,6 +126,7 @@ func (h StakeHandler) handle(ctx cosmos.Context, msg MsgSetStakeData, version se
 		constAccessor,
 	)
 	if err != nil {
+		ctx.Logger().Error("fail to process stake request", "error", err)
 		return cosmos.ErrUnknownRequest(fmt.Errorf("fail to process stake request: %w", err).Error())
 	}
 

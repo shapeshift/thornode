@@ -24,7 +24,7 @@ func (HandlerLeaveSuite) TestLeaveHandler_NotActiveNodeLeave(c *C) {
 	ygg := NewVault(w.ctx.BlockHeight(), ActiveVault, YggdrasilVault, acc2.PubKeySet.Secp256k1, common.Chains{common.RuneAsset().Chain})
 	c.Assert(w.keeper.SetVault(w.ctx, ygg), IsNil)
 
-	FundModule(c, w.ctx, w.keeper, AsgardName, 100)
+	FundModule(c, w.ctx, w.keeper, BondName, 100)
 
 	txID := GetRandomTxHash()
 	tx := common.NewTx(
@@ -130,23 +130,6 @@ func (HandlerLeaveSuite) TestLeaveValidation(c *C) {
 				Memo: "",
 			}, cosmos.AccAddress{}),
 			expectedCode: cosmos.CodeUnknownRequest,
-		},
-		{
-			name: "empty signer should fail",
-			msgLeave: NewMsgLeave(common.Tx{
-				ID:          GetRandomTxHash(),
-				Chain:       common.BNBChain,
-				FromAddress: GetRandomBNBAddress(),
-				ToAddress:   GetRandomBNBAddress(),
-				Coins: common.Coins{
-					common.NewCoin(common.BNBAsset, cosmos.NewUint(common.One)),
-				},
-				Gas: common.Gas{
-					common.NewCoin(common.BNBAsset, cosmos.NewUint(common.One)),
-				},
-				Memo: "",
-			}, GetRandomNodeAccount(NodeActive).NodeAddress),
-			expectedCode: cosmos.CodeUnauthorized,
 		},
 	}
 	for _, item := range testCases {

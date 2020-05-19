@@ -46,11 +46,6 @@ func (h ReserveContributorHandler) ValidateV1(ctx cosmos.Context, msg MsgReserve
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
-
-	if !isSignedByActiveNodeAccounts(ctx, h.keeper, msg.GetSigners()) {
-		return cosmos.ErrUnauthorized("not authorized")
-	}
-
 	return nil
 }
 

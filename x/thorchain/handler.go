@@ -281,8 +281,8 @@ func processOneTxIn(ctx cosmos.Context, keeper Keeper, tx ObservedTx, signer cos
 
 func getMsgNoOpFromMemo(tx ObservedTx, signer cosmos.AccAddress) (cosmos.Msg, error) {
 	for _, coin := range tx.Tx.Coins {
-		if !coin.Asset.IsBNB() {
-			return nil, errors.New("only accepts BNB coins")
+		if !coin.Asset.Chain.Equals(common.RuneAsset().Chain) {
+			return nil, fmt.Errorf("Only accepts %s coins", common.RuneAsset().Chain)
 		}
 	}
 	return NewMsgNoOp(tx, signer), nil
@@ -360,7 +360,7 @@ func getMsgStakeFromMemo(ctx cosmos.Context, memo StakeMemo, tx ObservedTx, sign
 		runeAddr = memo.GetDestination()
 		assetAddr = tx.Tx.FromAddress
 	} else {
-		// if it is on BNB chain , while the asset addr is empty, then the asset addr is runeAddr
+		// if it is on THOR chain , while the asset addr is empty, then the asset addr is runeAddr
 		if assetAddr.IsEmpty() {
 			assetAddr = runeAddr
 		}

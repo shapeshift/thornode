@@ -63,6 +63,7 @@ func NewEvent(typ string, ht int64, inTx common.Tx, evt json.RawMessage, status 
 		Height: ht,
 		Type:   typ,
 		InTx:   inTx,
+		OutTxs: make(common.Txs, 0),
 		Event:  evt,
 		Status: status,
 		Fee: common.Fee{

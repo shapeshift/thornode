@@ -90,6 +90,8 @@ func setupKeeperForTest(c *C) (cosmos.Context, Keeper) {
 	supplyKeeper.SetSupply(ctx, supply.NewSupply(totalSupply))
 	k := NewKVStore(bk, supplyKeeper, keyThorchain, cdc)
 
+	FundModule(c, ctx, k, AsgardName, 100000000)
+
 	// set bnb gas
 	k.SetGas(ctx, common.BNBAsset, []cosmos.Uint{
 		cosmos.NewUint(37500),
@@ -128,6 +130,8 @@ func getHandlerTestWrapper(c *C, height int64, withActiveNode, withActieBNBPool 
 	versionedEventManagerDummy := NewDummyVersionedEventMgr()
 	versionedTxOutStore := NewVersionedTxOutStore(versionedEventManagerDummy)
 	versionedVaultMgrDummy := NewVersionedVaultMgrDummy(versionedTxOutStore)
+
+	FundModule(c, ctx, k, AsgardName, 100000000)
 
 	txOutStore, err := versionedTxOutStore.GetTxOutStore(ctx, k, ver)
 	c.Assert(err, IsNil)
@@ -220,7 +224,11 @@ func (HandlerSuite) TestHandleTxInUnstakeMemo(c *C) {
 	c.Check(pool.Status, Equals, PoolBootstrap)
 	c.Check(pool.PoolUnits.Uint64(), Equals, uint64(0), Commentf("%d", pool.PoolUnits.Uint64()))
 	c.Check(pool.BalanceRune.Uint64(), Equals, uint64(0), Commentf("%d", pool.BalanceRune.Uint64()))
-	c.Check(pool.BalanceAsset.Uint64(), Equals, uint64(75000), Commentf("%d", pool.BalanceAsset.Uint64())) // leave a little behind for gas
+	remainGas := uint64(75000)
+	if common.RuneAsset().Chain.Equals(common.THORChain) {
+		remainGas = 37500
+	}
+	c.Check(pool.BalanceAsset.Uint64(), Equals, remainGas, Commentf("%d", pool.BalanceAsset.Uint64())) // leave a little behind for gas
 }
 
 func (HandlerSuite) TestRefund(c *C) {
@@ -338,7 +346,7 @@ func (HandlerSuite) TestGetMsgSwapFromMemo(c *C) {
 func (HandlerSuite) TestGetMsgStakeFromMemo(c *C) {
 	w := getHandlerTestWrapper(c, 1, true, false)
 	// Stake BNB, however THORNode send T-CAN as coin , which is incorrect, should result in an error
-	m, err := ParseMemo("stake:BNB.BNB")
+	m, err := ParseMemo(fmt.Sprintf("stake:BNB.BNB:%s", GetRandomRUNEAddress()))
 	c.Assert(err, IsNil)
 	stakeMemo, ok := m.(StakeMemo)
 	c.Assert(ok, Equals, true)
@@ -358,8 +366,8 @@ func (HandlerSuite) TestGetMsgStakeFromMemo(c *C) {
 					cosmos.NewUint(100*common.One)),
 			},
 			Memo:        "withdraw:BNB.BNB",
-			FromAddress: GetRandomRUNEAddress(),
-			ToAddress:   GetRandomRUNEAddress(),
+			FromAddress: GetRandomBNBAddress(),
+			ToAddress:   GetRandomBNBAddress(),
 			Gas:         BNBGasFeeSingleton,
 		},
 		1024,
@@ -414,13 +422,17 @@ func (HandlerSuite) TestGetMsgStakeFromMemo(c *C) {
 			cosmos.NewUint(100*common.One)),
 	}
 
-	lokiStakeMemo, err := ParseMemo("stake:BNB.LOKI")
+	runeAddr := txin.Tx.FromAddress
+	if common.RuneAsset().Chain.Equals(common.THORChain) {
+		runeAddr = GetRandomRUNEAddress()
+	}
+	lokiStakeMemo, err := ParseMemo(fmt.Sprintf("stake:BNB.LOKI:%s", runeAddr))
 	c.Assert(err, IsNil)
 	msg4, err4 := getMsgStakeFromMemo(w.ctx, lokiStakeMemo.(StakeMemo), txin, GetRandomBech32Addr())
 	c.Assert(err4, IsNil)
 	c.Assert(msg4, NotNil)
 	msgStake := msg4.(MsgSetStakeData)
 	c.Assert(msgStake, NotNil)
-	c.Assert(msgStake.RuneAddress, Equals, txin.Tx.FromAddress)
+	c.Assert(msgStake.RuneAddress, Equals, runeAddr)
 	c.Assert(msgStake.AssetAddress, Equals, txin.Tx.FromAddress)
 }

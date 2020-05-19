@@ -27,7 +27,6 @@ add_gas_config () {
     shift
 
     # add asset to gas
-    echo "[\"app_state\", \"thorchain\", \"gas\", \"$asset\"]"
     jq --argjson path "[\"app_state\", \"thorchain\", \"gas\", \"$asset\"]" 'getpath($path) = []' ~/.thord/config/genesis.json > /tmp/genesis.json
     mv /tmp/genesis.json ~/.thord/config/genesis.json
 
@@ -45,6 +44,17 @@ reserve () {
 
 disable_bank_send () {
     jq '.app_state.bank.send_enabled = false' <~/.thord/config/genesis.json >/tmp/genesis.json
+    mv /tmp/genesis.json ~/.thord/config/genesis.json
+}
+
+add_account () {
+    jq --arg ADDRESS $1 --arg ASSET $2 --arg AMOUNT $3 '.app_state.accounts += [{
+        "address": $ADDRESS,
+        "coins": [{
+            "denom": $ASSET,
+            "amount": $AMOUNT
+        }]
+    }]' <~/.thord/config/genesis.json >/tmp/genesis.json
     mv /tmp/genesis.json ~/.thord/config/genesis.json
 }
 

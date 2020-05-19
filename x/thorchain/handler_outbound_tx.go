@@ -44,11 +44,6 @@ func (h OutboundTxHandler) validateV1(ctx cosmos.Context, msg MsgOutboundTx) cos
 		ctx.Logger().Error(err.Error())
 		return err
 	}
-
-	if !isSignedByActiveNodeAccounts(ctx, h.keeper, msg.GetSigners()) {
-		ctx.Logger().Error(notAuthorized.Error())
-		return cosmos.ErrUnauthorized("Not Authorized")
-	}
 	return nil
 }
 

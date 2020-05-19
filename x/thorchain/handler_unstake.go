@@ -63,15 +63,6 @@ func (h UnstakeHandler) validateV1(ctx cosmos.Context, msg MsgSetUnStake) cosmos
 		ctx.Logger().Error("unstake msg fail validation", "error", err.ABCILog())
 		return cosmos.NewError(DefaultCodespace, CodeUnstakeFailValidation, err.Error())
 	}
-	if !isSignedByActiveNodeAccounts(ctx, h.keeper, msg.GetSigners()) {
-		ctx.Logger().Error("message signed by unauthorized account",
-			"request tx hash", msg.Tx.ID,
-			"rune address", msg.RuneAddress,
-			"asset", msg.Asset,
-			"withdraw basis points", msg.UnstakeBasisPoints)
-		return cosmos.ErrUnauthorized("not authorized")
-	}
-
 	pool, err := h.keeper.GetPool(ctx, msg.Asset)
 	if err != nil {
 		errMsg := fmt.Sprintf("fail to get pool(%s)", msg.Asset)
@@ -136,29 +127,6 @@ func (h UnstakeHandler) handle(ctx cosmos.Context, msg MsgSetUnStake, version se
 		memo = NewRagnarokMemo(ctx.BlockHeight()).String()
 	}
 	toi := &TxOutItem{
-		Chain:     common.RuneAsset().Chain,
-		InHash:    msg.Tx.ID,
-		ToAddress: staker.RuneAddress,
-		Coin:      common.NewCoin(common.RuneAsset(), runeAmt),
-		Memo:      memo,
-	}
-	if !gasAsset.IsZero() {
-		if msg.Asset.IsBNB() {
-			toi.MaxGas = common.Gas{
-				common.NewCoin(common.RuneAsset().Chain.GetGasAsset(), gasAsset.QuoUint64(2)),
-			}
-		}
-	}
-	ok, err := txOutStore.TryAddTxOutItem(ctx, toi)
-	if err != nil {
-		ctx.Logger().Error("fail to prepare outbound tx", "error", err)
-		return nil, cosmos.NewError(DefaultCodespace, CodeFailAddOutboundTx, "fail to prepare outbound tx")
-	}
-	if !ok {
-		return nil, cosmos.NewError(DefaultCodespace, CodeFailAddOutboundTx, "prepare outbound tx not successful")
-	}
-
-	toi = &TxOutItem{
 		Chain:     msg.Asset.Chain,
 		InHash:    msg.Tx.ID,
 		ToAddress: staker.AssetAddress,
@@ -177,6 +145,31 @@ func (h UnstakeHandler) handle(ctx cosmos.Context, msg MsgSetUnStake, version se
 		}
 	}
 
+	ok, err := txOutStore.TryAddTxOutItem(ctx, toi)
+	if err != nil {
+		ctx.Logger().Error("fail to prepare outbound tx", "error", err)
+		return nil, cosmos.NewError(DefaultCodespace, CodeFailAddOutboundTx, "fail to prepare outbound tx")
+	}
+	if !ok {
+		return nil, cosmos.NewError(DefaultCodespace, CodeFailAddOutboundTx, "prepare outbound tx not successful")
+	}
+
+	toi = &TxOutItem{
+		Chain:     common.RuneAsset().Chain,
+		InHash:    msg.Tx.ID,
+		ToAddress: staker.RuneAddress,
+		Coin:      common.NewCoin(common.RuneAsset(), runeAmt),
+		Memo:      memo,
+	}
+	if !common.RuneAsset().Chain.Equals(common.THORChain) {
+		if !gasAsset.IsZero() {
+			if msg.Asset.IsBNB() {
+				toi.MaxGas = common.Gas{
+					common.NewCoin(common.RuneAsset().Chain.GetGasAsset(), gasAsset.QuoUint64(2)),
+				}
+			}
+		}
+	}
 	ok, err = txOutStore.TryAddTxOutItem(ctx, toi)
 	if err != nil {
 		ctx.Logger().Error("fail to prepare outbound tx", "error", err)

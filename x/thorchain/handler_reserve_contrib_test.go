@@ -128,16 +128,6 @@ func (h HandlerReserveContributorSuite) TestReserveContributorHandler(c *C) {
 			expectedResult: CodeBadVersion,
 		},
 		{
-			name: "Not signed by an active account should return an error",
-			messageCreator: func(helper reserveContributorHandlerHelper) cosmos.Msg {
-				return NewMsgReserveContributor(GetRandomTx(), helper.reserveContributor, GetRandomBech32Addr())
-			},
-			runner: func(handler ReserveContributorHandler, helper reserveContributorHandlerHelper, msg cosmos.Msg) cosmos.Result {
-				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
-			},
-			expectedResult: cosmos.CodeUnauthorized,
-		},
-		{
 			name: "empty signer should return an error",
 			messageCreator: func(helper reserveContributorHandlerHelper) cosmos.Msg {
 				return NewMsgReserveContributor(GetRandomTx(), helper.reserveContributor, cosmos.AccAddress{})

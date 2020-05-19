@@ -135,11 +135,6 @@ func (HandlerUnstakeSuite) TestUnstakeHandler_Validation(c *C) {
 		expectedResult cosmos.CodeType
 	}{
 		{
-			name:           "not signed by active observer should fail",
-			msg:            NewMsgSetUnStake(GetRandomTx(), GetRandomRUNEAddress(), cosmos.NewUint(uint64(MaxUnstakeBasisPoints)), common.BNBAsset, GetRandomNodeAccount(NodeActive).NodeAddress),
-			expectedResult: cosmos.CodeUnauthorized,
-		},
-		{
 			name:           "empty signer should fail",
 			msg:            NewMsgSetUnStake(GetRandomTx(), GetRandomRUNEAddress(), cosmos.NewUint(uint64(MaxUnstakeBasisPoints)), common.BNBAsset, cosmos.AccAddress{}),
 			expectedResult: CodeUnstakeFailValidation,
