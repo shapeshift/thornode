@@ -243,5 +243,4 @@ func (s *ValidatorManagerTestSuite) TestUpdateVaultData(c *C) {
 	err = k.SetVaultData(ctx, vd)
 	c.Assert(err, IsNil)
 	c.Assert(vaultMgr.UpdateVaultData(ctx, constAccessor, gasManager, NewEventMgr()), IsNil)
-
 }
