@@ -221,3 +221,27 @@ func (s *ValidatorManagerTestSuite) TestRagnarokChain(c *C) {
 	c.Check(items[0].Memo, Equals, NewYggdrasilReturn(ctx.BlockHeight()).String())
 	c.Check(items[0].Chain.Equals(common.BTCChain), Equals, true)
 }
+
+func (s *ValidatorManagerTestSuite) TestUpdateVaultData(c *C) {
+	ctx, k := setupKeeperForTest(c)
+	ver := constants.SWVersion
+	constAccessor := constants.GetConstantValues(ver)
+	vd := NewVaultData()
+	err := k.SetVaultData(ctx, vd)
+	c.Assert(err, IsNil)
+
+	gasManager := NewDummyGasManager()
+	versionedTxOutStoreDummy := NewVersionedTxOutStoreDummy()
+	versionedEventManagerDummy := NewDummyVersionedEventMgr()
+
+	vaultMgr := NewVaultMgr(k, versionedTxOutStoreDummy, versionedEventManagerDummy)
+
+	c.Assert(vaultMgr.UpdateVaultData(ctx, constAccessor, gasManager, NewEventMgr()), IsNil)
+
+	// add something in vault
+	vd.TotalReserve = cosmos.NewUint(common.One * 100)
+	err = k.SetVaultData(ctx, vd)
+	c.Assert(err, IsNil)
+	c.Assert(vaultMgr.UpdateVaultData(ctx, constAccessor, gasManager, NewEventMgr()), IsNil)
+
+}

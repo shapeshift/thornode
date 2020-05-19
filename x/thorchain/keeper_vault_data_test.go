@@ -3,9 +3,7 @@ package thorchain
 import (
 	. "gopkg.in/check.v1"
 
-	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
-	"gitlab.com/thorchain/thornode/constants"
 )
 
 type KeeperVaultDataSuite struct{}
@@ -14,20 +12,9 @@ var _ = Suite(&KeeperVaultDataSuite{})
 
 func (KeeperVaultDataSuite) TestVaultData(c *C) {
 	ctx, k := setupKeeperForTest(c)
-	ver := constants.SWVersion
-	constAccessor := constants.GetConstantValues(ver)
 	vd := NewVaultData()
 	err := k.SetVaultData(ctx, vd)
 	c.Assert(err, IsNil)
-	gasManager := NewDummyGasManager()
-
-	c.Assert(k.UpdateVaultData(ctx, constAccessor, gasManager, NewEventMgr()), IsNil)
-
-	// add something in vault
-	vd.TotalReserve = cosmos.NewUint(common.One * 100)
-	err = k.SetVaultData(ctx, vd)
-	c.Assert(err, IsNil)
-	c.Assert(k.UpdateVaultData(ctx, constAccessor, gasManager, NewEventMgr()), IsNil)
 }
 
 func (KeeperVaultDataSuite) TestGetTotalActiveNodeWithBound(c *C) {
