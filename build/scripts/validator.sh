@@ -3,8 +3,10 @@
 source $(dirname "$0")/core.sh
 
 PEER="${PEER:=none}" # the hostname of a seed node
+PEER_API="${PEER_API:=$PEER}" # the hostname of a seed node API if different
 SIGNER_NAME="${SIGNER_NAME:=thorchain}"
 SIGNER_PASSWD="${SIGNER_PASSWD:=password}"
+BINANCE=${BINANCE:=$PEER}
 
 if [ ! -f ~/.thord/config/genesis.json ]; then
     if [[ "$PEER" == "none" ]]; then
@@ -14,10 +16,10 @@ if [ ! -f ~/.thord/config/genesis.json ]; then
 
     thorcli keys show $SIGNER_NAME
     if [ $? -gt 0 ]; then
-        if [ -f ~/.recovery.txt ]; then
-            echo "$SIGNER_PASSWD\n$(tail -1 ~/.recovery.txt)" | thorcli keys add $SIGNER_NAME --recover
+        if [ "$SIGNER_SEED_PHRASE" != "" ]; then
+            printf "$SIGNER_PASSWD\n$SIGNER_SEED_PHRASE\n" | thorcli keys add $SIGNER_NAME --recover
         else
-            echo $SIGNER_PASSWD | thorcli --trace keys add $SIGNER_NAME &> ~/.recovery.txt
+            printf $SIGNER_PASSWD | thorcli --trace keys add $SIGNER_NAME
         fi
     fi
 
@@ -35,7 +37,7 @@ if [ ! -f ~/.thord/config/genesis.json ]; then
         ADDRESS=$(cat ~/.bond/address.txt)
 
         # send bond transaction to mock binance
-        $(dirname "$0")/mock-bond.sh $PEER $ADDRESS $NODE_ADDRESS
+        $(dirname "$0")/mock-bond.sh $BINANCE $ADDRESS $NODE_ADDRESS $PEER_API
 
         sleep 15 # wait for thorchain to register the new node account
 
