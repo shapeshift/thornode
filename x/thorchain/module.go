@@ -243,14 +243,16 @@ func (am AppModule) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.V
 		ctx.Logger().Error(fmt.Sprintf("gas manager that compatible with version :%s is not available", version))
 		return nil
 	}
-	// update vault data to account for block rewards and reward units
-	if err := am.keeper.UpdateVaultData(ctx, constantValues, gasMgr, eventMgr); err != nil {
-		ctx.Logger().Error("fail to save vault", "error", err)
-	}
+
 	vaultMgr, err := am.versionedVaultManager.GetVaultManager(ctx, am.keeper, version)
 	if err != nil {
 		ctx.Logger().Error("fail to get a valid vault manager", "error", err)
 		return nil
+	}
+
+	// update vault data to account for block rewards and reward units
+	if err := vaultMgr.UpdateVaultData(ctx, constantValues, gasMgr, eventMgr); err != nil {
+		ctx.Logger().Error("fail to save vault", "error", err)
 	}
 
 	if err := vaultMgr.EndBlock(ctx, version, constantValues); err != nil {
