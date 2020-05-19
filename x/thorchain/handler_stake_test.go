@@ -61,6 +61,7 @@ func (m *MockStackKeeper) GetStaker(_ cosmos.Context, asset common.Asset, addr c
 		RuneAddress:  addr,
 		AssetAddress: addr,
 		Units:        cosmos.ZeroUint(),
+		PendingRune:  cosmos.ZeroUint(),
 	}, nil
 }
 
@@ -197,11 +198,6 @@ func (HandlerStakeSuite) TestStakeHandlerValidation(c *C) {
 		msg            MsgSetStakeData
 		expectedResult cosmos.CodeType
 	}{
-		{
-			name:           "not signed by an active node account should fail",
-			msg:            NewMsgSetStakeData(GetRandomTx(), common.BNBAsset, cosmos.NewUint(common.One*5), cosmos.NewUint(common.One*5), GetRandomBNBAddress(), GetRandomBNBAddress(), GetRandomNodeAccount(NodeActive).NodeAddress),
-			expectedResult: cosmos.CodeUnauthorized,
-		},
 		{
 			name:           "empty signer should fail",
 			msg:            NewMsgSetStakeData(GetRandomTx(), common.BNBAsset, cosmos.NewUint(common.One*5), cosmos.NewUint(common.One*5), GetRandomBNBAddress(), GetRandomBNBAddress(), cosmos.AccAddress{}),

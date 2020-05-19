@@ -89,7 +89,11 @@ func (s *ThorchainSuite) TestStaking(c *C) {
 	pool, err = keeper.GetPool(ctx, common.BNBAsset)
 	c.Assert(err, IsNil)
 	c.Check(pool.BalanceRune.IsZero(), Equals, true)
-	c.Check(pool.BalanceAsset.Uint64(), Equals, uint64(75000)) // leave a little behind for gas
+	remainGas := uint64(75000)
+	if common.RuneAsset().Chain.Equals(common.THORChain) {
+		remainGas = 37500
+	}
+	c.Check(pool.BalanceAsset.Uint64(), Equals, uint64(remainGas)) // leave a little behind for gas
 	c.Check(pool.PoolUnits.IsZero(), Equals, true)
 
 	// stake for user1, again
@@ -105,7 +109,7 @@ func (s *ThorchainSuite) TestStaking(c *C) {
 	pool, err = keeper.GetPool(ctx, common.BNBAsset)
 	c.Assert(err, IsNil)
 	c.Check(pool.BalanceRune.Equal(cosmos.NewUint(200*common.One)), Equals, true)
-	c.Check(pool.BalanceAsset.Equal(cosmos.NewUint(20000075000)), Equals, true, Commentf("%d", pool.BalanceAsset.Uint64()))
+	c.Check(pool.BalanceAsset.Equal(cosmos.NewUint(20000000000+remainGas)), Equals, true, Commentf("%d", pool.BalanceAsset.Uint64()))
 	c.Check(pool.PoolUnits.IsZero(), Equals, false)
 }
 
@@ -221,11 +225,17 @@ func (s *ThorchainSuite) TestChurn(c *C) {
 	c.Assert(err, IsNil)
 	items, err := txOutStore.GetOutboundItems(ctx)
 	c.Assert(err, IsNil)
-	c.Assert(items, HasLen, 2)
-	item := items[0]
-	c.Check(item.Coin.Amount.Uint64(), Equals, uint64(2000000000), Commentf("%d", item.Coin.Amount.Uint64()))
-	item = items[1]
-	c.Check(item.Coin.Amount.Uint64(), Equals, uint64(1579925000), Commentf("%d", item.Coin.Amount.Uint64()))
+	if common.RuneAsset().Chain.Equals(common.THORChain) {
+		c.Assert(items, HasLen, 1)
+		item := items[0]
+		c.Check(item.Coin.Amount.Uint64(), Equals, uint64(1579925000), Commentf("%d", item.Coin.Amount.Uint64()))
+	} else {
+		c.Assert(items, HasLen, 2)
+		item := items[0]
+		c.Check(item.Coin.Amount.Uint64(), Equals, uint64(2000000000), Commentf("%d", item.Coin.Amount.Uint64()))
+		item = items[1]
+		c.Check(item.Coin.Amount.Uint64(), Equals, uint64(1579925000), Commentf("%d", item.Coin.Amount.Uint64()))
+	}
 	// check we empty the rest at the last migration event
 	migrateInterval := consts.GetInt64Value(constants.FundMigrationInterval)
 	ctx = ctx.WithBlockHeight(vault.StatusSince + (migrateInterval * 7))
@@ -236,11 +246,18 @@ func (s *ThorchainSuite) TestChurn(c *C) {
 	vaultMgr.EndBlock(ctx, ver, consts) // should attempt to send 100% of the coin values
 	items, err = txOutStore.GetOutboundItems(ctx)
 	c.Assert(err, IsNil)
-	c.Assert(items, HasLen, 4, Commentf("%d", len(items)))
-	item = items[2]
-	c.Check(item.Coin.Amount.Uint64(), Equals, uint64(10000000000), Commentf("%d", item.Coin.Amount.Uint64()))
-	item = items[3]
-	c.Check(item.Coin.Amount.Uint64(), Equals, uint64(7899925000), Commentf("%d", item.Coin.Amount.Uint64()))
+	if common.RuneAsset().Chain.Equals(common.THORChain) {
+		c.Assert(items, HasLen, 2, Commentf("%d", len(items)))
+		item := items[1]
+		c.Check(item.Coin.Amount.Uint64(), Equals, uint64(7899925000), Commentf("%d", item.Coin.Amount.Uint64()))
+
+	} else {
+		c.Assert(items, HasLen, 4, Commentf("%d", len(items)))
+		item := items[2]
+		c.Check(item.Coin.Amount.Uint64(), Equals, uint64(10000000000), Commentf("%d", item.Coin.Amount.Uint64()))
+		item = items[3]
+		c.Check(item.Coin.Amount.Uint64(), Equals, uint64(7899925000), Commentf("%d", item.Coin.Amount.Uint64()))
+	}
 }
 
 func (s *ThorchainSuite) TestRagnarok(c *C) {
@@ -272,21 +289,27 @@ func (s *ThorchainSuite) TestRagnarok(c *C) {
 	c.Assert(keeper.SetPool(ctx, pool), IsNil)
 
 	// add stakers
-	staker1 := GetRandomBNBAddress() // Staker1
-	_, err = stake(ctx, keeper, common.BNBAsset, cosmos.NewUint(100*common.One), cosmos.NewUint(10*common.One), staker1, staker1, GetRandomTxHash(), consts)
+	staker1 := GetRandomRUNEAddress() // Staker1
+	staker1asset := GetRandomBNBAddress()
+	_, err = stake(ctx, keeper, common.BNBAsset, cosmos.NewUint(100*common.One), cosmos.NewUint(10*common.One), staker1, staker1asset, GetRandomTxHash(), consts)
 	c.Assert(err, IsNil)
-	_, err = stake(ctx, keeper, boltAsset, cosmos.NewUint(50*common.One), cosmos.NewUint(11*common.One), staker1, staker1, GetRandomTxHash(), consts)
+	_, err = stake(ctx, keeper, boltAsset, cosmos.NewUint(50*common.One), cosmos.NewUint(11*common.One), staker1, staker1asset, GetRandomTxHash(), consts)
 	c.Assert(err, IsNil)
-	staker2 := GetRandomBNBAddress() // staker2
-	_, err = stake(ctx, keeper, common.BNBAsset, cosmos.NewUint(155*common.One), cosmos.NewUint(15*common.One), staker2, staker2, GetRandomTxHash(), consts)
+	staker2 := GetRandomRUNEAddress() // staker2
+	staker2asset := GetRandomBNBAddress()
+	_, err = stake(ctx, keeper, common.BNBAsset, cosmos.NewUint(155*common.One), cosmos.NewUint(15*common.One), staker2, staker2asset, GetRandomTxHash(), consts)
 	c.Assert(err, IsNil)
-	_, err = stake(ctx, keeper, boltAsset, cosmos.NewUint(20*common.One), cosmos.NewUint(4*common.One), staker2, staker2, GetRandomTxHash(), consts)
+	_, err = stake(ctx, keeper, boltAsset, cosmos.NewUint(20*common.One), cosmos.NewUint(4*common.One), staker2, staker2asset, GetRandomTxHash(), consts)
 	c.Assert(err, IsNil)
-	staker3 := GetRandomBNBAddress() // staker3
-	_, err = stake(ctx, keeper, common.BNBAsset, cosmos.NewUint(155*common.One), cosmos.NewUint(15*common.One), staker3, staker3, GetRandomTxHash(), consts)
+	staker3 := GetRandomRUNEAddress() // staker3
+	staker3asset := GetRandomBNBAddress()
+	_, err = stake(ctx, keeper, common.BNBAsset, cosmos.NewUint(155*common.One), cosmos.NewUint(15*common.One), staker3, staker3asset, GetRandomTxHash(), consts)
 	c.Assert(err, IsNil)
 	stakers := []common.Address{
 		staker1, staker2, staker3,
+	}
+	stakersAssets := []common.Address{
+		staker1asset, staker2asset, staker3asset,
 	}
 
 	// get new pool data
@@ -324,21 +347,24 @@ func (s *ThorchainSuite) TestRagnarok(c *C) {
 	}
 
 	// Add reserve contributors
-	contrib1 := GetRandomBNBAddress()
-	contrib2 := GetRandomBNBAddress()
-	reserves := ReserveContributors{
-		NewReserveContributor(contrib1, cosmos.NewUint(400_000_000*common.One)),
-		NewReserveContributor(contrib2, cosmos.NewUint(100_000*common.One)),
+	reserves := ReserveContributors{}
+	if !common.RuneAsset().Chain.Equals(common.THORChain) {
+		contrib1 := GetRandomBNBAddress()
+		contrib2 := GetRandomBNBAddress()
+		reserves = ReserveContributors{
+			NewReserveContributor(contrib1, cosmos.NewUint(400_000_000*common.One)),
+			NewReserveContributor(contrib2, cosmos.NewUint(100_000*common.One)),
+		}
+		resHandler := NewReserveContributorHandler(keeper, versionedEventManagerDummy)
+		for _, res := range reserves {
+			asgard.AddFunds(common.Coins{
+				common.NewCoin(common.RuneAsset(), res.Amount),
+			})
+			msg := NewMsgReserveContributor(GetRandomTx(), res, bonders[0].NodeAddress)
+			c.Assert(resHandler.Handle(ctx, msg, ver).Code, Equals, cosmos.CodeOK)
+		}
+		c.Assert(keeper.SetVault(ctx, asgard), IsNil)
 	}
-	resHandler := NewReserveContributorHandler(keeper, NewVersionedEventMgr())
-	for _, res := range reserves {
-		asgard.AddFunds(common.Coins{
-			common.NewCoin(common.RuneAsset(), res.Amount),
-		})
-		msg := NewMsgReserveContributor(GetRandomTx(), res, bonders[0].NodeAddress)
-		c.Assert(resHandler.Handle(ctx, msg, ver).Code, Equals, cosmos.CodeOK)
-	}
-	c.Assert(keeper.SetVault(ctx, asgard), IsNil)
 
 	// ////////////////////////////////////////////////////////
 	// ////////////// Start Ragnarok Protocol /////////////////
@@ -391,24 +417,31 @@ func (s *ThorchainSuite) TestRagnarok(c *C) {
 		c.Assert(validatorMgr.processRagnarok(ctx, consts), IsNil)
 		items, err := versionedTxOutStoreDummy.txoutStore.GetOutboundItems(ctx)
 		c.Assert(err, IsNil)
-		c.Assert(items, HasLen, 15, Commentf("%d", len(items)))
 
-		// validate bonders have correct coin amounts being sent to them on each round of ragnarok
-		for _, bonder := range bonders {
-			items := versionedTxOutStoreDummy.txoutStore.GetOutboundItemByToAddress(bonder.BondAddress)
-			c.Assert(items, HasLen, 1)
-			outCoin := common.NewCoin(common.RuneAsset(), calcExpectedValue(bonder.Bond, i))
-			c.Assert(items[0].Coin.Equals(outCoin), Equals, true, Commentf("expect:%s, however:%s", outCoin.String(), items[0].Coin.String()))
+		if common.RuneAsset().Chain.Equals(common.THORChain) {
+			c.Assert(items, HasLen, 5, Commentf("%d", len(items)))
+		} else {
+			c.Assert(items, HasLen, 15, Commentf("%d", len(items)))
+		}
+
+		if !common.RuneAsset().Chain.Equals(common.THORChain) {
+			// validate bonders have correct coin amounts being sent to them on each round of ragnarok
+			for _, bonder := range bonders {
+				items := versionedTxOutStoreDummy.txoutStore.GetOutboundItemByToAddress(bonder.BondAddress)
+				c.Assert(items, HasLen, 1)
+				outCoin := common.NewCoin(common.RuneAsset(), calcExpectedValue(bonder.Bond, i))
+				c.Assert(items[0].Coin.Equals(outCoin), Equals, true, Commentf("expect:%s, however:%s", outCoin.String(), items[0].Coin.String()))
+			}
 		}
 
 		// validate stakers get their returns
-		for j, staker := range stakers {
+		for j, staker := range stakersAssets {
 			items := versionedTxOutStoreDummy.txoutStore.GetOutboundItemByToAddress(staker)
 			// TODO: check item amounts
 			if j == len(stakers)-1 {
-				c.Assert(items, HasLen, 2, Commentf("%d", len(items)))
+				c.Assert(items, HasLen, 1, Commentf("%d", len(items)))
 			} else {
-				c.Assert(items, HasLen, 4, Commentf("%d", len(items)))
+				c.Assert(items, HasLen, 2, Commentf("%d", len(items)))
 			}
 		}
 
@@ -462,17 +495,17 @@ func (s *ThorchainSuite) TestRagnarokNoOneLeave(c *C) {
 	c.Assert(keeper.SetPool(ctx, pool), IsNil)
 
 	// add stakers
-	staker1 := GetRandomBNBAddress() // Staker1
+	staker1 := GetRandomRUNEAddress() // Staker1
 	_, err = stake(ctx, keeper, common.BNBAsset, cosmos.NewUint(100*common.One), cosmos.NewUint(10*common.One), staker1, staker1, GetRandomTxHash(), consts)
 	c.Assert(err, IsNil)
 	_, err = stake(ctx, keeper, boltAsset, cosmos.NewUint(50*common.One), cosmos.NewUint(11*common.One), staker1, staker1, GetRandomTxHash(), consts)
 	c.Assert(err, IsNil)
-	staker2 := GetRandomBNBAddress() // staker2
+	staker2 := GetRandomRUNEAddress() // staker2
 	_, err = stake(ctx, keeper, common.BNBAsset, cosmos.NewUint(155*common.One), cosmos.NewUint(15*common.One), staker2, staker2, GetRandomTxHash(), consts)
 	c.Assert(err, IsNil)
 	_, err = stake(ctx, keeper, boltAsset, cosmos.NewUint(20*common.One), cosmos.NewUint(4*common.One), staker2, staker2, GetRandomTxHash(), consts)
 	c.Assert(err, IsNil)
-	staker3 := GetRandomBNBAddress() // staker3
+	staker3 := GetRandomRUNEAddress() // staker3
 	_, err = stake(ctx, keeper, common.BNBAsset, cosmos.NewUint(155*common.One), cosmos.NewUint(15*common.One), staker3, staker3, GetRandomTxHash(), consts)
 	c.Assert(err, IsNil)
 	stakers := []common.Address{

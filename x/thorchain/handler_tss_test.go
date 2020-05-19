@@ -100,6 +100,7 @@ func newTssHandlerTestHelper(c *C) tssHandlerTestHelper {
 	ctx = ctx.WithBlockHeight(1023)
 	version := constants.SWVersion
 	keeper := newTssKeeperHelper(k)
+	FundModule(c, ctx, k, BondName, 500)
 	// active account
 	nodeAccount := GetRandomNodeAccount(NodeActive)
 	nodeAccount.Bond = cosmos.NewUint(100 * common.One)

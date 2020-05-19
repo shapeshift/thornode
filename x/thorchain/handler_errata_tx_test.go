@@ -2,6 +2,7 @@ package thorchain
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/blang/semver"
 	. "gopkg.in/check.v1"
@@ -116,7 +117,7 @@ func (s *HandlerErrataTxSuite) TestHandle(c *C) {
 					Coins: common.Coins{
 						common.NewCoin(common.RuneAsset(), cosmos.NewUint(30*common.One)),
 					},
-					Memo: "STAKE:BNB.BNB",
+					Memo: fmt.Sprintf("STAKE:BNB.BNB:%s", GetRandomRUNEAddress()),
 				},
 			},
 		},

@@ -20,7 +20,8 @@ func calcBlockRewards(totalStaked, totalBonded, totalReserve, totalLiquidityFees
 	blockRewardD := trD.Quo(ecD).Quo(bpyD)
 	blockReward := cosmos.NewUint(uint64((blockRewardD).RoundInt64()))
 
-	systemIncome := blockReward.Add(totalLiquidityFees)                 // Get total system income for block
+	systemIncome := blockReward.Add(totalLiquidityFees) // Get total system income for block
+
 	stakerSplit := getPoolShare(totalStaked, totalBonded, systemIncome) // Get staker share
 	bonderSplit := common.SafeSub(systemIncome, stakerSplit)            // Remainder to Bonders
 

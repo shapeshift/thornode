@@ -1,6 +1,8 @@
 package thorchain
 
 import (
+	"fmt"
+
 	"github.com/blang/semver"
 
 	"gitlab.com/thorchain/thornode/common"
@@ -22,7 +24,7 @@ func (s *HandlerNativeTxSuite) TestValidate(c *C) {
 	coins := common.Coins{
 		common.NewCoin(common.RuneNative, cosmos.NewUint(200*common.One)),
 	}
-	msg := NewMsgNativeTx(coins, "STAKE:BNB.BNB", addr)
+	msg := NewMsgNativeTx(coins, fmt.Sprintf("STAKE:BNB.BNB:%s", GetRandomRUNEAddress()), addr)
 
 	versionedTxOutStore := NewVersionedTxOutStoreDummy()
 	versionedVaultMgrDummy := NewVersionedVaultMgrDummy(versionedTxOutStore)

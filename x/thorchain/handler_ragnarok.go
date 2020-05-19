@@ -46,11 +46,6 @@ func (h RagnarokHandler) validateV1(ctx cosmos.Context, msg MsgRagnarok) error {
 		ctx.Logger().Error(err.Error())
 		return err
 	}
-
-	if !isSignedByActiveNodeAccounts(ctx, h.keeper, msg.GetSigners()) {
-		ctx.Logger().Error(notAuthorized.Error())
-		return notAuthorized
-	}
 	return nil
 }
 

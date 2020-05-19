@@ -50,10 +50,6 @@ func (h RefundHandler) validateV1(ctx cosmos.Context, version semver.Version, ms
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
-
-	if !isSignedByActiveNodeAccounts(ctx, h.keeper, msg.GetSigners()) {
-		return cosmos.ErrUnauthorized("msg is not signed by an active node account")
-	}
 	return nil
 }
 
