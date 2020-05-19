@@ -474,3 +474,206 @@ func (vm *VaultMgr) ragnarokChain(ctx cosmos.Context, chain common.Chain, nth in
 
 	return nil
 }
+
+// UpdateVaultData Update the vault data to reflect changing in this block
+func (vm *VaultMgr) UpdateVaultData(ctx cosmos.Context, constAccessor constants.ConstantValues, gasManager GasManager, eventMgr EventManager) error {
+	vaultData, err := vm.k.GetVaultData(ctx)
+	if err != nil {
+		return fmt.Errorf("fail to get existing vault data: %w", err)
+	}
+
+	totalReserve := cosmos.ZeroUint()
+	if common.RuneAsset().Chain.Equals(common.THORChain) {
+		totalReserve = vm.k.GetRuneBalaceOfModule(ctx, ReserveName)
+	} else {
+		totalReserve = vaultData.TotalReserve
+	}
+
+	// when total reserve is zero , can't pay reward
+	if totalReserve.IsZero() {
+		return nil
+	}
+	currentHeight := uint64(ctx.BlockHeight())
+	pools, totalStaked, err := vm.getEnabledPoolsAndTotalStakedRune(ctx)
+	if err != nil {
+		return fmt.Errorf("fail to get enabled pools and total staked rune: %w", err)
+	}
+
+	// If no Rune is staked, then don't give out block rewards.
+	if totalStaked.IsZero() {
+		return nil // If no Rune is staked, then don't give out block rewards.
+	}
+
+	// get total liquidity fees
+	totalLiquidityFees, err := vm.k.GetTotalLiquidityFees(ctx, currentHeight)
+	if err != nil {
+		return fmt.Errorf("fail to get total liquidity fee: %w", err)
+	}
+
+	// NOTE: if we continue to have remaining gas to pay off (which is
+	// extremely unlikely), ignore it for now (attempt to recover in the next
+	// block). This should be OK as the asset amount in the pool has already
+	// been deducted so the balances are correct. Just operating at a deficit.
+	totalBonded, err := vm.getTotalActiveBond(ctx)
+	if err != nil {
+		return fmt.Errorf("fail to get total active bond: %w", err)
+	}
+	emissionCurve := constAccessor.GetInt64Value(constants.EmissionCurve)
+	blocksOerYear := constAccessor.GetInt64Value(constants.BlocksPerYear)
+	bondReward, totalPoolRewards, stakerDeficit := calcBlockRewards(totalStaked, totalBonded, totalReserve, totalLiquidityFees, emissionCurve, blocksOerYear)
+
+	// given bondReward and toolPoolRewards are both calculated base on totalReserve, thus it should always have enough to pay the bond reward
+
+	// Move Rune from the Reserve to the Bond and Pool Rewards
+	totalReserve = common.SafeSub(totalReserve, bondReward.Add(totalPoolRewards))
+	if common.RuneAsset().Chain.Equals(common.THORChain) {
+		coin := common.NewCoin(common.RuneNative, bondReward)
+		if err := vm.k.SendFromModuleToModule(ctx, ReserveName, BondName, coin); err != nil {
+			ctx.Logger().Error("fail to transfer funds from reserve to bond", "error", err)
+			return fmt.Errorf("fail to transfer funds from reserve to bond: %w", err)
+		}
+	} else {
+		vaultData.TotalReserve = totalReserve
+	}
+	vaultData.BondRewardRune = vaultData.BondRewardRune.Add(bondReward) // Add here for individual Node collection later
+
+	var evtPools []PoolAmt
+
+	if !totalPoolRewards.IsZero() { // If Pool Rewards to hand out
+
+		var rewardAmts []cosmos.Uint
+		var rewardPools []Pool
+		// Pool Rewards are based on Fee Share
+		for _, pool := range pools {
+			if !pool.IsEnabled() {
+				continue
+			}
+			amt := cosmos.ZeroUint()
+			if totalLiquidityFees.IsZero() {
+				amt = common.GetShare(pool.BalanceRune, totalStaked, totalPoolRewards)
+			} else {
+				fees, err := vm.k.GetPoolLiquidityFees(ctx, currentHeight, pool.Asset)
+				if err != nil {
+					ctx.Logger().Error("fail to get fees", "error", err)
+					continue
+				}
+				amt = common.GetShare(fees, totalLiquidityFees, totalPoolRewards)
+			}
+			rewardAmts = append(rewardAmts, amt)
+			evtPools = append(evtPools, PoolAmt{Asset: pool.Asset, Amount: int64(amt.Uint64())})
+			rewardPools = append(rewardPools, pool)
+		}
+		// Pay out
+		if err := vm.payPoolRewards(ctx, rewardAmts, rewardPools); err != nil {
+			return err
+		}
+
+	} else { // Else deduct pool deficit
+
+		for _, pool := range pools {
+			poolFees, err := vm.k.GetPoolLiquidityFees(ctx, currentHeight, pool.Asset)
+			if err != nil {
+				return fmt.Errorf("fail to get liquidity fees for pool(%s): %w", pool.Asset, err)
+			}
+			if pool.BalanceRune.IsZero() || poolFees.IsZero() { // Safety checks
+				continue
+			}
+			poolDeficit := calcPoolDeficit(stakerDeficit, totalLiquidityFees, poolFees)
+			if common.RuneAsset().Chain.Equals(common.THORChain) {
+				coin := common.NewCoin(common.RuneNative, poolDeficit)
+				if err := vm.k.SendFromModuleToModule(ctx, AsgardName, BondName, coin); err != nil {
+					ctx.Logger().Error("fail to transfer funds from asgard to bond", "error", err)
+					return fmt.Errorf("fail to transfer funds from asgard to bond: %w", err)
+				}
+			}
+			pool.BalanceRune = common.SafeSub(pool.BalanceRune, poolDeficit)
+			vaultData.BondRewardRune = vaultData.BondRewardRune.Add(poolDeficit)
+			if err := vm.k.SetPool(ctx, pool); err != nil {
+				err = fmt.Errorf("fail to set pool: %w", err)
+				ctx.Logger().Error(err.Error())
+				return err
+			}
+			evtPools = append(evtPools, PoolAmt{
+				Asset:  pool.Asset,
+				Amount: 0 - int64(poolDeficit.Uint64()),
+			})
+		}
+	}
+
+	rewardEvt := NewEventRewards(bondReward, evtPools)
+	if err := eventMgr.EmitRewardEvent(ctx, vm.k, rewardEvt); err != nil {
+		return fmt.Errorf("fail to emit reward event: %w", err)
+	}
+	i, err := getTotalActiveNodeWithBond(ctx, vm.k)
+	if err != nil {
+		return fmt.Errorf("fail to get total active node account: %w", err)
+	}
+	vaultData.TotalBondUnits = vaultData.TotalBondUnits.Add(cosmos.NewUint(uint64(i))) // Add 1 unit for each active Node
+
+	return vm.k.SetVaultData(ctx, vaultData)
+}
+
+func (vm *VaultMgr) getEnabledPoolsAndTotalStakedRune(ctx cosmos.Context) (Pools, cosmos.Uint, error) {
+	// First get active pools and total staked Rune
+	totalStaked := cosmos.ZeroUint()
+	var pools Pools
+	iterator := vm.k.GetPoolIterator(ctx)
+	defer iterator.Close()
+	for ; iterator.Valid(); iterator.Next() {
+		var pool Pool
+		if err := vm.k.Cdc().UnmarshalBinaryBare(iterator.Value(), &pool); err != nil {
+			return nil, cosmos.ZeroUint(), fmt.Errorf("fail to unmarhsl pool: %w", err)
+		}
+		if pool.IsEnabled() && !pool.BalanceRune.IsZero() {
+			totalStaked = totalStaked.Add(pool.BalanceRune)
+			pools = append(pools, pool)
+		}
+	}
+	return pools, totalStaked, nil
+}
+
+func (vm *VaultMgr) getTotalActiveBond(ctx cosmos.Context) (cosmos.Uint, error) {
+	totalBonded := cosmos.ZeroUint()
+	nodes, err := vm.k.ListActiveNodeAccounts(ctx)
+	if err != nil {
+		return cosmos.ZeroUint(), fmt.Errorf("fail to get all active accounts: %w", err)
+	}
+	for _, node := range nodes {
+		totalBonded = totalBonded.Add(node.Bond)
+	}
+	return totalBonded, nil
+}
+
+// Pays out Rewards
+func (vm *VaultMgr) payPoolRewards(ctx cosmos.Context, poolRewards []cosmos.Uint, pools Pools) error {
+	for i, reward := range poolRewards {
+		pools[i].BalanceRune = pools[i].BalanceRune.Add(reward)
+		if err := vm.k.SetPool(ctx, pools[i]); err != nil {
+			err = fmt.Errorf("fail to set pool: %w", err)
+			ctx.Logger().Error(err.Error())
+			return err
+		}
+		if common.RuneAsset().Chain.Equals(common.THORChain) {
+			coin := common.NewCoin(common.RuneNative, reward)
+			if err := vm.k.SendFromModuleToModule(ctx, ReserveName, AsgardName, coin); err != nil {
+				ctx.Logger().Error("fail to transfer funds from reserve to asgard", "error", err)
+				return fmt.Errorf("fail to transfer funds from reserve to asgard: %w", err)
+			}
+		}
+	}
+	return nil
+}
+
+func getTotalActiveNodeWithBond(ctx cosmos.Context, k Keeper) (int64, error) {
+	nas, err := k.ListActiveNodeAccounts(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("fail to get active node accounts: %w", err)
+	}
+	var total int64
+	for _, item := range nas {
+		if !item.Bond.IsZero() {
+			total++
+		}
+	}
+	return total, nil
+}

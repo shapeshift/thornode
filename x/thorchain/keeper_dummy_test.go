@@ -12,7 +12,6 @@ import (
 
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
-	"gitlab.com/thorchain/thornode/constants"
 )
 
 var (
@@ -224,9 +223,6 @@ func (k KVStoreDummy) HasValidVaultPools(_ cosmos.Context) (bool, error)     { r
 func (k KVStoreDummy) AddFeeToReserve(_ cosmos.Context, _ cosmos.Uint) error { return kaboom }
 func (k KVStoreDummy) GetVaultData(_ cosmos.Context) (VaultData, error)      { return VaultData{}, kaboom }
 func (k KVStoreDummy) SetVaultData(_ cosmos.Context, _ VaultData) error      { return kaboom }
-func (k KVStoreDummy) UpdateVaultData(_ cosmos.Context, _ constants.ConstantValues, gasManager GasManager, manager EventManager) error {
-	return kaboom
-}
 
 func (k KVStoreDummy) SetTssKeysignFailVoter(_ cosmos.Context, tss TssKeysignFailVoter) {
 }

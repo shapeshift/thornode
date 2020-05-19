@@ -17,6 +17,7 @@ type VaultManager interface {
 	TriggerKeygen(ctx cosmos.Context, nas NodeAccounts) error
 	RotateVault(ctx cosmos.Context, vault Vault) error
 	EndBlock(ctx cosmos.Context, version semver.Version, constAccessor constants.ConstantValues) error
+	UpdateVaultData(ctx cosmos.Context, constAccessor constants.ConstantValues, gasManager GasManager, eventMgr EventManager) error
 }
 
 // VersionedVaultMgr is an implementation of versioned Vault Manager

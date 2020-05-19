@@ -48,3 +48,7 @@ func (vm *VaultMgrDummy) RotateVault(ctx cosmos.Context, vault Vault) error {
 	vm.vault = vault
 	return nil
 }
+
+func (vm *VaultMgrDummy) UpdateVaultData(ctx cosmos.Context, constAccessor constants.ConstantValues, gasManager GasManager, eventMgr EventManager) error {
+	return nil
+}
