@@ -1,9 +1,9 @@
 #!/bin/sh
 
 CHAIN_ID="${CHAIN_ID:=thorchain}"
-BINANCE_HOST="${BINANCE_HOST:=https://data-seed-pre-0-s3.binance.org}"
-BTC_HOST="${BTC_HOST:=127.0.0.1:18443}"
-ETH_HOST="${ETH_HOST:=http://ethereum-localnet:8545}"
+BINANCE_HOST="http://${BINANCE_HOST:=binance-mock:26660}"
+BTC_HOST="${BTC_HOST:=bitcoin-regtest:18443}"
+ETH_HOST="http://${ETH_HOST:=ethereum-localnet:8545}"
 DB_PATH="${DB_PATH:=/var/data}"
 CHAIN_API="${CHAIN_API:=127.0.0.1:1317}"
 CHAIN_RPC="${CHAIN_RPC:=127.0.0.1:26657}"
