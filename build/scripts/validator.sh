@@ -39,14 +39,15 @@ if [ ! -f ~/.thord/config/genesis.json ]; then
         # send bond transaction to mock binance
         $(dirname "$0")/mock-bond.sh $BINANCE $ADDRESS $NODE_ADDRESS $PEER_API
 
-        sleep 15 # wait for thorchain to register the new node account
-
         # set node keys
-        echo $SIGNER_PASSWD | thorcli tx thorchain set-node-keys $(thorcli keys show thorchain --pubkey) $(thorcli keys show thorchain --pubkey) $(thord tendermint show-validator) --node tcp://$PEER:26657 --from $SIGNER_NAME --yes
+        until echo $SIGNER_PASSWD | thorcli tx thorchain set-node-keys $(thorcli keys show thorchain --pubkey) $(thorcli keys show thorchain --pubkey) $(thord tendermint show-validator) --node tcp://$PEER:26657 --from $SIGNER_NAME --yes; do
+          sleep 5
+        done
 
         # add IP address
-        sleep 5 # wait for thorchain to commit a block
-        echo $SIGNER_PASSWD | thorcli tx thorchain set-ip-address $(curl -s http://whatismyip.akamai.com) --node tcp://$PEER:26657 --from $SIGNER_NAME --yes
+        until echo $SIGNER_PASSWD | thorcli tx thorchain set-ip-address $(curl -s http://whatismyip.akamai.com) --node tcp://$PEER:26657 --from $SIGNER_NAME --yes; do
+          sleep 5
+        done
 
     elif [[ "$NET" == "testnet" ]]; then
         # create a binance wallet

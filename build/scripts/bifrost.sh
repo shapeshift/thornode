@@ -2,6 +2,7 @@
 
 CHAIN_ID="${CHAIN_ID:=thorchain}"
 BINANCE_HOST="http://${BINANCE_HOST:=binance-mock:26660}"
+BINANCE_START_BLOCK_HEIGHT="${BINANCE_START_BLOCK_HEIGHT:=0}"
 BTC_HOST="${BTC_HOST:=bitcoin-regtest:18443}"
 ETH_HOST="http://${ETH_HOST:=ethereum-localnet:8545}"
 DB_PATH="${DB_PATH:=/var/data}"
@@ -59,7 +60,7 @@ if [ ! -f /etc/bifrost/config.json ]; then
             \"http_request_read_timeout\": \"30s\",
             \"http_request_write_timeout\": \"30s\",
             \"max_http_request_retry\": 10,
-            \"start_block_height\": 0,
+            \"start_block_height\": $BINANCE_START_BLOCK_HEIGHT,
             \"db_path\": \"$OBSERVER_PATH\"
           }
         },
