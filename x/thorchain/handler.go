@@ -48,24 +48,15 @@ const (
 )
 
 var (
-	notAuthorized          = fmt.Errorf("not authorized")
-	errInvalidVersion      = fmt.Errorf("bad version")
-	errBadVersion          = cosmos.NewError(DefaultCodespace, CodeBadVersion, errInvalidVersion.Error())
-	errInvalidMessage      = cosmos.NewError(DefaultCodespace, CodeInvalidMessage, "invalid message")
-	errConstNotAvailable   = cosmos.NewError(DefaultCodespace, CodeConstantsNotAvailable, "constant values not available")
-	errFailGetEventManager = cosmos.NewError(DefaultCodespace, CodeFailEventManager, "fail to get event manager")
+	notAuthorized        = fmt.Errorf("not authorized")
+	errInvalidVersion    = fmt.Errorf("bad version")
+	errBadVersion        = cosmos.NewError(DefaultCodespace, CodeBadVersion, errInvalidVersion.Error())
+	errInvalidMessage    = cosmos.NewError(DefaultCodespace, CodeInvalidMessage, "invalid message")
+	errConstNotAvailable = cosmos.NewError(DefaultCodespace, CodeConstantsNotAvailable, "constant values not available")
 )
 
 // NewExternalHandler returns a handler for "thorchain" type messages.
-func NewExternalHandler(keeper Keeper,
-	versionedTxOutStore VersionedTxOutStore,
-	validatorMgr VersionedValidatorManager,
-	versionedVaultManager VersionedVaultManager,
-	versionedObserverManager VersionedObserverManager,
-	versionedGasMgr VersionedGasManager,
-	versionedEventManager VersionedEventManager) cosmos.Handler {
-	handlerMap := getHandlerMapping(keeper, versionedTxOutStore, validatorMgr, versionedVaultManager, versionedObserverManager, versionedGasMgr, versionedEventManager)
-
+func NewExternalHandler(keeper Keeper, mgr Manager) cosmos.Handler {
 	return func(ctx cosmos.Context, msg cosmos.Msg) cosmos.Result {
 		ctx = ctx.WithEventManager(cosmos.NewEventManager())
 		version := keeper.GetLowestActiveVersion(ctx)
@@ -73,6 +64,7 @@ func NewExternalHandler(keeper Keeper,
 		if constantValues == nil {
 			return errConstNotAvailable.Result()
 		}
+		handlerMap := getHandlerMapping(keeper, mgr)
 		h, ok := handlerMap[msg.Type()]
 		if !ok {
 			errMsg := fmt.Sprintf("Unrecognized thorchain Msg type: %v", msg.Type())
@@ -86,46 +78,33 @@ func NewExternalHandler(keeper Keeper,
 	}
 }
 
-func getHandlerMapping(keeper Keeper,
-	versionedTxOutStore VersionedTxOutStore,
-	validatorMgr VersionedValidatorManager,
-	versionedVaultManager VersionedVaultManager,
-	versionedObserverManager VersionedObserverManager,
-	versionedGasMgr VersionedGasManager,
-	versionedEventManager VersionedEventManager) map[string]MsgHandler {
+func getHandlerMapping(keeper Keeper, mgr Manager) map[string]MsgHandler {
 	// New arch handlers
 	m := make(map[string]MsgHandler)
-	m[MsgTssPool{}.Type()] = NewTssHandler(keeper, versionedVaultManager, versionedEventManager)
-	m[MsgSetNodeKeys{}.Type()] = NewSetNodeKeysHandler(keeper)
-	m[MsgSetVersion{}.Type()] = NewVersionHandler(keeper)
-	m[MsgSetIPAddress{}.Type()] = NewIPAddressHandler(keeper)
-	m[MsgNativeTx{}.Type()] = NewNativeTxHandler(keeper, versionedObserverManager, versionedTxOutStore, validatorMgr, versionedVaultManager, versionedGasMgr, versionedEventManager)
-	m[MsgObservedTxIn{}.Type()] = NewObservedTxInHandler(keeper, versionedObserverManager, versionedTxOutStore, validatorMgr, versionedVaultManager, versionedGasMgr, versionedEventManager)
-	m[MsgObservedTxOut{}.Type()] = NewObservedTxOutHandler(keeper, versionedObserverManager, versionedTxOutStore, validatorMgr, versionedVaultManager, versionedGasMgr, versionedEventManager)
-	m[MsgTssKeysignFail{}.Type()] = NewTssKeysignHandler(keeper, versionedEventManager)
-	m[MsgErrataTx{}.Type()] = NewErrataTxHandler(keeper, versionedEventManager)
-	m[MsgSend{}.Type()] = NewSendHandler(keeper)
-	m[MsgMimir{}.Type()] = NewMimirHandler(keeper)
-	m[MsgBan{}.Type()] = NewBanHandler(keeper)
+	m[MsgTssPool{}.Type()] = NewTssHandler(keeper, mgr)
+	m[MsgSetNodeKeys{}.Type()] = NewSetNodeKeysHandler(keeper, mgr)
+	m[MsgSetVersion{}.Type()] = NewVersionHandler(keeper, mgr)
+	m[MsgSetIPAddress{}.Type()] = NewIPAddressHandler(keeper, mgr)
+	m[MsgNativeTx{}.Type()] = NewNativeTxHandler(keeper, mgr)
+	m[MsgObservedTxIn{}.Type()] = NewObservedTxInHandler(keeper, mgr)
+	m[MsgObservedTxOut{}.Type()] = NewObservedTxOutHandler(keeper, mgr)
+	m[MsgTssKeysignFail{}.Type()] = NewTssKeysignHandler(keeper, mgr)
+	m[MsgErrataTx{}.Type()] = NewErrataTxHandler(keeper, mgr)
+	m[MsgSend{}.Type()] = NewSendHandler(keeper, mgr)
+	m[MsgMimir{}.Type()] = NewMimirHandler(keeper, mgr)
+	m[MsgBan{}.Type()] = NewBanHandler(keeper, mgr)
 	return m
 }
 
 // NewInternalHandler returns a handler for "thorchain" internal type messages.
-func NewInternalHandler(keeper Keeper,
-	versionedTxOutStore VersionedTxOutStore,
-	validatorMgr VersionedValidatorManager,
-	versionedVaultManager VersionedVaultManager,
-	versionedObserverManager VersionedObserverManager,
-	versionedGasMgr VersionedGasManager,
-	versionedEventManager VersionedEventManager) cosmos.Handler {
-	handlerMap := getInternalHandlerMapping(keeper, versionedTxOutStore, validatorMgr, versionedVaultManager, versionedObserverManager, versionedGasMgr, versionedEventManager)
-
+func NewInternalHandler(keeper Keeper, mgr Manager) cosmos.Handler {
 	return func(ctx cosmos.Context, msg cosmos.Msg) cosmos.Result {
 		version := keeper.GetLowestActiveVersion(ctx)
 		constantValues := constants.GetConstantValues(version)
 		if constantValues == nil {
 			return errConstNotAvailable.Result()
 		}
+		handlerMap := getInternalHandlerMapping(keeper, mgr)
 		h, ok := handlerMap[msg.Type()]
 		if !ok {
 			errMsg := fmt.Sprintf("Unrecognized thorchain Msg type: %v", msg.Type())
@@ -135,28 +114,22 @@ func NewInternalHandler(keeper Keeper,
 	}
 }
 
-func getInternalHandlerMapping(keeper Keeper,
-	versionedTxOutStore VersionedTxOutStore,
-	validatorMgr VersionedValidatorManager,
-	versionedVaultManager VersionedVaultManager,
-	versionedObserverManager VersionedObserverManager,
-	versionedGasMgr VersionedGasManager,
-	versionedEventManager VersionedEventManager) map[string]MsgHandler {
+func getInternalHandlerMapping(keeper Keeper, mgr Manager) map[string]MsgHandler {
 	// New arch handlers
 	m := make(map[string]MsgHandler)
-	m[MsgOutboundTx{}.Type()] = NewOutboundTxHandler(keeper, versionedEventManager)
-	m[MsgYggdrasil{}.Type()] = NewYggdrasilHandler(keeper, versionedTxOutStore, validatorMgr, versionedEventManager)
-	m[MsgSwap{}.Type()] = NewSwapHandler(keeper, versionedTxOutStore, versionedEventManager)
-	m[MsgReserveContributor{}.Type()] = NewReserveContributorHandler(keeper, versionedEventManager)
-	m[MsgBond{}.Type()] = NewBondHandler(keeper, versionedEventManager)
-	m[MsgLeave{}.Type()] = NewLeaveHandler(keeper, validatorMgr, versionedTxOutStore, versionedEventManager)
-	m[MsgAdd{}.Type()] = NewAddHandler(keeper, versionedEventManager)
-	m[MsgSetUnStake{}.Type()] = NewUnstakeHandler(keeper, versionedTxOutStore, versionedEventManager)
-	m[MsgSetStakeData{}.Type()] = NewStakeHandler(keeper, versionedEventManager)
-	m[MsgRefundTx{}.Type()] = NewRefundHandler(keeper, versionedEventManager)
-	m[MsgMigrate{}.Type()] = NewMigrateHandler(keeper, versionedEventManager)
-	m[MsgRagnarok{}.Type()] = NewRagnarokHandler(keeper, versionedEventManager)
-	m[MsgSwitch{}.Type()] = NewSwitchHandler(keeper, versionedTxOutStore)
+	m[MsgOutboundTx{}.Type()] = NewOutboundTxHandler(keeper, mgr)
+	m[MsgYggdrasil{}.Type()] = NewYggdrasilHandler(keeper, mgr)
+	m[MsgSwap{}.Type()] = NewSwapHandler(keeper, mgr)
+	m[MsgReserveContributor{}.Type()] = NewReserveContributorHandler(keeper, mgr)
+	m[MsgBond{}.Type()] = NewBondHandler(keeper, mgr)
+	m[MsgLeave{}.Type()] = NewLeaveHandler(keeper, mgr)
+	m[MsgAdd{}.Type()] = NewAddHandler(keeper, mgr)
+	m[MsgSetUnStake{}.Type()] = NewUnstakeHandler(keeper, mgr)
+	m[MsgSetStakeData{}.Type()] = NewStakeHandler(keeper, mgr)
+	m[MsgRefundTx{}.Type()] = NewRefundHandler(keeper, mgr)
+	m[MsgMigrate{}.Type()] = NewMigrateHandler(keeper, mgr)
+	m[MsgRagnarok{}.Type()] = NewRagnarokHandler(keeper, mgr)
+	m[MsgSwitch{}.Type()] = NewSwitchHandler(keeper, mgr)
 	return m
 }
 

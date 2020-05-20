@@ -19,19 +19,15 @@ import (
 // 1. outbound tx from yggdrasil vault
 // 2. inbound tx to asgard vault
 type YggdrasilHandler struct {
-	keeper                Keeper
-	txOutStore            VersionedTxOutStore
-	validatorMgr          VersionedValidatorManager
-	versionedEventManager VersionedEventManager
+	keeper Keeper
+	mgr    Manager
 }
 
 // NewYggdrasilHandler create a new Yggdrasil handler
-func NewYggdrasilHandler(keeper Keeper, txOutStore VersionedTxOutStore, validatorMgr VersionedValidatorManager, versionedEventManager VersionedEventManager) YggdrasilHandler {
+func NewYggdrasilHandler(keeper Keeper, mgr Manager) YggdrasilHandler {
 	return YggdrasilHandler{
-		keeper:                keeper,
-		txOutStore:            txOutStore,
-		validatorMgr:          validatorMgr,
-		versionedEventManager: versionedEventManager,
+		keeper: keeper,
+		mgr:    mgr,
 	}
 }
 
@@ -75,7 +71,7 @@ func (h YggdrasilHandler) handle(ctx cosmos.Context, msg MsgYggdrasil, version s
 
 func (h YggdrasilHandler) slash(ctx cosmos.Context, version semver.Version, pk common.PubKey, coins common.Coins) error {
 	var returnErr error
-	slasher, err := NewSlasher(h.keeper, version, h.versionedEventManager)
+	slasher, err := NewSlasher(h.keeper, version, h.mgr)
 	if err != nil {
 		return fmt.Errorf("fail to create new slasher,error:%w", err)
 	}
@@ -211,17 +207,7 @@ func (h YggdrasilHandler) handleYggdrasilReturn(ctx cosmos.Context, msg MsgYggdr
 		}
 
 		if !vault.HasFunds() {
-			txOutStore, err := h.txOutStore.GetTxOutStore(ctx, h.keeper, version)
-			if err != nil {
-				ctx.Logger().Error("fail to get txout store", "error", err)
-				return errBadVersion.Result()
-			}
-			eventMgr, err := h.versionedEventManager.GetEventManager(ctx, version)
-			if err != nil {
-				ctx.Logger().Error("fail to get event manager", "error", err)
-				return errFailGetEventManager.Result()
-			}
-			if err := refundBond(ctx, msg.Tx, na, h.keeper, txOutStore, eventMgr); err != nil {
+			if err := refundBond(ctx, msg.Tx, na, h.keeper, h.mgr); err != nil {
 				ctx.Logger().Error("fail to refund bond", "error", err)
 				return cosmos.ErrInternal(err.Error()).Result()
 			}

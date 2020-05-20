@@ -17,7 +17,7 @@ import (
 )
 
 // NewQuerier is the module level router for state queries
-func NewQuerier(keeper Keeper, validatorMgr VersionedValidatorManager) cosmos.Querier {
+func NewQuerier(keeper Keeper) cosmos.Querier {
 	return func(ctx cosmos.Context, path []string, req abci.RequestQuery) (res []byte, err cosmos.Error) {
 		switch path[0] {
 		case q.QueryPool.Key:

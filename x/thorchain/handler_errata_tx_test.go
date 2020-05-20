@@ -80,7 +80,7 @@ func (s *HandlerErrataTxSuite) TestValidate(c *C) {
 		na: GetRandomNodeAccount(NodeActive),
 	}
 
-	handler := NewErrataTxHandler(keeper, NewDummyVersionedEventMgr())
+	handler := NewErrataTxHandler(keeper, NewDummyMgr())
 	// happy path
 	ver := constants.SWVersion
 	msg := NewMsgErrataTx(GetRandomTxHash(), common.BNBChain, keeper.na.NodeAddress)
@@ -142,8 +142,10 @@ func (s *HandlerErrataTxSuite) TestHandle(c *C) {
 			},
 		},
 	}
-	versionedEventManager := NewVersionedEventMgr()
-	handler := NewErrataTxHandler(keeper, versionedEventManager)
+
+	mgr := NewManagers(keeper)
+	c.Assert(mgr.BeginBlock(ctx), IsNil)
+	handler := NewErrataTxHandler(keeper, mgr)
 	msg := NewMsgErrataTx(txID, common.BNBChain, na.NodeAddress)
 	result := handler.handle(ctx, msg, ver)
 	c.Assert(result.IsOK(), Equals, true)

@@ -11,33 +11,41 @@ import (
 
 // TxOutStorageV1 is going to manage all the outgoing tx
 type TxOutStorageV1 struct {
-	height        int64
 	keeper        Keeper
 	constAccessor constants.ConstantValues
 	eventMgr      EventManager
 }
 
 // NewTxOutStorage will create a new instance of TxOutStore.
-func NewTxOutStorageV1(keeper Keeper, eventMgr EventManager) *TxOutStorageV1 {
+func NewTxOutStorageV1(keeper Keeper, constAccessor constants.ConstantValues, eventMgr EventManager) *TxOutStorageV1 {
 	return &TxOutStorageV1{
-		keeper:   keeper,
-		eventMgr: eventMgr,
+		keeper:        keeper,
+		eventMgr:      eventMgr,
+		constAccessor: constAccessor,
 	}
 }
 
-// NewBlock create a new block
-func (tos *TxOutStorageV1) NewBlock(height int64, constAccessor constants.ConstantValues) {
-	tos.constAccessor = constAccessor
-	tos.height = height
-}
-
 func (tos *TxOutStorageV1) GetBlockOut(ctx cosmos.Context) (*TxOut, error) {
-	return tos.keeper.GetTxOut(ctx, tos.height)
+	return tos.keeper.GetTxOut(ctx, ctx.BlockHeight())
 }
 
 func (tos *TxOutStorageV1) GetOutboundItems(ctx cosmos.Context) ([]*TxOutItem, error) {
-	block, err := tos.keeper.GetTxOut(ctx, tos.height)
+	block, err := tos.keeper.GetTxOut(ctx, ctx.BlockHeight())
+	if block == nil {
+		return nil, nil
+	}
 	return block.TxArray, err
+}
+
+func (tos *TxOutStorageV1) GetOutboundItemByToAddress(ctx cosmos.Context, to common.Address) []TxOutItem {
+	filterItems := make([]TxOutItem, 0)
+	items, _ := tos.GetOutboundItems(ctx)
+	for _, item := range items {
+		if item.ToAddress.Equals(to) {
+			filterItems = append(filterItems, *item)
+		}
+	}
+	return filterItems
 }
 
 func (tos *TxOutStorageV1) ClearOutboundItems(_ cosmos.Context) {} // do nothing
@@ -45,7 +53,7 @@ func (tos *TxOutStorageV1) ClearOutboundItems(_ cosmos.Context) {} // do nothing
 // TryAddTxOutItem add an outbound tx to block
 // return bool indicate whether the transaction had been added successful or not
 // return error indicate error
-func (tos *TxOutStorageV1) TryAddTxOutItem(ctx cosmos.Context, toi *TxOutItem) (bool, error) {
+func (tos *TxOutStorageV1) TryAddTxOutItem(ctx cosmos.Context, mgr Manager, toi *TxOutItem) (bool, error) {
 	success, err := tos.prepareTxOutItem(ctx, toi)
 	if err != nil {
 		return success, fmt.Errorf("fail to prepare outbound tx: %w", err)
@@ -54,7 +62,7 @@ func (tos *TxOutStorageV1) TryAddTxOutItem(ctx cosmos.Context, toi *TxOutItem) (
 		return false, nil
 	}
 	// add tx to block out
-	if err := tos.addToBlockOut(ctx, toi); err != nil {
+	if err := tos.addToBlockOut(ctx, mgr, toi); err != nil {
 		return false, err
 	}
 	return true, nil
@@ -62,8 +70,8 @@ func (tos *TxOutStorageV1) TryAddTxOutItem(ctx cosmos.Context, toi *TxOutItem) (
 
 // UnSafeAddTxOutItem - blindly adds a tx out, skipping vault selection, transaction
 // fee deduction, etc
-func (tos *TxOutStorageV1) UnSafeAddTxOutItem(ctx cosmos.Context, toi *TxOutItem) error {
-	return tos.addToBlockOut(ctx, toi)
+func (tos *TxOutStorageV1) UnSafeAddTxOutItem(ctx cosmos.Context, mgr Manager, toi *TxOutItem) error {
+	return tos.addToBlockOut(ctx, mgr, toi)
 }
 
 // PrepareTxOutItem will do some data validation which include the following
@@ -119,7 +127,7 @@ func (tos *TxOutStorageV1) prepareTxOutItem(ctx cosmos.Context, toi *TxOutItem) 
 
 			vault := active.SelectByMaxCoin(toi.Coin.Asset)
 			if vault.IsEmpty() {
-				return false, fmt.Errorf("empty vault, cannot send out fund: %w", err)
+				return false, fmt.Errorf("empty vault, cannot send out fund: %s", toi.Coin)
 			}
 
 			// check that this vault has enough funds to satisfy the request
@@ -238,9 +246,9 @@ func (tos *TxOutStorageV1) prepareTxOutItem(ctx cosmos.Context, toi *TxOutItem) 
 	return true, nil
 }
 
-func (tos *TxOutStorageV1) addToBlockOut(ctx cosmos.Context, toi *TxOutItem) error {
-	if toi.Coin.IsNative() {
-		return tos.nativeTxOut(ctx, toi)
+func (tos *TxOutStorageV1) addToBlockOut(ctx cosmos.Context, mgr Manager, toi *TxOutItem) error {
+	if toi.Chain.Equals(common.THORChain) {
+		return tos.nativeTxOut(ctx, mgr, toi)
 	}
 
 	hash, err := toi.TxHash()
@@ -249,7 +257,7 @@ func (tos *TxOutStorageV1) addToBlockOut(ctx cosmos.Context, toi *TxOutItem) err
 	}
 
 	// add a tx marker
-	mark := NewTxMarker(tos.height, toi.Memo)
+	mark := NewTxMarker(ctx.BlockHeight(), toi.Memo)
 	memo, _ := ParseMemo(toi.Memo)
 	if memo.IsInternal() {
 		// need to add twice because observed inbound and outbound handler will observe
@@ -265,10 +273,10 @@ func (tos *TxOutStorageV1) addToBlockOut(ctx cosmos.Context, toi *TxOutItem) err
 	// since we're storing the memo in the tx market, we can clear it
 	toi.Memo = ""
 
-	return tos.keeper.AppendTxOut(ctx, tos.height, toi)
+	return tos.keeper.AppendTxOut(ctx, ctx.BlockHeight(), toi)
 }
 
-func (tos *TxOutStorageV1) nativeTxOut(ctx cosmos.Context, toi *TxOutItem) error {
+func (tos *TxOutStorageV1) nativeTxOut(ctx cosmos.Context, mgr Manager, toi *TxOutItem) error {
 	supplier := tos.keeper.Supply()
 
 	addr, err := cosmos.AccAddressFromBech32(toi.ToAddress.String())
@@ -318,13 +326,7 @@ func (tos *TxOutStorageV1) nativeTxOut(ctx cosmos.Context, toi *TxOutItem) error
 		return err
 	}
 
-	versionedEventManager := NewVersionedEventMgr()
-	versionedTxOutStore := NewVersionedTxOutStore(versionedEventManager)
-	versionedVaultMgr := NewVersionedVaultMgr(versionedTxOutStore, versionedEventManager)
-	validatorMgr := NewVersionedValidatorMgr(tos.keeper, versionedTxOutStore, versionedVaultMgr, versionedEventManager)
-	versionedObserverManager := NewVersionedObserverMgr()
-	versionedGasMgr := NewVersionedGasMgr()
-	handler := NewInternalHandler(tos.keeper, versionedTxOutStore, validatorMgr, versionedVaultMgr, versionedObserverManager, versionedGasMgr, versionedEventManager)
+	handler := NewInternalHandler(tos.keeper, mgr)
 
 	result := handler(ctx, m)
 	if !result.IsOK() {

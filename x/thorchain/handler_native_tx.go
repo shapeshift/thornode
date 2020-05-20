@@ -13,30 +13,14 @@ import (
 )
 
 type NativeTxHandler struct {
-	keeper                   Keeper
-	versionedTxOutStore      VersionedTxOutStore
-	validatorMgr             VersionedValidatorManager
-	versionedVaultManager    VersionedVaultManager
-	versionedGasMgr          VersionedGasManager
-	versionedObserverManager VersionedObserverManager
-	versionedEventManager    VersionedEventManager
+	keeper Keeper
+	mgr    Manager
 }
 
-func NewNativeTxHandler(keeper Keeper,
-	versionedObserverManager VersionedObserverManager,
-	versionedTxOutStore VersionedTxOutStore,
-	validatorMgr VersionedValidatorManager,
-	versionedVaultManager VersionedVaultManager,
-	versionedGasMgr VersionedGasManager,
-	versionedEventManager VersionedEventManager) NativeTxHandler {
+func NewNativeTxHandler(keeper Keeper, mgr Manager) NativeTxHandler {
 	return NativeTxHandler{
-		keeper:                   keeper,
-		versionedTxOutStore:      versionedTxOutStore,
-		validatorMgr:             validatorMgr,
-		versionedVaultManager:    versionedVaultManager,
-		versionedGasMgr:          versionedGasMgr,
-		versionedObserverManager: versionedObserverManager,
-		versionedEventManager:    versionedEventManager,
+		keeper: keeper,
+		mgr:    mgr,
 	}
 }
 
@@ -137,25 +121,14 @@ func (h NativeTxHandler) handleV1(ctx cosmos.Context, msg MsgNativeTx, version s
 
 	tx := common.NewTx(txID, from, to, msg.Coins, common.Gas{gas}, msg.Memo)
 
-	handler := NewInternalHandler(h.keeper, h.versionedTxOutStore, h.validatorMgr, h.versionedVaultManager, h.versionedObserverManager, h.versionedGasMgr, h.versionedEventManager)
+	handler := NewInternalHandler(h.keeper, h.mgr)
 
-	txOutStore, err := h.versionedTxOutStore.GetTxOutStore(ctx, h.keeper, version)
-	if err != nil {
-		ctx.Logger().Error("fail to get txout store", "error", err)
-		return errBadVersion.Result()
-	}
-
-	eventMgr, err := h.versionedEventManager.GetEventManager(ctx, version)
-	if err != nil {
-		ctx.Logger().Error("fail to get event manager", "error", err)
-		return errFailGetEventManager.Result()
-	}
 	// construct msg from memo
 	txIn := ObservedTx{Tx: tx}
 	m, txErr := processOneTxIn(ctx, h.keeper, txIn, msg.Signer)
 	if txErr != nil {
 		ctx.Logger().Error("fail to process native inbound tx", "error", txErr.Error(), "tx hash", tx.ID.String())
-		if newErr := refundTx(ctx, txIn, txOutStore, h.keeper, constAccessor, txErr.Code(), fmt.Sprint(txErr.Data()), eventMgr); nil != newErr {
+		if newErr := refundTx(ctx, txIn, h.mgr, h.keeper, constAccessor, txErr.Code(), fmt.Sprint(txErr.Data())); nil != newErr {
 			return cosmos.ErrInternal(newErr.Error()).Result()
 		}
 		return cosmos.ErrInternal(txErr.Error()).Result()
@@ -178,7 +151,7 @@ func (h NativeTxHandler) handleV1(ctx cosmos.Context, msg MsgNativeTx, version s
 		if err != nil {
 			ctx.Logger().Error(err.Error())
 		}
-		if err := refundTx(ctx, txIn, txOutStore, h.keeper, constAccessor, result.Code, refundMsg, eventMgr); err != nil {
+		if err := refundTx(ctx, txIn, h.mgr, h.keeper, constAccessor, result.Code, refundMsg); err != nil {
 			return cosmos.ErrInternal(err.Error()).Result()
 		}
 	}

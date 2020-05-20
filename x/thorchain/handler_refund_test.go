@@ -162,9 +162,8 @@ func newRefundTxHandlerTestHelper(c *C) refundTxHandlerTestHelper {
 
 	c.Assert(keeper.SetPool(ctx, pool), IsNil)
 
-	txOutStorage := NewTxOutStorageV1(keeper, NewEventMgr())
 	constAccessor := constants.GetConstantValues(version)
-	txOutStorage.NewBlock(ctx.BlockHeight(), constAccessor)
+	txOutStorage := NewTxOutStorageV1(keeper, constAccessor, NewDummyEventMgr())
 	toi := &TxOutItem{
 		Chain:       common.BNBChain,
 		ToAddress:   tx.Tx.FromAddress,
@@ -173,7 +172,7 @@ func newRefundTxHandlerTestHelper(c *C) refundTxHandlerTestHelper {
 		Memo:        NewRefundMemo(tx.Tx.ID).String(),
 		InHash:      tx.Tx.ID,
 	}
-	result, err := txOutStorage.TryAddTxOutItem(ctx, toi)
+	result, err := txOutStorage.TryAddTxOutItem(ctx, NewDummyMgr(), toi)
 	c.Assert(err, IsNil)
 	c.Check(result, Equals, true)
 
@@ -345,7 +344,7 @@ func (s *HandlerRefundSuite) TestRefundTxHandlerShouldUpdateTxOut(c *C) {
 
 	for _, tc := range testCases {
 		helper := newRefundTxHandlerTestHelper(c)
-		handler := NewRefundHandler(helper.keeper, NewVersionedEventMgr())
+		handler := NewRefundHandler(helper.keeper, NewDummyMgr())
 		fromAddr, err := helper.yggVault.PubKey.GetAddress(common.BNBChain)
 		c.Assert(err, IsNil)
 		tx := NewObservedTx(common.Tx{
@@ -366,7 +365,7 @@ func (s *HandlerRefundSuite) TestRefundTxHandlerShouldUpdateTxOut(c *C) {
 
 func (s *HandlerRefundSuite) TestRefundTxNormalCase(c *C) {
 	helper := newRefundTxHandlerTestHelper(c)
-	handler := NewRefundHandler(helper.keeper, NewVersionedEventMgr())
+	handler := NewRefundHandler(helper.keeper, NewDummyMgr())
 
 	fromAddr, err := helper.yggVault.PubKey.GetAddress(common.BNBChain)
 	c.Assert(err, IsNil)
@@ -397,7 +396,7 @@ func (s *HandlerRefundSuite) TestRefundTxNormalCase(c *C) {
 
 func (s *HandlerRefundSuite) TestRefundTxHandlerSendExtraFundShouldBeSlashed(c *C) {
 	helper := newRefundTxHandlerTestHelper(c)
-	handler := NewRefundHandler(helper.keeper, NewVersionedEventMgr())
+	handler := NewRefundHandler(helper.keeper, NewDummyMgr())
 	fromAddr, err := helper.asgardVault.PubKey.GetAddress(common.BNBChain)
 	c.Assert(err, IsNil)
 	tx := NewObservedTx(common.Tx{
@@ -427,7 +426,7 @@ func (s *HandlerRefundSuite) TestRefundTxHandlerSendExtraFundShouldBeSlashed(c *
 
 func (s *HandlerRefundSuite) TestOutboundTxHandlerSendAdditionalCoinsShouldBeSlashed(c *C) {
 	helper := newRefundTxHandlerTestHelper(c)
-	handler := NewRefundHandler(helper.keeper, NewVersionedEventMgr())
+	handler := NewRefundHandler(helper.keeper, NewDummyMgr())
 	fromAddr, err := helper.asgardVault.PubKey.GetAddress(common.BNBChain)
 	c.Assert(err, IsNil)
 	tx := NewObservedTx(common.Tx{
@@ -452,7 +451,7 @@ func (s *HandlerRefundSuite) TestOutboundTxHandlerSendAdditionalCoinsShouldBeSla
 
 func (s *HandlerRefundSuite) TestOutboundTxHandlerInvalidObservedTxVoterShouldSlash(c *C) {
 	helper := newRefundTxHandlerTestHelper(c)
-	handler := NewRefundHandler(helper.keeper, NewVersionedEventMgr())
+	handler := NewRefundHandler(helper.keeper, NewDummyMgr())
 	fromAddr, err := helper.asgardVault.PubKey.GetAddress(common.BNBChain)
 	c.Assert(err, IsNil)
 	tx := NewObservedTx(common.Tx{

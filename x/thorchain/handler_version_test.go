@@ -32,7 +32,7 @@ func (s *HandlerVersionSuite) TestValidate(c *C) {
 		na: GetRandomNodeAccount(NodeActive),
 	}
 
-	handler := NewVersionHandler(keeper)
+	handler := NewVersionHandler(keeper, NewDummyMgr())
 	// happy path
 	ver := constants.SWVersion
 	msg := NewMsgSetVersion(ver, keeper.na.NodeAddress)
@@ -57,7 +57,7 @@ func (s *HandlerVersionSuite) TestHandle(c *C) {
 		na: GetRandomNodeAccount(NodeActive),
 	}
 
-	handler := NewVersionHandler(keeper)
+	handler := NewVersionHandler(keeper, NewDummyMgr())
 
 	msg := NewMsgSetVersion(semver.MustParse("2.0.0"), GetRandomBech32Addr())
 	err := handler.handle(ctx, msg, ver)

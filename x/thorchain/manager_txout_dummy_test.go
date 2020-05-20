@@ -1,26 +1,9 @@
 package thorchain
 
 import (
-	"github.com/blang/semver"
-
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
-	"gitlab.com/thorchain/thornode/constants"
 )
-
-type VersionedTxOutStoreDummy struct {
-	txoutStore *TxOutStoreDummy
-}
-
-func NewVersionedTxOutStoreDummy() *VersionedTxOutStoreDummy {
-	return &VersionedTxOutStoreDummy{
-		txoutStore: NewTxStoreDummy(),
-	}
-}
-
-func (v *VersionedTxOutStoreDummy) GetTxOutStore(ctx cosmos.Context, keeper Keeper, version semver.Version) (TxOutStore, error) {
-	return v.txoutStore, nil
-}
 
 // TxOutStoreDummy is going to manage all the outgoing tx
 type TxOutStoreDummy struct {
@@ -36,11 +19,6 @@ func NewTxStoreDummy() *TxOutStoreDummy {
 	}
 }
 
-// NewBlock create a new block
-func (tos *TxOutStoreDummy) NewBlock(height int64, constAccessor constants.ConstantValues) {
-	tos.blockOut = NewTxOut(height)
-}
-
 func (tos *TxOutStoreDummy) GetBlockOut(_ cosmos.Context) (*TxOut, error) {
 	return tos.blockOut, nil
 }
@@ -53,7 +31,7 @@ func (tos *TxOutStoreDummy) GetOutboundItems(ctx cosmos.Context) ([]*TxOutItem, 
 	return tos.blockOut.TxArray, nil
 }
 
-func (tos *TxOutStoreDummy) GetOutboundItemByToAddress(to common.Address) []TxOutItem {
+func (tos *TxOutStoreDummy) GetOutboundItemByToAddress(_ cosmos.Context, to common.Address) []TxOutItem {
 	items := make([]TxOutItem, 0)
 	for _, item := range tos.blockOut.TxArray {
 		if item.ToAddress.Equals(to) {
@@ -64,14 +42,14 @@ func (tos *TxOutStoreDummy) GetOutboundItemByToAddress(to common.Address) []TxOu
 }
 
 // AddTxOutItem add an item to internal structure
-func (tos *TxOutStoreDummy) TryAddTxOutItem(ctx cosmos.Context, toi *TxOutItem) (bool, error) {
+func (tos *TxOutStoreDummy) TryAddTxOutItem(ctx cosmos.Context, mgr Manager, toi *TxOutItem) (bool, error) {
 	if !toi.Chain.Equals(common.THORChain) {
 		tos.addToBlockOut(ctx, toi)
 	}
 	return true, nil
 }
 
-func (tos *TxOutStoreDummy) UnSafeAddTxOutItem(ctx cosmos.Context, toi *TxOutItem) error {
+func (tos *TxOutStoreDummy) UnSafeAddTxOutItem(ctx cosmos.Context, mgr Manager, toi *TxOutItem) error {
 	if !toi.Chain.Equals(common.THORChain) {
 		tos.addToBlockOut(ctx, toi)
 	}

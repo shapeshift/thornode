@@ -72,8 +72,7 @@ type yggdrasilHandlerTestHelper struct {
 	yggVault      Vault
 	constAccessor constants.ConstantValues
 	nodeAccount   NodeAccount
-	txOutStore    VersionedTxOutStore
-	validatorMgr  VersionedValidatorManager
+	mgr           Manager
 }
 
 func newYggdrasilTestKeeper(keeper Keeper) *yggdrasilTestKeeper {
@@ -103,12 +102,9 @@ func newYggdrasilHandlerTestHelper(c *C) yggdrasilHandlerTestHelper {
 
 	constAccessor := constants.GetConstantValues(version)
 
-	versionedTxOutStoreDummy := NewVersionedTxOutStoreDummy()
-	versionedVaultMgrDummy := NewVersionedVaultMgrDummy(versionedTxOutStoreDummy)
-	versionedEventManagerDummy := NewDummyVersionedEventMgr()
-
-	validatorMgr := NewVersionedValidatorMgr(keeper, versionedTxOutStoreDummy, versionedVaultMgrDummy, versionedEventManagerDummy)
-	c.Assert(validatorMgr.BeginBlock(ctx, version, constAccessor), IsNil)
+	mgr := NewDummyMgr()
+	mgr.validatorMgr = NewValidatorMgrV1(k, mgr.VaultMgr(), mgr.TxOutStore(), mgr.EventMgr())
+	c.Assert(mgr.ValidatorMgr().BeginBlock(ctx, constAccessor), IsNil)
 	asgardVault := GetRandomVault()
 	asgardVault.Type = AsgardVault
 	asgardVault.Status = ActiveVault
@@ -125,8 +121,7 @@ func newYggdrasilHandlerTestHelper(c *C) yggdrasilHandlerTestHelper {
 		keeper:        keeper,
 		nodeAccount:   nodeAccount,
 		constAccessor: constAccessor,
-		txOutStore:    versionedTxOutStoreDummy,
-		validatorMgr:  validatorMgr,
+		mgr:           mgr,
 		asgardVault:   asgardVault,
 		yggVault:      yggdrasilVault,
 	}
@@ -377,8 +372,7 @@ func (s *HandlerYggdrasilSuite) TestYggdrasilHandler(c *C) {
 				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
 			},
 			validator: func(helper yggdrasilHandlerTestHelper, msg cosmos.Msg, result cosmos.Result, c *C) {
-				store, err := helper.txOutStore.GetTxOutStore(helper.ctx, helper.keeper, helper.version)
-				c.Assert(err, IsNil)
+				store := helper.mgr.TxOutStore()
 
 				items, err := store.GetOutboundItems(helper.ctx)
 				c.Assert(err, IsNil)
@@ -400,10 +394,10 @@ func (s *HandlerYggdrasilSuite) TestYggdrasilHandler(c *C) {
 	}
 	for _, tc := range testCases {
 		helper := newYggdrasilHandlerTestHelper(c)
-		handler := NewYggdrasilHandler(helper.keeper, helper.txOutStore, helper.validatorMgr, NewVersionedEventMgr())
+		handler := NewYggdrasilHandler(helper.keeper, helper.mgr)
 		msg := tc.messageCreator(helper)
 		result := tc.runner(handler, msg, helper)
-		c.Assert(result.Code, Equals, tc.expectedResult, Commentf("name:%s", tc.name))
+		c.Assert(result.Code, Equals, tc.expectedResult, Commentf("name:%s, %s", tc.name, result.Log))
 		if tc.validator != nil {
 			tc.validator(helper, msg, result, c)
 		}

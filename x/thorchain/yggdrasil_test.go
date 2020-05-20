@@ -110,6 +110,7 @@ func (s YggdrasilSuite) TestFund(c *C) {
 		common.NewCoin(common.BNBAsset, cosmos.NewUint(10000*common.One)),
 	}
 	k.SetVault(ctx, vault)
+	mgr := NewDummyMgr()
 
 	// setup 6 active nodes
 	for i := 0; i < 6; i++ {
@@ -117,10 +118,8 @@ func (s YggdrasilSuite) TestFund(c *C) {
 		na.Bond = cosmos.NewUint(common.One * 1000000)
 		c.Assert(k.SetNodeAccount(ctx, na), IsNil)
 	}
-	txOutStore := NewTxStoreDummy()
 	constAccessor := constants.GetConstantValues(constants.SWVersion)
-	txOutStore.NewBlock(ctx.BlockHeight(), constAccessor)
-	err := Fund(ctx, k, txOutStore, constAccessor)
+	err := Fund(ctx, k, mgr, constAccessor)
 	c.Assert(err, IsNil)
 	na1 := GetRandomNodeAccount(NodeActive)
 	na1.Bond = cosmos.NewUint(1000000 * common.One)
@@ -130,9 +129,9 @@ func (s YggdrasilSuite) TestFund(c *C) {
 	bnbPool.BalanceAsset = cosmos.NewUint(100000 * common.One)
 	bnbPool.BalanceRune = cosmos.NewUint(100000 * common.One)
 	c.Assert(k.SetPool(ctx, bnbPool), IsNil)
-	err1 := Fund(ctx, k, txOutStore, constAccessor)
+	err1 := Fund(ctx, k, mgr, constAccessor)
 	c.Assert(err1, IsNil)
-	items, err := txOutStore.GetOutboundItems(ctx)
+	items, err := mgr.TxOutStore().GetOutboundItems(ctx)
 	c.Assert(err, IsNil)
 	if common.RuneAsset().Chain.Equals(common.THORChain) {
 		c.Assert(items, HasLen, 1)

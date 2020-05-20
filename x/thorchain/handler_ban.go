@@ -13,12 +13,14 @@ import (
 // BanHandler is to handle Ban message
 type BanHandler struct {
 	keeper Keeper
+	mgr    Manager
 }
 
 // NewBanHandler create new instance of BanHandler
-func NewBanHandler(keeper Keeper) BanHandler {
+func NewBanHandler(keeper Keeper, mgr Manager) BanHandler {
 	return BanHandler{
 		keeper: keeper,
+		mgr:    mgr,
 	}
 }
 

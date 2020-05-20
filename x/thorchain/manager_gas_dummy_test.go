@@ -1,8 +1,6 @@
 package thorchain
 
 import (
-	"github.com/blang/semver"
-
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
@@ -19,14 +17,3 @@ func (m *DummyGasManager) EndBlock(ctx cosmos.Context, keeper Keeper, eventManag
 func (m *DummyGasManager) AddGasAsset(gas common.Gas)                                            {}
 func (m *DummyGasManager) GetGas() common.Gas                                                    { return nil }
 func (m *DummyGasManager) ProcessGas(ctx cosmos.Context, keeper Keeper)                          {}
-
-type DummyVersionedGasMgr struct {
-}
-
-func NewDummyVersionedGasMgr() *DummyVersionedGasMgr {
-	return &DummyVersionedGasMgr{}
-}
-
-func (m *DummyVersionedGasMgr) GetGasManager(ctx cosmos.Context, version semver.Version) (GasManager, error) {
-	return NewDummyGasManager(), nil
-}

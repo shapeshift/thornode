@@ -12,15 +12,15 @@ import (
 
 // BondHandler a handler to process bond
 type BondHandler struct {
-	keeper                Keeper
-	versionedEventManager VersionedEventManager
+	keeper Keeper
+	mgr    Manager
 }
 
 // NewBondHandler create new BondHandler
-func NewBondHandler(keeper Keeper, versionedEventManager VersionedEventManager) BondHandler {
+func NewBondHandler(keeper Keeper, mgr Manager) BondHandler {
 	return BondHandler{
-		keeper:                keeper,
-		versionedEventManager: versionedEventManager,
+		keeper: keeper,
+		mgr:    mgr,
 	}
 }
 
@@ -85,13 +85,8 @@ func (h BondHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Versio
 		ctx.Logger().Error("fail to process msg bond", "error", err)
 		return err.Result()
 	}
-	eventMgr, err := h.versionedEventManager.GetEventManager(ctx, version)
-	if err != nil {
-		ctx.Logger().Error("fail to get event manager", "error", err)
-		return errFailGetEventManager.Result()
-	}
 	bondEvent := NewEventBond(msg.Bond, BondPaid, msg.TxIn)
-	if err := eventMgr.EmitBondEvent(ctx, h.keeper, bondEvent); err != nil {
+	if err := h.mgr.EventMgr().EmitBondEvent(ctx, h.keeper, bondEvent); err != nil {
 		return cosmos.NewError(DefaultCodespace, CodeFailSaveEvent, "fail to emit bond event").Result()
 	}
 

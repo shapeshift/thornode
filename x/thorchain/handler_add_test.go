@@ -18,7 +18,8 @@ func (HandlerAddSuite) TestAdd(c *C) {
 	// happy path
 	prePool, err := w.keeper.GetPool(w.ctx, common.BNBAsset)
 	c.Assert(err, IsNil)
-	addHandler := NewAddHandler(w.keeper, NewVersionedEventMgr())
+	mgr := NewDummyMgr()
+	addHandler := NewAddHandler(w.keeper, mgr)
 	msg := NewMsgAdd(GetRandomTx(), common.BNBAsset, cosmos.NewUint(common.One*5), cosmos.NewUint(common.One*5), w.activeNodeAccount.NodeAddress)
 	ver := constants.SWVersion
 	constAccessor := constants.GetConstantValues(ver)
@@ -59,7 +60,7 @@ func (HandlerAddSuite) TestHandleMsgAddValidation(c *C) {
 		},
 	}
 
-	addHandler := NewAddHandler(w.keeper, NewVersionedEventMgr())
+	addHandler := NewAddHandler(w.keeper, NewDummyMgr())
 	ver := constants.SWVersion
 	cosntAccessor := constants.GetConstantValues(ver)
 	for _, item := range testCases {

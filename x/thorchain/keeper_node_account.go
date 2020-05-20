@@ -10,6 +10,7 @@ import (
 
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/constants"
 )
 
 type KeeperNodeAccount interface {
@@ -134,7 +135,7 @@ func (k KVStore) GetLowestActiveVersion(ctx cosmos.Context) semver.Version {
 	nodes, err := k.ListActiveNodeAccounts(ctx)
 	if err != nil {
 		_ = dbError(ctx, "Unable to list active node accounts", err)
-		return semver.Version{}
+		return constants.SWVersion
 	}
 	if len(nodes) > 0 {
 		version := nodes[0].Version
@@ -145,7 +146,7 @@ func (k KVStore) GetLowestActiveVersion(ctx cosmos.Context) semver.Version {
 		}
 		return version
 	}
-	return semver.Version{}
+	return constants.SWVersion
 }
 
 // GetNodeAccount try to get node account with the given address from db

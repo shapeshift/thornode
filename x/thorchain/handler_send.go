@@ -11,11 +11,13 @@ import (
 
 type SendHandler struct {
 	keeper Keeper
+	mgr    Manager
 }
 
-func NewSendHandler(keeper Keeper) SendHandler {
+func NewSendHandler(keeper Keeper, mgr Manager) SendHandler {
 	return SendHandler{
 		keeper: keeper,
+		mgr:    mgr,
 	}
 }
 

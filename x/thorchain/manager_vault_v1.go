@@ -4,8 +4,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/blang/semver"
-
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
@@ -17,23 +15,23 @@ const (
 	EventTypeInactiveVault = "InactiveVault"
 )
 
-// VaultMgr is going to manage the vaults
-type VaultMgr struct {
-	k                     Keeper
-	versionedTxOutStore   VersionedTxOutStore
-	versionedEventManager VersionedEventManager
+// VaultMgrV1 is going to manage the vaults
+type VaultMgrV1 struct {
+	k          Keeper
+	txOutStore TxOutStore
+	eventMgr   EventManager
 }
 
-// NewVaultMgr create a new vault manager
-func NewVaultMgr(k Keeper, versionedTxOutStore VersionedTxOutStore, versionedEventManager VersionedEventManager) *VaultMgr {
-	return &VaultMgr{
-		k:                     k,
-		versionedTxOutStore:   versionedTxOutStore,
-		versionedEventManager: versionedEventManager,
+// NewVaultMgrV1 create a new vault manager
+func NewVaultMgrV1(k Keeper, txOutStore TxOutStore, eventMgr EventManager) *VaultMgrV1 {
+	return &VaultMgrV1{
+		k:          k,
+		txOutStore: txOutStore,
+		eventMgr:   eventMgr,
 	}
 }
 
-func (vm *VaultMgr) processGenesisSetup(ctx cosmos.Context) error {
+func (vm *VaultMgrV1) processGenesisSetup(ctx cosmos.Context) error {
 	if ctx.BlockHeight() != genesisBlockHeight {
 		return nil
 	}
@@ -68,7 +66,7 @@ func (vm *VaultMgr) processGenesisSetup(ctx cosmos.Context) error {
 }
 
 // EndBlock move funds from retiring asgard vaults
-func (vm *VaultMgr) EndBlock(ctx cosmos.Context, version semver.Version, constAccessor constants.ConstantValues) error {
+func (vm *VaultMgrV1) EndBlock(ctx cosmos.Context, mgr Manager, constAccessor constants.ConstantValues) error {
 	if ctx.BlockHeight() == genesisBlockHeight {
 		return vm.processGenesisSetup(ctx)
 	}
@@ -91,11 +89,6 @@ func (vm *VaultMgr) EndBlock(ctx cosmos.Context, version semver.Version, constAc
 	// if we have no active asgards to move funds to, don't move funds
 	if len(active) == 0 {
 		return nil
-	}
-	txOutStore, err := vm.versionedTxOutStore.GetTxOutStore(ctx, vm.k, version)
-	if err != nil {
-		ctx.Logger().Error("fail to get txout store", "error", err)
-		return errBadVersion
 	}
 	for _, vault := range retiring {
 		if !vault.HasFunds() {
@@ -178,7 +171,7 @@ func (vm *VaultMgr) EndBlock(ctx cosmos.Context, version semver.Version, constAc
 					},
 					Memo: NewMigrateMemo(ctx.BlockHeight()).String(),
 				}
-				ok, err := txOutStore.TryAddTxOutItem(ctx, toi)
+				ok, err := vm.txOutStore.TryAddTxOutItem(ctx, mgr, toi)
 				if err != nil {
 					return err
 				}
@@ -194,7 +187,7 @@ func (vm *VaultMgr) EndBlock(ctx cosmos.Context, version semver.Version, constAc
 
 	if ctx.BlockHeight()%migrateInterval == 0 {
 		// checks to see if we need to ragnarok a chain, and ragnaroks them
-		if err := vm.manageChains(ctx, constAccessor); err != nil {
+		if err := vm.manageChains(ctx, mgr, constAccessor); err != nil {
 			return err
 		}
 	}
@@ -202,7 +195,7 @@ func (vm *VaultMgr) EndBlock(ctx cosmos.Context, version semver.Version, constAc
 }
 
 // TriggerKeygen generate a record to instruct signer kick off keygen process
-func (vm *VaultMgr) TriggerKeygen(ctx cosmos.Context, nas NodeAccounts) error {
+func (vm *VaultMgrV1) TriggerKeygen(ctx cosmos.Context, nas NodeAccounts) error {
 	var members common.PubKeys
 	for i := range nas {
 		members = append(members, nas[i].PubKeySet.Secp256k1)
@@ -222,7 +215,7 @@ func (vm *VaultMgr) TriggerKeygen(ctx cosmos.Context, nas NodeAccounts) error {
 	return vm.k.SetKeygenBlock(ctx, keygenBlock)
 }
 
-func (vm *VaultMgr) RotateVault(ctx cosmos.Context, vault Vault) error {
+func (vm *VaultMgrV1) RotateVault(ctx cosmos.Context, vault Vault) error {
 	active, err := vm.k.GetAsgardVaultsByStatus(ctx, ActiveVault)
 	if err != nil {
 		return err
@@ -269,7 +262,7 @@ func (vm *VaultMgr) RotateVault(ctx cosmos.Context, vault Vault) error {
 
 // manageChains - checks to see if we have any chains that we are ragnaroking,
 // and ragnaroks them
-func (vm *VaultMgr) manageChains(ctx cosmos.Context, constAccessor constants.ConstantValues) error {
+func (vm *VaultMgrV1) manageChains(ctx cosmos.Context, mgr Manager, constAccessor constants.ConstantValues) error {
 	chains, err := vm.findChainsToRetire(ctx)
 	if err != nil {
 		return err
@@ -294,14 +287,14 @@ func (vm *VaultMgr) manageChains(ctx cosmos.Context, constAccessor constants.Con
 	}
 
 	for _, chain := range chains {
-		if err := vm.recallChainFunds(ctx, chain); err != nil {
+		if err := vm.recallChainFunds(ctx, chain, mgr); err != nil {
 			return err
 		}
 
 		// only refund after the first nth. This gives yggs time to send funds
 		// back to asgard
 		if nth > 1 {
-			if err := vm.ragnarokChain(ctx, chain, nth, constAccessor); err != nil {
+			if err := vm.ragnarokChain(ctx, chain, nth, mgr, constAccessor); err != nil {
 				continue
 			}
 		}
@@ -312,7 +305,7 @@ func (vm *VaultMgr) manageChains(ctx cosmos.Context, constAccessor constants.Con
 // findChainsToRetire - evaluates the chains associated with active asgard
 // vaults vs retiring asgard vaults to detemine if any chains need to be
 // ragnarok'ed
-func (vm *VaultMgr) findChainsToRetire(ctx cosmos.Context) (common.Chains, error) {
+func (vm *VaultMgrV1) findChainsToRetire(ctx cosmos.Context) (common.Chains, error) {
 	chains := make(common.Chains, 0)
 
 	active, err := vm.k.GetAsgardVaultsByStatus(ctx, ActiveVault)
@@ -350,17 +343,10 @@ func (vm *VaultMgr) findChainsToRetire(ctx cosmos.Context) (common.Chains, error
 
 // recallChainFunds - sends a message to bifrost nodes to send back all funds
 // associated with given chain
-func (vm *VaultMgr) recallChainFunds(ctx cosmos.Context, chain common.Chain) error {
-	version := vm.k.GetLowestActiveVersion(ctx)
+func (vm *VaultMgrV1) recallChainFunds(ctx cosmos.Context, chain common.Chain, mgr Manager) error {
 	allNodes, err := vm.k.ListNodeAccountsWithBond(ctx)
 	if err != nil {
 		return fmt.Errorf("fail to list all node accounts: %w", err)
-	}
-
-	txOutStore, err := vm.versionedTxOutStore.GetTxOutStore(ctx, vm.k, version)
-	if err != nil {
-		ctx.Logger().Error("can't get tx out store", "error", err)
-		return err
 	}
 
 	active, err := vm.k.GetAsgardVaultsByStatus(ctx, ActiveVault)
@@ -408,7 +394,7 @@ func (vm *VaultMgr) recallChainFunds(ctx cosmos.Context, chain common.Chain) err
 			// TxOutItem that has memo "yggdrasil-" it will query the chain
 			// and find out all the remaining assets , and fill in the
 			// field
-			if err := txOutStore.UnSafeAddTxOutItem(ctx, txOutItem); err != nil {
+			if err := vm.txOutStore.UnSafeAddTxOutItem(ctx, mgr, txOutItem); err != nil {
 				return err
 			}
 		}
@@ -419,7 +405,7 @@ func (vm *VaultMgr) recallChainFunds(ctx cosmos.Context, chain common.Chain) err
 
 // ragnarokChain - ends a chain by unstaking all stakers of any pool that's
 // asset is on the given chain
-func (vm *VaultMgr) ragnarokChain(ctx cosmos.Context, chain common.Chain, nth int64, constAccessor constants.ConstantValues) error {
+func (vm *VaultMgrV1) ragnarokChain(ctx cosmos.Context, chain common.Chain, nth int64, mgr Manager, constAccessor constants.ConstantValues) error {
 	version := vm.k.GetLowestActiveVersion(ctx)
 	nas, err := vm.k.ListActiveNodeAccounts(ctx)
 	if err != nil {
@@ -435,7 +421,7 @@ func (vm *VaultMgr) ragnarokChain(ctx cosmos.Context, chain common.Chain, nth in
 	if err != nil {
 		return err
 	}
-	unstakeHandler := NewUnstakeHandler(vm.k, vm.versionedTxOutStore, vm.versionedEventManager)
+	unstakeHandler := NewUnstakeHandler(vm.k, mgr)
 
 	active, err := vm.k.GetAsgardVaultsByStatus(ctx, ActiveVault)
 	if err != nil {
@@ -479,7 +465,7 @@ func (vm *VaultMgr) ragnarokChain(ctx cosmos.Context, chain common.Chain, nth in
 }
 
 // UpdateVaultData Update the vault data to reflect changing in this block
-func (vm *VaultMgr) UpdateVaultData(ctx cosmos.Context, constAccessor constants.ConstantValues, gasManager GasManager, eventMgr EventManager) error {
+func (vm *VaultMgrV1) UpdateVaultData(ctx cosmos.Context, constAccessor constants.ConstantValues, gasManager GasManager, eventMgr EventManager) error {
 	vaultData, err := vm.k.GetVaultData(ctx)
 	if err != nil {
 		return fmt.Errorf("fail to get existing vault data: %w", err)
@@ -616,7 +602,7 @@ func (vm *VaultMgr) UpdateVaultData(ctx cosmos.Context, constAccessor constants.
 	return vm.k.SetVaultData(ctx, vaultData)
 }
 
-func (vm *VaultMgr) getEnabledPoolsAndTotalStakedRune(ctx cosmos.Context) (Pools, cosmos.Uint, error) {
+func (vm *VaultMgrV1) getEnabledPoolsAndTotalStakedRune(ctx cosmos.Context) (Pools, cosmos.Uint, error) {
 	// First get active pools and total staked Rune
 	totalStaked := cosmos.ZeroUint()
 	var pools Pools
@@ -635,7 +621,7 @@ func (vm *VaultMgr) getEnabledPoolsAndTotalStakedRune(ctx cosmos.Context) (Pools
 	return pools, totalStaked, nil
 }
 
-func (vm *VaultMgr) getTotalActiveBond(ctx cosmos.Context) (cosmos.Uint, error) {
+func (vm *VaultMgrV1) getTotalActiveBond(ctx cosmos.Context) (cosmos.Uint, error) {
 	totalBonded := cosmos.ZeroUint()
 	nodes, err := vm.k.ListActiveNodeAccounts(ctx)
 	if err != nil {
@@ -648,7 +634,7 @@ func (vm *VaultMgr) getTotalActiveBond(ctx cosmos.Context) (cosmos.Uint, error) 
 }
 
 // Pays out Rewards
-func (vm *VaultMgr) payPoolRewards(ctx cosmos.Context, poolRewards []cosmos.Uint, pools Pools) error {
+func (vm *VaultMgrV1) payPoolRewards(ctx cosmos.Context, poolRewards []cosmos.Uint, pools Pools) error {
 	for i, reward := range poolRewards {
 		pools[i].BalanceRune = pools[i].BalanceRune.Add(reward)
 		if err := vm.k.SetPool(ctx, pools[i]); err != nil {

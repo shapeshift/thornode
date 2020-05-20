@@ -11,9 +11,9 @@ type GasManagerTestSuite struct{}
 
 var _ = Suite(&GasManagerTestSuite{})
 
-func (GasManagerTestSuite) TestGasManager(c *C) {
+func (GasManagerTestSuite) TestGasManagerV1(c *C) {
 	ctx, k := setupKeeperForTest(c)
-	gasMgr := NewGasMgr()
+	gasMgr := NewGasMgrV1()
 	gasEvent := gasMgr.gasEvent
 	c.Assert(gasMgr, NotNil)
 	gasMgr.BeginBlock()
@@ -39,7 +39,7 @@ func (GasManagerTestSuite) TestGasManager(c *C) {
 		common.NewCoin(common.ETHAsset, cosmos.NewUint(38500)),
 	})
 	c.Assert(gasMgr.GetGas(), HasLen, 3)
-	eventMgr := NewEventMgr()
+	eventMgr := NewEventMgrV1()
 	gasMgr.EndBlock(ctx, k, eventMgr)
 	eventID, err := k.GetCurrentEventID(ctx)
 	c.Assert(err, IsNil)
