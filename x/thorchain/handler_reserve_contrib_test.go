@@ -251,7 +251,9 @@ func (h HandlerReserveContributorSuite) TestReserveContributorHandler(c *C) {
 	}
 	for _, tc := range testCases {
 		helper := newReserveContributorHandlerHelper(c)
-		handler := NewReserveContributorHandler(helper.keeper, NewVersionedEventMgr())
+		mgr := NewManagers(helper.keeper)
+		c.Assert(mgr.BeginBlock(helper.ctx), IsNil)
+		handler := NewReserveContributorHandler(helper.keeper, mgr)
 		msg := tc.messageCreator(helper)
 		result := tc.runner(handler, helper, msg)
 		c.Assert(result.Code, Equals, tc.expectedResult, Commentf("name:%s", tc.name))

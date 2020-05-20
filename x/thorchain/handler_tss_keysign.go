@@ -10,16 +10,16 @@ import (
 
 // TssKeysignHandler is design to process MsgTssKeysignFail
 type TssKeysignHandler struct {
-	keeper                Keeper
-	versionedEventManager VersionedEventManager
+	keeper Keeper
+	mgr    Manager
 }
 
 // NewTssKeysignHandler create a new instance of TssKeysignHandler
 // when a signer fail to join tss keysign , thorchain need to slash their node account
-func NewTssKeysignHandler(keeper Keeper, versionedEventManager VersionedEventManager) TssKeysignHandler {
+func NewTssKeysignHandler(keeper Keeper, mgr Manager) TssKeysignHandler {
 	return TssKeysignHandler{
-		keeper:                keeper,
-		versionedEventManager: versionedEventManager,
+		keeper: keeper,
+		mgr:    mgr,
 	}
 }
 
@@ -79,7 +79,7 @@ func (h TssKeysignHandler) handleV1(ctx cosmos.Context, msg MsgTssKeysignFail, v
 	if err != nil {
 		return cosmos.ErrInternal(err.Error()).Result()
 	}
-	slasher, err := NewSlasher(h.keeper, version, h.versionedEventManager)
+	slasher, err := NewSlasher(h.keeper, version, h.mgr)
 	if err != nil {
 		ctx.Logger().Error("fail to create slasher", "error", err)
 		return cosmos.ErrInternal("fail to create slasher").Result()

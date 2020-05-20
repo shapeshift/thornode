@@ -103,8 +103,7 @@ func setupKeeperForTest(c *C) (cosmos.Context, Keeper) {
 type handlerTestWrapper struct {
 	ctx                  cosmos.Context
 	keeper               Keeper
-	validatorMgr         VersionedValidatorManager
-	versionedTxOutStore  VersionedTxOutStore
+	mgr                  Manager
 	activeNodeAccount    NodeAccount
 	notActiveNodeAccount NodeAccount
 }
@@ -127,24 +126,17 @@ func getHandlerTestWrapper(c *C, height int64, withActiveNode, withActieBNBPool 
 	}
 	ver := constants.SWVersion
 	constAccessor := constants.GetConstantValues(ver)
-	versionedEventManagerDummy := NewDummyVersionedEventMgr()
-	versionedTxOutStore := NewVersionedTxOutStore(versionedEventManagerDummy)
-	versionedVaultMgrDummy := NewVersionedVaultMgrDummy(versionedTxOutStore)
+	mgr := NewManagers(k)
+	c.Assert(mgr.BeginBlock(ctx), IsNil)
 
 	FundModule(c, ctx, k, AsgardName, 100000000)
 
-	txOutStore, err := versionedTxOutStore.GetTxOutStore(ctx, k, ver)
-	c.Assert(err, IsNil)
-
-	txOutStore.NewBlock(height, constAccessor)
-	validatorMgr := NewVersionedValidatorMgr(k, versionedTxOutStore, versionedVaultMgrDummy, versionedEventManagerDummy)
-	c.Assert(validatorMgr.BeginBlock(ctx, ver, constAccessor), IsNil)
+	c.Assert(mgr.ValidatorMgr().BeginBlock(ctx, constAccessor), IsNil)
 
 	return handlerTestWrapper{
 		ctx:                  ctx,
 		keeper:               k,
-		validatorMgr:         validatorMgr,
-		versionedTxOutStore:  versionedTxOutStore,
+		mgr:                  mgr,
 		activeNodeAccount:    acc1,
 		notActiveNodeAccount: GetRandomNodeAccount(NodeDisabled),
 	}
@@ -201,17 +193,9 @@ func (HandlerSuite) TestHandleTxInUnstakeMemo(c *C) {
 	}
 
 	msg := NewMsgSetUnStake(tx, staker.RuneAddress, cosmos.NewUint(uint64(MaxUnstakeBasisPoints)), common.BNBAsset, w.activeNodeAccount.NodeAddress)
-	ver := constants.SWVersion
-	constAccessor := constants.GetConstantValues(ver)
-	txOutStore, err := w.versionedTxOutStore.GetTxOutStore(w.ctx, w.keeper, ver)
 	c.Assert(err, IsNil)
-	txOutStore.NewBlock(2, constAccessor)
 
-	versionedVaultMgrDummy := NewVersionedVaultMgrDummy(w.versionedTxOutStore)
-	versionedGasMgr := NewVersionedGasMgr()
-	versionedObMgr := NewDummyVersionedObserverMgr()
-	versionedEventManagerDummy := NewDummyVersionedEventMgr()
-	handler := NewInternalHandler(w.keeper, w.versionedTxOutStore, w.validatorMgr, versionedVaultMgrDummy, versionedObMgr, versionedGasMgr, versionedEventManagerDummy)
+	handler := NewInternalHandler(w.keeper, w.mgr)
 
 	FundModule(c, w.ctx, w.keeper, AsgardName, 500)
 
@@ -261,10 +245,8 @@ func (HandlerSuite) TestRefund(c *C) {
 	)
 	ver := constants.SWVersion
 	constAccessor := constants.GetConstantValues(ver)
-	txOutStore, err := w.versionedTxOutStore.GetTxOutStore(w.ctx, w.keeper, ver)
-	eventMgr := NewEventMgr()
-	c.Assert(err, IsNil)
-	c.Assert(refundTx(w.ctx, txin, txOutStore, w.keeper, constAccessor, cosmos.CodeInternal, "refund", eventMgr), IsNil)
+	txOutStore := w.mgr.TxOutStore()
+	c.Assert(refundTx(w.ctx, txin, w.mgr, w.keeper, constAccessor, cosmos.CodeInternal, "refund"), IsNil)
 	items, err := txOutStore.GetOutboundItems(w.ctx)
 	c.Assert(err, IsNil)
 	c.Assert(items, HasLen, 1)
@@ -276,7 +258,7 @@ func (HandlerSuite) TestRefund(c *C) {
 		common.NewCoin(lokiAsset, cosmos.NewUint(100*common.One)),
 	}
 
-	c.Assert(refundTx(w.ctx, txin, txOutStore, w.keeper, constAccessor, cosmos.CodeInternal, "refund", eventMgr), IsNil)
+	c.Assert(refundTx(w.ctx, txin, w.mgr, w.keeper, constAccessor, cosmos.CodeInternal, "refund"), IsNil)
 	items, err = txOutStore.GetOutboundItems(w.ctx)
 	c.Assert(err, IsNil)
 	c.Assert(items, HasLen, 1)
@@ -287,7 +269,7 @@ func (HandlerSuite) TestRefund(c *C) {
 	c.Assert(pool.BalanceAsset.Equal(cosmos.ZeroUint()), Equals, true, Commentf("%d", pool.BalanceAsset.Uint64()))
 
 	// doing it a second time should keep it at zero
-	c.Assert(refundTx(w.ctx, txin, txOutStore, w.keeper, constAccessor, cosmos.CodeInternal, "refund", eventMgr), IsNil)
+	c.Assert(refundTx(w.ctx, txin, w.mgr, w.keeper, constAccessor, cosmos.CodeInternal, "refund"), IsNil)
 	items, err = txOutStore.GetOutboundItems(w.ctx)
 	c.Assert(err, IsNil)
 	c.Assert(items, HasLen, 1)

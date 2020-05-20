@@ -32,7 +32,7 @@ func (s *HandlerIPAddressSuite) TestValidate(c *C) {
 		na: GetRandomNodeAccount(NodeActive),
 	}
 
-	handler := NewIPAddressHandler(keeper)
+	handler := NewIPAddressHandler(keeper, NewDummyMgr())
 	// happy path
 	ver := constants.SWVersion
 	msg := NewMsgSetIPAddress("8.8.8.8", keeper.na.NodeAddress)
@@ -57,7 +57,7 @@ func (s *HandlerIPAddressSuite) TestHandle(c *C) {
 		na: GetRandomNodeAccount(NodeActive),
 	}
 
-	handler := NewIPAddressHandler(keeper)
+	handler := NewIPAddressHandler(keeper, NewDummyMgr())
 
 	msg := NewMsgSetIPAddress("192.168.0.1", GetRandomBech32Addr())
 	err := handler.handle(ctx, msg, ver)

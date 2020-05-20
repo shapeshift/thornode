@@ -10,7 +10,7 @@ import (
 )
 
 // Fund is a method to fund yggdrasil pool
-func Fund(ctx cosmos.Context, keeper Keeper, txOutStore TxOutStore, constAccessor constants.ConstantValues) error {
+func Fund(ctx cosmos.Context, keeper Keeper, mgr Manager, constAccessor constants.ConstantValues) error {
 	// Check if we have triggered the ragnarok protocol
 	ragnarokHeight, err := keeper.GetRagnarokBlockHeight(ctx)
 	if err != nil {
@@ -136,7 +136,7 @@ func Fund(ctx cosmos.Context, keeper Keeper, txOutStore TxOutStore, constAccesso
 	}
 
 	if len(sendCoins) > 0 {
-		count, err := sendCoinsToYggdrasil(ctx, keeper, sendCoins, ygg, txOutStore)
+		count, err := sendCoinsToYggdrasil(ctx, keeper, sendCoins, ygg, mgr)
 		if err != nil {
 			return err
 		}
@@ -153,7 +153,7 @@ func Fund(ctx cosmos.Context, keeper Keeper, txOutStore TxOutStore, constAccesso
 
 // sendCoinsToYggdrasil - adds outbound txs to send the given coins to a
 // yggdrasil pool
-func sendCoinsToYggdrasil(ctx cosmos.Context, keeper Keeper, coins common.Coins, ygg Vault, txOutStore TxOutStore) (int, error) {
+func sendCoinsToYggdrasil(ctx cosmos.Context, keeper Keeper, coins common.Coins, ygg Vault, mgr Manager) (int, error) {
 	var count int
 
 	active, err := keeper.GetAsgardVaultsByStatus(ctx, ActiveVault)
@@ -187,7 +187,7 @@ func sendCoinsToYggdrasil(ctx cosmos.Context, keeper Keeper, coins common.Coins,
 			Coin:        coin,
 			VaultPubKey: vault.PubKey,
 		}
-		if err := txOutStore.UnSafeAddTxOutItem(ctx, toi); err != nil {
+		if err := mgr.TxOutStore().UnSafeAddTxOutItem(ctx, mgr, toi); err != nil {
 			return count, err
 		}
 		count += 1

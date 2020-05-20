@@ -16,15 +16,103 @@ func (vts *ValidatorMgrV1TestSuite) SetUpSuite(c *C) {
 	SetupConfigForTest()
 }
 
+func (vts *ValidatorMgrV1TestSuite) TestSetupValidatorNodes(c *C) {
+	ctx, k := setupKeeperForTest(c)
+	ctx = ctx.WithBlockHeight(1)
+	mgr := NewDummyMgr()
+	vMgr := NewValidatorMgrV1(k, mgr.VaultMgr(), mgr.TxOutStore(), mgr.EventMgr())
+	c.Assert(vMgr, NotNil)
+	ver := constants.SWVersion
+	constAccessor := constants.GetConstantValues(ver)
+	err := vMgr.setupValidatorNodes(ctx, 0, constAccessor)
+	c.Assert(err, IsNil)
+
+	// no node accounts at all
+	err = vMgr.setupValidatorNodes(ctx, 1, constAccessor)
+	c.Assert(err, NotNil)
+
+	activeNode := GetRandomNodeAccount(NodeActive)
+	c.Assert(k.SetNodeAccount(ctx, activeNode), IsNil)
+
+	err = vMgr.setupValidatorNodes(ctx, 1, constAccessor)
+	c.Assert(err, IsNil)
+
+	readyNode := GetRandomNodeAccount(NodeReady)
+	c.Assert(k.SetNodeAccount(ctx, readyNode), IsNil)
+
+	// one active node and one ready node on start up
+	// it should take both of the node as active
+	vMgr1 := NewValidatorMgrV1(k, mgr.VaultMgr(), mgr.TxOutStore(), mgr.EventMgr())
+
+	c.Assert(vMgr1.BeginBlock(ctx, constAccessor), IsNil)
+	activeNodes, err := k.ListActiveNodeAccounts(ctx)
+	c.Assert(err, IsNil)
+	c.Logf("active nodes:%s", activeNodes)
+	c.Assert(len(activeNodes) == 2, Equals, true)
+
+	activeNode1 := GetRandomNodeAccount(NodeActive)
+	activeNode2 := GetRandomNodeAccount(NodeActive)
+	c.Assert(k.SetNodeAccount(ctx, activeNode1), IsNil)
+	c.Assert(k.SetNodeAccount(ctx, activeNode2), IsNil)
+
+	// three active nodes and 1 ready nodes, it should take them all
+	vMgr2 := NewValidatorMgrV1(k, mgr.VaultMgr(), mgr.TxOutStore(), mgr.EventMgr())
+	vMgr2.BeginBlock(ctx, constAccessor)
+
+	activeNodes1, err := k.ListActiveNodeAccounts(ctx)
+	c.Assert(err, IsNil)
+	c.Assert(len(activeNodes1) == 4, Equals, true)
+}
+
+func (vts *ValidatorMgrV1TestSuite) TestRagnarokForChaosnet(c *C) {
+	ctx, k := setupKeeperForTest(c)
+	mgr := NewManagers(k)
+	c.Assert(mgr.BeginBlock(ctx), IsNil)
+	vMgr := NewValidatorMgrV1(k, mgr.VaultMgr(), mgr.TxOutStore(), mgr.EventMgr())
+
+	constAccessor := constants.NewDummyConstants(map[constants.ConstantName]int64{
+		constants.DesireValidatorSet:            12,
+		constants.ArtificialRagnarokBlockHeight: 1024,
+		constants.BadValidatorRate:              256,
+		constants.OldValidatorRate:              256,
+		constants.MinimumNodesForBFT:            4,
+		constants.RotatePerBlockHeight:          256,
+		constants.RotateRetryBlocks:             720,
+	}, map[constants.ConstantName]bool{
+		constants.StrictBondStakeRatio: false,
+	}, map[constants.ConstantName]string{})
+	for i := 0; i < 12; i++ {
+		node := GetRandomNodeAccount(NodeReady)
+		c.Assert(k.SetNodeAccount(ctx, node), IsNil)
+	}
+	c.Assert(vMgr.setupValidatorNodes(ctx, 1, constAccessor), IsNil)
+	nodeAccounts, err := k.ListNodeAccountsByStatus(ctx, NodeActive)
+	c.Assert(err, IsNil)
+	c.Assert(len(nodeAccounts), Equals, 12)
+
+	// trigger ragnarok
+	ctx = ctx.WithBlockHeight(1024)
+	c.Assert(vMgr.BeginBlock(ctx, constAccessor), IsNil)
+	vault := NewVault(ctx.BlockHeight(), ActiveVault, AsgardVault, GetRandomPubKey(), common.Chains{common.BNBChain})
+	for _, item := range nodeAccounts {
+		vault.Membership = append(vault.Membership, item.PubKeySet.Secp256k1)
+	}
+	c.Assert(k.SetVault(ctx, vault), IsNil)
+	updates := vMgr.EndBlock(ctx, mgr, constAccessor)
+	// ragnarok , no one leaves
+	c.Assert(updates, IsNil)
+	ragnarokHeight, err := k.GetRagnarokBlockHeight(ctx)
+	c.Assert(err, IsNil)
+	c.Assert(ragnarokHeight == 1024, Equals, true, Commentf("%d == %d", ragnarokHeight, 1024))
+}
+
 func (vts *ValidatorMgrV1TestSuite) TestBadActors(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	ctx = ctx.WithBlockHeight(1000)
 
-	versionedTxOutStoreDummy := NewVersionedTxOutStoreDummy()
-	versionedVaultMgrDummy := NewVersionedVaultMgrDummy(versionedTxOutStoreDummy)
-	versionedEventManagerDummy := NewDummyVersionedEventMgr()
-
-	vMgr := newValidatorMgrV1(k, versionedTxOutStoreDummy, versionedVaultMgrDummy, versionedEventManagerDummy)
+	mgr := NewManagers(k)
+	c.Assert(mgr.BeginBlock(ctx), IsNil)
+	vMgr := NewValidatorMgrV1(k, mgr.VaultMgr(), mgr.TxOutStore(), mgr.EventMgr())
 	c.Assert(vMgr, NotNil)
 
 	// no bad actors with active node accounts
@@ -79,17 +167,13 @@ func (vts *ValidatorMgrV1TestSuite) TestRagnarokBond(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	ctx = ctx.WithBlockHeight(1)
 	ver := constants.SWVersion
-	versionedTxOutStoreDummy := NewVersionedTxOutStoreDummy()
-	txOutStore, err := versionedTxOutStoreDummy.GetTxOutStore(ctx, k, ver)
-	c.Assert(err, IsNil)
 
-	versionedVaultMgrDummy := NewVersionedVaultMgrDummy(versionedTxOutStoreDummy)
-	versionedEventManagerDummy := NewDummyVersionedEventMgr()
-
-	vMgr := newValidatorMgrV1(k, versionedTxOutStoreDummy, versionedVaultMgrDummy, versionedEventManagerDummy)
+	mgr := NewDummyMgr()
+	vMgr := NewValidatorMgrV1(k, mgr.VaultMgr(), mgr.TxOutStore(), mgr.EventMgr())
 	c.Assert(vMgr, NotNil)
+
 	constAccessor := constants.GetConstantValues(ver)
-	err = vMgr.setupValidatorNodes(ctx, 0, constAccessor)
+	err := vMgr.setupValidatorNodes(ctx, 0, constAccessor)
 	c.Assert(err, IsNil)
 
 	activeNode := GetRandomNodeAccount(NodeActive)
@@ -100,24 +184,24 @@ func (vts *ValidatorMgrV1TestSuite) TestRagnarokBond(c *C) {
 	disabledNode.Bond = cosmos.ZeroUint()
 	c.Assert(k.SetNodeAccount(ctx, disabledNode), IsNil)
 
-	c.Assert(vMgr.ragnarokBond(ctx, 1), IsNil)
+	c.Assert(vMgr.ragnarokBond(ctx, 1, mgr), IsNil)
 	activeNode, err = k.GetNodeAccount(ctx, activeNode.NodeAddress)
 	c.Assert(err, IsNil)
 	c.Check(activeNode.Bond.Equal(cosmos.NewUint(90)), Equals, true)
-	items, err := txOutStore.GetOutboundItems(ctx)
+	items, err := mgr.TxOutStore().GetOutboundItems(ctx)
 	c.Assert(err, IsNil)
 	if common.RuneAsset().Chain.Equals(common.THORChain) {
 		c.Check(items, HasLen, 0, Commentf("Len %d", items))
 	} else {
 		c.Check(items, HasLen, 1, Commentf("Len %d", items))
 	}
-	txOutStore.ClearOutboundItems(ctx)
+	mgr.TxOutStore().ClearOutboundItems(ctx)
 
-	c.Assert(vMgr.ragnarokBond(ctx, 2), IsNil)
+	c.Assert(vMgr.ragnarokBond(ctx, 2, mgr), IsNil)
 	activeNode, err = k.GetNodeAccount(ctx, activeNode.NodeAddress)
 	c.Assert(err, IsNil)
 	c.Check(activeNode.Bond.Equal(cosmos.NewUint(72)), Equals, true)
-	items, err = txOutStore.GetOutboundItems(ctx)
+	items, err = mgr.TxOutStore().GetOutboundItems(ctx)
 	c.Assert(err, IsNil)
 	if common.RuneAsset().Chain.Equals(common.THORChain) {
 		c.Check(items, HasLen, 0, Commentf("Len %d", items))

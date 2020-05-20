@@ -2,10 +2,11 @@ package thorchain
 
 import (
 	"github.com/blang/semver"
+	. "gopkg.in/check.v1"
+
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	. "gopkg.in/check.v1"
 )
 
 var _ = Suite(&HandlerSwitchSuite{})
@@ -27,9 +28,7 @@ func (s *HandlerSwitchSuite) TestValidate(c *C) {
 	}
 	destination := GetRandomBNBAddress()
 
-	versionedTxOutStoreDummy := NewVersionedTxOutStoreDummy()
-
-	handler := NewSwitchHandler(k, versionedTxOutStoreDummy)
+	handler := NewSwitchHandler(k, NewDummyMgr())
 	// happy path
 	msg := NewMsgSwitch(tx, destination, na.NodeAddress)
 	err := handler.validate(ctx, msg, constants.SWVersion)
@@ -56,8 +55,7 @@ func (s *HandlerSwitchSuite) TestGettingNativeTokens(c *C) {
 	}
 	destination := GetRandomTHORAddress()
 
-	versionedTxOutStoreDummy := NewVersionedTxOutStoreDummy()
-	handler := NewSwitchHandler(k, versionedTxOutStoreDummy)
+	handler := NewSwitchHandler(k, NewDummyMgr())
 
 	msg := NewMsgSwitch(tx, destination, na.NodeAddress)
 	result := handler.handle(ctx, msg, constants.SWVersion)
@@ -104,8 +102,8 @@ func (s *HandlerSwitchSuite) TestGettingBEP2Tokens(c *C) {
 	c.Assert(err, IsNil)
 	k.CoinKeeper().AddCoins(ctx, from, cosmos.NewCoins(coin))
 
-	versionedTxOutStoreDummy := NewVersionedTxOutStoreDummy()
-	handler := NewSwitchHandler(k, versionedTxOutStoreDummy)
+	mgr := NewDummyMgr()
+	handler := NewSwitchHandler(k, mgr)
 
 	msg := NewMsgSwitch(tx, destination, na.NodeAddress)
 	result := handler.handle(ctx, msg, constants.SWVersion)
@@ -117,7 +115,7 @@ func (s *HandlerSwitchSuite) TestGettingBEP2Tokens(c *C) {
 	vaultData, err = k.GetVaultData(ctx)
 	c.Assert(err, IsNil)
 	c.Check(vaultData.TotalBEP2Rune.Equal(cosmos.NewUint(400*common.One)), Equals, true)
-	items, err := versionedTxOutStoreDummy.txoutStore.GetOutboundItems(ctx)
+	items, err := mgr.TxOutStore().GetOutboundItems(ctx)
 	c.Assert(err, IsNil)
 	if common.RuneAsset().Chain.Equals(common.THORChain) {
 		c.Assert(items, HasLen, 0)
@@ -134,7 +132,7 @@ func (s *HandlerSwitchSuite) TestGettingBEP2Tokens(c *C) {
 	vaultData, err = k.GetVaultData(ctx)
 	c.Assert(err, IsNil)
 	c.Check(vaultData.TotalBEP2Rune.Equal(cosmos.NewUint(300*common.One)), Equals, true, Commentf("%d", vaultData.TotalBEP2Rune.Uint64()))
-	items, err = versionedTxOutStoreDummy.txoutStore.GetOutboundItems(ctx)
+	items, err = mgr.TxOutStore().GetOutboundItems(ctx)
 	c.Assert(err, IsNil)
 	if common.RuneAsset().Chain.Equals(common.THORChain) {
 		c.Assert(items, HasLen, 0)
@@ -152,7 +150,7 @@ func (s *HandlerSwitchSuite) TestGettingBEP2Tokens(c *C) {
 	vaultData, err = k.GetVaultData(ctx)
 	c.Assert(err, IsNil)
 	c.Check(vaultData.TotalBEP2Rune.Equal(cosmos.NewUint(300*common.One)), Equals, true, Commentf("%d", vaultData.TotalBEP2Rune.Uint64()))
-	items, err = versionedTxOutStoreDummy.txoutStore.GetOutboundItems(ctx)
+	items, err = mgr.TxOutStore().GetOutboundItems(ctx)
 	c.Assert(err, IsNil)
 	if common.RuneAsset().Chain.Equals(common.THORChain) {
 		c.Assert(items, HasLen, 0)

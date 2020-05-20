@@ -11,30 +11,14 @@ import (
 )
 
 type ObservedTxOutHandler struct {
-	keeper                   Keeper
-	versionedTxOutStore      VersionedTxOutStore
-	validatorMgr             VersionedValidatorManager
-	versionedVaultManager    VersionedVaultManager
-	versionedGasMgr          VersionedGasManager
-	versionedObserverManager VersionedObserverManager
-	versionedEventManager    VersionedEventManager
+	keeper Keeper
+	mgr    Manager
 }
 
-func NewObservedTxOutHandler(keeper Keeper,
-	versionedObserverManager VersionedObserverManager,
-	txOutStore VersionedTxOutStore,
-	validatorMgr VersionedValidatorManager,
-	versionedVaultManager VersionedVaultManager,
-	versionedGasMgr VersionedGasManager,
-	versionedEventManager VersionedEventManager) ObservedTxOutHandler {
+func NewObservedTxOutHandler(keeper Keeper, mgr Manager) ObservedTxOutHandler {
 	return ObservedTxOutHandler{
-		keeper:                   keeper,
-		versionedTxOutStore:      txOutStore,
-		validatorMgr:             validatorMgr,
-		versionedVaultManager:    versionedVaultManager,
-		versionedGasMgr:          versionedGasMgr,
-		versionedObserverManager: versionedObserverManager,
-		versionedEventManager:    versionedEventManager,
+		keeper: keeper,
+		mgr:    mgr,
 	}
 }
 
@@ -119,23 +103,12 @@ func (h ObservedTxOutHandler) handleV1(ctx cosmos.Context, version semver.Versio
 		return cosmos.ErrInternal(err.Error()).Result()
 	}
 
-	obMgr, err := h.versionedObserverManager.GetObserverManager(ctx, version)
-	if err != nil {
-		ctx.Logger().Error("fail to get observer manager", "error", err)
-		return errBadVersion.Result()
-	}
-
-	gasMgr, err := h.versionedGasMgr.GetGasManager(ctx, version)
-	if err != nil {
-		ctx.Logger().Error(fmt.Sprintf("gas manager that compatible with version :%s is not available", version))
-		return cosmos.ErrInternal("fail to get gas manager").Result()
-	}
-	slasher, err := NewSlasher(h.keeper, version, h.versionedEventManager)
+	slasher, err := NewSlasher(h.keeper, version, h.mgr)
 	if err != nil {
 		ctx.Logger().Error("fail to create slasher", "error", err)
 		return cosmos.ErrInternal("fail to create slasher").Result()
 	}
-	handler := NewInternalHandler(h.keeper, h.versionedTxOutStore, h.validatorMgr, h.versionedVaultManager, h.versionedObserverManager, h.versionedGasMgr, h.versionedEventManager)
+	handler := NewInternalHandler(h.keeper, h.mgr)
 
 	for _, tx := range msg.Txs {
 		// check we are sending from a valid vault
@@ -155,7 +128,7 @@ func (h ObservedTxOutHandler) handleV1(ctx cosmos.Context, version semver.Versio
 			if voter.Height == ctx.BlockHeight() {
 				// we've already process the transaction, but we should still
 				// update the observing addresses
-				obMgr.AppendObserver(tx.Tx.Chain, msg.GetSigners())
+				h.mgr.ObMgr().AppendObserver(tx.Tx.Chain, msg.GetSigners())
 			}
 			continue
 		}
@@ -208,7 +181,7 @@ func (h ObservedTxOutHandler) handleV1(ctx cosmos.Context, version semver.Versio
 		}
 
 		// Apply Gas fees
-		if err := AddGasFees(ctx, h.keeper, tx, gasMgr); err != nil {
+		if err := AddGasFees(ctx, h.keeper, tx, h.mgr.GasMgr()); err != nil {
 			return cosmos.ErrInternal(fmt.Errorf("fail to add gas fee: %w", err).Error()).Result()
 		}
 
@@ -231,7 +204,7 @@ func (h ObservedTxOutHandler) handleV1(ctx cosmos.Context, version semver.Versio
 
 		// add addresses to observing addresses. This is used to detect
 		// active/inactive observing node accounts
-		obMgr.AppendObserver(tx.Tx.Chain, txOut.Signers)
+		h.mgr.ObMgr().AppendObserver(tx.Tx.Chain, txOut.Signers)
 
 		result := handler(ctx, m)
 		if !result.IsOK() {

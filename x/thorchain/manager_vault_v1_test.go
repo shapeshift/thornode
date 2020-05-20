@@ -143,7 +143,7 @@ func (k *TestRagnarokChainKeeper) IsActiveObserver(_ cosmos.Context, _ cosmos.Ac
 	return true
 }
 
-func (s *ValidatorManagerTestSuite) TestRagnarokChain(c *C) {
+func (s *VaultManagerTestSuite) TestRagnarokChain(c *C) {
 	ctx, _ := setupKeeperForTest(c)
 	ctx = ctx.WithBlockHeight(100000)
 	ver := constants.SWVersion
@@ -196,12 +196,11 @@ func (s *ValidatorManagerTestSuite) TestRagnarokChain(c *C) {
 		stakers:     stakers,
 	}
 
-	versionedTxOutStoreDummy := NewVersionedTxOutStoreDummy()
-	versionedEventManagerDummy := NewDummyVersionedEventMgr()
+	mgr := NewDummyMgr()
 
-	vaultMgr := NewVaultMgr(keeper, versionedTxOutStoreDummy, versionedEventManagerDummy)
+	vaultMgr := NewVaultMgrV1(keeper, mgr.TxOutStore(), mgr.EventMgr())
 
-	err := vaultMgr.manageChains(ctx, constAccessor)
+	err := vaultMgr.manageChains(ctx, mgr, constAccessor)
 	c.Assert(err, IsNil)
 	c.Check(keeper.pools[1].Asset.Equals(common.BTCAsset), Equals, true)
 	c.Check(keeper.pools[1].PoolUnits.IsZero(), Equals, true, Commentf("%d\n", keeper.pools[1].PoolUnits.Uint64()))
@@ -211,7 +210,7 @@ func (s *ValidatorManagerTestSuite) TestRagnarokChain(c *C) {
 	}
 
 	// ensure we have requested for ygg funds to be returned
-	txOutStore, err := versionedTxOutStoreDummy.GetTxOutStore(ctx, keeper, constants.SWVersion)
+	txOutStore := mgr.TxOutStore()
 	c.Assert(err, IsNil)
 	items, err := txOutStore.GetOutboundItems(ctx)
 	c.Assert(err, IsNil)
@@ -226,7 +225,7 @@ func (s *ValidatorManagerTestSuite) TestRagnarokChain(c *C) {
 	c.Check(items[0].Chain.Equals(common.BTCChain), Equals, true)
 }
 
-func (s *ValidatorManagerTestSuite) TestUpdateVaultData(c *C) {
+func (s *VaultManagerTestSuite) TestUpdateVaultData(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	ver := constants.SWVersion
 	constAccessor := constants.GetConstantValues(ver)
@@ -234,17 +233,15 @@ func (s *ValidatorManagerTestSuite) TestUpdateVaultData(c *C) {
 	err := k.SetVaultData(ctx, vd)
 	c.Assert(err, IsNil)
 
-	gasManager := NewDummyGasManager()
-	versionedTxOutStoreDummy := NewVersionedTxOutStoreDummy()
-	versionedEventManagerDummy := NewDummyVersionedEventMgr()
+	mgr := NewDummyMgr()
 
-	vaultMgr := NewVaultMgr(k, versionedTxOutStoreDummy, versionedEventManagerDummy)
+	vaultMgr := NewVaultMgrV1(k, mgr.TxOutStore(), mgr.EventMgr())
 
-	c.Assert(vaultMgr.UpdateVaultData(ctx, constAccessor, gasManager, NewEventMgr()), IsNil)
+	c.Assert(vaultMgr.UpdateVaultData(ctx, constAccessor, mgr.GasMgr(), mgr.EventMgr()), IsNil)
 
 	// add something in vault
 	vd.TotalReserve = cosmos.NewUint(common.One * 100)
 	err = k.SetVaultData(ctx, vd)
 	c.Assert(err, IsNil)
-	c.Assert(vaultMgr.UpdateVaultData(ctx, constAccessor, gasManager, NewEventMgr()), IsNil)
+	c.Assert(vaultMgr.UpdateVaultData(ctx, constAccessor, mgr.GasMgr(), mgr.EventMgr()), IsNil)
 }

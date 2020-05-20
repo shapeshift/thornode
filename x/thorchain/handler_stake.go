@@ -11,15 +11,15 @@ import (
 
 // StakeHandler is to handle stake
 type StakeHandler struct {
-	keeper                Keeper
-	versionedEventManager VersionedEventManager
+	keeper Keeper
+	mgr    Manager
 }
 
 // NewStakeHandler create a new instance of StakeHandler
-func NewStakeHandler(keeper Keeper, versionedEventManager VersionedEventManager) StakeHandler {
+func NewStakeHandler(keeper Keeper, mgr Manager) StakeHandler {
 	return StakeHandler{
-		keeper:                keeper,
-		versionedEventManager: versionedEventManager,
+		keeper: keeper,
+		mgr:    mgr,
 	}
 }
 
@@ -138,16 +138,11 @@ func (h StakeHandler) handle(ctx cosmos.Context, msg MsgSetStakeData, version se
 }
 
 func (h StakeHandler) processStakeEvent(ctx cosmos.Context, version semver.Version, msg MsgSetStakeData, stakeUnits cosmos.Uint) error {
-	eventMgr, err := h.versionedEventManager.GetEventManager(ctx, version)
-	if err != nil {
-		return errFailGetEventManager
-	}
-
 	stakeEvt := NewEventStake(
 		msg.Asset,
 		stakeUnits,
 		msg.Tx)
-	return eventMgr.EmitStakeEvent(ctx, h.keeper, msg.Tx, stakeEvt)
+	return h.mgr.EventMgr().EmitStakeEvent(ctx, h.keeper, msg.Tx, stakeEvt)
 }
 
 // getTotalBond

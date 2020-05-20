@@ -12,15 +12,15 @@ import (
 
 // SwitchHandler is to handle Switch message
 type SwitchHandler struct {
-	keeper              Keeper
-	versionedTxOutStore VersionedTxOutStore
+	keeper Keeper
+	mgr    Manager
 }
 
 // NewSwitchHandler create new instance of SwitchHandler
-func NewSwitchHandler(keeper Keeper, versionedTxOutStore VersionedTxOutStore) SwitchHandler {
+func NewSwitchHandler(keeper Keeper, mgr Manager) SwitchHandler {
 	return SwitchHandler{
-		keeper:              keeper,
-		versionedTxOutStore: versionedTxOutStore,
+		keeper: keeper,
+		mgr:    mgr,
 	}
 }
 
@@ -106,18 +106,13 @@ func (h SwitchHandler) handleV1(ctx cosmos.Context, msg MsgSwitch, version semve
 
 		vaultData.TotalBEP2Rune = common.SafeSub(vaultData.TotalBEP2Rune, msg.Tx.Coins[0].Amount)
 
-		txOutStore, err := h.versionedTxOutStore.GetTxOutStore(ctx, h.keeper, version)
-		if err != nil {
-			ctx.Logger().Error("fail to get txout store", "error", err)
-			return errBadVersion.Result()
-		}
 		toi := &TxOutItem{
 			Chain:     common.RuneAsset().Chain,
 			InHash:    msg.Tx.ID,
 			ToAddress: msg.Destination,
 			Coin:      common.NewCoin(common.RuneAsset(), msg.Tx.Coins[0].Amount),
 		}
-		ok, err := txOutStore.TryAddTxOutItem(ctx, toi)
+		ok, err := h.mgr.TxOutStore().TryAddTxOutItem(ctx, h.mgr, toi)
 		if err != nil {
 			ctx.Logger().Error("fail to add outbound tx", "error", err)
 			return cosmos.ErrInternal(fmt.Errorf("fail to add outbound tx: %w", err).Error()).Result()

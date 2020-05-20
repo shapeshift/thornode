@@ -25,7 +25,7 @@ func (s *HandlerSendSuite) TestValidate(c *C) {
 		ToAddress:   addr2,
 		Amount:      cosmos.NewCoins(cosmos.NewCoin("dummy", cosmos.NewInt(12))),
 	}
-	handler := NewSendHandler(k)
+	handler := NewSendHandler(k, NewDummyMgr())
 	err := handler.validate(ctx, msg, constants.SWVersion)
 	c.Assert(err, IsNil)
 
@@ -60,7 +60,7 @@ func (s *HandlerSendSuite) TestHandle(c *C) {
 		Amount:      cosmos.NewCoins(coin),
 	}
 
-	handler := NewSendHandler(k)
+	handler := NewSendHandler(k, NewDummyMgr())
 	result := handler.handle(ctx, msg, constants.SWVersion, constAccessor)
 	c.Assert(result.IsOK(), Equals, true, Commentf("%+v", result.Log))
 

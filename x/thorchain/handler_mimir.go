@@ -15,12 +15,14 @@ var ADMINS = []string{"thor1x0akdepu6vs40cv30xqz3qnd85mh7gkf5a0z89", "thor1app3q
 // MimirHandler is to handle admin messages
 type MimirHandler struct {
 	keeper Keeper
+	mgr    Manager
 }
 
 // NewMimirHandler create new instance of MimirHandler
-func NewMimirHandler(keeper Keeper) MimirHandler {
+func NewMimirHandler(keeper Keeper, mgr Manager) MimirHandler {
 	return MimirHandler{
 		keeper: keeper,
+		mgr:    mgr,
 	}
 }
 

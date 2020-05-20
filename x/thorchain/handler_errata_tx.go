@@ -12,15 +12,15 @@ import (
 
 // ErrataTxHandler is to handle ErrataTx message
 type ErrataTxHandler struct {
-	keeper                Keeper
-	versionedEventManager VersionedEventManager
+	keeper Keeper
+	mgr    Manager
 }
 
 // NewErrataTxHandler create new instance of ErrataTxHandler
-func NewErrataTxHandler(keeper Keeper, versionedEventManager VersionedEventManager) ErrataTxHandler {
+func NewErrataTxHandler(keeper Keeper, mgr Manager) ErrataTxHandler {
 	return ErrataTxHandler{
-		keeper:                keeper,
-		versionedEventManager: versionedEventManager,
+		keeper: keeper,
+		mgr:    mgr,
 	}
 }
 
@@ -78,7 +78,7 @@ func (h ErrataTxHandler) handleV1(ctx cosmos.Context, msg MsgErrataTx, version s
 	if err != nil {
 		return cosmos.ErrInternal(err.Error()).Result()
 	}
-	slasher, err := NewSlasher(h.keeper, version, h.versionedEventManager)
+	slasher, err := NewSlasher(h.keeper, version, h.mgr)
 	if err != nil {
 		ctx.Logger().Error("fail to create slasher", "error", err)
 		return cosmos.ErrInternal("fail to create slasher").Result()
@@ -191,11 +191,7 @@ func (h ErrataTxHandler) handleV1(ctx cosmos.Context, msg MsgErrataTx, version s
 	}
 
 	eventErrata := NewEventErrata(msg.TxID, mods)
-	eventMgr, err := h.versionedEventManager.GetEventManager(ctx, version)
-	if err != nil {
-		return errFailGetEventManager.Result()
-	}
-	if err := eventMgr.EmitErrataEvent(ctx, h.keeper, msg.TxID, eventErrata); err != nil {
+	if err := h.mgr.EventMgr().EmitErrataEvent(ctx, h.keeper, msg.TxID, eventErrata); err != nil {
 		ctx.Logger().Error("fail to emit errata event", "error", err)
 		return cosmos.ErrInternal("fail to emit errata event").Result()
 	}

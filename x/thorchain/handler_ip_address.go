@@ -12,12 +12,14 @@ import (
 // IPAddressHandler is to handle ip address message
 type IPAddressHandler struct {
 	keeper Keeper
+	mgr    Manager
 }
 
 // NewIPAddressHandler create new instance of IPAddressHandler
-func NewIPAddressHandler(keeper Keeper) IPAddressHandler {
+func NewIPAddressHandler(keeper Keeper, mgr Manager) IPAddressHandler {
 	return IPAddressHandler{
 		keeper: keeper,
+		mgr:    mgr,
 	}
 }
 

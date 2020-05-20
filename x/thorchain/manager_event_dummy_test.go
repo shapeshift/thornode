@@ -1,8 +1,6 @@
 package thorchain
 
 import (
-	"github.com/blang/semver"
-
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
@@ -72,14 +70,4 @@ func (m *DummyEventMgr) EmitSlashEvent(ctx cosmos.Context, keeper Keeper, slashE
 
 func (m *DummyEventMgr) EmitOutboundEvent(ctx cosmos.Context, outbound EventOutbound) error {
 	return nil
-}
-
-type DummyVersionedEventMgr struct{}
-
-func NewDummyVersionedEventMgr() *DummyVersionedEventMgr {
-	return &DummyVersionedEventMgr{}
-}
-
-func (m *DummyVersionedEventMgr) GetEventManager(ctx cosmos.Context, version semver.Version) (EventManager, error) {
-	return NewDummyEventMgr(), nil
 }

@@ -12,12 +12,14 @@ import (
 // VersionHandler is to handle Version message
 type VersionHandler struct {
 	keeper Keeper
+	mgr    Manager
 }
 
 // NewVersionHandler create new instance of VersionHandler
-func NewVersionHandler(keeper Keeper) VersionHandler {
+func NewVersionHandler(keeper Keeper, mgr Manager) VersionHandler {
 	return VersionHandler{
 		keeper: keeper,
+		mgr:    mgr,
 	}
 }
 
