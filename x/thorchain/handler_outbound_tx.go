@@ -8,15 +8,16 @@ import (
 )
 
 type OutboundTxHandler struct {
-	keeper                Keeper
-	ch                    CommonOutboundTxHandler
-	versionedEventManager VersionedEventManager
+	keeper Keeper
+	ch     CommonOutboundTxHandler
+	mgr    Manager
 }
 
-func NewOutboundTxHandler(keeper Keeper, versionedEventManager VersionedEventManager) OutboundTxHandler {
+func NewOutboundTxHandler(keeper Keeper, mgr Manager) OutboundTxHandler {
 	return OutboundTxHandler{
 		keeper: keeper,
-		ch:     NewCommonOutboundTxHandler(keeper, versionedEventManager),
+		ch:     NewCommonOutboundTxHandler(keeper, mgr),
+		mgr:    mgr,
 	}
 }
 

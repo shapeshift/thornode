@@ -41,13 +41,7 @@ func (s *QuerierSuite) TestQueryKeysign(c *C) {
 		txOut: txOut,
 	}
 
-	versionedTxOutStoreDummy := NewVersionedTxOutStoreDummy()
-	versionedVaultMgrDummy := NewVersionedVaultMgrDummy(versionedTxOutStoreDummy)
-	versionedEventManagerDummy := NewDummyVersionedEventMgr()
-
-	validatorMgr := NewVersionedValidatorMgr(keeper, versionedTxOutStoreDummy, versionedVaultMgrDummy, versionedEventManagerDummy)
-
-	querier := NewQuerier(keeper, validatorMgr)
+	querier := NewQuerier(keeper)
 
 	path := []string{
 		"keysign",
@@ -62,13 +56,7 @@ func (s *QuerierSuite) TestQueryKeysign(c *C) {
 func (s *QuerierSuite) TestQueryPool(c *C) {
 	ctx, keeper := setupKeeperForTest(c)
 
-	versionedTxOutStoreDummy := NewVersionedTxOutStoreDummy()
-	versionedVaultMgrDummy := NewVersionedVaultMgrDummy(versionedTxOutStoreDummy)
-	versionedEventManagerDummy := NewDummyVersionedEventMgr()
-
-	validatorMgr := NewVersionedValidatorMgr(keeper, versionedTxOutStoreDummy, versionedVaultMgrDummy, versionedEventManagerDummy)
-
-	querier := NewQuerier(keeper, validatorMgr)
+	querier := NewQuerier(keeper)
 	path := []string{"pools"}
 
 	pubKey := GetRandomPubKey()
@@ -112,13 +100,7 @@ func (s *QuerierSuite) TestQueryPool(c *C) {
 func (s *QuerierSuite) TestQueryNodeAccounts(c *C) {
 	ctx, keeper := setupKeeperForTest(c)
 
-	versionedTxOutStoreDummy := NewVersionedTxOutStoreDummy()
-	versionedVaultMgrDummy := NewVersionedVaultMgrDummy(versionedTxOutStoreDummy)
-	versionedEventManagerDummy := NewDummyVersionedEventMgr()
-
-	validatorMgr := NewVersionedValidatorMgr(keeper, versionedTxOutStoreDummy, versionedVaultMgrDummy, versionedEventManagerDummy)
-
-	querier := NewQuerier(keeper, validatorMgr)
+	querier := NewQuerier(keeper)
 	path := []string{"nodeaccounts"}
 
 	signer := GetRandomBech32Addr()
@@ -164,13 +146,7 @@ func (s *QuerierSuite) TestQueryNodeAccounts(c *C) {
 func (s *QuerierSuite) TestQueryCompEvents(c *C) {
 	ctx, keeper := setupKeeperForTest(c)
 
-	versionedTxOutStoreDummy := NewVersionedTxOutStoreDummy()
-	versionedVaultMgrDummy := NewVersionedVaultMgrDummy(versionedTxOutStoreDummy)
-	versionedEventManagerDummy := NewDummyVersionedEventMgr()
-
-	validatorMgr := NewVersionedValidatorMgr(keeper, versionedTxOutStoreDummy, versionedVaultMgrDummy, versionedEventManagerDummy)
-
-	querier := NewQuerier(keeper, validatorMgr)
+	querier := NewQuerier(keeper)
 	path := []string{"comp_events_chain", "1", "BNB"}
 
 	txID, err := common.NewTxID("A1C7D97D5DB51FFDBC3FE29FFF6ADAA2DAF112D2CEAADA0902822333A59BD218")

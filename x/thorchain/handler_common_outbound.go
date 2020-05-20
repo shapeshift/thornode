@@ -12,21 +12,21 @@ import (
 // CommonOutboundTxHandler is the place where those common logic can be shared between multiple different kind of outbound tx handler
 // at the moment, handler_refund, and handler_outbound_tx are largely the same , only some small difference
 type CommonOutboundTxHandler struct {
-	keeper                Keeper
-	versionedEventManager VersionedEventManager
+	keeper Keeper
+	mgr    Manager
 }
 
 // NewCommonOutboundTxHandler create a new instance of the CommonOutboundTxHandler
-func NewCommonOutboundTxHandler(k Keeper, versionedEventManager VersionedEventManager) CommonOutboundTxHandler {
+func NewCommonOutboundTxHandler(k Keeper, mgr Manager) CommonOutboundTxHandler {
 	return CommonOutboundTxHandler{
-		keeper:                k,
-		versionedEventManager: versionedEventManager,
+		keeper: k,
+		mgr:    mgr,
 	}
 }
 
 func (h CommonOutboundTxHandler) slash(ctx cosmos.Context, version semver.Version, tx ObservedTx) error {
 	var returnErr error
-	slasher, err := NewSlasher(h.keeper, version, h.versionedEventManager)
+	slasher, err := NewSlasher(h.keeper, version, h.mgr)
 	if err != nil {
 		return fmt.Errorf("fail to create new slasher,error:%w", err)
 	}
@@ -58,13 +58,8 @@ func (h CommonOutboundTxHandler) handle(ctx cosmos.Context, version semver.Versi
 			ctx.Logger().Error("unable to complete events", "error", err)
 			return cosmos.ErrInternal(err.Error()).Result()
 		}
-		eventMgr, err := h.versionedEventManager.GetEventManager(ctx, version)
-		if err != nil {
-			ctx.Logger().Error("fail to get event manager", "error", err)
-			return errFailGetEventManager.Result()
-		}
 		for _, item := range voter.OutTxs {
-			if err := eventMgr.EmitOutboundEvent(ctx, NewEventOutbound(inTxID, item)); err != nil {
+			if err := h.mgr.EventMgr().EmitOutboundEvent(ctx, NewEventOutbound(inTxID, item)); err != nil {
 				ctx.Logger().Error("fail to emit outbound event", "error", err)
 				return cosmos.ErrInternal("fail to emit outbound event").Result()
 			}

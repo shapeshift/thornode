@@ -23,7 +23,7 @@ type tssHandlerTestHelper struct {
 	poolPk        common.PubKey
 	constAccessor constants.ConstantValues
 	nodeAccount   NodeAccount
-	vaultManager  VersionedVaultManager
+	mgr           Manager
 	members       common.PubKeys
 	signer        cosmos.AccAddress
 	keygenBlock   KeygenBlock
@@ -107,10 +107,8 @@ func newTssHandlerTestHelper(c *C) tssHandlerTestHelper {
 	c.Assert(keeper.SetNodeAccount(ctx, nodeAccount), IsNil)
 
 	constAccessor := constants.GetConstantValues(version)
-	versionedEventManagerDummy := NewDummyVersionedEventMgr()
-	versionedTxOutStore := NewVersionedTxOutStore(versionedEventManagerDummy)
+	mgr := NewDummyMgr()
 
-	vaultMgr := NewVersionedVaultMgr(versionedTxOutStore, versionedEventManagerDummy)
 	var members common.PubKeys
 	for i := 0; i < 8; i++ {
 		members = append(members, GetRandomPubKey())
@@ -138,7 +136,7 @@ func newTssHandlerTestHelper(c *C) tssHandlerTestHelper {
 		poolPk:        poolPk,
 		constAccessor: constAccessor,
 		nodeAccount:   nodeAccount,
-		vaultManager:  vaultMgr,
+		mgr:           mgr,
 		members:       members,
 		signer:        signer,
 	}
@@ -578,7 +576,7 @@ func (s *HandlerTssSuite) TestTssHandler(c *C) {
 	for _, tc := range testCases {
 		c.Log(tc.name)
 		helper := newTssHandlerTestHelper(c)
-		handler := NewTssHandler(helper.keeper, helper.vaultManager, NewVersionedEventMgr())
+		handler := NewTssHandler(helper.keeper, NewDummyMgr())
 		msg := tc.messageCreator(helper)
 		result := tc.runner(handler, msg, helper)
 		c.Assert(result.Code, Equals, tc.expectedResult, Commentf("name:%s, %s", tc.name, result.Log))

@@ -72,33 +72,20 @@ func (AppModuleBasic) GetTxCmd(cdc *codec.Codec) *cobra.Command {
 
 type AppModule struct {
 	AppModuleBasic
-	keeper                   Keeper
-	coinKeeper               bank.Keeper
-	supplyKeeper             supply.Keeper
-	txOutStore               VersionedTxOutStore
-	validatorMgr             VersionedValidatorManager
-	versionedVaultManager    VersionedVaultManager
-	versionedGasManager      VersionedGasManager
-	versionedObserverManager VersionedObserverManager
-	versionedEventManager    VersionedEventManager
+	keeper       Keeper
+	coinKeeper   bank.Keeper
+	supplyKeeper supply.Keeper
+	mgr          *Mgrs
 }
 
 // NewAppModule creates a new AppModule Object
 func NewAppModule(k Keeper, bankKeeper bank.Keeper, supplyKeeper supply.Keeper) AppModule {
-	versionedEventManager := NewVersionedEventMgr()
-	versionedTxOutStore := NewVersionedTxOutStore(versionedEventManager)
-	versionedVaultMgr := NewVersionedVaultMgr(versionedTxOutStore, versionedEventManager)
 	return AppModule{
-		AppModuleBasic:           AppModuleBasic{},
-		keeper:                   k,
-		coinKeeper:               bankKeeper,
-		supplyKeeper:             supplyKeeper,
-		txOutStore:               versionedTxOutStore,
-		validatorMgr:             NewVersionedValidatorMgr(k, versionedTxOutStore, versionedVaultMgr, versionedEventManager),
-		versionedVaultManager:    versionedVaultMgr,
-		versionedGasManager:      NewVersionedGasMgr(),
-		versionedObserverManager: NewVersionedObserverMgr(),
-		versionedEventManager:    versionedEventManager,
+		AppModuleBasic: AppModuleBasic{},
+		keeper:         k,
+		coinKeeper:     bankKeeper,
+		supplyKeeper:   supplyKeeper,
+		mgr:            NewManagers(k),
 	}
 }
 
@@ -113,7 +100,7 @@ func (am AppModule) Route() string {
 }
 
 func (am AppModule) NewHandler() sdk.Handler {
-	return NewExternalHandler(am.keeper, am.txOutStore, am.validatorMgr, am.versionedVaultManager, am.versionedObserverManager, am.versionedGasManager, am.versionedEventManager)
+	return NewExternalHandler(am.keeper, am.mgr)
 }
 
 func (am AppModule) QuerierRoute() string {
@@ -121,47 +108,34 @@ func (am AppModule) QuerierRoute() string {
 }
 
 func (am AppModule) NewQuerierHandler() sdk.Querier {
-	return NewQuerier(am.keeper, am.validatorMgr)
+	return NewQuerier(am.keeper)
 }
 
 func (am AppModule) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
 	ctx.Logger().Debug("Begin Block", "height", req.Header.Height)
+	var err error
 	version := am.keeper.GetLowestActiveVersion(ctx)
 	am.keeper.ClearObservingAddresses(ctx)
-	obMgr, err := am.versionedObserverManager.GetObserverManager(ctx, version)
-	if err != nil {
-		ctx.Logger().Error(fmt.Sprintf("observer manager that compatible with version :%s is not available", version))
-		return
+	if err := am.mgr.BeginBlock(ctx); err != nil {
+		ctx.Logger().Error("fail to get managers", "error", err)
 	}
-	obMgr.BeginBlock()
+	am.mgr.GasMgr().BeginBlock()
 
-	gasMgr, err := am.versionedGasManager.GetGasManager(ctx, version)
-	if err != nil {
-		ctx.Logger().Error(fmt.Sprintf("gas manager that compatible with version :%s is not available", version))
-		return
-	}
-	gasMgr.BeginBlock()
 	constantValues := constants.GetConstantValues(version)
 	if constantValues == nil {
 		ctx.Logger().Error(fmt.Sprintf("constants for version(%s) is not available", version))
 		return
 	}
 
-	slasher, err := NewSlasher(am.keeper, version, am.versionedEventManager)
+	slasher, err := NewSlasher(am.keeper, version, am.mgr)
 	if err != nil {
 		ctx.Logger().Error("fail to create slasher", "error", err)
 	}
 	slasher.BeginBlock(ctx, req, constantValues)
 
-	if err := am.validatorMgr.BeginBlock(ctx, version, constantValues); err != nil {
+	if err := am.mgr.ValidatorMgr().BeginBlock(ctx, constantValues); err != nil {
 		ctx.Logger().Error("Fail to begin block on validator", "error", err)
 	}
-	txStore, err := am.txOutStore.GetTxOutStore(ctx, am.keeper, version)
-	if err != nil {
-		ctx.Logger().Error("fail to get tx out store", "error", err)
-		return
-	}
-	txStore.NewBlock(req.Header.Height, constantValues)
 }
 
 func (am AppModule) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.ValidatorUpdate {
@@ -173,27 +147,11 @@ func (am AppModule) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.V
 		ctx.Logger().Error(fmt.Sprintf("constants for version(%s) is not available", version))
 		return nil
 	}
-	txStore, err := am.txOutStore.GetTxOutStore(ctx, am.keeper, version)
-	if err != nil {
-		ctx.Logger().Error("fail to get tx out store", "error", err)
-		return nil
-	}
-	eventMgr, err := am.versionedEventManager.GetEventManager(ctx, version)
-	if err != nil {
-		ctx.Logger().Error(fmt.Sprintf("Events manager that compatible with version :%s is not available", version))
-		return nil
+	if err := am.mgr.SwapQ().EndBlock(ctx, am.mgr, version, constantValues); err != nil {
+		ctx.Logger().Error("fail to process swap queue", "error", err)
 	}
 
-	swapQueue, err := NewVersionedSwapQ(am.txOutStore, am.versionedEventManager).GetSwapQueue(ctx, am.keeper, version)
-	if err != nil {
-		ctx.Logger().Error("fail to get swap queue", "error", err)
-	} else {
-		if err := swapQueue.EndBlock(ctx, version, constantValues); err != nil {
-			ctx.Logger().Error("fail to process swap queue", "error", err)
-		}
-	}
-
-	slasher, err := NewSlasher(am.keeper, version, am.versionedEventManager)
+	slasher, err := NewSlasher(am.keeper, version, am.mgr)
 	if err != nil {
 		ctx.Logger().Error("fail to create slasher", "error", err)
 		return nil
@@ -202,7 +160,7 @@ func (am AppModule) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.V
 	if err := slasher.LackObserving(ctx, constantValues); err != nil {
 		ctx.Logger().Error("Unable to slash for lack of observing:", "error", err)
 	}
-	if err := slasher.LackSigning(ctx, constantValues, txStore); err != nil {
+	if err := slasher.LackSigning(ctx, constantValues, am.mgr.TxOutStore()); err != nil {
 		ctx.Logger().Error("Unable to slash for lack of signing:", "error", err)
 	}
 
@@ -212,7 +170,7 @@ func (am AppModule) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.V
 	}
 	// Enable a pool every newPoolCycle
 	if ctx.BlockHeight()%newPoolCycle == 0 {
-		if err := enableNextPool(ctx, am.keeper, eventMgr); err != nil {
+		if err := enableNextPool(ctx, am.keeper, am.mgr.EventMgr()); err != nil {
 			ctx.Logger().Error("Unable to enable a pool", "error", err)
 		}
 	}
@@ -232,42 +190,27 @@ func (am AppModule) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.V
 		}
 	}
 
-	obMgr, err := am.versionedObserverManager.GetObserverManager(ctx, version)
-	if err != nil {
-		ctx.Logger().Error(fmt.Sprintf("observer manager that compatible with version :%s is not available", version))
-		return nil
-	}
-	obMgr.EndBlock(ctx, am.keeper)
-	gasMgr, err := am.versionedGasManager.GetGasManager(ctx, version)
-	if err != nil {
-		ctx.Logger().Error(fmt.Sprintf("gas manager that compatible with version :%s is not available", version))
-		return nil
-	}
-
-	vaultMgr, err := am.versionedVaultManager.GetVaultManager(ctx, am.keeper, version)
-	if err != nil {
-		ctx.Logger().Error("fail to get a valid vault manager", "error", err)
-		return nil
-	}
+	am.mgr.ObMgr().EndBlock(ctx, am.keeper)
 
 	// update vault data to account for block rewards and reward units
-	if err := vaultMgr.UpdateVaultData(ctx, constantValues, gasMgr, eventMgr); err != nil {
-		ctx.Logger().Error("fail to save vault", "error", err)
+	if err := am.mgr.VaultMgr().UpdateVaultData(ctx, constantValues, am.mgr.GasMgr(), am.mgr.EventMgr()); err != nil {
+		ctx.Logger().Error("fail to update vault data", "error", err)
 	}
 
-	if err := vaultMgr.EndBlock(ctx, version, constantValues); err != nil {
+	if err := am.mgr.VaultMgr().EndBlock(ctx, am.mgr, constantValues); err != nil {
 		ctx.Logger().Error("fail to end block for vault manager", "error", err)
 	}
 
-	validators := am.validatorMgr.EndBlock(ctx, version, constantValues)
+	validators := am.mgr.ValidatorMgr().EndBlock(ctx, am.mgr, constantValues)
 
 	// Fill up Yggdrasil vaults
 	// We do this AFTER validatorMgr.EndBlock, because we don't want to send
 	// funds to a yggdrasil vault that is being churned out this block.
-	if err := Fund(ctx, am.keeper, txStore, constantValues); err != nil {
+	if err := Fund(ctx, am.keeper, am.mgr, constantValues); err != nil {
 		ctx.Logger().Error("unable to fund yggdrasil", "error", err)
 	}
-	gasMgr.EndBlock(ctx, am.keeper, eventMgr)
+
+	am.mgr.GasMgr().EndBlock(ctx, am.keeper, am.mgr.EventMgr())
 
 	return validators
 }

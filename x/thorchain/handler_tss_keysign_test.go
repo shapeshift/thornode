@@ -21,7 +21,7 @@ type tssKeysignFailHandlerTestHelper struct {
 	keeper        *tssKeysignKeeperHelper
 	constAccessor constants.ConstantValues
 	nodeAccount   NodeAccount
-	vaultManager  VersionedVaultManager
+	mgr           Manager
 	members       common.PubKeys
 	blame         blame.Blame
 }
@@ -78,10 +78,8 @@ func newTssKeysignHandlerTestHelper(c *C) tssKeysignFailHandlerTestHelper {
 	nodeAccount.Bond = cosmos.NewUint(100 * common.One)
 	c.Assert(keeper.SetNodeAccount(ctx, nodeAccount), IsNil)
 	constAccessor := constants.GetConstantValues(version)
-	versionedEventManagerDummy := NewDummyVersionedEventMgr()
-	versionedTxOutStore := NewVersionedTxOutStore(versionedEventManagerDummy)
+	mgr := NewDummyMgr()
 
-	vaultMgr := NewVersionedVaultMgr(versionedTxOutStore, versionedEventManagerDummy)
 	var members []blame.Node
 	for i := 0; i < 8; i++ {
 		na := GetRandomNodeAccount(NodeStandby)
@@ -100,7 +98,7 @@ func newTssKeysignHandlerTestHelper(c *C) tssKeysignFailHandlerTestHelper {
 		keeper:        keeper,
 		constAccessor: constAccessor,
 		nodeAccount:   nodeAccount,
-		vaultManager:  vaultMgr,
+		mgr:           mgr,
 		blame:         blame,
 	}
 }
@@ -262,7 +260,7 @@ func (h HandlerTssKeysignSuite) TestTssKeysignFailHandler(c *C) {
 	}
 	for _, tc := range testCases {
 		helper := newTssKeysignHandlerTestHelper(c)
-		handler := NewTssKeysignHandler(helper.keeper, NewVersionedEventMgr())
+		handler := NewTssKeysignHandler(helper.keeper, NewDummyMgr())
 		msg := tc.messageCreator(helper)
 		result := tc.runner(handler, msg, helper)
 		c.Assert(result.Code, Equals, tc.expectedResult, Commentf("name:%s", tc.name))

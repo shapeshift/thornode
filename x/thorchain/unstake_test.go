@@ -473,8 +473,7 @@ func (UnstakeSuite) TestUnstake(c *C) {
 		ctx, _ := setupKeeperForTest(c)
 		c.Logf("name:%s", tc.name)
 		version := constants.SWVersion
-		versionedEventManagerDummy := NewDummyVersionedEventMgr()
-		eventManager, err := versionedEventManagerDummy.GetEventManager(ctx, version)
+		eventManager := NewDummyEventMgr()
 		c.Assert(err, IsNil)
 		r, asset, _, _, err := unstake(ctx, version, tc.ps, tc.msg, eventManager)
 		if tc.expectedError != nil {

@@ -10,7 +10,7 @@ import (
 	"gitlab.com/thorchain/thornode/constants"
 )
 
-func refundTx(ctx cosmos.Context, tx ObservedTx, store TxOutStore, keeper Keeper, constAccessor constants.ConstantValues, refundCode cosmos.CodeType, refundReason string, eventMgr EventManager) error {
+func refundTx(ctx cosmos.Context, tx ObservedTx, mgr Manager, keeper Keeper, constAccessor constants.ConstantValues, refundCode cosmos.CodeType, refundReason string) error {
 	// If THORNode recognize one of the coins, and therefore able to refund
 	// withholding fees, refund all coins.
 
@@ -26,7 +26,7 @@ func refundTx(ctx cosmos.Context, tx ObservedTx, store TxOutStore, keeper Keeper
 			eventRefund = NewEventRefund(refundCode, refundReason, newTx, fee)
 			status = EventPending
 		}
-		if err := eventMgr.EmitRefundEvent(ctx, keeper, eventRefund, status); err != nil {
+		if err := mgr.EventMgr().EmitRefundEvent(ctx, keeper, eventRefund, status); err != nil {
 			return fmt.Errorf("fail to emit refund event: %w", err)
 		}
 		return nil
@@ -62,7 +62,7 @@ func refundTx(ctx cosmos.Context, tx ObservedTx, store TxOutStore, keeper Keeper
 				Memo:        NewRefundMemo(tx.Tx.ID).String(),
 			}
 
-			success, err := store.TryAddTxOutItem(ctx, toi)
+			success, err := mgr.TxOutStore().TryAddTxOutItem(ctx, mgr, toi)
 			if err != nil {
 				return fmt.Errorf("fail to prepare outbund tx: %w", err)
 			}
@@ -183,7 +183,7 @@ func getTotalYggValueInRune(ctx cosmos.Context, keeper Keeper, ygg Vault) (cosmo
 	return yggRune, nil
 }
 
-func refundBond(ctx cosmos.Context, tx common.Tx, nodeAcc NodeAccount, keeper Keeper, txOut TxOutStore, eventMgr EventManager) error {
+func refundBond(ctx cosmos.Context, tx common.Tx, nodeAcc NodeAccount, keeper Keeper, mgr Manager) error {
 	if nodeAcc.Status == NodeActive {
 		ctx.Logger().Info("node still active , cannot refund bond", "node address", nodeAcc.NodeAddress, "node pub key", nodeAcc.PubKeySet.Secp256k1)
 		return nil
@@ -228,7 +228,7 @@ func refundBond(ctx cosmos.Context, tx common.Tx, nodeAcc NodeAccount, keeper Ke
 		}
 
 		bondEvent := NewEventBond(nodeAcc.Bond, BondReturned, tx)
-		if err := eventMgr.EmitBondEvent(ctx, keeper, bondEvent); err != nil {
+		if err := mgr.EventMgr().EmitBondEvent(ctx, keeper, bondEvent); err != nil {
 			return fmt.Errorf("fail to emit bond event: %w", err)
 		}
 
@@ -246,7 +246,7 @@ func refundBond(ctx cosmos.Context, tx common.Tx, nodeAcc NodeAccount, keeper Ke
 			Coin:        common.NewCoin(common.RuneAsset(), nodeAcc.Bond),
 			ModuleName:  BondName,
 		}
-		_, err = txOut.TryAddTxOutItem(ctx, txOutItem)
+		_, err = mgr.TxOutStore().TryAddTxOutItem(ctx, mgr, txOutItem)
 		if err != nil {
 			return fmt.Errorf("fail to add outbound tx: %w", err)
 		}

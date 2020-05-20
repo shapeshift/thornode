@@ -15,18 +15,18 @@ import (
 
 // Slasher implements SlashingModule interface provide the necessary functionality to slash node accounts
 type Slasher struct {
-	keeper                Keeper
-	version               semver.Version
-	versionedEventManager VersionedEventManager
+	keeper  Keeper
+	version semver.Version
+	mgr     Manager
 }
 
 // NewSlasher create a new instance of Slasher
-func NewSlasher(keeper Keeper, version semver.Version, versionedEventManager VersionedEventManager) (*Slasher, error) {
+func NewSlasher(keeper Keeper, version semver.Version, mgr Manager) (*Slasher, error) {
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return &Slasher{
-			keeper:                keeper,
-			version:               version,
-			versionedEventManager: versionedEventManager,
+			keeper:  keeper,
+			version: version,
+			mgr:     mgr,
 		}, nil
 	}
 	return nil, errBadVersion
@@ -202,7 +202,7 @@ func (s *Slasher) LackSigning(ctx cosmos.Context, constAccessor constants.Consta
 
 			// Save the tx to as a new tx, select Asgard to send it this time.
 			tx.VaultPubKey = vault.PubKey
-			err = txOutStore.UnSafeAddTxOutItem(ctx, tx)
+			err = s.mgr.TxOutStore().UnSafeAddTxOutItem(ctx, s.mgr, tx)
 			if err != nil {
 				return fmt.Errorf("fail to add outbound tx: %w", err)
 			}
@@ -282,12 +282,7 @@ func (s *Slasher) SlashNodeAccount(ctx cosmos.Context, observedPubKey common.Pub
 		},
 	}
 	eventSlash := NewEventSlash(pool.Asset, poolSlashAmt)
-	eventMgr, err := s.versionedEventManager.GetEventManager(ctx, s.version)
-	if err != nil {
-		return fmt.Errorf("fail to get event manager: %w", err)
-	}
-
-	if err := eventMgr.EmitSlashEvent(ctx, s.keeper, eventSlash); err != nil {
+	if err := s.mgr.EventMgr().EmitSlashEvent(ctx, s.keeper, eventSlash); err != nil {
 		return fmt.Errorf("fail to emit slash event: %w", err)
 	}
 

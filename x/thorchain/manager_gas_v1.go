@@ -5,53 +5,48 @@ import (
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
-// GasManager define all the methods required to manage gas
-type GasManager interface {
-	BeginBlock()
-	EndBlock(ctx cosmos.Context, keeper Keeper, eventManager EventManager)
-	AddGasAsset(gas common.Gas)
-	ProcessGas(ctx cosmos.Context, keeper Keeper)
-	GetGas() common.Gas
-}
-
-// GasMgr implement GasManager interface which will store the gas related events happened in thorchain to memory
+// GasMgrV1 implement GasManager interface which will store the gas related events happened in thorchain to memory
 // emit GasEvent per block if there are any
-type GasMgr struct {
+type GasMgrV1 struct {
 	gasEvent *EventGas
 	gas      common.Gas
 	gasCount map[common.Asset]int64
 }
 
-// NewGasMgr create a new instance of GasMgr
-func NewGasMgr() *GasMgr {
-	return &GasMgr{
+// NewGasMgrV1 create a new instance of GasMgrV1
+func NewGasMgrV1() *GasMgrV1 {
+	return &GasMgrV1{
 		gasEvent: NewEventGas(),
 		gas:      common.Gas{},
 		gasCount: make(map[common.Asset]int64, 0),
 	}
 }
 
-// BeginBlock need to be called when a new block get created , update the internal EventGas to new one
-func (gm *GasMgr) BeginBlock() {
+func (gm *GasMgrV1) reset() {
 	gm.gasEvent = NewEventGas()
 	gm.gas = common.Gas{}
 	gm.gasCount = make(map[common.Asset]int64, 0)
 }
 
+// BeginBlock need to be called when a new block get created , update the internal EventGas to new one
+func (gm *GasMgrV1) BeginBlock() {
+	gm.reset()
+}
+
 // AddGasAsset to the EventGas
-func (gm *GasMgr) AddGasAsset(gas common.Gas) {
+func (gm *GasMgrV1) AddGasAsset(gas common.Gas) {
 	gm.gas = gm.gas.Add(gas)
 	for _, coin := range gas {
 		gm.gasCount[coin.Asset] += 1
 	}
 }
 
-func (gm *GasMgr) GetGas() common.Gas {
+func (gm *GasMgrV1) GetGas() common.Gas {
 	return gm.gas
 }
 
 // EndBlock emit the events
-func (gm *GasMgr) EndBlock(ctx cosmos.Context, keeper Keeper, eventManager EventManager) {
+func (gm *GasMgrV1) EndBlock(ctx cosmos.Context, keeper Keeper, eventManager EventManager) {
 	gm.ProcessGas(ctx, keeper)
 
 	if len(gm.gasEvent.Pools) == 0 {
@@ -61,10 +56,11 @@ func (gm *GasMgr) EndBlock(ctx cosmos.Context, keeper Keeper, eventManager Event
 	if err := eventManager.EmitGasEvent(ctx, keeper, gm.gasEvent); nil != err {
 		ctx.Logger().Error("fail to emit gas event", "error", err)
 	}
+	gm.reset()
 }
 
 // ProcessGas to subsidise the pool with RUNE for the gas they have spent
-func (gm *GasMgr) ProcessGas(ctx cosmos.Context, keeper Keeper) {
+func (gm *GasMgrV1) ProcessGas(ctx cosmos.Context, keeper Keeper) {
 	vault, err := keeper.GetVaultData(ctx)
 	if err != nil {
 		ctx.Logger().Error("fail to get vault data", "error", err)

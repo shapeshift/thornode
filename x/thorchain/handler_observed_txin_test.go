@@ -40,7 +40,6 @@ var _ = Suite(&HandlerObservedTxInSuite{})
 func (s *HandlerObservedTxInSuite) TestValidate(c *C) {
 	var err error
 	ctx, _ := setupKeeperForTest(c)
-	w := getHandlerTestWrapper(c, 1, true, false)
 	activeNodeAccount := GetRandomNodeAccount(NodeActive)
 	standbyAccount := GetRandomNodeAccount(NodeStandby)
 	keeper := &TestObservedTxInValidateKeeper{
@@ -48,12 +47,7 @@ func (s *HandlerObservedTxInSuite) TestValidate(c *C) {
 		standbyAccount:    standbyAccount,
 	}
 
-	versionedVaultMgrDummy := NewVersionedVaultMgrDummy(w.versionedTxOutStore)
-	versionedGasMgr := NewDummyVersionedGasMgr()
-	versionedObMgr := NewDummyVersionedObserverMgr()
-	versionedEventManagerDummy := NewDummyVersionedEventMgr()
-
-	handler := NewObservedTxInHandler(keeper, versionedObMgr, w.versionedTxOutStore, w.validatorMgr, versionedVaultMgrDummy, versionedGasMgr, versionedEventManagerDummy)
+	handler := NewObservedTxInHandler(keeper, NewDummyMgr())
 
 	// happy path
 	ver := constants.SWVersion
@@ -110,14 +104,14 @@ func (s *HandlerObservedTxInSuite) TestFailure(c *C) {
 			BalanceAsset: cosmos.NewUint(300),
 		},
 	}
-	txOutStore := NewTxStoreDummy()
+	mgr := NewDummyMgr()
 
 	tx := NewObservedTx(GetRandomTx(), 12, GetRandomPubKey())
 	ver := constants.SWVersion
 	constAccessor := constants.GetConstantValues(ver)
-	err := refundTx(ctx, tx, txOutStore, keeper, constAccessor, CodeInvalidMemo, "Invalid memo", NewEventMgr())
+	err := refundTx(ctx, tx, mgr, keeper, constAccessor, CodeInvalidMemo, "Invalid memo")
 	c.Assert(err, IsNil)
-	items, err := txOutStore.GetOutboundItems(ctx)
+	items, err := mgr.TxOutStore().GetOutboundItems(ctx)
 	c.Assert(err, IsNil)
 	c.Check(items, HasLen, 1)
 }
@@ -222,7 +216,6 @@ func (k *TestObservedTxInHandleKeeper) SetTxOut(ctx cosmos.Context, blockOut *Tx
 func (s *HandlerObservedTxInSuite) TestHandle(c *C) {
 	var err error
 	ctx, _ := setupKeeperForTest(c)
-	w := getHandlerTestWrapper(c, 1, true, false)
 
 	ver := constants.SWVersion
 
@@ -247,20 +240,15 @@ func (s *HandlerObservedTxInSuite) TestHandle(c *C) {
 		},
 		yggExists: true,
 	}
-	versionedTxOutStore := NewVersionedTxOutStoreDummy()
-	versionedVaultMgrDummy := NewVersionedVaultMgrDummy(versionedTxOutStore)
-	versionedGasMgr := NewVersionedGasMgr()
-	versionedObMgr := NewVersionedObserverMgr()
-	versionedEventManagerDummy := NewDummyVersionedEventMgr()
 
-	handler := NewObservedTxInHandler(keeper, versionedObMgr, versionedTxOutStore, w.validatorMgr, versionedVaultMgrDummy, versionedGasMgr, versionedEventManagerDummy)
+	mgr := NewManagers(keeper)
+	c.Assert(mgr.BeginBlock(ctx), IsNil)
+	handler := NewObservedTxInHandler(keeper, mgr)
 
 	c.Assert(err, IsNil)
 	msg := NewMsgObservedTxIn(txs, keeper.nas[0].NodeAddress)
 	result := handler.handle(ctx, msg, ver)
-	obMgr, err := versionedObMgr.GetObserverManager(ctx, ver)
-	c.Assert(err, IsNil)
-	obMgr.EndBlock(ctx, keeper)
+	mgr.ObMgr().EndBlock(ctx, keeper)
 
 	c.Assert(result.IsOK(), Equals, true, Commentf("%s", result.Log))
 	c.Check(keeper.msg.Tx.ID.Equals(tx.ID), Equals, true)
@@ -274,7 +262,6 @@ func (s *HandlerObservedTxInSuite) TestHandle(c *C) {
 func (s *HandlerObservedTxInSuite) TestMigrateMemo(c *C) {
 	var err error
 	ctx, _ := setupKeeperForTest(c)
-	w := getHandlerTestWrapper(c, 1, true, false)
 	ver := constants.SWVersion
 
 	vault := GetRandomVault()
@@ -318,14 +305,8 @@ func (s *HandlerObservedTxInSuite) TestMigrateMemo(c *C) {
 		yggExists: true,
 		txOut:     txout,
 	}
-	versionedTxOutStore := NewVersionedTxOutStoreDummy()
-	c.Assert(err, IsNil)
-	versionedVaultMgrDummy := NewVersionedVaultMgrDummy(versionedTxOutStore)
-	versionedGasMgr := NewVersionedGasMgr()
-	versionedObMgr := NewDummyVersionedObserverMgr()
-	versionedEventManagerDummy := NewDummyVersionedEventMgr()
 
-	handler := NewObservedTxInHandler(keeper, versionedObMgr, versionedTxOutStore, w.validatorMgr, versionedVaultMgrDummy, versionedGasMgr, versionedEventManagerDummy)
+	handler := NewObservedTxInHandler(keeper, NewDummyMgr())
 
 	c.Assert(err, IsNil)
 	msg := NewMsgObservedTxIn(txs, keeper.nas[0].NodeAddress)

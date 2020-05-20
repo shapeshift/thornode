@@ -11,16 +11,14 @@ import (
 )
 
 type SwapHandler struct {
-	keeper                Keeper
-	versionedTxOutStore   VersionedTxOutStore
-	versionedEventManager VersionedEventManager
+	keeper Keeper
+	mgr    Manager
 }
 
-func NewSwapHandler(keeper Keeper, versionedTxOutStore VersionedTxOutStore, versionedEventManager VersionedEventManager) SwapHandler {
+func NewSwapHandler(keeper Keeper, mgr Manager) SwapHandler {
 	return SwapHandler{
-		keeper:                keeper,
-		versionedTxOutStore:   versionedTxOutStore,
-		versionedEventManager: versionedEventManager,
+		keeper: keeper,
+		mgr:    mgr,
 	}
 }
 
@@ -76,13 +74,8 @@ func (h SwapHandler) handleV1(ctx cosmos.Context, msg MsgSwap, version semver.Ve
 		ctx.Logger().Error("fail to process swap message", "error", swapErr)
 		return swapErr.Result()
 	}
-	eventMgr, err := h.versionedEventManager.GetEventManager(ctx, version)
-	if err != nil {
-		ctx.Logger().Error("fail to get event manager", "error", err)
-		return errFailGetEventManager.Result()
-	}
 	for _, evt := range events {
-		if err := eventMgr.EmitSwapEvent(ctx, h.keeper, evt); err != nil {
+		if err := h.mgr.EventMgr().EmitSwapEvent(ctx, h.keeper, evt); err != nil {
 			ctx.Logger().Error("fail to emit swap event", "error", err)
 		}
 		if err := h.keeper.AddToLiquidityFees(ctx, evt.Pool, evt.LiquidityFeeInRune); err != nil {
@@ -100,18 +93,13 @@ func (h SwapHandler) handleV1(ctx cosmos.Context, msg MsgSwap, version semver.Ve
 		ctx.Logger().Error("fail to encode result to json", "error", err)
 		return cosmos.ErrInternal("fail to encode result to json").Result()
 	}
-	txOutStore, err := h.versionedTxOutStore.GetTxOutStore(ctx, h.keeper, version)
-	if err != nil {
-		ctx.Logger().Error("fail to get txout store", "error", err)
-		return errBadVersion.Result()
-	}
 	toi := &TxOutItem{
 		Chain:     msg.TargetAsset.Chain,
 		InHash:    msg.Tx.ID,
 		ToAddress: msg.Destination,
 		Coin:      common.NewCoin(msg.TargetAsset, amount),
 	}
-	ok, err := txOutStore.TryAddTxOutItem(ctx, toi)
+	ok, err := h.mgr.TxOutStore().TryAddTxOutItem(ctx, h.mgr, toi)
 	if err != nil {
 		ctx.Logger().Error("fail to add outbound tx", "error", err)
 		return cosmos.ErrInternal(fmt.Errorf("fail to add outbound tx: %w", err).Error()).Result()

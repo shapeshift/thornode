@@ -11,11 +11,13 @@ import (
 
 type SetNodeKeysHandler struct {
 	keeper Keeper
+	mgr    Manager
 }
 
-func NewSetNodeKeysHandler(keeper Keeper) SetNodeKeysHandler {
+func NewSetNodeKeysHandler(keeper Keeper, mgr Manager) SetNodeKeysHandler {
 	return SetNodeKeysHandler{
 		keeper: keeper,
+		mgr:    mgr,
 	}
 }
 
@@ -102,7 +104,7 @@ func (h SetNodeKeysHandler) handleV1(ctx cosmos.Context, msg MsgSetNodeKeys, ver
 
 	// Set version number
 	setVersionMsg := NewMsgSetVersion(version, msg.Signer)
-	setVersionHandler := NewVersionHandler(h.keeper)
+	setVersionHandler := NewVersionHandler(h.keeper, h.mgr)
 	result := setVersionHandler.Run(ctx, setVersionMsg, version, constAccessor)
 	if !result.IsOK() {
 		ctx.Logger().Error("fail to set version", "version", version, "error", result.Log)

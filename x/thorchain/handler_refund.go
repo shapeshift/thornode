@@ -10,17 +10,17 @@ import (
 // RefundHandler a handle to process tx that had refund memo
 // usually this type or tx is because Thorchain fail to process the tx, which result in a refund, signer honour the tx and refund customer accordingly
 type RefundHandler struct {
-	keeper                Keeper
-	ch                    CommonOutboundTxHandler
-	versionedEventManager VersionedEventManager
+	keeper Keeper
+	ch     CommonOutboundTxHandler
+	mgr    Manager
 }
 
 // NewRefundHandler create a new refund handler
-func NewRefundHandler(keeper Keeper, versionedEventManager VersionedEventManager) RefundHandler {
+func NewRefundHandler(keeper Keeper, mgr Manager) RefundHandler {
 	return RefundHandler{
-		keeper:                keeper,
-		ch:                    NewCommonOutboundTxHandler(keeper, versionedEventManager),
-		versionedEventManager: versionedEventManager,
+		keeper: keeper,
+		ch:     NewCommonOutboundTxHandler(keeper, mgr),
+		mgr:    mgr,
 	}
 }
 

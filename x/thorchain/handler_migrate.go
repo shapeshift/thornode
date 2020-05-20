@@ -11,14 +11,14 @@ import (
 )
 
 type MigrateHandler struct {
-	keeper                Keeper
-	versionedEventManager VersionedEventManager
+	keeper Keeper
+	mgr    Manager
 }
 
-func NewMigrateHandler(keeper Keeper, versionedEventManager VersionedEventManager) MigrateHandler {
+func NewMigrateHandler(keeper Keeper, mgr Manager) MigrateHandler {
 	return MigrateHandler{
-		keeper:                keeper,
-		versionedEventManager: versionedEventManager,
+		keeper: keeper,
+		mgr:    mgr,
 	}
 }
 
@@ -60,7 +60,7 @@ func (h MigrateHandler) handle(ctx cosmos.Context, msg MsgMigrate, version semve
 
 func (h MigrateHandler) slash(ctx cosmos.Context, version semver.Version, tx ObservedTx) error {
 	var returnErr error
-	slasher, err := NewSlasher(h.keeper, version, h.versionedEventManager)
+	slasher, err := NewSlasher(h.keeper, version, h.mgr)
 	if err != nil {
 		return fmt.Errorf("fail to create new slasher,error:%w", err)
 	}

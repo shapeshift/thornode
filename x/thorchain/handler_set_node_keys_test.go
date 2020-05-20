@@ -36,7 +36,7 @@ func (s *HandlerSetNodeKeysSuite) TestValidate(c *C) {
 		ensure: nil,
 	}
 
-	handler := NewSetNodeKeysHandler(keeper)
+	handler := NewSetNodeKeysHandler(keeper, NewDummyMgr())
 
 	// happy path
 	ver := constants.SWVersion
@@ -108,7 +108,7 @@ func (s *HandlerSetNodeKeysSuite) TestHandle(c *C) {
 		na: GetRandomNodeAccount(NodeActive),
 	}
 
-	handler := NewSetNodeKeysHandler(keeper)
+	handler := NewSetNodeKeysHandler(keeper, NewDummyMgr())
 
 	ver := constants.SWVersion
 

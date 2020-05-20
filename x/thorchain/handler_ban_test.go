@@ -94,7 +94,7 @@ func (s *HandlerBanSuite) TestValidate(c *C) {
 		banner2: banner2,
 	}
 
-	handler := NewBanHandler(keeper)
+	handler := NewBanHandler(keeper, NewDummyMgr())
 	// happy path
 	msg := NewMsgBan(toBan.NodeAddress, banner1.NodeAddress)
 	err := handler.validate(ctx, msg, constants.SWVersion)
@@ -131,7 +131,7 @@ func (s *HandlerBanSuite) TestHandle(c *C) {
 		modules:   make(map[string]int64, 0),
 	}
 
-	handler := NewBanHandler(keeper)
+	handler := NewBanHandler(keeper, NewDummyMgr())
 
 	// ban with banner 1
 	msg := NewMsgBan(toBan.NodeAddress, banner1.NodeAddress)

@@ -26,14 +26,7 @@ func (s *HandlerNativeTxSuite) TestValidate(c *C) {
 	}
 	msg := NewMsgNativeTx(coins, fmt.Sprintf("STAKE:BNB.BNB:%s", GetRandomRUNEAddress()), addr)
 
-	versionedTxOutStore := NewVersionedTxOutStoreDummy()
-	versionedVaultMgrDummy := NewVersionedVaultMgrDummy(versionedTxOutStore)
-	versionedGasMgr := NewDummyVersionedGasMgr()
-	versionedObMgr := NewDummyVersionedObserverMgr()
-	versionedEventManagerDummy := NewDummyVersionedEventMgr()
-	versionedValidatorMgr := NewVersionedValidatorDummyMgr()
-
-	handler := NewNativeTxHandler(k, versionedObMgr, versionedTxOutStore, versionedValidatorMgr, versionedVaultMgrDummy, versionedGasMgr, versionedEventManagerDummy)
+	handler := NewNativeTxHandler(k, NewDummyMgr())
 	err := handler.validate(ctx, msg, constants.SWVersion)
 	c.Assert(err, IsNil)
 
@@ -52,14 +45,7 @@ func (s *HandlerNativeTxSuite) TestHandle(c *C) {
 	banker := k.CoinKeeper()
 	constAccessor := constants.GetConstantValues(constants.SWVersion)
 
-	versionedTxOutStore := NewVersionedTxOutStoreDummy()
-	versionedVaultMgrDummy := NewVersionedVaultMgrDummy(versionedTxOutStore)
-	versionedGasMgr := NewDummyVersionedGasMgr()
-	versionedObMgr := NewDummyVersionedObserverMgr()
-	versionedEventManagerDummy := NewDummyVersionedEventMgr()
-	versionedValidatorMgr := NewVersionedValidatorDummyMgr()
-
-	handler := NewNativeTxHandler(k, versionedObMgr, versionedTxOutStore, versionedValidatorMgr, versionedVaultMgrDummy, versionedGasMgr, versionedEventManagerDummy)
+	handler := NewNativeTxHandler(k, NewDummyMgr())
 
 	addr := GetRandomBech32Addr()
 

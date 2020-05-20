@@ -1,7 +1,6 @@
 package thorchain
 
 import (
-	"github.com/blang/semver"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
@@ -161,22 +160,21 @@ func (s *HelperSuite) TestRefundBondError(c *C) {
 	na := GetRandomNodeAccount(NodeActive)
 	na.PubKeySet.Secp256k1 = pk
 	na.Bond = cosmos.NewUint(100 * common.One)
-	txOut := NewTxStoreDummy()
+	mgr := NewDummyMgr()
 	tx := GetRandomTx()
-	eventMgr := NewEventMgr()
 	keeper1 := &TestRefundBondKeeper{}
-	c.Assert(refundBond(ctx, tx, na, keeper1, txOut, eventMgr), IsNil)
+	c.Assert(refundBond(ctx, tx, na, keeper1, mgr), IsNil)
 
 	// fail to get vault should return an error
 	na.UpdateStatus(NodeStandby, ctx.BlockHeight())
 	keeper1.na = na
-	c.Assert(refundBond(ctx, tx, na, keeper1, txOut, eventMgr), NotNil)
+	c.Assert(refundBond(ctx, tx, na, keeper1, mgr), NotNil)
 
 	// if the vault is not a yggdrasil pool , it should return an error
 	ygg := NewVault(ctx.BlockHeight(), ActiveVault, AsgardVault, pk, common.Chains{common.BNBChain})
 	ygg.Coins = common.Coins{}
 	keeper1.ygg = ygg
-	c.Assert(refundBond(ctx, tx, na, keeper1, txOut, eventMgr), NotNil)
+	c.Assert(refundBond(ctx, tx, na, keeper1, mgr), NotNil)
 
 	// fail to get pool should fail
 	ygg = NewVault(ctx.BlockHeight(), ActiveVault, YggdrasilVault, pk, common.Chains{common.BNBChain})
@@ -185,7 +183,7 @@ func (s *HelperSuite) TestRefundBondError(c *C) {
 		common.NewCoin(common.BNBAsset, cosmos.NewUint(27*common.One)),
 	}
 	keeper1.ygg = ygg
-	c.Assert(refundBond(ctx, tx, na, keeper1, txOut, eventMgr), NotNil)
+	c.Assert(refundBond(ctx, tx, na, keeper1, mgr), NotNil)
 
 	// when ygg asset in RUNE is more then bond , thorchain should slash the node account with all their bond
 	keeper1.pool = Pool{
@@ -193,9 +191,9 @@ func (s *HelperSuite) TestRefundBondError(c *C) {
 		BalanceRune:  cosmos.NewUint(1024 * common.One),
 		BalanceAsset: cosmos.NewUint(167 * common.One),
 	}
-	c.Assert(refundBond(ctx, tx, na, keeper1, txOut, eventMgr), IsNil)
+	c.Assert(refundBond(ctx, tx, na, keeper1, mgr), IsNil)
 	// make sure no tx has been generated for refund
-	items, err := txOut.GetOutboundItems(ctx)
+	items, err := mgr.TxOutStore().GetOutboundItems(ctx)
 	c.Assert(err, IsNil)
 	c.Check(items, HasLen, 0)
 }
@@ -204,8 +202,7 @@ func (s *HelperSuite) TestRefundBondHappyPath(c *C) {
 	ctx, _ := setupKeeperForTest(c)
 	na := GetRandomNodeAccount(NodeActive)
 	na.Bond = cosmos.NewUint(12098 * common.One)
-	txOut := NewTxStoreDummy()
-	eventMgr := NewEventMgr()
+	mgr := NewDummyMgr()
 	pk := GetRandomPubKey()
 	na.PubKeySet.Secp256k1 = pk
 	ygg := NewVault(ctx.BlockHeight(), ActiveVault, YggdrasilVault, pk, common.Chains{common.BNBChain})
@@ -227,10 +224,10 @@ func (s *HelperSuite) TestRefundBondHappyPath(c *C) {
 	tx := GetRandomTx()
 	yggAssetInRune, err := getTotalYggValueInRune(ctx, keeper, ygg)
 	c.Assert(err, IsNil)
-	err = refundBond(ctx, tx, na, keeper, txOut, eventMgr)
+	err = refundBond(ctx, tx, na, keeper, mgr)
 	slashAmt := yggAssetInRune.MulUint64(3).QuoUint64(2)
 	c.Assert(err, IsNil)
-	items, err := txOut.GetOutboundItems(ctx)
+	items, err := mgr.TxOutStore().GetOutboundItems(ctx)
 	c.Assert(err, IsNil)
 	if common.RuneAsset().Chain.Equals(common.THORChain) {
 		c.Assert(items, HasLen, 0)
@@ -250,8 +247,7 @@ func (s *HelperSuite) TestRefundBondHappyPath(c *C) {
 func (s *HelperSuite) TestEnableNextPool(c *C) {
 	var err error
 	ctx, k := setupKeeperForTest(c)
-	versionedEventManagerDummy := NewDummyVersionedEventMgr()
-	eventMgr, err := versionedEventManagerDummy.GetEventManager(ctx, semver.MustParse("0.1.0"))
+	eventMgr := NewDummyEventMgr()
 	c.Assert(err, IsNil)
 	pool := NewPool()
 	pool.Asset = common.BNBAsset
@@ -393,7 +389,7 @@ func newAddGasFeeTestHelper(c *C) addGasFeeTestHelper {
 		ctx:        ctx,
 		k:          keeper,
 		na:         na,
-		gasManager: NewGasMgr(),
+		gasManager: NewGasMgrV1(),
 	}
 }
 

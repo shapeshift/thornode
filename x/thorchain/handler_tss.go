@@ -11,17 +11,15 @@ import (
 )
 
 type TssHandler struct {
-	keeper                Keeper
-	versionedVaultManager VersionedVaultManager
-	versionedEventManager VersionedEventManager
+	keeper Keeper
+	mgr    Manager
 }
 
 // NewTssHandler create a new handler to process MsgTssPool
-func NewTssHandler(keeper Keeper, versionedVaultManager VersionedVaultManager, versionedEventManager VersionedEventManager) TssHandler {
+func NewTssHandler(keeper Keeper, mgr Manager) TssHandler {
 	return TssHandler{
-		keeper:                keeper,
-		versionedVaultManager: versionedVaultManager,
-		versionedEventManager: versionedEventManager,
+		keeper: keeper,
+		mgr:    mgr,
 	}
 }
 
@@ -94,7 +92,7 @@ func (h TssHandler) handleV1(ctx cosmos.Context, msg MsgTssPool, version semver.
 		voter.PoolPubKey = msg.PoolPubKey
 		voter.PubKeys = msg.PubKeys
 	}
-	slasher, err := NewSlasher(h.keeper, version, h.versionedEventManager)
+	slasher, err := NewSlasher(h.keeper, version, h.mgr)
 	if err != nil {
 		ctx.Logger().Error("fail to create slasher", "error", err)
 		return cosmos.ErrInternal("fail to create slasher").Result()
@@ -134,12 +132,7 @@ func (h TssHandler) handleV1(ctx cosmos.Context, msg MsgTssPool, version semver.
 				ctx.Logger().Error("fail to save vault", "error", err)
 				return cosmos.ErrInternal("fail to save vault").Result()
 			}
-			vaultMgr, err := h.versionedVaultManager.GetVaultManager(ctx, h.keeper, version)
-			if err != nil {
-				ctx.Logger().Error("fail to get a valid vault manager", "error", err)
-				return cosmos.ErrInternal(err.Error()).Result()
-			}
-			if err := vaultMgr.RotateVault(ctx, vault); err != nil {
+			if err := h.mgr.VaultMgr().RotateVault(ctx, vault); err != nil {
 				return cosmos.ErrInternal(err.Error()).Result()
 			}
 		} else {
