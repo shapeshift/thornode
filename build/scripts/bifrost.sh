@@ -25,6 +25,11 @@ if [ $? -gt 0 ]; then
 fi
 
 if [ ! -z "$PEER" ]; then
+    # check if we have a hostname we extract the IP
+    if ! expr "$PEER" : '[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*$' >/dev/null; then
+      apk update && apk add bind-tools
+      PEER=$(host $PEER | awk '{print $4}')
+    fi
     PEER="/ip4/$PEER/tcp/5040/ipfs/$(curl http://$PEER:6040/p2pid)"
 fi
 
