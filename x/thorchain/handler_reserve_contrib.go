@@ -11,15 +11,15 @@ import (
 
 // ReserveContributorHandler is handler to process MsgReserveContributor
 type ReserveContributorHandler struct {
-	keeper                Keeper
-	versionedEventManager VersionedEventManager
+	keeper Keeper
+	mgr    Manager
 }
 
 // NewReserveContributorHandler create a new instance of ReserveContributorHandler
-func NewReserveContributorHandler(keeper Keeper, versionedEventManager VersionedEventManager) ReserveContributorHandler {
+func NewReserveContributorHandler(keeper Keeper, mgr Manager) ReserveContributorHandler {
 	return ReserveContributorHandler{
-		keeper:                keeper,
-		versionedEventManager: versionedEventManager,
+		keeper: keeper,
+		mgr:    mgr,
 	}
 }
 
@@ -90,12 +90,8 @@ func (h ReserveContributorHandler) HandleV1(ctx cosmos.Context, msg MsgReserveCo
 		ctx.Logger().Error("fail to save vault data", "error", err)
 		return err
 	}
-	eventMgr, err := h.versionedEventManager.GetEventManager(ctx, version)
-	if err != nil {
-		return errFailGetEventManager
-	}
 	reserveEvent := NewEventReserve(msg.Contributor, msg.Tx)
-	if err := eventMgr.EmitReserveEvent(ctx, h.keeper, reserveEvent); err != nil {
+	if err := h.mgr.EventMgr().EmitReserveEvent(ctx, h.keeper, reserveEvent); err != nil {
 		return fmt.Errorf("fail to emit reserve event: %w", err)
 	}
 	return nil

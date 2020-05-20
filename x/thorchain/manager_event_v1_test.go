@@ -13,7 +13,7 @@ var _ = Suite(&EventManagerTestSuite{})
 
 func (s *EventManagerTestSuite) TestEmitPoolEvent(c *C) {
 	ctx, k := setupKeeperForTest(c)
-	eventMgr := NewEventMgr()
+	eventMgr := NewEventMgrV1()
 	c.Assert(eventMgr, NotNil)
 	ctx = ctx.WithBlockHeight(1024)
 	c.Assert(eventMgr.EmitPoolEvent(ctx, k, common.BlankTxID, EventSuccess, NewEventPool(common.BNBAsset, PoolEnabled)), IsNil)
@@ -21,7 +21,7 @@ func (s *EventManagerTestSuite) TestEmitPoolEvent(c *C) {
 
 func (s *EventManagerTestSuite) TestEmitErrataEvent(c *C) {
 	ctx, k := setupKeeperForTest(c)
-	eventMgr := NewEventMgr()
+	eventMgr := NewEventMgrV1()
 	c.Assert(eventMgr, NotNil)
 	ctx = ctx.WithBlockHeight(1024)
 	errataEvent := NewEventErrata(GetRandomTxHash(), PoolMods{
@@ -38,7 +38,7 @@ func (s *EventManagerTestSuite) TestEmitErrataEvent(c *C) {
 
 func (s *EventManagerTestSuite) TestEmitGasEvent(c *C) {
 	ctx, k := setupKeeperForTest(c)
-	eventMgr := NewEventMgr()
+	eventMgr := NewEventMgrV1()
 	c.Assert(eventMgr, NotNil)
 	ctx = ctx.WithBlockHeight(1024)
 	gasEvent := NewEventGas()

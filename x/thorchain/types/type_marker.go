@@ -18,9 +18,11 @@ func NewTxMarker(height int64, memo string) TxMarker {
 
 func (m TxMarker) IsEmpty() bool {
 	if m.Height == 0 {
+		fmt.Println("height is empty")
 		return true
 	}
 	if len(m.Memo) == 0 {
+		fmt.Println("memo is empty")
 		return true
 	}
 	return false

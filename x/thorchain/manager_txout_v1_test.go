@@ -5,7 +5,6 @@ import (
 
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
-	"gitlab.com/thorchain/thornode/constants"
 )
 
 type TxOutStoreSuite struct{}
@@ -16,7 +15,7 @@ func (s TxOutStoreSuite) TestAddGasFees(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	tx := GetRandomObservedTx()
 
-	gasMgr := NewGasMgr()
+	gasMgr := NewGasMgrV1()
 	err := AddGasFees(ctx, k, tx, gasMgr)
 	c.Assert(err, IsNil)
 	c.Assert(gasMgr.gas, HasLen, 1)
@@ -78,10 +77,8 @@ func (s TxOutStoreSuite) TestAddOutTxItem(c *C) {
 		InHash:    inTxID,
 		Coin:      common.NewCoin(common.BNBAsset, cosmos.NewUint(20*common.One)),
 	}
-	version := constants.SWVersion
-	txOutStore, err := w.versionedTxOutStore.GetTxOutStore(w.ctx, w.keeper, version)
-	c.Assert(err, IsNil)
-	txOutStore.TryAddTxOutItem(w.ctx, item)
+	txOutStore := w.mgr.TxOutStore()
+	txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item)
 	msgs, err := txOutStore.GetOutboundItems(w.ctx)
 	c.Assert(err, IsNil)
 	c.Assert(msgs, HasLen, 1)
@@ -96,7 +93,7 @@ func (s TxOutStoreSuite) TestAddOutTxItem(c *C) {
 		InHash:    inTxID,
 		Coin:      common.NewCoin(common.BNBAsset, cosmos.NewUint(20*common.One)),
 	}
-	success, err := txOutStore.TryAddTxOutItem(w.ctx, item)
+	success, err := txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item)
 	c.Assert(success, Equals, true)
 	c.Assert(err, IsNil)
 	msgs, err = txOutStore.GetOutboundItems(w.ctx)
@@ -110,7 +107,7 @@ func (s TxOutStoreSuite) TestAddOutTxItem(c *C) {
 		InHash:    inTxID,
 		Coin:      common.NewCoin(common.BNBAsset, cosmos.NewUint(1000*common.One)),
 	}
-	success, err = txOutStore.TryAddTxOutItem(w.ctx, item)
+	success, err = txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item)
 	c.Assert(err, IsNil)
 	c.Assert(success, Equals, true)
 	msgs, err = txOutStore.GetOutboundItems(w.ctx)
@@ -134,10 +131,8 @@ func (s TxOutStoreSuite) TestAddOutTxItemWithoutBFT(c *C) {
 		InHash:    inTxID,
 		Coin:      common.NewCoin(common.BNBAsset, cosmos.NewUint(20*common.One)),
 	}
-	version := constants.SWVersion
-	txOutStore, err := w.versionedTxOutStore.GetTxOutStore(w.ctx, w.keeper, version)
-	c.Assert(err, IsNil)
-	success, err := txOutStore.TryAddTxOutItem(w.ctx, item)
+	txOutStore := w.mgr.TxOutStore()
+	success, err := txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item)
 	c.Assert(err, IsNil)
 	c.Assert(success, Equals, true)
 	msgs, err := txOutStore.GetOutboundItems(w.ctx)

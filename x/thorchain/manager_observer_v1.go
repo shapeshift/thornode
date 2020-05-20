@@ -7,31 +7,24 @@ import (
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
-type ObserverManager interface {
-	BeginBlock()
-	EndBlock(ctx cosmos.Context, keeper Keeper)
-	AppendObserver(chain common.Chain, addrs []cosmos.AccAddress)
-	List() []cosmos.AccAddress
-}
-
 // ObserverManangerImp implement a ObserverManager which will store the
 // observers in memory before written to chain
-type ObserverMgr struct {
+type ObserverMgrV1 struct {
 	chains map[common.Chain][]cosmos.AccAddress
 }
 
-// NewObserverMgr create a new instance of ObserverManager
-func NewObserverMgr() *ObserverMgr {
-	return &ObserverMgr{
+// NewObserverMgrV1 create a new instance of ObserverManager
+func NewObserverMgrV1() *ObserverMgrV1 {
+	return &ObserverMgrV1{
 		chains: make(map[common.Chain][]cosmos.AccAddress, 0),
 	}
 }
 
-func (om *ObserverMgr) BeginBlock() {
+func (om *ObserverMgrV1) BeginBlock() {
 	om.chains = make(map[common.Chain][]cosmos.AccAddress, 0)
 }
 
-func (om *ObserverMgr) AppendObserver(chain common.Chain, addrs []cosmos.AccAddress) {
+func (om *ObserverMgrV1) AppendObserver(chain common.Chain, addrs []cosmos.AccAddress) {
 	// combine addresses
 	all := append(om.chains[chain], addrs...)
 
@@ -49,7 +42,7 @@ func (om *ObserverMgr) AppendObserver(chain common.Chain, addrs []cosmos.AccAddr
 }
 
 // List - gets a list of addresses that have been observed in all chains
-func (om *ObserverMgr) List() []cosmos.AccAddress {
+func (om *ObserverMgrV1) List() []cosmos.AccAddress {
 	result := make([]cosmos.AccAddress, 0)
 	tracker := make(map[string]int, 0)
 	for _, addrs := range om.chains {
@@ -78,7 +71,7 @@ func (om *ObserverMgr) List() []cosmos.AccAddress {
 }
 
 // EndBlock emit the observers
-func (om *ObserverMgr) EndBlock(ctx cosmos.Context, keeper Keeper) {
+func (om *ObserverMgrV1) EndBlock(ctx cosmos.Context, keeper Keeper) {
 	if err := keeper.AddObservingAddresses(ctx, om.List()); err != nil {
 		ctx.Logger().Error("fail to append observers", "error", err)
 	}

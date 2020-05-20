@@ -12,31 +12,15 @@ import (
 
 // ObservedTxInHandler to handle MsgObservedTxIn
 type ObservedTxInHandler struct {
-	keeper                   Keeper
-	versionedTxOutStore      VersionedTxOutStore
-	validatorMgr             VersionedValidatorManager
-	versionedVaultManager    VersionedVaultManager
-	versionedGasMgr          VersionedGasManager
-	versionedObserverManager VersionedObserverManager
-	versionedEventManager    VersionedEventManager
+	keeper Keeper
+	mgr    Manager
 }
 
 // NewObservedTxInHandler create a new instance of ObservedTxInHandler
-func NewObservedTxInHandler(keeper Keeper,
-	versionedObserverManager VersionedObserverManager,
-	versionedTxOutStore VersionedTxOutStore,
-	validatorMgr VersionedValidatorManager,
-	versionedVaultManager VersionedVaultManager,
-	versionedGasMgr VersionedGasManager,
-	versionedEventManager VersionedEventManager) ObservedTxInHandler {
+func NewObservedTxInHandler(keeper Keeper, mgr Manager) ObservedTxInHandler {
 	return ObservedTxInHandler{
-		keeper:                   keeper,
-		versionedTxOutStore:      versionedTxOutStore,
-		validatorMgr:             validatorMgr,
-		versionedVaultManager:    versionedVaultManager,
-		versionedGasMgr:          versionedGasMgr,
-		versionedObserverManager: versionedObserverManager,
-		versionedEventManager:    versionedEventManager,
+		keeper: keeper,
+		mgr:    mgr,
 	}
 }
 
@@ -129,27 +113,12 @@ func (h ObservedTxInHandler) handleV1(ctx cosmos.Context, version semver.Version
 		err = wrapError(ctx, err, "fail to get list of active node accounts")
 		return cosmos.ErrInternal(err.Error()).Result()
 	}
-	txOutStore, err := h.versionedTxOutStore.GetTxOutStore(ctx, h.keeper, version)
-	if err != nil {
-		ctx.Logger().Error("fail to get txout store", "error", err)
-		return errBadVersion.Result()
-	}
-	obMgr, err := h.versionedObserverManager.GetObserverManager(ctx, version)
-	if err != nil {
-		ctx.Logger().Error("fail to get observer manager", "error", err)
-		return errBadVersion.Result()
-	}
-	eventMgr, err := h.versionedEventManager.GetEventManager(ctx, version)
-	if err != nil {
-		ctx.Logger().Error("fail to get event manager", "error", err)
-		return errFailGetEventManager.Result()
-	}
-	slasher, err := NewSlasher(h.keeper, version, h.versionedEventManager)
+	slasher, err := NewSlasher(h.keeper, version, h.mgr)
 	if err != nil {
 		ctx.Logger().Error("fail to create slasher", "error", err)
 		return cosmos.ErrInternal("fail to create slasher").Result()
 	}
-	handler := NewInternalHandler(h.keeper, h.versionedTxOutStore, h.validatorMgr, h.versionedVaultManager, h.versionedObserverManager, h.versionedGasMgr, h.versionedEventManager)
+	handler := NewInternalHandler(h.keeper, h.mgr)
 	for _, tx := range msg.Txs {
 
 		// check we are sending to a valid vault
@@ -168,7 +137,7 @@ func (h ObservedTxInHandler) handleV1(ctx cosmos.Context, version semver.Version
 			if voter.Height == ctx.BlockHeight() {
 				// we've already process the transaction, but we should still
 				// update the observing addresses
-				obMgr.AppendObserver(tx.Tx.Chain, msg.GetSigners())
+				h.mgr.ObMgr().AppendObserver(tx.Tx.Chain, msg.GetSigners())
 			}
 			continue
 		}
@@ -220,14 +189,14 @@ func (h ObservedTxInHandler) handleV1(ctx cosmos.Context, version semver.Version
 		if ok := isCurrentVaultPubKey(ctx, h.keeper, tx); !ok {
 			reason := fmt.Sprintf("vault %s is not current vault", tx.ObservedPubKey)
 			ctx.Logger().Info("refund reason", reason)
-			if err := refundTx(ctx, tx, txOutStore, h.keeper, constAccessor, CodeInvalidVault, reason, eventMgr); err != nil {
+			if err := refundTx(ctx, tx, h.mgr, h.keeper, constAccessor, CodeInvalidVault, reason); err != nil {
 				return cosmos.ErrInternal(err.Error()).Result()
 			}
 			continue
 		}
 		// chain is empty
 		if tx.Tx.Chain.IsEmpty() {
-			if err := refundTx(ctx, tx, txOutStore, h.keeper, constAccessor, CodeEmptyChain, "chain is empty", eventMgr); err != nil {
+			if err := refundTx(ctx, tx, h.mgr, h.keeper, constAccessor, CodeEmptyChain, "chain is empty"); err != nil {
 				return cosmos.ErrInternal(err.Error()).Result()
 			}
 			continue
@@ -237,7 +206,7 @@ func (h ObservedTxInHandler) handleV1(ctx cosmos.Context, version semver.Version
 		m, txErr := processOneTxIn(ctx, h.keeper, txIn, msg.Signer)
 		if txErr != nil {
 			ctx.Logger().Error("fail to process inbound tx", "error", txErr.Error(), "tx hash", tx.Tx.ID.String())
-			if newErr := refundTx(ctx, tx, txOutStore, h.keeper, constAccessor, txErr.Code(), fmt.Sprint(txErr.Data()), eventMgr); nil != newErr {
+			if newErr := refundTx(ctx, tx, h.mgr, h.keeper, constAccessor, txErr.Code(), fmt.Sprint(txErr.Data())); nil != newErr {
 				return cosmos.ErrInternal(newErr.Error()).Result()
 			}
 			continue
@@ -254,7 +223,7 @@ func (h ObservedTxInHandler) handleV1(ctx cosmos.Context, version semver.Version
 
 		// add addresses to observing addresses. This is used to detect
 		// active/inactive observing node accounts
-		obMgr.AppendObserver(tx.Tx.Chain, txIn.Signers)
+		h.mgr.ObMgr().AppendObserver(tx.Tx.Chain, txIn.Signers)
 
 		// check if we've halted trading
 		_, isSwap := m.(MsgSwap)
@@ -263,7 +232,7 @@ func (h ObservedTxInHandler) handleV1(ctx cosmos.Context, version semver.Version
 		if isSwap || isStake {
 			if (haltTrading > 0 && haltTrading < ctx.BlockHeight() && err == nil) || h.keeper.RagnarokInProgress(ctx) {
 				ctx.Logger().Info("trading is halted!!")
-				if newErr := refundTx(ctx, tx, txOutStore, h.keeper, constAccessor, cosmos.CodeUnauthorized, "trading halted", eventMgr); nil != newErr {
+				if newErr := refundTx(ctx, tx, h.mgr, h.keeper, constAccessor, cosmos.CodeUnauthorized, "trading halted"); nil != newErr {
 					return cosmos.ErrInternal(newErr.Error()).Result()
 				}
 				continue
@@ -287,7 +256,7 @@ func (h ObservedTxInHandler) handleV1(ctx cosmos.Context, version semver.Version
 			if err != nil {
 				ctx.Logger().Error(err.Error())
 			}
-			if err := refundTx(ctx, tx, txOutStore, h.keeper, constAccessor, result.Code, refundMsg, eventMgr); err != nil {
+			if err := refundTx(ctx, tx, h.mgr, h.keeper, constAccessor, result.Code, refundMsg); err != nil {
 				return cosmos.ErrInternal(err.Error()).Result()
 			}
 		}

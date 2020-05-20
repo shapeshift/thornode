@@ -12,17 +12,15 @@ import (
 
 // UnstakeHandler to process unstake requests
 type UnstakeHandler struct {
-	keeper                Keeper
-	txOutStore            VersionedTxOutStore
-	versionedEventManager VersionedEventManager
+	keeper Keeper
+	mgr    Manager
 }
 
 // NewUnstakeHandler create a new instance of UnstakeHandler to process unstake request
-func NewUnstakeHandler(keeper Keeper, txOutStore VersionedTxOutStore, versionedEventManager VersionedEventManager) UnstakeHandler {
+func NewUnstakeHandler(keeper Keeper, mgr Manager) UnstakeHandler {
 	return UnstakeHandler{
-		keeper:                keeper,
-		txOutStore:            txOutStore,
-		versionedEventManager: versionedEventManager,
+		keeper: keeper,
+		mgr:    mgr,
 	}
 }
 
@@ -84,12 +82,7 @@ func (h UnstakeHandler) handle(ctx cosmos.Context, msg MsgSetUnStake, version se
 		ctx.Logger().Error("fail to get staker", "error", err)
 		return nil, cosmos.NewError(DefaultCodespace, CodeFailGetStaker, "fail to get staker")
 	}
-	eventManager, err := h.versionedEventManager.GetEventManager(ctx, version)
-	if err != nil {
-		ctx.Logger().Error("fail to get event manager", "error", err)
-		return nil, errFailGetEventManager
-	}
-	runeAmt, assetAmount, units, gasAsset, err := unstake(ctx, version, h.keeper, msg, eventManager)
+	runeAmt, assetAmount, units, gasAsset, err := unstake(ctx, version, h.keeper, msg, h.mgr.EventMgr())
 	if err != nil {
 		return nil, cosmos.ErrInternal(fmt.Errorf("fail to process UnStake request: %w", err).Error())
 	}
@@ -111,14 +104,9 @@ func (h UnstakeHandler) handle(ctx cosmos.Context, msg MsgSetUnStake, version se
 		cosmos.ZeroDec(), // TODO: What is Asymmetry, how to calculate it?
 		msg.Tx,
 	)
-	if err := eventManager.EmitUnstakeEvent(ctx, h.keeper, unstakeEvt); err != nil {
+	if err := h.mgr.EventMgr().EmitUnstakeEvent(ctx, h.keeper, unstakeEvt); err != nil {
 		ctx.Logger().Error("fail to emit unstake event", "error", err)
 		return nil, cosmos.NewError(DefaultCodespace, CodeFailSaveEvent, "fail to save unstake event")
-	}
-	txOutStore, err := h.txOutStore.GetTxOutStore(ctx, h.keeper, version)
-	if err != nil {
-		ctx.Logger().Error("fail to get txout store", "error", err)
-		return nil, errBadVersion
 	}
 
 	memo := ""
@@ -145,7 +133,7 @@ func (h UnstakeHandler) handle(ctx cosmos.Context, msg MsgSetUnStake, version se
 		}
 	}
 
-	ok, err := txOutStore.TryAddTxOutItem(ctx, toi)
+	ok, err := h.mgr.TxOutStore().TryAddTxOutItem(ctx, h.mgr, toi)
 	if err != nil {
 		ctx.Logger().Error("fail to prepare outbound tx", "error", err)
 		return nil, cosmos.NewError(DefaultCodespace, CodeFailAddOutboundTx, "fail to prepare outbound tx")
@@ -170,7 +158,7 @@ func (h UnstakeHandler) handle(ctx cosmos.Context, msg MsgSetUnStake, version se
 			}
 		}
 	}
-	ok, err = txOutStore.TryAddTxOutItem(ctx, toi)
+	ok, err = h.mgr.TxOutStore().TryAddTxOutItem(ctx, h.mgr, toi)
 	if err != nil {
 		ctx.Logger().Error("fail to prepare outbound tx", "error", err)
 		return nil, cosmos.NewError(DefaultCodespace, CodeFailAddOutboundTx, "fail to prepare outbound tx")

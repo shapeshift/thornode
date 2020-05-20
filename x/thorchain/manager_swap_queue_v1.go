@@ -1,7 +1,6 @@
 package thorchain
 
 import (
-	"fmt"
 	"sort"
 
 	"github.com/blang/semver"
@@ -13,9 +12,7 @@ import (
 
 // SwapQv1 is going to manage the swaps queue
 type SwapQv1 struct {
-	k                     Keeper
-	versionedTxOutStore   VersionedTxOutStore
-	versionedEventManager VersionedEventManager
+	k Keeper
 }
 
 type swapItem struct {
@@ -26,11 +23,9 @@ type swapItem struct {
 type swapItems []swapItem
 
 // NewSwapQv1 create a new vault manager
-func NewSwapQv1(k Keeper, versionedTxOutStore VersionedTxOutStore, versionedEventManager VersionedEventManager) *SwapQv1 {
+func NewSwapQv1(k Keeper) *SwapQv1 {
 	return &SwapQv1{
-		k:                     k,
-		versionedTxOutStore:   versionedTxOutStore,
-		versionedEventManager: versionedEventManager,
+		k: k,
 	}
 }
 
@@ -51,19 +46,9 @@ func (vm *SwapQv1) FetchQueue(ctx cosmos.Context) ([]MsgSwap, error) {
 }
 
 // EndBlock move funds from retiring asgard vaults
-func (vm *SwapQv1) EndBlock(ctx cosmos.Context, version semver.Version, constAccessor constants.ConstantValues) error {
-	handler := NewSwapHandler(vm.k, vm.versionedTxOutStore, vm.versionedEventManager)
+func (vm *SwapQv1) EndBlock(ctx cosmos.Context, mgr Manager, version semver.Version, constAccessor constants.ConstantValues) error {
+	handler := NewSwapHandler(vm.k, mgr)
 
-	txOutStore, err := vm.versionedTxOutStore.GetTxOutStore(ctx, vm.k, version)
-	if err != nil {
-		ctx.Logger().Error("fail to get txout store", "error", err)
-		return err
-	}
-	eventMgr, err := vm.versionedEventManager.GetEventManager(ctx, version)
-	if err != nil {
-		ctx.Logger().Error("fail to get event manager", "error", err)
-		return fmt.Errorf("fail to get event manager: %w", err)
-	}
 	msgs, err := vm.FetchQueue(ctx)
 	if err != nil {
 		ctx.Logger().Error("fail to fetch swap queue from store", "error", err)
@@ -88,7 +73,7 @@ func (vm *SwapQv1) EndBlock(ctx cosmos.Context, version semver.Version, constAcc
 			if err != nil {
 				ctx.Logger().Error("fail to get refund msg", "err", err.Error())
 			}
-			if newErr := refundTx(ctx, ObservedTx{Tx: pick.msg.Tx}, txOutStore, vm.k, constAccessor, result.Code, refundMsg, eventMgr); nil != newErr {
+			if newErr := refundTx(ctx, ObservedTx{Tx: pick.msg.Tx}, mgr, vm.k, constAccessor, result.Code, refundMsg); nil != newErr {
 				ctx.Logger().Error("fail to refund swap", "error", err)
 			}
 		}

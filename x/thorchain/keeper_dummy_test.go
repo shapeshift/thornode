@@ -105,7 +105,11 @@ func (k KVStoreDummy) ListActiveNodeAccounts(_ cosmos.Context) (NodeAccounts, er
 }
 
 func (k KVStoreDummy) GetLowestActiveVersion(_ cosmos.Context) semver.Version {
-	return semver.Version{}
+	return semver.Version{
+		Major: 0,
+		Minor: 1,
+		Patch: 0,
+	}
 }
 func (k KVStoreDummy) GetMinJoinVersion(_ cosmos.Context) semver.Version { return semver.Version{} }
 func (k KVStoreDummy) GetNodeAccount(_ cosmos.Context, _ cosmos.AccAddress) (NodeAccount, error) {

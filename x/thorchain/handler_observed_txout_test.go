@@ -30,19 +30,13 @@ var _ = Suite(&HandlerObservedTxOutSuite{})
 func (s *HandlerObservedTxOutSuite) TestValidate(c *C) {
 	var err error
 	ctx, _ := setupKeeperForTest(c)
-	w := getHandlerTestWrapper(c, 1, true, false)
 	activeNodeAccount := GetRandomNodeAccount(NodeActive)
 
 	keeper := &TestObservedTxOutValidateKeeper{
 		activeNodeAccount: activeNodeAccount,
 	}
 
-	versionedVaultMgrDummy := NewVersionedVaultMgrDummy(w.versionedTxOutStore)
-	versionedGasMgr := NewVersionedGasMgr()
-	versionedObMgr := NewDummyVersionedObserverMgr()
-	versionedEventManagerDummy := NewDummyVersionedEventMgr()
-
-	handler := NewObservedTxOutHandler(keeper, versionedObMgr, w.versionedTxOutStore, w.validatorMgr, versionedVaultMgrDummy, versionedGasMgr, versionedEventManagerDummy)
+	handler := NewObservedTxOutHandler(keeper, NewDummyMgr())
 
 	// happy path
 	ver := constants.SWVersion
@@ -191,7 +185,6 @@ func (k *TestObservedTxOutHandleKeeper) SetGas(ctx cosmos.Context, asset common.
 func (s *HandlerObservedTxOutSuite) TestHandle(c *C) {
 	var err error
 	ctx, _ := setupKeeperForTest(c)
-	w := getHandlerTestWrapper(c, 1, true, false)
 
 	ver := constants.SWVersion
 	tx := GetRandomTx()
@@ -200,8 +193,6 @@ func (s *HandlerObservedTxOutSuite) TestHandle(c *C) {
 	txs := ObservedTxs{obTx}
 	pk := GetRandomPubKey()
 	c.Assert(err, IsNil)
-
-	versionedTxOutStoreDummy := NewVersionedTxOutStoreDummy()
 
 	ygg := NewVault(ctx.BlockHeight(), ActiveVault, YggdrasilVault, pk, common.Chains{common.BNBChain})
 	ygg.Coins = common.Coins{
@@ -219,22 +210,19 @@ func (s *HandlerObservedTxOutSuite) TestHandle(c *C) {
 		yggExists: true,
 		ygg:       ygg,
 	}
-	txOutStore, err := versionedTxOutStoreDummy.GetTxOutStore(ctx, keeper, ver)
+	txOutStore := NewTxStoreDummy()
 	keeper.txOutStore = txOutStore
-	versionedVaultMgrDummy := NewVersionedVaultMgrDummy(versionedTxOutStoreDummy)
-	versionedGasMgr := NewVersionedGasMgr()
-	versionedObMgr := NewVersionedObserverMgr()
-	versionedEventManagerDummy := NewDummyVersionedEventMgr()
 
-	handler := NewObservedTxOutHandler(keeper, versionedObMgr, versionedTxOutStoreDummy, w.validatorMgr, versionedVaultMgrDummy, versionedGasMgr, versionedEventManagerDummy)
+	mgr := NewManagers(keeper)
+	c.Assert(mgr.BeginBlock(ctx), IsNil)
+	handler := NewObservedTxOutHandler(keeper, mgr)
 
 	c.Assert(err, IsNil)
 	msg := NewMsgObservedTxOut(txs, keeper.nas[0].NodeAddress)
 	result := handler.handle(ctx, msg, ver)
 	c.Assert(result.IsOK(), Equals, true)
-	obMgr, err := versionedObMgr.GetObserverManager(ctx, ver)
 	c.Assert(err, IsNil)
-	obMgr.EndBlock(ctx, keeper)
+	mgr.ObMgr().EndBlock(ctx, keeper)
 
 	items, err := txOutStore.GetOutboundItems(ctx)
 	c.Assert(err, IsNil)
@@ -247,7 +235,6 @@ func (s *HandlerObservedTxOutSuite) TestHandle(c *C) {
 func (s *HandlerObservedTxOutSuite) TestGasUpdate(c *C) {
 	var err error
 	ctx, _ := setupKeeperForTest(c)
-	w := getHandlerTestWrapper(c, 1, true, false)
 
 	ver := constants.SWVersion
 	tx := GetRandomTx()
@@ -263,8 +250,6 @@ func (s *HandlerObservedTxOutSuite) TestGasUpdate(c *C) {
 	pk := GetRandomPubKey()
 	c.Assert(err, IsNil)
 
-	versionedTxOutStoreDummy := NewVersionedTxOutStoreDummy()
-
 	ygg := NewVault(ctx.BlockHeight(), ActiveVault, YggdrasilVault, pk, common.Chains{common.BNBChain})
 	ygg.Coins = common.Coins{
 		common.NewCoin(common.RuneAsset(), cosmos.NewUint(500)),
@@ -281,14 +266,10 @@ func (s *HandlerObservedTxOutSuite) TestGasUpdate(c *C) {
 		yggExists: true,
 		ygg:       ygg,
 	}
-	txOutStore, err := versionedTxOutStoreDummy.GetTxOutStore(ctx, keeper, ver)
+	txOutStore := NewTxStoreDummy()
 	keeper.txOutStore = txOutStore
-	versionedVaultMgrDummy := NewVersionedVaultMgrDummy(versionedTxOutStoreDummy)
-	versionedGasMgr := NewVersionedGasMgr()
-	versionedObMgr := NewDummyVersionedObserverMgr()
-	versionedEventManagerDummy := NewDummyVersionedEventMgr()
 
-	handler := NewObservedTxOutHandler(keeper, versionedObMgr, versionedTxOutStoreDummy, w.validatorMgr, versionedVaultMgrDummy, versionedGasMgr, versionedEventManagerDummy)
+	handler := NewObservedTxOutHandler(keeper, NewDummyMgr())
 
 	c.Assert(err, IsNil)
 	msg := NewMsgObservedTxOut(txs, keeper.nas[0].NodeAddress)
@@ -304,7 +285,6 @@ func (s *HandlerObservedTxOutSuite) TestGasUpdate(c *C) {
 func (s *HandlerObservedTxOutSuite) TestHandleStolenFunds(c *C) {
 	var err error
 	ctx, _ := setupKeeperForTest(c)
-	w := getHandlerTestWrapper(c, 1, true, false)
 
 	ver := constants.SWVersion
 	tx := GetRandomTx()
@@ -322,8 +302,6 @@ func (s *HandlerObservedTxOutSuite) TestHandleStolenFunds(c *C) {
 	na.Bond = cosmos.NewUint(1000000 * common.One)
 	na.PubKeySet.Secp256k1 = pk
 
-	versionedTxOutStoreDummy := NewVersionedTxOutStoreDummy()
-
 	ygg := NewVault(ctx.BlockHeight(), ActiveVault, YggdrasilVault, pk, common.Chains{common.BNBChain})
 	ygg.Coins = common.Coins{
 		common.NewCoin(common.RuneAsset(), cosmos.NewUint(500*common.One)),
@@ -340,14 +318,10 @@ func (s *HandlerObservedTxOutSuite) TestHandleStolenFunds(c *C) {
 		yggExists: true,
 		ygg:       ygg,
 	}
-	txOutStore, err := versionedTxOutStoreDummy.GetTxOutStore(ctx, keeper, ver)
+	txOutStore := NewTxStoreDummy()
 	keeper.txOutStore = txOutStore
-	versionedVaultMgrDummy := NewVersionedVaultMgrDummy(versionedTxOutStoreDummy)
-	versionedGasMgr := NewVersionedGasMgr()
-	versionedObMgr := NewDummyVersionedObserverMgr()
-	versionedEventManagerDummy := NewDummyVersionedEventMgr()
 
-	handler := NewObservedTxOutHandler(keeper, versionedObMgr, versionedTxOutStoreDummy, w.validatorMgr, versionedVaultMgrDummy, versionedGasMgr, versionedEventManagerDummy)
+	handler := NewObservedTxOutHandler(keeper, NewDummyMgr())
 
 	c.Assert(err, IsNil)
 	msg := NewMsgObservedTxOut(txs, keeper.nas[0].NodeAddress)
