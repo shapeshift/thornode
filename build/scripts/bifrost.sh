@@ -1,8 +1,9 @@
 #!/bin/sh
 
 CHAIN_ID="${CHAIN_ID:=thorchain}"
-BINANCE_HOST="${BINANCE_HOST:=https://data-seed-pre-0-s3.binance.org}"
-BTC_HOST="${BTC_HOST:=127.0.0.1:18443}"
+BINANCE_HOST="${BINANCE_HOST:=http://binance-mock:26660}"
+BINANCE_START_BLOCK_HEIGHT="${BINANCE_START_BLOCK_HEIGHT:=0}"
+BTC_HOST="${BTC_HOST:=bitcoin-regtest:18443}"
 ETH_HOST="${ETH_HOST:=http://ethereum-localnet:8545}"
 DB_PATH="${DB_PATH:=/var/data}"
 CHAIN_API="${CHAIN_API:=127.0.0.1:1317}"
@@ -24,6 +25,10 @@ if [ $? -gt 0 ]; then
 fi
 
 if [ ! -z "$PEER" ]; then
+    # check if we have a hostname we extract the IP
+    if ! expr "$PEER" : '[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*$' >/dev/null; then
+      PEER=$(host $PEER | awk '{print $4}')
+    fi
     PEER="/ip4/$PEER/tcp/5040/ipfs/$(curl http://$PEER:6040/p2pid)"
 fi
 
@@ -59,7 +64,7 @@ if [ ! -f /etc/bifrost/config.json ]; then
             \"http_request_read_timeout\": \"30s\",
             \"http_request_write_timeout\": \"30s\",
             \"max_http_request_retry\": 10,
-            \"start_block_height\": 0,
+            \"start_block_height\": $BINANCE_START_BLOCK_HEIGHT,
             \"db_path\": \"$OBSERVER_PATH\"
           }
         },
