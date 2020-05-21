@@ -24,35 +24,27 @@ func NewAddHandler(keeper Keeper, mgr Manager) AddHandler {
 }
 
 // Run is the main entry point to execute Add logic
-func (h AddHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, _ constants.ConstantValues) cosmos.Result {
+func (h AddHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, _ constants.ConstantValues) (*cosmos.Result, error) {
 	msg, ok := m.(MsgAdd)
 	if !ok {
-		return errInvalidMessage.Result()
+		return nil, errInvalidMessage
 	}
 	ctx.Logger().Info(fmt.Sprintf("receive msg add %s", msg.Tx.ID))
 	if err := h.validate(ctx, msg, version); err != nil {
 		ctx.Logger().Error("msg add failed validation", "error", err)
-		return err.Result()
+		return nil, err
 	}
-	if err := h.handle(ctx, msg, version); err != nil {
-		ctx.Logger().Error("fail to process msg add", "error", err)
-		return err.Result()
-	}
-
-	return cosmos.Result{
-		Code:      cosmos.CodeOK,
-		Codespace: DefaultCodespace,
-	}
+	return h.handle(ctx, msg, version)
 }
 
-func (h AddHandler) validate(ctx cosmos.Context, msg MsgAdd, version semver.Version) cosmos.Error {
+func (h AddHandler) validate(ctx cosmos.Context, msg MsgAdd, version semver.Version) error {
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, msg)
 	}
 	return errBadVersion
 }
 
-func (h AddHandler) validateV1(ctx cosmos.Context, msg MsgAdd) cosmos.Error {
+func (h AddHandler) validateV1(ctx cosmos.Context, msg MsgAdd) error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
@@ -60,13 +52,13 @@ func (h AddHandler) validateV1(ctx cosmos.Context, msg MsgAdd) cosmos.Error {
 }
 
 // handle  process MsgAdd
-func (h AddHandler) handle(ctx cosmos.Context, msg MsgAdd, version semver.Version) cosmos.Error {
+func (h AddHandler) handle(ctx cosmos.Context, msg MsgAdd, version semver.Version) (*cosmos.Result, error) {
 	pool, err := h.keeper.GetPool(ctx, msg.Asset)
 	if err != nil {
-		return cosmos.ErrInternal(fmt.Errorf("fail to get pool for (%s): %w", msg.Asset, err).Error())
+		return nil, ErrInternal(err, fmt.Sprintf("fail to get pool for (%s)", msg.Asset))
 	}
 	if pool.Asset.IsEmpty() {
-		return cosmos.ErrUnknownRequest(fmt.Sprintf("pool %s not exist", msg.Asset.String()))
+		return nil, cosmos.ErrUnknownRequest(fmt.Sprintf("pool %s not exist", msg.Asset.String()))
 	}
 	if msg.AssetAmount.GT(cosmos.ZeroUint()) {
 		pool.BalanceAsset = pool.BalanceAsset.Add(msg.AssetAmount)
@@ -76,12 +68,12 @@ func (h AddHandler) handle(ctx cosmos.Context, msg MsgAdd, version semver.Versio
 	}
 
 	if err := h.keeper.SetPool(ctx, pool); err != nil {
-		return cosmos.ErrInternal(fmt.Sprintf("fail to set pool(%s): %s", pool, err))
+		return nil, ErrInternal(err, fmt.Sprintf("fail to set pool(%s)", pool))
 	}
 	// emit event
 	addEvt := NewEventAdd(pool.Asset, msg.Tx)
 	if err := h.mgr.EventMgr().EmitAddEvent(ctx, h.keeper, addEvt); err != nil {
-		return cosmos.NewError(DefaultCodespace, CodeFailSaveEvent, "fail to save add events")
+		return nil, cosmos.Wrapf(errFailSaveEvent, "fail to save add events: %w", err)
 	}
-	return nil
+	return &cosmos.Result{}, nil
 }

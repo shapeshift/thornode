@@ -24,35 +24,35 @@ func NewRefundHandler(keeper Keeper, mgr Manager) RefundHandler {
 	}
 }
 
-func (h RefundHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) cosmos.Result {
+func (h RefundHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	msg, ok := m.(MsgRefundTx)
 	if !ok {
-		return errInvalidMessage.Result()
+		return nil, errInvalidMessage
 	}
 	ctx.Logger().Info("receive MsgRefund",
 		"tx ID", msg.InTxID.String())
 	if err := h.validate(ctx, msg, version, constAccessor); err != nil {
 		ctx.Logger().Error("msg refund fail validation", "error", err)
-		return err.Result()
+		return nil, err
 	}
 
 	return h.handle(ctx, msg, version)
 }
 
-func (h RefundHandler) validate(ctx cosmos.Context, msg MsgRefundTx, version semver.Version, constAccessor constants.ConstantValues) cosmos.Error {
+func (h RefundHandler) validate(ctx cosmos.Context, msg MsgRefundTx, version semver.Version, constAccessor constants.ConstantValues) error {
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, version, msg, constAccessor)
 	}
 	return errBadVersion
 }
 
-func (h RefundHandler) validateV1(ctx cosmos.Context, version semver.Version, msg MsgRefundTx, constAccessor constants.ConstantValues) cosmos.Error {
+func (h RefundHandler) validateV1(ctx cosmos.Context, version semver.Version, msg MsgRefundTx, constAccessor constants.ConstantValues) error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (h RefundHandler) handle(ctx cosmos.Context, msg MsgRefundTx, version semver.Version) cosmos.Result {
+func (h RefundHandler) handle(ctx cosmos.Context, msg MsgRefundTx, version semver.Version) (*cosmos.Result, error) {
 	return h.ch.handle(ctx, version, msg.Tx, msg.InTxID, RefundStatus)
 }

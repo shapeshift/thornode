@@ -7,9 +7,10 @@ import (
 	"sort"
 	"strings"
 
+	"gitlab.com/thorchain/tss/go-tss/blame"
+
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
-	"gitlab.com/thorchain/tss/go-tss/blame"
 )
 
 // MsgTssKeysignFail means TSS keysign failed
@@ -63,7 +64,7 @@ func (msg MsgTssKeysignFail) Route() string { return RouterKey }
 func (msg MsgTssKeysignFail) Type() string { return "set_tss_keysign_fail" }
 
 // ValidateBasic runs stateless checks on the message
-func (msg MsgTssKeysignFail) ValidateBasic() cosmos.Error {
+func (msg MsgTssKeysignFail) ValidateBasic() error {
 	if msg.Signer.Empty() {
 		return cosmos.ErrInvalidAddress(msg.Signer.String())
 	}

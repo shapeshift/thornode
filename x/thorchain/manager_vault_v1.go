@@ -454,9 +454,9 @@ func (vm *VaultMgrV1) ragnarokChain(ctx cosmos.Context, chain common.Chain, nth 
 				na.NodeAddress,
 			)
 
-			result := unstakeHandler.Run(ctx, unstakeMsg, version, constAccessor)
-			if !result.IsOK() {
-				ctx.Logger().Error("fail to unstake", "staker", staker.RuneAddress, "error", result.Log)
+			_, err := unstakeHandler.Run(ctx, unstakeMsg, version, constAccessor)
+			if err != nil {
+				ctx.Logger().Error("fail to unstake", "staker", staker.RuneAddress, "error", err)
 			}
 		}
 	}

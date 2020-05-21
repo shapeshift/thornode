@@ -294,14 +294,14 @@ func (e EventRewards) Events() (cosmos.Events, error) {
 
 // EventRefund represent a refund activity , and contains the reason why it get refund
 type EventRefund struct {
-	Code   cosmos.CodeType `json:"code"`
-	Reason string          `json:"reason"`
-	InTx   common.Tx       `json:"-"`
-	Fee    common.Fee      `json:"-"`
+	Code   uint32     `json:"code"`
+	Reason string     `json:"reason"`
+	InTx   common.Tx  `json:"-"`
+	Fee    common.Fee `json:"-"`
 }
 
 // NewEventRefund create a new EventRefund
-func NewEventRefund(code cosmos.CodeType, reason string, inTx common.Tx, fee common.Fee) EventRefund {
+func NewEventRefund(code uint32, reason string, inTx common.Tx, fee common.Fee) EventRefund {
 	return EventRefund{
 		Code:   code,
 		Reason: reason,

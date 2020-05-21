@@ -23,46 +23,42 @@ func NewReserveContributorHandler(keeper Keeper, mgr Manager) ReserveContributor
 	}
 }
 
-func (h ReserveContributorHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, _ constants.ConstantValues) cosmos.Result {
+func (h ReserveContributorHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, _ constants.ConstantValues) (*cosmos.Result, error) {
 	msg, ok := m.(MsgReserveContributor)
 	if !ok {
-		return errInvalidMessage.Result()
+		return nil, errInvalidMessage
 	}
 	if err := h.Validate(ctx, msg, version); err != nil {
 		ctx.Logger().Error("MsgReserveContributor failed validation", "error", err)
-		return err.Result()
+		return nil, err
 	}
 	return h.Handle(ctx, msg, version)
 }
 
-func (h ReserveContributorHandler) Validate(ctx cosmos.Context, msg MsgReserveContributor, version semver.Version) cosmos.Error {
+func (h ReserveContributorHandler) Validate(ctx cosmos.Context, msg MsgReserveContributor, version semver.Version) error {
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.ValidateV1(ctx, msg)
 	}
 	return errBadVersion
 }
 
-func (h ReserveContributorHandler) ValidateV1(ctx cosmos.Context, msg MsgReserveContributor) cosmos.Error {
+func (h ReserveContributorHandler) ValidateV1(ctx cosmos.Context, msg MsgReserveContributor) error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (h ReserveContributorHandler) Handle(ctx cosmos.Context, msg MsgReserveContributor, version semver.Version) cosmos.Result {
+func (h ReserveContributorHandler) Handle(ctx cosmos.Context, msg MsgReserveContributor, version semver.Version) (*cosmos.Result, error) {
 	ctx.Logger().Info("handleMsgReserveContributor request")
 	if version.GTE(semver.MustParse("0.1.0")) {
 		if err := h.HandleV1(ctx, msg, version); err != nil {
-			ctx.Logger().Error("fail to process MsgReserveContributor", "error", err)
-			return cosmos.ErrInternal("fail to process reserve contributor").Result()
+			return nil, ErrInternal(err, "fail to process reserve contributor")
 		}
-		return cosmos.Result{
-			Code:      cosmos.CodeOK,
-			Codespace: DefaultCodespace,
-		}
+		return &cosmos.Result{}, nil
 	}
 	ctx.Logger().Error(errInvalidVersion.Error())
-	return errBadVersion.Result()
+	return nil, errBadVersion
 }
 
 // HandleV1  process MsgReserveContributor

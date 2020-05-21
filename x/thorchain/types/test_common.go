@@ -15,7 +15,7 @@ import (
 // GetRandomNodeAccount create a random generated node account , used for test purpose
 func GetRandomNodeAccount(status NodeStatus) NodeAccount {
 	v, _ := tmtypes.RandValidator(true, 100)
-	k, _ := cosmos.Bech32ifyConsPub(v.PubKey)
+	k, _ := cosmos.Bech32ifyPubKey(cosmos.Bech32PubKeyTypeConsPub, v.PubKey)
 	pubKeys := common.PubKeySet{
 		Secp256k1: GetRandomPubKey(),
 		Ed25519:   GetRandomPubKey(),
@@ -62,7 +62,7 @@ func GetRandomBech32Addr() cosmos.AccAddress {
 
 func GetRandomBech32ConsensusPubKey() string {
 	_, pubKey, _ := atypes.KeyTestPubAddr()
-	result, err := cosmos.Bech32ifyConsPub(pubKey)
+	result, err := cosmos.Bech32ifyPubKey(cosmos.Bech32PubKeyTypeConsPub, pubKey)
 	if err != nil {
 		panic(err)
 	}
@@ -116,7 +116,7 @@ func GetRandomVault() Vault {
 
 func GetRandomPubKey() common.PubKey {
 	_, pubKey, _ := atypes.KeyTestPubAddr()
-	bech32PubKey, _ := cosmos.Bech32ifyAccPub(pubKey)
+	bech32PubKey, _ := cosmos.Bech32ifyPubKey(cosmos.Bech32PubKeyTypeAccPub, pubKey)
 	pk, _ := common.NewPubKey(bech32PubKey)
 	return pk
 }

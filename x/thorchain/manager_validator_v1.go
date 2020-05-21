@@ -201,7 +201,7 @@ func (vm *validatorMgrV1) EndBlock(ctx cosmos.Context, mgr Manager, constAccesso
 		if err := vm.k.SetNodeAccount(ctx, na); err != nil {
 			ctx.Logger().Error("fail to save node account", "error", err)
 		}
-		pk, err := cosmos.GetConsPubKeyBech32(na.ValidatorConsPubKey)
+		pk, err := cosmos.GetPubKeyFromBech32(cosmos.Bech32PubKeyTypeConsPub, na.ValidatorConsPubKey)
 		if err != nil {
 			ctx.Logger().Error("fail to parse consensus public key", "key", na.ValidatorConsPubKey, "error", err)
 			continue
@@ -237,7 +237,7 @@ func (vm *validatorMgrV1) EndBlock(ctx cosmos.Context, mgr Manager, constAccesso
 			ctx.Logger().Error("fail to request yggdrasil funds return", "error", err)
 		}
 
-		pk, err := cosmos.GetConsPubKeyBech32(na.ValidatorConsPubKey)
+		pk, err := cosmos.GetPubKeyFromBech32(cosmos.Bech32PubKeyTypeConsPub, na.ValidatorConsPubKey)
 		if err != nil {
 			ctx.Logger().Error("fail to parse consensus public key", "key", na.ValidatorConsPubKey, "error", err)
 			continue
@@ -626,9 +626,9 @@ func (vm *validatorMgrV1) ragnarokPools(ctx cosmos.Context, nth int64, mgr Manag
 			)
 
 			unstakeHandler := NewUnstakeHandler(vm.k, mgr)
-			result := unstakeHandler.Run(ctx, unstakeMsg, version, constAccessor)
-			if !result.IsOK() {
-				ctx.Logger().Error("fail to unstake", "staker", staker.RuneAddress, "error", result.Log)
+			_, err := unstakeHandler.Run(ctx, unstakeMsg, version, constAccessor)
+			if err != nil {
+				ctx.Logger().Error("fail to unstake", "staker", staker.RuneAddress, "error", err)
 			}
 		}
 	}

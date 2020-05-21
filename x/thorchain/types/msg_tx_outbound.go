@@ -28,7 +28,7 @@ func (msg MsgOutboundTx) Route() string { return RouterKey }
 func (msg MsgOutboundTx) Type() string { return "set_tx_outbound" }
 
 // ValidateBasic runs stateless checks on the message
-func (msg MsgOutboundTx) ValidateBasic() cosmos.Error {
+func (msg MsgOutboundTx) ValidateBasic() error {
 	if msg.Signer.Empty() {
 		return cosmos.ErrInvalidAddress(msg.Signer.String())
 	}

@@ -3,7 +3,7 @@ package types
 import (
 	"fmt"
 
-	common "gitlab.com/thorchain/thornode/common"
+	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
@@ -30,7 +30,7 @@ func (msg MsgNativeTx) Route() string { return RouterKey }
 func (msg MsgNativeTx) Type() string { return "native_tx" }
 
 // ValidateBasic runs stateless checks on the message
-func (msg MsgNativeTx) ValidateBasic() cosmos.Error {
+func (msg MsgNativeTx) ValidateBasic() error {
 	if msg.Signer.Empty() {
 		return cosmos.ErrInvalidAddress(msg.Signer.String())
 	}
@@ -43,7 +43,7 @@ func (msg MsgNativeTx) ValidateBasic() cosmos.Error {
 		}
 	}
 	if len([]byte(msg.Memo)) > 150 {
-		err := fmt.Errorf("Memo must not exceed 150 bytes: %d", len([]byte(msg.Memo)))
+		err := fmt.Errorf("memo must not exceed 150 bytes: %d", len([]byte(msg.Memo)))
 		return cosmos.ErrUnknownRequest(err.Error())
 	}
 	return nil

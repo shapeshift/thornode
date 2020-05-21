@@ -1,7 +1,10 @@
 package thorchain
 
 import (
+	"errors"
+
 	"github.com/blang/semver"
+	se "github.com/cosmos/cosmos-sdk/types/errors"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
@@ -38,10 +41,10 @@ func (HandlerLeaveSuite) TestLeaveHandler_NotActiveNodeLeave(c *C) {
 	msgLeave := NewMsgLeave(tx, w.activeNodeAccount.NodeAddress)
 	ver := constants.SWVersion
 	constAccessor := constants.GetConstantValues(ver)
-	result := leaveHandler.Run(w.ctx, msgLeave, ver, constAccessor)
-	c.Assert(result.Code, Equals, cosmos.CodeOK, Commentf("%+v", result))
-	result1 := leaveHandler.Run(w.ctx, msgLeave, semver.Version{}, constAccessor)
-	c.Assert(result1.Code, Equals, CodeBadVersion)
+	_, err := leaveHandler.Run(w.ctx, msgLeave, ver, constAccessor)
+	c.Assert(err, IsNil)
+	_, err = leaveHandler.Run(w.ctx, msgLeave, semver.Version{}, constAccessor)
+	c.Assert(err, NotNil)
 }
 
 func (HandlerLeaveSuite) TestLeaveHandler_ActiveNodeLeave(c *C) {
@@ -63,8 +66,8 @@ func (HandlerLeaveSuite) TestLeaveHandler_ActiveNodeLeave(c *C) {
 	msgLeave := NewMsgLeave(tx, w.activeNodeAccount.NodeAddress)
 	ver := constants.SWVersion
 	constAccessor := constants.GetConstantValues(ver)
-	result := leaveHandler.Run(w.ctx, msgLeave, ver, constAccessor)
-	c.Assert(result.Code, Equals, cosmos.CodeOK)
+	_, err = leaveHandler.Run(w.ctx, msgLeave, ver, constAccessor)
+	c.Assert(err, IsNil)
 
 	acc2, err = w.keeper.GetNodeAccountByBondAddress(w.ctx, acc2.BondAddress)
 	c.Assert(err, IsNil)
@@ -76,9 +79,9 @@ func (HandlerLeaveSuite) TestLeaveValidation(c *C) {
 	ver := constants.SWVersion
 	constAccessor := constants.GetConstantValues(ver)
 	testCases := []struct {
-		name         string
-		msgLeave     MsgLeave
-		expectedCode cosmos.CodeType
+		name          string
+		msgLeave      MsgLeave
+		expectedError error
 	}{
 		{
 			name: "empty from address should fail",
@@ -95,7 +98,7 @@ func (HandlerLeaveSuite) TestLeaveValidation(c *C) {
 				},
 				Memo: "",
 			}, w.activeNodeAccount.NodeAddress),
-			expectedCode: cosmos.CodeUnknownRequest,
+			expectedError: se.ErrUnknownRequest,
 		},
 		{
 			name: "empty tx id should fail",
@@ -112,7 +115,7 @@ func (HandlerLeaveSuite) TestLeaveValidation(c *C) {
 				},
 				Memo: "",
 			}, w.activeNodeAccount.NodeAddress),
-			expectedCode: cosmos.CodeUnknownRequest,
+			expectedError: se.ErrUnknownRequest,
 		},
 		{
 			name: "empty signer should fail",
@@ -129,12 +132,13 @@ func (HandlerLeaveSuite) TestLeaveValidation(c *C) {
 				},
 				Memo: "",
 			}, cosmos.AccAddress{}),
-			expectedCode: cosmos.CodeUnknownRequest,
+			expectedError: se.ErrUnknownRequest,
 		},
 	}
 	for _, item := range testCases {
 		c.Log(item.name)
 		leaveHandler := NewLeaveHandler(w.keeper, NewDummyMgr())
-		c.Assert(leaveHandler.Run(w.ctx, item.msgLeave, ver, constAccessor).Code, Equals, item.expectedCode)
+		_, err := leaveHandler.Run(w.ctx, item.msgLeave, ver, constAccessor)
+		c.Check(errors.Is(err, item.expectedError), Equals, true, Commentf("name:%s", item.name))
 	}
 }

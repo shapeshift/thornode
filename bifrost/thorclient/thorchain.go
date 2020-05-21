@@ -180,17 +180,7 @@ func (b *ThorchainBridge) getAccountNumberAndSequenceNumber() (uint64, uint64, e
 	}
 	acc := resp.Result.Value
 
-	accNum, err := strconv.ParseUint(acc.AccountNumber, 10, 64)
-	if err != nil {
-		return 0, 0, fmt.Errorf("failed to parse account number %s: %w", acc.AccountNumber, err)
-	}
-
-	seq, err := strconv.ParseUint(acc.Sequence, 10, 64)
-	if err != nil {
-		return 0, 0, fmt.Errorf("failed to parse sequence number %s: %w", acc.Sequence, err)
-	}
-
-	return accNum, seq, nil
+	return acc.AccountNumber, acc.Sequence, nil
 }
 
 func (b *ThorchainBridge) GetConfig() config.ClientConfiguration {

@@ -34,22 +34,22 @@ func validateUnstake(ctx cosmos.Context, keeper Keeper, msg MsgSetUnStake) error
 
 // unstake withdraw all the asset
 // it returns runeAmt,assetAmount,units, lastUnstake,err
-func unstake(ctx cosmos.Context, version semver.Version, keeper Keeper, msg MsgSetUnStake, eventManager EventManager) (cosmos.Uint, cosmos.Uint, cosmos.Uint, cosmos.Uint, cosmos.Error) {
+func unstake(ctx cosmos.Context, version semver.Version, keeper Keeper, msg MsgSetUnStake, eventManager EventManager) (cosmos.Uint, cosmos.Uint, cosmos.Uint, cosmos.Uint, error) {
 	if err := validateUnstake(ctx, keeper, msg); err != nil {
 		ctx.Logger().Error("msg unstake fail validation", "error", err)
-		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.NewError(DefaultCodespace, CodeUnstakeFailValidation, err.Error())
+		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), err
 	}
 
 	pool, err := keeper.GetPool(ctx, msg.Asset)
 	if err != nil {
 		ctx.Logger().Error("fail to get pool", "error", err)
-		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ErrInternal("fail to get pool")
+		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), err
 	}
 
 	stakerUnit, err := keeper.GetStaker(ctx, msg.Asset, msg.RuneAddress)
 	if err != nil {
 		ctx.Logger().Error("can't find staker", "error", err)
-		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.NewError(DefaultCodespace, CodeStakerNotExist, "staker doesn't exist")
+		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), err
 
 	}
 
@@ -58,7 +58,7 @@ func unstake(ctx cosmos.Context, version semver.Version, keeper Keeper, msg MsgS
 	poolAsset := pool.BalanceAsset
 	fStakerUnit := stakerUnit.Units
 	if stakerUnit.Units.IsZero() || msg.UnstakeBasisPoints.IsZero() {
-		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.NewError(DefaultCodespace, CodeNoStakeUnitLeft, "nothing to withdraw")
+		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), errNoStakeUnitLeft
 	}
 
 	cv := constants.GetConstantValues(version)
@@ -67,7 +67,7 @@ func unstake(ctx cosmos.Context, version semver.Version, keeper Keeper, msg MsgS
 	if !msg.Asset.Chain.Equals(common.BNBChain) {
 		height := ctx.BlockHeight()
 		if height < (stakerUnit.LastStakeHeight + cv.GetInt64Value(constants.StakeLockUpBlocks)) {
-			return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.NewError(DefaultCodespace, CodeUnstakeWithin24Hours, "you cannot unstake for 24 hours after staking for this blockchain")
+			return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), errUnstakeWithin24Hours
 		}
 	}
 
@@ -76,7 +76,7 @@ func unstake(ctx cosmos.Context, version semver.Version, keeper Keeper, msg MsgS
 	withdrawRune, withDrawAsset, unitAfter, err := calculateUnstake(poolUnits, poolRune, poolAsset, fStakerUnit, msg.UnstakeBasisPoints)
 	if err != nil {
 		ctx.Logger().Error("fail to unstake", "error", err)
-		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.NewError(DefaultCodespace, CodeUnstakeFail, err.Error())
+		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), errUnstakeFail
 	}
 	gasAsset := cosmos.ZeroUint()
 	// If the pool is empty, and there is a gas asset, subtract required gas
@@ -86,7 +86,7 @@ func unstake(ctx cosmos.Context, version semver.Version, keeper Keeper, msg MsgS
 			gasInfo, err := keeper.GetGas(ctx, pool.Asset)
 			if err != nil {
 				ctx.Logger().Error("fail to get gas for asset", "asset", pool.Asset, "error", err)
-				return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.NewError(DefaultCodespace, CodeUnstakeFail, err.Error())
+				return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), errUnstakeFail
 			}
 			originalAsset := withDrawAsset
 			multiplier := uint64(2)
@@ -130,8 +130,7 @@ func unstake(ctx cosmos.Context, version semver.Version, keeper Keeper, msg MsgS
 	}
 
 	if err := keeper.SetPool(ctx, pool); err != nil {
-		ctx.Logger().Error("fail to save pool", "error", err)
-		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ErrInternal("fail to save pool")
+		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), ErrInternal(err, "fail to save pool")
 	}
 	if !stakerUnit.Units.IsZero() {
 		keeper.SetStaker(ctx, stakerUnit)

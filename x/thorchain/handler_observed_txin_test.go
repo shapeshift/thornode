@@ -247,10 +247,10 @@ func (s *HandlerObservedTxInSuite) TestHandle(c *C) {
 
 	c.Assert(err, IsNil)
 	msg := NewMsgObservedTxIn(txs, keeper.nas[0].NodeAddress)
-	result := handler.handle(ctx, msg, ver)
+	_, err = handler.handle(ctx, msg, ver)
+	c.Assert(err, IsNil)
 	mgr.ObMgr().EndBlock(ctx, keeper)
 
-	c.Assert(result.IsOK(), Equals, true, Commentf("%s", result.Log))
 	c.Check(keeper.msg.Tx.ID.Equals(tx.ID), Equals, true)
 	c.Check(keeper.observing, HasLen, 1)
 	c.Check(keeper.height, Equals, int64(12))
@@ -310,6 +310,6 @@ func (s *HandlerObservedTxInSuite) TestMigrateMemo(c *C) {
 
 	c.Assert(err, IsNil)
 	msg := NewMsgObservedTxIn(txs, keeper.nas[0].NodeAddress)
-	result := handler.handle(ctx, msg, ver)
-	c.Assert(result.IsOK(), Equals, true)
+	_, err = handler.handle(ctx, msg, ver)
+	c.Assert(err, IsNil)
 }

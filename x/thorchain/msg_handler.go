@@ -9,5 +9,5 @@ import (
 
 // MsgHandler is an interface expect all handler to implement
 type MsgHandler interface {
-	Run(ctx cosmos.Context, msg cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) cosmos.Result
+	Run(ctx cosmos.Context, msg cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error)
 }

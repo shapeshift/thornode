@@ -23,25 +23,24 @@ func NewStakeHandler(keeper Keeper, mgr Manager) StakeHandler {
 	}
 }
 
-func (h StakeHandler) validate(ctx cosmos.Context, msg MsgSetStakeData, version semver.Version, constAccessor constants.ConstantValues) cosmos.Error {
+func (h StakeHandler) validate(ctx cosmos.Context, msg MsgSetStakeData, version semver.Version, constAccessor constants.ConstantValues) error {
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, msg, constAccessor)
 	}
 	return errBadVersion
 }
 
-func (h StakeHandler) validateV1(ctx cosmos.Context, msg MsgSetStakeData, constAccessor constants.ConstantValues) cosmos.Error {
+func (h StakeHandler) validateV1(ctx cosmos.Context, msg MsgSetStakeData, constAccessor constants.ConstantValues) error {
 	if err := msg.ValidateBasic(); err != nil {
-		ctx.Logger().Error(err.ABCILog())
-		return cosmos.NewError(DefaultCodespace, CodeStakeFailValidation, err.Error())
+		ctx.Logger().Error(err.Error())
+		return errStakeFailValidation
 	}
 
 	ensureStakeNoLargerThanBond := constAccessor.GetBoolValue(constants.StrictBondStakeRatio)
 	// the following  only applicable for chaosnet
 	totalStakeRUNE, err := h.getTotalStakeRUNE(ctx)
 	if err != nil {
-		ctx.Logger().Error("fail to get total staked RUNE", err)
-		return cosmos.ErrInternal("fail to get total staked RUNE")
+		return ErrInternal(err, "fail to get total staked RUNE")
 	}
 
 	// total staked RUNE after current stake
@@ -52,7 +51,7 @@ func (h StakeHandler) validateV1(ctx cosmos.Context, msg MsgSetStakeData, constA
 	}
 	if maximumStakeRune > 0 {
 		if totalStakeRUNE.GT(cosmos.NewUint(uint64(maximumStakeRune))) {
-			return cosmos.NewError(DefaultCodespace, CodeStakeRUNEOverLimit, "total staked RUNE is more than %d", maximumStakeRune)
+			return errStakeRUNEOverLimit
 		}
 	}
 
@@ -61,58 +60,54 @@ func (h StakeHandler) validateV1(ctx cosmos.Context, msg MsgSetStakeData, constA
 	}
 	totalBondRune, err := h.getTotalBond(ctx)
 	if err != nil {
-		ctx.Logger().Error("fail to get total bond RUNE", err)
-		return cosmos.ErrInternal("fail to get total bond RUNE")
+		return ErrInternal(err, "fail to get total bond RUNE")
 	}
 	if totalStakeRUNE.GT(totalBondRune) {
 		ctx.Logger().Info(fmt.Sprintf("total stake RUNE(%s) is more than total Bond(%s)", totalStakeRUNE, totalBondRune))
-		return cosmos.NewError(DefaultCodespace, CodeStakeRUNEMoreThanBond, "total stake RUNE is more than bond")
+		return errStakeRUNEMoreThanBond
 	}
 
 	return nil
 }
 
 // Run execute the handler
-func (h StakeHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) cosmos.Result {
+func (h StakeHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	msg, ok := m.(MsgSetStakeData)
 	if !ok {
-		return errInvalidMessage.Result()
+		return nil, errInvalidMessage
 	}
 	ctx.Logger().Info("received stake request",
 		"asset", msg.Asset.String(),
 		"tx", msg.Tx)
 	if err := h.validate(ctx, msg, version, constAccessor); err != nil {
 		ctx.Logger().Error("msg stake fail validation", "error", err)
-		return err.Result()
+		return nil, err
 	}
 
 	if err := h.handle(ctx, msg, version, constAccessor); err != nil {
 		ctx.Logger().Error("fail to process msg stake", "error", err)
-		return err.Result()
+		return nil, err
 	}
 
-	return cosmos.Result{
-		Code:      cosmos.CodeOK,
-		Codespace: DefaultCodespace,
-	}
+	return &cosmos.Result{}, nil
 }
 
-func (h StakeHandler) handle(ctx cosmos.Context, msg MsgSetStakeData, version semver.Version, constAccessor constants.ConstantValues) (errResult cosmos.Error) {
+func (h StakeHandler) handle(ctx cosmos.Context, msg MsgSetStakeData, version semver.Version, constAccessor constants.ConstantValues) (errResult error) {
 	pool, err := h.keeper.GetPool(ctx, msg.Asset)
 	if err != nil {
-		return cosmos.ErrInternal(fmt.Errorf("fail to get pool: %w", err).Error())
+		return ErrInternal(err, "fail to get pool")
 	}
 
 	if pool.Empty() {
 		ctx.Logger().Info("pool doesn't exist yet, creating a new one...", "symbol", msg.Asset.String(), "creator", msg.RuneAddress)
 		pool.Asset = msg.Asset
 		if err := h.keeper.SetPool(ctx, pool); err != nil {
-			return cosmos.ErrInternal(fmt.Errorf("fail to save pool to key value store: %w", err).Error())
+			return ErrInternal(err, "fail to save pool to key value store")
 		}
 	}
 	if err := pool.EnsureValidPoolStatus(msg); err != nil {
 		ctx.Logger().Error("fail to check pool status", "error", err)
-		return cosmos.NewError(DefaultCodespace, CodeInvalidPoolStatus, err.Error())
+		return errInvalidPoolStatus
 	}
 	stakeUnits, err := stake(
 		ctx,
@@ -131,7 +126,7 @@ func (h StakeHandler) handle(ctx cosmos.Context, msg MsgSetStakeData, version se
 	}
 
 	if err := h.processStakeEvent(ctx, version, msg, stakeUnits); err != nil {
-		return cosmos.ErrInternal(fmt.Errorf("fail to save stake event: %w", err).Error())
+		return ErrInternal(err, "fail to save stake event")
 	}
 
 	return nil

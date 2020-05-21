@@ -18,7 +18,7 @@ import (
 
 // NewQuerier is the module level router for state queries
 func NewQuerier(keeper Keeper) cosmos.Querier {
-	return func(ctx cosmos.Context, path []string, req abci.RequestQuery) (res []byte, err cosmos.Error) {
+	return func(ctx cosmos.Context, path []string, req abci.RequestQuery) (res []byte, err error) {
 		switch path[0] {
 		case q.QueryPool.Key:
 			return queryPool(ctx, path[1:], req, keeper)
@@ -92,24 +92,22 @@ func getURLFromData(data []byte) (*url.URL, error) {
 	return u, nil
 }
 
-func queryBalanceModule(ctx cosmos.Context, path []string, keeper Keeper) ([]byte, cosmos.Error) {
+func queryBalanceModule(ctx cosmos.Context, path []string, keeper Keeper) ([]byte, error) {
 	supplier := keeper.Supply()
 	mod := supplier.GetModuleAccount(ctx, AsgardName)
 
 	res, err := codec.MarshalJSONIndent(keeper.Cdc(), mod.GetCoins())
 	if err != nil {
-		ctx.Logger().Error("fail to marshal vaults response to json", "error", err)
-		return nil, cosmos.ErrInternal("fail to marshal response to json")
+		return nil, ErrInternal(err, "fail to marshal response to json")
 	}
 
 	return res, nil
 }
 
-func queryAsgardVaults(ctx cosmos.Context, keeper Keeper) ([]byte, cosmos.Error) {
+func queryAsgardVaults(ctx cosmos.Context, keeper Keeper) ([]byte, error) {
 	vaults, err := keeper.GetAsgardVaults(ctx)
 	if err != nil {
-		ctx.Logger().Error("fail to get asgard vaults", "error", err)
-		return nil, cosmos.ErrInternal("fail to get asgard vaults")
+		return nil, fmt.Errorf("fail to get asgard vaults: %w", err)
 	}
 
 	var vaultsWithFunds Vaults
@@ -122,13 +120,13 @@ func queryAsgardVaults(ctx cosmos.Context, keeper Keeper) ([]byte, cosmos.Error)
 	res, err := codec.MarshalJSONIndent(keeper.Cdc(), vaultsWithFunds)
 	if err != nil {
 		ctx.Logger().Error("fail to marshal vaults response to json", "error", err)
-		return nil, cosmos.ErrInternal("fail to marshal response to json")
+		return nil, fmt.Errorf("fail to marshal response to json: %w", err)
 	}
 
 	return res, nil
 }
 
-func queryYggdrasilVaults(ctx cosmos.Context, keeper Keeper) ([]byte, cosmos.Error) {
+func queryYggdrasilVaults(ctx cosmos.Context, keeper Keeper) ([]byte, error) {
 	vaults := make(Vaults, 0)
 	iter := keeper.GetVaultIterator(ctx)
 	defer iter.Close()
@@ -136,7 +134,7 @@ func queryYggdrasilVaults(ctx cosmos.Context, keeper Keeper) ([]byte, cosmos.Err
 		var vault Vault
 		if err := keeper.Cdc().UnmarshalBinaryBare(iter.Value(), &vault); err != nil {
 			ctx.Logger().Error("fail to unmarshal yggdrasil", "error", err)
-			return nil, cosmos.ErrInternal("fail to unmarshal yggdrasil")
+			return nil, fmt.Errorf("fail to unmarshal yggdrasil: %w", err)
 		}
 		if vault.IsYggdrasil() && vault.HasFunds() {
 			vaults = append(vaults, vault)
@@ -176,13 +174,13 @@ func queryYggdrasilVaults(ctx cosmos.Context, keeper Keeper) ([]byte, cosmos.Err
 	res, err := codec.MarshalJSONIndent(keeper.Cdc(), respVaults)
 	if err != nil {
 		ctx.Logger().Error("fail to marshal vaults response to json", "error", err)
-		return nil, cosmos.ErrInternal("fail to marshal response to json")
+		return nil, fmt.Errorf("fail to marshal response to json: %w", err)
 	}
 
 	return res, nil
 }
 
-func queryVaultsPubkeys(ctx cosmos.Context, keeper Keeper) ([]byte, cosmos.Error) {
+func queryVaultsPubkeys(ctx cosmos.Context, keeper Keeper) ([]byte, error) {
 	var resp struct {
 		Asgard    common.PubKeys `json:"asgard"`
 		Yggdrasil common.PubKeys `json:"yggdrasil"`
@@ -194,8 +192,8 @@ func queryVaultsPubkeys(ctx cosmos.Context, keeper Keeper) ([]byte, cosmos.Error
 	for ; iter.Valid(); iter.Next() {
 		var vault Vault
 		if err := keeper.Cdc().UnmarshalBinaryBare(iter.Value(), &vault); err != nil {
-			ctx.Logger().Error("fail to unmarshal yggdrasil", "error", err)
-			return nil, cosmos.ErrInternal("fail to unmarshal yggdrasil")
+			ctx.Logger().Error("fail to unmarshal vault", "error", err)
+			return nil, fmt.Errorf("fail to unmarshal vault: %w", err)
 		}
 		if vault.Status == ActiveVault {
 			if vault.IsYggdrasil() {
@@ -208,16 +206,16 @@ func queryVaultsPubkeys(ctx cosmos.Context, keeper Keeper) ([]byte, cosmos.Error
 	res, err := codec.MarshalJSONIndent(keeper.Cdc(), resp)
 	if err != nil {
 		ctx.Logger().Error("fail to marshal pubkeys response to json", "error", err)
-		return nil, cosmos.ErrInternal("fail to marshal response to json")
+		return nil, fmt.Errorf("fail to marshal response to json: %w", err)
 	}
 	return res, nil
 }
 
-func queryVaultData(ctx cosmos.Context, keeper Keeper) ([]byte, cosmos.Error) {
+func queryVaultData(ctx cosmos.Context, keeper Keeper) ([]byte, error) {
 	data, err := keeper.GetVaultData(ctx)
 	if err != nil {
 		ctx.Logger().Error("fail to get vault", "error", err)
-		return nil, cosmos.ErrInternal("fail to get vault")
+		return nil, fmt.Errorf("fail to get vault: %w", err)
 	}
 
 	if common.RuneAsset().Chain.Equals(common.THORChain) {
@@ -227,16 +225,16 @@ func queryVaultData(ctx cosmos.Context, keeper Keeper) ([]byte, cosmos.Error) {
 	res, err := codec.MarshalJSONIndent(keeper.Cdc(), data)
 	if err != nil {
 		ctx.Logger().Error("fail to marshal vault data to json", "error", err)
-		return nil, cosmos.ErrInternal("fail to marshal response to json")
+		return nil, fmt.Errorf("fail to marshal response to json: %w", err)
 	}
 	return res, nil
 }
 
-func queryPoolAddresses(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, cosmos.Error) {
+func queryPoolAddresses(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, error) {
 	active, err := keeper.GetAsgardVaultsByStatus(ctx, ActiveVault)
 	if err != nil {
 		ctx.Logger().Error("fail to get active vaults", "error", err)
-		return nil, cosmos.ErrInternal("fail to get active vaults")
+		return nil, fmt.Errorf("fail to get active vaults: %w", err)
 	}
 
 	type address struct {
@@ -262,7 +260,7 @@ func queryPoolAddresses(ctx cosmos.Context, path []string, req abci.RequestQuery
 			vaultAddress, err := vault.PubKey.GetAddress(chain)
 			if err != nil {
 				ctx.Logger().Error("fail to get address for chain", "error", err)
-				return nil, cosmos.ErrInternal("fail to get address for chain")
+				return nil, fmt.Errorf("fail to get address for chain: %w", err)
 			}
 
 			addr := address{
@@ -278,13 +276,13 @@ func queryPoolAddresses(ctx cosmos.Context, path []string, req abci.RequestQuery
 	res, err := codec.MarshalJSONIndent(keeper.Cdc(), resp)
 	if err != nil {
 		ctx.Logger().Error("fail to marshal current pool address to json", "error", err)
-		return nil, cosmos.ErrInternal("fail to marshal current pool address to json")
+		return nil, fmt.Errorf("fail to marshal current pool address to json: %w", err)
 	}
 
 	return res, nil
 }
 
-func queryNodeAccount(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, cosmos.Error) {
+func queryNodeAccount(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, error) {
 	nodeAddress := path[0]
 	addr, err := cosmos.AccAddressFromBech32(nodeAddress)
 	if err != nil {
@@ -293,36 +291,35 @@ func queryNodeAccount(ctx cosmos.Context, path []string, req abci.RequestQuery, 
 
 	nodeAcc, err := keeper.GetNodeAccount(ctx, addr)
 	if err != nil {
-		return nil, cosmos.ErrInternal("fail to get node accounts")
+		return nil, fmt.Errorf("fail to get node accounts: %w", err)
 	}
 
 	slashPts, err := keeper.GetNodeAccountSlashPoints(ctx, addr)
 	if err != nil {
-		return nil, cosmos.ErrInternal("fail to get node slash points")
+		return nil, fmt.Errorf("fail to get node slash points: %w", err)
 	}
 
 	result := NewQueryNodeAccount(nodeAcc)
 	result.SlashPoints = slashPts
 	res, err := codec.MarshalJSONIndent(keeper.Cdc(), result)
 	if err != nil {
-		ctx.Logger().Error("fail to marshal node account to json", "error", err)
-		return nil, cosmos.ErrInternal("fail to marshal node account to json")
+		return nil, fmt.Errorf("fail to marshal node account to json: %w", err)
 	}
 
 	return res, nil
 }
 
-func queryNodeAccounts(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, cosmos.Error) {
+func queryNodeAccounts(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, error) {
 	nodeAccounts, err := keeper.ListNodeAccountsWithBond(ctx)
 	if err != nil {
-		return nil, cosmos.ErrInternal("fail to get node accounts")
+		return nil, fmt.Errorf("fail to get node accounts: %w", err)
 	}
 
 	result := make([]QueryNodeAccount, len(nodeAccounts))
 	for i, na := range nodeAccounts {
 		slashPts, err := keeper.GetNodeAccountSlashPoints(ctx, na.NodeAddress)
 		if err != nil {
-			return nil, cosmos.ErrInternal("fail to get node slash points")
+			return nil, fmt.Errorf("fail to get node slash points: %w", err)
 		}
 		result[i] = NewQueryNodeAccount(na)
 		result[i].SlashPoints = slashPts
@@ -331,17 +328,17 @@ func queryNodeAccounts(ctx cosmos.Context, path []string, req abci.RequestQuery,
 	res, err := codec.MarshalJSONIndent(keeper.Cdc(), result)
 	if err != nil {
 		ctx.Logger().Error("fail to marshal observers to json", "error", err)
-		return nil, cosmos.ErrInternal("fail to marshal observers to json")
+		return nil, fmt.Errorf("fail to marshal observers to json: %w", err)
 	}
 
 	return res, nil
 }
 
 // queryObservers will only return all the active accounts
-func queryObservers(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, cosmos.Error) {
+func queryObservers(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, error) {
 	activeAccounts, err := keeper.ListActiveNodeAccounts(ctx)
 	if err != nil {
-		return nil, cosmos.ErrInternal("fail to get node account iterator")
+		return nil, fmt.Errorf("fail to get node account iterator: %w", err)
 	}
 	result := make([]string, 0, len(activeAccounts))
 	for _, item := range activeAccounts {
@@ -350,38 +347,38 @@ func queryObservers(ctx cosmos.Context, path []string, req abci.RequestQuery, ke
 	res, err := codec.MarshalJSONIndent(keeper.Cdc(), result)
 	if err != nil {
 		ctx.Logger().Error("fail to marshal observers to json", "error", err)
-		return nil, cosmos.ErrInternal("fail to marshal observers to json")
+		return nil, fmt.Errorf("fail to marshal observers to json: %w", err)
 	}
 
 	return res, nil
 }
 
-func queryObserver(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, cosmos.Error) {
+func queryObserver(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, error) {
 	observerAddr := path[0]
 	addr, err := cosmos.AccAddressFromBech32(observerAddr)
 	if err != nil {
-		return nil, cosmos.ErrUnknownRequest("invalid account address")
+		return nil, fmt.Errorf("invalid account address: %w", err)
 	}
 
 	nodeAcc, err := keeper.GetNodeAccount(ctx, addr)
 	if err != nil {
-		return nil, cosmos.ErrInternal("fail to get node account")
+		return nil, fmt.Errorf("fail to get node account: %w", err)
 	}
 	res, err := codec.MarshalJSONIndent(keeper.Cdc(), nodeAcc)
 	if err != nil {
 		ctx.Logger().Error("fail to marshal node account to json", "error", err)
-		return nil, cosmos.ErrInternal("fail to marshal node account to json")
+		return nil, fmt.Errorf("fail to marshal node account to json: %w", err)
 	}
 
 	return res, nil
 }
 
 // queryStakers
-func queryStakers(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, cosmos.Error) {
+func queryStakers(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, error) {
 	asset, err := common.NewAsset(path[0])
 	if err != nil {
 		ctx.Logger().Error("fail to get parse asset", "error", err)
-		return nil, cosmos.ErrInternal("fail to parse asset")
+		return nil, fmt.Errorf("fail to parse asset: %w", err)
 	}
 	var stakers []Staker
 	iterator := keeper.GetStakerIterator(ctx, asset)
@@ -394,66 +391,66 @@ func queryStakers(ctx cosmos.Context, path []string, req abci.RequestQuery, keep
 	res, err := codec.MarshalJSONIndent(keeper.Cdc(), stakers)
 	if err != nil {
 		ctx.Logger().Error("fail to marshal stakers to json", "error", err)
-		return nil, cosmos.ErrInternal("fail to marshal stakers to json")
+		return nil, fmt.Errorf("fail to marshal stakers to json: %w", err)
 	}
 	return res, nil
 }
 
 // nolint: unparam
-func queryPool(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, cosmos.Error) {
+func queryPool(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, error) {
 	asset, err := common.NewAsset(path[0])
 	if err != nil {
 		ctx.Logger().Error("fail to parse asset", "error", err)
-		return nil, cosmos.ErrInternal("Could not parse asset")
+		return nil, fmt.Errorf("could not parse asset: %w", err)
 	}
 
 	active, err := keeper.GetAsgardVaultsByStatus(ctx, ActiveVault)
 	if err != nil {
 		ctx.Logger().Error("fail to get active vaults", "error", err)
-		return nil, cosmos.ErrInternal("fail to get active vaults")
+		return nil, fmt.Errorf("fail to get active vaults: %w", err)
 	}
 
 	vault := active.SelectByMinCoin(asset)
 	if vault.IsEmpty() {
-		return nil, cosmos.ErrInternal("Could not find active asgard vault")
+		return nil, fmt.Errorf("could not find active asgard vault: %w", err)
 	}
 
 	addr, err := vault.PubKey.GetAddress(asset.Chain)
 	if err != nil {
-		return nil, cosmos.ErrInternal("fail to get chain pool address")
+		return nil, fmt.Errorf("fail to get chain pool address: %w", err)
 	}
 
 	pool, err := keeper.GetPool(ctx, asset)
 	if err != nil {
 		ctx.Logger().Error("fail to get pool", "error", err)
-		return nil, cosmos.ErrInternal("Could not get pool")
+		return nil, fmt.Errorf("could not get pool: %w", err)
 	}
 	if pool.Empty() {
-		return nil, cosmos.ErrUnknownRequest(fmt.Sprintf("pool: %s doesn't exist", path[0]))
+		return nil, fmt.Errorf("pool: %s doesn't exist", path[0])
 	}
 
 	pool.PoolAddress = addr
 	res, err := codec.MarshalJSONIndent(keeper.Cdc(), pool)
 	if err != nil {
-		return nil, cosmos.ErrInternal("could not marshal result to JSON")
+		return nil, fmt.Errorf("could not marshal result to JSON: %w", err)
 	}
 	return res, nil
 }
 
-func queryPools(ctx cosmos.Context, req abci.RequestQuery, keeper Keeper) ([]byte, cosmos.Error) {
+func queryPools(ctx cosmos.Context, req abci.RequestQuery, keeper Keeper) ([]byte, error) {
 	pools := QueryResPools{}
 	iterator := keeper.GetPoolIterator(ctx)
 
 	active, err := keeper.GetAsgardVaultsByStatus(ctx, ActiveVault)
 	if err != nil {
 		ctx.Logger().Error("fail to get active vaults", "error", err)
-		return nil, cosmos.ErrInternal("fail to get active vaults")
+		return nil, fmt.Errorf("fail to get active vaults: %w", err)
 	}
 
 	for ; iterator.Valid(); iterator.Next() {
 		var pool Pool
 		if err := keeper.Cdc().UnmarshalBinaryBare(iterator.Value(), &pool); err != nil {
-			return nil, cosmos.ErrInternal("Unmarshl: Pool")
+			return nil, fmt.Errorf("fail to unmarshal pool: %w", err)
 		}
 
 		// ignore pool if no stake units
@@ -463,11 +460,11 @@ func queryPools(ctx cosmos.Context, req abci.RequestQuery, keeper Keeper) ([]byt
 
 		vault := active.SelectByMinCoin(pool.Asset)
 		if vault.IsEmpty() {
-			return nil, cosmos.ErrInternal("Could not find active asgard vault")
+			return nil, fmt.Errorf("could not find active asgard vault")
 		}
 		addr, err := vault.PubKey.GetAddress(pool.Asset.Chain)
 		if err != nil {
-			return nil, cosmos.ErrInternal("Could get address of chain")
+			return nil, fmt.Errorf("could get address of chain: %w", err)
 		}
 
 		pool.PoolAddress = addr
@@ -475,58 +472,58 @@ func queryPools(ctx cosmos.Context, req abci.RequestQuery, keeper Keeper) ([]byt
 	}
 	res, err := codec.MarshalJSONIndent(keeper.Cdc(), pools)
 	if err != nil {
-		return nil, cosmos.ErrInternal("could not marshal pools result to json")
+		return nil, fmt.Errorf("could not marshal pools result to json: %w", err)
 	}
 	return res, nil
 }
 
-func queryTxIn(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, cosmos.Error) {
+func queryTxIn(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, error) {
 	hash, err := common.NewTxID(path[0])
 	if err != nil {
 		ctx.Logger().Error("fail to parse tx id", "error", err)
-		return nil, cosmos.ErrInternal("fail to parse tx id")
+		return nil, fmt.Errorf("fail to parse tx id: %w", err)
 	}
 	voter, err := keeper.GetObservedTxVoter(ctx, hash)
 	if err != nil {
 		ctx.Logger().Error("fail to get observed tx voter", "error", err)
-		return nil, cosmos.ErrInternal("fail to get observed tx voter")
+		return nil, fmt.Errorf("fail to get observed tx voter: %w", err)
 	}
 
 	nodeAccounts, err := keeper.ListActiveNodeAccounts(ctx)
 	if err != nil {
-		return nil, cosmos.ErrInternal("fail to get node accounts")
+		return nil, fmt.Errorf("fail to get node accounts: %w", err)
 	}
 	res, err := codec.MarshalJSONIndent(keeper.Cdc(), voter.GetTx(nodeAccounts))
 	if err != nil {
 		ctx.Logger().Error("fail to marshal tx hash to json", "error", err)
-		return nil, cosmos.ErrInternal("fail to marshal tx hash to json")
+		return nil, fmt.Errorf("fail to marshal tx hash to json: %w", err)
 	}
 	return res, nil
 }
 
-func queryKeygen(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, cosmos.Error) {
+func queryKeygen(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, error) {
 	var err error
 	height, err := strconv.ParseInt(path[0], 0, 64)
 	if err != nil {
 		ctx.Logger().Error("fail to parse block height", "error", err)
-		return nil, cosmos.ErrInternal("fail to parse block height")
+		return nil, fmt.Errorf("fail to parse block height: %w", err)
 	}
 
 	if height > ctx.BlockHeight() {
-		return nil, cosmos.ErrInternal("block height not available yet")
+		return nil, fmt.Errorf("block height not available yet")
 	}
 
 	keygenBlock, err := keeper.GetKeygenBlock(ctx, height)
 	if err != nil {
 		ctx.Logger().Error("fail to get keygen block", "error", err)
-		return nil, cosmos.ErrInternal("fail to get keygen block")
+		return nil, fmt.Errorf("fail to get keygen block: %w", err)
 	}
 
 	if len(path) > 1 {
 		pk, err := common.NewPubKey(path[1])
 		if err != nil {
 			ctx.Logger().Error("fail to parse pubkey", "error", err)
-			return nil, cosmos.ErrInternal("fail to parse pubkey")
+			return nil, fmt.Errorf("fail to parse pubkey: %w", err)
 		}
 		// only return those keygen contains the request pub key
 		newKeygenBlock := NewKeygenBlock(keygenBlock.Height)
@@ -541,21 +538,21 @@ func queryKeygen(ctx cosmos.Context, path []string, req abci.RequestQuery, keepe
 	res, err := codec.MarshalJSONIndent(keeper.Cdc(), keygenBlock)
 	if err != nil {
 		ctx.Logger().Error("fail to marshal keygen block to json", "error", err)
-		return nil, cosmos.ErrInternal("fail to marshal keygen block to json")
+		return nil, fmt.Errorf("fail to marshal keygen block to json: %w", err)
 	}
 	return res, nil
 }
 
-func queryKeysign(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, cosmos.Error) {
+func queryKeysign(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, error) {
 	var err error
 	height, err := strconv.ParseInt(path[0], 0, 64)
 	if err != nil {
 		ctx.Logger().Error("fail to parse block height", "error", err)
-		return nil, cosmos.ErrInternal("fail to parse block height")
+		return nil, fmt.Errorf("fail to parse block height: %w", err)
 	}
 
 	if height > ctx.BlockHeight() {
-		return nil, cosmos.ErrInternal("block height not available yet")
+		return nil, fmt.Errorf("block height not available yet")
 	}
 
 	pk := common.EmptyPubKey
@@ -563,13 +560,13 @@ func queryKeysign(ctx cosmos.Context, path []string, req abci.RequestQuery, keep
 		pk, err = common.NewPubKey(path[1])
 		if err != nil {
 			ctx.Logger().Error("fail to parse pubkey", "error", err)
-			return nil, cosmos.ErrInternal("fail to parse pubkey")
+			return nil, fmt.Errorf("fail to parse pubkey: %w", err)
 		}
 	}
 	txs, err := keeper.GetTxOut(ctx, height)
 	if err != nil {
 		ctx.Logger().Error("fail to get tx out array from key value store", "error", err)
-		return nil, cosmos.ErrInternal("fail to get tx out array from key value store")
+		return nil, fmt.Errorf("fail to get tx out array from key value store: %w", err)
 	}
 
 	if !pk.IsEmpty() {
@@ -603,7 +600,7 @@ func queryKeysign(ctx cosmos.Context, path []string, req abci.RequestQuery, keep
 	})
 	if err != nil {
 		ctx.Logger().Error("fail to marshal tx hash to json", "error", err)
-		return nil, cosmos.ErrInternal("fail to marshal tx hash to json")
+		return nil, fmt.Errorf("fail to marshal tx hash to json: %w", err)
 	}
 	return res, nil
 }
@@ -636,17 +633,17 @@ func getEventStatusFromQuery(u *url.URL) EventStatuses {
 	return GetEventStatuses(values)
 }
 
-func queryEventsByTxHash(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, cosmos.Error) {
+func queryEventsByTxHash(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, error) {
 	txID, err := common.NewTxID(path[0])
 	if err != nil {
 		ctx.Logger().Error("fail to discover tx hash", "error", err)
-		return nil, cosmos.ErrInternal("fail to discover tx hash")
+		return nil, fmt.Errorf("fail to discover tx hash: %w", err)
 	}
 	eventIDs, err := keeper.GetEventsIDByTxHash(ctx, txID)
 	if err != nil {
 		errMsg := fmt.Sprintf("fail to get event ids by txhash(%s)", txID.String())
 		ctx.Logger().Error(errMsg)
-		return nil, cosmos.ErrInternal(errMsg)
+		return nil, fmt.Errorf("fail to get event ids by txhash(%s): %w", txID, err)
 	}
 	limit := 100 // limit the number of events, aka pagination
 	if len(eventIDs) > 100 {
@@ -656,8 +653,7 @@ func queryEventsByTxHash(ctx cosmos.Context, path []string, req abci.RequestQuer
 	for _, id := range eventIDs {
 		event, err := keeper.GetEvent(ctx, id)
 		if err != nil {
-			errMsg := fmt.Sprintf("fail to get event(%d)", id)
-			return nil, cosmos.ErrInternal(errMsg)
+			return nil, fmt.Errorf("fail to get event(%d): %w", id, err)
 		}
 
 		if event.Empty() {
@@ -669,16 +665,16 @@ func queryEventsByTxHash(ctx cosmos.Context, path []string, req abci.RequestQuer
 	res, err := codec.MarshalJSONIndent(keeper.Cdc(), events)
 	if err != nil {
 		ctx.Logger().Error("fail to marshal events to json", "error", err)
-		return nil, cosmos.ErrInternal("fail to marshal events to json")
+		return nil, fmt.Errorf("fail to marshal events to json: %w", err)
 	}
 	return res, nil
 }
 
-func queryCompEvents(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, cosmos.Error) {
+func queryCompEvents(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, error) {
 	id, err := strconv.ParseInt(path[0], 10, 64)
 	if err != nil {
 		ctx.Logger().Error("fail to discover id number", "error", err)
-		return nil, cosmos.ErrInternal("fail to discover id number")
+		return nil, fmt.Errorf("fail to discover id number: %w", err)
 	}
 
 	chain := common.EmptyChain
@@ -686,7 +682,7 @@ func queryCompEvents(ctx cosmos.Context, path []string, req abci.RequestQuery, k
 		chain, err = common.NewChain(path[1])
 		if err != nil {
 			ctx.Logger().Error("fail to discover chain name", "error", err)
-			return nil, cosmos.ErrInternal("fail to discover chain name")
+			return nil, fmt.Errorf("fail to discover chain name: %w", err)
 		}
 	}
 
@@ -755,29 +751,29 @@ func queryCompEvents(ctx cosmos.Context, path []string, req abci.RequestQuery, k
 	res, err := codec.MarshalJSONIndent(keeper.Cdc(), events)
 	if err != nil {
 		ctx.Logger().Error("fail to marshal events to json", "error", err)
-		return nil, cosmos.ErrInternal("fail to marshal events to json")
+		return nil, fmt.Errorf("fail to marshal events to json: %w", err)
 	}
 	return res, nil
 }
 
-func queryHeights(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, cosmos.Error) {
+func queryHeights(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, error) {
 	chain := common.BNBChain
 	if len(path[0]) > 0 {
 		var err error
 		chain, err = common.NewChain(path[0])
 		if err != nil {
 			ctx.Logger().Error("fail to retrieve chain", "error", err)
-			return nil, cosmos.ErrInternal("fail to retrieve chain")
+			return nil, fmt.Errorf("fail to retrieve chain: %w", err)
 		}
 	}
 	chainHeight, err := keeper.GetLastChainHeight(ctx, chain)
 	if err != nil {
-		return nil, cosmos.ErrInternal(err.Error())
+		return nil, fmt.Errorf("fail to get last chain height: %w", err)
 	}
 
 	signed, err := keeper.GetLastSignedHeight(ctx)
 	if err != nil {
-		return nil, cosmos.ErrInternal(err.Error())
+		return nil, fmt.Errorf("fail to get last sign height: %w", err)
 	}
 
 	res, err := codec.MarshalJSONIndent(keeper.Cdc(), QueryResHeights{
@@ -788,22 +784,22 @@ func queryHeights(ctx cosmos.Context, path []string, req abci.RequestQuery, keep
 	})
 	if err != nil {
 		ctx.Logger().Error("fail to marshal events to json", "error", err)
-		return nil, cosmos.ErrInternal("fail to marshal events to json")
+		return nil, fmt.Errorf("fail to marshal events to json: %w", err)
 	}
 	return res, nil
 }
 
 // queryTSSSigner
-func queryTSSSigners(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, cosmos.Error) {
+func queryTSSSigners(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, error) {
 	vaultPubKey := path[0]
 	if len(vaultPubKey) == 0 {
 		ctx.Logger().Error("empty vault pub key")
-		return nil, cosmos.ErrUnknownRequest("empty pool pub key")
+		return nil, fmt.Errorf("empty pool pub key")
 	}
 	pk, err := common.NewPubKey(vaultPubKey)
 	if err != nil {
 		ctx.Logger().Error("fail to parse pool pub key", "error", err)
-		return nil, cosmos.ErrUnknownRequest("invalid pool pub key")
+		return nil, fmt.Errorf("invalid pool pub key(%s): %w", vaultPubKey, err)
 	}
 
 	// seed is the current block height, rounded down to the nearest 100th
@@ -814,26 +810,26 @@ func queryTSSSigners(ctx cosmos.Context, path []string, req abci.RequestQuery, k
 	accountAddrs, err := keeper.GetObservingAddresses(ctx)
 	if err != nil {
 		ctx.Logger().Error("fail to get observing addresses", "error", err)
-		return nil, cosmos.ErrInternal("fail to get observing addresses")
+		return nil, fmt.Errorf("fail to get observing addresses: %w", err)
 	}
 
 	vault, err := keeper.GetVault(ctx, pk)
 	if err != nil {
 		ctx.Logger().Error("fail to get vault", "error", err)
-		return nil, cosmos.ErrInternal("fail to get vault")
+		return nil, fmt.Errorf("fail to get vault: %w", err)
 	}
 	signers := vault.Membership
 	threshold, err := GetThreshold(len(vault.Membership))
 	if err != nil {
 		ctx.Logger().Error("fail to get threshold", "error", err)
-		return nil, cosmos.ErrInternal("fail to get threshold")
+		return nil, fmt.Errorf("fail to get threshold: %w", err)
 	}
 	totalObservingAccounts := len(accountAddrs)
 	if totalObservingAccounts > 0 && totalObservingAccounts >= threshold {
 		signers, err = vault.GetMembers(accountAddrs)
 		if err != nil {
 			ctx.Logger().Error("fail to get signers", "error", err)
-			return nil, cosmos.ErrInternal("fail to get signers")
+			return nil, fmt.Errorf("fail to get signers: %w", err)
 		}
 	}
 	// if we don't have enough signer
@@ -847,29 +843,29 @@ func queryTSSSigners(ctx cosmos.Context, path []string, req abci.RequestQuery, k
 	signerParty, err := ChooseSignerParty(signers, seed, len(vault.Membership))
 	if err != nil {
 		ctx.Logger().Error("fail to choose signer party members", "error", err)
-		return nil, cosmos.ErrInternal("fail to choose signer party members")
+		return nil, fmt.Errorf("fail to choose signer party members: %w", err)
 	}
 	res, err := codec.MarshalJSONIndent(keeper.Cdc(), signerParty)
 	if err != nil {
 		ctx.Logger().Error("fail to marshal to json", "error", err)
-		return nil, cosmos.ErrInternal("fail to marshal to json")
+		return nil, fmt.Errorf("fail to marshal to json: %w", err)
 	}
 
 	return res, nil
 }
 
-func queryConstantValues(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, cosmos.Error) {
+func queryConstantValues(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, error) {
 	ver := keeper.GetLowestActiveVersion(ctx)
 	constAccessor := constants.GetConstantValues(ver)
 	res, err := codec.MarshalJSONIndent(keeper.Cdc(), constAccessor)
 	if err != nil {
 		ctx.Logger().Error("fail to marshal constant values to json", "error", err)
-		return nil, cosmos.ErrInternal("fail to marshal constant values to json")
+		return nil, fmt.Errorf("fail to marshal constant values to json: %w", err)
 	}
 	return res, nil
 }
 
-func queryMimirValues(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, cosmos.Error) {
+func queryMimirValues(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, error) {
 	values := make(map[string]int64, 0)
 	iter := keeper.GetMimirIterator(ctx)
 	defer iter.Close()
@@ -877,35 +873,35 @@ func queryMimirValues(ctx cosmos.Context, path []string, req abci.RequestQuery, 
 		var value int64
 		if err := keeper.Cdc().UnmarshalBinaryBare(iter.Value(), &value); err != nil {
 			ctx.Logger().Error("fail to unmarshal mimir attribute", "error", err)
-			return nil, cosmos.ErrInternal("fail to unmarshal mimir attribute")
+			return nil, fmt.Errorf("fail to unmarshal mimir attribute:  %w", err)
 		}
 		values[string(iter.Key())] = value
 	}
 	res, err := codec.MarshalJSONIndent(keeper.Cdc(), values)
 	if err != nil {
 		ctx.Logger().Error("fail to marshal mimir values to json", "error", err)
-		return nil, cosmos.ErrInternal("fail to marshal mimir values to json")
+		return nil, fmt.Errorf("fail to marshal mimir values to json: %w", err)
 	}
 	return res, nil
 }
 
-func queryBan(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, cosmos.Error) {
+func queryBan(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, error) {
 	addr, err := cosmos.AccAddressFromBech32(path[0])
 	if err != nil {
 		ctx.Logger().Error("invalid node address", "error", err)
-		return nil, cosmos.ErrInternal("invalid node address")
+		return nil, fmt.Errorf("invalid node address: %w", err)
 	}
 
 	ban, err := keeper.GetBanVoter(ctx, addr)
 	if err != nil {
 		ctx.Logger().Error("fail to get ban voter", "error", err)
-		return nil, cosmos.ErrInternal("fail to get ban voter")
+		return nil, fmt.Errorf("fail to get ban voter: %w", err)
 	}
 
 	res, err := codec.MarshalJSONIndent(keeper.Cdc(), ban)
 	if err != nil {
 		ctx.Logger().Error("fail to marshal ban voter to json", "error", err)
-		return nil, cosmos.ErrInternal("fail to ban voter to json")
+		return nil, fmt.Errorf("fail to ban voter to json: %w", err)
 	}
 	return res, nil
 }

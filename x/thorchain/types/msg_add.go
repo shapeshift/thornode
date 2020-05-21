@@ -1,7 +1,7 @@
 package types
 
 import (
-	common "gitlab.com/thorchain/thornode/common"
+	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
@@ -32,7 +32,7 @@ func (msg MsgAdd) Route() string { return RouterKey }
 func (msg MsgAdd) Type() string { return "set_add" }
 
 // ValidateBasic runs stateless checks on the message
-func (msg MsgAdd) ValidateBasic() cosmos.Error {
+func (msg MsgAdd) ValidateBasic() error {
 	if msg.Signer.Empty() {
 		return cosmos.ErrInvalidAddress(msg.Signer.String())
 	}

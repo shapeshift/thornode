@@ -1,9 +1,11 @@
 package thorchain
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/blang/semver"
+	se "github.com/cosmos/cosmos-sdk/types/errors"
 	tmtypes "github.com/tendermint/tendermint/types"
 
 	"gitlab.com/thorchain/thornode/common"
@@ -23,13 +25,13 @@ func NewNativeTxHandler(keeper Keeper, mgr Manager) NativeTxHandler {
 	}
 }
 
-func (h NativeTxHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) cosmos.Result {
+func (h NativeTxHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	msg, ok := m.(MsgNativeTx)
 	if !ok {
-		return errInvalidMessage.Result()
+		return nil, errInvalidMessage
 	}
 	if err := h.validate(ctx, msg, version); err != nil {
-		return cosmos.ErrInternal(err.Error()).Result()
+		return nil, err
 	}
 	return h.handle(ctx, msg, version, constAccessor)
 }
@@ -52,17 +54,16 @@ func (h NativeTxHandler) validateV1(ctx cosmos.Context, msg MsgNativeTx) error {
 	return nil
 }
 
-func (h NativeTxHandler) handle(ctx cosmos.Context, msg MsgNativeTx, version semver.Version, constAccessor constants.ConstantValues) cosmos.Result {
+func (h NativeTxHandler) handle(ctx cosmos.Context, msg MsgNativeTx, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	ctx.Logger().Info("receive MsgNativeTx", "from", msg.GetSigners()[0], "coins", msg.Coins, "memo", msg.Memo)
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.handleV1(ctx, msg, version, constAccessor)
-	} else {
-		ctx.Logger().Error(errInvalidVersion.Error())
-		return errBadVersion.Result()
 	}
+	ctx.Logger().Error(errInvalidVersion.Error())
+	return nil, errInvalidVersion
 }
 
-func (h NativeTxHandler) handleV1(ctx cosmos.Context, msg MsgNativeTx, version semver.Version, constAccessor constants.ConstantValues) cosmos.Result {
+func (h NativeTxHandler) handleV1(ctx cosmos.Context, msg MsgNativeTx, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	banker := h.keeper.CoinKeeper()
 	supplier := h.keeper.Supply()
 	// TODO: this shouldn't be tied to swaps, and should be cheaper. But
@@ -73,43 +74,43 @@ func (h NativeTxHandler) handleV1(ctx cosmos.Context, msg MsgNativeTx, version s
 	gasFee, err := gas.Native()
 	if err != nil {
 		ctx.Logger().Error("fail to get gas fee", "err", err)
-		return cosmos.ErrInternal("fail to get gas fee").Result()
+		return nil, fmt.Errorf("fail to get gas fee: %w", err)
 	}
 
 	coins, err := msg.Coins.Native()
 	if err != nil {
 		ctx.Logger().Error("coins are native to THORChain", "error", err)
-		return cosmos.ErrInsufficientCoins("coins are native to THORChain").Result()
+		return nil, se.Wrap(se.ErrInsufficientFunds, "coins are native to THORChain")
 	}
 
-	totalCoins := cosmos.NewCoins(gasFee).Add(coins)
+	totalCoins := cosmos.NewCoins(gasFee).Add(coins...)
 	if !banker.HasCoins(ctx, msg.GetSigners()[0], totalCoins) {
 		ctx.Logger().Error("insufficient funds", "error", err)
-		return cosmos.ErrInsufficientCoins("insufficient funds").Result()
+		return nil, cosmos.ErrInsufficientCoins("insufficient funds")
 	}
 
 	// send gas to reserve
 	sdkErr := supplier.SendCoinsFromAccountToModule(ctx, msg.GetSigners()[0], ReserveName, cosmos.NewCoins(gasFee))
 	if sdkErr != nil {
 		ctx.Logger().Error("unable to send gas to reserve", "error", sdkErr)
-		return sdkErr.Result()
+		return nil, sdkErr
 	}
 
 	hash := tmtypes.Tx(ctx.TxBytes()).Hash()
 	txID, err := common.NewTxID(fmt.Sprintf("%X", hash))
 	if err != nil {
 		ctx.Logger().Error("fail to get tx hash", "err", err)
-		return cosmos.ErrInternal("fail to get tx hash").Result()
+		return nil, fmt.Errorf("fail to get tx hash: %w", err)
 	}
 	from, err := common.NewAddress(msg.GetSigners()[0].String())
 	if err != nil {
 		ctx.Logger().Error("fail to get from address", "err", err)
-		return cosmos.ErrInternal("fail to get from address").Result()
+		return nil, fmt.Errorf("fail to get from address: %w", err)
 	}
 	to, err := common.NewAddress(supplier.GetModuleAddress(AsgardName).String())
 	if err != nil {
 		ctx.Logger().Error("fail to get to address", "err", err)
-		return cosmos.ErrInternal("fail to get to address").Result()
+		return nil, fmt.Errorf("fail to get to address: %w", err)
 	}
 
 	tx := common.NewTx(txID, from, to, msg.Coins, common.Gas{gas}, msg.Memo)
@@ -124,7 +125,7 @@ func (h NativeTxHandler) handleV1(ctx cosmos.Context, msg MsgNativeTx, version s
 	// send funds to target module
 	sdkErr = supplier.SendCoinsFromAccountToModule(ctx, msg.GetSigners()[0], targetModule, coins)
 	if sdkErr != nil {
-		return sdkErr.Result()
+		return nil, sdkErr
 	}
 
 	// construct msg from memo
@@ -132,28 +133,23 @@ func (h NativeTxHandler) handleV1(ctx cosmos.Context, msg MsgNativeTx, version s
 	m, txErr := processOneTxIn(ctx, h.keeper, txIn, msg.Signer)
 	if txErr != nil {
 		ctx.Logger().Error("fail to process native inbound tx", "error", txErr.Error(), "tx hash", tx.ID.String())
-		if newErr := refundTx(ctx, txIn, h.mgr, h.keeper, constAccessor, txErr.Code(), fmt.Sprint(txErr.Data())); nil != newErr {
-			return cosmos.ErrInternal(newErr.Error()).Result()
+		if newErr := refundTx(ctx, txIn, h.mgr, h.keeper, constAccessor, CodeInvalidMemo, txErr.Error()); nil != newErr {
+			return nil, newErr
 		}
-		return cosmos.Result{
-			Code:      cosmos.CodeOK,
-			Codespace: DefaultCodespace,
+		return nil, txErr
+	}
+
+	result, err := handler(ctx, m)
+	if err != nil {
+		code := uint32(1)
+		var e se.Error
+		if errors.As(err, &e) {
+			code = e.ABCICode()
+		}
+		if err := refundTx(ctx, txIn, h.mgr, h.keeper, constAccessor, code, err.Error()); err != nil {
+			return nil, fmt.Errorf("fail to refund tx: %w", err)
 		}
 	}
 
-	result := handler(ctx, m)
-	if !result.IsOK() {
-		refundMsg, err := getErrMessageFromABCILog(result.Log)
-		if err != nil {
-			ctx.Logger().Error(err.Error())
-		}
-		if err := refundTx(ctx, txIn, h.mgr, h.keeper, constAccessor, result.Code, refundMsg); err != nil {
-			return cosmos.ErrInternal(err.Error()).Result()
-		}
-	}
-
-	return cosmos.Result{
-		Code:      cosmos.CodeOK,
-		Codespace: DefaultCodespace,
-	}
+	return result, nil
 }

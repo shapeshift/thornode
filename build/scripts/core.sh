@@ -76,7 +76,7 @@ init_chain () {
     export IFS=","
 
     thord init local --chain-id thorchain
-    thorcli keys list
+    echo $SIGNER_PASSWD | thorcli keys list
 
     for user in $@; do # iterate over our list of comma separated users "alice,jack"
         thord add-genesis-account $user 1000thor

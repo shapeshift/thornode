@@ -32,7 +32,7 @@ func (msg MsgBond) Route() string { return RouterKey }
 func (msg MsgBond) Type() string { return "validator_apply" }
 
 // ValidateBasic runs stateless checks on the message
-func (msg MsgBond) ValidateBasic() cosmos.Error {
+func (msg MsgBond) ValidateBasic() error {
 	if msg.NodeAddress.Empty() {
 		return cosmos.ErrUnknownRequest("node address cannot be empty")
 	}

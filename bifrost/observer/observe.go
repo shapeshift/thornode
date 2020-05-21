@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/cenkalti/backoff"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -209,13 +210,16 @@ func (o *Observer) signAndSendToThorchain(txIn types.TxIn) error {
 		o.errCounter.WithLabelValues("fail_to_sign", txIn.BlockHeight).Inc()
 		return fmt.Errorf("fail to sign the tx: %w", err)
 	}
-	txID, err := o.thorchainBridge.Broadcast(*stdTx, types.TxSync)
-	if err != nil {
-		o.errCounter.WithLabelValues("fail_to_send_to_thorchain", txIn.BlockHeight).Inc()
-		return fmt.Errorf("fail to send the tx to thorchain: %w", err)
-	}
-	o.logger.Info().Str("block", txIn.BlockHeight).Str("thorchain hash", txID.String()).Msg("sign and send to thorchain successfully")
-	return nil
+	bf := backoff.NewExponentialBackOff()
+	return backoff.Retry(func() error {
+		txID, err := o.thorchainBridge.Broadcast(*stdTx, types.TxSync)
+		if err != nil {
+			o.errCounter.WithLabelValues("fail_to_send_to_thorchain", txIn.BlockHeight).Inc()
+			return fmt.Errorf("fail to send the tx to thorchain: %w", err)
+		}
+		o.logger.Info().Str("block", txIn.BlockHeight).Str("thorchain hash", txID.String()).Msg("sign and send to thorchain successfully")
+		return nil
+	}, bf)
 }
 
 // getThorchainTxIns convert to the type thorchain expected

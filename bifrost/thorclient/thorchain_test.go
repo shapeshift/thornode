@@ -184,26 +184,6 @@ func (s *ThorchainSuite) TestGetAccountNumberAndSequenceNumber_Fail_Unmarshal(c 
 	c.Assert(sequence, Equals, uint64(0))
 }
 
-func (s *ThorchainSuite) TestGetAccountNumberAndSequenceNumber_Fail_AccNumberString(c *C) {
-	s.nodeAccountFixture = "../../test/fixtures/endpoints/nodeaccount/template.json"
-	s.authAccountFixture = "../../test/fixtures/endpoints/auth/accounts/accnumber_string.json"
-	accNumber, sequence, err := s.bridge.getAccountNumberAndSequenceNumber()
-	c.Assert(err, NotNil)
-	c.Assert(true, Equals, strings.HasPrefix(err.Error(), "failed to parse account number"))
-	c.Assert(accNumber, Equals, uint64(0))
-	c.Assert(sequence, Equals, uint64(0))
-}
-
-func (s *ThorchainSuite) TestGetAccountNumberAndSequenceNumber_Fail_SequenceString(c *C) {
-	s.nodeAccountFixture = "../../test/fixtures/endpoints/nodeaccount/template.json"
-	s.authAccountFixture = "../../test/fixtures/endpoints/auth/accounts/seqnumber_string.json"
-	accNumber, sequence, err := s.bridge.getAccountNumberAndSequenceNumber()
-	c.Assert(err, NotNil)
-	c.Assert(true, Equals, strings.HasPrefix(err.Error(), "failed to parse sequence number"))
-	c.Assert(accNumber, Equals, uint64(0))
-	c.Assert(sequence, Equals, uint64(0))
-}
-
 func (s *ThorchainSuite) TestEnsureNodeWhitelisted_Success(c *C) {
 	s.authAccountFixture = "../../test/fixtures/endpoints/auth/accounts/template.json"
 	s.nodeAccountFixture = "../../test/fixtures/endpoints/nodeaccount/template.json"

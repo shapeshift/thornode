@@ -1,8 +1,6 @@
 package thorchain
 
 import (
-	"fmt"
-
 	"github.com/blang/semver"
 
 	"gitlab.com/thorchain/thornode/common"
@@ -22,13 +20,13 @@ func NewSwapHandler(keeper Keeper, mgr Manager) SwapHandler {
 	}
 }
 
-func (h SwapHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) cosmos.Result {
+func (h SwapHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	msg, ok := m.(MsgSwap)
 	if !ok {
-		return errInvalidMessage.Result()
+		return nil, errInvalidMessage
 	}
 	if err := h.validate(ctx, msg, version); err != nil {
-		return cosmos.ErrInternal(err.Error()).Result()
+		return nil, err
 	}
 	return h.handle(ctx, msg, version, constAccessor)
 }
@@ -50,17 +48,17 @@ func (h SwapHandler) validateV1(ctx cosmos.Context, msg MsgSwap) error {
 	return nil
 }
 
-func (h SwapHandler) handle(ctx cosmos.Context, msg MsgSwap, version semver.Version, constAccessor constants.ConstantValues) cosmos.Result {
+func (h SwapHandler) handle(ctx cosmos.Context, msg MsgSwap, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	ctx.Logger().Info("receive MsgSwap", "request tx hash", msg.Tx.ID, "source asset", msg.Tx.Coins[0].Asset, "target asset", msg.TargetAsset, "signer", msg.Signer.String())
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.handleV1(ctx, msg, version, constAccessor)
 	} else {
 		ctx.Logger().Error(errInvalidVersion.Error())
-		return errBadVersion.Result()
+		return nil, errBadVersion
 	}
 }
 
-func (h SwapHandler) handleV1(ctx cosmos.Context, msg MsgSwap, version semver.Version, constAccessor constants.ConstantValues) cosmos.Result {
+func (h SwapHandler) handleV1(ctx cosmos.Context, msg MsgSwap, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	transactionFee := constAccessor.GetInt64Value(constants.TransactionFee)
 	amount, events, swapErr := swap(
 		ctx,
@@ -72,26 +70,25 @@ func (h SwapHandler) handleV1(ctx cosmos.Context, msg MsgSwap, version semver.Ve
 		cosmos.NewUint(uint64(transactionFee)))
 	if swapErr != nil {
 		ctx.Logger().Error("fail to process swap message", "error", swapErr)
-		return swapErr.Result()
+		return nil, swapErr
 	}
 	for _, evt := range events {
 		if err := h.mgr.EventMgr().EmitSwapEvent(ctx, h.keeper, evt); err != nil {
 			ctx.Logger().Error("fail to emit swap event", "error", err)
 		}
 		if err := h.keeper.AddToLiquidityFees(ctx, evt.Pool, evt.LiquidityFeeInRune); err != nil {
-			return cosmos.ErrInternal(err.Error()).Result()
+			return nil, err
 		}
 	}
 
-	res, err := h.keeper.Cdc().MarshalBinaryLengthPrefixed(
+	_, err := h.keeper.Cdc().MarshalBinaryLengthPrefixed(
 		struct {
 			Asset cosmos.Uint `json:"asset"`
 		}{
 			Asset: amount,
 		})
 	if err != nil {
-		ctx.Logger().Error("fail to encode result to json", "error", err)
-		return cosmos.ErrInternal("fail to encode result to json").Result()
+		return nil, ErrInternal(err, "fail to encode result to json")
 	}
 	toi := &TxOutItem{
 		Chain:     msg.TargetAsset.Chain,
@@ -101,16 +98,11 @@ func (h SwapHandler) handleV1(ctx cosmos.Context, msg MsgSwap, version semver.Ve
 	}
 	ok, err := h.mgr.TxOutStore().TryAddTxOutItem(ctx, h.mgr, toi)
 	if err != nil {
-		ctx.Logger().Error("fail to add outbound tx", "error", err)
-		return cosmos.ErrInternal(fmt.Errorf("fail to add outbound tx: %w", err).Error()).Result()
+		return nil, ErrInternal(err, "fail to add outbound tx")
 	}
 	if !ok {
-		return cosmos.NewError(DefaultCodespace, CodeFailAddOutboundTx, "prepare outbound tx not successful").Result()
+		return nil, errFailAddOutboundTx
 	}
 
-	return cosmos.Result{
-		Code:      cosmos.CodeOK,
-		Data:      res,
-		Codespace: DefaultCodespace,
-	}
+	return &cosmos.Result{}, nil
 }

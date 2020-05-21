@@ -14,7 +14,7 @@ func (NodeKeysSuite) TestNodeKeys(c *C) {
 	bnb := GetRandomBNBAddress()
 	addr := GetRandomBech32Addr()
 	consensusAddr := GetRandomBech32ConsensusPubKey()
-	pk, err := cosmos.GetConsPubKeyBech32(consensusAddr)
+	pk, err := cosmos.GetPubKeyFromBech32(cosmos.Bech32PubKeyTypeConsPub, consensusAddr)
 	c.Assert(err, IsNil)
 	c.Assert(pk, NotNil)
 	c.Check(addr.Empty(), Equals, false)
