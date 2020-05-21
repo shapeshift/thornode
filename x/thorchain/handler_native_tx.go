@@ -136,7 +136,7 @@ func (h NativeTxHandler) handleV1(ctx cosmos.Context, msg MsgNativeTx, version s
 		if newErr := refundTx(ctx, txIn, h.mgr, h.keeper, constAccessor, CodeInvalidMemo, txErr.Error()); nil != newErr {
 			return nil, newErr
 		}
-		return nil, txErr
+		return &cosmos.Result{}, nil
 	}
 
 	result, err := handler(ctx, m)
