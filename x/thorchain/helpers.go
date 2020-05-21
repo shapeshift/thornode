@@ -98,9 +98,13 @@ func getFee(input, output common.Coins, transactionFee int64) common.Fee {
 			}
 		}
 		if outCoin.IsEmpty() {
-			fee.Coins = append(fee.Coins, common.NewCoin(in.Asset, in.Amount))
+			if !in.Amount.IsZero() {
+				fee.Coins = append(fee.Coins, common.NewCoin(in.Asset, in.Amount))
+			}
 		} else {
-			fee.Coins = append(fee.Coins, common.NewCoin(in.Asset, in.Amount.Sub(outCoin.Amount)))
+			if !in.Amount.Sub(outCoin.Amount).IsZero() {
+				fee.Coins = append(fee.Coins, common.NewCoin(in.Asset, in.Amount.Sub(outCoin.Amount)))
+			}
 		}
 	}
 	fee.PoolDeduct = cosmos.NewUint(uint64(transactionFee) * uint64(assetTxCount))
@@ -367,7 +371,11 @@ func updateEventFee(ctx cosmos.Context, keeper Keeper, txID common.TxID, fee com
 	}
 
 	ctx.Logger().Info(fmt.Sprintf("Update fee for event %d, fee:%s", eventID, fee))
-	event.Fee.Coins = append(event.Fee.Coins, fee.Coins...)
+	for _, feeCoin := range fee.Coins {
+		if !feeCoin.IsEmpty() {
+			event.Fee.Coins = append(event.Fee.Coins, feeCoin)
+		}
+	}
 	event.Fee.PoolDeduct = event.Fee.PoolDeduct.Add(fee.PoolDeduct)
 	return keeper.UpsertEvent(ctx, event)
 }

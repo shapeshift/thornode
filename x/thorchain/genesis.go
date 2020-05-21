@@ -186,6 +186,12 @@ func InitGenesis(ctx cosmos.Context, keeper Keeper, data GenesisState) []abci.Va
 		}
 	}
 
+	if common.RuneAsset().Chain.Equals(common.THORChain) {
+		ctx.Logger().Info("Reserve Module", "address", keeper.Supply().GetModuleAddress(ReserveName).String())
+		ctx.Logger().Info("Bond    Module", "address", keeper.Supply().GetModuleAddress(BondName).String())
+		ctx.Logger().Info("Asgard  Module", "address", keeper.Supply().GetModuleAddress(AsgardName).String())
+	}
+
 	return validators
 }
 
