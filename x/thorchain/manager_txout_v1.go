@@ -300,12 +300,14 @@ func (tos *TxOutStorageV1) nativeTxOut(ctx cosmos.Context, mgr Manager, toi *TxO
 		return err
 	}
 
+	transactionFee := tos.constAccessor.GetInt64Value(constants.TransactionFee)
+
 	tx := common.NewTx(
 		common.BlankTxID,
 		from,
 		toi.ToAddress,
 		common.Coins{toi.Coin},
-		common.Gas{},
+		common.Gas{common.NewCoin(common.RuneAsset(), cosmos.NewUint(uint64(transactionFee)))},
 		toi.Memo,
 	)
 
