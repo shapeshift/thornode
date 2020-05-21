@@ -180,8 +180,8 @@ func (s *ThorchainSuite) TestChurn(c *C) {
 	voter.Signers = signers // ensure we have consensus, so handler is properly executed
 	keeper.SetTssVoter(ctx, voter)
 
-	result := tssHandler.Run(ctx, msg, ver, consts)
-	c.Assert(result.IsOK(), Equals, true, Commentf("%s", result.Log))
+	_, err = tssHandler.Run(ctx, msg, ver, consts)
+	c.Assert(err, IsNil)
 
 	// check that we've rotated our vaults
 	vault1, err := keeper.GetVault(ctx, vault.PubKey)
@@ -345,7 +345,9 @@ func (s *ThorchainSuite) TestRagnarok(c *C) {
 				common.NewCoin(common.RuneAsset(), res.Amount),
 			})
 			msg := NewMsgReserveContributor(GetRandomTx(), res, bonders[0].NodeAddress)
-			c.Assert(resHandler.Handle(ctx, msg, ver).Code, Equals, cosmos.CodeOK)
+			result, err := resHandler.Handle(ctx, msg, ver)
+			c.Assert(err, IsNil)
+			c.Assert(result, NotNil)
 		}
 		c.Assert(keeper.SetVault(ctx, asgard), IsNil)
 	}
@@ -543,7 +545,8 @@ func (s *ThorchainSuite) TestRagnarokNoOneLeave(c *C) {
 			common.NewCoin(common.RuneAsset(), res.Amount),
 		})
 		msg := NewMsgReserveContributor(GetRandomTx(), res, bonders[0].NodeAddress)
-		c.Assert(resHandler.Handle(ctx, msg, ver).Code, Equals, cosmos.CodeOK)
+		_, err := resHandler.Handle(ctx, msg, ver)
+		c.Assert(err, IsNil)
 	}
 	c.Assert(keeper.SetVault(ctx, asgard), IsNil)
 	asgard.Membership = asgard.Membership[:len(asgard.Membership)-1]

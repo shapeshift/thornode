@@ -65,7 +65,7 @@ func (s *Slasher) HandleDoubleSign(ctx cosmos.Context, addr crypto.Address, infr
 	}
 
 	for _, na := range nas {
-		pk, err := cosmos.GetConsPubKeyBech32(na.ValidatorConsPubKey)
+		pk, err := cosmos.GetPubKeyFromBech32(cosmos.Bech32PubKeyTypeConsPub, na.ValidatorConsPubKey)
 		if err != nil {
 			return err
 		}
@@ -208,9 +208,10 @@ func (s *Slasher) LackSigning(ctx cosmos.Context, constAccessor constants.Consta
 			}
 		}
 	}
-
-	if err := s.keeper.SetTxOut(ctx, txs); err != nil {
-		return fmt.Errorf("fail to save tx out : %w", err)
+	if !txs.IsEmpty() {
+		if err := s.keeper.SetTxOut(ctx, txs); err != nil {
+			return fmt.Errorf("fail to save tx out : %w", err)
+		}
 	}
 
 	return nil

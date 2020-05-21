@@ -36,23 +36,24 @@ func stake(ctx cosmos.Context, keeper Keeper,
 	asset common.Asset,
 	stakeRuneAmount, stakeAssetAmount cosmos.Uint,
 	runeAddr, assetAddr common.Address,
-	requestTxHash common.TxID, constAccessor constants.ConstantValues) (cosmos.Uint, cosmos.Error) {
+	requestTxHash common.TxID, constAccessor constants.ConstantValues) (cosmos.Uint, error) {
 	ctx.Logger().Info(fmt.Sprintf("%s staking %s %s", asset, stakeRuneAmount, stakeAssetAmount))
 	if err := validateStakeMessage(ctx, keeper, asset, requestTxHash, runeAddr, assetAddr); err != nil {
 		ctx.Logger().Error("stake message fail validation", "error", err)
-		return cosmos.ZeroUint(), cosmos.NewError(DefaultCodespace, CodeStakeFailValidation, err.Error())
+		return cosmos.ZeroUint(), errStakeFailValidation
 	}
 	if stakeRuneAmount.IsZero() && stakeAssetAmount.IsZero() {
-		return cosmos.ZeroUint(), cosmos.NewError(DefaultCodespace, CodeStakeFailValidation, "both rune and asset is zero")
+		ctx.Logger().Error("both rune and asset is zero")
+		return cosmos.ZeroUint(), errStakeFailValidation
 	}
 	if runeAddr.IsEmpty() {
-		return cosmos.ZeroUint(), cosmos.NewError(DefaultCodespace, CodeStakeFailValidation, "Rune address cannot be empty")
+		ctx.Logger().Error("rune address cannot be empty")
+		return cosmos.ZeroUint(), errStakeFailValidation
 	}
 
 	pool, err := keeper.GetPool(ctx, asset)
 	if err != nil {
-		ctx.Logger().Error("fail to get pool", "error", err)
-		return cosmos.ZeroUint(), cosmos.ErrInternal(fmt.Sprintf("fail to get pool(%s)", asset))
+		return cosmos.ZeroUint(), ErrInternal(err, fmt.Sprintf("fail to get pool(%s)", asset))
 	}
 
 	// if THORNode have no balance, set the default pool status
@@ -79,7 +80,7 @@ func stake(ctx cosmos.Context, keeper Keeper,
 	su, err := keeper.GetStaker(ctx, asset, runeAddr)
 	if err != nil {
 		ctx.Logger().Error("fail to get staker", "error", err)
-		return cosmos.ZeroUint(), cosmos.NewError(DefaultCodespace, CodeFailGetStaker, "fail to get staker")
+		return cosmos.ZeroUint(), errFailGetStaker
 	}
 
 	su.LastStakeHeight = ctx.BlockHeight()
@@ -92,7 +93,7 @@ func stake(ctx cosmos.Context, keeper Keeper,
 		if !su.AssetAddress.Equals(assetAddr) {
 			// mismatch of asset addresses from what is known to the address
 			// given. Refund it.
-			return cosmos.ZeroUint(), cosmos.NewError(DefaultCodespace, CodeStakeMismatchAssetAddr, "Mismatch of asset addresses")
+			return cosmos.ZeroUint(), errStakeMismatchAssetAddr
 		}
 	}
 
@@ -119,7 +120,7 @@ func stake(ctx cosmos.Context, keeper Keeper,
 	newPoolUnits, stakerUnits, err := calculatePoolUnits(oldPoolUnits, balanceRune, balanceAsset, fRuneAmt, fAssetAmt)
 	if err != nil {
 		ctx.Logger().Error("fail to calculate pool unit", "error", err)
-		return cosmos.ZeroUint(), cosmos.NewError(DefaultCodespace, CodeStakeInvalidPoolAsset, err.Error())
+		return cosmos.ZeroUint(), errStakeInvalidPoolAsset
 	}
 
 	ctx.Logger().Info(fmt.Sprintf("current pool units : %s ,staker units : %s", newPoolUnits, stakerUnits))
@@ -130,8 +131,7 @@ func stake(ctx cosmos.Context, keeper Keeper,
 	pool.BalanceAsset = poolAsset
 	ctx.Logger().Info(fmt.Sprintf("Post-Pool: %sRUNE %sAsset", pool.BalanceRune, pool.BalanceAsset))
 	if err := keeper.SetPool(ctx, pool); err != nil {
-		ctx.Logger().Error("fail to save pool", "error", err)
-		return cosmos.ZeroUint(), cosmos.ErrInternal("fail to save pool")
+		return cosmos.ZeroUint(), ErrInternal(err, "fail to save pool")
 	}
 	// maintain staker structure
 

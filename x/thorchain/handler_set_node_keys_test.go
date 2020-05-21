@@ -132,17 +132,15 @@ func (s *HandlerSetNodeKeysSuite) TestHandle(c *C) {
 	c.Assert(keeper.SetNodeAccount(ctx, nodeAccount), IsNil)
 
 	// happy path
-	success := handler.handle(ctx, msgNodeKeys, ver, constAccessor)
-	c.Check(success.Code, Equals, cosmos.CodeOK)
-	c.Check(success.IsOK(), Equals, true)
+	_, err := handler.handle(ctx, msgNodeKeys, ver, constAccessor)
+	c.Assert(err, IsNil)
 	c.Assert(keeper.na.PubKeySet, Equals, pubKeys)
 	c.Assert(keeper.na.ValidatorConsPubKey, Equals, bepConsPubKey)
 	c.Assert(keeper.na.Status, Equals, NodeStandby)
 	c.Assert(keeper.na.StatusSince, Equals, int64(1))
 
 	// update version
-	success2 := handler.handle(ctx, msgNodeKeys, semver.MustParse("2.0.0"), constAccessor)
-	c.Check(success2.Code, Equals, cosmos.CodeOK)
-	c.Check(success2.IsOK(), Equals, true)
+	_, err = handler.handle(ctx, msgNodeKeys, semver.MustParse("2.0.0"), constAccessor)
+	c.Assert(err, IsNil)
 	c.Check(keeper.na.Version.String(), Equals, "2.0.0")
 }

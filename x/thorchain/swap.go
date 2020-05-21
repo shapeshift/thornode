@@ -9,19 +9,19 @@ import (
 )
 
 // validate if pools exist
-func validatePools(ctx cosmos.Context, keeper Keeper, assets ...common.Asset) cosmos.Error {
+func validatePools(ctx cosmos.Context, keeper Keeper, assets ...common.Asset) error {
 	for _, asset := range assets {
 		if !asset.IsRune() {
 			if !keeper.PoolExist(ctx, asset) {
-				return cosmos.NewError(DefaultCodespace, CodeSwapFailPoolNotExist, "%s pool doesn't exist", asset)
+				return fmt.Errorf("%s pool doesn't exist", asset)
 			}
 			pool, err := keeper.GetPool(ctx, asset)
 			if err != nil {
-				return cosmos.ErrInternal(fmt.Errorf("fail to get %s pool : %w", asset, err).Error())
+				return ErrInternal(err, fmt.Sprintf("fail to get %s pool", asset))
 			}
 
 			if pool.Status != PoolEnabled {
-				return cosmos.NewError(DefaultCodespace, CodeInvalidPoolStatus, "pool %s is in %s status, can't swap", asset.String(), pool.Status)
+				return errInvalidPoolStatus
 			}
 		}
 	}
@@ -48,11 +48,11 @@ func swap(ctx cosmos.Context,
 	target common.Asset,
 	destination common.Address,
 	tradeTarget cosmos.Uint,
-	transactionFee cosmos.Uint) (cosmos.Uint, []EventSwap, cosmos.Error) {
+	transactionFee cosmos.Uint) (cosmos.Uint, []EventSwap, error) {
 	var swapEvents []EventSwap
 
 	if err := validateMessage(tx, target, destination); err != nil {
-		return cosmos.ZeroUint(), swapEvents, cosmos.NewError(DefaultCodespace, CodeValidationError, err.Error())
+		return cosmos.ZeroUint(), swapEvents, err
 	}
 	source := tx.Coins[0].Asset
 
@@ -62,7 +62,7 @@ func swap(ctx cosmos.Context,
 	pools := make([]Pool, 0)
 	isDoubleSwap := !source.IsRune() && !target.IsRune()
 	if isDoubleSwap {
-		var swapErr cosmos.Error
+		var swapErr error
 		var swapEvt EventSwap
 		var amt cosmos.Uint
 		// Here we use a tradeTarget of 0 because the target is for the next swap asset in a double swap
@@ -84,22 +84,22 @@ func swap(ctx cosmos.Context,
 	swapEvents = append(swapEvents, swapEvt)
 	pools = append(pools, pool)
 	if !tradeTarget.IsZero() && assetAmount.LT(tradeTarget) {
-		return cosmos.ZeroUint(), swapEvents, cosmos.NewError(DefaultCodespace, CodeSwapFailTradeTarget, "emit asset %s less than price limit %s", assetAmount, tradeTarget)
+		return cosmos.ZeroUint(), swapEvents, fmt.Errorf("emit asset %s less than price limit %s", assetAmount, tradeTarget)
 	}
 	if target.IsRune() {
 		if assetAmount.LTE(transactionFee) {
-			return cosmos.ZeroUint(), swapEvents, cosmos.NewError(DefaultCodespace, CodeSwapFailNotEnoughFee, "output RUNE (%s) is not enough to pay transaction fee", assetAmount)
+			return cosmos.ZeroUint(), swapEvents, fmt.Errorf("output RUNE (%s) is not enough to pay transaction fee", assetAmount)
 		}
 	}
 	// emit asset is zero
 	if assetAmount.IsZero() {
-		return cosmos.ZeroUint(), swapEvents, cosmos.NewError(DefaultCodespace, CodeSwapFailZeroEmitAsset, "zero emit asset")
+		return cosmos.ZeroUint(), swapEvents, errors.New("zero emit asset")
 	}
 
 	// Update pools
 	for _, pool := range pools {
 		if err := keeper.SetPool(ctx, pool); err != nil {
-			return cosmos.ZeroUint(), swapEvents, cosmos.NewError(DefaultCodespace, CodeSwapFail, err.Error())
+			return cosmos.ZeroUint(), swapEvents, errSwapFail
 		}
 	}
 
@@ -111,7 +111,7 @@ func swapOne(ctx cosmos.Context,
 	target common.Asset,
 	destination common.Address,
 	tradeTarget cosmos.Uint,
-	transactionFee cosmos.Uint) (amt cosmos.Uint, poolResult Pool, evt EventSwap, swapErr cosmos.Error) {
+	transactionFee cosmos.Uint) (amt cosmos.Uint, poolResult Pool, evt EventSwap, swapErr error) {
 	source := tx.Coins[0].Asset
 	amount := tx.Coins[0].Amount
 
@@ -126,7 +126,7 @@ func swapOne(ctx cosmos.Context,
 		asset = target
 		if amount.LTE(transactionFee) {
 			// stop swap , because the output will not enough to pay for transaction fee
-			return cosmos.ZeroUint(), Pool{}, evt, cosmos.NewError(DefaultCodespace, CodeSwapFailNotEnoughFee, "output RUNE (%s) is not enough to pay transaction fee", amount)
+			return cosmos.ZeroUint(), Pool{}, evt, errSwapFailNotEnoughFee
 		}
 	}
 
@@ -141,18 +141,18 @@ func swapOne(ctx cosmos.Context,
 
 	// Check if pool exists
 	if !keeper.PoolExist(ctx, asset) {
-		ctx.Logger().Debug(fmt.Sprintf("pool %s doesn't exist", asset))
-		return cosmos.ZeroUint(), Pool{}, evt, cosmos.NewError(DefaultCodespace, CodeSwapFailPoolNotExist, "pool %s doesn't exist", asset)
+		err := fmt.Errorf("pool %s doesn't exist", asset)
+		return cosmos.ZeroUint(), Pool{}, evt, err
 	}
 
 	// Get our pool from the KVStore
 	pool, poolErr := keeper.GetPool(ctx, asset)
 	if poolErr != nil {
 		ctx.Logger().Error(fmt.Sprintf("fail to get pool(%s)", asset), "error", poolErr)
-		return cosmos.ZeroUint(), Pool{}, evt, cosmos.NewError(DefaultCodespace, CodeSwapFailPoolNotExist, "pool %s doesn't exist", asset)
+		return cosmos.ZeroUint(), Pool{}, evt, poolErr
 	}
 	if pool.Status != PoolEnabled {
-		return cosmos.ZeroUint(), pool, evt, cosmos.NewError(DefaultCodespace, CodeInvalidPoolStatus, "pool %s is in %s status, can't swap", asset.String(), pool.Status)
+		return cosmos.ZeroUint(), pool, evt, errInvalidPoolStatus
 	}
 
 	// Get our X, x, Y values
@@ -167,10 +167,10 @@ func swapOne(ctx cosmos.Context,
 
 	// check our X,x,Y values are valid
 	if x.IsZero() {
-		return cosmos.ZeroUint(), pool, evt, cosmos.NewError(DefaultCodespace, CodeSwapFailInvalidAmount, "amount is invalid")
+		return cosmos.ZeroUint(), pool, evt, errSwapFailInvalidAmount
 	}
 	if X.IsZero() || Y.IsZero() {
-		return cosmos.ZeroUint(), pool, evt, cosmos.NewError(DefaultCodespace, CodeSwapFailInvalidBalance, "invalid balance")
+		return cosmos.ZeroUint(), pool, evt, errSwapFailInvalidBalance
 	}
 
 	liquidityFee = calcLiquidityFee(X, x, Y)
@@ -188,7 +188,7 @@ func swapOne(ctx cosmos.Context,
 
 	// do THORNode have enough balance to swap?
 	if emitAssets.GTE(Y) {
-		return cosmos.ZeroUint(), pool, evt, cosmos.NewError(DefaultCodespace, CodeSwapFailNotEnoughBalance, "asset(%s) balance is %d, can't do swap", asset, Y)
+		return cosmos.ZeroUint(), pool, evt, errSwapFailNotEnoughBalance
 	}
 
 	ctx.Logger().Debug(fmt.Sprintf("Pre-Pool: %sRune %sAsset", pool.BalanceRune, pool.BalanceAsset))

@@ -37,7 +37,7 @@ func (msg MsgSetUnStake) Route() string { return RouterKey }
 func (msg MsgSetUnStake) Type() string { return "set_unstake" }
 
 // ValidateBasic runs stateless checks on the message
-func (msg MsgSetUnStake) ValidateBasic() cosmos.Error {
+func (msg MsgSetUnStake) ValidateBasic() error {
 	if msg.Signer.Empty() {
 		return cosmos.ErrInvalidAddress(msg.Signer.String())
 	}

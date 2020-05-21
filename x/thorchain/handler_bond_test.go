@@ -1,9 +1,11 @@
 package thorchain
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/blang/semver"
+	se "github.com/cosmos/cosmos-sdk/types/errors"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
@@ -60,24 +62,24 @@ func (HandlerBondSuite) TestBondHandler_Run(c *C) {
 		"apply",
 	)
 	msg := NewMsgBond(txIn, GetRandomNodeAccount(NodeStandby).NodeAddress, cosmos.NewUint(uint64(minimumBondInRune)), GetRandomBNBAddress(), activeNodeAccount.NodeAddress)
-	result := handler.Run(ctx, msg, ver, constAccessor)
-	c.Assert(result.IsOK(), Equals, true)
+	_, err := handler.Run(ctx, msg, ver, constAccessor)
+	c.Assert(err, IsNil)
 
 	// invalid version
 	handler = NewBondHandler(k, NewDummyMgr())
 	ver = semver.Version{}
-	result = handler.Run(ctx, msg, ver, constAccessor)
-	c.Assert(result.Code, Equals, CodeBadVersion)
+	_, err = handler.Run(ctx, msg, ver, constAccessor)
+	c.Assert(errors.Is(err, errBadVersion), Equals, true)
 
 	// simulate fail to get node account
 	ver = constants.SWVersion
 	msg = NewMsgBond(txIn, k.failGetNodeAccount.NodeAddress, cosmos.NewUint(uint64(minimumBondInRune)), GetRandomBNBAddress(), activeNodeAccount.NodeAddress)
-	result = handler.Run(ctx, msg, ver, constAccessor)
-	c.Assert(result.Code, Equals, cosmos.CodeInternal)
+	_, err = handler.Run(ctx, msg, ver, constAccessor)
+	c.Assert(errors.Is(err, errInternal), Equals, true)
 
 	msg = NewMsgBond(txIn, k.notEmptyNodeAccount.NodeAddress, cosmos.NewUint(uint64(minimumBondInRune)), GetRandomBNBAddress(), activeNodeAccount.NodeAddress)
-	result = handler.Run(ctx, msg, ver, constAccessor)
-	c.Assert(result.Code, Equals, cosmos.CodeInternal)
+	_, err = handler.Run(ctx, msg, ver, constAccessor)
+	c.Assert(errors.Is(err, errInternal), Equals, true)
 }
 
 func (HandlerBondSuite) TestBondHandlerFailValidation(c *C) {
@@ -101,49 +103,50 @@ func (HandlerBondSuite) TestBondHandlerFailValidation(c *C) {
 	txInNoTxID := txIn
 	txInNoTxID.ID = ""
 	testCases := []struct {
-		name         string
-		msg          MsgBond
-		expectedCode cosmos.CodeType
+		name        string
+		msg         MsgBond
+		expectedErr error
 	}{
 		{
-			name:         "empty node address",
-			msg:          NewMsgBond(txIn, cosmos.AccAddress{}, cosmos.NewUint(uint64(minimumBondInRune)), GetRandomBNBAddress(), activeNodeAccount.NodeAddress),
-			expectedCode: cosmos.CodeUnknownRequest,
+			name:        "empty node address",
+			msg:         NewMsgBond(txIn, cosmos.AccAddress{}, cosmos.NewUint(uint64(minimumBondInRune)), GetRandomBNBAddress(), activeNodeAccount.NodeAddress),
+			expectedErr: se.ErrUnknownRequest,
 		},
 		{
-			name:         "zero bond",
-			msg:          NewMsgBond(txIn, GetRandomNodeAccount(NodeStandby).NodeAddress, cosmos.ZeroUint(), GetRandomBNBAddress(), activeNodeAccount.NodeAddress),
-			expectedCode: cosmos.CodeUnknownRequest,
+			name:        "zero bond",
+			msg:         NewMsgBond(txIn, GetRandomNodeAccount(NodeStandby).NodeAddress, cosmos.ZeroUint(), GetRandomBNBAddress(), activeNodeAccount.NodeAddress),
+			expectedErr: se.ErrUnknownRequest,
 		},
 		{
-			name:         "empty bond address",
-			msg:          NewMsgBond(txIn, GetRandomNodeAccount(NodeStandby).NodeAddress, cosmos.NewUint(uint64(minimumBondInRune)), common.Address(""), activeNodeAccount.NodeAddress),
-			expectedCode: cosmos.CodeUnknownRequest,
+			name:        "empty bond address",
+			msg:         NewMsgBond(txIn, GetRandomNodeAccount(NodeStandby).NodeAddress, cosmos.NewUint(uint64(minimumBondInRune)), common.Address(""), activeNodeAccount.NodeAddress),
+			expectedErr: se.ErrUnknownRequest,
 		},
 		{
-			name:         "empty request hash",
-			msg:          NewMsgBond(txInNoTxID, GetRandomNodeAccount(NodeStandby).NodeAddress, cosmos.NewUint(uint64(minimumBondInRune)), GetRandomBNBAddress(), activeNodeAccount.NodeAddress),
-			expectedCode: cosmos.CodeUnknownRequest,
+			name:        "empty request hash",
+			msg:         NewMsgBond(txInNoTxID, GetRandomNodeAccount(NodeStandby).NodeAddress, cosmos.NewUint(uint64(minimumBondInRune)), GetRandomBNBAddress(), activeNodeAccount.NodeAddress),
+			expectedErr: se.ErrUnknownRequest,
 		},
 		{
-			name:         "empty signer",
-			msg:          NewMsgBond(txIn, GetRandomNodeAccount(NodeStandby).NodeAddress, cosmos.NewUint(uint64(minimumBondInRune)), GetRandomBNBAddress(), cosmos.AccAddress{}),
-			expectedCode: cosmos.CodeInvalidAddress,
+			name:        "empty signer",
+			msg:         NewMsgBond(txIn, GetRandomNodeAccount(NodeStandby).NodeAddress, cosmos.NewUint(uint64(minimumBondInRune)), GetRandomBNBAddress(), cosmos.AccAddress{}),
+			expectedErr: se.ErrInvalidAddress,
 		},
 		{
-			name:         "msg not signed by active account",
-			msg:          NewMsgBond(txIn, GetRandomNodeAccount(NodeStandby).NodeAddress, cosmos.NewUint(uint64(minimumBondInRune)), GetRandomBNBAddress(), GetRandomNodeAccount(NodeStandby).NodeAddress),
-			expectedCode: cosmos.CodeUnauthorized,
+			name:        "msg not signed by active account",
+			msg:         NewMsgBond(txIn, GetRandomNodeAccount(NodeStandby).NodeAddress, cosmos.NewUint(uint64(minimumBondInRune)), GetRandomBNBAddress(), GetRandomNodeAccount(NodeStandby).NodeAddress),
+			expectedErr: se.ErrUnauthorized,
 		},
 		{
-			name:         "not enough rune",
-			msg:          NewMsgBond(txIn, GetRandomNodeAccount(NodeStandby).NodeAddress, cosmos.NewUint(uint64(minimumBondInRune-100)), GetRandomBNBAddress(), activeNodeAccount.NodeAddress),
-			expectedCode: cosmos.CodeUnknownRequest,
+			name:        "not enough rune",
+			msg:         NewMsgBond(txIn, GetRandomNodeAccount(NodeStandby).NodeAddress, cosmos.NewUint(uint64(minimumBondInRune-100)), GetRandomBNBAddress(), activeNodeAccount.NodeAddress),
+			expectedErr: se.ErrUnknownRequest,
 		},
 	}
 	for _, item := range testCases {
 		c.Log(item.name)
-		result := handler.Run(ctx, item.msg, ver, constAccessor)
-		c.Assert(result.Code, Equals, item.expectedCode)
+		_, err := handler.Run(ctx, item.msg, ver, constAccessor)
+
+		c.Check(errors.Is(err, item.expectedErr), Equals, true, Commentf("name: %s", item.name))
 	}
 }

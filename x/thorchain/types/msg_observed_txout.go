@@ -1,6 +1,8 @@
 package types
 
-import cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+import (
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+)
 
 // MsgObservedTxOut defines a MsgObservedTxOut message
 type MsgObservedTxOut struct {
@@ -23,7 +25,7 @@ func (msg MsgObservedTxOut) Route() string { return RouterKey }
 func (msg MsgObservedTxOut) Type() string { return "set_observed_txout" }
 
 // ValidateBasic runs stateless checks on the message
-func (msg MsgObservedTxOut) ValidateBasic() cosmos.Error {
+func (msg MsgObservedTxOut) ValidateBasic() error {
 	if msg.Signer.Empty() {
 		return cosmos.ErrInvalidAddress(msg.Signer.String())
 	}

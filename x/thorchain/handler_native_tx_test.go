@@ -60,6 +60,6 @@ func (s *HandlerNativeTxSuite) TestHandle(c *C) {
 
 	msg := NewMsgNativeTx(coins, "ADD:BNB.BNB", addr)
 
-	result := handler.handle(ctx, msg, constants.SWVersion, constAccessor)
-	c.Assert(result.IsOK(), Equals, true, Commentf("%+v", result.Log))
+	_, err = handler.handle(ctx, msg, constants.SWVersion, constAccessor)
+	c.Assert(err, IsNil)
 }

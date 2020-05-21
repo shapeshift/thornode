@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/blang/semver"
+	se "github.com/cosmos/cosmos-sdk/types/errors"
 
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
@@ -24,20 +25,17 @@ func NewObservedTxInHandler(keeper Keeper, mgr Manager) ObservedTxInHandler {
 	}
 }
 
-func (h ObservedTxInHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, _ constants.ConstantValues) cosmos.Result {
+func (h ObservedTxInHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, _ constants.ConstantValues) (*cosmos.Result, error) {
 	msg, ok := m.(MsgObservedTxIn)
 	if !ok {
-		return errInvalidMessage.Result()
+		return nil, errInvalidMessage
 	}
 	isNewSigner, err := h.validate(ctx, msg, version)
 	if err != nil {
-		return cosmos.ErrInternal(err.Error()).Result()
+		return nil, err
 	}
 	if isNewSigner {
-		return cosmos.Result{
-			Code:      cosmos.CodeOK,
-			Codespace: DefaultCodespace,
-		}
+		return nil, nil
 	}
 	return h.handle(ctx, msg, version)
 }
@@ -65,12 +63,16 @@ func (h ObservedTxInHandler) validateV1(ctx cosmos.Context, msg MsgObservedTxIn)
 	return false, nil
 }
 
-func (h ObservedTxInHandler) handle(ctx cosmos.Context, msg MsgObservedTxIn, version semver.Version) cosmos.Result {
+func (h ObservedTxInHandler) handle(ctx cosmos.Context, msg MsgObservedTxIn, version semver.Version) (*cosmos.Result, error) {
 	if version.GTE(semver.MustParse("0.1.0")) {
-		return h.handleV1(ctx, version, msg)
+		r, err := h.handleV1(ctx, version, msg)
+		if err != nil {
+			ctx.Logger().Error("fail to process msg", "error", err)
+		}
+		return r, err
 	} else {
 		ctx.Logger().Error(errInvalidVersion.Error())
-		return errBadVersion.Result()
+		return nil, errBadVersion
 	}
 }
 
@@ -106,17 +108,17 @@ func (h ObservedTxInHandler) preflight(ctx cosmos.Context, voter ObservedTxVoter
 }
 
 // Handle a message to observe inbound tx
-func (h ObservedTxInHandler) handleV1(ctx cosmos.Context, version semver.Version, msg MsgObservedTxIn) cosmos.Result {
+func (h ObservedTxInHandler) handleV1(ctx cosmos.Context, version semver.Version, msg MsgObservedTxIn) (*cosmos.Result, error) {
 	constAccessor := constants.GetConstantValues(version)
 	activeNodeAccounts, err := h.keeper.ListActiveNodeAccounts(ctx)
 	if err != nil {
 		err = wrapError(ctx, err, "fail to get list of active node accounts")
-		return cosmos.ErrInternal(err.Error()).Result()
+
+		return nil, err
 	}
 	slasher, err := NewSlasher(h.keeper, version, h.mgr)
 	if err != nil {
-		ctx.Logger().Error("fail to create slasher", "error", err)
-		return cosmos.ErrInternal("fail to create slasher").Result()
+		return nil, ErrInternal(err, "fail to create slasher")
 	}
 	handler := NewInternalHandler(h.keeper, h.mgr)
 	for _, tx := range msg.Txs {
@@ -129,7 +131,7 @@ func (h ObservedTxInHandler) handleV1(ctx cosmos.Context, version semver.Version
 
 		voter, err := h.keeper.GetObservedTxVoter(ctx, tx.Tx.ID)
 		if err != nil {
-			return cosmos.ErrInternal(err.Error()).Result()
+			return nil, err
 		}
 
 		voter, ok := h.preflight(ctx, voter, activeNodeAccounts, tx, msg.Signer, slasher, version)
@@ -161,7 +163,7 @@ func (h ObservedTxInHandler) handleV1(ctx cosmos.Context, version semver.Version
 		vault, err := h.keeper.GetVault(ctx, tx.ObservedPubKey)
 		if err != nil {
 			ctx.Logger().Error("fail to get vault", "error", err)
-			return cosmos.ErrInternal(err.Error()).Result()
+			return nil, err
 		}
 
 		vault.AddFunds(tx.Tx.Coins)
@@ -172,7 +174,7 @@ func (h ObservedTxInHandler) handleV1(ctx cosmos.Context, version semver.Version
 		}
 		if err := h.keeper.SetVault(ctx, vault); err != nil {
 			ctx.Logger().Error("fail to save vault", "error", err)
-			return cosmos.ErrInternal(err.Error()).Result()
+			return nil, err
 		}
 
 		if !vault.IsAsgard() {
@@ -190,14 +192,14 @@ func (h ObservedTxInHandler) handleV1(ctx cosmos.Context, version semver.Version
 			reason := fmt.Sprintf("vault %s is not current vault", tx.ObservedPubKey)
 			ctx.Logger().Info("refund reason", reason)
 			if err := refundTx(ctx, tx, h.mgr, h.keeper, constAccessor, CodeInvalidVault, reason); err != nil {
-				return cosmos.ErrInternal(err.Error()).Result()
+				return nil, err
 			}
 			continue
 		}
 		// chain is empty
 		if tx.Tx.Chain.IsEmpty() {
 			if err := refundTx(ctx, tx, h.mgr, h.keeper, constAccessor, CodeEmptyChain, "chain is empty"); err != nil {
-				return cosmos.ErrInternal(err.Error()).Result()
+				return nil, err
 			}
 			continue
 		}
@@ -206,8 +208,8 @@ func (h ObservedTxInHandler) handleV1(ctx cosmos.Context, version semver.Version
 		m, txErr := processOneTxIn(ctx, h.keeper, txIn, msg.Signer)
 		if txErr != nil {
 			ctx.Logger().Error("fail to process inbound tx", "error", txErr.Error(), "tx hash", tx.Tx.ID.String())
-			if newErr := refundTx(ctx, tx, h.mgr, h.keeper, constAccessor, txErr.Code(), fmt.Sprint(txErr.Data())); nil != newErr {
-				return cosmos.ErrInternal(newErr.Error()).Result()
+			if newErr := refundTx(ctx, tx, h.mgr, h.keeper, constAccessor, CodeInvalidMemo, txErr.Error()); nil != newErr {
+				return nil, ErrInternal(newErr, "fail to refund")
 			}
 			continue
 		}
@@ -218,7 +220,7 @@ func (h ObservedTxInHandler) handleV1(ctx cosmos.Context, version semver.Version
 		}
 
 		if err := h.keeper.SetLastChainHeight(ctx, tx.Tx.Chain, tx.BlockHeight); err != nil {
-			return cosmos.ErrInternal(err.Error()).Result()
+			return nil, err
 		}
 
 		// add addresses to observing addresses. This is used to detect
@@ -232,8 +234,8 @@ func (h ObservedTxInHandler) handleV1(ctx cosmos.Context, version semver.Version
 		if isSwap || isStake {
 			if (haltTrading > 0 && haltTrading < ctx.BlockHeight() && err == nil) || h.keeper.RagnarokInProgress(ctx) {
 				ctx.Logger().Info("trading is halted!!")
-				if newErr := refundTx(ctx, tx, h.mgr, h.keeper, constAccessor, cosmos.CodeUnauthorized, "trading halted"); nil != newErr {
-					return cosmos.ErrInternal(newErr.Error()).Result()
+				if newErr := refundTx(ctx, tx, h.mgr, h.keeper, constAccessor, se.ErrUnauthorized.ABCICode(), "trading halted"); nil != newErr {
+					return nil, ErrInternal(newErr, "trading is halted, fail to refund")
 				}
 				continue
 			}
@@ -242,27 +244,17 @@ func (h ObservedTxInHandler) handleV1(ctx cosmos.Context, version semver.Version
 		// if its a swap, send it to our queue for processing later
 		if isSwap {
 			if err := h.keeper.SetSwapQueueItem(ctx, m.(MsgSwap)); err != nil {
-				return cosmos.ErrInternal(err.Error()).Result()
+				return nil, err
 			}
-			return cosmos.Result{
-				Code:      cosmos.CodeOK,
-				Codespace: DefaultCodespace,
-			}
+			return &cosmos.Result{}, nil
 		}
 
-		result := handler(ctx, m)
-		if !result.IsOK() {
-			refundMsg, err := getErrMessageFromABCILog(result.Log)
-			if err != nil {
-				ctx.Logger().Error(err.Error())
-			}
-			if err := refundTx(ctx, tx, h.mgr, h.keeper, constAccessor, result.Code, refundMsg); err != nil {
-				return cosmos.ErrInternal(err.Error()).Result()
+		_, err = handler(ctx, m)
+		if err != nil {
+			if err := refundTx(ctx, tx, h.mgr, h.keeper, constAccessor, CodeTxFail, err.Error()); err != nil {
+				return nil, err
 			}
 		}
 	}
-	return cosmos.Result{
-		Code:      cosmos.CodeOK,
-		Codespace: DefaultCodespace,
-	}
+	return &cosmos.Result{}, nil
 }

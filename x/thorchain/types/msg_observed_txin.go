@@ -1,6 +1,8 @@
 package types
 
-import cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+import (
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+)
 
 // MsgObservedTxIn defines a MsgObservedTxIn message
 type MsgObservedTxIn struct {
@@ -23,7 +25,7 @@ func (msg MsgObservedTxIn) Route() string { return RouterKey }
 func (msg MsgObservedTxIn) Type() string { return "set_observed_txin" }
 
 // ValidateBasic runs stateless checks on the message
-func (msg MsgObservedTxIn) ValidateBasic() cosmos.Error {
+func (msg MsgObservedTxIn) ValidateBasic() error {
 	if msg.Signer.Empty() {
 		return cosmos.ErrInvalidAddress(msg.Signer.String())
 	}
@@ -39,7 +41,7 @@ func (msg MsgObservedTxIn) ValidateBasic() cosmos.Error {
 			return cosmos.ErrUnknownRequest(err.Error())
 		}
 		if !tx.Tx.ToAddress.Equals(obAddr) {
-			return cosmos.ErrUnknownRequest("Request is not an inbound observed transaction")
+			return cosmos.ErrUnknownRequest("request is not an inbound observed transaction")
 		}
 		if len(tx.Signers) > 0 {
 			return cosmos.ErrUnknownRequest("signers must be empty")

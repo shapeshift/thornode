@@ -84,10 +84,11 @@ func main() {
 	if len(cfg.Thorchain.SignerPasswd) == 0 {
 		log.Fatal().Msg("signer password is empty")
 	}
-	kb, si, err := thorclient.GetKeybase(cfg.Thorchain.ChainHomeFolder, cfg.Thorchain.SignerName)
+	kb, si, err := thorclient.GetKeyringKeybase(cfg.Thorchain.ChainHomeFolder, cfg.Thorchain.SignerName, cfg.Thorchain.SignerPasswd)
 	if err != nil {
 		log.Fatal().Err(err).Msg("fail to get keyring keybase")
 	}
+
 	k := thorclient.NewKeysWithKeybase(kb, si, cfg.Thorchain.SignerPasswd)
 	// thorchain bridge
 	thorchainBridge, err := thorclient.NewThorchainBridge(cfg.Thorchain, m, k)

@@ -1,6 +1,8 @@
 package types
 
-import cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+import (
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+)
 
 // MsgRagnarok defines a MsgRagnarok message
 type MsgRagnarok struct {
@@ -25,7 +27,7 @@ func (msg MsgRagnarok) Route() string { return RouterKey }
 func (msg MsgRagnarok) Type() string { return "ragnarok" }
 
 // ValidateBasic runs stateless checks on the message
-func (msg MsgRagnarok) ValidateBasic() cosmos.Error {
+func (msg MsgRagnarok) ValidateBasic() error {
 	if msg.Signer.Empty() {
 		return cosmos.ErrInvalidAddress(msg.Signer.String())
 	}

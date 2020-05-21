@@ -92,7 +92,9 @@ func (b *ThorchainBridge) Broadcast(stdTx authtypes.StdTx, mode types.TxMode) (c
 	// This complicates things pretty well.
 	// Sample 1: { "height": "0", "txhash": "D97E8A81417E293F5B28DDB53A4AD87B434CA30F51D683DA758ECC2168A7A005", "raw_log": "[{\"msg_index\":0,\"success\":true,\"log\":\"\",\"events\":[{\"type\":\"message\",\"attributes\":[{\"key\":\"action\",\"value\":\"set_observed_txout\"}]}]}]", "logs": [ { "msg_index": 0, "success": true, "log": "", "events": [ { "type": "message", "attributes": [ { "key": "action", "value": "set_observed_txout" } ] } ] } ] }
 	// Sample 2: { "height": "0", "txhash": "6A9AA734374D567D1FFA794134A66D3BF614C4EE5DDF334F21A52A47C188A6A2", "code": 4, "raw_log": "{\"codespace\":\"sdk\",\"code\":4,\"message\":\"signature verification failed; verify correct account sequence and chain-id\"}" }
+	// {"height": "0","txhash": "2B8745524F3A2883F8517F74C4FC8009F8E89E66D677C3459A103B75388F72E6","raw_log": "[]"}
 	var commit types.Commit
+	b.logger.Info().Msg(string(body))
 	err = json.Unmarshal(body, &commit)
 	if err != nil || len(commit.Logs) == 0 {
 		b.errCounter.WithLabelValues("fail_unmarshal_commit", "").Inc()

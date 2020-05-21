@@ -24,14 +24,14 @@ func NewBondHandler(keeper Keeper, mgr Manager) BondHandler {
 	}
 }
 
-func (h BondHandler) validate(ctx cosmos.Context, msg MsgBond, version semver.Version, constAccessor constants.ConstantValues) cosmos.Error {
+func (h BondHandler) validate(ctx cosmos.Context, msg MsgBond, version semver.Version, constAccessor constants.ConstantValues) error {
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, version, msg, constAccessor)
 	}
 	return errBadVersion
 }
 
-func (h BondHandler) validateV1(ctx cosmos.Context, version semver.Version, msg MsgBond, constAccessor constants.ConstantValues) cosmos.Error {
+func (h BondHandler) validateV1(ctx cosmos.Context, version semver.Version, msg MsgBond, constAccessor constants.ConstantValues) error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
@@ -47,7 +47,7 @@ func (h BondHandler) validateV1(ctx cosmos.Context, version semver.Version, msg 
 
 	nodeAccount, err := h.keeper.GetNodeAccount(ctx, msg.NodeAddress)
 	if err != nil {
-		return cosmos.ErrInternal(fmt.Sprintf("fail to get node account(%s): %s", msg.NodeAddress, err))
+		return ErrInternal(err, fmt.Sprintf("fail to get node account(%s)", msg.NodeAddress))
 	}
 
 	bond := msg.Bond.Add(nodeAccount.Bond)
@@ -67,10 +67,10 @@ func (h BondHandler) validateV1(ctx cosmos.Context, version semver.Version, msg 
 }
 
 // Run execute the handler
-func (h BondHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) cosmos.Result {
+func (h BondHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	msg, ok := m.(MsgBond)
 	if !ok {
-		return errInvalidMessage.Result()
+		return nil, errInvalidMessage
 	}
 	ctx.Logger().Info("receive MsgBond",
 		"node address", msg.NodeAddress,
@@ -78,25 +78,22 @@ func (h BondHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Versio
 		"bond", msg.Bond)
 	if err := h.validate(ctx, msg, version, constAccessor); err != nil {
 		ctx.Logger().Error("msg bond fail validation", "error", err)
-		return err.Result()
+		return nil, err
 	}
 
 	if err := h.handle(ctx, msg, version, constAccessor); err != nil {
 		ctx.Logger().Error("fail to process msg bond", "error", err)
-		return err.Result()
+		return nil, err
 	}
 	bondEvent := NewEventBond(msg.Bond, BondPaid, msg.TxIn)
 	if err := h.mgr.EventMgr().EmitBondEvent(ctx, h.keeper, bondEvent); err != nil {
-		return cosmos.NewError(DefaultCodespace, CodeFailSaveEvent, "fail to emit bond event").Result()
+		return nil, cosmos.Wrapf(errFailSaveEvent, "fail to emit bond event: %w", err)
 	}
 
-	return cosmos.Result{
-		Code:      cosmos.CodeOK,
-		Codespace: DefaultCodespace,
-	}
+	return &cosmos.Result{}, nil
 }
 
-func (h BondHandler) handle(ctx cosmos.Context, msg MsgBond, version semver.Version, constAccessor constants.ConstantValues) cosmos.Error {
+func (h BondHandler) handle(ctx cosmos.Context, msg MsgBond, version semver.Version, constAccessor constants.ConstantValues) error {
 	// THORNode will not have pub keys at the moment, so have to leave it empty
 	emptyPubKeySet := common.PubKeySet{
 		Secp256k1: common.EmptyPubKey,
@@ -105,7 +102,7 @@ func (h BondHandler) handle(ctx cosmos.Context, msg MsgBond, version semver.Vers
 
 	nodeAccount, err := h.keeper.GetNodeAccount(ctx, msg.NodeAddress)
 	if err != nil {
-		return cosmos.ErrInternal(fmt.Sprintf("fail to get node account(%s): %s", msg.NodeAddress, err))
+		return ErrInternal(err, fmt.Sprintf("fail to get node account(%s)", msg.NodeAddress))
 	}
 
 	if nodeAccount.Status == NodeUnknown {
@@ -120,25 +117,25 @@ func (h BondHandler) handle(ctx cosmos.Context, msg MsgBond, version semver.Vers
 	nodeAccount.Bond = nodeAccount.Bond.Add(msg.Bond)
 
 	if err := h.keeper.SetNodeAccount(ctx, nodeAccount); err != nil {
-		return cosmos.ErrInternal(fmt.Errorf("fail to save node account(%s): %w", nodeAccount, err).Error())
+		return ErrInternal(err, fmt.Sprintf("fail to save node account(%s)", nodeAccount))
 	}
 	return h.mintGasAsset(ctx, msg, constAccessor)
 }
 
-func (h BondHandler) mintGasAsset(ctx cosmos.Context, msg MsgBond, constAccessor constants.ConstantValues) cosmos.Error {
+func (h BondHandler) mintGasAsset(ctx cosmos.Context, msg MsgBond, constAccessor constants.ConstantValues) error {
 	whiteListGasAsset := constAccessor.GetInt64Value(constants.WhiteListGasAsset)
 	coinsToMint, err := cosmos.ParseCoins(fmt.Sprintf("%dthor", whiteListGasAsset))
 	if err != nil {
-		return cosmos.ErrInternal(fmt.Errorf("fail to parse coins: %w", err).Error())
+		return ErrInternal(err, "fail to parse coins")
 	}
 	// mint some gas asset
 	err = h.keeper.Supply().MintCoins(ctx, ModuleName, coinsToMint)
 	if err != nil {
 		ctx.Logger().Error("fail to mint gas assets", "error", err)
-		return cosmos.ErrInternal(fmt.Errorf("fail to mint gas assets: %w", err).Error())
+		return ErrInternal(err, "fail to mint gas assets: %w")
 	}
 	if err := h.keeper.Supply().SendCoinsFromModuleToAccount(ctx, ModuleName, msg.NodeAddress, coinsToMint); err != nil {
-		return cosmos.ErrInternal(fmt.Errorf("fail to send newly minted gas asset to node address(%s): %w", msg.NodeAddress, err).Error())
+		return ErrInternal(err, fmt.Sprintf("fail to send newly minted gas asset to node address(%s)", msg.NodeAddress))
 	}
 	return nil
 }

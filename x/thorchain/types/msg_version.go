@@ -2,6 +2,7 @@ package types
 
 import (
 	"github.com/blang/semver"
+
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
@@ -26,7 +27,7 @@ func (msg MsgSetVersion) Route() string { return RouterKey }
 func (msg MsgSetVersion) Type() string { return "set_version" }
 
 // ValidateBasic runs stateless checks on the message
-func (msg MsgSetVersion) ValidateBasic() cosmos.Error {
+func (msg MsgSetVersion) ValidateBasic() error {
 	if msg.Signer.Empty() {
 		return cosmos.ErrInvalidAddress(msg.Signer.String())
 	}

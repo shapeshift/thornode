@@ -27,7 +27,7 @@ func (msg MsgSetIPAddress) Route() string { return RouterKey }
 func (msg MsgSetIPAddress) Type() string { return "set_ip_address" }
 
 // ValidateBasic runs stateless checks on the message
-func (msg MsgSetIPAddress) ValidateBasic() cosmos.Error {
+func (msg MsgSetIPAddress) ValidateBasic() error {
 	if msg.Signer.Empty() {
 		return cosmos.ErrInvalidAddress(msg.Signer.String())
 	}

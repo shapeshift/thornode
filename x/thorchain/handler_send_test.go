@@ -61,8 +61,8 @@ func (s *HandlerSendSuite) TestHandle(c *C) {
 	}
 
 	handler := NewSendHandler(k, NewDummyMgr())
-	result := handler.handle(ctx, msg, constants.SWVersion, constAccessor)
-	c.Assert(result.IsOK(), Equals, true, Commentf("%+v", result.Log))
+	_, err = handler.handle(ctx, msg, constants.SWVersion, constAccessor)
+	c.Assert(err, IsNil)
 
 	// insufficient funds
 	coin, err = common.NewCoin(common.RuneNative, cosmos.NewUint(3000*common.One)).Native()
@@ -72,6 +72,6 @@ func (s *HandlerSendSuite) TestHandle(c *C) {
 		ToAddress:   addr2,
 		Amount:      cosmos.NewCoins(coin),
 	}
-	result = handler.handle(ctx, msg, constants.SWVersion, constAccessor)
-	c.Assert(result.IsOK(), Equals, false, Commentf("%+v", result.Log))
+	_, err = handler.handle(ctx, msg, constants.SWVersion, constAccessor)
+	c.Assert(err, NotNil)
 }
