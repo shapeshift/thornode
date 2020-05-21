@@ -1,10 +1,10 @@
 #!/bin/sh
 
 CHAIN_ID="${CHAIN_ID:=thorchain}"
-BINANCE_HOST="http://${BINANCE_HOST:=binance-mock:26660}"
+BINANCE_HOST="${BINANCE_HOST:=http://binance-mock:26660}"
 BINANCE_START_BLOCK_HEIGHT="${BINANCE_START_BLOCK_HEIGHT:=0}"
 BTC_HOST="${BTC_HOST:=bitcoin-regtest:18443}"
-ETH_HOST="http://${ETH_HOST:=ethereum-localnet:8545}"
+ETH_HOST="${ETH_HOST:=http://ethereum-localnet:8545}"
 DB_PATH="${DB_PATH:=/var/data}"
 CHAIN_API="${CHAIN_API:=127.0.0.1:1317}"
 CHAIN_RPC="${CHAIN_RPC:=127.0.0.1:26657}"
