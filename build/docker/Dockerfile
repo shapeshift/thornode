@@ -26,7 +26,7 @@ RUN make install
 #
 FROM alpine
 
-RUN apk add --update jq curl nginx bind-tools && \
+RUN apk add --update jq curl bind-tools && \
     rm -rf /var/cache/apk/*
 
 # Copy the compiled binaires over.
