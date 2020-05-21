@@ -28,6 +28,9 @@ func NewExternalHandler(keeper Keeper, mgr Manager) cosmos.Handler {
 		if err != nil {
 			return nil, err
 		}
+		if result == nil {
+			result = &cosmos.Result{}
+		}
 		if len(ctx.EventManager().Events()) > 0 {
 			result.Events = result.Events.AppendEvents(ctx.EventManager().Events())
 		}
