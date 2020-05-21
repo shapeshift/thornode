@@ -116,18 +116,6 @@ func (h NativeTxHandler) handleV1(ctx cosmos.Context, msg MsgNativeTx, version s
 
 	handler := NewInternalHandler(h.keeper, h.mgr)
 
-	txOutStore, err := h.versionedTxOutStore.GetTxOutStore(ctx, h.keeper, version)
-	if err != nil {
-		ctx.Logger().Error("fail to get txout store", "error", err)
-		return errBadVersion.Result()
-	}
-
-	eventMgr, err := h.versionedEventManager.GetEventManager(ctx, version)
-	if err != nil {
-		ctx.Logger().Error("fail to get event manager", "error", err)
-		return errFailGetEventManager.Result()
-	}
-
 	memo, _ := ParseMemo(msg.Memo) // ignore err
 	targetModule := AsgardName
 	if memo.IsType(TxBond) {
@@ -144,7 +132,7 @@ func (h NativeTxHandler) handleV1(ctx cosmos.Context, msg MsgNativeTx, version s
 	m, txErr := processOneTxIn(ctx, h.keeper, txIn, msg.Signer)
 	if txErr != nil {
 		ctx.Logger().Error("fail to process native inbound tx", "error", txErr.Error(), "tx hash", tx.ID.String())
-		if newErr := refundTx(ctx, txIn, txOutStore, h.keeper, constAccessor, txErr.Code(), fmt.Sprint(txErr.Data()), eventMgr); nil != newErr {
+		if newErr := refundTx(ctx, txIn, h.mgr, h.keeper, constAccessor, txErr.Code(), fmt.Sprint(txErr.Data())); nil != newErr {
 			return cosmos.ErrInternal(newErr.Error()).Result()
 		}
 		return cosmos.Result{
