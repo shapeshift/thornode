@@ -321,7 +321,9 @@ func (s *HandlerObservedTxOutSuite) TestHandleStolenFunds(c *C) {
 	txOutStore := NewTxStoreDummy()
 	keeper.txOutStore = txOutStore
 
-	handler := NewObservedTxOutHandler(keeper, NewDummyMgr())
+	mgr := NewDummyMgr()
+	mgr.slasher = NewSlasherV1(keeper)
+	handler := NewObservedTxOutHandler(keeper, mgr)
 
 	c.Assert(err, IsNil)
 	msg := NewMsgObservedTxOut(txs, keeper.nas[0].NodeAddress)

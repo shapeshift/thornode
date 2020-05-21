@@ -113,7 +113,6 @@ func (am AppModule) NewQuerierHandler() sdk.Querier {
 
 func (am AppModule) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
 	ctx.Logger().Debug("Begin Block", "height", req.Header.Height)
-	var err error
 	version := am.keeper.GetLowestActiveVersion(ctx)
 	am.keeper.ClearObservingAddresses(ctx)
 	if err := am.mgr.BeginBlock(ctx); err != nil {
@@ -127,11 +126,7 @@ func (am AppModule) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
 		return
 	}
 
-	slasher, err := NewSlasher(am.keeper, version, am.mgr)
-	if err != nil {
-		ctx.Logger().Error("fail to create slasher", "error", err)
-	}
-	slasher.BeginBlock(ctx, req, constantValues)
+	am.mgr.Slasher().BeginBlock(ctx, req, constantValues)
 
 	if err := am.mgr.ValidatorMgr().BeginBlock(ctx, constantValues); err != nil {
 		ctx.Logger().Error("Fail to begin block on validator", "error", err)
@@ -151,16 +146,11 @@ func (am AppModule) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.V
 		ctx.Logger().Error("fail to process swap queue", "error", err)
 	}
 
-	slasher, err := NewSlasher(am.keeper, version, am.mgr)
-	if err != nil {
-		ctx.Logger().Error("fail to create slasher", "error", err)
-		return nil
-	}
 	// slash node accounts for not observing any accepted inbound tx
-	if err := slasher.LackObserving(ctx, constantValues); err != nil {
+	if err := am.mgr.Slasher().LackObserving(ctx, constantValues); err != nil {
 		ctx.Logger().Error("Unable to slash for lack of observing:", "error", err)
 	}
-	if err := slasher.LackSigning(ctx, constantValues, am.mgr.TxOutStore()); err != nil {
+	if err := am.mgr.Slasher().LackSigning(ctx, constantValues, am.mgr); err != nil {
 		ctx.Logger().Error("Unable to slash for lack of signing:", "error", err)
 	}
 

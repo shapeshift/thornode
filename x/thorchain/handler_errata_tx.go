@@ -79,13 +79,9 @@ func (h ErrataTxHandler) handleV1(ctx cosmos.Context, msg MsgErrataTx, version s
 	if err != nil {
 		return nil, err
 	}
-	slasher, err := NewSlasher(h.keeper, version, h.mgr)
-	if err != nil {
-		return nil, ErrInternal(err, "fail to create slasher")
-	}
 	constAccessor := constants.GetConstantValues(version)
 	observeSlashPoints := constAccessor.GetInt64Value(constants.ObserveSlashPoints)
-	slasher.IncSlashPoints(ctx, observeSlashPoints, msg.Signer)
+	h.mgr.Slasher().IncSlashPoints(ctx, observeSlashPoints, msg.Signer)
 	if !voter.Sign(msg.Signer) {
 		ctx.Logger().Info("signer already signed MsgErrataTx", "signer", msg.Signer.String(), "txid", msg.TxID)
 		return &cosmos.Result{}, nil
@@ -99,7 +95,7 @@ func (h ErrataTxHandler) handleV1(ctx cosmos.Context, msg MsgErrataTx, version s
 
 	if voter.BlockHeight > 0 {
 		if voter.BlockHeight == ctx.BlockHeight() {
-			slasher.DecSlashPoints(ctx, observeSlashPoints, msg.Signer)
+			h.mgr.Slasher().DecSlashPoints(ctx, observeSlashPoints, msg.Signer)
 		}
 		// errata tx already processed
 		return &cosmos.Result{}, nil
@@ -108,7 +104,7 @@ func (h ErrataTxHandler) handleV1(ctx cosmos.Context, msg MsgErrataTx, version s
 	voter.BlockHeight = ctx.BlockHeight()
 	h.keeper.SetErrataTxVoter(ctx, voter)
 	// decrease the slash points
-	slasher.DecSlashPoints(ctx, observeSlashPoints, voter.Signers...)
+	h.mgr.Slasher().DecSlashPoints(ctx, observeSlashPoints, voter.Signers...)
 	observedVoter, err := h.keeper.GetObservedTxVoter(ctx, msg.TxID)
 	if err != nil {
 		return nil, err

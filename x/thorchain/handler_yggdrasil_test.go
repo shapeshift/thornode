@@ -107,6 +107,7 @@ func newYggdrasilHandlerTestHelper(c *C) yggdrasilHandlerTestHelper {
 
 	mgr := NewDummyMgr()
 	mgr.validatorMgr = NewValidatorMgrV1(k, mgr.VaultMgr(), mgr.TxOutStore(), mgr.EventMgr())
+	mgr.slasher = NewSlasherV1(keeper)
 	c.Assert(mgr.ValidatorMgr().BeginBlock(ctx, constAccessor), IsNil)
 	asgardVault := GetRandomVault()
 	asgardVault.Type = AsgardVault
