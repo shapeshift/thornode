@@ -8,6 +8,7 @@ type DummyMgr struct {
 	validatorMgr ValidatorManager
 	obMgr        ObserverManager
 	swapQ        SwapQueue
+	slasher      Slasher
 }
 
 func NewDummyMgr() *DummyMgr {
@@ -18,6 +19,7 @@ func NewDummyMgr() *DummyMgr {
 		vaultMgr:     NewVaultMgrDummy(),
 		validatorMgr: NewValidatorDummyMgr(),
 		obMgr:        NewDummyObserverManager(),
+		slasher:      NewDummySlasher(),
 		// TODO add dummy swap queue
 	}
 }
@@ -29,3 +31,4 @@ func (m DummyMgr) VaultMgr() VaultManager         { return m.vaultMgr }
 func (m DummyMgr) ValidatorMgr() ValidatorManager { return m.validatorMgr }
 func (m DummyMgr) ObMgr() ObserverManager         { return m.obMgr }
 func (m DummyMgr) SwapQ() SwapQueue               { return m.swapQ }
+func (m DummyMgr) Slasher() Slasher               { return m.slasher }

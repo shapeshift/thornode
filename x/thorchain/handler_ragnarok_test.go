@@ -179,7 +179,11 @@ func (HandlerRagnarokSuite) TestSlash(c *C) {
 	}
 	addr, err := keeper.retireVault.PubKey.GetAddress(common.BNBChain)
 	c.Assert(err, IsNil)
-	handler := NewRagnarokHandler(keeper, NewDummyMgr())
+
+	mgr := NewDummyMgr()
+	mgr.slasher = NewSlasherV1(keeper)
+	handler := NewRagnarokHandler(keeper, mgr)
+
 	tx := NewObservedTx(common.Tx{
 		ID:    GetRandomTxHash(),
 		Chain: common.BNBChain,

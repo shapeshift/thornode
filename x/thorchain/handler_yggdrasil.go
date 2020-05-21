@@ -71,12 +71,8 @@ func (h YggdrasilHandler) handle(ctx cosmos.Context, msg MsgYggdrasil, version s
 
 func (h YggdrasilHandler) slash(ctx cosmos.Context, version semver.Version, pk common.PubKey, coins common.Coins) error {
 	var returnErr error
-	slasher, err := NewSlasher(h.keeper, version, h.mgr)
-	if err != nil {
-		return fmt.Errorf("fail to create new slasher,error:%w", err)
-	}
 	for _, c := range coins {
-		if err := slasher.SlashNodeAccount(ctx, pk, c.Asset, c.Amount); err != nil {
+		if err := h.mgr.Slasher().SlashNodeAccount(ctx, pk, c.Asset, c.Amount, h.mgr); err != nil {
 			ctx.Logger().Error("fail to slash account", "error", err)
 			returnErr = err
 		}

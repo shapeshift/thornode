@@ -81,13 +81,9 @@ func (h TssKeysignHandler) handleV1(ctx cosmos.Context, msg MsgTssKeysignFail, v
 	if err != nil {
 		return nil, err
 	}
-	slasher, err := NewSlasher(h.keeper, version, h.mgr)
-	if err != nil {
-		return nil, ErrInternal(err, "fail to create slasher")
-	}
 	constAccessor := constants.GetConstantValues(version)
 	observeSlashPoints := constAccessor.GetInt64Value(constants.ObserveSlashPoints)
-	slasher.IncSlashPoints(ctx, observeSlashPoints, msg.Signer)
+	h.mgr.Slasher().IncSlashPoints(ctx, observeSlashPoints, msg.Signer)
 	if !voter.Sign(msg.Signer) {
 		ctx.Logger().Info("signer already signed MsgTssKeysignFail", "signer", msg.Signer.String(), "txid", msg.ID)
 		return &cosmos.Result{}, nil
@@ -119,11 +115,11 @@ func (h TssKeysignHandler) handleV1(ctx cosmos.Context, msg MsgTssKeysignFail, v
 				ctx.Logger().Error("fail to inc slash points", "error", err)
 			}
 		}
-		slasher.DecSlashPoints(ctx, observeSlashPoints, voter.Signers...)
-		return nil, nil
+		h.mgr.Slasher().DecSlashPoints(ctx, observeSlashPoints, voter.Signers...)
+		return &cosmos.Result{}, nil
 	}
 	if voter.Height == ctx.BlockHeight() {
-		slasher.DecSlashPoints(ctx, observeSlashPoints, msg.Signer)
+		h.mgr.Slasher().DecSlashPoints(ctx, observeSlashPoints, msg.Signer)
 	}
 
 	return &cosmos.Result{}, nil
