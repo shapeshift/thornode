@@ -198,12 +198,11 @@ func (h ObservedTxOutHandler) handleV1(ctx cosmos.Context, version semver.Versio
 		// active/inactive observing node accounts
 		h.mgr.ObMgr().AppendObserver(tx.Tx.Chain, txOut.Signers)
 
-		result, err := handler(ctx, m)
+		_, err = handler(ctx, m)
 		if err != nil {
 			ctx.Logger().Error("Handler failed:", "error", err)
 			continue
 		}
-		ctx.Logger().Info(result.Log)
 	}
 
 	return &cosmos.Result{}, nil
