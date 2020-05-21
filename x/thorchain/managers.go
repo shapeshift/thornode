@@ -21,6 +21,7 @@ type Manager interface {
 	ObMgr() ObserverManager
 	SwapQ() SwapQueue
 	Slasher() Slasher
+	YggManager() YggManager
 }
 
 // GasManager define all the methods required to manage gas
@@ -97,6 +98,10 @@ type Slasher interface {
 	DecSlashPoints(ctx cosmos.Context, point int64, addresses ...cosmos.AccAddress)
 }
 
+type YggManager interface {
+	Fund(ctx cosmos.Context, mgr Manager, constAccessor constants.ConstantValues) error
+}
+
 type Mgrs struct {
 	CurrentVersion semver.Version
 	gasMgr         GasManager
@@ -107,6 +112,7 @@ type Mgrs struct {
 	obMgr          ObserverManager
 	swapQ          SwapQueue
 	slasher        Slasher
+	yggManager     YggManager
 	Keeper         Keeper
 }
 
@@ -162,6 +168,11 @@ func (mgr *Mgrs) BeginBlock(ctx cosmos.Context) error {
 	if err != nil {
 		return fmt.Errorf("fail to create swap queue: %w", err)
 	}
+
+	mgr.yggManager, err = GetYggManager(mgr.Keeper, v)
+	if err != nil {
+		return fmt.Errorf("fail to create swap queue: %w", err)
+	}
 	return nil
 }
 
@@ -173,6 +184,7 @@ func (m *Mgrs) ValidatorMgr() ValidatorManager { return m.validatorMgr }
 func (m *Mgrs) ObMgr() ObserverManager         { return m.obMgr }
 func (m *Mgrs) SwapQ() SwapQueue               { return m.swapQ }
 func (m *Mgrs) Slasher() Slasher               { return m.slasher }
+func (m *Mgrs) YggManager() YggManager         { return m.yggManager }
 
 func GetGasManager(version semver.Version) (GasManager, error) {
 	if version.GTE(semver.MustParse("0.1.0")) {
@@ -233,6 +245,13 @@ func GetSwapQueue(keeper Keeper, version semver.Version) (SwapQueue, error) {
 func GetSlasher(keeper Keeper, version semver.Version) (Slasher, error) {
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return NewSlasherV1(keeper), nil
+	}
+	return nil, errInvalidVersion
+}
+
+func GetYggManager(keeper Keeper, version semver.Version) (YggManager, error) {
+	if version.GTE(semver.MustParse("0.1.0")) {
+		return NewYggMgrV1(keeper), nil
 	}
 	return nil, errInvalidVersion
 }
