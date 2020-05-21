@@ -65,7 +65,7 @@ build-thornode:
     - make docker-gitlab-build
     - make docker-gitlab-push
 
-smoke-test:thornode:
+smoke-test:thornode-BEP2:
   stage: smoke-test
   image: docker/compose:alpine-1.25.4
   tags:
@@ -75,7 +75,7 @@ smoke-test:thornode:
   variables:
   artifacts:
     when: on_failure
-    name: "$CI_JOB_NAME-$CI_COMMIT_REF_NAME"
+    name: "BEP2-$CI_JOB_NAME-$CI_COMMIT_REF_NAME"
     paths:
       - ./logs/
   before_script:
@@ -91,6 +91,35 @@ smoke-test:thornode:
   script:
     - cd ./heimdall
     - make smoke
+  after_script:
+    - DOCKER_TLS_CERTDIR="/certs" ./scripts/docker_logs.sh
+
+smoke-test:thornode-NATIVE:
+  stage: smoke-test
+  image: docker/compose:alpine-1.25.4
+  tags:
+    - thorchain
+  services:
+    - docker:19-dind
+  variables:
+  artifacts:
+    when: on_failure
+    name: "NATIVE-$CI_JOB_NAME-$CI_COMMIT_REF_NAME"
+    paths:
+      - ./logs/
+  before_script:
+    - apk update
+    - apk add git make
+    - (git clone --single-branch -b $CI_COMMIT_BRANCH https://gitlab.com/thorchain/heimdall.git && make -C heimdall build) || git clone --single-branch -b master https://gitlab.com/thorchain/heimdall.git
+    - (git clone --single-branch -b $CI_COMMIT_BRANCH https://gitlab.com/thorchain/midgard.git && cd midgard && make docker-gitlab-build && docker tag registry.gitlab.com/thorchain/midgard:latest registry.gitlab.com/thorchain/midgard:mocknet && cd ..) || true
+    - NATIVE=true DOCKER_TLS_CERTDIR="/certs" make -C build/docker reset-mocknet-standalone
+  except:
+    - schedules
+  environment:
+    name: integration
+  script:
+    - cd ./heimdall
+    - RUNE=THOR.RUNE make smoke
   after_script:
     - DOCKER_TLS_CERTDIR="/certs" ./scripts/docker_logs.sh
 
