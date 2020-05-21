@@ -92,13 +92,9 @@ func (h TssHandler) handleV1(ctx cosmos.Context, msg MsgTssPool, version semver.
 		voter.PoolPubKey = msg.PoolPubKey
 		voter.PubKeys = msg.PubKeys
 	}
-	slasher, err := NewSlasher(h.keeper, version, h.mgr)
-	if err != nil {
-		return nil, fmt.Errorf("fail to create slasher: %w", err)
-	}
 	constAccessor := constants.GetConstantValues(version)
 	observeSlashPoints := constAccessor.GetInt64Value(constants.ObserveSlashPoints)
-	slasher.IncSlashPoints(ctx, observeSlashPoints, msg.Signer)
+	h.mgr.Slasher().IncSlashPoints(ctx, observeSlashPoints, msg.Signer)
 	if !voter.Sign(msg.Signer, msg.Chains) {
 		ctx.Logger().Info("signer already signed MsgTssPool", "signer", msg.Signer.String(), "txid", msg.ID)
 		return &cosmos.Result{}, nil
@@ -114,7 +110,7 @@ func (h TssHandler) handleV1(ctx cosmos.Context, msg MsgTssPool, version semver.
 	if voter.BlockHeight == 0 {
 		voter.BlockHeight = ctx.BlockHeight()
 		h.keeper.SetTssVoter(ctx, voter)
-		slasher.DecSlashPoints(ctx, observeSlashPoints, voter.Signers...)
+		h.mgr.Slasher().DecSlashPoints(ctx, observeSlashPoints, voter.Signers...)
 		if msg.IsSuccess() {
 			vaultType := YggdrasilVault
 			if msg.KeygenType == AsgardKeygen {
@@ -181,7 +177,7 @@ func (h TssHandler) handleV1(ctx cosmos.Context, msg MsgTssPool, version semver.
 	}
 
 	if voter.BlockHeight == ctx.BlockHeight() {
-		slasher.DecSlashPoints(ctx, observeSlashPoints, msg.Signer)
+		h.mgr.Slasher().DecSlashPoints(ctx, observeSlashPoints, msg.Signer)
 	}
 
 	return &cosmos.Result{}, nil

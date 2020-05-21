@@ -6,6 +6,7 @@ import (
 	"github.com/blang/semver"
 	abci "github.com/tendermint/tendermint/abci/types"
 
+	"github.com/tendermint/tendermint/crypto"
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
@@ -19,6 +20,7 @@ type Manager interface {
 	ValidatorMgr() ValidatorManager
 	ObMgr() ObserverManager
 	SwapQ() SwapQueue
+	Slasher() Slasher
 }
 
 // GasManager define all the methods required to manage gas
@@ -85,6 +87,16 @@ type SwapQueue interface {
 	EndBlock(ctx cosmos.Context, mgr Manager, version semver.Version, constAccessor constants.ConstantValues) error
 }
 
+type Slasher interface {
+	BeginBlock(ctx cosmos.Context, req abci.RequestBeginBlock, constAccessor constants.ConstantValues)
+	HandleDoubleSign(ctx cosmos.Context, addr crypto.Address, infractionHeight int64, constAccessor constants.ConstantValues) error
+	LackObserving(ctx cosmos.Context, constAccessor constants.ConstantValues) error
+	LackSigning(ctx cosmos.Context, constAccessor constants.ConstantValues, mgr Manager) error
+	SlashNodeAccount(ctx cosmos.Context, observedPubKey common.PubKey, asset common.Asset, slashAmount cosmos.Uint, mgr Manager) error
+	IncSlashPoints(ctx cosmos.Context, point int64, addresses ...cosmos.AccAddress)
+	DecSlashPoints(ctx cosmos.Context, point int64, addresses ...cosmos.AccAddress)
+}
+
 type Mgrs struct {
 	CurrentVersion semver.Version
 	gasMgr         GasManager
@@ -94,6 +106,7 @@ type Mgrs struct {
 	validatorMgr   ValidatorManager
 	obMgr          ObserverManager
 	swapQ          SwapQueue
+	slasher        Slasher
 	Keeper         Keeper
 }
 
@@ -144,8 +157,14 @@ func (mgr *Mgrs) BeginBlock(ctx cosmos.Context) error {
 	if err != nil {
 		return fmt.Errorf("fail to create swap queue: %w", err)
 	}
+
+	mgr.slasher, err = GetSlasher(mgr.Keeper, v)
+	if err != nil {
+		return fmt.Errorf("fail to create swap queue: %w", err)
+	}
 	return nil
 }
+
 func (m *Mgrs) GasMgr() GasManager             { return m.gasMgr }
 func (m *Mgrs) EventMgr() EventManager         { return m.eventMgr }
 func (m *Mgrs) TxOutStore() TxOutStore         { return m.txOutStore }
@@ -153,6 +172,7 @@ func (m *Mgrs) VaultMgr() VaultManager         { return m.vaultMgr }
 func (m *Mgrs) ValidatorMgr() ValidatorManager { return m.validatorMgr }
 func (m *Mgrs) ObMgr() ObserverManager         { return m.obMgr }
 func (m *Mgrs) SwapQ() SwapQueue               { return m.swapQ }
+func (m *Mgrs) Slasher() Slasher               { return m.slasher }
 
 func GetGasManager(version semver.Version) (GasManager, error) {
 	if version.GTE(semver.MustParse("0.1.0")) {
@@ -206,6 +226,13 @@ func GetObserverManager(version semver.Version) (ObserverManager, error) {
 func GetSwapQueue(keeper Keeper, version semver.Version) (SwapQueue, error) {
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return NewSwapQv1(keeper), nil
+	}
+	return nil, errInvalidVersion
+}
+
+func GetSlasher(keeper Keeper, version semver.Version) (Slasher, error) {
+	if version.GTE(semver.MustParse("0.1.0")) {
+		return NewSlasherV1(keeper), nil
 	}
 	return nil, errInvalidVersion
 }

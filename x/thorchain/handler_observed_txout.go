@@ -63,11 +63,11 @@ func (h ObservedTxOutHandler) handle(ctx cosmos.Context, msg MsgObservedTxOut, v
 	}
 }
 
-func (h ObservedTxOutHandler) preflight(ctx cosmos.Context, voter ObservedTxVoter, nas NodeAccounts, tx ObservedTx, signer cosmos.AccAddress, slasher *Slasher, version semver.Version) (ObservedTxVoter, bool) {
+func (h ObservedTxOutHandler) preflight(ctx cosmos.Context, voter ObservedTxVoter, nas NodeAccounts, tx ObservedTx, signer cosmos.AccAddress, version semver.Version) (ObservedTxVoter, bool) {
 	constAccessor := constants.GetConstantValues(version)
 	observeSlashPoints := constAccessor.GetInt64Value(constants.ObserveSlashPoints)
 	ok := false
-	slasher.IncSlashPoints(ctx, observeSlashPoints, signer)
+	h.mgr.Slasher().IncSlashPoints(ctx, observeSlashPoints, signer)
 	if !voter.Add(tx, signer) {
 		return voter, ok
 	}
@@ -77,12 +77,12 @@ func (h ObservedTxOutHandler) preflight(ctx cosmos.Context, voter ObservedTxVote
 			voter.Height = ctx.BlockHeight()
 			voter.Tx = voter.GetTx(nas)
 			// tx has consensus now, so decrease the slashing point for all the signers whom voted for it
-			slasher.DecSlashPoints(ctx, observeSlashPoints, voter.Tx.Signers...)
+			h.mgr.Slasher().DecSlashPoints(ctx, observeSlashPoints, voter.Tx.Signers...)
 
 		} else {
 			// event the tx had been processed , given the signer just a bit late , so we still take away their slash points
 			if ctx.BlockHeight() == voter.Height && voter.Tx.Equals(tx) {
-				slasher.DecSlashPoints(ctx, observeSlashPoints, signer)
+				h.mgr.Slasher().DecSlashPoints(ctx, observeSlashPoints, signer)
 			}
 		}
 	}
@@ -101,10 +101,6 @@ func (h ObservedTxOutHandler) handleV1(ctx cosmos.Context, version semver.Versio
 		return nil, err
 	}
 
-	slasher, err := NewSlasher(h.keeper, version, h.mgr)
-	if err != nil {
-		return nil, ErrInternal(err, "fail to create slasher")
-	}
 	handler := NewInternalHandler(h.keeper, h.mgr)
 
 	for _, tx := range msg.Txs {
@@ -120,7 +116,7 @@ func (h ObservedTxOutHandler) handleV1(ctx cosmos.Context, version semver.Versio
 		}
 
 		// check whether the tx has consensus
-		voter, ok := h.preflight(ctx, voter, activeNodeAccounts, tx, msg.Signer, slasher, version)
+		voter, ok := h.preflight(ctx, voter, activeNodeAccounts, tx, msg.Signer, version)
 		if !ok {
 			if voter.Height == ctx.BlockHeight() {
 				// we've already process the transaction, but we should still
@@ -154,7 +150,7 @@ func (h ObservedTxOutHandler) handleV1(ctx cosmos.Context, version semver.Versio
 			if vault.IsYggdrasil() {
 				// a yggdrasil vault has apparently stolen funds, slash them
 				for _, c := range append(tx.Tx.Coins, tx.Tx.Gas.ToCoins()...) {
-					if err := slasher.SlashNodeAccount(ctx, tx.ObservedPubKey, c.Asset, c.Amount); err != nil {
+					if err := h.mgr.Slasher().SlashNodeAccount(ctx, tx.ObservedPubKey, c.Asset, c.Amount, h.mgr); err != nil {
 						ctx.Logger().Error("fail to slash account for sending extra fund", "error", err)
 					}
 				}
