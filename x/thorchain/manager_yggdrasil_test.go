@@ -31,7 +31,8 @@ func (s YggdrasilSuite) TestCalcTargetAmounts(c *C) {
 
 	totalBond := cosmos.NewUint(8000 * common.One)
 	bond := cosmos.NewUint(200 * common.One)
-	coins, err := calcTargetYggCoins(pools, ygg, bond, totalBond)
+	ymgr := NewYggMgrV1(KVStoreDummy{})
+	coins, err := ymgr.calcTargetYggCoins(pools, ygg, bond, totalBond)
 	c.Assert(err, IsNil)
 	c.Assert(coins, HasLen, 3)
 	c.Check(coins[0].Asset.String(), Equals, common.BNBAsset.String())
@@ -57,7 +58,8 @@ func (s YggdrasilSuite) TestCalcTargetAmounts2(c *C) {
 
 	totalBond := cosmos.NewUint(3000000 * common.One)
 	bond := cosmos.NewUint(1000000 * common.One)
-	coins, err := calcTargetYggCoins(pools, ygg, bond, totalBond)
+	ymgr := NewYggMgrV1(KVStoreDummy{})
+	coins, err := ymgr.calcTargetYggCoins(pools, ygg, bond, totalBond)
 	c.Assert(err, IsNil)
 	c.Assert(coins, HasLen, 2)
 	c.Check(coins[0].Asset.String(), Equals, common.BNBAsset.String())
@@ -92,7 +94,8 @@ func (s YggdrasilSuite) TestCalcTargetAmounts3(c *C) {
 
 	totalBond := cosmos.NewUint(8000 * common.One)
 	bond := cosmos.NewUint(200 * common.One)
-	coins, err := calcTargetYggCoins(pools, ygg, bond, totalBond)
+	ymgr := NewYggMgrV1(KVStoreDummy{})
+	coins, err := ymgr.calcTargetYggCoins(pools, ygg, bond, totalBond)
 	c.Assert(err, IsNil)
 	c.Assert(coins, HasLen, 2, Commentf("%d", len(coins)))
 	c.Check(coins[0].Asset.String(), Equals, common.BTCAsset.String())
@@ -119,7 +122,8 @@ func (s YggdrasilSuite) TestFund(c *C) {
 		c.Assert(k.SetNodeAccount(ctx, na), IsNil)
 	}
 	constAccessor := constants.GetConstantValues(constants.SWVersion)
-	err := Fund(ctx, k, mgr, constAccessor)
+	ymgr := NewYggMgrV1(k)
+	err := ymgr.Fund(ctx, mgr, constAccessor)
 	c.Assert(err, IsNil)
 	na1 := GetRandomNodeAccount(NodeActive)
 	na1.Bond = cosmos.NewUint(1000000 * common.One)
@@ -129,7 +133,7 @@ func (s YggdrasilSuite) TestFund(c *C) {
 	bnbPool.BalanceAsset = cosmos.NewUint(100000 * common.One)
 	bnbPool.BalanceRune = cosmos.NewUint(100000 * common.One)
 	c.Assert(k.SetPool(ctx, bnbPool), IsNil)
-	err1 := Fund(ctx, k, mgr, constAccessor)
+	err1 := ymgr.Fund(ctx, mgr, constAccessor)
 	c.Assert(err1, IsNil)
 	items, err := mgr.TxOutStore().GetOutboundItems(ctx)
 	c.Assert(err, IsNil)

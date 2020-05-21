@@ -196,7 +196,7 @@ func (am AppModule) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.V
 	// Fill up Yggdrasil vaults
 	// We do this AFTER validatorMgr.EndBlock, because we don't want to send
 	// funds to a yggdrasil vault that is being churned out this block.
-	if err := Fund(ctx, am.keeper, am.mgr, constantValues); err != nil {
+	if err := am.mgr.YggManager().Fund(ctx, am.mgr, constantValues); err != nil {
 		ctx.Logger().Error("unable to fund yggdrasil", "error", err)
 	}
 
