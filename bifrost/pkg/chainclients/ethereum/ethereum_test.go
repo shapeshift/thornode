@@ -244,9 +244,4 @@ func (s *EthereumSuite) TestClient(c *C) {
 
 	err = e2.BroadcastTx(out, r)
 	c.Assert(err, IsNil)
-	meta := e2.accts.Get(out.VaultPubKey)
-	addr = e2.GetAddress(out.VaultPubKey)
-	c.Assert(err, IsNil)
-	c.Check(meta.Address, Equals, addr)
-	c.Check(meta.Nonce, Equals, uint64(1))
 }

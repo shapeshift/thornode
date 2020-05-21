@@ -34,7 +34,6 @@ type Client struct {
 	client          *ethclient.Client
 	kw              *KeySignWrapper
 	ethScanner      *BlockScanner
-	accts           *EthereumMetaDataStore
 	thorchainBridge *thorclient.ThorchainBridge
 	blockScanner    *blockscanner.BlockScanner
 }
@@ -80,7 +79,6 @@ func NewClient(thorKeys *thorclient.Keys, cfg config.ChainConfiguration, server 
 		cfg:             cfg,
 		client:          ethClient,
 		pk:              pk,
-		accts:           NewEthereumMetaDataStore(),
 		kw:              keysignWrapper,
 		thorchainBridge: thorchainBridge,
 	}
@@ -161,7 +159,7 @@ func (c *Client) GetGasPrice() (*big.Int, error) {
 }
 
 func (c *Client) GetNonce(addr string) (uint64, error) {
-	nonce, err := c.client.NonceAt(context.Background(), ecommon.HexToAddress(addr), nil)
+	nonce, err := c.client.PendingNonceAt(context.Background(), ecommon.HexToAddress(addr))
 	if err != nil {
 		return 0, fmt.Errorf("fail to get account nonce: %w", err)
 	}
@@ -187,20 +185,12 @@ func (c *Client) SignTx(tx stypes.TxOutItem, height int64) ([]byte, error) {
 		c.logger.Error().Err(err).Msg("fail to get current Ethereum block height")
 		return nil, err
 	}
-	meta := c.accts.Get(tx.VaultPubKey)
-	if currentHeight > meta.BlockHeight {
-		nonce, err := c.GetNonce(fromAddr)
-		if err != nil {
-			return nil, err
-		}
-		c.accts.Set(tx.VaultPubKey, EthereumMetadata{
-			Address:     fromAddr,
-			Nonce:       nonce,
-			BlockHeight: currentHeight,
-		})
+	nonce, err := c.GetNonce(fromAddr)
+	if err != nil {
+		c.logger.Error().Err(err).Msg("fail to fetch latest nonce")
+		return nil, err
 	}
-	meta = c.accts.Get(tx.VaultPubKey)
-	c.logger.Info().Uint64("nonce", meta.Nonce).Msg("account info")
+	c.logger.Info().Uint64("nonce", nonce).Msg("account info")
 
 	gasPrice := c.ethScanner.GetGasPrice()
 	gasOut := big.NewInt(0)
@@ -215,7 +205,7 @@ func (c *Client) SignTx(tx stypes.TxOutItem, height int64) ([]byte, error) {
 	}
 	gasOut.Div(gasOut, gasPrice)
 
-	createdTx := etypes.NewTransaction(meta.Nonce, ecommon.HexToAddress(toAddr), value, gasOut.Uint64(), gasPrice, encodedData)
+	createdTx := etypes.NewTransaction(nonce, ecommon.HexToAddress(toAddr), value, gasOut.Uint64(), gasPrice, encodedData)
 
 	rawTx, err := c.sign(createdTx, fromAddr, tx.VaultPubKey, currentHeight, tx)
 	if err != nil || len(rawTx) == 0 {
@@ -280,6 +270,5 @@ func (c *Client) BroadcastTx(stx stypes.TxOutItem, hexTx []byte) error {
 	if err := c.client.SendTransaction(context.Background(), tx); err != nil {
 		return err
 	}
-	c.accts.NonceInc(stx.VaultPubKey)
 	return nil
 }

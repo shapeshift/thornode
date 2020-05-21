@@ -8,5 +8,5 @@ const (
 	_
 	Ropsten
 	Rinkeby
-	Localnet = iota + 15
+	Localnet = iota + 11
 )
