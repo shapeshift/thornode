@@ -191,7 +191,7 @@ func (h YggdrasilHandler) handleYggdrasilReturn(ctx cosmos.Context, msg MsgYggdr
 		}
 		if na.Status == NodeActive {
 			// node still active , no refund bond
-			return nil, nil
+			return &cosmos.Result{}, nil
 		}
 
 		if !vault.HasFunds() {
@@ -212,5 +212,5 @@ func (h YggdrasilHandler) handleYggdrasilReturn(ctx cosmos.Context, msg MsgYggdr
 				cosmos.NewAttribute("coins", msg.Coins.String()),
 				cosmos.NewAttribute("tx", msg.Tx.ID.String())))
 	}
-	return nil, nil
+	return &cosmos.Result{}, nil
 }

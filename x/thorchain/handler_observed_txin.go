@@ -35,7 +35,7 @@ func (h ObservedTxInHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semve
 		return nil, err
 	}
 	if isNewSigner {
-		return nil, nil
+		return &cosmos.Result{}, nil
 	}
 	return h.handle(ctx, msg, version)
 }
