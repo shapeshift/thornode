@@ -3,7 +3,6 @@ package thorchain
 import (
 	"fmt"
 
-	"github.com/blang/semver"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto"
 	tmtypes "github.com/tendermint/tendermint/types"
@@ -13,26 +12,18 @@ import (
 	"gitlab.com/thorchain/thornode/constants"
 )
 
-// Slasher implements SlashingModule interface provide the necessary functionality to slash node accounts
-type Slasher struct {
-	keeper  Keeper
-	version semver.Version
-	mgr     Manager
+type SlasherV1 struct {
+	keeper Keeper
 }
 
 // NewSlasher create a new instance of Slasher
-func NewSlasher(keeper Keeper, version semver.Version, mgr Manager) (*Slasher, error) {
-	if version.GTE(semver.MustParse("0.1.0")) {
-		return &Slasher{
-			keeper:  keeper,
-			version: version,
-			mgr:     mgr,
-		}, nil
+func NewSlasherV1(keeper Keeper) *SlasherV1 {
+	return &SlasherV1{
+		keeper: keeper,
 	}
-	return nil, errBadVersion
 }
 
-func (s *Slasher) BeginBlock(ctx cosmos.Context, req abci.RequestBeginBlock, constAccessor constants.ConstantValues) {
+func (s *SlasherV1) BeginBlock(ctx cosmos.Context, req abci.RequestBeginBlock, constAccessor constants.ConstantValues) {
 	// Iterate through any newly discovered evidence of infraction
 	// Slash any validators (and since-unbonded stake within the unbonding period)
 	// who contributed to valid infractions
@@ -51,7 +42,7 @@ func (s *Slasher) BeginBlock(ctx cosmos.Context, req abci.RequestBeginBlock, con
 // HandleDoubleSign - slashes a validator for singing two blocks at the same
 // block height
 // https://blog.cosmos.network/consensus-compare-casper-vs-tendermint-6df154ad56ae
-func (s *Slasher) HandleDoubleSign(ctx cosmos.Context, addr crypto.Address, infractionHeight int64, constAccessor constants.ConstantValues) error {
+func (s *SlasherV1) HandleDoubleSign(ctx cosmos.Context, addr crypto.Address, infractionHeight int64, constAccessor constants.ConstantValues) error {
 	// check if we're recent enough to slash for this behavior
 	maxAge := constAccessor.GetInt64Value(constants.DoubleSignMaxAge)
 	if (ctx.BlockHeight() - infractionHeight) > maxAge {
@@ -107,7 +98,7 @@ func (s *Slasher) HandleDoubleSign(ctx cosmos.Context, addr crypto.Address, infr
 }
 
 // LackObserving Slash node accounts that didn't observe a single inbound txn
-func (s *Slasher) LackObserving(ctx cosmos.Context, constAccessor constants.ConstantValues) error {
+func (s *SlasherV1) LackObserving(ctx cosmos.Context, constAccessor constants.ConstantValues) error {
 	accs, err := s.keeper.GetObservingAddresses(ctx)
 	if err != nil {
 		ctx.Logger().Error("fail to get observing addresses", "error", err)
@@ -148,7 +139,7 @@ func (s *Slasher) LackObserving(ctx cosmos.Context, constAccessor constants.Cons
 }
 
 // LackSigning slash account that fail to sign tx
-func (s *Slasher) LackSigning(ctx cosmos.Context, constAccessor constants.ConstantValues, txOutStore TxOutStore) error {
+func (s *SlasherV1) LackSigning(ctx cosmos.Context, constAccessor constants.ConstantValues, mgr Manager) error {
 	signingTransPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
 	if ctx.BlockHeight() < signingTransPeriod {
 		return nil
@@ -202,7 +193,7 @@ func (s *Slasher) LackSigning(ctx cosmos.Context, constAccessor constants.Consta
 
 			// Save the tx to as a new tx, select Asgard to send it this time.
 			tx.VaultPubKey = vault.PubKey
-			err = s.mgr.TxOutStore().UnSafeAddTxOutItem(ctx, s.mgr, tx)
+			err = mgr.TxOutStore().UnSafeAddTxOutItem(ctx, mgr, tx)
 			if err != nil {
 				return fmt.Errorf("fail to add outbound tx: %w", err)
 			}
@@ -224,7 +215,7 @@ func (s *Slasher) LackSigning(ctx cosmos.Context, constAccessor constants.Consta
 // discover signer send out fund more than the amount specified in TxOutItem,
 // it will slash the node account who does that by taking 1.5 * extra fund from
 // node account's bond and subsidise the pool that actually lost it.
-func (s *Slasher) SlashNodeAccount(ctx cosmos.Context, observedPubKey common.PubKey, asset common.Asset, slashAmount cosmos.Uint) error {
+func (s *SlasherV1) SlashNodeAccount(ctx cosmos.Context, observedPubKey common.PubKey, asset common.Asset, slashAmount cosmos.Uint, mgr Manager) error {
 	if slashAmount.IsZero() {
 		return nil
 	}
@@ -283,7 +274,7 @@ func (s *Slasher) SlashNodeAccount(ctx cosmos.Context, observedPubKey common.Pub
 		},
 	}
 	eventSlash := NewEventSlash(pool.Asset, poolSlashAmt)
-	if err := s.mgr.EventMgr().EmitSlashEvent(ctx, s.keeper, eventSlash); err != nil {
+	if err := mgr.EventMgr().EmitSlashEvent(ctx, s.keeper, eventSlash); err != nil {
 		return fmt.Errorf("fail to emit slash event: %w", err)
 	}
 
@@ -291,7 +282,7 @@ func (s *Slasher) SlashNodeAccount(ctx cosmos.Context, observedPubKey common.Pub
 }
 
 // IncSlashPoints will increase the given account's slash points
-func (s *Slasher) IncSlashPoints(ctx cosmos.Context, point int64, addresses ...cosmos.AccAddress) {
+func (s *SlasherV1) IncSlashPoints(ctx cosmos.Context, point int64, addresses ...cosmos.AccAddress) {
 	for _, addr := range addresses {
 		if err := s.keeper.IncNodeAccountSlashPoints(ctx, addr, point); err != nil {
 			ctx.Logger().Error("fail to increase node account slash point", "error", err, "address", addr.String())
@@ -300,7 +291,7 @@ func (s *Slasher) IncSlashPoints(ctx cosmos.Context, point int64, addresses ...c
 }
 
 // DecSlashPoints will decrease the given account's slash points
-func (s *Slasher) DecSlashPoints(ctx cosmos.Context, point int64, addresses ...cosmos.AccAddress) {
+func (s *SlasherV1) DecSlashPoints(ctx cosmos.Context, point int64, addresses ...cosmos.AccAddress) {
 	for _, addr := range addresses {
 		if err := s.keeper.DecNodeAccountSlashPoints(ctx, addr, point); err != nil {
 			ctx.Logger().Error("fail to decrease node account slash point", "error", err, "address", addr.String())

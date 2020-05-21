@@ -179,7 +179,9 @@ func (HandlerMigrateSuite) TestSlash(c *C) {
 	}
 	addr, err := keeper.retireVault.PubKey.GetAddress(common.BNBChain)
 	c.Assert(err, IsNil)
-	handler := NewMigrateHandler(keeper, NewDummyMgr())
+	mgr := NewDummyMgr()
+	mgr.slasher = NewSlasherV1(keeper)
+	handler := NewMigrateHandler(keeper, mgr)
 	tx := NewObservedTx(common.Tx{
 		ID:    GetRandomTxHash(),
 		Chain: common.BNBChain,

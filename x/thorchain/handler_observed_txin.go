@@ -76,10 +76,10 @@ func (h ObservedTxInHandler) handle(ctx cosmos.Context, msg MsgObservedTxIn, ver
 	}
 }
 
-func (h ObservedTxInHandler) preflight(ctx cosmos.Context, voter ObservedTxVoter, nas NodeAccounts, tx ObservedTx, signer cosmos.AccAddress, slasher *Slasher, version semver.Version) (ObservedTxVoter, bool) {
+func (h ObservedTxInHandler) preflight(ctx cosmos.Context, voter ObservedTxVoter, nas NodeAccounts, tx ObservedTx, signer cosmos.AccAddress, version semver.Version) (ObservedTxVoter, bool) {
 	constAccessor := constants.GetConstantValues(version)
 	observeSlashPoints := constAccessor.GetInt64Value(constants.ObserveSlashPoints)
-	slasher.IncSlashPoints(ctx, observeSlashPoints, signer)
+	h.mgr.Slasher().IncSlashPoints(ctx, observeSlashPoints, signer)
 	ok := false
 	if !voter.Add(tx, signer) {
 		return voter, ok
@@ -92,12 +92,12 @@ func (h ObservedTxInHandler) preflight(ctx cosmos.Context, voter ObservedTxVoter
 			voter.Tx = voter.GetTx(nas)
 
 			// tx has consensus now, so decrease the slashing points for all the signers whom had voted for it
-			slasher.DecSlashPoints(ctx, observeSlashPoints, voter.Tx.Signers...)
+			h.mgr.Slasher().DecSlashPoints(ctx, observeSlashPoints, voter.Tx.Signers...)
 		} else {
 			// event the tx had been processed , given the signer just a bit late , so still take away their slash points
 			// but only when the tx signer are voting is the tx that already reached consensus
 			if ctx.BlockHeight() == voter.Height && voter.Tx.Equals(tx) {
-				slasher.DecSlashPoints(ctx, observeSlashPoints, signer)
+				h.mgr.Slasher().DecSlashPoints(ctx, observeSlashPoints, signer)
 			}
 		}
 	}
@@ -116,10 +116,6 @@ func (h ObservedTxInHandler) handleV1(ctx cosmos.Context, version semver.Version
 
 		return nil, err
 	}
-	slasher, err := NewSlasher(h.keeper, version, h.mgr)
-	if err != nil {
-		return nil, ErrInternal(err, "fail to create slasher")
-	}
 	handler := NewInternalHandler(h.keeper, h.mgr)
 	for _, tx := range msg.Txs {
 
@@ -134,7 +130,7 @@ func (h ObservedTxInHandler) handleV1(ctx cosmos.Context, version semver.Version
 			return nil, err
 		}
 
-		voter, ok := h.preflight(ctx, voter, activeNodeAccounts, tx, msg.Signer, slasher, version)
+		voter, ok := h.preflight(ctx, voter, activeNodeAccounts, tx, msg.Signer, version)
 		if !ok {
 			if voter.Height == ctx.BlockHeight() {
 				// we've already process the transaction, but we should still

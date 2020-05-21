@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/blang/semver"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
@@ -85,8 +84,7 @@ func (s *SlashingSuite) TestObservingSlashing(c *C) {
 	ver := constants.SWVersion
 	constAccessor := constants.GetConstantValues(ver)
 
-	slasher, err := NewSlasher(keeper, ver, NewDummyMgr())
-	c.Assert(err, IsNil)
+	slasher := NewSlasherV1(keeper)
 	// should slash na2 only
 	lackOfObservationPenalty := constAccessor.GetInt64Value(constants.LackOfObservationPenalty)
 	err = slasher.LackObserving(ctx, constAccessor)
@@ -105,7 +103,6 @@ func (s *SlashingSuite) TestObservingSlashing(c *C) {
 }
 
 func (s *SlashingSuite) TestLackObservingErrors(c *C) {
-	var err error
 	ctx, _ := setupKeeperForTest(c)
 
 	nas := NodeAccounts{
@@ -119,8 +116,7 @@ func (s *SlashingSuite) TestLackObservingErrors(c *C) {
 	}
 	ver := constants.SWVersion
 	constAccessor := constants.GetConstantValues(ver)
-	slasher, err := NewSlasher(keeper, ver, NewDummyMgr())
-	c.Assert(err, IsNil)
+	slasher := NewSlasherV1(keeper)
 	keeper.failGetObservingAddress = true
 	c.Assert(slasher.LackObserving(ctx, constAccessor), NotNil)
 	keeper.failGetObservingAddress = false
@@ -270,7 +266,6 @@ func (s *SlashingSuite) TestNodeSignSlashErrors(c *C) {
 		c.Logf("name:%s", item.name)
 		ctx, _ := setupKeeperForTest(c)
 		ctx = ctx.WithBlockHeight(201) // set blockheight
-		txOutStore := NewTxStoreDummy()
 		ver := constants.SWVersion
 		constAccessor := constants.GetConstantValues(ver)
 		na := GetRandomNodeAccount(NodeActive)
@@ -328,14 +323,12 @@ func (s *SlashingSuite) TestNodeSignSlashErrors(c *C) {
 		}
 		signingTransactionPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
 		ctx = ctx.WithBlockHeight(evt.Height + signingTransactionPeriod)
-		version := constants.SWVersion
-		slasher, err := NewSlasher(keeper, version, NewDummyMgr())
-		c.Assert(err, IsNil)
+		slasher := NewSlasherV1(keeper)
 		item.condition(keeper)
 		if item.shouldError {
-			c.Assert(slasher.LackSigning(ctx, constAccessor, txOutStore), NotNil)
+			c.Assert(slasher.LackSigning(ctx, constAccessor, NewDummyMgr()), NotNil)
 		} else {
-			c.Assert(slasher.LackSigning(ctx, constAccessor, txOutStore), IsNil)
+			c.Assert(slasher.LackSigning(ctx, constAccessor, NewDummyMgr()), IsNil)
 		}
 	}
 }
@@ -401,12 +394,10 @@ func (s *SlashingSuite) TestNotSigningSlash(c *C) {
 	}
 	signingTransactionPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
 	ctx = ctx.WithBlockHeight(evt.Height + signingTransactionPeriod)
-	version := constants.SWVersion
 	mgr := NewDummyMgr()
 	mgr.txOutStore = txOutStore
-	slasher, err := NewSlasher(keeper, version, mgr)
-	c.Assert(err, IsNil)
-	c.Assert(slasher.LackSigning(ctx, constAccessor, txOutStore), IsNil)
+	slasher := NewSlasherV1(keeper)
+	c.Assert(slasher.LackSigning(ctx, constAccessor, mgr), IsNil)
 
 	c.Check(keeper.slashPts[na.NodeAddress.String()], Equals, int64(600), Commentf("%+v\n", na))
 
@@ -429,10 +420,8 @@ func (s *SlashingSuite) TestNewSlasher(c *C) {
 		addrs:    []cosmos.AccAddress{nas[0].NodeAddress},
 		slashPts: make(map[string]int64, 0),
 	}
-	ver := semver.MustParse("0.0.1")
-	slasher, err := NewSlasher(keeper, ver, NewDummyMgr())
-	c.Assert(err, Equals, errBadVersion)
-	c.Assert(slasher, IsNil)
+	slasher := NewSlasherV1(keeper)
+	c.Assert(slasher, NotNil)
 }
 
 type TestDoubleSlashKeeper struct {
@@ -489,8 +478,7 @@ func (s *SlashingSuite) TestDoubleSign(c *C) {
 		vaultData: NewVaultData(),
 		modules:   make(map[string]int64, 0),
 	}
-	slasher, err := NewSlasher(keeper, constants.SWVersion, NewDummyMgr())
-	c.Assert(err, IsNil)
+	slasher := NewSlasherV1(keeper)
 
 	pk, err := cosmos.GetPubKeyFromBech32(cosmos.Bech32PubKeyTypeConsPub, na.ValidatorConsPubKey)
 	c.Assert(err, IsNil)
@@ -516,8 +504,7 @@ func (s *SlashingSuite) TestIncreaseDecreaseSlashPoints(c *C) {
 		vaultData:   NewVaultData(),
 		slashPoints: make(map[string]int64),
 	}
-	slasher, err := NewSlasher(keeper, constants.SWVersion, NewDummyMgr())
-	c.Assert(err, IsNil)
+	slasher := NewSlasherV1(keeper)
 	addr := GetRandomBech32Addr()
 	slasher.IncSlashPoints(ctx, 1, addr)
 	slasher.DecSlashPoints(ctx, 1, addr)
