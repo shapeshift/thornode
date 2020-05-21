@@ -56,6 +56,8 @@ func NewQuerier(keeper Keeper) cosmos.Querier {
 			return queryPoolAddresses(ctx, path[1:], req, keeper)
 		case q.QueryVaultData.Key:
 			return queryVaultData(ctx, keeper)
+		case q.QueryBalanceModule.Key:
+			return queryBalanceModule(ctx, path[1:], keeper)
 		case q.QueryVaultsAsgard.Key:
 			return queryAsgardVaults(ctx, keeper)
 		case q.QueryVaultsYggdrasil.Key:
@@ -88,6 +90,19 @@ func getURLFromData(data []byte) (*url.URL, error) {
 		return nil, fmt.Errorf("fail to unmarshal url.URL: %w", err)
 	}
 	return u, nil
+}
+
+func queryBalanceModule(ctx cosmos.Context, path []string, keeper Keeper) ([]byte, cosmos.Error) {
+	supplier := keeper.Supply()
+	mod := supplier.GetModuleAccount(ctx, AsgardName)
+
+	res, err := codec.MarshalJSONIndent(keeper.Cdc(), mod.GetCoins())
+	if err != nil {
+		ctx.Logger().Error("fail to marshal vaults response to json", "error", err)
+		return nil, cosmos.ErrInternal("fail to marshal response to json")
+	}
+
+	return res, nil
 }
 
 func queryAsgardVaults(ctx cosmos.Context, keeper Keeper) ([]byte, cosmos.Error) {

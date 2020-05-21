@@ -67,7 +67,7 @@ func NewEvent(typ string, ht int64, inTx common.Tx, evt json.RawMessage, status 
 		Event:  evt,
 		Status: status,
 		Fee: common.Fee{
-			Coins:      common.Coins{},
+			Coins:      make(common.Coins, 0),
 			PoolDeduct: cosmos.ZeroUint(),
 		},
 	}
