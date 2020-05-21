@@ -32,7 +32,7 @@ func (msg MsgYggdrasil) Route() string { return RouterKey }
 func (msg MsgYggdrasil) Type() string { return "set_yggdrasil" }
 
 // ValidateBasic runs stateless checks on the message
-func (msg MsgYggdrasil) ValidateBasic() cosmos.Error {
+func (msg MsgYggdrasil) ValidateBasic() error {
 	if msg.Signer.Empty() {
 		return cosmos.ErrInvalidAddress(msg.Signer.String())
 	}

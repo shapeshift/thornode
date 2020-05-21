@@ -4,10 +4,11 @@ import (
 	"errors"
 
 	"github.com/blang/semver"
+	. "gopkg.in/check.v1"
+
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	. "gopkg.in/check.v1"
 )
 
 var _ = Suite(&HandlerBanSuite{})
@@ -25,7 +26,7 @@ type TestBanKeeper struct {
 	modules   map[string]int64
 }
 
-func (k *TestBanKeeper) SendFromModuleToModule(_ cosmos.Context, from, to string, coin common.Coin) cosmos.Error {
+func (k *TestBanKeeper) SendFromModuleToModule(_ cosmos.Context, from, to string, coin common.Coin) error {
 	k.modules[from] -= int64(coin.Amount.Uint64())
 	k.modules[to] += int64(coin.Amount.Uint64())
 	return nil
@@ -135,8 +136,8 @@ func (s *HandlerBanSuite) TestHandle(c *C) {
 
 	// ban with banner 1
 	msg := NewMsgBan(toBan.NodeAddress, banner1.NodeAddress)
-	result := handler.handle(ctx, msg, constants.SWVersion, constAccessor)
-	c.Assert(result.IsOK(), Equals, true, Commentf("%+v", result.Log))
+	_, err := handler.handle(ctx, msg, constants.SWVersion, constAccessor)
+	c.Assert(err, IsNil)
 	c.Check(int64(keeper.banner1.Bond.Uint64()), Equals, int64(99900000))
 	if common.RuneAsset().Chain.Equals(common.THORChain) {
 		c.Check(keeper.modules[ReserveName], Equals, int64(100000))
@@ -147,8 +148,8 @@ func (s *HandlerBanSuite) TestHandle(c *C) {
 	c.Check(keeper.ban.Signers, HasLen, 1)
 
 	// ensure banner 1 can't ban twice
-	result = handler.handle(ctx, msg, constants.SWVersion, constAccessor)
-	c.Assert(result.IsOK(), Equals, true, Commentf("%+v", result.Log))
+	_, err = handler.handle(ctx, msg, constants.SWVersion, constAccessor)
+	c.Assert(err, IsNil)
 	c.Check(int64(keeper.banner1.Bond.Uint64()), Equals, int64(99900000))
 	if common.RuneAsset().Chain.Equals(common.THORChain) {
 		c.Check(keeper.modules[ReserveName], Equals, int64(100000))
@@ -160,8 +161,8 @@ func (s *HandlerBanSuite) TestHandle(c *C) {
 
 	// ban with banner 2, which should actually ban the node account
 	msg = NewMsgBan(toBan.NodeAddress, banner2.NodeAddress)
-	result = handler.handle(ctx, msg, constants.SWVersion, constAccessor)
-	c.Assert(result.IsOK(), Equals, true, Commentf("%+v", result.Log))
+	_, err = handler.handle(ctx, msg, constants.SWVersion, constAccessor)
+	c.Assert(err, IsNil)
 	c.Check(int64(keeper.banner2.Bond.Uint64()), Equals, int64(99900000))
 	if common.RuneAsset().Chain.Equals(common.THORChain) {
 		c.Check(keeper.modules[ReserveName], Equals, int64(200000))

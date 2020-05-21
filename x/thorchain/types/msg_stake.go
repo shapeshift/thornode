@@ -36,7 +36,7 @@ func (msg MsgSetStakeData) Route() string { return RouterKey }
 func (msg MsgSetStakeData) Type() string { return "set_stakedata" }
 
 // ValidateBasic runs stateless checks on the message
-func (msg MsgSetStakeData) ValidateBasic() cosmos.Error {
+func (msg MsgSetStakeData) ValidateBasic() error {
 	if msg.Signer.Empty() {
 		return cosmos.ErrInvalidAddress(msg.Signer.String())
 	}

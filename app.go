@@ -4,10 +4,11 @@ import (
 	"encoding/json"
 	"os"
 
+	"github.com/cosmos/cosmos-sdk/x/genutil"
 	"github.com/cosmos/cosmos-sdk/x/supply"
 	abci "github.com/tendermint/tendermint/abci/types"
-	cmn "github.com/tendermint/tendermint/libs/common"
 	"github.com/tendermint/tendermint/libs/log"
+	tmos "github.com/tendermint/tendermint/libs/os"
 	tmtypes "github.com/tendermint/tendermint/types"
 	dbm "github.com/tendermint/tm-db"
 
@@ -17,7 +18,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/types/module"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/bank"
-	"github.com/cosmos/cosmos-sdk/x/genaccounts"
 	"github.com/cosmos/cosmos-sdk/x/params"
 	"github.com/cosmos/cosmos-sdk/x/staking"
 
@@ -35,7 +35,7 @@ var (
 
 	// ModuleBasicManager is in charge of setting up basic module elemnets
 	ModuleBasics = module.NewBasicManager(
-		genaccounts.AppModuleBasic{},
+		genutil.AppModuleBasic{},
 		auth.AppModuleBasic{},
 		bank.AppModuleBasic{},
 		params.AppModuleBasic{},
@@ -99,7 +99,7 @@ func NewThorchainApp(logger log.Logger, db dbm.DB, baseAppOptions ...func(*bam.B
 	}
 
 	// The ParamsKeeper handles parameter storage for the application
-	app.paramsKeeper = params.NewKeeper(app.cdc, keys[params.StoreKey], tkeys[params.TStoreKey], params.DefaultCodespace)
+	app.paramsKeeper = params.NewKeeper(app.cdc, keys[params.StoreKey], tkeys[params.TStoreKey])
 	// Set specific supspaces
 	authSubspace := app.paramsKeeper.Subspace(auth.DefaultParamspace)
 	bankSupspace := app.paramsKeeper.Subspace(bank.DefaultParamspace)
@@ -116,7 +116,6 @@ func NewThorchainApp(logger log.Logger, db dbm.DB, baseAppOptions ...func(*bam.B
 	app.bankKeeper = bank.NewBaseKeeper(
 		app.accountKeeper,
 		bankSupspace,
-		bank.DefaultCodespace,
 		app.ModuleAccountAddrs(),
 	)
 
@@ -136,7 +135,6 @@ func NewThorchainApp(logger log.Logger, db dbm.DB, baseAppOptions ...func(*bam.B
 	)
 
 	app.mm = module.NewManager(
-		genaccounts.NewAppModule(app.accountKeeper),
 		auth.NewAppModule(app.accountKeeper),
 		bank.NewAppModule(app.bankKeeper, app.accountKeeper),
 		supply.NewAppModule(app.supplyKeeper, app.accountKeeper),
@@ -148,7 +146,6 @@ func NewThorchainApp(logger log.Logger, db dbm.DB, baseAppOptions ...func(*bam.B
 
 	// Sets the order of Genesis - Order matters, genutil is to always come last
 	app.mm.SetOrderInitGenesis(
-		genaccounts.ModuleName,
 		auth.ModuleName,
 		bank.ModuleName,
 		supply.ModuleName,
@@ -177,7 +174,7 @@ func NewThorchainApp(logger log.Logger, db dbm.DB, baseAppOptions ...func(*bam.B
 
 	err := app.LoadLatestVersion(app.keys[bam.MainStoreKey])
 	if err != nil {
-		cmn.Exit(err.Error())
+		tmos.Exit(err.Error())
 	}
 
 	return app

@@ -101,7 +101,7 @@ func InitGenesis(ctx cosmos.Context, keeper Keeper, data GenesisState) []abci.Va
 	for _, nodeAccount := range data.NodeAccounts {
 		if nodeAccount.Status == NodeActive {
 			// Only Active node will become validator
-			pk, err := cosmos.GetConsPubKeyBech32(nodeAccount.ValidatorConsPubKey)
+			pk, err := cosmos.GetPubKeyFromBech32(cosmos.Bech32PubKeyTypeConsPub, nodeAccount.ValidatorConsPubKey)
 			if err != nil {
 				ctx.Logger().Error("fail to parse consensus public key", "key", nodeAccount.ValidatorConsPubKey, "error", err)
 				panic(err)

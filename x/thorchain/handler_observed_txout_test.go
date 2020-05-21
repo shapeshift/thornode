@@ -219,8 +219,8 @@ func (s *HandlerObservedTxOutSuite) TestHandle(c *C) {
 
 	c.Assert(err, IsNil)
 	msg := NewMsgObservedTxOut(txs, keeper.nas[0].NodeAddress)
-	result := handler.handle(ctx, msg, ver)
-	c.Assert(result.IsOK(), Equals, true)
+	_, err = handler.handle(ctx, msg, ver)
+	c.Assert(err, IsNil)
 	c.Assert(err, IsNil)
 	mgr.ObMgr().EndBlock(ctx, keeper)
 
@@ -273,8 +273,8 @@ func (s *HandlerObservedTxOutSuite) TestGasUpdate(c *C) {
 
 	c.Assert(err, IsNil)
 	msg := NewMsgObservedTxOut(txs, keeper.nas[0].NodeAddress)
-	result := handler.handle(ctx, msg, ver)
-	c.Assert(result.IsOK(), Equals, true)
+	_, err = handler.handle(ctx, msg, ver)
+	c.Assert(err, IsNil)
 	gas := keeper.gas[0]
 	c.Assert(gas.Equal(cosmos.NewUint(475000)), Equals, true, Commentf("%+v", gas))
 	// revert the gas change , otherwise it messed up the other tests
@@ -325,8 +325,8 @@ func (s *HandlerObservedTxOutSuite) TestHandleStolenFunds(c *C) {
 
 	c.Assert(err, IsNil)
 	msg := NewMsgObservedTxOut(txs, keeper.nas[0].NodeAddress)
-	result := handler.handle(ctx, msg, ver)
-	c.Assert(result.IsOK(), Equals, true)
+	_, err = handler.handle(ctx, msg, ver)
+	c.Assert(err, IsNil)
 	// make sure the coin has been subtract from the vault
 	c.Check(ygg.Coins.GetCoin(common.BNBAsset).Amount.Equal(cosmos.NewUint(9999962500)), Equals, true, Commentf("%d", ygg.Coins.GetCoin(common.BNBAsset).Amount.Uint64()))
 	c.Assert(keeper.na.Bond.LT(cosmos.NewUint(1000000*common.One)), Equals, true, Commentf("%d", keeper.na.Bond.Uint64()))

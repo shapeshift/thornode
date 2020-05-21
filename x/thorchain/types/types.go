@@ -12,9 +12,8 @@ import (
 )
 
 const (
-	DefaultCodespace    cosmos.CodespaceType = ModuleName
-	SuperMajorityFactor uint64               = 3
-	MajorityFactor      uint64               = 2
+	SuperMajorityFactor uint64 = 3
+	MajorityFactor      uint64 = 2
 )
 
 // HasSuperMajority return true when it has 2/3 majority

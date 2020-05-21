@@ -119,12 +119,12 @@ func (HandlerUnstakeSuite) TestUnstakeHandler(c *C) {
 	unstakeHandler := NewUnstakeHandler(k, NewDummyMgr())
 
 	msgUnstake := NewMsgSetUnStake(GetRandomTx(), runeAddr, cosmos.NewUint(uint64(MaxUnstakeBasisPoints)), common.BNBAsset, activeNodeAccount.NodeAddress)
-	result := unstakeHandler.Run(ctx, msgUnstake, ver, constAccessor)
-	c.Assert(result.Code, Equals, cosmos.CodeOK, Commentf("+v", result))
+	_, err = unstakeHandler.Run(ctx, msgUnstake, ver, constAccessor)
+	c.Assert(err, IsNil)
 
 	// Bad version should fail
-	result = unstakeHandler.Run(ctx, msgUnstake, semver.Version{}, constAccessor)
-	c.Assert(result.Code, Equals, CodeBadVersion)
+	_, err = unstakeHandler.Run(ctx, msgUnstake, semver.Version{}, constAccessor)
+	c.Assert(err, NotNil)
 }
 
 func (HandlerUnstakeSuite) TestUnstakeHandler_Validation(c *C) {
@@ -132,39 +132,40 @@ func (HandlerUnstakeSuite) TestUnstakeHandler_Validation(c *C) {
 	testCases := []struct {
 		name           string
 		msg            MsgSetUnStake
-		expectedResult cosmos.CodeType
+		expectedResult error
 	}{
 		{
 			name:           "empty signer should fail",
 			msg:            NewMsgSetUnStake(GetRandomTx(), GetRandomRUNEAddress(), cosmos.NewUint(uint64(MaxUnstakeBasisPoints)), common.BNBAsset, cosmos.AccAddress{}),
-			expectedResult: CodeUnstakeFailValidation,
+			expectedResult: errUnstakeFailValidation,
 		},
 		{
 			name:           "empty asset should fail",
 			msg:            NewMsgSetUnStake(GetRandomTx(), GetRandomRUNEAddress(), cosmos.NewUint(uint64(MaxUnstakeBasisPoints)), common.Asset{}, GetRandomNodeAccount(NodeActive).NodeAddress),
-			expectedResult: CodeUnstakeFailValidation,
+			expectedResult: errUnstakeFailValidation,
 		},
 		{
 			name:           "empty RUNE address should fail",
 			msg:            NewMsgSetUnStake(GetRandomTx(), common.NoAddress, cosmos.NewUint(uint64(MaxUnstakeBasisPoints)), common.BNBAsset, GetRandomNodeAccount(NodeActive).NodeAddress),
-			expectedResult: CodeUnstakeFailValidation,
+			expectedResult: errUnstakeFailValidation,
 		},
 		{
 			name:           "withdraw basis point is 0 should fail",
 			msg:            NewMsgSetUnStake(GetRandomTx(), GetRandomRUNEAddress(), cosmos.ZeroUint(), common.BNBAsset, GetRandomNodeAccount(NodeActive).NodeAddress),
-			expectedResult: CodeUnstakeFailValidation,
+			expectedResult: errUnstakeFailValidation,
 		},
 		{
 			name:           "withdraw basis point is larger than 10000 should fail",
 			msg:            NewMsgSetUnStake(GetRandomTx(), GetRandomRUNEAddress(), cosmos.NewUint(uint64(MaxUnstakeBasisPoints+100)), common.BNBAsset, GetRandomNodeAccount(NodeActive).NodeAddress),
-			expectedResult: CodeUnstakeFailValidation,
+			expectedResult: errUnstakeFailValidation,
 		},
 	}
 	ver := constants.SWVersion
 	constAccessor := constants.GetConstantValues(ver)
 	for _, tc := range testCases {
 		unstakeHandler := NewUnstakeHandler(k, NewDummyMgr())
-		c.Assert(unstakeHandler.Run(ctx, tc.msg, ver, constAccessor).Code, Equals, tc.expectedResult, Commentf(tc.name))
+		_, err := unstakeHandler.Run(ctx, tc.msg, ver, constAccessor)
+		c.Assert(err.Error(), Equals, tc.expectedResult.Error(), Commentf(tc.name))
 	}
 }
 
@@ -184,7 +185,7 @@ func (HandlerUnstakeSuite) TestUnstakeHandler_mockFailScenarios(c *C) {
 	testCases := []struct {
 		name           string
 		k              Keeper
-		expectedResult cosmos.CodeType
+		expectedResult error
 	}{
 		{
 			name: "fail to get pool unstake should fail",
@@ -193,7 +194,7 @@ func (HandlerUnstakeSuite) TestUnstakeHandler_mockFailScenarios(c *C) {
 				failPool:          true,
 				staker:            staker,
 			},
-			expectedResult: cosmos.CodeInternal,
+			expectedResult: errInternal,
 		},
 		{
 			name: "suspended pool unstake should fail",
@@ -202,7 +203,7 @@ func (HandlerUnstakeSuite) TestUnstakeHandler_mockFailScenarios(c *C) {
 				suspendedPool:     true,
 				staker:            staker,
 			},
-			expectedResult: CodeInvalidPoolStatus,
+			expectedResult: errInvalidPoolStatus,
 		},
 		{
 			name: "fail to get staker unstake should fail",
@@ -211,7 +212,7 @@ func (HandlerUnstakeSuite) TestUnstakeHandler_mockFailScenarios(c *C) {
 				failStaker:        true,
 				staker:            staker,
 			},
-			expectedResult: CodeFailGetStaker,
+			expectedResult: errFailGetStaker,
 		},
 		{
 			name: "fail to add incomplete event unstake should fail",
@@ -221,7 +222,7 @@ func (HandlerUnstakeSuite) TestUnstakeHandler_mockFailScenarios(c *C) {
 				failAddEvents:     true,
 				staker:            staker,
 			},
-			expectedResult: cosmos.CodeInternal,
+			expectedResult: errInternal,
 		},
 	}
 	ver := constants.SWVersion
@@ -231,6 +232,7 @@ func (HandlerUnstakeSuite) TestUnstakeHandler_mockFailScenarios(c *C) {
 		ctx, _ := setupKeeperForTest(c)
 		unstakeHandler := NewUnstakeHandler(tc.k, NewDummyMgr())
 		msgUnstake := NewMsgSetUnStake(GetRandomTx(), GetRandomRUNEAddress(), cosmos.NewUint(uint64(MaxUnstakeBasisPoints)), common.BNBAsset, activeNodeAccount.NodeAddress)
-		c.Assert(unstakeHandler.Run(ctx, msgUnstake, ver, constAccessor).Code, Equals, tc.expectedResult, Commentf(tc.name))
+		_, err := unstakeHandler.Run(ctx, msgUnstake, ver, constAccessor)
+		c.Assert(errors.Is(err, tc.expectedResult), Equals, true, Commentf(tc.name))
 	}
 }

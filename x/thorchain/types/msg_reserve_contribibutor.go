@@ -26,7 +26,7 @@ func (msg MsgReserveContributor) Route() string { return RouterKey }
 func (msg MsgReserveContributor) Type() string { return "set_reserve_contributor" }
 
 // ValidateBasic runs stateless checks on the message
-func (msg MsgReserveContributor) ValidateBasic() cosmos.Error {
+func (msg MsgReserveContributor) ValidateBasic() error {
 	if err := msg.Tx.IsValid(); err != nil {
 		return cosmos.ErrUnknownRequest(err.Error())
 	}

@@ -61,7 +61,7 @@ func (s *KeySign) ExportAsKeyStore(password string) (*keys.EncryptedKeyJSON, err
 
 func (s *KeySign) makeSignature(msg tx.StdSignMsg, poolPubKey string, signerPubKeys common.PubKeys) (sig tx.StdSignature, err error) {
 	var stdSignature tx.StdSignature
-	pk, err := cosmos.GetAccPubKeyBech32(poolPubKey)
+	pk, err := cosmos.GetPubKeyFromBech32(cosmos.Bech32PubKeyTypeAccPub, poolPubKey)
 	if err != nil {
 		return stdSignature, fmt.Errorf("fail to get pub key: %w", err)
 	}

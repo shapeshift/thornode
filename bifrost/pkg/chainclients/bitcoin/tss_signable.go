@@ -58,7 +58,7 @@ func (ts *TssSignable) Sign(payload []byte) (*btcec.Signature, error) {
 }
 
 func (ts *TssSignable) GetPubKey() *btcec.PublicKey {
-	cpk, err := cosmos.GetAccPubKeyBech32(ts.poolPubKey.String())
+	cpk, err := cosmos.GetPubKeyFromBech32(cosmos.Bech32PubKeyTypeAccPub, ts.poolPubKey.String())
 	if err != nil {
 		ts.logger.Err(err).Str("pubkey", ts.poolPubKey.String()).Msg("fail to get pubic key from the bech32 pool public key string")
 		return nil

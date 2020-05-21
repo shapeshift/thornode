@@ -2,10 +2,11 @@ package types
 
 const (
 	// module names
-	ModuleName  = "thorchain"
-	ReserveName = "reserve"
-	AsgardName  = "asgard"
-	BondName    = "bond"
+	ModuleName       = "thorchain"
+	DefaultCodespace = ModuleName
+	ReserveName      = "reserve"
+	AsgardName       = "asgard"
+	BondName         = "bond"
 
 	// StoreKey to be used when creating the KVStore
 	StoreKey = ModuleName

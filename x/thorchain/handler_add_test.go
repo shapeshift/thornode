@@ -1,7 +1,10 @@
 package thorchain
 
 import (
+	"errors"
+
 	"github.com/blang/semver"
+	se "github.com/cosmos/cosmos-sdk/types/errors"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
@@ -23,8 +26,8 @@ func (HandlerAddSuite) TestAdd(c *C) {
 	msg := NewMsgAdd(GetRandomTx(), common.BNBAsset, cosmos.NewUint(common.One*5), cosmos.NewUint(common.One*5), w.activeNodeAccount.NodeAddress)
 	ver := constants.SWVersion
 	constAccessor := constants.GetConstantValues(ver)
-	result := addHandler.Run(w.ctx, msg, ver, constAccessor)
-	c.Assert(result.Code, Equals, cosmos.CodeOK)
+	_, err = addHandler.Run(w.ctx, msg, ver, constAccessor)
+	c.Assert(err, IsNil)
 	afterPool, err := w.keeper.GetPool(w.ctx, common.BNBAsset)
 	c.Assert(err, IsNil)
 	c.Assert(afterPool.BalanceRune.String(), Equals, prePool.BalanceRune.Add(msg.RuneAmount).String())
@@ -32,31 +35,31 @@ func (HandlerAddSuite) TestAdd(c *C) {
 
 	// invalid version
 	ver = semver.Version{}
-	result = addHandler.Run(w.ctx, msg, ver, constAccessor)
-	c.Assert(result.Code, Equals, CodeBadVersion)
+	_, err = addHandler.Run(w.ctx, msg, ver, constAccessor)
+	c.Check(errors.Is(err, errBadVersion), Equals, true)
 }
 
 func (HandlerAddSuite) TestHandleMsgAddValidation(c *C) {
 	w := getHandlerTestWrapper(c, 1, true, false)
 	testCases := []struct {
-		name         string
-		msg          MsgAdd
-		expectedCode cosmos.CodeType
+		name        string
+		msg         MsgAdd
+		expectedErr error
 	}{
 		{
-			name:         "invalid signer address should fail",
-			msg:          NewMsgAdd(GetRandomTx(), common.BNBAsset, cosmos.NewUint(common.One*5), cosmos.NewUint(common.One*5), cosmos.AccAddress{}),
-			expectedCode: cosmos.CodeInvalidAddress,
+			name:        "invalid signer address should fail",
+			msg:         NewMsgAdd(GetRandomTx(), common.BNBAsset, cosmos.NewUint(common.One*5), cosmos.NewUint(common.One*5), cosmos.AccAddress{}),
+			expectedErr: se.ErrInvalidAddress,
 		},
 		{
-			name:         "empty asset should fail",
-			msg:          NewMsgAdd(GetRandomTx(), common.Asset{}, cosmos.NewUint(common.One*5), cosmos.NewUint(common.One*5), w.activeNodeAccount.NodeAddress),
-			expectedCode: cosmos.CodeUnknownRequest,
+			name:        "empty asset should fail",
+			msg:         NewMsgAdd(GetRandomTx(), common.Asset{}, cosmos.NewUint(common.One*5), cosmos.NewUint(common.One*5), w.activeNodeAccount.NodeAddress),
+			expectedErr: se.ErrUnknownRequest,
 		},
 		{
-			name:         "pool doesn't exist should fail",
-			msg:          NewMsgAdd(GetRandomTx(), common.BNBAsset, cosmos.NewUint(common.One*5), cosmos.NewUint(common.One*5), w.activeNodeAccount.NodeAddress),
-			expectedCode: cosmos.CodeUnknownRequest,
+			name:        "pool doesn't exist should fail",
+			msg:         NewMsgAdd(GetRandomTx(), common.BNBAsset, cosmos.NewUint(common.One*5), cosmos.NewUint(common.One*5), w.activeNodeAccount.NodeAddress),
+			expectedErr: se.ErrUnknownRequest,
 		},
 	}
 
@@ -64,6 +67,7 @@ func (HandlerAddSuite) TestHandleMsgAddValidation(c *C) {
 	ver := constants.SWVersion
 	cosntAccessor := constants.GetConstantValues(ver)
 	for _, item := range testCases {
-		c.Assert(addHandler.Run(w.ctx, item.msg, ver, cosntAccessor).Code, Equals, item.expectedCode)
+		_, err := addHandler.Run(w.ctx, item.msg, ver, cosntAccessor)
+		c.Check(errors.Is(err, item.expectedErr), Equals, true, Commentf("name:%s", item.name))
 	}
 }

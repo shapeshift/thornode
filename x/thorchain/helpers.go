@@ -1,16 +1,17 @@
 package thorchain
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
+
+	"github.com/hashicorp/go-multierror"
 
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 )
 
-func refundTx(ctx cosmos.Context, tx ObservedTx, mgr Manager, keeper Keeper, constAccessor constants.ConstantValues, refundCode cosmos.CodeType, refundReason string) error {
+func refundTx(ctx cosmos.Context, tx ObservedTx, mgr Manager, keeper Keeper, constAccessor constants.ConstantValues, refundCode uint32, refundReason string) error {
 	// If THORNode recognize one of the coins, and therefore able to refund
 	// withholding fees, refund all coins.
 
@@ -437,7 +438,7 @@ func enableNextPool(ctx cosmos.Context, keeper Keeper, eventManager EventManager
 func wrapError(ctx cosmos.Context, err error, wrap string) error {
 	err = fmt.Errorf("%s: %w", wrap, err)
 	ctx.Logger().Error(err.Error())
-	return err
+	return multierror.Append(errInternal, err)
 }
 
 func AddGasFees(ctx cosmos.Context, keeper Keeper, tx ObservedTx, gasManager GasManager) error {
@@ -475,16 +476,4 @@ func AddGasFees(ctx cosmos.Context, keeper Keeper, tx ObservedTx, gasManager Gas
 		}
 	}
 	return nil
-}
-
-func getErrMessageFromABCILog(content string) (string, error) {
-	var humanReadableError struct {
-		Codespace cosmos.CodespaceType `json:"codespace"`
-		Code      cosmos.CodeType      `json:"code"`
-		Message   string               `json:"message"`
-	}
-	if err := json.Unmarshal([]byte(content), &humanReadableError); err != nil {
-		return "", err
-	}
-	return humanReadableError.Message, nil
 }

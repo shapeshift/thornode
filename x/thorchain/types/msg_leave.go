@@ -26,7 +26,7 @@ func (msg MsgLeave) Route() string { return RouterKey }
 func (msg MsgLeave) Type() string { return "validator_leave" }
 
 // ValidateBasic runs stateless checks on the message
-func (msg MsgLeave) ValidateBasic() cosmos.Error {
+func (msg MsgLeave) ValidateBasic() error {
 	if msg.Tx.FromAddress.IsEmpty() {
 		return cosmos.ErrUnknownRequest("from address cannot be empty")
 	}

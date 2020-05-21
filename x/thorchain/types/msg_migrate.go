@@ -1,6 +1,8 @@
 package types
 
-import cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+import (
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+)
 
 // MsgMigrate defines a MsgMigrate message
 type MsgMigrate struct {
@@ -25,7 +27,7 @@ func (msg MsgMigrate) Route() string { return RouterKey }
 func (msg MsgMigrate) Type() string { return "migrate" }
 
 // ValidateBasic runs stateless checks on the message
-func (msg MsgMigrate) ValidateBasic() cosmos.Error {
+func (msg MsgMigrate) ValidateBasic() error {
 	if msg.Signer.Empty() {
 		return cosmos.ErrInvalidAddress(msg.Signer.String())
 	}

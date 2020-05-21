@@ -1,8 +1,6 @@
 package thorchain
 
 import (
-	"fmt"
-
 	"github.com/blang/semver"
 
 	"gitlab.com/thorchain/thornode/common"
@@ -22,13 +20,13 @@ func NewObservedTxOutHandler(keeper Keeper, mgr Manager) ObservedTxOutHandler {
 	}
 }
 
-func (h ObservedTxOutHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, _ constants.ConstantValues) cosmos.Result {
+func (h ObservedTxOutHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, _ constants.ConstantValues) (*cosmos.Result, error) {
 	msg, ok := m.(MsgObservedTxOut)
 	if !ok {
-		return errInvalidMessage.Result()
+		return nil, errInvalidMessage
 	}
 	if err := h.validate(ctx, msg, version); err != nil {
-		return cosmos.ErrInternal(err.Error()).Result()
+		return nil, err
 	}
 	return h.handle(ctx, msg, version)
 }
@@ -56,12 +54,12 @@ func (h ObservedTxOutHandler) validateV1(ctx cosmos.Context, msg MsgObservedTxOu
 	return nil
 }
 
-func (h ObservedTxOutHandler) handle(ctx cosmos.Context, msg MsgObservedTxOut, version semver.Version) cosmos.Result {
+func (h ObservedTxOutHandler) handle(ctx cosmos.Context, msg MsgObservedTxOut, version semver.Version) (*cosmos.Result, error) {
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.handleV1(ctx, version, msg)
 	} else {
 		ctx.Logger().Error(errInvalidVersion.Error())
-		return errBadVersion.Result()
+		return nil, errBadVersion
 	}
 }
 
@@ -95,18 +93,17 @@ func (h ObservedTxOutHandler) preflight(ctx cosmos.Context, voter ObservedTxVote
 }
 
 // Handle a message to observe outbound tx
-func (h ObservedTxOutHandler) handleV1(ctx cosmos.Context, version semver.Version, msg MsgObservedTxOut) cosmos.Result {
+func (h ObservedTxOutHandler) handleV1(ctx cosmos.Context, version semver.Version, msg MsgObservedTxOut) (*cosmos.Result, error) {
 	constAccessor := constants.GetConstantValues(version)
 	activeNodeAccounts, err := h.keeper.ListActiveNodeAccounts(ctx)
 	if err != nil {
 		err = wrapError(ctx, err, "fail to get list of active node accounts")
-		return cosmos.ErrInternal(err.Error()).Result()
+		return nil, err
 	}
 
 	slasher, err := NewSlasher(h.keeper, version, h.mgr)
 	if err != nil {
-		ctx.Logger().Error("fail to create slasher", "error", err)
-		return cosmos.ErrInternal("fail to create slasher").Result()
+		return nil, ErrInternal(err, "fail to create slasher")
 	}
 	handler := NewInternalHandler(h.keeper, h.mgr)
 
@@ -119,7 +116,7 @@ func (h ObservedTxOutHandler) handleV1(ctx cosmos.Context, version semver.Versio
 
 		voter, err := h.keeper.GetObservedTxVoter(ctx, tx.Tx.ID)
 		if err != nil {
-			return cosmos.ErrInternal(err.Error()).Result()
+			return nil, err
 		}
 
 		// check whether the tx has consensus
@@ -182,7 +179,7 @@ func (h ObservedTxOutHandler) handleV1(ctx cosmos.Context, version semver.Versio
 
 		// Apply Gas fees
 		if err := AddGasFees(ctx, h.keeper, tx, h.mgr.GasMgr()); err != nil {
-			return cosmos.ErrInternal(fmt.Errorf("fail to add gas fee: %w", err).Error()).Result()
+			return nil, ErrInternal(err, "fail to add gas fee")
 		}
 
 		// If sending from one of our vaults, decrement coins
@@ -198,22 +195,20 @@ func (h ObservedTxOutHandler) handleV1(ctx cosmos.Context, version semver.Versio
 			vault.RemovePendingTxBlockHeights(memo.GetBlockHeight())
 		}
 		if err := h.keeper.SetVault(ctx, vault); err != nil {
-			ctx.Logger().Error("fail to save vault", "error", err)
-			return cosmos.ErrInternal("fail to save vault").Result()
+			return nil, ErrInternal(err, "fail to save vault")
 		}
 
 		// add addresses to observing addresses. This is used to detect
 		// active/inactive observing node accounts
 		h.mgr.ObMgr().AppendObserver(tx.Tx.Chain, txOut.Signers)
 
-		result := handler(ctx, m)
-		if !result.IsOK() {
-			ctx.Logger().Error("Handler failed:", "error", result.Log)
+		result, err := handler(ctx, m)
+		if err != nil {
+			ctx.Logger().Error("Handler failed:", "error", err)
+			continue
 		}
+		ctx.Logger().Info(result.Log)
 	}
 
-	return cosmos.Result{
-		Code:      cosmos.CodeOK,
-		Codespace: DefaultCodespace,
-	}
+	return &cosmos.Result{}, nil
 }
