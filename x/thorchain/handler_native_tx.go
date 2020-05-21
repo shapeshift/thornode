@@ -150,6 +150,5 @@ func (h NativeTxHandler) handleV1(ctx cosmos.Context, msg MsgNativeTx, version s
 			return nil, fmt.Errorf("fail to refund tx: %w", err)
 		}
 	}
-
 	return result, nil
 }
