@@ -214,7 +214,7 @@ func processOneTxIn(ctx cosmos.Context, keeper Keeper, tx ObservedTx, signer cos
 func getMsgNoOpFromMemo(tx ObservedTx, signer cosmos.AccAddress) (cosmos.Msg, error) {
 	for _, coin := range tx.Tx.Coins {
 		if !coin.Asset.Chain.Equals(common.RuneAsset().Chain) {
-			return nil, fmt.Errorf("Only accepts %s coins", common.RuneAsset().Chain)
+			return nil, fmt.Errorf("only accepts %s coins", common.RuneAsset().Chain)
 		}
 	}
 	return NewMsgNoOp(tx, signer), nil
