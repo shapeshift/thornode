@@ -328,7 +328,7 @@ func NewSwapMemo(asset common.Asset, dest common.Address, slip cosmos.Uint) Swap
 
 func ParseMemo(memo string) (Memo, error) {
 	var err error
-	noMemo := MemoBase{}
+	noMemo := MemoBase{TxType: TxUnknown}
 	if len(memo) == 0 {
 		return noMemo, fmt.Errorf("memo can't be empty")
 	}

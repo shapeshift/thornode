@@ -1,7 +1,6 @@
 package thorchain
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/blang/semver"
@@ -48,12 +47,6 @@ func (h NativeTxHandler) validateV1(ctx cosmos.Context, msg MsgNativeTx) error {
 	if err := msg.ValidateBasic(); err != nil {
 		ctx.Logger().Error(err.Error())
 		return err
-	}
-
-	memo, _ := ParseMemo(msg.Memo) // ignore err
-	if !memo.IsInbound() {
-		// no one should send an outbound tx to vault
-		return errors.New("transaction is not an inbound transaction")
 	}
 
 	return nil
@@ -123,17 +116,6 @@ func (h NativeTxHandler) handleV1(ctx cosmos.Context, msg MsgNativeTx, version s
 
 	handler := NewInternalHandler(h.keeper, h.mgr)
 
-	// construct msg from memo
-	txIn := ObservedTx{Tx: tx}
-	m, txErr := processOneTxIn(ctx, h.keeper, txIn, msg.Signer)
-	if txErr != nil {
-		ctx.Logger().Error("fail to process native inbound tx", "error", txErr.Error(), "tx hash", tx.ID.String())
-		if newErr := refundTx(ctx, txIn, h.mgr, h.keeper, constAccessor, txErr.Code(), fmt.Sprint(txErr.Data())); nil != newErr {
-			return cosmos.ErrInternal(newErr.Error()).Result()
-		}
-		return cosmos.ErrInternal(txErr.Error()).Result()
-	}
-
 	memo, _ := ParseMemo(msg.Memo) // ignore err
 	targetModule := AsgardName
 	if memo.IsType(TxBond) {
@@ -143,6 +125,20 @@ func (h NativeTxHandler) handleV1(ctx cosmos.Context, msg MsgNativeTx, version s
 	sdkErr = supplier.SendCoinsFromAccountToModule(ctx, msg.GetSigners()[0], targetModule, coins)
 	if sdkErr != nil {
 		return sdkErr.Result()
+	}
+
+	// construct msg from memo
+	txIn := ObservedTx{Tx: tx}
+	m, txErr := processOneTxIn(ctx, h.keeper, txIn, msg.Signer)
+	if txErr != nil {
+		ctx.Logger().Error("fail to process native inbound tx", "error", txErr.Error(), "tx hash", tx.ID.String())
+		if newErr := refundTx(ctx, txIn, h.mgr, h.keeper, constAccessor, txErr.Code(), fmt.Sprint(txErr.Data())); nil != newErr {
+			return cosmos.ErrInternal(newErr.Error()).Result()
+		}
+		return cosmos.Result{
+			Code:      cosmos.CodeOK,
+			Codespace: DefaultCodespace,
+		}
 	}
 
 	result := handler(ctx, m)
