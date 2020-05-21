@@ -1,12 +1,15 @@
 package thorclient
 
 import (
+	"bytes"
 	"fmt"
+	"io"
+	"os"
 	"os/user"
 	"path/filepath"
 
-	"github.com/cosmos/cosmos-sdk/client/keys"
 	ckeys "github.com/cosmos/cosmos-sdk/crypto/keys"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/tendermint/tendermint/crypto"
 )
 
@@ -33,25 +36,48 @@ func NewKeysWithKeybase(kb ckeys.Keybase, signerInfo ckeys.Info, password string
 	}
 }
 
+// NewKeys create a new instance of keys
+func GetKeyringKeybase(chainHomeFolder, signerName, password string) (ckeys.Keybase, ckeys.Info, error) {
+	if len(signerName) == 0 {
+		return nil, nil, fmt.Errorf("signer name is empty")
+	}
+	if len(password) == 0 {
+		return nil, nil, fmt.Errorf("password is empty")
+	}
+
+	buf := bytes.NewBufferString(password)
+	// the library used by keyring is using ReadLine , which expect a new line
+	buf.WriteByte('\n')
+	kb, err := getKeybase(chainHomeFolder, buf)
+	if err != nil {
+		return nil, nil, fmt.Errorf("fail to get keybase,err:%w", err)
+	}
+	// the keyring library which used by cosmos sdk , will use interactive terminal if it detect it has one
+	// this will temporary trick it think there is no interactive terminal, thus will read the password from the buffer provided
+	oldStdIn := os.Stdin
+	defer func() {
+		os.Stdin = oldStdIn
+	}()
+	os.Stdin = nil
+	si, err := kb.Get(signerName)
+	if err != nil {
+		return nil, nil, fmt.Errorf("fail to get signer info(%s): %w", signerName, err)
+	}
+	return kb, si, nil
+}
+
 // getKeybase will create an instance of Keybase
-func GetKeybase(thorchainHome, signerName string) (ckeys.Keybase, ckeys.Info, error) {
+func getKeybase(thorchainHome string, reader io.Reader) (ckeys.Keybase, error) {
 	cliDir := thorchainHome
 	if len(thorchainHome) == 0 {
 		usr, err := user.Current()
 		if err != nil {
-			return nil, nil, fmt.Errorf("fail to get current user,err:%w", err)
+			return nil, fmt.Errorf("fail to get current user,err:%w", err)
 		}
 		cliDir = filepath.Join(usr.HomeDir, thorchainCliFolderName)
 	}
-	kb, err := keys.NewKeyBaseFromDir(cliDir)
-	if err != nil {
-		return nil, nil, fmt.Errorf("fail to create keybase from folder")
-	}
-	info, err := kb.Get(signerName)
-	if err != nil {
-		return kb, nil, fmt.Errorf("fail to get signer info(%s): %w", signerName, err)
-	}
-	return kb, info, nil
+
+	return ckeys.NewKeyring(sdk.KeyringServiceName(), ckeys.BackendFile, cliDir, reader)
 }
 
 // GetSignerInfo return signer info

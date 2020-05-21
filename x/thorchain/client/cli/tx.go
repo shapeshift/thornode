@@ -1,11 +1,13 @@
 package cli
 
 import (
+	"bufio"
 	"fmt"
 	"strconv"
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/context"
+	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/auth/client/utils"
@@ -27,7 +29,7 @@ func GetTxCmd(storeKey string, cdc *codec.Codec) *cobra.Command {
 		RunE:                       client.ValidateCmd,
 	}
 
-	thorchainTxCmd.AddCommand(client.PostCommands(
+	thorchainTxCmd.AddCommand(flags.PostCommands(
 		GetCmdSetNodeKeys(cdc),
 		GetCmdSetVersion(cdc),
 		GetCmdSetIPAddress(cdc),
@@ -46,7 +48,8 @@ func GetCmdMimir(cdc *codec.Codec) *cobra.Command {
 		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
-			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
+			inBuf := bufio.NewReader(cmd.InOrStdin())
+			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
 
 			val, err := strconv.ParseInt(args[1], 10, 64)
 			if err != nil {
@@ -70,7 +73,8 @@ func GetCmdBan(cdc *codec.Codec) *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
-			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
+			inBuf := bufio.NewReader(cmd.InOrStdin())
+			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
 
 			addr, err := cosmos.AccAddressFromBech32(args[0])
 			if err != nil {
@@ -94,7 +98,8 @@ func GetCmdSetIPAddress(cdc *codec.Codec) *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
-			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
+			inBuf := bufio.NewReader(cmd.InOrStdin())
+			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
 
 			msg := types.NewMsgSetIPAddress(args[0], cliCtx.GetFromAddress())
 			if err := msg.ValidateBasic(); err != nil {
@@ -113,7 +118,8 @@ func GetCmdSetVersion(cdc *codec.Codec) *cobra.Command {
 		Args:  cobra.ExactArgs(0),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
-			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
+			inBuf := bufio.NewReader(cmd.InOrStdin())
+			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
 
 			msg := types.NewMsgSetVersion(constants.SWVersion, cliCtx.GetFromAddress())
 			if err := msg.ValidateBasic(); err != nil {
@@ -132,7 +138,8 @@ func GetCmdSetNodeKeys(cdc *codec.Codec) *cobra.Command {
 		Args:  cobra.ExactArgs(3),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
-			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
+			inBuf := bufio.NewReader(cmd.InOrStdin())
+			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
 			txBldr = txBldr.WithGas(600000) // set gas
 
 			secp256k1Key, err := common.NewPubKey(args[0])
@@ -144,11 +151,11 @@ func GetCmdSetNodeKeys(cdc *codec.Codec) *cobra.Command {
 				return fmt.Errorf("fail to parse ed25519 pub key ,err:%w", err)
 			}
 			pk := common.NewPubKeySet(secp256k1Key, ed25519Key)
-			validatorConsPubKey, err := cosmos.GetConsPubKeyBech32(args[2])
+			validatorConsPubKey, err := cosmos.GetPubKeyFromBech32(cosmos.Bech32PubKeyTypeConsPub, args[2])
 			if err != nil {
 				return fmt.Errorf("fail to parse validator consensus public key: %w", err)
 			}
-			validatorConsPubKeyStr, err := cosmos.Bech32ifyConsPub(validatorConsPubKey)
+			validatorConsPubKeyStr, err := cosmos.Bech32ifyPubKey(cosmos.Bech32PubKeyTypeConsPub, validatorConsPubKey)
 			if err != nil {
 				return fmt.Errorf("fail to convert public key to string: %w", err)
 			}

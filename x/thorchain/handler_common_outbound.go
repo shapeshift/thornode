@@ -39,11 +39,10 @@ func (h CommonOutboundTxHandler) slash(ctx cosmos.Context, version semver.Versio
 	return returnErr
 }
 
-func (h CommonOutboundTxHandler) handle(ctx cosmos.Context, version semver.Version, tx ObservedTx, inTxID common.TxID, status EventStatus) cosmos.Result {
+func (h CommonOutboundTxHandler) handle(ctx cosmos.Context, version semver.Version, tx ObservedTx, inTxID common.TxID, status EventStatus) (*cosmos.Result, error) {
 	voter, err := h.keeper.GetObservedTxVoter(ctx, inTxID)
 	if err != nil {
-		ctx.Logger().Error("fail to get observed tx voter", "error", err)
-		return cosmos.ErrInternal("fail to get observed tx voter").Result()
+		return nil, ErrInternal(err, "fail to get observed tx voter")
 	}
 
 	if voter.Height > 0 {
@@ -55,13 +54,11 @@ func (h CommonOutboundTxHandler) handle(ctx cosmos.Context, version semver.Versi
 	if voter.IsDone() {
 		err := completeEvents(ctx, h.keeper, inTxID, voter.OutTxs, status)
 		if err != nil {
-			ctx.Logger().Error("unable to complete events", "error", err)
-			return cosmos.ErrInternal(err.Error()).Result()
+			return nil, ErrInternal(err, "unable to complete events")
 		}
 		for _, item := range voter.OutTxs {
 			if err := h.mgr.EventMgr().EmitOutboundEvent(ctx, NewEventOutbound(inTxID, item)); err != nil {
-				ctx.Logger().Error("fail to emit outbound event", "error", err)
-				return cosmos.ErrInternal("fail to emit outbound event").Result()
+				return nil, ErrInternal(err, "fail to emit outbound event")
 			}
 		}
 	}
@@ -70,7 +67,7 @@ func (h CommonOutboundTxHandler) handle(ctx cosmos.Context, version semver.Versi
 	txOut, err := h.keeper.GetTxOut(ctx, voter.Height)
 	if err != nil {
 		ctx.Logger().Error("unable to get txOut record", "error", err)
-		return cosmos.ErrUnknownRequest(err.Error()).Result()
+		return nil, cosmos.ErrUnknownRequest(err.Error())
 	}
 
 	// Save TxOut back with the TxID only when the TxOut on the block height is
@@ -102,14 +99,11 @@ func (h CommonOutboundTxHandler) handle(ctx cosmos.Context, version semver.Versi
 
 	if shouldSlash {
 		if err := h.slash(ctx, version, tx); err != nil {
-			return cosmos.ErrInternal("fail to slash account").Result()
+			return nil, ErrInternal(err, "fail to slash account")
 		}
 	}
 
 	h.keeper.SetLastSignedHeight(ctx, voter.Height)
 
-	return cosmos.Result{
-		Code:      cosmos.CodeOK,
-		Codespace: DefaultCodespace,
-	}
+	return &cosmos.Result{}, nil
 }

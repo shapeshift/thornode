@@ -1,8 +1,6 @@
 package thorchain
 
 import (
-	"fmt"
-
 	"github.com/blang/semver"
 
 	"gitlab.com/thorchain/thornode/common"
@@ -26,14 +24,14 @@ func NewLeaveHandler(keeper Keeper, mgr Manager) LeaveHandler {
 	}
 }
 
-func (h LeaveHandler) validate(ctx cosmos.Context, msg MsgLeave, version semver.Version) cosmos.Error {
+func (h LeaveHandler) validate(ctx cosmos.Context, msg MsgLeave, version semver.Version) error {
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, msg)
 	}
 	return errBadVersion
 }
 
-func (h LeaveHandler) validateV1(ctx cosmos.Context, msg MsgLeave) cosmos.Error {
+func (h LeaveHandler) validateV1(ctx cosmos.Context, msg MsgLeave) error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
@@ -41,34 +39,31 @@ func (h LeaveHandler) validateV1(ctx cosmos.Context, msg MsgLeave) cosmos.Error 
 }
 
 // Run execute the handler
-func (h LeaveHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, _ constants.ConstantValues) cosmos.Result {
+func (h LeaveHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, _ constants.ConstantValues) (*cosmos.Result, error) {
 	msg, ok := m.(MsgLeave)
 	if !ok {
-		return errInvalidMessage.Result()
+		return nil, errInvalidMessage
 	}
 	ctx.Logger().Info("receive MsgLeave",
 		"sender", msg.Tx.FromAddress.String(),
 		"request tx hash", msg.Tx.ID)
 	if err := h.validate(ctx, msg, version); err != nil {
 		ctx.Logger().Error("msg leave fail validation", "error", err)
-		return err.Result()
+		return nil, err
 	}
 
 	if err := h.handle(ctx, msg, version); err != nil {
 		ctx.Logger().Error("fail to process msg leave", "error", err)
-		return err.Result()
+		return nil, err
 	}
 
-	return cosmos.Result{
-		Code:      cosmos.CodeOK,
-		Codespace: DefaultCodespace,
-	}
+	return &cosmos.Result{}, nil
 }
 
-func (h LeaveHandler) handle(ctx cosmos.Context, msg MsgLeave, version semver.Version) cosmos.Error {
+func (h LeaveHandler) handle(ctx cosmos.Context, msg MsgLeave, version semver.Version) error {
 	nodeAcc, err := h.keeper.GetNodeAccountByBondAddress(ctx, msg.Tx.FromAddress)
 	if err != nil {
-		return cosmos.ErrInternal(fmt.Errorf("fail to get node account by bond address: %w", err).Error())
+		return ErrInternal(err, "fail to get node account by bond address")
 	}
 	if nodeAcc.IsEmpty() {
 		return cosmos.ErrUnknownRequest("node account doesn't exist")
@@ -90,24 +85,24 @@ func (h LeaveHandler) handle(ctx cosmos.Context, msg MsgLeave, version semver.Ve
 		// their address to a new TSS vault
 		if !h.keeper.VaultExists(ctx, nodeAcc.PubKeySet.Secp256k1) {
 			if err := refundBond(ctx, msg.Tx, nodeAcc, h.keeper, h.mgr); err != nil {
-				return cosmos.ErrInternal(fmt.Errorf("fail to refund bond: %w", err).Error())
+				return ErrInternal(err, "fail to refund bond")
 			}
 		} else {
 			// given the node is not active, they should not have Yggdrasil pool either
 			// but let's check it anyway just in case
 			vault, err := h.keeper.GetVault(ctx, nodeAcc.PubKeySet.Secp256k1)
 			if err != nil {
-				return cosmos.ErrInternal(fmt.Errorf("fail to get vault pool: %w", err).Error())
+				return ErrInternal(err, "fail to get vault pool")
 			}
 			if vault.IsYggdrasil() {
 				if !vault.HasFunds() {
 					// node is not active , they are free to leave , refund them
 					if err := refundBond(ctx, msg.Tx, nodeAcc, h.keeper, h.mgr); err != nil {
-						return cosmos.ErrInternal(fmt.Errorf("fail to refund bond: %w", err).Error())
+						return ErrInternal(err, "fail to refund bond")
 					}
 				} else {
 					if err := h.mgr.ValidatorMgr().RequestYggReturn(ctx, nodeAcc, h.mgr); err != nil {
-						return cosmos.ErrInternal(fmt.Errorf("fail to request yggdrasil return fund: %w", err).Error())
+						return ErrInternal(err, "fail to request yggdrasil return fund")
 					}
 				}
 			}
@@ -116,7 +111,7 @@ func (h LeaveHandler) handle(ctx cosmos.Context, msg MsgLeave, version semver.Ve
 
 	nodeAcc.RequestedToLeave = true
 	if err := h.keeper.SetNodeAccount(ctx, nodeAcc); err != nil {
-		return cosmos.ErrInternal(fmt.Errorf("fail to save node account to key value store: %w", err).Error())
+		return ErrInternal(err, "fail to save node account to key value store")
 	}
 
 	ctx.EventManager().EmitEvent(

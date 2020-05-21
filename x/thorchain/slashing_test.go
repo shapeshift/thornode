@@ -443,7 +443,7 @@ type TestDoubleSlashKeeper struct {
 	modules     map[string]int64
 }
 
-func (k *TestDoubleSlashKeeper) SendFromModuleToModule(_ cosmos.Context, from, to string, coin common.Coin) cosmos.Error {
+func (k *TestDoubleSlashKeeper) SendFromModuleToModule(_ cosmos.Context, from, to string, coin common.Coin) error {
 	k.modules[from] -= int64(coin.Amount.Uint64())
 	k.modules[to] += int64(coin.Amount.Uint64())
 	return nil
@@ -492,7 +492,7 @@ func (s *SlashingSuite) TestDoubleSign(c *C) {
 	slasher, err := NewSlasher(keeper, constants.SWVersion, NewDummyMgr())
 	c.Assert(err, IsNil)
 
-	pk, err := cosmos.GetConsPubKeyBech32(na.ValidatorConsPubKey)
+	pk, err := cosmos.GetPubKeyFromBech32(cosmos.Bech32PubKeyTypeConsPub, na.ValidatorConsPubKey)
 	c.Assert(err, IsNil)
 	err = slasher.HandleDoubleSign(ctx, pk.Address(), 0, constAccessor)
 	c.Assert(err, IsNil)

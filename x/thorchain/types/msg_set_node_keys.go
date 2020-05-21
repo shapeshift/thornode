@@ -28,7 +28,7 @@ func (msg MsgSetNodeKeys) Route() string { return RouterKey }
 func (msg MsgSetNodeKeys) Type() string { return "set_node_keys" }
 
 // ValidateBasic runs stateless checks on the message
-func (msg MsgSetNodeKeys) ValidateBasic() cosmos.Error {
+func (msg MsgSetNodeKeys) ValidateBasic() error {
 	if msg.Signer.Empty() {
 		return cosmos.ErrInvalidAddress(msg.Signer.String())
 	}

@@ -22,13 +22,13 @@ func NewMigrateHandler(keeper Keeper, mgr Manager) MigrateHandler {
 	}
 }
 
-func (h MigrateHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, _ constants.ConstantValues) cosmos.Result {
+func (h MigrateHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, _ constants.ConstantValues) (*cosmos.Result, error) {
 	msg, ok := m.(MsgMigrate)
 	if !ok {
-		return errInvalidMessage.Result()
+		return nil, errInvalidMessage
 	}
 	if err := h.validate(ctx, msg, version); err != nil {
-		return cosmos.ErrInternal(err.Error()).Result()
+		return nil, err
 	}
 	return h.handle(ctx, msg, version)
 }
@@ -49,13 +49,13 @@ func (h MigrateHandler) validateV1(ctx cosmos.Context, msg MsgMigrate) error {
 	return nil
 }
 
-func (h MigrateHandler) handle(ctx cosmos.Context, msg MsgMigrate, version semver.Version) cosmos.Result {
+func (h MigrateHandler) handle(ctx cosmos.Context, msg MsgMigrate, version semver.Version) (*cosmos.Result, error) {
 	ctx.Logger().Info("receive MsgMigrate", "request tx hash", msg.Tx.Tx.ID)
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.handleV1(ctx, version, msg)
 	}
 	ctx.Logger().Error(errInvalidVersion.Error())
-	return errBadVersion.Result()
+	return nil, errBadVersion
 }
 
 func (h MigrateHandler) slash(ctx cosmos.Context, version semver.Version, tx ObservedTx) error {
@@ -73,12 +73,12 @@ func (h MigrateHandler) slash(ctx cosmos.Context, version semver.Version, tx Obs
 	return returnErr
 }
 
-func (h MigrateHandler) handleV1(ctx cosmos.Context, version semver.Version, msg MsgMigrate) cosmos.Result {
+func (h MigrateHandler) handleV1(ctx cosmos.Context, version semver.Version, msg MsgMigrate) (*cosmos.Result, error) {
 	// update txOut record with our TxID that sent funds out of the pool
 	txOut, err := h.keeper.GetTxOut(ctx, msg.BlockHeight)
 	if err != nil {
 		ctx.Logger().Error("unable to get txOut record", "error", err)
-		return cosmos.ErrUnknownRequest(err.Error()).Result()
+		return nil, cosmos.ErrUnknownRequest(err.Error())
 	}
 
 	shouldSlash := true
@@ -97,8 +97,7 @@ func (h MigrateHandler) handleV1(ctx cosmos.Context, version semver.Version, msg
 			shouldSlash = false
 
 			if err := h.keeper.SetTxOut(ctx, txOut); nil != err {
-				ctx.Logger().Error("fail to save tx out", "error", err)
-				return cosmos.ErrInternal("fail to save tx out").Result()
+				return nil, ErrInternal(err, "fail to save tx out")
 			}
 
 			break
@@ -107,14 +106,11 @@ func (h MigrateHandler) handleV1(ctx cosmos.Context, version semver.Version, msg
 
 	if shouldSlash {
 		if err := h.slash(ctx, version, msg.Tx); err != nil {
-			return cosmos.ErrInternal("fail to slash account").Result()
+			return nil, ErrInternal(err, "fail to slash account")
 		}
 	}
 
 	h.keeper.SetLastSignedHeight(ctx, msg.BlockHeight)
 
-	return cosmos.Result{
-		Code:      cosmos.CodeOK,
-		Codespace: DefaultCodespace,
-	}
+	return &cosmos.Result{}, nil
 }

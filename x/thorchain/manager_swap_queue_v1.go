@@ -66,14 +66,10 @@ func (vm *SwapQv1) EndBlock(ctx cosmos.Context, mgr Manager, version semver.Vers
 	for i := 0; i < vm.getTodoNum(len(swaps)); i++ {
 		pick := swaps[i]
 
-		result := handler.handle(ctx, pick.msg, version, constAccessor)
-		if !result.IsOK() {
-			ctx.Logger().Error("fail to swap", "msg", pick.msg.Tx.String(), "error", result.Log)
-			refundMsg, err := getErrMessageFromABCILog(result.Log)
-			if err != nil {
-				ctx.Logger().Error("fail to get refund msg", "err", err.Error())
-			}
-			if newErr := refundTx(ctx, ObservedTx{Tx: pick.msg.Tx}, mgr, vm.k, constAccessor, result.Code, refundMsg); nil != newErr {
+		_, err := handler.handle(ctx, pick.msg, version, constAccessor)
+		if err != nil {
+			ctx.Logger().Error("fail to swap", "msg", pick.msg.Tx.String(), "error", err)
+			if newErr := refundTx(ctx, ObservedTx{Tx: pick.msg.Tx}, mgr, vm.k, constAccessor, CodeSwapFail, err.Error()); nil != newErr {
 				ctx.Logger().Error("fail to refund swap", "error", err)
 			}
 		}

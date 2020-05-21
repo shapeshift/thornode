@@ -1,7 +1,10 @@
 package thorchain
 
 import (
+	"errors"
+
 	"github.com/blang/semver"
+	se "github.com/cosmos/cosmos-sdk/types/errors"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
@@ -103,39 +106,39 @@ func (h HandlerReserveContributorSuite) TestReserveContributorHandler(c *C) {
 	testCases := []struct {
 		name           string
 		messageCreator func(helper reserveContributorHandlerHelper) cosmos.Msg
-		runner         func(handler ReserveContributorHandler, helper reserveContributorHandlerHelper, msg cosmos.Msg) cosmos.Result
-		expectedResult cosmos.CodeType
-		validator      func(helper reserveContributorHandlerHelper, msg cosmos.Msg, result cosmos.Result, c *C)
+		runner         func(handler ReserveContributorHandler, helper reserveContributorHandlerHelper, msg cosmos.Msg) (*cosmos.Result, error)
+		expectedResult error
+		validator      func(helper reserveContributorHandlerHelper, msg cosmos.Msg, result *cosmos.Result, c *C)
 	}{
 		{
 			name: "invalid message should return error",
 			messageCreator: func(helper reserveContributorHandlerHelper) cosmos.Msg {
 				return NewMsgNoOp(GetRandomObservedTx(), helper.nodeAccount.NodeAddress)
 			},
-			runner: func(handler ReserveContributorHandler, helper reserveContributorHandlerHelper, msg cosmos.Msg) cosmos.Result {
+			runner: func(handler ReserveContributorHandler, helper reserveContributorHandlerHelper, msg cosmos.Msg) (*cosmos.Result, error) {
 				return handler.Run(helper.ctx, msg, helper.version, helper.constAccessor)
 			},
-			expectedResult: CodeInvalidMessage,
+			expectedResult: errInvalidMessage,
 		},
 		{
 			name: "bad version should return an error",
 			messageCreator: func(helper reserveContributorHandlerHelper) cosmos.Msg {
 				return NewMsgReserveContributor(GetRandomTx(), helper.reserveContributor, helper.nodeAccount.NodeAddress)
 			},
-			runner: func(handler ReserveContributorHandler, helper reserveContributorHandlerHelper, msg cosmos.Msg) cosmos.Result {
+			runner: func(handler ReserveContributorHandler, helper reserveContributorHandlerHelper, msg cosmos.Msg) (*cosmos.Result, error) {
 				return handler.Run(helper.ctx, msg, semver.MustParse("0.0.1"), helper.constAccessor)
 			},
-			expectedResult: CodeBadVersion,
+			expectedResult: errBadVersion,
 		},
 		{
 			name: "empty signer should return an error",
 			messageCreator: func(helper reserveContributorHandlerHelper) cosmos.Msg {
 				return NewMsgReserveContributor(GetRandomTx(), helper.reserveContributor, cosmos.AccAddress{})
 			},
-			runner: func(handler ReserveContributorHandler, helper reserveContributorHandlerHelper, msg cosmos.Msg) cosmos.Result {
+			runner: func(handler ReserveContributorHandler, helper reserveContributorHandlerHelper, msg cosmos.Msg) (*cosmos.Result, error) {
 				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
 			},
-			expectedResult: cosmos.CodeInvalidAddress,
+			expectedResult: se.ErrInvalidAddress,
 		},
 		{
 			name: "empty contributor address should return an error",
@@ -145,10 +148,10 @@ func (h HandlerReserveContributorSuite) TestReserveContributorHandler(c *C) {
 					Amount:  cosmos.NewUint(100),
 				}, helper.nodeAccount.NodeAddress)
 			},
-			runner: func(handler ReserveContributorHandler, helper reserveContributorHandlerHelper, msg cosmos.Msg) cosmos.Result {
+			runner: func(handler ReserveContributorHandler, helper reserveContributorHandlerHelper, msg cosmos.Msg) (*cosmos.Result, error) {
 				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
 			},
-			expectedResult: cosmos.CodeUnknownRequest,
+			expectedResult: se.ErrUnknownRequest,
 		},
 		{
 			name: "empty contributor amount should return an error",
@@ -158,10 +161,10 @@ func (h HandlerReserveContributorSuite) TestReserveContributorHandler(c *C) {
 					Amount:  cosmos.ZeroUint(),
 				}, helper.nodeAccount.NodeAddress)
 			},
-			runner: func(handler ReserveContributorHandler, helper reserveContributorHandlerHelper, msg cosmos.Msg) cosmos.Result {
+			runner: func(handler ReserveContributorHandler, helper reserveContributorHandlerHelper, msg cosmos.Msg) (*cosmos.Result, error) {
 				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
 			},
-			expectedResult: cosmos.CodeUnknownRequest,
+			expectedResult: se.ErrUnknownRequest,
 		},
 		{
 			name: "invalid tx should return an error",
@@ -170,75 +173,75 @@ func (h HandlerReserveContributorSuite) TestReserveContributorHandler(c *C) {
 				tx.ID = ""
 				return NewMsgReserveContributor(tx, helper.reserveContributor, helper.nodeAccount.NodeAddress)
 			},
-			runner: func(handler ReserveContributorHandler, helper reserveContributorHandlerHelper, msg cosmos.Msg) cosmos.Result {
+			runner: func(handler ReserveContributorHandler, helper reserveContributorHandlerHelper, msg cosmos.Msg) (*cosmos.Result, error) {
 				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
 			},
-			expectedResult: cosmos.CodeUnknownRequest,
+			expectedResult: se.ErrUnknownRequest,
 		},
 		{
 			name: "fail to get reserve contributor should return an error",
 			messageCreator: func(helper reserveContributorHandlerHelper) cosmos.Msg {
 				return NewMsgReserveContributor(GetRandomTx(), helper.reserveContributor, helper.nodeAccount.NodeAddress)
 			},
-			runner: func(handler ReserveContributorHandler, helper reserveContributorHandlerHelper, msg cosmos.Msg) cosmos.Result {
+			runner: func(handler ReserveContributorHandler, helper reserveContributorHandlerHelper, msg cosmos.Msg) (*cosmos.Result, error) {
 				helper.keeper.errGetReserveContributors = true
 				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
 			},
-			expectedResult: cosmos.CodeInternal,
+			expectedResult: errInternal,
 		},
 		{
 			name: "fail to set reserve contributor should return an error",
 			messageCreator: func(helper reserveContributorHandlerHelper) cosmos.Msg {
 				return NewMsgReserveContributor(GetRandomTx(), helper.reserveContributor, helper.nodeAccount.NodeAddress)
 			},
-			runner: func(handler ReserveContributorHandler, helper reserveContributorHandlerHelper, msg cosmos.Msg) cosmos.Result {
+			runner: func(handler ReserveContributorHandler, helper reserveContributorHandlerHelper, msg cosmos.Msg) (*cosmos.Result, error) {
 				helper.keeper.errSetReserveContributors = true
 				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
 			},
-			expectedResult: cosmos.CodeInternal,
+			expectedResult: errInternal,
 		},
 		{
 			name: "fail to get vault data should return an error",
 			messageCreator: func(helper reserveContributorHandlerHelper) cosmos.Msg {
 				return NewMsgReserveContributor(GetRandomTx(), helper.reserveContributor, helper.nodeAccount.NodeAddress)
 			},
-			runner: func(handler ReserveContributorHandler, helper reserveContributorHandlerHelper, msg cosmos.Msg) cosmos.Result {
+			runner: func(handler ReserveContributorHandler, helper reserveContributorHandlerHelper, msg cosmos.Msg) (*cosmos.Result, error) {
 				helper.keeper.errGetVaultData = true
 				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
 			},
-			expectedResult: cosmos.CodeInternal,
+			expectedResult: errInternal,
 		},
 		{
 			name: "fail to set vault data should return an error",
 			messageCreator: func(helper reserveContributorHandlerHelper) cosmos.Msg {
 				return NewMsgReserveContributor(GetRandomTx(), helper.reserveContributor, helper.nodeAccount.NodeAddress)
 			},
-			runner: func(handler ReserveContributorHandler, helper reserveContributorHandlerHelper, msg cosmos.Msg) cosmos.Result {
+			runner: func(handler ReserveContributorHandler, helper reserveContributorHandlerHelper, msg cosmos.Msg) (*cosmos.Result, error) {
 				helper.keeper.errSetVaultData = true
 				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
 			},
-			expectedResult: cosmos.CodeInternal,
+			expectedResult: errInternal,
 		},
 		{
 			name: "fail to save event should return an error",
 			messageCreator: func(helper reserveContributorHandlerHelper) cosmos.Msg {
 				return NewMsgReserveContributor(GetRandomTx(), helper.reserveContributor, helper.nodeAccount.NodeAddress)
 			},
-			runner: func(handler ReserveContributorHandler, helper reserveContributorHandlerHelper, msg cosmos.Msg) cosmos.Result {
+			runner: func(handler ReserveContributorHandler, helper reserveContributorHandlerHelper, msg cosmos.Msg) (*cosmos.Result, error) {
 				helper.keeper.errSetEvents = true
 				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
 			},
-			expectedResult: cosmos.CodeInternal,
+			expectedResult: errInternal,
 		},
 		{
 			name: "normal reserve contribute message should return success",
 			messageCreator: func(helper reserveContributorHandlerHelper) cosmos.Msg {
 				return NewMsgReserveContributor(GetRandomTx(), helper.reserveContributor, helper.nodeAccount.NodeAddress)
 			},
-			runner: func(handler ReserveContributorHandler, helper reserveContributorHandlerHelper, msg cosmos.Msg) cosmos.Result {
+			runner: func(handler ReserveContributorHandler, helper reserveContributorHandlerHelper, msg cosmos.Msg) (*cosmos.Result, error) {
 				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
 			},
-			validator: func(helper reserveContributorHandlerHelper, msg cosmos.Msg, result cosmos.Result, c *C) {
+			validator: func(helper reserveContributorHandlerHelper, msg cosmos.Msg, result *cosmos.Result, c *C) {
 				eventID, err := helper.keeper.GetCurrentEventID(helper.ctx)
 				c.Assert(err, IsNil)
 				c.Assert(eventID, Equals, int64(2))
@@ -246,7 +249,7 @@ func (h HandlerReserveContributorSuite) TestReserveContributorHandler(c *C) {
 				c.Assert(err, IsNil)
 				c.Assert(e.Type, Equals, NewEventReserve(helper.reserveContributor, GetRandomTx()).Type())
 			},
-			expectedResult: cosmos.CodeOK,
+			expectedResult: nil,
 		},
 	}
 	for _, tc := range testCases {
@@ -255,8 +258,12 @@ func (h HandlerReserveContributorSuite) TestReserveContributorHandler(c *C) {
 		c.Assert(mgr.BeginBlock(helper.ctx), IsNil)
 		handler := NewReserveContributorHandler(helper.keeper, mgr)
 		msg := tc.messageCreator(helper)
-		result := tc.runner(handler, helper, msg)
-		c.Assert(result.Code, Equals, tc.expectedResult, Commentf("name:%s", tc.name))
+		result, err := tc.runner(handler, helper, msg)
+		if tc.expectedResult == nil {
+			c.Check(err, IsNil)
+		} else {
+			c.Check(errors.Is(err, tc.expectedResult), Equals, true, Commentf("name:%s", tc.name))
+		}
 		if tc.validator != nil {
 			tc.validator(helper, msg, result, c)
 		}

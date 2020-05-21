@@ -264,7 +264,7 @@ func (m *EventMgrV1) EmitAddEvent(ctx cosmos.Context, keeper Keeper, addEvt Even
 		EventSuccess,
 	)
 	if err := keeper.UpsertEvent(ctx, evt); err != nil {
-		return cosmos.ErrInternal(fmt.Errorf("fail to save event: %w", err).Error())
+		return fmt.Errorf("fail to save event: %w", err)
 	}
 	events, err := addEvt.Events()
 	if err != nil {

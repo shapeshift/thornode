@@ -339,7 +339,7 @@ func (UnstakeSuite) TestUnstake(c *C) {
 			ps:            ps,
 			runeAmount:    cosmos.ZeroUint(),
 			assetAmount:   cosmos.ZeroUint(),
-			expectedError: cosmos.NewError(DefaultCodespace, CodeUnstakeFailValidation, "empty rune address"),
+			expectedError: errors.New("empty rune address"),
 		},
 		{
 			name: "empty-withdraw-basis-points",
@@ -353,7 +353,7 @@ func (UnstakeSuite) TestUnstake(c *C) {
 			ps:            ps,
 			runeAmount:    cosmos.ZeroUint(),
 			assetAmount:   cosmos.ZeroUint(),
-			expectedError: cosmos.NewError(DefaultCodespace, CodeNoStakeUnitLeft, "nothing to withdraw"),
+			expectedError: errors.New("nothing to withdraw"),
 		},
 		{
 			name: "empty-request-txhash",
@@ -367,7 +367,7 @@ func (UnstakeSuite) TestUnstake(c *C) {
 			ps:            ps,
 			runeAmount:    cosmos.ZeroUint(),
 			assetAmount:   cosmos.ZeroUint(),
-			expectedError: cosmos.NewError(DefaultCodespace, CodeUnstakeFailValidation, "request tx hash is empty"),
+			expectedError: errors.New("request tx hash is empty"),
 		},
 		{
 			name: "empty-asset",
@@ -381,7 +381,7 @@ func (UnstakeSuite) TestUnstake(c *C) {
 			ps:            ps,
 			runeAmount:    cosmos.ZeroUint(),
 			assetAmount:   cosmos.ZeroUint(),
-			expectedError: cosmos.NewError(DefaultCodespace, CodeUnstakeFailValidation, "empty asset"),
+			expectedError: errors.New("empty asset"),
 		},
 
 		{
@@ -396,7 +396,7 @@ func (UnstakeSuite) TestUnstake(c *C) {
 			ps:            ps,
 			runeAmount:    cosmos.ZeroUint(),
 			assetAmount:   cosmos.ZeroUint(),
-			expectedError: cosmos.NewError(DefaultCodespace, CodeUnstakeFailValidation, "withdraw basis points 10001 is invalid"),
+			expectedError: errors.New("withdraw basis points 10001 is invalid"),
 		},
 		{
 			name: "invalid-pool-notexist",
@@ -410,7 +410,7 @@ func (UnstakeSuite) TestUnstake(c *C) {
 			ps:            ps,
 			runeAmount:    cosmos.ZeroUint(),
 			assetAmount:   cosmos.ZeroUint(),
-			expectedError: cosmos.NewError(DefaultCodespace, CodeUnstakeFailValidation, "pool-BNB.NOTEXIST doesn't exist"),
+			expectedError: errors.New("pool-BNB.NOTEXIST doesn't exist"),
 		},
 		{
 			name: "invalid-pool-staker-notexist",
@@ -424,7 +424,7 @@ func (UnstakeSuite) TestUnstake(c *C) {
 			ps:            ps,
 			runeAmount:    cosmos.ZeroUint(),
 			assetAmount:   cosmos.ZeroUint(),
-			expectedError: cosmos.NewError(DefaultCodespace, CodeStakerNotExist, "staker doesn't exist"),
+			expectedError: errors.New("you asked for it"),
 		},
 		{
 			name: "nothing-to-withdraw",
@@ -438,7 +438,7 @@ func (UnstakeSuite) TestUnstake(c *C) {
 			ps:            ps,
 			runeAmount:    cosmos.ZeroUint(),
 			assetAmount:   cosmos.ZeroUint(),
-			expectedError: cosmos.NewError(DefaultCodespace, CodeNoStakeUnitLeft, "nothing to withdraw"),
+			expectedError: errors.New("nothing to withdraw"),
 		},
 		{
 			name: "all-good",

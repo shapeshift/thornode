@@ -1,6 +1,8 @@
 package types
 
-import cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+import (
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+)
 
 // MsgBan defines a MsgBan message
 type MsgBan struct {
@@ -23,7 +25,7 @@ func (msg MsgBan) Route() string { return RouterKey }
 func (msg MsgBan) Type() string { return "ban" }
 
 // ValidateBasic runs stateless checks on the message
-func (msg MsgBan) ValidateBasic() cosmos.Error {
+func (msg MsgBan) ValidateBasic() error {
 	if msg.Signer.Empty() {
 		return cosmos.ErrInvalidAddress(msg.Signer.String())
 	}

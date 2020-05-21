@@ -1,6 +1,8 @@
 package types
 
-import cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+import (
+	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+)
 
 // MsgMimir defines a no op message
 type MsgMimir struct {
@@ -25,7 +27,7 @@ func (msg MsgMimir) Route() string { return RouterKey }
 func (msg MsgMimir) Type() string { return "set_mimir_attr" }
 
 // ValidateBasic runs stateless checks on the message
-func (msg MsgMimir) ValidateBasic() cosmos.Error {
+func (msg MsgMimir) ValidateBasic() error {
 	if msg.Key == "" {
 		return cosmos.ErrUnknownRequest("key cannot be empty")
 	}

@@ -28,7 +28,7 @@ func (msg MsgErrataTx) Route() string { return RouterKey }
 func (msg MsgErrataTx) Type() string { return "errata_tx" }
 
 // ValidateBasic runs stateless checks on the message
-func (msg MsgErrataTx) ValidateBasic() cosmos.Error {
+func (msg MsgErrataTx) ValidateBasic() error {
 	if msg.Signer.Empty() {
 		return cosmos.ErrInvalidAddress(msg.Signer.String())
 	}

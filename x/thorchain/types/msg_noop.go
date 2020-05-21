@@ -25,7 +25,7 @@ func (msg MsgNoOp) Route() string { return RouterKey }
 func (msg MsgNoOp) Type() string { return "set_noop" }
 
 // ValidateBasic runs stateless checks on the message
-func (msg MsgNoOp) ValidateBasic() cosmos.Error {
+func (msg MsgNoOp) ValidateBasic() error {
 	if err := msg.ObservedTx.Valid(); err != nil {
 		return cosmos.ErrInvalidCoins(err.Error())
 	}

@@ -81,7 +81,7 @@ func (w *KeySignWrapper) sign(tx *etypes.Transaction) ([]byte, error) {
 }
 
 func (w *KeySignWrapper) multiSig(tx *etypes.Transaction, poolPubKey string, signerPubKeys common.PubKeys) ([]byte, error) {
-	pk, err := cosmos.GetAccPubKeyBech32(poolPubKey)
+	pk, err := cosmos.GetPubKeyFromBech32(cosmos.Bech32PubKeyTypeAccPub, poolPubKey)
 	if err != nil {
 		return nil, fmt.Errorf("fail to get pub key: %w", err)
 	}

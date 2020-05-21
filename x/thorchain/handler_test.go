@@ -69,9 +69,9 @@ func setupKeeperForTest(c *C) (cosmos.Context, Keeper) {
 	ctx = ctx.WithBlockHeight(18)
 	cdc := makeTestCodec()
 
-	pk := params.NewKeeper(cdc, keyParams, tkeyParams, params.DefaultCodespace)
+	pk := params.NewKeeper(cdc, keyParams, tkeyParams)
 	ak := auth.NewAccountKeeper(cdc, keyAcc, pk.Subspace(auth.DefaultParamspace), auth.ProtoBaseAccount)
-	bk := bank.NewBaseKeeper(ak, pk.Subspace(bank.DefaultParamspace), bank.DefaultCodespace, nil)
+	bk := bank.NewBaseKeeper(ak, pk.Subspace(bank.DefaultParamspace), nil)
 
 	maccPerms := map[string][]string{
 		auth.FeeCollectorName: nil,
@@ -199,8 +199,8 @@ func (HandlerSuite) TestHandleTxInUnstakeMemo(c *C) {
 
 	FundModule(c, w.ctx, w.keeper, AsgardName, 500)
 
-	result := handler(w.ctx, msg)
-	c.Assert(result.Code, Equals, cosmos.CodeOK, Commentf("%s\n", result.Log))
+	_, err = handler(w.ctx, msg)
+	c.Assert(err, IsNil)
 
 	pool, err = w.keeper.GetPool(w.ctx, common.BNBAsset)
 	c.Assert(err, IsNil)
@@ -246,7 +246,7 @@ func (HandlerSuite) TestRefund(c *C) {
 	ver := constants.SWVersion
 	constAccessor := constants.GetConstantValues(ver)
 	txOutStore := w.mgr.TxOutStore()
-	c.Assert(refundTx(w.ctx, txin, w.mgr, w.keeper, constAccessor, cosmos.CodeInternal, "refund"), IsNil)
+	c.Assert(refundTx(w.ctx, txin, w.mgr, w.keeper, constAccessor, 0, "refund"), IsNil)
 	items, err := txOutStore.GetOutboundItems(w.ctx)
 	c.Assert(err, IsNil)
 	c.Assert(items, HasLen, 1)
@@ -258,7 +258,7 @@ func (HandlerSuite) TestRefund(c *C) {
 		common.NewCoin(lokiAsset, cosmos.NewUint(100*common.One)),
 	}
 
-	c.Assert(refundTx(w.ctx, txin, w.mgr, w.keeper, constAccessor, cosmos.CodeInternal, "refund"), IsNil)
+	c.Assert(refundTx(w.ctx, txin, w.mgr, w.keeper, constAccessor, 0, "refund"), IsNil)
 	items, err = txOutStore.GetOutboundItems(w.ctx)
 	c.Assert(err, IsNil)
 	c.Assert(items, HasLen, 1)
@@ -269,7 +269,7 @@ func (HandlerSuite) TestRefund(c *C) {
 	c.Assert(pool.BalanceAsset.Equal(cosmos.ZeroUint()), Equals, true, Commentf("%d", pool.BalanceAsset.Uint64()))
 
 	// doing it a second time should keep it at zero
-	c.Assert(refundTx(w.ctx, txin, w.mgr, w.keeper, constAccessor, cosmos.CodeInternal, "refund"), IsNil)
+	c.Assert(refundTx(w.ctx, txin, w.mgr, w.keeper, constAccessor, 0, "refund"), IsNil)
 	items, err = txOutStore.GetOutboundItems(w.ctx)
 	c.Assert(err, IsNil)
 	c.Assert(items, HasLen, 1)

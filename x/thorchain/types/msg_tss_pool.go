@@ -7,7 +7,7 @@ import (
 	"sort"
 	"strings"
 
-	blame "gitlab.com/thorchain/tss/go-tss/blame"
+	"gitlab.com/thorchain/tss/go-tss/blame"
 
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
@@ -62,7 +62,7 @@ func (msg MsgTssPool) Route() string { return RouterKey }
 func (msg MsgTssPool) Type() string { return "set_tss_pool" }
 
 // ValidateBasic runs stateless checks on the message
-func (msg MsgTssPool) ValidateBasic() cosmos.Error {
+func (msg MsgTssPool) ValidateBasic() error {
 	if msg.Signer.Empty() {
 		return cosmos.ErrInvalidAddress(msg.Signer.String())
 	}

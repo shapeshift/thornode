@@ -24,29 +24,26 @@ func NewVersionHandler(keeper Keeper, mgr Manager) VersionHandler {
 }
 
 // Run it the main entry point to execute Version logic
-func (h VersionHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, _ constants.ConstantValues) cosmos.Result {
+func (h VersionHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, _ constants.ConstantValues) (*cosmos.Result, error) {
 	msg, ok := m.(MsgSetVersion)
 	if !ok {
-		return errInvalidMessage.Result()
+		return nil, errInvalidMessage
 	}
 	ctx.Logger().Info("receive version number",
 		"version", msg.Version.String())
 	if err := h.validate(ctx, msg, version); err != nil {
 		ctx.Logger().Error("msg set version failed validation", "error", err)
-		return err.Result()
+		return nil, err
 	}
 	if err := h.handle(ctx, msg, version); err != nil {
 		ctx.Logger().Error("fail to process msg set version", "error", err)
-		return err.Result()
+		return nil, err
 	}
 
-	return cosmos.Result{
-		Code:      cosmos.CodeOK,
-		Codespace: DefaultCodespace,
-	}
+	return &cosmos.Result{}, nil
 }
 
-func (h VersionHandler) validate(ctx cosmos.Context, msg MsgSetVersion, version semver.Version) cosmos.Error {
+func (h VersionHandler) validate(ctx cosmos.Context, msg MsgSetVersion, version semver.Version) error {
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, msg)
 	} else {
@@ -54,7 +51,7 @@ func (h VersionHandler) validate(ctx cosmos.Context, msg MsgSetVersion, version 
 	}
 }
 
-func (h VersionHandler) validateV1(ctx cosmos.Context, msg MsgSetVersion) cosmos.Error {
+func (h VersionHandler) validateV1(ctx cosmos.Context, msg MsgSetVersion) error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
@@ -72,7 +69,7 @@ func (h VersionHandler) validateV1(ctx cosmos.Context, msg MsgSetVersion) cosmos
 	return nil
 }
 
-func (h VersionHandler) handle(ctx cosmos.Context, msg MsgSetVersion, version semver.Version) cosmos.Error {
+func (h VersionHandler) handle(ctx cosmos.Context, msg MsgSetVersion, version semver.Version) error {
 	ctx.Logger().Info("handleMsgSetVersion request", "Version:", msg.Version.String())
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.handleV1(ctx, msg)
@@ -82,7 +79,7 @@ func (h VersionHandler) handle(ctx cosmos.Context, msg MsgSetVersion, version se
 	}
 }
 
-func (h VersionHandler) handleV1(ctx cosmos.Context, msg MsgSetVersion) cosmos.Error {
+func (h VersionHandler) handleV1(ctx cosmos.Context, msg MsgSetVersion) error {
 	nodeAccount, err := h.keeper.GetNodeAccount(ctx, msg.Signer)
 	if err != nil {
 		ctx.Logger().Error("fail to get node account", "error", err, "address", msg.Signer.String())
@@ -95,7 +92,7 @@ func (h VersionHandler) handleV1(ctx cosmos.Context, msg MsgSetVersion) cosmos.E
 
 	if err := h.keeper.SetNodeAccount(ctx, nodeAccount); err != nil {
 		ctx.Logger().Error("fail to save node account", "error", err)
-		return cosmos.ErrInternal("fail to save node account")
+		return fmt.Errorf("fail to save node account: %w", err)
 	}
 
 	ctx.EventManager().EmitEvent(

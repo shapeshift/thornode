@@ -32,7 +32,7 @@ func (msg MsgSwap) Route() string { return RouterKey }
 func (msg MsgSwap) Type() string { return "swap" }
 
 // ValidateBasic runs stateless checks on the message
-func (msg MsgSwap) ValidateBasic() cosmos.Error {
+func (msg MsgSwap) ValidateBasic() error {
 	if msg.Signer.Empty() {
 		return cosmos.ErrInvalidAddress(msg.Signer.String())
 	}
@@ -40,15 +40,15 @@ func (msg MsgSwap) ValidateBasic() cosmos.Error {
 		return cosmos.ErrUnknownRequest(err.Error())
 	}
 	if msg.TargetAsset.IsEmpty() {
-		return cosmos.ErrUnknownRequest("Swap Target cannot be empty")
+		return cosmos.ErrUnknownRequest("swap Target cannot be empty")
 	}
 	for _, coin := range msg.Tx.Coins {
 		if coin.Asset.Equals(msg.TargetAsset) {
-			return cosmos.ErrUnknownRequest("Swap Source and Target cannot be the same.")
+			return cosmos.ErrUnknownRequest("swap Source and Target cannot be the same.")
 		}
 	}
 	if msg.Destination.IsEmpty() {
-		return cosmos.ErrUnknownRequest("Swap Destination cannot be empty")
+		return cosmos.ErrUnknownRequest("swap Destination cannot be empty")
 	}
 	return nil
 }

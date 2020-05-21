@@ -24,31 +24,21 @@ func NewUnstakeHandler(keeper Keeper, mgr Manager) UnstakeHandler {
 	}
 }
 
-func (h UnstakeHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, _ constants.ConstantValues) cosmos.Result {
+func (h UnstakeHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, _ constants.ConstantValues) (*cosmos.Result, error) {
 	msg, ok := m.(MsgSetUnStake)
 	if !ok {
-		return errInvalidMessage.Result()
+		return nil, errInvalidMessage
 	}
 	ctx.Logger().Info(fmt.Sprintf("receive MsgSetUnstake from : %s(%s) unstake (%s)", msg, msg.RuneAddress, msg.UnstakeBasisPoints))
 
 	if err := h.validate(ctx, msg, version); err != nil {
 		ctx.Logger().Error("msg ack failed validation", "error", err)
-		return err.Result()
+		return nil, err
 	}
-	data, err := h.handle(ctx, msg, version)
-	if err != nil {
-		ctx.Logger().Error("fail to process msg unstake", "error", err)
-		return err.Result()
-	}
-
-	return cosmos.Result{
-		Code:      cosmos.CodeOK,
-		Data:      data,
-		Codespace: DefaultCodespace,
-	}
+	return h.handle(ctx, msg, version)
 }
 
-func (h UnstakeHandler) validate(ctx cosmos.Context, msg MsgSetUnStake, version semver.Version) cosmos.Error {
+func (h UnstakeHandler) validate(ctx cosmos.Context, msg MsgSetUnStake, version semver.Version) error {
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, msg)
 	} else {
@@ -56,37 +46,36 @@ func (h UnstakeHandler) validate(ctx cosmos.Context, msg MsgSetUnStake, version 
 	}
 }
 
-func (h UnstakeHandler) validateV1(ctx cosmos.Context, msg MsgSetUnStake) cosmos.Error {
+func (h UnstakeHandler) validateV1(ctx cosmos.Context, msg MsgSetUnStake) error {
 	if err := msg.ValidateBasic(); err != nil {
-		ctx.Logger().Error("unstake msg fail validation", "error", err.ABCILog())
-		return cosmos.NewError(DefaultCodespace, CodeUnstakeFailValidation, err.Error())
+		ctx.Logger().Error("unstake msg fail validation", "error", err.Error())
+		return errUnstakeFailValidation
 	}
 	pool, err := h.keeper.GetPool(ctx, msg.Asset)
 	if err != nil {
 		errMsg := fmt.Sprintf("fail to get pool(%s)", msg.Asset)
-		ctx.Logger().Error(errMsg, "error", err)
-		return cosmos.ErrInternal(errMsg)
+		return ErrInternal(err, errMsg)
 	}
 
 	if err := pool.EnsureValidPoolStatus(msg); err != nil {
 		ctx.Logger().Error("fail to check pool status", "error", err)
-		return cosmos.NewError(DefaultCodespace, CodeInvalidPoolStatus, err.Error())
+		return errInvalidPoolStatus
 	}
 
 	return nil
 }
 
-func (h UnstakeHandler) handle(ctx cosmos.Context, msg MsgSetUnStake, version semver.Version) ([]byte, cosmos.Error) {
+func (h UnstakeHandler) handle(ctx cosmos.Context, msg MsgSetUnStake, version semver.Version) (*cosmos.Result, error) {
 	staker, err := h.keeper.GetStaker(ctx, msg.Asset, msg.RuneAddress)
 	if err != nil {
 		ctx.Logger().Error("fail to get staker", "error", err)
-		return nil, cosmos.NewError(DefaultCodespace, CodeFailGetStaker, "fail to get staker")
+		return nil, errFailGetStaker
 	}
 	runeAmt, assetAmount, units, gasAsset, err := unstake(ctx, version, h.keeper, msg, h.mgr.EventMgr())
 	if err != nil {
-		return nil, cosmos.ErrInternal(fmt.Errorf("fail to process UnStake request: %w", err).Error())
+		return nil, ErrInternal(err, "fail to process UnStake request")
 	}
-	res, err := h.keeper.Cdc().MarshalBinaryLengthPrefixed(struct {
+	_, err = h.keeper.Cdc().MarshalBinaryLengthPrefixed(struct {
 		Rune  cosmos.Uint `json:"rune"`
 		Asset cosmos.Uint `json:"asset"`
 	}{
@@ -94,7 +83,7 @@ func (h UnstakeHandler) handle(ctx cosmos.Context, msg MsgSetUnStake, version se
 		Asset: assetAmount,
 	})
 	if err != nil {
-		return nil, cosmos.ErrInternal(fmt.Errorf("fail to marshal result to json: %w", err).Error())
+		return nil, ErrInternal(err, "fail to marshal result to json")
 	}
 
 	unstakeEvt := NewEventUnstake(
@@ -106,7 +95,7 @@ func (h UnstakeHandler) handle(ctx cosmos.Context, msg MsgSetUnStake, version se
 	)
 	if err := h.mgr.EventMgr().EmitUnstakeEvent(ctx, h.keeper, unstakeEvt); err != nil {
 		ctx.Logger().Error("fail to emit unstake event", "error", err)
-		return nil, cosmos.NewError(DefaultCodespace, CodeFailSaveEvent, "fail to save unstake event")
+		return nil, errFailSaveEvent
 	}
 
 	memo := ""
@@ -136,10 +125,10 @@ func (h UnstakeHandler) handle(ctx cosmos.Context, msg MsgSetUnStake, version se
 	ok, err := h.mgr.TxOutStore().TryAddTxOutItem(ctx, h.mgr, toi)
 	if err != nil {
 		ctx.Logger().Error("fail to prepare outbound tx", "error", err)
-		return nil, cosmos.NewError(DefaultCodespace, CodeFailAddOutboundTx, "fail to prepare outbound tx")
+		return nil, errFailAddOutboundTx
 	}
 	if !ok {
-		return nil, cosmos.NewError(DefaultCodespace, CodeFailAddOutboundTx, "prepare outbound tx not successful")
+		return nil, errFailAddOutboundTx
 	}
 
 	toi = &TxOutItem{
@@ -161,10 +150,10 @@ func (h UnstakeHandler) handle(ctx cosmos.Context, msg MsgSetUnStake, version se
 	ok, err = h.mgr.TxOutStore().TryAddTxOutItem(ctx, h.mgr, toi)
 	if err != nil {
 		ctx.Logger().Error("fail to prepare outbound tx", "error", err)
-		return nil, cosmos.NewError(DefaultCodespace, CodeFailAddOutboundTx, "fail to prepare outbound tx")
+		return nil, errFailAddOutboundTx
 	}
 	if !ok {
-		return nil, cosmos.NewError(DefaultCodespace, CodeFailAddOutboundTx, "prepare outbound tx not successful")
+		return nil, errFailAddOutboundTx
 	}
 
 	// Get rune (if any) and donate it to the reserve
@@ -176,5 +165,5 @@ func (h UnstakeHandler) handle(ctx cosmos.Context, msg MsgSetUnStake, version se
 		}
 	}
 
-	return res, nil
+	return &cosmos.Result{}, nil
 }

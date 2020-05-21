@@ -486,7 +486,7 @@ func (b *Binance) BroadcastTx(tx stypes.TxOutItem, hexTx []byte) error {
 		// drop and ignore. The reason being, thorchain will attempt to again
 		// later.
 		// Error code 5 is insufficient funds, ignore theses
-		if badCommit.Code > 0 && badCommit.Code != int(cosmos.CodeUnauthorized) && badCommit.Code != int(cosmos.CodeInsufficientFunds) {
+		if badCommit.Code > 0 && badCommit.Code != cosmos.CodeUnauthorized && badCommit.Code != cosmos.CodeInsufficientFunds {
 			err := errors.New(badCommit.Log)
 			b.logger.Error().Err(err).Msg("fail to broadcast")
 			return fmt.Errorf("fail to broadcast: %w", err)
