@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 
-	se "github.com/cosmos/cosmos-sdk/types/errors"
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
@@ -85,7 +84,7 @@ func swap(ctx cosmos.Context,
 	swapEvents = append(swapEvents, swapEvt)
 	pools = append(pools, pool)
 	if !tradeTarget.IsZero() && assetAmount.LT(tradeTarget) {
-		return cosmos.ZeroUint(), swapEvents, se.New(DefaultCodespace, CodeSwapFail, fmt.Sprintf("emit asset %s less than price limit %s", assetAmount, tradeTarget))
+		return cosmos.ZeroUint(), swapEvents, fmt.Errorf("emit asset %s less than price limit %s", assetAmount, tradeTarget)
 	}
 	if target.IsRune() {
 		if assetAmount.LTE(transactionFee) {

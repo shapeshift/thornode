@@ -139,6 +139,28 @@ func (h NativeTxHandler) handleV1(ctx cosmos.Context, msg MsgNativeTx, version s
 		return &cosmos.Result{}, nil
 	}
 
+	// check if we've halted trading
+	_, isSwap := m.(MsgSwap)
+	_, isStake := m.(MsgSetStakeData)
+	haltTrading, err := h.keeper.GetMimir(ctx, "HaltTrading")
+	if isSwap || isStake {
+		if (haltTrading > 0 && haltTrading < ctx.BlockHeight() && err == nil) || h.keeper.RagnarokInProgress(ctx) {
+			ctx.Logger().Info("trading is halted!!")
+			if newErr := refundTx(ctx, txIn, h.mgr, h.keeper, constAccessor, se.ErrUnauthorized.ABCICode(), "trading halted"); nil != newErr {
+				return nil, ErrInternal(newErr, "trading is halted, fail to refund")
+			}
+			return &cosmos.Result{}, nil
+		}
+	}
+
+	// if its a swap, send it to our queue for processing later
+	if isSwap {
+		if err := h.keeper.SetSwapQueueItem(ctx, m.(MsgSwap)); err != nil {
+			return nil, err
+		}
+		return &cosmos.Result{}, nil
+	}
+
 	result, err := handler(ctx, m)
 	if err != nil {
 		code := uint32(1)
