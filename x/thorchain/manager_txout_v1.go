@@ -330,10 +330,10 @@ func (tos *TxOutStorageV1) nativeTxOut(ctx cosmos.Context, mgr Manager, toi *TxO
 
 	handler := NewInternalHandler(tos.keeper, mgr)
 
-	result, err := handler(ctx, m)
+	_, err = handler(ctx, m)
 	if err != nil {
-		ctx.Logger().Error("TxOut Handler failed:", "error", result.Log)
-		return errors.New(result.Log)
+		ctx.Logger().Error("TxOut Handler failed:", "error", err)
+		return err
 	}
 
 	return nil

@@ -48,12 +48,20 @@ disable_bank_send () {
 }
 
 add_account () {
-    jq --arg ADDRESS $1 --arg ASSET $2 --arg AMOUNT $3 '.app_state.accounts += [{
-        "address": $ADDRESS,
-        "coins": [{
-            "denom": $ASSET,
-            "amount": $AMOUNT
-        }]
+    jq --arg ADDRESS $1 --arg ASSET $2 --arg AMOUNT $3 '.app_state.auth.accounts += [{
+        "type": "cosmos-sdk/Account",
+        "value": {
+          "address": $ADDRESS,
+          "coins": [
+            {
+              "denom": $ASSET,
+              "amount": $AMOUNT
+            }
+          ],
+          "public_key": "",
+          "account_number": 0,
+          "sequence": 0
+        }
     }]' <~/.thord/config/genesis.json >/tmp/genesis.json
     mv /tmp/genesis.json ~/.thord/config/genesis.json
 }
