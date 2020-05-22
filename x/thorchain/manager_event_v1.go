@@ -156,6 +156,10 @@ func (m *EventMgrV1) EmitSwapEvent(ctx cosmos.Context, keeper Keeper, swap Event
 	if !swap.OutTxs.IsEmpty() {
 		evt.Status = EventSuccess
 		evt.OutTxs = common.Txs{swap.OutTxs}
+		outboundEvt := NewEventOutbound(swap.InTx.ID, swap.OutTxs)
+		if err := m.EmitOutboundEvent(ctx, outboundEvt); err != nil {
+			return fmt.Errorf("fail to emit an outbound event for double swap: %w", err)
+		}
 	}
 	if err := keeper.UpsertEvent(ctx, evt); err != nil {
 		return fmt.Errorf("fail to save swap event: %w", err)

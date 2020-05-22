@@ -41,21 +41,15 @@ func (h SwapHandler) validate(ctx cosmos.Context, msg MsgSwap, version semver.Ve
 }
 
 func (h SwapHandler) validateV1(ctx cosmos.Context, msg MsgSwap) error {
-	if err := msg.ValidateBasic(); err != nil {
-		ctx.Logger().Error(err.Error())
-		return err
-	}
-	return nil
+	return msg.ValidateBasic()
 }
 
 func (h SwapHandler) handle(ctx cosmos.Context, msg MsgSwap, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	ctx.Logger().Info("receive MsgSwap", "request tx hash", msg.Tx.ID, "source asset", msg.Tx.Coins[0].Asset, "target asset", msg.TargetAsset, "signer", msg.Signer.String())
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.handleV1(ctx, msg, version, constAccessor)
-	} else {
-		ctx.Logger().Error(errInvalidVersion.Error())
-		return nil, errBadVersion
 	}
+	return nil, errBadVersion
 }
 
 func (h SwapHandler) handleV1(ctx cosmos.Context, msg MsgSwap, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
