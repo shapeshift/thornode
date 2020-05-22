@@ -35,6 +35,7 @@ func (h QueryResHeights) String() string {
 // query keygen, displays signed keygen requests
 type QueryKeygenBlock struct {
 	KeygenBlock KeygenBlock `json:"keygen_block"`
+	Signature   string      `json:"signature"`
 }
 
 // implement fmt.Stringer
@@ -42,15 +43,9 @@ func (n QueryKeygenBlock) String() string {
 	return n.KeygenBlock.String()
 }
 
-type ResTxOut struct {
-	Height  int64        `json:"height"`
-	Hash    common.TxID  `json:"hash"`
-	Chain   common.Chain `json:"chain"`
-	TxArray []TxOutItem  `json:"tx_array"`
-}
-
-type QueryResTxOut struct {
-	Chains map[common.Chain]ResTxOut `json:"chains"`
+type QueryKeysign struct {
+	Keysign   TxOut  `json:"keysign"`
+	Signature string `json:"signature"`
 }
 
 type QueryYggdrasilVaults struct {
