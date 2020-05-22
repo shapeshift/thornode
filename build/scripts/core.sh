@@ -149,18 +149,3 @@ fetch_node_id () {
 fetch_version () {
     thorcli query thorchain version --chain-id thorchain --trust-node --output json | jq -r .version
 }
-
-run_cmd_auth () {
-    type expect || (apk update && apk add expect)
-    CMD=$1
-    PASS=$2
-    echo $CMD
-expect <<- DONE
-    spawn $CMD
-    expect "Enter*"
-    send -- "$PASS\n"
-    expect "Enter*"
-    send -- "$PASS\n"
-    expect eof
-DONE
-}
