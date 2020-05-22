@@ -1,19 +1,16 @@
 package thorchain
 
 import (
-	"bufio"
 	"bytes"
 	"errors"
 	"fmt"
-	"os"
 	"os/user"
 	"path/filepath"
 	"strings"
-	"syscall"
 
 	ckeys "github.com/cosmos/cosmos-sdk/crypto/keys"
+	"github.com/ethereum/go-ethereum/console"
 	"github.com/hashicorp/go-multierror"
-	"golang.org/x/crypto/ssh/terminal"
 
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
@@ -499,17 +496,15 @@ type KeybaseStore struct {
 }
 
 func signerCreds() (string, string) {
-	reader := bufio.NewReader(os.Stdin)
-
-	fmt.Print("Enter Signer Name: ")
-	username, _ := reader.ReadString('\n')
-
-	fmt.Print("Enter Signer Password: ")
-	bytePassword, err := terminal.ReadPassword(int(syscall.Stdin))
+	username, err := console.Stdin.PromptInput("Enter Signer Name: ")
 	if err != nil {
 		panic(err)
 	}
-	password := string(bytePassword)
+
+	password, err := console.Stdin.PromptPassword("Enter Signer Password: ")
+	if err != nil {
+		panic(err)
+	}
 
 	return strings.TrimSpace(username), strings.TrimSpace(password)
 }
