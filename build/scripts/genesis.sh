@@ -109,4 +109,4 @@ if [ "$SEED" != "$(hostname)" ]; then
   fi
 fi
 
-exec "$@"
+(echo $SIGNER_NAME; echo $SIGNER_PASSWD ) | exec "$@"

@@ -70,4 +70,4 @@ if [ ! -f ~/.thord/config/genesis.json ]; then
 
 fi
 
-exec "$@"
+(echo $SIGNER_NAME; echo $SIGNER_PASSWD ) | exec "$@"
