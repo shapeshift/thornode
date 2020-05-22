@@ -1,6 +1,7 @@
 package thorchain
 
 import (
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"net/url"
@@ -535,8 +536,15 @@ func queryKeygen(ctx cosmos.Context, kbs KeybaseStore, path []string, req abci.R
 		keygenBlock = newKeygenBlock
 	}
 
+	sig, err := keeper.Cdc().MarshalBinaryBare(keygenBlock)
+	if err != nil {
+		ctx.Logger().Error("fail to marshal keygen block to json", "error", err)
+		return nil, fmt.Errorf("fail to marshal keygen block to json: %w", err)
+	}
+
 	query := QueryKeygenBlock{
 		KeygenBlock: keygenBlock,
+		Signature:   base64.StdEncoding.EncodeToString(sig),
 	}
 
 	res, err := codec.MarshalJSONIndent(keeper.Cdc(), query)
@@ -567,6 +575,7 @@ func queryKeysign(ctx cosmos.Context, kbs KeybaseStore, path []string, req abci.
 			return nil, fmt.Errorf("fail to parse pubkey: %w", err)
 		}
 	}
+
 	txs, err := keeper.GetTxOut(ctx, height)
 	if err != nil {
 		ctx.Logger().Error("fail to get tx out array from key value store", "error", err)
@@ -585,23 +594,18 @@ func queryKeysign(ctx cosmos.Context, kbs KeybaseStore, path []string, req abci.
 		txs = newTxs
 	}
 
-	out := make(map[common.Chain]ResTxOut, 0)
-	for _, item := range txs.TxArray {
-		res, ok := out[item.Chain]
-		if !ok {
-			res = ResTxOut{
-				Height:  txs.Height,
-				Chain:   item.Coin.Asset.Chain,
-				TxArray: make([]TxOutItem, 0),
-			}
-		}
-		res.TxArray = append(res.TxArray, *item)
-		out[item.Chain] = res
+	sig, err := keeper.Cdc().MarshalBinaryBare(txs)
+	if err != nil {
+		ctx.Logger().Error("fail to marshal keysign block to json", "error", err)
+		return nil, fmt.Errorf("fail to marshal keysign block to json: %w", err)
 	}
 
-	res, err := codec.MarshalJSONIndent(keeper.Cdc(), QueryResTxOut{
-		Chains: out,
-	})
+	query := QueryKeysign{
+		Keysign:   *txs,
+		Signature: base64.StdEncoding.EncodeToString(sig),
+	}
+
+	res, err := codec.MarshalJSONIndent(keeper.Cdc(), query)
 	if err != nil {
 		ctx.Logger().Error("fail to marshal tx hash to json", "error", err)
 		return nil, fmt.Errorf("fail to marshal tx hash to json: %w", err)
