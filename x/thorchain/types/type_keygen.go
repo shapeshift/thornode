@@ -33,6 +33,15 @@ func (k KeygenBlock) IsEmpty() bool {
 	return len(k.Keygens) == 0 && k.Height == 0
 }
 
+func (k KeygenBlock) String() string {
+	var keygens []string
+	for _, keygen := range k.Keygens {
+		keygens = append(keygens, keygen.String())
+	}
+	return strings.Join(keygens, "\n")
+
+}
+
 // Contains will go through the keygen items and find out whether the given keygen already exist in the block or not
 func (k KeygenBlock) Contains(keygen Keygen) bool {
 	for _, item := range k.Keygens {
