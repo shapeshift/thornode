@@ -535,7 +535,11 @@ func queryKeygen(ctx cosmos.Context, path []string, req abci.RequestQuery, keepe
 		keygenBlock = newKeygenBlock
 	}
 
-	res, err := codec.MarshalJSONIndent(keeper.Cdc(), keygenBlock)
+	query := QueryKeygenBlock{
+		KeygenBlock: keygenBlock,
+	}
+
+	res, err := codec.MarshalJSONIndent(keeper.Cdc(), query)
 	if err != nil {
 		ctx.Logger().Error("fail to marshal keygen block to json", "error", err)
 		return nil, fmt.Errorf("fail to marshal keygen block to json: %w", err)

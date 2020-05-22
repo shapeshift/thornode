@@ -20,10 +20,10 @@ func (b *ThorchainBridge) GetKeygenBlock(blockHeight int64, pk string) (types.Ke
 		b.errCounter.WithLabelValues("fail_get_keygen", strconv.FormatInt(blockHeight, 10)).Inc()
 		return types.KeygenBlock{}, fmt.Errorf("failed to get keygen for a block height: %w", err)
 	}
-	var keygen types.KeygenBlock
-	if err := b.cdc.UnmarshalJSON(body, &keygen); err != nil {
+	var query types.QueryKeygenBlock
+	if err := b.cdc.UnmarshalJSON(body, &query); err != nil {
 		b.errCounter.WithLabelValues("fail_unmarshal_keygen", strconv.FormatInt(blockHeight, 10)).Inc()
 		return types.KeygenBlock{}, fmt.Errorf("failed to unmarshal Keygen: %w", err)
 	}
-	return keygen, nil
+	return query.KeygenBlock, nil
 }

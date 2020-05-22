@@ -157,6 +157,7 @@ type (
 	MsgObservedTxOut      = types.MsgObservedTxOut
 	MsgTssPool            = types.MsgTssPool
 	MsgTssKeysignFail     = types.MsgTssKeysignFail
+	QueryKeygenBlock      = types.QueryKeygenBlock
 	QueryResPools         = types.QueryResPools
 	QueryResHeights       = types.QueryResHeights
 	QueryResTxOut         = types.QueryResTxOut

@@ -32,6 +32,16 @@ func (h QueryResHeights) String() string {
 	return fmt.Sprintf("Chain: %d, Signed: %d, THORChain: %d", h.LastChainHeight, h.LastSignedHeight, h.Thorchain)
 }
 
+// query keygen, displays signed keygen requests
+type QueryKeygenBlock struct {
+	KeygenBlock KeygenBlock `json:"keygen_block"`
+}
+
+// implement fmt.Stringer
+func (n QueryKeygenBlock) String() string {
+	return n.KeygenBlock.String()
+}
+
 type ResTxOut struct {
 	Height  int64        `json:"height"`
 	Hash    common.TxID  `json:"hash"`
