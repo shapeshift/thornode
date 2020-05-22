@@ -29,19 +29,27 @@ func (s *HandlerSwitchSuite) TestValidate(c *C) {
 	destination := GetRandomBNBAddress()
 
 	handler := NewSwitchHandler(k, NewDummyMgr())
-	// happy path
-	msg := NewMsgSwitch(tx, destination, na.NodeAddress)
-	err := handler.validate(ctx, msg, constants.SWVersion)
-	c.Assert(err, IsNil)
 
-	// invalid version
-	err = handler.validate(ctx, msg, semver.Version{})
-	c.Assert(err, Equals, errBadVersion)
+	if common.RuneAsset().Chain.Equals(common.THORChain) {
+		// happy path
+		msg := NewMsgSwitch(tx, destination, na.NodeAddress)
+		err := handler.validate(ctx, msg, constants.SWVersion)
+		c.Assert(err, IsNil)
 
-	// invalid msg
-	msg = MsgSwitch{}
-	err = handler.validate(ctx, msg, constants.SWVersion)
-	c.Assert(err, NotNil)
+		// invalid version
+		err = handler.validate(ctx, msg, semver.Version{})
+		c.Assert(err, Equals, errBadVersion)
+
+		// invalid msg
+		msg = MsgSwitch{}
+		err = handler.validate(ctx, msg, constants.SWVersion)
+		c.Assert(err, NotNil)
+	} else {
+		// no swapping when using BEP2 rune
+		msg := NewMsgSwitch(tx, destination, na.NodeAddress)
+		err := handler.validate(ctx, msg, constants.SWVersion)
+		c.Assert(err, NotNil)
+	}
 }
 
 func (s *HandlerSwitchSuite) TestGettingNativeTokens(c *C) {

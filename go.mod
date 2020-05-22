@@ -11,7 +11,6 @@ require (
 	github.com/btcsuite/btcutil v1.0.2
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/cosmos/cosmos-sdk v0.38.3
-	github.com/deckarep/golang-set v1.7.1 // indirect
 	github.com/didip/tollbooth v4.0.2+incompatible
 	github.com/ethereum/go-ethereum v1.9.12
 	github.com/gorilla/mux v1.7.4
