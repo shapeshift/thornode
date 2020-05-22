@@ -49,6 +49,6 @@ func (s *KeysignSuite) TestGetKeysign(c *C) {
 	keysign, err := s.bridge.GetKeysign(1718, pk.String())
 	c.Assert(err, IsNil)
 	c.Assert(keysign, NotNil)
-	c.Assert(keysign.Chains["BNB"].Height, Equals, int64(1718))
-	c.Assert(keysign.Chains["BNB"].TxArray[0].Chain, Equals, common.BNBChain)
+	c.Assert(keysign.Height, Equals, int64(1718))
+	c.Assert(keysign.TxArray[0].Chain, Equals, common.BNBChain)
 }

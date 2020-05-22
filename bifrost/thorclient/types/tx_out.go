@@ -73,13 +73,7 @@ func (tx TxArrayItem) TxOutItem() TxOutItem {
 
 type TxOut struct {
 	Height  int64         `json:"height,string"`
-	Hash    string        `json:"hash"`
-	Chain   common.Chain  `json:"chain"`
 	TxArray []TxArrayItem `json:"tx_array"`
-}
-
-type ChainsTxOut struct {
-	Chains map[common.Chain]TxOut `json:"chains"`
 }
 
 // GetKey will return a key we can used it to save the infor to level db

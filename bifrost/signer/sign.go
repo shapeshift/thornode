@@ -346,13 +346,11 @@ func (s *Signer) signAndBroadcast(item TxOutStoreItem) error {
 		s.logger.Error().Err(err).Msg("fail to get keysign items")
 		return err
 	}
-	for _, out := range txOut.Chains {
-		for _, txArray := range out.TxArray {
-			if txArray.TxOutItem().Equals(tx) && !txArray.OutHash.IsEmpty() {
-				// already been signed, we can skip it
-				s.logger.Info().Str("tx_id", tx.OutHash.String()).Msgf("already signed. skipping...")
-				return nil
-			}
+	for _, txArray := range txOut.TxArray {
+		if txArray.TxOutItem().Equals(tx) && !txArray.OutHash.IsEmpty() {
+			// already been signed, we can skip it
+			s.logger.Info().Str("tx_id", tx.OutHash.String()).Msgf("already signed. skipping...")
+			return nil
 		}
 	}
 
