@@ -11,10 +11,10 @@ ldflags = -X gitlab.com/thorchain/thornode/constants.Version=$(VERSION) \
 		  -X gitlab.com/thorchain/thornode/constants.GitCommit=$(COMMIT) \
 		  -X gitlab.com/thorchain/thornode/constants.BuildTime=${NOW} \
 		  -X github.com/cosmos/cosmos-sdk/version.Name=THORChain \
-	      -X github.com/cosmos/cosmos-sdk/version.ServerName=thord \
+		  -X github.com/cosmos/cosmos-sdk/version.ServerName=thord \
 		  -X github.com/cosmos/cosmos-sdk/version.ClientName=thorcli \
-	      -X github.com/cosmos/cosmos-sdk/version.Version=$(VERSION) \
-	      -X github.com/cosmos/cosmos-sdk/version.Commit=$(COMMIT) \
+		  -X github.com/cosmos/cosmos-sdk/version.Version=$(VERSION) \
+		  -X github.com/cosmos/cosmos-sdk/version.Commit=$(COMMIT) \
 		  -X github.com/cosmos/cosmos-sdk/version.BuildTags=$(TAG)
 
 BUILD_FLAGS := -ldflags '$(ldflags)' -tags ${TAG} -a

@@ -1,5 +1,5 @@
 #!/bin/sh
-# ./mock-bond.bash <mock binance IP address> <BNB Address> <thor/node address> <?thor API address>
+# ./mock-bond.bash <mock binance IP address> <BNB Address> <thor/node address> <thor API IP address>
 # ./mock-bond.bash 127.0.0.1 bnbXYXYX thor1kljxxccrheghavaw97u78le6yy3sdj7h696nl4
 
 set -ex
@@ -19,9 +19,12 @@ if [ -z $3 ]; then
     exit 1
 fi
 
-THOR_API="${4:=$1}"
+if [ -z $4 ]; then
+    echo "Missing thor API address (IP/hostname)"
+    exit 1
+fi
 
-POOL_ADDRESS=$(curl -s $THOR_API:1317/thorchain/pool_addresses | jq -r ".current[0].address")
+POOL_ADDRESS=$(curl -s $4:1317/thorchain/pool_addresses | jq -r ".current[0].address")
 
 curl -v -s -X POST -d "[{
   \"from\": \"tbnb1ht7v08hv2lhtmk8y7szl2hjexqryc3hcldlztl\",
@@ -31,7 +34,7 @@ curl -v -s -X POST -d "[{
       {\"denom\": \"RUNE-A1F\", \"amount\": 200000000000000}
   ],
   \"memo\": \"\"
-}]" $1:26660/broadcast/easy
+}]" $1/broadcast/easy
 
 curl -v -s -X POST -d "[{
   \"from\": \"$2\",
@@ -40,4 +43,4 @@ curl -v -s -X POST -d "[{
       {\"denom\": \"RUNE-A1F\", \"amount\": 100000000000000}
   ],
   \"memo\": \"BOND:$3\"
-}]" $1:26660/broadcast/easy
+}]" $1/broadcast/easy
