@@ -6,7 +6,7 @@ PEER="${PEER:=none}" # the hostname of a seed node
 PEER_API="${PEER_API:=$PEER}" # the hostname of a seed node API if different
 SIGNER_NAME="${SIGNER_NAME:=thorchain}"
 SIGNER_PASSWD="${SIGNER_PASSWD:=password}"
-BINANCE=${BINANCE:=$PEER}
+BINANCE=${BINANCE:=$PEER:26660}
 
 if [ ! -f ~/.thord/config/genesis.json ]; then
     if [[ "$PEER" == "none" ]]; then
@@ -14,16 +14,20 @@ if [ ! -f ~/.thord/config/genesis.json ]; then
         exit 1
     fi
 
-    thorcli keys show $SIGNER_NAME
+    # config the keyring to use file backend
+    thorcli config keyring-backend file
+
+    # create thorchain user, if it doesn't already
+    echo $SIGNER_PASSWD | thorcli keys show $SIGNER_NAME
     if [ $? -gt 0 ]; then
-        if [ "$SIGNER_SEED_PHRASE" != "" ]; then
-            printf "$SIGNER_PASSWD\n$SIGNER_SEED_PHRASE\n" | thorcli keys add $SIGNER_NAME --recover
-        else
-            printf $SIGNER_PASSWD | thorcli --trace keys add $SIGNER_NAME
-        fi
+      if [ "$SIGNER_SEED_PHRASE" != "" ]; then
+        printf "$SIGNER_SEED_PHRASE\n$SIGNER_PASSWD\n$SIGNER_PASSWD\n" | thorcli keys add $SIGNER_NAME --recover
+      else
+        printf $SIGNER_PASSWD | thorcli --trace keys add $SIGNER_NAME
+      fi
     fi
 
-    NODE_ADDRESS=$(thorcli keys show $SIGNER_NAME -a)
+    NODE_ADDRESS=$(echo $SIGNER_PASSWD | thorcli keys show $SIGNER_NAME -a)
     init_chain $NODE_ADDRESS
 
     fetch_genesis $PEER
@@ -39,17 +43,20 @@ if [ ! -f ~/.thord/config/genesis.json ]; then
         # send bond transaction to mock binance
         $(dirname "$0")/mock-bond.sh $BINANCE $ADDRESS $NODE_ADDRESS $PEER_API
 
-        sleep 15 # wait for thorchain to register the new node account
+        sleep 30 # wait for thorchain to register the new node account
+
+        NODE_PUB_KEY=$(echo $SIGNER_PASSWD | thorcli keys show thorchain --pubkey)
+        VALIDATOR=$(thord tendermint show-validator)
 
         # set node keys
-        until echo $SIGNER_PASSWD | thorcli tx thorchain set-node-keys $(thorcli keys show thorchain --pubkey) $(thorcli keys show thorchain --pubkey) $(thord tendermint show-validator) --node tcp://$PEER:26657 --from $SIGNER_NAME --yes; do
+        until run_cmd_auth "thorcli tx thorchain set-node-keys $NODE_PUB_KEY $NODE_PUB_KEY $VALIDATOR --node tcp://$PEER:26657 --from $SIGNER_NAME --yes" $SIGNER_PASSWD; do
           sleep 5
         done
 
         # add IP address
-        sleep 5 # wait for thorchain to commit a block
+        sleep 10 # wait for thorchain to commit a block
 
-        until echo $SIGNER_PASSWD | thorcli tx thorchain set-ip-address $(curl -s http://whatismyip.akamai.com) --node tcp://$PEER:26657 --from $SIGNER_NAME --yes; do
+        until run_cmd_auth "thorcli tx thorchain set-ip-address $(curl -s http://whatismyip.akamai.com) --node tcp://$PEER:26657 --from $SIGNER_NAME --yes" $SIGNER_PASSWD; do
           sleep 5
         done
 

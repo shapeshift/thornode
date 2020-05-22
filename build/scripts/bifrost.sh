@@ -14,6 +14,9 @@ START_BLOCK_HEIGHT="${START_BLOCK_HEIGHT:=1}"
 
 $(dirname "$0")/wait-for-thorchain-api.sh $CHAIN_API
 
+# config the keyring to use file backend
+thorcli config keyring-backend file
+
 # create thorchain user, if it doesn't already
 echo $SIGNER_PASSWD | thorcli keys show $SIGNER_NAME
 if [ $? -gt 0 ]; then
