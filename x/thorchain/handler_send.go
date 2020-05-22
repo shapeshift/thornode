@@ -63,6 +63,13 @@ func (h SendHandler) handle(ctx cosmos.Context, msg MsgSend, version semver.Vers
 func (h SendHandler) handleV1(ctx cosmos.Context, msg MsgSend, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	banker := h.keeper.CoinKeeper()
 	supplier := h.keeper.Supply()
+
+	// check if we're sending to asgard, bond modules. If we are, forward to the native tx handler
+	if msg.ToAddress.Equals(supplier.GetModuleAddress(AsgardName)) || msg.ToAddress.Equals(supplier.GetModuleAddress(BondName)) {
+		handler := NewNativeTxHandler(h.keeper, h.mgr)
+		return handler.Run(ctx, msg, version, constAccessor)
+	}
+
 	// TODO: this shouldn't be tied to swaps, and should be cheaper. But
 	// TransactionFee will be fine for now.
 	transactionFee := constAccessor.GetInt64Value(constants.TransactionFee)
