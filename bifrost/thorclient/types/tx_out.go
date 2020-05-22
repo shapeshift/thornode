@@ -72,7 +72,7 @@ func (tx TxArrayItem) TxOutItem() TxOutItem {
 }
 
 type TxOut struct {
-	Height  int64         `json:"height,string"`
+	Height  int64         `json:"height"`
 	TxArray []TxArrayItem `json:"tx_array"`
 }
 
