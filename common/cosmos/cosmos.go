@@ -7,6 +7,7 @@ import (
 )
 
 var (
+	KeyringServiceName      = sdk.KeyringServiceName
 	NewUint                 = sdk.NewUint
 	ParseUint               = sdk.ParseUint
 	NewInt                  = sdk.NewInt
