@@ -39,7 +39,6 @@ func (k KeygenBlock) String() string {
 		keygens = append(keygens, keygen.String())
 	}
 	return strings.Join(keygens, "\n")
-
 }
 
 // Contains will go through the keygen items and find out whether the given keygen already exist in the block or not
