@@ -10,7 +10,7 @@ require (
 	github.com/btcsuite/btcd v0.20.1-beta.0.20200414114020-8b54b0b96418
 	github.com/btcsuite/btcutil v1.0.2
 	github.com/cenkalti/backoff v2.2.1+incompatible
-	github.com/cosmos/cosmos-sdk v0.38.3
+	github.com/cosmos/cosmos-sdk v0.38.4
 	github.com/didip/tollbooth v4.0.2+incompatible
 	github.com/ethereum/go-ethereum v1.9.12
 	github.com/gorilla/mux v1.7.4
