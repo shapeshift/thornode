@@ -47,8 +47,8 @@ func GetCmdMimir(cdc *codec.Codec) *cobra.Command {
 		Short: "updates a mimir attribute (admin only)",
 		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cliCtx := context.NewCLIContext().WithCodec(cdc)
 			inBuf := bufio.NewReader(cmd.InOrStdin())
+			cliCtx := context.NewCLIContextWithInput(inBuf).WithCodec(cdc)
 			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
 
 			val, err := strconv.ParseInt(args[1], 10, 64)
@@ -72,8 +72,8 @@ func GetCmdBan(cdc *codec.Codec) *cobra.Command {
 		Short: "votes to ban a node address (caution: costs 0.1% of minimum bond)",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cliCtx := context.NewCLIContext().WithCodec(cdc)
 			inBuf := bufio.NewReader(cmd.InOrStdin())
+			cliCtx := context.NewCLIContextWithInput(inBuf).WithCodec(cdc)
 			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
 
 			addr, err := cosmos.AccAddressFromBech32(args[0])
@@ -97,8 +97,8 @@ func GetCmdSetIPAddress(cdc *codec.Codec) *cobra.Command {
 		Short: "update registered ip address",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cliCtx := context.NewCLIContext().WithCodec(cdc)
 			inBuf := bufio.NewReader(cmd.InOrStdin())
+			cliCtx := context.NewCLIContextWithInput(inBuf).WithCodec(cdc)
 			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
 
 			msg := types.NewMsgSetIPAddress(args[0], cliCtx.GetFromAddress())
@@ -117,8 +117,8 @@ func GetCmdSetVersion(cdc *codec.Codec) *cobra.Command {
 		Short: "update registered version",
 		Args:  cobra.ExactArgs(0),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cliCtx := context.NewCLIContext().WithCodec(cdc)
 			inBuf := bufio.NewReader(cmd.InOrStdin())
+			cliCtx := context.NewCLIContextWithInput(inBuf).WithCodec(cdc)
 			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
 
 			msg := types.NewMsgSetVersion(constants.SWVersion, cliCtx.GetFromAddress())
@@ -137,8 +137,8 @@ func GetCmdSetNodeKeys(cdc *codec.Codec) *cobra.Command {
 		Short: "set node keys, the account use to sign this tx has to be whitelist first",
 		Args:  cobra.ExactArgs(3),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cliCtx := context.NewCLIContext().WithCodec(cdc)
 			inBuf := bufio.NewReader(cmd.InOrStdin())
+			cliCtx := context.NewCLIContextWithInput(inBuf).WithCodec(cdc)
 			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
 			txBldr = txBldr.WithGas(600000) // set gas
 
