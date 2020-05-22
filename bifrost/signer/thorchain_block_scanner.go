@@ -119,15 +119,11 @@ func (b *ThorchainBlockScan) processTxOutBlock(blockHeight int64) error {
 			return fmt.Errorf("fail to get keysign from block scanner: %w", err)
 		}
 
-		for c, out := range tx.Chains {
-			b.logger.Debug().Str("chain", c.String()).Msg("chain")
-			if len(out.TxArray) == 0 {
-				b.logger.Debug().Int64("block", blockHeight).Msg("nothing to process")
-				b.m.GetCounter(metrics.BlockNoTxOut(c)).Inc()
-				continue
-			}
-			b.txOutChan <- out
+		if len(tx.TxArray) == 0 {
+			b.logger.Debug().Int64("block", blockHeight).Msg("nothing to process")
+			continue
 		}
+		b.txOutChan <- tx
 	}
 	return nil
 }
