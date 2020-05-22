@@ -12,6 +12,11 @@ import (
 
 var ErrNotFound error = fmt.Errorf("not found")
 
+type QueryKeysign struct {
+	Keysign   types.TxOut `json:"keysign"`
+	Signature string      `json:"signature"`
+}
+
 // GetKeysign retrieves txout from this block height from thorchain
 func (b *ThorchainBridge) GetKeysign(blockHeight int64, pk string) (types.TxOut, error) {
 	path := fmt.Sprintf("%s/%d/%s", KeysignEndpoint, blockHeight, pk)
@@ -23,10 +28,10 @@ func (b *ThorchainBridge) GetKeysign(blockHeight int64, pk string) (types.TxOut,
 		}
 		return types.TxOut{}, fmt.Errorf("failed to get tx from a block height: %w", err)
 	}
-	var txOut types.TxOut
-	if err := json.Unmarshal(body, &txOut); err != nil {
+	var query QueryKeysign
+	if err := json.Unmarshal(body, &query); err != nil {
 		b.errCounter.WithLabelValues("fail_unmarshal_tx_out", strconv.FormatInt(blockHeight, 10)).Inc()
 		return types.TxOut{}, fmt.Errorf("failed to unmarshal TxOut: %w", err)
 	}
-	return txOut, nil
+	return query.Keysign, nil
 }

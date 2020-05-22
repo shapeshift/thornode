@@ -1,15 +1,16 @@
 package thorchain
 
 import (
+	"bufio"
 	"bytes"
 	"errors"
 	"fmt"
+	"os"
 	"os/user"
 	"path/filepath"
 	"strings"
 
 	ckeys "github.com/cosmos/cosmos-sdk/crypto/keys"
-	"github.com/ethereum/go-ethereum/console"
 	"github.com/hashicorp/go-multierror"
 
 	"gitlab.com/thorchain/thornode/common"
@@ -496,15 +497,27 @@ type KeybaseStore struct {
 }
 
 func signerCreds() (string, string) {
-	username, err := console.Stdin.PromptInput("Enter Signer Name: ")
-	if err != nil {
-		panic(err)
-	}
+	reader := bufio.NewReader(os.Stdin)
 
-	password, err := console.Stdin.PromptPassword("Enter Signer Password: ")
-	if err != nil {
-		panic(err)
-	}
+	fmt.Print("Enter Username: \n")
+	username, _ := reader.ReadString('\n')
+
+	fmt.Print("Enter Password: \n")
+	// TODO: currently using an insecure means of getting the password, we may
+	// be echo'ing it now. The following commented out code supposed to fix
+	// that but currently causes a "inappropriate ioctl for device" error.
+	// Go-ethereum has already solved this problem, but hasn't released it yet
+	// (5/22/20), but should within a month. When it drops, update our version
+	// of go-ethereum to later than 1.9.14
+	// (https://github.com/ethereum/go-ethereum/pull/20960).
+	/*
+		bytePassword err := terminal.ReadPassword(int(os.Stdin.Fd()))
+		if err != nil {
+			panic(err)
+		}
+		password := string(bytePassword)
+	*/
+	password, _ := reader.ReadString('\n')
 
 	return strings.TrimSpace(username), strings.TrimSpace(password)
 }
