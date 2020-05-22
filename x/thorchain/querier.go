@@ -17,7 +17,7 @@ import (
 )
 
 // NewQuerier is the module level router for state queries
-func NewQuerier(keeper Keeper) cosmos.Querier {
+func NewQuerier(keeper Keeper, kbs KeybaseStore) cosmos.Querier {
 	return func(ctx cosmos.Context, path []string, req abci.RequestQuery) (res []byte, err error) {
 		switch path[0] {
 		case q.QueryPool.Key:
@@ -29,11 +29,11 @@ func NewQuerier(keeper Keeper) cosmos.Querier {
 		case q.QueryTxIn.Key:
 			return queryTxIn(ctx, path[1:], req, keeper)
 		case q.QueryKeysignArray.Key:
-			return queryKeysign(ctx, path[1:], req, keeper)
+			return queryKeysign(ctx, kbs, path[1:], req, keeper)
 		case q.QueryKeysignArrayPubkey.Key:
-			return queryKeysign(ctx, path[1:], req, keeper)
+			return queryKeysign(ctx, kbs, path[1:], req, keeper)
 		case q.QueryKeygensPubkey.Key:
-			return queryKeygen(ctx, path[1:], req, keeper)
+			return queryKeygen(ctx, kbs, path[1:], req, keeper)
 		case q.QueryCompEvents.Key:
 			return queryCompEvents(ctx, path[1:], req, keeper)
 		case q.QueryCompEventsByChain.Key:
@@ -501,7 +501,7 @@ func queryTxIn(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper 
 	return res, nil
 }
 
-func queryKeygen(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, error) {
+func queryKeygen(ctx cosmos.Context, kbs KeybaseStore, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, error) {
 	var err error
 	height, err := strconv.ParseInt(path[0], 0, 64)
 	if err != nil {
@@ -547,7 +547,7 @@ func queryKeygen(ctx cosmos.Context, path []string, req abci.RequestQuery, keepe
 	return res, nil
 }
 
-func queryKeysign(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, error) {
+func queryKeysign(ctx cosmos.Context, kbs KeybaseStore, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, error) {
 	var err error
 	height, err := strconv.ParseInt(path[0], 0, 64)
 	if err != nil {

@@ -40,7 +40,7 @@ require (
 	gitlab.com/thorchain/tss/go-tss v0.0.0-20200521211844-8c2925d834b5
 	gitlab.com/thorchain/txscript v0.0.0-20200413023754-8aaf3443d92b
 	go.uber.org/multierr v1.5.0 // indirect
-	golang.org/x/crypto v0.0.0-20200414173820-0848c9571904 // indirect
+	golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37
 	golang.org/x/lint v0.0.0-20200302205851-738671d3881b // indirect
 	golang.org/x/sys v0.0.0-20200515095857-1151b9dac4a9 // indirect
 	golang.org/x/tools v0.0.0-20200409210453-700752c24408 // indirect

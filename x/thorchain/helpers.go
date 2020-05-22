@@ -1,14 +1,28 @@
 package thorchain
 
 import (
+	"bufio"
+	"bytes"
 	"errors"
 	"fmt"
+	"os"
+	"os/user"
+	"path/filepath"
+	"strings"
+	"syscall"
 
+	ckeys "github.com/cosmos/cosmos-sdk/crypto/keys"
 	"github.com/hashicorp/go-multierror"
+	"golang.org/x/crypto/ssh/terminal"
 
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
+)
+
+const (
+	// folder name for thorchain thorcli
+	thorchainCliFolderName = `.thorcli`
 )
 
 func refundTx(ctx cosmos.Context, tx ObservedTx, mgr Manager, keeper Keeper, constAccessor constants.ConstantValues, refundCode uint32, refundReason string) error {
@@ -476,4 +490,51 @@ func AddGasFees(ctx cosmos.Context, keeper Keeper, tx ObservedTx, gasManager Gas
 		}
 	}
 	return nil
+}
+
+type KeybaseStore struct {
+	Keybase      ckeys.Keybase
+	SignerName   string
+	SignerPasswd string
+}
+
+func signerCreds() (string, string) {
+	reader := bufio.NewReader(os.Stdin)
+
+	fmt.Print("Enter Signer Name: ")
+	username, _ := reader.ReadString('\n')
+
+	fmt.Print("Enter Signer Password: ")
+	bytePassword, err := terminal.ReadPassword(int(syscall.Stdin))
+	if err != nil {
+		panic(err)
+	}
+	password := string(bytePassword)
+
+	return strings.TrimSpace(username), strings.TrimSpace(password)
+}
+
+// getKeybase will create an instance of Keybase
+func getKeybase(thorchainHome string) (KeybaseStore, error) {
+	username, password := signerCreds()
+
+	buf := bytes.NewBufferString(password)
+	// the library used by keyring is using ReadLine , which expect a new line
+	buf.WriteByte('\n')
+
+	cliDir := thorchainHome
+	if len(thorchainHome) == 0 {
+		usr, err := user.Current()
+		if err != nil {
+			return KeybaseStore{}, fmt.Errorf("fail to get current user,err:%w", err)
+		}
+		cliDir = filepath.Join(usr.HomeDir, thorchainCliFolderName)
+	}
+
+	kb, err := ckeys.NewKeyring(cosmos.KeyringServiceName(), ckeys.BackendFile, cliDir, buf)
+	return KeybaseStore{
+		SignerName:   username,
+		SignerPasswd: password,
+		Keybase:      kb,
+	}, err
 }
