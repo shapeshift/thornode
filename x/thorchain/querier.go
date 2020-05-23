@@ -536,10 +536,15 @@ func queryKeygen(ctx cosmos.Context, kbs KeybaseStore, path []string, req abci.R
 		keygenBlock = newKeygenBlock
 	}
 
-	sig, err := keeper.Cdc().MarshalBinaryBare(keygenBlock)
+	buf, err := keeper.Cdc().MarshalBinaryBare(keygenBlock)
 	if err != nil {
 		ctx.Logger().Error("fail to marshal keygen block to json", "error", err)
 		return nil, fmt.Errorf("fail to marshal keygen block to json: %w", err)
+	}
+	sig, _, err := kbs.Keybase.Sign(kbs.SignerName, kbs.SignerPasswd, buf)
+	if err != nil {
+		ctx.Logger().Error("fail to sign keygen", "error", err)
+		return nil, fmt.Errorf("fail to sign keygen: %w", err)
 	}
 
 	query := QueryKeygenBlock{
@@ -594,10 +599,15 @@ func queryKeysign(ctx cosmos.Context, kbs KeybaseStore, path []string, req abci.
 		txs = newTxs
 	}
 
-	sig, err := keeper.Cdc().MarshalBinaryBare(txs)
+	buf, err := keeper.Cdc().MarshalBinaryBare(txs)
 	if err != nil {
 		ctx.Logger().Error("fail to marshal keysign block to json", "error", err)
 		return nil, fmt.Errorf("fail to marshal keysign block to json: %w", err)
+	}
+	sig, _, err := kbs.Keybase.Sign(kbs.SignerName, kbs.SignerPasswd, buf)
+	if err != nil {
+		ctx.Logger().Error("fail to sign keysign", "error", err)
+		return nil, fmt.Errorf("fail to sign keysign: %w", err)
 	}
 
 	query := QueryKeysign{

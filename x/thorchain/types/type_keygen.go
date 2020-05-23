@@ -17,7 +17,7 @@ import (
 // if you wonder why there is a Keygens which is a slice of Keygen , that is because thorchain can potentially have to trigger multiple TSS Keygen in one block
 // for example multiple Asgard, also when later on Yggdrasil start to use TSS as well
 type KeygenBlock struct {
-	Height  int64    `json:"height"`
+	Height  int64    `json:"height,string"`
 	Keygens []Keygen `json:"keygens"`
 }
 

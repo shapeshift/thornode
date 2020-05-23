@@ -45,6 +45,7 @@ func (s *KeygenSuite) TearDownSuite(c *C) {
 
 func (s *KeygenSuite) TestGetKeygen(c *C) {
 	s.fixture = "../../test/fixtures/endpoints/keygen/template.json"
+
 	pk := types.GetRandomPubKey()
 	expectedKey, err := common.NewPubKey("thorpub1addwnpepq2kdyjkm6y9aa3kxl8wfaverka6pvkek2ygrmhx6sj3ec6h0fegwsgeslue")
 	c.Assert(err, IsNil)
