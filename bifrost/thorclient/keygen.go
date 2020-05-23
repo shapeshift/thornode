@@ -28,17 +28,22 @@ func (b *ThorchainBridge) GetKeygenBlock(blockHeight int64, pk string) (types.Ke
 		return types.KeygenBlock{}, fmt.Errorf("failed to unmarshal Keygen: %w", err)
 	}
 
+	if query.Signature == "" {
+		return types.KeygenBlock{}, errors.New("invalid keygen signature: empty")
+	}
+
 	buf, err := b.cdc.MarshalBinaryBare(query.KeygenBlock)
 	if err != nil {
 		return types.KeygenBlock{}, fmt.Errorf("fail to marshal keygen block to json: %w", err)
 	}
-	sig, _, err := b.keys.kb.Sign(b.keys.signerName, b.keys.password, buf)
-	if err != nil {
-		return types.KeygenBlock{}, fmt.Errorf("fail to marshal sign keygen: %w", err)
-	}
 
-	if base64.StdEncoding.EncodeToString(sig) != query.Signature || query.Signature == "" {
-		return types.KeygenBlock{}, errors.New("invalid keygen signature")
+	pubKey := b.keys.signerInfo.GetPubKey()
+	s, err := base64.StdEncoding.DecodeString(query.Signature)
+	if err != nil {
+		return types.KeygenBlock{}, errors.New("invalid keygen signature: cannot decode signature")
+	}
+	if !pubKey.VerifyBytes(buf, s) {
+		return types.KeygenBlock{}, errors.New("invalid keygen signature: bad signature")
 	}
 
 	return query.KeygenBlock, nil

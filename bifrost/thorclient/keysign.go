@@ -36,17 +36,22 @@ func (b *ThorchainBridge) GetKeysign(blockHeight int64, pk string) (types.TxOut,
 		return types.TxOut{}, fmt.Errorf("failed to unmarshal TxOut: %w", err)
 	}
 
+	if query.Signature == "" {
+		return types.TxOut{}, errors.New("invalid keysign signature: empty")
+	}
+
 	buf, err := b.cdc.MarshalBinaryBare(query.Keysign)
 	if err != nil {
 		return types.TxOut{}, fmt.Errorf("fail to marshal keysign block to json: %w", err)
 	}
-	sig, _, err := b.keys.kb.Sign(b.keys.signerName, b.keys.password, buf)
-	if err != nil {
-		return types.TxOut{}, fmt.Errorf("fail to marshal sign keysign: %w", err)
-	}
 
-	if base64.StdEncoding.EncodeToString(sig) != query.Signature { //|| query.Signature == "" {
-		return types.TxOut{}, errors.New("invalid keysign signature")
+	pubKey := b.keys.signerInfo.GetPubKey()
+	s, err := base64.StdEncoding.DecodeString(query.Signature)
+	if err != nil {
+		return types.TxOut{}, errors.New("invalid keysign signature: cannot decode signature")
+	}
+	if !pubKey.VerifyBytes(buf, s) {
+		return types.TxOut{}, errors.New("invalid keysign signature: bad signature")
 	}
 
 	return query.Keysign, nil
