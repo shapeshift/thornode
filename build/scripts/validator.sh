@@ -49,14 +49,14 @@ if [ ! -f ~/.thord/config/genesis.json ]; then
         VALIDATOR=$(thord tendermint show-validator)
 
         # set node keys
-        until run_cmd_auth "thorcli tx thorchain set-node-keys $NODE_PUB_KEY $NODE_PUB_KEY $VALIDATOR --node tcp://$PEER:26657 --from $SIGNER_NAME --yes" $SIGNER_PASSWD; do
+        until printf "$SIGNER_PASSWD\n$SIGNER_PASSWD\n" | thorcli tx thorchain set-node-keys $NODE_PUB_KEY $NODE_PUB_KEY $VALIDATOR --node tcp://$PEER:26657 --from $SIGNER_NAME --yes; do
           sleep 5
         done
 
         # add IP address
         sleep 10 # wait for thorchain to commit a block
 
-        until run_cmd_auth "thorcli tx thorchain set-ip-address $(curl -s http://whatismyip.akamai.com) --node tcp://$PEER:26657 --from $SIGNER_NAME --yes" $SIGNER_PASSWD; do
+        until printf "$SIGNER_PASSWD\n$SIGNER_PASSWD\n" | thorcli tx thorchain set-ip-address $(curl -s http://whatismyip.akamai.com) --node tcp://$PEER:26657 --from $SIGNER_NAME --yes; do
           sleep 5
         done
 
