@@ -1,6 +1,8 @@
 package thorchain
 
 import (
+	"fmt"
+
 	"github.com/blang/semver"
 
 	"gitlab.com/thorchain/thornode/common"
@@ -26,29 +28,30 @@ func (h ObservedTxOutHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semv
 		return nil, errInvalidMessage
 	}
 	if err := h.validate(ctx, msg, version); err != nil {
+		ctx.Logger().Error("MsgObserveTxOut failed validation", "error", err)
 		return nil, err
 	}
-	return h.handle(ctx, msg, version)
+	result, err := h.handle(ctx, msg, version)
+	if err != nil {
+		ctx.Logger().Error("fail to handle MsgObserveTxOut", "error", err)
+	}
+	return result, err
 }
 
 func (h ObservedTxOutHandler) validate(ctx cosmos.Context, msg MsgObservedTxOut, version semver.Version) error {
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, msg)
-	} else {
-		ctx.Logger().Error(errInvalidVersion.Error())
-		return errInvalidVersion
 	}
+	return errInvalidVersion
 }
 
 func (h ObservedTxOutHandler) validateV1(ctx cosmos.Context, msg MsgObservedTxOut) error {
 	if err := msg.ValidateBasic(); err != nil {
-		ctx.Logger().Error(err.Error())
 		return err
 	}
 
 	if !isSignedByActiveNodeAccounts(ctx, h.keeper, msg.GetSigners()) {
-		ctx.Logger().Error(notAuthorized.Error())
-		return notAuthorized
+		return cosmos.ErrUnauthorized(fmt.Sprintf("%+v are not authorized", msg.GetSigners()))
 	}
 
 	return nil
@@ -57,10 +60,9 @@ func (h ObservedTxOutHandler) validateV1(ctx cosmos.Context, msg MsgObservedTxOu
 func (h ObservedTxOutHandler) handle(ctx cosmos.Context, msg MsgObservedTxOut, version semver.Version) (*cosmos.Result, error) {
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.handleV1(ctx, version, msg)
-	} else {
-		ctx.Logger().Error(errInvalidVersion.Error())
-		return nil, errBadVersion
 	}
+
+	return nil, errBadVersion
 }
 
 func (h ObservedTxOutHandler) preflight(ctx cosmos.Context, voter ObservedTxVoter, nas NodeAccounts, tx ObservedTx, signer cosmos.AccAddress, version semver.Version) (ObservedTxVoter, bool) {
@@ -97,8 +99,7 @@ func (h ObservedTxOutHandler) handleV1(ctx cosmos.Context, version semver.Versio
 	constAccessor := constants.GetConstantValues(version)
 	activeNodeAccounts, err := h.keeper.ListActiveNodeAccounts(ctx)
 	if err != nil {
-		err = wrapError(ctx, err, "fail to get list of active node accounts")
-		return nil, err
+		return nil, wrapError(ctx, err, "fail to get list of active node accounts")
 	}
 
 	handler := NewInternalHandler(h.keeper, h.mgr)
@@ -200,7 +201,7 @@ func (h ObservedTxOutHandler) handleV1(ctx cosmos.Context, version semver.Versio
 
 		_, err = handler(ctx, m)
 		if err != nil {
-			ctx.Logger().Error("Handler failed:", "error", err)
+			ctx.Logger().Error("handler failed:", "error", err)
 			continue
 		}
 	}

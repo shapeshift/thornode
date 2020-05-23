@@ -32,10 +32,14 @@ func (h TssKeysignHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.
 	}
 	err := h.validate(ctx, msg, version)
 	if err != nil {
-		ctx.Logger().Error("msg_tss_pool failed validation", "error", err)
+		ctx.Logger().Error("MsgTssKeysignFail failed validation", "error", err)
 		return nil, err
 	}
-	return h.handle(ctx, msg, version)
+	result, err := h.handle(ctx, msg, version)
+	if err != nil {
+		ctx.Logger().Error("failed to process MsgTssKeysignFail", "error", err)
+	}
+	return result, err
 }
 
 func (h TssKeysignHandler) validate(ctx cosmos.Context, msg MsgTssKeysignFail, version semver.Version) error {
@@ -69,8 +73,7 @@ func (h TssKeysignHandler) handle(ctx cosmos.Context, msg MsgTssKeysignFail, ver
 func (h TssKeysignHandler) handleV1(ctx cosmos.Context, msg MsgTssKeysignFail, version semver.Version) (*cosmos.Result, error) {
 	active, err := h.keeper.ListActiveNodeAccounts(ctx)
 	if err != nil {
-		err = wrapError(ctx, err, "fail to get list of active node accounts")
-		return nil, err
+		return nil, wrapError(ctx, err, "fail to get list of active node accounts")
 	}
 
 	if !msg.Blame.IsEmpty() {

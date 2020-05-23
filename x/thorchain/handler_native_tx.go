@@ -31,27 +31,26 @@ func (h NativeTxHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Ve
 		return nil, errInvalidMessage
 	}
 	if err := h.validate(ctx, msg, version); err != nil {
+		ctx.Logger().Error("MsgNativeTx failed validation", "error", err)
 		return nil, err
 	}
-	return h.handle(ctx, msg, version, constAccessor)
+	result, err := h.handle(ctx, msg, version, constAccessor)
+	if err != nil {
+		ctx.Logger().Error("fail to process MsgNativeTx", "error", err)
+		return nil, err
+	}
+	return result, nil
 }
 
 func (h NativeTxHandler) validate(ctx cosmos.Context, msg MsgNativeTx, version semver.Version) error {
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, msg)
-	} else {
-		ctx.Logger().Error(errInvalidVersion.Error())
-		return errInvalidVersion
 	}
+	return errInvalidVersion
 }
 
 func (h NativeTxHandler) validateV1(ctx cosmos.Context, msg MsgNativeTx) error {
-	if err := msg.ValidateBasic(); err != nil {
-		ctx.Logger().Error(err.Error())
-		return err
-	}
-
-	return nil
+	return msg.ValidateBasic()
 }
 
 func (h NativeTxHandler) handle(ctx cosmos.Context, msg MsgNativeTx, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
@@ -59,7 +58,6 @@ func (h NativeTxHandler) handle(ctx cosmos.Context, msg MsgNativeTx, version sem
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.handleV1(ctx, msg, version, constAccessor)
 	}
-	ctx.Logger().Error(errInvalidVersion.Error())
 	return nil, errInvalidVersion
 }
 
@@ -73,43 +71,36 @@ func (h NativeTxHandler) handleV1(ctx cosmos.Context, msg MsgNativeTx, version s
 	gas := common.NewCoin(common.RuneNative, cosmos.NewUint(uint64(transactionFee)))
 	gasFee, err := gas.Native()
 	if err != nil {
-		ctx.Logger().Error("fail to get gas fee", "err", err)
 		return nil, fmt.Errorf("fail to get gas fee: %w", err)
 	}
 
 	coins, err := msg.Coins.Native()
 	if err != nil {
-		ctx.Logger().Error("coins are native to THORChain", "error", err)
-		return nil, se.Wrap(se.ErrInsufficientFunds, "coins are native to THORChain")
+		return nil, ErrInternal(err, "coins are native to THORChain")
 	}
 
 	totalCoins := cosmos.NewCoins(gasFee).Add(coins...)
 	if !banker.HasCoins(ctx, msg.GetSigners()[0], totalCoins) {
-		ctx.Logger().Error("insufficient funds", "error", err)
-		return nil, cosmos.ErrInsufficientCoins("insufficient funds")
+		return nil, cosmos.ErrInsufficientCoins(err, "insufficient funds")
 	}
 
 	// send gas to reserve
 	sdkErr := supplier.SendCoinsFromAccountToModule(ctx, msg.GetSigners()[0], ReserveName, cosmos.NewCoins(gasFee))
 	if sdkErr != nil {
-		ctx.Logger().Error("unable to send gas to reserve", "error", sdkErr)
-		return nil, sdkErr
+		return nil, fmt.Errorf("unable to send gas to reserve: %w", sdkErr)
 	}
 
 	hash := tmtypes.Tx(ctx.TxBytes()).Hash()
 	txID, err := common.NewTxID(fmt.Sprintf("%X", hash))
 	if err != nil {
-		ctx.Logger().Error("fail to get tx hash", "err", err)
 		return nil, fmt.Errorf("fail to get tx hash: %w", err)
 	}
 	from, err := common.NewAddress(msg.GetSigners()[0].String())
 	if err != nil {
-		ctx.Logger().Error("fail to get from address", "err", err)
 		return nil, fmt.Errorf("fail to get from address: %w", err)
 	}
 	to, err := common.NewAddress(supplier.GetModuleAddress(AsgardName).String())
 	if err != nil {
-		ctx.Logger().Error("fail to get to address", "err", err)
 		return nil, fmt.Errorf("fail to get to address: %w", err)
 	}
 

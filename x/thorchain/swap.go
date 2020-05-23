@@ -148,8 +148,7 @@ func swapOne(ctx cosmos.Context,
 	// Get our pool from the KVStore
 	pool, poolErr := keeper.GetPool(ctx, asset)
 	if poolErr != nil {
-		ctx.Logger().Error(fmt.Sprintf("fail to get pool(%s)", asset), "error", poolErr)
-		return cosmos.ZeroUint(), Pool{}, evt, poolErr
+		return cosmos.ZeroUint(), Pool{}, evt, ErrInternal(poolErr, fmt.Sprintf("fail to get pool(%s)", asset))
 	}
 	if pool.Status != PoolEnabled {
 		return cosmos.ZeroUint(), pool, evt, errInvalidPoolStatus

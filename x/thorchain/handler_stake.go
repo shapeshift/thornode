@@ -121,7 +121,6 @@ func (h StakeHandler) handle(ctx cosmos.Context, msg MsgSetStakeData, version se
 		constAccessor,
 	)
 	if err != nil {
-		ctx.Logger().Error("fail to process stake request", "error", err)
 		return cosmos.ErrUnknownRequest(fmt.Errorf("fail to process stake request: %w", err).Error())
 	}
 
