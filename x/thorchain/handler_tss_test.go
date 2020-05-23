@@ -370,6 +370,8 @@ func (s *HandlerTssSuite) TestTssHandler(c *C) {
 				tssMsg := NewMsgTssPool(helper.members, GetRandomPubKey(), AsgardKeygen, helper.ctx.BlockHeight(), b, common.Chains{common.RuneAsset().Chain}, helper.signer)
 				voter, err := helper.keeper.GetTssVoter(helper.ctx, tssMsg.ID)
 				c.Assert(err, IsNil)
+				constAccessor := constants.GetConstantValues(helper.version)
+				observeSlashPoints := constAccessor.GetInt64Value(constants.ObserveSlashPoints)
 				for _, pk := range helper.members {
 					addr, err := pk.GetThorAddress()
 					c.Assert(err, IsNil)
@@ -378,6 +380,7 @@ func (s *HandlerTssSuite) TestTssHandler(c *C) {
 					}
 					voter.Signers = append(voter.Signers, addr)
 				}
+				helper.mgr.Slasher().IncSlashPoints(helper.ctx, observeSlashPoints, voter.Signers...)
 				helper.keeper.SetTssVoter(helper.ctx, voter)
 				return tssMsg
 			},

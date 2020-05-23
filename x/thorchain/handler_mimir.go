@@ -48,9 +48,8 @@ func (h MimirHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Versi
 func (h MimirHandler) validate(ctx cosmos.Context, msg MsgMimir, version semver.Version) error {
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, msg)
-	} else {
-		return errBadVersion
 	}
+	return errBadVersion
 }
 
 func (h MimirHandler) validateV1(ctx cosmos.Context, msg MsgMimir) error {
@@ -64,8 +63,6 @@ func (h MimirHandler) validateV1(ctx cosmos.Context, msg MsgMimir) error {
 			return nil
 		}
 	}
-
-	ctx.Logger().Error("unauthorized account", "address", msg.Signer.String())
 	return cosmos.ErrUnauthorized(fmt.Sprintf("%s is not authorizaed", msg.Signer))
 }
 

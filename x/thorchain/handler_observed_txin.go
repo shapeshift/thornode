@@ -32,32 +32,33 @@ func (h ObservedTxInHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semve
 	}
 	isNewSigner, err := h.validate(ctx, msg, version)
 	if err != nil {
+		ctx.Logger().Error("MsgObservedTxIn failed validation", "error", err)
 		return nil, err
 	}
 	if isNewSigner {
 		return &cosmos.Result{}, nil
 	}
-	return h.handle(ctx, msg, version)
+	result, err := h.handle(ctx, msg, version)
+	if err != nil {
+		ctx.Logger().Error("fail to handle MsgObservedTxIn message", "error", err)
+	}
+	return result, err
 }
 
 func (h ObservedTxInHandler) validate(ctx cosmos.Context, msg MsgObservedTxIn, version semver.Version) (bool, error) {
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, msg)
-	} else {
-		ctx.Logger().Error(errInvalidVersion.Error())
-		return false, errInvalidVersion
 	}
+	return false, errInvalidVersion
 }
 
 func (h ObservedTxInHandler) validateV1(ctx cosmos.Context, msg MsgObservedTxIn) (bool, error) {
 	if err := msg.ValidateBasic(); err != nil {
-		ctx.Logger().Error(err.Error())
 		return false, err
 	}
 
 	if !isSignedByActiveNodeAccounts(ctx, h.keeper, msg.GetSigners()) {
-		ctx.Logger().Error(notAuthorized.Error())
-		return false, notAuthorized
+		return false, cosmos.ErrUnauthorized(fmt.Sprintf("%+v are not authorized", msg.GetSigners()))
 	}
 
 	return false, nil
@@ -65,15 +66,9 @@ func (h ObservedTxInHandler) validateV1(ctx cosmos.Context, msg MsgObservedTxIn)
 
 func (h ObservedTxInHandler) handle(ctx cosmos.Context, msg MsgObservedTxIn, version semver.Version) (*cosmos.Result, error) {
 	if version.GTE(semver.MustParse("0.1.0")) {
-		r, err := h.handleV1(ctx, version, msg)
-		if err != nil {
-			ctx.Logger().Error("fail to process msg", "error", err)
-		}
-		return r, err
-	} else {
-		ctx.Logger().Error(errInvalidVersion.Error())
-		return nil, errBadVersion
+		return h.handleV1(ctx, version, msg)
 	}
+	return nil, errBadVersion
 }
 
 func (h ObservedTxInHandler) preflight(ctx cosmos.Context, voter ObservedTxVoter, nas NodeAccounts, tx ObservedTx, signer cosmos.AccAddress, version semver.Version) (ObservedTxVoter, bool) {
@@ -112,9 +107,7 @@ func (h ObservedTxInHandler) handleV1(ctx cosmos.Context, version semver.Version
 	constAccessor := constants.GetConstantValues(version)
 	activeNodeAccounts, err := h.keeper.ListActiveNodeAccounts(ctx)
 	if err != nil {
-		err = wrapError(ctx, err, "fail to get list of active node accounts")
-
-		return nil, err
+		return nil, wrapError(ctx, err, "fail to get list of active node accounts")
 	}
 	handler := NewInternalHandler(h.keeper, h.mgr)
 	for _, tx := range msg.Txs {
@@ -158,8 +151,7 @@ func (h ObservedTxInHandler) handleV1(ctx cosmos.Context, version semver.Version
 		txIn.Tx.Memo = tx.Tx.Memo
 		vault, err := h.keeper.GetVault(ctx, tx.ObservedPubKey)
 		if err != nil {
-			ctx.Logger().Error("fail to get vault", "error", err)
-			return nil, err
+			return nil, fmt.Errorf("fail to get vault: %w", err)
 		}
 
 		vault.AddFunds(tx.Tx.Coins)
@@ -169,8 +161,7 @@ func (h ObservedTxInHandler) handleV1(ctx cosmos.Context, version semver.Version
 			vault.RemovePendingTxBlockHeights(memo.GetBlockHeight())
 		}
 		if err := h.keeper.SetVault(ctx, vault); err != nil {
-			ctx.Logger().Error("fail to save vault", "error", err)
-			return nil, err
+			return nil, fmt.Errorf("fail to save vault: %w", err)
 		}
 
 		if !vault.IsAsgard() {

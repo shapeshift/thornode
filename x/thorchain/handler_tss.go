@@ -33,7 +33,12 @@ func (h TssHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version
 		ctx.Logger().Error("msg_tss_pool failed validation", "error", err)
 		return nil, err
 	}
-	return h.handle(ctx, msg, version)
+	result, err := h.handle(ctx, msg, version)
+	if err != nil {
+		ctx.Logger().Error("failed to process MsgTssPool", "error", err)
+		return nil, err
+	}
+	return result, err
 }
 
 func (h TssHandler) validate(ctx cosmos.Context, msg MsgTssPool, version semver.Version) error {
@@ -148,7 +153,6 @@ func (h TssHandler) handleV1(ctx cosmos.Context, msg MsgTssPool, version semver.
 					// thus good behaviour node will get reward
 					reserveVault, err := h.keeper.GetVaultData(ctx)
 					if err != nil {
-						ctx.Logger().Error("fail to get reserve vault", "error", err)
 						return nil, fmt.Errorf("fail to get reserve vault: %w", err)
 					}
 

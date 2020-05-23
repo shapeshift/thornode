@@ -26,25 +26,25 @@ func (h RagnarokHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Ve
 		return nil, errInvalidMessage
 	}
 	if err := h.validate(ctx, msg, version); err != nil {
+		ctx.Logger().Error("MsgRagnarok failed validation", "error", err)
 		return nil, err
 	}
-	return h.handle(ctx, version, msg)
+	result, err := h.handle(ctx, version, msg)
+	if err != nil {
+		ctx.Logger().Error("fail to process MsgRagnarok", "error", err)
+	}
+	return result, err
 }
 
 func (h RagnarokHandler) validate(ctx cosmos.Context, msg MsgRagnarok, version semver.Version) error {
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, msg)
 	}
-	ctx.Logger().Error(errInvalidVersion.Error())
 	return errInvalidVersion
 }
 
 func (h RagnarokHandler) validateV1(ctx cosmos.Context, msg MsgRagnarok) error {
-	if err := msg.ValidateBasic(); nil != err {
-		ctx.Logger().Error(err.Error())
-		return err
-	}
-	return nil
+	return msg.ValidateBasic()
 }
 
 func (h RagnarokHandler) handle(ctx cosmos.Context, version semver.Version, msg MsgRagnarok) (*cosmos.Result, error) {
@@ -52,7 +52,6 @@ func (h RagnarokHandler) handle(ctx cosmos.Context, version semver.Version, msg 
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.handleV1(ctx, version, msg)
 	}
-	ctx.Logger().Error(errInvalidVersion.Error())
 	return nil, errBadVersion
 }
 
@@ -71,8 +70,7 @@ func (h RagnarokHandler) handleV1(ctx cosmos.Context, version semver.Version, ms
 	// update txOut record with our TxID that sent funds out of the pool
 	txOut, err := h.keeper.GetTxOut(ctx, msg.BlockHeight)
 	if err != nil {
-		ctx.Logger().Error("unable to get txOut record", "error", err)
-		return nil, cosmos.ErrUnknownRequest(err.Error())
+		return nil, ErrInternal(err, "unable to get txOut record")
 	}
 
 	shouldSlash := true

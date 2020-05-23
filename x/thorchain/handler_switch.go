@@ -34,15 +34,19 @@ func (h SwitchHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Vers
 		ctx.Logger().Error("msg switch failed validation", "error", err)
 		return nil, err
 	}
-	return h.handle(ctx, msg, version)
+	result, err := h.handle(ctx, msg, version)
+	if err != nil {
+		ctx.Logger().Error("failed to process msg switch", "error", err)
+		return nil, err
+	}
+	return result, err
 }
 
 func (h SwitchHandler) validate(ctx cosmos.Context, msg MsgSwitch, version semver.Version) error {
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, msg)
-	} else {
-		return errBadVersion
 	}
+	return errBadVersion
 }
 
 func (h SwitchHandler) validateV1(ctx cosmos.Context, msg MsgSwitch) error {
@@ -70,10 +74,8 @@ func (h SwitchHandler) handle(ctx cosmos.Context, msg MsgSwitch, version semver.
 	ctx.Logger().Info("handleMsgSwitch request", "destination address", msg.Destination.String())
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.handleV1(ctx, msg, version)
-	} else {
-		ctx.Logger().Error(errInvalidVersion.Error())
-		return nil, errBadVersion
 	}
+	return nil, errBadVersion
 }
 
 func (h SwitchHandler) handleV1(ctx cosmos.Context, msg MsgSwitch, version semver.Version) (*cosmos.Result, error) {
