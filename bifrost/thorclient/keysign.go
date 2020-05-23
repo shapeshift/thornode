@@ -1,7 +1,9 @@
 package thorclient
 
 import (
+	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -33,5 +35,19 @@ func (b *ThorchainBridge) GetKeysign(blockHeight int64, pk string) (types.TxOut,
 		b.errCounter.WithLabelValues("fail_unmarshal_tx_out", strconv.FormatInt(blockHeight, 10)).Inc()
 		return types.TxOut{}, fmt.Errorf("failed to unmarshal TxOut: %w", err)
 	}
+
+	buf, err := b.cdc.MarshalBinaryBare(query.Keysign)
+	if err != nil {
+		return types.TxOut{}, fmt.Errorf("fail to marshal keysign block to json: %w", err)
+	}
+	sig, _, err := b.keys.kb.Sign(b.keys.signerName, b.keys.password, buf)
+	if err != nil {
+		return types.TxOut{}, fmt.Errorf("fail to marshal sign keysign: %w", err)
+	}
+
+	if base64.StdEncoding.EncodeToString(sig) != query.Signature { //|| query.Signature == "" {
+		return types.TxOut{}, errors.New("invalid keysign signature")
+	}
+
 	return query.Keysign, nil
 }

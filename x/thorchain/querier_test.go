@@ -5,6 +5,7 @@ import (
 	. "gopkg.in/check.v1"
 
 	ckeys "github.com/cosmos/cosmos-sdk/crypto/keys"
+	"github.com/cosmos/cosmos-sdk/crypto/keys/hd"
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
@@ -27,9 +28,16 @@ func (k *TestQuerierKeeper) GetTxOut(_ cosmos.Context, _ int64) (*TxOut, error) 
 
 func (s *QuerierSuite) SetUpSuite(c *C) {
 	kb := ckeys.NewInMemory()
+	username := "test_user"
+	password := "password"
+
+	params := *hd.NewFundraiserParams(0, 118, 0)
+	hdPath := params.String()
+	_, err := kb.CreateAccount(username, "industry segment educate height inject hover bargain offer employ select speak outer video tornado story slow chief object junk vapor venue large shove behave", password, password, hdPath, ckeys.Secp256k1)
+	c.Assert(err, IsNil)
 	s.kb = KeybaseStore{
-		SignerName:   "username",
-		SignerPasswd: "password",
+		SignerName:   username,
+		SignerPasswd: password,
 		Keybase:      kb,
 	}
 }
