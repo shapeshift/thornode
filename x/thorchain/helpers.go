@@ -498,15 +498,9 @@ type KeybaseStore struct {
 }
 
 func signerCreds() (string, string) {
-	username, err := input.GetString("Enter Signer name:", bufio.NewReader(os.Stdin))
-	if err != nil {
-		panic(err)
-	}
-
-	password, err := input.GetPassword("Enter Signer password:", bufio.NewReader(os.Stdin))
-	if err != nil {
-		panic(err)
-	}
+	reader := bufio.NewReader(os.Stdin)
+	username, _ := input.GetString("Enter Signer name:", reader)
+	password, _ := input.GetPassword("Enter Signer password:", reader)
 
 	return strings.TrimSpace(username), strings.TrimSpace(password)
 }
