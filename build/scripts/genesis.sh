@@ -14,7 +14,7 @@ gen_bnb_address
 ADDRESS=$(cat ~/.bond/address.txt)
 
 # create thorchain user, if it doesn't already
-thorcli keys show $SIGNER_NAME
+echo $SIGNER_PASSWD | thorcli keys show $SIGNER_NAME
 if [ $? -gt 0 ]; then
   if [ "$SIGNER_SEED_PHRASE" != "" ]; then
     printf "$SIGNER_SEED_PHRASE\n$SIGNER_PASSWD\n$SIGNER_PASSWD\n" | thorcli keys add $SIGNER_NAME --recover
