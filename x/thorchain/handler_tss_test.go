@@ -115,6 +115,9 @@ func newTssHandlerTestHelper(c *C) tssHandlerTestHelper {
 	for i := 0; i < 8; i++ {
 		members = append(members, GetRandomPubKey())
 	}
+	sort.SliceStable(members, func(i, j int) bool {
+		return members[i].String() < members[j].String()
+	})
 	signer, err := members[0].GetThorAddress()
 	c.Assert(err, IsNil)
 
@@ -354,9 +357,6 @@ func (s *HandlerTssSuite) TestTssHandler(c *C) {
 		{
 			name: "fail to keygen retry should be slashed",
 			messageCreator: func(helper tssHandlerTestHelper) cosmos.Msg {
-				sort.SliceStable(helper.members, func(i, j int) bool {
-					return helper.members[i].String() < helper.members[j].String()
-				})
 				thorAddr, _ := helper.members[3].GetThorAddress()
 				na, _ := helper.keeper.GetNodeAccount(helper.ctx, thorAddr)
 				na.UpdateStatus(NodeActive, helper.ctx.BlockHeight())
@@ -364,7 +364,9 @@ func (s *HandlerTssSuite) TestTssHandler(c *C) {
 				b := blame.Blame{
 					FailReason: "who knows",
 					BlameNodes: []blame.Node{
-						blame.Node{Pubkey: helper.members[3].String()},
+						blame.Node{
+							Pubkey: helper.members[3].String(),
+						},
 					},
 				}
 				tssMsg := NewMsgTssPool(helper.members, GetRandomPubKey(), AsgardKeygen, helper.ctx.BlockHeight(), b, common.Chains{common.RuneAsset().Chain}, helper.signer)
@@ -410,9 +412,6 @@ func (s *HandlerTssSuite) TestTssHandler(c *C) {
 		{
 			name: "fail to keygen but can't get vault data should return an error",
 			messageCreator: func(helper tssHandlerTestHelper) cosmos.Msg {
-				sort.SliceStable(helper.members, func(i, j int) bool {
-					return helper.members[i].String() < helper.members[j].String()
-				})
 				b := blame.Blame{
 					FailReason: "who knows",
 					BlameNodes: []blame.Node{
@@ -442,9 +441,6 @@ func (s *HandlerTssSuite) TestTssHandler(c *C) {
 		{
 			name: "fail to keygen retry and none active account should be slashed with bond",
 			messageCreator: func(helper tssHandlerTestHelper) cosmos.Msg {
-				sort.SliceStable(helper.members, func(i, j int) bool {
-					return helper.members[i].String() < helper.members[j].String()
-				})
 				b := blame.Blame{
 					FailReason: "who knows",
 					BlameNodes: []blame.Node{
@@ -485,9 +481,6 @@ func (s *HandlerTssSuite) TestTssHandler(c *C) {
 		{
 			name: "fail to keygen and none active account, fail to set vault data should return an error",
 			messageCreator: func(helper tssHandlerTestHelper) cosmos.Msg {
-				sort.SliceStable(helper.members, func(i, j int) bool {
-					return helper.members[i].String() < helper.members[j].String()
-				})
 				b := blame.Blame{
 					FailReason: "who knows",
 					BlameNodes: []blame.Node{
