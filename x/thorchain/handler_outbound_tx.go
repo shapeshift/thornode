@@ -27,25 +27,25 @@ func (h OutboundTxHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.
 		return nil, errInvalidMessage
 	}
 	if err := h.validate(ctx, msg, version); err != nil {
+		ctx.Logger().Error("MsgOutboundTx failed validation", "error", err)
 		return nil, err
 	}
-	return h.handle(ctx, msg, version)
+	result, err := h.handle(ctx, msg, version)
+	if err != nil {
+		ctx.Logger().Error("fail to handle MsgOutboundTx", "error", err)
+	}
+	return result, err
 }
 
 func (h OutboundTxHandler) validate(ctx cosmos.Context, msg MsgOutboundTx, version semver.Version) error {
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, msg)
 	}
-	ctx.Logger().Error(errInvalidVersion.Error())
 	return errBadVersion
 }
 
 func (h OutboundTxHandler) validateV1(ctx cosmos.Context, msg MsgOutboundTx) error {
-	if err := msg.ValidateBasic(); err != nil {
-		ctx.Logger().Error(err.Error())
-		return err
-	}
-	return nil
+	return msg.ValidateBasic()
 }
 
 func (h OutboundTxHandler) handle(ctx cosmos.Context, msg MsgOutboundTx, version semver.Version) (*cosmos.Result, error) {
@@ -53,7 +53,6 @@ func (h OutboundTxHandler) handle(ctx cosmos.Context, msg MsgOutboundTx, version
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.handleV1(ctx, version, msg)
 	}
-	ctx.Logger().Error(errInvalidVersion.Error())
 	return nil, errBadVersion
 }
 

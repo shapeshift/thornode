@@ -29,14 +29,17 @@ func (h RefundHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Vers
 	if !ok {
 		return nil, errInvalidMessage
 	}
-	ctx.Logger().Info("receive MsgRefund",
-		"tx ID", msg.InTxID.String())
+	ctx.Logger().Info("receive MsgRefund", "tx ID", msg.InTxID.String())
 	if err := h.validate(ctx, msg, version, constAccessor); err != nil {
-		ctx.Logger().Error("msg refund fail validation", "error", err)
+		ctx.Logger().Error("MsgRefund fail validation", "error", err)
 		return nil, err
 	}
 
-	return h.handle(ctx, msg, version)
+	result, err := h.handle(ctx, msg, version)
+	if err != nil {
+		ctx.Logger().Error("fail to process MsgRefund", "error", err)
+	}
+	return result, err
 }
 
 func (h RefundHandler) validate(ctx cosmos.Context, msg MsgRefundTx, version semver.Version, constAccessor constants.ConstantValues) error {
@@ -47,10 +50,7 @@ func (h RefundHandler) validate(ctx cosmos.Context, msg MsgRefundTx, version sem
 }
 
 func (h RefundHandler) validateV1(ctx cosmos.Context, version semver.Version, msg MsgRefundTx, constAccessor constants.ConstantValues) error {
-	if err := msg.ValidateBasic(); err != nil {
-		return err
-	}
-	return nil
+	return msg.ValidateBasic()
 }
 
 func (h RefundHandler) handle(ctx cosmos.Context, msg MsgRefundTx, version semver.Version) (*cosmos.Result, error) {

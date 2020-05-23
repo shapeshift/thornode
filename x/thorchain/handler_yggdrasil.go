@@ -38,35 +38,34 @@ func (h YggdrasilHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.V
 		return nil, errInvalidMessage
 	}
 	if err := h.validate(ctx, msg, version); err != nil {
+		ctx.Logger().Error("MsgYggdrasil failed validation", "error", err)
 		return nil, err
 	}
-	return h.handle(ctx, msg, version, constAccessor)
+	result, err := h.handle(ctx, msg, version, constAccessor)
+	if err != nil {
+		ctx.Logger().Error("failed to process MsgYggdrasil", "error", err)
+		return nil, err
+	}
+	return result, nil
 }
 
 func (h YggdrasilHandler) validate(ctx cosmos.Context, msg MsgYggdrasil, version semver.Version) error {
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, msg)
 	}
-	ctx.Logger().Error(errInvalidVersion.Error())
 	return errBadVersion
 }
 
 func (h YggdrasilHandler) validateV1(ctx cosmos.Context, msg MsgYggdrasil) error {
-	if err := msg.ValidateBasic(); err != nil {
-		ctx.Logger().Error(err.Error())
-		return err
-	}
-	return nil
+	return msg.ValidateBasic()
 }
 
 func (h YggdrasilHandler) handle(ctx cosmos.Context, msg MsgYggdrasil, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	ctx.Logger().Info("receive MsgYggdrasil", "pubkey", msg.PubKey.String(), "add_funds", msg.AddFunds, "coins", msg.Coins)
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.handleV1(ctx, msg, version)
-	} else {
-		ctx.Logger().Error(errInvalidVersion.Error())
-		return nil, errBadVersion
 	}
+	return nil, errBadVersion
 }
 
 func (h YggdrasilHandler) slash(ctx cosmos.Context, version semver.Version, pk common.PubKey, coins common.Coins) error {
@@ -84,8 +83,7 @@ func (h YggdrasilHandler) handleV1(ctx cosmos.Context, msg MsgYggdrasil, version
 	// update txOut record with our TxID that sent funds out of the pool
 	txOut, err := h.keeper.GetTxOut(ctx, msg.BlockHeight)
 	if err != nil {
-		ctx.Logger().Error("unable to get txOut record", "error", err)
-		return nil, cosmos.ErrUnknownRequest(err.Error())
+		return nil, cosmos.ErrUnknownRequest(fmt.Errorf("unable to get txOut record: %w", err).Error())
 	}
 
 	shouldSlash := true
@@ -126,8 +124,7 @@ func (h YggdrasilHandler) handleV1(ctx cosmos.Context, msg MsgYggdrasil, version
 
 	vault, err := h.keeper.GetVault(ctx, msg.PubKey)
 	if err != nil && !stdErrors.Is(err, ErrVaultNotFound) {
-		ctx.Logger().Error("fail to get yggdrasil", "error", err)
-		return nil, err
+		return nil, fmt.Errorf("fail to get yggdrasil: %w", err)
 	}
 	if len(vault.Type) == 0 {
 		vault.Status = ActiveVault
@@ -173,8 +170,7 @@ func (h YggdrasilHandler) handleYggdrasilReturn(ctx cosmos.Context, msg MsgYggdr
 		}
 		isAsgardReceipient, err := asgardVaults.HasAddress(msg.Tx.Chain, msg.Tx.ToAddress)
 		if err != nil {
-			ctx.Logger().Error(fmt.Sprintf("unable to determinate whether %s is an Asgard vault", msg.Tx.ToAddress), "error", err)
-			return nil, ErrInternal(err, "unable to check recipient against active Asgards")
+			return nil, ErrInternal(err, fmt.Sprintf("unable to determinate whether %s is an Asgard vault", msg.Tx.ToAddress))
 		}
 
 		if !isAsgardReceipient {
@@ -186,8 +182,7 @@ func (h YggdrasilHandler) handleYggdrasilReturn(ctx cosmos.Context, msg MsgYggdr
 
 		na, err := h.keeper.GetNodeAccountByPubKey(ctx, msg.PubKey)
 		if err != nil {
-			ctx.Logger().Error("unable to get node account", "error", err)
-			return nil, err
+			return nil, ErrInternal(err, fmt.Sprintf("unable to get node account(%s)", msg.PubKey))
 		}
 		if na.Status == NodeActive {
 			// node still active , no refund bond
@@ -196,8 +191,7 @@ func (h YggdrasilHandler) handleYggdrasilReturn(ctx cosmos.Context, msg MsgYggdr
 
 		if !vault.HasFunds() {
 			if err := refundBond(ctx, msg.Tx, na, h.keeper, h.mgr); err != nil {
-				ctx.Logger().Error("fail to refund bond", "error", err)
-				return nil, err
+				return nil, ErrInternal(err, "fail to refund bond")
 			}
 		}
 		return &cosmos.Result{}, nil

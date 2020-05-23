@@ -32,7 +32,11 @@ func (h ReserveContributorHandler) Run(ctx cosmos.Context, m cosmos.Msg, version
 		ctx.Logger().Error("MsgReserveContributor failed validation", "error", err)
 		return nil, err
 	}
-	return h.Handle(ctx, msg, version)
+	result, err := h.Handle(ctx, msg, version)
+	if err != nil {
+		ctx.Logger().Error("fail to process MsgReserveContributor", "error", err)
+	}
+	return result, err
 }
 
 func (h ReserveContributorHandler) Validate(ctx cosmos.Context, msg MsgReserveContributor, version semver.Version) error {
@@ -43,10 +47,7 @@ func (h ReserveContributorHandler) Validate(ctx cosmos.Context, msg MsgReserveCo
 }
 
 func (h ReserveContributorHandler) ValidateV1(ctx cosmos.Context, msg MsgReserveContributor) error {
-	if err := msg.ValidateBasic(); err != nil {
-		return err
-	}
-	return nil
+	return msg.ValidateBasic()
 }
 
 func (h ReserveContributorHandler) Handle(ctx cosmos.Context, msg MsgReserveContributor, version semver.Version) (*cosmos.Result, error) {
@@ -57,7 +58,6 @@ func (h ReserveContributorHandler) Handle(ctx cosmos.Context, msg MsgReserveCont
 		}
 		return &cosmos.Result{}, nil
 	}
-	ctx.Logger().Error(errInvalidVersion.Error())
 	return nil, errBadVersion
 }
 
@@ -65,26 +65,22 @@ func (h ReserveContributorHandler) Handle(ctx cosmos.Context, msg MsgReserveCont
 func (h ReserveContributorHandler) HandleV1(ctx cosmos.Context, msg MsgReserveContributor, version semver.Version) error {
 	reses, err := h.keeper.GetReservesContributors(ctx)
 	if err != nil {
-		ctx.Logger().Error("fail to get reserve contributors", "error", err)
 		return err
 	}
 
 	reses = reses.Add(msg.Contributor)
 	if err := h.keeper.SetReserveContributors(ctx, reses); err != nil {
-		ctx.Logger().Error("fail to save reserve contributors", "error", err)
-		return err
+		return fmt.Errorf("fail to save reserve contributors: %w", err)
 	}
 
 	vault, err := h.keeper.GetVaultData(ctx)
 	if err != nil {
-		ctx.Logger().Error("fail to get vault data", "error", err)
-		return err
+		return fmt.Errorf("fail to get vault data: %w", err)
 	}
 
 	vault.TotalReserve = vault.TotalReserve.Add(msg.Contributor.Amount)
 	if err := h.keeper.SetVaultData(ctx, vault); err != nil {
-		ctx.Logger().Error("fail to save vault data", "error", err)
-		return err
+		return fmt.Errorf("fail to save vault data: %w", err)
 	}
 	reserveEvent := NewEventReserve(msg.Contributor, msg.Tx)
 	if err := h.mgr.EventMgr().EmitReserveEvent(ctx, h.keeper, reserveEvent); err != nil {
