@@ -58,11 +58,9 @@ func (h VersionHandler) validateV1(ctx cosmos.Context, msg MsgSetVersion) error 
 
 	nodeAccount, err := h.keeper.GetNodeAccount(ctx, msg.Signer)
 	if err != nil {
-		ctx.Logger().Error("fail to get node account", "error", err, "address", msg.Signer.String())
 		return cosmos.ErrUnauthorized(fmt.Sprintf("%s is not authorizaed", msg.Signer))
 	}
 	if nodeAccount.IsEmpty() {
-		ctx.Logger().Error("unauthorized account", "address", msg.Signer.String())
 		return cosmos.ErrUnauthorized(fmt.Sprintf("%s is not authorizaed", msg.Signer))
 	}
 
@@ -73,17 +71,14 @@ func (h VersionHandler) handle(ctx cosmos.Context, msg MsgSetVersion, version se
 	ctx.Logger().Info("handleMsgSetVersion request", "Version:", msg.Version.String())
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.handleV1(ctx, msg)
-	} else {
-		ctx.Logger().Error(errInvalidVersion.Error())
-		return errBadVersion
 	}
+	return errBadVersion
 }
 
 func (h VersionHandler) handleV1(ctx cosmos.Context, msg MsgSetVersion) error {
 	nodeAccount, err := h.keeper.GetNodeAccount(ctx, msg.Signer)
 	if err != nil {
-		ctx.Logger().Error("fail to get node account", "error", err, "address", msg.Signer.String())
-		return cosmos.ErrUnauthorized(fmt.Sprintf("unable to find account: %s", msg.Signer))
+		return cosmos.ErrUnauthorized(fmt.Errorf("unable to find account(%s):%w", msg.Signer, err).Error())
 	}
 
 	if nodeAccount.Version.LT(msg.Version) {
@@ -91,7 +86,6 @@ func (h VersionHandler) handleV1(ctx cosmos.Context, msg MsgSetVersion) error {
 	}
 
 	if err := h.keeper.SetNodeAccount(ctx, nodeAccount); err != nil {
-		ctx.Logger().Error("fail to save node account", "error", err)
 		return fmt.Errorf("fail to save node account: %w", err)
 	}
 

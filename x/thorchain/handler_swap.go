@@ -26,18 +26,22 @@ func (h SwapHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Versio
 		return nil, errInvalidMessage
 	}
 	if err := h.validate(ctx, msg, version); err != nil {
+		ctx.Logger().Error("MsgSwap failed validation", "error", err)
 		return nil, err
 	}
-	return h.handle(ctx, msg, version, constAccessor)
+	result, err := h.handle(ctx, msg, version, constAccessor)
+	if err != nil {
+		ctx.Logger().Error("fail to handle MsgSwap", "error", err)
+		return nil, err
+	}
+	return result, err
 }
 
 func (h SwapHandler) validate(ctx cosmos.Context, msg MsgSwap, version semver.Version) error {
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, msg)
-	} else {
-		ctx.Logger().Error(errInvalidVersion.Error())
-		return errInvalidVersion
 	}
+	return errInvalidVersion
 }
 
 func (h SwapHandler) validateV1(ctx cosmos.Context, msg MsgSwap) error {
@@ -63,7 +67,6 @@ func (h SwapHandler) handleV1(ctx cosmos.Context, msg MsgSwap, version semver.Ve
 		msg.TradeTarget,
 		cosmos.NewUint(uint64(transactionFee)))
 	if swapErr != nil {
-		ctx.Logger().Error("fail to process swap message", "error", swapErr)
 		return nil, swapErr
 	}
 	for _, evt := range events {

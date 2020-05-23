@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/blang/semver"
+	"github.com/hashicorp/go-multierror"
 
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
@@ -32,23 +33,25 @@ func (h UnstakeHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Ver
 	ctx.Logger().Info(fmt.Sprintf("receive MsgSetUnstake from : %s(%s) unstake (%s)", msg, msg.RuneAddress, msg.UnstakeBasisPoints))
 
 	if err := h.validate(ctx, msg, version); err != nil {
-		ctx.Logger().Error("msg ack failed validation", "error", err)
+		ctx.Logger().Error("MsgSetUnStake failed validation", "error", err)
 		return nil, err
 	}
-	return h.handle(ctx, msg, version)
+	result, err := h.handle(ctx, msg, version)
+	if err != nil {
+		ctx.Logger().Error("failed to process MsgSetUnStake", "error", err)
+	}
+	return result, err
 }
 
 func (h UnstakeHandler) validate(ctx cosmos.Context, msg MsgSetUnStake, version semver.Version) error {
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, msg)
-	} else {
-		return errBadVersion
 	}
+	return errBadVersion
 }
 
 func (h UnstakeHandler) validateV1(ctx cosmos.Context, msg MsgSetUnStake) error {
 	if err := msg.ValidateBasic(); err != nil {
-		ctx.Logger().Error("unstake msg fail validation", "error", err.Error())
 		return errUnstakeFailValidation
 	}
 	pool, err := h.keeper.GetPool(ctx, msg.Asset)
@@ -58,8 +61,7 @@ func (h UnstakeHandler) validateV1(ctx cosmos.Context, msg MsgSetUnStake) error 
 	}
 
 	if err := pool.EnsureValidPoolStatus(msg); err != nil {
-		ctx.Logger().Error("fail to check pool status", "error", err)
-		return errInvalidPoolStatus
+		return multierror.Append(errInvalidPoolStatus, err)
 	}
 
 	return nil
@@ -68,8 +70,7 @@ func (h UnstakeHandler) validateV1(ctx cosmos.Context, msg MsgSetUnStake) error 
 func (h UnstakeHandler) handle(ctx cosmos.Context, msg MsgSetUnStake, version semver.Version) (*cosmos.Result, error) {
 	staker, err := h.keeper.GetStaker(ctx, msg.Asset, msg.RuneAddress)
 	if err != nil {
-		ctx.Logger().Error("fail to get staker", "error", err)
-		return nil, errFailGetStaker
+		return nil, multierror.Append(errFailGetStaker, err)
 	}
 	runeAmt, assetAmount, units, gasAsset, err := unstake(ctx, version, h.keeper, msg, h.mgr.EventMgr())
 	if err != nil {
@@ -94,8 +95,7 @@ func (h UnstakeHandler) handle(ctx cosmos.Context, msg MsgSetUnStake, version se
 		msg.Tx,
 	)
 	if err := h.mgr.EventMgr().EmitUnstakeEvent(ctx, h.keeper, unstakeEvt); err != nil {
-		ctx.Logger().Error("fail to emit unstake event", "error", err)
-		return nil, errFailSaveEvent
+		return nil, multierror.Append(errFailSaveEvent, err)
 	}
 
 	memo := ""
@@ -124,8 +124,7 @@ func (h UnstakeHandler) handle(ctx cosmos.Context, msg MsgSetUnStake, version se
 
 	ok, err := h.mgr.TxOutStore().TryAddTxOutItem(ctx, h.mgr, toi)
 	if err != nil {
-		ctx.Logger().Error("fail to prepare outbound tx", "error", err)
-		return nil, errFailAddOutboundTx
+		return nil, multierror.Append(errFailAddOutboundTx, err)
 	}
 	if !ok {
 		return nil, errFailAddOutboundTx
@@ -149,8 +148,7 @@ func (h UnstakeHandler) handle(ctx cosmos.Context, msg MsgSetUnStake, version se
 	}
 	ok, err = h.mgr.TxOutStore().TryAddTxOutItem(ctx, h.mgr, toi)
 	if err != nil {
-		ctx.Logger().Error("fail to prepare outbound tx", "error", err)
-		return nil, errFailAddOutboundTx
+		return nil, multierror.Append(errFailAddOutboundTx, err)
 	}
 	if !ok {
 		return nil, errFailAddOutboundTx

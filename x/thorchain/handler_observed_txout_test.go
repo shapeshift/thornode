@@ -1,9 +1,11 @@
 package thorchain
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/blang/semver"
+	se "github.com/cosmos/cosmos-sdk/types/errors"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
@@ -55,7 +57,7 @@ func (s *HandlerObservedTxOutSuite) TestValidate(c *C) {
 	// inactive node account
 	msg = NewMsgObservedTxOut(txs, GetRandomBech32Addr())
 	err = handler.validate(ctx, msg, ver)
-	c.Assert(err, Equals, notAuthorized)
+	c.Assert(errors.Is(err, se.ErrUnauthorized), Equals, true)
 
 	// invalid msg
 	msg = MsgObservedTxOut{}
