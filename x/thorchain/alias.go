@@ -157,12 +157,12 @@ type (
 	MsgObservedTxOut      = types.MsgObservedTxOut
 	MsgTssPool            = types.MsgTssPool
 	MsgTssKeysignFail     = types.MsgTssKeysignFail
+	QueryKeygenBlock      = types.QueryKeygenBlock
 	QueryResPools         = types.QueryResPools
 	QueryResHeights       = types.QueryResHeights
-	QueryResTxOut         = types.QueryResTxOut
+	QueryKeysign          = types.QueryKeysign
 	QueryYggdrasilVaults  = types.QueryYggdrasilVaults
 	QueryNodeAccount      = types.QueryNodeAccount
-	ResTxOut              = types.ResTxOut
 	NodeKeys              = types.NodeKeys
 	NodesKeys             = types.NodesKeys
 	PoolStatus            = types.PoolStatus

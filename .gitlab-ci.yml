@@ -19,7 +19,7 @@ stages:
   - smoke-test
   - deploy
 
-unit_tests:
+unit_tests_bep2:
   stage: test
   tags:
     - thorchain
@@ -28,9 +28,21 @@ unit_tests:
   coverage: '/total:\s+\(statements\)\s+(\d+.\d+\%)/'
   script:
     - make test-coverage
+    - go tool cover -func=coverage.out
+    - go tool cover -html=coverage.out -o coverage.html
+
+unit_tests_native:
+  stage: test
+  tags:
+    - thorchain
+  except:
+    - schedules
+  coverage: '/total:\s+\(statements\)\s+(\d+.\d+\%)/'
+  script:
     - NATIVE=true make test-coverage
     - go tool cover -func=coverage.out
     - go tool cover -html=coverage.out -o coverage.html
+
 
 lint_code:
   image: golangci/golangci-lint

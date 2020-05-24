@@ -4,12 +4,16 @@ import (
 	abci "github.com/tendermint/tendermint/abci/types"
 	. "gopkg.in/check.v1"
 
+	ckeys "github.com/cosmos/cosmos-sdk/crypto/keys"
+	"github.com/cosmos/cosmos-sdk/crypto/keys/hd"
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
-type QuerierSuite struct{}
+type QuerierSuite struct {
+	kb KeybaseStore
+}
 
 var _ = Suite(&QuerierSuite{})
 
@@ -20,6 +24,22 @@ type TestQuerierKeeper struct {
 
 func (k *TestQuerierKeeper) GetTxOut(_ cosmos.Context, _ int64) (*TxOut, error) {
 	return k.txOut, nil
+}
+
+func (s *QuerierSuite) SetUpSuite(c *C) {
+	kb := ckeys.NewInMemory()
+	username := "test_user"
+	password := "password"
+
+	params := *hd.NewFundraiserParams(0, 118, 0)
+	hdPath := params.String()
+	_, err := kb.CreateAccount(username, "industry segment educate height inject hover bargain offer employ select speak outer video tornado story slow chief object junk vapor venue large shove behave", password, password, hdPath, ckeys.Secp256k1)
+	c.Assert(err, IsNil)
+	s.kb = KeybaseStore{
+		SignerName:   username,
+		SignerPasswd: password,
+		Keybase:      kb,
+	}
 }
 
 func (s *QuerierSuite) TestQueryKeysign(c *C) {
@@ -41,7 +61,7 @@ func (s *QuerierSuite) TestQueryKeysign(c *C) {
 		txOut: txOut,
 	}
 
-	querier := NewQuerier(keeper)
+	querier := NewQuerier(keeper, s.kb)
 
 	path := []string{
 		"keysign",
@@ -56,7 +76,7 @@ func (s *QuerierSuite) TestQueryKeysign(c *C) {
 func (s *QuerierSuite) TestQueryPool(c *C) {
 	ctx, keeper := setupKeeperForTest(c)
 
-	querier := NewQuerier(keeper)
+	querier := NewQuerier(keeper, s.kb)
 	path := []string{"pools"}
 
 	pubKey := GetRandomPubKey()
@@ -100,7 +120,7 @@ func (s *QuerierSuite) TestQueryPool(c *C) {
 func (s *QuerierSuite) TestQueryNodeAccounts(c *C) {
 	ctx, keeper := setupKeeperForTest(c)
 
-	querier := NewQuerier(keeper)
+	querier := NewQuerier(keeper, s.kb)
 	path := []string{"nodeaccounts"}
 
 	signer := GetRandomBech32Addr()
@@ -146,7 +166,7 @@ func (s *QuerierSuite) TestQueryNodeAccounts(c *C) {
 func (s *QuerierSuite) TestQueryCompEvents(c *C) {
 	ctx, keeper := setupKeeperForTest(c)
 
-	querier := NewQuerier(keeper)
+	querier := NewQuerier(keeper, s.kb)
 	path := []string{"comp_events_chain", "1", "BNB"}
 
 	txID, err := common.NewTxID("A1C7D97D5DB51FFDBC3FE29FFF6ADAA2DAF112D2CEAADA0902822333A59BD218")

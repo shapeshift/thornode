@@ -66,10 +66,7 @@ func (s *EthereumSuite) SetUpSuite(c *C) {
 		if strings.HasPrefix(req.RequestURI, "/thorchain/keysign") {
 			_, err := rw.Write([]byte(`{
 			"chains": {
-				"ETH": {
-					"chain": "ETH",
-					"hash": "",
-					"height": "1",
+					"height": 1,
 					"tx_array": [
 						{
 							"chain": "ETH",
@@ -84,8 +81,6 @@ func (s *EthereumSuite) SetUpSuite(c *C) {
 							"vault_pubkey": "thorpub1addwnpepqflvfv08t6qt95lmttd6wpf3ss8wx63e9vf6fvyuj2yy6nnyna5763e2kck"
 						}]
 					}
-				}
-			}
 			`))
 			c.Assert(err, IsNil)
 		} else if strings.HasSuffix(req.RequestURI, "/signers") {
@@ -228,7 +223,7 @@ func (s *EthereumSuite) TestClient(c *C) {
 	}`))
 	c.Assert(err, IsNil)
 
-	input := []byte(`{ "height": "1", "hash": "", "tx_array": [ { "vault_pubkey":"thorpub1addwnpepq2jgpsw2lalzuk7sgtmyakj7l6890f5cfpwjyfp8k4y4t7cw2vk8vcglsjy","seq_no":"0","to":"0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae", "coin": { "asset": "ETH.ETH", "amount": "194765912" }, "max_gas": [ { "asset": "ETH.ETH", "amount": "3000000" } ] } ]}`)
+	input := []byte(`{ "height": "1", "tx_array": [ { "vault_pubkey":"thorpub1addwnpepq2jgpsw2lalzuk7sgtmyakj7l6890f5cfpwjyfp8k4y4t7cw2vk8vcglsjy","seq_no":"0","to":"0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae", "coin": { "asset": "ETH.ETH", "amount": "194765912" }, "max_gas": [ { "asset": "ETH.ETH", "amount": "3000000" } ] } ]}`)
 	var txOut stypes.TxOut
 	err = json.Unmarshal(input, &txOut)
 	c.Check(err, IsNil)
