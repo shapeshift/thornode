@@ -5,12 +5,6 @@ import (
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
-type KeeperObservedTx interface {
-	SetObservedTxVoter(ctx cosmos.Context, tx ObservedTxVoter)
-	GetObservedTxVoterIterator(ctx cosmos.Context) cosmos.Iterator
-	GetObservedTxVoter(ctx cosmos.Context, hash common.TxID) (ObservedTxVoter, error)
-}
-
 // SetObservedTxVoter - save a txin voter object
 func (k KVStoreV1) SetObservedTxVoter(ctx cosmos.Context, tx ObservedTxVoter) {
 	store := ctx.KVStore(k.storeKey)

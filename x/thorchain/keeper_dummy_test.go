@@ -12,6 +12,7 @@ import (
 
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	kvTypes "gitlab.com/thorchain/thornode/x/thorchain/keeper/types"
 )
 
 var kaboom = errors.New("Kaboom!!!")
@@ -25,7 +26,7 @@ func (k KVStoreDummy) Logger(ctx cosmos.Context) log.Logger {
 	return ctx.Logger().With("module", fmt.Sprintf("x/%s", ModuleName))
 }
 
-func (k KVStoreDummy) GetKey(_ cosmos.Context, prefix dbPrefix, key string) string {
+func (k KVStoreDummy) GetKey(_ cosmos.Context, prefix kvTypes.DbPrefix, key string) string {
 	return fmt.Sprintf("%s/1/%s", prefix, key)
 }
 

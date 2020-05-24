@@ -6,13 +6,6 @@ import (
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
-type KeeperTxOut interface {
-	SetTxOut(ctx cosmos.Context, blockOut *TxOut) error
-	AppendTxOut(ctx cosmos.Context, height int64, item *TxOutItem) error
-	GetTxOutIterator(ctx cosmos.Context) cosmos.Iterator
-	GetTxOut(ctx cosmos.Context, height int64) (*TxOut, error)
-}
-
 // AppendTxOut - append a given item to txOut
 func (k KVStoreV1) AppendTxOut(ctx cosmos.Context, height int64, item *TxOutItem) error {
 	block, err := k.GetTxOut(ctx, height)

@@ -5,12 +5,6 @@ import (
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
-type KeeperErrataTx interface {
-	SetErrataTxVoter(_ cosmos.Context, _ ErrataTxVoter)
-	GetErrataTxVoterIterator(_ cosmos.Context) cosmos.Iterator
-	GetErrataTxVoter(_ cosmos.Context, _ common.TxID, _ common.Chain) (ErrataTxVoter, error)
-}
-
 // SetErrataTxVoter - save a txin voter object
 func (k KVStoreV1) SetErrataTxVoter(ctx cosmos.Context, errata ErrataTxVoter) {
 	store := ctx.KVStore(k.storeKey)

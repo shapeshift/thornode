@@ -5,13 +5,6 @@ import (
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
-type KeeperStaker interface {
-	GetStakerIterator(ctx cosmos.Context, _ common.Asset) cosmos.Iterator
-	GetStaker(ctx cosmos.Context, asset common.Asset, addr common.Address) (Staker, error)
-	SetStaker(ctx cosmos.Context, staker Staker)
-	RemoveStaker(ctx cosmos.Context, staker Staker)
-}
-
 // GetStakerIterator iterate stakers
 func (k KVStoreV1) GetStakerIterator(ctx cosmos.Context, asset common.Asset) cosmos.Iterator {
 	store := ctx.KVStore(k.storeKey)

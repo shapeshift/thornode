@@ -2,11 +2,6 @@ package thorchain
 
 import cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 
-type KeeperBanVoter interface {
-	SetBanVoter(_ cosmos.Context, _ BanVoter)
-	GetBanVoter(_ cosmos.Context, _ cosmos.AccAddress) (BanVoter, error)
-}
-
 // SetBanVoter - save a ban voter object
 func (k KVStoreV1) SetBanVoter(ctx cosmos.Context, ban BanVoter) {
 	store := ctx.KVStore(k.storeKey)

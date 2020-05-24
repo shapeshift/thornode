@@ -6,18 +6,8 @@ import (
 
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	kvTypes "gitlab.com/thorchain/thornode/x/thorchain/keeper/types"
 )
-
-type KeeperVault interface {
-	GetVaultIterator(ctx cosmos.Context) cosmos.Iterator
-	VaultExists(ctx cosmos.Context, pk common.PubKey) bool
-	SetVault(ctx cosmos.Context, vault Vault) error
-	GetVault(ctx cosmos.Context, pk common.PubKey) (Vault, error)
-	HasValidVaultPools(ctx cosmos.Context) (bool, error)
-	GetAsgardVaults(ctx cosmos.Context) (Vaults, error)
-	GetAsgardVaultsByStatus(_ cosmos.Context, _ VaultStatus) (Vaults, error)
-	DeleteVault(ctx cosmos.Context, pk common.PubKey) error
-}
 
 // GetVaultIterator only iterate vault pools
 func (k KVStoreV1) GetVaultIterator(ctx cosmos.Context) cosmos.Iterator {
@@ -49,8 +39,6 @@ func (k KVStoreV1) VaultExists(ctx cosmos.Context, pk common.PubKey) bool {
 	return store.Has([]byte(key))
 }
 
-var ErrVaultNotFound = errors.New("vault not found")
-
 // GetVault get Vault with the given pubkey from data store
 func (k KVStoreV1) GetVault(ctx cosmos.Context, pk common.PubKey) (Vault, error) {
 	var vault Vault
@@ -59,7 +47,7 @@ func (k KVStoreV1) GetVault(ctx cosmos.Context, pk common.PubKey) (Vault, error)
 	if !store.Has([]byte(key)) {
 		vault.BlockHeight = ctx.BlockHeight()
 		vault.PubKey = pk
-		return vault, fmt.Errorf("vault with pubkey(%s) doesn't exist: %w", pk, ErrVaultNotFound)
+		return vault, fmt.Errorf("vault with pubkey(%s) doesn't exist: %w", pk, kvTypes.ErrVaultNotFound)
 	}
 	buf := store.Get([]byte(key))
 	if err := k.cdc.UnmarshalBinaryBare(buf, &vault); err != nil {
@@ -157,7 +145,7 @@ func (k KVStoreV1) GetAsgardVaultsByStatus(ctx cosmos.Context, status VaultStatu
 func (k KVStoreV1) DeleteVault(ctx cosmos.Context, pubkey common.PubKey) error {
 	vault, err := k.GetVault(ctx, pubkey)
 	if err != nil {
-		if errors.Is(err, ErrVaultNotFound) {
+		if errors.Is(err, kvTypes.ErrVaultNotFound) {
 			return nil
 		}
 		return err

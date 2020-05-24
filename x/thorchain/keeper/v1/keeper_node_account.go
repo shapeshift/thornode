@@ -13,26 +13,6 @@ import (
 	"gitlab.com/thorchain/thornode/constants"
 )
 
-type KeeperNodeAccount interface {
-	TotalActiveNodeAccount(ctx cosmos.Context) (int, error)
-	ListNodeAccountsWithBond(ctx cosmos.Context) (NodeAccounts, error)
-	ListNodeAccountsByStatus(ctx cosmos.Context, status NodeStatus) (NodeAccounts, error)
-	ListActiveNodeAccounts(ctx cosmos.Context) (NodeAccounts, error)
-	GetLowestActiveVersion(ctx cosmos.Context) semver.Version
-	GetMinJoinVersion(ctx cosmos.Context) semver.Version
-	GetNodeAccount(ctx cosmos.Context, addr cosmos.AccAddress) (NodeAccount, error)
-	GetNodeAccountByPubKey(ctx cosmos.Context, pk common.PubKey) (NodeAccount, error)
-	GetNodeAccountByBondAddress(ctx cosmos.Context, addr common.Address) (NodeAccount, error)
-	SetNodeAccount(ctx cosmos.Context, na NodeAccount) error
-	EnsureNodeKeysUnique(ctx cosmos.Context, consensusPubKey string, pubKeys common.PubKeySet) error
-	GetNodeAccountIterator(ctx cosmos.Context) cosmos.Iterator
-	GetNodeAccountSlashPoints(_ cosmos.Context, _ cosmos.AccAddress) (int64, error)
-	SetNodeAccountSlashPoints(_ cosmos.Context, _ cosmos.AccAddress, _ int64)
-	IncNodeAccountSlashPoints(_ cosmos.Context, _ cosmos.AccAddress, _ int64) error
-	DecNodeAccountSlashPoints(_ cosmos.Context, _ cosmos.AccAddress, _ int64) error
-	ResetNodeAccountSlashPoints(_ cosmos.Context, _ cosmos.AccAddress)
-}
-
 // TotalActiveNodeAccount count the number of active node account
 func (k KVStoreV1) TotalActiveNodeAccount(ctx cosmos.Context) (int, error) {
 	activeNodes, err := k.ListActiveNodeAccounts(ctx)

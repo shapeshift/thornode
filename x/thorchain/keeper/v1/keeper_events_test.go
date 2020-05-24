@@ -25,7 +25,7 @@ func (s *KeeperEventsSuite) TestEvents(c *C) {
 			common.NewCoin(common.BNBAsset, cosmos.NewUint(320000000)),
 			common.NewCoin(common.RuneAsset(), cosmos.NewUint(420000000)),
 		},
-		BNBGasFeeSingleton,
+		common.BNBGasFeeSingleton,
 		"SWAP:BNB.BNB",
 	)
 	swap := NewEventSwap(

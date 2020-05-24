@@ -1,26 +1,13 @@
 package thorchain
 
 import (
-	"errors"
 	"fmt"
 	"strconv"
 
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	kvTypes "gitlab.com/thorchain/thornode/x/thorchain/keeper/types"
 )
-
-type KeeperEvents interface {
-	GetEvent(ctx cosmos.Context, eventID int64) (Event, error)
-	GetEventsIterator(ctx cosmos.Context) cosmos.Iterator
-	UpsertEvent(ctx cosmos.Context, event Event) error
-	GetPendingEventID(ctx cosmos.Context, txID common.TxID) ([]int64, error)
-	GetCurrentEventID(ctx cosmos.Context) (int64, error)
-	SetCurrentEventID(ctx cosmos.Context, eventID int64)
-	GetAllPendingEvents(ctx cosmos.Context) (Events, error)
-	GetEventsIDByTxHash(ctx cosmos.Context, txID common.TxID) ([]int64, error)
-}
-
-var ErrEventNotFound = errors.New("event not found")
 
 // GetEvent will retrieve event with the given id from data store
 func (k KVStoreV1) GetEvent(ctx cosmos.Context, eventID int64) (Event, error) {
@@ -100,7 +87,7 @@ func (k KVStoreV1) GetPendingEventID(ctx cosmos.Context, txID common.TxID) ([]in
 	key := k.GetKey(ctx, prefixPendingEvents, txID.String())
 	store := ctx.KVStore(k.storeKey)
 	if !store.Has([]byte(key)) {
-		return nil, ErrEventNotFound
+		return nil, kvTypes.ErrEventNotFound
 	}
 	buf := store.Get([]byte(key))
 	var eventIDs []int64
@@ -182,7 +169,7 @@ func (k KVStoreV1) GetEventsIDByTxHash(ctx cosmos.Context, txID common.TxID) ([]
 	key := k.GetKey(ctx, prefixTxHashEvents, txID.String())
 	store := ctx.KVStore(k.storeKey)
 	if !store.Has([]byte(key)) {
-		return nil, ErrEventNotFound
+		return nil, kvTypes.ErrEventNotFound
 	}
 	buf := store.Get([]byte(key))
 	var eventIDs []int64

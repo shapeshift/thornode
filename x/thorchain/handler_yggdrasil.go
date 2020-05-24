@@ -9,6 +9,7 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
+	kvTypes "gitlab.com/thorchain/thornode/x/thorchain/keeper/types"
 )
 
 // YggdrasilHandler is to process yggdrasil messages
@@ -123,7 +124,7 @@ func (h YggdrasilHandler) handleV1(ctx cosmos.Context, msg MsgYggdrasil, version
 	}
 
 	vault, err := h.keeper.GetVault(ctx, msg.PubKey)
-	if err != nil && !stdErrors.Is(err, ErrVaultNotFound) {
+	if err != nil && !stdErrors.Is(err, kvTypes.ErrVaultNotFound) {
 		return nil, fmt.Errorf("fail to get yggdrasil: %w", err)
 	}
 	if len(vault.Type) == 0 {

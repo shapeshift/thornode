@@ -1,9 +1,7 @@
 package thorchain
 
 import (
-	"fmt"
-	"strings"
-
+	"github.com/blang/semver"
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/x/bank"
 	"github.com/cosmos/cosmos-sdk/x/supply"
@@ -11,6 +9,8 @@ import (
 
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	kvTypes "gitlab.com/thorchain/thornode/x/thorchain/keeper/types"
+	kv1 "gitlab.com/thorchain/thornode/x/thorchain/keeper/v1"
 )
 
 type Keeper interface {
@@ -18,7 +18,7 @@ type Keeper interface {
 	Supply() supply.Keeper
 	CoinKeeper() bank.Keeper
 	Logger(ctx cosmos.Context) log.Logger
-	GetKey(ctx cosmos.Context, prefix dbPrefix, key string) string
+	GetKey(ctx cosmos.Context, prefix kvTypes.DbPrefix, key string) string
 	GetStoreVersion(ctx cosmos.Context) int64
 	SetStoreVersion(ctx cosmos.Context, ver int64)
 	GetRuneBalaceOfModule(ctx cosmos.Context, moduleName string) cosmos.Uint
@@ -51,134 +51,171 @@ type Keeper interface {
 	KeeperMimir
 }
 
-// NOTE: Always end a dbPrefix with a slash ("/"). This is to ensure that there
-// are no prefixes that contain another prefix. In the scenario where this is
-// true, an iterator for a specific type, will get more than intended, and may
-// include a different type. The slash is used to protect us from this
-// scenario.
-// Also, use underscores between words and use lowercase characters only
-type dbPrefix string
-
-const (
-	prefixStoreVersion       dbPrefix = "_ver"
-	prefixObservedTx         dbPrefix = "observed_tx/"
-	prefixPool               dbPrefix = "pool/"
-	prefixTxOut              dbPrefix = "txout/"
-	prefixTotalLiquidityFee  dbPrefix = "total_liquidity_fee/"
-	prefixPoolLiquidityFee   dbPrefix = "pool_liquidity_fee/"
-	prefixStaker             dbPrefix = "staker/"
-	prefixEvents             dbPrefix = "events/"
-	prefixTxHashEvents       dbPrefix = "tx_events/"
-	prefixPendingEvents      dbPrefix = "pending_events/"
-	prefixCurrentEventID     dbPrefix = "current_event_id/"
-	prefixLastChainHeight    dbPrefix = "last_chain_height/"
-	prefixLastSignedHeight   dbPrefix = "last_signed_height/"
-	prefixNodeAccount        dbPrefix = "node_account/"
-	prefixActiveObserver     dbPrefix = "active_observer/"
-	prefixVaultPool          dbPrefix = "vault/"
-	prefixVaultAsgardIndex   dbPrefix = "vault_asgard_index/"
-	prefixVaultData          dbPrefix = "vault_data/"
-	prefixObservingAddresses dbPrefix = "observing_addresses/"
-	prefixReserves           dbPrefix = "reserves/"
-	prefixTss                dbPrefix = "tss/"
-	prefixKeygen             dbPrefix = "keygen/"
-	prefixRagnarok           dbPrefix = "ragnarok/"
-	prefixGas                dbPrefix = "gas/"
-	prefixSupportedTxMarker  dbPrefix = "marker/"
-	prefixErrataTx           dbPrefix = "errata/"
-	prefixBanVoter           dbPrefix = "ban/"
-	prefixNodeSlashPoints    dbPrefix = "slash/"
-	prefixSwapQueueItem      dbPrefix = "swapitem/"
-	prefixMimir              dbPrefix = "mimir/"
-)
-
-func dbError(ctx cosmos.Context, wrapper string, err error) error {
-	err = fmt.Errorf("KVStore Error: %s: %w", wrapper, err)
-	ctx.Logger().Error(err.Error())
-	return err
+type KeeperPool interface {
+	GetPoolIterator(ctx cosmos.Context) cosmos.Iterator
+	GetPool(ctx cosmos.Context, asset common.Asset) (Pool, error)
+	GetPools(ctx cosmos.Context) (Pools, error)
+	SetPool(ctx cosmos.Context, pool Pool) error
+	PoolExist(ctx cosmos.Context, asset common.Asset) bool
 }
 
-// KVStoreV1 Keeper maintains the link to data storage and exposes getter/setter methods for the various parts of the state machine
-type KVStoreV1 struct {
-	coinKeeper   bank.Keeper
-	supplyKeeper supply.Keeper
-	storeKey     cosmos.StoreKey // Unexposed key to access store from cosmos.Context
-	cdc          *codec.Codec    // The wire codec for binary encoding/decoding.
+type KeeperLastHeight interface {
+	SetLastSignedHeight(ctx cosmos.Context, height int64)
+	GetLastSignedHeight(ctx cosmos.Context) (int64, error)
+	SetLastChainHeight(ctx cosmos.Context, chain common.Chain, height int64) error
+	GetLastChainHeight(ctx cosmos.Context, chain common.Chain) (int64, error)
+}
+
+type KeeperStaker interface {
+	GetStakerIterator(ctx cosmos.Context, _ common.Asset) cosmos.Iterator
+	GetStaker(ctx cosmos.Context, asset common.Asset, addr common.Address) (Staker, error)
+	SetStaker(ctx cosmos.Context, staker Staker)
+	RemoveStaker(ctx cosmos.Context, staker Staker)
+}
+
+type KeeperNodeAccount interface {
+	TotalActiveNodeAccount(ctx cosmos.Context) (int, error)
+	ListNodeAccountsWithBond(ctx cosmos.Context) (NodeAccounts, error)
+	ListNodeAccountsByStatus(ctx cosmos.Context, status NodeStatus) (NodeAccounts, error)
+	ListActiveNodeAccounts(ctx cosmos.Context) (NodeAccounts, error)
+	GetLowestActiveVersion(ctx cosmos.Context) semver.Version
+	GetMinJoinVersion(ctx cosmos.Context) semver.Version
+	GetNodeAccount(ctx cosmos.Context, addr cosmos.AccAddress) (NodeAccount, error)
+	GetNodeAccountByPubKey(ctx cosmos.Context, pk common.PubKey) (NodeAccount, error)
+	GetNodeAccountByBondAddress(ctx cosmos.Context, addr common.Address) (NodeAccount, error)
+	SetNodeAccount(ctx cosmos.Context, na NodeAccount) error
+	EnsureNodeKeysUnique(ctx cosmos.Context, consensusPubKey string, pubKeys common.PubKeySet) error
+	GetNodeAccountIterator(ctx cosmos.Context) cosmos.Iterator
+	GetNodeAccountSlashPoints(_ cosmos.Context, _ cosmos.AccAddress) (int64, error)
+	SetNodeAccountSlashPoints(_ cosmos.Context, _ cosmos.AccAddress, _ int64)
+	IncNodeAccountSlashPoints(_ cosmos.Context, _ cosmos.AccAddress, _ int64) error
+	DecNodeAccountSlashPoints(_ cosmos.Context, _ cosmos.AccAddress, _ int64) error
+	ResetNodeAccountSlashPoints(_ cosmos.Context, _ cosmos.AccAddress)
+}
+
+type KeeperObserver interface {
+	SetActiveObserver(ctx cosmos.Context, addr cosmos.AccAddress)
+	RemoveActiveObserver(ctx cosmos.Context, addr cosmos.AccAddress)
+	IsActiveObserver(ctx cosmos.Context, addr cosmos.AccAddress) bool
+	GetObservingAddresses(ctx cosmos.Context) ([]cosmos.AccAddress, error)
+	AddObservingAddresses(ctx cosmos.Context, inAddresses []cosmos.AccAddress) error
+	ClearObservingAddresses(ctx cosmos.Context)
+}
+
+type KeeperObservedTx interface {
+	SetObservedTxVoter(ctx cosmos.Context, tx ObservedTxVoter)
+	GetObservedTxVoterIterator(ctx cosmos.Context) cosmos.Iterator
+	GetObservedTxVoter(ctx cosmos.Context, hash common.TxID) (ObservedTxVoter, error)
+}
+
+type KeeperTxOut interface {
+	SetTxOut(ctx cosmos.Context, blockOut *TxOut) error
+	AppendTxOut(ctx cosmos.Context, height int64, item *TxOutItem) error
+	GetTxOutIterator(ctx cosmos.Context) cosmos.Iterator
+	GetTxOut(ctx cosmos.Context, height int64) (*TxOut, error)
+}
+
+type KeeperLiquidityFees interface {
+	AddToLiquidityFees(ctx cosmos.Context, asset common.Asset, fee cosmos.Uint) error
+	GetTotalLiquidityFees(ctx cosmos.Context, height uint64) (cosmos.Uint, error)
+	GetPoolLiquidityFees(ctx cosmos.Context, height uint64, asset common.Asset) (cosmos.Uint, error)
+}
+
+type KeeperEvents interface {
+	GetEvent(ctx cosmos.Context, eventID int64) (Event, error)
+	GetEventsIterator(ctx cosmos.Context) cosmos.Iterator
+	UpsertEvent(ctx cosmos.Context, event Event) error
+	GetPendingEventID(ctx cosmos.Context, txID common.TxID) ([]int64, error)
+	GetCurrentEventID(ctx cosmos.Context) (int64, error)
+	SetCurrentEventID(ctx cosmos.Context, eventID int64)
+	GetAllPendingEvents(ctx cosmos.Context) (Events, error)
+	GetEventsIDByTxHash(ctx cosmos.Context, txID common.TxID) ([]int64, error)
+}
+
+type KeeperVault interface {
+	GetVaultIterator(ctx cosmos.Context) cosmos.Iterator
+	VaultExists(ctx cosmos.Context, pk common.PubKey) bool
+	SetVault(ctx cosmos.Context, vault Vault) error
+	GetVault(ctx cosmos.Context, pk common.PubKey) (Vault, error)
+	HasValidVaultPools(ctx cosmos.Context) (bool, error)
+	GetAsgardVaults(ctx cosmos.Context) (Vaults, error)
+	GetAsgardVaultsByStatus(_ cosmos.Context, _ VaultStatus) (Vaults, error)
+	DeleteVault(ctx cosmos.Context, pk common.PubKey) error
+}
+
+type KeeperReserveContributors interface {
+	GetReservesContributors(ctx cosmos.Context) (ReserveContributors, error)
+	SetReserveContributors(ctx cosmos.Context, contributors ReserveContributors) error
+	AddFeeToReserve(ctx cosmos.Context, fee cosmos.Uint) error
+}
+
+// KeeperVaultData func to access Vault in key value store
+type KeeperVaultData interface {
+	GetVaultData(ctx cosmos.Context) (VaultData, error)
+	SetVaultData(ctx cosmos.Context, data VaultData) error
+}
+
+type KeeperTss interface {
+	SetTssVoter(_ cosmos.Context, tss TssVoter)
+	GetTssVoterIterator(_ cosmos.Context) cosmos.Iterator
+	GetTssVoter(_ cosmos.Context, _ string) (TssVoter, error)
+}
+
+type KeeperTssKeysignFail interface {
+	SetTssKeysignFailVoter(_ cosmos.Context, tss TssKeysignFailVoter)
+	GetTssKeysignFailVoterIterator(_ cosmos.Context) cosmos.Iterator
+	GetTssKeysignFailVoter(_ cosmos.Context, _ string) (TssKeysignFailVoter, error)
+}
+
+type KeeperKeygen interface {
+	SetKeygenBlock(ctx cosmos.Context, keygenBlock KeygenBlock) error
+	GetKeygenBlockIterator(ctx cosmos.Context) cosmos.Iterator
+	GetKeygenBlock(ctx cosmos.Context, height int64) (KeygenBlock, error)
+}
+
+type KeeperBanVoter interface {
+	SetBanVoter(_ cosmos.Context, _ BanVoter)
+	GetBanVoter(_ cosmos.Context, _ cosmos.AccAddress) (BanVoter, error)
+}
+
+type KeeperRagnarok interface {
+	RagnarokInProgress(_ cosmos.Context) bool
+	GetRagnarokBlockHeight(_ cosmos.Context) (int64, error)
+	SetRagnarokBlockHeight(_ cosmos.Context, _ int64)
+}
+
+type KeeperGas interface {
+	GetGas(_ cosmos.Context, asset common.Asset) ([]cosmos.Uint, error)
+	SetGas(_ cosmos.Context, asset common.Asset, units []cosmos.Uint)
+	GetGasIterator(ctx cosmos.Context) cosmos.Iterator
+}
+
+type KeeperTxMarker interface {
+	ListTxMarker(ctx cosmos.Context, hash string) (TxMarkers, error)
+	SetTxMarkers(ctx cosmos.Context, hash string, marks TxMarkers) error
+	AppendTxMarker(ctx cosmos.Context, hash string, mark TxMarker) error
+}
+
+type KeeperErrataTx interface {
+	SetErrataTxVoter(_ cosmos.Context, _ ErrataTxVoter)
+	GetErrataTxVoterIterator(_ cosmos.Context) cosmos.Iterator
+	GetErrataTxVoter(_ cosmos.Context, _ common.TxID, _ common.Chain) (ErrataTxVoter, error)
+}
+
+type KeeperSwapQueue interface {
+	SetSwapQueueItem(ctx cosmos.Context, msg MsgSwap) error
+	GetSwapQueueIterator(ctx cosmos.Context) cosmos.Iterator
+	GetSwapQueueItem(ctx cosmos.Context, txID common.TxID) (MsgSwap, error)
+	RemoveSwapQueueItem(ctx cosmos.Context, txID common.TxID)
+}
+
+type KeeperMimir interface {
+	GetMimir(_ cosmos.Context, key string) (int64, error)
+	SetMimir(_ cosmos.Context, key string, value int64)
+	GetMimirIterator(ctx cosmos.Context) cosmos.Iterator
 }
 
 // NewKVStoreV1 creates new instances of the thorchain Keeper
-func NewKVStoreV1(coinKeeper bank.Keeper, supplyKeeper supply.Keeper, storeKey cosmos.StoreKey, cdc *codec.Codec) KVStoreV1 {
-	return KVStoreV1{
-		coinKeeper:   coinKeeper,
-		supplyKeeper: supplyKeeper,
-		storeKey:     storeKey,
-		cdc:          cdc,
-	}
-}
-
-func (k KVStoreV1) Cdc() *codec.Codec {
-	return k.cdc
-}
-
-func (k KVStoreV1) Supply() supply.Keeper {
-	return k.supplyKeeper
-}
-
-func (k KVStoreV1) CoinKeeper() bank.Keeper {
-	return k.coinKeeper
-}
-
-func (k KVStoreV1) Logger(ctx cosmos.Context) log.Logger {
-	return ctx.Logger().With("module", fmt.Sprintf("x/%s", ModuleName))
-}
-
-func (k KVStoreV1) GetKey(ctx cosmos.Context, prefix dbPrefix, key string) string {
-	return fmt.Sprintf("%s/%s", prefix, strings.ToUpper(key))
-}
-
-func (k KVStoreV1) GetStoreVersion(ctx cosmos.Context) int64 {
-	key := prefixStoreVersion
-	store := ctx.KVStore(k.storeKey)
-	if !store.Has([]byte(key)) {
-		return 1
-	}
-	var value int64
-	buf := store.Get([]byte(key))
-	k.cdc.MustUnmarshalBinaryLengthPrefixed(buf, &value)
-	return value
-}
-
-func (k KVStoreV1) SetStoreVersion(ctx cosmos.Context, value int64) {
-	key := k.GetKey(ctx, prefixStoreVersion, "")
-	store := ctx.KVStore(k.storeKey)
-	key = k.GetKey(ctx, prefixStoreVersion, key)
-	store.Set([]byte(key), k.cdc.MustMarshalBinaryBare(value))
-}
-
-func (k KVStoreV1) GetRuneBalaceOfModule(ctx cosmos.Context, moduleName string) cosmos.Uint {
-	addr := k.supplyKeeper.GetModuleAddress(moduleName)
-	coins := k.coinKeeper.GetCoins(ctx, addr)
-	amt := coins.AmountOf(common.RuneNative.Native())
-	return cosmos.NewUintFromBigInt(amt.BigInt())
-}
-
-func (k KVStoreV1) SendFromModuleToModule(ctx cosmos.Context, from, to string, coin common.Coin) error {
-	coins := cosmos.NewCoins(
-		cosmos.NewCoin(coin.Asset.Native(), cosmos.NewIntFromBigInt(coin.Amount.BigInt())),
-	)
-	return k.Supply().SendCoinsFromModuleToModule(ctx, from, to, coins)
-}
-
-func (k KVStoreV1) SendFromAccountToModule(ctx cosmos.Context, from cosmos.AccAddress, to string, coin common.Coin) error {
-	coins := cosmos.NewCoins(
-		cosmos.NewCoin(coin.Asset.Native(), cosmos.NewIntFromBigInt(coin.Amount.BigInt())),
-	)
-	return k.Supply().SendCoinsFromAccountToModule(ctx, from, to, coins)
-}
-
-func (k KVStoreV1) SendFromModuleToAccount(ctx cosmos.Context, from string, to cosmos.AccAddress, coin common.Coin) error {
-	coins := cosmos.NewCoins(
-		cosmos.NewCoin(coin.Asset.Native(), cosmos.NewIntFromBigInt(coin.Amount.BigInt())),
-	)
-	return k.Supply().SendCoinsFromModuleToAccount(ctx, from, to, coins)
+func NewKVStore(coinKeeper bank.Keeper, supplyKeeper supply.Keeper, storeKey cosmos.StoreKey, cdc *codec.Codec) Keeper {
+	return kv1.NewKVStoreV1(coinKeeper, supplyKeeper, storeKey, cdc)
 }

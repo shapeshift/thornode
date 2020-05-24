@@ -6,12 +6,6 @@ import (
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
-type KeeperTxMarker interface {
-	ListTxMarker(ctx cosmos.Context, hash string) (TxMarkers, error)
-	SetTxMarkers(ctx cosmos.Context, hash string, marks TxMarkers) error
-	AppendTxMarker(ctx cosmos.Context, hash string, mark TxMarker) error
-}
-
 func (k KVStoreV1) ListTxMarker(ctx cosmos.Context, hash string) (TxMarkers, error) {
 	marks := make(TxMarkers, 0)
 	key := k.GetKey(ctx, prefixSupportedTxMarker, hash)
