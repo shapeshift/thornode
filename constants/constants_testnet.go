@@ -5,6 +5,7 @@ package constants
 
 func init() {
 	int64Overrides = map[ConstantName]int64{
+		NewPoolCycle:         17280,
 		DesireValidatorSet:   12,
 		RotatePerBlockHeight: 17280,
 		BadValidatorRate:     17280,
@@ -14,8 +15,5 @@ func init() {
 	}
 	boolOverrides = map[ConstantName]bool{
 		StrictBondStakeRatio: false,
-	}
-	stringOverrides = map[ConstantName]string{
-		DefaultPoolStatus: "Enabled",
 	}
 }
