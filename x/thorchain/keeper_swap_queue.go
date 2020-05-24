@@ -15,7 +15,7 @@ type KeeperSwapQueue interface {
 }
 
 // SetSwapQueueItem - writes a swap item to the kvstore
-func (k KVStore) SetSwapQueueItem(ctx cosmos.Context, msg MsgSwap) error {
+func (k KVStoreV1) SetSwapQueueItem(ctx cosmos.Context, msg MsgSwap) error {
 	store := ctx.KVStore(k.storeKey)
 	key := k.GetKey(ctx, prefixSwapQueueItem, msg.Tx.ID.String())
 	buf, err := k.cdc.MarshalBinaryBare(msg)
@@ -27,13 +27,13 @@ func (k KVStore) SetSwapQueueItem(ctx cosmos.Context, msg MsgSwap) error {
 }
 
 // GetSwapQueueIterator iterate tx out
-func (k KVStore) GetSwapQueueIterator(ctx cosmos.Context) cosmos.Iterator {
+func (k KVStoreV1) GetSwapQueueIterator(ctx cosmos.Context) cosmos.Iterator {
 	store := ctx.KVStore(k.storeKey)
 	return cosmos.KVStorePrefixIterator(store, []byte(prefixSwapQueueItem))
 }
 
 // GetSwapQueueItem - write the given swap queue item information to key values tore
-func (k KVStore) GetSwapQueueItem(ctx cosmos.Context, txID common.TxID) (MsgSwap, error) {
+func (k KVStoreV1) GetSwapQueueItem(ctx cosmos.Context, txID common.TxID) (MsgSwap, error) {
 	store := ctx.KVStore(k.storeKey)
 	key := k.GetKey(ctx, prefixSwapQueueItem, txID.String())
 	if !store.Has([]byte(key)) {
@@ -48,7 +48,7 @@ func (k KVStore) GetSwapQueueItem(ctx cosmos.Context, txID common.TxID) (MsgSwap
 }
 
 // RemoveSwapQueueItem - removes a swap item to the kvstore
-func (k KVStore) RemoveSwapQueueItem(ctx cosmos.Context, txID common.TxID) {
+func (k KVStoreV1) RemoveSwapQueueItem(ctx cosmos.Context, txID common.TxID) {
 	store := ctx.KVStore(k.storeKey)
 	key := k.GetKey(ctx, prefixSwapQueueItem, txID.String())
 	store.Delete([]byte(key))

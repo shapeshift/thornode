@@ -98,17 +98,17 @@ func dbError(ctx cosmos.Context, wrapper string, err error) error {
 	return err
 }
 
-// KVStore Keeper maintains the link to data storage and exposes getter/setter methods for the various parts of the state machine
-type KVStore struct {
+// KVStoreV1 Keeper maintains the link to data storage and exposes getter/setter methods for the various parts of the state machine
+type KVStoreV1 struct {
 	coinKeeper   bank.Keeper
 	supplyKeeper supply.Keeper
 	storeKey     cosmos.StoreKey // Unexposed key to access store from cosmos.Context
 	cdc          *codec.Codec    // The wire codec for binary encoding/decoding.
 }
 
-// NewKVStore creates new instances of the thorchain Keeper
-func NewKVStore(coinKeeper bank.Keeper, supplyKeeper supply.Keeper, storeKey cosmos.StoreKey, cdc *codec.Codec) KVStore {
-	return KVStore{
+// NewKVStoreV1 creates new instances of the thorchain Keeper
+func NewKVStoreV1(coinKeeper bank.Keeper, supplyKeeper supply.Keeper, storeKey cosmos.StoreKey, cdc *codec.Codec) KVStoreV1 {
+	return KVStoreV1{
 		coinKeeper:   coinKeeper,
 		supplyKeeper: supplyKeeper,
 		storeKey:     storeKey,
@@ -116,27 +116,27 @@ func NewKVStore(coinKeeper bank.Keeper, supplyKeeper supply.Keeper, storeKey cos
 	}
 }
 
-func (k KVStore) Cdc() *codec.Codec {
+func (k KVStoreV1) Cdc() *codec.Codec {
 	return k.cdc
 }
 
-func (k KVStore) Supply() supply.Keeper {
+func (k KVStoreV1) Supply() supply.Keeper {
 	return k.supplyKeeper
 }
 
-func (k KVStore) CoinKeeper() bank.Keeper {
+func (k KVStoreV1) CoinKeeper() bank.Keeper {
 	return k.coinKeeper
 }
 
-func (k KVStore) Logger(ctx cosmos.Context) log.Logger {
+func (k KVStoreV1) Logger(ctx cosmos.Context) log.Logger {
 	return ctx.Logger().With("module", fmt.Sprintf("x/%s", ModuleName))
 }
 
-func (k KVStore) GetKey(ctx cosmos.Context, prefix dbPrefix, key string) string {
+func (k KVStoreV1) GetKey(ctx cosmos.Context, prefix dbPrefix, key string) string {
 	return fmt.Sprintf("%s/%s", prefix, strings.ToUpper(key))
 }
 
-func (k KVStore) GetStoreVersion(ctx cosmos.Context) int64 {
+func (k KVStoreV1) GetStoreVersion(ctx cosmos.Context) int64 {
 	key := prefixStoreVersion
 	store := ctx.KVStore(k.storeKey)
 	if !store.Has([]byte(key)) {
@@ -148,35 +148,35 @@ func (k KVStore) GetStoreVersion(ctx cosmos.Context) int64 {
 	return value
 }
 
-func (k KVStore) SetStoreVersion(ctx cosmos.Context, value int64) {
+func (k KVStoreV1) SetStoreVersion(ctx cosmos.Context, value int64) {
 	key := k.GetKey(ctx, prefixStoreVersion, "")
 	store := ctx.KVStore(k.storeKey)
 	key = k.GetKey(ctx, prefixStoreVersion, key)
 	store.Set([]byte(key), k.cdc.MustMarshalBinaryBare(value))
 }
 
-func (k KVStore) GetRuneBalaceOfModule(ctx cosmos.Context, moduleName string) cosmos.Uint {
+func (k KVStoreV1) GetRuneBalaceOfModule(ctx cosmos.Context, moduleName string) cosmos.Uint {
 	addr := k.supplyKeeper.GetModuleAddress(moduleName)
 	coins := k.coinKeeper.GetCoins(ctx, addr)
 	amt := coins.AmountOf(common.RuneNative.Native())
 	return cosmos.NewUintFromBigInt(amt.BigInt())
 }
 
-func (k KVStore) SendFromModuleToModule(ctx cosmos.Context, from, to string, coin common.Coin) error {
+func (k KVStoreV1) SendFromModuleToModule(ctx cosmos.Context, from, to string, coin common.Coin) error {
 	coins := cosmos.NewCoins(
 		cosmos.NewCoin(coin.Asset.Native(), cosmos.NewIntFromBigInt(coin.Amount.BigInt())),
 	)
 	return k.Supply().SendCoinsFromModuleToModule(ctx, from, to, coins)
 }
 
-func (k KVStore) SendFromAccountToModule(ctx cosmos.Context, from cosmos.AccAddress, to string, coin common.Coin) error {
+func (k KVStoreV1) SendFromAccountToModule(ctx cosmos.Context, from cosmos.AccAddress, to string, coin common.Coin) error {
 	coins := cosmos.NewCoins(
 		cosmos.NewCoin(coin.Asset.Native(), cosmos.NewIntFromBigInt(coin.Amount.BigInt())),
 	)
 	return k.Supply().SendCoinsFromAccountToModule(ctx, from, to, coins)
 }
 
-func (k KVStore) SendFromModuleToAccount(ctx cosmos.Context, from string, to cosmos.AccAddress, coin common.Coin) error {
+func (k KVStoreV1) SendFromModuleToAccount(ctx cosmos.Context, from string, to cosmos.AccAddress, coin common.Coin) error {
 	coins := cosmos.NewCoins(
 		cosmos.NewCoin(coin.Asset.Native(), cosmos.NewIntFromBigInt(coin.Amount.BigInt())),
 	)

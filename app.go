@@ -127,7 +127,7 @@ func NewThorchainApp(logger log.Logger, db dbm.DB, baseAppOptions ...func(*bam.B
 		maccPerms)
 
 	// thorchain keeper holds thorchain data/kvstore
-	app.thorchainKeeper = thorchain.NewKVStore(
+	app.thorchainKeeper = thorchain.NewKVStoreV1(
 		app.bankKeeper,
 		app.supplyKeeper,
 		keys[thorchain.StoreKey],

@@ -14,7 +14,7 @@ type KeeperReserveContributors interface {
 }
 
 // AddFeeToReserve add fee to reserve
-func (k KVStore) AddFeeToReserve(ctx cosmos.Context, fee cosmos.Uint) error {
+func (k KVStoreV1) AddFeeToReserve(ctx cosmos.Context, fee cosmos.Uint) error {
 	vault, err := k.GetVaultData(ctx)
 	if err != nil {
 		return fmt.Errorf("fail to get vault: %w", err)
@@ -31,7 +31,7 @@ func (k KVStore) AddFeeToReserve(ctx cosmos.Context, fee cosmos.Uint) error {
 	return k.SetVaultData(ctx, vault)
 }
 
-func (k KVStore) GetReservesContributors(ctx cosmos.Context) (ReserveContributors, error) {
+func (k KVStoreV1) GetReservesContributors(ctx cosmos.Context) (ReserveContributors, error) {
 	contributors := make(ReserveContributors, 0)
 	key := k.GetKey(ctx, prefixReserves, "")
 	store := ctx.KVStore(k.storeKey)
@@ -46,7 +46,7 @@ func (k KVStore) GetReservesContributors(ctx cosmos.Context) (ReserveContributor
 	return contributors, nil
 }
 
-func (k KVStore) SetReserveContributors(ctx cosmos.Context, contributors ReserveContributors) error {
+func (k KVStoreV1) SetReserveContributors(ctx cosmos.Context, contributors ReserveContributors) error {
 	key := k.GetKey(ctx, prefixReserves, "")
 	store := ctx.KVStore(k.storeKey)
 	if contributors == nil {
