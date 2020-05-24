@@ -17,7 +17,7 @@ import (
 // if you wonder why there is a Keygens which is a slice of Keygen , that is because thorchain can potentially have to trigger multiple TSS Keygen in one block
 // for example multiple Asgard, also when later on Yggdrasil start to use TSS as well
 type KeygenBlock struct {
-	Height  int64    `json:"height"`
+	Height  int64    `json:"height,string"`
 	Keygens []Keygen `json:"keygens"`
 }
 
@@ -31,6 +31,14 @@ func NewKeygenBlock(height int64) KeygenBlock {
 // IsEmpty determinate whether KeygenBlock is empty
 func (k KeygenBlock) IsEmpty() bool {
 	return len(k.Keygens) == 0 && k.Height == 0
+}
+
+func (k KeygenBlock) String() string {
+	var keygens []string
+	for _, keygen := range k.Keygens {
+		keygens = append(keygens, keygen.String())
+	}
+	return strings.Join(keygens, "\n")
 }
 
 // Contains will go through the keygen items and find out whether the given keygen already exist in the block or not

@@ -1,6 +1,7 @@
 package thorchain
 
 import (
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"net/url"
@@ -17,7 +18,7 @@ import (
 )
 
 // NewQuerier is the module level router for state queries
-func NewQuerier(keeper Keeper) cosmos.Querier {
+func NewQuerier(keeper Keeper, kbs KeybaseStore) cosmos.Querier {
 	return func(ctx cosmos.Context, path []string, req abci.RequestQuery) (res []byte, err error) {
 		switch path[0] {
 		case q.QueryPool.Key:
@@ -29,11 +30,11 @@ func NewQuerier(keeper Keeper) cosmos.Querier {
 		case q.QueryTxIn.Key:
 			return queryTxIn(ctx, path[1:], req, keeper)
 		case q.QueryKeysignArray.Key:
-			return queryKeysign(ctx, path[1:], req, keeper)
+			return queryKeysign(ctx, kbs, path[1:], req, keeper)
 		case q.QueryKeysignArrayPubkey.Key:
-			return queryKeysign(ctx, path[1:], req, keeper)
+			return queryKeysign(ctx, kbs, path[1:], req, keeper)
 		case q.QueryKeygensPubkey.Key:
-			return queryKeygen(ctx, path[1:], req, keeper)
+			return queryKeygen(ctx, kbs, path[1:], req, keeper)
 		case q.QueryCompEvents.Key:
 			return queryCompEvents(ctx, path[1:], req, keeper)
 		case q.QueryCompEventsByChain.Key:
@@ -501,7 +502,7 @@ func queryTxIn(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper 
 	return res, nil
 }
 
-func queryKeygen(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, error) {
+func queryKeygen(ctx cosmos.Context, kbs KeybaseStore, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, error) {
 	var err error
 	height, err := strconv.ParseInt(path[0], 0, 64)
 	if err != nil {
@@ -535,7 +536,23 @@ func queryKeygen(ctx cosmos.Context, path []string, req abci.RequestQuery, keepe
 		keygenBlock = newKeygenBlock
 	}
 
-	res, err := codec.MarshalJSONIndent(keeper.Cdc(), keygenBlock)
+	buf, err := keeper.Cdc().MarshalBinaryBare(keygenBlock)
+	if err != nil {
+		ctx.Logger().Error("fail to marshal keygen block to json", "error", err)
+		return nil, fmt.Errorf("fail to marshal keygen block to json: %w", err)
+	}
+	sig, _, err := kbs.Keybase.Sign(kbs.SignerName, kbs.SignerPasswd, buf)
+	if err != nil {
+		ctx.Logger().Error("fail to sign keygen", "error", err)
+		return nil, fmt.Errorf("fail to sign keygen: %w", err)
+	}
+
+	query := QueryKeygenBlock{
+		KeygenBlock: keygenBlock,
+		Signature:   base64.StdEncoding.EncodeToString(sig),
+	}
+
+	res, err := codec.MarshalJSONIndent(keeper.Cdc(), query)
 	if err != nil {
 		ctx.Logger().Error("fail to marshal keygen block to json", "error", err)
 		return nil, fmt.Errorf("fail to marshal keygen block to json: %w", err)
@@ -543,7 +560,7 @@ func queryKeygen(ctx cosmos.Context, path []string, req abci.RequestQuery, keepe
 	return res, nil
 }
 
-func queryKeysign(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, error) {
+func queryKeysign(ctx cosmos.Context, kbs KeybaseStore, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, error) {
 	var err error
 	height, err := strconv.ParseInt(path[0], 0, 64)
 	if err != nil {
@@ -563,6 +580,7 @@ func queryKeysign(ctx cosmos.Context, path []string, req abci.RequestQuery, keep
 			return nil, fmt.Errorf("fail to parse pubkey: %w", err)
 		}
 	}
+
 	txs, err := keeper.GetTxOut(ctx, height)
 	if err != nil {
 		ctx.Logger().Error("fail to get tx out array from key value store", "error", err)
@@ -581,23 +599,23 @@ func queryKeysign(ctx cosmos.Context, path []string, req abci.RequestQuery, keep
 		txs = newTxs
 	}
 
-	out := make(map[common.Chain]ResTxOut, 0)
-	for _, item := range txs.TxArray {
-		res, ok := out[item.Chain]
-		if !ok {
-			res = ResTxOut{
-				Height:  txs.Height,
-				Chain:   item.Coin.Asset.Chain,
-				TxArray: make([]TxOutItem, 0),
-			}
-		}
-		res.TxArray = append(res.TxArray, *item)
-		out[item.Chain] = res
+	buf, err := keeper.Cdc().MarshalBinaryBare(txs)
+	if err != nil {
+		ctx.Logger().Error("fail to marshal keysign block to json", "error", err)
+		return nil, fmt.Errorf("fail to marshal keysign block to json: %w", err)
+	}
+	sig, _, err := kbs.Keybase.Sign(kbs.SignerName, kbs.SignerPasswd, buf)
+	if err != nil {
+		ctx.Logger().Error("fail to sign keysign", "error", err)
+		return nil, fmt.Errorf("fail to sign keysign: %w", err)
 	}
 
-	res, err := codec.MarshalJSONIndent(keeper.Cdc(), QueryResTxOut{
-		Chains: out,
-	})
+	query := QueryKeysign{
+		Keysign:   *txs,
+		Signature: base64.StdEncoding.EncodeToString(sig),
+	}
+
+	res, err := codec.MarshalJSONIndent(keeper.Cdc(), query)
 	if err != nil {
 		ctx.Logger().Error("fail to marshal tx hash to json", "error", err)
 		return nil, fmt.Errorf("fail to marshal tx hash to json: %w", err)
