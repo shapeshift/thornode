@@ -62,17 +62,7 @@ func getStdTx(f, t string, coins []types.Coin, memo string) (tx.StdTx, error) {
 }
 
 func (s *BlockScannerTestSuite) TestNewBlockScanner(c *C) {
-	c.Skip("skip")
-	bs, err := NewBinanceBlockScanner(getConfigForTest(""), blockscanner.NewMockScannerStorage(), true, s.m)
-	c.Assert(err, NotNil)
-	c.Assert(bs, IsNil)
-	bs, err = NewBinanceBlockScanner(getConfigForTest("127.0.0.1"), blockscanner.NewMockScannerStorage(), true, s.m)
-	c.Assert(err, NotNil)
-	c.Assert(bs, IsNil)
-	bs, err = NewBinanceBlockScanner(getConfigForTest("127.0.0.1"), nil, true, s.m)
-	c.Assert(err, NotNil)
-	c.Assert(bs, IsNil)
-	bs, err = NewBinanceBlockScanner(getConfigForTest("127.0.0.1"), blockscanner.NewMockScannerStorage(), true, s.m)
+	bs, err := NewBinanceBlockScanner(getConfigForTest("127.0.0.1"), nil, true, s.m)
 	c.Assert(err, NotNil)
 	c.Assert(bs, IsNil)
 	bs, err = NewBinanceBlockScanner(getConfigForTest("127.0.0.1"), blockscanner.NewMockScannerStorage(), true, s.m)

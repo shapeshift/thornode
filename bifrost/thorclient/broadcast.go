@@ -2,12 +2,12 @@ package thorclient
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"sync/atomic"
 	"time"
 
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 
 	"gitlab.com/thorchain/thornode/bifrost/metrics"
@@ -82,52 +82,31 @@ func (b *ThorchainBridge) Broadcast(stdTx authtypes.StdTx, mode types.TxMode) (c
 	}
 
 	b.logger.Info().Int("size", len(result)).Str("payload", string(result)).Msg("post to thorchain")
-
 	body, err := b.post(BroadcastTxsEndpoint, "application/json", bytes.NewBuffer(result))
 	if err != nil {
 		return noTxID, fmt.Errorf("fail to post tx to thorchain: %w", err)
 	}
-
-	// NOTE: we can actually see two different json responses for the same end.
-	// This complicates things pretty well.
-	// Sample 1: { "height": "0", "txhash": "D97E8A81417E293F5B28DDB53A4AD87B434CA30F51D683DA758ECC2168A7A005", "raw_log": "[{\"msg_index\":0,\"success\":true,\"log\":\"\",\"events\":[{\"type\":\"message\",\"attributes\":[{\"key\":\"action\",\"value\":\"set_observed_txout\"}]}]}]", "logs": [ { "msg_index": 0, "success": true, "log": "", "events": [ { "type": "message", "attributes": [ { "key": "action", "value": "set_observed_txout" } ] } ] } ] }
-	// Sample 2: { "height": "0", "txhash": "6A9AA734374D567D1FFA794134A66D3BF614C4EE5DDF334F21A52A47C188A6A2", "code": 4, "raw_log": "{\"codespace\":\"sdk\",\"code\":4,\"message\":\"signature verification failed; verify correct account sequence and chain-id\"}" }
-	// {"height": "0","txhash": "2B8745524F3A2883F8517F74C4FC8009F8E89E66D677C3459A103B75388F72E6","raw_log": "[]"}
-	var commit types.Commit
-	b.logger.Info().Msg(string(body))
-	err = json.Unmarshal(body, &commit)
-	if err != nil || len(commit.Logs) == 0 {
+	var commit sdk.TxResponse
+	b.logger.Debug().Str("body", string(body)).Msg("broadcast response from THORChain")
+	err = b.cdc.UnmarshalJSON(body, &commit)
+	if err != nil {
 		b.errCounter.WithLabelValues("fail_unmarshal_commit", "").Inc()
 		b.logger.Error().Err(err).Msg("fail unmarshal commit")
-
-		var badCommit types.BadCommit // since commit doesn't work, lets try bad commit
-		err = json.Unmarshal(body, &badCommit)
-		if err != nil {
-			b.logger.Error().Err(err).Msg("fail unmarshal bad commit")
-			return noTxID, fmt.Errorf("fail to unmarshal bad commit: %w", err)
-		}
-
-		// check for any failure logs
-		if badCommit.Code > 0 {
-			err := errors.New(badCommit.Log)
-			b.logger.Error().Err(err).Msg("fail to broadcast")
-			return badCommit.TxHash, fmt.Errorf("fail to broadcast: %w", err)
-		}
+		return common.BlankTxID, fmt.Errorf("fail to broadcast: %w", err)
 	}
-
-	for _, log := range commit.Logs {
-		if !log.Success {
-			err := errors.New(log.Log)
-			b.logger.Error().Err(err).Msg("fail to broadcast")
-			return noTxID, fmt.Errorf("fail to broadcast: %w", err)
-		}
+	txHash, err := common.NewTxID(commit.TxHash)
+	if err != nil {
+		return common.BlankTxID, fmt.Errorf("fail to convert txhash: %w", err)
 	}
-
+	// Code will be the tendermint ABICode , it start at 1 , so if it is an error , code will not be zero
+	if commit.Code > 0 {
+		return txHash, fmt.Errorf("fail to broadcast to THORChain,code:%d", commit.Code)
+	}
 	b.m.GetCounter(metrics.TxToThorchain).Inc()
 	b.logger.Info().Msgf("Received a TxHash of %v from the thorchain", commit.TxHash)
 
 	// increment seqNum
 	atomic.AddUint64(&b.seqNumber, 1)
 
-	return commit.TxHash, nil
+	return txHash, nil
 }
