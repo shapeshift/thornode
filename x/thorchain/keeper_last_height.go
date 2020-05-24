@@ -14,13 +14,13 @@ type KeeperLastHeight interface {
 	GetLastChainHeight(ctx cosmos.Context, chain common.Chain) (int64, error)
 }
 
-func (k KVStore) SetLastSignedHeight(ctx cosmos.Context, height int64) {
+func (k KVStoreV1) SetLastSignedHeight(ctx cosmos.Context, height int64) {
 	store := ctx.KVStore(k.storeKey)
 	key := k.GetKey(ctx, prefixLastSignedHeight, "")
 	store.Set([]byte(key), k.cdc.MustMarshalBinaryBare(height))
 }
 
-func (k KVStore) GetLastSignedHeight(ctx cosmos.Context) (int64, error) {
+func (k KVStoreV1) GetLastSignedHeight(ctx cosmos.Context) (int64, error) {
 	var height int64
 	key := k.GetKey(ctx, prefixLastSignedHeight, "")
 	store := ctx.KVStore(k.storeKey)
@@ -34,7 +34,7 @@ func (k KVStore) GetLastSignedHeight(ctx cosmos.Context) (int64, error) {
 	return height, nil
 }
 
-func (k KVStore) SetLastChainHeight(ctx cosmos.Context, chain common.Chain, height int64) error {
+func (k KVStoreV1) SetLastChainHeight(ctx cosmos.Context, chain common.Chain, height int64) error {
 	lastHeight, err := k.GetLastChainHeight(ctx, chain)
 	if err != nil {
 		return err
@@ -49,7 +49,7 @@ func (k KVStore) SetLastChainHeight(ctx cosmos.Context, chain common.Chain, heig
 	return nil
 }
 
-func (k KVStore) GetLastChainHeight(ctx cosmos.Context, chain common.Chain) (int64, error) {
+func (k KVStoreV1) GetLastChainHeight(ctx cosmos.Context, chain common.Chain) (int64, error) {
 	var height int64
 	key := k.GetKey(ctx, prefixLastChainHeight, chain.String())
 	store := ctx.KVStore(k.storeKey)

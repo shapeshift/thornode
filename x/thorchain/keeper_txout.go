@@ -14,7 +14,7 @@ type KeeperTxOut interface {
 }
 
 // AppendTxOut - append a given item to txOut
-func (k KVStore) AppendTxOut(ctx cosmos.Context, height int64, item *TxOutItem) error {
+func (k KVStoreV1) AppendTxOut(ctx cosmos.Context, height int64, item *TxOutItem) error {
 	block, err := k.GetTxOut(ctx, height)
 	if err != nil {
 		return err
@@ -24,7 +24,7 @@ func (k KVStore) AppendTxOut(ctx cosmos.Context, height int64, item *TxOutItem) 
 }
 
 // SetTxOut - write the given txout information to key values tore
-func (k KVStore) SetTxOut(ctx cosmos.Context, blockOut *TxOut) error {
+func (k KVStoreV1) SetTxOut(ctx cosmos.Context, blockOut *TxOut) error {
 	if blockOut == nil || blockOut.IsEmpty() {
 		return nil
 	}
@@ -39,13 +39,13 @@ func (k KVStore) SetTxOut(ctx cosmos.Context, blockOut *TxOut) error {
 }
 
 // GetTxOutIterator iterate tx out
-func (k KVStore) GetTxOutIterator(ctx cosmos.Context) cosmos.Iterator {
+func (k KVStoreV1) GetTxOutIterator(ctx cosmos.Context) cosmos.Iterator {
 	store := ctx.KVStore(k.storeKey)
 	return cosmos.KVStorePrefixIterator(store, []byte(prefixTxOut))
 }
 
 // GetTxOut - write the given txout information to key values tore
-func (k KVStore) GetTxOut(ctx cosmos.Context, height int64) (*TxOut, error) {
+func (k KVStoreV1) GetTxOut(ctx cosmos.Context, height int64) (*TxOut, error) {
 	txOut := NewTxOut(height)
 	store := ctx.KVStore(k.storeKey)
 	key := k.GetKey(ctx, prefixTxOut, strconv.FormatInt(height, 10))

@@ -15,7 +15,7 @@ type KeeperLiquidityFees interface {
 }
 
 // AddToLiquidityFees - measure of fees collected in each block
-func (k KVStore) AddToLiquidityFees(ctx cosmos.Context, asset common.Asset, fee cosmos.Uint) error {
+func (k KVStoreV1) AddToLiquidityFees(ctx cosmos.Context, asset common.Asset, fee cosmos.Uint) error {
 	store := ctx.KVStore(k.storeKey)
 	currentHeight := uint64(ctx.BlockHeight())
 
@@ -41,7 +41,7 @@ func (k KVStore) AddToLiquidityFees(ctx cosmos.Context, asset common.Asset, fee 
 	return nil
 }
 
-func (k KVStore) getLiquidityFees(ctx cosmos.Context, key string) (cosmos.Uint, error) {
+func (k KVStoreV1) getLiquidityFees(ctx cosmos.Context, key string) (cosmos.Uint, error) {
 	store := ctx.KVStore(k.storeKey)
 	if !store.Has([]byte(key)) {
 		return cosmos.ZeroUint(), nil
@@ -56,13 +56,13 @@ func (k KVStore) getLiquidityFees(ctx cosmos.Context, key string) (cosmos.Uint, 
 }
 
 // GetTotalLiquidityFees - total of all fees collected in each block
-func (k KVStore) GetTotalLiquidityFees(ctx cosmos.Context, height uint64) (cosmos.Uint, error) {
+func (k KVStoreV1) GetTotalLiquidityFees(ctx cosmos.Context, height uint64) (cosmos.Uint, error) {
 	key := k.GetKey(ctx, prefixTotalLiquidityFee, strconv.FormatUint(height, 10))
 	return k.getLiquidityFees(ctx, key)
 }
 
 // GetPoolLiquidityFees - total of fees collected in each block per pool
-func (k KVStore) GetPoolLiquidityFees(ctx cosmos.Context, height uint64, asset common.Asset) (cosmos.Uint, error) {
+func (k KVStoreV1) GetPoolLiquidityFees(ctx cosmos.Context, height uint64, asset common.Asset) (cosmos.Uint, error) {
 	key := k.GetKey(ctx, prefixPoolLiquidityFee, fmt.Sprintf("%d-%s", height, asset.String()))
 	return k.getLiquidityFees(ctx, key)
 }

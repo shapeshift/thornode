@@ -13,7 +13,7 @@ type KeeperKeygen interface {
 }
 
 // SetKeygenBlock save the KeygenBlock to kv store
-func (k KVStore) SetKeygenBlock(ctx cosmos.Context, keygen KeygenBlock) error {
+func (k KVStoreV1) SetKeygenBlock(ctx cosmos.Context, keygen KeygenBlock) error {
 	store := ctx.KVStore(k.storeKey)
 	key := k.GetKey(ctx, prefixKeygen, strconv.FormatInt(keygen.Height, 10))
 	buf, err := k.cdc.MarshalBinaryBare(keygen)
@@ -25,13 +25,13 @@ func (k KVStore) SetKeygenBlock(ctx cosmos.Context, keygen KeygenBlock) error {
 }
 
 // GetKeygenBlockIterator return an iterator
-func (k KVStore) GetKeygenBlockIterator(ctx cosmos.Context) cosmos.Iterator {
+func (k KVStoreV1) GetKeygenBlockIterator(ctx cosmos.Context) cosmos.Iterator {
 	store := ctx.KVStore(k.storeKey)
 	return cosmos.KVStorePrefixIterator(store, []byte(prefixKeygen))
 }
 
 // GetKeygenBlock from a given height
-func (k KVStore) GetKeygenBlock(ctx cosmos.Context, height int64) (KeygenBlock, error) {
+func (k KVStoreV1) GetKeygenBlock(ctx cosmos.Context, height int64) (KeygenBlock, error) {
 	store := ctx.KVStore(k.storeKey)
 	key := k.GetKey(ctx, prefixKeygen, strconv.FormatInt(height, 10))
 	if !store.Has([]byte(key)) {

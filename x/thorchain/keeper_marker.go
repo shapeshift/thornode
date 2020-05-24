@@ -12,7 +12,7 @@ type KeeperTxMarker interface {
 	AppendTxMarker(ctx cosmos.Context, hash string, mark TxMarker) error
 }
 
-func (k KVStore) ListTxMarker(ctx cosmos.Context, hash string) (TxMarkers, error) {
+func (k KVStoreV1) ListTxMarker(ctx cosmos.Context, hash string) (TxMarkers, error) {
 	marks := make(TxMarkers, 0)
 	key := k.GetKey(ctx, prefixSupportedTxMarker, hash)
 	store := ctx.KVStore(k.storeKey)
@@ -27,7 +27,7 @@ func (k KVStore) ListTxMarker(ctx cosmos.Context, hash string) (TxMarkers, error
 	return marks, nil
 }
 
-func (k KVStore) SetTxMarkers(ctx cosmos.Context, hash string, orig TxMarkers) error {
+func (k KVStoreV1) SetTxMarkers(ctx cosmos.Context, hash string, orig TxMarkers) error {
 	marks := make(TxMarkers, 0)
 	for _, mark := range orig {
 		if !mark.IsEmpty() {
@@ -45,7 +45,7 @@ func (k KVStore) SetTxMarkers(ctx cosmos.Context, hash string, orig TxMarkers) e
 	return nil
 }
 
-func (k KVStore) AppendTxMarker(ctx cosmos.Context, hash string, mark TxMarker) error {
+func (k KVStoreV1) AppendTxMarker(ctx cosmos.Context, hash string, mark TxMarker) error {
 	if mark.IsEmpty() {
 		return dbError(ctx, "unable to save tx marker:", errors.New("is empty"))
 	}

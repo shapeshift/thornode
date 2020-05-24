@@ -12,7 +12,7 @@ type KeeperObserver interface {
 }
 
 // SetActiveObserver set the given addr as an active observer address
-func (k KVStore) SetActiveObserver(ctx cosmos.Context, addr cosmos.AccAddress) {
+func (k KVStoreV1) SetActiveObserver(ctx cosmos.Context, addr cosmos.AccAddress) {
 	store := ctx.KVStore(k.storeKey)
 	key := k.GetKey(ctx, prefixActiveObserver, addr.String())
 	ctx.Logger().Debug("set_active_observer", "key", key)
@@ -20,14 +20,14 @@ func (k KVStore) SetActiveObserver(ctx cosmos.Context, addr cosmos.AccAddress) {
 }
 
 // RemoveActiveObserver remove the given address from active observer
-func (k KVStore) RemoveActiveObserver(ctx cosmos.Context, addr cosmos.AccAddress) {
+func (k KVStoreV1) RemoveActiveObserver(ctx cosmos.Context, addr cosmos.AccAddress) {
 	store := ctx.KVStore(k.storeKey)
 	key := k.GetKey(ctx, prefixActiveObserver, addr.String())
 	store.Delete([]byte(key))
 }
 
 // IsActiveObserver check the given account address, whether they are active
-func (k KVStore) IsActiveObserver(ctx cosmos.Context, addr cosmos.AccAddress) bool {
+func (k KVStoreV1) IsActiveObserver(ctx cosmos.Context, addr cosmos.AccAddress) bool {
 	store := ctx.KVStore(k.storeKey)
 	key := k.GetKey(ctx, prefixActiveObserver, addr.String())
 	ctx.Logger().Debug("is_active_observer", "key", key)
@@ -37,7 +37,7 @@ func (k KVStore) IsActiveObserver(ctx cosmos.Context, addr cosmos.AccAddress) bo
 // GetObservingAddresses - get list of observed addresses. This is a list of
 // addresses that have recently contributed via observing a tx that got 2/3rds
 // majority
-func (k KVStore) GetObservingAddresses(ctx cosmos.Context) ([]cosmos.AccAddress, error) {
+func (k KVStoreV1) GetObservingAddresses(ctx cosmos.Context) ([]cosmos.AccAddress, error) {
 	key := k.GetKey(ctx, prefixObservingAddresses, "")
 
 	store := ctx.KVStore(k.storeKey)
@@ -55,7 +55,7 @@ func (k KVStore) GetObservingAddresses(ctx cosmos.Context) ([]cosmos.AccAddress,
 
 // AddObservingAddresses - add a list of addresses that have been helpful in
 // getting enough observations to process an inbound tx.
-func (k KVStore) AddObservingAddresses(ctx cosmos.Context, inAddresses []cosmos.AccAddress) error {
+func (k KVStoreV1) AddObservingAddresses(ctx cosmos.Context, inAddresses []cosmos.AccAddress) error {
 	if len(inAddresses) == 0 {
 		return nil
 	}
@@ -84,7 +84,7 @@ func (k KVStore) AddObservingAddresses(ctx cosmos.Context, inAddresses []cosmos.
 }
 
 // ClearObservingAddresses - clear all observing addresses
-func (k KVStore) ClearObservingAddresses(ctx cosmos.Context) {
+func (k KVStoreV1) ClearObservingAddresses(ctx cosmos.Context) {
 	key := k.GetKey(ctx, prefixObservingAddresses, "")
 	store := ctx.KVStore(k.storeKey)
 	store.Delete([]byte(key))
