@@ -1,6 +1,7 @@
 package thorchain
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/blang/semver"
@@ -47,7 +48,17 @@ func (h SendHandler) validate(ctx cosmos.Context, msg MsgSend, version semver.Ve
 }
 
 func (h SendHandler) validateV1(ctx cosmos.Context, msg MsgSend) error {
-	return msg.ValidateBasic()
+	if err := msg.ValidateBasic(); err != nil {
+		return err
+	}
+
+	// check if we're sending to asgard, bond modules. If we are, forward to the native tx handler
+	supplier := h.keeper.Supply()
+	if msg.ToAddress.Equals(supplier.GetModuleAddress(AsgardName)) || msg.ToAddress.Equals(supplier.GetModuleAddress(BondName)) {
+		return errors.New("cannot use MsgSend for Asgard or Bond transactions, use NativeTx instead")
+	}
+
+	return nil
 }
 
 func (h SendHandler) handle(ctx cosmos.Context, msg MsgSend, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
@@ -62,16 +73,9 @@ func (h SendHandler) handleV1(ctx cosmos.Context, msg MsgSend, version semver.Ve
 	banker := h.keeper.CoinKeeper()
 	supplier := h.keeper.Supply()
 
-	// check if we're sending to asgard, bond modules. If we are, forward to the native tx handler
-	if msg.ToAddress.Equals(supplier.GetModuleAddress(AsgardName)) || msg.ToAddress.Equals(supplier.GetModuleAddress(BondName)) {
-		handler := NewNativeTxHandler(h.keeper, h.mgr)
-		return handler.Run(ctx, msg, version, constAccessor)
-	}
-
 	// TODO: this shouldn't be tied to swaps, and should be cheaper. But
 	// TransactionFee will be fine for now.
 	transactionFee := constAccessor.GetInt64Value(constants.TransactionFee)
-
 	gasFee, err := common.NewCoin(common.RuneNative, cosmos.NewUint(uint64(transactionFee))).Native()
 	if err != nil {
 		return nil, ErrInternal(err, "fail to get gas fee")
