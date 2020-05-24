@@ -112,6 +112,7 @@ var (
 	NewMsgLeave                    = types.NewMsgLeave
 	NewMsgSetVersion               = types.NewMsgSetVersion
 	NewMsgSetIPAddress             = types.NewMsgSetIPAddress
+	NewMsgSend                     = bank.NewMsgSend
 	GetPoolStatus                  = types.GetPoolStatus
 	GetRandomVault                 = types.GetRandomVault
 	GetRandomTx                    = types.GetRandomTx
