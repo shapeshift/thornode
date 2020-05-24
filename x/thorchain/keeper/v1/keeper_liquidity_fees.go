@@ -8,12 +8,6 @@ import (
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
-type KeeperLiquidityFees interface {
-	AddToLiquidityFees(ctx cosmos.Context, asset common.Asset, fee cosmos.Uint) error
-	GetTotalLiquidityFees(ctx cosmos.Context, height uint64) (cosmos.Uint, error)
-	GetPoolLiquidityFees(ctx cosmos.Context, height uint64, asset common.Asset) (cosmos.Uint, error)
-}
-
 // AddToLiquidityFees - measure of fees collected in each block
 func (k KVStoreV1) AddToLiquidityFees(ctx cosmos.Context, asset common.Asset, fee cosmos.Uint) error {
 	store := ctx.KVStore(k.storeKey)

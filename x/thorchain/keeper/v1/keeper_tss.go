@@ -2,12 +2,6 @@ package thorchain
 
 import cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 
-type KeeperTss interface {
-	SetTssVoter(_ cosmos.Context, tss TssVoter)
-	GetTssVoterIterator(_ cosmos.Context) cosmos.Iterator
-	GetTssVoter(_ cosmos.Context, _ string) (TssVoter, error)
-}
-
 // SetTssVoter - save a txin voter object
 func (k KVStoreV1) SetTssVoter(ctx cosmos.Context, tss TssVoter) {
 	store := ctx.KVStore(k.storeKey)

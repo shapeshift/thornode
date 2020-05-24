@@ -2,12 +2,6 @@ package thorchain
 
 import cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 
-type KeeperRagnarok interface {
-	RagnarokInProgress(_ cosmos.Context) bool
-	GetRagnarokBlockHeight(_ cosmos.Context) (int64, error)
-	SetRagnarokBlockHeight(_ cosmos.Context, _ int64)
-}
-
 func (k KVStoreV1) RagnarokInProgress(ctx cosmos.Context) bool {
 	height, err := k.GetRagnarokBlockHeight(ctx)
 	if err != nil {

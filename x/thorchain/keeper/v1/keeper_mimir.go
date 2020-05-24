@@ -4,12 +4,6 @@ import cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 
 const KRAKEN string = "ReleaseTheKraken"
 
-type KeeperMimir interface {
-	GetMimir(_ cosmos.Context, key string) (int64, error)
-	SetMimir(_ cosmos.Context, key string, value int64)
-	GetMimirIterator(ctx cosmos.Context) cosmos.Iterator
-}
-
 func (k KVStoreV1) GetMimir(ctx cosmos.Context, key string) (int64, error) {
 	key = k.GetKey(ctx, prefixMimir, key)
 	store := ctx.KVStore(k.storeKey)

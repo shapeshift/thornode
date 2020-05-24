@@ -18,6 +18,7 @@ import (
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 
+	kv1 "gitlab.com/thorchain/thornode/x/thorchain/keeper/v1"
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
@@ -27,6 +28,24 @@ var _ = Suite(&HandlerSuite{})
 
 func (s *HandlerSuite) SetUpSuite(*C) {
 	SetupConfigForTest()
+}
+
+func FundModule(c *C, ctx cosmos.Context, k Keeper, name string, amt uint64) {
+	coin, err := common.NewCoin(common.RuneNative, cosmos.NewUint(amt*common.One)).Native()
+	c.Assert(err, IsNil)
+	err = k.Supply().MintCoins(ctx, ModuleName, cosmos.NewCoins(coin))
+	c.Assert(err, IsNil)
+	err = k.Supply().SendCoinsFromModuleToModule(ctx, ModuleName, name, cosmos.NewCoins(coin))
+	c.Assert(err, IsNil)
+}
+
+func FundAccount(c *C, ctx cosmos.Context, k Keeper, addr cosmos.AccAddress, amt uint64) {
+	coin, err := common.NewCoin(common.RuneNative, cosmos.NewUint(amt*common.One)).Native()
+	c.Assert(err, IsNil)
+	err = k.Supply().MintCoins(ctx, ModuleName, cosmos.NewCoins(coin))
+	c.Assert(err, IsNil)
+	err = k.Supply().SendCoinsFromModuleToAccount(ctx, ModuleName, addr, cosmos.NewCoins(coin))
+	c.Assert(err, IsNil)
 }
 
 // nolint: deadcode unused
@@ -88,7 +107,7 @@ func setupKeeperForTest(c *C) (cosmos.Context, Keeper) {
 	supplyKeeper := supply.NewKeeper(cdc, keySupply, ak, bk, maccPerms)
 	totalSupply := cosmos.NewCoins(cosmos.NewCoin("bep", cosmos.NewInt(1000*common.One)))
 	supplyKeeper.SetSupply(ctx, supply.NewSupply(totalSupply))
-	k := NewKVStoreV1(bk, supplyKeeper, keyThorchain, cdc)
+	k := kv1.NewKVStoreV1(bk, supplyKeeper, keyThorchain, cdc)
 
 	FundModule(c, ctx, k, AsgardName, 100000000)
 

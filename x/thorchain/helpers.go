@@ -17,6 +17,7 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
+	kvTypes "gitlab.com/thorchain/thornode/x/thorchain/keeper/types"
 )
 
 const (
@@ -368,7 +369,7 @@ func updateEventFee(ctx cosmos.Context, keeper Keeper, txID common.TxID, fee com
 	ctx.Logger().Info("update event fee txid", "tx", txID.String())
 	eventIDs, err := keeper.GetEventsIDByTxHash(ctx, txID)
 	if err != nil {
-		if err == ErrEventNotFound {
+		if err == kvTypes.ErrEventNotFound {
 			ctx.Logger().Error(fmt.Sprintf("could not find the event(%s)", txID))
 			return nil
 		}
@@ -398,7 +399,7 @@ func completeEvents(ctx cosmos.Context, keeper Keeper, txID common.TxID, txs com
 	ctx.Logger().Info(fmt.Sprintf("txid(%s)", txID))
 	eventIDs, err := keeper.GetPendingEventID(ctx, txID)
 	if err != nil {
-		if err == ErrEventNotFound {
+		if err == kvTypes.ErrEventNotFound {
 			ctx.Logger().Error(fmt.Sprintf("could not find the event(%s)", txID))
 			return nil
 		}

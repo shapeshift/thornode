@@ -7,12 +7,6 @@ import (
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
-type KeeperReserveContributors interface {
-	GetReservesContributors(ctx cosmos.Context) (ReserveContributors, error)
-	SetReserveContributors(ctx cosmos.Context, contributors ReserveContributors) error
-	AddFeeToReserve(ctx cosmos.Context, fee cosmos.Uint) error
-}
-
 // AddFeeToReserve add fee to reserve
 func (k KVStoreV1) AddFeeToReserve(ctx cosmos.Context, fee cosmos.Uint) error {
 	vault, err := k.GetVaultData(ctx)

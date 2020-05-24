@@ -5,12 +5,6 @@ import (
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
-type KeeperGas interface {
-	GetGas(_ cosmos.Context, asset common.Asset) ([]cosmos.Uint, error)
-	SetGas(_ cosmos.Context, asset common.Asset, units []cosmos.Uint)
-	GetGasIterator(ctx cosmos.Context) cosmos.Iterator
-}
-
 func (k KVStoreV1) GetGas(ctx cosmos.Context, asset common.Asset) ([]cosmos.Uint, error) {
 	key := k.GetKey(ctx, prefixGas, asset.String())
 	store := ctx.KVStore(k.storeKey)

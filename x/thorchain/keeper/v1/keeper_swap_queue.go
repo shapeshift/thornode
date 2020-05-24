@@ -7,13 +7,6 @@ import (
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
-type KeeperSwapQueue interface {
-	SetSwapQueueItem(ctx cosmos.Context, msg MsgSwap) error
-	GetSwapQueueIterator(ctx cosmos.Context) cosmos.Iterator
-	GetSwapQueueItem(ctx cosmos.Context, txID common.TxID) (MsgSwap, error)
-	RemoveSwapQueueItem(ctx cosmos.Context, txID common.TxID)
-}
-
 // SetSwapQueueItem - writes a swap item to the kvstore
 func (k KVStoreV1) SetSwapQueueItem(ctx cosmos.Context, msg MsgSwap) error {
 	store := ctx.KVStore(k.storeKey)

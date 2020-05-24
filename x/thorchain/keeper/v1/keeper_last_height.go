@@ -7,13 +7,6 @@ import (
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
-type KeeperLastHeight interface {
-	SetLastSignedHeight(ctx cosmos.Context, height int64)
-	GetLastSignedHeight(ctx cosmos.Context) (int64, error)
-	SetLastChainHeight(ctx cosmos.Context, chain common.Chain, height int64) error
-	GetLastChainHeight(ctx cosmos.Context, chain common.Chain) (int64, error)
-}
-
 func (k KVStoreV1) SetLastSignedHeight(ctx cosmos.Context, height int64) {
 	store := ctx.KVStore(k.storeKey)
 	key := k.GetKey(ctx, prefixLastSignedHeight, "")

@@ -2,12 +2,6 @@ package thorchain
 
 import cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 
-type KeeperTssKeysignFail interface {
-	SetTssKeysignFailVoter(_ cosmos.Context, tss TssKeysignFailVoter)
-	GetTssKeysignFailVoterIterator(_ cosmos.Context) cosmos.Iterator
-	GetTssKeysignFailVoter(_ cosmos.Context, _ string) (TssKeysignFailVoter, error)
-}
-
 // SetTssKeysignFailVoter - save a txin voter object
 func (k KVStoreV1) SetTssKeysignFailVoter(ctx cosmos.Context, tss TssKeysignFailVoter) {
 	store := ctx.KVStore(k.storeKey)

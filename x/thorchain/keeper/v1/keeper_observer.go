@@ -2,15 +2,6 @@ package thorchain
 
 import cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 
-type KeeperObserver interface {
-	SetActiveObserver(ctx cosmos.Context, addr cosmos.AccAddress)
-	RemoveActiveObserver(ctx cosmos.Context, addr cosmos.AccAddress)
-	IsActiveObserver(ctx cosmos.Context, addr cosmos.AccAddress) bool
-	GetObservingAddresses(ctx cosmos.Context) ([]cosmos.AccAddress, error)
-	AddObservingAddresses(ctx cosmos.Context, inAddresses []cosmos.AccAddress) error
-	ClearObservingAddresses(ctx cosmos.Context)
-}
-
 // SetActiveObserver set the given addr as an active observer address
 func (k KVStoreV1) SetActiveObserver(ctx cosmos.Context, addr cosmos.AccAddress) {
 	store := ctx.KVStore(k.storeKey)

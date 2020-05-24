@@ -6,12 +6,6 @@ import (
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
-// KeeperVaultData func to access Vault in key value store
-type KeeperVaultData interface {
-	GetVaultData(ctx cosmos.Context) (VaultData, error)
-	SetVaultData(ctx cosmos.Context, data VaultData) error
-}
-
 // GetVaultData retrieve vault data from key value store
 func (k KVStoreV1) GetVaultData(ctx cosmos.Context) (VaultData, error) {
 	data := NewVaultData()

@@ -7,14 +7,6 @@ import (
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
-type KeeperPool interface {
-	GetPoolIterator(ctx cosmos.Context) cosmos.Iterator
-	GetPool(ctx cosmos.Context, asset common.Asset) (Pool, error)
-	GetPools(ctx cosmos.Context) (Pools, error)
-	SetPool(ctx cosmos.Context, pool Pool) error
-	PoolExist(ctx cosmos.Context, asset common.Asset) bool
-}
-
 // GetPoolIterator iterate pools
 func (k KVStoreV1) GetPoolIterator(ctx cosmos.Context) cosmos.Iterator {
 	store := ctx.KVStore(k.storeKey)

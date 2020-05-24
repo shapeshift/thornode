@@ -6,12 +6,6 @@ import (
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
-type KeeperKeygen interface {
-	SetKeygenBlock(ctx cosmos.Context, keygenBlock KeygenBlock) error
-	GetKeygenBlockIterator(ctx cosmos.Context) cosmos.Iterator
-	GetKeygenBlock(ctx cosmos.Context, height int64) (KeygenBlock, error)
-}
-
 // SetKeygenBlock save the KeygenBlock to kv store
 func (k KVStoreV1) SetKeygenBlock(ctx cosmos.Context, keygen KeygenBlock) error {
 	store := ctx.KVStore(k.storeKey)
