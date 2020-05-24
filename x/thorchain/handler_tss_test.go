@@ -2,7 +2,6 @@ package thorchain
 
 import (
 	"errors"
-	"fmt"
 	"sort"
 
 	"github.com/blang/semver"
@@ -573,7 +572,6 @@ func (s *HandlerTssSuite) TestTssHandler(c *C) {
 		},
 	}
 	for _, tc := range testCases {
-		fmt.Printf("TC Name: %s\n", tc.name)
 		helper := newTssHandlerTestHelper(c)
 		handler := NewTssHandler(helper.keeper, NewDummyMgr())
 		msg := tc.messageCreator(helper)
