@@ -5,6 +5,7 @@ import (
 
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/x/thorchain/types"
 	. "gopkg.in/check.v1"
 )
 
@@ -13,7 +14,7 @@ type MemoSuite struct{}
 var _ = Suite(&MemoSuite{})
 
 func (s *MemoSuite) SetUpSuite(c *C) {
-	SetupConfigForTest()
+	types.SetupConfigForTest()
 }
 
 func (s *MemoSuite) TestTxType(c *C) {
@@ -101,7 +102,7 @@ func (s *MemoSuite) TestParseWithAbbreviated(c *C) {
 	c.Check(memo.IsType(TxRagnarok), Equals, true)
 	c.Check(memo.IsInternal(), Equals, true)
 
-	mem := fmt.Sprintf("switch:%s", GetRandomBech32Addr())
+	mem := fmt.Sprintf("switch:%s", types.GetRandomBech32Addr())
 	memo, err = ParseMemo(mem)
 	c.Assert(err, IsNil)
 	c.Check(memo.IsType(TxSwitch), Equals, true)
@@ -185,7 +186,7 @@ func (s *MemoSuite) TestParse(c *C) {
 	c.Check(memo.GetDestination().String(), Equals, "bnb1lejrrtta9cgr49fuh7ktu3sddhe0ff7wenlpn6")
 	c.Check(memo.GetSlipLimit().Uint64(), Equals, uint64(0))
 
-	whiteListAddr := GetRandomBech32Addr()
+	whiteListAddr := types.GetRandomBech32Addr()
 	memo, err = ParseMemo("bond:" + whiteListAddr.String())
 	c.Assert(err, IsNil)
 	c.Assert(memo.IsType(TxBond), Equals, true)
