@@ -1,4 +1,4 @@
-package thorchain
+package keeperv1
 
 import (
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
