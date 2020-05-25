@@ -19,6 +19,8 @@ type Keeper interface {
 	CoinKeeper() bank.Keeper
 	Logger(ctx cosmos.Context) log.Logger
 	GetKey(ctx cosmos.Context, prefix dbPrefix, key string) string
+	GetStoreVersion(ctx cosmos.Context) int64
+	SetStoreVersion(ctx cosmos.Context, ver int64)
 	GetRuneBalaceOfModule(ctx cosmos.Context, moduleName string) cosmos.Uint
 	SendFromModuleToModule(ctx cosmos.Context, from, to string, coin common.Coin) error
 	SendFromAccountToModule(ctx cosmos.Context, from cosmos.AccAddress, to string, coin common.Coin) error
@@ -58,6 +60,7 @@ type Keeper interface {
 type dbPrefix string
 
 const (
+	prefixStoreVersion       dbPrefix = "_ver"
 	prefixObservedTx         dbPrefix = "observed_tx/"
 	prefixPool               dbPrefix = "pool/"
 	prefixTxOut              dbPrefix = "txout/"
@@ -130,8 +133,26 @@ func (k KVStore) Logger(ctx cosmos.Context) log.Logger {
 }
 
 func (k KVStore) GetKey(ctx cosmos.Context, prefix dbPrefix, key string) string {
-	version := getVersion(k.GetLowestActiveVersion(ctx), prefix)
-	return fmt.Sprintf("%s%d/%s", prefix, version.Minor, strings.ToUpper(key))
+	return fmt.Sprintf("%s/%s", prefix, strings.ToUpper(key))
+}
+
+func (k KVStore) GetStoreVersion(ctx cosmos.Context) int64 {
+	key := prefixStoreVersion
+	store := ctx.KVStore(k.storeKey)
+	if !store.Has([]byte(key)) {
+		return 1
+	}
+	var value int64
+	buf := store.Get([]byte(key))
+	k.cdc.MustUnmarshalBinaryLengthPrefixed(buf, &value)
+	return value
+}
+
+func (k KVStore) SetStoreVersion(ctx cosmos.Context, value int64) {
+	key := k.GetKey(ctx, prefixStoreVersion, "")
+	store := ctx.KVStore(k.storeKey)
+	key = k.GetKey(ctx, prefixStoreVersion, key)
+	store.Set([]byte(key), k.cdc.MustMarshalBinaryBare(value))
 }
 
 func (k KVStore) GetRuneBalaceOfModule(ctx cosmos.Context, moduleName string) cosmos.Uint {
