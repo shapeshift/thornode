@@ -10,8 +10,6 @@ import (
 	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
-var kaboom = errors.New("kaboom!!!!!")
-
 // NewExternalHandler returns a handler for "thorchain" type messages.
 func NewExternalHandler(keeper keeper.Keeper, mgr Manager) cosmos.Handler {
 	return func(ctx cosmos.Context, msg cosmos.Msg) (*cosmos.Result, error) {
