@@ -1,4 +1,4 @@
-package thorchain
+package keeperv1
 
 import (
 	. "gopkg.in/check.v1"

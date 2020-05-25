@@ -1,4 +1,4 @@
-package thorchain
+package keeperv1
 
 import (
 	"github.com/cosmos/cosmos-sdk/x/bank"
