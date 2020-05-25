@@ -10,7 +10,7 @@ import (
 )
 
 // GetEvent will retrieve event with the given id from data store
-func (k KVStoreV1) GetEvent(ctx cosmos.Context, eventID int64) (Event, error) {
+func (k KVStore) GetEvent(ctx cosmos.Context, eventID int64) (Event, error) {
 	key := k.GetKey(ctx, prefixEvents, strconv.FormatInt(eventID, 10))
 	store := ctx.KVStore(k.storeKey)
 	buf := store.Get([]byte(key))
@@ -22,7 +22,7 @@ func (k KVStoreV1) GetEvent(ctx cosmos.Context, eventID int64) (Event, error) {
 }
 
 // UpsertEvent add one event to data store
-func (k KVStoreV1) UpsertEvent(ctx cosmos.Context, event Event) error {
+func (k KVStore) UpsertEvent(ctx cosmos.Context, event Event) error {
 	if event.InTx.ID.IsEmpty() {
 		return fmt.Errorf("cant save event with empty TxIn ID")
 	}
@@ -55,14 +55,14 @@ func (k KVStoreV1) UpsertEvent(ctx cosmos.Context, event Event) error {
 	return nil
 }
 
-func (k KVStoreV1) removeEventPending(ctx cosmos.Context, event Event) {
+func (k KVStore) removeEventPending(ctx cosmos.Context, event Event) {
 	key := k.GetKey(ctx, prefixPendingEvents, event.InTx.ID.String())
 	store := ctx.KVStore(k.storeKey)
 	store.Delete([]byte(key))
 }
 
 // setEventPending store the pending event use InTx hash as the key
-func (k KVStoreV1) setEventPending(ctx cosmos.Context, event Event) error {
+func (k KVStore) setEventPending(ctx cosmos.Context, event Event) error {
 	if event.Status != EventPending {
 		return nil
 	}
@@ -83,7 +83,7 @@ func (k KVStoreV1) setEventPending(ctx cosmos.Context, event Event) error {
 }
 
 // GetPendingEventID we store the event in pending status using it's in tx hash
-func (k KVStoreV1) GetPendingEventID(ctx cosmos.Context, txID common.TxID) ([]int64, error) {
+func (k KVStore) GetPendingEventID(ctx cosmos.Context, txID common.TxID) ([]int64, error) {
 	key := k.GetKey(ctx, prefixPendingEvents, txID.String())
 	store := ctx.KVStore(k.storeKey)
 	if !store.Has([]byte(key)) {
@@ -98,13 +98,13 @@ func (k KVStoreV1) GetPendingEventID(ctx cosmos.Context, txID common.TxID) ([]in
 }
 
 // GetCompleteEventIterator iterate complete events
-func (k KVStoreV1) GetEventsIterator(ctx cosmos.Context) cosmos.Iterator {
+func (k KVStore) GetEventsIterator(ctx cosmos.Context) cosmos.Iterator {
 	store := ctx.KVStore(k.storeKey)
 	return cosmos.KVStorePrefixIterator(store, []byte(prefixEvents))
 }
 
 // GetNextEventID will increase the event id in key value store
-func (k KVStoreV1) getNextEventID(ctx cosmos.Context) (int64, error) {
+func (k KVStore) getNextEventID(ctx cosmos.Context) (int64, error) {
 	var currentEventID, nextEventID int64
 	currentEventID, err := k.GetCurrentEventID(ctx)
 	if err != nil {
@@ -116,7 +116,7 @@ func (k KVStoreV1) getNextEventID(ctx cosmos.Context) (int64, error) {
 }
 
 // GetCurrentEventID get the current event id in data store without increasing it
-func (k KVStoreV1) GetCurrentEventID(ctx cosmos.Context) (int64, error) {
+func (k KVStore) GetCurrentEventID(ctx cosmos.Context) (int64, error) {
 	var currentEventID int64
 	key := k.GetKey(ctx, prefixCurrentEventID, "")
 	store := ctx.KVStore(k.storeKey)
@@ -135,14 +135,14 @@ func (k KVStoreV1) GetCurrentEventID(ctx cosmos.Context) (int64, error) {
 }
 
 // SetCurrentEventID set the current event id in kv store
-func (k KVStoreV1) SetCurrentEventID(ctx cosmos.Context, eventID int64) {
+func (k KVStore) SetCurrentEventID(ctx cosmos.Context, eventID int64) {
 	key := k.GetKey(ctx, prefixCurrentEventID, "")
 	store := ctx.KVStore(k.storeKey)
 	store.Set([]byte(key), k.cdc.MustMarshalBinaryBare(&eventID))
 }
 
 // GetAllPendingEvents all events in pending status
-func (k KVStoreV1) GetAllPendingEvents(ctx cosmos.Context) (Events, error) {
+func (k KVStore) GetAllPendingEvents(ctx cosmos.Context) (Events, error) {
 	key := k.GetKey(ctx, prefixPendingEvents, "")
 	store := ctx.KVStore(k.storeKey)
 	var events Events
@@ -165,7 +165,7 @@ func (k KVStoreV1) GetAllPendingEvents(ctx cosmos.Context) (Events, error) {
 }
 
 // GetEventsIDByTxHash given a tx id, return a slice of events id that is related to the tx hash
-func (k KVStoreV1) GetEventsIDByTxHash(ctx cosmos.Context, txID common.TxID) ([]int64, error) {
+func (k KVStore) GetEventsIDByTxHash(ctx cosmos.Context, txID common.TxID) ([]int64, error) {
 	key := k.GetKey(ctx, prefixTxHashEvents, txID.String())
 	store := ctx.KVStore(k.storeKey)
 	if !store.Has([]byte(key)) {
@@ -179,7 +179,7 @@ func (k KVStoreV1) GetEventsIDByTxHash(ctx cosmos.Context, txID common.TxID) ([]
 	return eventIDs, nil
 }
 
-func (k KVStoreV1) upsertEventTxHash(ctx cosmos.Context, event Event) error {
+func (k KVStore) upsertEventTxHash(ctx cosmos.Context, event Event) error {
 	key := k.GetKey(ctx, prefixTxHashEvents, event.InTx.ID.String())
 	store := ctx.KVStore(k.storeKey)
 	var eventIDs []int64

@@ -6,14 +6,14 @@ import (
 )
 
 // GetStakerIterator iterate stakers
-func (k KVStoreV1) GetStakerIterator(ctx cosmos.Context, asset common.Asset) cosmos.Iterator {
+func (k KVStore) GetStakerIterator(ctx cosmos.Context, asset common.Asset) cosmos.Iterator {
 	store := ctx.KVStore(k.storeKey)
 	key := k.GetKey(ctx, prefixStaker, Staker{Asset: asset}.Key())
 	return cosmos.KVStorePrefixIterator(store, []byte(key))
 }
 
 // GetStaker retrieve staker from the data store
-func (k KVStoreV1) GetStaker(ctx cosmos.Context, asset common.Asset, addr common.Address) (Staker, error) {
+func (k KVStore) GetStaker(ctx cosmos.Context, asset common.Asset, addr common.Address) (Staker, error) {
 	store := ctx.KVStore(k.storeKey)
 	staker := Staker{
 		Asset:       asset,
@@ -33,14 +33,14 @@ func (k KVStoreV1) GetStaker(ctx cosmos.Context, asset common.Asset, addr common
 }
 
 // SetStaker store the staker to kvstore
-func (k KVStoreV1) SetStaker(ctx cosmos.Context, staker Staker) {
+func (k KVStore) SetStaker(ctx cosmos.Context, staker Staker) {
 	store := ctx.KVStore(k.storeKey)
 	key := k.GetKey(ctx, prefixStaker, staker.Key())
 	store.Set([]byte(key), k.cdc.MustMarshalBinaryBare(staker))
 }
 
 // RemoveStaker remove the staker to kvstore
-func (k KVStoreV1) RemoveStaker(ctx cosmos.Context, staker Staker) {
+func (k KVStore) RemoveStaker(ctx cosmos.Context, staker Staker) {
 	store := ctx.KVStore(k.storeKey)
 	key := k.GetKey(ctx, prefixStaker, staker.Key())
 	store.Delete([]byte(key))

@@ -4,7 +4,7 @@ import cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 
 const KRAKEN string = "ReleaseTheKraken"
 
-func (k KVStoreV1) GetMimir(ctx cosmos.Context, key string) (int64, error) {
+func (k KVStore) GetMimir(ctx cosmos.Context, key string) (int64, error) {
 	key = k.GetKey(ctx, prefixMimir, key)
 	store := ctx.KVStore(k.storeKey)
 	if !store.Has([]byte(key)) {
@@ -25,7 +25,7 @@ func (k KVStoreV1) GetMimir(ctx cosmos.Context, key string) (int64, error) {
 }
 
 // haveKraken - check to see if we have "released the kraken"
-func (k KVStoreV1) haveKraken(ctx cosmos.Context) bool {
+func (k KVStore) haveKraken(ctx cosmos.Context) bool {
 	key := k.GetKey(ctx, prefixMimir, KRAKEN)
 	store := ctx.KVStore(k.storeKey)
 	if !store.Has([]byte(key)) {
@@ -37,7 +37,7 @@ func (k KVStoreV1) haveKraken(ctx cosmos.Context) bool {
 	return value >= 0
 }
 
-func (k KVStoreV1) SetMimir(ctx cosmos.Context, key string, value int64) {
+func (k KVStore) SetMimir(ctx cosmos.Context, key string, value int64) {
 	// if we have the kraken, mimir is no more, ignore him
 	if k.haveKraken(ctx) {
 		return
@@ -48,7 +48,7 @@ func (k KVStoreV1) SetMimir(ctx cosmos.Context, key string, value int64) {
 }
 
 // GetMimirIterator iterate gas units
-func (k KVStoreV1) GetMimirIterator(ctx cosmos.Context) cosmos.Iterator {
+func (k KVStore) GetMimirIterator(ctx cosmos.Context) cosmos.Iterator {
 	store := ctx.KVStore(k.storeKey)
 	return cosmos.KVStorePrefixIterator(store, []byte(prefixMimir))
 }

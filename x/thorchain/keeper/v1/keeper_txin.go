@@ -6,20 +6,20 @@ import (
 )
 
 // SetObservedTxVoter - save a txin voter object
-func (k KVStoreV1) SetObservedTxVoter(ctx cosmos.Context, tx ObservedTxVoter) {
+func (k KVStore) SetObservedTxVoter(ctx cosmos.Context, tx ObservedTxVoter) {
 	store := ctx.KVStore(k.storeKey)
 	key := k.GetKey(ctx, prefixObservedTx, tx.String())
 	store.Set([]byte(key), k.cdc.MustMarshalBinaryBare(tx))
 }
 
 // GetObservedTxVoterIterator iterate tx in voters
-func (k KVStoreV1) GetObservedTxVoterIterator(ctx cosmos.Context) cosmos.Iterator {
+func (k KVStore) GetObservedTxVoterIterator(ctx cosmos.Context) cosmos.Iterator {
 	store := ctx.KVStore(k.storeKey)
 	return cosmos.KVStorePrefixIterator(store, []byte(prefixObservedTx))
 }
 
 // GetObservedTx - gets information of a tx hash
-func (k KVStoreV1) GetObservedTxVoter(ctx cosmos.Context, hash common.TxID) (ObservedTxVoter, error) {
+func (k KVStore) GetObservedTxVoter(ctx cosmos.Context, hash common.TxID) (ObservedTxVoter, error) {
 	key := k.GetKey(ctx, prefixObservedTx, hash.String())
 
 	store := ctx.KVStore(k.storeKey)

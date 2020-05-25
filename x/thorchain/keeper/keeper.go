@@ -215,7 +215,7 @@ type KeeperMimir interface {
 	GetMimirIterator(ctx cosmos.Context) cosmos.Iterator
 }
 
-// NewKVStoreV1 creates new instances of the thorchain Keeper
+// NewKVStore creates new instances of the thorchain Keeper
 func NewKVStore(coinKeeper bank.Keeper, supplyKeeper supply.Keeper, storeKey cosmos.StoreKey, cdc *codec.Codec) Keeper {
-	return kv1.NewKVStoreV1(coinKeeper, supplyKeeper, storeKey, cdc)
+	return kv1.NewKVStore(coinKeeper, supplyKeeper, storeKey, cdc)
 }

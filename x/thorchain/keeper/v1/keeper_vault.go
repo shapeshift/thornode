@@ -10,13 +10,13 @@ import (
 )
 
 // GetVaultIterator only iterate vault pools
-func (k KVStoreV1) GetVaultIterator(ctx cosmos.Context) cosmos.Iterator {
+func (k KVStore) GetVaultIterator(ctx cosmos.Context) cosmos.Iterator {
 	store := ctx.KVStore(k.storeKey)
 	return cosmos.KVStorePrefixIterator(store, []byte(prefixVaultPool))
 }
 
 // SetVault save the Vault object to store
-func (k KVStoreV1) SetVault(ctx cosmos.Context, vault Vault) error {
+func (k KVStore) SetVault(ctx cosmos.Context, vault Vault) error {
 	key := k.GetKey(ctx, prefixVaultPool, vault.PubKey.String())
 	store := ctx.KVStore(k.storeKey)
 	buf, err := k.cdc.MarshalBinaryBare(vault)
@@ -33,14 +33,14 @@ func (k KVStoreV1) SetVault(ctx cosmos.Context, vault Vault) error {
 }
 
 // VaultExists check whether the given pubkey is associated with a vault vault
-func (k KVStoreV1) VaultExists(ctx cosmos.Context, pk common.PubKey) bool {
+func (k KVStore) VaultExists(ctx cosmos.Context, pk common.PubKey) bool {
 	store := ctx.KVStore(k.storeKey)
 	key := k.GetKey(ctx, prefixVaultPool, pk.String())
 	return store.Has([]byte(key))
 }
 
 // GetVault get Vault with the given pubkey from data store
-func (k KVStoreV1) GetVault(ctx cosmos.Context, pk common.PubKey) (Vault, error) {
+func (k KVStore) GetVault(ctx cosmos.Context, pk common.PubKey) (Vault, error) {
 	var vault Vault
 	key := k.GetKey(ctx, prefixVaultPool, pk.String())
 	store := ctx.KVStore(k.storeKey)
@@ -60,7 +60,7 @@ func (k KVStoreV1) GetVault(ctx cosmos.Context, pk common.PubKey) (Vault, error)
 }
 
 // HasValidVaultPools check the datastore to see whether we have a valid vault pool
-func (k KVStoreV1) HasValidVaultPools(ctx cosmos.Context) (bool, error) {
+func (k KVStore) HasValidVaultPools(ctx cosmos.Context) (bool, error) {
 	iterator := k.GetVaultIterator(ctx)
 	defer iterator.Close()
 	for ; iterator.Valid(); iterator.Next() {
@@ -75,7 +75,7 @@ func (k KVStoreV1) HasValidVaultPools(ctx cosmos.Context) (bool, error) {
 	return false, nil
 }
 
-func (k KVStoreV1) getAsgardIndex(ctx cosmos.Context) (common.PubKeys, error) {
+func (k KVStore) getAsgardIndex(ctx cosmos.Context) (common.PubKeys, error) {
 	store := ctx.KVStore(k.storeKey)
 	key := k.GetKey(ctx, prefixVaultAsgardIndex, "")
 	if !store.Has([]byte(key)) {
@@ -89,7 +89,7 @@ func (k KVStoreV1) getAsgardIndex(ctx cosmos.Context) (common.PubKeys, error) {
 	return pks, nil
 }
 
-func (k KVStoreV1) addAsgardIndex(ctx cosmos.Context, pubkey common.PubKey) error {
+func (k KVStore) addAsgardIndex(ctx cosmos.Context, pubkey common.PubKey) error {
 	pks, err := k.getAsgardIndex(ctx)
 	if err != nil {
 		return err
@@ -106,7 +106,7 @@ func (k KVStoreV1) addAsgardIndex(ctx cosmos.Context, pubkey common.PubKey) erro
 	return nil
 }
 
-func (k KVStoreV1) GetAsgardVaults(ctx cosmos.Context) (Vaults, error) {
+func (k KVStore) GetAsgardVaults(ctx cosmos.Context) (Vaults, error) {
 	pks, err := k.getAsgardIndex(ctx)
 	if err != nil {
 		return nil, err
@@ -126,7 +126,7 @@ func (k KVStoreV1) GetAsgardVaults(ctx cosmos.Context) (Vaults, error) {
 	return asgards, nil
 }
 
-func (k KVStoreV1) GetAsgardVaultsByStatus(ctx cosmos.Context, status VaultStatus) (Vaults, error) {
+func (k KVStore) GetAsgardVaultsByStatus(ctx cosmos.Context, status VaultStatus) (Vaults, error) {
 	all, err := k.GetAsgardVaults(ctx)
 	if err != nil {
 		return nil, err
@@ -142,7 +142,7 @@ func (k KVStoreV1) GetAsgardVaultsByStatus(ctx cosmos.Context, status VaultStatu
 	return asgards, nil
 }
 
-func (k KVStoreV1) DeleteVault(ctx cosmos.Context, pubkey common.PubKey) error {
+func (k KVStore) DeleteVault(ctx cosmos.Context, pubkey common.PubKey) error {
 	vault, err := k.GetVault(ctx, pubkey)
 	if err != nil {
 		if errors.Is(err, kvTypes.ErrVaultNotFound) {

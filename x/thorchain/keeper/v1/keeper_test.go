@@ -17,7 +17,7 @@ import (
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
-func FundModule(c *C, ctx cosmos.Context, k KVStoreV1, name string, amt uint64) {
+func FundModule(c *C, ctx cosmos.Context, k KVStore, name string, amt uint64) {
 	coin, err := common.NewCoin(common.RuneNative, cosmos.NewUint(amt*common.One)).Native()
 	c.Assert(err, IsNil)
 	err = k.Supply().MintCoins(ctx, ModuleName, cosmos.NewCoins(coin))
@@ -26,7 +26,7 @@ func FundModule(c *C, ctx cosmos.Context, k KVStoreV1, name string, amt uint64) 
 	c.Assert(err, IsNil)
 }
 
-func FundAccount(c *C, ctx cosmos.Context, k KVStoreV1, addr cosmos.AccAddress, amt uint64) {
+func FundAccount(c *C, ctx cosmos.Context, k KVStore, addr cosmos.AccAddress, amt uint64) {
 	coin, err := common.NewCoin(common.RuneNative, cosmos.NewUint(amt*common.One)).Native()
 	c.Assert(err, IsNil)
 	err = k.Supply().MintCoins(ctx, ModuleName, cosmos.NewCoins(coin))
@@ -55,7 +55,7 @@ var (
 	keyThorchain = cosmos.NewKVStoreKey(StoreKey)
 )
 
-func setupKeeperForTest(c *C) (cosmos.Context, KVStoreV1) {
+func setupKeeperForTest(c *C) (cosmos.Context, KVStore) {
 	keyAcc := cosmos.NewKVStoreKey(auth.StoreKey)
 	keyParams := cosmos.NewKVStoreKey(params.StoreKey)
 	tkeyParams := cosmos.NewTransientStoreKey(params.TStoreKey)
@@ -94,7 +94,7 @@ func setupKeeperForTest(c *C) (cosmos.Context, KVStoreV1) {
 	supplyKeeper := supply.NewKeeper(cdc, keySupply, ak, bk, maccPerms)
 	totalSupply := cosmos.NewCoins(cosmos.NewCoin("bep", cosmos.NewInt(1000*common.One)))
 	supplyKeeper.SetSupply(ctx, supply.NewSupply(totalSupply))
-	k := NewKVStoreV1(bk, supplyKeeper, keyThorchain, cdc)
+	k := NewKVStore(bk, supplyKeeper, keyThorchain, cdc)
 
 	FundModule(c, ctx, k, AsgardName, 100000000)
 
