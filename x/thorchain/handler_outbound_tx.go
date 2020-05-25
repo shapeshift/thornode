@@ -5,15 +5,16 @@ import (
 
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
+	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 type OutboundTxHandler struct {
-	keeper Keeper
+	keeper keeper.Keeper
 	ch     CommonOutboundTxHandler
 	mgr    Manager
 }
 
-func NewOutboundTxHandler(keeper Keeper, mgr Manager) OutboundTxHandler {
+func NewOutboundTxHandler(keeper keeper.Keeper, mgr Manager) OutboundTxHandler {
 	return OutboundTxHandler{
 		keeper: keeper,
 		ch:     NewCommonOutboundTxHandler(keeper, mgr),

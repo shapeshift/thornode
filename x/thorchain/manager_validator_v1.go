@@ -12,6 +12,7 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
+	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 const (
@@ -20,14 +21,14 @@ const (
 
 // validatorMgrV1 is to manage a list of validators , and rotate them
 type validatorMgrV1 struct {
-	k          Keeper
+	k          keeper.Keeper
 	vaultMgr   VaultManager
 	txOutStore TxOutStore
 	eventMgr   EventManager
 }
 
 // newValidatorMgrV1 create a new instance of ValidatorManager
-func NewValidatorMgrV1(k Keeper, vaultMgr VaultManager, txOutStore TxOutStore, eventMgr EventManager) *validatorMgrV1 {
+func NewValidatorMgrV1(k keeper.Keeper, vaultMgr VaultManager, txOutStore TxOutStore, eventMgr EventManager) *validatorMgrV1 {
 	return &validatorMgrV1{
 		k:          k,
 		vaultMgr:   vaultMgr,

@@ -12,6 +12,7 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
+	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 type HandlerRefundSuite struct{}
@@ -34,7 +35,7 @@ type refundTxHandlerTestHelper struct {
 }
 
 type refundTxHandlerKeeperTestHelper struct {
-	Keeper
+	keeper.Keeper
 	observeTxVoterErrHash common.TxID
 	failGetPendingEvent   bool
 	errGetTxOut           bool
@@ -47,7 +48,7 @@ type refundTxHandlerKeeperTestHelper struct {
 	vault                 Vault
 }
 
-func newRefundTxHandlerKeeperTestHelper(keeper Keeper) *refundTxHandlerKeeperTestHelper {
+func newRefundTxHandlerKeeperTestHelper(keeper keeper.Keeper) *refundTxHandlerKeeperTestHelper {
 	return &refundTxHandlerKeeperTestHelper{
 		Keeper:                keeper,
 		observeTxVoterErrHash: GetRandomTxHash(),

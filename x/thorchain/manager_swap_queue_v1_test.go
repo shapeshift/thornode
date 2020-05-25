@@ -5,6 +5,7 @@ import (
 
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 type SwapQueueSuite struct{}
@@ -12,7 +13,7 @@ type SwapQueueSuite struct{}
 var _ = Suite(&SwapQueueSuite{})
 
 func (s SwapQueueSuite) TestGetTodoNum(c *C) {
-	queue := NewSwapQv1(KVStoreDummy{})
+	queue := NewSwapQv1(keeper.KVStoreDummy{})
 
 	c.Check(queue.getTodoNum(50), Equals, 25)     // halves it
 	c.Check(queue.getTodoNum(11), Equals, 5)      // halves it

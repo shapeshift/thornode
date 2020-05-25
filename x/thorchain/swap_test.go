@@ -10,6 +10,7 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
+	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
@@ -24,7 +25,7 @@ func (s *SwapSuite) SetUpSuite(c *C) {
 }
 
 type TestSwapKeeper struct {
-	KVStoreDummy
+	keeper.KVStoreDummy
 }
 
 func (k *TestSwapKeeper) PoolExist(ctx cosmos.Context, asset common.Asset) bool {

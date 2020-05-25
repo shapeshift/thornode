@@ -7,6 +7,7 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
+	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 type HandlerRagnarokSuite struct{}
@@ -14,7 +15,7 @@ type HandlerRagnarokSuite struct{}
 var _ = Suite(&HandlerRagnarokSuite{})
 
 type TestRagnarokKeeper struct {
-	KVStoreDummy
+	keeper.KVStoreDummy
 	activeNodeAccount NodeAccount
 	vault             Vault
 }
@@ -66,7 +67,7 @@ func (HandlerRagnarokSuite) TestRagnarok(c *C) {
 }
 
 type TestRagnarokKeeperHappyPath struct {
-	KVStoreDummy
+	keeper.KVStoreDummy
 	activeNodeAccount NodeAccount
 	newVault          Vault
 	retireVault       Vault

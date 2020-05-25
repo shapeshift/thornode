@@ -1,6 +1,7 @@
 package thorchain
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -18,8 +19,12 @@ import (
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 
+	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	kv1 "gitlab.com/thorchain/thornode/x/thorchain/keeper/v1"
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
+
+var kaboom = errors.New("kaboom!!!!!")
 
 type HandlerSuite struct{}
 
@@ -27,6 +32,24 @@ var _ = Suite(&HandlerSuite{})
 
 func (s *HandlerSuite) SetUpSuite(*C) {
 	SetupConfigForTest()
+}
+
+func FundModule(c *C, ctx cosmos.Context, k keeper.Keeper, name string, amt uint64) {
+	coin, err := common.NewCoin(common.RuneNative, cosmos.NewUint(amt*common.One)).Native()
+	c.Assert(err, IsNil)
+	err = k.Supply().MintCoins(ctx, ModuleName, cosmos.NewCoins(coin))
+	c.Assert(err, IsNil)
+	err = k.Supply().SendCoinsFromModuleToModule(ctx, ModuleName, name, cosmos.NewCoins(coin))
+	c.Assert(err, IsNil)
+}
+
+func FundAccount(c *C, ctx cosmos.Context, k keeper.Keeper, addr cosmos.AccAddress, amt uint64) {
+	coin, err := common.NewCoin(common.RuneNative, cosmos.NewUint(amt*common.One)).Native()
+	c.Assert(err, IsNil)
+	err = k.Supply().MintCoins(ctx, ModuleName, cosmos.NewCoins(coin))
+	c.Assert(err, IsNil)
+	err = k.Supply().SendCoinsFromModuleToAccount(ctx, ModuleName, addr, cosmos.NewCoins(coin))
+	c.Assert(err, IsNil)
 }
 
 // nolint: deadcode unused
@@ -49,7 +72,7 @@ var (
 	keyThorchain = cosmos.NewKVStoreKey(StoreKey)
 )
 
-func setupKeeperForTest(c *C) (cosmos.Context, Keeper) {
+func setupKeeperForTest(c *C) (cosmos.Context, keeper.Keeper) {
 	keyAcc := cosmos.NewKVStoreKey(auth.StoreKey)
 	keyParams := cosmos.NewKVStoreKey(params.StoreKey)
 	tkeyParams := cosmos.NewTransientStoreKey(params.TStoreKey)
@@ -88,7 +111,7 @@ func setupKeeperForTest(c *C) (cosmos.Context, Keeper) {
 	supplyKeeper := supply.NewKeeper(cdc, keySupply, ak, bk, maccPerms)
 	totalSupply := cosmos.NewCoins(cosmos.NewCoin("bep", cosmos.NewInt(1000*common.One)))
 	supplyKeeper.SetSupply(ctx, supply.NewSupply(totalSupply))
-	k := NewKVStore(bk, supplyKeeper, keyThorchain, cdc)
+	k := kv1.NewKVStore(bk, supplyKeeper, keyThorchain, cdc)
 
 	FundModule(c, ctx, k, AsgardName, 100000000)
 
@@ -102,7 +125,7 @@ func setupKeeperForTest(c *C) (cosmos.Context, Keeper) {
 
 type handlerTestWrapper struct {
 	ctx                  cosmos.Context
-	keeper               Keeper
+	keeper               keeper.Keeper
 	mgr                  Manager
 	activeNodeAccount    NodeAccount
 	notActiveNodeAccount NodeAccount

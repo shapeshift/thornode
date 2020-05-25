@@ -7,16 +7,17 @@ import (
 
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
+	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // StakeHandler is to handle stake
 type StakeHandler struct {
-	keeper Keeper
+	keeper keeper.Keeper
 	mgr    Manager
 }
 
 // NewStakeHandler create a new instance of StakeHandler
-func NewStakeHandler(keeper Keeper, mgr Manager) StakeHandler {
+func NewStakeHandler(keeper keeper.Keeper, mgr Manager) StakeHandler {
 	return StakeHandler{
 		keeper: keeper,
 		mgr:    mgr,

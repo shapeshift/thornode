@@ -9,16 +9,17 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
+	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // UnstakeHandler to process unstake requests
 type UnstakeHandler struct {
-	keeper Keeper
+	keeper keeper.Keeper
 	mgr    Manager
 }
 
 // NewUnstakeHandler create a new instance of UnstakeHandler to process unstake request
-func NewUnstakeHandler(keeper Keeper, mgr Manager) UnstakeHandler {
+func NewUnstakeHandler(keeper keeper.Keeper, mgr Manager) UnstakeHandler {
 	return UnstakeHandler{
 		keeper: keeper,
 		mgr:    mgr,

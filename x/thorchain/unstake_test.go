@@ -9,6 +9,7 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
+	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
@@ -21,7 +22,7 @@ func (s *UnstakeSuite) SetUpSuite(c *C) {
 }
 
 type UnstakeTestKeeper struct {
-	KVStoreDummy
+	keeper.KVStoreDummy
 	store map[string]interface{}
 }
 
@@ -74,7 +75,7 @@ func (p *UnstakeTestKeeper) GetStaker(ctx cosmos.Context, asset common.Asset, ad
 		Units:       cosmos.ZeroUint(),
 		PendingRune: cosmos.ZeroUint(),
 	}
-	key := p.GetKey(ctx, prefixStaker, staker.Key())
+	key := p.GetKey(ctx, "staker/", staker.Key())
 	if res, ok := p.store[key]; ok {
 		return res.(Staker), nil
 	}
@@ -82,7 +83,7 @@ func (p *UnstakeTestKeeper) GetStaker(ctx cosmos.Context, asset common.Asset, ad
 }
 
 func (p *UnstakeTestKeeper) SetStaker(ctx cosmos.Context, staker Staker) {
-	key := p.GetKey(ctx, prefixStaker, staker.Key())
+	key := p.GetKey(ctx, "staker/", staker.Key())
 	p.store[key] = staker
 }
 
@@ -322,7 +323,7 @@ func (UnstakeSuite) TestUnstake(c *C) {
 	testCases := []struct {
 		name          string
 		msg           MsgSetUnStake
-		ps            Keeper
+		ps            keeper.Keeper
 		runeAmount    cosmos.Uint
 		assetAmount   cosmos.Uint
 		expectedError error
@@ -489,7 +490,7 @@ func (UnstakeSuite) TestUnstake(c *C) {
 	}
 }
 
-func getUnstakeTestKeeper(c *C) Keeper {
+func getUnstakeTestKeeper(c *C) keeper.Keeper {
 	runeAddress, err := common.NewAddress("bnb1g0xakzh03tpa54khxyvheeu92hwzypkdce77rm")
 	if err != nil {
 		c.Error("fail to create new BNB Address")

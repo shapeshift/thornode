@@ -7,13 +7,15 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
+	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	kvTypes "gitlab.com/thorchain/thornode/x/thorchain/keeper/types"
 )
 
 type YggMgrV1 struct {
-	keeper Keeper
+	keeper keeper.Keeper
 }
 
-func NewYggMgrV1(keeper Keeper) *YggMgrV1 {
+func NewYggMgrV1(keeper keeper.Keeper) *YggMgrV1 {
 	return &YggMgrV1{
 		keeper: keeper,
 	}
@@ -82,7 +84,7 @@ func (ymgr YggMgrV1) Fund(ctx cosmos.Context, mgr Manager, constAccessor constan
 	// TODO: We are assuming here that the pub key is Secp256K1
 	ygg, err := ymgr.keeper.GetVault(ctx, na.PubKeySet.Secp256k1)
 	if err != nil {
-		if !errors.Is(err, ErrVaultNotFound) {
+		if !errors.Is(err, kvTypes.ErrVaultNotFound) {
 			return fmt.Errorf("fail to get yggdrasil: %w", err)
 		}
 		ygg = NewVault(ctx.BlockHeight(), ActiveVault, YggdrasilVault, na.PubKeySet.Secp256k1, nil)

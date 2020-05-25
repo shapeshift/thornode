@@ -12,6 +12,7 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
+	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 type HandlerTssKeysignSuite struct{}
@@ -30,14 +31,14 @@ type tssKeysignFailHandlerTestHelper struct {
 }
 
 type tssKeysignKeeperHelper struct {
-	Keeper
+	keeper.Keeper
 	errListActiveAccounts           bool
 	errGetTssVoter                  bool
 	errFailToGetNodeAccountByPubKey bool
 	errFailSetNodeAccount           bool
 }
 
-func newTssKeysignFailKeeperHelper(keeper Keeper) *tssKeysignKeeperHelper {
+func newTssKeysignFailKeeperHelper(keeper keeper.Keeper) *tssKeysignKeeperHelper {
 	return &tssKeysignKeeperHelper{
 		Keeper: keeper,
 	}
