@@ -9,6 +9,7 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
+	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 
 	. "gopkg.in/check.v1"
 )
@@ -18,7 +19,7 @@ type HandlerYggdrasilSuite struct{}
 var _ = Suite(&HandlerYggdrasilSuite{})
 
 type yggdrasilTestKeeper struct {
-	Keeper
+	keeper.Keeper
 	errGetVault        bool
 	errGetAsgardVaults bool
 	errGetNodeAccount  cosmos.AccAddress
@@ -78,7 +79,7 @@ type yggdrasilHandlerTestHelper struct {
 	mgr           Manager
 }
 
-func newYggdrasilTestKeeper(keeper Keeper) *yggdrasilTestKeeper {
+func newYggdrasilTestKeeper(keeper keeper.Keeper) *yggdrasilTestKeeper {
 	return &yggdrasilTestKeeper{
 		Keeper: keeper,
 	}

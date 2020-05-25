@@ -7,6 +7,7 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
+	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // const values used to emit events
@@ -17,13 +18,13 @@ const (
 
 // VaultMgrV1 is going to manage the vaults
 type VaultMgrV1 struct {
-	k          Keeper
+	k          keeper.Keeper
 	txOutStore TxOutStore
 	eventMgr   EventManager
 }
 
 // NewVaultMgrV1 create a new vault manager
-func NewVaultMgrV1(k Keeper, txOutStore TxOutStore, eventMgr EventManager) *VaultMgrV1 {
+func NewVaultMgrV1(k keeper.Keeper, txOutStore TxOutStore, eventMgr EventManager) *VaultMgrV1 {
 	return &VaultMgrV1{
 		k:          k,
 		txOutStore: txOutStore,
@@ -704,7 +705,7 @@ func (vm *VaultMgrV1) getPoolShare(totalStaked, totalBonded, totalRewards cosmos
 	return totalRewards.Quo(factor)
 }
 
-func getTotalActiveNodeWithBond(ctx cosmos.Context, k Keeper) (int64, error) {
+func getTotalActiveNodeWithBond(ctx cosmos.Context, k keeper.Keeper) (int64, error) {
 	nas, err := k.ListActiveNodeAccounts(ctx)
 	if err != nil {
 		return 0, fmt.Errorf("fail to get active node accounts: %w", err)

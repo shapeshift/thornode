@@ -8,6 +8,7 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
+	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
@@ -16,7 +17,7 @@ type StakeSuite struct{}
 var _ = Suite(&StakeSuite{})
 
 type StakeTestKeeper struct {
-	KVStoreDummy
+	keeper.KVStoreDummy
 	store map[string]interface{}
 }
 
@@ -54,7 +55,7 @@ func (p *StakeTestKeeper) GetStaker(ctx cosmos.Context, asset common.Asset, addr
 		Units:       cosmos.ZeroUint(),
 		PendingRune: cosmos.ZeroUint(),
 	}
-	key := p.GetKey(ctx, prefixStaker, staker.Key())
+	key := p.GetKey(ctx, "staker/", staker.Key())
 	if res, ok := p.store[key]; ok {
 		return res.(Staker), nil
 	}
@@ -62,7 +63,7 @@ func (p *StakeTestKeeper) GetStaker(ctx cosmos.Context, asset common.Asset, addr
 }
 
 func (p *StakeTestKeeper) SetStaker(ctx cosmos.Context, staker Staker) {
-	key := p.GetKey(ctx, prefixStaker, staker.Key())
+	key := p.GetKey(ctx, "staker/", staker.Key())
 	p.store[key] = staker
 }
 

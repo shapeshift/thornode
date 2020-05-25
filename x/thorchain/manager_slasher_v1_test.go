@@ -9,6 +9,7 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
+	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 type SlashingSuite struct{}
@@ -20,7 +21,7 @@ func (s *SlashingSuite) SetUpSuite(c *C) {
 }
 
 type TestSlashObservingKeeper struct {
-	KVStoreDummy
+	keeper.KVStoreDummy
 	addrs                     []cosmos.AccAddress
 	nas                       NodeAccounts
 	failGetObservingAddress   bool
@@ -126,7 +127,7 @@ func (s *SlashingSuite) TestLackObservingErrors(c *C) {
 }
 
 type TestSlashingLackKeeper struct {
-	KVStoreDummy
+	keeper.KVStoreDummy
 	evts                       Events
 	txOut                      *TxOut
 	na                         NodeAccount
@@ -425,7 +426,7 @@ func (s *SlashingSuite) TestNewSlasher(c *C) {
 }
 
 type TestDoubleSlashKeeper struct {
-	KVStoreDummy
+	keeper.KVStoreDummy
 	na          NodeAccount
 	vaultData   VaultData
 	slashPoints map[string]int64

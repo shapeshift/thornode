@@ -9,16 +9,17 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
+	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // BanHandler is to handle Ban message
 type BanHandler struct {
-	keeper Keeper
+	keeper keeper.Keeper
 	mgr    Manager
 }
 
 // NewBanHandler create new instance of BanHandler
-func NewBanHandler(keeper Keeper, mgr Manager) BanHandler {
+func NewBanHandler(keeper keeper.Keeper, mgr Manager) BanHandler {
 	return BanHandler{
 		keeper: keeper,
 		mgr:    mgr,

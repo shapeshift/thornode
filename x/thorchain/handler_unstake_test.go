@@ -9,6 +9,7 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
+	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 type HandlerUnstakeSuite struct{}
@@ -16,7 +17,7 @@ type HandlerUnstakeSuite struct{}
 var _ = Suite(&HandlerUnstakeSuite{})
 
 type MockUnstakeKeeper struct {
-	KVStoreDummy
+	keeper.KVStoreDummy
 	activeNodeAccount NodeAccount
 	currentPool       Pool
 	failPool          bool
@@ -60,7 +61,7 @@ func (mfp *MockUnstakeKeeper) GetNodeAccount(_ cosmos.Context, addr cosmos.AccAd
 }
 
 func (mfp *MockUnstakeKeeper) GetStakerIterator(ctx cosmos.Context, _ common.Asset) cosmos.Iterator {
-	iter := NewDummyIterator()
+	iter := keeper.NewDummyIterator()
 	iter.AddItem([]byte("key"), mfp.Cdc().MustMarshalBinaryBare(mfp.staker))
 	return iter
 }
@@ -184,7 +185,7 @@ func (HandlerUnstakeSuite) TestUnstakeHandler_mockFailScenarios(c *C) {
 	}
 	testCases := []struct {
 		name           string
-		k              Keeper
+		k              keeper.Keeper
 		expectedResult error
 	}{
 		{

@@ -5,6 +5,7 @@ import (
 
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // ObserverManangerImp implement a ObserverManager which will store the
@@ -71,7 +72,7 @@ func (om *ObserverMgrV1) List() []cosmos.AccAddress {
 }
 
 // EndBlock emit the observers
-func (om *ObserverMgrV1) EndBlock(ctx cosmos.Context, keeper Keeper) {
+func (om *ObserverMgrV1) EndBlock(ctx cosmos.Context, keeper keeper.Keeper) {
 	if err := keeper.AddObservingAddresses(ctx, om.List()); err != nil {
 		ctx.Logger().Error("fail to append observers", "error", err)
 	}

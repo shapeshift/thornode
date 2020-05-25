@@ -10,14 +10,15 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
+	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 type SlasherV1 struct {
-	keeper Keeper
+	keeper keeper.Keeper
 }
 
 // NewSlasher create a new instance of Slasher
-func NewSlasherV1(keeper Keeper) *SlasherV1 {
+func NewSlasherV1(keeper keeper.Keeper) *SlasherV1 {
 	return &SlasherV1{
 		keeper: keeper,
 	}

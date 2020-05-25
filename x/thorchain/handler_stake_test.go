@@ -9,6 +9,7 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
+	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 type HandlerStakeSuite struct{}
@@ -16,7 +17,7 @@ type HandlerStakeSuite struct{}
 var _ = Suite(&HandlerStakeSuite{})
 
 type MockStackKeeper struct {
-	KVStoreDummy
+	keeper.KVStoreDummy
 	currentPool        Pool
 	activeNodeAccount  NodeAccount
 	failGetPool        bool
@@ -256,7 +257,7 @@ func (HandlerStakeSuite) TestHandlerStakeFailScenario(c *C) {
 
 	testCases := []struct {
 		name           string
-		k              Keeper
+		k              keeper.Keeper
 		expectedResult error
 	}{
 		{

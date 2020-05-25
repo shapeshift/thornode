@@ -2,7 +2,11 @@
 package types
 
 import (
+	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/cosmos/cosmos-sdk/x/auth"
 	atypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	"github.com/cosmos/cosmos-sdk/x/bank"
+	"github.com/cosmos/cosmos-sdk/x/supply"
 	"github.com/tendermint/tendermint/crypto"
 	tmtypes "github.com/tendermint/tendermint/types"
 
@@ -127,4 +131,17 @@ func SetupConfigForTest() {
 	config.SetBech32PrefixForAccount(cmd.Bech32PrefixAccAddr, cmd.Bech32PrefixAccPub)
 	config.SetBech32PrefixForValidator(cmd.Bech32PrefixValAddr, cmd.Bech32PrefixValPub)
 	config.SetBech32PrefixForConsensusNode(cmd.Bech32PrefixConsAddr, cmd.Bech32PrefixConsPub)
+}
+
+// nolint: deadcode unused
+// create a codec used only for testing
+func MakeTestCodec() *codec.Codec {
+	cdc := codec.New()
+	bank.RegisterCodec(cdc)
+	auth.RegisterCodec(cdc)
+	RegisterCodec(cdc)
+	supply.RegisterCodec(cdc)
+	cosmos.RegisterCodec(cdc)
+	codec.RegisterCrypto(cdc)
+	return cdc
 }

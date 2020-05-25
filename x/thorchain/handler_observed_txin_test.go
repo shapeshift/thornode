@@ -10,12 +10,13 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
+	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 type HandlerObservedTxInSuite struct{}
 
 type TestObservedTxInValidateKeeper struct {
-	KVStoreDummy
+	keeper.KVStoreDummy
 	activeNodeAccount NodeAccount
 	standbyAccount    NodeAccount
 }
@@ -82,7 +83,7 @@ func (s *HandlerObservedTxInSuite) TestValidate(c *C) {
 }
 
 type TestObservedTxInFailureKeeper struct {
-	KVStoreDummy
+	keeper.KVStoreDummy
 	pool Pool
 	evt  Event
 }
@@ -120,7 +121,7 @@ func (s *HandlerObservedTxInSuite) TestFailure(c *C) {
 }
 
 type TestObservedTxInHandleKeeper struct {
-	KVStoreDummy
+	keeper.KVStoreDummy
 	nas       NodeAccounts
 	voter     ObservedTxVoter
 	yggExists bool

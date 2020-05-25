@@ -8,11 +8,12 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
+	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // SwapQv1 is going to manage the swaps queue
 type SwapQv1 struct {
-	k Keeper
+	k keeper.Keeper
 }
 
 type swapItem struct {
@@ -23,7 +24,7 @@ type swapItem struct {
 type swapItems []swapItem
 
 // NewSwapQv1 create a new vault manager
-func NewSwapQv1(k Keeper) *SwapQv1 {
+func NewSwapQv1(k keeper.Keeper) *SwapQv1 {
 	return &SwapQv1{
 		k: k,
 	}

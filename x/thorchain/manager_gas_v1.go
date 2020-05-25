@@ -3,6 +3,7 @@ package thorchain
 import (
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // GasMgrV1 implement GasManager interface which will store the gas related events happened in thorchain to memory
@@ -46,7 +47,7 @@ func (gm *GasMgrV1) GetGas() common.Gas {
 }
 
 // EndBlock emit the events
-func (gm *GasMgrV1) EndBlock(ctx cosmos.Context, keeper Keeper, eventManager EventManager) {
+func (gm *GasMgrV1) EndBlock(ctx cosmos.Context, keeper keeper.Keeper, eventManager EventManager) {
 	gm.ProcessGas(ctx, keeper)
 
 	if len(gm.gasEvent.Pools) == 0 {
@@ -60,7 +61,7 @@ func (gm *GasMgrV1) EndBlock(ctx cosmos.Context, keeper Keeper, eventManager Eve
 }
 
 // ProcessGas to subsidise the pool with RUNE for the gas they have spent
-func (gm *GasMgrV1) ProcessGas(ctx cosmos.Context, keeper Keeper) {
+func (gm *GasMgrV1) ProcessGas(ctx cosmos.Context, keeper keeper.Keeper) {
 	vault, err := keeper.GetVaultData(ctx)
 	if err != nil {
 		ctx.Logger().Error("fail to get vault data", "error", err)

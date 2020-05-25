@@ -9,6 +9,8 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
+	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	kvTypes "gitlab.com/thorchain/thornode/x/thorchain/keeper/types"
 )
 
 // YggdrasilHandler is to process yggdrasil messages
@@ -19,12 +21,12 @@ import (
 // 1. outbound tx from yggdrasil vault
 // 2. inbound tx to asgard vault
 type YggdrasilHandler struct {
-	keeper Keeper
+	keeper keeper.Keeper
 	mgr    Manager
 }
 
 // NewYggdrasilHandler create a new Yggdrasil handler
-func NewYggdrasilHandler(keeper Keeper, mgr Manager) YggdrasilHandler {
+func NewYggdrasilHandler(keeper keeper.Keeper, mgr Manager) YggdrasilHandler {
 	return YggdrasilHandler{
 		keeper: keeper,
 		mgr:    mgr,
@@ -123,7 +125,7 @@ func (h YggdrasilHandler) handleV1(ctx cosmos.Context, msg MsgYggdrasil, version
 	}
 
 	vault, err := h.keeper.GetVault(ctx, msg.PubKey)
-	if err != nil && !stdErrors.Is(err, ErrVaultNotFound) {
+	if err != nil && !stdErrors.Is(err, kvTypes.ErrVaultNotFound) {
 		return nil, fmt.Errorf("fail to get yggdrasil: %w", err)
 	}
 	if len(vault.Type) == 0 {
