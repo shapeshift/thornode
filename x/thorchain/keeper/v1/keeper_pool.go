@@ -8,12 +8,12 @@ import (
 )
 
 // GetPoolIterator iterate pools
-func (k KVStoreV1) GetPoolIterator(ctx cosmos.Context) cosmos.Iterator {
+func (k KVStore) GetPoolIterator(ctx cosmos.Context) cosmos.Iterator {
 	store := ctx.KVStore(k.storeKey)
 	return cosmos.KVStorePrefixIterator(store, []byte(prefixPool))
 }
 
-func (k KVStoreV1) GetPools(ctx cosmos.Context) (Pools, error) {
+func (k KVStore) GetPools(ctx cosmos.Context) (Pools, error) {
 	var pools Pools
 	iterator := k.GetPoolIterator(ctx)
 	defer iterator.Close()
@@ -29,7 +29,7 @@ func (k KVStoreV1) GetPools(ctx cosmos.Context) (Pools, error) {
 }
 
 // GetPool get the entire Pool metadata struct for a pool ID
-func (k KVStoreV1) GetPool(ctx cosmos.Context, asset common.Asset) (Pool, error) {
+func (k KVStore) GetPool(ctx cosmos.Context, asset common.Asset) (Pool, error) {
 	key := k.GetKey(ctx, prefixPool, asset.String())
 	store := ctx.KVStore(k.storeKey)
 	if !store.Has([]byte(key)) {
@@ -44,7 +44,7 @@ func (k KVStoreV1) GetPool(ctx cosmos.Context, asset common.Asset) (Pool, error)
 }
 
 // Sets the entire Pool metadata struct for a pool ID
-func (k KVStoreV1) SetPool(ctx cosmos.Context, pool Pool) error {
+func (k KVStore) SetPool(ctx cosmos.Context, pool Pool) error {
 	store := ctx.KVStore(k.storeKey)
 	key := k.GetKey(ctx, prefixPool, pool.Asset.String())
 
@@ -57,7 +57,7 @@ func (k KVStoreV1) SetPool(ctx cosmos.Context, pool Pool) error {
 }
 
 // PoolExist check whether the given pool exist in the datastore
-func (k KVStoreV1) PoolExist(ctx cosmos.Context, asset common.Asset) bool {
+func (k KVStore) PoolExist(ctx cosmos.Context, asset common.Asset) bool {
 	store := ctx.KVStore(k.storeKey)
 	key := k.GetKey(ctx, prefixPool, asset.String())
 	return store.Has([]byte(key))

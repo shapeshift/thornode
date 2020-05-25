@@ -7,7 +7,7 @@ import (
 )
 
 // GetVaultData retrieve vault data from key value store
-func (k KVStoreV1) GetVaultData(ctx cosmos.Context) (VaultData, error) {
+func (k KVStore) GetVaultData(ctx cosmos.Context) (VaultData, error) {
 	data := NewVaultData()
 	key := k.GetKey(ctx, prefixVaultData, "")
 	store := ctx.KVStore(k.storeKey)
@@ -23,7 +23,7 @@ func (k KVStoreV1) GetVaultData(ctx cosmos.Context) (VaultData, error) {
 }
 
 // SetVaultData save the given vault data to key value store, it will overwrite existing vault
-func (k KVStoreV1) SetVaultData(ctx cosmos.Context, data VaultData) error {
+func (k KVStore) SetVaultData(ctx cosmos.Context, data VaultData) error {
 	key := k.GetKey(ctx, prefixVaultData, "")
 	store := ctx.KVStore(k.storeKey)
 	buf, err := k.cdc.MarshalBinaryBare(data)

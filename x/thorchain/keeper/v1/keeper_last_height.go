@@ -7,13 +7,13 @@ import (
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
-func (k KVStoreV1) SetLastSignedHeight(ctx cosmos.Context, height int64) {
+func (k KVStore) SetLastSignedHeight(ctx cosmos.Context, height int64) {
 	store := ctx.KVStore(k.storeKey)
 	key := k.GetKey(ctx, prefixLastSignedHeight, "")
 	store.Set([]byte(key), k.cdc.MustMarshalBinaryBare(height))
 }
 
-func (k KVStoreV1) GetLastSignedHeight(ctx cosmos.Context) (int64, error) {
+func (k KVStore) GetLastSignedHeight(ctx cosmos.Context) (int64, error) {
 	var height int64
 	key := k.GetKey(ctx, prefixLastSignedHeight, "")
 	store := ctx.KVStore(k.storeKey)
@@ -27,7 +27,7 @@ func (k KVStoreV1) GetLastSignedHeight(ctx cosmos.Context) (int64, error) {
 	return height, nil
 }
 
-func (k KVStoreV1) SetLastChainHeight(ctx cosmos.Context, chain common.Chain, height int64) error {
+func (k KVStore) SetLastChainHeight(ctx cosmos.Context, chain common.Chain, height int64) error {
 	lastHeight, err := k.GetLastChainHeight(ctx, chain)
 	if err != nil {
 		return err
@@ -42,7 +42,7 @@ func (k KVStoreV1) SetLastChainHeight(ctx cosmos.Context, chain common.Chain, he
 	return nil
 }
 
-func (k KVStoreV1) GetLastChainHeight(ctx cosmos.Context, chain common.Chain) (int64, error) {
+func (k KVStore) GetLastChainHeight(ctx cosmos.Context, chain common.Chain) (int64, error) {
 	var height int64
 	key := k.GetKey(ctx, prefixLastChainHeight, chain.String())
 	store := ctx.KVStore(k.storeKey)

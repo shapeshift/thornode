@@ -2,7 +2,7 @@ package thorchain
 
 import cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 
-func (k KVStoreV1) RagnarokInProgress(ctx cosmos.Context) bool {
+func (k KVStore) RagnarokInProgress(ctx cosmos.Context) bool {
 	height, err := k.GetRagnarokBlockHeight(ctx)
 	if err != nil {
 		ctx.Logger().Error(err.Error())
@@ -11,7 +11,7 @@ func (k KVStoreV1) RagnarokInProgress(ctx cosmos.Context) bool {
 	return height > 0
 }
 
-func (k KVStoreV1) GetRagnarokBlockHeight(ctx cosmos.Context) (int64, error) {
+func (k KVStore) GetRagnarokBlockHeight(ctx cosmos.Context) (int64, error) {
 	key := k.GetKey(ctx, prefixRagnarok, "")
 	store := ctx.KVStore(k.storeKey)
 	if !store.Has([]byte(key)) {
@@ -26,7 +26,7 @@ func (k KVStoreV1) GetRagnarokBlockHeight(ctx cosmos.Context) (int64, error) {
 	return ragnarok, nil
 }
 
-func (k KVStoreV1) SetRagnarokBlockHeight(ctx cosmos.Context, height int64) {
+func (k KVStore) SetRagnarokBlockHeight(ctx cosmos.Context, height int64) {
 	store := ctx.KVStore(k.storeKey)
 	key := k.GetKey(ctx, prefixRagnarok, "")
 	store.Set([]byte(key), k.cdc.MustMarshalBinaryBare(height))
