@@ -507,7 +507,11 @@ func (vm *VaultMgrV1) UpdateVaultData(ctx cosmos.Context, constAccessor constant
 	if err != nil {
 		return fmt.Errorf("fail to get total active bond: %w", err)
 	}
-	emissionCurve := constAccessor.GetInt64Value(constants.EmissionCurve)
+
+	emissionCurve, err := vm.k.GetMimir(ctx, constants.EmissionCurve.String())
+	if emissionCurve < 0 || err != nil {
+		emissionCurve = constAccessor.GetInt64Value(constants.EmissionCurve)
+	}
 	blocksOerYear := constAccessor.GetInt64Value(constants.BlocksPerYear)
 	bondReward, totalPoolRewards, stakerDeficit := vm.calcBlockRewards(totalStaked, totalBonded, totalReserve, totalLiquidityFees, emissionCurve, blocksOerYear)
 
