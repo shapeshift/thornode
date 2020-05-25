@@ -18,6 +18,7 @@ type Keeper interface {
 	Supply() supply.Keeper
 	CoinKeeper() bank.Keeper
 	Logger(ctx cosmos.Context) log.Logger
+	Version() int64
 	GetKey(ctx cosmos.Context, prefix kvTypes.DbPrefix, key string) string
 	GetStoreVersion(ctx cosmos.Context) int64
 	SetStoreVersion(ctx cosmos.Context, ver int64)
