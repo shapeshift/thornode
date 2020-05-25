@@ -8,6 +8,7 @@ import (
 
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
 // TXTYPE:STATE1:STATE2:STATE3:FINALMEMO
@@ -394,7 +395,7 @@ func ParseMemo(memo string) (Memo, error) {
 			if err != nil {
 				return noMemo, err
 			}
-			if !wa.GT(cosmos.ZeroUint()) || wa.GT(cosmos.NewUint(MaxUnstakeBasisPoints)) {
+			if !wa.GT(cosmos.ZeroUint()) || wa.GT(cosmos.NewUint(types.MaxUnstakeBasisPoints)) {
 				return noMemo, fmt.Errorf("withdraw amount :%s is invalid", withdrawAmount)
 			}
 		}
