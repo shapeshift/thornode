@@ -9,6 +9,7 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
+	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
@@ -21,7 +22,7 @@ func (s *UnstakeSuite) SetUpSuite(c *C) {
 }
 
 type UnstakeTestKeeper struct {
-	KVStoreDummy
+	keeper.KVStoreDummy
 	store map[string]interface{}
 }
 
@@ -322,7 +323,7 @@ func (UnstakeSuite) TestUnstake(c *C) {
 	testCases := []struct {
 		name          string
 		msg           MsgSetUnStake
-		ps            Keeper
+		ps            keeper.Keeper
 		runeAmount    cosmos.Uint
 		assetAmount   cosmos.Uint
 		expectedError error
@@ -489,7 +490,7 @@ func (UnstakeSuite) TestUnstake(c *C) {
 	}
 }
 
-func getUnstakeTestKeeper(c *C) Keeper {
+func getUnstakeTestKeeper(c *C) keeper.Keeper {
 	runeAddress, err := common.NewAddress("bnb1g0xakzh03tpa54khxyvheeu92hwzypkdce77rm")
 	if err != nil {
 		c.Error("fail to create new BNB Address")

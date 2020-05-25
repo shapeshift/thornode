@@ -10,14 +10,15 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
+	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 type SendHandler struct {
-	keeper Keeper
+	keeper keeper.Keeper
 	mgr    Manager
 }
 
-func NewSendHandler(keeper Keeper, mgr Manager) SendHandler {
+func NewSendHandler(keeper keeper.Keeper, mgr Manager) SendHandler {
 	return SendHandler{
 		keeper: keeper,
 		mgr:    mgr,

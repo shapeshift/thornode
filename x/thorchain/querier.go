@@ -14,11 +14,12 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
+	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 	q "gitlab.com/thorchain/thornode/x/thorchain/query"
 )
 
 // NewQuerier is the module level router for state queries
-func NewQuerier(keeper Keeper, kbs KeybaseStore) cosmos.Querier {
+func NewQuerier(keeper keeper.Keeper, kbs KeybaseStore) cosmos.Querier {
 	return func(ctx cosmos.Context, path []string, req abci.RequestQuery) (res []byte, err error) {
 		switch path[0] {
 		case q.QueryPool.Key:
@@ -93,7 +94,7 @@ func getURLFromData(data []byte) (*url.URL, error) {
 	return u, nil
 }
 
-func queryBalanceModule(ctx cosmos.Context, path []string, keeper Keeper) ([]byte, error) {
+func queryBalanceModule(ctx cosmos.Context, path []string, keeper keeper.Keeper) ([]byte, error) {
 	supplier := keeper.Supply()
 	mod := supplier.GetModuleAccount(ctx, AsgardName)
 
@@ -105,7 +106,7 @@ func queryBalanceModule(ctx cosmos.Context, path []string, keeper Keeper) ([]byt
 	return res, nil
 }
 
-func queryAsgardVaults(ctx cosmos.Context, keeper Keeper) ([]byte, error) {
+func queryAsgardVaults(ctx cosmos.Context, keeper keeper.Keeper) ([]byte, error) {
 	vaults, err := keeper.GetAsgardVaults(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("fail to get asgard vaults: %w", err)
@@ -127,7 +128,7 @@ func queryAsgardVaults(ctx cosmos.Context, keeper Keeper) ([]byte, error) {
 	return res, nil
 }
 
-func queryYggdrasilVaults(ctx cosmos.Context, keeper Keeper) ([]byte, error) {
+func queryYggdrasilVaults(ctx cosmos.Context, keeper keeper.Keeper) ([]byte, error) {
 	vaults := make(Vaults, 0)
 	iter := keeper.GetVaultIterator(ctx)
 	defer iter.Close()
@@ -181,7 +182,7 @@ func queryYggdrasilVaults(ctx cosmos.Context, keeper Keeper) ([]byte, error) {
 	return res, nil
 }
 
-func queryVaultsPubkeys(ctx cosmos.Context, keeper Keeper) ([]byte, error) {
+func queryVaultsPubkeys(ctx cosmos.Context, keeper keeper.Keeper) ([]byte, error) {
 	var resp struct {
 		Asgard    common.PubKeys `json:"asgard"`
 		Yggdrasil common.PubKeys `json:"yggdrasil"`
@@ -212,7 +213,7 @@ func queryVaultsPubkeys(ctx cosmos.Context, keeper Keeper) ([]byte, error) {
 	return res, nil
 }
 
-func queryVaultData(ctx cosmos.Context, keeper Keeper) ([]byte, error) {
+func queryVaultData(ctx cosmos.Context, keeper keeper.Keeper) ([]byte, error) {
 	data, err := keeper.GetVaultData(ctx)
 	if err != nil {
 		ctx.Logger().Error("fail to get vault", "error", err)
@@ -231,7 +232,7 @@ func queryVaultData(ctx cosmos.Context, keeper Keeper) ([]byte, error) {
 	return res, nil
 }
 
-func queryPoolAddresses(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, error) {
+func queryPoolAddresses(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
 	active, err := keeper.GetAsgardVaultsByStatus(ctx, ActiveVault)
 	if err != nil {
 		ctx.Logger().Error("fail to get active vaults", "error", err)
@@ -283,7 +284,7 @@ func queryPoolAddresses(ctx cosmos.Context, path []string, req abci.RequestQuery
 	return res, nil
 }
 
-func queryNodeAccount(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, error) {
+func queryNodeAccount(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
 	nodeAddress := path[0]
 	addr, err := cosmos.AccAddressFromBech32(nodeAddress)
 	if err != nil {
@@ -310,7 +311,7 @@ func queryNodeAccount(ctx cosmos.Context, path []string, req abci.RequestQuery, 
 	return res, nil
 }
 
-func queryNodeAccounts(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, error) {
+func queryNodeAccounts(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
 	nodeAccounts, err := keeper.ListNodeAccountsWithBond(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("fail to get node accounts: %w", err)
@@ -336,7 +337,7 @@ func queryNodeAccounts(ctx cosmos.Context, path []string, req abci.RequestQuery,
 }
 
 // queryObservers will only return all the active accounts
-func queryObservers(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, error) {
+func queryObservers(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
 	activeAccounts, err := keeper.ListActiveNodeAccounts(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("fail to get node account iterator: %w", err)
@@ -354,7 +355,7 @@ func queryObservers(ctx cosmos.Context, path []string, req abci.RequestQuery, ke
 	return res, nil
 }
 
-func queryObserver(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, error) {
+func queryObserver(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
 	observerAddr := path[0]
 	addr, err := cosmos.AccAddressFromBech32(observerAddr)
 	if err != nil {
@@ -375,7 +376,7 @@ func queryObserver(ctx cosmos.Context, path []string, req abci.RequestQuery, kee
 }
 
 // queryStakers
-func queryStakers(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, error) {
+func queryStakers(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
 	asset, err := common.NewAsset(path[0])
 	if err != nil {
 		ctx.Logger().Error("fail to get parse asset", "error", err)
@@ -398,7 +399,7 @@ func queryStakers(ctx cosmos.Context, path []string, req abci.RequestQuery, keep
 }
 
 // nolint: unparam
-func queryPool(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, error) {
+func queryPool(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
 	asset, err := common.NewAsset(path[0])
 	if err != nil {
 		ctx.Logger().Error("fail to parse asset", "error", err)
@@ -438,7 +439,7 @@ func queryPool(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper 
 	return res, nil
 }
 
-func queryPools(ctx cosmos.Context, req abci.RequestQuery, keeper Keeper) ([]byte, error) {
+func queryPools(ctx cosmos.Context, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
 	pools := QueryResPools{}
 	iterator := keeper.GetPoolIterator(ctx)
 
@@ -478,7 +479,7 @@ func queryPools(ctx cosmos.Context, req abci.RequestQuery, keeper Keeper) ([]byt
 	return res, nil
 }
 
-func queryTxIn(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, error) {
+func queryTxIn(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
 	hash, err := common.NewTxID(path[0])
 	if err != nil {
 		ctx.Logger().Error("fail to parse tx id", "error", err)
@@ -502,7 +503,7 @@ func queryTxIn(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper 
 	return res, nil
 }
 
-func queryKeygen(ctx cosmos.Context, kbs KeybaseStore, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, error) {
+func queryKeygen(ctx cosmos.Context, kbs KeybaseStore, path []string, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
 	var err error
 	height, err := strconv.ParseInt(path[0], 0, 64)
 	if err != nil {
@@ -560,7 +561,7 @@ func queryKeygen(ctx cosmos.Context, kbs KeybaseStore, path []string, req abci.R
 	return res, nil
 }
 
-func queryKeysign(ctx cosmos.Context, kbs KeybaseStore, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, error) {
+func queryKeysign(ctx cosmos.Context, kbs KeybaseStore, path []string, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
 	var err error
 	height, err := strconv.ParseInt(path[0], 0, 64)
 	if err != nil {
@@ -651,7 +652,7 @@ func getEventStatusFromQuery(u *url.URL) EventStatuses {
 	return GetEventStatuses(values)
 }
 
-func queryEventsByTxHash(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, error) {
+func queryEventsByTxHash(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
 	txID, err := common.NewTxID(path[0])
 	if err != nil {
 		ctx.Logger().Error("fail to discover tx hash", "error", err)
@@ -688,7 +689,7 @@ func queryEventsByTxHash(ctx cosmos.Context, path []string, req abci.RequestQuer
 	return res, nil
 }
 
-func queryCompEvents(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, error) {
+func queryCompEvents(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
 	id, err := strconv.ParseInt(path[0], 10, 64)
 	if err != nil {
 		ctx.Logger().Error("fail to discover id number", "error", err)
@@ -774,7 +775,7 @@ func queryCompEvents(ctx cosmos.Context, path []string, req abci.RequestQuery, k
 	return res, nil
 }
 
-func queryHeights(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, error) {
+func queryHeights(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
 	chain := common.BNBChain
 	if len(path[0]) > 0 {
 		var err error
@@ -808,7 +809,7 @@ func queryHeights(ctx cosmos.Context, path []string, req abci.RequestQuery, keep
 }
 
 // queryTSSSigner
-func queryTSSSigners(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, error) {
+func queryTSSSigners(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
 	vaultPubKey := path[0]
 	if len(vaultPubKey) == 0 {
 		ctx.Logger().Error("empty vault pub key")
@@ -872,7 +873,7 @@ func queryTSSSigners(ctx cosmos.Context, path []string, req abci.RequestQuery, k
 	return res, nil
 }
 
-func queryConstantValues(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, error) {
+func queryConstantValues(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
 	ver := keeper.GetLowestActiveVersion(ctx)
 	constAccessor := constants.GetConstantValues(ver)
 	res, err := codec.MarshalJSONIndent(keeper.Cdc(), constAccessor)
@@ -883,7 +884,7 @@ func queryConstantValues(ctx cosmos.Context, path []string, req abci.RequestQuer
 	return res, nil
 }
 
-func queryMimirValues(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, error) {
+func queryMimirValues(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
 	values := make(map[string]int64, 0)
 	iter := keeper.GetMimirIterator(ctx)
 	defer iter.Close()
@@ -903,7 +904,7 @@ func queryMimirValues(ctx cosmos.Context, path []string, req abci.RequestQuery, 
 	return res, nil
 }
 
-func queryBan(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, error) {
+func queryBan(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
 	addr, err := cosmos.AccAddressFromBech32(path[0])
 	if err != nil {
 		ctx.Logger().Error("invalid node address", "error", err)

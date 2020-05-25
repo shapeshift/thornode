@@ -8,6 +8,7 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
+	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
@@ -16,7 +17,7 @@ type StakeSuite struct{}
 var _ = Suite(&StakeSuite{})
 
 type StakeTestKeeper struct {
-	KVStoreDummy
+	keeper.KVStoreDummy
 	store map[string]interface{}
 }
 

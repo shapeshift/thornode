@@ -7,6 +7,7 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
+	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 type HandlerMigrateSuite struct{}
@@ -14,7 +15,7 @@ type HandlerMigrateSuite struct{}
 var _ = Suite(&HandlerMigrateSuite{})
 
 type TestMigrateKeeper struct {
-	KVStoreDummy
+	keeper.KVStoreDummy
 	activeNodeAccount NodeAccount
 	vault             Vault
 }
@@ -67,7 +68,7 @@ func (HandlerMigrateSuite) TestMigrate(c *C) {
 }
 
 type TestMigrateKeeperHappyPath struct {
-	KVStoreDummy
+	keeper.KVStoreDummy
 	activeNodeAccount NodeAccount
 	newVault          Vault
 	retireVault       Vault

@@ -17,6 +17,7 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
+	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 	kvTypes "gitlab.com/thorchain/thornode/x/thorchain/keeper/types"
 )
 
@@ -25,7 +26,7 @@ const (
 	thorchainCliFolderName = `.thorcli`
 )
 
-func refundTx(ctx cosmos.Context, tx ObservedTx, mgr Manager, keeper Keeper, constAccessor constants.ConstantValues, refundCode uint32, refundReason string) error {
+func refundTx(ctx cosmos.Context, tx ObservedTx, mgr Manager, keeper keeper.Keeper, constAccessor constants.ConstantValues, refundCode uint32, refundReason string) error {
 	// If THORNode recognize one of the coins, and therefore able to refund
 	// withholding fees, refund all coins.
 
@@ -126,7 +127,7 @@ func getFee(input, output common.Coins, transactionFee int64) common.Fee {
 	return fee
 }
 
-func subsidizePoolWithSlashBond(ctx cosmos.Context, keeper Keeper, ygg Vault, yggTotalStolen, slashRuneAmt cosmos.Uint) error {
+func subsidizePoolWithSlashBond(ctx cosmos.Context, keeper keeper.Keeper, ygg Vault, yggTotalStolen, slashRuneAmt cosmos.Uint) error {
 	// Thorchain did not slash the node account
 	if slashRuneAmt.IsZero() {
 		return nil
@@ -186,7 +187,7 @@ func subsidizePoolWithSlashBond(ctx cosmos.Context, keeper Keeper, ygg Vault, yg
 
 // getTotalYggValueInRune will go through all the coins in ygg , and calculate the total value in RUNE
 // return value will be totalValueInRune,error
-func getTotalYggValueInRune(ctx cosmos.Context, keeper Keeper, ygg Vault) (cosmos.Uint, error) {
+func getTotalYggValueInRune(ctx cosmos.Context, keeper keeper.Keeper, ygg Vault) (cosmos.Uint, error) {
 	yggRune := cosmos.ZeroUint()
 	for _, coin := range ygg.Coins {
 		if coin.Asset.IsRune() {
@@ -202,7 +203,7 @@ func getTotalYggValueInRune(ctx cosmos.Context, keeper Keeper, ygg Vault) (cosmo
 	return yggRune, nil
 }
 
-func refundBond(ctx cosmos.Context, tx common.Tx, nodeAcc NodeAccount, keeper Keeper, mgr Manager) error {
+func refundBond(ctx cosmos.Context, tx common.Tx, nodeAcc NodeAccount, keeper keeper.Keeper, mgr Manager) error {
 	if nodeAcc.Status == NodeActive {
 		ctx.Logger().Info("node still active , cannot refund bond", "node address", nodeAcc.NodeAddress, "node pub key", nodeAcc.PubKeySet.Secp256k1)
 		return nil
@@ -294,11 +295,11 @@ func refundBond(ctx cosmos.Context, tx common.Tx, nodeAcc NodeAccount, keeper Ke
 }
 
 // Checks if the observed vault pubkey is a valid asgard or ygg vault
-func isCurrentVaultPubKey(ctx cosmos.Context, keeper Keeper, tx ObservedTx) bool {
+func isCurrentVaultPubKey(ctx cosmos.Context, keeper keeper.Keeper, tx ObservedTx) bool {
 	return keeper.VaultExists(ctx, tx.ObservedPubKey)
 }
 
-func isSignedByActiveNodeAccounts(ctx cosmos.Context, keeper Keeper, signers []cosmos.AccAddress) bool {
+func isSignedByActiveNodeAccounts(ctx cosmos.Context, keeper keeper.Keeper, signers []cosmos.AccAddress) bool {
 	if len(signers) == 0 {
 		return false
 	}
@@ -324,7 +325,7 @@ func isSignedByActiveNodeAccounts(ctx cosmos.Context, keeper Keeper, signers []c
 	return true
 }
 
-func updateEventStatus(ctx cosmos.Context, keeper Keeper, eventID int64, txs common.Txs, eventStatus EventStatus) error {
+func updateEventStatus(ctx cosmos.Context, keeper keeper.Keeper, eventID int64, txs common.Txs, eventStatus EventStatus) error {
 	event, err := keeper.GetEvent(ctx, eventID)
 	if err != nil {
 		return fmt.Errorf("fail to get event: %w", err)
@@ -365,7 +366,7 @@ func updateEventStatus(ctx cosmos.Context, keeper Keeper, eventID int64, txs com
 	return keeper.UpsertEvent(ctx, event)
 }
 
-func updateEventFee(ctx cosmos.Context, keeper Keeper, txID common.TxID, fee common.Fee) error {
+func updateEventFee(ctx cosmos.Context, keeper keeper.Keeper, txID common.TxID, fee common.Fee) error {
 	ctx.Logger().Info("update event fee txid", "tx", txID.String())
 	eventIDs, err := keeper.GetEventsIDByTxHash(ctx, txID)
 	if err != nil {
@@ -395,7 +396,7 @@ func updateEventFee(ctx cosmos.Context, keeper Keeper, txID common.TxID, fee com
 	return keeper.UpsertEvent(ctx, event)
 }
 
-func completeEvents(ctx cosmos.Context, keeper Keeper, txID common.TxID, txs common.Txs, eventStatus EventStatus) error {
+func completeEvents(ctx cosmos.Context, keeper keeper.Keeper, txID common.TxID, txs common.Txs, eventStatus EventStatus) error {
 	ctx.Logger().Info(fmt.Sprintf("txid(%s)", txID))
 	eventIDs, err := keeper.GetPendingEventID(ctx, txID)
 	if err != nil {
@@ -413,7 +414,7 @@ func completeEvents(ctx cosmos.Context, keeper Keeper, txID common.TxID, txs com
 	return nil
 }
 
-func enableNextPool(ctx cosmos.Context, keeper Keeper, eventManager EventManager) error {
+func enableNextPool(ctx cosmos.Context, keeper keeper.Keeper, eventManager EventManager) error {
 	var pools []Pool
 	iterator := keeper.GetPoolIterator(ctx)
 	defer iterator.Close()
@@ -455,7 +456,7 @@ func wrapError(ctx cosmos.Context, err error, wrap string) error {
 	return multierror.Append(errInternal, err)
 }
 
-func AddGasFees(ctx cosmos.Context, keeper Keeper, tx ObservedTx, gasManager GasManager) error {
+func AddGasFees(ctx cosmos.Context, keeper keeper.Keeper, tx ObservedTx, gasManager GasManager) error {
 	if len(tx.Tx.Gas) == 0 {
 		return nil
 	}

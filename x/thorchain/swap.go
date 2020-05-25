@@ -6,10 +6,11 @@ import (
 
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // validate if pools exist
-func validatePools(ctx cosmos.Context, keeper Keeper, assets ...common.Asset) error {
+func validatePools(ctx cosmos.Context, keeper keeper.Keeper, assets ...common.Asset) error {
 	for _, asset := range assets {
 		if !asset.IsRune() {
 			if !keeper.PoolExist(ctx, asset) {
@@ -44,7 +45,7 @@ func validateMessage(tx common.Tx, target common.Asset, destination common.Addre
 }
 
 func swap(ctx cosmos.Context,
-	keeper Keeper, tx common.Tx,
+	keeper keeper.Keeper, tx common.Tx,
 	target common.Asset,
 	destination common.Address,
 	tradeTarget cosmos.Uint,
@@ -107,7 +108,7 @@ func swap(ctx cosmos.Context,
 }
 
 func swapOne(ctx cosmos.Context,
-	keeper Keeper, tx common.Tx,
+	keeper keeper.Keeper, tx common.Tx,
 	target common.Asset,
 	destination common.Address,
 	tradeTarget cosmos.Uint,

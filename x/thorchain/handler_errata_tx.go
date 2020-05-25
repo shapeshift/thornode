@@ -9,16 +9,17 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
+	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // ErrataTxHandler is to handle ErrataTx message
 type ErrataTxHandler struct {
-	keeper Keeper
+	keeper keeper.Keeper
 	mgr    Manager
 }
 
 // NewErrataTxHandler create new instance of ErrataTxHandler
-func NewErrataTxHandler(keeper Keeper, mgr Manager) ErrataTxHandler {
+func NewErrataTxHandler(keeper keeper.Keeper, mgr Manager) ErrataTxHandler {
 	return ErrataTxHandler{
 		keeper: keeper,
 		mgr:    mgr,

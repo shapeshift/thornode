@@ -8,15 +8,16 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
+	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 type TssHandler struct {
-	keeper Keeper
+	keeper keeper.Keeper
 	mgr    Manager
 }
 
 // NewTssHandler create a new handler to process MsgTssPool
-func NewTssHandler(keeper Keeper, mgr Manager) TssHandler {
+func NewTssHandler(keeper keeper.Keeper, mgr Manager) TssHandler {
 	return TssHandler{
 		keeper: keeper,
 		mgr:    mgr,

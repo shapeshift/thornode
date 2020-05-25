@@ -7,14 +7,15 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
+	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 	kvTypes "gitlab.com/thorchain/thornode/x/thorchain/keeper/types"
 )
 
 type YggMgrV1 struct {
-	keeper Keeper
+	keeper keeper.Keeper
 }
 
-func NewYggMgrV1(keeper Keeper) *YggMgrV1 {
+func NewYggMgrV1(keeper keeper.Keeper) *YggMgrV1 {
 	return &YggMgrV1{
 		keeper: keeper,
 	}

@@ -6,6 +6,7 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
+	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 type YggdrasilSuite struct{}
@@ -31,7 +32,7 @@ func (s YggdrasilSuite) TestCalcTargetAmounts(c *C) {
 
 	totalBond := cosmos.NewUint(8000 * common.One)
 	bond := cosmos.NewUint(200 * common.One)
-	ymgr := NewYggMgrV1(KVStoreDummy{})
+	ymgr := NewYggMgrV1(keeper.KVStoreDummy{})
 	coins, err := ymgr.calcTargetYggCoins(pools, ygg, bond, totalBond)
 	c.Assert(err, IsNil)
 	c.Assert(coins, HasLen, 3)
@@ -58,7 +59,7 @@ func (s YggdrasilSuite) TestCalcTargetAmounts2(c *C) {
 
 	totalBond := cosmos.NewUint(3000000 * common.One)
 	bond := cosmos.NewUint(1000000 * common.One)
-	ymgr := NewYggMgrV1(KVStoreDummy{})
+	ymgr := NewYggMgrV1(keeper.KVStoreDummy{})
 	coins, err := ymgr.calcTargetYggCoins(pools, ygg, bond, totalBond)
 	c.Assert(err, IsNil)
 	c.Assert(coins, HasLen, 2)
@@ -94,7 +95,7 @@ func (s YggdrasilSuite) TestCalcTargetAmounts3(c *C) {
 
 	totalBond := cosmos.NewUint(8000 * common.One)
 	bond := cosmos.NewUint(200 * common.One)
-	ymgr := NewYggMgrV1(KVStoreDummy{})
+	ymgr := NewYggMgrV1(keeper.KVStoreDummy{})
 	coins, err := ymgr.calcTargetYggCoins(pools, ygg, bond, totalBond)
 	c.Assert(err, IsNil)
 	c.Assert(coins, HasLen, 2, Commentf("%d", len(coins)))

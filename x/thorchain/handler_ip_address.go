@@ -7,16 +7,17 @@ import (
 
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
+	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // IPAddressHandler is to handle ip address message
 type IPAddressHandler struct {
-	keeper Keeper
+	keeper keeper.Keeper
 	mgr    Manager
 }
 
 // NewIPAddressHandler create new instance of IPAddressHandler
-func NewIPAddressHandler(keeper Keeper, mgr Manager) IPAddressHandler {
+func NewIPAddressHandler(keeper keeper.Keeper, mgr Manager) IPAddressHandler {
 	return IPAddressHandler{
 		keeper: keeper,
 		mgr:    mgr,

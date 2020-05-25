@@ -6,14 +6,15 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
+	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 type MigrateHandler struct {
-	keeper Keeper
+	keeper keeper.Keeper
 	mgr    Manager
 }
 
-func NewMigrateHandler(keeper Keeper, mgr Manager) MigrateHandler {
+func NewMigrateHandler(keeper keeper.Keeper, mgr Manager) MigrateHandler {
 	return MigrateHandler{
 		keeper: keeper,
 		mgr:    mgr,

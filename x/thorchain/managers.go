@@ -5,11 +5,12 @@ import (
 
 	"github.com/blang/semver"
 	abci "github.com/tendermint/tendermint/abci/types"
-
 	"github.com/tendermint/tendermint/crypto"
+
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
+	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 type Manager interface {
@@ -27,28 +28,28 @@ type Manager interface {
 // GasManager define all the methods required to manage gas
 type GasManager interface {
 	BeginBlock()
-	EndBlock(ctx cosmos.Context, keeper Keeper, eventManager EventManager)
+	EndBlock(ctx cosmos.Context, keeper keeper.Keeper, eventManager EventManager)
 	AddGasAsset(gas common.Gas)
-	ProcessGas(ctx cosmos.Context, keeper Keeper)
+	ProcessGas(ctx cosmos.Context, keeper keeper.Keeper)
 	GetGas() common.Gas
 }
 
 // EventManager define methods need to be support to manage events
 type EventManager interface {
-	CompleteEvents(ctx cosmos.Context, keeper Keeper, height int64, txID common.TxID, txs common.Txs, eventStatus EventStatus)
-	EmitPoolEvent(ctx cosmos.Context, keeper Keeper, txIn common.TxID, status EventStatus, poolEvt EventPool) error
-	EmitErrataEvent(ctx cosmos.Context, keeper Keeper, txIn common.TxID, errataEvent EventErrata) error
-	EmitGasEvent(ctx cosmos.Context, keeper Keeper, gasEvent *EventGas) error
-	EmitStakeEvent(ctx cosmos.Context, keeper Keeper, inTx common.Tx, stakeEvent EventStake) error
-	EmitRewardEvent(ctx cosmos.Context, keeper Keeper, rewardEvt EventRewards) error
-	EmitReserveEvent(ctx cosmos.Context, keeper Keeper, reserveEvent EventReserve) error
-	EmitUnstakeEvent(ctx cosmos.Context, keeper Keeper, unstakeEvt EventUnstake) error
-	EmitSwapEvent(ctx cosmos.Context, keeper Keeper, swap EventSwap) error
-	EmitRefundEvent(ctx cosmos.Context, keeper Keeper, refundEvt EventRefund, status EventStatus) error
-	EmitBondEvent(ctx cosmos.Context, keeper Keeper, bondEvent EventBond) error
-	EmitAddEvent(ctx cosmos.Context, keeper Keeper, addEvt EventAdd) error
-	EmitFeeEvent(ctx cosmos.Context, keeper Keeper, feeEvent EventFee) error
-	EmitSlashEvent(ctx cosmos.Context, keeper Keeper, slashEvt EventSlash) error
+	CompleteEvents(ctx cosmos.Context, keeper keeper.Keeper, height int64, txID common.TxID, txs common.Txs, eventStatus EventStatus)
+	EmitPoolEvent(ctx cosmos.Context, keeper keeper.Keeper, txIn common.TxID, status EventStatus, poolEvt EventPool) error
+	EmitErrataEvent(ctx cosmos.Context, keeper keeper.Keeper, txIn common.TxID, errataEvent EventErrata) error
+	EmitGasEvent(ctx cosmos.Context, keeper keeper.Keeper, gasEvent *EventGas) error
+	EmitStakeEvent(ctx cosmos.Context, keeper keeper.Keeper, inTx common.Tx, stakeEvent EventStake) error
+	EmitRewardEvent(ctx cosmos.Context, keeper keeper.Keeper, rewardEvt EventRewards) error
+	EmitReserveEvent(ctx cosmos.Context, keeper keeper.Keeper, reserveEvent EventReserve) error
+	EmitUnstakeEvent(ctx cosmos.Context, keeper keeper.Keeper, unstakeEvt EventUnstake) error
+	EmitSwapEvent(ctx cosmos.Context, keeper keeper.Keeper, swap EventSwap) error
+	EmitRefundEvent(ctx cosmos.Context, keeper keeper.Keeper, refundEvt EventRefund, status EventStatus) error
+	EmitBondEvent(ctx cosmos.Context, keeper keeper.Keeper, bondEvent EventBond) error
+	EmitAddEvent(ctx cosmos.Context, keeper keeper.Keeper, addEvt EventAdd) error
+	EmitFeeEvent(ctx cosmos.Context, keeper keeper.Keeper, feeEvent EventFee) error
+	EmitSlashEvent(ctx cosmos.Context, keeper keeper.Keeper, slashEvt EventSlash) error
 	EmitOutboundEvent(ctx cosmos.Context, outbound EventOutbound) error
 }
 
@@ -63,7 +64,7 @@ type TxOutStore interface {
 
 type ObserverManager interface {
 	BeginBlock()
-	EndBlock(ctx cosmos.Context, keeper Keeper)
+	EndBlock(ctx cosmos.Context, keeper keeper.Keeper)
 	AppendObserver(chain common.Chain, addrs []cosmos.AccAddress)
 	List() []cosmos.AccAddress
 }
@@ -113,10 +114,10 @@ type Mgrs struct {
 	swapQ          SwapQueue
 	slasher        Slasher
 	yggManager     YggManager
-	Keeper         Keeper
+	Keeper         keeper.Keeper
 }
 
-func NewManagers(keeper Keeper) *Mgrs {
+func NewManagers(keeper keeper.Keeper) *Mgrs {
 	return &Mgrs{
 		Keeper: keeper,
 	}
@@ -201,7 +202,7 @@ func GetEventManager(version semver.Version) (EventManager, error) {
 }
 
 // GetTxOutStore will return an implementation of the txout store that
-func GetTxOutStore(keeper Keeper, version semver.Version, eventMgr EventManager) (TxOutStore, error) {
+func GetTxOutStore(keeper keeper.Keeper, version semver.Version, eventMgr EventManager) (TxOutStore, error) {
 	constAcessor := constants.GetConstantValues(version)
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return NewTxOutStorageV1(keeper, constAcessor, eventMgr), nil
@@ -210,7 +211,7 @@ func GetTxOutStore(keeper Keeper, version semver.Version, eventMgr EventManager)
 }
 
 // GetVaultManager retrieve a VaultManager that is compatible with the given version
-func GetVaultManager(keeper Keeper, version semver.Version, txOutStore TxOutStore, eventMgr EventManager) (VaultManager, error) {
+func GetVaultManager(keeper keeper.Keeper, version semver.Version, txOutStore TxOutStore, eventMgr EventManager) (VaultManager, error) {
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return NewVaultMgrV1(keeper, txOutStore, eventMgr), nil
 	}
@@ -218,7 +219,7 @@ func GetVaultManager(keeper Keeper, version semver.Version, txOutStore TxOutStor
 }
 
 // GetValidatorManager create a new instance of Validator Manager
-func GetValidatorManager(keeper Keeper, version semver.Version, vaultMgr VaultManager, txOutStore TxOutStore, eventMgr EventManager) (ValidatorManager, error) {
+func GetValidatorManager(keeper keeper.Keeper, version semver.Version, vaultMgr VaultManager, txOutStore TxOutStore, eventMgr EventManager) (ValidatorManager, error) {
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return NewValidatorMgrV1(keeper, vaultMgr, txOutStore, eventMgr), nil
 	}
@@ -235,21 +236,21 @@ func GetObserverManager(version semver.Version) (ObserverManager, error) {
 }
 
 // GetSwapQueue retrieve a SwapQueue that is compatible with the given version
-func GetSwapQueue(keeper Keeper, version semver.Version) (SwapQueue, error) {
+func GetSwapQueue(keeper keeper.Keeper, version semver.Version) (SwapQueue, error) {
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return NewSwapQv1(keeper), nil
 	}
 	return nil, errInvalidVersion
 }
 
-func GetSlasher(keeper Keeper, version semver.Version) (Slasher, error) {
+func GetSlasher(keeper keeper.Keeper, version semver.Version) (Slasher, error) {
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return NewSlasherV1(keeper), nil
 	}
 	return nil, errInvalidVersion
 }
 
-func GetYggManager(keeper Keeper, version semver.Version) (YggManager, error) {
+func GetYggManager(keeper keeper.Keeper, version semver.Version) (YggManager, error) {
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return NewYggMgrV1(keeper), nil
 	}

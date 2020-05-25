@@ -6,6 +6,7 @@ import (
 
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // EventMgrV1 implement EventManager interface
@@ -18,11 +19,11 @@ func NewEventMgrV1() *EventMgrV1 {
 }
 
 // CompleteEvents Mark an event in the given block height to the given status
-func (m *EventMgrV1) CompleteEvents(ctx cosmos.Context, keeper Keeper, height int64, txID common.TxID, txs common.Txs, eventStatus EventStatus) {
+func (m *EventMgrV1) CompleteEvents(ctx cosmos.Context, keeper keeper.Keeper, height int64, txID common.TxID, txs common.Txs, eventStatus EventStatus) {
 }
 
 // EmitPoolEvent is going to save a pool event to storage
-func (m *EventMgrV1) EmitPoolEvent(ctx cosmos.Context, keeper Keeper, txIn common.TxID, status EventStatus, poolEvt EventPool) error {
+func (m *EventMgrV1) EmitPoolEvent(ctx cosmos.Context, keeper keeper.Keeper, txIn common.TxID, status EventStatus, poolEvt EventPool) error {
 	bytes, err := json.Marshal(poolEvt)
 	if err != nil {
 		return fmt.Errorf("fail to marshal pool event: %w", err)
@@ -45,7 +46,7 @@ func (m *EventMgrV1) EmitPoolEvent(ctx cosmos.Context, keeper Keeper, txIn commo
 }
 
 // EmitErrataEvent generate an errata event
-func (m *EventMgrV1) EmitErrataEvent(ctx cosmos.Context, keeper Keeper, txIn common.TxID, errataEvent EventErrata) error {
+func (m *EventMgrV1) EmitErrataEvent(ctx cosmos.Context, keeper keeper.Keeper, txIn common.TxID, errataEvent EventErrata) error {
 	errataBuf, err := json.Marshal(errataEvent)
 	if err != nil {
 		ctx.Logger().Error("fail to marshal errata event to buf", "error", err)
@@ -70,7 +71,7 @@ func (m *EventMgrV1) EmitErrataEvent(ctx cosmos.Context, keeper Keeper, txIn com
 	return nil
 }
 
-func (m *EventMgrV1) EmitGasEvent(ctx cosmos.Context, keeper Keeper, gasEvent *EventGas) error {
+func (m *EventMgrV1) EmitGasEvent(ctx cosmos.Context, keeper keeper.Keeper, gasEvent *EventGas) error {
 	if gasEvent == nil {
 		return nil
 	}
@@ -94,7 +95,7 @@ func (m *EventMgrV1) EmitGasEvent(ctx cosmos.Context, keeper Keeper, gasEvent *E
 }
 
 // EmitStakeEvent add the stake event to block
-func (m *EventMgrV1) EmitStakeEvent(ctx cosmos.Context, keeper Keeper, inTx common.Tx, stakeEvent EventStake) error {
+func (m *EventMgrV1) EmitStakeEvent(ctx cosmos.Context, keeper keeper.Keeper, inTx common.Tx, stakeEvent EventStake) error {
 	stakeBytes, err := json.Marshal(stakeEvent)
 	if err != nil {
 		return fmt.Errorf("fail to marshal stake event to json: %w", err)
@@ -121,7 +122,7 @@ func (m *EventMgrV1) EmitStakeEvent(ctx cosmos.Context, keeper Keeper, inTx comm
 }
 
 // EmitRewardEvent save the reward event to keyvalue store and also use event manager
-func (m *EventMgrV1) EmitRewardEvent(ctx cosmos.Context, keeper Keeper, rewardEvt EventRewards) error {
+func (m *EventMgrV1) EmitRewardEvent(ctx cosmos.Context, keeper keeper.Keeper, rewardEvt EventRewards) error {
 	evtBytes, err := json.Marshal(rewardEvt)
 	if err != nil {
 		return fmt.Errorf("fail to marshal reward event to json: %w", err)
@@ -144,7 +145,7 @@ func (m *EventMgrV1) EmitRewardEvent(ctx cosmos.Context, keeper Keeper, rewardEv
 	return nil
 }
 
-func (m *EventMgrV1) EmitSwapEvent(ctx cosmos.Context, keeper Keeper, swap EventSwap) error {
+func (m *EventMgrV1) EmitSwapEvent(ctx cosmos.Context, keeper keeper.Keeper, swap EventSwap) error {
 	buf, err := json.Marshal(swap)
 	if err != nil {
 		return fmt.Errorf("fail to marshal swap event to json: %w", err)
@@ -173,7 +174,7 @@ func (m *EventMgrV1) EmitSwapEvent(ctx cosmos.Context, keeper Keeper, swap Event
 }
 
 // EmitReserveEvent emit reserve event both save it to local key value store , and also event manager
-func (m *EventMgrV1) EmitReserveEvent(ctx cosmos.Context, keeper Keeper, reserveEvent EventReserve) error {
+func (m *EventMgrV1) EmitReserveEvent(ctx cosmos.Context, keeper keeper.Keeper, reserveEvent EventReserve) error {
 	buf, err := json.Marshal(reserveEvent)
 	if nil != err {
 		return err
@@ -191,7 +192,7 @@ func (m *EventMgrV1) EmitReserveEvent(ctx cosmos.Context, keeper Keeper, reserve
 }
 
 // EmitRefundEvent emit refund event , save it to local key value store and also emit through event manager
-func (m *EventMgrV1) EmitRefundEvent(ctx cosmos.Context, keeper Keeper, refundEvt EventRefund, status EventStatus) error {
+func (m *EventMgrV1) EmitRefundEvent(ctx cosmos.Context, keeper keeper.Keeper, refundEvt EventRefund, status EventStatus) error {
 	buf, err := json.Marshal(refundEvt)
 	if err != nil {
 		return fmt.Errorf("fail to marshal refund event: %w", err)
@@ -209,7 +210,7 @@ func (m *EventMgrV1) EmitRefundEvent(ctx cosmos.Context, keeper Keeper, refundEv
 	return nil
 }
 
-func (m *EventMgrV1) EmitBondEvent(ctx cosmos.Context, keeper Keeper, bondEvent EventBond) error {
+func (m *EventMgrV1) EmitBondEvent(ctx cosmos.Context, keeper keeper.Keeper, bondEvent EventBond) error {
 	buf, err := json.Marshal(bondEvent)
 	if err != nil {
 		return fmt.Errorf("fail to marshal bond event: %w", err)
@@ -228,7 +229,7 @@ func (m *EventMgrV1) EmitBondEvent(ctx cosmos.Context, keeper Keeper, bondEvent 
 }
 
 // EmitUnstakeEvent save unstake event to local key value store , and also add it to event manager
-func (m *EventMgrV1) EmitUnstakeEvent(ctx cosmos.Context, keeper Keeper, unstakeEvt EventUnstake) error {
+func (m *EventMgrV1) EmitUnstakeEvent(ctx cosmos.Context, keeper keeper.Keeper, unstakeEvt EventUnstake) error {
 	unstakeBytes, err := json.Marshal(unstakeEvt)
 	if err != nil {
 		return fmt.Errorf("fail to marshal unstake event: %w", err)
@@ -255,7 +256,7 @@ func (m *EventMgrV1) EmitUnstakeEvent(ctx cosmos.Context, keeper Keeper, unstake
 }
 
 // EmitAddEvent save add event to local key value store , and add it to event manager
-func (m *EventMgrV1) EmitAddEvent(ctx cosmos.Context, keeper Keeper, addEvt EventAdd) error {
+func (m *EventMgrV1) EmitAddEvent(ctx cosmos.Context, keeper keeper.Keeper, addEvt EventAdd) error {
 	buf, err := json.Marshal(addEvt)
 	if err != nil {
 		return fmt.Errorf("fail to marshal add event: %w", err)
@@ -279,7 +280,7 @@ func (m *EventMgrV1) EmitAddEvent(ctx cosmos.Context, keeper Keeper, addEvt Even
 }
 
 // EmitSlashEvent
-func (m *EventMgrV1) EmitSlashEvent(ctx cosmos.Context, keeper Keeper, slashEvt EventSlash) error {
+func (m *EventMgrV1) EmitSlashEvent(ctx cosmos.Context, keeper keeper.Keeper, slashEvt EventSlash) error {
 	slashBuf, err := json.Marshal(slashEvt)
 	if err != nil {
 		return fmt.Errorf("fail to marshal slash event to buf: %w", err)
@@ -303,7 +304,7 @@ func (m *EventMgrV1) EmitSlashEvent(ctx cosmos.Context, keeper Keeper, slashEvt 
 }
 
 // EmitFeeEvent emit a fee event through event manager
-func (m *EventMgrV1) EmitFeeEvent(ctx cosmos.Context, keeper Keeper, feeEvent EventFee) error {
+func (m *EventMgrV1) EmitFeeEvent(ctx cosmos.Context, keeper keeper.Keeper, feeEvent EventFee) error {
 	if err := updateEventFee(ctx, keeper, feeEvent.TxID, feeEvent.Fee); err != nil {
 		return fmt.Errorf("fail to update event fee: %w", err)
 	}

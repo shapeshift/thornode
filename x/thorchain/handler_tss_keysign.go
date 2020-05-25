@@ -8,17 +8,18 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
+	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // TssKeysignHandler is design to process MsgTssKeysignFail
 type TssKeysignHandler struct {
-	keeper Keeper
+	keeper keeper.Keeper
 	mgr    Manager
 }
 
 // NewTssKeysignHandler create a new instance of TssKeysignHandler
 // when a signer fail to join tss keysign , thorchain need to slash their node account
-func NewTssKeysignHandler(keeper Keeper, mgr Manager) TssKeysignHandler {
+func NewTssKeysignHandler(keeper keeper.Keeper, mgr Manager) TssKeysignHandler {
 	return TssKeysignHandler{
 		keeper: keeper,
 		mgr:    mgr,

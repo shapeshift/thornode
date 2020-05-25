@@ -8,6 +8,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/crypto/keys/hd"
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
@@ -18,7 +19,7 @@ type QuerierSuite struct {
 var _ = Suite(&QuerierSuite{})
 
 type TestQuerierKeeper struct {
-	KVStoreDummy
+	keeper.KVStoreDummy
 	txOut *TxOut
 }
 

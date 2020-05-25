@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 type StoreManger interface {
@@ -11,10 +12,10 @@ type StoreManger interface {
 }
 
 type StoreMgr struct {
-	keeper Keeper
+	keeper keeper.Keeper
 }
 
-func NewStoreMgr(keeper Keeper) *StoreMgr {
+func NewStoreMgr(keeper keeper.Keeper) *StoreMgr {
 	return &StoreMgr{
 		keeper: keeper,
 	}

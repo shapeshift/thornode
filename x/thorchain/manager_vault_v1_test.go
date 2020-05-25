@@ -10,6 +10,7 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
+	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 type VaultManagerTestSuite struct{}
@@ -21,7 +22,7 @@ func (s *VaultManagerTestSuite) SetUpSuite(c *C) {
 }
 
 type TestRagnarokChainKeeper struct {
-	KVStoreDummy
+	keeper.KVStoreDummy
 	activeVault Vault
 	retireVault Vault
 	yggVault    Vault
@@ -89,7 +90,7 @@ func (k *TestRagnarokChainKeeper) PoolExist(_ cosmos.Context, _ common.Asset) bo
 
 func (k *TestRagnarokChainKeeper) GetStakerIterator(ctx cosmos.Context, _ common.Asset) cosmos.Iterator {
 	cdc := makeTestCodec()
-	iter := NewDummyIterator()
+	iter := keeper.NewDummyIterator()
 	for _, staker := range k.stakers {
 		iter.AddItem([]byte("key"), cdc.MustMarshalBinaryBare(staker))
 	}
@@ -248,7 +249,7 @@ func (s *VaultManagerTestSuite) TestUpdateVaultData(c *C) {
 
 func (s *VaultManagerTestSuite) TestCalcBlockRewards(c *C) {
 	mgr := NewDummyMgr()
-	vaultMgr := NewVaultMgrV1(KVStoreDummy{}, mgr.TxOutStore(), mgr.EventMgr())
+	vaultMgr := NewVaultMgrV1(keeper.KVStoreDummy{}, mgr.TxOutStore(), mgr.EventMgr())
 
 	ver := constants.SWVersion
 	constAccessor := constants.GetConstantValues(ver)
@@ -291,7 +292,7 @@ func (s *VaultManagerTestSuite) TestCalcPoolDeficit(c *C) {
 	totalFees := cosmos.NewUint(4000)
 
 	mgr := NewDummyMgr()
-	vaultMgr := NewVaultMgrV1(KVStoreDummy{}, mgr.TxOutStore(), mgr.EventMgr())
+	vaultMgr := NewVaultMgrV1(keeper.KVStoreDummy{}, mgr.TxOutStore(), mgr.EventMgr())
 
 	stakerDeficit := cosmos.NewUint(1120)
 	amt1 := vaultMgr.calcPoolDeficit(stakerDeficit, totalFees, pool1Fees)

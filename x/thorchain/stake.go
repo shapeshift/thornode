@@ -7,10 +7,11 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
+	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // validateStakeMessage is to do some validation, and make sure it is legit
-func validateStakeMessage(ctx cosmos.Context, keeper Keeper, asset common.Asset, requestTxHash common.TxID, runeAddr, assetAddr common.Address) error {
+func validateStakeMessage(ctx cosmos.Context, keeper keeper.Keeper, asset common.Asset, requestTxHash common.TxID, runeAddr, assetAddr common.Address) error {
 	if asset.IsEmpty() {
 		return errors.New("asset is empty")
 	}
@@ -32,7 +33,7 @@ func validateStakeMessage(ctx cosmos.Context, keeper Keeper, asset common.Asset,
 	return nil
 }
 
-func stake(ctx cosmos.Context, keeper Keeper,
+func stake(ctx cosmos.Context, keeper keeper.Keeper,
 	asset common.Asset,
 	stakeRuneAmount, stakeAssetAmount cosmos.Uint,
 	runeAddr, assetAddr common.Address,

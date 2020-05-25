@@ -6,14 +6,15 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
+	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 type RagnarokHandler struct {
-	keeper Keeper
+	keeper keeper.Keeper
 	mgr    Manager
 }
 
-func NewRagnarokHandler(keeper Keeper, mgr Manager) RagnarokHandler {
+func NewRagnarokHandler(keeper keeper.Keeper, mgr Manager) RagnarokHandler {
 	return RagnarokHandler{
 		keeper: keeper,
 		mgr:    mgr,

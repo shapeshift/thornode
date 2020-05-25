@@ -9,6 +9,7 @@ import (
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 
+	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 	. "gopkg.in/check.v1"
 )
 
@@ -54,7 +55,7 @@ func (s *HandlerSwapSuite) TestValidate(c *C) {
 }
 
 type TestSwapHandleKeeper struct {
-	KVStoreDummy
+	keeper.KVStoreDummy
 	pools             map[common.Asset]Pool
 	activeNodeAccount NodeAccount
 	event             []Event

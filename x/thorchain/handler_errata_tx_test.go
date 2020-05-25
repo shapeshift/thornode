@@ -10,6 +10,7 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
+	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 var _ = Suite(&HandlerErrataTxSuite{})
@@ -17,7 +18,7 @@ var _ = Suite(&HandlerErrataTxSuite{})
 type HandlerErrataTxSuite struct{}
 
 type TestErrataTxKeeper struct {
-	KVStoreDummy
+	keeper.KVStoreDummy
 	event      Event
 	observedTx ObservedTxVoter
 	pool       Pool
