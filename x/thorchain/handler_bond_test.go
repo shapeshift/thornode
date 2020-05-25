@@ -11,12 +11,13 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
+	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 type HandlerBondSuite struct{}
 
 type TestBondKeeper struct {
-	KVStoreDummy
+	keeper.KVStoreDummy
 	activeNodeAccount   NodeAccount
 	failGetNodeAccount  NodeAccount
 	notEmptyNodeAccount NodeAccount

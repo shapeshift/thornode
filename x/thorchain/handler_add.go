@@ -7,16 +7,17 @@ import (
 
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
+	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // AddHandler is to handle Add message
 type AddHandler struct {
-	keeper Keeper
+	keeper keeper.Keeper
 	mgr    Manager
 }
 
 // NewAddHandler create a new instance of AddHandler
-func NewAddHandler(keeper Keeper, mgr Manager) AddHandler {
+func NewAddHandler(keeper keeper.Keeper, mgr Manager) AddHandler {
 	return AddHandler{
 		keeper: keeper,
 		mgr:    mgr,

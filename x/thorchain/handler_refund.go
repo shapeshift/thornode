@@ -5,18 +5,19 @@ import (
 
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
+	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // RefundHandler a handle to process tx that had refund memo
 // usually this type or tx is because Thorchain fail to process the tx, which result in a refund, signer honour the tx and refund customer accordingly
 type RefundHandler struct {
-	keeper Keeper
+	keeper keeper.Keeper
 	ch     CommonOutboundTxHandler
 	mgr    Manager
 }
 
 // NewRefundHandler create a new refund handler
-func NewRefundHandler(keeper Keeper, mgr Manager) RefundHandler {
+func NewRefundHandler(keeper keeper.Keeper, mgr Manager) RefundHandler {
 	return RefundHandler{
 		keeper: keeper,
 		ch:     NewCommonOutboundTxHandler(keeper, mgr),

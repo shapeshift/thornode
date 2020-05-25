@@ -8,6 +8,7 @@ import (
 
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // GenesisState strcture that used to store the data THORNode put in genesis
@@ -86,7 +87,7 @@ func DefaultGenesisState() GenesisState {
 }
 
 // InitGenesis read the data in GenesisState and apply it to data store
-func InitGenesis(ctx cosmos.Context, keeper Keeper, data GenesisState) []abci.ValidatorUpdate {
+func InitGenesis(ctx cosmos.Context, keeper keeper.Keeper, data GenesisState) []abci.ValidatorUpdate {
 	for _, record := range data.Pools {
 		if err := keeper.SetPool(ctx, record); err != nil {
 			panic(err)
@@ -195,7 +196,7 @@ func InitGenesis(ctx cosmos.Context, keeper Keeper, data GenesisState) []abci.Va
 	return validators
 }
 
-func getStakers(ctx cosmos.Context, k Keeper, asset common.Asset) []Staker {
+func getStakers(ctx cosmos.Context, k keeper.Keeper, asset common.Asset) []Staker {
 	stakers := make([]Staker, 0)
 	iterator := k.GetStakerIterator(ctx, asset)
 	defer iterator.Close()
@@ -208,7 +209,7 @@ func getStakers(ctx cosmos.Context, k Keeper, asset common.Asset) []Staker {
 }
 
 // ExportGenesis export the data in Genesis
-func ExportGenesis(ctx cosmos.Context, k Keeper) GenesisState {
+func ExportGenesis(ctx cosmos.Context, k keeper.Keeper) GenesisState {
 	var iterator cosmos.Iterator
 	currentEventID, _ := k.GetCurrentEventID(ctx)
 

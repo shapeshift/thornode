@@ -9,6 +9,7 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
+	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 	kvTypes "gitlab.com/thorchain/thornode/x/thorchain/keeper/types"
 )
 
@@ -20,12 +21,12 @@ import (
 // 1. outbound tx from yggdrasil vault
 // 2. inbound tx to asgard vault
 type YggdrasilHandler struct {
-	keeper Keeper
+	keeper keeper.Keeper
 	mgr    Manager
 }
 
 // NewYggdrasilHandler create a new Yggdrasil handler
-func NewYggdrasilHandler(keeper Keeper, mgr Manager) YggdrasilHandler {
+func NewYggdrasilHandler(keeper keeper.Keeper, mgr Manager) YggdrasilHandler {
 	return YggdrasilHandler{
 		keeper: keeper,
 		mgr:    mgr,

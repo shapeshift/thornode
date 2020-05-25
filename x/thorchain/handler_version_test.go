@@ -4,13 +4,14 @@ import (
 	"github.com/blang/semver"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
+	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 	. "gopkg.in/check.v1"
 )
 
 type HandlerVersionSuite struct{}
 
 type TestVersionlKeeper struct {
-	KVStoreDummy
+	keeper.KVStoreDummy
 	na NodeAccount
 }
 

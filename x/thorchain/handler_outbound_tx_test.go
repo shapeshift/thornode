@@ -11,12 +11,13 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
+	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 type HandlerOutboundTxSuite struct{}
 
 type TestOutboundTxKeeper struct {
-	KVStoreDummy
+	keeper.KVStoreDummy
 	activeNodeAccount NodeAccount
 	vault             Vault
 }
@@ -92,7 +93,7 @@ type outboundTxHandlerTestHelper struct {
 }
 
 type outboundTxHandlerKeeperHelper struct {
-	Keeper
+	keeper.Keeper
 	observeTxVoterErrHash common.TxID
 	failGetPendingEvent   bool
 	errGetTxOut           bool
@@ -105,7 +106,7 @@ type outboundTxHandlerKeeperHelper struct {
 	vault                 Vault
 }
 
-func newOutboundTxHandlerKeeperHelper(keeper Keeper) *outboundTxHandlerKeeperHelper {
+func newOutboundTxHandlerKeeperHelper(keeper keeper.Keeper) *outboundTxHandlerKeeperHelper {
 	return &outboundTxHandlerKeeperHelper{
 		Keeper:                keeper,
 		observeTxVoterErrHash: GetRandomTxHash(),

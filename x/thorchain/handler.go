@@ -7,10 +7,13 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
+	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
+var kaboom = errors.New("kaboom!!!!!")
+
 // NewExternalHandler returns a handler for "thorchain" type messages.
-func NewExternalHandler(keeper Keeper, mgr Manager) cosmos.Handler {
+func NewExternalHandler(keeper keeper.Keeper, mgr Manager) cosmos.Handler {
 	return func(ctx cosmos.Context, msg cosmos.Msg) (*cosmos.Result, error) {
 		ctx = ctx.WithEventManager(cosmos.NewEventManager())
 		version := keeper.GetLowestActiveVersion(ctx)
@@ -38,7 +41,7 @@ func NewExternalHandler(keeper Keeper, mgr Manager) cosmos.Handler {
 	}
 }
 
-func getHandlerMapping(keeper Keeper, mgr Manager) map[string]MsgHandler {
+func getHandlerMapping(keeper keeper.Keeper, mgr Manager) map[string]MsgHandler {
 	// New arch handlers
 	m := make(map[string]MsgHandler)
 	m[MsgTssPool{}.Type()] = NewTssHandler(keeper, mgr)
@@ -57,7 +60,7 @@ func getHandlerMapping(keeper Keeper, mgr Manager) map[string]MsgHandler {
 }
 
 // NewInternalHandler returns a handler for "thorchain" internal type messages.
-func NewInternalHandler(keeper Keeper, mgr Manager) cosmos.Handler {
+func NewInternalHandler(keeper keeper.Keeper, mgr Manager) cosmos.Handler {
 	return func(ctx cosmos.Context, msg cosmos.Msg) (*cosmos.Result, error) {
 		version := keeper.GetLowestActiveVersion(ctx)
 		constantValues := constants.GetConstantValues(version)
@@ -74,7 +77,7 @@ func NewInternalHandler(keeper Keeper, mgr Manager) cosmos.Handler {
 	}
 }
 
-func getInternalHandlerMapping(keeper Keeper, mgr Manager) map[string]MsgHandler {
+func getInternalHandlerMapping(keeper keeper.Keeper, mgr Manager) map[string]MsgHandler {
 	// New arch handlers
 	m := make(map[string]MsgHandler)
 	m[MsgOutboundTx{}.Type()] = NewOutboundTxHandler(keeper, mgr)
@@ -93,7 +96,7 @@ func getInternalHandlerMapping(keeper Keeper, mgr Manager) map[string]MsgHandler
 	return m
 }
 
-func fetchMemo(ctx cosmos.Context, constAccessor constants.ConstantValues, keeper Keeper, tx common.Tx) string {
+func fetchMemo(ctx cosmos.Context, constAccessor constants.ConstantValues, keeper keeper.Keeper, tx common.Tx) string {
 	if len(tx.Memo) > 0 {
 		return tx.Memo
 	}
@@ -125,7 +128,7 @@ func fetchMemo(ctx cosmos.Context, constAccessor constants.ConstantValues, keepe
 	return memo
 }
 
-func processOneTxIn(ctx cosmos.Context, keeper Keeper, tx ObservedTx, signer cosmos.AccAddress) (cosmos.Msg, error) {
+func processOneTxIn(ctx cosmos.Context, keeper keeper.Keeper, tx ObservedTx, signer cosmos.AccAddress) (cosmos.Msg, error) {
 	if len(tx.Tx.Coins) == 0 {
 		return nil, cosmos.ErrUnknownRequest("no coin found")
 	}

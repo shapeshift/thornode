@@ -11,14 +11,15 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
+	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 type NativeTxHandler struct {
-	keeper Keeper
+	keeper keeper.Keeper
 	mgr    Manager
 }
 
-func NewNativeTxHandler(keeper Keeper, mgr Manager) NativeTxHandler {
+func NewNativeTxHandler(keeper keeper.Keeper, mgr Manager) NativeTxHandler {
 	return NativeTxHandler{
 		keeper: keeper,
 		mgr:    mgr,

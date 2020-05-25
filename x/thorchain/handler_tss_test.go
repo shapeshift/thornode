@@ -12,6 +12,7 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
+	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 type HandlerTssSuite struct{}
@@ -32,7 +33,7 @@ type tssHandlerTestHelper struct {
 }
 
 type tssKeeperHelper struct {
-	Keeper
+	keeper.Keeper
 	errListActiveAccounts bool
 	errGetTssVoter        bool
 	errFailSaveVault      bool
@@ -91,7 +92,7 @@ func (k *tssKeeperHelper) SetNodeAccount(ctx cosmos.Context, na NodeAccount) err
 	return k.Keeper.SetNodeAccount(ctx, na)
 }
 
-func newTssKeeperHelper(keeper Keeper) *tssKeeperHelper {
+func newTssKeeperHelper(keeper keeper.Keeper) *tssKeeperHelper {
 	return &tssKeeperHelper{
 		Keeper: keeper,
 	}

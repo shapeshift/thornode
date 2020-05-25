@@ -20,6 +20,7 @@ import (
 
 	"gitlab.com/thorchain/thornode/x/thorchain/client/cli"
 	"gitlab.com/thorchain/thornode/x/thorchain/client/rest"
+	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // type check to ensure the interface is properly implemented
@@ -73,7 +74,7 @@ func (AppModuleBasic) GetTxCmd(cdc *codec.Codec) *cobra.Command {
 
 type AppModule struct {
 	AppModuleBasic
-	keeper       Keeper
+	keeper       keeper.Keeper
 	coinKeeper   bank.Keeper
 	supplyKeeper supply.Keeper
 	mgr          *Mgrs
@@ -81,7 +82,7 @@ type AppModule struct {
 }
 
 // NewAppModule creates a new AppModule Object
-func NewAppModule(k Keeper, bankKeeper bank.Keeper, supplyKeeper supply.Keeper) AppModule {
+func NewAppModule(k keeper.Keeper, bankKeeper bank.Keeper, supplyKeeper supply.Keeper) AppModule {
 	kb, err := getKeybase(os.Getenv("CHAIN_HOME_FOLDER"))
 	if err != nil {
 		panic(err)

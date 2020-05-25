@@ -5,17 +5,18 @@ import (
 
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // CommonOutboundTxHandler is the place where those common logic can be shared between multiple different kind of outbound tx handler
 // at the moment, handler_refund, and handler_outbound_tx are largely the same , only some small difference
 type CommonOutboundTxHandler struct {
-	keeper Keeper
+	keeper keeper.Keeper
 	mgr    Manager
 }
 
 // NewCommonOutboundTxHandler create a new instance of the CommonOutboundTxHandler
-func NewCommonOutboundTxHandler(k Keeper, mgr Manager) CommonOutboundTxHandler {
+func NewCommonOutboundTxHandler(k keeper.Keeper, mgr Manager) CommonOutboundTxHandler {
 	return CommonOutboundTxHandler{
 		keeper: k,
 		mgr:    mgr,

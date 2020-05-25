@@ -8,16 +8,17 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
+	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // SwitchHandler is to handle Switch message
 type SwitchHandler struct {
-	keeper Keeper
+	keeper keeper.Keeper
 	mgr    Manager
 }
 
 // NewSwitchHandler create new instance of SwitchHandler
-func NewSwitchHandler(keeper Keeper, mgr Manager) SwitchHandler {
+func NewSwitchHandler(keeper keeper.Keeper, mgr Manager) SwitchHandler {
 	return SwitchHandler{
 		keeper: keeper,
 		mgr:    mgr,

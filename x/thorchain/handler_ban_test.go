@@ -9,6 +9,7 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
+	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 var _ = Suite(&HandlerBanSuite{})
@@ -16,7 +17,7 @@ var _ = Suite(&HandlerBanSuite{})
 type HandlerBanSuite struct{}
 
 type TestBanKeeper struct {
-	KVStoreDummy
+	keeper.KVStoreDummy
 	ban       BanVoter
 	toBan     NodeAccount
 	banner1   NodeAccount

@@ -22,6 +22,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/staking"
 
 	"gitlab.com/thorchain/thornode/x/thorchain"
+	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 const appPoolData = "thorchain"
@@ -73,7 +74,7 @@ type thorChainApp struct {
 	bankKeeper      bank.Keeper
 	supplyKeeper    supply.Keeper
 	paramsKeeper    params.Keeper
-	thorchainKeeper thorchain.Keeper
+	thorchainKeeper keeper.Keeper
 
 	// Module Manager
 	mm *module.Manager
@@ -127,7 +128,7 @@ func NewThorchainApp(logger log.Logger, db dbm.DB, baseAppOptions ...func(*bam.B
 		maccPerms)
 
 	// thorchain keeper holds thorchain data/kvstore
-	app.thorchainKeeper = thorchain.NewKVStore(
+	app.thorchainKeeper = keeper.NewKVStore(
 		app.bankKeeper,
 		app.supplyKeeper,
 		keys[thorchain.StoreKey],

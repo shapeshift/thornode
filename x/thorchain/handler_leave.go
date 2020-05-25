@@ -6,18 +6,19 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
+	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // LeaveHandler a handler to process leave request
 // if an operator of THORChain node would like to leave and get their bond back , they have to
 // send a Leave request through Binance Chain
 type LeaveHandler struct {
-	keeper Keeper
+	keeper keeper.Keeper
 	mgr    Manager
 }
 
 // NewLeaveHandler create a new LeaveHandler
-func NewLeaveHandler(keeper Keeper, mgr Manager) LeaveHandler {
+func NewLeaveHandler(keeper keeper.Keeper, mgr Manager) LeaveHandler {
 	return LeaveHandler{
 		keeper: keeper,
 		mgr:    mgr,

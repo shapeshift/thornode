@@ -5,6 +5,7 @@ import (
 
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
@@ -13,7 +14,7 @@ type HelperSuite struct{}
 var _ = Suite(&HelperSuite{})
 
 type TestRefundBondKeeper struct {
-	KVStoreDummy
+	keeper.KVStoreDummy
 	ygg    Vault
 	pool   Pool
 	na     NodeAccount
@@ -308,7 +309,7 @@ func (s *HelperSuite) TestEnableNextPool(c *C) {
 }
 
 type addGasFeesKeeperHelper struct {
-	Keeper
+	keeper.Keeper
 	errGetVaultData bool
 	errSetVaultData bool
 	errGetPool      bool
@@ -316,7 +317,7 @@ type addGasFeesKeeperHelper struct {
 	errSetEvent     bool
 }
 
-func newAddGasFeesKeeperHelper(keeper Keeper) *addGasFeesKeeperHelper {
+func newAddGasFeesKeeperHelper(keeper keeper.Keeper) *addGasFeesKeeperHelper {
 	return &addGasFeesKeeperHelper{
 		Keeper: keeper,
 	}

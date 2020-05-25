@@ -13,13 +13,14 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	kvTypes "gitlab.com/thorchain/thornode/x/thorchain/keeper/types"
+	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
 var kaboom = errors.New("Kaboom!!!")
 
 type KVStoreDummy struct{}
 
-func (k KVStoreDummy) Cdc() *codec.Codec       { return makeTestCodec() }
+func (k KVStoreDummy) Cdc() *codec.Codec       { return types.MakeTestCodec() }
 func (k KVStoreDummy) Supply() supply.Keeper   { return supply.Keeper{} }
 func (k KVStoreDummy) CoinKeeper() bank.Keeper { return bank.BaseKeeper{} }
 func (k KVStoreDummy) Logger(ctx cosmos.Context) log.Logger {
