@@ -22,6 +22,7 @@ import (
 // Also, use underscores between words and use lowercase characters only
 
 const (
+	version                  int64            = 1
 	prefixStoreVersion       kvTypes.DbPrefix = "_ver"
 	prefixObservedTx         kvTypes.DbPrefix = "observed_tx/"
 	prefixPool               kvTypes.DbPrefix = "pool/"
@@ -66,6 +67,7 @@ type KVStore struct {
 	supplyKeeper supply.Keeper
 	storeKey     cosmos.StoreKey // Unexposed key to access store from cosmos.Context
 	cdc          *codec.Codec    // The wire codec for binary encoding/decoding.
+	version      int64
 }
 
 // NewKVStore creates new instances of the thorchain Keeper
@@ -75,6 +77,7 @@ func NewKVStore(coinKeeper bank.Keeper, supplyKeeper supply.Keeper, storeKey cos
 		supplyKeeper: supplyKeeper,
 		storeKey:     storeKey,
 		cdc:          cdc,
+		version:      version,
 	}
 }
 
@@ -88,6 +91,10 @@ func (k KVStore) Supply() supply.Keeper {
 
 func (k KVStore) CoinKeeper() bank.Keeper {
 	return k.coinKeeper
+}
+
+func (k KVStore) Version() int64 {
+	return k.version
 }
 
 func (k KVStore) Logger(ctx cosmos.Context) log.Logger {
