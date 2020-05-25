@@ -3,6 +3,7 @@ package thorchain
 import (
 	"github.com/cosmos/cosmos-sdk/x/bank"
 
+	mem "gitlab.com/thorchain/thornode/x/thorchain/memo"
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
@@ -48,6 +49,15 @@ const (
 	BondPaid     = types.BondPaid
 	BondReturned = types.BondReturned
 	AsgardKeygen = types.AsgardKeygen
+
+	// Memos
+	TxSwap            = mem.TxSwap
+	TxStake           = mem.TxStake
+	TxBond            = mem.TxBond
+	TxYggdrasilFund   = mem.TxYggdrasilFund
+	TxYggdrasilReturn = mem.TxYggdrasilReturn
+	TxMigrate         = mem.TxMigrate
+	TxRagnarok        = mem.TxRagnarok
 )
 
 var (
@@ -129,6 +139,15 @@ var (
 	GetRandomPubKeySet             = types.GetRandomPubKeySet
 	SetupConfigForTest             = types.SetupConfigForTest
 	GetEventStatuses               = types.GetEventStatuses
+
+	// Memo
+	ParseMemo          = mem.ParseMemo
+	NewRefundMemo      = mem.NewRefundMemo
+	NewOutboundMemo    = mem.NewOutboundMemo
+	NewRagnarokMemo    = mem.NewRagnarokMemo
+	NewYggdrasilReturn = mem.NewYggdrasilReturn
+	NewYggdrasilFund   = mem.NewYggdrasilFund
+	NewMigrateMemo     = mem.NewMigrateMemo
 )
 
 type (
@@ -216,4 +235,21 @@ type (
 	EventFee              = types.EventFee
 	EventSlash            = types.EventSlash
 	EventOutbound         = types.EventOutbound
+
+	// Memo
+	SwapMemo            = mem.SwapMemo
+	StakeMemo           = mem.StakeMemo
+	UnstakeMemo         = mem.UnstakeMemo
+	AddMemo             = mem.AddMemo
+	GasMemo             = mem.GasMemo
+	RefundMemo          = mem.RefundMemo
+	MigrateMemo         = mem.MigrateMemo
+	RagnarokMemo        = mem.RagnarokMemo
+	BondMemo            = mem.BondMemo
+	OutboundMemo        = mem.OutboundMemo
+	LeaveMemo           = mem.LeaveMemo
+	YggdrasilFundMemo   = mem.YggdrasilFundMemo
+	YggdrasilReturnMemo = mem.YggdrasilReturnMemo
+	ReserveMemo         = mem.ReserveMemo
+	SwitchMemo          = mem.SwitchMemo
 )
