@@ -19,7 +19,7 @@ if [ $? -gt 0 ]; then
   if [ "$SIGNER_SEED_PHRASE" != "" ]; then
     printf "$SIGNER_SEED_PHRASE\n$SIGNER_PASSWD\n$SIGNER_PASSWD\n" | thorcli keys add $SIGNER_NAME --recover
   else
-    printf $SIGNER_PASSWD | thorcli --trace keys add $SIGNER_NAME
+    printf "$SIGNER_PASSWD\n$SIGNER_PASSWD\n" | thorcli --trace keys add $SIGNER_NAME
   fi
 fi
 
