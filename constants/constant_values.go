@@ -44,7 +44,7 @@ const (
 
 var nameToString = map[ConstantName]string{
 	EmissionCurve:                   "EmissionCurve",
-	BlocksPerYear:                   "BlockPerYear",
+	BlocksPerYear:                   "BlocksPerYear",
 	TransactionFee:                  "TransactionFee",
 	NewPoolCycle:                    "NewPoolCycle",
 	MinimumNodesForYggdrasil:        "MinimumNodesForYggdrasil",
