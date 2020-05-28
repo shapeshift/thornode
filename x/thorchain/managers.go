@@ -36,20 +36,19 @@ type GasManager interface {
 
 // EventManager define methods need to be support to manage events
 type EventManager interface {
-	CompleteEvents(ctx cosmos.Context, keeper keeper.Keeper, height int64, txID common.TxID, txs common.Txs, eventStatus EventStatus)
-	EmitPoolEvent(ctx cosmos.Context, keeper keeper.Keeper, txIn common.TxID, status EventStatus, poolEvt EventPool) error
-	EmitErrataEvent(ctx cosmos.Context, keeper keeper.Keeper, txIn common.TxID, errataEvent EventErrata) error
-	EmitGasEvent(ctx cosmos.Context, keeper keeper.Keeper, gasEvent *EventGas) error
-	EmitStakeEvent(ctx cosmos.Context, keeper keeper.Keeper, stakeEvent EventStake) error
-	EmitRewardEvent(ctx cosmos.Context, keeper keeper.Keeper, rewardEvt EventRewards) error
-	EmitReserveEvent(ctx cosmos.Context, keeper keeper.Keeper, reserveEvent EventReserve) error
-	EmitUnstakeEvent(ctx cosmos.Context, keeper keeper.Keeper, unstakeEvt EventUnstake) error
-	EmitSwapEvent(ctx cosmos.Context, keeper keeper.Keeper, swap EventSwap) error
-	EmitRefundEvent(ctx cosmos.Context, keeper keeper.Keeper, refundEvt EventRefund, status EventStatus) error
-	EmitBondEvent(ctx cosmos.Context, keeper keeper.Keeper, bondEvent EventBond) error
-	EmitAddEvent(ctx cosmos.Context, keeper keeper.Keeper, addEvt EventAdd) error
-	EmitFeeEvent(ctx cosmos.Context, keeper keeper.Keeper, feeEvent EventFee) error
-	EmitSlashEvent(ctx cosmos.Context, keeper keeper.Keeper, slashEvt EventSlash) error
+	EmitPoolEvent(ctx cosmos.Context, poolEvt EventPool) error
+	EmitErrataEvent(ctx cosmos.Context, errataEvent EventErrata) error
+	EmitGasEvent(ctx cosmos.Context, gasEvent *EventGas) error
+	EmitStakeEvent(ctx cosmos.Context, stakeEvent EventStake) error
+	EmitRewardEvent(ctx cosmos.Context, rewardEvt EventRewards) error
+	EmitReserveEvent(ctx cosmos.Context, reserveEvent EventReserve) error
+	EmitUnstakeEvent(ctx cosmos.Context, unstakeEvt EventUnstake) error
+	EmitSwapEvent(ctx cosmos.Context, swap EventSwap) error
+	EmitRefundEvent(ctx cosmos.Context, refundEvt EventRefund) error
+	EmitBondEvent(ctx cosmos.Context, bondEvent EventBond) error
+	EmitAddEvent(ctx cosmos.Context, addEvt EventAdd) error
+	EmitFeeEvent(ctx cosmos.Context, feeEvent EventFee) error
+	EmitSlashEvent(ctx cosmos.Context, slashEvt EventSlash) error
 	EmitOutboundEvent(ctx cosmos.Context, outbound EventOutbound) error
 }
 

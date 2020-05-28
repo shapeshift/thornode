@@ -58,5 +58,5 @@ func (h OutboundTxHandler) handle(ctx cosmos.Context, msg MsgOutboundTx, version
 }
 
 func (h OutboundTxHandler) handleV1(ctx cosmos.Context, version semver.Version, msg MsgOutboundTx) (*cosmos.Result, error) {
-	return h.ch.handle(ctx, version, msg.Tx, msg.InTxID, EventSuccess)
+	return h.ch.handle(ctx, version, msg.Tx, msg.InTxID)
 }

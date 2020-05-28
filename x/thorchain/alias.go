@@ -21,12 +21,6 @@ const (
 	PoolBootstrap = types.Bootstrap
 	PoolSuspended = types.Suspended
 
-	// event status
-	EventSuccess = types.Success
-	EventPending = types.Pending
-	EventFail    = types.Failed
-	RefundStatus = types.Refund
-
 	// Admin config keys
 	MaxUnstakeBasisPoints = types.MaxUnstakeBasisPoints
 
@@ -84,7 +78,6 @@ var (
 	NewKeygenBlock                 = types.NewKeygenBlock
 	NewMsgSetNodeKeys              = types.NewMsgSetNodeKeys
 	NewTxOut                       = types.NewTxOut
-	NewEvent                       = types.NewEvent
 	NewEventRewards                = types.NewEventRewards
 	NewEventPool                   = types.NewEventPool
 	NewEventAdd                    = types.NewEventAdd
@@ -138,7 +131,6 @@ var (
 	GetRandomPubKey                = types.GetRandomPubKey
 	GetRandomPubKeySet             = types.GetRandomPubKeySet
 	SetupConfigForTest             = types.SetupConfigForTest
-	GetEventStatuses               = types.GetEventStatuses
 
 	// Memo
 	ParseMemo          = mem.ParseMemo
@@ -202,12 +194,9 @@ type (
 	TxOut                 = types.TxOut
 	Keygen                = types.Keygen
 	KeygenBlock           = types.KeygenBlock
-	Event                 = types.Event
-	Events                = types.Events
 	EventSwap             = types.EventSwap
 	EventStake            = types.EventStake
 	EventUnstake          = types.EventUnstake
-	EventStatus           = types.EventStatus
 	EventAdd              = types.EventAdd
 	EventRewards          = types.EventRewards
 	EventErrata           = types.EventErrata
@@ -224,7 +213,6 @@ type (
 	NodeStatus            = types.NodeStatus
 	VaultData             = types.VaultData
 	VaultStatus           = types.VaultStatus
-	EventStatuses         = types.EventStatuses
 	GasPool               = types.GasPool
 	EventGas              = types.EventGas
 	TxMarker              = types.TxMarker

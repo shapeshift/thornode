@@ -124,7 +124,7 @@ func unstake(ctx cosmos.Context, version semver.Version, keeper keeper.Keeper, m
 	// Create a pool event if THORNode have no rune or assets
 	if pool.BalanceAsset.IsZero() || pool.BalanceRune.IsZero() {
 		poolEvt := NewEventPool(pool.Asset, PoolBootstrap)
-		if err := eventManager.EmitPoolEvent(ctx, keeper, common.BlankTxID, EventSuccess, poolEvt); nil != err {
+		if err := eventManager.EmitPoolEvent(ctx, poolEvt); nil != err {
 			ctx.Logger().Error("fail to emit pool event", "error", err)
 		}
 		pool.Status = PoolBootstrap

@@ -139,10 +139,6 @@ func (k *TestObservedTxOutHandleKeeper) GetPool(_ cosmos.Context, _ common.Asset
 	return k.pool, nil
 }
 
-func (k *TestObservedTxOutHandleKeeper) AddIncompleteEvents(_ cosmos.Context, evt Event) error {
-	return nil
-}
-
 func (k *TestObservedTxOutHandleKeeper) GetTxOut(ctx cosmos.Context, _ int64) (*TxOut, error) {
 	return k.txOutStore.GetBlockOut(ctx)
 }
@@ -158,18 +154,6 @@ func (k *TestObservedTxOutHandleKeeper) SetTxOut(_ cosmos.Context, _ *TxOut) err
 func (k *TestObservedTxOutHandleKeeper) AddObservingAddresses(_ cosmos.Context, addrs []cosmos.AccAddress) error {
 	k.observing = addrs
 	return nil
-}
-
-func (k *TestObservedTxOutHandleKeeper) UpsertEvent(ctx cosmos.Context, event Event) error {
-	return nil
-}
-
-func (k *TestObservedTxOutHandleKeeper) GetLastEventID(_ cosmos.Context) (int64, error) {
-	return 0, nil
-}
-
-func (k *TestObservedTxOutHandleKeeper) GetIncompleteEvents(_ cosmos.Context) (Events, error) {
-	return nil, nil
 }
 
 func (k *TestObservedTxOutHandleKeeper) SetPool(ctx cosmos.Context, pool Pool) error {
