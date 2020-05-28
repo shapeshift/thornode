@@ -12,15 +12,15 @@ type EventManagerTestSuite struct{}
 var _ = Suite(&EventManagerTestSuite{})
 
 func (s *EventManagerTestSuite) TestEmitPoolEvent(c *C) {
-	ctx, k := setupKeeperForTest(c)
+	ctx, _ := setupKeeperForTest(c)
 	eventMgr := NewEventMgrV1()
 	c.Assert(eventMgr, NotNil)
 	ctx = ctx.WithBlockHeight(1024)
-	c.Assert(eventMgr.EmitPoolEvent(ctx, k, common.BlankTxID, EventSuccess, NewEventPool(common.BNBAsset, PoolEnabled)), IsNil)
+	c.Assert(eventMgr.EmitPoolEvent(ctx, NewEventPool(common.BNBAsset, PoolEnabled)), IsNil)
 }
 
 func (s *EventManagerTestSuite) TestEmitErrataEvent(c *C) {
-	ctx, k := setupKeeperForTest(c)
+	ctx, _ := setupKeeperForTest(c)
 	eventMgr := NewEventMgrV1()
 	c.Assert(eventMgr, NotNil)
 	ctx = ctx.WithBlockHeight(1024)
@@ -33,11 +33,11 @@ func (s *EventManagerTestSuite) TestEmitErrataEvent(c *C) {
 			AssetAdd: true,
 		},
 	})
-	c.Assert(eventMgr.EmitErrataEvent(ctx, k, common.BlankTxID, errataEvent), IsNil)
+	c.Assert(eventMgr.EmitErrataEvent(ctx, errataEvent), IsNil)
 }
 
 func (s *EventManagerTestSuite) TestEmitGasEvent(c *C) {
-	ctx, k := setupKeeperForTest(c)
+	ctx, _ := setupKeeperForTest(c)
 	eventMgr := NewEventMgrV1()
 	c.Assert(eventMgr, NotNil)
 	ctx = ctx.WithBlockHeight(1024)
@@ -48,5 +48,5 @@ func (s *EventManagerTestSuite) TestEmitGasEvent(c *C) {
 		RuneAmt:  cosmos.NewUint(1024),
 		Count:    1,
 	})
-	c.Assert(eventMgr.EmitGasEvent(ctx, k, gasEvent), IsNil)
+	c.Assert(eventMgr.EmitGasEvent(ctx, gasEvent), IsNil)
 }

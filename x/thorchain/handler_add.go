@@ -73,7 +73,7 @@ func (h AddHandler) handle(ctx cosmos.Context, msg MsgAdd, version semver.Versio
 	}
 	// emit event
 	addEvt := NewEventAdd(pool.Asset, msg.Tx)
-	if err := h.mgr.EventMgr().EmitAddEvent(ctx, h.keeper, addEvt); err != nil {
+	if err := h.mgr.EventMgr().EmitAddEvent(ctx, addEvt); err != nil {
 		return nil, cosmos.Wrapf(errFailSaveEvent, "fail to save add events: %w", err)
 	}
 	return &cosmos.Result{}, nil

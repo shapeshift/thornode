@@ -18,7 +18,6 @@ import (
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
-	kvTypes "gitlab.com/thorchain/thornode/x/thorchain/keeper/types"
 )
 
 const (
@@ -32,7 +31,6 @@ func refundTx(ctx cosmos.Context, tx ObservedTx, mgr Manager, keeper keeper.Keep
 
 	addEvent := func(refundCoins common.Coins) error {
 		eventRefund := NewEventRefund(refundCode, refundReason, tx.Tx, common.NewFee(common.Coins{}, cosmos.ZeroUint()))
-		status := EventSuccess
 		if len(refundCoins) > 0 {
 			// create a new TX based on the coins thorchain refund , some of the coins thorchain doesn't refund
 			// coin thorchain doesn't have pool with , likely airdrop
@@ -40,9 +38,8 @@ func refundTx(ctx cosmos.Context, tx ObservedTx, mgr Manager, keeper keeper.Keep
 			transactionFee := constAccessor.GetInt64Value(constants.TransactionFee)
 			fee := getFee(tx.Tx.Coins, refundCoins, transactionFee)
 			eventRefund = NewEventRefund(refundCode, refundReason, newTx, fee)
-			status = EventPending
 		}
-		if err := mgr.EventMgr().EmitRefundEvent(ctx, keeper, eventRefund, status); err != nil {
+		if err := mgr.EventMgr().EmitRefundEvent(ctx, eventRefund); err != nil {
 			return fmt.Errorf("fail to emit refund event: %w", err)
 		}
 		return nil
@@ -248,7 +245,7 @@ func refundBond(ctx cosmos.Context, tx common.Tx, nodeAcc NodeAccount, keeper ke
 		}
 
 		bondEvent := NewEventBond(nodeAcc.Bond, BondReturned, tx)
-		if err := mgr.EventMgr().EmitBondEvent(ctx, keeper, bondEvent); err != nil {
+		if err := mgr.EventMgr().EmitBondEvent(ctx, bondEvent); err != nil {
 			return fmt.Errorf("fail to emit bond event: %w", err)
 		}
 
@@ -325,95 +322,6 @@ func isSignedByActiveNodeAccounts(ctx cosmos.Context, keeper keeper.Keeper, sign
 	return true
 }
 
-func updateEventStatus(ctx cosmos.Context, keeper keeper.Keeper, eventID int64, txs common.Txs, eventStatus EventStatus) error {
-	event, err := keeper.GetEvent(ctx, eventID)
-	if err != nil {
-		return fmt.Errorf("fail to get event: %w", err)
-	}
-
-	// if the event is already successful, don't append more transactions
-	if event.Status == EventSuccess {
-		return nil
-	}
-
-	ctx.Logger().Info(fmt.Sprintf("set event to %s,eventID (%d) , txs:%s", eventStatus, eventID, txs))
-
-	for _, item := range txs {
-		duplicate := false
-		for i := 0; i < len(event.OutTxs); i++ {
-			if event.OutTxs[i].Equals(item) {
-				duplicate = true
-				break
-			}
-		}
-		if !duplicate {
-			event.OutTxs = append(event.OutTxs, item)
-		}
-	}
-	if eventStatus == RefundStatus {
-		// we need to check we refunded all the coins that need to be refunded from in tx
-		// before updating status to complete, we use the count of voter actions to check
-		voter, err := keeper.GetObservedTxVoter(ctx, event.InTx.ID)
-		if err != nil {
-			return fmt.Errorf("fail to get observed tx voter: %w", err)
-		}
-		if len(voter.Actions) <= len(event.OutTxs) {
-			event.Status = eventStatus
-		}
-	} else {
-		event.Status = eventStatus
-	}
-	return keeper.UpsertEvent(ctx, event)
-}
-
-func updateEventFee(ctx cosmos.Context, keeper keeper.Keeper, txID common.TxID, fee common.Fee) error {
-	ctx.Logger().Info("update event fee txid", "tx", txID.String())
-	eventIDs, err := keeper.GetEventsIDByTxHash(ctx, txID)
-	if err != nil {
-		if err == kvTypes.ErrEventNotFound {
-			ctx.Logger().Error(fmt.Sprintf("could not find the event(%s)", txID))
-			return nil
-		}
-		return fmt.Errorf("fail to get event id: %w", err)
-	}
-	if len(eventIDs) == 0 {
-		return errors.New("no event found")
-	}
-	// There are two events for double swap with the same the same txID. Only the second one has fee
-	eventID := eventIDs[len(eventIDs)-1]
-	event, err := keeper.GetEvent(ctx, eventID)
-	if err != nil {
-		return fmt.Errorf("fail to get event: %w", err)
-	}
-
-	ctx.Logger().Info(fmt.Sprintf("Update fee for event %d, fee:%s", eventID, fee))
-	for _, feeCoin := range fee.Coins {
-		if !feeCoin.IsEmpty() {
-			event.Fee.Coins = append(event.Fee.Coins, feeCoin)
-		}
-	}
-	event.Fee.PoolDeduct = event.Fee.PoolDeduct.Add(fee.PoolDeduct)
-	return keeper.UpsertEvent(ctx, event)
-}
-
-func completeEvents(ctx cosmos.Context, keeper keeper.Keeper, txID common.TxID, txs common.Txs, eventStatus EventStatus) error {
-	ctx.Logger().Info(fmt.Sprintf("txid(%s)", txID))
-	eventIDs, err := keeper.GetPendingEventID(ctx, txID)
-	if err != nil {
-		if err == kvTypes.ErrEventNotFound {
-			ctx.Logger().Error(fmt.Sprintf("could not find the event(%s)", txID))
-			return nil
-		}
-		return fmt.Errorf("fail to get pending event id: %w", err)
-	}
-	for _, item := range eventIDs {
-		if err := updateEventStatus(ctx, keeper, item, txs, eventStatus); err != nil {
-			return fmt.Errorf("fail to set event(%d) to %s: %w", item, eventStatus, err)
-		}
-	}
-	return nil
-}
-
 func enableNextPool(ctx cosmos.Context, keeper keeper.Keeper, eventManager EventManager) error {
 	var pools []Pool
 	iterator := keeper.GetPoolIterator(ctx)
@@ -442,7 +350,7 @@ func enableNextPool(ctx cosmos.Context, keeper keeper.Keeper, eventManager Event
 	}
 
 	poolEvt := NewEventPool(pool.Asset, PoolEnabled)
-	if err := eventManager.EmitPoolEvent(ctx, keeper, common.BlankTxID, EventSuccess, poolEvt); err != nil {
+	if err := eventManager.EmitPoolEvent(ctx, poolEvt); err != nil {
 		return fmt.Errorf("fail to emit pool event: %w", err)
 	}
 

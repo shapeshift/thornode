@@ -2,9 +2,7 @@ package thorchain
 
 import (
 	"encoding/base64"
-	"errors"
 	"fmt"
-	"net/url"
 	"strconv"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -36,12 +34,6 @@ func NewQuerier(keeper keeper.Keeper, kbs KeybaseStore) cosmos.Querier {
 			return queryKeysign(ctx, kbs, path[1:], req, keeper)
 		case q.QueryKeygensPubkey.Key:
 			return queryKeygen(ctx, kbs, path[1:], req, keeper)
-		case q.QueryCompEvents.Key:
-			return queryCompEvents(ctx, path[1:], req, keeper)
-		case q.QueryCompEventsByChain.Key:
-			return queryCompEvents(ctx, path[1:], req, keeper)
-		case q.QueryEventsByTxHash.Key:
-			return queryEventsByTxHash(ctx, path[1:], req, keeper)
 		case q.QueryHeights.Key:
 			return queryHeights(ctx, path[1:], req, keeper)
 		case q.QueryChainHeights.Key:
@@ -80,18 +72,6 @@ func NewQuerier(keeper keeper.Keeper, kbs KeybaseStore) cosmos.Querier {
 			)
 		}
 	}
-}
-
-func getURLFromData(data []byte) (*url.URL, error) {
-	if data == nil {
-		return nil, errors.New("empty data")
-	}
-	u := &url.URL{}
-	err := u.UnmarshalBinary(data)
-	if err != nil {
-		return nil, fmt.Errorf("fail to unmarshal url.URL: %w", err)
-	}
-	return u, nil
 }
 
 func queryBalanceModule(ctx cosmos.Context, path []string, keeper keeper.Keeper) ([]byte, error) {
@@ -620,157 +600,6 @@ func queryKeysign(ctx cosmos.Context, kbs KeybaseStore, path []string, req abci.
 	if err != nil {
 		ctx.Logger().Error("fail to marshal tx hash to json", "error", err)
 		return nil, fmt.Errorf("fail to marshal tx hash to json: %w", err)
-	}
-	return res, nil
-}
-
-func isIncludeAllEvents(u *url.URL) bool {
-	if u == nil {
-		return false
-	}
-	values, ok := u.Query()["include"]
-	if !ok {
-		return false
-	}
-	for _, value := range values {
-		if value == "all" {
-			return true
-		}
-	}
-	return false
-}
-
-func getEventStatusFromQuery(u *url.URL) EventStatuses {
-	var result EventStatuses
-	if u == nil {
-		return result
-	}
-	values, ok := u.Query()["include"]
-	if !ok {
-		return result
-	}
-	return GetEventStatuses(values)
-}
-
-func queryEventsByTxHash(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
-	txID, err := common.NewTxID(path[0])
-	if err != nil {
-		ctx.Logger().Error("fail to discover tx hash", "error", err)
-		return nil, fmt.Errorf("fail to discover tx hash: %w", err)
-	}
-	eventIDs, err := keeper.GetEventsIDByTxHash(ctx, txID)
-	if err != nil {
-		errMsg := fmt.Sprintf("fail to get event ids by txhash(%s)", txID.String())
-		ctx.Logger().Error(errMsg)
-		return nil, fmt.Errorf("fail to get event ids by txhash(%s): %w", txID, err)
-	}
-	limit := 100 // limit the number of events, aka pagination
-	if len(eventIDs) > 100 {
-		eventIDs = eventIDs[len(eventIDs)-limit:]
-	}
-	events := make(Events, 0, len(eventIDs))
-	for _, id := range eventIDs {
-		event, err := keeper.GetEvent(ctx, id)
-		if err != nil {
-			return nil, fmt.Errorf("fail to get event(%d): %w", id, err)
-		}
-
-		if event.Empty() {
-			break
-		}
-		events = append(events, event)
-	}
-
-	res, err := codec.MarshalJSONIndent(keeper.Cdc(), events)
-	if err != nil {
-		ctx.Logger().Error("fail to marshal events to json", "error", err)
-		return nil, fmt.Errorf("fail to marshal events to json: %w", err)
-	}
-	return res, nil
-}
-
-func queryCompEvents(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
-	id, err := strconv.ParseInt(path[0], 10, 64)
-	if err != nil {
-		ctx.Logger().Error("fail to discover id number", "error", err)
-		return nil, fmt.Errorf("fail to discover id number: %w", err)
-	}
-
-	chain := common.EmptyChain
-	if len(path) > 1 && len(path[1]) > 0 {
-		chain, err = common.NewChain(path[1])
-		if err != nil {
-			ctx.Logger().Error("fail to discover chain name", "error", err)
-			return nil, fmt.Errorf("fail to discover chain name: %w", err)
-		}
-	}
-
-	u, err := getURLFromData(req.Data)
-	if err != nil {
-		ctx.Logger().Error(err.Error())
-	}
-	all := isIncludeAllEvents(u)
-	es := getEventStatusFromQuery(u)
-	limit := int64(100) // limit the number of events, aka pagination
-	events := make(Events, 0)
-	for i := id; i <= id+limit; i++ {
-		event, _ := keeper.GetEvent(ctx, i)
-		if all {
-			if event.Empty() {
-				break
-			}
-			events = append(events, event)
-			continue
-		}
-
-		// discover the chain event
-		// if no out txs, use intx chain
-		// if out txs, use first non-rune chain, else use rune chain
-		evtChain := event.InTx.Chain
-		if len(event.OutTxs) > 0 {
-			evtChain = common.RuneAsset().Chain
-			for _, outTx := range event.OutTxs {
-				if !outTx.Chain.IsEmpty() && !evtChain.Equals(outTx.Chain) {
-					evtChain = outTx.Chain
-					break
-				}
-			}
-		}
-		// if event is pending, get the chain event from memo
-		if event.Status == EventPending {
-			memo, _ := ParseMemo(event.InTx.Memo)
-			asset := memo.GetAsset()
-			if asset.Chain != "" {
-				evtChain = asset.Chain
-			}
-		}
-
-		if !chain.IsEmpty() && !evtChain.Equals(chain) && !evtChain.IsEmpty() {
-			continue
-		}
-		if evtChain.IsEmpty() && !chain.Equals(common.RuneAsset().Chain) && !chain.IsEmpty() {
-			continue
-		}
-		if event.Empty() {
-			continue
-		}
-		if len(es) == 0 {
-			if event.Status == EventPending {
-				break
-			}
-			events = append(events, event)
-		} else {
-			if es.Contains(event.Status) {
-				events = append(events, event)
-			}
-		}
-
-	}
-
-	res, err := codec.MarshalJSONIndent(keeper.Cdc(), events)
-	if err != nil {
-		ctx.Logger().Error("fail to marshal events to json", "error", err)
-		return nil, fmt.Errorf("fail to marshal events to json: %w", err)
 	}
 	return res, nil
 }

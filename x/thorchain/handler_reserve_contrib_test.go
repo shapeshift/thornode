@@ -23,7 +23,6 @@ type reserveContributorKeeper struct {
 	errSetReserveContributors bool
 	errGetVaultData           bool
 	errSetVaultData           bool
-	errSetEvents              bool
 }
 
 func newReserveContributorKeeper(k keeper.Keeper) *reserveContributorKeeper {
@@ -58,13 +57,6 @@ func (k *reserveContributorKeeper) SetVaultData(ctx cosmos.Context, data VaultDa
 		return kaboom
 	}
 	return k.Keeper.SetVaultData(ctx, data)
-}
-
-func (k *reserveContributorKeeper) UpsertEvent(ctx cosmos.Context, event Event) error {
-	if k.errSetEvents {
-		return kaboom
-	}
-	return k.Keeper.UpsertEvent(ctx, event)
 }
 
 type reserveContributorHandlerHelper struct {
@@ -224,31 +216,12 @@ func (h HandlerReserveContributorSuite) TestReserveContributorHandler(c *C) {
 			expectedResult: errInternal,
 		},
 		{
-			name: "fail to save event should return an error",
-			messageCreator: func(helper reserveContributorHandlerHelper) cosmos.Msg {
-				return NewMsgReserveContributor(GetRandomTx(), helper.reserveContributor, helper.nodeAccount.NodeAddress)
-			},
-			runner: func(handler ReserveContributorHandler, helper reserveContributorHandlerHelper, msg cosmos.Msg) (*cosmos.Result, error) {
-				helper.keeper.errSetEvents = true
-				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
-			},
-			expectedResult: errInternal,
-		},
-		{
 			name: "normal reserve contribute message should return success",
 			messageCreator: func(helper reserveContributorHandlerHelper) cosmos.Msg {
 				return NewMsgReserveContributor(GetRandomTx(), helper.reserveContributor, helper.nodeAccount.NodeAddress)
 			},
 			runner: func(handler ReserveContributorHandler, helper reserveContributorHandlerHelper, msg cosmos.Msg) (*cosmos.Result, error) {
 				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
-			},
-			validator: func(helper reserveContributorHandlerHelper, msg cosmos.Msg, result *cosmos.Result, c *C) {
-				eventID, err := helper.keeper.GetCurrentEventID(helper.ctx)
-				c.Assert(err, IsNil)
-				c.Assert(eventID, Equals, int64(2))
-				e, err := helper.keeper.GetEvent(helper.ctx, 1)
-				c.Assert(err, IsNil)
-				c.Assert(e.Type, Equals, NewEventReserve(helper.reserveContributor, GetRandomTx()).Type())
 			},
 			expectedResult: nil,
 		},

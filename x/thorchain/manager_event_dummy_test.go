@@ -1,9 +1,7 @@
 package thorchain
 
 import (
-	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
-	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // DummyEventMgr used for test purpose , and it implement EventManager interface
@@ -14,58 +12,55 @@ func NewDummyEventMgr() *DummyEventMgr {
 	return &DummyEventMgr{}
 }
 
-func (m *DummyEventMgr) CompleteEvents(ctx cosmos.Context, keeper keeper.Keeper, height int64, txID common.TxID, txs common.Txs, eventStatus EventStatus) {
-}
-
-func (m *DummyEventMgr) EmitPoolEvent(ctx cosmos.Context, keeper keeper.Keeper, txIn common.TxID, status EventStatus, poolEvt EventPool) error {
+func (m *DummyEventMgr) EmitPoolEvent(ctx cosmos.Context, poolEvt EventPool) error {
 	return nil
 }
 
-func (m *DummyEventMgr) EmitErrataEvent(ctx cosmos.Context, keeper keeper.Keeper, txIn common.TxID, errataEvent EventErrata) error {
+func (m *DummyEventMgr) EmitErrataEvent(ctx cosmos.Context, errataEvent EventErrata) error {
 	return nil
 }
 
-func (m *DummyEventMgr) EmitGasEvent(ctx cosmos.Context, keeper keeper.Keeper, gasEvent *EventGas) error {
+func (m *DummyEventMgr) EmitGasEvent(ctx cosmos.Context, gasEvent *EventGas) error {
 	return nil
 }
 
-func (m *DummyEventMgr) EmitStakeEvent(ctx cosmos.Context, keeper keeper.Keeper, stakeEvent EventStake) error {
+func (m *DummyEventMgr) EmitStakeEvent(ctx cosmos.Context, stakeEvent EventStake) error {
 	return nil
 }
 
-func (m *DummyEventMgr) EmitRewardEvent(ctx cosmos.Context, keeper keeper.Keeper, rewardEvt EventRewards) error {
+func (m *DummyEventMgr) EmitRewardEvent(ctx cosmos.Context, rewardEvt EventRewards) error {
 	return nil
 }
 
-func (m *DummyEventMgr) EmitReserveEvent(ctx cosmos.Context, keeper keeper.Keeper, reserveEvent EventReserve) error {
+func (m *DummyEventMgr) EmitReserveEvent(ctx cosmos.Context, reserveEvent EventReserve) error {
 	return nil
 }
 
-func (m *DummyEventMgr) EmitUnstakeEvent(ctx cosmos.Context, keeper keeper.Keeper, unstakeEvt EventUnstake) error {
+func (m *DummyEventMgr) EmitUnstakeEvent(ctx cosmos.Context, unstakeEvt EventUnstake) error {
 	return nil
 }
 
-func (m *DummyEventMgr) EmitSwapEvent(ctx cosmos.Context, keeper keeper.Keeper, swap EventSwap) error {
+func (m *DummyEventMgr) EmitSwapEvent(ctx cosmos.Context, swap EventSwap) error {
 	return nil
 }
 
-func (m *DummyEventMgr) EmitAddEvent(ctx cosmos.Context, keeper keeper.Keeper, addEvt EventAdd) error {
+func (m *DummyEventMgr) EmitAddEvent(ctx cosmos.Context, addEvt EventAdd) error {
 	return nil
 }
 
-func (m *DummyEventMgr) EmitRefundEvent(ctx cosmos.Context, keeper keeper.Keeper, refundEvt EventRefund, status EventStatus) error {
+func (m *DummyEventMgr) EmitRefundEvent(ctx cosmos.Context, refundEvt EventRefund) error {
 	return nil
 }
 
-func (m *DummyEventMgr) EmitBondEvent(ctx cosmos.Context, keeper keeper.Keeper, bondEvent EventBond) error {
+func (m *DummyEventMgr) EmitBondEvent(ctx cosmos.Context, bondEvent EventBond) error {
 	return nil
 }
 
-func (m *DummyEventMgr) EmitFeeEvent(ctx cosmos.Context, keeper keeper.Keeper, feeEvent EventFee) error {
+func (m *DummyEventMgr) EmitFeeEvent(ctx cosmos.Context, feeEvent EventFee) error {
 	return nil
 }
 
-func (m *DummyEventMgr) EmitSlashEvent(ctx cosmos.Context, keeper keeper.Keeper, slashEvt EventSlash) error {
+func (m *DummyEventMgr) EmitSlashEvent(ctx cosmos.Context, slashEvt EventSlash) error {
 	return nil
 }
 

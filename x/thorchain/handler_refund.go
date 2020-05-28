@@ -55,5 +55,5 @@ func (h RefundHandler) validateV1(ctx cosmos.Context, version semver.Version, ms
 }
 
 func (h RefundHandler) handle(ctx cosmos.Context, msg MsgRefundTx, version semver.Version) (*cosmos.Result, error) {
-	return h.ch.handle(ctx, version, msg.Tx, msg.InTxID, RefundStatus)
+	return h.ch.handle(ctx, version, msg.Tx, msg.InTxID)
 }

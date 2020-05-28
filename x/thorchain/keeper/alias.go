@@ -7,47 +7,17 @@ import (
 )
 
 const (
-	ModuleName       = types.ModuleName
-	ReserveName      = types.ReserveName
-	AsgardName       = types.AsgardName
-	BondName         = types.BondName
-	RouterKey        = types.RouterKey
-	StoreKey         = types.StoreKey
-	DefaultCodespace = types.DefaultCodespace
+	ModuleName  = types.ModuleName
+	ReserveName = types.ReserveName
+	AsgardName  = types.AsgardName
+	BondName    = types.BondName
+	RouterKey   = types.RouterKey
+	StoreKey    = types.StoreKey
 
-	// pool status
-	PoolEnabled   = types.Enabled
-	PoolBootstrap = types.Bootstrap
-	PoolSuspended = types.Suspended
-
-	// event status
-	EventSuccess = types.Success
-	EventPending = types.Pending
-	EventFail    = types.Failed
-	RefundStatus = types.Refund
-
-	// Admin config keys
-	MaxUnstakeBasisPoints = types.MaxUnstakeBasisPoints
-
-	// Vaults
-	AsgardVault    = types.AsgardVault
-	YggdrasilVault = types.YggdrasilVault
-	ActiveVault    = types.ActiveVault
-	InactiveVault  = types.InactiveVault
-	RetiringVault  = types.RetiringVault
+	ActiveVault = types.ActiveVault
 
 	// Node status
-	NodeActive      = types.Active
-	NodeWhiteListed = types.WhiteListed
-	NodeDisabled    = types.Disabled
-	NodeReady       = types.Ready
-	NodeStandby     = types.Standby
-	NodeUnknown     = types.Unknown
-
-	// Bond type
-	BondPaid     = types.BondPaid
-	BondReturned = types.BondReturned
-	AsgardKeygen = types.AsgardKeygen
+	NodeActive = types.Active
 )
 
 var (
@@ -74,7 +44,6 @@ var (
 	NewKeygenBlock                 = types.NewKeygenBlock
 	NewMsgSetNodeKeys              = types.NewMsgSetNodeKeys
 	NewTxOut                       = types.NewTxOut
-	NewEvent                       = types.NewEvent
 	NewEventRewards                = types.NewEventRewards
 	NewEventPool                   = types.NewEventPool
 	NewEventAdd                    = types.NewEventAdd
@@ -127,7 +96,6 @@ var (
 	GetRandomPubKey                = types.GetRandomPubKey
 	GetRandomPubKeySet             = types.GetRandomPubKeySet
 	SetupConfigForTest             = types.SetupConfigForTest
-	GetEventStatuses               = types.GetEventStatuses
 )
 
 type (
@@ -182,12 +150,9 @@ type (
 	TxOut                 = types.TxOut
 	Keygen                = types.Keygen
 	KeygenBlock           = types.KeygenBlock
-	Event                 = types.Event
-	Events                = types.Events
 	EventSwap             = types.EventSwap
 	EventStake            = types.EventStake
 	EventUnstake          = types.EventUnstake
-	EventStatus           = types.EventStatus
 	EventAdd              = types.EventAdd
 	EventRewards          = types.EventRewards
 	EventErrata           = types.EventErrata
@@ -204,7 +169,6 @@ type (
 	NodeStatus            = types.NodeStatus
 	VaultData             = types.VaultData
 	VaultStatus           = types.VaultStatus
-	EventStatuses         = types.EventStatuses
 	GasPool               = types.GasPool
 	EventGas              = types.EventGas
 	TxMarker              = types.TxMarker

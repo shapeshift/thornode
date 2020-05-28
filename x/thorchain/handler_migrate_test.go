@@ -109,10 +109,6 @@ func (k *TestMigrateKeeperHappyPath) SetPool(_ cosmos.Context, p Pool) error {
 	return nil
 }
 
-func (k *TestMigrateKeeperHappyPath) UpsertEvent(_ cosmos.Context, _ Event) error {
-	return nil
-}
-
 func (HandlerMigrateSuite) TestMigrateHappyPath(c *C) {
 	ctx, _ := setupKeeperForTest(c)
 	retireVault := GetRandomVault()

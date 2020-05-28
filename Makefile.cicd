@@ -1,4 +1,4 @@
-BRANCH= $(shell git rev-parse --abbrev-ref HEAD | sed 's/master/mocknet/g')
+BRANCH=$(shell git rev-parse --abbrev-ref HEAD | sed 's/master/mocknet/g')
 GITREF=$(shell git rev-parse --short HEAD)
 
 # pull branch name from CI, if available

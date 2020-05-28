@@ -36,7 +36,6 @@ type Keeper interface {
 	KeeperObservedTx
 	KeeperTxOut
 	KeeperLiquidityFees
-	KeeperEvents
 	KeeperVault
 	KeeperReserveContributors
 	KeeperVaultData
@@ -120,17 +119,6 @@ type KeeperLiquidityFees interface {
 	AddToLiquidityFees(ctx cosmos.Context, asset common.Asset, fee cosmos.Uint) error
 	GetTotalLiquidityFees(ctx cosmos.Context, height uint64) (cosmos.Uint, error)
 	GetPoolLiquidityFees(ctx cosmos.Context, height uint64, asset common.Asset) (cosmos.Uint, error)
-}
-
-type KeeperEvents interface {
-	GetEvent(ctx cosmos.Context, eventID int64) (Event, error)
-	GetEventsIterator(ctx cosmos.Context) cosmos.Iterator
-	UpsertEvent(ctx cosmos.Context, event Event) error
-	GetPendingEventID(ctx cosmos.Context, txID common.TxID) ([]int64, error)
-	GetCurrentEventID(ctx cosmos.Context) (int64, error)
-	SetCurrentEventID(ctx cosmos.Context, eventID int64)
-	GetAllPendingEvents(ctx cosmos.Context) (Events, error)
-	GetEventsIDByTxHash(ctx cosmos.Context, txID common.TxID) ([]int64, error)
 }
 
 type KeeperVault interface {
