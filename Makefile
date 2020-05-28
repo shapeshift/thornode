@@ -36,6 +36,7 @@ install: go.sum
 tools:
 	go install ./tools/generate
 	go install ./tools/extract
+	go install ./tools/pubkey2address
 
 go.sum: go.mod
 	@echo "--> Ensure dependencies have not been modified"
