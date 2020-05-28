@@ -1,7 +1,6 @@
 package thorchain
 
 import (
-	"encoding/json"
 	"errors"
 
 	"github.com/blang/semver"
@@ -88,14 +87,12 @@ type outboundTxHandlerTestHelper struct {
 	nodeAccount   NodeAccount
 	inboundTx     ObservedTx
 	toi           *TxOutItem
-	event         Event
 	mgr           Manager
 }
 
 type outboundTxHandlerKeeperHelper struct {
 	keeper.Keeper
 	observeTxVoterErrHash common.TxID
-	failGetPendingEvent   bool
 	errGetTxOut           bool
 	errGetNodeAccount     bool
 	errGetPool            bool
@@ -118,13 +115,6 @@ func (k *outboundTxHandlerKeeperHelper) GetObservedTxVoter(ctx cosmos.Context, h
 		return ObservedTxVoter{}, kaboom
 	}
 	return k.Keeper.GetObservedTxVoter(ctx, hash)
-}
-
-func (k *outboundTxHandlerKeeperHelper) GetPendingEventID(ctx cosmos.Context, hash common.TxID) ([]int64, error) {
-	if k.failGetPendingEvent {
-		return nil, kaboom
-	}
-	return k.Keeper.GetPendingEventID(ctx, hash)
 }
 
 func (k *outboundTxHandlerKeeperHelper) GetTxOut(ctx cosmos.Context, height int64) (*TxOut, error) {
@@ -245,13 +235,6 @@ func newOutboundTxHandlerTestHelper(c *C) outboundTxHandlerTestHelper {
 	c.Assert(err, IsNil)
 	c.Check(result, Equals, true)
 
-	swapEvent := NewEventSwap(common.BNBAsset, cosmos.NewUint(common.One), cosmos.NewUint(common.One), cosmos.NewUint(common.One), cosmos.NewUint(common.One), GetRandomTx())
-	buf, err := json.Marshal(swapEvent)
-	c.Assert(err, IsNil)
-	e := NewEvent(swapEvent.Type(), ctx.BlockHeight(), tx.Tx, buf, EventPending)
-	c.Assert(keeper.UpsertEvent(ctx, e), IsNil)
-	c.Assert(err, IsNil)
-	c.Assert(result, Equals, true)
 	return outboundTxHandlerTestHelper{
 		ctx:           ctx,
 		pool:          pool,
@@ -300,17 +283,6 @@ func (s *HandlerOutboundTxSuite) TestOutboundTxHandlerShouldUpdateTxOut(c *C) {
 				return NewMsgOutboundTx(tx, helper.keeper.observeTxVoterErrHash, helper.nodeAccount.NodeAddress)
 			},
 			runner: func(handler OutboundTxHandler, helper outboundTxHandlerTestHelper, msg cosmos.Msg) (*cosmos.Result, error) {
-				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
-			},
-			expectedResult: errInternal,
-		},
-		{
-			name: "fail to complete events should result in an error",
-			messageCreator: func(helper outboundTxHandlerTestHelper, tx ObservedTx) cosmos.Msg {
-				return NewMsgOutboundTx(tx, helper.inboundTx.Tx.ID, helper.nodeAccount.NodeAddress)
-			},
-			runner: func(handler OutboundTxHandler, helper outboundTxHandlerTestHelper, msg cosmos.Msg) (*cosmos.Result, error) {
-				helper.keeper.failGetPendingEvent = true
 				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
 			},
 			expectedResult: errInternal,
@@ -459,10 +431,6 @@ func (s *HandlerOutboundTxSuite) TestOutboundTxNormalCase(c *C) {
 	outMsg := NewMsgOutboundTx(tx, helper.inboundTx.Tx.ID, helper.nodeAccount.NodeAddress)
 	_, err = handler.Run(helper.ctx, outMsg, constants.SWVersion, helper.constAccessor)
 	c.Assert(err, IsNil)
-	// event should set to complete
-	ev, err := helper.keeper.GetEvent(helper.ctx, 1)
-	c.Assert(err, IsNil)
-	c.Assert(ev.Status, Equals, EventSuccess)
 	// txout should had been complete
 
 	txOut, err := helper.keeper.GetTxOut(helper.ctx, helper.ctx.BlockHeight())

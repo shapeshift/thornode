@@ -77,8 +77,6 @@ func (mfp *MockUnstakeKeeper) SetStaker(_ cosmos.Context, staker Staker) {
 	mfp.staker = staker
 }
 
-func (mfp *MockUnstakeKeeper) UpsertEvent(ctx cosmos.Context, event Event) error { return nil }
-
 func (mfp *MockUnstakeKeeper) GetGas(ctx cosmos.Context, asset common.Asset) ([]cosmos.Uint, error) {
 	return []cosmos.Uint{cosmos.NewUint(37500), cosmos.NewUint(30000)}, nil
 }

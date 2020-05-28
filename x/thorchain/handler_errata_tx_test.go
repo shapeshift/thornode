@@ -1,7 +1,6 @@
 package thorchain
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"github.com/blang/semver"
@@ -19,7 +18,6 @@ type HandlerErrataTxSuite struct{}
 
 type TestErrataTxKeeper struct {
 	keeper.KVStoreDummy
-	event      Event
 	observedTx ObservedTxVoter
 	pool       Pool
 	na         NodeAccount
@@ -33,11 +31,6 @@ func (k *TestErrataTxKeeper) ListActiveNodeAccounts(_ cosmos.Context) (NodeAccou
 
 func (k *TestErrataTxKeeper) GetNodeAccount(_ cosmos.Context, _ cosmos.AccAddress) (NodeAccount, error) {
 	return k.na, k.err
-}
-
-func (k *TestErrataTxKeeper) UpsertEvent(_ cosmos.Context, evt Event) error {
-	k.event = evt
-	return nil
 }
 
 func (k *TestErrataTxKeeper) GetObservedTxVoter(_ cosmos.Context, txID common.TxID) (ObservedTxVoter, error) {
@@ -154,14 +147,4 @@ func (s *HandlerErrataTxSuite) TestHandle(c *C) {
 	c.Check(keeper.pool.BalanceAsset.Equal(cosmos.NewUint(100*common.One)), Equals, true)
 	c.Check(keeper.stakers[0].Units.IsZero(), Equals, true, Commentf("%d", keeper.stakers[0].Units.Uint64()))
 	c.Check(keeper.stakers[0].LastStakeHeight, Equals, int64(18))
-
-	c.Assert(keeper.event.Type, Equals, "errata")
-	var evt EventErrata
-	c.Assert(json.Unmarshal(keeper.event.Event, &evt), IsNil)
-	c.Check(evt.Pools, HasLen, 1)
-	c.Check(evt.Pools[0].Asset.Equals(common.BNBAsset), Equals, true)
-	c.Check(evt.Pools[0].RuneAmt.Equal(cosmos.NewUint(30*common.One)), Equals, true)
-	c.Check(evt.Pools[0].RuneAdd, Equals, false)
-	c.Check(evt.Pools[0].AssetAmt.IsZero(), Equals, true)
-	c.Check(evt.Pools[0].AssetAdd, Equals, false)
 }

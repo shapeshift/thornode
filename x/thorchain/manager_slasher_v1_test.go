@@ -1,7 +1,6 @@
 package thorchain
 
 import (
-	"encoding/json"
 	"errors"
 
 	. "gopkg.in/check.v1"
@@ -128,7 +127,6 @@ func (s *SlashingSuite) TestLackObservingErrors(c *C) {
 
 type TestSlashingLackKeeper struct {
 	keeper.KVStoreDummy
-	evts                       Events
 	txOut                      *TxOut
 	na                         NodeAccount
 	vaults                     Vaults
@@ -167,13 +165,6 @@ func (k *TestSlashingLackKeeper) GetAsgardVaultsByStatus(_ cosmos.Context, _ Vau
 		return nil, kaboom
 	}
 	return k.vaults, nil
-}
-
-func (k *TestSlashingLackKeeper) GetAllPendingEvents(_ cosmos.Context) (Events, error) {
-	if k.failToGetAllPendingEvents {
-		return nil, kaboom
-	}
-	return k.evts, nil
 }
 
 func (k *TestSlashingLackKeeper) GetTxOut(_ cosmos.Context, _ int64) (*TxOut, error) {
@@ -281,40 +272,23 @@ func (s *SlashingSuite) TestNodeSignSlashErrors(c *C) {
 			nil,
 			"SWAP:BNB.BNB",
 		)
-		swapEvt := NewEventSwap(
-			common.BNBAsset,
-			cosmos.NewUint(5),
-			cosmos.NewUint(5),
-			cosmos.NewUint(5),
-			cosmos.NewUint(5),
-			inTx,
-		)
-
-		swapBytes, _ := json.Marshal(swapEvt)
-		evt := NewEvent(swapEvt.Type(),
-			3,
-			inTx,
-			swapBytes,
-			EventSuccess,
-		)
 
 		txOutItem := &TxOutItem{
 			Chain:       common.BNBChain,
-			InHash:      evt.InTx.ID,
+			InHash:      inTx.ID,
 			VaultPubKey: na.PubKeySet.Secp256k1,
 			ToAddress:   GetRandomBNBAddress(),
 			Coin: common.NewCoin(
 				common.BNBAsset, cosmos.NewUint(3980500*common.One),
 			),
 		}
-		txOut := NewTxOut(evt.Height)
+		txOut := NewTxOut(3)
 		txOut.TxArray = append(txOut.TxArray, txOutItem)
 
 		ygg := GetRandomVault()
 		ygg.Type = YggdrasilVault
 		keeper := &TestSlashingLackKeeper{
 			txOut:  txOut,
-			evts:   Events{evt},
 			na:     na,
 			vaults: Vaults{ygg},
 			voter: ObservedTxVoter{
@@ -323,7 +297,7 @@ func (s *SlashingSuite) TestNodeSignSlashErrors(c *C) {
 			slashPts: make(map[string]int64, 0),
 		}
 		signingTransactionPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
-		ctx = ctx.WithBlockHeight(evt.Height + signingTransactionPeriod)
+		ctx = ctx.WithBlockHeight(3 + signingTransactionPeriod)
 		slasher := NewSlasherV1(keeper)
 		item.condition(keeper)
 		if item.shouldError {
@@ -352,40 +326,23 @@ func (s *SlashingSuite) TestNotSigningSlash(c *C) {
 		nil,
 		"SWAP:BNB.BNB",
 	)
-	swapEvt := NewEventSwap(
-		common.BNBAsset,
-		cosmos.NewUint(5),
-		cosmos.NewUint(5),
-		cosmos.NewUint(5),
-		cosmos.NewUint(5),
-		inTx,
-	)
-
-	swapBytes, _ := json.Marshal(swapEvt)
-	evt := NewEvent(swapEvt.Type(),
-		3,
-		inTx,
-		swapBytes,
-		EventSuccess,
-	)
 
 	txOutItem := &TxOutItem{
 		Chain:       common.BNBChain,
-		InHash:      evt.InTx.ID,
+		InHash:      inTx.ID,
 		VaultPubKey: na.PubKeySet.Secp256k1,
 		ToAddress:   GetRandomBNBAddress(),
 		Coin: common.NewCoin(
 			common.BNBAsset, cosmos.NewUint(3980500*common.One),
 		),
 	}
-	txOut := NewTxOut(evt.Height)
+	txOut := NewTxOut(3)
 	txOut.TxArray = append(txOut.TxArray, txOutItem)
 
 	ygg := GetRandomVault()
 	ygg.Type = YggdrasilVault
 	keeper := &TestSlashingLackKeeper{
 		txOut:  txOut,
-		evts:   Events{evt},
 		na:     na,
 		vaults: Vaults{ygg},
 		voter: ObservedTxVoter{
@@ -394,7 +351,7 @@ func (s *SlashingSuite) TestNotSigningSlash(c *C) {
 		slashPts: make(map[string]int64, 0),
 	}
 	signingTransactionPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
-	ctx = ctx.WithBlockHeight(evt.Height + signingTransactionPeriod)
+	ctx = ctx.WithBlockHeight(3 + signingTransactionPeriod)
 	mgr := NewDummyMgr()
 	mgr.txOutStore = txOutStore
 	slasher := NewSlasherV1(keeper)

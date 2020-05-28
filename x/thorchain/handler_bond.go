@@ -87,7 +87,7 @@ func (h BondHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Versio
 		return nil, err
 	}
 	bondEvent := NewEventBond(msg.Bond, BondPaid, msg.TxIn)
-	if err := h.mgr.EventMgr().EmitBondEvent(ctx, h.keeper, bondEvent); err != nil {
+	if err := h.mgr.EventMgr().EmitBondEvent(ctx, bondEvent); err != nil {
 		return nil, cosmos.Wrapf(errFailSaveEvent, "fail to emit bond event: %w", err)
 	}
 

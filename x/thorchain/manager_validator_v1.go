@@ -593,7 +593,7 @@ func (vm *validatorMgrV1) ragnarokPools(ctx cosmos.Context, nth int64, mgr Manag
 	for _, pool := range pools {
 		if pool.Status != PoolBootstrap {
 			poolEvent := NewEventPool(pool.Asset, PoolBootstrap)
-			if err := vm.eventMgr.EmitPoolEvent(ctx, vm.k, common.BlankTxID, EventSuccess, poolEvent); err != nil {
+			if err := vm.eventMgr.EmitPoolEvent(ctx, poolEvent); err != nil {
 				ctx.Logger().Error("fail to emit pool event", "error", err)
 			}
 		}

@@ -1,25 +1,12 @@
 package types
 
 import (
-	"encoding/json"
 	"fmt"
 	"strconv"
 
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
-
-// Events bt
-type Event struct {
-	ID     int64           `json:"id"`
-	Height int64           `json:"height"`
-	Type   string          `json:"type"`
-	InTx   common.Tx       `json:"in_tx"`
-	OutTxs common.Txs      `json:"out_txs"`
-	Fee    common.Fee      `json:"fee"`
-	Event  json.RawMessage `json:"event"`
-	Status EventStatus     `json:"status"`
-}
 
 const (
 	SwapEventType     = `swap`
@@ -58,42 +45,6 @@ func NewPoolMod(asset common.Asset, runeAmt cosmos.Uint, runeAdd bool, assetAmt 
 	}
 }
 
-// NewEvent create a new  event
-func NewEvent(typ string, ht int64, inTx common.Tx, evt json.RawMessage, status EventStatus) Event {
-	return Event{
-		Height: ht,
-		Type:   typ,
-		InTx:   inTx,
-		OutTxs: make(common.Txs, 0),
-		Event:  evt,
-		Status: status,
-		Fee: common.Fee{
-			Coins:      make(common.Coins, 0),
-			PoolDeduct: cosmos.ZeroUint(),
-		},
-	}
-}
-
-// Empty determinate whether the event is empty
-func (evt Event) Empty() bool {
-	return evt.InTx.ID.IsEmpty()
-}
-
-// Events is a slice of events
-type Events []Event
-
-// PopByInHash Pops an event out of the event list by hash ID
-func (evts Events) PopByInHash(txID common.TxID) (found, events Events) {
-	for _, evt := range evts {
-		if evt.InTx.ID.Equals(txID) {
-			found = append(found, evt)
-		} else {
-			events = append(events, evt)
-		}
-	}
-	return
-}
-
 // EventSwap event for swap action
 type EventSwap struct {
 	Pool               common.Asset `json:"pool"`
@@ -101,10 +52,8 @@ type EventSwap struct {
 	TradeSlip          cosmos.Uint  `json:"trade_slip"`
 	LiquidityFee       cosmos.Uint  `json:"liquidity_fee"`
 	LiquidityFeeInRune cosmos.Uint  `json:"liquidity_fee_in_rune"`
-	//  the following two field is trying to make events change backward compatible
-	// very soon we don't need to save this event to key value store anymore , it will be removed then
-	InTx   common.Tx `json:"-"` // this is the Tx that cause the swap to happen, it is a double swap , then the txid will be blank
-	OutTxs common.Tx `json:"-"` // this field will need temporary
+	InTx               common.Tx    `json:"in_tx"` // this is the Tx that cause the swap to happen, it is a double swap , then the txid will be blank
+	OutTxs             common.Tx    `json:"out_txs"`
 }
 
 // NewEventSwap create a new swap event
@@ -192,7 +141,7 @@ type EventUnstake struct {
 	StakeUnits  cosmos.Uint  `json:"stake_units"`
 	BasisPoints int64        `json:"basis_points"` // 1 ==> 10,0000
 	Asymmetry   cosmos.Dec   `json:"asymmetry"`    // -1.0 <==> 1.0
-	InTx        common.Tx    `json:"-"`
+	InTx        common.Tx    `json:"in_tx"`
 }
 
 // NewEventUnstake create a new unstake event
@@ -225,7 +174,7 @@ func (e EventUnstake) Events() (cosmos.Events, error) {
 // EventAdd represent add operation
 type EventAdd struct {
 	Pool common.Asset `json:"pool"`
-	InTx common.Tx    `json:"-"`
+	InTx common.Tx    `json:"in_tx"`
 }
 
 // NewEventAdd create a new add event
@@ -316,8 +265,8 @@ func (e EventRewards) Events() (cosmos.Events, error) {
 type EventRefund struct {
 	Code   uint32     `json:"code"`
 	Reason string     `json:"reason"`
-	InTx   common.Tx  `json:"-"`
-	Fee    common.Fee `json:"-"`
+	InTx   common.Tx  `json:"in_tx"`
+	Fee    common.Fee `json:"fee"`
 }
 
 // NewEventRefund create a new EventRefund
@@ -356,7 +305,7 @@ const (
 type EventBond struct {
 	Amount   cosmos.Uint `json:"amount"`
 	BondType BondType    `json:"bond_type"`
-	TxIn     common.Tx   `json:"-"`
+	TxIn     common.Tx   `json:"tx_in"`
 }
 
 // NewEventBond create a new Bond Events
@@ -437,7 +386,7 @@ func (e *EventGas) Events() (cosmos.Events, error) {
 // EventReserve Reserve event type
 type EventReserve struct {
 	ReserveContributor ReserveContributor `json:"reserve_contributor"`
-	InTx               common.Tx          `json:"-"`
+	InTx               common.Tx          `json:"in_tx"`
 }
 
 // NewEventReserve create a new instance of EventReserve

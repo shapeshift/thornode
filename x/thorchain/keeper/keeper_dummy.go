@@ -187,20 +187,6 @@ func (k KVStoreDummy) GetPoolLiquidityFees(_ cosmos.Context, _ uint64, _ common.
 	return cosmos.ZeroUint(), kaboom
 }
 
-func (k KVStoreDummy) GetEvent(_ cosmos.Context, _ int64) (Event, error)  { return Event{}, kaboom }
-func (k KVStoreDummy) GetEventsIterator(_ cosmos.Context) cosmos.Iterator { return nil }
-func (k KVStoreDummy) UpsertEvent(_ cosmos.Context, _ Event) error        { return kaboom }
-func (k KVStoreDummy) GetPendingEventID(_ cosmos.Context, _ common.TxID) ([]int64, error) {
-	return nil, kaboom
-}
-
-func (k KVStoreDummy) GetEventsIDByTxHash(ctx cosmos.Context, txID common.TxID) ([]int64, error) {
-	return nil, kaboom
-}
-func (k KVStoreDummy) GetCurrentEventID(_ cosmos.Context) (int64, error)    { return 0, kaboom }
-func (k KVStoreDummy) SetCurrentEventID(_ cosmos.Context, _ int64)          {}
-func (k KVStoreDummy) GetAllPendingEvents(_ cosmos.Context) (Events, error) { return nil, kaboom }
-
 func (k KVStoreDummy) GetChains(_ cosmos.Context) (common.Chains, error)  { return nil, kaboom }
 func (k KVStoreDummy) SetChains(_ cosmos.Context, _ common.Chains)        {}
 func (k KVStoreDummy) GetVaultIterator(_ cosmos.Context) cosmos.Iterator  { return nil }

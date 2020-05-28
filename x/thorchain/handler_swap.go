@@ -71,7 +71,7 @@ func (h SwapHandler) handleV1(ctx cosmos.Context, msg MsgSwap, version semver.Ve
 		return nil, swapErr
 	}
 	for _, evt := range events {
-		if err := h.mgr.EventMgr().EmitSwapEvent(ctx, h.keeper, evt); err != nil {
+		if err := h.mgr.EventMgr().EmitSwapEvent(ctx, evt); err != nil {
 			ctx.Logger().Error("fail to emit swap event", "error", err)
 		}
 		if err := h.keeper.AddToLiquidityFees(ctx, evt.Pool, evt.LiquidityFeeInRune); err != nil {

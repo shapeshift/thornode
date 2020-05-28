@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/blang/semver"
+
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )

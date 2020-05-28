@@ -260,7 +260,7 @@ func (h StakeHandler) stake(ctx cosmos.Context,
 	}
 
 	evt := NewEventStake(asset, stakerUnits, runeAddr, stakeRuneAmount, stakeAssetAmount, runeTxID, assetTxID)
-	if err := h.mgr.EventMgr().EmitStakeEvent(ctx, h.keeper, evt); err != nil {
+	if err := h.mgr.EventMgr().EmitStakeEvent(ctx, evt); err != nil {
 		return ErrInternal(err, "fail to emit stake event")
 	}
 	return nil
