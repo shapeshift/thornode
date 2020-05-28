@@ -29,7 +29,11 @@ func (s EventSuite) TestStakeEvent(c *C) {
 	evt := NewEventStake(
 		common.BNBAsset,
 		cosmos.NewUint(5),
-		GetRandomTx(),
+		GetRandomRUNEAddress(),
+		cosmos.NewUint(5),
+		cosmos.NewUint(5),
+		GetRandomTxHash(),
+		GetRandomTxHash(),
 	)
 	c.Check(evt.Type(), Equals, "stake")
 }
@@ -115,8 +119,13 @@ func (s EventSuite) TestEvent(c *C) {
 	stake := NewEventStake(
 		common.BNBAsset,
 		cosmos.NewUint(5),
-		txIn,
+		GetRandomRUNEAddress(),
+		cosmos.NewUint(5),
+		cosmos.NewUint(5),
+		GetRandomTxHash(),
+		GetRandomTxHash(),
 	)
+
 	stakeBytes, _ := json.Marshal(stake)
 	evt2 := NewEvent(stake.Type(),
 		12,
