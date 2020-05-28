@@ -192,8 +192,23 @@ func (s *SlasherV1) LackSigning(ctx cosmos.Context, constAccessor constants.Cons
 			}
 			s.keeper.SetObservedTxVoter(ctx, voter)
 
+			// fetch memo from tx marker
+			hash, err := tx.TxHash()
+			if err != nil {
+				return err
+			}
+			marks, err := s.keeper.ListTxMarker(ctx, hash)
+			if err != nil {
+				return err
+			}
+			period := constAccessor.GetInt64Value(constants.SigningTransactionPeriod) * 3
+			marks = marks.FilterByMinHeight(ctx.BlockHeight() - period)
+			mark, _ := marks.Pop()
+			tx.Memo = mark.Memo
+
 			// Save the tx to as a new tx, select Asgard to send it this time.
 			tx.VaultPubKey = vault.PubKey
+
 			err = mgr.TxOutStore().UnSafeAddTxOutItem(ctx, mgr, tx)
 			if err != nil {
 				return fmt.Errorf("fail to add outbound tx: %w", err)
