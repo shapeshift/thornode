@@ -47,20 +47,20 @@ func (s *ThorchainSuite) TestStaking(c *C) {
 	pool := NewPool()
 	pool.Asset = common.BNBAsset
 	c.Assert(keeper.SetPool(ctx, pool), IsNil)
-
+	stakeHandler := NewStakeHandler(keeper, NewDummyMgr())
 	// stake for user1
-	_, err = stake(ctx, keeper, common.BNBAsset, cosmos.NewUint(100*common.One), cosmos.NewUint(100*common.One), user1, user1, txID, constAccessor)
+	err = stakeHandler.stake(ctx, common.BNBAsset, cosmos.NewUint(100*common.One), cosmos.NewUint(100*common.One), user1, user1, txID, constAccessor)
 	c.Assert(err, IsNil)
-	_, err = stake(ctx, keeper, common.BNBAsset, cosmos.NewUint(100*common.One), cosmos.NewUint(100*common.One), user1, user1, txID, constAccessor)
+	err = stakeHandler.stake(ctx, common.BNBAsset, cosmos.NewUint(100*common.One), cosmos.NewUint(100*common.One), user1, user1, txID, constAccessor)
 	c.Assert(err, IsNil)
 	staker1, err := keeper.GetStaker(ctx, common.BNBAsset, user1)
 	c.Assert(err, IsNil)
 	c.Check(staker1.Units.IsZero(), Equals, false)
 
 	// stake for user2
-	_, err = stake(ctx, keeper, common.BNBAsset, cosmos.NewUint(75*common.One), cosmos.NewUint(75*common.One), user2, user2, txID, constAccessor)
+	err = stakeHandler.stake(ctx, common.BNBAsset, cosmos.NewUint(75*common.One), cosmos.NewUint(75*common.One), user2, user2, txID, constAccessor)
 	c.Assert(err, IsNil)
-	_, err = stake(ctx, keeper, common.BNBAsset, cosmos.NewUint(75*common.One), cosmos.NewUint(75*common.One), user2, user2, txID, constAccessor)
+	err = stakeHandler.stake(ctx, common.BNBAsset, cosmos.NewUint(75*common.One), cosmos.NewUint(75*common.One), user2, user2, txID, constAccessor)
 	c.Assert(err, IsNil)
 	staker2, err := keeper.GetStaker(ctx, common.BNBAsset, user2)
 	c.Assert(err, IsNil)
@@ -95,9 +95,9 @@ func (s *ThorchainSuite) TestStaking(c *C) {
 	c.Check(pool.PoolUnits.IsZero(), Equals, true)
 
 	// stake for user1, again
-	_, err = stake(ctx, keeper, common.BNBAsset, cosmos.NewUint(100*common.One), cosmos.NewUint(100*common.One), user1, user1, txID, constAccessor)
+	err = stakeHandler.stake(ctx, common.BNBAsset, cosmos.NewUint(100*common.One), cosmos.NewUint(100*common.One), user1, user1, txID, constAccessor)
 	c.Assert(err, IsNil)
-	_, err = stake(ctx, keeper, common.BNBAsset, cosmos.NewUint(100*common.One), cosmos.NewUint(100*common.One), user1, user1, txID, constAccessor)
+	err = stakeHandler.stake(ctx, common.BNBAsset, cosmos.NewUint(100*common.One), cosmos.NewUint(100*common.One), user1, user1, txID, constAccessor)
 	c.Assert(err, IsNil)
 	staker1, err = keeper.GetStaker(ctx, common.BNBAsset, user1)
 	c.Assert(err, IsNil)
@@ -271,23 +271,23 @@ func (s *ThorchainSuite) TestRagnarok(c *C) {
 	c.Assert(err, IsNil)
 	pool.Asset = boltAsset
 	c.Assert(keeper.SetPool(ctx, pool), IsNil)
-
+	stakeHandler := NewStakeHandler(keeper, NewDummyMgr())
 	// add stakers
 	staker1 := GetRandomRUNEAddress() // Staker1
 	staker1asset := GetRandomBNBAddress()
-	_, err = stake(ctx, keeper, common.BNBAsset, cosmos.NewUint(100*common.One), cosmos.NewUint(10*common.One), staker1, staker1asset, GetRandomTxHash(), consts)
+	err = stakeHandler.stake(ctx, common.BNBAsset, cosmos.NewUint(100*common.One), cosmos.NewUint(10*common.One), staker1, staker1asset, GetRandomTxHash(), consts)
 	c.Assert(err, IsNil)
-	_, err = stake(ctx, keeper, boltAsset, cosmos.NewUint(50*common.One), cosmos.NewUint(11*common.One), staker1, staker1asset, GetRandomTxHash(), consts)
+	err = stakeHandler.stake(ctx, boltAsset, cosmos.NewUint(50*common.One), cosmos.NewUint(11*common.One), staker1, staker1asset, GetRandomTxHash(), consts)
 	c.Assert(err, IsNil)
 	staker2 := GetRandomRUNEAddress() // staker2
 	staker2asset := GetRandomBNBAddress()
-	_, err = stake(ctx, keeper, common.BNBAsset, cosmos.NewUint(155*common.One), cosmos.NewUint(15*common.One), staker2, staker2asset, GetRandomTxHash(), consts)
+	err = stakeHandler.stake(ctx, common.BNBAsset, cosmos.NewUint(155*common.One), cosmos.NewUint(15*common.One), staker2, staker2asset, GetRandomTxHash(), consts)
 	c.Assert(err, IsNil)
-	_, err = stake(ctx, keeper, boltAsset, cosmos.NewUint(20*common.One), cosmos.NewUint(4*common.One), staker2, staker2asset, GetRandomTxHash(), consts)
+	err = stakeHandler.stake(ctx, boltAsset, cosmos.NewUint(20*common.One), cosmos.NewUint(4*common.One), staker2, staker2asset, GetRandomTxHash(), consts)
 	c.Assert(err, IsNil)
 	staker3 := GetRandomRUNEAddress() // staker3
 	staker3asset := GetRandomBNBAddress()
-	_, err = stake(ctx, keeper, common.BNBAsset, cosmos.NewUint(155*common.One), cosmos.NewUint(15*common.One), staker3, staker3asset, GetRandomTxHash(), consts)
+	err = stakeHandler.stake(ctx, common.BNBAsset, cosmos.NewUint(155*common.One), cosmos.NewUint(15*common.One), staker3, staker3asset, GetRandomTxHash(), consts)
 	c.Assert(err, IsNil)
 	stakers := []common.Address{
 		staker1, staker2, staker3,
@@ -476,20 +476,20 @@ func (s *ThorchainSuite) TestRagnarokNoOneLeave(c *C) {
 	c.Assert(err, IsNil)
 	pool.Asset = boltAsset
 	c.Assert(keeper.SetPool(ctx, pool), IsNil)
-
+	stakeHandler := NewStakeHandler(keeper, NewDummyMgr())
 	// add stakers
 	staker1 := GetRandomRUNEAddress() // Staker1
-	_, err = stake(ctx, keeper, common.BNBAsset, cosmos.NewUint(100*common.One), cosmos.NewUint(10*common.One), staker1, staker1, GetRandomTxHash(), consts)
+	err = stakeHandler.stake(ctx, common.BNBAsset, cosmos.NewUint(100*common.One), cosmos.NewUint(10*common.One), staker1, staker1, GetRandomTxHash(), consts)
 	c.Assert(err, IsNil)
-	_, err = stake(ctx, keeper, boltAsset, cosmos.NewUint(50*common.One), cosmos.NewUint(11*common.One), staker1, staker1, GetRandomTxHash(), consts)
+	err = stakeHandler.stake(ctx, boltAsset, cosmos.NewUint(50*common.One), cosmos.NewUint(11*common.One), staker1, staker1, GetRandomTxHash(), consts)
 	c.Assert(err, IsNil)
 	staker2 := GetRandomRUNEAddress() // staker2
-	_, err = stake(ctx, keeper, common.BNBAsset, cosmos.NewUint(155*common.One), cosmos.NewUint(15*common.One), staker2, staker2, GetRandomTxHash(), consts)
+	err = stakeHandler.stake(ctx, common.BNBAsset, cosmos.NewUint(155*common.One), cosmos.NewUint(15*common.One), staker2, staker2, GetRandomTxHash(), consts)
 	c.Assert(err, IsNil)
-	_, err = stake(ctx, keeper, boltAsset, cosmos.NewUint(20*common.One), cosmos.NewUint(4*common.One), staker2, staker2, GetRandomTxHash(), consts)
+	err = stakeHandler.stake(ctx, boltAsset, cosmos.NewUint(20*common.One), cosmos.NewUint(4*common.One), staker2, staker2, GetRandomTxHash(), consts)
 	c.Assert(err, IsNil)
 	staker3 := GetRandomRUNEAddress() // staker3
-	_, err = stake(ctx, keeper, common.BNBAsset, cosmos.NewUint(155*common.One), cosmos.NewUint(15*common.One), staker3, staker3, GetRandomTxHash(), consts)
+	err = stakeHandler.stake(ctx, common.BNBAsset, cosmos.NewUint(155*common.One), cosmos.NewUint(15*common.One), staker3, staker3, GetRandomTxHash(), consts)
 	c.Assert(err, IsNil)
 	stakers := []common.Address{
 		staker1, staker2, staker3,
