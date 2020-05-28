@@ -57,7 +57,6 @@ var (
 	errUnstakeFailValidation    = se.Register(DefaultCodespace, CodeUnstakeFailValidation, "fail to validate unstake")
 	errFailGetStaker            = se.Register(DefaultCodespace, CodeFailGetStaker, "fail to get staker")
 	errStakeMismatchAssetAddr   = se.Register(DefaultCodespace, CodeStakeMismatchAssetAddr, "mismatch of asset address")
-	errStakeInvalidPoolAsset    = se.Register(DefaultCodespace, CodeStakeInvalidPoolAsset, "invalid pool asset")
 	errSwapFailNotEnoughFee     = se.Register(DefaultCodespace, CodeSwapFailNotEnoughFee, "fail swap, not enough fee")
 	errSwapFail                 = se.Register(DefaultCodespace, CodeSwapFail, "fail swap")
 	errSwapFailInvalidAmount    = se.Register(DefaultCodespace, CodeSwapFailInvalidAmount, "fail swap, invalid amount")

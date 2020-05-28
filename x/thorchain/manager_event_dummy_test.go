@@ -29,7 +29,7 @@ func (m *DummyEventMgr) EmitGasEvent(ctx cosmos.Context, keeper keeper.Keeper, g
 	return nil
 }
 
-func (m *DummyEventMgr) EmitStakeEvent(ctx cosmos.Context, keeper keeper.Keeper, inTx common.Tx, stakeEvent EventStake) error {
+func (m *DummyEventMgr) EmitStakeEvent(ctx cosmos.Context, keeper keeper.Keeper, stakeEvent EventStake) error {
 	return nil
 }
 

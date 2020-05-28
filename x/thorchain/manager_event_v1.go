@@ -95,24 +95,7 @@ func (m *EventMgrV1) EmitGasEvent(ctx cosmos.Context, keeper keeper.Keeper, gasE
 }
 
 // EmitStakeEvent add the stake event to block
-func (m *EventMgrV1) EmitStakeEvent(ctx cosmos.Context, keeper keeper.Keeper, inTx common.Tx, stakeEvent EventStake) error {
-	stakeBytes, err := json.Marshal(stakeEvent)
-	if err != nil {
-		return fmt.Errorf("fail to marshal stake event to json: %w", err)
-	}
-	evt := NewEvent(
-		stakeEvent.Type(),
-		ctx.BlockHeight(),
-		inTx,
-		stakeBytes,
-		EventSuccess,
-	)
-	// stake event doesn't need to have outbound
-	tx := common.Tx{ID: common.BlankTxID}
-	evt.OutTxs = common.Txs{tx}
-	if err := keeper.UpsertEvent(ctx, evt); err != nil {
-		return fmt.Errorf("fail to save stake event: %w", err)
-	}
+func (m *EventMgrV1) EmitStakeEvent(ctx cosmos.Context, keeper keeper.Keeper, stakeEvent EventStake) error {
 	events, err := stakeEvent.Events()
 	if err != nil {
 		return fmt.Errorf("fail to get events: %w", err)
@@ -307,6 +290,10 @@ func (m *EventMgrV1) EmitSlashEvent(ctx cosmos.Context, keeper keeper.Keeper, sl
 func (m *EventMgrV1) EmitFeeEvent(ctx cosmos.Context, keeper keeper.Keeper, feeEvent EventFee) error {
 	if err := updateEventFee(ctx, keeper, feeEvent.TxID, feeEvent.Fee); err != nil {
 		return fmt.Errorf("fail to update event fee: %w", err)
+	}
+
+	if feeEvent.Fee.Coins.IsEmpty() && feeEvent.Fee.PoolDeduct.IsZero() {
+		return nil
 	}
 	events, err := feeEvent.Events()
 	if err != nil {

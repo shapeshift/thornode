@@ -16,47 +16,46 @@ type HandlerStakeSuite struct{}
 
 var _ = Suite(&HandlerStakeSuite{})
 
-type MockStackKeeper struct {
+type MockStakeKeeper struct {
 	keeper.KVStoreDummy
 	currentPool        Pool
 	activeNodeAccount  NodeAccount
 	failGetPool        bool
 	failGetNextEventID bool
-	addedEvent         bool
 }
 
-func (m *MockStackKeeper) PoolExist(_ cosmos.Context, asset common.Asset) bool {
+func (m *MockStakeKeeper) PoolExist(_ cosmos.Context, asset common.Asset) bool {
 	return m.currentPool.Asset.Equals(asset)
 }
 
-func (m *MockStackKeeper) GetPools(_ cosmos.Context) (Pools, error) {
+func (m *MockStakeKeeper) GetPools(_ cosmos.Context) (Pools, error) {
 	return Pools{m.currentPool}, nil
 }
 
-func (m *MockStackKeeper) GetPool(_ cosmos.Context, _ common.Asset) (Pool, error) {
+func (m *MockStakeKeeper) GetPool(_ cosmos.Context, _ common.Asset) (Pool, error) {
 	if m.failGetPool {
 		return Pool{}, errors.New("fail to get pool")
 	}
 	return m.currentPool, nil
 }
 
-func (m *MockStackKeeper) SetPool(_ cosmos.Context, pool Pool) error {
+func (m *MockStakeKeeper) SetPool(_ cosmos.Context, pool Pool) error {
 	m.currentPool = pool
 	return nil
 }
 
-func (m *MockStackKeeper) ListNodeAccountsWithBond(_ cosmos.Context) (NodeAccounts, error) {
+func (m *MockStakeKeeper) ListNodeAccountsWithBond(_ cosmos.Context) (NodeAccounts, error) {
 	return NodeAccounts{m.activeNodeAccount}, nil
 }
 
-func (m *MockStackKeeper) GetNodeAccount(_ cosmos.Context, addr cosmos.AccAddress) (NodeAccount, error) {
+func (m *MockStakeKeeper) GetNodeAccount(_ cosmos.Context, addr cosmos.AccAddress) (NodeAccount, error) {
 	if m.activeNodeAccount.NodeAddress.Equals(addr) {
 		return m.activeNodeAccount, nil
 	}
 	return NodeAccount{}, errors.New("not exist")
 }
 
-func (m *MockStackKeeper) GetStaker(_ cosmos.Context, asset common.Asset, addr common.Address) (Staker, error) {
+func (m *MockStakeKeeper) GetStaker(_ cosmos.Context, asset common.Asset, addr common.Address) (Staker, error) {
 	return Staker{
 		Asset:        asset,
 		RuneAddress:  addr,
@@ -66,14 +65,6 @@ func (m *MockStackKeeper) GetStaker(_ cosmos.Context, asset common.Asset, addr c
 	}, nil
 }
 
-func (m *MockStackKeeper) UpsertEvent(_ cosmos.Context, _ Event) error {
-	if m.failGetNextEventID {
-		return kaboom
-	}
-	m.addedEvent = true
-	return nil
-}
-
 type MockConstant struct {
 	constants.DummyConstants
 }
@@ -81,7 +72,7 @@ type MockConstant struct {
 func (HandlerStakeSuite) TestStakeHandler(c *C) {
 	ctx, _ := setupKeeperForTest(c)
 	activeNodeAccount := GetRandomNodeAccount(NodeActive)
-	k := &MockStackKeeper{
+	k := &MockStakeKeeper{
 		activeNodeAccount: activeNodeAccount,
 		currentPool: Pool{
 			BalanceRune:  cosmos.ZeroUint(),
@@ -124,14 +115,13 @@ func (HandlerStakeSuite) TestStakeHandler(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(postStakePool.BalanceAsset.String(), Equals, preStakePool.BalanceAsset.Add(msgSetStake.AssetAmount).String())
 	c.Assert(postStakePool.BalanceRune.String(), Equals, preStakePool.BalanceRune.Add(msgSetStake.RuneAmount).String())
-	c.Check(k.addedEvent, Equals, true)
 }
 
 func (HandlerStakeSuite) TestStakeHandler_NoPool_ShouldCreateNewPool(c *C) {
 	ctx, _ := setupKeeperForTest(c)
 	activeNodeAccount := GetRandomNodeAccount(NodeActive)
 	activeNodeAccount.Bond = cosmos.NewUint(1000000 * common.One)
-	k := &MockStackKeeper{
+	k := &MockStakeKeeper{
 		activeNodeAccount: activeNodeAccount,
 		currentPool: Pool{
 			BalanceRune:  cosmos.ZeroUint(),
@@ -177,7 +167,6 @@ func (HandlerStakeSuite) TestStakeHandler_NoPool_ShouldCreateNewPool(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(postStakePool.BalanceAsset.String(), Equals, preStakePool.BalanceAsset.Add(msgSetStake.AssetAmount).String())
 	c.Assert(postStakePool.BalanceRune.String(), Equals, preStakePool.BalanceRune.Add(msgSetStake.RuneAmount).String())
-	c.Check(k.addedEvent, Equals, true)
 
 	// bad version
 	_, err = stakeHandler.Run(ctx, msgSetStake, semver.Version{}, constAccessor)
@@ -187,7 +176,7 @@ func (HandlerStakeSuite) TestStakeHandler_NoPool_ShouldCreateNewPool(c *C) {
 func (HandlerStakeSuite) TestStakeHandlerValidation(c *C) {
 	ctx, _ := setupKeeperForTest(c)
 	activeNodeAccount := GetRandomNodeAccount(NodeActive)
-	k := &MockStackKeeper{
+	k := &MockStakeKeeper{
 		activeNodeAccount: activeNodeAccount,
 		currentPool: Pool{
 			BalanceRune:  cosmos.ZeroUint(),
@@ -262,7 +251,7 @@ func (HandlerStakeSuite) TestHandlerStakeFailScenario(c *C) {
 	}{
 		{
 			name: "fail to get pool should fail stake",
-			k: &MockStackKeeper{
+			k: &MockStakeKeeper{
 				activeNodeAccount: activeNodeAccount,
 				currentPool:       emptyPool,
 				failGetPool:       true,
@@ -271,7 +260,7 @@ func (HandlerStakeSuite) TestHandlerStakeFailScenario(c *C) {
 		},
 		{
 			name: "suspended pool should fail stake",
-			k: &MockStackKeeper{
+			k: &MockStakeKeeper{
 				activeNodeAccount: activeNodeAccount,
 				currentPool: Pool{
 					BalanceRune:  cosmos.ZeroUint(),
@@ -282,15 +271,6 @@ func (HandlerStakeSuite) TestHandlerStakeFailScenario(c *C) {
 				},
 			},
 			expectedResult: errInvalidPoolStatus,
-		},
-		{
-			name: "fail to get next event id should fail stake",
-			k: &MockStackKeeper{
-				activeNodeAccount:  activeNodeAccount,
-				currentPool:        emptyPool,
-				failGetNextEventID: true,
-			},
-			expectedResult: errInternal,
 		},
 	}
 	for _, tc := range testCases {
@@ -320,4 +300,249 @@ func (HandlerStakeSuite) TestHandlerStakeFailScenario(c *C) {
 		_, err := stakeHandler.Run(ctx, msgSetStake, ver, constAccessor)
 		c.Assert(errors.Is(err, tc.expectedResult), Equals, true, Commentf(tc.name))
 	}
+}
+
+type StakeTestKeeper struct {
+	keeper.KVStoreDummy
+	store map[string]interface{}
+}
+
+// NewStakeTestKeeper
+func NewStakeTestKeeper() *StakeTestKeeper {
+	return &StakeTestKeeper{store: make(map[string]interface{})}
+}
+
+func (p *StakeTestKeeper) PoolExist(ctx cosmos.Context, asset common.Asset) bool {
+	_, ok := p.store[asset.String()]
+	return ok
+}
+
+var notExistStakerAsset, _ = common.NewAsset("BNB.NotExistStakerAsset")
+
+func (p *StakeTestKeeper) GetPool(ctx cosmos.Context, asset common.Asset) (Pool, error) {
+	if p, ok := p.store[asset.String()]; ok {
+		return p.(Pool), nil
+	}
+	return NewPool(), nil
+}
+
+func (p *StakeTestKeeper) SetPool(ctx cosmos.Context, ps Pool) error {
+	p.store[ps.Asset.String()] = ps
+	return nil
+}
+
+func (p *StakeTestKeeper) GetStaker(ctx cosmos.Context, asset common.Asset, addr common.Address) (Staker, error) {
+	if notExistStakerAsset.Equals(asset) {
+		return Staker{}, errors.New("simulate error for test")
+	}
+	staker := Staker{
+		Asset:       asset,
+		RuneAddress: addr,
+		Units:       cosmos.ZeroUint(),
+		PendingRune: cosmos.ZeroUint(),
+	}
+	key := p.GetKey(ctx, "staker/", staker.Key())
+	if res, ok := p.store[key]; ok {
+		return res.(Staker), nil
+	}
+	return staker, nil
+}
+
+func (p *StakeTestKeeper) SetStaker(ctx cosmos.Context, staker Staker) {
+	key := p.GetKey(ctx, "staker/", staker.Key())
+	p.store[key] = staker
+}
+
+func (HandlerStakeSuite) TestCalculatePoolUnits(c *C) {
+	inputs := []struct {
+		name         string
+		oldPoolUnits cosmos.Uint
+		poolRune     cosmos.Uint
+		poolAsset    cosmos.Uint
+		stakeRune    cosmos.Uint
+		stakeAsset   cosmos.Uint
+		poolUnits    cosmos.Uint
+		stakerUnits  cosmos.Uint
+		expectedErr  error
+	}{
+		{
+			name:         "first-stake-zero-rune",
+			oldPoolUnits: cosmos.ZeroUint(),
+			poolRune:     cosmos.ZeroUint(),
+			poolAsset:    cosmos.ZeroUint(),
+			stakeRune:    cosmos.ZeroUint(),
+			stakeAsset:   cosmos.NewUint(100 * common.One),
+			poolUnits:    cosmos.ZeroUint(),
+			stakerUnits:  cosmos.ZeroUint(),
+			expectedErr:  errors.New("total RUNE in the pool is zero"),
+		},
+		{
+			name:         "first-stake-zero-asset",
+			oldPoolUnits: cosmos.ZeroUint(),
+			poolRune:     cosmos.ZeroUint(),
+			poolAsset:    cosmos.ZeroUint(),
+			stakeRune:    cosmos.NewUint(100 * common.One),
+			stakeAsset:   cosmos.ZeroUint(),
+			poolUnits:    cosmos.ZeroUint(),
+			stakerUnits:  cosmos.ZeroUint(),
+			expectedErr:  errors.New("total asset in the pool is zero"),
+		},
+		{
+			name:         "first-stake",
+			oldPoolUnits: cosmos.ZeroUint(),
+			poolRune:     cosmos.ZeroUint(),
+			poolAsset:    cosmos.ZeroUint(),
+			stakeRune:    cosmos.NewUint(100 * common.One),
+			stakeAsset:   cosmos.NewUint(100 * common.One),
+			poolUnits:    cosmos.NewUint(100 * common.One),
+			stakerUnits:  cosmos.NewUint(100 * common.One),
+			expectedErr:  nil,
+		},
+		{
+			name:         "second-stake",
+			oldPoolUnits: cosmos.NewUint(500 * common.One),
+			poolRune:     cosmos.NewUint(500 * common.One),
+			poolAsset:    cosmos.NewUint(500 * common.One),
+			stakeRune:    cosmos.NewUint(345 * common.One),
+			stakeAsset:   cosmos.NewUint(234 * common.One),
+			poolUnits:    cosmos.NewUint(78701684858),
+			stakerUnits:  cosmos.NewUint(28701684858),
+			expectedErr:  nil,
+		},
+	}
+
+	for _, item := range inputs {
+		poolUnits, stakerUnits, err := calculatePoolUnits(item.oldPoolUnits, item.poolRune, item.poolAsset, item.stakeRune, item.stakeAsset)
+		if item.expectedErr == nil {
+			c.Assert(err, IsNil)
+		} else {
+			c.Assert(err.Error(), Equals, item.expectedErr.Error())
+		}
+
+		c.Logf("poolUnits:%s,expectedUnits:%s", poolUnits, item.poolUnits)
+		c.Check(item.poolUnits.Uint64(), Equals, poolUnits.Uint64())
+		c.Logf("stakerUnits:%s,expectedStakerUnits:%s", stakerUnits, item.stakerUnits)
+		c.Check(item.stakerUnits.Uint64(), Equals, stakerUnits.Uint64())
+	}
+}
+
+func (HandlerStakeSuite) TestValidateStakeMessage(c *C) {
+	ps := NewStakeTestKeeper()
+	ctx, k := setupKeeperForTest(c)
+	txID := GetRandomTxHash()
+	bnbAddress := GetRandomBNBAddress()
+	assetAddress := GetRandomBNBAddress()
+	h := NewStakeHandler(ps, NewManagers(k))
+	c.Assert(h.validateStakeMessage(ctx, ps, common.Asset{}, txID, bnbAddress, assetAddress), NotNil)
+	c.Assert(h.validateStakeMessage(ctx, ps, common.BNBAsset, txID, bnbAddress, assetAddress), NotNil)
+	c.Assert(h.validateStakeMessage(ctx, ps, common.BNBAsset, txID, bnbAddress, assetAddress), NotNil)
+	c.Assert(h.validateStakeMessage(ctx, ps, common.BNBAsset, common.TxID(""), bnbAddress, assetAddress), NotNil)
+	c.Assert(h.validateStakeMessage(ctx, ps, common.BNBAsset, txID, common.NoAddress, common.NoAddress), NotNil)
+	c.Assert(h.validateStakeMessage(ctx, ps, common.BNBAsset, txID, bnbAddress, assetAddress), NotNil)
+	c.Assert(h.validateStakeMessage(ctx, ps, common.BNBAsset, txID, common.NoAddress, assetAddress), NotNil)
+	c.Assert(h.validateStakeMessage(ctx, ps, common.BTCAsset, txID, bnbAddress, common.NoAddress), NotNil)
+	c.Assert(ps.SetPool(ctx, Pool{
+		BalanceRune:  cosmos.NewUint(100 * common.One),
+		BalanceAsset: cosmos.NewUint(100 * common.One),
+		Asset:        common.BNBAsset,
+		PoolUnits:    cosmos.NewUint(100 * common.One),
+		PoolAddress:  bnbAddress,
+		Status:       PoolEnabled,
+	}), IsNil)
+	c.Assert(h.validateStakeMessage(ctx, ps, common.BNBAsset, txID, bnbAddress, assetAddress), Equals, nil)
+}
+
+func (HandlerStakeSuite) TestStake(c *C) {
+	ps := NewStakeTestKeeper()
+	ctx, _ := setupKeeperForTest(c)
+	txID := GetRandomTxHash()
+
+	bnbAddress := GetRandomBNBAddress()
+	assetAddress := GetRandomBNBAddress()
+	btcAddress, err := common.NewAddress("bc1qwqdg6squsna38e46795at95yu9atm8azzmyvckulcc7kytlcckxswvvzej")
+	c.Assert(err, IsNil)
+	constAccessor := constants.GetConstantValues(constants.SWVersion)
+	h := NewStakeHandler(ps, NewDummyMgr())
+	err = h.stake(ctx, common.Asset{}, cosmos.NewUint(100*common.One), cosmos.NewUint(100*common.One), bnbAddress, assetAddress, txID, constAccessor)
+	c.Assert(err, NotNil)
+	c.Assert(ps.SetPool(ctx, Pool{
+		BalanceRune:  cosmos.ZeroUint(),
+		BalanceAsset: cosmos.NewUint(100 * common.One),
+		Asset:        common.BNBAsset,
+		PoolUnits:    cosmos.NewUint(100 * common.One),
+		PoolAddress:  bnbAddress,
+		Status:       PoolEnabled,
+	}), IsNil)
+	err = h.stake(ctx, common.BNBAsset, cosmos.NewUint(100*common.One), cosmos.NewUint(100*common.One), bnbAddress, assetAddress, txID, constAccessor)
+	c.Assert(err, IsNil)
+	s, err := ps.GetStaker(ctx, common.BNBAsset, bnbAddress)
+	c.Assert(err, IsNil)
+	c.Assert(s.Units.Equal(cosmos.NewUint(11250000000)), Equals, true)
+
+	c.Assert(ps.SetPool(ctx, Pool{
+		BalanceRune:  cosmos.NewUint(100 * common.One),
+		BalanceAsset: cosmos.NewUint(100 * common.One),
+		Asset:        notExistStakerAsset,
+		PoolUnits:    cosmos.NewUint(100 * common.One),
+		PoolAddress:  bnbAddress,
+		Status:       PoolEnabled,
+	}), IsNil)
+	// stake asymmetically
+	err = h.stake(ctx, common.BNBAsset, cosmos.NewUint(100*common.One), cosmos.ZeroUint(), bnbAddress, assetAddress, txID, constAccessor)
+	c.Assert(err, IsNil)
+	err = h.stake(ctx, common.BNBAsset, cosmos.ZeroUint(), cosmos.NewUint(100*common.One), bnbAddress, assetAddress, txID, constAccessor)
+	c.Assert(err, IsNil)
+
+	err = h.stake(ctx, notExistStakerAsset, cosmos.NewUint(100*common.One), cosmos.NewUint(100*common.One), bnbAddress, assetAddress, txID, constAccessor)
+	c.Assert(err, NotNil)
+	c.Assert(ps.SetPool(ctx, Pool{
+		BalanceRune:  cosmos.NewUint(100 * common.One),
+		BalanceAsset: cosmos.NewUint(100 * common.One),
+		Asset:        common.BNBAsset,
+		PoolUnits:    cosmos.NewUint(100 * common.One),
+		PoolAddress:  bnbAddress,
+		Status:       PoolEnabled,
+	}), IsNil)
+
+	for i := 1; i <= 150; i++ {
+		staker := Staker{Units: cosmos.NewUint(common.One / 5000)}
+		ps.SetStaker(ctx, staker)
+	}
+	err = h.stake(ctx, common.BNBAsset, cosmos.NewUint(common.One), cosmos.NewUint(common.One), bnbAddress, assetAddress, txID, constAccessor)
+	c.Assert(err, IsNil)
+
+	err = h.stake(ctx, common.BNBAsset, cosmos.NewUint(100*common.One), cosmos.NewUint(100*common.One), bnbAddress, assetAddress, txID, constAccessor)
+	c.Assert(err, IsNil)
+	p, err := ps.GetPool(ctx, common.BNBAsset)
+	c.Assert(err, IsNil)
+	c.Check(p.PoolUnits.Equal(cosmos.NewUint(201*common.One)), Equals, true, Commentf("%d", p.PoolUnits.Uint64()))
+
+	// Test atomic cross chain staking
+	// create BTC pool
+	c.Assert(ps.SetPool(ctx, Pool{
+		BalanceRune:  cosmos.ZeroUint(),
+		BalanceAsset: cosmos.ZeroUint(),
+		Asset:        common.BTCAsset,
+		PoolUnits:    cosmos.ZeroUint(),
+		PoolAddress:  btcAddress,
+		Status:       PoolEnabled,
+	}), IsNil)
+
+	// stake rune
+	err = h.stake(ctx, common.BTCAsset, cosmos.NewUint(100*common.One), cosmos.ZeroUint(), bnbAddress, btcAddress, txID, constAccessor)
+	c.Assert(err, IsNil)
+	s, err = ps.GetStaker(ctx, common.BTCAsset, bnbAddress)
+	c.Assert(err, IsNil)
+	c.Check(s.Units.IsZero(), Equals, true)
+	// stake btc
+	err = h.stake(ctx, common.BTCAsset, cosmos.ZeroUint(), cosmos.NewUint(100*common.One), bnbAddress, btcAddress, txID, constAccessor)
+	c.Assert(err, IsNil)
+	s, err = ps.GetStaker(ctx, common.BTCAsset, bnbAddress)
+	c.Assert(err, IsNil)
+	c.Check(s.Units.IsZero(), Equals, false)
+	p, err = ps.GetPool(ctx, common.BTCAsset)
+	c.Assert(err, IsNil)
+	c.Check(p.BalanceAsset.Equal(cosmos.NewUint(100*common.One)), Equals, true, Commentf("%d", p.BalanceAsset.Uint64()))
+	c.Check(p.BalanceRune.Equal(cosmos.NewUint(100*common.One)), Equals, true, Commentf("%d", p.BalanceRune.Uint64()))
+	c.Check(p.PoolUnits.Equal(cosmos.NewUint(100*common.One)), Equals, true, Commentf("%d", p.PoolUnits.Uint64()))
 }

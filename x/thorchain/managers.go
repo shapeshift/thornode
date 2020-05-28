@@ -40,7 +40,7 @@ type EventManager interface {
 	EmitPoolEvent(ctx cosmos.Context, keeper keeper.Keeper, txIn common.TxID, status EventStatus, poolEvt EventPool) error
 	EmitErrataEvent(ctx cosmos.Context, keeper keeper.Keeper, txIn common.TxID, errataEvent EventErrata) error
 	EmitGasEvent(ctx cosmos.Context, keeper keeper.Keeper, gasEvent *EventGas) error
-	EmitStakeEvent(ctx cosmos.Context, keeper keeper.Keeper, inTx common.Tx, stakeEvent EventStake) error
+	EmitStakeEvent(ctx cosmos.Context, keeper keeper.Keeper, stakeEvent EventStake) error
 	EmitRewardEvent(ctx cosmos.Context, keeper keeper.Keeper, rewardEvt EventRewards) error
 	EmitReserveEvent(ctx cosmos.Context, keeper keeper.Keeper, reserveEvent EventReserve) error
 	EmitUnstakeEvent(ctx cosmos.Context, keeper keeper.Keeper, unstakeEvt EventUnstake) error
