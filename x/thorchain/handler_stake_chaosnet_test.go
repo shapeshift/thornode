@@ -13,7 +13,7 @@ import (
 func (HandlerStakeSuite) TestStakeRUNEOverLimit(c *C) {
 	ctx, _ := setupKeeperForTest(c)
 	activeNodeAccount := GetRandomNodeAccount(NodeActive)
-	k := &MockStackKeeper{
+	k := &MockStakeKeeper{
 		activeNodeAccount: activeNodeAccount,
 		currentPool: Pool{
 			BalanceRune:  cosmos.ZeroUint(),

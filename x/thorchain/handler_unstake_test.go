@@ -105,8 +105,8 @@ func (HandlerUnstakeSuite) TestUnstakeHandler(c *C) {
 	constAccessor := constants.GetConstantValues(ver)
 	// Happy path , this is a round trip , first we stake, then we unstake
 	runeAddr := GetRandomRUNEAddress()
-	unit, err := stake(ctx,
-		k,
+	stakeHandler := NewStakeHandler(k, NewDummyMgr())
+	err := stakeHandler.stake(ctx,
 		common.BNBAsset,
 		cosmos.NewUint(common.One*100),
 		cosmos.NewUint(common.One*100),
@@ -115,7 +115,6 @@ func (HandlerUnstakeSuite) TestUnstakeHandler(c *C) {
 		GetRandomTxHash(),
 		constAccessor)
 	c.Assert(err, IsNil)
-	c.Logf("stake unit: %d", unit)
 	// let's just unstake
 	unstakeHandler := NewUnstakeHandler(k, NewDummyMgr())
 

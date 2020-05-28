@@ -14,6 +14,7 @@ services:
       PG_HOST: pg
       BINANCE_API: ${BINANCE_API}
       BINANCE_API_SCHEME: ${BINANCE_API_SCHEME}
+      NATIVE: ${NATIVE:-none}
     entrypoint:
       /docker/scripts/midgard.sh
     volumes:

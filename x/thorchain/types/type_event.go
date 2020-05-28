@@ -2,6 +2,7 @@ package types
 
 import (
 	"encoding/json"
+	"fmt"
 	"strconv"
 
 	"gitlab.com/thorchain/thornode/common"
@@ -137,17 +138,28 @@ func (e EventSwap) Events() (cosmos.Events, error) {
 
 // EventStake stake event
 type EventStake struct {
-	Pool       common.Asset `json:"pool"`
-	StakeUnits cosmos.Uint  `json:"stake_units"`
-	TxIn       common.Tx    `json:"-"`
+	Pool        common.Asset   `json:"pool"`
+	StakeUnits  cosmos.Uint    `json:"stake_units"`
+	RuneAddress common.Address `json:"rune_address"`
+	RuneAmount  cosmos.Uint    `json:"rune_amount"`
+	AssetAmount cosmos.Uint    `json:"asset_amount"`
+	RuneTxID    common.TxID    `json:"rune_tx_id"`
+	AssetTxID   common.TxID    `json:"asset_tx_id"`
 }
 
 // NewEventStake create a new stake event
-func NewEventStake(pool common.Asset, su cosmos.Uint, txIn common.Tx) EventStake {
+func NewEventStake(pool common.Asset,
+	su cosmos.Uint,
+	runeAddress common.Address,
+	runeAmount, assetAmount cosmos.Uint, runeTxID, assetTxID common.TxID) EventStake {
 	return EventStake{
-		Pool:       pool,
-		StakeUnits: su,
-		TxIn:       txIn,
+		Pool:        pool,
+		StakeUnits:  su,
+		RuneAddress: runeAddress,
+		RuneAmount:  runeAmount,
+		AssetAmount: assetAmount,
+		RuneTxID:    runeTxID,
+		AssetTxID:   assetTxID,
 	}
 }
 
@@ -159,8 +171,16 @@ func (e EventStake) Type() string {
 func (e EventStake) Events() (cosmos.Events, error) {
 	evt := cosmos.NewEvent(e.Type(),
 		cosmos.NewAttribute("pool", e.Pool.String()),
-		cosmos.NewAttribute("stake_units", e.StakeUnits.String()))
-	evt = evt.AppendAttributes(e.TxIn.ToAttributes()...)
+		cosmos.NewAttribute("stake_units", e.StakeUnits.String()),
+		cosmos.NewAttribute("rune_address", e.RuneAddress.String()),
+		cosmos.NewAttribute("rune_amount", e.RuneAmount.String()),
+		cosmos.NewAttribute("asset_amount", e.AssetAmount.String()),
+	)
+	if !e.RuneTxID.Equals(e.AssetTxID) {
+		evt = evt.AppendAttributes(cosmos.NewAttribute(fmt.Sprintf("%s_txid", common.RuneAsset().Chain), e.RuneTxID.String()))
+	}
+
+	evt = evt.AppendAttributes(cosmos.NewAttribute(fmt.Sprintf("%s_txid", e.Pool.Chain), e.AssetTxID.String()))
 	return cosmos.Events{
 		evt,
 	}, nil

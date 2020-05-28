@@ -1,10 +1,12 @@
 package thorchain
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/blang/semver"
 
+	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
@@ -110,34 +112,180 @@ func (h StakeHandler) handle(ctx cosmos.Context, msg MsgSetStakeData, version se
 		ctx.Logger().Error("fail to check pool status", "error", err)
 		return errInvalidPoolStatus
 	}
-	stakeUnits, err := stake(
+	return h.stake(
 		ctx,
-		h.keeper,
 		msg.Asset,
 		msg.RuneAmount,
 		msg.AssetAmount,
 		msg.RuneAddress,
 		msg.AssetAddress,
 		msg.Tx.ID,
-		constAccessor,
-	)
-	if err != nil {
-		return cosmos.ErrUnknownRequest(fmt.Errorf("fail to process stake request: %w", err).Error())
-	}
+		constAccessor)
+}
 
-	if err := h.processStakeEvent(ctx, version, msg, stakeUnits); err != nil {
-		return ErrInternal(err, "fail to save stake event")
+// validateStakeMessage is to do some validation, and make sure it is legit
+func (h StakeHandler) validateStakeMessage(ctx cosmos.Context, keeper keeper.Keeper, asset common.Asset, requestTxHash common.TxID, runeAddr, assetAddr common.Address) error {
+	if asset.IsEmpty() {
+		return errors.New("asset is empty")
 	}
-
+	if requestTxHash.IsEmpty() {
+		return errors.New("request tx hash is empty")
+	}
+	if asset.Chain.Equals(common.RuneAsset().Chain) {
+		if runeAddr.IsEmpty() {
+			return errors.New("rune address is empty")
+		}
+	} else {
+		if assetAddr.IsEmpty() {
+			return errors.New("asset address is empty")
+		}
+	}
+	if !keeper.PoolExist(ctx, asset) {
+		return fmt.Errorf("%s doesn't exist", asset)
+	}
 	return nil
 }
 
-func (h StakeHandler) processStakeEvent(ctx cosmos.Context, version semver.Version, msg MsgSetStakeData, stakeUnits cosmos.Uint) error {
-	stakeEvt := NewEventStake(
-		msg.Asset,
-		stakeUnits,
-		msg.Tx)
-	return h.mgr.EventMgr().EmitStakeEvent(ctx, h.keeper, msg.Tx, stakeEvt)
+func (h StakeHandler) stake(ctx cosmos.Context,
+	asset common.Asset,
+	stakeRuneAmount, stakeAssetAmount cosmos.Uint,
+	runeAddr, assetAddr common.Address,
+	requestTxHash common.TxID,
+	constAccessor constants.ConstantValues) error {
+	ctx.Logger().Info(fmt.Sprintf("%s staking %s %s", asset, stakeRuneAmount, stakeAssetAmount))
+	if err := h.validateStakeMessage(ctx, h.keeper, asset, requestTxHash, runeAddr, assetAddr); err != nil {
+		return fmt.Errorf("stake message fail validation: %w", err)
+	}
+	if stakeRuneAmount.IsZero() && stakeAssetAmount.IsZero() {
+		return cosmos.ErrUnknownRequest("both rune and asset is zero")
+	}
+	if runeAddr.IsEmpty() {
+		return cosmos.ErrUnknownRequest("rune address cannot be empty")
+	}
+
+	pool, err := h.keeper.GetPool(ctx, asset)
+	if err != nil {
+		return ErrInternal(err, fmt.Sprintf("fail to get pool(%s)", asset))
+	}
+
+	// if THORNode have no balance, set the default pool status
+	if pool.BalanceAsset.IsZero() && pool.BalanceRune.IsZero() {
+		defaultPoolStatus := PoolEnabled.String()
+
+		// if we have pools that are already enabled, use the default status
+		iterator := h.keeper.GetPoolIterator(ctx)
+		defer iterator.Close()
+		for ; iterator.Valid(); iterator.Next() {
+			var p Pool
+			err := h.keeper.Cdc().UnmarshalBinaryBare(iterator.Value(), &p)
+			if err != nil {
+				continue
+			}
+			if p.Status == PoolEnabled {
+				defaultPoolStatus = constAccessor.GetStringValue(constants.DefaultPoolStatus)
+				break
+			}
+		}
+		pool.Status = GetPoolStatus(defaultPoolStatus)
+	}
+
+	su, err := h.keeper.GetStaker(ctx, asset, runeAddr)
+	if err != nil {
+		return ErrInternal(err, "fail to get staker")
+	}
+
+	su.LastStakeHeight = ctx.BlockHeight()
+	if su.RuneAddress.IsEmpty() {
+		su.RuneAddress = runeAddr
+	}
+	if su.AssetAddress.IsEmpty() {
+		su.AssetAddress = assetAddr
+	} else {
+		if !su.AssetAddress.Equals(assetAddr) {
+			// mismatch of asset addresses from what is known to the address
+			// given. Refund it.
+			return errStakeMismatchAssetAddr
+		}
+	}
+
+	if !asset.Chain.Equals(common.RuneAsset().Chain) {
+		if stakeAssetAmount.IsZero() {
+			su.PendingRune = su.PendingRune.Add(stakeRuneAmount)
+			su.PendingTxID = requestTxHash
+			h.keeper.SetStaker(ctx, su)
+			// cross chain stake , this is the first tx
+			return nil
+		}
+		stakeRuneAmount = su.PendingRune.Add(stakeRuneAmount)
+		su.PendingRune = cosmos.ZeroUint()
+
+	}
+
+	ctx.Logger().Info(fmt.Sprintf("Pre-Pool: %sRUNE %sAsset", pool.BalanceRune, pool.BalanceAsset))
+	ctx.Logger().Info(fmt.Sprintf("Staking: %sRUNE %sAsset", stakeRuneAmount, stakeAssetAmount))
+
+	balanceRune := pool.BalanceRune
+	balanceAsset := pool.BalanceAsset
+
+	oldPoolUnits := pool.PoolUnits
+	newPoolUnits, stakerUnits, err := calculatePoolUnits(oldPoolUnits, balanceRune, balanceAsset, stakeRuneAmount, stakeAssetAmount)
+	if err != nil {
+		return ErrInternal(err, "fail to calculate pool unit")
+	}
+
+	ctx.Logger().Info(fmt.Sprintf("current pool units : %s ,staker units : %s", newPoolUnits, stakerUnits))
+	poolRune := balanceRune.Add(stakeRuneAmount)
+	poolAsset := balanceAsset.Add(stakeAssetAmount)
+	pool.PoolUnits = newPoolUnits
+	pool.BalanceRune = poolRune
+	pool.BalanceAsset = poolAsset
+	ctx.Logger().Info(fmt.Sprintf("Post-Pool: %sRUNE %sAsset", pool.BalanceRune, pool.BalanceAsset))
+	if err := h.keeper.SetPool(ctx, pool); err != nil {
+		return ErrInternal(err, "fail to save pool")
+	}
+	// maintain staker structure
+
+	fex := su.Units
+	totalStakerUnits := fex.Add(stakerUnits)
+	su.Units = totalStakerUnits
+	h.keeper.SetStaker(ctx, su)
+	runeTxID := requestTxHash
+	assetTxID := requestTxHash
+	if !su.PendingTxID.IsEmpty() {
+		if asset.IsRune() {
+			assetTxID = su.PendingTxID
+		} else {
+			runeTxID = su.PendingTxID
+		}
+	}
+
+	evt := NewEventStake(asset, stakerUnits, runeAddr, stakeRuneAmount, stakeAssetAmount, runeTxID, assetTxID)
+	if err := h.mgr.EventMgr().EmitStakeEvent(ctx, h.keeper, evt); err != nil {
+		return ErrInternal(err, "fail to emit stake event")
+	}
+	return nil
+}
+
+// calculatePoolUnits calculate the pool units and staker units
+// returns newPoolUnit,stakerUnit, error
+func calculatePoolUnits(oldPoolUnits, poolRune, poolAsset, stakeRune, stakeAsset cosmos.Uint) (cosmos.Uint, cosmos.Uint, error) {
+	if stakeRune.Add(poolRune).IsZero() {
+		return cosmos.ZeroUint(), cosmos.ZeroUint(), errors.New("total RUNE in the pool is zero")
+	}
+	if stakeAsset.Add(poolAsset).IsZero() {
+		return cosmos.ZeroUint(), cosmos.ZeroUint(), errors.New("total asset in the pool is zero")
+	}
+
+	poolRuneAfter := poolRune.Add(stakeRune)
+	poolAssetAfter := poolAsset.Add(stakeAsset)
+
+	// ((R + A) * (r * A + R * a))/(4 * R * A)
+	nominator1 := poolRuneAfter.Add(poolAssetAfter)
+	nominator2 := stakeRune.Mul(poolAssetAfter).Add(poolRuneAfter.Mul(stakeAsset))
+	denominator := cosmos.NewUint(4).Mul(poolRuneAfter).Mul(poolAssetAfter)
+	stakeUnits := nominator1.Mul(nominator2).Quo(denominator)
+	newPoolUnit := oldPoolUnits.Add(stakeUnits)
+	return newPoolUnit, stakeUnits, nil
 }
 
 // getTotalBond
