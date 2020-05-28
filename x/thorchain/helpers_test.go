@@ -48,10 +48,6 @@ func (k *TestRefundBondKeeper) SetNodeAccount(_ cosmos.Context, na NodeAccount) 
 	return nil
 }
 
-func (k *TestRefundBondKeeper) UpsertEvent(_ cosmos.Context, e Event) error {
-	return nil
-}
-
 func (k *TestRefundBondKeeper) SetPool(_ cosmos.Context, p Pool) error {
 	if k.pool.Asset.Equals(p.Asset) {
 		k.pool = p
@@ -349,13 +345,6 @@ func (h *addGasFeesKeeperHelper) GetPool(ctx cosmos.Context, asset common.Asset)
 		return Pool{}, kaboom
 	}
 	return h.Keeper.GetPool(ctx, asset)
-}
-
-func (h *addGasFeesKeeperHelper) UpsertEvent(ctx cosmos.Context, event Event) error {
-	if h.errSetEvent {
-		return kaboom
-	}
-	return h.Keeper.UpsertEvent(ctx, event)
 }
 
 type addGasFeeTestHelper struct {

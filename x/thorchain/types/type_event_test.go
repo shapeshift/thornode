@@ -1,8 +1,6 @@
 package types
 
 import (
-	"encoding/json"
-
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
@@ -68,81 +66,6 @@ func (s EventSuite) TestReward(c *C) {
 	c.Check(evt.PoolRewards[0].Amount, Equals, int64(30))
 	c.Check(evt.PoolRewards[1].Asset.Equals(common.BTCAsset), Equals, true)
 	c.Check(evt.PoolRewards[1].Amount, Equals, int64(40))
-}
-
-func (s EventSuite) TestEvent(c *C) {
-	txID, err := common.NewTxID("A1C7D97D5DB51FFDBC3FE29FFF6ADAA2DAF112D2CEAADA0902822333A59BD218")
-	c.Assert(err, IsNil)
-	txIn := common.NewTx(
-		txID,
-		GetRandomBNBAddress(),
-		GetRandomBNBAddress(),
-		common.Coins{
-			common.NewCoin(common.BNBAsset, cosmos.NewUint(320000000)),
-			common.NewCoin(common.RuneAsset(), cosmos.NewUint(420000000)),
-		},
-		BNBGasFeeSingleton,
-		"SWAP:BNB.BNB",
-	)
-	swap := NewEventSwap(
-		common.BNBAsset,
-		cosmos.NewUint(5),
-		cosmos.NewUint(5),
-		cosmos.NewUint(5),
-		cosmos.ZeroUint(),
-		txIn,
-	)
-
-	swapBytes, _ := json.Marshal(swap)
-	evt := NewEvent(swap.Type(),
-		12,
-		txIn,
-		swapBytes,
-		Success,
-	)
-
-	c.Check(evt.Empty(), Equals, false)
-
-	txID, err = common.NewTxID("B1C7D97D5DB51FFDBC3FE29FFF6ADAA2DAF112D2CEAADA0902822333A59BD218")
-	c.Assert(err, IsNil)
-	txIn = common.NewTx(
-		txID,
-		GetRandomBNBAddress(),
-		GetRandomBNBAddress(),
-		common.Coins{
-			common.NewCoin(common.BNBAsset, cosmos.NewUint(320000000)),
-			common.NewCoin(common.RuneAsset(), cosmos.NewUint(420000000)),
-		},
-		BNBGasFeeSingleton,
-		"SWAP:BNB.BNB",
-	)
-	stake := NewEventStake(
-		common.BNBAsset,
-		cosmos.NewUint(5),
-		GetRandomRUNEAddress(),
-		cosmos.NewUint(5),
-		cosmos.NewUint(5),
-		GetRandomTxHash(),
-		GetRandomTxHash(),
-	)
-
-	stakeBytes, _ := json.Marshal(stake)
-	evt2 := NewEvent(stake.Type(),
-		12,
-		txIn,
-		stakeBytes,
-		Success,
-	)
-
-	events := Events{evt, evt2}
-	found, events := events.PopByInHash(txID)
-	c.Assert(found, HasLen, 1)
-	c.Check(found[0].Empty(), Equals, false)
-	c.Check(found[0].Type, Equals, evt2.Type)
-	c.Assert(events, HasLen, 1)
-	c.Check(events[0].Type, Equals, evt.Type)
-
-	c.Check(Event{}.Empty(), Equals, true)
 }
 
 func (s EventSuite) TestSlash(c *C) {

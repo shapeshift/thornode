@@ -595,7 +595,7 @@ func (vm *VaultMgrV1) UpdateVaultData(ctx cosmos.Context, constAccessor constant
 	}
 
 	rewardEvt := NewEventRewards(bondReward, evtPools)
-	if err := eventMgr.EmitRewardEvent(ctx, vm.k, rewardEvt); err != nil {
+	if err := eventMgr.EmitRewardEvent(ctx, rewardEvt); err != nil {
 		return fmt.Errorf("fail to emit reward event: %w", err)
 	}
 	i, err := getTotalActiveNodeWithBond(ctx, vm.k)

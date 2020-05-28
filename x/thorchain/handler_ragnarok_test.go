@@ -108,10 +108,6 @@ func (k *TestRagnarokKeeperHappyPath) SetPool(_ cosmos.Context, p Pool) error {
 	return nil
 }
 
-func (k *TestRagnarokKeeperHappyPath) UpsertEvent(_ cosmos.Context, _ Event) error {
-	return nil
-}
-
 func (HandlerRagnarokSuite) TestRagnarokHappyPath(c *C) {
 	ctx, _ := setupKeeperForTest(c)
 	retireVault := GetRandomVault()

@@ -34,7 +34,7 @@ func (h CommonOutboundTxHandler) slash(ctx cosmos.Context, version semver.Versio
 	return returnErr
 }
 
-func (h CommonOutboundTxHandler) handle(ctx cosmos.Context, version semver.Version, tx ObservedTx, inTxID common.TxID, status EventStatus) (*cosmos.Result, error) {
+func (h CommonOutboundTxHandler) handle(ctx cosmos.Context, version semver.Version, tx ObservedTx, inTxID common.TxID) (*cosmos.Result, error) {
 	voter, err := h.keeper.GetObservedTxVoter(ctx, inTxID)
 	if err != nil {
 		return nil, ErrInternal(err, "fail to get observed tx voter")
@@ -47,10 +47,6 @@ func (h CommonOutboundTxHandler) handle(ctx cosmos.Context, version semver.Versi
 
 	// complete events
 	if voter.IsDone() {
-		err := completeEvents(ctx, h.keeper, inTxID, voter.OutTxs, status)
-		if err != nil {
-			return nil, ErrInternal(err, "unable to complete events")
-		}
 		for _, item := range voter.OutTxs {
 			if err := h.mgr.EventMgr().EmitOutboundEvent(ctx, NewEventOutbound(inTxID, item)); err != nil {
 				return nil, ErrInternal(err, "fail to emit outbound event")

@@ -9,8 +9,9 @@ import (
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 
-	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 	. "gopkg.in/check.v1"
+
+	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 type HandlerSwapSuite struct{}
@@ -58,7 +59,6 @@ type TestSwapHandleKeeper struct {
 	keeper.KVStoreDummy
 	pools             map[common.Asset]Pool
 	activeNodeAccount NodeAccount
-	event             []Event
 	hasEvent          bool
 }
 
@@ -92,15 +92,6 @@ func (k *TestSwapHandleKeeper) AddToLiquidityFees(_ cosmos.Context, _ common.Ass
 	return nil
 }
 
-func (k *TestSwapHandleKeeper) UpsertEvent(ctx cosmos.Context, event Event) error {
-	k.event = append(k.event, event)
-	return nil
-}
-
-func (k *TestSwapHandleKeeper) clearEvent() {
-	k.event = nil
-}
-
 func (s *HandlerSwapSuite) TestHandle(c *C) {
 	ctx, _ := setupKeeperForTest(c)
 	keeper := &TestSwapHandleKeeper{
@@ -129,21 +120,17 @@ func (s *HandlerSwapSuite) TestHandle(c *C) {
 		BNBGasFeeSingleton,
 		"",
 	)
-	keeper.clearEvent()
 	msg := NewMsgSwap(tx, common.BNBAsset, signerBNBAddr, cosmos.ZeroUint(), observerAddr)
 	_, err := handler.handle(ctx, msg, ver, constAccessor)
 	c.Assert(err.Error(), Equals, errors.New("BNB.BNB pool doesn't exist").Error())
-	c.Assert(keeper.event, IsNil)
 	pool := NewPool()
 	pool.Asset = common.BNBAsset
 	pool.BalanceAsset = cosmos.NewUint(100 * common.One)
 	pool.BalanceRune = cosmos.NewUint(100 * common.One)
 	c.Assert(keeper.SetPool(ctx, pool), IsNil)
-	keeper.clearEvent()
 	// fund is not enough to pay for transaction fee
 	_, err = handler.handle(ctx, msg, ver, constAccessor)
 	c.Assert(err, NotNil)
-	c.Assert(keeper.event, IsNil)
 
 	tx = common.NewTx(txID, signerBNBAddr, signerBNBAddr,
 		common.Coins{
@@ -152,11 +139,9 @@ func (s *HandlerSwapSuite) TestHandle(c *C) {
 		BNBGasFeeSingleton,
 		"",
 	)
-	keeper.clearEvent()
 	msgSwapPriceProtection := NewMsgSwap(tx, common.BNBAsset, signerBNBAddr, cosmos.NewUint(2*common.One), observerAddr)
 	_, err = handler.handle(ctx, msgSwapPriceProtection, ver, constAccessor)
 	c.Assert(err.Error(), Equals, errors.New("emit asset 192233756 less than price limit 200000000").Error())
-	c.Assert(keeper.event, IsNil)
 
 	poolTCAN := NewPool()
 	tCanAsset, err := common.NewAsset("BNB.TCAN-014")
@@ -180,13 +165,11 @@ func (s *HandlerSwapSuite) TestHandle(c *C) {
 	)
 	msgSwapFromTxIn, err := getMsgSwapFromMemo(m.(SwapMemo), txIn, observerAddr)
 	c.Assert(err, IsNil)
-	keeper.clearEvent()
 	items, err := mgr.TxOutStore().GetOutboundItems(ctx)
 	c.Assert(err, IsNil)
 	c.Assert(items, HasLen, 0)
 	_, err = handler.handle(ctx, msgSwapFromTxIn.(MsgSwap), ver, constAccessor)
 	c.Assert(err, IsNil)
-	c.Assert(keeper.event, NotNil)
 	items, err = mgr.TxOutStore().GetOutboundItems(ctx)
 	c.Assert(err, IsNil)
 	c.Assert(items, HasLen, 1)
@@ -244,13 +227,10 @@ func (s *HandlerSwapSuite) TestDoubleSwap(c *C) {
 
 	_, err = handler.handle(ctx, msgSwapFromTxIn.(MsgSwap), ver, constAccessor)
 	c.Assert(err, IsNil)
-	c.Assert(keeper.event, NotNil)
-	c.Assert(len(keeper.event), Equals, 2)
 
 	items, err = mgr.TxOutStore().GetOutboundItems(ctx)
 	c.Assert(err, IsNil)
 	c.Assert(items, HasLen, 1)
-	keeper.clearEvent()
 	// double swap , RUNE not enough to pay for transaction fee
 
 	m1, err := ParseMemo("swap:BNB.BNB:bnb18jtza8j86hfyuj2f90zec0g5gvjh823e5psn2u")
@@ -270,7 +250,6 @@ func (s *HandlerSwapSuite) TestDoubleSwap(c *C) {
 	mgr.TxOutStore().ClearOutboundItems(ctx)
 	_, err = handler.handle(ctx, msgSwapFromTxIn1.(MsgSwap), ver, constAccessor)
 	c.Assert(err, Equals, errSwapFailNotEnoughFee)
-	c.Assert(keeper.event, IsNil)
 
 	items, err = mgr.TxOutStore().GetOutboundItems(ctx)
 	c.Assert(err, IsNil)

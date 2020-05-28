@@ -56,10 +56,6 @@ func (k *yggdrasilTestKeeper) SetPool(ctx cosmos.Context, p Pool) error {
 	return k.Keeper.SetPool(ctx, p)
 }
 
-func (k *yggdrasilTestKeeper) UpsertEvent(ctx cosmos.Context, evt Event) error {
-	return k.Keeper.UpsertEvent(ctx, evt)
-}
-
 func (k yggdrasilTestKeeper) GetVault(ctx cosmos.Context, pk common.PubKey) (Vault, error) {
 	if k.errGetVault {
 		return Vault{}, kaboom

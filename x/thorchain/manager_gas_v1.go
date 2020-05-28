@@ -54,7 +54,7 @@ func (gm *GasMgrV1) EndBlock(ctx cosmos.Context, keeper keeper.Keeper, eventMana
 		return
 	}
 
-	if err := eventManager.EmitGasEvent(ctx, keeper, gm.gasEvent); nil != err {
+	if err := eventManager.EmitGasEvent(ctx, gm.gasEvent); nil != err {
 		ctx.Logger().Error("fail to emit gas event", "error", err)
 	}
 	gm.reset()

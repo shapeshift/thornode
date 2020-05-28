@@ -84,7 +84,7 @@ func (h ReserveContributorHandler) HandleV1(ctx cosmos.Context, msg MsgReserveCo
 		return fmt.Errorf("fail to save vault data: %w", err)
 	}
 	reserveEvent := NewEventReserve(msg.Contributor, msg.Tx)
-	if err := h.mgr.EventMgr().EmitReserveEvent(ctx, h.keeper, reserveEvent); err != nil {
+	if err := h.mgr.EventMgr().EmitReserveEvent(ctx, reserveEvent); err != nil {
 		return fmt.Errorf("fail to emit reserve event: %w", err)
 	}
 	return nil

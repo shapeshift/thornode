@@ -19,7 +19,6 @@ type GenesisState struct {
 	TxOuts           []TxOut                  `json:"txouts"`
 	NodeAccounts     NodeAccounts             `json:"node_accounts"`
 	CurrentEventID   int64                    `json:"current_event_id"`
-	Events           Events                   `json:"events"`
 	Vaults           Vaults                   `json:"vaults"`
 	Gas              map[string][]cosmos.Uint `json:"gas"`
 	Reserve          uint64                   `json:"reserve"`
@@ -79,7 +78,6 @@ func DefaultGenesisState() GenesisState {
 		CurrentEventID:   1,
 		TxOuts:           make([]TxOut, 0),
 		Stakers:          make([]Staker, 0),
-		Events:           make(Events, 0),
 		Vaults:           make(Vaults, 0),
 		ObservedTxVoters: make(ObservedTxVoters, 0),
 		Gas:              make(map[string][]cosmos.Uint, 0),
@@ -136,12 +134,6 @@ func InitGenesis(ctx cosmos.Context, keeper keeper.Keeper, data GenesisState) []
 		}
 	}
 
-	for _, e := range data.Events {
-		if err := keeper.UpsertEvent(ctx, e); err != nil {
-			panic(err)
-		}
-	}
-
 	for k, v := range data.Gas {
 		asset, err := common.NewAsset(k)
 		if err != nil {
@@ -149,8 +141,6 @@ func InitGenesis(ctx cosmos.Context, keeper keeper.Keeper, data GenesisState) []
 		}
 		keeper.SetGas(ctx, asset, v)
 	}
-
-	keeper.SetCurrentEventID(ctx, data.CurrentEventID)
 
 	if common.RuneAsset().Chain.Equals(common.THORChain) {
 		// Mint coins into the reserve
@@ -211,7 +201,6 @@ func getStakers(ctx cosmos.Context, k keeper.Keeper, asset common.Asset) []Stake
 // ExportGenesis export the data in Genesis
 func ExportGenesis(ctx cosmos.Context, k keeper.Keeper) GenesisState {
 	var iterator cosmos.Iterator
-	currentEventID, _ := k.GetCurrentEventID(ctx)
 
 	pools, err := k.GetPools(ctx)
 	if err != nil {
@@ -250,15 +239,6 @@ func ExportGenesis(ctx cosmos.Context, k keeper.Keeper) GenesisState {
 		outs = append(outs, out)
 	}
 
-	var events []Event
-	iterator = k.GetEventsIterator(ctx)
-	defer iterator.Close()
-	for ; iterator.Valid(); iterator.Next() {
-		var e Event
-		k.Cdc().MustUnmarshalBinaryBare(iterator.Value(), &e)
-		events = append(events, e)
-	}
-
 	gas := make(map[string][]cosmos.Uint, 0)
 	iterator = k.GetGasIterator(ctx)
 	defer iterator.Close()
@@ -274,8 +254,6 @@ func ExportGenesis(ctx cosmos.Context, k keeper.Keeper) GenesisState {
 		Stakers:          stakers,
 		ObservedTxVoters: votes,
 		TxOuts:           outs,
-		CurrentEventID:   currentEventID,
-		Events:           events,
 		Gas:              gas,
 	}
 }

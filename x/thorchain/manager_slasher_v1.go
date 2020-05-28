@@ -275,7 +275,7 @@ func (s *SlasherV1) SlashNodeAccount(ctx cosmos.Context, observedPubKey common.P
 		},
 	}
 	eventSlash := NewEventSlash(pool.Asset, poolSlashAmt)
-	if err := mgr.EventMgr().EmitSlashEvent(ctx, s.keeper, eventSlash); err != nil {
+	if err := mgr.EventMgr().EmitSlashEvent(ctx, eventSlash); err != nil {
 		return fmt.Errorf("fail to emit slash event: %w", err)
 	}
 

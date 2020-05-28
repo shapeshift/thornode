@@ -85,16 +85,10 @@ func (s *HandlerObservedTxInSuite) TestValidate(c *C) {
 type TestObservedTxInFailureKeeper struct {
 	keeper.KVStoreDummy
 	pool Pool
-	evt  Event
 }
 
 func (k *TestObservedTxInFailureKeeper) GetPool(_ cosmos.Context, _ common.Asset) (Pool, error) {
 	return k.pool, nil
-}
-
-func (k *TestObservedTxInFailureKeeper) UpsertEvent(_ cosmos.Context, evt Event) error {
-	k.evt = evt
-	return nil
 }
 
 func (s *HandlerObservedTxInSuite) TestFailure(c *C) {
@@ -163,16 +157,8 @@ func (k *TestObservedTxInHandleKeeper) GetPool(_ cosmos.Context, _ common.Asset)
 	return k.pool, nil
 }
 
-func (k *TestObservedTxInHandleKeeper) AddIncompleteEvents(_ cosmos.Context, evt Event) error {
-	return nil
-}
-
 func (k *TestObservedTxInHandleKeeper) AddObservingAddresses(_ cosmos.Context, addrs []cosmos.AccAddress) error {
 	k.observing = addrs
-	return nil
-}
-
-func (k *TestObservedTxInHandleKeeper) UpsertEvent(_ cosmos.Context, _ Event) error {
 	return nil
 }
 
