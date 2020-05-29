@@ -20,7 +20,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	tntypes "github.com/tendermint/tendermint/rpc/core/types"
 	tssp "gitlab.com/thorchain/tss/go-tss/tss"
 
 	"gitlab.com/thorchain/thornode/bifrost/blockscanner"
@@ -466,19 +465,48 @@ func (b *Binance) BroadcastTx(tx stypes.TxOutItem, hexTx []byte) error {
 		return fmt.Errorf("fail to read response body: %w", err)
 	}
 
-	var commit tntypes.ResultBroadcastTxCommit
+	// NOTE: we can actually see two different json responses for the same end.
+	// This complicates things pretty well.
+	// Sample 1: { "height": "0", "txhash": "D97E8A81417E293F5B28DDB53A4AD87B434CA30F51D683DA758ECC2168A7A005", "raw_log": "[{\"msg_index\":0,\"success\":true,\"log\":\"\",\"events\":[{\"type\":\"message\",\"attributes\":[{\"key\":\"action\",\"value\":\"set_observed_txout\"}]}]}]", "logs": [ { "msg_index": 0, "success": true, "log": "", "events": [ { "type": "message", "attributes": [ { "key": "action", "value": "set_observed_txout" } ] } ] } ] }
+	// Sample 2: { "height": "0", "txhash": "6A9AA734374D567D1FFA794134A66D3BF614C4EE5DDF334F21A52A47C188A6A2", "code": 4, "raw_log": "{\"codespace\":\"sdk\",\"code\":4,\"message\":\"signature verification failed; verify correct account sequence and chain-id\"}" }
+	// Sample 3: {\"jsonrpc\": \"2.0\",\"id\": \"\",\"result\": {  \"check_tx\": {    \"code\": 65541,    \"log\": \"{\\\"codespace\\\":1,\\\"code\\\":5,\\\"abci_code\\\":65541,\\\"message\\\":\\\"insufficient fund. you got 29602BNB,351873676FSN-F1B,1094620960FTM-585,10119750400LOK-3C0,191723639522RUNE-A1F,13629773TATIC-E9C,4169469575TCAN-014,10648250188TOMOB-1E1,1155074377TUSDB-000, but 37500BNB fee needed.\\\"}\",    \"events\": [      {}    ]  },  \"deliver_tx\": {},  \"hash\": \"406A3F68B17544F359DF8C94D4E28A626D249BC9C4118B51F7B4CE16D45AF616\",  \"height\": \"0\"}\n}
+
 	b.logger.Debug().Str("body", string(body)).Msg("broadcast response from Binance Chain")
+	var commit stypes.Commit
 	err = json.Unmarshal(body, &commit)
-	if err != nil {
-		b.logger.Error().Err(err).Msg("fail unmarshal commit")
-		return fmt.Errorf("fail to broadcast: %w", err)
+	if err != nil || len(commit.Logs) == 0 {
+		b.logger.Error().Err(err).Msgf("fail unmarshal commit: %s", string(body))
+
+		var badCommit stypes.BroadcastResult // since commit doesn't work, lets try bad commit
+		err = json.Unmarshal(body, &badCommit)
+		if err != nil {
+			b.logger.Error().Err(err).Msg("fail unmarshal bad commit")
+			return fmt.Errorf("fail to unmarshal bad commit: %w", err)
+		}
+
+		// check for any failure logs
+		// Error code 4 is used for bad account sequence number. We expect to
+		// see this often because in TSS, multiple nodes will broadcast the
+		// same sequence number but only one will be successful. We can just
+		// drop and ignore in these scenarios. In 1of1 signing, we can also
+		// drop and ignore. The reason being, thorchain will attempt to again
+		// later.
+		// Error code 5 is insufficient funds, ignore theses
+		data := badCommit.Result.CheckTx
+		if data.Code > 0 && data.Code != cosmos.CodeUnauthorized && data.Code != cosmos.CodeInsufficientFunds {
+			err := errors.New(data.Log)
+			b.logger.Error().Err(err).Msg("fail to broadcast")
+			return fmt.Errorf("fail to broadcast: %w", err)
+		}
 	}
 
-	// Code will be the tendermint ABICode , it start at 1 , so if it is an error , code will not be zero
-	if commit.CheckTx.Code > 0 && commit.CheckTx.Code != cosmos.CodeUnauthorized && commit.CheckTx.Code != cosmos.CodeInsufficientFunds {
-		return fmt.Errorf("fail to broadcast to Binance chain, code:%d, log:%s", commit.CheckTx.Code, commit.CheckTx.Log)
+	for _, log := range commit.Logs {
+		if !log.Success {
+			err := errors.New(log.Log)
+			b.logger.Error().Err(err).Msg("fail to broadcast")
+			return fmt.Errorf("fail to broadcast: %w", err)
+		}
 	}
-	b.logger.Info().Msgf("Received a TxHash of %v", commit.Hash)
 
 	// increment sequence number
 	b.accts.SeqInc(tx.VaultPubKey)
