@@ -20,6 +20,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	tntypes "github.com/tendermint/tendermint/rpc/core/types"
 	tssp "gitlab.com/thorchain/tss/go-tss/tss"
 
 	"gitlab.com/thorchain/thornode/bifrost/blockscanner"
@@ -465,7 +466,7 @@ func (b *Binance) BroadcastTx(tx stypes.TxOutItem, hexTx []byte) error {
 		return fmt.Errorf("fail to read response body: %w", err)
 	}
 
-	var commit cosmos.TxResponse
+	var commit tntypes.ResultBroadcastTxCommit
 	b.logger.Debug().Str("body", string(body)).Msg("broadcast response from THORChain")
 	err = json.Unmarshal(body, &commit)
 	if err != nil {
@@ -474,10 +475,10 @@ func (b *Binance) BroadcastTx(tx stypes.TxOutItem, hexTx []byte) error {
 	}
 
 	// Code will be the tendermint ABICode , it start at 1 , so if it is an error , code will not be zero
-	if commit.Code > 0 && commit.Code != cosmos.CodeUnauthorized && commit.Code != cosmos.CodeInsufficientFunds {
-		return fmt.Errorf("fail to broadcast to Binance chain, code:%d, log:%s", commit.Code, commit.RawLog)
+	if commit.CheckTx.Code > 0 && commit.CheckTx.Code != cosmos.CodeUnauthorized && commit.CheckTx.Code != cosmos.CodeInsufficientFunds {
+		return fmt.Errorf("fail to broadcast to Binance chain, code:%d, log:%s", commit.CheckTx.Code, commit.CheckTx.Log)
 	}
-	b.logger.Info().Msgf("Received a TxHash of %v", commit.TxHash)
+	b.logger.Info().Msgf("Received a TxHash of %v", commit.Hash)
 
 	// increment sequence number
 	b.accts.SeqInc(tx.VaultPubKey)
