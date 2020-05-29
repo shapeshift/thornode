@@ -33,7 +33,8 @@ func (s YggdrasilSuite) TestCalcTargetAmounts(c *C) {
 	totalBond := cosmos.NewUint(8000 * common.One)
 	bond := cosmos.NewUint(200 * common.One)
 	ymgr := NewYggMgrV1(keeper.KVStoreDummy{})
-	coins, err := ymgr.calcTargetYggCoins(pools, ygg, bond, totalBond)
+	yggFundLimit := cosmos.NewUint(50)
+	coins, err := ymgr.calcTargetYggCoins(pools, ygg, bond, totalBond, yggFundLimit)
 	c.Assert(err, IsNil)
 	c.Assert(coins, HasLen, 3)
 	c.Check(coins[0].Asset.String(), Equals, common.BNBAsset.String())
@@ -60,7 +61,8 @@ func (s YggdrasilSuite) TestCalcTargetAmounts2(c *C) {
 	totalBond := cosmos.NewUint(3000000 * common.One)
 	bond := cosmos.NewUint(1000000 * common.One)
 	ymgr := NewYggMgrV1(keeper.KVStoreDummy{})
-	coins, err := ymgr.calcTargetYggCoins(pools, ygg, bond, totalBond)
+	yggFundLimit := cosmos.NewUint(50)
+	coins, err := ymgr.calcTargetYggCoins(pools, ygg, bond, totalBond, yggFundLimit)
 	c.Assert(err, IsNil)
 	c.Assert(coins, HasLen, 2)
 	c.Check(coins[0].Asset.String(), Equals, common.BNBAsset.String())
@@ -96,7 +98,44 @@ func (s YggdrasilSuite) TestCalcTargetAmounts3(c *C) {
 	totalBond := cosmos.NewUint(8000 * common.One)
 	bond := cosmos.NewUint(200 * common.One)
 	ymgr := NewYggMgrV1(keeper.KVStoreDummy{})
-	coins, err := ymgr.calcTargetYggCoins(pools, ygg, bond, totalBond)
+	yggFundLimit := cosmos.NewUint(50)
+	coins, err := ymgr.calcTargetYggCoins(pools, ygg, bond, totalBond, yggFundLimit)
+	c.Assert(err, IsNil)
+	c.Assert(coins, HasLen, 2, Commentf("%d", len(coins)))
+	c.Check(coins[0].Asset.String(), Equals, common.BTCAsset.String())
+	c.Check(coins[0].Amount.Uint64(), Equals, cosmos.NewUint(1*common.One).Uint64(), Commentf("%d vs %d", coins[0].Amount.Uint64(), cosmos.NewUint(2.8125*common.One).Uint64()))
+	c.Check(coins[1].Asset.String(), Equals, common.RuneAsset().String())
+	c.Check(coins[1].Amount.Uint64(), Equals, cosmos.NewUint(20*common.One).Uint64(), Commentf("%d vs %d", coins[1].Amount.Uint64(), cosmos.NewUint(50*common.One).Uint64()))
+}
+
+func (s YggdrasilSuite) TestCalcTargetAmounts4(c *C) {
+	// test under bonded scenario
+	var pools []Pool
+	p := NewPool()
+	p.Asset = common.BNBAsset
+	p.BalanceRune = cosmos.NewUint(1000 * common.One)
+	p.BalanceAsset = cosmos.NewUint(500 * common.One)
+	pools = append(pools, p)
+
+	p = NewPool()
+	p.Asset = common.BTCAsset
+	p.BalanceRune = cosmos.NewUint(3000 * common.One)
+	p.BalanceAsset = cosmos.NewUint(225 * common.One)
+	pools = append(pools, p)
+
+	ygg := GetRandomVault()
+	ygg.Type = YggdrasilVault
+	ygg.Coins = common.Coins{
+		common.NewCoin(common.BNBAsset, cosmos.NewUint(6.25*common.One)),
+		common.NewCoin(common.BTCAsset, cosmos.NewUint(1.8125*common.One)),
+		common.NewCoin(common.RuneAsset(), cosmos.NewUint(30*common.One)),
+	}
+
+	totalBond := cosmos.NewUint(2000 * common.One)
+	bond := cosmos.NewUint(200 * common.One)
+	ymgr := NewYggMgrV1(keeper.KVStoreDummy{})
+	yggFundLimit := cosmos.NewUint(50)
+	coins, err := ymgr.calcTargetYggCoins(pools, ygg, bond, totalBond, yggFundLimit)
 	c.Assert(err, IsNil)
 	c.Assert(coins, HasLen, 2, Commentf("%d", len(coins)))
 	c.Check(coins[0].Asset.String(), Equals, common.BTCAsset.String())
