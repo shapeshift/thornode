@@ -142,6 +142,12 @@ type TestSlashingLackKeeper struct {
 	slashPts                   map[string]int64
 }
 
+func (k *TestSlashingLackKeeper) ListTxMarker(ctx cosmos.Context, hash string) (TxMarkers, error) {
+	return TxMarkers{
+		NewTxMarker(ctx.BlockHeight(), "my memo"),
+	}, nil
+}
+
 func (k *TestSlashingLackKeeper) GetObservedTxVoter(_ cosmos.Context, _ common.TxID) (ObservedTxVoter, error) {
 	if k.failGetObservedTxVoter {
 		return ObservedTxVoter{}, kaboom
@@ -363,6 +369,7 @@ func (s *SlashingSuite) TestNotSigningSlash(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(outItems, HasLen, 1)
 	c.Assert(outItems[0].VaultPubKey.Equals(keeper.vaults[0].PubKey), Equals, true)
+	c.Assert(outItems[0].Memo, Equals, "my memo")
 	c.Assert(keeper.voter.Actions, HasLen, 1)
 	// ensure we've updated our action item
 	c.Assert(keeper.voter.Actions[0].VaultPubKey.Equals(outItems[0].VaultPubKey), Equals, true)

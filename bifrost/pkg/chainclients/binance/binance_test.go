@@ -124,7 +124,7 @@ const accountInfo string = `{
 }`
 
 const broadcastSuccess string = `{
-	"height": "0",
+	"height": 0,
 	"txhash": "D97E8A81417E293F5B28DDB53A4AD87B434CA30F51D683DA758ECC2168A7A005",
 	"raw_log": "[{\"msg_index\":0,\"success\":true,\"log\":\"\",\"events\":[{\"type\":\"message\",\"attributes\":[{\"key\":\"action\",\"value\":\"set_observed_txout\"}]}]}]",
 	"logs": [{

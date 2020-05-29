@@ -94,7 +94,13 @@ func queryAsgardVaults(ctx cosmos.Context, keeper keeper.Keeper) ([]byte, error)
 
 	var vaultsWithFunds Vaults
 	for _, vault := range vaults {
-		if vault.IsAsgard() && (vault.HasFunds() || vault.Status == ActiveVault) {
+		if vault.Status == InactiveVault {
+			continue
+		}
+		if !vault.IsAsgard() {
+			continue
+		}
+		if vault.HasFunds() || vault.Status == ActiveVault {
 			vaultsWithFunds = append(vaultsWithFunds, vault)
 		}
 	}

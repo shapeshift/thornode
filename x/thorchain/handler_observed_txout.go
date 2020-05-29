@@ -192,6 +192,11 @@ func (h ObservedTxOutHandler) handleV1(ctx cosmos.Context, version semver.Versio
 			// only remove the block height that had been specified in the memo
 			vault.RemovePendingTxBlockHeights(memo.GetBlockHeight())
 		}
+		if !vault.HasFunds() && vault.Status == RetiringVault {
+			// we have successfully removed all funds from a retiring vault,
+			// mark it as inactive
+			vault.Status = InactiveVault
+		}
 		if err := h.keeper.SetVault(ctx, vault); err != nil {
 			return nil, ErrInternal(err, "fail to save vault")
 		}
