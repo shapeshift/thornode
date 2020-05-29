@@ -1,6 +1,9 @@
 package types
 
-import "gitlab.com/thorchain/thornode/common"
+import (
+	coretypes "github.com/tendermint/tendermint/rpc/core/types"
+	"gitlab.com/thorchain/thornode/common"
+)
 
 type BadCommit struct {
 	Height string      `json:"height"`
@@ -16,4 +19,9 @@ type Commit struct {
 		Success bool   `json:"success"`
 		Log     string `json:"log"`
 	} `json:"logs"`
+}
+
+type BroadcastResult struct {
+	JSONRPC string                            `json:"jsonrpc"`
+	Result  coretypes.ResultBroadcastTxCommit `json:"result"`
 }
