@@ -60,26 +60,22 @@ func (s *HandlerObservedTxInSuite) TestValidate(c *C) {
 	txs[0].Tx.ToAddress, err = pk.GetAddress(txs[0].Tx.Coins[0].Asset.Chain)
 	c.Assert(err, IsNil)
 	msg := NewMsgObservedTxIn(txs, activeNodeAccount.NodeAddress)
-	isNewSigner, err := handler.validate(ctx, msg, ver)
+	err = handler.validate(ctx, msg, ver)
 	c.Assert(err, IsNil)
-	c.Assert(isNewSigner, Equals, false)
 
 	// invalid version
-	isNewSigner, err = handler.validate(ctx, msg, semver.Version{})
+	err = handler.validate(ctx, msg, semver.Version{})
 	c.Assert(err, Equals, errInvalidVersion)
-	c.Assert(isNewSigner, Equals, false)
 
 	// inactive node account
 	msg = NewMsgObservedTxIn(txs, GetRandomBech32Addr())
-	isNewSigner, err = handler.validate(ctx, msg, ver)
+	err = handler.validate(ctx, msg, ver)
 	c.Assert(errors.Is(err, se.ErrUnauthorized), Equals, true)
-	c.Assert(isNewSigner, Equals, false)
 
 	// invalid msg
 	msg = MsgObservedTxIn{}
-	isNewSigner, err = handler.validate(ctx, msg, ver)
+	err = handler.validate(ctx, msg, ver)
 	c.Assert(err, NotNil)
-	c.Assert(isNewSigner, Equals, false)
 }
 
 type TestObservedTxInFailureKeeper struct {
