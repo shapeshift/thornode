@@ -467,7 +467,7 @@ func (b *Binance) BroadcastTx(tx stypes.TxOutItem, hexTx []byte) error {
 	}
 
 	var commit tntypes.ResultBroadcastTxCommit
-	b.logger.Debug().Str("body", string(body)).Msg("broadcast response from THORChain")
+	b.logger.Debug().Str("body", string(body)).Msg("broadcast response from Binance Chain")
 	err = json.Unmarshal(body, &commit)
 	if err != nil {
 		b.logger.Error().Err(err).Msg("fail unmarshal commit")
