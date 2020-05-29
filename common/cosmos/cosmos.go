@@ -45,8 +45,8 @@ var (
 	Bech32PubKeyTypeAccPub  = sdk.Bech32PubKeyTypeAccPub
 	Wrapf                   = se.Wrapf
 	MustSortJSON            = sdk.MustSortJSON
-	CodeUnauthorized        = 4
-	CodeInsufficientFunds   = 5
+	CodeUnauthorized        = uint32(4)
+	CodeInsufficientFunds   = uint32(5)
 )
 
 type (
@@ -65,6 +65,7 @@ type (
 	Handler    = sdk.Handler
 	StoreKey   = sdk.StoreKey
 	Querier    = sdk.Querier
+	TxResponse = sdk.TxResponse
 )
 
 func ErrUnknownRequest(msg string) error {
