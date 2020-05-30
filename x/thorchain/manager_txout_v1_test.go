@@ -68,7 +68,7 @@ func (s TxOutStoreSuite) TestAddOutTxItem(c *C) {
 			Signers: []cosmos.AccAddress{w.activeNodeAccount.NodeAddress, acc1.NodeAddress, acc2.NodeAddress},
 		},
 	})
-	w.keeper.SetObservedTxVoter(w.ctx, voter)
+	w.keeper.SetObservedTxInVoter(w.ctx, voter)
 
 	// Should get acc2. Acc3 hasn't signed and acc2 is the highest value
 	item := &TxOutItem{
