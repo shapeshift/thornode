@@ -100,6 +100,7 @@ func (h MigrateHandler) handleV1(ctx cosmos.Context, version semver.Version, msg
 	}
 
 	if shouldSlash {
+		ctx.Logger().Info("slash node account,migration has no matched txout", "outbound tx", msg.Tx.Tx)
 		if err := h.slash(ctx, version, msg.Tx); err != nil {
 			return nil, ErrInternal(err, "fail to slash account")
 		}

@@ -181,7 +181,7 @@ func (s *SlasherV1) LackSigning(ctx cosmos.Context, constAccessor constants.Cons
 			}
 
 			// update original tx action in observed tx
-			voter, err := s.keeper.GetObservedTxVoter(ctx, tx.InHash)
+			voter, err := s.keeper.GetObservedTxInVoter(ctx, tx.InHash)
 			if err != nil {
 				return fmt.Errorf("fail to get observed tx voter: %w", err)
 			}
@@ -190,7 +190,7 @@ func (s *SlasherV1) LackSigning(ctx cosmos.Context, constAccessor constants.Cons
 					voter.Actions[i].VaultPubKey = vault.PubKey
 				}
 			}
-			s.keeper.SetObservedTxVoter(ctx, voter)
+			s.keeper.SetObservedTxInVoter(ctx, voter)
 
 			// fetch memo from tx marker
 			hash, err := tx.TxHash()
@@ -235,6 +235,7 @@ func (s *SlasherV1) SlashNodeAccount(ctx cosmos.Context, observedPubKey common.P
 	if slashAmount.IsZero() {
 		return nil
 	}
+	ctx.Logger().Info("slash node account", "observed pub key", observedPubKey.String(), "asset", asset.String(), "amount", slashAmount.String())
 	nodeAccount, err := s.keeper.GetNodeAccountByPubKey(ctx, observedPubKey)
 	if err != nil {
 		return fmt.Errorf("fail to get node account with pubkey(%s), %w", observedPubKey, err)

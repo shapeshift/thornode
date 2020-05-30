@@ -97,7 +97,7 @@ func (tos *TxOutStorageV1) prepareTxOutItem(ctx cosmos.Context, toi *TxOutItem) 
 
 			activeNodeAccounts, err := tos.keeper.ListActiveNodeAccounts(ctx)
 			if len(activeNodeAccounts) > 0 && err == nil {
-				voter, err := tos.keeper.GetObservedTxVoter(ctx, toi.InHash)
+				voter, err := tos.keeper.GetObservedTxInVoter(ctx, toi.InHash)
 				if err != nil {
 					return false, fmt.Errorf("fail to get observed tx voter: %w", err)
 				}
@@ -234,7 +234,7 @@ func (tos *TxOutStorageV1) prepareTxOutItem(ctx cosmos.Context, toi *TxOutItem) 
 	}
 
 	// increment out number of out tx for this in tx
-	voter, err := tos.keeper.GetObservedTxVoter(ctx, toi.InHash)
+	voter, err := tos.keeper.GetObservedTxInVoter(ctx, toi.InHash)
 	if err != nil {
 		return false, fmt.Errorf("fail to get observed tx voter: %w", err)
 	}
@@ -242,7 +242,7 @@ func (tos *TxOutStorageV1) prepareTxOutItem(ctx cosmos.Context, toi *TxOutItem) 
 		voter.Height = ctx.BlockHeight()
 	}
 	voter.Actions = append(voter.Actions, *toi)
-	tos.keeper.SetObservedTxVoter(ctx, voter)
+	tos.keeper.SetObservedTxInVoter(ctx, voter)
 
 	return true, nil
 }

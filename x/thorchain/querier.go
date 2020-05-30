@@ -471,7 +471,7 @@ func queryTxIn(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper 
 		ctx.Logger().Error("fail to parse tx id", "error", err)
 		return nil, fmt.Errorf("fail to parse tx id: %w", err)
 	}
-	voter, err := keeper.GetObservedTxVoter(ctx, hash)
+	voter, err := keeper.GetObservedTxInVoter(ctx, hash)
 	if err != nil {
 		ctx.Logger().Error("fail to get observed tx voter", "error", err)
 		return nil, fmt.Errorf("fail to get observed tx voter: %w", err)

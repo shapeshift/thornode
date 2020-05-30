@@ -110,11 +110,11 @@ func newOutboundTxHandlerKeeperHelper(keeper keeper.Keeper) *outboundTxHandlerKe
 	}
 }
 
-func (k *outboundTxHandlerKeeperHelper) GetObservedTxVoter(ctx cosmos.Context, hash common.TxID) (ObservedTxVoter, error) {
+func (k *outboundTxHandlerKeeperHelper) GetObservedTxInVoter(ctx cosmos.Context, hash common.TxID) (ObservedTxVoter, error) {
 	if hash.Equals(k.observeTxVoterErrHash) {
 		return ObservedTxVoter{}, kaboom
 	}
-	return k.Keeper.GetObservedTxVoter(ctx, hash)
+	return k.Keeper.GetObservedTxOutVoter(ctx, hash)
 }
 
 func (k *outboundTxHandlerKeeperHelper) GetTxOut(ctx cosmos.Context, height int64) (*TxOut, error) {
@@ -208,7 +208,7 @@ func newOutboundTxHandlerTestHelper(c *C) outboundTxHandlerTestHelper {
 	voter := NewObservedTxVoter(tx.Tx.ID, make(ObservedTxs, 0))
 	keeper := newOutboundTxHandlerKeeperHelper(k)
 	voter.Height = ctx.BlockHeight()
-	keeper.SetObservedTxVoter(ctx, voter)
+	keeper.SetObservedTxOutVoter(ctx, voter)
 
 	nodeAccount := GetRandomNodeAccount(NodeActive)
 	nodeAccount.NodeAddress, err = yggVault.PubKey.GetThorAddress()

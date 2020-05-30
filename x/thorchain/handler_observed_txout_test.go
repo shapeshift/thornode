@@ -101,11 +101,11 @@ func (k *TestObservedTxOutHandleKeeper) SetNodeAccount(_ cosmos.Context, na Node
 	return nil
 }
 
-func (k *TestObservedTxOutHandleKeeper) GetObservedTxVoter(_ cosmos.Context, _ common.TxID) (ObservedTxVoter, error) {
+func (k *TestObservedTxOutHandleKeeper) GetObservedTxOutVoter(_ cosmos.Context, _ common.TxID) (ObservedTxVoter, error) {
 	return k.voter, nil
 }
 
-func (k *TestObservedTxOutHandleKeeper) SetObservedTxVoter(_ cosmos.Context, voter ObservedTxVoter) {
+func (k *TestObservedTxOutHandleKeeper) SetObservedTxOutVoter(_ cosmos.Context, voter ObservedTxVoter) {
 	k.voter = voter
 }
 
