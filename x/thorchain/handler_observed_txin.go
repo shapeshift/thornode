@@ -174,6 +174,11 @@ func (h ObservedTxInHandler) handleV1(ctx cosmos.Context, version semver.Version
 			continue
 		}
 
+		if memo.IsOutbound() || memo.IsInternal() {
+			// do not process outbound handlers here, or internal handlers
+			continue
+		}
+
 		// tx is not observed at current vault - refund
 		// yggdrasil pool is ok
 		if ok := isCurrentVaultPubKey(ctx, h.keeper, tx); !ok {
@@ -199,11 +204,6 @@ func (h ObservedTxInHandler) handleV1(ctx cosmos.Context, version semver.Version
 			if newErr := refundTx(ctx, tx, h.mgr, h.keeper, constAccessor, CodeInvalidMemo, txErr.Error()); nil != newErr {
 				return nil, ErrInternal(newErr, "fail to refund")
 			}
-			continue
-		}
-
-		if memo.IsOutbound() {
-			// no one should send an outbound tx to vault
 			continue
 		}
 
