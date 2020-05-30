@@ -35,14 +35,15 @@ func (h CommonOutboundTxHandler) slash(ctx cosmos.Context, version semver.Versio
 }
 
 func (h CommonOutboundTxHandler) handle(ctx cosmos.Context, version semver.Version, tx ObservedTx, inTxID common.TxID) (*cosmos.Result, error) {
-	voter, err := h.keeper.GetObservedTxVoter(ctx, inTxID)
+	// note: Outbound tx usually it is related to an inbound tx except migration
+	// thus here try to get the ObservedTxInVoter,  and set the tx out hash accordingly
+	voter, err := h.keeper.GetObservedTxInVoter(ctx, inTxID)
 	if err != nil {
 		return nil, ErrInternal(err, "fail to get observed tx voter")
 	}
-
 	if voter.Height > 0 {
 		voter.AddOutTx(tx.Tx)
-		h.keeper.SetObservedTxVoter(ctx, voter)
+		h.keeper.SetObservedTxInVoter(ctx, voter)
 	}
 
 	// complete events
@@ -89,6 +90,7 @@ func (h CommonOutboundTxHandler) handle(ctx cosmos.Context, version semver.Versi
 	}
 
 	if shouldSlash {
+		ctx.Logger().Info("slash node account, no matched tx out item", "inbound txid", inTxID, "outbound tx", tx.Tx)
 		if err := h.slash(ctx, version, tx); err != nil {
 			return nil, ErrInternal(err, "fail to slash account")
 		}

@@ -89,7 +89,7 @@ func (h ObservedTxOutHandler) preflight(ctx cosmos.Context, voter ObservedTxVote
 			}
 		}
 	}
-	h.keeper.SetObservedTxVoter(ctx, voter)
+	h.keeper.SetObservedTxOutVoter(ctx, voter)
 
 	// Check to see if we have enough identical observations to process the transaction
 	return voter, ok
@@ -112,7 +112,7 @@ func (h ObservedTxOutHandler) handleV1(ctx cosmos.Context, version semver.Versio
 			continue
 		}
 
-		voter, err := h.keeper.GetObservedTxVoter(ctx, tx.Tx.ID)
+		voter, err := h.keeper.GetObservedTxOutVoter(ctx, tx.Tx.ID)
 		if err != nil {
 			return nil, err
 		}

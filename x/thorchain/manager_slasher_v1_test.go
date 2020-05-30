@@ -148,14 +148,14 @@ func (k *TestSlashingLackKeeper) ListTxMarker(ctx cosmos.Context, hash string) (
 	}, nil
 }
 
-func (k *TestSlashingLackKeeper) GetObservedTxVoter(_ cosmos.Context, _ common.TxID) (ObservedTxVoter, error) {
+func (k *TestSlashingLackKeeper) GetObservedTxInVoter(_ cosmos.Context, _ common.TxID) (ObservedTxVoter, error) {
 	if k.failGetObservedTxVoter {
 		return ObservedTxVoter{}, kaboom
 	}
 	return k.voter, nil
 }
 
-func (k *TestSlashingLackKeeper) SetObservedTxVoter(_ cosmos.Context, voter ObservedTxVoter) {
+func (k *TestSlashingLackKeeper) SetObservedTxInVoter(_ cosmos.Context, voter ObservedTxVoter) {
 	k.voter = voter
 }
 

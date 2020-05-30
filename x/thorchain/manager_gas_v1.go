@@ -1,6 +1,8 @@
 package thorchain
 
 import (
+	"fmt"
+
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
@@ -83,7 +85,8 @@ func (gm *GasMgrV1) ProcessGas(ctx cosmos.Context, keeper keeper.Keeper) {
 			continue
 		}
 		runeGas := pool.AssetValueInRune(gas.Amount) // Convert to Rune (gas will never be RUNE)
-
+		fmt.Printf("%+v\n", pool)
+		fmt.Printf("%s\n", runeGas)
 		// If Rune owed now exceeds the Total Reserve, return it all
 		if common.RuneAsset().Chain.Equals(common.THORChain) {
 			if runeGas.LT(keeper.GetRuneBalaceOfModule(ctx, ReserveName)) {

@@ -17,14 +17,19 @@ func (s *KeeperTxInSuite) TestTxInVoter(c *C) {
 		ObservedTxs{NewObservedTx(tx, 12, GetRandomPubKey())},
 	)
 
-	k.SetObservedTxVoter(ctx, voter)
-	voter, err := k.GetObservedTxVoter(ctx, voter.TxID)
+	k.SetObservedTxInVoter(ctx, voter)
+	voter, err := k.GetObservedTxInVoter(ctx, voter.TxID)
 	c.Assert(err, IsNil)
 	c.Check(voter.TxID.Equals(tx.ID), Equals, true)
 
+	voterOut, err := k.GetObservedTxOutVoter(ctx, voter.TxID)
+	c.Assert(err, IsNil)
+	c.Assert(voterOut.TxID.Equals(tx.ID), Equals, true)
+	c.Assert(voterOut.Tx.IsEmpty(), Equals, true)
+
 	// ensure that if the voter doesn't exist, we DON'T error
 	tx = GetRandomTx()
-	voter, err = k.GetObservedTxVoter(ctx, tx.ID)
+	voter, err = k.GetObservedTxInVoter(ctx, tx.ID)
 	c.Assert(err, IsNil)
 	c.Check(voter.TxID.Equals(tx.ID), Equals, true)
 }
