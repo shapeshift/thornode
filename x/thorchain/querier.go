@@ -183,7 +183,7 @@ func queryVaultsPubkeys(ctx cosmos.Context, keeper keeper.Keeper) ([]byte, error
 			ctx.Logger().Error("fail to unmarshal vault", "error", err)
 			return nil, fmt.Errorf("fail to unmarshal vault: %w", err)
 		}
-		if vault.Status == ActiveVault {
+		if vault.Status == ActiveVault || vault.Status == RetiringVault {
 			if vault.IsYggdrasil() {
 				resp.Yggdrasil = append(resp.Yggdrasil, vault.PubKey)
 			} else if vault.IsAsgard() {
