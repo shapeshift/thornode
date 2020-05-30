@@ -1,6 +1,7 @@
 package pubkeymanager
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -61,22 +62,37 @@ func (s *PubKeyMgrSuite) TestPubkeyMgr(c *C) {
 }
 
 func (s *PubKeyMgrSuite) TestFetchKeys(c *C) {
+	pk1 := types.GetRandomPubKey()
+	pk2 := types.GetRandomPubKey()
+	pk3 := types.GetRandomPubKey()
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		c.Logf("================>:%s", r.RequestURI)
 		switch r.RequestURI {
 		case "/thorchain/vaults/pubkeys":
-			if _, err := w.Write([]byte(`{"asgard": [], "yggdrasil": []}`)); err != nil {
+			if _, err := w.Write([]byte(fmt.Sprintf(`{"asgard": ["%s"], "yggdrasil": []}`, pk1))); err != nil {
 				c.Error(err)
 			}
 		}
 	}))
+
 	pubkeyMgr, err := NewPubKeyManager(server.URL[7:], nil)
 	c.Assert(err, IsNil)
+	pubkeyMgr.AddPubKey(pk2, false)
+	// add a key that is the node account, ensure it doesn't get removed
+	pubkeyMgr.pubkeys = append(pubkeyMgr.pubkeys, PK{
+		PubKey:      pk3,
+		Signer:      true,
+		NodeAccount: true,
+	})
+	c.Check(len(pubkeyMgr.GetPubKeys()), Equals, 2)
 	err = pubkeyMgr.Start()
 	c.Assert(err, IsNil)
 	pubkeyMgr.FetchPubKeys()
 	pubKeys := pubkeyMgr.GetPubKeys()
-	c.Check(len(pubKeys), Equals, 0)
+	c.Check(len(pubKeys), Equals, 2)
+	c.Check(pubKeys[0].Equals(pk1), Equals, true)
+	c.Check(pubKeys[1].Equals(pk3), Equals, true)
 	err = pubkeyMgr.Stop()
 	c.Assert(err, IsNil)
 }

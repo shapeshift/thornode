@@ -187,6 +187,17 @@ func (pkm *PubKeyManager) FetchPubKeys() {
 	for _, pk := range pubkeys {
 		pkm.AddPubKey(pk, false)
 	}
+
+	// prune retired addresses
+	for _, pk := range pkm.pubkeys {
+		if pk.NodeAccount {
+			// never remove our own pubkey
+			continue
+		}
+		if !pubkeys.Contains(pk.PubKey) {
+			pkm.RemovePubKey(pk.PubKey)
+		}
+	}
 }
 
 func (pkm *PubKeyManager) updatePubKeys() {
