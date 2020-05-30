@@ -486,7 +486,7 @@ func (b *Binance) BroadcastTx(tx stypes.TxOutItem, hexTx []byte) error {
 	// later.
 	// Error code 5 is insufficient funds, ignore theses
 	data := commit.Result.CheckTx
-	if data.Code > 0 && data.Code != cosmos.CodeUnauthorized && data.Code != cosmos.CodeInsufficientFunds {
+	if data.Code > 0 && data.Code != cosmos.CodeUnauthorized {
 		err := errors.New(data.Log)
 		b.logger.Error().Err(err).Msg("fail to broadcast")
 		return fmt.Errorf("fail to broadcast: %w", err)
