@@ -52,11 +52,11 @@ func newRefundTxHandlerKeeperTestHelper(keeper keeper.Keeper) *refundTxHandlerKe
 	}
 }
 
-func (k *refundTxHandlerKeeperTestHelper) GetObservedTxVoter(ctx cosmos.Context, hash common.TxID) (ObservedTxVoter, error) {
+func (k *refundTxHandlerKeeperTestHelper) GetObservedTxInVoter(ctx cosmos.Context, hash common.TxID) (ObservedTxVoter, error) {
 	if hash.Equals(k.observeTxVoterErrHash) {
 		return ObservedTxVoter{}, kaboom
 	}
-	return k.Keeper.GetObservedTxVoter(ctx, hash)
+	return k.Keeper.GetObservedTxOutVoter(ctx, hash)
 }
 
 func (k *refundTxHandlerKeeperTestHelper) GetTxOut(ctx cosmos.Context, height int64) (*TxOut, error) {
@@ -145,7 +145,7 @@ func newRefundTxHandlerTestHelper(c *C) refundTxHandlerTestHelper {
 	voter := NewObservedTxVoter(tx.Tx.ID, make(ObservedTxs, 0))
 	keeper := newRefundTxHandlerKeeperTestHelper(k)
 	voter.Height = ctx.BlockHeight()
-	keeper.SetObservedTxVoter(ctx, voter)
+	keeper.SetObservedTxOutVoter(ctx, voter)
 
 	mgr := NewDummyMgr()
 	mgr.slasher = NewSlasherV1(keeper)

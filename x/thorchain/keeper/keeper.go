@@ -103,9 +103,12 @@ type KeeperObserver interface {
 }
 
 type KeeperObservedTx interface {
-	SetObservedTxVoter(ctx cosmos.Context, tx ObservedTxVoter)
-	GetObservedTxVoterIterator(ctx cosmos.Context) cosmos.Iterator
-	GetObservedTxVoter(ctx cosmos.Context, hash common.TxID) (ObservedTxVoter, error)
+	SetObservedTxInVoter(ctx cosmos.Context, tx ObservedTxVoter)
+	GetObservedTxInVoterIterator(ctx cosmos.Context) cosmos.Iterator
+	GetObservedTxInVoter(ctx cosmos.Context, hash common.TxID) (ObservedTxVoter, error)
+	SetObservedTxOutVoter(ctx cosmos.Context, tx ObservedTxVoter)
+	GetObservedTxOutVoterIterator(ctx cosmos.Context) cosmos.Iterator
+	GetObservedTxOutVoter(ctx cosmos.Context, hash common.TxID) (ObservedTxVoter, error)
 }
 
 type KeeperTxOut interface {

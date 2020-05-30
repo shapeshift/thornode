@@ -33,7 +33,7 @@ func (k *TestErrataTxKeeper) GetNodeAccount(_ cosmos.Context, _ cosmos.AccAddres
 	return k.na, k.err
 }
 
-func (k *TestErrataTxKeeper) GetObservedTxVoter(_ cosmos.Context, txID common.TxID) (ObservedTxVoter, error) {
+func (k *TestErrataTxKeeper) GetObservedTxInVoter(_ cosmos.Context, txID common.TxID) (ObservedTxVoter, error) {
 	return k.observedTx, k.err
 }
 

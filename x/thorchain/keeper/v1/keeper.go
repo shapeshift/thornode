@@ -24,7 +24,8 @@ import (
 const (
 	version                  int64            = 1
 	prefixStoreVersion       kvTypes.DbPrefix = "_ver"
-	prefixObservedTx         kvTypes.DbPrefix = "observed_tx/"
+	prefixObservedTxIn       kvTypes.DbPrefix = "observed_tx_in/"
+	prefixObservedTxOut      kvTypes.DbPrefix = "observed_tx_out/"
 	prefixPool               kvTypes.DbPrefix = "pool/"
 	prefixTxOut              kvTypes.DbPrefix = "txout/"
 	prefixTotalLiquidityFee  kvTypes.DbPrefix = "total_liquidity_fee/"

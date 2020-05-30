@@ -13,15 +13,16 @@ import (
 
 // GenesisState strcture that used to store the data THORNode put in genesis
 type GenesisState struct {
-	Pools            []Pool                   `json:"pools"`
-	Stakers          []Staker                 `json:"stakers"`
-	ObservedTxVoters ObservedTxVoters         `json:"observed_tx_voters"`
-	TxOuts           []TxOut                  `json:"txouts"`
-	NodeAccounts     NodeAccounts             `json:"node_accounts"`
-	CurrentEventID   int64                    `json:"current_event_id"`
-	Vaults           Vaults                   `json:"vaults"`
-	Gas              map[string][]cosmos.Uint `json:"gas"`
-	Reserve          uint64                   `json:"reserve"`
+	Pools               []Pool                   `json:"pools"`
+	Stakers             []Staker                 `json:"stakers"`
+	ObservedTxInVoters  ObservedTxVoters         `json:"observed_tx_in_voters"`
+	ObservedTxOutVoters ObservedTxVoters         `json:"observed_tx_out_voters"`
+	TxOuts              []TxOut                  `json:"txouts"`
+	NodeAccounts        NodeAccounts             `json:"node_accounts"`
+	CurrentEventID      int64                    `json:"current_event_id"`
+	Vaults              Vaults                   `json:"vaults"`
+	Gas                 map[string][]cosmos.Uint `json:"gas"`
+	Reserve             uint64                   `json:"reserve"`
 }
 
 // NewGenesisState create a new instance of GenesisState
@@ -37,7 +38,13 @@ func ValidateGenesis(data GenesisState) error {
 		}
 	}
 
-	for _, voter := range data.ObservedTxVoters {
+	for _, voter := range data.ObservedTxInVoters {
+		if err := voter.Valid(); err != nil {
+			return err
+		}
+	}
+
+	for _, voter := range data.ObservedTxOutVoters {
 		if err := voter.Valid(); err != nil {
 			return err
 		}
@@ -73,14 +80,15 @@ func ValidateGenesis(data GenesisState) error {
 // DefaultGenesisState the default values THORNode put in the Genesis
 func DefaultGenesisState() GenesisState {
 	return GenesisState{
-		Pools:            []Pool{},
-		NodeAccounts:     NodeAccounts{},
-		CurrentEventID:   1,
-		TxOuts:           make([]TxOut, 0),
-		Stakers:          make([]Staker, 0),
-		Vaults:           make(Vaults, 0),
-		ObservedTxVoters: make(ObservedTxVoters, 0),
-		Gas:              make(map[string][]cosmos.Uint, 0),
+		Pools:               []Pool{},
+		NodeAccounts:        NodeAccounts{},
+		CurrentEventID:      1,
+		TxOuts:              make([]TxOut, 0),
+		Stakers:             make([]Staker, 0),
+		Vaults:              make(Vaults, 0),
+		ObservedTxInVoters:  make(ObservedTxVoters, 0),
+		ObservedTxOutVoters: make(ObservedTxVoters, 0),
+		Gas:                 make(map[string][]cosmos.Uint, 0),
 	}
 }
 
@@ -123,8 +131,12 @@ func InitGenesis(ctx cosmos.Context, keeper keeper.Keeper, data GenesisState) []
 		}
 	}
 
-	for _, voter := range data.ObservedTxVoters {
-		keeper.SetObservedTxVoter(ctx, voter)
+	for _, voter := range data.ObservedTxInVoters {
+		keeper.SetObservedTxInVoter(ctx, voter)
+	}
+
+	for _, voter := range data.ObservedTxOutVoters {
+		keeper.SetObservedTxOutVoter(ctx, voter)
 	}
 
 	for _, out := range data.TxOuts {
@@ -221,13 +233,22 @@ func ExportGenesis(ctx cosmos.Context, k keeper.Keeper) GenesisState {
 		nodeAccounts = append(nodeAccounts, na)
 	}
 
-	var votes ObservedTxVoters
-	iterator = k.GetObservedTxVoterIterator(ctx)
+	var observedTxInVoters ObservedTxVoters
+	iterator = k.GetObservedTxInVoterIterator(ctx)
 	defer iterator.Close()
 	for ; iterator.Valid(); iterator.Next() {
 		var vote ObservedTxVoter
 		k.Cdc().MustUnmarshalBinaryBare(iterator.Value(), &vote)
-		votes = append(votes, vote)
+		observedTxInVoters = append(observedTxInVoters, vote)
+	}
+
+	var observedTxOutVoters ObservedTxVoters
+	iterator = k.GetObservedTxOutVoterIterator(ctx)
+	defer iterator.Close()
+	for ; iterator.Valid(); iterator.Next() {
+		var vote ObservedTxVoter
+		k.Cdc().MustUnmarshalBinaryBare(iterator.Value(), &vote)
+		observedTxOutVoters = append(observedTxOutVoters, vote)
 	}
 
 	var outs []TxOut
@@ -249,11 +270,12 @@ func ExportGenesis(ctx cosmos.Context, k keeper.Keeper) GenesisState {
 	}
 
 	return GenesisState{
-		Pools:            pools,
-		NodeAccounts:     nodeAccounts,
-		Stakers:          stakers,
-		ObservedTxVoters: votes,
-		TxOuts:           outs,
-		Gas:              gas,
+		Pools:               pools,
+		NodeAccounts:        nodeAccounts,
+		Stakers:             stakers,
+		ObservedTxInVoters:  observedTxInVoters,
+		ObservedTxOutVoters: observedTxOutVoters,
+		TxOuts:              outs,
+		Gas:                 gas,
 	}
 }
