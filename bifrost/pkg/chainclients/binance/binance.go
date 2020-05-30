@@ -484,10 +484,16 @@ func (b *Binance) BroadcastTx(tx stypes.TxOutItem, hexTx []byte) error {
 	// drop and ignore in these scenarios. In 1of1 signing, we can also
 	// drop and ignore. The reason being, thorchain will attempt to again
 	// later.
-	// Error code 5 is insufficient funds, ignore theses
-	data := commit.Result.CheckTx
-	if data.Code > 0 && data.Code != cosmos.CodeUnauthorized {
-		err := errors.New(data.Log)
+	checkTx := commit.Result.CheckTx
+	if checkTx.Code > 0 && checkTx.Code != cosmos.CodeUnauthorized {
+		err := errors.New(checkTx.Log)
+		b.logger.Error().Err(err).Msg("fail to broadcast")
+		return fmt.Errorf("fail to broadcast: %w", err)
+	}
+
+	deliverTx := commit.Result.DeliverTx
+	if deliverTx.Code > 0 {
+		err := errors.New(deliverTx.Log)
 		b.logger.Error().Err(err).Msg("fail to broadcast")
 		return fmt.Errorf("fail to broadcast: %w", err)
 	}
