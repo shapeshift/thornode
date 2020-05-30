@@ -355,6 +355,7 @@ func enableNextPool(ctx cosmos.Context, keeper keeper.Keeper, eventManager Event
 	}
 
 	pool.Status = PoolEnabled
+	ctx.Logger().Info("Enabled a new pool", "pool", pool.Asset)
 	return keeper.SetPool(ctx, pool)
 }
 
