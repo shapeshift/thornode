@@ -98,22 +98,13 @@ Emergency changes to the protocol may be difficult to coordinate, since there is
 ======================================
 
 ## Setup
-Ensure you have a recent version of go (ie `1.121) and enabled go modules
-```
-export GO111MODULE=on
-```
+Ensure you have a recent version of go (ie `1.13`) and enabled go modules
 And have `GOBIN` in your `PATH`
 ```
 export GOBIN=$GOPATH/bin
 ```
 
-### Automated Install
-To install easily, run the following command...
-```bash
-make setup
-```
-
-### Manual Install
+### Automated Install Locally
 Install via this `make` command.
 
 ```bash
@@ -127,40 +118,11 @@ thorcli help
 thord help
 ```
 
-### Configuration
-
-## Start
-There are three services you may want to start.
-
-#### Daemon
-This runs the backend
+### Start Standalone Full Stack
+For development and running a full chain locally (your own separate network),
+use the following `make` command.
 ```bash
-make start
-```
-
-#### REST API Service
-Starts an HTTP service to service requests to the backend.
-```bash
-make start-rest
-```
-
-#### CORS Proxy
-For making requests in a browser to the API backend, you'll need to start a
-proxy in front of the API service to give proper CORS headers. This is because
-CORS support in Cosmos was removed. In the meantime, use
-[cors.io](http://cors.io) as a proxy.
-
-Bifröst
-===============
-
-Witness events that take place on external chains. For configuration see,
-`build/scripts/bifrost.sh`
-
-### Development
-Setup a local server
-```bash
-make install
-make start
+make -C build/docker reset-mocknet-standalone
 ```
 
 ### Test

@@ -77,12 +77,6 @@ start-daemon:
 start-rest:
 	thorcli rest-server
 
-setup: install
-	./build/scripts/localdev.sh
-
-reset: clean install
-	./build/scripts/localdev.sh
-
 clean:
 	rm -rf ~/.thor*
 	rm -f ${GOBIN}/{generate,thorcli,thord,bifrost}
