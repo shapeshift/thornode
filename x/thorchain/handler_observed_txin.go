@@ -31,14 +31,12 @@ func (h ObservedTxInHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semve
 	if !ok {
 		return nil, errInvalidMessage
 	}
-	isNewSigner, err := h.validate(ctx, msg, version)
+	err := h.validate(ctx, msg, version)
 	if err != nil {
 		ctx.Logger().Error("MsgObservedTxIn failed validation", "error", err)
 		return nil, err
 	}
-	if isNewSigner {
-		return &cosmos.Result{}, nil
-	}
+
 	result, err := h.handle(ctx, msg, version)
 	if err != nil {
 		ctx.Logger().Error("fail to handle MsgObservedTxIn message", "error", err)
@@ -46,23 +44,23 @@ func (h ObservedTxInHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semve
 	return result, err
 }
 
-func (h ObservedTxInHandler) validate(ctx cosmos.Context, msg MsgObservedTxIn, version semver.Version) (bool, error) {
+func (h ObservedTxInHandler) validate(ctx cosmos.Context, msg MsgObservedTxIn, version semver.Version) error {
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, msg)
 	}
-	return false, errInvalidVersion
+	return errInvalidVersion
 }
 
-func (h ObservedTxInHandler) validateV1(ctx cosmos.Context, msg MsgObservedTxIn) (bool, error) {
+func (h ObservedTxInHandler) validateV1(ctx cosmos.Context, msg MsgObservedTxIn) error {
 	if err := msg.ValidateBasic(); err != nil {
-		return false, err
+		return err
 	}
 
 	if !isSignedByActiveNodeAccounts(ctx, h.keeper, msg.GetSigners()) {
-		return false, cosmos.ErrUnauthorized(fmt.Sprintf("%+v are not authorized", msg.GetSigners()))
+		return cosmos.ErrUnauthorized(fmt.Sprintf("%+v are not authorized", msg.GetSigners()))
 	}
 
-	return false, nil
+	return nil
 }
 
 func (h ObservedTxInHandler) handle(ctx cosmos.Context, msg MsgObservedTxIn, version semver.Version) (*cosmos.Result, error) {

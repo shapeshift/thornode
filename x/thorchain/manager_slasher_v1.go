@@ -102,20 +102,17 @@ func (s *SlasherV1) HandleDoubleSign(ctx cosmos.Context, addr crypto.Address, in
 func (s *SlasherV1) LackObserving(ctx cosmos.Context, constAccessor constants.ConstantValues) error {
 	accs, err := s.keeper.GetObservingAddresses(ctx)
 	if err != nil {
-		ctx.Logger().Error("fail to get observing addresses", "error", err)
-		return err
+		return fmt.Errorf("fail to get observing addresses: %w", err)
 	}
 
 	if len(accs) == 0 {
-		// nobody observed anything, THORNode must of had no input txs within this
-		// block
+		// nobody observed anything, THORNode must of had no input txs within this block
 		return nil
 	}
 
 	nodes, err := s.keeper.ListActiveNodeAccounts(ctx)
 	if err != nil {
-		ctx.Logger().Error("Unable to get list of active accounts", "error", err)
-		return err
+		return fmt.Errorf("unable to get list of active accounts: %w", err)
 	}
 
 	for _, na := range nodes {
