@@ -1,9 +1,10 @@
 package types
 
 import (
+	. "gopkg.in/check.v1"
+
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
-	. "gopkg.in/check.v1"
 )
 
 type MsgAddSuite struct{}

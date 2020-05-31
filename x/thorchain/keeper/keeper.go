@@ -49,6 +49,8 @@ type Keeper interface {
 	KeeperBanVoter
 	KeeperSwapQueue
 	KeeperMimir
+	KeeperNetworkFee
+	KeeperObservedNetworkFeeVoter
 }
 
 type KeeperPool interface {
@@ -205,6 +207,18 @@ type KeeperMimir interface {
 	GetMimir(_ cosmos.Context, key string) (int64, error)
 	SetMimir(_ cosmos.Context, key string, value int64)
 	GetMimirIterator(ctx cosmos.Context) cosmos.Iterator
+}
+
+type KeeperNetworkFee interface {
+	GetNetworkFee(ctx cosmos.Context, chain common.Chain) (NetworkFee, error)
+	SaveNetworkFee(ctx cosmos.Context, chain common.Chain, networkFee NetworkFee) error
+	GetNetworkFeeIterator(ctx cosmos.Context) cosmos.Iterator
+}
+
+type KeeperObservedNetworkFeeVoter interface {
+	SetObservedNetworkFeeVoter(ctx cosmos.Context, networkFeeVoter ObservedNetworkFeeVoter)
+	GetObservedNetworkFeeVoterIterator(ctx cosmos.Context) cosmos.Iterator
+	GetObservedNetworkFeeVoter(ctx cosmos.Context, height int64, chain common.Chain) (ObservedNetworkFeeVoter, error)
 }
 
 // NewKVStore creates new instances of the thorchain Keeper
