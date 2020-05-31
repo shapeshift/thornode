@@ -139,12 +139,6 @@ func (b *BlockScanner) scanBlocks() {
 }
 
 func (b *BlockScanner) FetchLastHeight() (int64, error) {
-	// If we've already started scanning, begin where we left off
-	currentPos, _ := b.scannerStorage.GetScanPos() // ignore error
-	if currentPos > 0 {
-		return currentPos, nil
-	}
-
 	// if we've configured a starting height, use that
 	if b.cfg.StartBlockHeight > 0 {
 		return b.cfg.StartBlockHeight, nil
@@ -166,6 +160,12 @@ func (b *BlockScanner) FetchLastHeight() (int64, error) {
 		if height > 0 {
 			return height, nil
 		}
+	}
+
+	// If we've already started scanning, begin where we left off
+	currentPos, _ := b.scannerStorage.GetScanPos() // ignore error
+	if currentPos > 0 {
+		return currentPos, nil
 	}
 
 	return b.chainScanner.GetHeight()
