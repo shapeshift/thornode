@@ -9,8 +9,6 @@ import (
 
 type Gas Coins
 
-type Blah cosmos.Uint
-
 var (
 	bnbSingleTxFee = cosmos.NewUint(37500)
 	bnbMultiTxFee  = cosmos.NewUint(30000)

@@ -148,7 +148,7 @@ func (s *SwapSuite) TestSwap(c *C) {
 			requester:     "",
 			destination:   "whatever",
 			returnAmount:  cosmos.ZeroUint(),
-			expectedErr:   errors.New("From address cannot be empty"),
+			expectedErr:   errors.New("from address cannot be empty"),
 		},
 		{
 			name:          "empty-destination",
@@ -159,7 +159,7 @@ func (s *SwapSuite) TestSwap(c *C) {
 			requester:     GetRandomBNBAddress(),
 			destination:   "",
 			returnAmount:  cosmos.ZeroUint(),
-			expectedErr:   errors.New("To address cannot be empty"),
+			expectedErr:   errors.New("to address cannot be empty"),
 		},
 		{
 			name:          "pool-not-exist",

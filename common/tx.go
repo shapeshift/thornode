@@ -105,26 +105,26 @@ func (tx Tx) IsEmpty() bool {
 	return tx.ID.IsEmpty()
 }
 
-func (tx1 Tx) Equals(tx2 Tx) bool {
-	if !tx1.ID.Equals(tx2.ID) {
+func (tx Tx) Equals(tx2 Tx) bool {
+	if !tx.ID.Equals(tx2.ID) {
 		return false
 	}
-	if !tx1.Chain.Equals(tx2.Chain) {
+	if !tx.Chain.Equals(tx2.Chain) {
 		return false
 	}
-	if !tx1.FromAddress.Equals(tx2.FromAddress) {
+	if !tx.FromAddress.Equals(tx2.FromAddress) {
 		return false
 	}
-	if !tx1.ToAddress.Equals(tx2.ToAddress) {
+	if !tx.ToAddress.Equals(tx2.ToAddress) {
 		return false
 	}
-	if !tx1.Coins.Equals(tx2.Coins) {
+	if !tx.Coins.Equals(tx2.Coins) {
 		return false
 	}
-	if !tx1.Gas.Equals(tx2.Gas) {
+	if !tx.Gas.Equals(tx2.Gas) {
 		return false
 	}
-	if !strings.EqualFold(tx1.Memo, tx2.Memo) {
+	if !strings.EqualFold(tx.Memo, tx2.Memo) {
 		return false
 	}
 	return true
@@ -135,28 +135,29 @@ func (tx Tx) IsValid() error {
 		return errors.New("Tx ID cannot be empty")
 	}
 	if tx.FromAddress.IsEmpty() {
-		return errors.New("From address cannot be empty")
+		return errors.New("from address cannot be empty")
 	}
 	if tx.ToAddress.IsEmpty() {
-		return errors.New("To address cannot be empty")
+		return errors.New("to address cannot be empty")
 	}
 	if tx.Chain.IsEmpty() {
-		return errors.New("Chain cannot be empty")
+		return errors.New("chain cannot be empty")
 	}
 	if len(tx.Coins) == 0 {
-		return errors.New("Must have at least 1 coin")
+		return errors.New("must have at least 1 coin")
 	}
 	if err := tx.Coins.IsValid(); err != nil {
 		return err
 	}
 	if !tx.Chain.Equals(THORChain) && len(tx.Gas) == 0 {
-		return errors.New("Must have at least 1 gas coin")
+		return errors.New("must have at least 1 gas coin")
 	}
 	if err := tx.Gas.IsValid(); err != nil {
 		return err
 	}
+
 	if len([]byte(tx.Memo)) > 150 {
-		return fmt.Errorf("Memo must not exceed 150 bytes: %d", len([]byte(tx.Memo)))
+		return fmt.Errorf("memo must not exceed 150 bytes: %d", len([]byte(tx.Memo)))
 	}
 	return nil
 }

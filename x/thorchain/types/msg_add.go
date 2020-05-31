@@ -25,7 +25,7 @@ func NewMsgAdd(tx common.Tx, asset common.Asset, r, amount cosmos.Uint, signer c
 	}
 }
 
-// Route should return the pooldata of the module
+// Route should return the route key of the module
 func (msg MsgAdd) Route() string { return RouterKey }
 
 // Type should return the action

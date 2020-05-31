@@ -54,6 +54,7 @@ func getHandlerMapping(keeper keeper.Keeper, mgr Manager) map[string]MsgHandler 
 	m[MsgSend{}.Type()] = NewSendHandler(keeper, mgr)
 	m[MsgMimir{}.Type()] = NewMimirHandler(keeper, mgr)
 	m[MsgBan{}.Type()] = NewBanHandler(keeper, mgr)
+	m[MsgNetworkFee{}.Type()] = NewNetworkFeeHandler(keeper, mgr)
 	return m
 }
 

@@ -2,9 +2,10 @@ package thorchain
 
 import (
 	"github.com/blang/semver"
+	. "gopkg.in/check.v1"
+
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	. "gopkg.in/check.v1"
 )
 
 type HandlerMimirSuite struct{}

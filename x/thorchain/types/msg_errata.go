@@ -33,7 +33,7 @@ func (msg MsgErrataTx) ValidateBasic() error {
 		return cosmos.ErrInvalidAddress(msg.Signer.String())
 	}
 	if msg.TxID.IsEmpty() {
-		return cosmos.ErrUnknownRequest("tx id cannot be empty")
+		return cosmos.ErrUnknownRequest("Tx ID cannot be empty")
 	}
 	if msg.Chain.IsEmpty() {
 		return cosmos.ErrUnknownRequest("chain cannot be empty")
