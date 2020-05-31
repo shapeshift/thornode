@@ -263,6 +263,28 @@ func (k KVStoreDummy) GetSwapQueueItem(ctx cosmos.Context, txID common.TxID) (Ms
 func (k KVStoreDummy) GetMimir(_ cosmos.Context, key string) (int64, error) { return 0, kaboom }
 func (k KVStoreDummy) SetMimir(_ cosmos.Context, key string, value int64)   {}
 func (k KVStoreDummy) GetMimirIterator(ctx cosmos.Context) cosmos.Iterator  { return nil }
+func (k KVStoreDummy) GetNetworkFee(ctx cosmos.Context, chain common.Chain) (NetworkFee, error) {
+	return NetworkFee{}, kaboom
+}
+
+func (k KVStoreDummy) SaveNetworkFee(ctx cosmos.Context, chain common.Chain, networkFee NetworkFee) error {
+	return kaboom
+}
+
+func (k KVStoreDummy) GetNetworkFeeIterator(ctx cosmos.Context) cosmos.Iterator {
+	return nil
+}
+
+func (k KVStoreDummy) SetObservedNetworkFeeVoter(ctx cosmos.Context, networkFeeVoter ObservedNetworkFeeVoter) {
+}
+
+func (k KVStoreDummy) GetObservedNetworkFeeVoterIterator(ctx cosmos.Context) cosmos.Iterator {
+	return nil
+}
+
+func (k KVStoreDummy) GetObservedNetworkFeeVoter(ctx cosmos.Context, height int64, chain common.Chain) (ObservedNetworkFeeVoter, error) {
+	return ObservedNetworkFeeVoter{}, nil
+}
 
 // a mock cosmos.Iterator implementation for testing purposes
 type DummyIterator struct {

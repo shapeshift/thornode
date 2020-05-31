@@ -50,6 +50,8 @@ const (
 	prefixNodeSlashPoints    kvTypes.DbPrefix = "slash/"
 	prefixSwapQueueItem      kvTypes.DbPrefix = "swapitem/"
 	prefixMimir              kvTypes.DbPrefix = "mimir/"
+	prefixNetworkFee         kvTypes.DbPrefix = "network_fee/"
+	prefixNetworkFeeVoter    kvTypes.DbPrefix = "network_fee_voter/"
 )
 
 func dbError(ctx cosmos.Context, wrapper string, err error) error {
