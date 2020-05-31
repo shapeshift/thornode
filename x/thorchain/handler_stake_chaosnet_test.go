@@ -46,6 +46,7 @@ func (HandlerStakeSuite) TestStakeRUNEOverLimit(c *C) {
 		bnbAddr,
 		activeNodeAccount.NodeAddress)
 	constAccessor := constants.NewConstantValue010()
-	result := stakeHandler.Run(ctx, msgSetStake, ver, constAccessor)
+	result, err := stakeHandler.Run(ctx, msgSetStake, ver, constAccessor)
+	c.Assert(err, IsNil)
 	c.Assert(result.Code, Equals, CodeStakeRUNEOverLimit)
 }
