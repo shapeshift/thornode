@@ -63,13 +63,9 @@ func unstake(ctx cosmos.Context, version semver.Version, keeper keeper.Keeper, m
 	}
 
 	cv := constants.GetConstantValues(version)
-	// check if thorchain need to rate limit unstaking
-	// https://gitlab.com/thorchain/thornode/issues/166
-	if !msg.Asset.Chain.Equals(common.BNBChain) {
-		height := ctx.BlockHeight()
-		if height < (stakerUnit.LastStakeHeight + cv.GetInt64Value(constants.StakeLockUpBlocks)) {
-			return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), errUnstakeWithin24Hours
-		}
+	height := ctx.BlockHeight()
+	if height < (stakerUnit.LastStakeHeight + cv.GetInt64Value(constants.StakeLockUpBlocks)) {
+		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), errUnstakeWithin24Hours
 	}
 
 	ctx.Logger().Info("pool before unstake", "pool unit", poolUnits, "balance RUNE", poolRune, "balance asset", poolAsset)
