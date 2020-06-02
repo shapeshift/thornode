@@ -12,15 +12,15 @@ services:
     image: registry.gitlab.com/thorchain/thornode:${TAG:-latest}
     restart: unless-stopped
     environment:
-      NET: ${NET}
+      NET: ${NET:-mainnet}
       CHAIN_API: thor-api:1317
       CHAIN_RPC: thor-daemon:26657
       BINANCE_HOST: ${BINANCE_HOST:-http://binance-mock:26660}
       BTC_HOST: ${BTC_HOST:-bitcoin-regtest:18443}
       ETH_HOST: ${ETH_HOST:-http://ethereum-localnet:8545}
-      PEER: ${PEER}
-      SIGNER_PASSWD: ${SIGNER_PASSWD}
-      SIGNER_SEED_PHRASE: ${SIGNER_SEED_PHRASE:-about scheme grain alley pencil flame situate robot year match glove knife essay exotic boss edge police favorite where angry better faith elevator laundry}
+      PEER: ${PEER:-}
+      SIGNER_PASSWD: ${SIGNER_PASSWD:-}
+      SIGNER_SEED_PHRASE: ${SIGNER_SEED_PHRASE:-}
     entrypoint:
       /docker/scripts/bifrost.sh
     volumes:
@@ -49,9 +49,9 @@ services:
     environment:
       NODES: 1
       SEED: thor-daemon
-      NET: ${NET}
-      SIGNER_PASSWD: ${SIGNER_PASSWD}
-      SIGNER_SEED_PHRASE: ${SIGNER_SEED_PHRASE:-about scheme grain alley pencil flame situate robot year match glove knife essay exotic boss edge police favorite where angry better faith elevator laundry}
+      NET: ${NET:-:-mainnet}
+      SIGNER_PASSWD: ${SIGNER_PASSWD:-}
+      SIGNER_SEED_PHRASE: ${SIGNER_SEED_PHRASE:-}
     ports:
       - "26657:26657"
       - "26656:26656"
@@ -81,7 +81,7 @@ services:
     image: registry.gitlab.com/thorchain/thornode:${TAG:-latest}
     environment:
       CHAIN_DAEMON: thor-daemon:26657
-      NET: ${NET}
+      NET: ${NET:-mainnet}
     ports:
       - "1317:1317"
     entrypoint:
