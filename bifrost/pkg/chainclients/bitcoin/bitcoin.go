@@ -12,6 +12,7 @@ import (
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/rpcclient"
 	"github.com/btcsuite/btcutil"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	tssp "gitlab.com/thorchain/tss/go-tss/tss"
@@ -328,7 +329,28 @@ func (c *Client) FetchTxs(height int64) (types.TxIn, error) {
 	if err != nil {
 		return types.TxIn{}, fmt.Errorf("fail to extract txs from block: %w", err)
 	}
+	if err := c.sendNetworkFee(height); err != nil {
+		c.logger.Err(err).Msg("fail to send network fee")
+	}
 	return txs, nil
+}
+
+func (c *Client) sendNetworkFee(height int64) error {
+	result, err := c.client.GetBlockStats(height, nil)
+	if err != nil {
+		return fmt.Errorf("fail to get block stats")
+	}
+	// fee rate and tx size should not be 0
+	if result.AverageFeeRate == 0 || result.AverageTxSize == 0 {
+		return nil
+	}
+
+	txid, err := c.bridge.PostNetworkFee(height, common.BTCChain, result.AverageTxSize, sdk.NewUint(uint64(result.AverageFeeRate)))
+	if err != nil {
+		return fmt.Errorf("fail to post network fee to thornode: %w", err)
+	}
+	c.logger.Debug().Str("txid", txid.String()).Msg("send network fee to THORNode successfully")
+	return nil
 }
 
 // getBlock retrieves block from chain for a block height

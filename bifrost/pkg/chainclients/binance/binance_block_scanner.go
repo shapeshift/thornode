@@ -27,9 +27,10 @@ import (
 	"gitlab.com/thorchain/thornode/bifrost/config"
 	"gitlab.com/thorchain/thornode/bifrost/metrics"
 	btypes "gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/binance/types"
+	"gitlab.com/thorchain/thornode/bifrost/thorclient"
 	stypes "gitlab.com/thorchain/thornode/bifrost/thorclient/types"
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 // BinanceBlockScanner is to scan the blocks
@@ -42,10 +43,15 @@ type BinanceBlockScanner struct {
 	http       *http.Client
 	singleFee  uint64
 	multiFee   uint64
+	bridge     *thorclient.ThorchainBridge
 }
 
 // NewBinanceBlockScanner create a new instance of BlockScan
-func NewBinanceBlockScanner(cfg config.BlockScannerConfiguration, scanStorage blockscanner.ScannerStorage, isTestNet bool, m *metrics.Metrics) (*BinanceBlockScanner, error) {
+func NewBinanceBlockScanner(cfg config.BlockScannerConfiguration,
+	scanStorage blockscanner.ScannerStorage,
+	isTestNet bool,
+	bridge *thorclient.ThorchainBridge,
+	m *metrics.Metrics) (*BinanceBlockScanner, error) {
 	if scanStorage == nil {
 		return nil, errors.New("scanStorage is nil")
 	}
@@ -68,6 +74,7 @@ func NewBinanceBlockScanner(cfg config.BlockScannerConfiguration, scanStorage bl
 		db:         scanStorage,
 		errCounter: m.GetCounterVec(metrics.BlockScanError(common.BNBChain)),
 		http:       netClient,
+		bridge:     bridge,
 	}, nil
 }
 
@@ -155,7 +162,7 @@ func (b *BinanceBlockScanner) updateFees(height int64) error {
 	if err != nil {
 		return err
 	}
-
+	changed := false
 	for _, fee := range fees {
 		if fee.GetParamType() == types.TransferFeeType {
 			if err := fee.Check(); err != nil {
@@ -164,11 +171,19 @@ func (b *BinanceBlockScanner) updateFees(height int64) error {
 
 			transferFee := fee.(*types.TransferFeeParam)
 			if transferFee.FixedFeeParams.Fee > 0 {
+				if b.singleFee != uint64(transferFee.FixedFeeParams.Fee) {
+					changed = true
+				}
 				b.singleFee = uint64(transferFee.FixedFeeParams.Fee)
 			}
 			if transferFee.MultiTransferFee > 0 {
 				b.multiFee = uint64(transferFee.MultiTransferFee)
 			}
+		}
+	}
+	if changed {
+		if _, err := b.bridge.PostNetworkFee(height, common.BNBChain, 1, cosmos.NewUint(b.singleFee)); err != nil {
+			b.logger.Err(err).Msg("fail to post Binance chain single transfer fee to THORNode")
 		}
 	}
 

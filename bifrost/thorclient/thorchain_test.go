@@ -9,6 +9,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/client/keys"
 	cKeys "github.com/cosmos/cosmos-sdk/crypto/keys"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/bifrost/config"
@@ -51,6 +52,8 @@ func (s *ThorchainSuite) SetUpSuite(c *C) {
 			httpTestHandler(c, rw, "../../test/fixtures/endpoints/tss/keysign_party.json")
 		case strings.HasPrefix(req.RequestURI, AsgardVault):
 			httpTestHandler(c, rw, "../../test/fixtures/endpoints/vaults/asgard.json")
+		case strings.HasPrefix(req.RequestURI, BroadcastTxsEndpoint):
+			httpTestHandler(c, rw, "../../test/fixtures/endpoints/txs/success.json")
 		}
 	}))
 	s.cfg.ChainHost = s.server.Listener.Addr().String()
@@ -215,4 +218,11 @@ func (s *ThorchainSuite) TestGetAsgards(c *C) {
 	vaults, err := s.bridge.GetAsgards()
 	c.Assert(err, IsNil)
 	c.Assert(vaults, NotNil)
+}
+
+func (s *ThorchainSuite) TestPostNetworkFee(c *C) {
+	s.authAccountFixture = "../../test/fixtures/endpoints/auth/accounts/template.json"
+	txid, err := s.bridge.PostNetworkFee(1024, common.BNBChain, 100, sdk.NewUint(100))
+	c.Assert(err, IsNil)
+	c.Assert(txid.IsEmpty(), Equals, false)
 }
