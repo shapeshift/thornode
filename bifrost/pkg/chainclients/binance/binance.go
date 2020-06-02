@@ -100,7 +100,7 @@ func NewBinance(thorKeys *thorclient.Keys, cfg config.ChainConfiguration, server
 		return nil, fmt.Errorf("fail to create scan storage: %w", err)
 	}
 
-	b.bnbScanner, err = NewBinanceBlockScanner(b.cfg.BlockScanner, b.storage, b.isTestNet, m)
+	b.bnbScanner, err = NewBinanceBlockScanner(b.cfg.BlockScanner, b.storage, b.isTestNet, b.thorchainBridge, m)
 	if err != nil {
 		return nil, fmt.Errorf("fail to create block scanner: %w", err)
 	}
@@ -134,7 +134,7 @@ func (b *Binance) checkIsTestNet() error {
 
 	u, err := url.Parse(b.cfg.RPCHost)
 	if err != nil {
-		return fmt.Errorf("Unable to parse rpc host: %s: %w", b.cfg.RPCHost, err)
+		return fmt.Errorf("unable to parse rpc host: %s: %w", b.cfg.RPCHost, err)
 	}
 
 	u.Path = "/status"
