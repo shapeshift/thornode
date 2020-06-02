@@ -2,24 +2,29 @@ package thorchain
 
 import (
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
-	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	"gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/constants"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // GasMgrV1 implement GasManager interface which will store the gas related events happened in thorchain to memory
 // emit GasEvent per block if there are any
 type GasMgrV1 struct {
-	gasEvent *EventGas
-	gas      common.Gas
-	gasCount map[common.Asset]int64
+	gasEvent          *EventGas
+	gas               common.Gas
+	gasCount          map[common.Asset]int64
+	constantsAccessor constants.ConstantValues
+	keeper            keeper.Keeper
 }
 
 // NewGasMgrV1 create a new instance of GasMgrV1
-func NewGasMgrV1() *GasMgrV1 {
+func NewGasMgrV1(constantsAccessor constants.ConstantValues, k keeper.Keeper) *GasMgrV1 {
 	return &GasMgrV1{
-		gasEvent: NewEventGas(),
-		gas:      common.Gas{},
-		gasCount: make(map[common.Asset]int64, 0),
+		gasEvent:          NewEventGas(),
+		gas:               common.Gas{},
+		gasCount:          make(map[common.Asset]int64, 0),
+		constantsAccessor: constantsAccessor,
+		keeper:            k,
 	}
 }
 
@@ -44,6 +49,29 @@ func (gm *GasMgrV1) AddGasAsset(gas common.Gas) {
 
 func (gm *GasMgrV1) GetGas() common.Gas {
 	return gm.gas
+}
+
+// GetFee retrieve the network fee information from kv store, and calculate the fee customer should pay
+// return fee is in the amount of gas asset for the given chain
+// BTC , the return fee should be sats
+// ETH , the return fee should be ETH
+// Binance , the return fee should be in BNB
+func (gm *GasMgrV1) GetFee(ctx cosmos.Context, chain common.Chain) int64 {
+	transactionFee := gm.constantsAccessor.GetInt64Value(constants.TransactionFee)
+	networkFee, err := gm.keeper.GetNetworkFee(ctx, chain)
+	if err != nil {
+		ctx.Logger().Error("fail to get network fee", "error", err)
+		return transactionFee
+	}
+	if err := networkFee.Validate(); err != nil {
+		ctx.Logger().Error("network fee is invalid", "error", err)
+		return transactionFee
+	}
+	// Fee is calculated based on the network fee observed in previous block
+	// THORNode is going to charge 3 times the fee it takes to send out the tx
+	// 1.5 * fee will goes to vault
+	// 1.5 * fee will become the max gas used to send out the tx
+	return networkFee.TransactionSize * int64(networkFee.TransactionFeeRate.Uint64()) * 3
 }
 
 // EndBlock emit the events

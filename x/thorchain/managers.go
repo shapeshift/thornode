@@ -32,6 +32,7 @@ type GasManager interface {
 	AddGasAsset(gas common.Gas)
 	ProcessGas(ctx cosmos.Context, keeper keeper.Keeper)
 	GetGas() common.Gas
+	GetFee(ctx cosmos.Context, chain common.Chain) int64
 }
 
 // EventManager define methods need to be support to manage events
@@ -131,7 +132,7 @@ func (mgr *Mgrs) BeginBlock(ctx cosmos.Context) error {
 	// version is different , thus all the manager need to re-create
 	mgr.CurrentVersion = v
 	var err error
-	mgr.gasMgr, err = GetGasManager(v)
+	mgr.gasMgr, err = GetGasManager(v, mgr.Keeper)
 	if err != nil {
 		return fmt.Errorf("fail to create gas manager: %w", err)
 	}
@@ -139,7 +140,7 @@ func (mgr *Mgrs) BeginBlock(ctx cosmos.Context) error {
 	if err != nil {
 		return fmt.Errorf("fail to get event manager: %w", err)
 	}
-	mgr.txOutStore, err = GetTxOutStore(mgr.Keeper, v, mgr.eventMgr)
+	mgr.txOutStore, err = GetTxOutStore(mgr.Keeper, v, mgr.eventMgr, mgr.gasMgr)
 	if err != nil {
 		return fmt.Errorf("fail to get tx out store: %w", err)
 	}
@@ -186,9 +187,10 @@ func (m *Mgrs) SwapQ() SwapQueue               { return m.swapQ }
 func (m *Mgrs) Slasher() Slasher               { return m.slasher }
 func (m *Mgrs) YggManager() YggManager         { return m.yggManager }
 
-func GetGasManager(version semver.Version) (GasManager, error) {
+func GetGasManager(version semver.Version, keeper keeper.Keeper) (GasManager, error) {
+	constAcessor := constants.GetConstantValues(version)
 	if version.GTE(semver.MustParse("0.1.0")) {
-		return NewGasMgrV1(), nil
+		return NewGasMgrV1(constAcessor, keeper), nil
 	}
 	return nil, errInvalidVersion
 }
@@ -201,10 +203,10 @@ func GetEventManager(version semver.Version) (EventManager, error) {
 }
 
 // GetTxOutStore will return an implementation of the txout store that
-func GetTxOutStore(keeper keeper.Keeper, version semver.Version, eventMgr EventManager) (TxOutStore, error) {
+func GetTxOutStore(keeper keeper.Keeper, version semver.Version, eventMgr EventManager, gasManager GasManager) (TxOutStore, error) {
 	constAcessor := constants.GetConstantValues(version)
 	if version.GTE(semver.MustParse("0.1.0")) {
-		return NewTxOutStorageV1(keeper, constAcessor, eventMgr), nil
+		return NewTxOutStorageV1(keeper, constAcessor, eventMgr, gasManager), nil
 	}
 	return nil, errInvalidVersion
 }
