@@ -151,34 +151,43 @@ func (tos *TxOutStorageV1) prepareTxOutItem(ctx cosmos.Context, toi *TxOutItem) 
 	if toi.InHash == "" {
 		toi.InHash = common.BlankTxID
 	}
+	// transactionFee - gas asset
+	transactionFee := tos.getFee(ctx, toi.Chain)
 
-	transactionFee := tos.constAccessor.GetInt64Value(constants.TransactionFee)
 	if toi.MaxGas.IsEmpty() {
 		gasAsset := toi.Chain.GetGasAsset()
-		pool, err := tos.keeper.GetPool(ctx, gasAsset)
-		if err != nil {
-			return false, fmt.Errorf("failed to get gas asset pool: %w", err)
-		}
 
 		// max gas amount is the transaction fee divided by two, in asset amount
-		maxAmt := pool.RuneValueInAsset(cosmos.NewUint(uint64(transactionFee / 2)))
+		maxAmt := cosmos.NewUint(uint64(transactionFee / 2))
 		toi.MaxGas = common.Gas{
 			common.NewCoin(gasAsset, maxAmt),
 		}
-
 	}
+
 	// Deduct TransactionFee from TOI and add to Reserve
-	memo, err := ParseMemo(toi.Memo) // ignore err
+	memo, err := ParseMemo(toi.Memo)
 	if err == nil && !memo.IsType(TxYggdrasilFund) && !memo.IsType(TxYggdrasilReturn) && !memo.IsType(TxMigrate) && !memo.IsType(TxRagnarok) {
 		var runeFee cosmos.Uint
 		if toi.Coin.Asset.IsRune() {
-			if toi.Coin.Amount.LTE(cosmos.NewUint(uint64(transactionFee))) {
-				runeFee = toi.Coin.Amount // Fee is the full amount
+			runeFee := cosmos.ZeroUint()
+			assetFee := cosmos.NewUint(uint64(transactionFee))
+			// native RUNE
+			if toi.Coin.IsNative() {
+				runeFee = cosmos.NewUint(uint64(transactionFee))
+				assetFee = cosmos.ZeroUint()
 			} else {
-				runeFee = cosmos.NewUint(uint64(transactionFee)) // Fee is the prescribed fee
+				pool, err := tos.keeper.GetPool(ctx, common.BNBChain.GetGasAsset())
+				if err != nil {
+					return false, fmt.Errorf("fail to get pool: %w", err)
+				}
+				runeFee = pool.AssetValueInRune(cosmos.NewUint(uint64(transactionFee)))
+			}
+
+			if toi.Coin.Amount.LTE(runeFee) {
+				runeFee = toi.Coin.Amount // Fee is the full amount
 			}
 			toi.Coin.Amount = common.SafeSub(toi.Coin.Amount, runeFee)
-			fee := common.NewFee(common.Coins{common.NewCoin(toi.Coin.Asset, runeFee)}, cosmos.ZeroUint())
+			fee := common.NewFee(common.Coins{common.NewCoin(toi.Coin.Asset, runeFee)}, assetFee)
 			if err := tos.eventMgr.EmitFeeEvent(ctx, NewEventFee(toi.InHash, fee)); err != nil {
 				ctx.Logger().Error("Failed to emit fee event", "error", err)
 			}
@@ -191,16 +200,15 @@ func (tos *TxOutStorageV1) prepareTxOutItem(ctx cosmos.Context, toi *TxOutItem) 
 		} else {
 			pool, err := tos.keeper.GetPool(ctx, toi.Coin.Asset) // Get pool
 			if err != nil {
-				// the error is already logged within kvstore
 				return false, fmt.Errorf("fail to get pool: %w", err)
 			}
 
-			assetFee := pool.RuneValueInAsset(cosmos.NewUint(uint64(transactionFee))) // Get fee in Asset value
+			assetFee := cosmos.NewUint(uint64(transactionFee))
 			if toi.Coin.Amount.LTE(assetFee) {
 				assetFee = toi.Coin.Amount // Fee is the full amount
 				runeFee = pool.AssetValueInRune(assetFee)
 			} else {
-				runeFee = cosmos.NewUint(uint64(transactionFee))
+				runeFee = pool.AssetValueInRune(assetFee)
 			}
 
 			toi.Coin.Amount = common.SafeSub(toi.Coin.Amount, assetFee) // Deduct Asset fee
@@ -245,6 +253,29 @@ func (tos *TxOutStorageV1) prepareTxOutItem(ctx cosmos.Context, toi *TxOutItem) 
 	tos.keeper.SetObservedTxInVoter(ctx, voter)
 
 	return true, nil
+}
+
+// getFee retrieve the network fee information from kv store, and calculate the fee customer should pay
+// return fee is in the amount of gas asset for the given chain
+// BTC , the return fee should be sats
+// ETH , the return fee should be ETH
+// Binance , the return fee should be in BNB
+func (tos *TxOutStorageV1) getFee(ctx cosmos.Context, chain common.Chain) int64 {
+	transactionFee := tos.constAccessor.GetInt64Value(constants.TransactionFee)
+	networkFee, err := tos.keeper.GetNetworkFee(ctx, chain)
+	if err != nil {
+		ctx.Logger().Error("fail to get network fee", "error", err)
+		return transactionFee
+	}
+	if err := networkFee.Validate(); err != nil {
+		ctx.Logger().Error("network fee is invalid", "error", err)
+		return transactionFee
+	}
+	// Fee is calculated based on the network fee observed in previous block
+	// THORNode is going to charge 3 times the fee it takes to send out the tx
+	// 1.5 * fee will goes to vault
+	// 1.5 * fee will become the max gas used to send out the tx
+	return networkFee.TransactionSize * int64(networkFee.TransactionFeeRate.Uint64()) * 3
 }
 
 func (tos *TxOutStorageV1) addToBlockOut(ctx cosmos.Context, mgr Manager, toi *TxOutItem) error {
