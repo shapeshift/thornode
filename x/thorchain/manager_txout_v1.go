@@ -5,9 +5,9 @@ import (
 	"fmt"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // TxOutStorageV1 is going to manage all the outgoing tx
@@ -15,14 +15,19 @@ type TxOutStorageV1 struct {
 	keeper        keeper.Keeper
 	constAccessor constants.ConstantValues
 	eventMgr      EventManager
+	gasManager    GasManager
 }
 
 // NewTxOutStorage will create a new instance of TxOutStore.
-func NewTxOutStorageV1(keeper keeper.Keeper, constAccessor constants.ConstantValues, eventMgr EventManager) *TxOutStorageV1 {
+func NewTxOutStorageV1(keeper keeper.Keeper,
+	constAccessor constants.ConstantValues,
+	eventMgr EventManager,
+	gasManager GasManager) *TxOutStorageV1 {
 	return &TxOutStorageV1{
 		keeper:        keeper,
 		eventMgr:      eventMgr,
 		constAccessor: constAccessor,
+		gasManager:    gasManager,
 	}
 }
 
@@ -152,8 +157,7 @@ func (tos *TxOutStorageV1) prepareTxOutItem(ctx cosmos.Context, toi *TxOutItem) 
 		toi.InHash = common.BlankTxID
 	}
 	// transactionFee - gas asset
-	transactionFee := tos.getFee(ctx, toi.Chain)
-
+	transactionFee := tos.gasManager.GetFee(ctx, toi.Chain)
 	if toi.MaxGas.IsEmpty() {
 		gasAsset := toi.Chain.GetGasAsset()
 
@@ -252,29 +256,6 @@ func (tos *TxOutStorageV1) prepareTxOutItem(ctx cosmos.Context, toi *TxOutItem) 
 	tos.keeper.SetObservedTxInVoter(ctx, voter)
 
 	return true, nil
-}
-
-// getFee retrieve the network fee information from kv store, and calculate the fee customer should pay
-// return fee is in the amount of gas asset for the given chain
-// BTC , the return fee should be sats
-// ETH , the return fee should be ETH
-// Binance , the return fee should be in BNB
-func (tos *TxOutStorageV1) getFee(ctx cosmos.Context, chain common.Chain) int64 {
-	transactionFee := tos.constAccessor.GetInt64Value(constants.TransactionFee)
-	networkFee, err := tos.keeper.GetNetworkFee(ctx, chain)
-	if err != nil {
-		ctx.Logger().Error("fail to get network fee", "error", err)
-		return transactionFee
-	}
-	if err := networkFee.Validate(); err != nil {
-		ctx.Logger().Error("network fee is invalid", "error", err)
-		return transactionFee
-	}
-	// Fee is calculated based on the network fee observed in previous block
-	// THORNode is going to charge 3 times the fee it takes to send out the tx
-	// 1.5 * fee will goes to vault
-	// 1.5 * fee will become the max gas used to send out the tx
-	return networkFee.TransactionSize * int64(networkFee.TransactionFeeRate.Uint64()) * 3
 }
 
 func (tos *TxOutStorageV1) addToBlockOut(ctx cosmos.Context, mgr Manager, toi *TxOutItem) error {
