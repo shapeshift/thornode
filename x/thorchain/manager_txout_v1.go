@@ -169,7 +169,6 @@ func (tos *TxOutStorageV1) prepareTxOutItem(ctx cosmos.Context, toi *TxOutItem) 
 	if err == nil && !memo.IsType(TxYggdrasilFund) && !memo.IsType(TxYggdrasilReturn) && !memo.IsType(TxMigrate) && !memo.IsType(TxRagnarok) {
 		var runeFee cosmos.Uint
 		if toi.Coin.Asset.IsRune() {
-			runeFee := cosmos.ZeroUint()
 			assetFee := cosmos.NewUint(uint64(transactionFee))
 			// native RUNE
 			if toi.Coin.IsNative() {
