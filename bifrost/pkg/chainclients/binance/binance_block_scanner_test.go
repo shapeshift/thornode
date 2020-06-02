@@ -10,8 +10,11 @@ import (
 	"github.com/binance-chain/go-sdk/common/types"
 	"github.com/binance-chain/go-sdk/types/msg"
 	"github.com/binance-chain/go-sdk/types/tx"
+	"github.com/cosmos/cosmos-sdk/client/keys"
+	cKeys "github.com/cosmos/cosmos-sdk/crypto/keys"
 	. "gopkg.in/check.v1"
 
+	"gitlab.com/thorchain/thornode/bifrost/thorclient"
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/x/thorchain"
 
@@ -23,7 +26,8 @@ import (
 )
 
 type BlockScannerTestSuite struct {
-	m *metrics.Metrics
+	m      *metrics.Metrics
+	bridge *thorclient.ThorchainBridge
 }
 
 var _ = Suite(&BlockScannerTestSuite{})
@@ -31,6 +35,21 @@ var _ = Suite(&BlockScannerTestSuite{})
 func (s *BlockScannerTestSuite) SetUpSuite(c *C) {
 	s.m = GetMetricForTest(c)
 	c.Assert(s.m, NotNil)
+	cfg := config.ClientConfiguration{
+		ChainID:         "thorchain",
+		ChainHost:       "localhost",
+		SignerName:      "bob",
+		SignerPasswd:    "password",
+		ChainHomeFolder: "",
+	}
+
+	kb := keys.NewInMemoryKeyBase()
+	info, _, err := kb.CreateMnemonic(cfg.SignerName, cKeys.English, cfg.SignerPasswd, cKeys.Secp256k1)
+	c.Assert(err, IsNil)
+	thorKeys := thorclient.NewKeysWithKeybase(kb, info, cfg.SignerPasswd)
+	c.Assert(err, IsNil)
+	s.bridge, err = thorclient.NewThorchainBridge(cfg, s.m, thorKeys)
+	c.Assert(err, IsNil)
 }
 
 func getConfigForTest(rpcHost string) config.BlockScannerConfiguration {
@@ -63,10 +82,10 @@ func getStdTx(f, t string, coins []types.Coin, memo string) (tx.StdTx, error) {
 }
 
 func (s *BlockScannerTestSuite) TestNewBlockScanner(c *C) {
-	bs, err := NewBinanceBlockScanner(getConfigForTest("127.0.0.1"), nil, true, s.m)
+	bs, err := NewBinanceBlockScanner(getConfigForTest("127.0.0.1"), nil, true, s.bridge, s.m)
 	c.Assert(err, NotNil)
 	c.Assert(bs, IsNil)
-	bs, err = NewBinanceBlockScanner(getConfigForTest("127.0.0.1"), blockscanner.NewMockScannerStorage(), true, s.m)
+	bs, err = NewBinanceBlockScanner(getConfigForTest("127.0.0.1"), blockscanner.NewMockScannerStorage(), true, s.bridge, s.m)
 	c.Assert(err, IsNil)
 	c.Assert(bs, NotNil)
 }
@@ -211,7 +230,7 @@ func (s *BlockScannerTestSuite) TestSearchTxInABlockFromServer(c *C) {
 	})
 	server := httptest.NewTLSServer(h)
 	defer server.Close()
-	bs, err := NewBinanceBlockScanner(getConfigForTest(server.URL), blockscanner.NewMockScannerStorage(), true, s.m)
+	bs, err := NewBinanceBlockScanner(getConfigForTest(server.URL), blockscanner.NewMockScannerStorage(), true, s.bridge, s.m)
 	c.Assert(err, IsNil)
 	c.Assert(bs, NotNil)
 }
@@ -231,7 +250,7 @@ func (s *BlockScannerTestSuite) TestFromTxToTxIn(c *C) {
 		err := json.Unmarshal([]byte(input), &query)
 		c.Check(err, IsNil)
 		c.Check(query.Result.Txs, NotNil)
-		bs, err := NewBinanceBlockScanner(getConfigForTest("127.0.0.1"), blockscanner.NewMockScannerStorage(), true, s.m)
+		bs, err := NewBinanceBlockScanner(getConfigForTest("127.0.0.1"), blockscanner.NewMockScannerStorage(), true, s.bridge, s.m)
 		c.Assert(err, IsNil)
 		c.Assert(bs, NotNil)
 		c.Log(input)
@@ -279,6 +298,7 @@ func (s *BlockScannerTestSuite) TestFromStdTx(c *C) {
 		getConfigForTest("127.0.0.1"),
 		blockscanner.NewMockScannerStorage(),
 		true,
+		s.bridge,
 		s.m,
 	)
 	c.Assert(err, IsNil)
@@ -367,7 +387,9 @@ func (s *BlockScannerTestSuite) TestUpdateGasFees(c *C) {
 		cfg: config.BlockScannerConfiguration{
 			RPCHost: "http://" + server.Listener.Addr().String(),
 		},
-		http: &http.Client{},
+		http:   &http.Client{},
+		bridge: s.bridge,
+		m:      s.m,
 	}
 	c.Assert(b.updateFees(10), IsNil)
 	c.Check(b.singleFee, Equals, uint64(37500))

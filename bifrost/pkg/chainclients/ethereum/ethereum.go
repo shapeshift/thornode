@@ -93,7 +93,7 @@ func NewClient(thorKeys *thorclient.Keys, cfg config.ChainConfiguration, server 
 		return c, fmt.Errorf("fail to create blockscanner storage: %w", err)
 	}
 
-	c.ethScanner, err = NewBlockScanner(c.cfg.BlockScanner, storage, c.chainID, c.client, m)
+	c.ethScanner, err = NewBlockScanner(c.cfg.BlockScanner, storage, c.chainID, c.client, c.thorchainBridge, m)
 	if err != nil {
 		return c, fmt.Errorf("fail to create eth block scanner: %w", err)
 	}

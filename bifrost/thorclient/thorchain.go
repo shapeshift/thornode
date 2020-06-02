@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/cosmos/cosmos-sdk/codec"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/prometheus/client_golang/prometheus"
@@ -384,4 +385,20 @@ func (b *ThorchainBridge) GetAsgards() (stypes.Vaults, error) {
 		return nil, fmt.Errorf("fail to unmarshal asgard vaults from json: %w", err)
 	}
 	return vaults, nil
+}
+
+// PostNetworkFee send network fee message to THORNode
+func (b *ThorchainBridge) PostNetworkFee(height int64, chain common.Chain, transactionSize int64, transactionRate sdk.Uint) (common.TxID, error) {
+	start := time.Now()
+	defer func() {
+		b.m.GetHistograms(metrics.SignToThorchainDuration).Observe(time.Since(start).Seconds())
+	}()
+	msg := stypes.NewMsgNetworkFee(height, chain, transactionSize, transactionRate, b.keys.GetSignerInfo().GetAddress())
+	stdTx := authtypes.NewStdTx(
+		[]cosmos.Msg{msg},
+		authtypes.NewStdFee(100000000, nil), // fee
+		nil,                                 // signatures
+		"",                                  // memo
+	)
+	return b.Broadcast(stdTx, types.TxSync)
 }
