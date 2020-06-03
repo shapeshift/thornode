@@ -167,6 +167,10 @@ func (tos *TxOutStorageV1) prepareTxOutItem(ctx cosmos.Context, toi *TxOutItem) 
 
 		// max gas amount is the transaction fee divided by two, in asset amount
 		maxAmt := pool.RuneValueInAsset(cosmos.NewUint(uint64(transactionFee / 2)))
+		if toi.Chain.IsBNB() {
+			// for Binance chain , the fee is fix, thus we give 1/3 as max gas
+			maxAmt = pool.RuneValueInAsset(cosmos.NewUint(uint64(transactionFee / 3)))
+		}
 		toi.MaxGas = common.Gas{
 			common.NewCoin(gasAsset, maxAmt),
 		}
