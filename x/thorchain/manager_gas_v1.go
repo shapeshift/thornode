@@ -52,28 +52,32 @@ func (gm *GasMgrV1) GetGas() common.Gas {
 }
 
 // GetFee retrieve the network fee information from kv store, and calculate the dynamic fee customer should pay
-// return fee is in the amount of gas asset for the given chain
-// BTC , the return fee should be sats
-// ETH , the return fee should be ETH
-// Binance , the return fee should be in BNB
-// when the relevant network fee is not available , it will return the amount RUNE
-func (gm *GasMgrV1) GetFee(ctx cosmos.Context, chain common.Chain) common.Coin {
+// the return value is the amount of fee in RUNE
+func (gm *GasMgrV1) GetFee(ctx cosmos.Context, chain common.Chain) int64 {
 	transactionFee := gm.constantsAccessor.GetInt64Value(constants.TransactionFee)
-	defaultNetworkFee := common.NewCoin(common.RuneAsset(), cosmos.NewUint(uint64(transactionFee)))
 	networkFee, err := gm.keeper.GetNetworkFee(ctx, chain)
 	if err != nil {
 		ctx.Logger().Error("fail to get network fee", "error", err)
-		return defaultNetworkFee
+		return transactionFee
 	}
 	if err := networkFee.Validate(); err != nil {
 		ctx.Logger().Error("network fee is invalid", "error", err)
-		return defaultNetworkFee
+		return transactionFee
 	}
 	// Fee is calculated based on the network fee observed in previous block
 	// THORNode is going to charge 3 times the fee it takes to send out the tx
 	// 1.5 * fee will goes to vault
 	// 1.5 * fee will become the max gas used to send out the tx
-	return common.NewCoin(chain.GetGasAsset(), cosmos.NewUint(uint64(networkFee.TransactionSize)*networkFee.TransactionFeeRate.Uint64()*3))
+	pool, err := gm.keeper.GetPool(ctx, chain.GetGasAsset())
+	if err != nil {
+		ctx.Logger().Error("fail to get pool for %s: %w", chain.GetGasAsset(), err)
+		return transactionFee
+	}
+	if pool.BalanceAsset.Equal(cosmos.ZeroUint()) || pool.BalanceRune.Equal(cosmos.ZeroUint()) || !pool.IsEnabled() {
+		return transactionFee
+	}
+
+	return int64(pool.AssetValueInRune(cosmos.NewUint(uint64(networkFee.TransactionSize) * networkFee.TransactionFeeRate.Uint64() * 3)).Uint64())
 }
 
 // EndBlock emit the events
