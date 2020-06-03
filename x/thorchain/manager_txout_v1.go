@@ -320,6 +320,7 @@ func (tos *TxOutStorageV1) deductTransactionFee(ctx cosmos.Context, toi *TxOutIt
 	}
 	return nil
 }
+
 func (tos *TxOutStorageV1) nativeTxOut(ctx cosmos.Context, mgr Manager, toi *TxOutItem) error {
 	supplier := tos.keeper.Supply()
 

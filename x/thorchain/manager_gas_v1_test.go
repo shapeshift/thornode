@@ -66,5 +66,4 @@ func (GasManagerTestSuite) TestGetFee(c *C) {
 	fee = gasMgr.GetFee(ctx, common.BTCChain)
 	c.Assert(fee.Asset.Equals(common.BTCChain.GetGasAsset()), Equals, true)
 	c.Assert(fee.Amount.Equal(cosmos.NewUint(70*50*3)), Equals, true)
-
 }
