@@ -8,6 +8,7 @@ import (
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	thorchain "gitlab.com/thorchain/thornode/x/thorchain/memo"
 )
 
 // TxOutStorageV1 is going to manage all the outgoing tx
@@ -156,86 +157,17 @@ func (tos *TxOutStorageV1) prepareTxOutItem(ctx cosmos.Context, toi *TxOutItem) 
 	if toi.InHash == "" {
 		toi.InHash = common.BlankTxID
 	}
-	// transactionFee - gas asset
-	transactionFee := tos.gasManager.GetFee(ctx, toi.Chain)
-	if toi.MaxGas.IsEmpty() {
-		gasAsset := toi.Chain.GetGasAsset()
-
-		// max gas amount is the transaction fee divided by two, in asset amount
-		maxAmt := cosmos.NewUint(uint64(transactionFee / 2))
-		toi.MaxGas = common.Gas{
-			common.NewCoin(gasAsset, maxAmt),
-		}
+	// calculate the MaxGas this tx can use
+	if err := tos.calculateMaxGas(ctx, toi); err != nil {
+		return false, fmt.Errorf("fail to calculate MaxGas:%w", err)
 	}
-
-	// Deduct TransactionFee from TOI and add to Reserve
 	memo, err := ParseMemo(toi.Memo)
-	if err == nil && !memo.IsType(TxYggdrasilFund) && !memo.IsType(TxYggdrasilReturn) && !memo.IsType(TxMigrate) && !memo.IsType(TxRagnarok) {
-		var runeFee cosmos.Uint
-		if toi.Coin.Asset.IsRune() {
-			assetFee := cosmos.NewUint(uint64(transactionFee))
-			// native RUNE
-			if toi.Coin.IsNative() {
-				runeFee = cosmos.NewUint(uint64(transactionFee))
-				assetFee = cosmos.ZeroUint()
-			} else {
-				pool, err := tos.keeper.GetPool(ctx, common.BNBChain.GetGasAsset())
-				if err != nil {
-					return false, fmt.Errorf("fail to get pool: %w", err)
-				}
-				runeFee = pool.AssetValueInRune(cosmos.NewUint(uint64(transactionFee)))
-			}
-
-			if toi.Coin.Amount.LTE(runeFee) {
-				runeFee = toi.Coin.Amount // Fee is the full amount
-			}
-			toi.Coin.Amount = common.SafeSub(toi.Coin.Amount, runeFee)
-			fee := common.NewFee(common.Coins{common.NewCoin(toi.Coin.Asset, runeFee)}, assetFee)
-			if err := tos.eventMgr.EmitFeeEvent(ctx, NewEventFee(toi.InHash, fee)); err != nil {
-				ctx.Logger().Error("Failed to emit fee event", "error", err)
-			}
-
-			if err := tos.keeper.AddFeeToReserve(ctx, runeFee); err != nil {
-				// Add to reserve
-				ctx.Logger().Error("fail to add fee to reserve", "error", err)
-			}
-
-		} else {
-			pool, err := tos.keeper.GetPool(ctx, toi.Coin.Asset) // Get pool
-			if err != nil {
-				return false, fmt.Errorf("fail to get pool: %w", err)
-			}
-
-			assetFee := cosmos.NewUint(uint64(transactionFee))
-			if toi.Coin.Amount.LTE(assetFee) {
-				assetFee = toi.Coin.Amount // Fee is the full amount
-				runeFee = pool.AssetValueInRune(assetFee)
-			} else {
-				runeFee = pool.AssetValueInRune(assetFee)
-			}
-
-			toi.Coin.Amount = common.SafeSub(toi.Coin.Amount, assetFee) // Deduct Asset fee
-			pool.BalanceAsset = pool.BalanceAsset.Add(assetFee)         // Add Asset fee to Pool
-			var poolDeduct cosmos.Uint
-			if runeFee.GT(pool.BalanceRune) {
-				poolDeduct = pool.BalanceRune
-			} else {
-				poolDeduct = runeFee
-			}
-			pool.BalanceRune = common.SafeSub(pool.BalanceRune, runeFee) // Deduct Rune from Pool
-			fee := common.NewFee(common.Coins{common.NewCoin(toi.Coin.Asset, assetFee)}, poolDeduct)
-			if err := tos.eventMgr.EmitFeeEvent(ctx, NewEventFee(toi.InHash, fee)); err != nil {
-				ctx.Logger().Error("Failed to emit fee event", "error", err)
-			}
-			if err := tos.keeper.SetPool(ctx, pool); err != nil { // Set Pool
-				return false, fmt.Errorf("fail to save pool: %w", err)
-			}
-			if err := tos.keeper.AddFeeToReserve(ctx, runeFee); err != nil {
-				return false, fmt.Errorf("fail to add fee to reserve: %w", err)
-			}
-		}
+	if err != nil {
+		return false, fmt.Errorf("fail to parse memo: %w", err)
 	}
-
+	if err := tos.deductTransactionFee(ctx, toi, memo); err != nil {
+		return false, fmt.Errorf("fail to deduct transaction fee: %w", err)
+	}
 	// When we request Yggdrasil pool to return the fund, the coin field is actually empty
 	// Signer when it sees an tx out item with memo "yggdrasil-" it will query the account on relevant chain
 	// and coin field will be filled there, thus we have to let this one go
@@ -288,6 +220,106 @@ func (tos *TxOutStorageV1) addToBlockOut(ctx cosmos.Context, mgr Manager, toi *T
 	return tos.keeper.AppendTxOut(ctx, ctx.BlockHeight(), toi)
 }
 
+// calculateMaxGas will calculate the Maximum gas coin bifrost can pay when sending out this transaction
+func (tos *TxOutStorageV1) calculateMaxGas(ctx cosmos.Context, toi *TxOutItem) error {
+	// this method is not going to calculate the fee again if the MaxGas field had been specified in the TxOutItem
+	if !toi.MaxGas.IsEmpty() {
+		return nil
+	}
+	transactionFee := tos.gasManager.GetFee(ctx, toi.Chain)
+	if transactionFee.Asset.IsRune() {
+		// given transaction fee is in RUNE , thus need to convert RUNE into equivalent asset
+		p, err := tos.keeper.GetPool(ctx, toi.Coin.Asset)
+		if err != nil {
+			return fmt.Errorf("fail to get pool(%s):%w", toi.Coin.Asset, err)
+		}
+		toi.MaxGas = common.Gas{
+			common.NewCoin(toi.Coin.Asset, p.RuneValueInAsset(transactionFee.Amount)),
+		}
+		return nil
+	}
+	toi.MaxGas = common.Gas{
+		common.NewCoin(transactionFee.Asset, transactionFee.Amount.QuoUint64(2)),
+	}
+	return nil
+}
+
+// deductTransactionFee from TxOutItem
+func (tos *TxOutStorageV1) deductTransactionFee(ctx cosmos.Context, toi *TxOutItem, memo thorchain.Memo) error {
+	// Deduct TransactionFee from TOI and add to Reserve
+
+	// for the following few transaction , it is THORNode internal transaction , thus doesn't charge fee
+	if memo.IsType(TxYggdrasilFund) || memo.IsType(TxYggdrasilReturn) || memo.IsType(TxMigrate) || memo.IsType(TxRagnarok) {
+		return nil
+	}
+	pool, err := tos.keeper.GetPool(ctx, toi.Chain.GetGasAsset())
+	if err != nil {
+		return fmt.Errorf("fail to get pool: %w", err)
+	}
+
+	transactionFee := tos.gasManager.GetFee(ctx, toi.Chain)
+	var runeFee cosmos.Uint
+	var assetFee cosmos.Uint
+	if toi.Coin.Asset.IsRune() {
+		// can't pay GAS in RUNE , thus need to convert it to asset
+		if transactionFee.Asset.IsRune() {
+			assetFee = pool.RuneValueInAsset(transactionFee.Amount)
+			runeFee = transactionFee.Amount
+		} else {
+			assetFee = transactionFee.Amount
+			runeFee = pool.AssetValueInRune(transactionFee.Amount)
+		}
+		if toi.Coin.Amount.LTE(runeFee) {
+			runeFee = toi.Coin.Amount // Fee is the full amount
+		}
+
+		toi.Coin.Amount = common.SafeSub(toi.Coin.Amount, runeFee)
+		fee := common.NewFee(common.Coins{common.NewCoin(toi.Coin.Asset, runeFee)}, assetFee)
+		if err := tos.eventMgr.EmitFeeEvent(ctx, NewEventFee(toi.InHash, fee)); err != nil {
+			ctx.Logger().Error("Failed to emit fee event", "error", err)
+		}
+
+		if err := tos.keeper.AddFeeToReserve(ctx, runeFee); err != nil {
+			// Add to reserve
+			ctx.Logger().Error("fail to add fee to reserve", "error", err)
+		}
+
+	} else {
+
+		if transactionFee.Asset.IsRune() {
+			runeFee = transactionFee.Amount
+			assetFee = pool.RuneValueInAsset(transactionFee.Amount)
+		} else {
+			runeFee = pool.AssetValueInRune(transactionFee.Amount)
+			assetFee = transactionFee.Amount
+		}
+		if toi.Coin.Amount.LTE(assetFee) {
+			assetFee = toi.Coin.Amount // Fee is the full amount
+			runeFee = pool.AssetValueInRune(assetFee)
+		}
+
+		toi.Coin.Amount = common.SafeSub(toi.Coin.Amount, assetFee) // Deduct Asset fee
+		pool.BalanceAsset = pool.BalanceAsset.Add(assetFee)         // Add Asset fee to Pool
+		var poolDeduct cosmos.Uint
+		if runeFee.GT(pool.BalanceRune) {
+			poolDeduct = pool.BalanceRune
+		} else {
+			poolDeduct = runeFee
+		}
+		pool.BalanceRune = common.SafeSub(pool.BalanceRune, runeFee) // Deduct Rune from Pool
+		fee := common.NewFee(common.Coins{common.NewCoin(toi.Coin.Asset, assetFee)}, poolDeduct)
+		if err := tos.eventMgr.EmitFeeEvent(ctx, NewEventFee(toi.InHash, fee)); err != nil {
+			ctx.Logger().Error("Failed to emit fee event", "error", err)
+		}
+		if err := tos.keeper.SetPool(ctx, pool); err != nil { // Set Pool
+			return fmt.Errorf("fail to save pool: %w", err)
+		}
+		if err := tos.keeper.AddFeeToReserve(ctx, runeFee); err != nil {
+			return fmt.Errorf("fail to add fee to reserve: %w", err)
+		}
+	}
+	return nil
+}
 func (tos *TxOutStorageV1) nativeTxOut(ctx cosmos.Context, mgr Manager, toi *TxOutItem) error {
 	supplier := tos.keeper.Supply()
 

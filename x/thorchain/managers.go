@@ -32,7 +32,7 @@ type GasManager interface {
 	AddGasAsset(gas common.Gas)
 	ProcessGas(ctx cosmos.Context, keeper keeper.Keeper)
 	GetGas() common.Gas
-	GetFee(ctx cosmos.Context, chain common.Chain) int64
+	GetFee(ctx cosmos.Context, chain common.Chain) common.Coin
 }
 
 // EventManager define methods need to be support to manage events
