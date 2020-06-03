@@ -160,7 +160,7 @@ func newRefundTxHandlerTestHelper(c *C) refundTxHandlerTestHelper {
 	c.Assert(keeper.SetPool(ctx, pool), IsNil)
 
 	constAccessor := constants.GetConstantValues(version)
-	txOutStorage := NewTxOutStorageV1(keeper, constAccessor, NewDummyEventMgr(), NewDummyGasManager())
+	txOutStorage := NewTxOutStorageV1(keeper, constAccessor, NewDummyEventMgr(), NewGasMgrV1(constAccessor, keeper))
 	toi := &TxOutItem{
 		Chain:       common.BNBChain,
 		ToAddress:   tx.Tx.FromAddress,

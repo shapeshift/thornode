@@ -72,6 +72,7 @@ func (h CommonOutboundTxHandler) handle(ctx cosmos.Context, version semver.Versi
 		// outbound tx hash correctly given every tx item will only have
 		// one coin in it , THORNode could use that to identify which tx it
 		// is
+
 		if txOutItem.InHash.Equals(inTxID) &&
 			txOutItem.OutHash.IsEmpty() &&
 			tx.Tx.Coins.Equals(common.Coins{txOutItem.Coin}) &&
