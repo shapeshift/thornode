@@ -117,6 +117,7 @@ var (
 	NewMsgSetIPAddress             = types.NewMsgSetIPAddress
 	NewMsgSend                     = bank.NewMsgSend
 	NewMsgNetworkFee               = types.NewMsgNetworkFee
+	NewNetworkFee                  = types.NewNetworkFee
 	GetPoolStatus                  = types.GetPoolStatus
 	GetRandomVault                 = types.GetRandomVault
 	GetRandomTx                    = types.GetRandomTx

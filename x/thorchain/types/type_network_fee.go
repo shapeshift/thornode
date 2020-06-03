@@ -3,9 +3,8 @@ package types
 import (
 	"errors"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-
 	"gitlab.com/thorchain/thornode/common"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 // NetworkFee represent the fee rate and typical transaction size outbound from THORNode
@@ -15,11 +14,11 @@ import (
 type NetworkFee struct {
 	Chain              common.Chain `json:"chain"`
 	TransactionSize    int64        `json:"transaction_size"`
-	TransactionFeeRate sdk.Uint     `json:"transaction_fee_rate"`
+	TransactionFeeRate cosmos.Uint  `json:"transaction_fee_rate"`
 }
 
 // NewNetworkFee create a new instance of network fee
-func NewNetworkFee(chain common.Chain, transactionSize int64, transactionFeeRate sdk.Uint) NetworkFee {
+func NewNetworkFee(chain common.Chain, transactionSize int64, transactionFeeRate cosmos.Uint) NetworkFee {
 	return NetworkFee{
 		Chain:              chain,
 		TransactionSize:    transactionSize,
@@ -34,7 +33,7 @@ func (f NetworkFee) Validate() error {
 	if f.TransactionSize < 0 {
 		return errors.New("transaction size can't be negative")
 	}
-	if f.TransactionFeeRate.Equal(sdk.ZeroUint()) {
+	if f.TransactionFeeRate.Equal(cosmos.ZeroUint()) {
 		return errors.New("transaction fee rate can't be zero")
 	}
 	return nil

@@ -51,27 +51,29 @@ func (gm *GasMgrV1) GetGas() common.Gas {
 	return gm.gas
 }
 
-// GetFee retrieve the network fee information from kv store, and calculate the fee customer should pay
+// GetFee retrieve the network fee information from kv store, and calculate the dynamic fee customer should pay
 // return fee is in the amount of gas asset for the given chain
 // BTC , the return fee should be sats
 // ETH , the return fee should be ETH
 // Binance , the return fee should be in BNB
-func (gm *GasMgrV1) GetFee(ctx cosmos.Context, chain common.Chain) int64 {
+// when the relevant network fee is not available , it will return the amount RUNE
+func (gm *GasMgrV1) GetFee(ctx cosmos.Context, chain common.Chain) common.Coin {
 	transactionFee := gm.constantsAccessor.GetInt64Value(constants.TransactionFee)
+	defaultNetworkFee := common.NewCoin(common.RuneAsset(), cosmos.NewUint(uint64(transactionFee)))
 	networkFee, err := gm.keeper.GetNetworkFee(ctx, chain)
 	if err != nil {
 		ctx.Logger().Error("fail to get network fee", "error", err)
-		return transactionFee
+		return defaultNetworkFee
 	}
 	if err := networkFee.Validate(); err != nil {
 		ctx.Logger().Error("network fee is invalid", "error", err)
-		return transactionFee
+		return defaultNetworkFee
 	}
 	// Fee is calculated based on the network fee observed in previous block
 	// THORNode is going to charge 3 times the fee it takes to send out the tx
 	// 1.5 * fee will goes to vault
 	// 1.5 * fee will become the max gas used to send out the tx
-	return networkFee.TransactionSize * int64(networkFee.TransactionFeeRate.Uint64()) * 3
+	return common.NewCoin(chain.GetGasAsset(), cosmos.NewUint(uint64(networkFee.TransactionSize)*networkFee.TransactionFeeRate.Uint64()*3))
 }
 
 // EndBlock emit the events
