@@ -233,13 +233,21 @@ func (tos *TxOutStorageV1) calculateMaxGas(ctx cosmos.Context, toi *TxOutItem) e
 		if err != nil {
 			return fmt.Errorf("fail to get pool(%s):%w", toi.Coin.Asset, err)
 		}
+
 		toi.MaxGas = common.Gas{
-			common.NewCoin(toi.Coin.Asset, p.RuneValueInAsset(transactionFee.Amount)),
+			common.NewCoin(toi.Coin.Asset, p.RuneValueInAsset(transactionFee.Amount.QuoUint64(2))),
 		}
 		return nil
 	}
-	toi.MaxGas = common.Gas{
-		common.NewCoin(transactionFee.Asset, transactionFee.Amount.QuoUint64(2)),
+	if toi.Chain.IsBNB() {
+		// given BNB is using fix fee , thus 1x go to max gas, 2x go to reserve
+		toi.MaxGas = common.Gas{
+			common.NewCoin(transactionFee.Asset, transactionFee.Amount.QuoUint64(3)),
+		}
+	} else {
+		toi.MaxGas = common.Gas{
+			common.NewCoin(transactionFee.Asset, transactionFee.Amount.QuoUint64(2)),
+		}
 	}
 	return nil
 }
@@ -279,13 +287,13 @@ func (tos *TxOutStorageV1) deductTransactionFee(ctx cosmos.Context, toi *TxOutIt
 			ctx.Logger().Error("Failed to emit fee event", "error", err)
 		}
 
-		if err := tos.keeper.AddFeeToReserve(ctx, runeFee); err != nil {
+		// only add half the RUNE to reserve
+		if err := tos.keeper.AddFeeToReserve(ctx, runeFee.QuoUint64(2)); err != nil {
 			// Add to reserve
 			ctx.Logger().Error("fail to add fee to reserve", "error", err)
 		}
 
 	} else {
-
 		if transactionFee.Asset.IsRune() {
 			runeFee = transactionFee.Amount
 			assetFee = pool.RuneValueInAsset(transactionFee.Amount)
@@ -314,7 +322,8 @@ func (tos *TxOutStorageV1) deductTransactionFee(ctx cosmos.Context, toi *TxOutIt
 		if err := tos.keeper.SetPool(ctx, pool); err != nil { // Set Pool
 			return fmt.Errorf("fail to save pool: %w", err)
 		}
-		if err := tos.keeper.AddFeeToReserve(ctx, runeFee); err != nil {
+		// only add half the rune to reserve
+		if err := tos.keeper.AddFeeToReserve(ctx, runeFee.QuoUint64(2)); err != nil {
 			return fmt.Errorf("fail to add fee to reserve: %w", err)
 		}
 	}
