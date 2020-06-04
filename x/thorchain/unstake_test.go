@@ -83,13 +83,16 @@ func (k *UnstakeTestKeeper) GetStaker(ctx cosmos.Context, asset common.Asset, ad
 	}
 	return staker, nil
 }
+
 func (k *UnstakeTestKeeper) GetNetworkFee(ctx cosmos.Context, chain common.Chain) (NetworkFee, error) {
 	return k.networkFees[chain], nil
 }
+
 func (k *UnstakeTestKeeper) SaveNetworkFee(ctx cosmos.Context, chain common.Chain, networkFee NetworkFee) error {
 	k.networkFees[chain] = networkFee
 	return nil
 }
+
 func (k *UnstakeTestKeeper) SetStaker(ctx cosmos.Context, staker Staker) {
 	key := k.GetKey(ctx, "staker/", staker.Key())
 	k.store[key] = staker
