@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"github.com/blang/semver"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
@@ -55,7 +54,7 @@ func (*HandlerObserveNetworkFeeSuite) TestHandlerObserveNetworkFee(c *C) {
 	c.Assert(keeper.SetNodeAccount(ctx, activeNodeAccount), IsNil)
 	handler := NewNetworkFeeHandler(keeper, NewDummyMgr())
 	ver := constants.SWVersion
-	msg := NewMsgNetworkFee(1024, common.BNBChain, 256, sdk.NewUint(100), activeNodeAccount.NodeAddress)
+	msg := NewMsgNetworkFee(1024, common.BNBChain, 256, 100, activeNodeAccount.NodeAddress)
 	constantsAccessor := constants.GetConstantValues(ver)
 	result, err := handler.Run(ctx, msg, ver, constantsAccessor)
 	c.Assert(err, IsNil)
@@ -72,7 +71,7 @@ func (*HandlerObserveNetworkFeeSuite) TestHandlerObserveNetworkFee(c *C) {
 	c.Assert(errors.Is(err, errBadVersion), Equals, true)
 
 	// already processed
-	msg1 := NewMsgNetworkFee(1024, common.BNBChain, 256, sdk.NewUint(100), activeNodeAccount.NodeAddress)
+	msg1 := NewMsgNetworkFee(1024, common.BNBChain, 256, 100, activeNodeAccount.NodeAddress)
 	result, err = handler.Run(ctx, msg1, ver, constantsAccessor)
 	c.Assert(err, IsNil)
 	c.Assert(result, NotNil)
@@ -104,7 +103,7 @@ func (*HandlerObserveNetworkFeeSuite) TestHandlerObserveNetworkFee(c *C) {
 			Keeper:                keeper,
 			errFailSaveNetworkFee: true,
 		}, NewDummyMgr())
-	msg2 := NewMsgNetworkFee(2056, common.BNBChain, 200, sdk.NewUint(102), activeNodeAccount.NodeAddress)
+	msg2 := NewMsgNetworkFee(2056, common.BNBChain, 200, 102, activeNodeAccount.NodeAddress)
 	result, err = handler3.Run(ctx, msg2, ver, constantsAccessor)
 	c.Assert(err, NotNil)
 	c.Assert(result, IsNil)

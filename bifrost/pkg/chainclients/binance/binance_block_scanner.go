@@ -182,7 +182,7 @@ func (b *BinanceBlockScanner) updateFees(height int64) error {
 		}
 	}
 	if changed {
-		if _, err := b.bridge.PostNetworkFee(height, common.BNBChain, 1, cosmos.NewUint(b.singleFee)); err != nil {
+		if _, err := b.bridge.PostNetworkFee(height, common.BNBChain, 1, b.singleFee); err != nil {
 			b.logger.Err(err).Msg("fail to post Binance chain single transfer fee to THORNode")
 		}
 	}

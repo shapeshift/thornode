@@ -12,7 +12,6 @@ import (
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/rpcclient"
 	"github.com/btcsuite/btcutil"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	tssp "gitlab.com/thorchain/tss/go-tss/tss"
@@ -345,7 +344,7 @@ func (c *Client) sendNetworkFee(height int64) error {
 		return nil
 	}
 
-	txid, err := c.bridge.PostNetworkFee(height, common.BTCChain, result.AverageTxSize, sdk.NewUint(uint64(result.AverageFeeRate)))
+	txid, err := c.bridge.PostNetworkFee(height, common.BTCChain, uint64(result.AverageTxSize), uint64(result.AverageFeeRate))
 	if err != nil {
 		return fmt.Errorf("fail to post network fee to thornode: %w", err)
 	}
