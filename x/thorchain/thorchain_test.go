@@ -257,7 +257,7 @@ func (s *ThorchainSuite) TestRagnarok(c *C) {
 	c.Assert(keeper.SaveNetworkFee(ctx, common.BNBChain, NetworkFee{
 		Chain:              common.BNBChain,
 		TransactionSize:    1,
-		TransactionFeeRate: bnbSingleTxFee,
+		TransactionFeeRate: bnbSingleTxFee.Uint64(),
 	}), IsNil)
 	mgr := NewManagers(keeper)
 	c.Assert(mgr.BeginBlock(ctx), IsNil)

@@ -491,7 +491,7 @@ func (UnstakeSuite) TestUnstake(c *C) {
 		tc.ps.SaveNetworkFee(ctx, common.BNBChain, NetworkFee{
 			Chain:              common.BNBChain,
 			TransactionSize:    1,
-			TransactionFeeRate: bnbSingleTxFee,
+			TransactionFeeRate: bnbSingleTxFee.Uint64(),
 		})
 		r, asset, _, _, err := unstake(ctx, version, tc.ps, tc.msg, mgr)
 		if tc.expectedError != nil {

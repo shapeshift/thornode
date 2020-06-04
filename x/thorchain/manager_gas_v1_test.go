@@ -53,7 +53,7 @@ func (GasManagerTestSuite) TestGetFee(c *C) {
 	defaultTxFee := constAccessor.GetInt64Value(constants.TransactionFee)
 	// when there is no network fee available, it should just get from the constants
 	c.Assert(fee, Equals, defaultTxFee)
-	networkFee := NewNetworkFee(common.BNBChain, 1, bnbSingleTxFee)
+	networkFee := NewNetworkFee(common.BNBChain, 1, bnbSingleTxFee.Uint64())
 	c.Assert(k.SaveNetworkFee(ctx, common.BNBChain, networkFee), IsNil)
 	fee = gasMgr.GetFee(ctx, common.BNBChain)
 	c.Assert(fee, Equals, defaultTxFee)
@@ -67,7 +67,7 @@ func (GasManagerTestSuite) TestGetFee(c *C) {
 	c.Assert(fee, Equals, int64(bnbSingleTxFee.Uint64()*3))
 
 	// BTC chain
-	networkFee = NewNetworkFee(common.BTCChain, 70, cosmos.NewUint(50))
+	networkFee = NewNetworkFee(common.BTCChain, 70, 50)
 	c.Assert(k.SaveNetworkFee(ctx, common.BTCChain, networkFee), IsNil)
 	fee = gasMgr.GetFee(ctx, common.BTCChain)
 	c.Assert(fee, Equals, defaultTxFee)

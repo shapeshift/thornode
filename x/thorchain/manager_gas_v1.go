@@ -79,7 +79,7 @@ func (gm *GasMgrV1) GetFee(ctx cosmos.Context, chain common.Chain) int64 {
 		return transactionFee
 	}
 
-	return int64(pool.AssetValueInRune(cosmos.NewUint(uint64(networkFee.TransactionSize) * networkFee.TransactionFeeRate.Uint64() * 3)).Uint64())
+	return int64(pool.AssetValueInRune(cosmos.NewUint(networkFee.TransactionSize * networkFee.TransactionFeeRate * 3)).Uint64())
 }
 
 // GetMaxGas will calculate the maximum gas fee a tx can use

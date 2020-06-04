@@ -224,7 +224,7 @@ func (HandlerSuite) TestHandleTxInUnstakeMemo(c *C) {
 	w.keeper.SaveNetworkFee(w.ctx, common.BNBChain, NetworkFee{
 		Chain:              common.BNBChain,
 		TransactionSize:    1,
-		TransactionFeeRate: bnbSingleTxFee,
+		TransactionFeeRate: bnbSingleTxFee.Uint64(),
 	})
 
 	_, err = handler(w.ctx, msg)

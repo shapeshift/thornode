@@ -1,8 +1,6 @@
 package types
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
-
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
@@ -11,13 +9,13 @@ import (
 type MsgNetworkFee struct {
 	BlockHeight        int64             `json:"block_height"`
 	Chain              common.Chain      `json:"chain"`
-	TransactionSize    int64             `json:"transaction_size"`
-	TransactionFeeRate sdk.Uint          `json:"transaction_fee_rate"`
+	TransactionSize    uint64            `json:"transaction_size"`
+	TransactionFeeRate uint64            `json:"transaction_fee_rate"`
 	Signer             cosmos.AccAddress `json:"signer"`
 }
 
 // NewMsgNetworkFee create a new instance of MsgNetworkFee
-func NewMsgNetworkFee(blockHeight int64, chain common.Chain, transactionSize int64, transactionFeeRate sdk.Uint, signer cosmos.AccAddress) MsgNetworkFee {
+func NewMsgNetworkFee(blockHeight int64, chain common.Chain, transactionSize, transactionFeeRate uint64, signer cosmos.AccAddress) MsgNetworkFee {
 	return MsgNetworkFee{
 		BlockHeight:        blockHeight,
 		Chain:              chain,
@@ -47,7 +45,7 @@ func (msg MsgNetworkFee) ValidateBasic() error {
 	if msg.TransactionSize <= 0 {
 		return cosmos.ErrUnknownRequest("invalid transaction size")
 	}
-	if msg.TransactionFeeRate.IsZero() {
+	if msg.TransactionFeeRate <= 0 {
 		return cosmos.ErrUnknownRequest("invalid transaction fee rate")
 	}
 	return nil

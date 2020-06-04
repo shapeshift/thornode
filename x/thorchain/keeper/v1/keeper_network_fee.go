@@ -3,8 +3,6 @@ package keeperv1
 import (
 	"fmt"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
@@ -16,7 +14,7 @@ func (k KVStore) GetNetworkFee(ctx cosmos.Context, chain common.Chain) (NetworkF
 	emptyNetworkFee := NetworkFee{
 		Chain:              chain,
 		TransactionSize:    0,
-		TransactionFeeRate: sdk.ZeroUint(),
+		TransactionFeeRate: 0,
 	}
 	if !store.Has([]byte(key)) {
 		return emptyNetworkFee, nil

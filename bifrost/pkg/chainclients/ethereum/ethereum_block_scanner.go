@@ -130,7 +130,7 @@ func (e *BlockScanner) FetchTxs(height int64) (stypes.TxIn, error) {
 		}()
 	}
 
-	if _, err := e.bridge.PostNetworkFee(height, common.ETHChain, 1, cosmos.NewUintFromBigInt(e.GetGasPrice())); err != nil {
+	if _, err := e.bridge.PostNetworkFee(height, common.ETHChain, 1, cosmos.NewUintFromBigInt(e.GetGasPrice()).Uint64()); err != nil {
 		e.logger.Err(err).Msg("fail to post ETH chain single transfer fee to THORNode")
 	}
 	return txIn, nil
