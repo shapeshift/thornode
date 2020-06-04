@@ -23,12 +23,14 @@ func (s *UnstakeSuite) SetUpSuite(c *C) {
 
 type UnstakeTestKeeper struct {
 	keeper.KVStoreDummy
-	store map[string]interface{}
+	store       map[string]interface{}
+	networkFees map[common.Chain]NetworkFee
 }
 
 func NewUnstakeTestKeeper() *UnstakeTestKeeper {
 	return &UnstakeTestKeeper{
-		store: make(map[string]interface{}),
+		store:       make(map[string]interface{}),
+		networkFees: make(map[common.Chain]NetworkFee),
 	}
 }
 
@@ -62,7 +64,7 @@ func (k *UnstakeTestKeeper) GetGas(ctx cosmos.Context, asset common.Asset) ([]co
 	return []cosmos.Uint{cosmos.NewUint(37500), cosmos.NewUint(30000)}, nil
 }
 
-func (p *UnstakeTestKeeper) GetStaker(ctx cosmos.Context, asset common.Asset, addr common.Address) (Staker, error) {
+func (k *UnstakeTestKeeper) GetStaker(ctx cosmos.Context, asset common.Asset, addr common.Address) (Staker, error) {
 	if asset.Equals(common.Asset{Chain: common.BNBChain, Symbol: "NOTEXISTSTICKER", Ticker: "NOTEXISTSTICKER"}) {
 		return types.Staker{}, errors.New("you asked for it")
 	}
@@ -75,16 +77,22 @@ func (p *UnstakeTestKeeper) GetStaker(ctx cosmos.Context, asset common.Asset, ad
 		Units:       cosmos.ZeroUint(),
 		PendingRune: cosmos.ZeroUint(),
 	}
-	key := p.GetKey(ctx, "staker/", staker.Key())
-	if res, ok := p.store[key]; ok {
+	key := k.GetKey(ctx, "staker/", staker.Key())
+	if res, ok := k.store[key]; ok {
 		return res.(Staker), nil
 	}
 	return staker, nil
 }
-
-func (p *UnstakeTestKeeper) SetStaker(ctx cosmos.Context, staker Staker) {
-	key := p.GetKey(ctx, "staker/", staker.Key())
-	p.store[key] = staker
+func (k *UnstakeTestKeeper) GetNetworkFee(ctx cosmos.Context, chain common.Chain) (NetworkFee, error) {
+	return k.networkFees[chain], nil
+}
+func (k *UnstakeTestKeeper) SaveNetworkFee(ctx cosmos.Context, chain common.Chain, networkFee NetworkFee) error {
+	k.networkFees[chain] = networkFee
+	return nil
+}
+func (k *UnstakeTestKeeper) SetStaker(ctx cosmos.Context, staker Staker) {
+	key := k.GetKey(ctx, "staker/", staker.Key())
+	k.store[key] = staker
 }
 
 func (s UnstakeSuite) TestCalculateUnsake(c *C) {
@@ -310,7 +318,7 @@ func (s UnstakeSuite) TestValidateUnstake(c *C) {
 }
 
 func (UnstakeSuite) TestUnstake(c *C) {
-	ps := &UnstakeTestKeeper{}
+	ps := NewUnstakeTestKeeper()
 	remainGas := uint64(75000)
 	if common.RuneAsset().Chain.Equals(common.THORChain) {
 		remainGas = 37500
@@ -474,9 +482,15 @@ func (UnstakeSuite) TestUnstake(c *C) {
 		ctx, _ := setupKeeperForTest(c)
 		c.Logf("name:%s", tc.name)
 		version := constants.SWVersion
-		eventManager := NewDummyEventMgr()
 		c.Assert(err, IsNil)
-		r, asset, _, _, err := unstake(ctx, version, tc.ps, tc.msg, eventManager)
+		mgr := NewManagers(tc.ps)
+		mgr.BeginBlock(ctx)
+		tc.ps.SaveNetworkFee(ctx, common.BNBChain, NetworkFee{
+			Chain:              common.BNBChain,
+			TransactionSize:    1,
+			TransactionFeeRate: bnbSingleTxFee,
+		})
+		r, asset, _, _, err := unstake(ctx, version, tc.ps, tc.msg, mgr)
 		if tc.expectedError != nil {
 			c.Assert(err, NotNil)
 			c.Check(err.Error(), Equals, tc.expectedError.Error())
@@ -486,7 +500,7 @@ func (UnstakeSuite) TestUnstake(c *C) {
 		}
 		c.Assert(err, IsNil)
 		c.Check(r.Uint64(), Equals, tc.runeAmount.Uint64())
-		c.Check(asset.Uint64(), Equals, tc.assetAmount.Uint64())
+		c.Check(asset.Equal(tc.assetAmount), Equals, true, Commentf("expect:%s, however got:%s", tc.assetAmount.String(), asset.String()))
 	}
 }
 

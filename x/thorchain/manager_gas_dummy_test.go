@@ -22,6 +22,13 @@ func (m *DummyGasManager) ProcessGas(ctx cosmos.Context, keeper keeper.Keeper) {
 func (m *DummyGasManager) GetFee(ctx cosmos.Context, chain common.Chain) int64 {
 	return 0
 }
+
 func (m *DummyGasManager) GetMaxGas(ctx cosmos.Context, chain common.Chain) (common.Coin, error) {
+	if chain.Equals(common.BNBChain) {
+		return common.NewCoin(common.BNBAsset, bnbSingleTxFee), nil
+	}
+	if chain.Equals(common.BTCChain) {
+		return common.NewCoin(common.BTCAsset, cosmos.NewUint(1000)), nil
+	}
 	return common.NoCoin, kaboom
 }

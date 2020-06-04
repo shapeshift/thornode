@@ -78,14 +78,13 @@ func unstake(ctx cosmos.Context, version semver.Version, keeper keeper.Keeper, m
 	gasAsset := cosmos.ZeroUint()
 	// If the pool is empty, and there is a gas asset, subtract required gas
 	if common.SafeSub(poolUnits, fStakerUnit).Add(unitAfter).IsZero() {
+		maxGas, err := manager.GasMgr().GetMaxGas(ctx, pool.Asset.Chain)
+		if err != nil {
+			ctx.Logger().Error("fail to get gas for asset", "asset", pool.Asset, "error", err)
+			return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), errUnstakeFail
+		}
 		// minus gas costs for our transactions
 		if pool.Asset.IsBNB() {
-
-			gasInfo, err := keeper.GetGas(ctx, pool.Asset)
-			if err != nil {
-				ctx.Logger().Error("fail to get gas for asset", "asset", pool.Asset, "error", err)
-				return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), errUnstakeFail
-			}
 			originalAsset := withDrawAsset
 			multiplier := uint64(2)
 			if common.RuneAsset().Chain.Equals(common.THORChain) {
@@ -93,14 +92,12 @@ func unstake(ctx cosmos.Context, version semver.Version, keeper keeper.Keeper, m
 			}
 			withDrawAsset = common.SafeSub(
 				withDrawAsset,
-				gasInfo[0].MulUint64(multiplier),
+				maxGas.Amount.MulUint64(multiplier),
 			)
 			gasAsset = originalAsset.Sub(withDrawAsset)
 		} else if pool.Asset.Chain.GetGasAsset().Equals(pool.Asset) {
-			// leave half a RUNE as gas fee for BTC chain and ETH chain
-			transactionFee := cv.GetInt64Value(constants.TransactionFee)
-			gasAsset = pool.RuneValueInAsset(cosmos.NewUint(uint64(transactionFee / 2)))
-			withDrawAsset = common.SafeSub(withDrawAsset, gasAsset)
+			gasAsset = maxGas.Amount
+			withDrawAsset = common.SafeSub(withDrawAsset, maxGas.Amount)
 		}
 	}
 

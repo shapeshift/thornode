@@ -40,7 +40,6 @@ func (s *ThorchainSuite) TestStaking(c *C) {
 	user2 := GetRandomBNBAddress()
 	txID := GetRandomTxHash()
 	constAccessor := constants.GetConstantValues(constants.SWVersion)
-	eventManager := NewDummyEventMgr()
 	c.Assert(err, IsNil)
 
 	// create bnb pool
@@ -69,7 +68,7 @@ func (s *ThorchainSuite) TestStaking(c *C) {
 	version := constants.SWVersion
 	// unstake for user1
 	msg := NewMsgSetUnStake(GetRandomTx(), user1, cosmos.NewUint(10000), common.BNBAsset, GetRandomBech32Addr())
-	_, _, _, _, err = unstake(ctx, version, keeper, msg, eventManager)
+	_, _, _, _, err = unstake(ctx, version, keeper, msg, NewDummyMgr())
 	c.Assert(err, IsNil)
 	staker1, err = keeper.GetStaker(ctx, common.BNBAsset, user1)
 	c.Assert(err, IsNil)
@@ -77,7 +76,7 @@ func (s *ThorchainSuite) TestStaking(c *C) {
 
 	// unstake for user2
 	msg = NewMsgSetUnStake(GetRandomTx(), user2, cosmos.NewUint(10000), common.BNBAsset, GetRandomBech32Addr())
-	_, _, _, _, err = unstake(ctx, version, keeper, msg, eventManager)
+	_, _, _, _, err = unstake(ctx, version, keeper, msg, NewDummyMgr())
 	c.Assert(err, IsNil)
 	staker2, err = keeper.GetStaker(ctx, common.BNBAsset, user2)
 	c.Assert(err, IsNil)
@@ -255,7 +254,11 @@ func (s *ThorchainSuite) TestRagnarok(c *C) {
 	ctx = ctx.WithBlockHeight(10)
 	ver := constants.SWVersion
 	consts := constants.GetConstantValues(ver)
-
+	c.Assert(keeper.SaveNetworkFee(ctx, common.BNBChain, NetworkFee{
+		Chain:              common.BNBChain,
+		TransactionSize:    1,
+		TransactionFeeRate: bnbSingleTxFee,
+	}), IsNil)
 	mgr := NewManagers(keeper)
 	c.Assert(mgr.BeginBlock(ctx), IsNil)
 
@@ -266,12 +269,14 @@ func (s *ThorchainSuite) TestRagnarok(c *C) {
 	// create pools
 	pool := NewPool()
 	pool.Asset = common.BNBAsset
+	pool.Status = PoolEnabled
 	c.Assert(keeper.SetPool(ctx, pool), IsNil)
 	boltAsset, err := common.NewAsset("BNB.BOLT-123")
 	c.Assert(err, IsNil)
 	pool.Asset = boltAsset
+	pool.Status = PoolEnabled
 	c.Assert(keeper.SetPool(ctx, pool), IsNil)
-	stakeHandler := NewStakeHandler(keeper, NewDummyMgr())
+	stakeHandler := NewStakeHandler(keeper, mgr)
 	// add stakers
 	staker1 := GetRandomRUNEAddress() // Staker1
 	staker1asset := GetRandomBNBAddress()
