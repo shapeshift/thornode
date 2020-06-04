@@ -35,7 +35,9 @@ func refundTx(ctx cosmos.Context, tx ObservedTx, mgr Manager, keeper keeper.Keep
 			// create a new TX based on the coins thorchain refund , some of the coins thorchain doesn't refund
 			// coin thorchain doesn't have pool with , likely airdrop
 			newTx := common.NewTx(tx.Tx.ID, tx.Tx.FromAddress, tx.Tx.ToAddress, tx.Tx.Coins, tx.Tx.Gas, tx.Tx.Memo)
-			transactionFee := constAccessor.GetInt64Value(constants.TransactionFee)
+
+			// all the coins in tx.Tx should belongs to the same chain
+			transactionFee := mgr.GasMgr().GetFee(ctx, tx.Tx.Chain)
 			fee := getFee(tx.Tx.Coins, refundCoins, transactionFee)
 			eventRefund = NewEventRefund(refundCode, refundReason, newTx, fee)
 		}

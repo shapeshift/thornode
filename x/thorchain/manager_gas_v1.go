@@ -1,6 +1,8 @@
 package thorchain
 
 import (
+	"fmt"
+
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
@@ -78,6 +80,24 @@ func (gm *GasMgrV1) GetFee(ctx cosmos.Context, chain common.Chain) int64 {
 	}
 
 	return int64(pool.AssetValueInRune(cosmos.NewUint(uint64(networkFee.TransactionSize) * networkFee.TransactionFeeRate.Uint64() * 3)).Uint64())
+}
+
+// GetMaxGas will calculate the maximum gas fee a tx can use
+func (gm *GasMgrV1) GetMaxGas(ctx cosmos.Context, chain common.Chain) (common.Coin, error) {
+	gasAsset := chain.GetGasAsset()
+
+	pool, err := gm.keeper.GetPool(ctx, gasAsset)
+	if err != nil {
+		return common.NoCoin, fmt.Errorf("failed to get gas asset pool: %w", err)
+	}
+	transactionFee := gm.GetFee(ctx, chain)
+	// max gas amount is the transaction fee divided by two, in asset amount
+	maxAmt := pool.RuneValueInAsset(cosmos.NewUint(uint64(transactionFee / 2)))
+	if chain.IsBNB() {
+		// for Binance chain , the fee is fix, thus we give 1/3 as max gas
+		maxAmt = pool.RuneValueInAsset(cosmos.NewUint(uint64(transactionFee / 3)))
+	}
+	return common.NewCoin(gasAsset, maxAmt), nil
 }
 
 // EndBlock emit the events

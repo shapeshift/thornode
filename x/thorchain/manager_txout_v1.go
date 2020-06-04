@@ -159,22 +159,13 @@ func (tos *TxOutStorageV1) prepareTxOutItem(ctx cosmos.Context, toi *TxOutItem) 
 
 	transactionFee := tos.gasManager.GetFee(ctx, toi.Chain)
 	if toi.MaxGas.IsEmpty() {
-		gasAsset := toi.Chain.GetGasAsset()
-		pool, err := tos.keeper.GetPool(ctx, gasAsset)
+		maxGasCoin, err := tos.gasManager.GetMaxGas(ctx, toi.Chain)
 		if err != nil {
-			return false, fmt.Errorf("failed to get gas asset pool: %w", err)
-		}
-
-		// max gas amount is the transaction fee divided by two, in asset amount
-		maxAmt := pool.RuneValueInAsset(cosmos.NewUint(uint64(transactionFee / 2)))
-		if toi.Chain.IsBNB() {
-			// for Binance chain , the fee is fix, thus we give 1/3 as max gas
-			maxAmt = pool.RuneValueInAsset(cosmos.NewUint(uint64(transactionFee / 3)))
+			return false, fmt.Errorf("fail to get maximum gas: %w", err)
 		}
 		toi.MaxGas = common.Gas{
-			common.NewCoin(gasAsset, maxAmt),
+			maxGasCoin,
 		}
-
 	}
 	// Deduct TransactionFee from TOI and add to Reserve
 	memo, err := ParseMemo(toi.Memo) // ignore err
@@ -310,8 +301,7 @@ func (tos *TxOutStorageV1) nativeTxOut(ctx cosmos.Context, mgr Manager, toi *TxO
 		return err
 	}
 
-	transactionFee := tos.constAccessor.GetInt64Value(constants.TransactionFee)
-
+	transactionFee := tos.gasManager.GetFee(ctx, common.THORChain)
 	tx := common.NewTx(
 		common.BlankTxID,
 		from,

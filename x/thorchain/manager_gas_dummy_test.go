@@ -22,3 +22,6 @@ func (m *DummyGasManager) ProcessGas(ctx cosmos.Context, keeper keeper.Keeper) {
 func (m *DummyGasManager) GetFee(ctx cosmos.Context, chain common.Chain) int64 {
 	return 0
 }
+func (m *DummyGasManager) GetMaxGas(ctx cosmos.Context, chain common.Chain) (common.Coin, error) {
+	return common.NoCoin, kaboom
+}

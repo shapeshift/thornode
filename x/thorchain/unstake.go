@@ -35,7 +35,7 @@ func validateUnstake(ctx cosmos.Context, keeper keeper.Keeper, msg MsgSetUnStake
 
 // unstake withdraw all the asset
 // it returns runeAmt,assetAmount,units, lastUnstake,err
-func unstake(ctx cosmos.Context, version semver.Version, keeper keeper.Keeper, msg MsgSetUnStake, eventManager EventManager) (cosmos.Uint, cosmos.Uint, cosmos.Uint, cosmos.Uint, error) {
+func unstake(ctx cosmos.Context, version semver.Version, keeper keeper.Keeper, msg MsgSetUnStake, manager Manager) (cosmos.Uint, cosmos.Uint, cosmos.Uint, cosmos.Uint, error) {
 	if err := validateUnstake(ctx, keeper, msg); err != nil {
 		ctx.Logger().Error("msg unstake fail validation", "error", err)
 		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), err
@@ -80,6 +80,7 @@ func unstake(ctx cosmos.Context, version semver.Version, keeper keeper.Keeper, m
 	if common.SafeSub(poolUnits, fStakerUnit).Add(unitAfter).IsZero() {
 		// minus gas costs for our transactions
 		if pool.Asset.IsBNB() {
+
 			gasInfo, err := keeper.GetGas(ctx, pool.Asset)
 			if err != nil {
 				ctx.Logger().Error("fail to get gas for asset", "asset", pool.Asset, "error", err)
@@ -120,7 +121,7 @@ func unstake(ctx cosmos.Context, version semver.Version, keeper keeper.Keeper, m
 	// Create a pool event if THORNode have no rune or assets
 	if pool.BalanceAsset.IsZero() || pool.BalanceRune.IsZero() {
 		poolEvt := NewEventPool(pool.Asset, PoolBootstrap)
-		if err := eventManager.EmitPoolEvent(ctx, poolEvt); nil != err {
+		if err := manager.EventMgr().EmitPoolEvent(ctx, poolEvt); nil != err {
 			ctx.Logger().Error("fail to emit pool event", "error", err)
 		}
 		pool.Status = PoolBootstrap
