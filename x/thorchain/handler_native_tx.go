@@ -67,8 +67,7 @@ func (h NativeTxHandler) handleV1(ctx cosmos.Context, msg MsgNativeTx, version s
 	supplier := h.keeper.Supply()
 	// TODO: this shouldn't be tied to swaps, and should be cheaper. But
 	// TransactionFee will be fine for now.
-	transactionFee := constAccessor.GetInt64Value(constants.TransactionFee)
-
+	transactionFee := h.mgr.GasMgr().GetFee(ctx, common.THORChain)
 	gas := common.NewCoin(common.RuneNative, cosmos.NewUint(uint64(transactionFee)))
 	gasFee, err := gas.Native()
 	if err != nil {
