@@ -75,7 +75,7 @@ func (gm *GasMgrV1) GetFee(ctx cosmos.Context, chain common.Chain) int64 {
 		ctx.Logger().Error("fail to get pool for %s: %w", chain.GetGasAsset(), err)
 		return transactionFee
 	}
-	if pool.BalanceAsset.Equal(cosmos.ZeroUint()) || pool.BalanceRune.Equal(cosmos.ZeroUint()) || !pool.IsEnabled() {
+	if pool.BalanceAsset.Equal(cosmos.ZeroUint()) || pool.BalanceRune.Equal(cosmos.ZeroUint()) {
 		return transactionFee
 	}
 

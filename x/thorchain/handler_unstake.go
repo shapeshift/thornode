@@ -73,7 +73,7 @@ func (h UnstakeHandler) handle(ctx cosmos.Context, msg MsgSetUnStake, version se
 	if err != nil {
 		return nil, multierror.Append(errFailGetStaker, err)
 	}
-	runeAmt, assetAmount, units, gasAsset, err := unstake(ctx, version, h.keeper, msg, h.mgr.EventMgr())
+	runeAmt, assetAmount, units, gasAsset, err := unstake(ctx, version, h.keeper, msg, h.mgr)
 	if err != nil {
 		return nil, ErrInternal(err, "fail to process UnStake request")
 	}

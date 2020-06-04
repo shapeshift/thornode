@@ -221,10 +221,14 @@ func (HandlerSuite) TestHandleTxInUnstakeMemo(c *C) {
 	handler := NewInternalHandler(w.keeper, w.mgr)
 
 	FundModule(c, w.ctx, w.keeper, AsgardName, 500)
+	w.keeper.SaveNetworkFee(w.ctx, common.BNBChain, NetworkFee{
+		Chain:              common.BNBChain,
+		TransactionSize:    1,
+		TransactionFeeRate: bnbSingleTxFee,
+	})
 
 	_, err = handler(w.ctx, msg)
 	c.Assert(err, IsNil)
-
 	pool, err = w.keeper.GetPool(w.ctx, common.BNBAsset)
 	c.Assert(err, IsNil)
 	c.Assert(pool.Empty(), Equals, false)
