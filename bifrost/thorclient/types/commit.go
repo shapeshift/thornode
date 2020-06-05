@@ -1,7 +1,8 @@
 package types
 
 import (
-	coretypes "github.com/tendermint/tendermint/rpc/core/types"
+	abci "github.com/tendermint/tendermint/abci/types"
+	"github.com/tendermint/tendermint/libs/bytes"
 	"gitlab.com/thorchain/thornode/common"
 )
 
@@ -21,7 +22,14 @@ type Commit struct {
 	} `json:"logs"`
 }
 
+type ResultBroadcastTxCommit struct {
+	CheckTx   abci.ResponseCheckTx   `json:"check_tx"`
+	DeliverTx abci.ResponseDeliverTx `json:"deliver_tx"`
+	Hash      bytes.HexBytes         `json:"hash"`
+	Height    string                 `json:"height"`
+}
+
 type BroadcastResult struct {
-	JSONRPC string                            `json:"jsonrpc"`
-	Result  coretypes.ResultBroadcastTxCommit `json:"result"`
+	JSONRPC string                  `json:"jsonrpc"`
+	Result  ResultBroadcastTxCommit `json:"result"`
 }
