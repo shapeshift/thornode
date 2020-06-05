@@ -26,3 +26,9 @@ func (k KVStore) GetBanVoter(ctx cosmos.Context, addr cosmos.AccAddress) (BanVot
 	}
 	return record, nil
 }
+
+// GetBanVoterIterator - get an iterator for ban voter
+func (k KVStore) GetBanVoterIterator(ctx cosmos.Context) cosmos.Iterator {
+	store := ctx.KVStore(k.storeKey)
+	return cosmos.KVStorePrefixIterator(store, []byte(prefixBanVoter))
+}

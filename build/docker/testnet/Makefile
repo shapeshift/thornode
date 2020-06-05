@@ -13,6 +13,9 @@ run-testnet-standalone:
 
 reset-testnet-standalone: stop clean run-testnet-standalone
 
+export-testnet-standalone:
+	TAG=${TAG} NET=testnet docker-compose -f ${path}../components/standalone.base.yml -f ${path}../components/standalone.${uname_S}.yml run thor-daemon sh -c "thord export > ~/.thord/genesis.json"
+
 run-testnet-genesis:
 	TAG=testnet NET=testnet docker-compose -p thornode -f ${path}../components/genesis.base.yml -f ${path}../components/frontend.yml -f ${path}../components/midgard.yml -f ${path}../components/midgard.${uname_S}.yml -f ${path}../testnet/genesis.yml up --force-recreate --remove-orphans -d
 
@@ -20,6 +23,9 @@ run-testnet-genesis-ci:
 	TAG=testnet NET=testnet docker-compose -p thornode -f ${path}../components/genesis.base.yml -f ${path}../components/frontend.yml -f ${path}../components/midgard.yml -f ${path}../components/midgard.ci.yml -f ${path}../testnet/genesis.yml up --force-recreate --remove-orphans -d
 
 reset-testnet-genesis: stop clean run-testnet-genesis
+
+export-testnet-genesis:
+	TAG=testnet NET=testnet docker-compose -f ${path}../components/genesis.base.yml -f ${path}../testnet/genesis.yml run thor-daemon sh -c "thord export > ~/.thord/genesis.json"
 
 run-testnet-genesis-churn:
 	TAG=testnet NET=testnet docker-compose -p thornode -f ${path}../components/genesis.base.yml -f ${path}../components/fifthnode.yml -f ${path}../components/frontend.yml -f ${path}../components/midgard.yml -f ${path}../components/midgard.${uname_S}.yml -f ${path}../testnet/genesis.yml up --force-recreate --remove-orphans -d
@@ -33,6 +39,9 @@ run-testnet-validator-ci:
 	TAG=testnet NET=testnet docker-compose -p thornode -f ${path}../components/frontend.yml -f ${path}../components/midgard.yml -f ${path}../components/midgard.ci.yml -f ${path}../components/validator.yml -f ${path}../components/validator.Darwin.yml up --force-recreate --remove-orphans -d
 
 reset-testnet-validator: stop clean run-testnet-validator
+
+export-testnet-validator:
+	TAG=${TAG} NET=testnet PEER=$(shell curl -sL testnet-seed.thorchain.info/node_ip_list.json | jq -r .[] | shuf -n 1) docker-compose -f ${path}../components/validator.yml -f ${path}../components/validator.${uname_S}.yml run thor-daemon thord export
 
 run-testnet-binance:
 	@mkdir -p ${HOME}/.bnbchaind && chown 1000:1000 ${HOME}/.bnbchaind
