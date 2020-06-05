@@ -1,28 +1,41 @@
 package thorchain
 
 import (
+	"errors"
 	"fmt"
 
 	abci "github.com/tendermint/tendermint/abci/types"
 	tmtypes "github.com/tendermint/tendermint/types"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
-	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	"gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // GenesisState strcture that used to store the data THORNode put in genesis
 type GenesisState struct {
-	Pools               []Pool                   `json:"pools"`
-	Stakers             []Staker                 `json:"stakers"`
-	ObservedTxInVoters  ObservedTxVoters         `json:"observed_tx_in_voters"`
-	ObservedTxOutVoters ObservedTxVoters         `json:"observed_tx_out_voters"`
-	TxOuts              []TxOut                  `json:"txouts"`
-	NodeAccounts        NodeAccounts             `json:"node_accounts"`
-	CurrentEventID      int64                    `json:"current_event_id"`
-	Vaults              Vaults                   `json:"vaults"`
-	Gas                 map[string][]cosmos.Uint `json:"gas"`
-	Reserve             uint64                   `json:"reserve"`
+	Pools                []Pool                    `json:"pools"`
+	Stakers              []Staker                  `json:"stakers"`
+	ObservedTxInVoters   ObservedTxVoters          `json:"observed_tx_in_voters"`
+	ObservedTxOutVoters  ObservedTxVoters          `json:"observed_tx_out_voters"`
+	TxOuts               []TxOut                   `json:"txouts"`
+	NodeAccounts         NodeAccounts              `json:"node_accounts"`
+	Vaults               Vaults                    `json:"vaults"`
+	Gas                  map[string][]cosmos.Uint  `json:"gas"`
+	Reserve              uint64                    `json:"reserve"`
+	BanVoters            []BanVoter                `json:"ban_voters"`
+	LastSignedHeight     int64                     `json:"last_signed_height"`
+	LastChainHeights     map[common.Chain]int64    `json:"last_chain_heights"`
+	ReserveContributors  ReserveContributors       `json:"reserve_contributors"`
+	VaultData            VaultData                 `json:"vault_data"`
+	TssVoters            []TssVoter                `json:"tss_voters"`
+	TssKeysignFailVoters []TssKeysignFailVoter     `json:"tss_keysign_fail_voters"`
+	KeygenBlocks         []KeygenBlock             `json:"keygen_blocks"`
+	AllTxMarkers         map[string]TxMarkers      `json:"all_tx_markers"`
+	ErrataTxVoters       []ErrataTxVoter           `json:"errata_tx_voters"`
+	MsgSwaps             []MsgSwap                 `json:"msg_swaps"`
+	NetworkFees          []NetworkFee              `json:"network_fees"`
+	NetworkFeeVoters     []ObservedNetworkFeeVoter `json:"network_fee_voters"`
 }
 
 // NewGenesisState create a new instance of GenesisState
@@ -73,6 +86,43 @@ func ValidateGenesis(data GenesisState) error {
 			return fmt.Errorf("gas %s cannot have empty units", k)
 		}
 	}
+	for _, bv := range data.BanVoters {
+		if err := bv.IsValid(); err != nil {
+			return fmt.Errorf("invalid ban voter: %w", err)
+		}
+	}
+
+	if data.LastSignedHeight < 0 {
+		return errors.New("last signed height cannot be negative")
+	}
+	for c, h := range data.LastChainHeights {
+		if h < 0 {
+			return fmt.Errorf("invalid chain(%s) height", c.String())
+		}
+	}
+	for _, r := range data.ReserveContributors {
+		if err := r.IsValid(); err != nil {
+			return fmt.Errorf("invalid reserve contributor:%w", err)
+		}
+	}
+
+	for _, b := range data.KeygenBlocks {
+		for _, kb := range b.Keygens {
+			if err := kb.Valid(); err != nil {
+				return fmt.Errorf("invalid keygen: %w", err)
+			}
+		}
+	}
+	for _, item := range data.MsgSwaps {
+		if err := item.ValidateBasic(); err != nil {
+			return fmt.Errorf("invalid swap msg: %w", err)
+		}
+	}
+	for _, nf := range data.NetworkFees {
+		if err := nf.Validate(); err != nil {
+			return fmt.Errorf("invalid network fee: %w", err)
+		}
+	}
 
 	return nil
 }
@@ -80,15 +130,27 @@ func ValidateGenesis(data GenesisState) error {
 // DefaultGenesisState the default values THORNode put in the Genesis
 func DefaultGenesisState() GenesisState {
 	return GenesisState{
-		Pools:               []Pool{},
-		NodeAccounts:        NodeAccounts{},
-		CurrentEventID:      1,
-		TxOuts:              make([]TxOut, 0),
-		Stakers:             make([]Staker, 0),
-		Vaults:              make(Vaults, 0),
-		ObservedTxInVoters:  make(ObservedTxVoters, 0),
-		ObservedTxOutVoters: make(ObservedTxVoters, 0),
-		Gas:                 make(map[string][]cosmos.Uint, 0),
+		Pools:                []Pool{},
+		NodeAccounts:         NodeAccounts{},
+		TxOuts:               make([]TxOut, 0),
+		Stakers:              make([]Staker, 0),
+		Vaults:               make(Vaults, 0),
+		ObservedTxInVoters:   make(ObservedTxVoters, 0),
+		ObservedTxOutVoters:  make(ObservedTxVoters, 0),
+		Gas:                  make(map[string][]cosmos.Uint),
+		BanVoters:            make([]BanVoter, 0),
+		LastSignedHeight:     0,
+		LastChainHeights:     make(map[common.Chain]int64),
+		ReserveContributors:  ReserveContributors{},
+		VaultData:            NewVaultData(),
+		TssVoters:            make([]TssVoter, 0),
+		TssKeysignFailVoters: make([]TssKeysignFailVoter, 0),
+		KeygenBlocks:         make([]KeygenBlock, 0),
+		AllTxMarkers:         make(map[string]TxMarkers),
+		ErrataTxVoters:       make([]ErrataTxVoter, 0),
+		MsgSwaps:             make([]MsgSwap, 0),
+		NetworkFees:          make([]NetworkFee, 0),
+		NetworkFeeVoters:     make([]ObservedNetworkFeeVoter, 0),
 	}
 }
 
@@ -139,6 +201,10 @@ func InitGenesis(ctx cosmos.Context, keeper keeper.Keeper, data GenesisState) []
 		keeper.SetObservedTxOutVoter(ctx, voter)
 	}
 
+	for _, bv := range data.BanVoters {
+		keeper.SetBanVoter(ctx, bv)
+	}
+
 	for _, out := range data.TxOuts {
 		if err := keeper.SetTxOut(ctx, &out); err != nil {
 			ctx.Logger().Error("fail to save tx out during genesis", "error", err)
@@ -152,6 +218,72 @@ func InitGenesis(ctx cosmos.Context, keeper keeper.Keeper, data GenesisState) []
 			panic(err)
 		}
 		keeper.SetGas(ctx, asset, v)
+	}
+	if data.LastSignedHeight > 0 {
+		keeper.SetLastSignedHeight(ctx, data.LastSignedHeight)
+	}
+
+	for c, h := range data.LastChainHeights {
+		if err := keeper.SetLastChainHeight(ctx, c, h); err != nil {
+			panic(err)
+		}
+	}
+	if len(data.ReserveContributors) > 0 {
+		if err := keeper.SetReserveContributors(ctx, data.ReserveContributors); err != nil {
+			panic(err)
+		}
+	}
+	if err := keeper.SetVaultData(ctx, data.VaultData); err != nil {
+		panic(err)
+	}
+
+	for _, tv := range data.TssVoters {
+		if tv.Empty() {
+			continue
+		}
+		keeper.SetTssVoter(ctx, tv)
+	}
+	for _, item := range data.TssKeysignFailVoters {
+		if item.Empty() {
+			continue
+		}
+		keeper.SetTssKeysignFailVoter(ctx, item)
+	}
+
+	for _, item := range data.KeygenBlocks {
+		if item.IsEmpty() {
+			continue
+		}
+		if err := keeper.SetKeygenBlock(ctx, item); err != nil {
+			panic(err)
+		}
+	}
+
+	for hash, item := range data.AllTxMarkers {
+		if err := keeper.SetTxMarkers(ctx, hash, item); err != nil {
+			panic(err)
+		}
+	}
+	for _, item := range data.ErrataTxVoters {
+		if item.Empty() {
+			continue
+		}
+		keeper.SetErrataTxVoter(ctx, item)
+	}
+
+	for _, item := range data.MsgSwaps {
+		if err := keeper.SetSwapQueueItem(ctx, item); err != nil {
+			panic(err)
+		}
+	}
+	for _, nf := range data.NetworkFees {
+		if err := keeper.SaveNetworkFee(ctx, nf.Chain, nf); err != nil {
+			panic(err)
+		}
+	}
+
+	for _, nf := range data.NetworkFeeVoters {
+		keeper.SetObservedNetworkFeeVoter(ctx, nf)
 	}
 
 	if common.RuneAsset().Chain.Equals(common.THORChain) {
@@ -269,13 +401,121 @@ func ExportGenesis(ctx cosmos.Context, k keeper.Keeper) GenesisState {
 		gas[string(iterator.Key())] = g
 	}
 
+	banVoters := make([]BanVoter, 0)
+	iteratorBanVoters := k.GetBanVoterIterator(ctx)
+	defer iteratorBanVoters.Close()
+	for ; iteratorBanVoters.Valid(); iteratorBanVoters.Next() {
+		var bv BanVoter
+		k.Cdc().MustUnmarshalBinaryBare(iteratorBanVoters.Value(), &bv)
+		banVoters = append(banVoters, bv)
+	}
+
+	lastSignedHeight, err := k.GetLastSignedHeight(ctx)
+	if err != nil {
+		panic(err)
+	}
+
+	lastChainHeights, err := k.GetLastChainHeights(ctx)
+	if err != nil {
+		panic(err)
+	}
+
+	reserveContributors, err := k.GetReservesContributors(ctx)
+	if err != nil {
+		panic(err)
+	}
+
+	vaultData, err := k.GetVaultData(ctx)
+	if err != nil {
+		panic(err)
+	}
+
+	tssVoters := make([]TssVoter, 0)
+	iterTssVoter := k.GetTssVoterIterator(ctx)
+	defer iterTssVoter.Close()
+	for ; iterTssVoter.Valid(); iterTssVoter.Next() {
+		var tv TssVoter
+		k.Cdc().MustUnmarshalBinaryBare(iterTssVoter.Value(), &tv)
+		tssVoters = append(tssVoters, tv)
+	}
+
+	tssKeySignFailVoters := make([]TssKeysignFailVoter, 0)
+	iterTssKeysignFailVoter := k.GetTssKeysignFailVoterIterator(ctx)
+	defer iterTssKeysignFailVoter.Close()
+	for ; iterTssKeysignFailVoter.Valid(); iterTssKeysignFailVoter.Next() {
+		var t TssKeysignFailVoter
+		k.Cdc().MustUnmarshalBinaryBare(iterTssKeysignFailVoter.Value(), &t)
+		tssKeySignFailVoters = append(tssKeySignFailVoters, t)
+	}
+
+	keygenBlocks := make([]KeygenBlock, 0)
+	iterKeygenBlocks := k.GetKeygenBlockIterator(ctx)
+	for ; iterKeygenBlocks.Valid(); iterKeygenBlocks.Next() {
+		var kb KeygenBlock
+		k.Cdc().MustUnmarshalBinaryBare(iterKeygenBlocks.Value(), &kb)
+		keygenBlocks = append(keygenBlocks, kb)
+	}
+
+	allTxMarkers, err := k.GetAllTxMarkers(ctx)
+	if err != nil {
+		panic(err)
+	}
+
+	errataVoters := make([]ErrataTxVoter, 0)
+	iterErrata := k.GetErrataTxVoterIterator(ctx)
+	defer iterErrata.Close()
+	for ; iterErrata.Valid(); iterErrata.Next() {
+		var et ErrataTxVoter
+		k.Cdc().MustUnmarshalBinaryBare(iterErrata.Value(), &et)
+		errataVoters = append(errataVoters, et)
+	}
+
+	swapMsgs := make([]MsgSwap, 0)
+	iterMsgSwap := k.GetSwapQueueIterator(ctx)
+	defer iterMsgSwap.Close()
+	for ; iterMsgSwap.Valid(); iterMsgSwap.Next() {
+		var m MsgSwap
+		k.Cdc().MustUnmarshalBinaryBare(iterMsgSwap.Value(), &m)
+		swapMsgs = append(swapMsgs, m)
+	}
+
+	networkFees := make([]NetworkFee, 0)
+	iterNetworkFee := k.GetNetworkFeeIterator(ctx)
+	defer iterNetworkFee.Close()
+	for ; iterNetworkFee.Valid(); iterNetworkFee.Next() {
+		var nf NetworkFee
+		k.Cdc().MustUnmarshalBinaryBare(iterNetworkFee.Value(), &nf)
+		networkFees = append(networkFees, nf)
+	}
+
+	networkFeeVoters := make([]ObservedNetworkFeeVoter, 0)
+	iterNetworkFeeVoter := k.GetObservedNetworkFeeVoterIterator(ctx)
+	defer iterNetworkFeeVoter.Close()
+	for ; iterNetworkFeeVoter.Valid(); iterNetworkFeeVoter.Next() {
+		var nf ObservedNetworkFeeVoter
+		k.Cdc().MustUnmarshalBinaryBare(iterNetworkFeeVoter.Value(), &nf)
+		networkFeeVoters = append(networkFeeVoters, nf)
+	}
 	return GenesisState{
-		Pools:               pools,
-		NodeAccounts:        nodeAccounts,
-		Stakers:             stakers,
-		ObservedTxInVoters:  observedTxInVoters,
-		ObservedTxOutVoters: observedTxOutVoters,
-		TxOuts:              outs,
-		Gas:                 gas,
+		Pools:                pools,
+		NodeAccounts:         nodeAccounts,
+		Stakers:              stakers,
+		ObservedTxInVoters:   observedTxInVoters,
+		ObservedTxOutVoters:  observedTxOutVoters,
+		TxOuts:               outs,
+		Gas:                  gas,
+		BanVoters:            banVoters,
+		LastSignedHeight:     lastSignedHeight,
+		LastChainHeights:     lastChainHeights,
+		ReserveContributors:  reserveContributors,
+		VaultData:            vaultData,
+		TssVoters:            tssVoters,
+		TssKeysignFailVoters: tssKeySignFailVoters,
+		KeygenBlocks:         keygenBlocks,
+		AllTxMarkers:         allTxMarkers,
+		ErrataTxVoters:       errataVoters,
+		MsgSwaps:             swapMsgs,
+		NetworkFees:          networkFees,
+		NetworkFeeVoters:     networkFeeVoters,
 	}
 }

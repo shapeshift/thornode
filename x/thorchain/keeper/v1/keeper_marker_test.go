@@ -31,6 +31,10 @@ func (s *KeeperTxMarkerSuite) TestTxMarker(c *C) {
 	c.Assert(marks[0].Height, Equals, mark2.Height)
 	c.Assert(marks[0].Memo, Equals, mark2.Memo)
 
+	markers, err := k.GetAllTxMarkers(ctx)
+	c.Assert(err, IsNil)
+	c.Assert(markers, NotNil)
+
 	c.Assert(k.SetTxMarkers(ctx, "hash", nil), IsNil)
 	marks, err = k.ListTxMarker(ctx, "hash")
 	c.Assert(err, IsNil)
