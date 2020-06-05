@@ -124,6 +124,10 @@ func (vm *VaultMgrV1) EndBlock(ctx cosmos.Context, mgr Manager, constAccessor co
 					}
 				}
 
+				if pk.Equals(vault.PubKey) {
+					continue
+				}
+
 				// get address of asgard pubkey
 				addr, err := pk.GetAddress(coin.Asset.Chain)
 				if err != nil {
