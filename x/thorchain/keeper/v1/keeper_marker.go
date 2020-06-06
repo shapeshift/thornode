@@ -2,6 +2,8 @@ package keeperv1
 
 import (
 	"errors"
+	"fmt"
+	"strings"
 
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
@@ -54,4 +56,22 @@ func (k KVStore) AppendTxMarker(ctx cosmos.Context, hash string, mark TxMarker) 
 	key := k.GetKey(ctx, prefixSupportedTxMarker, hash)
 	store.Set([]byte(key), k.cdc.MustMarshalBinaryBare(marks))
 	return nil
+}
+
+func (k KVStore) GetAllTxMarkers(ctx cosmos.Context) (map[string]TxMarkers, error) {
+	store := ctx.KVStore(k.storeKey)
+	result := make(map[string]TxMarkers)
+	iter := cosmos.KVStorePrefixIterator(store, []byte(prefixSupportedTxMarker))
+	defer iter.Close()
+	for ; iter.Valid(); iter.Next() {
+		var marker TxMarkers
+		if err := k.cdc.UnmarshalBinaryBare(iter.Value(), &marker); err != nil {
+			return nil, fmt.Errorf("fail to unmarshal tx marker: %w", err)
+		}
+
+		strKey := string(iter.Key())
+		k := strings.TrimPrefix(strKey, string(prefixSupportedTxMarker+"/"))
+		result[k] = marker
+	}
+	return result, nil
 }

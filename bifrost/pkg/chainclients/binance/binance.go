@@ -473,9 +473,10 @@ func (b *Binance) BroadcastTx(tx stypes.TxOutItem, hexTx []byte) error {
 
 	b.logger.Debug().Str("body", string(body)).Msg("broadcast response from Binance Chain")
 	var commit stypes.BroadcastResult
-	err = json.Unmarshal(body, &commit)
+	err = b.cdc.UnmarshalJSON(body, &commit)
 	if err != nil {
 		b.logger.Error().Err(err).Msgf("fail unmarshal commit: %s", string(body))
+		return fmt.Errorf("fail to unmarshal commit: %w", err)
 	}
 	// check for any failure logs
 	// Error code 4 is used for bad account sequence number. We expect to

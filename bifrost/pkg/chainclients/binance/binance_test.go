@@ -141,6 +141,58 @@ const broadcastSuccess string = `{
 	}]
 }`
 
+const broadcastSuccess2 string = `{
+  "jsonrpc": "2.0",
+  "id": "",
+  "result": {
+    "check_tx": {
+      "log": "Msg 0: ",
+      "events": [
+        {
+          "attributes": [
+            {
+              "key": "c2VuZGVy",
+              "value": "dGJuYjE4ZWttZm12OWtsNWxjdXh3M3d1c2x1emozcDRrY3g2ZzQ4aDJ2YQ=="
+            },
+            {
+              "key": "cmVjaXBpZW50",
+              "value": "dGJuYjFreTRucGE5cDZ2OW53Z2t0cnE4djRwcHN4OHhneDZjangwbnZyMA=="
+            },
+            {
+              "key": "YWN0aW9u",
+              "value": "c2VuZA=="
+            }
+          ]
+        }
+      ]
+    },
+    "deliver_tx": {
+      "log": "Msg 0: ",
+      "events": [
+        {
+          "attributes": [
+            {
+              "key": "c2VuZGVy",
+              "value": "dGJuYjE4ZWttZm12OWtsNWxjdXh3M3d1c2x1emozcDRrY3g2ZzQ4aDJ2YQ=="
+            },
+            {
+              "key": "cmVjaXBpZW50",
+              "value": "dGJuYjFreTRucGE5cDZ2OW53Z2t0cnE4djRwcHN4OHhneDZjangwbnZyMA=="
+            },
+            {
+              "key": "YWN0aW9u",
+              "value": "c2VuZA=="
+            }
+          ]
+        }
+      ]
+    },
+    "hash": "9E69AB2BFF24B83A982AA4B7833304508461E0834E1F60BEE70597F5BAE11916",
+    "height": "86139301"
+  }
+}
+`
+
 func (s *BinancechainSuite) TestGetHeight(c *C) {
 	server := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		c.Logf("requestUri:%s", req.RequestURI)
@@ -168,13 +220,20 @@ func (s *BinancechainSuite) TestGetHeight(c *C) {
 }
 
 func (s *BinancechainSuite) TestSignTx(c *C) {
+	count := 0
 	server := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		if strings.HasPrefix(req.RequestURI, "/abci_query?") {
 			if _, err := rw.Write([]byte(accountInfo)); err != nil {
 				c.Error(err)
 			}
 		} else if strings.HasPrefix(req.RequestURI, "/broadcast_tx_commit") {
-			if _, err := rw.Write([]byte(broadcastSuccess)); err != nil {
+			count++
+			var response string = broadcastSuccess
+			if count > 1 {
+				response = broadcastSuccess2
+			}
+			_, err := rw.Write([]byte(response))
+			if err != nil {
 				c.Error(err)
 			}
 		} else if strings.HasPrefix(req.RequestURI, "/status") {
@@ -223,6 +282,9 @@ func (s *BinancechainSuite) TestSignTx(c *C) {
 	r, err := b2.SignTx(out, 1440)
 	c.Assert(err, IsNil)
 	c.Assert(r, NotNil)
+
+	err = b2.BroadcastTx(out, r)
+	c.Assert(err, IsNil)
 
 	err = b2.BroadcastTx(out, r)
 	c.Assert(err, IsNil)

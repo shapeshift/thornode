@@ -1,6 +1,8 @@
 package keeperv1
 
 import (
+	"testing"
+
 	. "gopkg.in/check.v1"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -16,6 +18,8 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
+
+func TestPackage(t *testing.T) { TestingT(t) }
 
 func FundModule(c *C, ctx cosmos.Context, k KVStore, name string, amt uint64) {
 	coin, err := common.NewCoin(common.RuneNative, cosmos.NewUint(amt*common.One)).Native()

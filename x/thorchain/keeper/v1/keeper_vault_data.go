@@ -3,7 +3,7 @@ package keeperv1
 import (
 	"fmt"
 
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 // GetVaultData retrieve vault data from key value store
