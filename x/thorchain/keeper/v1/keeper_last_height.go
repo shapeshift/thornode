@@ -2,9 +2,10 @@ package keeperv1
 
 import (
 	"fmt"
+	"strings"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 func (k KVStore) SetLastSignedHeight(ctx cosmos.Context, height int64) {
@@ -54,4 +55,24 @@ func (k KVStore) GetLastChainHeight(ctx cosmos.Context, chain common.Chain) (int
 		return height, dbError(ctx, "Unmarshal: last heights", err)
 	}
 	return height, nil
+}
+
+// GetLastChainHeightIterator get the iterator for last chain height
+func (k KVStore) GetLastChainHeights(ctx cosmos.Context) (map[common.Chain]int64, error) {
+	store := ctx.KVStore(k.storeKey)
+	iter := cosmos.KVStorePrefixIterator(store, []byte(prefixLastChainHeight))
+	result := make(map[common.Chain]int64)
+	defer iter.Close()
+	for ; iter.Valid(); iter.Next() {
+		key := string(iter.Key())
+		c := strings.TrimPrefix(key, string(prefixLastChainHeight+"/"))
+		chain, err := common.NewChain(c)
+		if err != nil {
+			return nil, fmt.Errorf("fail to parse chain: %w", err)
+		}
+		var height int64
+		k.cdc.MustUnmarshalBinaryBare(iter.Value(), &height)
+		result[chain] = height
+	}
+	return result, nil
 }

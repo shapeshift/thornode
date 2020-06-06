@@ -22,6 +22,10 @@ func NewObserverMgrV1() *ObserverMgrV1 {
 }
 
 func (om *ObserverMgrV1) BeginBlock() {
+	om.reset()
+}
+
+func (om *ObserverMgrV1) reset() {
 	om.chains = make(map[common.Chain][]cosmos.AccAddress, 0)
 }
 
@@ -76,4 +80,5 @@ func (om *ObserverMgrV1) EndBlock(ctx cosmos.Context, keeper keeper.Keeper) {
 	if err := keeper.AddObservingAddresses(ctx, om.List()); err != nil {
 		ctx.Logger().Error("fail to append observers", "error", err)
 	}
+	om.reset()
 }

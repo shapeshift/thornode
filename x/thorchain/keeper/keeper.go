@@ -66,6 +66,7 @@ type KeeperLastHeight interface {
 	GetLastSignedHeight(ctx cosmos.Context) (int64, error)
 	SetLastChainHeight(ctx cosmos.Context, chain common.Chain, height int64) error
 	GetLastChainHeight(ctx cosmos.Context, chain common.Chain) (int64, error)
+	GetLastChainHeights(ctx cosmos.Context) (map[common.Chain]int64, error)
 }
 
 type KeeperStaker interface {
@@ -170,6 +171,7 @@ type KeeperKeygen interface {
 type KeeperBanVoter interface {
 	SetBanVoter(_ cosmos.Context, _ BanVoter)
 	GetBanVoter(_ cosmos.Context, _ cosmos.AccAddress) (BanVoter, error)
+	GetBanVoterIterator(_ cosmos.Context) cosmos.Iterator
 }
 
 type KeeperRagnarok interface {
@@ -188,6 +190,7 @@ type KeeperTxMarker interface {
 	ListTxMarker(ctx cosmos.Context, hash string) (TxMarkers, error)
 	SetTxMarkers(ctx cosmos.Context, hash string, marks TxMarkers) error
 	AppendTxMarker(ctx cosmos.Context, hash string, mark TxMarker) error
+	GetAllTxMarkers(ctx cosmos.Context) (map[string]TxMarkers, error)
 }
 
 type KeeperErrataTx interface {
