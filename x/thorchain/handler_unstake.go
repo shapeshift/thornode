@@ -102,7 +102,7 @@ func (h UnstakeHandler) handle(ctx cosmos.Context, msg MsgSetUnStake, version se
 	memo := ""
 	if msg.Tx.ID.Equals(common.BlankTxID) {
 		// tx id is blank, must be triggered by the ragnarok protocol
-		memo = NewRagnarokMemo(ctx.BlockHeight()).String()
+		memo = NewRagnarokMemo(common.BlockHeight(ctx)).String()
 	}
 	toi := &TxOutItem{
 		Chain:     msg.Asset.Chain,

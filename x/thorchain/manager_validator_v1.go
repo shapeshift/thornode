@@ -39,7 +39,7 @@ func NewValidatorMgrV1(k keeper.Keeper, vaultMgr VaultManager, txOutStore TxOutS
 
 // BeginBlock when block begin
 func (vm *validatorMgrV1) BeginBlock(ctx cosmos.Context, constAccessor constants.ConstantValues) error {
-	height := ctx.BlockHeight()
+	height := common.BlockHeight(ctx)
 	if height == genesisBlockHeight {
 		if err := vm.setupValidatorNodes(ctx, height, constAccessor); err != nil {
 			ctx.Logger().Error("fail to setup validator nodes", "error", err)
@@ -97,9 +97,9 @@ func (vm *validatorMgrV1) BeginBlock(ctx cosmos.Context, constAccessor constants
 
 	// calculate if we need to retry a churn because we are overdue for a
 	// successful one
-	retryChurn := ctx.BlockHeight()-lastHeight > rotatePerBlockHeight && (ctx.BlockHeight()-lastHeight+rotatePerBlockHeight)%rotateRetryBlocks == 0
+	retryChurn := common.BlockHeight(ctx)-lastHeight > rotatePerBlockHeight && (common.BlockHeight(ctx)-lastHeight+rotatePerBlockHeight)%rotateRetryBlocks == 0
 
-	if ctx.BlockHeight()%rotatePerBlockHeight == 0 || retryChurn {
+	if common.BlockHeight(ctx)%rotatePerBlockHeight == 0 || retryChurn {
 		if retryChurn {
 			ctx.Logger().Info("Checking for node account rotation... (retry)")
 		} else {
@@ -134,7 +134,7 @@ func (vm *validatorMgrV1) BeginBlock(ctx cosmos.Context, constAccessor constants
 
 // EndBlock when block end
 func (vm *validatorMgrV1) EndBlock(ctx cosmos.Context, mgr Manager, constAccessor constants.ConstantValues) []abci.ValidatorUpdate {
-	height := ctx.BlockHeight()
+	height := common.BlockHeight(ctx)
 	activeNodes, err := vm.k.ListActiveNodeAccounts(ctx)
 	if err != nil {
 		ctx.Logger().Error("fail to get all active nodes", "error", err)
@@ -165,7 +165,7 @@ func (vm *validatorMgrV1) EndBlock(ctx cosmos.Context, mgr Manager, constAccesso
 	}
 	minimumNodesForBFT := constAccessor.GetInt64Value(constants.MinimumNodesForBFT)
 	nodesAfterChange := len(activeNodes) + len(newNodes) - len(removedNodes)
-	if (len(activeNodes) >= int(minimumNodesForBFT) && nodesAfterChange < int(minimumNodesForBFT)) || (artificialRagnarokBlockHeight > 0 && ctx.BlockHeight() >= artificialRagnarokBlockHeight) {
+	if (len(activeNodes) >= int(minimumNodesForBFT) && nodesAfterChange < int(minimumNodesForBFT)) || (artificialRagnarokBlockHeight > 0 && common.BlockHeight(ctx) >= artificialRagnarokBlockHeight) {
 		// THORNode don't have enough validators for BFT
 
 		// Check we're not migrating funds
@@ -321,10 +321,10 @@ func (vm *validatorMgrV1) payNodeAccountBondAward(ctx cosmos.Context, na NodeAcc
 	}
 
 	// Find number of blocks they have been an active node
-	totalActiveBlocks := ctx.BlockHeight() - na.ActiveBlockHeight
+	totalActiveBlocks := common.BlockHeight(ctx) - na.ActiveBlockHeight
 
 	// find number of blocks they were well behaved (ie active - slash points)
-	earnedBlocks := na.CalcBondUnits(ctx.BlockHeight(), slashPts)
+	earnedBlocks := na.CalcBondUnits(common.BlockHeight(ctx), slashPts)
 
 	// calc number of rune they are awarded
 	reward := vault.CalcNodeRewards(earnedBlocks)
@@ -359,7 +359,7 @@ func (vm *validatorMgrV1) processRagnarok(ctx cosmos.Context, mgr Manager, const
 	}
 
 	if ragnarokHeight == 0 {
-		ragnarokHeight = ctx.BlockHeight()
+		ragnarokHeight = common.BlockHeight(ctx)
 		vm.k.SetRagnarokBlockHeight(ctx, ragnarokHeight)
 		if err := vm.ragnarokProtocolStage1(ctx, mgr); err != nil {
 			return fmt.Errorf("fail to execute ragnarok protocol step 1: %w", err)
@@ -374,8 +374,8 @@ func (vm *validatorMgrV1) processRagnarok(ctx cosmos.Context, mgr Manager, const
 	if migrateInterval < 0 || err != nil {
 		migrateInterval = constAccessor.GetInt64Value(constants.FundMigrationInterval)
 	}
-	if (ctx.BlockHeight()-ragnarokHeight)%migrateInterval == 0 {
-		nth := (ctx.BlockHeight() - ragnarokHeight) / migrateInterval
+	if (common.BlockHeight(ctx)-ragnarokHeight)%migrateInterval == 0 {
+		nth := (common.BlockHeight(ctx) - ragnarokHeight) / migrateInterval
 		err := vm.ragnarokProtocolStage2(ctx, nth, mgr, constAccessor)
 		if err != nil {
 			ctx.Logger().Error("fail to execute ragnarok protocol step 2", "error", err)
@@ -487,7 +487,7 @@ func (vm *validatorMgrV1) ragnarokReserve(ctx cosmos.Context, nth int64, mgr Man
 			ToAddress: contrib.Address,
 			InHash:    common.BlankTxID,
 			Coin:      common.NewCoin(common.RuneAsset(), amt),
-			Memo:      NewRagnarokMemo(ctx.BlockHeight()).String(),
+			Memo:      NewRagnarokMemo(common.BlockHeight(ctx)).String(),
 		}
 		_, err = vm.txOutStore.TryAddTxOutItem(ctx, mgr, txOutItem)
 		if err != nil {
@@ -539,7 +539,7 @@ func (vm *validatorMgrV1) ragnarokBond(ctx cosmos.Context, nth int64, mgr Manage
 			ToAddress:  na.BondAddress,
 			InHash:     common.BlankTxID,
 			Coin:       common.NewCoin(common.RuneAsset(), amt),
-			Memo:       NewRagnarokMemo(ctx.BlockHeight()).String(),
+			Memo:       NewRagnarokMemo(common.BlockHeight(ctx)).String(),
 			ModuleName: BondName,
 		}
 		ok, err := vm.txOutStore.TryAddTxOutItem(ctx, mgr, txOutItem)
@@ -689,7 +689,7 @@ func (vm *validatorMgrV1) RequestYggReturn(ctx cosmos.Context, node NodeAccount,
 				InHash:      common.BlankTxID,
 				VaultPubKey: ygg.PubKey,
 				Coin:        common.NewCoin(common.RuneAsset(), cosmos.ZeroUint()),
-				Memo:        NewYggdrasilReturn(ctx.BlockHeight()).String(),
+				Memo:        NewYggdrasilReturn(common.BlockHeight(ctx)).String(),
 			}
 			// yggdrasil- will not set coin field here, when signer see a TxOutItem that has memo "yggdrasil-" it will query the chain
 			// and find out all the remaining assets , and fill in the field
@@ -756,9 +756,9 @@ func (vm *validatorMgrV1) setupValidatorNodes(ctx cosmos.Context, height int64, 
 	}
 	for idx, item := range activeCandidateNodes {
 		if int64(idx) < desireValidatorSet {
-			item.UpdateStatus(NodeActive, ctx.BlockHeight())
+			item.UpdateStatus(NodeActive, common.BlockHeight(ctx))
 		} else {
-			item.UpdateStatus(NodeStandby, ctx.BlockHeight())
+			item.UpdateStatus(NodeStandby, common.BlockHeight(ctx))
 		}
 		if err := vm.k.SetNodeAccount(ctx, item); err != nil {
 			return fmt.Errorf("fail to save node account: %w", err)
@@ -800,7 +800,7 @@ func (vm *validatorMgrV1) findBadActors(ctx cosmos.Context) (NodeAccounts, error
 			continue
 		}
 
-		age := cosmos.NewDecWithPrec(ctx.BlockHeight()-na.StatusSince, 5)
+		age := cosmos.NewDecWithPrec(common.BlockHeight(ctx)-na.StatusSince, 5)
 		if age.LT(cosmos.NewDecWithPrec(720, 5)) {
 			// this node account is too new (1 hour) to be considered for removal
 			continue
@@ -859,7 +859,7 @@ func (vm *validatorMgrV1) findOldActor(ctx cosmos.Context) (NodeAccount, error) 
 
 	// TODO: return if we're at risk of loosing BTF
 
-	na.StatusSince = ctx.BlockHeight() // set the start status age to "now"
+	na.StatusSince = common.BlockHeight(ctx) // set the start status age to "now"
 	for _, n := range nas {
 		if n.StatusSince < na.StatusSince {
 			na = n
@@ -873,7 +873,7 @@ func (vm *validatorMgrV1) findOldActor(ctx cosmos.Context) (NodeAccount, error) 
 func (vm *validatorMgrV1) markActor(ctx cosmos.Context, na NodeAccount, reason string) error {
 	if !na.IsEmpty() && na.LeaveHeight == 0 {
 		ctx.Logger().Info(fmt.Sprintf("Marked Validator to be churned out %s: %s", na.NodeAddress, reason))
-		na.LeaveHeight = ctx.BlockHeight()
+		na.LeaveHeight = common.BlockHeight(ctx)
 		return vm.k.SetNodeAccount(ctx, na)
 	}
 	return nil
@@ -881,7 +881,7 @@ func (vm *validatorMgrV1) markActor(ctx cosmos.Context, na NodeAccount, reason s
 
 // Mark an old actor to be churned out
 func (vm *validatorMgrV1) markOldActor(ctx cosmos.Context, rate int64) error {
-	if ctx.BlockHeight()%rate == 0 {
+	if common.BlockHeight(ctx)%rate == 0 {
 		na, err := vm.findOldActor(ctx)
 		if err != nil {
 			return err
@@ -895,7 +895,7 @@ func (vm *validatorMgrV1) markOldActor(ctx cosmos.Context, rate int64) error {
 
 // Mark a bad actor to be churned out
 func (vm *validatorMgrV1) markBadActor(ctx cosmos.Context, rate int64) error {
-	if ctx.BlockHeight()%rate == 0 {
+	if common.BlockHeight(ctx)%rate == 0 {
 		nas, err := vm.findBadActors(ctx)
 		if err != nil {
 			return err
@@ -925,7 +925,7 @@ func (vm *validatorMgrV1) markReadyActors(ctx cosmos.Context, constAccessor cons
 
 	// check all ready and standby nodes are in "ready" state (upgrade/downgrade as needed)
 	for _, na := range append(standby, ready...) {
-		na.UpdateStatus(NodeReady, ctx.BlockHeight()) // everyone starts with the benefit of the doubt
+		na.UpdateStatus(NodeReady, common.BlockHeight(ctx)) // everyone starts with the benefit of the doubt
 		// TODO: check node is up to date on binance, etc
 		// must have made an observation that matched 2/3rds within the last 5 blocks
 		// We do not need to check thorchain is up to date because keygen will
@@ -933,21 +933,21 @@ func (vm *validatorMgrV1) markReadyActors(ctx cosmos.Context, constAccessor cons
 
 		// Check version number is still supported
 		if na.Version.LT(minVersion) {
-			na.UpdateStatus(NodeStandby, ctx.BlockHeight())
+			na.UpdateStatus(NodeStandby, common.BlockHeight(ctx))
 		}
 
 		if vm.k.RagnarokInProgress(ctx) {
-			na.UpdateStatus(NodeStandby, ctx.BlockHeight())
+			na.UpdateStatus(NodeStandby, common.BlockHeight(ctx))
 		}
 
 		// Check if they've requested to leave
 		if na.RequestedToLeave {
-			na.UpdateStatus(NodeStandby, ctx.BlockHeight())
+			na.UpdateStatus(NodeStandby, common.BlockHeight(ctx))
 		}
 
 		// Check that the node account has an IP address
 		if net.ParseIP(na.IPAddress) == nil {
-			na.UpdateStatus(NodeStandby, ctx.BlockHeight())
+			na.UpdateStatus(NodeStandby, common.BlockHeight(ctx))
 		}
 
 		// ensure we have enough rune
@@ -956,12 +956,12 @@ func (vm *validatorMgrV1) markReadyActors(ctx cosmos.Context, constAccessor cons
 			minBond = constAccessor.GetInt64Value(constants.MinimumBondInRune)
 		}
 		if na.Bond.LT(cosmos.NewUint(uint64(minBond))) {
-			na.UpdateStatus(NodeStandby, ctx.BlockHeight())
+			na.UpdateStatus(NodeStandby, common.BlockHeight(ctx))
 		}
 
 		// ensure banned nodes can't get churned in again
 		if na.ForcedToLeave {
-			na.UpdateStatus(NodeDisabled, ctx.BlockHeight())
+			na.UpdateStatus(NodeDisabled, common.BlockHeight(ctx))
 		}
 
 		if err := vm.k.SetNodeAccount(ctx, na); err != nil {
@@ -1015,7 +1015,7 @@ func (vm *validatorMgrV1) nextVaultNodeAccounts(ctx cosmos.Context, targetCount 
 		return active[i].LeaveHeight < active[j].LeaveHeight
 	})
 
-	toRemove := findCountToRemove(ctx.BlockHeight(), active)
+	toRemove := findCountToRemove(common.BlockHeight(ctx), active)
 	if toRemove > 0 {
 		rotation = true
 		active = active[toRemove:]

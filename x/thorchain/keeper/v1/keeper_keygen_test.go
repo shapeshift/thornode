@@ -16,7 +16,7 @@ func (s *KeeperKeygenSuite) TestKeeperKeygen(c *C) {
 
 	keygenBlock := NewKeygenBlock(1)
 	keygenMembers := common.PubKeys{GetRandomPubKey(), GetRandomPubKey(), GetRandomPubKey()}
-	keygen, err := NewKeygen(ctx.BlockHeight(), keygenMembers, AsgardKeygen)
+	keygen, err := NewKeygen(common.BlockHeight(ctx), keygenMembers, AsgardKeygen)
 	c.Assert(err, IsNil)
 	c.Assert(keygen.IsEmpty(), Equals, false)
 	keygenBlock.Keygens = append(keygenBlock.Keygens, keygen)

@@ -100,7 +100,7 @@ func (h TssKeysignHandler) handleV1(ctx cosmos.Context, msg MsgTssKeysignFail, v
 	}
 
 	if voter.Height == 0 {
-		voter.Height = ctx.BlockHeight()
+		voter.Height = common.BlockHeight(ctx)
 		h.keeper.SetTssKeysignFailVoter(ctx, voter)
 
 		constAccessor := constants.GetConstantValues(version)
@@ -122,7 +122,7 @@ func (h TssKeysignHandler) handleV1(ctx cosmos.Context, msg MsgTssKeysignFail, v
 		h.mgr.Slasher().DecSlashPoints(ctx, observeSlashPoints, voter.Signers...)
 		return &cosmos.Result{}, nil
 	}
-	if voter.Height == ctx.BlockHeight() {
+	if voter.Height == common.BlockHeight(ctx) {
 		h.mgr.Slasher().DecSlashPoints(ctx, observeSlashPoints, msg.Signer)
 	}
 
