@@ -16,6 +16,7 @@ import (
 	"github.com/spf13/cobra"
 	abci "github.com/tendermint/tendermint/abci/types"
 
+	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/constants"
 
 	"gitlab.com/thorchain/thornode/x/thorchain/client/cli"
@@ -174,7 +175,7 @@ func (am AppModule) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.V
 		newPoolCycle = constantValues.GetInt64Value(constants.NewPoolCycle)
 	}
 	// Enable a pool every newPoolCycle
-	if ctx.BlockHeight()%newPoolCycle == 0 {
+	if common.BlockHeight(ctx)%newPoolCycle == 0 {
 		if err := enableNextPool(ctx, am.keeper, am.mgr.EventMgr()); err != nil {
 			ctx.Logger().Error("Unable to enable a pool", "error", err)
 		}

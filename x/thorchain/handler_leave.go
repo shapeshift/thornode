@@ -78,7 +78,7 @@ func (h LeaveHandler) handle(ctx cosmos.Context, msg MsgLeave, version semver.Ve
 
 	if nodeAcc.Status == NodeActive {
 		if nodeAcc.LeaveHeight == 0 {
-			nodeAcc.LeaveHeight = ctx.BlockHeight()
+			nodeAcc.LeaveHeight = common.BlockHeight(ctx)
 		}
 	} else {
 		// NOTE: there is an edge case, where the first node doesn't have a

@@ -110,7 +110,7 @@ func fetchMemo(ctx cosmos.Context, constAccessor constants.ConstantValues, keepe
 	if len(marks) > 0 {
 		// filter out expired tx markers
 		period := constAccessor.GetInt64Value(constants.SigningTransactionPeriod) * 3
-		marks = marks.FilterByMinHeight(ctx.BlockHeight() - period)
+		marks = marks.FilterByMinHeight(common.BlockHeight(ctx) - period)
 
 		// if we still have a marker, add the memo
 		if len(marks) > 0 {
