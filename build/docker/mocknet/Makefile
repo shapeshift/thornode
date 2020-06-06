@@ -15,6 +15,9 @@ reset-mocknet-standalone: stop clean run-mocknet-standalone
 export-mocknet-standalone:
 	TAG=mocknet NET=mocknet docker-compose -f ${path}../components/standalone.base.yml -f ${path}../mocknet/standalone.yml -f ${path}../components/standalone.${uname_S}.yml run thor-daemon sh -c "thord export > ~/.thord/genesis.json"
 
+unsafe-reset-all-mocknet-standalone:
+	TAG=mocknet NET=mocknet docker-compose -f ${path}../components/standalone.base.yml -f ${path}../mocknet/standalone.yml -f ${path}../components/standalone.${uname_S}.yml run thor-daemon sh -c "thord unsafe-reset-a
+ 
 run-mocknet-genesis:
 	TAG=mocknet NET=mocknet docker-compose -p thornode -f ${path}../components/genesis.base.yml -f ${path}../components/frontend.yml -f ${path}../components/midgard.yml -f ${path}../components/midgard.${uname_S}.yml -f ${path}../components/mock-binance.yml -f ${path}../mocknet/genesis.yml up --force-recreate --remove-orphans -d
 
@@ -40,4 +43,7 @@ run-mocknet-validator:
 reset-mocknet-validator: stop clean run-mocknet-validator
 
 export-mocknet-validator:
-	TAG=mocknet NET=mocknet docker-compose -p thornode -f ${path}../components/frontend.yml -f ${path}../components/midgard.yml -f ${path}../components/midgard.${uname_S}.yml -f ${path}../components/validator.yml -f ${path}../components/validator.${uname_S}.yml up --force-recreate --remove-orphans -d
+	TAG=mocknet NET=mocknet docker-compose -f ${path}../components/validator.yml -f ${path}../components/validator.${uname_S}.yml run thor-daemon sh -c "thord export > ~/.thord/genesis.json"
+
+unsafe-reset-all-mocknet-validator:
+	TAG=mocknet NET=mocknet docker-compose -f ${path}../components/validator.yml -f ${path}../components/validator.${uname_S}.yml run thor-daemon sh -c "thord unsafe-reset-all"

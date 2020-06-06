@@ -3,6 +3,7 @@ package thorchain
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	abci "github.com/tendermint/tendermint/abci/types"
 	tmtypes "github.com/tendermint/tendermint/types"
@@ -25,7 +26,7 @@ type GenesisState struct {
 	Reserve              uint64                    `json:"reserve"`
 	BanVoters            []BanVoter                `json:"ban_voters"`
 	LastSignedHeight     int64                     `json:"last_signed_height"`
-	LastChainHeights     map[common.Chain]int64    `json:"last_chain_heights"`
+	LastChainHeights     map[string]int64          `json:"last_chain_heights"`
 	ReserveContributors  ReserveContributors       `json:"reserve_contributors"`
 	VaultData            VaultData                 `json:"vault_data"`
 	TssVoters            []TssVoter                `json:"tss_voters"`
@@ -97,7 +98,7 @@ func ValidateGenesis(data GenesisState) error {
 	}
 	for c, h := range data.LastChainHeights {
 		if h < 0 {
-			return fmt.Errorf("invalid chain(%s) height", c.String())
+			return fmt.Errorf("invalid chain(%s) height", c)
 		}
 	}
 	for _, r := range data.ReserveContributors {
@@ -140,7 +141,7 @@ func DefaultGenesisState() GenesisState {
 		Gas:                  make(map[string][]cosmos.Uint),
 		BanVoters:            make([]BanVoter, 0),
 		LastSignedHeight:     0,
-		LastChainHeights:     make(map[common.Chain]int64),
+		LastChainHeights:     make(map[string]int64),
 		ReserveContributors:  ReserveContributors{},
 		VaultData:            NewVaultData(),
 		TssVoters:            make([]TssVoter, 0),
@@ -213,7 +214,8 @@ func InitGenesis(ctx cosmos.Context, keeper keeper.Keeper, data GenesisState) []
 	}
 
 	for k, v := range data.Gas {
-		asset, err := common.NewAsset(k)
+		keyParts := strings.Split(k, "/")
+		asset, err := common.NewAsset(keyParts[len(keyParts)-1])
 		if err != nil {
 			panic(err)
 		}
@@ -224,7 +226,11 @@ func InitGenesis(ctx cosmos.Context, keeper keeper.Keeper, data GenesisState) []
 	}
 
 	for c, h := range data.LastChainHeights {
-		if err := keeper.SetLastChainHeight(ctx, c, h); err != nil {
+		chain, err := common.NewChain(c)
+		if err != nil {
+			panic(err)
+		}
+		if err := keeper.SetLastChainHeight(ctx, chain, h); err != nil {
 			panic(err)
 		}
 	}
@@ -415,9 +421,13 @@ func ExportGenesis(ctx cosmos.Context, k keeper.Keeper) GenesisState {
 		panic(err)
 	}
 
-	lastChainHeights, err := k.GetLastChainHeights(ctx)
+	chainHeights, err := k.GetLastChainHeights(ctx)
 	if err != nil {
 		panic(err)
+	}
+	lastChainHeights := make(map[string]int64, 0)
+	for k, v := range chainHeights {
+		lastChainHeights[k.String()] = v
 	}
 
 	reserveContributors, err := k.GetReservesContributors(ctx)
@@ -428,6 +438,15 @@ func ExportGenesis(ctx cosmos.Context, k keeper.Keeper) GenesisState {
 	vaultData, err := k.GetVaultData(ctx)
 	if err != nil {
 		panic(err)
+	}
+
+	vaults := make(Vaults, 0)
+	iterVault := k.GetVaultIterator(ctx)
+	defer iterVault.Close()
+	for ; iterVault.Valid(); iterVault.Next() {
+		var vault Vault
+		k.Cdc().MustUnmarshalBinaryBare(iterVault.Value(), &vault)
+		vaults = append(vaults, vault)
 	}
 
 	tssVoters := make([]TssVoter, 0)
@@ -498,11 +517,12 @@ func ExportGenesis(ctx cosmos.Context, k keeper.Keeper) GenesisState {
 	}
 	return GenesisState{
 		Pools:                pools,
-		NodeAccounts:         nodeAccounts,
 		Stakers:              stakers,
 		ObservedTxInVoters:   observedTxInVoters,
 		ObservedTxOutVoters:  observedTxOutVoters,
 		TxOuts:               outs,
+		NodeAccounts:         nodeAccounts,
+		Vaults:               vaults,
 		Gas:                  gas,
 		BanVoters:            banVoters,
 		LastSignedHeight:     lastSignedHeight,
