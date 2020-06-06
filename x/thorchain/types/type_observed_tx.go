@@ -9,8 +9,7 @@ import (
 )
 
 type (
-	status          string
-	ObservedTxIndex common.TxIDs
+	status string
 )
 
 const (
