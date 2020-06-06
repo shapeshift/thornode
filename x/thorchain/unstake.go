@@ -84,15 +84,11 @@ func unstake(ctx cosmos.Context, version semver.Version, keeper keeper.Keeper, m
 			return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), errUnstakeFail
 		}
 		// minus gas costs for our transactions
-		if pool.Asset.IsBNB() {
+		if pool.Asset.IsBNB() && !common.RuneAsset().Chain.Equals(common.THORChain) {
 			originalAsset := withDrawAsset
-			multiplier := uint64(2)
-			if common.RuneAsset().Chain.Equals(common.THORChain) {
-				multiplier = 1
-			}
 			withDrawAsset = common.SafeSub(
 				withDrawAsset,
-				maxGas.Amount.MulUint64(multiplier),
+				maxGas.Amount.MulUint64(2), // RUNE asset is on binance chain
 			)
 			gasAsset = originalAsset.Sub(withDrawAsset)
 		} else if pool.Asset.Chain.GetGasAsset().Equals(pool.Asset) {
