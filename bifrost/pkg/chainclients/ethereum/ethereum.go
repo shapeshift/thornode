@@ -263,7 +263,7 @@ func (c *Client) GetAccount(pkey common.PubKey) (common.Account, error) {
 
 // BroadcastTx decodes tx using rlp and broadcasts too Ethereum chain
 func (c *Client) BroadcastTx(stx stypes.TxOutItem, hexTx []byte) error {
-	var tx *etypes.Transaction = &etypes.Transaction{}
+	tx := &etypes.Transaction{}
 	if err := json.Unmarshal(hexTx, tx); err != nil {
 		return err
 	}
