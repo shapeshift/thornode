@@ -35,7 +35,6 @@ func (h LeaveHandler) validate(ctx cosmos.Context, msg MsgLeave, version semver.
 }
 
 func (h LeaveHandler) validateV1(ctx cosmos.Context, msg MsgLeave) error {
-	fmt.Printf("MSG VAL: %+v\n", msg)
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
