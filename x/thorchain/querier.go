@@ -66,12 +66,23 @@ func NewQuerier(keeper keeper.Keeper, kbs KeybaseStore) cosmos.Querier {
 			return queryMimirValues(ctx, path[1:], req, keeper)
 		case q.QueryBan.Key:
 			return queryBan(ctx, path[1:], req, keeper)
+		case q.QueryRagnarok.Key:
+			return queryRagnarok(ctx, keeper)
 		default:
 			return nil, cosmos.ErrUnknownRequest(
 				fmt.Sprintf("unknown thorchain query endpoint: %s", path[0]),
 			)
 		}
 	}
+}
+
+func queryRagnarok(ctx cosmos.Context, keeper keeper.Keeper) ([]byte, error) {
+	ragnarokInProgress := keeper.RagnarokInProgress(ctx)
+	res, err := codec.MarshalJSONIndent(keeper.Cdc(), ragnarokInProgress)
+	if err != nil {
+		return nil, ErrInternal(err, "fail to marshal response to json")
+	}
+	return res, nil
 }
 
 func queryBalanceModule(ctx cosmos.Context, path []string, keeper keeper.Keeper) ([]byte, error) {
