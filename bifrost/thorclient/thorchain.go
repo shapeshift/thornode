@@ -42,6 +42,8 @@ const (
 	SignerMembershipEndpoint = "/thorchain/vaults/%s/signers"
 	StatusEndpoint           = "/status"
 	AsgardVault              = "/thorchain/vaults/asgard"
+	ThorchainConstants       = "/thorchain/constants"
+	RagnarokEndpoint         = "/thorchain/ragnarok"
 )
 
 // ThorchainBridge will be used to send tx to thorchain
@@ -401,4 +403,38 @@ func (b *ThorchainBridge) PostNetworkFee(height int64, chain common.Chain, trans
 		"",                                  // memo
 	)
 	return b.Broadcast(stdTx, types.TxSync)
+}
+
+// GetConstants from thornode
+func (b *ThorchainBridge) GetConstants() (map[string]int64, error) {
+	var result struct {
+		Int64Values map[string]int64 `json:"int_64_values"`
+	}
+	buf, s, err := b.getWithPath(ThorchainConstants)
+	if err != nil {
+		return nil, fmt.Errorf("fail to get constants: %w", err)
+	}
+	if s != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status code: %d", s)
+	}
+	if err := json.Unmarshal(buf, &result); err != nil {
+		return nil, fmt.Errorf("fail to unmarshal to json: %w", err)
+	}
+	return result.Int64Values, nil
+}
+
+// RagnarokInProgress is to query thorchain to check whether ragnarok had been triggered
+func (b *ThorchainBridge) RagnarokInProgress() (bool, error) {
+	buf, s, err := b.getWithPath(RagnarokEndpoint)
+	if err != nil {
+		return false, fmt.Errorf("fail to get ragnarok status: %w", err)
+	}
+	if s != http.StatusOK {
+		return false, fmt.Errorf("unexpected status code: %d", s)
+	}
+	var ragnarok bool
+	if err := json.Unmarshal(buf, &ragnarok); err != nil {
+		return false, fmt.Errorf("fail to unmarshal ragnarok status: %w", err)
+	}
+	return ragnarok, nil
 }
