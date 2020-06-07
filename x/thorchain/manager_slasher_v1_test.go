@@ -144,7 +144,7 @@ type TestSlashingLackKeeper struct {
 
 func (k *TestSlashingLackKeeper) ListTxMarker(ctx cosmos.Context, hash string) (TxMarkers, error) {
 	return TxMarkers{
-		NewTxMarker(ctx.BlockHeight(), "my memo"),
+		NewTxMarker(common.BlockHeight(ctx), "my memo"),
 	}, nil
 }
 

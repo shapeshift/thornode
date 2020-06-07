@@ -153,11 +153,11 @@ func (h BanHandler) handleV1(ctx cosmos.Context, msg MsgBan, constAccessor const
 		return &cosmos.Result{}, nil
 	}
 
-	voter.BlockHeight = ctx.BlockHeight()
+	voter.BlockHeight = common.BlockHeight(ctx)
 	h.keeper.SetBanVoter(ctx, voter)
 
 	toBan.ForcedToLeave = true
-	toBan.LeaveHeight = ctx.BlockHeight()
+	toBan.LeaveHeight = common.BlockHeight(ctx)
 	if err := h.keeper.SetNodeAccount(ctx, toBan); err != nil {
 		err = fmt.Errorf("fail to save node account: %w", err)
 		return nil, err

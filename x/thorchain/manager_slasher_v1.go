@@ -46,7 +46,7 @@ func (s *SlasherV1) BeginBlock(ctx cosmos.Context, req abci.RequestBeginBlock, c
 func (s *SlasherV1) HandleDoubleSign(ctx cosmos.Context, addr crypto.Address, infractionHeight int64, constAccessor constants.ConstantValues) error {
 	// check if we're recent enough to slash for this behavior
 	maxAge := constAccessor.GetInt64Value(constants.DoubleSignMaxAge)
-	if (ctx.BlockHeight() - infractionHeight) > maxAge {
+	if (common.BlockHeight(ctx) - infractionHeight) > maxAge {
 		ctx.Logger().Info("double sign detected but too old to be slashed", "infraction height", fmt.Sprintf("%d", infractionHeight), "address", addr.String())
 		return nil
 	}
@@ -139,10 +139,10 @@ func (s *SlasherV1) LackObserving(ctx cosmos.Context, constAccessor constants.Co
 // LackSigning slash account that fail to sign tx
 func (s *SlasherV1) LackSigning(ctx cosmos.Context, constAccessor constants.ConstantValues, mgr Manager) error {
 	signingTransPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
-	if ctx.BlockHeight() < signingTransPeriod {
+	if common.BlockHeight(ctx) < signingTransPeriod {
 		return nil
 	}
-	height := ctx.BlockHeight() - signingTransPeriod
+	height := common.BlockHeight(ctx) - signingTransPeriod
 	txs, err := s.keeper.GetTxOut(ctx, height)
 	if err != nil {
 		return fmt.Errorf("fail to get txout from block height(%d): %w", height, err)
@@ -199,7 +199,7 @@ func (s *SlasherV1) LackSigning(ctx cosmos.Context, constAccessor constants.Cons
 				return err
 			}
 			period := constAccessor.GetInt64Value(constants.SigningTransactionPeriod) * 3
-			marks = marks.FilterByMinHeight(ctx.BlockHeight() - period)
+			marks = marks.FilterByMinHeight(common.BlockHeight(ctx) - period)
 			mark, _ := marks.Pop()
 			tx.Memo = mark.Memo
 

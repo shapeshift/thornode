@@ -108,7 +108,7 @@ func (h BondHandler) handle(ctx cosmos.Context, msg MsgBond, version semver.Vers
 
 	if nodeAccount.Status == NodeUnknown {
 		// white list the given bep address
-		nodeAccount = NewNodeAccount(msg.NodeAddress, NodeWhiteListed, emptyPubKeySet, "", cosmos.ZeroUint(), msg.BondAddress, ctx.BlockHeight())
+		nodeAccount = NewNodeAccount(msg.NodeAddress, NodeWhiteListed, emptyPubKeySet, "", cosmos.ZeroUint(), msg.BondAddress, common.BlockHeight(ctx))
 		ctx.EventManager().EmitEvent(
 			cosmos.NewEvent("new_node",
 				cosmos.NewAttribute("address", msg.NodeAddress.String()),

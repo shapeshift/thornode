@@ -3,6 +3,7 @@ package thorchain
 import (
 	"github.com/blang/semver"
 
+	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
@@ -90,14 +91,14 @@ func (h NetworkFeeHandler) handleV1(ctx cosmos.Context, msg MsgNetworkFee, versi
 	}
 
 	if voter.BlockHeight > 0 {
-		if voter.BlockHeight == ctx.BlockHeight() {
+		if voter.BlockHeight == common.BlockHeight(ctx) {
 			h.mgr.Slasher().DecSlashPoints(ctx, observeSlashPoints, msg.Signer)
 		}
 		// MsgNetworkFee tx already processed
 		return &cosmos.Result{}, nil
 	}
 
-	voter.BlockHeight = ctx.BlockHeight()
+	voter.BlockHeight = common.BlockHeight(ctx)
 	h.keeper.SetObservedNetworkFeeVoter(ctx, voter)
 	// decrease the slash points
 	h.mgr.Slasher().DecSlashPoints(ctx, observeSlashPoints, voter.Signers...)
