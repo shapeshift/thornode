@@ -5,6 +5,7 @@ import (
 
 	"github.com/blang/semver"
 
+	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
@@ -90,7 +91,7 @@ func (h SetNodeKeysHandler) handleV1(ctx cosmos.Context, msg MsgSetNodeKeys, ver
 	}
 
 	// Here make sure THORNode don't change the node account's bond
-	nodeAccount.UpdateStatus(NodeStandby, ctx.BlockHeight())
+	nodeAccount.UpdateStatus(NodeStandby, common.BlockHeight(ctx))
 	nodeAccount.PubKeySet = msg.PubKeySetSet
 	nodeAccount.ValidatorConsPubKey = msg.ValidatorConsPubKey
 	if err := h.keeper.SetNodeAccount(ctx, nodeAccount); err != nil {

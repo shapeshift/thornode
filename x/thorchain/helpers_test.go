@@ -163,18 +163,18 @@ func (s *HelperSuite) TestRefundBondError(c *C) {
 	c.Assert(refundBond(ctx, tx, na, keeper1, mgr), IsNil)
 
 	// fail to get vault should return an error
-	na.UpdateStatus(NodeStandby, ctx.BlockHeight())
+	na.UpdateStatus(NodeStandby, common.BlockHeight(ctx))
 	keeper1.na = na
 	c.Assert(refundBond(ctx, tx, na, keeper1, mgr), NotNil)
 
 	// if the vault is not a yggdrasil pool , it should return an error
-	ygg := NewVault(ctx.BlockHeight(), ActiveVault, AsgardVault, pk, common.Chains{common.BNBChain})
+	ygg := NewVault(common.BlockHeight(ctx), ActiveVault, AsgardVault, pk, common.Chains{common.BNBChain})
 	ygg.Coins = common.Coins{}
 	keeper1.ygg = ygg
 	c.Assert(refundBond(ctx, tx, na, keeper1, mgr), NotNil)
 
 	// fail to get pool should fail
-	ygg = NewVault(ctx.BlockHeight(), ActiveVault, YggdrasilVault, pk, common.Chains{common.BNBChain})
+	ygg = NewVault(common.BlockHeight(ctx), ActiveVault, YggdrasilVault, pk, common.Chains{common.BNBChain})
 	ygg.Coins = common.Coins{
 		common.NewCoin(common.RuneAsset(), cosmos.NewUint(27*common.One)),
 		common.NewCoin(common.BNBAsset, cosmos.NewUint(27*common.One)),
@@ -202,7 +202,7 @@ func (s *HelperSuite) TestRefundBondHappyPath(c *C) {
 	mgr := NewDummyMgr()
 	pk := GetRandomPubKey()
 	na.PubKeySet.Secp256k1 = pk
-	ygg := NewVault(ctx.BlockHeight(), ActiveVault, YggdrasilVault, pk, common.Chains{common.BNBChain})
+	ygg := NewVault(common.BlockHeight(ctx), ActiveVault, YggdrasilVault, pk, common.Chains{common.BNBChain})
 
 	ygg.Coins = common.Coins{
 		common.NewCoin(common.RuneAsset(), cosmos.NewUint(3946*common.One)),
@@ -373,7 +373,7 @@ func newAddGasFeeTestHelper(c *C) addGasFeeTestHelper {
 
 	na := GetRandomNodeAccount(NodeActive)
 	c.Assert(k.SetNodeAccount(ctx, na), IsNil)
-	yggVault := NewVault(ctx.BlockHeight(), ActiveVault, YggdrasilVault, na.PubKeySet.Secp256k1, common.Chains{common.BNBChain})
+	yggVault := NewVault(common.BlockHeight(ctx), ActiveVault, YggdrasilVault, na.PubKeySet.Secp256k1, common.Chains{common.BNBChain})
 	c.Assert(k.SetVault(ctx, yggVault), IsNil)
 	return addGasFeeTestHelper{
 		ctx:        ctx,
@@ -419,7 +419,7 @@ func (s *HelperSuite) TestAddGasFees(c *C) {
 					},
 					Status:         types.Done,
 					OutHashes:      nil,
-					BlockHeight:    helper.ctx.BlockHeight(),
+					BlockHeight:    common.BlockHeight(helper.ctx),
 					Signers:        []cosmos.AccAddress{helper.na.NodeAddress},
 					ObservedPubKey: helper.na.PubKeySet.Secp256k1,
 				}
@@ -454,7 +454,7 @@ func (s *HelperSuite) TestAddGasFees(c *C) {
 					},
 					Status:         types.Done,
 					OutHashes:      nil,
-					BlockHeight:    helper.ctx.BlockHeight(),
+					BlockHeight:    common.BlockHeight(helper.ctx),
 					Signers:        []cosmos.AccAddress{helper.na.NodeAddress},
 					ObservedPubKey: helper.na.PubKeySet.Secp256k1,
 				}

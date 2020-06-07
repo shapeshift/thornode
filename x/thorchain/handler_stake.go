@@ -194,7 +194,7 @@ func (h StakeHandler) stake(ctx cosmos.Context,
 		return ErrInternal(err, "fail to get staker")
 	}
 
-	su.LastStakeHeight = ctx.BlockHeight()
+	su.LastStakeHeight = common.BlockHeight(ctx)
 	if su.RuneAddress.IsEmpty() {
 		su.RuneAddress = runeAddr
 	}

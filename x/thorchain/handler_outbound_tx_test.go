@@ -207,7 +207,7 @@ func newOutboundTxHandlerTestHelper(c *C) outboundTxHandlerTestHelper {
 
 	voter := NewObservedTxVoter(tx.Tx.ID, make(ObservedTxs, 0))
 	keeper := newOutboundTxHandlerKeeperHelper(k)
-	voter.Height = ctx.BlockHeight()
+	voter.Height = common.BlockHeight(ctx)
 	keeper.SetObservedTxOutVoter(ctx, voter)
 
 	nodeAccount := GetRandomNodeAccount(NodeActive)
@@ -399,7 +399,7 @@ func (s *HandlerOutboundTxSuite) TestOutboundTxHandlerShouldUpdateTxOut(c *C) {
 			FromAddress: fromAddr,
 			ToAddress:   helper.inboundTx.Tx.FromAddress,
 			Gas:         BNBGasFeeSingleton,
-		}, helper.ctx.BlockHeight(), helper.yggVault.PubKey)
+		}, common.BlockHeight(helper.ctx), helper.yggVault.PubKey)
 		msg := tc.messageCreator(helper, tx)
 		_, err = tc.runner(handler, helper, msg)
 		if tc.expectedResult == nil {
@@ -426,14 +426,14 @@ func (s *HandlerOutboundTxSuite) TestOutboundTxNormalCase(c *C) {
 		FromAddress: fromAddr,
 		ToAddress:   helper.inboundTx.Tx.FromAddress,
 		Gas:         BNBGasFeeSingleton,
-	}, helper.ctx.BlockHeight(), helper.yggVault.PubKey)
+	}, common.BlockHeight(helper.ctx), helper.yggVault.PubKey)
 	// valid outbound message, with event, with txout
 	outMsg := NewMsgOutboundTx(tx, helper.inboundTx.Tx.ID, helper.nodeAccount.NodeAddress)
 	_, err = handler.Run(helper.ctx, outMsg, constants.SWVersion, helper.constAccessor)
 	c.Assert(err, IsNil)
 	// txout should had been complete
 
-	txOut, err := helper.keeper.GetTxOut(helper.ctx, helper.ctx.BlockHeight())
+	txOut, err := helper.keeper.GetTxOut(helper.ctx, common.BlockHeight(helper.ctx))
 	c.Assert(err, IsNil)
 	c.Assert(txOut.TxArray[0].OutHash.IsEmpty(), Equals, false)
 }
@@ -453,7 +453,7 @@ func (s *HandlerOutboundTxSuite) TestOuboundTxHandlerSendExtraFundShouldBeSlashe
 		FromAddress: fromAddr,
 		ToAddress:   helper.inboundTx.Tx.FromAddress,
 		Gas:         BNBGasFeeSingleton,
-	}, helper.ctx.BlockHeight(), helper.nodeAccount.PubKeySet.Secp256k1)
+	}, common.BlockHeight(helper.ctx), helper.nodeAccount.PubKeySet.Secp256k1)
 	expectedBond := helper.nodeAccount.Bond.Sub(cosmos.NewUint(2 * common.One).MulUint64(3).QuoUint64(2))
 	vaultData, err := helper.keeper.GetVaultData(helper.ctx)
 	c.Assert(err, IsNil)
@@ -485,7 +485,7 @@ func (s *HandlerOutboundTxSuite) TestOutboundTxHandlerSendAdditionalCoinsShouldB
 		FromAddress: fromAddr,
 		ToAddress:   helper.inboundTx.Tx.FromAddress,
 		Gas:         BNBGasFeeSingleton,
-	}, helper.ctx.BlockHeight(), helper.nodeAccount.PubKeySet.Secp256k1)
+	}, common.BlockHeight(helper.ctx), helper.nodeAccount.PubKeySet.Secp256k1)
 	expectedBond := cosmos.NewUint(9702970297)
 	// slash one BNB, and one rune
 	outMsg := NewMsgOutboundTx(tx, helper.inboundTx.Tx.ID, helper.nodeAccount.NodeAddress)
@@ -511,7 +511,7 @@ func (s *HandlerOutboundTxSuite) TestOutboundTxHandlerInvalidObservedTxVoterShou
 		FromAddress: fromAddr,
 		ToAddress:   helper.inboundTx.Tx.FromAddress,
 		Gas:         BNBGasFeeSingleton,
-	}, helper.ctx.BlockHeight(), helper.nodeAccount.PubKeySet.Secp256k1)
+	}, common.BlockHeight(helper.ctx), helper.nodeAccount.PubKeySet.Secp256k1)
 
 	expectedBond := cosmos.NewUint(9702970297)
 	vaultData, err := helper.keeper.GetVaultData(helper.ctx)

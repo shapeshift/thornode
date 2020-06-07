@@ -27,11 +27,11 @@ func NewTxOutStorageV1(keeper keeper.Keeper, constAccessor constants.ConstantVal
 }
 
 func (tos *TxOutStorageV1) GetBlockOut(ctx cosmos.Context) (*TxOut, error) {
-	return tos.keeper.GetTxOut(ctx, ctx.BlockHeight())
+	return tos.keeper.GetTxOut(ctx, common.BlockHeight(ctx))
 }
 
 func (tos *TxOutStorageV1) GetOutboundItems(ctx cosmos.Context) ([]*TxOutItem, error) {
-	block, err := tos.keeper.GetTxOut(ctx, ctx.BlockHeight())
+	block, err := tos.keeper.GetTxOut(ctx, common.BlockHeight(ctx))
 	if block == nil {
 		return nil, nil
 	}
@@ -239,7 +239,7 @@ func (tos *TxOutStorageV1) prepareTxOutItem(ctx cosmos.Context, toi *TxOutItem) 
 		return false, fmt.Errorf("fail to get observed tx voter: %w", err)
 	}
 	if voter.Height == 0 {
-		voter.Height = ctx.BlockHeight()
+		voter.Height = common.BlockHeight(ctx)
 	}
 	voter.Actions = append(voter.Actions, *toi)
 	tos.keeper.SetObservedTxInVoter(ctx, voter)
@@ -258,7 +258,7 @@ func (tos *TxOutStorageV1) addToBlockOut(ctx cosmos.Context, mgr Manager, toi *T
 	}
 
 	// add a tx marker
-	mark := NewTxMarker(ctx.BlockHeight(), toi.Memo)
+	mark := NewTxMarker(common.BlockHeight(ctx), toi.Memo)
 	memo, _ := ParseMemo(toi.Memo)
 	if memo.IsInternal() {
 		// need to add twice because observed inbound and outbound handler will observe
@@ -274,7 +274,7 @@ func (tos *TxOutStorageV1) addToBlockOut(ctx cosmos.Context, mgr Manager, toi *T
 	// since we're storing the memo in the tx market, we can clear it
 	toi.Memo = ""
 
-	return tos.keeper.AppendTxOut(ctx, ctx.BlockHeight(), toi)
+	return tos.keeper.AppendTxOut(ctx, common.BlockHeight(ctx), toi)
 }
 
 func (tos *TxOutStorageV1) nativeTxOut(ctx cosmos.Context, mgr Manager, toi *TxOutItem) error {
@@ -320,7 +320,7 @@ func (tos *TxOutStorageV1) nativeTxOut(ctx cosmos.Context, mgr Manager, toi *TxO
 
 	observedTx := ObservedTx{
 		ObservedPubKey: active[0].PubKey,
-		BlockHeight:    ctx.BlockHeight(),
+		BlockHeight:    common.BlockHeight(ctx),
 		Tx:             tx,
 	}
 	m, err := processOneTxIn(ctx, tos.keeper, observedTx, supplier.GetModuleAddress(AsgardName))
