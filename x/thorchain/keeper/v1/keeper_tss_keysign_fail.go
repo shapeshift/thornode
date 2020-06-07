@@ -5,19 +5,19 @@ import cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 // SetTssKeysignFailVoter - save a txin voter object
 func (k KVStore) SetTssKeysignFailVoter(ctx cosmos.Context, tss TssKeysignFailVoter) {
 	store := ctx.KVStore(k.storeKey)
-	key := k.GetKey(ctx, prefixTss, tss.String())
+	key := k.GetKey(ctx, prefixTssKeysignFailure, tss.String())
 	store.Set([]byte(key), k.cdc.MustMarshalBinaryBare(tss))
 }
 
 // GetTssKeysignFailVoterIterator iterate tx in voters
 func (k KVStore) GetTssKeysignFailVoterIterator(ctx cosmos.Context) cosmos.Iterator {
 	store := ctx.KVStore(k.storeKey)
-	return cosmos.KVStorePrefixIterator(store, []byte(prefixTss))
+	return cosmos.KVStorePrefixIterator(store, []byte(prefixTssKeysignFailure))
 }
 
 // GetTss - gets information of a tx hash
 func (k KVStore) GetTssKeysignFailVoter(ctx cosmos.Context, id string) (TssKeysignFailVoter, error) {
-	key := k.GetKey(ctx, prefixTss, id)
+	key := k.GetKey(ctx, prefixTssKeysignFailure, id)
 
 	store := ctx.KVStore(k.storeKey)
 	if !store.Has([]byte(key)) {
