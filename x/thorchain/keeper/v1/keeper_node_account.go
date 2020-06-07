@@ -159,23 +159,6 @@ func (k KVStore) GetNodeAccountByPubKey(ctx cosmos.Context, pk common.PubKey) (N
 	return k.GetNodeAccount(ctx, addr)
 }
 
-// GetNodeAccountByBondAddress go through data store to get node account by it's signer bnb address
-func (k KVStore) GetNodeAccountByBondAddress(ctx cosmos.Context, addr common.Address) (NodeAccount, error) {
-	naIterator := k.GetNodeAccountIterator(ctx)
-	defer naIterator.Close()
-	for ; naIterator.Valid(); naIterator.Next() {
-		var na NodeAccount
-		if err := k.cdc.UnmarshalBinaryBare(naIterator.Value(), &na); err != nil {
-			return na, dbError(ctx, "Unmarshal: node account", err)
-		}
-		if na.BondAddress.Equals(addr) {
-			return na, nil
-		}
-	}
-
-	return NodeAccount{}, nil
-}
-
 // SetNodeAccount save the given node account into datastore
 func (k KVStore) SetNodeAccount(ctx cosmos.Context, na NodeAccount) error {
 	ctx.Logger().Debug("SetNodeAccount", "node account", na.String())
