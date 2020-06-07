@@ -101,6 +101,23 @@ func (HandlerLeaveSuite) TestLeaveValidation(c *C) {
 			expectedError: se.ErrUnknownRequest,
 		},
 		{
+			name: "non-matching from address should fail",
+			msgLeave: NewMsgLeave(common.Tx{
+				ID:          GetRandomTxHash(),
+				Chain:       common.BNBChain,
+				FromAddress: GetRandomBNBAddress(),
+				ToAddress:   GetRandomBNBAddress(),
+				Coins: common.Coins{
+					common.NewCoin(common.BNBAsset, cosmos.NewUint(common.One)),
+				},
+				Gas: common.Gas{
+					common.NewCoin(common.BNBAsset, cosmos.NewUint(common.One)),
+				},
+				Memo: "",
+			}, w.activeNodeAccount.NodeAddress, w.activeNodeAccount.NodeAddress),
+			expectedError: se.ErrUnauthorized,
+		},
+		{
 			name: "empty tx id should fail",
 			msgLeave: NewMsgLeave(common.Tx{
 				ID:          common.TxID(""),
