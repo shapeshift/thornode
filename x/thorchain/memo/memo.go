@@ -199,6 +199,7 @@ type BondMemo struct {
 
 type LeaveMemo struct {
 	MemoBase
+	NodeAddress cosmos.AccAddress
 }
 
 type YggdrasilFundMemo struct {
@@ -237,9 +238,10 @@ func NewSwitchMemo(addr common.Address) SwitchMemo {
 	}
 }
 
-func NewLeaveMemo() LeaveMemo {
+func NewLeaveMemo(addr cosmos.AccAddress) LeaveMemo {
 	return LeaveMemo{
-		MemoBase: MemoBase{TxType: TxLeave},
+		MemoBase:    MemoBase{TxType: TxLeave},
+		NodeAddress: addr,
 	}
 }
 
@@ -366,7 +368,14 @@ func ParseMemo(memo string) (Memo, error) {
 
 	switch tx {
 	case TxLeave:
-		return NewLeaveMemo(), nil
+		if len(parts) < 2 {
+			return noMemo, fmt.Errorf("not enough parameters")
+		}
+		addr, err := cosmos.AccAddressFromBech32(parts[1])
+		if err != nil {
+			return noMemo, fmt.Errorf("%s is an invalid thorchain address: %w", parts[1], err)
+		}
+		return NewLeaveMemo(addr), nil
 	case TxAdd:
 		return NewAddMemo(asset), nil
 	case TxStake:
