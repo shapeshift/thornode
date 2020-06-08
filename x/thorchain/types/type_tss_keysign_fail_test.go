@@ -3,9 +3,10 @@ package types
 import (
 	. "gopkg.in/check.v1"
 
+	"gitlab.com/thorchain/tss/go-tss/blame"
+
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
-	"gitlab.com/thorchain/tss/go-tss/blame"
 )
 
 type TypeTssKeysignFailTestSuite struct{}

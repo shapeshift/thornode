@@ -133,6 +133,8 @@ if [ ! -f /etc/bifrost/config.json ]; then
           \"block_scan_processors\": 1,
           \"block_height_discover_back_off\": \"5s\",
           \"block_retry_interval\": \"10s\",
+          \"start_block_height\": 0,
+          \"db_path\": \"$SIGNER_PATH\",
           \"scheme\": \"http\"
         }
       }
