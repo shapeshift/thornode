@@ -1,5 +1,5 @@
 #!/bin/sh
-# ./mock-leave.bash <mock binance IP address> <BNB Address>
+# ./mock-leave.bash <mock binance IP address> <BNB Address> <THOR Address>
 # ./mock-leave.bash 127.0.0.1 bnbXYXYX
 
 set -ex
@@ -14,6 +14,11 @@ if [ -z $2 ]; then
     exit 1
 fi
 
+if [ -z $3 ]; then
+    echo "Missing thor address argument"
+    exit 1
+fi
+
 POOL_ADDRESS=$(curl -s $1:1317/thorchain/pool_addresses | jq -r ".current[0].address")
 
 curl -vvv -s -X POST -d "[{
@@ -22,5 +27,5 @@ curl -vvv -s -X POST -d "[{
   \"coins\":[
       {\"denom\": \"RUNE-A1F\", \"amount\": 1}
   ],
-  \"memo\": \"LEAVE\"
+  \"memo\": \"LEAVE:$3\"
 }]" $1:26660/broadcast/easy
