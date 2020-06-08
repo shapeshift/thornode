@@ -36,7 +36,7 @@ func (h RefundHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Vers
 		return nil, err
 	}
 
-	result, err := h.handle(ctx, msg, version)
+	result, err := h.handle(ctx, msg, version, constAccessor)
 	if err != nil {
 		ctx.Logger().Error("fail to process MsgRefund", "error", err)
 	}
@@ -54,6 +54,6 @@ func (h RefundHandler) validateV1(ctx cosmos.Context, version semver.Version, ms
 	return msg.ValidateBasic()
 }
 
-func (h RefundHandler) handle(ctx cosmos.Context, msg MsgRefundTx, version semver.Version) (*cosmos.Result, error) {
-	return h.ch.handle(ctx, version, msg.Tx, msg.InTxID)
+func (h RefundHandler) handle(ctx cosmos.Context, msg MsgRefundTx, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+	return h.ch.handle(ctx, version, msg.Tx, msg.InTxID, constAccessor)
 }
