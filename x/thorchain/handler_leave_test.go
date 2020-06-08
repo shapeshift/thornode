@@ -38,7 +38,7 @@ func (HandlerLeaveSuite) TestLeaveHandler_NotActiveNodeLeave(c *C) {
 		BNBGasFeeSingleton,
 		"LEAVE",
 	)
-	msgLeave := NewMsgLeave(tx, w.activeNodeAccount.NodeAddress)
+	msgLeave := NewMsgLeave(tx, acc2.NodeAddress, w.activeNodeAccount.NodeAddress)
 	ver := constants.SWVersion
 	constAccessor := constants.GetConstantValues(ver)
 	_, err := leaveHandler.Run(w.ctx, msgLeave, ver, constAccessor)
@@ -63,13 +63,13 @@ func (HandlerLeaveSuite) TestLeaveHandler_ActiveNodeLeave(c *C) {
 		BNBGasFeeSingleton,
 		"",
 	)
-	msgLeave := NewMsgLeave(tx, w.activeNodeAccount.NodeAddress)
+	msgLeave := NewMsgLeave(tx, acc2.NodeAddress, w.activeNodeAccount.NodeAddress)
 	ver := constants.SWVersion
 	constAccessor := constants.GetConstantValues(ver)
 	_, err = leaveHandler.Run(w.ctx, msgLeave, ver, constAccessor)
 	c.Assert(err, IsNil)
 
-	acc2, err = w.keeper.GetNodeAccountByBondAddress(w.ctx, acc2.BondAddress)
+	acc2, err = w.keeper.GetNodeAccount(w.ctx, acc2.NodeAddress)
 	c.Assert(err, IsNil)
 	c.Check(acc2.Bond.Equal(cosmos.NewUint(10000000001)), Equals, true, Commentf("Bond:%d\n", acc2.Bond.Uint64()))
 }
@@ -97,28 +97,11 @@ func (HandlerLeaveSuite) TestLeaveValidation(c *C) {
 					common.NewCoin(common.BNBAsset, cosmos.NewUint(common.One)),
 				},
 				Memo: "",
-			}, w.activeNodeAccount.NodeAddress),
+			}, w.activeNodeAccount.NodeAddress, w.activeNodeAccount.NodeAddress),
 			expectedError: se.ErrUnknownRequest,
 		},
 		{
-			name: "empty tx id should fail",
-			msgLeave: NewMsgLeave(common.Tx{
-				ID:          common.BlankTxID,
-				Chain:       common.BNBChain,
-				FromAddress: GetRandomBNBAddress(),
-				ToAddress:   GetRandomBNBAddress(),
-				Coins: common.Coins{
-					common.NewCoin(common.BNBAsset, cosmos.NewUint(common.One)),
-				},
-				Gas: common.Gas{
-					common.NewCoin(common.BNBAsset, cosmos.NewUint(common.One)),
-				},
-				Memo: "",
-			}, w.activeNodeAccount.NodeAddress),
-			expectedError: se.ErrUnknownRequest,
-		},
-		{
-			name: "empty signer should fail",
+			name: "non-matching from address should fail",
 			msgLeave: NewMsgLeave(common.Tx{
 				ID:          GetRandomTxHash(),
 				Chain:       common.BNBChain,
@@ -131,7 +114,41 @@ func (HandlerLeaveSuite) TestLeaveValidation(c *C) {
 					common.NewCoin(common.BNBAsset, cosmos.NewUint(common.One)),
 				},
 				Memo: "",
-			}, cosmos.AccAddress{}),
+			}, w.activeNodeAccount.NodeAddress, w.activeNodeAccount.NodeAddress),
+			expectedError: se.ErrUnauthorized,
+		},
+		{
+			name: "empty tx id should fail",
+			msgLeave: NewMsgLeave(common.Tx{
+				ID:          common.TxID(""),
+				Chain:       common.BNBChain,
+				FromAddress: w.activeNodeAccount.BondAddress,
+				ToAddress:   GetRandomBNBAddress(),
+				Coins: common.Coins{
+					common.NewCoin(common.BNBAsset, cosmos.NewUint(common.One)),
+				},
+				Gas: common.Gas{
+					common.NewCoin(common.BNBAsset, cosmos.NewUint(common.One)),
+				},
+				Memo: "",
+			}, w.activeNodeAccount.NodeAddress, w.activeNodeAccount.NodeAddress),
+			expectedError: se.ErrUnknownRequest,
+		},
+		{
+			name: "empty signer should fail",
+			msgLeave: NewMsgLeave(common.Tx{
+				ID:          GetRandomTxHash(),
+				Chain:       common.BNBChain,
+				FromAddress: w.activeNodeAccount.BondAddress,
+				ToAddress:   GetRandomBNBAddress(),
+				Coins: common.Coins{
+					common.NewCoin(common.BNBAsset, cosmos.NewUint(common.One)),
+				},
+				Gas: common.Gas{
+					common.NewCoin(common.BNBAsset, cosmos.NewUint(common.One)),
+				},
+				Memo: "",
+			}, w.activeNodeAccount.NodeAddress, cosmos.AccAddress{}),
 			expectedError: se.ErrUnknownRequest,
 		},
 	}
@@ -139,6 +156,6 @@ func (HandlerLeaveSuite) TestLeaveValidation(c *C) {
 		c.Log(item.name)
 		leaveHandler := NewLeaveHandler(w.keeper, NewDummyMgr())
 		_, err := leaveHandler.Run(w.ctx, item.msgLeave, ver, constAccessor)
-		c.Check(errors.Is(err, item.expectedError), Equals, true, Commentf("name:%s", item.name))
+		c.Check(errors.Is(err, item.expectedError), Equals, true, Commentf("name:%s, %s", item.name, err))
 	}
 }

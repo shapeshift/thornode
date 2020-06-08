@@ -85,7 +85,6 @@ type KeeperNodeAccount interface {
 	GetMinJoinVersion(ctx cosmos.Context) semver.Version
 	GetNodeAccount(ctx cosmos.Context, addr cosmos.AccAddress) (NodeAccount, error)
 	GetNodeAccountByPubKey(ctx cosmos.Context, pk common.PubKey) (NodeAccount, error)
-	GetNodeAccountByBondAddress(ctx cosmos.Context, addr common.Address) (NodeAccount, error)
 	SetNodeAccount(ctx cosmos.Context, na NodeAccount) error
 	EnsureNodeKeysUnique(ctx cosmos.Context, consensusPubKey string, pubKeys common.PubKeySet) error
 	GetNodeAccountIterator(ctx cosmos.Context) cosmos.Iterator
