@@ -5,6 +5,7 @@ import (
 
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/constants"
 	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
@@ -34,7 +35,7 @@ func (h CommonOutboundTxHandler) slash(ctx cosmos.Context, version semver.Versio
 	return returnErr
 }
 
-func (h CommonOutboundTxHandler) handle(ctx cosmos.Context, version semver.Version, tx ObservedTx, inTxID common.TxID) (*cosmos.Result, error) {
+func (h CommonOutboundTxHandler) handle(ctx cosmos.Context, version semver.Version, tx ObservedTx, inTxID common.TxID, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	// note: Outbound tx usually it is related to an inbound tx except migration
 	// thus here try to get the ObservedTxInVoter,  and set the tx out hash accordingly
 	voter, err := h.keeper.GetObservedTxInVoter(ctx, inTxID)
@@ -55,37 +56,42 @@ func (h CommonOutboundTxHandler) handle(ctx cosmos.Context, version semver.Versi
 		}
 	}
 
-	// update txOut record with our TxID that sent funds out of the pool
-	txOut, err := h.keeper.GetTxOut(ctx, voter.Height)
-	if err != nil {
-		ctx.Logger().Error("unable to get txOut record", "error", err)
-		return nil, cosmos.ErrUnknownRequest(err.Error())
-	}
-
-	// Save TxOut back with the TxID only when the TxOut on the block height is
-	// not empty
 	shouldSlash := true
-	for i, txOutItem := range txOut.TxArray {
-		// withdraw , refund etc, one inbound tx might result two outbound
-		// txes, THORNode have to correlate outbound tx back to the
-		// inbound, and also txitem , thus THORNode could record both
-		// outbound tx hash correctly given every tx item will only have
-		// one coin in it , THORNode could use that to identify which tx it
-		// is
-		if txOutItem.InHash.Equals(inTxID) &&
-			txOutItem.OutHash.IsEmpty() &&
-			tx.Tx.Coins.Equals(common.Coins{txOutItem.Coin}) &&
-			tx.Tx.Chain.Equals(txOutItem.Chain) &&
-			tx.Tx.ToAddress.Equals(txOutItem.ToAddress) &&
-			tx.ObservedPubKey.Equals(txOutItem.VaultPubKey) {
+	signingTransPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
 
-			txOut.TxArray[i].OutHash = tx.Tx.ID
-			shouldSlash = false
+	for height := voter.Height; height <= common.BlockHeight(ctx); height += signingTransPeriod {
 
-			if err := h.keeper.SetTxOut(ctx, txOut); err != nil {
-				ctx.Logger().Error("fail to save tx out", "error", err)
+		// update txOut record with our TxID that sent funds out of the pool
+		txOut, err := h.keeper.GetTxOut(ctx, height)
+		if err != nil {
+			ctx.Logger().Error("unable to get txOut record", "error", err)
+			return nil, cosmos.ErrUnknownRequest(err.Error())
+		}
+
+		// Save TxOut back with the TxID only when the TxOut on the block height is
+		// not empty
+		for i, txOutItem := range txOut.TxArray {
+			// withdraw , refund etc, one inbound tx might result two outbound
+			// txes, THORNode have to correlate outbound tx back to the
+			// inbound, and also txitem , thus THORNode could record both
+			// outbound tx hash correctly given every tx item will only have
+			// one coin in it , THORNode could use that to identify which tx it
+			// is
+			if txOutItem.InHash.Equals(inTxID) &&
+				txOutItem.OutHash.IsEmpty() &&
+				tx.Tx.Coins.Equals(common.Coins{txOutItem.Coin}) &&
+				tx.Tx.Chain.Equals(txOutItem.Chain) &&
+				tx.Tx.ToAddress.Equals(txOutItem.ToAddress) &&
+				tx.ObservedPubKey.Equals(txOutItem.VaultPubKey) {
+
+				txOut.TxArray[i].OutHash = tx.Tx.ID
+				shouldSlash = false
+
+				if err := h.keeper.SetTxOut(ctx, txOut); err != nil {
+					ctx.Logger().Error("fail to save tx out", "error", err)
+				}
+				break
 			}
-			break
 		}
 	}
 
