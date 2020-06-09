@@ -72,6 +72,7 @@ type QueryNodeAccount struct {
 	IPAddress           string            `json:"ip_address"`
 	Version             semver.Version    `json:"version"`
 	SlashPoints         int64             `json:"slash_points"`
+	Jail                Jail              `json:"jail"`
 }
 
 func NewQueryNodeAccount(na NodeAccount) QueryNodeAccount {

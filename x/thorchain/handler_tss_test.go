@@ -476,6 +476,9 @@ func (s *HandlerTssSuite) TestTssHandler(c *C) {
 				na, err := helper.keeper.GetNodeAccountByPubKey(helper.ctx, pubKey)
 				c.Assert(err, IsNil)
 				c.Assert(na.Bond.Equal(cosmos.ZeroUint()), Equals, true)
+				jail, err := helper.keeper.GetNodeAccountJail(helper.ctx, na.NodeAddress)
+				c.Assert(err, IsNil)
+				c.Check(jail.ReleaseHeight > 0, Equals, true)
 			},
 			expectedResult: nil,
 		},

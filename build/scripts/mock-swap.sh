@@ -31,11 +31,11 @@ fi
 
 POOL_ADDRESS=$(curl -s $1:1317/thorchain/pool_addresses | jq -r ".current[0].address")
 
-curl -vvv -s -X POST -d "{
+curl -vvv -s -X POST -d "[{
   \"from\": \"$2\",
   \"to\": \"$POOL_ADDRESS\",
   \"coins\":[
       {\"denom\": \"$4\", \"amount\": $3}
   ],
   \"memo\": \"SWAP:$5\"
-}" $1:26660/broadcast/easy
+}]" $1:26660/broadcast/easy
