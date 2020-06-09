@@ -34,10 +34,6 @@ func (s *KeeperNodeAccountSuite) TestNodeAccount(c *C) {
 	c.Assert(err, IsNil)
 	c.Check(na.Equals(na1), Equals, true)
 
-	na, err = k.GetNodeAccountByBondAddress(ctx, na1.BondAddress)
-	c.Assert(err, IsNil)
-	c.Check(na.Equals(na1), Equals, true)
-
 	valCon := "im unique!"
 	pubkeys := GetRandomPubKeySet()
 	err = k.EnsureNodeKeysUnique(ctx, na1.ValidatorConsPubKey, common.EmptyPubKeySet)

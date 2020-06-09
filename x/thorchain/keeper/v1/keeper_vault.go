@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 	kvTypes "gitlab.com/thorchain/thornode/x/thorchain/keeper/types"
 )
 
@@ -45,7 +45,7 @@ func (k KVStore) GetVault(ctx cosmos.Context, pk common.PubKey) (Vault, error) {
 	key := k.GetKey(ctx, prefixVaultPool, pk.String())
 	store := ctx.KVStore(k.storeKey)
 	if !store.Has([]byte(key)) {
-		vault.BlockHeight = ctx.BlockHeight()
+		vault.BlockHeight = common.BlockHeight(ctx)
 		vault.PubKey = pk
 		return vault, fmt.Errorf("vault with pubkey(%s) doesn't exist: %w", pk, kvTypes.ErrVaultNotFound)
 	}

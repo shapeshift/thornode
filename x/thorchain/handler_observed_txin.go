@@ -7,9 +7,9 @@ import (
 	se "github.com/cosmos/cosmos-sdk/types/errors"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // ObservedTxInHandler to handle MsgObservedTxIn
@@ -81,7 +81,7 @@ func (h ObservedTxInHandler) preflight(ctx cosmos.Context, voter ObservedTxVoter
 	if voter.HasConsensus(nas) {
 		if voter.Height == 0 {
 			ok = true
-			voter.Height = ctx.BlockHeight()
+			voter.Height = common.BlockHeight(ctx)
 			// this is the tx that has consensus
 			voter.Tx = voter.GetTx(nas)
 
@@ -90,7 +90,7 @@ func (h ObservedTxInHandler) preflight(ctx cosmos.Context, voter ObservedTxVoter
 		} else {
 			// event the tx had been processed , given the signer just a bit late , so still take away their slash points
 			// but only when the tx signer are voting is the tx that already reached consensus
-			if ctx.BlockHeight() == voter.Height && voter.Tx.Equals(tx) {
+			if common.BlockHeight(ctx) == voter.Height && voter.Tx.Equals(tx) {
 				h.mgr.Slasher().DecSlashPoints(ctx, observeSlashPoints, signer)
 			}
 		}
@@ -124,7 +124,7 @@ func (h ObservedTxInHandler) handleV1(ctx cosmos.Context, version semver.Version
 
 		voter, ok := h.preflight(ctx, voter, activeNodeAccounts, tx, msg.Signer, version)
 		if !ok {
-			if voter.Height == ctx.BlockHeight() {
+			if voter.Height == common.BlockHeight(ctx) {
 				// we've already process the transaction, but we should still
 				// update the observing addresses
 				h.mgr.ObMgr().AppendObserver(tx.Tx.Chain, msg.GetSigners())
@@ -218,7 +218,7 @@ func (h ObservedTxInHandler) handleV1(ctx cosmos.Context, version semver.Version
 		_, isStake := m.(MsgSetStakeData)
 		haltTrading, err := h.keeper.GetMimir(ctx, "HaltTrading")
 		if isSwap || isStake {
-			if (haltTrading > 0 && haltTrading < ctx.BlockHeight() && err == nil) || h.keeper.RagnarokInProgress(ctx) {
+			if (haltTrading > 0 && haltTrading < common.BlockHeight(ctx) && err == nil) || h.keeper.RagnarokInProgress(ctx) {
 				ctx.Logger().Info("trading is halted!!")
 				if newErr := refundTx(ctx, tx, h.mgr, h.keeper, constAccessor, se.ErrUnauthorized.ABCICode(), "trading halted"); nil != newErr {
 					return nil, ErrInternal(newErr, "trading is halted, fail to refund")

@@ -7,9 +7,9 @@ import (
 	se "github.com/cosmos/cosmos-sdk/types/errors"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // ErrataTxHandler is to handle ErrataTx message
@@ -95,14 +95,14 @@ func (h ErrataTxHandler) handleV1(ctx cosmos.Context, msg MsgErrataTx, version s
 	}
 
 	if voter.BlockHeight > 0 {
-		if voter.BlockHeight == ctx.BlockHeight() {
+		if voter.BlockHeight == common.BlockHeight(ctx) {
 			h.mgr.Slasher().DecSlashPoints(ctx, observeSlashPoints, msg.Signer)
 		}
 		// errata tx already processed
 		return &cosmos.Result{}, nil
 	}
 
-	voter.BlockHeight = ctx.BlockHeight()
+	voter.BlockHeight = common.BlockHeight(ctx)
 	h.keeper.SetErrataTxVoter(ctx, voter)
 	// decrease the slash points
 	h.mgr.Slasher().DecSlashPoints(ctx, observeSlashPoints, voter.Signers...)
@@ -158,7 +158,7 @@ func (h ErrataTxHandler) handleV1(ctx cosmos.Context, msg MsgErrataTx, version s
 		// since this address is being malicious, zero their staking units
 		pool.PoolUnits = common.SafeSub(pool.PoolUnits, staker.Units)
 		staker.Units = cosmos.ZeroUint()
-		staker.LastStakeHeight = ctx.BlockHeight()
+		staker.LastStakeHeight = common.BlockHeight(ctx)
 
 		h.keeper.SetStaker(ctx, staker)
 	}

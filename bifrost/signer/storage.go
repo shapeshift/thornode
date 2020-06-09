@@ -83,6 +83,7 @@ func NewSignerStore(levelDbFolder, passphrase string) (*SignerStore, error) {
 	var db *leveldb.DB
 	var err error
 	if len(levelDbFolder) == 0 {
+		log.Warn().Msg("level db folder is empty, create in memory storage")
 		// no directory given, use in memory store
 		storage := storage.NewMemStorage()
 		db, err = leveldb.Open(storage, nil)

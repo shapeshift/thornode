@@ -5,13 +5,13 @@ import (
 	"strconv"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 // AddToLiquidityFees - measure of fees collected in each block
 func (k KVStore) AddToLiquidityFees(ctx cosmos.Context, asset common.Asset, fee cosmos.Uint) error {
 	store := ctx.KVStore(k.storeKey)
-	currentHeight := uint64(ctx.BlockHeight())
+	currentHeight := uint64(common.BlockHeight(ctx))
 
 	totalFees, err := k.GetTotalLiquidityFees(ctx, currentHeight)
 	if err != nil {

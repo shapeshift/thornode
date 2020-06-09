@@ -8,9 +8,9 @@ import (
 	"github.com/blang/semver"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 type VaultManagerTestSuite struct{}
@@ -218,7 +218,7 @@ func (s *VaultManagerTestSuite) TestRagnarokChain(c *C) {
 	} else {
 		c.Check(items, HasLen, 5, Commentf("Len %d", items))
 	}
-	c.Check(items[0].Memo, Equals, NewYggdrasilReturn(ctx.BlockHeight()).String())
+	c.Check(items[0].Memo, Equals, NewYggdrasilReturn(common.BlockHeight(ctx)).String())
 	c.Check(items[0].Chain.Equals(common.BTCChain), Equals, true)
 }
 

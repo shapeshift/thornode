@@ -6,9 +6,9 @@ import (
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 type SlashingSuite struct{}
@@ -144,7 +144,7 @@ type TestSlashingLackKeeper struct {
 
 func (k *TestSlashingLackKeeper) ListTxMarker(ctx cosmos.Context, hash string) (TxMarkers, error) {
 	return TxMarkers{
-		NewTxMarker(ctx.BlockHeight(), "my memo"),
+		NewTxMarker(common.BlockHeight(ctx), "my memo"),
 	}, nil
 }
 

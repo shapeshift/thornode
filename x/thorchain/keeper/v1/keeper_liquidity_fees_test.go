@@ -4,7 +4,7 @@ import (
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 type KeeperLiquidityFeesSuite struct{}
@@ -15,7 +15,7 @@ func (s *KeeperLiquidityFeesSuite) TestLiquidityFees(c *C) {
 	ctx, k := setupKeeperForTest(c)
 
 	ctx = ctx.WithBlockHeight(10)
-	height := uint64(ctx.BlockHeight())
+	height := uint64(common.BlockHeight(ctx))
 	err := k.AddToLiquidityFees(ctx, common.BTCAsset, cosmos.NewUint(200))
 	c.Assert(err, IsNil)
 	err = k.AddToLiquidityFees(ctx, common.BNBAsset, cosmos.NewUint(300))

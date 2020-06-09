@@ -6,9 +6,9 @@ import (
 	"github.com/blang/semver"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 type TssHandler struct {
@@ -114,7 +114,7 @@ func (h TssHandler) handleV1(ctx cosmos.Context, msg MsgTssPool, version semver.
 	}
 
 	if voter.BlockHeight == 0 {
-		voter.BlockHeight = ctx.BlockHeight()
+		voter.BlockHeight = common.BlockHeight(ctx)
 		h.keeper.SetTssVoter(ctx, voter)
 		h.mgr.Slasher().DecSlashPoints(ctx, observeSlashPoints, voter.Signers...)
 		if msg.IsSuccess() {
@@ -122,7 +122,7 @@ func (h TssHandler) handleV1(ctx cosmos.Context, msg MsgTssPool, version semver.
 			if msg.KeygenType == AsgardKeygen {
 				vaultType = AsgardVault
 			}
-			vault := NewVault(ctx.BlockHeight(), ActiveVault, vaultType, voter.PoolPubKey, voter.ConsensusChains())
+			vault := NewVault(common.BlockHeight(ctx), ActiveVault, vaultType, voter.PoolPubKey, voter.ConsensusChains())
 			vault.Membership = voter.PubKeys
 			if err := h.keeper.SetVault(ctx, vault); err != nil {
 				return nil, fmt.Errorf("fail to save vault: %w", err)
@@ -181,7 +181,7 @@ func (h TssHandler) handleV1(ctx cosmos.Context, msg MsgTssPool, version semver.
 		return &cosmos.Result{}, nil
 	}
 
-	if voter.BlockHeight == ctx.BlockHeight() {
+	if voter.BlockHeight == common.BlockHeight(ctx) {
 		h.mgr.Slasher().DecSlashPoints(ctx, observeSlashPoints, msg.Signer)
 	}
 

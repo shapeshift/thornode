@@ -98,7 +98,6 @@ var (
 	NewMsgMigrate                  = types.NewMsgMigrate
 	NewMsgRagnarok                 = types.NewMsgRagnarok
 	NewQueryNodeAccount            = types.NewQueryNodeAccount
-	HasSuperMajority               = types.HasSuperMajority
 	ChooseSignerParty              = types.ChooseSignerParty
 	GetThreshold                   = types.GetThreshold
 	ModuleCdc                      = types.ModuleCdc
@@ -115,7 +114,6 @@ var (
 	NewMsgLeave                    = types.NewMsgLeave
 	NewMsgSetVersion               = types.NewMsgSetVersion
 	NewMsgSetIPAddress             = types.NewMsgSetIPAddress
-	NewMsgSend                     = bank.NewMsgSend
 	NewMsgNetworkFee               = types.NewMsgNetworkFee
 	NewNetworkFee                  = types.NewNetworkFee
 	GetPoolStatus                  = types.GetPoolStatus
@@ -188,7 +186,6 @@ type (
 	ObservedTx              = types.ObservedTx
 	ObservedTxVoter         = types.ObservedTxVoter
 	ObservedTxVoters        = types.ObservedTxVoters
-	ObservedTxIndex         = types.ObservedTxIndex
 	BanVoter                = types.BanVoter
 	ErrataTxVoter           = types.ErrataTxVoter
 	TssVoter                = types.TssVoter

@@ -10,9 +10,9 @@ import (
 	abci "github.com/tendermint/tendermint/abci/types"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 	q "gitlab.com/thorchain/thornode/x/thorchain/query"
 )
 
@@ -66,12 +66,23 @@ func NewQuerier(keeper keeper.Keeper, kbs KeybaseStore) cosmos.Querier {
 			return queryMimirValues(ctx, path[1:], req, keeper)
 		case q.QueryBan.Key:
 			return queryBan(ctx, path[1:], req, keeper)
+		case q.QueryRagnarok.Key:
+			return queryRagnarok(ctx, keeper)
 		default:
 			return nil, cosmos.ErrUnknownRequest(
 				fmt.Sprintf("unknown thorchain query endpoint: %s", path[0]),
 			)
 		}
 	}
+}
+
+func queryRagnarok(ctx cosmos.Context, keeper keeper.Keeper) ([]byte, error) {
+	ragnarokInProgress := keeper.RagnarokInProgress(ctx)
+	res, err := codec.MarshalJSONIndent(keeper.Cdc(), ragnarokInProgress)
+	if err != nil {
+		return nil, ErrInternal(err, "fail to marshal response to json")
+	}
+	return res, nil
 }
 
 func queryBalanceModule(ctx cosmos.Context, path []string, keeper keeper.Keeper) ([]byte, error) {
@@ -504,7 +515,7 @@ func queryKeygen(ctx cosmos.Context, kbs KeybaseStore, path []string, req abci.R
 		return nil, fmt.Errorf("fail to parse block height: %w", err)
 	}
 
-	if height > ctx.BlockHeight() {
+	if height > common.BlockHeight(ctx) {
 		return nil, fmt.Errorf("block height not available yet")
 	}
 
@@ -562,7 +573,7 @@ func queryKeysign(ctx cosmos.Context, kbs KeybaseStore, path []string, req abci.
 		return nil, fmt.Errorf("fail to parse block height: %w", err)
 	}
 
-	if height > ctx.BlockHeight() {
+	if height > common.BlockHeight(ctx) {
 		return nil, fmt.Errorf("block height not available yet")
 	}
 
@@ -641,7 +652,7 @@ func queryHeights(ctx cosmos.Context, path []string, req abci.RequestQuery, keep
 		Chain:            chain,
 		LastChainHeight:  chainHeight,
 		LastSignedHeight: signed,
-		Thorchain:        ctx.BlockHeight(),
+		Thorchain:        common.BlockHeight(ctx),
 	})
 	if err != nil {
 		ctx.Logger().Error("fail to marshal events to json", "error", err)
@@ -666,7 +677,7 @@ func queryTSSSigners(ctx cosmos.Context, path []string, req abci.RequestQuery, k
 	// seed is the current block height, rounded down to the nearest 100th
 	// This helps keep the selected nodes to be the same across blocks, but
 	// also change immediately if we have a change in which nodes are active
-	seed := ctx.BlockHeight() / 100
+	seed := common.BlockHeight(ctx) / 100
 
 	accountAddrs, err := keeper.GetObservingAddresses(ctx)
 	if err != nil {
