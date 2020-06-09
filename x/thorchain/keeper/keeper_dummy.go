@@ -145,6 +145,15 @@ func (k KVStoreDummy) IncNodeAccountSlashPoints(_ cosmos.Context, _ cosmos.AccAd
 func (k KVStoreDummy) DecNodeAccountSlashPoints(_ cosmos.Context, _ cosmos.AccAddress, _ int64) error {
 	return kaboom
 }
+
+func (k KVStoreDummy) GetNodeAccountJail(ctx cosmos.Context, addr cosmos.AccAddress) (Jail, error) {
+	return Jail{}, kaboom
+}
+
+func (k KVStoreDummy) SetNodeAccountJail(ctx cosmos.Context, addr cosmos.AccAddress, height int64, reason string) error {
+	return kaboom
+}
+
 func (k KVStoreDummy) SetActiveObserver(_ cosmos.Context, _ cosmos.AccAddress)     {}
 func (k KVStoreDummy) RemoveActiveObserver(_ cosmos.Context, _ cosmos.AccAddress)  {}
 func (k KVStoreDummy) IsActiveObserver(_ cosmos.Context, _ cosmos.AccAddress) bool { return false }

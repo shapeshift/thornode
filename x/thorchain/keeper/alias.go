@@ -20,6 +20,7 @@ const (
 
 var (
 	NewPool              = types.NewPool
+	NewJail              = types.NewJail
 	ModuleCdc            = types.ModuleCdc
 	RegisterCodec        = types.RegisterCodec
 	GetRandomVault       = types.GetRandomVault
@@ -48,6 +49,7 @@ type (
 	ReserveContributors     = types.ReserveContributors
 	Vault                   = types.Vault
 	Vaults                  = types.Vaults
+	Jail                    = types.Jail
 	NodeAccount             = types.NodeAccount
 	NodeAccounts            = types.NodeAccounts
 	NodeStatus              = types.NodeStatus
