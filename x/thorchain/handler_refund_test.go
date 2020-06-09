@@ -9,9 +9,9 @@ import (
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 type HandlerRefundSuite struct{}
@@ -144,7 +144,7 @@ func newRefundTxHandlerTestHelper(c *C) refundTxHandlerTestHelper {
 
 	voter := NewObservedTxVoter(tx.Tx.ID, make(ObservedTxs, 0))
 	keeper := newRefundTxHandlerKeeperTestHelper(k)
-	voter.Height = ctx.BlockHeight()
+	voter.Height = common.BlockHeight(ctx)
 	keeper.SetObservedTxOutVoter(ctx, voter)
 
 	mgr := NewDummyMgr()
@@ -337,7 +337,7 @@ func (s *HandlerRefundSuite) TestRefundTxHandlerShouldUpdateTxOut(c *C) {
 			FromAddress: fromAddr,
 			ToAddress:   helper.inboundTx.Tx.FromAddress,
 			Gas:         BNBGasFeeSingleton,
-		}, helper.ctx.BlockHeight(), helper.yggVault.PubKey)
+		}, common.BlockHeight(helper.ctx), helper.yggVault.PubKey)
 		msg := tc.messageCreator(helper, tx)
 		_, err = tc.runner(handler, helper, msg)
 		if tc.expectedResult == nil {
@@ -364,14 +364,14 @@ func (s *HandlerRefundSuite) TestRefundTxNormalCase(c *C) {
 		FromAddress: fromAddr,
 		ToAddress:   helper.inboundTx.Tx.FromAddress,
 		Gas:         BNBGasFeeSingleton,
-	}, helper.ctx.BlockHeight(), helper.yggVault.PubKey)
+	}, common.BlockHeight(helper.ctx), helper.yggVault.PubKey)
 	// valid outbound message, with event, with txout
 	outMsg := NewMsgRefundTx(tx, helper.inboundTx.Tx.ID, helper.nodeAccount.NodeAddress)
 	_, err = handler.Run(helper.ctx, outMsg, constants.SWVersion, helper.constAccessor)
 	c.Assert(err, IsNil)
 
 	// txout should had been complete
-	txOut, err := helper.keeper.GetTxOut(helper.ctx, helper.ctx.BlockHeight())
+	txOut, err := helper.keeper.GetTxOut(helper.ctx, common.BlockHeight(helper.ctx))
 	c.Assert(err, IsNil)
 	c.Assert(txOut.TxArray[0].OutHash.IsEmpty(), Equals, false)
 }
@@ -391,7 +391,7 @@ func (s *HandlerRefundSuite) TestRefundTxHandlerSendExtraFundShouldBeSlashed(c *
 		FromAddress: fromAddr,
 		ToAddress:   helper.inboundTx.Tx.FromAddress,
 		Gas:         BNBGasFeeSingleton,
-	}, helper.ctx.BlockHeight(), helper.nodeAccount.PubKeySet.Secp256k1)
+	}, common.BlockHeight(helper.ctx), helper.nodeAccount.PubKeySet.Secp256k1)
 	expectedBond := helper.nodeAccount.Bond.Sub(cosmos.NewUint(common.One * 2).MulUint64(3).QuoUint64(2))
 	vaultData, err := helper.keeper.GetVaultData(helper.ctx)
 	c.Assert(err, IsNil)
@@ -423,7 +423,7 @@ func (s *HandlerRefundSuite) TestOutboundTxHandlerSendAdditionalCoinsShouldBeSla
 		FromAddress: fromAddr,
 		ToAddress:   helper.inboundTx.Tx.FromAddress,
 		Gas:         BNBGasFeeSingleton,
-	}, helper.ctx.BlockHeight(), helper.nodeAccount.PubKeySet.Secp256k1)
+	}, common.BlockHeight(helper.ctx), helper.nodeAccount.PubKeySet.Secp256k1)
 	expectedBond := cosmos.NewUint(9702970297)
 	// slash one BNB and one rune
 	outMsg := NewMsgRefundTx(tx, helper.inboundTx.Tx.ID, helper.nodeAccount.NodeAddress)
@@ -449,7 +449,7 @@ func (s *HandlerRefundSuite) TestOutboundTxHandlerInvalidObservedTxVoterShouldSl
 		FromAddress: fromAddr,
 		ToAddress:   helper.inboundTx.Tx.FromAddress,
 		Gas:         BNBGasFeeSingleton,
-	}, helper.ctx.BlockHeight(), helper.nodeAccount.PubKeySet.Secp256k1)
+	}, common.BlockHeight(helper.ctx), helper.nodeAccount.PubKeySet.Secp256k1)
 
 	expectedBond := cosmos.NewUint(9702970297)
 	vaultData, err := helper.keeper.GetVaultData(helper.ctx)

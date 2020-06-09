@@ -6,9 +6,9 @@ import (
 	"github.com/blang/semver"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // TssKeysignHandler is design to process MsgTssKeysignFail
@@ -100,7 +100,7 @@ func (h TssKeysignHandler) handleV1(ctx cosmos.Context, msg MsgTssKeysignFail, v
 	}
 
 	if voter.Height == 0 {
-		voter.Height = ctx.BlockHeight()
+		voter.Height = common.BlockHeight(ctx)
 		h.keeper.SetTssKeysignFailVoter(ctx, voter)
 
 		constAccessor := constants.GetConstantValues(version)
@@ -122,7 +122,7 @@ func (h TssKeysignHandler) handleV1(ctx cosmos.Context, msg MsgTssKeysignFail, v
 		h.mgr.Slasher().DecSlashPoints(ctx, observeSlashPoints, voter.Signers...)
 		return &cosmos.Result{}, nil
 	}
-	if voter.Height == ctx.BlockHeight() {
+	if voter.Height == common.BlockHeight(ctx) {
 		h.mgr.Slasher().DecSlashPoints(ctx, observeSlashPoints, msg.Signer)
 	}
 

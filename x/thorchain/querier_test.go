@@ -6,9 +6,10 @@ import (
 
 	ckeys "github.com/cosmos/cosmos-sdk/crypto/keys"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/hd"
+
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
-	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	"gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
@@ -81,7 +82,7 @@ func (s *QuerierSuite) TestQueryPool(c *C) {
 	path := []string{"pools"}
 
 	pubKey := GetRandomPubKey()
-	asgard := NewVault(ctx.BlockHeight(), ActiveVault, AsgardVault, pubKey, common.Chains{common.BNBChain})
+	asgard := NewVault(common.BlockHeight(ctx), ActiveVault, AsgardVault, pubKey, common.Chains{common.BNBChain})
 	c.Assert(keeper.SetVault(ctx, asgard), IsNil)
 
 	poolBNB := NewPool()
@@ -128,7 +129,7 @@ func (s *QuerierSuite) TestQueryNodeAccounts(c *C) {
 	bondAddr := GetRandomBNBAddress()
 	emptyPubKeySet := common.PubKeySet{}
 	bond := cosmos.NewUint(common.One * 100)
-	nodeAccount := NewNodeAccount(signer, NodeActive, emptyPubKeySet, "", bond, bondAddr, ctx.BlockHeight())
+	nodeAccount := NewNodeAccount(signer, NodeActive, emptyPubKeySet, "", bond, bondAddr, common.BlockHeight(ctx))
 	c.Assert(keeper.SetNodeAccount(ctx, nodeAccount), IsNil)
 
 	res, err := querier(ctx, path, abci.RequestQuery{})
@@ -143,7 +144,7 @@ func (s *QuerierSuite) TestQueryNodeAccounts(c *C) {
 	bondAddr = GetRandomBNBAddress()
 	emptyPubKeySet = common.PubKeySet{}
 	bond = cosmos.NewUint(common.One * 200)
-	nodeAccount2 := NewNodeAccount(signer, NodeActive, emptyPubKeySet, "", bond, bondAddr, ctx.BlockHeight())
+	nodeAccount2 := NewNodeAccount(signer, NodeActive, emptyPubKeySet, "", bond, bondAddr, common.BlockHeight(ctx))
 	c.Assert(keeper.SetNodeAccount(ctx, nodeAccount2), IsNil)
 
 	res, err = querier(ctx, path, abci.RequestQuery{})

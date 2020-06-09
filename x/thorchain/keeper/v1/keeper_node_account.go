@@ -9,7 +9,7 @@ import (
 	"github.com/blang/semver"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 )
 
@@ -139,7 +139,7 @@ func (k KVStore) GetNodeAccount(ctx cosmos.Context, addr cosmos.AccAddress) (Nod
 			Secp256k1: common.EmptyPubKey,
 			Ed25519:   common.EmptyPubKey,
 		}
-		return NewNodeAccount(addr, NodeUnknown, emptyPubKeySet, "", cosmos.ZeroUint(), "", ctx.BlockHeight()), nil
+		return NewNodeAccount(addr, NodeUnknown, emptyPubKeySet, "", cosmos.ZeroUint(), "", common.BlockHeight(ctx)), nil
 	}
 
 	payload := store.Get([]byte(key))
@@ -159,23 +159,6 @@ func (k KVStore) GetNodeAccountByPubKey(ctx cosmos.Context, pk common.PubKey) (N
 	return k.GetNodeAccount(ctx, addr)
 }
 
-// GetNodeAccountByBondAddress go through data store to get node account by it's signer bnb address
-func (k KVStore) GetNodeAccountByBondAddress(ctx cosmos.Context, addr common.Address) (NodeAccount, error) {
-	naIterator := k.GetNodeAccountIterator(ctx)
-	defer naIterator.Close()
-	for ; naIterator.Valid(); naIterator.Next() {
-		var na NodeAccount
-		if err := k.cdc.UnmarshalBinaryBare(naIterator.Value(), &na); err != nil {
-			return na, dbError(ctx, "Unmarshal: node account", err)
-		}
-		if na.BondAddress.Equals(addr) {
-			return na, nil
-		}
-	}
-
-	return NodeAccount{}, nil
-}
-
 // SetNodeAccount save the given node account into datastore
 func (k KVStore) SetNodeAccount(ctx cosmos.Context, na NodeAccount) error {
 	ctx.Logger().Debug("SetNodeAccount", "node account", na.String())
@@ -189,7 +172,7 @@ func (k KVStore) SetNodeAccount(ctx cosmos.Context, na NodeAccount) error {
 			// the na is active, and does not have a block height when they
 			// became active. This must be the first block they are active, so
 			// THORNode will set it now.
-			na.ActiveBlockHeight = ctx.BlockHeight()
+			na.ActiveBlockHeight = common.BlockHeight(ctx)
 			k.ResetNodeAccountSlashPoints(ctx, na.NodeAddress) // reset slash points
 		}
 	}

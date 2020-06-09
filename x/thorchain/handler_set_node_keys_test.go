@@ -4,11 +4,12 @@ import (
 	"fmt"
 
 	"github.com/blang/semver"
-	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
-	"gitlab.com/thorchain/thornode/constants"
-	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 	. "gopkg.in/check.v1"
+
+	"gitlab.com/thorchain/thornode/common"
+	"gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/constants"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 type HandlerSetNodeKeysSuite struct{}
@@ -126,10 +127,10 @@ func (s *HandlerSetNodeKeysSuite) TestHandle(c *C) {
 	msgNodeKeys := NewMsgSetNodeKeys(pubKeys, bepConsPubKey, signer)
 
 	bond := cosmos.NewUint(common.One * 100)
-	nodeAccount := NewNodeAccount(signer, NodeActive, emptyPubKeySet, "", bond, bondAddr, ctx.BlockHeight())
+	nodeAccount := NewNodeAccount(signer, NodeActive, emptyPubKeySet, "", bond, bondAddr, common.BlockHeight(ctx))
 	c.Assert(keeper.SetNodeAccount(ctx, nodeAccount), IsNil)
 
-	nodeAccount = NewNodeAccount(signer, NodeWhiteListed, emptyPubKeySet, "", bond, bondAddr, ctx.BlockHeight())
+	nodeAccount = NewNodeAccount(signer, NodeWhiteListed, emptyPubKeySet, "", bond, bondAddr, common.BlockHeight(ctx))
 	c.Assert(keeper.SetNodeAccount(ctx, nodeAccount), IsNil)
 
 	// happy path

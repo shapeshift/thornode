@@ -7,7 +7,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/blang/semver"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -23,7 +22,7 @@ import (
 	"gitlab.com/thorchain/thornode/bifrost/thorclient/types"
 	"gitlab.com/thorchain/thornode/bifrost/tss"
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 	"gitlab.com/thorchain/thornode/x/thorchain"
 	ttypes "gitlab.com/thorchain/thornode/x/thorchain/types"
@@ -44,6 +43,7 @@ type Signer struct {
 	errCounter            *prometheus.CounterVec
 	tssKeygen             *tss.KeyGen
 	pubkeyMgr             pubkeymanager.PubKeyValidator
+	constantsProvider     *ConstantsProvider
 }
 
 // NewSigner create a new instance of signer
@@ -52,7 +52,6 @@ func NewSigner(cfg config.SignerConfiguration,
 	thorKeys *thorclient.Keys,
 	pubkeyMgr pubkeymanager.PubKeyValidator,
 	tssServer *tssp.TssServer,
-	tssCfg config.TSSConfiguration,
 	chains map[common.Chain]chainclients.ChainClient,
 	m *metrics.Metrics) (*Signer, error) {
 	storage, err := NewSignerStore(cfg.SignerDbPath, thorchainBridge.GetConfig().SignerPasswd)
@@ -99,7 +98,7 @@ func NewSigner(cfg config.SignerConfiguration,
 	if err != nil {
 		return nil, fmt.Errorf("fail to create Tss Key gen,err:%w", err)
 	}
-
+	constantProvider := NewConstantsProvider(thorchainBridge)
 	return &Signer{
 		logger:                log.With().Str("module", "signer").Logger(),
 		cfg:                   cfg,
@@ -114,6 +113,7 @@ func NewSigner(cfg config.SignerConfiguration,
 		pubkeyMgr:             pubkeyMgr,
 		thorchainBridge:       thorchainBridge,
 		tssKeygen:             kg,
+		constantsProvider:     constantProvider,
 	}, nil
 }
 
@@ -295,11 +295,23 @@ func (s *Signer) signAndBroadcast(item TxOutStoreItem) error {
 		s.logger.Error().Err(err).Msgf("fail to get block height")
 		return err
 	}
-	// TODO hardcode it as 0.1.0 for now, will need to get it appropriately later
-	cv := constants.GetConstantValues(semver.MustParse("0.1.0"))
-	if blockHeight-height > cv.GetInt64Value(constants.SigningTransactionPeriod) {
-		s.logger.Error().Msgf("tx was created at block height(%d), now it is (%d), it is older than (%d) blocks , skip it ", height, blockHeight, cv.GetInt64Value(constants.SigningTransactionPeriod))
-		return nil
+	signingTransactionPeriod, err := s.constantsProvider.GetInt64Value(blockHeight, constants.SigningTransactionPeriod)
+	s.logger.Debug().Msgf("signing transaction period:%d", signingTransactionPeriod)
+	if err != nil {
+		s.logger.Error().Err(err).Msgf("fail to get constant value for(%s)", constants.SigningTransactionPeriod)
+		return err
+	}
+	if blockHeight-height > signingTransactionPeriod {
+		ragnarok, err := s.thorchainBridge.RagnarokInProgress()
+		if err != nil {
+			// fail to get ragnarok status from thorchain , assume it is false
+			s.logger.Err(err).Msg("fail to check ragnarok status")
+		}
+		// make sure ragnarok is not in progress , otherwise need to continue sign
+		if !ragnarok {
+			s.logger.Error().Msgf("tx was created at block height(%d), now it is (%d), it is older than (%d) blocks , skip it ", height, blockHeight, signingTransactionPeriod)
+			return nil
+		}
 	}
 	chain, err := s.getChain(tx.Chain)
 	if err != nil {

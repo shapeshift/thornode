@@ -148,9 +148,14 @@ func (gm *GasMgrV1) ProcessGas(ctx cosmos.Context, keeper keeper.Keeper) {
 				pool.BalanceRune = pool.BalanceRune.Add(runeGas) // Add to the pool
 			}
 		} else {
-			if runeGas.LT(vault.TotalReserve) {
+			if runeGas.LTE(vault.TotalReserve) {
 				vault.TotalReserve = common.SafeSub(vault.TotalReserve, runeGas) // Deduct from the Reserve.
 				pool.BalanceRune = pool.BalanceRune.Add(runeGas)                 // Add to the pool
+			} else {
+				// since we didn't move any funds from reserve to the pool, set
+				// the runeGas to zero so we emit the gas event to reflect the
+				// appropriate amount
+				runeGas = cosmos.ZeroUint()
 			}
 		}
 

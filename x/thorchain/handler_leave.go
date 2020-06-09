@@ -1,12 +1,14 @@
 package thorchain
 
 import (
+	"fmt"
+
 	"github.com/blang/semver"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // LeaveHandler a handler to process leave request
@@ -62,12 +64,15 @@ func (h LeaveHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Versi
 }
 
 func (h LeaveHandler) handle(ctx cosmos.Context, msg MsgLeave, version semver.Version) error {
-	nodeAcc, err := h.keeper.GetNodeAccountByBondAddress(ctx, msg.Tx.FromAddress)
+	nodeAcc, err := h.keeper.GetNodeAccount(ctx, msg.NodeAddress)
 	if err != nil {
 		return ErrInternal(err, "fail to get node account by bond address")
 	}
 	if nodeAcc.IsEmpty() {
 		return cosmos.ErrUnknownRequest("node account doesn't exist")
+	}
+	if !nodeAcc.BondAddress.Equals(msg.Tx.FromAddress) {
+		return cosmos.ErrUnauthorized(fmt.Sprintf("%s are not authorized to manage %s", msg.Tx.FromAddress, msg.NodeAddress))
 	}
 	// THORNode add the node to leave queue
 
@@ -78,7 +83,7 @@ func (h LeaveHandler) handle(ctx cosmos.Context, msg MsgLeave, version semver.Ve
 
 	if nodeAcc.Status == NodeActive {
 		if nodeAcc.LeaveHeight == 0 {
-			nodeAcc.LeaveHeight = ctx.BlockHeight()
+			nodeAcc.LeaveHeight = common.BlockHeight(ctx)
 		}
 	} else {
 		// NOTE: there is an edge case, where the first node doesn't have a

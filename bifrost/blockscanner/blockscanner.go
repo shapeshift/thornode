@@ -119,13 +119,12 @@ func (b *BlockScanner) scanBlocks() {
 			b.logger.Debug().Int64("block height", currentBlock).Int("txs", len(txIn.TxArray))
 			b.previousBlock++
 			b.metrics.GetCounter(metrics.TotalBlockScanned).Inc()
-			if len(txIn.TxArray) == 0 {
-				continue
-			}
-			select {
-			case <-b.stopChan:
-				return
-			case b.globalTxsQueue <- txIn:
+			if len(txIn.TxArray) > 0 {
+				select {
+				case <-b.stopChan:
+					return
+				case b.globalTxsQueue <- txIn:
+				}
 			}
 			b.metrics.GetCounter(metrics.CurrentPosition).Inc()
 			if err := b.scannerStorage.SetScanPos(b.previousBlock); err != nil {

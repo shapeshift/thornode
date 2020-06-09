@@ -9,7 +9,7 @@ import (
 	"gitlab.com/thorchain/tss/go-tss/blame"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 )
 
@@ -145,7 +145,7 @@ func (s *ThorchainSuite) TestChurn(c *C) {
 	c.Assert(mgr.ValidatorMgr().BeginBlock(ctx, consts), IsNil)
 
 	// check we've created a keygen, with the correct members
-	keygenBlock, err := keeper.GetKeygenBlock(ctx, ctx.BlockHeight())
+	keygenBlock, err := keeper.GetKeygenBlock(ctx, common.BlockHeight(ctx))
 	c.Assert(err, IsNil)
 	c.Assert(keygenBlock.IsEmpty(), Equals, false)
 	expected := append(vault.Membership[1:], na.PubKeySet.Secp256k1)
@@ -163,7 +163,7 @@ func (s *ThorchainSuite) TestChurn(c *C) {
 	newVaultPk := GetRandomPubKey()
 	signer, err := keygen.Members[0].GetThorAddress()
 	c.Assert(err, IsNil)
-	msg := NewMsgTssPool(keygen.Members, newVaultPk, AsgardKeygen, ctx.BlockHeight(), blame.Blame{}, common.Chains{common.RuneAsset().Chain}, signer)
+	msg := NewMsgTssPool(keygen.Members, newVaultPk, AsgardKeygen, common.BlockHeight(ctx), blame.Blame{}, common.Chains{common.RuneAsset().Chain}, signer)
 	tssHandler := NewTssHandler(keeper, mgr)
 
 	voter := NewTssVoter(msg.ID, msg.PubKeys, msg.PoolPubKey)
@@ -561,8 +561,8 @@ func (s *ThorchainSuite) TestRagnarokNoOneLeave(c *C) {
 	c.Assert(updates, IsNil)
 	ragnarokHeight, err := keeper.GetRagnarokBlockHeight(ctx)
 	c.Assert(err, IsNil)
-	c.Assert(ragnarokHeight, Equals, ctx.BlockHeight())
-	currentHeight := ctx.BlockHeight()
+	c.Assert(ragnarokHeight, Equals, common.BlockHeight(ctx))
+	currentHeight := common.BlockHeight(ctx)
 	migrateInterval := consts.GetInt64Value(constants.FundMigrationInterval)
 	ctx = ctx.WithBlockHeight(currentHeight + migrateInterval)
 	c.Assert(mgr.ValidatorMgr().BeginBlock(ctx, consts), IsNil)

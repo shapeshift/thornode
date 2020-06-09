@@ -10,7 +10,7 @@ import (
 	"github.com/tendermint/tendermint/libs/log"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 	kvTypes "gitlab.com/thorchain/thornode/x/thorchain/keeper/types"
 )
 
@@ -41,6 +41,7 @@ const (
 	prefixObservingAddresses kvTypes.DbPrefix = "observing_addresses/"
 	prefixReserves           kvTypes.DbPrefix = "reserves/"
 	prefixTss                kvTypes.DbPrefix = "tss/"
+	prefixTssKeysignFailure  kvTypes.DbPrefix = "tssKeysignFailure/"
 	prefixKeygen             kvTypes.DbPrefix = "keygen/"
 	prefixRagnarok           kvTypes.DbPrefix = "ragnarok/"
 	prefixGas                kvTypes.DbPrefix = "gas/"

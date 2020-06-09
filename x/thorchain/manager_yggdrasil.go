@@ -5,9 +5,9 @@ import (
 	"fmt"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 	kvTypes "gitlab.com/thorchain/thornode/x/thorchain/keeper/types"
 )
 
@@ -68,7 +68,7 @@ func (ymgr YggMgrV1) Fund(ctx cosmos.Context, mgr Manager, constAccessor constan
 	// function. So THORNode use modulus to determine which Ygg THORNode process. This
 	// should behave as a "round robin" approach checking one Ygg per block.
 	// With 100 Ygg pools, THORNode should check each pool every 8.33 minutes.
-	na := nodeAccs[ctx.BlockHeight()%int64(len(nodeAccs))]
+	na := nodeAccs[common.BlockHeight(ctx)%int64(len(nodeAccs))]
 
 	// check that we have enough bond
 	minBond, err := ymgr.keeper.GetMimir(ctx, constants.MinimumBondInRune.String())
@@ -87,7 +87,7 @@ func (ymgr YggMgrV1) Fund(ctx cosmos.Context, mgr Manager, constAccessor constan
 		if !errors.Is(err, kvTypes.ErrVaultNotFound) {
 			return fmt.Errorf("fail to get yggdrasil: %w", err)
 		}
-		ygg = NewVault(ctx.BlockHeight(), ActiveVault, YggdrasilVault, na.PubKeySet.Secp256k1, nil)
+		ygg = NewVault(common.BlockHeight(ctx), ActiveVault, YggdrasilVault, na.PubKeySet.Secp256k1, nil)
 		ygg.Membership = append(ygg.Membership, na.PubKeySet.Secp256k1)
 
 		if err := ymgr.keeper.SetVault(ctx, ygg); err != nil {
@@ -97,7 +97,7 @@ func (ymgr YggMgrV1) Fund(ctx cosmos.Context, mgr Manager, constAccessor constan
 	if !ygg.IsYggdrasil() {
 		return nil
 	}
-	pendingTxCount := ygg.LenPendingTxBlockHeights(ctx.BlockHeight(), constAccessor)
+	pendingTxCount := ygg.LenPendingTxBlockHeights(common.BlockHeight(ctx), constAccessor)
 	if pendingTxCount > 0 {
 		return fmt.Errorf("cannot send more yggdrasil funds while transactions are pending (%s: %d)", ygg.PubKey, pendingTxCount)
 	}
@@ -157,7 +157,7 @@ func (ymgr YggMgrV1) Fund(ctx cosmos.Context, mgr Manager, constAccessor constan
 			return err
 		}
 		for i := 0; i < count; i++ {
-			ygg.AppendPendingTxBlockHeights(ctx.BlockHeight(), constAccessor)
+			ygg.AppendPendingTxBlockHeights(common.BlockHeight(ctx), constAccessor)
 		}
 		if err := ymgr.keeper.SetVault(ctx, ygg); err != nil {
 			return fmt.Errorf("fail to create yggdrasil pool: %w", err)
@@ -199,7 +199,7 @@ func (ymgr YggMgrV1) sendCoinsToYggdrasil(ctx cosmos.Context, coins common.Coins
 			Chain:       coin.Asset.Chain,
 			ToAddress:   to,
 			InHash:      common.BlankTxID,
-			Memo:        NewYggdrasilFund(ctx.BlockHeight()).String(),
+			Memo:        NewYggdrasilFund(common.BlockHeight(ctx)).String(),
 			Coin:        coin,
 			VaultPubKey: vault.PubKey,
 		}

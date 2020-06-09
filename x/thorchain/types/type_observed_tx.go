@@ -5,12 +5,11 @@ import (
 	"strings"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 type (
-	status          string
-	ObservedTxIndex common.TxIDs
+	status string
 )
 
 const (

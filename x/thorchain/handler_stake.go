@@ -7,9 +7,9 @@ import (
 	"github.com/blang/semver"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // StakeHandler is to handle stake
@@ -194,7 +194,7 @@ func (h StakeHandler) stake(ctx cosmos.Context,
 		return ErrInternal(err, "fail to get staker")
 	}
 
-	su.LastStakeHeight = ctx.BlockHeight()
+	su.LastStakeHeight = common.BlockHeight(ctx)
 	if su.RuneAddress.IsEmpty() {
 		su.RuneAddress = runeAddr
 	}

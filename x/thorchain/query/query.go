@@ -56,6 +56,7 @@ var (
 	QueryConstantValues     = Query{Key: "constants", EndpointTemplate: "/%s/constants"}
 	QueryMimirValues        = Query{Key: "mimirs", EndpointTemplate: "/%s/mimir"}
 	QueryBan                = Query{Key: "ban", EndpointTemplate: "/%s/ban/{%s}"}
+	QueryRagnarok           = Query{Key: "ragnarok", EndpointTemplate: "/%s/ragnarok"}
 )
 
 // Queries all queries
@@ -83,4 +84,5 @@ var Queries = []Query{
 	QueryConstantValues,
 	QueryMimirValues,
 	QueryBan,
+	QueryRagnarok,
 }

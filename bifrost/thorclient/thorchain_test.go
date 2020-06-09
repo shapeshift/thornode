@@ -14,7 +14,7 @@ import (
 	"gitlab.com/thorchain/thornode/bifrost/config"
 	"gitlab.com/thorchain/thornode/cmd"
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 	stypes "gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
@@ -53,6 +53,11 @@ func (s *ThorchainSuite) SetUpSuite(c *C) {
 			httpTestHandler(c, rw, "../../test/fixtures/endpoints/vaults/asgard.json")
 		case strings.HasPrefix(req.RequestURI, BroadcastTxsEndpoint):
 			httpTestHandler(c, rw, "../../test/fixtures/endpoints/txs/success.json")
+		case strings.HasPrefix(req.RequestURI, ThorchainConstants):
+			httpTestHandler(c, rw, "../../test/fixtures/endpoints/constants/constants.json")
+		case strings.HasPrefix(req.RequestURI, RagnarokEndpoint):
+			httpTestHandler(c, rw, "../../test/fixtures/endpoints/ragnarok/ragnarok.json")
+
 		}
 	}))
 	s.cfg.ChainHost = s.server.Listener.Addr().String()
@@ -224,4 +229,16 @@ func (s *ThorchainSuite) TestPostNetworkFee(c *C) {
 	txid, err := s.bridge.PostNetworkFee(1024, common.BNBChain, 100, 100)
 	c.Assert(err, IsNil)
 	c.Assert(txid.IsEmpty(), Equals, false)
+}
+
+func (s *ThorchainSuite) TestGetConstants(c *C) {
+	result, err := s.bridge.GetConstants()
+	c.Assert(err, IsNil)
+	c.Assert(result, NotNil)
+}
+
+func (s *ThorchainSuite) TestGetRagnarok(c *C) {
+	result, err := s.bridge.RagnarokInProgress()
+	c.Assert(err, IsNil)
+	c.Assert(result, Equals, false)
 }

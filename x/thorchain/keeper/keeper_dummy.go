@@ -11,7 +11,7 @@ import (
 	"github.com/tendermint/tendermint/libs/log"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 	kvTypes "gitlab.com/thorchain/thornode/x/thorchain/keeper/types"
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
@@ -127,9 +127,6 @@ func (k KVStoreDummy) GetNodeAccountByPubKey(_ cosmos.Context, _ common.PubKey) 
 	return NodeAccount{}, kaboom
 }
 
-func (k KVStoreDummy) GetNodeAccountByBondAddress(_ cosmos.Context, _ common.Address) (NodeAccount, error) {
-	return NodeAccount{}, kaboom
-}
 func (k KVStoreDummy) SetNodeAccount(_ cosmos.Context, _ NodeAccount) error { return kaboom }
 func (k KVStoreDummy) EnsureNodeKeysUnique(_ cosmos.Context, _ string, _ common.PubKeySet) error {
 	return kaboom

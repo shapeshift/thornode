@@ -5,9 +5,9 @@ import (
 	"fmt"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // const values used to emit events
@@ -33,7 +33,7 @@ func NewVaultMgrV1(k keeper.Keeper, txOutStore TxOutStore, eventMgr EventManager
 }
 
 func (vm *VaultMgrV1) processGenesisSetup(ctx cosmos.Context) error {
-	if ctx.BlockHeight() != genesisBlockHeight {
+	if common.BlockHeight(ctx) != genesisBlockHeight {
 		return nil
 	}
 	vaults, err := vm.k.GetAsgardVaults(ctx)
@@ -68,7 +68,7 @@ func (vm *VaultMgrV1) processGenesisSetup(ctx cosmos.Context) error {
 
 // EndBlock move funds from retiring asgard vaults
 func (vm *VaultMgrV1) EndBlock(ctx cosmos.Context, mgr Manager, constAccessor constants.ConstantValues) error {
-	if ctx.BlockHeight() == genesisBlockHeight {
+	if common.BlockHeight(ctx) == genesisBlockHeight {
 		return vm.processGenesisSetup(ctx)
 	}
 
@@ -101,8 +101,8 @@ func (vm *VaultMgrV1) EndBlock(ctx cosmos.Context, mgr Manager, constAccessor co
 		}
 
 		// move partial funds every 30 minutes
-		if (ctx.BlockHeight()-vault.StatusSince)%migrateInterval == 0 {
-			if vault.LenPendingTxBlockHeights(ctx.BlockHeight(), constAccessor) > 0 {
+		if (common.BlockHeight(ctx)-vault.StatusSince)%migrateInterval == 0 {
+			if vault.LenPendingTxBlockHeights(common.BlockHeight(ctx), constAccessor) > 0 {
 				ctx.Logger().Info("Skipping the migration of funds while transactions are still pending")
 				continue
 			}
@@ -135,7 +135,7 @@ func (vm *VaultMgrV1) EndBlock(ctx cosmos.Context, mgr Manager, constAccessor co
 				}
 
 				// figure the nth time, we've sent migration txs from this vault
-				nth := (ctx.BlockHeight()-vault.StatusSince)/migrateInterval + 1
+				nth := (common.BlockHeight(ctx)-vault.StatusSince)/migrateInterval + 1
 
 				// Default amount set to total remaining amount. Relies on the
 				// signer, to successfully send these funds while respecting
@@ -174,14 +174,14 @@ func (vm *VaultMgrV1) EndBlock(ctx cosmos.Context, mgr Manager, constAccessor co
 						Asset:  coin.Asset,
 						Amount: amt,
 					},
-					Memo: NewMigrateMemo(ctx.BlockHeight()).String(),
+					Memo: NewMigrateMemo(common.BlockHeight(ctx)).String(),
 				}
 				ok, err := vm.txOutStore.TryAddTxOutItem(ctx, mgr, toi)
 				if err != nil {
 					return err
 				}
 				if ok {
-					vault.AppendPendingTxBlockHeights(ctx.BlockHeight(), constAccessor)
+					vault.AppendPendingTxBlockHeights(common.BlockHeight(ctx), constAccessor)
 					if err := vm.k.SetVault(ctx, vault); err != nil {
 						return fmt.Errorf("fail to save vault: %w", err)
 					}
@@ -190,7 +190,7 @@ func (vm *VaultMgrV1) EndBlock(ctx cosmos.Context, mgr Manager, constAccessor co
 		}
 	}
 
-	if ctx.BlockHeight()%migrateInterval == 0 {
+	if common.BlockHeight(ctx)%migrateInterval == 0 {
 		// checks to see if we need to ragnarok a chain, and ragnaroks them
 		if err := vm.manageChains(ctx, mgr, constAccessor); err != nil {
 			return err
@@ -205,11 +205,11 @@ func (vm *VaultMgrV1) TriggerKeygen(ctx cosmos.Context, nas NodeAccounts) error 
 	for i := range nas {
 		members = append(members, nas[i].PubKeySet.Secp256k1)
 	}
-	keygen, err := NewKeygen(ctx.BlockHeight(), members, AsgardKeygen)
+	keygen, err := NewKeygen(common.BlockHeight(ctx), members, AsgardKeygen)
 	if err != nil {
 		return fmt.Errorf("fail to create a new keygen: %w", err)
 	}
-	keygenBlock, err := vm.k.GetKeygenBlock(ctx, ctx.BlockHeight())
+	keygenBlock, err := vm.k.GetKeygenBlock(ctx, common.BlockHeight(ctx))
 	if err != nil {
 		return fmt.Errorf("fail to get keygen block from data store: %w", err)
 	}
@@ -230,7 +230,7 @@ func (vm *VaultMgrV1) RotateVault(ctx cosmos.Context, vault Vault) error {
 	for _, asgard := range active {
 		for _, member := range asgard.Membership {
 			if vault.Contains(member) {
-				asgard.UpdateStatus(RetiringVault, ctx.BlockHeight())
+				asgard.UpdateStatus(RetiringVault, common.BlockHeight(ctx))
 				if err := vm.k.SetVault(ctx, asgard); err != nil {
 					return err
 				}
@@ -286,7 +286,7 @@ func (vm *VaultMgrV1) manageChains(ctx cosmos.Context, mgr Manager, constAccesso
 	if migrateInterval < 0 || err != nil {
 		migrateInterval = constAccessor.GetInt64Value(constants.FundMigrationInterval)
 	}
-	nth := (ctx.BlockHeight()-vault.StatusSince)/migrateInterval + 1
+	nth := (common.BlockHeight(ctx)-vault.StatusSince)/migrateInterval + 1
 	if nth > 10 {
 		nth = 10
 	}
@@ -393,7 +393,7 @@ func (vm *VaultMgrV1) recallChainFunds(ctx cosmos.Context, chain common.Chain, m
 				InHash:      common.BlankTxID,
 				VaultPubKey: ygg.PubKey,
 				Coin:        common.NewCoin(common.RuneAsset(), cosmos.ZeroUint()),
-				Memo:        NewYggdrasilReturn(ctx.BlockHeight()).String(),
+				Memo:        NewYggdrasilReturn(common.BlockHeight(ctx)).String(),
 			}
 			// yggdrasil- will not set coin field here, when signer see a
 			// TxOutItem that has memo "yggdrasil-" it will query the chain
@@ -487,7 +487,7 @@ func (vm *VaultMgrV1) UpdateVaultData(ctx cosmos.Context, constAccessor constant
 	if totalReserve.IsZero() {
 		return nil
 	}
-	currentHeight := uint64(ctx.BlockHeight())
+	currentHeight := uint64(common.BlockHeight(ctx))
 	pools, totalStaked, err := vm.getEnabledPoolsAndTotalStakedRune(ctx)
 	if err != nil {
 		return fmt.Errorf("fail to get enabled pools and total staked rune: %w", err)

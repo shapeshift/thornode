@@ -15,9 +15,9 @@ import (
 	"github.com/hashicorp/go-multierror"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 const (
@@ -277,7 +277,7 @@ func refundBond(ctx cosmos.Context, tx common.Tx, nodeAcc NodeAccount, keeper ke
 
 	nodeAcc.Bond = cosmos.ZeroUint()
 	// disable the node account
-	nodeAcc.UpdateStatus(NodeDisabled, ctx.BlockHeight())
+	nodeAcc.UpdateStatus(NodeDisabled, common.BlockHeight(ctx))
 	if err := keeper.SetNodeAccount(ctx, nodeAcc); err != nil {
 		ctx.Logger().Error(fmt.Sprintf("fail to save node account(%s)", nodeAcc), "error", err)
 		return err
