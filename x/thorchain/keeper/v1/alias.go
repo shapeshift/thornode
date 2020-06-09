@@ -28,6 +28,7 @@ const (
 
 var (
 	NewPool                    = types.NewPool
+	NewJail                    = types.NewJail
 	NewTxMarker                = types.NewTxMarker
 	NewVaultData               = types.NewVaultData
 	NewObservedTx              = types.NewObservedTx
@@ -71,6 +72,7 @@ type (
 	ReserveContributors     = types.ReserveContributors
 	Vault                   = types.Vault
 	Vaults                  = types.Vaults
+	Jail                    = types.Jail
 	NodeAccount             = types.NodeAccount
 	NodeAccounts            = types.NodeAccounts
 	NodeStatus              = types.NodeStatus
