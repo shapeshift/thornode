@@ -279,3 +279,38 @@ func (k KVStore) DecNodeAccountSlashPoints(ctx cosmos.Context, addr cosmos.AccAd
 	k.SetNodeAccountSlashPoints(ctx, addr, current-pts)
 	return nil
 }
+
+// GetNodeAccountJail - gets jail details for a given node address
+func (k KVStore) GetNodeAccountJail(ctx cosmos.Context, addr cosmos.AccAddress) (Jail, error) {
+	store := ctx.KVStore(k.storeKey)
+	key := k.GetKey(ctx, prefixNodeJail, addr.String())
+	if !store.Has([]byte(key)) {
+		return NewJail(addr), nil
+	}
+
+	payload := store.Get([]byte(key))
+	var jail Jail
+	if err := k.cdc.UnmarshalBinaryBare(payload, &jail); err != nil {
+		return jail, dbError(ctx, "Unmarshal: jail node account", err)
+	}
+	return jail, nil
+}
+
+// SetNodeAccountJail - update the jail details of a node account
+func (k KVStore) SetNodeAccountJail(ctx cosmos.Context, addr cosmos.AccAddress, height int64, reason string) error {
+	jail, err := k.GetNodeAccountJail(ctx, addr)
+	if err != nil {
+		return err
+	}
+	// never reduce sentence
+	if jail.ReleaseHeight > height {
+		return nil
+	}
+	jail.ReleaseHeight = height
+	jail.Reason = reason
+
+	store := ctx.KVStore(k.storeKey)
+	key := k.GetKey(ctx, prefixNodeJail, addr.String())
+	store.Set([]byte(key), k.cdc.MustMarshalBinaryBare(jail))
+	return nil
+}

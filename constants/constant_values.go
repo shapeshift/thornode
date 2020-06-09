@@ -41,6 +41,8 @@ const (
 	StakeLockUpBlocks
 	ObserveSlashPoints
 	YggFundLimit
+	JailTimeKeygen
+	JailTimeKeysign
 )
 
 var nameToString = map[ConstantName]string{
@@ -75,6 +77,8 @@ var nameToString = map[ConstantName]string{
 	StakeLockUpBlocks:               "StakeLockUpBlocks",
 	ObserveSlashPoints:              "ObserveSlashPoints",
 	YggFundLimit:                    "YggFundLimit",
+	JailTimeKeygen:                  "JailTimeKeygen",
+	JailTimeKeysign:                 "JailTimeKeysign",
 }
 
 // String implement fmt.stringer
