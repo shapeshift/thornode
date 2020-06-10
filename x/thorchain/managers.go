@@ -73,6 +73,7 @@ type ValidatorManager interface {
 	EndBlock(ctx cosmos.Context, mgr Manager, constAccessor constants.ConstantValues) []abci.ValidatorUpdate
 	RequestYggReturn(ctx cosmos.Context, node NodeAccount, mgr Manager) error
 	processRagnarok(ctx cosmos.Context, mgr Manager, constAccessor constants.ConstantValues) error
+	NodeAccountPreflightCheck(ctx cosmos.Context, na NodeAccount, constAccessor constants.ConstantValues) (NodeStatus, error)
 }
 
 // VaultManager interface define the contract of Vault Manager

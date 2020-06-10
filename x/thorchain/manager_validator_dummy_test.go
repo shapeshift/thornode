@@ -29,3 +29,7 @@ func (vm *ValidatorDummyMgr) RequestYggReturn(_ cosmos.Context, _ NodeAccount, _
 func (vm *ValidatorDummyMgr) processRagnarok(_ cosmos.Context, _ Manager, _ constants.ConstantValues) error {
 	return kaboom
 }
+
+func (vm *ValidatorDummyMgr) NodeAccountPreflightCheck(ctx cosmos.Context, na NodeAccount, constAccessor constants.ConstantValues) (NodeStatus, error) {
+	return NodeDisabled, kaboom
+}
