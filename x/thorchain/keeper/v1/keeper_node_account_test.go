@@ -174,3 +174,41 @@ func (s *KeeperNodeAccountSuite) TestNodeAccountSlashPoints(c *C) {
 	c.Assert(err, IsNil)
 	c.Check(pts, Equals, int64(10))
 }
+
+func (s *KeeperNodeAccountSuite) TestJail(c *C) {
+	ctx, k := setupKeeperForTest(c)
+	addr := GetRandomBech32Addr()
+
+	jail, err := k.GetNodeAccountJail(ctx, addr)
+	c.Assert(err, IsNil)
+	c.Check(jail.NodeAddress.Equals(addr), Equals, true)
+	c.Check(jail.ReleaseHeight, Equals, int64(0))
+	c.Check(jail.Reason, Equals, "")
+
+	// ensure setting it works
+	err = k.SetNodeAccountJail(ctx, addr, 50, "foo")
+	c.Assert(err, IsNil)
+	jail, err = k.GetNodeAccountJail(ctx, addr)
+	c.Assert(err, IsNil)
+	c.Check(jail.NodeAddress.Equals(addr), Equals, true)
+	c.Check(jail.ReleaseHeight, Equals, int64(50))
+	c.Check(jail.Reason, Equals, "foo")
+
+	// ensure we won't reduce sentence
+	err = k.SetNodeAccountJail(ctx, addr, 20, "bar")
+	c.Assert(err, IsNil)
+	jail, err = k.GetNodeAccountJail(ctx, addr)
+	c.Assert(err, IsNil)
+	c.Check(jail.NodeAddress.Equals(addr), Equals, true)
+	c.Check(jail.ReleaseHeight, Equals, int64(50))
+	c.Check(jail.Reason, Equals, "foo")
+
+	// ensure we can update
+	err = k.SetNodeAccountJail(ctx, addr, 70, "bar")
+	c.Assert(err, IsNil)
+	jail, err = k.GetNodeAccountJail(ctx, addr)
+	c.Assert(err, IsNil)
+	c.Check(jail.NodeAddress.Equals(addr), Equals, true)
+	c.Check(jail.ReleaseHeight, Equals, int64(70))
+	c.Check(jail.Reason, Equals, "bar")
+}

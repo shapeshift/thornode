@@ -190,12 +190,12 @@ func (b *ThorchainBridge) GetConfig() config.ClientConfiguration {
 }
 
 // PostKeysignFailure generate and  post a keysign fail tx to thorchan
-func (b *ThorchainBridge) PostKeysignFailure(blame blame.Blame, height int64, memo string, coins common.Coins) (common.TxID, error) {
+func (b *ThorchainBridge) PostKeysignFailure(blame blame.Blame, height int64, memo string, coins common.Coins, retry uint64) (common.TxID, error) {
 	start := time.Now()
 	defer func() {
 		b.m.GetHistograms(metrics.SignToThorchainDuration).Observe(time.Since(start).Seconds())
 	}()
-	msg := stypes.NewMsgTssKeysignFail(height, blame, memo, coins, b.keys.GetSignerInfo().GetAddress())
+	msg := stypes.NewMsgTssKeysignFail(height, blame, memo, coins, b.keys.GetSignerInfo().GetAddress(), retry)
 	stdTx := authtypes.NewStdTx(
 		[]cosmos.Msg{msg},
 		authtypes.NewStdFee(100000000, nil), // fee

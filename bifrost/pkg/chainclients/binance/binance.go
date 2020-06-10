@@ -251,7 +251,7 @@ func (b *Binance) getGasFee(count uint64) common.Gas {
 }
 
 // SignTx sign the the given TxArrayItem
-func (b *Binance) SignTx(tx stypes.TxOutItem, height int64) ([]byte, error) {
+func (b *Binance) SignTx(tx stypes.TxOutItem, thorchainHeight int64, retry uint64) ([]byte, error) {
 	var payload []msg.Transfer
 
 	toAddr, err := types.AccAddressFromBech32(tx.ToAddress.String())
@@ -262,7 +262,7 @@ func (b *Binance) SignTx(tx stypes.TxOutItem, height int64) ([]byte, error) {
 	var gasCoin common.Coins
 
 	// for yggdrasil, need to left some coin to pay for fee, this logic is per chain, given different chain charge fees differently
-	if strings.EqualFold(tx.Memo, thorchain.NewYggdrasilReturn(height).String()) {
+	if strings.EqualFold(tx.Memo, thorchain.NewYggdrasilReturn(thorchainHeight).String()) {
 		gas := b.getGasFee(uint64(len(tx.Coins)))
 		gasCoin = gas.ToCoins()
 	}
@@ -323,7 +323,7 @@ func (b *Binance) SignTx(tx stypes.TxOutItem, height int64) ([]byte, error) {
 		Sequence:      meta.SeqNumber,
 		AccountNumber: meta.AccountNumber,
 	}
-	rawBz, err := b.signMsg(signMsg, fromAddr, tx.VaultPubKey, height, tx)
+	rawBz, err := b.signMsg(signMsg, fromAddr, tx.VaultPubKey, thorchainHeight, tx, retry)
 	if err != nil {
 		return nil, fmt.Errorf("fail to sign message: %w", err)
 	}
@@ -346,7 +346,7 @@ func (b *Binance) sign(signMsg btx.StdSignMsg, poolPubKey common.PubKey, signerP
 }
 
 // signMsg is design to sign a given message until it success or the same message had been send out by other signer
-func (b *Binance) signMsg(signMsg btx.StdSignMsg, from string, poolPubKey common.PubKey, height int64, txOutItem stypes.TxOutItem) ([]byte, error) {
+func (b *Binance) signMsg(signMsg btx.StdSignMsg, from string, poolPubKey common.PubKey, thorchainHeight int64, txOutItem stypes.TxOutItem, retry uint64) ([]byte, error) {
 	keySignParty, err := b.thorchainBridge.GetKeysignParty(poolPubKey)
 	if err != nil {
 		b.logger.Error().Err(err).Msg("fail to get keysign party")
@@ -364,7 +364,7 @@ func (b *Binance) signMsg(signMsg btx.StdSignMsg, from string, poolPubKey common
 		}
 
 		// key sign error forward the keysign blame to thorchain
-		txID, err := b.thorchainBridge.PostKeysignFailure(keysignError.Blame, height, txOutItem.Memo, txOutItem.Coins)
+		txID, err := b.thorchainBridge.PostKeysignFailure(keysignError.Blame, thorchainHeight, txOutItem.Memo, txOutItem.Coins, retry)
 		if err != nil {
 			b.logger.Error().Err(err).Msg("fail to post keysign failure to thorchain")
 			return nil, err
@@ -374,8 +374,6 @@ func (b *Binance) signMsg(signMsg btx.StdSignMsg, from string, poolPubKey common
 		}
 	}
 	b.logger.Error().Err(err).Msgf("fail to sign msg with memo: %s", signMsg.Memo)
-	// should THORNode give up? let's check the seq no on binance chain
-	// keep in mind, when THORNode don't run our own binance full node, THORNode might get rate limited by binance
 	return nil, err
 }
 

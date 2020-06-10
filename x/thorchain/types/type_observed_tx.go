@@ -185,6 +185,9 @@ func (tx *ObservedTxVoter) AddOutTx(in common.Tx) bool {
 	for i := range tx.Txs {
 		tx.Txs[i].SetDone(in.ID, len(tx.Actions))
 	}
+	if !tx.Tx.IsEmpty() {
+		tx.Tx.SetDone(in.ID, len(tx.Actions))
+	}
 	return true
 }
 

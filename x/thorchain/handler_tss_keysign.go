@@ -118,6 +118,14 @@ func (h TssKeysignHandler) handleV1(ctx cosmos.Context, msg MsgTssKeysignFail, v
 			if err := h.keeper.IncNodeAccountSlashPoints(ctx, na.NodeAddress, slashPoints); err != nil {
 				ctx.Logger().Error("fail to inc slash points", "error", err)
 			}
+
+			// go to jail
+			jailTime := constAccessor.GetInt64Value(constants.JailTimeKeysign)
+			releaseHeight := common.BlockHeight(ctx) + jailTime
+			reason := "failed to perform keysign"
+			if err := h.keeper.SetNodeAccountJail(ctx, na.NodeAddress, releaseHeight, reason); err != nil {
+				ctx.Logger().Error("fail to set node account jail", "node address", na.NodeAddress, "reason", reason, "error", err)
+			}
 		}
 		h.mgr.Slasher().DecSlashPoints(ctx, observeSlashPoints, voter.Signers...)
 		return &cosmos.Result{}, nil

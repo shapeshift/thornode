@@ -150,6 +150,14 @@ func (h TssHandler) handleV1(ctx cosmos.Context, msg MsgTssPool, version semver.
 						ctx.Logger().Error("fail to inc slash points", "error", err)
 					}
 				} else {
+					// go to jail
+					jailTime := constAccessor.GetInt64Value(constants.JailTimeKeygen)
+					releaseHeight := common.BlockHeight(ctx) + jailTime
+					reason := "failed to perform keygen"
+					if err := h.keeper.SetNodeAccountJail(ctx, na.NodeAddress, releaseHeight, reason); err != nil {
+						ctx.Logger().Error("fail to set node account jail", "node address", na.NodeAddress, "reason", reason, "error", err)
+					}
+
 					// take out bond from the node account and add it to vault bond reward RUNE
 					// thus good behaviour node will get reward
 					reserveVault, err := h.keeper.GetVaultData(ctx)
