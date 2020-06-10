@@ -10,7 +10,7 @@ import (
 	"gitlab.com/thorchain/tss/go-tss/blame"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 // MsgTssKeysignFail means TSS keysign failed
@@ -21,17 +21,19 @@ type MsgTssKeysignFail struct {
 	Memo   string            `json:"memo"`
 	Coins  common.Coins      `json:"coins"`
 	Signer cosmos.AccAddress `json:"signer"`
+	Retry  uint64            `json:"retry"`
 }
 
 // NewMsgTssKeysignFail create a new instance of MsgTssKeysignFail message
-func NewMsgTssKeysignFail(height int64, blame blame.Blame, memo string, coins common.Coins, signer cosmos.AccAddress) MsgTssKeysignFail {
+func NewMsgTssKeysignFail(height int64, blame blame.Blame, memo string, coins common.Coins, signer cosmos.AccAddress, retry uint64) MsgTssKeysignFail {
 	return MsgTssKeysignFail{
-		ID:     getMsgTssKeysignFailID(blame.BlameNodes, height, memo, coins),
+		ID:     getMsgTssKeysignFailID(blame.BlameNodes, height, memo, coins, retry),
 		Height: height,
 		Blame:  blame,
 		Memo:   memo,
 		Coins:  coins,
 		Signer: signer,
+		Retry:  retry,
 	}
 }
 
@@ -39,7 +41,7 @@ func NewMsgTssKeysignFail(height int64, blame blame.Blame, memo string, coins co
 // keysign failure , as well as the block height of the txout item to generate
 // a hash, given that , if the same party keep failing the same txout item ,
 // then we will only slash it once.
-func getMsgTssKeysignFailID(members []blame.Node, height int64, memo string, coins common.Coins) string {
+func getMsgTssKeysignFailID(members []blame.Node, height int64, memo string, coins common.Coins, retry uint64) string {
 	// ensure input pubkeys list is deterministically sorted
 	sort.SliceStable(members, func(i, j int) bool {
 		return members[i].Pubkey < members[j].Pubkey
@@ -48,6 +50,7 @@ func getMsgTssKeysignFailID(members []blame.Node, height int64, memo string, coi
 	for _, item := range members {
 		sb.WriteString(item.Pubkey)
 	}
+	sb.WriteString(fmt.Sprintf("%d", retry))
 	sb.WriteString(fmt.Sprintf("%d", height))
 	sb.WriteString(memo)
 	for _, c := range coins {

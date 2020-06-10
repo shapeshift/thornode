@@ -161,20 +161,20 @@ func (s *BitcoinSignerSuite) TestSignTx(c *C) {
 		OutHash: "",
 	}
 	// incorrect chain should return an error
-	result, err := s.client.SignTx(txOutItem, 1)
+	result, err := s.client.SignTx(txOutItem, 1, 0)
 	c.Assert(err, NotNil)
 	c.Assert(result, IsNil)
 
 	// invalid pubkey should return an error
 	txOutItem.Chain = common.BTCChain
 	txOutItem.VaultPubKey = common.PubKey("helloworld")
-	result, err = s.client.SignTx(txOutItem, 2)
+	result, err = s.client.SignTx(txOutItem, 2, 0)
 	c.Assert(err, NotNil)
 	c.Assert(result, IsNil)
 
 	// invalid to address should return an error
 	txOutItem.VaultPubKey = types2.GetRandomPubKey()
-	result, err = s.client.SignTx(txOutItem, 3)
+	result, err = s.client.SignTx(txOutItem, 3, 0)
 	c.Assert(err, NotNil)
 	c.Assert(result, IsNil)
 
@@ -183,7 +183,7 @@ func (s *BitcoinSignerSuite) TestSignTx(c *C) {
 	txOutItem.ToAddress = addr
 
 	// nothing to sign , because there is not enough UTXO
-	result, err = s.client.SignTx(txOutItem, 4)
+	result, err = s.client.SignTx(txOutItem, 4, 0)
 	c.Assert(err, NotNil)
 	c.Assert(result, IsNil)
 
@@ -191,7 +191,7 @@ func (s *BitcoinSignerSuite) TestSignTx(c *C) {
 	blockMeta.AddUTXO(GetRandomUTXO(0.5))
 	c.Assert(s.client.blockMetaAccessor.SaveBlockMeta(100, blockMeta), IsNil)
 
-	result, err = s.client.SignTx(txOutItem, 5)
+	result, err = s.client.SignTx(txOutItem, 5, 0)
 	c.Assert(err, NotNil)
 	c.Assert(result, IsNil)
 }
@@ -232,7 +232,7 @@ func (s *BitcoinSignerSuite) TestSignTxHappyPathWithPrivateKey(c *C) {
 	vaultPubKey, err := GetBech32AccountPubKey(pkey)
 	c.Assert(err, IsNil)
 	txOutItem.VaultPubKey = vaultPubKey
-	buf, err := s.client.SignTx(txOutItem, 1)
+	buf, err := s.client.SignTx(txOutItem, 1, 0)
 	c.Assert(err, IsNil)
 	c.Assert(buf, NotNil)
 }
@@ -266,7 +266,7 @@ func (s *BitcoinSignerSuite) TestSignTxWithTSS(c *C) {
 		"0000000000000068f0710c510e94bd29aa624745da43e32a1de887387306bfda")
 	blockMeta.AddUTXO(utxo)
 	c.Assert(s.client.blockMetaAccessor.SaveBlockMeta(blockMeta.Height, blockMeta), IsNil)
-	buf, err := s.client.SignTx(txOutItem, 1)
+	buf, err := s.client.SignTx(txOutItem, 1, 0)
 	c.Assert(err, IsNil)
 	c.Assert(buf, NotNil)
 }
