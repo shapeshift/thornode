@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 type (
@@ -184,6 +184,9 @@ func (tx *ObservedTxVoter) AddOutTx(in common.Tx) bool {
 	tx.OutTxs = append(tx.OutTxs, in)
 	for i := range tx.Txs {
 		tx.Txs[i].SetDone(in.ID, len(tx.Actions))
+	}
+	if !tx.Tx.IsEmpty() {
+		tx.Tx.SetDone(in.ID, len(tx.Actions))
 	}
 	return true
 }
