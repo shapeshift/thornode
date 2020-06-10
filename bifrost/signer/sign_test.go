@@ -177,7 +177,7 @@ type MockChainClient struct {
 	account common.Account
 }
 
-func (b *MockChainClient) SignTx(tai stypes.TxOutItem, height int64) ([]byte, error) {
+func (b *MockChainClient) SignTx(tai stypes.TxOutItem, height int64, retry uint64) ([]byte, error) {
 	return nil, nil
 }
 
