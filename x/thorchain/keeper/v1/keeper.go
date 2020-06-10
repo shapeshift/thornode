@@ -49,6 +49,7 @@ const (
 	prefixErrataTx           kvTypes.DbPrefix = "errata/"
 	prefixBanVoter           kvTypes.DbPrefix = "ban/"
 	prefixNodeSlashPoints    kvTypes.DbPrefix = "slash/"
+	prefixNodeJail           kvTypes.DbPrefix = "jail/"
 	prefixSwapQueueItem      kvTypes.DbPrefix = "swapitem/"
 	prefixMimir              kvTypes.DbPrefix = "mimir/"
 	prefixNetworkFee         kvTypes.DbPrefix = "network_fee/"

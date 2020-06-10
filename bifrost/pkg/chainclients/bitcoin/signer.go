@@ -169,7 +169,7 @@ func (c *Client) getSourceScript(tx stypes.TxOutItem) ([]byte, error) {
 }
 
 // SignTx is going to generate the outbound transaction, and also sign it
-func (c *Client) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, error) {
+func (c *Client) SignTx(tx stypes.TxOutItem, thorchainHeight int64, retry uint64) ([]byte, error) {
 	if !tx.Chain.Equals(common.BTCChain) {
 		return nil, errors.New("not BTC chain")
 	}
@@ -260,7 +260,7 @@ func (c *Client) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, err
 				}
 
 				// key sign error forward the keysign blame to thorchain
-				txID, err := c.bridge.PostKeysignFailure(keysignError.Blame, thorchainHeight, tx.Memo, tx.Coins)
+				txID, err := c.bridge.PostKeysignFailure(keysignError.Blame, thorchainHeight, tx.Memo, tx.Coins, retry)
 				if err != nil {
 					c.logger.Error().Err(err).Msg("fail to post keysign failure to thorchain")
 					return nil, err

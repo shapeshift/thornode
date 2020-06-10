@@ -304,9 +304,14 @@ func queryNodeAccount(ctx cosmos.Context, path []string, req abci.RequestQuery, 
 	if err != nil {
 		return nil, fmt.Errorf("fail to get node slash points: %w", err)
 	}
+	jail, err := keeper.GetNodeAccountJail(ctx, nodeAcc.NodeAddress)
+	if err != nil {
+		return nil, fmt.Errorf("fail to get node jail: %w", err)
+	}
 
 	result := NewQueryNodeAccount(nodeAcc)
 	result.SlashPoints = slashPts
+	result.Jail = jail
 	res, err := codec.MarshalJSONIndent(keeper.Cdc(), result)
 	if err != nil {
 		return nil, fmt.Errorf("fail to marshal node account to json: %w", err)
@@ -329,6 +334,12 @@ func queryNodeAccounts(ctx cosmos.Context, path []string, req abci.RequestQuery,
 		}
 		result[i] = NewQueryNodeAccount(na)
 		result[i].SlashPoints = slashPts
+
+		jail, err := keeper.GetNodeAccountJail(ctx, na.NodeAddress)
+		if err != nil {
+			return nil, fmt.Errorf("fail to get node jail: %w", err)
+		}
+		result[i].Jail = jail
 	}
 
 	res, err := codec.MarshalJSONIndent(keeper.Cdc(), result)
@@ -690,7 +701,7 @@ func queryTSSSigners(ctx cosmos.Context, path []string, req abci.RequestQuery, k
 		ctx.Logger().Error("fail to get vault", "error", err)
 		return nil, fmt.Errorf("fail to get vault: %w", err)
 	}
-	signers := vault.Membership
+	members := vault.Membership
 	threshold, err := GetThreshold(len(vault.Membership))
 	if err != nil {
 		ctx.Logger().Error("fail to get threshold", "error", err)
@@ -698,12 +709,30 @@ func queryTSSSigners(ctx cosmos.Context, path []string, req abci.RequestQuery, k
 	}
 	totalObservingAccounts := len(accountAddrs)
 	if totalObservingAccounts > 0 && totalObservingAccounts >= threshold {
-		signers, err = vault.GetMembers(accountAddrs)
+		members, err = vault.GetMembers(accountAddrs)
 		if err != nil {
 			ctx.Logger().Error("fail to get signers", "error", err)
 			return nil, fmt.Errorf("fail to get signers: %w", err)
 		}
 	}
+
+	// build signer list, exclude any node accounts in jail
+	signers := make(common.PubKeys, 0)
+	for _, mem := range members {
+		na, err := keeper.GetNodeAccountByPubKey(ctx, mem)
+		if err != nil {
+			ctx.Logger().Error("fail to get node account", "error", err)
+			continue
+		}
+		jail, err := keeper.GetNodeAccountJail(ctx, na.NodeAddress)
+		if err != nil {
+			ctx.Logger().Error("fail to get node account jail", "error", err)
+		}
+		if !jail.IsJailed(ctx) {
+			signers = append(signers, mem)
+		}
+	}
+
 	// if we don't have enough signer
 	if len(signers) < threshold {
 		signers = vault.Membership

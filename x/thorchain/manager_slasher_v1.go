@@ -165,6 +165,11 @@ func (s *SlasherV1) LackSigning(ctx cosmos.Context, constAccessor constants.Cons
 				if err := s.keeper.IncNodeAccountSlashPoints(ctx, na.NodeAddress, signingTransPeriod*2); err != nil {
 					ctx.Logger().Error("fail to inc slash points", "error", err, "node addr", na.NodeAddress.String())
 				}
+				releaseHeight := common.BlockHeight(ctx) + (signingTransPeriod * 2)
+				reason := "fail to send yggdrasil transaction"
+				if err := s.keeper.SetNodeAccountJail(ctx, na.NodeAddress, releaseHeight, reason); err != nil {
+					ctx.Logger().Error("fail to set node account jail", "node address", na.NodeAddress, "reason", reason, "error", err)
+				}
 			}
 
 			active, err := s.keeper.GetAsgardVaultsByStatus(ctx, ActiveVault)

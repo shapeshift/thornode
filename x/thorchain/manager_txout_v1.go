@@ -369,6 +369,14 @@ func (tos *TxOutStorageV1) collectYggdrasilPools(ctx cosmos.Context, tx Observed
 			continue
 		}
 
+		jail, err := tos.keeper.GetNodeAccountJail(ctx, addr)
+		if err != nil {
+			return nil, fmt.Errorf("fail to get ygg jail:%w", err)
+		}
+		if jail.IsJailed(ctx) {
+			continue
+		}
+
 		block, err := tos.GetBlockOut(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("fail to get block:%w", err)

@@ -77,17 +77,6 @@ func (h UnstakeHandler) handle(ctx cosmos.Context, msg MsgSetUnStake, version se
 	if err != nil {
 		return nil, ErrInternal(err, "fail to process UnStake request")
 	}
-	_, err = h.keeper.Cdc().MarshalBinaryLengthPrefixed(struct {
-		Rune  cosmos.Uint `json:"rune"`
-		Asset cosmos.Uint `json:"asset"`
-	}{
-		Rune:  runeAmt,
-		Asset: assetAmount,
-	})
-	if err != nil {
-		return nil, ErrInternal(err, "fail to marshal result to json")
-	}
-
 	unstakeEvt := NewEventUnstake(
 		msg.Asset,
 		units,

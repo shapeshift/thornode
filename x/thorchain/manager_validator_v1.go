@@ -936,6 +936,15 @@ func (vm *validatorMgrV1) markReadyActors(ctx cosmos.Context, constAccessor cons
 			na.UpdateStatus(NodeStandby, common.BlockHeight(ctx))
 		}
 
+		jail, err := vm.k.GetNodeAccountJail(ctx, na.NodeAddress)
+		if err != nil {
+			ctx.Logger().Error("fail to get node account jail", "error", err)
+			na.UpdateStatus(NodeStandby, common.BlockHeight(ctx))
+		}
+		if jail.IsJailed(ctx) {
+			na.UpdateStatus(NodeStandby, common.BlockHeight(ctx))
+		}
+
 		if vm.k.RagnarokInProgress(ctx) {
 			na.UpdateStatus(NodeStandby, common.BlockHeight(ctx))
 		}

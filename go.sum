@@ -105,7 +105,6 @@ github.com/btcsuite/winsvc v1.0.0/go.mod h1:jsenWakMcC0zFBFurPLEAyrnc/teJEM1O46f
 github.com/casbin/casbin/v2 v2.1.2/go.mod h1:YcPU1XXisHhLzuxH9coDNf2FbKpjGlbCg3n9yuLkIJQ=
 github.com/cenkalti/backoff v2.2.1+incompatible h1:tNowT99t7UNflLxfYYSlKYsBpXdEet03Pg2g16Swow4=
 github.com/cenkalti/backoff v2.2.1+incompatible/go.mod h1:90ReRw6GdpyfrHakVjL/QHaoyV4aDUVVkXQJJJ3NXXM=
-github.com/cenkalti/backoff/v4 v4.0.0/go.mod h1:eEew/i+1Q6OrCDZh3WiXYv3+nJwBASZ8Bog/87DQnVg=
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
 github.com/cespare/cp v0.1.0 h1:SE+dxFebS7Iik5LK0tsi1k9ZCxEaFX4AjQmoyA+1dJk=
 github.com/cespare/cp v0.1.0/go.mod h1:SOGHArjBr4JWaSDEVpWpo/hNg6RoKrls6Oh40hiwW+s=
@@ -813,7 +812,6 @@ github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UV
 github.com/stretchr/testify v1.4.0/go.mod h1:j7eGeouHqKxXV5pUuKE4zz7dFj8WfuZ+81PSLYec5m4=
 github.com/stretchr/testify v1.5.1 h1:nOGnQDM7FYENwehXlg/kFVnos3rEvtKTjRvOWSzb6H4=
 github.com/stretchr/testify v1.5.1/go.mod h1:5W2xD1RspED5o8YsWQXVCued0rvSQ+mT+I5cxcmMvtA=
-github.com/stumble/gorocksdb v0.0.3/go.mod h1:v6IHdFBXk5DJ1K4FZ0xi+eY737quiiBxYtSWXadLybY=
 github.com/subosito/gotenv v1.2.0 h1:Slr1R9HxAlEKefgq5jn9U+DnETlIUa6HfgEzj0g5d7s=
 github.com/subosito/gotenv v1.2.0/go.mod h1:N0PQaV/YGNqwC0u51sEeR/aUtSLEXKX9iv69rRypqCw=
 github.com/syndtr/goleveldb v1.0.0/go.mod h1:ZVVdQEZoIme9iO1Ch2Jdy24qqXrMMOU6lpPAyBWyWuQ=
@@ -867,8 +865,8 @@ github.com/zondax/ledger-go v0.11.0 h1:EEqUh6eaZucWAaGo87G7sJiqRNJpzBZr+I9PpGgjj
 github.com/zondax/ledger-go v0.11.0/go.mod h1:NI6JDs8VWwgh+9Bf1vPZMm9Xufp2Q7Iwm2IzxJWzmus=
 gitlab.com/thorchain/binance-sdk v1.2.2 h1:ov8QJWUxpgtLm4J5DeCq9PivQ5GJrrmVyFZbHscGQX4=
 gitlab.com/thorchain/binance-sdk v1.2.2/go.mod h1:gUS/olWbY1cDykTH9G0wfTDYQctiRoNt3UcfWVWM0qU=
-gitlab.com/thorchain/tss/go-tss v0.0.0-20200521211844-8c2925d834b5 h1:q1v+sTnWcQIGVgaKbUetaPjFyB0ZiTVB2cDt0ZYbbY0=
-gitlab.com/thorchain/tss/go-tss v0.0.0-20200521211844-8c2925d834b5/go.mod h1:Mz6fQbckaGD4jfV3LMZI76Uui+0U4mf2dAsBM1gf6Uk=
+gitlab.com/thorchain/tss/go-tss v0.0.0-20200609114525-29bad56ce9a0 h1:pJbRcUH7n5UVngXCw2MtpkvPPq9lBXQAdX8J4kzZKXc=
+gitlab.com/thorchain/tss/go-tss v0.0.0-20200609114525-29bad56ce9a0/go.mod h1:Y1wj0U0R4XYXAyQ98EBZMfRENNWpB5p9MCTSD5O8s6M=
 gitlab.com/thorchain/txscript v0.0.0-20200413023754-8aaf3443d92b h1:YHIcnYNNp7iCyQw6MXbiRSN0YtrpKR8E/fr7Y5HwDHM=
 gitlab.com/thorchain/txscript v0.0.0-20200413023754-8aaf3443d92b/go.mod h1:QwJJ+VjsoP0Cm9YC7ROmX0VIDuNxqBKIDGKRMkWkL3M=
 go.etcd.io/bbolt v1.3.2/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
