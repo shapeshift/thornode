@@ -116,7 +116,7 @@ func swapOne(ctx cosmos.Context,
 	source := tx.Coins[0].Asset
 	amount := tx.Coins[0].Amount
 
-	ctx.Logger().Info(fmt.Sprintf("%s Swapping %s(%s) -> %s to %s", tx.FromAddress, source, tx.Coins[0].Amount, target, destination))
+	ctx.Logger().Info(fmt.Sprintf("%s Swapping %s(%s) -> %s to %s (Fee %s)", tx.FromAddress, source, tx.Coins[0].Amount, target, destination, transactionFee))
 
 	var X, x, Y, liquidityFee, emitAssets cosmos.Uint
 	var tradeSlip cosmos.Uint
