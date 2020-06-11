@@ -104,7 +104,9 @@ func (h RagnarokHandler) handleV1(ctx cosmos.Context, version semver.Version, ms
 		}
 	}
 
-	h.keeper.SetLastSignedHeight(ctx, msg.BlockHeight)
+	if err := h.keeper.SetLastSignedHeight(ctx, msg.BlockHeight); err != nil {
+		ctx.Logger().Error("fail to update last signed height", "error", err)
+	}
 
 	return &cosmos.Result{}, nil
 }

@@ -33,6 +33,20 @@ func (h QueryResHeights) String() string {
 	return fmt.Sprintf("Chain: %d, Signed: %d, THORChain: %d", h.LastChainHeight, h.LastSignedHeight, h.Thorchain)
 }
 
+type QueryNodeAccountPreflightCheck struct {
+	Status      NodeStatus `json:"status"`
+	Description string     `json:"reason"`
+	Code        int        `json:"code"`
+}
+
+// implement fmt.Stringer
+func (n QueryNodeAccountPreflightCheck) String() string {
+	sb := strings.Builder{}
+	sb.WriteString("Result Status:" + n.Status.String() + "\n")
+	sb.WriteString("Description:" + n.Description + "\n")
+	return sb.String()
+}
+
 // query keygen, displays signed keygen requests
 type QueryKeygenBlock struct {
 	KeygenBlock KeygenBlock `json:"keygen_block"`

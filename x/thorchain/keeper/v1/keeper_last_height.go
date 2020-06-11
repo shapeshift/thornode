@@ -8,10 +8,16 @@ import (
 	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
-func (k KVStore) SetLastSignedHeight(ctx cosmos.Context, height int64) {
+func (k KVStore) SetLastSignedHeight(ctx cosmos.Context, height int64) error {
+	lastHeight, _ := k.GetLastSignedHeight(ctx)
+	if lastHeight > height {
+		err := fmt.Errorf("last signed height :%d is larger than %d, block height can't go backward ", lastHeight, height)
+		return dbError(ctx, "", err)
+	}
 	store := ctx.KVStore(k.storeKey)
 	key := k.GetKey(ctx, prefixLastSignedHeight, "")
 	store.Set([]byte(key), k.cdc.MustMarshalBinaryBare(height))
+	return nil
 }
 
 func (k KVStore) GetLastSignedHeight(ctx cosmos.Context) (int64, error) {
@@ -29,12 +35,9 @@ func (k KVStore) GetLastSignedHeight(ctx cosmos.Context) (int64, error) {
 }
 
 func (k KVStore) SetLastChainHeight(ctx cosmos.Context, chain common.Chain, height int64) error {
-	lastHeight, err := k.GetLastChainHeight(ctx, chain)
-	if err != nil {
-		return err
-	}
+	lastHeight, _ := k.GetLastChainHeight(ctx, chain)
 	if lastHeight > height {
-		err := fmt.Errorf("last block height :%d is larger than %d , block height can't go backward ", lastHeight, height)
+		err := fmt.Errorf("last block height :%d is larger than %d, block height can't go backward ", lastHeight, height)
 		return dbError(ctx, "", err)
 	}
 	store := ctx.KVStore(k.storeKey)

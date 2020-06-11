@@ -920,58 +920,10 @@ func (vm *validatorMgrV1) markReadyActors(ctx cosmos.Context, constAccessor cons
 		return err
 	}
 
-	// find min version node has to be, to be "ready" status
-	minVersion := vm.k.GetMinJoinVersion(ctx)
-
 	// check all ready and standby nodes are in "ready" state (upgrade/downgrade as needed)
 	for _, na := range append(standby, ready...) {
-		na.UpdateStatus(NodeReady, common.BlockHeight(ctx)) // everyone starts with the benefit of the doubt
-		// TODO: check node is up to date on binance, etc
-		// must have made an observation that matched 2/3rds within the last 5 blocks
-		// We do not need to check thorchain is up to date because keygen will
-		// fail if they are not.
-
-		// Check version number is still supported
-		if na.Version.LT(minVersion) {
-			na.UpdateStatus(NodeStandby, common.BlockHeight(ctx))
-		}
-
-		jail, err := vm.k.GetNodeAccountJail(ctx, na.NodeAddress)
-		if err != nil {
-			ctx.Logger().Error("fail to get node account jail", "error", err)
-			na.UpdateStatus(NodeStandby, common.BlockHeight(ctx))
-		}
-		if jail.IsJailed(ctx) {
-			na.UpdateStatus(NodeStandby, common.BlockHeight(ctx))
-		}
-
-		if vm.k.RagnarokInProgress(ctx) {
-			na.UpdateStatus(NodeStandby, common.BlockHeight(ctx))
-		}
-
-		// Check if they've requested to leave
-		if na.RequestedToLeave {
-			na.UpdateStatus(NodeStandby, common.BlockHeight(ctx))
-		}
-
-		// Check that the node account has an IP address
-		if net.ParseIP(na.IPAddress) == nil {
-			na.UpdateStatus(NodeStandby, common.BlockHeight(ctx))
-		}
-
-		// ensure we have enough rune
-		minBond, err := vm.k.GetMimir(ctx, constants.MinimumBondInRune.String())
-		if minBond < 0 || err != nil {
-			minBond = constAccessor.GetInt64Value(constants.MinimumBondInRune)
-		}
-		if na.Bond.LT(cosmos.NewUint(uint64(minBond))) {
-			na.UpdateStatus(NodeStandby, common.BlockHeight(ctx))
-		}
-
-		// ensure banned nodes can't get churned in again
-		if na.ForcedToLeave {
-			na.UpdateStatus(NodeDisabled, common.BlockHeight(ctx))
-		}
+		status, _ := vm.NodeAccountPreflightCheck(ctx, na, constAccessor)
+		na.UpdateStatus(status, common.BlockHeight(ctx))
 
 		if err := vm.k.SetNodeAccount(ctx, na); err != nil {
 			return err
@@ -979,6 +931,58 @@ func (vm *validatorMgrV1) markReadyActors(ctx cosmos.Context, constAccessor cons
 	}
 
 	return nil
+}
+
+func (vm *validatorMgrV1) NodeAccountPreflightCheck(ctx cosmos.Context, na NodeAccount, constAccessor constants.ConstantValues) (NodeStatus, error) {
+	// ensure banned nodes can't get churned in again
+	if na.ForcedToLeave {
+		return NodeDisabled, fmt.Errorf("node account has been banned")
+	}
+
+	// Check if they've requested to leave
+	if na.RequestedToLeave {
+		return NodeStandby, fmt.Errorf("node account has requested to leave")
+	}
+
+	// Check that the node account has an IP address
+	if net.ParseIP(na.IPAddress) == nil {
+		return NodeStandby, fmt.Errorf("node account has invalid registered IP address")
+	}
+
+	// Check that the node account has an pubkey set
+	if na.PubKeySet.IsEmpty() {
+		return NodeWhiteListed, fmt.Errorf("node account has registered their pubkey set")
+	}
+
+	// ensure we have enough rune
+	minBond, err := vm.k.GetMimir(ctx, constants.MinimumBondInRune.String())
+	if minBond < 0 || err != nil {
+		minBond = constAccessor.GetInt64Value(constants.MinimumBondInRune)
+	}
+	if na.Bond.LT(cosmos.NewUint(uint64(minBond))) {
+		return NodeStandby, fmt.Errorf("node account does not have minimum bond requirement: %d/%d", na.Bond.Uint64(), minBond)
+	}
+
+	minVersion := vm.k.GetMinJoinVersion(ctx)
+	// Check version number is still supported
+	if na.Version.LT(minVersion) {
+		return NodeStandby, fmt.Errorf("node account does not meet min version requirement: %s vs %s", na.Version, minVersion)
+	}
+
+	jail, err := vm.k.GetNodeAccountJail(ctx, na.NodeAddress)
+	if err != nil {
+		ctx.Logger().Error("fail to get node account jail", "error", err)
+		return NodeStandby, fmt.Errorf("cannot fetch jail status: %w", err)
+	}
+	if jail.IsJailed(ctx) {
+		return NodeStandby, fmt.Errorf("node account is jailed until block %d: %s", jail.ReleaseHeight, jail.Reason)
+	}
+
+	if vm.k.RagnarokInProgress(ctx) {
+		return NodeStandby, fmt.Errorf("ragnarok is currently in progress: no churning")
+	}
+
+	return NodeReady, nil
 }
 
 // Returns a list of nodes to include in the next pool

@@ -206,7 +206,7 @@ func (h ObservedTxInHandler) handleV1(ctx cosmos.Context, version semver.Version
 		}
 
 		if err := h.keeper.SetLastChainHeight(ctx, tx.Tx.Chain, tx.BlockHeight); err != nil {
-			return nil, err
+			ctx.Logger().Error("fail to set last chain height", "error", err)
 		}
 
 		// add addresses to observing addresses. This is used to detect
