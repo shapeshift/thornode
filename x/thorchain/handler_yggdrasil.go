@@ -133,7 +133,9 @@ func (h YggdrasilHandler) handleV1(ctx cosmos.Context, msg MsgYggdrasil, version
 		vault.Type = YggdrasilVault
 	}
 
-	h.keeper.SetLastSignedHeight(ctx, msg.BlockHeight)
+	if err := h.keeper.SetLastSignedHeight(ctx, msg.BlockHeight); err != nil {
+		ctx.Logger().Error("fail to update last signed height", "error", err)
+	}
 
 	if msg.AddFunds {
 		return h.handleYggdrasilFund(ctx, msg, vault)

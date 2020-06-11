@@ -62,7 +62,7 @@ type KeeperPool interface {
 }
 
 type KeeperLastHeight interface {
-	SetLastSignedHeight(ctx cosmos.Context, height int64)
+	SetLastSignedHeight(ctx cosmos.Context, height int64) error
 	GetLastSignedHeight(ctx cosmos.Context) (int64, error)
 	SetLastChainHeight(ctx cosmos.Context, chain common.Chain, height int64) error
 	GetLastChainHeight(ctx cosmos.Context, chain common.Chain) (int64, error)
