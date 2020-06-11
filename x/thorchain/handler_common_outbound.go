@@ -102,7 +102,9 @@ func (h CommonOutboundTxHandler) handle(ctx cosmos.Context, version semver.Versi
 		}
 	}
 
-	h.keeper.SetLastSignedHeight(ctx, voter.Height)
+	if err := h.keeper.SetLastSignedHeight(ctx, voter.Height); err != nil {
+		ctx.Logger().Error("fail to update last signed height", "error", err)
+	}
 
 	return &cosmos.Result{}, nil
 }

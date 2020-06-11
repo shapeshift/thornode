@@ -222,7 +222,9 @@ func InitGenesis(ctx cosmos.Context, keeper keeper.Keeper, data GenesisState) []
 		keeper.SetGas(ctx, asset, v)
 	}
 	if data.LastSignedHeight > 0 {
-		keeper.SetLastSignedHeight(ctx, data.LastSignedHeight)
+		if err := keeper.SetLastSignedHeight(ctx, data.LastSignedHeight); err != nil {
+			panic(err)
+		}
 	}
 
 	for c, h := range data.LastChainHeights {
