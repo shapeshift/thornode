@@ -51,7 +51,7 @@ func (k KVStoreDummy) SendFromModuleToAccount(ctx cosmos.Context, from string, t
 	return kaboom
 }
 
-func (k KVStoreDummy) SetLastSignedHeight(_ cosmos.Context, _ int64) { return }
+func (k KVStoreDummy) SetLastSignedHeight(_ cosmos.Context, _ int64) error { return kaboom }
 func (k KVStoreDummy) GetLastSignedHeight(_ cosmos.Context) (int64, error) {
 	return 0, kaboom
 }
