@@ -340,11 +340,11 @@ func (c *Client) sendNetworkFee(height int64) error {
 		return fmt.Errorf("fail to get block stats")
 	}
 	// fee rate and tx size should not be 0
-	if result.AverageFeeRate == 0 || result.AverageTxSize == 0 {
+	if result.MedianFee == 0 || result.MedianTxSize == 0 {
 		return nil
 	}
 
-	txid, err := c.bridge.PostNetworkFee(height, common.BTCChain, uint64(result.AverageTxSize), uint64(result.AverageFeeRate))
+	txid, err := c.bridge.PostNetworkFee(height, common.BTCChain, uint64(result.MedianTxSize), uint64(result.MedianFee/result.MedianTxSize))
 	if err != nil {
 		return fmt.Errorf("fail to post network fee to thornode: %w", err)
 	}
