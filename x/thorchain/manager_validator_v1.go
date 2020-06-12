@@ -507,6 +507,12 @@ func (vm *validatorMgrV1) ragnarokReserve(ctx cosmos.Context, nth int64, mgr Man
 }
 
 func (vm *validatorMgrV1) ragnarokBond(ctx cosmos.Context, nth int64, mgr Manager) error {
+	// bond should be returned on the back 10, not the first 10
+	nth -= 10
+	if nth < 1 {
+		return nil
+	}
+
 	nas, err := vm.k.ListNodeAccountsWithBond(ctx)
 	if err != nil {
 		ctx.Logger().Error("can't get nodes", "error", err)
@@ -577,10 +583,10 @@ func (vm *validatorMgrV1) ragnarokPools(ctx cosmos.Context, nth int64, mgr Manag
 	// the last tx will send them 0.036288. So if we don't have enough gas to
 	// send them, its only a very small portion that is not refunded.
 	var basisPoints int64
-	if nth > 10 {
+	if nth > 20 || (nth%10) == 0 {
 		basisPoints = MaxUnstakeBasisPoints
 	} else {
-		basisPoints = nth * (MaxUnstakeBasisPoints / 10)
+		basisPoints = (nth % 10) * (MaxUnstakeBasisPoints / 10)
 	}
 
 	// go through all the pools
@@ -615,6 +621,11 @@ func (vm *validatorMgrV1) ragnarokPools(ctx cosmos.Context, nth int64, mgr Manag
 			var staker Staker
 			vm.k.Cdc().MustUnmarshalBinaryBare(iterator.Value(), &staker)
 			if staker.Units.IsZero() {
+				continue
+			}
+
+			// unstake gas asset pool on the back 10 nths
+			if nth <= 10 && pool.Asset.Chain.GetGasAsset().Equals(pool.Asset) {
 				continue
 			}
 

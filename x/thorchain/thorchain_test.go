@@ -398,25 +398,35 @@ func (s *ThorchainSuite) TestRagnarok(c *C) {
 	ragnarokHeight, err := keeper.GetRagnarokBlockHeight(ctx)
 	c.Assert(err, IsNil)
 	migrateInterval := consts.GetInt64Value(constants.FundMigrationInterval)
-	for i := 1; i <= 10; i++ { // simulate each round of ragnarok (max of ten)
+	for i := 1; i <= 20; i++ { // simulate each round of ragnarok (max of ten)
 		ctx = ctx.WithBlockHeight(ragnarokHeight + (int64(i) * migrateInterval))
 		c.Assert(mgr.ValidatorMgr().processRagnarok(ctx, mgr, consts), IsNil)
 		items, err := mgr.TxOutStore().GetOutboundItems(ctx)
 		c.Assert(err, IsNil)
 
 		if common.RuneAsset().Chain.Equals(common.THORChain) {
-			c.Assert(items, HasLen, 5, Commentf("%d", len(items)))
+			if i <= 10 {
+				c.Assert(items, HasLen, 2, Commentf("%d", len(items)))
+			} else {
+				c.Assert(items, HasLen, 3, Commentf("%d", len(items)))
+			}
 		} else {
-			c.Assert(items, HasLen, 15, Commentf("%d", len(items)))
+			if i <= 10 {
+				c.Assert(items, HasLen, 6, Commentf("%d", len(items)))
+			} else {
+				c.Assert(items, HasLen, 9, Commentf("%d", len(items)))
+			}
 		}
 
 		if !common.RuneAsset().Chain.Equals(common.THORChain) {
 			// validate bonders have correct coin amounts being sent to them on each round of ragnarok
-			for _, bonder := range bonders {
-				items := mgr.TxOutStore().GetOutboundItemByToAddress(ctx, bonder.BondAddress)
-				c.Assert(items, HasLen, 1)
-				outCoin := common.NewCoin(common.RuneAsset(), calcExpectedValue(bonder.Bond, i))
-				c.Assert(items[0].Coin.Equals(outCoin), Equals, true, Commentf("expect:%s, however:%s", outCoin.String(), items[0].Coin.String()))
+			if i > 10 {
+				for _, bonder := range bonders {
+					items := mgr.TxOutStore().GetOutboundItemByToAddress(ctx, bonder.BondAddress)
+					c.Assert(items, HasLen, 1)
+					outCoin := common.NewCoin(common.RuneAsset(), calcExpectedValue(bonder.Bond, i-10))
+					c.Assert(items[0].Coin.Equals(outCoin), Equals, true, Commentf("expect:%s, however:%s", outCoin.String(), items[0].Coin.String()))
+				}
 			}
 		}
 
@@ -424,19 +434,25 @@ func (s *ThorchainSuite) TestRagnarok(c *C) {
 		for j, staker := range stakersAssets {
 			items := mgr.TxOutStore().GetOutboundItemByToAddress(ctx, staker)
 			// TODO: check item amounts
-			if j == len(stakers)-1 {
-				c.Assert(items, HasLen, 1, Commentf("%d", len(items)))
+			if i <= 10 {
+				if j == len(stakers)-1 {
+					c.Assert(items, HasLen, 0, Commentf("%d", len(items)))
+				} else {
+					c.Assert(items, HasLen, 1, Commentf("%d", len(items)))
+				}
 			} else {
-				c.Assert(items, HasLen, 2, Commentf("%d", len(items)))
+				c.Assert(items, HasLen, 1, Commentf("%d", len(items)))
 			}
 		}
 
 		// validate reserve contributors get their returns
-		for _, res := range reserves {
-			items := mgr.TxOutStore().GetOutboundItemByToAddress(ctx, res.Address)
-			c.Assert(items, HasLen, 1)
-			outCoin := common.NewCoin(common.RuneAsset(), calcExpectedValue(res.Amount, i))
-			c.Assert(items[0].Coin.Equals(outCoin), Equals, true, Commentf("expect:%s, however:%s", outCoin, items[0].Coin))
+		if i <= 10 {
+			for _, res := range reserves {
+				items := mgr.TxOutStore().GetOutboundItemByToAddress(ctx, res.Address)
+				c.Assert(items, HasLen, 1)
+				outCoin := common.NewCoin(common.RuneAsset(), calcExpectedValue(res.Amount, i))
+				c.Assert(items[0].Coin.Equals(outCoin), Equals, true, Commentf("expect:%s, however:%s", outCoin, items[0].Coin))
+			}
 		}
 
 		mgr.TxOutStore().ClearOutboundItems(ctx) // clear out txs
