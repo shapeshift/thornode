@@ -37,6 +37,7 @@ type Signer struct {
 	stopChan              chan struct{}
 	blockScanner          *blockscanner.BlockScanner
 	thorchainBlockScanner *ThorchainBlockScan
+	lastThorchainHeight   int64
 	chains                map[common.Chain]chainclients.ChainClient
 	storage               SignerStorage
 	m                     *metrics.Metrics
@@ -294,18 +295,20 @@ func (s *Signer) sendKeygenToThorchain(height int64, poolPk common.PubKey, blame
 func (s *Signer) signAndBroadcast(item TxOutStoreItem) error {
 	height := item.Height
 	tx := item.TxOutItem
-	blockHeight, err := s.thorchainBridge.GetBlockHeight()
-	if err != nil {
-		s.logger.Error().Err(err).Msgf("fail to get block height")
-		return err
-	}
-	signingTransactionPeriod, err := s.constantsProvider.GetInt64Value(blockHeight, constants.SigningTransactionPeriod)
+	signingTransactionPeriod, err := s.constantsProvider.GetInt64Value(s.lastThorchainHeight, constants.SigningTransactionPeriod)
 	s.logger.Debug().Msgf("signing transaction period:%d", signingTransactionPeriod)
 	if err != nil {
 		s.logger.Error().Err(err).Msgf("fail to get constant value for(%s)", constants.SigningTransactionPeriod)
 		return err
 	}
-	if blockHeight-height > signingTransactionPeriod {
+	if s.lastThorchainHeight-signingTransactionPeriod < height {
+		s.lastThorchainHeight, err = s.thorchainBridge.GetBlockHeight()
+		if err != nil {
+			s.logger.Error().Err(err).Msgf("fail to get block height")
+			return err
+		}
+	}
+	if s.lastThorchainHeight-height > signingTransactionPeriod {
 		ragnarok, err := s.thorchainBridge.RagnarokInProgress()
 		if err != nil {
 			// fail to get ragnarok status from thorchain , assume it is false
@@ -313,7 +316,7 @@ func (s *Signer) signAndBroadcast(item TxOutStoreItem) error {
 		}
 		// make sure ragnarok is not in progress , otherwise need to continue sign
 		if !ragnarok {
-			s.logger.Error().Msgf("tx was created at block height(%d), now it is (%d), it is older than (%d) blocks , skip it ", height, blockHeight, signingTransactionPeriod)
+			s.logger.Error().Msgf("tx was created at block height(%d), now it is (%d), it is older than (%d) blocks , skip it ", height, s.lastThorchainHeight, signingTransactionPeriod)
 			return nil
 		}
 	}
