@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"time"
 
 	ctypes "github.com/binance-chain/go-sdk/common/types"
 	"github.com/binance-chain/go-sdk/keys"
@@ -173,7 +174,25 @@ func (s *KeySign) toLocalTSSSigner(poolPubKey, sendmsg string, signerPubKeys com
 	}
 	s.logger.Debug().Str("payload", fmt.Sprintf("PoolPubKey: %s, Message: %s, Signers: %+v", tssMsg.PoolPubKey, tssMsg.Message, tssMsg.SignerPubKeys)).Msg("msg to tss Local node")
 
-	keySignResp, err := s.server.KeySign(tssMsg)
+	ch := make(chan bool, 1)
+	defer close(ch)
+	timer := time.NewTimer(5 * time.Minute)
+	defer timer.Stop()
+
+	var keySignResp keysign.Response
+	var err error
+	go func() {
+		keySignResp, err = s.server.KeySign(tssMsg)
+		ch <- true
+	}()
+
+	select {
+	case <-ch:
+		// do nothing
+	case <-timer.C:
+		return "", "", fmt.Errorf("tss signer timeout")
+	}
+
 	if err != nil {
 		return "", "", fmt.Errorf("fail to send request to local TSS node: %w", err)
 	}
