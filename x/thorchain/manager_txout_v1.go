@@ -10,6 +10,8 @@ import (
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
+var ErrNotEnoughToPayFee = errors.New("not enough asset to pay for fees")
+
 // TxOutStorageV1 is going to manage all the outgoing tx
 type TxOutStorageV1 struct {
 	keeper        keeper.Keeper
@@ -230,7 +232,7 @@ func (tos *TxOutStorageV1) prepareTxOutItem(ctx cosmos.Context, toi *TxOutItem) 
 	// and coin field will be filled there, thus we have to let this one go
 	if toi.Coin.IsEmpty() && !memo.IsType(TxYggdrasilReturn) {
 		ctx.Logger().Info("tx out item has zero coin", toi.String())
-		return false, nil
+		return false, ErrNotEnoughToPayFee
 	}
 
 	// increment out number of out tx for this in tx
