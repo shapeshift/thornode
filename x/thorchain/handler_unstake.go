@@ -1,6 +1,7 @@
 package thorchain
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/blang/semver"
@@ -26,6 +27,7 @@ func NewUnstakeHandler(keeper keeper.Keeper, mgr Manager) UnstakeHandler {
 	}
 }
 
+// Run is the main entry point of Unstake Handler
 func (h UnstakeHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, _ constants.ConstantValues) (*cosmos.Result, error) {
 	msg, ok := m.(MsgSetUnStake)
 	if !ok {
@@ -112,11 +114,15 @@ func (h UnstakeHandler) handle(ctx cosmos.Context, msg MsgSetUnStake, version se
 		}
 	}
 
-	ok, err := h.mgr.TxOutStore().TryAddTxOutItem(ctx, h.mgr, toi)
+	okAsset, err := h.mgr.TxOutStore().TryAddTxOutItem(ctx, h.mgr, toi)
 	if err != nil {
-		return nil, multierror.Append(errFailAddOutboundTx, err)
+		if !errors.Is(err, ErrNotEnoughToPayFee) {
+			// the emit asset not enough to pay fee,continue
+			return nil, multierror.Append(errFailAddOutboundTx, err)
+		}
+		okAsset = true
 	}
-	if !ok {
+	if !okAsset {
 		return nil, errFailAddOutboundTx
 	}
 
@@ -136,11 +142,16 @@ func (h UnstakeHandler) handle(ctx cosmos.Context, msg MsgSetUnStake, version se
 			}
 		}
 	}
-	ok, err = h.mgr.TxOutStore().TryAddTxOutItem(ctx, h.mgr, toi)
+	okRune, err := h.mgr.TxOutStore().TryAddTxOutItem(ctx, h.mgr, toi)
 	if err != nil {
-		return nil, multierror.Append(errFailAddOutboundTx, err)
+		// emitted asset doesn't enough to cover fee, continue
+		if !errors.Is(err, ErrNotEnoughToPayFee) {
+			return nil, multierror.Append(errFailAddOutboundTx, err)
+		}
+		okRune = true
 	}
-	if !ok {
+
+	if !okRune {
 		return nil, errFailAddOutboundTx
 	}
 
