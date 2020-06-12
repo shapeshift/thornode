@@ -56,10 +56,10 @@ func (kg *KeyGen) GenerateNewKey(pKeys common.PubKeys) (common.PubKeySet, blame.
 	timer := time.NewTimer(30 * time.Minute)
 	defer timer.Stop()
 
-	var dat keygen.Response
+	var resp keygen.Response
 	var err error
 	go func() {
-		dat, err = kg.server.Keygen(keyGenReq)
+		resp, err = kg.server.Keygen(keyGenReq)
 		ch <- true
 	}()
 
@@ -74,11 +74,11 @@ func (kg *KeyGen) GenerateNewKey(pKeys common.PubKeys) (common.PubKeySet, blame.
 		return common.EmptyPubKeySet, blame.Blame{}, fmt.Errorf("fail to keygen,err:%w", err)
 	}
 
-	cpk, err := common.NewPubKey(dat.PubKey)
+	cpk, err := common.NewPubKey(resp.PubKey)
 	if err != nil {
-		return common.EmptyPubKeySet, dat.Blame, fmt.Errorf("fail to create common.PubKey,%w", err)
+		return common.EmptyPubKeySet, resp.Blame, fmt.Errorf("fail to create common.PubKey,%w", err)
 	}
 
 	// TODO later on THORNode need to have both secp256k1 key and ed25519
-	return common.NewPubKeySet(cpk, cpk), dat.Blame, nil
+	return common.NewPubKeySet(cpk, cpk), resp.Blame, nil
 }
