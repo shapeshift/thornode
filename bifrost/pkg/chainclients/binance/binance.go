@@ -486,6 +486,7 @@ func (b *Binance) BroadcastTx(tx stypes.TxOutItem, hexTx []byte) error {
 	checkTx := commit.Result.CheckTx
 	if checkTx.Code > 0 && checkTx.Code != cosmos.CodeUnauthorized {
 		err := errors.New(checkTx.Log)
+		b.logger.Info().Str("body", string(body)).Msg("broadcast response from Binance Chain")
 		b.logger.Error().Err(err).Msg("fail to broadcast")
 		return fmt.Errorf("fail to broadcast: %w", err)
 	}
