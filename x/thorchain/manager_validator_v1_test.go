@@ -184,7 +184,13 @@ func (vts *ValidatorMgrV1TestSuite) TestRagnarokBond(c *C) {
 	disabledNode.Bond = cosmos.ZeroUint()
 	c.Assert(k.SetNodeAccount(ctx, disabledNode), IsNil)
 
+	// no unbonding for first 10
 	c.Assert(vMgr.ragnarokBond(ctx, 1, mgr), IsNil)
+	activeNode, err = k.GetNodeAccount(ctx, activeNode.NodeAddress)
+	c.Assert(err, IsNil)
+	c.Check(activeNode.Bond.Equal(cosmos.NewUint(100)), Equals, true)
+
+	c.Assert(vMgr.ragnarokBond(ctx, 11, mgr), IsNil)
 	activeNode, err = k.GetNodeAccount(ctx, activeNode.NodeAddress)
 	c.Assert(err, IsNil)
 	c.Check(activeNode.Bond.Equal(cosmos.NewUint(90)), Equals, true)
@@ -197,7 +203,7 @@ func (vts *ValidatorMgrV1TestSuite) TestRagnarokBond(c *C) {
 	}
 	mgr.TxOutStore().ClearOutboundItems(ctx)
 
-	c.Assert(vMgr.ragnarokBond(ctx, 2, mgr), IsNil)
+	c.Assert(vMgr.ragnarokBond(ctx, 12, mgr), IsNil)
 	activeNode, err = k.GetNodeAccount(ctx, activeNode.NodeAddress)
 	c.Assert(err, IsNil)
 	c.Check(activeNode.Bond.Equal(cosmos.NewUint(72)), Equals, true)
