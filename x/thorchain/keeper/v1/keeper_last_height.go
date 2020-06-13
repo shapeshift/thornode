@@ -11,7 +11,7 @@ import (
 func (k KVStore) SetLastSignedHeight(ctx cosmos.Context, height int64) error {
 	lastHeight, _ := k.GetLastSignedHeight(ctx)
 	if lastHeight > height {
-		err := fmt.Errorf("last signed height :%d is larger than %d, block height can't go backward ", lastHeight, height)
+		err := fmt.Errorf("last signed height %d is larger than %d, block height can't go backward ", lastHeight, height)
 		return dbError(ctx, "", err)
 	}
 	store := ctx.KVStore(k.storeKey)
@@ -37,7 +37,7 @@ func (k KVStore) GetLastSignedHeight(ctx cosmos.Context) (int64, error) {
 func (k KVStore) SetLastChainHeight(ctx cosmos.Context, chain common.Chain, height int64) error {
 	lastHeight, _ := k.GetLastChainHeight(ctx, chain)
 	if lastHeight > height {
-		err := fmt.Errorf("last block height :%d is larger than %d, block height can't go backward ", lastHeight, height)
+		err := fmt.Errorf("last block height %d is larger than %d, block height can't go backward ", lastHeight, height)
 		return dbError(ctx, "", err)
 	}
 	store := ctx.KVStore(k.storeKey)
