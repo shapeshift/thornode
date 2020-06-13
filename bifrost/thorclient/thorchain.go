@@ -42,6 +42,7 @@ const (
 	SignerMembershipEndpoint = "/thorchain/vaults/%s/signers"
 	StatusEndpoint           = "/status"
 	AsgardVault              = "/thorchain/vaults/asgard"
+	PubKeysEndpoint          = "/thorchain/vaults/pubkeys"
 	ThorchainConstants       = "/thorchain/constants"
 	RagnarokEndpoint         = "/thorchain/ragnarok"
 )
@@ -387,6 +388,25 @@ func (b *ThorchainBridge) GetAsgards() (stypes.Vaults, error) {
 		return nil, fmt.Errorf("fail to unmarshal asgard vaults from json: %w", err)
 	}
 	return vaults, nil
+}
+
+func (b *ThorchainBridge) GetPubKeys() (common.PubKeys, error) {
+	buf, s, err := b.getWithPath(PubKeysEndpoint)
+	if err != nil {
+		return nil, fmt.Errorf("fail to get asgard vaults: %w", err)
+	}
+	if s != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status code %d", s)
+	}
+	var pubs struct {
+		Asgard    common.PubKeys `json:"asgard"`
+		Yggdrasil common.PubKeys `json:"yggdrasil"`
+	}
+	if err := b.cdc.UnmarshalJSON(buf, &pubs); err != nil {
+		return nil, fmt.Errorf("fail to unmarshal pubkeys: %w", err)
+	}
+	pubkeys := append(pubs.Asgard, pubs.Yggdrasil...)
+	return pubkeys, nil
 }
 
 // PostNetworkFee send network fee message to THORNode
