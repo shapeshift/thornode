@@ -100,7 +100,7 @@ func main() {
 	}
 
 	// PubKey Manager
-	pubkeyMgr, err := pubkeymanager.NewPubKeyManager(cfg.Thorchain.ChainHost, m)
+	pubkeyMgr, err := pubkeymanager.NewPubKeyManager(thorchainBridge, m)
 	if err != nil {
 		log.Fatal().Err(err).Msg("fail to create pubkey manager")
 	}

@@ -8,6 +8,8 @@ import (
 
 	. "gopkg.in/check.v1"
 
+	"gitlab.com/thorchain/thornode/bifrost/config"
+	"gitlab.com/thorchain/thornode/bifrost/thorclient"
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
@@ -24,7 +26,7 @@ func (s *PubKeyMgrSuite) TestPubkeyMgr(c *C) {
 	pk3 := types.GetRandomPubKey()
 	pk4 := types.GetRandomPubKey()
 
-	pubkeyMgr, err := NewPubKeyManager("localhost:1317", nil)
+	pubkeyMgr, err := NewPubKeyManager(nil, nil)
 	c.Assert(err, IsNil)
 	c.Check(pubkeyMgr.HasPubKey(pk1), Equals, false)
 	pubkeyMgr.AddPubKey(pk1, true)
@@ -73,10 +75,20 @@ func (s *PubKeyMgrSuite) TestFetchKeys(c *C) {
 			if _, err := w.Write([]byte(fmt.Sprintf(`{"asgard": ["%s"], "yggdrasil": []}`, pk1))); err != nil {
 				c.Error(err)
 			}
+		case "/thorchain/vaults/asgard":
+			if _, err := w.Write([]byte(fmt.Sprintf(`[{"membership":["%s"]}]`, pk3))); err != nil {
+				c.Error(err)
+			}
 		}
 	}))
 
-	pubkeyMgr, err := NewPubKeyManager(server.URL[7:], nil)
+	cfg := config.ClientConfiguration{
+		ChainID:   "thorchain",
+		ChainHost: server.URL[7:],
+	}
+	bridge, err := thorclient.NewThorchainBridge(cfg, nil, nil)
+	c.Assert(err, IsNil)
+	pubkeyMgr, err := NewPubKeyManager(bridge, nil)
 	c.Assert(err, IsNil)
 	pubkeyMgr.AddPubKey(pk2, false)
 	// add a key that is the node account, ensure it doesn't get removed
@@ -93,6 +105,7 @@ func (s *PubKeyMgrSuite) TestFetchKeys(c *C) {
 	c.Check(len(pubKeys), Equals, 2)
 	c.Check(pubKeys[0].Equals(pk1), Equals, true)
 	c.Check(pubKeys[1].Equals(pk3), Equals, true)
+	c.Check(pubkeyMgr.pubkeys[1].Signer, Equals, true)
 	err = pubkeyMgr.Stop()
 	c.Assert(err, IsNil)
 }
