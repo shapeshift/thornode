@@ -171,20 +171,9 @@ func (h StakeHandler) stake(ctx cosmos.Context,
 	// if THORNode have no balance, set the default pool status
 	if pool.BalanceAsset.IsZero() && pool.BalanceRune.IsZero() {
 		defaultPoolStatus := PoolEnabled.String()
-
-		// if we have pools that are already enabled, use the default status
-		iterator := h.keeper.GetPoolIterator(ctx)
-		defer iterator.Close()
-		for ; iterator.Valid(); iterator.Next() {
-			var p Pool
-			err := h.keeper.Cdc().UnmarshalBinaryBare(iterator.Value(), &p)
-			if err != nil {
-				continue
-			}
-			if p.Status == PoolEnabled {
-				defaultPoolStatus = constAccessor.GetStringValue(constants.DefaultPoolStatus)
-				break
-			}
+		// if the pools is for gas asset on the chain, automatically enable it
+		if !pool.Asset.Equals(pool.Asset.Chain.GetGasAsset()) {
+			defaultPoolStatus = constAccessor.GetStringValue(constants.DefaultPoolStatus)
 		}
 		pool.Status = GetPoolStatus(defaultPoolStatus)
 	}
