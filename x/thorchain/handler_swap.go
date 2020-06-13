@@ -1,6 +1,8 @@
 package thorchain
 
 import (
+	"errors"
+
 	"github.com/blang/semver"
 
 	"gitlab.com/thorchain/thornode/common"
@@ -9,11 +11,13 @@ import (
 	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
+// SwapHandler is the handler to process swap request
 type SwapHandler struct {
 	keeper keeper.Keeper
 	mgr    Manager
 }
 
+// NewSwapHandler create a new instance of swap handler
 func NewSwapHandler(keeper keeper.Keeper, mgr Manager) SwapHandler {
 	return SwapHandler{
 		keeper: keeper,
@@ -21,6 +25,7 @@ func NewSwapHandler(keeper keeper.Keeper, mgr Manager) SwapHandler {
 	}
 }
 
+// Run is the main entry point of swap message
 func (h SwapHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	msg, ok := m.(MsgSwap)
 	if !ok {
@@ -96,7 +101,11 @@ func (h SwapHandler) handleV1(ctx cosmos.Context, msg MsgSwap, version semver.Ve
 	}
 	ok, err := h.mgr.TxOutStore().TryAddTxOutItem(ctx, h.mgr, toi)
 	if err != nil {
-		return nil, ErrInternal(err, "fail to add outbound tx")
+		// when the emit asset is not enough to pay for tx fee, consider it as a success
+		if !errors.Is(err, ErrNotEnoughToPayFee) {
+			return nil, ErrInternal(err, "fail to add outbound tx")
+		}
+		ok = true
 	}
 	if !ok {
 		return nil, errFailAddOutboundTx

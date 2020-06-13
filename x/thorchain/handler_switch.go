@@ -126,7 +126,10 @@ func (h SwitchHandler) toBEP2(ctx cosmos.Context, msg MsgSwitch) (*cosmos.Result
 	}
 	ok, err := h.mgr.TxOutStore().TryAddTxOutItem(ctx, h.mgr, toi)
 	if err != nil {
-		return nil, ErrInternal(err, "fail to add outbound tx")
+		if !errors.Is(err, ErrNotEnoughToPayFee) {
+			return nil, ErrInternal(err, "fail to add outbound tx")
+		}
+		ok = true
 	}
 	if !ok {
 		return nil, errFailAddOutboundTx

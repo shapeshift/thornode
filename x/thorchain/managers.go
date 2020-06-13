@@ -179,15 +179,15 @@ func (mgr *Mgrs) BeginBlock(ctx cosmos.Context) error {
 	return nil
 }
 
-func (m *Mgrs) GasMgr() GasManager             { return m.gasMgr }
-func (m *Mgrs) EventMgr() EventManager         { return m.eventMgr }
-func (m *Mgrs) TxOutStore() TxOutStore         { return m.txOutStore }
-func (m *Mgrs) VaultMgr() VaultManager         { return m.vaultMgr }
-func (m *Mgrs) ValidatorMgr() ValidatorManager { return m.validatorMgr }
-func (m *Mgrs) ObMgr() ObserverManager         { return m.obMgr }
-func (m *Mgrs) SwapQ() SwapQueue               { return m.swapQ }
-func (m *Mgrs) Slasher() Slasher               { return m.slasher }
-func (m *Mgrs) YggManager() YggManager         { return m.yggManager }
+func (mgr *Mgrs) GasMgr() GasManager             { return mgr.gasMgr }
+func (mgr *Mgrs) EventMgr() EventManager         { return mgr.eventMgr }
+func (mgr *Mgrs) TxOutStore() TxOutStore         { return mgr.txOutStore }
+func (mgr *Mgrs) VaultMgr() VaultManager         { return mgr.vaultMgr }
+func (mgr *Mgrs) ValidatorMgr() ValidatorManager { return mgr.validatorMgr }
+func (mgr *Mgrs) ObMgr() ObserverManager         { return mgr.obMgr }
+func (mgr *Mgrs) SwapQ() SwapQueue               { return mgr.swapQ }
+func (mgr *Mgrs) Slasher() Slasher               { return mgr.slasher }
+func (mgr *Mgrs) YggManager() YggManager         { return mgr.yggManager }
 
 func GetGasManager(version semver.Version, keeper keeper.Keeper) (GasManager, error) {
 	constAcessor := constants.GetConstantValues(version)
@@ -224,7 +224,7 @@ func GetVaultManager(keeper keeper.Keeper, version semver.Version, txOutStore Tx
 // GetValidatorManager create a new instance of Validator Manager
 func GetValidatorManager(keeper keeper.Keeper, version semver.Version, vaultMgr VaultManager, txOutStore TxOutStore, eventMgr EventManager) (ValidatorManager, error) {
 	if version.GTE(semver.MustParse("0.1.0")) {
-		return NewValidatorMgrV1(keeper, vaultMgr, txOutStore, eventMgr), nil
+		return newValidatorMgrV1(keeper, vaultMgr, txOutStore, eventMgr), nil
 	}
 	return nil, errBadVersion
 }

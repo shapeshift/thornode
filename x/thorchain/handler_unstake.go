@@ -27,7 +27,7 @@ func NewUnstakeHandler(keeper keeper.Keeper, mgr Manager) UnstakeHandler {
 	}
 }
 
-// Run is the main entry point of Unstake Handler
+// Run is the main entry point of unstake
 func (h UnstakeHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, _ constants.ConstantValues) (*cosmos.Result, error) {
 	msg, ok := m.(MsgSetUnStake)
 	if !ok {
