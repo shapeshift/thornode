@@ -67,7 +67,7 @@ func (kg *KeyGen) GenerateNewKey(pKeys common.PubKeys) (common.PubKeySet, blame.
 	case <-ch:
 		// do nothing
 	case <-timer.C:
-		return common.EmptyPubKeySet, blame.Blame{}, fmt.Errorf("tss keygen timeout")
+		panic("tss keygen timeout")
 	}
 
 	if err != nil {
