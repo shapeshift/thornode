@@ -238,6 +238,8 @@ func queryVaultData(ctx cosmos.Context, keeper keeper.Keeper) ([]byte, error) {
 	return res, nil
 }
 
+// TODO: select vault by bond/funds ratio
+// TODO: if asgard vaults hold more non-rune funds than bond, do not give address, and error
 func queryPoolAddresses(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
 	active, err := keeper.GetAsgardVaultsByStatus(ctx, ActiveVault)
 	if err != nil {
@@ -255,30 +257,54 @@ func queryPoolAddresses(ctx cosmos.Context, path []string, req abci.RequestQuery
 		Current []address `json:"current"`
 	}
 
-	if len(active) > 0 {
-		// select vault with lowest amount of rune
-		vault := active.SelectByMinCoin(common.RuneAsset())
-		chains := vault.Chains
+	var vault Vault
+	runeAmt := cosmos.ZeroUint()
+	for _, v := range active {
+		if common.BlockHeight(ctx)-v.BlockHeight < 5 {
+			continue
+		}
+		if runeAmt.LT(v.GetCoin(common.RuneAsset()).Amount) {
+			vault = v
+		}
+	}
 
-		if len(chains) == 0 {
-			chains = common.Chains{common.RuneAsset().Chain}
+	// no active vaults available, try retiring vaults
+	if vault.PubKey.IsEmpty() {
+		retiring, err := keeper.GetAsgardVaultsByStatus(ctx, RetiringVault)
+		if err != nil {
+			ctx.Logger().Error("fail to get retiring vaults", "error", err)
+			return nil, fmt.Errorf("fail to get retiring vaults: %w", err)
+		}
+		vault = retiring.SelectByMinCoin(common.RuneAsset())
+	}
+
+	// still no vaults selected, just fall back to the first active vault
+	if vault.PubKey.IsEmpty() && len(active) > 0 {
+		vault = active[0]
+	} else {
+		return nil, fmt.Errorf("not able to select vault to send funds to")
+	}
+
+	chains := vault.Chains
+
+	if len(chains) == 0 {
+		chains = common.Chains{common.RuneAsset().Chain}
+	}
+
+	for _, chain := range chains {
+		vaultAddress, err := vault.PubKey.GetAddress(chain)
+		if err != nil {
+			ctx.Logger().Error("fail to get address for chain", "error", err)
+			return nil, fmt.Errorf("fail to get address for chain: %w", err)
 		}
 
-		for _, chain := range chains {
-			vaultAddress, err := vault.PubKey.GetAddress(chain)
-			if err != nil {
-				ctx.Logger().Error("fail to get address for chain", "error", err)
-				return nil, fmt.Errorf("fail to get address for chain: %w", err)
-			}
-
-			addr := address{
-				Chain:   chain,
-				PubKey:  vault.PubKey,
-				Address: vaultAddress,
-			}
-
-			resp.Current = append(resp.Current, addr)
+		addr := address{
+			Chain:   chain,
+			PubKey:  vault.PubKey,
+			Address: vaultAddress,
 		}
+
+		resp.Current = append(resp.Current, addr)
 	}
 
 	res, err := codec.MarshalJSONIndent(keeper.Cdc(), resp)
