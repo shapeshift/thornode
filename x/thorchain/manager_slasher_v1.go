@@ -138,6 +138,7 @@ func (s *SlasherV1) LackObserving(ctx cosmos.Context, constAccessor constants.Co
 
 // LackSigning slash account that fail to sign tx
 func (s *SlasherV1) LackSigning(ctx cosmos.Context, constAccessor constants.ConstantValues, mgr Manager) error {
+	var resultErr error
 	signingTransPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
 	if common.BlockHeight(ctx) < signingTransPeriod {
 		return nil
@@ -179,13 +180,17 @@ func (s *SlasherV1) LackSigning(ctx cosmos.Context, constAccessor constants.Cons
 
 			vault = active.SelectByMinCoin(tx.Coin.Asset)
 			if vault.IsEmpty() {
-				return fmt.Errorf("unable to determine asgard vault to send funds")
+				ctx.Logger().Error("unable to determine asgard vault to send funds")
+				resultErr = fmt.Errorf("unable to determine asgard vault to send funds")
+				continue
 			}
 
 			// update original tx action in observed tx
 			voter, err := s.keeper.GetObservedTxInVoter(ctx, tx.InHash)
 			if err != nil {
-				return fmt.Errorf("fail to get observed tx voter: %w", err)
+				ctx.Logger().Error("fail to get observed tx voter", "error", err)
+				resultErr = fmt.Errorf("failed to get observed tx voter: %w", err)
+				continue
 			}
 			for i, action := range voter.Actions {
 				if action.Equals(*tx) {
@@ -194,26 +199,39 @@ func (s *SlasherV1) LackSigning(ctx cosmos.Context, constAccessor constants.Cons
 			}
 			s.keeper.SetObservedTxInVoter(ctx, voter)
 
-			// fetch memo from tx marker
-			hash, err := tx.TxHash()
-			if err != nil {
-				return err
+			if tx.Memo == "" {
+				// fetch memo from tx marker
+				hash, err := tx.TxHash()
+				if err != nil {
+					ctx.Logger().Error("fail to get hash", "error", err)
+					continue
+				}
+				marks, err := s.keeper.ListTxMarker(ctx, hash)
+				if err != nil {
+					ctx.Logger().Error("fail to get markers", "error", err)
+					continue
+				}
+				period := constAccessor.GetInt64Value(constants.SigningTransactionPeriod) * 3
+				marks = marks.FilterByMinHeight(common.BlockHeight(ctx) - period)
+				mark, _ := marks.Pop()
+				tx.Memo = mark.Memo
 			}
-			marks, err := s.keeper.ListTxMarker(ctx, hash)
-			if err != nil {
-				return err
-			}
-			period := constAccessor.GetInt64Value(constants.SigningTransactionPeriod) * 3
-			marks = marks.FilterByMinHeight(common.BlockHeight(ctx) - period)
-			mark, _ := marks.Pop()
-			tx.Memo = mark.Memo
 
 			// Save the tx to as a new tx, select Asgard to send it this time.
 			tx.VaultPubKey = vault.PubKey
 
+			memo, _ := ParseMemo(tx.Memo) // ignore err
+			if memo.IsInternal() {
+				// there is a different mechanism for rescheduling outbound
+				// transactions for migration transactions
+				continue
+			}
+
 			err = mgr.TxOutStore().UnSafeAddTxOutItem(ctx, mgr, tx)
 			if err != nil {
-				return fmt.Errorf("fail to add outbound tx: %w", err)
+				ctx.Logger().Error("fail to add outbound tx", "error", err)
+				resultErr = fmt.Errorf("failed to add outbound tx: %w", err)
+				continue
 			}
 		}
 	}
@@ -223,7 +241,7 @@ func (s *SlasherV1) LackSigning(ctx cosmos.Context, constAccessor constants.Cons
 		}
 	}
 
-	return nil
+	return resultErr
 }
 
 // slashNodeAccount thorchain keep monitoring the outbound tx from asgard pool
