@@ -18,31 +18,32 @@ import (
 // TssSignable is a signable implementation backed by tss
 type TssSignable struct {
 	poolPubKey      common.PubKey
-	thorchainBridge *thorclient.ThorchainBridge
 	tssKeyManager   tss.ThorchainKeyManager
 	logger          zerolog.Logger
+	keySignPartyMgr *thorclient.KeySignPartyMgr
 }
 
 // NewTssSignable create a new instance of TssSignable
-func NewTssSignable(pubKey common.PubKey, bridge *thorclient.ThorchainBridge, manager tss.ThorchainKeyManager) (*TssSignable, error) {
+func NewTssSignable(pubKey common.PubKey, manager tss.ThorchainKeyManager, keySignPartyMgr *thorclient.KeySignPartyMgr) (*TssSignable, error) {
 	return &TssSignable{
 		poolPubKey:      pubKey,
-		thorchainBridge: bridge,
 		tssKeyManager:   manager,
 		logger:          log.Logger.With().Str("module", "tss_signable").Logger(),
+		keySignPartyMgr: keySignPartyMgr,
 	}, nil
 }
 
 // Sign the given payload
 func (ts *TssSignable) Sign(payload []byte) (*btcec.Signature, error) {
 	ts.logger.Debug().Msgf("msg to sign:%s", base64.StdEncoding.EncodeToString(payload))
-	keySignParty, err := ts.thorchainBridge.GetKeysignParty(ts.poolPubKey)
+	keySignParty, err := ts.keySignPartyMgr.GetKeySignParty(ts.poolPubKey)
 	if err != nil {
 		ts.logger.Error().Err(err).Msg("fail to get keysign party")
 		return nil, err
 	}
 	result, err := ts.tssKeyManager.RemoteSign(payload, ts.poolPubKey.String(), keySignParty)
 	if err != nil {
+		ts.keySignPartyMgr.RemoveKeySignParty(ts.poolPubKey)
 		return nil, err
 	}
 	var sig btcec.Signature
@@ -54,6 +55,7 @@ func (ts *TssSignable) Sign(payload []byte) (*btcec.Signature, error) {
 	} else {
 		ts.logger.Debug().Msg("the signature can't be verified")
 	}
+	ts.keySignPartyMgr.SaveKeySignParty(ts.poolPubKey, keySignParty)
 	return &sig, nil
 }
 
