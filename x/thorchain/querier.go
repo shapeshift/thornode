@@ -6,13 +6,12 @@ import (
 	"strconv"
 
 	"github.com/cosmos/cosmos-sdk/codec"
-
 	abci "github.com/tendermint/tendermint/abci/types"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 	q "gitlab.com/thorchain/thornode/x/thorchain/query"
 )
 
@@ -241,6 +240,15 @@ func queryVaultData(ctx cosmos.Context, keeper keeper.Keeper) ([]byte, error) {
 // TODO: select vault by bond/funds ratio
 // TODO: if asgard vaults hold more non-rune funds than bond, do not give address, and error
 func queryPoolAddresses(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
+	haltTrading, err := keeper.GetMimir(ctx, "HaltTrading")
+	if err != nil {
+		ctx.Logger().Error("fail to get HaltTrading mimir", "error", err)
+	}
+	// when trading is halt , do not return any pool addresses
+	if (haltTrading > 0 && haltTrading < common.BlockHeight(ctx) && err == nil) || keeper.RagnarokInProgress(ctx) {
+		ctx.Logger().Info("trading is halted!!")
+		return []byte{}, nil
+	}
 	active, err := keeper.GetAsgardVaultsByStatus(ctx, ActiveVault)
 	if err != nil {
 		ctx.Logger().Error("fail to get active vaults", "error", err)
@@ -256,9 +264,9 @@ func queryPoolAddresses(ctx cosmos.Context, path []string, req abci.RequestQuery
 	var resp struct {
 		Current []address `json:"current"`
 	}
-
 	// select vault with lowest amount of rune
 	vault := active.SelectByMinCoin(common.RuneAsset())
+
 	chains := vault.Chains
 
 	if len(chains) == 0 {
@@ -466,22 +474,6 @@ func queryPool(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper 
 		return nil, fmt.Errorf("could not parse asset: %w", err)
 	}
 
-	active, err := keeper.GetAsgardVaultsByStatus(ctx, ActiveVault)
-	if err != nil {
-		ctx.Logger().Error("fail to get active vaults", "error", err)
-		return nil, fmt.Errorf("fail to get active vaults: %w", err)
-	}
-
-	vault := active.SelectByMinCoin(asset)
-	if vault.IsEmpty() {
-		return nil, fmt.Errorf("could not find active asgard vault: %w", err)
-	}
-
-	addr, err := vault.PubKey.GetAddress(asset.Chain)
-	if err != nil {
-		return nil, fmt.Errorf("fail to get chain pool address: %w", err)
-	}
-
 	pool, err := keeper.GetPool(ctx, asset)
 	if err != nil {
 		ctx.Logger().Error("fail to get pool", "error", err)
@@ -491,7 +483,7 @@ func queryPool(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper 
 		return nil, fmt.Errorf("pool: %s doesn't exist", path[0])
 	}
 
-	pool.PoolAddress = addr
+	pool.PoolAddress = ""
 	res, err := codec.MarshalJSONIndent(keeper.Cdc(), pool)
 	if err != nil {
 		return nil, fmt.Errorf("could not marshal result to JSON: %w", err)
@@ -502,12 +494,6 @@ func queryPool(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper 
 func queryPools(ctx cosmos.Context, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
 	pools := QueryResPools{}
 	iterator := keeper.GetPoolIterator(ctx)
-
-	active, err := keeper.GetAsgardVaultsByStatus(ctx, ActiveVault)
-	if err != nil {
-		ctx.Logger().Error("fail to get active vaults", "error", err)
-		return nil, fmt.Errorf("fail to get active vaults: %w", err)
-	}
 
 	for ; iterator.Valid(); iterator.Next() {
 		var pool Pool
@@ -520,16 +506,6 @@ func queryPools(ctx cosmos.Context, req abci.RequestQuery, keeper keeper.Keeper)
 			continue
 		}
 
-		vault := active.SelectByMinCoin(pool.Asset)
-		if vault.IsEmpty() {
-			return nil, fmt.Errorf("could not find active asgard vault")
-		}
-		addr, err := vault.PubKey.GetAddress(pool.Asset.Chain)
-		if err != nil {
-			return nil, fmt.Errorf("could get address of chain: %w", err)
-		}
-
-		pool.PoolAddress = addr
 		pools = append(pools, pool)
 	}
 	res, err := codec.MarshalJSONIndent(keeper.Cdc(), pools)
