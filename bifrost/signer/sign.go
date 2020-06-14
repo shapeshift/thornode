@@ -126,6 +126,7 @@ func (s *Signer) getChain(chainID common.Chain) (chainclients.ChainClient, error
 	return chain, nil
 }
 
+// Start signer process
 func (s *Signer) Start() error {
 	s.wg.Add(1)
 	go s.processTxnOut(s.thorchainBlockScanner.GetTxOutMessages(), 1)
@@ -306,16 +307,8 @@ func (s *Signer) signAndBroadcast(item TxOutStoreItem) error {
 		return err
 	}
 	if blockHeight-height > signingTransactionPeriod {
-		ragnarok, err := s.thorchainBridge.RagnarokInProgress()
-		if err != nil {
-			// fail to get ragnarok status from thorchain , assume it is false
-			s.logger.Err(err).Msg("fail to check ragnarok status")
-		}
-		// make sure ragnarok is not in progress , otherwise need to continue sign
-		if !ragnarok {
-			s.logger.Error().Msgf("tx was created at block height(%d), now it is (%d), it is older than (%d) blocks , skip it ", height, blockHeight, signingTransactionPeriod)
-			return nil
-		}
+		s.logger.Error().Msgf("tx was created at block height(%d), now it is (%d), it is older than (%d) blocks , skip it ", height, blockHeight, signingTransactionPeriod)
+		return nil
 	}
 	chain, err := s.getChain(tx.Chain)
 	if err != nil {
