@@ -192,17 +192,20 @@ func (pkm *PubKeyManager) FetchPubKeys() {
 	for _, vault := range vaults {
 		if vault.Membership.Contains(pkm.GetNodePubKey()) {
 			pkm.AddPubKey(vault.PubKey, true)
+			pubkeys = append(pubkeys, vault.PubKey)
 		}
 	}
 
 	// prune retired addresses
-	for _, pk := range pkm.pubkeys {
+	for i, pk := range pkm.pubkeys {
 		if pk.NodeAccount {
 			// never remove our own pubkey
 			continue
 		}
-		if !pubkeys.Contains(pk.PubKey) {
-			pkm.RemovePubKey(pk.PubKey)
+		if i < (len(pkm.pubkeys) - 2) { // don't delete the more recent (last) pubkeys
+			if !pubkeys.Contains(pk.PubKey) {
+				pkm.RemovePubKey(pk.PubKey)
+			}
 		}
 	}
 }
