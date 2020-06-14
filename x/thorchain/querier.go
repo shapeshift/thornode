@@ -257,34 +257,8 @@ func queryPoolAddresses(ctx cosmos.Context, path []string, req abci.RequestQuery
 		Current []address `json:"current"`
 	}
 
-	var vault Vault
-	runeAmt := cosmos.ZeroUint()
-	for _, v := range active {
-		if common.BlockHeight(ctx)-v.BlockHeight < 5 {
-			continue
-		}
-		if runeAmt.LT(v.GetCoin(common.RuneAsset()).Amount) {
-			vault = v
-		}
-	}
-
-	// no active vaults available, try retiring vaults
-	if vault.PubKey.IsEmpty() {
-		retiring, err := keeper.GetAsgardVaultsByStatus(ctx, RetiringVault)
-		if err != nil {
-			ctx.Logger().Error("fail to get retiring vaults", "error", err)
-			return nil, fmt.Errorf("fail to get retiring vaults: %w", err)
-		}
-		vault = retiring.SelectByMinCoin(common.RuneAsset())
-	}
-
-	// still no vaults selected, just fall back to the first active vault
-	if vault.PubKey.IsEmpty() && len(active) > 0 {
-		vault = active[0]
-	} else {
-		return nil, fmt.Errorf("not able to select vault to send funds to")
-	}
-
+	// select vault with lowest amount of rune
+	vault := active.SelectByMinCoin(common.RuneAsset())
 	chains := vault.Chains
 
 	if len(chains) == 0 {
