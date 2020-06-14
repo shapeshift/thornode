@@ -33,6 +33,8 @@ func NewQuerier(keeper keeper.Keeper, kbs KeybaseStore) cosmos.Querier {
 			return queryKeysign(ctx, kbs, path[1:], req, keeper)
 		case q.QueryKeygensPubkey.Key:
 			return queryKeygen(ctx, kbs, path[1:], req, keeper)
+		case q.QueryOutQueue.Key:
+			return queryOutQueue(ctx, path[1:], req, keeper)
 		case q.QueryHeights.Key:
 			return queryHeights(ctx, path[1:], req, keeper)
 		case q.QueryChainHeights.Key:
@@ -656,6 +658,35 @@ func queryKeysign(ctx cosmos.Context, kbs KeybaseStore, path []string, req abci.
 	if err != nil {
 		ctx.Logger().Error("fail to marshal tx hash to json", "error", err)
 		return nil, fmt.Errorf("fail to marshal tx hash to json: %w", err)
+	}
+	return res, nil
+}
+
+// queryOutQueue - iterates over txout, counting how many transactions are waiting to be sent
+func queryOutQueue(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
+	version := keeper.GetLowestActiveVersion(ctx)
+	constAccessor := constants.GetConstantValues(version)
+	signingTransactionPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
+	startHeight := common.BlockHeight(ctx) - signingTransactionPeriod
+	query := QueryOutQueue{}
+
+	for height := startHeight; height <= common.BlockHeight(ctx); height++ {
+		txs, err := keeper.GetTxOut(ctx, height)
+		if err != nil {
+			ctx.Logger().Error("fail to get tx out array from key value store", "error", err)
+			return nil, fmt.Errorf("fail to get tx out array from key value store: %w", err)
+		}
+		for _, tx := range txs.TxArray {
+			if tx.OutHash.IsEmpty() {
+				query.Total += 1
+			}
+		}
+	}
+
+	res, err := codec.MarshalJSONIndent(keeper.Cdc(), query)
+	if err != nil {
+		ctx.Logger().Error("fail to marshal out queue to json", "error", err)
+		return nil, fmt.Errorf("fail to marshal out queue to json: %w", err)
 	}
 	return res, nil
 }
