@@ -530,12 +530,13 @@ func (m MemoBase) IsInternal() bool                 { return m.TxType.IsInternal
 func (m MemoBase) IsEmpty() bool                    { return m.TxType.IsEmpty() }
 
 // Transaction Specific Functions
-func (m UnstakeMemo) GetAmount() string             { return m.Amount }
-func (m SwapMemo) GetDestination() common.Address   { return m.Destination }
-func (m SwapMemo) GetSlipLimit() cosmos.Uint        { return m.SlipLimit }
-func (m BondMemo) GetAccAddress() cosmos.AccAddress { return m.NodeAddress }
-func (m StakeMemo) GetDestination() common.Address  { return m.Address }
-func (m OutboundMemo) GetTxID() common.TxID         { return m.TxID }
+func (m UnstakeMemo) GetAmount() string              { return m.Amount }
+func (m SwapMemo) GetDestination() common.Address    { return m.Destination }
+func (m SwapMemo) GetSlipLimit() cosmos.Uint         { return m.SlipLimit }
+func (m BondMemo) GetAccAddress() cosmos.AccAddress  { return m.NodeAddress }
+func (m LeaveMemo) GetAccAddress() cosmos.AccAddress { return m.NodeAddress }
+func (m StakeMemo) GetDestination() common.Address   { return m.Address }
+func (m OutboundMemo) GetTxID() common.TxID          { return m.TxID }
 func (m OutboundMemo) String() string {
 	return fmt.Sprintf("OUTBOUND:%s", m.TxID.String())
 }
