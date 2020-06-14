@@ -148,7 +148,7 @@ func (s *SlasherV1) LackSigning(ctx cosmos.Context, constAccessor constants.Cons
 	if err != nil {
 		return fmt.Errorf("fail to get txout from block height(%d): %w", height, err)
 	}
-	for _, tx := range txs.TxArray {
+	for i, tx := range txs.TxArray {
 		if tx.OutHash.IsEmpty() {
 			// Slash node account for not sending funds
 			vault, err := s.keeper.GetVault(ctx, tx.VaultPubKey)
@@ -192,6 +192,16 @@ func (s *SlasherV1) LackSigning(ctx cosmos.Context, constAccessor constants.Cons
 				resultErr = fmt.Errorf("failed to get observed tx voter: %w", err)
 				continue
 			}
+
+			// check observedTx has done status. Skip if it does already.
+			voterTx := voter.GetTx(NodeAccounts{})
+			if voterTx.IsDone(len(voter.Actions)) {
+				if len(voterTx.OutHashes) > 0 {
+					txs.TxArray[i].OutHash = voterTx.OutHashes[0]
+				}
+				continue
+			}
+
 			for i, action := range voter.Actions {
 				if action.Equals(*tx) {
 					voter.Actions[i].VaultPubKey = vault.PubKey
