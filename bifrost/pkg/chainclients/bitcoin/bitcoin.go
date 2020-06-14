@@ -47,7 +47,7 @@ type Client struct {
 }
 
 // NewClient generates a new Client
-func NewClient(thorKeys *thorclient.Keys, cfg config.ChainConfiguration, server *tssp.TssServer, bridge *thorclient.ThorchainBridge, m *metrics.Metrics) (*Client, error) {
+func NewClient(thorKeys *thorclient.Keys, cfg config.ChainConfiguration, server *tssp.TssServer, bridge *thorclient.ThorchainBridge, m *metrics.Metrics, keySignPartyMgr *thorclient.KeySignPartyMgr) (*Client, error) {
 	client, err := rpcclient.New(&rpcclient.ConnConfig{
 		Host:         cfg.RPCHost,
 		User:         cfg.UserName,
@@ -71,7 +71,7 @@ func NewClient(thorKeys *thorclient.Keys, cfg config.ChainConfiguration, server 
 	if err != nil {
 		return nil, fmt.Errorf("fail to convert private key for BTC: %w", err)
 	}
-	ksWrapper, err := NewKeySignWrapper(btcPrivateKey, bridge, tssKm)
+	ksWrapper, err := NewKeySignWrapper(btcPrivateKey, bridge, tssKm, keySignPartyMgr)
 	if err != nil {
 		return nil, fmt.Errorf("fail to create keysign wrapper: %w", err)
 	}

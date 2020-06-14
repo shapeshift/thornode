@@ -30,11 +30,12 @@ import (
 func TestPackage(t *testing.T) { TestingT(t) }
 
 type BitcoinSuite struct {
-	client *Client
-	server *httptest.Server
-	bridge *thorclient.ThorchainBridge
-	cfg    config.ChainConfiguration
-	m      *metrics.Metrics
+	client          *Client
+	server          *httptest.Server
+	bridge          *thorclient.ThorchainBridge
+	cfg             config.ChainConfiguration
+	m               *metrics.Metrics
+	keySignPartyMgr *thorclient.KeySignPartyMgr
 }
 
 var _ = Suite(
@@ -92,7 +93,7 @@ func (s *BitcoinSuite) SetUpTest(c *C) {
 	c.Assert(err, IsNil)
 	s.bridge, err = thorclient.NewThorchainBridge(cfg, s.m, thorKeys)
 	c.Assert(err, IsNil)
-
+	s.keySignPartyMgr = thorclient.NewKeySignPartyMgr(s.bridge)
 	s.server = httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		r := struct {
 			Method string   `json:"method"`
@@ -120,7 +121,7 @@ func (s *BitcoinSuite) SetUpTest(c *C) {
 	}))
 
 	s.cfg.RPCHost = s.server.Listener.Addr().String()
-	s.client, err = NewClient(thorKeys, s.cfg, nil, s.bridge, s.m)
+	s.client, err = NewClient(thorKeys, s.cfg, nil, s.bridge, s.m, s.keySignPartyMgr)
 	c.Assert(err, IsNil)
 	c.Assert(s.client, NotNil)
 }
