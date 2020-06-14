@@ -11,6 +11,7 @@ import (
 	ecommon "github.com/ethereum/go-ethereum/common"
 	etypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/hashicorp/go-multierror"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	tssp "gitlab.com/thorchain/tss/go-tss/tss"
@@ -36,10 +37,11 @@ type Client struct {
 	ethScanner      *BlockScanner
 	thorchainBridge *thorclient.ThorchainBridge
 	blockScanner    *blockscanner.BlockScanner
+	keySignPartyMgr *thorclient.KeySignPartyMgr
 }
 
 // NewClient create new instance of Ethereum client
-func NewClient(thorKeys *thorclient.Keys, cfg config.ChainConfiguration, server *tssp.TssServer, thorchainBridge *thorclient.ThorchainBridge, m *metrics.Metrics) (*Client, error) {
+func NewClient(thorKeys *thorclient.Keys, cfg config.ChainConfiguration, server *tssp.TssServer, thorchainBridge *thorclient.ThorchainBridge, m *metrics.Metrics, keySignPartyMgr *thorclient.KeySignPartyMgr) (*Client, error) {
 	tssKm, err := tss.NewKeySign(server)
 	if err != nil {
 		return nil, fmt.Errorf("fail to create tss signer: %w", err)
@@ -81,6 +83,7 @@ func NewClient(thorKeys *thorclient.Keys, cfg config.ChainConfiguration, server 
 		pk:              pk,
 		kw:              keysignWrapper,
 		thorchainBridge: thorchainBridge,
+		keySignPartyMgr: keySignPartyMgr,
 	}
 	c.InitChainID()
 
@@ -211,31 +214,31 @@ func (c *Client) SignTx(tx stypes.TxOutItem, height int64, retry uint64) ([]byte
 
 // sign is design to sign a given message with keysign party and keysign wrapper
 func (c *Client) sign(tx *etypes.Transaction, from string, poolPubKey common.PubKey, height int64, txOutItem stypes.TxOutItem, retry uint64) ([]byte, error) {
-	keySignParty, err := c.thorchainBridge.GetKeysignParty(poolPubKey)
+	keySignParty, err := c.keySignPartyMgr.GetKeySignParty(poolPubKey)
 	if err != nil {
 		c.logger.Error().Err(err).Msg("fail to get keysign party")
 		return nil, err
 	}
 	rawBytes, err := c.kw.Sign(tx, poolPubKey, keySignParty)
 	if err == nil && rawBytes != nil {
+		c.keySignPartyMgr.SaveKeySignParty(poolPubKey, keySignParty)
 		return rawBytes, nil
 	}
 	var keysignError tss.KeysignError
 	if errors.As(err, &keysignError) {
+		c.keySignPartyMgr.RemoveKeySignParty(poolPubKey)
 		if len(keysignError.Blame.BlameNodes) == 0 {
 			// TSS doesn't know which node to blame
 			return nil, err
 		}
 
 		// key sign error forward the keysign blame to thorchain
-		txID, err := c.thorchainBridge.PostKeysignFailure(keysignError.Blame, height, txOutItem.Memo, txOutItem.Coins, retry)
-		if err != nil {
+		txID, errPostKeysignFail := c.thorchainBridge.PostKeysignFailure(keysignError.Blame, height, txOutItem.Memo, txOutItem.Coins, retry)
+		if errPostKeysignFail != nil {
 			c.logger.Error().Err(err).Msg("fail to post keysign failure to thorchain")
-			return nil, err
-		} else {
-			c.logger.Info().Str("tx_id", txID.String()).Msgf("post keysign failure to thorchain")
-			return nil, fmt.Errorf("sent keysign failure to thorchain")
+			return nil, multierror.Append(err, errPostKeysignFail)
 		}
+		c.logger.Info().Str("tx_id", txID.String()).Msgf("post keysign failure to thorchain")
 	}
 	c.logger.Error().Err(err).Msg("fail to sign tx")
 	return nil, err
