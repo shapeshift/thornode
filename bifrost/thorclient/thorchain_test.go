@@ -51,6 +51,8 @@ func (s *ThorchainSuite) SetUpSuite(c *C) {
 			httpTestHandler(c, rw, "../../test/fixtures/endpoints/tss/keysign_party.json")
 		case strings.HasPrefix(req.RequestURI, AsgardVault):
 			httpTestHandler(c, rw, "../../test/fixtures/endpoints/vaults/asgard.json")
+		case strings.HasPrefix(req.RequestURI, PubKeysEndpoint):
+			httpTestHandler(c, rw, "../../test/fixtures/endpoints/vaults/pubKeys.json")
 		case strings.HasPrefix(req.RequestURI, BroadcastTxsEndpoint):
 			httpTestHandler(c, rw, "../../test/fixtures/endpoints/txs/success.json")
 		case strings.HasPrefix(req.RequestURI, ThorchainConstants):
@@ -222,6 +224,12 @@ func (s *ThorchainSuite) TestGetAsgards(c *C) {
 	vaults, err := s.bridge.GetAsgards()
 	c.Assert(err, IsNil)
 	c.Assert(vaults, NotNil)
+}
+
+func (s *ThorchainSuite) TestGetPubKeys(c *C) {
+	pks, err := s.bridge.GetPubKeys()
+	c.Assert(err, IsNil)
+	c.Assert(pks, HasLen, 5)
 }
 
 func (s *ThorchainSuite) TestPostNetworkFee(c *C) {

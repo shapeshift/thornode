@@ -33,6 +33,14 @@ func (h QueryResHeights) String() string {
 	return fmt.Sprintf("Chain: %d, Signed: %d, THORChain: %d", h.LastChainHeight, h.LastSignedHeight, h.Thorchain)
 }
 
+type QueryOutQueue struct {
+	Total int64 `json:"total"`
+}
+
+func (h QueryOutQueue) String() string {
+	return fmt.Sprintf("Total: %d", h.Total)
+}
+
 type QueryNodeAccountPreflightCheck struct {
 	Status      NodeStatus `json:"status"`
 	Description string     `json:"reason"`

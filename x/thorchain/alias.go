@@ -170,6 +170,7 @@ type (
 	MsgTssPool                     = types.MsgTssPool
 	MsgTssKeysignFail              = types.MsgTssKeysignFail
 	MsgNetworkFee                  = types.MsgNetworkFee
+	QueryOutQueue                  = types.QueryOutQueue
 	QueryNodeAccountPreflightCheck = types.QueryNodeAccountPreflightCheck
 	QueryKeygenBlock               = types.QueryKeygenBlock
 	QueryResPools                  = types.QueryResPools

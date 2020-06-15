@@ -37,11 +37,12 @@ import (
 )
 
 type BitcoinSignerSuite struct {
-	client *Client
-	server *httptest.Server
-	bridge *thorclient.ThorchainBridge
-	cfg    config.ChainConfiguration
-	m      *metrics.Metrics
+	client          *Client
+	server          *httptest.Server
+	bridge          *thorclient.ThorchainBridge
+	cfg             config.ChainConfiguration
+	m               *metrics.Metrics
+	keySignPartyMgr *thorclient.KeySignPartyMgr
 }
 
 var _ = Suite(&BitcoinSignerSuite{})
@@ -108,7 +109,8 @@ func (s *BitcoinSignerSuite) SetUpTest(c *C) {
 	cfg.ChainHost = s.server.Listener.Addr().String()
 	s.bridge, err = thorclient.NewThorchainBridge(cfg, s.m, thorKeys)
 	c.Assert(err, IsNil)
-	s.client, err = NewClient(thorKeys, s.cfg, nil, s.bridge, s.m)
+	s.keySignPartyMgr = thorclient.NewKeySignPartyMgr(s.bridge)
+	s.client, err = NewClient(thorKeys, s.cfg, nil, s.bridge, s.m, s.keySignPartyMgr)
 	storage := storage.NewMemStorage()
 	db, err := leveldb.Open(storage, nil)
 	c.Assert(err, IsNil)
@@ -225,7 +227,7 @@ func (s *BitcoinSignerSuite) TestSignTxHappyPathWithPrivateKey(c *C) {
 	c.Assert(err, IsNil)
 	pkey, _ := btcec.PrivKeyFromBytes(btcec.S256(), priKeyBuf)
 	c.Assert(pkey, NotNil)
-	ksw, err := NewKeySignWrapper(pkey, s.client.bridge, s.client.ksWrapper.tssKeyManager)
+	ksw, err := NewKeySignWrapper(pkey, s.client.bridge, s.client.ksWrapper.tssKeyManager, s.keySignPartyMgr)
 	c.Assert(err, IsNil)
 	s.client.privateKey = pkey
 	s.client.ksWrapper = ksw
@@ -257,7 +259,7 @@ func (s *BitcoinSignerSuite) TestSignTxWithTSS(c *C) {
 		OutHash: "",
 	}
 	thorKeyManager := &tss.MockThorchainKeyManager{}
-	s.client.ksWrapper, err = NewKeySignWrapper(s.client.privateKey, s.client.bridge, thorKeyManager)
+	s.client.ksWrapper, err = NewKeySignWrapper(s.client.privateKey, s.client.bridge, thorKeyManager, s.keySignPartyMgr)
 	txHash, err := chainhash.NewHashFromStr("66d2d6b5eb564972c59e4797683a1225a02515a41119f0a8919381236b63e948")
 	c.Assert(err, IsNil)
 	utxo := NewUnspentTransactionOutput(*txHash, 0, 0.00018, 100, txOutItem.VaultPubKey)

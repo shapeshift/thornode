@@ -17,25 +17,25 @@ import (
 // KeySignWrapper is a wrap of private key and also tss instance
 // it also implement the txscript.Signable interface, and will decide which method to use based on the pubkey
 type KeySignWrapper struct {
-	privateKey    *btcec.PrivateKey
-	pubKey        common.PubKey
-	tssKeyManager tss.ThorchainKeyManager
-	bridge        *thorclient.ThorchainBridge
-	logger        zerolog.Logger
+	privateKey      *btcec.PrivateKey
+	pubKey          common.PubKey
+	tssKeyManager   tss.ThorchainKeyManager
+	logger          zerolog.Logger
+	keySignPartyMgr *thorclient.KeySignPartyMgr
 }
 
 // NewKeysignWrapper create a new instance of Keysign Wrapper
-func NewKeySignWrapper(privateKey *btcec.PrivateKey, bridge *thorclient.ThorchainBridge, tssKeyManager tss.ThorchainKeyManager) (*KeySignWrapper, error) {
+func NewKeySignWrapper(privateKey *btcec.PrivateKey, bridge *thorclient.ThorchainBridge, tssKeyManager tss.ThorchainKeyManager, keySignPartyMgr *thorclient.KeySignPartyMgr) (*KeySignWrapper, error) {
 	pubKey, err := GetBech32AccountPubKey(privateKey)
 	if err != nil {
 		return nil, fmt.Errorf("fail to get the pubkey: %w", err)
 	}
 	return &KeySignWrapper{
-		privateKey:    privateKey,
-		pubKey:        pubKey,
-		tssKeyManager: tssKeyManager,
-		bridge:        bridge,
-		logger:        log.With().Str("module", "keysign_wrapper").Logger(),
+		privateKey:      privateKey,
+		pubKey:          pubKey,
+		tssKeyManager:   tssKeyManager,
+		logger:          log.With().Str("module", "keysign_wrapper").Logger(),
+		keySignPartyMgr: keySignPartyMgr,
 	}, nil
 }
 
@@ -52,7 +52,7 @@ func (w *KeySignWrapper) GetSignable(poolPubKey common.PubKey) txscript.Signable
 	if w.pubKey.Equals(poolPubKey) {
 		return txscript.NewPrivateKeySignable(w.privateKey)
 	}
-	s, err := NewTssSignable(poolPubKey, w.bridge, w.tssKeyManager)
+	s, err := NewTssSignable(poolPubKey, w.tssKeyManager, w.keySignPartyMgr)
 	if err != nil {
 		w.logger.Err(err).Msg("fail to create tss signable")
 		return nil

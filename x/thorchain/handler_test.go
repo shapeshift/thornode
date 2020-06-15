@@ -21,6 +21,7 @@ import (
 
 	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 	kv1 "gitlab.com/thorchain/thornode/x/thorchain/keeper/v1"
+	mem "gitlab.com/thorchain/thornode/x/thorchain/memo"
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
@@ -444,4 +445,26 @@ func (HandlerSuite) TestGetMsgStakeFromMemo(c *C) {
 	c.Assert(msgStake, NotNil)
 	c.Assert(msgStake.RuneAddress, Equals, runeAddr)
 	c.Assert(msgStake.AssetAddress, Equals, txin.Tx.FromAddress)
+}
+
+func (HandlerSuite) TestMsgLeaveFromMemo(c *C) {
+	addr := types.GetRandomBech32Addr()
+	memo := mem.NewLeaveMemo(addr)
+	txin := types.NewObservedTx(
+		common.Tx{
+			ID:          GetRandomTxHash(),
+			Chain:       common.BNBChain,
+			Coins:       common.Coins{common.NewCoin(common.RuneAsset(), cosmos.NewUint(1))},
+			Memo:        fmt.Sprintf("LEAVE:%s", addr.String()),
+			FromAddress: GetRandomBNBAddress(),
+			ToAddress:   GetRandomBNBAddress(),
+			Gas:         BNBGasFeeSingleton,
+		},
+		1024,
+		common.EmptyPubKey,
+	)
+
+	msg, err := getMsgLeaveFromMemo(memo, txin, addr)
+	c.Assert(err, IsNil)
+	c.Check(msg.ValidateBasic(), IsNil)
 }

@@ -402,7 +402,9 @@ func (b *BinanceBlockScanner) fromTxToTxIn(hash, encodedTx string) ([]stypes.TxI
 	var t tx.StdTx
 	if err := tx.Cdc.UnmarshalBinaryLengthPrefixed(buf, &t); err != nil {
 		b.errCounter.WithLabelValues("fail_unmarshal_tx", hash).Inc()
-		return nil, fmt.Errorf("fail to unmarshal tx.StdTx: %w", err)
+		// not returning an error here because it may cause binance to get
+		// stuck if someone has issued a mini token.
+		return nil, nil
 	}
 
 	return b.fromStdTx(hash, t)
