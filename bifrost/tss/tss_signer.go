@@ -190,7 +190,7 @@ func (s *KeySign) toLocalTSSSigner(poolPubKey, sendmsg string, signerPubKeys com
 	case <-ch:
 		// do nothing
 	case <-timer.C:
-		return "", "", fmt.Errorf("tss signer timeout")
+		panic("tss signer timeout")
 	}
 
 	if err != nil {

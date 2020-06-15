@@ -40,6 +40,7 @@ func (ps PoolStatus) String() string {
 	return ""
 }
 
+// Valid is to check whether the pool status is valid or not
 func (ps PoolStatus) Valid() error {
 	if ps.String() == "" {
 		return fmt.Errorf("Invalid pool status")
@@ -76,14 +77,15 @@ func GetPoolStatus(ps string) PoolStatus {
 // Pool is a struct that contains all the metadata of a pooldata
 // This is the structure THORNode will saved to the key value store
 type Pool struct {
-	BalanceRune  cosmos.Uint    `json:"balance_rune"`  // how many RUNE in the pool
-	BalanceAsset cosmos.Uint    `json:"balance_asset"` // how many asset in the pool
-	Asset        common.Asset   `json:"asset"`         // what's the asset's asset
-	PoolUnits    cosmos.Uint    `json:"pool_units"`    // total units of the pool
-	PoolAddress  common.Address `json:"pool_address"`  // bnb liquidity pool address
-	Status       PoolStatus     `json:"status"`        // status
+	BalanceRune  cosmos.Uint    `json:"balance_rune"`           // how many RUNE in the pool
+	BalanceAsset cosmos.Uint    `json:"balance_asset"`          // how many asset in the pool
+	Asset        common.Asset   `json:"asset"`                  // what's the asset's asset
+	PoolUnits    cosmos.Uint    `json:"pool_units"`             // total units of the pool
+	PoolAddress  common.Address `json:"pool_address,omitempty"` // bnb liquidity pool address
+	Status       PoolStatus     `json:"status"`                 // status
 }
 
+// Pools represent a list of pools
 type Pools []Pool
 
 // NewPool Returns a new Pool
@@ -96,6 +98,7 @@ func NewPool() Pool {
 	}
 }
 
+// Valid check whether the pool is valid or not, if asset is empty then it is not valid
 func (ps Pool) Valid() error {
 	if ps.Empty() {
 		return errors.New("pool asset cannot be empty")
@@ -103,10 +106,12 @@ func (ps Pool) Valid() error {
 	return nil
 }
 
+// IsEnabled check whether the pool is in Enabled status
 func (ps Pool) IsEnabled() bool {
 	return ps.Status == Enabled
 }
 
+// Empty will return true when the asset is empty
 func (ps Pool) Empty() bool {
 	return ps.Asset.IsEmpty()
 }
@@ -122,7 +127,7 @@ func (ps Pool) String() string {
 	return sb.String()
 }
 
-// EnsureValidPoolStatus
+// EnsureValidPoolStatus make sure the pool is in a valid status otherwise it return an error
 func (ps Pool) EnsureValidPoolStatus(msg cosmos.Msg) error {
 	switch ps.Status {
 	case Enabled:
@@ -141,7 +146,7 @@ func (ps Pool) EnsureValidPoolStatus(msg cosmos.Msg) error {
 	}
 }
 
-// convert a specific amount of asset amt into its rune value
+// AssetValueInRune convert a specific amount of asset amt into its rune value
 func (ps Pool) AssetValueInRune(amt cosmos.Uint) cosmos.Uint {
 	if ps.BalanceRune.IsZero() || ps.BalanceAsset.IsZero() {
 		return cosmos.ZeroUint()
@@ -149,7 +154,7 @@ func (ps Pool) AssetValueInRune(amt cosmos.Uint) cosmos.Uint {
 	return common.GetShare(ps.BalanceRune, ps.BalanceAsset, amt)
 }
 
-// convert a specific amount of rune amt into its asset value
+// RuneValueInAsset convert a specific amount of rune amt into its asset value
 func (ps Pool) RuneValueInAsset(amt cosmos.Uint) cosmos.Uint {
 	if ps.BalanceRune.IsZero() || ps.BalanceAsset.IsZero() {
 		return cosmos.ZeroUint()

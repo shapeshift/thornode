@@ -2,15 +2,11 @@ package pubkeymanager
 
 import (
 	"fmt"
-	"io/ioutil"
-	"net/http"
-	"net/url"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/cosmos/cosmos-sdk/codec"
-	"github.com/hashicorp/go-retryablehttp"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -43,26 +39,26 @@ type PK struct {
 
 // PubKeyManager it manages a list of pubkeys
 type PubKeyManager struct {
-	cdc        *codec.Codec
-	pubkeys    []PK
-	rwMutex    *sync.RWMutex
-	logger     zerolog.Logger
-	chainHost  string // thorchain host
-	errCounter *prometheus.CounterVec
-	m          *metrics.Metrics
-	stopChan   chan struct{}
+	cdc             *codec.Codec
+	thorchainBridge *thorclient.ThorchainBridge
+	pubkeys         []PK
+	rwMutex         *sync.RWMutex
+	logger          zerolog.Logger
+	errCounter      *prometheus.CounterVec
+	m               *metrics.Metrics
+	stopChan        chan struct{}
 }
 
 // NewPubKeyManager create a new instance of PubKeyManager
-func NewPubKeyManager(chainHost string, m *metrics.Metrics) (*PubKeyManager, error) {
+func NewPubKeyManager(bridge *thorclient.ThorchainBridge, m *metrics.Metrics) (*PubKeyManager, error) {
 	return &PubKeyManager{
-		cdc:        thorclient.MakeCodec(),
-		logger:     log.With().Str("module", "thorchain_bridge").Logger(),
-		chainHost:  chainHost,
-		errCounter: m.GetCounterVec(metrics.PubKeyManagerError),
-		m:          m,
-		stopChan:   make(chan struct{}),
-		rwMutex:    &sync.RWMutex{},
+		cdc:             thorclient.MakeCodec(),
+		logger:          log.With().Str("module", "thorchain_bridge").Logger(),
+		thorchainBridge: bridge,
+		errCounter:      m.GetCounterVec(metrics.PubKeyManagerError),
+		m:               m,
+		stopChan:        make(chan struct{}),
+		rwMutex:         &sync.RWMutex{},
 	}, nil
 }
 
@@ -188,14 +184,28 @@ func (pkm *PubKeyManager) FetchPubKeys() {
 		pkm.AddPubKey(pk, false)
 	}
 
+	vaults, err := pkm.thorchainBridge.GetAsgards()
+	if err != nil {
+		return
+	}
+
+	for _, vault := range vaults {
+		if vault.Membership.Contains(pkm.GetNodePubKey()) {
+			pkm.AddPubKey(vault.PubKey, true)
+			pubkeys = append(pubkeys, vault.PubKey)
+		}
+	}
+
 	// prune retired addresses
-	for _, pk := range pkm.pubkeys {
+	for i, pk := range pkm.pubkeys {
 		if pk.NodeAccount {
 			// never remove our own pubkey
 			continue
 		}
-		if !pubkeys.Contains(pk.PubKey) {
-			pkm.RemovePubKey(pk.PubKey)
+		if i < (len(pkm.pubkeys) - 2) { // don't delete the more recent (last) pubkeys
+			if !pubkeys.Contains(pk.PubKey) {
+				pkm.RemovePubKey(pk.PubKey)
+			}
 		}
 	}
 }
@@ -240,36 +250,5 @@ func (pkm *PubKeyManager) IsValidPoolAddress(addr string, chain common.Chain) (b
 
 // getPubkeys from thorchain
 func (pkm *PubKeyManager) getPubkeys() (common.PubKeys, error) {
-	uri := url.URL{
-		Scheme: "http",
-		Host:   pkm.chainHost,
-		Path:   "/thorchain/vaults/pubkeys",
-	}
-	resp, err := retryablehttp.Get(uri.String())
-	if err != nil {
-		return nil, fmt.Errorf("fail to get pubkeys from thorchain: %w", err)
-	}
-	defer func() {
-		if err := resp.Body.Close(); err != nil {
-			pkm.logger.Error().Err(err).Msg("fail to close response body")
-		}
-	}()
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("fail to get pubkeys from thorchain: %w", err)
-	}
-
-	var pubs struct {
-		Asgard    common.PubKeys `json:"asgard"`
-		Yggdrasil common.PubKeys `json:"yggdrasil"`
-	}
-	buf, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("fail to read response body: %w", err)
-	}
-	if err := pkm.cdc.UnmarshalJSON(buf, &pubs); err != nil {
-		pkm.errCounter.WithLabelValues("fail_unmarshal_pubkeys", "").Inc()
-		return nil, fmt.Errorf("fail to unmarshal pubkeys: %w", err)
-	}
-	pubkeys := append(pubs.Asgard, pubs.Yggdrasil...)
-	return pubkeys, nil
+	return pkm.thorchainBridge.GetPubKeys()
 }

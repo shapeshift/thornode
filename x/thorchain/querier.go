@@ -6,7 +6,6 @@ import (
 	"strconv"
 
 	"github.com/cosmos/cosmos-sdk/codec"
-
 	abci "github.com/tendermint/tendermint/abci/types"
 
 	"gitlab.com/thorchain/thornode/common"
@@ -34,6 +33,8 @@ func NewQuerier(keeper keeper.Keeper, kbs KeybaseStore) cosmos.Querier {
 			return queryKeysign(ctx, kbs, path[1:], req, keeper)
 		case q.QueryKeygensPubkey.Key:
 			return queryKeygen(ctx, kbs, path[1:], req, keeper)
+		case q.QueryOutQueue.Key:
+			return queryOutQueue(ctx, path[1:], req, keeper)
 		case q.QueryHeights.Key:
 			return queryHeights(ctx, path[1:], req, keeper)
 		case q.QueryChainHeights.Key:
@@ -238,7 +239,18 @@ func queryVaultData(ctx cosmos.Context, keeper keeper.Keeper) ([]byte, error) {
 	return res, nil
 }
 
+// TODO: select vault by bond/funds ratio
+// TODO: if asgard vaults hold more non-rune funds than bond, do not give address, and error
 func queryPoolAddresses(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
+	haltTrading, err := keeper.GetMimir(ctx, "HaltTrading")
+	if err != nil {
+		ctx.Logger().Error("fail to get HaltTrading mimir", "error", err)
+	}
+	// when trading is halt , do not return any pool addresses
+	if (haltTrading > 0 && haltTrading < common.BlockHeight(ctx) && err == nil) || keeper.RagnarokInProgress(ctx) {
+		ctx.Logger().Info("trading is halted!!")
+		return []byte{}, nil
+	}
 	active, err := keeper.GetAsgardVaultsByStatus(ctx, ActiveVault)
 	if err != nil {
 		ctx.Logger().Error("fail to get active vaults", "error", err)
@@ -254,31 +266,29 @@ func queryPoolAddresses(ctx cosmos.Context, path []string, req abci.RequestQuery
 	var resp struct {
 		Current []address `json:"current"`
 	}
+	// select vault with lowest amount of rune
+	vault := active.SelectByMinCoin(common.RuneAsset())
 
-	if len(active) > 0 {
-		// select vault with lowest amount of rune
-		vault := active.SelectByMinCoin(common.RuneAsset())
-		chains := vault.Chains
+	chains := vault.Chains
 
-		if len(chains) == 0 {
-			chains = common.Chains{common.RuneAsset().Chain}
+	if len(chains) == 0 {
+		chains = common.Chains{common.RuneAsset().Chain}
+	}
+
+	for _, chain := range chains {
+		vaultAddress, err := vault.PubKey.GetAddress(chain)
+		if err != nil {
+			ctx.Logger().Error("fail to get address for chain", "error", err)
+			return nil, fmt.Errorf("fail to get address for chain: %w", err)
 		}
 
-		for _, chain := range chains {
-			vaultAddress, err := vault.PubKey.GetAddress(chain)
-			if err != nil {
-				ctx.Logger().Error("fail to get address for chain", "error", err)
-				return nil, fmt.Errorf("fail to get address for chain: %w", err)
-			}
-
-			addr := address{
-				Chain:   chain,
-				PubKey:  vault.PubKey,
-				Address: vaultAddress,
-			}
-
-			resp.Current = append(resp.Current, addr)
+		addr := address{
+			Chain:   chain,
+			PubKey:  vault.PubKey,
+			Address: vaultAddress,
 		}
+
+		resp.Current = append(resp.Current, addr)
 	}
 
 	res, err := codec.MarshalJSONIndent(keeper.Cdc(), resp)
@@ -466,22 +476,6 @@ func queryPool(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper 
 		return nil, fmt.Errorf("could not parse asset: %w", err)
 	}
 
-	active, err := keeper.GetAsgardVaultsByStatus(ctx, ActiveVault)
-	if err != nil {
-		ctx.Logger().Error("fail to get active vaults", "error", err)
-		return nil, fmt.Errorf("fail to get active vaults: %w", err)
-	}
-
-	vault := active.SelectByMinCoin(asset)
-	if vault.IsEmpty() {
-		return nil, fmt.Errorf("could not find active asgard vault: %w", err)
-	}
-
-	addr, err := vault.PubKey.GetAddress(asset.Chain)
-	if err != nil {
-		return nil, fmt.Errorf("fail to get chain pool address: %w", err)
-	}
-
 	pool, err := keeper.GetPool(ctx, asset)
 	if err != nil {
 		ctx.Logger().Error("fail to get pool", "error", err)
@@ -491,7 +485,7 @@ func queryPool(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper 
 		return nil, fmt.Errorf("pool: %s doesn't exist", path[0])
 	}
 
-	pool.PoolAddress = addr
+	pool.PoolAddress = ""
 	res, err := codec.MarshalJSONIndent(keeper.Cdc(), pool)
 	if err != nil {
 		return nil, fmt.Errorf("could not marshal result to JSON: %w", err)
@@ -502,12 +496,6 @@ func queryPool(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper 
 func queryPools(ctx cosmos.Context, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
 	pools := QueryResPools{}
 	iterator := keeper.GetPoolIterator(ctx)
-
-	active, err := keeper.GetAsgardVaultsByStatus(ctx, ActiveVault)
-	if err != nil {
-		ctx.Logger().Error("fail to get active vaults", "error", err)
-		return nil, fmt.Errorf("fail to get active vaults: %w", err)
-	}
 
 	for ; iterator.Valid(); iterator.Next() {
 		var pool Pool
@@ -520,16 +508,6 @@ func queryPools(ctx cosmos.Context, req abci.RequestQuery, keeper keeper.Keeper)
 			continue
 		}
 
-		vault := active.SelectByMinCoin(pool.Asset)
-		if vault.IsEmpty() {
-			return nil, fmt.Errorf("could not find active asgard vault")
-		}
-		addr, err := vault.PubKey.GetAddress(pool.Asset.Chain)
-		if err != nil {
-			return nil, fmt.Errorf("could get address of chain: %w", err)
-		}
-
-		pool.PoolAddress = addr
 		pools = append(pools, pool)
 	}
 	res, err := codec.MarshalJSONIndent(keeper.Cdc(), pools)
@@ -680,6 +658,35 @@ func queryKeysign(ctx cosmos.Context, kbs KeybaseStore, path []string, req abci.
 	if err != nil {
 		ctx.Logger().Error("fail to marshal tx hash to json", "error", err)
 		return nil, fmt.Errorf("fail to marshal tx hash to json: %w", err)
+	}
+	return res, nil
+}
+
+// queryOutQueue - iterates over txout, counting how many transactions are waiting to be sent
+func queryOutQueue(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
+	version := keeper.GetLowestActiveVersion(ctx)
+	constAccessor := constants.GetConstantValues(version)
+	signingTransactionPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
+	startHeight := common.BlockHeight(ctx) - signingTransactionPeriod
+	query := QueryOutQueue{}
+
+	for height := startHeight; height <= common.BlockHeight(ctx); height++ {
+		txs, err := keeper.GetTxOut(ctx, height)
+		if err != nil {
+			ctx.Logger().Error("fail to get tx out array from key value store", "error", err)
+			return nil, fmt.Errorf("fail to get tx out array from key value store: %w", err)
+		}
+		for _, tx := range txs.TxArray {
+			if tx.OutHash.IsEmpty() {
+				query.Total += 1
+			}
+		}
+	}
+
+	res, err := codec.MarshalJSONIndent(keeper.Cdc(), query)
+	if err != nil {
+		ctx.Logger().Error("fail to marshal out queue to json", "error", err)
+		return nil, fmt.Errorf("fail to marshal out queue to json: %w", err)
 	}
 	return res, nil
 }

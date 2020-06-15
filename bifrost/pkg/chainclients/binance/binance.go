@@ -18,6 +18,7 @@ import (
 	"github.com/binance-chain/go-sdk/types/msg"
 	btx "github.com/binance-chain/go-sdk/types/tx"
 	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/hashicorp/go-multierror"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	tssp "gitlab.com/thorchain/tss/go-tss/tss"
@@ -48,10 +49,11 @@ type Binance struct {
 	storage         *blockscanner.BlockScannerStorage
 	blockScanner    *blockscanner.BlockScanner
 	bnbScanner      *BinanceBlockScanner
+	keysignPartyMgr *thorclient.KeySignPartyMgr
 }
 
 // NewBinance create new instance of binance client
-func NewBinance(thorKeys *thorclient.Keys, cfg config.ChainConfiguration, server *tssp.TssServer, thorchainBridge *thorclient.ThorchainBridge, m *metrics.Metrics) (*Binance, error) {
+func NewBinance(thorKeys *thorclient.Keys, cfg config.ChainConfiguration, server *tssp.TssServer, thorchainBridge *thorclient.ThorchainBridge, m *metrics.Metrics, keySignPartyMgr *thorclient.KeySignPartyMgr) (*Binance, error) {
 	tssKm, err := tss.NewKeySign(server)
 	if err != nil {
 		return nil, fmt.Errorf("fail to create tss signer: %w", err)
@@ -84,6 +86,7 @@ func NewBinance(thorKeys *thorclient.Keys, cfg config.ChainConfiguration, server
 		tssKeyManager:   tssKm,
 		localKeyManager: localKm,
 		thorchainBridge: thorchainBridge,
+		keysignPartyMgr: keySignPartyMgr,
 	}
 
 	if err := b.checkIsTestNet(); err != nil {
@@ -113,19 +116,22 @@ func NewBinance(thorKeys *thorclient.Keys, cfg config.ChainConfiguration, server
 	return b, nil
 }
 
+// Start Binance chain client
 func (b *Binance) Start(globalTxsQueue chan stypes.TxIn, globalErrataQueue chan stypes.ErrataBlock) {
 	b.blockScanner.Start(globalTxsQueue)
 }
 
+// Stop Binance chain client
 func (b *Binance) Stop() {
 	b.blockScanner.Stop()
 }
 
+// GetConfig return the configuration used by Binance chain client
 func (b *Binance) GetConfig() config.ChainConfiguration {
 	return b.cfg
 }
 
-// IsTestNet determinate whether we are running on test net by checking the status
+// checkIsTestNet determinate whether we are running on test net by checking the status
 func (b *Binance) checkIsTestNet() error {
 	// Cached data after first call
 	if b.isTestNet {
@@ -347,31 +353,31 @@ func (b *Binance) sign(signMsg btx.StdSignMsg, poolPubKey common.PubKey, signerP
 
 // signMsg is design to sign a given message until it success or the same message had been send out by other signer
 func (b *Binance) signMsg(signMsg btx.StdSignMsg, from string, poolPubKey common.PubKey, thorchainHeight int64, txOutItem stypes.TxOutItem, retry uint64) ([]byte, error) {
-	keySignParty, err := b.thorchainBridge.GetKeysignParty(poolPubKey)
+	keySignParty, err := b.keysignPartyMgr.GetKeySignParty(poolPubKey)
 	if err != nil {
 		b.logger.Error().Err(err).Msg("fail to get keysign party")
 		return nil, err
 	}
 	rawBytes, err := b.sign(signMsg, poolPubKey, keySignParty)
 	if err == nil && rawBytes != nil {
+		b.keysignPartyMgr.SaveKeySignParty(poolPubKey, keySignParty)
 		return rawBytes, nil
 	}
 	var keysignError tss.KeysignError
 	if errors.As(err, &keysignError) {
+		b.keysignPartyMgr.RemoveKeySignParty(poolPubKey)
 		if len(keysignError.Blame.BlameNodes) == 0 {
 			// TSS doesn't know which node to blame
 			return nil, err
 		}
 
 		// key sign error forward the keysign blame to thorchain
-		txID, err := b.thorchainBridge.PostKeysignFailure(keysignError.Blame, thorchainHeight, txOutItem.Memo, txOutItem.Coins, retry)
-		if err != nil {
+		txID, errPostKeysignFail := b.thorchainBridge.PostKeysignFailure(keysignError.Blame, thorchainHeight, txOutItem.Memo, txOutItem.Coins, retry)
+		if errPostKeysignFail != nil {
 			b.logger.Error().Err(err).Msg("fail to post keysign failure to thorchain")
-			return nil, err
-		} else {
-			b.logger.Info().Str("tx_id", txID.String()).Msgf("post keysign failure to thorchain")
-			return nil, fmt.Errorf("sent keysign failure to thorchain")
+			return nil, multierror.Append(err, errPostKeysignFail)
 		}
+		b.logger.Info().Str("tx_id", txID.String()).Msgf("post keysign failure to thorchain")
 	}
 	b.logger.Error().Err(err).Msgf("fail to sign msg with memo: %s", signMsg.Memo)
 	return nil, err

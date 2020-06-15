@@ -241,9 +241,7 @@ func (tos *TxOutStorageV1) prepareTxOutItem(ctx cosmos.Context, toi *TxOutItem) 
 	if err != nil {
 		return false, fmt.Errorf("fail to get observed tx voter: %w", err)
 	}
-	if voter.Height == 0 {
-		voter.Height = common.BlockHeight(ctx)
-	}
+	voter.Height = common.BlockHeight(ctx)
 	voter.Actions = append(voter.Actions, *toi)
 	tos.keeper.SetObservedTxInVoter(ctx, voter)
 
@@ -275,7 +273,10 @@ func (tos *TxOutStorageV1) addToBlockOut(ctx cosmos.Context, mgr Manager, toi *T
 		return err
 	}
 	// since we're storing the memo in the tx market, we can clear it
-	toi.Memo = ""
+	// TODO: add memo for all chains (not just BNB)
+	if !toi.Coin.Asset.Chain.Equals(common.BNBChain) {
+		toi.Memo = ""
+	}
 
 	return tos.keeper.AppendTxOut(ctx, common.BlockHeight(ctx), toi)
 }

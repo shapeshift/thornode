@@ -84,6 +84,12 @@ func (s *MemoSuite) TestParseWithAbbreviated(c *C) {
 	c.Assert(err, IsNil)
 	c.Check(memo.IsType(TxLeave), Equals, true)
 
+	addr := types.GetRandomBech32Addr()
+	memo, err = ParseMemo(fmt.Sprintf("leave:%s", addr.String()))
+	c.Assert(err, IsNil)
+	c.Check(memo.IsType(TxLeave), Equals, true)
+	c.Check(memo.GetAccAddress().String(), Equals, addr.String())
+
 	memo, err = ParseMemo("yggdrasil+:30")
 	c.Assert(err, IsNil)
 	c.Check(memo.IsType(TxYggdrasilFund), Equals, true)

@@ -36,11 +36,12 @@ import (
 func TestPackage(t *testing.T) { TestingT(t) }
 
 type ObserverSuite struct {
-	m        *metrics.Metrics
-	thordir  string
-	thorKeys *thorclient.Keys
-	bridge   *thorclient.ThorchainBridge
-	b        *binance.Binance
+	m               *metrics.Metrics
+	thordir         string
+	thorKeys        *thorclient.Keys
+	bridge          *thorclient.ThorchainBridge
+	b               *binance.Binance
+	keySignPartyMgr *thorclient.KeySignPartyMgr
 }
 
 var _ = Suite(&ObserverSuite{})
@@ -99,7 +100,7 @@ func (s *ObserverSuite) NewMockBinanceInstance(c *C, jsonData string) {
 		MaxHttpRequestRetry:        10,
 		StartBlockHeight:           1, // avoids querying thorchain for block height
 		EnforceBlockHeight:         true,
-	}}, nil, s.bridge, s.m)
+	}}, nil, s.bridge, s.m, s.keySignPartyMgr)
 	c.Assert(err, IsNil)
 	c.Assert(s.b, NotNil)
 }
@@ -173,12 +174,12 @@ func (s *ObserverSuite) SetUpSuite(c *C) {
 	s.bridge, err = thorclient.NewThorchainBridge(cfg, s.m, s.thorKeys)
 	c.Assert(s.bridge, NotNil)
 	c.Assert(err, IsNil)
-
+	s.keySignPartyMgr = thorclient.NewKeySignPartyMgr(s.bridge)
 	priv, err := s.thorKeys.GetPrivateKey()
 	c.Assert(err, IsNil)
 	pk, err := common.NewPubKeyFromCrypto(priv.PubKey())
 	c.Assert(err, IsNil)
-	txOut := getTxOutFromJsonInput(`{ "height": "0", "tx_array": [ { "vault_pubkey":"", "seq_no":"0","to": "tbnb186nvjtqk4kkea3f8a30xh4vqtkrlu2rm9xgly3", "memo": "migrate", "coin":  { "asset": "BNB", "amount": "194765912" }  } ]}`, c)
+	txOut := getTxOutFromJSONInput(`{ "height": "0", "tx_array": [ { "vault_pubkey":"", "seq_no":"0","to": "tbnb186nvjtqk4kkea3f8a30xh4vqtkrlu2rm9xgly3", "memo": "migrate", "coin":  { "asset": "BNB", "amount": "194765912" }  } ]}`, c)
 	txOut.TxArray[0].VaultPubKey = pk
 	out := txOut.TxArray[0].TxOutItem()
 
@@ -230,7 +231,7 @@ func (s *ObserverSuite) TestProcess(c *C) {
 	c.Assert(err, IsNil)
 }
 
-func getTxOutFromJsonInput(input string, c *C) types.TxOut {
+func getTxOutFromJSONInput(input string, c *C) types.TxOut {
 	var txOut types.TxOut
 	err := json.Unmarshal([]byte(input), &txOut)
 	c.Check(err, IsNil)

@@ -27,10 +27,11 @@ import (
 func TestPackage(t *testing.T) { TestingT(t) }
 
 type EthereumSuite struct {
-	thordir  string
-	thorKeys *thorclient.Keys
-	bridge   *thorclient.ThorchainBridge
-	m        *metrics.Metrics
+	thordir         string
+	thorKeys        *thorclient.Keys
+	bridge          *thorclient.ThorchainBridge
+	m               *metrics.Metrics
+	keySignPartyMgr *thorclient.KeySignPartyMgr
 }
 
 var _ = Suite(&EthereumSuite{})
@@ -109,6 +110,7 @@ func (s *EthereumSuite) SetUpSuite(c *C) {
 	s.thorKeys = thorclient.NewKeysWithKeybase(kb, info, cfg.SignerPasswd)
 	s.bridge, err = thorclient.NewThorchainBridge(cfg, s.m, s.thorKeys)
 	c.Assert(err, IsNil)
+	s.keySignPartyMgr = thorclient.NewKeySignPartyMgr(s.bridge)
 }
 
 func (s *EthereumSuite) TearDownSuite(c *C) {
@@ -122,7 +124,7 @@ func (s *EthereumSuite) TearDownSuite(c *C) {
 var account = "0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae"
 
 func (s *EthereumSuite) TestClient(c *C) {
-	e, err := NewClient(s.thorKeys, config.ChainConfiguration{}, nil, s.bridge, s.m)
+	e, err := NewClient(s.thorKeys, config.ChainConfiguration{}, nil, s.bridge, s.m, s.keySignPartyMgr)
 	c.Assert(e, IsNil)
 	c.Assert(err, NotNil)
 
@@ -189,7 +191,7 @@ func (s *EthereumSuite) TestClient(c *C) {
 		BlockScanner: config.BlockScannerConfiguration{
 			StartBlockHeight: 1, // avoids querying thorchain for block height
 		},
-	}, nil, s.bridge, s.m)
+	}, nil, s.bridge, s.m, s.keySignPartyMgr)
 	c.Assert(err2, IsNil)
 	c.Assert(e2, NotNil)
 

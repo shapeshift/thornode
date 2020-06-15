@@ -98,9 +98,9 @@ func main() {
 	if err := thorchainBridge.EnsureNodeWhitelistedWithTimeout(); err != nil {
 		log.Fatal().Err(err).Msg("node account is not whitelisted, can't start")
 	}
-
+	keySignPartyMgr := thorclient.NewKeySignPartyMgr(thorchainBridge)
 	// PubKey Manager
-	pubkeyMgr, err := pubkeymanager.NewPubKeyManager(cfg.Thorchain.ChainHost, m)
+	pubkeyMgr, err := pubkeymanager.NewPubKeyManager(thorchainBridge, m)
 	if err != nil {
 		log.Fatal().Err(err).Msg("fail to create pubkey manager")
 	}
@@ -166,7 +166,7 @@ func main() {
 		}
 	}
 
-	chains := chainclients.LoadChains(k, cfg.Chains, tssIns, thorchainBridge, m)
+	chains := chainclients.LoadChains(k, cfg.Chains, tssIns, thorchainBridge, m, keySignPartyMgr)
 
 	// start observer
 	obs, err := observer.NewObserver(pubkeyMgr, chains, thorchainBridge, m)
