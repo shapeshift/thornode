@@ -1,52 +1,59 @@
 package common
 
 import (
-	"fmt"
+	"errors"
 	"strings"
 )
 
 const (
-	BNBTicker  = Ticker("BNB")
+	// BNBTicker BNB
+	BNBTicker = Ticker("BNB")
+	// RuneTicker RUNE
 	RuneTicker = Ticker("RUNE")
-	// TODO these are not tickers, they are symbols, delete them
-	RuneA1FTicker = Ticker("RUNE-A1F")
-	RuneB1ATicker = Ticker("RUNE-B1A")
 )
 
 type (
-	Ticker  string
+	// Ticker The trading 'symbol' or shortened name (typically in capital letters) that refer to a coin on a trading platform. For example: BNB
+	Ticker string
+	// Tickers a list of ticker
 	Tickers []Ticker
 )
 
+// NewTicker parse the given string as ticker, return error if it is not legitimate ticker
 func NewTicker(ticker string) (Ticker, error) {
 	noTicker := Ticker("")
 	if len(ticker) < 3 {
-		return noTicker, fmt.Errorf("Ticker Error: Not enough characters")
+		return noTicker, errors.New("ticker error: not enough characters")
 	}
 
 	if len(ticker) > 13 {
-		return noTicker, fmt.Errorf("Ticker Error: Too many characters")
+		return noTicker, errors.New("ticker error: too many characters")
 	}
 	return Ticker(strings.ToUpper(ticker)), nil
 }
 
+// Equals compare whether two ticker is the same
 func (t Ticker) Equals(t2 Ticker) bool {
 	return strings.EqualFold(t.String(), t2.String())
 }
 
+// IsEmpty return true when the ticker is an empty string
 func (t Ticker) IsEmpty() bool {
 	return strings.TrimSpace(t.String()) == ""
 }
 
+// String implement fmt.Stringer
 func (t Ticker) String() string {
-	// uppercasing again just incase someon created a ticker via Ticker("rune")
+	// upper casing again just in case someone created a ticker via Ticker("rune")
 	return strings.ToUpper(string(t))
 }
 
+// IsBNB return true when the ticker is BNBTicker
 func IsBNB(ticker Ticker) bool {
 	return ticker.Equals(BNBTicker)
 }
 
+// IsRune return true when the ticker is RuneTicker
 func IsRune(ticker Ticker) bool {
-	return ticker.Equals(RuneTicker) || ticker.Equals(RuneA1FTicker) || ticker.Equals(RuneB1ATicker)
+	return ticker.Equals(RuneTicker)
 }
