@@ -15,6 +15,7 @@ func createHash(key string) (string, error) {
 	return hex.EncodeToString(hasher.Sum(nil)), err
 }
 
+// Encrypt the input data with passphrase
 func Encrypt(data []byte, passphrase string) ([]byte, error) {
 	hash, err := createHash(passphrase)
 	if err != nil {
@@ -36,6 +37,7 @@ func Encrypt(data []byte, passphrase string) ([]byte, error) {
 	return ciphertext, nil
 }
 
+// Decrypt the input data with passphrase
 func Decrypt(data []byte, passphrase string) ([]byte, error) {
 	hash, err := createHash(passphrase)
 	if err != nil {

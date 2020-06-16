@@ -4,9 +4,10 @@ import (
 	"math/big"
 	"sort"
 
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
+// Gas coins
 type Gas Coins
 
 var (
@@ -16,22 +17,24 @@ var (
 	ethGasPerByte  = cosmos.NewUint(68)
 )
 
-// Gas Fees
+// BNBGasFeeSingleton fee charged by Binance for transfer with a single coin
 var BNBGasFeeSingleton = Gas{
 	{Asset: BNBAsset, Amount: bnbSingleTxFee},
 }
 
+// BNBGasFeeMulti gas fee for multi send
 var BNBGasFeeMulti = Gas{
 	{Asset: BNBAsset, Amount: bnbMultiTxFee},
 }
 
+// ETHGasFeeTransfer gas fee for ETH
 var ETHGasFeeTransfer = Gas{
 	{Asset: ETHAsset, Amount: ethTransferFee},
 }
 
-func CalcGasPrice(tx Tx, asset Asset, units []cosmos.Uint) Gas {
+// CalcBinanceGasPrice calculate gas price for Binance chain
+func CalcBinanceGasPrice(tx Tx, asset Asset, units []cosmos.Uint) Gas {
 	lenCoins := uint64(len(tx.Coins))
-
 	switch asset {
 	case BNBAsset:
 		if lenCoins == 0 {
@@ -45,6 +48,7 @@ func CalcGasPrice(tx Tx, asset Asset, units []cosmos.Uint) Gas {
 	return nil
 }
 
+// UpdateGasPrice update gas based on the input tx
 func UpdateGasPrice(tx Tx, asset Asset, units []cosmos.Uint) []cosmos.Uint {
 	if tx.Gas.IsEmpty() {
 		// no change
@@ -77,56 +81,7 @@ func UpdateGasPrice(tx Tx, asset Asset, units []cosmos.Uint) []cosmos.Uint {
 	return units
 }
 
-// UpdateBNBGasFee
-func UpdateBNBGasFee(gas Gas, numberCoins int) {
-	if gas.IsEmpty() {
-		return
-	}
-	if err := gas.IsValid(); err != nil {
-		return
-	}
-	gasCoin := gas.ToCoins().GetCoin(BNBAsset)
-	if gasCoin.Equals(NoCoin) {
-		return
-	}
-
-	if numberCoins == 1 {
-		if gasCoin.Amount.Equal(bnbSingleTxFee) {
-			return
-		}
-		bnbSingleTxFee = gasCoin.Amount
-		BNBGasFeeSingleton = Gas{
-			{Asset: BNBAsset, Amount: bnbSingleTxFee},
-		}
-		return
-	}
-	multiGas := gasCoin.Amount.QuoUint64(uint64(numberCoins))
-	if multiGas.Equal(bnbMultiTxFee) {
-		return
-	}
-	bnbMultiTxFee = multiGas
-	BNBGasFeeMulti = Gas{
-		{Asset: BNBAsset, Amount: multiGas},
-	}
-}
-
-func GetBNBGasFee(count uint64) Gas {
-	if count == 0 {
-		return nil
-	}
-	if count == 1 {
-		return BNBGasFeeSingleton
-	}
-	return GetBNBGasFeeMulti(count)
-}
-
-// Calculates the amount of gas for x number of coins in a single tx.
-func GetBNBGasFeeMulti(count uint64) Gas {
-	return Gas{
-		{Asset: BNBAsset, Amount: bnbMultiTxFee.MulUint64(count)},
-	}
-}
-
+// GetETHGasFee return the gas for ETH
 func GetETHGasFee(gasPrice *big.Int, msgLen uint64) Gas {
 	gasBytes := ethGasPerByte.MulUint64(msgLen)
 	return Gas{
@@ -134,12 +89,14 @@ func GetETHGasFee(gasPrice *big.Int, msgLen uint64) Gas {
 	}
 }
 
+// MakeETHGas return the gas for ETH
 func MakeETHGas(gasPrice *big.Int, gas uint64) Gas {
 	return Gas{
 		{Asset: ETHAsset, Amount: cosmos.NewUint(gas).Mul(cosmos.NewUintFromBigInt(gasPrice))},
 	}
 }
 
+// IsValid return nil when it is valid, otherwise return an error
 func (g Gas) IsValid() error {
 	for _, coin := range g {
 		if err := coin.IsValid(); err != nil {
@@ -150,6 +107,7 @@ func (g Gas) IsValid() error {
 	return nil
 }
 
+// IsEmpty return true as long as there is one coin in it that is not empty
 func (g Gas) IsEmpty() bool {
 	for _, coin := range g {
 		if !coin.IsEmpty() {
@@ -159,7 +117,7 @@ func (g Gas) IsEmpty() bool {
 	return true
 }
 
-// This function combines two gas objects into one, adding amounts where needed
+// Add combines two gas objects into one, adding amounts where needed
 // or appending new coins.
 func (g Gas) Add(g2 Gas) Gas {
 	var newGasCoins Gas
@@ -179,22 +137,22 @@ func (g Gas) Add(g2 Gas) Gas {
 	return append(g, newGasCoins...)
 }
 
-// Check if two lists of coins are equal to each other. Order does not matter
-func (gas1 Gas) Equals(gas2 Gas) bool {
-	if len(gas1) != len(gas2) {
+// Equals Check if two lists of coins are equal to each other. Order does not matter
+func (g Gas) Equals(gas2 Gas) bool {
+	if len(g) != len(gas2) {
 		return false
 	}
 
 	// sort both lists
-	sort.Slice(gas1[:], func(i, j int) bool {
-		return gas1[i].Asset.String() < gas1[j].Asset.String()
+	sort.Slice(g[:], func(i, j int) bool {
+		return g[i].Asset.String() < g[j].Asset.String()
 	})
 	sort.Slice(gas2[:], func(i, j int) bool {
 		return gas2[i].Asset.String() < gas2[j].Asset.String()
 	})
 
-	for i := range gas1 {
-		if !gas1[i].Equals(gas2[i]) {
+	for i := range g {
+		if !g[i].Equals(gas2[i]) {
 			return false
 		}
 	}
@@ -202,10 +160,11 @@ func (gas1 Gas) Equals(gas2 Gas) bool {
 	return true
 }
 
-func (gas Gas) ToCoins() Coins {
-	coins := make(Coins, len(gas))
-	for i := range gas {
-		coins[i] = NewCoin(gas[i].Asset, gas[i].Amount)
+// ToCoins convert the gas to Coins
+func (g Gas) ToCoins() Coins {
+	coins := make(Coins, len(g))
+	for i := range g {
+		coins[i] = NewCoin(g[i].Asset, g[i].Amount)
 	}
 	return coins
 }
