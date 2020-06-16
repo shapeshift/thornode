@@ -10,6 +10,9 @@ import (
 	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
+// ErrNotEnoughToPayFee will happen when the emitted asset is not enough to pay for fee
+var ErrNotEnoughToPayFee = errors.New("not enough asset to pay for fees")
+
 // TxOutStorageV1 is going to manage all the outgoing tx
 type TxOutStorageV1 struct {
 	keeper        keeper.Keeper
@@ -17,7 +20,7 @@ type TxOutStorageV1 struct {
 	eventMgr      EventManager
 }
 
-// NewTxOutStorage will create a new instance of TxOutStore.
+// NewTxOutStorageV1 will create a new instance of TxOutStore.
 func NewTxOutStorageV1(keeper keeper.Keeper, constAccessor constants.ConstantValues, eventMgr EventManager) *TxOutStorageV1 {
 	return &TxOutStorageV1{
 		keeper:        keeper,
@@ -26,10 +29,12 @@ func NewTxOutStorageV1(keeper keeper.Keeper, constAccessor constants.ConstantVal
 	}
 }
 
+// GetBlockOut read the TxOut from kv store
 func (tos *TxOutStorageV1) GetBlockOut(ctx cosmos.Context) (*TxOut, error) {
 	return tos.keeper.GetTxOut(ctx, common.BlockHeight(ctx))
 }
 
+// GetOutboundItems read all the outbound item from kv store
 func (tos *TxOutStorageV1) GetOutboundItems(ctx cosmos.Context) ([]*TxOutItem, error) {
 	block, err := tos.keeper.GetTxOut(ctx, common.BlockHeight(ctx))
 	if block == nil {
@@ -38,6 +43,7 @@ func (tos *TxOutStorageV1) GetOutboundItems(ctx cosmos.Context) ([]*TxOutItem, e
 	return block.TxArray, err
 }
 
+// GetOutboundItemByToAddress read all the outbound items filter by the given to address
 func (tos *TxOutStorageV1) GetOutboundItemByToAddress(ctx cosmos.Context, to common.Address) []TxOutItem {
 	filterItems := make([]TxOutItem, 0)
 	items, _ := tos.GetOutboundItems(ctx)
@@ -230,7 +236,7 @@ func (tos *TxOutStorageV1) prepareTxOutItem(ctx cosmos.Context, toi *TxOutItem) 
 	// and coin field will be filled there, thus we have to let this one go
 	if toi.Coin.IsEmpty() && !memo.IsType(TxYggdrasilReturn) {
 		ctx.Logger().Info("tx out item has zero coin", toi.String())
-		return false, nil
+		return false, ErrNotEnoughToPayFee
 	}
 
 	// increment out number of out tx for this in tx
