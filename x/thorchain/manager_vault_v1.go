@@ -178,7 +178,10 @@ func (vm *VaultMgrV1) EndBlock(ctx cosmos.Context, mgr Manager, constAccessor co
 				}
 				ok, err := vm.txOutStore.TryAddTxOutItem(ctx, mgr, toi)
 				if err != nil {
-					return err
+					if !errors.Is(err, ErrNotEnoughToPayFee) {
+						return err
+					}
+					ok = true
 				}
 				if ok {
 					vault.AppendPendingTxBlockHeights(common.BlockHeight(ctx), constAccessor)
@@ -220,6 +223,7 @@ func (vm *VaultMgrV1) TriggerKeygen(ctx cosmos.Context, nas NodeAccounts) error 
 	return vm.k.SetKeygenBlock(ctx, keygenBlock)
 }
 
+// RotateVault update vault to Retiring and new vault to active
 func (vm *VaultMgrV1) RotateVault(ctx cosmos.Context, vault Vault) error {
 	active, err := vm.k.GetAsgardVaultsByStatus(ctx, ActiveVault)
 	if err != nil {
