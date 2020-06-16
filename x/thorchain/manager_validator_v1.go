@@ -28,7 +28,7 @@ type validatorMgrV1 struct {
 }
 
 // newValidatorMgrV1 create a new instance of ValidatorManager
-func NewValidatorMgrV1(k keeper.Keeper, vaultMgr VaultManager, txOutStore TxOutStore, eventMgr EventManager) *validatorMgrV1 {
+func newValidatorMgrV1(k keeper.Keeper, vaultMgr VaultManager, txOutStore TxOutStore, eventMgr EventManager) *validatorMgrV1 {
 	return &validatorMgrV1{
 		k:          k,
 		vaultMgr:   vaultMgr,
@@ -490,7 +490,7 @@ func (vm *validatorMgrV1) ragnarokReserve(ctx cosmos.Context, nth int64, mgr Man
 			Memo:      NewRagnarokMemo(common.BlockHeight(ctx)).String(),
 		}
 		_, err = vm.txOutStore.TryAddTxOutItem(ctx, mgr, txOutItem)
-		if err != nil {
+		if err != nil && !errors.Is(err, ErrNotEnoughToPayFee) {
 			return fmt.Errorf("fail to add outbound transaction")
 		}
 	}
@@ -550,7 +550,10 @@ func (vm *validatorMgrV1) ragnarokBond(ctx cosmos.Context, nth int64, mgr Manage
 		}
 		ok, err := vm.txOutStore.TryAddTxOutItem(ctx, mgr, txOutItem)
 		if err != nil {
-			return err
+			if !errors.Is(err, ErrNotEnoughToPayFee) {
+				return err
+			}
+			ok = true
 		}
 		if !ok {
 			continue
@@ -1070,7 +1073,7 @@ func findCountToRemove(blockHeight int64, active NodeAccounts) (toRemove int) {
 	var candidateCount int
 	for _, na := range active {
 		if na.LeaveHeight > 0 {
-			candidateCount += 1
+			candidateCount++
 			continue
 		}
 	}
