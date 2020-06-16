@@ -2,7 +2,7 @@
 # ./mock-swap.bash <mock binance IP address> <bnb address> <amt> <asset> <swap to asset>
 # ./mock-swap.bash 127.0.0.1 bnbZZZZZ 3000 RUNE-A1F LOK-3C0
 
-set -ex
+# set -ex
 
 if [ -z $1 ]; then
     echo "Missing mock binance address (address:port)"
@@ -31,11 +31,11 @@ fi
 
 POOL_ADDRESS=$(curl -s $1:1317/thorchain/pool_addresses | jq -r ".current[0].address")
 
-curl -vvv -s -X POST -d "[{
+curl -s -X POST -d "[{
   \"from\": \"$2\",
   \"to\": \"$POOL_ADDRESS\",
   \"coins\":[
       {\"denom\": \"$4\", \"amount\": $3}
   ],
   \"memo\": \"SWAP:$5\"
-}]" $1:26660/broadcast/easy
+}]" $1:26660/broadcast/easy | jq -r .hash
