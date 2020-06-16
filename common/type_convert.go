@@ -36,6 +36,8 @@ func GetShare(part, total, allocation cosmos.Uint) cosmos.Uint {
 	return cosmos.NewUintFromBigInt(result.RoundInt().BigInt())
 }
 
+// SafeSub subtract input2 from input1, given cosmos.Uint can't be negative , otherwise it will panic
+// thus in this method,when input2 is larger than input 1, it will just return cosmos.ZeroUint
 func SafeSub(input1, input2 cosmos.Uint) cosmos.Uint {
 	if input2.GT(input1) {
 		return cosmos.ZeroUint()

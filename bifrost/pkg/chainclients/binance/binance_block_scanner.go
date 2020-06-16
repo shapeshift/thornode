@@ -436,7 +436,7 @@ func (b *BinanceBlockScanner) fromStdTx(hash string, stdTx tx.StdTx) ([]stypes.T
 			}
 
 			// Calculate gas for this tx
-			txInItem.Gas = common.CalcGasPrice(common.Tx{Coins: txInItem.Coins}, common.BNBAsset, []cosmos.Uint{cosmos.NewUint(b.singleFee), cosmos.NewUint(b.multiFee)})
+			txInItem.Gas = common.CalcBinanceGasPrice(common.Tx{Coins: txInItem.Coins}, common.BNBAsset, []cosmos.Uint{cosmos.NewUint(b.singleFee), cosmos.NewUint(b.multiFee)})
 
 			txs = append(txs, txInItem)
 		default:

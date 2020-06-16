@@ -6,45 +6,53 @@ import (
 	"fmt"
 	"strings"
 
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 type (
-	TxID  string
+	// TxID is a string that can uniquely represent a transaction on different block chain
+	TxID string
+	// TxIDs is a slice of TxID
 	TxIDs []TxID
 )
 
+// BlankTxID represent blank
 var BlankTxID = TxID("0000000000000000000000000000000000000000000000000000000000000000")
 
+// NewTxID parse the input hash as TxID
 func NewTxID(hash string) (TxID, error) {
 	switch len(hash) {
 	case 64:
 		// do nothing
 	case 66: // ETH check
 		if !strings.HasPrefix(hash, "0x") {
-			err := fmt.Errorf("TxID Error: Must be 66 characters (got %d)", len(hash))
+			err := fmt.Errorf("txid error: must be 66 characters (got %d)", len(hash))
 			return TxID(""), err
 		}
 	default:
-		err := fmt.Errorf("TxID Error: Must be 64 characters (got %d)", len(hash))
+		err := fmt.Errorf("txid error: must be 64 characters (got %d)", len(hash))
 		return TxID(""), err
 	}
 
 	return TxID(strings.ToUpper(hash)), nil
 }
 
+// Equals check whether two TxID are the same
 func (tx TxID) Equals(tx2 TxID) bool {
 	return strings.EqualFold(tx.String(), tx2.String())
 }
 
+// IsEmpty return true when the tx represent empty string
 func (tx TxID) IsEmpty() bool {
 	return strings.TrimSpace(tx.String()) == ""
 }
 
+// String implement fmt.Stringer
 func (tx TxID) String() string {
 	return string(tx)
 }
 
+// Tx transaction
 type Tx struct {
 	ID          TxID    `json:"id"`
 	Chain       Chain   `json:"chain"`
@@ -55,8 +63,10 @@ type Tx struct {
 	Memo        string  `json:"memo"`
 }
 
+// Txs a list of Tx
 type Txs []Tx
 
+// GetRagnarokTx return a tx used for ragnarok
 func GetRagnarokTx(chain Chain, fromAddr, toAddr Address) Tx {
 	return Tx{
 		Chain:       chain,
@@ -75,6 +85,7 @@ func GetRagnarokTx(chain Chain, fromAddr, toAddr Address) Tx {
 	}
 }
 
+// NewTx create a new instance of Tx based on the input information
 func NewTx(txID TxID, from, to Address, coins Coins, gas Gas, memo string) Tx {
 	var chain Chain
 	for _, coin := range coins {
@@ -92,19 +103,23 @@ func NewTx(txID TxID, from, to Address, coins Coins, gas Gas, memo string) Tx {
 	}
 }
 
+// Hash calculate a hash based on from address, coins and to address
 func (tx Tx) Hash() string {
 	str := fmt.Sprintf("%s|%s|%s", tx.FromAddress, tx.Coins, tx.ToAddress)
 	return fmt.Sprintf("%X", sha256.Sum256([]byte(str)))
 }
 
+// String implement fmt.Stringer return a string representation of the tx
 func (tx Tx) String() string {
 	return fmt.Sprintf("%s: %s ==> %s (Memo: %s) %s", tx.ID, tx.FromAddress, tx.ToAddress, tx.Memo, tx.Coins)
 }
 
+// IsEmpty check whether the ID field is empty or not
 func (tx Tx) IsEmpty() bool {
 	return tx.ID.IsEmpty()
 }
 
+// Equals compare two Tx to see whether they represent the same Tx
 func (tx Tx) Equals(tx2 Tx) bool {
 	if !tx.ID.Equals(tx2.ID) {
 		return false
@@ -130,6 +145,7 @@ func (tx Tx) Equals(tx2 Tx) bool {
 	return true
 }
 
+// IsValid do some data sanity check , if the tx contains invalid information it will return an none nil error
 func (tx Tx) IsValid() error {
 	if tx.ID.IsEmpty() {
 		return errors.New("Tx ID cannot be empty")
@@ -162,6 +178,7 @@ func (tx Tx) IsValid() error {
 	return nil
 }
 
+// ToAttributes push all the tx fields into a slice of cosmos Attribute(key value pairs)
 func (tx Tx) ToAttributes() []cosmos.Attribute {
 	return []cosmos.Attribute{
 		cosmos.NewAttribute("id", tx.ID.String()),
