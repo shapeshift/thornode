@@ -25,6 +25,8 @@ func NewQuerier(keeper keeper.Keeper, kbs KeybaseStore) cosmos.Querier {
 			return queryPools(ctx, req, keeper)
 		case q.QueryStakers.Key:
 			return queryStakers(ctx, path[1:], req, keeper)
+		case q.QueryTxInVoter.Key:
+			return queryTxInVoter(ctx, path[1:], req, keeper)
 		case q.QueryTxIn.Key:
 			return queryTxIn(ctx, path[1:], req, keeper)
 		case q.QueryKeysignArray.Key:
@@ -513,6 +515,26 @@ func queryPools(ctx cosmos.Context, req abci.RequestQuery, keeper keeper.Keeper)
 	res, err := codec.MarshalJSONIndent(keeper.Cdc(), pools)
 	if err != nil {
 		return nil, fmt.Errorf("could not marshal pools result to json: %w", err)
+	}
+	return res, nil
+}
+
+func queryTxInVoter(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
+	hash, err := common.NewTxID(path[0])
+	if err != nil {
+		ctx.Logger().Error("fail to parse tx id", "error", err)
+		return nil, fmt.Errorf("fail to parse tx id: %w", err)
+	}
+	voter, err := keeper.GetObservedTxInVoter(ctx, hash)
+	if err != nil {
+		ctx.Logger().Error("fail to get observed tx voter", "error", err)
+		return nil, fmt.Errorf("fail to get observed tx voter: %w", err)
+	}
+
+	res, err := codec.MarshalJSONIndent(keeper.Cdc(), voter)
+	if err != nil {
+		ctx.Logger().Error("fail to marshal tx hash to json", "error", err)
+		return nil, fmt.Errorf("fail to marshal tx hash to json: %w", err)
 	}
 	return res, nil
 }
