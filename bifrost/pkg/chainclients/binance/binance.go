@@ -253,7 +253,7 @@ func (b *Binance) getGasFee(count uint64) common.Gas {
 		cosmos.NewUint(b.bnbScanner.singleFee),
 		cosmos.NewUint(b.bnbScanner.multiFee),
 	}
-	return common.CalcGasPrice(common.Tx{Coins: coins}, common.BNBAsset, gasInfo)
+	return common.CalcBinanceGasPrice(common.Tx{Coins: coins}, common.BNBAsset, gasInfo)
 }
 
 // SignTx sign the the given TxArrayItem

@@ -21,7 +21,7 @@ var (
 // NoSigningAlgo empty signing algorithm
 const NoSigningAlgo = keys.SigningAlgo("")
 
-// Chain is the
+// Chain is an alias of string , represent a block chain
 type Chain string
 
 // Chains represent a slice of Chain
