@@ -60,7 +60,7 @@ func getMsgTssKeysignFailID(members []blame.Node, height int64, memo string, coi
 	return hex.EncodeToString(hash.Sum([]byte(sb.String())))
 }
 
-// Route should return the cmname of the module
+// Route should return the route key of the module
 func (msg MsgTssKeysignFail) Route() string { return RouterKey }
 
 // Type should return the action

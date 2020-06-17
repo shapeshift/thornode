@@ -1,10 +1,13 @@
 package types
 
 import (
+	"errors"
+
+	se "github.com/cosmos/cosmos-sdk/types/errors"
 	. "gopkg.in/check.v1"
 
-	common "gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 type MsgSwitchSuite struct{}
@@ -29,6 +32,15 @@ func (MsgSwitchSuite) TestMsgSwitchSuite(c *C) {
 	c.Assert(msg.GetSigners(), NotNil)
 	c.Assert(msg.GetSigners()[0].String(), Equals, acc2.String())
 
+	msg1 := NewMsgSwitch(tx, acc1, cosmos.AccAddress{})
+	err1 := msg1.ValidateBasic()
+	c.Assert(err1, NotNil)
+	c.Assert(errors.Is(err1, se.ErrInvalidAddress), Equals, true)
+
+	msg2 := NewMsgSwitch(tx, "", acc2)
+	err2 := msg2.ValidateBasic()
+	c.Assert(err2, NotNil)
+	c.Assert(errors.Is(err2, se.ErrInvalidAddress), Equals, true)
 	// test too many coins
 	tx.Coins = common.Coins{
 		common.NewCoin(common.RuneAsset(), cosmos.NewUint(100*common.One)),

@@ -2,7 +2,7 @@ package types
 
 import (
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 // MsgSetStakeData defines a SetStakeData message
@@ -29,7 +29,7 @@ func NewMsgSetStakeData(tx common.Tx, asset common.Asset, r, amount cosmos.Uint,
 	}
 }
 
-// Route should return the pooldata of the module
+// Route should return the route key of the module
 func (msg MsgSetStakeData) Route() string { return RouterKey }
 
 // Type should return the action
