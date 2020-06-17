@@ -82,6 +82,7 @@ func (h ErrataTxHandler) handleV1(ctx cosmos.Context, msg MsgErrataTx, version s
 	}
 	constAccessor := constants.GetConstantValues(version)
 	observeSlashPoints := constAccessor.GetInt64Value(constants.ObserveSlashPoints)
+	observeFlex := constAccessor.GetInt64Value(constants.ObserveFlex)
 	h.mgr.Slasher().IncSlashPoints(ctx, observeSlashPoints, msg.Signer)
 	if !voter.Sign(msg.Signer) {
 		ctx.Logger().Info("signer already signed MsgErrataTx", "signer", msg.Signer.String(), "txid", msg.TxID)
@@ -95,7 +96,7 @@ func (h ErrataTxHandler) handleV1(ctx cosmos.Context, msg MsgErrataTx, version s
 	}
 
 	if voter.BlockHeight > 0 {
-		if voter.BlockHeight == common.BlockHeight(ctx) {
+		if (voter.BlockHeight + observeFlex) >= common.BlockHeight(ctx) {
 			h.mgr.Slasher().DecSlashPoints(ctx, observeSlashPoints, msg.Signer)
 		}
 		// errata tx already processed

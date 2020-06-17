@@ -40,6 +40,7 @@ const (
 	FailKeySignSlashPoints
 	StakeLockUpBlocks
 	ObserveSlashPoints
+	ObserveFlex
 	YggFundLimit
 	JailTimeKeygen
 	JailTimeKeysign
@@ -76,6 +77,7 @@ var nameToString = map[ConstantName]string{
 	FailKeySignSlashPoints:          "FailKeySignSlashPoints",
 	StakeLockUpBlocks:               "StakeLockUpBlocks",
 	ObserveSlashPoints:              "ObserveSlashPoints",
+	ObserveFlex:                     "ObserveFlex",
 	YggFundLimit:                    "YggFundLimit",
 	JailTimeKeygen:                  "JailTimeKeygen",
 	JailTimeKeysign:                 "JailTimeKeysign",

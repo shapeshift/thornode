@@ -78,6 +78,7 @@ func (h NetworkFeeHandler) handleV1(ctx cosmos.Context, msg MsgNetworkFee, versi
 	}
 	constAccessor := constants.GetConstantValues(version)
 	observeSlashPoints := constAccessor.GetInt64Value(constants.ObserveSlashPoints)
+	observeFlex := constAccessor.GetInt64Value(constants.ObserveFlex)
 	h.mgr.Slasher().IncSlashPoints(ctx, observeSlashPoints, msg.Signer)
 	if !voter.Sign(msg.Signer) {
 		ctx.Logger().Info("signer already signed MsgNetworkFee", "signer", msg.Signer.String(), "block height", msg.BlockHeight, "chain", msg.Chain.String())
@@ -91,7 +92,7 @@ func (h NetworkFeeHandler) handleV1(ctx cosmos.Context, msg MsgNetworkFee, versi
 	}
 
 	if voter.BlockHeight > 0 {
-		if voter.BlockHeight == common.BlockHeight(ctx) {
+		if (voter.BlockHeight + observeFlex) >= common.BlockHeight(ctx) {
 			h.mgr.Slasher().DecSlashPoints(ctx, observeSlashPoints, msg.Signer)
 		}
 		// MsgNetworkFee tx already processed
