@@ -1,9 +1,10 @@
 package types
 
 import (
-	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	. "gopkg.in/check.v1"
+
+	"gitlab.com/thorchain/thornode/common"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 type MsgStakeSuite struct{}
@@ -76,11 +77,29 @@ func (MsgStakeSuite) TestMsgStake(c *C) {
 			txHash:    txID,
 			signer:    cosmos.AccAddress{},
 		},
+		{
+			asset:     common.BNBAsset,
+			r:         cosmos.NewUint(100000000),
+			amt:       cosmos.NewUint(100000000),
+			runeAddr:  "",
+			assetAddr: assetAddress,
+			txHash:    txID,
+			signer:    addr,
+		},
+		{
+			asset:     common.BTCAsset,
+			r:         cosmos.NewUint(100000000),
+			amt:       cosmos.NewUint(100000000),
+			runeAddr:  runeAddress,
+			assetAddr: "",
+			txHash:    txID,
+			signer:    addr,
+		},
 	}
 	for i, item := range inputs {
 		tx := common.NewTx(
 			item.txHash,
-			item.runeAddr,
+			GetRandomRUNEAddress(),
 			GetRandomBNBAddress(),
 			common.Coins{
 				common.NewCoin(item.asset, item.r),

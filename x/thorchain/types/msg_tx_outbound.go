@@ -2,7 +2,7 @@ package types
 
 import (
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 // MsgOutboundTx defines a MsgOutboundTx message
@@ -21,7 +21,7 @@ func NewMsgOutboundTx(tx ObservedTx, txID common.TxID, signer cosmos.AccAddress)
 	}
 }
 
-// Route should return the cmname of the module
+// Route should return the route key of the module
 func (msg MsgOutboundTx) Route() string { return RouterKey }
 
 // Type should return the action

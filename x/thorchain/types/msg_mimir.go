@@ -1,10 +1,10 @@
 package types
 
 import (
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
-// MsgMimir defines a no op message
+// MsgMimir defines a message to set mimir
 type MsgMimir struct {
 	Key    string            `json:"key"`
 	Value  int64             `json:"value"`
@@ -20,7 +20,7 @@ func NewMsgMimir(key string, value int64, signer cosmos.AccAddress) MsgMimir {
 	}
 }
 
-// Route should return the pooldata of the module
+// Route should return the route key of the module
 func (msg MsgMimir) Route() string { return RouterKey }
 
 // Type should return the action

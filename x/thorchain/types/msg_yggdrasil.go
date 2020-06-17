@@ -27,8 +27,10 @@ func NewMsgYggdrasil(tx common.Tx, pk common.PubKey, blockHeight int64, addFunds
 	}
 }
 
+// Route should return the route key of the module
 func (msg MsgYggdrasil) Route() string { return RouterKey }
 
+// Type should return the action
 func (msg MsgYggdrasil) Type() string { return "set_yggdrasil" }
 
 // ValidateBasic runs stateless checks on the message

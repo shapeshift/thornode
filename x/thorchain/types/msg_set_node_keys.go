@@ -2,7 +2,7 @@ package types
 
 import (
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 // MsgSetNodeKeys defines a MsgSetNodeKeys message
@@ -21,7 +21,7 @@ func NewMsgSetNodeKeys(nodePubKeySet common.PubKeySet, validatorConsPubKey strin
 	}
 }
 
-// Route should return the cmname of the module
+// Route should return the router key of the module
 func (msg MsgSetNodeKeys) Route() string { return RouterKey }
 
 // Type should return the action

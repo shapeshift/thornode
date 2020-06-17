@@ -2,7 +2,7 @@ package types
 
 import (
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 // MsgReserveContributor defines a MsgReserveContributor message
@@ -21,8 +21,10 @@ func NewMsgReserveContributor(tx common.Tx, contrib ReserveContributor, signer c
 	}
 }
 
+// Route return the route key of module
 func (msg MsgReserveContributor) Route() string { return RouterKey }
 
+// Type return a unique action
 func (msg MsgReserveContributor) Type() string { return "set_reserve_contributor" }
 
 // ValidateBasic runs stateless checks on the message

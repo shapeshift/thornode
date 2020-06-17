@@ -111,7 +111,7 @@ func (HandlerBondSuite) TestBondHandlerFailValidation(c *C) {
 		{
 			name:        "empty node address",
 			msg:         NewMsgBond(txIn, cosmos.AccAddress{}, cosmos.NewUint(uint64(minimumBondInRune)), GetRandomBNBAddress(), activeNodeAccount.NodeAddress),
-			expectedErr: se.ErrUnknownRequest,
+			expectedErr: se.ErrInvalidAddress,
 		},
 		{
 			name:        "zero bond",
@@ -121,7 +121,7 @@ func (HandlerBondSuite) TestBondHandlerFailValidation(c *C) {
 		{
 			name:        "empty bond address",
 			msg:         NewMsgBond(txIn, GetRandomNodeAccount(NodeStandby).NodeAddress, cosmos.NewUint(uint64(minimumBondInRune)), common.Address(""), activeNodeAccount.NodeAddress),
-			expectedErr: se.ErrUnknownRequest,
+			expectedErr: se.ErrInvalidAddress,
 		},
 		{
 			name:        "empty request hash",

@@ -2,7 +2,7 @@ package types
 
 import (
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 // MsgSwitch defines a MsgSwitch message
@@ -21,7 +21,7 @@ func NewMsgSwitch(tx common.Tx, addr common.Address, signer cosmos.AccAddress) M
 	}
 }
 
-// Route should return the cmname of the module
+// Route should return the route key of the module
 func (msg MsgSwitch) Route() string { return RouterKey }
 
 // Type should return the action
