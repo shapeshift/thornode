@@ -21,7 +21,7 @@ func NewMsgErrataTx(txID common.TxID, chain common.Chain, signer cosmos.AccAddre
 	}
 }
 
-// Route should return the cmname of the module
+// Route should return the name of the module
 func (msg MsgErrataTx) Route() string { return RouterKey }
 
 // Type should return the action

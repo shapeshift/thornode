@@ -130,7 +130,7 @@ func (HandlerLeaveSuite) TestLeaveValidation(c *C) {
 				},
 				Memo: "",
 			}, w.activeNodeAccount.NodeAddress, w.activeNodeAccount.NodeAddress),
-			expectedError: se.ErrUnknownRequest,
+			expectedError: se.ErrInvalidAddress,
 		},
 		{
 			name: "non-matching from address should fail",
@@ -181,7 +181,7 @@ func (HandlerLeaveSuite) TestLeaveValidation(c *C) {
 				},
 				Memo: "",
 			}, w.activeNodeAccount.NodeAddress, cosmos.AccAddress{}),
-			expectedError: se.ErrUnknownRequest,
+			expectedError: se.ErrInvalidAddress,
 		},
 	}
 	for _, item := range testCases {

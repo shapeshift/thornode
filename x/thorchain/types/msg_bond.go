@@ -2,7 +2,7 @@ package types
 
 import (
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 // MsgBond when a user would like to become a validator, and run a full set, they need send an `apply:bepaddress` with a bond to our pool address
@@ -34,13 +34,13 @@ func (msg MsgBond) Type() string { return "validator_apply" }
 // ValidateBasic runs stateless checks on the message
 func (msg MsgBond) ValidateBasic() error {
 	if msg.NodeAddress.Empty() {
-		return cosmos.ErrUnknownRequest("node address cannot be empty")
+		return cosmos.ErrInvalidAddress("node address cannot be empty")
 	}
 	if msg.Bond.IsZero() {
 		return cosmos.ErrUnknownRequest("bond cannot be zero")
 	}
 	if msg.BondAddress.IsEmpty() {
-		return cosmos.ErrUnknownRequest("bond address cannot be empty")
+		return cosmos.ErrInvalidAddress("bond address cannot be empty")
 	}
 	if msg.TxIn.IsEmpty() {
 		return cosmos.ErrUnknownRequest("request tx cannot be empty")

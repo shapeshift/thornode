@@ -4,10 +4,10 @@ import (
 	"fmt"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
-// MaxUnstakeBasisPoints
+// MaxUnstakeBasisPoints basis points for unstake
 const MaxUnstakeBasisPoints = 10_000
 
 // MsgSetUnStake is used to withdraw
@@ -30,7 +30,7 @@ func NewMsgSetUnStake(tx common.Tx, runeAddress common.Address, withdrawBasisPoi
 	}
 }
 
-// Route should return the pooldata of the module
+// Route should return the route key of the module
 func (msg MsgSetUnStake) Route() string { return RouterKey }
 
 // Type should return the action

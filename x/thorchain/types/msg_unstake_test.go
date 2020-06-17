@@ -30,58 +30,64 @@ func (MsgUnstakeSuite) TestMsgUnstake(c *C) {
 	c.Check(m.Type(), Equals, "set_unstake")
 
 	inputs := []struct {
+		tx                  common.Tx
 		publicAddress       common.Address
 		withdrawBasisPoints cosmos.Uint
 		asset               common.Asset
-		requestTxHash       common.TxID
 		signer              cosmos.AccAddress
 	}{
 		{
+			tx:                  GetRandomTx(),
 			publicAddress:       common.NoAddress,
 			withdrawBasisPoints: cosmos.NewUint(10000),
 			asset:               common.BNBAsset,
-			requestTxHash:       txID,
 			signer:              acc1,
 		},
 		{
+			tx:                  common.Tx{},
 			publicAddress:       runeAddr,
 			withdrawBasisPoints: cosmos.NewUint(12000),
 			asset:               common.BNBAsset,
-			requestTxHash:       txID,
 			signer:              acc1,
 		},
 		{
+			tx:                  GetRandomTx(),
 			publicAddress:       runeAddr,
 			withdrawBasisPoints: cosmos.ZeroUint(),
 			asset:               common.BNBAsset,
-			requestTxHash:       txID,
 			signer:              acc1,
 		},
 		{
+			tx:                  GetRandomTx(),
 			publicAddress:       runeAddr,
 			withdrawBasisPoints: cosmos.NewUint(10000),
 			asset:               common.Asset{},
-			requestTxHash:       txID,
 			signer:              acc1,
 		},
 		{
-			publicAddress:       runeAddr,
+			tx:                  GetRandomTx(),
+			publicAddress:       common.Address("whatever"),
 			withdrawBasisPoints: cosmos.NewUint(10000),
 			asset:               common.BNBAsset,
-			requestTxHash:       common.TxID(""),
 			signer:              acc1,
 		},
 		{
+			tx:                  GetRandomTx(),
 			publicAddress:       runeAddr,
 			withdrawBasisPoints: cosmos.NewUint(10000),
 			asset:               common.BNBAsset,
-			requestTxHash:       txID,
 			signer:              cosmos.AccAddress{},
+		},
+		{
+			tx:                  GetRandomTx(),
+			publicAddress:       runeAddr,
+			withdrawBasisPoints: cosmos.NewUint(12000),
+			asset:               common.BNBAsset,
+			signer:              acc1,
 		},
 	}
 	for _, item := range inputs {
-		tx := common.Tx{ID: item.requestTxHash}
-		m := NewMsgSetUnStake(tx, item.publicAddress, item.withdrawBasisPoints, item.asset, item.signer)
-		c.Assert(m.ValidateBasic(), NotNil)
+		m := NewMsgSetUnStake(item.tx, item.publicAddress, item.withdrawBasisPoints, item.asset, item.signer)
+		c.Check(m.ValidateBasic(), NotNil)
 	}
 }
