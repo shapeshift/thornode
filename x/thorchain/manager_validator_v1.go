@@ -370,18 +370,28 @@ func (vm *validatorMgrV1) processRagnarok(ctx cosmos.Context, mgr Manager, const
 		return nil
 	}
 
-	migrateInterval, err := vm.k.GetMimir(ctx, constants.FundMigrationInterval.String())
-	if migrateInterval < 0 || err != nil {
-		migrateInterval = constAccessor.GetInt64Value(constants.FundMigrationInterval)
+	// check if we have any pending ragnarok transactions
+	pending, err := vm.k.GetRagnarokPending(ctx)
+	if err != nil {
+		return fmt.Errorf("fail to get ragnarok pending: %w", err)
 	}
-	if (common.BlockHeight(ctx)-ragnarokHeight)%migrateInterval == 0 {
-		nth := (common.BlockHeight(ctx) - ragnarokHeight) / migrateInterval
-		err := vm.ragnarokProtocolStage2(ctx, nth, mgr, constAccessor)
-		if err != nil {
-			ctx.Logger().Error("fail to execute ragnarok protocol step 2", "error", err)
-			return err
-		}
+	if pending > 0 {
+		ctx.Logger().Info("awaiting previous ragnarok transction to clear before continuing", "count", pending)
+		return nil
 	}
+
+	nth, err := vm.k.GetRagnarokNth(ctx)
+	if err != nil {
+		return fmt.Errorf("fail to get ragnarok nth: %w", err)
+	}
+	nth += 1 // increment by 1
+	ctx.Logger().Info("starting next ragnarok iteration", "iteration", nth)
+	err = vm.ragnarokProtocolStage2(ctx, nth, mgr, constAccessor)
+	if err != nil {
+		ctx.Logger().Error("fail to execute ragnarok protocol step 2", "error", err)
+		return err
+	}
+	vm.k.SetRagnarokNth(ctx, nth)
 
 	return nil
 }
@@ -534,7 +544,7 @@ func (vm *validatorMgrV1) ragnarokBond(ctx cosmos.Context, nth int64, mgr Manage
 			}
 		}
 
-		if nth > 10 { // cap at 10
+		if nth >= 9 { // cap at 10
 			nth = 10
 		}
 		amt := na.Bond.MulUint64(uint64(nth)).QuoUint64(10)
