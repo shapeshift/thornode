@@ -2,7 +2,7 @@ package types
 
 import (
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 // MsgSwap defines a MsgSwap message
@@ -25,7 +25,7 @@ func NewMsgSwap(tx common.Tx, target common.Asset, destination common.Address, t
 	}
 }
 
-// Route should return the pooldata of the module
+// Route should return the route key of the module
 func (msg MsgSwap) Route() string { return RouterKey }
 
 // Type should return the action

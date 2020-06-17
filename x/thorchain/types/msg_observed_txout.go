@@ -18,7 +18,7 @@ func NewMsgObservedTxOut(txs ObservedTxs, signer cosmos.AccAddress) MsgObservedT
 	}
 }
 
-// Route should return the cmname of the module
+// Route should return the route key of the module
 func (msg MsgObservedTxOut) Route() string { return RouterKey }
 
 // Type should return the action
