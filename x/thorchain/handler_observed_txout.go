@@ -192,6 +192,14 @@ func (h ObservedTxOutHandler) handleV1(ctx cosmos.Context, version semver.Versio
 			// only remove the block height that had been specified in the memo
 			vault.RemovePendingTxBlockHeights(memo.GetBlockHeight())
 		}
+		if memo.IsType(TxRagnarok) {
+			pending, err := h.keeper.GetRagnarokPending(ctx)
+			if err != nil {
+				ctx.Logger().Error("fail to get ragnarok pending", "error", err)
+			}
+			h.keeper.SetRagnarokPending(ctx, pending-1)
+		}
+
 		if !vault.HasFunds() && vault.Status == RetiringVault {
 			// we have successfully removed all funds from a retiring vault,
 			// mark it as inactive

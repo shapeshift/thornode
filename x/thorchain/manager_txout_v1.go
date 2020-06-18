@@ -55,7 +55,9 @@ func (tos *TxOutStorageV1) GetOutboundItemByToAddress(ctx cosmos.Context, to com
 	return filterItems
 }
 
-func (tos *TxOutStorageV1) ClearOutboundItems(_ cosmos.Context) {} // do nothing
+func (tos *TxOutStorageV1) ClearOutboundItems(ctx cosmos.Context) {
+	_ = tos.keeper.ClearTxOut(ctx, common.BlockHeight(ctx))
+}
 
 // TryAddTxOutItem add an outbound tx to block
 // return bool indicate whether the transaction had been added successful or not
@@ -279,6 +281,14 @@ func (tos *TxOutStorageV1) addToBlockOut(ctx cosmos.Context, mgr Manager, toi *T
 	// TODO: add memo for all chains (not just BNB)
 	if !toi.Coin.Asset.Chain.Equals(common.BNBChain) {
 		toi.Memo = ""
+	}
+
+	if memo.IsType(TxRagnarok) {
+		pending, err := tos.keeper.GetRagnarokPending(ctx)
+		if err != nil {
+			return fmt.Errorf("fail to get ragnarok pending: %w", err)
+		}
+		tos.keeper.SetRagnarokPending(ctx, pending+1)
 	}
 
 	return tos.keeper.AppendTxOut(ctx, common.BlockHeight(ctx), toi)

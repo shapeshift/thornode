@@ -118,6 +118,7 @@ type KeeperObservedTx interface {
 type KeeperTxOut interface {
 	SetTxOut(ctx cosmos.Context, blockOut *TxOut) error
 	AppendTxOut(ctx cosmos.Context, height int64, item *TxOutItem) error
+	ClearTxOut(ctx cosmos.Context, height int64) error
 	GetTxOutIterator(ctx cosmos.Context) cosmos.Iterator
 	GetTxOut(ctx cosmos.Context, height int64) (*TxOut, error)
 }
@@ -179,6 +180,10 @@ type KeeperRagnarok interface {
 	RagnarokInProgress(_ cosmos.Context) bool
 	GetRagnarokBlockHeight(_ cosmos.Context) (int64, error)
 	SetRagnarokBlockHeight(_ cosmos.Context, _ int64)
+	GetRagnarokNth(_ cosmos.Context) (int64, error)
+	SetRagnarokNth(_ cosmos.Context, _ int64)
+	GetRagnarokPending(_ cosmos.Context) (int64, error)
+	SetRagnarokPending(_ cosmos.Context, _ int64)
 }
 
 type KeeperGas interface {
