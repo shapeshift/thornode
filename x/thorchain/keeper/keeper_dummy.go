@@ -72,7 +72,15 @@ func (k KVStoreDummy) GetRagnarokBlockHeight(_ cosmos.Context) (int64, error) {
 	return 0, kaboom
 }
 func (k KVStoreDummy) SetRagnarokBlockHeight(_ cosmos.Context, _ int64) {}
-func (k KVStoreDummy) RagnarokInProgress(_ cosmos.Context) bool         { return false }
+func (k KVStoreDummy) GetRagnarokNth(_ cosmos.Context) (int64, error) {
+	return 0, kaboom
+}
+func (k KVStoreDummy) SetRagnarokNth(_ cosmos.Context, _ int64) {}
+func (k KVStoreDummy) GetRagnarokPending(_ cosmos.Context) (int64, error) {
+	return 0, kaboom
+}
+func (k KVStoreDummy) SetRagnarokPending(_ cosmos.Context, _ int64) {}
+func (k KVStoreDummy) RagnarokInProgress(_ cosmos.Context) bool     { return false }
 func (k KVStoreDummy) GetPoolBalances(_ cosmos.Context, _, _ common.Asset) (cosmos.Uint, cosmos.Uint) {
 	return cosmos.ZeroUint(), cosmos.ZeroUint()
 }
@@ -189,6 +197,7 @@ func (k KVStoreDummy) GetKeygenBlockIterator(_ cosmos.Context) cosmos.Iterator  
 func (k KVStoreDummy) GetTxOut(_ cosmos.Context, _ int64) (*TxOut, error)        { return nil, kaboom }
 func (k KVStoreDummy) SetTxOut(_ cosmos.Context, _ *TxOut) error                 { return kaboom }
 func (k KVStoreDummy) AppendTxOut(_ cosmos.Context, _ int64, _ *TxOutItem) error { return kaboom }
+func (k KVStoreDummy) ClearTxOut(_ cosmos.Context, _ int64) error                { return kaboom }
 func (k KVStoreDummy) GetTxOutIterator(_ cosmos.Context) cosmos.Iterator         { return nil }
 func (k KVStoreDummy) AddToLiquidityFees(_ cosmos.Context, _ common.Asset, _ cosmos.Uint) error {
 	return kaboom
