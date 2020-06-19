@@ -61,6 +61,7 @@ func NewConstantValue010() *ConstantValue010 {
 			FailKeySignSlashPoints:          2,                   // slash for 2 blocks
 			StakeLockUpBlocks:               17280,               // the number of blocks staker can unstake after their stake
 			ObserveSlashPoints:              1,                   // the number of slashpoints for making an observation (redeems later if observation reaches consensus
+			ObserveFlex:                     5,                   // number of blocks of flexibility for a validator to get their slash points taken off for making an observation
 			YggFundLimit:                    50,                  // percentage of the amount of funds a ygg vault is allowed to have.
 			JailTimeKeygen:                  720 * 6,             // blocks a node account is jailed for failing to keygen
 			JailTimeKeysign:                 20,                  // blocks a node account is jailed for failing to keysign
