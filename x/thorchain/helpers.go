@@ -77,7 +77,7 @@ func refundTx(ctx cosmos.Context, tx ObservedTx, mgr Manager, keeper keeper.Keep
 
 			success, err := mgr.TxOutStore().TryAddTxOutItem(ctx, mgr, toi)
 			if err != nil {
-				return fmt.Errorf("fail to prepare outbund tx: %w", err)
+				ctx.Logger().Error("fail to prepare outbund tx", "error", err)
 			}
 			if success {
 				refundCoins = append(refundCoins, toi.Coin)
@@ -85,7 +85,7 @@ func refundTx(ctx cosmos.Context, tx ObservedTx, mgr Manager, keeper keeper.Keep
 		}
 		// Zombie coins are just dropped.
 	}
-	if !tx.Tx.Chain.Equals(common.THORChain) {
+	if !tx.Tx.Chain.Equals(common.THORChain) && !refundCoins.IsEmpty() {
 		if err := addEvent(refundCoins); err != nil {
 			return err
 		}
