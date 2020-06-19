@@ -119,7 +119,8 @@ func (h ObservedTxInHandler) handleV1(ctx cosmos.Context, version semver.Version
 
 		voter, err := h.keeper.GetObservedTxInVoter(ctx, tx.Tx.ID)
 		if err != nil {
-			return nil, err
+			ctx.Logger().Error("fail to get tx out voter", "error", err)
+			continue
 		}
 
 		voter, ok := h.preflight(ctx, voter, activeNodeAccounts, tx, msg.Signer, version)
@@ -150,7 +151,8 @@ func (h ObservedTxInHandler) handleV1(ctx cosmos.Context, version semver.Version
 		txIn.Tx.Memo = tx.Tx.Memo
 		vault, err := h.keeper.GetVault(ctx, tx.ObservedPubKey)
 		if err != nil {
-			return nil, fmt.Errorf("fail to get vault: %w", err)
+			ctx.Logger().Error("fail to get vault", "error", err)
+			continue
 		}
 
 		vault.AddFunds(tx.Tx.Coins)
@@ -160,7 +162,8 @@ func (h ObservedTxInHandler) handleV1(ctx cosmos.Context, version semver.Version
 			vault.RemovePendingTxBlockHeights(memo.GetBlockHeight())
 		}
 		if err := h.keeper.SetVault(ctx, vault); err != nil {
-			return nil, fmt.Errorf("fail to save vault: %w", err)
+			ctx.Logger().Error("fail to set vault", "error", err)
+			continue
 		}
 
 		if !vault.IsAsgard() {
@@ -183,14 +186,14 @@ func (h ObservedTxInHandler) handleV1(ctx cosmos.Context, version semver.Version
 			reason := fmt.Sprintf("vault %s is not current vault", tx.ObservedPubKey)
 			ctx.Logger().Info("refund reason", reason)
 			if err := refundTx(ctx, tx, h.mgr, h.keeper, constAccessor, CodeInvalidVault, reason); err != nil {
-				return nil, err
+				ctx.Logger().Error("fail to refund", "error", err)
 			}
 			continue
 		}
 		// chain is empty
 		if tx.Tx.Chain.IsEmpty() {
 			if err := refundTx(ctx, tx, h.mgr, h.keeper, constAccessor, CodeEmptyChain, "chain is empty"); err != nil {
-				return nil, err
+				ctx.Logger().Error("fail to refund", "error", err)
 			}
 			continue
 		}
@@ -200,7 +203,7 @@ func (h ObservedTxInHandler) handleV1(ctx cosmos.Context, version semver.Version
 		if txErr != nil {
 			ctx.Logger().Error("fail to process inbound tx", "error", txErr.Error(), "tx hash", tx.Tx.ID.String())
 			if newErr := refundTx(ctx, tx, h.mgr, h.keeper, constAccessor, CodeInvalidMemo, txErr.Error()); nil != newErr {
-				return nil, ErrInternal(newErr, "fail to refund")
+				ctx.Logger().Error("fail to refund", "error", err)
 			}
 			continue
 		}
@@ -221,7 +224,7 @@ func (h ObservedTxInHandler) handleV1(ctx cosmos.Context, version semver.Version
 			if (haltTrading > 0 && haltTrading < common.BlockHeight(ctx) && err == nil) || h.keeper.RagnarokInProgress(ctx) {
 				ctx.Logger().Info("trading is halted!!")
 				if newErr := refundTx(ctx, tx, h.mgr, h.keeper, constAccessor, se.ErrUnauthorized.ABCICode(), "trading halted"); nil != newErr {
-					return nil, ErrInternal(newErr, "trading is halted, fail to refund")
+					ctx.Logger().Error("fail to refund for halted trading", "error", err)
 				}
 				continue
 			}
@@ -230,15 +233,15 @@ func (h ObservedTxInHandler) handleV1(ctx cosmos.Context, version semver.Version
 		// if its a swap, send it to our queue for processing later
 		if isSwap {
 			if err := h.keeper.SetSwapQueueItem(ctx, m.(MsgSwap)); err != nil {
-				return nil, err
+				ctx.Logger().Error("fail to add swap to queue", "error", err)
 			}
-			return &cosmos.Result{}, nil
+			continue
 		}
 
 		_, err = handler(ctx, m)
 		if err != nil {
 			if err := refundTx(ctx, tx, h.mgr, h.keeper, constAccessor, CodeTxFail, err.Error()); err != nil {
-				return nil, err
+				ctx.Logger().Error("fail to refund", "error", err)
 			}
 		}
 	}
