@@ -8,9 +8,7 @@ import (
 	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
-type (
-	status string
-)
+type status string
 
 const (
 	Incomplete status = "incomplete"
@@ -18,7 +16,7 @@ const (
 	Reverted   status = "reverted"
 )
 
-// Meant to track if THORNode have processed a specific tx
+// ObservedTx is design to track if THORNode have processed a specific tx
 type ObservedTx struct {
 	Tx             common.Tx           `json:"tx"`
 	Status         status              `json:"status"`
@@ -28,8 +26,10 @@ type ObservedTx struct {
 	ObservedPubKey common.PubKey       `json:"observed_pub_key"`
 }
 
+// ObservedTxs a list of ObservedTx
 type ObservedTxs []ObservedTx
 
+// NewObservedTx create a new instance of ObservedTx
 func NewObservedTx(tx common.Tx, height int64, pk common.PubKey) ObservedTx {
 	return ObservedTx{
 		Tx:             tx,
@@ -39,6 +39,7 @@ func NewObservedTx(tx common.Tx, height int64, pk common.PubKey) ObservedTx {
 	}
 }
 
+// Valid check whether the observed tx represent valid information
 func (tx ObservedTx) Valid() error {
 	if err := tx.Tx.IsValid(); err != nil {
 		return err
@@ -55,10 +56,12 @@ func (tx ObservedTx) Valid() error {
 	return nil
 }
 
+// IsEmpty check whether the Tx is empty
 func (tx ObservedTx) IsEmpty() bool {
 	return tx.Tx.IsEmpty()
 }
 
+// Equals compare two ObservedTx
 func (tx ObservedTx) Equals(tx2 ObservedTx) bool {
 	if !tx.Tx.Equals(tx2.Tx) {
 		return false
@@ -69,6 +72,7 @@ func (tx ObservedTx) Equals(tx2 ObservedTx) bool {
 	return true
 }
 
+// String implement fmt.Stringer
 func (tx ObservedTx) String() string {
 	return tx.Tx.String()
 }
@@ -93,6 +97,7 @@ func (tx *ObservedTx) Sign(signer cosmos.AccAddress) bool {
 	return true
 }
 
+// SetDone check the ObservedTx status, update it's status to done if the outbound tx had been processed
 func (tx *ObservedTx) SetDone(hash common.TxID, numOuts int) {
 	for _, done := range tx.OutHashes {
 		if done.Equals(hash) {
@@ -105,6 +110,7 @@ func (tx *ObservedTx) SetDone(hash common.TxID, numOuts int) {
 	}
 }
 
+// IsDone will only return true when the number of out hashes is larger or equals the input number
 func (tx *ObservedTx) IsDone(numOuts int) bool {
 	if len(tx.OutHashes) >= numOuts {
 		return true
@@ -112,6 +118,8 @@ func (tx *ObservedTx) IsDone(numOuts int) bool {
 	return false
 }
 
+// ObservedTxVoter tracks who voted for an observed tx
+// only tx reach super majority will be processed by THORChain
 type ObservedTxVoter struct {
 	TxID    common.TxID `json:"tx_id"`
 	Tx      ObservedTx  `json:"tx"` // final consensus transaction
@@ -121,8 +129,10 @@ type ObservedTxVoter struct {
 	OutTxs  common.Txs  `json:"out_txs"` // observed outbound transactions
 }
 
+// ObservedTxVoters a list of observed tx voter
 type ObservedTxVoters []ObservedTxVoter
 
+// NewObservedTxVoter create a new instance of ObservedTxVoter
 func NewObservedTxVoter(txID common.TxID, txs []ObservedTx) ObservedTxVoter {
 	return ObservedTxVoter{
 		TxID: txID,
@@ -130,6 +140,7 @@ func NewObservedTxVoter(txID common.TxID, txs []ObservedTx) ObservedTxVoter {
 	}
 }
 
+// Valid check whether the tx is valid , if it is not , then an error will be returned
 func (tx ObservedTxVoter) Valid() error {
 	if tx.TxID.IsEmpty() {
 		return errors.New("cannot have an empty tx id")
@@ -144,6 +155,7 @@ func (tx ObservedTxVoter) Valid() error {
 	return nil
 }
 
+// Key is to get the txid
 func (tx ObservedTxVoter) Key() common.TxID {
 	return tx.TxID
 }
@@ -191,6 +203,7 @@ func (tx *ObservedTxVoter) AddOutTx(in common.Tx) bool {
 	return true
 }
 
+// IsDone check whether THORChain finished process the tx, all outbound tx had been sent and observed
 func (tx *ObservedTxVoter) IsDone() bool {
 	return len(tx.Actions) <= len(tx.OutTxs)
 }
@@ -227,7 +240,7 @@ func (tx ObservedTxVoter) HasConsensus(nodeAccounts NodeAccounts) bool {
 		var count int
 		for _, signer := range txIn.Signers {
 			if nodeAccounts.IsNodeKeys(signer) {
-				count += 1
+				count++
 			}
 		}
 		if HasSuperMajority(count, len(nodeAccounts)) {
@@ -247,7 +260,7 @@ func (tx *ObservedTxVoter) GetTx(nodeAccounts NodeAccounts) ObservedTx {
 		var count int
 		for _, signer := range txIn.Signers {
 			if nodeAccounts.IsNodeKeys(signer) {
-				count += 1
+				count++
 			}
 		}
 		if HasSuperMajority(count, len(nodeAccounts)) {

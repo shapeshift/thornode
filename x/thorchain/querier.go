@@ -357,14 +357,13 @@ func queryNodeAccountCheck(ctx cosmos.Context, path []string, req abci.RequestQu
 	if err != nil {
 		return nil, fmt.Errorf("fail to build manager: %w", err)
 	}
+	result := QueryNodeAccountPreflightCheck{}
 	status, err := mgr.ValidatorMgr().NodeAccountPreflightCheck(ctx, nodeAcc, constAccessor)
-
-	result := QueryNodeAccountPreflightCheck{
-		Status:      status,
-		Description: err.Error(),
-		Code:        1,
-	}
-	if err == nil {
+	result.Status = status
+	if err != nil {
+		result.Description = err.Error()
+		result.Code = 1
+	} else {
 		result.Description = "OK"
 		result.Code = 0
 	}
@@ -496,20 +495,17 @@ func queryPool(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper 
 }
 
 func queryPools(ctx cosmos.Context, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
-	pools := QueryResPools{}
+	pools := Pools{}
 	iterator := keeper.GetPoolIterator(ctx)
-
 	for ; iterator.Valid(); iterator.Next() {
 		var pool Pool
 		if err := keeper.Cdc().UnmarshalBinaryBare(iterator.Value(), &pool); err != nil {
 			return nil, fmt.Errorf("fail to unmarshal pool: %w", err)
 		}
-
 		// ignore pool if no stake units
 		if pool.PoolUnits.IsZero() {
 			continue
 		}
-
 		pools = append(pools, pool)
 	}
 	res, err := codec.MarshalJSONIndent(keeper.Cdc(), pools)
@@ -700,7 +696,7 @@ func queryOutQueue(ctx cosmos.Context, path []string, req abci.RequestQuery, kee
 		}
 		for _, tx := range txs.TxArray {
 			if tx.OutHash.IsEmpty() {
-				query.Total += 1
+				query.Total++
 			}
 		}
 	}

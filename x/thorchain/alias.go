@@ -172,13 +172,10 @@ type (
 	QueryOutQueue                  = types.QueryOutQueue
 	QueryNodeAccountPreflightCheck = types.QueryNodeAccountPreflightCheck
 	QueryKeygenBlock               = types.QueryKeygenBlock
-	QueryResPools                  = types.QueryResPools
 	QueryResHeights                = types.QueryResHeights
 	QueryKeysign                   = types.QueryKeysign
 	QueryYggdrasilVaults           = types.QueryYggdrasilVaults
 	QueryNodeAccount               = types.QueryNodeAccount
-	NodeKeys                       = types.NodeKeys
-	NodesKeys                      = types.NodesKeys
 	PoolStatus                     = types.PoolStatus
 	Pool                           = types.Pool
 	Pools                          = types.Pools
