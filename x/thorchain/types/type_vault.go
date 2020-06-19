@@ -6,19 +6,21 @@ import (
 	"sort"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 )
 
 // VaultType there are two different types of Vault in thorchain
 type VaultType string
 
+// different type of vaults
 const (
 	UnknownVault   VaultType = "unknown"
 	AsgardVault    VaultType = "asgard"
 	YggdrasilVault VaultType = "yggdrasil"
 )
 
+// VaultStatus status of vault
 type VaultStatus string
 
 const (
@@ -30,7 +32,7 @@ const (
 	InactiveVault VaultStatus = "inactive"
 )
 
-// Vault usually represent the pool we are using
+// Vault usually represent the account THORNode is using
 type Vault struct {
 	BlockHeight           int64          `json:"block_height"`
 	PubKey                common.PubKey  `json:"pub_key"`
@@ -45,6 +47,7 @@ type Vault struct {
 	PendingTxBlockHeights []int64        `json:"pending_tx_heights"`
 }
 
+// Vaults a list of vault
 type Vaults []Vault
 
 // NewVault create a new instance of vault
@@ -123,7 +126,7 @@ func (v Vault) HasFundsForChain(chain common.Chain) bool {
 func (v Vault) CoinLength() (count int) {
 	for _, coin := range v.Coins {
 		if !coin.Amount.IsZero() {
-			count += 1
+			count++
 		}
 	}
 	return
@@ -240,9 +243,7 @@ func (v *Vault) LenPendingTxBlockHeights(currentBlockHeight int64, constAccessor
 func (vs Vaults) SortBy(sortBy common.Asset) Vaults {
 	// use the vault pool with the highest quantity of our coin
 	sort.SliceStable(vs[:], func(i, j int) bool {
-		return vs[i].GetCoin(sortBy).Amount.GT(
-			vs[j].GetCoin(sortBy).Amount,
-		)
+		return vs[i].GetCoin(sortBy).Amount.GT(vs[j].GetCoin(sortBy).Amount)
 	})
 
 	return vs

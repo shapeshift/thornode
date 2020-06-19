@@ -11,15 +11,15 @@ import (
 	"github.com/blang/semver"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 // NodeStatus Represent the Node status
 type NodeStatus uint8
 
-// As soon as user donate a certain amount of asset(defined later)
-// their node adddress will be whitelisted
-// once THORNode discover their observer had send tx in to thorchain , then their status will be standby
+// As soon as user paid a certain amount of asset(defined later)
+// their node address will be whitelisted
+// once THORNode discover their observer had send tx in , then their status will be standby
 // once THORNode rotate them in , then they will be active
 const (
 	Unknown NodeStatus = iota
@@ -83,7 +83,7 @@ func GetNodeStatus(ps string) NodeStatus {
 	return Unknown
 }
 
-// NodeAccount represent node
+// NodeAccount everything about node account
 type NodeAccount struct {
 	NodeAddress         cosmos.AccAddress `json:"node_address"` // Thor address which is an operator address
 	Status              NodeStatus        `json:"status"`
@@ -186,19 +186,17 @@ func (n *NodeAccount) CalcBondUnits(height, slashpoints int64) cosmos.Uint {
 	return cosmos.NewUint(uint64(blockCount))
 }
 
+// AddBond top up bond
 func (n *NodeAccount) AddBond(amt cosmos.Uint) {
 	n.Bond = n.Bond.Add(amt)
 }
 
+// SubBond take from node account's bond
 func (n *NodeAccount) SubBond(amt cosmos.Uint) {
-	if n.Bond.LT(amt) {
-		n.Bond = cosmos.ZeroUint()
-	} else {
-		n.Bond = common.SafeSub(n.Bond, amt)
-	}
+	n.Bond = common.SafeSub(n.Bond, amt)
 }
 
-// AddSignerPubKey add a key to node account
+// TryAddSignerPubKey add a key to node account
 func (n *NodeAccount) TryAddSignerPubKey(key common.PubKey) {
 	if key.IsEmpty() {
 		return
@@ -211,7 +209,7 @@ func (n *NodeAccount) TryAddSignerPubKey(key common.PubKey) {
 	n.SignerMembership = append(n.SignerMembership, key)
 }
 
-// TryRemoveSignerPubKey remove the given pubkey from
+// TryRemoveSignerPubKey remove the given pubkey from signer membership
 func (n *NodeAccount) TryRemoveSignerPubKey(key common.PubKey) {
 	if key.IsEmpty() {
 		return
@@ -255,20 +253,16 @@ func (nas NodeAccounts) Less(i, j int) bool {
 	}
 	return nas[i].NodeAddress.String() < nas[j].NodeAddress.String()
 }
+
+// Len return the number of accounts in it
 func (nas NodeAccounts) Len() int { return len(nas) }
+
+// Swap node account
 func (nas NodeAccounts) Swap(i, j int) {
 	nas[i], nas[j] = nas[j], nas[i]
 }
 
-// First return the first item in the slice
-func (nas NodeAccounts) First() NodeAccount {
-	if len(nas) > 0 {
-		return nas[0]
-	}
-	return NodeAccount{}
-}
-
-// Contains will check whether the given nodeaccount is in the list
+// Contains will check whether the given node account is in the list
 func (nas NodeAccounts) Contains(na NodeAccount) bool {
 	for _, item := range nas {
 		if item.Equals(na) {

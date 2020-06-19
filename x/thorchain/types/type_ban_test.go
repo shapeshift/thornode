@@ -17,6 +17,7 @@ func (s BanVoterSuite) TestVoter(c *C) {
 	ban = NewBanVoter(addr)
 	c.Check(ban.IsValid(), IsNil)
 	c.Check(ban.IsEmpty(), Equals, false)
+	c.Check(ban.String(), Equals, addr.String())
 
 	c.Check(ban.HasSigned(addr), Equals, false)
 	ban.Sign(addr)

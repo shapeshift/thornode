@@ -4,7 +4,7 @@ import (
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 )
 
@@ -36,6 +36,7 @@ func (s *VaultSuite) TestVault(c *C) {
 	c.Check(vault.HasFundsForChain(common.ETHChain), Equals, false)
 	c.Check(vault.GetCoin(common.BNBAsset).Amount.Equal(cosmos.NewUint(500*common.One)), Equals, true)
 	c.Check(vault.GetCoin(common.BTCAsset).Amount.Equal(cosmos.NewUint(400*common.One)), Equals, true)
+	c.Check(vault.HasAsset(common.BNBAsset), Equals, true)
 	vault.AddFunds(coins)
 	c.Check(vault.GetCoin(common.BNBAsset).Amount.Equal(cosmos.NewUint(1000*common.One)), Equals, true)
 	c.Check(vault.GetCoin(common.BTCAsset).Amount.Equal(cosmos.NewUint(800*common.One)), Equals, true, Commentf("%+v", vault.GetCoin(common.BTCAsset).Amount))
@@ -56,6 +57,17 @@ func (s *VaultSuite) TestVault(c *C) {
 	c.Assert(vault.Chains.Has(common.BNBChain), Equals, true)
 	c.Assert(vault.Chains.Has(common.ETHChain), Equals, true)
 	c.Assert(vault.Chains.Has(common.BTCChain), Equals, true)
+
+	vault1 := NewVault(1024, ActiveVault, AsgardVault, pk, common.Chains{common.BNBChain, common.BTCChain, common.ETHChain})
+	vault1.Membership = append(vault.Membership, pk)
+	c.Check(vault1.IsType(AsgardVault), Equals, true)
+	c.Check(vault1.IsType(YggdrasilVault), Equals, false)
+	c.Check(vault1.IsAsgard(), Equals, true)
+	c.Check(vault1.IsYggdrasil(), Equals, false)
+	c.Check(vault1.Contains(pk), Equals, true)
+	vault1.UpdateStatus(RetiringVault, 10000)
+	c.Check(vault1.CoinLength(), Equals, 0)
+	c.Check(vault1.HasAsset(common.BNBAsset), Equals, false)
 }
 
 func (s *VaultSuite) TestGetTssSigners(c *C) {
@@ -97,4 +109,47 @@ func (s *VaultSuite) TestPendingTxBlockHeights(c *C) {
 	c.Assert(vault.LenPendingTxBlockHeights(1002, constAccessor), Equals, 0)
 	vault.RemovePendingTxBlockHeights(1001)
 	c.Assert(vault.LenPendingTxBlockHeights(1002, constAccessor), Equals, 0)
+}
+
+func (s *VaultSuite) TestVaultSort(c *C) {
+	vault := NewVault(1024, ActiveVault, AsgardVault, GetRandomPubKey(),
+		common.Chains{
+			common.BTCChain,
+			common.BNBChain,
+			common.ETHChain,
+		})
+	vault.AddFunds(common.Coins{
+		common.NewCoin(common.BNBAsset, cosmos.NewUint(common.One*100)),
+		common.NewCoin(common.BTCAsset, cosmos.NewUint(common.One*50)),
+		common.NewCoin(common.ETHAsset, cosmos.NewUint(common.One*10)),
+	})
+	vault1 := NewVault(1024, ActiveVault, AsgardVault, GetRandomPubKey(),
+		common.Chains{
+			common.BTCChain,
+			common.BNBChain,
+			common.ETHChain,
+		})
+	vault1.AddFunds(common.Coins{
+		common.NewCoin(common.BNBAsset, cosmos.NewUint(common.One*90)),
+		common.NewCoin(common.BTCAsset, cosmos.NewUint(common.One*90)),
+		common.NewCoin(common.ETHAsset, cosmos.NewUint(common.One*90)),
+	})
+	vaults := Vaults{
+		vault, vault1,
+	}
+	vaults1 := vaults.SortBy(common.BTCAsset)
+	c.Check(vaults1[0].PubKey.Equals(vault1.PubKey), Equals, true)
+	bnbVault := vaults.SelectByMaxCoin(common.BNBAsset)
+	c.Check(bnbVault.PubKey.Equals(vault.PubKey), Equals, true)
+
+	ethVault := vaults.SelectByMinCoin(common.ETHAsset)
+	c.Check(ethVault.PubKey.Equals(vault.PubKey), Equals, true)
+	addr, err := vault.PubKey.GetAddress(common.BNBChain)
+	c.Check(err, IsNil)
+	result, err := vaults.HasAddress(common.BNBChain, addr)
+	c.Check(err, IsNil)
+	c.Check(result, Equals, true)
+	result1, err1 := vaults.HasAddress(common.BTCChain, GetRandomBTCAddress())
+	c.Check(err1, IsNil)
+	c.Check(result1, Equals, false)
 }

@@ -24,4 +24,8 @@ func (ObservedNetworkFeeVoterTestSuite) TestObservedNetworkFeeVoter(c *C) {
 		NodeAccount{NodeAddress: addr, Status: Active},
 	}
 	c.Check(voter.HasConsensus(nas), Equals, true)
+	c.Check(len(voter.String()) > 0, Equals, true)
+
+	voter1 := NewObservedNetworkFeeVoter(0, common.EmptyChain)
+	c.Check(voter1.Empty(), Equals, true)
 }

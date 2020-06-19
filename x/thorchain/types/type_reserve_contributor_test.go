@@ -1,9 +1,10 @@
 package types
 
 import (
+	. "gopkg.in/check.v1"
+
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
-	. "gopkg.in/check.v1"
 )
 
 type RservesSuite struct{}
@@ -32,4 +33,7 @@ func (s *RservesSuite) TestReserveContributors(c *C) {
 	reses = reses.Add(res)
 	c.Assert(reses, HasLen, 2)
 	c.Check(reses[1].Amount.Equal(cosmos.NewUint(20*common.One)), Equals, true)
+
+	res1 := NewReserveContributor(common.NoAddress, cosmos.NewUint(1*common.One))
+	c.Check(res1.IsValid(), NotNil)
 }

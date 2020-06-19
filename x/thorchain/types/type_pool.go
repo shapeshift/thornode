@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 // PoolStatus is an indication of what the pool state is
@@ -43,7 +43,7 @@ func (ps PoolStatus) String() string {
 // Valid is to check whether the pool status is valid or not
 func (ps PoolStatus) Valid() error {
 	if ps.String() == "" {
-		return fmt.Errorf("Invalid pool status")
+		return errors.New("invalid pool status")
 	}
 	return nil
 }

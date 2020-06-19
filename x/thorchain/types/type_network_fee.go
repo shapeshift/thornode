@@ -31,7 +31,7 @@ func (f NetworkFee) Validate() error {
 	if f.Chain.IsEmpty() {
 		return errors.New("chain can't be empty")
 	}
-	if f.TransactionSize < 0 {
+	if f.TransactionSize <= 0 {
 		return errors.New("transaction size can't be negative")
 	}
 	if f.TransactionFeeRate.Equal(sdk.ZeroUint()) {
