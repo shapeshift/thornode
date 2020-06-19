@@ -2,9 +2,10 @@ package types
 
 import (
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
+// TssVoter keep track of tss message
 type TssVoter struct {
 	ID          string              `json:"id"` // checksum of sorted input pubkeys
 	PoolPubKey  common.PubKey       `json:"pool_pub_key"`
@@ -14,6 +15,7 @@ type TssVoter struct {
 	Signers     []cosmos.AccAddress `json:"signers"`
 }
 
+// NewTssVoter create a new instance of TssVoter
 func NewTssVoter(id string, pks common.PubKeys, pool common.PubKey) TssVoter {
 	return TssVoter{
 		ID:         id,
@@ -48,7 +50,7 @@ func (tss *TssVoter) Sign(signer cosmos.AccAddress, chains common.Chains) bool {
 	return false
 }
 
-// ConsensusChains - get a list o chains that have 2/3rds majority
+// ConsensusChains - get a list of chains that have 2/3rds majority
 func (tss *TssVoter) ConsensusChains() common.Chains {
 	chainCount := make(map[common.Chain]int, 0)
 	for _, chain := range tss.Chains {
@@ -68,7 +70,7 @@ func (tss *TssVoter) ConsensusChains() common.Chains {
 	return chains
 }
 
-// Determine if this tss pool has enough signers
+// HasConsensus determine if this tss pool has enough signers
 func (tss *TssVoter) HasConsensus() bool {
 	if HasSuperMajority(len(tss.Signers), len(tss.PubKeys)) {
 		return true
@@ -77,6 +79,7 @@ func (tss *TssVoter) HasConsensus() bool {
 	return false
 }
 
+// Empty check whether TssVoter represent empty info
 func (tss *TssVoter) Empty() bool {
 	if len(tss.ID) == 0 || len(tss.PoolPubKey) == 0 || len(tss.PubKeys) == 0 {
 		return true
@@ -84,6 +87,7 @@ func (tss *TssVoter) Empty() bool {
 	return false
 }
 
+// String implement fmt.Stringer
 func (tss *TssVoter) String() string {
 	return tss.ID
 }

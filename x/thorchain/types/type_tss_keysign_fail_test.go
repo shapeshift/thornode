@@ -23,6 +23,7 @@ func (s *TypeTssKeysignFailTestSuite) TestVoter(c *C) {
 	m := NewMsgTssKeysignFail(1, b, "hello", common.Coins{common.NewCoin(common.BNBAsset, cosmos.NewUint(100))}, GetRandomBech32Addr(), 0)
 	tss := NewTssKeysignFailVoter(m.ID, 1)
 	c.Check(tss.Empty(), Equals, false)
+	c.Check(tss.String(), Equals, tss.ID)
 
 	addr := GetRandomBech32Addr()
 	c.Check(tss.HasSigned(addr), Equals, false)

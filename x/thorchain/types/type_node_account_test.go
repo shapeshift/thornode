@@ -53,6 +53,13 @@ func (NodeAccountSuite) TestGetNodeStatus(c *C) {
 	c.Check(ns.Valid(), NotNil)
 	ns = GetNodeStatus("Whatever")
 	c.Assert(ns, Equals, Unknown)
+	nodeStatus := Active
+	result, err := json.Marshal(nodeStatus)
+	c.Check(err, IsNil)
+	c.Check(result, NotNil)
+	var newNodeStatus NodeStatus
+	c.Check(json.Unmarshal(result, &newNodeStatus), IsNil)
+	c.Check(newNodeStatus, Equals, nodeStatus)
 }
 
 func (NodeAccountSuite) TestNodeAccount(c *C) {
@@ -81,6 +88,20 @@ func (NodeAccountSuite) TestNodeAccount(c *C) {
 	c.Assert(naEmpty.IsEmpty(), Equals, true)
 	invalidBondAddr := NewNodeAccount(cosmos.AccAddress{}, Active, pubKeys, bepConsPubKey, cosmos.NewUint(common.One), "", 1)
 	c.Assert(invalidBondAddr.IsValid(), NotNil)
+
+	na1 := NewNodeAccount(nodeAddress, Active, pubKeys, bepConsPubKey, cosmos.NewUint(common.One), common.NoAddress, 1)
+	c.Check(na1.IsValid(), NotNil)
+
+	na2 := NewNodeAccount(nodeAddress, Unknown, pubKeys, bepConsPubKey, cosmos.NewUint(common.One), bondAddr, 1)
+	c.Check(na2.IsValid(), NotNil)
+
+	na3 := NewNodeAccount(nodeAddress, Active, pubKeys, bepConsPubKey, cosmos.NewUint(common.One), bondAddr, 1)
+	c.Check(na3.Equals(na), Equals, true)
+	c.Check(na3.Equals(na1), Equals, false)
+	na3.AddBond(cosmos.NewUint(common.One))
+	c.Check(na3.Bond.Equal(cosmos.NewUint(common.One*2)), Equals, true)
+	na3.SubBond(cosmos.NewUint(common.One))
+	c.Check(na3.Bond.Equal(cosmos.NewUint(common.One)), Equals, true)
 }
 
 func (NodeAccountSuite) TestNodeAccountsSort(c *C) {
@@ -111,8 +132,12 @@ func (NodeAccountSuite) TestNodeAccountsSort(c *C) {
 		if na.NodeAddress.String() < accounts[i].NodeAddress.String() {
 			c.Errorf("%s should be before %s", na.NodeAddress, accounts[i].NodeAddress)
 		}
-
 	}
+	c.Check(accounts.IsEmpty(), Equals, false)
+	c.Check(accounts.Contains(accounts[0]), Equals, true)
+	var emptyNodeAccounts NodeAccounts
+	c.Check(emptyNodeAccounts.Contains(accounts[0]), Equals, false)
+	c.Check(emptyNodeAccounts.IsEmpty(), Equals, true)
 }
 
 func (NodeAccountSuite) TestNodeAccountUpdateStatusAndSort(c *C) {

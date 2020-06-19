@@ -5,9 +5,10 @@ import (
 	"strconv"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
+// all event types support by THORChain
 const (
 	SwapEventType     = `swap`
 	StakeEventType    = `stake`
@@ -25,6 +26,7 @@ const (
 	OutboundEventType = `outbound`
 )
 
+// PoolMod pool modifications
 type PoolMod struct {
 	Asset    common.Asset `json:"asset"`
 	RuneAmt  cosmos.Uint  `json:"rune_amt"`
@@ -33,8 +35,10 @@ type PoolMod struct {
 	AssetAdd bool         `json:"asset_add"`
 }
 
+// PoolMods a list of pool modifications
 type PoolMods []PoolMod
 
+// NewPoolMod create a new instance of PoolMod
 func NewPoolMod(asset common.Asset, runeAmt cosmos.Uint, runeAdd bool, assetAmt cosmos.Uint, assetAdd bool) PoolMod {
 	return PoolMod{
 		Asset:    asset,
@@ -52,7 +56,7 @@ type EventSwap struct {
 	TradeSlip          cosmos.Uint  `json:"trade_slip"`
 	LiquidityFee       cosmos.Uint  `json:"liquidity_fee"`
 	LiquidityFeeInRune cosmos.Uint  `json:"liquidity_fee_in_rune"`
-	InTx               common.Tx    `json:"in_tx"` // this is the Tx that cause the swap to happen, it is a double swap , then the txid will be blank
+	InTx               common.Tx    `json:"in_tx"` // this is the Tx that cause the swap to happen, if it is a double swap , then the txid will be blank
 	OutTxs             common.Tx    `json:"out_txs"`
 }
 
@@ -73,6 +77,7 @@ func (e EventSwap) Type() string {
 	return SwapEventType
 }
 
+// Events convert EventSwap to key value pairs used in cosmos
 func (e EventSwap) Events() (cosmos.Events, error) {
 	evt := cosmos.NewEvent(e.Type(),
 		cosmos.NewAttribute("pool", e.Pool.String()),
@@ -117,6 +122,7 @@ func (e EventStake) Type() string {
 	return StakeEventType
 }
 
+// Events return cosmos.Events which is cosmos.Attribute(key value pairs)
 func (e EventStake) Events() (cosmos.Events, error) {
 	evt := cosmos.NewEvent(e.Type(),
 		cosmos.NewAttribute("pool", e.Pool.String()),
@@ -160,7 +166,7 @@ func (e EventUnstake) Type() string {
 	return UnstakeEventType
 }
 
-// Events
+// Events return the cosmos event
 func (e EventUnstake) Events() (cosmos.Events, error) {
 	evt := cosmos.NewEvent(e.Type(),
 		cosmos.NewAttribute("pool", e.Pool.String()),
@@ -457,7 +463,7 @@ func (e EventErrata) Type() string {
 	return ErrataEventType
 }
 
-// Events
+// Events return a cosmos.Events type
 func (e EventErrata) Events() (cosmos.Events, error) {
 	events := make(cosmos.Events, 0, len(e.Pools))
 	for _, item := range e.Pools {
