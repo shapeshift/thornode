@@ -114,7 +114,8 @@ func (h ObservedTxOutHandler) handleV1(ctx cosmos.Context, version semver.Versio
 
 		voter, err := h.keeper.GetObservedTxOutVoter(ctx, tx.Tx.ID)
 		if err != nil {
-			return nil, err
+			ctx.Logger().Error("fail to get tx out voter", "error", err)
+			continue
 		}
 
 		// check whether the tx has consensus
@@ -177,7 +178,8 @@ func (h ObservedTxOutHandler) handleV1(ctx cosmos.Context, version semver.Versio
 
 		// Apply Gas fees
 		if err := AddGasFees(ctx, h.keeper, tx, h.mgr.GasMgr()); err != nil {
-			return nil, ErrInternal(err, "fail to add gas fee")
+			ctx.Logger().Error("fail to add gas fee", "error", err)
+			continue
 		}
 
 		// If sending from one of our vaults, decrement coins
@@ -206,7 +208,8 @@ func (h ObservedTxOutHandler) handleV1(ctx cosmos.Context, version semver.Versio
 			vault.Status = InactiveVault
 		}
 		if err := h.keeper.SetVault(ctx, vault); err != nil {
-			return nil, ErrInternal(err, "fail to save vault")
+			ctx.Logger().Error("fail to save vault", "error", err)
+			continue
 		}
 
 		// add addresses to observing addresses. This is used to detect
