@@ -69,6 +69,7 @@ func (h ObservedTxOutHandler) handle(ctx cosmos.Context, msg MsgObservedTxOut, v
 func (h ObservedTxOutHandler) preflight(ctx cosmos.Context, voter ObservedTxVoter, nas NodeAccounts, tx ObservedTx, signer cosmos.AccAddress, version semver.Version) (ObservedTxVoter, bool) {
 	constAccessor := constants.GetConstantValues(version)
 	observeSlashPoints := constAccessor.GetInt64Value(constants.ObserveSlashPoints)
+	observeFlex := constAccessor.GetInt64Value(constants.ObserveFlex)
 	ok := false
 	h.mgr.Slasher().IncSlashPoints(ctx, observeSlashPoints, signer)
 	if !voter.Add(tx, signer) {
@@ -84,7 +85,7 @@ func (h ObservedTxOutHandler) preflight(ctx cosmos.Context, voter ObservedTxVote
 
 		} else {
 			// event the tx had been processed , given the signer just a bit late , so we still take away their slash points
-			if common.BlockHeight(ctx) == voter.Height && voter.Tx.Equals(tx) {
+			if common.BlockHeight(ctx) <= (voter.Height+observeFlex) && voter.Tx.Equals(tx) {
 				h.mgr.Slasher().DecSlashPoints(ctx, observeSlashPoints, signer)
 			}
 		}
