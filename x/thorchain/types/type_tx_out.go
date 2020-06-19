@@ -7,7 +7,7 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 )
 
-// TxOutItem represent an tx need to be sent to chain
+// TxOutItem represent a tx need to be sent out
 type TxOutItem struct {
 	Chain       common.Chain   `json:"chain"`
 	ToAddress   common.Address `json:"to"`
@@ -20,6 +20,7 @@ type TxOutItem struct {
 	ModuleName  string         `json:"-"` // used to pass which cosmos module to remove native funds from
 }
 
+// Valid check whether TxOutItem hold valid information
 func (toi TxOutItem) Valid() error {
 	if toi.Chain.IsEmpty() {
 		return errors.New("chain cannot be empty")
@@ -45,6 +46,7 @@ func (toi TxOutItem) Valid() error {
 	return nil
 }
 
+// TxHash return a hash value generated based on the TxOutItem
 func (toi TxOutItem) TxHash() (string, error) {
 	fromAddr, err := toi.VaultPubKey.GetAddress(toi.Chain)
 	if err != nil {
@@ -58,6 +60,7 @@ func (toi TxOutItem) TxHash() (string, error) {
 	return tx.Hash(), nil
 }
 
+// Equals compare two tx out item
 func (toi TxOutItem) Equals(toi2 TxOutItem) bool {
 	if !toi.Chain.Equals(toi2.Chain) {
 		return false

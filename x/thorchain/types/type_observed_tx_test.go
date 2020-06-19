@@ -4,7 +4,7 @@ import (
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 type TypeObservedTxSuite struct{}
@@ -39,6 +39,7 @@ func (s TypeObservedTxSuite) TestVoter(c *C) {
 	obTx1 := NewObservedTx(tx1, 0, observePoolAddr)
 	obTx2 := NewObservedTx(tx2, 0, observePoolAddr)
 
+	c.Check(len(obTx1.String()) > 0, Equals, true)
 	voter.Add(obTx1, acc1)
 	c.Assert(voter.Txs, HasLen, 1)
 
@@ -125,48 +126,56 @@ func (s TypeObservedTxSuite) TestVoter(c *C) {
 		memo            string
 		sender          common.Address
 		observePoolAddr common.PubKey
+		blockHeight     int64
 	}{
 		{
 			coins:           nil,
 			memo:            "test",
 			sender:          bnb,
 			observePoolAddr: observePoolAddr,
+			blockHeight:     1024,
 		},
 		{
 			coins:           common.Coins{},
 			memo:            "test",
 			sender:          bnb,
 			observePoolAddr: observePoolAddr,
-		},
-		{
-			coins:           thorchainCoins,
-			memo:            "",
-			sender:          bnb,
-			observePoolAddr: observePoolAddr,
+			blockHeight:     1024,
 		},
 		{
 			coins:           thorchainCoins,
 			memo:            "test",
 			sender:          common.NoAddress,
 			observePoolAddr: observePoolAddr,
+			blockHeight:     1024,
 		},
 		{
 			coins:           thorchainCoins,
 			memo:            "test",
 			sender:          bnb,
 			observePoolAddr: common.EmptyPubKey,
+			blockHeight:     1024,
+		},
+		{
+			coins:           thorchainCoins,
+			memo:            "test",
+			sender:          bnb,
+			observePoolAddr: observePoolAddr,
+			blockHeight:     0,
 		},
 	}
 
 	for _, item := range inputs {
 		tx := common.Tx{
+			ID:          GetRandomTxHash(),
+			Chain:       common.BNBChain,
 			FromAddress: item.sender,
 			ToAddress:   GetRandomBNBAddress(),
 			Coins:       item.coins,
 			Gas:         BNBGasFeeSingleton,
 			Memo:        item.memo,
 		}
-		txIn := NewObservedTx(tx, 0, item.observePoolAddr)
+		txIn := NewObservedTx(tx, item.blockHeight, item.observePoolAddr)
 		c.Assert(txIn.Valid(), NotNil)
 	}
 }
@@ -203,8 +212,14 @@ func (TypeObservedTxSuite) TestSetTxToComplete(c *C) {
 	}
 	voter.Actions = append(voter.Actions, toi)
 	c.Assert(voter.AddOutTx(tx), Equals, true)
+	// add it again should return true, but without any real action
+	c.Assert(voter.AddOutTx(tx), Equals, true)
+	c.Assert(voter.AddOutTx(GetRandomTx()), Equals, false)
 	c.Assert(voter.Tx.Status, Equals, Done)
 	c.Assert(voter.Tx.OutHashes[0], Equals, tx.ID)
+	c.Assert(voter.IsDone(), Equals, true)
+	voter.Tx = voter.GetTx(activeNodes)
+	c.Assert(voter.GetTx(activeNodes).Equals(voter.Tx), Equals, true)
 }
 
 func (TypeObservedTxSuite) TestObservedTxEquals(c *C) {
@@ -268,4 +283,28 @@ func (TypeObservedTxSuite) TestObservedTxEquals(c *C) {
 	for _, item := range inputs {
 		c.Assert(item.tx.Equals(item.tx1), Equals, item.equal)
 	}
+}
+
+func (TypeObservedTxSuite) TestObservedTxVote(c *C) {
+	tx := GetRandomTx()
+	voter := NewObservedTxVoter("", []ObservedTx{NewObservedTx(tx, 1, GetRandomPubKey())})
+	c.Check(voter.Valid(), NotNil)
+
+	voter1 := NewObservedTxVoter(GetRandomTxHash(), []ObservedTx{NewObservedTx(tx, 0, "")})
+	c.Check(voter1.Valid(), NotNil)
+
+	voter2 := NewObservedTxVoter(GetRandomTxHash(), []ObservedTx{NewObservedTx(tx, 1024, GetRandomPubKey())})
+	c.Check(voter2.Valid(), IsNil)
+
+	observedTx := NewObservedTx(GetRandomTx(), 1024, GetRandomPubKey())
+	addr := GetRandomBech32Addr()
+	c.Check(observedTx.Sign(addr), Equals, true)
+	c.Check(observedTx.Sign(addr), Equals, false)
+
+	observedTx1 := NewObservedTx(observedTx.Tx, 1024, GetRandomPubKey())
+	c.Assert(observedTx.Equals(observedTx1), Equals, false)
+	txID := GetRandomTxHash()
+	observedTx1.SetDone(txID, 2)
+	observedTx1.SetDone(txID, 2)
+	c.Check(observedTx1.IsDone(2), Equals, false)
 }

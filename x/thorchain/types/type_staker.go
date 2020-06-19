@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 // Staker is a structure to store the information about a customer who staked in a pool
@@ -20,6 +20,7 @@ type Staker struct {
 	PendingTxID       common.TxID    `json:"pending_tx_id"`
 }
 
+// IsValid check whether staker represent valid information
 func (staker Staker) IsValid() error {
 	if staker.LastStakeHeight == 0 {
 		return errors.New("last stake height cannot be empty")
@@ -33,6 +34,7 @@ func (staker Staker) IsValid() error {
 	return nil
 }
 
+// Key return a string which can be used to identify staker
 func (staker Staker) Key() string {
 	return fmt.Sprintf(
 		"%s/%s",

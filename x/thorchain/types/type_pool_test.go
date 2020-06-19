@@ -3,9 +3,10 @@ package types
 import (
 	"encoding/json"
 
-	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	. "gopkg.in/check.v1"
+
+	"gitlab.com/thorchain/thornode/common"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 type PoolTestSuite struct{}
@@ -49,6 +50,23 @@ func (PoolTestSuite) TestPool(c *C) {
 
 	p.Status = Suspended
 	c.Check(p.EnsureValidPoolStatus(msgNoop), NotNil)
+	p1 := NewPool()
+	c.Check(p1.Valid(), NotNil)
+	p1.Asset = common.BNBAsset
+	c.Check(p1.AssetValueInRune(cosmos.NewUint(100)).Uint64(), Equals, cosmos.ZeroUint().Uint64())
+	c.Check(p1.RuneValueInAsset(cosmos.NewUint(100)).Uint64(), Equals, cosmos.ZeroUint().Uint64())
+	p1.BalanceRune = cosmos.NewUint(100 * common.One)
+	p1.BalanceAsset = cosmos.NewUint(50 * common.One)
+	c.Check(p1.Valid(), IsNil)
+
+	c.Check(p1.IsEnabled(), Equals, true)
+
+	// When Pool is in bootstrap mode , it can't swap
+	p2 := NewPool()
+	p2.Status = Bootstrap
+	msgSwap := NewMsgSwap(GetRandomTx(), common.BNBAsset, GetRandomBNBAddress(), cosmos.NewUint(1000), GetRandomBech32Addr())
+	c.Check(p2.EnsureValidPoolStatus(msgSwap), NotNil)
+	c.Check(p2.EnsureValidPoolStatus(msgNoop), IsNil)
 }
 
 func (PoolTestSuite) TestPoolStatus(c *C) {
@@ -65,4 +83,10 @@ func (PoolTestSuite) TestPoolStatus(c *C) {
 	c.Check(ps == Enabled, Equals, true)
 	err = json.Unmarshal([]byte(`{asdf}`), &ps)
 	c.Assert(err, NotNil)
+
+	buf, err := json.Marshal(ps)
+	c.Check(err, IsNil)
+	c.Check(buf, NotNil)
+	invalidPoolStatus := PoolStatus(100)
+	c.Check(invalidPoolStatus.Valid(), NotNil)
 }

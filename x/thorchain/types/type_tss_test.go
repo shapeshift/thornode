@@ -23,6 +23,7 @@ func (s *TypeTssSuite) TestVoter(c *C) {
 		pk,
 	)
 	c.Check(tss.Empty(), Equals, false)
+	c.Check(tss.String(), Equals, "hello")
 
 	chains := common.Chains{common.BNBChain, common.BTCChain}
 
@@ -41,6 +42,8 @@ func (s *TypeTssSuite) TestVoter(c *C) {
 	c.Assert(err, IsNil)
 	tss.Sign(addr, chains)
 	c.Check(tss.HasConsensus(), Equals, true)
+	v1 := NewTssVoter("", common.PubKeys{}, common.EmptyPubKey)
+	c.Check(v1.Empty(), Equals, true)
 }
 
 func (s *TypeTssSuite) TestChainConsensus(c *C) {

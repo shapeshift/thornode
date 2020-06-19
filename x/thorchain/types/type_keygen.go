@@ -14,8 +14,8 @@ import (
 )
 
 // KeygenBlock represent the TSS Keygen in a block
-// if you wonder why there is a Keygens which is a slice of Keygen , that is because thorchain can potentially have to trigger multiple TSS Keygen in one block
-// for example multiple Asgard, also when later on Yggdrasil start to use TSS as well
+// THORChain can potentially trigger multiple TSS Keygen in one block
+// for example multiple Asgard, also when Yggdrasil start to use TSS as well
 type KeygenBlock struct {
 	Height  int64    `json:"height,string"`
 	Keygens []Keygen `json:"keygens"`
@@ -33,6 +33,7 @@ func (k KeygenBlock) IsEmpty() bool {
 	return len(k.Keygens) == 0 && k.Height == 0
 }
 
+// String implement fmt.Stringer print out a string version of keygen block
 func (k KeygenBlock) String() string {
 	var keygens []string
 	for _, keygen := range k.Keygens {
@@ -51,12 +52,15 @@ func (k KeygenBlock) Contains(keygen Keygen) bool {
 	return false
 }
 
+// KeygenType are two types of key Asgard Yggdrasil;
 type KeygenType byte
 
 const (
+	// UnknownKeygen unknown
 	UnknownKeygen KeygenType = iota
-	// AsgardKeygen obviously
+	// AsgardKeygen asgard
 	AsgardKeygen
+	// YggdrasilKeygen yggdrasil
 	YggdrasilKeygen
 )
 
@@ -73,6 +77,7 @@ func (kt KeygenType) String() string {
 	return ""
 }
 
+// GetKeygenTypeFromString parse the given string as KeygenType
 func GetKeygenTypeFromString(t string) KeygenType {
 	switch {
 	case strings.EqualFold(t, "asgard"):
@@ -83,7 +88,7 @@ func GetKeygenTypeFromString(t string) KeygenType {
 	return UnknownKeygen
 }
 
-// MarshalJSON marshal PoolStatus to JSON in string form
+// MarshalJSON marshal keygen type to JSON in string form
 func (kt KeygenType) MarshalJSON() ([]byte, error) {
 	return json.Marshal(kt.String())
 }

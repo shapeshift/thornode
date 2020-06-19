@@ -5,7 +5,7 @@ import (
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
-// VaultData
+// VaultData keep track of reserve , reward and bond
 type VaultData struct {
 	BondRewardRune cosmos.Uint `json:"bond_reward_rune"` // The total amount of awarded rune for bonders
 	TotalBondUnits cosmos.Uint `json:"total_bond_units"` // Total amount of bond units
@@ -23,7 +23,7 @@ func NewVaultData() VaultData {
 	}
 }
 
-// calculate node rewards
+// CalcNodeRewards calculate node rewards
 func (v VaultData) CalcNodeRewards(nodeUnits cosmos.Uint) cosmos.Uint {
 	return common.GetShare(nodeUnits, v.TotalBondUnits, v.BondRewardRune)
 }

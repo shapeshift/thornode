@@ -4,7 +4,7 @@ import (
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 type EventSuite struct{}
@@ -21,6 +21,9 @@ func (s EventSuite) TestSwapEvent(c *C) {
 		GetRandomTx(),
 	)
 	c.Check(evt.Type(), Equals, "swap")
+	events, err := evt.Events()
+	c.Check(err, IsNil)
+	c.Check(events, NotNil)
 }
 
 func (s EventSuite) TestStakeEvent(c *C) {
@@ -34,6 +37,9 @@ func (s EventSuite) TestStakeEvent(c *C) {
 		GetRandomTxHash(),
 	)
 	c.Check(evt.Type(), Equals, "stake")
+	events, err := evt.Events()
+	c.Check(err, IsNil)
+	c.Check(events, NotNil)
 }
 
 func (s EventSuite) TestUnstakeEvent(c *C) {
@@ -45,6 +51,9 @@ func (s EventSuite) TestUnstakeEvent(c *C) {
 		GetRandomTx(),
 	)
 	c.Check(evt.Type(), Equals, "unstake")
+	events, err := evt.Events()
+	c.Check(err, IsNil)
+	c.Check(events, NotNil)
 }
 
 func (s EventSuite) TestPool(c *C) {
@@ -52,6 +61,9 @@ func (s EventSuite) TestPool(c *C) {
 	c.Check(evt.Type(), Equals, "pool")
 	c.Check(evt.Pool.String(), Equals, common.BNBAsset.String())
 	c.Check(evt.Status.String(), Equals, Enabled.String())
+	events, err := evt.Events()
+	c.Check(err, IsNil)
+	c.Check(events, NotNil)
 }
 
 func (s EventSuite) TestReward(c *C) {
@@ -66,6 +78,9 @@ func (s EventSuite) TestReward(c *C) {
 	c.Check(evt.PoolRewards[0].Amount, Equals, int64(30))
 	c.Check(evt.PoolRewards[1].Asset.Equals(common.BTCAsset), Equals, true)
 	c.Check(evt.PoolRewards[1].Amount, Equals, int64(40))
+	events, err := evt.Events()
+	c.Check(err, IsNil)
+	c.Check(events, NotNil)
 }
 
 func (s EventSuite) TestSlash(c *C) {
@@ -80,6 +95,9 @@ func (s EventSuite) TestSlash(c *C) {
 	c.Check(evt.SlashAmount[0].Amount, Equals, int64(-20))
 	c.Check(evt.SlashAmount[1].Asset, Equals, common.RuneAsset())
 	c.Check(evt.SlashAmount[1].Amount, Equals, int64(30))
+	events, err := evt.Events()
+	c.Check(err, IsNil)
+	c.Check(events, NotNil)
 }
 
 func (s EventSuite) TestEventGas(c *C) {
@@ -136,6 +154,9 @@ func (s EventSuite) TestEventGas(c *C) {
 	c.Assert(eg.Pools[1].Asset, Equals, common.BTCAsset)
 	c.Assert(eg.Pools[1].AssetAmt.Equal(cosmos.NewUint(1024)), Equals, true)
 	c.Assert(eg.Pools[1].RuneAmt.Equal(cosmos.NewUint(3333)), Equals, true)
+	events, err := eg.Events()
+	c.Check(err, IsNil)
+	c.Check(events, NotNil)
 }
 
 func (s EventSuite) TestEventFee(c *C) {
@@ -149,4 +170,59 @@ func (s EventSuite) TestEventFee(c *C) {
 	evts, err := event.Events()
 	c.Assert(err, IsNil)
 	c.Assert(evts, HasLen, 1)
+}
+
+func (s EventSuite) TestEventAdd(c *C) {
+	e := NewEventAdd(common.BNBAsset, GetRandomTx())
+	c.Check(e.Type(), Equals, "add")
+	events, err := e.Events()
+	c.Check(err, IsNil)
+	c.Check(events, NotNil)
+}
+
+func (EventSuite) TestEventRefund(c *C) {
+	e := NewEventRefund(1, "refund", GetRandomTx(), common.NewFee(common.Coins{
+		common.NewCoin(common.BNBAsset, cosmos.NewUint(100)),
+	}, cosmos.ZeroUint()))
+	c.Check(e.Type(), Equals, "refund")
+	events, err := e.Events()
+	c.Check(err, IsNil)
+	c.Check(events, NotNil)
+}
+
+func (EventSuite) TestEventBond(c *C) {
+	e := NewEventBond(cosmos.NewUint(100), BondPaid, GetRandomTx())
+	c.Check(e.Type(), Equals, "bond")
+	events, err := e.Events()
+	c.Check(err, IsNil)
+	c.Check(events, NotNil)
+}
+
+func (EventSuite) TestEventReserve(c *C) {
+	e := NewEventReserve(ReserveContributor{
+		Address: GetRandomBNBAddress(),
+		Amount:  cosmos.NewUint(100),
+	}, GetRandomTx())
+	c.Check(e.Type(), Equals, "reserve")
+	events, err := e.Events()
+	c.Check(err, IsNil)
+	c.Check(events, NotNil)
+}
+
+func (EventSuite) TestEventErrata(c *C) {
+	e := NewEventErrata(GetRandomTxHash(), PoolMods{
+		NewPoolMod(common.BNBAsset, cosmos.NewUint(100), true, cosmos.NewUint(200), true),
+	})
+	c.Check(e.Type(), Equals, "errata")
+	events, err := e.Events()
+	c.Check(err, IsNil)
+	c.Check(events, NotNil)
+}
+
+func (EventSuite) TestEventOutbound(c *C) {
+	e := NewEventOutbound(GetRandomTxHash(), GetRandomTx())
+	c.Check(e.Type(), Equals, "outbound")
+	events, err := e.Events()
+	c.Check(err, IsNil)
+	c.Check(events, NotNil)
 }
