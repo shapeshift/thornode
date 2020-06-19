@@ -123,8 +123,8 @@ func main() {
 		cfg.TSS.Rendezvous,
 		app.DefaultCLIHome,
 		common.TssConfig{
-			KeyGenTimeout:   30 * time.Second,
-			KeySignTimeout:  10 * time.Second,
+			KeyGenTimeout:   240 * time.Second,
+			KeySignTimeout:  120 * time.Second,
 			PreParamTimeout: 5 * time.Minute,
 		}, getLocalPreParam(*tssPreParam))
 	if err != nil {
