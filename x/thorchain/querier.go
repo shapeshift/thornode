@@ -230,7 +230,7 @@ func queryVaultData(ctx cosmos.Context, keeper keeper.Keeper) ([]byte, error) {
 	}
 
 	if common.RuneAsset().Chain.Equals(common.THORChain) {
-		data.TotalReserve = keeper.GetRuneBalaceOfModule(ctx, ReserveName)
+		data.TotalReserve = keeper.GetRuneBalanceOfModule(ctx, ReserveName)
 	}
 
 	res, err := codec.MarshalJSONIndent(keeper.Cdc(), data)

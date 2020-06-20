@@ -18,4 +18,9 @@ func (*KeeperObservedNetworkFeeVoterSuite) TestObservedNetworkFeeVoter(c *C) {
 	c.Assert(err, IsNil)
 	c.Check(voter.ReportBlockHeight, Equals, int64(1024))
 	c.Check(voter.Chain.Equals(common.BNBChain), Equals, true)
+	c.Check(k.GetObservedNetworkFeeVoterIterator(ctx), NotNil)
+
+	voter1, err1 := k.GetObservedNetworkFeeVoter(ctx, 1028, common.BTCChain)
+	c.Check(err1, IsNil)
+	c.Check(voter1.Empty(), Equals, false)
 }
