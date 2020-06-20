@@ -1,6 +1,6 @@
 #!/bin/sh
 # ./mock-leave.bash <mock binance IP address> <BNB Address> <THOR Address>
-# ./mock-leave.bash 127.0.0.1 bnbXYXYX
+# ./mock-leave.bash 127.0.0.1 bnbXYXYX thorXXXX
 
 set -ex
 

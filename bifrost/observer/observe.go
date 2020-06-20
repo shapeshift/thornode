@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"sync"
+	"time"
 
 	"github.com/cenkalti/backoff"
 	"github.com/prometheus/client_golang/prometheus"
@@ -16,6 +18,7 @@ import (
 	"gitlab.com/thorchain/thornode/bifrost/thorclient"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient/types"
 	"gitlab.com/thorchain/thornode/common"
+	"gitlab.com/thorchain/thornode/constants"
 	stypes "gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
@@ -27,6 +30,8 @@ type Observer struct {
 	chains            map[common.Chain]chainclients.ChainClient
 	stopChan          chan struct{}
 	pubkeyMgr         pubkeymanager.PubKeyValidator
+	onDeck            []types.TxIn
+	lock              *sync.Mutex
 	globalTxsQueue    chan types.TxIn
 	globalErrataQueue chan types.ErrataBlock
 	m                 *metrics.Metrics
@@ -43,6 +48,7 @@ func NewObserver(pubkeyMgr pubkeymanager.PubKeyValidator, chains map[common.Chai
 		stopChan:          make(chan struct{}),
 		m:                 m,
 		pubkeyMgr:         pubkeyMgr,
+		lock:              &sync.Mutex{},
 		globalTxsQueue:    make(chan types.TxIn),
 		globalErrataQueue: make(chan types.ErrataBlock),
 		errCounter:        m.GetCounterVec(metrics.ObserverError),
@@ -65,7 +71,61 @@ func (o *Observer) Start() error {
 	}
 	go o.processTxIns()
 	go o.processErrataTx()
+	go o.deck()
 	return nil
+}
+
+func (o *Observer) deck() {
+	for {
+		select {
+		case <-o.stopChan:
+			o.sendDeck()
+			return
+		case <-time.After(constants.ThorchainBlockTime):
+			o.sendDeck()
+		}
+	}
+}
+
+func (o *Observer) sendDeck() {
+	o.lock.Lock()
+	defer o.lock.Unlock()
+	for i, deck := range o.onDeck {
+		deck.TxArray = o.filterObservations(deck.Chain, deck.TxArray)
+		for _, txIn := range o.chunkify(deck) {
+			if err := o.signAndSendToThorchain(txIn); err != nil {
+				o.logger.Error().Err(err).Msg("fail to send to thorchain")
+				o.errCounter.WithLabelValues("fail_send_to_thorchain", txIn.BlockHeight).Inc()
+				// retry later
+				o.onDeck[i].TxArray = append(o.onDeck[i].TxArray, txIn.TxArray...)
+				continue
+			}
+			// check if chain client has OnObservedTxIn method then call it
+			chainClient, err := o.getChain(txIn.Chain)
+			if err != nil {
+				o.logger.Error().Err(err).Msg("fail to retrieve chain client")
+				continue
+			}
+
+			i, ok := chainClient.(interface {
+				OnObservedTxIn(txIn types.TxInItem, blockHeight int64)
+			})
+			if ok {
+				height, err := strconv.ParseInt(txIn.BlockHeight, 10, 64)
+				if err != nil {
+					o.logger.Error().Err(err).Msg("fail to parse block height")
+					continue
+				}
+				for _, item := range txIn.TxArray {
+					if o.isOutboundMsg(txIn.Chain, item.Sender) {
+						continue
+					}
+					i.OnObservedTxIn(item, height)
+				}
+			}
+		}
+	}
+	o.onDeck = make([]types.TxIn, 0)
 }
 
 func (o *Observer) processTxIns() {
@@ -74,36 +134,18 @@ func (o *Observer) processTxIns() {
 		case <-o.stopChan:
 			return
 		case txIn := <-o.globalTxsQueue:
-			txIn.TxArray = o.filterObservations(txIn.Chain, txIn.TxArray)
-			for _, txIn := range o.chunkify(txIn) {
-				if err := o.signAndSendToThorchain(txIn); err != nil {
-					o.logger.Error().Err(err).Msg("fail to send to thorchain")
-					o.errCounter.WithLabelValues("fail_send_to_thorchain", txIn.BlockHeight).Inc()
-				}
-				// check if chain client has OnObservedTxIn method then call it
-				chainClient, err := o.getChain(txIn.Chain)
-				if err != nil {
-					o.logger.Error().Err(err).Msg("fail to retrieve chain client")
-					continue
-				}
-
-				i, ok := chainClient.(interface {
-					OnObservedTxIn(txIn types.TxInItem, blockHeight int64)
-				})
-				if ok {
-					height, err := strconv.ParseInt(txIn.BlockHeight, 10, 64)
-					if err != nil {
-						o.logger.Error().Err(err).Msg("fail to parse block height")
-						continue
-					}
-					for _, item := range txIn.TxArray {
-						if o.isOutboundMsg(txIn.Chain, item.Sender) {
-							continue
-						}
-						i.OnObservedTxIn(item, height)
-					}
+			o.lock.Lock()
+			found := false
+			for i, in := range o.onDeck {
+				if in.Chain == txIn.Chain {
+					o.onDeck[i].TxArray = append(o.onDeck[i].TxArray, txIn.TxArray...)
+					found = true
 				}
 			}
+			if !found {
+				o.onDeck = append(o.onDeck, txIn)
+			}
+			o.lock.Unlock()
 		}
 	}
 }
