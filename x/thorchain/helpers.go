@@ -202,7 +202,14 @@ func getTotalYggValueInRune(ctx cosmos.Context, keeper keeper.Keeper, ygg Vault)
 
 func refundBond(ctx cosmos.Context, tx common.Tx, amt cosmos.Uint, nodeAcc NodeAccount, keeper keeper.Keeper, mgr Manager) error {
 	if nodeAcc.Status == NodeActive {
-		ctx.Logger().Info("node still active , cannot refund bond", "node address", nodeAcc.NodeAddress, "node pub key", nodeAcc.PubKeySet.Secp256k1)
+		ctx.Logger().Info("node still active, cannot refund bond", "node address", nodeAcc.NodeAddress, "node pub key", nodeAcc.PubKeySet.Secp256k1)
+		return nil
+	}
+
+	// ensures nodes don't return bond while being churned into the network
+	// (removing their bond last second)
+	if nodeAcc.Status == NodeReady {
+		ctx.Logger().Info("node ready, cannot refund bond", "node address", nodeAcc.NodeAddress, "node pub key", nodeAcc.PubKeySet.Secp256k1)
 		return nil
 	}
 
