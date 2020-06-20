@@ -1,8 +1,8 @@
 package keeperv1
 
-import cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+import "gitlab.com/thorchain/thornode/common/cosmos"
 
-// SetTssVoter - save a txin voter object
+// SetTssVoter - save a tss voter object
 func (k KVStore) SetTssVoter(ctx cosmos.Context, tss TssVoter) {
 	store := ctx.KVStore(k.storeKey)
 	key := k.GetKey(ctx, prefixTss, tss.String())

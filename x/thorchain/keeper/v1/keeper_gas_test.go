@@ -1,9 +1,10 @@
 package keeperv1
 
 import (
+	. "gopkg.in/check.v1"
+
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
-	. "gopkg.in/check.v1"
 )
 
 type KeeperGasSuite struct{}
@@ -25,4 +26,6 @@ func (s *KeeperGasSuite) TestGas(c *C) {
 	c.Assert(gas, HasLen, 2)
 	c.Assert(gas[0].Equal(cosmos.NewUint(37500)), Equals, true)
 	c.Assert(gas[1].Equal(cosmos.NewUint(30000)), Equals, true)
+
+	c.Check(k.GetGasIterator(ctx), NotNil)
 }

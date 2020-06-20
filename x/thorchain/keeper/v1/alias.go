@@ -53,6 +53,8 @@ var (
 	GetRandomPubKey            = types.GetRandomPubKey
 	GetRandomPubKeySet         = types.GetRandomPubKeySet
 	NewObservedNetworkFeeVoter = types.NewObservedNetworkFeeVoter
+	NewNetworkFee              = types.NewNetworkFee
+	NewTssKeysignFailVoter     = types.NewTssKeysignFailVoter
 )
 
 type (

@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"strings"
 
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
+// ListTxMarker get all tx marker related to the given hash
 func (k KVStore) ListTxMarker(ctx cosmos.Context, hash string) (TxMarkers, error) {
 	marks := make(TxMarkers, 0)
 	key := k.GetKey(ctx, prefixSupportedTxMarker, hash)
@@ -23,6 +24,7 @@ func (k KVStore) ListTxMarker(ctx cosmos.Context, hash string) (TxMarkers, error
 	return marks, nil
 }
 
+// SetTxMarkers save the given tx markers again the given hash
 func (k KVStore) SetTxMarkers(ctx cosmos.Context, hash string, orig TxMarkers) error {
 	marks := make(TxMarkers, 0)
 	for _, mark := range orig {
@@ -41,6 +43,7 @@ func (k KVStore) SetTxMarkers(ctx cosmos.Context, hash string, orig TxMarkers) e
 	return nil
 }
 
+// AppendTxMarker append the given tx marker to store
 func (k KVStore) AppendTxMarker(ctx cosmos.Context, hash string, mark TxMarker) error {
 	if mark.IsEmpty() {
 		return dbError(ctx, "unable to save tx marker:", errors.New("is empty"))
@@ -49,15 +52,14 @@ func (k KVStore) AppendTxMarker(ctx cosmos.Context, hash string, mark TxMarker) 
 	if err != nil {
 		return err
 	}
-
 	marks = append(marks, mark)
-
 	store := ctx.KVStore(k.storeKey)
 	key := k.GetKey(ctx, prefixSupportedTxMarker, hash)
 	store.Set([]byte(key), k.cdc.MustMarshalBinaryBare(marks))
 	return nil
 }
 
+// GetAllTxMarkers get all tx markers from key value store
 func (k KVStore) GetAllTxMarkers(ctx cosmos.Context) (map[string]TxMarkers, error) {
 	store := ctx.KVStore(k.storeKey)
 	result := make(map[string]TxMarkers)

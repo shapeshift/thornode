@@ -4,7 +4,7 @@ import (
 	"errors"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 // GetPoolIterator iterate pools
@@ -13,6 +13,7 @@ func (k KVStore) GetPoolIterator(ctx cosmos.Context) cosmos.Iterator {
 	return cosmos.KVStorePrefixIterator(store, []byte(prefixPool))
 }
 
+// GetPools return all pool in key value store regardless state
 func (k KVStore) GetPools(ctx cosmos.Context) (Pools, error) {
 	var pools Pools
 	iterator := k.GetPoolIterator(ctx)
@@ -28,7 +29,7 @@ func (k KVStore) GetPools(ctx cosmos.Context) (Pools, error) {
 	return pools, nil
 }
 
-// GetPool get the entire Pool metadata struct for a pool ID
+// GetPool get the entire Pool metadata struct based on given asset
 func (k KVStore) GetPool(ctx cosmos.Context, asset common.Asset) (Pool, error) {
 	key := k.GetKey(ctx, prefixPool, asset.String())
 	store := ctx.KVStore(k.storeKey)
@@ -43,7 +44,7 @@ func (k KVStore) GetPool(ctx cosmos.Context, asset common.Asset) (Pool, error) {
 	return pool, nil
 }
 
-// Sets the entire Pool metadata struct for a pool ID
+// SetPool save the entire Pool metadata struct to key value store
 func (k KVStore) SetPool(ctx cosmos.Context, pool Pool) error {
 	store := ctx.KVStore(k.storeKey)
 	key := k.GetKey(ctx, prefixPool, pool.Asset.String())
@@ -56,7 +57,7 @@ func (k KVStore) SetPool(ctx cosmos.Context, pool Pool) error {
 	return nil
 }
 
-// PoolExist check whether the given pool exist in the datastore
+// PoolExist check whether the given pool exist in the data store
 func (k KVStore) PoolExist(ctx cosmos.Context, asset common.Asset) bool {
 	store := ctx.KVStore(k.storeKey)
 	key := k.GetKey(ctx, prefixPool, asset.String())

@@ -482,7 +482,7 @@ func (vm *VaultMgrV1) UpdateVaultData(ctx cosmos.Context, constAccessor constant
 
 	totalReserve := cosmos.ZeroUint()
 	if common.RuneAsset().Chain.Equals(common.THORChain) {
-		totalReserve = vm.k.GetRuneBalaceOfModule(ctx, ReserveName)
+		totalReserve = vm.k.GetRuneBalanceOfModule(ctx, ReserveName)
 	} else {
 		totalReserve = vaultData.TotalReserve
 	}

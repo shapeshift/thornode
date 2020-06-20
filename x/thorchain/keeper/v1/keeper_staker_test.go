@@ -32,4 +32,8 @@ func (s *KeeperStakerSuite) TestStaker(c *C) {
 	c.Assert(err, IsNil)
 	c.Check(staker.Asset.Equals(asset), Equals, true)
 	c.Check(staker.Units.Equal(cosmos.NewUint(12)), Equals, true)
+	iter := k.GetStakerIterator(ctx, common.BNBAsset)
+	c.Check(iter, NotNil)
+	iter.Close()
+	k.RemoveStaker(ctx, staker)
 }

@@ -8,6 +8,7 @@ import (
 	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
+// SetLastSignedHeight save last signed height into kv store
 func (k KVStore) SetLastSignedHeight(ctx cosmos.Context, height int64) error {
 	lastHeight, _ := k.GetLastSignedHeight(ctx)
 	if lastHeight > height {
@@ -20,6 +21,7 @@ func (k KVStore) SetLastSignedHeight(ctx cosmos.Context, height int64) error {
 	return nil
 }
 
+// GetLastSignedHeight get last signed height from key value store
 func (k KVStore) GetLastSignedHeight(ctx cosmos.Context) (int64, error) {
 	var height int64
 	key := k.GetKey(ctx, prefixLastSignedHeight, "")
@@ -34,6 +36,7 @@ func (k KVStore) GetLastSignedHeight(ctx cosmos.Context) (int64, error) {
 	return height, nil
 }
 
+// SetLastChainHeight save last chain height
 func (k KVStore) SetLastChainHeight(ctx cosmos.Context, chain common.Chain, height int64) error {
 	lastHeight, _ := k.GetLastChainHeight(ctx, chain)
 	if lastHeight > height {
@@ -46,6 +49,7 @@ func (k KVStore) SetLastChainHeight(ctx cosmos.Context, chain common.Chain, heig
 	return nil
 }
 
+// GetLastChainHeight get last chain height
 func (k KVStore) GetLastChainHeight(ctx cosmos.Context, chain common.Chain) (int64, error) {
 	var height int64
 	key := k.GetKey(ctx, prefixLastChainHeight, chain.String())
@@ -60,7 +64,7 @@ func (k KVStore) GetLastChainHeight(ctx cosmos.Context, chain common.Chain) (int
 	return height, nil
 }
 
-// GetLastChainHeightIterator get the iterator for last chain height
+// GetLastChainHeights get the iterator for last chain height
 func (k KVStore) GetLastChainHeights(ctx cosmos.Context) (map[common.Chain]int64, error) {
 	store := ctx.KVStore(k.storeKey)
 	iter := cosmos.KVStorePrefixIterator(store, []byte(prefixLastChainHeight))

@@ -29,6 +29,7 @@ func (s *KeeperLastHeightSuite) TestLastHeight_SetKeeperSingleChain(c *C) {
 	last, err := k.GetLastSignedHeight(ctx)
 	c.Assert(err, IsNil)
 	c.Check(last, Equals, int64(12))
+	c.Check(k.SetLastSignedHeight(ctx, 10), NotNil)
 
 	err = k.SetLastChainHeight(ctx, common.BNBChain, 14)
 	c.Assert(err, IsNil)
@@ -49,6 +50,7 @@ func (s *KeeperLastHeightSuite) TestLastHeight_SetKeeperMultipleChains(c *C) {
 	last, err = k.GetLastChainHeight(ctx, common.BNBChain)
 	c.Assert(err, IsNil)
 	c.Check(last, Equals, int64(14))
+	c.Check(k.SetLastChainHeight(ctx, common.BTCChain, 20), NotNil)
 }
 
 func (s *KeeperLastHeightSuite) TestGetLastChainHeights(c *C) {

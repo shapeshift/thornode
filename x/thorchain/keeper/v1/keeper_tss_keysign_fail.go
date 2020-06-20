@@ -1,8 +1,8 @@
 package keeperv1
 
-import cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+import "gitlab.com/thorchain/thornode/common/cosmos"
 
-// SetTssKeysignFailVoter - save a txin voter object
+// SetTssKeysignFailVoter - save a tss keysign fail voter object
 func (k KVStore) SetTssKeysignFailVoter(ctx cosmos.Context, tss TssKeysignFailVoter) {
 	store := ctx.KVStore(k.storeKey)
 	key := k.GetKey(ctx, prefixTssKeysignFailure, tss.String())
@@ -15,7 +15,7 @@ func (k KVStore) GetTssKeysignFailVoterIterator(ctx cosmos.Context) cosmos.Itera
 	return cosmos.KVStorePrefixIterator(store, []byte(prefixTssKeysignFailure))
 }
 
-// GetTss - gets information of a tx hash
+// GetTssKeysignFailVoter - gets information of a tss keysign failure voter object
 func (k KVStore) GetTssKeysignFailVoter(ctx cosmos.Context, id string) (TssKeysignFailVoter, error) {
 	key := k.GetKey(ctx, prefixTssKeysignFailure, id)
 

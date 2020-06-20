@@ -5,10 +5,9 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/x/bank"
 	"github.com/cosmos/cosmos-sdk/x/supply"
-	"github.com/tendermint/tendermint/libs/log"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 	kvTypes "gitlab.com/thorchain/thornode/x/thorchain/keeper/types"
 	kv1 "gitlab.com/thorchain/thornode/x/thorchain/keeper/v1"
 )
@@ -17,12 +16,11 @@ type Keeper interface {
 	Cdc() *codec.Codec
 	Supply() supply.Keeper
 	CoinKeeper() bank.Keeper
-	Logger(ctx cosmos.Context) log.Logger
 	Version() int64
 	GetKey(ctx cosmos.Context, prefix kvTypes.DbPrefix, key string) string
 	GetStoreVersion(ctx cosmos.Context) int64
 	SetStoreVersion(ctx cosmos.Context, ver int64)
-	GetRuneBalaceOfModule(ctx cosmos.Context, moduleName string) cosmos.Uint
+	GetRuneBalanceOfModule(ctx cosmos.Context, moduleName string) cosmos.Uint
 	SendFromModuleToModule(ctx cosmos.Context, from, to string, coin common.Coin) error
 	SendFromAccountToModule(ctx cosmos.Context, from cosmos.AccAddress, to string, coin common.Coin) error
 	SendFromModuleToAccount(ctx cosmos.Context, from string, to cosmos.AccAddress, coin common.Coin) error
