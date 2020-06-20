@@ -4,7 +4,7 @@ import (
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 type KeeperReserveContributorsSuite struct{}
@@ -19,8 +19,13 @@ func (KeeperReserveContributorsSuite) TestReserveContributors(c *C) {
 	contributors := ReserveContributors{
 		contributor,
 	}
+	rc, err := k.GetReservesContributors(ctx)
+	c.Check(err, IsNil)
+	c.Check(rc, NotNil)
+
 	c.Assert(k.SetReserveContributors(ctx, contributors), IsNil)
 	r, err := k.GetReservesContributors(ctx)
 	c.Assert(err, IsNil)
 	c.Assert(r, NotNil)
+	c.Check(k.SetReserveContributors(ctx, nil), IsNil)
 }

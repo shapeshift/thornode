@@ -1,17 +1,19 @@
 package keeperv1
 
-import cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+import "gitlab.com/thorchain/thornode/common/cosmos"
 
 const KRAKEN string = "ReleaseTheKraken"
 
+// GetMimir get a mimir value from key value store
 func (k KVStore) GetMimir(ctx cosmos.Context, key string) (int64, error) {
+	// if we have the kraken, mimir is no more, ignore him
+	if k.haveKraken(ctx) {
+		return -1, nil
+	}
+
 	key = k.GetKey(ctx, prefixMimir, key)
 	store := ctx.KVStore(k.storeKey)
 	if !store.Has([]byte(key)) {
-		return -1, nil
-	}
-	// if we have the kraken, mimir is no more, ignore him
-	if k.haveKraken(ctx) {
 		return -1, nil
 	}
 	var value int64
@@ -37,6 +39,7 @@ func (k KVStore) haveKraken(ctx cosmos.Context) bool {
 	return value >= 0
 }
 
+// SetMimir save a mimir value to key value store
 func (k KVStore) SetMimir(ctx cosmos.Context, key string, value int64) {
 	// if we have the kraken, mimir is no more, ignore him
 	if k.haveKraken(ctx) {

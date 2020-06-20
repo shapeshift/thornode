@@ -9,7 +9,7 @@ import (
 	"github.com/blang/semver"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 )
 
@@ -20,6 +20,7 @@ func (k KVStore) TotalActiveNodeAccount(ctx cosmos.Context) (int, error) {
 }
 
 // ListNodeAccountsWithBond - gets a list of all node accounts that have bond
+// Note: the order of node account in the result is not defined
 func (k KVStore) ListNodeAccountsWithBond(ctx cosmos.Context) (NodeAccounts, error) {
 	nodeAccounts := make(NodeAccounts, 0)
 	naIterator := k.GetNodeAccountIterator(ctx)
@@ -37,7 +38,6 @@ func (k KVStore) ListNodeAccountsWithBond(ctx cosmos.Context) (NodeAccounts, err
 }
 
 // ListNodeAccountsByStatus - get a list of node accounts with the given status
-// if status = NodeUnknown, then it return everything
 func (k KVStore) ListNodeAccountsByStatus(ctx cosmos.Context, status NodeStatus) (NodeAccounts, error) {
 	nodeAccounts := make(NodeAccounts, 0)
 	naIterator := k.GetNodeAccountIterator(ctx)
@@ -159,7 +159,7 @@ func (k KVStore) GetNodeAccountByPubKey(ctx cosmos.Context, pk common.PubKey) (N
 	return k.GetNodeAccount(ctx, addr)
 }
 
-// SetNodeAccount save the given node account into datastore
+// SetNodeAccount save the given node account into data store
 func (k KVStore) SetNodeAccount(ctx cosmos.Context, na NodeAccount) error {
 	ctx.Logger().Debug("SetNodeAccount", "node account", na.String())
 	if na.IsEmpty() {

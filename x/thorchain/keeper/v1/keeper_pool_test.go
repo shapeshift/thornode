@@ -28,4 +28,8 @@ func (s *KeeperPoolSuite) TestPool(c *C) {
 	pools, err := k.GetPools(ctx)
 	c.Assert(err, IsNil)
 	c.Assert(pools, HasLen, 1)
+
+	p, err := k.GetPool(ctx, common.BTCAsset)
+	c.Check(err, IsNil)
+	c.Check(p.Valid(), NotNil)
 }

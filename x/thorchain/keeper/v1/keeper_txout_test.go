@@ -4,7 +4,7 @@ import (
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 type KeeperTxOutSuite struct{}
@@ -32,6 +32,13 @@ func (KeeperTxOutSuite) TestKeeperTxOut(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(txOut2, NotNil)
 
+	c.Check(k.AppendTxOut(ctx, 100, txOutItem), IsNil)
+
 	iter := k.GetTxOutIterator(ctx)
+	c.Check(iter, NotNil)
 	defer iter.Close()
+	c.Check(k.ClearTxOut(ctx, 100), IsNil)
+
+	txOut3 := NewTxOut(1024)
+	c.Check(k.SetTxOut(ctx, txOut3), IsNil)
 }

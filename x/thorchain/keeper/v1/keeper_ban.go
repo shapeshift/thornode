@@ -1,6 +1,6 @@
 package keeperv1
 
-import cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+import "gitlab.com/thorchain/thornode/common/cosmos"
 
 // SetBanVoter - save a ban voter object
 func (k KVStore) SetBanVoter(ctx cosmos.Context, ban BanVoter) {
@@ -9,7 +9,7 @@ func (k KVStore) SetBanVoter(ctx cosmos.Context, ban BanVoter) {
 	store.Set([]byte(key), k.cdc.MustMarshalBinaryBare(ban))
 }
 
-// GetBanVoter - gets information of a tx hash
+// GetBanVoter - gets information of ban voter
 func (k KVStore) GetBanVoter(ctx cosmos.Context, addr cosmos.AccAddress) (BanVoter, error) {
 	ban := NewBanVoter(addr)
 	key := k.GetKey(ctx, prefixBanVoter, ban.String())
