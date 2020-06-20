@@ -536,7 +536,10 @@ func (m SwapMemo) GetSlipLimit() cosmos.Uint         { return m.SlipLimit }
 func (m BondMemo) GetAccAddress() cosmos.AccAddress  { return m.NodeAddress }
 func (m LeaveMemo) GetAccAddress() cosmos.AccAddress { return m.NodeAddress }
 func (m StakeMemo) GetDestination() common.Address   { return m.Address }
-func (m OutboundMemo) GetTxID() common.TxID          { return m.TxID }
+func (m AddMemo) String() string {
+	return fmt.Sprintf("ADD:%s", m.Asset)
+}
+func (m OutboundMemo) GetTxID() common.TxID { return m.TxID }
 func (m OutboundMemo) String() string {
 	return fmt.Sprintf("OUTBOUND:%s", m.TxID.String())
 }
