@@ -194,7 +194,7 @@ func (h YggdrasilHandler) handleYggdrasilReturn(ctx cosmos.Context, msg MsgYggdr
 		}
 
 		if !vault.HasFunds() {
-			if err := refundBond(ctx, msg.Tx, na, h.keeper, h.mgr); err != nil {
+			if err := refundBond(ctx, msg.Tx, cosmos.ZeroUint(), na, h.keeper, h.mgr); err != nil {
 				return nil, ErrInternal(err, "fail to refund bond")
 			}
 		}
