@@ -23,6 +23,7 @@ const (
 	TxOutbound
 	TxAdd
 	TxBond
+	TxUnBond
 	TxLeave
 	TxYggdrasilFund
 	TxYggdrasilReturn
@@ -49,6 +50,7 @@ var stringToTxTypeMap = map[string]TxType{
 	"a":          TxAdd,
 	"%":          TxAdd,
 	"bond":       TxBond,
+	"unbond":     TxUnBond,
 	"leave":      TxLeave,
 	"yggdrasil+": TxYggdrasilFund,
 	"yggdrasil-": TxYggdrasilReturn,
@@ -67,6 +69,7 @@ var txToStringMap = map[TxType]string{
 	TxRefund:          "refund",
 	TxAdd:             "add",
 	TxBond:            "bond",
+	TxUnBond:          "unbond",
 	TxLeave:           "leave",
 	TxYggdrasilFund:   "yggdrasil+",
 	TxYggdrasilReturn: "yggdrasil-",
@@ -88,7 +91,7 @@ func StringToTxType(s string) (TxType, error) {
 
 func (tx TxType) IsInbound() bool {
 	switch tx {
-	case TxStake, TxUnstake, TxSwap, TxAdd, TxBond, TxLeave, TxSwitch, TxReserve:
+	case TxStake, TxUnstake, TxSwap, TxAdd, TxBond, TxUnBond, TxLeave, TxSwitch, TxReserve:
 		return true
 	default:
 		return false
@@ -137,11 +140,9 @@ type Memo interface {
 
 	String() string
 	GetAsset() common.Asset
-	GetAmount() string
+	GetAmount() cosmos.Uint
 	GetDestination() common.Address
 	GetSlipLimit() cosmos.Uint
-	GetKey() string
-	GetValue() string
 	GetTxID() common.TxID
 	GetAccAddress() cosmos.AccAddress
 	GetBlockHeight() int64
@@ -173,7 +174,7 @@ type StakeMemo struct {
 
 type UnstakeMemo struct {
 	MemoBase
-	Amount string
+	Amount cosmos.Uint
 }
 
 type SwapMemo struct {
@@ -195,6 +196,12 @@ type RefundMemo struct {
 type BondMemo struct {
 	MemoBase
 	NodeAddress cosmos.AccAddress
+}
+
+type UnBondMemo struct {
+	MemoBase
+	NodeAddress cosmos.AccAddress
+	Amount      cosmos.Uint
 }
 
 type LeaveMemo struct {
@@ -265,7 +272,7 @@ func NewStakeMemo(asset common.Asset, addr common.Address) StakeMemo {
 	}
 }
 
-func NewUnstakeMemo(asset common.Asset, amt string) UnstakeMemo {
+func NewUnstakeMemo(asset common.Asset, amt cosmos.Uint) UnstakeMemo {
 	return UnstakeMemo{
 		MemoBase: MemoBase{TxType: TxUnstake, Asset: asset},
 		Amount:   amt,
@@ -321,6 +328,14 @@ func NewBondMemo(addr cosmos.AccAddress) BondMemo {
 	}
 }
 
+func NewUnBondMemo(addr cosmos.AccAddress, amt cosmos.Uint) UnBondMemo {
+	return UnBondMemo{
+		MemoBase:    MemoBase{TxType: TxUnBond},
+		NodeAddress: addr,
+		Amount:      amt,
+	}
+}
+
 func NewSwapMemo(asset common.Asset, dest common.Address, slip cosmos.Uint) SwapMemo {
 	return SwapMemo{
 		MemoBase:    MemoBase{TxType: TxSwap, Asset: asset},
@@ -343,7 +358,7 @@ func ParseMemo(memo string) (Memo, error) {
 
 	// list of memo types that do not contain an asset in their memo
 	noAssetMemos := []TxType{
-		TxOutbound, TxBond, TxLeave, TxRefund,
+		TxOutbound, TxBond, TxUnBond, TxLeave, TxRefund,
 		TxYggdrasilFund, TxYggdrasilReturn, TxReserve,
 		TxMigrate, TxRagnarok, TxSwitch,
 	}
@@ -397,18 +412,17 @@ func ParseMemo(memo string) (Memo, error) {
 		if len(parts) < 2 {
 			return noMemo, fmt.Errorf("invalid unstake memo")
 		}
-		var withdrawAmount string
+		wa := cosmos.ZeroUint()
 		if len(parts) > 2 {
-			withdrawAmount = parts[2]
-			wa, err := cosmos.ParseUint(withdrawAmount)
+			wa, err = cosmos.ParseUint(parts[2])
 			if err != nil {
 				return noMemo, err
 			}
-			if !wa.GT(cosmos.ZeroUint()) || wa.GT(cosmos.NewUint(types.MaxUnstakeBasisPoints)) {
-				return noMemo, fmt.Errorf("withdraw amount :%s is invalid", withdrawAmount)
+			if wa.IsZero() || wa.GT(cosmos.NewUint(types.MaxUnstakeBasisPoints)) {
+				return noMemo, fmt.Errorf("withdraw amount %s is invalid", parts[2])
 			}
 		}
-		return NewUnstakeMemo(asset, withdrawAmount), nil
+		return NewUnstakeMemo(asset, wa), nil
 
 	case TxSwap:
 		if len(parts) < 2 {
@@ -456,6 +470,19 @@ func ParseMemo(memo string) (Memo, error) {
 			return noMemo, fmt.Errorf("%s is an invalid thorchain address: %w", parts[1], err)
 		}
 		return NewBondMemo(addr), nil
+	case TxUnBond:
+		if len(parts) < 3 {
+			return noMemo, fmt.Errorf("not enough parameters")
+		}
+		addr, err := cosmos.AccAddressFromBech32(parts[1])
+		if err != nil {
+			return noMemo, fmt.Errorf("%s is an invalid thorchain address: %w", parts[1], err)
+		}
+		amt, err := cosmos.ParseUint(parts[2])
+		if err != nil {
+			return noMemo, fmt.Errorf("fail to parse amount (%s): %w", parts[2], err)
+		}
+		return NewUnBondMemo(addr, amt), nil
 	case TxYggdrasilFund:
 		if len(parts) < 2 {
 			return noMemo, errors.New("not enough parameters")
@@ -516,11 +543,9 @@ func (m MemoBase) String() string                   { return "" }
 func (m MemoBase) GetType() TxType                  { return m.TxType }
 func (m MemoBase) IsType(tx TxType) bool            { return m.TxType.Equals(tx) }
 func (m MemoBase) GetAsset() common.Asset           { return m.Asset }
-func (m MemoBase) GetAmount() string                { return "" }
+func (m MemoBase) GetAmount() cosmos.Uint           { return cosmos.ZeroUint() }
 func (m MemoBase) GetDestination() common.Address   { return "" }
 func (m MemoBase) GetSlipLimit() cosmos.Uint        { return cosmos.ZeroUint() }
-func (m MemoBase) GetKey() string                   { return "" }
-func (m MemoBase) GetValue() string                 { return "" }
 func (m MemoBase) GetTxID() common.TxID             { return "" }
 func (m MemoBase) GetAccAddress() cosmos.AccAddress { return cosmos.AccAddress{} }
 func (m MemoBase) GetBlockHeight() int64            { return 0 }
@@ -530,12 +555,14 @@ func (m MemoBase) IsInternal() bool                 { return m.TxType.IsInternal
 func (m MemoBase) IsEmpty() bool                    { return m.TxType.IsEmpty() }
 
 // Transaction Specific Functions
-func (m UnstakeMemo) GetAmount() string              { return m.Amount }
-func (m SwapMemo) GetDestination() common.Address    { return m.Destination }
-func (m SwapMemo) GetSlipLimit() cosmos.Uint         { return m.SlipLimit }
-func (m BondMemo) GetAccAddress() cosmos.AccAddress  { return m.NodeAddress }
-func (m LeaveMemo) GetAccAddress() cosmos.AccAddress { return m.NodeAddress }
-func (m StakeMemo) GetDestination() common.Address   { return m.Address }
+func (m UnstakeMemo) GetAmount() cosmos.Uint          { return m.Amount }
+func (m SwapMemo) GetDestination() common.Address     { return m.Destination }
+func (m SwapMemo) GetSlipLimit() cosmos.Uint          { return m.SlipLimit }
+func (m BondMemo) GetAccAddress() cosmos.AccAddress   { return m.NodeAddress }
+func (m UnBondMemo) GetAccAddress() cosmos.AccAddress { return m.NodeAddress }
+func (m UnBondMemo) GetAmount() cosmos.Uint           { return m.Amount }
+func (m LeaveMemo) GetAccAddress() cosmos.AccAddress  { return m.NodeAddress }
+func (m StakeMemo) GetDestination() common.Address    { return m.Address }
 func (m AddMemo) String() string {
 	return fmt.Sprintf("ADD:%s", m.Asset)
 }

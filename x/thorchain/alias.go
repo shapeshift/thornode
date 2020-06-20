@@ -108,6 +108,7 @@ var (
 	NewMsgYggdrasil                = types.NewMsgYggdrasil
 	NewMsgReserveContributor       = types.NewMsgReserveContributor
 	NewMsgBond                     = types.NewMsgBond
+	NewMsgUnBond                   = types.NewMsgUnBond
 	NewMsgErrataTx                 = types.NewMsgErrataTx
 	NewMsgBan                      = types.NewMsgBan
 	NewMsgSwitch                   = types.NewMsgSwitch
@@ -146,6 +147,7 @@ type (
 	MsgNativeTx                    = types.MsgNativeTx
 	MsgSwitch                      = types.MsgSwitch
 	MsgBond                        = types.MsgBond
+	MsgUnBond                      = types.MsgUnBond
 	MsgNoOp                        = types.MsgNoOp
 	MsgAdd                         = types.MsgAdd
 	MsgSetUnStake                  = types.MsgSetUnStake
@@ -234,6 +236,7 @@ type (
 	MigrateMemo         = mem.MigrateMemo
 	RagnarokMemo        = mem.RagnarokMemo
 	BondMemo            = mem.BondMemo
+	UnBondMemo          = mem.UnBondMemo
 	OutboundMemo        = mem.OutboundMemo
 	LeaveMemo           = mem.LeaveMemo
 	YggdrasilFundMemo   = mem.YggdrasilFundMemo

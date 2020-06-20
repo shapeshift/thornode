@@ -22,7 +22,7 @@ func (s *MemoSuite) SetUpSuite(c *C) {
 }
 
 func (s *MemoSuite) TestTxType(c *C) {
-	for _, trans := range []TxType{TxStake, TxUnstake, TxSwap, TxOutbound, TxAdd, TxBond, TxLeave, TxSwitch} {
+	for _, trans := range []TxType{TxStake, TxUnstake, TxSwap, TxOutbound, TxAdd, TxBond, TxUnBond, TxLeave, TxSwitch} {
 		tx, err := StringToTxType(trans.String())
 		c.Assert(err, IsNil)
 		c.Check(tx, Equals, trans)
@@ -52,7 +52,7 @@ func (s *MemoSuite) TestParseWithAbbreviated(c *C) {
 	c.Assert(err, IsNil)
 	c.Check(memo.GetAsset().String(), Equals, common.RuneAsset().String())
 	c.Check(memo.IsType(TxUnstake), Equals, true, Commentf("MEMO: %+v", memo))
-	c.Check(memo.GetAmount(), Equals, "25")
+	c.Check(memo.GetAmount().Uint64(), Equals, uint64(25), Commentf("%d", memo.GetAmount().Uint64()))
 	c.Check(memo.IsInbound(), Equals, true)
 	c.Check(memo.IsInternal(), Equals, false)
 	c.Check(memo.IsOutbound(), Equals, false)
@@ -193,7 +193,7 @@ func (s *MemoSuite) TestParse(c *C) {
 	c.Assert(err, IsNil)
 	c.Check(memo.GetAsset().String(), Equals, common.RuneAsset().String())
 	c.Check(memo.IsType(TxUnstake), Equals, true, Commentf("MEMO: %+v", memo))
-	c.Check(memo.GetAmount(), Equals, "25")
+	c.Check(memo.GetAmount().Equal(cosmos.NewUint(25)), Equals, true, Commentf("%d", memo.GetAmount().Uint64()))
 
 	memo, err = ParseMemo("SWAP:" + common.RuneAsset().String() + ":bnb1lejrrtta9cgr49fuh7ktu3sddhe0ff7wenlpn6:870000000")
 	c.Assert(err, IsNil)
@@ -226,6 +226,12 @@ func (s *MemoSuite) TestParse(c *C) {
 	memo, err = ParseMemo("leave:" + types.GetRandomBech32Addr().String())
 	c.Assert(err, IsNil)
 	c.Assert(memo.IsType(TxLeave), Equals, true)
+
+	memo, err = ParseMemo("unbond:" + whiteListAddr.String() + ":300")
+	c.Assert(err, IsNil)
+	c.Assert(memo.IsType(TxUnBond), Equals, true)
+	c.Assert(memo.GetAccAddress().String(), Equals, whiteListAddr.String())
+	c.Assert(memo.GetAmount().Equal(cosmos.NewUint(300)), Equals, true)
 
 	memo, err = ParseMemo("migrate:100")
 	c.Assert(err, IsNil)
@@ -267,11 +273,9 @@ func (s *MemoSuite) TestParse(c *C) {
 
 	baseMemo := MemoBase{}
 	c.Check(baseMemo.String(), Equals, "")
-	c.Check(baseMemo.GetAmount(), Equals, "")
+	c.Check(baseMemo.GetAmount().Uint64(), Equals, cosmos.ZeroUint().Uint64())
 	c.Check(baseMemo.GetDestination(), Equals, common.NoAddress)
 	c.Check(baseMemo.GetSlipLimit().Uint64(), Equals, cosmos.ZeroUint().Uint64())
-	c.Check(baseMemo.GetKey(), Equals, "")
-	c.Check(baseMemo.GetValue(), Equals, "")
 	c.Check(baseMemo.GetTxID(), Equals, common.TxID(""))
 	c.Check(baseMemo.GetAccAddress().Empty(), Equals, true)
 	c.Check(baseMemo.IsEmpty(), Equals, true)
