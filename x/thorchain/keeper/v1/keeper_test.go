@@ -16,7 +16,7 @@ import (
 	dbm "github.com/tendermint/tm-db"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 func TestPackage(t *testing.T) { TestingT(t) }
