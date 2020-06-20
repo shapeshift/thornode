@@ -3,10 +3,10 @@ package keeperv1
 import (
 	"strconv"
 
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
-// AppendTxOut - append a given item to txOut
+// AppendTxOut - append the given item to txOut
 func (k KVStore) AppendTxOut(ctx cosmos.Context, height int64, item *TxOutItem) error {
 	block, err := k.GetTxOut(ctx, height)
 	if err != nil {
@@ -16,25 +16,15 @@ func (k KVStore) AppendTxOut(ctx cosmos.Context, height int64, item *TxOutItem) 
 	return k.SetTxOut(ctx, block)
 }
 
-// ClearTxOut - clear a given txOut
+// ClearTxOut - remove the txout of the given height from key value  store
 func (k KVStore) ClearTxOut(ctx cosmos.Context, height int64) error {
-	block, err := k.GetTxOut(ctx, height)
-	if err != nil {
-		return err
-	}
-	block.TxArray = make([]*TxOutItem, 0)
-
 	store := ctx.KVStore(k.storeKey)
-	key := k.GetKey(ctx, prefixTxOut, strconv.FormatInt(block.Height, 10))
-	buf, err := k.cdc.MarshalBinaryBare(block)
-	if err != nil {
-		return dbError(ctx, "fail to marshal tx out to binary", err)
-	}
-	store.Set([]byte(key), buf)
+	key := k.GetKey(ctx, prefixTxOut, strconv.FormatInt(height, 10))
+	store.Delete([]byte(key))
 	return nil
 }
 
-// SetTxOut - write the given txout information to key values tore
+// SetTxOut - write the given txout information to key value store
 func (k KVStore) SetTxOut(ctx cosmos.Context, blockOut *TxOut) error {
 	if blockOut == nil || blockOut.IsEmpty() {
 		return nil

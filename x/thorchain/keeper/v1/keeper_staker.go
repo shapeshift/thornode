@@ -2,7 +2,7 @@ package keeperv1
 
 import (
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 // GetStakerIterator iterate stakers
@@ -32,14 +32,14 @@ func (k KVStore) GetStaker(ctx cosmos.Context, asset common.Asset, addr common.A
 	return staker, nil
 }
 
-// SetStaker store the staker to kvstore
+// SetStaker save the staker to kv store
 func (k KVStore) SetStaker(ctx cosmos.Context, staker Staker) {
 	store := ctx.KVStore(k.storeKey)
 	key := k.GetKey(ctx, prefixStaker, staker.Key())
 	store.Set([]byte(key), k.cdc.MustMarshalBinaryBare(staker))
 }
 
-// RemoveStaker remove the staker to kvstore
+// RemoveStaker remove the staker to kv store
 func (k KVStore) RemoveStaker(ctx cosmos.Context, staker Staker) {
 	store := ctx.KVStore(k.storeKey)
 	key := k.GetKey(ctx, prefixStaker, staker.Key())

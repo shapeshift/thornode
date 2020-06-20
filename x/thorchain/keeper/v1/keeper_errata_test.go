@@ -21,4 +21,9 @@ func (s *KeeperErrataTxSuite) TestErrataTxVoter(c *C) {
 	c.Assert(err, IsNil)
 	c.Check(voter.TxID.Equals(txID), Equals, true)
 	c.Check(voter.Chain.Equals(common.BNBChain), Equals, true)
+	c.Check(k.GetErrataTxVoterIterator(ctx), NotNil)
+
+	errtaVoter, err := k.GetErrataTxVoter(ctx, GetRandomTxHash(), common.BNBChain)
+	c.Check(err, IsNil)
+	c.Check(errtaVoter.Empty(), Equals, false)
 }

@@ -16,7 +16,7 @@ import (
 	dbm "github.com/tendermint/tm-db"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 func TestPackage(t *testing.T) { TestingT(t) }
@@ -108,4 +108,26 @@ func setupKeeperForTest(c *C) (cosmos.Context, KVStore) {
 		cosmos.NewUint(30000),
 	})
 	return ctx, k
+}
+
+type KeeperTestSuit struct{}
+
+var _ = Suite(&KeeperTestSuit{})
+
+func (KeeperTestSuit) TestKeeperVersion(c *C) {
+	ctx, k := setupKeeperForTest(c)
+	c.Check(k.GetStoreVersion(ctx), Equals, int64(1))
+
+	k.SetStoreVersion(ctx, 2)
+	c.Check(k.GetStoreVersion(ctx), Equals, int64(2))
+
+	c.Check(k.GetRuneBalanceOfModule(ctx, AsgardName).Equal(cosmos.NewUint(100000000*common.One)), Equals, true)
+	coinToSend := common.NewCoin(common.RuneNative, cosmos.NewUint(1*common.One))
+	c.Check(k.SendFromModuleToModule(ctx, AsgardName, BondName, coinToSend), IsNil)
+
+	acct := GetRandomBech32Addr()
+	c.Check(k.SendFromModuleToAccount(ctx, AsgardName, acct, coinToSend), IsNil)
+	c.Check(k.SendFromAccountToModule(ctx, acct, AsgardName, coinToSend), IsNil)
+	c.Check(k.CoinKeeper(), NotNil)
+	c.Check(k.Version(), Equals, version)
 }

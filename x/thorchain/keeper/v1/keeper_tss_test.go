@@ -14,9 +14,16 @@ func (s *KeeperTssSuite) TestTssVoter(c *C) {
 	pk := GetRandomPubKey()
 	voter := NewTssVoter("hello", nil, pk)
 
+	v, err1 := k.GetTssVoter(ctx, voter.ID)
+	c.Check(err1, IsNil)
+	c.Check(v.Empty(), Equals, true)
+
 	k.SetTssVoter(ctx, voter)
 	voter, err := k.GetTssVoter(ctx, voter.ID)
 	c.Assert(err, IsNil)
 	c.Check(voter.ID, Equals, "hello")
 	c.Check(voter.PoolPubKey.Equals(pk), Equals, true)
+	iter := k.GetTssVoterIterator(ctx)
+	c.Check(iter, NotNil)
+	iter.Close()
 }

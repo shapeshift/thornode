@@ -7,10 +7,9 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/x/bank"
 	"github.com/cosmos/cosmos-sdk/x/supply"
-	"github.com/tendermint/tendermint/libs/log"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 	kvTypes "gitlab.com/thorchain/thornode/x/thorchain/keeper/types"
 )
 
@@ -23,7 +22,7 @@ import (
 
 const (
 	version                  int64            = 1
-	prefixStoreVersion       kvTypes.DbPrefix = "_ver"
+	prefixStoreVersion       kvTypes.DbPrefix = "_ver/"
 	prefixObservedTxIn       kvTypes.DbPrefix = "observed_tx_in/"
 	prefixObservedTxOut      kvTypes.DbPrefix = "observed_tx_out/"
 	prefixPool               kvTypes.DbPrefix = "pool/"
@@ -35,7 +34,7 @@ const (
 	prefixLastSignedHeight   kvTypes.DbPrefix = "last_signed_height/"
 	prefixNodeAccount        kvTypes.DbPrefix = "node_account/"
 	prefixActiveObserver     kvTypes.DbPrefix = "active_observer/"
-	prefixVaultPool          kvTypes.DbPrefix = "vault/"
+	prefixVault              kvTypes.DbPrefix = "vault/"
 	prefixVaultAsgardIndex   kvTypes.DbPrefix = "vault_asgard_index/"
 	prefixVaultData          kvTypes.DbPrefix = "vault_data/"
 	prefixObservingAddresses kvTypes.DbPrefix = "observing_addresses/"
@@ -60,7 +59,7 @@ const (
 
 func dbError(ctx cosmos.Context, wrapper string, err error) error {
 	err = fmt.Errorf("KVStore Error: %s: %w", wrapper, err)
-	ctx.Logger().Error(err.Error())
+	ctx.Logger().Error("keeper error", "error", err)
 	return err
 }
 
@@ -84,56 +83,60 @@ func NewKVStore(coinKeeper bank.Keeper, supplyKeeper supply.Keeper, storeKey cos
 	}
 }
 
+// Cdc return the amino codec
 func (k KVStore) Cdc() *codec.Codec {
 	return k.cdc
 }
 
+// Supply return the keeper from supply handler
 func (k KVStore) Supply() supply.Keeper {
 	return k.supplyKeeper
 }
 
+// CoinKeeper return the keeper from bank handler
 func (k KVStore) CoinKeeper() bank.Keeper {
 	return k.coinKeeper
 }
 
+// Version return the current version
 func (k KVStore) Version() int64 {
 	return k.version
 }
 
-func (k KVStore) Logger(ctx cosmos.Context) log.Logger {
-	return ctx.Logger().With("module", fmt.Sprintf("x/%s", ModuleName))
-}
-
+// GetKey return a key that can be used to store into key value store
 func (k KVStore) GetKey(ctx cosmos.Context, prefix kvTypes.DbPrefix, key string) string {
 	return fmt.Sprintf("%s/%s", prefix, strings.ToUpper(key))
 }
 
+// GetStoreVersion get the current key value store version
 func (k KVStore) GetStoreVersion(ctx cosmos.Context) int64 {
-	key := prefixStoreVersion
+	key := k.GetKey(ctx, prefixStoreVersion, "")
 	store := ctx.KVStore(k.storeKey)
 	if !store.Has([]byte(key)) {
 		return 1
 	}
 	var value int64
 	buf := store.Get([]byte(key))
-	k.cdc.MustUnmarshalBinaryLengthPrefixed(buf, &value)
+	k.cdc.MustUnmarshalBinaryBare(buf, &value)
 	return value
 }
 
+// SetStoreVersion save the store version
 func (k KVStore) SetStoreVersion(ctx cosmos.Context, value int64) {
 	key := k.GetKey(ctx, prefixStoreVersion, "")
 	store := ctx.KVStore(k.storeKey)
-	key = k.GetKey(ctx, prefixStoreVersion, key)
 	store.Set([]byte(key), k.cdc.MustMarshalBinaryBare(value))
 }
 
-func (k KVStore) GetRuneBalaceOfModule(ctx cosmos.Context, moduleName string) cosmos.Uint {
+// GetRuneBalanceOfModule get the RUNE balance
+func (k KVStore) GetRuneBalanceOfModule(ctx cosmos.Context, moduleName string) cosmos.Uint {
 	addr := k.supplyKeeper.GetModuleAddress(moduleName)
 	coins := k.coinKeeper.GetCoins(ctx, addr)
 	amt := coins.AmountOf(common.RuneNative.Native())
 	return cosmos.NewUintFromBigInt(amt.BigInt())
 }
 
+// SendFromModuleToModule transfer asset from one module to another
 func (k KVStore) SendFromModuleToModule(ctx cosmos.Context, from, to string, coin common.Coin) error {
 	coins := cosmos.NewCoins(
 		cosmos.NewCoin(coin.Asset.Native(), cosmos.NewIntFromBigInt(coin.Amount.BigInt())),
@@ -141,6 +144,7 @@ func (k KVStore) SendFromModuleToModule(ctx cosmos.Context, from, to string, coi
 	return k.Supply().SendCoinsFromModuleToModule(ctx, from, to, coins)
 }
 
+// SendFromAccountToModule transfer fund from one account to a module
 func (k KVStore) SendFromAccountToModule(ctx cosmos.Context, from cosmos.AccAddress, to string, coin common.Coin) error {
 	coins := cosmos.NewCoins(
 		cosmos.NewCoin(coin.Asset.Native(), cosmos.NewIntFromBigInt(coin.Amount.BigInt())),
@@ -148,6 +152,7 @@ func (k KVStore) SendFromAccountToModule(ctx cosmos.Context, from cosmos.AccAddr
 	return k.Supply().SendCoinsFromAccountToModule(ctx, from, to, coins)
 }
 
+// SendFromModuleToAccount transfer fund from module to an account
 func (k KVStore) SendFromModuleToAccount(ctx cosmos.Context, from string, to cosmos.AccAddress, coin common.Coin) error {
 	coins := cosmos.NewCoins(
 		cosmos.NewCoin(coin.Asset.Native(), cosmos.NewIntFromBigInt(coin.Amount.BigInt())),

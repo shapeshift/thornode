@@ -35,7 +35,7 @@ func (k KVStoreDummy) GetKey(_ cosmos.Context, prefix kvTypes.DbPrefix, key stri
 func (k KVStoreDummy) GetStoreVersion(ctx cosmos.Context) int64      { return 1 }
 func (k KVStoreDummy) SetStoreVersion(ctx cosmos.Context, ver int64) {}
 
-func (k KVStoreDummy) GetRuneBalaceOfModule(ctx cosmos.Context, moduleName string) cosmos.Uint {
+func (k KVStoreDummy) GetRuneBalanceOfModule(ctx cosmos.Context, moduleName string) cosmos.Uint {
 	return cosmos.ZeroUint()
 }
 

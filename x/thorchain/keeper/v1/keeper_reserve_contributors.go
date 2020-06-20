@@ -4,10 +4,10 @@ import (
 	"fmt"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
-// AddFeeToReserve add fee to reserve
+// AddFeeToReserve add fee to reserve, the fee is always in RUNE
 func (k KVStore) AddFeeToReserve(ctx cosmos.Context, fee cosmos.Uint) error {
 	vault, err := k.GetVaultData(ctx)
 	if err != nil {
@@ -25,6 +25,7 @@ func (k KVStore) AddFeeToReserve(ctx cosmos.Context, fee cosmos.Uint) error {
 	return k.SetVaultData(ctx, vault)
 }
 
+// GetReservesContributors return those address who contributed to the reserve
 func (k KVStore) GetReservesContributors(ctx cosmos.Context) (ReserveContributors, error) {
 	contributors := make(ReserveContributors, 0)
 	key := k.GetKey(ctx, prefixReserves, "")
@@ -40,6 +41,7 @@ func (k KVStore) GetReservesContributors(ctx cosmos.Context) (ReserveContributor
 	return contributors, nil
 }
 
+// SetReserveContributors save reserve contributors to key value store
 func (k KVStore) SetReserveContributors(ctx cosmos.Context, contributors ReserveContributors) error {
 	key := k.GetKey(ctx, prefixReserves, "")
 	store := ctx.KVStore(k.storeKey)
@@ -50,6 +52,10 @@ func (k KVStore) SetReserveContributors(ctx cosmos.Context, contributors Reserve
 	buf, err := k.cdc.MarshalBinaryBare(contributors)
 	if err != nil {
 		return dbError(ctx, "fail to marshal reserve contributors to binary", err)
+	}
+	// there is nothing to be set
+	if buf == nil {
+		return nil
 	}
 	store.Set([]byte(key), buf)
 	return nil

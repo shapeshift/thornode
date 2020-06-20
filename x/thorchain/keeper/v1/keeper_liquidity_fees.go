@@ -5,7 +5,7 @@ import (
 	"strconv"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 // AddToLiquidityFees - measure of fees collected in each block

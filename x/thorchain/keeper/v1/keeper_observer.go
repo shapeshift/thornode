@@ -1,6 +1,6 @@
 package keeperv1
 
-import cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+import "gitlab.com/thorchain/thornode/common/cosmos"
 
 // SetActiveObserver set the given addr as an active observer address
 func (k KVStore) SetActiveObserver(ctx cosmos.Context, addr cosmos.AccAddress) {

@@ -4,10 +4,10 @@ import (
 	"errors"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
-// SetSwapQueueItem - writes a swap item to the kvstore
+// SetSwapQueueItem - writes a swap item to the kv store
 func (k KVStore) SetSwapQueueItem(ctx cosmos.Context, msg MsgSwap) error {
 	store := ctx.KVStore(k.storeKey)
 	key := k.GetKey(ctx, prefixSwapQueueItem, msg.Tx.ID.String())
@@ -19,7 +19,7 @@ func (k KVStore) SetSwapQueueItem(ctx cosmos.Context, msg MsgSwap) error {
 	return nil
 }
 
-// GetSwapQueueIterator iterate tx out
+// GetSwapQueueIterator iterate swap queue
 func (k KVStore) GetSwapQueueIterator(ctx cosmos.Context) cosmos.Iterator {
 	store := ctx.KVStore(k.storeKey)
 	return cosmos.KVStorePrefixIterator(store, []byte(prefixSwapQueueItem))
@@ -40,7 +40,7 @@ func (k KVStore) GetSwapQueueItem(ctx cosmos.Context, txID common.TxID) (MsgSwap
 	return msg, nil
 }
 
-// RemoveSwapQueueItem - removes a swap item to the kvstore
+// RemoveSwapQueueItem - removes a swap item from the kv store
 func (k KVStore) RemoveSwapQueueItem(ctx cosmos.Context, txID common.TxID) {
 	store := ctx.KVStore(k.storeKey)
 	key := k.GetKey(ctx, prefixSwapQueueItem, txID.String())

@@ -2,9 +2,12 @@ package keeperv1
 
 import (
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
+// TODO these will not be needed once dynamic network fee get merged
+
+// GetGas get gas information from key value store
 func (k KVStore) GetGas(ctx cosmos.Context, asset common.Asset) ([]cosmos.Uint, error) {
 	key := k.GetKey(ctx, prefixGas, asset.String())
 	store := ctx.KVStore(k.storeKey)
@@ -20,6 +23,7 @@ func (k KVStore) GetGas(ctx cosmos.Context, asset common.Asset) ([]cosmos.Uint, 
 	return gas, nil
 }
 
+// SetGas save gas information to key value store
 func (k KVStore) SetGas(ctx cosmos.Context, asset common.Asset, units []cosmos.Uint) {
 	store := ctx.KVStore(k.storeKey)
 	key := k.GetKey(ctx, prefixGas, asset.String())
