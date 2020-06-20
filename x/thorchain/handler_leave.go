@@ -101,7 +101,7 @@ func (h LeaveHandler) handle(ctx cosmos.Context, msg MsgLeave, version semver.Ve
 		// vault (it was destroyed when we successfully migrated funds from
 		// their address to a new TSS vault
 		if !h.keeper.VaultExists(ctx, nodeAcc.PubKeySet.Secp256k1) {
-			if err := refundBond(ctx, msg.Tx, nodeAcc, h.keeper, h.mgr); err != nil {
+			if err := refundBond(ctx, msg.Tx, cosmos.ZeroUint(), nodeAcc, h.keeper, h.mgr); err != nil {
 				return ErrInternal(err, "fail to refund bond")
 			}
 		} else {
@@ -114,7 +114,7 @@ func (h LeaveHandler) handle(ctx cosmos.Context, msg MsgLeave, version semver.Ve
 			if vault.IsYggdrasil() {
 				if !vault.HasFunds() {
 					// node is not active , they are free to leave , refund them
-					if err := refundBond(ctx, msg.Tx, nodeAcc, h.keeper, h.mgr); err != nil {
+					if err := refundBond(ctx, msg.Tx, cosmos.ZeroUint(), nodeAcc, h.keeper, h.mgr); err != nil {
 						return ErrInternal(err, "fail to refund bond")
 					}
 				} else {
