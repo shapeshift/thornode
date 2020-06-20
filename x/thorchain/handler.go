@@ -84,6 +84,7 @@ func getInternalHandlerMapping(keeper keeper.Keeper, mgr Manager) map[string]Msg
 	m[MsgSwap{}.Type()] = NewSwapHandler(keeper, mgr)
 	m[MsgReserveContributor{}.Type()] = NewReserveContributorHandler(keeper, mgr)
 	m[MsgBond{}.Type()] = NewBondHandler(keeper, mgr)
+	m[MsgUnBond{}.Type()] = NewUnBondHandler(keeper, mgr)
 	m[MsgLeave{}.Type()] = NewLeaveHandler(keeper, mgr)
 	m[MsgAdd{}.Type()] = NewAddHandler(keeper, mgr)
 	m[MsgSetUnStake{}.Type()] = NewUnstakeHandler(keeper, mgr)
@@ -187,6 +188,11 @@ func processOneTxIn(ctx cosmos.Context, keeper keeper.Keeper, tx ObservedTx, sig
 		if err != nil {
 			return nil, err
 		}
+	case UnBondMemo:
+		newMsg, err = getMsgUnBondFromMemo(m, tx, signer)
+		if err != nil {
+			return nil, err
+		}
 	case RagnarokMemo:
 		newMsg, err = getMsgRagnarokFromMemo(m, tx, signer)
 		if err != nil {
@@ -244,8 +250,8 @@ func getMsgSwapFromMemo(memo SwapMemo, tx ObservedTx, signer cosmos.AccAddress) 
 
 func getMsgUnstakeFromMemo(memo UnstakeMemo, tx ObservedTx, signer cosmos.AccAddress) (cosmos.Msg, error) {
 	withdrawAmount := cosmos.NewUint(MaxUnstakeBasisPoints)
-	if len(memo.GetAmount()) > 0 {
-		withdrawAmount = cosmos.NewUintFromString(memo.GetAmount())
+	if !memo.GetAmount().IsZero() {
+		withdrawAmount = memo.GetAmount()
 	}
 	return NewMsgSetUnStake(tx.Tx, tx.Tx.FromAddress, withdrawAmount, memo.GetAsset(), signer), nil
 }
@@ -372,4 +378,8 @@ func getMsgBondFromMemo(memo BondMemo, tx ObservedTx, signer cosmos.AccAddress) 
 		return nil, errors.New("RUNE amount is 0")
 	}
 	return NewMsgBond(tx.Tx, memo.GetAccAddress(), runeAmount, tx.Tx.FromAddress, signer), nil
+}
+
+func getMsgUnBondFromMemo(memo UnBondMemo, tx ObservedTx, signer cosmos.AccAddress) (cosmos.Msg, error) {
+	return NewMsgBond(tx.Tx, memo.GetAccAddress(), memo.GetAmount(), tx.Tx.FromAddress, signer), nil
 }

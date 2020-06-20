@@ -200,10 +200,14 @@ func getTotalYggValueInRune(ctx cosmos.Context, keeper keeper.Keeper, ygg Vault)
 	return yggRune, nil
 }
 
-func refundBond(ctx cosmos.Context, tx common.Tx, nodeAcc NodeAccount, keeper keeper.Keeper, mgr Manager) error {
+func refundBond(ctx cosmos.Context, tx common.Tx, amt cosmos.Uint, nodeAcc NodeAccount, keeper keeper.Keeper, mgr Manager) error {
 	if nodeAcc.Status == NodeActive {
 		ctx.Logger().Info("node still active , cannot refund bond", "node address", nodeAcc.NodeAddress, "node pub key", nodeAcc.PubKeySet.Secp256k1)
 		return nil
+	}
+
+	if amt.IsZero() || amt.GT(nodeAcc.Bond) {
+		amt = nodeAcc.Bond
 	}
 
 	ygg := Vault{}
@@ -225,10 +229,13 @@ func refundBond(ctx cosmos.Context, tx common.Tx, nodeAcc NodeAccount, keeper ke
 	}
 
 	if nodeAcc.Bond.LT(yggRune) {
-		ctx.Logger().Error(fmt.Sprintf("Node Account (%s) left with more funds in their Yggdrasil vault than their bond's value (%s / %s)", nodeAcc.NodeAddress, yggRune, nodeAcc.Bond))
+		ctx.Logger().Error("Node Account left with more funds in their Yggdrasil vault than their bond's value", "address", nodeAcc.NodeAddress, "ygg-value", yggRune, "bond", nodeAcc.Bond)
 	}
 	// slashing 1.5 * yggdrasil remains
 	slashRune := yggRune.MulUint64(3).QuoUint64(2)
+	if slashRune.GT(nodeAcc.Bond) {
+		slashRune = nodeAcc.Bond
+	}
 	bondBeforeSlash := nodeAcc.Bond
 	nodeAcc.Bond = common.SafeSub(nodeAcc.Bond, slashRune)
 
@@ -244,7 +251,7 @@ func refundBond(ctx cosmos.Context, tx common.Tx, nodeAcc NodeAccount, keeper ke
 			return fmt.Errorf("unable to determine asgard vault to send funds")
 		}
 
-		bondEvent := NewEventBond(nodeAcc.Bond, BondReturned, tx)
+		bondEvent := NewEventBond(amt, BondReturned, tx)
 		if err := mgr.EventMgr().EmitBondEvent(ctx, bondEvent); err != nil {
 			return fmt.Errorf("fail to emit bond event: %w", err)
 		}
@@ -260,7 +267,7 @@ func refundBond(ctx cosmos.Context, tx common.Tx, nodeAcc NodeAccount, keeper ke
 			ToAddress:   refundAddress,
 			VaultPubKey: vault.PubKey,
 			InHash:      tx.ID,
-			Coin:        common.NewCoin(common.RuneAsset(), nodeAcc.Bond),
+			Coin:        common.NewCoin(common.RuneAsset(), amt),
 			ModuleName:  BondName,
 		}
 		_, err = mgr.TxOutStore().TryAddTxOutItem(ctx, mgr, txOutItem)
@@ -273,9 +280,11 @@ func refundBond(ctx cosmos.Context, tx common.Tx, nodeAcc NodeAccount, keeper ke
 		slashRune = bondBeforeSlash
 	}
 
-	nodeAcc.Bond = cosmos.ZeroUint()
+	nodeAcc.Bond = common.SafeSub(nodeAcc.Bond, amt)
 	// disable the node account
-	nodeAcc.UpdateStatus(NodeDisabled, common.BlockHeight(ctx))
+	if nodeAcc.Bond.IsZero() {
+		nodeAcc.UpdateStatus(NodeDisabled, common.BlockHeight(ctx))
+	}
 	if err := keeper.SetNodeAccount(ctx, nodeAcc); err != nil {
 		ctx.Logger().Error(fmt.Sprintf("fail to save node account(%s)", nodeAcc), "error", err)
 		return err
