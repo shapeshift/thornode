@@ -15,14 +15,14 @@ const (
 	RuneB1ASymbol = Symbol("RUNE-B1A")
 )
 
-var isAlpha = regexp.MustCompile(`^[A-Za-z0-9-]+$`).MatchString
+var isAlphaNumeric = regexp.MustCompile(`^[A-Za-z0-9-]+$`).MatchString
 
 // Symbol represent an asset
 type Symbol string
 
 // NewSymbol parse the input as symbol
 func NewSymbol(input string) (Symbol, error) {
-	if !isAlpha(input) {
+	if !isAlphaNumeric(input) {
 		return "", errors.New("invalid symbol")
 	}
 	return Symbol(input), nil
@@ -49,14 +49,4 @@ func (s Symbol) IsEmpty() bool {
 func (s Symbol) String() string {
 	// uppercasing again just in case someone created a ticker via Chain("rune")
 	return strings.ToUpper(string(s))
-}
-
-// IsBNBSymbol check whether the symbol represent BNB
-func IsBNBSymbol(s Symbol) bool {
-	return s.Equals(BNBSymbol)
-}
-
-// IsRuneSymbol check whether the symbol is RUNE
-func IsRuneSymbol(s Symbol) bool {
-	return s.Equals(RuneB1ASymbol) || s.Equals(RuneA1FSymbol)
 }

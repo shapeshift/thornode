@@ -16,9 +16,6 @@ func (s TickerSuite) TestTicker(c *C) {
 	c.Check(runeTicker.IsEmpty(), Equals, false)
 	c.Check(runeTicker.Equals(RuneTicker), Equals, true)
 	c.Check(bnbTicker.Equals(RuneTicker), Equals, false)
-	c.Check(IsRune(runeTicker), Equals, true)
-	c.Check(IsBNB(runeTicker), Equals, false)
-	c.Check(IsBNB(bnbTicker), Equals, true)
 	c.Check(runeTicker.String(), Equals, "RUNE")
 
 	tomobTicker, err := NewTicker("TOMOB-1E1")

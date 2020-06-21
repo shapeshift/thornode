@@ -11,11 +11,11 @@ import (
 )
 
 var (
+	EmptyChain = Chain("")
 	BNBChain   = Chain("BNB")
 	ETHChain   = Chain("ETH")
 	BTCChain   = Chain("BTC")
 	THORChain  = Chain("THOR")
-	EmptyChain = Chain("")
 )
 
 // NoSigningAlgo empty signing algorithm
@@ -148,7 +148,7 @@ func (chains Chains) Has(c Chain) bool {
 	return false
 }
 
-// Distinct return a distinct set of chains , no duplicate
+// Distinct return a distinct set of chains, no duplicates
 func (chains Chains) Distinct() Chains {
 	var newChains Chains
 	for _, chain := range chains {
