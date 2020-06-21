@@ -121,6 +121,7 @@ if [ ! -f /etc/bifrost/config.json ]; then
             \"$PEER\"
           ],
           \"rendezvous\": \"asgard\",
+          \"external_ip\": \"$EXTERNAL_IP\",
           \"p2p_port\": 5040,
           \"info_address\": \":6040\"
       },
