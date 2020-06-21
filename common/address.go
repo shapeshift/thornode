@@ -12,13 +12,9 @@ import (
 
 type Address string
 
-var (
-	NoAddress    Address = Address("")
-	RagnarokAddr Address = Address("Ragnarok")
-)
+var NoAddress Address = Address("")
 
-// NewAddress create a new Address
-// Sample: bnb1lejrrtta9cgr49fuh7ktu3sddhe0ff7wenlpn6
+// NewAddress create a new Address. Supports Binance, Bitcoin, and Ethereum
 func NewAddress(address string) (Address, error) {
 	if len(address) == 0 {
 		return NoAddress, nil
