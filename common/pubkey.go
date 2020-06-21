@@ -228,7 +228,7 @@ func NewPubKeySet(secp256k1, ed25519 PubKey) PubKeySet {
 
 // IsEmpty will determinate whether PubKeySet is an empty
 func (pks PubKeySet) IsEmpty() bool {
-	return pks.Secp256k1.IsEmpty() && pks.Ed25519.IsEmpty()
+	return pks.Secp256k1.IsEmpty() || pks.Ed25519.IsEmpty()
 }
 
 // Equals check whether two PubKeySet are the same

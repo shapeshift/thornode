@@ -10,7 +10,8 @@ import (
 )
 
 type (
-	// TxID is a string that can uniquely represent a transaction on different block chain
+	// TxID is a string that can uniquely represent a transaction on different
+	// block chain
 	TxID string
 	// TxIDs is a slice of TxID
 	TxIDs []TxID
@@ -145,7 +146,8 @@ func (tx Tx) Equals(tx2 Tx) bool {
 	return true
 }
 
-// IsValid do some data sanity check , if the tx contains invalid information it will return an none nil error
+// IsValid do some data sanity check , if the tx contains invalid information
+// it will return an none nil error
 func (tx Tx) IsValid() error {
 	if tx.ID.IsEmpty() {
 		return errors.New("Tx ID cannot be empty")

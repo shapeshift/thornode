@@ -103,6 +103,7 @@ func (h UnstakeHandler) handle(ctx cosmos.Context, msg MsgSetUnStake, version se
 		Memo:      memo,
 	}
 	if !gasAsset.IsZero() {
+		// TODO: chain specific logic should be in a single location
 		if msg.Asset.IsBNB() {
 			toi.MaxGas = common.Gas{
 				common.NewCoin(common.RuneAsset().Chain.GetGasAsset(), gasAsset.QuoUint64(2)),

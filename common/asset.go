@@ -8,6 +8,8 @@ import (
 )
 
 var (
+	// EmptyAsset empty asset, not valid
+	EmptyAsset = Asset{Chain: EmptyChain, Symbol: "", Ticker: ""}
 	// BNBAsset BNB
 	BNBAsset = Asset{Chain: BNBChain, Symbol: "BNB", Ticker: "BNB"}
 	// BTCAsset BTC
@@ -18,14 +20,12 @@ var (
 	RuneA1FAsset = Asset{Chain: BNBChain, Symbol: "RUNE-A1F", Ticker: "RUNE"} // testnet
 	// RuneB1AAsset RUNE on Binance main net
 	RuneB1AAsset = Asset{Chain: BNBChain, Symbol: "RUNE-B1A", Ticker: "RUNE"} // mainnet
-	// EmptyAsset empty asset, not valid
-	EmptyAsset = Asset{Chain: EmptyChain, Symbol: "", Ticker: ""}
 	// RuneNative RUNE on thorchain
 	RuneNative = Asset{Chain: THORChain, Symbol: "RUNE", Ticker: "RUNE"}
 )
 
 // Asset represent an asset in THORChain it is in BNB.BNB format
-// for example BNB.RUNE-A1f , BNB.RUNE-B1A
+// for example BNB.RUNE-A1F , BNB.RUNE-B1A
 type Asset struct {
 	Chain  Chain  `json:"chain"`
 	Symbol Symbol `json:"symbol"`
@@ -35,9 +35,9 @@ type Asset struct {
 // NewAsset parse the given input into Asset object
 func NewAsset(input string) (Asset, error) {
 	var err error
-	asset := Asset{}
-	parts := strings.Split(input, ".")
+	var asset Asset
 	var sym string
+	parts := strings.Split(input, ".")
 	if len(parts) == 1 {
 		asset.Chain = THORChain
 		sym = parts[0]

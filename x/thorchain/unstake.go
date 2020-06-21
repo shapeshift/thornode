@@ -79,6 +79,7 @@ func unstake(ctx cosmos.Context, version semver.Version, keeper keeper.Keeper, m
 	// If the pool is empty, and there is a gas asset, subtract required gas
 	if common.SafeSub(poolUnits, fStakerUnit).Add(unitAfter).IsZero() {
 		// minus gas costs for our transactions
+		// TODO: chain specific logic should be in a single location
 		if pool.Asset.IsBNB() {
 			gasInfo, err := keeper.GetGas(ctx, pool.Asset)
 			if err != nil {
