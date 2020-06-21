@@ -5,9 +5,9 @@ import (
 
 	"github.com/blang/semver"
 
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // AddHandler is to handle Add message
@@ -52,7 +52,8 @@ func (h AddHandler) validateV1(ctx cosmos.Context, msg MsgAdd) error {
 	return nil
 }
 
-// handle  process MsgAdd
+// handle process MsgAdd, MsgAdd add asset and RUNE to the asset pool
+// it simply increase the pool asset/RUNE balance but without taking any of the pool units
 func (h AddHandler) handle(ctx cosmos.Context, msg MsgAdd, version semver.Version) (*cosmos.Result, error) {
 	pool, err := h.keeper.GetPool(ctx, msg.Asset)
 	if err != nil {

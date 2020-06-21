@@ -4,9 +4,9 @@ import (
 	"github.com/blang/semver"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // CommonOutboundTxHandler is the place where those common logic can be shared between multiple different kind of outbound tx handler
@@ -58,7 +58,9 @@ func (h CommonOutboundTxHandler) handle(ctx cosmos.Context, version semver.Versi
 
 	shouldSlash := true
 	signingTransPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
-
+	// every Signing Transaction Period , THORNode will check whether a TxOutItem had been sent by signer or not
+	// if a txout item that is older than SigningTransactionPeriod, but has not been sent out by signer , then it will create a new TxOutItem
+	// here THORNode will have to mark all the TxOutItem to complete one the tx get processed
 	for height := voter.Height; height <= common.BlockHeight(ctx); height += signingTransPeriod {
 
 		// update txOut record with our TxID that sent funds out of the pool

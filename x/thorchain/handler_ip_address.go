@@ -46,9 +46,8 @@ func (h IPAddressHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.V
 func (h IPAddressHandler) validate(ctx cosmos.Context, msg MsgSetIPAddress, version semver.Version) error {
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, msg)
-	} else {
-		return errBadVersion
 	}
+	return errBadVersion
 }
 
 func (h IPAddressHandler) validateV1(ctx cosmos.Context, msg MsgSetIPAddress) error {
@@ -73,10 +72,9 @@ func (h IPAddressHandler) handle(ctx cosmos.Context, msg MsgSetIPAddress, versio
 	ctx.Logger().Info("handleMsgSetIPAddress request", "ip address", msg.IPAddress)
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.handleV1(ctx, msg)
-	} else {
-		ctx.Logger().Error(errInvalidVersion.Error())
-		return errBadVersion
 	}
+	ctx.Logger().Error(errInvalidVersion.Error())
+	return errBadVersion
 }
 
 func (h IPAddressHandler) handleV1(ctx cosmos.Context, msg MsgSetIPAddress) error {

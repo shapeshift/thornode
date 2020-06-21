@@ -26,7 +26,7 @@ func NewErrataTxHandler(keeper keeper.Keeper, mgr Manager) ErrataTxHandler {
 	}
 }
 
-// Run it the main entry point to execute ErrataTx logic
+// Run is the main entry point to execute ErrataTx logic
 func (h ErrataTxHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, _ constants.ConstantValues) (*cosmos.Result, error) {
 	msg, ok := m.(MsgErrataTx)
 	if !ok {
@@ -42,9 +42,8 @@ func (h ErrataTxHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Ve
 func (h ErrataTxHandler) validate(ctx cosmos.Context, msg MsgErrataTx, version semver.Version) error {
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, msg)
-	} else {
-		return errBadVersion
 	}
+	return errBadVersion
 }
 
 func (h ErrataTxHandler) validateV1(ctx cosmos.Context, msg MsgErrataTx) error {
@@ -63,17 +62,15 @@ func (h ErrataTxHandler) handle(ctx cosmos.Context, msg MsgErrataTx, version sem
 	ctx.Logger().Info("handleMsgErrataTx request", "txid", msg.TxID.String())
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.handleV1(ctx, msg, version)
-	} else {
-		ctx.Logger().Error(errInvalidVersion.Error())
-		return nil, errBadVersion
 	}
+	ctx.Logger().Error(errInvalidVersion.Error())
+	return nil, errBadVersion
 }
 
 func (h ErrataTxHandler) handleV1(ctx cosmos.Context, msg MsgErrataTx, version semver.Version) (*cosmos.Result, error) {
 	active, err := h.keeper.ListActiveNodeAccounts(ctx)
 	if err != nil {
-		err = wrapError(ctx, err, "fail to get list of active node accounts")
-		return nil, err
+		return nil, wrapError(ctx, err, "fail to get list of active node accounts")
 	}
 
 	voter, err := h.keeper.GetErrataTxVoter(ctx, msg.TxID, msg.Chain)
