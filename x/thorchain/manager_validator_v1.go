@@ -249,6 +249,18 @@ func (vm *validatorMgrV1) EndBlock(ctx cosmos.Context, mgr Manager, constAccesso
 		})
 	}
 
+	// reset all nodes in ready status back to standby status
+	ready, err := vm.k.ListNodeAccountsByStatus(ctx, NodeReady)
+	if err != nil {
+		ctx.Logger().Error("fail to get list of ready node accounts", "error", err)
+	}
+	for _, na := range ready {
+		na.UpdateStatus(NodeStandby, common.BlockHeight(ctx))
+		if err := vm.k.SetNodeAccount(ctx, na); err != nil {
+			ctx.Logger().Error("fail to set node account", "error", err)
+		}
+	}
+
 	return validators
 }
 
