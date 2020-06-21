@@ -6,6 +6,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/store"
+	se "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/bank"
 	"github.com/cosmos/cosmos-sdk/x/params"
@@ -16,10 +17,10 @@ import (
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 
-	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 	kv1 "gitlab.com/thorchain/thornode/x/thorchain/keeper/v1"
 	mem "gitlab.com/thorchain/thornode/x/thorchain/memo"
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
@@ -89,6 +90,7 @@ func setupKeeperForTest(c *C) (cosmos.Context, keeper.Keeper) {
 	err := ms.LoadLatestVersion()
 	c.Assert(err, IsNil)
 
+	// if you would like to see the log , you can replace log.NewNopLogger with log.NewTMLogger(os.Stdout)
 	ctx := cosmos.NewContext(ms, abci.Header{ChainID: "thorchain"}, false, log.NewNopLogger())
 	ctx = ctx.WithBlockHeight(18)
 	cdc := makeTestCodec()
@@ -463,4 +465,16 @@ func (HandlerSuite) TestMsgLeaveFromMemo(c *C) {
 	msg, err := getMsgLeaveFromMemo(memo, txin, addr)
 	c.Assert(err, IsNil)
 	c.Check(msg.ValidateBasic(), IsNil)
+}
+
+func (s *HandlerSuite) TestExternalHandler(c *C) {
+	ctx, k := setupKeeperForTest(c)
+	mgr := NewManagers(k)
+	handler := NewExternalHandler(k, mgr)
+	ctx = ctx.WithBlockHeight(1024)
+	msg := NewMsgNetworkFee(1024, common.BNBChain, 1, bnbSingleTxFee, GetRandomBech32Addr())
+	result, err := handler(ctx, msg)
+	c.Check(err, NotNil)
+	c.Check(errors.Is(err, se.ErrUnauthorized), Equals, true)
+	c.Check(result, IsNil)
 }

@@ -7,9 +7,9 @@ import (
 	se "github.com/cosmos/cosmos-sdk/types/errors"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // BanHandler is to handle Ban message
@@ -42,9 +42,8 @@ func (h BanHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version
 func (h BanHandler) validate(ctx cosmos.Context, msg MsgBan, version semver.Version) error {
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, msg)
-	} else {
-		return errBadVersion
 	}
+	return errBadVersion
 }
 
 func (h BanHandler) validateV1(ctx cosmos.Context, msg MsgBan) error {
@@ -63,10 +62,9 @@ func (h BanHandler) handle(ctx cosmos.Context, msg MsgBan, version semver.Versio
 	ctx.Logger().Info("handleMsgBan request", "node address", msg.NodeAddress.String())
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.handleV1(ctx, msg, constAccessor)
-	} else {
-		ctx.Logger().Error(errInvalidVersion.Error())
-		return nil, errBadVersion
 	}
+	ctx.Logger().Error(errInvalidVersion.Error())
+	return nil, errBadVersion
 }
 
 func (h BanHandler) handleV1(ctx cosmos.Context, msg MsgBan, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
@@ -124,19 +122,16 @@ func (h BanHandler) handleV1(ctx cosmos.Context, msg MsgBan, constAccessor const
 		} else {
 			vaultData, err := h.keeper.GetVaultData(ctx)
 			if err != nil {
-				err = fmt.Errorf("fail to get vault data: %w", err)
-				return nil, err
+				return nil, fmt.Errorf("fail to get vault data: %w", err)
 			}
 			vaultData.TotalReserve = vaultData.TotalReserve.Add(slashAmount)
 			if err := h.keeper.SetVaultData(ctx, vaultData); err != nil {
-				err = fmt.Errorf("fail to save vault data: %w", err)
-				return nil, err
+				return nil, fmt.Errorf("fail to save vault data: %w", err)
 			}
 		}
 
 		if err := h.keeper.SetNodeAccount(ctx, banner); err != nil {
-			err = fmt.Errorf("fail to save node account: %w", err)
-			return nil, err
+			return nil, fmt.Errorf("fail to save node account: %w", err)
 		}
 	}
 
