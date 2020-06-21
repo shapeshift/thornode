@@ -6,9 +6,9 @@ import (
 	"github.com/blang/semver"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // BondHandler a handler to process bond
@@ -52,7 +52,7 @@ func (h BondHandler) validateV1(ctx cosmos.Context, version semver.Version, msg 
 	}
 
 	bond := msg.Bond.Add(nodeAccount.Bond)
-	if (bond).LT(minValidatorBond) {
+	if bond.LT(minValidatorBond) {
 		return cosmos.ErrUnknownRequest(fmt.Sprintf("not enough rune to be whitelisted , minimum validator bond (%s) , bond(%s)", minValidatorBond.String(), bond))
 	}
 

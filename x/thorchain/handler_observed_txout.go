@@ -73,6 +73,7 @@ func (h ObservedTxOutHandler) preflight(ctx cosmos.Context, voter ObservedTxVote
 	ok := false
 	h.mgr.Slasher().IncSlashPoints(ctx, observeSlashPoints, signer)
 	if !voter.Add(tx, signer) {
+		// when the signer already sign it
 		return voter, ok
 	}
 	if voter.HasConsensus(nas) {
