@@ -83,7 +83,6 @@ func (cs Coins) IsValid() error {
 			return err
 		}
 	}
-
 	return nil
 }
 
@@ -111,6 +110,9 @@ func (cs1 Coins) Equals(cs2 Coins) bool {
 }
 
 func (cs Coins) IsEmpty() bool {
+	if len(cs) == 0 {
+		return true
+	}
 	for _, coin := range cs {
 		if !coin.IsEmpty() {
 			return false
