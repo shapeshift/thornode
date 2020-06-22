@@ -262,9 +262,7 @@ func InitGenesis(ctx cosmos.Context, keeper keeper.Keeper, data GenesisState) []
 		if item.IsEmpty() {
 			continue
 		}
-		if err := keeper.SetKeygenBlock(ctx, item); err != nil {
-			panic(err)
-		}
+		keeper.SetKeygenBlock(ctx, item)
 	}
 
 	for hash, item := range data.AllTxMarkers {

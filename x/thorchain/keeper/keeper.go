@@ -163,7 +163,7 @@ type KeeperTssKeysignFail interface {
 }
 
 type KeeperKeygen interface {
-	SetKeygenBlock(ctx cosmos.Context, keygenBlock KeygenBlock) error
+	SetKeygenBlock(ctx cosmos.Context, keygenBlock KeygenBlock)
 	GetKeygenBlockIterator(ctx cosmos.Context) cosmos.Iterator
 	GetKeygenBlock(ctx cosmos.Context, height int64) (KeygenBlock, error)
 }

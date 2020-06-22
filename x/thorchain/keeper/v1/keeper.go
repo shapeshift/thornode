@@ -10,6 +10,7 @@ import (
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper/types"
 	kvTypes "gitlab.com/thorchain/thornode/x/thorchain/keeper/types"
 )
 
@@ -119,6 +120,51 @@ func (k KVStore) GetStoreVersion(ctx cosmos.Context) int64 {
 	buf := store.Get([]byte(key))
 	k.cdc.MustUnmarshalBinaryBare(buf, &value)
 	return value
+}
+
+// getIterator - get an iterator for given prefix
+func (k KVStore) getIterator(ctx cosmos.Context, prefix types.DbPrefix) cosmos.Iterator {
+	store := ctx.KVStore(k.storeKey)
+	return cosmos.KVStorePrefixIterator(store, []byte(prefix))
+}
+
+// set - save data from the kvstore
+func (k KVStore) set(ctx cosmos.Context, key string, record interface{}) {
+	store := ctx.KVStore(k.storeKey)
+	buf := k.cdc.MustMarshalBinaryBare(record)
+	if buf == nil {
+		store.Delete([]byte(key))
+	} else {
+		store.Set([]byte(key), buf)
+	}
+}
+
+// del - delete data from the kvstore
+func (k KVStore) del(ctx cosmos.Context, key string) {
+	store := ctx.KVStore(k.storeKey)
+	if store.Has([]byte(key)) {
+		store.Delete([]byte(key))
+	}
+}
+
+// get - fetches data from the kvstore
+func (k KVStore) get(ctx cosmos.Context, key string, record interface{}) (bool, error) {
+	store := ctx.KVStore(k.storeKey)
+	if !store.Has([]byte(key)) {
+		return false, nil
+	}
+
+	bz := store.Get([]byte(key))
+	if err := k.cdc.UnmarshalBinaryBare(bz, record); err != nil {
+		return true, dbError(ctx, fmt.Sprintf("Unmarshal kvstore: %s", key), err)
+	}
+	return true, nil
+}
+
+// has - kvstore has key
+func (k KVStore) has(ctx cosmos.Context, key string) bool {
+	store := ctx.KVStore(k.storeKey)
+	return store.Has([]byte(key))
 }
 
 // SetStoreVersion save the store version

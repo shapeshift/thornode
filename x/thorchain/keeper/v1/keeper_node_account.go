@@ -79,14 +79,13 @@ func (k KVStore) GetMinJoinVersion(ctx cosmos.Context) semver.Version {
 		if ok {
 			v.count = v.count + 1
 			vCount[na.Version.String()] = v
-
 		} else {
 			vCount[na.Version.String()] = tmpVersionInfo{
 				version: na.Version,
 				count:   1,
 			}
 		}
-		// assume all versions are  backward compatible
+		// assume all versions are backward compatible
 		for k, v := range vCount {
 			if v.version.LT(na.Version) {
 				v.count = v.count + 1
@@ -131,23 +130,13 @@ func (k KVStore) GetLowestActiveVersion(ctx cosmos.Context) semver.Version {
 
 // GetNodeAccount try to get node account with the given address from db
 func (k KVStore) GetNodeAccount(ctx cosmos.Context, addr cosmos.AccAddress) (NodeAccount, error) {
-	ctx.Logger().Debug("GetNodeAccount", "node account", addr.String())
-	store := ctx.KVStore(k.storeKey)
-	key := k.GetKey(ctx, prefixNodeAccount, addr.String())
-	if !store.Has([]byte(key)) {
-		emptyPubKeySet := common.PubKeySet{
-			Secp256k1: common.EmptyPubKey,
-			Ed25519:   common.EmptyPubKey,
-		}
-		return NewNodeAccount(addr, NodeUnknown, emptyPubKeySet, "", cosmos.ZeroUint(), "", common.BlockHeight(ctx)), nil
+	emptyPubKeySet := common.PubKeySet{
+		Secp256k1: common.EmptyPubKey,
+		Ed25519:   common.EmptyPubKey,
 	}
-
-	payload := store.Get([]byte(key))
-	var na NodeAccount
-	if err := k.cdc.UnmarshalBinaryBare(payload, &na); err != nil {
-		return na, dbError(ctx, "Unmarshal: node account", err)
-	}
-	return na, nil
+	record := NewNodeAccount(addr, NodeUnknown, emptyPubKeySet, "", cosmos.ZeroUint(), "", common.BlockHeight(ctx))
+	_, err := k.get(ctx, k.GetKey(ctx, prefixNodeAccount, addr.String()), &record)
+	return record, err
 }
 
 // GetNodeAccountByPubKey try to get node account with the given pubkey from db
@@ -161,12 +150,9 @@ func (k KVStore) GetNodeAccountByPubKey(ctx cosmos.Context, pk common.PubKey) (N
 
 // SetNodeAccount save the given node account into data store
 func (k KVStore) SetNodeAccount(ctx cosmos.Context, na NodeAccount) error {
-	ctx.Logger().Debug("SetNodeAccount", "node account", na.String())
 	if na.IsEmpty() {
 		return nil
 	}
-	store := ctx.KVStore(k.storeKey)
-	key := k.GetKey(ctx, prefixNodeAccount, na.NodeAddress.String())
 	if na.Status == NodeActive {
 		if na.ActiveBlockHeight == 0 {
 			// the na is active, and does not have a block height when they
@@ -177,7 +163,7 @@ func (k KVStore) SetNodeAccount(ctx cosmos.Context, na NodeAccount) error {
 		}
 	}
 
-	store.Set([]byte(key), k.cdc.MustMarshalBinaryBare(na))
+	k.set(ctx, k.GetKey(ctx, prefixNodeAccount, na.NodeAddress.String()), na)
 
 	// When a node is in active status, THORNode need to add the observer address to active
 	// if it is not , then THORNode could remove them
@@ -218,24 +204,15 @@ func (k KVStore) EnsureNodeKeysUnique(ctx cosmos.Context, consensusPubKey string
 
 // GetNodeAccountIterator iterate node account
 func (k KVStore) GetNodeAccountIterator(ctx cosmos.Context) cosmos.Iterator {
-	store := ctx.KVStore(k.storeKey)
-	return cosmos.KVStorePrefixIterator(store, []byte(prefixNodeAccount))
+	return k.getIterator(ctx, prefixNodeAccount)
 }
 
 // GetNodeAccountSlashPoints - get the slash points associated with the given
 // node address
 func (k KVStore) GetNodeAccountSlashPoints(ctx cosmos.Context, addr cosmos.AccAddress) (int64, error) {
-	store := ctx.KVStore(k.storeKey)
-	key := k.GetKey(ctx, prefixNodeSlashPoints, addr.String())
-	if !store.Has([]byte(key)) {
-		return 0, nil
-	}
-	payload := store.Get([]byte(key))
-	var pts int64
-	if err := k.cdc.UnmarshalBinaryBare(payload, &pts); err != nil {
-		return pts, dbError(ctx, "Unmarshal: node account slash points", err)
-	}
-	return pts, nil
+	record := int64(0)
+	_, err := k.get(ctx, k.GetKey(ctx, prefixNodeSlashPoints, addr.String()), &record)
+	return record, err
 }
 
 // SetNodeAccountSlashPoints - set the slash points associated with the given
@@ -245,17 +222,13 @@ func (k KVStore) SetNodeAccountSlashPoints(ctx cosmos.Context, addr cosmos.AccAd
 	if pts < 0 {
 		return
 	}
-	store := ctx.KVStore(k.storeKey)
-	key := k.GetKey(ctx, prefixNodeSlashPoints, addr.String())
-	store.Set([]byte(key), k.cdc.MustMarshalBinaryBare(pts))
+	k.set(ctx, k.GetKey(ctx, prefixNodeSlashPoints, addr.String()), pts)
 }
 
 // ResetNodeAccountSlashPoints - reset the slash points to zero for associated
 // with the given node address
 func (k KVStore) ResetNodeAccountSlashPoints(ctx cosmos.Context, addr cosmos.AccAddress) {
-	store := ctx.KVStore(k.storeKey)
-	key := k.GetKey(ctx, prefixNodeSlashPoints, addr.String())
-	store.Delete([]byte(key))
+	k.del(ctx, k.GetKey(ctx, prefixNodeSlashPoints, addr.String()))
 }
 
 // IncNodeAccountSlashPoints - increments the slash points associated with the
@@ -282,18 +255,9 @@ func (k KVStore) DecNodeAccountSlashPoints(ctx cosmos.Context, addr cosmos.AccAd
 
 // GetNodeAccountJail - gets jail details for a given node address
 func (k KVStore) GetNodeAccountJail(ctx cosmos.Context, addr cosmos.AccAddress) (Jail, error) {
-	store := ctx.KVStore(k.storeKey)
-	key := k.GetKey(ctx, prefixNodeJail, addr.String())
-	if !store.Has([]byte(key)) {
-		return NewJail(addr), nil
-	}
-
-	payload := store.Get([]byte(key))
-	var jail Jail
-	if err := k.cdc.UnmarshalBinaryBare(payload, &jail); err != nil {
-		return jail, dbError(ctx, "Unmarshal: jail node account", err)
-	}
-	return jail, nil
+	record := NewJail(addr)
+	_, err := k.get(ctx, k.GetKey(ctx, prefixNodeJail, addr.String()), &record)
+	return record, err
 }
 
 // SetNodeAccountJail - update the jail details of a node account
@@ -309,8 +273,6 @@ func (k KVStore) SetNodeAccountJail(ctx cosmos.Context, addr cosmos.AccAddress, 
 	jail.ReleaseHeight = height
 	jail.Reason = reason
 
-	store := ctx.KVStore(k.storeKey)
-	key := k.GetKey(ctx, prefixNodeJail, addr.String())
-	store.Set([]byte(key), k.cdc.MustMarshalBinaryBare(jail))
+	k.set(ctx, k.GetKey(ctx, prefixNodeJail, addr.String()), jail)
 	return nil
 }
