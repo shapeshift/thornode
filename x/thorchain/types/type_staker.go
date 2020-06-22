@@ -20,8 +20,8 @@ type Staker struct {
 	PendingTxID       common.TxID    `json:"pending_tx_id"`
 }
 
-// IsValid check whether staker represent valid information
-func (staker Staker) IsValid() error {
+// Valid check whether staker represent valid information
+func (staker Staker) Valid() error {
 	if staker.LastStakeHeight == 0 {
 		return errors.New("last stake height cannot be empty")
 	}

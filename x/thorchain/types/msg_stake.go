@@ -43,7 +43,7 @@ func (msg MsgStake) ValidateBasic() error {
 	if msg.Asset.IsEmpty() {
 		return cosmos.ErrUnknownRequest("Stake asset cannot be empty")
 	}
-	if err := msg.Tx.IsValid(); err != nil {
+	if err := msg.Tx.Valid(); err != nil {
 		return cosmos.ErrUnknownRequest(err.Error())
 	}
 	if msg.RuneAmount.IsZero() && msg.AssetAmount.IsZero() {

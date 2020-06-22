@@ -17,7 +17,7 @@ func (StakerSuite) TestStaker(c *C) {
 		AssetAddress:    GetRandomBTCAddress(),
 		LastStakeHeight: 12,
 	}
-	c.Check(staker.IsValid(), IsNil)
+	c.Check(staker.Valid(), IsNil)
 	c.Check(len(staker.Key()) > 0, Equals, true)
 	staker1 := Staker{
 		Asset:           common.BNBAsset,
@@ -25,7 +25,7 @@ func (StakerSuite) TestStaker(c *C) {
 		AssetAddress:    GetRandomBTCAddress(),
 		LastStakeHeight: 0,
 	}
-	c.Check(staker1.IsValid(), NotNil)
+	c.Check(staker1.Valid(), NotNil)
 
 	staker2 := Staker{
 		Asset:           common.BNBAsset,
@@ -33,7 +33,7 @@ func (StakerSuite) TestStaker(c *C) {
 		AssetAddress:    GetRandomBTCAddress(),
 		LastStakeHeight: 100,
 	}
-	c.Check(staker2.IsValid(), NotNil)
+	c.Check(staker2.Valid(), NotNil)
 
 	staker3 := Staker{
 		Asset:           common.BNBAsset,
@@ -41,5 +41,5 @@ func (StakerSuite) TestStaker(c *C) {
 		AssetAddress:    common.NoAddress,
 		LastStakeHeight: 100,
 	}
-	c.Check(staker3.IsValid(), NotNil)
+	c.Check(staker3.Valid(), NotNil)
 }

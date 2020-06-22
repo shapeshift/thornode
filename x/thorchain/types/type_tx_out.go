@@ -37,10 +37,10 @@ func (toi TxOutItem) Valid() error {
 	if toi.Chain.GetGasAsset().IsEmpty() {
 		return errors.New("invalid base asset")
 	}
-	if err := toi.Coin.IsValid(); err != nil {
+	if err := toi.Coin.Valid(); err != nil {
 		return err
 	}
-	if err := toi.MaxGas.IsValid(); err != nil {
+	if err := toi.MaxGas.Valid(); err != nil {
 		return err
 	}
 	return nil

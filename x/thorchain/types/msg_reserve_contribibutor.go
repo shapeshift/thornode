@@ -29,13 +29,13 @@ func (msg MsgReserveContributor) Type() string { return "set_reserve_contributor
 
 // ValidateBasic runs stateless checks on the message
 func (msg MsgReserveContributor) ValidateBasic() error {
-	if err := msg.Tx.IsValid(); err != nil {
+	if err := msg.Tx.Valid(); err != nil {
 		return cosmos.ErrUnknownRequest(err.Error())
 	}
 	if msg.Signer.Empty() {
 		return cosmos.ErrInvalidAddress(msg.Signer.String())
 	}
-	if err := msg.Contributor.IsValid(); err != nil {
+	if err := msg.Contributor.Valid(); err != nil {
 		return cosmos.ErrUnknownRequest(err.Error())
 	}
 	return nil

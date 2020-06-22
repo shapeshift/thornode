@@ -34,7 +34,7 @@ func (msg MsgNativeTx) ValidateBasic() error {
 	if msg.Signer.Empty() {
 		return cosmos.ErrInvalidAddress(msg.Signer.String())
 	}
-	if err := msg.Coins.IsValid(); err != nil {
+	if err := msg.Coins.Valid(); err != nil {
 		return cosmos.ErrUnknownRequest(err.Error())
 	}
 	for _, coin := range msg.Coins {

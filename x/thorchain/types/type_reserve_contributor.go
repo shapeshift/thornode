@@ -29,8 +29,8 @@ func (res ReserveContributor) IsEmpty() bool {
 	return res.Address.IsEmpty()
 }
 
-// IsValid check whether reserve contributor has all necessary values
-func (res ReserveContributor) IsValid() error {
+// Valid check whether reserve contributor has all necessary values
+func (res ReserveContributor) Valid() error {
 	if res.Amount.IsZero() {
 		return errors.New("amount cannot be zero")
 	}

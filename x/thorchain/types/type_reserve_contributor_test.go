@@ -35,5 +35,5 @@ func (s *RservesSuite) TestReserveContributors(c *C) {
 	c.Check(reses[1].Amount.Equal(cosmos.NewUint(20*common.One)), Equals, true)
 
 	res1 := NewReserveContributor(common.NoAddress, cosmos.NewUint(1*common.One))
-	c.Check(res1.IsValid(), NotNil)
+	c.Check(res1.Valid(), NotNil)
 }

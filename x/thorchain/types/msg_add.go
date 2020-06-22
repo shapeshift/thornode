@@ -44,7 +44,7 @@ func (msg MsgAdd) ValidateBasic() error {
 	if msg.RuneAmount.IsZero() && msg.AssetAmount.IsZero() {
 		return errors.New("rune and asset amount cannot be zero")
 	}
-	if err := msg.Tx.IsValid(); err != nil {
+	if err := msg.Tx.Valid(); err != nil {
 		return cosmos.ErrUnknownRequest(err.Error())
 	}
 	return nil
