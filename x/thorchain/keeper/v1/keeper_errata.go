@@ -7,31 +7,17 @@ import (
 
 // SetErrataTxVoter - save a errata voter object
 func (k KVStore) SetErrataTxVoter(ctx cosmos.Context, errata ErrataTxVoter) {
-	store := ctx.KVStore(k.storeKey)
-	key := k.GetKey(ctx, prefixErrataTx, errata.String())
-	store.Set([]byte(key), k.cdc.MustMarshalBinaryBare(errata))
+	k.set(ctx, k.GetKey(ctx, prefixErrataTx, errata.String()), errata)
 }
 
 // GetErrataTxVoterIterator iterate errata tx voter
 func (k KVStore) GetErrataTxVoterIterator(ctx cosmos.Context) cosmos.Iterator {
-	store := ctx.KVStore(k.storeKey)
-	return cosmos.KVStorePrefixIterator(store, []byte(prefixErrataTx))
+	return k.getIterator(ctx, prefixErrataTx)
 }
 
 // GetErrataTxVoter - gets information of errata tx voter
 func (k KVStore) GetErrataTxVoter(ctx cosmos.Context, txID common.TxID, chain common.Chain) (ErrataTxVoter, error) {
-	errata := NewErrataTxVoter(txID, chain)
-	key := k.GetKey(ctx, prefixErrataTx, errata.String())
-
-	store := ctx.KVStore(k.storeKey)
-	if !store.Has([]byte(key)) {
-		return errata, nil
-	}
-
-	bz := store.Get([]byte(key))
-	var record ErrataTxVoter
-	if err := k.cdc.UnmarshalBinaryBare(bz, &record); err != nil {
-		return errata, dbError(ctx, "Unmarshal: errata tx voter", err)
-	}
-	return record, nil
+	record := NewErrataTxVoter(txID, chain)
+	_, err := k.get(ctx, k.GetKey(ctx, prefixErrataTx, record.String()), &record)
+	return record, err
 }

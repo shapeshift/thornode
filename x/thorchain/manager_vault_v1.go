@@ -220,7 +220,8 @@ func (vm *VaultMgrV1) TriggerKeygen(ctx cosmos.Context, nas NodeAccounts) error 
 	if !keygenBlock.Contains(keygen) {
 		keygenBlock.Keygens = append(keygenBlock.Keygens, keygen)
 	}
-	return vm.k.SetKeygenBlock(ctx, keygenBlock)
+	vm.k.SetKeygenBlock(ctx, keygenBlock)
+	return nil
 }
 
 // RotateVault update vault to Retiring and new vault to active

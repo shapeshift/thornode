@@ -126,7 +126,7 @@ func newTssHandlerTestHelper(c *C) tssHandlerTestHelper {
 	keygenBlock.Keygens = []Keygen{
 		{Members: members},
 	}
-	c.Assert(keeper.SetKeygenBlock(ctx, keygenBlock), IsNil)
+	keeper.SetKeygenBlock(ctx, keygenBlock)
 
 	poolPk := GetRandomPubKey()
 	msg := NewMsgTssPool(members, poolPk, AsgardKeygen, common.BlockHeight(ctx), blame.Blame{}, common.Chains{common.RuneAsset().Chain}, signer)

@@ -11,32 +11,16 @@ func (k KVStore) GetMimir(ctx cosmos.Context, key string) (int64, error) {
 		return -1, nil
 	}
 
-	key = k.GetKey(ctx, prefixMimir, key)
-	store := ctx.KVStore(k.storeKey)
-	if !store.Has([]byte(key)) {
-		return -1, nil
-	}
-	var value int64
-	buf := store.Get([]byte(key))
-	err := k.cdc.UnmarshalBinaryBare(buf, &value)
-	if err != nil {
-		return -1, dbError(ctx, "Unmarshal: mimir attr", err)
-	}
-
-	return value, nil
+	record := int64(-1)
+	_, err := k.get(ctx, k.GetKey(ctx, prefixMimir, key), &record)
+	return record, err
 }
 
 // haveKraken - check to see if we have "released the kraken"
 func (k KVStore) haveKraken(ctx cosmos.Context) bool {
-	key := k.GetKey(ctx, prefixMimir, KRAKEN)
-	store := ctx.KVStore(k.storeKey)
-	if !store.Has([]byte(key)) {
-		return false
-	}
-	var value int64
-	buf := store.Get([]byte(key))
-	k.cdc.MustUnmarshalBinaryBare(buf, &value)
-	return value >= 0
+	record := int64(-1)
+	_, _ = k.get(ctx, k.GetKey(ctx, prefixMimir, KRAKEN), &record)
+	return record >= 0
 }
 
 // SetMimir save a mimir value to key value store
@@ -45,13 +29,10 @@ func (k KVStore) SetMimir(ctx cosmos.Context, key string, value int64) {
 	if k.haveKraken(ctx) {
 		return
 	}
-	store := ctx.KVStore(k.storeKey)
-	key = k.GetKey(ctx, prefixMimir, key)
-	store.Set([]byte(key), k.cdc.MustMarshalBinaryBare(value))
+	k.set(ctx, k.GetKey(ctx, prefixMimir, key), value)
 }
 
 // GetMimirIterator iterate gas units
 func (k KVStore) GetMimirIterator(ctx cosmos.Context) cosmos.Iterator {
-	store := ctx.KVStore(k.storeKey)
-	return cosmos.KVStorePrefixIterator(store, []byte(prefixMimir))
+	return k.getIterator(ctx, prefixMimir)
 }
