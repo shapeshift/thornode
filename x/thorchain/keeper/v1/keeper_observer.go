@@ -4,44 +4,26 @@ import "gitlab.com/thorchain/thornode/common/cosmos"
 
 // SetActiveObserver set the given addr as an active observer address
 func (k KVStore) SetActiveObserver(ctx cosmos.Context, addr cosmos.AccAddress) {
-	store := ctx.KVStore(k.storeKey)
-	key := k.GetKey(ctx, prefixActiveObserver, addr.String())
-	ctx.Logger().Debug("set_active_observer", "key", key)
-	store.Set([]byte(key), addr.Bytes())
+	k.set(ctx, k.GetKey(ctx, prefixActiveObserver, addr.String()), addr)
 }
 
 // RemoveActiveObserver remove the given address from active observer
 func (k KVStore) RemoveActiveObserver(ctx cosmos.Context, addr cosmos.AccAddress) {
-	store := ctx.KVStore(k.storeKey)
-	key := k.GetKey(ctx, prefixActiveObserver, addr.String())
-	store.Delete([]byte(key))
+	k.del(ctx, k.GetKey(ctx, prefixActiveObserver, addr.String()))
 }
 
 // IsActiveObserver check the given account address, whether they are active
 func (k KVStore) IsActiveObserver(ctx cosmos.Context, addr cosmos.AccAddress) bool {
-	store := ctx.KVStore(k.storeKey)
-	key := k.GetKey(ctx, prefixActiveObserver, addr.String())
-	ctx.Logger().Debug("is_active_observer", "key", key)
-	return store.Has([]byte(key))
+	return k.has(ctx, k.GetKey(ctx, prefixActiveObserver, addr.String()))
 }
 
 // GetObservingAddresses - get list of observed addresses. This is a list of
 // addresses that have recently contributed via observing a tx that got 2/3rds
 // majority
 func (k KVStore) GetObservingAddresses(ctx cosmos.Context) ([]cosmos.AccAddress, error) {
-	key := k.GetKey(ctx, prefixObservingAddresses, "")
-
-	store := ctx.KVStore(k.storeKey)
-	if !store.Has([]byte(key)) {
-		return make([]cosmos.AccAddress, 0), nil
-	}
-
-	bz := store.Get([]byte(key))
-	var addresses []cosmos.AccAddress
-	if err := k.cdc.UnmarshalBinaryBare(bz, &addresses); err != nil {
-		return nil, dbError(ctx, "Unmarshal: observer", err)
-	}
-	return addresses, nil
+	record := make([]cosmos.AccAddress, 0)
+	_, err := k.get(ctx, k.GetKey(ctx, prefixObservingAddresses, ""), &record)
+	return record, err
 }
 
 // AddObservingAddresses - add a list of addresses that have been helpful in
@@ -68,15 +50,11 @@ func (k KVStore) AddObservingAddresses(ctx cosmos.Context, inAddresses []cosmos.
 		}
 	}
 
-	store := ctx.KVStore(k.storeKey)
-	key := k.GetKey(ctx, prefixObservingAddresses, "")
-	store.Set([]byte(key), k.cdc.MustMarshalBinaryBare(uniq))
+	k.set(ctx, k.GetKey(ctx, prefixObservingAddresses, ""), uniq)
 	return nil
 }
 
 // ClearObservingAddresses - clear all observing addresses
 func (k KVStore) ClearObservingAddresses(ctx cosmos.Context) {
-	key := k.GetKey(ctx, prefixObservingAddresses, "")
-	store := ctx.KVStore(k.storeKey)
-	store.Delete([]byte(key))
+	k.del(ctx, k.GetKey(ctx, prefixObservingAddresses, ""))
 }
