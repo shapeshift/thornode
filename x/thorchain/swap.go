@@ -31,7 +31,7 @@ func validatePools(ctx cosmos.Context, keeper keeper.Keeper, assets ...common.As
 
 // validateMessage is trying to validate the legitimacy of the incoming message and decide whether THORNode can handle it
 func validateMessage(tx common.Tx, target common.Asset, destination common.Address) error {
-	if err := tx.IsValid(); err != nil {
+	if err := tx.Valid(); err != nil {
 		return err
 	}
 	if target.IsEmpty() {

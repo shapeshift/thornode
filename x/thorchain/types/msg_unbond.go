@@ -42,7 +42,7 @@ func (msg MsgUnBond) ValidateBasic() error {
 	if msg.BondAddress.IsEmpty() {
 		return cosmos.ErrInvalidAddress("bond address cannot be empty")
 	}
-	if err := msg.TxIn.IsValid(); err != nil {
+	if err := msg.TxIn.Valid(); err != nil {
 		return cosmos.ErrUnknownRequest(err.Error())
 	}
 	if msg.Signer.Empty() {

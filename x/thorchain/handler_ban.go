@@ -73,7 +73,7 @@ func (h BanHandler) handleV1(ctx cosmos.Context, msg MsgBan, constAccessor const
 		err = wrapError(ctx, err, "fail to get to ban node account")
 		return nil, err
 	}
-	if err := toBan.IsValid(); err != nil {
+	if err := toBan.Valid(); err != nil {
 		return nil, err
 	}
 	if toBan.ForcedToLeave {
@@ -89,7 +89,7 @@ func (h BanHandler) handleV1(ctx cosmos.Context, msg MsgBan, constAccessor const
 		err = wrapError(ctx, err, "fail to get banner node account")
 		return nil, err
 	}
-	if err := banner.IsValid(); err != nil {
+	if err := banner.Valid(); err != nil {
 		return nil, err
 	}
 

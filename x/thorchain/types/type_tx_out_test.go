@@ -161,7 +161,7 @@ func (TxOutTestSuite) TestTxOutItem(c *C) {
 			InHash:      tc.inHash,
 		}
 		c.Check(item.Valid(), NotNil, Commentf(tc.name))
-		if item.MaxGas.IsValid() == nil {
+		if item.MaxGas.Valid() == nil {
 			c.Check(txOutItem.Equals(item), Equals, false, Commentf(tc.name))
 		}
 	}

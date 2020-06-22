@@ -17,13 +17,13 @@ func (s *VaultSuite) TestVault(c *C) {
 
 	vault := Vault{}
 	c.Check(vault.IsEmpty(), Equals, true)
-	c.Check(vault.IsValid(), NotNil)
+	c.Check(vault.Valid(), NotNil)
 
 	vault = NewVault(12, ActiveVault, YggdrasilVault, pk, common.Chains{common.BNBChain})
 	c.Check(vault.PubKey.Equals(pk), Equals, true)
 	c.Check(vault.HasFunds(), Equals, false)
 	c.Check(vault.IsEmpty(), Equals, false)
-	c.Check(vault.IsValid(), IsNil)
+	c.Check(vault.Valid(), IsNil)
 
 	coins := common.Coins{
 		common.NewCoin(common.BNBAsset, cosmos.NewUint(500*common.One)),
