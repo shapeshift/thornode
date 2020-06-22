@@ -231,12 +231,11 @@ type (
 	StakeMemo           = mem.StakeMemo
 	UnstakeMemo         = mem.UnstakeMemo
 	AddMemo             = mem.AddMemo
-	GasMemo             = mem.GasMemo
 	RefundMemo          = mem.RefundMemo
 	MigrateMemo         = mem.MigrateMemo
 	RagnarokMemo        = mem.RagnarokMemo
 	BondMemo            = mem.BondMemo
-	UnBondMemo          = mem.UnBondMemo
+	UnbondMemo          = mem.UnbondMemo
 	OutboundMemo        = mem.OutboundMemo
 	LeaveMemo           = mem.LeaveMemo
 	YggdrasilFundMemo   = mem.YggdrasilFundMemo
