@@ -75,7 +75,7 @@ func (NodeAccountSuite) TestNodeAccount(c *C) {
 
 	na := NewNodeAccount(nodeAddress, Active, pubKeys, bepConsPubKey, cosmos.NewUint(common.One), bondAddr, 1)
 	c.Assert(na.IsEmpty(), Equals, false)
-	c.Assert(na.IsValid(), IsNil)
+	c.Assert(na.Valid(), IsNil)
 	c.Assert(na.Bond.Uint64(), Equals, uint64(common.One))
 	nas := NodeAccounts{
 		na,
@@ -84,16 +84,16 @@ func (NodeAccountSuite) TestNodeAccount(c *C) {
 	c.Assert(nas.IsNodeKeys(nodeAddress), Equals, true)
 	c.Logf("node account:%s", na)
 	naEmpty := NewNodeAccount(cosmos.AccAddress{}, Active, pubKeys, bepConsPubKey, cosmos.NewUint(common.One), bondAddr, 1)
-	c.Assert(naEmpty.IsValid(), NotNil)
+	c.Assert(naEmpty.Valid(), NotNil)
 	c.Assert(naEmpty.IsEmpty(), Equals, true)
 	invalidBondAddr := NewNodeAccount(cosmos.AccAddress{}, Active, pubKeys, bepConsPubKey, cosmos.NewUint(common.One), "", 1)
-	c.Assert(invalidBondAddr.IsValid(), NotNil)
+	c.Assert(invalidBondAddr.Valid(), NotNil)
 
 	na1 := NewNodeAccount(nodeAddress, Active, pubKeys, bepConsPubKey, cosmos.NewUint(common.One), common.NoAddress, 1)
-	c.Check(na1.IsValid(), NotNil)
+	c.Check(na1.Valid(), NotNil)
 
 	na2 := NewNodeAccount(nodeAddress, Unknown, pubKeys, bepConsPubKey, cosmos.NewUint(common.One), bondAddr, 1)
-	c.Check(na2.IsValid(), NotNil)
+	c.Check(na2.Valid(), NotNil)
 
 	na3 := NewNodeAccount(nodeAddress, Active, pubKeys, bepConsPubKey, cosmos.NewUint(common.One), bondAddr, 1)
 	c.Check(na3.Equals(na), Equals, true)

@@ -41,7 +41,7 @@ func NewObservedTx(tx common.Tx, height int64, pk common.PubKey) ObservedTx {
 
 // Valid check whether the observed tx represent valid information
 func (tx ObservedTx) Valid() error {
-	if err := tx.Tx.IsValid(); err != nil {
+	if err := tx.Tx.Valid(); err != nil {
 		return err
 	}
 	// Memo should not be empty, but it can't be checked here, because a

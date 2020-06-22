@@ -48,7 +48,7 @@ func (c Coin) IsEmpty() bool {
 	return false
 }
 
-func (c Coin) IsValid() error {
+func (c Coin) Valid() error {
 	if c.Asset.IsEmpty() {
 		return errors.New("Denom cannot be empty")
 	}
@@ -77,9 +77,9 @@ func (c Coin) String() string {
 	return fmt.Sprintf("%d %s", c.Amount.Uint64(), c.Asset.String())
 }
 
-func (cs Coins) IsValid() error {
+func (cs Coins) Valid() error {
 	for _, coin := range cs {
-		if err := coin.IsValid(); err != nil {
+		if err := coin.Valid(); err != nil {
 			return err
 		}
 	}

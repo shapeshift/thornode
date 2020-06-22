@@ -119,8 +119,8 @@ func (n NodeAccount) IsEmpty() bool {
 	return n.NodeAddress.Empty() || n.Status == Unknown
 }
 
-// IsValid check whether NodeAccount has all necessary values
-func (n NodeAccount) IsValid() error {
+// Valid check whether NodeAccount has all necessary values
+func (n NodeAccount) Valid() error {
 	if n.NodeAddress.Empty() {
 		return errors.New("node thor address is empty")
 	}
