@@ -18,8 +18,8 @@ func NewBanVoter(addr cosmos.AccAddress) BanVoter {
 	return BanVoter{NodeAddress: addr}
 }
 
-// IsValid return an error if the node address that need to be banned is empty
-func (b BanVoter) IsValid() error {
+// Valid return an error if the node address that need to be banned is empty
+func (b BanVoter) Valid() error {
 	if b.NodeAddress.Empty() {
 		return errors.New("node address is empty")
 	}

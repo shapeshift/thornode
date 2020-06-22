@@ -146,9 +146,9 @@ func (tx Tx) Equals(tx2 Tx) bool {
 	return true
 }
 
-// IsValid do some data sanity check , if the tx contains invalid information
+// Valid do some data sanity check , if the tx contains invalid information
 // it will return an none nil error
-func (tx Tx) IsValid() error {
+func (tx Tx) Valid() error {
 	if tx.ID.IsEmpty() {
 		return errors.New("Tx ID cannot be empty")
 	}
@@ -164,13 +164,13 @@ func (tx Tx) IsValid() error {
 	if len(tx.Coins) == 0 {
 		return errors.New("must have at least 1 coin")
 	}
-	if err := tx.Coins.IsValid(); err != nil {
+	if err := tx.Coins.Valid(); err != nil {
 		return err
 	}
 	if !tx.Chain.Equals(THORChain) && len(tx.Gas) == 0 {
 		return errors.New("must have at least 1 gas coin")
 	}
-	if err := tx.Gas.IsValid(); err != nil {
+	if err := tx.Gas.Valid(); err != nil {
 		return err
 	}
 

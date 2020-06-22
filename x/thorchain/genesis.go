@@ -71,13 +71,13 @@ func ValidateGenesis(data GenesisState) error {
 	}
 
 	for _, ta := range data.NodeAccounts {
-		if err := ta.IsValid(); err != nil {
+		if err := ta.Valid(); err != nil {
 			return err
 		}
 	}
 
 	for _, vault := range data.Vaults {
-		if err := vault.IsValid(); err != nil {
+		if err := vault.Valid(); err != nil {
 			return err
 		}
 	}
@@ -88,7 +88,7 @@ func ValidateGenesis(data GenesisState) error {
 		}
 	}
 	for _, bv := range data.BanVoters {
-		if err := bv.IsValid(); err != nil {
+		if err := bv.Valid(); err != nil {
 			return fmt.Errorf("invalid ban voter: %w", err)
 		}
 	}
@@ -102,7 +102,7 @@ func ValidateGenesis(data GenesisState) error {
 		}
 	}
 	for _, r := range data.ReserveContributors {
-		if err := r.IsValid(); err != nil {
+		if err := r.Valid(); err != nil {
 			return fmt.Errorf("invalid reserve contributor:%w", err)
 		}
 	}

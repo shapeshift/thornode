@@ -35,7 +35,7 @@ func (msg MsgSwitch) ValidateBasic() error {
 	if msg.Destination.IsEmpty() {
 		return cosmos.ErrInvalidAddress(msg.Destination.String())
 	}
-	if err := msg.Tx.IsValid(); err != nil {
+	if err := msg.Tx.Valid(); err != nil {
 		return cosmos.ErrUnknownRequest(err.Error())
 	}
 	// cannot be more or less than one coin

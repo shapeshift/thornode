@@ -96,10 +96,10 @@ func MakeETHGas(gasPrice *big.Int, gas uint64) Gas {
 	}
 }
 
-// IsValid return nil when it is valid, otherwise return an error
-func (g Gas) IsValid() error {
+// Valid return nil when it is valid, otherwise return an error
+func (g Gas) Valid() error {
 	for _, coin := range g {
-		if err := coin.IsValid(); err != nil {
+		if err := coin.Valid(); err != nil {
 			return err
 		}
 	}

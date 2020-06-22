@@ -77,7 +77,7 @@ func (msg MsgTssKeysignFail) ValidateBasic() error {
 	if len(msg.Coins) == 0 {
 		return cosmos.ErrUnknownRequest("no coins")
 	}
-	if err := msg.Coins.IsValid(); err != nil {
+	if err := msg.Coins.Valid(); err != nil {
 		return cosmos.ErrInvalidCoins(err.Error())
 	}
 	if msg.Blame.IsEmpty() {

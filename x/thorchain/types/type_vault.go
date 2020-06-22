@@ -94,8 +94,8 @@ func (v *Vault) UpdateStatus(s VaultStatus, height int64) {
 	v.StatusSince = height
 }
 
-// IsValid check whether Vault has all necessary values
-func (v Vault) IsValid() error {
+// Valid check whether Vault has all necessary values
+func (v Vault) Valid() error {
 	if v.PubKey.IsEmpty() {
 		return errors.New("pubkey cannot be empty")
 	}
