@@ -153,7 +153,6 @@ func processOneTxIn(ctx cosmos.Context, keeper keeper.Keeper, tx ObservedTx, sig
 		if err != nil {
 			return nil, fmt.Errorf("invalid stake memo:%w", err)
 		}
-
 	case UnstakeMemo:
 		newMsg, err = getMsgUnstakeFromMemo(m, tx, signer)
 		if err != nil {
@@ -166,11 +165,6 @@ func processOneTxIn(ctx cosmos.Context, keeper keeper.Keeper, tx ObservedTx, sig
 		}
 	case AddMemo:
 		newMsg, err = getMsgAddFromMemo(m, tx, signer)
-		if err != nil {
-			return nil, err
-		}
-	case GasMemo:
-		newMsg, err = getMsgNoOpFromMemo(tx, signer)
 		if err != nil {
 			return nil, err
 		}
@@ -194,8 +188,8 @@ func processOneTxIn(ctx cosmos.Context, keeper keeper.Keeper, tx ObservedTx, sig
 		if err != nil {
 			return nil, err
 		}
-	case UnBondMemo:
-		newMsg, err = getMsgUnBondFromMemo(m, tx, signer)
+	case UnbondMemo:
+		newMsg, err = getMsgUnbondFromMemo(m, tx, signer)
 		if err != nil {
 			return nil, err
 		}
@@ -226,15 +220,6 @@ func processOneTxIn(ctx cosmos.Context, keeper keeper.Keeper, tx ObservedTx, sig
 		return nil, err
 	}
 	return newMsg, nil
-}
-
-func getMsgNoOpFromMemo(tx ObservedTx, signer cosmos.AccAddress) (cosmos.Msg, error) {
-	for _, coin := range tx.Tx.Coins {
-		if !coin.Asset.Chain.Equals(common.RuneAsset().Chain) {
-			return nil, fmt.Errorf("only accepts %s coins", common.RuneAsset().Chain)
-		}
-	}
-	return NewMsgNoOp(tx, signer), nil
 }
 
 func getMsgSwapFromMemo(memo SwapMemo, tx ObservedTx, signer cosmos.AccAddress) (cosmos.Msg, error) {
@@ -386,6 +371,6 @@ func getMsgBondFromMemo(memo BondMemo, tx ObservedTx, signer cosmos.AccAddress) 
 	return NewMsgBond(tx.Tx, memo.GetAccAddress(), runeAmount, tx.Tx.FromAddress, signer), nil
 }
 
-func getMsgUnBondFromMemo(memo UnBondMemo, tx ObservedTx, signer cosmos.AccAddress) (cosmos.Msg, error) {
-	return NewMsgBond(tx.Tx, memo.GetAccAddress(), memo.GetAmount(), tx.Tx.FromAddress, signer), nil
+func getMsgUnbondFromMemo(memo UnbondMemo, tx ObservedTx, signer cosmos.AccAddress) (cosmos.Msg, error) {
+	return NewMsgUnBond(tx.Tx, memo.GetAccAddress(), memo.GetAmount(), tx.Tx.FromAddress, signer), nil
 }

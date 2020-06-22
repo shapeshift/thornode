@@ -22,7 +22,7 @@ func (s *MemoSuite) SetUpSuite(c *C) {
 }
 
 func (s *MemoSuite) TestTxType(c *C) {
-	for _, trans := range []TxType{TxStake, TxUnstake, TxSwap, TxOutbound, TxAdd, TxBond, TxUnBond, TxLeave, TxSwitch} {
+	for _, trans := range []TxType{TxStake, TxUnstake, TxSwap, TxOutbound, TxAdd, TxBond, TxUnbond, TxLeave, TxSwitch} {
 		tx, err := StringToTxType(trans.String())
 		c.Assert(err, IsNil)
 		c.Check(tx, Equals, trans)
@@ -229,7 +229,7 @@ func (s *MemoSuite) TestParse(c *C) {
 
 	memo, err = ParseMemo("unbond:" + whiteListAddr.String() + ":300")
 	c.Assert(err, IsNil)
-	c.Assert(memo.IsType(TxUnBond), Equals, true)
+	c.Assert(memo.IsType(TxUnbond), Equals, true)
 	c.Assert(memo.GetAccAddress().String(), Equals, whiteListAddr.String())
 	c.Assert(memo.GetAmount().Equal(cosmos.NewUint(300)), Equals, true)
 
