@@ -79,7 +79,6 @@ func (HandlerStakeSuite) TestStakeHandler(c *C) {
 			BalanceAsset: cosmos.ZeroUint(),
 			Asset:        common.BNBAsset,
 			PoolUnits:    cosmos.ZeroUint(),
-			PoolAddress:  "",
 			Status:       PoolEnabled,
 		},
 	}
@@ -101,7 +100,7 @@ func (HandlerStakeSuite) TestStakeHandler(c *C) {
 	)
 	ver := constants.SWVersion
 	constAccessor := constants.GetConstantValues(ver)
-	msgSetStake := NewMsgSetStakeData(
+	msgSetStake := NewMsgStake(
 		tx,
 		common.BNBAsset,
 		cosmos.NewUint(100*common.One),
@@ -135,7 +134,7 @@ func (HandlerStakeSuite) TestStakeHandler_NoPool_ShouldCreateNewPool(c *C) {
 	stakeHandler := NewStakeHandler(k, mgr)
 	preStakePool, err := k.GetPool(ctx, common.BNBAsset)
 	c.Assert(err, IsNil)
-	c.Assert(preStakePool.Empty(), Equals, true)
+	c.Assert(preStakePool.IsEmpty(), Equals, true)
 	bnbAddr := GetRandomBNBAddress()
 	stakeTxHash := GetRandomTxHash()
 	tx := common.NewTx(
@@ -153,7 +152,7 @@ func (HandlerStakeSuite) TestStakeHandler_NoPool_ShouldCreateNewPool(c *C) {
 		constants.StrictBondStakeRatio: true,
 	}, map[constants.ConstantName]string{})
 
-	msgSetStake := NewMsgSetStakeData(
+	msgSetStake := NewMsgStake(
 		tx,
 		common.BNBAsset,
 		cosmos.NewUint(100*common.One),
@@ -183,38 +182,37 @@ func (HandlerStakeSuite) TestStakeHandlerValidation(c *C) {
 			BalanceAsset: cosmos.ZeroUint(),
 			Asset:        common.BNBAsset,
 			PoolUnits:    cosmos.ZeroUint(),
-			PoolAddress:  "",
 			Status:       PoolEnabled,
 		},
 	}
 	testCases := []struct {
 		name           string
-		msg            MsgSetStakeData
+		msg            MsgStake
 		expectedResult error
 	}{
 		{
 			name:           "empty signer should fail",
-			msg:            NewMsgSetStakeData(GetRandomTx(), common.BNBAsset, cosmos.NewUint(common.One*5), cosmos.NewUint(common.One*5), GetRandomBNBAddress(), GetRandomBNBAddress(), cosmos.AccAddress{}),
+			msg:            NewMsgStake(GetRandomTx(), common.BNBAsset, cosmos.NewUint(common.One*5), cosmos.NewUint(common.One*5), GetRandomBNBAddress(), GetRandomBNBAddress(), cosmos.AccAddress{}),
 			expectedResult: errStakeFailValidation,
 		},
 		{
 			name:           "empty asset should fail",
-			msg:            NewMsgSetStakeData(GetRandomTx(), common.Asset{}, cosmos.NewUint(common.One*5), cosmos.NewUint(common.One*5), GetRandomBNBAddress(), GetRandomBNBAddress(), GetRandomNodeAccount(NodeActive).NodeAddress),
+			msg:            NewMsgStake(GetRandomTx(), common.Asset{}, cosmos.NewUint(common.One*5), cosmos.NewUint(common.One*5), GetRandomBNBAddress(), GetRandomBNBAddress(), GetRandomNodeAccount(NodeActive).NodeAddress),
 			expectedResult: errStakeFailValidation,
 		},
 		{
 			name:           "empty RUNE address should fail",
-			msg:            NewMsgSetStakeData(GetRandomTx(), common.BNBAsset, cosmos.NewUint(common.One*5), cosmos.NewUint(common.One*5), common.NoAddress, GetRandomBNBAddress(), GetRandomNodeAccount(NodeActive).NodeAddress),
+			msg:            NewMsgStake(GetRandomTx(), common.BNBAsset, cosmos.NewUint(common.One*5), cosmos.NewUint(common.One*5), common.NoAddress, GetRandomBNBAddress(), GetRandomNodeAccount(NodeActive).NodeAddress),
 			expectedResult: errStakeFailValidation,
 		},
 		{
 			name:           "empty ASSET address should fail",
-			msg:            NewMsgSetStakeData(GetRandomTx(), common.BTCAsset, cosmos.NewUint(common.One*5), cosmos.NewUint(common.One*5), GetRandomBNBAddress(), common.NoAddress, GetRandomNodeAccount(NodeActive).NodeAddress),
+			msg:            NewMsgStake(GetRandomTx(), common.BTCAsset, cosmos.NewUint(common.One*5), cosmos.NewUint(common.One*5), GetRandomBNBAddress(), common.NoAddress, GetRandomNodeAccount(NodeActive).NodeAddress),
 			expectedResult: errStakeFailValidation,
 		},
 		{
 			name:           "total staker is more than total bond should fail",
-			msg:            NewMsgSetStakeData(GetRandomTx(), common.BNBAsset, cosmos.NewUint(common.One*5000), cosmos.NewUint(common.One*5000), GetRandomBNBAddress(), GetRandomBNBAddress(), activeNodeAccount.NodeAddress),
+			msg:            NewMsgStake(GetRandomTx(), common.BNBAsset, cosmos.NewUint(common.One*5000), cosmos.NewUint(common.One*5000), GetRandomBNBAddress(), GetRandomBNBAddress(), activeNodeAccount.NodeAddress),
 			expectedResult: errStakeRUNEMoreThanBond,
 		},
 	}
@@ -240,7 +238,6 @@ func (HandlerStakeSuite) TestHandlerStakeFailScenario(c *C) {
 		BalanceAsset: cosmos.ZeroUint(),
 		Asset:        common.BNBAsset,
 		PoolUnits:    cosmos.ZeroUint(),
-		PoolAddress:  "",
 		Status:       PoolEnabled,
 	}
 
@@ -286,7 +283,7 @@ func (HandlerStakeSuite) TestHandlerStakeFailScenario(c *C) {
 		)
 		ver := constants.SWVersion
 		constAccessor := constants.GetConstantValues(ver)
-		msgSetStake := NewMsgSetStakeData(
+		msgSetStake := NewMsgStake(
 			tx,
 			common.BNBAsset,
 			cosmos.NewUint(100*common.One),
@@ -446,7 +443,6 @@ func (HandlerStakeSuite) TestValidateStakeMessage(c *C) {
 		BalanceAsset: cosmos.NewUint(100 * common.One),
 		Asset:        common.BNBAsset,
 		PoolUnits:    cosmos.NewUint(100 * common.One),
-		PoolAddress:  bnbAddress,
 		Status:       PoolEnabled,
 	}), IsNil)
 	c.Assert(h.validateStakeMessage(ctx, ps, common.BNBAsset, txID, bnbAddress, assetAddress), Equals, nil)
@@ -470,7 +466,6 @@ func (HandlerStakeSuite) TestStake(c *C) {
 		BalanceAsset: cosmos.NewUint(100 * common.One),
 		Asset:        common.BNBAsset,
 		PoolUnits:    cosmos.NewUint(100 * common.One),
-		PoolAddress:  bnbAddress,
 		Status:       PoolEnabled,
 	}), IsNil)
 	err = h.stake(ctx, common.BNBAsset, cosmos.NewUint(100*common.One), cosmos.NewUint(100*common.One), bnbAddress, assetAddress, txID, constAccessor)
@@ -484,7 +479,6 @@ func (HandlerStakeSuite) TestStake(c *C) {
 		BalanceAsset: cosmos.NewUint(100 * common.One),
 		Asset:        notExistStakerAsset,
 		PoolUnits:    cosmos.NewUint(100 * common.One),
-		PoolAddress:  bnbAddress,
 		Status:       PoolEnabled,
 	}), IsNil)
 	// stake asymmetically
@@ -500,7 +494,6 @@ func (HandlerStakeSuite) TestStake(c *C) {
 		BalanceAsset: cosmos.NewUint(100 * common.One),
 		Asset:        common.BNBAsset,
 		PoolUnits:    cosmos.NewUint(100 * common.One),
-		PoolAddress:  bnbAddress,
 		Status:       PoolEnabled,
 	}), IsNil)
 
@@ -524,7 +517,6 @@ func (HandlerStakeSuite) TestStake(c *C) {
 		BalanceAsset: cosmos.ZeroUint(),
 		Asset:        common.BTCAsset,
 		PoolUnits:    cosmos.ZeroUint(),
-		PoolAddress:  btcAddress,
 		Status:       PoolEnabled,
 	}), IsNil)
 

@@ -12,7 +12,7 @@ var _ = Suite(&ObservedNetworkFeeVoterTestSuite{})
 
 func (ObservedNetworkFeeVoterTestSuite) TestObservedNetworkFeeVoter(c *C) {
 	voter := NewObservedNetworkFeeVoter(1024, common.BTCChain)
-	c.Check(voter.Empty(), Equals, false)
+	c.Check(voter.IsEmpty(), Equals, false)
 	addr := GetRandomBech32Addr()
 	c.Check(voter.HasSigned(addr), Equals, false)
 	voter.Sign(addr)
@@ -27,5 +27,5 @@ func (ObservedNetworkFeeVoterTestSuite) TestObservedNetworkFeeVoter(c *C) {
 	c.Check(len(voter.String()) > 0, Equals, true)
 
 	voter1 := NewObservedNetworkFeeVoter(0, common.EmptyChain)
-	c.Check(voter1.Empty(), Equals, true)
+	c.Check(voter1.IsEmpty(), Equals, true)
 }

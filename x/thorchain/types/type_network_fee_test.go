@@ -13,12 +13,12 @@ var _ = Suite(&NetworkFeeSuite{})
 
 func (NetworkFeeSuite) TestNetworkFee(c *C) {
 	n := NewNetworkFee(common.BNBChain, 1, bnbSingleTxFee)
-	c.Check(n.Validate(), IsNil)
+	c.Check(n.Valid(), IsNil)
 	n1 := NewNetworkFee(common.EmptyChain, 1, bnbSingleTxFee)
-	c.Check(n1.Validate(), NotNil)
+	c.Check(n1.Valid(), NotNil)
 	n2 := NewNetworkFee(common.BNBChain, -1, bnbSingleTxFee)
-	c.Check(n2.Validate(), NotNil)
+	c.Check(n2.Valid(), NotNil)
 
 	n3 := NewNetworkFee(common.BNBChain, 1, cosmos.ZeroUint())
-	c.Check(n3.Validate(), NotNil)
+	c.Check(n3.Valid(), NotNil)
 }

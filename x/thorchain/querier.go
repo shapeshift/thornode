@@ -482,11 +482,10 @@ func queryPool(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper 
 		ctx.Logger().Error("fail to get pool", "error", err)
 		return nil, fmt.Errorf("could not get pool: %w", err)
 	}
-	if pool.Empty() {
+	if pool.IsEmpty() {
 		return nil, fmt.Errorf("pool: %s doesn't exist", path[0])
 	}
 
-	pool.PoolAddress = ""
 	res, err := codec.MarshalJSONIndent(keeper.Cdc(), pool)
 	if err != nil {
 		return nil, fmt.Errorf("could not marshal result to JSON: %w", err)

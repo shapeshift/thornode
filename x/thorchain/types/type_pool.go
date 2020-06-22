@@ -70,19 +70,17 @@ func GetPoolStatus(ps string) PoolStatus {
 			return item
 		}
 	}
-
 	return Suspended
 }
 
 // Pool is a struct that contains all the metadata of a pooldata
 // This is the structure THORNode will saved to the key value store
 type Pool struct {
-	BalanceRune  cosmos.Uint    `json:"balance_rune"`           // how many RUNE in the pool
-	BalanceAsset cosmos.Uint    `json:"balance_asset"`          // how many asset in the pool
-	Asset        common.Asset   `json:"asset"`                  // what's the asset's asset
-	PoolUnits    cosmos.Uint    `json:"pool_units"`             // total units of the pool
-	PoolAddress  common.Address `json:"pool_address,omitempty"` // bnb liquidity pool address
-	Status       PoolStatus     `json:"status"`                 // status
+	BalanceRune  cosmos.Uint  `json:"balance_rune"`  // how many RUNE in the pool
+	BalanceAsset cosmos.Uint  `json:"balance_asset"` // how many asset in the pool
+	Asset        common.Asset `json:"asset"`         // what's the asset's asset
+	PoolUnits    cosmos.Uint  `json:"pool_units"`    // total units of the pool
+	Status       PoolStatus   `json:"status"`        // status
 }
 
 // Pools represent a list of pools
@@ -100,7 +98,7 @@ func NewPool() Pool {
 
 // Valid check whether the pool is valid or not, if asset is empty then it is not valid
 func (ps Pool) Valid() error {
-	if ps.Empty() {
+	if ps.IsEmpty() {
 		return errors.New("pool asset cannot be empty")
 	}
 	return nil
@@ -112,7 +110,7 @@ func (ps Pool) IsEnabled() bool {
 }
 
 // Empty will return true when the asset is empty
-func (ps Pool) Empty() bool {
+func (ps Pool) IsEmpty() bool {
 	return ps.Asset.IsEmpty()
 }
 

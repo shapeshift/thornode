@@ -5,8 +5,8 @@ import (
 	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
-// MsgSetStakeData defines a SetStakeData message
-type MsgSetStakeData struct {
+// MsgStake defines a Stake message
+type MsgStake struct {
 	Tx           common.Tx         `json:"tx"`
 	Asset        common.Asset      `json:"asset"`         // ticker means the asset
 	AssetAmount  cosmos.Uint       `json:"asset_amt"`     // the amount of asset stake
@@ -16,9 +16,9 @@ type MsgSetStakeData struct {
 	Signer       cosmos.AccAddress `json:"signer"`
 }
 
-// NewMsgSetStakeData is a constructor function for MsgSetStakeData
-func NewMsgSetStakeData(tx common.Tx, asset common.Asset, r, amount cosmos.Uint, runeAddr, assetAddr common.Address, signer cosmos.AccAddress) MsgSetStakeData {
-	return MsgSetStakeData{
+// NewMsgStake is a constructor function for MsgStake
+func NewMsgStake(tx common.Tx, asset common.Asset, r, amount cosmos.Uint, runeAddr, assetAddr common.Address, signer cosmos.AccAddress) MsgStake {
+	return MsgStake{
 		Tx:           tx,
 		Asset:        asset,
 		AssetAmount:  amount,
@@ -30,13 +30,13 @@ func NewMsgSetStakeData(tx common.Tx, asset common.Asset, r, amount cosmos.Uint,
 }
 
 // Route should return the route key of the module
-func (msg MsgSetStakeData) Route() string { return RouterKey }
+func (msg MsgStake) Route() string { return RouterKey }
 
 // Type should return the action
-func (msg MsgSetStakeData) Type() string { return "set_stakedata" }
+func (msg MsgStake) Type() string { return "stake" }
 
 // ValidateBasic runs stateless checks on the message
-func (msg MsgSetStakeData) ValidateBasic() error {
+func (msg MsgStake) ValidateBasic() error {
 	if msg.Signer.Empty() {
 		return cosmos.ErrInvalidAddress(msg.Signer.String())
 	}
@@ -45,6 +45,9 @@ func (msg MsgSetStakeData) ValidateBasic() error {
 	}
 	if err := msg.Tx.IsValid(); err != nil {
 		return cosmos.ErrUnknownRequest(err.Error())
+	}
+	if msg.RuneAmount.IsZero() && msg.AssetAmount.IsZero() {
+		return cosmos.ErrUnknownRequest("rune and asset amounts cannot both be empty")
 	}
 	if msg.RuneAddress.IsEmpty() {
 		return cosmos.ErrUnknownRequest("rune address cannot be empty")
@@ -58,11 +61,11 @@ func (msg MsgSetStakeData) ValidateBasic() error {
 }
 
 // GetSignBytes encodes the message for signing
-func (msg MsgSetStakeData) GetSignBytes() []byte {
+func (msg MsgStake) GetSignBytes() []byte {
 	return cosmos.MustSortJSON(ModuleCdc.MustMarshalJSON(msg))
 }
 
 // GetSigners defines whose signature is required
-func (msg MsgSetStakeData) GetSigners() []cosmos.AccAddress {
+func (msg MsgStake) GetSigners() []cosmos.AccAddress {
 	return []cosmos.AccAddress{msg.Signer}
 }

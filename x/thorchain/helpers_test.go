@@ -300,7 +300,7 @@ func (s *HelperSuite) TestEnableNextPool(c *C) {
 	// should NOT enable XMR, since it has no assets
 	c.Assert(enableNextPool(ctx, k, eventMgr), IsNil)
 	pool, err = k.GetPool(ctx, xmrAsset)
-	c.Assert(pool.Empty(), Equals, false)
+	c.Assert(pool.IsEmpty(), Equals, false)
 	c.Check(pool.Status, Equals, PoolBootstrap)
 }
 

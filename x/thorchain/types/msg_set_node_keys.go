@@ -32,8 +32,8 @@ func (msg MsgSetNodeKeys) ValidateBasic() error {
 	if msg.Signer.Empty() {
 		return cosmos.ErrInvalidAddress(msg.Signer.String())
 	}
-	if len(msg.ValidatorConsPubKey) == 0 {
-		return cosmos.ErrUnknownRequest("validator consensus pubkey cannot be empty")
+	if _, err := cosmos.GetPubKeyFromBech32(cosmos.Bech32PubKeyTypeConsPub, msg.ValidatorConsPubKey); err != nil {
+		return cosmos.ErrUnknownRequest(err.Error())
 	}
 	if msg.PubKeySetSet.IsEmpty() {
 		return cosmos.ErrUnknownRequest("node pub keys cannot be empty")

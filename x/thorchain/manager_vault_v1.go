@@ -455,7 +455,7 @@ func (vm *VaultMgrV1) ragnarokChain(ctx cosmos.Context, chain common.Chain, nth 
 				continue
 			}
 
-			unstakeMsg := NewMsgSetUnStake(
+			unstakeMsg := NewMsgUnStake(
 				common.GetRagnarokTx(pool.Asset.Chain, staker.RuneAddress, staker.RuneAddress),
 				staker.RuneAddress,
 				cosmos.NewUint(uint64(MaxUnstakeBasisPoints/100*(nth*10))),

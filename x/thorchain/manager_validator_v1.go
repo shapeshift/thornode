@@ -654,7 +654,7 @@ func (vm *validatorMgrV1) ragnarokPools(ctx cosmos.Context, nth int64, mgr Manag
 				continue
 			}
 
-			unstakeMsg := NewMsgSetUnStake(
+			unstakeMsg := NewMsgUnStake(
 				common.GetRagnarokTx(pool.Asset.Chain, staker.RuneAddress, staker.RuneAddress),
 				staker.RuneAddress,
 				cosmos.NewUint(uint64(basisPoints)),
