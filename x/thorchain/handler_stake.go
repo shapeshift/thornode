@@ -26,14 +26,14 @@ func NewStakeHandler(keeper keeper.Keeper, mgr Manager) StakeHandler {
 	}
 }
 
-func (h StakeHandler) validate(ctx cosmos.Context, msg MsgSetStakeData, version semver.Version, constAccessor constants.ConstantValues) error {
+func (h StakeHandler) validate(ctx cosmos.Context, msg MsgStake, version semver.Version, constAccessor constants.ConstantValues) error {
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, msg, constAccessor)
 	}
 	return errBadVersion
 }
 
-func (h StakeHandler) validateV1(ctx cosmos.Context, msg MsgSetStakeData, constAccessor constants.ConstantValues) error {
+func (h StakeHandler) validateV1(ctx cosmos.Context, msg MsgStake, constAccessor constants.ConstantValues) error {
 	if err := msg.ValidateBasic(); err != nil {
 		ctx.Logger().Error(err.Error())
 		return errStakeFailValidation
@@ -75,7 +75,7 @@ func (h StakeHandler) validateV1(ctx cosmos.Context, msg MsgSetStakeData, constA
 
 // Run execute the handler
 func (h StakeHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
-	msg, ok := m.(MsgSetStakeData)
+	msg, ok := m.(MsgStake)
 	if !ok {
 		return nil, errInvalidMessage
 	}
@@ -95,13 +95,13 @@ func (h StakeHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Versi
 	return &cosmos.Result{}, nil
 }
 
-func (h StakeHandler) handle(ctx cosmos.Context, msg MsgSetStakeData, version semver.Version, constAccessor constants.ConstantValues) (errResult error) {
+func (h StakeHandler) handle(ctx cosmos.Context, msg MsgStake, version semver.Version, constAccessor constants.ConstantValues) (errResult error) {
 	pool, err := h.keeper.GetPool(ctx, msg.Asset)
 	if err != nil {
 		return ErrInternal(err, "fail to get pool")
 	}
 
-	if pool.Empty() {
+	if pool.IsEmpty() {
 		ctx.Logger().Info("pool doesn't exist yet, creating a new one...", "symbol", msg.Asset.String(), "creator", msg.RuneAddress)
 		pool.Asset = msg.Asset
 		if err := h.keeper.SetPool(ctx, pool); err != nil {

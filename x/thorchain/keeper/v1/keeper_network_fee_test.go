@@ -21,9 +21,9 @@ func (KeeperNetworkFeeSuite) TestNetworkFee(c *C) {
 
 	networkFee2, err := k.GetNetworkFee(ctx, common.ETHChain)
 	c.Check(err, IsNil)
-	c.Check(networkFee2.Validate(), NotNil)
+	c.Check(networkFee2.Valid(), NotNil)
 	c.Check(k.GetNetworkFeeIterator(ctx), NotNil)
 	networkFee3, err := k.GetNetworkFee(ctx, common.BNBChain)
 	c.Check(err, IsNil)
-	c.Check(networkFee3.Validate(), IsNil)
+	c.Check(networkFee3.Valid(), IsNil)
 }

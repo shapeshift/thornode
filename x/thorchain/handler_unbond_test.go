@@ -72,7 +72,7 @@ func (HandlerUnBondSuite) TestUnBondHandler_Run(c *C) {
 		common.Coins{
 			common.NewCoin(common.RuneAsset(), cosmos.NewUint(uint64(1))),
 		},
-		common.Gas{},
+		BNBGasFeeSingleton,
 		"unbond me please",
 	)
 	msg := NewMsgUnBond(txIn, standbyNodeAccount.NodeAddress, cosmos.NewUint(uint64(5*common.One)), standbyNodeAccount.BondAddress, activeNodeAccount.NodeAddress)
@@ -127,8 +127,8 @@ func (HandlerUnBondSuite) TestUnBondHandlerFailValidation(c *C) {
 		common.Coins{
 			common.NewCoin(common.RuneAsset(), cosmos.NewUint(uint64(1))),
 		},
-		common.Gas{},
-		"apply",
+		BNBGasFeeSingleton,
+		"unbond it",
 	)
 	txInNoTxID := txIn
 	txInNoTxID.ID = ""

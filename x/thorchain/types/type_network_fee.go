@@ -27,7 +27,7 @@ func NewNetworkFee(chain common.Chain, transactionSize int64, transactionFeeRate
 	}
 }
 
-func (f NetworkFee) Validate() error {
+func (f NetworkFee) Valid() error {
 	if f.Chain.IsEmpty() {
 		return errors.New("chain can't be empty")
 	}

@@ -12,7 +12,7 @@ import (
 	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
-func validateUnstake(ctx cosmos.Context, keeper keeper.Keeper, msg MsgSetUnStake) error {
+func validateUnstake(ctx cosmos.Context, keeper keeper.Keeper, msg MsgUnStake) error {
 	if msg.RuneAddress.IsEmpty() {
 		return errors.New("empty rune address")
 	}
@@ -35,7 +35,7 @@ func validateUnstake(ctx cosmos.Context, keeper keeper.Keeper, msg MsgSetUnStake
 
 // unstake withdraw all the asset
 // it returns runeAmt,assetAmount,units, lastUnstake,err
-func unstake(ctx cosmos.Context, version semver.Version, keeper keeper.Keeper, msg MsgSetUnStake, eventManager EventManager) (cosmos.Uint, cosmos.Uint, cosmos.Uint, cosmos.Uint, error) {
+func unstake(ctx cosmos.Context, version semver.Version, keeper keeper.Keeper, msg MsgUnStake, eventManager EventManager) (cosmos.Uint, cosmos.Uint, cosmos.Uint, cosmos.Uint, error) {
 	if err := validateUnstake(ctx, keeper, msg); err != nil {
 		ctx.Logger().Error("msg unstake fail validation", "error", err)
 		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), err

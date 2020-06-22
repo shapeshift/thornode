@@ -1,6 +1,8 @@
 package types
 
 import (
+	"sort"
+
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 )
@@ -67,24 +69,22 @@ func (tss *TssVoter) ConsensusChains() common.Chains {
 		}
 	}
 
+	// sort chains for consistency
+	sort.SliceStable(chains, func(i, j int) bool {
+		return chains[i].String() < chains[j].String()
+	})
+
 	return chains
 }
 
 // HasConsensus determine if this tss pool has enough signers
 func (tss *TssVoter) HasConsensus() bool {
-	if HasSuperMajority(len(tss.Signers), len(tss.PubKeys)) {
-		return true
-	}
-
-	return false
+	return HasSuperMajority(len(tss.Signers), len(tss.PubKeys))
 }
 
 // Empty check whether TssVoter represent empty info
-func (tss *TssVoter) Empty() bool {
-	if len(tss.ID) == 0 || len(tss.PoolPubKey) == 0 || len(tss.PubKeys) == 0 {
-		return true
-	}
-	return false
+func (tss *TssVoter) IsEmpty() bool {
+	return len(tss.ID) == 0 || len(tss.PoolPubKey) == 0 || len(tss.PubKeys) == 0
 }
 
 // String implement fmt.Stringer

@@ -77,13 +77,18 @@ func (msg MsgTssKeysignFail) ValidateBasic() error {
 	if len(msg.Coins) == 0 {
 		return cosmos.ErrUnknownRequest("no coins")
 	}
-	for _, c := range msg.Coins {
-		if err := c.IsValid(); err != nil {
-			return cosmos.ErrInvalidCoins(err.Error())
-		}
+	if err := msg.Coins.IsValid(); err != nil {
+		return cosmos.ErrInvalidCoins(err.Error())
 	}
 	if msg.Blame.IsEmpty() {
 		return cosmos.ErrUnknownRequest("tss blame is empty")
+	}
+	if msg.Height <= 0 {
+		return cosmos.ErrUnknownRequest("block height cannot be equal to less than zero")
+	}
+	if len([]byte(msg.Memo)) > 150 {
+		err := fmt.Errorf("memo must not exceed 150 bytes: %d", len([]byte(msg.Memo)))
+		return cosmos.ErrUnknownRequest(err.Error())
 	}
 	return nil
 }

@@ -10,8 +10,8 @@ import (
 // MaxUnstakeBasisPoints basis points for unstake
 const MaxUnstakeBasisPoints = 10_000
 
-// MsgSetUnStake is used to withdraw
-type MsgSetUnStake struct {
+// MsgUnStake is used to withdraw
+type MsgUnStake struct {
 	Tx                 common.Tx         `json:"tx"`
 	RuneAddress        common.Address    `json:"rune_address"`          // it should be the rune address
 	UnstakeBasisPoints cosmos.Uint       `json:"withdraw_basis_points"` // withdraw basis points
@@ -19,9 +19,9 @@ type MsgSetUnStake struct {
 	Signer             cosmos.AccAddress `json:"signer"`
 }
 
-// NewMsgSetUnStake is a constructor function for MsgSetPoolData
-func NewMsgSetUnStake(tx common.Tx, runeAddress common.Address, withdrawBasisPoints cosmos.Uint, asset common.Asset, signer cosmos.AccAddress) MsgSetUnStake {
-	return MsgSetUnStake{
+// NewMsgUnStake is a constructor function for MsgSetPoolData
+func NewMsgUnStake(tx common.Tx, runeAddress common.Address, withdrawBasisPoints cosmos.Uint, asset common.Asset, signer cosmos.AccAddress) MsgUnStake {
+	return MsgUnStake{
 		Tx:                 tx,
 		RuneAddress:        runeAddress,
 		UnstakeBasisPoints: withdrawBasisPoints,
@@ -31,13 +31,13 @@ func NewMsgSetUnStake(tx common.Tx, runeAddress common.Address, withdrawBasisPoi
 }
 
 // Route should return the route key of the module
-func (msg MsgSetUnStake) Route() string { return RouterKey }
+func (msg MsgUnStake) Route() string { return RouterKey }
 
 // Type should return the action
-func (msg MsgSetUnStake) Type() string { return "set_unstake" }
+func (msg MsgUnStake) Type() string { return "unstake" }
 
 // ValidateBasic runs stateless checks on the message
-func (msg MsgSetUnStake) ValidateBasic() error {
+func (msg MsgUnStake) ValidateBasic() error {
 	if msg.Signer.Empty() {
 		return cosmos.ErrInvalidAddress(msg.Signer.String())
 	}
@@ -56,18 +56,18 @@ func (msg MsgSetUnStake) ValidateBasic() error {
 	if msg.UnstakeBasisPoints.IsZero() {
 		return cosmos.ErrUnknownRequest("UnstakeBasicPoints can't be zero")
 	}
-	if msg.UnstakeBasisPoints.GT(cosmos.ZeroUint()) && msg.UnstakeBasisPoints.GT(cosmos.NewUint(MaxUnstakeBasisPoints)) {
+	if msg.UnstakeBasisPoints.GT(cosmos.NewUint(MaxUnstakeBasisPoints)) {
 		return cosmos.ErrUnknownRequest("UnstakeBasisPoints is larger than maximum withdraw basis points")
 	}
 	return nil
 }
 
 // GetSignBytes encodes the message for signing
-func (msg MsgSetUnStake) GetSignBytes() []byte {
+func (msg MsgUnStake) GetSignBytes() []byte {
 	return cosmos.MustSortJSON(ModuleCdc.MustMarshalJSON(msg))
 }
 
 // GetSigners defines whose signature is required
-func (msg MsgSetUnStake) GetSigners() []cosmos.AccAddress {
+func (msg MsgUnStake) GetSigners() []cosmos.AccAddress {
 	return []cosmos.AccAddress{msg.Signer}
 }

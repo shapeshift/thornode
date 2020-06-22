@@ -28,9 +28,9 @@ func (MsgStakeSuite) TestMsgStake(c *C) {
 		BNBGasFeeSingleton,
 		"",
 	)
-	m := NewMsgSetStakeData(tx, common.BNBAsset, cosmos.NewUint(100000000), cosmos.NewUint(100000000), runeAddress, assetAddress, addr)
+	m := NewMsgStake(tx, common.BNBAsset, cosmos.NewUint(100000000), cosmos.NewUint(100000000), runeAddress, assetAddress, addr)
 	EnsureMsgBasicCorrect(m, c)
-	c.Check(m.Type(), Equals, "set_stakedata")
+	c.Check(m.Type(), Equals, "stake")
 
 	inputs := []struct {
 		asset     common.Asset
@@ -107,16 +107,7 @@ func (MsgStakeSuite) TestMsgStake(c *C) {
 			BNBGasFeeSingleton,
 			"",
 		)
-		m := NewMsgSetStakeData(tx, item.asset, item.r, item.amt, item.runeAddr, item.assetAddr, item.signer)
+		m := NewMsgStake(tx, item.asset, item.r, item.amt, item.runeAddr, item.assetAddr, item.signer)
 		c.Assert(m.ValidateBasic(), NotNil, Commentf("%d) %s\n", i, m))
 	}
-}
-
-func EnsureMsgBasicCorrect(m cosmos.Msg, c *C) {
-	signers := m.GetSigners()
-	c.Check(signers, NotNil)
-	c.Check(len(signers), Equals, 1)
-	c.Check(m.ValidateBasic(), IsNil)
-	c.Check(m.Route(), Equals, RouterKey)
-	c.Check(m.GetSignBytes(), NotNil)
 }
