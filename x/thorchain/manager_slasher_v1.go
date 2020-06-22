@@ -299,7 +299,7 @@ func (s *SlasherV1) SlashNodeAccount(ctx cosmos.Context, observedPubKey common.P
 	}
 	// thorchain doesn't even have a pool for the asset, or the pool had been
 	// suspended, then who cares
-	if pool.Empty() || pool.Status == PoolSuspended {
+	if pool.IsEmpty() || pool.Status == PoolSuspended {
 		return nil
 	}
 	runeValue := pool.AssetValueInRune(slashAmount).MulUint64(3).QuoUint64(2)

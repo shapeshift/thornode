@@ -59,8 +59,8 @@ func (HandlerBondSuite) TestBondHandler_Run(c *C) {
 		common.Coins{
 			common.NewCoin(common.RuneAsset(), cosmos.NewUint(uint64(minimumBondInRune))),
 		},
-		common.Gas{},
-		"apply",
+		BNBGasFeeSingleton,
+		"bond",
 	)
 	msg := NewMsgBond(txIn, GetRandomNodeAccount(NodeStandby).NodeAddress, cosmos.NewUint(uint64(minimumBondInRune)), GetRandomBNBAddress(), activeNodeAccount.NodeAddress)
 	_, err := handler.Run(ctx, msg, ver, constAccessor)
@@ -98,7 +98,7 @@ func (HandlerBondSuite) TestBondHandlerFailValidation(c *C) {
 		common.Coins{
 			common.NewCoin(common.RuneAsset(), cosmos.NewUint(uint64(minimumBondInRune))),
 		},
-		common.Gas{},
+		BNBGasFeeSingleton,
 		"apply",
 	)
 	txInNoTxID := txIn
@@ -148,6 +148,6 @@ func (HandlerBondSuite) TestBondHandlerFailValidation(c *C) {
 		c.Log(item.name)
 		_, err := handler.Run(ctx, item.msg, ver, constAccessor)
 
-		c.Check(errors.Is(err, item.expectedErr), Equals, true, Commentf("name: %s", item.name))
+		c.Check(errors.Is(err, item.expectedErr), Equals, true, Commentf("name: %s, %s != %s", item.name, item.expectedErr, err))
 	}
 }

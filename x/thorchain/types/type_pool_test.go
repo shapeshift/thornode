@@ -15,9 +15,9 @@ var _ = Suite(&PoolTestSuite{})
 
 func (PoolTestSuite) TestPool(c *C) {
 	p := NewPool()
-	c.Check(p.Empty(), Equals, true)
+	c.Check(p.IsEmpty(), Equals, true)
 	p.Asset = common.BNBAsset
-	c.Check(p.Empty(), Equals, false)
+	c.Check(p.IsEmpty(), Equals, false)
 	p.BalanceRune = cosmos.NewUint(100 * common.One)
 	p.BalanceAsset = cosmos.NewUint(50 * common.One)
 	c.Check(p.AssetValueInRune(cosmos.NewUint(25*common.One)).Equal(cosmos.NewUint(50*common.One)), Equals, true)

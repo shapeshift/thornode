@@ -4,11 +4,17 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/blang/semver"
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
+
+// MsgHandler is an interface expect all handler to implement
+type MsgHandler interface {
+	Run(ctx cosmos.Context, msg cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error)
+}
 
 // NewExternalHandler returns a handler for "thorchain" type messages.
 func NewExternalHandler(keeper keeper.Keeper, mgr Manager) cosmos.Handler {
@@ -87,8 +93,8 @@ func getInternalHandlerMapping(keeper keeper.Keeper, mgr Manager) map[string]Msg
 	m[MsgUnBond{}.Type()] = NewUnBondHandler(keeper, mgr)
 	m[MsgLeave{}.Type()] = NewLeaveHandler(keeper, mgr)
 	m[MsgAdd{}.Type()] = NewAddHandler(keeper, mgr)
-	m[MsgSetUnStake{}.Type()] = NewUnstakeHandler(keeper, mgr)
-	m[MsgSetStakeData{}.Type()] = NewStakeHandler(keeper, mgr)
+	m[MsgUnStake{}.Type()] = NewUnstakeHandler(keeper, mgr)
+	m[MsgStake{}.Type()] = NewStakeHandler(keeper, mgr)
 	m[MsgRefundTx{}.Type()] = NewRefundHandler(keeper, mgr)
 	m[MsgMigrate{}.Type()] = NewMigrateHandler(keeper, mgr)
 	m[MsgRagnarok{}.Type()] = NewRagnarokHandler(keeper, mgr)
@@ -253,7 +259,7 @@ func getMsgUnstakeFromMemo(memo UnstakeMemo, tx ObservedTx, signer cosmos.AccAdd
 	if !memo.GetAmount().IsZero() {
 		withdrawAmount = memo.GetAmount()
 	}
-	return NewMsgSetUnStake(tx.Tx, tx.Tx.FromAddress, withdrawAmount, memo.GetAsset(), signer), nil
+	return NewMsgUnStake(tx.Tx, tx.Tx.FromAddress, withdrawAmount, memo.GetAsset(), signer), nil
 }
 
 func getMsgStakeFromMemo(ctx cosmos.Context, memo StakeMemo, tx ObservedTx, signer cosmos.AccAddress) (cosmos.Msg, error) {
@@ -309,7 +315,7 @@ func getMsgStakeFromMemo(ctx cosmos.Context, memo StakeMemo, tx ObservedTx, sign
 		}
 	}
 
-	return NewMsgSetStakeData(
+	return NewMsgStake(
 		tx.Tx,
 		asset,
 		runeAmount,

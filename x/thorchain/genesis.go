@@ -120,7 +120,7 @@ func ValidateGenesis(data GenesisState) error {
 		}
 	}
 	for _, nf := range data.NetworkFees {
-		if err := nf.Validate(); err != nil {
+		if err := nf.Valid(); err != nil {
 			return fmt.Errorf("invalid network fee: %w", err)
 		}
 	}
@@ -246,7 +246,7 @@ func InitGenesis(ctx cosmos.Context, keeper keeper.Keeper, data GenesisState) []
 	}
 
 	for _, tv := range data.TssVoters {
-		if tv.Empty() {
+		if tv.IsEmpty() {
 			continue
 		}
 		keeper.SetTssVoter(ctx, tv)

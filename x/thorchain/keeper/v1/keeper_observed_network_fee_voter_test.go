@@ -22,5 +22,5 @@ func (*KeeperObservedNetworkFeeVoterSuite) TestObservedNetworkFeeVoter(c *C) {
 
 	voter1, err1 := k.GetObservedNetworkFeeVoter(ctx, 1028, common.BTCChain)
 	c.Check(err1, IsNil)
-	c.Check(voter1.Empty(), Equals, false)
+	c.Check(voter1.IsEmpty(), Equals, false)
 }

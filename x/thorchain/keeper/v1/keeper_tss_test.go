@@ -16,7 +16,7 @@ func (s *KeeperTssSuite) TestTssVoter(c *C) {
 
 	v, err1 := k.GetTssVoter(ctx, voter.ID)
 	c.Check(err1, IsNil)
-	c.Check(v.Empty(), Equals, true)
+	c.Check(v.IsEmpty(), Equals, true)
 
 	k.SetTssVoter(ctx, voter)
 	voter, err := k.GetTssVoter(ctx, voter.ID)

@@ -133,7 +133,7 @@ func (h NativeTxHandler) handleV1(ctx cosmos.Context, msg MsgNativeTx, version s
 
 	// check if we've halted trading
 	_, isSwap := m.(MsgSwap)
-	_, isStake := m.(MsgSetStakeData)
+	_, isStake := m.(MsgStake)
 	haltTrading, err := h.keeper.GetMimir(ctx, "HaltTrading")
 	if isSwap || isStake {
 		if (haltTrading > 0 && haltTrading < common.BlockHeight(ctx) && err == nil) || h.keeper.RagnarokInProgress(ctx) {

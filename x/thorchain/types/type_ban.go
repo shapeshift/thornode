@@ -15,15 +15,16 @@ type BanVoter struct {
 
 // NewBanVoter create a new instance of BanVoter
 func NewBanVoter(addr cosmos.AccAddress) BanVoter {
-	return BanVoter{
-		NodeAddress: addr,
-	}
+	return BanVoter{NodeAddress: addr}
 }
 
 // IsValid return an error if the node address that need to be banned is empty
 func (b BanVoter) IsValid() error {
 	if b.NodeAddress.Empty() {
 		return errors.New("node address is empty")
+	}
+	if b.BlockHeight <= 0 {
+		return errors.New("block height cannot be equal to or less than zero")
 	}
 	return nil
 }

@@ -71,8 +71,8 @@ var (
 	NewMsgObservedTxOut            = types.NewMsgObservedTxOut
 	NewMsgNoOp                     = types.NewMsgNoOp
 	NewMsgAdd                      = types.NewMsgAdd
-	NewMsgSetStakeData             = types.NewMsgSetStakeData
-	NewMsgSetUnStake               = types.NewMsgSetUnStake
+	NewMsgStake                    = types.NewMsgStake
+	NewMsgUnStake                  = types.NewMsgUnStake
 	NewMsgSwap                     = types.NewMsgSwap
 	NewKeygen                      = types.NewKeygen
 	NewKeygenBlock                 = types.NewKeygenBlock
@@ -150,8 +150,8 @@ type (
 	MsgUnBond                      = types.MsgUnBond
 	MsgNoOp                        = types.MsgNoOp
 	MsgAdd                         = types.MsgAdd
-	MsgSetUnStake                  = types.MsgSetUnStake
-	MsgSetStakeData                = types.MsgSetStakeData
+	MsgUnStake                     = types.MsgUnStake
+	MsgStake                       = types.MsgStake
 	MsgOutboundTx                  = types.MsgOutboundTx
 	MsgMimir                       = types.MsgMimir
 	MsgMigrate                     = types.MsgMigrate
