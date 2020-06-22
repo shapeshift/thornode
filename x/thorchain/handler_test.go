@@ -218,7 +218,7 @@ func (HandlerSuite) TestHandleTxInUnstakeMemo(c *C) {
 		Gas:         BNBGasFeeSingleton,
 	}
 
-	msg := NewMsgSetUnStake(tx, staker.RuneAddress, cosmos.NewUint(uint64(MaxUnstakeBasisPoints)), common.BNBAsset, w.activeNodeAccount.NodeAddress)
+	msg := NewMsgUnStake(tx, staker.RuneAddress, cosmos.NewUint(uint64(MaxUnstakeBasisPoints)), common.BNBAsset, w.activeNodeAccount.NodeAddress)
 	c.Assert(err, IsNil)
 
 	handler := NewInternalHandler(w.keeper, w.mgr)
@@ -230,7 +230,7 @@ func (HandlerSuite) TestHandleTxInUnstakeMemo(c *C) {
 
 	pool, err = w.keeper.GetPool(w.ctx, common.BNBAsset)
 	c.Assert(err, IsNil)
-	c.Assert(pool.Empty(), Equals, false)
+	c.Assert(pool.IsEmpty(), Equals, false)
 	c.Check(pool.Status, Equals, PoolBootstrap)
 	c.Check(pool.PoolUnits.Uint64(), Equals, uint64(0), Commentf("%d", pool.PoolUnits.Uint64()))
 	c.Check(pool.BalanceRune.Uint64(), Equals, uint64(0), Commentf("%d", pool.BalanceRune.Uint64()))
@@ -439,7 +439,7 @@ func (HandlerSuite) TestGetMsgStakeFromMemo(c *C) {
 	msg4, err4 := getMsgStakeFromMemo(w.ctx, lokiStakeMemo.(StakeMemo), txin, GetRandomBech32Addr())
 	c.Assert(err4, IsNil)
 	c.Assert(msg4, NotNil)
-	msgStake := msg4.(MsgSetStakeData)
+	msgStake := msg4.(MsgStake)
 	c.Assert(msgStake, NotNil)
 	c.Assert(msgStake.RuneAddress, Equals, runeAddr)
 	c.Assert(msgStake.AssetAddress, Equals, txin.Tx.FromAddress)

@@ -29,7 +29,7 @@ func NewMsgBond(txin common.Tx, nodeAddr cosmos.AccAddress, bond cosmos.Uint, bo
 func (msg MsgBond) Route() string { return RouterKey }
 
 // Type should return the action
-func (msg MsgBond) Type() string { return "validator_apply" }
+func (msg MsgBond) Type() string { return "bond" }
 
 // ValidateBasic runs stateless checks on the message
 func (msg MsgBond) ValidateBasic() error {
@@ -42,8 +42,14 @@ func (msg MsgBond) ValidateBasic() error {
 	if msg.BondAddress.IsEmpty() {
 		return cosmos.ErrInvalidAddress("bond address cannot be empty")
 	}
-	if msg.TxIn.IsEmpty() {
-		return cosmos.ErrUnknownRequest("request tx cannot be empty")
+	if err := msg.TxIn.IsValid(); err != nil {
+		return cosmos.ErrUnknownRequest(err.Error())
+	}
+	if len(msg.TxIn.Coins) > 1 {
+		return cosmos.ErrUnknownRequest("cannot bond more than one coin")
+	}
+	if !msg.TxIn.Coins[0].Asset.IsRune() {
+		return cosmos.ErrUnknownRequest("cannot bond non-rune asset")
 	}
 	if msg.Signer.Empty() {
 		return cosmos.ErrInvalidAddress("empty signer address")

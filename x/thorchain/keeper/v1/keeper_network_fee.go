@@ -31,7 +31,7 @@ func (k KVStore) GetNetworkFee(ctx cosmos.Context, chain common.Chain) (NetworkF
 
 // SaveNetworkFee save the network fee to kv store
 func (k KVStore) SaveNetworkFee(ctx cosmos.Context, chain common.Chain, networkFee NetworkFee) error {
-	if err := networkFee.Validate(); err != nil {
+	if err := networkFee.Valid(); err != nil {
 		return err
 	}
 	key := k.GetKey(ctx, prefixNetworkFee, chain.String())

@@ -21,7 +21,7 @@ func (mas *MsgAddSuite) TestMsgAdd(c *C) {
 	c.Check(addr.Empty(), Equals, false)
 	ma := NewMsgAdd(tx, common.BNBAsset, cosmos.NewUint(100000000), cosmos.NewUint(100000000), addr)
 	c.Check(ma.Route(), Equals, RouterKey)
-	c.Check(ma.Type(), Equals, "set_add")
+	c.Check(ma.Type(), Equals, "add")
 	err := ma.ValidateBasic()
 	c.Assert(err, IsNil)
 	buf := ma.GetSignBytes()

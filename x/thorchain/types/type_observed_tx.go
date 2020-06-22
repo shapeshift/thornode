@@ -44,10 +44,10 @@ func (tx ObservedTx) Valid() error {
 	if err := tx.Tx.IsValid(); err != nil {
 		return err
 	}
-
-	// Memo should not be empty, but it can't be checked here, because a message failed validation will be rejected by THORNode.
+	// Memo should not be empty, but it can't be checked here, because a
+	// message failed validation will be rejected by THORNode.
 	// Thus THORNode can't refund customer accordingly , which will result fund lost
-	if tx.BlockHeight == 0 {
+	if tx.BlockHeight <= 0 {
 		return errors.New("block height can't be zero")
 	}
 	if tx.ObservedPubKey.IsEmpty() {
@@ -180,8 +180,10 @@ func (tx ObservedTxVoter) matchActionItem(outboundTx common.Tx) bool {
 }
 
 // AddOutTx trying to add the outbound tx into OutTxs ,
-// return value false indicate the given outbound tx doesn't match any of the actions items , node account should be slashed for a malicious tx
-// true indicated the outbound tx matched an action item , and it has been added into internal OutTxs
+// return value false indicate the given outbound tx doesn't match any of the
+// actions items , node account should be slashed for a malicious tx
+// true indicated the outbound tx matched an action item , and it has been
+// added into internal OutTxs
 func (tx *ObservedTxVoter) AddOutTx(in common.Tx) bool {
 	if !tx.matchActionItem(in) {
 		// no action item match the outbound tx
@@ -203,12 +205,14 @@ func (tx *ObservedTxVoter) AddOutTx(in common.Tx) bool {
 	return true
 }
 
-// IsDone check whether THORChain finished process the tx, all outbound tx had been sent and observed
+// IsDone check whether THORChain finished process the tx, all outbound tx had
+// been sent and observed
 func (tx *ObservedTxVoter) IsDone() bool {
 	return len(tx.Actions) <= len(tx.OutTxs)
 }
 
-// Add is trying to add the given observed tx into the voter , if the signer already sign , they will not add twice , it simply return false
+// Add is trying to add the given observed tx into the voter , if the signer
+// already sign , they will not add twice , it simply return false
 func (tx *ObservedTxVoter) Add(observedTx ObservedTx, signer cosmos.AccAddress) bool {
 	// check if this signer has already signed, no take backs allowed
 	votedIdx := -1

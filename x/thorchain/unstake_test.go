@@ -213,12 +213,12 @@ func (s UnstakeSuite) TestValidateUnstake(c *C) {
 	}
 	inputs := []struct {
 		name          string
-		msg           MsgSetUnStake
+		msg           MsgUnStake
 		expectedError error
 	}{
 		{
 			name: "empty-rune-address",
-			msg: MsgSetUnStake{
+			msg: MsgUnStake{
 				RuneAddress:        "",
 				UnstakeBasisPoints: cosmos.NewUint(10000),
 				Asset:              common.BNBAsset,
@@ -229,7 +229,7 @@ func (s UnstakeSuite) TestValidateUnstake(c *C) {
 		},
 		{
 			name: "empty-withdraw-basis-points",
-			msg: MsgSetUnStake{
+			msg: MsgUnStake{
 				RuneAddress:        runeAddress,
 				UnstakeBasisPoints: cosmos.ZeroUint(),
 				Asset:              common.BNBAsset,
@@ -240,7 +240,7 @@ func (s UnstakeSuite) TestValidateUnstake(c *C) {
 		},
 		{
 			name: "empty-request-txhash",
-			msg: MsgSetUnStake{
+			msg: MsgUnStake{
 				RuneAddress:        runeAddress,
 				UnstakeBasisPoints: cosmos.NewUint(10000),
 				Asset:              common.BNBAsset,
@@ -251,7 +251,7 @@ func (s UnstakeSuite) TestValidateUnstake(c *C) {
 		},
 		{
 			name: "empty-asset",
-			msg: MsgSetUnStake{
+			msg: MsgUnStake{
 				RuneAddress:        runeAddress,
 				UnstakeBasisPoints: cosmos.NewUint(10000),
 				Asset:              common.Asset{},
@@ -262,7 +262,7 @@ func (s UnstakeSuite) TestValidateUnstake(c *C) {
 		},
 		{
 			name: "invalid-basis-point",
-			msg: MsgSetUnStake{
+			msg: MsgUnStake{
 				RuneAddress:        runeAddress,
 				UnstakeBasisPoints: cosmos.NewUint(10001),
 				Asset:              common.BNBAsset,
@@ -273,7 +273,7 @@ func (s UnstakeSuite) TestValidateUnstake(c *C) {
 		},
 		{
 			name: "invalid-pool-notexist",
-			msg: MsgSetUnStake{
+			msg: MsgUnStake{
 				RuneAddress:        runeAddress,
 				UnstakeBasisPoints: cosmos.NewUint(10000),
 				Asset:              common.Asset{Chain: common.BNBChain, Ticker: "NOTEXIST", Symbol: "NOTEXIST"},
@@ -284,7 +284,7 @@ func (s UnstakeSuite) TestValidateUnstake(c *C) {
 		},
 		{
 			name: "all-good",
-			msg: MsgSetUnStake{
+			msg: MsgUnStake{
 				RuneAddress:        runeAddress,
 				UnstakeBasisPoints: cosmos.NewUint(10000),
 				Asset:              common.BNBAsset,
@@ -322,7 +322,7 @@ func (UnstakeSuite) TestUnstake(c *C) {
 	}
 	testCases := []struct {
 		name          string
-		msg           MsgSetUnStake
+		msg           MsgUnStake
 		ps            keeper.Keeper
 		runeAmount    cosmos.Uint
 		assetAmount   cosmos.Uint
@@ -330,7 +330,7 @@ func (UnstakeSuite) TestUnstake(c *C) {
 	}{
 		{
 			name: "empty-rune-address",
-			msg: MsgSetUnStake{
+			msg: MsgUnStake{
 				RuneAddress:        "",
 				UnstakeBasisPoints: cosmos.NewUint(10000),
 				Asset:              common.BNBAsset,
@@ -344,7 +344,7 @@ func (UnstakeSuite) TestUnstake(c *C) {
 		},
 		{
 			name: "empty-withdraw-basis-points",
-			msg: MsgSetUnStake{
+			msg: MsgUnStake{
 				RuneAddress:        runeAddress,
 				UnstakeBasisPoints: cosmos.ZeroUint(),
 				Asset:              common.BNBAsset,
@@ -358,7 +358,7 @@ func (UnstakeSuite) TestUnstake(c *C) {
 		},
 		{
 			name: "empty-request-txhash",
-			msg: MsgSetUnStake{
+			msg: MsgUnStake{
 				RuneAddress:        runeAddress,
 				UnstakeBasisPoints: cosmos.NewUint(10000),
 				Asset:              common.BNBAsset,
@@ -372,7 +372,7 @@ func (UnstakeSuite) TestUnstake(c *C) {
 		},
 		{
 			name: "empty-asset",
-			msg: MsgSetUnStake{
+			msg: MsgUnStake{
 				RuneAddress:        runeAddress,
 				UnstakeBasisPoints: cosmos.NewUint(10000),
 				Asset:              common.Asset{},
@@ -387,7 +387,7 @@ func (UnstakeSuite) TestUnstake(c *C) {
 
 		{
 			name: "invalid-basis-point",
-			msg: MsgSetUnStake{
+			msg: MsgUnStake{
 				RuneAddress:        runeAddress,
 				UnstakeBasisPoints: cosmos.NewUint(10001),
 				Asset:              common.BNBAsset,
@@ -401,7 +401,7 @@ func (UnstakeSuite) TestUnstake(c *C) {
 		},
 		{
 			name: "invalid-pool-notexist",
-			msg: MsgSetUnStake{
+			msg: MsgUnStake{
 				RuneAddress:        runeAddress,
 				UnstakeBasisPoints: cosmos.NewUint(10000),
 				Asset:              common.Asset{Chain: common.BNBChain, Ticker: "NOTEXIST", Symbol: "NOTEXIST"},
@@ -415,7 +415,7 @@ func (UnstakeSuite) TestUnstake(c *C) {
 		},
 		{
 			name: "invalid-pool-staker-notexist",
-			msg: MsgSetUnStake{
+			msg: MsgUnStake{
 				RuneAddress:        runeAddress,
 				UnstakeBasisPoints: cosmos.NewUint(10000),
 				Asset:              common.Asset{Chain: common.BNBChain, Ticker: "NOTEXISTSTICKER", Symbol: "NOTEXISTSTICKER"},
@@ -429,7 +429,7 @@ func (UnstakeSuite) TestUnstake(c *C) {
 		},
 		{
 			name: "nothing-to-withdraw",
-			msg: MsgSetUnStake{
+			msg: MsgUnStake{
 				RuneAddress:        runeAddress,
 				UnstakeBasisPoints: cosmos.NewUint(0),
 				Asset:              common.BNBAsset,
@@ -443,7 +443,7 @@ func (UnstakeSuite) TestUnstake(c *C) {
 		},
 		{
 			name: "all-good",
-			msg: MsgSetUnStake{
+			msg: MsgUnStake{
 				RuneAddress:        runeAddress,
 				UnstakeBasisPoints: cosmos.NewUint(10000),
 				Asset:              common.BNBAsset,
@@ -457,7 +457,7 @@ func (UnstakeSuite) TestUnstake(c *C) {
 		},
 		{
 			name: "all-good-half",
-			msg: MsgSetUnStake{
+			msg: MsgUnStake{
 				RuneAddress:        runeAddress,
 				UnstakeBasisPoints: cosmos.NewUint(5000),
 				Asset:              common.BNBAsset,
@@ -504,7 +504,6 @@ func getUnstakeTestKeeper(c *C) keeper.Keeper {
 		BalanceAsset: cosmos.NewUint(100 * common.One),
 		Asset:        common.BNBAsset,
 		PoolUnits:    cosmos.NewUint(100 * common.One),
-		PoolAddress:  runeAddress,
 		Status:       PoolEnabled,
 	}
 	c.Assert(store.SetPool(ctx, pool), IsNil)

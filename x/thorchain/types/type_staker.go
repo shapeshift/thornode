@@ -36,9 +36,5 @@ func (staker Staker) IsValid() error {
 
 // Key return a string which can be used to identify staker
 func (staker Staker) Key() string {
-	return fmt.Sprintf(
-		"%s/%s",
-		staker.Asset.String(),
-		staker.RuneAddress.String(),
-	)
+	return fmt.Sprintf("%s/%s", staker.Asset.String(), staker.RuneAddress.String())
 }

@@ -29,31 +29,31 @@ func NewUnstakeHandler(keeper keeper.Keeper, mgr Manager) UnstakeHandler {
 
 // Run is the main entry point of unstake
 func (h UnstakeHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, _ constants.ConstantValues) (*cosmos.Result, error) {
-	msg, ok := m.(MsgSetUnStake)
+	msg, ok := m.(MsgUnStake)
 	if !ok {
 		return nil, errInvalidMessage
 	}
-	ctx.Logger().Info(fmt.Sprintf("receive MsgSetUnstake from : %s(%s) unstake (%s)", msg, msg.RuneAddress, msg.UnstakeBasisPoints))
+	ctx.Logger().Info(fmt.Sprintf("receive MsgUnStake from : %s(%s) unstake (%s)", msg, msg.RuneAddress, msg.UnstakeBasisPoints))
 
 	if err := h.validate(ctx, msg, version); err != nil {
-		ctx.Logger().Error("MsgSetUnStake failed validation", "error", err)
+		ctx.Logger().Error("MsgUnStake failed validation", "error", err)
 		return nil, err
 	}
 	result, err := h.handle(ctx, msg, version)
 	if err != nil {
-		ctx.Logger().Error("failed to process MsgSetUnStake", "error", err)
+		ctx.Logger().Error("failed to process MsgUnStake", "error", err)
 	}
 	return result, err
 }
 
-func (h UnstakeHandler) validate(ctx cosmos.Context, msg MsgSetUnStake, version semver.Version) error {
+func (h UnstakeHandler) validate(ctx cosmos.Context, msg MsgUnStake, version semver.Version) error {
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, msg)
 	}
 	return errBadVersion
 }
 
-func (h UnstakeHandler) validateV1(ctx cosmos.Context, msg MsgSetUnStake) error {
+func (h UnstakeHandler) validateV1(ctx cosmos.Context, msg MsgUnStake) error {
 	if err := msg.ValidateBasic(); err != nil {
 		return errUnstakeFailValidation
 	}
@@ -70,7 +70,7 @@ func (h UnstakeHandler) validateV1(ctx cosmos.Context, msg MsgSetUnStake) error 
 	return nil
 }
 
-func (h UnstakeHandler) handle(ctx cosmos.Context, msg MsgSetUnStake, version semver.Version) (*cosmos.Result, error) {
+func (h UnstakeHandler) handle(ctx cosmos.Context, msg MsgUnStake, version semver.Version) (*cosmos.Result, error) {
 	staker, err := h.keeper.GetStaker(ctx, msg.Asset, msg.RuneAddress)
 	if err != nil {
 		return nil, multierror.Append(errFailGetStaker, err)

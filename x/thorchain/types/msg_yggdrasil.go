@@ -44,13 +44,14 @@ func (msg MsgYggdrasil) ValidateBasic() error {
 	if msg.BlockHeight <= 0 {
 		return cosmos.ErrUnknownRequest("invalid block height")
 	}
-	if msg.Tx.IsEmpty() {
-		return cosmos.ErrUnknownRequest("request tx cannot be empty")
+	if err := msg.Tx.IsValid(); err != nil {
+		return cosmos.ErrUnknownRequest(err.Error())
 	}
-	for _, coin := range msg.Coins {
-		if err := coin.IsValid(); err != nil {
-			return cosmos.ErrInvalidCoins(err.Error())
-		}
+	if len(msg.Coins) == 0 {
+		return cosmos.ErrUnknownRequest("no coins")
+	}
+	if err := msg.Coins.IsValid(); err != nil {
+		return cosmos.ErrInvalidCoins(err.Error())
 	}
 	return nil
 }

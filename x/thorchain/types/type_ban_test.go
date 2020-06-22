@@ -15,6 +15,8 @@ func (s BanVoterSuite) TestVoter(c *C) {
 
 	addr := GetRandomBech32Addr()
 	ban = NewBanVoter(addr)
+	ban.BlockHeight = 12
+
 	c.Check(ban.IsValid(), IsNil)
 	c.Check(ban.IsEmpty(), Equals, false)
 	c.Check(ban.String(), Equals, addr.String())

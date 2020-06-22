@@ -167,16 +167,11 @@ func (v Vault) GetMembers(activeObservers []cosmos.AccAddress) (common.PubKeys, 
 // AddFunds add given coins into vault
 func (v *Vault) AddFunds(coins common.Coins) {
 	for _, coin := range coins {
-		found := false
 		for i, ycoin := range v.Coins {
 			if coin.Asset.Equals(ycoin.Asset) {
 				v.Coins[i].Amount = ycoin.Amount.Add(coin.Amount)
-				found = true
-				break
+				continue
 			}
-		}
-		if found {
-			continue
 		}
 		if !v.Chains.Has(coin.Asset.Chain) {
 			v.Chains = append(v.Chains, coin.Asset.Chain)
@@ -202,9 +197,7 @@ func (v *Vault) SubFunds(coins common.Coins) {
 
 // AppendPendingTxBlockHeights will add current block height into the list , also remove the block height that is too old
 func (v *Vault) AppendPendingTxBlockHeights(blockHeight int64, constAccessor constants.ConstantValues) {
-	heights := []int64{
-		blockHeight,
-	}
+	heights := []int64{blockHeight}
 	for _, item := range v.PendingTxBlockHeights {
 		if (blockHeight - item) <= constAccessor.GetInt64Value(constants.SigningTransactionPeriod) {
 			heights = append(heights, item)
@@ -245,7 +238,6 @@ func (vs Vaults) SortBy(sortBy common.Asset) Vaults {
 	sort.SliceStable(vs[:], func(i, j int) bool {
 		return vs[i].GetCoin(sortBy).Amount.GT(vs[j].GetCoin(sortBy).Amount)
 	})
-
 	return vs
 }
 
@@ -256,7 +248,6 @@ func (vs Vaults) SelectByMinCoin(asset common.Asset) (vault Vault) {
 			vault = v
 		}
 	}
-
 	return
 }
 
@@ -267,11 +258,11 @@ func (vs Vaults) SelectByMaxCoin(asset common.Asset) (vault Vault) {
 			vault = v
 		}
 	}
-
 	return
 }
 
-// HasAddress will go through the vaults to determinate whether any of the vault match the given address on the given chain
+// HasAddress will go through the vaults to determinate whether any of the
+// vault match the given address on the given chain
 func (vs Vaults) HasAddress(chain common.Chain, address common.Address) (bool, error) {
 	for _, item := range vs {
 		addr, err := item.PubKey.GetAddress(chain)

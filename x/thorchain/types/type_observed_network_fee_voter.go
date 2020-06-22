@@ -58,11 +58,8 @@ func (f *ObservedNetworkFeeVoter) HasConsensus(nas NodeAccounts) bool {
 }
 
 // Empty return true when chain is empty and block height is 0
-func (f *ObservedNetworkFeeVoter) Empty() bool {
-	if f.Chain.IsEmpty() && f.ReportBlockHeight == 0 {
-		return true
-	}
-	return false
+func (f *ObservedNetworkFeeVoter) IsEmpty() bool {
+	return f.Chain.IsEmpty() && f.ReportBlockHeight == 0
 }
 
 // String implement fmt.Stringer

@@ -354,7 +354,7 @@ type EventGas struct {
 // NewEventGas create a new EventGas instance
 func NewEventGas() *EventGas {
 	return &EventGas{
-		Pools: []GasPool{},
+		Pools: make([]GasPool, 0),
 	}
 }
 
