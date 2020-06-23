@@ -106,6 +106,10 @@ peer_list () {
     sed -i -e "s/$PEERSISTENT_PEER_TARGET/persistent_peers = \"$PEERUSER\"/g" ~/.thord/config/config.toml
 }
 
+enable_telemetry () {
+    sed -i -e "s/prometheus = false/prometheus = true/g" ~/.thord/config/config.toml
+}
+
 gen_bnb_address () {
     if [ ! -f ~/.bond/private_key.txt ]; then
         echo "GENERATING BNB ADDRESSES"
