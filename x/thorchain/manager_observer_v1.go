@@ -80,5 +80,5 @@ func (om *ObserverMgrV1) EndBlock(ctx cosmos.Context, keeper keeper.Keeper) {
 	if err := keeper.AddObservingAddresses(ctx, om.List()); err != nil {
 		ctx.Logger().Error("fail to append observers", "error", err)
 	}
-	om.reset()
+	om.reset() // do not remove, would cause consensus failure
 }

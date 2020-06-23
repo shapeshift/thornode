@@ -122,7 +122,7 @@ func (s *MemoSuite) TestParseWithAbbreviated(c *C) {
 	memo, err = ParseMemo("ragnarok:100")
 	c.Assert(err, IsNil)
 	c.Check(memo.IsType(TxRagnarok), Equals, true)
-	c.Check(memo.IsInternal(), Equals, true)
+	c.Check(memo.IsOutbound(), Equals, true)
 
 	mem := fmt.Sprintf("switch:%s", types.GetRandomBech32Addr())
 	memo, err = ParseMemo(mem)

@@ -16,7 +16,7 @@ func (s *EventManagerTestSuite) TestEmitPoolEvent(c *C) {
 	eventMgr := NewEventMgrV1()
 	c.Assert(eventMgr, NotNil)
 	ctx = ctx.WithBlockHeight(1024)
-	c.Assert(eventMgr.EmitPoolEvent(ctx, NewEventPool(common.BNBAsset, PoolEnabled)), IsNil)
+	c.Assert(eventMgr.EmitEvent(ctx, NewEventPool(common.BNBAsset, PoolEnabled)), IsNil)
 }
 
 func (s *EventManagerTestSuite) TestEmitErrataEvent(c *C) {
@@ -33,7 +33,7 @@ func (s *EventManagerTestSuite) TestEmitErrataEvent(c *C) {
 			AssetAdd: true,
 		},
 	})
-	c.Assert(eventMgr.EmitErrataEvent(ctx, errataEvent), IsNil)
+	c.Assert(eventMgr.EmitEvent(ctx, errataEvent), IsNil)
 }
 
 func (s *EventManagerTestSuite) TestEmitGasEvent(c *C) {

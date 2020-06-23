@@ -173,8 +173,8 @@ func (tos *TxOutStorageV1) prepareTxOutItem(ctx cosmos.Context, toi *TxOutItem) 
 		toi.MaxGas = common.Gas{
 			common.NewCoin(gasAsset, maxAmt),
 		}
-
 	}
+
 	// Deduct TransactionFee from TOI and add to Reserve
 	memo, err := ParseMemo(toi.Memo) // ignore err
 	if err == nil && !memo.IsType(TxYggdrasilFund) && !memo.IsType(TxYggdrasilReturn) && !memo.IsType(TxMigrate) && !memo.IsType(TxRagnarok) {
@@ -370,8 +370,10 @@ func (tos *TxOutStorageV1) collectYggdrasilPools(ctx cosmos.Context, tx Observed
 		if !vault.IsYggdrasil() {
 			continue
 		}
-		// When trying to choose a ygg pool candidate to send out fund , let's make sure the ygg pool has gasAsset , for example, if it is
-		// on Binance chain , make sure ygg pool has BNB asset in it , otherwise it won't be able to pay the transaction fee
+		// When trying to choose a ygg pool candidate to send out fund , let's
+		// make sure the ygg pool has gasAsset , for example, if it is
+		// on Binance chain , make sure ygg pool has BNB asset in it ,
+		// otherwise it won't be able to pay the transaction fee
 		if !vault.HasAsset(gasAsset) {
 			continue
 		}
@@ -382,7 +384,9 @@ func (tos *TxOutStorageV1) collectYggdrasilPools(ctx cosmos.Context, tx Observed
 			return nil, fmt.Errorf("fail to get thor address from pub key(%s):%w", vault.PubKey, err)
 		}
 
-		// if the ygg pool didn't observe the TxIn, and didn't sign the TxIn, THORNode is not going to choose them to send out fund , because they might offline
+		// if the ygg pool didn't observe the TxIn, and didn't sign the TxIn,
+		// THORNode is not going to choose them to send out fund , because they
+		// might offline
 		if !tx.HasSigned(addr) {
 			continue
 		}

@@ -332,6 +332,10 @@ func (vm *validatorMgrV1) payNodeAccountBondAward(ctx cosmos.Context, na NodeAcc
 		return fmt.Errorf("fail to get node slash points: %w", err)
 	}
 
+	if na.ActiveBlockHeight == 0 {
+		return nil
+	}
+
 	// Find number of blocks they have been an active node
 	totalActiveBlocks := common.BlockHeight(ctx) - na.ActiveBlockHeight
 
@@ -624,7 +628,7 @@ func (vm *validatorMgrV1) ragnarokPools(ctx cosmos.Context, nth int64, mgr Manag
 	for _, pool := range pools {
 		if pool.Status != PoolBootstrap {
 			poolEvent := NewEventPool(pool.Asset, PoolBootstrap)
-			if err := vm.eventMgr.EmitPoolEvent(ctx, poolEvent); err != nil {
+			if err := vm.eventMgr.EmitEvent(ctx, poolEvent); err != nil {
 				ctx.Logger().Error("fail to emit pool event", "error", err)
 			}
 		}
@@ -705,7 +709,7 @@ func (vm *validatorMgrV1) RequestYggReturn(ctx cosmos.Context, node NodeAccount,
 	}
 	chains = chains.Distinct()
 
-	vault := active.SelectByMinCoin(common.RuneAsset())
+	vault := active.SelectByMaxCoin(common.RuneAsset())
 	if vault.IsEmpty() {
 		return fmt.Errorf("unable to determine asgard vault")
 	}
@@ -820,11 +824,11 @@ func (vm *validatorMgrV1) findBadActors(ctx cosmos.Context) (NodeAccounts, error
 	// determined by relative to how many slash points they have over how long
 	// they have been an active node account.
 	type badTracker struct {
-		Score       cosmos.Dec
+		Score       cosmos.Uint
 		NodeAccount NodeAccount
 	}
 	tracker := make([]badTracker, 0, len(nas))
-	totalScore := cosmos.ZeroDec()
+	totalScore := cosmos.ZeroUint()
 
 	// Find bad actor relative to age / slashpoints
 	for _, na := range nas {
@@ -836,12 +840,14 @@ func (vm *validatorMgrV1) findBadActors(ctx cosmos.Context) (NodeAccounts, error
 			continue
 		}
 
-		age := cosmos.NewDecWithPrec(common.BlockHeight(ctx)-na.StatusSince, 5)
-		if age.LT(cosmos.NewDecWithPrec(720, 5)) {
+		if common.BlockHeight(ctx)-na.StatusSince < 720 {
 			// this node account is too new (1 hour) to be considered for removal
 			continue
 		}
-		score := age.Quo(cosmos.NewDecWithPrec(slashPts, 5))
+
+		// get to the 8th decimal point, but keep numbers integers for safer math
+		age := cosmos.NewUint(uint64((common.BlockHeight(ctx) - na.StatusSince) * common.One))
+		score := age.QuoUint64(uint64(slashPts))
 		totalScore = totalScore.Add(score)
 
 		tracker = append(tracker, badTracker{
@@ -859,7 +865,7 @@ func (vm *validatorMgrV1) findBadActors(ctx cosmos.Context) (NodeAccounts, error
 		return tracker[i].Score.LT(tracker[j].Score)
 	})
 
-	avgScore := totalScore.QuoInt64(int64(len(nas)))
+	avgScore := totalScore.QuoUint64(uint64(len(nas)))
 
 	// NOTE: our redline is a hard line in the sand to determine if a node
 	// account is sufficiently bad that it should just be removed now. This
@@ -868,7 +874,7 @@ func (vm *validatorMgrV1) findBadActors(ctx cosmos.Context) (NodeAccounts, error
 	// be able to churn out more than 1/3rd of our node accounts in a single
 	// churn, as that could threaten the security of the funds. This logic to
 	// protect against this is not inside this function.
-	redline := avgScore.QuoInt64(3)
+	redline := avgScore.QuoUint64(3)
 
 	// find any node accounts that have crossed the redline
 	for _, track := range tracker {
@@ -892,8 +898,6 @@ func (vm *validatorMgrV1) findOldActor(ctx cosmos.Context) (NodeAccount, error) 
 	if err != nil {
 		return na, err
 	}
-
-	// TODO: return if we're at risk of loosing BTF
 
 	na.StatusSince = common.BlockHeight(ctx) // set the start status age to "now"
 	for _, n := range nas {
