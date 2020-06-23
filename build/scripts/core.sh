@@ -146,6 +146,22 @@ fetch_node_id () {
     curl -s $1:26657/status | jq -r .result.node_info.id
 }
 
+set_node_keys () {
+  SIGNER_NAME=$1
+  SIGNER_PASSWD=$2
+  PEER=$3
+  NODE_PUB_KEY=$(echo $SIGNER_PASSWD | thorcli keys show thorchain --pubkey)
+  VALIDATOR=$(thord tendermint show-validator)
+  printf "$SIGNER_PASSWD\n$SIGNER_PASSWD\n" | thorcli tx thorchain set-node-keys $NODE_PUB_KEY $NODE_PUB_KEY $VALIDATOR --node tcp://$PEER:26657 --from $SIGNER_NAME --yes
+}
+
+set_ip_address () {
+  SIGNER_NAME=$1
+  SIGNER_PASSWD=$2
+  PEER=$3
+  printf "$SIGNER_PASSWD\n$SIGNER_PASSWD\n" | thorcli tx thorchain set-ip-address $(curl -s http://whatismyip.akamai.com) --node tcp://$PEER:26657 --from $SIGNER_NAME --yes
+}
+
 fetch_version () {
     thorcli query thorchain version --chain-id thorchain --trust-node --output json | jq -r .version
 }
