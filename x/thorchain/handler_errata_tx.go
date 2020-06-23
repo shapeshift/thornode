@@ -124,7 +124,6 @@ func (h ErrataTxHandler) handleV1(ctx cosmos.Context, msg MsgErrataTx, version s
 		// must be a swap or stake transaction
 		return &cosmos.Result{}, nil
 	}
-
 	// fetch pool from memo
 	pool, err := h.keeper.GetPool(ctx, memo.GetAsset())
 	if err != nil {
@@ -145,12 +144,10 @@ func (h ErrataTxHandler) handleV1(ctx cosmos.Context, msg MsgErrataTx, version s
 
 	pool.BalanceRune = common.SafeSub(pool.BalanceRune, runeAmt)
 	pool.BalanceAsset = common.SafeSub(pool.BalanceAsset, assetAmt)
-
 	if memo.IsType(TxStake) {
 		staker, err := h.keeper.GetStaker(ctx, memo.GetAsset(), tx.FromAddress)
 		if err != nil {
-			ctx.Logger().Error("fail to get staker", "error", err)
-			return nil, err
+			return nil, fmt.Errorf("fail to get staker: %w", err)
 		}
 
 		// since this address is being malicious, zero their staking units
