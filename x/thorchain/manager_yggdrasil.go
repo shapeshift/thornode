@@ -116,8 +116,8 @@ func (ymgr YggMgrV1) Fund(ctx cosmos.Context, mgr Manager, constAccessor constan
 		}
 	}
 
-	// if the ygg total value is more than 25% bond, funds are low enough yet
-	// to top up
+	// if the ygg total value is more than 25% bond, funds aren't low enough
+	// yet to top up
 	if totalValue.MulUint64(4).GTE(na.Bond) {
 		return nil
 	}

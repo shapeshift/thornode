@@ -39,7 +39,7 @@ func refundTx(ctx cosmos.Context, tx ObservedTx, mgr Manager, keeper keeper.Keep
 			fee := getFee(tx.Tx.Coins, refundCoins, transactionFee)
 			eventRefund = NewEventRefund(refundCode, refundReason, newTx, fee)
 		}
-		if err := mgr.EventMgr().EmitRefundEvent(ctx, eventRefund); err != nil {
+		if err := mgr.EventMgr().EmitEvent(ctx, eventRefund); err != nil {
 			return fmt.Errorf("fail to emit refund event: %w", err)
 		}
 		return nil
@@ -259,7 +259,7 @@ func refundBond(ctx cosmos.Context, tx common.Tx, amt cosmos.Uint, nodeAcc NodeA
 		}
 
 		bondEvent := NewEventBond(amt, BondReturned, tx)
-		if err := mgr.EventMgr().EmitBondEvent(ctx, bondEvent); err != nil {
+		if err := mgr.EventMgr().EmitEvent(ctx, bondEvent); err != nil {
 			return fmt.Errorf("fail to emit bond event: %w", err)
 		}
 
@@ -366,7 +366,7 @@ func enableNextPool(ctx cosmos.Context, keeper keeper.Keeper, eventManager Event
 	}
 
 	poolEvt := NewEventPool(pool.Asset, PoolEnabled)
-	if err := eventManager.EmitPoolEvent(ctx, poolEvt); err != nil {
+	if err := eventManager.EmitEvent(ctx, poolEvt); err != nil {
 		return fmt.Errorf("fail to emit pool event: %w", err)
 	}
 

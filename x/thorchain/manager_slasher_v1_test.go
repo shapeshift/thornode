@@ -347,6 +347,9 @@ func (s *SlashingSuite) TestNotSigningSlash(c *C) {
 
 	ygg := GetRandomVault()
 	ygg.Type = YggdrasilVault
+	ygg.Coins = common.Coins{
+		common.NewCoin(common.BNBAsset, cosmos.NewUint(5000000*common.One)),
+	}
 	keeper := &TestSlashingLackKeeper{
 		txOut:  txOut,
 		na:     na,
