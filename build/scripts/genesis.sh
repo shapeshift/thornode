@@ -105,6 +105,9 @@ if [ "$SEED" != "$(hostname)" ]; then
     echo "NODE ID: $NODE_ID"
     peer_list $NODE_ID $SEED
 
+    # enable telemetry through prometheus metrics endpoint
+    enable_telemetry
+
     cat ~/.thord/config/genesis.json
   fi
 fi
