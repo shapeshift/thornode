@@ -57,7 +57,7 @@ func (gm *GasMgrV1) EndBlock(ctx cosmos.Context, keeper keeper.Keeper, eventMana
 	if err := eventManager.EmitGasEvent(ctx, gm.gasEvent); nil != err {
 		ctx.Logger().Error("fail to emit gas event", "error", err)
 	}
-	gm.reset()
+	gm.reset() // do not remove, will cause consensus failures
 }
 
 // ProcessGas to subsidise the pool with RUNE for the gas they have spent

@@ -25,9 +25,7 @@ type swapItems []swapItem
 
 // NewSwapQv1 create a new vault manager
 func NewSwapQv1(k keeper.Keeper) *SwapQv1 {
-	return &SwapQv1{
-		k: k,
-	}
+	return &SwapQv1{k: k}
 }
 
 // FetchQueue - grabs all swap queue items from the kvstore and returns them
@@ -186,7 +184,16 @@ func (items swapItems) Sort() swapItems {
 		}
 	}
 
-	// sort by score
+	// This sorted appears to sort twice, but actually the first sort informs
+	// the second. If we have multiple swaps with the same score, it will use
+	// the ID sort to deterministically sort within the same score
+
+	// sort by ID, first
+	sort.SliceStable(scores, func(i, j int) bool {
+		return scores[i].msg.Tx.ID.String() < scores[j].msg.Tx.ID.String()
+	})
+
+	// sort by score, second
 	sort.SliceStable(scores, func(i, j int) bool {
 		return scores[i].score < scores[j].score
 	})

@@ -50,7 +50,7 @@ func (h CommonOutboundTxHandler) handle(ctx cosmos.Context, version semver.Versi
 	// complete events
 	if voter.IsDone() {
 		for _, item := range voter.OutTxs {
-			if err := h.mgr.EventMgr().EmitOutboundEvent(ctx, NewEventOutbound(inTxID, item)); err != nil {
+			if err := h.mgr.EventMgr().EmitEvent(ctx, NewEventOutbound(inTxID, item)); err != nil {
 				return nil, ErrInternal(err, "fail to emit outbound event")
 			}
 		}

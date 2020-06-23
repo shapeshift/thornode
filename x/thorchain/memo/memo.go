@@ -97,7 +97,7 @@ func (tx TxType) IsInbound() bool {
 
 func (tx TxType) IsOutbound() bool {
 	switch tx {
-	case TxOutbound, TxRefund:
+	case TxOutbound, TxRefund, TxRagnarok:
 		return true
 	default:
 		return false
@@ -106,7 +106,7 @@ func (tx TxType) IsOutbound() bool {
 
 func (tx TxType) IsInternal() bool {
 	switch tx {
-	case TxYggdrasilFund, TxYggdrasilReturn, TxMigrate, TxRagnarok:
+	case TxYggdrasilFund, TxYggdrasilReturn, TxMigrate:
 		return true
 	default:
 		return false
