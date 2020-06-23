@@ -16,9 +16,7 @@ type StoreMgr struct {
 }
 
 func NewStoreMgr(keeper keeper.Keeper) *StoreMgr {
-	return &StoreMgr{
-		keeper: keeper,
-	}
+	return &StoreMgr{keeper: keeper}
 }
 
 func (smgr *StoreMgr) Iterator(ctx cosmos.Context) error {

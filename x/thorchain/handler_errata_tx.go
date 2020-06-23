@@ -168,7 +168,7 @@ func (h ErrataTxHandler) handleV1(ctx cosmos.Context, msg MsgErrataTx, version s
 	}
 
 	eventErrata := NewEventErrata(msg.TxID, mods)
-	if err := h.mgr.EventMgr().EmitErrataEvent(ctx, eventErrata); err != nil {
+	if err := h.mgr.EventMgr().EmitEvent(ctx, eventErrata); err != nil {
 		return nil, ErrInternal(err, "fail to emit errata event")
 	}
 	return &cosmos.Result{}, nil

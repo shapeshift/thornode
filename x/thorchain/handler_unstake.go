@@ -86,7 +86,7 @@ func (h UnstakeHandler) handle(ctx cosmos.Context, msg MsgUnStake, version semve
 		cosmos.ZeroDec(), // TODO: What is Asymmetry, how to calculate it?
 		msg.Tx,
 	)
-	if err := h.mgr.EventMgr().EmitUnstakeEvent(ctx, unstakeEvt); err != nil {
+	if err := h.mgr.EventMgr().EmitEvent(ctx, unstakeEvt); err != nil {
 		return nil, multierror.Append(errFailSaveEvent, err)
 	}
 
