@@ -122,13 +122,13 @@ func (s *HandlerErrataTxSuite) TestErrataHandlerHappyPath(c *C) {
 			BalanceAsset: cosmos.NewUint(100 * common.One),
 		},
 		stakers: []Staker{
-			Staker{
+			{
 				RuneAddress:     addr,
 				LastStakeHeight: 5,
 				Units:           totalUnits.QuoUint64(2),
 				PendingRune:     cosmos.ZeroUint(),
 			},
-			Staker{
+			{
 				RuneAddress:     GetRandomBNBAddress(),
 				LastStakeHeight: 10,
 				Units:           totalUnits.QuoUint64(2),
@@ -154,6 +154,9 @@ type ErrataTxHandlerTestHelper struct {
 	failListActiveNodeAccount bool
 	failGetErrataTxVoter      bool
 	failGetObserveTxVoter     bool
+	failGetPool               bool
+	failGetStaker             bool
+	failSetPool               bool
 }
 
 func NewErrataTxHandlerTestHelper(k keeper.Keeper) *ErrataTxHandlerTestHelper {
@@ -181,6 +184,27 @@ func (k *ErrataTxHandlerTestHelper) GetObservedTxInVoter(ctx cosmos.Context, txI
 		return ObservedTxVoter{}, kaboom
 	}
 	return k.Keeper.GetObservedTxInVoter(ctx, txID)
+}
+
+func (k *ErrataTxHandlerTestHelper) GetPool(ctx cosmos.Context, asset common.Asset) (Pool, error) {
+	if k.failGetPool {
+		return NewPool(), kaboom
+	}
+	return k.Keeper.GetPool(ctx, asset)
+}
+
+func (k *ErrataTxHandlerTestHelper) GetStaker(ctx cosmos.Context, asset common.Asset, addr common.Address) (Staker, error) {
+	if k.failGetStaker {
+		return Staker{}, kaboom
+	}
+	return k.Keeper.GetStaker(ctx, asset, addr)
+}
+
+func (k *ErrataTxHandlerTestHelper) SetPool(ctx cosmos.Context, pool Pool) error {
+	if k.failSetPool {
+		return kaboom
+	}
+	return k.Keeper.SetPool(ctx, pool)
 }
 
 func (s *HandlerErrataTxSuite) TestErrataHandlerDifferentError(c *C) {
@@ -321,6 +345,116 @@ func (s *HandlerErrataTxSuite) TestErrataHandlerDifferentError(c *C) {
 				nodeAccount := GetRandomNodeAccount(NodeActive)
 				helper.SetNodeAccount(ctx, nodeAccount)
 				observedTx := GetRandomObservedTx()
+				voter := ObservedTxVoter{
+					TxID:   observedTx.Tx.ID,
+					Tx:     observedTx,
+					Height: observedTx.BlockHeight,
+				}
+				helper.Keeper.SetObservedTxInVoter(ctx, voter)
+				return NewMsgErrataTx(voter.TxID, common.BTCChain, nodeAccount.NodeAddress)
+			},
+			validator: func(c *C, ctx cosmos.Context, result *cosmos.Result, err error, helper *ErrataTxHandlerTestHelper, name string) {
+				c.Check(result, NotNil, Commentf(name))
+				c.Check(err, IsNil, Commentf(name))
+			},
+		},
+		{
+			name: "if the tx is not swap nor stake, it should not do anything",
+			messageProvider: func(ctx cosmos.Context, helper *ErrataTxHandlerTestHelper) cosmos.Msg {
+				// add an active node account
+				nodeAccount := GetRandomNodeAccount(NodeActive)
+				helper.SetNodeAccount(ctx, nodeAccount)
+				observedTx := GetRandomObservedTx()
+				observedTx.Tx.Chain = common.BTCChain
+				observedTx.Tx.Memo = "withdraw"
+				voter := ObservedTxVoter{
+					TxID:   observedTx.Tx.ID,
+					Tx:     observedTx,
+					Height: observedTx.BlockHeight,
+				}
+				helper.Keeper.SetObservedTxInVoter(ctx, voter)
+				return NewMsgErrataTx(voter.TxID, common.BTCChain, nodeAccount.NodeAddress)
+			},
+			validator: func(c *C, ctx cosmos.Context, result *cosmos.Result, err error, helper *ErrataTxHandlerTestHelper, name string) {
+				c.Check(result, NotNil, Commentf(name))
+				c.Check(err, IsNil, Commentf(name))
+			},
+		},
+		{
+			name: "if it fail to get pool it should return an error",
+			messageProvider: func(ctx cosmos.Context, helper *ErrataTxHandlerTestHelper) cosmos.Msg {
+				// add an active node account
+				nodeAccount := GetRandomNodeAccount(NodeActive)
+				helper.SetNodeAccount(ctx, nodeAccount)
+				observedTx := GetRandomObservedTx()
+				observedTx.Tx.Chain = common.BTCChain
+				observedTx.Tx.Memo = "swap:BNB"
+				helper.failGetPool = true
+				voter := ObservedTxVoter{
+					TxID:   observedTx.Tx.ID,
+					Tx:     observedTx,
+					Height: observedTx.BlockHeight,
+				}
+				helper.Keeper.SetObservedTxInVoter(ctx, voter)
+				return NewMsgErrataTx(voter.TxID, common.BTCChain, nodeAccount.NodeAddress)
+			},
+			validator: func(c *C, ctx cosmos.Context, result *cosmos.Result, err error, helper *ErrataTxHandlerTestHelper, name string) {
+				c.Check(result, IsNil, Commentf(name))
+				c.Check(err, NotNil, Commentf(name))
+			},
+		},
+		{
+			name: "if fail to get staker it should return an error",
+			messageProvider: func(ctx cosmos.Context, helper *ErrataTxHandlerTestHelper) cosmos.Msg {
+				// add an active node account
+				nodeAccount := GetRandomNodeAccount(NodeActive)
+				helper.SetNodeAccount(ctx, nodeAccount)
+				observedTx := GetRandomObservedTx()
+				observedTx.Tx.Chain = common.BTCChain
+				observedTx.Tx.Memo = "stake:BTC:" + observedTx.Tx.FromAddress.String()
+				staker := Staker{
+					Asset:           common.BTCAsset,
+					AssetAddress:    GetRandomBNBAddress(),
+					LastStakeHeight: 1024,
+					RuneAddress:     observedTx.Tx.FromAddress,
+				}
+				helper.SetStaker(ctx, staker)
+				helper.failGetStaker = true
+				pool := NewPool()
+				pool.Asset = common.BTCAsset
+				pool.BalanceRune = cosmos.NewUint(common.One * 100)
+				pool.BalanceAsset = cosmos.NewUint(common.One * 100)
+				pool.Status = PoolEnabled
+				helper.Keeper.SetPool(ctx, pool)
+				voter := ObservedTxVoter{
+					TxID:   observedTx.Tx.ID,
+					Tx:     observedTx,
+					Height: observedTx.BlockHeight,
+				}
+				helper.Keeper.SetObservedTxInVoter(ctx, voter)
+				return NewMsgErrataTx(voter.TxID, common.BTCChain, nodeAccount.NodeAddress)
+			},
+			validator: func(c *C, ctx cosmos.Context, result *cosmos.Result, err error, helper *ErrataTxHandlerTestHelper, name string) {
+				c.Check(result, IsNil, Commentf(name))
+				c.Check(err, NotNil, Commentf(name))
+			},
+		},
+		{
+			name: " fail to save pool should not error out",
+			messageProvider: func(ctx cosmos.Context, helper *ErrataTxHandlerTestHelper) cosmos.Msg {
+				// add an active node account
+				nodeAccount := GetRandomNodeAccount(NodeActive)
+				helper.SetNodeAccount(ctx, nodeAccount)
+				observedTx := GetRandomObservedTx()
+				observedTx.Tx.Chain = common.BTCChain
+				observedTx.Tx.Memo = "swap:BTC"
+				helper.failSetPool = true
+				pool := NewPool()
+				pool.Asset = common.BTCAsset
+				pool.BalanceRune = cosmos.NewUint(common.One * 100)
+				pool.BalanceAsset = cosmos.NewUint(common.One * 100)
+				pool.Status = PoolEnabled
+				helper.Keeper.SetPool(ctx, pool)
 				voter := ObservedTxVoter{
 					TxID:   observedTx.Tx.ID,
 					Tx:     observedTx,
