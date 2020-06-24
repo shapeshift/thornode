@@ -167,30 +167,41 @@ func (v Vault) GetMembers(activeObservers []cosmos.AccAddress) (common.PubKeys, 
 // AddFunds add given coins into vault
 func (v *Vault) AddFunds(coins common.Coins) {
 	for _, coin := range coins {
-		for i, ycoin := range v.Coins {
-			if coin.Asset.Equals(ycoin.Asset) {
-				v.Coins[i].Amount = ycoin.Amount.Add(coin.Amount)
-				continue
-			}
-		}
-		if !v.Chains.Has(coin.Asset.Chain) {
-			v.Chains = append(v.Chains, coin.Asset.Chain)
-		}
-		v.Coins = append(v.Coins, coin)
+		v.addFund(coin)
 	}
+}
+
+func (v *Vault) addFund(coin common.Coin) {
+	for i, ycoin := range v.Coins {
+		if ycoin.Asset.Equals(coin.Asset) {
+			v.Coins[i].Amount = ycoin.Amount.Add(coin.Amount)
+			return
+		}
+	}
+
+	if !v.Chains.Has(coin.Asset.Chain) {
+		v.Chains = append(v.Chains, coin.Asset.Chain)
+	}
+
+	v.Coins = append(v.Coins, coin)
 }
 
 // SubFunds subtract given coins from vault
 func (v *Vault) SubFunds(coins common.Coins) {
 	for _, coin := range coins {
-		for i, ycoin := range v.Coins {
-			if coin.Asset.Equals(ycoin.Asset) {
-				// safeguard to protect against enter negative values
-				if coin.Amount.GTE(ycoin.Amount) {
-					coin.Amount = ycoin.Amount
-				}
-				v.Coins[i].Amount = common.SafeSub(ycoin.Amount, coin.Amount)
+		v.subFund(coin)
+	}
+}
+
+func (v *Vault) subFund(coin common.Coin) {
+	for i, ycoin := range v.Coins {
+		if coin.Asset.Equals(ycoin.Asset) {
+			// safeguard to protect against enter negative values
+			if coin.Amount.GTE(ycoin.Amount) {
+				coin.Amount = ycoin.Amount
 			}
+			v.Coins[i].Amount = common.SafeSub(ycoin.Amount, coin.Amount)
+			return
 		}
 	}
 }
@@ -243,6 +254,10 @@ func (vs Vaults) SortBy(sortBy common.Asset) Vaults {
 
 // SelectByMinCoin return the vault that has least of given asset
 func (vs Vaults) SelectByMinCoin(asset common.Asset) (vault Vault) {
+	if len(vs) == 1 {
+		vault = vs[0]
+		return
+	}
 	for _, v := range vs {
 		if vault.IsEmpty() || v.GetCoin(asset).Amount.LT(vault.GetCoin(asset).Amount) {
 			vault = v
@@ -253,8 +268,12 @@ func (vs Vaults) SelectByMinCoin(asset common.Asset) (vault Vault) {
 
 // SelectByMaxCoin return the vault that has most of given asset
 func (vs Vaults) SelectByMaxCoin(asset common.Asset) (vault Vault) {
+	if len(vs) == 1 {
+		vault = vs[0]
+		return
+	}
 	for _, v := range vs {
-		if v.GetCoin(asset).Amount.GT(vault.GetCoin(asset).Amount) {
+		if vault.IsEmpty() || v.GetCoin(asset).Amount.GT(vault.GetCoin(asset).Amount) {
 			vault = v
 		}
 	}
