@@ -89,6 +89,9 @@ if [ "$SEED" = "$(hostname)" ]; then
 
     reserve 22000000000000000
 
+    # enable telemetry through prometheus metrics endpoint
+    enable_telemetry
+
     cat ~/.thord/config/genesis.json
     thord validate-genesis
   fi
@@ -104,9 +107,6 @@ if [ "$SEED" != "$(hostname)" ]; then
     NODE_ID=$(fetch_node_id $SEED)
     echo "NODE ID: $NODE_ID"
     peer_list $NODE_ID $SEED
-
-    # enable telemetry through prometheus metrics endpoint
-    enable_telemetry
 
     cat ~/.thord/config/genesis.json
   fi
