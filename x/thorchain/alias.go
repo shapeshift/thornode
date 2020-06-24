@@ -52,6 +52,7 @@ const (
 	TxYggdrasilReturn = mem.TxYggdrasilReturn
 	TxMigrate         = mem.TxMigrate
 	TxRagnarok        = mem.TxRagnarok
+	TxReserve         = mem.TxReserve
 )
 
 var (
