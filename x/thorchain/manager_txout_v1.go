@@ -294,6 +294,10 @@ func (tos *TxOutStorageV1) addToBlockOut(ctx cosmos.Context, mgr Manager, toi *T
 	return tos.keeper.AppendTxOut(ctx, common.BlockHeight(ctx), toi)
 }
 
+func (tos *TxOutStorageV1) getModuleNameFromAddress(ctx cosmos.Context) string {
+	return ""
+}
+
 func (tos *TxOutStorageV1) nativeTxOut(ctx cosmos.Context, mgr Manager, toi *TxOutItem) error {
 	supplier := tos.keeper.Supply()
 
@@ -312,7 +316,7 @@ func (tos *TxOutStorageV1) nativeTxOut(ctx cosmos.Context, mgr Manager, toi *TxO
 		return errors.New(sdkErr.Error())
 	}
 
-	from, err := common.NewAddress(supplier.GetModuleAddress(AsgardName).String())
+	from, err := common.NewAddress(supplier.GetModuleAddress(toi.ModuleName).String())
 	if err != nil {
 		ctx.Logger().Error("fail to get from address", "err", err)
 		return err

@@ -15,9 +15,9 @@ import (
 	"github.com/hashicorp/go-multierror"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 const (
@@ -25,7 +25,8 @@ const (
 	thorchainCliFolderName = `.thorcli`
 )
 
-func refundTx(ctx cosmos.Context, tx ObservedTx, mgr Manager, keeper keeper.Keeper, constAccessor constants.ConstantValues, refundCode uint32, refundReason string) error {
+// nativeRuneModuleName will be empty if it is not NATIVE Rune
+func refundTx(ctx cosmos.Context, tx ObservedTx, mgr Manager, keeper keeper.Keeper, constAccessor constants.ConstantValues, refundCode uint32, refundReason, nativeRuneModuleName string) error {
 	// If THORNode recognize one of the coins, and therefore able to refund
 	// withholding fees, refund all coins.
 
@@ -73,6 +74,7 @@ func refundTx(ctx cosmos.Context, tx ObservedTx, mgr Manager, keeper keeper.Keep
 				VaultPubKey: tx.ObservedPubKey,
 				Coin:        coin,
 				Memo:        NewRefundMemo(tx.Tx.ID).String(),
+				ModuleName:  nativeRuneModuleName,
 			}
 
 			success, err := mgr.TxOutStore().TryAddTxOutItem(ctx, mgr, toi)
