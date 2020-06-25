@@ -7,9 +7,9 @@ import (
 	se "github.com/cosmos/cosmos-sdk/types/errors"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // ObservedTxInHandler to handle MsgObservedTxIn
@@ -26,6 +26,7 @@ func NewObservedTxInHandler(keeper keeper.Keeper, mgr Manager) ObservedTxInHandl
 	}
 }
 
+// Run is the main entry point of ObservedTxInHandler
 func (h ObservedTxInHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, _ constants.ConstantValues) (*cosmos.Result, error) {
 	msg, ok := m.(MsgObservedTxIn)
 	if !ok {
@@ -111,7 +112,6 @@ func (h ObservedTxInHandler) handleV1(ctx cosmos.Context, version semver.Version
 	}
 	handler := NewInternalHandler(h.keeper, h.mgr)
 	for _, tx := range msg.Txs {
-
 		// check we are sending to a valid vault
 		if !h.keeper.VaultExists(ctx, tx.ObservedPubKey) {
 			ctx.Logger().Info("Not valid Observed Pubkey", "observed pub key", tx.ObservedPubKey)
@@ -134,6 +134,7 @@ func (h ObservedTxInHandler) handleV1(ctx cosmos.Context, version semver.Version
 			continue
 		}
 
+		// all logic after this  is after consensus
 		tx.Tx.Memo = fetchMemo(ctx, constAccessor, h.keeper, tx.Tx)
 		if len(tx.Tx.Memo) == 0 {
 			// we didn't find our memo, it might be yggdrasil return. These are
@@ -157,7 +158,7 @@ func (h ObservedTxInHandler) handleV1(ctx cosmos.Context, version semver.Version
 		}
 
 		vault.AddFunds(tx.Tx.Coins)
-		vault.InboundTxCount += 1
+		vault.InboundTxCount++
 		memo, _ := ParseMemo(tx.Tx.Memo) // ignore err
 		if vault.IsYggdrasil() && memo.IsType(TxYggdrasilFund) {
 			vault.RemovePendingTxBlockHeights(memo.GetBlockHeight())
@@ -178,24 +179,6 @@ func (h ObservedTxInHandler) handleV1(ctx cosmos.Context, version semver.Version
 
 		if memo.IsOutbound() || memo.IsInternal() {
 			// do not process outbound handlers here, or internal handlers
-			continue
-		}
-
-		// tx is not observed at current vault - refund
-		// yggdrasil pool is ok
-		if ok := isCurrentVaultPubKey(ctx, h.keeper, tx); !ok {
-			reason := fmt.Sprintf("vault %s is not current vault", tx.ObservedPubKey)
-			ctx.Logger().Info("refund reason", reason)
-			if err := refundTx(ctx, tx, h.mgr, h.keeper, constAccessor, CodeInvalidVault, reason, ""); err != nil {
-				ctx.Logger().Error("fail to refund", "error", err)
-			}
-			continue
-		}
-		// chain is empty
-		if tx.Tx.Chain.IsEmpty() {
-			if err := refundTx(ctx, tx, h.mgr, h.keeper, constAccessor, CodeEmptyChain, "chain is empty", ""); err != nil {
-				ctx.Logger().Error("fail to refund", "error", err)
-			}
 			continue
 		}
 
