@@ -309,11 +309,6 @@ func refundBond(ctx cosmos.Context, tx common.Tx, amt cosmos.Uint, nodeAcc NodeA
 	return nil
 }
 
-// Checks if the observed vault pubkey is a valid asgard or ygg vault
-func isCurrentVaultPubKey(ctx cosmos.Context, keeper keeper.Keeper, tx ObservedTx) bool {
-	return keeper.VaultExists(ctx, tx.ObservedPubKey)
-}
-
 func isSignedByActiveNodeAccounts(ctx cosmos.Context, keeper keeper.Keeper, signers []cosmos.AccAddress) bool {
 	if len(signers) == 0 {
 		return false
@@ -383,6 +378,7 @@ func wrapError(ctx cosmos.Context, err error, wrap string) error {
 	return multierror.Append(errInternal, err)
 }
 
+// AddGasFees to vault
 func AddGasFees(ctx cosmos.Context, keeper keeper.Keeper, tx ObservedTx, gasManager GasManager) error {
 	if len(tx.Tx.Gas) == 0 {
 		return nil
@@ -420,6 +416,7 @@ func AddGasFees(ctx cosmos.Context, keeper keeper.Keeper, tx ObservedTx, gasMana
 	return nil
 }
 
+// KeybaseStore to store keys
 type KeybaseStore struct {
 	Keybase      ckeys.Keybase
 	SignerName   string
