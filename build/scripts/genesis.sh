@@ -92,6 +92,9 @@ if [ "$SEED" = "$(hostname)" ]; then
     # enable telemetry through prometheus metrics endpoint
     enable_telemetry
 
+    # use external IP if available
+    [ ! -z $EXTERNAL_IP ] && external_address $EXTERNAL_IP $NET
+
     cat ~/.thord/config/genesis.json
     thord validate-genesis
   fi

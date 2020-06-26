@@ -38,6 +38,9 @@ if [ ! -f ~/.thord/config/genesis.json ]; then
     # enable telemetry through prometheus metrics endpoint
     enable_telemetry
 
+    # use external IP if available
+    [ ! -z $EXTERNAL_IP ] && external_address $EXTERNAL_IP $NET
+
     if [[ "$NET" == "mocknet" ]]; then
         # create a binance wallet and bond/register
         gen_bnb_address
