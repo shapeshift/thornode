@@ -6,16 +6,19 @@ import (
 	"github.com/blang/semver"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
+// SetNodeKeysHandler process MsgSetNodeKeys
+// MsgSetNodeKeys is used by operators after the node account had been white list , to update the consensus pubkey and node account pubkey
 type SetNodeKeysHandler struct {
 	keeper keeper.Keeper
 	mgr    Manager
 }
 
+// NewSetNodeKeysHandler create a new instance of SetNodeKeysHandler
 func NewSetNodeKeysHandler(keeper keeper.Keeper, mgr Manager) SetNodeKeysHandler {
 	return SetNodeKeysHandler{
 		keeper: keeper,
@@ -23,6 +26,7 @@ func NewSetNodeKeysHandler(keeper keeper.Keeper, mgr Manager) SetNodeKeysHandler
 	}
 }
 
+// Run is the main entry point to process MsgSetNodeKeys
 func (h SetNodeKeysHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	msg, ok := m.(MsgSetNodeKeys)
 	if !ok {

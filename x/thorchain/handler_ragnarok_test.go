@@ -1,13 +1,15 @@
 package thorchain
 
 import (
+	"errors"
+
 	"github.com/blang/semver"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 type HandlerRagnarokSuite struct{}
@@ -37,6 +39,11 @@ func (HandlerRagnarokSuite) TestRagnarok(c *C) {
 
 	handler := NewRagnarokHandler(keeper, NewDummyMgr())
 
+	// invalid message should result errors
+	msg := NewMsgNetworkFee(ctx.BlockHeight(), common.BNBChain, 1, bnbSingleTxFee, GetRandomBech32Addr())
+	result, err := handler.Run(ctx, msg, constants.SWVersion, constants.GetConstantValues(constants.SWVersion))
+	c.Check(result, IsNil, Commentf("invalid message should result an error"))
+	c.Check(err, NotNil, Commentf("invalid message should result an error"))
 	addr, err := keeper.vault.PubKey.GetAddress(common.BNBChain)
 	c.Assert(err, IsNil)
 
@@ -59,11 +66,21 @@ func (HandlerRagnarokSuite) TestRagnarok(c *C) {
 	// invalid version
 	err = handler.validate(ctx, msgRagnarok, semver.Version{})
 	c.Assert(err, Equals, errInvalidVersion)
+	result, err = handler.Run(ctx, msgRagnarok, semver.Version{}, constants.GetConstantValues(constants.SWVersion))
+	c.Check(result, IsNil, Commentf("invalid version should result an error"))
+	c.Check(err, NotNil, Commentf("invalid version should result an error"))
+	c.Check(errors.Is(err, errInvalidVersion), Equals, true)
+	result, err = handler.handle(ctx, semver.Version{}, msgRagnarok)
+	c.Check(result, IsNil, Commentf("invalid version should result an error"))
+	c.Check(err, NotNil, Commentf("invalid version should result an error"))
 
 	// invalid msg
 	msgRagnarok = MsgRagnarok{}
 	err = handler.validate(ctx, msgRagnarok, ver)
 	c.Assert(err, NotNil)
+	result, err = handler.Run(ctx, msgRagnarok, constants.SWVersion, constants.GetConstantValues(constants.SWVersion))
+	c.Check(err, NotNil, Commentf("invalid message should fail validation"))
+	c.Check(result, IsNil, Commentf("invalid message should fail validation"))
 }
 
 type TestRagnarokKeeperHappyPath struct {
@@ -150,6 +167,12 @@ func (HandlerRagnarokSuite) TestRagnarokHappyPath(c *C) {
 	_, err = handler.handleV1(ctx, ver, msgRagnarok)
 	c.Assert(err, IsNil)
 	c.Assert(keeper.txout.TxArray[0].OutHash.Equals(tx.Tx.ID), Equals, true)
+
+	// fail to get tx out
+	msgRagnarok1 := NewMsgRagnarok(tx, 1024, keeper.activeNodeAccount.NodeAddress)
+	result, err := handler.handleV1(ctx, ver, msgRagnarok1)
+	c.Assert(err, NotNil)
+	c.Assert(result, IsNil)
 }
 
 func (HandlerRagnarokSuite) TestSlash(c *C) {

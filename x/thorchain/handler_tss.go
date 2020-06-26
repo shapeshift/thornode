@@ -6,11 +6,12 @@ import (
 	"github.com/blang/semver"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
+// TssHandler handle MsgTssPool
 type TssHandler struct {
 	keeper keeper.Keeper
 	mgr    Manager
@@ -24,6 +25,7 @@ func NewTssHandler(keeper keeper.Keeper, mgr Manager) TssHandler {
 	}
 }
 
+// Run is the main entry for TssHandler
 func (h TssHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	msg, ok := m.(MsgTssPool)
 	if !ok {
@@ -79,7 +81,6 @@ func (h TssHandler) handle(ctx cosmos.Context, msg MsgTssPool, version semver.Ve
 	return nil, errBadVersion
 }
 
-// Handle a message to observe inbound tx (v0.1.0)
 func (h TssHandler) handleV1(ctx cosmos.Context, msg MsgTssPool, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	if !msg.Blame.IsEmpty() {
 		ctx.Logger().Error(msg.Blame.String())
