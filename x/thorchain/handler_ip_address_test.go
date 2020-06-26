@@ -19,12 +19,24 @@ type TestIPAddresslKeeper struct {
 	na NodeAccount
 }
 
+func (k *TestIPAddresslKeeper) SendFromAccountToModule(ctx cosmos.Context, from cosmos.AccAddress, to string, coin common.Coin) error {
+	return nil
+}
+
 func (k *TestIPAddresslKeeper) GetNodeAccount(_ cosmos.Context, _ cosmos.AccAddress) (NodeAccount, error) {
 	return k.na, nil
 }
 
 func (k *TestIPAddresslKeeper) SetNodeAccount(_ cosmos.Context, na NodeAccount) error {
 	k.na = na
+	return nil
+}
+
+func (k *TestIPAddresslKeeper) GetVaultData(ctx cosmos.Context) (VaultData, error) {
+	return NewVaultData(), nil
+}
+
+func (k *TestIPAddresslKeeper) SetVaultData(ctx cosmos.Context, data VaultData) error {
 	return nil
 }
 
@@ -40,23 +52,25 @@ func (s *HandlerIPAddressSuite) TestValidate(c *C) {
 	handler := NewIPAddressHandler(keeper, NewDummyMgr())
 	// happy path
 	ver := constants.SWVersion
+	constAccessor := constants.GetConstantValues(ver)
 	msg := NewMsgSetIPAddress("8.8.8.8", keeper.na.NodeAddress)
-	err := handler.validate(ctx, msg, ver)
+	err := handler.validate(ctx, msg, ver, constAccessor)
 	c.Assert(err, IsNil)
 
 	// invalid version
-	err = handler.validate(ctx, msg, semver.Version{})
+	err = handler.validate(ctx, msg, semver.Version{}, constAccessor)
 	c.Assert(err, Equals, errBadVersion)
 
 	// invalid msg
 	msg = MsgSetIPAddress{}
-	err = handler.validate(ctx, msg, ver)
+	err = handler.validate(ctx, msg, ver, constAccessor)
 	c.Assert(err, NotNil)
 }
 
 func (s *HandlerIPAddressSuite) TestHandle(c *C) {
 	ctx, _ := setupKeeperForTest(c)
 	ver := constants.SWVersion
+	constAccessor := constants.GetConstantValues(ver)
 
 	keeper := &TestIPAddresslKeeper{
 		na: GetRandomNodeAccount(NodeActive),
@@ -65,11 +79,11 @@ func (s *HandlerIPAddressSuite) TestHandle(c *C) {
 	handler := NewIPAddressHandler(keeper, NewDummyMgr())
 
 	msg := NewMsgSetIPAddress("192.168.0.1", GetRandomBech32Addr())
-	err := handler.handle(ctx, msg, ver)
+	err := handler.handle(ctx, msg, ver, constAccessor)
 	c.Assert(err, IsNil)
 	c.Check(keeper.na.IPAddress, Equals, "192.168.0.1")
 
-	err1 := handler.handle(ctx, msg, semver.MustParse("0.0.1"))
+	err1 := handler.handle(ctx, msg, semver.MustParse("0.0.1"), constAccessor)
 	c.Check(err1, NotNil)
 	c.Check(errors.Is(err1, errBadVersion), Equals, true)
 }

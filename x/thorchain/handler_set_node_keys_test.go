@@ -19,12 +19,24 @@ type TestSetNodeKeysKeeper struct {
 	ensure error
 }
 
+func (k *TestSetNodeKeysKeeper) SendFromAccountToModule(ctx cosmos.Context, from cosmos.AccAddress, to string, coin common.Coin) error {
+	return nil
+}
+
 func (k *TestSetNodeKeysKeeper) GetNodeAccount(ctx cosmos.Context, signer cosmos.AccAddress) (NodeAccount, error) {
 	return k.na, nil
 }
 
 func (k *TestSetNodeKeysKeeper) EnsureNodeKeysUnique(_ cosmos.Context, _ string, _ common.PubKeySet) error {
 	return k.ensure
+}
+
+func (k *TestSetNodeKeysKeeper) GetVaultData(ctx cosmos.Context) (VaultData, error) {
+	return NewVaultData(), nil
+}
+
+func (k *TestSetNodeKeysKeeper) SetVaultData(ctx cosmos.Context, data VaultData) error {
+	return nil
 }
 
 var _ = Suite(&HandlerSetNodeKeysSuite{})
@@ -41,46 +53,47 @@ func (s *HandlerSetNodeKeysSuite) TestValidate(c *C) {
 
 	// happy path
 	ver := constants.SWVersion
+	constAccessor := constants.GetConstantValues(ver)
 	signer := GetRandomBech32Addr()
 	c.Assert(signer.Empty(), Equals, false)
 	consensPubKey := GetRandomBech32ConsensusPubKey()
 	pubKeys := GetRandomPubKeySet()
 
 	msg := NewMsgSetNodeKeys(pubKeys, consensPubKey, signer)
-	err := handler.validate(ctx, msg, ver)
+	err := handler.validate(ctx, msg, ver, constAccessor)
 	c.Assert(err, IsNil)
 
 	// cannot set node keys for active account
 	keeper.na.Status = NodeActive
 	msg = NewMsgSetNodeKeys(pubKeys, consensPubKey, keeper.na.NodeAddress)
-	err = handler.validate(ctx, msg, ver)
+	err = handler.validate(ctx, msg, ver, constAccessor)
 	c.Assert(err, NotNil)
 
 	// cannot set node keys for disabled account
 	keeper.na.Status = NodeDisabled
 	msg = NewMsgSetNodeKeys(pubKeys, consensPubKey, keeper.na.NodeAddress)
-	err = handler.validate(ctx, msg, ver)
+	err = handler.validate(ctx, msg, ver, constAccessor)
 	c.Assert(err, NotNil)
 
 	// cannot set node keys when duplicate
 	keeper.na.Status = NodeStandby
 	keeper.ensure = fmt.Errorf("duplicate keys")
 	msg = NewMsgSetNodeKeys(keeper.na.PubKeySet, consensPubKey, keeper.na.NodeAddress)
-	err = handler.validate(ctx, msg, ver)
+	err = handler.validate(ctx, msg, ver, constAccessor)
 	c.Assert(err, ErrorMatches, "duplicate keys")
 	keeper.ensure = nil
 
 	// new version GT
-	err = handler.validate(ctx, msg, semver.MustParse("2.0.0"))
+	err = handler.validate(ctx, msg, semver.MustParse("2.0.0"), constAccessor)
 	c.Assert(err, IsNil)
 
 	// invalid version
-	err = handler.validate(ctx, msg, semver.Version{})
+	err = handler.validate(ctx, msg, semver.Version{}, constAccessor)
 	c.Assert(err, Equals, errInvalidVersion)
 
 	// invalid msg
 	msg = MsgSetNodeKeys{}
-	err = handler.validate(ctx, msg, ver)
+	err = handler.validate(ctx, msg, ver, constAccessor)
 	c.Assert(err, NotNil)
 }
 
@@ -89,12 +102,24 @@ type TestSetNodeKeysHandleKeeper struct {
 	na NodeAccount
 }
 
+func (k *TestSetNodeKeysHandleKeeper) SendFromAccountToModule(ctx cosmos.Context, from cosmos.AccAddress, to string, coin common.Coin) error {
+	return nil
+}
+
 func (k *TestSetNodeKeysHandleKeeper) GetNodeAccount(ctx cosmos.Context, signer cosmos.AccAddress) (NodeAccount, error) {
 	return k.na, nil
 }
 
 func (k *TestSetNodeKeysHandleKeeper) SetNodeAccount(_ cosmos.Context, na NodeAccount) error {
 	k.na = na
+	return nil
+}
+
+func (k *TestSetNodeKeysHandleKeeper) GetVaultData(ctx cosmos.Context) (VaultData, error) {
+	return NewVaultData(), nil
+}
+
+func (k *TestSetNodeKeysHandleKeeper) SetVaultData(ctx cosmos.Context, data VaultData) error {
 	return nil
 }
 
@@ -112,7 +137,6 @@ func (s *HandlerSetNodeKeysSuite) TestHandle(c *C) {
 	handler := NewSetNodeKeysHandler(keeper, NewDummyMgr())
 
 	ver := constants.SWVersion
-
 	constAccessor := constants.GetConstantValues(ver)
 	ctx = ctx.WithBlockHeight(1)
 	signer := GetRandomBech32Addr()

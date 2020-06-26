@@ -76,13 +76,11 @@ func (HandlerUnBondSuite) TestUnBondHandler_Run(c *C) {
 		"unbond me please",
 	)
 	msg := NewMsgUnBond(txIn, standbyNodeAccount.NodeAddress, cosmos.NewUint(uint64(5*common.One)), standbyNodeAccount.BondAddress, activeNodeAccount.NodeAddress)
-	fmt.Println("^^^^^^^^^^^^^^^^^^^^^^^^")
 	_, err := handler.Run(ctx, msg, ver, constAccessor)
 	c.Assert(err, IsNil)
 	na, err := k1.GetNodeAccount(ctx, standbyNodeAccount.NodeAddress)
 	c.Assert(err, IsNil)
 	c.Check(na.Bond.Equal(cosmos.NewUint(95*common.One)), Equals, true, Commentf("%d", na.Bond.Uint64()))
-	fmt.Println("^^^^^^^^^^^^^^^^^^^^^^^^")
 
 	k := &TestUnBondKeeper{
 		activeNodeAccount:   activeNodeAccount,
