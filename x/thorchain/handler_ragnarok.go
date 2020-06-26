@@ -94,6 +94,13 @@ func (h RagnarokHandler) handleV1(ctx cosmos.Context, version semver.Version, ms
 				return nil, ErrInternal(err, "fail to save tx out")
 			}
 
+			pending, err := h.keeper.GetRagnarokPending(ctx)
+			if err != nil {
+				ctx.Logger().Error("fail to get ragnarok pending", "error", err)
+			} else {
+				h.keeper.SetRagnarokPending(ctx, pending-1)
+			}
+
 			break
 		}
 	}

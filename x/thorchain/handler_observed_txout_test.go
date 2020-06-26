@@ -174,6 +174,7 @@ func (s *HandlerObservedTxOutSuite) TestHandle(c *C) {
 	ctx, _ := setupKeeperForTest(c)
 
 	ver := constants.SWVersion
+	constAccessor := constants.GetConstantValues(ver)
 	tx := GetRandomTx()
 	tx.Memo = fmt.Sprintf("OUTBOUND:%s", tx.ID)
 	obTx := NewObservedTx(tx, 12, GetRandomPubKey())
@@ -206,7 +207,7 @@ func (s *HandlerObservedTxOutSuite) TestHandle(c *C) {
 
 	c.Assert(err, IsNil)
 	msg := NewMsgObservedTxOut(txs, keeper.nas[0].NodeAddress)
-	_, err = handler.handle(ctx, msg, ver)
+	_, err = handler.handle(ctx, msg, ver, constAccessor)
 	c.Assert(err, IsNil)
 	c.Assert(err, IsNil)
 	mgr.ObMgr().EndBlock(ctx, keeper)
@@ -224,6 +225,7 @@ func (s *HandlerObservedTxOutSuite) TestGasUpdate(c *C) {
 	ctx, _ := setupKeeperForTest(c)
 
 	ver := constants.SWVersion
+	constAccessor := constants.GetConstantValues(ver)
 	tx := GetRandomTx()
 	tx.Gas = common.Gas{
 		{
@@ -260,7 +262,7 @@ func (s *HandlerObservedTxOutSuite) TestGasUpdate(c *C) {
 
 	c.Assert(err, IsNil)
 	msg := NewMsgObservedTxOut(txs, keeper.nas[0].NodeAddress)
-	_, err = handler.handle(ctx, msg, ver)
+	_, err = handler.handle(ctx, msg, ver, constAccessor)
 	c.Assert(err, IsNil)
 	gas := keeper.gas[0]
 	c.Assert(gas.Equal(cosmos.NewUint(475000)), Equals, true, Commentf("%+v", gas))
@@ -274,6 +276,7 @@ func (s *HandlerObservedTxOutSuite) TestHandleStolenFunds(c *C) {
 	ctx, _ := setupKeeperForTest(c)
 
 	ver := constants.SWVersion
+	constAccessor := constants.GetConstantValues(ver)
 	tx := GetRandomTx()
 	tx.Memo = "I AM A THIEF!" // bad memo
 	obTx := NewObservedTx(tx, 12, GetRandomPubKey())
@@ -314,7 +317,7 @@ func (s *HandlerObservedTxOutSuite) TestHandleStolenFunds(c *C) {
 
 	c.Assert(err, IsNil)
 	msg := NewMsgObservedTxOut(txs, keeper.nas[0].NodeAddress)
-	_, err = handler.handle(ctx, msg, ver)
+	_, err = handler.handle(ctx, msg, ver, constAccessor)
 	c.Assert(err, IsNil)
 	// make sure the coin has been subtract from the vault
 	c.Check(ygg.Coins.GetCoin(common.BNBAsset).Amount.Equal(cosmos.NewUint(9999962500)), Equals, true, Commentf("%d", ygg.Coins.GetCoin(common.BNBAsset).Amount.Uint64()))

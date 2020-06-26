@@ -46,6 +46,20 @@ func (msg MsgStake) ValidateBasic() error {
 	if err := msg.Tx.Valid(); err != nil {
 		return cosmos.ErrUnknownRequest(err.Error())
 	}
+	if msg.Asset.IsEmpty() {
+		return cosmos.ErrUnknownRequest("unable to determine the intended pool for this stake")
+	}
+	// There is no dedicate pool for RUNE ,because every pool will have RUNE , that's by design
+	if msg.Asset.IsRune() {
+		return cosmos.ErrUnknownRequest("invalid pool asset")
+	}
+	// test scenario we get two coins, but none are rune, invalid stake
+	if len(msg.Tx.Coins) == 2 && (msg.AssetAmount.IsZero() || msg.RuneAmount.IsZero()) {
+		return cosmos.ErrUnknownRequest("did not find both coins")
+	}
+	if len(msg.Tx.Coins) > 2 {
+		return cosmos.ErrUnknownRequest("not expecting more than two coins in a stake")
+	}
 	if msg.RuneAmount.IsZero() && msg.AssetAmount.IsZero() {
 		return cosmos.ErrUnknownRequest("rune and asset amounts cannot both be empty")
 	}

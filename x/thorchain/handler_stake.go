@@ -95,7 +95,14 @@ func (h StakeHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Versi
 	return &cosmos.Result{}, nil
 }
 
-func (h StakeHandler) handle(ctx cosmos.Context, msg MsgStake, version semver.Version, constAccessor constants.ConstantValues) (errResult error) {
+func (h StakeHandler) handle(ctx cosmos.Context, msg MsgStake, version semver.Version, constAccessor constants.ConstantValues) error {
+	if version.GTE(semver.MustParse("0.1.0")) {
+		return h.handleV1(ctx, msg, version, constAccessor)
+	}
+	return errBadVersion
+}
+
+func (h StakeHandler) handleV1(ctx cosmos.Context, msg MsgStake, version semver.Version, constAccessor constants.ConstantValues) (errResult error) {
 	pool, err := h.keeper.GetPool(ctx, msg.Asset)
 	if err != nil {
 		return ErrInternal(err, "fail to get pool")
@@ -207,7 +214,6 @@ func (h StakeHandler) stake(ctx cosmos.Context,
 		}
 		stakeRuneAmount = su.PendingRune.Add(stakeRuneAmount)
 		su.PendingRune = cosmos.ZeroUint()
-
 	}
 
 	ctx.Logger().Info(fmt.Sprintf("Pre-Pool: %sRUNE %sAsset", pool.BalanceRune, pool.BalanceAsset))
