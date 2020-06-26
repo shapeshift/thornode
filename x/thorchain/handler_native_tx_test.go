@@ -136,8 +136,6 @@ func (s *HandlerNativeTxSuite) TestDifferentValidation(c *C) {
 				coins := common.NewCoin(common.RuneNative, cosmos.NewUint(98*common.One))
 				coin, err := coins.Native()
 				c.Check(err, IsNil)
-				acctCoins := banker.GetCoins(ctx, acctAddr)
-				fmt.Println(acctCoins.String())
 				hasCoin := banker.HasCoins(ctx, acctAddr, cosmos.NewCoins().Add(coin))
 				c.Check(hasCoin, Equals, true)
 			},

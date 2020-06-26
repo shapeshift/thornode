@@ -344,54 +344,6 @@ func (s *HandlerYggdrasilSuite) TestYggdrasilHandler(c *C) {
 			},
 			expectedResult: nil,
 		},
-		{
-			name: "yggdrasil return fund and node account is not active should refund bond",
-			messageCreator: func(helper yggdrasilHandlerTestHelper) cosmos.Msg {
-				na := GetRandomNodeAccount(NodeStandby)
-				helper.keeper.SetNodeAccount(helper.ctx, na)
-				vault := NewVault(10, ActiveVault, YggdrasilVault, na.PubKeySet.Secp256k1, common.Chains{common.BNBChain})
-				helper.keeper.SetVault(helper.ctx, vault)
-				fromAddr, _ := vault.PubKey.GetAddress(common.BNBChain)
-				coins := common.Coins{
-					common.NewCoin(common.BNBAsset, cosmos.NewUint(common.One)),
-					common.NewCoin(common.RuneAsset(), cosmos.NewUint(common.One)),
-				}
-				toAddr, _ := helper.asgardVault.PubKey.GetAddress(common.BNBChain)
-
-				tx := common.Tx{
-					ID:          GetRandomTxHash(),
-					Chain:       common.BNBChain,
-					FromAddress: fromAddr,
-					ToAddress:   toAddr,
-					Coins:       coins,
-					Gas:         BNBGasFeeSingleton,
-					Memo:        "yggdrasil-:30",
-				}
-				return NewMsgYggdrasil(tx, vault.PubKey, 12, false, coins, helper.nodeAccount.NodeAddress)
-			},
-			runner: func(handler YggdrasilHandler, msg cosmos.Msg, helper yggdrasilHandlerTestHelper) (*cosmos.Result, error) {
-				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
-			},
-			validator: func(helper yggdrasilHandlerTestHelper, msg cosmos.Msg, result *cosmos.Result, c *C) {
-				store := helper.mgr.TxOutStore()
-
-				items, err := store.GetOutboundItems(helper.ctx)
-				c.Assert(err, IsNil)
-				if common.RuneAsset().Chain.Equals(common.THORChain) {
-					c.Assert(items, HasLen, 0)
-				} else {
-					c.Assert(items, HasLen, 1)
-				}
-				yggMsg := msg.(MsgYggdrasil)
-				yggVault, err := helper.keeper.GetVault(helper.ctx, yggMsg.PubKey)
-				c.Assert(err, NotNil)
-				c.Assert(len(yggVault.Type), Equals, 0)
-				na, err := helper.keeper.GetNodeAccountByPubKey(helper.ctx, yggMsg.PubKey)
-				c.Assert(err, IsNil)
-				c.Assert(na.Status.String(), Equals, NodeDisabled.String())
-			},
-			expectedResult: nil,
-		},
 	}
 	for _, tc := range testCases {
 		helper := newYggdrasilHandlerTestHelper(c)
