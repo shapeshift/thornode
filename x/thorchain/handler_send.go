@@ -8,16 +8,18 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/gov/types"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
+// SendHandler handle MsgSend
 type SendHandler struct {
 	keeper keeper.Keeper
 	mgr    Manager
 }
 
+// NewSendHandler create a new instance of SendHandler
 func NewSendHandler(keeper keeper.Keeper, mgr Manager) SendHandler {
 	return SendHandler{
 		keeper: keeper,
@@ -25,6 +27,7 @@ func NewSendHandler(keeper keeper.Keeper, mgr Manager) SendHandler {
 	}
 }
 
+// Run the main entry point to process MsgSend
 func (h SendHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	msg, ok := m.(MsgSend)
 	if !ok {

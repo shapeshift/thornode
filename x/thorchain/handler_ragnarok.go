@@ -4,16 +4,18 @@ import (
 	"github.com/blang/semver"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
+// RagnarokHandler process MsgRagnarok
 type RagnarokHandler struct {
 	keeper keeper.Keeper
 	mgr    Manager
 }
 
+// NewRagnarokHandler create a new instance of RagnarokHandler
 func NewRagnarokHandler(keeper keeper.Keeper, mgr Manager) RagnarokHandler {
 	return RagnarokHandler{
 		keeper: keeper,
@@ -21,6 +23,7 @@ func NewRagnarokHandler(keeper keeper.Keeper, mgr Manager) RagnarokHandler {
 	}
 }
 
+// Run is the main entry point of ragnarok handler
 func (h RagnarokHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, _ constants.ConstantValues) (*cosmos.Result, error) {
 	msg, ok := m.(MsgRagnarok)
 	if !ok {

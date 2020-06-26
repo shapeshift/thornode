@@ -6,16 +6,18 @@ import (
 	"github.com/blang/semver"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
+// ObservedTxOutHandler process MsgObservedTxOut messages
 type ObservedTxOutHandler struct {
 	keeper keeper.Keeper
 	mgr    Manager
 }
 
+// NewObservedTxOutHandler create a new instance of ObservedTxOutHandler
 func NewObservedTxOutHandler(keeper keeper.Keeper, mgr Manager) ObservedTxOutHandler {
 	return ObservedTxOutHandler{
 		keeper: keeper,
@@ -23,6 +25,7 @@ func NewObservedTxOutHandler(keeper keeper.Keeper, mgr Manager) ObservedTxOutHan
 	}
 }
 
+// Run is the main entry point for ObservedTxOutHandler
 func (h ObservedTxOutHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	msg, ok := m.(MsgObservedTxOut)
 	if !ok {
@@ -162,8 +165,9 @@ func (h ObservedTxOutHandler) handleV1(ctx cosmos.Context, version semver.Versio
 				if err := h.keeper.SetVault(ctx, vault); err != nil {
 					ctx.Logger().Error("fail to save vault", "error", err)
 				}
-				continue
 			}
+
+			continue
 		}
 
 		txOut := voter.GetTx(activeNodeAccounts) // get consensus tx, in case our for loop is incorrect
@@ -189,7 +193,7 @@ func (h ObservedTxOutHandler) handleV1(ctx cosmos.Context, version semver.Versio
 			continue
 		}
 		vault.SubFunds(tx.Tx.Coins)
-		vault.OutboundTxCount += 1
+		vault.OutboundTxCount++
 		if vault.IsAsgard() && memo.IsType(TxMigrate) {
 			// only remove the block height that had been specified in the memo
 			vault.RemovePendingTxBlockHeights(memo.GetBlockHeight())
