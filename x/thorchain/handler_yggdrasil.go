@@ -144,14 +144,14 @@ func (h YggdrasilHandler) handleV1(ctx cosmos.Context, msg MsgYggdrasil, version
 }
 
 func (h YggdrasilHandler) handleYggdrasilFund(ctx cosmos.Context, msg MsgYggdrasil, vault Vault) (*cosmos.Result, error) {
-	if vault.Type == AsgardVault {
+	switch vault.Type {
+	case AsgardVault:
 		ctx.EventManager().EmitEvent(
 			cosmos.NewEvent("asgard_fund_yggdrasil",
 				cosmos.NewAttribute("pubkey", vault.PubKey.String()),
 				cosmos.NewAttribute("coins", msg.Coins.String()),
 				cosmos.NewAttribute("tx", msg.Tx.ID.String())))
-	}
-	if vault.Type == YggdrasilVault {
+	case YggdrasilVault:
 		ctx.EventManager().EmitEvent(
 			cosmos.NewEvent("yggdrasil_receive_fund",
 				cosmos.NewAttribute("pubkey", vault.PubKey.String()),
@@ -167,7 +167,8 @@ func (h YggdrasilHandler) handleYggdrasilFund(ctx cosmos.Context, msg MsgYggdras
 
 func (h YggdrasilHandler) handleYggdrasilReturn(ctx cosmos.Context, msg MsgYggdrasil, vault Vault, version semver.Version) (*cosmos.Result, error) {
 	// observe an outbound tx from yggdrasil vault
-	if vault.Type == YggdrasilVault {
+	switch vault.Type {
+	case YggdrasilVault:
 		asgardVaults, err := h.keeper.GetAsgardVaultsByStatus(ctx, ActiveVault)
 		if err != nil {
 			return nil, ErrInternal(err, "unable to get asgard vaults")
@@ -199,10 +200,9 @@ func (h YggdrasilHandler) handleYggdrasilReturn(ctx cosmos.Context, msg MsgYggdr
 			}
 		}
 		return &cosmos.Result{}, nil
-	}
 
-	// when vault.Type is asgard, that means this tx is observed on an asgard pool and it is an inbound tx
-	if vault.Type == AsgardVault {
+	case AsgardVault:
+		// when vault.Type is asgard, that means this tx is observed on an asgard pool and it is an inbound tx
 		// Yggdrasil return fund back to Asgard
 		ctx.EventManager().EmitEvent(
 			cosmos.NewEvent("yggdrasil_return",

@@ -23,7 +23,7 @@ func NewObservedTxOutHandler(keeper keeper.Keeper, mgr Manager) ObservedTxOutHan
 	}
 }
 
-func (h ObservedTxOutHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, _ constants.ConstantValues) (*cosmos.Result, error) {
+func (h ObservedTxOutHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	msg, ok := m.(MsgObservedTxOut)
 	if !ok {
 		return nil, errInvalidMessage
@@ -32,7 +32,7 @@ func (h ObservedTxOutHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semv
 		ctx.Logger().Error("MsgObserveTxOut failed validation", "error", err)
 		return nil, err
 	}
-	result, err := h.handle(ctx, msg, version)
+	result, err := h.handle(ctx, msg, version, constAccessor)
 	if err != nil {
 		ctx.Logger().Error("fail to handle MsgObserveTxOut", "error", err)
 	}
@@ -58,16 +58,15 @@ func (h ObservedTxOutHandler) validateV1(ctx cosmos.Context, msg MsgObservedTxOu
 	return nil
 }
 
-func (h ObservedTxOutHandler) handle(ctx cosmos.Context, msg MsgObservedTxOut, version semver.Version) (*cosmos.Result, error) {
+func (h ObservedTxOutHandler) handle(ctx cosmos.Context, msg MsgObservedTxOut, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	if version.GTE(semver.MustParse("0.1.0")) {
-		return h.handleV1(ctx, version, msg)
+		return h.handleV1(ctx, version, msg, constAccessor)
 	}
 
 	return nil, errBadVersion
 }
 
-func (h ObservedTxOutHandler) preflight(ctx cosmos.Context, voter ObservedTxVoter, nas NodeAccounts, tx ObservedTx, signer cosmos.AccAddress, version semver.Version) (ObservedTxVoter, bool) {
-	constAccessor := constants.GetConstantValues(version)
+func (h ObservedTxOutHandler) preflight(ctx cosmos.Context, voter ObservedTxVoter, nas NodeAccounts, tx ObservedTx, signer cosmos.AccAddress, version semver.Version, constAccessor constants.ConstantValues) (ObservedTxVoter, bool) {
 	observeSlashPoints := constAccessor.GetInt64Value(constants.ObserveSlashPoints)
 	observeFlex := constAccessor.GetInt64Value(constants.ObserveFlex)
 	ok := false
@@ -98,8 +97,7 @@ func (h ObservedTxOutHandler) preflight(ctx cosmos.Context, voter ObservedTxVote
 }
 
 // Handle a message to observe outbound tx
-func (h ObservedTxOutHandler) handleV1(ctx cosmos.Context, version semver.Version, msg MsgObservedTxOut) (*cosmos.Result, error) {
-	constAccessor := constants.GetConstantValues(version)
+func (h ObservedTxOutHandler) handleV1(ctx cosmos.Context, version semver.Version, msg MsgObservedTxOut, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	activeNodeAccounts, err := h.keeper.ListActiveNodeAccounts(ctx)
 	if err != nil {
 		return nil, wrapError(ctx, err, "fail to get list of active node accounts")
@@ -121,7 +119,7 @@ func (h ObservedTxOutHandler) handleV1(ctx cosmos.Context, version semver.Versio
 		}
 
 		// check whether the tx has consensus
-		voter, ok := h.preflight(ctx, voter, activeNodeAccounts, tx, msg.Signer, version)
+		voter, ok := h.preflight(ctx, voter, activeNodeAccounts, tx, msg.Signer, version, constAccessor)
 		if !ok {
 			if voter.Height == common.BlockHeight(ctx) {
 				// we've already process the transaction, but we should still
@@ -195,13 +193,6 @@ func (h ObservedTxOutHandler) handleV1(ctx cosmos.Context, version semver.Versio
 		if vault.IsAsgard() && memo.IsType(TxMigrate) {
 			// only remove the block height that had been specified in the memo
 			vault.RemovePendingTxBlockHeights(memo.GetBlockHeight())
-		}
-		if memo.IsType(TxRagnarok) {
-			pending, err := h.keeper.GetRagnarokPending(ctx)
-			if err != nil {
-				ctx.Logger().Error("fail to get ragnarok pending", "error", err)
-			}
-			h.keeper.SetRagnarokPending(ctx, pending-1)
 		}
 
 		if !vault.HasFunds() && vault.Status == RetiringVault {

@@ -39,13 +39,11 @@ func (h MigrateHandler) validate(ctx cosmos.Context, msg MsgMigrate, version sem
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, msg)
 	}
-	ctx.Logger().Error(errInvalidVersion.Error())
 	return errInvalidVersion
 }
 
 func (h MigrateHandler) validateV1(ctx cosmos.Context, msg MsgMigrate) error {
 	if err := msg.ValidateBasic(); nil != err {
-		ctx.Logger().Error(err.Error())
 		return err
 	}
 	return nil
@@ -56,7 +54,6 @@ func (h MigrateHandler) handle(ctx cosmos.Context, msg MsgMigrate, version semve
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.handleV1(ctx, version, msg)
 	}
-	ctx.Logger().Error(errInvalidVersion.Error())
 	return nil, errBadVersion
 }
 

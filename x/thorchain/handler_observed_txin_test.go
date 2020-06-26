@@ -203,6 +203,8 @@ func (s *HandlerObservedTxInSuite) TestHandle(c *C) {
 	var err error
 	ctx, _ := setupKeeperForTest(c)
 	ver := constants.SWVersion
+	constAccessor := constants.GetConstantValues(ver)
+
 	tx := GetRandomTx()
 	tx.Memo = "SWAP:BTC.BTC:" + GetRandomBTCAddress().String()
 	obTx := NewObservedTx(tx, 12, GetRandomPubKey())
@@ -231,7 +233,7 @@ func (s *HandlerObservedTxInSuite) TestHandle(c *C) {
 
 	c.Assert(err, IsNil)
 	msg := NewMsgObservedTxIn(txs, keeper.nas[0].NodeAddress)
-	_, err = handler.handle(ctx, msg, ver)
+	_, err = handler.handle(ctx, msg, ver, constAccessor)
 	c.Assert(err, IsNil)
 	mgr.ObMgr().EndBlock(ctx, keeper)
 
@@ -247,6 +249,7 @@ func (s *HandlerObservedTxInSuite) TestMigrateMemo(c *C) {
 	var err error
 	ctx, _ := setupKeeperForTest(c)
 	ver := constants.SWVersion
+	constAccessor := constants.GetConstantValues(ver)
 
 	vault := GetRandomVault()
 	addr, err := vault.PubKey.GetAddress(common.BNBChain)
@@ -294,7 +297,7 @@ func (s *HandlerObservedTxInSuite) TestMigrateMemo(c *C) {
 
 	c.Assert(err, IsNil)
 	msg := NewMsgObservedTxIn(txs, keeper.nas[0].NodeAddress)
-	_, err = handler.handle(ctx, msg, ver)
+	_, err = handler.handle(ctx, msg, ver, constAccessor)
 	c.Assert(err, IsNil)
 }
 
