@@ -185,20 +185,6 @@ func (h YggdrasilHandler) handleYggdrasilReturn(ctx cosmos.Context, msg MsgYggdr
 			}
 		}
 
-		na, err := h.keeper.GetNodeAccountByPubKey(ctx, msg.PubKey)
-		if err != nil {
-			return nil, ErrInternal(err, fmt.Sprintf("unable to get node account(%s)", msg.PubKey))
-		}
-		if na.Status == NodeActive {
-			// node still active , no refund bond
-			return &cosmos.Result{}, nil
-		}
-
-		if !vault.HasFunds() {
-			if err := refundBond(ctx, msg.Tx, cosmos.ZeroUint(), na, h.keeper, h.mgr); err != nil {
-				return nil, ErrInternal(err, "fail to refund bond")
-			}
-		}
 		return &cosmos.Result{}, nil
 
 	case AsgardVault:

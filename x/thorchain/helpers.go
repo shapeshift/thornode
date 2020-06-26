@@ -290,10 +290,6 @@ func refundBond(ctx cosmos.Context, tx common.Tx, amt cosmos.Uint, nodeAcc NodeA
 	}
 
 	nodeAcc.Bond = common.SafeSub(nodeAcc.Bond, amt)
-	// disable the node account
-	if nodeAcc.Bond.IsZero() {
-		nodeAcc.UpdateStatus(NodeDisabled, common.BlockHeight(ctx))
-	}
 	if err := keeper.SetNodeAccount(ctx, nodeAcc); err != nil {
 		ctx.Logger().Error(fmt.Sprintf("fail to save node account(%s)", nodeAcc), "error", err)
 		return err
