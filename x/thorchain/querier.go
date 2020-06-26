@@ -249,20 +249,21 @@ func queryPoolAddresses(ctx cosmos.Context, path []string, req abci.RequestQuery
 		ctx.Logger().Error("fail to get HaltTrading mimir", "error", err)
 	}
 	// when trading is halt , do not return any pool addresses
-	if (haltTrading > 0 && haltTrading < common.BlockHeight(ctx) && err == nil) || keeper.RagnarokInProgress(ctx) {
-		ctx.Logger().Info("trading is halted!!")
-		return []byte{}, nil
-	}
+	halted := (haltTrading > 0 && haltTrading < common.BlockHeight(ctx) && err == nil) || keeper.RagnarokInProgress(ctx)
 	active, err := keeper.GetAsgardVaultsByStatus(ctx, ActiveVault)
 	if err != nil {
 		ctx.Logger().Error("fail to get active vaults", "error", err)
 		return nil, fmt.Errorf("fail to get active vaults: %w", err)
 	}
 
+	// TODO: halted trading should be enabled per chain. This will be used to
+	// decom a chain and not accept new trades/stakes
+
 	type address struct {
 		Chain   common.Chain   `json:"chain"`
 		PubKey  common.PubKey  `json:"pub_key"`
 		Address common.Address `json:"address"`
+		Halted  bool           `json:"halted"`
 	}
 
 	var resp struct {
@@ -288,6 +289,7 @@ func queryPoolAddresses(ctx cosmos.Context, path []string, req abci.RequestQuery
 			Chain:   chain,
 			PubKey:  vault.PubKey,
 			Address: vaultAddress,
+			Halted:  halted,
 		}
 
 		resp.Current = append(resp.Current, addr)

@@ -57,7 +57,7 @@ func (h BondHandler) validateV1(ctx cosmos.Context, version semver.Version, msg 
 	}
 
 	maxBond, err := h.keeper.GetMimir(ctx, "MaximumBondInRune")
-	if maxBond > 0 && err != nil {
+	if maxBond > 0 && err == nil {
 		maxValidatorBond := cosmos.NewUint(uint64(maxBond))
 		if bond.GT(maxValidatorBond) {
 			return cosmos.ErrUnknownRequest(fmt.Sprintf("too much bond, max validator bond (%s), bond(%s)", maxValidatorBond.String(), bond))
