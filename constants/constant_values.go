@@ -44,6 +44,7 @@ const (
 	YggFundLimit
 	JailTimeKeygen
 	JailTimeKeysign
+	CliTxCost
 )
 
 var nameToString = map[ConstantName]string{
@@ -81,6 +82,7 @@ var nameToString = map[ConstantName]string{
 	YggFundLimit:                    "YggFundLimit",
 	JailTimeKeygen:                  "JailTimeKeygen",
 	JailTimeKeysign:                 "JailTimeKeysign",
+	CliTxCost:                       "CliTxCost",
 }
 
 // String implement fmt.stringer
