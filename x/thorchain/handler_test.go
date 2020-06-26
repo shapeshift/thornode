@@ -316,15 +316,11 @@ func (HandlerSuite) TestGetMsgSwapFromMemo(c *C) {
 			Chain: common.BNBChain,
 			Coins: common.Coins{
 				common.NewCoin(
-					common.BNBAsset,
-					cosmos.NewUint(100*common.One),
-				),
-				common.NewCoin(
 					common.RuneAsset(),
 					cosmos.NewUint(100*common.One),
 				),
 			},
-			Memo:        "withdraw:BNB.BNB",
+			Memo:        m.String(),
 			FromAddress: GetRandomBNBAddress(),
 			ToAddress:   GetRandomBNBAddress(),
 			Gas:         BNBGasFeeSingleton,
@@ -333,22 +329,9 @@ func (HandlerSuite) TestGetMsgSwapFromMemo(c *C) {
 		common.EmptyPubKey,
 	)
 
-	// more than one coin
-	resultMsg, err := getMsgSwapFromMemo(swapMemo, txin, GetRandomBech32Addr())
-	c.Assert(err, NotNil)
-	c.Assert(resultMsg, IsNil)
-
-	txin.Tx.Coins = common.Coins{
-		common.NewCoin(
-			common.BNBAsset,
-			cosmos.NewUint(100*common.One),
-		),
-	}
-
-	// coin and the ticker is the same, thus no point to swap
 	resultMsg1, err := getMsgSwapFromMemo(swapMemo, txin, GetRandomBech32Addr())
-	c.Assert(resultMsg1, IsNil)
-	c.Assert(err, NotNil)
+	c.Assert(resultMsg1, NotNil)
+	c.Assert(err, IsNil)
 }
 
 func (HandlerSuite) TestGetMsgStakeFromMemo(c *C) {
@@ -373,7 +356,7 @@ func (HandlerSuite) TestGetMsgStakeFromMemo(c *C) {
 				common.NewCoin(runeAsset,
 					cosmos.NewUint(100*common.One)),
 			},
-			Memo:        "withdraw:BNB.BNB",
+			Memo:        m.String(),
 			FromAddress: GetRandomBNBAddress(),
 			ToAddress:   GetRandomBNBAddress(),
 			Gas:         BNBGasFeeSingleton,
@@ -383,8 +366,8 @@ func (HandlerSuite) TestGetMsgStakeFromMemo(c *C) {
 	)
 
 	msg, err := getMsgStakeFromMemo(w.ctx, stakeMemo, txin, GetRandomBech32Addr())
-	c.Assert(msg, IsNil)
-	c.Assert(err, NotNil)
+	c.Assert(msg, NotNil)
+	c.Assert(err, IsNil)
 
 	// Asymentic stake should works fine, only RUNE
 	txin.Tx.Coins = common.Coins{
@@ -410,18 +393,6 @@ func (HandlerSuite) TestGetMsgStakeFromMemo(c *C) {
 	c.Assert(err2, IsNil)
 
 	lokiAsset, _ := common.NewAsset(fmt.Sprintf("BNB.LOKI"))
-	txin.Tx.Coins = common.Coins{
-		common.NewCoin(tcanAsset,
-			cosmos.NewUint(100*common.One)),
-		common.NewCoin(lokiAsset,
-			cosmos.NewUint(100*common.One)),
-	}
-
-	// stake only token should be fine
-	msg3, err3 := getMsgStakeFromMemo(w.ctx, stakeMemo, txin, GetRandomBech32Addr())
-	c.Assert(msg3, IsNil)
-	c.Assert(err3, NotNil)
-
 	// Make sure the RUNE Address and Asset Address set correctly
 	txin.Tx.Coins = common.Coins{
 		common.NewCoin(runeAsset,

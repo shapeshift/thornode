@@ -94,6 +94,7 @@ func (s *HandlerErrataTxSuite) TestValidate(c *C) {
 func (s *HandlerErrataTxSuite) TestErrataHandlerHappyPath(c *C) {
 	ctx, _ := setupKeeperForTest(c)
 	ver := constants.SWVersion
+	constAccessor := constants.GetConstantValues(ver)
 
 	txID := GetRandomTxHash()
 	na := GetRandomNodeAccount(NodeActive)
@@ -141,7 +142,7 @@ func (s *HandlerErrataTxSuite) TestErrataHandlerHappyPath(c *C) {
 	c.Assert(mgr.BeginBlock(ctx), IsNil)
 	handler := NewErrataTxHandler(keeper, mgr)
 	msg := NewMsgErrataTx(txID, common.BNBChain, na.NodeAddress)
-	_, err := handler.handle(ctx, msg, ver)
+	_, err := handler.handle(ctx, msg, ver, constAccessor)
 	c.Assert(err, IsNil)
 	c.Check(keeper.pool.BalanceRune.Equal(cosmos.NewUint(70*common.One)), Equals, true)
 	c.Check(keeper.pool.BalanceAsset.Equal(cosmos.NewUint(100*common.One)), Equals, true)
