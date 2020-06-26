@@ -345,7 +345,7 @@ func (s *ThorchainSuite) TestRagnarok(c *C) {
 				common.NewCoin(common.RuneAsset(), res.Amount),
 			})
 			msg := NewMsgReserveContributor(GetRandomTx(), res, bonders[0].NodeAddress)
-			result, err := resHandler.Handle(ctx, msg, ver)
+			result, err := resHandler.handle(ctx, msg, ver)
 			c.Assert(err, IsNil)
 			c.Assert(result, NotNil)
 		}
@@ -564,7 +564,7 @@ func (s *ThorchainSuite) TestRagnarokNoOneLeave(c *C) {
 			common.NewCoin(common.RuneAsset(), res.Amount),
 		})
 		msg := NewMsgReserveContributor(GetRandomTx(), res, bonders[0].NodeAddress)
-		_, err := resHandler.Handle(ctx, msg, ver)
+		_, err := resHandler.handle(ctx, msg, ver)
 		c.Assert(err, IsNil)
 	}
 	c.Assert(keeper.SetVault(ctx, asgard), IsNil)

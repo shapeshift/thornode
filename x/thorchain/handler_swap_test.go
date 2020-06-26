@@ -6,12 +6,12 @@ import (
 	"github.com/blang/semver"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 
 	. "gopkg.in/check.v1"
 
-	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 type HandlerSwapSuite struct{}
@@ -106,6 +106,12 @@ func (s *HandlerSwapSuite) TestHandle(c *C) {
 
 	ver := constants.SWVersion
 	constAccessor := constants.GetConstantValues(ver)
+
+	result, err := handler.Run(ctx, NewMsgMimir("what", 1, GetRandomBech32Addr()), ver, constAccessor)
+	c.Check(err, NotNil)
+	c.Check(result, IsNil)
+	c.Check(errors.Is(err, errInvalidMessage), Equals, true)
+
 	txID := GetRandomTxHash()
 	signerBNBAddr := GetRandomBNBAddress()
 	observerAddr := keeper.activeNodeAccount.NodeAddress
@@ -121,8 +127,9 @@ func (s *HandlerSwapSuite) TestHandle(c *C) {
 		"",
 	)
 	msg := NewMsgSwap(tx, common.BNBAsset, signerBNBAddr, cosmos.ZeroUint(), observerAddr)
-	_, err := handler.handle(ctx, msg, ver, constAccessor)
+	result, err = handler.Run(ctx, msg, ver, constAccessor)
 	c.Assert(err.Error(), Equals, errors.New("BNB.BNB pool doesn't exist").Error())
+	c.Assert(result, IsNil)
 	pool := NewPool()
 	pool.Asset = common.BNBAsset
 	pool.BalanceAsset = cosmos.NewUint(100 * common.One)
@@ -140,8 +147,9 @@ func (s *HandlerSwapSuite) TestHandle(c *C) {
 		"",
 	)
 	msgSwapPriceProtection := NewMsgSwap(tx, common.BNBAsset, signerBNBAddr, cosmos.NewUint(2*common.One), observerAddr)
-	_, err = handler.handle(ctx, msgSwapPriceProtection, ver, constAccessor)
+	result, err = handler.Run(ctx, msgSwapPriceProtection, ver, constAccessor)
 	c.Assert(err.Error(), Equals, errors.New("emit asset 192233756 less than price limit 200000000").Error())
+	c.Assert(result, IsNil)
 
 	poolTCAN := NewPool()
 	tCanAsset, err := common.NewAsset("BNB.TCAN-014")
@@ -168,11 +176,19 @@ func (s *HandlerSwapSuite) TestHandle(c *C) {
 	items, err := mgr.TxOutStore().GetOutboundItems(ctx)
 	c.Assert(err, IsNil)
 	c.Assert(items, HasLen, 0)
-	_, err = handler.handle(ctx, msgSwapFromTxIn.(MsgSwap), ver, constAccessor)
+	_, err = handler.Run(ctx, msgSwapFromTxIn.(MsgSwap), ver, constAccessor)
 	c.Assert(err, IsNil)
 	items, err = mgr.TxOutStore().GetOutboundItems(ctx)
 	c.Assert(err, IsNil)
 	c.Assert(items, HasLen, 1)
+	result, err = handler.handle(ctx, msgSwapFromTxIn.(MsgSwap), semver.Version{}, constAccessor)
+	c.Assert(err, NotNil)
+	c.Assert(result, IsNil)
+	c.Check(errors.Is(err, errBadVersion), Equals, true)
+	msgSwap := NewMsgSwap(GetRandomTx(), common.EmptyAsset, GetRandomBNBAddress(), cosmos.ZeroUint(), GetRandomBech32Addr())
+	result, err = handler.Run(ctx, msgSwap, ver, constAccessor)
+	c.Assert(err, NotNil)
+	c.Assert(result, IsNil)
 }
 
 func (s *HandlerSwapSuite) TestDoubleSwap(c *C) {
