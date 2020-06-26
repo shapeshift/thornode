@@ -6,12 +6,13 @@ import (
 	"github.com/blang/semver"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // SwitchHandler is to handle Switch message
+// MsgSwitch is used to switch from bep2 RUNE to native RUNE
 type SwitchHandler struct {
 	keeper keeper.Keeper
 	mgr    Manager

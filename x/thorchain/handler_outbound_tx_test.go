@@ -70,6 +70,10 @@ func (s *HandlerOutboundTxSuite) TestValidate(c *C) {
 	sErr = handler.validate(ctx, msgOutboundTx, semver.Version{})
 	c.Assert(sErr, Equals, errBadVersion)
 
+	result, err := handler.handle(ctx, msgOutboundTx, semver.Version{}, constants.GetConstantValues(constants.SWVersion))
+	c.Check(result, IsNil)
+	c.Check(err, NotNil)
+
 	// invalid msg
 	msgOutboundTx = MsgOutboundTx{}
 	sErr = handler.validate(ctx, msgOutboundTx, ver)
