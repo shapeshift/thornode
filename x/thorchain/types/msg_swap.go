@@ -42,6 +42,12 @@ func (msg MsgSwap) ValidateBasic() error {
 	if msg.TargetAsset.IsEmpty() {
 		return cosmos.ErrUnknownRequest("swap Target cannot be empty")
 	}
+	if len(msg.Tx.Coins) > 1 {
+		return cosmos.ErrUnknownRequest("not expecting multiple coins in a swap")
+	}
+	if msg.Tx.Coins.IsEmpty() {
+		return cosmos.ErrUnknownRequest("swap coin cannot be empty")
+	}
 	for _, coin := range msg.Tx.Coins {
 		if coin.Asset.Equals(msg.TargetAsset) {
 			return cosmos.ErrUnknownRequest("swap Source and Target cannot be the same.")

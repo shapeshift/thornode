@@ -27,7 +27,7 @@ func NewErrataTxHandler(keeper keeper.Keeper, mgr Manager) ErrataTxHandler {
 }
 
 // Run is the main entry point to execute ErrataTx logic
-func (h ErrataTxHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, _ constants.ConstantValues) (*cosmos.Result, error) {
+func (h ErrataTxHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	msg, ok := m.(MsgErrataTx)
 	if !ok {
 		return nil, errInvalidMessage
@@ -36,7 +36,7 @@ func (h ErrataTxHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Ve
 		ctx.Logger().Error("msg errata tx failed validation", "error", err)
 		return nil, err
 	}
-	return h.handle(ctx, msg, version)
+	return h.handle(ctx, msg, version, constAccessor)
 }
 
 func (h ErrataTxHandler) validate(ctx cosmos.Context, msg MsgErrataTx, version semver.Version) error {
@@ -58,16 +58,16 @@ func (h ErrataTxHandler) validateV1(ctx cosmos.Context, msg MsgErrataTx) error {
 	return nil
 }
 
-func (h ErrataTxHandler) handle(ctx cosmos.Context, msg MsgErrataTx, version semver.Version) (*cosmos.Result, error) {
+func (h ErrataTxHandler) handle(ctx cosmos.Context, msg MsgErrataTx, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	ctx.Logger().Info("handleMsgErrataTx request", "txid", msg.TxID.String())
 	if version.GTE(semver.MustParse("0.1.0")) {
-		return h.handleV1(ctx, msg, version)
+		return h.handleV1(ctx, msg, version, constAccessor)
 	}
 	ctx.Logger().Error(errInvalidVersion.Error())
 	return nil, errBadVersion
 }
 
-func (h ErrataTxHandler) handleV1(ctx cosmos.Context, msg MsgErrataTx, version semver.Version) (*cosmos.Result, error) {
+func (h ErrataTxHandler) handleV1(ctx cosmos.Context, msg MsgErrataTx, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	active, err := h.keeper.ListActiveNodeAccounts(ctx)
 	if err != nil {
 		return nil, wrapError(ctx, err, "fail to get list of active node accounts")
@@ -77,7 +77,6 @@ func (h ErrataTxHandler) handleV1(ctx cosmos.Context, msg MsgErrataTx, version s
 	if err != nil {
 		return nil, err
 	}
-	constAccessor := constants.GetConstantValues(version)
 	observeSlashPoints := constAccessor.GetInt64Value(constants.ObserveSlashPoints)
 	observeFlex := constAccessor.GetInt64Value(constants.ObserveFlex)
 	h.mgr.Slasher().IncSlashPoints(ctx, observeSlashPoints, msg.Signer)
@@ -132,18 +131,10 @@ func (h ErrataTxHandler) handleV1(ctx cosmos.Context, msg MsgErrataTx, version s
 	}
 
 	// subtract amounts from pool balances
-	runeAmt := cosmos.ZeroUint()
-	assetAmt := cosmos.ZeroUint()
-	for _, coin := range tx.Coins {
-		if coin.Asset.IsRune() {
-			runeAmt = coin.Amount
-		} else {
-			assetAmt = coin.Amount
-		}
-	}
-
-	pool.BalanceRune = common.SafeSub(pool.BalanceRune, runeAmt)
-	pool.BalanceAsset = common.SafeSub(pool.BalanceAsset, assetAmt)
+	runeCoin := tx.Coins.GetCoin(common.RuneAsset())
+	assetCoin := tx.Coins.GetCoin(memo.GetAsset())
+	pool.BalanceRune = common.SafeSub(pool.BalanceRune, runeCoin.Amount)
+	pool.BalanceAsset = common.SafeSub(pool.BalanceAsset, assetCoin.Amount)
 	if memo.IsType(TxStake) {
 		staker, err := h.keeper.GetStaker(ctx, memo.GetAsset(), tx.FromAddress)
 		if err != nil {
@@ -164,7 +155,7 @@ func (h ErrataTxHandler) handleV1(ctx cosmos.Context, msg MsgErrataTx, version s
 
 	// send errata event
 	mods := PoolMods{
-		NewPoolMod(pool.Asset, runeAmt, false, assetAmt, false),
+		NewPoolMod(pool.Asset, runeCoin.Amount, false, assetCoin.Amount, false),
 	}
 
 	eventErrata := NewEventErrata(msg.TxID, mods)

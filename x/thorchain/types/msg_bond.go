@@ -51,6 +51,9 @@ func (msg MsgBond) ValidateBasic() error {
 	if !msg.TxIn.Coins[0].Asset.IsRune() {
 		return cosmos.ErrUnknownRequest("cannot bond non-rune asset")
 	}
+	if msg.TxIn.Coins.IsEmpty() {
+		return cosmos.ErrUnknownRequest("cannot bond with empty coins")
+	}
 	if msg.Signer.Empty() {
 		return cosmos.ErrInvalidAddress("empty signer address")
 	}

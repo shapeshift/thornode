@@ -62,12 +62,8 @@ func (h AddHandler) handle(ctx cosmos.Context, msg MsgAdd, version semver.Versio
 	if pool.Asset.IsEmpty() {
 		return nil, cosmos.ErrUnknownRequest(fmt.Sprintf("pool %s not exist", msg.Asset.String()))
 	}
-	if msg.AssetAmount.GT(cosmos.ZeroUint()) {
-		pool.BalanceAsset = pool.BalanceAsset.Add(msg.AssetAmount)
-	}
-	if msg.RuneAmount.GT(cosmos.ZeroUint()) {
-		pool.BalanceRune = pool.BalanceRune.Add(msg.RuneAmount)
-	}
+	pool.BalanceAsset = pool.BalanceAsset.Add(msg.AssetAmount)
+	pool.BalanceRune = pool.BalanceRune.Add(msg.RuneAmount)
 
 	if err := h.keeper.SetPool(ctx, pool); err != nil {
 		return nil, ErrInternal(err, fmt.Sprintf("fail to set pool(%s)", pool))

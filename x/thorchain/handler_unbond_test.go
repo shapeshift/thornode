@@ -161,11 +161,6 @@ func (HandlerUnBondSuite) TestUnBondHandlerFailValidation(c *C) {
 			expectedErr: se.ErrInvalidAddress,
 		},
 		{
-			name:        "msg not signed by active account",
-			msg:         NewMsgUnBond(txIn, GetRandomNodeAccount(NodeStandby).NodeAddress, cosmos.NewUint(uint64(1)), GetRandomBNBAddress(), GetRandomNodeAccount(NodeStandby).NodeAddress),
-			expectedErr: se.ErrUnauthorized,
-		},
-		{
 			name:        "account shouldn't be active",
 			msg:         NewMsgUnBond(txIn, activeNodeAccount.NodeAddress, cosmos.NewUint(uint64(1)), GetRandomBNBAddress(), activeNodeAccount.NodeAddress),
 			expectedErr: se.ErrUnknownRequest,
