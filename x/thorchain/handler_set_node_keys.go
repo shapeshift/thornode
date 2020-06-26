@@ -28,7 +28,7 @@ func (h SetNodeKeysHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver
 	if !ok {
 		return nil, errInvalidMessage
 	}
-	if err := h.validate(ctx, msg, version); err != nil {
+	if err := h.validate(ctx, msg, version, constAccessor); err != nil {
 		ctx.Logger().Error("MsgSetNodeKeys failed validation", "error", err)
 		return nil, err
 	}
@@ -39,14 +39,14 @@ func (h SetNodeKeysHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver
 	return result, err
 }
 
-func (h SetNodeKeysHandler) validate(ctx cosmos.Context, msg MsgSetNodeKeys, version semver.Version) error {
+func (h SetNodeKeysHandler) validate(ctx cosmos.Context, msg MsgSetNodeKeys, version semver.Version, constAccessor constants.ConstantValues) error {
 	if version.GTE(semver.MustParse("0.1.0")) {
-		return h.validateV1(ctx, msg)
+		return h.validateV1(ctx, msg, constAccessor)
 	}
 	return errInvalidVersion
 }
 
-func (h SetNodeKeysHandler) validateV1(ctx cosmos.Context, msg MsgSetNodeKeys) error {
+func (h SetNodeKeysHandler) validateV1(ctx cosmos.Context, msg MsgSetNodeKeys, constAccessor constants.ConstantValues) error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
@@ -57,6 +57,11 @@ func (h SetNodeKeysHandler) validateV1(ctx cosmos.Context, msg MsgSetNodeKeys) e
 	}
 	if nodeAccount.IsEmpty() {
 		return cosmos.ErrUnauthorized(fmt.Sprintf("unauthorized account(%s)", msg.Signer))
+	}
+
+	cost := constAccessor.GetInt64Value(constants.CliTxCost)
+	if nodeAccount.Bond.LT(cosmos.NewUint(uint64(cost))) {
+		return cosmos.ErrUnauthorized("not enough bond")
 	}
 
 	// You should not able to update node address when the node is in active mode
@@ -90,12 +95,33 @@ func (h SetNodeKeysHandler) handleV1(ctx cosmos.Context, msg MsgSetNodeKeys, ver
 		return nil, cosmos.ErrUnauthorized(fmt.Sprintf("%s is not authorized", msg.Signer))
 	}
 
+	cost := cosmos.NewUint(uint64(constAccessor.GetInt64Value(constants.CliTxCost)))
+
 	// Here make sure THORNode don't change the node account's bond
 	nodeAccount.UpdateStatus(NodeStandby, common.BlockHeight(ctx))
 	nodeAccount.PubKeySet = msg.PubKeySetSet
+	nodeAccount.Bond = common.SafeSub(nodeAccount.Bond, cost)
 	nodeAccount.ValidatorConsPubKey = msg.ValidatorConsPubKey
 	if err := h.keeper.SetNodeAccount(ctx, nodeAccount); err != nil {
 		return nil, fmt.Errorf("fail to save node account: %w", err)
+	}
+
+	// add 10 bond to reserve
+	if common.RuneAsset().Chain.Equals(common.THORChain) {
+		coin := common.NewCoin(common.RuneNative, cost)
+		if err := h.keeper.SendFromAccountToModule(ctx, msg.Signer, ReserveName, coin); err != nil {
+			ctx.Logger().Error("fail to transfer funds from bond to reserve", "error", err)
+			return nil, err
+		}
+	} else {
+		vaultData, err := h.keeper.GetVaultData(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("fail to get vault data: %w", err)
+		}
+		vaultData.TotalReserve = vaultData.TotalReserve.Add(cost)
+		if err := h.keeper.SetVaultData(ctx, vaultData); err != nil {
+			return nil, fmt.Errorf("fail to save vault data: %w", err)
+		}
 	}
 
 	// Set version number
