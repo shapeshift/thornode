@@ -6,9 +6,9 @@ import (
 	"github.com/blang/semver"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // VersionHandler is to handle Version message
@@ -48,9 +48,8 @@ func (h VersionHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Ver
 func (h VersionHandler) validate(ctx cosmos.Context, msg MsgSetVersion, version semver.Version, constAccessor constants.ConstantValues) error {
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, msg, constAccessor)
-	} else {
-		return errBadVersion
 	}
+	return errBadVersion
 }
 
 func (h VersionHandler) validateV1(ctx cosmos.Context, msg MsgSetVersion, constAccessor constants.ConstantValues) error {
@@ -99,7 +98,7 @@ func (h VersionHandler) handleV1(ctx cosmos.Context, msg MsgSetVersion, constAcc
 		return fmt.Errorf("fail to save node account: %w", err)
 	}
 
-	// add 10 bond to reserve
+	// add bond to reserve
 	if common.RuneAsset().Chain.Equals(common.THORChain) {
 		coin := common.NewCoin(common.RuneNative, cost)
 		if err := h.keeper.SendFromAccountToModule(ctx, msg.Signer, ReserveName, coin); err != nil {
