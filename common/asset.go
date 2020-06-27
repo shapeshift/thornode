@@ -122,3 +122,11 @@ func RuneAsset() Asset {
 	}
 	return RuneB1AAsset
 }
+
+// BEP2RuneAsset is RUNE on BEP2
+func BEP2RuneAsset() Asset {
+	if strings.EqualFold(os.Getenv("NET"), "testnet") || strings.EqualFold(os.Getenv("NET"), "mocknet") {
+		return RuneA1FAsset
+	}
+	return RuneB1AAsset
+}

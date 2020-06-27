@@ -226,6 +226,7 @@ type (
 	EventOutbound                  = types.EventOutbound
 	NetworkFee                     = types.NetworkFee
 	ObservedNetworkFeeVoter        = types.ObservedNetworkFeeVoter
+	Jail                           = types.Jail
 
 	// Memo
 	SwapMemo            = mem.SwapMemo

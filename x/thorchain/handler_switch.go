@@ -120,10 +120,10 @@ func (h SwitchHandler) toBEP2(ctx cosmos.Context, msg MsgSwitch) (*cosmos.Result
 	vaultData.TotalBEP2Rune = common.SafeSub(vaultData.TotalBEP2Rune, msg.Tx.Coins[0].Amount)
 
 	toi := &TxOutItem{
-		Chain:     common.RuneAsset().Chain,
+		Chain:     common.BNBChain, // BEP2 RUNE is always on binance chain
 		InHash:    msg.Tx.ID,
 		ToAddress: msg.Destination,
-		Coin:      common.NewCoin(common.RuneAsset(), msg.Tx.Coins[0].Amount),
+		Coin:      common.NewCoin(common.BEP2RuneAsset(), msg.Tx.Coins[0].Amount),
 	}
 	ok, err := h.mgr.TxOutStore().TryAddTxOutItem(ctx, h.mgr, toi)
 	if err != nil {
