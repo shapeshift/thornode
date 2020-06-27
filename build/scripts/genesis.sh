@@ -60,7 +60,7 @@ if [ "$SEED" = "$(hostname)" ]; then
       add_vault $VAULT_PUBKEY $(echo "$PUBKEYS" | sed -e 's/^,*//')
     fi
 
-    NODE_IP_ADDRESS=$(curl -s http://whatismyip.akamai.com/)
+    NODE_IP_ADDRESS=${EXTERNAL_IP:=$(curl -s http://whatismyip.akamai.com)}
 
     # add node accounts to genesis file
     for f in /tmp/shared/node_*.json; do
