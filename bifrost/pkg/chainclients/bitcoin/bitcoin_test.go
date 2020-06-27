@@ -166,7 +166,7 @@ func (s *BitcoinSuite) TestFetchTxs(c *C) {
 func (s *BitcoinSuite) TestGetSender(c *C) {
 	tx := btcjson.TxRawResult{
 		Vin: []btcjson.Vin{
-			btcjson.Vin{
+			{
 				Txid: "31f8699ce9028e9cd37f8a6d58a79e614a96e3fdd0f58be5fc36d2d95484716f",
 				Vout: 0,
 			},
@@ -185,7 +185,7 @@ func (s *BitcoinSuite) TestGetSender(c *C) {
 func (s *BitcoinSuite) TestGetMemo(c *C) {
 	tx := btcjson.TxRawResult{
 		Vout: []btcjson.Vout{
-			btcjson.Vout{
+			{
 				ScriptPubKey: btcjson.ScriptPubKeyResult{
 					Asm: "OP_RETURN 74686f72636861696e3a636f6e736f6c6964617465",
 				},
@@ -198,12 +198,12 @@ func (s *BitcoinSuite) TestGetMemo(c *C) {
 
 	tx = btcjson.TxRawResult{
 		Vout: []btcjson.Vout{
-			btcjson.Vout{
+			{
 				ScriptPubKey: btcjson.ScriptPubKeyResult{
 					Asm: "OP_RETURN 737761703a6574682e3078633534633135313236393646334541373935366264396144343130383138654563414443466666663a30786335346331353132363936463345413739353662643961443431",
 				},
 			},
-			btcjson.Vout{
+			{
 				ScriptPubKey: btcjson.ScriptPubKeyResult{
 					Asm: "OP_RETURN 30383138654563414443466666663a3130303030303030303030",
 				},
@@ -226,19 +226,19 @@ func (s *BitcoinSuite) TestIgnoreTx(c *C) {
 	// valid tx that will NOT be ignored
 	tx := btcjson.TxRawResult{
 		Vin: []btcjson.Vin{
-			btcjson.Vin{
+			{
 				Txid: "24ed2d26fd5d4e0e8fa86633e40faf1bdfc8d1903b1cd02855286312d48818a2",
 				Vout: 0,
 			},
 		},
 		Vout: []btcjson.Vout{
-			btcjson.Vout{
+			{
 				Value: 0.12345678,
 				ScriptPubKey: btcjson.ScriptPubKeyResult{
 					Addresses: []string{"tb1qkq7weysjn6ljc2ywmjmwp8ttcckg8yyxjdz5k6"},
 				},
 			},
-			btcjson.Vout{
+			{
 				ScriptPubKey: btcjson.ScriptPubKeyResult{
 					Asm: "OP_RETURN 74686f72636861696e3a636f6e736f6c6964617465",
 				},
@@ -251,7 +251,7 @@ func (s *BitcoinSuite) TestIgnoreTx(c *C) {
 	// invalid tx missing Vout
 	tx = btcjson.TxRawResult{
 		Vin: []btcjson.Vin{
-			btcjson.Vin{
+			{
 				Txid: "24ed2d26fd5d4e0e8fa86633e40faf1bdfc8d1903b1cd02855286312d48818a2",
 				Vout: 0,
 			},
@@ -264,19 +264,19 @@ func (s *BitcoinSuite) TestIgnoreTx(c *C) {
 	// invalid tx missing vout[0].Value == no coins
 	tx = btcjson.TxRawResult{
 		Vin: []btcjson.Vin{
-			btcjson.Vin{
+			{
 				Txid: "24ed2d26fd5d4e0e8fa86633e40faf1bdfc8d1903b1cd02855286312d48818a2",
 				Vout: 0,
 			},
 		},
 		Vout: []btcjson.Vout{
-			btcjson.Vout{
+			{
 				Value: 0,
 				ScriptPubKey: btcjson.ScriptPubKeyResult{
 					Addresses: []string{"tb1qkq7weysjn6ljc2ywmjmwp8ttcckg8yyxjdz5k6"},
 				},
 			},
-			btcjson.Vout{
+			{
 				ScriptPubKey: btcjson.ScriptPubKeyResult{
 					Asm: "OP_RETURN 74686f72636861696e3a636f6e736f6c6964617465",
 				},
@@ -289,19 +289,19 @@ func (s *BitcoinSuite) TestIgnoreTx(c *C) {
 	// invalid tx missing vin[0].Txid means coinbase
 	tx = btcjson.TxRawResult{
 		Vin: []btcjson.Vin{
-			btcjson.Vin{
+			{
 				Txid: "",
 				Vout: 0,
 			},
 		},
 		Vout: []btcjson.Vout{
-			btcjson.Vout{
+			{
 				Value: 0.1234565,
 				ScriptPubKey: btcjson.ScriptPubKeyResult{
 					Addresses: []string{"tb1qkq7weysjn6ljc2ywmjmwp8ttcckg8yyxjdz5k6"},
 				},
 			},
-			btcjson.Vout{
+			{
 				ScriptPubKey: btcjson.ScriptPubKeyResult{
 					Asm: "OP_RETURN 74686f72636861696e3a636f6e736f6c6964617465",
 				},
@@ -315,13 +315,13 @@ func (s *BitcoinSuite) TestIgnoreTx(c *C) {
 	tx = btcjson.TxRawResult{
 		Vin: []btcjson.Vin{},
 		Vout: []btcjson.Vout{
-			btcjson.Vout{
+			{
 				Value: 0.1234565,
 				ScriptPubKey: btcjson.ScriptPubKeyResult{
 					Addresses: []string{"tb1qkq7weysjn6ljc2ywmjmwp8ttcckg8yyxjdz5k6"},
 				},
 			},
-			btcjson.Vout{
+			{
 				ScriptPubKey: btcjson.ScriptPubKeyResult{
 					Asm: "OP_RETURN 74686f72636861696e3a636f6e736f6c6964617465",
 				},
@@ -334,13 +334,13 @@ func (s *BitcoinSuite) TestIgnoreTx(c *C) {
 	// invalid tx multiple vout[0].Addresses
 	tx = btcjson.TxRawResult{
 		Vin: []btcjson.Vin{
-			btcjson.Vin{
+			{
 				Txid: "24ed2d26fd5d4e0e8fa86633e40faf1bdfc8d1903b1cd02855286312d48818a2",
 				Vout: 0,
 			},
 		},
 		Vout: []btcjson.Vout{
-			btcjson.Vout{
+			{
 				Value: 0.1234565,
 				ScriptPubKey: btcjson.ScriptPubKeyResult{
 					Addresses: []string{
@@ -349,7 +349,7 @@ func (s *BitcoinSuite) TestIgnoreTx(c *C) {
 					},
 				},
 			},
-			btcjson.Vout{
+			{
 				ScriptPubKey: btcjson.ScriptPubKeyResult{
 					Asm: "OP_RETURN 74686f72636861696e3a636f6e736f6c6964617465",
 				},
@@ -362,13 +362,13 @@ func (s *BitcoinSuite) TestIgnoreTx(c *C) {
 	// invalid tx > 2 vout with coins we only expect 2 max
 	tx = btcjson.TxRawResult{
 		Vin: []btcjson.Vin{
-			btcjson.Vin{
+			{
 				Txid: "24ed2d26fd5d4e0e8fa86633e40faf1bdfc8d1903b1cd02855286312d48818a2",
 				Vout: 0,
 			},
 		},
 		Vout: []btcjson.Vout{
-			btcjson.Vout{
+			{
 				Value: 0.1234565,
 				ScriptPubKey: btcjson.ScriptPubKeyResult{
 					Addresses: []string{
@@ -376,7 +376,7 @@ func (s *BitcoinSuite) TestIgnoreTx(c *C) {
 					},
 				},
 			},
-			btcjson.Vout{
+			{
 				Value: 0.1234565,
 				ScriptPubKey: btcjson.ScriptPubKeyResult{
 					Addresses: []string{
@@ -384,7 +384,7 @@ func (s *BitcoinSuite) TestIgnoreTx(c *C) {
 					},
 				},
 			},
-			btcjson.Vout{
+			{
 				Value: 0.1234565,
 				ScriptPubKey: btcjson.ScriptPubKeyResult{
 					Addresses: []string{
@@ -392,7 +392,7 @@ func (s *BitcoinSuite) TestIgnoreTx(c *C) {
 					},
 				},
 			},
-			btcjson.Vout{
+			{
 				ScriptPubKey: btcjson.ScriptPubKeyResult{
 					Asm: "OP_RETURN 74686f72636861696e3a636f6e736f6c6964617465",
 				},
@@ -405,13 +405,13 @@ func (s *BitcoinSuite) TestIgnoreTx(c *C) {
 	// valid tx == 2 vout with coins, 1 to vault, 1 with change back to user
 	tx = btcjson.TxRawResult{
 		Vin: []btcjson.Vin{
-			btcjson.Vin{
+			{
 				Txid: "24ed2d26fd5d4e0e8fa86633e40faf1bdfc8d1903b1cd02855286312d48818a2",
 				Vout: 0,
 			},
 		},
 		Vout: []btcjson.Vout{
-			btcjson.Vout{
+			{
 				Value: 0.1234565,
 				ScriptPubKey: btcjson.ScriptPubKeyResult{
 					Addresses: []string{
@@ -419,7 +419,7 @@ func (s *BitcoinSuite) TestIgnoreTx(c *C) {
 					},
 				},
 			},
-			btcjson.Vout{
+			{
 				Value: 0.1234565,
 				ScriptPubKey: btcjson.ScriptPubKeyResult{
 					Addresses: []string{
@@ -427,7 +427,7 @@ func (s *BitcoinSuite) TestIgnoreTx(c *C) {
 					},
 				},
 			},
-			btcjson.Vout{
+			{
 				ScriptPubKey: btcjson.ScriptPubKeyResult{
 					Asm: "OP_RETURN 74686f72636861696e3a636f6e736f6c6964617465",
 				},
@@ -442,19 +442,19 @@ func (s *BitcoinSuite) TestGetGas(c *C) {
 	// vin[0] returns value 0.19590108
 	tx := btcjson.TxRawResult{
 		Vin: []btcjson.Vin{
-			btcjson.Vin{
+			{
 				Txid: "24ed2d26fd5d4e0e8fa86633e40faf1bdfc8d1903b1cd02855286312d48818a2",
 				Vout: 0,
 			},
 		},
 		Vout: []btcjson.Vout{
-			btcjson.Vout{
+			{
 				Value: 0.12345678,
 				ScriptPubKey: btcjson.ScriptPubKeyResult{
 					Addresses: []string{"tb1qkq7weysjn6ljc2ywmjmwp8ttcckg8yyxjdz5k6"},
 				},
 			},
-			btcjson.Vout{
+			{
 				ScriptPubKey: btcjson.ScriptPubKeyResult{
 					Asm: "OP_RETURN 74686f72636861696e3a636f6e736f6c6964617465",
 				},
@@ -467,25 +467,25 @@ func (s *BitcoinSuite) TestGetGas(c *C) {
 
 	tx = btcjson.TxRawResult{
 		Vin: []btcjson.Vin{
-			btcjson.Vin{
+			{
 				Txid: "5b0876dcc027d2f0c671fc250460ee388df39697c3ff082007b6ddd9cb9a7513",
 				Vout: 1,
 			},
 		},
 		Vout: []btcjson.Vout{
-			btcjson.Vout{
+			{
 				Value: 0.00195384,
 				ScriptPubKey: btcjson.ScriptPubKeyResult{
 					Addresses: []string{"tb1qkq7weysjn6ljc2ywmjmwp8ttcckg8yyxjdz5k6"},
 				},
 			},
-			btcjson.Vout{
+			{
 				Value: 1.49655603,
 				ScriptPubKey: btcjson.ScriptPubKeyResult{
 					Addresses: []string{"tb1qkq7weysjn6ljc2ywmjmwp8ttcckg8yyxjdz5k6"},
 				},
 			},
-			btcjson.Vout{
+			{
 				ScriptPubKey: btcjson.ScriptPubKeyResult{
 					Asm: "OP_RETURN 74686f72636861696e3a636f6e736f6c6964617465",
 				},
@@ -562,7 +562,7 @@ func (s *BitcoinSuite) TestOnObservedTxIn(c *C) {
 		Count:       "1",
 		Chain:       common.BTCChain,
 		TxArray: []types.TxInItem{
-			types.TxInItem{
+			{
 				Tx:     "31f8699ce9028e9cd37f8a6d58a79e614a96e3fdd0f58be5fc36d2d95484716f",
 				Sender: "bc1q2gjc0rnhy4nrxvuklk6ptwkcs9kcr59mcl2q9j",
 				To:     "bc1q0s4mg25tu6termrk8egltfyme4q7sg3h0e56p3",
@@ -593,7 +593,7 @@ func (s *BitcoinSuite) TestOnObservedTxIn(c *C) {
 		Count:       "1",
 		Chain:       common.BTCChain,
 		TxArray: []types.TxInItem{
-			types.TxInItem{
+			{
 				Tx:     "24ed2d26fd5d4e0e8fa86633e40faf1bdfc8d1903b1cd02855286312d48818a2",
 				Sender: "bc1q0s4mg25tu6termrk8egltfyme4q7sg3h0e56p3",
 				To:     "bc1q2gjc0rnhy4nrxvuklk6ptwkcs9kcr59mcl2q9j",
@@ -624,7 +624,7 @@ func (s *BitcoinSuite) TestOnObservedTxIn(c *C) {
 		Count:       "2",
 		Chain:       common.BTCChain,
 		TxArray: []types.TxInItem{
-			types.TxInItem{
+			{
 				Tx:     "44ed2d26fd5d4e0e8fa86633e40faf1bdfc8d1903b1cd02855286312d48818a2",
 				Sender: "bc1q0s4mg25tu6termrk8egltfyme4q7sg3h0e56p3",
 				To:     "bc1q2gjc0rnhy4nrxvuklk6ptwkcs9kcr59mcl2q9j",
@@ -634,7 +634,7 @@ func (s *BitcoinSuite) TestOnObservedTxIn(c *C) {
 				Memo:                "MEMO",
 				ObservedVaultPubKey: pkey,
 			},
-			types.TxInItem{
+			{
 				Tx:     "54ed2d26fd5d4e0e8fa86633e40faf1bdfc8d1903b1cd02855286312d48818a2",
 				Sender: "bc1q0s4mg25tu6termrk8egltfyme4q7sg3h0e56p3",
 				To:     "bc1q2gjc0rnhy4nrxvuklk6ptwkcs9kcr59mcl2q9j",
