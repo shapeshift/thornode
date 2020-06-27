@@ -40,7 +40,7 @@ func (d DummySlasher) SlashNodeAccount(ctx cosmos.Context, observedPubKey common
 func (d DummySlasher) IncSlashPoints(ctx cosmos.Context, point int64, addresses ...cosmos.AccAddress) {
 	for _, addr := range addresses {
 		found := false
-		for k, _ := range d.pts {
+		for k := range d.pts {
 			if k == addr.String() {
 				d.pts[k] += point
 				found = true
@@ -56,7 +56,7 @@ func (d DummySlasher) IncSlashPoints(ctx cosmos.Context, point int64, addresses 
 func (d DummySlasher) DecSlashPoints(ctx cosmos.Context, point int64, addresses ...cosmos.AccAddress) {
 	for _, addr := range addresses {
 		found := false
-		for k, _ := range d.pts {
+		for k := range d.pts {
 			if k == addr.String() {
 				d.pts[k] -= point
 				found = true
