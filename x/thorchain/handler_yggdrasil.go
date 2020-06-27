@@ -1,15 +1,16 @@
 package thorchain
 
 import (
-	stdErrors "errors"
+	"errors"
 	"fmt"
 
 	"github.com/blang/semver"
+	"github.com/hashicorp/go-multierror"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 	kvTypes "gitlab.com/thorchain/thornode/x/thorchain/keeper/types"
 )
 
@@ -75,7 +76,11 @@ func (h YggdrasilHandler) slash(ctx cosmos.Context, version semver.Version, pk c
 	for _, c := range coins {
 		if err := h.mgr.Slasher().SlashNodeAccount(ctx, pk, c.Asset, c.Amount, h.mgr); err != nil {
 			ctx.Logger().Error("fail to slash account", "error", err)
-			returnErr = err
+			if returnErr == nil {
+				returnErr = err
+			} else {
+				returnErr = multierror.Append(returnErr, err)
+			}
 		}
 	}
 	return returnErr
@@ -85,7 +90,7 @@ func (h YggdrasilHandler) handleV1(ctx cosmos.Context, msg MsgYggdrasil, version
 	// update txOut record with our TxID that sent funds out of the pool
 	txOut, err := h.keeper.GetTxOut(ctx, msg.BlockHeight)
 	if err != nil {
-		return nil, cosmos.ErrUnknownRequest(fmt.Errorf("unable to get txOut record: %w", err).Error())
+		return nil, ErrInternal(err, "unable to get txOut record")
 	}
 
 	shouldSlash := true
@@ -125,7 +130,7 @@ func (h YggdrasilHandler) handleV1(ctx cosmos.Context, msg MsgYggdrasil, version
 	}
 
 	vault, err := h.keeper.GetVault(ctx, msg.PubKey)
-	if err != nil && !stdErrors.Is(err, kvTypes.ErrVaultNotFound) {
+	if err != nil && !errors.Is(err, kvTypes.ErrVaultNotFound) {
 		return nil, fmt.Errorf("fail to get yggdrasil: %w", err)
 	}
 	if len(vault.Type) == 0 {

@@ -7,9 +7,9 @@ import (
 	se "github.com/cosmos/cosmos-sdk/types/errors"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 
 	. "gopkg.in/check.v1"
 )
@@ -24,6 +24,7 @@ type yggdrasilTestKeeper struct {
 	errGetAsgardVaults bool
 	errGetNodeAccount  cosmos.AccAddress
 	errGetPool         bool
+	errGetTxOut        bool
 }
 
 func (k yggdrasilTestKeeper) GetAsgardVaultsByStatus(ctx cosmos.Context, vs VaultStatus) (Vaults, error) {
@@ -31,6 +32,13 @@ func (k yggdrasilTestKeeper) GetAsgardVaultsByStatus(ctx cosmos.Context, vs Vaul
 		return Vaults{}, kaboom
 	}
 	return k.Keeper.GetAsgardVaultsByStatus(ctx, vs)
+}
+
+func (k yggdrasilTestKeeper) GetTxOut(ctx cosmos.Context, height int64) (*TxOut, error) {
+	if k.errGetTxOut {
+		return nil, kaboom
+	}
+	return k.Keeper.GetTxOut(ctx, height)
 }
 
 func (k yggdrasilTestKeeper) GetNodeAccountByPubKey(ctx cosmos.Context, pk common.PubKey) (NodeAccount, error) {
@@ -321,7 +329,7 @@ func (s *HandlerYggdrasilSuite) TestYggdrasilHandler(c *C) {
 			expectedResult: errInternal,
 		},
 		{
-			name: "yggdrasil return fund to asgard should work",
+			name: "yggdrasil return fund to asgard should be slashed",
 			messageCreator: func(helper yggdrasilHandlerTestHelper) cosmos.Msg {
 				fromAddr, _ := helper.yggVault.PubKey.GetAddress(common.BNBChain)
 				coins := common.Coins{
@@ -338,6 +346,64 @@ func (s *HandlerYggdrasilSuite) TestYggdrasilHandler(c *C) {
 					Memo:        "yggdrasil-:30",
 				}
 				return NewMsgYggdrasil(tx, helper.asgardVault.PubKey, 12, false, coins, helper.nodeAccount.NodeAddress)
+			},
+			runner: func(handler YggdrasilHandler, msg cosmos.Msg, helper yggdrasilHandlerTestHelper) (*cosmos.Result, error) {
+				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
+			},
+			expectedResult: nil,
+		},
+		{
+			name: "yggdrasil return fail to get txout item should return an error",
+			messageCreator: func(helper yggdrasilHandlerTestHelper) cosmos.Msg {
+				fromAddr, _ := helper.yggVault.PubKey.GetAddress(common.BNBChain)
+				coins := common.Coins{
+					common.NewCoin(common.BNBAsset, cosmos.NewUint(common.One)),
+					common.NewCoin(common.RuneAsset(), cosmos.NewUint(common.One)),
+				}
+
+				tx := common.Tx{
+					ID:          GetRandomTxHash(),
+					Chain:       common.BNBChain,
+					FromAddress: fromAddr,
+					ToAddress:   GetRandomBNBAddress(),
+					Coins:       coins,
+					Gas:         BNBGasFeeSingleton,
+					Memo:        "yggdrasil-:30",
+				}
+				return NewMsgYggdrasil(tx, helper.asgardVault.PubKey, 12, false, coins, helper.nodeAccount.NodeAddress)
+			},
+			runner: func(handler YggdrasilHandler, msg cosmos.Msg, helper yggdrasilHandlerTestHelper) (*cosmos.Result, error) {
+				helper.keeper.errGetTxOut = true
+				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
+			},
+			expectedResult: errInternal,
+		},
+		{
+			name: "yggdrasil return fund to asgard should works fine",
+			messageCreator: func(helper yggdrasilHandlerTestHelper) cosmos.Msg {
+				fromAddr, _ := helper.yggVault.PubKey.GetAddress(common.BNBChain)
+				coins := common.Coins{
+					common.NewCoin(common.BNBAsset, cosmos.NewUint(common.One)),
+					common.NewCoin(common.RuneAsset(), cosmos.NewUint(common.One)),
+				}
+				tx := common.Tx{
+					ID:          GetRandomTxHash(),
+					Chain:       common.BNBChain,
+					FromAddress: fromAddr,
+					ToAddress:   GetRandomBNBAddress(),
+					Coins:       coins,
+					Gas:         BNBGasFeeSingleton,
+					Memo:        "yggdrasil-:30",
+				}
+				txOut := NewTxOut(30)
+				txOut.TxArray = append(txOut.TxArray, &TxOutItem{
+					Chain:       common.BNBChain,
+					ToAddress:   tx.ToAddress,
+					VaultPubKey: helper.yggVault.PubKey,
+					InHash:      common.BlankTxID,
+				})
+				helper.keeper.SetTxOut(helper.ctx, txOut)
+				return NewMsgYggdrasil(tx, helper.asgardVault.PubKey, 30, false, coins, helper.nodeAccount.NodeAddress)
 			},
 			runner: func(handler YggdrasilHandler, msg cosmos.Msg, helper yggdrasilHandlerTestHelper) (*cosmos.Result, error) {
 				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)

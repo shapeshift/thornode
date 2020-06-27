@@ -10,9 +10,9 @@ import (
 	"gitlab.com/thorchain/tss/go-tss/blame"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 type HandlerTssKeysignSuite struct{}
@@ -184,6 +184,20 @@ func (h HandlerTssKeysignSuite) TestTssKeysignFailHandler(c *C) {
 			name: "normal blame should works fine",
 			messageCreator: func(helper tssKeysignFailHandlerTestHelper) cosmos.Msg {
 				return NewMsgTssKeysignFail(common.BlockHeight(helper.ctx), helper.blame, "hello", common.Coins{common.NewCoin(common.BNBAsset, cosmos.NewUint(100))}, helper.nodeAccount.NodeAddress, 0)
+			},
+			runner: func(handler TssKeysignHandler, msg cosmos.Msg, helper tssKeysignFailHandlerTestHelper) (*cosmos.Result, error) {
+				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
+			},
+			expectedResult: nil,
+		},
+		{
+			name: "when the same signer already sign the tss keysign failure , it should not do anything",
+			messageCreator: func(helper tssKeysignFailHandlerTestHelper) cosmos.Msg {
+				msg := NewMsgTssKeysignFail(common.BlockHeight(helper.ctx), helper.blame, "hello", common.Coins{common.NewCoin(common.BNBAsset, cosmos.NewUint(100))}, helper.nodeAccount.NodeAddress, 0)
+				voter, _ := helper.keeper.Keeper.GetTssKeysignFailVoter(helper.ctx, msg.ID)
+				voter.Sign(msg.Signer)
+				helper.keeper.Keeper.SetTssKeysignFailVoter(helper.ctx, voter)
+				return msg
 			},
 			runner: func(handler TssKeysignHandler, msg cosmos.Msg, helper tssKeysignFailHandlerTestHelper) (*cosmos.Result, error) {
 				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)

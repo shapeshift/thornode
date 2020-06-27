@@ -6,9 +6,9 @@ import (
 	"github.com/blang/semver"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // TssKeysignHandler is design to process MsgTssKeysignFail
@@ -18,7 +18,7 @@ type TssKeysignHandler struct {
 }
 
 // NewTssKeysignHandler create a new instance of TssKeysignHandler
-// when a signer fail to join tss keysign , thorchain need to slash their node account
+// when a signer fail to join tss keysign , thorchain need to slash the node account
 func NewTssKeysignHandler(keeper keeper.Keeper, mgr Manager) TssKeysignHandler {
 	return TssKeysignHandler{
 		keeper: keeper,
@@ -26,6 +26,7 @@ func NewTssKeysignHandler(keeper keeper.Keeper, mgr Manager) TssKeysignHandler {
 	}
 }
 
+// Run is the main entry to process MsgTssKeysignFail
 func (h TssKeysignHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	msg, ok := m.(MsgTssKeysignFail)
 	if !ok {
@@ -70,7 +71,6 @@ func (h TssKeysignHandler) handle(ctx cosmos.Context, msg MsgTssKeysignFail, ver
 	return nil, errBadVersion
 }
 
-// Handle a message to observe inbound tx
 func (h TssKeysignHandler) handleV1(ctx cosmos.Context, msg MsgTssKeysignFail, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	active, err := h.keeper.ListActiveNodeAccounts(ctx)
 	if err != nil {

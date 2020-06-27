@@ -9,9 +9,9 @@ import (
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 type HandlerUnBondSuite struct{}
@@ -21,6 +21,7 @@ type TestUnBondKeeper struct {
 	activeNodeAccount   NodeAccount
 	failGetNodeAccount  NodeAccount
 	notEmptyNodeAccount NodeAccount
+	jailNodeAccount     NodeAccount
 	vault               Vault
 }
 
@@ -34,15 +35,35 @@ func (k *TestUnBondKeeper) GetNodeAccount(_ cosmos.Context, addr cosmos.AccAddre
 	if k.notEmptyNodeAccount.NodeAddress.Equals(addr) {
 		return k.notEmptyNodeAccount, nil
 	}
+	if k.jailNodeAccount.NodeAddress.Equals(addr) {
+		return k.jailNodeAccount, nil
+	}
 	return NodeAccount{}, nil
 }
 
-func (k *TestUnBondKeeper) GetVault(_ cosmos.Context, _ common.PubKey) (Vault, error) {
-	return k.vault, nil
+func (k *TestUnBondKeeper) GetVault(ctx cosmos.Context, pk common.PubKey) (Vault, error) {
+	if k.vault.PubKey.Equals(pk) {
+		return k.vault, nil
+	}
+	return k.KVStoreDummy.GetVault(ctx, pk)
 }
 
-func (k *TestUnBondKeeper) VaultExists(_ cosmos.Context, _ common.PubKey) bool {
-	return true
+func (k *TestUnBondKeeper) VaultExists(ctx cosmos.Context, pkey common.PubKey) bool {
+	if k.vault.PubKey.Equals(pkey) {
+		return true
+	}
+	return false
+}
+
+func (k *TestUnBondKeeper) GetNodeAccountJail(ctx cosmos.Context, addr cosmos.AccAddress) (Jail, error) {
+	if k.jailNodeAccount.NodeAddress.Equals(addr) {
+		return Jail{
+			NodeAddress:   addr,
+			ReleaseHeight: ctx.BlockHeight() + 100,
+			Reason:        "bad boy",
+		}, nil
+	}
+	return Jail{}, nil
 }
 
 var _ = Suite(&HandlerUnBondSuite{})
@@ -85,7 +106,8 @@ func (HandlerUnBondSuite) TestUnBondHandler_Run(c *C) {
 	k := &TestUnBondKeeper{
 		activeNodeAccount:   activeNodeAccount,
 		failGetNodeAccount:  GetRandomNodeAccount(NodeActive),
-		notEmptyNodeAccount: GetRandomNodeAccount(NodeActive),
+		notEmptyNodeAccount: standbyNodeAccount,
+		jailNodeAccount:     GetRandomNodeAccount(NodeStandby),
 	}
 	// invalid version
 	handler = NewUnBondHandler(k, NewDummyMgr())
@@ -105,10 +127,41 @@ func (HandlerUnBondSuite) TestUnBondHandler_Run(c *C) {
 		Coins: common.Coins{
 			common.NewCoin(common.RuneAsset(), cosmos.NewUint(uint64(1))),
 		},
+		PubKey: standbyNodeAccount.PubKeySet.Secp256k1,
 	}
-	msg = NewMsgUnBond(txIn, activeNodeAccount.NodeAddress, cosmos.NewUint(uint64(1)), GetRandomBNBAddress(), activeNodeAccount.NodeAddress)
+	msg = NewMsgUnBond(txIn, standbyNodeAccount.NodeAddress, cosmos.NewUint(uint64(1)), GetRandomBNBAddress(), standbyNodeAccount.NodeAddress)
 	_, err = handler.Run(ctx, msg, ver, constAccessor)
 	c.Assert(errors.Is(err, se.ErrUnknownRequest), Equals, true)
+
+	// simulate fail to get vault
+	k.vault = GetRandomVault()
+	msg = NewMsgUnBond(txIn, activeNodeAccount.NodeAddress, cosmos.NewUint(uint64(1)), GetRandomBNBAddress(), activeNodeAccount.NodeAddress)
+	result, err := handler.Run(ctx, msg, ver, constAccessor)
+	c.Assert(err, NotNil)
+	c.Assert(result, IsNil)
+
+	// simulate vault is not yggdrasil
+
+	k.vault = Vault{
+		Type:   AsgardVault,
+		PubKey: standbyNodeAccount.PubKeySet.Secp256k1,
+	}
+
+	msg = NewMsgUnBond(txIn, standbyNodeAccount.NodeAddress, cosmos.NewUint(uint64(1)), GetRandomBNBAddress(), standbyNodeAccount.NodeAddress)
+	result, err = handler.Run(ctx, msg, ver, constAccessor)
+	c.Assert(err, NotNil)
+	c.Assert(result, IsNil)
+
+	// simulate jail nodeAccount can't unbound
+	msg = NewMsgUnBond(txIn, k.jailNodeAccount.NodeAddress, cosmos.NewUint(uint64(1)), GetRandomBNBAddress(), k.jailNodeAccount.NodeAddress)
+	result, err = handler.Run(ctx, msg, ver, constAccessor)
+	c.Assert(err, NotNil)
+	c.Assert(result, IsNil)
+
+	// invalid message should cause error
+	result, err = handler.Run(ctx, NewMsgMimir("whatever", 1, GetRandomBech32Addr()), ver, constAccessor)
+	c.Assert(err, NotNil)
+	c.Assert(result, IsNil)
 }
 
 func (HandlerUnBondSuite) TestUnBondHandlerFailValidation(c *C) {
