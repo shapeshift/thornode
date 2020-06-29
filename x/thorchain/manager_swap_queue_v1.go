@@ -6,9 +6,9 @@ import (
 	"github.com/blang/semver"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // SwapQv1 is going to manage the swaps queue
@@ -44,7 +44,7 @@ func (vm *SwapQv1) FetchQueue(ctx cosmos.Context) ([]MsgSwap, error) {
 	return msgs, nil
 }
 
-// EndBlock move funds from retiring asgard vaults
+// EndBlock trigger the real swap to be processed
 func (vm *SwapQv1) EndBlock(ctx cosmos.Context, mgr Manager, version semver.Version, constAccessor constants.ConstantValues) error {
 	handler := NewSwapHandler(vm.k, mgr)
 
@@ -54,11 +54,10 @@ func (vm *SwapQv1) EndBlock(ctx cosmos.Context, mgr Manager, version semver.Vers
 		return err
 	}
 
-	swaps, err := vm.ScoreMsgs(ctx, msgs)
+	swaps, err := vm.scoreMsgs(ctx, msgs)
 	if err != nil {
 		ctx.Logger().Error("fail to fetch swap items", "error", err)
-		// continue, don't exit, just do them out of order (instead of not
-		// at all)
+		// continue, don't exit, just do them out of order (instead of not at all)
 	}
 	swaps = swaps.Sort()
 
@@ -95,9 +94,9 @@ func (vm *SwapQv1) getTodoNum(queueLen int) int {
 	return todo
 }
 
-// ScoreMsgs - this takes a list of MsgSwap, and converts them to a scored
+// scoreMsgs - this takes a list of MsgSwap, and converts them to a scored
 // swapItem list
-func (vm *SwapQv1) ScoreMsgs(ctx cosmos.Context, msgs []MsgSwap) (swapItems, error) {
+func (vm *SwapQv1) scoreMsgs(ctx cosmos.Context, msgs []MsgSwap) (swapItems, error) {
 	pools := make(map[common.Asset]Pool, 0)
 	items := make(swapItems, 0)
 
@@ -148,16 +147,16 @@ func (vm *SwapQv1) ScoreMsgs(ctx cosmos.Context, msgs []MsgSwap) (swapItems, err
 }
 
 func (items swapItems) Sort() swapItems {
-	// sort by liquidity fee
+	// sort by liquidity fee , descending
 	byFee := items
 	sort.SliceStable(byFee, func(i, j int) bool {
 		return byFee[i].fee.GT(byFee[j].fee)
 	})
 
-	// sort by slip fee
+	// sort by slip fee , descending
 	bySlip := items
 	sort.SliceStable(bySlip, func(i, j int) bool {
-		return bySlip[i].fee.GT(bySlip[j].fee)
+		return bySlip[i].slip.GT(bySlip[j].slip)
 	})
 
 	type score struct {

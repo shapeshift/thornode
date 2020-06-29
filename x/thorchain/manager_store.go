@@ -3,22 +3,26 @@ package thorchain
 import (
 	"fmt"
 
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
-	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	"gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
-type StoreManger interface {
+// StoreManager define the method as the entry point for store upgrade
+type StoreManager interface {
 	Iterator(_ cosmos.Context) error
 }
 
+// StoreMgr implement StoreManager interface
 type StoreMgr struct {
 	keeper keeper.Keeper
 }
 
+// NewStoreMgr create a new instance of StoreMgr
 func NewStoreMgr(keeper keeper.Keeper) *StoreMgr {
 	return &StoreMgr{keeper: keeper}
 }
 
+// Iterator implement StoreManager interface decide whether it need to upgrade store
 func (smgr *StoreMgr) Iterator(ctx cosmos.Context) error {
 	version := smgr.keeper.GetLowestActiveVersion(ctx)
 
