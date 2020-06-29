@@ -8,7 +8,7 @@ import (
 	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
-// ObserverManangerImp implement a ObserverManager which will store the
+// ObserverMgrV1 implement a ObserverManager which will store the
 // observers in memory before written to chain
 type ObserverMgrV1 struct {
 	chains map[common.Chain][]cosmos.AccAddress
@@ -21,6 +21,7 @@ func NewObserverMgrV1() *ObserverMgrV1 {
 	}
 }
 
+// BeginBlock called when a new block get proposed
 func (om *ObserverMgrV1) BeginBlock() {
 	om.reset()
 }
@@ -29,6 +30,7 @@ func (om *ObserverMgrV1) reset() {
 	om.chains = make(map[common.Chain][]cosmos.AccAddress, 0)
 }
 
+// AppendObserver add the address
 func (om *ObserverMgrV1) AppendObserver(chain common.Chain, addrs []cosmos.AccAddress) {
 	// combine addresses
 	all := append(om.chains[chain], addrs...)
@@ -56,7 +58,7 @@ func (om *ObserverMgrV1) List() []cosmos.AccAddress {
 			if _, ok := tracker[addr.String()]; !ok {
 				tracker[addr.String()] = 0
 			}
-			tracker[addr.String()] += 1
+			tracker[addr.String()]++
 		}
 	}
 
@@ -67,7 +69,7 @@ func (om *ObserverMgrV1) List() []cosmos.AccAddress {
 		}
 	}
 
-	// Sort our list, ensures we avoid a census failure
+	// Sort our list, ensures we avoid a consensus failure
 	sort.SliceStable(result, func(i, j int) bool {
 		return result[i].String() < result[j].String()
 	})
