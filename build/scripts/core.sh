@@ -172,7 +172,8 @@ set_ip_address () {
   SIGNER_NAME=$1
   SIGNER_PASSWD=$2
   PEER=$3
-  printf "$SIGNER_PASSWD\n$SIGNER_PASSWD\n" | thorcli tx thorchain set-ip-address $(curl -s http://whatismyip.akamai.com) --node tcp://$PEER:26657 --from $SIGNER_NAME --yes
+  NODE_IP_ADDRESS=${4:-$(curl -s http://whatismyip.akamai.com)}
+  printf "$SIGNER_PASSWD\n$SIGNER_PASSWD\n" | thorcli tx thorchain set-ip-address $NODE_IP_ADDRESS --node tcp://$PEER:26657 --from $SIGNER_NAME --yes
 }
 
 fetch_version () {
