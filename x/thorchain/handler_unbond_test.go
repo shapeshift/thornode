@@ -101,7 +101,7 @@ func (HandlerUnBondSuite) TestUnBondHandler_Run(c *C) {
 	c.Assert(err, IsNil)
 	na, err := k1.GetNodeAccount(ctx, standbyNodeAccount.NodeAddress)
 	c.Assert(err, IsNil)
-	c.Check(na.Bond.Equal(cosmos.NewUint(95*common.One)), Equals, true, Commentf("%d", na.Bond.Uint64()))
+	c.Check(na.Bond.Equal(cosmos.NewUint(95*common.One+1)), Equals, true, Commentf("%d", na.Bond.Uint64()))
 
 	k := &TestUnBondKeeper{
 		activeNodeAccount:   activeNodeAccount,
