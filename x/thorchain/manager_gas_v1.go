@@ -2,8 +2,8 @@ package thorchain
 
 import (
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
-	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	"gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // GasMgrV1 implement GasManager interface which will store the gas related events happened in thorchain to memory
@@ -38,10 +38,11 @@ func (gm *GasMgrV1) BeginBlock() {
 func (gm *GasMgrV1) AddGasAsset(gas common.Gas) {
 	gm.gas = gm.gas.Add(gas)
 	for _, coin := range gas {
-		gm.gasCount[coin.Asset] += 1
+		gm.gasCount[coin.Asset]++
 	}
 }
 
+// GetGas return the gas
 func (gm *GasMgrV1) GetGas() common.Gas {
 	return gm.gas
 }

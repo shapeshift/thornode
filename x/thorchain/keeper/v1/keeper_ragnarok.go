@@ -9,7 +9,7 @@ import (
 func (k KVStore) RagnarokInProgress(ctx cosmos.Context) bool {
 	height, err := k.GetRagnarokBlockHeight(ctx)
 	if err != nil {
-		ctx.Logger().Error(err.Error())
+		ctx.Logger().Error("fail to get ragnarok block height", "error", err)
 		return true
 	}
 	return height > 0
