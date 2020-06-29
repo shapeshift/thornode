@@ -11,17 +11,17 @@ import (
 )
 
 var (
+	EmptyChain = Chain("")
 	BNBChain   = Chain("BNB")
 	ETHChain   = Chain("ETH")
 	BTCChain   = Chain("BTC")
 	THORChain  = Chain("THOR")
-	EmptyChain = Chain("")
 )
 
 // NoSigningAlgo empty signing algorithm
 const NoSigningAlgo = keys.SigningAlgo("")
 
-// Chain is the
+// Chain is an alias of string , represent a block chain
 type Chain string
 
 // Chains represent a slice of Chain
@@ -148,7 +148,7 @@ func (chains Chains) Has(c Chain) bool {
 	return false
 }
 
-// Distinct return a distinct set of chains , no duplicate
+// Distinct return a distinct set of chains, no duplicates
 func (chains Chains) Distinct() Chains {
 	var newChains Chains
 	for _, chain := range chains {

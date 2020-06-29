@@ -12,6 +12,10 @@ type MsgNetworkFeeSuite struct{}
 var _ = Suite(&MsgNetworkFeeSuite{})
 
 func (MsgNetworkFeeSuite) TestMsgNetworkFee(c *C) {
+	msg := NewMsgNetworkFee(1024, common.BNBChain, 1, 37500, GetRandomBech32Addr())
+	c.Assert(msg.Type(), Equals, "set_network_fee")
+	EnsureMsgBasicCorrect(msg, c)
+
 	testCases := []struct {
 		blockHeight        int64
 		name               string
@@ -55,6 +59,15 @@ func (MsgNetworkFeeSuite) TestMsgNetworkFee(c *C) {
 			transactionSize:    100,
 			transactionFeeRate: 100,
 			signer:             cosmos.AccAddress(""),
+			expectErr:          true,
+		},
+		{
+			name:               "negative block height should return error",
+			blockHeight:        -1024,
+			chain:              common.BNBChain,
+			transactionSize:    100,
+			transactionFeeRate: 100,
+			signer:             GetRandomBech32Addr(),
 			expectErr:          true,
 		},
 		{

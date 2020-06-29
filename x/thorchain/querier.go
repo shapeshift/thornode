@@ -25,6 +25,8 @@ func NewQuerier(keeper keeper.Keeper, kbs KeybaseStore) cosmos.Querier {
 			return queryPools(ctx, req, keeper)
 		case q.QueryStakers.Key:
 			return queryStakers(ctx, path[1:], req, keeper)
+		case q.QueryTxInVoter.Key:
+			return queryTxInVoter(ctx, path[1:], req, keeper)
 		case q.QueryTxIn.Key:
 			return queryTxIn(ctx, path[1:], req, keeper)
 		case q.QueryKeysignArray.Key:
@@ -228,7 +230,7 @@ func queryVaultData(ctx cosmos.Context, keeper keeper.Keeper) ([]byte, error) {
 	}
 
 	if common.RuneAsset().Chain.Equals(common.THORChain) {
-		data.TotalReserve = keeper.GetRuneBalaceOfModule(ctx, ReserveName)
+		data.TotalReserve = keeper.GetRuneBalanceOfModule(ctx, ReserveName)
 	}
 
 	res, err := codec.MarshalJSONIndent(keeper.Cdc(), data)
@@ -247,20 +249,21 @@ func queryPoolAddresses(ctx cosmos.Context, path []string, req abci.RequestQuery
 		ctx.Logger().Error("fail to get HaltTrading mimir", "error", err)
 	}
 	// when trading is halt , do not return any pool addresses
-	if (haltTrading > 0 && haltTrading < common.BlockHeight(ctx) && err == nil) || keeper.RagnarokInProgress(ctx) {
-		ctx.Logger().Info("trading is halted!!")
-		return []byte{}, nil
-	}
+	halted := (haltTrading > 0 && haltTrading < common.BlockHeight(ctx) && err == nil) || keeper.RagnarokInProgress(ctx)
 	active, err := keeper.GetAsgardVaultsByStatus(ctx, ActiveVault)
 	if err != nil {
 		ctx.Logger().Error("fail to get active vaults", "error", err)
 		return nil, fmt.Errorf("fail to get active vaults: %w", err)
 	}
 
+	// TODO: halted trading should be enabled per chain. This will be used to
+	// decom a chain and not accept new trades/stakes
+
 	type address struct {
 		Chain   common.Chain   `json:"chain"`
 		PubKey  common.PubKey  `json:"pub_key"`
 		Address common.Address `json:"address"`
+		Halted  bool           `json:"halted"`
 	}
 
 	var resp struct {
@@ -286,6 +289,7 @@ func queryPoolAddresses(ctx cosmos.Context, path []string, req abci.RequestQuery
 			Chain:   chain,
 			PubKey:  vault.PubKey,
 			Address: vaultAddress,
+			Halted:  halted,
 		}
 
 		resp.Current = append(resp.Current, addr)
@@ -355,14 +359,13 @@ func queryNodeAccountCheck(ctx cosmos.Context, path []string, req abci.RequestQu
 	if err != nil {
 		return nil, fmt.Errorf("fail to build manager: %w", err)
 	}
+	result := QueryNodeAccountPreflightCheck{}
 	status, err := mgr.ValidatorMgr().NodeAccountPreflightCheck(ctx, nodeAcc, constAccessor)
-
-	result := QueryNodeAccountPreflightCheck{
-		Status:      status,
-		Description: err.Error(),
-		Code:        1,
-	}
-	if err == nil {
+	result.Status = status
+	if err != nil {
+		result.Description = err.Error()
+		result.Code = 1
+	} else {
 		result.Description = "OK"
 		result.Code = 0
 	}
@@ -481,11 +484,10 @@ func queryPool(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper 
 		ctx.Logger().Error("fail to get pool", "error", err)
 		return nil, fmt.Errorf("could not get pool: %w", err)
 	}
-	if pool.Empty() {
+	if pool.IsEmpty() {
 		return nil, fmt.Errorf("pool: %s doesn't exist", path[0])
 	}
 
-	pool.PoolAddress = ""
 	res, err := codec.MarshalJSONIndent(keeper.Cdc(), pool)
 	if err != nil {
 		return nil, fmt.Errorf("could not marshal result to JSON: %w", err)
@@ -494,25 +496,42 @@ func queryPool(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper 
 }
 
 func queryPools(ctx cosmos.Context, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
-	pools := QueryResPools{}
+	pools := Pools{}
 	iterator := keeper.GetPoolIterator(ctx)
-
 	for ; iterator.Valid(); iterator.Next() {
 		var pool Pool
 		if err := keeper.Cdc().UnmarshalBinaryBare(iterator.Value(), &pool); err != nil {
 			return nil, fmt.Errorf("fail to unmarshal pool: %w", err)
 		}
-
 		// ignore pool if no stake units
 		if pool.PoolUnits.IsZero() {
 			continue
 		}
-
 		pools = append(pools, pool)
 	}
 	res, err := codec.MarshalJSONIndent(keeper.Cdc(), pools)
 	if err != nil {
 		return nil, fmt.Errorf("could not marshal pools result to json: %w", err)
+	}
+	return res, nil
+}
+
+func queryTxInVoter(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
+	hash, err := common.NewTxID(path[0])
+	if err != nil {
+		ctx.Logger().Error("fail to parse tx id", "error", err)
+		return nil, fmt.Errorf("fail to parse tx id: %w", err)
+	}
+	voter, err := keeper.GetObservedTxInVoter(ctx, hash)
+	if err != nil {
+		ctx.Logger().Error("fail to get observed tx voter", "error", err)
+		return nil, fmt.Errorf("fail to get observed tx voter: %w", err)
+	}
+
+	res, err := codec.MarshalJSONIndent(keeper.Cdc(), voter)
+	if err != nil {
+		ctx.Logger().Error("fail to marshal tx hash to json", "error", err)
+		return nil, fmt.Errorf("fail to marshal tx hash to json: %w", err)
 	}
 	return res, nil
 }
@@ -678,7 +697,7 @@ func queryOutQueue(ctx cosmos.Context, path []string, req abci.RequestQuery, kee
 		}
 		for _, tx := range txs.TxArray {
 			if tx.OutHash.IsEmpty() {
-				query.Total += 1
+				query.Total++
 			}
 		}
 	}

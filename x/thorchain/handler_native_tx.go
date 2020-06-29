@@ -14,11 +14,13 @@ import (
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
+// NativeTxHandler is to process native messages on THORChain
 type NativeTxHandler struct {
 	keeper keeper.Keeper
 	mgr    Manager
 }
 
+// NewNativeTxHandler create a new instance of NativeTxHandler
 func NewNativeTxHandler(keeper keeper.Keeper, mgr Manager) NativeTxHandler {
 	return NativeTxHandler{
 		keeper: keeper,
@@ -26,6 +28,7 @@ func NewNativeTxHandler(keeper keeper.Keeper, mgr Manager) NativeTxHandler {
 	}
 }
 
+// Run is the main entry of NativeTxHandler
 func (h NativeTxHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	msg, ok := m.(MsgNativeTx)
 	if !ok {
@@ -109,9 +112,14 @@ func (h NativeTxHandler) handleV1(ctx cosmos.Context, msg MsgNativeTx, version s
 	handler := NewInternalHandler(h.keeper, h.mgr)
 
 	memo, _ := ParseMemo(msg.Memo) // ignore err
-	targetModule := AsgardName
-	if memo.IsType(TxBond) {
+	var targetModule string
+	switch memo.GetType() {
+	case TxBond:
 		targetModule = BondName
+	case TxReserve:
+		targetModule = ReserveName
+	default:
+		targetModule = AsgardName
 	}
 	// send funds to target module
 	sdkErr = supplier.SendCoinsFromAccountToModule(ctx, msg.GetSigners()[0], targetModule, coins)
@@ -124,20 +132,21 @@ func (h NativeTxHandler) handleV1(ctx cosmos.Context, msg MsgNativeTx, version s
 	m, txErr := processOneTxIn(ctx, h.keeper, txIn, msg.Signer)
 	if txErr != nil {
 		ctx.Logger().Error("fail to process native inbound tx", "error", txErr.Error(), "tx hash", tx.ID.String())
-		if newErr := refundTx(ctx, txIn, h.mgr, h.keeper, constAccessor, CodeInvalidMemo, txErr.Error()); nil != newErr {
+		if newErr := refundTx(ctx, txIn, h.mgr, h.keeper, constAccessor, CodeInvalidMemo, txErr.Error(), targetModule); nil != newErr {
 			return nil, newErr
 		}
+
 		return &cosmos.Result{}, nil
 	}
 
 	// check if we've halted trading
 	_, isSwap := m.(MsgSwap)
-	_, isStake := m.(MsgSetStakeData)
+	_, isStake := m.(MsgStake)
 	haltTrading, err := h.keeper.GetMimir(ctx, "HaltTrading")
 	if isSwap || isStake {
 		if (haltTrading > 0 && haltTrading < common.BlockHeight(ctx) && err == nil) || h.keeper.RagnarokInProgress(ctx) {
 			ctx.Logger().Info("trading is halted!!")
-			if newErr := refundTx(ctx, txIn, h.mgr, h.keeper, constAccessor, se.ErrUnauthorized.ABCICode(), "trading halted"); nil != newErr {
+			if newErr := refundTx(ctx, txIn, h.mgr, h.keeper, constAccessor, se.ErrUnauthorized.ABCICode(), "trading halted", targetModule); nil != newErr {
 				return nil, ErrInternal(newErr, "trading is halted, fail to refund")
 			}
 			return &cosmos.Result{}, nil
@@ -159,7 +168,7 @@ func (h NativeTxHandler) handleV1(ctx cosmos.Context, msg MsgNativeTx, version s
 		if errors.As(err, &e) {
 			code = e.ABCICode()
 		}
-		if err := refundTx(ctx, txIn, h.mgr, h.keeper, constAccessor, code, err.Error()); err != nil {
+		if err := refundTx(ctx, txIn, h.mgr, h.keeper, constAccessor, code, err.Error(), targetModule); err != nil {
 			return nil, fmt.Errorf("fail to refund tx: %w", err)
 		}
 	}

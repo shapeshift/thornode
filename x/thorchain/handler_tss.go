@@ -11,6 +11,7 @@ import (
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
+// TssHandler handle MsgTssPool
 type TssHandler struct {
 	keeper keeper.Keeper
 	mgr    Manager
@@ -24,6 +25,7 @@ func NewTssHandler(keeper keeper.Keeper, mgr Manager) TssHandler {
 	}
 }
 
+// Run is the main entry for TssHandler
 func (h TssHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	msg, ok := m.(MsgTssPool)
 	if !ok {
@@ -34,7 +36,7 @@ func (h TssHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version
 		ctx.Logger().Error("msg_tss_pool failed validation", "error", err)
 		return nil, err
 	}
-	result, err := h.handle(ctx, msg, version)
+	result, err := h.handle(ctx, msg, version, constAccessor)
 	if err != nil {
 		ctx.Logger().Error("failed to process MsgTssPool", "error", err)
 		return nil, err
@@ -71,16 +73,15 @@ func (h TssHandler) validateV1(ctx cosmos.Context, msg MsgTssPool) error {
 	return cosmos.ErrUnauthorized("not authorized")
 }
 
-func (h TssHandler) handle(ctx cosmos.Context, msg MsgTssPool, version semver.Version) (*cosmos.Result, error) {
+func (h TssHandler) handle(ctx cosmos.Context, msg MsgTssPool, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	ctx.Logger().Info("handleMsgTssPool request", "ID:", msg.ID)
 	if version.GTE(semver.MustParse("0.1.0")) {
-		return h.handleV1(ctx, msg, version)
+		return h.handleV1(ctx, msg, version, constAccessor)
 	}
 	return nil, errBadVersion
 }
 
-// Handle a message to observe inbound tx (v0.1.0)
-func (h TssHandler) handleV1(ctx cosmos.Context, msg MsgTssPool, version semver.Version) (*cosmos.Result, error) {
+func (h TssHandler) handleV1(ctx cosmos.Context, msg MsgTssPool, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	if !msg.Blame.IsEmpty() {
 		ctx.Logger().Error(msg.Blame.String())
 	}
@@ -98,8 +99,8 @@ func (h TssHandler) handleV1(ctx cosmos.Context, msg MsgTssPool, version semver.
 		voter.PoolPubKey = msg.PoolPubKey
 		voter.PubKeys = msg.PubKeys
 	}
-	constAccessor := constants.GetConstantValues(version)
 	observeSlashPoints := constAccessor.GetInt64Value(constants.ObserveSlashPoints)
+	observeFlex := constAccessor.GetInt64Value(constants.ObserveFlex)
 	h.mgr.Slasher().IncSlashPoints(ctx, observeSlashPoints, msg.Signer)
 	if !voter.Sign(msg.Signer, msg.Chains) {
 		ctx.Logger().Info("signer already signed MsgTssPool", "signer", msg.Signer.String(), "txid", msg.ID)
@@ -131,8 +132,8 @@ func (h TssHandler) handleV1(ctx cosmos.Context, msg MsgTssPool, version semver.
 				return nil, fmt.Errorf("fail to rotate vault: %w", err)
 			}
 		} else {
-			// if a node fail to join the keygen, thus hold off the network from churning then it will be slashed accordingly
-			constAccessor := constants.GetConstantValues(version)
+			// if a node fail to join the keygen, thus hold off the network
+			// from churning then it will be slashed accordingly
 			slashPoints := constAccessor.GetInt64Value(constants.FailKeygenSlashPoints)
 			for _, node := range msg.Blame.BlameNodes {
 				nodePubKey, err := common.NewPubKey(node.Pubkey)
@@ -145,7 +146,6 @@ func (h TssHandler) handleV1(ctx cosmos.Context, msg MsgTssPool, version semver.
 					return nil, fmt.Errorf("fail to get node from it's pub key: %w", err)
 				}
 				if na.Status == NodeActive {
-					// 720 blocks per hour
 					if err := h.keeper.IncNodeAccountSlashPoints(ctx, na.NodeAddress, slashPoints); err != nil {
 						ctx.Logger().Error("fail to inc slash points", "error", err)
 					}
@@ -189,7 +189,7 @@ func (h TssHandler) handleV1(ctx cosmos.Context, msg MsgTssPool, version semver.
 		return &cosmos.Result{}, nil
 	}
 
-	if voter.BlockHeight == common.BlockHeight(ctx) {
+	if (voter.BlockHeight + observeFlex) >= common.BlockHeight(ctx) {
 		h.mgr.Slasher().DecSlashPoints(ctx, observeSlashPoints, msg.Signer)
 	}
 

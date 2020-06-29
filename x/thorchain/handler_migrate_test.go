@@ -1,6 +1,8 @@
 package thorchain
 
 import (
+	"errors"
+
 	"github.com/blang/semver"
 	. "gopkg.in/check.v1"
 
@@ -147,7 +149,8 @@ func (HandlerMigrateSuite) TestMigrateHappyPath(c *C) {
 	}, 1, retireVault.PubKey)
 
 	msgMigrate := NewMsgMigrate(tx, 1, keeper.activeNodeAccount.NodeAddress)
-	_, err = handler.handleV1(ctx, constants.SWVersion, msgMigrate)
+	constantAccessor := constants.GetConstantValues(constants.SWVersion)
+	_, err = handler.Run(ctx, msgMigrate, constants.SWVersion, constantAccessor)
 	c.Assert(err, IsNil)
 	c.Assert(keeper.txout.TxArray[0].OutHash.Equals(tx.Tx.ID), Equals, true)
 }
@@ -195,4 +198,17 @@ func (HandlerMigrateSuite) TestSlash(c *C) {
 	_, err = handler.handleV1(ctx, constants.SWVersion, msgMigrate)
 	c.Assert(err, IsNil)
 	c.Assert(keeper.activeNodeAccount.Bond.Equal(cosmos.NewUint(9999998464)), Equals, true, Commentf("%d", keeper.activeNodeAccount.Bond.Uint64()))
+}
+
+func (HandlerMigrateSuite) TestHandlerMigrateValidation(c *C) {
+	// invalid message should return an error
+	ctx, k := setupKeeperForTest(c)
+	mgr := NewManagers(k)
+	mgr.BeginBlock(ctx)
+	h := NewMigrateHandler(k, mgr)
+	constantAccessor := constants.GetConstantValues(constants.SWVersion)
+	result, err := h.Run(ctx, NewMsgNetworkFee(ctx.BlockHeight(), common.BNBChain, 1, bnbSingleTxFee.Uint64(), GetRandomBech32Addr()), semver.MustParse("0.1.0"), constantAccessor)
+	c.Check(err, NotNil)
+	c.Check(result, IsNil)
+	c.Check(errors.Is(err, errInvalidMessage), Equals, true)
 }

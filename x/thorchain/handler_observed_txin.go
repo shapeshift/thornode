@@ -26,7 +26,8 @@ func NewObservedTxInHandler(keeper keeper.Keeper, mgr Manager) ObservedTxInHandl
 	}
 }
 
-func (h ObservedTxInHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, _ constants.ConstantValues) (*cosmos.Result, error) {
+// Run is the main entry point of ObservedTxInHandler
+func (h ObservedTxInHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	msg, ok := m.(MsgObservedTxIn)
 	if !ok {
 		return nil, errInvalidMessage
@@ -37,7 +38,7 @@ func (h ObservedTxInHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semve
 		return nil, err
 	}
 
-	result, err := h.handle(ctx, msg, version)
+	result, err := h.handle(ctx, msg, version, constAccessor)
 	if err != nil {
 		ctx.Logger().Error("fail to handle MsgObservedTxIn message", "error", err)
 	}
@@ -63,16 +64,16 @@ func (h ObservedTxInHandler) validateV1(ctx cosmos.Context, msg MsgObservedTxIn)
 	return nil
 }
 
-func (h ObservedTxInHandler) handle(ctx cosmos.Context, msg MsgObservedTxIn, version semver.Version) (*cosmos.Result, error) {
+func (h ObservedTxInHandler) handle(ctx cosmos.Context, msg MsgObservedTxIn, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	if version.GTE(semver.MustParse("0.1.0")) {
-		return h.handleV1(ctx, version, msg)
+		return h.handleV1(ctx, version, msg, constAccessor)
 	}
 	return nil, errBadVersion
 }
 
-func (h ObservedTxInHandler) preflight(ctx cosmos.Context, voter ObservedTxVoter, nas NodeAccounts, tx ObservedTx, signer cosmos.AccAddress, version semver.Version) (ObservedTxVoter, bool) {
-	constAccessor := constants.GetConstantValues(version)
+func (h ObservedTxInHandler) preflight(ctx cosmos.Context, voter ObservedTxVoter, nas NodeAccounts, tx ObservedTx, signer cosmos.AccAddress, version semver.Version, constAccessor constants.ConstantValues) (ObservedTxVoter, bool) {
 	observeSlashPoints := constAccessor.GetInt64Value(constants.ObserveSlashPoints)
+	observeFlex := constAccessor.GetInt64Value(constants.ObserveFlex)
 	h.mgr.Slasher().IncSlashPoints(ctx, observeSlashPoints, signer)
 	ok := false
 	if !voter.Add(tx, signer) {
@@ -90,7 +91,7 @@ func (h ObservedTxInHandler) preflight(ctx cosmos.Context, voter ObservedTxVoter
 		} else {
 			// event the tx had been processed , given the signer just a bit late , so still take away their slash points
 			// but only when the tx signer are voting is the tx that already reached consensus
-			if common.BlockHeight(ctx) == voter.Height && voter.Tx.Equals(tx) {
+			if common.BlockHeight(ctx) <= (voter.Height+observeFlex) && voter.Tx.Equals(tx) {
 				h.mgr.Slasher().DecSlashPoints(ctx, observeSlashPoints, signer)
 			}
 		}
@@ -102,15 +103,13 @@ func (h ObservedTxInHandler) preflight(ctx cosmos.Context, voter ObservedTxVoter
 }
 
 // Handle a message to observe inbound tx
-func (h ObservedTxInHandler) handleV1(ctx cosmos.Context, version semver.Version, msg MsgObservedTxIn) (*cosmos.Result, error) {
-	constAccessor := constants.GetConstantValues(version)
+func (h ObservedTxInHandler) handleV1(ctx cosmos.Context, version semver.Version, msg MsgObservedTxIn, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	activeNodeAccounts, err := h.keeper.ListActiveNodeAccounts(ctx)
 	if err != nil {
 		return nil, wrapError(ctx, err, "fail to get list of active node accounts")
 	}
 	handler := NewInternalHandler(h.keeper, h.mgr)
 	for _, tx := range msg.Txs {
-
 		// check we are sending to a valid vault
 		if !h.keeper.VaultExists(ctx, tx.ObservedPubKey) {
 			ctx.Logger().Info("Not valid Observed Pubkey", "observed pub key", tx.ObservedPubKey)
@@ -119,10 +118,11 @@ func (h ObservedTxInHandler) handleV1(ctx cosmos.Context, version semver.Version
 
 		voter, err := h.keeper.GetObservedTxInVoter(ctx, tx.Tx.ID)
 		if err != nil {
-			return nil, err
+			ctx.Logger().Error("fail to get tx out voter", "error", err)
+			continue
 		}
 
-		voter, ok := h.preflight(ctx, voter, activeNodeAccounts, tx, msg.Signer, version)
+		voter, ok := h.preflight(ctx, voter, activeNodeAccounts, tx, msg.Signer, version, constAccessor)
 		if !ok {
 			if voter.Height == common.BlockHeight(ctx) {
 				// we've already process the transaction, but we should still
@@ -132,6 +132,7 @@ func (h ObservedTxInHandler) handleV1(ctx cosmos.Context, version semver.Version
 			continue
 		}
 
+		// all logic after this  is after consensus
 		tx.Tx.Memo = fetchMemo(ctx, constAccessor, h.keeper, tx.Tx)
 		if len(tx.Tx.Memo) == 0 {
 			// we didn't find our memo, it might be yggdrasil return. These are
@@ -150,17 +151,19 @@ func (h ObservedTxInHandler) handleV1(ctx cosmos.Context, version semver.Version
 		txIn.Tx.Memo = tx.Tx.Memo
 		vault, err := h.keeper.GetVault(ctx, tx.ObservedPubKey)
 		if err != nil {
-			return nil, fmt.Errorf("fail to get vault: %w", err)
+			ctx.Logger().Error("fail to get vault", "error", err)
+			continue
 		}
 
 		vault.AddFunds(tx.Tx.Coins)
-		vault.InboundTxCount += 1
+		vault.InboundTxCount++
 		memo, _ := ParseMemo(tx.Tx.Memo) // ignore err
 		if vault.IsYggdrasil() && memo.IsType(TxYggdrasilFund) {
 			vault.RemovePendingTxBlockHeights(memo.GetBlockHeight())
 		}
 		if err := h.keeper.SetVault(ctx, vault); err != nil {
-			return nil, fmt.Errorf("fail to save vault: %w", err)
+			ctx.Logger().Error("fail to set vault", "error", err)
+			continue
 		}
 
 		if !vault.IsAsgard() {
@@ -177,30 +180,12 @@ func (h ObservedTxInHandler) handleV1(ctx cosmos.Context, version semver.Version
 			continue
 		}
 
-		// tx is not observed at current vault - refund
-		// yggdrasil pool is ok
-		if ok := isCurrentVaultPubKey(ctx, h.keeper, tx); !ok {
-			reason := fmt.Sprintf("vault %s is not current vault", tx.ObservedPubKey)
-			ctx.Logger().Info("refund reason", reason)
-			if err := refundTx(ctx, tx, h.mgr, h.keeper, constAccessor, CodeInvalidVault, reason); err != nil {
-				return nil, err
-			}
-			continue
-		}
-		// chain is empty
-		if tx.Tx.Chain.IsEmpty() {
-			if err := refundTx(ctx, tx, h.mgr, h.keeper, constAccessor, CodeEmptyChain, "chain is empty"); err != nil {
-				return nil, err
-			}
-			continue
-		}
-
 		// construct msg from memo
 		m, txErr := processOneTxIn(ctx, h.keeper, txIn, msg.Signer)
 		if txErr != nil {
 			ctx.Logger().Error("fail to process inbound tx", "error", txErr.Error(), "tx hash", tx.Tx.ID.String())
-			if newErr := refundTx(ctx, tx, h.mgr, h.keeper, constAccessor, CodeInvalidMemo, txErr.Error()); nil != newErr {
-				return nil, ErrInternal(newErr, "fail to refund")
+			if newErr := refundTx(ctx, tx, h.mgr, h.keeper, constAccessor, CodeInvalidMemo, txErr.Error(), ""); nil != newErr {
+				ctx.Logger().Error("fail to refund", "error", err)
 			}
 			continue
 		}
@@ -215,13 +200,13 @@ func (h ObservedTxInHandler) handleV1(ctx cosmos.Context, version semver.Version
 
 		// check if we've halted trading
 		_, isSwap := m.(MsgSwap)
-		_, isStake := m.(MsgSetStakeData)
+		_, isStake := m.(MsgStake)
 		haltTrading, err := h.keeper.GetMimir(ctx, "HaltTrading")
 		if isSwap || isStake {
 			if (haltTrading > 0 && haltTrading < common.BlockHeight(ctx) && err == nil) || h.keeper.RagnarokInProgress(ctx) {
 				ctx.Logger().Info("trading is halted!!")
-				if newErr := refundTx(ctx, tx, h.mgr, h.keeper, constAccessor, se.ErrUnauthorized.ABCICode(), "trading halted"); nil != newErr {
-					return nil, ErrInternal(newErr, "trading is halted, fail to refund")
+				if newErr := refundTx(ctx, tx, h.mgr, h.keeper, constAccessor, se.ErrUnauthorized.ABCICode(), "trading halted", ""); nil != newErr {
+					ctx.Logger().Error("fail to refund for halted trading", "error", err)
 				}
 				continue
 			}
@@ -230,15 +215,15 @@ func (h ObservedTxInHandler) handleV1(ctx cosmos.Context, version semver.Version
 		// if its a swap, send it to our queue for processing later
 		if isSwap {
 			if err := h.keeper.SetSwapQueueItem(ctx, m.(MsgSwap)); err != nil {
-				return nil, err
+				ctx.Logger().Error("fail to add swap to queue", "error", err)
 			}
-			return &cosmos.Result{}, nil
+			continue
 		}
 
 		_, err = handler(ctx, m)
 		if err != nil {
-			if err := refundTx(ctx, tx, h.mgr, h.keeper, constAccessor, CodeTxFail, err.Error()); err != nil {
-				return nil, err
+			if err := refundTx(ctx, tx, h.mgr, h.keeper, constAccessor, CodeTxFail, err.Error(), ""); err != nil {
+				ctx.Logger().Error("fail to refund", "error", err)
 			}
 		}
 	}

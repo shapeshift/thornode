@@ -10,7 +10,6 @@ import (
 
 // AddToLiquidityFees - measure of fees collected in each block
 func (k KVStore) AddToLiquidityFees(ctx cosmos.Context, asset common.Asset, fee cosmos.Uint) error {
-	store := ctx.KVStore(k.storeKey)
 	currentHeight := uint64(common.BlockHeight(ctx))
 
 	totalFees, err := k.GetTotalLiquidityFees(ctx, currentHeight)
@@ -26,27 +25,17 @@ func (k KVStore) AddToLiquidityFees(ctx cosmos.Context, asset common.Asset, fee 
 	poolFees = poolFees.Add(fee)
 
 	// update total liquidity
-	key := k.GetKey(ctx, prefixTotalLiquidityFee, strconv.FormatUint(currentHeight, 10))
-	store.Set([]byte(key), k.cdc.MustMarshalBinaryBare(totalFees))
+	k.set(ctx, k.GetKey(ctx, prefixTotalLiquidityFee, strconv.FormatUint(currentHeight, 10)), totalFees)
 
 	// update pool liquidity
-	key = k.GetKey(ctx, prefixPoolLiquidityFee, fmt.Sprintf("%d-%s", currentHeight, asset.String()))
-	store.Set([]byte(key), k.cdc.MustMarshalBinaryBare(poolFees))
+	k.set(ctx, k.GetKey(ctx, prefixPoolLiquidityFee, fmt.Sprintf("%d-%s", currentHeight, asset.String())), poolFees)
 	return nil
 }
 
 func (k KVStore) getLiquidityFees(ctx cosmos.Context, key string) (cosmos.Uint, error) {
-	store := ctx.KVStore(k.storeKey)
-	if !store.Has([]byte(key)) {
-		return cosmos.ZeroUint(), nil
-	}
-	buf := store.Get([]byte(key))
-	var liquidityFees cosmos.Uint
-
-	if err := k.cdc.UnmarshalBinaryBare(buf, &liquidityFees); err != nil {
-		return cosmos.ZeroUint(), dbError(ctx, "Unmarshal: liquidity fees", err)
-	}
-	return liquidityFees, nil
+	record := cosmos.ZeroUint()
+	_, err := k.get(ctx, key, &record)
+	return record, err
 }
 
 // GetTotalLiquidityFees - total of all fees collected in each block

@@ -9,8 +9,10 @@ import (
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
-// CommonOutboundTxHandler is the place where those common logic can be shared between multiple different kind of outbound tx handler
-// at the moment, handler_refund, and handler_outbound_tx are largely the same , only some small difference
+// CommonOutboundTxHandler is the place where those common logic can be shared
+// between multiple different kind of outbound tx handler
+// at the moment, handler_refund, and handler_outbound_tx are largely the same
+// , only some small difference
 type CommonOutboundTxHandler struct {
 	keeper keeper.Keeper
 	mgr    Manager
@@ -42,15 +44,13 @@ func (h CommonOutboundTxHandler) handle(ctx cosmos.Context, version semver.Versi
 	if err != nil {
 		return nil, ErrInternal(err, "fail to get observed tx voter")
 	}
-	if voter.Height > 0 {
-		voter.AddOutTx(tx.Tx)
-		h.keeper.SetObservedTxInVoter(ctx, voter)
-	}
+	voter.AddOutTx(tx.Tx)
+	h.keeper.SetObservedTxInVoter(ctx, voter)
 
 	// complete events
 	if voter.IsDone() {
 		for _, item := range voter.OutTxs {
-			if err := h.mgr.EventMgr().EmitOutboundEvent(ctx, NewEventOutbound(inTxID, item)); err != nil {
+			if err := h.mgr.EventMgr().EmitEvent(ctx, NewEventOutbound(inTxID, item)); err != nil {
 				return nil, ErrInternal(err, "fail to emit outbound event")
 			}
 		}
@@ -58,7 +58,12 @@ func (h CommonOutboundTxHandler) handle(ctx cosmos.Context, version semver.Versi
 
 	shouldSlash := true
 	signingTransPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
-
+	// every Signing Transaction Period , THORNode will check whether a
+	// TxOutItem had been sent by signer or not
+	// if a txout item that is older than SigningTransactionPeriod, but has not
+	// been sent out by signer , then it will create a new TxOutItem
+	// here THORNode will have to mark all the TxOutItem to complete one the tx
+	// get processed
 	for height := voter.Height; height <= common.BlockHeight(ctx); height += signingTransPeriod {
 
 		// update txOut record with our TxID that sent funds out of the pool

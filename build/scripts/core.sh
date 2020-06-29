@@ -106,6 +106,19 @@ peer_list () {
     sed -i -e "s/$PEERSISTENT_PEER_TARGET/persistent_peers = \"$PEERUSER\"/g" ~/.thord/config/config.toml
 }
 
+external_address () {
+    IP=$1
+    NET=$2
+    PORT=26656
+    [ "$NET" == "mainnet" ] && PORT=27146
+    ADDR="$IP:$PORT"
+    sed -i -e "s/external_address =.*/external_address = \"$ADDR\"/g" ~/.thord/config/config.toml
+}
+
+enable_telemetry () {
+    sed -i -e "s/prometheus = false/prometheus = true/g" ~/.thord/config/config.toml
+}
+
 gen_bnb_address () {
     if [ ! -f ~/.bond/private_key.txt ]; then
         echo "GENERATING BNB ADDRESSES"
@@ -144,6 +157,22 @@ fetch_node_id () {
         sleep 3
     done
     curl -s $1:26657/status | jq -r .result.node_info.id
+}
+
+set_node_keys () {
+  SIGNER_NAME=$1
+  SIGNER_PASSWD=$2
+  PEER=$3
+  NODE_PUB_KEY=$(echo $SIGNER_PASSWD | thorcli keys show thorchain --pubkey)
+  VALIDATOR=$(thord tendermint show-validator)
+  printf "$SIGNER_PASSWD\n$SIGNER_PASSWD\n" | thorcli tx thorchain set-node-keys $NODE_PUB_KEY $NODE_PUB_KEY $VALIDATOR --node tcp://$PEER:26657 --from $SIGNER_NAME --yes
+}
+
+set_ip_address () {
+  SIGNER_NAME=$1
+  SIGNER_PASSWD=$2
+  PEER=$3
+  printf "$SIGNER_PASSWD\n$SIGNER_PASSWD\n" | thorcli tx thorchain set-ip-address $(curl -s http://whatismyip.akamai.com) --node tcp://$PEER:26657 --from $SIGNER_NAME --yes
 }
 
 fetch_version () {

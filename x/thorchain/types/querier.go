@@ -7,21 +7,10 @@ import (
 	"github.com/blang/semver"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
-// Query Result Payload for a pools query
-type QueryResPools []Pool
-
-// implement fmt.Stringer
-func (n QueryResPools) String() string {
-	var assets []string
-	for _, record := range n {
-		assets = append(assets, record.Asset.String())
-	}
-	return strings.Join(assets, "\n")
-}
-
+// QueryResHeights used to return the block height query
 type QueryResHeights struct {
 	Chain            common.Chain `json:"chain"`
 	LastChainHeight  int64        `json:"lastobservedin"`
@@ -29,25 +18,30 @@ type QueryResHeights struct {
 	Thorchain        int64        `json:"thorchain"`
 }
 
+// String implement fmt.Stringer return a string representation of QueryResHeights
 func (h QueryResHeights) String() string {
 	return fmt.Sprintf("Chain: %d, Signed: %d, THORChain: %d", h.LastChainHeight, h.LastSignedHeight, h.Thorchain)
 }
 
+// QueryOutQueue a struct store the total outstanding out items
 type QueryOutQueue struct {
 	Total int64 `json:"total"`
 }
 
+// String implement fmt.Stringer
 func (h QueryOutQueue) String() string {
 	return fmt.Sprintf("Total: %d", h.Total)
 }
 
+// QueryNodeAccountPreflightCheck is structure to hold all the information need to return to client
+// include current node status , and whether it might get churned in next
 type QueryNodeAccountPreflightCheck struct {
 	Status      NodeStatus `json:"status"`
 	Description string     `json:"reason"`
 	Code        int        `json:"code"`
 }
 
-// implement fmt.Stringer
+// String implement fmt.Stringer
 func (n QueryNodeAccountPreflightCheck) String() string {
 	sb := strings.Builder{}
 	sb.WriteString("Result Status:" + n.Status.String() + "\n")
@@ -55,22 +49,24 @@ func (n QueryNodeAccountPreflightCheck) String() string {
 	return sb.String()
 }
 
-// query keygen, displays signed keygen requests
+// QueryKeygenBlock query keygen, displays signed keygen requests
 type QueryKeygenBlock struct {
 	KeygenBlock KeygenBlock `json:"keygen_block"`
 	Signature   string      `json:"signature"`
 }
 
-// implement fmt.Stringer
+// String implement fmt.Stringer
 func (n QueryKeygenBlock) String() string {
 	return n.KeygenBlock.String()
 }
 
+// QueryKeysign query keysign result
 type QueryKeysign struct {
 	Keysign   TxOut  `json:"keysign"`
 	Signature string `json:"signature"`
 }
 
+// QueryYggdrasilVaults query yggdrasil vault result
 type QueryYggdrasilVaults struct {
 	Vault      Vault       `json:"vault"`
 	Status     NodeStatus  `json:"status"`
@@ -78,6 +74,7 @@ type QueryYggdrasilVaults struct {
 	TotalValue cosmos.Uint `json:"total_value"`
 }
 
+// QueryNodeAccount hold all the information related to node account
 type QueryNodeAccount struct {
 	NodeAddress         cosmos.AccAddress `json:"node_address"`
 	Status              NodeStatus        `json:"status"`
@@ -97,6 +94,7 @@ type QueryNodeAccount struct {
 	Jail                Jail              `json:"jail"`
 }
 
+// NewQueryNodeAccount create a new QueryNodeAccount based on the given node account parameter
 func NewQueryNodeAccount(na NodeAccount) QueryNodeAccount {
 	return QueryNodeAccount{
 		NodeAddress:         na.NodeAddress,

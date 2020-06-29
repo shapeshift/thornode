@@ -1,6 +1,9 @@
 package types
 
 import (
+	"errors"
+
+	se "github.com/cosmos/cosmos-sdk/types/errors"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
@@ -17,13 +20,15 @@ func (*MsgLeaveSuite) SetupSuite(c *C) {
 
 func (MsgLeaveSuite) TestMsgLeave(c *C) {
 	nodeAddr := GetRandomBech32Addr()
-	txId := GetRandomTxHash()
+	txID := GetRandomTxHash()
 	senderBNBAddr := GetRandomBNBAddress()
-	tx := common.Tx{ID: txId, FromAddress: senderBNBAddr}
+	tx := GetRandomTx()
+	tx.ID = txID
+	tx.FromAddress = senderBNBAddr
 	msgLeave := NewMsgLeave(tx, nodeAddr, nodeAddr)
 	EnsureMsgBasicCorrect(msgLeave, c)
 	c.Assert(msgLeave.ValidateBasic(), IsNil)
-	c.Assert(msgLeave.Type(), Equals, "validator_leave")
+	c.Assert(msgLeave.Type(), Equals, "leave")
 
 	msgLeave1 := NewMsgLeave(tx, nodeAddr, nodeAddr)
 	c.Assert(msgLeave1.ValidateBasic(), IsNil)
@@ -31,6 +36,11 @@ func (MsgLeaveSuite) TestMsgLeave(c *C) {
 	c.Assert(msgLeave2.ValidateBasic(), NotNil)
 	msgLeave3 := NewMsgLeave(tx, nodeAddr, cosmos.AccAddress{})
 	c.Assert(msgLeave3.ValidateBasic(), NotNil)
-	msgLeave4 := NewMsgLeave(common.Tx{ID: txId, FromAddress: ""}, nodeAddr, nodeAddr)
+	msgLeave4 := NewMsgLeave(common.Tx{ID: txID, FromAddress: ""}, nodeAddr, nodeAddr)
 	c.Assert(msgLeave4.ValidateBasic(), NotNil)
+
+	msgLeave5 := NewMsgLeave(tx, cosmos.AccAddress{}, nodeAddr)
+	err5 := msgLeave5.ValidateBasic()
+	c.Assert(err5, NotNil)
+	c.Assert(errors.Is(err5, se.ErrInvalidAddress), Equals, true)
 }

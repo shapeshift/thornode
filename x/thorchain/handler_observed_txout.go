@@ -11,11 +11,13 @@ import (
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
+// ObservedTxOutHandler process MsgObservedTxOut messages
 type ObservedTxOutHandler struct {
 	keeper keeper.Keeper
 	mgr    Manager
 }
 
+// NewObservedTxOutHandler create a new instance of ObservedTxOutHandler
 func NewObservedTxOutHandler(keeper keeper.Keeper, mgr Manager) ObservedTxOutHandler {
 	return ObservedTxOutHandler{
 		keeper: keeper,
@@ -23,7 +25,8 @@ func NewObservedTxOutHandler(keeper keeper.Keeper, mgr Manager) ObservedTxOutHan
 	}
 }
 
-func (h ObservedTxOutHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, _ constants.ConstantValues) (*cosmos.Result, error) {
+// Run is the main entry point for ObservedTxOutHandler
+func (h ObservedTxOutHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	msg, ok := m.(MsgObservedTxOut)
 	if !ok {
 		return nil, errInvalidMessage
@@ -32,7 +35,7 @@ func (h ObservedTxOutHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semv
 		ctx.Logger().Error("MsgObserveTxOut failed validation", "error", err)
 		return nil, err
 	}
-	result, err := h.handle(ctx, msg, version)
+	result, err := h.handle(ctx, msg, version, constAccessor)
 	if err != nil {
 		ctx.Logger().Error("fail to handle MsgObserveTxOut", "error", err)
 	}
@@ -58,20 +61,21 @@ func (h ObservedTxOutHandler) validateV1(ctx cosmos.Context, msg MsgObservedTxOu
 	return nil
 }
 
-func (h ObservedTxOutHandler) handle(ctx cosmos.Context, msg MsgObservedTxOut, version semver.Version) (*cosmos.Result, error) {
+func (h ObservedTxOutHandler) handle(ctx cosmos.Context, msg MsgObservedTxOut, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	if version.GTE(semver.MustParse("0.1.0")) {
-		return h.handleV1(ctx, version, msg)
+		return h.handleV1(ctx, version, msg, constAccessor)
 	}
 
 	return nil, errBadVersion
 }
 
-func (h ObservedTxOutHandler) preflight(ctx cosmos.Context, voter ObservedTxVoter, nas NodeAccounts, tx ObservedTx, signer cosmos.AccAddress, version semver.Version) (ObservedTxVoter, bool) {
-	constAccessor := constants.GetConstantValues(version)
+func (h ObservedTxOutHandler) preflight(ctx cosmos.Context, voter ObservedTxVoter, nas NodeAccounts, tx ObservedTx, signer cosmos.AccAddress, version semver.Version, constAccessor constants.ConstantValues) (ObservedTxVoter, bool) {
 	observeSlashPoints := constAccessor.GetInt64Value(constants.ObserveSlashPoints)
+	observeFlex := constAccessor.GetInt64Value(constants.ObserveFlex)
 	ok := false
 	h.mgr.Slasher().IncSlashPoints(ctx, observeSlashPoints, signer)
 	if !voter.Add(tx, signer) {
+		// when the signer already sign it
 		return voter, ok
 	}
 	if voter.HasConsensus(nas) {
@@ -84,7 +88,7 @@ func (h ObservedTxOutHandler) preflight(ctx cosmos.Context, voter ObservedTxVote
 
 		} else {
 			// event the tx had been processed , given the signer just a bit late , so we still take away their slash points
-			if common.BlockHeight(ctx) == voter.Height && voter.Tx.Equals(tx) {
+			if common.BlockHeight(ctx) <= (voter.Height+observeFlex) && voter.Tx.Equals(tx) {
 				h.mgr.Slasher().DecSlashPoints(ctx, observeSlashPoints, signer)
 			}
 		}
@@ -96,8 +100,7 @@ func (h ObservedTxOutHandler) preflight(ctx cosmos.Context, voter ObservedTxVote
 }
 
 // Handle a message to observe outbound tx
-func (h ObservedTxOutHandler) handleV1(ctx cosmos.Context, version semver.Version, msg MsgObservedTxOut) (*cosmos.Result, error) {
-	constAccessor := constants.GetConstantValues(version)
+func (h ObservedTxOutHandler) handleV1(ctx cosmos.Context, version semver.Version, msg MsgObservedTxOut, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	activeNodeAccounts, err := h.keeper.ListActiveNodeAccounts(ctx)
 	if err != nil {
 		return nil, wrapError(ctx, err, "fail to get list of active node accounts")
@@ -114,11 +117,12 @@ func (h ObservedTxOutHandler) handleV1(ctx cosmos.Context, version semver.Versio
 
 		voter, err := h.keeper.GetObservedTxOutVoter(ctx, tx.Tx.ID)
 		if err != nil {
-			return nil, err
+			ctx.Logger().Error("fail to get tx out voter", "error", err)
+			continue
 		}
 
 		// check whether the tx has consensus
-		voter, ok := h.preflight(ctx, voter, activeNodeAccounts, tx, msg.Signer, version)
+		voter, ok := h.preflight(ctx, voter, activeNodeAccounts, tx, msg.Signer, version, constAccessor)
 		if !ok {
 			if voter.Height == common.BlockHeight(ctx) {
 				// we've already process the transaction, but we should still
@@ -161,8 +165,9 @@ func (h ObservedTxOutHandler) handleV1(ctx cosmos.Context, version semver.Versio
 				if err := h.keeper.SetVault(ctx, vault); err != nil {
 					ctx.Logger().Error("fail to save vault", "error", err)
 				}
-				continue
 			}
+
+			continue
 		}
 
 		txOut := voter.GetTx(activeNodeAccounts) // get consensus tx, in case our for loop is incorrect
@@ -177,7 +182,8 @@ func (h ObservedTxOutHandler) handleV1(ctx cosmos.Context, version semver.Versio
 
 		// Apply Gas fees
 		if err := AddGasFees(ctx, h.keeper, tx, h.mgr.GasMgr()); err != nil {
-			return nil, ErrInternal(err, "fail to add gas fee")
+			ctx.Logger().Error("fail to add gas fee", "error", err)
+			continue
 		}
 
 		// If sending from one of our vaults, decrement coins
@@ -187,18 +193,20 @@ func (h ObservedTxOutHandler) handleV1(ctx cosmos.Context, version semver.Versio
 			continue
 		}
 		vault.SubFunds(tx.Tx.Coins)
-		vault.OutboundTxCount += 1
+		vault.OutboundTxCount++
 		if vault.IsAsgard() && memo.IsType(TxMigrate) {
 			// only remove the block height that had been specified in the memo
 			vault.RemovePendingTxBlockHeights(memo.GetBlockHeight())
 		}
+
 		if !vault.HasFunds() && vault.Status == RetiringVault {
 			// we have successfully removed all funds from a retiring vault,
 			// mark it as inactive
 			vault.Status = InactiveVault
 		}
 		if err := h.keeper.SetVault(ctx, vault); err != nil {
-			return nil, ErrInternal(err, "fail to save vault")
+			ctx.Logger().Error("fail to save vault", "error", err)
+			continue
 		}
 
 		// add addresses to observing addresses. This is used to detect

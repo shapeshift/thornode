@@ -27,8 +27,10 @@ func NewMsgYggdrasil(tx common.Tx, pk common.PubKey, blockHeight int64, addFunds
 	}
 }
 
+// Route should return the route key of the module
 func (msg MsgYggdrasil) Route() string { return RouterKey }
 
+// Type should return the action
 func (msg MsgYggdrasil) Type() string { return "set_yggdrasil" }
 
 // ValidateBasic runs stateless checks on the message
@@ -42,13 +44,14 @@ func (msg MsgYggdrasil) ValidateBasic() error {
 	if msg.BlockHeight <= 0 {
 		return cosmos.ErrUnknownRequest("invalid block height")
 	}
-	if msg.Tx.IsEmpty() {
-		return cosmos.ErrUnknownRequest("request tx cannot be empty")
+	if err := msg.Tx.Valid(); err != nil {
+		return cosmos.ErrUnknownRequest(err.Error())
 	}
-	for _, coin := range msg.Coins {
-		if err := coin.IsValid(); err != nil {
-			return cosmos.ErrInvalidCoins(err.Error())
-		}
+	if len(msg.Coins) == 0 {
+		return cosmos.ErrUnknownRequest("no coins")
+	}
+	if err := msg.Coins.Valid(); err != nil {
+		return cosmos.ErrInvalidCoins(err.Error())
 	}
 	return nil
 }

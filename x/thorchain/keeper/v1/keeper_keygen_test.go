@@ -20,7 +20,7 @@ func (s *KeeperKeygenSuite) TestKeeperKeygen(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(keygen.IsEmpty(), Equals, false)
 	keygenBlock.Keygens = append(keygenBlock.Keygens, keygen)
-	c.Assert(k.SetKeygenBlock(ctx, keygenBlock), IsNil)
+	k.SetKeygenBlock(ctx, keygenBlock)
 
 	keygenBlock, err = k.GetKeygenBlock(ctx, 1)
 	c.Assert(err, IsNil)

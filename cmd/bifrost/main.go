@@ -117,16 +117,20 @@ func main() {
 	if err != nil {
 		log.Fatal().Err(err).Msg("fail to get bootstrap peers")
 	}
-	tssIns, err := tss.NewTss(bootstrapPeers,
+	tssIns, err := tss.NewTss(
+		bootstrapPeers,
 		cfg.TSS.P2PPort,
 		priKey,
 		cfg.TSS.Rendezvous,
 		app.DefaultCLIHome,
 		common.TssConfig{
-			KeyGenTimeout:   30 * time.Second,
-			KeySignTimeout:  10 * time.Second,
+			KeyGenTimeout:   240 * time.Second,
+			KeySignTimeout:  120 * time.Second,
 			PreParamTimeout: 5 * time.Minute,
-		}, getLocalPreParam(*tssPreParam))
+		},
+		getLocalPreParam(*tssPreParam),
+		cfg.TSS.ExternalIP,
+	)
 	if err != nil {
 		log.Fatal().Err(err).Msg("fail to create tss instance")
 	}

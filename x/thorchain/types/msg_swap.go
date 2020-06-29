@@ -2,7 +2,7 @@ package types
 
 import (
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 // MsgSwap defines a MsgSwap message
@@ -25,7 +25,7 @@ func NewMsgSwap(tx common.Tx, target common.Asset, destination common.Address, t
 	}
 }
 
-// Route should return the pooldata of the module
+// Route should return the route key of the module
 func (msg MsgSwap) Route() string { return RouterKey }
 
 // Type should return the action
@@ -36,11 +36,17 @@ func (msg MsgSwap) ValidateBasic() error {
 	if msg.Signer.Empty() {
 		return cosmos.ErrInvalidAddress(msg.Signer.String())
 	}
-	if err := msg.Tx.IsValid(); err != nil {
+	if err := msg.Tx.Valid(); err != nil {
 		return cosmos.ErrUnknownRequest(err.Error())
 	}
 	if msg.TargetAsset.IsEmpty() {
 		return cosmos.ErrUnknownRequest("swap Target cannot be empty")
+	}
+	if len(msg.Tx.Coins) > 1 {
+		return cosmos.ErrUnknownRequest("not expecting multiple coins in a swap")
+	}
+	if msg.Tx.Coins.IsEmpty() {
+		return cosmos.ErrUnknownRequest("swap coin cannot be empty")
 	}
 	for _, coin := range msg.Tx.Coins {
 		if coin.Asset.Equals(msg.TargetAsset) {

@@ -59,6 +59,7 @@ type TSSConfiguration struct {
 	Rendezvous     string   `json:"rendezvous" mapstructure:"rendezvous"`
 	P2PPort        int      `json:"p2p_port" mapstructure:"p2p_port"`
 	InfoAddress    string   `json:"info_address" mapstructure:"info_address"`
+	ExternalIP     string   `json:"external_ip" mapstructure:"external_ip"`
 }
 
 // BlockScannerConfiguration settings for BlockScanner

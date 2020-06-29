@@ -4,16 +4,18 @@ import (
 	"github.com/blang/semver"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
+// MigrateHandler is a handler to process MsgMigrate
 type MigrateHandler struct {
 	keeper keeper.Keeper
 	mgr    Manager
 }
 
+// NewMigrateHandler create a new instance of MigrateHandler
 func NewMigrateHandler(keeper keeper.Keeper, mgr Manager) MigrateHandler {
 	return MigrateHandler{
 		keeper: keeper,
@@ -21,6 +23,7 @@ func NewMigrateHandler(keeper keeper.Keeper, mgr Manager) MigrateHandler {
 	}
 }
 
+// Run is the main entry point of Migrate handler
 func (h MigrateHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, _ constants.ConstantValues) (*cosmos.Result, error) {
 	msg, ok := m.(MsgMigrate)
 	if !ok {
@@ -36,13 +39,11 @@ func (h MigrateHandler) validate(ctx cosmos.Context, msg MsgMigrate, version sem
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, msg)
 	}
-	ctx.Logger().Error(errInvalidVersion.Error())
 	return errInvalidVersion
 }
 
 func (h MigrateHandler) validateV1(ctx cosmos.Context, msg MsgMigrate) error {
 	if err := msg.ValidateBasic(); nil != err {
-		ctx.Logger().Error(err.Error())
 		return err
 	}
 	return nil
@@ -53,7 +54,6 @@ func (h MigrateHandler) handle(ctx cosmos.Context, msg MsgMigrate, version semve
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.handleV1(ctx, version, msg)
 	}
-	ctx.Logger().Error(errInvalidVersion.Error())
 	return nil, errBadVersion
 }
 

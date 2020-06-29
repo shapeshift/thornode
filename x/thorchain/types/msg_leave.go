@@ -25,21 +25,21 @@ func NewMsgLeave(tx common.Tx, addr, signer cosmos.AccAddress) MsgLeave {
 func (msg MsgLeave) Route() string { return RouterKey }
 
 // Type should return the action
-func (msg MsgLeave) Type() string { return "validator_leave" }
+func (msg MsgLeave) Type() string { return "leave" }
 
 // ValidateBasic runs stateless checks on the message
 func (msg MsgLeave) ValidateBasic() error {
 	if msg.Tx.FromAddress.IsEmpty() {
-		return cosmos.ErrUnknownRequest("from address cannot be empty")
+		return cosmos.ErrInvalidAddress("from address cannot be empty")
 	}
-	if msg.Tx.ID.IsEmpty() {
-		return cosmos.ErrUnknownRequest("tx id hash cannot be empty")
+	if err := msg.Tx.Valid(); err != nil {
+		return cosmos.ErrUnknownRequest(err.Error())
 	}
 	if msg.Signer.Empty() {
-		return cosmos.ErrUnknownRequest("signer cannot be empty ")
+		return cosmos.ErrInvalidAddress("signer cannot be empty ")
 	}
 	if msg.NodeAddress.Empty() {
-		return cosmos.ErrUnknownRequest("node address cannot be empty")
+		return cosmos.ErrInvalidAddress("node address cannot be empty")
 	}
 	return nil
 }

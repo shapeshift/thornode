@@ -18,7 +18,7 @@ type TssKeysignHandler struct {
 }
 
 // NewTssKeysignHandler create a new instance of TssKeysignHandler
-// when a signer fail to join tss keysign , thorchain need to slash their node account
+// when a signer fail to join tss keysign , thorchain need to slash the node account
 func NewTssKeysignHandler(keeper keeper.Keeper, mgr Manager) TssKeysignHandler {
 	return TssKeysignHandler{
 		keeper: keeper,
@@ -26,6 +26,7 @@ func NewTssKeysignHandler(keeper keeper.Keeper, mgr Manager) TssKeysignHandler {
 	}
 }
 
+// Run is the main entry to process MsgTssKeysignFail
 func (h TssKeysignHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	msg, ok := m.(MsgTssKeysignFail)
 	if !ok {
@@ -36,7 +37,7 @@ func (h TssKeysignHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.
 		ctx.Logger().Error("MsgTssKeysignFail failed validation", "error", err)
 		return nil, err
 	}
-	result, err := h.handle(ctx, msg, version)
+	result, err := h.handle(ctx, msg, version, constAccessor)
 	if err != nil {
 		ctx.Logger().Error("failed to process MsgTssKeysignFail", "error", err)
 	}
@@ -62,16 +63,15 @@ func (h TssKeysignHandler) validateV1(ctx cosmos.Context, msg MsgTssKeysignFail)
 	return nil
 }
 
-func (h TssKeysignHandler) handle(ctx cosmos.Context, msg MsgTssKeysignFail, version semver.Version) (*cosmos.Result, error) {
+func (h TssKeysignHandler) handle(ctx cosmos.Context, msg MsgTssKeysignFail, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	ctx.Logger().Info("handle MsgTssKeysignFail request", "ID:", msg.ID)
 	if version.GTE(semver.MustParse("0.1.0")) {
-		return h.handleV1(ctx, msg, version)
+		return h.handleV1(ctx, msg, version, constAccessor)
 	}
 	return nil, errBadVersion
 }
 
-// Handle a message to observe inbound tx
-func (h TssKeysignHandler) handleV1(ctx cosmos.Context, msg MsgTssKeysignFail, version semver.Version) (*cosmos.Result, error) {
+func (h TssKeysignHandler) handleV1(ctx cosmos.Context, msg MsgTssKeysignFail, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	active, err := h.keeper.ListActiveNodeAccounts(ctx)
 	if err != nil {
 		return nil, wrapError(ctx, err, "fail to get list of active node accounts")
@@ -85,8 +85,8 @@ func (h TssKeysignHandler) handleV1(ctx cosmos.Context, msg MsgTssKeysignFail, v
 	if err != nil {
 		return nil, err
 	}
-	constAccessor := constants.GetConstantValues(version)
 	observeSlashPoints := constAccessor.GetInt64Value(constants.ObserveSlashPoints)
+	observeFlex := constAccessor.GetInt64Value(constants.ObserveFlex)
 	h.mgr.Slasher().IncSlashPoints(ctx, observeSlashPoints, msg.Signer)
 	if !voter.Sign(msg.Signer) {
 		ctx.Logger().Info("signer already signed MsgTssKeysignFail", "signer", msg.Signer.String(), "txid", msg.ID)
@@ -130,7 +130,7 @@ func (h TssKeysignHandler) handleV1(ctx cosmos.Context, msg MsgTssKeysignFail, v
 		h.mgr.Slasher().DecSlashPoints(ctx, observeSlashPoints, voter.Signers...)
 		return &cosmos.Result{}, nil
 	}
-	if voter.Height == common.BlockHeight(ctx) {
+	if (voter.Height + observeFlex) >= common.BlockHeight(ctx) {
 		h.mgr.Slasher().DecSlashPoints(ctx, observeSlashPoints, msg.Signer)
 	}
 

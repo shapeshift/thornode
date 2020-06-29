@@ -67,7 +67,7 @@ func (s *ThorchainSuite) TestStaking(c *C) {
 
 	version := constants.SWVersion
 	// unstake for user1
-	msg := NewMsgSetUnStake(GetRandomTx(), user1, cosmos.NewUint(10000), common.BNBAsset, GetRandomBech32Addr())
+	msg := NewMsgUnStake(GetRandomTx(), user1, cosmos.NewUint(10000), common.BNBAsset, GetRandomBech32Addr())
 	_, _, _, _, err = unstake(ctx, version, keeper, msg, NewDummyMgr())
 	c.Assert(err, IsNil)
 	staker1, err = keeper.GetStaker(ctx, common.BNBAsset, user1)
@@ -75,7 +75,7 @@ func (s *ThorchainSuite) TestStaking(c *C) {
 	c.Check(staker1.Units.IsZero(), Equals, true)
 
 	// unstake for user2
-	msg = NewMsgSetUnStake(GetRandomTx(), user2, cosmos.NewUint(10000), common.BNBAsset, GetRandomBech32Addr())
+	msg = NewMsgUnStake(GetRandomTx(), user2, cosmos.NewUint(10000), common.BNBAsset, GetRandomBech32Addr())
 	_, _, _, _, err = unstake(ctx, version, keeper, msg, NewDummyMgr())
 	c.Assert(err, IsNil)
 	staker2, err = keeper.GetStaker(ctx, common.BNBAsset, user2)
@@ -350,7 +350,7 @@ func (s *ThorchainSuite) TestRagnarok(c *C) {
 				common.NewCoin(common.RuneAsset(), res.Amount),
 			})
 			msg := NewMsgReserveContributor(GetRandomTx(), res, bonders[0].NodeAddress)
-			result, err := resHandler.Handle(ctx, msg, ver)
+			result, err := resHandler.handle(ctx, msg, ver)
 			c.Assert(err, IsNil)
 			c.Assert(result, NotNil)
 		}
@@ -400,11 +400,7 @@ func (s *ThorchainSuite) TestRagnarok(c *C) {
 	mgr.TxOutStore().ClearOutboundItems(ctx) // clear out txs
 
 	// run stage 2 of ragnarok protocol, nth = 1
-	ragnarokHeight, err := keeper.GetRagnarokBlockHeight(ctx)
-	c.Assert(err, IsNil)
-	migrateInterval := consts.GetInt64Value(constants.FundMigrationInterval)
 	for i := 1; i <= 20; i++ { // simulate each round of ragnarok (max of ten)
-		ctx = ctx.WithBlockHeight(ragnarokHeight + (int64(i) * migrateInterval))
 		c.Assert(mgr.ValidatorMgr().processRagnarok(ctx, mgr, consts), IsNil)
 		items, err := mgr.TxOutStore().GetOutboundItems(ctx)
 		c.Assert(err, IsNil)
@@ -416,7 +412,7 @@ func (s *ThorchainSuite) TestRagnarok(c *C) {
 				c.Assert(items, HasLen, 3, Commentf("%d", len(items)))
 			}
 		} else {
-			if i <= 10 {
+			if i <= 10 || i == 20 {
 				c.Assert(items, HasLen, 6, Commentf("%d", len(items)))
 			} else {
 				c.Assert(items, HasLen, 9, Commentf("%d", len(items)))
@@ -425,11 +421,11 @@ func (s *ThorchainSuite) TestRagnarok(c *C) {
 
 		if !common.RuneAsset().Chain.Equals(common.THORChain) {
 			// validate bonders have correct coin amounts being sent to them on each round of ragnarok
-			if i > 10 {
+			if i > 10 && i < 20 {
 				for _, bonder := range bonders {
 					items := mgr.TxOutStore().GetOutboundItemByToAddress(ctx, bonder.BondAddress)
 					c.Assert(items, HasLen, 1)
-					outCoin := common.NewCoin(common.RuneAsset(), calcExpectedValue(bonder.Bond, i-10))
+					outCoin := common.NewCoin(common.RuneAsset(), calcExpectedValue(bonder.Bond, i-10, 9))
 					c.Assert(items[0].Coin.Equals(outCoin), Equals, true, Commentf("expect:%s, however:%s", outCoin.String(), items[0].Coin.String()))
 				}
 			}
@@ -455,20 +451,27 @@ func (s *ThorchainSuite) TestRagnarok(c *C) {
 			for _, res := range reserves {
 				items := mgr.TxOutStore().GetOutboundItemByToAddress(ctx, res.Address)
 				c.Assert(items, HasLen, 1)
-				outCoin := common.NewCoin(common.RuneAsset(), calcExpectedValue(res.Amount, i))
+				outCoin := common.NewCoin(common.RuneAsset(), calcExpectedValue(res.Amount, i, 10))
 				c.Assert(items[0].Coin.Equals(outCoin), Equals, true, Commentf("expect:%s, however:%s", outCoin, items[0].Coin))
 			}
 		}
 
 		mgr.TxOutStore().ClearOutboundItems(ctx) // clear out txs
+		keeper.SetRagnarokPending(ctx, 0)
+		items, err = mgr.TxOutStore().GetOutboundItems(ctx)
+		c.Assert(items, HasLen, 0)
+		c.Assert(err, IsNil)
 	}
 }
 
 // calculate the expected coin amount taken from a original amount at nth round
 // of ragnarok
-func calcExpectedValue(total cosmos.Uint, nth int) cosmos.Uint {
+func calcExpectedValue(total cosmos.Uint, nth, limit int) cosmos.Uint {
 	var amt cosmos.Uint
 	for i := uint64(1); i <= uint64(nth); i++ {
+		if i == uint64(limit) {
+			i = 10
+		}
 		amt = total.MulUint64(i).QuoUint64(10)
 		total = total.Sub(amt)
 	}
@@ -566,7 +569,7 @@ func (s *ThorchainSuite) TestRagnarokNoOneLeave(c *C) {
 			common.NewCoin(common.RuneAsset(), res.Amount),
 		})
 		msg := NewMsgReserveContributor(GetRandomTx(), res, bonders[0].NodeAddress)
-		_, err := resHandler.Handle(ctx, msg, ver)
+		_, err := resHandler.handle(ctx, msg, ver)
 		c.Assert(err, IsNil)
 	}
 	c.Assert(keeper.SetVault(ctx, asgard), IsNil)

@@ -6,12 +6,13 @@ import (
 	"github.com/blang/semver"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // SwitchHandler is to handle Switch message
+// MsgSwitch is used to switch from bep2 RUNE to native RUNE
 type SwitchHandler struct {
 	keeper keeper.Keeper
 	mgr    Manager
@@ -119,10 +120,10 @@ func (h SwitchHandler) toBEP2(ctx cosmos.Context, msg MsgSwitch) (*cosmos.Result
 	vaultData.TotalBEP2Rune = common.SafeSub(vaultData.TotalBEP2Rune, msg.Tx.Coins[0].Amount)
 
 	toi := &TxOutItem{
-		Chain:     common.RuneAsset().Chain,
+		Chain:     common.BNBChain, // BEP2 RUNE is always on binance chain
 		InHash:    msg.Tx.ID,
 		ToAddress: msg.Destination,
-		Coin:      common.NewCoin(common.RuneAsset(), msg.Tx.Coins[0].Amount),
+		Coin:      common.NewCoin(common.BEP2RuneAsset(), msg.Tx.Coins[0].Amount),
 	}
 	ok, err := h.mgr.TxOutStore().TryAddTxOutItem(ctx, h.mgr, toi)
 	if err != nil {

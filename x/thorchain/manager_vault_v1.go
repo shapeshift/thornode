@@ -194,7 +194,7 @@ func (vm *VaultMgrV1) EndBlock(ctx cosmos.Context, mgr Manager, constAccessor co
 	}
 
 	if common.BlockHeight(ctx)%migrateInterval == 0 {
-		// checks to see if we need to ragnarok a chain, and ragnaroks them
+		// checks to see if we need to ragnarok a chain, and ragnarok them (if needed)
 		if err := vm.manageChains(ctx, mgr, constAccessor); err != nil {
 			return err
 		}
@@ -220,7 +220,8 @@ func (vm *VaultMgrV1) TriggerKeygen(ctx cosmos.Context, nas NodeAccounts) error 
 	if !keygenBlock.Contains(keygen) {
 		keygenBlock.Keygens = append(keygenBlock.Keygens, keygen)
 	}
-	return vm.k.SetKeygenBlock(ctx, keygenBlock)
+	vm.k.SetKeygenBlock(ctx, keygenBlock)
+	return nil
 }
 
 // RotateVault update vault to Retiring and new vault to active
@@ -455,7 +456,7 @@ func (vm *VaultMgrV1) ragnarokChain(ctx cosmos.Context, chain common.Chain, nth 
 				continue
 			}
 
-			unstakeMsg := NewMsgSetUnStake(
+			unstakeMsg := NewMsgUnStake(
 				common.GetRagnarokTx(pool.Asset.Chain, staker.RuneAddress, staker.RuneAddress),
 				staker.RuneAddress,
 				cosmos.NewUint(uint64(MaxUnstakeBasisPoints/100*(nth*10))),
@@ -482,7 +483,7 @@ func (vm *VaultMgrV1) UpdateVaultData(ctx cosmos.Context, constAccessor constant
 
 	totalReserve := cosmos.ZeroUint()
 	if common.RuneAsset().Chain.Equals(common.THORChain) {
-		totalReserve = vm.k.GetRuneBalaceOfModule(ctx, ReserveName)
+		totalReserve = vm.k.GetRuneBalanceOfModule(ctx, ReserveName)
 	} else {
 		totalReserve = vaultData.TotalReserve
 	}
@@ -603,7 +604,7 @@ func (vm *VaultMgrV1) UpdateVaultData(ctx cosmos.Context, constAccessor constant
 	}
 
 	rewardEvt := NewEventRewards(bondReward, evtPools)
-	if err := eventMgr.EmitRewardEvent(ctx, rewardEvt); err != nil {
+	if err := eventMgr.EmitEvent(ctx, rewardEvt); err != nil {
 		return fmt.Errorf("fail to emit reward event: %w", err)
 	}
 	i, err := getTotalActiveNodeWithBond(ctx, vm.k)

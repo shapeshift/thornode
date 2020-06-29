@@ -5,7 +5,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/x/bank"
 	"github.com/cosmos/cosmos-sdk/x/supply"
-	"github.com/tendermint/tendermint/libs/log"
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
@@ -17,12 +16,11 @@ type Keeper interface {
 	Cdc() *codec.Codec
 	Supply() supply.Keeper
 	CoinKeeper() bank.Keeper
-	Logger(ctx cosmos.Context) log.Logger
 	Version() int64
 	GetKey(ctx cosmos.Context, prefix kvTypes.DbPrefix, key string) string
 	GetStoreVersion(ctx cosmos.Context) int64
 	SetStoreVersion(ctx cosmos.Context, ver int64)
-	GetRuneBalaceOfModule(ctx cosmos.Context, moduleName string) cosmos.Uint
+	GetRuneBalanceOfModule(ctx cosmos.Context, moduleName string) cosmos.Uint
 	SendFromModuleToModule(ctx cosmos.Context, from, to string, coin common.Coin) error
 	SendFromAccountToModule(ctx cosmos.Context, from cosmos.AccAddress, to string, coin common.Coin) error
 	SendFromModuleToAccount(ctx cosmos.Context, from string, to cosmos.AccAddress, coin common.Coin) error
@@ -118,6 +116,7 @@ type KeeperObservedTx interface {
 type KeeperTxOut interface {
 	SetTxOut(ctx cosmos.Context, blockOut *TxOut) error
 	AppendTxOut(ctx cosmos.Context, height int64, item *TxOutItem) error
+	ClearTxOut(ctx cosmos.Context, height int64) error
 	GetTxOutIterator(ctx cosmos.Context) cosmos.Iterator
 	GetTxOut(ctx cosmos.Context, height int64) (*TxOut, error)
 }
@@ -164,7 +163,7 @@ type KeeperTssKeysignFail interface {
 }
 
 type KeeperKeygen interface {
-	SetKeygenBlock(ctx cosmos.Context, keygenBlock KeygenBlock) error
+	SetKeygenBlock(ctx cosmos.Context, keygenBlock KeygenBlock)
 	GetKeygenBlockIterator(ctx cosmos.Context) cosmos.Iterator
 	GetKeygenBlock(ctx cosmos.Context, height int64) (KeygenBlock, error)
 }
@@ -179,6 +178,10 @@ type KeeperRagnarok interface {
 	RagnarokInProgress(_ cosmos.Context) bool
 	GetRagnarokBlockHeight(_ cosmos.Context) (int64, error)
 	SetRagnarokBlockHeight(_ cosmos.Context, _ int64)
+	GetRagnarokNth(_ cosmos.Context) (int64, error)
+	SetRagnarokNth(_ cosmos.Context, _ int64)
+	GetRagnarokPending(_ cosmos.Context) (int64, error)
+	SetRagnarokPending(_ cosmos.Context, _ int64)
 }
 
 type KeeperGas interface {

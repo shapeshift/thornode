@@ -33,5 +33,5 @@ func NewChainPoolInfo(chain Chain, pubKey PubKey) (ChainPoolInfo, error) {
 
 // IsEmpty whether the struct is empty
 func (cpi ChainPoolInfo) IsEmpty() bool {
-	return cpi.Chain.IsEmpty() && cpi.PubKey.IsEmpty()
+	return cpi.Chain.IsEmpty() || cpi.PubKey.IsEmpty()
 }

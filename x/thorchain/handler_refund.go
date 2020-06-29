@@ -25,6 +25,7 @@ func NewRefundHandler(keeper keeper.Keeper, mgr Manager) RefundHandler {
 	}
 }
 
+// Run is the main entry point to process refund outbound message
 func (h RefundHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	msg, ok := m.(MsgRefundTx)
 	if !ok {

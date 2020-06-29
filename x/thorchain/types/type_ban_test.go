@@ -10,13 +10,16 @@ var _ = Suite(&BanVoterSuite{})
 
 func (s BanVoterSuite) TestVoter(c *C) {
 	ban := BanVoter{}
-	c.Check(ban.IsValid(), NotNil)
+	c.Check(ban.Valid(), NotNil)
 	c.Check(ban.IsEmpty(), Equals, true)
 
 	addr := GetRandomBech32Addr()
 	ban = NewBanVoter(addr)
-	c.Check(ban.IsValid(), IsNil)
+	ban.BlockHeight = 12
+
+	c.Check(ban.Valid(), IsNil)
 	c.Check(ban.IsEmpty(), Equals, false)
+	c.Check(ban.String(), Equals, addr.String())
 
 	c.Check(ban.HasSigned(addr), Equals, false)
 	ban.Sign(addr)

@@ -1,9 +1,10 @@
 package types
 
 import (
-	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	. "gopkg.in/check.v1"
+
+	"gitlab.com/thorchain/thornode/common"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 type MsgSwapSuite struct{}
@@ -127,7 +128,7 @@ func (MsgSwapSuite) TestMsgSwap(c *C) {
 		tx := common.NewTx(
 			item.requestTxHash,
 			item.requester,
-			item.destination,
+			GetRandomBNBAddress(),
 			common.Coins{
 				common.NewCoin(item.source, item.amount),
 			},

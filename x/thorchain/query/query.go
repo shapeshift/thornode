@@ -37,6 +37,7 @@ var (
 	QueryPools              = Query{Key: "pools", EndpointTemplate: "/%s/pools"}
 	QueryStakers            = Query{Key: "stakers", EndpointTemplate: "/%s/pool/{%s}/stakers"}
 	QueryTxIn               = Query{Key: "txin", EndpointTemplate: "/%s/tx/{%s}"}
+	QueryTxInVoter          = Query{Key: "txinvoter", EndpointTemplate: "/%s/tx/{%s}/voter"}
 	QueryKeysignArray       = Query{Key: "keysign", EndpointTemplate: "/%s/keysign/{%s}"}
 	QueryKeysignArrayPubkey = Query{Key: "keysignpubkey", EndpointTemplate: "/%s/keysign/{%s}/{%s}"}
 	QueryKeygensPubkey      = Query{Key: "keygenspubkey", EndpointTemplate: "/%s/keygen/{%s}/{%s}"}
@@ -66,6 +67,7 @@ var Queries = []Query{
 	QueryPool,
 	QueryPools,
 	QueryStakers,
+	QueryTxInVoter,
 	QueryTxIn,
 	QueryKeysignArray,
 	QueryKeysignArrayPubkey,

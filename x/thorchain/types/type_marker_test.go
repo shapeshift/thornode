@@ -15,9 +15,14 @@ func (s *TxMarkerSuite) TestTxMarker(c *C) {
 	c.Check(mark.IsEmpty(), Equals, true)
 	mark = NewTxMarker(12, "bar")
 	c.Check(mark.IsEmpty(), Equals, false)
+	c.Check(len(mark.String()) > 0, Equals, true)
 }
 
 func (s *TxMarkerSuite) TestTxMarkers(c *C) {
+	emptyMarkers := TxMarkers{}
+	m, markers := emptyMarkers.Pop()
+	c.Check(m.IsEmpty(), Equals, true)
+	c.Check(markers, IsNil)
 	marks := TxMarkers{
 		NewTxMarker(10, "foo"),
 		NewTxMarker(100, "bar"),

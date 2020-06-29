@@ -12,7 +12,7 @@ import (
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
-func validateUnstake(ctx cosmos.Context, keeper keeper.Keeper, msg MsgSetUnStake) error {
+func validateUnstake(ctx cosmos.Context, keeper keeper.Keeper, msg MsgUnStake) error {
 	if msg.RuneAddress.IsEmpty() {
 		return errors.New("empty rune address")
 	}
@@ -35,7 +35,7 @@ func validateUnstake(ctx cosmos.Context, keeper keeper.Keeper, msg MsgSetUnStake
 
 // unstake withdraw all the asset
 // it returns runeAmt,assetAmount,units, lastUnstake,err
-func unstake(ctx cosmos.Context, version semver.Version, keeper keeper.Keeper, msg MsgSetUnStake, manager Manager) (cosmos.Uint, cosmos.Uint, cosmos.Uint, cosmos.Uint, error) {
+func unstake(ctx cosmos.Context, version semver.Version, keeper keeper.Keeper, msg MsgUnStake, manager Manager) (cosmos.Uint, cosmos.Uint, cosmos.Uint, cosmos.Uint, error) {
 	if err := validateUnstake(ctx, keeper, msg); err != nil {
 		ctx.Logger().Error("msg unstake fail validation", "error", err)
 		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), err
@@ -84,6 +84,7 @@ func unstake(ctx cosmos.Context, version semver.Version, keeper keeper.Keeper, m
 			return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), errUnstakeFail
 		}
 		// minus gas costs for our transactions
+		// TODO: chain specific logic should be in a single location
 		if pool.Asset.IsBNB() && !common.RuneAsset().Chain.Equals(common.THORChain) {
 			originalAsset := withDrawAsset
 			withDrawAsset = common.SafeSub(
@@ -114,7 +115,7 @@ func unstake(ctx cosmos.Context, version semver.Version, keeper keeper.Keeper, m
 	// Create a pool event if THORNode have no rune or assets
 	if pool.BalanceAsset.IsZero() || pool.BalanceRune.IsZero() {
 		poolEvt := NewEventPool(pool.Asset, PoolBootstrap)
-		if err := manager.EventMgr().EmitPoolEvent(ctx, poolEvt); nil != err {
+		if err := manager.EventMgr().EmitEvent(ctx, poolEvt); nil != err {
 			ctx.Logger().Error("fail to emit pool event", "error", err)
 		}
 		pool.Status = PoolBootstrap

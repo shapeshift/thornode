@@ -6,19 +6,21 @@ import (
 	"sort"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 )
 
 // VaultType there are two different types of Vault in thorchain
 type VaultType string
 
+// different type of vaults
 const (
 	UnknownVault   VaultType = "unknown"
 	AsgardVault    VaultType = "asgard"
 	YggdrasilVault VaultType = "yggdrasil"
 )
 
+// VaultStatus status of vault
 type VaultStatus string
 
 const (
@@ -30,7 +32,7 @@ const (
 	InactiveVault VaultStatus = "inactive"
 )
 
-// Vault usually represent the pool we are using
+// Vault usually represent the account THORNode is using
 type Vault struct {
 	BlockHeight           int64          `json:"block_height"`
 	PubKey                common.PubKey  `json:"pub_key"`
@@ -45,6 +47,7 @@ type Vault struct {
 	PendingTxBlockHeights []int64        `json:"pending_tx_heights"`
 }
 
+// Vaults a list of vault
 type Vaults []Vault
 
 // NewVault create a new instance of vault
@@ -91,8 +94,8 @@ func (v *Vault) UpdateStatus(s VaultStatus, height int64) {
 	v.StatusSince = height
 }
 
-// IsValid check whether Vault has all necessary values
-func (v Vault) IsValid() error {
+// Valid check whether Vault has all necessary values
+func (v Vault) Valid() error {
 	if v.PubKey.IsEmpty() {
 		return errors.New("pubkey cannot be empty")
 	}
@@ -123,7 +126,7 @@ func (v Vault) HasFundsForChain(chain common.Chain) bool {
 func (v Vault) CoinLength() (count int) {
 	for _, coin := range v.Coins {
 		if !coin.Amount.IsZero() {
-			count += 1
+			count++
 		}
 	}
 	return
@@ -164,44 +167,48 @@ func (v Vault) GetMembers(activeObservers []cosmos.AccAddress) (common.PubKeys, 
 // AddFunds add given coins into vault
 func (v *Vault) AddFunds(coins common.Coins) {
 	for _, coin := range coins {
-		found := false
-		for i, ycoin := range v.Coins {
-			if coin.Asset.Equals(ycoin.Asset) {
-				v.Coins[i].Amount = ycoin.Amount.Add(coin.Amount)
-				found = true
-				break
-			}
-		}
-		if found {
-			continue
-		}
-		if !v.Chains.Has(coin.Asset.Chain) {
-			v.Chains = append(v.Chains, coin.Asset.Chain)
-		}
-		v.Coins = append(v.Coins, coin)
+		v.addFund(coin)
 	}
+}
+
+func (v *Vault) addFund(coin common.Coin) {
+	for i, ycoin := range v.Coins {
+		if ycoin.Asset.Equals(coin.Asset) {
+			v.Coins[i].Amount = ycoin.Amount.Add(coin.Amount)
+			return
+		}
+	}
+
+	if !v.Chains.Has(coin.Asset.Chain) {
+		v.Chains = append(v.Chains, coin.Asset.Chain)
+	}
+
+	v.Coins = append(v.Coins, coin)
 }
 
 // SubFunds subtract given coins from vault
 func (v *Vault) SubFunds(coins common.Coins) {
 	for _, coin := range coins {
-		for i, ycoin := range v.Coins {
-			if coin.Asset.Equals(ycoin.Asset) {
-				// safeguard to protect against enter negative values
-				if coin.Amount.GTE(ycoin.Amount) {
-					coin.Amount = ycoin.Amount
-				}
-				v.Coins[i].Amount = common.SafeSub(ycoin.Amount, coin.Amount)
+		v.subFund(coin)
+	}
+}
+
+func (v *Vault) subFund(coin common.Coin) {
+	for i, ycoin := range v.Coins {
+		if coin.Asset.Equals(ycoin.Asset) {
+			// safeguard to protect against enter negative values
+			if coin.Amount.GTE(ycoin.Amount) {
+				coin.Amount = ycoin.Amount
 			}
+			v.Coins[i].Amount = common.SafeSub(ycoin.Amount, coin.Amount)
+			return
 		}
 	}
 }
 
 // AppendPendingTxBlockHeights will add current block height into the list , also remove the block height that is too old
 func (v *Vault) AppendPendingTxBlockHeights(blockHeight int64, constAccessor constants.ConstantValues) {
-	heights := []int64{
-		blockHeight,
-	}
+	heights := []int64{blockHeight}
 	for _, item := range v.PendingTxBlockHeights {
 		if (blockHeight - item) <= constAccessor.GetInt64Value(constants.SigningTransactionPeriod) {
 			heights = append(heights, item)
@@ -240,37 +247,41 @@ func (v *Vault) LenPendingTxBlockHeights(currentBlockHeight int64, constAccessor
 func (vs Vaults) SortBy(sortBy common.Asset) Vaults {
 	// use the vault pool with the highest quantity of our coin
 	sort.SliceStable(vs[:], func(i, j int) bool {
-		return vs[i].GetCoin(sortBy).Amount.GT(
-			vs[j].GetCoin(sortBy).Amount,
-		)
+		return vs[i].GetCoin(sortBy).Amount.GT(vs[j].GetCoin(sortBy).Amount)
 	})
-
 	return vs
 }
 
 // SelectByMinCoin return the vault that has least of given asset
 func (vs Vaults) SelectByMinCoin(asset common.Asset) (vault Vault) {
+	if len(vs) == 1 {
+		vault = vs[0]
+		return
+	}
 	for _, v := range vs {
 		if vault.IsEmpty() || v.GetCoin(asset).Amount.LT(vault.GetCoin(asset).Amount) {
 			vault = v
 		}
 	}
-
 	return
 }
 
 // SelectByMaxCoin return the vault that has most of given asset
 func (vs Vaults) SelectByMaxCoin(asset common.Asset) (vault Vault) {
+	if len(vs) == 1 {
+		vault = vs[0]
+		return
+	}
 	for _, v := range vs {
-		if v.GetCoin(asset).Amount.GT(vault.GetCoin(asset).Amount) {
+		if vault.IsEmpty() || v.GetCoin(asset).Amount.GT(vault.GetCoin(asset).Amount) {
 			vault = v
 		}
 	}
-
 	return
 }
 
-// HasAddress will go through the vaults to determinate whether any of the vault match the given address on the given chain
+// HasAddress will go through the vaults to determinate whether any of the
+// vault match the given address on the given chain
 func (vs Vaults) HasAddress(chain common.Chain, address common.Address) (bool, error) {
 	for _, item := range vs {
 		addr, err := item.PubKey.GetAddress(chain)

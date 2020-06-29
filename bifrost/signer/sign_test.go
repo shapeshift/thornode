@@ -191,7 +191,7 @@ func (b *MockChainClient) GetHeight() (int64, error) {
 
 func (b *MockChainClient) GetGasFee(count uint64) common.Gas {
 	coins := make(common.Coins, count)
-	return common.CalcGasPrice(common.Tx{Coins: coins}, common.BNBAsset, []cosmos.Uint{cosmos.NewUint(37500), cosmos.NewUint(30000)})
+	return common.CalcBinanceGasPrice(common.Tx{Coins: coins}, common.BNBAsset, []cosmos.Uint{cosmos.NewUint(37500), cosmos.NewUint(30000)})
 }
 
 func (b *MockChainClient) CheckIsTestNet() (string, bool) {

@@ -21,7 +21,7 @@ type TxOutStorageV1 struct {
 	gasManager    GasManager
 }
 
-// NewTxOutStorage will create a new instance of TxOutStore.
+// NewTxOutStorageV1 will create a new instance of TxOutStore.
 func NewTxOutStorageV1(keeper keeper.Keeper, constAccessor constants.ConstantValues, eventMgr EventManager, gasManager GasManager) *TxOutStorageV1 {
 	return &TxOutStorageV1{
 		keeper:        keeper,
@@ -57,7 +57,9 @@ func (tos *TxOutStorageV1) GetOutboundItemByToAddress(ctx cosmos.Context, to com
 	return filterItems
 }
 
-func (tos *TxOutStorageV1) ClearOutboundItems(_ cosmos.Context) {} // do nothing
+func (tos *TxOutStorageV1) ClearOutboundItems(ctx cosmos.Context) {
+	_ = tos.keeper.ClearTxOut(ctx, common.BlockHeight(ctx))
+}
 
 // TryAddTxOutItem add an outbound tx to block
 // return bool indicate whether the transaction had been added successful or not
@@ -170,6 +172,7 @@ func (tos *TxOutStorageV1) prepareTxOutItem(ctx cosmos.Context, toi *TxOutItem) 
 			maxGasCoin,
 		}
 	}
+
 	// Deduct TransactionFee from TOI and add to Reserve
 	memo, err := ParseMemo(toi.Memo) // ignore err
 	if err == nil && !memo.IsType(TxYggdrasilFund) && !memo.IsType(TxYggdrasilReturn) && !memo.IsType(TxMigrate) && !memo.IsType(TxRagnarok) {
@@ -278,7 +281,19 @@ func (tos *TxOutStorageV1) addToBlockOut(ctx cosmos.Context, mgr Manager, toi *T
 		toi.Memo = ""
 	}
 
+	if memo.IsType(TxRagnarok) {
+		pending, err := tos.keeper.GetRagnarokPending(ctx)
+		if err != nil {
+			return fmt.Errorf("fail to get ragnarok pending: %w", err)
+		}
+		tos.keeper.SetRagnarokPending(ctx, pending+1)
+	}
+
 	return tos.keeper.AppendTxOut(ctx, common.BlockHeight(ctx), toi)
+}
+
+func (tos *TxOutStorageV1) getModuleNameFromAddress(ctx cosmos.Context) string {
+	return ""
 }
 
 func (tos *TxOutStorageV1) nativeTxOut(ctx cosmos.Context, mgr Manager, toi *TxOutItem) error {
@@ -299,7 +314,7 @@ func (tos *TxOutStorageV1) nativeTxOut(ctx cosmos.Context, mgr Manager, toi *TxO
 		return errors.New(sdkErr.Error())
 	}
 
-	from, err := common.NewAddress(supplier.GetModuleAddress(AsgardName).String())
+	from, err := common.NewAddress(supplier.GetModuleAddress(toi.ModuleName).String())
 	if err != nil {
 		ctx.Logger().Error("fail to get from address", "err", err)
 		return err
@@ -356,8 +371,10 @@ func (tos *TxOutStorageV1) collectYggdrasilPools(ctx cosmos.Context, tx Observed
 		if !vault.IsYggdrasil() {
 			continue
 		}
-		// When trying to choose a ygg pool candidate to send out fund , let's make sure the ygg pool has gasAsset , for example, if it is
-		// on Binance chain , make sure ygg pool has BNB asset in it , otherwise it won't be able to pay the transaction fee
+		// When trying to choose a ygg pool candidate to send out fund , let's
+		// make sure the ygg pool has gasAsset , for example, if it is
+		// on Binance chain , make sure ygg pool has BNB asset in it ,
+		// otherwise it won't be able to pay the transaction fee
 		if !vault.HasAsset(gasAsset) {
 			continue
 		}
@@ -368,7 +385,9 @@ func (tos *TxOutStorageV1) collectYggdrasilPools(ctx cosmos.Context, tx Observed
 			return nil, fmt.Errorf("fail to get thor address from pub key(%s):%w", vault.PubKey, err)
 		}
 
-		// if the ygg pool didn't observe the TxIn, and didn't sign the TxIn, THORNode is not going to choose them to send out fund , because they might offline
+		// if the ygg pool didn't observe the TxIn, and didn't sign the TxIn,
+		// THORNode is not going to choose them to send out fund , because they
+		// might offline
 		if !tx.HasSigned(addr) {
 			continue
 		}

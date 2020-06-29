@@ -25,9 +25,7 @@ type swapItems []swapItem
 
 // NewSwapQv1 create a new vault manager
 func NewSwapQv1(k keeper.Keeper) *SwapQv1 {
-	return &SwapQv1{
-		k: k,
-	}
+	return &SwapQv1{k: k}
 }
 
 // FetchQueue - grabs all swap queue items from the kvstore and returns them
@@ -70,7 +68,7 @@ func (vm *SwapQv1) EndBlock(ctx cosmos.Context, mgr Manager, version semver.Vers
 		_, err := handler.handle(ctx, pick.msg, version, constAccessor)
 		if err != nil {
 			ctx.Logger().Error("fail to swap", "msg", pick.msg.Tx.String(), "error", err)
-			if newErr := refundTx(ctx, ObservedTx{Tx: pick.msg.Tx}, mgr, vm.k, constAccessor, CodeSwapFail, err.Error()); nil != newErr {
+			if newErr := refundTx(ctx, ObservedTx{Tx: pick.msg.Tx}, mgr, vm.k, constAccessor, CodeSwapFail, err.Error(), ""); nil != newErr {
 				ctx.Logger().Error("fail to refund swap", "error", err)
 			}
 		}
@@ -119,7 +117,7 @@ func (vm *SwapQv1) ScoreMsgs(ctx cosmos.Context, msgs []MsgSwap) (swapItems, err
 		}
 
 		pool := pools[msg.TargetAsset]
-		if pool.Empty() || !pool.IsEnabled() || pool.BalanceRune.IsZero() || pool.BalanceAsset.IsZero() {
+		if pool.IsEmpty() || !pool.IsEnabled() || pool.BalanceRune.IsZero() || pool.BalanceAsset.IsZero() {
 			items = append(items, item)
 			continue
 		}
@@ -186,7 +184,16 @@ func (items swapItems) Sort() swapItems {
 		}
 	}
 
-	// sort by score
+	// This sorted appears to sort twice, but actually the first sort informs
+	// the second. If we have multiple swaps with the same score, it will use
+	// the ID sort to deterministically sort within the same score
+
+	// sort by ID, first
+	sort.SliceStable(scores, func(i, j int) bool {
+		return scores[i].msg.Tx.ID.String() < scores[j].msg.Tx.ID.String()
+	})
+
+	// sort by score, second
 	sort.SliceStable(scores, func(i, j int) bool {
 		return scores[i].score < scores[j].score
 	})

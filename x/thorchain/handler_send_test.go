@@ -64,6 +64,10 @@ func (s *HandlerSendSuite) TestHandle(c *C) {
 	_, err = handler.handle(ctx, msg, constants.SWVersion, constAccessor)
 	c.Assert(err, IsNil)
 
+	// invalid msg should result in a error
+	result, err := handler.Run(ctx, NewMsgNetworkFee(ctx.BlockHeight(), common.BNBChain, 1, bnbSingleTxFee.Uint64(), GetRandomBech32Addr()), constants.SWVersion, constAccessor)
+	c.Assert(err, NotNil)
+	c.Assert(result, IsNil)
 	// insufficient funds
 	coin, err = common.NewCoin(common.RuneNative, cosmos.NewUint(3000*common.One)).Native()
 	c.Assert(err, IsNil)
@@ -74,4 +78,7 @@ func (s *HandlerSendSuite) TestHandle(c *C) {
 	}
 	_, err = handler.handle(ctx, msg, constants.SWVersion, constAccessor)
 	c.Assert(err, NotNil)
+	result, err = handler.Run(ctx, msg, constants.SWVersion, constAccessor)
+	c.Assert(err, NotNil)
+	c.Assert(result, IsNil)
 }

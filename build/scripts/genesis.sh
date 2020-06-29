@@ -60,7 +60,7 @@ if [ "$SEED" = "$(hostname)" ]; then
       add_vault $VAULT_PUBKEY $(echo "$PUBKEYS" | sed -e 's/^,*//')
     fi
 
-    NODE_IP_ADDRESS=$(curl -s http://whatismyip.akamai.com/)
+    NODE_IP_ADDRESS=${EXTERNAL_IP:=$(curl -s http://whatismyip.akamai.com)}
 
     # add node accounts to genesis file
     for f in /tmp/shared/node_*.json; do
@@ -88,6 +88,12 @@ if [ "$SEED" = "$(hostname)" ]; then
     fi
 
     reserve 22000000000000000
+
+    # enable telemetry through prometheus metrics endpoint
+    enable_telemetry
+
+    # use external IP if available
+    [ ! -z $EXTERNAL_IP ] && external_address $EXTERNAL_IP $NET
 
     cat ~/.thord/config/genesis.json
     thord validate-genesis

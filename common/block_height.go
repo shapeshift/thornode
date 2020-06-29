@@ -15,6 +15,7 @@ import (
 // those maths assume block height is only ever increasing.
 const heightShift int64 = 0
 
+// BlockHeight return the adjusted block height
 func BlockHeight(ctx cosmos.Context) int64 {
 	return heightShift + ctx.BlockHeight()
 }

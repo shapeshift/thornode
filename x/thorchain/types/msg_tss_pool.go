@@ -10,7 +10,7 @@ import (
 	"gitlab.com/thorchain/tss/go-tss/blame"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 // MsgTssPool defines a MsgTssPool message
@@ -55,7 +55,7 @@ func getTssID(members common.PubKeys, poolPk common.PubKey, height int64) string
 	return hex.EncodeToString(hash.Sum([]byte(sb.String())))
 }
 
-// Route should return the cmname of the module
+// Route should return the route key of the module
 func (msg MsgTssPool) Route() string { return RouterKey }
 
 // Type should return the action
@@ -90,36 +90,16 @@ func (msg MsgTssPool) ValidateBasic() error {
 	if _, err := common.NewPubKey(msg.PoolPubKey.String()); err != nil {
 		return cosmos.ErrUnknownRequest(err.Error())
 	}
-
-	// ensure we have rune chain
-	found := false
-	for _, chain := range msg.Chains {
-		if chain.Equals(common.RuneAsset().Chain) {
-			found = true
-			break
-		}
-	}
-	if !found {
+	if !msg.Chains.Has(common.RuneAsset().Chain) {
 		return cosmos.ErrUnknownRequest("must support rune asset chain")
 	}
-
-	// ensure there are no duplicate chains
-	chainDup := make(map[common.Chain]int, 0)
-	for _, chain := range msg.Chains {
-		if _, ok := chainDup[chain]; !ok {
-			chainDup[chain] = 0
-		}
-		chainDup[chain]++
+	if len(msg.Chains) != len(msg.Chains.Distinct()) {
+		return cosmos.ErrUnknownRequest("cannot have duplicate chains")
 	}
-	for k, v := range chainDup {
-		if v > 1 {
-			return cosmos.ErrUnknownRequest(fmt.Sprintf("cannot have duplicate chains (%s)", k.String()))
-		}
-	}
-
 	return nil
 }
 
+// IsSuccess when blame is empty , then treat it as success
 func (msg MsgTssPool) IsSuccess() bool {
 	return msg.Blame.IsEmpty()
 }
