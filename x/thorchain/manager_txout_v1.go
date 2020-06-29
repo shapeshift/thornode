@@ -5,9 +5,9 @@ import (
 	"fmt"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // ErrNotEnoughToPayFee will happen when the emitted asset is not enough to pay for fee
@@ -55,6 +55,7 @@ func (tos *TxOutStorageV1) GetOutboundItemByToAddress(ctx cosmos.Context, to com
 	return filterItems
 }
 
+// ClearOutboundItems remove all the tx out items , mostly used for test
 func (tos *TxOutStorageV1) ClearOutboundItems(ctx cosmos.Context) {
 	_ = tos.keeper.ClearTxOut(ctx, common.BlockHeight(ctx))
 }
@@ -83,7 +84,7 @@ func (tos *TxOutStorageV1) UnSafeAddTxOutItem(ctx cosmos.Context, mgr Manager, t
 	return tos.addToBlockOut(ctx, mgr, toi)
 }
 
-// PrepareTxOutItem will do some data validation which include the following
+// prepareTxOutItem will do some data validation which include the following
 // 1. Make sure it has a legitimate memo
 // 2. choose an appropriate pool,Yggdrasil or Asgard
 // 3. deduct transaction fee, keep in mind, only take transaction fee when active nodes are  more then minimumBFT
@@ -104,14 +105,17 @@ func (tos *TxOutStorageV1) prepareTxOutItem(ctx cosmos.Context, toi *TxOutItem) 
 			// tx.
 
 			activeNodeAccounts, err := tos.keeper.ListActiveNodeAccounts(ctx)
-			if len(activeNodeAccounts) > 0 && err == nil {
+			if err != nil {
+				ctx.Logger().Error("fail to get all active node accounts", "error", err)
+			}
+			if len(activeNodeAccounts) > 0 {
 				voter, err := tos.keeper.GetObservedTxInVoter(ctx, toi.InHash)
 				if err != nil {
 					return false, fmt.Errorf("fail to get observed tx voter: %w", err)
 				}
 				tx := voter.GetTx(activeNodeAccounts)
 
-				// collect yggdrasil pools
+				// collect yggdrasil pools is going to get a list of yggdrasil vault that THORChain can used to send out fund
 				yggs, err := tos.collectYggdrasilPools(ctx, tx, toi.Chain.GetGasAsset())
 				if err != nil {
 					return false, fmt.Errorf("fail to collect yggdrasil pool: %w", err)
@@ -126,14 +130,12 @@ func (tos *TxOutStorageV1) prepareTxOutItem(ctx cosmos.Context, toi *TxOutItem) 
 			}
 		}
 
-		// Apparently we couldn't find a yggdrasil vault to send from, so use asgard
+		// Apparently  couldn't find a yggdrasil vault to send from, so use asgard
 		if toi.VaultPubKey.IsEmpty() {
-
 			active, err := tos.keeper.GetAsgardVaultsByStatus(ctx, ActiveVault)
 			if err != nil {
 				ctx.Logger().Error("fail to get active vaults", "error", err)
 			}
-
 			vault := active.SelectByMaxCoin(toi.Coin.Asset)
 			if vault.IsEmpty() {
 				return false, fmt.Errorf("empty vault, cannot send out fund: %s", toi.Coin)
@@ -254,6 +256,7 @@ func (tos *TxOutStorageV1) prepareTxOutItem(ctx cosmos.Context, toi *TxOutItem) 
 }
 
 func (tos *TxOutStorageV1) addToBlockOut(ctx cosmos.Context, mgr Manager, toi *TxOutItem) error {
+	// THORChain , native RUNE will not need to forward the txout to bifrost
 	if toi.Chain.Equals(common.THORChain) {
 		return tos.nativeTxOut(ctx, mgr, toi)
 	}
@@ -292,10 +295,6 @@ func (tos *TxOutStorageV1) addToBlockOut(ctx cosmos.Context, mgr Manager, toi *T
 	}
 
 	return tos.keeper.AppendTxOut(ctx, common.BlockHeight(ctx), toi)
-}
-
-func (tos *TxOutStorageV1) getModuleNameFromAddress(ctx cosmos.Context) string {
-	return ""
 }
 
 func (tos *TxOutStorageV1) nativeTxOut(ctx cosmos.Context, mgr Manager, toi *TxOutItem) error {
@@ -361,6 +360,7 @@ func (tos *TxOutStorageV1) nativeTxOut(ctx cosmos.Context, mgr Manager, toi *TxO
 	return nil
 }
 
+// collectYggdrasilPools is to get all the yggdrasil vaults , that THORChain can used to send out fund
 func (tos *TxOutStorageV1) collectYggdrasilPools(ctx cosmos.Context, tx ObservedTx, gasAsset common.Asset) (Vaults, error) {
 	// collect yggdrasil pools
 	var vaults Vaults
@@ -413,15 +413,15 @@ func (tos *TxOutStorageV1) collectYggdrasilPools(ctx cosmos.Context, tx Observed
 		// given the fact, there might have multiple TxOutItem get created with in one block, and the fund has not been deducted from vault and save back to key values store,
 		// thus every previously processed TxOut need to be deducted from the ygg vault to make sure THORNode has a correct view of the ygg funds
 
-		for _, tx := range block.TxArray {
-			if !tx.VaultPubKey.Equals(vault.PubKey) {
+		for _, txOutItem := range block.TxArray {
+			if !txOutItem.VaultPubKey.Equals(vault.PubKey) {
 				continue
 			}
 			for i, yggCoin := range vault.Coins {
-				if !yggCoin.Asset.Equals(tx.Coin.Asset) {
+				if !yggCoin.Asset.Equals(txOutItem.Coin.Asset) {
 					continue
 				}
-				vault.Coins[i].Amount = common.SafeSub(vault.Coins[i].Amount, tx.Coin.Amount)
+				vault.Coins[i].Amount = common.SafeSub(vault.Coins[i].Amount, txOutItem.Coin.Amount)
 			}
 		}
 
