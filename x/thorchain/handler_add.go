@@ -5,9 +5,9 @@ import (
 
 	"github.com/blang/semver"
 
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // AddHandler is to handle Add message
@@ -52,7 +52,8 @@ func (h AddHandler) validateV1(ctx cosmos.Context, msg MsgAdd) error {
 	return nil
 }
 
-// handle  process MsgAdd
+// handle process MsgAdd, MsgAdd add asset and RUNE to the asset pool
+// it simply increase the pool asset/RUNE balance but without taking any of the pool units
 func (h AddHandler) handle(ctx cosmos.Context, msg MsgAdd, version semver.Version) (*cosmos.Result, error) {
 	pool, err := h.keeper.GetPool(ctx, msg.Asset)
 	if err != nil {
@@ -61,19 +62,15 @@ func (h AddHandler) handle(ctx cosmos.Context, msg MsgAdd, version semver.Versio
 	if pool.Asset.IsEmpty() {
 		return nil, cosmos.ErrUnknownRequest(fmt.Sprintf("pool %s not exist", msg.Asset.String()))
 	}
-	if msg.AssetAmount.GT(cosmos.ZeroUint()) {
-		pool.BalanceAsset = pool.BalanceAsset.Add(msg.AssetAmount)
-	}
-	if msg.RuneAmount.GT(cosmos.ZeroUint()) {
-		pool.BalanceRune = pool.BalanceRune.Add(msg.RuneAmount)
-	}
+	pool.BalanceAsset = pool.BalanceAsset.Add(msg.AssetAmount)
+	pool.BalanceRune = pool.BalanceRune.Add(msg.RuneAmount)
 
 	if err := h.keeper.SetPool(ctx, pool); err != nil {
 		return nil, ErrInternal(err, fmt.Sprintf("fail to set pool(%s)", pool))
 	}
 	// emit event
 	addEvt := NewEventAdd(pool.Asset, msg.Tx)
-	if err := h.mgr.EventMgr().EmitAddEvent(ctx, addEvt); err != nil {
+	if err := h.mgr.EventMgr().EmitEvent(ctx, addEvt); err != nil {
 		return nil, cosmos.Wrapf(errFailSaveEvent, "fail to save add events: %w", err)
 	}
 	return &cosmos.Result{}, nil

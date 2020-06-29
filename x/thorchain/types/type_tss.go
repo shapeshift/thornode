@@ -1,10 +1,13 @@
 package types
 
 import (
+	"sort"
+
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
+// TssVoter keep track of tss message
 type TssVoter struct {
 	ID          string              `json:"id"` // checksum of sorted input pubkeys
 	PoolPubKey  common.PubKey       `json:"pool_pub_key"`
@@ -14,6 +17,7 @@ type TssVoter struct {
 	Signers     []cosmos.AccAddress `json:"signers"`
 }
 
+// NewTssVoter create a new instance of TssVoter
 func NewTssVoter(id string, pks common.PubKeys, pool common.PubKey) TssVoter {
 	return TssVoter{
 		ID:         id,
@@ -48,7 +52,7 @@ func (tss *TssVoter) Sign(signer cosmos.AccAddress, chains common.Chains) bool {
 	return false
 }
 
-// ConsensusChains - get a list o chains that have 2/3rds majority
+// ConsensusChains - get a list of chains that have 2/3rds majority
 func (tss *TssVoter) ConsensusChains() common.Chains {
 	chainCount := make(map[common.Chain]int, 0)
 	for _, chain := range tss.Chains {
@@ -65,25 +69,25 @@ func (tss *TssVoter) ConsensusChains() common.Chains {
 		}
 	}
 
+	// sort chains for consistency
+	sort.SliceStable(chains, func(i, j int) bool {
+		return chains[i].String() < chains[j].String()
+	})
+
 	return chains
 }
 
-// Determine if this tss pool has enough signers
+// HasConsensus determine if this tss pool has enough signers
 func (tss *TssVoter) HasConsensus() bool {
-	if HasSuperMajority(len(tss.Signers), len(tss.PubKeys)) {
-		return true
-	}
-
-	return false
+	return HasSuperMajority(len(tss.Signers), len(tss.PubKeys))
 }
 
-func (tss *TssVoter) Empty() bool {
-	if len(tss.ID) == 0 || len(tss.PoolPubKey) == 0 || len(tss.PubKeys) == 0 {
-		return true
-	}
-	return false
+// Empty check whether TssVoter represent empty info
+func (tss *TssVoter) IsEmpty() bool {
+	return len(tss.ID) == 0 || len(tss.PoolPubKey) == 0 || len(tss.PubKeys) == 0
 }
 
+// String implement fmt.Stringer
 func (tss *TssVoter) String() string {
 	return tss.ID
 }

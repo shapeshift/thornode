@@ -18,7 +18,7 @@ func NewMsgObservedTxIn(txs ObservedTxs, signer cosmos.AccAddress) MsgObservedTx
 	}
 }
 
-// Route should return the cmname of the module
+// Route should return the route key of the module
 func (msg MsgObservedTxIn) Route() string { return RouterKey }
 
 // Type should return the action
@@ -48,6 +48,9 @@ func (msg MsgObservedTxIn) ValidateBasic() error {
 		}
 		if len(tx.OutHashes) > 0 {
 			return cosmos.ErrUnknownRequest("out hashes must be empty")
+		}
+		if tx.Status != Incomplete {
+			return cosmos.ErrUnknownRequest("status must be incomplete")
 		}
 	}
 

@@ -52,12 +52,12 @@ func (h BondHandler) validateV1(ctx cosmos.Context, version semver.Version, msg 
 	}
 
 	bond := msg.Bond.Add(nodeAccount.Bond)
-	if (bond).LT(minValidatorBond) {
+	if bond.LT(minValidatorBond) {
 		return cosmos.ErrUnknownRequest(fmt.Sprintf("not enough rune to be whitelisted , minimum validator bond (%s) , bond(%s)", minValidatorBond.String(), bond))
 	}
 
 	maxBond, err := h.keeper.GetMimir(ctx, "MaximumBondInRune")
-	if maxBond > 0 && err != nil {
+	if maxBond > 0 && err == nil {
 		maxValidatorBond := cosmos.NewUint(uint64(maxBond))
 		if bond.GT(maxValidatorBond) {
 			return cosmos.ErrUnknownRequest(fmt.Sprintf("too much bond, max validator bond (%s), bond(%s)", maxValidatorBond.String(), bond))
@@ -87,7 +87,7 @@ func (h BondHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Versio
 		return nil, err
 	}
 	bondEvent := NewEventBond(msg.Bond, BondPaid, msg.TxIn)
-	if err := h.mgr.EventMgr().EmitBondEvent(ctx, bondEvent); err != nil {
+	if err := h.mgr.EventMgr().EmitEvent(ctx, bondEvent); err != nil {
 		return nil, cosmos.Wrapf(errFailSaveEvent, "fail to emit bond event: %w", err)
 	}
 

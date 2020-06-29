@@ -6,9 +6,9 @@ import (
 	"github.com/blang/semver"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // SwapHandler is the handler to process swap request
@@ -84,15 +84,6 @@ func (h SwapHandler) handleV1(ctx cosmos.Context, msg MsgSwap, version semver.Ve
 		}
 	}
 
-	_, err := h.keeper.Cdc().MarshalBinaryLengthPrefixed(
-		struct {
-			Asset cosmos.Uint `json:"asset"`
-		}{
-			Asset: amount,
-		})
-	if err != nil {
-		return nil, ErrInternal(err, "fail to encode result to json")
-	}
 	toi := &TxOutItem{
 		Chain:     msg.TargetAsset.Chain,
 		InHash:    msg.Tx.ID,

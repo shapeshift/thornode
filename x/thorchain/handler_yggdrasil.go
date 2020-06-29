@@ -1,15 +1,16 @@
 package thorchain
 
 import (
-	stdErrors "errors"
+	"errors"
 	"fmt"
 
 	"github.com/blang/semver"
+	"github.com/hashicorp/go-multierror"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 	kvTypes "gitlab.com/thorchain/thornode/x/thorchain/keeper/types"
 )
 
@@ -75,7 +76,11 @@ func (h YggdrasilHandler) slash(ctx cosmos.Context, version semver.Version, pk c
 	for _, c := range coins {
 		if err := h.mgr.Slasher().SlashNodeAccount(ctx, pk, c.Asset, c.Amount, h.mgr); err != nil {
 			ctx.Logger().Error("fail to slash account", "error", err)
-			returnErr = err
+			if returnErr == nil {
+				returnErr = err
+			} else {
+				returnErr = multierror.Append(returnErr, err)
+			}
 		}
 	}
 	return returnErr
@@ -85,7 +90,7 @@ func (h YggdrasilHandler) handleV1(ctx cosmos.Context, msg MsgYggdrasil, version
 	// update txOut record with our TxID that sent funds out of the pool
 	txOut, err := h.keeper.GetTxOut(ctx, msg.BlockHeight)
 	if err != nil {
-		return nil, cosmos.ErrUnknownRequest(fmt.Errorf("unable to get txOut record: %w", err).Error())
+		return nil, ErrInternal(err, "unable to get txOut record")
 	}
 
 	shouldSlash := true
@@ -125,7 +130,7 @@ func (h YggdrasilHandler) handleV1(ctx cosmos.Context, msg MsgYggdrasil, version
 	}
 
 	vault, err := h.keeper.GetVault(ctx, msg.PubKey)
-	if err != nil && !stdErrors.Is(err, kvTypes.ErrVaultNotFound) {
+	if err != nil && !errors.Is(err, kvTypes.ErrVaultNotFound) {
 		return nil, fmt.Errorf("fail to get yggdrasil: %w", err)
 	}
 	if len(vault.Type) == 0 {
@@ -144,14 +149,14 @@ func (h YggdrasilHandler) handleV1(ctx cosmos.Context, msg MsgYggdrasil, version
 }
 
 func (h YggdrasilHandler) handleYggdrasilFund(ctx cosmos.Context, msg MsgYggdrasil, vault Vault) (*cosmos.Result, error) {
-	if vault.Type == AsgardVault {
+	switch vault.Type {
+	case AsgardVault:
 		ctx.EventManager().EmitEvent(
 			cosmos.NewEvent("asgard_fund_yggdrasil",
 				cosmos.NewAttribute("pubkey", vault.PubKey.String()),
 				cosmos.NewAttribute("coins", msg.Coins.String()),
 				cosmos.NewAttribute("tx", msg.Tx.ID.String())))
-	}
-	if vault.Type == YggdrasilVault {
+	case YggdrasilVault:
 		ctx.EventManager().EmitEvent(
 			cosmos.NewEvent("yggdrasil_receive_fund",
 				cosmos.NewAttribute("pubkey", vault.PubKey.String()),
@@ -167,7 +172,8 @@ func (h YggdrasilHandler) handleYggdrasilFund(ctx cosmos.Context, msg MsgYggdras
 
 func (h YggdrasilHandler) handleYggdrasilReturn(ctx cosmos.Context, msg MsgYggdrasil, vault Vault, version semver.Version) (*cosmos.Result, error) {
 	// observe an outbound tx from yggdrasil vault
-	if vault.Type == YggdrasilVault {
+	switch vault.Type {
+	case YggdrasilVault:
 		asgardVaults, err := h.keeper.GetAsgardVaultsByStatus(ctx, ActiveVault)
 		if err != nil {
 			return nil, ErrInternal(err, "unable to get asgard vaults")
@@ -184,25 +190,10 @@ func (h YggdrasilHandler) handleYggdrasilReturn(ctx cosmos.Context, msg MsgYggdr
 			}
 		}
 
-		na, err := h.keeper.GetNodeAccountByPubKey(ctx, msg.PubKey)
-		if err != nil {
-			return nil, ErrInternal(err, fmt.Sprintf("unable to get node account(%s)", msg.PubKey))
-		}
-		if na.Status == NodeActive {
-			// node still active , no refund bond
-			return &cosmos.Result{}, nil
-		}
-
-		if !vault.HasFunds() {
-			if err := refundBond(ctx, msg.Tx, na, h.keeper, h.mgr); err != nil {
-				return nil, ErrInternal(err, "fail to refund bond")
-			}
-		}
 		return &cosmos.Result{}, nil
-	}
 
-	// when vault.Type is asgard, that means this tx is observed on an asgard pool and it is an inbound tx
-	if vault.Type == AsgardVault {
+	case AsgardVault:
+		// when vault.Type is asgard, that means this tx is observed on an asgard pool and it is an inbound tx
 		// Yggdrasil return fund back to Asgard
 		ctx.EventManager().EmitEvent(
 			cosmos.NewEvent("yggdrasil_return",

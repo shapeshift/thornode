@@ -170,13 +170,13 @@ func (s *VaultManagerTestSuite) TestRagnarokChain(c *C) {
 
 	addr := GetRandomRUNEAddress()
 	stakers := []Staker{
-		Staker{
+		{
 			RuneAddress:     addr,
 			LastStakeHeight: 5,
 			Units:           btcPool.PoolUnits.QuoUint64(2),
 			PendingRune:     cosmos.ZeroUint(),
 		},
-		Staker{
+		{
 			RuneAddress:     GetRandomRUNEAddress(),
 			LastStakeHeight: 10,
 			Units:           btcPool.PoolUnits.QuoUint64(2),

@@ -25,7 +25,8 @@ const (
 	thorchainCliFolderName = `.thorcli`
 )
 
-func refundTx(ctx cosmos.Context, tx ObservedTx, mgr Manager, keeper keeper.Keeper, constAccessor constants.ConstantValues, refundCode uint32, refundReason string) error {
+// nativeRuneModuleName will be empty if it is not NATIVE Rune
+func refundTx(ctx cosmos.Context, tx ObservedTx, mgr Manager, keeper keeper.Keeper, constAccessor constants.ConstantValues, refundCode uint32, refundReason, nativeRuneModuleName string) error {
 	// If THORNode recognize one of the coins, and therefore able to refund
 	// withholding fees, refund all coins.
 
@@ -41,7 +42,7 @@ func refundTx(ctx cosmos.Context, tx ObservedTx, mgr Manager, keeper keeper.Keep
 			fee := getFee(tx.Tx.Coins, refundCoins, transactionFee)
 			eventRefund = NewEventRefund(refundCode, refundReason, newTx, fee)
 		}
-		if err := mgr.EventMgr().EmitRefundEvent(ctx, eventRefund); err != nil {
+		if err := mgr.EventMgr().EmitEvent(ctx, eventRefund); err != nil {
 			return fmt.Errorf("fail to emit refund event: %w", err)
 		}
 		return nil
@@ -75,11 +76,12 @@ func refundTx(ctx cosmos.Context, tx ObservedTx, mgr Manager, keeper keeper.Keep
 				VaultPubKey: tx.ObservedPubKey,
 				Coin:        coin,
 				Memo:        NewRefundMemo(tx.Tx.ID).String(),
+				ModuleName:  nativeRuneModuleName,
 			}
 
 			success, err := mgr.TxOutStore().TryAddTxOutItem(ctx, mgr, toi)
 			if err != nil {
-				return fmt.Errorf("fail to prepare outbund tx: %w", err)
+				ctx.Logger().Error("fail to prepare outbund tx", "error", err)
 			}
 			if success {
 				refundCoins = append(refundCoins, toi.Coin)
@@ -87,7 +89,7 @@ func refundTx(ctx cosmos.Context, tx ObservedTx, mgr Manager, keeper keeper.Keep
 		}
 		// Zombie coins are just dropped.
 	}
-	if !tx.Tx.Chain.Equals(common.THORChain) {
+	if !tx.Tx.Chain.Equals(common.THORChain) && !refundCoins.IsEmpty() {
 		if err := addEvent(refundCoins); err != nil {
 			return err
 		}
@@ -202,10 +204,21 @@ func getTotalYggValueInRune(ctx cosmos.Context, keeper keeper.Keeper, ygg Vault)
 	return yggRune, nil
 }
 
-func refundBond(ctx cosmos.Context, tx common.Tx, nodeAcc NodeAccount, keeper keeper.Keeper, mgr Manager) error {
+func refundBond(ctx cosmos.Context, tx common.Tx, amt cosmos.Uint, nodeAcc NodeAccount, keeper keeper.Keeper, mgr Manager) error {
 	if nodeAcc.Status == NodeActive {
-		ctx.Logger().Info("node still active , cannot refund bond", "node address", nodeAcc.NodeAddress, "node pub key", nodeAcc.PubKeySet.Secp256k1)
+		ctx.Logger().Info("node still active, cannot refund bond", "node address", nodeAcc.NodeAddress, "node pub key", nodeAcc.PubKeySet.Secp256k1)
 		return nil
+	}
+
+	// ensures nodes don't return bond while being churned into the network
+	// (removing their bond last second)
+	if nodeAcc.Status == NodeReady {
+		ctx.Logger().Info("node ready, cannot refund bond", "node address", nodeAcc.NodeAddress, "node pub key", nodeAcc.PubKeySet.Secp256k1)
+		return nil
+	}
+
+	if amt.IsZero() || amt.GT(nodeAcc.Bond) {
+		amt = nodeAcc.Bond
 	}
 
 	ygg := Vault{}
@@ -227,10 +240,13 @@ func refundBond(ctx cosmos.Context, tx common.Tx, nodeAcc NodeAccount, keeper ke
 	}
 
 	if nodeAcc.Bond.LT(yggRune) {
-		ctx.Logger().Error(fmt.Sprintf("Node Account (%s) left with more funds in their Yggdrasil vault than their bond's value (%s / %s)", nodeAcc.NodeAddress, yggRune, nodeAcc.Bond))
+		ctx.Logger().Error("Node Account left with more funds in their Yggdrasil vault than their bond's value", "address", nodeAcc.NodeAddress, "ygg-value", yggRune, "bond", nodeAcc.Bond)
 	}
 	// slashing 1.5 * yggdrasil remains
 	slashRune := yggRune.MulUint64(3).QuoUint64(2)
+	if slashRune.GT(nodeAcc.Bond) {
+		slashRune = nodeAcc.Bond
+	}
 	bondBeforeSlash := nodeAcc.Bond
 	nodeAcc.Bond = common.SafeSub(nodeAcc.Bond, slashRune)
 
@@ -246,8 +262,8 @@ func refundBond(ctx cosmos.Context, tx common.Tx, nodeAcc NodeAccount, keeper ke
 			return fmt.Errorf("unable to determine asgard vault to send funds")
 		}
 
-		bondEvent := NewEventBond(nodeAcc.Bond, BondReturned, tx)
-		if err := mgr.EventMgr().EmitBondEvent(ctx, bondEvent); err != nil {
+		bondEvent := NewEventBond(amt, BondReturned, tx)
+		if err := mgr.EventMgr().EmitEvent(ctx, bondEvent); err != nil {
 			return fmt.Errorf("fail to emit bond event: %w", err)
 		}
 
@@ -262,7 +278,7 @@ func refundBond(ctx cosmos.Context, tx common.Tx, nodeAcc NodeAccount, keeper ke
 			ToAddress:   refundAddress,
 			VaultPubKey: vault.PubKey,
 			InHash:      tx.ID,
-			Coin:        common.NewCoin(common.RuneAsset(), nodeAcc.Bond),
+			Coin:        common.NewCoin(common.RuneAsset(), amt),
 			ModuleName:  BondName,
 		}
 		_, err = mgr.TxOutStore().TryAddTxOutItem(ctx, mgr, txOutItem)
@@ -275,9 +291,7 @@ func refundBond(ctx cosmos.Context, tx common.Tx, nodeAcc NodeAccount, keeper ke
 		slashRune = bondBeforeSlash
 	}
 
-	nodeAcc.Bond = cosmos.ZeroUint()
-	// disable the node account
-	nodeAcc.UpdateStatus(NodeDisabled, common.BlockHeight(ctx))
+	nodeAcc.Bond = common.SafeSub(nodeAcc.Bond, amt)
 	if err := keeper.SetNodeAccount(ctx, nodeAcc); err != nil {
 		ctx.Logger().Error(fmt.Sprintf("fail to save node account(%s)", nodeAcc), "error", err)
 		return err
@@ -291,11 +305,6 @@ func refundBond(ctx cosmos.Context, tx common.Tx, nodeAcc NodeAccount, keeper ke
 		return keeper.DeleteVault(ctx, ygg.PubKey)
 	}
 	return nil
-}
-
-// Checks if the observed vault pubkey is a valid asgard or ygg vault
-func isCurrentVaultPubKey(ctx cosmos.Context, keeper keeper.Keeper, tx ObservedTx) bool {
-	return keeper.VaultExists(ctx, tx.ObservedPubKey)
 }
 
 func isSignedByActiveNodeAccounts(ctx cosmos.Context, keeper keeper.Keeper, signers []cosmos.AccAddress) bool {
@@ -352,7 +361,7 @@ func enableNextPool(ctx cosmos.Context, keeper keeper.Keeper, eventManager Event
 	}
 
 	poolEvt := NewEventPool(pool.Asset, PoolEnabled)
-	if err := eventManager.EmitPoolEvent(ctx, poolEvt); err != nil {
+	if err := eventManager.EmitEvent(ctx, poolEvt); err != nil {
 		return fmt.Errorf("fail to emit pool event: %w", err)
 	}
 
@@ -367,6 +376,7 @@ func wrapError(ctx cosmos.Context, err error, wrap string) error {
 	return multierror.Append(errInternal, err)
 }
 
+// AddGasFees to vault
 func AddGasFees(ctx cosmos.Context, keeper keeper.Keeper, tx ObservedTx, gasManager GasManager) error {
 	if len(tx.Tx.Gas) == 0 {
 		return nil
@@ -404,6 +414,7 @@ func AddGasFees(ctx cosmos.Context, keeper keeper.Keeper, tx ObservedTx, gasMana
 	return nil
 }
 
+// KeybaseStore to store keys
 type KeybaseStore struct {
 	Keybase      ckeys.Keybase
 	SignerName   string

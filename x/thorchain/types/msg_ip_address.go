@@ -20,7 +20,7 @@ func NewMsgSetIPAddress(ip string, signer cosmos.AccAddress) MsgSetIPAddress {
 	}
 }
 
-// Route should return the cmname of the module
+// Route should return the name of the module
 func (msg MsgSetIPAddress) Route() string { return RouterKey }
 
 // Type should return the action

@@ -51,6 +51,9 @@ func (s *KeeperNodeAccountSuite) TestNodeAccount(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(na.Status, Equals, NodeUnknown)
 	c.Assert(na.ValidatorConsPubKey, Equals, "")
+	nodeAccounts, err := k.ListNodeAccountsWithBond(ctx)
+	c.Check(err, IsNil)
+	c.Check(nodeAccounts.Len() > 0, Equals, true)
 }
 
 func (s *KeeperNodeAccountSuite) TestGetMinJoinVersion(c *C) {
@@ -59,8 +62,9 @@ func (s *KeeperNodeAccountSuite) TestGetMinJoinVersion(c *C) {
 		version semver.Version
 	}
 	inputs := []struct {
-		nodeInfoes      []nodeInfo
-		expectedVersion semver.Version
+		nodeInfoes            []nodeInfo
+		expectedVersion       semver.Version
+		expectedActiveVersion semver.Version
 	}{
 		{
 			nodeInfoes: []nodeInfo{
@@ -85,7 +89,8 @@ func (s *KeeperNodeAccountSuite) TestGetMinJoinVersion(c *C) {
 					version: semver.MustParse("0.2.0"),
 				},
 			},
-			expectedVersion: semver.MustParse("0.3.0"),
+			expectedVersion:       semver.MustParse("0.3.0"),
+			expectedActiveVersion: semver.MustParse("0.2.0"),
 		},
 		{
 			nodeInfoes: []nodeInfo{
@@ -110,7 +115,8 @@ func (s *KeeperNodeAccountSuite) TestGetMinJoinVersion(c *C) {
 					version: semver.MustParse("0.2.0"),
 				},
 			},
-			expectedVersion: semver.MustParse("0.3.0"),
+			expectedVersion:       semver.MustParse("0.3.0"),
+			expectedActiveVersion: semver.MustParse("0.2.0"),
 		},
 		{
 			nodeInfoes: []nodeInfo{
@@ -135,7 +141,8 @@ func (s *KeeperNodeAccountSuite) TestGetMinJoinVersion(c *C) {
 					version: semver.MustParse("0.2.0"),
 				},
 			},
-			expectedVersion: semver.MustParse("0.2.0"),
+			expectedVersion:       semver.MustParse("0.2.0"),
+			expectedActiveVersion: semver.MustParse("0.2.0"),
 		},
 	}
 
@@ -147,6 +154,7 @@ func (s *KeeperNodeAccountSuite) TestGetMinJoinVersion(c *C) {
 			c.Assert(k.SetNodeAccount(ctx, na1), IsNil)
 		}
 		c.Check(k.GetMinJoinVersion(ctx).Equals(item.expectedVersion), Equals, true, Commentf("%+v", k.GetMinJoinVersion(ctx)))
+		c.Check(k.GetLowestActiveVersion(ctx).Equals(item.expectedActiveVersion), Equals, true)
 	}
 }
 
@@ -173,6 +181,7 @@ func (s *KeeperNodeAccountSuite) TestNodeAccountSlashPoints(c *C) {
 	pts, err = k.GetNodeAccountSlashPoints(ctx, addr)
 	c.Assert(err, IsNil)
 	c.Check(pts, Equals, int64(10))
+	k.ResetNodeAccountSlashPoints(ctx, GetRandomBech32Addr())
 }
 
 func (s *KeeperNodeAccountSuite) TestJail(c *C) {

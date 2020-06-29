@@ -1,7 +1,7 @@
 package types
 
 import (
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 // MsgRagnarok defines a MsgRagnarok message

@@ -19,9 +19,7 @@ type SlasherV1 struct {
 
 // NewSlasher create a new instance of Slasher
 func NewSlasherV1(keeper keeper.Keeper) *SlasherV1 {
-	return &SlasherV1{
-		keeper: keeper,
-	}
+	return &SlasherV1{keeper: keeper}
 }
 
 func (s *SlasherV1) BeginBlock(ctx cosmos.Context, req abci.RequestBeginBlock, constAccessor constants.ConstantValues) {
@@ -178,7 +176,7 @@ func (s *SlasherV1) LackSigning(ctx cosmos.Context, constAccessor constants.Cons
 				return fmt.Errorf("fail to get active asgard vaults: %w", err)
 			}
 
-			vault = active.SelectByMinCoin(tx.Coin.Asset)
+			vault = active.SelectByMaxCoin(tx.Coin.Asset)
 			if vault.IsEmpty() {
 				ctx.Logger().Error("unable to determine asgard vault to send funds")
 				resultErr = fmt.Errorf("unable to determine asgard vault to send funds")
@@ -202,6 +200,7 @@ func (s *SlasherV1) LackSigning(ctx cosmos.Context, constAccessor constants.Cons
 				continue
 			}
 
+			// update the actions in the voter with the new vault pubkey
 			for i, action := range voter.Actions {
 				if action.Equals(*tx) {
 					voter.Actions[i].VaultPubKey = vault.PubKey
@@ -209,6 +208,7 @@ func (s *SlasherV1) LackSigning(ctx cosmos.Context, constAccessor constants.Cons
 			}
 			s.keeper.SetObservedTxInVoter(ctx, voter)
 
+			// recover memo if not already available
 			if tx.Memo == "" {
 				// fetch memo from tx marker
 				hash, err := tx.TxHash()
@@ -297,9 +297,8 @@ func (s *SlasherV1) SlashNodeAccount(ctx cosmos.Context, observedPubKey common.P
 	if err != nil {
 		return fmt.Errorf("fail to get %s pool : %w", asset, err)
 	}
-	// thorchain doesn't even have a pool for the asset, or the pool had been
-	// suspended, then who cares
-	if pool.Empty() || pool.Status == PoolSuspended {
+	// thorchain doesn't even have a pool for the asset
+	if pool.IsEmpty() {
 		return nil
 	}
 	runeValue := pool.AssetValueInRune(slashAmount).MulUint64(3).QuoUint64(2)
@@ -321,7 +320,7 @@ func (s *SlasherV1) SlashNodeAccount(ctx cosmos.Context, observedPubKey common.P
 		},
 	}
 	eventSlash := NewEventSlash(pool.Asset, poolSlashAmt)
-	if err := mgr.EventMgr().EmitSlashEvent(ctx, eventSlash); err != nil {
+	if err := mgr.EventMgr().EmitEvent(ctx, eventSlash); err != nil {
 		return fmt.Errorf("fail to emit slash event: %w", err)
 	}
 

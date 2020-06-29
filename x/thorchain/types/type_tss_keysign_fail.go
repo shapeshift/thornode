@@ -1,17 +1,17 @@
 package types
 
 import (
-	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
+// TssKeysignFailVoter a voter structure to store TssKeySign Failure information
 type TssKeysignFailVoter struct {
 	ID      string              `json:"id"` // checksum of sorted input pubkeys
 	Height  int64               `json:"height"`
-	Blame   common.Blame        `json:"blame"`
 	Signers []cosmos.AccAddress `json:"signers"`
 }
 
+// NewTssKeysignFailVoter create a new instance of TssKeysignFailVoter
 func NewTssKeysignFailVoter(id string, height int64) TssKeysignFailVoter {
 	return TssKeysignFailVoter{
 		ID:     id,
@@ -38,19 +38,15 @@ func (tss *TssKeysignFailVoter) Sign(signer cosmos.AccAddress) bool {
 	return true
 }
 
-// Determine if this tss pool has enough signers
+// HasConsensus determine if this tss pool has enough signers
 func (tss *TssKeysignFailVoter) HasConsensus(nas NodeAccounts) bool {
 	var count int
 	for _, signer := range tss.Signers {
 		if nas.IsNodeKeys(signer) {
-			count += 1
+			count++
 		}
 	}
-	if HasSimpleMajority(count, len(nas)) {
-		return true
-	}
-
-	return false
+	return HasSimpleMajority(count, len(nas))
 }
 
 // Empty to check whether this Voter is empty or not
@@ -58,6 +54,7 @@ func (tss *TssKeysignFailVoter) Empty() bool {
 	return len(tss.ID) == 0 || tss.Height == 0
 }
 
+// String implement fmt.Stringer , return's the ID
 func (tss *TssKeysignFailVoter) String() string {
 	return tss.ID
 }

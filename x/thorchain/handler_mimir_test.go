@@ -4,6 +4,7 @@ import (
 	"github.com/blang/semver"
 	. "gopkg.in/check.v1"
 
+	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 )
@@ -49,4 +50,22 @@ func (s *HandlerMimirSuite) TestHandle(c *C) {
 	val, err := keeper.GetMimir(ctx, "foo")
 	c.Assert(err, IsNil)
 	c.Check(val, Equals, int64(55))
+
+	invalidMsg := NewMsgNetworkFee(ctx.BlockHeight(), common.BNBChain, 1, bnbSingleTxFee.Uint64(), GetRandomBech32Addr())
+	result, err := handler.Run(ctx, invalidMsg, constants.SWVersion, constants.GetConstantValues(constants.SWVersion))
+	c.Check(err, NotNil)
+	c.Check(result, IsNil)
+
+	result, err = handler.Run(ctx, msg, constants.SWVersion, constants.GetConstantValues(constants.SWVersion))
+	c.Check(err, NotNil)
+	c.Check(result, IsNil)
+	addr, err := cosmos.AccAddressFromBech32(ADMINS[0])
+	c.Check(err, IsNil)
+	msg1 := NewMsgMimir("hello", 1, addr)
+	result, err = handler.Run(ctx, msg1, constants.SWVersion, constants.GetConstantValues(constants.SWVersion))
+	c.Check(err, IsNil)
+	c.Check(result, NotNil)
+
+	// invalid version should result an error
+	c.Check(handler.handle(ctx, msg, semver.MustParse("0.0.1")), NotNil)
 }

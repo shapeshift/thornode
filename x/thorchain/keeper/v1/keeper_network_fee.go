@@ -1,45 +1,31 @@
 package keeperv1
 
 import (
-	"fmt"
-
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 // GetNetworkFee get the network fee of the given chain from kv store , if it doesn't exist , it will create an empty one
 func (k KVStore) GetNetworkFee(ctx cosmos.Context, chain common.Chain) (NetworkFee, error) {
-	key := k.GetKey(ctx, prefixNetworkFee, chain.String())
-	store := ctx.KVStore(k.storeKey)
-	emptyNetworkFee := NetworkFee{
+	record := NetworkFee{
 		Chain:              chain,
 		TransactionSize:    0,
 		TransactionFeeRate: 0,
 	}
-	if !store.Has([]byte(key)) {
-		return emptyNetworkFee, nil
-	}
-	buf := store.Get([]byte(key))
-	var networkFee NetworkFee
-	if err := k.cdc.UnmarshalBinaryBare(buf, &networkFee); err != nil {
-		return emptyNetworkFee, fmt.Errorf("fail to unmarshal network fee: %w", err)
-	}
-	return networkFee, nil
+	_, err := k.get(ctx, k.GetKey(ctx, prefixNetworkFee, chain.String()), &record)
+	return record, err
 }
 
 // SaveNetworkFee save the network fee to kv store
 func (k KVStore) SaveNetworkFee(ctx cosmos.Context, chain common.Chain, networkFee NetworkFee) error {
-	if err := networkFee.Validate(); err != nil {
+	if err := networkFee.Valid(); err != nil {
 		return err
 	}
-	key := k.GetKey(ctx, prefixNetworkFee, chain.String())
-	store := ctx.KVStore(k.storeKey)
-	store.Set([]byte(key), k.cdc.MustMarshalBinaryBare(networkFee))
+	k.set(ctx, k.GetKey(ctx, prefixNetworkFee, chain.String()), networkFee)
 	return nil
 }
 
 // GetNetworkFeeIterator
 func (k KVStore) GetNetworkFeeIterator(ctx cosmos.Context) cosmos.Iterator {
-	store := ctx.KVStore(k.storeKey)
-	return cosmos.KVStorePrefixIterator(store, []byte(prefixNetworkFee))
+	return k.getIterator(ctx, prefixNetworkFee)
 }

@@ -38,20 +38,10 @@ type GasManager interface {
 
 // EventManager define methods need to be support to manage events
 type EventManager interface {
-	EmitPoolEvent(ctx cosmos.Context, poolEvt EventPool) error
-	EmitErrataEvent(ctx cosmos.Context, errataEvent EventErrata) error
+	EmitEvent(ctx cosmos.Context, evt EmitEventItem) error
 	EmitGasEvent(ctx cosmos.Context, gasEvent *EventGas) error
-	EmitStakeEvent(ctx cosmos.Context, stakeEvent EventStake) error
-	EmitRewardEvent(ctx cosmos.Context, rewardEvt EventRewards) error
-	EmitReserveEvent(ctx cosmos.Context, reserveEvent EventReserve) error
-	EmitUnstakeEvent(ctx cosmos.Context, unstakeEvt EventUnstake) error
 	EmitSwapEvent(ctx cosmos.Context, swap EventSwap) error
-	EmitRefundEvent(ctx cosmos.Context, refundEvt EventRefund) error
-	EmitBondEvent(ctx cosmos.Context, bondEvent EventBond) error
-	EmitAddEvent(ctx cosmos.Context, addEvt EventAdd) error
 	EmitFeeEvent(ctx cosmos.Context, feeEvent EventFee) error
-	EmitSlashEvent(ctx cosmos.Context, slashEvt EventSlash) error
-	EmitOutboundEvent(ctx cosmos.Context, outbound EventOutbound) error
 }
 
 type TxOutStore interface {

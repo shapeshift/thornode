@@ -102,7 +102,7 @@ func (s *QuerierSuite) TestQueryPool(c *C) {
 	res, err := querier(ctx, path, abci.RequestQuery{})
 	c.Assert(err, IsNil)
 
-	var out types.QueryResPools
+	var out Pools
 	err = keeper.Cdc().UnmarshalJSON(res, &out)
 	c.Assert(err, IsNil)
 	c.Assert(len(out), Equals, 1)

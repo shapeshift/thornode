@@ -46,5 +46,5 @@ func (TypeConvertTestSuite) TestSafeDivision(c *C) {
 	c.Check(result5.Equal(cosmos.ZeroUint()), Equals, true, Commentf("%d", result5.Uint64()))
 
 	result6 := GetShare(cosmos.NewUint(1014), cosmos.NewUint(3), cosmos.NewUint(1000_000*One))
-	c.Check(result6.Equal(cosmos.NewUintFromString("33799999999999997")), Equals, true, Commentf("%s", result6.String()))
+	c.Check(result6.Equal(cosmos.NewUint(33799999999999997)), Equals, true, Commentf("%s", result6.String()))
 }

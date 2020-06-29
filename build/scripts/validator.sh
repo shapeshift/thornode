@@ -35,6 +35,12 @@ if [ ! -f ~/.thord/config/genesis.json ]; then
     NODE_ID=$(fetch_node_id $PEER)
     peer_list $NODE_ID $PEER
 
+    # enable telemetry through prometheus metrics endpoint
+    enable_telemetry
+
+    # use external IP if available
+    [ ! -z $EXTERNAL_IP ] && external_address $EXTERNAL_IP $NET
+
     if [[ "$NET" == "mocknet" ]]; then
         # create a binance wallet and bond/register
         gen_bnb_address
@@ -56,7 +62,8 @@ if [ ! -f ~/.thord/config/genesis.json ]; then
         # add IP address
         sleep 10 # wait for thorchain to commit a block
 
-        until printf "$SIGNER_PASSWD\n$SIGNER_PASSWD\n" | thorcli tx thorchain set-ip-address $(curl -s http://whatismyip.akamai.com) --node tcp://$PEER:26657 --from $SIGNER_NAME --yes; do
+        NODE_IP_ADDRESS=${EXTERNAL_IP:=$(curl -s http://whatismyip.akamai.com)}
+        until printf "$SIGNER_PASSWD\n$SIGNER_PASSWD\n" | thorcli tx thorchain set-ip-address $NODE_IP_ADDRESS --node tcp://$PEER:26657 --from $SIGNER_NAME --yes; do
           sleep 5
         done
 

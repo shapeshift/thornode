@@ -174,6 +174,7 @@ func (s *HandlerObservedTxOutSuite) TestHandle(c *C) {
 	ctx, _ := setupKeeperForTest(c)
 
 	ver := constants.SWVersion
+	constAccessor := constants.GetConstantValues(ver)
 	tx := GetRandomTx()
 	tx.Memo = fmt.Sprintf("OUTBOUND:%s", tx.ID)
 	obTx := NewObservedTx(tx, 12, GetRandomPubKey())
@@ -206,7 +207,7 @@ func (s *HandlerObservedTxOutSuite) TestHandle(c *C) {
 
 	c.Assert(err, IsNil)
 	msg := NewMsgObservedTxOut(txs, keeper.nas[0].NodeAddress)
-	_, err = handler.handle(ctx, msg, ver)
+	_, err = handler.handle(ctx, msg, ver, constAccessor)
 	c.Assert(err, IsNil)
 	c.Assert(err, IsNil)
 	mgr.ObMgr().EndBlock(ctx, keeper)
@@ -224,6 +225,7 @@ func (s *HandlerObservedTxOutSuite) TestGasUpdate(c *C) {
 	ctx, _ := setupKeeperForTest(c)
 
 	ver := constants.SWVersion
+	constAccessor := constants.GetConstantValues(ver)
 	tx := GetRandomTx()
 	tx.Gas = common.Gas{
 		{
@@ -260,7 +262,7 @@ func (s *HandlerObservedTxOutSuite) TestGasUpdate(c *C) {
 
 	c.Assert(err, IsNil)
 	msg := NewMsgObservedTxOut(txs, keeper.nas[0].NodeAddress)
-	_, err = handler.handle(ctx, msg, ver)
+	_, err = handler.handle(ctx, msg, ver, constAccessor)
 	c.Assert(err, IsNil)
 	gas := keeper.gas[0]
 	c.Assert(gas.Equal(cosmos.NewUint(475000)), Equals, true, Commentf("%+v", gas))
@@ -274,6 +276,7 @@ func (s *HandlerObservedTxOutSuite) TestHandleStolenFunds(c *C) {
 	ctx, _ := setupKeeperForTest(c)
 
 	ver := constants.SWVersion
+	constAccessor := constants.GetConstantValues(ver)
 	tx := GetRandomTx()
 	tx.Memo = "I AM A THIEF!" // bad memo
 	obTx := NewObservedTx(tx, 12, GetRandomPubKey())
@@ -314,9 +317,232 @@ func (s *HandlerObservedTxOutSuite) TestHandleStolenFunds(c *C) {
 
 	c.Assert(err, IsNil)
 	msg := NewMsgObservedTxOut(txs, keeper.nas[0].NodeAddress)
-	_, err = handler.handle(ctx, msg, ver)
+	_, err = handler.handle(ctx, msg, ver, constAccessor)
 	c.Assert(err, IsNil)
 	// make sure the coin has been subtract from the vault
 	c.Check(ygg.Coins.GetCoin(common.BNBAsset).Amount.Equal(cosmos.NewUint(9999962500)), Equals, true, Commentf("%d", ygg.Coins.GetCoin(common.BNBAsset).Amount.Uint64()))
 	c.Assert(keeper.na.Bond.LT(cosmos.NewUint(1000000*common.One)), Equals, true, Commentf("%d", keeper.na.Bond.Uint64()))
+}
+
+type HandlerObservedTxOutTestHelper struct {
+	keeper.Keeper
+	failListActiveNodeAccounts bool
+	failVaultExist             bool
+	failGetObservedTxOutVote   bool
+	failGetVault               bool
+	failSetVault               bool
+}
+
+func NewHandlerObservedTxOutHelper(k keeper.Keeper) *HandlerObservedTxOutTestHelper {
+	return &HandlerObservedTxOutTestHelper{
+		Keeper: k,
+	}
+}
+
+func (h *HandlerObservedTxOutTestHelper) ListActiveNodeAccounts(ctx cosmos.Context) (NodeAccounts, error) {
+	if h.failListActiveNodeAccounts {
+		return NodeAccounts{}, kaboom
+	}
+	return h.Keeper.ListActiveNodeAccounts(ctx)
+}
+
+func (h *HandlerObservedTxOutTestHelper) VaultExists(ctx cosmos.Context, pk common.PubKey) bool {
+	if h.failVaultExist {
+		return false
+	}
+	return h.Keeper.VaultExists(ctx, pk)
+}
+
+func (h *HandlerObservedTxOutTestHelper) GetObservedTxOutVoter(ctx cosmos.Context, hash common.TxID) (ObservedTxVoter, error) {
+	if h.failGetObservedTxOutVote {
+		return ObservedTxVoter{}, kaboom
+	}
+	return h.Keeper.GetObservedTxOutVoter(ctx, hash)
+}
+
+func (h *HandlerObservedTxOutTestHelper) GetVault(ctx cosmos.Context, pk common.PubKey) (Vault, error) {
+	if h.failGetVault {
+		return Vault{}, kaboom
+	}
+	return h.Keeper.GetVault(ctx, pk)
+}
+
+func (h *HandlerObservedTxOutTestHelper) SetVault(ctx cosmos.Context, vault Vault) error {
+	if h.failSetVault {
+		return kaboom
+	}
+	return h.Keeper.SetVault(ctx, vault)
+}
+
+func setupAnObservedTxOut(ctx cosmos.Context, helper *HandlerObservedTxOutTestHelper, c *C) MsgObservedTxOut {
+	activeNodeAccount := GetRandomNodeAccount(NodeActive)
+	pk := GetRandomPubKey()
+	tx := GetRandomTx()
+	tx.Coins = common.Coins{
+		common.NewCoin(common.BNBAsset, cosmos.NewUint(common.One*3)),
+	}
+	tx.Memo = "OUTBOUND:" + GetRandomTxHash().String()
+	addr, err := pk.GetAddress(tx.Coins[0].Asset.Chain)
+	c.Assert(err, IsNil)
+	tx.ToAddress = GetRandomBNBAddress()
+	tx.FromAddress = addr
+	obTx := NewObservedTx(tx, ctx.BlockHeight(), pk)
+	txs := ObservedTxs{obTx}
+	c.Assert(err, IsNil)
+	vault := GetRandomVault()
+	vault.PubKey = obTx.ObservedPubKey
+	helper.Keeper.SetNodeAccount(ctx, activeNodeAccount)
+	c.Assert(helper.SetVault(ctx, vault), IsNil)
+	p := NewPool()
+	p.Asset = common.BNBAsset
+	p.BalanceRune = cosmos.NewUint(100 * common.One)
+	p.BalanceAsset = cosmos.NewUint(100 * common.One)
+	p.Status = PoolEnabled
+	helper.Keeper.SetPool(ctx, p)
+	return NewMsgObservedTxOut(txs, activeNodeAccount.NodeAddress)
+}
+
+func (HandlerObservedTxOutSuite) TestHandlerObservedTxOut_DifferentValidations(c *C) {
+	testCases := []struct {
+		name            string
+		messageProvider func(c *C, ctx cosmos.Context, helper *HandlerObservedTxOutTestHelper) cosmos.Msg
+		validator       func(c *C, ctx cosmos.Context, result *cosmos.Result, err error, helper *HandlerObservedTxOutTestHelper, name string)
+	}{
+		{
+			name: "invalid message should return an error",
+			messageProvider: func(c *C, ctx cosmos.Context, helper *HandlerObservedTxOutTestHelper) cosmos.Msg {
+				return NewMsgNetworkFee(ctx.BlockHeight(), common.BNBChain, 1, bnbSingleTxFee.Uint64(), GetRandomBech32Addr())
+			},
+			validator: func(c *C, ctx cosmos.Context, result *cosmos.Result, err error, helper *HandlerObservedTxOutTestHelper, name string) {
+				c.Check(err, NotNil, Commentf(name))
+				c.Check(result, IsNil)
+				c.Check(errors.Is(err, errInvalidMessage), Equals, true)
+			},
+		},
+		{
+			name: "message fail validation should return an error",
+			messageProvider: func(c *C, ctx cosmos.Context, helper *HandlerObservedTxOutTestHelper) cosmos.Msg {
+				return NewMsgObservedTxOut(ObservedTxs{
+					NewObservedTx(GetRandomTx(), ctx.BlockHeight(), GetRandomPubKey()),
+				}, GetRandomBech32Addr())
+			},
+			validator: func(c *C, ctx cosmos.Context, result *cosmos.Result, err error, helper *HandlerObservedTxOutTestHelper, name string) {
+				c.Check(err, NotNil, Commentf(name))
+				c.Check(result, IsNil)
+			},
+		},
+		{
+			name: "voter already vote for the tx should return without doing anything",
+			messageProvider: func(c *C, ctx cosmos.Context, helper *HandlerObservedTxOutTestHelper) cosmos.Msg {
+				m := setupAnObservedTxOut(ctx, helper, c)
+				voter, err := helper.Keeper.GetObservedTxOutVoter(ctx, m.Txs[0].Tx.ID)
+				c.Assert(err, IsNil)
+				voter.Add(m.Txs[0], m.Signer)
+				helper.Keeper.SetObservedTxOutVoter(ctx, voter)
+				return m
+			},
+			validator: func(c *C, ctx cosmos.Context, result *cosmos.Result, err error, helper *HandlerObservedTxOutTestHelper, name string) {
+				c.Check(err, IsNil, Commentf(name))
+				c.Check(result, NotNil, Commentf(name))
+			},
+		},
+		{
+			name: "fail to list active node accounts should result in an error",
+			messageProvider: func(c *C, ctx cosmos.Context, helper *HandlerObservedTxOutTestHelper) cosmos.Msg {
+				m := setupAnObservedTxOut(ctx, helper, c)
+				helper.failListActiveNodeAccounts = true
+				return m
+			},
+			validator: func(c *C, ctx cosmos.Context, result *cosmos.Result, err error, helper *HandlerObservedTxOutTestHelper, name string) {
+				c.Check(err, NotNil, Commentf(name))
+				c.Check(result, IsNil, Commentf(name))
+			},
+		},
+		{
+			name: "vault not exist should not result in an error, it should continue",
+			messageProvider: func(c *C, ctx cosmos.Context, helper *HandlerObservedTxOutTestHelper) cosmos.Msg {
+				m := setupAnObservedTxOut(ctx, helper, c)
+				helper.failVaultExist = true
+				return m
+			},
+			validator: func(c *C, ctx cosmos.Context, result *cosmos.Result, err error, helper *HandlerObservedTxOutTestHelper, name string) {
+				c.Check(err, IsNil, Commentf(name))
+				c.Check(result, NotNil, Commentf(name))
+			},
+		},
+		{
+			name: "fail to get observedTxOutVoter should not result in an error, it should continue",
+			messageProvider: func(c *C, ctx cosmos.Context, helper *HandlerObservedTxOutTestHelper) cosmos.Msg {
+				m := setupAnObservedTxOut(ctx, helper, c)
+				helper.failGetObservedTxOutVote = true
+				return m
+			},
+			validator: func(c *C, ctx cosmos.Context, result *cosmos.Result, err error, helper *HandlerObservedTxOutTestHelper, name string) {
+				c.Check(err, IsNil, Commentf(name))
+				c.Check(result, NotNil, Commentf(name))
+			},
+		},
+		{
+			name: "empty memo should not result in an error, it should continue",
+			messageProvider: func(c *C, ctx cosmos.Context, helper *HandlerObservedTxOutTestHelper) cosmos.Msg {
+				m := setupAnObservedTxOut(ctx, helper, c)
+				m.Txs[0].Tx.Memo = ""
+				return m
+			},
+			validator: func(c *C, ctx cosmos.Context, result *cosmos.Result, err error, helper *HandlerObservedTxOutTestHelper, name string) {
+				c.Check(err, IsNil, Commentf(name))
+				c.Check(result, NotNil, Commentf(name))
+				txOut, err := helper.GetTxOut(ctx, ctx.BlockHeight())
+				c.Assert(err, IsNil, Commentf(name))
+				c.Assert(txOut.IsEmpty(), Equals, true)
+			},
+		},
+		{
+			name: "fail to get vault, it should continue",
+			messageProvider: func(c *C, ctx cosmos.Context, helper *HandlerObservedTxOutTestHelper) cosmos.Msg {
+				m := setupAnObservedTxOut(ctx, helper, c)
+				helper.failGetVault = true
+				return m
+			},
+			validator: func(c *C, ctx cosmos.Context, result *cosmos.Result, err error, helper *HandlerObservedTxOutTestHelper, name string) {
+				c.Check(err, IsNil, Commentf(name))
+				c.Check(result, NotNil, Commentf(name))
+			},
+		},
+		{
+			name: "fail to set vault, it should continue",
+			messageProvider: func(c *C, ctx cosmos.Context, helper *HandlerObservedTxOutTestHelper) cosmos.Msg {
+				m := setupAnObservedTxOut(ctx, helper, c)
+				helper.failSetVault = true
+				return m
+			},
+			validator: func(c *C, ctx cosmos.Context, result *cosmos.Result, err error, helper *HandlerObservedTxOutTestHelper, name string) {
+				c.Check(err, IsNil, Commentf(name))
+				c.Check(result, NotNil, Commentf(name))
+			},
+		},
+		{
+			name: "ragnarok memo it should success",
+			messageProvider: func(c *C, ctx cosmos.Context, helper *HandlerObservedTxOutTestHelper) cosmos.Msg {
+				m := setupAnObservedTxOut(ctx, helper, c)
+				m.Txs[0].Tx.Memo = "ragnarok:100"
+				return m
+			},
+			validator: func(c *C, ctx cosmos.Context, result *cosmos.Result, err error, helper *HandlerObservedTxOutTestHelper, name string) {
+				c.Check(err, IsNil, Commentf(name))
+				c.Check(result, NotNil, Commentf(name))
+			},
+		},
+	}
+	for _, tc := range testCases {
+		ctx, k := setupKeeperForTest(c)
+		helper := NewHandlerObservedTxOutHelper(k)
+		mgr := NewManagers(helper)
+		mgr.BeginBlock(ctx)
+		handler := NewObservedTxOutHandler(helper, mgr)
+		msg := tc.messageProvider(c, ctx, helper)
+		constantAccessor := constants.GetConstantValues(constants.SWVersion)
+		result, err := handler.Run(ctx, msg, semver.MustParse("0.1.0"), constantAccessor)
+		tc.validator(c, ctx, result, err, helper, tc.name)
+	}
 }

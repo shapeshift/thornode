@@ -8,8 +8,9 @@ import (
 
 	atypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/tendermint/tendermint/crypto/secp256k1"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	. "gopkg.in/check.v1"
+
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 type KeyDataAddr struct {

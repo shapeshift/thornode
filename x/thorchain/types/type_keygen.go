@@ -14,8 +14,8 @@ import (
 )
 
 // KeygenBlock represent the TSS Keygen in a block
-// if you wonder why there is a Keygens which is a slice of Keygen , that is because thorchain can potentially have to trigger multiple TSS Keygen in one block
-// for example multiple Asgard, also when later on Yggdrasil start to use TSS as well
+// THORChain can potentially trigger multiple TSS Keygen in one block
+// for example multiple Asgard, also when Yggdrasil start to use TSS as well
 type KeygenBlock struct {
 	Height  int64    `json:"height,string"`
 	Keygens []Keygen `json:"keygens"`
@@ -30,9 +30,10 @@ func NewKeygenBlock(height int64) KeygenBlock {
 
 // IsEmpty determinate whether KeygenBlock is empty
 func (k KeygenBlock) IsEmpty() bool {
-	return len(k.Keygens) == 0 && k.Height == 0
+	return len(k.Keygens) == 0 && k.Height <= 0
 }
 
+// String implement fmt.Stringer print out a string version of keygen block
 func (k KeygenBlock) String() string {
 	var keygens []string
 	for _, keygen := range k.Keygens {
@@ -41,7 +42,8 @@ func (k KeygenBlock) String() string {
 	return strings.Join(keygens, "\n")
 }
 
-// Contains will go through the keygen items and find out whether the given keygen already exist in the block or not
+// Contains will go through the keygen items and find out whether the given
+// keygen already exist in the block or not
 func (k KeygenBlock) Contains(keygen Keygen) bool {
 	for _, item := range k.Keygens {
 		if item.ID.Equals(keygen.ID) {
@@ -51,12 +53,15 @@ func (k KeygenBlock) Contains(keygen Keygen) bool {
 	return false
 }
 
+// KeygenType are two types of key Asgard Yggdrasil;
 type KeygenType byte
 
 const (
+	// UnknownKeygen unknown
 	UnknownKeygen KeygenType = iota
-	// AsgardKeygen obviously
+	// AsgardKeygen asgard
 	AsgardKeygen
+	// YggdrasilKeygen yggdrasil
 	YggdrasilKeygen
 )
 
@@ -73,6 +78,7 @@ func (kt KeygenType) String() string {
 	return ""
 }
 
+// GetKeygenTypeFromString parse the given string as KeygenType
 func GetKeygenTypeFromString(t string) KeygenType {
 	switch {
 	case strings.EqualFold(t, "asgard"):
@@ -83,7 +89,7 @@ func GetKeygenTypeFromString(t string) KeygenType {
 	return UnknownKeygen
 }
 
-// MarshalJSON marshal PoolStatus to JSON in string form
+// MarshalJSON marshal keygen type to JSON in string form
 func (kt KeygenType) MarshalJSON() ([]byte, error) {
 	return json.Marshal(kt.String())
 }
@@ -141,7 +147,7 @@ func getKeygenID(height int64, members common.PubKeys, keygenType KeygenType) (c
 
 // IsEmpty check whether there are any keys in the keygen
 func (k Keygen) IsEmpty() bool {
-	return len(k.Members) == 0 && len(k.ID) == 0
+	return len(k.Members) == 0 || len(k.ID) == 0
 }
 
 // Valid is to check whether the keygen members are valid

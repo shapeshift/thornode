@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 // MsgNativeTx defines a MsgNativeTx message
@@ -23,7 +23,7 @@ func NewMsgNativeTx(coins common.Coins, memo string, signer cosmos.AccAddress) M
 	}
 }
 
-// Route should return the cmname of the module
+// Route should return the route key of the module
 func (msg MsgNativeTx) Route() string { return RouterKey }
 
 // Type should return the action
@@ -34,7 +34,7 @@ func (msg MsgNativeTx) ValidateBasic() error {
 	if msg.Signer.Empty() {
 		return cosmos.ErrInvalidAddress(msg.Signer.String())
 	}
-	if err := msg.Coins.IsValid(); err != nil {
+	if err := msg.Coins.Valid(); err != nil {
 		return cosmos.ErrUnknownRequest(err.Error())
 	}
 	for _, coin := range msg.Coins {

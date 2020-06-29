@@ -1,7 +1,8 @@
 package common
 
-import cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+import "gitlab.com/thorchain/thornode/common/cosmos"
 
+// Fee represent fee
 type Fee struct {
 	Coins      Coins       `json:"coins"`
 	PoolDeduct cosmos.Uint `json:"pool_deduct"`
@@ -13,14 +14,4 @@ func NewFee(coins Coins, poolDeduct cosmos.Uint) Fee {
 		Coins:      coins,
 		PoolDeduct: poolDeduct,
 	}
-}
-
-// Asset retun asset name of fee coins
-func (fee *Fee) Asset() Asset {
-	for _, coin := range fee.Coins {
-		if !coin.Asset.IsRune() {
-			return coin.Asset
-		}
-	}
-	return Asset{}
 }

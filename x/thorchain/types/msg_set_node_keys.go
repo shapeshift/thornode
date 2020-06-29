@@ -2,7 +2,7 @@ package types
 
 import (
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 // MsgSetNodeKeys defines a MsgSetNodeKeys message
@@ -21,7 +21,7 @@ func NewMsgSetNodeKeys(nodePubKeySet common.PubKeySet, validatorConsPubKey strin
 	}
 }
 
-// Route should return the cmname of the module
+// Route should return the router key of the module
 func (msg MsgSetNodeKeys) Route() string { return RouterKey }
 
 // Type should return the action
@@ -32,8 +32,8 @@ func (msg MsgSetNodeKeys) ValidateBasic() error {
 	if msg.Signer.Empty() {
 		return cosmos.ErrInvalidAddress(msg.Signer.String())
 	}
-	if len(msg.ValidatorConsPubKey) == 0 {
-		return cosmos.ErrUnknownRequest("validator consensus pubkey cannot be empty")
+	if _, err := cosmos.GetPubKeyFromBech32(cosmos.Bech32PubKeyTypeConsPub, msg.ValidatorConsPubKey); err != nil {
+		return cosmos.ErrUnknownRequest(err.Error())
 	}
 	if msg.PubKeySetSet.IsEmpty() {
 		return cosmos.ErrUnknownRequest("node pub keys cannot be empty")

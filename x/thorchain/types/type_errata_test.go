@@ -16,6 +16,7 @@ func (s *TypeErrataTxSuite) TestVoter(c *C) {
 		common.BNBChain,
 	)
 	c.Check(errata.Empty(), Equals, false)
+	c.Check(errata.String() != "", Equals, true)
 
 	addr := GetRandomBech32Addr()
 	c.Check(errata.HasSigned(addr), Equals, false)
@@ -30,4 +31,6 @@ func (s *TypeErrataTxSuite) TestVoter(c *C) {
 		NodeAccount{NodeAddress: addr, Status: Active},
 	}
 	c.Check(errata.HasConsensus(nas), Equals, true)
+	errata1 := NewErrataTxVoter(GetRandomTxHash(), common.EmptyChain)
+	c.Check(errata1.Empty(), Equals, true)
 }

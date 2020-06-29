@@ -63,7 +63,7 @@ func (s *GasSuite) TestCalcGasPrice(c *C) {
 		},
 	}
 
-	gas := CalcGasPrice(tx, BNBAsset, gasInfo)
+	gas := CalcBinanceGasPrice(tx, BNBAsset, gasInfo)
 	c.Check(gas.Equals(Gas{NewCoin(BNBAsset, cosmos.NewUint(37500))}), Equals, true)
 
 	tx = Tx{
@@ -73,7 +73,7 @@ func (s *GasSuite) TestCalcGasPrice(c *C) {
 		},
 	}
 
-	gas = CalcGasPrice(tx, BNBAsset, gasInfo)
+	gas = CalcBinanceGasPrice(tx, BNBAsset, gasInfo)
 	c.Check(gas.Equals(Gas{NewCoin(BNBAsset, cosmos.NewUint(60000))}), Equals, true)
 }
 

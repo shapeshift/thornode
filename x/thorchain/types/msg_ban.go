@@ -18,7 +18,7 @@ func NewMsgBan(addr, signer cosmos.AccAddress) MsgBan {
 	}
 }
 
-// Route should return the cmname of the module
+// Route should return the name of the module
 func (msg MsgBan) Route() string { return RouterKey }
 
 // Type should return the action

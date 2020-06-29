@@ -1,8 +1,9 @@
 package keeperv1
 
 import (
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	. "gopkg.in/check.v1"
+
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 type KeeperObserverSuite struct{}

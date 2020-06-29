@@ -60,7 +60,7 @@ func getMsgTssKeysignFailID(members []blame.Node, height int64, memo string, coi
 	return hex.EncodeToString(hash.Sum([]byte(sb.String())))
 }
 
-// Route should return the cmname of the module
+// Route should return the route key of the module
 func (msg MsgTssKeysignFail) Route() string { return RouterKey }
 
 // Type should return the action
@@ -77,13 +77,18 @@ func (msg MsgTssKeysignFail) ValidateBasic() error {
 	if len(msg.Coins) == 0 {
 		return cosmos.ErrUnknownRequest("no coins")
 	}
-	for _, c := range msg.Coins {
-		if err := c.IsValid(); err != nil {
-			return cosmos.ErrInvalidCoins(err.Error())
-		}
+	if err := msg.Coins.Valid(); err != nil {
+		return cosmos.ErrInvalidCoins(err.Error())
 	}
 	if msg.Blame.IsEmpty() {
 		return cosmos.ErrUnknownRequest("tss blame is empty")
+	}
+	if msg.Height <= 0 {
+		return cosmos.ErrUnknownRequest("block height cannot be equal to less than zero")
+	}
+	if len([]byte(msg.Memo)) > 150 {
+		err := fmt.Errorf("memo must not exceed 150 bytes: %d", len([]byte(msg.Memo)))
+		return cosmos.ErrUnknownRequest(err.Error())
 	}
 	return nil
 }

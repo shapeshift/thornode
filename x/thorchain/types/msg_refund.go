@@ -2,7 +2,7 @@ package types
 
 import (
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 // MsgRefundTx defines a MsgRefundTx message
@@ -21,7 +21,7 @@ func NewMsgRefundTx(tx ObservedTx, txID common.TxID, signer cosmos.AccAddress) M
 	}
 }
 
-// Route should return the cmname of the module
+// Route should return the route key of the module
 func (msg MsgRefundTx) Route() string { return RouterKey }
 
 // Type should return the action

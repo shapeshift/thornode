@@ -45,10 +45,11 @@ func (gm *GasMgrV1) BeginBlock() {
 func (gm *GasMgrV1) AddGasAsset(gas common.Gas) {
 	gm.gas = gm.gas.Add(gas)
 	for _, coin := range gas {
-		gm.gasCount[coin.Asset] += 1
+		gm.gasCount[coin.Asset]++
 	}
 }
 
+// GetGas return gas
 func (gm *GasMgrV1) GetGas() common.Gas {
 	return gm.gas
 }
@@ -62,7 +63,7 @@ func (gm *GasMgrV1) GetFee(ctx cosmos.Context, chain common.Chain) int64 {
 		ctx.Logger().Error("fail to get network fee", "error", err)
 		return transactionFee
 	}
-	if err := networkFee.Validate(); err != nil {
+	if err := networkFee.Valid(); err != nil {
 		ctx.Logger().Error("network fee is invalid", "error", err)
 		return transactionFee
 	}
@@ -111,7 +112,7 @@ func (gm *GasMgrV1) EndBlock(ctx cosmos.Context, keeper keeper.Keeper, eventMana
 	if err := eventManager.EmitGasEvent(ctx, gm.gasEvent); nil != err {
 		ctx.Logger().Error("fail to emit gas event", "error", err)
 	}
-	gm.reset()
+	gm.reset() // do not remove, will cause consensus failures
 }
 
 // ProcessGas to subsidise the pool with RUNE for the gas they have spent
@@ -139,7 +140,7 @@ func (gm *GasMgrV1) ProcessGas(ctx cosmos.Context, keeper keeper.Keeper) {
 		runeGas := pool.AssetValueInRune(gas.Amount) // Convert to Rune (gas will never be RUNE)
 		// If Rune owed now exceeds the Total Reserve, return it all
 		if common.RuneAsset().Chain.Equals(common.THORChain) {
-			if runeGas.LT(keeper.GetRuneBalaceOfModule(ctx, ReserveName)) {
+			if runeGas.LT(keeper.GetRuneBalanceOfModule(ctx, ReserveName)) {
 				coin := common.NewCoin(common.RuneNative, runeGas)
 				if err := keeper.SendFromModuleToModule(ctx, ReserveName, AsgardName, coin); err != nil {
 					ctx.Logger().Error("fail to transfer funds from reserve to asgard", "pool", gas.Asset, "error", err)

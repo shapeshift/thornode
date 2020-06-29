@@ -3,7 +3,7 @@ package types
 import (
 	"github.com/blang/semver"
 
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 // MsgSetVersion defines a MsgSetVersion message
@@ -20,7 +20,7 @@ func NewMsgSetVersion(version semver.Version, signer cosmos.AccAddress) MsgSetVe
 	}
 }
 
-// Route should return the cmname of the module
+// Route should return the route key of the module
 func (msg MsgSetVersion) Route() string { return RouterKey }
 
 // Type should return the action

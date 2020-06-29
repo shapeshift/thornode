@@ -9,9 +9,9 @@ import (
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 type HandlerBondSuite struct{}
@@ -59,8 +59,8 @@ func (HandlerBondSuite) TestBondHandler_Run(c *C) {
 		common.Coins{
 			common.NewCoin(common.RuneAsset(), cosmos.NewUint(uint64(minimumBondInRune))),
 		},
-		common.Gas{},
-		"apply",
+		BNBGasFeeSingleton,
+		"bond",
 	)
 	msg := NewMsgBond(txIn, GetRandomNodeAccount(NodeStandby).NodeAddress, cosmos.NewUint(uint64(minimumBondInRune)), GetRandomBNBAddress(), activeNodeAccount.NodeAddress)
 	_, err := handler.Run(ctx, msg, ver, constAccessor)
@@ -98,7 +98,7 @@ func (HandlerBondSuite) TestBondHandlerFailValidation(c *C) {
 		common.Coins{
 			common.NewCoin(common.RuneAsset(), cosmos.NewUint(uint64(minimumBondInRune))),
 		},
-		common.Gas{},
+		BNBGasFeeSingleton,
 		"apply",
 	)
 	txInNoTxID := txIn
@@ -111,7 +111,7 @@ func (HandlerBondSuite) TestBondHandlerFailValidation(c *C) {
 		{
 			name:        "empty node address",
 			msg:         NewMsgBond(txIn, cosmos.AccAddress{}, cosmos.NewUint(uint64(minimumBondInRune)), GetRandomBNBAddress(), activeNodeAccount.NodeAddress),
-			expectedErr: se.ErrUnknownRequest,
+			expectedErr: se.ErrInvalidAddress,
 		},
 		{
 			name:        "zero bond",
@@ -121,7 +121,7 @@ func (HandlerBondSuite) TestBondHandlerFailValidation(c *C) {
 		{
 			name:        "empty bond address",
 			msg:         NewMsgBond(txIn, GetRandomNodeAccount(NodeStandby).NodeAddress, cosmos.NewUint(uint64(minimumBondInRune)), common.Address(""), activeNodeAccount.NodeAddress),
-			expectedErr: se.ErrUnknownRequest,
+			expectedErr: se.ErrInvalidAddress,
 		},
 		{
 			name:        "empty request hash",
@@ -148,6 +148,6 @@ func (HandlerBondSuite) TestBondHandlerFailValidation(c *C) {
 		c.Log(item.name)
 		_, err := handler.Run(ctx, item.msg, ver, constAccessor)
 
-		c.Check(errors.Is(err, item.expectedErr), Equals, true, Commentf("name: %s", item.name))
+		c.Check(errors.Is(err, item.expectedErr), Equals, true, Commentf("name: %s, %s != %s", item.name, item.expectedErr, err))
 	}
 }

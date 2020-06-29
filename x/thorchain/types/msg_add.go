@@ -1,15 +1,17 @@
 package types
 
 import (
+	"errors"
+
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 // MsgAdd defines a add message
 type MsgAdd struct {
 	Asset       common.Asset      `json:"asset"`     // asset of the asset
 	AssetAmount cosmos.Uint       `json:"asset_amt"` // the amount of asset
-	RuneAmount  cosmos.Uint       `json:"rune"`      // the amount of rune
+	RuneAmount  cosmos.Uint       `json:"rune_amt"`  // the amount of rune
 	Tx          common.Tx         `json:"tx"`
 	Signer      cosmos.AccAddress `json:"signer"`
 }
@@ -29,7 +31,7 @@ func NewMsgAdd(tx common.Tx, asset common.Asset, r, amount cosmos.Uint, signer c
 func (msg MsgAdd) Route() string { return RouterKey }
 
 // Type should return the action
-func (msg MsgAdd) Type() string { return "set_add" }
+func (msg MsgAdd) Type() string { return "add" }
 
 // ValidateBasic runs stateless checks on the message
 func (msg MsgAdd) ValidateBasic() error {
@@ -37,9 +39,12 @@ func (msg MsgAdd) ValidateBasic() error {
 		return cosmos.ErrInvalidAddress(msg.Signer.String())
 	}
 	if msg.Asset.IsEmpty() {
-		return cosmos.ErrUnknownRequest("Add Asset cannot be empty")
+		return cosmos.ErrUnknownRequest("add asset cannot be empty")
 	}
-	if err := msg.Tx.IsValid(); err != nil {
+	if msg.RuneAmount.IsZero() && msg.AssetAmount.IsZero() {
+		return errors.New("rune and asset amount cannot be zero")
+	}
+	if err := msg.Tx.Valid(); err != nil {
 		return cosmos.ErrUnknownRequest(err.Error())
 	}
 	return nil

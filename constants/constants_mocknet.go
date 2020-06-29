@@ -12,6 +12,7 @@ func init() {
 		MinimumBondInRune:     100_000_000, // 1 rune
 		FundMigrationInterval: 10,
 		StakeLockUpBlocks:     0,
+		CliTxCost:             0,
 	}
 	boolOverrides = map[ConstantName]bool{
 		StrictBondStakeRatio: false,

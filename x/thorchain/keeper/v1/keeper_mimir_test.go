@@ -33,4 +33,5 @@ func (s *KeeperMimirSuite) TestMimir(c *C) {
 	val, err = k.GetMimir(ctx, "foo")
 	c.Assert(err, IsNil)
 	c.Assert(val, Equals, int64(-1))
+	c.Check(k.GetMimirIterator(ctx), NotNil)
 }

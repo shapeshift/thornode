@@ -107,4 +107,11 @@ func (*HandlerObserveNetworkFeeSuite) TestHandlerObserveNetworkFee(c *C) {
 	result, err = handler3.Run(ctx, msg2, ver, constantsAccessor)
 	c.Assert(err, NotNil)
 	c.Assert(result, IsNil)
+
+	// invalid message should return an error
+	msg3 := NewMsgReserveContributor(GetRandomTx(), ReserveContributor{}, GetRandomBech32Addr())
+	result, err = handler3.Run(ctx, msg3, ver, constantsAccessor)
+	c.Check(result, IsNil)
+	c.Check(err, NotNil)
+	c.Check(errors.Is(err, errInvalidMessage), Equals, true)
 }

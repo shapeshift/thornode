@@ -52,6 +52,7 @@ const (
 	TxYggdrasilReturn = mem.TxYggdrasilReturn
 	TxMigrate         = mem.TxMigrate
 	TxRagnarok        = mem.TxRagnarok
+	TxReserve         = mem.TxReserve
 )
 
 var (
@@ -71,8 +72,8 @@ var (
 	NewMsgObservedTxOut            = types.NewMsgObservedTxOut
 	NewMsgNoOp                     = types.NewMsgNoOp
 	NewMsgAdd                      = types.NewMsgAdd
-	NewMsgSetStakeData             = types.NewMsgSetStakeData
-	NewMsgSetUnStake               = types.NewMsgSetUnStake
+	NewMsgStake                    = types.NewMsgStake
+	NewMsgUnStake                  = types.NewMsgUnStake
 	NewMsgSwap                     = types.NewMsgSwap
 	NewKeygen                      = types.NewKeygen
 	NewKeygenBlock                 = types.NewKeygenBlock
@@ -108,6 +109,7 @@ var (
 	NewMsgYggdrasil                = types.NewMsgYggdrasil
 	NewMsgReserveContributor       = types.NewMsgReserveContributor
 	NewMsgBond                     = types.NewMsgBond
+	NewMsgUnBond                   = types.NewMsgUnBond
 	NewMsgErrataTx                 = types.NewMsgErrataTx
 	NewMsgBan                      = types.NewMsgBan
 	NewMsgSwitch                   = types.NewMsgSwitch
@@ -147,10 +149,11 @@ type (
 	MsgNativeTx                    = types.MsgNativeTx
 	MsgSwitch                      = types.MsgSwitch
 	MsgBond                        = types.MsgBond
+	MsgUnBond                      = types.MsgUnBond
 	MsgNoOp                        = types.MsgNoOp
 	MsgAdd                         = types.MsgAdd
-	MsgSetUnStake                  = types.MsgSetUnStake
-	MsgSetStakeData                = types.MsgSetStakeData
+	MsgUnStake                     = types.MsgUnStake
+	MsgStake                       = types.MsgStake
 	MsgOutboundTx                  = types.MsgOutboundTx
 	MsgMimir                       = types.MsgMimir
 	MsgMigrate                     = types.MsgMigrate
@@ -173,13 +176,10 @@ type (
 	QueryOutQueue                  = types.QueryOutQueue
 	QueryNodeAccountPreflightCheck = types.QueryNodeAccountPreflightCheck
 	QueryKeygenBlock               = types.QueryKeygenBlock
-	QueryResPools                  = types.QueryResPools
 	QueryResHeights                = types.QueryResHeights
 	QueryKeysign                   = types.QueryKeysign
 	QueryYggdrasilVaults           = types.QueryYggdrasilVaults
 	QueryNodeAccount               = types.QueryNodeAccount
-	NodeKeys                       = types.NodeKeys
-	NodesKeys                      = types.NodesKeys
 	PoolStatus                     = types.PoolStatus
 	Pool                           = types.Pool
 	Pools                          = types.Pools
@@ -227,17 +227,18 @@ type (
 	EventOutbound                  = types.EventOutbound
 	NetworkFee                     = types.NetworkFee
 	ObservedNetworkFeeVoter        = types.ObservedNetworkFeeVoter
+	Jail                           = types.Jail
 
 	// Memo
 	SwapMemo            = mem.SwapMemo
 	StakeMemo           = mem.StakeMemo
 	UnstakeMemo         = mem.UnstakeMemo
 	AddMemo             = mem.AddMemo
-	GasMemo             = mem.GasMemo
 	RefundMemo          = mem.RefundMemo
 	MigrateMemo         = mem.MigrateMemo
 	RagnarokMemo        = mem.RagnarokMemo
 	BondMemo            = mem.BondMemo
+	UnbondMemo          = mem.UnbondMemo
 	OutboundMemo        = mem.OutboundMemo
 	LeaveMemo           = mem.LeaveMemo
 	YggdrasilFundMemo   = mem.YggdrasilFundMemo

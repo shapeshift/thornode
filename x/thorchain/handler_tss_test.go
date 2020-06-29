@@ -126,7 +126,7 @@ func newTssHandlerTestHelper(c *C) tssHandlerTestHelper {
 	keygenBlock.Keygens = []Keygen{
 		{Members: members},
 	}
-	c.Assert(keeper.SetKeygenBlock(ctx, keygenBlock), IsNil)
+	keeper.SetKeygenBlock(ctx, keygenBlock)
 
 	poolPk := GetRandomPubKey()
 	msg := NewMsgTssPool(members, poolPk, AsgardKeygen, common.BlockHeight(ctx), blame.Blame{}, common.Chains{common.RuneAsset().Chain}, signer)
@@ -314,6 +314,24 @@ func (s *HandlerTssSuite) TestTssHandler(c *C) {
 			expectedResult: nil,
 		},
 		{
+			name: "if signer already sign the voter, it should just return",
+			messageCreator: func(helper tssHandlerTestHelper) cosmos.Msg {
+				tssMsg := NewMsgTssPool(helper.members, GetRandomPubKey(), AsgardKeygen, common.BlockHeight(helper.ctx), blame.Blame{}, common.Chains{common.RuneAsset().Chain}, helper.signer)
+				voter, _ := helper.keeper.Keeper.GetTssVoter(helper.ctx, tssMsg.ID)
+				if voter.PoolPubKey.IsEmpty() {
+					voter.PoolPubKey = tssMsg.PoolPubKey
+					voter.PubKeys = tssMsg.PubKeys
+				}
+				voter.Sign(tssMsg.Signer, tssMsg.Chains)
+				helper.keeper.Keeper.SetTssVoter(helper.ctx, voter)
+				return tssMsg
+			},
+			runner: func(handler TssHandler, msg cosmos.Msg, helper tssHandlerTestHelper) (*cosmos.Result, error) {
+				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
+			},
+			expectedResult: nil,
+		},
+		{
 			name: "normal success",
 			messageCreator: func(helper tssHandlerTestHelper) cosmos.Msg {
 				tssMsg := NewMsgTssPool(helper.members, GetRandomPubKey(), AsgardKeygen, common.BlockHeight(helper.ctx), blame.Blame{}, common.Chains{common.RuneAsset().Chain}, helper.signer)
@@ -333,7 +351,7 @@ func (s *HandlerTssSuite) TestTssHandler(c *C) {
 				b := blame.Blame{
 					FailReason: "who knows",
 					BlameNodes: []blame.Node{
-						blame.Node{Pubkey: "whatever"},
+						{Pubkey: "whatever"},
 					},
 				}
 				tssMsg := NewMsgTssPool(helper.members, GetRandomPubKey(), AsgardKeygen, common.BlockHeight(helper.ctx), b, common.Chains{common.RuneAsset().Chain}, helper.signer)
@@ -365,7 +383,7 @@ func (s *HandlerTssSuite) TestTssHandler(c *C) {
 				b := blame.Blame{
 					FailReason: "who knows",
 					BlameNodes: []blame.Node{
-						blame.Node{
+						{
 							Pubkey: helper.members[3].String(),
 						},
 					},
@@ -416,7 +434,7 @@ func (s *HandlerTssSuite) TestTssHandler(c *C) {
 				b := blame.Blame{
 					FailReason: "who knows",
 					BlameNodes: []blame.Node{
-						blame.Node{Pubkey: helper.members[3].String()},
+						{Pubkey: helper.members[3].String()},
 					},
 				}
 				tssMsg := NewMsgTssPool(helper.members, GetRandomPubKey(), AsgardKeygen, common.BlockHeight(helper.ctx), b, common.Chains{common.RuneAsset().Chain}, helper.signer)
@@ -445,7 +463,7 @@ func (s *HandlerTssSuite) TestTssHandler(c *C) {
 				b := blame.Blame{
 					FailReason: "who knows",
 					BlameNodes: []blame.Node{
-						blame.Node{Pubkey: helper.members[3].String()},
+						{Pubkey: helper.members[3].String()},
 					},
 				}
 				tssMsg := NewMsgTssPool(helper.members, GetRandomPubKey(), AsgardKeygen, common.BlockHeight(helper.ctx), b, common.Chains{common.RuneAsset().Chain}, helper.signer)
@@ -488,7 +506,7 @@ func (s *HandlerTssSuite) TestTssHandler(c *C) {
 				b := blame.Blame{
 					FailReason: "who knows",
 					BlameNodes: []blame.Node{
-						blame.Node{Pubkey: helper.members[3].String()},
+						{Pubkey: helper.members[3].String()},
 					},
 				}
 				tssMsg := NewMsgTssPool(helper.members, GetRandomPubKey(), AsgardKeygen, common.BlockHeight(helper.ctx), b, common.Chains{common.RuneAsset().Chain}, helper.signer)
@@ -522,7 +540,7 @@ func (s *HandlerTssSuite) TestTssHandler(c *C) {
 				b := blame.Blame{
 					FailReason: "who knows",
 					BlameNodes: []blame.Node{
-						blame.Node{Pubkey: helper.members[3].String()},
+						{Pubkey: helper.members[3].String()},
 					},
 				}
 				tssMsg := NewMsgTssPool(helper.members, GetRandomPubKey(), AsgardKeygen, common.BlockHeight(helper.ctx), b, common.Chains{common.RuneAsset().Chain}, helper.signer)
@@ -551,7 +569,7 @@ func (s *HandlerTssSuite) TestTssHandler(c *C) {
 				b := blame.Blame{
 					FailReason: "who knows",
 					BlameNodes: []blame.Node{
-						blame.Node{Pubkey: helper.members[3].String()},
+						{Pubkey: helper.members[3].String()},
 					},
 				}
 				tssMsg := NewMsgTssPool(helper.members, GetRandomPubKey(), AsgardKeygen, common.BlockHeight(helper.ctx), b, common.Chains{common.RuneAsset().Chain}, helper.signer)

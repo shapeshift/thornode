@@ -6,12 +6,16 @@ import (
 
 	"github.com/blang/semver"
 
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
-var ADMINS = []string{"thor1x0akdepu6vs40cv30xqz3qnd85mh7gkf5a0z89", "thor1app3q9saxldh3jqg93ztv94pyn3gfltq0hylcx"}
+// ADMINS hard coded admin address
+var ADMINS = []string{
+	"thor1x0akdepu6vs40cv30xqz3qnd85mh7gkf5a0z89",
+	"thor1app3q9saxldh3jqg93ztv94pyn3gfltq0hylcx",
+}
 
 // MimirHandler is to handle admin messages
 type MimirHandler struct {
@@ -71,10 +75,9 @@ func (h MimirHandler) handle(ctx cosmos.Context, msg MsgMimir, version semver.Ve
 	ctx.Logger().Info("handleMsgMimir request", "key", msg.Key, "value", msg.Value)
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.handleV1(ctx, msg)
-	} else {
-		ctx.Logger().Error(errInvalidVersion.Error())
-		return errBadVersion
 	}
+	ctx.Logger().Error(errInvalidVersion.Error())
+	return errBadVersion
 }
 
 func (h MimirHandler) handleV1(ctx cosmos.Context, msg MsgMimir) error {
