@@ -111,6 +111,9 @@ func (h BanHandler) handleV1(ctx cosmos.Context, msg MsgBan, constAccessor const
 			minBond = constAccessor.GetInt64Value(constants.MinimumBondInRune)
 		}
 		slashAmount := cosmos.NewUint(uint64(minBond)).QuoUint64(1000)
+		if slashAmount.GT(banner.Bond) {
+			slashAmount = banner.Bond
+		}
 		banner.Bond = common.SafeSub(banner.Bond, slashAmount)
 
 		if common.RuneAsset().Chain.Equals(common.THORChain) {

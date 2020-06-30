@@ -72,6 +72,9 @@ func (s *SlasherV1) HandleDoubleSign(ctx cosmos.Context, addr crypto.Address, in
 				minBond = constAccessor.GetInt64Value(constants.MinimumBondInRune)
 			}
 			slashAmount := cosmos.NewUint(uint64(minBond)).MulUint64(5).QuoUint64(100)
+			if slashAmount.GT(na.Bond) {
+				slashAmount = na.Bond
+			}
 			na.Bond = common.SafeSub(na.Bond, slashAmount)
 
 			if common.RuneAsset().Chain.Equals(common.THORChain) {
@@ -287,6 +290,9 @@ func (s *SlasherV1) SlashNodeAccount(ctx cosmos.Context, observedPubKey common.P
 		amountToReserve := slashAmount.QuoUint64(2)
 		// if the diff asset is RUNE , just took 1.5 * diff from their bond
 		slashAmount = slashAmount.MulUint64(3).QuoUint64(2)
+		if slashAmount.GT(nodeAccount.Bond) {
+			slashAmount = nodeAccount.Bond
+		}
 		nodeAccount.Bond = common.SafeSub(nodeAccount.Bond, slashAmount)
 		vaultData, err := s.keeper.GetVaultData(ctx)
 		if err != nil {
@@ -306,7 +312,13 @@ func (s *SlasherV1) SlashNodeAccount(ctx cosmos.Context, observedPubKey common.P
 	if pool.IsEmpty() {
 		return nil
 	}
+	if slashAmount.GT(pool.BalanceAsset) {
+		slashAmount = pool.BalanceAsset
+	}
 	runeValue := pool.AssetValueInRune(slashAmount).MulUint64(3).QuoUint64(2)
+	if runeValue.GT(nodeAccount.Bond) {
+		runeValue = nodeAccount.Bond
+	}
 	pool.BalanceAsset = common.SafeSub(pool.BalanceAsset, slashAmount)
 	pool.BalanceRune = pool.BalanceRune.Add(runeValue)
 	nodeAccount.Bond = common.SafeSub(nodeAccount.Bond, runeValue)

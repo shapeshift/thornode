@@ -133,6 +133,12 @@ func (h ErrataTxHandler) handleV1(ctx cosmos.Context, msg MsgErrataTx, version s
 	// subtract amounts from pool balances
 	runeCoin := tx.Coins.GetCoin(common.RuneAsset())
 	assetCoin := tx.Coins.GetCoin(memo.GetAsset())
+	if runeCoin.Amount.GT(pool.BalanceRune) {
+		runeCoin.Amount = pool.BalanceRune
+	}
+	if assetCoin.Amount.GT(pool.BalanceAsset) {
+		assetCoin.Amount = pool.BalanceAsset
+	}
 	pool.BalanceRune = common.SafeSub(pool.BalanceRune, runeCoin.Amount)
 	pool.BalanceAsset = common.SafeSub(pool.BalanceAsset, assetCoin.Amount)
 	if memo.IsType(TxStake) {

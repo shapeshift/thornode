@@ -186,16 +186,6 @@ func (n *NodeAccount) CalcBondUnits(height, slashpoints int64) cosmos.Uint {
 	return cosmos.NewUint(uint64(blockCount))
 }
 
-// AddBond top up bond
-func (n *NodeAccount) AddBond(amt cosmos.Uint) {
-	n.Bond = n.Bond.Add(amt)
-}
-
-// SubBond take from node account's bond
-func (n *NodeAccount) SubBond(amt cosmos.Uint) {
-	n.Bond = common.SafeSub(n.Bond, amt)
-}
-
 // TryAddSignerPubKey add a key to node account
 func (n *NodeAccount) TryAddSignerPubKey(key common.PubKey) {
 	if key.IsEmpty() {
