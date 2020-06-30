@@ -124,8 +124,8 @@ func main() {
 		cfg.TSS.Rendezvous,
 		app.DefaultCLIHome,
 		common.TssConfig{
-			KeyGenTimeout:   240 * time.Second,
-			KeySignTimeout:  120 * time.Second,
+			KeyGenTimeout:   240 * time.Second, // must be shorter than cosntants.JailTimeKeygen
+			KeySignTimeout:  120 * time.Second, // must be shorter than constants.JailTimeKeysign
 			PreParamTimeout: 5 * time.Minute,
 		},
 		getLocalPreParam(*tssPreParam),

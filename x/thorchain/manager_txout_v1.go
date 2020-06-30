@@ -286,14 +286,6 @@ func (tos *TxOutStorageV1) addToBlockOut(ctx cosmos.Context, mgr Manager, toi *T
 		toi.Memo = ""
 	}
 
-	if memo.IsType(TxRagnarok) {
-		pending, err := tos.keeper.GetRagnarokPending(ctx)
-		if err != nil {
-			return fmt.Errorf("fail to get ragnarok pending: %w", err)
-		}
-		tos.keeper.SetRagnarokPending(ctx, pending+1)
-	}
-
 	return tos.keeper.AppendTxOut(ctx, common.BlockHeight(ctx), toi)
 }
 

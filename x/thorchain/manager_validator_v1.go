@@ -383,20 +383,32 @@ func (vm *validatorMgrV1) processRagnarok(ctx cosmos.Context, mgr Manager, const
 		return nil
 	}
 
+	nth, err := vm.k.GetRagnarokNth(ctx)
+	if err != nil {
+		return fmt.Errorf("fail to get ragnarok nth: %w", err)
+	}
+
+	position, err := vm.k.GetRagnarokUnstakPosition(ctx)
+	if err != nil {
+		return fmt.Errorf("fail to get ragnarok position: %w", err)
+	}
+	if !position.IsEmpty() {
+		if err := vm.ragnarokPools(ctx, nth, mgr, constAccessor); err != nil {
+			ctx.Logger().Error("fail to ragnarok pools", "error", err)
+		}
+		return nil
+	}
+
 	// check if we have any pending ragnarok transactions
 	pending, err := vm.k.GetRagnarokPending(ctx)
 	if err != nil {
 		return fmt.Errorf("fail to get ragnarok pending: %w", err)
 	}
 	if pending > 0 {
-		ctx.Logger().Info("awaiting previous ragnarok transction to clear before continuing", "count", pending)
+		ctx.Logger().Info("awaiting previous ragnarok transction to clear before continuing", "nth", nth, "count", pending)
 		return nil
 	}
 
-	nth, err := vm.k.GetRagnarokNth(ctx)
-	if err != nil {
-		return fmt.Errorf("fail to get ragnarok nth: %w", err)
-	}
 	nth++ // increment by 1
 	ctx.Logger().Info("starting next ragnarok iteration", "iteration", nth)
 	err = vm.ragnarokProtocolStage2(ctx, nth, mgr, constAccessor)
@@ -602,6 +614,11 @@ func (vm *validatorMgrV1) ragnarokPools(ctx cosmos.Context, nth int64, mgr Manag
 	}
 	na := nas[0]
 
+	position, err := vm.k.GetRagnarokUnstakPosition(ctx)
+	if err != nil {
+		return fmt.Errorf("fail to get ragnarok position: %w", err)
+	}
+
 	// each round of refund, we increase the percentage by 10%. This ensures
 	// that we slowly refund each person, while not sending out too much too
 	// fast. Also, we won't be running into any gas related issues until the
@@ -628,48 +645,88 @@ func (vm *validatorMgrV1) ragnarokPools(ctx cosmos.Context, nth int64, mgr Manag
 			if err := vm.eventMgr.EmitEvent(ctx, poolEvent); err != nil {
 				ctx.Logger().Error("fail to emit pool event", "error", err)
 			}
-		}
 
-		pool.Status = PoolBootstrap
-		if err := vm.k.SetPool(ctx, pool); err != nil {
-			ctx.Logger().Error(err.Error())
-			return err
+			pool.Status = PoolBootstrap
+			if err := vm.k.SetPool(ctx, pool); err != nil {
+				ctx.Logger().Error(err.Error())
+				return err
+			}
 		}
 	}
 
 	version := vm.k.GetLowestActiveVersion(ctx)
 
+	nextPool := false
+	maxUnstakesPerBlock := 20
+	count := 0
+
 	for i := len(pools) - 1; i >= 0; i-- { // iterate backwards
 		pool := pools[i]
+
+		if nextPool { // we've iterated to the next pool after our position pool
+			position.Pool = pool.Asset
+		}
+
+		if !position.Pool.IsEmpty() && !pool.Asset.Equals(position.Pool) {
+			continue
+		}
+
+		nextPool = true
+		position.Pool = pool.Asset
+
+		// unstake gas asset pool on the back 10 nths
+		if nth <= 10 && pool.Asset.Chain.GetGasAsset().Equals(pool.Asset) {
+			continue
+		}
+
+		j := int64(-1)
 		iterator := vm.k.GetStakerIterator(ctx, pool.Asset)
-		defer iterator.Close()
 		for ; iterator.Valid(); iterator.Next() {
-			var staker Staker
-			vm.k.Cdc().MustUnmarshalBinaryBare(iterator.Value(), &staker)
-			if staker.Units.IsZero() {
-				continue
-			}
+			j++
+			if j == position.Number {
+				position.Number++
+				var staker Staker
+				vm.k.Cdc().MustUnmarshalBinaryBare(iterator.Value(), &staker)
+				if staker.Units.IsZero() {
+					continue
+				}
 
-			// unstake gas asset pool on the back 10 nths
-			if nth <= 10 && pool.Asset.Chain.GetGasAsset().Equals(pool.Asset) {
-				continue
-			}
+				unstakeMsg := NewMsgUnStake(
+					common.GetRagnarokTx(pool.Asset.Chain, staker.RuneAddress, staker.RuneAddress),
+					staker.RuneAddress,
+					cosmos.NewUint(uint64(basisPoints)),
+					pool.Asset,
+					na.NodeAddress,
+				)
 
-			unstakeMsg := NewMsgUnStake(
-				common.GetRagnarokTx(pool.Asset.Chain, staker.RuneAddress, staker.RuneAddress),
-				staker.RuneAddress,
-				cosmos.NewUint(uint64(basisPoints)),
-				pool.Asset,
-				na.NodeAddress,
-			)
-
-			unstakeHandler := NewUnstakeHandler(vm.k, mgr)
-			_, err := unstakeHandler.Run(ctx, unstakeMsg, version, constAccessor)
-			if err != nil {
-				ctx.Logger().Error("fail to unstake", "staker", staker.RuneAddress, "error", err)
+				unstakeHandler := NewUnstakeHandler(vm.k, mgr)
+				_, err := unstakeHandler.Run(ctx, unstakeMsg, version, constAccessor)
+				if err != nil {
+					ctx.Logger().Error("fail to unstake", "staker", staker.RuneAddress, "error", err)
+				} else {
+					count++
+					pending, err := vm.k.GetRagnarokPending(ctx)
+					if err != nil {
+						return fmt.Errorf("fail to get ragnarok pending: %w", err)
+					}
+					vm.k.SetRagnarokPending(ctx, pending+2) // two outbound txs
+					if count >= maxUnstakesPerBlock {
+						break
+					}
+				}
 			}
 		}
+		iterator.Close()
+		if count >= maxUnstakesPerBlock {
+			break
+		}
+		position.Number = 0
 	}
+
+	if count < maxUnstakesPerBlock { // we've completed all pools/stakers, reset the position
+		position = RagnarokUnstakePosition{}
+	}
+	vm.k.SetRagnarokUnstakPosition(ctx, position)
 
 	return nil
 }

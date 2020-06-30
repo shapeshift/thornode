@@ -2,6 +2,7 @@ package thorchain
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/blang/semver"
 	se "github.com/cosmos/cosmos-sdk/types/errors"
@@ -72,6 +73,17 @@ func (k *tssKeysignKeeperHelper) ListActiveNodeAccounts(ctx cosmos.Context) (Nod
 	return k.Keeper.ListActiveNodeAccounts(ctx)
 }
 
+func signVoter(ctx cosmos.Context, keeper keeper.Keeper, except cosmos.AccAddress) (result []cosmos.AccAddress) {
+	active, _ := keeper.ListActiveNodeAccounts(ctx)
+	for _, na := range active {
+		if na.NodeAddress.Equals(except) {
+			continue
+		}
+		result = append(result, na.NodeAddress)
+	}
+	return
+}
+
 func newTssKeysignHandlerTestHelper(c *C) tssKeysignFailHandlerTestHelper {
 	ctx, k := setupKeeperForTest(c)
 	ctx = ctx.WithBlockHeight(1023)
@@ -86,13 +98,13 @@ func newTssKeysignHandlerTestHelper(c *C) tssKeysignFailHandlerTestHelper {
 
 	var members []blame.Node
 	for i := 0; i < 8; i++ {
-		na := GetRandomNodeAccount(NodeStandby)
+		na := GetRandomNodeAccount(NodeActive)
 		members = append(members, blame.Node{Pubkey: na.PubKeySet.Secp256k1.String()})
 		_ = keeper.SetNodeAccount(ctx, na)
 	}
 	blame := blame.Blame{
 		FailReason: "whatever",
-		BlameNodes: members,
+		BlameNodes: []blame.Node{members[0], members[1]},
 	}
 	asgardVault := NewVault(common.BlockHeight(ctx), ActiveVault, AsgardVault, GetRandomPubKey(), common.Chains{common.BNBChain})
 	c.Assert(keeper.SetVault(ctx, asgardVault), IsNil)
@@ -232,6 +244,11 @@ func (h HandlerTssKeysignSuite) TestTssKeysignFailHandler(c *C) {
 				return NewMsgTssKeysignFail(common.BlockHeight(helper.ctx), helper.blame, "hello", common.Coins{common.NewCoin(common.BNBAsset, cosmos.NewUint(100))}, helper.nodeAccount.NodeAddress, 0)
 			},
 			runner: func(handler TssKeysignHandler, msg cosmos.Msg, helper tssKeysignFailHandlerTestHelper) (*cosmos.Result, error) {
+				mmsg := msg.(MsgTssKeysignFail)
+				// prepopulate the voter with other signers
+				voter, _ := helper.keeper.GetTssKeysignFailVoter(helper.ctx, mmsg.ID)
+				voter.Signers = signVoter(helper.ctx, helper.keeper, mmsg.Signer)
+				helper.keeper.SetTssKeysignFailVoter(helper.ctx, voter)
 				helper.keeper.errFailToGetNodeAccountByPubKey = true
 				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
 			},
@@ -280,11 +297,14 @@ func (h HandlerTssKeysignSuite) TestTssKeysignFailHandler(c *C) {
 		helper := newTssKeysignHandlerTestHelper(c)
 		handler := NewTssKeysignHandler(helper.keeper, NewDummyMgr())
 		msg := tc.messageCreator(helper)
+
+		fmt.Printf(">Name: %s\n", tc.name)
 		result, err := tc.runner(handler, msg, helper)
 		if tc.expectedResult == nil {
+			fmt.Printf("Name: %s, %w\n", tc.name, err)
 			c.Assert(err, IsNil)
 		} else {
-			c.Assert(errors.Is(err, tc.expectedResult), Equals, true, Commentf("name:%s", tc.name))
+			c.Assert(errors.Is(err, tc.expectedResult), Equals, true, Commentf("name:%s, %w", tc.name, err))
 		}
 		if tc.validator != nil {
 			tc.validator(helper, msg, result, c)
