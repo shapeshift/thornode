@@ -98,10 +98,6 @@ func (NodeAccountSuite) TestNodeAccount(c *C) {
 	na3 := NewNodeAccount(nodeAddress, Active, pubKeys, bepConsPubKey, cosmos.NewUint(common.One), bondAddr, 1)
 	c.Check(na3.Equals(na), Equals, true)
 	c.Check(na3.Equals(na1), Equals, false)
-	na3.AddBond(cosmos.NewUint(common.One))
-	c.Check(na3.Bond.Equal(cosmos.NewUint(common.One*2)), Equals, true)
-	na3.SubBond(cosmos.NewUint(common.One))
-	c.Check(na3.Bond.Equal(cosmos.NewUint(common.One)), Equals, true)
 }
 
 func (NodeAccountSuite) TestNodeAccountsSort(c *C) {
