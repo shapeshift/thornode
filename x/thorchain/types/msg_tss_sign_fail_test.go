@@ -38,9 +38,6 @@ func (s MsgTssKeysignFailSuite) TestMsgTssKeysignFail(c *C) {
 		common.NewCoin(common.EmptyAsset, cosmos.ZeroUint()),
 	}, GetRandomBech32Addr(), 0), NotNil)
 	c.Check(NewMsgTssKeysignFail(1, b, "hello", coins, cosmos.AccAddress{}, 0), NotNil)
-	msg1 := NewMsgTssKeysignFail(1, b, "hello", coins, msg.Signer, 1)
-	// different retry , make sure the ID is differents
-	c.Assert(msg1.ID == msg.ID, Equals, false)
 
 	msg2 := NewMsgTssKeysignFail(1, b, "hello", coins, cosmos.AccAddress{}, 0)
 	err2 := msg2.ValidateBasic()
