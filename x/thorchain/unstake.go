@@ -100,6 +100,9 @@ func unstake(ctx cosmos.Context, version semver.Version, keeper keeper.Keeper, m
 			// leave half a RUNE as gas fee for BTC chain and ETH chain
 			transactionFee := cv.GetInt64Value(constants.TransactionFee)
 			gasAsset = pool.RuneValueInAsset(cosmos.NewUint(uint64(transactionFee / 2)))
+			if gasAsset.GT(withDrawAsset) {
+				gasAsset = withDrawAsset
+			}
 			withDrawAsset = common.SafeSub(withDrawAsset, gasAsset)
 		}
 	}
