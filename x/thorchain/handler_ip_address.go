@@ -91,6 +91,9 @@ func (h IPAddressHandler) handleV1(ctx cosmos.Context, msg MsgSetIPAddress, cons
 	}
 
 	cost := cosmos.NewUint(uint64(constAccessor.GetInt64Value(constants.CliTxCost)))
+	if cost.GT(nodeAccount.Bond) {
+		cost = nodeAccount.Bond
+	}
 	nodeAccount.IPAddress = msg.IPAddress
 	nodeAccount.Bond = common.SafeSub(nodeAccount.Bond, cost) // take bond
 	if err := h.keeper.SetNodeAccount(ctx, nodeAccount); err != nil {

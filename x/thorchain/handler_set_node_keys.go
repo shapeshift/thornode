@@ -100,7 +100,9 @@ func (h SetNodeKeysHandler) handleV1(ctx cosmos.Context, msg MsgSetNodeKeys, ver
 	}
 
 	cost := cosmos.NewUint(uint64(constAccessor.GetInt64Value(constants.CliTxCost)))
-
+	if cost.GT(nodeAccount.Bond) {
+		cost = nodeAccount.Bond
+	}
 	// Here make sure THORNode don't change the node account's bond
 	nodeAccount.UpdateStatus(NodeStandby, common.BlockHeight(ctx))
 	nodeAccount.PubKeySet = msg.PubKeySetSet

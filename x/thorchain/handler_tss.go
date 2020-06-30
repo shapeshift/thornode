@@ -166,6 +166,9 @@ func (h TssHandler) handleV1(ctx cosmos.Context, msg MsgTssPool, version semver.
 					}
 
 					slashBond := reserveVault.CalcNodeRewards(cosmos.NewUint(uint64(slashPoints)))
+					if slashBond.GT(na.Bond) {
+						slashBond = na.Bond
+					}
 					na.Bond = common.SafeSub(na.Bond, slashBond)
 					if common.RuneAsset().Chain.Equals(common.THORChain) {
 						coin := common.NewCoin(common.RuneNative, slashBond)

@@ -92,6 +92,9 @@ func (h VersionHandler) handleV1(ctx cosmos.Context, msg MsgSetVersion, constAcc
 	}
 
 	cost := cosmos.NewUint(uint64(constAccessor.GetInt64Value(constants.CliTxCost)))
+	if cost.GT(nodeAccount.Bond) {
+		cost = nodeAccount.Bond
+	}
 
 	nodeAccount.Bond = common.SafeSub(nodeAccount.Bond, cost)
 	if err := h.keeper.SetNodeAccount(ctx, nodeAccount); err != nil {
