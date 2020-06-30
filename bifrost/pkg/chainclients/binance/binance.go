@@ -320,7 +320,7 @@ func (b *Binance) SignTx(tx stypes.TxOutItem, thorchainHeight int64, retry uint6
 		}
 		b.accts.Set(tx.VaultPubKey, meta)
 	}
-	b.logger.Info().Int64("account_number", meta.AccountNumber).Int64("sequence_number", meta.SeqNumber).Msg("account info")
+	b.logger.Info().Int64("account_number", meta.AccountNumber).Int64("sequence_number", meta.SeqNumber).Int64("block height", meta.BlockHeight).Msg("account info")
 	signMsg := btx.StdSignMsg{
 		ChainID:       b.chainID,
 		Memo:          tx.Memo,

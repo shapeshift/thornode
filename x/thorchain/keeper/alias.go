@@ -59,4 +59,5 @@ type (
 	TxMarkers               = types.TxMarkers
 	NetworkFee              = types.NetworkFee
 	ObservedNetworkFeeVoter = types.ObservedNetworkFeeVoter
+	RagnarokUnstakePosition = types.RagnarokUnstakePosition
 )

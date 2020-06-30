@@ -50,7 +50,6 @@ func getMsgTssKeysignFailID(members []blame.Node, height int64, memo string, coi
 	for _, item := range members {
 		sb.WriteString(item.Pubkey)
 	}
-	sb.WriteString(fmt.Sprintf("%d", retry))
 	sb.WriteString(fmt.Sprintf("%d", height))
 	sb.WriteString(memo)
 	for _, c := range coins {

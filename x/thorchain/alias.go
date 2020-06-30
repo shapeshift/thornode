@@ -132,6 +132,7 @@ var (
 	GetRandomPubKey                = types.GetRandomPubKey
 	GetRandomPubKeySet             = types.GetRandomPubKeySet
 	SetupConfigForTest             = types.SetupConfigForTest
+	HasSimpleMajority              = types.HasSimpleMajority
 
 	// Memo
 	ParseMemo          = mem.ParseMemo
@@ -227,6 +228,7 @@ type (
 	NetworkFee                     = types.NetworkFee
 	ObservedNetworkFeeVoter        = types.ObservedNetworkFeeVoter
 	Jail                           = types.Jail
+	RagnarokUnstakePosition        = types.RagnarokUnstakePosition
 
 	// Memo
 	SwapMemo            = mem.SwapMemo
