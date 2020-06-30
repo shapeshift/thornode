@@ -60,11 +60,21 @@ func (h TssKeysignHandler) validateV1(ctx cosmos.Context, msg MsgTssKeysignFail)
 		return cosmos.ErrUnauthorized("not authorized")
 	}
 
+	active, err := h.keeper.ListActiveNodeAccounts(ctx)
+	if err != nil {
+		return wrapError(ctx, err, "fail to get list of active node accounts")
+	}
+
+	if !HasSimpleMajority(len(active)-len(msg.Blame.BlameNodes), len(active)) {
+		ctx.Logger().Error("blame cast too wide", "blame", len(msg.Blame.BlameNodes))
+		return fmt.Errorf("blame cast too wide: %d/%d", len(msg.Blame.BlameNodes), len(active))
+	}
+
 	return nil
 }
 
 func (h TssKeysignHandler) handle(ctx cosmos.Context, msg MsgTssKeysignFail, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
-	ctx.Logger().Info("handle MsgTssKeysignFail request", "ID:", msg.ID)
+	ctx.Logger().Info("handle MsgTssKeysignFail request", "ID", msg.ID, "signer", msg.Signer, "retry", msg.Retry, "blame", msg.Blame.String())
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.handleV1(ctx, msg, version, constAccessor)
 	}
@@ -77,16 +87,11 @@ func (h TssKeysignHandler) handleV1(ctx cosmos.Context, msg MsgTssKeysignFail, v
 		return nil, wrapError(ctx, err, "fail to get list of active node accounts")
 	}
 
-	if !msg.Blame.IsEmpty() {
-		ctx.Logger().Error(msg.Blame.String())
-	}
-
 	voter, err := h.keeper.GetTssKeysignFailVoter(ctx, msg.ID)
 	if err != nil {
 		return nil, err
 	}
 	observeSlashPoints := constAccessor.GetInt64Value(constants.ObserveSlashPoints)
-	observeFlex := constAccessor.GetInt64Value(constants.ObserveFlex)
 	h.mgr.Slasher().IncSlashPoints(ctx, observeSlashPoints, msg.Signer)
 	if !voter.Sign(msg.Signer) {
 		ctx.Logger().Info("signer already signed MsgTssKeysignFail", "signer", msg.Signer.String(), "txid", msg.ID)
@@ -98,41 +103,36 @@ func (h TssKeysignHandler) handleV1(ctx cosmos.Context, msg MsgTssKeysignFail, v
 		ctx.Logger().Info("not having consensus yet, return")
 		return &cosmos.Result{}, nil
 	}
+	ctx.Logger().Info("has tss keysign consensus!!")
 
-	if voter.Height == 0 {
-		voter.Height = common.BlockHeight(ctx)
-		h.keeper.SetTssKeysignFailVoter(ctx, voter)
+	h.mgr.Slasher().DecSlashPoints(ctx, observeSlashPoints, voter.Signers...)
+	voter.Signers = nil
+	h.keeper.SetTssKeysignFailVoter(ctx, voter)
 
-		constAccessor := constants.GetConstantValues(version)
-		slashPoints := constAccessor.GetInt64Value(constants.FailKeySignSlashPoints)
-		// fail to generate a new tss key let's slash the node account
-		for _, node := range msg.Blame.BlameNodes {
-			nodePubKey, err := common.NewPubKey(node.Pubkey)
-			if err != nil {
-				return nil, ErrInternal(err, "fail to parse pubkey")
-			}
-			na, err := h.keeper.GetNodeAccountByPubKey(ctx, nodePubKey)
-			if err != nil {
-				return nil, ErrInternal(err, fmt.Sprintf("fail to get node account,pub key: %s", nodePubKey.String()))
-			}
-			if err := h.keeper.IncNodeAccountSlashPoints(ctx, na.NodeAddress, slashPoints); err != nil {
-				ctx.Logger().Error("fail to inc slash points", "error", err)
-			}
+	slashPoints := constAccessor.GetInt64Value(constants.FailKeySignSlashPoints)
+	// fail to generate a new tss key let's slash the node account
 
-			// go to jail
-			jailTime := constAccessor.GetInt64Value(constants.JailTimeKeysign)
-			releaseHeight := common.BlockHeight(ctx) + jailTime
-			reason := "failed to perform keysign"
-			if err := h.keeper.SetNodeAccountJail(ctx, na.NodeAddress, releaseHeight, reason); err != nil {
-				ctx.Logger().Error("fail to set node account jail", "node address", na.NodeAddress, "reason", reason, "error", err)
-			}
+	for _, node := range msg.Blame.BlameNodes {
+		nodePubKey, err := common.NewPubKey(node.Pubkey)
+		if err != nil {
+			return nil, ErrInternal(err, "fail to parse pubkey")
 		}
-		h.mgr.Slasher().DecSlashPoints(ctx, observeSlashPoints, voter.Signers...)
-		return &cosmos.Result{}, nil
-	}
-	if (voter.Height + observeFlex) >= common.BlockHeight(ctx) {
-		h.mgr.Slasher().DecSlashPoints(ctx, observeSlashPoints, msg.Signer)
-	}
+		na, err := h.keeper.GetNodeAccountByPubKey(ctx, nodePubKey)
+		if err != nil {
+			return nil, ErrInternal(err, fmt.Sprintf("fail to get node account,pub key: %s", nodePubKey.String()))
+		}
+		if err := h.keeper.IncNodeAccountSlashPoints(ctx, na.NodeAddress, slashPoints); err != nil {
+			ctx.Logger().Error("fail to inc slash points", "error", err)
+		}
 
+		// go to jail
+		ctx.Logger().Info("jailing node", "pubkey", na.PubKeySet.Secp256k1)
+		jailTime := constAccessor.GetInt64Value(constants.JailTimeKeysign)
+		releaseHeight := common.BlockHeight(ctx) + jailTime
+		reason := "failed to perform keysign"
+		if err := h.keeper.SetNodeAccountJail(ctx, na.NodeAddress, releaseHeight, reason); err != nil {
+			ctx.Logger().Error("fail to set node account jail", "node address", na.NodeAddress, "reason", reason, "error", err)
+		}
+	}
 	return &cosmos.Result{}, nil
 }

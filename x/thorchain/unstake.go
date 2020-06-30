@@ -130,10 +130,14 @@ func unstake(ctx cosmos.Context, version semver.Version, keeper keeper.Keeper, m
 	if err := keeper.SetPool(ctx, pool); err != nil {
 		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), ErrInternal(err, "fail to save pool")
 	}
-	if !stakerUnit.Units.IsZero() {
+	if keeper.RagnarokInProgress(ctx) {
 		keeper.SetStaker(ctx, stakerUnit)
 	} else {
-		keeper.RemoveStaker(ctx, stakerUnit)
+		if !stakerUnit.Units.IsZero() {
+			keeper.SetStaker(ctx, stakerUnit)
+		} else {
+			keeper.RemoveStaker(ctx, stakerUnit)
+		}
 	}
 	return withdrawRune, withDrawAsset, common.SafeSub(fStakerUnit, unitAfter), gasAsset, nil
 }

@@ -306,7 +306,15 @@ func (s *Signer) signAndBroadcast(item TxOutStoreItem) error {
 		s.logger.Error().Err(err).Msgf("fail to get constant value for(%s)", constants.SigningTransactionPeriod)
 		return err
 	}
-	if blockHeight-height > signingTransactionPeriod {
+	// rounds up to nearth 100th, then minuses signingTxPeriod. This is in an
+	// effort for multi-bifrost nodes to get deterministic consensus on which
+	// transaction to sign next. If we didn't round up, which transaction to
+	// sign would change every 5 seconds. And with 20 sec party timeouts, luck
+	// of execution time will determine if consensus is reached. Instead, we
+	// have the same transaction selected for a longer period of time, making
+	// it easier for the nodes to all select the same transaction, even if they
+	// don't execute at the same time.
+	if ((blockHeight/100*100)+100)-(signingTransactionPeriod) > height {
 		s.logger.Error().Msgf("tx was created at block height(%d), now it is (%d), it is older than (%d) blocks , skip it ", height, blockHeight, signingTransactionPeriod)
 		return nil
 	}
