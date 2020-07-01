@@ -528,6 +528,14 @@ func (vm *validatorMgrV1) ragnarokReserve(ctx cosmos.Context, nth int64, mgr Man
 		if err != nil && !errors.Is(err, ErrNotEnoughToPayFee) {
 			return fmt.Errorf("fail to add outbound transaction")
 		}
+
+		// add a pending rangarok transaction
+		pending, err := vm.k.GetRagnarokPending(ctx)
+		if err != nil {
+			return fmt.Errorf("fail to get ragnarok pending: %w", err)
+		}
+		vm.k.SetRagnarokPending(ctx, pending+1)
+
 	}
 
 	if err := vm.k.SetVaultData(ctx, vaultData); err != nil {
@@ -593,6 +601,13 @@ func (vm *validatorMgrV1) ragnarokBond(ctx cosmos.Context, nth int64, mgr Manage
 		if !ok {
 			continue
 		}
+
+		// add a pending rangarok transaction
+		pending, err := vm.k.GetRagnarokPending(ctx)
+		if err != nil {
+			return fmt.Errorf("fail to get ragnarok pending: %w", err)
+		}
+		vm.k.SetRagnarokPending(ctx, pending+1)
 
 		na.Bond = common.SafeSub(na.Bond, amt)
 		if err := vm.k.SetNodeAccount(ctx, na); err != nil {
