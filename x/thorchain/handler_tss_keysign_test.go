@@ -301,7 +301,7 @@ func (h HandlerTssKeysignSuite) TestTssKeysignFailHandler(c *C) {
 		fmt.Printf(">Name: %s\n", tc.name)
 		result, err := tc.runner(handler, msg, helper)
 		if tc.expectedResult == nil {
-			fmt.Printf("Name: %s, %w\n", tc.name, err)
+			fmt.Printf("Name: %s, %s\n", tc.name, err)
 			c.Assert(err, IsNil)
 		} else {
 			c.Assert(errors.Is(err, tc.expectedResult), Equals, true, Commentf("name:%s, %w", tc.name, err))

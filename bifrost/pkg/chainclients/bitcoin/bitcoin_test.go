@@ -152,9 +152,9 @@ func (s *BitcoinSuite) TestGetBlock(c *C) {
 func (s *BitcoinSuite) TestFetchTxs(c *C) {
 	txs, err := s.client.FetchTxs(0)
 	c.Assert(err, IsNil)
-	c.Assert(txs.BlockHeight, Equals, "1696761")
 	c.Assert(txs.Chain, Equals, common.BTCChain)
 	c.Assert(txs.Count, Equals, "105")
+	c.Assert(txs.TxArray[0].BlockHeight, Equals, int64(1696761))
 	c.Assert(txs.TxArray[0].Tx, Equals, "24ed2d26fd5d4e0e8fa86633e40faf1bdfc8d1903b1cd02855286312d48818a2")
 	c.Assert(txs.TxArray[0].Sender, Equals, "tb1qdxxlx4r4jk63cve3rjpj428m26xcukjn5yegff")
 	c.Assert(txs.TxArray[0].To, Equals, "mv4rnyY3Su5gjcDNzbMLKBQkBicCtHUtFB")
@@ -558,14 +558,14 @@ func (s *BitcoinSuite) TestGetAccount(c *C) {
 func (s *BitcoinSuite) TestOnObservedTxIn(c *C) {
 	pkey := ttypes.GetRandomPubKey()
 	txIn := types.TxIn{
-		BlockHeight: "1",
-		Count:       "1",
-		Chain:       common.BTCChain,
+		Count: "1",
+		Chain: common.BTCChain,
 		TxArray: []types.TxInItem{
 			{
-				Tx:     "31f8699ce9028e9cd37f8a6d58a79e614a96e3fdd0f58be5fc36d2d95484716f",
-				Sender: "bc1q2gjc0rnhy4nrxvuklk6ptwkcs9kcr59mcl2q9j",
-				To:     "bc1q0s4mg25tu6termrk8egltfyme4q7sg3h0e56p3",
+				BlockHeight: 1,
+				Tx:          "31f8699ce9028e9cd37f8a6d58a79e614a96e3fdd0f58be5fc36d2d95484716f",
+				Sender:      "bc1q2gjc0rnhy4nrxvuklk6ptwkcs9kcr59mcl2q9j",
+				To:          "bc1q0s4mg25tu6termrk8egltfyme4q7sg3h0e56p3",
 				Coins: common.Coins{
 					common.NewCoin(common.BTCAsset, cosmos.NewUint(123456789)),
 				},
@@ -589,14 +589,14 @@ func (s *BitcoinSuite) TestOnObservedTxIn(c *C) {
 	c.Assert(utxos[0].Value, Equals, float64(1.23456789))
 
 	txIn = types.TxIn{
-		BlockHeight: "2",
-		Count:       "1",
-		Chain:       common.BTCChain,
+		Count: "1",
+		Chain: common.BTCChain,
 		TxArray: []types.TxInItem{
 			{
-				Tx:     "24ed2d26fd5d4e0e8fa86633e40faf1bdfc8d1903b1cd02855286312d48818a2",
-				Sender: "bc1q0s4mg25tu6termrk8egltfyme4q7sg3h0e56p3",
-				To:     "bc1q2gjc0rnhy4nrxvuklk6ptwkcs9kcr59mcl2q9j",
+				BlockHeight: 2,
+				Tx:          "24ed2d26fd5d4e0e8fa86633e40faf1bdfc8d1903b1cd02855286312d48818a2",
+				Sender:      "bc1q0s4mg25tu6termrk8egltfyme4q7sg3h0e56p3",
+				To:          "bc1q2gjc0rnhy4nrxvuklk6ptwkcs9kcr59mcl2q9j",
 				Coins: common.Coins{
 					common.NewCoin(common.BTCAsset, cosmos.NewUint(123456)),
 				},
@@ -620,14 +620,14 @@ func (s *BitcoinSuite) TestOnObservedTxIn(c *C) {
 	c.Assert(utxos[0].Value, Equals, float64(0.00123456))
 
 	txIn = types.TxIn{
-		BlockHeight: "3",
-		Count:       "2",
-		Chain:       common.BTCChain,
+		Count: "2",
+		Chain: common.BTCChain,
 		TxArray: []types.TxInItem{
 			{
-				Tx:     "44ed2d26fd5d4e0e8fa86633e40faf1bdfc8d1903b1cd02855286312d48818a2",
-				Sender: "bc1q0s4mg25tu6termrk8egltfyme4q7sg3h0e56p3",
-				To:     "bc1q2gjc0rnhy4nrxvuklk6ptwkcs9kcr59mcl2q9j",
+				BlockHeight: 3,
+				Tx:          "44ed2d26fd5d4e0e8fa86633e40faf1bdfc8d1903b1cd02855286312d48818a2",
+				Sender:      "bc1q0s4mg25tu6termrk8egltfyme4q7sg3h0e56p3",
+				To:          "bc1q2gjc0rnhy4nrxvuklk6ptwkcs9kcr59mcl2q9j",
 				Coins: common.Coins{
 					common.NewCoin(common.BTCAsset, cosmos.NewUint(12345678)),
 				},
@@ -635,9 +635,10 @@ func (s *BitcoinSuite) TestOnObservedTxIn(c *C) {
 				ObservedVaultPubKey: pkey,
 			},
 			{
-				Tx:     "54ed2d26fd5d4e0e8fa86633e40faf1bdfc8d1903b1cd02855286312d48818a2",
-				Sender: "bc1q0s4mg25tu6termrk8egltfyme4q7sg3h0e56p3",
-				To:     "bc1q2gjc0rnhy4nrxvuklk6ptwkcs9kcr59mcl2q9j",
+				BlockHeight: 3,
+				Tx:          "54ed2d26fd5d4e0e8fa86633e40faf1bdfc8d1903b1cd02855286312d48818a2",
+				Sender:      "bc1q0s4mg25tu6termrk8egltfyme4q7sg3h0e56p3",
+				To:          "bc1q2gjc0rnhy4nrxvuklk6ptwkcs9kcr59mcl2q9j",
 				Coins: common.Coins{
 					common.NewCoin(common.BTCAsset, cosmos.NewUint(123456)),
 				},
