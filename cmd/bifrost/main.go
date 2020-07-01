@@ -126,6 +126,7 @@ func main() {
 		common.TssConfig{
 			KeyGenTimeout:   240 * time.Second, // must be shorter than cosntants.JailTimeKeygen
 			KeySignTimeout:  120 * time.Second, // must be shorter than constants.JailTimeKeysign
+			PartyTimeout:    20 * time.Second,
 			PreParamTimeout: 5 * time.Minute,
 		},
 		getLocalPreParam(*tssPreParam),

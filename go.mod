@@ -36,7 +36,8 @@ require (
 	github.com/tendermint/go-amino v0.15.1
 	github.com/tendermint/tendermint v0.33.3
 	github.com/tendermint/tm-db v0.5.0
-	gitlab.com/thorchain/tss/go-tss v0.0.0-20200630004733-6b15b65eb5a5
+	github.com/zondax/ledger-go v0.11.0 // indirect
+	gitlab.com/thorchain/tss/go-tss v0.0.0-20200701010447-07bdab7f2d9a
 	gitlab.com/thorchain/txscript v0.0.0-20200413023754-8aaf3443d92b
 	go.uber.org/multierr v1.5.0 // indirect
 	golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37 // indirect
