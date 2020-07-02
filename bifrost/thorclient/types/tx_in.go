@@ -3,13 +3,13 @@ package types
 import "gitlab.com/thorchain/thornode/common"
 
 type TxIn struct {
-	BlockHeight string       `json:"blockHeight"`
-	Count       string       `json:"count"`
-	Chain       common.Chain `json:"chain"`
-	TxArray     []TxInItem   `json:"txArray"`
+	Count   string       `json:"count"`
+	Chain   common.Chain `json:"chain"`
+	TxArray []TxInItem   `json:"txArray"`
 }
 
 type TxInItem struct {
+	BlockHeight         int64         `json:"block_height"`
 	Tx                  string        `json:"tx"`
 	Memo                string        `json:"memo"`
 	Sender              string        `json:"sender"`

@@ -219,7 +219,7 @@ func (b *BinanceBlockScanner) processBlock(block blockscanner.Block) (stypes.TxI
 			return txIn, fmt.Errorf("fail to get tx hash from tx raw data: %w", err)
 		}
 
-		txItemIns, err := b.fromTxToTxIn(hash, txn)
+		txItemIns, err := b.fromTxToTxIn(hash, txn, block.Height)
 		if err != nil {
 			b.errCounter.WithLabelValues("fail_get_tx", strBlock).Inc()
 			b.logger.Error().Err(err).Str("hash", hash).Msg("fail to get one tx from server")
@@ -239,7 +239,6 @@ func (b *BinanceBlockScanner) processBlock(block blockscanner.Block) (stypes.TxI
 		return txIn, nil
 	}
 
-	txIn.BlockHeight = strconv.FormatInt(block.Height, 10)
 	txIn.Count = strconv.Itoa(len(txIn.TxArray))
 	txIn.Chain = common.BNBChain
 	return txIn, nil
@@ -390,7 +389,7 @@ func (b *BinanceBlockScanner) getCoinsForTxIn(outputs []bmsg.Output) (common.Coi
 	return cc, nil
 }
 
-func (b *BinanceBlockScanner) fromTxToTxIn(hash, encodedTx string) ([]stypes.TxInItem, error) {
+func (b *BinanceBlockScanner) fromTxToTxIn(hash, encodedTx string, blockHeight int64) ([]stypes.TxInItem, error) {
 	if len(encodedTx) == 0 {
 		return nil, errors.New("tx is empty")
 	}
@@ -407,11 +406,11 @@ func (b *BinanceBlockScanner) fromTxToTxIn(hash, encodedTx string) ([]stypes.TxI
 		return nil, nil
 	}
 
-	return b.fromStdTx(hash, t)
+	return b.fromStdTx(hash, t, blockHeight)
 }
 
 // fromStdTx - process a stdTx
-func (b *BinanceBlockScanner) fromStdTx(hash string, stdTx tx.StdTx) ([]stypes.TxInItem, error) {
+func (b *BinanceBlockScanner) fromStdTx(hash string, stdTx tx.StdTx, blockHeight int64) ([]stypes.TxInItem, error) {
 	var err error
 	var txs []stypes.TxInItem
 
@@ -421,7 +420,8 @@ func (b *BinanceBlockScanner) fromStdTx(hash string, stdTx tx.StdTx) ([]stypes.T
 		switch sendMsg := msg.(type) {
 		case bmsg.SendMsg:
 			txInItem := stypes.TxInItem{
-				Tx: hash,
+				Tx:          hash,
+				BlockHeight: blockHeight,
 			}
 			txInItem.Memo = stdTx.Memo
 			// THORNode take the first Input as sender, first Output as receiver

@@ -3,6 +3,7 @@ package observer
 import (
 	"errors"
 	"fmt"
+	"sort"
 	"strconv"
 	"sync"
 	"time"
@@ -95,7 +96,6 @@ func (o *Observer) sendDeck() {
 		for _, txIn := range o.chunkify(deck) {
 			if err := o.signAndSendToThorchain(txIn); err != nil {
 				o.logger.Error().Err(err).Msg("fail to send to thorchain")
-				o.errCounter.WithLabelValues("fail_send_to_thorchain", txIn.BlockHeight).Inc()
 				// retry later
 				o.onDeck[i].TxArray = append(o.onDeck[i].TxArray, txIn.TxArray...)
 				continue
@@ -111,16 +111,11 @@ func (o *Observer) sendDeck() {
 				OnObservedTxIn(txIn types.TxInItem, blockHeight int64)
 			})
 			if ok {
-				height, err := strconv.ParseInt(txIn.BlockHeight, 10, 64)
-				if err != nil {
-					o.logger.Error().Err(err).Msg("fail to parse block height")
-					continue
-				}
 				for _, item := range txIn.TxArray {
 					if o.isOutboundMsg(txIn.Chain, item.Sender) {
 						continue
 					}
-					i.OnObservedTxIn(item, height)
+					i.OnObservedTxIn(item, item.BlockHeight)
 				}
 			}
 		}
@@ -160,10 +155,13 @@ func (o *Observer) isOutboundMsg(chain common.Chain, fromAddr string) bool {
 
 // chunkify - breaks the observations into 100 transactions per observation
 func (o *Observer) chunkify(txIn types.TxIn) (result []types.TxIn) {
+	// sort it by block height
+	sort.SliceStable(txIn.TxArray, func(i, j int) bool {
+		return txIn.TxArray[i].BlockHeight < txIn.TxArray[j].BlockHeight
+	})
 	for len(txIn.TxArray) > 0 {
 		newTx := types.TxIn{
-			BlockHeight: txIn.BlockHeight,
-			Chain:       txIn.Chain,
+			Chain: txIn.Chain,
 		}
 		if len(txIn.TxArray) > maxTxArrayLen {
 			newTx.Count = fmt.Sprintf("%d", maxTxArrayLen)
@@ -249,17 +247,15 @@ func (o *Observer) signAndSendToThorchain(txIn types.TxIn) error {
 	}
 	stdTx, err := o.thorchainBridge.GetObservationsStdTx(txs)
 	if err != nil {
-		o.errCounter.WithLabelValues("fail_to_sign", txIn.BlockHeight).Inc()
 		return fmt.Errorf("fail to sign the tx: %w", err)
 	}
 	bf := backoff.NewExponentialBackOff()
 	return backoff.Retry(func() error {
 		txID, err := o.thorchainBridge.Broadcast(*stdTx, types.TxSync)
 		if err != nil {
-			o.errCounter.WithLabelValues("fail_to_send_to_thorchain", txIn.BlockHeight).Inc()
 			return fmt.Errorf("fail to send the tx to thorchain: %w", err)
 		}
-		o.logger.Info().Str("block", txIn.BlockHeight).Str("thorchain hash", txID.String()).Msg("sign and send to thorchain successfully")
+		o.logger.Info().Str("thorchain hash", txID.String()).Msg("sign and send to thorchain successfully")
 		return nil
 	}, bf)
 }
@@ -271,9 +267,10 @@ func (o *Observer) getThorchainTxIns(txIn types.TxIn) (stypes.ObservedTxs, error
 	o.logger.Debug().Msgf("len %d", len(txIn.TxArray))
 	for i, item := range txIn.TxArray {
 		o.logger.Debug().Str("tx-hash", item.Tx).Msg("txInItem")
+		blockHeight := strconv.FormatInt(item.BlockHeight, 10)
 		txID, err := common.NewTxID(item.Tx)
 		if err != nil {
-			o.errCounter.WithLabelValues("fail_to_parse_tx_hash", txIn.BlockHeight).Inc()
+			o.errCounter.WithLabelValues("fail_to_parse_tx_hash", blockHeight).Inc()
 			return nil, fmt.Errorf("fail to parse tx hash, %s is invalid: %w", item.Tx, err)
 		}
 		sender, err := common.NewAddress(item.Sender)
@@ -288,11 +285,6 @@ func (o *Observer) getThorchainTxIns(txIn types.TxIn) (stypes.ObservedTxs, error
 			return nil, fmt.Errorf("fail to parse sender,%s is invalid sender address: %w", item.Sender, err)
 		}
 
-		h, err := strconv.ParseInt(txIn.BlockHeight, 10, 64)
-		if err != nil {
-			o.errCounter.WithLabelValues("fail to parse block height", txIn.BlockHeight).Inc()
-			return nil, fmt.Errorf("fail to parse block height: %w", err)
-		}
 		o.logger.Debug().Msgf("pool pubkey %s", item.ObservedVaultPubKey)
 		chainAddr, _ := item.ObservedVaultPubKey.GetAddress(txIn.Chain)
 		o.logger.Debug().Msgf("%s address %s", txIn.Chain.String(), chainAddr)
@@ -302,7 +294,7 @@ func (o *Observer) getThorchainTxIns(txIn types.TxIn) (stypes.ObservedTxs, error
 		}
 		txs[i] = stypes.NewObservedTx(
 			common.NewTx(txID, sender, to, item.Coins, item.Gas, item.Memo),
-			h,
+			item.BlockHeight,
 			item.ObservedVaultPubKey,
 		)
 	}
