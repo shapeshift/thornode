@@ -38,6 +38,9 @@ if [ ! -f ~/.thord/config/genesis.json ]; then
     # enable telemetry through prometheus metrics endpoint
     enable_telemetry
 
+    # enable internal traffic as well
+    enable_internal_traffic
+
     # use external IP if available
     [ ! -z $EXTERNAL_IP ] && external_address $EXTERNAL_IP $NET
 
