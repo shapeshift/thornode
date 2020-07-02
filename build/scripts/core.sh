@@ -98,12 +98,14 @@ init_chain () {
 
 peer_list () {
     PEERUSER="$1@$2:26656"
+    PEERSISTENT_PEER_TARGET='persistent_peers = ""'
+    sed -i -e "s/$PEERSISTENT_PEER_TARGET/persistent_peers = \"$PEERUSER\"/g" ~/.thord/config/config.toml
+}
+
+enable_internal_traffic () {
     ADDR='addr_book_strict = true'
     ADDR_STRICT_FALSE='addr_book_strict = false'
-    PEERSISTENT_PEER_TARGET='persistent_peers = ""'
-
     sed -i -e "s/$ADDR/$ADDR_STRICT_FALSE/g" ~/.thord/config/config.toml
-    sed -i -e "s/$PEERSISTENT_PEER_TARGET/persistent_peers = \"$PEERUSER\"/g" ~/.thord/config/config.toml
 }
 
 external_address () {
