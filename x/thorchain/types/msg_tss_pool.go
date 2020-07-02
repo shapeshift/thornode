@@ -26,28 +26,40 @@ type MsgTssPool struct {
 }
 
 // NewMsgTssPool is a constructor function for MsgTssPool
-func NewMsgTssPool(pks common.PubKeys, poolpk common.PubKey, KeygenType KeygenType, height int64, blame blame.Blame, chains common.Chains, signer cosmos.AccAddress) MsgTssPool {
+func NewMsgTssPool(pks common.PubKeys, poolpk common.PubKey, KeygenType KeygenType, height int64, bl blame.Blame, chains common.Chains, signer cosmos.AccAddress) MsgTssPool {
 	return MsgTssPool{
-		ID:         getTssID(pks, poolpk, height),
+		ID:         getTssID(pks, poolpk, height, bl),
 		PubKeys:    pks,
 		PoolPubKey: poolpk,
 		Height:     height,
 		KeygenType: KeygenType,
-		Blame:      blame,
+		Blame:      bl,
 		Chains:     chains,
 		Signer:     signer,
 	}
 }
 
 // getTssID
-func getTssID(members common.PubKeys, poolPk common.PubKey, height int64) string {
+func getTssID(members common.PubKeys, poolPk common.PubKey, height int64, bl blame.Blame) string {
 	// ensure input pubkeys list is deterministically sorted
 	sort.SliceStable(members, func(i, j int) bool {
 		return members[i].String() < members[j].String()
 	})
+
+	pubkeys := make([]string, len(bl.BlameNodes))
+	for i, node := range bl.BlameNodes {
+		pubkeys[i] = node.Pubkey
+	}
+	sort.SliceStable(pubkeys, func(i, j int) bool {
+		return pubkeys[i] < pubkeys[j]
+	})
+
 	sb := strings.Builder{}
 	for _, item := range members {
-		sb.WriteString(item.String())
+		sb.WriteString("m:" + item.String())
+	}
+	for _, item := range pubkeys {
+		sb.WriteString("p:" + item)
 	}
 	sb.WriteString(poolPk.String())
 	sb.WriteString(fmt.Sprintf("%d", height))
