@@ -2,6 +2,7 @@ package thorchain
 
 import (
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"strconv"
 
@@ -305,6 +306,9 @@ func queryPoolAddresses(ctx cosmos.Context, path []string, req abci.RequestQuery
 }
 
 func queryNodeAccount(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
+	if len(path) == 0 {
+		return nil, errors.New("node address not provided")
+	}
 	nodeAddress := path[0]
 	addr, err := cosmos.AccAddressFromBech32(nodeAddress)
 	if err != nil {
@@ -337,6 +341,9 @@ func queryNodeAccount(ctx cosmos.Context, path []string, req abci.RequestQuery, 
 }
 
 func queryNodeAccountCheck(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
+	if len(path) == 0 {
+		return nil, errors.New("node address not provided")
+	}
 	nodeAddress := path[0]
 	addr, err := cosmos.AccAddressFromBech32(nodeAddress)
 	if err != nil {
@@ -429,6 +436,9 @@ func queryObservers(ctx cosmos.Context, path []string, req abci.RequestQuery, ke
 }
 
 func queryObserver(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
+	if len(path) == 0 {
+		return nil, errors.New("observer address not provided")
+	}
 	observerAddr := path[0]
 	addr, err := cosmos.AccAddressFromBech32(observerAddr)
 	if err != nil {
@@ -450,6 +460,9 @@ func queryObserver(ctx cosmos.Context, path []string, req abci.RequestQuery, kee
 
 // queryStakers
 func queryStakers(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
+	if len(path) == 0 {
+		return nil, errors.New("asset not provided")
+	}
 	asset, err := common.NewAsset(path[0])
 	if err != nil {
 		ctx.Logger().Error("fail to get parse asset", "error", err)
@@ -473,6 +486,9 @@ func queryStakers(ctx cosmos.Context, path []string, req abci.RequestQuery, keep
 
 // nolint: unparam
 func queryPool(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
+	if len(path) == 0 {
+		return nil, errors.New("asset not provided")
+	}
 	asset, err := common.NewAsset(path[0])
 	if err != nil {
 		ctx.Logger().Error("fail to parse asset", "error", err)
@@ -517,6 +533,9 @@ func queryPools(ctx cosmos.Context, req abci.RequestQuery, keeper keeper.Keeper)
 }
 
 func queryTxInVoter(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
+	if len(path) == 0 {
+		return nil, errors.New("tx id not provided")
+	}
 	hash, err := common.NewTxID(path[0])
 	if err != nil {
 		ctx.Logger().Error("fail to parse tx id", "error", err)
@@ -527,7 +546,9 @@ func queryTxInVoter(ctx cosmos.Context, path []string, req abci.RequestQuery, ke
 		ctx.Logger().Error("fail to get observed tx voter", "error", err)
 		return nil, fmt.Errorf("fail to get observed tx voter: %w", err)
 	}
-
+	if len(voter.Txs) == 0 {
+		return nil, fmt.Errorf("tx voter not exist")
+	}
 	res, err := codec.MarshalJSONIndent(keeper.Cdc(), voter)
 	if err != nil {
 		ctx.Logger().Error("fail to marshal tx hash to json", "error", err)
@@ -537,6 +558,9 @@ func queryTxInVoter(ctx cosmos.Context, path []string, req abci.RequestQuery, ke
 }
 
 func queryTxIn(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
+	if len(path) == 0 {
+		return nil, errors.New("tx id not provided")
+	}
 	hash, err := common.NewTxID(path[0])
 	if err != nil {
 		ctx.Logger().Error("fail to parse tx id", "error", err)
@@ -546,6 +570,9 @@ func queryTxIn(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper 
 	if err != nil {
 		ctx.Logger().Error("fail to get observed tx voter", "error", err)
 		return nil, fmt.Errorf("fail to get observed tx voter: %w", err)
+	}
+	if len(voter.Txs) == 0 {
+		return nil, fmt.Errorf("tx: %s doesn't exist", hash)
 	}
 
 	nodeAccounts, err := keeper.ListActiveNodeAccounts(ctx)
@@ -561,6 +588,9 @@ func queryTxIn(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper 
 }
 
 func queryKeygen(ctx cosmos.Context, kbs KeybaseStore, path []string, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
+	if len(path) == 0 {
+		return nil, errors.New("block height not provided")
+	}
 	var err error
 	height, err := strconv.ParseInt(path[0], 0, 64)
 	if err != nil {
@@ -619,6 +649,9 @@ func queryKeygen(ctx cosmos.Context, kbs KeybaseStore, path []string, req abci.R
 }
 
 func queryKeysign(ctx cosmos.Context, kbs KeybaseStore, path []string, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
+	if len(path) == 0 {
+		return nil, errors.New("block height not provided")
+	}
 	var err error
 	height, err := strconv.ParseInt(path[0], 0, 64)
 	if err != nil {
@@ -712,7 +745,7 @@ func queryOutQueue(ctx cosmos.Context, path []string, req abci.RequestQuery, kee
 
 func queryHeights(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
 	chain := common.BNBChain
-	if len(path[0]) > 0 {
+	if len(path) > 0 && len(path[0]) > 0 {
 		var err error
 		chain, err = common.NewChain(path[0])
 		if err != nil {
@@ -745,6 +778,9 @@ func queryHeights(ctx cosmos.Context, path []string, req abci.RequestQuery, keep
 
 // queryTSSSigner
 func queryTSSSigners(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
+	if len(path) == 0 {
+		return nil, fmt.Errorf("vault pubkey not provided")
+	}
 	vaultPubKey := path[0]
 	if len(vaultPubKey) == 0 {
 		ctx.Logger().Error("empty vault pub key")
@@ -858,6 +894,9 @@ func queryMimirValues(ctx cosmos.Context, path []string, req abci.RequestQuery, 
 }
 
 func queryBan(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
+	if len(path) == 0 {
+		return nil, errors.New("node address not available")
+	}
 	addr, err := cosmos.AccAddressFromBech32(path[0])
 	if err != nil {
 		ctx.Logger().Error("invalid node address", "error", err)
