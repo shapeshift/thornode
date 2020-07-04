@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/blang/semver"
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/store"
 	se "github.com/cosmos/cosmos-sdk/types/errors"
@@ -22,7 +23,6 @@ import (
 
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 	kv1 "gitlab.com/thorchain/thornode/x/thorchain/keeper/v1"
-	mem "gitlab.com/thorchain/thornode/x/thorchain/memo"
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
@@ -334,6 +334,59 @@ func (HandlerSuite) TestGetMsgSwapFromMemo(c *C) {
 	c.Assert(err, IsNil)
 }
 
+func (HandlerSuite) TestGetMsgUnstakeFromMemo(c *C) {
+	w := getHandlerTestWrapper(c, 1, true, false)
+	tx := GetRandomTx()
+	tx.Memo = "withdraw:10000"
+	if common.RuneAsset().Equals(common.RuneNative) {
+		tx.FromAddress = GetRandomTHORAddress()
+	}
+	obTx := NewObservedTx(tx, w.ctx.BlockHeight(), GetRandomPubKey())
+	msg, err := processOneTxIn(w.ctx, w.keeper, obTx, w.activeNodeAccount.NodeAddress)
+	c.Assert(err, IsNil)
+	c.Assert(msg, NotNil)
+	c.Assert(msg.Type(), Equals, MsgUnStake{}.Type())
+}
+
+func (HandlerSuite) TestGetMsgMigrationFromMemo(c *C) {
+	w := getHandlerTestWrapper(c, 1, true, false)
+	tx := GetRandomTx()
+	tx.Memo = "migrate:10"
+	obTx := NewObservedTx(tx, w.ctx.BlockHeight(), GetRandomPubKey())
+	msg, err := processOneTxIn(w.ctx, w.keeper, obTx, w.activeNodeAccount.NodeAddress)
+	c.Assert(err, IsNil)
+	c.Assert(msg, NotNil)
+	c.Assert(msg.Type(), Equals, MsgMigrate{}.Type())
+}
+
+func (HandlerSuite) TestGetMsgBondFromMemo(c *C) {
+	w := getHandlerTestWrapper(c, 1, true, false)
+	tx := GetRandomTx()
+	tx.Coins = common.Coins{
+		common.NewCoin(common.RuneAsset(), cosmos.NewUint(100*common.One)),
+	}
+	tx.Memo = "bond:" + GetRandomBech32Addr().String()
+	obTx := NewObservedTx(tx, w.ctx.BlockHeight(), GetRandomPubKey())
+	msg, err := processOneTxIn(w.ctx, w.keeper, obTx, w.activeNodeAccount.NodeAddress)
+	c.Assert(err, IsNil)
+	c.Assert(msg, NotNil)
+	c.Assert(msg.Type(), Equals, MsgBond{}.Type())
+}
+
+func (HandlerSuite) TestGetMsgUnBondFromMemo(c *C) {
+	w := getHandlerTestWrapper(c, 1, true, false)
+	tx := GetRandomTx()
+	tx.Coins = common.Coins{
+		common.NewCoin(common.RuneAsset(), cosmos.NewUint(100*common.One)),
+	}
+	tx.Memo = "unbond:" + GetRandomTHORAddress().String() + ":1000"
+	obTx := NewObservedTx(tx, w.ctx.BlockHeight(), GetRandomPubKey())
+	msg, err := processOneTxIn(w.ctx, w.keeper, obTx, w.activeNodeAccount.NodeAddress)
+	c.Assert(err, IsNil)
+	c.Assert(msg, NotNil)
+	c.Assert(msg.Type(), Equals, MsgUnBond{}.Type())
+}
+
 func (HandlerSuite) TestGetMsgStakeFromMemo(c *C) {
 	w := getHandlerTestWrapper(c, 1, true, false)
 	// Stake BNB, however THORNode send T-CAN as coin , which is incorrect, should result in an error
@@ -417,8 +470,8 @@ func (HandlerSuite) TestGetMsgStakeFromMemo(c *C) {
 }
 
 func (HandlerSuite) TestMsgLeaveFromMemo(c *C) {
+	w := getHandlerTestWrapper(c, 1, true, false)
 	addr := types.GetRandomBech32Addr()
-	memo := mem.NewLeaveMemo(addr)
 	txin := types.NewObservedTx(
 		common.Tx{
 			ID:          GetRandomTxHash(),
@@ -433,9 +486,82 @@ func (HandlerSuite) TestMsgLeaveFromMemo(c *C) {
 		common.EmptyPubKey,
 	)
 
-	msg, err := getMsgLeaveFromMemo(memo, txin, addr)
+	msg, err := processOneTxIn(w.ctx, w.keeper, txin, addr)
 	c.Assert(err, IsNil)
 	c.Check(msg.ValidateBasic(), IsNil)
+}
+
+func (HandlerSuite) TestYggdrasilMemo(c *C) {
+	w := getHandlerTestWrapper(c, 1, true, false)
+	addr := types.GetRandomBech32Addr()
+	txin := types.NewObservedTx(
+		common.Tx{
+			ID:          GetRandomTxHash(),
+			Chain:       common.BNBChain,
+			Coins:       common.Coins{common.NewCoin(common.RuneAsset(), cosmos.NewUint(1))},
+			Memo:        "yggdrasil+:1024",
+			FromAddress: GetRandomBNBAddress(),
+			ToAddress:   GetRandomBNBAddress(),
+			Gas:         BNBGasFeeSingleton,
+		},
+		1024,
+		GetRandomPubKey(),
+	)
+
+	msg, err := processOneTxIn(w.ctx, w.keeper, txin, addr)
+	c.Assert(err, IsNil)
+	c.Check(msg.ValidateBasic(), IsNil)
+
+	txin.Tx.Memo = "yggdrasil-:1024"
+	msg, err = processOneTxIn(w.ctx, w.keeper, txin, addr)
+	c.Assert(err, IsNil)
+	c.Check(msg.ValidateBasic(), IsNil)
+}
+
+func (s *HandlerSuite) TestReserveContributor(c *C) {
+	w := getHandlerTestWrapper(c, 1, true, false)
+	addr := types.GetRandomBech32Addr()
+	txin := types.NewObservedTx(
+		common.Tx{
+			ID:          GetRandomTxHash(),
+			Chain:       common.BNBChain,
+			Coins:       common.Coins{common.NewCoin(common.RuneAsset(), cosmos.NewUint(1))},
+			Memo:        "reserve",
+			FromAddress: GetRandomBNBAddress(),
+			ToAddress:   GetRandomBNBAddress(),
+			Gas:         BNBGasFeeSingleton,
+		},
+		1024,
+		GetRandomPubKey(),
+	)
+
+	msg, err := processOneTxIn(w.ctx, w.keeper, txin, addr)
+	c.Assert(err, IsNil)
+	c.Check(msg.ValidateBasic(), IsNil)
+	c.Check(msg.Type(), Equals, MsgReserveContributor{}.Type())
+}
+
+func (s *HandlerSuite) TestSwitch(c *C) {
+	w := getHandlerTestWrapper(c, 1, true, false)
+	addr := types.GetRandomBech32Addr()
+	txin := types.NewObservedTx(
+		common.Tx{
+			ID:          GetRandomTxHash(),
+			Chain:       common.BNBChain,
+			Coins:       common.Coins{common.NewCoin(common.RuneAsset(), cosmos.NewUint(1))},
+			Memo:        "switch:" + GetRandomBech32Addr().String(),
+			FromAddress: GetRandomBNBAddress(),
+			ToAddress:   GetRandomBNBAddress(),
+			Gas:         BNBGasFeeSingleton,
+		},
+		1024,
+		GetRandomPubKey(),
+	)
+
+	msg, err := processOneTxIn(w.ctx, w.keeper, txin, addr)
+	c.Assert(err, IsNil)
+	c.Check(msg.ValidateBasic(), IsNil)
+	c.Check(msg.Type(), Equals, MsgSwitch{}.Type())
 }
 
 func (s *HandlerSuite) TestExternalHandler(c *C) {
@@ -448,4 +574,21 @@ func (s *HandlerSuite) TestExternalHandler(c *C) {
 	c.Check(err, NotNil)
 	c.Check(errors.Is(err, se.ErrUnauthorized), Equals, true)
 	c.Check(result, IsNil)
+	na := GetRandomNodeAccount(NodeActive)
+	k.SetNodeAccount(ctx, na)
+	result, err = handler(ctx, NewMsgSetVersion(semver.MustParse("0.1.0"), na.NodeAddress))
+	c.Assert(result, NotNil)
+	c.Assert(err, IsNil)
+}
+
+func (s *HandlerSuite) TestFetchMemo(c *C) {
+	w := getHandlerTestWrapper(c, 1, true, true)
+	tx := GetRandomTx()
+	tx.Memo = ""
+	w.keeper.SetTxMarkers(w.ctx, tx.Hash(), TxMarkers{
+		NewTxMarker(w.ctx.BlockHeight(), "HelloWorld"),
+	})
+	constantAccessor := constants.GetConstantValues(constants.SWVersion)
+	memo := fetchMemo(w.ctx, constantAccessor, w.keeper, tx)
+	c.Assert(memo, Equals, "HelloWorld")
 }
