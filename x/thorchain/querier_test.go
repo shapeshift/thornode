@@ -1,6 +1,9 @@
 package thorchain
 
 import (
+	"strconv"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	abci "github.com/tendermint/tendermint/abci/types"
 	. "gopkg.in/check.v1"
 
@@ -10,11 +13,15 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	"gitlab.com/thorchain/thornode/x/thorchain/query"
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
 type QuerierSuite struct {
-	kb KeybaseStore
+	kb      KeybaseStore
+	k       keeper.Keeper
+	querier cosmos.Querier
+	ctx     cosmos.Context
 }
 
 var _ = Suite(&QuerierSuite{})
@@ -28,7 +35,7 @@ func (k *TestQuerierKeeper) GetTxOut(_ cosmos.Context, _ int64) (*TxOut, error) 
 	return k.txOut, nil
 }
 
-func (s *QuerierSuite) SetUpSuite(c *C) {
+func (s *QuerierSuite) SetUpTest(c *C) {
 	kb := ckeys.NewInMemory()
 	username := "test_user"
 	password := "password"
@@ -42,6 +49,10 @@ func (s *QuerierSuite) SetUpSuite(c *C) {
 		SignerPasswd: password,
 		Keybase:      kb,
 	}
+	ctx, k := setupKeeperForTest(c)
+	s.k = k
+	s.ctx = ctx
+	s.querier = NewQuerier(k, s.kb)
 }
 
 func (s *QuerierSuite) TestQueryKeysign(c *C) {
@@ -117,6 +128,10 @@ func (s *QuerierSuite) TestQueryPool(c *C) {
 	err = keeper.Cdc().UnmarshalJSON(res, &out)
 	c.Assert(err, IsNil)
 	c.Assert(len(out), Equals, 2)
+
+	result, err := s.querier(s.ctx, []string{query.QueryPool.Key, "BNB.BNB"}, abci.RequestQuery{})
+	c.Assert(result, HasLen, 0)
+	c.Assert(err, NotNil)
 }
 
 func (s *QuerierSuite) TestQueryNodeAccounts(c *C) {
@@ -163,4 +178,453 @@ func (s *QuerierSuite) TestQueryNodeAccounts(c *C) {
 	err1 = keeper.Cdc().UnmarshalJSON(res, &out)
 	c.Assert(err1, IsNil)
 	c.Assert(len(out), Equals, 1)
+}
+
+func (s *QuerierSuite) TestQuerierRagnarokInProgress(c *C) {
+	req := abci.RequestQuery{
+		Data:   nil,
+		Path:   query.QueryRagnarok.Key,
+		Height: s.ctx.BlockHeight(),
+		Prove:  false,
+	}
+	// test ragnarok
+	result, err := s.querier(s.ctx, []string{query.QueryRagnarok.Key}, req)
+	c.Assert(result, NotNil)
+	c.Assert(err, IsNil)
+	var ragnarok bool
+	c.Assert(s.k.Cdc().UnmarshalJSON(result, &ragnarok), IsNil)
+	c.Assert(ragnarok, Equals, false)
+}
+
+func (s *QuerierSuite) TestQueryStakers(c *C) {
+	req := abci.RequestQuery{
+		Data:   nil,
+		Path:   query.QueryStakers.Key,
+		Height: s.ctx.BlockHeight(),
+		Prove:  false,
+	}
+	// test stakers
+	result, err := s.querier(s.ctx, []string{query.QueryStakers.Key, "BNB.BNB"}, req)
+	c.Assert(result, NotNil)
+	c.Assert(err, IsNil)
+	s.k.SetStaker(s.ctx, Staker{
+		Asset:             common.BNBAsset,
+		RuneAddress:       GetRandomBNBAddress(),
+		AssetAddress:      GetRandomBNBAddress(),
+		LastStakeHeight:   1024,
+		LastUnStakeHeight: 0,
+		Units:             cosmos.NewUint(10),
+	})
+	result, err = s.querier(s.ctx, []string{query.QueryStakers.Key, "BNB.BNB"}, req)
+	c.Assert(err, IsNil)
+	var stakers []Staker
+	c.Assert(s.k.Cdc().UnmarshalJSON(result, &stakers), IsNil)
+	c.Assert(stakers, HasLen, 1)
+}
+
+func (s *QuerierSuite) TestQueryTxInVoter(c *C) {
+	req := abci.RequestQuery{
+		Data:   nil,
+		Path:   query.QueryTxInVoter.Key,
+		Height: s.ctx.BlockHeight(),
+		Prove:  false,
+	}
+	tx := GetRandomTx()
+	// test getTxInVoter
+	result, err := s.querier(s.ctx, []string{query.QueryTxInVoter.Key, tx.ID.String()}, req)
+	c.Assert(result, IsNil)
+	c.Assert(err, NotNil)
+	observedTxInVote := NewObservedTxVoter(tx.ID, []ObservedTx{NewObservedTx(tx, s.ctx.BlockHeight(), GetRandomPubKey())})
+	s.k.SetObservedTxInVoter(s.ctx, observedTxInVote)
+	result, err = s.querier(s.ctx, []string{query.QueryTxInVoter.Key, tx.ID.String()}, req)
+	c.Assert(err, IsNil)
+	c.Assert(result, NotNil)
+	var voter ObservedTxVoter
+	c.Assert(s.k.Cdc().UnmarshalJSON(result, &voter), IsNil)
+	c.Assert(voter.Valid(), IsNil)
+}
+
+func (s *QuerierSuite) TestQueryTx(c *C) {
+	req := abci.RequestQuery{
+		Data:   nil,
+		Path:   query.QueryTxIn.Key,
+		Height: s.ctx.BlockHeight(),
+		Prove:  false,
+	}
+	tx := GetRandomTx()
+	// test get tx in
+	result, err := s.querier(s.ctx, []string{query.QueryTxIn.Key, tx.ID.String()}, req)
+	c.Assert(result, IsNil)
+	c.Assert(err, NotNil)
+	nodeAccount := GetRandomNodeAccount(NodeActive)
+	s.k.SetNodeAccount(s.ctx, nodeAccount)
+	voter, err := s.k.GetObservedTxInVoter(s.ctx, tx.ID)
+	c.Assert(err, IsNil)
+	voter.Add(NewObservedTx(tx, s.ctx.BlockHeight(), nodeAccount.PubKeySet.Secp256k1), nodeAccount.NodeAddress)
+	s.k.SetObservedTxInVoter(s.ctx, voter)
+	result, err = s.querier(s.ctx, []string{query.QueryTxIn.Key, tx.ID.String()}, req)
+	c.Assert(err, IsNil)
+	var newTx ObservedTx
+	c.Assert(s.k.Cdc().UnmarshalJSON(result, &newTx), IsNil)
+	c.Assert(newTx.Valid(), IsNil)
+}
+
+func (s *QuerierSuite) TestQueryKeyGen(c *C) {
+	req := abci.RequestQuery{
+		Data:   nil,
+		Path:   query.QueryKeygensPubkey.Key,
+		Height: s.ctx.BlockHeight(),
+		Prove:  false,
+	}
+
+	result, err := s.querier(s.ctx, []string{
+		query.QueryKeygensPubkey.Key,
+		"whatever",
+	}, req)
+
+	c.Assert(result, IsNil)
+	c.Assert(err, NotNil)
+
+	result, err = s.querier(s.ctx, []string{
+		query.QueryKeygensPubkey.Key,
+		"10000",
+	}, req)
+
+	c.Assert(result, IsNil)
+	c.Assert(err, NotNil)
+
+	result, err = s.querier(s.ctx, []string{
+		query.QueryKeygensPubkey.Key,
+		strconv.FormatInt(s.ctx.BlockHeight(), 10),
+	}, req)
+	c.Assert(result, NotNil)
+	c.Assert(err, IsNil)
+
+	result, err = s.querier(s.ctx, []string{
+		query.QueryKeygensPubkey.Key,
+		strconv.FormatInt(s.ctx.BlockHeight(), 10),
+		GetRandomPubKey().String(),
+	}, req)
+	c.Assert(result, NotNil)
+	c.Assert(err, IsNil)
+}
+
+func (s *QuerierSuite) TestQueryOutQueue(c *C) {
+	result, err := s.querier(s.ctx, []string{
+		query.QueryOutQueue.Key,
+		strconv.FormatInt(s.ctx.BlockHeight(), 10),
+	}, abci.RequestQuery{})
+	c.Assert(result, NotNil)
+	c.Assert(err, IsNil)
+	var q QueryOutQueue
+	c.Assert(s.k.Cdc().UnmarshalJSON(result, &q), IsNil)
+}
+
+func (s *QuerierSuite) TestQueryHeights(c *C) {
+	result, err := s.querier(s.ctx, []string{
+		query.QueryHeights.Key,
+		strconv.FormatInt(s.ctx.BlockHeight(), 10),
+	}, abci.RequestQuery{})
+	c.Assert(result, IsNil)
+	c.Assert(err, NotNil)
+
+	result, err = s.querier(s.ctx, []string{
+		query.QueryHeights.Key,
+	}, abci.RequestQuery{})
+	c.Assert(result, NotNil)
+	c.Assert(err, IsNil)
+	var q QueryResHeights
+	c.Assert(s.k.Cdc().UnmarshalJSON(result, &q), IsNil)
+
+	result, err = s.querier(s.ctx, []string{
+		query.QueryHeights.Key,
+		"BTC",
+	}, abci.RequestQuery{})
+	c.Assert(result, NotNil)
+	c.Assert(err, IsNil)
+	c.Assert(s.k.Cdc().UnmarshalJSON(result, &q), IsNil)
+
+	result, err = s.querier(s.ctx, []string{
+		query.QueryChainHeights.Key,
+		"BTC",
+	}, abci.RequestQuery{})
+	c.Assert(result, NotNil)
+	c.Assert(err, IsNil)
+	c.Assert(s.k.Cdc().UnmarshalJSON(result, &q), IsNil)
+}
+
+func (s *QuerierSuite) TestQueryObservers(c *C) {
+	result, err := s.querier(s.ctx, []string{
+		query.QueryObservers.Key,
+	}, abci.RequestQuery{})
+	c.Assert(result, NotNil)
+	c.Assert(err, IsNil)
+	var q []string
+	c.Assert(s.k.Cdc().UnmarshalJSON(result, &q), IsNil)
+
+	result, err = s.querier(s.ctx, []string{
+		query.QueryObserver.Key,
+		"whatever",
+	}, abci.RequestQuery{})
+	c.Assert(result, IsNil)
+	c.Assert(err, NotNil)
+
+	s.k.SetNodeAccount(s.ctx, GetRandomNodeAccount(NodeActive))
+	s.k.SetNodeAccount(s.ctx, GetRandomNodeAccount(NodeActive))
+	result, err = s.querier(s.ctx, []string{
+		query.QueryObserver.Key,
+		GetRandomBech32Addr().String(),
+	}, abci.RequestQuery{})
+	c.Assert(result, NotNil)
+	c.Assert(err, IsNil)
+	var na NodeAccount
+	c.Assert(s.k.Cdc().UnmarshalJSON(result, &na), IsNil)
+}
+
+func (s *QuerierSuite) TestQueryTssSigners(c *C) {
+	result, err := s.querier(s.ctx, []string{
+		query.QueryTSSSigners.Key,
+		"",
+	}, abci.RequestQuery{})
+	c.Assert(result, IsNil)
+	c.Assert(err, NotNil)
+
+	result, err = s.querier(s.ctx, []string{
+		query.QueryTSSSigners.Key,
+		"blabalbal",
+	}, abci.RequestQuery{})
+	c.Assert(result, IsNil)
+	c.Assert(err, NotNil)
+
+	result, err = s.querier(s.ctx, []string{
+		query.QueryTSSSigners.Key,
+		GetRandomVault().PubKey.String(),
+	}, abci.RequestQuery{})
+	c.Assert(result, IsNil)
+	c.Assert(err, NotNil)
+	vault := GetRandomVault()
+	vault.Membership = common.PubKeys{
+		GetRandomPubKey(),
+		GetRandomPubKey(),
+		GetRandomPubKey(),
+		GetRandomPubKey(),
+		GetRandomPubKey(),
+	}
+	s.k.SetVault(s.ctx, vault)
+	result, err = s.querier(s.ctx, []string{
+		query.QueryTSSSigners.Key,
+		vault.PubKey.String(),
+	}, abci.RequestQuery{})
+	c.Assert(result, NotNil)
+	c.Assert(err, IsNil)
+
+	var signerParty common.PubKeys
+	c.Assert(s.k.Cdc().UnmarshalJSON(result, &signerParty), IsNil)
+}
+
+func (s *QuerierSuite) TestQueryConstantValues(c *C) {
+	result, err := s.querier(s.ctx, []string{
+		query.QueryConstantValues.Key,
+	}, abci.RequestQuery{})
+	c.Assert(result, NotNil)
+	c.Assert(err, IsNil)
+}
+
+func (s *QuerierSuite) TestQueryMimir(c *C) {
+	s.k.SetMimir(s.ctx, "hello", 111)
+	result, err := s.querier(s.ctx, []string{
+		query.QueryMimirValues.Key,
+	}, abci.RequestQuery{})
+	c.Assert(result, NotNil)
+	c.Assert(err, IsNil)
+	var m map[string]int64
+	c.Assert(s.k.Cdc().UnmarshalJSON(result, &m), IsNil)
+}
+
+func (s *QuerierSuite) TestQueryBan(c *C) {
+	result, err := s.querier(s.ctx, []string{
+		query.QueryBan.Key,
+	}, abci.RequestQuery{})
+	c.Assert(result, IsNil)
+	c.Assert(err, NotNil)
+
+	result, err = s.querier(s.ctx, []string{
+		query.QueryBan.Key,
+		"Whatever",
+	}, abci.RequestQuery{})
+	c.Assert(result, IsNil)
+	c.Assert(err, NotNil)
+
+	result, err = s.querier(s.ctx, []string{
+		query.QueryBan.Key,
+		GetRandomBech32Addr().String(),
+	}, abci.RequestQuery{})
+	c.Assert(result, NotNil)
+	c.Assert(err, IsNil)
+}
+
+func (s *QuerierSuite) TestQueryNodeAccount(c *C) {
+	result, err := s.querier(s.ctx, []string{
+		query.QueryNodeAccount.Key,
+	}, abci.RequestQuery{})
+	c.Assert(result, IsNil)
+	c.Assert(err, NotNil)
+
+	result, err = s.querier(s.ctx, []string{
+		query.QueryNodeAccount.Key,
+		"Whatever",
+	}, abci.RequestQuery{})
+	c.Assert(result, IsNil)
+	c.Assert(err, NotNil)
+
+	na := GetRandomNodeAccount(NodeActive)
+	s.k.SetNodeAccount(s.ctx, na)
+	result, err = s.querier(s.ctx, []string{
+		query.QueryNodeAccount.Key,
+		na.NodeAddress.String(),
+	}, abci.RequestQuery{})
+	c.Assert(result, NotNil)
+	c.Assert(err, IsNil)
+	var r QueryNodeAccount
+	c.Assert(s.k.Cdc().UnmarshalJSON(result, &r), IsNil)
+}
+
+func (s *QuerierSuite) TestQueryNodeAccountCheck(c *C) {
+	result, err := s.querier(s.ctx, []string{
+		query.QueryNodeAccountCheck.Key,
+	}, abci.RequestQuery{})
+	c.Assert(result, IsNil)
+	c.Assert(err, NotNil)
+
+	result, err = s.querier(s.ctx, []string{
+		query.QueryNodeAccountCheck.Key,
+		"Whatever",
+	}, abci.RequestQuery{})
+	c.Assert(result, IsNil)
+	c.Assert(err, NotNil)
+
+	na := GetRandomNodeAccount(NodeStandby)
+	s.k.SetNodeAccount(s.ctx, na)
+	result, err = s.querier(s.ctx, []string{
+		query.QueryNodeAccountCheck.Key,
+		na.NodeAddress.String(),
+	}, abci.RequestQuery{})
+	c.Assert(result, NotNil)
+	c.Assert(err, IsNil)
+	var r QueryNodeAccountPreflightCheck
+	c.Assert(s.k.Cdc().UnmarshalJSON(result, &r), IsNil)
+}
+
+func (s *QuerierSuite) TestQueryPoolAddresses(c *C) {
+	na := GetRandomNodeAccount(NodeActive)
+	s.k.SetNodeAccount(s.ctx, na)
+	result, err := s.querier(s.ctx, []string{
+		query.QueryPoolAddresses.Key,
+		na.NodeAddress.String(),
+	}, abci.RequestQuery{})
+	c.Assert(result, NotNil)
+	c.Assert(err, IsNil)
+
+	var resp struct {
+		Current []struct {
+			Chain   common.Chain   `json:"chain"`
+			PubKey  common.PubKey  `json:"pub_key"`
+			Address common.Address `json:"address"`
+			Halted  bool           `json:"halted"`
+		} `json:"current"`
+	}
+	c.Assert(s.k.Cdc().UnmarshalJSON(result, &resp), IsNil)
+}
+
+func (s *QuerierSuite) TestQueryKeysignArrayPubKey(c *C) {
+	na := GetRandomNodeAccount(NodeActive)
+	s.k.SetNodeAccount(s.ctx, na)
+	result, err := s.querier(s.ctx, []string{
+		query.QueryKeysignArrayPubkey.Key,
+	}, abci.RequestQuery{})
+	c.Assert(result, IsNil)
+	c.Assert(err, NotNil)
+
+	result, err = s.querier(s.ctx, []string{
+		query.QueryKeysignArrayPubkey.Key,
+		"asdf",
+	}, abci.RequestQuery{})
+	c.Assert(result, IsNil)
+	c.Assert(err, NotNil)
+
+	result, err = s.querier(s.ctx, []string{
+		query.QueryKeysignArrayPubkey.Key,
+		strconv.FormatInt(s.ctx.BlockHeight(), 10),
+	}, abci.RequestQuery{})
+	c.Assert(result, NotNil)
+	c.Assert(err, IsNil)
+	var r QueryKeysign
+	c.Assert(s.k.Cdc().UnmarshalJSON(result, &r), IsNil)
+}
+
+func (s *QuerierSuite) TestQueryVaultData(c *C) {
+	result, err := s.querier(s.ctx, []string{
+		query.QueryVaultData.Key,
+	}, abci.RequestQuery{})
+	c.Assert(result, NotNil)
+	c.Assert(err, IsNil)
+	var r VaultData
+	c.Assert(s.k.Cdc().UnmarshalJSON(result, &r), IsNil)
+}
+
+func (s *QuerierSuite) TestQueryAsgardVault(c *C) {
+	s.k.SetVault(s.ctx, GetRandomVault())
+	result, err := s.querier(s.ctx, []string{
+		query.QueryVaultsAsgard.Key,
+	}, abci.RequestQuery{})
+	c.Assert(result, NotNil)
+	c.Assert(err, IsNil)
+	var r Vaults
+	c.Assert(s.k.Cdc().UnmarshalJSON(result, &r), IsNil)
+}
+
+func (s *QuerierSuite) TestQueryYggdrasilVault(c *C) {
+	vault := GetRandomVault()
+	vault.Type = YggdrasilVault
+	vault.AddFunds(common.Coins{
+		common.NewCoin(common.BNBAsset, cosmos.NewUint(common.One*100)),
+	})
+	s.k.SetVault(s.ctx, vault)
+	result, err := s.querier(s.ctx, []string{
+		query.QueryVaultsYggdrasil.Key,
+	}, abci.RequestQuery{})
+	c.Assert(result, NotNil)
+	c.Assert(err, IsNil)
+	var r []QueryYggdrasilVaults
+	c.Assert(s.k.Cdc().UnmarshalJSON(result, &r), IsNil)
+}
+
+func (s *QuerierSuite) TestQueryVaultPubKeys(c *C) {
+	vault := GetRandomVault()
+	vault.Type = YggdrasilVault
+	vault.AddFunds(common.Coins{
+		common.NewCoin(common.BNBAsset, cosmos.NewUint(common.One*100)),
+	})
+	s.k.SetVault(s.ctx, vault)
+	result, err := s.querier(s.ctx, []string{
+		query.QueryVaultPubkeys.Key,
+	}, abci.RequestQuery{})
+	c.Assert(result, NotNil)
+	c.Assert(err, IsNil)
+	var r struct {
+		Asgard    common.PubKeys `json:"asgard"`
+		Yggdrasil common.PubKeys `json:"yggdrasil"`
+	}
+	c.Assert(s.k.Cdc().UnmarshalJSON(result, &r), IsNil)
+}
+
+func (s *QuerierSuite) TestQueryBalanceModule(c *C) {
+	s.k.SetVault(s.ctx, GetRandomVault())
+	result, err := s.querier(s.ctx, []string{
+		query.QueryBalanceModule.Key,
+	}, abci.RequestQuery{})
+	c.Assert(result, NotNil)
+	c.Assert(err, IsNil)
+	var r sdk.Coins
+	c.Assert(s.k.Cdc().UnmarshalJSON(result, &r), IsNil)
 }

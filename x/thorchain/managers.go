@@ -8,11 +8,12 @@ import (
 	"github.com/tendermint/tendermint/crypto"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
+// Manager is an interface to define all the required methods
 type Manager interface {
 	GasMgr() GasManager
 	EventMgr() EventManager
@@ -42,6 +43,7 @@ type EventManager interface {
 	EmitFeeEvent(ctx cosmos.Context, feeEvent EventFee) error
 }
 
+// TxOutStore define the method required for TxOutStore
 type TxOutStore interface {
 	GetBlockOut(ctx cosmos.Context) (*TxOut, error)
 	ClearOutboundItems(ctx cosmos.Context)
@@ -51,6 +53,7 @@ type TxOutStore interface {
 	GetOutboundItemByToAddress(_ cosmos.Context, _ common.Address) []TxOutItem
 }
 
+// ObserverManager define the method to manage observes
 type ObserverManager interface {
 	BeginBlock()
 	EndBlock(ctx cosmos.Context, keeper keeper.Keeper)
@@ -58,6 +61,7 @@ type ObserverManager interface {
 	List() []cosmos.AccAddress
 }
 
+// ValidatorManager define the method to manage validators
 type ValidatorManager interface {
 	BeginBlock(ctx cosmos.Context, constAccessor constants.ConstantValues) error
 	EndBlock(ctx cosmos.Context, mgr Manager, constAccessor constants.ConstantValues) []abci.ValidatorUpdate
@@ -79,6 +83,7 @@ type SwapQueue interface {
 	EndBlock(ctx cosmos.Context, mgr Manager, version semver.Version, constAccessor constants.ConstantValues) error
 }
 
+// Slasher define all the method to perform slash
 type Slasher interface {
 	BeginBlock(ctx cosmos.Context, req abci.RequestBeginBlock, constAccessor constants.ConstantValues)
 	HandleDoubleSign(ctx cosmos.Context, addr crypto.Address, infractionHeight int64, constAccessor constants.ConstantValues) error
@@ -89,10 +94,12 @@ type Slasher interface {
 	DecSlashPoints(ctx cosmos.Context, point int64, addresses ...cosmos.AccAddress)
 }
 
+// YggManager define method to fund yggdrasil
 type YggManager interface {
 	Fund(ctx cosmos.Context, mgr Manager, constAccessor constants.ConstantValues) error
 }
 
+// Mgrs is an implementation of Manager interface
 type Mgrs struct {
 	CurrentVersion semver.Version
 	gasMgr         GasManager
@@ -107,6 +114,7 @@ type Mgrs struct {
 	Keeper         keeper.Keeper
 }
 
+// NewManagers  create a new Manager
 func NewManagers(keeper keeper.Keeper) *Mgrs {
 	return &Mgrs{
 		Keeper: keeper,
@@ -167,16 +175,34 @@ func (mgr *Mgrs) BeginBlock(ctx cosmos.Context) error {
 	return nil
 }
 
-func (mgr *Mgrs) GasMgr() GasManager             { return mgr.gasMgr }
-func (mgr *Mgrs) EventMgr() EventManager         { return mgr.eventMgr }
-func (mgr *Mgrs) TxOutStore() TxOutStore         { return mgr.txOutStore }
-func (mgr *Mgrs) VaultMgr() VaultManager         { return mgr.vaultMgr }
-func (mgr *Mgrs) ValidatorMgr() ValidatorManager { return mgr.validatorMgr }
-func (mgr *Mgrs) ObMgr() ObserverManager         { return mgr.obMgr }
-func (mgr *Mgrs) SwapQ() SwapQueue               { return mgr.swapQ }
-func (mgr *Mgrs) Slasher() Slasher               { return mgr.slasher }
-func (mgr *Mgrs) YggManager() YggManager         { return mgr.yggManager }
+// GasMgr return GasManager
+func (mgr *Mgrs) GasMgr() GasManager { return mgr.gasMgr }
 
+// EventMgr return EventMgr
+func (mgr *Mgrs) EventMgr() EventManager { return mgr.eventMgr }
+
+// TxOutStore return an TxOutStore
+func (mgr *Mgrs) TxOutStore() TxOutStore { return mgr.txOutStore }
+
+// VaultMgr return a valid VaultManager
+func (mgr *Mgrs) VaultMgr() VaultManager { return mgr.vaultMgr }
+
+// ValidatorMgr return an implementation of ValidatorManager
+func (mgr *Mgrs) ValidatorMgr() ValidatorManager { return mgr.validatorMgr }
+
+// ObMgr return an implementation of ObserverManager
+func (mgr *Mgrs) ObMgr() ObserverManager { return mgr.obMgr }
+
+// SwapQ return an implementation of SwapQueue
+func (mgr *Mgrs) SwapQ() SwapQueue { return mgr.swapQ }
+
+// Slasher return an implementation of Slasher
+func (mgr *Mgrs) Slasher() Slasher { return mgr.slasher }
+
+// YggManager return an implementation of YggManager
+func (mgr *Mgrs) YggManager() YggManager { return mgr.yggManager }
+
+// GetGasManager return GasManager
 func GetGasManager(version semver.Version) (GasManager, error) {
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return NewGasMgrV1(), nil
@@ -184,6 +210,7 @@ func GetGasManager(version semver.Version) (GasManager, error) {
 	return nil, errInvalidVersion
 }
 
+// GetEventManager will return an implementation of EventManager
 func GetEventManager(version semver.Version) (EventManager, error) {
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return NewEventMgrV1(), nil
@@ -213,7 +240,7 @@ func GetValidatorManager(keeper keeper.Keeper, version semver.Version, vaultMgr 
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return newValidatorMgrV1(keeper, vaultMgr, txOutStore, eventMgr), nil
 	}
-	return nil, errBadVersion
+	return nil, errInvalidVersion
 }
 
 // GetObserverManager return an instance that implements ObserverManager interface
@@ -233,6 +260,7 @@ func GetSwapQueue(keeper keeper.Keeper, version semver.Version) (SwapQueue, erro
 	return nil, errInvalidVersion
 }
 
+// GetSlasher return an implementation of Slasher
 func GetSlasher(keeper keeper.Keeper, version semver.Version) (Slasher, error) {
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return NewSlasherV1(keeper), nil
@@ -240,6 +268,7 @@ func GetSlasher(keeper keeper.Keeper, version semver.Version) (Slasher, error) {
 	return nil, errInvalidVersion
 }
 
+// GetYggManager return an implementation of YggManager
 func GetYggManager(keeper keeper.Keeper, version semver.Version) (YggManager, error) {
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return NewYggMgrV1(keeper), nil
