@@ -404,21 +404,40 @@ func (tos *TxOutStorageV1) collectYggdrasilPools(ctx cosmos.Context, tx Observed
 		// This method read the vault from key value store, and trying to find out all the ygg candidate that can be used to send out fund
 		// given the fact, there might have multiple TxOutItem get created with in one block, and the fund has not been deducted from vault and save back to key values store,
 		// thus every previously processed TxOut need to be deducted from the ygg vault to make sure THORNode has a correct view of the ygg funds
+		vault = tos.deductYggdrasilVaultOutstandingBalance(vault, block)
 
-		for _, txOutItem := range block.TxArray {
-			if !txOutItem.VaultPubKey.Equals(vault.PubKey) {
-				continue
+		// go back 10 blocks to see whether there are outstanding tx, the vault need to send out
+		// if there is , deduct it from their balance
+		signingPeriod := tos.constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
+		for i := block.Height - signingPeriod; i < block.Height; i++ {
+			blockOut, err := tos.keeper.GetTxOut(ctx, i)
+			if err != nil {
+				ctx.Logger().Error("fail to get block tx out", "error", err)
 			}
-			for i, yggCoin := range vault.Coins {
-				if !yggCoin.Asset.Equals(txOutItem.Coin.Asset) {
-					continue
-				}
-				vault.Coins[i].Amount = common.SafeSub(vault.Coins[i].Amount, txOutItem.Coin.Amount)
-			}
+			vault = tos.deductYggdrasilVaultOutstandingBalance(vault, blockOut)
 		}
 
 		vaults = append(vaults, vault)
 	}
 
 	return vaults, nil
+}
+
+func (tos *TxOutStorageV1) deductYggdrasilVaultOutstandingBalance(vault Vault, block *TxOut) Vault {
+	for _, txOutItem := range block.TxArray {
+		if !txOutItem.VaultPubKey.Equals(vault.PubKey) {
+			continue
+		}
+		// only still outstanding txout will be considered
+		if !txOutItem.OutHash.IsEmpty() {
+			continue
+		}
+		for i, yggCoin := range vault.Coins {
+			if !yggCoin.Asset.Equals(txOutItem.Coin.Asset) {
+				continue
+			}
+			vault.Coins[i].Amount = common.SafeSub(vault.Coins[i].Amount, txOutItem.Coin.Amount)
+		}
+	}
+	return vault
 }

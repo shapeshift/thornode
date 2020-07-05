@@ -369,11 +369,19 @@ func (s *QuerierSuite) TestQueryObservers(c *C) {
 	c.Assert(result, IsNil)
 	c.Assert(err, NotNil)
 
-	s.k.SetNodeAccount(s.ctx, GetRandomNodeAccount(NodeActive))
+	activeNode := GetRandomNodeAccount(NodeActive)
+	s.k.SetNodeAccount(s.ctx, activeNode)
 	s.k.SetNodeAccount(s.ctx, GetRandomNodeAccount(NodeActive))
 	result, err = s.querier(s.ctx, []string{
 		query.QueryObserver.Key,
 		GetRandomBech32Addr().String(),
+	}, abci.RequestQuery{})
+	c.Assert(result, IsNil)
+	c.Assert(err, NotNil)
+
+	result, err = s.querier(s.ctx, []string{
+		query.QueryObserver.Key,
+		activeNode.NodeAddress.String(),
 	}, abci.RequestQuery{})
 	c.Assert(result, NotNil)
 	c.Assert(err, IsNil)
