@@ -77,7 +77,7 @@ func NewSigner(cfg config.SignerConfiguration,
 		pubkeyMgr.AddPubKey(item, true)
 	}
 	if na.PubKeySet.Secp256k1.IsEmpty() {
-		return nil, fmt.Errorf("unable to find pubkey for this node account. Exiting...")
+		return nil, fmt.Errorf("unable to find pubkey for this node account. exiting... ")
 	}
 	pubkeyMgr.AddNodePubKey(na.PubKeySet.Secp256k1)
 
@@ -186,7 +186,6 @@ func (s *Signer) processTransactions() {
 						}
 						return
 					}
-
 					// We have a successful broadcast! Remove the item from our store
 					item.Status = TxSpent
 					if err := s.storage.Set(item); err != nil {
@@ -326,7 +325,7 @@ func (s *Signer) signAndBroadcast(item TxOutStoreItem) error {
 
 	if !s.shouldSign(tx) {
 		s.logger.Info().Str("signer_address", chain.GetAddress(tx.VaultPubKey)).Msg("different pool address, ignore")
-		return fmt.Errorf("not a member of the vault pubkey")
+		return nil
 	}
 
 	if len(tx.ToAddress) == 0 {
@@ -379,9 +378,9 @@ func (s *Signer) signAndBroadcast(item TxOutStoreItem) error {
 
 	// looks like the transaction is already signed
 	if len(signedTx) == 0 {
+		s.logger.Warn().Msgf("signed transaction is empty")
 		return nil
 	}
-
 	if err := chain.BroadcastTx(tx, signedTx); err != nil {
 		s.logger.Error().Err(err).Msg("fail to broadcast tx to chain")
 		return err
