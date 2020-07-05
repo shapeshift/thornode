@@ -167,7 +167,7 @@ func (h ObservedTxInHandler) handleV1(ctx cosmos.Context, version semver.Version
 		}
 
 		if !vault.IsAsgard() {
-			ctx.Logger().Error("Vault is not an Asgard vault, transaction ignored.")
+			ctx.Logger().Info("Vault is not an Asgard vault, transaction ignored.")
 			continue
 		}
 		if vault.Status == InactiveVault {

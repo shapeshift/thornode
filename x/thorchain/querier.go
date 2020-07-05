@@ -354,6 +354,9 @@ func queryNodeAccountCheck(ctx cosmos.Context, path []string, req abci.RequestQu
 	if err != nil {
 		return nil, fmt.Errorf("fail to get node accounts: %w", err)
 	}
+	if nodeAcc.Status == NodeUnknown {
+		return nil, fmt.Errorf("node (%s) doesn't exist", nodeAddress)
+	}
 
 	version := keeper.GetLowestActiveVersion(ctx)
 	constAccessor := constants.GetConstantValues(version)
@@ -448,6 +451,9 @@ func queryObserver(ctx cosmos.Context, path []string, req abci.RequestQuery, kee
 	nodeAcc, err := keeper.GetNodeAccount(ctx, addr)
 	if err != nil {
 		return nil, fmt.Errorf("fail to get node account: %w", err)
+	}
+	if nodeAcc.Status == NodeUnknown {
+		return nil, fmt.Errorf("node account(%s) doesn't exist", observerAddr)
 	}
 	res, err := codec.MarshalJSONIndent(keeper.Cdc(), nodeAcc)
 	if err != nil {
