@@ -873,6 +873,14 @@ gitlab.com/thorchain/tss/go-tss v0.0.0-20200614152506-77a6f9bcb1c0 h1:YHBS7ZKJEu
 gitlab.com/thorchain/tss/go-tss v0.0.0-20200614152506-77a6f9bcb1c0/go.mod h1:MGXcGZUXTVSiI1ldCFcrQOmtMay+OBLkov6Ms3QQziY=
 gitlab.com/thorchain/tss/go-tss v0.0.0-20200619113518-e5ba9566ff97 h1:Z+GOuaFqynF1etqLvH6F0cbYm1ctOnMG/JQBsuu2GpU=
 gitlab.com/thorchain/tss/go-tss v0.0.0-20200619113518-e5ba9566ff97/go.mod h1:MGXcGZUXTVSiI1ldCFcrQOmtMay+OBLkov6Ms3QQziY=
+gitlab.com/thorchain/tss/go-tss v0.0.0-20200627224500-52b1afbd9171 h1:iEwYR5t7hF/B5CD7R6EvK8uUVZBIX414sRxoDzzdumY=
+gitlab.com/thorchain/tss/go-tss v0.0.0-20200627224500-52b1afbd9171/go.mod h1:MGXcGZUXTVSiI1ldCFcrQOmtMay+OBLkov6Ms3QQziY=
+gitlab.com/thorchain/tss/go-tss v0.0.0-20200628042256-b6cef216865f h1:2kTwBo7/WTJ6MdSsGvgtrFXvl97l14dMoP11vo6AIbA=
+gitlab.com/thorchain/tss/go-tss v0.0.0-20200628042256-b6cef216865f/go.mod h1:MGXcGZUXTVSiI1ldCFcrQOmtMay+OBLkov6Ms3QQziY=
+gitlab.com/thorchain/tss/go-tss v0.0.0-20200630004733-6b15b65eb5a5 h1:HCpGvUS4GIUXxtqwRRJ8RtihvugtOmZ8eKUXXLHDjx4=
+gitlab.com/thorchain/tss/go-tss v0.0.0-20200630004733-6b15b65eb5a5/go.mod h1:MGXcGZUXTVSiI1ldCFcrQOmtMay+OBLkov6Ms3QQziY=
+gitlab.com/thorchain/tss/go-tss v0.0.0-20200701010447-07bdab7f2d9a h1:v4JvlYt2d0phmsMZVjC5UO19mdZ+ufn57dkvZ3XYnzE=
+gitlab.com/thorchain/tss/go-tss v0.0.0-20200701010447-07bdab7f2d9a/go.mod h1:6TCFVJfRpxVzsUP4iGshnT17hjAPA6PiNpYUKQCgLAQ=
 gitlab.com/thorchain/txscript v0.0.0-20200413023754-8aaf3443d92b h1:YHIcnYNNp7iCyQw6MXbiRSN0YtrpKR8E/fr7Y5HwDHM=
 gitlab.com/thorchain/txscript v0.0.0-20200413023754-8aaf3443d92b/go.mod h1:QwJJ+VjsoP0Cm9YC7ROmX0VIDuNxqBKIDGKRMkWkL3M=
 go.etcd.io/bbolt v1.3.2/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=

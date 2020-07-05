@@ -72,3 +72,5 @@ terraform.rc
 c.txt
 preparam.data
 **/btc_observer/*
+
+.vscode/

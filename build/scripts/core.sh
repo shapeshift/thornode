@@ -98,12 +98,14 @@ init_chain () {
 
 peer_list () {
     PEERUSER="$1@$2:26656"
+    PEERSISTENT_PEER_TARGET='persistent_peers = ""'
+    sed -i -e "s/$PEERSISTENT_PEER_TARGET/persistent_peers = \"$PEERUSER\"/g" ~/.thord/config/config.toml
+}
+
+enable_internal_traffic () {
     ADDR='addr_book_strict = true'
     ADDR_STRICT_FALSE='addr_book_strict = false'
-    PEERSISTENT_PEER_TARGET='persistent_peers = ""'
-
     sed -i -e "s/$ADDR/$ADDR_STRICT_FALSE/g" ~/.thord/config/config.toml
-    sed -i -e "s/$PEERSISTENT_PEER_TARGET/persistent_peers = \"$PEERUSER\"/g" ~/.thord/config/config.toml
 }
 
 external_address () {
@@ -172,7 +174,8 @@ set_ip_address () {
   SIGNER_NAME=$1
   SIGNER_PASSWD=$2
   PEER=$3
-  printf "$SIGNER_PASSWD\n$SIGNER_PASSWD\n" | thorcli tx thorchain set-ip-address $(curl -s http://whatismyip.akamai.com) --node tcp://$PEER:26657 --from $SIGNER_NAME --yes
+  NODE_IP_ADDRESS=${4:-$(curl -s http://whatismyip.akamai.com)}
+  printf "$SIGNER_PASSWD\n$SIGNER_PASSWD\n" | thorcli tx thorchain set-ip-address $NODE_IP_ADDRESS --node tcp://$PEER:26657 --from $SIGNER_NAME --yes
 }
 
 fetch_version () {

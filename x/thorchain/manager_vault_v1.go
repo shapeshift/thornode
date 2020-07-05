@@ -528,7 +528,11 @@ func (vm *VaultMgrV1) UpdateVaultData(ctx cosmos.Context, constAccessor constant
 	// given bondReward and toolPoolRewards are both calculated base on totalReserve, thus it should always have enough to pay the bond reward
 
 	// Move Rune from the Reserve to the Bond and Pool Rewards
-	totalReserve = common.SafeSub(totalReserve, bondReward.Add(totalPoolRewards))
+	totalRewards := bondReward.Add(totalPoolRewards)
+	if totalRewards.GT(totalReserve) {
+		totalRewards = totalReserve
+	}
+	totalReserve = common.SafeSub(totalReserve, totalRewards)
 	if common.RuneAsset().Chain.Equals(common.THORChain) {
 		coin := common.NewCoin(common.RuneNative, bondReward)
 		if err := vm.k.SendFromModuleToModule(ctx, ReserveName, BondName, coin); err != nil {
@@ -589,12 +593,13 @@ func (vm *VaultMgrV1) UpdateVaultData(ctx cosmos.Context, constAccessor constant
 					return fmt.Errorf("fail to transfer funds from asgard to bond: %w", err)
 				}
 			}
+			if poolDeficit.GT(pool.BalanceRune) {
+				poolDeficit = pool.BalanceRune
+			}
 			pool.BalanceRune = common.SafeSub(pool.BalanceRune, poolDeficit)
 			vaultData.BondRewardRune = vaultData.BondRewardRune.Add(poolDeficit)
 			if err := vm.k.SetPool(ctx, pool); err != nil {
-				err = fmt.Errorf("fail to set pool: %w", err)
-				ctx.Logger().Error(err.Error())
-				return err
+				return fmt.Errorf("fail to set pool: %w", err)
 			}
 			evtPools = append(evtPools, PoolAmt{
 				Asset:  pool.Asset,
@@ -652,14 +657,11 @@ func (vm *VaultMgrV1) payPoolRewards(ctx cosmos.Context, poolRewards []cosmos.Ui
 	for i, reward := range poolRewards {
 		pools[i].BalanceRune = pools[i].BalanceRune.Add(reward)
 		if err := vm.k.SetPool(ctx, pools[i]); err != nil {
-			err = fmt.Errorf("fail to set pool: %w", err)
-			ctx.Logger().Error(err.Error())
-			return err
+			return fmt.Errorf("fail to set pool: %w", err)
 		}
 		if common.RuneAsset().Chain.Equals(common.THORChain) {
 			coin := common.NewCoin(common.RuneNative, reward)
 			if err := vm.k.SendFromModuleToModule(ctx, ReserveName, AsgardName, coin); err != nil {
-				ctx.Logger().Error("fail to transfer funds from reserve to asgard", "error", err)
 				return fmt.Errorf("fail to transfer funds from reserve to asgard: %w", err)
 			}
 		}

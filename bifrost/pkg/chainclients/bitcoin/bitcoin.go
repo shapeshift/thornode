@@ -24,7 +24,7 @@ import (
 	"gitlab.com/thorchain/thornode/bifrost/thorclient/types"
 	"gitlab.com/thorchain/thornode/bifrost/tss"
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 // BlockCacheSize the number of block meta that get store in storage.
@@ -364,14 +364,14 @@ func (c *Client) getBlock(height int64) (*btcjson.GetBlockVerboseTxResult, error
 // extractTxs extracts txs from a block to type TxIn
 func (c *Client) extractTxs(block *btcjson.GetBlockVerboseTxResult) (types.TxIn, error) {
 	txIn := types.TxIn{
-		BlockHeight: strconv.FormatInt(block.Height, 10),
-		Chain:       c.GetChain(),
+		Chain: c.GetChain(),
 	}
 	var txItems []types.TxInItem
 	for _, tx := range block.Tx {
 		if c.ignoreTx(&tx) {
 			continue
 		}
+
 		sender, err := c.getSender(&tx)
 		if err != nil {
 			return types.TxIn{}, fmt.Errorf("fail to get sender from tx: %w", err)
@@ -392,9 +392,10 @@ func (c *Client) extractTxs(block *btcjson.GetBlockVerboseTxResult) (types.TxIn,
 		}
 		amt := uint64(amount.ToUnit(btcutil.AmountSatoshi))
 		txItems = append(txItems, types.TxInItem{
-			Tx:     tx.Txid,
-			Sender: sender,
-			To:     output.ScriptPubKey.Addresses[0],
+			BlockHeight: block.Height,
+			Tx:          tx.Txid,
+			Sender:      sender,
+			To:          output.ScriptPubKey.Addresses[0],
 			Coins: common.Coins{
 				common.NewCoin(common.BTCAsset, cosmos.NewUint(amt)),
 			},

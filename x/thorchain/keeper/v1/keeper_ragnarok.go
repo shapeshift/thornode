@@ -9,7 +9,7 @@ import (
 func (k KVStore) RagnarokInProgress(ctx cosmos.Context) bool {
 	height, err := k.GetRagnarokBlockHeight(ctx)
 	if err != nil {
-		ctx.Logger().Error(err.Error())
+		ctx.Logger().Error("fail to get ragnarok block height", "error", err)
 		return true
 	}
 	return height > 0
@@ -51,4 +51,16 @@ func (k KVStore) GetRagnarokPending(ctx cosmos.Context) (int64, error) {
 // SetRagnarokPending save ragnarok pending to key value store
 func (k KVStore) SetRagnarokPending(ctx cosmos.Context, pending int64) {
 	k.set(ctx, k.GetKey(ctx, prefixRagnarokPending, ""), pending)
+}
+
+// GetRagnarokUnstakPosition get ragnarok unstaking position
+func (k KVStore) GetRagnarokUnstakPosition(ctx cosmos.Context) (RagnarokUnstakePosition, error) {
+	record := RagnarokUnstakePosition{}
+	_, err := k.get(ctx, k.GetKey(ctx, prefixRagnarokPosition, ""), &record)
+	return record, err
+}
+
+// SetRagnarokUnstakPosition set ragnarok unstake position
+func (k KVStore) SetRagnarokUnstakPosition(ctx cosmos.Context, position RagnarokUnstakePosition) {
+	k.set(ctx, k.GetKey(ctx, prefixRagnarokPosition, ""), position)
 }

@@ -320,7 +320,7 @@ func (b *Binance) SignTx(tx stypes.TxOutItem, thorchainHeight int64, retry uint6
 		}
 		b.accts.Set(tx.VaultPubKey, meta)
 	}
-	b.logger.Info().Int64("account_number", meta.AccountNumber).Int64("sequence_number", meta.SeqNumber).Msg("account info")
+	b.logger.Info().Int64("account_number", meta.AccountNumber).Int64("sequence_number", meta.SeqNumber).Int64("block height", meta.BlockHeight).Msg("account info")
 	signMsg := btx.StdSignMsg{
 		ChainID:       b.chainID,
 		Memo:          tx.Memo,
@@ -335,6 +335,7 @@ func (b *Binance) SignTx(tx stypes.TxOutItem, thorchainHeight int64, retry uint6
 	}
 
 	if len(rawBz) == 0 {
+		b.logger.Warn().Msg("this should not happen, the message is empty")
 		// the transaction was already signed
 		return nil, nil
 	}
@@ -475,7 +476,7 @@ func (b *Binance) BroadcastTx(tx stypes.TxOutItem, hexTx []byte) error {
 	// Sample 2: { "height": "0", "txhash": "6A9AA734374D567D1FFA794134A66D3BF614C4EE5DDF334F21A52A47C188A6A2", "code": 4, "raw_log": "{\"codespace\":\"sdk\",\"code\":4,\"message\":\"signature verification failed; verify correct account sequence and chain-id\"}" }
 	// Sample 3: {\"jsonrpc\": \"2.0\",\"id\": \"\",\"result\": {  \"check_tx\": {    \"code\": 65541,    \"log\": \"{\\\"codespace\\\":1,\\\"code\\\":5,\\\"abci_code\\\":65541,\\\"message\\\":\\\"insufficient fund. you got 29602BNB,351873676FSN-F1B,1094620960FTM-585,10119750400LOK-3C0,191723639522RUNE-A1F,13629773TATIC-E9C,4169469575TCAN-014,10648250188TOMOB-1E1,1155074377TUSDB-000, but 37500BNB fee needed.\\\"}\",    \"events\": [      {}    ]  },  \"deliver_tx\": {},  \"hash\": \"406A3F68B17544F359DF8C94D4E28A626D249BC9C4118B51F7B4CE16D45AF616\",  \"height\": \"0\"}\n}
 
-	b.logger.Debug().Str("body", string(body)).Msg("broadcast response from Binance Chain")
+	b.logger.Debug().Str("body", string(body)).Msgf("broadcast response from Binance Chain,memo:%s", tx.Memo)
 	var commit stypes.BroadcastResult
 	err = b.cdc.UnmarshalJSON(body, &commit)
 	if err != nil {

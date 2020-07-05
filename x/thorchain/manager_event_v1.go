@@ -3,9 +3,10 @@ package thorchain
 import (
 	"fmt"
 
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
+// EmitEventItem define the method all event need to implement
 type EmitEventItem interface {
 	Events() (cosmos.Events, error)
 }
@@ -18,6 +19,7 @@ func NewEventMgrV1() *EventMgrV1 {
 	return &EventMgrV1{}
 }
 
+// EmitEvent to block
 func (m *EventMgrV1) EmitEvent(ctx cosmos.Context, evt EmitEventItem) error {
 	events, err := evt.Events()
 	if err != nil {
@@ -27,6 +29,7 @@ func (m *EventMgrV1) EmitEvent(ctx cosmos.Context, evt EmitEventItem) error {
 	return nil
 }
 
+// EmitGasEvent emit gas events
 func (m *EventMgrV1) EmitGasEvent(ctx cosmos.Context, gasEvent *EventGas) error {
 	if gasEvent == nil {
 		return nil
@@ -34,6 +37,7 @@ func (m *EventMgrV1) EmitGasEvent(ctx cosmos.Context, gasEvent *EventGas) error 
 	return m.EmitEvent(ctx, gasEvent)
 }
 
+// EmitSwapEvent emit swap event to block
 func (m *EventMgrV1) EmitSwapEvent(ctx cosmos.Context, swap EventSwap) error {
 	// OutTxs is a temporary field that we used, as for now we need to keep backward compatibility so the
 	// events change doesn't break midgard and smoke test, for double swap , we first swap the source asset to RUNE ,

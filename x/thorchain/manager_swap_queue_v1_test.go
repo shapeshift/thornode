@@ -64,7 +64,7 @@ func (s SwapQueueSuite) TestScoreMsgs(c *C) {
 		}, common.BNBAsset, GetRandomBNBAddress(), cosmos.ZeroUint(), GetRandomBech32Addr()),
 	}
 
-	swaps, err := queue.ScoreMsgs(ctx, msgs)
+	swaps, err := queue.scoreMsgs(ctx, msgs)
 	c.Assert(err, IsNil)
 	swaps = swaps.Sort()
 	c.Check(swaps, HasLen, 5)
@@ -118,28 +118,38 @@ func (s SwapQueueSuite) TestScoreMsgs(c *C) {
 		}, common.BTCAsset, GetRandomBNBAddress(), cosmos.ZeroUint(), GetRandomBech32Addr()),
 	}
 
-	swaps, err = queue.ScoreMsgs(ctx, msgs)
+	swaps, err = queue.scoreMsgs(ctx, msgs)
 	c.Assert(err, IsNil)
 	swaps = swaps.Sort()
 	c.Check(swaps, HasLen, 10)
+
 	c.Check(swaps[0].msg.Tx.Coins[0].Amount.Equal(cosmos.NewUint(100*common.One)), Equals, true, Commentf("%d", swaps[0].msg.Tx.Coins[0].Amount.Uint64()))
 	c.Check(swaps[0].msg.Tx.Coins[0].Asset.Equals(common.BTCAsset), Equals, true)
-	c.Check(swaps[1].msg.Tx.Coins[0].Amount.Equal(cosmos.NewUint(50*common.One)), Equals, true, Commentf("%d", swaps[0].msg.Tx.Coins[0].Amount.Uint64()))
-	c.Check(swaps[1].msg.Tx.Coins[0].Asset.Equals(common.BTCAsset), Equals, true)
-	c.Check(swaps[2].msg.Tx.Coins[0].Amount.Equal(cosmos.NewUint(10*common.One)), Equals, true, Commentf("%d", swaps[0].msg.Tx.Coins[0].Amount.Uint64()))
+
+	c.Check(swaps[1].msg.Tx.Coins[0].Amount.Equal(cosmos.NewUint(100*common.One)), Equals, true, Commentf("%d", swaps[0].msg.Tx.Coins[0].Amount.Uint64()))
+	c.Check(swaps[1].msg.Tx.Coins[0].Asset.Equals(common.BNBAsset), Equals, true)
+
+	c.Check(swaps[2].msg.Tx.Coins[0].Amount.Equal(cosmos.NewUint(50*common.One)), Equals, true, Commentf("%d", swaps[0].msg.Tx.Coins[0].Amount.Uint64()))
 	c.Check(swaps[2].msg.Tx.Coins[0].Asset.Equals(common.BTCAsset), Equals, true)
-	c.Check(swaps[3].msg.Tx.Coins[0].Amount.Equal(cosmos.NewUint(100*common.One)), Equals, true, Commentf("%d", swaps[0].msg.Tx.Coins[0].Amount.Uint64()))
+
+	c.Check(swaps[3].msg.Tx.Coins[0].Amount.Equal(cosmos.NewUint(50*common.One)), Equals, true, Commentf("%d", swaps[0].msg.Tx.Coins[0].Amount.Uint64()))
 	c.Check(swaps[3].msg.Tx.Coins[0].Asset.Equals(common.BNBAsset), Equals, true)
-	c.Check(swaps[4].msg.Tx.Coins[0].Amount.Equal(cosmos.NewUint(50*common.One)), Equals, true, Commentf("%d", swaps[0].msg.Tx.Coins[0].Amount.Uint64()))
-	c.Check(swaps[4].msg.Tx.Coins[0].Asset.Equals(common.BNBAsset), Equals, true)
-	c.Check(swaps[5].msg.Tx.Coins[0].Amount.Equal(cosmos.NewUint(2*common.One)), Equals, true, Commentf("%d", swaps[0].msg.Tx.Coins[0].Amount.Uint64()))
-	c.Check(swaps[5].msg.Tx.Coins[0].Asset.Equals(common.BTCAsset), Equals, true)
-	c.Check(swaps[6].msg.Tx.Coins[0].Amount.Equal(cosmos.NewUint(1*common.One)), Equals, true, Commentf("%d", swaps[0].msg.Tx.Coins[0].Amount.Uint64()))
+
+	c.Check(swaps[4].msg.Tx.Coins[0].Amount.Equal(cosmos.NewUint(10*common.One)), Equals, true, Commentf("%d", swaps[0].msg.Tx.Coins[0].Amount.Uint64()))
+	c.Check(swaps[4].msg.Tx.Coins[0].Asset.Equals(common.BTCAsset), Equals, true)
+
+	c.Check(swaps[5].msg.Tx.Coins[0].Amount.Equal(cosmos.NewUint(10*common.One)), Equals, true, Commentf("%d", swaps[0].msg.Tx.Coins[0].Amount.Uint64()))
+	c.Check(swaps[5].msg.Tx.Coins[0].Asset.Equals(common.BNBAsset), Equals, true)
+
+	c.Check(swaps[6].msg.Tx.Coins[0].Amount.Equal(cosmos.NewUint(2*common.One)), Equals, true, Commentf("%d", swaps[0].msg.Tx.Coins[0].Amount.Uint64()))
 	c.Check(swaps[6].msg.Tx.Coins[0].Asset.Equals(common.BTCAsset), Equals, true)
-	c.Check(swaps[7].msg.Tx.Coins[0].Amount.Equal(cosmos.NewUint(10*common.One)), Equals, true, Commentf("%d", swaps[0].msg.Tx.Coins[0].Amount.Uint64()))
+
+	c.Check(swaps[7].msg.Tx.Coins[0].Amount.Equal(cosmos.NewUint(2*common.One)), Equals, true, Commentf("%d", swaps[0].msg.Tx.Coins[0].Amount.Uint64()))
 	c.Check(swaps[7].msg.Tx.Coins[0].Asset.Equals(common.BNBAsset), Equals, true)
-	c.Check(swaps[8].msg.Tx.Coins[0].Amount.Equal(cosmos.NewUint(2*common.One)), Equals, true, Commentf("%d", swaps[0].msg.Tx.Coins[0].Amount.Uint64()))
-	c.Check(swaps[8].msg.Tx.Coins[0].Asset.Equals(common.BNBAsset), Equals, true)
+
+	c.Check(swaps[8].msg.Tx.Coins[0].Amount.Equal(cosmos.NewUint(1*common.One)), Equals, true, Commentf("%d", swaps[0].msg.Tx.Coins[0].Amount.Uint64()))
+	c.Check(swaps[8].msg.Tx.Coins[0].Asset.Equals(common.BTCAsset), Equals, true)
+
 	c.Check(swaps[9].msg.Tx.Coins[0].Amount.Equal(cosmos.NewUint(1*common.One)), Equals, true, Commentf("%d", swaps[0].msg.Tx.Coins[0].Amount.Uint64()))
 	c.Check(swaps[9].msg.Tx.Coins[0].Asset.Equals(common.BNBAsset), Equals, true)
 }

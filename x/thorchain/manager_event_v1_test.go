@@ -4,7 +4,7 @@ import (
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 type EventManagerTestSuite struct{}
@@ -49,4 +49,5 @@ func (s *EventManagerTestSuite) TestEmitGasEvent(c *C) {
 		Count:    1,
 	})
 	c.Assert(eventMgr.EmitGasEvent(ctx, gasEvent), IsNil)
+	c.Assert(eventMgr.EmitGasEvent(ctx, nil), IsNil)
 }
