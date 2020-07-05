@@ -13,15 +13,17 @@ import (
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
+// SlasherV1 is v1 implementation os slasher
 type SlasherV1 struct {
 	keeper keeper.Keeper
 }
 
-// NewSlasher create a new instance of Slasher
+// NewSlasherV1 create a new instance of Slasher
 func NewSlasherV1(keeper keeper.Keeper) *SlasherV1 {
 	return &SlasherV1{keeper: keeper}
 }
 
+// BeginBlock called when a new block get proposed to detect whether there are duplicate vote
 func (s *SlasherV1) BeginBlock(ctx cosmos.Context, req abci.RequestBeginBlock, constAccessor constants.ConstantValues) {
 	// Iterate through any newly discovered evidence of infraction
 	// Slash any validators (and since-unbonded stake within the unbonding period)
@@ -70,13 +72,16 @@ func (s *SlasherV1) HandleDoubleSign(ctx cosmos.Context, addr crypto.Address, in
 				minBond = constAccessor.GetInt64Value(constants.MinimumBondInRune)
 			}
 			slashAmount := cosmos.NewUint(uint64(minBond)).MulUint64(5).QuoUint64(100)
+			if slashAmount.GT(na.Bond) {
+				slashAmount = na.Bond
+			}
 			na.Bond = common.SafeSub(na.Bond, slashAmount)
 
 			if common.RuneAsset().Chain.Equals(common.THORChain) {
 				coin := common.NewCoin(common.RuneNative, slashAmount)
 				if err := s.keeper.SendFromModuleToModule(ctx, BondName, ReserveName, coin); err != nil {
-					ctx.Logger().Error("fail to transfer funds from reserve to asgard", "error", err)
-					return fmt.Errorf("fail to transfer funds from reserve to asgard: %w", err)
+					ctx.Logger().Error("fail to transfer funds from bond to reserve", "error", err)
+					return fmt.Errorf("fail to transfer funds from bond to reserve: %w", err)
 				}
 			} else {
 				vaultData, err := s.keeper.GetVaultData(ctx)
@@ -151,8 +156,11 @@ func (s *SlasherV1) LackSigning(ctx cosmos.Context, constAccessor constants.Cons
 			// Slash node account for not sending funds
 			vault, err := s.keeper.GetVault(ctx, tx.VaultPubKey)
 			if err != nil {
+				// in some edge cases, when a txout item had been schedule to be send out by an yggdrasil vault
+				// however the node operator decide to quit by sending a leave command, which will result in the vault get removed
+				// if that happen , txout item should be scheduled to send out using asgard, thus when if fail to get vault , just
+				// log the error, and continue
 				ctx.Logger().Error("Unable to get vault", "error", err, "vault pub key", tx.VaultPubKey.String())
-				continue
 			}
 			// slash if its a yggdrasil vault
 			if vault.IsYggdrasil() {
@@ -254,7 +262,7 @@ func (s *SlasherV1) LackSigning(ctx cosmos.Context, constAccessor constants.Cons
 	return resultErr
 }
 
-// slashNodeAccount thorchain keep monitoring the outbound tx from asgard pool
+// SlashNodeAccount thorchain keep monitoring the outbound tx from asgard pool
 // and yggdrasil pool, usually the txout is triggered by thorchain itself by
 // adding an item into the txout array, refer to TxOutItem for the detail, the
 // TxOutItem contains a specific coin and amount.  if somehow thorchain
@@ -282,6 +290,9 @@ func (s *SlasherV1) SlashNodeAccount(ctx cosmos.Context, observedPubKey common.P
 		amountToReserve := slashAmount.QuoUint64(2)
 		// if the diff asset is RUNE , just took 1.5 * diff from their bond
 		slashAmount = slashAmount.MulUint64(3).QuoUint64(2)
+		if slashAmount.GT(nodeAccount.Bond) {
+			slashAmount = nodeAccount.Bond
+		}
 		nodeAccount.Bond = common.SafeSub(nodeAccount.Bond, slashAmount)
 		vaultData, err := s.keeper.GetVaultData(ctx)
 		if err != nil {
@@ -301,7 +312,13 @@ func (s *SlasherV1) SlashNodeAccount(ctx cosmos.Context, observedPubKey common.P
 	if pool.IsEmpty() {
 		return nil
 	}
+	if slashAmount.GT(pool.BalanceAsset) {
+		slashAmount = pool.BalanceAsset
+	}
 	runeValue := pool.AssetValueInRune(slashAmount).MulUint64(3).QuoUint64(2)
+	if runeValue.GT(nodeAccount.Bond) {
+		runeValue = nodeAccount.Bond
+	}
 	pool.BalanceAsset = common.SafeSub(pool.BalanceAsset, slashAmount)
 	pool.BalanceRune = pool.BalanceRune.Add(runeValue)
 	nodeAccount.Bond = common.SafeSub(nodeAccount.Bond, runeValue)

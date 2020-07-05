@@ -182,6 +182,8 @@ type KeeperRagnarok interface {
 	SetRagnarokNth(_ cosmos.Context, _ int64)
 	GetRagnarokPending(_ cosmos.Context) (int64, error)
 	SetRagnarokPending(_ cosmos.Context, _ int64)
+	GetRagnarokUnstakPosition(ctx cosmos.Context) (RagnarokUnstakePosition, error)
+	SetRagnarokUnstakPosition(ctx cosmos.Context, position RagnarokUnstakePosition)
 }
 
 type KeeperGas interface {

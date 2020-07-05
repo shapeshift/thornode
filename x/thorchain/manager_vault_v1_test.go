@@ -3,9 +3,8 @@ package thorchain
 import (
 	"errors"
 
-	. "gopkg.in/check.v1"
-
 	"github.com/blang/semver"
+	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
@@ -141,7 +140,7 @@ func (k *TestRagnarokChainKeeper) IsActiveObserver(_ cosmos.Context, _ cosmos.Ac
 }
 
 func (s *VaultManagerTestSuite) TestRagnarokChain(c *C) {
-	ctx, _ := setupKeeperForTest(c)
+	ctx, k := setupKeeperForTest(c)
 	ctx = ctx.WithBlockHeight(100000)
 	ver := constants.SWVersion
 	constAccessor := constants.GetConstantValues(ver)
@@ -220,27 +219,87 @@ func (s *VaultManagerTestSuite) TestRagnarokChain(c *C) {
 	}
 	c.Check(items[0].Memo, Equals, NewYggdrasilReturn(common.BlockHeight(ctx)).String())
 	c.Check(items[0].Chain.Equals(common.BTCChain), Equals, true)
+
+	ctx, k = setupKeeperForTest(c)
+	helper := NewVaultGenesisSetupTestHelper(k)
+	mgr1 := NewManagers(helper)
+	mgr1.BeginBlock(ctx)
+	vaultMgr1 := NewVaultMgrV1(helper, mgr1.TxOutStore(), mgr1.EventMgr())
+	// fail to get active nodes should error out
+	helper.failToListActiveAccounts = true
+	c.Assert(vaultMgr1.ragnarokChain(ctx, common.BNBChain, 1, mgr, constAccessor), NotNil)
+	helper.failToListActiveAccounts = false
+
+	// no active nodes , should error
+	c.Assert(vaultMgr1.ragnarokChain(ctx, common.BNBChain, 1, mgr, constAccessor), NotNil)
+	helper.Keeper.SetNodeAccount(ctx, GetRandomNodeAccount(NodeActive))
+	helper.Keeper.SetNodeAccount(ctx, GetRandomNodeAccount(NodeActive))
+
+	// fail to get pools should error out
+	helper.failGetPools = true
+	c.Assert(vaultMgr1.ragnarokChain(ctx, common.BNBChain, 1, mgr, constAccessor), NotNil)
+	helper.failGetPools = false
+
+	// fail to get active asgard vault should error out
+	helper.failGetActiveAsgardVault = true
+	c.Assert(vaultMgr1.ragnarokChain(ctx, common.BNBChain, 1, mgr, constAccessor), NotNil)
+	helper.failGetActiveAsgardVault = false
 }
 
 func (s *VaultManagerTestSuite) TestUpdateVaultData(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	ver := constants.SWVersion
 	constAccessor := constants.GetConstantValues(ver)
+	helper := NewVaultGenesisSetupTestHelper(k)
+	mgr := NewManagers(helper)
+	mgr.BeginBlock(ctx)
+	vaultMgr := NewVaultMgrV1(helper, mgr.TxOutStore(), mgr.EventMgr())
+
+	// fail to get VaultData should return error
+	helper.failGetVaultData = true
+	c.Assert(vaultMgr.UpdateVaultData(ctx, constAccessor, mgr.gasMgr, mgr.eventMgr), NotNil)
+	helper.failGetVaultData = false
+
+	// TotalReserve is zero , should not doing anything
 	vd := NewVaultData()
 	err := k.SetVaultData(ctx, vd)
 	c.Assert(err, IsNil)
-
-	mgr := NewDummyMgr()
-
-	vaultMgr := NewVaultMgrV1(k, mgr.TxOutStore(), mgr.EventMgr())
-
 	c.Assert(vaultMgr.UpdateVaultData(ctx, constAccessor, mgr.GasMgr(), mgr.EventMgr()), IsNil)
 
-	// add something in vault
+	// total staked is zero , should not doing anything
 	vd.TotalReserve = cosmos.NewUint(common.One * 100)
 	err = k.SetVaultData(ctx, vd)
 	c.Assert(err, IsNil)
 	c.Assert(vaultMgr.UpdateVaultData(ctx, constAccessor, mgr.GasMgr(), mgr.EventMgr()), IsNil)
+
+	p := NewPool()
+	p.Asset = common.BNBAsset
+	p.BalanceRune = cosmos.NewUint(common.One * 100)
+	p.BalanceAsset = cosmos.NewUint(common.One * 100)
+	p.Status = PoolEnabled
+	c.Assert(helper.SetPool(ctx, p), IsNil)
+	// no active node , thus no bond
+	c.Assert(vaultMgr.UpdateVaultData(ctx, constAccessor, mgr.GasMgr(), mgr.EventMgr()), IsNil)
+
+	// with liquidity fee , and bonds
+	helper.Keeper.AddToLiquidityFees(ctx, common.BNBAsset, cosmos.NewUint(50*common.One))
+
+	c.Assert(vaultMgr.UpdateVaultData(ctx, constAccessor, mgr.GasMgr(), mgr.EventMgr()), IsNil)
+	// add bond
+	helper.Keeper.SetNodeAccount(ctx, GetRandomNodeAccount(NodeActive))
+	helper.Keeper.SetNodeAccount(ctx, GetRandomNodeAccount(NodeActive))
+	c.Assert(vaultMgr.UpdateVaultData(ctx, constAccessor, mgr.GasMgr(), mgr.EventMgr()), IsNil)
+
+	// fail to get total liquidity fee should result an error
+	helper.failGetTotalLiquidityFee = true
+	if common.RuneAsset().Equals(common.RuneNative) {
+		FundModule(c, ctx, helper, ReserveName, 100)
+	}
+	c.Assert(vaultMgr.UpdateVaultData(ctx, constAccessor, mgr.GasMgr(), mgr.EventMgr()), NotNil)
+	helper.failGetTotalLiquidityFee = false
+
+	helper.failToListActiveAccounts = true
+	c.Assert(vaultMgr.UpdateVaultData(ctx, constAccessor, mgr.GasMgr(), mgr.EventMgr()), NotNil)
 }
 
 func (s *VaultManagerTestSuite) TestCalcBlockRewards(c *C) {
@@ -296,4 +355,236 @@ func (s *VaultManagerTestSuite) TestCalcPoolDeficit(c *C) {
 
 	c.Check(amt1.Equal(cosmos.NewUint(280)), Equals, true, Commentf("%d", amt1.Uint64()))
 	c.Check(amt2.Equal(cosmos.NewUint(840)), Equals, true, Commentf("%d", amt2.Uint64()))
+}
+
+type VaultManagerTestHelpKeeper struct {
+	keeper.Keeper
+	failToGetAsgardVaults      bool
+	failToListActiveAccounts   bool
+	failToSetVault             bool
+	failGetRetiringAsgardVault bool
+	failGetActiveAsgardVault   bool
+	failToSetPool              bool
+	failGetVaultData           bool
+	failGetTotalLiquidityFee   bool
+	failGetPools               bool
+}
+
+func NewVaultGenesisSetupTestHelper(k keeper.Keeper) *VaultManagerTestHelpKeeper {
+	return &VaultManagerTestHelpKeeper{
+		Keeper: k,
+	}
+}
+
+func (h *VaultManagerTestHelpKeeper) GetVaultData(ctx cosmos.Context) (VaultData, error) {
+	if h.failGetVaultData {
+		return VaultData{}, kaboom
+	}
+	return h.Keeper.GetVaultData(ctx)
+}
+
+func (h *VaultManagerTestHelpKeeper) GetAsgardVaults(ctx cosmos.Context) (Vaults, error) {
+	if h.failToGetAsgardVaults {
+		return Vaults{}, kaboom
+	}
+	return h.Keeper.GetAsgardVaults(ctx)
+}
+
+func (h *VaultManagerTestHelpKeeper) ListActiveNodeAccounts(ctx cosmos.Context) (NodeAccounts, error) {
+	if h.failToListActiveAccounts {
+		return NodeAccounts{}, kaboom
+	}
+	return h.Keeper.ListActiveNodeAccounts(ctx)
+}
+
+func (h *VaultManagerTestHelpKeeper) SetVault(ctx cosmos.Context, v Vault) error {
+	if h.failToSetVault {
+		return kaboom
+	}
+	return h.Keeper.SetVault(ctx, v)
+}
+
+func (h *VaultManagerTestHelpKeeper) GetAsgardVaultsByStatus(ctx cosmos.Context, vs VaultStatus) (Vaults, error) {
+	if h.failGetRetiringAsgardVault && vs == RetiringVault {
+		return Vaults{}, kaboom
+	}
+	if h.failGetActiveAsgardVault && vs == ActiveVault {
+		return Vaults{}, kaboom
+	}
+	return h.Keeper.GetAsgardVaultsByStatus(ctx, vs)
+}
+
+func (h *VaultManagerTestHelpKeeper) SetPool(ctx cosmos.Context, p Pool) error {
+	if h.failToSetPool {
+		return kaboom
+	}
+	return h.Keeper.SetPool(ctx, p)
+}
+
+func (h *VaultManagerTestHelpKeeper) GetTotalLiquidityFees(ctx cosmos.Context, height uint64) (cosmos.Uint, error) {
+	if h.failGetTotalLiquidityFee {
+		return cosmos.ZeroUint(), kaboom
+	}
+	return h.Keeper.GetTotalLiquidityFees(ctx, height)
+}
+
+func (h *VaultManagerTestHelpKeeper) GetPools(ctx cosmos.Context) (Pools, error) {
+	if h.failGetPools {
+		return Pools{}, kaboom
+	}
+	return h.Keeper.GetPools(ctx)
+}
+
+func (*VaultManagerTestSuite) TestProcessGenesisSetup(c *C) {
+	ctx, k := setupKeeperForTest(c)
+	ver := constants.SWVersion
+	constAccessor := constants.GetConstantValues(ver)
+	helper := NewVaultGenesisSetupTestHelper(k)
+	ctx = ctx.WithBlockHeight(1)
+	mgr := NewManagers(helper)
+	mgr.BeginBlock(ctx)
+	vaultMgr := NewVaultMgrV1(helper, mgr.TxOutStore(), mgr.EventMgr())
+	// no active account
+	c.Assert(vaultMgr.EndBlock(ctx, mgr, constAccessor), NotNil)
+
+	nodeAccount := GetRandomNodeAccount(NodeActive)
+	k.SetNodeAccount(ctx, nodeAccount)
+	c.Assert(vaultMgr.EndBlock(ctx, mgr, constAccessor), IsNil)
+	// make sure asgard vault get created
+	vaults, err := k.GetAsgardVaults(ctx)
+	c.Assert(err, IsNil)
+	c.Assert(vaults, HasLen, 1)
+
+	// fail to get asgard vaults should return an error
+	helper.failToGetAsgardVaults = true
+	c.Assert(vaultMgr.EndBlock(ctx, mgr, constAccessor), NotNil)
+	helper.failToGetAsgardVaults = false
+
+	// vault already exist , it should not do anything , and should not error
+	c.Assert(vaultMgr.EndBlock(ctx, mgr, constAccessor), IsNil)
+
+	ctx, k = setupKeeperForTest(c)
+	helper = NewVaultGenesisSetupTestHelper(k)
+	ctx = ctx.WithBlockHeight(1)
+	mgr = NewManagers(helper)
+	mgr.BeginBlock(ctx)
+	vaultMgr = NewVaultMgrV1(helper, mgr.TxOutStore(), mgr.EventMgr())
+	helper.failToListActiveAccounts = true
+	c.Assert(vaultMgr.EndBlock(ctx, mgr, constAccessor), NotNil)
+	helper.failToListActiveAccounts = false
+
+	helper.failToSetVault = true
+	c.Assert(vaultMgr.EndBlock(ctx, mgr, constAccessor), NotNil)
+	helper.failToSetVault = false
+
+	helper.failGetRetiringAsgardVault = true
+	ctx = ctx.WithBlockHeight(1024)
+	c.Assert(vaultMgr.EndBlock(ctx, mgr, constAccessor), NotNil)
+	helper.failGetRetiringAsgardVault = false
+
+	helper.failGetActiveAsgardVault = true
+	c.Assert(vaultMgr.EndBlock(ctx, mgr, constAccessor), NotNil)
+	helper.failGetActiveAsgardVault = false
+}
+
+func (*VaultManagerTestSuite) TestGetTotalActiveNodeWithBond(c *C) {
+	ctx, k := setupKeeperForTest(c)
+	helper := NewVaultGenesisSetupTestHelper(k)
+	helper.failToListActiveAccounts = true
+	n, err := getTotalActiveNodeWithBond(ctx, helper)
+	c.Assert(err, NotNil)
+	c.Assert(n, Equals, int64(0))
+	helper.failToListActiveAccounts = false
+	helper.SetNodeAccount(ctx, GetRandomNodeAccount(NodeActive))
+	n, err = getTotalActiveNodeWithBond(ctx, helper)
+	c.Assert(err, IsNil)
+	c.Assert(n, Equals, int64(1))
+}
+
+func (*VaultManagerTestSuite) TestGetTotalActiveBond(c *C) {
+	ctx, k := setupKeeperForTest(c)
+	helper := NewVaultGenesisSetupTestHelper(k)
+	mgr := NewManagers(helper)
+	mgr.BeginBlock(ctx)
+	vaultMgr := NewVaultMgrV1(helper, mgr.TxOutStore(), mgr.EventMgr())
+	helper.failToListActiveAccounts = true
+	bond, err := vaultMgr.getTotalActiveBond(ctx)
+	c.Assert(err, NotNil)
+	c.Assert(bond.Equal(cosmos.ZeroUint()), Equals, true)
+	helper.failToListActiveAccounts = false
+	helper.Keeper.SetNodeAccount(ctx, GetRandomNodeAccount(NodeActive))
+	bond, err = vaultMgr.getTotalActiveBond(ctx)
+	c.Assert(err, IsNil)
+	c.Assert(bond.Uint64() > 0, Equals, true)
+}
+
+func (*VaultManagerTestSuite) TestGetEnabledPoolsAndTotalStakedRune(c *C) {
+	ctx, k := setupKeeperForTest(c)
+	helper := NewVaultGenesisSetupTestHelper(k)
+	mgr := NewManagers(helper)
+	mgr.BeginBlock(ctx)
+	vaultMgr := NewVaultMgrV1(helper, mgr.TxOutStore(), mgr.EventMgr())
+	p := NewPool()
+	p.Asset = common.BNBAsset
+	p.BalanceRune = cosmos.NewUint(common.One * 100)
+	p.BalanceAsset = cosmos.NewUint(common.One * 100)
+	p.Status = PoolEnabled
+	c.Assert(helper.SetPool(ctx, p), IsNil)
+	pools, totalStaked, err := vaultMgr.getEnabledPoolsAndTotalStakedRune(ctx)
+	c.Assert(err, IsNil)
+	c.Assert(pools, HasLen, 1)
+	c.Assert(totalStaked.Equal(p.BalanceRune), Equals, true)
+}
+
+func (*VaultManagerTestSuite) TestPayPoolRewards(c *C) {
+	ctx, k := setupKeeperForTest(c)
+	helper := NewVaultGenesisSetupTestHelper(k)
+	mgr := NewManagers(helper)
+	mgr.BeginBlock(ctx)
+	vaultMgr := NewVaultMgrV1(helper, mgr.TxOutStore(), mgr.EventMgr())
+	p := NewPool()
+	p.Asset = common.BNBAsset
+	p.BalanceRune = cosmos.NewUint(common.One * 100)
+	p.BalanceAsset = cosmos.NewUint(common.One * 100)
+	p.Status = PoolEnabled
+	c.Assert(helper.SetPool(ctx, p), IsNil)
+	vaultMgr.payPoolRewards(ctx, []cosmos.Uint{cosmos.NewUint(100 * common.One)}, Pools{p})
+	helper.failToSetPool = true
+	c.Assert(vaultMgr.payPoolRewards(ctx, []cosmos.Uint{cosmos.NewUint(100 * common.One)}, Pools{p}), NotNil)
+}
+
+func (*VaultManagerTestSuite) TestFindChainsToRetire(c *C) {
+	ctx, k := setupKeeperForTest(c)
+	helper := NewVaultGenesisSetupTestHelper(k)
+	mgr := NewManagers(helper)
+	mgr.BeginBlock(ctx)
+	vaultMgr := NewVaultMgrV1(helper, mgr.TxOutStore(), mgr.EventMgr())
+	// fail to get active asgard vault
+	helper.failGetActiveAsgardVault = true
+	chains, err := vaultMgr.findChainsToRetire(ctx)
+	c.Assert(err, NotNil)
+	c.Assert(chains, HasLen, 0)
+	helper.failGetActiveAsgardVault = false
+
+	// fail to get retire asgard vault
+	helper.failGetRetiringAsgardVault = true
+	chains, err = vaultMgr.findChainsToRetire(ctx)
+	c.Assert(err, NotNil)
+	c.Assert(chains, HasLen, 0)
+	helper.failGetRetiringAsgardVault = false
+}
+
+func (*VaultManagerTestSuite) TestRecallChainFunds(c *C) {
+	ctx, k := setupKeeperForTest(c)
+	helper := NewVaultGenesisSetupTestHelper(k)
+	mgr := NewManagers(helper)
+	mgr.BeginBlock(ctx)
+	vaultMgr := NewVaultMgrV1(helper, mgr.TxOutStore(), mgr.EventMgr())
+	helper.failToListActiveAccounts = true
+	c.Assert(vaultMgr.recallChainFunds(ctx, common.BNBChain, mgr), NotNil)
+	helper.failToListActiveAccounts = false
+
+	helper.failGetActiveAsgardVault = true
+	c.Assert(vaultMgr.recallChainFunds(ctx, common.BNBChain, mgr), NotNil)
+	helper.failGetActiveAsgardVault = false
 }

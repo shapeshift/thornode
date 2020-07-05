@@ -192,6 +192,7 @@ func (e *BlockScanner) extractTxs(block *etypes.Block) (stypes.TxIn, error) {
 			return noTx, fmt.Errorf("fail to get one tx from server: %w", err)
 		}
 		if txInItem != nil {
+			txInItem.BlockHeight = block.Number().Int64()
 			txIn.TxArray = append(txIn.TxArray, *txInItem)
 			e.m.GetCounter(metrics.BlockWithTxIn("ETH")).Inc()
 			e.logger.Info().Str("hash", tx.Hash().Hex()).Msgf("%s got %d tx", e.cfg.ChainID, 1)
@@ -202,7 +203,6 @@ func (e *BlockScanner) extractTxs(block *etypes.Block) (stypes.TxIn, error) {
 		e.logger.Debug().Int64("block", int64(block.NumberU64())).Msg("no tx need to be processed in this block")
 		return noTx, nil
 	}
-	txIn.BlockHeight = block.Number().String()
 	txIn.Count = strconv.Itoa(len(txIn.TxArray))
 	txIn.Chain = common.ETHChain
 	return txIn, nil
@@ -338,7 +338,6 @@ func (e *BlockScanner) fromTxToTxIn(tx *etypes.Transaction) (*stypes.TxInItem, e
 		e.errCounter.WithLabelValues("fail_create_ticker", "ETH").Inc()
 		return nil, fmt.Errorf("fail to create asset, ETH is not valid: %w", err)
 	}
-
 	txInItem.Coins = append(txInItem.Coins, common.NewCoin(asset, cosmos.NewUintFromBigInt(tx.Value())))
 	txInItem.Gas = e.getGasUsed(tx.Hash().Hex())
 	return txInItem, nil

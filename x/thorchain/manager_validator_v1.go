@@ -27,7 +27,7 @@ type validatorMgrV1 struct {
 	eventMgr   EventManager
 }
 
-// newValidatorMgrV1 create a new instance of ValidatorManager
+// newValidatorMgrV1 create a new instance of validatorMgrV1
 func newValidatorMgrV1(k keeper.Keeper, vaultMgr VaultManager, txOutStore TxOutStore, eventMgr EventManager) *validatorMgrV1 {
 	return &validatorMgrV1{
 		k:          k,
@@ -55,6 +55,7 @@ func (vm *validatorMgrV1) BeginBlock(ctx cosmos.Context, constAccessor constants
 		return err
 	}
 
+	// when total active nodes is more than MinimumNodesForBFT + 2, start to churn node in and out
 	if minimumNodesForBFT+2 < int64(totalActiveNodes) {
 		badValidatorRate, err := vm.k.GetMimir(ctx, constants.BadValidatorRate.String())
 		if badValidatorRate < 0 || err != nil {
@@ -72,11 +73,11 @@ func (vm *validatorMgrV1) BeginBlock(ctx cosmos.Context, constAccessor constants
 		}
 	}
 
-	// calculate last churn block height
 	vaults, err := vm.k.GetAsgardVaultsByStatus(ctx, ActiveVault)
 	if err != nil {
 		return err
 	}
+	// calculate last churn block height
 	var lastHeight int64 // the last block height we had a successful churn
 	for _, vault := range vaults {
 		if vault.BlockHeight > lastHeight {
@@ -132,7 +133,7 @@ func (vm *validatorMgrV1) BeginBlock(ctx cosmos.Context, constAccessor constants
 	return nil
 }
 
-// EndBlock when block end
+// EndBlock when block commit
 func (vm *validatorMgrV1) EndBlock(ctx cosmos.Context, mgr Manager, constAccessor constants.ConstantValues) []abci.ValidatorUpdate {
 	height := common.BlockHeight(ctx)
 	activeNodes, err := vm.k.ListActiveNodeAccounts(ctx)
@@ -165,7 +166,8 @@ func (vm *validatorMgrV1) EndBlock(ctx cosmos.Context, mgr Manager, constAccesso
 	}
 	minimumNodesForBFT := constAccessor.GetInt64Value(constants.MinimumNodesForBFT)
 	nodesAfterChange := len(activeNodes) + len(newNodes) - len(removedNodes)
-	if (len(activeNodes) >= int(minimumNodesForBFT) && nodesAfterChange < int(minimumNodesForBFT)) || (artificialRagnarokBlockHeight > 0 && common.BlockHeight(ctx) >= artificialRagnarokBlockHeight) {
+	if (len(activeNodes) >= int(minimumNodesForBFT) && nodesAfterChange < int(minimumNodesForBFT)) ||
+		(artificialRagnarokBlockHeight > 0 && common.BlockHeight(ctx) >= artificialRagnarokBlockHeight) {
 		// THORNode don't have enough validators for BFT
 
 		// Check we're not migrating funds
@@ -224,7 +226,6 @@ func (vm *validatorMgrV1) EndBlock(ctx cosmos.Context, mgr Manager, constAccesso
 				cosmos.NewAttribute("Former:", na.Status.String()),
 				cosmos.NewAttribute("Current:", status.String())))
 		na.UpdateStatus(status, height)
-		removedNodes = append(removedNodes, na)
 		if err := vm.k.SetNodeAccount(ctx, na); err != nil {
 			ctx.Logger().Error("fail to save node account", "error", err)
 		}
@@ -275,23 +276,23 @@ func (vm *validatorMgrV1) getChangedNodes(ctx cosmos.Context, activeNodes NodeAc
 		return newActive, removedNodes, fmt.Errorf("fail to list ready node accounts: %w", err)
 	}
 
-	active, err := vm.k.GetAsgardVaultsByStatus(ctx, ActiveVault)
+	activeVaults, err := vm.k.GetAsgardVaultsByStatus(ctx, ActiveVault)
 	if err != nil {
 		ctx.Logger().Error("fail to get active asgards", "error", err)
 		return newActive, removedNodes, fmt.Errorf("fail to get active asgards: %w", err)
 	}
-	if len(active) == 0 {
+	if len(activeVaults) == 0 {
 		return newActive, removedNodes, errors.New("no active vault")
 	}
 	var membership common.PubKeys
-	for _, vault := range active {
+	for _, vault := range activeVaults {
 		membership = append(membership, vault.Membership...)
 	}
 
 	// find active node accounts that are no longer active
 	for _, na := range activeNodes {
 		found := false
-		for _, vault := range active {
+		for _, vault := range activeVaults {
 			if vault.Contains(na.PubKeySet.Secp256k1) {
 				found = true
 				break
@@ -302,7 +303,7 @@ func (vm *validatorMgrV1) getChangedNodes(ctx cosmos.Context, activeNodes NodeAc
 		}
 	}
 
-	// find ready nodes that change to
+	// find ready nodes that change to active
 	for _, na := range readyNodes {
 		for _, member := range membership {
 			if na.PubKeySet.Contains(member) {
@@ -330,10 +331,6 @@ func (vm *validatorMgrV1) payNodeAccountBondAward(ctx cosmos.Context, na NodeAcc
 	slashPts, err := vm.k.GetNodeAccountSlashPoints(ctx, na.NodeAddress)
 	if err != nil {
 		return fmt.Errorf("fail to get node slash points: %w", err)
-	}
-
-	if na.ActiveBlockHeight == 0 {
-		return nil
 	}
 
 	// Find number of blocks they have been an active node
@@ -386,21 +383,33 @@ func (vm *validatorMgrV1) processRagnarok(ctx cosmos.Context, mgr Manager, const
 		return nil
 	}
 
+	nth, err := vm.k.GetRagnarokNth(ctx)
+	if err != nil {
+		return fmt.Errorf("fail to get ragnarok nth: %w", err)
+	}
+
+	position, err := vm.k.GetRagnarokUnstakPosition(ctx)
+	if err != nil {
+		return fmt.Errorf("fail to get ragnarok position: %w", err)
+	}
+	if !position.IsEmpty() {
+		if err := vm.ragnarokPools(ctx, nth, mgr, constAccessor); err != nil {
+			ctx.Logger().Error("fail to ragnarok pools", "error", err)
+		}
+		return nil
+	}
+
 	// check if we have any pending ragnarok transactions
 	pending, err := vm.k.GetRagnarokPending(ctx)
 	if err != nil {
 		return fmt.Errorf("fail to get ragnarok pending: %w", err)
 	}
 	if pending > 0 {
-		ctx.Logger().Info("awaiting previous ragnarok transction to clear before continuing", "count", pending)
+		ctx.Logger().Info("awaiting previous ragnarok transction to clear before continuing", "nth", nth, "count", pending)
 		return nil
 	}
 
-	nth, err := vm.k.GetRagnarokNth(ctx)
-	if err != nil {
-		return fmt.Errorf("fail to get ragnarok nth: %w", err)
-	}
-	nth += 1 // increment by 1
+	nth++ // increment by 1
 	ctx.Logger().Info("starting next ragnarok iteration", "iteration", nth)
 	err = vm.ragnarokProtocolStage2(ctx, nth, mgr, constAccessor)
 	if err != nil {
@@ -519,6 +528,14 @@ func (vm *validatorMgrV1) ragnarokReserve(ctx cosmos.Context, nth int64, mgr Man
 		if err != nil && !errors.Is(err, ErrNotEnoughToPayFee) {
 			return fmt.Errorf("fail to add outbound transaction")
 		}
+
+		// add a pending rangarok transaction
+		pending, err := vm.k.GetRagnarokPending(ctx)
+		if err != nil {
+			return fmt.Errorf("fail to get ragnarok pending: %w", err)
+		}
+		vm.k.SetRagnarokPending(ctx, pending+1)
+
 	}
 
 	if err := vm.k.SetVaultData(ctx, vaultData); err != nil {
@@ -585,6 +602,13 @@ func (vm *validatorMgrV1) ragnarokBond(ctx cosmos.Context, nth int64, mgr Manage
 			continue
 		}
 
+		// add a pending rangarok transaction
+		pending, err := vm.k.GetRagnarokPending(ctx)
+		if err != nil {
+			return fmt.Errorf("fail to get ragnarok pending: %w", err)
+		}
+		vm.k.SetRagnarokPending(ctx, pending+1)
+
 		na.Bond = common.SafeSub(na.Bond, amt)
 		if err := vm.k.SetNodeAccount(ctx, na); err != nil {
 			return err
@@ -604,6 +628,11 @@ func (vm *validatorMgrV1) ragnarokPools(ctx cosmos.Context, nth int64, mgr Manag
 		return fmt.Errorf("can't find any active nodes")
 	}
 	na := nas[0]
+
+	position, err := vm.k.GetRagnarokUnstakPosition(ctx)
+	if err != nil {
+		return fmt.Errorf("fail to get ragnarok position: %w", err)
+	}
 
 	// each round of refund, we increase the percentage by 10%. This ensures
 	// that we slowly refund each person, while not sending out too much too
@@ -631,52 +660,93 @@ func (vm *validatorMgrV1) ragnarokPools(ctx cosmos.Context, nth int64, mgr Manag
 			if err := vm.eventMgr.EmitEvent(ctx, poolEvent); err != nil {
 				ctx.Logger().Error("fail to emit pool event", "error", err)
 			}
-		}
 
-		pool.Status = PoolBootstrap
-		if err := vm.k.SetPool(ctx, pool); err != nil {
-			ctx.Logger().Error(err.Error())
-			return err
+			pool.Status = PoolBootstrap
+			if err := vm.k.SetPool(ctx, pool); err != nil {
+				ctx.Logger().Error(err.Error())
+				return err
+			}
 		}
 	}
 
 	version := vm.k.GetLowestActiveVersion(ctx)
 
+	nextPool := false
+	maxUnstakesPerBlock := 20
+	count := 0
+
 	for i := len(pools) - 1; i >= 0; i-- { // iterate backwards
 		pool := pools[i]
+
+		if nextPool { // we've iterated to the next pool after our position pool
+			position.Pool = pool.Asset
+		}
+
+		if !position.Pool.IsEmpty() && !pool.Asset.Equals(position.Pool) {
+			continue
+		}
+
+		nextPool = true
+		position.Pool = pool.Asset
+
+		// unstake gas asset pool on the back 10 nths
+		if nth <= 10 && pool.Asset.Chain.GetGasAsset().Equals(pool.Asset) {
+			continue
+		}
+
+		j := int64(-1)
 		iterator := vm.k.GetStakerIterator(ctx, pool.Asset)
-		defer iterator.Close()
 		for ; iterator.Valid(); iterator.Next() {
-			var staker Staker
-			vm.k.Cdc().MustUnmarshalBinaryBare(iterator.Value(), &staker)
-			if staker.Units.IsZero() {
-				continue
-			}
+			j++
+			if j == position.Number {
+				position.Number++
+				var staker Staker
+				vm.k.Cdc().MustUnmarshalBinaryBare(iterator.Value(), &staker)
+				if staker.Units.IsZero() {
+					continue
+				}
 
-			// unstake gas asset pool on the back 10 nths
-			if nth <= 10 && pool.Asset.Chain.GetGasAsset().Equals(pool.Asset) {
-				continue
-			}
+				unstakeMsg := NewMsgUnStake(
+					common.GetRagnarokTx(pool.Asset.Chain, staker.RuneAddress, staker.RuneAddress),
+					staker.RuneAddress,
+					cosmos.NewUint(uint64(basisPoints)),
+					pool.Asset,
+					na.NodeAddress,
+				)
 
-			unstakeMsg := NewMsgUnStake(
-				common.GetRagnarokTx(pool.Asset.Chain, staker.RuneAddress, staker.RuneAddress),
-				staker.RuneAddress,
-				cosmos.NewUint(uint64(basisPoints)),
-				pool.Asset,
-				na.NodeAddress,
-			)
-
-			unstakeHandler := NewUnstakeHandler(vm.k, mgr)
-			_, err := unstakeHandler.Run(ctx, unstakeMsg, version, constAccessor)
-			if err != nil {
-				ctx.Logger().Error("fail to unstake", "staker", staker.RuneAddress, "error", err)
+				unstakeHandler := NewUnstakeHandler(vm.k, mgr)
+				_, err := unstakeHandler.Run(ctx, unstakeMsg, version, constAccessor)
+				if err != nil {
+					ctx.Logger().Error("fail to unstake", "staker", staker.RuneAddress, "error", err)
+				} else {
+					count++
+					pending, err := vm.k.GetRagnarokPending(ctx)
+					if err != nil {
+						return fmt.Errorf("fail to get ragnarok pending: %w", err)
+					}
+					vm.k.SetRagnarokPending(ctx, pending+2) // two outbound txs
+					if count >= maxUnstakesPerBlock {
+						break
+					}
+				}
 			}
 		}
+		iterator.Close()
+		if count >= maxUnstakesPerBlock {
+			break
+		}
+		position.Number = 0
 	}
+
+	if count < maxUnstakesPerBlock { // we've completed all pools/stakers, reset the position
+		position = RagnarokUnstakePosition{}
+	}
+	vm.k.SetRagnarokUnstakPosition(ctx, position)
 
 	return nil
 }
 
+// RequestYggReturn request the node that had been removed (yggdrasil) to return their fund
 func (vm *validatorMgrV1) RequestYggReturn(ctx cosmos.Context, node NodeAccount, mgr Manager) error {
 	if !vm.k.VaultExists(ctx, node.PubKeySet.Secp256k1) {
 		return nil
@@ -865,6 +935,7 @@ func (vm *validatorMgrV1) findBadActors(ctx cosmos.Context) (NodeAccounts, error
 		return tracker[i].Score.LT(tracker[j].Score)
 	})
 
+	// score lower is worse
 	avgScore := totalScore.QuoUint64(uint64(len(nas)))
 
 	// NOTE: our redline is a hard line in the sand to determine if a node
@@ -876,7 +947,7 @@ func (vm *validatorMgrV1) findBadActors(ctx cosmos.Context) (NodeAccounts, error
 	// protect against this is not inside this function.
 	redline := avgScore.QuoUint64(3)
 
-	// find any node accounts that have crossed the redline
+	// find any node accounts that have crossed the red line
 	for _, track := range tracker {
 		if redline.GTE(track.Score) {
 			badActors = append(badActors, track.NodeAccount)
@@ -1039,7 +1110,7 @@ func (vm *validatorMgrV1) nextVaultNodeAccounts(ctx cosmos.Context, targetCount 
 		return nil, false, err
 	}
 
-	// sort by bond size
+	// sort by bond size, descending
 	sort.SliceStable(ready, func(i, j int) bool {
 		return ready[i].Bond.GT(ready[j].Bond)
 	})

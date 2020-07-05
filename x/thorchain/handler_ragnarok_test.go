@@ -48,6 +48,7 @@ func (HandlerRagnarokSuite) TestRagnarok(c *C) {
 	c.Assert(err, IsNil)
 
 	ver := constants.SWVersion
+	constAccessor := constants.GetConstantValues(ver)
 
 	tx := NewObservedTx(common.Tx{
 		ID:          GetRandomTxHash(),
@@ -70,7 +71,7 @@ func (HandlerRagnarokSuite) TestRagnarok(c *C) {
 	c.Check(result, IsNil, Commentf("invalid version should result an error"))
 	c.Check(err, NotNil, Commentf("invalid version should result an error"))
 	c.Check(errors.Is(err, errInvalidVersion), Equals, true)
-	result, err = handler.handle(ctx, semver.Version{}, msgRagnarok)
+	result, err = handler.handle(ctx, semver.Version{}, msgRagnarok, constAccessor)
 	c.Check(result, IsNil, Commentf("invalid version should result an error"))
 	c.Check(err, NotNil, Commentf("invalid version should result an error"))
 
@@ -164,13 +165,14 @@ func (HandlerRagnarokSuite) TestRagnarokHappyPath(c *C) {
 
 	msgRagnarok := NewMsgRagnarok(tx, 1, keeper.activeNodeAccount.NodeAddress)
 	ver := constants.SWVersion
-	_, err = handler.handleV1(ctx, ver, msgRagnarok)
+	constAccessor := constants.GetConstantValues(ver)
+	_, err = handler.handleV1(ctx, ver, msgRagnarok, constAccessor)
 	c.Assert(err, IsNil)
 	c.Assert(keeper.txout.TxArray[0].OutHash.Equals(tx.Tx.ID), Equals, true)
 
 	// fail to get tx out
 	msgRagnarok1 := NewMsgRagnarok(tx, 1024, keeper.activeNodeAccount.NodeAddress)
-	result, err := handler.handleV1(ctx, ver, msgRagnarok1)
+	result, err := handler.handleV1(ctx, ver, msgRagnarok1, constAccessor)
 	c.Assert(err, NotNil)
 	c.Assert(result, IsNil)
 }
@@ -178,6 +180,8 @@ func (HandlerRagnarokSuite) TestRagnarokHappyPath(c *C) {
 func (HandlerRagnarokSuite) TestSlash(c *C) {
 	ctx, _ := setupKeeperForTest(c)
 	retireVault := GetRandomVault()
+	ver := constants.SWVersion
+	constAccessor := constants.GetConstantValues(ver)
 
 	newVault := GetRandomVault()
 	txout := NewTxOut(1)
@@ -217,7 +221,7 @@ func (HandlerRagnarokSuite) TestSlash(c *C) {
 	}, 1, retireVault.PubKey)
 
 	msgRagnarok := NewMsgRagnarok(tx, 1, keeper.activeNodeAccount.NodeAddress)
-	_, err = handler.handleV1(ctx, constants.SWVersion, msgRagnarok)
+	_, err = handler.handleV1(ctx, constants.SWVersion, msgRagnarok, constAccessor)
 	c.Assert(err, IsNil)
 	c.Assert(keeper.activeNodeAccount.Bond.Equal(cosmos.NewUint(9999998464)), Equals, true, Commentf("%d", keeper.activeNodeAccount.Bond.Uint64()))
 }

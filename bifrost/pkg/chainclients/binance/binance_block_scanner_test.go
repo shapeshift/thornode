@@ -255,7 +255,7 @@ func (s *BlockScannerTestSuite) TestFromTxToTxIn(c *C) {
 		c.Assert(bs, NotNil)
 		c.Log(input)
 		for _, item := range query.Result.Txs {
-			txInItem, err := bs.fromTxToTxIn(item.Hash, item.Tx)
+			txInItem, err := bs.fromTxToTxIn(item.Hash, item.Tx, 2)
 			c.Logf("hash:%s", item.Hash)
 			c.Check(txInItem, txInItemCheck)
 			c.Check(err, errCheck)
@@ -312,7 +312,7 @@ func (s *BlockScannerTestSuite) TestFromStdTx(c *C) {
 	)
 	c.Assert(err, IsNil)
 
-	items, err := bs.fromStdTx("abcd", stdTx)
+	items, err := bs.fromStdTx("abcd", stdTx, 1)
 	c.Assert(err, IsNil)
 	c.Assert(items, HasLen, 1)
 	item := items[0]
@@ -330,7 +330,7 @@ func (s *BlockScannerTestSuite) TestFromStdTx(c *C) {
 	)
 	c.Assert(err, IsNil)
 	txhash := thorchain.GetRandomTxHash().String()
-	items, err = bs.fromStdTx(txhash, stdTx)
+	items, err = bs.fromStdTx(txhash, stdTx, 1)
 	c.Assert(err, IsNil)
 	c.Assert(items, HasLen, 1)
 	item = items[0]
@@ -345,7 +345,7 @@ func (s *BlockScannerTestSuite) TestFromStdTx(c *C) {
 		"yggdrasil+",
 	)
 	c.Assert(err, IsNil)
-	items, err = bs.fromStdTx("abcd", stdTx)
+	items, err = bs.fromStdTx("abcd", stdTx, 1)
 	c.Assert(err, IsNil)
 	c.Assert(items, HasLen, 1)
 	item = items[0]
@@ -359,7 +359,7 @@ func (s *BlockScannerTestSuite) TestFromStdTx(c *C) {
 		"yggdrasil-",
 	)
 	c.Assert(err, IsNil)
-	items, err = bs.fromStdTx("abcd", stdTx)
+	items, err = bs.fromStdTx("abcd", stdTx, 1)
 	c.Assert(err, IsNil)
 	c.Assert(items, HasLen, 1)
 	item = items[0]
