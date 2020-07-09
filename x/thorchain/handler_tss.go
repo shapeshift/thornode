@@ -125,6 +125,12 @@ func (h TssHandler) handleV1(ctx cosmos.Context, msg MsgTssPool, version semver.
 			}
 			vault := NewVault(common.BlockHeight(ctx), ActiveVault, vaultType, voter.PoolPubKey, voter.ConsensusChains())
 			vault.Membership = voter.PubKeys
+
+			signingParty, err := ChooseSignerParty(voter.PubKeys, common.BlockHeight(ctx), len(voter.PubKeys))
+			if err != nil {
+				return nil, fmt.Errorf("fail to choose signing party: %w", err)
+			}
+			vault.SigningParty = signingParty
 			if err := h.keeper.SetVault(ctx, vault); err != nil {
 				return nil, fmt.Errorf("fail to save vault: %w", err)
 			}

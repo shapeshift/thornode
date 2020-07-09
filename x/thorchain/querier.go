@@ -797,69 +797,12 @@ func queryTSSSigners(ctx cosmos.Context, path []string, req abci.RequestQuery, k
 		ctx.Logger().Error("fail to parse pool pub key", "error", err)
 		return nil, fmt.Errorf("invalid pool pub key(%s): %w", vaultPubKey, err)
 	}
-
-	// seed is the current block height, rounded down to the nearest 100th
-	// This helps keep the selected nodes to be the same across blocks, but
-	// also change immediately if we have a change in which nodes are active
-	seed := common.BlockHeight(ctx) / 100
-
-	accountAddrs, err := keeper.GetObservingAddresses(ctx)
-	if err != nil {
-		ctx.Logger().Error("fail to get observing addresses", "error", err)
-		return nil, fmt.Errorf("fail to get observing addresses: %w", err)
-	}
-
 	vault, err := keeper.GetVault(ctx, pk)
 	if err != nil {
 		ctx.Logger().Error("fail to get vault", "error", err)
 		return nil, fmt.Errorf("fail to get vault: %w", err)
 	}
-	members := vault.Membership
-	threshold, err := GetThreshold(len(vault.Membership))
-	if err != nil {
-		ctx.Logger().Error("fail to get threshold", "error", err)
-		return nil, fmt.Errorf("fail to get threshold: %w", err)
-	}
-	totalObservingAccounts := len(accountAddrs)
-	if totalObservingAccounts > 0 && totalObservingAccounts >= threshold {
-		members, err = vault.GetMembers(accountAddrs)
-		if err != nil {
-			ctx.Logger().Error("fail to get signers", "error", err)
-			return nil, fmt.Errorf("fail to get signers: %w", err)
-		}
-	}
-
-	// build signer list, exclude any node accounts in jail
-	signers := make(common.PubKeys, 0)
-	for _, mem := range members {
-		na, err := keeper.GetNodeAccountByPubKey(ctx, mem)
-		if err != nil {
-			ctx.Logger().Error("fail to get node account", "error", err)
-			continue
-		}
-		jail, err := keeper.GetNodeAccountJail(ctx, na.NodeAddress)
-		if err != nil {
-			ctx.Logger().Error("fail to get node account jail", "error", err)
-		}
-		if !jail.IsJailed(ctx) {
-			signers = append(signers, mem)
-		}
-	}
-
-	// if we don't have enough signer
-	if len(signers) < threshold {
-		signers = vault.Membership
-	}
-	// if there are 9 nodes in total , it need 6 nodes to sign a message
-	// 3 signer send request to thorchain at block height 100
-	// another 3 signer send request to thorchain at block height 101
-	// in this case we get into trouble ,they get different results, key sign is going to fail
-	signerParty, err := ChooseSignerParty(signers, seed, len(vault.Membership))
-	if err != nil {
-		ctx.Logger().Error("fail to choose signer party members", "error", err)
-		return nil, fmt.Errorf("fail to choose signer party members: %w", err)
-	}
-	res, err := codec.MarshalJSONIndent(keeper.Cdc(), signerParty)
+	res, err := codec.MarshalJSONIndent(keeper.Cdc(), vault.SigningParty)
 	if err != nil {
 		ctx.Logger().Error("fail to marshal to json", "error", err)
 		return nil, fmt.Errorf("fail to marshal to json: %w", err)

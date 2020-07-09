@@ -14,12 +14,11 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/tendermint/btcd/btcec"
 	"github.com/tendermint/tendermint/crypto"
-
 	"gitlab.com/thorchain/tss/go-tss/keysign"
-	tss "gitlab.com/thorchain/tss/go-tss/tss"
+	"gitlab.com/thorchain/tss/go-tss/tss"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 // KeySign is a proxy between signer and TSS

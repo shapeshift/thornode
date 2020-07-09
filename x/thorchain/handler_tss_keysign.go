@@ -74,7 +74,7 @@ func (h TssKeysignHandler) validateV1(ctx cosmos.Context, msg MsgTssKeysignFail)
 }
 
 func (h TssKeysignHandler) handle(ctx cosmos.Context, msg MsgTssKeysignFail, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
-	ctx.Logger().Info("handle MsgTssKeysignFail request", "ID", msg.ID, "signer", msg.Signer, "retry", msg.Retry, "blame", msg.Blame.String())
+	ctx.Logger().Info("handle MsgTssKeysignFail request", "ID", msg.ID, "signer", msg.Signer, "pubkey", msg.PubKey, "blame", msg.Blame.String())
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.handleV1(ctx, msg, version, constAccessor)
 	}
@@ -134,5 +134,64 @@ func (h TssKeysignHandler) handleV1(ctx cosmos.Context, msg MsgTssKeysignFail, v
 			ctx.Logger().Error("fail to set node account jail", "node address", na.NodeAddress, "reason", reason, "error", err)
 		}
 	}
+	if err := h.updateVaultKeySign(ctx, msg.PubKey); err != nil {
+		ctx.Logger().Error("fail to update vault signing party", "error", err)
+	}
 	return &cosmos.Result{}, nil
+}
+
+func (h TssKeysignHandler) updateVaultKeySign(ctx cosmos.Context, vaultPubKey common.PubKey) error {
+	accountAddrs, err := h.keeper.GetObservingAddresses(ctx)
+	if err != nil {
+		return fmt.Errorf("fail to get observing addresses: %w", err)
+	}
+
+	vault, err := h.keeper.GetVault(ctx, vaultPubKey)
+	if err != nil {
+		return fmt.Errorf("fail to get vault: %w", err)
+	}
+	members := vault.Membership
+	threshold, err := GetThreshold(len(vault.Membership))
+	if err != nil {
+		return fmt.Errorf("fail to get threshold: %w", err)
+	}
+	totalObservingAccounts := len(accountAddrs)
+	if totalObservingAccounts > 0 && totalObservingAccounts >= threshold {
+		members, err = vault.GetMembers(accountAddrs)
+		if err != nil {
+			return fmt.Errorf("fail to get signers: %w", err)
+		}
+	}
+
+	// build signer list, exclude any node accounts in jail
+	signers := make(common.PubKeys, 0)
+	for _, mem := range members {
+		na, err := h.keeper.GetNodeAccountByPubKey(ctx, mem)
+		if err != nil {
+			ctx.Logger().Error("fail to get node account", "error", err)
+			continue
+		}
+		jail, err := h.keeper.GetNodeAccountJail(ctx, na.NodeAddress)
+		if err != nil {
+			ctx.Logger().Error("fail to get node account jail", "error", err)
+		}
+		if !jail.IsJailed(ctx) {
+			signers = append(signers, mem)
+		}
+	}
+
+	// if we don't have enough signer
+	if len(signers) < threshold {
+		signers = vault.Membership
+	}
+	// if there are 9 nodes in total , it need 6 nodes to sign a message
+	// 3 signer send request to thorchain at block height 100
+	// another 3 signer send request to thorchain at block height 101
+	// in this case we get into trouble ,they get different results, key sign is going to fail
+	signerParty, err := ChooseSignerParty(signers, common.BlockHeight(ctx), len(vault.Membership))
+	if err != nil {
+		return fmt.Errorf("fail to choose signer party members: %w", err)
+	}
+	vault.SigningParty = signerParty
+	return h.keeper.SetVault(ctx, vault)
 }

@@ -21,19 +21,19 @@ type MsgTssKeysignFail struct {
 	Memo   string            `json:"memo"`
 	Coins  common.Coins      `json:"coins"`
 	Signer cosmos.AccAddress `json:"signer"`
-	Retry  uint64            `json:"retry"`
+	PubKey common.PubKey     `json:"pub_key"`
 }
 
 // NewMsgTssKeysignFail create a new instance of MsgTssKeysignFail message
-func NewMsgTssKeysignFail(height int64, blame blame.Blame, memo string, coins common.Coins, signer cosmos.AccAddress, retry uint64) MsgTssKeysignFail {
+func NewMsgTssKeysignFail(height int64, blame blame.Blame, memo string, coins common.Coins, signer cosmos.AccAddress, pubKey common.PubKey) MsgTssKeysignFail {
 	return MsgTssKeysignFail{
-		ID:     getMsgTssKeysignFailID(blame.BlameNodes, height, memo, coins, retry),
+		ID:     getMsgTssKeysignFailID(blame.BlameNodes, height, memo, coins, pubKey),
 		Height: height,
 		Blame:  blame,
 		Memo:   memo,
 		Coins:  coins,
 		Signer: signer,
-		Retry:  retry,
+		PubKey: pubKey,
 	}
 }
 
@@ -41,7 +41,7 @@ func NewMsgTssKeysignFail(height int64, blame blame.Blame, memo string, coins co
 // keysign failure , as well as the block height of the txout item to generate
 // a hash, given that , if the same party keep failing the same txout item ,
 // then we will only slash it once.
-func getMsgTssKeysignFailID(members []blame.Node, height int64, memo string, coins common.Coins, retry uint64) string {
+func getMsgTssKeysignFailID(members []blame.Node, height int64, memo string, coins common.Coins, pubKey common.PubKey) string {
 	// ensure input pubkeys list is deterministically sorted
 	sort.SliceStable(members, func(i, j int) bool {
 		return members[i].Pubkey < members[j].Pubkey
@@ -52,6 +52,7 @@ func getMsgTssKeysignFailID(members []blame.Node, height int64, memo string, coi
 	}
 	sb.WriteString(fmt.Sprintf("%d", height))
 	sb.WriteString(memo)
+	sb.WriteString(pubKey.String())
 	for _, c := range coins {
 		sb.WriteString(c.String())
 	}
@@ -88,6 +89,9 @@ func (msg MsgTssKeysignFail) ValidateBasic() error {
 	if len([]byte(msg.Memo)) > 150 {
 		err := fmt.Errorf("memo must not exceed 150 bytes: %d", len([]byte(msg.Memo)))
 		return cosmos.ErrUnknownRequest(err.Error())
+	}
+	if msg.PubKey.IsEmpty() {
+		return cosmos.ErrUnknownRequest("vault pubkey cannot be empty")
 	}
 	return nil
 }
