@@ -37,7 +37,6 @@ type TxOutStoreItem struct {
 	TxOutItem types.TxOutItem
 	Status    TxStatus
 	Height    int64
-	Retry     uint64
 }
 
 func NewTxOutStoreItem(height int64, item types.TxOutItem) TxOutStoreItem {
@@ -45,7 +44,6 @@ func NewTxOutStoreItem(height int64, item types.TxOutItem) TxOutStoreItem {
 		TxOutItem: item,
 		Height:    height,
 		Status:    TxAvailable,
-		Retry:     0,
 	}
 }
 

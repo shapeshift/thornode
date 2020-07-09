@@ -45,6 +45,7 @@ type Vault struct {
 	InboundTxCount        int64          `json:"inbound_tx_count"`
 	OutboundTxCount       int64          `json:"outbound_tx_count"`
 	PendingTxBlockHeights []int64        `json:"pending_tx_heights"`
+	SigningParty          common.PubKeys `json:"signing_party"`
 }
 
 // Vaults a list of vault

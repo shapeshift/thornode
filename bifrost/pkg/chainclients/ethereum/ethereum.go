@@ -170,7 +170,7 @@ func (c *Client) GetNonce(addr string) (uint64, error) {
 }
 
 // SignTx sign the the given TxArrayItem
-func (c *Client) SignTx(tx stypes.TxOutItem, height int64, retry uint64) ([]byte, error) {
+func (c *Client) SignTx(tx stypes.TxOutItem, height int64) ([]byte, error) {
 	toAddr := tx.ToAddress.String()
 
 	value := big.NewInt(0)
@@ -205,7 +205,7 @@ func (c *Client) SignTx(tx stypes.TxOutItem, height int64, retry uint64) ([]byte
 
 	createdTx := etypes.NewTransaction(nonce, ecommon.HexToAddress(toAddr), value, gasOut.Uint64(), gasPrice, encodedData)
 
-	rawTx, err := c.sign(createdTx, fromAddr, tx.VaultPubKey, height, tx, retry)
+	rawTx, err := c.sign(createdTx, fromAddr, tx.VaultPubKey, height, tx)
 	if err != nil || len(rawTx) == 0 {
 		return nil, fmt.Errorf("fail to sign message: %w", err)
 	}
@@ -213,7 +213,7 @@ func (c *Client) SignTx(tx stypes.TxOutItem, height int64, retry uint64) ([]byte
 }
 
 // sign is design to sign a given message with keysign party and keysign wrapper
-func (c *Client) sign(tx *etypes.Transaction, from string, poolPubKey common.PubKey, height int64, txOutItem stypes.TxOutItem, retry uint64) ([]byte, error) {
+func (c *Client) sign(tx *etypes.Transaction, from string, poolPubKey common.PubKey, height int64, txOutItem stypes.TxOutItem) ([]byte, error) {
 	keySignParty, err := c.keySignPartyMgr.GetKeySignParty(poolPubKey)
 	if err != nil {
 		c.logger.Error().Err(err).Msg("fail to get keysign party")
@@ -233,7 +233,7 @@ func (c *Client) sign(tx *etypes.Transaction, from string, poolPubKey common.Pub
 		}
 
 		// key sign error forward the keysign blame to thorchain
-		txID, errPostKeysignFail := c.thorchainBridge.PostKeysignFailure(keysignError.Blame, height, txOutItem.Memo, txOutItem.Coins, retry)
+		txID, errPostKeysignFail := c.thorchainBridge.PostKeysignFailure(keysignError.Blame, height, txOutItem.Memo, txOutItem.Coins, txOutItem.VaultPubKey)
 		if errPostKeysignFail != nil {
 			c.logger.Error().Err(err).Msg("fail to post keysign failure to thorchain")
 			return nil, multierror.Append(err, errPostKeysignFail)

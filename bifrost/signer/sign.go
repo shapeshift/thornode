@@ -180,7 +180,6 @@ func (s *Signer) processTransactions() {
 					s.logger.Info().Msgf("Signing transaction (Num: %d | Height: %d | Status: %d): %+v", i, item.Height, item.Status, item.TxOutItem)
 					if err := s.signAndBroadcast(item); err != nil {
 						s.logger.Error().Err(err).Msg("fail to sign and broadcast tx out store item")
-						item.Retry = item.Retry + 1
 						if err := s.storage.Set(item); err != nil {
 							s.logger.Error().Err(err).Msg("fail to update tx out store item with retry #")
 						}
@@ -370,7 +369,7 @@ func (s *Signer) signAndBroadcast(item TxOutStoreItem) error {
 		}
 	}
 
-	signedTx, err := chain.SignTx(tx, height, item.Retry)
+	signedTx, err := chain.SignTx(tx, height)
 	if err != nil {
 		s.logger.Error().Err(err).Msg("fail to sign tx")
 		return err

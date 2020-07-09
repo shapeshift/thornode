@@ -112,6 +112,10 @@ func (vm *VaultMgrV1) EndBlock(ctx cosmos.Context, mgr Manager, constAccessor co
 					continue
 				}
 
+				if coin.Amount.Equal(cosmos.ZeroUint()) {
+					continue
+				}
+
 				// determine which active asgard vault is the best to send
 				// these coins to. We target the vault with the least amount of
 				// this particular coin
