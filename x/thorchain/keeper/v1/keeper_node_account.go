@@ -165,13 +165,6 @@ func (k KVStore) SetNodeAccount(ctx cosmos.Context, na NodeAccount) error {
 
 	k.set(ctx, k.GetKey(ctx, prefixNodeAccount, na.NodeAddress.String()), na)
 
-	// When a node is in active status, THORNode need to add the observer address to active
-	// if it is not , then THORNode could remove them
-	if na.Status == NodeActive {
-		k.SetActiveObserver(ctx, na.NodeAddress)
-	} else {
-		k.RemoveActiveObserver(ctx, na.NodeAddress)
-	}
 	return nil
 }
 
