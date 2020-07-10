@@ -167,9 +167,6 @@ func (k KVStoreDummy) SetNodeAccountJail(ctx cosmos.Context, addr cosmos.AccAddr
 	return kaboom
 }
 
-func (k KVStoreDummy) SetActiveObserver(_ cosmos.Context, _ cosmos.AccAddress)     {}
-func (k KVStoreDummy) RemoveActiveObserver(_ cosmos.Context, _ cosmos.AccAddress)  {}
-func (k KVStoreDummy) IsActiveObserver(_ cosmos.Context, _ cosmos.AccAddress) bool { return false }
 func (k KVStoreDummy) GetObservingAddresses(_ cosmos.Context) ([]cosmos.AccAddress, error) {
 	return nil, kaboom
 }

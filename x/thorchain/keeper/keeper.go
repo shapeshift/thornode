@@ -96,9 +96,6 @@ type KeeperNodeAccount interface {
 }
 
 type KeeperObserver interface {
-	SetActiveObserver(ctx cosmos.Context, addr cosmos.AccAddress)
-	RemoveActiveObserver(ctx cosmos.Context, addr cosmos.AccAddress)
-	IsActiveObserver(ctx cosmos.Context, addr cosmos.AccAddress) bool
 	GetObservingAddresses(ctx cosmos.Context) ([]cosmos.AccAddress, error)
 	AddObservingAddresses(ctx cosmos.Context, inAddresses []cosmos.AccAddress) error
 	ClearObservingAddresses(ctx cosmos.Context)
