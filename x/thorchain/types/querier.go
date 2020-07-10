@@ -23,14 +23,15 @@ func (h QueryResHeights) String() string {
 	return fmt.Sprintf("Chain: %d, Signed: %d, THORChain: %d", h.LastChainHeight, h.LastSignedHeight, h.Thorchain)
 }
 
-// QueryOutQueue a struct store the total outstanding out items
-type QueryOutQueue struct {
-	Total int64 `json:"total"`
+// QueryQueue a struct store the total outstanding out items
+type QueryQueue struct {
+	Swap     int64 `json:"swap"`
+	Outbound int64 `json:"outbound"`
 }
 
 // String implement fmt.Stringer
-func (h QueryOutQueue) String() string {
-	return fmt.Sprintf("Total: %d", h.Total)
+func (h QueryQueue) String() string {
+	return fmt.Sprintf("Swap: %d, Outboud: %d", h.Swap, h.Outbound)
 }
 
 // QueryNodeAccountPreflightCheck is structure to hold all the information need to return to client
