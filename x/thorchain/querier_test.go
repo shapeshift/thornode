@@ -309,14 +309,14 @@ func (s *QuerierSuite) TestQueryKeyGen(c *C) {
 	c.Assert(err, IsNil)
 }
 
-func (s *QuerierSuite) TestQueryOutQueue(c *C) {
+func (s *QuerierSuite) TestQueryQueue(c *C) {
 	result, err := s.querier(s.ctx, []string{
-		query.QueryOutQueue.Key,
+		query.QueryQueue.Key,
 		strconv.FormatInt(s.ctx.BlockHeight(), 10),
 	}, abci.RequestQuery{})
 	c.Assert(result, NotNil)
 	c.Assert(err, IsNil)
-	var q QueryOutQueue
+	var q QueryQueue
 	c.Assert(s.k.Cdc().UnmarshalJSON(result, &q), IsNil)
 }
 

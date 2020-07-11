@@ -50,7 +50,7 @@ func (ymgr YggMgrV1) Fund(ctx cosmos.Context, mgr Manager, constAccessor constan
 		return err
 	}
 	minimumNodesForYggdrasil := constAccessor.GetInt64Value(constants.MinimumNodesForYggdrasil)
-	if int64(len(nodeAccs)) <= minimumNodesForYggdrasil {
+	if int64(len(nodeAccs)) < minimumNodesForYggdrasil {
 		return nil
 	}
 
@@ -148,7 +148,6 @@ func (ymgr YggMgrV1) Fund(ctx cosmos.Context, mgr Manager, constAccessor constan
 				),
 			)
 		}
-
 	}
 
 	if len(sendCoins) > 0 {
