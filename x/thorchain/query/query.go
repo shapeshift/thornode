@@ -41,7 +41,7 @@ var (
 	QueryKeysignArray       = Query{Key: "keysign", EndpointTemplate: "/%s/keysign/{%s}"}
 	QueryKeysignArrayPubkey = Query{Key: "keysignpubkey", EndpointTemplate: "/%s/keysign/{%s}/{%s}"}
 	QueryKeygensPubkey      = Query{Key: "keygenspubkey", EndpointTemplate: "/%s/keygen/{%s}/{%s}"}
-	QueryOutQueue           = Query{Key: "outqueue", EndpointTemplate: "/%s/out/queue"}
+	QueryQueue              = Query{Key: "outqueue", EndpointTemplate: "/%s/queue"}
 	QueryHeights            = Query{Key: "heights", EndpointTemplate: "/%s/lastblock"}
 	QueryChainHeights       = Query{Key: "chainheights", EndpointTemplate: "/%s/lastblock/{%s}"}
 	QueryObservers          = Query{Key: "observers", EndpointTemplate: "/%s/observers"}
@@ -71,7 +71,7 @@ var Queries = []Query{
 	QueryTxIn,
 	QueryKeysignArray,
 	QueryKeysignArrayPubkey,
-	QueryOutQueue,
+	QueryQueue,
 	QueryHeights,
 	QueryChainHeights,
 	QueryObservers,
