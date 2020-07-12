@@ -5,12 +5,12 @@ package constants
 
 func init() {
 	int64Overrides = map[ConstantName]int64{
-		NewPoolCycle:         17280,
-		DesireValidatorSet:   12,
-		RotatePerBlockHeight: 17280,
+		NewPoolCycle:         1000,
+		DesireValidatorSet:   30,
+		RotatePerBlockHeight: 240,
 		BadValidatorRate:     17280,
 		OldValidatorRate:     17280,
-		MinimumBondInRune:    100_000_000, // 1 rune
+		MinimumBondInRune:    1_00000000, // 1 rune
 		StakeLockUpBlocks:    0,
 		CliTxCost:            0,
 	}
