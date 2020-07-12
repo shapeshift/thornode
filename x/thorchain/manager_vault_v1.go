@@ -181,11 +181,8 @@ func (vm *VaultMgrV1) EndBlock(ctx cosmos.Context, mgr Manager, constAccessor co
 					Memo: NewMigrateMemo(common.BlockHeight(ctx)).String(),
 				}
 				ok, err := vm.txOutStore.TryAddTxOutItem(ctx, mgr, toi)
-				if err != nil {
-					if !errors.Is(err, ErrNotEnoughToPayFee) {
-						return err
-					}
-					ok = true
+				if err != nil && !errors.Is(err, ErrNotEnoughToPayFee) {
+					return err
 				}
 				if ok {
 					vault.AppendPendingTxBlockHeights(common.BlockHeight(ctx), constAccessor)
