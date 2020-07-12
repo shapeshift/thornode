@@ -5,9 +5,9 @@ import (
 	"fmt"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 	kvTypes "gitlab.com/thorchain/thornode/x/thorchain/keeper/types"
 )
 
@@ -177,7 +177,10 @@ func (ymgr YggMgrV1) sendCoinsToYggdrasil(ctx cosmos.Context, coins common.Coins
 	}
 
 	for _, coin := range coins {
-
+		// ignore amount 0
+		if coin.Amount.Equal(cosmos.ZeroUint()) {
+			continue
+		}
 		// select active vault to send funds from
 		vault := active.SelectByMaxCoin(coin.Asset)
 		if vault.IsEmpty() {

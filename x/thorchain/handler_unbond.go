@@ -12,7 +12,7 @@ import (
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
-// UnBondHandler a handler to process unbond
+// UnBondHandler a handler to process unbond request
 type UnBondHandler struct {
 	keeper keeper.Keeper
 	mgr    Manager
@@ -43,6 +43,9 @@ func (h UnBondHandler) validateV1(ctx cosmos.Context, version semver.Version, ms
 		return ErrInternal(err, fmt.Sprintf("fail to get node account(%s)", msg.NodeAddress))
 	}
 
+	if !na.BondAddress.Equals(msg.TxIn.FromAddress) {
+		return cosmos.ErrUnauthorized(fmt.Sprintf("%s are not authorized to manage %s", msg.TxIn.FromAddress, msg.NodeAddress))
+	}
 	if na.Status == NodeActive {
 		return cosmos.ErrUnknownRequest("cannot unbond while node is in active status")
 	}
