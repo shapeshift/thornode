@@ -75,6 +75,11 @@ type QueryYggdrasilVaults struct {
 	TotalValue cosmos.Uint `json:"total_value"`
 }
 
+type QueryVersion struct {
+	Current semver.Version `json:"current"`
+	Next    semver.Version `json:"next"`
+}
+
 // QueryNodeAccount hold all the information related to node account
 type QueryNodeAccount struct {
 	NodeAddress         cosmos.AccAddress `json:"node_address"`
