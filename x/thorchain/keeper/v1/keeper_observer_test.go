@@ -15,11 +15,6 @@ func (s *KeeperObserverSuite) TestObserver(c *C) {
 
 	addr := GetRandomBech32Addr()
 
-	k.SetActiveObserver(ctx, addr)
-	c.Check(k.IsActiveObserver(ctx, addr), Equals, true)
-	k.RemoveActiveObserver(ctx, addr)
-	c.Check(k.IsActiveObserver(ctx, addr), Equals, false)
-
 	k.AddObservingAddresses(ctx, []cosmos.AccAddress{addr})
 	addrs, err := k.GetObservingAddresses(ctx)
 	c.Assert(err, IsNil)
