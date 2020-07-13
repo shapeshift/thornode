@@ -68,6 +68,8 @@ func NewQuerier(keeper keeper.Keeper, kbs KeybaseStore) cosmos.Querier {
 			return queryTSSSigners(ctx, path[1:], req, keeper)
 		case q.QueryConstantValues.Key:
 			return queryConstantValues(ctx, path[1:], req, keeper)
+		case q.QueryVersion.Key:
+			return queryVersion(ctx, path[1:], req, keeper)
 		case q.QueryMimirValues.Key:
 			return queryMimirValues(ctx, path[1:], req, keeper)
 		case q.QueryBan.Key:
@@ -828,6 +830,19 @@ func queryConstantValues(ctx cosmos.Context, path []string, req abci.RequestQuer
 	if err != nil {
 		ctx.Logger().Error("fail to marshal constant values to json", "error", err)
 		return nil, fmt.Errorf("fail to marshal constant values to json: %w", err)
+	}
+	return res, nil
+}
+
+func queryVersion(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
+	ver := QueryVersion{
+		Current: keeper.GetLowestActiveVersion(ctx),
+		Next:    keeper.GetMinJoinVersion(ctx),
+	}
+	res, err := codec.MarshalJSONIndent(keeper.Cdc(), ver)
+	if err != nil {
+		ctx.Logger().Error("fail to marshal version to json", "error", err)
+		return nil, fmt.Errorf("fail to marshal version to json: %w", err)
 	}
 	return res, nil
 }

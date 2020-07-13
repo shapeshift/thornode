@@ -57,6 +57,7 @@ var (
 	QueryVaultPubkeys       = Query{Key: "vaultpubkeys", EndpointTemplate: "/%s/vaults/pubkeys"}
 	QueryTSSSigners         = Query{Key: "tsssigner", EndpointTemplate: "/%s/vaults/{%s}/signers"}
 	QueryConstantValues     = Query{Key: "constants", EndpointTemplate: "/%s/constants"}
+	QueryVersion            = Query{Key: "version", EndpointTemplate: "/%s/version"}
 	QueryMimirValues        = Query{Key: "mimirs", EndpointTemplate: "/%s/mimir"}
 	QueryBan                = Query{Key: "ban", EndpointTemplate: "/%s/ban/{%s}"}
 	QueryRagnarok           = Query{Key: "ragnarok", EndpointTemplate: "/%s/ragnarok"}
@@ -88,6 +89,7 @@ var Queries = []Query{
 	QueryKeygensPubkey,
 	QueryTSSSigners,
 	QueryConstantValues,
+	QueryVersion,
 	QueryMimirValues,
 	QueryBan,
 	QueryRagnarok,
