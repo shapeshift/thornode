@@ -81,6 +81,28 @@ func getStdTx(f, t string, coins []types.Coin, memo string) (tx.StdTx, error) {
 	return tx.NewStdTx([]msg.Msg{ms}, nil, memo, 0, nil), nil
 }
 
+func getMultiSendStdTx(f, t string, coins []types.Coin, memo string) (tx.StdTx, error) {
+	types.Network = types.TestNetwork
+	from, err := types.AccAddressFromBech32(f)
+	if err != nil {
+		return tx.StdTx{}, err
+	}
+	to, err := types.AccAddressFromBech32(t)
+	if err != nil {
+		return tx.StdTx{}, err
+	}
+	second, err := types.AccAddressFromBech32(thorchain.GetRandomBNBAddress().String())
+	if err != nil {
+		return tx.StdTx{}, err
+	}
+	transfers := []msg.Transfer{
+		{to, coins},
+		{second, coins},
+	}
+	ms := msg.CreateSendMsg(from, coins, transfers)
+	return tx.NewStdTx([]msg.Msg{ms}, nil, memo, 0, nil), nil
+}
+
 func (s *BlockScannerTestSuite) TestNewBlockScanner(c *C) {
 	bs, err := NewBinanceBlockScanner(getConfigForTest("127.0.0.1"), nil, true, s.bridge, s.m)
 	c.Assert(err, NotNil)
@@ -364,6 +386,18 @@ func (s *BlockScannerTestSuite) TestFromStdTx(c *C) {
 	c.Assert(items, HasLen, 1)
 	item = items[0]
 	c.Check(item.Memo, Equals, "yggdrasil-")
+
+	mStdTx, err := getMultiSendStdTx(
+		"tbnb1yycn4mh6ffwpjf584t8lpp7c27ghu03gpvqkfj",
+		"tbnb1yxfyeda8pnlxlmx0z3cwx74w9xevspwdpzdxpj",
+		types.Coins{types.Coin{Denom: "BNB", Amount: 194765912}},
+		"whatever")
+	items, err = bs.fromStdTx("abcd", mStdTx, 1024)
+	c.Assert(err, IsNil)
+	c.Assert(items, HasLen, 1)
+	item = items[0]
+	c.Check(item.To, Equals, "tbnb1yxfyeda8pnlxlmx0z3cwx74w9xevspwdpzdxpj")
+	c.Check(item.Coins, HasLen, 1)
 }
 
 func (s *BlockScannerTestSuite) TestUpdateGasFees(c *C) {
