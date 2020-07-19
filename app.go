@@ -22,7 +22,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/staking"
 
 	"gitlab.com/thorchain/thornode/x/thorchain"
-	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 const appPoolData = "thorchain"
