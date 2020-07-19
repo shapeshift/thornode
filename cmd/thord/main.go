@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io"
 
+	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/client/debug"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/server"
@@ -11,6 +12,7 @@ import (
 	genutilcli "github.com/cosmos/cosmos-sdk/x/genutil/client/cli"
 	"github.com/cosmos/cosmos-sdk/x/staking"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/libs/cli"
 	"github.com/tendermint/tendermint/libs/log"
@@ -18,8 +20,8 @@ import (
 	dbm "github.com/tendermint/tm-db"
 
 	app "gitlab.com/thorchain/thornode"
-	cmd "gitlab.com/thorchain/thornode/cmd"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/cmd"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 func main() {
@@ -65,7 +67,8 @@ func main() {
 }
 
 func newApp(logger log.Logger, db dbm.DB, traceStore io.Writer) abci.Application {
-	return app.NewThorchainApp(logger, db)
+	return app.NewThorchainApp(logger, db,
+		baseapp.SetHaltHeight(viper.GetUint64(server.FlagHaltHeight)))
 }
 
 func exportAppStateAndTMValidators(
