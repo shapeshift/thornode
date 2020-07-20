@@ -37,7 +37,7 @@ func NewAsset(input string) (Asset, error) {
 	var err error
 	var asset Asset
 	var sym string
-	parts := strings.Split(input, ".")
+	parts := strings.SplitN(input, ".", 2)
 	if len(parts) == 1 {
 		asset.Chain = THORChain
 		sym = parts[0]
@@ -54,7 +54,7 @@ func NewAsset(input string) (Asset, error) {
 		return EmptyAsset, err
 	}
 
-	parts = strings.Split(sym, "-")
+	parts = strings.SplitN(sym, "-", 2)
 	asset.Ticker, err = NewTicker(parts[0])
 	if err != nil {
 		return EmptyAsset, err
