@@ -20,6 +20,13 @@ func (s AssetSuite) TestAsset(c *C) {
 	c.Check(asset.Symbol.Equals(Symbol("RUNE")), Equals, true)
 	c.Check(asset.Ticker.Equals(Ticker("RUNE")), Equals, true)
 
+	asset, err = NewAsset("BNB.SWIPE.B-DC0")
+	c.Assert(err, IsNil)
+	c.Check(asset.String(), Equals, "BNB.SWIPE.B-DC0")
+	c.Check(asset.Chain.Equals(BNBChain), Equals, true)
+	c.Check(asset.Symbol.Equals(Symbol("SWIPE.B-DC0")), Equals, true)
+	c.Check(asset.Ticker.Equals(Ticker("SWIPE.B")), Equals, true)
+
 	// parse without chain
 	asset, err = NewAsset("rune")
 	c.Assert(err, IsNil)
