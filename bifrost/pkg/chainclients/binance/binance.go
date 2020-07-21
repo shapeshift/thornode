@@ -177,7 +177,7 @@ func (b *Binance) checkIsTestNet() error {
 	}
 
 	b.chainID = status.Result.NodeInfo.Network
-	b.isTestNet = b.chainID == "Binance-Chain-Nile"
+	b.isTestNet = b.chainID == "Binance-Chain-Ganges"
 
 	if b.isTestNet {
 		types.Network = types.TestNetwork
