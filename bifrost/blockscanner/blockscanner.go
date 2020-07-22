@@ -116,7 +116,10 @@ func (b *BlockScanner) scanBlocks() {
 				}
 				continue
 			}
-			b.logger.Debug().Int64("block height", currentBlock).Int("txs", len(txIn.TxArray))
+			// enable this one , so we could see how far it is behind
+			if currentBlock%100 == 0 {
+				b.logger.Info().Int64("block height", currentBlock).Int("txs", len(txIn.TxArray))
+			}
 			b.previousBlock++
 			b.metrics.GetCounter(metrics.TotalBlockScanned).Inc()
 			if len(txIn.TxArray) > 0 {
