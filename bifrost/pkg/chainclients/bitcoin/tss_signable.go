@@ -12,7 +12,7 @@ import (
 	"gitlab.com/thorchain/thornode/bifrost/thorclient"
 	"gitlab.com/thorchain/thornode/bifrost/tss"
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 // TssSignable is a signable implementation backed by tss
@@ -41,9 +41,16 @@ func (ts *TssSignable) Sign(payload []byte) (*btcec.Signature, error) {
 		ts.logger.Error().Err(err).Msg("fail to get keysign party")
 		return nil, err
 	}
-	result, err := ts.tssKeyManager.RemoteSign(payload, ts.poolPubKey.String(), keySignParty)
-	if err != nil {
+	retry := 3
+	var result []byte
+	for i := 0; i < retry; i++ {
+		result, err = ts.tssKeyManager.RemoteSign(payload, ts.poolPubKey.String(), keySignParty)
+		if err == nil {
+			break
+		}
 		ts.keySignPartyMgr.RemoveKeySignParty(ts.poolPubKey)
+	}
+	if err != nil {
 		return nil, err
 	}
 	var sig btcec.Signature
