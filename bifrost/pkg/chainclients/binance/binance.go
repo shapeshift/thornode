@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/binance-chain/go-sdk/common/types"
 	ctypes "github.com/binance-chain/go-sdk/common/types"
@@ -359,30 +360,37 @@ func (b *Binance) signMsg(signMsg btx.StdSignMsg, from string, poolPubKey common
 		b.logger.Error().Err(err).Msg("fail to get keysign party")
 		return nil, err
 	}
-	rawBytes, err := b.sign(signMsg, poolPubKey, keySignParty)
-	if err == nil && rawBytes != nil {
-		b.keysignPartyMgr.SaveKeySignParty(poolPubKey, keySignParty)
-		return rawBytes, nil
+	// let's retry before we give up on the signing party
+	retryMax := 3
+	var finalErr error
+	for i := 0; i < retryMax; i++ {
+		rawBytes, err := b.sign(signMsg, poolPubKey, keySignParty)
+		if err == nil && rawBytes != nil {
+			b.keysignPartyMgr.SaveKeySignParty(poolPubKey, keySignParty)
+			return rawBytes, nil
+		}
+		b.keysignPartyMgr.RemoveKeySignParty(poolPubKey)
+		finalErr = err
 	}
-
-	b.keysignPartyMgr.RemoveKeySignParty(poolPubKey)
 	var keysignError tss.KeysignError
-	if errors.As(err, &keysignError) {
+	if errors.As(finalErr, &keysignError) {
 		if len(keysignError.Blame.BlameNodes) == 0 {
 			// TSS doesn't know which node to blame
-			return nil, err
+			return nil, finalErr
 		}
 
 		// key sign error forward the keysign blame to thorchain
 		txID, errPostKeysignFail := b.thorchainBridge.PostKeysignFailure(keysignError.Blame, thorchainHeight, txOutItem.Memo, txOutItem.Coins, poolPubKey)
 		if errPostKeysignFail != nil {
-			b.logger.Error().Err(err).Msg("fail to post keysign failure to thorchain")
-			return nil, multierror.Append(err, errPostKeysignFail)
+			b.logger.Error().Err(errPostKeysignFail).Msg("fail to post keysign failure to thorchain")
+			return nil, multierror.Append(finalErr, errPostKeysignFail)
 		}
 		b.logger.Info().Str("tx_id", txID.String()).Msgf("post keysign failure to thorchain")
+		// back off a block time, so it has more chance to pick up the updated signer party
+		time.Sleep(time.Second * 5)
 	}
-	b.logger.Error().Err(err).Msgf("fail to sign msg with memo: %s", signMsg.Memo)
-	return nil, err
+	b.logger.Error().Err(finalErr).Msgf("fail to sign msg with memo: %s", signMsg.Memo)
+	return nil, finalErr
 }
 
 func (b *Binance) GetAccount(pkey common.PubKey) (common.Account, error) {

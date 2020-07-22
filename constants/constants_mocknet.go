@@ -5,7 +5,7 @@ package constants
 
 func init() {
 	int64Overrides = map[ConstantName]int64{
-		// ArtificialRagnarokBlockHeight: 120,
+		// ArtificialRagnarokBlockHeight: 200,
 		DesireValidatorSet:    12,
 		RotatePerBlockHeight:  60,          // 5 min
 		BadValidatorRate:      60,          // 5 min
