@@ -219,24 +219,29 @@ func (c *Client) sign(tx *etypes.Transaction, from string, poolPubKey common.Pub
 		c.logger.Error().Err(err).Msg("fail to get keysign party")
 		return nil, err
 	}
-	rawBytes, err := c.kw.Sign(tx, poolPubKey, keySignParty)
-	if err == nil && rawBytes != nil {
-		c.keySignPartyMgr.SaveKeySignParty(poolPubKey, keySignParty)
-		return rawBytes, nil
+	// let's retry before we give up on the signing party
+	retryMax := 3
+	var finalErr error
+	for i := 0; i < retryMax; i++ {
+		rawBytes, err := c.kw.Sign(tx, poolPubKey, keySignParty)
+		if err == nil && rawBytes != nil {
+			c.keySignPartyMgr.SaveKeySignParty(poolPubKey, keySignParty)
+			return rawBytes, nil
+		}
+		c.keySignPartyMgr.RemoveKeySignParty(poolPubKey)
+		finalErr = err
 	}
 	var keysignError tss.KeysignError
-	if errors.As(err, &keysignError) {
-		c.keySignPartyMgr.RemoveKeySignParty(poolPubKey)
+	if errors.As(finalErr, &keysignError) {
 		if len(keysignError.Blame.BlameNodes) == 0 {
 			// TSS doesn't know which node to blame
-			return nil, err
+			return nil, finalErr
 		}
-
 		// key sign error forward the keysign blame to thorchain
 		txID, errPostKeysignFail := c.thorchainBridge.PostKeysignFailure(keysignError.Blame, height, txOutItem.Memo, txOutItem.Coins, txOutItem.VaultPubKey)
 		if errPostKeysignFail != nil {
-			c.logger.Error().Err(err).Msg("fail to post keysign failure to thorchain")
-			return nil, multierror.Append(err, errPostKeysignFail)
+			c.logger.Error().Err(errPostKeysignFail).Msg("fail to post keysign failure to thorchain")
+			return nil, multierror.Append(finalErr, errPostKeysignFail)
 		}
 		c.logger.Info().Str("tx_id", txID.String()).Msgf("post keysign failure to thorchain")
 	}
