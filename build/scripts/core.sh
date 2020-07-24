@@ -58,9 +58,9 @@ add_account () {
               "amount": $AMOUNT
             }
           ],
-          "public_key": "",
-          "account_number": 0,
-          "sequence": 0
+          "public_key": null,
+          "account_number": "0",
+          "sequence": "0"
         }
     }]' <~/.thord/config/genesis.json >/tmp/genesis.json
     mv /tmp/genesis.json ~/.thord/config/genesis.json
