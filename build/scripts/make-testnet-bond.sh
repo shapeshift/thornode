@@ -11,7 +11,7 @@ FAUCET_WALLET=faucet
 CHAIN_ID=Binance-Chain-Ganges
 TENDERMINT_NODE="data-seed-pre-2-s1.binance.org:80"
 FUND_MEMO="fund validator"
-BOND_AMOUNT=100000000:RUNE-A1F
+BOND_AMOUNT=100000000:RUNE-67C
 GAS_FEE=37500
 
 ####################################

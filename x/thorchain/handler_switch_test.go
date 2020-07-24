@@ -27,7 +27,7 @@ func (s *HandlerSwitchSuite) TestValidate(c *C) {
 	c.Assert(k.SetNodeAccount(ctx, na), IsNil)
 	tx := GetRandomTx()
 	tx.Coins = common.Coins{
-		common.NewCoin(common.RuneA1FAsset, cosmos.NewUint(100*common.One)),
+		common.NewCoin(common.Rune67CAsset, cosmos.NewUint(100*common.One)),
 	}
 	destination := GetRandomBNBAddress()
 
@@ -72,7 +72,7 @@ func (s *HandlerSwitchSuite) TestGettingNativeTokens(c *C) {
 	c.Assert(k.SetNodeAccount(ctx, na), IsNil)
 	tx := GetRandomTx()
 	tx.Coins = common.Coins{
-		common.NewCoin(common.RuneA1FAsset, cosmos.NewUint(100*common.One)),
+		common.NewCoin(common.Rune67CAsset, cosmos.NewUint(100*common.One)),
 	}
 	destination := GetRandomTHORAddress()
 

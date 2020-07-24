@@ -9,8 +9,8 @@ import (
 const (
 	// BNBSymbol BNB
 	BNBSymbol = Symbol("BNB")
-	// RuneA1FSymbol RUNE on binance testnet
-	RuneA1FSymbol = Symbol("RUNE-A1F")
+	// Rune67CSymbol RUNE on binance testnet
+	Rune67CSymbol = Symbol("RUNE-67C")
 	// RuneB1ASymbol RUNE on binance mainnet
 	RuneB1ASymbol = Symbol("RUNE-B1A")
 )

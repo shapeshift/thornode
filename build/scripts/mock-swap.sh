@@ -1,6 +1,6 @@
 #!/bin/sh
 # ./mock-swap.bash <mock binance IP address> <bnb address> <amt> <asset> <swap to asset>
-# ./mock-swap.bash 127.0.0.1 bnbZZZZZ 3000 RUNE-A1F LOK-3C0
+# ./mock-swap.bash 127.0.0.1 bnbZZZZZ 3000 RUNE-67C LOK-3C0
 
 # set -ex
 
