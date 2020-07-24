@@ -10,7 +10,7 @@ func init() {
 		RotatePerBlockHeight: 240,
 		BadValidatorRate:     17280,
 		OldValidatorRate:     17280,
-		MinimumBondInRune:    1_00000000, // 1 rune
+		MinimumBondInRune:    10000_00000000, // 1 rune
 		StakeLockUpBlocks:    0,
 		CliTxCost:            0,
 	}
