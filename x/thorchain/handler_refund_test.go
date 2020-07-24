@@ -136,7 +136,7 @@ func newRefundTxHandlerTestHelper(c *C) refundTxHandlerTestHelper {
 		ID:          GetRandomTxHash(),
 		Chain:       common.BNBChain,
 		Coins:       common.Coins{common.NewCoin(common.BNBAsset, cosmos.NewUint(2*common.One))},
-		Memo:        "swap:RUNE-A1F",
+		Memo:        "swap:RUNE-67C",
 		FromAddress: GetRandomBNBAddress(),
 		ToAddress:   addr,
 		Gas:         BNBGasFeeSingleton,

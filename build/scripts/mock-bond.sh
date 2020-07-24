@@ -31,7 +31,7 @@ curl -v -s -X POST -d "[{
   \"to\": \"$2\",
   \"coins\":[
       {\"denom\": \"BNB\", \"amount\": 200000000000000},
-      {\"denom\": \"RUNE-A1F\", \"amount\": 200000000000000}
+      {\"denom\": \"RUNE-67C\", \"amount\": 200000000000000}
   ],
   \"memo\": \"\"
 }]" $1/broadcast/easy
@@ -40,7 +40,7 @@ curl -v -s -X POST -d "[{
   \"from\": \"$2\",
   \"to\": \"$POOL_ADDRESS\",
   \"coins\":[
-      {\"denom\": \"RUNE-A1F\", \"amount\": 100000000000000}
+      {\"denom\": \"RUNE-67C\", \"amount\": 100000000000000}
   ],
   \"memo\": \"BOND:$3\"
 }]" $1/broadcast/easy

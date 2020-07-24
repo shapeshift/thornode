@@ -22,7 +22,7 @@ curl -vvv -s -X POST -d "{
   \"from\": \"tbnb1rlmrd83gv7rk2thusqm7dx38z8jgur80t8kq28\",
   \"to\": \"$POOL_ADDRESS\",
   \"coins\":[
-      {\"denom\": \"BNB.RUNE-A1F\", \"amount\": 100000000000},
+      {\"denom\": \"BNB.RUNE-67C\", \"amount\": 100000000000},
       {\"denom\": \"BNB.BNB\", \"amount\": 7000000000}
   ],
   \"memo\": \"STAKE:BNB.BNB\"
