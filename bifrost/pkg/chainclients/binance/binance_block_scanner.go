@@ -385,6 +385,11 @@ func (b *BinanceBlockScanner) getCoinsForTxIn(outputs []bmsg.Output, receiver st
 				b.errCounter.WithLabelValues("fail_create_ticker", c.Denom).Inc()
 				return nil, fmt.Errorf("fail to create asset, %s is not valid: %w", c.Denom, err)
 			}
+
+			// skip mini tokens
+			if asset.Symbol.IsMiniToken() {
+				continue
+			}
 			amt := cosmos.NewUint(uint64(c.Amount))
 			cc = append(cc, common.NewCoin(asset, amt))
 		}
@@ -437,7 +442,10 @@ func (b *BinanceBlockScanner) fromStdTx(hash string, stdTx tx.StdTx, blockHeight
 			if err != nil {
 				return nil, fmt.Errorf("fail to convert coins: %w", err)
 			}
-
+			// no valid coin in the tx , thus ignore the tx
+			if txInItem.Coins.IsEmpty() {
+				continue
+			}
 			// Calculate gas for this tx
 			txInItem.Gas = common.CalcBinanceGasPrice(common.Tx{Coins: txInItem.Coins}, common.BNBAsset, []cosmos.Uint{cosmos.NewUint(b.singleFee), cosmos.NewUint(b.multiFee)})
 
