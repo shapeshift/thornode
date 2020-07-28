@@ -25,6 +25,7 @@ func NewSymbol(input string) (Symbol, error) {
 	if !isAlphaNumeric(input) {
 		return "", errors.New("invalid symbol")
 	}
+
 	return Symbol(input), nil
 }
 
@@ -49,4 +50,13 @@ func (s Symbol) IsEmpty() bool {
 func (s Symbol) String() string {
 	// uppercasing again just in case someone created a ticker via Chain("rune")
 	return strings.ToUpper(string(s))
+}
+
+// IsMiniToken is to determine whether it is a mini token on binance chain
+func (s Symbol) IsMiniToken() bool {
+	parts := strings.Split(s.String(), "-")
+	if len(parts) == 1 {
+		return false
+	}
+	return len(parts[1]) == 4 && strings.HasSuffix(s.String(), "M")
 }
