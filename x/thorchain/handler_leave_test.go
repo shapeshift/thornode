@@ -75,6 +75,41 @@ func (HandlerLeaveSuite) TestLeaveHandler_ActiveNodeLeave(c *C) {
 	c.Check(acc2.Bond.Equal(cosmos.NewUint(10000000001)), Equals, true, Commentf("Bond:%d\n", acc2.Bond.Uint64()))
 }
 
+func (HandlerLeaveSuite) TestLeaveHandler_NotActiveNodeLeaveV3(c *C) {
+	w := getHandlerTestWrapper(c, 1, true, false)
+	vault := GetRandomVault()
+	w.keeper.SetVault(w.ctx, vault)
+	leaveHandler := NewLeaveHandler(w.keeper, NewDummyMgr())
+	acc2 := GetRandomNodeAccount(NodeStandby)
+	acc2.Bond = cosmos.NewUint(100 * common.One)
+	c.Assert(w.keeper.SetNodeAccount(w.ctx, acc2), IsNil)
+	ygg := NewVault(common.BlockHeight(w.ctx), ActiveVault, YggdrasilVault, acc2.PubKeySet.Secp256k1, common.Chains{common.RuneAsset().Chain})
+	c.Assert(w.keeper.SetVault(w.ctx, ygg), IsNil)
+
+	FundModule(c, w.ctx, w.keeper, BondName, 100)
+
+	txID := GetRandomTxHash()
+	tx := common.NewTx(
+		txID,
+		acc2.BondAddress,
+		GetRandomBNBAddress(),
+		common.Coins{common.NewCoin(common.RuneAsset(), cosmos.OneUint())},
+		BNBGasFeeSingleton,
+		"LEAVE",
+	)
+	msgLeave := NewMsgLeave(tx, acc2.NodeAddress, w.activeNodeAccount.NodeAddress)
+	ver := semver.MustParse("0.3.0")
+	constAccessor := constants.GetConstantValues(ver)
+	_, err := leaveHandler.Run(w.ctx, msgLeave, semver.Version{}, constAccessor)
+	c.Assert(err, NotNil)
+	c.Assert(acc2.Bond.Equal(cosmos.NewUint(100*common.One)), Equals, true)
+	_, err = leaveHandler.Run(w.ctx, msgLeave, ver, constAccessor)
+	c.Assert(err, IsNil)
+	na, err := w.keeper.GetNodeAccount(w.ctx, acc2.NodeAddress)
+	c.Assert(err, IsNil)
+	c.Assert(na.Bond.Equal(cosmos.ZeroUint()), Equals, true)
+}
+
 func (HandlerLeaveSuite) TestLeaveJail(c *C) {
 	w := getHandlerTestWrapper(c, 1, true, false)
 	vault := GetRandomVault()

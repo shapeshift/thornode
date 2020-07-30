@@ -55,6 +55,7 @@ func (smgr *StoreMgr) migrate(ctx cosmos.Context, i uint64) error {
 	switch i {
 	case uint64(2):
 		err = migrateStoreV2(ctx, smgr.keeper)
+	case uint64(3): // there is no store migration to 0.3.0 version
 	default:
 		err = fmt.Errorf("unsupported store version: %d", i)
 	}
