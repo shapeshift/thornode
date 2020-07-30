@@ -116,7 +116,7 @@ func (h UnBondHandler) handle(ctx cosmos.Context, msg MsgUnBond, version semver.
 		}
 	}
 
-	if err := refundBond(ctx, msg.TxIn, msg.Amount, na, h.keeper, h.mgr); err != nil {
+	if err := refundBond(ctx, msg.TxIn, msg.Amount, &na, h.keeper, h.mgr); err != nil {
 		return ErrInternal(err, "fail to unbond")
 	}
 
