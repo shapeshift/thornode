@@ -373,14 +373,22 @@ func (b *BinanceBlockScanner) FetchTxs(height int64) (stypes.TxIn, error) {
 	return txIn, nil
 }
 
-func (b *BinanceBlockScanner) getCoinsForTxIn(outputs []bmsg.Output) (common.Coins, error) {
+func (b *BinanceBlockScanner) getCoinsForTxIn(outputs []bmsg.Output, receiver string) (common.Coins, error) {
 	cc := common.Coins{}
 	for _, output := range outputs {
+		if receiver != output.Address.String() {
+			continue
+		}
 		for _, c := range output.Coins {
 			asset, err := common.NewAsset(fmt.Sprintf("BNB.%s", c.Denom))
 			if err != nil {
 				b.errCounter.WithLabelValues("fail_create_ticker", c.Denom).Inc()
 				return nil, fmt.Errorf("fail to create asset, %s is not valid: %w", c.Denom, err)
+			}
+
+			// skip mini tokens
+			if asset.Symbol.IsMiniToken() {
+				continue
 			}
 			amt := cosmos.NewUint(uint64(c.Amount))
 			cc = append(cc, common.NewCoin(asset, amt))
@@ -430,11 +438,14 @@ func (b *BinanceBlockScanner) fromStdTx(hash string, stdTx tx.StdTx, blockHeight
 			receiver := sendMsg.Outputs[0]
 			txInItem.Sender = sender.Address.String()
 			txInItem.To = receiver.Address.String()
-			txInItem.Coins, err = b.getCoinsForTxIn(sendMsg.Outputs)
+			txInItem.Coins, err = b.getCoinsForTxIn(sendMsg.Outputs, txInItem.To)
 			if err != nil {
 				return nil, fmt.Errorf("fail to convert coins: %w", err)
 			}
-
+			// no valid coin in the tx , thus ignore the tx
+			if txInItem.Coins.IsEmpty() {
+				continue
+			}
 			// Calculate gas for this tx
 			txInItem.Gas = common.CalcBinanceGasPrice(common.Tx{Coins: txInItem.Coins}, common.BNBAsset, []cosmos.Uint{cosmos.NewUint(b.singleFee), cosmos.NewUint(b.multiFee)})
 

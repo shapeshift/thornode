@@ -235,7 +235,7 @@ func (s *EthereumSuite) TestClient(c *C) {
 	c.Logf(e2.kw.GetPubKey().String())
 	out := txOut.TxArray[0].TxOutItem()
 
-	r, err := e2.SignTx(out, 1, 0)
+	r, err := e2.SignTx(out, 1)
 	c.Assert(err, IsNil)
 	c.Assert(r, NotNil)
 

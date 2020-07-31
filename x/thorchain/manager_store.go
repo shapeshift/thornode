@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/constants"
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
@@ -26,6 +27,10 @@ func NewStoreMgr(keeper keeper.Keeper) *StoreMgr {
 func (smgr *StoreMgr) Iterator(ctx cosmos.Context) error {
 	version := smgr.keeper.GetLowestActiveVersion(ctx)
 
+	if version.Major > constants.SWVersion.Major || version.Minor > constants.SWVersion.Minor {
+		return fmt.Errorf("out of date software: have %s, network running %s", constants.SWVersion, version)
+	}
+
 	storeVer := smgr.keeper.GetStoreVersion(ctx)
 	if storeVer < 0 {
 		return fmt.Errorf("unable to get store version: %d", storeVer)
@@ -44,11 +49,21 @@ func (smgr *StoreMgr) Iterator(ctx cosmos.Context) error {
 }
 
 func (smgr *StoreMgr) migrate(ctx cosmos.Context, i uint64) error {
+	var err error
 	ctx.Logger().Info("Migrating store to new version", "version", i)
+
 	switch i {
 	case uint64(2):
-		return migrateStoreV2(ctx, smgr.keeper)
+		err = migrateStoreV2(ctx, smgr.keeper)
+	case uint64(3): // there is no store migration to 0.3.0 version
 	default:
-		return fmt.Errorf("unsupported store version: %d", i)
+		err = fmt.Errorf("unsupported store version: %d", i)
 	}
+	if err != nil {
+		ctx.Logger().Error("fail to migrate kvstore", "error", err)
+		return err
+	}
+
+	smgr.keeper.SetStoreVersion(ctx, int64(i))
+	return nil
 }

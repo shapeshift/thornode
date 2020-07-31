@@ -518,7 +518,7 @@ func (*VaultManagerTestSuite) TestGetTotalActiveBond(c *C) {
 	c.Assert(bond.Uint64() > 0, Equals, true)
 }
 
-func (*VaultManagerTestSuite) TestGetEnabledPoolsAndTotalStakedRune(c *C) {
+func (*VaultManagerTestSuite) TestGetTotalStakedRune(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	helper := NewVaultGenesisSetupTestHelper(k)
 	mgr := NewManagers(helper)
@@ -530,7 +530,7 @@ func (*VaultManagerTestSuite) TestGetEnabledPoolsAndTotalStakedRune(c *C) {
 	p.BalanceAsset = cosmos.NewUint(common.One * 100)
 	p.Status = PoolEnabled
 	c.Assert(helper.SetPool(ctx, p), IsNil)
-	pools, totalStaked, err := vaultMgr.getEnabledPoolsAndTotalStakedRune(ctx)
+	pools, totalStaked, err := vaultMgr.getTotalStakedRune(ctx)
 	c.Assert(err, IsNil)
 	c.Assert(pools, HasLen, 1)
 	c.Assert(totalStaked.Equal(p.BalanceRune), Equals, true)

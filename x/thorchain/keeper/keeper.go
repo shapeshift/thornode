@@ -57,6 +57,7 @@ type KeeperPool interface {
 	GetPools(ctx cosmos.Context) (Pools, error)
 	SetPool(ctx cosmos.Context, pool Pool) error
 	PoolExist(ctx cosmos.Context, asset common.Asset) bool
+	RemovePool(ctx cosmos.Context, asset common.Asset)
 }
 
 type KeeperLastHeight interface {
@@ -96,9 +97,6 @@ type KeeperNodeAccount interface {
 }
 
 type KeeperObserver interface {
-	SetActiveObserver(ctx cosmos.Context, addr cosmos.AccAddress)
-	RemoveActiveObserver(ctx cosmos.Context, addr cosmos.AccAddress)
-	IsActiveObserver(ctx cosmos.Context, addr cosmos.AccAddress) bool
 	GetObservingAddresses(ctx cosmos.Context) ([]cosmos.AccAddress, error)
 	AddObservingAddresses(ctx cosmos.Context, inAddresses []cosmos.AccAddress) error
 	ClearObservingAddresses(ctx cosmos.Context)

@@ -50,7 +50,7 @@ func (ymgr YggMgrV1) Fund(ctx cosmos.Context, mgr Manager, constAccessor constan
 		return err
 	}
 	minimumNodesForYggdrasil := constAccessor.GetInt64Value(constants.MinimumNodesForYggdrasil)
-	if int64(len(nodeAccs)) <= minimumNodesForYggdrasil {
+	if int64(len(nodeAccs)) < minimumNodesForYggdrasil {
 		return nil
 	}
 
@@ -148,7 +148,6 @@ func (ymgr YggMgrV1) Fund(ctx cosmos.Context, mgr Manager, constAccessor constan
 				),
 			)
 		}
-
 	}
 
 	if len(sendCoins) > 0 {
@@ -178,7 +177,10 @@ func (ymgr YggMgrV1) sendCoinsToYggdrasil(ctx cosmos.Context, coins common.Coins
 	}
 
 	for _, coin := range coins {
-
+		// ignore amount 0
+		if coin.Amount.Equal(cosmos.ZeroUint()) {
+			continue
+		}
 		// select active vault to send funds from
 		vault := active.SelectByMaxCoin(coin.Asset)
 		if vault.IsEmpty() {

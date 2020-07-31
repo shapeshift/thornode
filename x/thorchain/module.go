@@ -127,7 +127,7 @@ func (am AppModule) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
 	// Does a kvstore migration
 	smgr := NewStoreMgr(am.keeper)
 	if err := smgr.Iterator(ctx); err != nil {
-		panic(err) // halt the chain if unsuccessful
+		os.Exit(10) // halt the chain if unsuccessful
 	}
 
 	am.keeper.ClearObservingAddresses(ctx)
