@@ -105,6 +105,7 @@ func (k KVStoreDummy) GetPool(_ cosmos.Context, _ common.Asset) (Pool, error) {
 func (k KVStoreDummy) GetPools(_ cosmos.Context) (Pools, error)                           { return nil, kaboom }
 func (k KVStoreDummy) SetPool(_ cosmos.Context, _ Pool) error                             { return kaboom }
 func (k KVStoreDummy) PoolExist(_ cosmos.Context, _ common.Asset) bool                    { return false }
+func (k KVStoreDummy) RemovePool(_ cosmos.Context, _ common.Asset)                        {}
 func (k KVStoreDummy) GetStakerIterator(_ cosmos.Context, _ common.Asset) cosmos.Iterator { return nil }
 func (k KVStoreDummy) GetStaker(_ cosmos.Context, _ common.Asset, _ common.Address) (Staker, error) {
 	return Staker{}, kaboom
@@ -167,9 +168,6 @@ func (k KVStoreDummy) SetNodeAccountJail(ctx cosmos.Context, addr cosmos.AccAddr
 	return kaboom
 }
 
-func (k KVStoreDummy) SetActiveObserver(_ cosmos.Context, _ cosmos.AccAddress)     {}
-func (k KVStoreDummy) RemoveActiveObserver(_ cosmos.Context, _ cosmos.AccAddress)  {}
-func (k KVStoreDummy) IsActiveObserver(_ cosmos.Context, _ cosmos.AccAddress) bool { return false }
 func (k KVStoreDummy) GetObservingAddresses(_ cosmos.Context) ([]cosmos.AccAddress, error) {
 	return nil, kaboom
 }

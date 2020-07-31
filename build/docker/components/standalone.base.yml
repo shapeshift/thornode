@@ -29,7 +29,7 @@ services:
       - ${HOME}/.thornode/standalone/.thorcli:/root/.thorcli
       - ${HOME}/.thornode/standalone/.bifrost/data:/var/data/bifrost
       - ${HOME}/.thornode/standalone/.bifrost/etc:/etc/bifrost
-    command: ["bifrost", "-c", "/etc/bifrost/config.json", "-l", "debug"]
+    command: ["bifrost", "-c", "/etc/bifrost/config.json"]
     logging:
       driver: "json-file"
       options:

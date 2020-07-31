@@ -204,7 +204,7 @@ func getTotalYggValueInRune(ctx cosmos.Context, keeper keeper.Keeper, ygg Vault)
 	return yggRune, nil
 }
 
-func refundBond(ctx cosmos.Context, tx common.Tx, amt cosmos.Uint, nodeAcc NodeAccount, keeper keeper.Keeper, mgr Manager) error {
+func refundBond(ctx cosmos.Context, tx common.Tx, amt cosmos.Uint, nodeAcc *NodeAccount, keeper keeper.Keeper, mgr Manager) error {
 	if nodeAcc.Status == NodeActive {
 		ctx.Logger().Info("node still active, cannot refund bond", "node address", nodeAcc.NodeAddress, "node pub key", nodeAcc.PubKeySet.Secp256k1)
 		return nil
@@ -292,7 +292,7 @@ func refundBond(ctx cosmos.Context, tx common.Tx, amt cosmos.Uint, nodeAcc NodeA
 	}
 
 	nodeAcc.Bond = common.SafeSub(nodeAcc.Bond, amt)
-	if err := keeper.SetNodeAccount(ctx, nodeAcc); err != nil {
+	if err := keeper.SetNodeAccount(ctx, *nodeAcc); err != nil {
 		ctx.Logger().Error(fmt.Sprintf("fail to save node account(%s)", nodeAcc), "error", err)
 		return err
 	}

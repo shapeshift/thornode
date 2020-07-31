@@ -16,8 +16,8 @@ var (
 	BTCAsset = Asset{Chain: BTCChain, Symbol: "BTC", Ticker: "BTC"}
 	// ETHAsset ETH
 	ETHAsset = Asset{Chain: ETHChain, Symbol: "ETH", Ticker: "ETH"}
-	// RuneA1FAsset RUNE on Binance test net
-	RuneA1FAsset = Asset{Chain: BNBChain, Symbol: "RUNE-A1F", Ticker: "RUNE"} // testnet
+	// Rune67CAsset RUNE on Binance test net
+	Rune67CAsset = Asset{Chain: BNBChain, Symbol: "RUNE-67C", Ticker: "RUNE"} // testnet asset on binance ganges
 	// RuneB1AAsset RUNE on Binance main net
 	RuneB1AAsset = Asset{Chain: BNBChain, Symbol: "RUNE-B1A", Ticker: "RUNE"} // mainnet
 	// RuneNative RUNE on thorchain
@@ -25,7 +25,7 @@ var (
 )
 
 // Asset represent an asset in THORChain it is in BNB.BNB format
-// for example BNB.RUNE-A1F , BNB.RUNE-B1A
+// for example BNB.RUNE-67C , BNB.RUNE-B1A
 type Asset struct {
 	Chain  Chain  `json:"chain"`
 	Symbol Symbol `json:"symbol"`
@@ -37,7 +37,7 @@ func NewAsset(input string) (Asset, error) {
 	var err error
 	var asset Asset
 	var sym string
-	parts := strings.Split(input, ".")
+	parts := strings.SplitN(input, ".", 2)
 	if len(parts) == 1 {
 		asset.Chain = THORChain
 		sym = parts[0]
@@ -54,7 +54,7 @@ func NewAsset(input string) (Asset, error) {
 		return EmptyAsset, err
 	}
 
-	parts = strings.Split(sym, "-")
+	parts = strings.SplitN(sym, "-", 2)
 	asset.Ticker, err = NewTicker(parts[0])
 	if err != nil {
 		return EmptyAsset, err
@@ -88,7 +88,7 @@ func (a Asset) String() string {
 
 // IsRune is a helper function ,return true only when the asset represent RUNE
 func (a Asset) IsRune() bool {
-	return a.Equals(RuneA1FAsset) || a.Equals(RuneB1AAsset) || a.Equals(RuneNative)
+	return a.Equals(Rune67CAsset) || a.Equals(RuneB1AAsset) || a.Equals(RuneNative)
 }
 
 // IsBNB is a helper function, return true only when the asset represent BNB
@@ -118,7 +118,7 @@ func RuneAsset() Asset {
 		return RuneNative
 	}
 	if strings.EqualFold(os.Getenv("NET"), "testnet") || strings.EqualFold(os.Getenv("NET"), "mocknet") {
-		return RuneA1FAsset
+		return Rune67CAsset
 	}
 	return RuneB1AAsset
 }
@@ -126,7 +126,7 @@ func RuneAsset() Asset {
 // BEP2RuneAsset is RUNE on BEP2
 func BEP2RuneAsset() Asset {
 	if strings.EqualFold(os.Getenv("NET"), "testnet") || strings.EqualFold(os.Getenv("NET"), "mocknet") {
-		return RuneA1FAsset
+		return Rune67CAsset
 	}
 	return RuneB1AAsset
 }

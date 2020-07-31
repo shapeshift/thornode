@@ -112,6 +112,10 @@ func (vm *VaultMgrV1) EndBlock(ctx cosmos.Context, mgr Manager, constAccessor co
 					continue
 				}
 
+				if coin.Amount.Equal(cosmos.ZeroUint()) {
+					continue
+				}
+
 				// determine which active asgard vault is the best to send
 				// these coins to. We target the vault with the least amount of
 				// this particular coin
@@ -177,11 +181,8 @@ func (vm *VaultMgrV1) EndBlock(ctx cosmos.Context, mgr Manager, constAccessor co
 					Memo: NewMigrateMemo(common.BlockHeight(ctx)).String(),
 				}
 				ok, err := vm.txOutStore.TryAddTxOutItem(ctx, mgr, toi)
-				if err != nil {
-					if !errors.Is(err, ErrNotEnoughToPayFee) {
-						return err
-					}
-					ok = true
+				if err != nil && !errors.Is(err, ErrNotEnoughToPayFee) {
+					return err
 				}
 				if ok {
 					vault.AppendPendingTxBlockHeights(common.BlockHeight(ctx), constAccessor)
@@ -493,7 +494,7 @@ func (vm *VaultMgrV1) UpdateVaultData(ctx cosmos.Context, constAccessor constant
 		return nil
 	}
 	currentHeight := uint64(common.BlockHeight(ctx))
-	pools, totalStaked, err := vm.getEnabledPoolsAndTotalStakedRune(ctx)
+	pools, totalStaked, err := vm.getTotalStakedRune(ctx)
 	if err != nil {
 		return fmt.Errorf("fail to get enabled pools and total staked rune: %w", err)
 	}
@@ -578,6 +579,9 @@ func (vm *VaultMgrV1) UpdateVaultData(ctx cosmos.Context, constAccessor constant
 	} else { // Else deduct pool deficit
 
 		for _, pool := range pools {
+			if !pool.IsEnabled() {
+				continue
+			}
 			poolFees, err := vm.k.GetPoolLiquidityFees(ctx, currentHeight, pool.Asset)
 			if err != nil {
 				return fmt.Errorf("fail to get liquidity fees for pool(%s): %w", pool.Asset, err)
@@ -621,7 +625,7 @@ func (vm *VaultMgrV1) UpdateVaultData(ctx cosmos.Context, constAccessor constant
 	return vm.k.SetVaultData(ctx, vaultData)
 }
 
-func (vm *VaultMgrV1) getEnabledPoolsAndTotalStakedRune(ctx cosmos.Context) (Pools, cosmos.Uint, error) {
+func (vm *VaultMgrV1) getTotalStakedRune(ctx cosmos.Context) (Pools, cosmos.Uint, error) {
 	// First get active pools and total staked Rune
 	totalStaked := cosmos.ZeroUint()
 	var pools Pools
@@ -632,7 +636,7 @@ func (vm *VaultMgrV1) getEnabledPoolsAndTotalStakedRune(ctx cosmos.Context) (Poo
 		if err := vm.k.Cdc().UnmarshalBinaryBare(iterator.Value(), &pool); err != nil {
 			return nil, cosmos.ZeroUint(), fmt.Errorf("fail to unmarhsl pool: %w", err)
 		}
-		if pool.IsEnabled() && !pool.BalanceRune.IsZero() {
+		if !pool.BalanceRune.IsZero() {
 			totalStaked = totalStaked.Add(pool.BalanceRune)
 			pools = append(pools, pool)
 		}

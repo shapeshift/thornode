@@ -2,21 +2,6 @@ package keeperv1
 
 import "gitlab.com/thorchain/thornode/common/cosmos"
 
-// SetActiveObserver set the given addr as an active observer address
-func (k KVStore) SetActiveObserver(ctx cosmos.Context, addr cosmos.AccAddress) {
-	k.set(ctx, k.GetKey(ctx, prefixActiveObserver, addr.String()), addr)
-}
-
-// RemoveActiveObserver remove the given address from active observer
-func (k KVStore) RemoveActiveObserver(ctx cosmos.Context, addr cosmos.AccAddress) {
-	k.del(ctx, k.GetKey(ctx, prefixActiveObserver, addr.String()))
-}
-
-// IsActiveObserver check the given account address, whether they are active
-func (k KVStore) IsActiveObserver(ctx cosmos.Context, addr cosmos.AccAddress) bool {
-	return k.has(ctx, k.GetKey(ctx, prefixActiveObserver, addr.String()))
-}
-
 // GetObservingAddresses - get list of observed addresses. This is a list of
 // addresses that have recently contributed via observing a tx that got 2/3rds
 // majority

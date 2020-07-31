@@ -49,3 +49,7 @@ func (k KVStore) SetPool(ctx cosmos.Context, pool Pool) error {
 func (k KVStore) PoolExist(ctx cosmos.Context, asset common.Asset) bool {
 	return k.has(ctx, k.GetKey(ctx, prefixPool, asset.String()))
 }
+
+func (k KVStore) RemovePool(ctx cosmos.Context, asset common.Asset) {
+	k.del(ctx, k.GetKey(ctx, prefixPool, asset.String()))
+}

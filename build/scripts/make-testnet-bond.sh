@@ -8,10 +8,10 @@ export BOND_WALLET=${THORNODE_ENV}-bond-wallet
 NODE_ACCOUNT=$(docker exec thor-daemon thorcli keys show thorchain -a)
 BOND_MEMO=BOND:$NODE_ACCOUNT
 FAUCET_WALLET=faucet
-CHAIN_ID=Binance-Chain-Nile
+CHAIN_ID=Binance-Chain-Ganges
 TENDERMINT_NODE="data-seed-pre-2-s1.binance.org:80"
 FUND_MEMO="fund validator"
-BOND_AMOUNT=100000000:RUNE-A1F
+BOND_AMOUNT=100000000:RUNE-67C
 GAS_FEE=37500
 
 ####################################

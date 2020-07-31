@@ -142,6 +142,10 @@ type TestSlashingLackKeeper struct {
 	slashPts                   map[string]int64
 }
 
+func (k *TestSlashingLackKeeper) PoolExist(ctx cosmos.Context, asset common.Asset) bool {
+	return true
+}
+
 func (k *TestSlashingLackKeeper) ListTxMarker(ctx cosmos.Context, hash string) (TxMarkers, error) {
 	return TxMarkers{
 		NewTxMarker(common.BlockHeight(ctx), "my memo"),

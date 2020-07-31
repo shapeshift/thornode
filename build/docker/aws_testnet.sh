@@ -17,9 +17,9 @@ export SSH_PUB_KEY=gitlab-ci.pub
 export SSH_PRIV_KEY=gitlab-ci
 export FUND_MEMO="fund-bond-wallet"
 export TENDERMINT_NODE="testnet-binance.thorchain.info:26657"
-export CHAIN_ID=Binance-Chain-Nile
+export CHAIN_ID=Binance-Chain-Ganges
 export SIGNER_NAME=thorchain
-export BOND_AMOUNT=100000000:RUNE-A1F
+export BOND_AMOUNT=100000000:RUNE-67C
 export GAS_FEE=75001
 export DISK_SIZE=${DISK_SIZE:=100}
 export AWS_INSTANCE_TYPE=${AWS_INSTANCE_TYPE:=c5.2xlarge}

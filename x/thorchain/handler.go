@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/blang/semver"
+
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
@@ -180,7 +181,7 @@ func processOneTxIn(ctx cosmos.Context, keeper keeper.Keeper, tx ObservedTx, sig
 	case YggdrasilReturnMemo:
 		newMsg = NewMsgYggdrasil(tx.Tx, tx.ObservedPubKey, m.GetBlockHeight(), false, tx.Tx.Coins, signer)
 	case ReserveMemo:
-		res := NewReserveContributor(tx.Tx.FromAddress, tx.Tx.Coins[0].Amount)
+		res := NewReserveContributor(tx.Tx.FromAddress, tx.Tx.Coins.GetCoin(common.RuneAsset()).Amount)
 		newMsg = NewMsgReserveContributor(tx.Tx, res, signer)
 	case SwitchMemo:
 		newMsg = NewMsgSwitch(tx.Tx, memo.GetDestination(), signer)

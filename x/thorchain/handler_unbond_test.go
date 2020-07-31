@@ -88,7 +88,7 @@ func (HandlerUnBondSuite) TestUnBondHandler_Run(c *C) {
 	constAccessor := constants.GetConstantValues(ver)
 	txIn := common.NewTx(
 		GetRandomTxHash(),
-		GetRandomBNBAddress(),
+		standbyNodeAccount.BondAddress,
 		GetRandomBNBAddress(),
 		common.Coins{
 			common.NewCoin(common.RuneAsset(), cosmos.NewUint(uint64(1))),
@@ -173,7 +173,7 @@ func (HandlerUnBondSuite) TestUnBondHandlerFailValidation(c *C) {
 	constAccessor := constants.GetConstantValues(ver)
 	txIn := common.NewTx(
 		GetRandomTxHash(),
-		GetRandomBNBAddress(),
+		activeNodeAccount.BondAddress,
 		GetRandomBNBAddress(),
 		common.Coins{
 			common.NewCoin(common.RuneAsset(), cosmos.NewUint(uint64(1))),
@@ -190,12 +190,12 @@ func (HandlerUnBondSuite) TestUnBondHandlerFailValidation(c *C) {
 	}{
 		{
 			name:        "empty node address",
-			msg:         NewMsgUnBond(txIn, cosmos.AccAddress{}, cosmos.NewUint(uint64(1)), GetRandomBNBAddress(), activeNodeAccount.NodeAddress),
+			msg:         NewMsgUnBond(txIn, cosmos.AccAddress{}, cosmos.NewUint(uint64(1)), activeNodeAccount.BondAddress, activeNodeAccount.NodeAddress),
 			expectedErr: se.ErrInvalidAddress,
 		},
 		{
 			name:        "zero bond",
-			msg:         NewMsgUnBond(txIn, GetRandomNodeAccount(NodeStandby).NodeAddress, cosmos.ZeroUint(), GetRandomBNBAddress(), activeNodeAccount.NodeAddress),
+			msg:         NewMsgUnBond(txIn, GetRandomNodeAccount(NodeStandby).NodeAddress, cosmos.ZeroUint(), activeNodeAccount.BondAddress, activeNodeAccount.NodeAddress),
 			expectedErr: se.ErrUnknownRequest,
 		},
 		{
@@ -205,18 +205,23 @@ func (HandlerUnBondSuite) TestUnBondHandlerFailValidation(c *C) {
 		},
 		{
 			name:        "empty request hash",
-			msg:         NewMsgUnBond(txInNoTxID, GetRandomNodeAccount(NodeStandby).NodeAddress, cosmos.NewUint(uint64(1)), GetRandomBNBAddress(), activeNodeAccount.NodeAddress),
+			msg:         NewMsgUnBond(txInNoTxID, GetRandomNodeAccount(NodeStandby).NodeAddress, cosmos.NewUint(uint64(1)), activeNodeAccount.BondAddress, activeNodeAccount.NodeAddress),
 			expectedErr: se.ErrUnknownRequest,
 		},
 		{
 			name:        "empty signer",
-			msg:         NewMsgUnBond(txIn, GetRandomNodeAccount(NodeStandby).NodeAddress, cosmos.NewUint(uint64(1)), GetRandomBNBAddress(), cosmos.AccAddress{}),
+			msg:         NewMsgUnBond(txIn, GetRandomNodeAccount(NodeStandby).NodeAddress, cosmos.NewUint(uint64(1)), activeNodeAccount.BondAddress, cosmos.AccAddress{}),
 			expectedErr: se.ErrInvalidAddress,
 		},
 		{
 			name:        "account shouldn't be active",
-			msg:         NewMsgUnBond(txIn, activeNodeAccount.NodeAddress, cosmos.NewUint(uint64(1)), GetRandomBNBAddress(), activeNodeAccount.NodeAddress),
+			msg:         NewMsgUnBond(txIn, activeNodeAccount.NodeAddress, cosmos.NewUint(uint64(1)), activeNodeAccount.BondAddress, activeNodeAccount.NodeAddress),
 			expectedErr: se.ErrUnknownRequest,
+		},
+		{
+			name:        "request not from original bond address should not be accepted",
+			msg:         NewMsgUnBond(GetRandomTx(), activeNodeAccount.NodeAddress, cosmos.NewUint(uint64(1)), activeNodeAccount.BondAddress, activeNodeAccount.NodeAddress),
+			expectedErr: se.ErrUnauthorized,
 		},
 	}
 	for _, item := range testCases {

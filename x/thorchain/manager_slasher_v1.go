@@ -245,6 +245,12 @@ func (s *SlasherV1) LackSigning(ctx cosmos.Context, constAccessor constants.Cons
 				continue
 			}
 
+			// if a pool with the asset name doesn't exist, skip rescheduling
+			if !tx.Coin.Asset.IsRune() && !s.keeper.PoolExist(ctx, tx.Coin.Asset) {
+				ctx.Logger().Error("fail to add outbound tx", "error", "coin is not rune and does not have an associated pool")
+				continue
+			}
+
 			err = mgr.TxOutStore().UnSafeAddTxOutItem(ctx, mgr, tx)
 			if err != nil {
 				ctx.Logger().Error("fail to add outbound tx", "error", err)

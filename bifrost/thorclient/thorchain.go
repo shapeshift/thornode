@@ -178,7 +178,7 @@ func (b *ThorchainBridge) getAccountNumberAndSequenceNumber() (uint64, uint64, e
 	}
 
 	var resp types.AccountResp
-	if err := json.Unmarshal(body, &resp); err != nil {
+	if err := b.cdc.UnmarshalJSON(body, &resp); err != nil {
 		return 0, 0, fmt.Errorf("failed to unmarshal account resp: %w", err)
 	}
 	acc := resp.Result.Value
@@ -192,12 +192,12 @@ func (b *ThorchainBridge) GetConfig() config.ClientConfiguration {
 }
 
 // PostKeysignFailure generate and  post a keysign fail tx to thorchan
-func (b *ThorchainBridge) PostKeysignFailure(blame blame.Blame, height int64, memo string, coins common.Coins, retry uint64) (common.TxID, error) {
+func (b *ThorchainBridge) PostKeysignFailure(blame blame.Blame, height int64, memo string, coins common.Coins, pubkey common.PubKey) (common.TxID, error) {
 	start := time.Now()
 	defer func() {
 		b.m.GetHistograms(metrics.SignToThorchainDuration).Observe(time.Since(start).Seconds())
 	}()
-	msg := stypes.NewMsgTssKeysignFail(height, blame, memo, coins, b.keys.GetSignerInfo().GetAddress(), retry)
+	msg := stypes.NewMsgTssKeysignFail(height, blame, memo, coins, b.keys.GetSignerInfo().GetAddress(), pubkey)
 	stdTx := authtypes.NewStdTx(
 		[]cosmos.Msg{msg},
 		authtypes.NewStdFee(100000000, nil), // fee

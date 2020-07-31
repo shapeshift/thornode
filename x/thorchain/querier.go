@@ -36,8 +36,8 @@ func NewQuerier(keeper keeper.Keeper, kbs KeybaseStore) cosmos.Querier {
 			return queryKeysign(ctx, kbs, path[1:], req, keeper)
 		case q.QueryKeygensPubkey.Key:
 			return queryKeygen(ctx, kbs, path[1:], req, keeper)
-		case q.QueryOutQueue.Key:
-			return queryOutQueue(ctx, path[1:], req, keeper)
+		case q.QueryQueue.Key:
+			return queryQueue(ctx, path[1:], req, keeper)
 		case q.QueryHeights.Key:
 			return queryHeights(ctx, path[1:], req, keeper)
 		case q.QueryChainHeights.Key:
@@ -68,6 +68,8 @@ func NewQuerier(keeper keeper.Keeper, kbs KeybaseStore) cosmos.Querier {
 			return queryTSSSigners(ctx, path[1:], req, keeper)
 		case q.QueryConstantValues.Key:
 			return queryConstantValues(ctx, path[1:], req, keeper)
+		case q.QueryVersion.Key:
+			return queryVersion(ctx, path[1:], req, keeper)
 		case q.QueryMimirValues.Key:
 			return queryMimirValues(ctx, path[1:], req, keeper)
 		case q.QueryBan.Key:
@@ -721,12 +723,22 @@ func queryKeysign(ctx cosmos.Context, kbs KeybaseStore, path []string, req abci.
 }
 
 // queryOutQueue - iterates over txout, counting how many transactions are waiting to be sent
-func queryOutQueue(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
+func queryQueue(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
 	version := keeper.GetLowestActiveVersion(ctx)
 	constAccessor := constants.GetConstantValues(version)
 	signingTransactionPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
 	startHeight := common.BlockHeight(ctx) - signingTransactionPeriod
-	query := QueryOutQueue{}
+	query := QueryQueue{}
+
+	iterator := keeper.GetSwapQueueIterator(ctx)
+	defer iterator.Close()
+	for ; iterator.Valid(); iterator.Next() {
+		var msg MsgSwap
+		if err := keeper.Cdc().UnmarshalBinaryBare(iterator.Value(), &msg); err != nil {
+			continue
+		}
+		query.Swap++
+	}
 
 	for height := startHeight; height <= common.BlockHeight(ctx); height++ {
 		txs, err := keeper.GetTxOut(ctx, height)
@@ -736,7 +748,7 @@ func queryOutQueue(ctx cosmos.Context, path []string, req abci.RequestQuery, kee
 		}
 		for _, tx := range txs.TxArray {
 			if tx.OutHash.IsEmpty() {
-				query.Total++
+				query.Outbound++
 			}
 		}
 	}
@@ -797,69 +809,12 @@ func queryTSSSigners(ctx cosmos.Context, path []string, req abci.RequestQuery, k
 		ctx.Logger().Error("fail to parse pool pub key", "error", err)
 		return nil, fmt.Errorf("invalid pool pub key(%s): %w", vaultPubKey, err)
 	}
-
-	// seed is the current block height, rounded down to the nearest 100th
-	// This helps keep the selected nodes to be the same across blocks, but
-	// also change immediately if we have a change in which nodes are active
-	seed := common.BlockHeight(ctx) / 100
-
-	accountAddrs, err := keeper.GetObservingAddresses(ctx)
-	if err != nil {
-		ctx.Logger().Error("fail to get observing addresses", "error", err)
-		return nil, fmt.Errorf("fail to get observing addresses: %w", err)
-	}
-
 	vault, err := keeper.GetVault(ctx, pk)
 	if err != nil {
 		ctx.Logger().Error("fail to get vault", "error", err)
 		return nil, fmt.Errorf("fail to get vault: %w", err)
 	}
-	members := vault.Membership
-	threshold, err := GetThreshold(len(vault.Membership))
-	if err != nil {
-		ctx.Logger().Error("fail to get threshold", "error", err)
-		return nil, fmt.Errorf("fail to get threshold: %w", err)
-	}
-	totalObservingAccounts := len(accountAddrs)
-	if totalObservingAccounts > 0 && totalObservingAccounts >= threshold {
-		members, err = vault.GetMembers(accountAddrs)
-		if err != nil {
-			ctx.Logger().Error("fail to get signers", "error", err)
-			return nil, fmt.Errorf("fail to get signers: %w", err)
-		}
-	}
-
-	// build signer list, exclude any node accounts in jail
-	signers := make(common.PubKeys, 0)
-	for _, mem := range members {
-		na, err := keeper.GetNodeAccountByPubKey(ctx, mem)
-		if err != nil {
-			ctx.Logger().Error("fail to get node account", "error", err)
-			continue
-		}
-		jail, err := keeper.GetNodeAccountJail(ctx, na.NodeAddress)
-		if err != nil {
-			ctx.Logger().Error("fail to get node account jail", "error", err)
-		}
-		if !jail.IsJailed(ctx) {
-			signers = append(signers, mem)
-		}
-	}
-
-	// if we don't have enough signer
-	if len(signers) < threshold {
-		signers = vault.Membership
-	}
-	// if there are 9 nodes in total , it need 6 nodes to sign a message
-	// 3 signer send request to thorchain at block height 100
-	// another 3 signer send request to thorchain at block height 101
-	// in this case we get into trouble ,they get different results, key sign is going to fail
-	signerParty, err := ChooseSignerParty(signers, seed, len(vault.Membership))
-	if err != nil {
-		ctx.Logger().Error("fail to choose signer party members", "error", err)
-		return nil, fmt.Errorf("fail to choose signer party members: %w", err)
-	}
-	res, err := codec.MarshalJSONIndent(keeper.Cdc(), signerParty)
+	res, err := codec.MarshalJSONIndent(keeper.Cdc(), vault.SigningParty)
 	if err != nil {
 		ctx.Logger().Error("fail to marshal to json", "error", err)
 		return nil, fmt.Errorf("fail to marshal to json: %w", err)
@@ -875,6 +830,19 @@ func queryConstantValues(ctx cosmos.Context, path []string, req abci.RequestQuer
 	if err != nil {
 		ctx.Logger().Error("fail to marshal constant values to json", "error", err)
 		return nil, fmt.Errorf("fail to marshal constant values to json: %w", err)
+	}
+	return res, nil
+}
+
+func queryVersion(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
+	ver := QueryVersion{
+		Current: keeper.GetLowestActiveVersion(ctx),
+		Next:    keeper.GetMinJoinVersion(ctx),
+	}
+	res, err := codec.MarshalJSONIndent(keeper.Cdc(), ver)
+	if err != nil {
+		ctx.Logger().Error("fail to marshal version to json", "error", err)
+		return nil, fmt.Errorf("fail to marshal version to json: %w", err)
 	}
 	return res, nil
 }

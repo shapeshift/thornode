@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/binance-chain/go-sdk/common/types"
 	ctypes "github.com/binance-chain/go-sdk/common/types"
@@ -30,7 +31,7 @@ import (
 	stypes "gitlab.com/thorchain/thornode/bifrost/thorclient/types"
 	"gitlab.com/thorchain/thornode/bifrost/tss"
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/x/thorchain"
 )
 
@@ -177,7 +178,7 @@ func (b *Binance) checkIsTestNet() error {
 	}
 
 	b.chainID = status.Result.NodeInfo.Network
-	b.isTestNet = b.chainID == "Binance-Chain-Nile"
+	b.isTestNet = b.chainID == "Binance-Chain-Ganges"
 
 	if b.isTestNet {
 		types.Network = types.TestNetwork
@@ -257,7 +258,7 @@ func (b *Binance) getGasFee(count uint64) common.Gas {
 }
 
 // SignTx sign the the given TxArrayItem
-func (b *Binance) SignTx(tx stypes.TxOutItem, thorchainHeight int64, retry uint64) ([]byte, error) {
+func (b *Binance) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, error) {
 	var payload []msg.Transfer
 
 	toAddr, err := types.AccAddressFromBech32(tx.ToAddress.String())
@@ -329,7 +330,7 @@ func (b *Binance) SignTx(tx stypes.TxOutItem, thorchainHeight int64, retry uint6
 		Sequence:      meta.SeqNumber,
 		AccountNumber: meta.AccountNumber,
 	}
-	rawBz, err := b.signMsg(signMsg, fromAddr, tx.VaultPubKey, thorchainHeight, tx, retry)
+	rawBz, err := b.signMsg(signMsg, fromAddr, tx.VaultPubKey, thorchainHeight, tx)
 	if err != nil {
 		return nil, fmt.Errorf("fail to sign message: %w", err)
 	}
@@ -353,35 +354,43 @@ func (b *Binance) sign(signMsg btx.StdSignMsg, poolPubKey common.PubKey, signerP
 }
 
 // signMsg is design to sign a given message until it success or the same message had been send out by other signer
-func (b *Binance) signMsg(signMsg btx.StdSignMsg, from string, poolPubKey common.PubKey, thorchainHeight int64, txOutItem stypes.TxOutItem, retry uint64) ([]byte, error) {
+func (b *Binance) signMsg(signMsg btx.StdSignMsg, from string, poolPubKey common.PubKey, thorchainHeight int64, txOutItem stypes.TxOutItem) ([]byte, error) {
 	keySignParty, err := b.keysignPartyMgr.GetKeySignParty(poolPubKey)
 	if err != nil {
 		b.logger.Error().Err(err).Msg("fail to get keysign party")
 		return nil, err
 	}
-	rawBytes, err := b.sign(signMsg, poolPubKey, keySignParty)
-	if err == nil && rawBytes != nil {
-		b.keysignPartyMgr.SaveKeySignParty(poolPubKey, keySignParty)
-		return rawBytes, nil
+	// let's retry before we give up on the signing party
+	retryMax := 3
+	var finalErr error
+	for i := 0; i < retryMax; i++ {
+		rawBytes, err := b.sign(signMsg, poolPubKey, keySignParty)
+		if err == nil && rawBytes != nil {
+			b.keysignPartyMgr.SaveKeySignParty(poolPubKey, keySignParty)
+			return rawBytes, nil
+		}
+		b.keysignPartyMgr.RemoveKeySignParty(poolPubKey)
+		finalErr = err
 	}
 	var keysignError tss.KeysignError
-	if errors.As(err, &keysignError) {
-		b.keysignPartyMgr.RemoveKeySignParty(poolPubKey)
+	if errors.As(finalErr, &keysignError) {
 		if len(keysignError.Blame.BlameNodes) == 0 {
 			// TSS doesn't know which node to blame
-			return nil, err
+			return nil, finalErr
 		}
 
 		// key sign error forward the keysign blame to thorchain
-		txID, errPostKeysignFail := b.thorchainBridge.PostKeysignFailure(keysignError.Blame, thorchainHeight, txOutItem.Memo, txOutItem.Coins, retry)
+		txID, errPostKeysignFail := b.thorchainBridge.PostKeysignFailure(keysignError.Blame, thorchainHeight, txOutItem.Memo, txOutItem.Coins, poolPubKey)
 		if errPostKeysignFail != nil {
-			b.logger.Error().Err(err).Msg("fail to post keysign failure to thorchain")
-			return nil, multierror.Append(err, errPostKeysignFail)
+			b.logger.Error().Err(errPostKeysignFail).Msg("fail to post keysign failure to thorchain")
+			return nil, multierror.Append(finalErr, errPostKeysignFail)
 		}
 		b.logger.Info().Str("tx_id", txID.String()).Msgf("post keysign failure to thorchain")
+		// back off a block time, so it has more chance to pick up the updated signer party
+		time.Sleep(time.Second * 5)
 	}
-	b.logger.Error().Err(err).Msgf("fail to sign msg with memo: %s", signMsg.Memo)
-	return nil, err
+	b.logger.Error().Err(finalErr).Msgf("fail to sign msg with memo: %s", signMsg.Memo)
+	return nil, finalErr
 }
 
 func (b *Binance) GetAccount(pkey common.PubKey) (common.Account, error) {
@@ -474,9 +483,9 @@ func (b *Binance) BroadcastTx(tx stypes.TxOutItem, hexTx []byte) error {
 	// This complicates things pretty well.
 	// Sample 1: { "height": "0", "txhash": "D97E8A81417E293F5B28DDB53A4AD87B434CA30F51D683DA758ECC2168A7A005", "raw_log": "[{\"msg_index\":0,\"success\":true,\"log\":\"\",\"events\":[{\"type\":\"message\",\"attributes\":[{\"key\":\"action\",\"value\":\"set_observed_txout\"}]}]}]", "logs": [ { "msg_index": 0, "success": true, "log": "", "events": [ { "type": "message", "attributes": [ { "key": "action", "value": "set_observed_txout" } ] } ] } ] }
 	// Sample 2: { "height": "0", "txhash": "6A9AA734374D567D1FFA794134A66D3BF614C4EE5DDF334F21A52A47C188A6A2", "code": 4, "raw_log": "{\"codespace\":\"sdk\",\"code\":4,\"message\":\"signature verification failed; verify correct account sequence and chain-id\"}" }
-	// Sample 3: {\"jsonrpc\": \"2.0\",\"id\": \"\",\"result\": {  \"check_tx\": {    \"code\": 65541,    \"log\": \"{\\\"codespace\\\":1,\\\"code\\\":5,\\\"abci_code\\\":65541,\\\"message\\\":\\\"insufficient fund. you got 29602BNB,351873676FSN-F1B,1094620960FTM-585,10119750400LOK-3C0,191723639522RUNE-A1F,13629773TATIC-E9C,4169469575TCAN-014,10648250188TOMOB-1E1,1155074377TUSDB-000, but 37500BNB fee needed.\\\"}\",    \"events\": [      {}    ]  },  \"deliver_tx\": {},  \"hash\": \"406A3F68B17544F359DF8C94D4E28A626D249BC9C4118B51F7B4CE16D45AF616\",  \"height\": \"0\"}\n}
+	// Sample 3: {\"jsonrpc\": \"2.0\",\"id\": \"\",\"result\": {  \"check_tx\": {    \"code\": 65541,    \"log\": \"{\\\"codespace\\\":1,\\\"code\\\":5,\\\"abci_code\\\":65541,\\\"message\\\":\\\"insufficient fund. you got 29602BNB,351873676FSN-F1B,1094620960FTM-585,10119750400LOK-3C0,191723639522RUNE-67C,13629773TATIC-E9C,4169469575TCAN-014,10648250188TOMOB-1E1,1155074377TUSDB-000, but 37500BNB fee needed.\\\"}\",    \"events\": [      {}    ]  },  \"deliver_tx\": {},  \"hash\": \"406A3F68B17544F359DF8C94D4E28A626D249BC9C4118B51F7B4CE16D45AF616\",  \"height\": \"0\"}\n}
 
-	b.logger.Debug().Str("body", string(body)).Msgf("broadcast response from Binance Chain,memo:%s", tx.Memo)
+	b.logger.Info().Str("body", string(body)).Msgf("broadcast response from Binance Chain,memo:%s", tx.Memo)
 	var commit stypes.BroadcastResult
 	err = b.cdc.UnmarshalJSON(body, &commit)
 	if err != nil {
