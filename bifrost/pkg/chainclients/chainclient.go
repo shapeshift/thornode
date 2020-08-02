@@ -25,6 +25,7 @@ type ChainClient interface {
 	GetHeight() (int64, error)
 	GetAddress(poolPubKey common.PubKey) string
 	GetAccount(poolPubKey common.PubKey) (common.Account, error)
+	GetAccountByAddress(address string) (common.Account, error)
 	GetChain() common.Chain
 	Start(globalTxsQueue chan stypes.TxIn, globalErrataQueue chan stypes.ErrataBlock)
 	GetConfig() config.ChainConfiguration
