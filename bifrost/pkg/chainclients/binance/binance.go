@@ -400,6 +400,10 @@ func (b *Binance) GetAccount(pkey common.PubKey) (common.Account, error) {
 		b.logger.Error().Err(err).Msgf("fail to get parse address: %s", addr)
 		return common.Account{}, err
 	}
+	return b.GetAccountByAddress(address.String())
+}
+
+func (b *Binance) GetAccountByAddress(address string) (common.Account, error) {
 	u, err := url.Parse(b.cfg.RPCHost)
 	if err != nil {
 		log.Fatal().Msgf("Error parsing rpc (%s): %s", b.cfg.RPCHost, err)
@@ -407,7 +411,7 @@ func (b *Binance) GetAccount(pkey common.PubKey) (common.Account, error) {
 	}
 	u.Path = "/abci_query"
 	v := u.Query()
-	v.Set("path", fmt.Sprintf("\"/account/%s\"", address.String()))
+	v.Set("path", fmt.Sprintf("\"/account/%s\"", address))
 	u.RawQuery = v.Encode()
 
 	resp, err := http.Get(u.String())
@@ -454,7 +458,7 @@ func (b *Binance) GetAccount(pkey common.PubKey) (common.Account, error) {
 	if err != nil {
 		return common.Account{}, err
 	}
-	account := common.NewAccount(acc.BaseAccount.Sequence, acc.BaseAccount.AccountNumber, common.GetCoins(acc.BaseAccount.Coins))
+	account := common.NewAccount(acc.BaseAccount.Sequence, acc.BaseAccount.AccountNumber, common.GetCoins(acc.BaseAccount.Coins), acc.Flags > 0)
 	return account, nil
 }
 

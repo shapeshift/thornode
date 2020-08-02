@@ -260,8 +260,12 @@ func (c *Client) GetAccount(pkey common.PubKey) (common.Account, error) {
 	if err != nil {
 		return common.Account{}, fmt.Errorf("fail to get account nonce: %w", err)
 	}
-	account := common.NewAccount(int64(nonce), 0, common.AccountCoins{common.AccountCoin{Amount: balance.Uint64(), Denom: "ETH.ETH"}})
+	account := common.NewAccount(int64(nonce), 0, common.AccountCoins{common.AccountCoin{Amount: balance.Uint64(), Denom: "ETH.ETH"}}, false)
 	return account, nil
+}
+
+func (c *Client) GetAccountByAddress(address string) (common.Account, error) {
+	return common.Account{}, nil
 }
 
 // BroadcastTx decodes tx using rlp and broadcasts too Ethereum chain
