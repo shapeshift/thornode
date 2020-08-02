@@ -24,11 +24,11 @@ import (
 	"gitlab.com/thorchain/thornode/bifrost/config"
 	"gitlab.com/thorchain/thornode/bifrost/metrics"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients"
-	pubkeymanager "gitlab.com/thorchain/thornode/bifrost/pubkeymanager"
+	"gitlab.com/thorchain/thornode/bifrost/pubkeymanager"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient"
 	stypes "gitlab.com/thorchain/thornode/bifrost/thorclient/types"
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/x/thorchain"
 	types2 "gitlab.com/thorchain/thornode/x/thorchain/types"
 )
@@ -211,6 +211,10 @@ func (b *MockChainClient) GetAddress(poolPubKey common.PubKey) string {
 }
 
 func (b *MockChainClient) GetAccount(poolPubKey common.PubKey) (common.Account, error) {
+	return b.account, nil
+}
+
+func (b *MockChainClient) GetAccountByAddress(address string) (common.Account, error) {
 	return b.account, nil
 }
 

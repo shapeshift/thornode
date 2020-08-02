@@ -15,6 +15,7 @@ type Account struct {
 	Sequence      int64
 	AccountNumber int64
 	Coins         AccountCoins
+	HasMemoFlag   bool
 }
 
 // GetCoins transforms from binance coins
@@ -27,10 +28,11 @@ func GetCoins(accCoins []types.Coin) AccountCoins {
 }
 
 // NewAccount
-func NewAccount(sequence, accountNumber int64, coins AccountCoins) Account {
+func NewAccount(sequence, accountNumber int64, coins AccountCoins, hasMemoFlag bool) Account {
 	return Account{
 		Sequence:      sequence,
 		AccountNumber: accountNumber,
 		Coins:         coins,
+		HasMemoFlag:   hasMemoFlag,
 	}
 }
