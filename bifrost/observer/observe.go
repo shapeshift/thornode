@@ -15,7 +15,7 @@ import (
 
 	"gitlab.com/thorchain/thornode/bifrost/metrics"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients"
-	pubkeymanager "gitlab.com/thorchain/thornode/bifrost/pubkeymanager"
+	"gitlab.com/thorchain/thornode/bifrost/pubkeymanager"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient/types"
 	"gitlab.com/thorchain/thornode/common"
@@ -93,6 +93,7 @@ func (o *Observer) sendDeck() {
 	defer o.lock.Unlock()
 	for i, deck := range o.onDeck {
 		deck.TxArray = o.filterObservations(deck.Chain, deck.TxArray)
+		deck.TxArray = o.filterBinanceMemoFlag(deck.Chain, deck.TxArray)
 		for _, txIn := range o.chunkify(deck) {
 			if err := o.signAndSendToThorchain(txIn); err != nil {
 				o.logger.Error().Err(err).Msg("fail to send to thorchain")
@@ -191,6 +192,46 @@ func (o *Observer) filterObservations(chain common.Chain, items []types.TxInItem
 		// check if the to address is a valid pool address
 		if ok, cpi := o.pubkeyMgr.IsValidPoolAddress(txInItem.To, chain); ok {
 			txInItem.ObservedVaultPubKey = cpi.PubKey
+			txs = append(txs, txInItem)
+		}
+	}
+	return
+}
+
+// filterBinanceMemoFlag - on Binance chain , BEP12(https://github.com/binance-chain/BEPs/blob/master/BEP12.md#memo-check-script-for-transfer)
+// it allow account to enable memo check flag, with the flag enabled , if a tx doesn't have memo, or doesn't have correct memo will be rejected by the chain ,
+// unfortunately THORChain won't be able to deal with these accounts , as THORChain will not know what kind of memo it required to send the tx through
+// given that Bifrost have to filter out those txes
+// the logic has to be here as THORChain is chain agnostic , customer can swap from BTC/ETC to BNB
+func (o *Observer) filterBinanceMemoFlag(chain common.Chain, items []types.TxInItem) (txs []types.TxInItem) {
+	bnbClient, ok := o.chains[common.BNBChain]
+	if !ok {
+		txs = items
+		return
+	}
+	for _, txInItem := range items {
+		var addressesToCheck []string
+		addr := txInItem.GetAddressToCheck()
+		if !addr.IsEmpty() && addr.IsChain(common.BNBChain) {
+			addressesToCheck = append(addressesToCheck, addr.String())
+		}
+		// if it BNB chain let's check the from address as well
+		if chain.Equals(common.BNBChain) {
+			addressesToCheck = append(addressesToCheck, txInItem.Sender)
+		}
+		skip := false
+		for _, item := range addressesToCheck {
+			account, err := bnbClient.GetAccountByAddress(item)
+			if err != nil {
+				o.logger.Error().Err(err).Msgf("fail to check account for %s", item)
+				continue
+			}
+			if account.HasMemoFlag {
+				skip = true
+				break
+			}
+		}
+		if !skip {
 			txs = append(txs, txInItem)
 		}
 	}

@@ -172,7 +172,11 @@ func (c *Client) GetAccount(pkey common.PubKey) (common.Account, error) {
 			Amount: uint64(totalAmt),
 			Denom:  common.BTCAsset.String(),
 		},
-	}), nil
+	}, false), nil
+}
+
+func (c *Client) GetAccountByAddress(address string) (common.Account, error) {
+	return common.Account{}, nil
 }
 
 // OnObservedTxIn gets called from observer when we have a valid observation

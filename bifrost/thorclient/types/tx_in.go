@@ -1,6 +1,9 @@
 package types
 
-import "gitlab.com/thorchain/thornode/common"
+import (
+	"gitlab.com/thorchain/thornode/common"
+	memo "gitlab.com/thorchain/thornode/x/thorchain/memo"
+)
 
 type TxIn struct {
 	Count   string       `json:"count"`
@@ -29,4 +32,12 @@ const (
 type TxInStatusItem struct {
 	TxIn   TxIn       `json:"tx_in"`
 	Status TxInStatus `json:"status"`
+}
+
+func (t TxInItem) GetAddressToCheck() common.Address {
+	m, err := memo.ParseMemo(t.Memo)
+	if err != nil {
+		return common.NoAddress
+	}
+	return m.GetDestination()
 }
