@@ -229,7 +229,9 @@ func GetTxOutStore(keeper keeper.Keeper, version semver.Version, eventMgr EventM
 
 // GetVaultManager retrieve a VaultManager that is compatible with the given version
 func GetVaultManager(keeper keeper.Keeper, version semver.Version, txOutStore TxOutStore, eventMgr EventManager) (VaultManager, error) {
-	if version.GTE(semver.MustParse("0.1.0")) {
+	if version.GTE(semver.MustParse("0.4.0")) {
+		return NewVaultMgrV2(keeper, txOutStore, eventMgr), nil
+	} else if version.GTE(semver.MustParse("0.1.0")) {
 		return NewVaultMgrV1(keeper, txOutStore, eventMgr), nil
 	}
 	return nil, errInvalidVersion
@@ -237,7 +239,9 @@ func GetVaultManager(keeper keeper.Keeper, version semver.Version, txOutStore Tx
 
 // GetValidatorManager create a new instance of Validator Manager
 func GetValidatorManager(keeper keeper.Keeper, version semver.Version, vaultMgr VaultManager, txOutStore TxOutStore, eventMgr EventManager) (ValidatorManager, error) {
-	if version.GTE(semver.MustParse("0.1.0")) {
+	if version.GTE(semver.MustParse("0.4.0")) {
+		return newValidatorMgrV2(keeper, vaultMgr, txOutStore, eventMgr), nil
+	} else if version.GTE(semver.MustParse("0.1.0")) {
 		return newValidatorMgrV1(keeper, vaultMgr, txOutStore, eventMgr), nil
 	}
 	return nil, errInvalidVersion
