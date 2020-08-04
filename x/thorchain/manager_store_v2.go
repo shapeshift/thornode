@@ -51,3 +51,26 @@ func migrateStoreV2(ctx cosmos.Context, keeper keeper.Keeper) error {
 
 	return nil
 }
+
+func migrateStoreV4(ctx cosmos.Context, keeper keeper.Keeper) error {
+	iter := keeper.GetVaultIterator(ctx)
+	defer iter.Close()
+	for ; iter.Valid(); iter.Next() {
+		var vault Vault
+		if err := keeper.Cdc().UnmarshalBinaryBare(iter.Value(), &vault); err != nil {
+			ctx.Logger().Error("fail to unmarshal vault", "error", err)
+		}
+
+		if vault.Coins.IsEmpty() {
+			continue
+		}
+
+		if vault.Status == InactiveVault {
+			vault.Status = RetiringVault
+		}
+		if err := keeper.SetVault(ctx, vault); err != nil {
+			ctx.Logger().Error("fail to save vault", "error", err)
+		}
+	}
+	return nil
+}
