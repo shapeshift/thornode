@@ -331,9 +331,18 @@ func queryNodeAccount(ctx cosmos.Context, path []string, req abci.RequestQuery, 
 		return nil, fmt.Errorf("fail to get node jail: %w", err)
 	}
 
+	vaultData, err := keeper.GetVaultData(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("fail to get vaultData: %w", err)
+	}
+
+	// find number of blocks they were well behaved (ie active - slash points)
+	earnedBlocks := nodeAcc.CalcBondUnits(common.BlockHeight(ctx), slashPts)
+
 	result := NewQueryNodeAccount(nodeAcc)
 	result.SlashPoints = slashPts
 	result.Jail = jail
+	result.CurrentAward = vaultData.CalcNodeRewards(earnedBlocks)
 	res, err := codec.MarshalJSONIndent(keeper.Cdc(), result)
 	if err != nil {
 		return nil, fmt.Errorf("fail to marshal node account to json: %w", err)
@@ -396,14 +405,23 @@ func queryNodeAccounts(ctx cosmos.Context, path []string, req abci.RequestQuery,
 		return nil, fmt.Errorf("fail to get node accounts: %w", err)
 	}
 
+	vaultData, err := keeper.GetVaultData(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("fail to get vaultData: %w", err)
+	}
+
 	result := make([]QueryNodeAccount, len(nodeAccounts))
 	for i, na := range nodeAccounts {
 		slashPts, err := keeper.GetNodeAccountSlashPoints(ctx, na.NodeAddress)
 		if err != nil {
 			return nil, fmt.Errorf("fail to get node slash points: %w", err)
 		}
+		// find number of blocks they were well behaved (ie active - slash points)
+		earnedBlocks := na.CalcBondUnits(common.BlockHeight(ctx), slashPts)
+
 		result[i] = NewQueryNodeAccount(na)
 		result[i].SlashPoints = slashPts
+		result[i].CurrentAward = vaultData.CalcNodeRewards(earnedBlocks)
 
 		jail, err := keeper.GetNodeAccountJail(ctx, na.NodeAddress)
 		if err != nil {

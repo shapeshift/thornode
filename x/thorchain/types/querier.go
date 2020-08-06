@@ -98,6 +98,7 @@ type QueryNodeAccount struct {
 	Version             semver.Version    `json:"version"`
 	SlashPoints         int64             `json:"slash_points"`
 	Jail                Jail              `json:"jail"`
+	CurrentAward        cosmos.Uint       `json:"current_award"`
 }
 
 // NewQueryNodeAccount create a new QueryNodeAccount based on the given node account parameter
