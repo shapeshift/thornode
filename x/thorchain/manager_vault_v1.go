@@ -205,6 +205,11 @@ func (vm *VaultMgrV1) EndBlock(ctx cosmos.Context, mgr Manager, constAccessor co
 
 // TriggerKeygen generate a record to instruct signer kick off keygen process
 func (vm *VaultMgrV1) TriggerKeygen(ctx cosmos.Context, nas NodeAccounts) error {
+	halt, err := vm.k.GetMimir(ctx, "HaltChurning")
+	if halt > 0 && halt <= common.BlockHeight(ctx) && err == nil {
+		ctx.Logger().Info("churn event skipped due to mimir has halted churning")
+		return nil
+	}
 	var members common.PubKeys
 	for i := range nas {
 		members = append(members, nas[i].PubKeySet.Secp256k1)
