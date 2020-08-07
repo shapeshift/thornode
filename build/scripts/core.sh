@@ -111,16 +111,19 @@ seeds_list () {
     SEEDS=$1
     OLD_IFS=$IFS
     IFS=","
-    SEED_LIST=()
+    SEED_LIST=""
     for SEED in $SEEDS
     do
       NODE_ID=$(fetch_node_id $SEED)
       SEED="$NODE_ID@$SEED:$PORT_P2P"
-      SEED_LIST+=( $SEED )
+      if [[ "$SEED_LIST" == "" ]]; then
+        SEED_LIST=$SEED
+      else
+        SEED_LIST="$SEED_LIST,$SEED"
+      fi
     done
-    SEED_JOIN="${SEED_LIST[*]}"
     IFS=$OLD_IFS
-    sed -i -e "s/seeds =.*/seeds = \"$SEED_JOIN\"/g" ~/.thord/config/config.toml
+    sed -i -e "s/seeds =.*/seeds = \"$SEED_LIST\"/g" ~/.thord/config/config.toml
 }
 
 enable_internal_traffic () {
