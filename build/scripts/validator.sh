@@ -34,8 +34,10 @@ if [ ! -f ~/.thord/config/genesis.json ]; then
     fetch_genesis $PEER
 
     # add persistent peer tendermint config
-    NODE_ID=$(fetch_node_id $PEER)
-    peer_list $NODE_ID $PEER
+    if [[ "$PEER" != "none" ]]; then
+      NODE_ID=$(fetch_node_id $PEER)
+      peer_list $NODE_ID $PEER
+    fi
 
     # add seeds tendermint config
     [[ "$SEEDS" != "none" ]] && seeds_list $SEEDS
