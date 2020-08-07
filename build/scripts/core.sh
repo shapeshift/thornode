@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+
+PORT_P2P=26656
+PORT_RPC=26657
+[ "$NET" == "mainnet" ] && PORT_P2P=27146 && PORT_RPC=27147
+
 # adds an account node into the genesis file
 add_node_account () {
     NODE_ADDRESS=$1
@@ -97,9 +102,25 @@ init_chain () {
 }
 
 peer_list () {
-    PEERUSER="$1@$2:26656"
+    PEERUSER="$1@$2:$PORT_P2P"
     PEERSISTENT_PEER_TARGET='persistent_peers = ""'
     sed -i -e "s/$PEERSISTENT_PEER_TARGET/persistent_peers = \"$PEERUSER\"/g" ~/.thord/config/config.toml
+}
+
+seeds_list () {
+    SEEDS=$1
+    OLD_IFS=$IFS
+    IFS=","
+    SEED_LIST=()
+    for SEED in $SEEDS
+    do
+      NODE_ID=$(fetch_node_id $SEED)
+      SEED="$NODE_ID@$SEED:$PORT_P2P"
+      SEED_LIST+=( $SEED )
+    done
+    SEED_JOIN="${SEED_LIST[*]}"
+    IFS=$OLD_IFS
+    sed -i -e "s/seeds =.*/seeds = \"$SEED_JOIN\"/g" ~/.thord/config/config.toml
 }
 
 enable_internal_traffic () {
@@ -111,9 +132,7 @@ enable_internal_traffic () {
 external_address () {
     IP=$1
     NET=$2
-    PORT=26656
-    [ "$NET" == "mainnet" ] && PORT=27146
-    ADDR="$IP:$PORT"
+    ADDR="$IP:$PORT_P2P"
     sed -i -e "s/external_address =.*/external_address = \"$ADDR\"/g" ~/.thord/config/config.toml
 }
 
@@ -146,19 +165,19 @@ gen_bnb_address () {
 
 
 fetch_genesis () {
-    until curl -s "$1:26657" > /dev/null; do
+    until curl -s "$1:$PORT_RPC" > /dev/null; do
         sleep 3
     done
-    curl -s $1:26657/genesis | jq .result.genesis > ~/.thord/config/genesis.json
+    curl -s $1:$PORT_RPC/genesis | jq .result.genesis > ~/.thord/config/genesis.json
     thord validate-genesis
     cat ~/.thord/config/genesis.json
 }
 
 fetch_node_id () {
-    until curl -s "$1:26657" > /dev/null; do
+    until curl -s "$1:$PORT_RPC" > /dev/null; do
         sleep 3
     done
-    curl -s $1:26657/status | jq -r .result.node_info.id
+    curl -s $1:$PORT_RPC/status | jq -r .result.node_info.id
 }
 
 set_node_keys () {
@@ -167,7 +186,7 @@ set_node_keys () {
   PEER=$3
   NODE_PUB_KEY=$(echo $SIGNER_PASSWD | thorcli keys show thorchain --pubkey)
   VALIDATOR=$(thord tendermint show-validator)
-  printf "$SIGNER_PASSWD\n$SIGNER_PASSWD\n" | thorcli tx thorchain set-node-keys $NODE_PUB_KEY $NODE_PUB_KEY $VALIDATOR --node tcp://$PEER:26657 --from $SIGNER_NAME --yes
+  printf "$SIGNER_PASSWD\n$SIGNER_PASSWD\n" | thorcli tx thorchain set-node-keys $NODE_PUB_KEY $NODE_PUB_KEY $VALIDATOR --node tcp://$PEER:$PORT_RPC --from $SIGNER_NAME --yes
 }
 
 set_ip_address () {
@@ -175,7 +194,7 @@ set_ip_address () {
   SIGNER_PASSWD=$2
   PEER=$3
   NODE_IP_ADDRESS=${4:-$(curl -s http://whatismyip.akamai.com)}
-  printf "$SIGNER_PASSWD\n$SIGNER_PASSWD\n" | thorcli tx thorchain set-ip-address $NODE_IP_ADDRESS --node tcp://$PEER:26657 --from $SIGNER_NAME --yes
+  printf "$SIGNER_PASSWD\n$SIGNER_PASSWD\n" | thorcli tx thorchain set-ip-address $NODE_IP_ADDRESS --node tcp://$PEER:$PORT_RPC --from $SIGNER_NAME --yes
 }
 
 fetch_version () {

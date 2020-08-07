@@ -2,15 +2,16 @@
 
 source $(dirname "$0")/core.sh
 
-PEER="${PEER:=none}" # the hostname of a seed node
+SEEDS="${SEEDS:=none}" # the hostname of multiple seeds set as tendermint seeds
+PEER="${PEER:=none}" # the hostname of a seed node set as tendermint persistent peer
 PEER_API="${PEER_API:=$PEER}" # the hostname of a seed node API if different
 SIGNER_NAME="${SIGNER_NAME:=thorchain}"
 SIGNER_PASSWD="${SIGNER_PASSWD:=password}"
 BINANCE=${BINANCE:=$PEER:26660}
 
 if [ ! -f ~/.thord/config/genesis.json ]; then
-    if [[ "$PEER" == "none" ]]; then
-        echo "Missing PEER"
+    if [[ "$PEER" == "none" || "$SEEDS" == "none" ]]; then
+        echo "Missing PEER / SEEDS"
         exit 1
     fi
 
@@ -32,8 +33,12 @@ if [ ! -f ~/.thord/config/genesis.json ]; then
 
     fetch_genesis $PEER
 
+    # add persistent peer tendermint config
     NODE_ID=$(fetch_node_id $PEER)
     peer_list $NODE_ID $PEER
+
+    # add seeds tendermint config
+    [[ "$SEEDS" != "none" ]] && seeds_list $SEEDS
 
     # enable telemetry through prometheus metrics endpoint
     enable_telemetry
