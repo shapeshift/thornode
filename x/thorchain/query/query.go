@@ -54,6 +54,7 @@ var (
 	QueryBalanceModule      = Query{Key: "balancemodule", EndpointTemplate: "/%s/balance/module/{%s}"}
 	QueryVaultsAsgard       = Query{Key: "vaultsasgard", EndpointTemplate: "/%s/vaults/asgard"}
 	QueryVaultsYggdrasil    = Query{Key: "vaultsyggdrasil", EndpointTemplate: "/%s/vaults/yggdrasil"}
+	QueryVault              = Query{Key: "vault", EndpointTemplate: "/%s/vault/{%s}/{%s}"}
 	QueryVaultPubkeys       = Query{Key: "vaultpubkeys", EndpointTemplate: "/%s/vaults/pubkeys"}
 	QueryTSSSigners         = Query{Key: "tsssigner", EndpointTemplate: "/%s/vaults/{%s}/signers"}
 	QueryConstantValues     = Query{Key: "constants", EndpointTemplate: "/%s/constants"}
@@ -86,6 +87,7 @@ var Queries = []Query{
 	QueryVaultsAsgard,
 	QueryVaultsYggdrasil,
 	QueryVaultPubkeys,
+	QueryVault,
 	QueryKeygensPubkey,
 	QueryTSSSigners,
 	QueryConstantValues,
