@@ -62,6 +62,8 @@ func NewQuerier(keeper keeper.Keeper, kbs KeybaseStore) cosmos.Querier {
 			return queryAsgardVaults(ctx, keeper)
 		case q.QueryVaultsYggdrasil.Key:
 			return queryYggdrasilVaults(ctx, keeper)
+		case q.QueryVault.Key:
+			return queryVault(ctx, path[1:], keeper)
 		case q.QueryVaultPubkeys.Key:
 			return queryVaultsPubkeys(ctx, keeper)
 		case q.QueryTSSSigners.Key:
@@ -103,6 +105,43 @@ func queryBalanceModule(ctx cosmos.Context, path []string, keeper keeper.Keeper)
 	}
 
 	return res, nil
+}
+
+func queryVault(ctx cosmos.Context, path []string, keeper keeper.Keeper) ([]byte, error) {
+	if len(path) < 2 {
+		return nil, errors.New("not enough parameters")
+	}
+	chain, err := common.NewChain(path[0])
+	if err != nil {
+		return nil, fmt.Errorf("%s is invalid chain,%w", path[0], err)
+	}
+	addr, err := common.NewAddress(path[1])
+	if err != nil {
+		return nil, fmt.Errorf("%s is invalid address,%w", path[1], err)
+	}
+	iter := keeper.GetVaultIterator(ctx)
+	defer iter.Close()
+	for ; iter.Valid(); iter.Next() {
+		var v Vault
+		if err := keeper.Cdc().UnmarshalBinaryBare(iter.Value(), &v); err != nil {
+			ctx.Logger().Error("fail to unmarshal vault", "error", err)
+			continue
+		}
+		vaultAddr, err := v.PubKey.GetAddress(chain)
+		if err != nil {
+			ctx.Logger().Error("fail to get vault address", "error", err, "chain", chain.String())
+			continue
+		}
+		if vaultAddr.Equals(addr) {
+			res, err := codec.MarshalJSONIndent(keeper.Cdc(), v)
+			if err != nil {
+				ctx.Logger().Error("fail to marshal vaults response to json", "error", err)
+				return nil, fmt.Errorf("fail to marshal response to json: %w", err)
+			}
+			return res, nil
+		}
+	}
+	return nil, errors.New("vault not found")
 }
 
 func queryAsgardVaults(ctx cosmos.Context, keeper keeper.Keeper) ([]byte, error) {
