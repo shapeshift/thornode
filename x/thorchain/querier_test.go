@@ -636,3 +636,53 @@ func (s *QuerierSuite) TestQueryBalanceModule(c *C) {
 	var r sdk.Coins
 	c.Assert(s.k.Cdc().UnmarshalJSON(result, &r), IsNil)
 }
+
+func (s *QuerierSuite) TestQueryVault(c *C) {
+	vault := GetRandomVault()
+
+	// Not enough argument
+	result, err := s.querier(s.ctx, []string{
+		query.QueryVault.Key,
+		"BNB",
+	}, abci.RequestQuery{})
+
+	c.Assert(result, IsNil)
+	c.Assert(err, NotNil)
+
+	// invalid chain
+	result, err = s.querier(s.ctx, []string{
+		query.QueryVault.Key,
+		"A",
+		GetRandomBNBAddress().String(),
+	}, abci.RequestQuery{})
+
+	c.Assert(result, IsNil)
+	c.Assert(err, NotNil)
+
+	// invalid address
+	result, err = s.querier(s.ctx, []string{
+		query.QueryVault.Key,
+		"BTC",
+		GetRandomBNBAddress().String(),
+	}, abci.RequestQuery{})
+
+	c.Assert(result, IsNil)
+	c.Assert(err, NotNil)
+
+	s.k.SetVault(s.ctx, vault)
+	addr, err := vault.PubKey.GetAddress(common.BNBChain)
+	c.Assert(err, IsNil)
+	result, err = s.querier(s.ctx, []string{
+		query.QueryVault.Key,
+		"BNB",
+		addr.String(),
+	}, abci.RequestQuery{})
+	c.Assert(err, IsNil)
+	c.Assert(result, NotNil)
+	var returnVault Vault
+	c.Assert(s.k.Cdc().UnmarshalJSON(result, &returnVault), IsNil)
+	c.Assert(vault.PubKey.Equals(returnVault.PubKey), Equals, true)
+	c.Assert(vault.Type, Equals, returnVault.Type)
+	c.Assert(vault.Status, Equals, returnVault.Status)
+	c.Assert(vault.BlockHeight, Equals, returnVault.BlockHeight)
+}
