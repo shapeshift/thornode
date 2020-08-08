@@ -48,6 +48,40 @@ func (HandlerLeaveSuite) TestLeaveHandler_NotActiveNodeLeave(c *C) {
 	c.Assert(err, NotNil)
 }
 
+func (HandlerLeaveSuite) TestLeaveHandlerV5_NotActiveNodeLeave(c *C) {
+	w := getHandlerTestWrapper(c, 1, true, false)
+	vault := GetRandomVault()
+	w.keeper.SetVault(w.ctx, vault)
+	leaveHandler := NewLeaveHandler(w.keeper, NewDummyMgr())
+	acc2 := GetRandomNodeAccount(NodeStandby)
+	acc2.Bond = cosmos.NewUint(100 * common.One)
+	c.Assert(w.keeper.SetNodeAccount(w.ctx, acc2), IsNil)
+	ygg := NewVault(common.BlockHeight(w.ctx), ActiveVault, YggdrasilVault, acc2.PubKeySet.Secp256k1, common.Chains{common.RuneAsset().Chain})
+	c.Assert(w.keeper.SetVault(w.ctx, ygg), IsNil)
+
+	FundModule(c, w.ctx, w.keeper, BondName, 100)
+
+	txID := GetRandomTxHash()
+	tx := common.NewTx(
+		txID,
+		acc2.BondAddress,
+		GetRandomBNBAddress(),
+		common.Coins{common.NewCoin(common.RuneAsset(), cosmos.OneUint())},
+		BNBGasFeeSingleton,
+		"LEAVE",
+	)
+	msgLeave := NewMsgLeave(tx, acc2.NodeAddress, w.activeNodeAccount.NodeAddress)
+	ver := semver.MustParse("0.5.0")
+	constAccessor := constants.GetConstantValues(ver)
+	_, err := leaveHandler.Run(w.ctx, msgLeave, ver, constAccessor)
+	c.Assert(err, IsNil)
+	accAfterLeave, err := w.keeper.GetNodeAccount(w.ctx, acc2.NodeAddress)
+	c.Assert(err, IsNil)
+	c.Assert(accAfterLeave.Status, Equals, NodeDisabled)
+	_, err = leaveHandler.Run(w.ctx, msgLeave, semver.Version{}, constAccessor)
+	c.Assert(err, NotNil)
+}
+
 func (HandlerLeaveSuite) TestLeaveHandler_ActiveNodeLeave(c *C) {
 	var err error
 	w := getHandlerTestWrapper(c, 1, true, false)
@@ -66,6 +100,33 @@ func (HandlerLeaveSuite) TestLeaveHandler_ActiveNodeLeave(c *C) {
 	)
 	msgLeave := NewMsgLeave(tx, acc2.NodeAddress, w.activeNodeAccount.NodeAddress)
 	ver := constants.SWVersion
+	constAccessor := constants.GetConstantValues(ver)
+	_, err = leaveHandler.Run(w.ctx, msgLeave, ver, constAccessor)
+	c.Assert(err, IsNil)
+
+	acc2, err = w.keeper.GetNodeAccount(w.ctx, acc2.NodeAddress)
+	c.Assert(err, IsNil)
+	c.Check(acc2.Bond.Equal(cosmos.NewUint(10000000001)), Equals, true, Commentf("Bond:%d\n", acc2.Bond.Uint64()))
+}
+
+func (HandlerLeaveSuite) TestLeaveHandlerV5_ActiveNodeLeave(c *C) {
+	var err error
+	w := getHandlerTestWrapper(c, 1, true, false)
+	leaveHandler := NewLeaveHandler(w.keeper, NewDummyMgr())
+	acc2 := GetRandomNodeAccount(NodeActive)
+	acc2.Bond = cosmos.NewUint(100 * common.One)
+	c.Assert(w.keeper.SetNodeAccount(w.ctx, acc2), IsNil)
+	txID := GetRandomTxHash()
+	tx := common.NewTx(
+		txID,
+		acc2.BondAddress,
+		GetRandomBNBAddress(),
+		common.Coins{common.NewCoin(common.RuneAsset(), cosmos.OneUint())},
+		BNBGasFeeSingleton,
+		"",
+	)
+	msgLeave := NewMsgLeave(tx, acc2.NodeAddress, w.activeNodeAccount.NodeAddress)
+	ver := semver.MustParse("0.5.0")
 	constAccessor := constants.GetConstantValues(ver)
 	_, err = leaveHandler.Run(w.ctx, msgLeave, ver, constAccessor)
 	c.Assert(err, IsNil)
@@ -137,6 +198,38 @@ func (HandlerLeaveSuite) TestLeaveJail(c *C) {
 	)
 	msgLeave := NewMsgLeave(tx, acc2.NodeAddress, w.activeNodeAccount.NodeAddress)
 	ver := constants.SWVersion
+	constAccessor := constants.GetConstantValues(ver)
+	_, err := leaveHandler.Run(w.ctx, msgLeave, ver, constAccessor)
+	c.Assert(err, NotNil)
+}
+
+func (HandlerLeaveSuite) TestLeaveJailV5(c *C) {
+	w := getHandlerTestWrapper(c, 1, true, false)
+	vault := GetRandomVault()
+	w.keeper.SetVault(w.ctx, vault)
+	leaveHandler := NewLeaveHandler(w.keeper, NewDummyMgr())
+	acc2 := GetRandomNodeAccount(NodeStandby)
+	acc2.Bond = cosmos.NewUint(100 * common.One)
+	c.Assert(w.keeper.SetNodeAccount(w.ctx, acc2), IsNil)
+
+	w.keeper.SetNodeAccountJail(w.ctx, acc2.NodeAddress, common.BlockHeight(w.ctx)+100, "test it")
+
+	ygg := NewVault(common.BlockHeight(w.ctx), ActiveVault, YggdrasilVault, acc2.PubKeySet.Secp256k1, common.Chains{common.RuneAsset().Chain})
+	c.Assert(w.keeper.SetVault(w.ctx, ygg), IsNil)
+
+	FundModule(c, w.ctx, w.keeper, BondName, 100)
+
+	txID := GetRandomTxHash()
+	tx := common.NewTx(
+		txID,
+		acc2.BondAddress,
+		GetRandomBNBAddress(),
+		common.Coins{common.NewCoin(common.RuneAsset(), cosmos.OneUint())},
+		BNBGasFeeSingleton,
+		"LEAVE",
+	)
+	msgLeave := NewMsgLeave(tx, acc2.NodeAddress, w.activeNodeAccount.NodeAddress)
+	ver := semver.MustParse("0.5.0")
 	constAccessor := constants.GetConstantValues(ver)
 	_, err := leaveHandler.Run(w.ctx, msgLeave, ver, constAccessor)
 	c.Assert(err, NotNil)
@@ -407,8 +500,9 @@ func (HandlerLeaveSuite) TestLeaveDifferentValidations(c *C) {
 		mgr.BeginBlock(ctx)
 		handler := NewLeaveHandler(helper, mgr)
 		msg := tc.messageProvider(ctx, helper)
-		constantAccessor := constants.GetConstantValues(constants.SWVersion)
-		result, err := handler.Run(ctx, msg, semver.MustParse("0.1.0"), constantAccessor)
+		ver := semver.MustParse("0.5.0")
+		constantAccessor := constants.GetConstantValues(ver)
+		result, err := handler.Run(ctx, msg, ver, constantAccessor)
 		tc.validator(c, ctx, result, err, helper, tc.name)
 	}
 }
