@@ -75,7 +75,9 @@ func (h TssKeysignHandler) validateV1(ctx cosmos.Context, msg MsgTssKeysignFail)
 
 func (h TssKeysignHandler) handle(ctx cosmos.Context, msg MsgTssKeysignFail, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	ctx.Logger().Info("handle MsgTssKeysignFail request", "ID", msg.ID, "signer", msg.Signer, "pubkey", msg.PubKey, "blame", msg.Blame.String())
-	if version.GTE(semver.MustParse("0.1.0")) {
+	if version.GTE(semver.MustParse("0.6.0")) {
+		return h.handleV6(ctx, msg, version, constAccessor)
+	} else if version.GTE(semver.MustParse("0.1.0")) {
 		return h.handleV1(ctx, msg, version, constAccessor)
 	}
 	return nil, errBadVersion
@@ -194,4 +196,145 @@ func (h TssKeysignHandler) updateVaultKeySign(ctx cosmos.Context, vaultPubKey co
 	}
 	vault.SigningParty = signerParty
 	return h.keeper.SetVault(ctx, vault)
+}
+
+func (h TssKeysignHandler) handleV6(ctx cosmos.Context, msg MsgTssKeysignFail, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+	active, err := h.keeper.ListActiveNodeAccounts(ctx)
+	if err != nil {
+		return nil, wrapError(ctx, err, "fail to get list of active node accounts")
+	}
+
+	voter, err := h.keeper.GetTssKeysignFailVoter(ctx, msg.ID)
+	if err != nil {
+		return nil, err
+	}
+	observeSlashPoints := constAccessor.GetInt64Value(constants.ObserveSlashPoints)
+	h.mgr.Slasher().IncSlashPoints(ctx, observeSlashPoints, msg.Signer)
+	if !voter.Sign(msg.Signer) {
+		ctx.Logger().Info("signer already signed MsgTssKeysignFail", "signer", msg.Signer.String(), "txid", msg.ID)
+		return &cosmos.Result{}, nil
+	}
+	h.keeper.SetTssKeysignFailVoter(ctx, voter)
+	// doesn't have consensus yet
+	if !voter.HasConsensus(active) {
+		ctx.Logger().Info("not having consensus yet, return")
+		return &cosmos.Result{}, nil
+	}
+	ctx.Logger().Info("has tss keysign consensus!!")
+
+	h.mgr.Slasher().DecSlashPoints(ctx, observeSlashPoints, voter.Signers...)
+	voter.Signers = nil
+	h.keeper.SetTssKeysignFailVoter(ctx, voter)
+
+	slashPoints := constAccessor.GetInt64Value(constants.FailKeySignSlashPoints)
+	// fail to generate a new tss key let's slash the node account
+
+	for _, node := range msg.Blame.BlameNodes {
+		nodePubKey, err := common.NewPubKey(node.Pubkey)
+		if err != nil {
+			return nil, ErrInternal(err, "fail to parse pubkey")
+		}
+		na, err := h.keeper.GetNodeAccountByPubKey(ctx, nodePubKey)
+		if err != nil {
+			return nil, ErrInternal(err, fmt.Sprintf("fail to get node account,pub key: %s", nodePubKey.String()))
+		}
+		if err := h.keeper.IncNodeAccountSlashPoints(ctx, na.NodeAddress, slashPoints); err != nil {
+			ctx.Logger().Error("fail to inc slash points", "error", err)
+		}
+
+		// go to jail
+		ctx.Logger().Info("jailing node", "pubkey", na.PubKeySet.Secp256k1)
+		jailTime := constAccessor.GetInt64Value(constants.JailTimeKeysign)
+		releaseHeight := common.BlockHeight(ctx) + jailTime
+		reason := "failed to perform keysign"
+		if err := h.keeper.SetNodeAccountJail(ctx, na.NodeAddress, releaseHeight, reason); err != nil {
+			ctx.Logger().Error("fail to set node account jail", "node address", na.NodeAddress, "reason", reason, "error", err)
+		}
+	}
+	if err := h.updateVaultKeySign(ctx, msg.PubKey); err != nil {
+		ctx.Logger().Error("fail to update vault signing party", "error", err)
+	}
+	return &cosmos.Result{}, nil
+}
+
+func (h TssKeysignHandler) updateVaultKeySignV6(ctx cosmos.Context, vaultPubKey common.PubKey) error {
+	accountAddrs, err := h.keeper.GetObservingAddresses(ctx)
+	if err != nil {
+		return fmt.Errorf("fail to get observing addresses: %w", err)
+	}
+
+	vault, err := h.keeper.GetVault(ctx, vaultPubKey)
+	if err != nil {
+		return fmt.Errorf("fail to get vault: %w", err)
+	}
+	members := vault.Membership
+	threshold, err := GetThreshold(len(vault.Membership))
+	if err != nil {
+		return fmt.Errorf("fail to get threshold: %w", err)
+	}
+	totalObservingAccounts := len(accountAddrs)
+	if totalObservingAccounts > 0 && totalObservingAccounts >= threshold {
+		members, err = vault.GetMembers(accountAddrs)
+		if err != nil {
+			return fmt.Errorf("fail to get signers: %w", err)
+		}
+	}
+
+	// build signer list, exclude any node accounts in jail
+	signers := make(common.PubKeys, 0)
+	signers = h.getSignerCandidates(ctx, signers, members, NodeActive)
+
+	// not enough nodes to form keysign party , try to find some nodes that is not actively observing , and not jailed
+	// when scale down , the actively observing validator set will become smaller
+	if len(signers) < threshold {
+		signers = h.getSignerCandidates(ctx, signers, vault.Membership, NodeReady)
+		signers = h.getSignerCandidates(ctx, signers, vault.Membership, NodeStandby)
+	}
+
+	// still doesn't have enough signer, let's add those node in Disable
+	if len(signers) < threshold {
+		signers = h.getSignerCandidates(ctx, signers, vault.Membership, NodeDisabled)
+	}
+	// still don't have enough signer , jail free
+	if len(signers) < threshold {
+		signers = vault.Membership
+	}
+	// if there are 9 nodes in total , it need 6 nodes to sign a message
+	// 3 signer send request to thorchain at block height 100
+	// another 3 signer send request to thorchain at block height 101
+	// in this case we get into trouble ,they get different results, key sign is going to fail
+	signerParty, err := ChooseSignerParty(signers, common.BlockHeight(ctx), len(vault.Membership))
+	if err != nil {
+		return fmt.Errorf("fail to choose signer party members: %w", err)
+	}
+	vault.SigningParty = signerParty
+	return h.keeper.SetVault(ctx, vault)
+}
+
+func (h TssKeysignHandler) getSignerCandidates(ctx cosmos.Context, signers, candidates common.PubKeys, status NodeStatus) common.PubKeys {
+	for _, mem := range candidates {
+
+		if signers.Contains(mem) {
+			continue
+		}
+		na, err := h.keeper.GetNodeAccountByPubKey(ctx, mem)
+		if err != nil {
+			ctx.Logger().Error("fail to get node account", "error", err)
+			continue
+		}
+
+		if na.Status != status {
+			continue
+		}
+
+		jail, err := h.keeper.GetNodeAccountJail(ctx, na.NodeAddress)
+		if err != nil {
+			ctx.Logger().Error("fail to get node account jail", "error", err)
+		}
+		if jail.IsJailed(ctx) {
+			continue
+		}
+		signers = append(signers, mem)
+	}
+	return signers
 }
