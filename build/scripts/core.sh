@@ -114,7 +114,7 @@ seeds_list () {
     SEED_LIST=""
     for SEED in $SEEDS
     do
-      NODE_ID=$(fetch_node_id $SEED)
+      NODE_ID=$(curl -sL --fail -m 10 $SEED:$PORT_RPC/status | jq -r .result.node_info.id) || continue
       SEED="$NODE_ID@$SEED:$PORT_P2P"
       if [[ "$SEED_LIST" == "" ]]; then
         SEED_LIST=$SEED

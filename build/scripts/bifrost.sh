@@ -28,11 +28,25 @@ if [ $? -gt 0 ]; then
 fi
 
 if [ ! -z "$PEER" ]; then
-    # check if we have a hostname we extract the IP
-    if ! expr "$PEER" : '[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*$' >/dev/null; then
-      PEER=$(host $PEER | awk '{print $4}')
-    fi
-    PEER="/ip4/$PEER/tcp/5040/ipfs/$(curl http://$PEER:6040/p2pid)"
+    OLD_IFS=$IFS
+    IFS=","
+    SEED_LIST=""
+    for SEED in $PEER
+    do
+      # check if we have a hostname we extract the IP
+      if ! expr "$SEED" : '[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*$' >/dev/null; then
+        SEED=$(host $SEED | awk '{print $4}')
+      fi
+      SEED_ID=$(curl -m 10 -sL --fail http://$SEED:6040/p2pid) || continue
+      SEED="/ip4/$SEED/tcp/5040/ipfs/$SEED_ID"
+      if [[ "$SEED_LIST" == "" ]]; then
+        SEED_LIST="\"$SEED\""
+      else
+        SEED_LIST="$SEED_LIST,\"$SEED\""
+      fi
+    done
+    IFS=$OLD_IFS
+    PEER=$SEED_LIST
 fi
 
 OBSERVER_PATH=$DB_PATH/bifrost/observer/
@@ -117,9 +131,7 @@ if [ ! -f /etc/bifrost/config.json ]; then
         }
       ],
       \"tss\": {
-          \"bootstrap_peers\": [
-            \"$PEER\"
-          ],
+          \"bootstrap_peers\": [$PEER],
           \"rendezvous\": \"asgard\",
           \"external_ip\": \"$EXTERNAL_IP\",
           \"p2p_port\": 5040,
