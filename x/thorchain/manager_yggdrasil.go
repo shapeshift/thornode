@@ -102,26 +102,6 @@ func (ymgr YggMgrV1) Fund(ctx cosmos.Context, mgr Manager, constAccessor constan
 		return fmt.Errorf("cannot send more yggdrasil funds while transactions are pending (%s: %d)", ygg.PubKey, pendingTxCount)
 	}
 
-	// calculate the total value of funds of this yggdrasil vault
-	totalValue := cosmos.ZeroUint()
-	for _, coin := range ygg.Coins {
-		if coin.Asset.IsRune() {
-			totalValue = totalValue.Add(coin.Amount)
-			continue
-		}
-		for _, pool := range pools {
-			if pool.Asset.Equals(coin.Asset) {
-				totalValue = totalValue.Add(pool.AssetValueInRune(coin.Amount))
-			}
-		}
-	}
-
-	// if the ygg total value is more than 25% bond, funds aren't low enough
-	// yet to top up
-	if totalValue.MulUint64(4).GTE(na.Bond) {
-		return nil
-	}
-
 	yggFundLimit, err := ymgr.keeper.GetMimir(ctx, constants.YggFundLimit.String())
 	if yggFundLimit < 0 || err != nil {
 		yggFundLimit = constAccessor.GetInt64Value(constants.YggFundLimit)
