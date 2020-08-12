@@ -1,3 +1,5 @@
+// +build !testnet,!mocknet
+
 package cmd
 
 const (
