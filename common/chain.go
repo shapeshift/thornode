@@ -85,6 +85,8 @@ func (c Chain) GetSigningAlgo() keys.SigningAlgo {
 // GetGasAsset chain's base asset
 func (c Chain) GetGasAsset() Asset {
 	switch c {
+	case THORChain:
+		return RuneNative
 	case BNBChain:
 		return BNBAsset
 	case BTCChain:
