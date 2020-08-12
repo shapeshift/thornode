@@ -504,7 +504,7 @@ func (s *BitcoinSuite) TestGetChain(c *C) {
 
 func (s *BitcoinSuite) TestGetAddress(c *C) {
 	os.Setenv("NET", "mainnet")
-	pubkey := common.PubKey("thorpub1addwnpepqt7qug8vk9r3saw8n4r803ydj2g3dqwx0mvq5akhnze86fc536xcy2cr8a2")
+	pubkey := common.PubKey("tthorpub1addwnpepqt7qug8vk9r3saw8n4r803ydj2g3dqwx0mvq5akhnze86fc536xcycgtrnv")
 	addr := s.client.GetAddress(pubkey)
 	c.Assert(addr, Equals, "bc1q2gjc0rnhy4nrxvuklk6ptwkcs9kcr59mcl2q9j")
 }
