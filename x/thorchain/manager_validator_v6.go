@@ -840,18 +840,34 @@ func (vm *validatorMgrV6) RequestYggReturn(ctx cosmos.Context, node NodeAccount,
 }
 
 func (vm *validatorMgrV6) recallYggFunds(ctx cosmos.Context, mgr Manager) error {
-	nodes, err := vm.k.ListNodeAccountsWithBond(ctx)
-	if err != nil {
-		return fmt.Errorf("fail to list all node accounts: %w", err)
+	iter := vm.k.GetVaultIterator(ctx)
+	defer iter.Close()
+	vaults := Vaults{}
+	for ; iter.Valid(); iter.Next() {
+		var vault Vault
+		if err := vm.k.Cdc().UnmarshalBinaryBare(iter.Value(), &vault); err != nil {
+			return fmt.Errorf("fail to unmarshal vault, %w", err)
+		}
+		if vault.IsYggdrasil() && vault.HasFunds() {
+			vaults = append(vaults, vault)
+		}
 	}
 
-	// request every node to return fund
-	for _, na := range nodes {
+	if len(vaults) == 0 {
+		return nil
+	}
+
+	for _, vault := range vaults {
+		na, err := vm.k.GetNodeAccountByPubKey(ctx, vault.PubKey)
+		if err != nil {
+			ctx.Logger().Error("fail to get node account", "error", err)
+			continue
+		}
 		if err := vm.RequestYggReturn(ctx, na, mgr); err != nil {
 			return fmt.Errorf("fail to request yggdrasil fund back: %w", err)
 		}
 	}
-	return nil
+	return fmt.Errorf("some yggdrasil vaults (%d) still have funds", len(vaults))
 }
 
 // setupValidatorNodes it is one off it only get called when genesis
