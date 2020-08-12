@@ -7,11 +7,16 @@ import (
 
 	"gitlab.com/thorchain/thornode/bifrost/thorclient/types"
 	"gitlab.com/thorchain/thornode/common"
+	"gitlab.com/thorchain/thornode/x/thorchain"
 )
 
 type StorageSuite struct{}
 
 var _ = Suite(&StorageSuite{})
+
+func (s *StorageSuite) SetUpSuite(c *C) {
+	thorchain.SetupConfigForTest()
+}
 
 func (s *StorageSuite) TestStorage(c *C) {
 	store, err := NewSignerStore("", "my secret passphrase")
@@ -32,7 +37,7 @@ func (s *StorageSuite) TestStorage(c *C) {
 	c.Assert(store.Remove(item), IsNil)
 	c.Check(store.Has(item.Key()), Equals, false)
 
-	pk := common.PubKey("thorpub1addwnpepqfup3y8p0egd7ml7vrnlxgl3wvnp89mpn0tjpj0p2nm2gh0n9hlrv3mvmnz")
+	pk := common.PubKey("tthorpub1addwnpepqfup3y8p0egd7ml7vrnlxgl3wvnp89mpn0tjpj0p2nm2gh0n9hlrvrtylay")
 
 	spent := NewTxOutStoreItem(10, types.TxOutItem{Chain: common.BNBChain, VaultPubKey: pk, Memo: "spent"})
 	spent.Status = TxSpent
@@ -49,8 +54,8 @@ func (s *StorageSuite) TestStorage(c *C) {
 	items = store.List()
 	c.Assert(items, HasLen, 4)
 	c.Check(items[0].TxOutItem.Memo, Equals, "boo")
-	c.Check(items[1].TxOutItem.Memo, Equals, "foo", Commentf("%s", items[1].TxOutItem.Memo))
-	c.Check(items[2].TxOutItem.Memo, Equals, "bar", Commentf("%s", items[2].TxOutItem.Memo))
+	c.Check(items[1].TxOutItem.Memo, Equals, "bar", Commentf("%s", items[1].TxOutItem.Memo))
+	c.Check(items[2].TxOutItem.Memo, Equals, "foo", Commentf("%s", items[2].TxOutItem.Memo))
 	c.Check(items[3].TxOutItem.Memo, Equals, "baz")
 
 	ordered := store.OrderedLists()
