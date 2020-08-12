@@ -79,7 +79,7 @@ func (s *BitcoinSignerSuite) SetUpTest(c *C) {
 	thorKeys := thorclient.NewKeysWithKeybase(kb, info, cfg.SignerPasswd)
 
 	s.server = httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		if req.RequestURI == "/thorchain/vaults/thorpub1addwnpepqts24euwrgly2vtez3zdvusmk6u3cwf8leuzj8m4ynvmv5cst7us2vltqrh/signers" {
+		if req.RequestURI == "/thorchain/vaults/tthorpub1addwnpepqts24euwrgly2vtez3zdvusmk6u3cwf8leuzj8m4ynvmv5cst7us270ryd3/signers" {
 			_, err := rw.Write([]byte("[]"))
 			c.Assert(err, IsNil)
 		} else {
@@ -204,7 +204,7 @@ func (s *BitcoinSignerSuite) TestSignTxHappyPathWithPrivateKey(c *C) {
 	txOutItem := stypes.TxOutItem{
 		Chain:       common.BTCChain,
 		ToAddress:   addr,
-		VaultPubKey: "thorpub1addwnpepqw2k68efthm08f0f5akhjs6fk5j2pze4wkwt4fmnymf9yd463puru988m2y",
+		VaultPubKey: "tthorpub1addwnpepqw2k68efthm08f0f5akhjs6fk5j2pze4wkwt4fmnymf9yd463puruhh0lyz",
 		SeqNo:       0,
 		Coins: common.Coins{
 			common.NewCoin(common.BTCAsset, cosmos.NewUint(10)),
@@ -240,14 +240,14 @@ func (s *BitcoinSignerSuite) TestSignTxHappyPathWithPrivateKey(c *C) {
 }
 
 func (s *BitcoinSignerSuite) TestSignTxWithTSS(c *C) {
-	pubkey, err := common.NewPubKey("thorpub1addwnpepqts24euwrgly2vtez3zdvusmk6u3cwf8leuzj8m4ynvmv5cst7us2vltqrh")
+	pubkey, err := common.NewPubKey("tthorpub1addwnpepqts24euwrgly2vtez3zdvusmk6u3cwf8leuzj8m4ynvmv5cst7us270ryd3")
 	c.Assert(err, IsNil)
 	addr, err := pubkey.GetAddress(common.BTCChain)
 	c.Assert(err, IsNil)
 	txOutItem := stypes.TxOutItem{
 		Chain:       common.BTCChain,
 		ToAddress:   addr,
-		VaultPubKey: "thorpub1addwnpepqts24euwrgly2vtez3zdvusmk6u3cwf8leuzj8m4ynvmv5cst7us2vltqrh",
+		VaultPubKey: "tthorpub1addwnpepqts24euwrgly2vtez3zdvusmk6u3cwf8leuzj8m4ynvmv5cst7us270ryd3",
 		SeqNo:       0,
 		Coins: common.Coins{
 			common.NewCoin(common.BTCAsset, cosmos.NewUint(10)),
