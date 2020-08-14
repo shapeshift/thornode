@@ -77,6 +77,12 @@ if [ ! -f ~/.thord/config/genesis.json ]; then
           sleep 5
         done
 
+        sleep 10 # wait for thorchain to commit a block
+        # set node version
+        until printf "$SIGNER_PASSWD\n$SIGNER_PASSWD\n" | thorcli tx thorchain set-version --node tcp://$PEER:26657 --from $SIGNER_NAME --yes; do
+          sleep 5
+        done
+
     elif [[ "$NET" == "testnet" ]]; then
         # create a binance wallet
         gen_bnb_address
