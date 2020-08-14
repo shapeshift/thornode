@@ -114,7 +114,8 @@ func (k KVStore) GetStoreVersion(ctx cosmos.Context) int64 {
 	key := k.GetKey(ctx, prefixStoreVersion, "")
 	store := ctx.KVStore(k.storeKey)
 	if !store.Has([]byte(key)) {
-		return 1
+		// thornode start at version 0.6.0, thus when there is no store version , it return 6
+		return 6
 	}
 	var value int64
 	buf := store.Get([]byte(key))

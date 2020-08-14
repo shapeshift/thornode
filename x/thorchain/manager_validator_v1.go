@@ -55,6 +55,11 @@ func (vm *validatorMgrV1) BeginBlock(ctx cosmos.Context, constAccessor constants
 		return err
 	}
 
+	rotatePerBlockHeight, err := vm.k.GetMimir(ctx, constants.RotatePerBlockHeight.String())
+	if rotatePerBlockHeight < 0 || err != nil {
+		rotatePerBlockHeight = constAccessor.GetInt64Value(constants.RotatePerBlockHeight)
+	}
+
 	// when total active nodes is more than MinimumNodesForBFT + 2, start to churn node in and out
 	if minimumNodesForBFT+2 < int64(totalActiveNodes) {
 		badValidatorRate, err := vm.k.GetMimir(ctx, constants.BadValidatorRate.String())
@@ -69,6 +74,10 @@ func (vm *validatorMgrV1) BeginBlock(ctx cosmos.Context, constAccessor constants
 			oldValidatorRate = constAccessor.GetInt64Value(constants.OldValidatorRate)
 		}
 		if err := vm.markOldActor(ctx, oldValidatorRate); err != nil {
+			return err
+		}
+		// when the active nodes didn't upgrade , boot them out one at a time
+		if err := vm.markLowerVersion(ctx, rotatePerBlockHeight); err != nil {
 			return err
 		}
 	}
@@ -90,15 +99,11 @@ func (vm *validatorMgrV1) BeginBlock(ctx cosmos.Context, constAccessor constants
 	if desireValidatorSet < 0 || err != nil {
 		desireValidatorSet = constAccessor.GetInt64Value(constants.DesireValidatorSet)
 	}
-	rotatePerBlockHeight, err := vm.k.GetMimir(ctx, constants.RotatePerBlockHeight.String())
-	if rotatePerBlockHeight < 0 || err != nil {
-		rotatePerBlockHeight = constAccessor.GetInt64Value(constants.RotatePerBlockHeight)
-	}
 	rotateRetryBlocks := constAccessor.GetInt64Value(constants.RotateRetryBlocks)
 
 	// calculate if we need to retry a churn because we are overdue for a
 	// successful one
-	retryChurn := common.BlockHeight(ctx)-lastHeight > rotatePerBlockHeight && (common.BlockHeight(ctx)-lastHeight+rotatePerBlockHeight)%rotateRetryBlocks == 0
+	retryChurn := common.BlockHeight(ctx)-lastHeight > rotatePerBlockHeight && (common.BlockHeight(ctx)-lastHeight-rotatePerBlockHeight)%rotateRetryBlocks == 0
 
 	if common.BlockHeight(ctx)%rotatePerBlockHeight == 0 || retryChurn {
 		if retryChurn {
@@ -405,8 +410,15 @@ func (vm *validatorMgrV1) processRagnarok(ctx cosmos.Context, mgr Manager, const
 		return fmt.Errorf("fail to get ragnarok pending: %w", err)
 	}
 	if pending > 0 {
-		ctx.Logger().Info("awaiting previous ragnarok transction to clear before continuing", "nth", nth, "count", pending)
-		return nil
+		txOutQueue, err := vm.getPendingTxOut(ctx, constAccessor)
+		if err != nil {
+			ctx.Logger().Error("fail to get pending tx out item", "error", err)
+			return nil
+		}
+		if txOutQueue > 0 {
+			ctx.Logger().Info("awaiting previous ragnarok transaction to clear before continuing", "nth", nth, "count", pending)
+			return nil
+		}
 	}
 
 	nth++ // increment by 1
@@ -419,6 +431,25 @@ func (vm *validatorMgrV1) processRagnarok(ctx cosmos.Context, mgr Manager, const
 	vm.k.SetRagnarokNth(ctx, nth)
 
 	return nil
+}
+
+func (vm *validatorMgrV1) getPendingTxOut(ctx cosmos.Context, constAccessor constants.ConstantValues) (int64, error) {
+	signingTransactionPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
+	startHeight := common.BlockHeight(ctx) - signingTransactionPeriod
+	count := int64(0)
+	for height := startHeight; height <= common.BlockHeight(ctx); height++ {
+		txs, err := vm.k.GetTxOut(ctx, height)
+		if err != nil {
+			ctx.Logger().Error("fail to get tx out array from key value store", "error", err)
+			return 0, fmt.Errorf("fail to get tx out array from key value store: %w", err)
+		}
+		for _, tx := range txs.TxArray {
+			if tx.OutHash.IsEmpty() {
+				count++
+			}
+		}
+	}
+	return count, nil
 }
 
 // ragnarokProtocolStage1 - request all yggdrasil pool to return the fund
@@ -813,18 +844,34 @@ func (vm *validatorMgrV1) RequestYggReturn(ctx cosmos.Context, node NodeAccount,
 }
 
 func (vm *validatorMgrV1) recallYggFunds(ctx cosmos.Context, mgr Manager) error {
-	nodes, err := vm.k.ListNodeAccountsWithBond(ctx)
-	if err != nil {
-		return fmt.Errorf("fail to list all node accounts: %w", err)
+	iter := vm.k.GetVaultIterator(ctx)
+	defer iter.Close()
+	vaults := Vaults{}
+	for ; iter.Valid(); iter.Next() {
+		var vault Vault
+		if err := vm.k.Cdc().UnmarshalBinaryBare(iter.Value(), &vault); err != nil {
+			return fmt.Errorf("fail to unmarshal vault, %w", err)
+		}
+		if vault.IsYggdrasil() && vault.HasFunds() {
+			vaults = append(vaults, vault)
+		}
 	}
 
-	// request every node to return fund
-	for _, na := range nodes {
+	if len(vaults) == 0 {
+		return nil
+	}
+
+	for _, vault := range vaults {
+		na, err := vm.k.GetNodeAccountByPubKey(ctx, vault.PubKey)
+		if err != nil {
+			ctx.Logger().Error("fail to get node account", "error", err)
+			continue
+		}
 		if err := vm.RequestYggReturn(ctx, na, mgr); err != nil {
 			return fmt.Errorf("fail to request yggdrasil fund back: %w", err)
 		}
 	}
-	return nil
+	return fmt.Errorf("some yggdrasil vaults (%d) still have funds", len(vaults))
 }
 
 // setupValidatorNodes it is one off it only get called when genesis
@@ -1018,6 +1065,37 @@ func (vm *validatorMgrV1) markBadActor(ctx cosmos.Context, rate int64) error {
 		}
 	}
 	return nil
+}
+
+func (vm *validatorMgrV1) markLowerVersion(ctx cosmos.Context, rate int64) error {
+	if common.BlockHeight(ctx)%rate == 0 {
+		na, err := vm.findLowerVersionActor(ctx)
+		if err != nil {
+			return err
+		}
+		if !na.IsEmpty() {
+			if err := vm.markActor(ctx, na, "for version lower than minimum join version"); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// findLowerVersionActor go through the active node account list , find the node account that has version
+// that is lower than the minimum join version
+func (vm *validatorMgrV1) findLowerVersionActor(ctx cosmos.Context) (NodeAccount, error) {
+	minimumVersion := vm.k.GetMinJoinVersion(ctx)
+	activeNodes, err := vm.k.ListNodeAccountsByStatus(ctx, NodeActive)
+	if err != nil {
+		return NodeAccount{}, err
+	}
+	for _, na := range activeNodes {
+		if na.Version.LT(minimumVersion) {
+			return na, nil
+		}
+	}
+	return NodeAccount{}, nil
 }
 
 // find any actor that are ready to become "ready" status
