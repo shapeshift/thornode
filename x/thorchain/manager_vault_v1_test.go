@@ -12,11 +12,11 @@ import (
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
-type VaultManagerTestSuite struct{}
+type VaultManagerV1TestSuite struct{}
 
-var _ = Suite(&VaultManagerTestSuite{})
+var _ = Suite(&VaultManagerV1TestSuite{})
 
-func (s *VaultManagerTestSuite) SetUpSuite(c *C) {
+func (s *VaultManagerV1TestSuite) SetUpSuite(c *C) {
 	SetupConfigForTest()
 }
 
@@ -139,7 +139,7 @@ func (k *TestRagnarokChainKeeper) IsActiveObserver(_ cosmos.Context, _ cosmos.Ac
 	return true
 }
 
-func (s *VaultManagerTestSuite) TestRagnarokChain(c *C) {
+func (s *VaultManagerV1TestSuite) TestRagnarokChain(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	ctx = ctx.WithBlockHeight(100000)
 	ver := constants.SWVersion
@@ -246,7 +246,7 @@ func (s *VaultManagerTestSuite) TestRagnarokChain(c *C) {
 	helper.failGetActiveAsgardVault = false
 }
 
-func (s *VaultManagerTestSuite) TestUpdateVaultData(c *C) {
+func (s *VaultManagerV1TestSuite) TestUpdateVaultData(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	ver := constants.SWVersion
 	constAccessor := constants.GetConstantValues(ver)
@@ -302,7 +302,7 @@ func (s *VaultManagerTestSuite) TestUpdateVaultData(c *C) {
 	c.Assert(vaultMgr.UpdateVaultData(ctx, constAccessor, mgr.GasMgr(), mgr.EventMgr()), NotNil)
 }
 
-func (s *VaultManagerTestSuite) TestCalcBlockRewards(c *C) {
+func (s *VaultManagerV1TestSuite) TestCalcBlockRewards(c *C) {
 	mgr := NewDummyMgr()
 	vaultMgr := NewVaultMgrV1(keeper.KVStoreDummy{}, mgr.TxOutStore(), mgr.EventMgr())
 
@@ -341,7 +341,7 @@ func (s *VaultManagerTestSuite) TestCalcBlockRewards(c *C) {
 	c.Check(stakerD.Uint64(), Equals, uint64(0), Commentf("%d", poolR.Uint64()))
 }
 
-func (s *VaultManagerTestSuite) TestCalcPoolDeficit(c *C) {
+func (s *VaultManagerV1TestSuite) TestCalcPoolDeficit(c *C) {
 	pool1Fees := cosmos.NewUint(1000)
 	pool2Fees := cosmos.NewUint(3000)
 	totalFees := cosmos.NewUint(4000)
@@ -435,7 +435,7 @@ func (h *VaultManagerTestHelpKeeper) GetPools(ctx cosmos.Context) (Pools, error)
 	return h.Keeper.GetPools(ctx)
 }
 
-func (*VaultManagerTestSuite) TestProcessGenesisSetup(c *C) {
+func (*VaultManagerV1TestSuite) TestProcessGenesisSetup(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	ver := constants.SWVersion
 	constAccessor := constants.GetConstantValues(ver)
@@ -487,21 +487,7 @@ func (*VaultManagerTestSuite) TestProcessGenesisSetup(c *C) {
 	helper.failGetActiveAsgardVault = false
 }
 
-func (*VaultManagerTestSuite) TestGetTotalActiveNodeWithBond(c *C) {
-	ctx, k := setupKeeperForTest(c)
-	helper := NewVaultGenesisSetupTestHelper(k)
-	helper.failToListActiveAccounts = true
-	n, err := getTotalActiveNodeWithBond(ctx, helper)
-	c.Assert(err, NotNil)
-	c.Assert(n, Equals, int64(0))
-	helper.failToListActiveAccounts = false
-	helper.SetNodeAccount(ctx, GetRandomNodeAccount(NodeActive))
-	n, err = getTotalActiveNodeWithBond(ctx, helper)
-	c.Assert(err, IsNil)
-	c.Assert(n, Equals, int64(1))
-}
-
-func (*VaultManagerTestSuite) TestGetTotalActiveBond(c *C) {
+func (*VaultManagerV1TestSuite) TestGetTotalActiveBond(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	helper := NewVaultGenesisSetupTestHelper(k)
 	mgr := NewManagers(helper)
@@ -518,7 +504,7 @@ func (*VaultManagerTestSuite) TestGetTotalActiveBond(c *C) {
 	c.Assert(bond.Uint64() > 0, Equals, true)
 }
 
-func (*VaultManagerTestSuite) TestGetTotalStakedRune(c *C) {
+func (*VaultManagerV1TestSuite) TestGetTotalStakedRune(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	helper := NewVaultGenesisSetupTestHelper(k)
 	mgr := NewManagers(helper)
@@ -536,7 +522,7 @@ func (*VaultManagerTestSuite) TestGetTotalStakedRune(c *C) {
 	c.Assert(totalStaked.Equal(p.BalanceRune), Equals, true)
 }
 
-func (*VaultManagerTestSuite) TestPayPoolRewards(c *C) {
+func (*VaultManagerV1TestSuite) TestPayPoolRewards(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	helper := NewVaultGenesisSetupTestHelper(k)
 	mgr := NewManagers(helper)
@@ -553,7 +539,7 @@ func (*VaultManagerTestSuite) TestPayPoolRewards(c *C) {
 	c.Assert(vaultMgr.payPoolRewards(ctx, []cosmos.Uint{cosmos.NewUint(100 * common.One)}, Pools{p}), NotNil)
 }
 
-func (*VaultManagerTestSuite) TestFindChainsToRetire(c *C) {
+func (*VaultManagerV1TestSuite) TestFindChainsToRetire(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	helper := NewVaultGenesisSetupTestHelper(k)
 	mgr := NewManagers(helper)
@@ -574,7 +560,7 @@ func (*VaultManagerTestSuite) TestFindChainsToRetire(c *C) {
 	helper.failGetRetiringAsgardVault = false
 }
 
-func (*VaultManagerTestSuite) TestRecallChainFunds(c *C) {
+func (*VaultManagerV1TestSuite) TestRecallChainFunds(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	helper := NewVaultGenesisSetupTestHelper(k)
 	mgr := NewManagers(helper)
