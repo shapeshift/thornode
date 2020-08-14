@@ -175,7 +175,7 @@ func (am AppModule) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.V
 		newPoolCycle = constantValues.GetInt64Value(constants.NewPoolCycle)
 	}
 	// Enable a pool every newPoolCycle
-	if common.BlockHeight(ctx)%newPoolCycle == 0 {
+	if common.BlockHeight(ctx)%newPoolCycle == 0 && !am.keeper.RagnarokInProgress(ctx) {
 		if err := enableNextPool(ctx, am.keeper, am.mgr.EventMgr()); err != nil {
 			ctx.Logger().Error("Unable to enable a pool", "error", err)
 		}
