@@ -97,31 +97,45 @@ func (h LeaveHandler) handle(ctx cosmos.Context, msg MsgLeave, version semver.Ve
 			nodeAcc.LeaveHeight = common.BlockHeight(ctx)
 		}
 	} else {
-		// NOTE: there is an edge case, where the first node doesn't have a
-		// vault (it was destroyed when we successfully migrated funds from
-		// their address to a new TSS vault
-		if !h.keeper.VaultExists(ctx, nodeAcc.PubKeySet.Secp256k1) {
-			if err := refundBond(ctx, msg.Tx, cosmos.ZeroUint(), &nodeAcc, h.keeper, h.mgr); err != nil {
-				return ErrInternal(err, "fail to refund bond")
+		vaults, err := h.keeper.GetAsgardVaultsByStatus(ctx, RetiringVault)
+		if err != nil {
+			return ErrInternal(err, "fail to get retiring vault")
+		}
+		isMemberOfRetiringVault := false
+		for _, v := range vaults {
+			if v.Membership.Contains(nodeAcc.PubKeySet.Secp256k1) {
+				isMemberOfRetiringVault = true
+				ctx.Logger().Info("node account is still part of the retiring vault,can't return bond yet")
+				break
 			}
-			nodeAcc.UpdateStatus(NodeDisabled, common.BlockHeight(ctx))
-		} else {
-			// given the node is not active, they should not have Yggdrasil pool either
-			// but let's check it anyway just in case
-			vault, err := h.keeper.GetVault(ctx, nodeAcc.PubKeySet.Secp256k1)
-			if err != nil {
-				return ErrInternal(err, "fail to get vault pool")
-			}
-			if vault.IsYggdrasil() {
-				if !vault.HasFunds() {
-					// node is not active , they are free to leave , refund them
-					if err := refundBond(ctx, msg.Tx, cosmos.ZeroUint(), &nodeAcc, h.keeper, h.mgr); err != nil {
-						return ErrInternal(err, "fail to refund bond")
-					}
-					nodeAcc.UpdateStatus(NodeDisabled, common.BlockHeight(ctx))
-				} else {
-					if err := h.mgr.ValidatorMgr().RequestYggReturn(ctx, nodeAcc, h.mgr); err != nil {
-						return ErrInternal(err, "fail to request yggdrasil return fund")
+		}
+		if !isMemberOfRetiringVault {
+			// NOTE: there is an edge case, where the first node doesn't have a
+			// vault (it was destroyed when we successfully migrated funds from
+			// their address to a new TSS vault
+			if !h.keeper.VaultExists(ctx, nodeAcc.PubKeySet.Secp256k1) {
+				if err := refundBond(ctx, msg.Tx, cosmos.ZeroUint(), &nodeAcc, h.keeper, h.mgr); err != nil {
+					return ErrInternal(err, "fail to refund bond")
+				}
+				nodeAcc.UpdateStatus(NodeDisabled, common.BlockHeight(ctx))
+			} else {
+				// given the node is not active, they should not have Yggdrasil pool either
+				// but let's check it anyway just in case
+				vault, err := h.keeper.GetVault(ctx, nodeAcc.PubKeySet.Secp256k1)
+				if err != nil {
+					return ErrInternal(err, "fail to get vault pool")
+				}
+				if vault.IsYggdrasil() {
+					if !vault.HasFunds() {
+						// node is not active , they are free to leave , refund them
+						if err := refundBond(ctx, msg.Tx, cosmos.ZeroUint(), &nodeAcc, h.keeper, h.mgr); err != nil {
+							return ErrInternal(err, "fail to refund bond")
+						}
+						nodeAcc.UpdateStatus(NodeDisabled, common.BlockHeight(ctx))
+					} else {
+						if err := h.mgr.ValidatorMgr().RequestYggReturn(ctx, nodeAcc, h.mgr); err != nil {
+							return ErrInternal(err, "fail to request yggdrasil return fund")
+						}
 					}
 				}
 			}
