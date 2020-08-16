@@ -176,6 +176,21 @@ fetch_genesis () {
     cat ~/.thord/config/genesis.json
 }
 
+fetch_genesis_from_seeds () {
+    SEEDS=$1
+    OLD_IFS=$IFS
+    IFS=","
+    SEED_LIST=""
+    for SEED in $SEEDS
+    do
+      curl -sL --fail -m 10 $SEED:$PORT_RPC/genesis | jq .result.genesis > ~/.thord/config/genesis.json || continue
+      thord validate-genesis
+      cat ~/.thord/config/genesis.json
+      break
+    done
+    IFS=$OLD_IFS
+}
+
 fetch_node_id () {
     until curl -s "$1:$PORT_RPC" > /dev/null; do
         sleep 3
