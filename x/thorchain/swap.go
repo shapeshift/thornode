@@ -251,6 +251,9 @@ func calcAssetEmission(X, x, Y cosmos.Uint) cosmos.Uint {
 	// ( x * X * Y ) / ( x + X )^2
 	numerator := x.Mul(X).Mul(Y)
 	denominator := x.Add(X).Mul(x.Add(X))
+	if denominator.IsZero() {
+		return cosmos.ZeroUint()
+	}
 	return numerator.Quo(denominator)
 }
 
@@ -259,6 +262,9 @@ func calcLiquidityFee(X, x, Y cosmos.Uint) cosmos.Uint {
 	// ( x^2 *  Y ) / ( x + X )^2
 	numerator := x.Mul(x).Mul(Y)
 	denominator := x.Add(X).Mul(x.Add(X))
+	if denominator.IsZero() {
+		return cosmos.ZeroUint()
+	}
 	return numerator.Quo(denominator)
 }
 
@@ -273,6 +279,10 @@ func calcTradeSlip(Xi, xi cosmos.Uint) cosmos.Uint {
 	// x * (2*X + x) / (X * X)
 	numD := xD.Mul((dec2.Mul(XD)).Add(xD))
 	denD := XD.Mul(XD)
+
+	if denD.IsZero() {
+		return cosmos.ZeroUint()
+	}
 	tradeSlipD := numD.Quo(denD) // Division with DECs
 
 	tradeSlip := tradeSlipD.Mul(dec10k)                             // Adds 5 0's
