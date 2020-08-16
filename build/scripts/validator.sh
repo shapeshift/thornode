@@ -31,16 +31,20 @@ if [ ! -f ~/.thord/config/genesis.json ]; then
     NODE_ADDRESS=$(echo $SIGNER_PASSWD | thorcli keys show $SIGNER_NAME -a)
     init_chain $NODE_ADDRESS
 
-    fetch_genesis $PEER
-
-    # add persistent peer tendermint config
     if [[ "$PEER" != "none" ]]; then
+      fetch_genesis $PEER
+
+      # add persistent peer tendermint config
       NODE_ID=$(fetch_node_id $PEER)
       peer_list $NODE_ID $PEER
     fi
 
-    # add seeds tendermint config
-    [[ "$SEEDS" != "none" ]] && seeds_list $SEEDS
+    if [[ "$SEEDS" != "none" ]]; then
+      fetch_genesis_from_seeds $SEEDS
+
+      # add seeds tendermint config
+      seeds_list $SEEDS
+    fi
 
     # enable telemetry through prometheus metrics endpoint
     enable_telemetry
