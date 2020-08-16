@@ -47,7 +47,6 @@ func (vm *SwapQv1) FetchQueue(ctx cosmos.Context) ([]MsgSwap, error) {
 // EndBlock trigger the real swap to be processed
 func (vm *SwapQv1) EndBlock(ctx cosmos.Context, mgr Manager, version semver.Version, constAccessor constants.ConstantValues) error {
 	handler := NewSwapHandler(vm.k, mgr)
-
 	msgs, err := vm.FetchQueue(ctx)
 	if err != nil {
 		ctx.Logger().Error("fail to fetch swap queue from store", "error", err)

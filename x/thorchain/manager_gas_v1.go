@@ -105,7 +105,6 @@ func (gm *GasMgrV1) ProcessGas(ctx cosmos.Context, keeper keeper.Keeper) {
 				runeGas = cosmos.ZeroUint()
 			}
 		}
-
 		pool.BalanceAsset = common.SafeSub(pool.BalanceAsset, gas.Amount)
 
 		if err := keeper.SetPool(ctx, pool); err != nil {

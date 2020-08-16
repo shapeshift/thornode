@@ -1,11 +1,8 @@
 package thorchain
 
 import (
-	"errors"
-
 	"github.com/blang/semver"
 
-	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
@@ -64,42 +61,16 @@ func (h SwapHandler) handle(ctx cosmos.Context, msg MsgSwap, version semver.Vers
 
 func (h SwapHandler) handleV1(ctx cosmos.Context, msg MsgSwap, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	transactionFee := constAccessor.GetInt64Value(constants.TransactionFee)
-	amount, events, swapErr := swap(
+	_, _, swapErr := swap(
 		ctx,
 		h.keeper,
 		msg.Tx,
 		msg.TargetAsset,
 		msg.Destination,
 		msg.TradeTarget,
-		cosmos.NewUint(uint64(transactionFee)))
+		cosmos.NewUint(uint64(transactionFee)), h.mgr)
 	if swapErr != nil {
 		return nil, swapErr
-	}
-	for _, evt := range events {
-		if err := h.mgr.EventMgr().EmitSwapEvent(ctx, evt); err != nil {
-			ctx.Logger().Error("fail to emit swap event", "error", err)
-		}
-		if err := h.keeper.AddToLiquidityFees(ctx, evt.Pool, evt.LiquidityFeeInRune); err != nil {
-			return nil, err
-		}
-	}
-
-	toi := &TxOutItem{
-		Chain:     msg.TargetAsset.Chain,
-		InHash:    msg.Tx.ID,
-		ToAddress: msg.Destination,
-		Coin:      common.NewCoin(msg.TargetAsset, amount),
-	}
-	ok, err := h.mgr.TxOutStore().TryAddTxOutItem(ctx, h.mgr, toi)
-	if err != nil {
-		// when the emit asset is not enough to pay for tx fee, consider it as a success
-		if !errors.Is(err, ErrNotEnoughToPayFee) {
-			return nil, ErrInternal(err, "fail to add outbound tx")
-		}
-		ok = true
-	}
-	if !ok {
-		return nil, errFailAddOutboundTx
 	}
 
 	return &cosmos.Result{}, nil
