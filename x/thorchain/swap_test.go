@@ -397,4 +397,26 @@ func (s SwapSuite) TestCalculators(c *C) {
 	c.Check(calcAssetEmission(X, x, Y).Uint64(), Equals, uint64(826446280))
 	c.Check(calcLiquidityFee(X, x, Y).Uint64(), Equals, uint64(82644628))
 	c.Check(calcTradeSlip(X, x).Uint64(), Equals, uint64(2100))
+
+	// side of the pool is zero
+	X = cosmos.NewUint(100 * common.One)
+	x = cosmos.NewUint(10 * common.One)
+	Y = cosmos.NewUint(0 * common.One)
+
+	// These calculations are verified by using the spreadsheet
+	// https://docs.google.com/spreadsheets/d/1wJHYBRKBdw_WP7nUyVnkySPkOmPUNoiRGsEqgBVVXKU/edit#gid=0
+	c.Check(calcAssetEmission(X, x, Y).Uint64(), Equals, uint64(0))
+	c.Check(calcLiquidityFee(X, x, Y).Uint64(), Equals, uint64(0))
+	c.Check(calcTradeSlip(X, x).Uint64(), Equals, uint64(2100), Commentf("%d", calcTradeSlip(X, x).Uint64()))
+
+	// side of the pool is zero
+	X = cosmos.NewUint(0 * common.One)
+	x = cosmos.NewUint(10 * common.One)
+	Y = cosmos.NewUint(100 * common.One)
+
+	// These calculations are verified by using the spreadsheet
+	// https://docs.google.com/spreadsheets/d/1wJHYBRKBdw_WP7nUyVnkySPkOmPUNoiRGsEqgBVVXKU/edit#gid=0
+	c.Check(calcAssetEmission(X, x, Y).Uint64(), Equals, uint64(0))
+	c.Check(calcLiquidityFee(X, x, Y).Uint64(), Equals, uint64(100*common.One), Commentf("%d", calcLiquidityFee(X, x, Y).Uint64()))
+	c.Check(calcTradeSlip(X, x).Uint64(), Equals, uint64(0))
 }
