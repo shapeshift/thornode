@@ -175,6 +175,7 @@ func (h TssHandler) handleV1(ctx cosmos.Context, msg MsgTssPool, version semver.
 					if slashBond.GT(na.Bond) {
 						slashBond = na.Bond
 					}
+					ctx.Logger().Info("fail keygen , slash bond", "address", na.NodeAddress, "amount", slashBond.String())
 					na.Bond = common.SafeSub(na.Bond, slashBond)
 					if common.RuneAsset().Chain.Equals(common.THORChain) {
 						coin := common.NewCoin(common.RuneNative, slashBond)

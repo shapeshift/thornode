@@ -142,11 +142,28 @@ func (tos *TxOutStorageV1) prepareTxOutItem(ctx cosmos.Context, toi *TxOutItem) 
 			}
 
 			// check that this vault has enough funds to satisfy the request
+			if !toi.Coin.Amount.GT(vault.GetCoin(toi.Coin.Asset).Amount) {
+				toi.VaultPubKey = vault.PubKey
+			}
+		}
+
+		// couldn't find an active asgard to send from , so use retiring asgard
+		// usually active asgard will be able to send out fund , however there are some edge cases active asgard
+		// might not have enough fund , for example , newly created asgard, fund migration is till on the way
+		if toi.VaultPubKey.IsEmpty() {
+			active, err := tos.keeper.GetAsgardVaultsByStatus(ctx, RetiringVault)
+			if err != nil {
+				ctx.Logger().Error("fail to get retiring vaults", "error", err)
+			}
+			vault := active.SelectByMaxCoin(toi.Coin.Asset)
+			if vault.IsEmpty() {
+				return false, fmt.Errorf("empty vault, cannot send out fund: %s", toi.Coin)
+			}
+
 			if toi.Coin.Amount.GT(vault.GetCoin(toi.Coin.Asset).Amount) {
 				// not enough funds
 				return false, fmt.Errorf("vault %s, does not have enough funds. Has %s, but requires %s", vault.PubKey, vault.GetCoin(toi.Coin.Asset), toi.Coin)
 			}
-
 			toi.VaultPubKey = vault.PubKey
 		}
 
