@@ -146,6 +146,9 @@ func (s *VaultManagerV1TestSuite) TestRagnarokChain(c *C) {
 	constAccessor := constants.GetConstantValues(ver)
 
 	activeVault := GetRandomVault()
+	activeVault.Coins = common.Coins{
+		common.NewCoin(common.BNBAsset, cosmos.NewUint(100*common.One)),
+	}
 	retireVault := GetRandomVault()
 	retireVault.Chains = common.Chains{common.BNBChain, common.BTCChain}
 	yggVault := GetRandomVault()
