@@ -99,7 +99,7 @@ func (HandlerUnstakeSuite) TestUnstakeHandler(c *C) {
 			PendingRune: cosmos.ZeroUint(),
 		},
 	}
-	ver := constants.SWVersion
+	ver := semver.MustParse("0.7.0")
 	constAccessor := constants.GetConstantValues(ver)
 	// Happy path , this is a round trip , first we stake, then we unstake
 	runeAddr := GetRandomRUNEAddress()
@@ -158,7 +158,7 @@ func (HandlerUnstakeSuite) TestUnstakeHandler_Validation(c *C) {
 			expectedResult: errUnstakeFailValidation,
 		},
 	}
-	ver := constants.SWVersion
+	ver := semver.MustParse("0.7.0")
 	constAccessor := constants.GetConstantValues(ver)
 	for _, tc := range testCases {
 		unstakeHandler := NewUnstakeHandler(k, NewDummyMgr())
@@ -223,7 +223,7 @@ func (HandlerUnstakeSuite) TestUnstakeHandler_mockFailScenarios(c *C) {
 			expectedResult: errInternal,
 		},
 	}
-	ver := constants.SWVersion
+	ver := semver.MustParse("0.7.0")
 	constAccessor := constants.GetConstantValues(ver)
 
 	for _, tc := range testCases {
