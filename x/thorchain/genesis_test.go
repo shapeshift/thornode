@@ -19,7 +19,7 @@ func (GenesisTestSuite) TestGenesis(c *C) {
 	c.Assert(ValidateGenesis(gs), IsNil)
 	content, err := ioutil.ReadFile("../../test/fixtures/genesis/genesis.json")
 	c.Assert(err, IsNil)
-
+	c.Assert(content, NotNil)
 	ctx, k = setupKeeperForTest(c)
 	var state GenesisState
 	c.Assert(ModuleCdc.UnmarshalJSON(content, &state), IsNil)

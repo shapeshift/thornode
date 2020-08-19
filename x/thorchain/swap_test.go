@@ -8,9 +8,9 @@ import (
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
@@ -79,6 +79,23 @@ func (k *TestSwapKeeper) GetGas(ctx cosmos.Context, _ common.Asset) ([]cosmos.Ui
 	return []cosmos.Uint{cosmos.NewUint(37500), cosmos.NewUint(30000)}, nil
 }
 
+func (k *TestSwapKeeper) GetAsgardVaultsByStatus(ctx cosmos.Context, status VaultStatus) (Vaults, error) {
+	vault := GetRandomVault()
+	vault.Coins = common.Coins{
+		common.NewCoin(common.BNBAsset, cosmos.NewUint(100*common.One)),
+	}
+	return Vaults{
+		vault,
+	}, nil
+}
+
+func (k *TestSwapKeeper) GetObservedTxInVoter(ctx cosmos.Context, hash common.TxID) (ObservedTxVoter, error) {
+	return ObservedTxVoter{
+		TxID: hash,
+	}, nil
+}
+func (k *TestSwapKeeper) AppendTxMarker(_ cosmos.Context, _ string, _ TxMarker) error { return nil }
+func (k *TestSwapKeeper) AppendTxOut(_ cosmos.Context, _ int64, _ *TxOutItem) error   { return nil }
 func (s *SwapSuite) TestSwap(c *C) {
 	poolStorage := &TestSwapKeeper{}
 	ctx, _ := setupKeeperForTest(c)
@@ -264,7 +281,10 @@ func (s *SwapSuite) TestSwap(c *C) {
 			"",
 		)
 		tx.Chain = common.BNBChain
-		amount, evts, err := swap(ctx, poolStorage, tx, item.target, item.destination, item.tradeTarget, cosmos.NewUint(1000_000))
+		m := NewManagers(poolStorage)
+		m.BeginBlock(ctx)
+
+		amount, evts, err := swap(ctx, poolStorage, tx, item.target, item.destination, item.tradeTarget, cosmos.NewUint(1000_000), m)
 		if item.expectedErr == nil {
 			c.Assert(err, IsNil)
 			c.Assert(evts, HasLen, item.events)
@@ -397,4 +417,26 @@ func (s SwapSuite) TestCalculators(c *C) {
 	c.Check(calcAssetEmission(X, x, Y).Uint64(), Equals, uint64(826446280))
 	c.Check(calcLiquidityFee(X, x, Y).Uint64(), Equals, uint64(82644628))
 	c.Check(calcTradeSlip(X, x).Uint64(), Equals, uint64(2100))
+
+	// side of the pool is zero
+	X = cosmos.NewUint(100 * common.One)
+	x = cosmos.NewUint(10 * common.One)
+	Y = cosmos.NewUint(0 * common.One)
+
+	// These calculations are verified by using the spreadsheet
+	// https://docs.google.com/spreadsheets/d/1wJHYBRKBdw_WP7nUyVnkySPkOmPUNoiRGsEqgBVVXKU/edit#gid=0
+	c.Check(calcAssetEmission(X, x, Y).Uint64(), Equals, uint64(0))
+	c.Check(calcLiquidityFee(X, x, Y).Uint64(), Equals, uint64(0))
+	c.Check(calcTradeSlip(X, x).Uint64(), Equals, uint64(2100), Commentf("%d", calcTradeSlip(X, x).Uint64()))
+
+	// side of the pool is zero
+	X = cosmos.NewUint(0 * common.One)
+	x = cosmos.NewUint(10 * common.One)
+	Y = cosmos.NewUint(100 * common.One)
+
+	// These calculations are verified by using the spreadsheet
+	// https://docs.google.com/spreadsheets/d/1wJHYBRKBdw_WP7nUyVnkySPkOmPUNoiRGsEqgBVVXKU/edit#gid=0
+	c.Check(calcAssetEmission(X, x, Y).Uint64(), Equals, uint64(0))
+	c.Check(calcLiquidityFee(X, x, Y).Uint64(), Equals, uint64(100*common.One), Commentf("%d", calcLiquidityFee(X, x, Y).Uint64()))
+	c.Check(calcTradeSlip(X, x).Uint64(), Equals, uint64(0))
 }

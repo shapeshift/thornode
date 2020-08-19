@@ -2,15 +2,16 @@
 
 source $(dirname "$0")/core.sh
 
-PEER="${PEER:=none}" # the hostname of a seed node
+SEEDS="${SEEDS:=none}" # the hostname of multiple seeds set as tendermint seeds
+PEER="${PEER:=none}" # the hostname of a seed node set as tendermint persistent peer
 PEER_API="${PEER_API:=$PEER}" # the hostname of a seed node API if different
 SIGNER_NAME="${SIGNER_NAME:=thorchain}"
 SIGNER_PASSWD="${SIGNER_PASSWD:=password}"
 BINANCE=${BINANCE:=$PEER:26660}
 
 if [ ! -f ~/.thord/config/genesis.json ]; then
-    if [[ "$PEER" == "none" ]]; then
-        echo "Missing PEER"
+    if [[ "$PEER" == "none" && "$SEEDS" == "none" ]]; then
+        echo "Missing PEER / SEEDS"
         exit 1
     fi
 
@@ -30,10 +31,20 @@ if [ ! -f ~/.thord/config/genesis.json ]; then
     NODE_ADDRESS=$(echo $SIGNER_PASSWD | thorcli keys show $SIGNER_NAME -a)
     init_chain $NODE_ADDRESS
 
-    fetch_genesis $PEER
+    if [[ "$PEER" != "none" ]]; then
+      fetch_genesis $PEER
 
-    NODE_ID=$(fetch_node_id $PEER)
-    peer_list $NODE_ID $PEER
+      # add persistent peer tendermint config
+      NODE_ID=$(fetch_node_id $PEER)
+      peer_list $NODE_ID $PEER
+    fi
+
+    if [[ "$SEEDS" != "none" ]]; then
+      fetch_genesis_from_seeds $SEEDS
+
+      # add seeds tendermint config
+      seeds_list $SEEDS
+    fi
 
     # enable telemetry through prometheus metrics endpoint
     enable_telemetry
@@ -67,6 +78,12 @@ if [ ! -f ~/.thord/config/genesis.json ]; then
 
         NODE_IP_ADDRESS=${EXTERNAL_IP:=$(curl -s http://whatismyip.akamai.com)}
         until printf "$SIGNER_PASSWD\n$SIGNER_PASSWD\n" | thorcli tx thorchain set-ip-address $NODE_IP_ADDRESS --node tcp://$PEER:26657 --from $SIGNER_NAME --yes; do
+          sleep 5
+        done
+
+        sleep 10 # wait for thorchain to commit a block
+        # set node version
+        until printf "$SIGNER_PASSWD\n$SIGNER_PASSWD\n" | thorcli tx thorchain set-version --node tcp://$PEER:26657 --from $SIGNER_NAME --yes; do
           sleep 5
         done
 

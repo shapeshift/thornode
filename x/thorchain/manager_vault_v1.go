@@ -91,6 +91,14 @@ func (vm *VaultMgrV1) EndBlock(ctx cosmos.Context, mgr Manager, constAccessor co
 	if len(active) == 0 {
 		return nil
 	}
+
+	for _, vault := range retiring {
+		if vault.LenPendingTxBlockHeights(common.BlockHeight(ctx), constAccessor) > 0 {
+			ctx.Logger().Info("Skipping the migration of funds while transactions are still pending")
+			return nil
+		}
+	}
+
 	for _, vault := range retiring {
 		if !vault.HasFunds() {
 			vault.Status = InactiveVault
@@ -102,11 +110,6 @@ func (vm *VaultMgrV1) EndBlock(ctx cosmos.Context, mgr Manager, constAccessor co
 
 		// move partial funds every 30 minutes
 		if (common.BlockHeight(ctx)-vault.StatusSince)%migrateInterval == 0 {
-			if vault.LenPendingTxBlockHeights(common.BlockHeight(ctx), constAccessor) > 0 {
-				ctx.Logger().Info("Skipping the migration of funds while transactions are still pending")
-				continue
-			}
-
 			for _, coin := range vault.Coins {
 				if coin.IsNative() {
 					continue
@@ -205,6 +208,11 @@ func (vm *VaultMgrV1) EndBlock(ctx cosmos.Context, mgr Manager, constAccessor co
 
 // TriggerKeygen generate a record to instruct signer kick off keygen process
 func (vm *VaultMgrV1) TriggerKeygen(ctx cosmos.Context, nas NodeAccounts) error {
+	halt, err := vm.k.GetMimir(ctx, "HaltChurning")
+	if halt > 0 && halt <= common.BlockHeight(ctx) && err == nil {
+		ctx.Logger().Info("churn event skipped due to mimir has halted churning")
+		return nil
+	}
 	var members common.PubKeys
 	for i := range nas {
 		members = append(members, nas[i].PubKeySet.Secp256k1)

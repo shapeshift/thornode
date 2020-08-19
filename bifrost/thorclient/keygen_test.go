@@ -47,7 +47,7 @@ func (s *KeygenSuite) TestGetKeygen(c *C) {
 	s.fixture = "../../test/fixtures/endpoints/keygen/template.json"
 
 	pk := types.GetRandomPubKey()
-	expectedKey, err := common.NewPubKey("thorpub1addwnpepq2kdyjkm6y9aa3kxl8wfaverka6pvkek2ygrmhx6sj3ec6h0fegwsgeslue")
+	expectedKey, err := common.NewPubKey("tthorpub1addwnpepq2kdyjkm6y9aa3kxl8wfaverka6pvkek2ygrmhx6sj3ec6h0fegws6fcmjl")
 	c.Assert(err, IsNil)
 	keygenBlock, err := s.bridge.GetKeygenBlock(1718, pk.String())
 	c.Assert(err, IsNil)

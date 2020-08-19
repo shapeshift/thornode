@@ -165,22 +165,20 @@ func (h TssKeysignHandler) updateVaultKeySign(ctx cosmos.Context, vaultPubKey co
 
 	// build signer list, exclude any node accounts in jail
 	signers := make(common.PubKeys, 0)
-	for _, mem := range members {
-		na, err := h.keeper.GetNodeAccountByPubKey(ctx, mem)
-		if err != nil {
-			ctx.Logger().Error("fail to get node account", "error", err)
-			continue
-		}
-		jail, err := h.keeper.GetNodeAccountJail(ctx, na.NodeAddress)
-		if err != nil {
-			ctx.Logger().Error("fail to get node account jail", "error", err)
-		}
-		if !jail.IsJailed(ctx) {
-			signers = append(signers, mem)
-		}
+	signers = h.getSignerCandidates(ctx, signers, members, NodeActive)
+
+	// not enough nodes to form keysign party , try to find some nodes that is not actively observing , and not jailed
+	// when scale down , the actively observing validator set will become smaller
+	if len(signers) < threshold {
+		signers = h.getSignerCandidates(ctx, signers, vault.Membership, NodeReady)
+		signers = h.getSignerCandidates(ctx, signers, vault.Membership, NodeStandby)
 	}
 
-	// if we don't have enough signer
+	// still doesn't have enough signer, let's add those node in Disable
+	if len(signers) < threshold {
+		signers = h.getSignerCandidates(ctx, signers, vault.Membership, NodeDisabled)
+	}
+	// still don't have enough signer , jail free
 	if len(signers) < threshold {
 		signers = vault.Membership
 	}
@@ -194,4 +192,32 @@ func (h TssKeysignHandler) updateVaultKeySign(ctx cosmos.Context, vaultPubKey co
 	}
 	vault.SigningParty = signerParty
 	return h.keeper.SetVault(ctx, vault)
+}
+
+func (h TssKeysignHandler) getSignerCandidates(ctx cosmos.Context, signers, candidates common.PubKeys, status NodeStatus) common.PubKeys {
+	for _, mem := range candidates {
+
+		if signers.Contains(mem) {
+			continue
+		}
+		na, err := h.keeper.GetNodeAccountByPubKey(ctx, mem)
+		if err != nil {
+			ctx.Logger().Error("fail to get node account", "error", err)
+			continue
+		}
+
+		if na.Status != status {
+			continue
+		}
+
+		jail, err := h.keeper.GetNodeAccountJail(ctx, na.NodeAddress)
+		if err != nil {
+			ctx.Logger().Error("fail to get node account jail", "error", err)
+		}
+		if jail.IsJailed(ctx) {
+			continue
+		}
+		signers = append(signers, mem)
+	}
+	return signers
 }

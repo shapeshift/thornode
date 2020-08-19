@@ -91,7 +91,7 @@ func (h SetNodeKeysHandler) handle(ctx cosmos.Context, msg MsgSetNodeKeys, versi
 	return nil, errBadVersion
 }
 
-// Handle a message to set node keys
+// handleV1 a message to set node keys
 func (h SetNodeKeysHandler) handleV1(ctx cosmos.Context, msg MsgSetNodeKeys, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	nodeAccount, err := h.keeper.GetNodeAccount(ctx, msg.Signer)
 	if err != nil {
@@ -128,14 +128,6 @@ func (h SetNodeKeysHandler) handleV1(ctx cosmos.Context, msg MsgSetNodeKeys, ver
 		if err := h.keeper.SetVaultData(ctx, vaultData); err != nil {
 			return nil, fmt.Errorf("fail to save vault data: %w", err)
 		}
-	}
-
-	// Set version number
-	setVersionMsg := NewMsgSetVersion(version, msg.Signer)
-	setVersionHandler := NewVersionHandler(h.keeper, h.mgr)
-	_, err = setVersionHandler.Run(ctx, setVersionMsg, version, constAccessor)
-	if err != nil {
-		return nil, fmt.Errorf("fail to set version(%s):%w", version, err)
 	}
 
 	ctx.EventManager().EmitEvent(

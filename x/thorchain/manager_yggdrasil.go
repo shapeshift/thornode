@@ -102,26 +102,6 @@ func (ymgr YggMgrV1) Fund(ctx cosmos.Context, mgr Manager, constAccessor constan
 		return fmt.Errorf("cannot send more yggdrasil funds while transactions are pending (%s: %d)", ygg.PubKey, pendingTxCount)
 	}
 
-	// calculate the total value of funds of this yggdrasil vault
-	totalValue := cosmos.ZeroUint()
-	for _, coin := range ygg.Coins {
-		if coin.Asset.IsRune() {
-			totalValue = totalValue.Add(coin.Amount)
-			continue
-		}
-		for _, pool := range pools {
-			if pool.Asset.Equals(coin.Asset) {
-				totalValue = totalValue.Add(pool.AssetValueInRune(coin.Amount))
-			}
-		}
-	}
-
-	// if the ygg total value is more than 25% bond, funds aren't low enough
-	// yet to top up
-	if totalValue.MulUint64(4).GTE(na.Bond) {
-		return nil
-	}
-
 	yggFundLimit, err := ymgr.keeper.GetMimir(ctx, constants.YggFundLimit.String())
 	if yggFundLimit < 0 || err != nil {
 		yggFundLimit = constAccessor.GetInt64Value(constants.YggFundLimit)
@@ -176,39 +156,51 @@ func (ymgr YggMgrV1) sendCoinsToYggdrasil(ctx cosmos.Context, coins common.Coins
 		return count, err
 	}
 
-	for _, coin := range coins {
-		// ignore amount 0
-		if coin.Amount.Equal(cosmos.ZeroUint()) {
-			continue
-		}
-		// select active vault to send funds from
-		vault := active.SelectByMaxCoin(coin.Asset)
-		if vault.IsEmpty() {
-			continue
-		}
-		if coin.Amount.GT(vault.GetCoin(coin.Asset).Amount) {
-			// not enough funds
-			continue
-		}
+	for i := 1; i <= 2; i++ {
+		// First iteration (1), we add gas assets. This is to ensure the vault
+		// has gas to send transactions as it needs to
+		// Second iteration (2), we add non-gas assets
+		for _, coin := range coins {
+			if i == 1 && !coin.Asset.Chain.GetGasAsset().Equals(coin.Asset) {
+				continue
+			}
+			if i == 2 && coin.Asset.Chain.GetGasAsset().Equals(coin.Asset) {
+				continue
+			}
 
-		to, err := ygg.PubKey.GetAddress(coin.Asset.Chain)
-		if err != nil {
-			ctx.Logger().Error("fail to get address for pubkey", "pubkey", ygg.PubKey, "chain", coin.Asset.Chain, "error", err)
-			continue
-		}
+			// ignore amount 0
+			if coin.Amount.Equal(cosmos.ZeroUint()) {
+				continue
+			}
+			// select active vault to send funds from
+			vault := active.SelectByMaxCoin(coin.Asset)
+			if vault.IsEmpty() {
+				continue
+			}
+			if coin.Amount.GT(vault.GetCoin(coin.Asset).Amount) {
+				// not enough funds
+				continue
+			}
 
-		toi := &TxOutItem{
-			Chain:       coin.Asset.Chain,
-			ToAddress:   to,
-			InHash:      common.BlankTxID,
-			Memo:        NewYggdrasilFund(common.BlockHeight(ctx)).String(),
-			Coin:        coin,
-			VaultPubKey: vault.PubKey,
+			to, err := ygg.PubKey.GetAddress(coin.Asset.Chain)
+			if err != nil {
+				ctx.Logger().Error("fail to get address for pubkey", "pubkey", ygg.PubKey, "chain", coin.Asset.Chain, "error", err)
+				continue
+			}
+
+			toi := &TxOutItem{
+				Chain:       coin.Asset.Chain,
+				ToAddress:   to,
+				InHash:      common.BlankTxID,
+				Memo:        NewYggdrasilFund(common.BlockHeight(ctx)).String(),
+				Coin:        coin,
+				VaultPubKey: vault.PubKey,
+			}
+			if err := mgr.TxOutStore().UnSafeAddTxOutItem(ctx, mgr, toi); err != nil {
+				return count, err
+			}
+			count += 1
 		}
-		if err := mgr.TxOutStore().UnSafeAddTxOutItem(ctx, mgr, toi); err != nil {
-			return count, err
-		}
-		count += 1
 	}
 
 	return count, nil

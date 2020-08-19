@@ -48,6 +48,40 @@ func (HandlerLeaveSuite) TestLeaveHandler_NotActiveNodeLeave(c *C) {
 	c.Assert(err, NotNil)
 }
 
+func (HandlerLeaveSuite) TestLeaveHandlerV5_NotActiveNodeLeave(c *C) {
+	w := getHandlerTestWrapper(c, 1, true, false)
+	vault := GetRandomVault()
+	w.keeper.SetVault(w.ctx, vault)
+	leaveHandler := NewLeaveHandler(w.keeper, NewDummyMgr())
+	acc2 := GetRandomNodeAccount(NodeStandby)
+	acc2.Bond = cosmos.NewUint(100 * common.One)
+	c.Assert(w.keeper.SetNodeAccount(w.ctx, acc2), IsNil)
+	ygg := NewVault(common.BlockHeight(w.ctx), ActiveVault, YggdrasilVault, acc2.PubKeySet.Secp256k1, common.Chains{common.RuneAsset().Chain})
+	c.Assert(w.keeper.SetVault(w.ctx, ygg), IsNil)
+
+	FundModule(c, w.ctx, w.keeper, BondName, 100)
+
+	txID := GetRandomTxHash()
+	tx := common.NewTx(
+		txID,
+		acc2.BondAddress,
+		GetRandomBNBAddress(),
+		common.Coins{common.NewCoin(common.RuneAsset(), cosmos.OneUint())},
+		BNBGasFeeSingleton,
+		"LEAVE",
+	)
+	msgLeave := NewMsgLeave(tx, acc2.NodeAddress, w.activeNodeAccount.NodeAddress)
+	ver := semver.MustParse("0.5.0")
+	constAccessor := constants.GetConstantValues(ver)
+	_, err := leaveHandler.Run(w.ctx, msgLeave, ver, constAccessor)
+	c.Assert(err, IsNil)
+	accAfterLeave, err := w.keeper.GetNodeAccount(w.ctx, acc2.NodeAddress)
+	c.Assert(err, IsNil)
+	c.Assert(accAfterLeave.Status, Equals, NodeDisabled)
+	_, err = leaveHandler.Run(w.ctx, msgLeave, semver.Version{}, constAccessor)
+	c.Assert(err, NotNil)
+}
+
 func (HandlerLeaveSuite) TestLeaveHandler_ActiveNodeLeave(c *C) {
 	var err error
 	w := getHandlerTestWrapper(c, 1, true, false)
@@ -75,19 +109,13 @@ func (HandlerLeaveSuite) TestLeaveHandler_ActiveNodeLeave(c *C) {
 	c.Check(acc2.Bond.Equal(cosmos.NewUint(10000000001)), Equals, true, Commentf("Bond:%d\n", acc2.Bond.Uint64()))
 }
 
-func (HandlerLeaveSuite) TestLeaveHandler_NotActiveNodeLeaveV3(c *C) {
+func (HandlerLeaveSuite) TestLeaveHandlerV5_ActiveNodeLeave(c *C) {
+	var err error
 	w := getHandlerTestWrapper(c, 1, true, false)
-	vault := GetRandomVault()
-	w.keeper.SetVault(w.ctx, vault)
 	leaveHandler := NewLeaveHandler(w.keeper, NewDummyMgr())
-	acc2 := GetRandomNodeAccount(NodeStandby)
+	acc2 := GetRandomNodeAccount(NodeActive)
 	acc2.Bond = cosmos.NewUint(100 * common.One)
 	c.Assert(w.keeper.SetNodeAccount(w.ctx, acc2), IsNil)
-	ygg := NewVault(common.BlockHeight(w.ctx), ActiveVault, YggdrasilVault, acc2.PubKeySet.Secp256k1, common.Chains{common.RuneAsset().Chain})
-	c.Assert(w.keeper.SetVault(w.ctx, ygg), IsNil)
-
-	FundModule(c, w.ctx, w.keeper, BondName, 100)
-
 	txID := GetRandomTxHash()
 	tx := common.NewTx(
 		txID,
@@ -95,19 +123,17 @@ func (HandlerLeaveSuite) TestLeaveHandler_NotActiveNodeLeaveV3(c *C) {
 		GetRandomBNBAddress(),
 		common.Coins{common.NewCoin(common.RuneAsset(), cosmos.OneUint())},
 		BNBGasFeeSingleton,
-		"LEAVE",
+		"",
 	)
 	msgLeave := NewMsgLeave(tx, acc2.NodeAddress, w.activeNodeAccount.NodeAddress)
-	ver := semver.MustParse("0.3.0")
+	ver := semver.MustParse("0.5.0")
 	constAccessor := constants.GetConstantValues(ver)
-	_, err := leaveHandler.Run(w.ctx, msgLeave, semver.Version{}, constAccessor)
-	c.Assert(err, NotNil)
-	c.Assert(acc2.Bond.Equal(cosmos.NewUint(100*common.One)), Equals, true)
 	_, err = leaveHandler.Run(w.ctx, msgLeave, ver, constAccessor)
 	c.Assert(err, IsNil)
-	na, err := w.keeper.GetNodeAccount(w.ctx, acc2.NodeAddress)
+
+	acc2, err = w.keeper.GetNodeAccount(w.ctx, acc2.NodeAddress)
 	c.Assert(err, IsNil)
-	c.Assert(na.Bond.Equal(cosmos.ZeroUint()), Equals, true)
+	c.Check(acc2.Bond.Equal(cosmos.NewUint(10000000001)), Equals, true, Commentf("Bond:%d\n", acc2.Bond.Uint64()))
 }
 
 func (HandlerLeaveSuite) TestLeaveJail(c *C) {
@@ -266,14 +292,14 @@ func (HandlerLeaveSuite) TestLeaveDifferentValidations(c *C) {
 	testCases := []struct {
 		name            string
 		messageProvider func(ctx cosmos.Context, helper *LeaveHandlerTestHelper) cosmos.Msg
-		validator       func(c *C, ctx cosmos.Context, result *cosmos.Result, err error, helper *LeaveHandlerTestHelper, name string)
+		validator       func(c *C, ctx cosmos.Context, result *cosmos.Result, err error, helper *LeaveHandlerTestHelper, name string, msg cosmos.Msg)
 	}{
 		{
 			name: "invalid message type should return an error",
 			messageProvider: func(ctx cosmos.Context, helper *LeaveHandlerTestHelper) cosmos.Msg {
 				return NewMsgNetworkFee(1024, common.BTCChain, 1, bnbSingleTxFee.Uint64(), GetRandomBech32Addr())
 			},
-			validator: func(c *C, ctx cosmos.Context, result *cosmos.Result, err error, helper *LeaveHandlerTestHelper, name string) {
+			validator: func(c *C, ctx cosmos.Context, result *cosmos.Result, err error, helper *LeaveHandlerTestHelper, name string, msg cosmos.Msg) {
 				c.Check(err, NotNil, Commentf(name))
 				c.Check(result, IsNil, Commentf(name))
 			},
@@ -284,7 +310,7 @@ func (HandlerLeaveSuite) TestLeaveDifferentValidations(c *C) {
 				helper.failGetNodeAccount = true
 				return NewMsgLeave(GetRandomTx(), GetRandomBech32Addr(), GetRandomBech32Addr())
 			},
-			validator: func(c *C, ctx cosmos.Context, result *cosmos.Result, err error, helper *LeaveHandlerTestHelper, name string) {
+			validator: func(c *C, ctx cosmos.Context, result *cosmos.Result, err error, helper *LeaveHandlerTestHelper, name string, msg cosmos.Msg) {
 				c.Check(err, NotNil, Commentf(name))
 				c.Check(result, IsNil, Commentf(name))
 			},
@@ -294,7 +320,7 @@ func (HandlerLeaveSuite) TestLeaveDifferentValidations(c *C) {
 			messageProvider: func(ctx cosmos.Context, helper *LeaveHandlerTestHelper) cosmos.Msg {
 				return NewMsgLeave(GetRandomTx(), GetRandomBech32Addr(), GetRandomBech32Addr())
 			},
-			validator: func(c *C, ctx cosmos.Context, result *cosmos.Result, err error, helper *LeaveHandlerTestHelper, name string) {
+			validator: func(c *C, ctx cosmos.Context, result *cosmos.Result, err error, helper *LeaveHandlerTestHelper, name string, msg cosmos.Msg) {
 				c.Check(err, NotNil, Commentf(name))
 				c.Check(result, IsNil, Commentf(name))
 			},
@@ -311,7 +337,7 @@ func (HandlerLeaveSuite) TestLeaveDifferentValidations(c *C) {
 				// when there is no asgard vault to refund, refund should fail
 				return NewMsgLeave(tx, nodeAccount.NodeAddress, GetRandomBech32Addr())
 			},
-			validator: func(c *C, ctx cosmos.Context, result *cosmos.Result, err error, helper *LeaveHandlerTestHelper, name string) {
+			validator: func(c *C, ctx cosmos.Context, result *cosmos.Result, err error, helper *LeaveHandlerTestHelper, name string, msg cosmos.Msg) {
 				c.Check(err, NotNil, Commentf(name))
 				c.Check(result, IsNil, Commentf(name))
 			},
@@ -330,7 +356,7 @@ func (HandlerLeaveSuite) TestLeaveDifferentValidations(c *C) {
 				helper.SetVault(ctx, vault)
 				return NewMsgLeave(tx, nodeAccount.NodeAddress, GetRandomBech32Addr())
 			},
-			validator: func(c *C, ctx cosmos.Context, result *cosmos.Result, err error, helper *LeaveHandlerTestHelper, name string) {
+			validator: func(c *C, ctx cosmos.Context, result *cosmos.Result, err error, helper *LeaveHandlerTestHelper, name string, msg cosmos.Msg) {
 				c.Check(err, IsNil, Commentf(name))
 				c.Check(result, NotNil, Commentf(name))
 			},
@@ -349,7 +375,7 @@ func (HandlerLeaveSuite) TestLeaveDifferentValidations(c *C) {
 				helper.failGetVault = true
 				return NewMsgLeave(tx, nodeAccount.NodeAddress, GetRandomBech32Addr())
 			},
-			validator: func(c *C, ctx cosmos.Context, result *cosmos.Result, err error, helper *LeaveHandlerTestHelper, name string) {
+			validator: func(c *C, ctx cosmos.Context, result *cosmos.Result, err error, helper *LeaveHandlerTestHelper, name string, msg cosmos.Msg) {
 				c.Check(err, NotNil, Commentf(name))
 				c.Check(result, IsNil, Commentf(name))
 			},
@@ -372,7 +398,7 @@ func (HandlerLeaveSuite) TestLeaveDifferentValidations(c *C) {
 				helper.Keeper.SetVault(ctx, asgardVault)
 				return NewMsgLeave(tx, nodeAccount.NodeAddress, GetRandomBech32Addr())
 			},
-			validator: func(c *C, ctx cosmos.Context, result *cosmos.Result, err error, helper *LeaveHandlerTestHelper, name string) {
+			validator: func(c *C, ctx cosmos.Context, result *cosmos.Result, err error, helper *LeaveHandlerTestHelper, name string, msg cosmos.Msg) {
 				c.Check(err, IsNil, Commentf(name))
 				c.Check(result, NotNil, Commentf(name))
 			},
@@ -391,15 +417,43 @@ func (HandlerLeaveSuite) TestLeaveDifferentValidations(c *C) {
 				helper.failSetNodeAccount = true
 				return NewMsgLeave(tx, nodeAccount.NodeAddress, GetRandomBech32Addr())
 			},
-			validator: func(c *C, ctx cosmos.Context, result *cosmos.Result, err error, helper *LeaveHandlerTestHelper, name string) {
+			validator: func(c *C, ctx cosmos.Context, result *cosmos.Result, err error, helper *LeaveHandlerTestHelper, name string, msg cosmos.Msg) {
 				c.Check(err, NotNil, Commentf(name))
 				c.Check(result, IsNil, Commentf(name))
+			},
+		},
+		{
+			name: "when node account is still belongs to a retiring vault , don't return bond",
+			messageProvider: func(ctx cosmos.Context, helper *LeaveHandlerTestHelper) cosmos.Msg {
+				nodeAccount := GetRandomNodeAccount(NodeDisabled)
+				nodeAccount.Bond = cosmos.NewUint(100)
+				activeNodeAccount := GetRandomNodeAccount(NodeActive)
+				helper.Keeper.SetNodeAccount(ctx, activeNodeAccount)
+				helper.Keeper.SetNodeAccount(ctx, nodeAccount)
+				tx := GetRandomTx()
+				tx.FromAddress = nodeAccount.BondAddress
+				asgardVault := NewVault(1024, ActiveVault, AsgardVault, GetRandomPubKey(), common.Chains{common.BNBChain, common.BTCChain})
+				helper.Keeper.SetVault(ctx, asgardVault)
+				retiringVault := NewVault(1000, RetiringVault, AsgardVault, GetRandomPubKey(), common.Chains{common.BNBChain, common.BTCChain})
+				retiringVault.Membership = common.PubKeys{
+					nodeAccount.PubKeySet.Secp256k1,
+					GetRandomPubKey(),
+				}
+				helper.Keeper.SetVault(ctx, retiringVault)
+				return NewMsgLeave(tx, nodeAccount.NodeAddress, GetRandomBech32Addr())
+			},
+			validator: func(c *C, ctx cosmos.Context, result *cosmos.Result, err error, helper *LeaveHandlerTestHelper, name string, msg cosmos.Msg) {
+				leaveMsg := msg.(MsgLeave)
+				na, err := helper.GetNodeAccount(ctx, leaveMsg.NodeAddress)
+				c.Assert(err, IsNil)
+				c.Assert(na.Bond.Equal(cosmos.NewUint(100)), Equals, true)
+				c.Check(err, IsNil, Commentf(name))
+				c.Check(result, NotNil, Commentf(name))
 			},
 		},
 	}
 
 	for _, tc := range testCases {
-
 		ctx, k := setupKeeperForTest(c)
 		FundModule(c, ctx, k, BondName, 1000)
 		helper := NewLeaveHandlerTestHelper(k)
@@ -407,8 +461,9 @@ func (HandlerLeaveSuite) TestLeaveDifferentValidations(c *C) {
 		mgr.BeginBlock(ctx)
 		handler := NewLeaveHandler(helper, mgr)
 		msg := tc.messageProvider(ctx, helper)
-		constantAccessor := constants.GetConstantValues(constants.SWVersion)
-		result, err := handler.Run(ctx, msg, semver.MustParse("0.1.0"), constantAccessor)
-		tc.validator(c, ctx, result, err, helper, tc.name)
+		ver := semver.MustParse("0.5.0")
+		constantAccessor := constants.GetConstantValues(ver)
+		result, err := handler.Run(ctx, msg, ver, constantAccessor)
+		tc.validator(c, ctx, result, err, helper, tc.name, msg)
 	}
 }
