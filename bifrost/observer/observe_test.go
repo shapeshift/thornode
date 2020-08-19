@@ -25,10 +25,11 @@ import (
 	"gitlab.com/thorchain/thornode/bifrost/metrics"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/binance"
-	pubkeymanager "gitlab.com/thorchain/thornode/bifrost/pubkeymanager"
+	"gitlab.com/thorchain/thornode/bifrost/pubkeymanager"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient/types"
 	"gitlab.com/thorchain/thornode/common"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/x/thorchain"
 	types2 "gitlab.com/thorchain/thornode/x/thorchain/types"
 )
@@ -60,11 +61,25 @@ const accountInfo string = `{
   }
 }`
 
+const accountInfoWithMemoFlag string = `
+{
+  "jsonrpc": "2.0",
+  "id": "",
+  "result": {
+    "response": {
+      "value": "S9xMJwpDChQmefkgNkKwoDDRn/aGeQyZIQ0TKhom61rphyEDAZiSiqsU7aoacPPMYg+1FOYq1cFAi/52RJ5moAaoWLcg9VEoASgB"
+    }
+  }
+}`
+
 func (s *ObserverSuite) NewMockBinanceInstance(c *C, jsonData string) {
 	var err error
 	server := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		c.Logf("requestUri:%s", req.RequestURI)
-		if strings.HasPrefix(req.RequestURI, "/abci_query?") {
+		if strings.EqualFold(req.RequestURI, "/abci_query?path=%22%2Faccount%2Ftbnb1yeuljgpkg2c2qvx3nlmgv7gvnyss6ye2u8rasf%22") {
+			_, err := rw.Write([]byte(accountInfoWithMemoFlag))
+			c.Assert(err, IsNil)
+		} else if strings.HasPrefix(req.RequestURI, "/abci_query?") {
 			if _, err := rw.Write([]byte(accountInfo)); err != nil {
 				c.Error(err)
 			}
@@ -81,7 +96,6 @@ func (s *ObserverSuite) NewMockBinanceInstance(c *C, jsonData string) {
 		} else if strings.HasPrefix(req.RequestURI, "/tx_search") {
 			_, err := rw.Write([]byte(jsonData))
 			c.Assert(err, IsNil)
-		} else {
 		}
 	}))
 
@@ -140,16 +154,16 @@ func (s *ObserverSuite) SetUpSuite(c *C) {
 			_, err := rw.Write([]byte(`{ "jsonrpc": "2.0", "id": "", "result": { "height": "0", "result": { "value": { "account_number": "0", "sequence": "0" } } } |`))
 			c.Assert(err, IsNil)
 		} else if strings.HasPrefix(req.RequestURI, "/thorchain/vaults/pubkeys") {
-			_, err := rw.Write([]byte(`{ "jsonrpc": "2.0", "id": "", "result": { "asgard": ["thorpub1addwnpepq2jgpsw2lalzuk7sgtmyakj7l6890f5cfpwjyfp8k4y4t7cw2vk8vcglsjy"], "yggdrasil": ["thorpub1addwnpepqdqvd4r84lq9m54m5kk9sf4k6kdgavvch723pcgadulxd6ey9u70kgjgrwl"] } }`))
+			_, err := rw.Write([]byte(`{ "jsonrpc": "2.0", "id": "", "result": { "asgard": ["tthorpub1addwnpepq2jgpsw2lalzuk7sgtmyakj7l6890f5cfpwjyfp8k4y4t7cw2vk8v2ch5uz"], "yggdrasil": ["tthorpub1addwnpepqdqvd4r84lq9m54m5kk9sf4k6kdgavvch723pcgadulxd6ey9u70k6zq8qe"] } }`))
 			c.Assert(err, IsNil)
 		} else if strings.HasPrefix(req.RequestURI, "/thorchain/keysign") {
 			_, err := rw.Write([]byte(`{"chains":{}}`))
 			c.Assert(err, IsNil)
 		} else if strings.HasSuffix(req.RequestURI, "/signers") {
 			_, err := rw.Write([]byte(`[
-  "thorpub1addwnpepqflvfv08t6qt95lmttd6wpf3ss8wx63e9vf6fvyuj2yy6nnyna5763e2kck",
-  "thorpub1addwnpepq2flfr96skc5lkwdv0n5xjsnhmuju20x3zndgu42zd8dtkrud9m2v0zl2qu",
-  "thorpub1addwnpepqwhnus6xs4208d4ynm05lv493amz3fexfjfx4vptntedd7k0ajlcup0pzgk"
+  "tthorpub1addwnpepqflvfv08t6qt95lmttd6wpf3ss8wx63e9vf6fvyuj2yy6nnyna576rfzjks",
+  "tthorpub1addwnpepq2flfr96skc5lkwdv0n5xjsnhmuju20x3zndgu42zd8dtkrud9m2vajhww6",
+  "tthorpub1addwnpepqwhnus6xs4208d4ynm05lv493amz3fexfjfx4vptntedd7k0ajlcunlfxxs"
 ]`))
 			c.Assert(err, IsNil)
 		} else {
@@ -243,4 +257,99 @@ func (s *ObserverSuite) TestErrataTx(c *C) {
 	c.Assert(obs, NotNil)
 	c.Assert(err, IsNil)
 	c.Assert(obs.sendErrataTxToThorchain(25, thorchain.GetRandomTxHash(), common.BNBChain), IsNil)
+}
+
+func (s *ObserverSuite) TestFilterMemoFlag(c *C) {
+	obs, err := NewObserver(pubkeymanager.NewMockPoolAddressValidator(), map[common.Chain]chainclients.ChainClient{
+		common.BNBChain: s.b,
+	}, s.bridge, s.m)
+	c.Assert(obs, NotNil)
+	c.Assert(err, IsNil)
+	// swap destination
+	result := obs.filterBinanceMemoFlag(common.BNBChain, []types.TxInItem{
+		{
+			BlockHeight: 1024,
+			Tx:          "tx1",
+			Memo:        "swap:BNB.RUNE-67C:tbnb1yeuljgpkg2c2qvx3nlmgv7gvnyss6ye2u8rasf",
+			Sender:      thorchain.GetRandomBNBAddress().String(),
+			To:          thorchain.GetRandomBNBAddress().String(),
+			Coins: common.Coins{
+				common.NewCoin(common.BNBAsset, cosmos.NewUint(1024)),
+			},
+			Gas:                 nil,
+			ObservedVaultPubKey: thorchain.GetRandomPubKey(),
+		},
+	})
+	c.Assert(result, HasLen, 0)
+
+	// sender has memo flag
+	result = obs.filterBinanceMemoFlag(common.BNBChain, []types.TxInItem{
+		{
+			BlockHeight: 1024,
+			Tx:          "tx1",
+			Memo:        "swap:BNB.RUNE-67C:" + thorchain.GetRandomBNBAddress().String(),
+			Sender:      "tbnb1yeuljgpkg2c2qvx3nlmgv7gvnyss6ye2u8rasf",
+			To:          thorchain.GetRandomBNBAddress().String(),
+			Coins: common.Coins{
+				common.NewCoin(common.BNBAsset, cosmos.NewUint(1024)),
+			},
+			Gas:                 nil,
+			ObservedVaultPubKey: thorchain.GetRandomPubKey(),
+		},
+	})
+	c.Assert(result, HasLen, 0)
+
+	// swap from BTC chain to BNB chain
+	result = obs.filterBinanceMemoFlag(common.BTCChain, []types.TxInItem{
+		{
+			BlockHeight: 1024,
+			Tx:          "tx1",
+			Memo:        "swap:BNB.RUNE-67C:tbnb1yeuljgpkg2c2qvx3nlmgv7gvnyss6ye2u8rasf",
+			Sender:      thorchain.GetRandomBNBAddress().String(),
+			To:          thorchain.GetRandomBNBAddress().String(),
+			Coins: common.Coins{
+				common.NewCoin(common.BNBAsset, cosmos.NewUint(1024)),
+			},
+			Gas:                 nil,
+			ObservedVaultPubKey: thorchain.GetRandomPubKey(),
+		},
+	})
+	c.Assert(result, HasLen, 0)
+
+	// normal swap
+	result = obs.filterBinanceMemoFlag(common.BTCChain, []types.TxInItem{
+		{
+			BlockHeight: 1024,
+			Tx:          "tx1",
+			Memo:        "swap:BNB.RUNE-67C",
+			Sender:      thorchain.GetRandomBNBAddress().String(),
+			To:          thorchain.GetRandomBNBAddress().String(),
+			Coins: common.Coins{
+				common.NewCoin(common.BNBAsset, cosmos.NewUint(1024)),
+			},
+			Gas:                 nil,
+			ObservedVaultPubKey: thorchain.GetRandomPubKey(),
+		},
+	})
+	c.Assert(result, HasLen, 1)
+
+	// when there is no binance client , the check will be ignored
+	obs, err = NewObserver(pubkeymanager.NewMockPoolAddressValidator(), nil, s.bridge, s.m)
+	c.Assert(obs, NotNil)
+	c.Assert(err, IsNil)
+	result = obs.filterBinanceMemoFlag(common.BNBChain, []types.TxInItem{
+		{
+			BlockHeight: 1024,
+			Tx:          "tx1",
+			Memo:        "swap:BNB.RUNE-67C:tbnb1yeuljgpkg2c2qvx3nlmgv7gvnyss6ye2u8rasf",
+			Sender:      thorchain.GetRandomBNBAddress().String(),
+			To:          thorchain.GetRandomBNBAddress().String(),
+			Coins: common.Coins{
+				common.NewCoin(common.BNBAsset, cosmos.NewUint(1024)),
+			},
+			Gas:                 nil,
+			ObservedVaultPubKey: thorchain.GetRandomPubKey(),
+		},
+	})
+	c.Assert(result, HasLen, 1)
 }

@@ -44,7 +44,6 @@ func (b *ThorchainBridge) GetKeysign(blockHeight int64, pk string) (types.TxOut,
 	if err != nil {
 		return types.TxOut{}, fmt.Errorf("fail to marshal keysign block to json: %w", err)
 	}
-
 	pubKey := b.keys.signerInfo.GetPubKey()
 	s, err := base64.StdEncoding.DecodeString(query.Signature)
 	if err != nil {

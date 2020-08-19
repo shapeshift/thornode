@@ -84,7 +84,7 @@ func GetRandomRUNEAddress() common.Address {
 // GetRandomTHORAddress will just create a random thor address used for test purpose
 func GetRandomTHORAddress() common.Address {
 	name := common.RandStringBytesMask(10)
-	str, _ := common.ConvertAndEncode("thor", crypto.AddressHash([]byte(name)))
+	str, _ := common.ConvertAndEncode(cmd.Bech32PrefixAccAddr, crypto.AddressHash([]byte(name)))
 	thor, _ := common.NewAddress(str)
 	return thor
 }

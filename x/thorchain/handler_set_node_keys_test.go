@@ -203,13 +203,6 @@ func (s *HandlerSetNodeKeysSuite) TestHandle(c *C) {
 	c.Assert(na.Status, Equals, NodeStandby)
 	c.Assert(na.StatusSince, Equals, int64(1))
 
-	// update version
-	_, err = handler.handle(ctx, msgNodeKeys, semver.MustParse("2.0.0"), constAccessor)
-	c.Assert(err, IsNil)
-	na, err = helper.Keeper.GetNodeAccount(ctx, msgNodeKeys.Signer)
-	c.Assert(err, IsNil)
-	c.Check(na.Version.String(), Equals, "2.0.0")
-
 	testCases := []struct {
 		name              string
 		messageProvider   func(c *C, ctx cosmos.Context, helper *TestSetNodeKeysHandleKeeper) cosmos.Msg

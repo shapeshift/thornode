@@ -39,6 +39,13 @@ func (h UnstakeHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Ver
 		ctx.Logger().Error("MsgUnStake failed validation", "error", err)
 		return nil, err
 	}
+	if version.GTE(semver.MustParse("0.7.0")) {
+		result, err := h.handleV2(ctx, msg, version)
+		if err != nil {
+			ctx.Logger().Error("failed to process MsgUnStake", "error", err)
+		}
+		return result, err
+	}
 	result, err := h.handle(ctx, msg, version)
 	if err != nil {
 		ctx.Logger().Error("failed to process MsgUnStake", "error", err)
@@ -143,6 +150,116 @@ func (h UnstakeHandler) handle(ctx cosmos.Context, msg MsgUnStake, version semve
 			}
 		}
 	}
+	okRune, err := h.mgr.TxOutStore().TryAddTxOutItem(ctx, h.mgr, toi)
+	if err != nil {
+		// emitted asset doesn't enough to cover fee, continue
+		if !errors.Is(err, ErrNotEnoughToPayFee) {
+			return nil, multierror.Append(errFailAddOutboundTx, err)
+		}
+		okRune = true
+	}
+
+	if !okRune {
+		return nil, errFailAddOutboundTx
+	}
+
+	// Get rune (if any) and donate it to the reserve
+	coin := msg.Tx.Coins.GetCoin(common.RuneAsset())
+	if !coin.IsEmpty() {
+		if err := h.keeper.AddFeeToReserve(ctx, coin.Amount); err != nil {
+			// Add to reserve
+			ctx.Logger().Error("fail to add fee to reserve", "error", err)
+		}
+	}
+
+	return &cosmos.Result{}, nil
+}
+
+func (h UnstakeHandler) handleV2(ctx cosmos.Context, msg MsgUnStake, version semver.Version) (*cosmos.Result, error) {
+	staker, err := h.keeper.GetStaker(ctx, msg.Asset, msg.RuneAddress)
+	if err != nil {
+		return nil, multierror.Append(errFailGetStaker, err)
+	}
+	pool, err := h.keeper.GetPool(ctx, msg.Asset)
+	if err != nil {
+		return nil, ErrInternal(err, "fail to get pool")
+	}
+	runeAmt, assetAmount, units, gasAsset, err := unstake(ctx, version, h.keeper, msg, h.mgr)
+	if err != nil {
+		return nil, ErrInternal(err, "fail to process UnStake request")
+	}
+	unstakeEvt := NewEventUnstake(
+		msg.Asset,
+		units,
+		int64(msg.UnstakeBasisPoints.Uint64()),
+		cosmos.ZeroDec(),
+		msg.Tx,
+	)
+	if err := h.mgr.EventMgr().EmitEvent(ctx, unstakeEvt); err != nil {
+		return nil, multierror.Append(errFailSaveEvent, err)
+	}
+
+	memo := ""
+	if msg.Tx.ID.Equals(common.BlankTxID) {
+		// tx id is blank, must be triggered by the ragnarok protocol
+		memo = NewRagnarokMemo(common.BlockHeight(ctx)).String()
+	}
+	toi := &TxOutItem{
+		Chain:     msg.Asset.Chain,
+		InHash:    msg.Tx.ID,
+		ToAddress: staker.AssetAddress,
+		Coin:      common.NewCoin(msg.Asset, assetAmount),
+		Memo:      memo,
+	}
+	if !gasAsset.IsZero() {
+		// TODO: chain specific logic should be in a single location
+		if msg.Asset.IsBNB() {
+			toi.MaxGas = common.Gas{
+				common.NewCoin(common.RuneAsset().Chain.GetGasAsset(), gasAsset.QuoUint64(2)),
+			}
+		} else if msg.Asset.Chain.GetGasAsset().Equals(msg.Asset) {
+			toi.MaxGas = common.Gas{
+				common.NewCoin(msg.Asset.Chain.GetGasAsset(), gasAsset),
+			}
+		}
+	}
+
+	okAsset, err := h.mgr.TxOutStore().TryAddTxOutItem(ctx, h.mgr, toi)
+	if err != nil {
+		// the emit asset not enough to pay fee,continue
+		// other situation will be none of the vault has enough fund to fulfill this unstake
+		// thus unstake need to be revert
+		if !errors.Is(err, ErrNotEnoughToPayFee) {
+			// restore pool and staker
+			if err := h.keeper.SetPool(ctx, pool); err != nil {
+				return nil, ErrInternal(err, "fail to save pool")
+			}
+			h.keeper.SetStaker(ctx, staker)
+			return nil, multierror.Append(errFailAddOutboundTx, err)
+		}
+		okAsset = true
+	}
+	if !okAsset {
+		return nil, errFailAddOutboundTx
+	}
+
+	toi = &TxOutItem{
+		Chain:     common.RuneAsset().Chain,
+		InHash:    msg.Tx.ID,
+		ToAddress: staker.RuneAddress,
+		Coin:      common.NewCoin(common.RuneAsset(), runeAmt),
+		Memo:      memo,
+	}
+	if !common.RuneAsset().Chain.Equals(common.THORChain) {
+		if !gasAsset.IsZero() {
+			if msg.Asset.IsBNB() {
+				toi.MaxGas = common.Gas{
+					common.NewCoin(common.RuneAsset().Chain.GetGasAsset(), gasAsset.QuoUint64(2)),
+				}
+			}
+		}
+	}
+	// there is much much less chance thorchain doesn't have enough RUNE
 	okRune, err := h.mgr.TxOutStore().TryAddTxOutItem(ctx, h.mgr, toi)
 	if err != nil {
 		// emitted asset doesn't enough to cover fee, continue

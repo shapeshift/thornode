@@ -1,6 +1,7 @@
 package thorchain
 
 import (
+	"github.com/blang/semver"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
@@ -8,15 +9,15 @@ import (
 	"gitlab.com/thorchain/thornode/constants"
 )
 
-type ValidatorMgrV1TestSuite struct{}
+type ValidatorMgrV6TestSuite struct{}
 
-var _ = Suite(&ValidatorMgrV1TestSuite{})
+var _ = Suite(&ValidatorMgrV6TestSuite{})
 
-func (vts *ValidatorMgrV1TestSuite) SetUpSuite(c *C) {
+func (vts *ValidatorMgrV6TestSuite) SetUpSuite(c *C) {
 	SetupConfigForTest()
 }
 
-func (vts *ValidatorMgrV1TestSuite) TestSetupValidatorNodes(c *C) {
+func (vts *ValidatorMgrV6TestSuite) TestSetupValidatorNodes(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	ctx = ctx.WithBlockHeight(1)
 	mgr := NewDummyMgr()
@@ -64,7 +65,7 @@ func (vts *ValidatorMgrV1TestSuite) TestSetupValidatorNodes(c *C) {
 	c.Assert(len(activeNodes1) == 4, Equals, true)
 }
 
-func (vts *ValidatorMgrV1TestSuite) TestRagnarokForChaosnet(c *C) {
+func (vts *ValidatorMgrV6TestSuite) TestRagnarokForChaosnet(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	mgr := NewManagers(k)
 	c.Assert(mgr.BeginBlock(ctx), IsNil)
@@ -106,7 +107,32 @@ func (vts *ValidatorMgrV1TestSuite) TestRagnarokForChaosnet(c *C) {
 	c.Assert(ragnarokHeight == 1024, Equals, true, Commentf("%d == %d", ragnarokHeight, 1024))
 }
 
-func (vts *ValidatorMgrV1TestSuite) TestBadActors(c *C) {
+func (vts *ValidatorMgrV6TestSuite) TestLowerVersion(c *C) {
+	ctx, k := setupKeeperForTest(c)
+	ctx = ctx.WithBlockHeight(1440)
+
+	mgr := NewManagers(k)
+	c.Assert(mgr.BeginBlock(ctx), IsNil)
+	vMgr := newValidatorMgrV1(k, mgr.VaultMgr(), mgr.TxOutStore(), mgr.EventMgr())
+	c.Assert(vMgr, NotNil)
+	c.Assert(vMgr.markLowerVersion(ctx, 360), IsNil)
+
+	for i := 0; i < 5; i++ {
+		activeNode := GetRandomNodeAccount(NodeActive)
+		activeNode.Version = semver.MustParse("0.5.0")
+		c.Assert(k.SetNodeAccount(ctx, activeNode), IsNil)
+	}
+	activeNode1 := GetRandomNodeAccount(NodeActive)
+	activeNode1.Version = semver.MustParse("0.4.0")
+	c.Assert(k.SetNodeAccount(ctx, activeNode1), IsNil)
+
+	c.Assert(vMgr.markLowerVersion(ctx, 360), IsNil)
+	na, err := k.GetNodeAccount(ctx, activeNode1.NodeAddress)
+	c.Assert(err, IsNil)
+	c.Assert(na.LeaveHeight, Equals, int64(1440))
+}
+
+func (vts *ValidatorMgrV6TestSuite) TestBadActors(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	ctx = ctx.WithBlockHeight(1000)
 
@@ -163,7 +189,7 @@ func (vts *ValidatorMgrV1TestSuite) TestBadActors(c *C) {
 	c.Check(count, Equals, 2)
 }
 
-func (vts *ValidatorMgrV1TestSuite) TestRagnarokBond(c *C) {
+func (vts *ValidatorMgrV6TestSuite) TestRagnarokBond(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	ctx = ctx.WithBlockHeight(1)
 	ver := constants.SWVersion
@@ -216,7 +242,7 @@ func (vts *ValidatorMgrV1TestSuite) TestRagnarokBond(c *C) {
 	}
 }
 
-func (vts *ValidatorMgrV1TestSuite) TestFindCounToRemove(c *C) {
+func (vts *ValidatorMgrV6TestSuite) TestFindCounToRemove(c *C) {
 	// remove one
 	c.Check(findCountToRemove(0, NodeAccounts{
 		NodeAccount{LeaveHeight: 12},
@@ -267,7 +293,7 @@ func (vts *ValidatorMgrV1TestSuite) TestFindCounToRemove(c *C) {
 	}), Equals, 3)
 }
 
-func (vts *ValidatorMgrV1TestSuite) TestFindMaxAbleToLeave(c *C) {
+func (vts *ValidatorMgrV6TestSuite) TestFindMaxAbleToLeave(c *C) {
 	c.Check(findMaxAbleToLeave(-1), Equals, 0)
 	c.Check(findMaxAbleToLeave(0), Equals, 0)
 	c.Check(findMaxAbleToLeave(1), Equals, 0)
