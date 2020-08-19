@@ -4,9 +4,8 @@ import (
 	"flag"
 	"fmt"
 
-	"gitlab.com/thorchain/thornode/cmd"
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 func main() {
@@ -18,11 +17,23 @@ func main() {
 	}
 
 	// Read in the configuration file for the sdk
-	config := cosmos.GetConfig()
-	config.SetBech32PrefixForAccount(cmd.Bech32PrefixAccAddr, cmd.Bech32PrefixAccPub)
-	config.SetBech32PrefixForValidator(cmd.Bech32PrefixValAddr, cmd.Bech32PrefixValPub)
-	config.SetBech32PrefixForConsensusNode(cmd.Bech32PrefixConsAddr, cmd.Bech32PrefixConsPub)
-	config.Seal()
+	nw := common.GetCurrentChainNetwork()
+	switch nw {
+	case common.TestNet:
+		fmt.Println("THORChain testnet:")
+		config := cosmos.GetConfig()
+		config.SetBech32PrefixForAccount("tthor", "tthorpub")
+		config.SetBech32PrefixForValidator("tthorv", "tthorvpub")
+		config.SetBech32PrefixForConsensusNode("tthorc", "tthorcpub")
+		config.Seal()
+	case common.MainNet:
+		fmt.Println("THORChain mainnet:")
+		config := cosmos.GetConfig()
+		config.SetBech32PrefixForAccount("thor", "thorpub")
+		config.SetBech32PrefixForValidator("thorv", "thorvpub")
+		config.SetBech32PrefixForConsensusNode("thorc", "thorcpub")
+		config.Seal()
+	}
 
 	pk, err := common.NewPubKey(*raw)
 	if err != nil {
