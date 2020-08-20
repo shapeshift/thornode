@@ -23,8 +23,11 @@ if [ ! -f ~/.thord/config/genesis.json ]; then
     if [ $? -gt 0 ]; then
       if [ "$SIGNER_SEED_PHRASE" != "" ]; then
         printf "$SIGNER_SEED_PHRASE\n$SIGNER_PASSWD\n$SIGNER_PASSWD\n" | thorcli keys add $SIGNER_NAME --recover
+        NODE_PUB_KEY_ED25519=$(echo "$SIGNER_PASSWD\n$SIGNER_SEED_PHRASE\n" | thorcli ed25519)
       else
-        printf "$SIGNER_PASSWD\n$SIGNER_PASSWD\n" | thorcli keys add $SIGNER_NAME
+        RESULT=$(printf "$SIGNER_PASSWD\n$SIGNER_PASSWD\n" | thorcli keys add $SIGNER_NAME -o json 2>&1 >/dev/null)
+        MNEMONIC=$(echo $RESULT|jq -r '.mnemonic')
+        NODE_PUB_KEY_ED25519=$(printf "$SIGNER_PASSWD\n$MNEMONIC\n" | thorcli ed25519)
       fi
     fi
 
@@ -69,7 +72,7 @@ if [ ! -f ~/.thord/config/genesis.json ]; then
         VALIDATOR=$(thord tendermint show-validator)
 
         # set node keys
-        until printf "$SIGNER_PASSWD\n$SIGNER_PASSWD\n" | thorcli tx thorchain set-node-keys $NODE_PUB_KEY $NODE_PUB_KEY $VALIDATOR --node tcp://$PEER:26657 --from $SIGNER_NAME --yes; do
+        until printf "$SIGNER_PASSWD\n$SIGNER_PASSWD\n" | thorcli tx thorchain set-node-keys $NODE_PUB_KEY $NODE_PUB_KEY_ED25519 $VALIDATOR --node tcp://$PEER:26657 --from $SIGNER_NAME --yes; do
           sleep 5
         done
 

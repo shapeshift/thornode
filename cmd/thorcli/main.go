@@ -18,7 +18,7 @@ import (
 
 	app "gitlab.com/thorchain/thornode"
 	"gitlab.com/thorchain/thornode/cmd"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 func main() {
@@ -55,6 +55,7 @@ func main() {
 		flags.LineBreak,
 		kc,
 		flags.LineBreak,
+		GetEd25519Keys(cdc),
 	)
 
 	executor := cli.PrepareMainCmd(rootCmd, "SSC", app.DefaultCLIHome)

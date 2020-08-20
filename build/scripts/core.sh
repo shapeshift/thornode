@@ -11,9 +11,10 @@ add_node_account () {
     NODE_PUB_KEY=$3
     VERSION=$4
     BOND_ADDRESS=$5
-    IP_ADDRESS=$6
-    MEMBERSHIP=$7
-    jq --arg IP_ADDRESS $IP_ADDRESS --arg VERSION $VERSION --arg BOND_ADDRESS "$BOND_ADDRESS" --arg VALIDATOR "$VALIDATOR" --arg NODE_ADDRESS "$NODE_ADDRESS" --arg NODE_PUB_KEY "$NODE_PUB_KEY" '.app_state.thorchain.node_accounts += [{"node_address": $NODE_ADDRESS, "version": $VERSION, "ip_address": $IP_ADDRESS, "status":"active", "active_block_height": "0", "bond_address":$BOND_ADDRESS, "signer_membership": [], "validator_cons_pub_key":$VALIDATOR, "pub_key_set":{"secp256k1":$NODE_PUB_KEY,"ed25519":$NODE_PUB_KEY}}]' <~/.thord/config/genesis.json >/tmp/genesis.json
+    NODE_PUB_KEY_ED25519=$6
+    IP_ADDRESS=$7
+    MEMBERSHIP=$8
+    jq --arg IP_ADDRESS $IP_ADDRESS --arg VERSION $VERSION --arg BOND_ADDRESS "$BOND_ADDRESS" --arg VALIDATOR "$VALIDATOR" --arg NODE_ADDRESS "$NODE_ADDRESS" --arg NODE_PUB_KEY "$NODE_PUB_KEY" --arg NODE_PUB_KEY_ED25519 "$NODE_PUB_KEY_ED25519" '.app_state.thorchain.node_accounts += [{"node_address": $NODE_ADDRESS, "version": $VERSION, "ip_address": $IP_ADDRESS, "status":"active", "active_block_height": "0", "bond_address":$BOND_ADDRESS, "signer_membership": [], "validator_cons_pub_key":$VALIDATOR, "pub_key_set":{"secp256k1":$NODE_PUB_KEY,"ed25519":$NODE_PUB_KEY_ED25519}}]' <~/.thord/config/genesis.json >/tmp/genesis.json
     mv /tmp/genesis.json ~/.thord/config/genesis.json
     if [ ! -z "$MEMBERSHIP" ]; then
         jq --arg MEMBERSHIP "$MEMBERSHIP" '.app_state.thorchain.node_accounts[-1].signer_membership += [$MEMBERSHIP]' ~/.thord/config/genesis.json > /tmp/genesis.json
