@@ -18,8 +18,11 @@ echo $SIGNER_PASSWD | thorcli keys show $SIGNER_NAME
 if [ $? -gt 0 ]; then
   if [ "$SIGNER_SEED_PHRASE" != "" ]; then
     printf "$SIGNER_SEED_PHRASE\n$SIGNER_PASSWD\n$SIGNER_PASSWD\n" | thorcli keys add $SIGNER_NAME --recover
+    NODE_PUB_KEY_ED25519=$(printf "$SIGNER_PASSWD\n$SIGNER_SEED_PHRASE\n" | thorcli ed25519)
   else
-    printf "$SIGNER_PASSWD\n$SIGNER_PASSWD\n" | thorcli keys add $SIGNER_NAME
+     RESULT=$(printf "$SIGNER_PASSWD\n$SIGNER_PASSWD\n" | thorcli keys add $SIGNER_NAME -o json 2>&1 >/dev/null)
+     MNEMONIC=$(echo $RESULT | jq -r '.mnemonic')
+     NODE_PUB_KEY_ED25519=$(printf "$SIGNER_PASSWD\n$MNEMONIC\n" | thorcli ed25519)
   fi
 fi
 
@@ -36,7 +39,7 @@ if [ "$SEED" = "$(hostname)" ]; then
 fi
 
 # write node account data to json file in shared directory
-echo "$NODE_ADDRESS $VALIDATOR $NODE_PUB_KEY $VERSION $ADDRESS" >/tmp/shared/node_$NODE_ADDRESS.json
+echo "$NODE_ADDRESS $VALIDATOR $NODE_PUB_KEY $VERSION $ADDRESS $NODE_PUB_KEY_ED25519" >/tmp/shared/node_$NODE_ADDRESS.json
 
 # wait until THORNode have the correct number of nodes in our directory before continuing
 while [ "$(ls -1 /tmp/shared/node_*.json | wc -l | tr -d '[:space:]')" != "$NODES" ]; do
@@ -65,9 +68,9 @@ if [ "$SEED" = "$(hostname)" ]; then
     # add node accounts to genesis file
     for f in /tmp/shared/node_*.json; do
       if [ ! -z ${VAULT_PUBKEY+x} ]; then
-        add_node_account $(cat $f | awk '{print $1}') $(cat $f | awk '{print $2}') $(cat $f | awk '{print $3}') $(cat $f | awk '{print $4}') $(cat $f | awk '{print $5}') $NODE_IP_ADDRESS $VAULT_PUBKEY
+        add_node_account $(cat $f | awk '{print $1}') $(cat $f | awk '{print $2}') $(cat $f | awk '{print $3}') $(cat $f | awk '{print $4}') $(cat $f | awk '{print $5}') $(cat $f | awk '{print $6}') $NODE_IP_ADDRESS $VAULT_PUBKEY
       else
-        add_node_account $(cat $f | awk '{print $1}') $(cat $f | awk '{print $2}') $(cat $f | awk '{print $3}') $(cat $f | awk '{print $4}') $(cat $f | awk '{print $5}') $NODE_IP_ADDRESS
+        add_node_account $(cat $f | awk '{print $1}') $(cat $f | awk '{print $2}') $(cat $f | awk '{print $3}') $(cat $f | awk '{print $4}') $(cat $f | awk '{print $5}') $(cat $f | awk '{print $6}') $NODE_IP_ADDRESS
       fi
     done
 
