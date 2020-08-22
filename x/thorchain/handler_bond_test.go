@@ -88,7 +88,7 @@ func (HandlerBondSuite) TestBondHandlerFailValidation(c *C) {
 	activeNodeAccount := GetRandomNodeAccount(NodeActive)
 	c.Assert(k.SetNodeAccount(ctx, activeNodeAccount), IsNil)
 	handler := NewBondHandler(k, NewDummyMgr())
-	ver := constants.SWVersion
+	ver := semver.MustParse("0.8.0")
 	constAccessor := constants.GetConstantValues(ver)
 	minimumBondInRune := constAccessor.GetInt64Value(constants.MinimumBondInRune)
 	txIn := common.NewTx(
@@ -138,16 +138,10 @@ func (HandlerBondSuite) TestBondHandlerFailValidation(c *C) {
 			msg:         NewMsgBond(txIn, GetRandomNodeAccount(NodeStandby).NodeAddress, cosmos.NewUint(uint64(minimumBondInRune)), GetRandomBNBAddress(), GetRandomNodeAccount(NodeStandby).NodeAddress),
 			expectedErr: se.ErrUnauthorized,
 		},
-		{
-			name:        "not enough rune",
-			msg:         NewMsgBond(txIn, GetRandomNodeAccount(NodeStandby).NodeAddress, cosmos.NewUint(uint64(minimumBondInRune-100)), GetRandomBNBAddress(), activeNodeAccount.NodeAddress),
-			expectedErr: se.ErrUnknownRequest,
-		},
 	}
 	for _, item := range testCases {
 		c.Log(item.name)
 		_, err := handler.Run(ctx, item.msg, ver, constAccessor)
-
 		c.Check(errors.Is(err, item.expectedErr), Equals, true, Commentf("name: %s, %s != %s", item.name, item.expectedErr, err))
 	}
 }
