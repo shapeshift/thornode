@@ -26,7 +26,9 @@ func NewBondHandler(keeper keeper.Keeper, mgr Manager) BondHandler {
 }
 
 func (h BondHandler) validate(ctx cosmos.Context, msg MsgBond, version semver.Version, constAccessor constants.ConstantValues) error {
-	if version.GTE(semver.MustParse("0.1.0")) {
+	if version.GTE(semver.MustParse("0.8.0")) {
+		return h.validateV2(ctx, version, msg, constAccessor)
+	} else if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, version, msg, constAccessor)
 	}
 	return errBadVersion
@@ -55,6 +57,33 @@ func (h BondHandler) validateV1(ctx cosmos.Context, version semver.Version, msg 
 	if bond.LT(minValidatorBond) {
 		return cosmos.ErrUnknownRequest(fmt.Sprintf("not enough rune to be whitelisted , minimum validator bond (%s) , bond(%s)", minValidatorBond.String(), bond))
 	}
+
+	maxBond, err := h.keeper.GetMimir(ctx, "MaximumBondInRune")
+	if maxBond > 0 && err == nil {
+		maxValidatorBond := cosmos.NewUint(uint64(maxBond))
+		if bond.GT(maxValidatorBond) {
+			return cosmos.ErrUnknownRequest(fmt.Sprintf("too much bond, max validator bond (%s), bond(%s)", maxValidatorBond.String(), bond))
+		}
+	}
+
+	return nil
+}
+
+func (h BondHandler) validateV2(ctx cosmos.Context, version semver.Version, msg MsgBond, constAccessor constants.ConstantValues) error {
+	if err := msg.ValidateBasic(); err != nil {
+		return err
+	}
+
+	if !isSignedByActiveNodeAccounts(ctx, h.keeper, msg.GetSigners()) {
+		return cosmos.ErrUnauthorized("msg is not signed by an active node account")
+	}
+
+	nodeAccount, err := h.keeper.GetNodeAccount(ctx, msg.NodeAddress)
+	if err != nil {
+		return ErrInternal(err, fmt.Sprintf("fail to get node account(%s)", msg.NodeAddress))
+	}
+
+	bond := msg.Bond.Add(nodeAccount.Bond)
 
 	maxBond, err := h.keeper.GetMimir(ctx, "MaximumBondInRune")
 	if maxBond > 0 && err == nil {
