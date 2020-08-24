@@ -34,9 +34,9 @@ install: go.sum
 	go install ${BUILD_FLAGS} ${BINARIES}
 
 tools:
-	go install ./tools/generate
-	go install ./tools/extract
-	go install ./tools/pubkey2address
+	go install -tags ${TAG} ./tools/generate
+	go install -tags ${TAG} ./tools/extract
+	go install -tags ${TAG} ./tools/pubkey2address
 
 go.sum: go.mod
 	@echo "--> Ensure dependencies have not been modified"
