@@ -65,7 +65,9 @@ func (h YggdrasilHandler) validateV1(ctx cosmos.Context, msg MsgYggdrasil) error
 
 func (h YggdrasilHandler) handle(ctx cosmos.Context, msg MsgYggdrasil, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	ctx.Logger().Info("receive MsgYggdrasil", "pubkey", msg.PubKey.String(), "add_funds", msg.AddFunds, "coins", msg.Coins)
-	if version.GTE(semver.MustParse("0.1.0")) {
+	if version.GTE(semver.MustParse("0.8.0")) {
+		return h.handleV2(ctx, msg, version)
+	} else if version.GTE(semver.MustParse("0.1.0")) {
 		return h.handleV1(ctx, msg, version)
 	}
 	return nil, errBadVersion
@@ -148,6 +150,68 @@ func (h YggdrasilHandler) handleV1(ctx cosmos.Context, msg MsgYggdrasil, version
 	return h.handleYggdrasilReturn(ctx, msg, vault, version)
 }
 
+func (h YggdrasilHandler) handleV2(ctx cosmos.Context, msg MsgYggdrasil, version semver.Version) (*cosmos.Result, error) {
+	// update txOut record with our TxID that sent funds out of the pool
+	txOut, err := h.keeper.GetTxOut(ctx, msg.BlockHeight)
+	if err != nil {
+		return nil, ErrInternal(err, "unable to get txOut record")
+	}
+
+	shouldSlash := true
+	for i, tx := range txOut.TxArray {
+		// yggdrasil is the memo used by thorchain to identify fund migration
+		// to a yggdrasil vault.
+		// it use yggdrasil+/-:{block height} to mark a tx out caused by vault
+		// rotation
+		// this type of tx out is special , because it doesn't have relevant tx
+		// in to trigger it, it is trigger by thorchain itself.
+		fromAddress, _ := tx.VaultPubKey.GetAddress(tx.Chain)
+		if tx.InHash.Equals(common.BlankTxID) &&
+			tx.OutHash.IsEmpty() &&
+			tx.ToAddress.Equals(msg.Tx.ToAddress) &&
+			fromAddress.Equals(msg.Tx.FromAddress) {
+
+			// only need to check the coin if yggdrasil+
+			if msg.AddFunds && !msg.Tx.Coins.Contains(tx.Coin) {
+				continue
+			}
+
+			txOut.TxArray[i].OutHash = msg.Tx.ID
+			shouldSlash = false
+
+			if err := h.keeper.SetTxOut(ctx, txOut); nil != err {
+				ctx.Logger().Error("fail to save tx out", "error", err)
+			}
+
+			break
+		}
+	}
+
+	if shouldSlash {
+		if err := h.slash(ctx, version, msg.PubKey, msg.Tx.Coins); err != nil {
+			return nil, ErrInternal(err, "fail to slash account")
+		}
+	}
+
+	vault, err := h.keeper.GetVault(ctx, msg.PubKey)
+	if err != nil && !errors.Is(err, kvTypes.ErrVaultNotFound) {
+		return nil, fmt.Errorf("fail to get yggdrasil: %w", err)
+	}
+	if len(vault.Type) == 0 {
+		vault.Status = ActiveVault
+		vault.Type = YggdrasilVault
+	}
+
+	if err := h.keeper.SetLastSignedHeight(ctx, msg.BlockHeight); err != nil {
+		ctx.Logger().Error("fail to update last signed height", "error", err)
+	}
+
+	if msg.AddFunds {
+		return h.handleYggdrasilFund(ctx, msg, vault)
+	}
+	return h.handleYggdrasilReturnV2(ctx, msg, vault, version)
+}
+
 func (h YggdrasilHandler) handleYggdrasilFund(ctx cosmos.Context, msg MsgYggdrasil, vault Vault) (*cosmos.Result, error) {
 	switch vault.Type {
 	case AsgardVault:
@@ -184,6 +248,49 @@ func (h YggdrasilHandler) handleYggdrasilReturn(ctx cosmos.Context, msg MsgYggdr
 		}
 
 		if !isAsgardReceipient {
+			// not sending to asgard , slash the node account
+			if err := h.slash(ctx, version, msg.PubKey, msg.Tx.Coins); err != nil {
+				return nil, ErrInternal(err, "fail to slash account for sending fund to a none asgard vault using yggdrasil-")
+			}
+		}
+
+		return &cosmos.Result{}, nil
+
+	case AsgardVault:
+		// when vault.Type is asgard, that means this tx is observed on an asgard pool and it is an inbound tx
+		// Yggdrasil return fund back to Asgard
+		ctx.EventManager().EmitEvent(
+			cosmos.NewEvent("yggdrasil_return",
+				cosmos.NewAttribute("pubkey", vault.PubKey.String()),
+				cosmos.NewAttribute("coins", msg.Coins.String()),
+				cosmos.NewAttribute("tx", msg.Tx.ID.String())))
+	}
+	return &cosmos.Result{}, nil
+}
+
+func (h YggdrasilHandler) handleYggdrasilReturnV2(ctx cosmos.Context, msg MsgYggdrasil, vault Vault, version semver.Version) (*cosmos.Result, error) {
+	// observe an outbound tx from yggdrasil vault
+	switch vault.Type {
+	case YggdrasilVault:
+		asgardVaults, err := h.keeper.GetAsgardVaults(ctx)
+		if err != nil {
+			return nil, ErrInternal(err, "unable to get asgard vaults")
+		}
+		vaults := Vaults{}
+		for _, v := range asgardVaults {
+			// make sure vaults have both active asgard vault , and also retiring asgard vault
+			if v.Status == ActiveVault || v.Status == RetiringVault {
+				vaults = append(vaults, v)
+			}
+		}
+
+		isAsgardReceipient, err := vaults.HasAddress(msg.Tx.Chain, msg.Tx.ToAddress)
+		if err != nil {
+			return nil, ErrInternal(err, fmt.Sprintf("unable to determinate whether %s is an Asgard vault", msg.Tx.ToAddress))
+		}
+
+		if !isAsgardReceipient {
+			ctx.Logger().Info("yggdrasil send fund to none asgard address")
 			// not sending to asgard , slash the node account
 			if err := h.slash(ctx, version, msg.PubKey, msg.Tx.Coins); err != nil {
 				return nil, ErrInternal(err, "fail to slash account for sending fund to a none asgard vault using yggdrasil-")
