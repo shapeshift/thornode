@@ -35,10 +35,10 @@ func (smgr *StoreMgr) Iterator(ctx cosmos.Context) error {
 	if storeVer < 0 {
 		return fmt.Errorf("unable to get store version: %d", storeVer)
 	}
-
+	constantAccessor := constants.GetConstantValues(version)
 	if uint64(storeVer) < version.Minor {
 		for i := uint64(storeVer + 1); i <= version.Minor; i++ {
-			if err := smgr.migrate(ctx, i); err != nil {
+			if err := smgr.migrate(ctx, i, constantAccessor); err != nil {
 				return err
 			}
 		}
@@ -48,9 +48,15 @@ func (smgr *StoreMgr) Iterator(ctx cosmos.Context) error {
 	return nil
 }
 
-func (smgr *StoreMgr) migrate(ctx cosmos.Context, i uint64) error {
+func (smgr *StoreMgr) migrate(ctx cosmos.Context, i uint64, constantAccessor constants.ConstantValues) error {
 	ctx.Logger().Info("Migrating store to new version", "version", i)
 	// add the logic to migrate store here when it is needed
+	switch i {
+	case 8:
+		if err := fixPoolAsset(ctx, smgr.keeper, constantAccessor); err != nil {
+			ctx.Logger().Error("fail to update pool asset", "error", err)
+		}
+	}
 	smgr.keeper.SetStoreVersion(ctx, int64(i))
 	return nil
 }
