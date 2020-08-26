@@ -65,7 +65,7 @@ func (h YggdrasilHandler) validateV1(ctx cosmos.Context, msg MsgYggdrasil) error
 
 func (h YggdrasilHandler) handle(ctx cosmos.Context, msg MsgYggdrasil, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	ctx.Logger().Info("receive MsgYggdrasil", "pubkey", msg.PubKey.String(), "add_funds", msg.AddFunds, "coins", msg.Coins)
-	if version.GTE(semver.MustParse("0.8.0")) {
+	if version.GTE(semver.MustParse("0.9.0")) {
 		return h.handleV2(ctx, msg, version)
 	} else if version.GTE(semver.MustParse("0.1.0")) {
 		return h.handleV1(ctx, msg, version)
