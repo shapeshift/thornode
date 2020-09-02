@@ -31,6 +31,11 @@ func (k *TestObservedTxOutValidateKeeper) GetNodeAccount(ctx cosmos.Context, sig
 var _ = Suite(&HandlerObservedTxOutSuite{})
 
 func (s *HandlerObservedTxOutSuite) TestValidate(c *C) {
+	s.testValidateWithVersion(c, constants.SWVersion)
+	s.testValidateWithVersion(c, semver.MustParse("0.10.0"))
+}
+
+func (s *HandlerObservedTxOutSuite) testValidateWithVersion(c *C, ver semver.Version) {
 	var err error
 	ctx, _ := setupKeeperForTest(c)
 	activeNodeAccount := GetRandomNodeAccount(NodeActive)
@@ -42,7 +47,6 @@ func (s *HandlerObservedTxOutSuite) TestValidate(c *C) {
 	handler := NewObservedTxOutHandler(keeper, NewDummyMgr())
 
 	// happy path
-	ver := constants.SWVersion
 	pk := GetRandomPubKey()
 	txs := ObservedTxs{NewObservedTx(GetRandomTx(), 12, pk)}
 	txs[0].Tx.FromAddress, err = pk.GetAddress(txs[0].Tx.Coins[0].Asset.Chain)
@@ -170,10 +174,14 @@ func (k *TestObservedTxOutHandleKeeper) SetGas(ctx cosmos.Context, asset common.
 }
 
 func (s *HandlerObservedTxOutSuite) TestHandle(c *C) {
+	s.testHandleWithVersion(c, constants.SWVersion)
+	s.testHandleWithVersion(c, semver.MustParse("0.10.0"))
+}
+
+func (s *HandlerObservedTxOutSuite) testHandleWithVersion(c *C, ver semver.Version) {
 	var err error
 	ctx, _ := setupKeeperForTest(c)
 
-	ver := constants.SWVersion
 	constAccessor := constants.GetConstantValues(ver)
 	tx := GetRandomTx()
 	tx.Memo = fmt.Sprintf("OUTBOUND:%s", tx.ID)
@@ -221,10 +229,14 @@ func (s *HandlerObservedTxOutSuite) TestHandle(c *C) {
 }
 
 func (s *HandlerObservedTxOutSuite) TestGasUpdate(c *C) {
+	s.testGasUpdateWithVersion(c, constants.SWVersion)
+	s.testGasUpdateWithVersion(c, semver.MustParse("0.10.0"))
+}
+
+func (s *HandlerObservedTxOutSuite) testGasUpdateWithVersion(c *C, ver semver.Version) {
 	var err error
 	ctx, _ := setupKeeperForTest(c)
 
-	ver := constants.SWVersion
 	constAccessor := constants.GetConstantValues(ver)
 	tx := GetRandomTx()
 	tx.Gas = common.Gas{
@@ -272,10 +284,14 @@ func (s *HandlerObservedTxOutSuite) TestGasUpdate(c *C) {
 }
 
 func (s *HandlerObservedTxOutSuite) TestHandleStolenFunds(c *C) {
+	s.testHandleStolenFundsWithVersion(c, constants.SWVersion)
+	s.testHandleStolenFundsWithVersion(c, semver.MustParse("0.10.0"))
+}
+
+func (s *HandlerObservedTxOutSuite) testHandleStolenFundsWithVersion(c *C, ver semver.Version) {
 	var err error
 	ctx, _ := setupKeeperForTest(c)
 
-	ver := constants.SWVersion
 	constAccessor := constants.GetConstantValues(ver)
 	tx := GetRandomTx()
 	tx.Memo = "I AM A THIEF!" // bad memo
@@ -534,15 +550,21 @@ func (HandlerObservedTxOutSuite) TestHandlerObservedTxOut_DifferentValidations(c
 			},
 		},
 	}
+	versions := []semver.Version{
+		constants.SWVersion,
+		semver.MustParse("0.10.0"),
+	}
 	for _, tc := range testCases {
-		ctx, k := setupKeeperForTest(c)
-		helper := NewHandlerObservedTxOutHelper(k)
-		mgr := NewManagers(helper)
-		mgr.BeginBlock(ctx)
-		handler := NewObservedTxOutHandler(helper, mgr)
-		msg := tc.messageProvider(c, ctx, helper)
-		constantAccessor := constants.GetConstantValues(constants.SWVersion)
-		result, err := handler.Run(ctx, msg, semver.MustParse("0.1.0"), constantAccessor)
-		tc.validator(c, ctx, result, err, helper, tc.name)
+		for _, ver := range versions {
+			ctx, k := setupKeeperForTest(c)
+			helper := NewHandlerObservedTxOutHelper(k)
+			mgr := NewManagers(helper)
+			mgr.BeginBlock(ctx)
+			handler := NewObservedTxOutHandler(helper, mgr)
+			msg := tc.messageProvider(c, ctx, helper)
+			constantAccessor := constants.GetConstantValues(ver)
+			result, err := handler.Run(ctx, msg, ver, constantAccessor)
+			tc.validator(c, ctx, result, err, helper, tc.name)
+		}
 	}
 }
