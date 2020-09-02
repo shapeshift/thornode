@@ -7,7 +7,7 @@ import (
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 func TestPackage(t *testing.T) { TestingT(t) }
@@ -45,6 +45,25 @@ func (s TypesSuite) TestHasSuperMajority(c *C) {
 	c.Check(HasSuperMajority(9, -4), Equals, false)
 	c.Check(HasSuperMajority(0, 0), Equals, false)
 	c.Check(HasSuperMajority(3, 0), Equals, false)
+	c.Check(HasSuperMajority(8, 15), Equals, true)
+}
+
+func (s TypesSuite) TestHasSuperMajorityV10(c *C) {
+	// happy path
+	c.Check(HasSuperMajorityV10(3, 4), Equals, true)
+	c.Check(HasSuperMajorityV10(2, 3), Equals, true)
+	c.Check(HasSuperMajorityV10(4, 4), Equals, true)
+	c.Check(HasSuperMajorityV10(1, 1), Equals, true)
+	c.Check(HasSuperMajorityV10(67, 100), Equals, true)
+
+	// unhappy path
+	c.Check(HasSuperMajorityV10(2, 4), Equals, false)
+	c.Check(HasSuperMajorityV10(9, 4), Equals, false)
+	c.Check(HasSuperMajorityV10(-9, 4), Equals, false)
+	c.Check(HasSuperMajorityV10(9, -4), Equals, false)
+	c.Check(HasSuperMajorityV10(0, 0), Equals, false)
+	c.Check(HasSuperMajorityV10(3, 0), Equals, false)
+	c.Check(HasSuperMajorityV10(8, 15), Equals, false)
 }
 
 func (TypesSuite) TestHasSimpleMajority(c *C) {
@@ -53,6 +72,17 @@ func (TypesSuite) TestHasSimpleMajority(c *C) {
 	c.Check(HasSimpleMajority(1, 2), Equals, true)
 	c.Check(HasSimpleMajority(1, 3), Equals, false)
 	c.Check(HasSimpleMajority(2, 4), Equals, true)
+	c.Check(HasSimpleMajority(100000, 3000000), Equals, false)
+}
+
+func (TypesSuite) TestHasSimpleMajorityV10(c *C) {
+	c.Check(HasSimpleMajority(3, 4), Equals, true)
+	c.Check(HasSimpleMajority(2, 3), Equals, true)
+	c.Check(HasSimpleMajority(1, 2), Equals, true)
+	c.Check(HasSimpleMajority(1, 3), Equals, false)
+	c.Check(HasSimpleMajority(2, 4), Equals, true)
+	c.Check(HasSimpleMajority(8, 15), Equals, true)
+	c.Check(HasSimpleMajority(8, 16), Equals, true)
 	c.Check(HasSimpleMajority(100000, 3000000), Equals, false)
 }
 
