@@ -98,10 +98,9 @@ func newTssKeeperHelper(keeper keeper.Keeper) *tssKeeperHelper {
 	}
 }
 
-func newTssHandlerTestHelper(c *C) tssHandlerTestHelper {
+func newTssHandlerTestHelper(c *C, version semver.Version) tssHandlerTestHelper {
 	ctx, k := setupKeeperForTest(c)
 	ctx = ctx.WithBlockHeight(1023)
-	version := constants.SWVersion
 	keeper := newTssKeeperHelper(k)
 	FundModule(c, ctx, k, BondName, 500)
 	// active account
@@ -149,6 +148,11 @@ func newTssHandlerTestHelper(c *C) tssHandlerTestHelper {
 }
 
 func (s *HandlerTssSuite) TestTssHandler(c *C) {
+	s.testTssHandlerWithVersion(c, constants.SWVersion)
+	s.testTssHandlerWithVersion(c, semver.MustParse("0.10.0"))
+}
+
+func (s *HandlerTssSuite) testTssHandlerWithVersion(c *C, ver semver.Version) {
 	testCases := []struct {
 		name           string
 		messageCreator func(helper tssHandlerTestHelper) cosmos.Msg
@@ -182,7 +186,7 @@ func (s *HandlerTssSuite) TestTssHandler(c *C) {
 				return NewMsgTssPool(helper.members, GetRandomPubKey(), AsgardKeygen, common.BlockHeight(helper.ctx), blame.Blame{}, common.Chains{common.RuneAsset().Chain}, GetRandomNodeAccount(NodeActive).NodeAddress)
 			},
 			runner: func(handler TssHandler, msg cosmos.Msg, helper tssHandlerTestHelper) (*cosmos.Result, error) {
-				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
+				return handler.Run(helper.ctx, msg, ver, helper.constAccessor)
 			},
 			expectedResult: se.ErrUnauthorized,
 		},
@@ -192,7 +196,7 @@ func (s *HandlerTssSuite) TestTssHandler(c *C) {
 				return NewMsgTssPool(helper.members, GetRandomPubKey(), AsgardKeygen, common.BlockHeight(helper.ctx), blame.Blame{}, common.Chains{common.RuneAsset().Chain}, cosmos.AccAddress{})
 			},
 			runner: func(handler TssHandler, msg cosmos.Msg, helper tssHandlerTestHelper) (*cosmos.Result, error) {
-				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
+				return handler.Run(helper.ctx, msg, ver, helper.constAccessor)
 			},
 			expectedResult: se.ErrInvalidAddress,
 		},
@@ -204,7 +208,7 @@ func (s *HandlerTssSuite) TestTssHandler(c *C) {
 				return tssMsg
 			},
 			runner: func(handler TssHandler, msg cosmos.Msg, helper tssHandlerTestHelper) (*cosmos.Result, error) {
-				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
+				return handler.Run(helper.ctx, msg, ver, helper.constAccessor)
 			},
 			expectedResult: se.ErrUnknownRequest,
 		},
@@ -215,7 +219,7 @@ func (s *HandlerTssSuite) TestTssHandler(c *C) {
 				return tssMsg
 			},
 			runner: func(handler TssHandler, msg cosmos.Msg, helper tssHandlerTestHelper) (*cosmos.Result, error) {
-				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
+				return handler.Run(helper.ctx, msg, ver, helper.constAccessor)
 			},
 			expectedResult: se.ErrUnknownRequest,
 		},
@@ -226,7 +230,7 @@ func (s *HandlerTssSuite) TestTssHandler(c *C) {
 				return tssMsg
 			},
 			runner: func(handler TssHandler, msg cosmos.Msg, helper tssHandlerTestHelper) (*cosmos.Result, error) {
-				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
+				return handler.Run(helper.ctx, msg, ver, helper.constAccessor)
 			},
 			expectedResult: se.ErrUnknownRequest,
 		},
@@ -237,7 +241,7 @@ func (s *HandlerTssSuite) TestTssHandler(c *C) {
 				return tssMsg
 			},
 			runner: func(handler TssHandler, msg cosmos.Msg, helper tssHandlerTestHelper) (*cosmos.Result, error) {
-				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
+				return handler.Run(helper.ctx, msg, ver, helper.constAccessor)
 			},
 			expectedResult: se.ErrUnknownRequest,
 		},
@@ -248,7 +252,7 @@ func (s *HandlerTssSuite) TestTssHandler(c *C) {
 				return tssMsg
 			},
 			runner: func(handler TssHandler, msg cosmos.Msg, helper tssHandlerTestHelper) (*cosmos.Result, error) {
-				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
+				return handler.Run(helper.ctx, msg, ver, helper.constAccessor)
 			},
 			expectedResult: se.ErrUnknownRequest,
 		},
@@ -259,7 +263,7 @@ func (s *HandlerTssSuite) TestTssHandler(c *C) {
 				return tssMsg
 			},
 			runner: func(handler TssHandler, msg cosmos.Msg, helper tssHandlerTestHelper) (*cosmos.Result, error) {
-				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
+				return handler.Run(helper.ctx, msg, ver, helper.constAccessor)
 			},
 			expectedResult: se.ErrUnknownRequest,
 		},
@@ -271,7 +275,7 @@ func (s *HandlerTssSuite) TestTssHandler(c *C) {
 			},
 			runner: func(handler TssHandler, msg cosmos.Msg, helper tssHandlerTestHelper) (*cosmos.Result, error) {
 				helper.keeper.errGetTssVoter = true
-				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
+				return handler.Run(helper.ctx, msg, ver, helper.constAccessor)
 			},
 			expectedResult: kaboom,
 		},
@@ -294,7 +298,7 @@ func (s *HandlerTssSuite) TestTssHandler(c *C) {
 			},
 			runner: func(handler TssHandler, msg cosmos.Msg, helper tssHandlerTestHelper) (*cosmos.Result, error) {
 				helper.keeper.errFailSaveVault = true
-				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
+				return handler.Run(helper.ctx, msg, ver, helper.constAccessor)
 			},
 			expectedResult: kaboom,
 		},
@@ -309,7 +313,7 @@ func (s *HandlerTssSuite) TestTssHandler(c *C) {
 					na := GetRandomNodeAccount(NodeActive)
 					_ = helper.keeper.SetNodeAccount(helper.ctx, na)
 				}
-				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
+				return handler.Run(helper.ctx, msg, ver, helper.constAccessor)
 			},
 			expectedResult: nil,
 		},
@@ -327,7 +331,7 @@ func (s *HandlerTssSuite) TestTssHandler(c *C) {
 				return tssMsg
 			},
 			runner: func(handler TssHandler, msg cosmos.Msg, helper tssHandlerTestHelper) (*cosmos.Result, error) {
-				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
+				return handler.Run(helper.ctx, msg, ver, helper.constAccessor)
 			},
 			expectedResult: nil,
 		},
@@ -338,7 +342,7 @@ func (s *HandlerTssSuite) TestTssHandler(c *C) {
 				return tssMsg
 			},
 			runner: func(handler TssHandler, msg cosmos.Msg, helper tssHandlerTestHelper) (*cosmos.Result, error) {
-				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
+				return handler.Run(helper.ctx, msg, ver, helper.constAccessor)
 			},
 			expectedResult: nil,
 		},
@@ -369,7 +373,7 @@ func (s *HandlerTssSuite) TestTssHandler(c *C) {
 				return tssMsg
 			},
 			runner: func(handler TssHandler, msg cosmos.Msg, helper tssHandlerTestHelper) (*cosmos.Result, error) {
-				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
+				return handler.Run(helper.ctx, msg, ver, helper.constAccessor)
 			},
 			expectedResult: errInternal,
 		},
@@ -415,7 +419,7 @@ func (s *HandlerTssSuite) TestTssHandler(c *C) {
 				addr, _ := helper.members[3].GetThorAddress()
 				voter.Sign(addr, common.Chains{common.BNBChain})
 				helper.keeper.SetTssVoter(helper.ctx, voter)
-				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
+				return handler.Run(helper.ctx, msg, ver, helper.constAccessor)
 			},
 			validator: func(helper tssHandlerTestHelper, msg cosmos.Msg, result *cosmos.Result, c *C) {
 				// make sure node get slashed
@@ -453,7 +457,7 @@ func (s *HandlerTssSuite) TestTssHandler(c *C) {
 			},
 			runner: func(handler TssHandler, msg cosmos.Msg, helper tssHandlerTestHelper) (*cosmos.Result, error) {
 				helper.keeper.errFailGetVaultData = true
-				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
+				return handler.Run(helper.ctx, msg, ver, helper.constAccessor)
 			},
 			expectedResult: kaboom,
 		},
@@ -486,7 +490,7 @@ func (s *HandlerTssSuite) TestTssHandler(c *C) {
 					TotalBondUnits: cosmos.NewUint(10000),
 				}
 				_ = helper.keeper.SetVaultData(helper.ctx, vd)
-				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
+				return handler.Run(helper.ctx, msg, ver, helper.constAccessor)
 			},
 			validator: func(helper tssHandlerTestHelper, msg cosmos.Msg, result *cosmos.Result, c *C) {
 				// make sure node get slashed
@@ -530,7 +534,7 @@ func (s *HandlerTssSuite) TestTssHandler(c *C) {
 				}
 				_ = helper.keeper.SetVaultData(helper.ctx, vd)
 				helper.keeper.errFailSetVaultData = true
-				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
+				return handler.Run(helper.ctx, msg, ver, helper.constAccessor)
 			},
 			expectedResult: nil,
 		},
@@ -559,7 +563,7 @@ func (s *HandlerTssSuite) TestTssHandler(c *C) {
 			},
 			runner: func(handler TssHandler, msg cosmos.Msg, helper tssHandlerTestHelper) (*cosmos.Result, error) {
 				helper.keeper.errFailGetNodeAccount = true
-				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
+				return handler.Run(helper.ctx, msg, ver, helper.constAccessor)
 			},
 			expectedResult: kaboom,
 		},
@@ -588,13 +592,14 @@ func (s *HandlerTssSuite) TestTssHandler(c *C) {
 			},
 			runner: func(handler TssHandler, msg cosmos.Msg, helper tssHandlerTestHelper) (*cosmos.Result, error) {
 				helper.keeper.errFailSetNodeAccount = true
-				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
+				return handler.Run(helper.ctx, msg, ver, helper.constAccessor)
 			},
 			expectedResult: kaboom,
 		},
 	}
+
 	for _, tc := range testCases {
-		helper := newTssHandlerTestHelper(c)
+		helper := newTssHandlerTestHelper(c, ver)
 		handler := NewTssHandler(helper.keeper, NewDummyMgr())
 		msg := tc.messageCreator(helper)
 		result, err := tc.runner(handler, msg, helper)

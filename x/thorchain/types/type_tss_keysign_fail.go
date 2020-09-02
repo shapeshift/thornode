@@ -49,6 +49,18 @@ func (tss *TssKeysignFailVoter) HasConsensus(nas NodeAccounts) bool {
 	return HasSimpleMajority(count, len(nas))
 }
 
+// HasConsensusV10 determine if this tss pool has enough signers
+// this method introduced at version 0.10.0 as a replacement for HasConsensus
+func (tss *TssKeysignFailVoter) HasConsensusV10(nas NodeAccounts) bool {
+	var count int
+	for _, signer := range tss.Signers {
+		if nas.IsNodeKeys(signer) {
+			count++
+		}
+	}
+	return HasSimpleMajorityV10(count, len(nas))
+}
+
 // Empty to check whether this Voter is empty or not
 func (tss *TssKeysignFailVoter) Empty() bool {
 	return len(tss.ID) == 0 || tss.Height == 0

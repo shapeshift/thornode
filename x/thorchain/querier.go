@@ -649,7 +649,7 @@ func queryTxIn(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper 
 	if err != nil {
 		return nil, fmt.Errorf("fail to get node accounts: %w", err)
 	}
-	res, err := codec.MarshalJSONIndent(keeper.Cdc(), voter.GetTx(nodeAccounts))
+	res, err := codec.MarshalJSONIndent(keeper.Cdc(), voter.GetTxV10(nodeAccounts))
 	if err != nil {
 		ctx.Logger().Error("fail to marshal tx hash to json", "error", err)
 		return nil, fmt.Errorf("fail to marshal tx hash to json: %w", err)
