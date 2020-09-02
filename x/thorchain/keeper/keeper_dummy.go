@@ -11,7 +11,7 @@ import (
 	"github.com/tendermint/tendermint/libs/log"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 	kvTypes "gitlab.com/thorchain/thornode/x/thorchain/keeper/types"
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
@@ -132,7 +132,8 @@ func (k KVStoreDummy) GetLowestActiveVersion(_ cosmos.Context) semver.Version {
 		Patch: 0,
 	}
 }
-func (k KVStoreDummy) GetMinJoinVersion(_ cosmos.Context) semver.Version { return semver.Version{} }
+func (k KVStoreDummy) GetMinJoinVersion(_ cosmos.Context) semver.Version   { return semver.Version{} }
+func (k KVStoreDummy) GetMinJoinVersionV1(_ cosmos.Context) semver.Version { return semver.Version{} }
 func (k KVStoreDummy) GetNodeAccount(_ cosmos.Context, _ cosmos.AccAddress) (NodeAccount, error) {
 	return NodeAccount{}, kaboom
 }

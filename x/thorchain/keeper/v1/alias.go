@@ -40,6 +40,7 @@ var (
 	NewKeygenBlock             = types.NewKeygenBlock
 	NewTxOut                   = types.NewTxOut
 	HasSuperMajority           = types.HasSuperMajority
+	HasSuperMajorityV10        = types.HasSuperMajorityV10
 	RegisterCodec              = types.RegisterCodec
 	NewNodeAccount             = types.NewNodeAccount
 	NewVault                   = types.NewVault

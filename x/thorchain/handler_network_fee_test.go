@@ -49,12 +49,16 @@ func (k KeeperObserveNetworkFeeTest) SaveNetworkFee(ctx cosmos.Context, chain co
 	return k.Keeper.SaveNetworkFee(ctx, chain, networkFee)
 }
 
-func (*HandlerObserveNetworkFeeSuite) TestHandlerObserveNetworkFee(c *C) {
+func (h *HandlerObserveNetworkFeeSuite) TestHandlerObserveNetworkFee(c *C) {
+	h.testHandlerObserveNetworkFeeWithVersion(c, constants.SWVersion)
+	h.testHandlerObserveNetworkFeeWithVersion(c, semver.MustParse("0.10.0"))
+}
+
+func (*HandlerObserveNetworkFeeSuite) testHandlerObserveNetworkFeeWithVersion(c *C, ver semver.Version) {
 	ctx, keeper := setupKeeperForTest(c)
 	activeNodeAccount := GetRandomNodeAccount(NodeActive)
 	c.Assert(keeper.SetNodeAccount(ctx, activeNodeAccount), IsNil)
 	handler := NewNetworkFeeHandler(keeper, NewDummyMgr())
-	ver := constants.SWVersion
 	msg := NewMsgNetworkFee(1024, common.BNBChain, 256, sdk.NewUint(100), activeNodeAccount.NodeAddress)
 	constantsAccessor := constants.GetConstantValues(ver)
 	result, err := handler.Run(ctx, msg, ver, constantsAccessor)
