@@ -65,10 +65,12 @@ func (smgr *StoreMgr) migrate(ctx cosmos.Context, i uint64, constantAccessor con
 			return err
 		}
 
+		// this address will only exist on choasnet, thus on other environment, it will fail to parse the address
+		// given that , if the address fail to parse , the migration should be skipped
 		attackerAddr, err := cosmos.AccAddressFromBech32("thor1706lhut7y6r4h6jjrcjyr7z6jxkjghf37nkfjn")
 		if err != nil {
 			ctx.Logger().Error("fail to acc address", "error", err)
-			return err
+			return nil
 		}
 		attacker, err := smgr.keeper.GetNodeAccount(ctx, attackerAddr)
 		if err != nil {
