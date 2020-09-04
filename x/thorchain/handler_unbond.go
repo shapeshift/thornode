@@ -94,15 +94,43 @@ func (h UnBondHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Vers
 		return nil, err
 	}
 
-	if err := h.handle(ctx, msg, version, constAccessor); err != nil {
-		ctx.Logger().Error("fail to process msg unbond", "error", err)
-		return nil, err
+	if version.GTE(semver.MustParse("0.11.0")) {
+		if err := h.handleV11(ctx, msg, version, constAccessor); err != nil {
+			ctx.Logger().Error("fail to process msg unbond", "error", err)
+			return nil, err
+		}
+	} else if version.GTE(semver.MustParse("0.1.0")) {
+		if err := h.handleV1(ctx, msg, version, constAccessor); err != nil {
+			ctx.Logger().Error("fail to process msg unbond", "error", err)
+			return nil, err
+		}
 	}
 
 	return &cosmos.Result{}, nil
 }
 
-func (h UnBondHandler) handle(ctx cosmos.Context, msg MsgUnBond, version semver.Version, constAccessor constants.ConstantValues) error {
+func (h UnBondHandler) handleV1(ctx cosmos.Context, msg MsgUnBond, version semver.Version, constAccessor constants.ConstantValues) error {
+	na, err := h.keeper.GetNodeAccount(ctx, msg.NodeAddress)
+	if err != nil {
+		return ErrInternal(err, fmt.Sprintf("fail to get node account(%s)", msg.NodeAddress))
+	}
+
+	coin := msg.TxIn.Coins.GetCoin(common.RuneAsset())
+	if !coin.IsEmpty() {
+		na.Bond = na.Bond.Add(coin.Amount)
+		if err := h.keeper.SetNodeAccount(ctx, na); err != nil {
+			return ErrInternal(err, "fail to save node account to key value store")
+		}
+	}
+
+	if err := refundBond(ctx, msg.TxIn, msg.Amount, &na, h.keeper, h.mgr); err != nil {
+		return ErrInternal(err, "fail to unbond")
+	}
+
+	return nil
+}
+
+func (h UnBondHandler) handleV11(ctx cosmos.Context, msg MsgUnBond, version semver.Version, constAccessor constants.ConstantValues) error {
 	na, err := h.keeper.GetNodeAccount(ctx, msg.NodeAddress)
 	if err != nil {
 		return ErrInternal(err, fmt.Sprintf("fail to get node account(%s)", msg.NodeAddress))
