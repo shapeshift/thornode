@@ -94,8 +94,8 @@ func (h UnBondHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Vers
 		return nil, err
 	}
 
-	if version.GTE(semver.MustParse("0.11.0")) {
-		if err := h.handleV11(ctx, msg, version, constAccessor); err != nil {
+	if version.GTE(semver.MustParse("0.12.0")) {
+		if err := h.handleV12(ctx, msg, version, constAccessor); err != nil {
 			ctx.Logger().Error("fail to process msg unbond", "error", err)
 			return nil, err
 		}
@@ -130,7 +130,7 @@ func (h UnBondHandler) handleV1(ctx cosmos.Context, msg MsgUnBond, version semve
 	return nil
 }
 
-func (h UnBondHandler) handleV11(ctx cosmos.Context, msg MsgUnBond, version semver.Version, constAccessor constants.ConstantValues) error {
+func (h UnBondHandler) handleV12(ctx cosmos.Context, msg MsgUnBond, version semver.Version, constAccessor constants.ConstantValues) error {
 	na, err := h.keeper.GetNodeAccount(ctx, msg.NodeAddress)
 	if err != nil {
 		return ErrInternal(err, fmt.Sprintf("fail to get node account(%s)", msg.NodeAddress))
