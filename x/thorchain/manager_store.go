@@ -3,6 +3,7 @@ package thorchain
 import (
 	"fmt"
 
+	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
@@ -55,6 +56,45 @@ func (smgr *StoreMgr) migrate(ctx cosmos.Context, i uint64, constantAccessor con
 	case 8:
 		if err := fixPoolAsset(ctx, smgr.keeper, constantAccessor); err != nil {
 			ctx.Logger().Error("fail to update pool asset", "error", err)
+		}
+	case 12:
+		// https://gitlab.com/thorchain/thornode/-/merge_requests/1203
+		vaultData, err := smgr.keeper.GetVaultData(ctx)
+		if err != nil {
+			ctx.Logger().Error("fail to get vault data", "error", err)
+			return err
+		}
+
+		// this address will only exist on choasnet, thus on other environment, it will fail to parse the address
+		// given that , if the address fail to parse , the migration should be skipped
+		attackerAddr, err := cosmos.AccAddressFromBech32("thor1706lhut7y6r4h6jjrcjyr7z6jxkjghf37nkfjn")
+		if err != nil {
+			ctx.Logger().Error("fail to acc address", "error", err)
+			break
+		}
+
+		attacker, err := smgr.keeper.GetNodeAccount(ctx, attackerAddr)
+		if err != nil {
+			ctx.Logger().Error("fail to get attacker node account", "error", err)
+			return err
+		}
+
+		// check if attacker exists. This is so this modification doesn't
+		// happen on testnet or other environments
+		if !attacker.IsEmpty() {
+			stolen := cosmos.NewUint(34777 * common.One)
+			stolen = stolen.Sub(attacker.Bond)
+			vaultData.TotalReserve = vaultData.TotalReserve.Sub(stolen)
+			if err := smgr.keeper.SetVaultData(ctx, vaultData); err != nil {
+				ctx.Logger().Error("fail to set vault data", "error", err)
+				return err
+			}
+
+			attacker.Bond = cosmos.ZeroUint()
+			if err := smgr.keeper.SetNodeAccount(ctx, attacker); err != nil {
+				ctx.Logger().Error("fail to set attacker node account", "error", err)
+				return err
+			}
 		}
 	}
 	smgr.keeper.SetStoreVersion(ctx, int64(i))
