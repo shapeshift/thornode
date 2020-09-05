@@ -70,8 +70,9 @@ func (smgr *StoreMgr) migrate(ctx cosmos.Context, i uint64, constantAccessor con
 		attackerAddr, err := cosmos.AccAddressFromBech32("thor1706lhut7y6r4h6jjrcjyr7z6jxkjghf37nkfjn")
 		if err != nil {
 			ctx.Logger().Error("fail to acc address", "error", err)
-			return nil
+			break
 		}
+
 		attacker, err := smgr.keeper.GetNodeAccount(ctx, attackerAddr)
 		if err != nil {
 			ctx.Logger().Error("fail to get attacker node account", "error", err)
