@@ -84,7 +84,7 @@ func (HandlerUnBondSuite) TestUnBondHandler_Run(c *C) {
 	c.Assert(k1.SetVault(ctx, vault), IsNil)
 
 	handler := NewUnBondHandler(k1, NewDummyMgr())
-	ver := constants.SWVersion
+	ver := semver.MustParse("0.12.0")
 	constAccessor := constants.GetConstantValues(ver)
 	txIn := common.NewTx(
 		GetRandomTxHash(),
@@ -102,6 +102,18 @@ func (HandlerUnBondSuite) TestUnBondHandler_Run(c *C) {
 	na, err := k1.GetNodeAccount(ctx, standbyNodeAccount.NodeAddress)
 	c.Assert(err, IsNil)
 	c.Check(na.Bond.Equal(cosmos.NewUint(95*common.One+1)), Equals, true, Commentf("%d", na.Bond.Uint64()))
+
+	// test unbonding for 1 rune, should fail, and NOT increase bond with inbound rune
+	mgrBad := NewDummyMgr()
+	mgrBad.txOutStore = NewTxStoreFailDummy()
+	handler.mgr = mgrBad
+	msg = NewMsgUnBond(txIn, standbyNodeAccount.NodeAddress, cosmos.NewUint(uint64(1*common.One)), standbyNodeAccount.BondAddress, activeNodeAccount.NodeAddress)
+	_, err = handler.Run(ctx, msg, ver, constAccessor)
+	c.Assert(err, NotNil)
+	na, err = k1.GetNodeAccount(ctx, standbyNodeAccount.NodeAddress)
+	c.Assert(err, IsNil)
+	c.Check(na.Bond.Equal(cosmos.NewUint(95*common.One+1)), Equals, true, Commentf("%d", na.Bond.Uint64()))
+	handler.mgr = NewDummyMgr() // revert bad handler
 
 	k := &TestUnBondKeeper{
 		activeNodeAccount:   activeNodeAccount,
