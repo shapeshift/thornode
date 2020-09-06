@@ -14,6 +14,8 @@ func init() {
 		FundMigrationInterval: 10,
 		StakeLockUpBlocks:     0,
 		CliTxCost:             0,
+		JailTimeKeygen:        10,
+		JailTimeKeysign:       10,
 	}
 	boolOverrides = map[ConstantName]bool{
 		StrictBondStakeRatio: false,
