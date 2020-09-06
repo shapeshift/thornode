@@ -299,6 +299,9 @@ func (vm *validatorMgrV13) getChangedNodes(ctx cosmos.Context, activeNodes NodeA
 				break
 			}
 		}
+		if na.ForcedToLeave {
+			found = false
+		}
 		if !found && len(membership) > 0 {
 			removedNodes = append(removedNodes, na)
 		}
