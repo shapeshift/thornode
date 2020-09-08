@@ -69,15 +69,21 @@ type QueryKeysign struct {
 
 // QueryYggdrasilVaults query yggdrasil vault result
 type QueryYggdrasilVaults struct {
-	Vault      Vault       `json:"vault"`
-	Status     NodeStatus  `json:"status"`
-	Bond       cosmos.Uint `json:"bond"`
-	TotalValue cosmos.Uint `json:"total_value"`
+	Vault      Vault               `json:"vault"`
+	Status     NodeStatus          `json:"status"`
+	Bond       cosmos.Uint         `json:"bond"`
+	TotalValue cosmos.Uint         `json:"total_value"`
+	Addresses  []QueryChainAddress `json:"addresses"`
 }
 
 type QueryVersion struct {
 	Current semver.Version `json:"current"`
 	Next    semver.Version `json:"next"`
+}
+
+type QueryChainAddress struct {
+	Chain   common.Chain   `json:"chain"`
+	Address common.Address `json:"address"`
 }
 
 // QueryNodeAccount hold all the information related to node account

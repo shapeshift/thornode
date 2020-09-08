@@ -133,6 +133,7 @@ func queryVault(ctx cosmos.Context, path []string, keeper keeper.Keeper) ([]byte
 			continue
 		}
 		if vaultAddr.Equals(addr) {
+
 			res, err := codec.MarshalJSONIndent(keeper.Cdc(), v)
 			if err != nil {
 				ctx.Logger().Error("fail to marshal vaults response to json", "error", err)
@@ -170,6 +171,24 @@ func queryAsgardVaults(ctx cosmos.Context, keeper keeper.Keeper) ([]byte, error)
 	}
 
 	return res, nil
+}
+
+func getVaultChainAddress(ctx cosmos.Context, vault Vault) []QueryChainAddress {
+	var result []QueryChainAddress
+	allChains := append(vault.Chains, common.THORChain)
+	for _, c := range allChains.Distinct() {
+		addr, err := vault.PubKey.GetAddress(c)
+		if err != nil {
+			ctx.Logger().Error("fail to get address for %s:%w", c.String(), err)
+			continue
+		}
+		result = append(result,
+			QueryChainAddress{
+				Chain:   c,
+				Address: addr,
+			})
+	}
+	return result
 }
 
 func queryYggdrasilVaults(ctx cosmos.Context, keeper keeper.Keeper) ([]byte, error) {
@@ -213,7 +232,11 @@ func queryYggdrasilVaults(ctx cosmos.Context, keeper keeper.Keeper) ([]byte, err
 		}
 
 		respVaults[i] = QueryYggdrasilVaults{
-			vault, na.Status, na.Bond, totalValue,
+			Vault:      vault,
+			Status:     na.Status,
+			Bond:       na.Bond,
+			TotalValue: totalValue,
+			Addresses:  getVaultChainAddress(ctx, vault),
 		}
 	}
 
@@ -385,6 +408,7 @@ func queryNodeAccount(ctx cosmos.Context, path []string, req abci.RequestQuery, 
 		earnedBlocks := nodeAcc.CalcBondUnits(common.BlockHeight(ctx), slashPts)
 		result.CurrentAward = vaultData.CalcNodeRewards(earnedBlocks)
 	}
+
 	res, err := codec.MarshalJSONIndent(keeper.Cdc(), result)
 	if err != nil {
 		return nil, fmt.Errorf("fail to marshal node account to json: %w", err)
