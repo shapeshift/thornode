@@ -242,6 +242,38 @@ func (vts *ValidatorMgrV13TestSuite) TestRagnarokBond(c *C) {
 	}
 }
 
+func (vts *ValidatorMgrV13TestSuite) TestGetChangedNodes(c *C) {
+	ctx, k := setupKeeperForTest(c)
+	ctx = ctx.WithBlockHeight(1)
+	ver := constants.SWVersion
+
+	mgr := NewDummyMgr()
+	vMgr := newValidatorMgrV13(k, mgr.VaultMgr(), mgr.TxOutStore(), mgr.EventMgr())
+	c.Assert(vMgr, NotNil)
+
+	constAccessor := constants.GetConstantValues(ver)
+	err := vMgr.setupValidatorNodes(ctx, 0, constAccessor)
+	c.Assert(err, IsNil)
+
+	activeNode := GetRandomNodeAccount(NodeActive)
+	activeNode.Bond = cosmos.NewUint(100)
+	activeNode.ForcedToLeave = true
+	c.Assert(k.SetNodeAccount(ctx, activeNode), IsNil)
+
+	disabledNode := GetRandomNodeAccount(NodeDisabled)
+	disabledNode.Bond = cosmos.ZeroUint()
+	c.Assert(k.SetNodeAccount(ctx, disabledNode), IsNil)
+
+	vault := NewVault(common.BlockHeight(ctx), ActiveVault, AsgardVault, GetRandomPubKey(), common.Chains{common.BNBChain})
+	vault.Membership = append(vault.Membership, activeNode.PubKeySet.Secp256k1)
+	c.Assert(k.SetVault(ctx, vault), IsNil)
+
+	newNodes, removedNodes, err := vMgr.getChangedNodes(ctx, NodeAccounts{activeNode})
+	c.Assert(err, IsNil)
+	c.Assert(newNodes, HasLen, 0)
+	c.Assert(removedNodes, HasLen, 1)
+}
+
 func (vts *ValidatorMgrV13TestSuite) TestFindCounToRemove(c *C) {
 	// remove one
 	c.Check(findCountToRemove(0, NodeAccounts{
