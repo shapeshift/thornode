@@ -101,7 +101,7 @@ func (vm *validatorMgrV13) BeginBlock(ctx cosmos.Context, constAccessor constant
 	// successful one
 	retryChurn := common.BlockHeight(ctx)-lastHeight > rotatePerBlockHeight && (common.BlockHeight(ctx)-lastHeight-rotatePerBlockHeight)%rotateRetryBlocks == 0
 
-	if common.BlockHeight(ctx)%rotatePerBlockHeight == 0 || retryChurn {
+	if lastHeight+rotatePerBlockHeight == common.BlockHeight(ctx) || retryChurn {
 		if retryChurn {
 			ctx.Logger().Info("Checking for node account rotation... (retry)")
 		} else {
