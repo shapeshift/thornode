@@ -10,16 +10,16 @@ import (
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
-// TxOutStorageV10 is going to manage all the outgoing tx
-type TxOutStorageV10 struct {
+// TxOutStorageV13 is going to manage all the outgoing tx
+type TxOutStorageV13 struct {
 	keeper        keeper.Keeper
 	constAccessor constants.ConstantValues
 	eventMgr      EventManager
 }
 
 // NewTxOutStorageV1 will create a new instance of TxOutStore.
-func NewTxOutStorageV10(keeper keeper.Keeper, constAccessor constants.ConstantValues, eventMgr EventManager) *TxOutStorageV10 {
-	return &TxOutStorageV10{
+func NewTxOutStorageV13(keeper keeper.Keeper, constAccessor constants.ConstantValues, eventMgr EventManager) *TxOutStorageV13 {
+	return &TxOutStorageV13{
 		keeper:        keeper,
 		eventMgr:      eventMgr,
 		constAccessor: constAccessor,
@@ -27,12 +27,12 @@ func NewTxOutStorageV10(keeper keeper.Keeper, constAccessor constants.ConstantVa
 }
 
 // GetBlockOut read the TxOut from kv store
-func (tos *TxOutStorageV10) GetBlockOut(ctx cosmos.Context) (*TxOut, error) {
+func (tos *TxOutStorageV13) GetBlockOut(ctx cosmos.Context) (*TxOut, error) {
 	return tos.keeper.GetTxOut(ctx, common.BlockHeight(ctx))
 }
 
 // GetOutboundItems read all the outbound item from kv store
-func (tos *TxOutStorageV10) GetOutboundItems(ctx cosmos.Context) ([]*TxOutItem, error) {
+func (tos *TxOutStorageV13) GetOutboundItems(ctx cosmos.Context) ([]*TxOutItem, error) {
 	block, err := tos.keeper.GetTxOut(ctx, common.BlockHeight(ctx))
 	if block == nil {
 		return nil, nil
@@ -41,7 +41,7 @@ func (tos *TxOutStorageV10) GetOutboundItems(ctx cosmos.Context) ([]*TxOutItem, 
 }
 
 // GetOutboundItemByToAddress read all the outbound items filter by the given to address
-func (tos *TxOutStorageV10) GetOutboundItemByToAddress(ctx cosmos.Context, to common.Address) []TxOutItem {
+func (tos *TxOutStorageV13) GetOutboundItemByToAddress(ctx cosmos.Context, to common.Address) []TxOutItem {
 	filterItems := make([]TxOutItem, 0)
 	items, _ := tos.GetOutboundItems(ctx)
 	for _, item := range items {
@@ -53,14 +53,14 @@ func (tos *TxOutStorageV10) GetOutboundItemByToAddress(ctx cosmos.Context, to co
 }
 
 // ClearOutboundItems remove all the tx out items , mostly used for test
-func (tos *TxOutStorageV10) ClearOutboundItems(ctx cosmos.Context) {
+func (tos *TxOutStorageV13) ClearOutboundItems(ctx cosmos.Context) {
 	_ = tos.keeper.ClearTxOut(ctx, common.BlockHeight(ctx))
 }
 
 // TryAddTxOutItem add an outbound tx to block
 // return bool indicate whether the transaction had been added successful or not
 // return error indicate error
-func (tos *TxOutStorageV10) TryAddTxOutItem(ctx cosmos.Context, mgr Manager, toi *TxOutItem) (bool, error) {
+func (tos *TxOutStorageV13) TryAddTxOutItem(ctx cosmos.Context, mgr Manager, toi *TxOutItem) (bool, error) {
 	success, err := tos.prepareTxOutItem(ctx, toi)
 	if err != nil {
 		return success, fmt.Errorf("fail to prepare outbound tx: %w", err)
@@ -77,7 +77,7 @@ func (tos *TxOutStorageV10) TryAddTxOutItem(ctx cosmos.Context, mgr Manager, toi
 
 // UnSafeAddTxOutItem - blindly adds a tx out, skipping vault selection, transaction
 // fee deduction, etc
-func (tos *TxOutStorageV10) UnSafeAddTxOutItem(ctx cosmos.Context, mgr Manager, toi *TxOutItem) error {
+func (tos *TxOutStorageV13) UnSafeAddTxOutItem(ctx cosmos.Context, mgr Manager, toi *TxOutItem) error {
 	return tos.addToBlockOut(ctx, mgr, toi)
 }
 
@@ -86,7 +86,7 @@ func (tos *TxOutStorageV10) UnSafeAddTxOutItem(ctx cosmos.Context, mgr Manager, 
 // 2. choose an appropriate pool,Yggdrasil or Asgard
 // 3. deduct transaction fee, keep in mind, only take transaction fee when active nodes are  more then minimumBFT
 // return bool indicated whether the given TxOutItem should be added into block or not
-func (tos *TxOutStorageV10) prepareTxOutItem(ctx cosmos.Context, toi *TxOutItem) (bool, error) {
+func (tos *TxOutStorageV13) prepareTxOutItem(ctx cosmos.Context, toi *TxOutItem) (bool, error) {
 	// Default the memo to the standard outbound memo
 	if toi.Memo == "" {
 		toi.Memo = NewOutboundMemo(toi.InHash).String()
@@ -110,7 +110,7 @@ func (tos *TxOutStorageV10) prepareTxOutItem(ctx cosmos.Context, toi *TxOutItem)
 				if err != nil {
 					return false, fmt.Errorf("fail to get observed tx voter: %w", err)
 				}
-				tx := voter.GetTxV10(activeNodeAccounts)
+				tx := voter.GetTxV13(activeNodeAccounts)
 
 				// collect yggdrasil pools is going to get a list of yggdrasil vault that THORChain can used to send out fund
 				yggs, err := tos.collectYggdrasilPools(ctx, tx, toi.Chain.GetGasAsset())
@@ -269,7 +269,7 @@ func (tos *TxOutStorageV10) prepareTxOutItem(ctx cosmos.Context, toi *TxOutItem)
 	return true, nil
 }
 
-func (tos *TxOutStorageV10) addToBlockOut(ctx cosmos.Context, mgr Manager, toi *TxOutItem) error {
+func (tos *TxOutStorageV13) addToBlockOut(ctx cosmos.Context, mgr Manager, toi *TxOutItem) error {
 	// THORChain , native RUNE will not need to forward the txout to bifrost
 	if toi.Chain.Equals(common.THORChain) {
 		return tos.nativeTxOut(ctx, mgr, toi)
@@ -303,7 +303,7 @@ func (tos *TxOutStorageV10) addToBlockOut(ctx cosmos.Context, mgr Manager, toi *
 	return tos.keeper.AppendTxOut(ctx, common.BlockHeight(ctx), toi)
 }
 
-func (tos *TxOutStorageV10) nativeTxOut(ctx cosmos.Context, mgr Manager, toi *TxOutItem) error {
+func (tos *TxOutStorageV13) nativeTxOut(ctx cosmos.Context, mgr Manager, toi *TxOutItem) error {
 	supplier := tos.keeper.Supply()
 
 	addr, err := cosmos.AccAddressFromBech32(toi.ToAddress.String())
@@ -367,7 +367,7 @@ func (tos *TxOutStorageV10) nativeTxOut(ctx cosmos.Context, mgr Manager, toi *Tx
 }
 
 // collectYggdrasilPools is to get all the yggdrasil vaults , that THORChain can used to send out fund
-func (tos *TxOutStorageV10) collectYggdrasilPools(ctx cosmos.Context, tx ObservedTx, gasAsset common.Asset) (Vaults, error) {
+func (tos *TxOutStorageV13) collectYggdrasilPools(ctx cosmos.Context, tx ObservedTx, gasAsset common.Asset) (Vaults, error) {
 	// collect yggdrasil pools
 	var vaults Vaults
 	iterator := tos.keeper.GetVaultIterator(ctx)
@@ -437,7 +437,7 @@ func (tos *TxOutStorageV10) collectYggdrasilPools(ctx cosmos.Context, tx Observe
 	return vaults, nil
 }
 
-func (tos *TxOutStorageV10) deductYggdrasilVaultOutstandingBalance(vault Vault, block *TxOut) Vault {
+func (tos *TxOutStorageV13) deductYggdrasilVaultOutstandingBalance(vault Vault, block *TxOut) Vault {
 	for _, txOutItem := range block.TxArray {
 		if !txOutItem.VaultPubKey.Equals(vault.PubKey) {
 			continue

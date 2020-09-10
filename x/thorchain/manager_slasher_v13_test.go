@@ -9,15 +9,15 @@ import (
 	"gitlab.com/thorchain/thornode/constants"
 )
 
-type SlashingV10Suite struct{}
+type SlashingV13Suite struct{}
 
-var _ = Suite(&SlashingV10Suite{})
+var _ = Suite(&SlashingV13Suite{})
 
-func (s *SlashingV10Suite) SetUpSuite(c *C) {
+func (s *SlashingV13Suite) SetUpSuite(c *C) {
 	SetupConfigForTest()
 }
 
-func (s *SlashingV10Suite) TestObservingSlashing(c *C) {
+func (s *SlashingV13Suite) TestObservingSlashing(c *C) {
 	var err error
 	ctx, _ := setupKeeperForTest(c)
 
@@ -30,10 +30,10 @@ func (s *SlashingV10Suite) TestObservingSlashing(c *C) {
 		addrs:    []cosmos.AccAddress{nas[0].NodeAddress},
 		slashPts: make(map[string]int64, 0),
 	}
-	ver := semver.MustParse("0.10.0")
+	ver := semver.MustParse("0.13.0")
 	constAccessor := constants.GetConstantValues(ver)
 
-	slasher := NewSlasherV10(keeper)
+	slasher := NewSlasherV13(keeper)
 	// should slash na2 only
 	lackOfObservationPenalty := constAccessor.GetInt64Value(constants.LackOfObservationPenalty)
 	err = slasher.LackObserving(ctx, constAccessor)
@@ -51,7 +51,7 @@ func (s *SlashingV10Suite) TestObservingSlashing(c *C) {
 	c.Assert(keeper.slashPts[nas[1].NodeAddress.String()], Equals, lackOfObservationPenalty)
 }
 
-func (s *SlashingV10Suite) TestLackObservingErrors(c *C) {
+func (s *SlashingV13Suite) TestLackObservingErrors(c *C) {
 	ctx, _ := setupKeeperForTest(c)
 
 	nas := NodeAccounts{
@@ -63,9 +63,9 @@ func (s *SlashingV10Suite) TestLackObservingErrors(c *C) {
 		addrs:    []cosmos.AccAddress{nas[0].NodeAddress},
 		slashPts: make(map[string]int64, 0),
 	}
-	ver := semver.MustParse("0.10.0")
+	ver := semver.MustParse("0.13.0")
 	constAccessor := constants.GetConstantValues(ver)
-	slasher := NewSlasherV10(keeper)
+	slasher := NewSlasherV13(keeper)
 	keeper.failGetObservingAddress = true
 	c.Assert(slasher.LackObserving(ctx, constAccessor), NotNil)
 	keeper.failGetObservingAddress = false
@@ -74,7 +74,7 @@ func (s *SlashingV10Suite) TestLackObservingErrors(c *C) {
 	keeper.failListActiveNodeAccount = false
 }
 
-func (s *SlashingV10Suite) TestNodeSignSlashErrors(c *C) {
+func (s *SlashingV13Suite) TestNodeSignSlashErrors(c *C) {
 	testCases := []struct {
 		name        string
 		condition   func(keeper *TestSlashingLackKeeper)
@@ -127,7 +127,7 @@ func (s *SlashingV10Suite) TestNodeSignSlashErrors(c *C) {
 		c.Logf("name:%s", item.name)
 		ctx, _ := setupKeeperForTest(c)
 		ctx = ctx.WithBlockHeight(201) // set blockheight
-		ver := semver.MustParse("0.10.0")
+		ver := semver.MustParse("0.13.0")
 		constAccessor := constants.GetConstantValues(ver)
 		na := GetRandomNodeAccount(NodeActive)
 		inTx := common.NewTx(
@@ -167,7 +167,7 @@ func (s *SlashingV10Suite) TestNodeSignSlashErrors(c *C) {
 		}
 		signingTransactionPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
 		ctx = ctx.WithBlockHeight(3 + signingTransactionPeriod)
-		slasher := NewSlasherV10(keeper)
+		slasher := NewSlasherV13(keeper)
 		item.condition(keeper)
 		if item.shouldError {
 			c.Assert(slasher.LackSigning(ctx, constAccessor, NewDummyMgr()), NotNil)
@@ -177,11 +177,11 @@ func (s *SlashingV10Suite) TestNodeSignSlashErrors(c *C) {
 	}
 }
 
-func (s *SlashingV10Suite) TestNotSigningSlash(c *C) {
+func (s *SlashingV13Suite) TestNotSigningSlash(c *C) {
 	ctx, _ := setupKeeperForTest(c)
 	ctx = ctx.WithBlockHeight(201) // set blockheight
 	txOutStore := NewTxStoreDummy()
-	ver := semver.MustParse("0.10.0")
+	ver := semver.MustParse("0.13.0")
 	constAccessor := constants.GetConstantValues(ver)
 	na := GetRandomNodeAccount(NodeActive)
 	inTx := common.NewTx(
@@ -226,7 +226,7 @@ func (s *SlashingV10Suite) TestNotSigningSlash(c *C) {
 	ctx = ctx.WithBlockHeight(3 + signingTransactionPeriod)
 	mgr := NewDummyMgr()
 	mgr.txOutStore = txOutStore
-	slasher := NewSlasherV10(keeper)
+	slasher := NewSlasherV13(keeper)
 	c.Assert(slasher.LackSigning(ctx, constAccessor, mgr), IsNil)
 
 	c.Check(keeper.slashPts[na.NodeAddress.String()], Equals, int64(600), Commentf("%+v\n", na))
@@ -241,7 +241,7 @@ func (s *SlashingV10Suite) TestNotSigningSlash(c *C) {
 	c.Assert(keeper.voter.Actions[0].VaultPubKey.Equals(outItems[0].VaultPubKey), Equals, true)
 }
 
-func (s *SlashingV10Suite) TestNewSlasher(c *C) {
+func (s *SlashingV13Suite) TestNewSlasher(c *C) {
 	nas := NodeAccounts{
 		GetRandomNodeAccount(NodeActive),
 		GetRandomNodeAccount(NodeActive),
@@ -251,11 +251,11 @@ func (s *SlashingV10Suite) TestNewSlasher(c *C) {
 		addrs:    []cosmos.AccAddress{nas[0].NodeAddress},
 		slashPts: make(map[string]int64, 0),
 	}
-	slasher := NewSlasherV10(keeper)
+	slasher := NewSlasherV13(keeper)
 	c.Assert(slasher, NotNil)
 }
 
-func (s *SlashingV10Suite) TestDoubleSign(c *C) {
+func (s *SlashingV13Suite) TestDoubleSign(c *C) {
 	ctx, _ := setupKeeperForTest(c)
 	constAccessor := constants.GetConstantValues(constants.SWVersion)
 
@@ -267,7 +267,7 @@ func (s *SlashingV10Suite) TestDoubleSign(c *C) {
 		vaultData: NewVaultData(),
 		modules:   make(map[string]int64, 0),
 	}
-	slasher := NewSlasherV10(keeper)
+	slasher := NewSlasherV13(keeper)
 
 	pk, err := cosmos.GetPubKeyFromBech32(cosmos.Bech32PubKeyTypeConsPub, na.ValidatorConsPubKey)
 	c.Assert(err, IsNil)
@@ -282,7 +282,7 @@ func (s *SlashingV10Suite) TestDoubleSign(c *C) {
 	}
 }
 
-func (s *SlashingV10Suite) TestIncreaseDecreaseSlashPoints(c *C) {
+func (s *SlashingV13Suite) TestIncreaseDecreaseSlashPoints(c *C) {
 	ctx, _ := setupKeeperForTest(c)
 
 	na := GetRandomNodeAccount(NodeActive)
@@ -293,7 +293,7 @@ func (s *SlashingV10Suite) TestIncreaseDecreaseSlashPoints(c *C) {
 		vaultData:   NewVaultData(),
 		slashPoints: make(map[string]int64),
 	}
-	slasher := NewSlasherV10(keeper)
+	slasher := NewSlasherV13(keeper)
 	addr := GetRandomBech32Addr()
 	slasher.IncSlashPoints(ctx, 1, addr)
 	slasher.DecSlashPoints(ctx, 1, addr)

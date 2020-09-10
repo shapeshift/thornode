@@ -77,8 +77,8 @@ func (tss *TssVoter) ConsensusChains() common.Chains {
 	return chains
 }
 
-// ConsensusChainsV10 - get a list of chains that have 2/3rds majority
-func (tss *TssVoter) ConsensusChainsV10() common.Chains {
+// ConsensusChainsV13 - get a list of chains that have 2/3rds majority
+func (tss *TssVoter) ConsensusChainsV13() common.Chains {
 	chainCount := make(map[common.Chain]int, 0)
 	for _, chain := range tss.Chains {
 		if _, ok := chainCount[chain]; !ok {
@@ -89,7 +89,7 @@ func (tss *TssVoter) ConsensusChainsV10() common.Chains {
 
 	chains := make(common.Chains, 0)
 	for chain, count := range chainCount {
-		if HasSuperMajorityV10(count, len(tss.PubKeys)) {
+		if HasSuperMajorityV13(count, len(tss.PubKeys)) {
 			chains = append(chains, chain)
 		}
 	}
@@ -107,9 +107,9 @@ func (tss *TssVoter) HasConsensus() bool {
 	return HasSuperMajority(len(tss.Signers), len(tss.PubKeys))
 }
 
-// HasConsensusV10 determine if this tss pool has enough signers
-func (tss *TssVoter) HasConsensusV10() bool {
-	return HasSuperMajorityV10(len(tss.Signers), len(tss.PubKeys))
+// HasConsensusV13 determine if this tss pool has enough signers
+func (tss *TssVoter) HasConsensusV13() bool {
+	return HasSuperMajorityV13(len(tss.Signers), len(tss.PubKeys))
 }
 
 // Empty check whether TssVoter represent empty info
