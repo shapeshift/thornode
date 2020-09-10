@@ -7,11 +7,11 @@ import (
 	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
-type TxOutStoreV10Suite struct{}
+type TxOutStoreV13Suite struct{}
 
-var _ = Suite(&TxOutStoreV10Suite{})
+var _ = Suite(&TxOutStoreV13Suite{})
 
-func (s TxOutStoreV10Suite) TestAddGasFees(c *C) {
+func (s TxOutStoreV13Suite) TestAddGasFees(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	tx := GetRandomObservedTx()
 
@@ -21,7 +21,7 @@ func (s TxOutStoreV10Suite) TestAddGasFees(c *C) {
 	c.Assert(gasMgr.gas, HasLen, 1)
 }
 
-func (s TxOutStoreV10Suite) TestAddOutTxItem(c *C) {
+func (s TxOutStoreV13Suite) TestAddOutTxItem(c *C) {
 	w := getHandlerTestWrapper(c, 1, true, true)
 	vault := GetRandomVault()
 	vault.Coins = common.Coins{
@@ -116,7 +116,7 @@ func (s TxOutStoreV10Suite) TestAddOutTxItem(c *C) {
 	c.Assert(msgs[2].VaultPubKey.String(), Equals, vault.PubKey.String())
 }
 
-func (s TxOutStoreV10Suite) TestAddOutTxItemWithoutBFT(c *C) {
+func (s TxOutStoreV13Suite) TestAddOutTxItemWithoutBFT(c *C) {
 	w := getHandlerTestWrapper(c, 1, true, true)
 	vault := GetRandomVault()
 	vault.Coins = common.Coins{
