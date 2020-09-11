@@ -60,8 +60,8 @@ func (h BanHandler) validateV1(ctx cosmos.Context, msg MsgBan) error {
 
 func (h BanHandler) handle(ctx cosmos.Context, msg MsgBan, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	ctx.Logger().Info("handleMsgBan request", "node address", msg.NodeAddress.String())
-	if version.GTE(semver.MustParse("0.10.0")) {
-		return h.handleV10(ctx, msg, constAccessor)
+	if version.GTE(semver.MustParse("0.13.0")) {
+		return h.handleV13(ctx, msg, constAccessor)
 	} else if version.GTE(semver.MustParse("0.1.0")) {
 		return h.handleV1(ctx, msg, constAccessor)
 	}
@@ -166,7 +166,7 @@ func (h BanHandler) handleV1(ctx cosmos.Context, msg MsgBan, constAccessor const
 	return &cosmos.Result{}, nil
 }
 
-func (h BanHandler) handleV10(ctx cosmos.Context, msg MsgBan, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+func (h BanHandler) handleV13(ctx cosmos.Context, msg MsgBan, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	toBan, err := h.keeper.GetNodeAccount(ctx, msg.NodeAddress)
 	if err != nil {
 		err = wrapError(ctx, err, "fail to get to ban node account")
@@ -240,7 +240,7 @@ func (h BanHandler) handleV10(ctx cosmos.Context, msg MsgBan, constAccessor cons
 	voter.Sign(msg.Signer)
 	h.keeper.SetBanVoter(ctx, voter)
 	// doesn't have consensus yet
-	if !voter.HasConsensusV10(active) {
+	if !voter.HasConsensusV13(active) {
 		ctx.Logger().Info("not having consensus yet, return")
 		return &cosmos.Result{}, nil
 	}

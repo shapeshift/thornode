@@ -75,8 +75,8 @@ func (h TssKeysignHandler) validateV1(ctx cosmos.Context, msg MsgTssKeysignFail)
 
 func (h TssKeysignHandler) handle(ctx cosmos.Context, msg MsgTssKeysignFail, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	ctx.Logger().Info("handle MsgTssKeysignFail request", "ID", msg.ID, "signer", msg.Signer, "pubkey", msg.PubKey, "blame", msg.Blame.String())
-	if version.GTE(semver.MustParse("0.10.0")) {
-		return h.handleV10(ctx, msg, version, constAccessor)
+	if version.GTE(semver.MustParse("0.13.0")) {
+		return h.handleV13(ctx, msg, version, constAccessor)
 	} else if version.GTE(semver.MustParse("0.1.0")) {
 		return h.handleV1(ctx, msg, version, constAccessor)
 	}
@@ -142,8 +142,8 @@ func (h TssKeysignHandler) handleV1(ctx cosmos.Context, msg MsgTssKeysignFail, v
 	return &cosmos.Result{}, nil
 }
 
-// handlerV10 is introduced at 0.10.0 version, which change the way how SimplyMajority get calculated
-func (h TssKeysignHandler) handleV10(ctx cosmos.Context, msg MsgTssKeysignFail, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+// handleV13 is introduced at 0.13.0 version, which change the way how SimplyMajority get calculated
+func (h TssKeysignHandler) handleV13(ctx cosmos.Context, msg MsgTssKeysignFail, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	active, err := h.keeper.ListActiveNodeAccounts(ctx)
 	if err != nil {
 		return nil, wrapError(ctx, err, "fail to get list of active node accounts")
@@ -161,7 +161,7 @@ func (h TssKeysignHandler) handleV10(ctx cosmos.Context, msg MsgTssKeysignFail, 
 	}
 	h.keeper.SetTssKeysignFailVoter(ctx, voter)
 	// doesn't have consensus yet
-	if !voter.HasConsensusV10(active) {
+	if !voter.HasConsensusV13(active) {
 		ctx.Logger().Info("not having consensus yet, return")
 		return &cosmos.Result{}, nil
 	}

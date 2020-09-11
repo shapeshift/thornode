@@ -119,7 +119,7 @@ func newTssKeysignHandlerTestHelper(c *C, ver semver.Version) tssKeysignFailHand
 
 func (h HandlerTssKeysignSuite) TestTssKeysignFailHandler(c *C) {
 	h.testTssKeysignFailHandlerWithVersion(c, constants.SWVersion)
-	h.testTssKeysignFailHandlerWithVersion(c, semver.MustParse("0.10.0"))
+	h.testTssKeysignFailHandlerWithVersion(c, semver.MustParse("0.13.0"))
 }
 
 func (h HandlerTssKeysignSuite) testTssKeysignFailHandlerWithVersion(c *C, ver semver.Version) {

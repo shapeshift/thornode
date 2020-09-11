@@ -50,20 +50,20 @@ func (s TypesSuite) TestHasSuperMajority(c *C) {
 
 func (s TypesSuite) TestHasSuperMajorityV10(c *C) {
 	// happy path
-	c.Check(HasSuperMajorityV10(3, 4), Equals, true)
-	c.Check(HasSuperMajorityV10(2, 3), Equals, true)
-	c.Check(HasSuperMajorityV10(4, 4), Equals, true)
-	c.Check(HasSuperMajorityV10(1, 1), Equals, true)
-	c.Check(HasSuperMajorityV10(67, 100), Equals, true)
+	c.Check(HasSuperMajorityV13(3, 4), Equals, true)
+	c.Check(HasSuperMajorityV13(2, 3), Equals, true)
+	c.Check(HasSuperMajorityV13(4, 4), Equals, true)
+	c.Check(HasSuperMajorityV13(1, 1), Equals, true)
+	c.Check(HasSuperMajorityV13(67, 100), Equals, true)
 
 	// unhappy path
-	c.Check(HasSuperMajorityV10(2, 4), Equals, false)
-	c.Check(HasSuperMajorityV10(9, 4), Equals, false)
-	c.Check(HasSuperMajorityV10(-9, 4), Equals, false)
-	c.Check(HasSuperMajorityV10(9, -4), Equals, false)
-	c.Check(HasSuperMajorityV10(0, 0), Equals, false)
-	c.Check(HasSuperMajorityV10(3, 0), Equals, false)
-	c.Check(HasSuperMajorityV10(8, 15), Equals, false)
+	c.Check(HasSuperMajorityV13(2, 4), Equals, false)
+	c.Check(HasSuperMajorityV13(9, 4), Equals, false)
+	c.Check(HasSuperMajorityV13(-9, 4), Equals, false)
+	c.Check(HasSuperMajorityV13(9, -4), Equals, false)
+	c.Check(HasSuperMajorityV13(0, 0), Equals, false)
+	c.Check(HasSuperMajorityV13(3, 0), Equals, false)
+	c.Check(HasSuperMajorityV13(8, 15), Equals, false)
 }
 
 func (TypesSuite) TestHasSimpleMajority(c *C) {
