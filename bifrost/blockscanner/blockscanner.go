@@ -2,8 +2,10 @@ package blockscanner
 
 import (
 	"errors"
+	"fmt"
 	"strconv"
 	"sync"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog"
@@ -15,6 +17,7 @@ import (
 	"gitlab.com/thorchain/thornode/bifrost/thorclient"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient/types"
 	"gitlab.com/thorchain/thornode/common"
+	"gitlab.com/thorchain/thornode/constants"
 )
 
 type BlockScannerFetcher interface {
@@ -100,6 +103,9 @@ func (b *BlockScanner) scanBlocks() {
 	}
 	b.metrics.GetCounter(metrics.CurrentPosition).Add(float64(currentPos))
 
+	lastMimirCheck := time.Now().Add(-constants.ThorchainBlockTime)
+	haltHeight := int64(0)
+
 	// start up to grab those blocks
 	for {
 		select {
@@ -107,6 +113,20 @@ func (b *BlockScanner) scanBlocks() {
 			return
 		default:
 			currentBlock := b.previousBlock + 1
+
+			// check if mimir has disabled this chain
+			if time.Now().Sub(lastMimirCheck).Nanoseconds() >= constants.ThorchainBlockTime.Nanoseconds() {
+				haltHeight, err = b.thorchainBridge.GetMimir(fmt.Sprintf("Halt%sChain", b.cfg.ChainID))
+				if err != nil {
+					b.logger.Error().Err(err).Msg("fail to get mimir setting")
+				}
+				lastMimirCheck = time.Now()
+			}
+			if haltHeight > 0 && currentBlock > haltHeight {
+				time.Sleep(constants.ThorchainBlockTime)
+				continue
+			}
+
 			txIn, err := b.chainScanner.FetchTxs(currentBlock)
 			if err != nil {
 				// don't log an error if its because the block doesn't exist yet
@@ -116,6 +136,7 @@ func (b *BlockScanner) scanBlocks() {
 				}
 				continue
 			}
+
 			// enable this one , so we could see how far it is behind
 			if currentBlock%100 == 0 {
 				b.logger.Info().Int64("block height", currentBlock).Int("txs", len(txIn.TxArray))
