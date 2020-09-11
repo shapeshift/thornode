@@ -179,7 +179,7 @@ func (s *HandlerBanSuite) TestHandle(c *C) {
 
 func (s *HandlerBanSuite) TestHandleV10(c *C) {
 	ctx, _ := setupKeeperForTest(c)
-	ver := semver.MustParse("0.10.0")
+	ver := semver.MustParse("0.13.0")
 	constAccessor := constants.GetConstantValues(ver)
 	minBond := constAccessor.GetInt64Value(constants.MinimumBondInRune)
 
@@ -523,7 +523,7 @@ func (s *HandlerBanSuite) TestBanHandlerValidation(c *C) {
 	}
 	versions := []semver.Version{
 		constants.SWVersion,
-		semver.MustParse("0.10.0"),
+		semver.MustParse("0.13.0"),
 	}
 	for _, tc := range testCases {
 		if common.RuneAsset().Chain.Equals(common.THORChain) && tc.skipForNativeRUNE {

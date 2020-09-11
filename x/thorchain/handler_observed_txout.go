@@ -62,8 +62,8 @@ func (h ObservedTxOutHandler) validateV1(ctx cosmos.Context, msg MsgObservedTxOu
 }
 
 func (h ObservedTxOutHandler) handle(ctx cosmos.Context, msg MsgObservedTxOut, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
-	if version.GTE(semver.MustParse("0.10.0")) {
-		return h.handleV10(ctx, version, msg, constAccessor)
+	if version.GTE(semver.MustParse("0.13.0")) {
+		return h.handleV13(ctx, version, msg, constAccessor)
 	} else if version.GTE(semver.MustParse("0.1.0")) {
 		return h.handleV1(ctx, version, msg, constAccessor)
 	}
@@ -234,11 +234,11 @@ func (h ObservedTxOutHandler) preflightV10(ctx cosmos.Context, voter ObservedTxV
 		// when the signer already sign it
 		return voter, ok
 	}
-	if voter.HasConsensusV10(nas) {
+	if voter.HasConsensusV13(nas) {
 		if voter.Height == 0 {
 			ok = true
 			voter.Height = common.BlockHeight(ctx)
-			voter.Tx = voter.GetTxV10(nas)
+			voter.Tx = voter.GetTxV13(nas)
 			// tx has consensus now, so decrease the slashing point for all the signers whom voted for it
 			h.mgr.Slasher().DecSlashPoints(ctx, observeSlashPoints, voter.Tx.Signers...)
 
@@ -256,7 +256,7 @@ func (h ObservedTxOutHandler) preflightV10(ctx cosmos.Context, voter ObservedTxV
 }
 
 // Handle a message to observe outbound tx
-func (h ObservedTxOutHandler) handleV10(ctx cosmos.Context, version semver.Version, msg MsgObservedTxOut, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+func (h ObservedTxOutHandler) handleV13(ctx cosmos.Context, version semver.Version, msg MsgObservedTxOut, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	activeNodeAccounts, err := h.keeper.ListActiveNodeAccounts(ctx)
 	if err != nil {
 		return nil, wrapError(ctx, err, "fail to get list of active node accounts")
@@ -326,7 +326,7 @@ func (h ObservedTxOutHandler) handleV10(ctx cosmos.Context, version semver.Versi
 			continue
 		}
 
-		txOut := voter.GetTxV10(activeNodeAccounts) // get consensus tx, in case our for loop is incorrect
+		txOut := voter.GetTxV13(activeNodeAccounts) // get consensus tx, in case our for loop is incorrect
 		txOut.Tx.Memo = tx.Tx.Memo
 		m, err := processOneTxIn(ctx, h.keeper, txOut, msg.Signer)
 		if err != nil || tx.Tx.Chain.IsEmpty() {

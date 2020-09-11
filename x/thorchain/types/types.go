@@ -18,7 +18,7 @@ const (
 
 // HasSuperMajority return true when it has 2/3 majority
 // Deprecated: this method will not return correct result for example signer:8 , total:15 it should be false , instead it will return true
-// use HasSuperMajorityV10 instead
+// use HasSuperMajorityV13 instead
 func HasSuperMajority(signers, total int) bool {
 	if signers > total {
 		return false // will not have majority if THORNode have more signers than node accounts. This shouldn't be possible
@@ -38,8 +38,8 @@ func HasSuperMajority(signers, total int) bool {
 	return mU.GTE(factor)
 }
 
-// HasSuperMajorityV10 return true when it has 2/3 majority
-func HasSuperMajorityV10(signers, total int) bool {
+// HasSuperMajorityV13 return true when it has 2/3 majority
+func HasSuperMajorityV13(signers, total int) bool {
 	if signers > total {
 		return false // will not have majority if THORNode have more signers than node accounts. This shouldn't be possible
 	}
@@ -72,9 +72,9 @@ func HasSimpleMajority(signers, total int) bool {
 	return mU.GTE(factor)
 }
 
-// HasSimpleMajorityV10 return true when it has more than 1/2
+// HasSimpleMajorityV13 return true when it has more than 1/2
 // this method replace HasSimpleMajority, which is not correct
-func HasSimpleMajorityV10(signers, total int) bool {
+func HasSimpleMajorityV13(signers, total int) bool {
 	if signers > total {
 		return false // will not have majority if THORNode have more signers than node accounts. This shouldn't be possible
 	}

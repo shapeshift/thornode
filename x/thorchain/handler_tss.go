@@ -75,8 +75,8 @@ func (h TssHandler) validateV1(ctx cosmos.Context, msg MsgTssPool) error {
 
 func (h TssHandler) handle(ctx cosmos.Context, msg MsgTssPool, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	ctx.Logger().Info("handleMsgTssPool request", "ID:", msg.ID)
-	if version.GTE(semver.MustParse("0.10.0")) {
-		return h.handleV10(ctx, msg, version, constAccessor)
+	if version.GTE(semver.MustParse("0.13.0")) {
+		return h.handleV13(ctx, msg, version, constAccessor)
 	} else if version.GTE(semver.MustParse("0.1.0")) {
 		return h.handleV1(ctx, msg, version, constAccessor)
 	}
@@ -209,7 +209,7 @@ func (h TssHandler) handleV1(ctx cosmos.Context, msg MsgTssPool, version semver.
 	return &cosmos.Result{}, nil
 }
 
-func (h TssHandler) handleV10(ctx cosmos.Context, msg MsgTssPool, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+func (h TssHandler) handleV13(ctx cosmos.Context, msg MsgTssPool, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	ctx.Logger().Info(fmt.Sprintf("current version: %s", version.String()))
 	if !msg.Blame.IsEmpty() {
 		ctx.Logger().Error(msg.Blame.String())
@@ -238,7 +238,7 @@ func (h TssHandler) handleV10(ctx cosmos.Context, msg MsgTssPool, version semver
 	}
 	h.keeper.SetTssVoter(ctx, voter)
 	// doesn't have consensus yet
-	if !voter.HasConsensusV10() {
+	if !voter.HasConsensusV13() {
 		ctx.Logger().Info("not having consensus yet, return")
 		return &cosmos.Result{}, nil
 	}
@@ -252,7 +252,7 @@ func (h TssHandler) handleV10(ctx cosmos.Context, msg MsgTssPool, version semver
 			if msg.KeygenType == AsgardKeygen {
 				vaultType = AsgardVault
 			}
-			vault := NewVault(common.BlockHeight(ctx), ActiveVault, vaultType, voter.PoolPubKey, voter.ConsensusChainsV10())
+			vault := NewVault(common.BlockHeight(ctx), ActiveVault, vaultType, voter.PoolPubKey, voter.ConsensusChainsV13())
 			vault.Membership = voter.PubKeys
 
 			signingParty, err := ChooseSignerParty(voter.PubKeys, common.BlockHeight(ctx), len(voter.PubKeys))

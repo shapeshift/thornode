@@ -201,7 +201,7 @@ func (k *TestObservedTxInHandleKeeper) SetTxOut(ctx cosmos.Context, blockOut *Tx
 
 func (s *HandlerObservedTxInSuite) TestHandle(c *C) {
 	s.testHandleWithVersion(c, constants.SWVersion)
-	s.testHandleWithVersion(c, semver.MustParse("0.10.0"))
+	s.testHandleWithVersion(c, semver.MustParse("0.13.0"))
 }
 
 func (s *HandlerObservedTxInSuite) testHandleWithVersion(c *C, ver semver.Version) {
@@ -570,7 +570,7 @@ func (HandlerObservedTxInSuite) TestObservedTxHandler_validations(c *C) {
 	}
 	versions := []semver.Version{
 		constants.SWVersion,
-		semver.MustParse("0.10.0"),
+		semver.MustParse("0.13.0"),
 	}
 	for _, tc := range testCases {
 		for _, ver := range versions {

@@ -57,15 +57,15 @@ func (f *ObservedNetworkFeeVoter) HasConsensus(nas NodeAccounts) bool {
 	return false
 }
 
-// HasConsensusV10 Determine if this errata has enough signers
-func (f *ObservedNetworkFeeVoter) HasConsensusV10(nas NodeAccounts) bool {
+// HasConsensusV13 Determine if this errata has enough signers
+func (f *ObservedNetworkFeeVoter) HasConsensusV13(nas NodeAccounts) bool {
 	var count int
 	for _, signer := range f.Signers {
 		if nas.IsNodeKeys(signer) {
 			count++
 		}
 	}
-	if HasSuperMajorityV10(count, len(nas)) {
+	if HasSuperMajorityV13(count, len(nas)) {
 		return true
 	}
 
