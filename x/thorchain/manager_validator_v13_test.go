@@ -9,19 +9,19 @@ import (
 	"gitlab.com/thorchain/thornode/constants"
 )
 
-type ValidatorMgrV1TestSuite struct{}
+type ValidatorMgrV13TestSuite struct{}
 
-var _ = Suite(&ValidatorMgrV1TestSuite{})
+var _ = Suite(&ValidatorMgrV13TestSuite{})
 
-func (vts *ValidatorMgrV1TestSuite) SetUpSuite(c *C) {
+func (vts *ValidatorMgrV13TestSuite) SetUpSuite(c *C) {
 	SetupConfigForTest()
 }
 
-func (vts *ValidatorMgrV1TestSuite) TestSetupValidatorNodes(c *C) {
+func (vts *ValidatorMgrV13TestSuite) TestSetupValidatorNodes(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	ctx = ctx.WithBlockHeight(1)
 	mgr := NewDummyMgr()
-	vMgr := newValidatorMgrV1(k, mgr.VaultMgr(), mgr.TxOutStore(), mgr.EventMgr())
+	vMgr := newValidatorMgrV13(k, mgr.VaultMgr(), mgr.TxOutStore(), mgr.EventMgr())
 	c.Assert(vMgr, NotNil)
 	ver := constants.SWVersion
 	constAccessor := constants.GetConstantValues(ver)
@@ -43,7 +43,7 @@ func (vts *ValidatorMgrV1TestSuite) TestSetupValidatorNodes(c *C) {
 
 	// one active node and one ready node on start up
 	// it should take both of the node as active
-	vMgr1 := newValidatorMgrV1(k, mgr.VaultMgr(), mgr.TxOutStore(), mgr.EventMgr())
+	vMgr1 := newValidatorMgrV13(k, mgr.VaultMgr(), mgr.TxOutStore(), mgr.EventMgr())
 
 	c.Assert(vMgr1.BeginBlock(ctx, constAccessor), IsNil)
 	activeNodes, err := k.ListActiveNodeAccounts(ctx)
@@ -57,7 +57,7 @@ func (vts *ValidatorMgrV1TestSuite) TestSetupValidatorNodes(c *C) {
 	c.Assert(k.SetNodeAccount(ctx, activeNode2), IsNil)
 
 	// three active nodes and 1 ready nodes, it should take them all
-	vMgr2 := newValidatorMgrV1(k, mgr.VaultMgr(), mgr.TxOutStore(), mgr.EventMgr())
+	vMgr2 := newValidatorMgrV13(k, mgr.VaultMgr(), mgr.TxOutStore(), mgr.EventMgr())
 	vMgr2.BeginBlock(ctx, constAccessor)
 
 	activeNodes1, err := k.ListActiveNodeAccounts(ctx)
@@ -65,11 +65,11 @@ func (vts *ValidatorMgrV1TestSuite) TestSetupValidatorNodes(c *C) {
 	c.Assert(len(activeNodes1) == 4, Equals, true)
 }
 
-func (vts *ValidatorMgrV1TestSuite) TestRagnarokForChaosnet(c *C) {
+func (vts *ValidatorMgrV13TestSuite) TestRagnarokForChaosnet(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	mgr := NewManagers(k)
 	c.Assert(mgr.BeginBlock(ctx), IsNil)
-	vMgr := newValidatorMgrV1(k, mgr.VaultMgr(), mgr.TxOutStore(), mgr.EventMgr())
+	vMgr := newValidatorMgrV13(k, mgr.VaultMgr(), mgr.TxOutStore(), mgr.EventMgr())
 
 	constAccessor := constants.NewDummyConstants(map[constants.ConstantName]int64{
 		constants.DesireValidatorSet:            12,
@@ -107,13 +107,13 @@ func (vts *ValidatorMgrV1TestSuite) TestRagnarokForChaosnet(c *C) {
 	c.Assert(ragnarokHeight == 1024, Equals, true, Commentf("%d == %d", ragnarokHeight, 1024))
 }
 
-func (vts *ValidatorMgrV1TestSuite) TestLowerVersion(c *C) {
+func (vts *ValidatorMgrV13TestSuite) TestLowerVersion(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	ctx = ctx.WithBlockHeight(1440)
 
 	mgr := NewManagers(k)
 	c.Assert(mgr.BeginBlock(ctx), IsNil)
-	vMgr := newValidatorMgrV1(k, mgr.VaultMgr(), mgr.TxOutStore(), mgr.EventMgr())
+	vMgr := newValidatorMgrV13(k, mgr.VaultMgr(), mgr.TxOutStore(), mgr.EventMgr())
 	c.Assert(vMgr, NotNil)
 	c.Assert(vMgr.markLowerVersion(ctx, 360), IsNil)
 
@@ -132,13 +132,13 @@ func (vts *ValidatorMgrV1TestSuite) TestLowerVersion(c *C) {
 	c.Assert(na.LeaveHeight, Equals, int64(1440))
 }
 
-func (vts *ValidatorMgrV1TestSuite) TestBadActors(c *C) {
+func (vts *ValidatorMgrV13TestSuite) TestBadActors(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	ctx = ctx.WithBlockHeight(1000)
 
 	mgr := NewManagers(k)
 	c.Assert(mgr.BeginBlock(ctx), IsNil)
-	vMgr := newValidatorMgrV1(k, mgr.VaultMgr(), mgr.TxOutStore(), mgr.EventMgr())
+	vMgr := newValidatorMgrV13(k, mgr.VaultMgr(), mgr.TxOutStore(), mgr.EventMgr())
 	c.Assert(vMgr, NotNil)
 
 	// no bad actors with active node accounts
@@ -189,13 +189,13 @@ func (vts *ValidatorMgrV1TestSuite) TestBadActors(c *C) {
 	c.Check(count, Equals, 2)
 }
 
-func (vts *ValidatorMgrV1TestSuite) TestRagnarokBond(c *C) {
+func (vts *ValidatorMgrV13TestSuite) TestRagnarokBond(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	ctx = ctx.WithBlockHeight(1)
 	ver := constants.SWVersion
 
 	mgr := NewDummyMgr()
-	vMgr := newValidatorMgrV1(k, mgr.VaultMgr(), mgr.TxOutStore(), mgr.EventMgr())
+	vMgr := newValidatorMgrV13(k, mgr.VaultMgr(), mgr.TxOutStore(), mgr.EventMgr())
 	c.Assert(vMgr, NotNil)
 
 	constAccessor := constants.GetConstantValues(ver)
@@ -242,7 +242,39 @@ func (vts *ValidatorMgrV1TestSuite) TestRagnarokBond(c *C) {
 	}
 }
 
-func (vts *ValidatorMgrV1TestSuite) TestFindCounToRemove(c *C) {
+func (vts *ValidatorMgrV13TestSuite) TestGetChangedNodes(c *C) {
+	ctx, k := setupKeeperForTest(c)
+	ctx = ctx.WithBlockHeight(1)
+	ver := constants.SWVersion
+
+	mgr := NewDummyMgr()
+	vMgr := newValidatorMgrV13(k, mgr.VaultMgr(), mgr.TxOutStore(), mgr.EventMgr())
+	c.Assert(vMgr, NotNil)
+
+	constAccessor := constants.GetConstantValues(ver)
+	err := vMgr.setupValidatorNodes(ctx, 0, constAccessor)
+	c.Assert(err, IsNil)
+
+	activeNode := GetRandomNodeAccount(NodeActive)
+	activeNode.Bond = cosmos.NewUint(100)
+	activeNode.ForcedToLeave = true
+	c.Assert(k.SetNodeAccount(ctx, activeNode), IsNil)
+
+	disabledNode := GetRandomNodeAccount(NodeDisabled)
+	disabledNode.Bond = cosmos.ZeroUint()
+	c.Assert(k.SetNodeAccount(ctx, disabledNode), IsNil)
+
+	vault := NewVault(common.BlockHeight(ctx), ActiveVault, AsgardVault, GetRandomPubKey(), common.Chains{common.BNBChain})
+	vault.Membership = append(vault.Membership, activeNode.PubKeySet.Secp256k1)
+	c.Assert(k.SetVault(ctx, vault), IsNil)
+
+	newNodes, removedNodes, err := vMgr.getChangedNodes(ctx, NodeAccounts{activeNode})
+	c.Assert(err, IsNil)
+	c.Assert(newNodes, HasLen, 0)
+	c.Assert(removedNodes, HasLen, 1)
+}
+
+func (vts *ValidatorMgrV13TestSuite) TestFindCounToRemove(c *C) {
 	// remove one
 	c.Check(findCountToRemove(0, NodeAccounts{
 		NodeAccount{LeaveHeight: 12},
@@ -293,7 +325,7 @@ func (vts *ValidatorMgrV1TestSuite) TestFindCounToRemove(c *C) {
 	}), Equals, 3)
 }
 
-func (vts *ValidatorMgrV1TestSuite) TestFindMaxAbleToLeave(c *C) {
+func (vts *ValidatorMgrV13TestSuite) TestFindMaxAbleToLeave(c *C) {
 	c.Check(findMaxAbleToLeave(-1), Equals, 0)
 	c.Check(findMaxAbleToLeave(0), Equals, 0)
 	c.Check(findMaxAbleToLeave(1), Equals, 0)

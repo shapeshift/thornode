@@ -182,6 +182,7 @@ type (
 	QueryKeysign                   = types.QueryKeysign
 	QueryYggdrasilVaults           = types.QueryYggdrasilVaults
 	QueryNodeAccount               = types.QueryNodeAccount
+	QueryChainAddress              = types.QueryChainAddress
 	PoolStatus                     = types.PoolStatus
 	Pool                           = types.Pool
 	Pools                          = types.Pools

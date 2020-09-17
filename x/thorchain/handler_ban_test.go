@@ -177,6 +177,71 @@ func (s *HandlerBanSuite) TestHandle(c *C) {
 	c.Check(keeper.ban.BlockHeight, Equals, int64(18))
 }
 
+func (s *HandlerBanSuite) TestHandleV10(c *C) {
+	ctx, _ := setupKeeperForTest(c)
+	ver := semver.MustParse("0.13.0")
+	constAccessor := constants.GetConstantValues(ver)
+	minBond := constAccessor.GetInt64Value(constants.MinimumBondInRune)
+
+	toBan := GetRandomNodeAccount(NodeActive)
+	toBan.Bond = cosmos.NewUint(uint64(minBond))
+	banner1 := GetRandomNodeAccount(NodeActive)
+	banner1.Bond = cosmos.NewUint(uint64(minBond))
+	banner2 := GetRandomNodeAccount(NodeActive)
+	banner2.Bond = cosmos.NewUint(uint64(minBond))
+
+	keeper := &TestBanKeeper{
+		ban:       NewBanVoter(toBan.NodeAddress),
+		toBan:     toBan,
+		banner1:   banner1,
+		banner2:   banner2,
+		vaultData: NewVaultData(),
+		modules:   make(map[string]int64, 0),
+	}
+
+	handler := NewBanHandler(keeper, NewDummyMgr())
+
+	// ban with banner 1
+	msg := NewMsgBan(toBan.NodeAddress, banner1.NodeAddress)
+	_, err := handler.handle(ctx, msg, ver, constAccessor)
+	c.Assert(err, IsNil)
+	c.Check(int64(keeper.banner1.Bond.Uint64()), Equals, int64(99900000))
+	if common.RuneAsset().Chain.Equals(common.THORChain) {
+		c.Check(keeper.modules[ReserveName], Equals, int64(100000))
+	} else {
+		c.Check(int64(keeper.vaultData.TotalReserve.Uint64()), Equals, int64(100000))
+	}
+	c.Check(keeper.toBan.ForcedToLeave, Equals, false)
+	c.Check(keeper.ban.Signers, HasLen, 1)
+
+	// ensure banner 1 can't ban twice
+	_, err = handler.handle(ctx, msg, ver, constAccessor)
+	c.Assert(err, IsNil)
+	c.Check(int64(keeper.banner1.Bond.Uint64()), Equals, int64(99900000))
+	if common.RuneAsset().Chain.Equals(common.THORChain) {
+		c.Check(keeper.modules[ReserveName], Equals, int64(100000))
+	} else {
+		c.Check(int64(keeper.vaultData.TotalReserve.Uint64()), Equals, int64(100000))
+	}
+	c.Check(keeper.toBan.ForcedToLeave, Equals, false)
+	c.Check(keeper.ban.Signers, HasLen, 1)
+
+	// ban with banner 2, which should actually ban the node account
+	msg = NewMsgBan(toBan.NodeAddress, banner2.NodeAddress)
+	_, err = handler.handle(ctx, msg, ver, constAccessor)
+	c.Assert(err, IsNil)
+	c.Check(int64(keeper.banner2.Bond.Uint64()), Equals, int64(99900000))
+	if common.RuneAsset().Chain.Equals(common.THORChain) {
+		c.Check(keeper.modules[ReserveName], Equals, int64(200000))
+	} else {
+		c.Check(int64(keeper.vaultData.TotalReserve.Uint64()), Equals, int64(200000))
+	}
+	c.Check(keeper.toBan.ForcedToLeave, Equals, true)
+	c.Check(keeper.toBan.LeaveHeight, Equals, int64(18))
+	c.Check(keeper.ban.Signers, HasLen, 2)
+	c.Check(keeper.ban.BlockHeight, Equals, int64(18))
+}
+
 type TestBanKeeperHelper struct {
 	keeper.Keeper
 	toBanNodeAddr                cosmos.AccAddress
@@ -456,21 +521,25 @@ func (s *HandlerBanSuite) TestBanHandlerValidation(c *C) {
 			},
 		},
 	}
-
+	versions := []semver.Version{
+		constants.SWVersion,
+		semver.MustParse("0.13.0"),
+	}
 	for _, tc := range testCases {
 		if common.RuneAsset().Chain.Equals(common.THORChain) && tc.skipForNativeRUNE {
 			continue
 		}
-
-		ctx, k := setupKeeperForTest(c)
-		k.SetNodeAccount(ctx, banner)
-		helper := NewTestBanKeeperHelper(k)
-		helper.toBanNodeAddr = toBanAddr
-		helper.bannerNodeAddr = bannerNodeAddr
-		mgr := NewManagers(helper)
-		handler := NewBanHandler(helper, mgr)
-		constAccessor := constants.GetConstantValues(constants.SWVersion)
-		result, err := handler.Run(ctx, tc.messageProvider(ctx, helper), semver.MustParse("0.1.0"), constAccessor)
-		tc.validator(c, result, err, helper, tc.name)
+		for _, ver := range versions {
+			ctx, k := setupKeeperForTest(c)
+			k.SetNodeAccount(ctx, banner)
+			helper := NewTestBanKeeperHelper(k)
+			helper.toBanNodeAddr = toBanAddr
+			helper.bannerNodeAddr = bannerNodeAddr
+			mgr := NewManagers(helper)
+			handler := NewBanHandler(helper, mgr)
+			constAccessor := constants.GetConstantValues(ver)
+			result, err := handler.Run(ctx, tc.messageProvider(ctx, helper), ver, constAccessor)
+			tc.validator(c, result, err, helper, tc.name)
+		}
 	}
 }

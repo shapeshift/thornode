@@ -75,7 +75,9 @@ func (h TssKeysignHandler) validateV1(ctx cosmos.Context, msg MsgTssKeysignFail)
 
 func (h TssKeysignHandler) handle(ctx cosmos.Context, msg MsgTssKeysignFail, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	ctx.Logger().Info("handle MsgTssKeysignFail request", "ID", msg.ID, "signer", msg.Signer, "pubkey", msg.PubKey, "blame", msg.Blame.String())
-	if version.GTE(semver.MustParse("0.1.0")) {
+	if version.GTE(semver.MustParse("0.13.0")) {
+		return h.handleV13(ctx, msg, version, constAccessor)
+	} else if version.GTE(semver.MustParse("0.1.0")) {
 		return h.handleV1(ctx, msg, version, constAccessor)
 	}
 	return nil, errBadVersion
@@ -100,6 +102,66 @@ func (h TssKeysignHandler) handleV1(ctx cosmos.Context, msg MsgTssKeysignFail, v
 	h.keeper.SetTssKeysignFailVoter(ctx, voter)
 	// doesn't have consensus yet
 	if !voter.HasConsensus(active) {
+		ctx.Logger().Info("not having consensus yet, return")
+		return &cosmos.Result{}, nil
+	}
+	ctx.Logger().Info("has tss keysign consensus!!")
+
+	h.mgr.Slasher().DecSlashPoints(ctx, observeSlashPoints, voter.Signers...)
+	voter.Signers = nil
+	h.keeper.SetTssKeysignFailVoter(ctx, voter)
+
+	slashPoints := constAccessor.GetInt64Value(constants.FailKeySignSlashPoints)
+	// fail to generate a new tss key let's slash the node account
+
+	for _, node := range msg.Blame.BlameNodes {
+		nodePubKey, err := common.NewPubKey(node.Pubkey)
+		if err != nil {
+			return nil, ErrInternal(err, "fail to parse pubkey")
+		}
+		na, err := h.keeper.GetNodeAccountByPubKey(ctx, nodePubKey)
+		if err != nil {
+			return nil, ErrInternal(err, fmt.Sprintf("fail to get node account,pub key: %s", nodePubKey.String()))
+		}
+		if err := h.keeper.IncNodeAccountSlashPoints(ctx, na.NodeAddress, slashPoints); err != nil {
+			ctx.Logger().Error("fail to inc slash points", "error", err)
+		}
+
+		// go to jail
+		ctx.Logger().Info("jailing node", "pubkey", na.PubKeySet.Secp256k1)
+		jailTime := constAccessor.GetInt64Value(constants.JailTimeKeysign)
+		releaseHeight := common.BlockHeight(ctx) + jailTime
+		reason := "failed to perform keysign"
+		if err := h.keeper.SetNodeAccountJail(ctx, na.NodeAddress, releaseHeight, reason); err != nil {
+			ctx.Logger().Error("fail to set node account jail", "node address", na.NodeAddress, "reason", reason, "error", err)
+		}
+	}
+	if err := h.updateVaultKeySign(ctx, msg.PubKey); err != nil {
+		ctx.Logger().Error("fail to update vault signing party", "error", err)
+	}
+	return &cosmos.Result{}, nil
+}
+
+// handleV13 is introduced at 0.13.0 version, which change the way how SimplyMajority get calculated
+func (h TssKeysignHandler) handleV13(ctx cosmos.Context, msg MsgTssKeysignFail, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+	active, err := h.keeper.ListActiveNodeAccounts(ctx)
+	if err != nil {
+		return nil, wrapError(ctx, err, "fail to get list of active node accounts")
+	}
+
+	voter, err := h.keeper.GetTssKeysignFailVoter(ctx, msg.ID)
+	if err != nil {
+		return nil, err
+	}
+	observeSlashPoints := constAccessor.GetInt64Value(constants.ObserveSlashPoints)
+	h.mgr.Slasher().IncSlashPoints(ctx, observeSlashPoints, msg.Signer)
+	if !voter.Sign(msg.Signer) {
+		ctx.Logger().Info("signer already signed MsgTssKeysignFail", "signer", msg.Signer.String(), "txid", msg.ID)
+		return &cosmos.Result{}, nil
+	}
+	h.keeper.SetTssKeysignFailVoter(ctx, voter)
+	// doesn't have consensus yet
+	if !voter.HasConsensusV13(active) {
 		ctx.Logger().Info("not having consensus yet, return")
 		return &cosmos.Result{}, nil
 	}
