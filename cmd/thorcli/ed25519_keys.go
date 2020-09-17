@@ -108,7 +108,7 @@ func generateNewKey(buf *bufio.Reader) (*keyring.Item, error) {
 	return item, nil
 }
 
-func getKeyringConfig(appName, dir string, password string) keyring.Config {
+func getKeyringConfig(appName, dir, password string) keyring.Config {
 	return keyring.Config{
 		ServiceName:     appName,
 		AllowedBackends: []keyring.BackendType{keyring.FileBackend},
@@ -119,7 +119,7 @@ func getKeyringConfig(appName, dir string, password string) keyring.Config {
 	}
 }
 
-func i64(key []byte, data []byte) (IL [32]byte, IR [32]byte) {
+func i64(key, data []byte) (IL, IR [32]byte) {
 	mac := hmac.New(sha512.New, key)
 	// sha512 does not err
 	_, _ = mac.Write(data)
@@ -135,7 +135,7 @@ func uint32ToBytes(i uint32) []byte {
 	return b[:]
 }
 
-func addScalars(a []byte, b []byte) [32]byte {
+func addScalars(a, b []byte) [32]byte {
 	aInt := new(big.Int).SetBytes(a)
 	bInt := new(big.Int).SetBytes(b)
 	sInt := new(big.Int).Add(aInt, bInt)
@@ -145,7 +145,7 @@ func addScalars(a []byte, b []byte) [32]byte {
 	return x2
 }
 
-func derivePrivateKey(privKeyBytes [32]byte, chainCode [32]byte, index uint32, harden bool) ([32]byte, [32]byte) {
+func derivePrivateKey(privKeyBytes, chainCode [32]byte, index uint32, harden bool) ([32]byte, [32]byte) {
 	var data []byte
 	if harden {
 		index = index | 0x80000000
@@ -165,7 +165,7 @@ func derivePrivateKey(privKeyBytes [32]byte, chainCode [32]byte, index uint32, h
 	return x, chainCode2
 }
 
-func derivePrivateKeyForPath(privKeyBytes [32]byte, chainCode [32]byte, path string) ([32]byte, error) {
+func derivePrivateKeyForPath(privKeyBytes, chainCode [32]byte, path string) ([32]byte, error) {
 	data := privKeyBytes
 	parts := strings.Split(path, "/")
 	for _, part := range parts {
