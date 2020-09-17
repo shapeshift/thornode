@@ -255,6 +255,23 @@ func (tx ObservedTxVoter) HasConsensus(nodeAccounts NodeAccounts) bool {
 	return false
 }
 
+// HasConsensusV13 is to check whether any of the tx in this ObservedTxVoter reach consensus
+func (tx ObservedTxVoter) HasConsensusV13(nodeAccounts NodeAccounts) bool {
+	for _, txIn := range tx.Txs {
+		var count int
+		for _, signer := range txIn.Signers {
+			if nodeAccounts.IsNodeKeys(signer) {
+				count++
+			}
+		}
+		if HasSuperMajorityV13(count, len(nodeAccounts)) {
+			return true
+		}
+	}
+
+	return false
+}
+
 // GetTx return the tx that has super majority
 func (tx *ObservedTxVoter) GetTx(nodeAccounts NodeAccounts) ObservedTx {
 	if !tx.Tx.IsEmpty() {
@@ -268,6 +285,27 @@ func (tx *ObservedTxVoter) GetTx(nodeAccounts NodeAccounts) ObservedTx {
 			}
 		}
 		if HasSuperMajority(count, len(nodeAccounts)) {
+			tx.Tx = txIn
+			return txIn
+		}
+	}
+
+	return ObservedTx{}
+}
+
+// GetTxV13 return the tx that has super majority
+func (tx *ObservedTxVoter) GetTxV13(nodeAccounts NodeAccounts) ObservedTx {
+	if !tx.Tx.IsEmpty() {
+		return tx.Tx
+	}
+	for _, txIn := range tx.Txs {
+		var count int
+		for _, signer := range txIn.Signers {
+			if nodeAccounts.IsNodeKeys(signer) {
+				count++
+			}
+		}
+		if HasSuperMajorityV13(count, len(nodeAccounts)) {
 			tx.Tx = txIn
 			return txIn
 		}

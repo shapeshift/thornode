@@ -59,6 +59,8 @@ func (s *ThorchainSuite) SetUpSuite(c *C) {
 			httpTestHandler(c, rw, "../../test/fixtures/endpoints/constants/constants.json")
 		case strings.HasPrefix(req.RequestURI, RagnarokEndpoint):
 			httpTestHandler(c, rw, "../../test/fixtures/endpoints/ragnarok/ragnarok.json")
+		case strings.HasPrefix(req.RequestURI, MimirEndpoint):
+			httpTestHandler(c, rw, "../../test/fixtures/endpoints/mimir/mimir.json")
 
 		}
 	}))
@@ -249,4 +251,10 @@ func (s *ThorchainSuite) TestGetRagnarok(c *C) {
 	result, err := s.bridge.RagnarokInProgress()
 	c.Assert(err, IsNil)
 	c.Assert(result, Equals, false)
+}
+
+func (s *ThorchainSuite) TestGetMimir(c *C) {
+	result, err := s.bridge.GetMimir("HaltBNBChain")
+	c.Assert(err, IsNil)
+	c.Assert(result, Equals, int64(10))
 }

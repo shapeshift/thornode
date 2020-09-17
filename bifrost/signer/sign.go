@@ -156,7 +156,16 @@ func (s *Signer) signTransactions() {
 		case <-s.stopChan:
 			return
 		default:
-			s.processTransactions()
+			// When THORChain is catching up , bifrost might get stale data from thornode , thus it shall pause signing
+			catchingUp, err := s.thorchainBridge.IsCatchingUp()
+			if err != nil {
+				s.logger.Error().Err(err).Msg("fail to get thorchain sync status")
+				time.Sleep(constants.ThorchainBlockTime)
+				break // this will break select
+			}
+			if !catchingUp {
+				s.processTransactions()
+			}
 			time.Sleep(1 * time.Second)
 		}
 	}

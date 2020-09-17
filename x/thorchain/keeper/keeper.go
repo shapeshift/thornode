@@ -82,6 +82,7 @@ type KeeperNodeAccount interface {
 	ListActiveNodeAccounts(ctx cosmos.Context) (NodeAccounts, error)
 	GetLowestActiveVersion(ctx cosmos.Context) semver.Version
 	GetMinJoinVersion(ctx cosmos.Context) semver.Version
+	GetMinJoinVersionV1(ctx cosmos.Context) semver.Version
 	GetNodeAccount(ctx cosmos.Context, addr cosmos.AccAddress) (NodeAccount, error)
 	GetNodeAccountByPubKey(ctx cosmos.Context, pk common.PubKey) (NodeAccount, error)
 	SetNodeAccount(ctx cosmos.Context, na NodeAccount) error

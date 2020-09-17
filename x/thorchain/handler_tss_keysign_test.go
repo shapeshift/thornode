@@ -2,7 +2,6 @@ package thorchain
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/blang/semver"
 	se "github.com/cosmos/cosmos-sdk/types/errors"
@@ -84,16 +83,15 @@ func signVoter(ctx cosmos.Context, keeper keeper.Keeper, except cosmos.AccAddres
 	return
 }
 
-func newTssKeysignHandlerTestHelper(c *C) tssKeysignFailHandlerTestHelper {
+func newTssKeysignHandlerTestHelper(c *C, ver semver.Version) tssKeysignFailHandlerTestHelper {
 	ctx, k := setupKeeperForTest(c)
 	ctx = ctx.WithBlockHeight(1023)
-	version := constants.SWVersion
 	keeper := newTssKeysignFailKeeperHelper(k)
 	// active account
 	nodeAccount := GetRandomNodeAccount(NodeActive)
 	nodeAccount.Bond = cosmos.NewUint(100 * common.One)
 	c.Assert(keeper.SetNodeAccount(ctx, nodeAccount), IsNil)
-	constAccessor := constants.GetConstantValues(version)
+	constAccessor := constants.GetConstantValues(ver)
 	mgr := NewDummyMgr()
 
 	var members []blame.Node
@@ -110,7 +108,7 @@ func newTssKeysignHandlerTestHelper(c *C) tssKeysignFailHandlerTestHelper {
 	c.Assert(keeper.SetVault(ctx, asgardVault), IsNil)
 	return tssKeysignFailHandlerTestHelper{
 		ctx:           ctx,
-		version:       version,
+		version:       ver,
 		keeper:        keeper,
 		constAccessor: constAccessor,
 		nodeAccount:   nodeAccount,
@@ -120,6 +118,11 @@ func newTssKeysignHandlerTestHelper(c *C) tssKeysignFailHandlerTestHelper {
 }
 
 func (h HandlerTssKeysignSuite) TestTssKeysignFailHandler(c *C) {
+	h.testTssKeysignFailHandlerWithVersion(c, constants.SWVersion)
+	h.testTssKeysignFailHandlerWithVersion(c, semver.MustParse("0.13.0"))
+}
+
+func (h HandlerTssKeysignSuite) testTssKeysignFailHandlerWithVersion(c *C, ver semver.Version) {
 	testCases := []struct {
 		name           string
 		messageCreator func(helper tssKeysignFailHandlerTestHelper) cosmos.Msg
@@ -153,7 +156,7 @@ func (h HandlerTssKeysignSuite) TestTssKeysignFailHandler(c *C) {
 				return NewMsgTssKeysignFail(common.BlockHeight(helper.ctx), helper.blame, "hello", common.Coins{common.NewCoin(common.BNBAsset, cosmos.NewUint(100))}, GetRandomBech32Addr(), GetRandomPubKey())
 			},
 			runner: func(handler TssKeysignHandler, msg cosmos.Msg, helper tssKeysignFailHandlerTestHelper) (*cosmos.Result, error) {
-				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
+				return handler.Run(helper.ctx, msg, ver, helper.constAccessor)
 			},
 			expectedResult: se.ErrUnauthorized,
 		},
@@ -163,7 +166,7 @@ func (h HandlerTssKeysignSuite) TestTssKeysignFailHandler(c *C) {
 				return NewMsgTssKeysignFail(common.BlockHeight(helper.ctx), helper.blame, "hello", common.Coins{common.NewCoin(common.BNBAsset, cosmos.NewUint(100))}, cosmos.AccAddress{}, GetRandomPubKey())
 			},
 			runner: func(handler TssKeysignHandler, msg cosmos.Msg, helper tssKeysignFailHandlerTestHelper) (*cosmos.Result, error) {
-				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
+				return handler.Run(helper.ctx, msg, ver, helper.constAccessor)
 			},
 			expectedResult: se.ErrInvalidAddress,
 		},
@@ -175,7 +178,7 @@ func (h HandlerTssKeysignSuite) TestTssKeysignFailHandler(c *C) {
 				return tssMsg
 			},
 			runner: func(handler TssKeysignHandler, msg cosmos.Msg, helper tssKeysignFailHandlerTestHelper) (*cosmos.Result, error) {
-				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
+				return handler.Run(helper.ctx, msg, ver, helper.constAccessor)
 			},
 			expectedResult: se.ErrUnknownRequest,
 		},
@@ -188,7 +191,7 @@ func (h HandlerTssKeysignSuite) TestTssKeysignFailHandler(c *C) {
 				}, "hello", common.Coins{common.NewCoin(common.BNBAsset, cosmos.NewUint(100))}, helper.nodeAccount.NodeAddress, GetRandomPubKey())
 			},
 			runner: func(handler TssKeysignHandler, msg cosmos.Msg, helper tssKeysignFailHandlerTestHelper) (*cosmos.Result, error) {
-				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
+				return handler.Run(helper.ctx, msg, ver, helper.constAccessor)
 			},
 			expectedResult: se.ErrUnknownRequest,
 		},
@@ -198,7 +201,7 @@ func (h HandlerTssKeysignSuite) TestTssKeysignFailHandler(c *C) {
 				return NewMsgTssKeysignFail(common.BlockHeight(helper.ctx), helper.blame, "hello", common.Coins{common.NewCoin(common.BNBAsset, cosmos.NewUint(100))}, helper.nodeAccount.NodeAddress, GetRandomPubKey())
 			},
 			runner: func(handler TssKeysignHandler, msg cosmos.Msg, helper tssKeysignFailHandlerTestHelper) (*cosmos.Result, error) {
-				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
+				return handler.Run(helper.ctx, msg, ver, helper.constAccessor)
 			},
 			expectedResult: nil,
 		},
@@ -212,7 +215,7 @@ func (h HandlerTssKeysignSuite) TestTssKeysignFailHandler(c *C) {
 				return msg
 			},
 			runner: func(handler TssKeysignHandler, msg cosmos.Msg, helper tssKeysignFailHandlerTestHelper) (*cosmos.Result, error) {
-				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
+				return handler.Run(helper.ctx, msg, ver, helper.constAccessor)
 			},
 			expectedResult: nil,
 		},
@@ -223,7 +226,7 @@ func (h HandlerTssKeysignSuite) TestTssKeysignFailHandler(c *C) {
 			},
 			runner: func(handler TssKeysignHandler, msg cosmos.Msg, helper tssKeysignFailHandlerTestHelper) (*cosmos.Result, error) {
 				helper.keeper.errListActiveAccounts = true
-				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
+				return handler.Run(helper.ctx, msg, ver, helper.constAccessor)
 			},
 			expectedResult: kaboom,
 		},
@@ -234,7 +237,7 @@ func (h HandlerTssKeysignSuite) TestTssKeysignFailHandler(c *C) {
 			},
 			runner: func(handler TssKeysignHandler, msg cosmos.Msg, helper tssKeysignFailHandlerTestHelper) (*cosmos.Result, error) {
 				helper.keeper.errGetTssVoter = true
-				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
+				return handler.Run(helper.ctx, msg, ver, helper.constAccessor)
 			},
 			expectedResult: kaboom,
 		},
@@ -250,7 +253,7 @@ func (h HandlerTssKeysignSuite) TestTssKeysignFailHandler(c *C) {
 				voter.Signers = signVoter(helper.ctx, helper.keeper, mmsg.Signer)
 				helper.keeper.SetTssKeysignFailVoter(helper.ctx, voter)
 				helper.keeper.errFailToGetNodeAccountByPubKey = true
-				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
+				return handler.Run(helper.ctx, msg, ver, helper.constAccessor)
 			},
 			expectedResult: errInternal,
 		},
@@ -266,7 +269,7 @@ func (h HandlerTssKeysignSuite) TestTssKeysignFailHandler(c *C) {
 						return nil, ErrInternal(err, "fail to set node account")
 					}
 				}
-				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
+				return handler.Run(helper.ctx, msg, ver, helper.constAccessor)
 			},
 			expectedResult: nil,
 		},
@@ -283,25 +286,25 @@ func (h HandlerTssKeysignSuite) TestTssKeysignFailHandler(c *C) {
 						return nil, ErrInternal(err, "fail to set node account")
 					}
 				}
-				_, err := handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
+				_, err := handler.Run(helper.ctx, msg, ver, helper.constAccessor)
 				if err != nil {
 					return nil, err
 				}
 				msg = NewMsgTssKeysignFail(common.BlockHeight(helper.ctx), helper.blame, "hello", common.Coins{common.NewCoin(common.BNBAsset, cosmos.NewUint(100))}, na.NodeAddress, GetRandomPubKey())
-				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
+				return handler.Run(helper.ctx, msg, ver, helper.constAccessor)
 			},
 			expectedResult: nil,
 		},
 	}
 	for _, tc := range testCases {
-		helper := newTssKeysignHandlerTestHelper(c)
+		helper := newTssKeysignHandlerTestHelper(c, ver)
 		handler := NewTssKeysignHandler(helper.keeper, NewDummyMgr())
 		msg := tc.messageCreator(helper)
 
-		fmt.Printf(">Name: %s\n", tc.name)
+		c.Logf(">Name: %s\n", tc.name)
 		result, err := tc.runner(handler, msg, helper)
 		if tc.expectedResult == nil {
-			fmt.Printf("Name: %s, %s\n", tc.name, err)
+			c.Logf("Name: %s, %s\n", tc.name, err)
 			c.Assert(err, IsNil)
 		} else {
 			c.Assert(errors.Is(err, tc.expectedResult), Equals, true, Commentf("name:%s, %w", tc.name, err))

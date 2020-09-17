@@ -200,9 +200,13 @@ func (k *TestObservedTxInHandleKeeper) SetTxOut(ctx cosmos.Context, blockOut *Tx
 }
 
 func (s *HandlerObservedTxInSuite) TestHandle(c *C) {
+	s.testHandleWithVersion(c, constants.SWVersion)
+	s.testHandleWithVersion(c, semver.MustParse("0.13.0"))
+}
+
+func (s *HandlerObservedTxInSuite) testHandleWithVersion(c *C, ver semver.Version) {
 	var err error
 	ctx, _ := setupKeeperForTest(c)
-	ver := constants.SWVersion
 	constAccessor := constants.GetConstantValues(ver)
 
 	tx := GetRandomTx()
@@ -246,9 +250,15 @@ func (s *HandlerObservedTxInSuite) TestHandle(c *C) {
 
 // Test migrate memo
 func (s *HandlerObservedTxInSuite) TestMigrateMemo(c *C) {
+	s.testMigrateMemoWithVersion(c, constants.SWVersion)
+	s.testMigrateMemoWithVersion(c, semver.MustParse("0.10.0"))
+}
+
+// Test migrate memo
+func (s *HandlerObservedTxInSuite) testMigrateMemoWithVersion(c *C, ver semver.Version) {
 	var err error
 	ctx, _ := setupKeeperForTest(c)
-	ver := constants.SWVersion
+
 	constAccessor := constants.GetConstantValues(ver)
 
 	vault := GetRandomVault()
@@ -558,16 +568,21 @@ func (HandlerObservedTxInSuite) TestObservedTxHandler_validations(c *C) {
 			},
 		},
 	}
-
+	versions := []semver.Version{
+		constants.SWVersion,
+		semver.MustParse("0.13.0"),
+	}
 	for _, tc := range testCases {
-		ctx, k := setupKeeperForTest(c)
-		helper := NewObservedTxInHandlerTestHelper(k)
-		mgr := NewManagers(helper)
-		mgr.BeginBlock(ctx)
-		handler := NewObservedTxInHandler(helper, mgr)
-		msg := tc.messageProvider(c, ctx, helper)
-		constantAccessor := constants.GetConstantValues(constants.SWVersion)
-		result, err := handler.Run(ctx, msg, semver.MustParse("0.1.0"), constantAccessor)
-		tc.validator(c, ctx, result, err, helper, tc.name)
+		for _, ver := range versions {
+			ctx, k := setupKeeperForTest(c)
+			helper := NewObservedTxInHandlerTestHelper(k)
+			mgr := NewManagers(helper)
+			mgr.BeginBlock(ctx)
+			handler := NewObservedTxInHandler(helper, mgr)
+			msg := tc.messageProvider(c, ctx, helper)
+			constantAccessor := constants.GetConstantValues(ver)
+			result, err := handler.Run(ctx, msg, ver, constantAccessor)
+			tc.validator(c, ctx, result, err, helper, tc.name)
+		}
 	}
 }
