@@ -17,7 +17,7 @@ stages:
   - test
   - build
   - smoke-test
-  - deploy
+  - release
 
 unit_tests_bep2:
   stage: test
@@ -135,21 +135,14 @@ smoke-test:thornode-NATIVE:
   after_script:
     - DOCKER_TLS_CERTDIR="/certs" ./scripts/docker_logs.sh
 
-deploy:
-  #stage: deploy
-  image: docker/compose:alpine-1.25.4
+release:
+  stage: release
   tags:
     - thorchain
+  image: registry.gitlab.com/thorchain/release-tool:latest
   only:
+    - master
+  except:
     - schedules
-  services:
-    - docker:19-dind
-  before_script:
-    - apk add sudo jq python git py-pip make bash curl python-dev
-    - pip install --upgrade pip && pip install awscli requests
-    - make aws-ci-login
-    - wget https://media.githubusercontent.com/media/binance-chain/node-binary/master/cli/testnet/0.6.2/linux/tbnbcli
-    - chmod +x tbnbcli && mv tbnbcli /usr/local/bin/. && tbnbcli version
   script:
-    - cd $CI_PROJECT_DIR/build/docker
-    - bash aws_testnet.sh ci
+    - release-tool changelog
