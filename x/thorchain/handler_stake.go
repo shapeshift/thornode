@@ -149,7 +149,7 @@ func (h StakeHandler) handleV14(ctx cosmos.Context, msg MsgStake, version semver
 		ctx.Logger().Error("fail to check pool status", "error", err)
 		return errInvalidPoolStatus
 	}
-	return h.stake(
+	return h.stakeV14(
 		ctx,
 		msg.Asset,
 		msg.RuneAmount,
