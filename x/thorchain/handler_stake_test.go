@@ -423,6 +423,78 @@ func (HandlerStakeSuite) TestCalculatePoolUnits(c *C) {
 	}
 }
 
+func (HandlerStakeSuite) TestCalculatePoolUnitsV14(c *C) {
+	inputs := []struct {
+		name         string
+		oldPoolUnits cosmos.Uint
+		poolRune     cosmos.Uint
+		poolAsset    cosmos.Uint
+		stakeRune    cosmos.Uint
+		stakeAsset   cosmos.Uint
+		poolUnits    cosmos.Uint
+		stakerUnits  cosmos.Uint
+		expectedErr  error
+	}{
+		{
+			name:         "first-stake-zero-rune",
+			oldPoolUnits: cosmos.ZeroUint(),
+			poolRune:     cosmos.ZeroUint(),
+			poolAsset:    cosmos.ZeroUint(),
+			stakeRune:    cosmos.ZeroUint(),
+			stakeAsset:   cosmos.NewUint(100 * common.One),
+			poolUnits:    cosmos.ZeroUint(),
+			stakerUnits:  cosmos.ZeroUint(),
+			expectedErr:  errors.New("total RUNE in the pool is zero"),
+		},
+		{
+			name:         "first-stake-zero-asset",
+			oldPoolUnits: cosmos.ZeroUint(),
+			poolRune:     cosmos.ZeroUint(),
+			poolAsset:    cosmos.ZeroUint(),
+			stakeRune:    cosmos.NewUint(100 * common.One),
+			stakeAsset:   cosmos.ZeroUint(),
+			poolUnits:    cosmos.ZeroUint(),
+			stakerUnits:  cosmos.ZeroUint(),
+			expectedErr:  errors.New("total asset in the pool is zero"),
+		},
+		{
+			name:         "first-stake",
+			oldPoolUnits: cosmos.ZeroUint(),
+			poolRune:     cosmos.ZeroUint(),
+			poolAsset:    cosmos.ZeroUint(),
+			stakeRune:    cosmos.NewUint(100 * common.One),
+			stakeAsset:   cosmos.NewUint(100 * common.One),
+			poolUnits:    cosmos.NewUint(100 * common.One),
+			stakerUnits:  cosmos.NewUint(100 * common.One),
+			expectedErr:  nil,
+		},
+		{
+			name:         "second-stake",
+			oldPoolUnits: cosmos.NewUint(500 * common.One),
+			poolRune:     cosmos.NewUint(500 * common.One),
+			poolAsset:    cosmos.NewUint(500 * common.One),
+			stakeRune:    cosmos.NewUint(345 * common.One),
+			stakeAsset:   cosmos.NewUint(234 * common.One),
+			poolUnits:    cosmos.NewUint(77110505346),
+			stakerUnits:  cosmos.NewUint(27110505346),
+			expectedErr:  nil,
+		},
+	}
+
+	for _, item := range inputs {
+		c.Logf("Name: %s", item.name)
+		poolUnits, stakerUnits, err := calculatePoolUnitsV14(item.oldPoolUnits, item.poolRune, item.poolAsset, item.stakeRune, item.stakeAsset)
+		if item.expectedErr == nil {
+			c.Assert(err, IsNil)
+		} else {
+			c.Assert(err.Error(), Equals, item.expectedErr.Error())
+		}
+
+		c.Check(item.poolUnits.Uint64(), Equals, poolUnits.Uint64(), Commentf("%d / %d", item.poolUnits.Uint64(), poolUnits.Uint64()))
+		c.Check(item.stakerUnits.Uint64(), Equals, stakerUnits.Uint64(), Commentf("%d / %d", item.stakerUnits.Uint64(), stakerUnits.Uint64()))
+	}
+}
+
 func (HandlerStakeSuite) TestValidateStakeMessage(c *C) {
 	ps := NewStakeTestKeeper()
 	ctx, k := setupKeeperForTest(c)
