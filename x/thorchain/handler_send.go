@@ -77,6 +77,14 @@ func (h SendHandler) handleV1(ctx cosmos.Context, msg MsgSend, version semver.Ve
 	banker := h.keeper.CoinKeeper()
 	supplier := h.keeper.Supply()
 
+	haltHeight, err := h.keeper.GetMimir(ctx, "HaltTHORChain")
+	if err != nil {
+		return nil, fmt.Errorf("failed to get mimir setting: %w", err)
+	}
+	if haltHeight > 0 && common.BlockHeight(ctx) > haltHeight {
+		return nil, fmt.Errorf("mimir has halted THORChain transactions")
+	}
+
 	// TODO: this shouldn't be tied to swaps, and should be cheaper. But
 	// TransactionFee will be fine for now.
 	transactionFee := h.mgr.GasMgr().GetFee(ctx, common.THORChain)
