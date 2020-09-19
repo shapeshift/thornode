@@ -2,6 +2,7 @@ package thorchain
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/blang/semver"
 
@@ -81,6 +82,14 @@ func (h SwitchHandler) handle(ctx cosmos.Context, msg MsgSwitch, version semver.
 }
 
 func (h SwitchHandler) handleV1(ctx cosmos.Context, msg MsgSwitch, version semver.Version) (*cosmos.Result, error) {
+	haltHeight, err := h.keeper.GetMimir(ctx, "HaltTHORChain")
+	if err != nil {
+		return nil, fmt.Errorf("failed to get mimir setting: %w", err)
+	}
+	if haltHeight > 0 && common.BlockHeight(ctx) > haltHeight {
+		return nil, fmt.Errorf("mimir has halted THORChain transactions")
+	}
+
 	if msg.Tx.Coins[0].IsNative() {
 		return h.toBEP2(ctx, msg)
 	}
