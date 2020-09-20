@@ -37,7 +37,7 @@ func (h SwitchHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Vers
 		ctx.Logger().Error("msg switch failed validation", "error", err)
 		return nil, err
 	}
-	result, err := h.handle(ctx, msg, version)
+	result, err := h.handle(ctx, msg, version, constAccessor)
 	if err != nil {
 		ctx.Logger().Error("failed to process msg switch", "error", err)
 		return nil, err
@@ -73,15 +73,15 @@ func (h SwitchHandler) validateV1(ctx cosmos.Context, msg MsgSwitch) error {
 	return nil
 }
 
-func (h SwitchHandler) handle(ctx cosmos.Context, msg MsgSwitch, version semver.Version) (*cosmos.Result, error) {
+func (h SwitchHandler) handle(ctx cosmos.Context, msg MsgSwitch, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	ctx.Logger().Info("handleMsgSwitch request", "destination address", msg.Destination.String())
 	if version.GTE(semver.MustParse("0.1.0")) {
-		return h.handleV1(ctx, msg, version)
+		return h.handleV1(ctx, msg, version, constAccessor)
 	}
 	return nil, errBadVersion
 }
 
-func (h SwitchHandler) handleV1(ctx cosmos.Context, msg MsgSwitch, version semver.Version) (*cosmos.Result, error) {
+func (h SwitchHandler) handleV1(ctx cosmos.Context, msg MsgSwitch, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	haltHeight, err := h.keeper.GetMimir(ctx, "HaltTHORChain")
 	if err != nil {
 		return nil, fmt.Errorf("failed to get mimir setting: %w", err)
@@ -91,13 +91,13 @@ func (h SwitchHandler) handleV1(ctx cosmos.Context, msg MsgSwitch, version semve
 	}
 
 	if msg.Tx.Coins[0].IsNative() {
-		return h.toBEP2(ctx, msg)
+		return h.toBEP2(ctx, msg, constAccessor)
 	}
 
 	return h.toNative(ctx, msg)
 }
 
-func (h SwitchHandler) toBEP2(ctx cosmos.Context, msg MsgSwitch) (*cosmos.Result, error) {
+func (h SwitchHandler) toBEP2(ctx cosmos.Context, msg MsgSwitch, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	bank := h.keeper.CoinKeeper()
 
 	vaultData, err := h.keeper.GetVaultData(ctx)
@@ -118,6 +118,10 @@ func (h SwitchHandler) toBEP2(ctx cosmos.Context, msg MsgSwitch) (*cosmos.Result
 	if err != nil {
 		return nil, ErrInternal(err, "fail to parse thor address")
 	}
+
+	// add gas fee
+	nativeChainGasFee := constAccessor.GetInt64Value(constants.NativeChainGasFee)
+	coin.Amount.AddRaw(nativeChainGasFee)
 
 	if !bank.HasCoins(ctx, addr, cosmos.NewCoins(coin)) {
 		return nil, ErrInternal(err, "insufficient funds")
