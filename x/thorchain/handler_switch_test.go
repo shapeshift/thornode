@@ -79,7 +79,8 @@ func (s *HandlerSwitchSuite) TestGettingNativeTokens(c *C) {
 	handler := NewSwitchHandler(k, NewDummyMgr())
 
 	msg := NewMsgSwitch(tx, destination, na.NodeAddress)
-	_, err := handler.handle(ctx, msg, constants.SWVersion)
+	constAccessor := constants.GetConstantValues(constants.SWVersion)
+	_, err := handler.handle(ctx, msg, constants.SWVersion, constAccessor)
 	c.Assert(err, IsNil)
 	coin, err := common.NewCoin(common.RuneNative, cosmos.NewUint(100*common.One)).Native()
 	c.Assert(err, IsNil)
@@ -91,7 +92,7 @@ func (s *HandlerSwitchSuite) TestGettingNativeTokens(c *C) {
 	c.Check(vaultData.TotalBEP2Rune.Equal(cosmos.NewUint(100*common.One)), Equals, true)
 
 	// check that we can add more an account
-	_, err = handler.handle(ctx, msg, constants.SWVersion)
+	_, err = handler.handle(ctx, msg, constants.SWVersion, constAccessor)
 	c.Assert(err, IsNil)
 	coin, err = common.NewCoin(common.RuneNative, cosmos.NewUint(200*common.One)).Native()
 	c.Assert(err, IsNil)
@@ -103,6 +104,7 @@ func (s *HandlerSwitchSuite) TestGettingNativeTokens(c *C) {
 
 func (s *HandlerSwitchSuite) TestGettingBEP2Tokens(c *C) {
 	ctx, k := setupKeeperForTest(c)
+	constAccessor := constants.GetConstantValues(constants.SWVersion)
 
 	vaultData := NewVaultData()
 	vaultData.TotalBEP2Rune = cosmos.NewUint(500 * common.One)
@@ -127,7 +129,7 @@ func (s *HandlerSwitchSuite) TestGettingBEP2Tokens(c *C) {
 	handler := NewSwitchHandler(k, mgr)
 
 	msg := NewMsgSwitch(tx, destination, na.NodeAddress)
-	_, err = handler.handle(ctx, msg, constants.SWVersion)
+	_, err = handler.handle(ctx, msg, constants.SWVersion, constAccessor)
 	c.Assert(err, IsNil)
 
 	coin, err = common.NewCoin(common.RuneNative, cosmos.NewUint(700*common.One)).Native()
@@ -141,7 +143,7 @@ func (s *HandlerSwitchSuite) TestGettingBEP2Tokens(c *C) {
 	c.Assert(items, HasLen, 1)
 
 	// check that we can subtract more an account
-	_, err = handler.handle(ctx, msg, constants.SWVersion)
+	_, err = handler.handle(ctx, msg, constants.SWVersion, constAccessor)
 	c.Assert(err, IsNil)
 	coin, err = common.NewCoin(common.RuneNative, cosmos.NewUint(600*common.One)).Native()
 	c.Assert(err, IsNil)
@@ -155,7 +157,7 @@ func (s *HandlerSwitchSuite) TestGettingBEP2Tokens(c *C) {
 
 	// check that we can't overdraw
 	msg.Tx.Coins[0].Amount = cosmos.NewUint(400 * common.One)
-	_, err = handler.handle(ctx, msg, constants.SWVersion)
+	_, err = handler.handle(ctx, msg, constants.SWVersion, constAccessor)
 	c.Assert(err, NotNil)
 	coin, err = common.NewCoin(common.RuneNative, cosmos.NewUint(600*common.One)).Native()
 	c.Assert(err, IsNil)

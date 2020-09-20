@@ -85,10 +85,8 @@ func (h SendHandler) handleV1(ctx cosmos.Context, msg MsgSend, version semver.Ve
 		return nil, fmt.Errorf("mimir has halted THORChain transactions")
 	}
 
-	// TODO: this shouldn't be tied to swaps, and should be cheaper. But
-	// TransactionFee will be fine for now.
-	transactionFee := h.mgr.GasMgr().GetFee(ctx, common.THORChain)
-	gasFee, err := common.NewCoin(common.RuneNative, cosmos.NewUint(uint64(transactionFee))).Native()
+	nativeChainGasFee := constAccessor.GetInt64Value(constants.NativeChainGasFee)
+	gasFee, err := common.NewCoin(common.RuneNative, cosmos.NewUint(uint64(nativeChainGasFee))).Native()
 	if err != nil {
 		return nil, ErrInternal(err, "fail to get gas fee")
 	}
