@@ -225,7 +225,7 @@ func GetEventManager(version semver.Version) (EventManager, error) {
 func GetTxOutStore(keeper keeper.Keeper, version semver.Version, eventMgr EventManager, gasManager GasManager) (TxOutStore, error) {
 	constAcessor := constants.GetConstantValues(version)
 	if version.GTE(semver.MustParse("0.13.0")) {
-		return NewTxOutStorageV13(keeper, constAcessor, eventMgr), nil
+		return NewTxOutStorageV13(keeper, constAcessor, eventMgr, gasManager), nil
 	} else if version.GTE(semver.MustParse("0.1.0")) {
 		return NewTxOutStorageV1(keeper, constAcessor, eventMgr, gasManager), nil
 	}

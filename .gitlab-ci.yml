@@ -93,7 +93,7 @@ smoke-test:thornode-BEP2:
   before_script:
     - apk update
     - apk add git make
-    - (git clone --single-branch -b $CI_COMMIT_BRANCH https://gitlab.com/thorchain/heimdall.git && make -C heimdall build) || git clone --single-branch -b master https://gitlab.com/thorchain/heimdall.git
+    - (git clone --single-branch -b $CI_COMMIT_BRANCH https://gitlab.com/thorchain/heimdall.git && make -C heimdall build) || git clone --single-branch -b $CI_MERGE_REQUEST_TARGET_BRANCH_NAME https://gitlab.com/thorchain/heimdall.git
     - (git clone --single-branch -b $CI_COMMIT_BRANCH https://gitlab.com/thorchain/midgard.git && cd midgard && make docker-gitlab-build && docker tag registry.gitlab.com/thorchain/midgard:latest registry.gitlab.com/thorchain/midgard:mocknet && cd ..) || true
     - DOCKER_TLS_CERTDIR="/certs" make -C build/docker reset-mocknet-standalone
   except:
@@ -122,7 +122,7 @@ smoke-test:thornode-NATIVE:
   before_script:
     - apk update
     - apk add git make
-    - (git clone --single-branch -b $CI_COMMIT_BRANCH https://gitlab.com/thorchain/heimdall.git && make -C heimdall build) || git clone --single-branch -b master https://gitlab.com/thorchain/heimdall.git
+    - (git clone --single-branch -b $CI_COMMIT_BRANCH https://gitlab.com/thorchain/heimdall.git && make -C heimdall build) || git clone --single-branch -b $CI_MERGE_REQUEST_TARGET_BRANCH_NAME https://gitlab.com/thorchain/heimdall.git
     - (git clone --single-branch -b $CI_COMMIT_BRANCH https://gitlab.com/thorchain/midgard.git && cd midgard && make docker-gitlab-build && docker tag registry.gitlab.com/thorchain/midgard:latest registry.gitlab.com/thorchain/midgard:mocknet && cd ..) || true
     - NATIVE=true DOCKER_TLS_CERTDIR="/certs" make -C build/docker reset-mocknet-standalone
   except:
