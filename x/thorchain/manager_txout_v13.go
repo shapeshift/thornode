@@ -15,14 +15,16 @@ type TxOutStorageV13 struct {
 	keeper        keeper.Keeper
 	constAccessor constants.ConstantValues
 	eventMgr      EventManager
+	gasManager    GasManager
 }
 
 // NewTxOutStorageV1 will create a new instance of TxOutStore.
-func NewTxOutStorageV13(keeper keeper.Keeper, constAccessor constants.ConstantValues, eventMgr EventManager) *TxOutStorageV13 {
+func NewTxOutStorageV13(keeper keeper.Keeper, constAccessor constants.ConstantValues, eventMgr EventManager, gasManager GasManager) *TxOutStorageV13 {
 	return &TxOutStorageV13{
 		keeper:        keeper,
 		eventMgr:      eventMgr,
 		constAccessor: constAccessor,
+		gasManager:    gasManager,
 	}
 }
 
@@ -176,7 +178,7 @@ func (tos *TxOutStorageV13) prepareTxOutItem(ctx cosmos.Context, toi *TxOutItem)
 		toi.InHash = common.BlankTxID
 	}
 
-	transactionFee := tos.constAccessor.GetInt64Value(constants.TransactionFee)
+	transactionFee := tos.gasManager.GetFee(ctx, toi.Chain)
 	if toi.MaxGas.IsEmpty() {
 		gasAsset := toi.Chain.GetGasAsset()
 		pool, err := tos.keeper.GetPool(ctx, gasAsset)
