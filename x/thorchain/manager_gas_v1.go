@@ -58,13 +58,16 @@ func (gm *GasMgrV1) GetGas() common.Gas {
 // the return value is the amount of fee in RUNE
 func (gm *GasMgrV1) GetFee(ctx cosmos.Context, chain common.Chain) int64 {
 	transactionFee := gm.constantsAccessor.GetInt64Value(constants.TransactionFee)
+	if chain.Equals(common.THORChain) {
+		return transactionFee
+	}
 	networkFee, err := gm.keeper.GetNetworkFee(ctx, chain)
 	if err != nil {
 		ctx.Logger().Error("fail to get network fee", "error", err)
 		return transactionFee
 	}
 	if err := networkFee.Valid(); err != nil {
-		ctx.Logger().Error("network fee is invalid", "error", err)
+		ctx.Logger().Error("network fee is invalid", "error", err, "chain", chain)
 		return transactionFee
 	}
 	// Fee is calculated based on the network fee observed in previous block
