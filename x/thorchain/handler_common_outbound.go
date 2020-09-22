@@ -56,6 +56,10 @@ func (h CommonOutboundTxHandler) handle(ctx cosmos.Context, version semver.Versi
 		}
 	}
 
+	if tx.Tx.Chain.Equals(common.THORChain) {
+		return &cosmos.Result{}, nil
+	}
+
 	shouldSlash := true
 	signingTransPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
 	// every Signing Transaction Period , THORNode will check whether a
