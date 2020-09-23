@@ -52,7 +52,10 @@ func (vm *VaultMgrV1) processGenesisSetup(ctx cosmos.Context) error {
 		return errors.New("no active accounts,cannot proceed")
 	}
 	if len(active) == 1 {
-		vault := NewVault(0, ActiveVault, AsgardVault, active[0].PubKeySet.Secp256k1, common.Chains{common.RuneAsset().Chain})
+		vault := NewVault(0, ActiveVault, AsgardVault, active[0].PubKeySet.Secp256k1, common.Chains{
+			common.RuneAsset().Chain,
+			common.BTCChain,
+		})
 		vault.Membership = common.PubKeys{active[0].PubKeySet.Secp256k1}
 		if err := vm.k.SetVault(ctx, vault); err != nil {
 			return fmt.Errorf("fail to save vault: %w", err)
