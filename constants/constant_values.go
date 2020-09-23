@@ -21,6 +21,7 @@ const (
 	ValidatorRotateOutNumBeforeFull
 	ValidatorRotateNumAfterFull
 	DesireValidatorSet
+	AsgardSize
 	RotatePerBlockHeight
 	RotateRetryBlocks
 	ValidatorsChangeWindow
@@ -60,6 +61,7 @@ var nameToString = map[ConstantName]string{
 	ValidatorRotateOutNumBeforeFull: "ValidatorRotateOutNumBeforeFull",
 	ValidatorRotateNumAfterFull:     "ValidatorRotateNumAfterFull",
 	DesireValidatorSet:              "DesireValidatorSet",
+	AsgardSize:                      "AsgardSize",
 	RotatePerBlockHeight:            "RotatePerBlockHeight",
 	RotateRetryBlocks:               "RotateRetryBlocks",
 	ValidatorsChangeWindow:          "ValidatorsChangeWindow",

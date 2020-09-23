@@ -274,6 +274,48 @@ func (vts *ValidatorMgrV13TestSuite) TestGetChangedNodes(c *C) {
 	c.Assert(removedNodes, HasLen, 1)
 }
 
+func (vts *ValidatorMgrV13TestSuite) TestSplitNext(c *C) {
+	ctx, k := setupKeeperForTest(c)
+	mgr := NewDummyMgr()
+	vMgr := newValidatorMgrV13(k, mgr.VaultMgr(), mgr.TxOutStore(), mgr.EventMgr())
+	c.Assert(vMgr, NotNil)
+
+	nas := make(NodeAccounts, 0)
+	for i := 0; i < 90; i++ {
+		na := GetRandomNodeAccount(NodeActive)
+		na.Bond = cosmos.NewUint(uint64(i))
+		nas = append(nas, na)
+	}
+	sets := vMgr.splitNext(ctx, nas, 30)
+	c.Assert(sets, HasLen, 3)
+	c.Assert(sets[0], HasLen, 30)
+	c.Assert(sets[1], HasLen, 30)
+	c.Assert(sets[2], HasLen, 30)
+
+	nas = make(NodeAccounts, 0)
+	for i := 0; i < 100; i++ {
+		na := GetRandomNodeAccount(NodeActive)
+		na.Bond = cosmos.NewUint(uint64(i))
+		nas = append(nas, na)
+	}
+	sets = vMgr.splitNext(ctx, nas, 30)
+	c.Assert(sets, HasLen, 4)
+	c.Assert(sets[0], HasLen, 25)
+	c.Assert(sets[1], HasLen, 25)
+	c.Assert(sets[2], HasLen, 25)
+	c.Assert(sets[3], HasLen, 25)
+
+	nas = make(NodeAccounts, 0)
+	for i := 0; i < 3; i++ {
+		na := GetRandomNodeAccount(NodeActive)
+		na.Bond = cosmos.NewUint(uint64(i))
+		nas = append(nas, na)
+	}
+	sets = vMgr.splitNext(ctx, nas, 30)
+	c.Assert(sets, HasLen, 1)
+	c.Assert(sets[0], HasLen, 3)
+}
+
 func (vts *ValidatorMgrV13TestSuite) TestFindCounToRemove(c *C) {
 	// remove one
 	c.Check(findCountToRemove(0, NodeAccounts{
