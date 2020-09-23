@@ -125,13 +125,69 @@ func (vm *validatorMgrV13) BeginBlock(ctx cosmos.Context, constAccessor constant
 			return err
 		}
 		if ok {
-			if err := vm.vaultMgr.TriggerKeygen(ctx, next); err != nil {
-				return err
+			asgardSize, err := vm.k.GetMimir(ctx, constants.AsgardSize.String())
+			if asgardSize < 0 || err != nil {
+				asgardSize = constAccessor.GetInt64Value(constants.AsgardSize)
+			}
+			for _, nodeacc_set := range vm.splitNext(ctx, next, asgardSize) {
+				if err := vm.vaultMgr.TriggerKeygen(ctx, nodeacc_set); err != nil {
+					return err
+				}
 			}
 		}
 	}
 
 	return nil
+}
+
+// splits given list of node accounts into separate list of nas, for separate
+// asgard vaults
+func (vm *validatorMgrV13) splitNext(ctx cosmos.Context, nas NodeAccounts, asgardSize int64) []NodeAccounts {
+	// calculate the number of asgard vaults we'll need to support the given
+	// list of node accounts
+	group_num := int64(len(nas)) / asgardSize
+	if int64(len(nas))%asgardSize > 0 {
+		group_num += 1
+	}
+
+	// sort by bond size, descending. This should help ensure that bond
+	// distribution between asgard vaults is somewhat close to each other,
+	// while still maintain that each asgard has the same number of members
+	sort.SliceStable(nas, func(i, j int) bool {
+		return nas[i].Bond.GT(nas[j].Bond)
+	})
+
+	groups := make([]NodeAccounts, group_num)
+	for i, na := range nas {
+		groups[i%len(groups)] = append(groups[i%len(groups)], na)
+	}
+
+	// sanity checks
+	for i, group := range groups {
+		// ensure no group is more than the max
+		if int64(len(group)) > asgardSize {
+			ctx.Logger().Info("Skipping rotation due to an Asgard group is larger than the max size.")
+			return nil
+		}
+		// ensure no group is less than the min
+		if int64(len(group)) < 2 {
+			ctx.Logger().Info("Skipping rotation due to an Asgard group is smaller than the min size.")
+			return nil
+		}
+		// ensure a single group is significantly larger than another
+		if i > 0 {
+			diff := len(groups[i]) - len(groups[i-1])
+			if diff < 0 {
+				diff = -diff
+			}
+			if diff > 1 {
+				ctx.Logger().Info("Skipping rotation due to an Asgard groups having dissimilar membership size.")
+				return nil
+			}
+		}
+	}
+
+	return groups
 }
 
 // EndBlock when block commit
