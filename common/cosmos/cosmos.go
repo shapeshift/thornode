@@ -23,6 +23,7 @@ var (
 	NewIntFromBigInt        = sdk.NewIntFromBigInt
 	NewUintFromBigInt       = sdk.NewUintFromBigInt
 	AccAddressFromBech32    = sdk.AccAddressFromBech32
+	VerifyAddressFormat     = sdk.VerifyAddressFormat
 	GetFromBech32           = sdk.GetFromBech32
 	NewAttribute            = sdk.NewAttribute
 	NewDecFromStr           = sdk.NewDecFromStr
