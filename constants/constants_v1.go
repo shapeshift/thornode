@@ -7,6 +7,7 @@ func NewConstantValue010() *ConstantVals {
 			EmissionCurve:                   6,
 			BlocksPerYear:                   6311390,
 			TransactionFee:                  1_00000000,         // A 1.0 Rune fee on all swaps and withdrawals
+			NativeChainGasFee:               1_0000000,          // A 0.1 Rune fee on all on chain txs
 			NewPoolCycle:                    51840,              // Enable a pool every 3 days
 			MinimumNodesForYggdrasil:        6,                  // No yggdrasil pools if THORNode have less than 6 active nodes
 			MinimumNodesForBFT:              4,                  // Minimum node count to keep network running. Below this, Ragnarök is performed.
