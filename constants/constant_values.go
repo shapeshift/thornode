@@ -13,6 +13,7 @@ const (
 	EmissionCurve ConstantName = iota
 	BlocksPerYear
 	TransactionFee
+	NativeChainGasFee
 	NewPoolCycle
 	MinimumNodesForYggdrasil
 	MinimumNodesForBFT
@@ -51,6 +52,7 @@ var nameToString = map[ConstantName]string{
 	EmissionCurve:                   "EmissionCurve",
 	BlocksPerYear:                   "BlocksPerYear",
 	TransactionFee:                  "TransactionFee",
+	NativeChainGasFee:               "NativeChainGasFee",
 	NewPoolCycle:                    "NewPoolCycle",
 	MinimumNodesForYggdrasil:        "MinimumNodesForYggdrasil",
 	MinimumNodesForBFT:              "MinimumNodesForBFT",
