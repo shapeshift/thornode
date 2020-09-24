@@ -1,8 +1,6 @@
 package thorchain
 
 import (
-	"github.com/cosmos/cosmos-sdk/x/bank"
-
 	mem "gitlab.com/thorchain/thornode/x/thorchain/memo"
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
@@ -146,7 +144,7 @@ var (
 )
 
 type (
-	MsgSend                        = bank.MsgSend
+	MsgSend                        = types.MsgSend
 	MsgNativeTx                    = types.MsgNativeTx
 	MsgSwitch                      = types.MsgSwitch
 	MsgBond                        = types.MsgBond

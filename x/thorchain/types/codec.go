@@ -39,4 +39,5 @@ func RegisterCodec(cdc *codec.Codec) {
 	cdc.RegisterConcrete(MsgMigrate{}, "thorchain/MsgMigrate", nil)
 	cdc.RegisterConcrete(MsgRagnarok{}, "thorchain/MsgRagnarok", nil)
 	cdc.RegisterConcrete(MsgRefundTx{}, "thorchain/MsgRefundTx", nil)
+	cdc.RegisterConcrete(MsgSend{}, "thorchain/MsgSend", nil)
 }
