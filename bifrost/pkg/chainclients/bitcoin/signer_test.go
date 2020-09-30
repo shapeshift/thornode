@@ -4,25 +4,24 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	ctypes "github.com/binance-chain/go-sdk/common/types"
 	"github.com/btcsuite/btcd/btcec"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/btcsuite/btcutil"
 	"github.com/cosmos/cosmos-sdk/client/keys"
 	cKeys "github.com/cosmos/cosmos-sdk/crypto/keys"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/storage"
 	"github.com/tendermint/tendermint/crypto/secp256k1"
-	"gitlab.com/thorchain/txscript"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/bifrost/config"
@@ -32,7 +31,6 @@ import (
 	"gitlab.com/thorchain/thornode/bifrost/tss"
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
-	"gitlab.com/thorchain/thornode/x/thorchain"
 	types2 "gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
@@ -86,7 +84,9 @@ func (s *BitcoinSignerSuite) SetUpTest(c *C) {
 			r := struct {
 				Method string `json:"method"`
 			}{}
-			json.NewDecoder(req.Body).Decode(&r)
+			buf, err := ioutil.ReadAll(req.Body)
+			c.Assert(err, IsNil)
+			c.Assert(json.Unmarshal(buf, &r), IsNil)
 			defer func() {
 				c.Assert(req.Body.Close(), IsNil)
 			}()
@@ -101,6 +101,15 @@ func (s *BitcoinSignerSuite) SetUpTest(c *C) {
 				httpTestHandler(c, rw, "../../../../test/fixtures/btc/getinfo.json")
 			case "sendrawtransaction":
 				httpTestHandler(c, rw, "../../../../test/fixtures/btc/sendrawtransaction.json")
+			case "importaddress":
+				httpTestHandler(c, rw, "../../../../test/fixtures/btc/importaddress.json")
+			case "listunspent":
+				body := string(buf)
+				if strings.Contains(body, "tb1qr6uzy0nds0uhcrlzphsxxqpycsksy423pdjrsf") {
+					httpTestHandler(c, rw, "../../../../test/fixtures/btc/listunspent-tss.json")
+				} else {
+					httpTestHandler(c, rw, "../../../../test/fixtures/btc/listunspent.json")
+				}
 			}
 		}
 	}))
@@ -190,7 +199,6 @@ func (s *BitcoinSignerSuite) TestSignTx(c *C) {
 	c.Assert(result, IsNil)
 
 	blockMeta := NewBlockMeta("", 100, "")
-	blockMeta.AddUTXO(GetRandomUTXO(0.5))
 	c.Assert(s.client.blockMetaAccessor.SaveBlockMeta(100, blockMeta), IsNil)
 
 	result, err = s.client.SignTx(txOutItem, 5)
@@ -217,11 +225,10 @@ func (s *BitcoinSignerSuite) TestSignTxHappyPathWithPrivateKey(c *C) {
 	}
 	txHash, err := chainhash.NewHashFromStr("256222fb25a9950479bb26049a2c00e75b89abbb7f0cf646c623b93e942c4c34")
 	c.Assert(err, IsNil)
-	utxo := NewUnspentTransactionOutput(*txHash, 0, 0.01049996, 100, txOutItem.VaultPubKey)
 	blockMeta := NewBlockMeta("000000000000008a0da55afa8432af3b15c225cc7e04d32f0de912702dd9e2ae",
 		100,
 		"0000000000000068f0710c510e94bd29aa624745da43e32a1de887387306bfda")
-	blockMeta.AddUTXO(utxo)
+	blockMeta.AddCustomerTransaction(*txHash)
 	c.Assert(s.client.blockMetaAccessor.SaveBlockMeta(blockMeta.Height, blockMeta), IsNil)
 	priKeyBuf, err := hex.DecodeString("b404c5ec58116b5f0fe13464a92e46626fc5db130e418cbce98df86ffe9317c5")
 	c.Assert(err, IsNil)
@@ -262,26 +269,15 @@ func (s *BitcoinSignerSuite) TestSignTxWithTSS(c *C) {
 	s.client.ksWrapper, err = NewKeySignWrapper(s.client.privateKey, s.client.bridge, thorKeyManager, s.keySignPartyMgr)
 	txHash, err := chainhash.NewHashFromStr("66d2d6b5eb564972c59e4797683a1225a02515a41119f0a8919381236b63e948")
 	c.Assert(err, IsNil)
-	utxo := NewUnspentTransactionOutput(*txHash, 0, 0.00018, 100, txOutItem.VaultPubKey)
+	// utxo := NewUnspentTransactionOutput(*txHash, 0, 0.00018, 100, txOutItem.VaultPubKey)
 	blockMeta := NewBlockMeta("000000000000008a0da55afa8432af3b15c225cc7e04d32f0de912702dd9e2ae",
 		100,
 		"0000000000000068f0710c510e94bd29aa624745da43e32a1de887387306bfda")
-	blockMeta.AddUTXO(utxo)
+	blockMeta.AddCustomerTransaction(*txHash)
 	c.Assert(s.client.blockMetaAccessor.SaveBlockMeta(blockMeta.Height, blockMeta), IsNil)
 	buf, err := s.client.SignTx(txOutItem, 1)
 	c.Assert(err, IsNil)
 	c.Assert(buf, NotNil)
-}
-
-func GetRandomUTXO(amount float64) UnspentTransactionOutput {
-	tx := wire.NewMsgTx(wire.TxVersion)
-	pk := types2.GetRandomPubKey()
-	addr, _ := pk.GetAddress(common.BTCChain)
-	btcAddr, _ := btcutil.DecodeAddress(addr.String(), &chaincfg.TestNet3Params)
-	script, _ := txscript.PayToAddrScript(btcAddr)
-	btcAmt, _ := btcutil.NewAmount(amount)
-	tx.AddTxOut(wire.NewTxOut(int64(btcAmt), script))
-	return NewUnspentTransactionOutput(tx.TxHash(), 0, amount, 10, pk)
 }
 
 func (s *BitcoinSignerSuite) TestBroadcastTx(c *C) {
@@ -307,51 +303,4 @@ func (s *BitcoinSignerSuite) TestBroadcastTx(c *C) {
 }
 
 func (s *BitcoinSignerSuite) TestGetAllUTXOs(c *C) {
-	vaultPubKey := thorchain.GetRandomPubKey()
-	for i := 0; i < 150; i++ {
-		previousHash := thorchain.GetRandomTxHash().String()
-		blockHash := thorchain.GetRandomTxHash().String()
-		blockMeta := NewBlockMeta(previousHash, int64(i), blockHash)
-		utxo := GetRandomUTXO(1.0)
-		utxo.VaultPubKey = vaultPubKey
-		utxo.BlockHeight = int64(i)
-		blockMeta.AddUTXO(utxo)
-		c.Assert(s.client.blockMetaAccessor.SaveBlockMeta(blockMeta.Height, blockMeta), IsNil)
-	}
-	utxoes, err := s.client.getAllUtxos(150, vaultPubKey, 10)
-	c.Assert(err, IsNil)
-
-	// include block height 0 ~ 51
-	c.Assert(utxoes, HasLen, 52)
-
-	// mark them as spent
-	for _, utxo := range utxoes {
-		blockMeta, err := s.client.blockMetaAccessor.GetBlockMeta(utxo.BlockHeight)
-		c.Assert(err, IsNil)
-		blockMeta.SpendUTXO(utxo.GetKey())
-		c.Assert(s.client.blockMetaAccessor.SaveBlockMeta(blockMeta.Height, blockMeta), IsNil)
-	}
-
-	// check prune is not returning them when spent
-	c.Assert(s.client.blockMetaAccessor.PruneBlockMeta(150-BlockCacheSize), IsNil)
-	allmetas, err := s.client.blockMetaAccessor.GetBlockMetas()
-	c.Assert(err, IsNil)
-	c.Assert(allmetas, HasLen, 100)
-
-	// make sure block will not be Pruned when there are unspend UTXO in it
-	for i := 150; i < 200; i++ {
-		previousHash := thorchain.GetRandomTxHash().String()
-		blockHash := thorchain.GetRandomTxHash().String()
-		blockMeta := NewBlockMeta(previousHash, int64(i), blockHash)
-		utxo := GetRandomUTXO(1.0)
-		utxo.VaultPubKey = vaultPubKey
-		utxo.BlockHeight = int64(i)
-		blockMeta.AddUTXO(utxo)
-		c.Assert(s.client.blockMetaAccessor.SaveBlockMeta(blockMeta.Height, blockMeta), IsNil)
-	}
-
-	c.Assert(s.client.blockMetaAccessor.PruneBlockMeta(200-BlockCacheSize), IsNil)
-	allmetas, err = s.client.blockMetaAccessor.GetBlockMetas()
-	c.Assert(err, IsNil)
-	c.Assert(allmetas, HasLen, 148)
 }
