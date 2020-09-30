@@ -17,6 +17,8 @@ import (
 	"gitlab.com/thorchain/thornode/constants"
 )
 
+type OnNewPubKey func(pk common.PubKey) error
+
 type PubKeyValidator interface {
 	IsValidPoolAddress(addr string, chain common.Chain) (bool, common.ChainPoolInfo)
 	FetchPubKeys()
@@ -29,6 +31,7 @@ type PubKeyValidator interface {
 	GetPubKeys() common.PubKeys
 	Start() error
 	Stop() error
+	RegisterCallback(callback OnNewPubKey)
 }
 
 type PK struct {
@@ -47,6 +50,7 @@ type PubKeyManager struct {
 	errCounter      *prometheus.CounterVec
 	m               *metrics.Metrics
 	stopChan        chan struct{}
+	callback        []OnNewPubKey
 }
 
 // NewPubKeyManager create a new instance of PubKeyManager
@@ -59,6 +63,7 @@ func NewPubKeyManager(bridge *thorclient.ThorchainBridge, m *metrics.Metrics) (*
 		m:               m,
 		stopChan:        make(chan struct{}),
 		rwMutex:         &sync.RWMutex{},
+		callback:        []OnNewPubKey{},
 	}, nil
 }
 
@@ -159,6 +164,8 @@ func (pkm *PubKeyManager) AddNodePubKey(pk common.PubKey) {
 			Signer:      true,
 			NodeAccount: true,
 		})
+		// a new pubkey get added , fire callback
+		pkm.fireCallback(pk)
 	}
 }
 
@@ -251,4 +258,16 @@ func (pkm *PubKeyManager) IsValidPoolAddress(addr string, chain common.Chain) (b
 // getPubkeys from thorchain
 func (pkm *PubKeyManager) getPubkeys() (common.PubKeys, error) {
 	return pkm.thorchainBridge.GetPubKeys()
+}
+
+func (pkm *PubKeyManager) RegisterCallback(callback OnNewPubKey) {
+	pkm.callback = append(pkm.callback, callback)
+}
+
+func (pkm *PubKeyManager) fireCallback(pk common.PubKey) {
+	for _, item := range pkm.callback {
+		if err := item(pk); err != nil {
+			pkm.logger.Err(err).Msg("fail to call callback")
+		}
+	}
 }

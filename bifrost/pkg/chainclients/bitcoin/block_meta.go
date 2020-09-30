@@ -1,17 +1,16 @@
 package bitcoin
 
 import (
-	"strings"
-
-	"gitlab.com/thorchain/thornode/common"
+	"github.com/btcsuite/btcd/chaincfg/chainhash"
 )
 
 // BlockMeta is a structure to store the blocks bifrost scanned
 type BlockMeta struct {
-	PreviousHash              string                     `json:"previous_hash"`
-	Height                    int64                      `json:"height"`
-	BlockHash                 string                     `json:"block_hash"`
-	UnspentTransactionOutputs []UnspentTransactionOutput `json:"utxos"`
+	PreviousHash         string           `json:"previous_hash"`
+	Height               int64            `json:"height"`
+	BlockHash            string           `json:"block_hash"`
+	SelfTransactions     []chainhash.Hash `json:"self_transactions"`     // keep the transactions that broadcast by itself
+	CustomerTransactions []chainhash.Hash `json:"customer_transactions"` // keep the transactions that from customer
 }
 
 // NewBlockMeta create a new instance of BlockMeta
@@ -23,59 +22,48 @@ func NewBlockMeta(previousHash string, height int64, blockHash string) *BlockMet
 	}
 }
 
-// GetUTXOs that match the given pubkey and are unspent
-func (b *BlockMeta) GetUTXOs(pubKey common.PubKey) []UnspentTransactionOutput {
-	utxos := make([]UnspentTransactionOutput, 0, len(b.UnspentTransactionOutputs))
-	for _, item := range b.UnspentTransactionOutputs {
-		if item.VaultPubKey.Equals(pubKey) && !item.Spent {
-			utxos = append(utxos, item)
-		}
-	}
-	return utxos
+// AddSelfTransaction add the given Transaction into block meta
+func (b *BlockMeta) AddSelfTransaction(txID chainhash.Hash) {
+	b.SelfTransactions = addTransaction(b.SelfTransactions, txID)
 }
 
-// RemoveUTXO - remove a given UTXO from the storage ,because we already spent it
-func (b *BlockMeta) RemoveUTXO(key string) {
-	idxToDelete := -1
-	for idx, item := range b.UnspentTransactionOutputs {
-		if strings.EqualFold(item.GetKey(), key) {
-			idxToDelete = idx
+func addTransaction(hashes []chainhash.Hash, txID chainhash.Hash) []chainhash.Hash {
+	var exist bool
+	for _, tx := range hashes {
+		if tx.String() == txID.String() {
+			exist = true
 			break
 		}
 	}
-	if idxToDelete != -1 {
-		b.UnspentTransactionOutputs = append(b.UnspentTransactionOutputs[:idxToDelete], b.UnspentTransactionOutputs[idxToDelete+1:]...)
+	if !exist {
+		hashes = append(hashes, txID)
 	}
+	return hashes
 }
 
-// AddUTXO add the given utxo to blockmeta
-func (b *BlockMeta) AddUTXO(utxo UnspentTransactionOutput) {
-	for _, u := range b.UnspentTransactionOutputs {
-		if u.GetKey() == utxo.GetKey() {
+// AddCustomerTransaction add the given Transaction into block meta
+func (b *BlockMeta) AddCustomerTransaction(txID chainhash.Hash) {
+	for _, tx := range b.SelfTransactions {
+		if tx.String() == txID.String() {
 			return
 		}
 	}
-	b.UnspentTransactionOutputs = append(b.UnspentTransactionOutputs, utxo)
+	b.CustomerTransactions = addTransaction(b.CustomerTransactions, txID)
 }
 
-// SpendUTXO mark a utxo as spent
-func (b *BlockMeta) SpendUTXO(key string) {
-	for idx, utxo := range b.UnspentTransactionOutputs {
-		if key != utxo.GetKey() {
-			continue
+func removeTransaction(hashes []chainhash.Hash, txID chainhash.Hash) []chainhash.Hash {
+	idx := 0
+	for i, tx := range hashes {
+		if tx.String() == txID.String() {
+			idx = i
+			break
 		}
-		b.UnspentTransactionOutputs[idx].Spent = true
-		break
 	}
+	hashes = append(hashes[:idx], hashes[idx+1:]...)
+	return hashes
 }
 
-// UnspendUTXO mark utxo as unspent
-func (b *BlockMeta) UnspendUTXO(key string) {
-	for idx, utxo := range b.UnspentTransactionOutputs {
-		if key != utxo.GetKey() {
-			continue
-		}
-		b.UnspentTransactionOutputs[idx].Spent = false
-		break
-	}
+// RemoveCustomerTransaction remove the given transaction from the block
+func (b *BlockMeta) RemoveCustomerTransaction(txID chainhash.Hash) {
+	b.CustomerTransactions = removeTransaction(b.CustomerTransactions, txID)
 }
