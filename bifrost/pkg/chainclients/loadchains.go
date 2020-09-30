@@ -9,12 +9,19 @@ import (
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/binance"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/bitcoin"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/ethereum"
+	"gitlab.com/thorchain/thornode/bifrost/pubkeymanager"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient"
 	"gitlab.com/thorchain/thornode/common"
 )
 
 // LoadChains returns chain clients from chain configuration
-func LoadChains(thorKeys *thorclient.Keys, cfg []config.ChainConfiguration, server *tss.TssServer, thorchainBridge *thorclient.ThorchainBridge, m *metrics.Metrics, keySignPartyMgr *thorclient.KeySignPartyMgr) map[common.Chain]ChainClient {
+func LoadChains(thorKeys *thorclient.Keys,
+	cfg []config.ChainConfiguration,
+	server *tss.TssServer,
+	thorchainBridge *thorclient.ThorchainBridge,
+	m *metrics.Metrics,
+	keySignPartyMgr *thorclient.KeySignPartyMgr,
+	pkMggr pubkeymanager.PubKeyValidator) map[common.Chain]ChainClient {
 	logger := log.Logger.With().Str("module", "bifrost").Logger()
 	chains := make(map[common.Chain]ChainClient, 0)
 
@@ -40,6 +47,7 @@ func LoadChains(thorKeys *thorclient.Keys, cfg []config.ChainConfiguration, serv
 				logger.Error().Err(err).Str("chain_id", chain.ChainID.String()).Msg("fail to load chain")
 				continue
 			}
+			pkMggr.RegisterCallback(btc.RegisterPublicKey)
 			chains[common.BTCChain] = btc
 		default:
 			continue

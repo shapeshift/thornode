@@ -2,6 +2,7 @@ package bitcoin
 
 import (
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -28,7 +29,10 @@ import (
 )
 
 // BlockCacheSize the number of block meta that get store in storage.
-const BlockCacheSize = 100
+const (
+	BlockCacheSize       = 100
+	MAXIMUM_CONFIRMATION = 99999999
+)
 
 // Client observes bitcoin chain and allows to sign and broadcast tx
 type Client struct {
@@ -109,6 +113,9 @@ func NewClient(thorKeys *thorclient.Keys, cfg config.ChainConfiguration, server 
 		return c, fmt.Errorf("fail to create utxo accessor: %w", err)
 	}
 
+	if err := c.registerAddressInWalletAsWatch(c.nodePubKey); err != nil {
+		return nil, fmt.Errorf("fail to register (%s): %w", c.nodePubKey, err)
+	}
 	return c, nil
 }
 
@@ -148,20 +155,35 @@ func (c *Client) GetAddress(poolPubKey common.PubKey) string {
 	return addr.String()
 }
 
+// getUTXOs send a request to bitcond RPC endpoint to query all the UTXO
+func (c *Client) getUTXOs(minConfirm, MaximumConfirm int, pkey common.PubKey) ([]btcjson.ListUnspentResult, error) {
+	btcAddress, err := pkey.GetAddress(common.BTCChain)
+	if err != nil {
+		return nil, fmt.Errorf("fail to get BTC Address for pubkey(%s): %w", pkey, err)
+	}
+	addr, err := btcutil.DecodeAddress(btcAddress.String(), c.getChainCfg())
+	if err != nil {
+		return nil, fmt.Errorf("fail to decode BTC address(%s): %w", btcAddress.String(), err)
+	}
+	return c.client.ListUnspentMinMaxAddresses(minConfirm, MaximumConfirm, []btcutil.Address{
+		addr,
+	})
+}
+
 // GetAccount returns account with balance for an address
 func (c *Client) GetAccount(pkey common.PubKey) (common.Account, error) {
 	acct := common.Account{}
-	blockMetas, err := c.blockMetaAccessor.GetBlockMetas()
+	if pkey.IsEmpty() {
+		return acct, errors.New("pubkey can't be empty")
+	}
+	utxos, err := c.getUTXOs(0, MAXIMUM_CONFIRMATION, pkey)
 	if err != nil {
-		return acct, fmt.Errorf("fail to get block meta: %w", err)
+		return acct, fmt.Errorf("fail to get UTXOs: %w", err)
 	}
 	total := 0.0
-	for _, item := range blockMetas {
-		for _, utxo := range item.GetUTXOs(pkey) {
-			total += utxo.Value
-		}
+	for _, item := range utxos {
+		total += item.Amount
 	}
-
 	totalAmt, err := btcutil.NewAmount(total)
 	if err != nil {
 		return acct, fmt.Errorf("fail to convert total amount: %w", err)
@@ -186,7 +208,6 @@ func (c *Client) OnObservedTxIn(txIn types.TxInItem, blockHeight int64) {
 		c.logger.Error().Err(err).Str("txID", txIn.Tx).Msg("fail to add spendable utxo to storage")
 		return
 	}
-	value := float64(txIn.Coins.GetCoin(common.BTCAsset).Amount.Uint64()) / common.One
 	blockMeta, err := c.blockMetaAccessor.GetBlockMeta(blockHeight)
 	if nil != err {
 		c.logger.Err(err).Msgf("fail to get block meta on block height(%d)", blockHeight)
@@ -195,8 +216,8 @@ func (c *Client) OnObservedTxIn(txIn types.TxInItem, blockHeight int64) {
 		c.logger.Error().Msgf("can't get block meta for height: %d", blockHeight)
 		return
 	}
-	utxo := NewUnspentTransactionOutput(*hash, 0, value, blockHeight, txIn.ObservedVaultPubKey)
-	blockMeta.AddUTXO(utxo)
+	// add the transaction to block meta
+	blockMeta.AddCustomerTransaction(*hash)
 	if err := c.blockMetaAccessor.SaveBlockMeta(blockHeight, blockMeta); err != nil {
 		c.logger.Err(err).Msgf("fail to save block meta to storage,block height(%d)", blockHeight)
 	}
@@ -222,7 +243,7 @@ func (c *Client) processReorg(block *btcjson.GetBlockVerboseTxResult) error {
 }
 
 // reConfirmTx will be kicked off only when chain client detected a re-org on bitcoin chain
-// it will read through all the block meta data from local storage , and go through all the UTXOes.
+// it will read through all the block meta data from local storage , and go through all the UTXOs.
 // For each UTXO , it will send a RPC request to bitcoin chain , double check whether the TX exist or not
 // if the tx still exist , then it is all good, if a transaction previous we detected , however doesn't exist anymore , that means
 // the transaction had been removed from chain,  chain client should report to thorchain
@@ -234,9 +255,9 @@ func (c *Client) reConfirmTx() error {
 
 	for _, blockMeta := range blockMetas {
 		var errataTxs []types.ErrataTx
-		for _, utxo := range blockMeta.UnspentTransactionOutputs {
-			txID := utxo.TxID.String()
-			if c.confirmTx(&utxo.TxID) {
+		for _, tx := range blockMeta.CustomerTransactions {
+			txID := tx.String()
+			if c.confirmTx(&tx) {
 				c.logger.Info().Msgf("block height: %d, tx: %s still exist", blockMeta.Height, txID)
 				continue
 			}
@@ -246,7 +267,7 @@ func (c *Client) reConfirmTx() error {
 				Chain: common.BTCChain,
 			})
 			// remove the UTXO from block meta , so signer will not spend it
-			blockMeta.RemoveUTXO(utxo.GetKey())
+			blockMeta.RemoveCustomerTransaction(tx)
 		}
 		if len(errataTxs) == 0 {
 			continue
@@ -533,4 +554,20 @@ func (c *Client) getGas(tx *btcjson.TxRawResult) (common.Gas, error) {
 	return common.Gas{
 		common.NewCoin(common.BTCAsset, cosmos.NewUint(totalGas)),
 	}, nil
+}
+
+// registerAddressInWalletAsWatch make a RPC call to import the address relevant to the given pubkey
+// in wallet as watch only , so as when bifrost call ListUnspent , it will return appropriate result
+func (c *Client) registerAddressInWalletAsWatch(pkey common.PubKey) error {
+	addr, err := pkey.GetAddress(common.BTCChain)
+	if err != nil {
+		return fmt.Errorf("fail to get BTC address from pubkey(%s): %w", pkey, err)
+	}
+	c.logger.Info().Msgf("import address: %s", addr.String())
+	return c.client.ImportAddressRescan(addr.String(), "", false)
+}
+
+// RegisterPublicKey register the given pubkey to bitcoin wallet
+func (c *Client) RegisterPublicKey(pkey common.PubKey) error {
+	return c.registerAddressInWalletAsWatch(pkey)
 }

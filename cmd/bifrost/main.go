@@ -171,7 +171,7 @@ func main() {
 		}
 	}
 
-	chains := chainclients.LoadChains(k, cfg.Chains, tssIns, thorchainBridge, m, keySignPartyMgr)
+	chains := chainclients.LoadChains(k, cfg.Chains, tssIns, thorchainBridge, m, keySignPartyMgr, pubkeyMgr)
 
 	// start observer
 	obs, err := observer.NewObserver(pubkeyMgr, chains, thorchainBridge, m)

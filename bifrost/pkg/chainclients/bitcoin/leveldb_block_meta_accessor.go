@@ -95,13 +95,8 @@ func (t *LevelDBBlockMetaAccessor) PruneBlockMeta(height int64) error {
 		if err := json.Unmarshal(buf, &blockMeta); err != nil {
 			return fmt.Errorf("fail to unmarshal block meta: %w", err)
 		}
-		unspents := 0
-		for _, utxo := range blockMeta.UnspentTransactionOutputs {
-			if !utxo.Spent {
-				unspents++
-			}
-		}
-		if blockMeta.Height < height && unspents == 0 {
+
+		if blockMeta.Height < height {
 			targetToDelete = append(targetToDelete, t.getBlockMetaKey(blockMeta.Height))
 		}
 	}
