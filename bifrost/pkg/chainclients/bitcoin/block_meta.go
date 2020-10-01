@@ -22,6 +22,21 @@ func NewBlockMeta(previousHash string, height int64, blockHash string) *BlockMet
 	}
 }
 
+// TransactionHashExist check whether the given traction hash exist in the block meta
+func (b *BlockMeta) TransactionHashExist(hash chainhash.Hash) bool {
+	for _, item := range b.CustomerTransactions {
+		if item.IsEqual(&hash) {
+			return true
+		}
+	}
+	for _, item := range b.SelfTransactions {
+		if item.IsEqual(&hash) {
+			return true
+		}
+	}
+	return false
+}
+
 // AddSelfTransaction add the given Transaction into block meta
 func (b *BlockMeta) AddSelfTransaction(txID chainhash.Hash) {
 	b.SelfTransactions = addTransaction(b.SelfTransactions, txID)

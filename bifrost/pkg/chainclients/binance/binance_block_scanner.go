@@ -346,6 +346,10 @@ func (b *BinanceBlockScanner) UnmarshalBlock(buf []byte) ([]string, error) {
 	return block.Result.Block.Data.Txs, nil
 }
 
+func (c *BinanceBlockScanner) FetchMemPool(height int64) (stypes.TxIn, error) {
+	return stypes.TxIn{}, nil
+}
+
 func (b *BinanceBlockScanner) FetchTxs(height int64) (stypes.TxIn, error) {
 	rawTxs, err := b.getRPCBlock(height)
 	if err != nil {

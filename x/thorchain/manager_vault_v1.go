@@ -161,17 +161,19 @@ func (vm *VaultMgrV1) EndBlock(ctx cosmos.Context, mgr Manager, constAccessor co
 					amt = amt.MulUint64(uint64(nth)).QuoUint64(5)
 				}
 
-				// TODO: make this not chain specific
 				// minus gas costs for our transactions
-				if coin.Asset.IsBNB() {
-					gasInfo, err := vm.k.GetGas(ctx, coin.Asset)
+				gasAsset := coin.Asset.Chain.GetGasAsset()
+				if coin.Asset.Equals(gasAsset) {
+					gasMgr := mgr.GasMgr()
+					gas, err := gasMgr.GetMaxGas(ctx, coin.Asset.Chain)
 					if err != nil {
-						ctx.Logger().Error("fail to get gas for asset", "asset", coin.Asset, "error", err)
+						ctx.Logger().Error("fail to get max gas: %w", err)
 						return err
 					}
+
 					amt = common.SafeSub(
 						amt,
-						gasInfo[0].MulUint64(uint64(vault.CoinLength())),
+						gas.Amount.MulUint64(uint64(vault.CoinLengthByChain(coin.Asset.Chain))),
 					)
 				}
 

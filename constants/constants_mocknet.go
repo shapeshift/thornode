@@ -7,11 +7,12 @@ func init() {
 	int64Overrides = map[ConstantName]int64{
 		// ArtificialRagnarokBlockHeight: 200,
 		DesireValidatorSet:    12,
-		RotatePerBlockHeight:  60,          // 5 min
+		RotatePerBlockHeight:  60, // 5 min
+		RotateRetryBlocks:     30,
 		BadValidatorRate:      60,          // 5 min
 		OldValidatorRate:      60,          // 5 min
 		MinimumBondInRune:     100_000_000, // 1 rune
-		FundMigrationInterval: 10,
+		FundMigrationInterval: 60,
 		StakeLockUpBlocks:     0,
 		CliTxCost:             0,
 		JailTimeKeygen:        10,

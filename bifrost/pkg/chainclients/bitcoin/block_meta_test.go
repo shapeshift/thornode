@@ -29,4 +29,5 @@ func (b *BlockMetaTestSuite) TestBlockMeta(c *C) {
 	c.Assert(blockMeta.SelfTransactions, HasLen, 1)
 	blockMeta.AddCustomerTransaction(*txID)
 	c.Assert(blockMeta.CustomerTransactions, HasLen, 0)
+	c.Assert(blockMeta.TransactionHashExist(*txID), Equals, true)
 }
