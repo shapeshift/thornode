@@ -21,6 +21,7 @@ import (
 )
 
 type BlockScannerFetcher interface {
+	FetchMemPool(height int64) (types.TxIn, error)
 	FetchTxs(height int64) (types.TxIn, error)
 	GetHeight() (int64, error)
 }
@@ -126,7 +127,17 @@ func (b *BlockScanner) scanBlocks() {
 				time.Sleep(constants.ThorchainBlockTime)
 				continue
 			}
-
+			txInMemPool, err := b.chainScanner.FetchMemPool(currentBlock)
+			if err != nil {
+				b.logger.Error().Err(err).Msg("fail to fetch MemPool")
+			}
+			if len(txInMemPool.TxArray) > 0 {
+				select {
+				case <-b.stopChan:
+					return
+				case b.globalTxsQueue <- txInMemPool:
+				}
+			}
 			txIn, err := b.chainScanner.FetchTxs(currentBlock)
 			if err != nil {
 				// don't log an error if its because the block doesn't exist yet

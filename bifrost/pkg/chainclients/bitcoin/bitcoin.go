@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/btcsuite/btcd/btcec"
@@ -26,12 +27,13 @@ import (
 	"gitlab.com/thorchain/thornode/bifrost/tss"
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/constants"
 )
 
 // BlockCacheSize the number of block meta that get store in storage.
 const (
-	BlockCacheSize       = 100
-	MAXIMUM_CONFIRMATION = 99999999
+	BlockCacheSize      = 100
+	MaximumConfirmation = 99999999
 )
 
 // Client observes bitcoin chain and allows to sign and broadcast tx
@@ -47,6 +49,9 @@ type Client struct {
 	bridge            *thorclient.ThorchainBridge
 	globalErrataQueue chan<- types.ErrataBlock
 	nodePubKey        common.PubKey
+	memPoolLock       *sync.Mutex
+	processedMemPool  map[string]bool
+	lastMemPoolScan   time.Time
 }
 
 // NewClient generates a new Client
@@ -84,14 +89,16 @@ func NewClient(thorKeys *thorclient.Keys, cfg config.ChainConfiguration, server 
 	}
 
 	c := &Client{
-		logger:     log.Logger.With().Str("module", "bitcoin").Logger(),
-		cfg:        cfg,
-		chain:      cfg.ChainID,
-		client:     client,
-		privateKey: btcPrivateKey,
-		ksWrapper:  ksWrapper,
-		bridge:     bridge,
-		nodePubKey: nodePubKey,
+		logger:           log.Logger.With().Str("module", "bitcoin").Logger(),
+		cfg:              cfg,
+		chain:            cfg.ChainID,
+		client:           client,
+		privateKey:       btcPrivateKey,
+		ksWrapper:        ksWrapper,
+		bridge:           bridge,
+		nodePubKey:       nodePubKey,
+		memPoolLock:      &sync.Mutex{},
+		processedMemPool: make(map[string]bool),
 	}
 
 	var path string // if not set later, will in memory storage
@@ -176,7 +183,7 @@ func (c *Client) GetAccount(pkey common.PubKey) (common.Account, error) {
 	if pkey.IsEmpty() {
 		return acct, errors.New("pubkey can't be empty")
 	}
-	utxos, err := c.getUTXOs(0, MAXIMUM_CONFIRMATION, pkey)
+	utxos, err := c.getUTXOs(0, MaximumConfirmation, pkey)
 	if err != nil {
 		return acct, fmt.Errorf("fail to get UTXOs: %w", err)
 	}
@@ -196,7 +203,7 @@ func (c *Client) GetAccount(pkey common.PubKey) (common.Account, error) {
 	}, false), nil
 }
 
-func (c *Client) GetAccountByAddress(address string) (common.Account, error) {
+func (c *Client) GetAccountByAddress(string) (common.Account, error) {
 	return common.Account{}, nil
 }
 
@@ -209,12 +216,12 @@ func (c *Client) OnObservedTxIn(txIn types.TxInItem, blockHeight int64) {
 		return
 	}
 	blockMeta, err := c.blockMetaAccessor.GetBlockMeta(blockHeight)
-	if nil != err {
+	if err != nil {
 		c.logger.Err(err).Msgf("fail to get block meta on block height(%d)", blockHeight)
-	}
-	if nil == blockMeta {
-		c.logger.Error().Msgf("can't get block meta for height: %d", blockHeight)
 		return
+	}
+	if blockMeta == nil {
+		blockMeta = NewBlockMeta("", blockHeight, "")
 	}
 	// add the transaction to block meta
 	blockMeta.AddCustomerTransaction(*hash)
@@ -313,6 +320,65 @@ func (c *Client) confirmTx(txHash *chainhash.Hash) bool {
 	return true
 }
 
+func (c *Client) removeFromMemPoolCache(hash string) {
+	c.memPoolLock.Lock()
+	defer c.memPoolLock.Unlock()
+	delete(c.processedMemPool, hash)
+}
+
+func (c *Client) tryAddToMemPoolCache(hash string) bool {
+	if c.processedMemPool[hash] {
+		return false
+	}
+	c.memPoolLock.Lock()
+	defer c.memPoolLock.Unlock()
+	c.processedMemPool[hash] = true
+	return true
+}
+
+func (c *Client) getMemPool(height int64) (types.TxIn, error) {
+	hashes, err := c.client.GetRawMempool()
+	if err != nil {
+		return types.TxIn{}, fmt.Errorf("fail to get tx hashes from mempool: %w", err)
+	}
+	txIn := types.TxIn{Chain: c.GetChain()}
+	for _, h := range hashes {
+		// this hash had been processed before , ignore it
+		if !c.tryAddToMemPoolCache(h.String()) {
+			c.logger.Info().Msgf("%s had been processed , ignore", h.String())
+			continue
+		}
+
+		c.logger.Info().Msgf("process hash %s", h.String())
+		result, err := c.client.GetRawTransactionVerbose(h)
+		if err != nil {
+			return types.TxIn{}, fmt.Errorf("fail to get raw transaction verbose with hash(%s): %w", h.String(), err)
+		}
+		txInItem, err := c.getTxIn(result, height)
+		if err != nil {
+			return types.TxIn{}, fmt.Errorf("fail to get TxInItem: %w", err)
+		}
+		if txInItem.IsEmpty() {
+			continue
+		}
+		txInItem.MemPool = true
+		txIn.TxArray = append(txIn.TxArray, txInItem)
+	}
+	txIn.Count = strconv.Itoa(len(txIn.TxArray))
+	return txIn, nil
+}
+
+// FetchMemPool retrieves txs from mempool
+func (c *Client) FetchMemPool(height int64) (types.TxIn, error) {
+	// make sure client doesn't scan mempool too much
+	diff := time.Now().Sub(c.lastMemPoolScan)
+	if diff < constants.ThorchainBlockTime {
+		return types.TxIn{}, nil
+	}
+	c.lastMemPoolScan = time.Now()
+	return c.getMemPool(height)
+}
+
 // FetchTxs retrieves txs for a block height
 func (c *Client) FetchTxs(height int64) (types.TxIn, error) {
 	block, err := c.getBlock(height)
@@ -349,7 +415,7 @@ func (c *Client) FetchTxs(height int64) (types.TxIn, error) {
 			}
 		}()
 	}
-	txs, err := c.extractTxs(block)
+	txs, err := c.extractTxs(block, blockMeta)
 	if err != nil {
 		return types.TxIn{}, fmt.Errorf("fail to extract txs from block: %w", err)
 	}
@@ -386,48 +452,68 @@ func (c *Client) getBlock(height int64) (*btcjson.GetBlockVerboseTxResult, error
 	return c.client.GetBlockVerboseTx(hash)
 }
 
+func (c *Client) getTxIn(tx *btcjson.TxRawResult, height int64) (types.TxInItem, error) {
+	if c.ignoreTx(tx) {
+		return types.TxInItem{}, nil
+	}
+
+	sender, err := c.getSender(tx)
+	if err != nil {
+		return types.TxInItem{}, fmt.Errorf("fail to get sender from tx: %w", err)
+	}
+	memo, err := c.getMemo(tx)
+	if err != nil {
+		return types.TxInItem{}, fmt.Errorf("fail to get memo from tx: %w", err)
+	}
+	gas, err := c.getGas(tx)
+	if err != nil {
+		return types.TxInItem{}, fmt.Errorf("fail to get gas from tx: %w", err)
+	}
+
+	output := c.getOutput(sender, tx)
+	amount, err := btcutil.NewAmount(output.Value)
+	if err != nil {
+		return types.TxInItem{}, fmt.Errorf("fail to parse float64: %w", err)
+	}
+	amt := uint64(amount.ToUnit(btcutil.AmountSatoshi))
+	return types.TxInItem{
+		BlockHeight: height,
+		Tx:          tx.Txid,
+		Sender:      sender,
+		To:          output.ScriptPubKey.Addresses[0],
+		Coins: common.Coins{
+			common.NewCoin(common.BTCAsset, cosmos.NewUint(amt)),
+		},
+		Memo: memo,
+		Gas:  gas,
+	}, nil
+}
+
 // extractTxs extracts txs from a block to type TxIn
-func (c *Client) extractTxs(block *btcjson.GetBlockVerboseTxResult) (types.TxIn, error) {
+func (c *Client) extractTxs(block *btcjson.GetBlockVerboseTxResult, blockMeta *BlockMeta) (types.TxIn, error) {
 	txIn := types.TxIn{
 		Chain: c.GetChain(),
 	}
 	var txItems []types.TxInItem
 	for _, tx := range block.Tx {
-		if c.ignoreTx(&tx) {
+		// mempool transaction get committed to block , thus remove it from mempool cache
+		c.removeFromMemPoolCache(tx.Hash)
+		h, err := chainhash.NewHashFromStr(tx.Hash)
+		if err != nil {
+			return types.TxIn{}, fmt.Errorf("fail to parse transaction hash(%s):%w", tx.Hash, err)
+		}
+		if blockMeta.TransactionHashExist(*h) {
 			continue
 		}
-
-		sender, err := c.getSender(&tx)
+		txInItem, err := c.getTxIn(&tx, block.Height)
 		if err != nil {
-			return types.TxIn{}, fmt.Errorf("fail to get sender from tx: %w", err)
+			return types.TxIn{}, fmt.Errorf("fail to get TxInItem: %w", err)
 		}
-		memo, err := c.getMemo(&tx)
-		if err != nil {
-			return types.TxIn{}, fmt.Errorf("fail to get memo from tx: %w", err)
+		if txInItem.IsEmpty() {
+			continue
 		}
-		gas, err := c.getGas(&tx)
-		if err != nil {
-			return types.TxIn{}, fmt.Errorf("fail to get gas from tx: %w", err)
-		}
-
-		output := c.getOutput(sender, &tx)
-		amount, err := btcutil.NewAmount(output.Value)
-		if err != nil {
-			return types.TxIn{}, fmt.Errorf("fail to parse float64: %w", err)
-		}
-		amt := uint64(amount.ToUnit(btcutil.AmountSatoshi))
-		txItems = append(txItems, types.TxInItem{
-			BlockHeight: block.Height,
-			Tx:          tx.Txid,
-			Sender:      sender,
-			To:          output.ScriptPubKey.Addresses[0],
-			Coins: common.Coins{
-				common.NewCoin(common.BTCAsset, cosmos.NewUint(amt)),
-			},
-			Memo: memo,
-			Gas:  gas,
-		})
-
+		txInItem.MemPool = false
+		txItems = append(txItems, txInItem)
 	}
 	txIn.TxArray = txItems
 	txIn.Count = strconv.Itoa(len(txItems))

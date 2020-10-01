@@ -94,6 +94,10 @@ func (e *BlockScanner) GetHeight() (int64, error) {
 	return block.Number().Int64(), nil
 }
 
+func (c *BlockScanner) FetchMemPool(height int64) (stypes.TxIn, error) {
+	return stypes.TxIn{}, nil
+}
+
 func (e *BlockScanner) FetchTxs(height int64) (stypes.TxIn, error) {
 	block, err := e.getRPCBlock(height)
 	if err != nil {

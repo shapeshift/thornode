@@ -246,6 +246,49 @@ func (s *BitcoinSignerSuite) TestSignTxHappyPathWithPrivateKey(c *C) {
 	c.Assert(buf, NotNil)
 }
 
+func (s *BitcoinSignerSuite) TestSignTxWithoutPredefinedMaxGas(c *C) {
+	addr, err := types2.GetRandomPubKey().GetAddress(common.BTCChain)
+	c.Assert(err, IsNil)
+	txOutItem := stypes.TxOutItem{
+		Chain:       common.BTCChain,
+		ToAddress:   addr,
+		VaultPubKey: "tthorpub1addwnpepqw2k68efthm08f0f5akhjs6fk5j2pze4wkwt4fmnymf9yd463puruhh0lyz",
+		SeqNo:       0,
+		Coins: common.Coins{
+			common.NewCoin(common.BTCAsset, cosmos.NewUint(10)),
+		},
+		Memo:    "hello from thorchain",
+		InHash:  "",
+		OutHash: "",
+	}
+	txHash, err := chainhash.NewHashFromStr("256222fb25a9950479bb26049a2c00e75b89abbb7f0cf646c623b93e942c4c34")
+	c.Assert(err, IsNil)
+	blockMeta := NewBlockMeta("000000000000008a0da55afa8432af3b15c225cc7e04d32f0de912702dd9e2ae",
+		100,
+		"0000000000000068f0710c510e94bd29aa624745da43e32a1de887387306bfda")
+	blockMeta.AddCustomerTransaction(*txHash)
+	c.Assert(s.client.blockMetaAccessor.SaveBlockMeta(blockMeta.Height, blockMeta), IsNil)
+	priKeyBuf, err := hex.DecodeString("b404c5ec58116b5f0fe13464a92e46626fc5db130e418cbce98df86ffe9317c5")
+	c.Assert(err, IsNil)
+	pkey, _ := btcec.PrivKeyFromBytes(btcec.S256(), priKeyBuf)
+	c.Assert(pkey, NotNil)
+	ksw, err := NewKeySignWrapper(pkey, s.client.bridge, s.client.ksWrapper.tssKeyManager, s.keySignPartyMgr)
+	c.Assert(err, IsNil)
+	s.client.privateKey = pkey
+	s.client.ksWrapper = ksw
+	vaultPubKey, err := GetBech32AccountPubKey(pkey)
+	c.Assert(err, IsNil)
+	txOutItem.VaultPubKey = vaultPubKey
+	buf, err := s.client.SignTx(txOutItem, 1)
+	c.Assert(err, IsNil)
+	c.Assert(buf, NotNil)
+
+	s.client.blockMetaAccessor.UpsertTransactionFee(0.001, 10)
+	buf, err = s.client.SignTx(txOutItem, 1)
+	c.Assert(err, IsNil)
+	c.Assert(buf, NotNil)
+}
+
 func (s *BitcoinSignerSuite) TestSignTxWithTSS(c *C) {
 	pubkey, err := common.NewPubKey("tthorpub1addwnpepqts24euwrgly2vtez3zdvusmk6u3cwf8leuzj8m4ynvmv5cst7us270ryd3")
 	c.Assert(err, IsNil)
@@ -300,6 +343,16 @@ func (s *BitcoinSignerSuite) TestBroadcastTx(c *C) {
 	input1, err := hex.DecodeString("01000000000103c7d45551ff54354be6711396560348ebbf273b989b542be36645568ed1dbecf10000000000ffffffff951ed70edc0bf2a4b3e1cbfe55d191a72850c5595c381309f69fc084c9af0b540100000000ffffffffc5db14c562b96bfd95f97d74a558a3e3b91841a96e1b09546208c9fb67424f420000000000ffffffff02231710000000000016001417acb08a31369e7666d94664d7e64f0e048220900000000000000000176a1574686f72636861696e3a636f6e736f6c6964617465024730440220756d15a363b78b070b583dfc1a6aba0dd605550407d5d3d92f5e785ef7e42aca02200db19dab144033c9c353481be30469da42c0c0a7580a513f49282bea77d7a29301210223da2ff73fa9b2258d335a4e63a4e7ef88211b8e800588280ed8b51e285ec0ff02483045022100a695f0fece36de02212b10bf6aa2f06dc6ef84ba30cae0c78749deddba1574530220315b490111c830c27e6cb810559c2a37cd00b123de82df79e061df26c8deb14301210223da2ff73fa9b2258d335a4e63a4e7ef88211b8e800588280ed8b51e285ec0ff0247304402207e586439b04985a90a53cf9fc511a53d86acece57b3e5571118562449d4f27ac02206d84f0fba1a68cf55efc8a1c2ec768924479b97ceaf2029ed6941176f004bf8101210223da2ff73fa9b2258d335a4e63a4e7ef88211b8e800588280ed8b51e285ec0ff00000000")
 	c.Assert(err, IsNil)
 	c.Assert(s.client.BroadcastTx(txOutItem, input1), IsNil)
+}
+
+func (s *BitcoinSignerSuite) TestIsSelfTransaction(c *C) {
+	c.Check(s.client.isSelfTransaction("66d2d6b5eb564972c59e4797683a1225a02515a41119f0a8919381236b63e948"), Equals, false)
+	bm := NewBlockMeta("", 1024, "")
+	hash, err := chainhash.NewHashFromStr("66d2d6b5eb564972c59e4797683a1225a02515a41119f0a8919381236b63e948")
+	c.Assert(err, IsNil)
+	bm.AddSelfTransaction(*hash)
+	s.client.blockMetaAccessor.SaveBlockMeta(1024, bm)
+	c.Check(s.client.isSelfTransaction("66d2d6b5eb564972c59e4797683a1225a02515a41119f0a8919381236b63e948"), Equals, true)
 }
 
 func (s *BitcoinSignerSuite) TestGetAllUTXOs(c *C) {

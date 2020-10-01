@@ -15,7 +15,7 @@ import (
 	btypes "gitlab.com/thorchain/thornode/bifrost/blockscanner/types"
 	"gitlab.com/thorchain/thornode/bifrost/config"
 	"gitlab.com/thorchain/thornode/bifrost/metrics"
-	pubkeymanager "gitlab.com/thorchain/thornode/bifrost/pubkeymanager"
+	"gitlab.com/thorchain/thornode/bifrost/pubkeymanager"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient/types"
 	stypes "gitlab.com/thorchain/thornode/bifrost/thorclient/types"
@@ -71,6 +71,10 @@ func (b *ThorchainBlockScan) GetKeygenMessages() <-chan ttypes.KeygenBlock {
 
 func (b *ThorchainBlockScan) GetHeight() (int64, error) {
 	return b.thorchain.GetBlockHeight()
+}
+
+func (c *ThorchainBlockScan) FetchMemPool(height int64) (types.TxIn, error) {
+	return types.TxIn{}, nil
 }
 
 func (b *ThorchainBlockScan) FetchTxs(height int64) (stypes.TxIn, error) {

@@ -113,9 +113,6 @@ func (o *Observer) sendDeck() {
 			})
 			if ok {
 				for _, item := range txIn.TxArray {
-					if o.isOutboundMsg(txIn.Chain, item.Sender) {
-						continue
-					}
 					i.OnObservedTxIn(item, item.BlockHeight)
 				}
 			}
@@ -190,7 +187,8 @@ func (o *Observer) filterObservations(chain common.Chain, items []types.TxInItem
 			txs = append(txs, txInItem)
 		}
 		// check if the to address is a valid pool address
-		if ok, cpi := o.pubkeyMgr.IsValidPoolAddress(txInItem.To, chain); ok {
+		// for inbound message , if it is still in mempool , let's ignore it
+		if ok, cpi := o.pubkeyMgr.IsValidPoolAddress(txInItem.To, chain); ok && !txInItem.MemPool {
 			txInItem.ObservedVaultPubKey = cpi.PubKey
 			txs = append(txs, txInItem)
 		}
