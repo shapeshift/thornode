@@ -257,7 +257,9 @@ func (ymgr YggMgrV13) calcTargetYggCoins(pools []Pool, ygg Vault, yggBond, total
 		coin := common.NewCoin(pool.Asset, common.SafeSub(assetAmt, yggCoin.Amount))
 		if !coin.IsEmpty() {
 			counter = counter.Add(runeAmt)
-			coins = append(coins, coin)
+			if !coin.IsNative() {
+				coins = append(coins, coin)
+			}
 		}
 	}
 
@@ -265,7 +267,9 @@ func (ymgr YggMgrV13) calcTargetYggCoins(pools []Pool, ygg Vault, yggBond, total
 	runeCoin.Amount = common.SafeSub(runeCoin.Amount, yggRune.Amount)
 	if !runeCoin.IsEmpty() {
 		counter = counter.Add(runeCoin.Amount)
-		coins = append(coins, runeCoin)
+		if !runeCoin.IsNative() {
+			coins = append(coins, runeCoin)
+		}
 	}
 
 	// ensure THORNode don't send too much value in coins to the ygg pool
