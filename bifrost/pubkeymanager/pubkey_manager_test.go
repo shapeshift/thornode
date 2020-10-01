@@ -90,7 +90,14 @@ func (s *PubKeyMgrSuite) TestFetchKeys(c *C) {
 	c.Assert(err, IsNil)
 	pubkeyMgr, err := NewPubKeyManager(bridge, nil)
 	c.Assert(err, IsNil)
+	hasCallbackFired := false
+	callBack := func(pk common.PubKey) error {
+		hasCallbackFired = true
+		return nil
+	}
+	pubkeyMgr.RegisterCallback(callBack)
 	pubkeyMgr.AddPubKey(pk2, false)
+	c.Check(hasCallbackFired, Equals, true)
 	// add a key that is the node account, ensure it doesn't get removed
 	pubkeyMgr.pubkeys = append(pubkeyMgr.pubkeys, PK{
 		PubKey:      pk3,

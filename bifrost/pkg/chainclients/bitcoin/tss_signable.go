@@ -35,7 +35,7 @@ func NewTssSignable(pubKey common.PubKey, manager tss.ThorchainKeyManager, keySi
 
 // Sign the given payload
 func (ts *TssSignable) Sign(payload []byte) (*btcec.Signature, error) {
-	ts.logger.Debug().Msgf("msg to sign:%s", base64.StdEncoding.EncodeToString(payload))
+	ts.logger.Info().Msgf("msg to sign:%s", base64.StdEncoding.EncodeToString(payload))
 	keySignParty, err := ts.keySignPartyMgr.GetKeySignParty(ts.poolPubKey)
 	if err != nil {
 		ts.logger.Error().Err(err).Msg("fail to get keysign party")
@@ -48,9 +48,9 @@ func (ts *TssSignable) Sign(payload []byte) (*btcec.Signature, error) {
 		if err == nil {
 			break
 		}
-		ts.keySignPartyMgr.RemoveKeySignParty(ts.poolPubKey)
 	}
 	if err != nil {
+		ts.keySignPartyMgr.RemoveKeySignParty(ts.poolPubKey)
 		return nil, err
 	}
 	var sig btcec.Signature
@@ -58,9 +58,9 @@ func (ts *TssSignable) Sign(payload []byte) (*btcec.Signature, error) {
 	sig.S = new(big.Int).SetBytes(result[32:])
 	// let's verify the signature
 	if sig.Verify(payload, ts.GetPubKey()) {
-		ts.logger.Debug().Msg("we can verify the signature successfully")
+		ts.logger.Info().Msg("we can verify the signature successfully")
 	} else {
-		ts.logger.Debug().Msg("the signature can't be verified")
+		ts.logger.Info().Msg("the signature can't be verified")
 	}
 	ts.keySignPartyMgr.SaveKeySignParty(ts.poolPubKey, keySignParty)
 	return &sig, nil

@@ -143,6 +143,7 @@ func (pkm *PubKeyManager) AddPubKey(pk common.PubKey, signer bool) {
 			Signer:      signer,
 			NodeAccount: false,
 		})
+		pkm.fireCallback(pk)
 	}
 }
 

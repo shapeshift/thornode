@@ -113,6 +113,8 @@ func (s *BitcoinSuite) SetUpTest(c *C) {
 		case r.Method == "getrawtransaction":
 			if r.Params[0] == "5b0876dcc027d2f0c671fc250460ee388df39697c3ff082007b6ddd9cb9a7513" {
 				httpTestHandler(c, rw, "../../../../test/fixtures/btc/tx-5b08.json")
+			} else if r.Params[0] == "54ef2f4679fb90af42e8d963a5d85645d0fd86e5fe8ea4e69dbf2d444cb26528" {
+				httpTestHandler(c, rw, "../../../../test/fixtures/btc/tx-54ef.json")
 			} else {
 				httpTestHandler(c, rw, "../../../../test/fixtures/btc/tx.json")
 			}
@@ -122,6 +124,8 @@ func (s *BitcoinSuite) SetUpTest(c *C) {
 			httpTestHandler(c, rw, "../../../../test/fixtures/btc/importaddress.json")
 		case r.Method == "listunspent":
 			httpTestHandler(c, rw, "../../../../test/fixtures/btc/listunspent.json")
+		case r.Method == "getrawmempool":
+			httpTestHandler(c, rw, "../../../../test/fixtures/btc/getrawmempool.json")
 		}
 	}))
 
@@ -525,7 +529,7 @@ func (s *BitcoinSuite) TestGetAccount(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(acct.AccountNumber, Equals, int64(0))
 	c.Assert(acct.Sequence, Equals, int64(0))
-	c.Assert(acct.Coins[0].Amount, Equals, uint64(2500000000))
+	c.Assert(acct.Coins[0].Amount, Equals, uint64(2502000000))
 
 	acct1, err := s.client.GetAccount("")
 	c.Assert(err, NotNil)
@@ -645,4 +649,15 @@ func (s *BitcoinSuite) TestProcessReOrg(c *C) {
 	blockMeta, err = s.client.blockMetaAccessor.GetBlockMeta(previousHeight)
 	c.Assert(err, IsNil)
 	c.Assert(blockMeta, NotNil)
+}
+
+func (s *BitcoinSuite) TestGetMemPool(c *C) {
+	txIns, err := s.client.getMemPool(1024)
+	c.Assert(err, IsNil)
+	c.Assert(txIns.TxArray, HasLen, 1)
+
+	// process it again , the tx will be ignored
+	txIns, err = s.client.getMemPool(1024)
+	c.Assert(err, IsNil)
+	c.Assert(txIns.TxArray, HasLen, 0)
 }

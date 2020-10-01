@@ -65,7 +65,8 @@ func (s *KeySign) makeSignature(msg tx.StdSignMsg, poolPubKey string, signerPubK
 	if err != nil {
 		return stdSignature, fmt.Errorf("fail to get pub key: %w", err)
 	}
-	signPack, err := s.RemoteSign(msg.Bytes(), poolPubKey, signerPubKeys)
+	hashedMsg := crypto.Sha256(msg.Bytes())
+	signPack, err := s.RemoteSign(hashedMsg, poolPubKey, signerPubKeys)
 	if err != nil {
 		return stdSignature, fmt.Errorf("fail to TSS sign: %w", err)
 	}
@@ -111,8 +112,8 @@ func (s *KeySign) RemoteSign(msg []byte, poolPubKey string, signerPubKeys common
 	if len(msg) == 0 {
 		return nil, nil
 	}
-	hashedMsg := crypto.Sha256(msg)
-	encodedMsg := base64.StdEncoding.EncodeToString(hashedMsg)
+
+	encodedMsg := base64.StdEncoding.EncodeToString(msg)
 	rResult, sResult, err := s.toLocalTSSSigner(poolPubKey, encodedMsg, signerPubKeys)
 	if err != nil {
 		return nil, fmt.Errorf("fail to tss sign: %w", err)

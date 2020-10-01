@@ -89,19 +89,29 @@ func (gm *GasMgrV1) GetFee(ctx cosmos.Context, chain common.Chain) int64 {
 // GetMaxGas will calculate the maximum gas fee a tx can use
 func (gm *GasMgrV1) GetMaxGas(ctx cosmos.Context, chain common.Chain) (common.Coin, error) {
 	gasAsset := chain.GetGasAsset()
-
-	pool, err := gm.keeper.GetPool(ctx, gasAsset)
-	if err != nil {
-		return common.NoCoin, fmt.Errorf("failed to get gas asset pool: %w", err)
+	var amount cosmos.Uint
+	if gm.keeper.PoolExist(ctx, gasAsset) {
+		pool, err := gm.keeper.GetPool(ctx, gasAsset)
+		if err != nil {
+			return common.NoCoin, fmt.Errorf("failed to get gas asset pool: %w", err)
+		}
+		transactionFee := gm.GetFee(ctx, chain)
+		// max gas amount is the transaction fee divided by two, in asset amount
+		maxAmt := pool.RuneValueInAsset(cosmos.NewUint(uint64(transactionFee / 2)))
+		if chain.IsBNB() {
+			// for Binance chain , the fee is fix, thus we give 1/3 as max gas
+			maxAmt = pool.RuneValueInAsset(cosmos.NewUint(uint64(transactionFee / 3)))
+		}
+		amount = maxAmt
+	} else {
+		// if there is not gas asset pool which is rare
+		nf, err := gm.keeper.GetNetworkFee(ctx, chain)
+		if err != nil {
+			return common.NoCoin, fmt.Errorf("fail to get network fee for chain(%s): %w", chain, err)
+		}
+		amount = cosmos.NewUint(nf.TransactionSize * nf.TransactionFeeRate)
 	}
-	transactionFee := gm.GetFee(ctx, chain)
-	// max gas amount is the transaction fee divided by two, in asset amount
-	maxAmt := pool.RuneValueInAsset(cosmos.NewUint(uint64(transactionFee / 2)))
-	if chain.IsBNB() {
-		// for Binance chain , the fee is fix, thus we give 1/3 as max gas
-		maxAmt = pool.RuneValueInAsset(cosmos.NewUint(uint64(transactionFee / 3)))
-	}
-	return common.NewCoin(gasAsset, maxAmt), nil
+	return common.NewCoin(gasAsset, amount), nil
 }
 
 // EndBlock emit the events
