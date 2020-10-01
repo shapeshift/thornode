@@ -5,6 +5,8 @@ services:
     container_name: bitcoin-regtest
     restart: unless-stopped
     image: ruimarinho/bitcoin-core:0.20.1-alpine
+    environment:
+      BLOCK_TIME: ${BLOCK_TIME:-1}
     ports:
       - "18443:18443"
       - "18444:18444"

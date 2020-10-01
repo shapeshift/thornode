@@ -85,18 +85,23 @@ func (c *Client) getUtxoToSpend(pubKey common.PubKey, total float64) ([]btcjson.
 	minConfirmation := 0
 	// Yggdrasil vault is funded by asgard , which will only spend UTXO that is older than 10 blocks, so yggdrasil doesn't need
 	// to do the same logic
-	isYggdrasil := !c.isYggdrasil(pubKey)
-	utxos, err := c.getUTXOs(minConfirmation, MAXIMUM_CONFIRMATION, pubKey)
+	isYggdrasil := c.isYggdrasil(pubKey)
+	utxos, err := c.getUTXOs(minConfirmation, MaximumConfirmation, pubKey)
 	if err != nil {
 		return nil, fmt.Errorf("fail to get UTXOs: %w", err)
 	}
 	// spend UTXO older to younger
 	sort.SliceStable(utxos, func(i, j int) bool {
-		return utxos[i].Confirmations > utxos[j].Confirmations
+		if utxos[i].Confirmations > utxos[j].Confirmations {
+			return true
+		} else if utxos[i].Confirmations < utxos[j].Confirmations {
+			return false
+		}
+		return utxos[i].TxID < utxos[j].TxID
 	})
 	target := 0.0
 	for _, item := range utxos {
-		if isYggdrasil || item.Confirmations > MinUTXOConfirmation || c.isSelfTransaction(item.TxID) {
+		if isYggdrasil || item.Confirmations >= MinUTXOConfirmation || c.isSelfTransaction(item.TxID) {
 			result = append(result, item)
 			if item.Amount+target >= total {
 				break

@@ -122,6 +122,18 @@ func (s *ThorchainSuite) TestChurn(c *C) {
 		common.NewCoin(common.RuneAsset(), cosmos.NewUint(100*common.One)),
 		common.NewCoin(common.BNBAsset, cosmos.NewUint(79*common.One)),
 	})
+	keeper.SaveNetworkFee(ctx, common.BNBChain, NetworkFee{
+		Chain:              common.BNBChain,
+		TransactionSize:    1,
+		TransactionFeeRate: 37500,
+	})
+	keeper.SetPool(ctx, Pool{
+		BalanceRune:  cosmos.NewUint(common.One),
+		BalanceAsset: cosmos.NewUint(common.One),
+		Asset:        common.BNBAsset,
+		PoolUnits:    cosmos.NewUint(common.One),
+		Status:       PoolEnabled,
+	})
 	addresses := make([]cosmos.AccAddress, 4)
 	for i := 0; i <= 3; i++ {
 		na := GetRandomNodeAccount(NodeActive)
@@ -216,7 +228,7 @@ func (s *ThorchainSuite) TestChurn(c *C) {
 	if common.RuneAsset().Chain.Equals(common.THORChain) {
 		c.Assert(items, HasLen, 1)
 		item := items[0]
-		c.Check(item.Coin.Amount.Uint64(), Equals, uint64(1579925000), Commentf("%d", item.Coin.Amount.Uint64()))
+		c.Check(item.Coin.Amount.Uint64(), Equals, uint64(1579962500), Commentf("%d", item.Coin.Amount.Uint64()))
 	} else {
 		c.Assert(items, HasLen, 2)
 		item := items[0]
@@ -237,7 +249,7 @@ func (s *ThorchainSuite) TestChurn(c *C) {
 	if common.RuneAsset().Chain.Equals(common.THORChain) {
 		c.Assert(items, HasLen, 1, Commentf("%d", len(items)))
 		item := items[0]
-		c.Check(item.Coin.Amount.Uint64(), Equals, uint64(7899925000), Commentf("%d", item.Coin.Amount.Uint64()))
+		c.Check(item.Coin.Amount.Uint64(), Equals, uint64(7899962500), Commentf("%d", item.Coin.Amount.Uint64()))
 
 	} else {
 		c.Assert(items, HasLen, 2, Commentf("%d", len(items)))

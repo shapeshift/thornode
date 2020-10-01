@@ -20,6 +20,7 @@ type TxInItem struct {
 	Coins               common.Coins  `json:"coins"`
 	Gas                 common.Gas    `json:"gas"`
 	ObservedVaultPubKey common.PubKey `json:"observed_vault_pub_key"`
+	MemPool             bool          `json:"mem_pool"` // indicate whether this item is in the mempool or not
 }
 type TxInStatus byte
 
@@ -40,4 +41,19 @@ func (t TxInItem) GetAddressToCheck() common.Address {
 		return common.NoAddress
 	}
 	return m.GetDestination()
+}
+
+// IsEmpty return true only when every field in TxInItem is empty
+func (t TxInItem) IsEmpty() bool {
+	if t.BlockHeight == 0 &&
+		t.Tx == "" &&
+		t.Memo == "" &&
+		t.Sender == "" &&
+		t.To == "" &&
+		t.Coins.IsEmpty() &&
+		t.Gas.IsEmpty() &&
+		t.ObservedVaultPubKey.IsEmpty() {
+		return true
+	}
+	return false
 }
