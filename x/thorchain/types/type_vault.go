@@ -8,6 +8,7 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // VaultType there are two different types of Vault in thorchain
@@ -262,6 +263,76 @@ func (vs Vaults) SortBy(sortBy common.Asset) Vaults {
 		return vs[i].GetCoin(sortBy).Amount.GT(vs[j].GetCoin(sortBy).Amount)
 	})
 	return vs
+}
+
+// SortBySecurity sorts a list of vaults in an order by how close the total
+// value of the vault is to the total bond of the members of that vault. Sorts
+// by least secure to most secure.
+func (vs Vaults) SortBySecurity(ctx cosmos.Context, k keeper.Keeper) Vaults {
+	if len(vaults) == 0 {
+		return Vaults{}
+	}
+
+	type VaultSecurity struct {
+		Vault Vault
+		Diff  uint64
+	}
+
+	vaultSecurity := make([]VaultSecurity, len(vaults))
+
+	for i, vault := range vaults {
+		// get total bond
+		totalBond := cosmos.ZeroUint()
+		for _, pk := range vault.Membership {
+			na, err := k.GetNodeAccountByPubKey(ctx, pk)
+			if err != nil {
+				ctx.Logger().Error("failed to get node account by pubkey", "error", err)
+				continue
+			}
+			totalBond = totalBond.Add(na.Bond)
+		}
+
+		// get total value
+		totalValue := cosmos.ZeroUint()
+		for _, coin := range vault.Coins {
+			if coin.Asset.IsRune() {
+				totalValue = totalValue.Add(coin.Amount)
+			} else {
+				pool, err := k.GetPool(ctx, coin.Asset)
+				if err != nil {
+					ctx.Logger().Error("failed to get pool", "error", err)
+					continue
+				}
+				totalValue = totalValue.Add(pool.AssetValueInRune(coin.Amount))
+			}
+		}
+
+		// TODO: add unsent txout values as well to totalValue
+
+		if totalValue.GT(totalBond) {
+			vaultSecurity[i] = VaultSecurity{
+				Vault: vault,
+				Diff:  -(common.SafeSub(totalValue, totalBond).Uint64()),
+			}
+		} else {
+			vaultSecurity[i] = VaultSecurity{
+				Vault: vault,
+				Diff:  common.SafeSub(totalBond, totalValue).Uint64(),
+			}
+		}
+	}
+
+	// sort by how far total bond and total value are from each other
+	sort.SliceStable(vaultSecurity[:], func(i, j int) bool {
+		return vaultSecurity[i].Diff > vaultSecurity[j].Diff
+	})
+
+	final := make(Vaults, len(vaultSecurity))
+	for i, v := range vaultSecurity {
+		final[i] = v.Vault
+	}
+
+	return final
 }
 
 // SelectByMinCoin return the vault that has least of given asset
