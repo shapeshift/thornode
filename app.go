@@ -47,7 +47,7 @@ var (
 	// account permissions
 	maccPerms = map[string][]string{
 		auth.FeeCollectorName: nil,
-		thorchain.ModuleName:  {supply.Minter},
+		thorchain.ModuleName:  {supply.Minter, supply.Burner},
 		thorchain.ReserveName: {},
 		thorchain.BondName:    {supply.Staking},
 		thorchain.AsgardName:  {},

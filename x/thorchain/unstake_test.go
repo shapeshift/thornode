@@ -25,10 +25,12 @@ type UnstakeTestKeeper struct {
 	keeper.KVStoreDummy
 	store       map[string]interface{}
 	networkFees map[common.Chain]NetworkFee
+	keeper      keeper.Keeper
 }
 
-func NewUnstakeTestKeeper() *UnstakeTestKeeper {
+func NewUnstakeTestKeeper(keeper keeper.Keeper) *UnstakeTestKeeper {
 	return &UnstakeTestKeeper{
+		keeper:      keeper,
 		store:       make(map[string]interface{}),
 		networkFees: make(map[common.Chain]NetworkFee),
 	}
@@ -45,6 +47,9 @@ func (k *UnstakeTestKeeper) GetPool(ctx cosmos.Context, asset common.Asset) (typ
 	if asset.Equals(common.Asset{Chain: common.BNBChain, Symbol: "NOTEXIST", Ticker: "NOTEXIST"}) {
 		return types.Pool{}, nil
 	} else {
+		if val, ok := k.store[asset.String()]; ok {
+			return val.(types.Pool), nil
+		}
 		return types.Pool{
 			BalanceRune:  cosmos.NewUint(100).MulUint64(common.One),
 			BalanceAsset: cosmos.NewUint(100).MulUint64(common.One),
@@ -64,6 +69,14 @@ func (k *UnstakeTestKeeper) GetGas(ctx cosmos.Context, asset common.Asset) ([]co
 	return []cosmos.Uint{cosmos.NewUint(37500), cosmos.NewUint(30000)}, nil
 }
 
+func (k *UnstakeTestKeeper) AddStake(ctx cosmos.Context, coin common.Coin, addr cosmos.AccAddress) error {
+	return k.keeper.AddStake(ctx, coin, addr)
+}
+
+func (k *UnstakeTestKeeper) RemoveStake(ctx cosmos.Context, coin common.Coin, addr cosmos.AccAddress) error {
+	return k.keeper.RemoveStake(ctx, coin, addr)
+}
+
 func (k *UnstakeTestKeeper) GetStaker(ctx cosmos.Context, asset common.Asset, addr common.Address) (Staker, error) {
 	if asset.Equals(common.Asset{Chain: common.BNBChain, Symbol: "NOTEXISTSTICKER", Ticker: "NOTEXISTSTICKER"}) {
 		return types.Staker{}, errors.New("you asked for it")
@@ -71,17 +84,7 @@ func (k *UnstakeTestKeeper) GetStaker(ctx cosmos.Context, asset common.Asset, ad
 	if notExistStakerAsset.Equals(asset) {
 		return Staker{}, errors.New("simulate error for test")
 	}
-	staker := Staker{
-		Asset:       asset,
-		RuneAddress: addr,
-		Units:       cosmos.ZeroUint(),
-		PendingRune: cosmos.ZeroUint(),
-	}
-	key := k.GetKey(ctx, "staker/", staker.Key())
-	if res, ok := k.store[key]; ok {
-		return res.(Staker), nil
-	}
-	return staker, nil
+	return k.keeper.GetStaker(ctx, asset, addr)
 }
 
 func (k *UnstakeTestKeeper) GetNetworkFee(ctx cosmos.Context, chain common.Chain) (NetworkFee, error) {
@@ -94,8 +97,7 @@ func (k *UnstakeTestKeeper) SaveNetworkFee(ctx cosmos.Context, chain common.Chai
 }
 
 func (k *UnstakeTestKeeper) SetStaker(ctx cosmos.Context, staker Staker) {
-	key := k.GetKey(ctx, "staker/", staker.Key())
-	k.store[key] = staker
+	k.keeper.SetStaker(ctx, staker)
 }
 
 func (s UnstakeSuite) TestCalculateUnsake(c *C) {
@@ -321,15 +323,15 @@ func (s UnstakeSuite) TestValidateUnstake(c *C) {
 }
 
 func (UnstakeSuite) TestUnstake(c *C) {
-	ps := NewUnstakeTestKeeper()
+	ctx, k := setupKeeperForTest(c)
+	accountAddr := GetRandomNodeAccount(NodeWhiteListed).NodeAddress
+	runeAddress := GetRandomRUNEAddress()
+	ps := NewUnstakeTestKeeper(k)
+	ps2 := getUnstakeTestKeeper(c, ctx, k, runeAddress)
+
 	remainGas := uint64(75000)
 	if common.RuneAsset().Chain.Equals(common.THORChain) {
 		remainGas = 37500
-	}
-	accountAddr := GetRandomNodeAccount(NodeWhiteListed).NodeAddress
-	runeAddress, err := common.NewAddress("bnb1g0xakzh03tpa54khxyvheeu92hwzypkdce77rm")
-	if err != nil {
-		c.Error("fail to create new BNB Address")
 	}
 	testCases := []struct {
 		name          string
@@ -453,20 +455,6 @@ func (UnstakeSuite) TestUnstake(c *C) {
 			expectedError: errors.New("nothing to withdraw"),
 		},
 		{
-			name: "all-good",
-			msg: MsgUnStake{
-				RuneAddress:        runeAddress,
-				UnstakeBasisPoints: cosmos.NewUint(10000),
-				Asset:              common.BNBAsset,
-				Tx:                 common.Tx{ID: "28B40BF105A112389A339A64BD1A042E6140DC9082C679586C6CF493A9FDE3FE"},
-				Signer:             accountAddr,
-			},
-			ps:            getUnstakeTestKeeper(c),
-			runeAmount:    cosmos.NewUint(100 * common.One),
-			assetAmount:   cosmos.NewUint(100 * common.One).Sub(cosmos.NewUint(remainGas)),
-			expectedError: nil,
-		},
-		{
 			name: "all-good-half",
 			msg: MsgUnStake{
 				RuneAddress:        runeAddress,
@@ -475,17 +463,29 @@ func (UnstakeSuite) TestUnstake(c *C) {
 				Tx:                 common.Tx{ID: "28B40BF105A112389A339A64BD1A042E6140DC9082C679586C6CF493A9FDE3FE"},
 				Signer:             accountAddr,
 			},
-			ps:            getUnstakeTestKeeper(c),
+			ps:            ps2,
 			runeAmount:    cosmos.NewUint(50 * common.One),
 			assetAmount:   cosmos.NewUint(50 * common.One),
 			expectedError: nil,
 		},
+		{
+			name: "all-good",
+			msg: MsgUnStake{
+				RuneAddress:        runeAddress,
+				UnstakeBasisPoints: cosmos.NewUint(10000),
+				Asset:              common.BNBAsset,
+				Tx:                 common.Tx{ID: "28B40BF105A112389A339A64BD1A042E6140DC9082C679586C6CF493A9FDE3FE"},
+				Signer:             accountAddr,
+			},
+			ps:            ps2,
+			runeAmount:    cosmos.NewUint(50 * common.One),
+			assetAmount:   cosmos.NewUint(50 * common.One).Sub(cosmos.NewUint(remainGas)),
+			expectedError: nil,
+		},
 	}
 	for _, tc := range testCases {
-		ctx, _ := setupKeeperForTest(c)
 		c.Logf("name:%s", tc.name)
 		version := constants.SWVersion
-		c.Assert(err, IsNil)
 		mgr := NewManagers(tc.ps)
 		mgr.BeginBlock(ctx)
 		tc.ps.SaveNetworkFee(ctx, common.BNBChain, NetworkFee{
@@ -502,20 +502,13 @@ func (UnstakeSuite) TestUnstake(c *C) {
 			continue
 		}
 		c.Assert(err, IsNil)
-		c.Check(r.Uint64(), Equals, tc.runeAmount.Uint64())
-		c.Check(asset.Equal(tc.assetAmount), Equals, true, Commentf("expect:%s, however got:%s", tc.assetAmount.String(), asset.String()))
+		c.Assert(r.Uint64(), Equals, tc.runeAmount.Uint64(), Commentf("%d != %d", r.Uint64(), tc.runeAmount.Uint64()))
+		c.Assert(asset.Equal(tc.assetAmount), Equals, true, Commentf("expect:%s, however got:%s", tc.assetAmount.String(), asset.String()))
 	}
 }
 
-func getUnstakeTestKeeper(c *C) keeper.Keeper {
-	runeAddress, err := common.NewAddress("bnb1g0xakzh03tpa54khxyvheeu92hwzypkdce77rm")
-	if err != nil {
-		c.Error("fail to create new BNB Address")
-	}
-
-	ctx, _ := setupKeeperForTest(c)
-
-	store := NewUnstakeTestKeeper()
+func getUnstakeTestKeeper(c *C, ctx cosmos.Context, k keeper.Keeper, runeAddress common.Address) keeper.Keeper {
+	store := NewUnstakeTestKeeper(k)
 	pool := Pool{
 		BalanceRune:  cosmos.NewUint(100 * common.One),
 		BalanceAsset: cosmos.NewUint(100 * common.One),
@@ -532,5 +525,15 @@ func getUnstakeTestKeeper(c *C) keeper.Keeper {
 		PendingRune:  cosmos.ZeroUint(),
 	}
 	store.SetStaker(ctx, staker)
+	if common.RuneAsset().Chain.Equals(common.THORChain) {
+		accAddr, err := staker.RuneAddress.AccAddress()
+		c.Assert(err, IsNil)
+		amt := store.GetStakerBalance(ctx, pool.Asset.LiquidityAsset(), accAddr)
+		if amt.IsZero() {
+			err = store.AddStake(ctx, common.NewCoin(pool.Asset.LiquidityAsset(), staker.Units), accAddr)
+			c.Assert(err, IsNil)
+		}
+	}
+
 	return store
 }
