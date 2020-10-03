@@ -306,8 +306,6 @@ func queryVaultData(ctx cosmos.Context, keeper keeper.Keeper) ([]byte, error) {
 	return res, nil
 }
 
-// TODO: select vault by bond/funds ratio
-// TODO: if asgard vaults hold more non-rune funds than bond, do not give address, and error
 func queryPoolAddresses(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
 	haltTrading, err := keeper.GetMimir(ctx, "HaltTrading")
 	if err != nil {
@@ -334,8 +332,13 @@ func queryPoolAddresses(ctx cosmos.Context, path []string, req abci.RequestQuery
 	var resp struct {
 		Current []address `json:"current"`
 	}
-	// select vault with lowest amount of rune
-	vault := active.SelectByMinCoin(common.RuneAsset())
+
+	version := keeper.GetLowestActiveVersion(ctx)
+	constAccessor := constants.GetConstantValues(version)
+	signingTransactionPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
+
+	// select vault that is most secure
+	vault := keeper.GetMostSecure(ctx, active, signingTransactionPeriod)
 
 	chains := vault.Chains
 
