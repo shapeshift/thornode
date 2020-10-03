@@ -73,6 +73,10 @@ type KeeperStaker interface {
 	GetStaker(ctx cosmos.Context, asset common.Asset, addr common.Address) (Staker, error)
 	SetStaker(ctx cosmos.Context, staker Staker)
 	RemoveStaker(ctx cosmos.Context, staker Staker)
+	GetStakerBalance(ctx cosmos.Context, _ common.Asset, _ cosmos.AccAddress) cosmos.Uint
+	AddStake(ctx cosmos.Context, _ common.Coin, _ cosmos.AccAddress) error
+	RemoveStake(ctx cosmos.Context, _ common.Coin, _ cosmos.AccAddress) error
+	GetTotalSupply(ctx cosmos.Context, asset common.Asset) cosmos.Uint
 }
 
 type KeeperNodeAccount interface {

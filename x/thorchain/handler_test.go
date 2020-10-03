@@ -106,7 +106,7 @@ func setupKeeperForTest(c *C) (cosmos.Context, keeper.Keeper) {
 		supply.Burner:         {supply.Burner},
 		multiPerm:             {supply.Minter, supply.Burner, supply.Staking},
 		randomPerm:            {"random"},
-		ModuleName:            {supply.Minter},
+		ModuleName:            {supply.Minter, supply.Burner},
 		ReserveName:           {},
 		AsgardName:            {},
 		BondName:              {supply.Staking},
@@ -205,6 +205,13 @@ func (HandlerSuite) TestHandleTxInUnstakeMemo(c *C) {
 		Units:        cosmos.NewUint(100),
 	}
 	w.keeper.SetStaker(w.ctx, staker)
+
+	if common.RuneAsset().Chain.Equals(common.THORChain) {
+		accAddr, err := staker.RuneAddress.AccAddress()
+		c.Assert(err, IsNil)
+		err = w.keeper.AddStake(w.ctx, common.NewCoin(pool.Asset.LiquidityAsset(), staker.Units), accAddr)
+		c.Assert(err, IsNil)
+	}
 
 	tx := common.Tx{
 		ID:    GetRandomTxHash(),

@@ -25,6 +25,7 @@ type MockUnstakeKeeper struct {
 	failStaker        bool
 	failAddEvents     bool
 	staker            Staker
+	keeper            keeper.Keeper
 }
 
 func (mfp *MockUnstakeKeeper) PoolExist(_ cosmos.Context, asset common.Asset) bool {
@@ -66,11 +67,26 @@ func (mfp *MockUnstakeKeeper) GetStakerIterator(ctx cosmos.Context, _ common.Ass
 	return iter
 }
 
-func (mfp *MockUnstakeKeeper) GetStaker(_ cosmos.Context, _ common.Asset, _ common.Address) (Staker, error) {
+func (mfp *MockUnstakeKeeper) GetStaker(ctx cosmos.Context, asset common.Asset, addr common.Address) (Staker, error) {
 	if mfp.failStaker {
 		return Staker{}, errors.New("fail to get staker")
 	}
+	if common.RuneAsset().Chain.Equals(common.THORChain) {
+		accAddr, err := addr.AccAddress()
+		if err != nil {
+			return mfp.staker, err
+		}
+		mfp.staker.Units = mfp.keeper.GetStakerBalance(ctx, asset.LiquidityAsset(), accAddr)
+	}
 	return mfp.staker, nil
+}
+
+func (mfp *MockUnstakeKeeper) AddStake(ctx cosmos.Context, coin common.Coin, addr cosmos.AccAddress) error {
+	return mfp.keeper.AddStake(ctx, coin, addr)
+}
+
+func (mfp *MockUnstakeKeeper) RemoveStake(ctx cosmos.Context, coin common.Coin, addr cosmos.AccAddress) error {
+	return mfp.keeper.RemoveStake(ctx, coin, addr)
 }
 
 func (mfp *MockUnstakeKeeper) SetStaker(_ cosmos.Context, staker Staker) {
@@ -83,9 +99,10 @@ func (mfp *MockUnstakeKeeper) GetGas(ctx cosmos.Context, asset common.Asset) ([]
 
 func (HandlerUnstakeSuite) TestUnstakeHandler(c *C) {
 	// w := getHandlerTestWrapper(c, 1, true, true)
-	ctx, _ := setupKeeperForTest(c)
+	ctx, keeper := setupKeeperForTest(c)
 	activeNodeAccount := GetRandomNodeAccount(NodeActive)
 	k := &MockUnstakeKeeper{
+		keeper:            keeper,
 		activeNodeAccount: activeNodeAccount,
 		currentPool: Pool{
 			BalanceRune:  cosmos.ZeroUint(),
@@ -104,7 +121,7 @@ func (HandlerUnstakeSuite) TestUnstakeHandler(c *C) {
 	// Happy path , this is a round trip , first we stake, then we unstake
 	runeAddr := GetRandomRUNEAddress()
 	stakeHandler := NewStakeHandler(k, NewDummyMgr())
-	err := stakeHandler.stake(ctx,
+	err := stakeHandler.stakeV14(ctx,
 		common.BNBAsset,
 		cosmos.NewUint(common.One*100),
 		cosmos.NewUint(common.One*100),
@@ -169,6 +186,7 @@ func (HandlerUnstakeSuite) TestUnstakeHandler_Validation(c *C) {
 
 func (HandlerUnstakeSuite) TestUnstakeHandler_mockFailScenarios(c *C) {
 	activeNodeAccount := GetRandomNodeAccount(NodeActive)
+	ctx, k := setupKeeperForTest(c)
 	currentPool := Pool{
 		BalanceRune:  cosmos.ZeroUint(),
 		BalanceAsset: cosmos.ZeroUint(),
@@ -191,6 +209,7 @@ func (HandlerUnstakeSuite) TestUnstakeHandler_mockFailScenarios(c *C) {
 				activeNodeAccount: activeNodeAccount,
 				failPool:          true,
 				staker:            staker,
+				keeper:            k,
 			},
 			expectedResult: errInternal,
 		},
@@ -200,6 +219,7 @@ func (HandlerUnstakeSuite) TestUnstakeHandler_mockFailScenarios(c *C) {
 				activeNodeAccount: activeNodeAccount,
 				suspendedPool:     true,
 				staker:            staker,
+				keeper:            k,
 			},
 			expectedResult: errInvalidPoolStatus,
 		},
@@ -209,6 +229,7 @@ func (HandlerUnstakeSuite) TestUnstakeHandler_mockFailScenarios(c *C) {
 				activeNodeAccount: activeNodeAccount,
 				failStaker:        true,
 				staker:            staker,
+				keeper:            k,
 			},
 			expectedResult: errFailGetStaker,
 		},
@@ -219,6 +240,7 @@ func (HandlerUnstakeSuite) TestUnstakeHandler_mockFailScenarios(c *C) {
 				currentPool:       currentPool,
 				failAddEvents:     true,
 				staker:            staker,
+				keeper:            k,
 			},
 			expectedResult: errInternal,
 		},
@@ -227,7 +249,6 @@ func (HandlerUnstakeSuite) TestUnstakeHandler_mockFailScenarios(c *C) {
 	constAccessor := constants.GetConstantValues(ver)
 
 	for _, tc := range testCases {
-		ctx, _ := setupKeeperForTest(c)
 		unstakeHandler := NewUnstakeHandler(tc.k, NewDummyMgr())
 		msgUnstake := NewMsgUnStake(GetRandomTx(), GetRandomRUNEAddress(), cosmos.NewUint(uint64(MaxUnstakeBasisPoints)), common.BNBAsset, activeNodeAccount.NodeAddress)
 		_, err := unstakeHandler.Run(ctx, msgUnstake, ver, constAccessor)

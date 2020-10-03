@@ -110,8 +110,24 @@ func (k KVStoreDummy) GetStakerIterator(_ cosmos.Context, _ common.Asset) cosmos
 func (k KVStoreDummy) GetStaker(_ cosmos.Context, _ common.Asset, _ common.Address) (Staker, error) {
 	return Staker{}, kaboom
 }
-func (k KVStoreDummy) SetStaker(_ cosmos.Context, _ Staker)                 {}
-func (k KVStoreDummy) RemoveStaker(_ cosmos.Context, _ Staker)              {}
+func (k KVStoreDummy) SetStaker(_ cosmos.Context, _ Staker)    {}
+func (k KVStoreDummy) RemoveStaker(_ cosmos.Context, _ Staker) {}
+func (k KVStoreDummy) GetTotalSupply(ctx cosmos.Context, asset common.Asset) cosmos.Uint {
+	return cosmos.ZeroUint()
+}
+
+func (k KVStoreDummy) GetStakerBalance(ctx cosmos.Context, _ common.Asset, _ cosmos.AccAddress) cosmos.Uint {
+	return cosmos.ZeroUint()
+}
+
+func (k KVStoreDummy) AddStake(ctx cosmos.Context, _ common.Coin, _ cosmos.AccAddress) error {
+	return kaboom
+}
+
+func (k KVStoreDummy) RemoveStake(ctx cosmos.Context, _ common.Coin, _ cosmos.AccAddress) error {
+	return kaboom
+}
+
 func (k KVStoreDummy) TotalActiveNodeAccount(_ cosmos.Context) (int, error) { return 0, kaboom }
 func (k KVStoreDummy) ListNodeAccountsWithBond(_ cosmos.Context) (NodeAccounts, error) {
 	return nil, kaboom
