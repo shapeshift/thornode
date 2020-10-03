@@ -8,6 +8,7 @@ import (
 	"github.com/btcsuite/btcutil"
 	"github.com/btcsuite/btcutil/bech32"
 	eth "github.com/ethereum/go-ethereum/common"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 type Address string
@@ -75,6 +76,10 @@ func (addr Address) IsChain(chain Chain) bool {
 	default:
 		return true // if THORNode don't specifically check a chain yet, assume its ok.
 	}
+}
+
+func (addr Address) AccAddress() (cosmos.AccAddress, error) {
+	return cosmos.AccAddressFromBech32(addr.String())
 }
 
 func (addr Address) Equals(addr2 Address) bool {

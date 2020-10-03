@@ -184,6 +184,17 @@ func (h UnstakeHandler) handleV2(ctx cosmos.Context, msg MsgUnStake, version sem
 	if err != nil {
 		return nil, ErrInternal(err, "fail to get pool")
 	}
+
+	// snapshot original coin holdings, this is so we can add back the stake if unsuccessful
+	originalLtokens := cosmos.ZeroUint()
+	if common.RuneAsset().Chain.Equals(common.THORChain) {
+		acc, err := msg.RuneAddress.AccAddress()
+		if err != nil {
+			return nil, ErrInternal(err, "fail to get staker address")
+		}
+		originalLtokens = h.keeper.GetStakerBalance(ctx, msg.Asset.LiquidityAsset(), acc)
+	}
+
 	runeAmt, assetAmount, units, gasAsset, err := unstake(ctx, version, h.keeper, msg, h.mgr)
 	if err != nil {
 		return nil, ErrInternal(err, "fail to process UnStake request")
@@ -235,6 +246,25 @@ func (h UnstakeHandler) handleV2(ctx cosmos.Context, msg MsgUnStake, version sem
 				return nil, ErrInternal(err, "fail to save pool")
 			}
 			h.keeper.SetStaker(ctx, staker)
+
+			if common.RuneAsset().Chain.Equals(common.THORChain) {
+				acc, err := msg.RuneAddress.AccAddress()
+				if err != nil {
+					return nil, ErrInternal(err, "fail to get staker address")
+				}
+				stakerCoins := h.keeper.GetStakerBalance(ctx, msg.Asset.LiquidityAsset(), acc)
+				if originalLtokens.GT(stakerCoins) {
+					coin := common.NewCoin(
+						msg.Asset.LiquidityAsset(),
+						originalLtokens.Sub(stakerCoins),
+					)
+					// re-add stake back to the account
+					err := h.keeper.AddStake(ctx, coin, acc)
+					if err != nil {
+						return nil, ErrInternal(err, "fail to undo stake")
+					}
+				}
+			}
 			return nil, multierror.Append(errFailAddOutboundTx, err)
 		}
 		okAsset = true

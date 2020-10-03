@@ -68,7 +68,7 @@ func (c Coin) Native() (cosmos.Coin, error) {
 		return cosmos.Coin{}, errors.New("coin is not on thorchain")
 	}
 	return cosmos.NewCoin(
-		strings.ToLower(c.Asset.Symbol.String()),
+		c.Asset.Native(),
 		cosmos.NewIntFromBigInt(c.Amount.BigInt()),
 	), nil
 }

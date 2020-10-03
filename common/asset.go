@@ -68,6 +68,15 @@ func (a Asset) Equals(a2 Asset) bool {
 	return a.Chain.Equals(a2.Chain) && a.Symbol.Equals(a2.Symbol) && a.Ticker.Equals(a2.Ticker)
 }
 
+// Get liquidity token asset of asset
+func (a Asset) LiquidityAsset() Asset {
+	return Asset{
+		Chain:  THORChain,
+		Symbol: Symbol(strings.ToLower(fmt.Sprintf("l%s/%s", a.Chain, a.Symbol))),
+		Ticker: Ticker(strings.ToLower(fmt.Sprintf("l%s/%s", a.Chain, a.Ticker))),
+	}
+}
+
 // Native return native asset, only relevant on THORChain
 func (a Asset) Native() string {
 	if !a.Chain.Equals(THORChain) {

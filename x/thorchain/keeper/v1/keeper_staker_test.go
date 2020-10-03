@@ -11,11 +11,15 @@ type KeeperStakerSuite struct{}
 
 var _ = Suite(&KeeperStakerSuite{})
 
+func (mas *KeeperStakerSuite) SetUpSuite(c *C) {
+	SetupConfigForTest()
+}
+
 func (s *KeeperStakerSuite) TestStaker(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	asset := common.BNBAsset
 
-	staker, err := k.GetStaker(ctx, asset, GetRandomBNBAddress())
+	staker, err := k.GetStaker(ctx, asset, GetRandomRUNEAddress())
 	c.Assert(err, IsNil)
 	c.Check(staker.PendingRune, NotNil)
 	c.Check(staker.Units, NotNil)
@@ -23,8 +27,13 @@ func (s *KeeperStakerSuite) TestStaker(c *C) {
 	staker = Staker{
 		Asset:        asset,
 		Units:        cosmos.NewUint(12),
-		RuneAddress:  GetRandomBNBAddress(),
+		RuneAddress:  GetRandomRUNEAddress(),
 		AssetAddress: GetRandomBTCAddress(),
+	}
+	if common.RuneAsset().Chain.Equals(common.THORChain) {
+		acc, err := staker.RuneAddress.AccAddress()
+		c.Assert(err, IsNil)
+		c.Assert(k.AddStake(ctx, common.NewCoin(staker.Asset.LiquidityAsset(), staker.Units), acc), IsNil)
 	}
 
 	k.SetStaker(ctx, staker)

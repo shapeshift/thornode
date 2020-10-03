@@ -117,6 +117,8 @@ var _ = Suite(&KeeperTestSuit{})
 func (KeeperTestSuit) TestKeeperVersion(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	c.Check(k.GetStoreVersion(ctx), Equals, int64(6))
+	c.Check(k.CoinKeeper(), NotNil)
+	c.Check(k.Version(), Equals, version)
 
 	k.SetStoreVersion(ctx, 2)
 	c.Check(k.GetStoreVersion(ctx), Equals, int64(2))
@@ -127,7 +129,14 @@ func (KeeperTestSuit) TestKeeperVersion(c *C) {
 
 	acct := GetRandomBech32Addr()
 	c.Check(k.SendFromModuleToAccount(ctx, AsgardName, acct, coinToSend), IsNil)
+
+	// check get account balance
+	coins := k.CoinKeeper().GetCoins(ctx, acct)
+	c.Check(coins, HasLen, 1)
+
 	c.Check(k.SendFromAccountToModule(ctx, acct, AsgardName, coinToSend), IsNil)
-	c.Check(k.CoinKeeper(), NotNil)
-	c.Check(k.Version(), Equals, version)
+
+	// check no account balance
+	coins = k.CoinKeeper().GetCoins(ctx, GetRandomBech32Addr())
+	c.Check(coins, HasLen, 0)
 }
