@@ -14,7 +14,8 @@ func NewConstantValue010() *ConstantVals {
 			ValidatorRotateInNumBeforeFull:  2,                  // How many validators should THORNode nominate before THORNode reach the desire validator set
 			ValidatorRotateOutNumBeforeFull: 1,                  // How many validators should THORNode queued to be rotate out before THORNode reach the desire validator set)
 			ValidatorRotateNumAfterFull:     1,                  // How many validators should THORNode nominate after THORNode reach the desire validator set
-			DesireValidatorSet:              30,                 // desire validator set
+			DesireValidatorSet:              90,                 // desire validator set
+			AsgardSize:                      30,                 // desired node operators in an asgard vault
 			FundMigrationInterval:           360,                // number of blocks THORNode will attempt to move funds from a retiring vault to an active one
 			RotatePerBlockHeight:            51840,              // How many blocks THORNode try to rotate validators
 			RotateRetryBlocks:               720,                // How many blocks until we retry a churn (only if we haven't had a successful churn in RotatePerBlockHeight blocks
