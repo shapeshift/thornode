@@ -788,6 +788,14 @@ func (vm *validatorMgrV13) ragnarokPools(ctx cosmos.Context, nth int64, mgr Mana
 				position.Number++
 				var staker Staker
 				vm.k.Cdc().MustUnmarshalBinaryBare(iterator.Value(), &staker)
+
+				if common.RuneAsset().Chain.Equals(common.THORChain) {
+					accAddr, err := staker.RuneAddress.AccAddress()
+					if err != nil {
+						ctx.Logger().Error("fail to get stake tokens", "staker", staker.RuneAddress, "error", err)
+					}
+					staker.Units = vm.k.GetStakerBalance(ctx, pool.Asset.LiquidityAsset(), accAddr)
+				}
 				if staker.Units.IsZero() {
 					continue
 				}

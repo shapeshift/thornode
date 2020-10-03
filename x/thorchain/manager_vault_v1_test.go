@@ -96,6 +96,26 @@ func (k *TestRagnarokChainKeeper) GetStakerIterator(ctx cosmos.Context, _ common
 	return iter
 }
 
+func (k *TestRagnarokChainKeeper) AddStake(ctx cosmos.Context, coin common.Coin, addr cosmos.AccAddress) error {
+	staker, _ := common.NewAddress(addr.String())
+	for i, skr := range k.stakers {
+		if staker.Equals(skr.RuneAddress) {
+			k.stakers[i].Units = k.stakers[i].Units.Add(coin.Amount)
+		}
+	}
+	return nil
+}
+
+func (k *TestRagnarokChainKeeper) RemoveStake(ctx cosmos.Context, coin common.Coin, addr cosmos.AccAddress) error {
+	staker, _ := common.NewAddress(addr.String())
+	for i, skr := range k.stakers {
+		if staker.Equals(skr.RuneAddress) {
+			k.stakers[i].Units = k.stakers[i].Units.Sub(coin.Amount)
+		}
+	}
+	return nil
+}
+
 func (k *TestRagnarokChainKeeper) GetStaker(_ cosmos.Context, asset common.Asset, addr common.Address) (Staker, error) {
 	if asset.Equals(common.BTCAsset) {
 		for i, staker := range k.stakers {
@@ -110,6 +130,7 @@ func (k *TestRagnarokChainKeeper) GetStaker(_ cosmos.Context, asset common.Asset
 func (k *TestRagnarokChainKeeper) SetStaker(_ cosmos.Context, staker Staker) {
 	for i, skr := range k.stakers {
 		if staker.RuneAddress.Equals(skr.RuneAddress) {
+			staker.Units = k.stakers[i].Units
 			k.stakers[i] = staker
 		}
 	}

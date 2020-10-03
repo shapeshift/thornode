@@ -49,6 +49,7 @@ var (
 	GetRandomNodeAccount       = types.GetRandomNodeAccount
 	GetRandomBNBAddress        = types.GetRandomBNBAddress
 	GetRandomBTCAddress        = types.GetRandomBTCAddress
+	GetRandomRUNEAddress       = types.GetRandomRUNEAddress
 	GetRandomTxHash            = types.GetRandomTxHash
 	GetRandomBech32Addr        = types.GetRandomBech32Addr
 	GetRandomPubKey            = types.GetRandomPubKey
@@ -56,6 +57,7 @@ var (
 	NewObservedNetworkFeeVoter = types.NewObservedNetworkFeeVoter
 	NewNetworkFee              = types.NewNetworkFee
 	NewTssKeysignFailVoter     = types.NewTssKeysignFailVoter
+	SetupConfigForTest         = types.SetupConfigForTest
 )
 
 type (
