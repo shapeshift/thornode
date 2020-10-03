@@ -122,24 +122,17 @@ func (vm *VaultMgrV1) EndBlock(ctx cosmos.Context, mgr Manager, constAccessor co
 					continue
 				}
 
-				// determine which active asgard vault is the best to send
-				// these coins to. We target the vault with the least amount of
-				// this particular coin
-				cn := active[0].GetCoin(coin.Asset)
-				pk := active[0].PubKey
-				for _, asgard := range active {
-					if cn.Amount.GT(asgard.GetCoin(coin.Asset).Amount) {
-						cn = asgard.GetCoin(coin.Asset)
-						pk = asgard.PubKey
-					}
-				}
+				// determine which active asgard vault to send funds to. Select
+				// based on which has the most security
+				signingTransactionPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
+				target := vm.k.GetMostSecure(ctx, active, signingTransactionPeriod)
 
-				if pk.Equals(vault.PubKey) {
+				if target.PubKey.Equals(vault.PubKey) {
 					continue
 				}
 
 				// get address of asgard pubkey
-				addr, err := pk.GetAddress(coin.Asset.Chain)
+				addr, err := target.PubKey.GetAddress(coin.Asset.Chain)
 				if err != nil {
 					return err
 				}
