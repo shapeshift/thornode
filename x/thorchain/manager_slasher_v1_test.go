@@ -170,6 +170,10 @@ func (k *TestSlashingLackKeeper) GetVault(_ cosmos.Context, pk common.PubKey) (V
 	return k.vaults[0], nil
 }
 
+func (k *TestSlashingLackKeeper) GetLeastSecure(ctx cosmos.Context, vaults Vaults, signingTransPeriod int64) Vault {
+	return vaults[0]
+}
+
 func (k *TestSlashingLackKeeper) GetAsgardVaultsByStatus(_ cosmos.Context, _ VaultStatus) (Vaults, error) {
 	if k.failGetAsgardByStatus {
 		return nil, kaboom

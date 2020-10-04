@@ -184,7 +184,15 @@ func (s *SlasherV13) LackSigning(ctx cosmos.Context, constAccessor constants.Con
 				return fmt.Errorf("fail to get active asgard vaults: %w", err)
 			}
 
-			vault = active.SelectByMaxCoin(tx.Coin.Asset)
+			// select active vault to send funds from
+			filterVaults := make(Vaults, 0)
+			for _, v := range active {
+				if !tx.Coin.Amount.GT(v.GetCoin(tx.Coin.Asset).Amount) {
+					filterVaults = append(filterVaults, v)
+				}
+			}
+			signingTransactionPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
+			vault = s.keeper.GetLeastSecure(ctx, filterVaults, signingTransactionPeriod)
 			if vault.IsEmpty() {
 				ctx.Logger().Error("unable to determine asgard vault to send funds")
 				resultErr = fmt.Errorf("unable to determine asgard vault to send funds")

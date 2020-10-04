@@ -125,7 +125,7 @@ func (vm *VaultMgrV1) EndBlock(ctx cosmos.Context, mgr Manager, constAccessor co
 				// determine which active asgard vault to send funds to. Select
 				// based on which has the most security
 				signingTransactionPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
-				target := vm.k.GetMostSecure(ctx, active, signingTransactionPeriod)
+				target := vm.k.GetLeastSecure(ctx, active, signingTransactionPeriod)
 
 				if target.PubKey.Equals(vault.PubKey) {
 					continue
@@ -371,7 +371,10 @@ func (vm *VaultMgrV1) recallChainFunds(ctx cosmos.Context, chain common.Chain, m
 		return err
 	}
 
-	vault := active.SelectByMinCoin(common.RuneAsset())
+	version := vm.k.GetLowestActiveVersion(ctx)
+	constAccessor := constants.GetConstantValues(version)
+	signingTransactionPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
+	vault := vm.k.GetMostSecure(ctx, active, signingTransactionPeriod)
 	if vault.IsEmpty() {
 		return fmt.Errorf("unable to determine asgard vault")
 	}

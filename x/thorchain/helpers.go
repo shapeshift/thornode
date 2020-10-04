@@ -257,7 +257,10 @@ func refundBond(ctx cosmos.Context, tx common.Tx, amt cosmos.Uint, nodeAcc *Node
 			return err
 		}
 
-		vault := active.SelectByMinCoin(common.RuneAsset())
+		version := keeper.GetLowestActiveVersion(ctx)
+		constAccessor := constants.GetConstantValues(version)
+		signingTransactionPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
+		vault := keeper.GetLeastSecure(ctx, active, signingTransactionPeriod)
 		if vault.IsEmpty() {
 			return fmt.Errorf("unable to determine asgard vault to send funds")
 		}

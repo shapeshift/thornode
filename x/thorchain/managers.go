@@ -67,7 +67,7 @@ type ObserverManager interface {
 type ValidatorManager interface {
 	BeginBlock(ctx cosmos.Context, constAccessor constants.ConstantValues) error
 	EndBlock(ctx cosmos.Context, mgr Manager, constAccessor constants.ConstantValues) []abci.ValidatorUpdate
-	RequestYggReturn(ctx cosmos.Context, node NodeAccount, mgr Manager) error
+	RequestYggReturn(ctx cosmos.Context, node NodeAccount, mgr Manager, constAccessor constants.ConstantValues) error
 	processRagnarok(ctx cosmos.Context, mgr Manager, constAccessor constants.ConstantValues) error
 	NodeAccountPreflightCheck(ctx cosmos.Context, na NodeAccount, constAccessor constants.ConstantValues) (NodeStatus, error)
 }
