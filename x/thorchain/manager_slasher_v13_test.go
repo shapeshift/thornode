@@ -156,6 +156,9 @@ func (s *SlashingV13Suite) TestNodeSignSlashErrors(c *C) {
 
 		ygg := GetRandomVault()
 		ygg.Type = YggdrasilVault
+		ygg.AddFunds(common.Coins{
+			common.NewCoin(common.BNBAsset, cosmos.NewUint(common.One*10000000)),
+		})
 		keeper := &TestSlashingLackKeeper{
 			txOut:  txOut,
 			na:     na,
