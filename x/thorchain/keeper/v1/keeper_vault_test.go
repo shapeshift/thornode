@@ -65,3 +65,72 @@ func (s *KeeperVaultSuite) TestVault(c *C) {
 	c.Check(k.SetVault(ctx, vault1), IsNil)
 	c.Check(k.DeleteVault(ctx, vault1.PubKey), NotNil)
 }
+
+func (s *KeeperVaultSuite) TestVaultSorBySecurity(c *C) {
+	ctx, k := setupKeeperForTest(c)
+
+	// Add node accounts
+	na1 := GetRandomNodeAccount(NodeActive)
+	na1.Bond = cosmos.NewUint(100 * common.One)
+	c.Assert(k.SetNodeAccount(ctx, na1), IsNil)
+	na2 := GetRandomNodeAccount(NodeActive)
+	na2.Bond = cosmos.NewUint(200 * common.One)
+	c.Assert(k.SetNodeAccount(ctx, na2), IsNil)
+	na3 := GetRandomNodeAccount(NodeActive)
+	na3.Bond = cosmos.NewUint(300 * common.One)
+	c.Assert(k.SetNodeAccount(ctx, na3), IsNil)
+	na4 := GetRandomNodeAccount(NodeActive)
+	na4.Bond = cosmos.NewUint(400 * common.One)
+	c.Assert(k.SetNodeAccount(ctx, na4), IsNil)
+	na5 := GetRandomNodeAccount(NodeActive)
+	na5.Bond = cosmos.NewUint(500 * common.One)
+	c.Assert(k.SetNodeAccount(ctx, na5), IsNil)
+	na6 := GetRandomNodeAccount(NodeActive)
+	na6.Bond = cosmos.NewUint(600 * common.One)
+	c.Assert(k.SetNodeAccount(ctx, na6), IsNil)
+
+	// Create Pools
+	pool1 := NewPool()
+	pool1.Asset = common.BNBAsset
+	pool1.BalanceRune = cosmos.NewUint(common.One * 100)
+	pool1.BalanceAsset = cosmos.NewUint(common.One * 100)
+	c.Assert(k.SetPool(ctx, pool1), IsNil)
+
+	// Create three vaults
+	vault1 := NewVault(1024, ActiveVault, AsgardVault, GetRandomPubKey(), common.Chains{common.BNBChain})
+	vault1.AddFunds(common.Coins{
+		common.NewCoin(common.RuneAsset(), cosmos.NewUint(common.One*200)),
+	})
+	vault1.Membership = common.PubKeys{
+		na1.PubKeySet.Secp256k1,
+		na6.PubKeySet.Secp256k1,
+	}
+	c.Check(k.SetVault(ctx, vault1), IsNil)
+
+	vault2 := NewVault(1024, ActiveVault, AsgardVault, GetRandomPubKey(), common.Chains{common.BNBChain})
+	vault2.AddFunds(common.Coins{
+		common.NewCoin(common.BNBAsset, cosmos.NewUint(common.One*1000)),
+	})
+	vault2.Membership = common.PubKeys{
+		na2.PubKeySet.Secp256k1,
+		na5.PubKeySet.Secp256k1,
+	}
+	c.Check(k.SetVault(ctx, vault2), IsNil)
+
+	vault3 := NewVault(1024, ActiveVault, AsgardVault, GetRandomPubKey(), common.Chains{common.BNBChain})
+	vault3.AddFunds(common.Coins{
+		common.NewCoin(common.BNBAsset, cosmos.NewUint(common.One*100)),
+	})
+	vault3.Membership = common.PubKeys{
+		na3.PubKeySet.Secp256k1,
+		na4.PubKeySet.Secp256k1,
+	}
+	c.Check(k.SetVault(ctx, vault3), IsNil)
+
+	// test that we sort appropriately
+	sorted := k.SortBySecurity(ctx, Vaults{vault1, vault2, vault3}, 300)
+	c.Assert(sorted, HasLen, 3)
+	c.Assert(sorted[0].PubKey.Equals(vault2.PubKey), Equals, true)
+	c.Assert(sorted[1].PubKey.Equals(vault1.PubKey), Equals, true)
+	c.Assert(sorted[2].PubKey.Equals(vault3.PubKey), Equals, true)
+}
