@@ -440,7 +440,7 @@ func (e EventSlash) Events() (cosmos.Events, error) {
 	evt := cosmos.NewEvent(e.Type(),
 		cosmos.NewAttribute("pool", e.Pool.String()))
 	for _, item := range e.SlashAmount {
-		evt.AppendAttributes(cosmos.NewAttribute(item.Asset.String(), strconv.FormatInt(item.Amount, 10)))
+		evt = evt.AppendAttributes(cosmos.NewAttribute(item.Asset.String(), strconv.FormatInt(item.Amount, 10)))
 	}
 	return cosmos.Events{evt}, nil
 }
