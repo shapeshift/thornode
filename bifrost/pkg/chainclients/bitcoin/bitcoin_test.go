@@ -13,7 +13,6 @@ import (
 
 	ctypes "github.com/binance-chain/go-sdk/common/types"
 	"github.com/btcsuite/btcd/btcjson"
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/cosmos/cosmos-sdk/client/keys"
 	cKeys "github.com/cosmos/cosmos-sdk/crypto/keys"
 	. "gopkg.in/check.v1"
@@ -126,6 +125,8 @@ func (s *BitcoinSuite) SetUpTest(c *C) {
 			httpTestHandler(c, rw, "../../../../test/fixtures/btc/listunspent.json")
 		case r.Method == "getrawmempool":
 			httpTestHandler(c, rw, "../../../../test/fixtures/btc/getrawmempool.json")
+		case r.Method == "getblockstats":
+			httpTestHandler(c, rw, "../../../../test/fixtures/btc/blockstats.json")
 		}
 	}))
 
@@ -639,8 +640,8 @@ func (s *BitcoinSuite) TestProcessReOrg(c *C) {
 	// add one UTXO which will trigger the re-org process next
 	previousHeight := result.Height - 1
 	blockMeta := NewBlockMeta(ttypes.GetRandomTxHash().String(), previousHeight, ttypes.GetRandomTxHash().String())
-	hash, _ := chainhash.NewHashFromStr("27de3e1865c098cd4fded71bae1e8236fd27ce5dce6e524a9ac5cd1a17b5c241")
-	blockMeta.AddCustomerTransaction(*hash)
+	hash := "27de3e1865c098cd4fded71bae1e8236fd27ce5dce6e524a9ac5cd1a17b5c241"
+	blockMeta.AddCustomerTransaction(hash)
 	c.Assert(s.client.blockMetaAccessor.SaveBlockMeta(previousHeight, blockMeta), IsNil)
 	s.client.globalErrataQueue = make(chan types.ErrataBlock, 1)
 	c.Assert(s.client.processReorg(&result), IsNil)
@@ -660,4 +661,73 @@ func (s *BitcoinSuite) TestGetMemPool(c *C) {
 	txIns, err = s.client.getMemPool(1024)
 	c.Assert(err, IsNil)
 	c.Assert(txIns.TxArray, HasLen, 0)
+}
+
+func (s *BitcoinSuite) TestConfirmationCountReady(c *C) {
+	c.Assert(s.client.ConfirmationCountReady(types.TxIn{
+		Chain:    common.BTCChain,
+		TxArray:  nil,
+		Filtered: true,
+		MemPool:  false,
+	}), Equals, true)
+	pkey := ttypes.GetRandomPubKey()
+	c.Assert(s.client.ConfirmationCountReady(types.TxIn{
+		Chain: common.BTCChain,
+		TxArray: []types.TxInItem{
+			{
+				BlockHeight: 2,
+				Tx:          "24ed2d26fd5d4e0e8fa86633e40faf1bdfc8d1903b1cd02855286312d48818a2",
+				Sender:      "bc1q0s4mg25tu6termrk8egltfyme4q7sg3h0e56p3",
+				To:          "bc1q2gjc0rnhy4nrxvuklk6ptwkcs9kcr59mcl2q9j",
+				Coins: common.Coins{
+					common.NewCoin(common.BTCAsset, cosmos.NewUint(123456)),
+				},
+				Memo:                "MEMO",
+				ObservedVaultPubKey: pkey,
+			},
+		},
+		Filtered: true,
+		MemPool:  true,
+	}), Equals, true)
+
+	c.Assert(s.client.ConfirmationCountReady(types.TxIn{
+		Chain: common.BTCChain,
+		TxArray: []types.TxInItem{
+			{
+				BlockHeight: 2,
+				Tx:          "24ed2d26fd5d4e0e8fa86633e40faf1bdfc8d1903b1cd02855286312d48818a2",
+				Sender:      "bc1q0s4mg25tu6termrk8egltfyme4q7sg3h0e56p3",
+				To:          "bc1q2gjc0rnhy4nrxvuklk6ptwkcs9kcr59mcl2q9j",
+				Coins: common.Coins{
+					common.NewCoin(common.BTCAsset, cosmos.NewUint(123456)),
+				},
+				Memo:                "MEMO",
+				ObservedVaultPubKey: pkey,
+			},
+		},
+		Filtered: true,
+		MemPool:  false,
+	}), Equals, true)
+
+	c.Assert(s.client.ConfirmationCountReady(types.TxIn{
+		Chain: common.BTCChain,
+		TxArray: []types.TxInItem{
+			{
+				BlockHeight: 2,
+				Tx:          "24ed2d26fd5d4e0e8fa86633e40faf1bdfc8d1903b1cd02855286312d48818a2",
+				Sender:      "bc1q0s4mg25tu6termrk8egltfyme4q7sg3h0e56p3",
+				To:          "bc1q2gjc0rnhy4nrxvuklk6ptwkcs9kcr59mcl2q9j",
+				Coins: common.Coins{
+					common.NewCoin(common.BTCAsset, cosmos.NewUint(12345600000)),
+				},
+				Gas: common.Gas{
+					common.NewCoin(common.BTCAsset, cosmos.NewUint(40000)),
+				},
+				Memo:                "MEMO",
+				ObservedVaultPubKey: pkey,
+			},
+		},
+		Filtered: true,
+		MemPool:  false,
+	}), Equals, false)
 }

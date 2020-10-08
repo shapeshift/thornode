@@ -11,7 +11,7 @@ import (
 // PrefixUTXOStorage declares prefix to use in leveldb to avoid conflicts
 const (
 	TransactionFeeKey = "transactionfee-"
-	PrefixBlocMeta    = `blockmeta-`
+	PrefixBlockMeta   = `blockmeta-`
 )
 
 // LevelDBBlockMetaAccessor struct
@@ -25,7 +25,7 @@ func NewLevelDBBlockMetaAccessor(db *leveldb.DB) (*LevelDBBlockMetaAccessor, err
 }
 
 func (t *LevelDBBlockMetaAccessor) getBlockMetaKey(height int64) string {
-	return fmt.Sprintf(PrefixBlocMeta+"%d", height)
+	return fmt.Sprintf(PrefixBlockMeta+"%d", height)
 }
 
 // GetBlockMeta at given block height ,  when the requested block meta doesn't exist , it will return nil , thus caller need to double check it
@@ -64,9 +64,9 @@ func (t *LevelDBBlockMetaAccessor) SaveBlockMeta(height int64, blockMeta *BlockM
 // thus it should not grow out of control
 func (t *LevelDBBlockMetaAccessor) GetBlockMetas() ([]*BlockMeta, error) {
 	blockMetas := make([]*BlockMeta, 0)
-	iterator := t.db.NewIterator(util.BytesPrefix([]byte(PrefixBlocMeta)), nil)
+	iterator := t.db.NewIterator(util.BytesPrefix([]byte(PrefixBlockMeta)), nil)
 	defer iterator.Release()
-	for iterator.Next() {
+	for ; iterator.Next(); iterator.Valid() {
 		buf := iterator.Value()
 		if len(buf) == 0 {
 			continue
@@ -83,10 +83,10 @@ func (t *LevelDBBlockMetaAccessor) GetBlockMetas() ([]*BlockMeta, error) {
 // PruneBlockMeta remove all block meta that is older than the given block height
 // with exception, if there are unspent transaction output in it , then the block meta will not be removed
 func (t *LevelDBBlockMetaAccessor) PruneBlockMeta(height int64) error {
-	iterator := t.db.NewIterator(util.BytesPrefix([]byte(PrefixBlocMeta)), nil)
+	iterator := t.db.NewIterator(util.BytesPrefix([]byte(PrefixBlockMeta)), nil)
 	defer iterator.Release()
 	targetToDelete := make([]string, 0)
-	for iterator.Next() {
+	for ; iterator.Next(); iterator.Valid() {
 		buf := iterator.Value()
 		if len(buf) == 0 {
 			continue

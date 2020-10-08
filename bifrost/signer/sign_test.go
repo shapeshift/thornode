@@ -226,6 +226,9 @@ func (b *MockChainClient) Start(globalTxsQueue chan stypes.TxIn, globalErrataQue
 }
 
 func (b *MockChainClient) Stop() {}
+func (b *MockChainClient) ConfirmationCountReady(txIn stypes.TxIn) bool {
+	return true
+}
 
 func (s *SignSuite) TestHandleYggReturn_Success_FeeSingleton(c *C) {
 	sign := &Signer{

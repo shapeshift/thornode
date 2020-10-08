@@ -39,7 +39,7 @@ func (s *BitcoinBlockMetaAccessorTestSuite) TestBlockMetaAccessor(c *C) {
 	c.Assert(blockMetaAccessor.SaveBlockMeta(blockMeta.Height, blockMeta), IsNil)
 
 	key := blockMetaAccessor.getBlockMetaKey(blockMeta.Height)
-	c.Assert(key, Equals, fmt.Sprintf(PrefixBlocMeta+"%d", blockMeta.Height))
+	c.Assert(key, Equals, fmt.Sprintf(PrefixBlockMeta+"%d", blockMeta.Height))
 
 	bm, err := blockMetaAccessor.GetBlockMeta(blockMeta.Height)
 	c.Assert(err, IsNil)
