@@ -22,14 +22,15 @@ import (
 	"gitlab.com/thorchain/thornode/bifrost/tss"
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/x/thorchain"
 )
 
 const (
 	// SatsPervBytes it should be enough , this one will only be used if signer can't find any previous UTXO , and fee info from local storage.
 	SatsPervBytes = 25
 	// MinUTXOConfirmation UTXO that has less confirmation then this will not be spent , unless it is yggdrasil
-	MinUTXOConfirmation = 10
-	MaxBTCFee           = 0.1
+	MinUTXOConfirmation  = 6
+	defaultMaxBTCFeeRate = btcutil.SatoshiPerBitcoin / 10
 )
 
 func getBTCPrivateKey(key crypto.PrivKey) (*btcec.PrivateKey, error) {
@@ -217,16 +218,36 @@ func (c *Client) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, err
 	if err != nil {
 		return nil, fmt.Errorf("fail to parse total amount(%f),err: %w", totalAmt, err)
 	}
+	coinToCustomer := tx.Coins.GetCoin(common.BTCAsset)
+	totalSize := redeemTx.SerializeSize()
 	vSize := mempool.GetTxVirtualSize(btcutil.NewTx(redeemTx))
+
+	// bitcoind has a default rule max fee rate should less than 0.1 BTC / kb
+	// the MaxGas coming from THORChain doesn't follow this rule , thus the MaxGas might be over the limit
+	// as such , signer need to double check, if the MaxGas is over the limit , just pay the limit
+	// the rest paid to customer to make sure the total doesn't change
+
+	// maxFee in sats
+	maxFeeSats := float64(totalSize) * defaultMaxBTCFeeRate / 1024
 	gasCoin := c.getGasCoin(tx, vSize)
-	gasAmt := btcutil.Amount(int64(gasCoin.Amount.Uint64()))
-	if gasAmt.ToBTC() > MaxBTCFee {
-		gasAmt, _ = btcutil.NewAmount(MaxBTCFee)
+	gasAmtSats := gasCoin.Amount.Uint64()
+
+	// for yggdrasil, need to left some coin to pay for fee, this logic is per chain, given different chain charge fees differently
+	if strings.EqualFold(tx.Memo, thorchain.NewYggdrasilReturn(thorchainHeight).String()) {
+		coinToCustomer.Amount = common.SafeSub(coinToCustomer.Amount, cosmos.NewUint(gasAmtSats))
 	}
+
+	// make sure the transaction fee is not more than 0.1 BTC / kb , otherwise it might reject the transaction
+	if gasAmtSats > uint64(maxFeeSats) {
+		diffSats := gasAmtSats - uint64(maxFeeSats) // in sats
+		c.logger.Info().Msgf("gas amount: %d is larger than maximum fee: %f , diff add to customer: %d", gasAmtSats, maxFeeSats, diffSats)
+		gasAmtSats = uint64(maxFeeSats)
+		coinToCustomer.Amount = coinToCustomer.Amount.AddUint64(diffSats)
+	}
+	gasAmt := btcutil.Amount(gasAmtSats)
 	if err := c.blockMetaAccessor.UpsertTransactionFee(gasAmt.ToBTC(), int32(vSize)); err != nil {
 		c.logger.Err(err).Msg("fail to save gas info to UTXO storage")
 	}
-	coinToCustomer := tx.Coins.GetCoin(common.BTCAsset)
 
 	// pay to customer
 	redeemTxOut := wire.NewTxOut(int64(coinToCustomer.Amount.Uint64()), buf)
@@ -234,7 +255,7 @@ func (c *Client) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, err
 
 	// balance to ourselves
 	// add output to pay the balance back ourselves
-	balance := int64(total) - redeemTxOut.Value - int64(gasCoin.Amount.Uint64())
+	balance := int64(total) - redeemTxOut.Value - int64(gasAmt)
 	if balance < 0 {
 		return nil, errors.New("not enough balance to pay customer")
 	}

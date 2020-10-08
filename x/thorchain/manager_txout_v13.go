@@ -296,9 +296,8 @@ func (tos *TxOutStorageV13) addToBlockOut(ctx cosmos.Context, mgr Manager, toi *
 	if err != nil {
 		return err
 	}
-	// since we're storing the memo in the tx market, we can clear it
-	// TODO: add memo for all chains (not just BNB)
-	if !toi.Coin.Asset.Chain.Equals(common.BNBChain) {
+	// ETH smoke test doesn't implement dynamic fee correctly yet
+	if toi.Coin.Asset.Chain.Equals(common.ETHChain) {
 		toi.Memo = ""
 	}
 

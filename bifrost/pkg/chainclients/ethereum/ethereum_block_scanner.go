@@ -2,6 +2,7 @@ package ethereum
 
 import (
 	"context"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"math/big"
@@ -326,9 +327,18 @@ func (e *BlockScanner) fromTxToTxIn(tx *etypes.Transaction) (*stypes.TxInItem, e
 	txInItem := &stypes.TxInItem{
 		Tx: tx.Hash().Hex()[2:],
 	}
-	// tx data field bytes should be hex encoded byres string as outboud or yggradsil- or migrate or yggdrasil+, etc
-	txInItem.Memo = string(tx.Data())
-
+	// tx data field bytes should be hex encoded bytes string as outbound or yggdrasil- or migrate or yggdrasil+, etc
+	hexMemo := tx.Data()
+	if len(hexMemo) > 0 {
+		memo, err := hex.DecodeString(string(hexMemo))
+		if err != nil {
+			e.logger.Err(err).Msgf("fail to decode memo(%s)", hexMemo)
+			txInItem.Memo = string(hexMemo)
+		} else {
+			txInItem.Memo = string(memo)
+		}
+		e.logger.Info().Msgf("memo:%s", txInItem.Memo)
+	}
 	sender, err := eipSigner.Sender(tx)
 	if err != nil {
 		return nil, err

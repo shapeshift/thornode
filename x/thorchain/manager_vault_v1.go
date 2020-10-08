@@ -170,7 +170,6 @@ func (vm *VaultMgrV1) EndBlock(ctx cosmos.Context, mgr Manager, constAccessor co
 						ctx.Logger().Error("fail to get max gas: %w", err)
 						return err
 					}
-
 					amt = common.SafeSub(
 						amt,
 						gas.Amount.MulUint64(uint64(vault.CoinLengthByChain(coin.Asset.Chain))),

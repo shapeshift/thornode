@@ -449,7 +449,6 @@ func (c *Client) FetchMemPool(height int64) (types.TxIn, error) {
 func (c *Client) FetchTxs(height int64) (types.TxIn, error) {
 	block, err := c.getBlock(height)
 	if err != nil {
-		time.Sleep(c.cfg.BlockScanner.BlockHeightDiscoverBackoff)
 		if rpcErr, ok := err.(*btcjson.RPCError); ok && rpcErr.Code == btcjson.ErrRPCInvalidParameter {
 			// this means the tx had been broadcast to chain, it must be another signer finished quicker then us
 			return types.TxIn{}, btypes.UnavailableBlock
@@ -539,17 +538,20 @@ func (c *Client) getTxIn(tx *btcjson.TxRawResult, height int64) (types.TxInItem,
 	if err != nil {
 		return types.TxInItem{}, fmt.Errorf("fail to get memo from tx: %w", err)
 	}
-	gas, err := c.getGas(tx)
+	output, err := c.getOutput(sender, tx)
 	if err != nil {
-		return types.TxInItem{}, fmt.Errorf("fail to get gas from tx: %w", err)
+		return types.TxInItem{}, fmt.Errorf("fail to get output from tx: %w", err)
 	}
-
-	output := c.getOutput(sender, tx)
 	amount, err := btcutil.NewAmount(output.Value)
 	if err != nil {
 		return types.TxInItem{}, fmt.Errorf("fail to parse float64: %w", err)
 	}
 	amt := uint64(amount.ToUnit(btcutil.AmountSatoshi))
+
+	gas, err := c.getGas(tx)
+	if err != nil {
+		return types.TxInItem{}, fmt.Errorf("fail to get gas from tx: %w", err)
+	}
 	return types.TxInItem{
 		BlockHeight: height,
 		Tx:          tx.Txid,
@@ -583,7 +585,8 @@ func (c *Client) extractTxs(block *btcjson.GetBlockVerboseTxResult, blockMeta *B
 		}
 		txInItem, err := c.getTxIn(&tx, block.Height)
 		if err != nil {
-			return types.TxIn{}, fmt.Errorf("fail to get TxInItem: %w", err)
+			c.logger.Err(err).Msg("fail to get TxInItem")
+			continue
 		}
 		if txInItem.IsEmpty() {
 			continue
@@ -622,11 +625,17 @@ func (c *Client) ignoreTx(tx *btcjson.TxRawResult) bool {
 		return true
 	}
 	countWithOutput := 0
-	for _, vout := range tx.Vout {
+	for idx, vout := range tx.Vout {
 		if vout.Value > 0 {
 			countWithOutput++
 		}
+		// check we have one address on the first 2 outputs
+		// TODO check what we do if get multiple addresses
+		if idx < 2 && vout.ScriptPubKey.Type != "nulldata" && len(vout.ScriptPubKey.Addresses) != 1 {
+			return true
+		}
 	}
+
 	if countWithOutput > 2 {
 		return true
 	}
@@ -639,13 +648,16 @@ func (c *Client) ignoreTx(tx *btcjson.TxRawResult) bool {
 // back to the vault and we need to select the other output
 // as Bifrost already filtered the txs to only have here
 // txs with max 2 outputs with values
-func (c *Client) getOutput(sender string, tx *btcjson.TxRawResult) btcjson.Vout {
+func (c *Client) getOutput(sender string, tx *btcjson.TxRawResult) (btcjson.Vout, error) {
 	for _, vout := range tx.Vout {
+		if len(vout.ScriptPubKey.Addresses) != 1 {
+			return btcjson.Vout{}, fmt.Errorf("no vout address available")
+		}
 		if vout.Value > 0 && vout.ScriptPubKey.Addresses[0] != sender {
-			return vout
+			return vout, nil
 		}
 	}
-	return btcjson.Vout{}
+	return btcjson.Vout{}, fmt.Errorf("fail to get output matching criteria")
 }
 
 // getSender returns sender address for a btc tx, using vin:0
@@ -672,14 +684,16 @@ func (c *Client) getSender(tx *btcjson.TxRawResult) (string, error) {
 func (c *Client) getMemo(tx *btcjson.TxRawResult) (string, error) {
 	var opreturns string
 	for _, vout := range tx.Vout {
-		if strings.HasPrefix(vout.ScriptPubKey.Asm, "OP_RETURN") {
-			opreturn := strings.Split(vout.ScriptPubKey.Asm, " ")
-			opreturns += opreturn[1]
+		if strings.EqualFold(vout.ScriptPubKey.Type, "nulldata") {
+			opreturn := strings.Fields(vout.ScriptPubKey.Asm)
+			if len(opreturn) == 2 {
+				opreturns += opreturn[1]
+			}
 		}
 	}
 	decoded, err := hex.DecodeString(opreturns)
 	if err != nil {
-		return "", fmt.Errorf("fail to decode OP_RETURN string")
+		return "", fmt.Errorf("fail to decode OP_RETURN string: %s", opreturns)
 	}
 	return string(decoded), nil
 }
