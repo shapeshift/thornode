@@ -34,24 +34,28 @@ import (
 const (
 	BlockCacheSize      = 100
 	MaximumConfirmation = 99999999
+	MaxAsgardAddresses  = 100
 )
 
 // Client observes bitcoin chain and allows to sign and broadcast tx
 type Client struct {
-	logger            zerolog.Logger
-	cfg               config.ChainConfiguration
-	client            *rpcclient.Client
-	chain             common.Chain
-	privateKey        *btcec.PrivateKey
-	blockScanner      *blockscanner.BlockScanner
-	blockMetaAccessor BlockMetaAccessor
-	ksWrapper         *KeySignWrapper
-	bridge            *thorclient.ThorchainBridge
-	globalErrataQueue chan<- types.ErrataBlock
-	nodePubKey        common.PubKey
-	memPoolLock       *sync.Mutex
-	processedMemPool  map[string]bool
-	lastMemPoolScan   time.Time
+	logger             zerolog.Logger
+	cfg                config.ChainConfiguration
+	client             *rpcclient.Client
+	chain              common.Chain
+	privateKey         *btcec.PrivateKey
+	blockScanner       *blockscanner.BlockScanner
+	blockMetaAccessor  BlockMetaAccessor
+	ksWrapper          *KeySignWrapper
+	bridge             *thorclient.ThorchainBridge
+	globalErrataQueue  chan<- types.ErrataBlock
+	nodePubKey         common.PubKey
+	memPoolLock        *sync.Mutex
+	processedMemPool   map[string]bool
+	lastMemPoolScan    time.Time
+	currentBlockHeight int64
+	asgardAddresses    []common.Address
+	lastAsgard         time.Time
 }
 
 // NewClient generates a new Client
@@ -115,10 +119,11 @@ func NewClient(thorKeys *thorclient.Keys, cfg config.ChainConfiguration, server 
 		return c, fmt.Errorf("fail to create block scanner: %w", err)
 	}
 
-	c.blockMetaAccessor, err = NewLevelDBBlockMetaAccessor(storage.GetInternalDb())
+	dbAccessor, err := NewLevelDBBlockMetaAccessor(storage.GetInternalDb())
 	if err != nil {
 		return c, fmt.Errorf("fail to create utxo accessor: %w", err)
 	}
+	c.blockMetaAccessor = dbAccessor
 
 	if err := c.registerAddressInWalletAsWatch(c.nodePubKey); err != nil {
 		return nil, fmt.Errorf("fail to register (%s): %w", c.nodePubKey, err)
@@ -207,6 +212,57 @@ func (c *Client) GetAccountByAddress(string) (common.Account, error) {
 	return common.Account{}, nil
 }
 
+func (c *Client) getAsgardAddress() ([]common.Address, error) {
+	if time.Now().Sub(c.lastAsgard) < constants.ThorchainBlockTime && c.asgardAddresses != nil {
+		return c.asgardAddresses, nil
+	}
+	vaults, err := c.bridge.GetAsgards()
+	if err != nil {
+		return nil, fmt.Errorf("fail to get asgards : %w", err)
+	}
+
+	for _, v := range vaults {
+		addr, err := v.PubKey.GetAddress(common.BTCChain)
+		if err != nil {
+			c.logger.Err(err).Msg("fail to get address")
+			continue
+		}
+		found := false
+		for _, item := range c.asgardAddresses {
+			if item.Equals(addr) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			c.asgardAddresses = append(c.asgardAddresses, addr)
+		}
+
+	}
+	if len(c.asgardAddresses) > MaxAsgardAddresses {
+		startIdx := len(c.asgardAddresses) - MaxAsgardAddresses
+		c.asgardAddresses = c.asgardAddresses[startIdx:]
+	}
+	c.lastAsgard = time.Now()
+	return c.asgardAddresses, nil
+}
+
+func (c *Client) isFromAsgard(txIn types.TxInItem) bool {
+	asgards, err := c.getAsgardAddress()
+	if err != nil {
+		c.logger.Err(err).Msg("fail to get asgard addresses")
+		return false
+	}
+	isFromAsgard := false
+	for _, addr := range asgards {
+		if addr.String() == txIn.Sender {
+			isFromAsgard = true
+			break
+		}
+	}
+	return isFromAsgard
+}
+
 // OnObservedTxIn gets called from observer when we have a valid observation
 // For bitcoin chain client we want to save the utxo we can spend later to sign
 func (c *Client) OnObservedTxIn(txIn types.TxInItem, blockHeight int64) {
@@ -223,8 +279,14 @@ func (c *Client) OnObservedTxIn(txIn types.TxInItem, blockHeight int64) {
 	if blockMeta == nil {
 		blockMeta = NewBlockMeta("", blockHeight, "")
 	}
-	// add the transaction to block meta
-	blockMeta.AddCustomerTransaction(*hash)
+
+	if c.isFromAsgard(txIn) {
+		c.logger.Debug().Msgf("add hash %s as self transaction,block height:%d", hash.String(), blockHeight)
+		blockMeta.AddSelfTransaction(hash.String())
+	} else {
+		// add the transaction to block meta
+		blockMeta.AddCustomerTransaction(hash.String())
+	}
 	if err := c.blockMetaAccessor.SaveBlockMeta(blockHeight, blockMeta); err != nil {
 		c.logger.Err(err).Msgf("fail to save block meta to storage,block height(%d)", blockHeight)
 	}
@@ -263,25 +325,27 @@ func (c *Client) reConfirmTx() error {
 	for _, blockMeta := range blockMetas {
 		var errataTxs []types.ErrataTx
 		for _, tx := range blockMeta.CustomerTransactions {
-			txID := tx.String()
-			if c.confirmTx(&tx) {
-				c.logger.Info().Msgf("block height: %d, tx: %s still exist", blockMeta.Height, txID)
+			h, err := chainhash.NewHashFromStr(tx)
+			if err != nil {
+				c.logger.Info().Msgf("%s invalid transaction hash", tx)
+				continue
+			}
+			if c.confirmTx(h) {
+				c.logger.Info().Msgf("block height: %d, tx: %s still exist", blockMeta.Height, tx)
 				continue
 			}
 			// this means the tx doesn't exist in chain ,thus should errata it
 			errataTxs = append(errataTxs, types.ErrataTx{
-				TxID:  common.TxID(txID),
+				TxID:  common.TxID(tx),
 				Chain: common.BTCChain,
 			})
-			// remove the UTXO from block meta , so signer will not spend it
 			blockMeta.RemoveCustomerTransaction(tx)
 		}
-		if len(errataTxs) == 0 {
-			continue
-		}
-		c.globalErrataQueue <- types.ErrataBlock{
-			Height: blockMeta.Height,
-			Txs:    errataTxs,
+		if len(errataTxs) > 0 {
+			c.globalErrataQueue <- types.ErrataBlock{
+				Height: blockMeta.Height,
+				Txs:    errataTxs,
+			}
 		}
 		// Let's get the block again to fix the block hash
 		r, err := c.getBlock(blockMeta.Height)
@@ -341,11 +405,14 @@ func (c *Client) getMemPool(height int64) (types.TxIn, error) {
 	if err != nil {
 		return types.TxIn{}, fmt.Errorf("fail to get tx hashes from mempool: %w", err)
 	}
-	txIn := types.TxIn{Chain: c.GetChain()}
+	txIn := types.TxIn{
+		Chain:   c.GetChain(),
+		MemPool: true,
+	}
 	for _, h := range hashes {
 		// this hash had been processed before , ignore it
 		if !c.tryAddToMemPoolCache(h.String()) {
-			c.logger.Info().Msgf("%s had been processed , ignore", h.String())
+			c.logger.Debug().Msgf("%s had been processed , ignore", h.String())
 			continue
 		}
 
@@ -361,7 +428,6 @@ func (c *Client) getMemPool(height int64) (types.TxIn, error) {
 		if txInItem.IsEmpty() {
 			continue
 		}
-		txInItem.MemPool = true
 		txIn.TxArray = append(txIn.TxArray, txInItem)
 	}
 	txIn.Count = strconv.Itoa(len(txIn.TxArray))
@@ -390,6 +456,12 @@ func (c *Client) FetchTxs(height int64) (types.TxIn, error) {
 		}
 		return types.TxIn{}, fmt.Errorf("fail to get block: %w", err)
 	}
+
+	// if somehow the block is not valid
+	if block.Hash == "" && block.PreviousHash == "" {
+		return types.TxIn{}, fmt.Errorf("fail to get block: %w", err)
+	}
+	c.currentBlockHeight = height
 	if err := c.processReorg(block); err != nil {
 		c.logger.Err(err).Msg("fail to process bitcoin re-org")
 	}
@@ -415,10 +487,12 @@ func (c *Client) FetchTxs(height int64) (types.TxIn, error) {
 			}
 		}()
 	}
+
 	txs, err := c.extractTxs(block, blockMeta)
 	if err != nil {
 		return types.TxIn{}, fmt.Errorf("fail to extract txs from block: %w", err)
 	}
+
 	if err := c.sendNetworkFee(height); err != nil {
 		c.logger.Err(err).Msg("fail to send network fee")
 	}
@@ -492,7 +566,8 @@ func (c *Client) getTxIn(tx *btcjson.TxRawResult, height int64) (types.TxInItem,
 // extractTxs extracts txs from a block to type TxIn
 func (c *Client) extractTxs(block *btcjson.GetBlockVerboseTxResult, blockMeta *BlockMeta) (types.TxIn, error) {
 	txIn := types.TxIn{
-		Chain: c.GetChain(),
+		Chain:   c.GetChain(),
+		MemPool: false,
 	}
 	var txItems []types.TxInItem
 	for _, tx := range block.Tx {
@@ -502,7 +577,8 @@ func (c *Client) extractTxs(block *btcjson.GetBlockVerboseTxResult, blockMeta *B
 		if err != nil {
 			return types.TxIn{}, fmt.Errorf("fail to parse transaction hash(%s):%w", tx.Hash, err)
 		}
-		if blockMeta.TransactionHashExist(*h) {
+		// if it is an outbound tx , than we already observed it from mempool ,so ignore it
+		if blockMeta.TransactionHashExist(h.String()) {
 			continue
 		}
 		txInItem, err := c.getTxIn(&tx, block.Height)
@@ -512,7 +588,6 @@ func (c *Client) extractTxs(block *btcjson.GetBlockVerboseTxResult, blockMeta *B
 		if txInItem.IsEmpty() {
 			continue
 		}
-		txInItem.MemPool = false
 		txItems = append(txItems, txInItem)
 	}
 	txIn.TxArray = txItems
@@ -656,4 +731,39 @@ func (c *Client) registerAddressInWalletAsWatch(pkey common.PubKey) error {
 // RegisterPublicKey register the given pubkey to bitcoin wallet
 func (c *Client) RegisterPublicKey(pkey common.PubKey) error {
 	return c.registerAddressInWalletAsWatch(pkey)
+}
+
+// getBlockRequiredConfirmation find out how many confirmation the given txIn need to have before it can be send to THORChain
+func (c *Client) getBlockRequiredConfirmation(txIn types.TxIn, height int64) (int64, error) {
+	totalTxValue := txIn.GetTotalTransactionValue(common.BTCAsset)
+	stats, err := c.client.GetBlockStats(height, nil)
+	if err != nil {
+		return 0, fmt.Errorf("fail to get block stats with height(%d): %w", height, err)
+	}
+
+	totalFeeAndSubsidy := txIn.GetTotalGas().AddUint64(uint64(stats.Subsidy))
+	confirm := totalTxValue.MulUint64(2).Quo(totalFeeAndSubsidy).Uint64()
+	c.logger.Debug().Msgf("totalTxValue:%s,total subsidy:%d,total fee and Subsidy:%s,confirmation:%d", totalTxValue, stats.Subsidy, totalFeeAndSubsidy, confirm)
+	return int64(confirm), nil
+}
+
+// ConfirmationCountReady will be called by observer before send the txIn to thorchain
+func (c *Client) ConfirmationCountReady(txIn types.TxIn) bool {
+	if len(txIn.TxArray) == 0 {
+		return true
+	}
+	// MemPool items doesn't need confirmation
+	if txIn.MemPool {
+		return true
+	}
+	blockHeight := txIn.TxArray[0].BlockHeight
+	confirm, err := c.getBlockRequiredConfirmation(txIn, blockHeight)
+	c.logger.Info().Msgf("confirmation required: %d", confirm)
+	if err != nil {
+		return false
+	}
+	if confirm <= 1 {
+		return true
+	}
+	return (c.currentBlockHeight - blockHeight) >= confirm
 }

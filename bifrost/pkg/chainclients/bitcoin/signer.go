@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"strings"
 
 	"github.com/btcsuite/btcd/btcec"
 	"github.com/btcsuite/btcd/btcjson"
@@ -28,6 +29,7 @@ const (
 	SatsPervBytes = 25
 	// MinUTXOConfirmation UTXO that has less confirmation then this will not be spent , unless it is yggdrasil
 	MinUTXOConfirmation = 10
+	MaxBTCFee           = 0.1
 )
 
 func getBTCPrivateKey(key crypto.PrivKey) (*btcec.PrivateKey, error) {
@@ -123,7 +125,8 @@ func (c *Client) isSelfTransaction(txID string) bool {
 	}
 	for _, item := range bms {
 		for _, tx := range item.SelfTransactions {
-			if tx.String() == txID {
+			if strings.EqualFold(tx, txID) {
+				c.logger.Info().Msgf("%s is self transaction", txID)
 				return true
 			}
 		}
@@ -217,6 +220,9 @@ func (c *Client) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, err
 	vSize := mempool.GetTxVirtualSize(btcutil.NewTx(redeemTx))
 	gasCoin := c.getGasCoin(tx, vSize)
 	gasAmt := btcutil.Amount(int64(gasCoin.Amount.Uint64()))
+	if gasAmt.ToBTC() > MaxBTCFee {
+		gasAmt, _ = btcutil.NewAmount(MaxBTCFee)
+	}
 	if err := c.blockMetaAccessor.UpsertTransactionFee(gasAmt.ToBTC(), int32(vSize)); err != nil {
 		c.logger.Err(err).Msg("fail to save gas info to UTXO storage")
 	}
@@ -300,16 +306,22 @@ func (c *Client) BroadcastTx(txOut stypes.TxOutItem, payload []byte) error {
 	if err != nil {
 		return fmt.Errorf("fail to get block height: %w", err)
 	}
-	bm := NewBlockMeta("", height, "")
+	bm, err := c.blockMetaAccessor.GetBlockMeta(height)
+	if err != nil {
+		c.logger.Err(err).Msgf("fail to get blockmeta for heigth: %d", height)
+	}
+	if bm == nil {
+		bm = NewBlockMeta("", height, "")
+	}
 	defer func() {
 		if err := c.blockMetaAccessor.SaveBlockMeta(height, bm); err != nil {
 			c.logger.Err(err).Msg("fail to save block metadata")
 		}
 	}()
 	// broadcast tx
-	txHash, err := c.client.SendRawTransaction(redeemTx, false)
+	txHash, err := c.client.SendRawTransaction(redeemTx, true)
 	if txHash != nil {
-		bm.AddSelfTransaction(*txHash)
+		bm.AddSelfTransaction(txHash.String())
 	}
 	if err != nil {
 		if rpcErr, ok := err.(*btcjson.RPCError); ok && rpcErr.Code == btcjson.ErrRPCTxAlreadyInChain {
