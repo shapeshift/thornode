@@ -197,7 +197,11 @@ func (s *BitcoinSuite) TestGetMemo(c *C) {
 		Vout: []btcjson.Vout{
 			{
 				ScriptPubKey: btcjson.ScriptPubKeyResult{
-					Asm: "OP_RETURN 74686f72636861696e3a636f6e736f6c6964617465",
+					Asm:       "OP_RETURN 74686f72636861696e3a636f6e736f6c6964617465",
+					Hex:       "",
+					ReqSigs:   0,
+					Type:      "nulldata",
+					Addresses: nil,
 				},
 			},
 		},
@@ -210,12 +214,14 @@ func (s *BitcoinSuite) TestGetMemo(c *C) {
 		Vout: []btcjson.Vout{
 			{
 				ScriptPubKey: btcjson.ScriptPubKeyResult{
-					Asm: "OP_RETURN 737761703a6574682e3078633534633135313236393646334541373935366264396144343130383138654563414443466666663a30786335346331353132363936463345413739353662643961443431",
+					Asm:  "OP_RETURN 737761703a6574682e3078633534633135313236393646334541373935366264396144343130383138654563414443466666663a30786335346331353132363936463345413739353662643961443431",
+					Type: "nulldata",
 				},
 			},
 			{
 				ScriptPubKey: btcjson.ScriptPubKeyResult{
-					Asm: "OP_RETURN 30383138654563414443466666663a3130303030303030303030",
+					Asm:  "OP_RETURN 30383138654563414443466666663a3130303030303030303030",
+					Type: "nulldata",
 				},
 			},
 		},
@@ -250,7 +256,9 @@ func (s *BitcoinSuite) TestIgnoreTx(c *C) {
 			},
 			{
 				ScriptPubKey: btcjson.ScriptPubKeyResult{
-					Asm: "OP_RETURN 74686f72636861696e3a636f6e736f6c6964617465",
+					Asm:       "OP_RETURN 74686f72636861696e3a636f6e736f6c6964617465",
+					Addresses: []string{"tb1qkq7weysjn6ljc2ywmjmwp8ttcckg8yyxjdz5k6"},
+					Type:      "nulldata",
 				},
 			},
 		},

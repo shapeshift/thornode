@@ -193,7 +193,11 @@ func (ymgr YggMgrV13) sendCoinsToYggdrasil(ctx cosmos.Context, coins common.Coin
 				ctx.Logger().Error("fail to get address for pubkey", "pubkey", ygg.PubKey, "chain", coin.Asset.Chain, "error", err)
 				continue
 			}
-
+			gasCoin, err := mgr.GasMgr().GetMaxGas(ctx, coin.Asset.Chain)
+			if err != nil {
+				ctx.Logger().Error("fail to get max gas coin", "error", err)
+				continue
+			}
 			toi := &TxOutItem{
 				Chain:       coin.Asset.Chain,
 				ToAddress:   to,
@@ -201,6 +205,9 @@ func (ymgr YggMgrV13) sendCoinsToYggdrasil(ctx cosmos.Context, coins common.Coin
 				Memo:        NewYggdrasilFund(common.BlockHeight(ctx)).String(),
 				Coin:        coin,
 				VaultPubKey: vault.PubKey,
+				MaxGas: common.Gas{
+					gasCoin,
+				},
 			}
 			if err := mgr.TxOutStore().UnSafeAddTxOutItem(ctx, mgr, toi); err != nil {
 				return count, err

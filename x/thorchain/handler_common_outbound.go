@@ -1,6 +1,8 @@
 package thorchain
 
 import (
+	"fmt"
+
 	"github.com/blang/semver"
 
 	"gitlab.com/thorchain/thornode/common"
@@ -86,13 +88,25 @@ func (h CommonOutboundTxHandler) handle(ctx cosmos.Context, version semver.Versi
 			// outbound tx hash correctly given every tx item will only have
 			// one coin in it , THORNode could use that to identify which tx it
 			// is
+
+			matchCoin := tx.Tx.Coins.Equals(common.Coins{txOutItem.Coin})
+			// when outbound is gas asset
+			if !matchCoin && txOutItem.Coin.Asset.Equals(txOutItem.Chain.GetGasAsset()) {
+				asset := txOutItem.Chain.GetGasAsset()
+				intendToSpend := txOutItem.Coin.Amount.Add(txOutItem.MaxGas.ToCoins().GetCoin(asset).Amount)
+				actualSpend := tx.Tx.Coins.GetCoin(asset).Amount.Add(tx.Tx.Gas.ToCoins().GetCoin(asset).Amount)
+				if intendToSpend.Equal(actualSpend) {
+					ctx.Logger().Info(fmt.Sprintf("intend to spend: %s, actual spend: %s are the same , override match coin", intendToSpend, actualSpend))
+					matchCoin = true
+				}
+			}
+
 			if txOutItem.InHash.Equals(inTxID) &&
 				txOutItem.OutHash.IsEmpty() &&
-				tx.Tx.Coins.Equals(common.Coins{txOutItem.Coin}) &&
+				matchCoin &&
 				tx.Tx.Chain.Equals(txOutItem.Chain) &&
 				tx.Tx.ToAddress.Equals(txOutItem.ToAddress) &&
 				tx.ObservedPubKey.Equals(txOutItem.VaultPubKey) {
-
 				txOut.TxArray[i].OutHash = tx.Tx.ID
 				shouldSlash = false
 
@@ -101,6 +115,7 @@ func (h CommonOutboundTxHandler) handle(ctx cosmos.Context, version semver.Versi
 				}
 				break
 			}
+
 		}
 	}
 
