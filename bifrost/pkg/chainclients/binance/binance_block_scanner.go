@@ -241,6 +241,8 @@ func (b *BinanceBlockScanner) processBlock(block blockscanner.Block) (stypes.TxI
 
 	txIn.Count = strconv.Itoa(len(txIn.TxArray))
 	txIn.Chain = common.BNBChain
+	txIn.MemPool = false
+	txIn.Filtered = false
 	return txIn, nil
 }
 

@@ -209,6 +209,8 @@ func (e *BlockScanner) extractTxs(block *etypes.Block) (stypes.TxIn, error) {
 	}
 	txIn.Count = strconv.Itoa(len(txIn.TxArray))
 	txIn.Chain = common.ETHChain
+	txIn.Filtered = false
+	txIn.MemPool = false
 	return txIn, nil
 }
 

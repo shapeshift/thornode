@@ -16,7 +16,6 @@ import (
 	ctypes "github.com/binance-chain/go-sdk/common/types"
 	"github.com/btcsuite/btcd/btcec"
 	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/cosmos/cosmos-sdk/client/keys"
 	cKeys "github.com/cosmos/cosmos-sdk/crypto/keys"
 	"github.com/syndtr/goleveldb/leveldb"
@@ -223,12 +222,12 @@ func (s *BitcoinSignerSuite) TestSignTxHappyPathWithPrivateKey(c *C) {
 		InHash:  "",
 		OutHash: "",
 	}
-	txHash, err := chainhash.NewHashFromStr("256222fb25a9950479bb26049a2c00e75b89abbb7f0cf646c623b93e942c4c34")
+	txHash := "256222fb25a9950479bb26049a2c00e75b89abbb7f0cf646c623b93e942c4c34"
 	c.Assert(err, IsNil)
 	blockMeta := NewBlockMeta("000000000000008a0da55afa8432af3b15c225cc7e04d32f0de912702dd9e2ae",
 		100,
 		"0000000000000068f0710c510e94bd29aa624745da43e32a1de887387306bfda")
-	blockMeta.AddCustomerTransaction(*txHash)
+	blockMeta.AddCustomerTransaction(txHash)
 	c.Assert(s.client.blockMetaAccessor.SaveBlockMeta(blockMeta.Height, blockMeta), IsNil)
 	priKeyBuf, err := hex.DecodeString("b404c5ec58116b5f0fe13464a92e46626fc5db130e418cbce98df86ffe9317c5")
 	c.Assert(err, IsNil)
@@ -261,12 +260,12 @@ func (s *BitcoinSignerSuite) TestSignTxWithoutPredefinedMaxGas(c *C) {
 		InHash:  "",
 		OutHash: "",
 	}
-	txHash, err := chainhash.NewHashFromStr("256222fb25a9950479bb26049a2c00e75b89abbb7f0cf646c623b93e942c4c34")
+	txHash := "256222fb25a9950479bb26049a2c00e75b89abbb7f0cf646c623b93e942c4c34"
 	c.Assert(err, IsNil)
 	blockMeta := NewBlockMeta("000000000000008a0da55afa8432af3b15c225cc7e04d32f0de912702dd9e2ae",
 		100,
 		"0000000000000068f0710c510e94bd29aa624745da43e32a1de887387306bfda")
-	blockMeta.AddCustomerTransaction(*txHash)
+	blockMeta.AddCustomerTransaction(txHash)
 	c.Assert(s.client.blockMetaAccessor.SaveBlockMeta(blockMeta.Height, blockMeta), IsNil)
 	priKeyBuf, err := hex.DecodeString("b404c5ec58116b5f0fe13464a92e46626fc5db130e418cbce98df86ffe9317c5")
 	c.Assert(err, IsNil)
@@ -310,13 +309,13 @@ func (s *BitcoinSignerSuite) TestSignTxWithTSS(c *C) {
 	}
 	thorKeyManager := &tss.MockThorchainKeyManager{}
 	s.client.ksWrapper, err = NewKeySignWrapper(s.client.privateKey, s.client.bridge, thorKeyManager, s.keySignPartyMgr)
-	txHash, err := chainhash.NewHashFromStr("66d2d6b5eb564972c59e4797683a1225a02515a41119f0a8919381236b63e948")
+	txHash := "66d2d6b5eb564972c59e4797683a1225a02515a41119f0a8919381236b63e948"
 	c.Assert(err, IsNil)
 	// utxo := NewUnspentTransactionOutput(*txHash, 0, 0.00018, 100, txOutItem.VaultPubKey)
 	blockMeta := NewBlockMeta("000000000000008a0da55afa8432af3b15c225cc7e04d32f0de912702dd9e2ae",
 		100,
 		"0000000000000068f0710c510e94bd29aa624745da43e32a1de887387306bfda")
-	blockMeta.AddCustomerTransaction(*txHash)
+	blockMeta.AddCustomerTransaction(txHash)
 	c.Assert(s.client.blockMetaAccessor.SaveBlockMeta(blockMeta.Height, blockMeta), IsNil)
 	buf, err := s.client.SignTx(txOutItem, 1)
 	c.Assert(err, IsNil)
@@ -348,9 +347,8 @@ func (s *BitcoinSignerSuite) TestBroadcastTx(c *C) {
 func (s *BitcoinSignerSuite) TestIsSelfTransaction(c *C) {
 	c.Check(s.client.isSelfTransaction("66d2d6b5eb564972c59e4797683a1225a02515a41119f0a8919381236b63e948"), Equals, false)
 	bm := NewBlockMeta("", 1024, "")
-	hash, err := chainhash.NewHashFromStr("66d2d6b5eb564972c59e4797683a1225a02515a41119f0a8919381236b63e948")
-	c.Assert(err, IsNil)
-	bm.AddSelfTransaction(*hash)
+	hash := "66d2d6b5eb564972c59e4797683a1225a02515a41119f0a8919381236b63e948"
+	bm.AddSelfTransaction(hash)
 	s.client.blockMetaAccessor.SaveBlockMeta(1024, bm)
 	c.Check(s.client.isSelfTransaction("66d2d6b5eb564972c59e4797683a1225a02515a41119f0a8919381236b63e948"), Equals, true)
 }

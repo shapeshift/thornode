@@ -279,3 +279,9 @@ func (c *Client) BroadcastTx(stx stypes.TxOutItem, hexTx []byte) error {
 	}
 	return nil
 }
+
+// ConfirmationCountReady check whether the given txIn is ready to be send to THORChain
+func (c *Client) ConfirmationCountReady(txIn stypes.TxIn) bool {
+	// TODO add confirmation logic for ETH
+	return true
+}

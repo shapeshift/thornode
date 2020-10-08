@@ -2,13 +2,16 @@ package types
 
 import (
 	"gitlab.com/thorchain/thornode/common"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 	memo "gitlab.com/thorchain/thornode/x/thorchain/memo"
 )
 
 type TxIn struct {
-	Count   string       `json:"count"`
-	Chain   common.Chain `json:"chain"`
-	TxArray []TxInItem   `json:"txArray"`
+	Count    string       `json:"count"`
+	Chain    common.Chain `json:"chain"`
+	TxArray  []TxInItem   `json:"txArray"`
+	Filtered bool         `json:"filtered"`
+	MemPool  bool         `json:"mem_pool"` // indicate whether this item is in the mempool or not
 }
 
 type TxInItem struct {
@@ -20,7 +23,6 @@ type TxInItem struct {
 	Coins               common.Coins  `json:"coins"`
 	Gas                 common.Gas    `json:"gas"`
 	ObservedVaultPubKey common.PubKey `json:"observed_vault_pub_key"`
-	MemPool             bool          `json:"mem_pool"` // indicate whether this item is in the mempool or not
 }
 type TxInStatus byte
 
@@ -56,4 +58,38 @@ func (t TxInItem) IsEmpty() bool {
 		return true
 	}
 	return false
+}
+
+// GetTotalTransactionValue return the total value of the requested asset
+func (t TxIn) GetTotalTransactionValue(asset common.Asset) cosmos.Uint {
+	total := cosmos.ZeroUint()
+	if len(t.TxArray) == 0 {
+		return total
+	}
+	for _, item := range t.TxArray {
+		c := item.Coins.GetCoin(asset)
+		if c.IsEmpty() {
+			continue
+		}
+		total = total.Add(c.Amount)
+	}
+	return total
+}
+
+// GetTotalGas return the total gas
+func (t TxIn) GetTotalGas() cosmos.Uint {
+	total := cosmos.ZeroUint()
+	if len(t.TxArray) == 0 {
+		return total
+	}
+	for _, item := range t.TxArray {
+		if item.Gas == nil {
+			continue
+		}
+		if err := item.Gas.Valid(); err != nil {
+			continue
+		}
+		total = total.Add(item.Gas[0].Amount)
+	}
+	return total
 }

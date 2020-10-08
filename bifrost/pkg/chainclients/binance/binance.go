@@ -523,3 +523,8 @@ func (b *Binance) BroadcastTx(tx stypes.TxOutItem, hexTx []byte) error {
 
 	return nil
 }
+
+// ConfirmationCountReady binance chain has almost instant finality , so doesn't need to wait for confirmation
+func (b *Binance) ConfirmationCountReady(txIn stypes.TxIn) bool {
+	return true
+}
