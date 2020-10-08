@@ -1,16 +1,16 @@
 package bitcoin
 
 import (
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
+	"strings"
 )
 
 // BlockMeta is a structure to store the blocks bifrost scanned
 type BlockMeta struct {
-	PreviousHash         string           `json:"previous_hash"`
-	Height               int64            `json:"height"`
-	BlockHash            string           `json:"block_hash"`
-	SelfTransactions     []chainhash.Hash `json:"self_transactions"`     // keep the transactions that broadcast by itself
-	CustomerTransactions []chainhash.Hash `json:"customer_transactions"` // keep the transactions that from customer
+	PreviousHash         string   `json:"previous_hash"`
+	Height               int64    `json:"height"`
+	BlockHash            string   `json:"block_hash"`
+	SelfTransactions     []string `json:"self_transactions,omitempty"`     // keep the transactions that broadcast by itself
+	CustomerTransactions []string `json:"customer_transactions,omitempty"` // keep the transactions that from customer
 }
 
 // NewBlockMeta create a new instance of BlockMeta
@@ -23,14 +23,14 @@ func NewBlockMeta(previousHash string, height int64, blockHash string) *BlockMet
 }
 
 // TransactionHashExist check whether the given traction hash exist in the block meta
-func (b *BlockMeta) TransactionHashExist(hash chainhash.Hash) bool {
+func (b *BlockMeta) TransactionHashExist(hash string) bool {
 	for _, item := range b.CustomerTransactions {
-		if item.IsEqual(&hash) {
+		if strings.EqualFold(item, hash) {
 			return true
 		}
 	}
 	for _, item := range b.SelfTransactions {
-		if item.IsEqual(&hash) {
+		if strings.EqualFold(item, hash) {
 			return true
 		}
 	}
@@ -38,14 +38,14 @@ func (b *BlockMeta) TransactionHashExist(hash chainhash.Hash) bool {
 }
 
 // AddSelfTransaction add the given Transaction into block meta
-func (b *BlockMeta) AddSelfTransaction(txID chainhash.Hash) {
+func (b *BlockMeta) AddSelfTransaction(txID string) {
 	b.SelfTransactions = addTransaction(b.SelfTransactions, txID)
 }
 
-func addTransaction(hashes []chainhash.Hash, txID chainhash.Hash) []chainhash.Hash {
+func addTransaction(hashes []string, txID string) []string {
 	var exist bool
 	for _, tx := range hashes {
-		if tx.String() == txID.String() {
+		if strings.EqualFold(tx, txID) {
 			exist = true
 			break
 		}
@@ -57,28 +57,32 @@ func addTransaction(hashes []chainhash.Hash, txID chainhash.Hash) []chainhash.Ha
 }
 
 // AddCustomerTransaction add the given Transaction into block meta
-func (b *BlockMeta) AddCustomerTransaction(txID chainhash.Hash) {
+func (b *BlockMeta) AddCustomerTransaction(txID string) {
 	for _, tx := range b.SelfTransactions {
-		if tx.String() == txID.String() {
+		if strings.EqualFold(tx, txID) {
 			return
 		}
 	}
 	b.CustomerTransactions = addTransaction(b.CustomerTransactions, txID)
 }
 
-func removeTransaction(hashes []chainhash.Hash, txID chainhash.Hash) []chainhash.Hash {
+func removeTransaction(hashes []string, txID string) []string {
 	idx := 0
+	toDelete := false
 	for i, tx := range hashes {
-		if tx.String() == txID.String() {
+		if strings.EqualFold(tx, txID) {
 			idx = i
+			toDelete = true
 			break
 		}
 	}
-	hashes = append(hashes[:idx], hashes[idx+1:]...)
+	if toDelete {
+		hashes = append(hashes[:idx], hashes[idx+1:]...)
+	}
 	return hashes
 }
 
 // RemoveCustomerTransaction remove the given transaction from the block
-func (b *BlockMeta) RemoveCustomerTransaction(txID chainhash.Hash) {
+func (b *BlockMeta) RemoveCustomerTransaction(txID string) {
 	b.CustomerTransactions = removeTransaction(b.CustomerTransactions, txID)
 }

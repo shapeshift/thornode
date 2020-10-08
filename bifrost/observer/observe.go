@@ -91,34 +91,54 @@ func (o *Observer) deck() {
 func (o *Observer) sendDeck() {
 	o.lock.Lock()
 	defer o.lock.Unlock()
-	for i, deck := range o.onDeck {
-		deck.TxArray = o.filterObservations(deck.Chain, deck.TxArray)
-		deck.TxArray = o.filterBinanceMemoFlag(deck.Chain, deck.TxArray)
-		for _, txIn := range o.chunkify(deck) {
-			if err := o.signAndSendToThorchain(txIn); err != nil {
-				o.logger.Error().Err(err).Msg("fail to send to thorchain")
-				// retry later
-				o.onDeck[i].TxArray = append(o.onDeck[i].TxArray, txIn.TxArray...)
-				continue
-			}
-			// check if chain client has OnObservedTxIn method then call it
-			chainClient, err := o.getChain(txIn.Chain)
-			if err != nil {
-				o.logger.Error().Err(err).Msg("fail to retrieve chain client")
-				continue
-			}
+	newDeck := make([]types.TxIn, 0)
+	for _, deck := range o.onDeck {
+		// retried txIn will be filtered already, doesn't need to filter it again
+		if !deck.Filtered {
+			deck.TxArray = o.filterObservations(deck.Chain, deck.TxArray, deck.MemPool)
+			deck.TxArray = o.filterBinanceMemoFlag(deck.Chain, deck.TxArray)
+		}
+		// check if chain client has OnObservedTxIn method then call it
+		chainClient, err := o.getChain(deck.Chain)
+		if err != nil {
+			o.logger.Error().Err(err).Msg("fail to retrieve chain client")
+			continue
+		}
 
-			i, ok := chainClient.(interface {
-				OnObservedTxIn(txIn types.TxInItem, blockHeight int64)
-			})
-			if ok {
-				for _, item := range txIn.TxArray {
-					i.OnObservedTxIn(item, item.BlockHeight)
+		newTxIn := types.TxIn{
+			Chain:    deck.Chain,
+			Filtered: true,
+			MemPool:  deck.MemPool,
+		}
+
+		if !chainClient.ConfirmationCountReady(deck) {
+			// TxIn doesn't have enough confirmation , add it back to queue, and try it later
+			newTxIn.TxArray = append(newTxIn.TxArray, deck.TxArray...)
+		} else {
+			for _, txIn := range o.chunkify(deck) {
+				if err := o.signAndSendToThorchain(txIn); err != nil {
+					o.logger.Error().Err(err).Msg("fail to send to THORChain")
+					// tx failed to be forward to THORChain will be added back to queue , and retry later
+					newTxIn.TxArray = append(newTxIn.TxArray, txIn.TxArray...)
+					continue
+				}
+
+				i, ok := chainClient.(interface {
+					OnObservedTxIn(txIn types.TxInItem, blockHeight int64)
+				})
+				if ok {
+					for _, item := range txIn.TxArray {
+						i.OnObservedTxIn(item, item.BlockHeight)
+					}
 				}
 			}
 		}
+		if len(newTxIn.TxArray) > 0 {
+			newTxIn.Count = strconv.Itoa(len(newTxIn.TxArray))
+			newDeck = append(newDeck, newTxIn)
+		}
 	}
-	o.onDeck = make([]types.TxIn, 0)
+	o.onDeck = newDeck
 }
 
 func (o *Observer) processTxIns() {
@@ -151,7 +171,7 @@ func (o *Observer) isOutboundMsg(chain common.Chain, fromAddr string) bool {
 	return false
 }
 
-// chunkify - breaks the observations into 100 transactions per observation
+// chunkify  breaks the observations into 100 transactions per observation
 func (o *Observer) chunkify(txIn types.TxIn) (result []types.TxIn) {
 	// sort it by block height
 	sort.SliceStable(txIn.TxArray, func(i, j int) bool {
@@ -159,7 +179,9 @@ func (o *Observer) chunkify(txIn types.TxIn) (result []types.TxIn) {
 	})
 	for len(txIn.TxArray) > 0 {
 		newTx := types.TxIn{
-			Chain: txIn.Chain,
+			Chain:    txIn.Chain,
+			MemPool:  txIn.MemPool,
+			Filtered: txIn.Filtered,
 		}
 		if len(txIn.TxArray) > maxTxArrayLen {
 			newTx.Count = fmt.Sprintf("%d", maxTxArrayLen)
@@ -175,7 +197,7 @@ func (o *Observer) chunkify(txIn types.TxIn) (result []types.TxIn) {
 	return result
 }
 
-func (o *Observer) filterObservations(chain common.Chain, items []types.TxInItem) (txs []types.TxInItem) {
+func (o *Observer) filterObservations(chain common.Chain, items []types.TxInItem, memPool bool) (txs []types.TxInItem) {
 	for _, txInItem := range items {
 		// NOTE: the following could result in the same tx being added
 		// twice, which is expected. We want to make sure we generate both
@@ -188,7 +210,7 @@ func (o *Observer) filterObservations(chain common.Chain, items []types.TxInItem
 		}
 		// check if the to address is a valid pool address
 		// for inbound message , if it is still in mempool , let's ignore it
-		if ok, cpi := o.pubkeyMgr.IsValidPoolAddress(txInItem.To, chain); ok && !txInItem.MemPool {
+		if ok, cpi := o.pubkeyMgr.IsValidPoolAddress(txInItem.To, chain); ok && !memPool {
 			txInItem.ObservedVaultPubKey = cpi.PubKey
 			txs = append(txs, txInItem)
 		}
@@ -245,12 +267,38 @@ func (o *Observer) processErrataTx() {
 			if !more {
 				return
 			}
+			// filter
+			o.filterErrataTx(errataBlock)
 			o.logger.Info().Msgf("Received a errata block %+v from the Thorchain", errataBlock.Height)
 			for _, errataTx := range errataBlock.Txs {
 				if err := o.sendErrataTxToThorchain(errataBlock.Height, errataTx.TxID, errataTx.Chain); err != nil {
 					o.errCounter.WithLabelValues("fail_to_broadcast_errata_tx", "").Inc()
 					o.logger.Error().Err(err).Msg("fail to broadcast errata tx")
 				}
+			}
+		}
+	}
+}
+
+// filterErrataTx with confirmation counting logic in place, all inbound tx to asgard will be parked and waiting for confirmation count to reach
+// the target threshold before it get forward to THORChain,  it is possible that when a re-org happened on BTC / ETH
+// the transaction that has been re-org out ,still in bifrost memory waiting for confirmation, as such, it should be
+// removed from ondeck tx queue, and not forward it to THORChain
+func (o *Observer) filterErrataTx(block types.ErrataBlock) {
+	o.lock.Lock()
+	defer o.lock.Unlock()
+	for _, tx := range block.Txs {
+		for deckIdx, txIn := range o.onDeck {
+			idx := -1
+			for i, item := range txIn.TxArray {
+				if item.Tx == tx.TxID.String() {
+					idx = i
+					break
+				}
+			}
+			if idx != -1 {
+				o.logger.Info().Msgf("drop tx (%s) from ondeck memory due to errata", tx.TxID)
+				o.onDeck[deckIdx].TxArray = append(txIn.TxArray[:idx], txIn.TxArray[idx+1:]...)
 			}
 		}
 	}
