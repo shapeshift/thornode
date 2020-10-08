@@ -138,13 +138,15 @@ func (b *BlockScanner) scanBlocks() {
 				case b.globalTxsQueue <- txInMemPool:
 				}
 			}
+			b.logger.Debug().Int64("block height", currentBlock).Msg("fetch txs")
 			txIn, err := b.chainScanner.FetchTxs(currentBlock)
 			if err != nil {
 				// don't log an error if its because the block doesn't exist yet
 				if !errors.Is(err, btypes.UnavailableBlock) {
 					b.errorCounter.WithLabelValues("fail_get_block", "").Inc()
-					b.logger.Error().Err(err).Msg("fail to get RPCBlock")
+					b.logger.Error().Err(err).Int64("block height", currentBlock).Msg("fail to get RPCBlock")
 				}
+				time.Sleep(b.cfg.BlockHeightDiscoverBackoff)
 				continue
 			}
 

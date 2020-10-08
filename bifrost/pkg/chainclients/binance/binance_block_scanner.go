@@ -70,7 +70,7 @@ func NewBinanceBlockScanner(cfg config.BlockScannerConfiguration,
 
 	return &BinanceBlockScanner{
 		cfg:        cfg,
-		logger:     log.Logger.With().Str("module", "blockscanner").Str("chain", "binance").Logger(),
+		logger:     log.Logger.With().Str("module", "blockscanner").Str("chain", "BNB").Logger(),
 		db:         scanStorage,
 		errCounter: m.GetCounterVec(metrics.BlockScanError(common.BNBChain)),
 		http:       netClient,
@@ -307,7 +307,6 @@ func (b *BinanceBlockScanner) getRPCBlock(height int64) ([]string, error) {
 	buf, err := b.getFromHttp(url)
 	if err != nil {
 		b.errCounter.WithLabelValues("fail_get_block", url).Inc()
-		time.Sleep(b.cfg.BlockHeightDiscoverBackoff)
 		if strings.Contains(err.Error(), "Height must be less than or equal to the current blockchain height") {
 			return nil, bltypes.UnavailableBlock
 		}

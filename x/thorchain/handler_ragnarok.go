@@ -1,6 +1,8 @@
 package thorchain
 
 import (
+	"fmt"
+
 	"github.com/blang/semver"
 
 	"gitlab.com/thorchain/thornode/common"
@@ -85,10 +87,22 @@ func (h RagnarokHandler) handleV1(ctx cosmos.Context, version semver.Version, ms
 			// it use ragnarok:{block height} to mark a tx out caused by the ragnarok protocol
 			// this type of tx out is special, because it doesn't have relevant tx
 			// in to trigger it, it is trigger by thorchain itself.
+
 			fromAddress, _ := tx.VaultPubKey.GetAddress(tx.Chain)
+			matchCoin := msg.Tx.Tx.Coins.Equals(common.Coins{tx.Coin})
+			// when outbound is gas asset
+			if !matchCoin && tx.Coin.Asset.Equals(tx.Chain.GetGasAsset()) {
+				asset := tx.Chain.GetGasAsset()
+				intendToSpend := tx.Coin.Amount.Add(tx.MaxGas.ToCoins().GetCoin(asset).Amount)
+				actualSpend := msg.Tx.Tx.Coins.GetCoin(asset).Amount.Add(msg.Tx.Tx.Gas.ToCoins().GetCoin(asset).Amount)
+				if intendToSpend.Equal(actualSpend) {
+					ctx.Logger().Info(fmt.Sprintf("intend to spend: %s, actual spend: %s are the same , override match coin", intendToSpend, actualSpend))
+					matchCoin = true
+				}
+			}
 			if tx.InHash.Equals(common.BlankTxID) &&
 				tx.OutHash.IsEmpty() &&
-				msg.Tx.Tx.Coins.Contains(tx.Coin) &&
+				matchCoin &&
 				tx.ToAddress.Equals(msg.Tx.Tx.ToAddress) &&
 				fromAddress.Equals(msg.Tx.Tx.FromAddress) {
 
