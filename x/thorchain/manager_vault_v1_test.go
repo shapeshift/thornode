@@ -61,6 +61,14 @@ func (k *TestRagnarokChainKeeper) GetVault(_ cosmos.Context, _ common.PubKey) (V
 	return k.yggVault, k.err
 }
 
+func (k *TestRagnarokChainKeeper) GetMostSecure(ctx cosmos.Context, vaults Vaults, signingTransPeriod int64) Vault {
+	return vaults[0]
+}
+
+func (k *TestRagnarokChainKeeper) GetLeastSecure(ctx cosmos.Context, vaults Vaults, signingTransPeriod int64) Vault {
+	return vaults[0]
+}
+
 func (k *TestRagnarokChainKeeper) GetPools(_ cosmos.Context) (Pools, error) {
 	return k.pools, k.err
 }
