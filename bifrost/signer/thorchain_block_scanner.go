@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"sync"
-	"time"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/prometheus/client_golang/prometheus"
@@ -46,7 +45,7 @@ func NewThorchainBlockScan(cfg config.BlockScannerConfiguration, scanStorage blo
 		return nil, errors.New("metric is nil")
 	}
 	return &ThorchainBlockScan{
-		logger:         log.With().Str("module", "thorchainblockscanner").Logger(),
+		logger:         log.With().Str("module", "blockscanner").Str("chain", "THOR").Logger(),
 		wg:             &sync.WaitGroup{},
 		stopChan:       make(chan struct{}),
 		txOutChan:      make(chan types.TxOut),
@@ -79,11 +78,9 @@ func (c *ThorchainBlockScan) FetchMemPool(height int64) (types.TxIn, error) {
 
 func (b *ThorchainBlockScan) FetchTxs(height int64) (stypes.TxIn, error) {
 	if err := b.processTxOutBlock(height); err != nil {
-		time.Sleep(b.cfg.BlockHeightDiscoverBackoff)
 		return stypes.TxIn{}, err
 	}
 	if err := b.processKeygenBlock(height); err != nil {
-		time.Sleep(b.cfg.BlockHeightDiscoverBackoff)
 		return stypes.TxIn{}, err
 	}
 	return stypes.TxIn{}, nil
