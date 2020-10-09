@@ -80,7 +80,7 @@ func (k KVStore) SortBySecurity(ctx cosmos.Context, vaults Vaults, signingTransP
 		if h < 1 {
 			h = 1
 		}
-		for height := h; height >= common.BlockHeight(ctx); height += 1 {
+		for height := h; height <= common.BlockHeight(ctx); height += 1 {
 			txOut, err := k.GetTxOut(ctx, height)
 			if err != nil {
 				ctx.Logger().Error("unable to get txout", "error", err)

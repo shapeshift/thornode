@@ -135,13 +135,19 @@ func (tos *TxOutStorageV13) prepareTxOutItem(ctx cosmos.Context, toi *TxOutItem)
 			if err != nil {
 				ctx.Logger().Error("fail to get active vaults", "error", err)
 			}
-			vault := active.SelectByMaxCoin(toi.Coin.Asset)
+
+			// filter active vaults that don't have enough funds to send requested amount
+			filterVaults := make(Vaults, 0)
+			for _, v := range active {
+				if !toi.Coin.Amount.GT(v.GetCoin(toi.Coin.Asset).Amount) {
+					filterVaults = append(filterVaults, v)
+				}
+			}
+			signingTransactionPeriod := tos.constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
+			vault := tos.keeper.GetLeastSecure(ctx, filterVaults, signingTransactionPeriod)
 			if vault.IsEmpty() {
 				return false, fmt.Errorf("empty vault, cannot send out fund: %s", toi.Coin)
-			}
-
-			// check that this vault has enough funds to satisfy the request
-			if !toi.Coin.Amount.GT(vault.GetCoin(toi.Coin.Asset).Amount) {
+			} else {
 				toi.VaultPubKey = vault.PubKey
 			}
 		}

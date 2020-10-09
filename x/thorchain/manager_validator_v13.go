@@ -292,7 +292,7 @@ func (vm *validatorMgrV13) EndBlock(ctx cosmos.Context, mgr Manager, constAccess
 		}
 
 		// return yggdrasil funds
-		if err := vm.RequestYggReturn(ctx, na, mgr); err != nil {
+		if err := vm.RequestYggReturn(ctx, na, mgr, constAccessor); err != nil {
 			ctx.Logger().Error("fail to request yggdrasil funds return", "error", err)
 		}
 
@@ -434,7 +434,7 @@ func (vm *validatorMgrV13) processRagnarok(ctx cosmos.Context, mgr Manager, cons
 	if ragnarokHeight == 0 {
 		ragnarokHeight = common.BlockHeight(ctx)
 		vm.k.SetRagnarokBlockHeight(ctx, ragnarokHeight)
-		if err := vm.ragnarokProtocolStage1(ctx, mgr); err != nil {
+		if err := vm.ragnarokProtocolStage1(ctx, mgr, constAccessor); err != nil {
 			return fmt.Errorf("fail to execute ragnarok protocol step 1: %w", err)
 		}
 		if err := vm.ragnarokBondReward(ctx); err != nil {
@@ -509,8 +509,8 @@ func (vm *validatorMgrV13) getPendingTxOut(ctx cosmos.Context, constAccessor con
 
 // ragnarokProtocolStage1 - request all yggdrasil pool to return the fund
 // when THORNode observe the node return fund successfully, the node's bound will be refund.
-func (vm *validatorMgrV13) ragnarokProtocolStage1(ctx cosmos.Context, mgr Manager) error {
-	return vm.recallYggFunds(ctx, mgr)
+func (vm *validatorMgrV13) ragnarokProtocolStage1(ctx cosmos.Context, mgr Manager, constAccessor constants.ConstantValues) error {
+	return vm.recallYggFunds(ctx, mgr, constAccessor)
 }
 
 func (vm *validatorMgrV13) ragnarokProtocolStage2(ctx cosmos.Context, nth int64, mgr Manager, constAccessor constants.ConstantValues) error {
@@ -841,7 +841,7 @@ func (vm *validatorMgrV13) ragnarokPools(ctx cosmos.Context, nth int64, mgr Mana
 }
 
 // RequestYggReturn request the node that had been removed (yggdrasil) to return their fund
-func (vm *validatorMgrV13) RequestYggReturn(ctx cosmos.Context, node NodeAccount, mgr Manager) error {
+func (vm *validatorMgrV13) RequestYggReturn(ctx cosmos.Context, node NodeAccount, mgr Manager, constAccessor constants.ConstantValues) error {
 	if !vm.k.VaultExists(ctx, node.PubKeySet.Secp256k1) {
 		return nil
 	}
@@ -873,7 +873,9 @@ func (vm *validatorMgrV13) RequestYggReturn(ctx cosmos.Context, node NodeAccount
 	}
 	chains = chains.Distinct()
 
-	vault := active.SelectByMaxCoin(common.RuneAsset())
+	signingTransactionPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
+	// select vault that is most secure
+	vault := vm.k.GetMostSecure(ctx, active, signingTransactionPeriod)
 	if vault.IsEmpty() {
 		return fmt.Errorf("unable to determine asgard vault")
 	}
@@ -906,7 +908,7 @@ func (vm *validatorMgrV13) RequestYggReturn(ctx cosmos.Context, node NodeAccount
 	return nil
 }
 
-func (vm *validatorMgrV13) recallYggFunds(ctx cosmos.Context, mgr Manager) error {
+func (vm *validatorMgrV13) recallYggFunds(ctx cosmos.Context, mgr Manager, constAccessor constants.ConstantValues) error {
 	iter := vm.k.GetVaultIterator(ctx)
 	defer iter.Close()
 	vaults := Vaults{}
@@ -930,7 +932,7 @@ func (vm *validatorMgrV13) recallYggFunds(ctx cosmos.Context, mgr Manager) error
 			ctx.Logger().Error("fail to get node account", "error", err)
 			continue
 		}
-		if err := vm.RequestYggReturn(ctx, na, mgr); err != nil {
+		if err := vm.RequestYggReturn(ctx, na, mgr, constAccessor); err != nil {
 			return fmt.Errorf("fail to request yggdrasil fund back: %w", err)
 		}
 	}

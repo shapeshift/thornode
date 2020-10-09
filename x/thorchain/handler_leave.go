@@ -53,7 +53,7 @@ func (h LeaveHandler) validateV1(ctx cosmos.Context, msg MsgLeave) error {
 }
 
 // Run execute the handler
-func (h LeaveHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, _ constants.ConstantValues) (*cosmos.Result, error) {
+func (h LeaveHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	msg, ok := m.(MsgLeave)
 	if !ok {
 		return nil, errInvalidMessage
@@ -66,7 +66,7 @@ func (h LeaveHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Versi
 		return nil, err
 	}
 
-	if err := h.handle(ctx, msg, version); err != nil {
+	if err := h.handle(ctx, msg, version, constAccessor); err != nil {
 		ctx.Logger().Error("fail to process msg leave", "error", err)
 		return nil, err
 	}
@@ -74,7 +74,7 @@ func (h LeaveHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Versi
 	return &cosmos.Result{}, nil
 }
 
-func (h LeaveHandler) handle(ctx cosmos.Context, msg MsgLeave, version semver.Version) error {
+func (h LeaveHandler) handle(ctx cosmos.Context, msg MsgLeave, version semver.Version, constAccessor constants.ConstantValues) error {
 	nodeAcc, err := h.keeper.GetNodeAccount(ctx, msg.NodeAddress)
 	if err != nil {
 		return ErrInternal(err, "fail to get node account by bond address")
@@ -133,7 +133,7 @@ func (h LeaveHandler) handle(ctx cosmos.Context, msg MsgLeave, version semver.Ve
 						}
 						nodeAcc.UpdateStatus(NodeDisabled, common.BlockHeight(ctx))
 					} else {
-						if err := h.mgr.ValidatorMgr().RequestYggReturn(ctx, nodeAcc, h.mgr); err != nil {
+						if err := h.mgr.ValidatorMgr().RequestYggReturn(ctx, nodeAcc, h.mgr, constAccessor); err != nil {
 							return ErrInternal(err, "fail to request yggdrasil return fund")
 						}
 					}
