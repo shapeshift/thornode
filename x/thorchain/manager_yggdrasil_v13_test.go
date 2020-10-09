@@ -37,13 +37,19 @@ func (s YggdrasilManagerV11Suite) TestCalcTargetAmounts(c *C) {
 	yggFundLimit := cosmos.NewUint(50)
 	coins, err := ymgr.calcTargetYggCoins(pools, ygg, bond, totalBond, yggFundLimit)
 	c.Assert(err, IsNil)
-	c.Assert(coins, HasLen, 3)
+	if common.RuneAsset().Chain.Equals(common.THORChain) {
+		c.Assert(coins, HasLen, 2)
+	} else {
+		c.Assert(coins, HasLen, 3)
+	}
 	c.Check(coins[0].Asset.String(), Equals, common.BNBAsset.String())
 	c.Check(coins[0].Amount.Uint64(), Equals, cosmos.NewUint(6.25*common.One).Uint64(), Commentf("%d vs %d", coins[0].Amount.Uint64(), cosmos.NewUint(6.25*common.One).Uint64()))
 	c.Check(coins[1].Asset.String(), Equals, common.BTCAsset.String())
 	c.Check(coins[1].Amount.Uint64(), Equals, cosmos.NewUint(2.8125*common.One).Uint64(), Commentf("%d vs %d", coins[1].Amount.Uint64(), cosmos.NewUint(2.8125*common.One).Uint64()))
-	c.Check(coins[2].Asset.String(), Equals, common.RuneAsset().String())
-	c.Check(coins[2].Amount.Uint64(), Equals, cosmos.NewUint(50*common.One).Uint64(), Commentf("%d vs %d", coins[2].Amount.Uint64(), cosmos.NewUint(50*common.One).Uint64()))
+	if !common.RuneAsset().Chain.Equals(common.THORChain) {
+		c.Check(coins[2].Asset.String(), Equals, common.RuneAsset().String())
+		c.Check(coins[2].Amount.Uint64(), Equals, cosmos.NewUint(50*common.One).Uint64(), Commentf("%d vs %d", coins[2].Amount.Uint64(), cosmos.NewUint(50*common.One).Uint64()))
+	}
 }
 
 func (s YggdrasilManagerV11Suite) TestCalcTargetAmounts2(c *C) {
@@ -65,11 +71,17 @@ func (s YggdrasilManagerV11Suite) TestCalcTargetAmounts2(c *C) {
 	yggFundLimit := cosmos.NewUint(50)
 	coins, err := ymgr.calcTargetYggCoins(pools, ygg, bond, totalBond, yggFundLimit)
 	c.Assert(err, IsNil)
-	c.Assert(coins, HasLen, 2)
+	if common.RuneAsset().Chain.Equals(common.THORChain) {
+		c.Assert(coins, HasLen, 1)
+	} else {
+		c.Assert(coins, HasLen, 2)
+	}
 	c.Check(coins[0].Asset.String(), Equals, common.BNBAsset.String())
 	c.Check(coins[0].Amount.Uint64(), Equals, cosmos.NewUint(0.16666667*common.One).Uint64(), Commentf("%d vs %d", coins[0].Amount.Uint64(), cosmos.NewUint(0.16666667*common.One).Uint64()))
-	c.Check(coins[1].Asset.String(), Equals, common.RuneAsset().String())
-	c.Check(coins[1].Amount.Uint64(), Equals, cosmos.NewUint(166666.66666667*common.One).Uint64(), Commentf("%d vs %d", coins[1].Amount.Uint64(), cosmos.NewUint(166666.66666667*common.One).Uint64()))
+	if !common.RuneAsset().Chain.Equals(common.THORChain) {
+		c.Check(coins[1].Asset.String(), Equals, common.RuneAsset().String())
+		c.Check(coins[1].Amount.Uint64(), Equals, cosmos.NewUint(166666.66666667*common.One).Uint64(), Commentf("%d vs %d", coins[1].Amount.Uint64(), cosmos.NewUint(166666.66666667*common.One).Uint64()))
+	}
 }
 
 func (s YggdrasilManagerV11Suite) TestCalcTargetAmounts3(c *C) {
@@ -102,11 +114,17 @@ func (s YggdrasilManagerV11Suite) TestCalcTargetAmounts3(c *C) {
 	yggFundLimit := cosmos.NewUint(50)
 	coins, err := ymgr.calcTargetYggCoins(pools, ygg, bond, totalBond, yggFundLimit)
 	c.Assert(err, IsNil)
-	c.Assert(coins, HasLen, 2, Commentf("%d", len(coins)))
+	if common.RuneAsset().Chain.Equals(common.THORChain) {
+		c.Assert(coins, HasLen, 1, Commentf("%d", len(coins)))
+	} else {
+		c.Assert(coins, HasLen, 2, Commentf("%d", len(coins)))
+	}
 	c.Check(coins[0].Asset.String(), Equals, common.BTCAsset.String())
 	c.Check(coins[0].Amount.Uint64(), Equals, cosmos.NewUint(1*common.One).Uint64(), Commentf("%d vs %d", coins[0].Amount.Uint64(), cosmos.NewUint(2.8125*common.One).Uint64()))
-	c.Check(coins[1].Asset.String(), Equals, common.RuneAsset().String())
-	c.Check(coins[1].Amount.Uint64(), Equals, cosmos.NewUint(20*common.One).Uint64(), Commentf("%d vs %d", coins[1].Amount.Uint64(), cosmos.NewUint(50*common.One).Uint64()))
+	if !common.RuneAsset().Chain.Equals(common.THORChain) {
+		c.Check(coins[1].Asset.String(), Equals, common.RuneAsset().String())
+		c.Check(coins[1].Amount.Uint64(), Equals, cosmos.NewUint(20*common.One).Uint64(), Commentf("%d vs %d", coins[1].Amount.Uint64(), cosmos.NewUint(50*common.One).Uint64()))
+	}
 }
 
 func (s YggdrasilManagerV11Suite) TestCalcTargetAmounts4(c *C) {
@@ -138,11 +156,17 @@ func (s YggdrasilManagerV11Suite) TestCalcTargetAmounts4(c *C) {
 	yggFundLimit := cosmos.NewUint(50)
 	coins, err := ymgr.calcTargetYggCoins(pools, ygg, bond, totalBond, yggFundLimit)
 	c.Assert(err, IsNil)
-	c.Assert(coins, HasLen, 2, Commentf("%d", len(coins)))
+	if common.RuneAsset().Chain.Equals(common.THORChain) {
+		c.Assert(coins, HasLen, 1, Commentf("%d", len(coins)))
+	} else {
+		c.Assert(coins, HasLen, 2, Commentf("%d", len(coins)))
+	}
 	c.Check(coins[0].Asset.String(), Equals, common.BTCAsset.String())
 	c.Check(coins[0].Amount.Uint64(), Equals, cosmos.NewUint(1*common.One).Uint64(), Commentf("%d vs %d", coins[0].Amount.Uint64(), cosmos.NewUint(2.8125*common.One).Uint64()))
-	c.Check(coins[1].Asset.String(), Equals, common.RuneAsset().String())
-	c.Check(coins[1].Amount.Uint64(), Equals, cosmos.NewUint(20*common.One).Uint64(), Commentf("%d vs %d", coins[1].Amount.Uint64(), cosmos.NewUint(50*common.One).Uint64()))
+	if !common.RuneAsset().Chain.Equals(common.THORChain) {
+		c.Check(coins[1].Asset.String(), Equals, common.RuneAsset().String())
+		c.Check(coins[1].Amount.Uint64(), Equals, cosmos.NewUint(20*common.One).Uint64(), Commentf("%d vs %d", coins[1].Amount.Uint64(), cosmos.NewUint(50*common.One).Uint64()))
+	}
 }
 
 func (s YggdrasilManagerV11Suite) TestFund(c *C) {
