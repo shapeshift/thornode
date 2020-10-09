@@ -37,6 +37,10 @@ func (k *TestRefundBondKeeper) GetVault(_ cosmos.Context, pk common.PubKey) (Vau
 	return Vault{}, kaboom
 }
 
+func (k *TestRefundBondKeeper) GetLeastSecure(ctx cosmos.Context, vaults Vaults, signingTransPeriod int64) Vault {
+	return vaults[0]
+}
+
 func (k *TestRefundBondKeeper) GetPool(_ cosmos.Context, asset common.Asset) (Pool, error) {
 	if k.pool.Asset.Equals(asset) {
 		return k.pool, nil
@@ -223,8 +227,8 @@ func (s *HelperSuite) TestRefundBondHappyPath(c *C) {
 	yggAssetInRune, err := getTotalYggValueInRune(ctx, keeper, ygg)
 	c.Assert(err, IsNil)
 	err = refundBond(ctx, tx, cosmos.ZeroUint(), &na, keeper, mgr)
-	slashAmt := yggAssetInRune.MulUint64(3).QuoUint64(2)
 	c.Assert(err, IsNil)
+	slashAmt := yggAssetInRune.MulUint64(3).QuoUint64(2)
 	items, err := mgr.TxOutStore().GetOutboundItems(ctx)
 	c.Assert(err, IsNil)
 	if common.RuneAsset().Chain.Equals(common.THORChain) {

@@ -137,7 +137,7 @@ func (ymgr YggMgrV13) Fund(ctx cosmos.Context, mgr Manager, constAccessor consta
 	}
 
 	if len(sendCoins) > 0 {
-		count, err := ymgr.sendCoinsToYggdrasil(ctx, sendCoins, ygg, mgr)
+		count, err := ymgr.sendCoinsToYggdrasil(ctx, sendCoins, ygg, mgr, constAccessor)
 		if err != nil {
 			return err
 		}
@@ -154,7 +154,7 @@ func (ymgr YggMgrV13) Fund(ctx cosmos.Context, mgr Manager, constAccessor consta
 
 // sendCoinsToYggdrasil - adds outbound txs to send the given coins to a
 // yggdrasil pool
-func (ymgr YggMgrV13) sendCoinsToYggdrasil(ctx cosmos.Context, coins common.Coins, ygg Vault, mgr Manager) (int, error) {
+func (ymgr YggMgrV13) sendCoinsToYggdrasil(ctx cosmos.Context, coins common.Coins, ygg Vault, mgr Manager, constAccessor constants.ConstantValues) (int, error) {
 	var count int
 
 	active, err := ymgr.keeper.GetAsgardVaultsByStatus(ctx, ActiveVault)
@@ -178,8 +178,16 @@ func (ymgr YggMgrV13) sendCoinsToYggdrasil(ctx cosmos.Context, coins common.Coin
 			if coin.Amount.Equal(cosmos.ZeroUint()) {
 				continue
 			}
+
 			// select active vault to send funds from
-			vault := active.SelectByMaxCoin(coin.Asset)
+			filterVaults := make(Vaults, 0)
+			for _, v := range active {
+				if !coin.Amount.GT(v.GetCoin(coin.Asset).Amount) {
+					filterVaults = append(filterVaults, v)
+				}
+			}
+			signingTransactionPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
+			vault := ymgr.keeper.GetLeastSecure(ctx, filterVaults, signingTransactionPeriod)
 			if vault.IsEmpty() {
 				continue
 			}

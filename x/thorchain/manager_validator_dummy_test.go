@@ -22,7 +22,7 @@ func (vm *ValidatorDummyMgr) EndBlock(_ cosmos.Context, _ Manager, _ constants.C
 	return nil
 }
 
-func (vm *ValidatorDummyMgr) RequestYggReturn(_ cosmos.Context, _ NodeAccount, _ Manager) error {
+func (vm *ValidatorDummyMgr) RequestYggReturn(_ cosmos.Context, _ NodeAccount, _ Manager, _ constants.ConstantValues) error {
 	return kaboom
 }
 
