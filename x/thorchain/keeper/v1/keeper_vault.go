@@ -89,7 +89,7 @@ func (k KVStore) SortBySecurity(ctx cosmos.Context, vaults Vaults, signingTransP
 			for _, txOutItem := range txOut.TxArray {
 				if txOutItem.OutHash.IsEmpty() && txOutItem.VaultPubKey.Equals(vault.PubKey) {
 					if txOutItem.Coin.Asset.IsRune() {
-						totalValue = totalValue.Add(txOutItem.Coin.Amount)
+						totalValue = common.SafeSub(totalValue, txOutItem.Coin.Amount)
 					} else {
 						pool, err := k.GetPool(ctx, txOutItem.Coin.Asset)
 						if err != nil {
