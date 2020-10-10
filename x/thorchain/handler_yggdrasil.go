@@ -177,13 +177,24 @@ func (h YggdrasilHandler) handleV2(ctx cosmos.Context, msg MsgYggdrasil, version
 		// this type of tx out is special , because it doesn't have relevant tx
 		// in to trigger it, it is trigger by thorchain itself.
 		fromAddress, _ := tx.VaultPubKey.GetAddress(tx.Chain)
+		matchCoin := msg.Tx.Coins.Equals(common.Coins{tx.Coin})
+		// when outbound is gas asset
+		if !matchCoin && tx.Coin.Asset.Equals(tx.Chain.GetGasAsset()) {
+			asset := tx.Chain.GetGasAsset()
+			intendToSpend := tx.Coin.Amount.Add(tx.MaxGas.ToCoins().GetCoin(asset).Amount)
+			actualSpend := msg.Tx.Coins.GetCoin(asset).Amount.Add(msg.Tx.Gas.ToCoins().GetCoin(asset).Amount)
+			if intendToSpend.Equal(actualSpend) {
+				ctx.Logger().Info(fmt.Sprintf("intend to spend: %s, actual spend: %s are the same , override match coin", intendToSpend, actualSpend))
+				matchCoin = true
+			}
+		}
 		if tx.InHash.Equals(common.BlankTxID) &&
 			tx.OutHash.IsEmpty() &&
 			tx.ToAddress.Equals(msg.Tx.ToAddress) &&
 			fromAddress.Equals(msg.Tx.FromAddress) {
 
 			// only need to check the coin if yggdrasil+
-			if msg.AddFunds && !msg.Tx.Coins.Contains(tx.Coin) {
+			if msg.AddFunds && !matchCoin {
 				continue
 			}
 
@@ -199,6 +210,7 @@ func (h YggdrasilHandler) handleV2(ctx cosmos.Context, msg MsgYggdrasil, version
 	}
 
 	if shouldSlash {
+		ctx.Logger().Info("slash node account, no matched tx out item", "outbound tx", msg.Tx)
 		if err := h.slash(ctx, version, msg.PubKey, msg.Tx.Coins); err != nil {
 			return nil, ErrInternal(err, "fail to slash account")
 		}
