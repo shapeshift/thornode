@@ -10,6 +10,7 @@ import (
 	ctypes "github.com/binance-chain/go-sdk/common/types"
 	"github.com/binance-chain/go-sdk/keys"
 	"github.com/binance-chain/go-sdk/types/tx"
+	"github.com/blang/semver"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/tendermint/btcd/btcec"
@@ -17,20 +18,28 @@ import (
 	"gitlab.com/thorchain/tss/go-tss/keysign"
 	"gitlab.com/thorchain/tss/go-tss/tss"
 
+	"gitlab.com/thorchain/thornode/bifrost/thorclient"
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/constants"
 )
+
+var newJoinPartyVersion = semver.MustParse("0.14.0")
 
 // KeySign is a proxy between signer and TSS
 type KeySign struct {
-	logger zerolog.Logger
-	server *tss.TssServer
+	logger         zerolog.Logger
+	server         *tss.TssServer
+	bridge         *thorclient.ThorchainBridge
+	currentVersion semver.Version
+	lastCheck      time.Time
 }
 
 // NewKeySign create a new instance of KeySign
-func NewKeySign(server *tss.TssServer) (*KeySign, error) {
+func NewKeySign(server *tss.TssServer, bridge *thorclient.ThorchainBridge) (*KeySign, error) {
 	return &KeySign{
 		server: server,
+		bridge: bridge,
 		logger: log.With().Str("module", "tss_signer").Logger(),
 	}, nil
 }
@@ -163,24 +172,59 @@ func getSignature(r, s string) ([]byte, error) {
 	return sigBytes, nil
 }
 
+func (s *KeySign) isNewJoinParty(currentVersion semver.Version) bool {
+	if currentVersion.GTE(newJoinPartyVersion) {
+		return true
+	}
+	return false
+}
+
+func (s *KeySign) getVersion() semver.Version {
+	requestTime := time.Now()
+	if !s.currentVersion.Equals(semver.Version{}) && requestTime.Sub(s.lastCheck).Seconds() < constants.ThorchainBlockTime.Seconds() {
+		return s.currentVersion
+	}
+	version, err := s.bridge.GetThorchainVersion()
+	if err != nil {
+		s.logger.Err(err).Msg("fail to get current thorchain version")
+		return s.currentVersion
+	}
+	s.currentVersion = version
+	s.lastCheck = requestTime
+	return s.currentVersion
+}
+
 // toLocalTSSSigner will send the request to local signer
 func (s *KeySign) toLocalTSSSigner(poolPubKey, sendmsg string, signerPubKeys common.PubKeys) (string, string, error) {
 	tssMsg := keysign.Request{
 		PoolPubKey: poolPubKey,
 		Message:    sendmsg,
 	}
-	for _, k := range signerPubKeys {
-		tssMsg.SignerPubKeys = append(tssMsg.SignerPubKeys, k.String())
+	currentVersion := s.getVersion()
+	tssMsg.Version = currentVersion.String()
+	if s.isNewJoinParty(currentVersion) {
+		s.logger.Info().Msg("new TSS join party")
+		// get current thorchain block height
+		blockHeight, err := s.bridge.GetBlockHeight()
+		if err != nil {
+			return "", "", fmt.Errorf("fail to get current thorchain block height: %w", err)
+		}
+		// this is just round the block height to the nearest 10
+		tssMsg.BlockHeight = blockHeight / 10 * 10
+	} else {
+		for _, k := range signerPubKeys {
+			tssMsg.SignerPubKeys = append(tssMsg.SignerPubKeys, k.String())
+		}
 	}
+
 	s.logger.Debug().Str("payload", fmt.Sprintf("PoolPubKey: %s, Message: %s, Signers: %+v", tssMsg.PoolPubKey, tssMsg.Message, tssMsg.SignerPubKeys)).Msg("msg to tss Local node")
 
 	ch := make(chan bool, 1)
 	defer close(ch)
 	timer := time.NewTimer(5 * time.Minute)
 	defer timer.Stop()
-
-	var keySignResp keysign.Response
 	var err error
+	var keySignResp keysign.Response
 	go func() {
 		keySignResp, err = s.server.KeySign(tssMsg)
 		ch <- true
