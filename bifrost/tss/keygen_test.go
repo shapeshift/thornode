@@ -2,6 +2,8 @@ package tss
 
 import (
 	"bytes"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -12,6 +14,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	. "gopkg.in/check.v1"
 
+	"gitlab.com/thorchain/thornode/bifrost/config"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient"
 	"gitlab.com/thorchain/thornode/x/thorchain"
 )
@@ -64,7 +67,16 @@ func (kts *KeyGenTestSuite) TestNewTssKenGen(c *C) {
 	c.Assert(err, IsNil)
 	k := thorclient.NewKeysWithKeybase(kb, info, signerPasswordForTest)
 	c.Assert(k, NotNil)
-	kg, err := NewTssKeyGen(k, nil)
+	server := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		c.Logf("requestUri:%s", req.RequestURI)
+	}))
+	b, err := thorclient.NewThorchainBridge(config.ClientConfiguration{
+		ChainID:      "thorchain",
+		ChainHost:    server.Listener.Addr().String(),
+		SignerName:   "bob",
+		SignerPasswd: "password",
+	}, nil, k)
+	kg, err := NewTssKeyGen(k, nil, b)
 	c.Assert(err, IsNil)
 	c.Assert(kg, NotNil)
 }

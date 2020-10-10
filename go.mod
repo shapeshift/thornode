@@ -21,7 +21,7 @@ require (
 	github.com/hashicorp/go-multierror v1.1.0
 	github.com/hashicorp/go-retryablehttp v0.6.4
 	github.com/ipfs/go-log v1.0.4
-	github.com/multiformats/go-multiaddr v0.3.0
+	github.com/multiformats/go-multiaddr v0.3.1
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/prometheus/client_golang v1.5.1
@@ -39,10 +39,9 @@ require (
 	github.com/tendermint/tendermint v0.33.6
 	github.com/tendermint/tm-db v0.5.1
 	github.com/zondax/ledger-go v0.11.0 // indirect
-	gitlab.com/thorchain/tss/go-tss v1.0.2
+	gitlab.com/thorchain/tss/go-tss v1.2.0
 	gitlab.com/thorchain/txscript v0.0.0-20200413023754-8aaf3443d92b
 	golang.org/x/lint v0.0.0-20200302205851-738671d3881b // indirect
-	golang.org/x/mod v0.3.0 // indirect
 	golang.org/x/tools v0.0.0-20200731060945-b5fad4ed8dd6 // indirect
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f
 	gopkg.in/ini.v1 v1.52.0 // indirect

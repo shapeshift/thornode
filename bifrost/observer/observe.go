@@ -98,6 +98,7 @@ func (o *Observer) sendDeck() {
 			deck.TxArray = o.filterObservations(deck.Chain, deck.TxArray, deck.MemPool)
 			deck.TxArray = o.filterBinanceMemoFlag(deck.Chain, deck.TxArray)
 		}
+
 		// check if chain client has OnObservedTxIn method then call it
 		chainClient, err := o.getChain(deck.Chain)
 		if err != nil {
@@ -150,7 +151,7 @@ func (o *Observer) processTxIns() {
 			o.lock.Lock()
 			found := false
 			for i, in := range o.onDeck {
-				if in.Chain == txIn.Chain {
+				if in.Chain == txIn.Chain && in.MemPool == txIn.MemPool {
 					o.onDeck[i].TxArray = append(o.onDeck[i].TxArray, txIn.TxArray...)
 					found = true
 				}
