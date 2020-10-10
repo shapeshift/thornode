@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"sync"
 
 	"github.com/btcsuite/btcd/btcec"
 	"github.com/btcsuite/btcd/btcjson"
@@ -14,6 +15,7 @@ import (
 	"github.com/btcsuite/btcd/mempool"
 	"github.com/btcsuite/btcd/wire"
 	"github.com/btcsuite/btcutil"
+	"github.com/hashicorp/go-multierror"
 	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/crypto/secp256k1"
 	"gitlab.com/thorchain/txscript"
@@ -271,49 +273,67 @@ func (c *Client) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, err
 		}
 		redeemTx.AddTxOut(wire.NewTxOut(0, nullDataScript))
 	}
-
+	wg := &sync.WaitGroup{}
+	var utxoErr error
 	for idx, txIn := range redeemTx.TxIn {
-		sigHashes := txscript.NewTxSigHashes(redeemTx)
-		sig := c.ksWrapper.GetSignable(tx.VaultPubKey)
 		outputAmount := int64(individualAmounts[txIn.PreviousOutPoint.Hash])
-		witness, err := txscript.WitnessSignature(redeemTx, sigHashes, idx, outputAmount, sourceScript, txscript.SigHashAll, sig, true)
-		if err != nil {
-			var keysignError tss.KeysignError
-			if errors.As(err, &keysignError) {
-				if len(keysignError.Blame.BlameNodes) == 0 {
-					// TSS doesn't know which node to blame
-					return nil, err
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			if err := c.signUTXO(redeemTx, tx, outputAmount, sourceScript, i, thorchainHeight); err != nil {
+				if nil == utxoErr {
+					utxoErr = err
+				} else {
+					utxoErr = multierror.Append(utxoErr, err)
 				}
-
-				// key sign error forward the keysign blame to thorchain
-				txID, err := c.bridge.PostKeysignFailure(keysignError.Blame, thorchainHeight, tx.Memo, tx.Coins, tx.VaultPubKey)
-				if err != nil {
-					c.logger.Error().Err(err).Msg("fail to post keysign failure to thorchain")
-					return nil, err
-				}
-				c.logger.Info().Str("tx_id", txID.String()).Msgf("post keysign failure to thorchain")
-				return nil, fmt.Errorf("sent keysign failure to thorchain")
 			}
-			return nil, fmt.Errorf("fail to get witness: %w", err)
-		}
-
-		redeemTx.TxIn[idx].Witness = witness
-		flag := txscript.StandardVerifyFlags
-		engine, err := txscript.NewEngine(sourceScript, redeemTx, idx, flag, nil, nil, outputAmount)
-		if err != nil {
-			return nil, fmt.Errorf("fail to create engine: %w", err)
-		}
-		if err := engine.Execute(); err != nil {
-			return nil, fmt.Errorf("fail to execute the script: %w", err)
-		}
+		}(idx)
 	}
-
+	wg.Wait()
+	if utxoErr != nil {
+		return nil, fmt.Errorf("fail to sign the message: %w", utxoErr)
+	}
 	var signedTx bytes.Buffer
 	if err := redeemTx.Serialize(&signedTx); err != nil {
 		return nil, fmt.Errorf("fail to serialize tx to bytes: %w", err)
 	}
 
 	return signedTx.Bytes(), nil
+}
+
+func (c *Client) signUTXO(redeemTx *wire.MsgTx, tx stypes.TxOutItem, amount int64, sourceScript []byte, idx int, thorchainHeight int64) error {
+	sigHashes := txscript.NewTxSigHashes(redeemTx)
+	sig := c.ksWrapper.GetSignable(tx.VaultPubKey)
+	witness, err := txscript.WitnessSignature(redeemTx, sigHashes, idx, amount, sourceScript, txscript.SigHashAll, sig, true)
+	if err != nil {
+		var keysignError tss.KeysignError
+		if errors.As(err, &keysignError) {
+			if len(keysignError.Blame.BlameNodes) == 0 {
+				// TSS doesn't know which node to blame
+				return fmt.Errorf("fail to sign UTXO: %w", err)
+			}
+
+			// key sign error forward the keysign blame to thorchain
+			txID, err := c.bridge.PostKeysignFailure(keysignError.Blame, thorchainHeight, tx.Memo, tx.Coins, tx.VaultPubKey)
+			if err != nil {
+				c.logger.Error().Err(err).Msg("fail to post keysign failure to thorchain")
+				return fmt.Errorf("fail to post keysign failure to THORChain: %w", err)
+			}
+			c.logger.Info().Str("tx_id", txID.String()).Msgf("post keysign failure to thorchain")
+		}
+		return fmt.Errorf("fail to get witness: %w", err)
+	}
+
+	redeemTx.TxIn[idx].Witness = witness
+	flag := txscript.StandardVerifyFlags
+	engine, err := txscript.NewEngine(sourceScript, redeemTx, idx, flag, nil, nil, amount)
+	if err != nil {
+		return fmt.Errorf("fail to create engine: %w", err)
+	}
+	if err := engine.Execute(); err != nil {
+		return fmt.Errorf("fail to execute the script: %w", err)
+	}
+	return nil
 }
 
 // BroadcastTx will broadcast the given payload to BTC chain

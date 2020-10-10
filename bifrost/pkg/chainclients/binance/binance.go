@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-	"time"
 
 	"github.com/binance-chain/go-sdk/common/types"
 	ctypes "github.com/binance-chain/go-sdk/common/types"
@@ -55,7 +54,7 @@ type Binance struct {
 
 // NewBinance create new instance of binance client
 func NewBinance(thorKeys *thorclient.Keys, cfg config.ChainConfiguration, server *tssp.TssServer, thorchainBridge *thorclient.ThorchainBridge, m *metrics.Metrics, keySignPartyMgr *thorclient.KeySignPartyMgr) (*Binance, error) {
-	tssKm, err := tss.NewKeySign(server)
+	tssKm, err := tss.NewKeySign(server, thorchainBridge)
 	if err != nil {
 		return nil, fmt.Errorf("fail to create tss signer: %w", err)
 	}
@@ -360,6 +359,7 @@ func (b *Binance) signMsg(signMsg btx.StdSignMsg, from string, poolPubKey common
 		b.logger.Error().Err(err).Msg("fail to get keysign party")
 		return nil, err
 	}
+
 	// let's retry before we give up on the signing party
 	retryMax := 3
 	var finalErr error
@@ -386,8 +386,6 @@ func (b *Binance) signMsg(signMsg btx.StdSignMsg, from string, poolPubKey common
 			return nil, multierror.Append(finalErr, errPostKeysignFail)
 		}
 		b.logger.Info().Str("tx_id", txID.String()).Msgf("post keysign failure to thorchain")
-		// back off a block time, so it has more chance to pick up the updated signer party
-		time.Sleep(time.Second * 5)
 	}
 	b.logger.Error().Err(finalErr).Msgf("fail to sign msg with memo: %s", signMsg.Memo)
 	return nil, finalErr

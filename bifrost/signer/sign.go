@@ -94,7 +94,7 @@ func NewSigner(cfg config.SignerConfiguration,
 		return nil, fmt.Errorf("fail to create block scanner: %w", err)
 	}
 
-	kg, err := tss.NewTssKeyGen(thorKeys, tssServer)
+	kg, err := tss.NewTssKeyGen(thorKeys, tssServer, thorchainBridge)
 	if err != nil {
 		return nil, fmt.Errorf("fail to create Tss Key gen,err:%w", err)
 	}

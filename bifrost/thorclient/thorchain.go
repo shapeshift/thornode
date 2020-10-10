@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/blang/semver"
 	"github.com/cosmos/cosmos-sdk/codec"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/hashicorp/go-retryablehttp"
@@ -46,6 +47,7 @@ const (
 	ThorchainConstants       = "/thorchain/constants"
 	RagnarokEndpoint         = "/thorchain/ragnarok"
 	MimirEndpoint            = "/thorchain/mimir"
+	ChainVersionEndpoint     = "/thorchain/version"
 )
 
 // ThorchainBridge will be used to send tx to thorchain
@@ -430,9 +432,9 @@ func (b *ThorchainBridge) PostNetworkFee(height int64, chain common.Chain, trans
 	msg := stypes.NewMsgNetworkFee(height, chain, transactionSize, transactionRate, b.keys.GetSignerInfo().GetAddress())
 	stdTx := authtypes.NewStdTx(
 		[]cosmos.Msg{msg},
-		authtypes.NewStdFee(100000000, nil), // fee
-		nil,                                 // signatures
-		"",                                  // memo
+		authtypes.NewStdFee(10000000000, nil), // fee
+		nil,                                   // signatures
+		"",                                    // memo
 	)
 	return b.Broadcast(stdTx, types.TxSync)
 }
@@ -469,6 +471,22 @@ func (b *ThorchainBridge) RagnarokInProgress() (bool, error) {
 		return false, fmt.Errorf("fail to unmarshal ragnarok status: %w", err)
 	}
 	return ragnarok, nil
+}
+
+// GetThorchainVersion retrieve thorchain version
+func (b *ThorchainBridge) GetThorchainVersion() (semver.Version, error) {
+	buf, s, err := b.getWithPath(ChainVersionEndpoint)
+	if err != nil {
+		return semver.Version{}, fmt.Errorf("fail to get THORChain version: %w", err)
+	}
+	if s != http.StatusOK {
+		return semver.Version{}, fmt.Errorf("unexpected status code: %d", s)
+	}
+	var version stypes.QueryVersion
+	if err := json.Unmarshal(buf, &version); err != nil {
+		return semver.Version{}, fmt.Errorf("fail to unmarshal THORChain version : %w", err)
+	}
+	return version.Current, nil
 }
 
 // Mimir - get mimir settings

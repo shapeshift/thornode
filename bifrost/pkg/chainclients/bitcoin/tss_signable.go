@@ -41,14 +41,7 @@ func (ts *TssSignable) Sign(payload []byte) (*btcec.Signature, error) {
 		ts.logger.Error().Err(err).Msg("fail to get keysign party")
 		return nil, err
 	}
-	retry := 3
-	var result []byte
-	for i := 0; i < retry; i++ {
-		result, err = ts.tssKeyManager.RemoteSign(payload, ts.poolPubKey.String(), keySignParty)
-		if err == nil {
-			break
-		}
-	}
+	result, err := ts.tssKeyManager.RemoteSign(payload, ts.poolPubKey.String(), keySignParty)
 	if err != nil {
 		ts.keySignPartyMgr.RemoveKeySignParty(ts.poolPubKey)
 		return nil, err
