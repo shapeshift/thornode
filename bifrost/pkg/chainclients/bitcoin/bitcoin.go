@@ -70,7 +70,7 @@ func NewClient(thorKeys *thorclient.Keys, cfg config.ChainConfiguration, server 
 	if err != nil {
 		return nil, fmt.Errorf("fail to create bitcoin rpc client: %w", err)
 	}
-	tssKm, err := tss.NewKeySign(server)
+	tssKm, err := tss.NewKeySign(server, bridge)
 	if err != nil {
 		return nil, fmt.Errorf("fail to create tss signer: %w", err)
 	}
@@ -416,14 +416,15 @@ func (c *Client) getMemPool(height int64) (types.TxIn, error) {
 			continue
 		}
 
-		c.logger.Info().Msgf("process hash %s", h.String())
+		c.logger.Debug().Msgf("process hash %s", h.String())
 		result, err := c.client.GetRawTransactionVerbose(h)
 		if err != nil {
 			return types.TxIn{}, fmt.Errorf("fail to get raw transaction verbose with hash(%s): %w", h.String(), err)
 		}
 		txInItem, err := c.getTxIn(result, height)
 		if err != nil {
-			return types.TxIn{}, fmt.Errorf("fail to get TxInItem: %w", err)
+			c.logger.Error().Err(err).Msg("fail to get TxInItem")
+			continue
 		}
 		if txInItem.IsEmpty() {
 			continue
@@ -527,6 +528,7 @@ func (c *Client) getBlock(height int64) (*btcjson.GetBlockVerboseTxResult, error
 
 func (c *Client) getTxIn(tx *btcjson.TxRawResult, height int64) (types.TxInItem, error) {
 	if c.ignoreTx(tx) {
+		c.logger.Debug().Msgf("ignore (%s) , not correct format", tx.Hash)
 		return types.TxInItem{}, nil
 	}
 
@@ -774,6 +776,7 @@ func (c *Client) ConfirmationCountReady(txIn types.TxIn) bool {
 	confirm, err := c.getBlockRequiredConfirmation(txIn, blockHeight)
 	c.logger.Info().Msgf("confirmation required: %d", confirm)
 	if err != nil {
+		c.logger.Err(err).Msg("fail to get block confirmation ")
 		return false
 	}
 	if confirm <= 1 {

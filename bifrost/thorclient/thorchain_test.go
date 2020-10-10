@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/blang/semver"
 	"github.com/cosmos/cosmos-sdk/client/keys"
 	cKeys "github.com/cosmos/cosmos-sdk/crypto/keys"
 	. "gopkg.in/check.v1"
@@ -59,6 +60,8 @@ func (s *ThorchainSuite) SetUpSuite(c *C) {
 			httpTestHandler(c, rw, "../../test/fixtures/endpoints/constants/constants.json")
 		case strings.HasPrefix(req.RequestURI, RagnarokEndpoint):
 			httpTestHandler(c, rw, "../../test/fixtures/endpoints/ragnarok/ragnarok.json")
+		case strings.HasPrefix(req.RequestURI, ChainVersionEndpoint):
+			httpTestHandler(c, rw, "../../test/fixtures/endpoints/version/version.json")
 		case strings.HasPrefix(req.RequestURI, MimirEndpoint):
 			httpTestHandler(c, rw, "../../test/fixtures/endpoints/mimir/mimir.json")
 
@@ -251,6 +254,12 @@ func (s *ThorchainSuite) TestGetRagnarok(c *C) {
 	result, err := s.bridge.RagnarokInProgress()
 	c.Assert(err, IsNil)
 	c.Assert(result, Equals, false)
+}
+
+func (s *ThorchainSuite) TestGetThorchainVersion(c *C) {
+	result, err := s.bridge.GetThorchainVersion()
+	c.Assert(err, IsNil)
+	c.Assert(result.EQ(semver.MustParse("0.11.0")), Equals, true)
 }
 
 func (s *ThorchainSuite) TestGetMimir(c *C) {
