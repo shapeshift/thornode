@@ -79,6 +79,7 @@ func (vts *ValidatorMgrV13TestSuite) TestRagnarokForChaosnet(c *C) {
 		constants.MinimumNodesForBFT:            4,
 		constants.RotatePerBlockHeight:          256,
 		constants.RotateRetryBlocks:             720,
+		constants.AsgardSize:                    30,
 	}, map[constants.ConstantName]bool{
 		constants.StrictBondStakeRatio: false,
 	}, map[constants.ConstantName]string{})
