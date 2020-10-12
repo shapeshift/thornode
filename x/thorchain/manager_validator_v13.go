@@ -96,10 +96,25 @@ func (vm *validatorMgrV13) BeginBlock(ctx cosmos.Context, constAccessor constant
 		desireValidatorSet = constAccessor.GetInt64Value(constants.DesireValidatorSet)
 	}
 	rotateRetryBlocks := constAccessor.GetInt64Value(constants.RotateRetryBlocks)
+	asgardSize, err := vm.k.GetMimir(ctx, constants.AsgardSize.String())
+	if asgardSize < 0 || err != nil {
+		asgardSize = constAccessor.GetInt64Value(constants.AsgardSize)
+	}
 
 	// calculate if we need to retry a churn because we are overdue for a
 	// successful one
-	retryChurn := common.BlockHeight(ctx)-lastHeight > rotatePerBlockHeight && (common.BlockHeight(ctx)-lastHeight-rotatePerBlockHeight)%rotateRetryBlocks == 0
+	nas, err := vm.k.ListActiveNodeAccounts(ctx)
+	if err != nil {
+		return err
+	}
+	expected_active_vaults := int64(len(nas)) / asgardSize
+	if int64(len(nas))%asgardSize > 0 {
+		expected_active_vaults += 1
+	}
+	incompleteChurnCheck := int64(len(vaults)) != expected_active_vaults
+	oldVaultCheck := common.BlockHeight(ctx)-lastHeight > rotatePerBlockHeight
+	onChurnTick := (common.BlockHeight(ctx)-lastHeight-rotatePerBlockHeight)%rotateRetryBlocks == 0
+	retryChurn := (oldVaultCheck || incompleteChurnCheck) && onChurnTick
 
 	if lastHeight+rotatePerBlockHeight == common.BlockHeight(ctx) || retryChurn {
 		if retryChurn {
@@ -125,10 +140,6 @@ func (vm *validatorMgrV13) BeginBlock(ctx cosmos.Context, constAccessor constant
 			return err
 		}
 		if ok {
-			asgardSize, err := vm.k.GetMimir(ctx, constants.AsgardSize.String())
-			if asgardSize < 0 || err != nil {
-				asgardSize = constAccessor.GetInt64Value(constants.AsgardSize)
-			}
 			for _, nodeacc_set := range vm.splitNext(ctx, next, asgardSize) {
 				if err := vm.vaultMgr.TriggerKeygen(ctx, nodeacc_set); err != nil {
 					return err
