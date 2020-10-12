@@ -102,6 +102,25 @@ func (vm *VaultMgrV1) EndBlock(ctx cosmos.Context, mgr Manager, constAccessor co
 		}
 	}
 
+	// calculate if we have the correct number of active asgard vaults (ie
+	// partial churn), skip migration if we don't
+	asgardSize, err := vm.k.GetMimir(ctx, constants.AsgardSize.String())
+	if asgardSize < 0 || err != nil {
+		asgardSize = constAccessor.GetInt64Value(constants.AsgardSize)
+	}
+	nas, err := vm.k.ListActiveNodeAccounts(ctx)
+	if err != nil {
+		return err
+	}
+	expected_active_vaults := int64(len(nas)) / asgardSize
+	if int64(len(nas))%asgardSize > 0 {
+		expected_active_vaults += 1
+	}
+	if int64(len(active)) != expected_active_vaults {
+		ctx.Logger().Info("Skipping the migration of funds while active vaults are being created")
+		return nil
+	}
+
 	for _, vault := range retiring {
 		if !vault.HasFunds() {
 			vault.Status = InactiveVault
@@ -226,6 +245,20 @@ func (vm *VaultMgrV1) TriggerKeygen(ctx cosmos.Context, nas NodeAccounts) error 
 	if !keygenBlock.Contains(keygen) {
 		keygenBlock.Keygens = append(keygenBlock.Keygens, keygen)
 	}
+
+	// check if we already have a an active vault with the same membership,
+	// skip if we do
+	active, err := vm.k.GetAsgardVaultsByStatus(ctx, ActiveVault)
+	if err != nil {
+		return fmt.Errorf("fail to get active vaults: %w", err)
+	}
+	for _, vault := range active {
+		if vault.MembershipEquals(members) {
+			ctx.Logger().Info("skip keygen due to vault already existing")
+			return nil
+		}
+	}
+
 	vm.k.SetKeygenBlock(ctx, keygenBlock)
 	return nil
 }

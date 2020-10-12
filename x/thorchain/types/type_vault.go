@@ -89,6 +89,18 @@ func (v Vault) Contains(pubkey common.PubKey) bool {
 	return v.Membership.Contains(pubkey)
 }
 
+func (v Vault) MembershipEquals(pks common.PubKeys) bool {
+	if len(v.Membership) != len(pks) {
+		return false
+	}
+	for _, pk := range pks {
+		if !v.Contains(pk) {
+			return false
+		}
+	}
+	return true
+}
+
 // UpdateStatus set the vault to given status
 func (v *Vault) UpdateStatus(s VaultStatus, height int64) {
 	v.Status = s
