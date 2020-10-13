@@ -384,23 +384,7 @@ func AddGasFees(ctx cosmos.Context, keeper keeper.Keeper, tx ObservedTx, gasMana
 	if len(tx.Tx.Gas) == 0 {
 		return nil
 	}
-
-	// update state with new gas info
-	if len(tx.Tx.Coins) > 0 {
-		gasAsset := tx.Tx.Coins[0].Asset.Chain.GetGasAsset()
-		gasInfo, err := keeper.GetGas(ctx, gasAsset)
-		if err == nil {
-			gasInfo = common.UpdateGasPrice(tx.Tx, gasAsset, gasInfo)
-			if gasInfo != nil {
-				keeper.SetGas(ctx, gasAsset, gasInfo)
-			} else {
-				ctx.Logger().Error(fmt.Sprintf("fail to update gas price for chain: %s", gasAsset))
-			}
-		}
-	}
-
 	gasManager.AddGasAsset(tx.Tx.Gas)
-
 	// Subtract from the vault
 	if keeper.VaultExists(ctx, tx.ObservedPubKey) {
 		vault, err := keeper.GetVault(ctx, tx.ObservedPubKey)

@@ -85,7 +85,6 @@ type TestObservedTxOutHandleKeeper struct {
 	pool       Pool
 	txOutStore TxOutStore
 	observing  []cosmos.AccAddress
-	gas        []cosmos.Uint
 }
 
 func (k *TestObservedTxOutHandleKeeper) ListActiveNodeAccounts(_ cosmos.Context) (NodeAccounts, error) {
@@ -165,14 +164,6 @@ func (k *TestObservedTxOutHandleKeeper) SetPool(ctx cosmos.Context, pool Pool) e
 	return nil
 }
 
-func (k *TestObservedTxOutHandleKeeper) GetGas(ctx cosmos.Context, asset common.Asset) ([]cosmos.Uint, error) {
-	return k.gas, nil
-}
-
-func (k *TestObservedTxOutHandleKeeper) SetGas(ctx cosmos.Context, asset common.Asset, units []cosmos.Uint) {
-	k.gas = units
-}
-
 func (s *HandlerObservedTxOutSuite) TestHandle(c *C) {
 	s.testHandleWithVersion(c, constants.SWVersion)
 	s.testHandleWithVersion(c, semver.MustParse("0.13.0"))
@@ -226,61 +217,6 @@ func (s *HandlerObservedTxOutSuite) testHandleWithVersion(c *C, ver semver.Versi
 	c.Check(keeper.observing, HasLen, 1)
 	// make sure the coin has been subtract from the vault
 	c.Check(ygg.Coins.GetCoin(common.BNBAsset).Amount.Equal(cosmos.NewUint(19999962499)), Equals, true, Commentf("%d", ygg.Coins.GetCoin(common.BNBAsset).Amount.Uint64()))
-}
-
-func (s *HandlerObservedTxOutSuite) TestGasUpdate(c *C) {
-	s.testGasUpdateWithVersion(c, constants.SWVersion)
-	s.testGasUpdateWithVersion(c, semver.MustParse("0.13.0"))
-}
-
-func (s *HandlerObservedTxOutSuite) testGasUpdateWithVersion(c *C, ver semver.Version) {
-	var err error
-	ctx, _ := setupKeeperForTest(c)
-
-	constAccessor := constants.GetConstantValues(ver)
-	tx := GetRandomTx()
-	tx.Gas = common.Gas{
-		{
-			Asset:  common.BNBAsset,
-			Amount: cosmos.NewUint(475000),
-		},
-	}
-	tx.Memo = fmt.Sprintf("OUTBOUND:%s", tx.ID)
-	obTx := NewObservedTx(tx, 12, GetRandomPubKey())
-	txs := ObservedTxs{obTx}
-	pk := GetRandomPubKey()
-	c.Assert(err, IsNil)
-
-	ygg := NewVault(common.BlockHeight(ctx), ActiveVault, YggdrasilVault, pk, common.Chains{common.BNBChain})
-	ygg.Coins = common.Coins{
-		common.NewCoin(common.RuneAsset(), cosmos.NewUint(500)),
-		common.NewCoin(common.BNBAsset, cosmos.NewUint(200*common.One)),
-	}
-	keeper := &TestObservedTxOutHandleKeeper{
-		nas:   NodeAccounts{GetRandomNodeAccount(NodeActive)},
-		voter: NewObservedTxVoter(tx.ID, make(ObservedTxs, 0)),
-		pool: Pool{
-			Asset:        common.BNBAsset,
-			BalanceRune:  cosmos.NewUint(200),
-			BalanceAsset: cosmos.NewUint(300),
-		},
-		yggExists: true,
-		ygg:       ygg,
-	}
-	txOutStore := NewTxStoreDummy()
-	keeper.txOutStore = txOutStore
-
-	handler := NewObservedTxOutHandler(keeper, NewDummyMgr())
-
-	c.Assert(err, IsNil)
-	msg := NewMsgObservedTxOut(txs, keeper.nas[0].NodeAddress)
-	_, err = handler.handle(ctx, msg, ver, constAccessor)
-	c.Assert(err, IsNil)
-	gas := keeper.gas[0]
-	c.Assert(gas.Equal(cosmos.NewUint(475000)), Equals, true, Commentf("%+v", gas))
-	// revert the gas change , otherwise it messed up the other tests
-	gasInfo := common.UpdateGasPrice(common.Tx{}, common.BNBAsset, []cosmos.Uint{cosmos.NewUint(37500), cosmos.NewUint(30000)})
-	keeper.SetGas(ctx, common.BNBAsset, gasInfo)
 }
 
 func (s *HandlerObservedTxOutSuite) TestHandleStolenFunds(c *C) {
