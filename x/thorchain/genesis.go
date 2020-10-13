@@ -3,7 +3,6 @@ package thorchain
 import (
 	"errors"
 	"fmt"
-	"strings"
 
 	abci "github.com/tendermint/tendermint/abci/types"
 	tmtypes "github.com/tendermint/tendermint/types"
@@ -22,7 +21,6 @@ type GenesisState struct {
 	TxOuts               []TxOut                   `json:"txouts"`
 	NodeAccounts         NodeAccounts              `json:"node_accounts"`
 	Vaults               Vaults                    `json:"vaults"`
-	Gas                  map[string][]cosmos.Uint  `json:"gas"`
 	Reserve              uint64                    `json:"reserve"`
 	BanVoters            []BanVoter                `json:"ban_voters"`
 	LastSignedHeight     int64                     `json:"last_signed_height"`
@@ -82,11 +80,6 @@ func ValidateGenesis(data GenesisState) error {
 		}
 	}
 
-	for k, v := range data.Gas {
-		if len(v) == 0 {
-			return fmt.Errorf("gas %s cannot have empty units", k)
-		}
-	}
 	for _, bv := range data.BanVoters {
 		if err := bv.Valid(); err != nil {
 			return fmt.Errorf("invalid ban voter: %w", err)
@@ -138,7 +131,6 @@ func DefaultGenesisState() GenesisState {
 		Vaults:               make(Vaults, 0),
 		ObservedTxInVoters:   make(ObservedTxVoters, 0),
 		ObservedTxOutVoters:  make(ObservedTxVoters, 0),
-		Gas:                  make(map[string][]cosmos.Uint),
 		BanVoters:            make([]BanVoter, 0),
 		LastSignedHeight:     0,
 		LastChainHeights:     make(map[string]int64),
@@ -213,14 +205,6 @@ func InitGenesis(ctx cosmos.Context, keeper keeper.Keeper, data GenesisState) []
 		}
 	}
 
-	for k, v := range data.Gas {
-		keyParts := strings.Split(k, "/")
-		asset, err := common.NewAsset(keyParts[len(keyParts)-1])
-		if err != nil {
-			panic(err)
-		}
-		keeper.SetGas(ctx, asset, v)
-	}
 	if data.LastSignedHeight > 0 {
 		if err := keeper.SetLastSignedHeight(ctx, data.LastSignedHeight); err != nil {
 			panic(err)
@@ -398,15 +382,6 @@ func ExportGenesis(ctx cosmos.Context, k keeper.Keeper) GenesisState {
 		outs = append(outs, out)
 	}
 
-	gas := make(map[string][]cosmos.Uint, 0)
-	iterator = k.GetGasIterator(ctx)
-	defer iterator.Close()
-	for ; iterator.Valid(); iterator.Next() {
-		var g []cosmos.Uint
-		k.Cdc().MustUnmarshalBinaryBare(iterator.Value(), &g)
-		gas[string(iterator.Key())] = g
-	}
-
 	banVoters := make([]BanVoter, 0)
 	iteratorBanVoters := k.GetBanVoterIterator(ctx)
 	defer iteratorBanVoters.Close()
@@ -523,7 +498,6 @@ func ExportGenesis(ctx cosmos.Context, k keeper.Keeper) GenesisState {
 		TxOuts:               outs,
 		NodeAccounts:         nodeAccounts,
 		Vaults:               vaults,
-		Gas:                  gas,
 		BanVoters:            banVoters,
 		LastSignedHeight:     lastSignedHeight,
 		LastChainHeights:     lastChainHeights,
