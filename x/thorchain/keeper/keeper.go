@@ -41,7 +41,6 @@ type Keeper interface {
 	KeeperTssKeysignFail
 	KeeperKeygen
 	KeeperRagnarok
-	KeeperGas
 	KeeperTxMarker
 	KeeperErrataTx
 	KeeperBanVoter
@@ -190,12 +189,6 @@ type KeeperRagnarok interface {
 	SetRagnarokPending(_ cosmos.Context, _ int64)
 	GetRagnarokUnstakPosition(ctx cosmos.Context) (RagnarokUnstakePosition, error)
 	SetRagnarokUnstakPosition(ctx cosmos.Context, position RagnarokUnstakePosition)
-}
-
-type KeeperGas interface {
-	GetGas(_ cosmos.Context, asset common.Asset) ([]cosmos.Uint, error)
-	SetGas(_ cosmos.Context, asset common.Asset, units []cosmos.Uint)
-	GetGasIterator(ctx cosmos.Context) cosmos.Iterator
 }
 
 type KeeperTxMarker interface {
