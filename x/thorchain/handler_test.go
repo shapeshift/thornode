@@ -118,11 +118,6 @@ func setupKeeperForTest(c *C) (cosmos.Context, keeper.Keeper) {
 
 	FundModule(c, ctx, k, AsgardName, 100000000)
 
-	// set bnb gas
-	k.SetGas(ctx, common.BNBAsset, []cosmos.Uint{
-		cosmos.NewUint(37500),
-		cosmos.NewUint(30000),
-	})
 	return ctx, k
 }
 
