@@ -4,7 +4,9 @@ CHAIN_ID="${CHAIN_ID:=thorchain}"
 BINANCE_HOST="${BINANCE_HOST:=http://binance-mock:26660}"
 BINANCE_START_BLOCK_HEIGHT="${BINANCE_START_BLOCK_HEIGHT:=0}"
 BTC_HOST="${BTC_HOST:=bitcoin-regtest:18443}"
+BTC_START_BLOCK_HEIGHT="${BTC_START_BLOCK_HEIGHT:=0}"
 ETH_HOST="${ETH_HOST:=http://ethereum-localnet:8545}"
+ETH_START_BLOCK_HEIGHT="${ETH_START_BLOCK_HEIGHT:=0}"
 DB_PATH="${DB_PATH:=/var/data}"
 CHAIN_API="${CHAIN_API:=127.0.0.1:1317}"
 CHAIN_RPC="${CHAIN_RPC:=127.0.0.1:26657}"
@@ -103,7 +105,7 @@ if [ ! -f /etc/bifrost/config.json ]; then
             \"http_request_read_timeout\": \"30s\",
             \"http_request_write_timeout\": \"30s\",
             \"max_http_request_retry\": 10,
-            \"start_block_height\": 0,
+            \"start_block_height\": $BTC_START_BLOCK_HEIGHT,
             \"db_path\": \"$OBSERVER_PATH\"
           }
         },
@@ -125,7 +127,7 @@ if [ ! -f /etc/bifrost/config.json ]; then
             \"http_request_read_timeout\": \"30s\",
             \"http_request_write_timeout\": \"30s\",
             \"max_http_request_retry\": 10,
-            \"start_block_height\": 0,
+            \"start_block_height\": $ETH_START_BLOCK_HEIGHT,
             \"db_path\": \"$OBSERVER_PATH\"
           }
         }
