@@ -70,6 +70,8 @@ build-thornode:
     - testnet
     - chaosnet
     - mainnet
+    - testnet-multichain
+    - chaosnet-multichain
   services:
     - docker:19-dind
   before_script:
