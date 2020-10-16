@@ -224,7 +224,8 @@ func (s *ThorchainSuite) TestChurn(c *C) {
 	// check that the funds can be migrated from the retiring vault to the new
 	// vault
 	ctx = ctx.WithBlockHeight(vault1.StatusSince)
-	mgr.VaultMgr().EndBlock(ctx, mgr, consts) // should attempt to send 20% of the coin values
+	err = mgr.VaultMgr().EndBlock(ctx, mgr, consts) // should attempt to send 20% of the coin values
+	c.Assert(err, IsNil)
 	vault, err = keeper.GetVault(ctx, vault1.PubKey)
 	c.Assert(err, IsNil)
 	items, err := mgr.TxOutStore().GetOutboundItems(ctx)
