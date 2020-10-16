@@ -339,11 +339,6 @@ func (vm *validatorMgrV13) getChangedNodes(ctx cosmos.Context, activeNodes NodeA
 	var newActive NodeAccounts    // store the list of new active users
 	var removedNodes NodeAccounts // nodes that had been removed
 
-	readyNodes, err := vm.k.ListNodeAccountsByStatus(ctx, NodeReady)
-	if err != nil {
-		return newActive, removedNodes, fmt.Errorf("fail to list ready node accounts: %w", err)
-	}
-
 	activeVaults, err := vm.k.GetAsgardVaultsByStatus(ctx, ActiveVault)
 	if err != nil {
 		ctx.Logger().Error("fail to get active asgards", "error", err)
@@ -375,12 +370,14 @@ func (vm *validatorMgrV13) getChangedNodes(ctx cosmos.Context, activeNodes NodeA
 	}
 
 	// find ready nodes that change to active
-	for _, na := range readyNodes {
-		for _, member := range membership {
-			if na.PubKeySet.Contains(member) {
-				newActive = append(newActive, na)
-				break
-			}
+	for _, pk := range membership {
+		na, err := vm.k.GetNodeAccountByPubKey(ctx, pk)
+		if err != nil {
+			ctx.Logger().Error("fail to get node account", "error", err)
+			continue
+		}
+		if na.Status != NodeActive {
+			newActive = append(newActive, na)
 		}
 	}
 

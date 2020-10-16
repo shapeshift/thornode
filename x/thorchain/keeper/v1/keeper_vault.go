@@ -86,17 +86,35 @@ func (k KVStore) SortBySecurity(ctx cosmos.Context, vaults Vaults, signingTransP
 				ctx.Logger().Error("unable to get txout", "error", err)
 				continue
 			}
-			for _, txOutItem := range txOut.TxArray {
-				if txOutItem.OutHash.IsEmpty() && txOutItem.VaultPubKey.Equals(vault.PubKey) {
-					if txOutItem.Coin.Asset.IsRune() {
-						totalValue = common.SafeSub(totalValue, txOutItem.Coin.Amount)
-					} else {
-						pool, err := k.GetPool(ctx, txOutItem.Coin.Asset)
-						if err != nil {
-							ctx.Logger().Error("failed to get pool", "error", err)
-							continue
+			for _, item := range txOut.TxArray {
+				if item.OutHash.IsEmpty() {
+					toAddress, err := vault.PubKey.GetAddress(item.Coin.Asset.Chain)
+					if err != nil {
+						ctx.Logger().Error("failed to get address of chain", "error", err)
+						continue
+					}
+					if item.VaultPubKey.Equals(vault.PubKey) {
+						if item.Coin.Asset.IsRune() {
+							totalValue = common.SafeSub(totalValue, item.Coin.Amount)
+						} else {
+							pool, err := k.GetPool(ctx, item.Coin.Asset)
+							if err != nil {
+								ctx.Logger().Error("failed to get pool", "error", err)
+								continue
+							}
+							totalValue = common.SafeSub(totalValue, pool.AssetValueInRune(item.Coin.Amount))
 						}
-						totalValue = common.SafeSub(totalValue, pool.AssetValueInRune(txOutItem.Coin.Amount))
+					} else if item.ToAddress.Equals(toAddress) {
+						if item.Coin.Asset.IsRune() {
+							totalValue = totalValue.Add(item.Coin.Amount)
+						} else {
+							pool, err := k.GetPool(ctx, item.Coin.Asset)
+							if err != nil {
+								ctx.Logger().Error("failed to get pool", "error", err)
+								continue
+							}
+							totalValue = totalValue.Add(pool.AssetValueInRune(item.Coin.Amount))
+						}
 					}
 				}
 			}
