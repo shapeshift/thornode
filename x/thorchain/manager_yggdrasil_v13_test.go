@@ -209,6 +209,57 @@ func (s YggdrasilManagerV11Suite) TestFund(c *C) {
 	}
 }
 
+func (s YggdrasilManagerV11Suite) TestNotEnabledPoolAssetWillNotFundYggdrasil(c *C) {
+	ctx, k := setupKeeperForTest(c)
+	vault := GetRandomVault()
+	asset, err := common.NewAsset("BNB.BUSD-BD1")
+	c.Assert(err, IsNil)
+	vault.Coins = common.Coins{
+		common.NewCoin(common.RuneAsset(), cosmos.NewUint(10000*common.One)),
+		common.NewCoin(common.BNBAsset, cosmos.NewUint(10000*common.One)),
+		common.NewCoin(asset, cosmos.NewUint(10000*common.One)),
+	}
+	k.SetVault(ctx, vault)
+	mgr := NewDummyMgr()
+
+	// setup 6 active nodes
+	for i := 0; i < 6; i++ {
+		na := GetRandomNodeAccount(NodeActive)
+		na.Bond = cosmos.NewUint(common.One * 1000000)
+		c.Assert(k.SetNodeAccount(ctx, na), IsNil)
+	}
+	ver := semver.MustParse("0.16.0")
+	constAccessor := constants.GetConstantValues(ver)
+	ymgr := NewYggMgrV13(k)
+	err = ymgr.Fund(ctx, mgr, constAccessor)
+	c.Assert(err, IsNil)
+	na1 := GetRandomNodeAccount(NodeActive)
+	na1.Bond = cosmos.NewUint(1000000 * common.One)
+	c.Assert(k.SetNodeAccount(ctx, na1), IsNil)
+	bnbPool := NewPool()
+	bnbPool.Asset = common.BNBAsset
+	bnbPool.BalanceAsset = cosmos.NewUint(100000 * common.One)
+	bnbPool.BalanceRune = cosmos.NewUint(100000 * common.One)
+	c.Assert(k.SetPool(ctx, bnbPool), IsNil)
+
+	busdPool := NewPool()
+	busdPool.Asset = asset
+	busdPool.BalanceRune = cosmos.NewUint(100000 * common.One)
+	busdPool.BalanceAsset = cosmos.NewUint(10000 * common.One)
+	busdPool.Status = PoolBootstrap
+	c.Assert(k.SetPool(ctx, busdPool), IsNil)
+
+	err1 := ymgr.Fund(ctx, mgr, constAccessor)
+	c.Assert(err1, IsNil)
+	items, err := mgr.TxOutStore().GetOutboundItems(ctx)
+	c.Assert(err, IsNil)
+	if common.RuneAsset().Chain.Equals(common.THORChain) {
+		c.Assert(items, HasLen, 1)
+	} else {
+		c.Assert(items, HasLen, 2)
+	}
+}
+
 func (s YggdrasilManagerV11Suite) TestAbandonYggdrasil(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	vault := GetRandomVault()

@@ -1,5 +1,8 @@
 #!/bin/sh
+
 set -x
+set -o pipefail
+
 . $(dirname "$0")/core.sh
 
 SIGNER_NAME="${SIGNER_NAME:=thorchain}"

@@ -78,6 +78,8 @@ func NewQuerier(keeper keeper.Keeper, kbs KeybaseStore) cosmos.Querier {
 			return queryBan(ctx, path[1:], req, keeper)
 		case q.QueryRagnarok.Key:
 			return queryRagnarok(ctx, keeper)
+		case q.QueryPendingOutbound.Key:
+			return queryPendingOutbound(ctx, keeper)
 		default:
 			return nil, cosmos.ErrUnknownRequest(
 				fmt.Sprintf("unknown thorchain query endpoint: %s", path[0]),
@@ -976,6 +978,33 @@ func queryBan(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper k
 	if err != nil {
 		ctx.Logger().Error("fail to marshal ban voter to json", "error", err)
 		return nil, fmt.Errorf("fail to ban voter to json: %w", err)
+	}
+	return res, nil
+}
+
+func queryPendingOutbound(ctx cosmos.Context, keeper keeper.Keeper) ([]byte, error) {
+	version := keeper.GetLowestActiveVersion(ctx)
+	constAccessor := constants.GetConstantValues(version)
+	signingTransactionPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
+	startHeight := common.BlockHeight(ctx) - signingTransactionPeriod
+	var result []TxOutItem
+	for height := startHeight; height <= common.BlockHeight(ctx); height++ {
+		txs, err := keeper.GetTxOut(ctx, height)
+		if err != nil {
+			ctx.Logger().Error("fail to get tx out array from key value store", "error", err)
+			return nil, fmt.Errorf("fail to get tx out array from key value store: %w", err)
+		}
+		for _, tx := range txs.TxArray {
+			if tx.OutHash.IsEmpty() {
+				result = append(result, *tx)
+			}
+		}
+	}
+
+	res, err := codec.MarshalJSONIndent(keeper.Cdc(), result)
+	if err != nil {
+		ctx.Logger().Error("fail to marshal pending outbound tx to json", "error", err)
+		return nil, fmt.Errorf("fail to marshal pending outbound tx to json: %w", err)
 	}
 	return res, nil
 }
