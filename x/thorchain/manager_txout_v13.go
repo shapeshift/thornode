@@ -8,6 +8,7 @@ import (
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
 // TxOutStorageV13 is going to manage all the outgoing tx
@@ -139,6 +140,11 @@ func (tos *TxOutStorageV13) prepareTxOutItem(ctx cosmos.Context, toi *TxOutItem)
 			// filter active vaults that don't have enough funds to send requested amount
 			filterVaults := make(Vaults, 0)
 			for _, v := range active {
+				v, err = tos.deductVaultPendingOutboundBalance(ctx, v)
+				if err != nil {
+					ctx.Logger().Error("fail to deduct outstanding outbound balance from asgard vault", "error", err)
+					continue
+				}
 				if !toi.Coin.Amount.GT(v.GetCoin(toi.Coin.Asset).Amount) {
 					filterVaults = append(filterVaults, v)
 				}
@@ -164,7 +170,10 @@ func (tos *TxOutStorageV13) prepareTxOutItem(ctx cosmos.Context, toi *TxOutItem)
 			if vault.IsEmpty() {
 				return false, fmt.Errorf("empty vault, cannot send out fund: %s", toi.Coin)
 			}
-
+			vault, err = tos.deductVaultPendingOutboundBalance(ctx, vault)
+			if err != nil {
+				return false, fmt.Errorf("fail to deduct outstanding outbound balance from asgard vault: %w", err)
+			}
 			if toi.Coin.Amount.GT(vault.GetCoin(toi.Coin.Asset).Amount) {
 				// not enough funds
 				return false, fmt.Errorf("vault %s, does not have enough funds. Has %s, but requires %s", vault.PubKey, vault.GetCoin(toi.Coin.Asset), toi.Coin)
@@ -416,35 +425,47 @@ func (tos *TxOutStorageV13) collectYggdrasilPools(ctx cosmos.Context, tx Observe
 			continue
 		}
 
-		block, err := tos.GetBlockOut(ctx)
+		v, err := tos.deductVaultPendingOutboundBalance(ctx, vault)
 		if err != nil {
-			return nil, fmt.Errorf("fail to get block:%w", err)
+			ctx.Logger().Error("fail to deduct vault outstanding outbound balance", "error", err)
+			continue
 		}
-
-		// comments for future reference, this part of logic confuse me quite a few times
-		// This method read the vault from key value store, and trying to find out all the ygg candidate that can be used to send out fund
-		// given the fact, there might have multiple TxOutItem get created with in one block, and the fund has not been deducted from vault and save back to key values store,
-		// thus every previously processed TxOut need to be deducted from the ygg vault to make sure THORNode has a correct view of the ygg funds
-		vault = tos.deductYggdrasilVaultOutstandingBalance(vault, block)
-
-		// go back 10 blocks to see whether there are outstanding tx, the vault need to send out
-		// if there is , deduct it from their balance
-		signingPeriod := tos.constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
-		for i := block.Height - signingPeriod; i < block.Height; i++ {
-			blockOut, err := tos.keeper.GetTxOut(ctx, i)
-			if err != nil {
-				ctx.Logger().Error("fail to get block tx out", "error", err)
-			}
-			vault = tos.deductYggdrasilVaultOutstandingBalance(vault, blockOut)
-		}
-
-		vaults = append(vaults, vault)
+		vaults = append(vaults, v)
 	}
 
 	return vaults, nil
 }
 
-func (tos *TxOutStorageV13) deductYggdrasilVaultOutstandingBalance(vault Vault, block *TxOut) Vault {
+func (tos *TxOutStorageV13) deductVaultPendingOutboundBalance(ctx cosmos.Context, vault Vault) (Vault, error) {
+	block, err := tos.GetBlockOut(ctx)
+	if err != nil {
+		return types.Vault{}, fmt.Errorf("fail to get block:%w", err)
+	}
+
+	// comments for future reference, this part of logic confuse me quite a few times
+	// This method read the vault from key value store, and trying to find out all the ygg candidate that can be used to send out fund
+	// given the fact, there might have multiple TxOutItem get created with in one block, and the fund has not been deducted from vault and save back to key values store,
+	// thus every previously processed TxOut need to be deducted from the ygg vault to make sure THORNode has a correct view of the ygg funds
+	vault = tos.deductVaultBlockPendingOutbound(vault, block)
+
+	// go back SigningTransactionPeriod blocks to see whether there are outstanding tx, the vault need to send out
+	// if there is , deduct it from their balance
+	signingPeriod := tos.constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
+	startHeight := block.Height - signingPeriod
+	if startHeight < 1 {
+		startHeight = 1
+	}
+	for i := startHeight; i < block.Height; i++ {
+		blockOut, err := tos.keeper.GetTxOut(ctx, i)
+		if err != nil {
+			ctx.Logger().Error("fail to get block tx out", "error", err)
+		}
+		vault = tos.deductVaultBlockPendingOutbound(vault, blockOut)
+	}
+	return vault, nil
+}
+
+func (tos *TxOutStorageV13) deductVaultBlockPendingOutbound(vault Vault, block *TxOut) Vault {
 	for _, txOutItem := range block.TxArray {
 		if !txOutItem.VaultPubKey.Equals(vault.PubKey) {
 			continue
