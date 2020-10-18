@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -o pipefail
+
 source $(dirname "$0")/core.sh
 
 SEEDS="${SEEDS:=none}" # the hostname of multiple seeds set as tendermint seeds

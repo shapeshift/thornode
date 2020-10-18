@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -o pipefail
+
 PORT_P2P=26656
 PORT_RPC=26657
 [ "$NET" == "mainnet" ] && PORT_P2P=27146 && PORT_RPC=27147

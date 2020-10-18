@@ -130,9 +130,14 @@ type handlerTestWrapper struct {
 }
 
 func getHandlerTestWrapper(c *C, height int64, withActiveNode, withActieBNBPool bool) handlerTestWrapper {
+	return getHandlerTestWrapperWithVersion(c, height, withActiveNode, withActieBNBPool, constants.SWVersion)
+}
+
+func getHandlerTestWrapperWithVersion(c *C, height int64, withActiveNode, withActieBNBPool bool, version semver.Version) handlerTestWrapper {
 	ctx, k := setupKeeperForTest(c)
 	ctx = ctx.WithBlockHeight(height)
 	acc1 := GetRandomNodeAccount(NodeActive)
+	acc1.Version = version
 	if withActiveNode {
 		c.Assert(k.SetNodeAccount(ctx, acc1), IsNil)
 	}
@@ -145,8 +150,7 @@ func getHandlerTestWrapper(c *C, height int64, withActiveNode, withActieBNBPool 
 		p.BalanceAsset = cosmos.NewUint(100 * common.One)
 		c.Assert(k.SetPool(ctx, p), IsNil)
 	}
-	ver := constants.SWVersion
-	constAccessor := constants.GetConstantValues(ver)
+	constAccessor := constants.GetConstantValues(version)
 	mgr := NewManagers(k)
 	c.Assert(mgr.BeginBlock(ctx), IsNil)
 
