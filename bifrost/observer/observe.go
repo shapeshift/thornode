@@ -151,10 +151,25 @@ func (o *Observer) processTxIns() {
 			o.lock.Lock()
 			found := false
 			for i, in := range o.onDeck {
-				if in.Chain == txIn.Chain && in.MemPool == txIn.MemPool {
-					o.onDeck[i].TxArray = append(o.onDeck[i].TxArray, txIn.TxArray...)
-					found = true
+				if in.Chain != txIn.Chain {
+					continue
 				}
+				if in.MemPool != txIn.MemPool {
+					continue
+				}
+				if in.Filtered != txIn.Filtered {
+					continue
+				}
+				// at the moment BNB chain has very short block time , so allow multiple BNB block to bundle together , but not BTC
+				if !in.Chain.Equals(common.BNBChain) && len(in.TxArray) > 0 && len(txIn.TxArray) > 0 {
+					if in.TxArray[0].BlockHeight != txIn.TxArray[0].BlockHeight {
+						continue
+					}
+				}
+
+				o.onDeck[i].TxArray = append(o.onDeck[i].TxArray, txIn.TxArray...)
+				found = true
+				break
 			}
 			if !found {
 				o.onDeck = append(o.onDeck, txIn)
