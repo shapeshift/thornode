@@ -759,7 +759,7 @@ func (c *Client) getBlockRequiredConfirmation(txIn types.TxIn, height int64) (in
 
 	totalFeeAndSubsidy := txIn.GetTotalGas().AddUint64(uint64(stats.Subsidy))
 	confirm := totalTxValue.MulUint64(2).Quo(totalFeeAndSubsidy).Uint64()
-	c.logger.Debug().Msgf("totalTxValue:%s,total subsidy:%d,total fee and Subsidy:%s,confirmation:%d", totalTxValue, stats.Subsidy, totalFeeAndSubsidy, confirm)
+	c.logger.Info().Msgf("totalTxValue:%s,total subsidy:%d,total fee and Subsidy:%s,confirmation:%d", totalTxValue, stats.Subsidy, totalFeeAndSubsidy, confirm)
 	return int64(confirm), nil
 }
 
