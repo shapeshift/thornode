@@ -174,7 +174,7 @@ func main() {
 	chains := chainclients.LoadChains(k, cfg.Chains, tssIns, thorchainBridge, m, keySignPartyMgr, pubkeyMgr)
 
 	// start observer
-	obs, err := observer.NewObserver(pubkeyMgr, chains, thorchainBridge, m)
+	obs, err := observer.NewObserver(pubkeyMgr, chains, thorchainBridge, m, cfg.Chains[0].BlockScanner.DBPath)
 	if err != nil {
 		log.Fatal().Err(err).Msg("fail to create observer")
 	}
