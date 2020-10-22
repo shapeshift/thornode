@@ -237,6 +237,9 @@ func (h ObservedTxInHandler) preflightV10(ctx cosmos.Context, voter ObservedTxVo
 	observeFlex := constAccessor.GetInt64Value(constants.ObserveFlex)
 	h.mgr.Slasher().IncSlashPoints(ctx, observeSlashPoints, signer)
 	ok := false
+	if err := h.keeper.SetLastObserveHeight(ctx, tx.Tx.Chain, signer, tx.BlockHeight); err != nil {
+		ctx.Logger().Error("fail to save last observe height", "error", err, "signer", signer, "chain", tx.Tx.Chain)
+	}
 	if !voter.Add(tx, signer) {
 		return voter, ok
 	}
