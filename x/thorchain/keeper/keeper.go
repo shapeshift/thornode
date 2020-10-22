@@ -65,6 +65,8 @@ type KeeperLastHeight interface {
 	SetLastChainHeight(ctx cosmos.Context, chain common.Chain, height int64) error
 	GetLastChainHeight(ctx cosmos.Context, chain common.Chain) (int64, error)
 	GetLastChainHeights(ctx cosmos.Context) (map[common.Chain]int64, error)
+	SetLastObserveHeight(ctx cosmos.Context, chain common.Chain, address cosmos.AccAddress, height int64) error
+	GetLastObserveHeight(ctx cosmos.Context, address cosmos.AccAddress) (map[common.Chain]int64, error)
 }
 
 type KeeperStaker interface {

@@ -33,6 +33,7 @@ const (
 	prefixStaker             kvTypes.DbPrefix = "staker/"
 	prefixLastChainHeight    kvTypes.DbPrefix = "last_chain_height/"
 	prefixLastSignedHeight   kvTypes.DbPrefix = "last_signed_height/"
+	prefixLastObserveHeight  kvTypes.DbPrefix = "last_observe_height/"
 	prefixNodeAccount        kvTypes.DbPrefix = "node_account/"
 	prefixVault              kvTypes.DbPrefix = "vault/"
 	prefixVaultAsgardIndex   kvTypes.DbPrefix = "vault_asgard_index/"
