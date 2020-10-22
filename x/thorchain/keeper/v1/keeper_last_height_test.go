@@ -69,3 +69,28 @@ func (s *KeeperLastHeightSuite) TestGetLastChainHeights(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(result, NotNil)
 }
+
+func (s *KeeperLastHeightSuite) TestSetLastObserveHeight(c *C) {
+	ctx, k := setupKeeperForTest(c)
+	na := GetRandomNodeAccount(NodeActive)
+	c.Assert(k.SetLastObserveHeight(ctx, common.BTCChain, na.NodeAddress, 1024), IsNil)
+	c.Assert(k.SetLastObserveHeight(ctx, common.BTCChain, na.NodeAddress, 1025), IsNil)
+	result, err := k.GetLastObserveHeight(ctx, na.NodeAddress)
+	c.Assert(err, IsNil)
+	h, ok := result[common.BTCChain]
+	c.Assert(ok, Equals, true)
+	c.Assert(h, Equals, int64(1025))
+	h, ok = result[common.BNBChain]
+	c.Assert(ok, Equals, false)
+	c.Assert(h, Equals, int64(0))
+
+	c.Assert(k.SetLastObserveHeight(ctx, common.BNBChain, na.NodeAddress, 1114), IsNil)
+	result, err = k.GetLastObserveHeight(ctx, na.NodeAddress)
+	c.Assert(err, IsNil)
+	h, ok = result[common.BTCChain]
+	c.Assert(ok, Equals, true)
+	c.Assert(h, Equals, int64(1025))
+	h, ok = result[common.BNBChain]
+	c.Assert(ok, Equals, true)
+	c.Assert(h, Equals, int64(1114))
+}

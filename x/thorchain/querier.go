@@ -14,6 +14,7 @@ import (
 	"gitlab.com/thorchain/thornode/constants"
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 	q "gitlab.com/thorchain/thornode/x/thorchain/query"
+	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
 // NewQuerier is the module level router for state queries
@@ -413,7 +414,16 @@ func queryNodeAccount(ctx cosmos.Context, path []string, req abci.RequestQuery, 
 		earnedBlocks := nodeAcc.CalcBondUnits(common.BlockHeight(ctx), slashPts)
 		result.CurrentAward = vaultData.CalcNodeRewards(earnedBlocks)
 	}
-
+	chainHeights, err := keeper.GetLastObserveHeight(ctx, addr)
+	if err != nil {
+		return nil, fmt.Errorf("fail to get last observe chain height: %w", err)
+	}
+	for c, h := range chainHeights {
+		result.ObserveChains = append(result.ObserveChains, types.QueryChainHeight{
+			Chain:  c,
+			Height: h,
+		})
+	}
 	res, err := codec.MarshalJSONIndent(keeper.Cdc(), result)
 	if err != nil {
 		return nil, fmt.Errorf("fail to marshal node account to json: %w", err)
@@ -501,6 +511,16 @@ func queryNodeAccounts(ctx cosmos.Context, path []string, req abci.RequestQuery,
 			return nil, fmt.Errorf("fail to get node jail: %w", err)
 		}
 		result[i].Jail = jail
+		chainHeights, err := keeper.GetLastObserveHeight(ctx, na.NodeAddress)
+		if err != nil {
+			return nil, fmt.Errorf("fail to get last observe chain height: %w", err)
+		}
+		for c, h := range chainHeights {
+			result[i].ObserveChains = append(result[i].ObserveChains, types.QueryChainHeight{
+				Chain:  c,
+				Height: h,
+			})
+		}
 	}
 
 	res, err := codec.MarshalJSONIndent(keeper.Cdc(), result)

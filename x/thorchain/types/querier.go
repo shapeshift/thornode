@@ -86,25 +86,32 @@ type QueryChainAddress struct {
 	Address common.Address `json:"address"`
 }
 
+// QueryChainHeight chain height
+type QueryChainHeight struct {
+	Chain  common.Chain `json:"chain"`
+	Height int64        `json:"height"`
+}
+
 // QueryNodeAccount hold all the information related to node account
 type QueryNodeAccount struct {
-	NodeAddress         cosmos.AccAddress `json:"node_address"`
-	Status              NodeStatus        `json:"status"`
-	PubKeySet           common.PubKeySet  `json:"pub_key_set"`
-	ValidatorConsPubKey string            `json:"validator_cons_pub_key"`
-	Bond                cosmos.Uint       `json:"bond"`
-	ActiveBlockHeight   int64             `json:"active_block_height"`
-	BondAddress         common.Address    `json:"bond_address"`
-	StatusSince         int64             `json:"status_since"`
-	SignerMembership    common.PubKeys    `json:"signer_membership"`
-	RequestedToLeave    bool              `json:"requested_to_leave"`
-	ForcedToLeave       bool              `json:"forced_to_leave"`
-	LeaveHeight         int64             `json:"leave_height"`
-	IPAddress           string            `json:"ip_address"`
-	Version             semver.Version    `json:"version"`
-	SlashPoints         int64             `json:"slash_points"`
-	Jail                Jail              `json:"jail"`
-	CurrentAward        cosmos.Uint       `json:"current_award"`
+	NodeAddress         cosmos.AccAddress  `json:"node_address"`
+	Status              NodeStatus         `json:"status"`
+	PubKeySet           common.PubKeySet   `json:"pub_key_set"`
+	ValidatorConsPubKey string             `json:"validator_cons_pub_key"`
+	Bond                cosmos.Uint        `json:"bond"`
+	ActiveBlockHeight   int64              `json:"active_block_height"`
+	BondAddress         common.Address     `json:"bond_address"`
+	StatusSince         int64              `json:"status_since"`
+	SignerMembership    common.PubKeys     `json:"signer_membership"`
+	RequestedToLeave    bool               `json:"requested_to_leave"`
+	ForcedToLeave       bool               `json:"forced_to_leave"`
+	LeaveHeight         int64              `json:"leave_height"`
+	IPAddress           string             `json:"ip_address"`
+	Version             semver.Version     `json:"version"`
+	SlashPoints         int64              `json:"slash_points"`
+	Jail                Jail               `json:"jail"`
+	CurrentAward        cosmos.Uint        `json:"current_award"`
+	ObserveChains       []QueryChainHeight `json:"observe_chains"`
 }
 
 // NewQueryNodeAccount create a new QueryNodeAccount based on the given node account parameter
