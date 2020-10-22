@@ -335,6 +335,14 @@ func (k KVStoreDummy) GetObservedNetworkFeeVoter(ctx cosmos.Context, height int6
 	return ObservedNetworkFeeVoter{}, nil
 }
 
+func (k KVStoreDummy) SetLastObserveHeight(ctx cosmos.Context, chain common.Chain, address cosmos.AccAddress, height int64) error {
+	return kaboom
+}
+
+func (k KVStoreDummy) GetLastObserveHeight(ctx cosmos.Context, address cosmos.AccAddress) (map[common.Chain]int64, error) {
+	return nil, kaboom
+}
+
 // a mock cosmos.Iterator implementation for testing purposes
 type DummyIterator struct {
 	cosmos.Iterator
