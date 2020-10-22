@@ -28,7 +28,7 @@ func NewConstantValue010() *ConstantVals {
 			WhiteListGasAsset:               1000,               // thor coins we will be given to the validator
 			FailKeygenSlashPoints:           720,                // slash for 720 blocks , which equals 1 hour
 			FailKeySignSlashPoints:          2,                  // slash for 2 blocks
-			StakeLockUpBlocks:               17280,              // the number of blocks staker can unstake after their stake
+			StakeLockUpBlocks:               0,                  // the number of blocks staker can unstake after their stake
 			ObserveSlashPoints:              1,                  // the number of slashpoints for making an observation (redeems later if observation reaches consensus
 			ObserveFlex:                     5,                  // number of blocks of flexibility for a validator to get their slash points taken off for making an observation
 			YggFundLimit:                    50,                 // percentage of the amount of funds a ygg vault is allowed to have.
