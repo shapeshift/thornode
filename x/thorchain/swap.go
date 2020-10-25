@@ -215,7 +215,7 @@ func swapOne(ctx cosmos.Context,
 	}
 
 	liquidityFee = calcLiquidityFee(X, x, Y)
-	tradeSlip = calcTradeSlip(X, x)
+	tradeSlip = calcSwapSlip(X, x)
 	emitAssets = calcAssetEmission(X, x, Y)
 	swapEvt.LiquidityFee = liquidityFee
 
@@ -268,24 +268,19 @@ func calcLiquidityFee(X, x, Y cosmos.Uint) cosmos.Uint {
 	return numerator.Quo(denominator)
 }
 
-// calcTradeSlip - calculate the trade slip, expressed in basis points (10000)
-func calcTradeSlip(Xi, xi cosmos.Uint) cosmos.Uint {
+// calcSwapSlip - calculate the swap slip, expressed in basis points (10000)
+func calcSwapSlip(Xi, xi cosmos.Uint) cosmos.Uint {
 	// Cast to DECs
 	xD := cosmos.NewDecFromBigInt(xi.BigInt())
 	XD := cosmos.NewDecFromBigInt(Xi.BigInt())
-	dec2 := cosmos.NewDec(2)
 	dec10k := cosmos.NewDec(10000)
-
-	// x * (2*X + x) / (X * X)
-	numD := xD.Mul((dec2.Mul(XD)).Add(xD))
-	denD := XD.Mul(XD)
-
+	// x / (x + X)
+	denD := xD.Add(XD)
 	if denD.IsZero() {
 		return cosmos.ZeroUint()
 	}
-	tradeSlipD := numD.Quo(denD) // Division with DECs
-
-	tradeSlip := tradeSlipD.Mul(dec10k)                             // Adds 5 0's
-	tradeSlipUint := cosmos.NewUint(uint64(tradeSlip.RoundInt64())) // Casts back to Uint as Basis Points
-	return tradeSlipUint
+	swapSlipD := xD.Quo(denD)                                     // Division with DECs
+	swapSlip := swapSlipD.Mul(dec10k)                             // Adds 5 0's
+	swapSlipUint := cosmos.NewUint(uint64(swapSlip.RoundInt64())) // Casts back to Uint as Basis Points
+	return swapSlipUint
 }
