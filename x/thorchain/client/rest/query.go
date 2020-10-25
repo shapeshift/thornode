@@ -30,6 +30,8 @@ func getHandlerWrapper(q query.Query, storeName string, cliCtx context.CLIContex
 				return
 			}
 			cliCtx = cliCtx.WithHeight(height)
+		} else {
+			cliCtx = cliCtx.WithHeight(0)
 		}
 		param := mux.Vars(r)[restURLParam]
 		text, err := r.URL.MarshalBinary()
