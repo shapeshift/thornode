@@ -137,7 +137,7 @@ func (vm *SwapQv1) scoreMsgs(ctx cosmos.Context, msgs []MsgSwap) (swapItems, err
 		if sourceCoin.Asset.IsRune() {
 			item.fee = pool.AssetValueInRune(item.fee)
 		}
-		item.slip = calcTradeSlip(X, x)
+		item.slip = calcSwapSlip(X, x)
 
 		items = append(items, item)
 	}
