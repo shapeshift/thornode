@@ -508,8 +508,16 @@ func (c *Client) sendNetworkFee(height int64) error {
 	if result.MedianFee == 0 || result.MedianTxSize == 0 {
 		return nil
 	}
+	medianFee := uint64(result.MedianFee)
+	if result.MedianFee < MinRelayFee {
+		medianFee = MinRelayFee
+	}
+	rate := medianFee / uint64(result.MedianTxSize)
+	if rate*uint64(result.MedianTxSize) < medianFee {
+		rate++
+	}
 
-	txid, err := c.bridge.PostNetworkFee(height, common.BTCChain, uint64(result.MedianTxSize), uint64(result.MedianFee/result.MedianTxSize))
+	txid, err := c.bridge.PostNetworkFee(height, common.BTCChain, uint64(result.MedianTxSize), rate)
 	if err != nil {
 		return fmt.Errorf("fail to post network fee to thornode: %w", err)
 	}

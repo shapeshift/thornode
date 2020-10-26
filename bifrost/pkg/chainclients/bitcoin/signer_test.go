@@ -76,9 +76,13 @@ func (s *BitcoinSignerSuite) SetUpTest(c *C) {
 	thorKeys := thorclient.NewKeysWithKeybase(kb, info, cfg.SignerPasswd)
 
 	s.server = httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		if req.RequestURI == "/thorchain/vaults/tthorpub1addwnpepqts24euwrgly2vtez3zdvusmk6u3cwf8leuzj8m4ynvmv5cst7us270ryd3/signers" {
+		if req.RequestURI == "/thorchain/vaults/tthorpub1addwnpepqwm9wsafv26hzqurtjvuuj3xk4j3jyc9yj2uastnmuuqjney9ep3clzt622/signers" {
 			_, err := rw.Write([]byte("[]"))
 			c.Assert(err, IsNil)
+		} else if strings.HasPrefix(req.RequestURI, "/thorchain/vaults") && strings.HasSuffix(req.RequestURI, "/signers") {
+			httpTestHandler(c, rw, "../../../../test/fixtures/endpoints/tss/keysign_party.json")
+		} else if req.RequestURI == "/thorchain/version" {
+			httpTestHandler(c, rw, "../../../../test/fixtures/endpoints/version/version.json")
 		} else {
 			r := struct {
 				Method string `json:"method"`
@@ -165,7 +169,7 @@ func (s *BitcoinSignerSuite) TestSignTx(c *C) {
 			common.NewCoin(common.BTCAsset, cosmos.NewUint(10)),
 		},
 		MaxGas: common.Gas{
-			common.NewCoin(common.BTCAsset, cosmos.NewUint(1)),
+			common.NewCoin(common.BTCAsset, cosmos.NewUint(1001)),
 		},
 		InHash:  "",
 		OutHash: "",
@@ -217,7 +221,7 @@ func (s *BitcoinSignerSuite) TestSignTxHappyPathWithPrivateKey(c *C) {
 			common.NewCoin(common.BTCAsset, cosmos.NewUint(10)),
 		},
 		MaxGas: common.Gas{
-			common.NewCoin(common.BTCAsset, cosmos.NewUint(1)),
+			common.NewCoin(common.BTCAsset, cosmos.NewUint(1000)),
 		},
 		InHash:  "",
 		OutHash: "",
@@ -289,20 +293,20 @@ func (s *BitcoinSignerSuite) TestSignTxWithoutPredefinedMaxGas(c *C) {
 }
 
 func (s *BitcoinSignerSuite) TestSignTxWithTSS(c *C) {
-	pubkey, err := common.NewPubKey("tthorpub1addwnpepqts24euwrgly2vtez3zdvusmk6u3cwf8leuzj8m4ynvmv5cst7us270ryd3")
+	pubkey, err := common.NewPubKey("tthorpub1addwnpepqwm9wsafv26hzqurtjvuuj3xk4j3jyc9yj2uastnmuuqjney9ep3clzt622")
 	c.Assert(err, IsNil)
 	addr, err := pubkey.GetAddress(common.BTCChain)
 	c.Assert(err, IsNil)
 	txOutItem := stypes.TxOutItem{
 		Chain:       common.BTCChain,
 		ToAddress:   addr,
-		VaultPubKey: "tthorpub1addwnpepqts24euwrgly2vtez3zdvusmk6u3cwf8leuzj8m4ynvmv5cst7us270ryd3",
+		VaultPubKey: "tthorpub1addwnpepqwm9wsafv26hzqurtjvuuj3xk4j3jyc9yj2uastnmuuqjney9ep3clzt622",
 		SeqNo:       0,
 		Coins: common.Coins{
 			common.NewCoin(common.BTCAsset, cosmos.NewUint(10)),
 		},
 		MaxGas: common.Gas{
-			common.NewCoin(common.BTCAsset, cosmos.NewUint(1)),
+			common.NewCoin(common.BTCAsset, cosmos.NewUint(1000)),
 		},
 		InHash:  "",
 		OutHash: "",
