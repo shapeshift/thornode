@@ -284,7 +284,7 @@ func (h StakeHandler) stake(ctx cosmos.Context,
 		}
 	}
 
-	evt := NewEventStake(asset, stakerUnits, runeAddr, stakeRuneAmount, stakeAssetAmount, runeTxID, assetTxID)
+	evt := NewEventStake(asset, stakerUnits, runeAddr, stakeRuneAmount, stakeAssetAmount, runeTxID, assetTxID, assetAddr)
 	if err := h.mgr.EventMgr().EmitEvent(ctx, evt); err != nil {
 		return ErrInternal(err, "fail to emit stake event")
 	}
@@ -403,7 +403,7 @@ func (h StakeHandler) stakeV14(ctx cosmos.Context,
 		}
 	}
 
-	evt := NewEventStake(asset, stakerUnits, runeAddr, stakeRuneAmount, stakeAssetAmount, runeTxID, assetTxID)
+	evt := NewEventStake(asset, stakerUnits, runeAddr, stakeRuneAmount, stakeAssetAmount, runeTxID, assetTxID, assetAddr)
 	if err := h.mgr.EventMgr().EmitEvent(ctx, evt); err != nil {
 		return ErrInternal(err, "fail to emit stake event")
 	}

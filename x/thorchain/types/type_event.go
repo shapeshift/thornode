@@ -92,28 +92,34 @@ func (e EventSwap) Events() (cosmos.Events, error) {
 
 // EventStake stake event
 type EventStake struct {
-	Pool        common.Asset   `json:"pool"`
-	StakeUnits  cosmos.Uint    `json:"stake_units"`
-	RuneAddress common.Address `json:"rune_address"`
-	RuneAmount  cosmos.Uint    `json:"rune_amount"`
-	AssetAmount cosmos.Uint    `json:"asset_amount"`
-	RuneTxID    common.TxID    `json:"rune_tx_id"`
-	AssetTxID   common.TxID    `json:"asset_tx_id"`
+	Pool         common.Asset   `json:"pool"`
+	StakeUnits   cosmos.Uint    `json:"stake_units"`
+	RuneAddress  common.Address `json:"rune_address"`
+	RuneAmount   cosmos.Uint    `json:"rune_amount"`
+	AssetAmount  cosmos.Uint    `json:"asset_amount"`
+	RuneTxID     common.TxID    `json:"rune_tx_id"`
+	AssetTxID    common.TxID    `json:"asset_tx_id"`
+	AssetAddress common.Address `json:"asset_address"`
 }
 
 // NewEventStake create a new stake event
 func NewEventStake(pool common.Asset,
 	su cosmos.Uint,
 	runeAddress common.Address,
-	runeAmount, assetAmount cosmos.Uint, runeTxID, assetTxID common.TxID) EventStake {
+	runeAmount,
+	assetAmount cosmos.Uint,
+	runeTxID,
+	assetTxID common.TxID,
+	assetAddress common.Address) EventStake {
 	return EventStake{
-		Pool:        pool,
-		StakeUnits:  su,
-		RuneAddress: runeAddress,
-		RuneAmount:  runeAmount,
-		AssetAmount: assetAmount,
-		RuneTxID:    runeTxID,
-		AssetTxID:   assetTxID,
+		Pool:         pool,
+		StakeUnits:   su,
+		RuneAddress:  runeAddress,
+		RuneAmount:   runeAmount,
+		AssetAmount:  assetAmount,
+		RuneTxID:     runeTxID,
+		AssetTxID:    assetTxID,
+		AssetAddress: assetAddress,
 	}
 }
 
@@ -130,6 +136,7 @@ func (e EventStake) Events() (cosmos.Events, error) {
 		cosmos.NewAttribute("rune_address", e.RuneAddress.String()),
 		cosmos.NewAttribute("rune_amount", e.RuneAmount.String()),
 		cosmos.NewAttribute("asset_amount", e.AssetAmount.String()),
+		cosmos.NewAttribute("asset_address", e.AssetAddress.String()),
 	)
 	if !e.RuneTxID.Equals(e.AssetTxID) {
 		evt = evt.AppendAttributes(cosmos.NewAttribute(fmt.Sprintf("%s_txid", common.RuneAsset().Chain), e.RuneTxID.String()))
