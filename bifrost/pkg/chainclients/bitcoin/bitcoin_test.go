@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -90,46 +91,59 @@ func (s *BitcoinSuite) SetUpTest(c *C) {
 	c.Assert(err, IsNil)
 	thorKeys := thorclient.NewKeysWithKeybase(kb, info, cfg.SignerPasswd)
 	c.Assert(err, IsNil)
+
+	s.server = httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		if req.RequestURI == "/" {
+			r := struct {
+				Method string   `json:"method"`
+				Params []string `json:"params"`
+			}{}
+			json.NewDecoder(req.Body).Decode(&r)
+
+			switch {
+			case r.Method == "getblockhash":
+				httpTestHandler(c, rw, "../../../../test/fixtures/btc/blockhash.json")
+			case r.Method == "getblock":
+				httpTestHandler(c, rw, "../../../../test/fixtures/btc/block_verbose.json")
+			case r.Method == "gettransaction":
+				if r.Params[0] == "27de3e1865c098cd4fded71bae1e8236fd27ce5dce6e524a9ac5cd1a17b5c241" {
+					httpTestHandler(c, rw, "../../../../test/fixtures/btc/tx-c241.json")
+				}
+			case r.Method == "getrawtransaction":
+				if r.Params[0] == "5b0876dcc027d2f0c671fc250460ee388df39697c3ff082007b6ddd9cb9a7513" {
+					httpTestHandler(c, rw, "../../../../test/fixtures/btc/tx-5b08.json")
+				} else if r.Params[0] == "54ef2f4679fb90af42e8d963a5d85645d0fd86e5fe8ea4e69dbf2d444cb26528" {
+					httpTestHandler(c, rw, "../../../../test/fixtures/btc/tx-54ef.json")
+				} else {
+					httpTestHandler(c, rw, "../../../../test/fixtures/btc/tx.json")
+				}
+			case r.Method == "getblockcount":
+				httpTestHandler(c, rw, "../../../../test/fixtures/btc/blockcount.json")
+			case r.Method == "importaddress":
+				httpTestHandler(c, rw, "../../../../test/fixtures/btc/importaddress.json")
+			case r.Method == "listunspent":
+				httpTestHandler(c, rw, "../../../../test/fixtures/btc/listunspent.json")
+			case r.Method == "getrawmempool":
+				httpTestHandler(c, rw, "../../../../test/fixtures/btc/getrawmempool.json")
+			case r.Method == "getblockstats":
+				httpTestHandler(c, rw, "../../../../test/fixtures/btc/blockstats.json")
+			}
+		} else if strings.HasPrefix(req.RequestURI, "/thorchain/nodeaccount/") {
+			httpTestHandler(c, rw, "../../../../test/fixtures/endpoints/nodeaccount/template.json")
+		} else if req.RequestURI == "/thorchain/lastblock" {
+			httpTestHandler(c, rw, "../../../../test/fixtures/endpoints/lastblock/btc.json")
+		} else if strings.HasPrefix(req.RequestURI, "/auth/accounts/") {
+			_, err := rw.Write([]byte(`{ "jsonrpc": "2.0", "id": "", "result": { "height": "0", "result": { "value": { "account_number": "0", "sequence": "0" } } } }`))
+			c.Assert(err, IsNil)
+		} else if req.RequestURI == "/txs" {
+			_, err := rw.Write([]byte(`{"height": "1", "txhash": "AAAA000000000000000000000000000000000000000000000000000000000000", "logs": [{"success": "true", "log": ""}]}`))
+			c.Assert(err, IsNil)
+		}
+	}))
+	cfg.ChainHost = s.server.Listener.Addr().String()
 	s.bridge, err = thorclient.NewThorchainBridge(cfg, s.m, thorKeys)
 	c.Assert(err, IsNil)
 	s.keySignPartyMgr = thorclient.NewKeySignPartyMgr(s.bridge)
-	s.server = httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		r := struct {
-			Method string   `json:"method"`
-			Params []string `json:"params"`
-		}{}
-		json.NewDecoder(req.Body).Decode(&r)
-
-		switch {
-		case r.Method == "getblockhash":
-			httpTestHandler(c, rw, "../../../../test/fixtures/btc/blockhash.json")
-		case r.Method == "getblock":
-			httpTestHandler(c, rw, "../../../../test/fixtures/btc/block_verbose.json")
-		case r.Method == "gettransaction":
-			if r.Params[0] == "27de3e1865c098cd4fded71bae1e8236fd27ce5dce6e524a9ac5cd1a17b5c241" {
-				httpTestHandler(c, rw, "../../../../test/fixtures/btc/tx-c241.json")
-			}
-		case r.Method == "getrawtransaction":
-			if r.Params[0] == "5b0876dcc027d2f0c671fc250460ee388df39697c3ff082007b6ddd9cb9a7513" {
-				httpTestHandler(c, rw, "../../../../test/fixtures/btc/tx-5b08.json")
-			} else if r.Params[0] == "54ef2f4679fb90af42e8d963a5d85645d0fd86e5fe8ea4e69dbf2d444cb26528" {
-				httpTestHandler(c, rw, "../../../../test/fixtures/btc/tx-54ef.json")
-			} else {
-				httpTestHandler(c, rw, "../../../../test/fixtures/btc/tx.json")
-			}
-		case r.Method == "getblockcount":
-			httpTestHandler(c, rw, "../../../../test/fixtures/btc/blockcount.json")
-		case r.Method == "importaddress":
-			httpTestHandler(c, rw, "../../../../test/fixtures/btc/importaddress.json")
-		case r.Method == "listunspent":
-			httpTestHandler(c, rw, "../../../../test/fixtures/btc/listunspent.json")
-		case r.Method == "getrawmempool":
-			httpTestHandler(c, rw, "../../../../test/fixtures/btc/getrawmempool.json")
-		case r.Method == "getblockstats":
-			httpTestHandler(c, rw, "../../../../test/fixtures/btc/blockstats.json")
-		}
-	}))
-
 	s.cfg.RPCHost = s.server.Listener.Addr().String()
 	s.client, err = NewClient(thorKeys, s.cfg, nil, s.bridge, s.m, s.keySignPartyMgr)
 	c.Assert(err, IsNil)
