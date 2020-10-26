@@ -33,6 +33,7 @@ const (
 	// MinUTXOConfirmation UTXO that has less confirmation then this will not be spent , unless it is yggdrasil
 	MinUTXOConfirmation  = 6
 	defaultMaxBTCFeeRate = btcutil.SatoshiPerBitcoin / 10
+	MinRelayFee          = 1000
 )
 
 func getBTCPrivateKey(key crypto.PrivKey) (*btcec.PrivateKey, error) {
@@ -245,7 +246,13 @@ func (c *Client) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, err
 		c.logger.Info().Msgf("gas amount: %d is larger than maximum fee: %f , diff add to customer: %d", gasAmtSats, maxFeeSats, diffSats)
 		gasAmtSats = uint64(maxFeeSats)
 		coinToCustomer.Amount = coinToCustomer.Amount.AddUint64(diffSats)
+	} else if gasAmtSats < MinRelayFee {
+		diffStats := MinRelayFee - gasAmtSats
+		c.logger.Info().Msgf("gas amount: %d is less than min relay fee: %d, diff remove from customer: %d", gasAmtSats, MinRelayFee, diffStats)
+		gasAmtSats = MinRelayFee
+		coinToCustomer.Amount = coinToCustomer.Amount.SubUint64(diffStats)
 	}
+
 	gasAmt := btcutil.Amount(gasAmtSats)
 	if err := c.blockMetaAccessor.UpsertTransactionFee(gasAmt.ToBTC(), int32(vSize)); err != nil {
 		c.logger.Err(err).Msg("fail to save gas info to UTXO storage")
