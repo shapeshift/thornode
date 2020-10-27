@@ -35,6 +35,7 @@ func (s EventSuite) TestStakeEvent(c *C) {
 		cosmos.NewUint(5),
 		GetRandomTxHash(),
 		GetRandomTxHash(),
+		GetRandomBNBAddress(),
 	)
 	c.Check(evt.Type(), Equals, "stake")
 	events, err := evt.Events()
