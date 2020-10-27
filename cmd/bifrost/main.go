@@ -124,6 +124,7 @@ func main() {
 		cfg.TSS.Rendezvous,
 		app.DefaultCLIHome,
 		common.TssConfig{
+			EnableMonitor:   true,
 			KeyGenTimeout:   240 * time.Second, // must be shorter than cosntants.JailTimeKeygen
 			KeySignTimeout:  180 * time.Second, // must be shorter than constants.JailTimeKeysign
 			PartyTimeout:    30 * time.Second,
