@@ -178,6 +178,7 @@ func swapOne(ctx cosmos.Context,
 		cosmos.ZeroUint(),
 		cosmos.ZeroUint(),
 		tx,
+		common.NoCoin,
 	)
 
 	// Check if pool exists
@@ -237,9 +238,11 @@ func swapOne(ctx cosmos.Context,
 	if source.IsRune() {
 		pool.BalanceRune = X.Add(x)
 		pool.BalanceAsset = common.SafeSub(Y, emitAssets)
+		swapEvt.EmitAsset = common.NewCoin(pool.Asset, emitAssets)
 	} else {
 		pool.BalanceAsset = X.Add(x)
 		pool.BalanceRune = common.SafeSub(Y, emitAssets)
+		swapEvt.EmitAsset = common.NewCoin(common.RuneAsset(), emitAssets)
 	}
 	ctx.Logger().Info(fmt.Sprintf("Post-swap: %sRune %sAsset , user get:%s ", pool.BalanceRune, pool.BalanceAsset, emitAssets))
 

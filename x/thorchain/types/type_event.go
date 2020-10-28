@@ -58,10 +58,11 @@ type EventSwap struct {
 	LiquidityFeeInRune cosmos.Uint  `json:"liquidity_fee_in_rune"`
 	InTx               common.Tx    `json:"in_tx"` // this is the Tx that cause the swap to happen, if it is a double swap , then the txid will be blank
 	OutTxs             common.Tx    `json:"out_txs"`
+	EmitAsset          common.Coin  `json:"emit_asset"`
 }
 
 // NewEventSwap create a new swap event
-func NewEventSwap(pool common.Asset, priceTarget, fee, tradeSlip, liquidityFeeInRune cosmos.Uint, inTx common.Tx) EventSwap {
+func NewEventSwap(pool common.Asset, priceTarget, fee, tradeSlip, liquidityFeeInRune cosmos.Uint, inTx common.Tx, emitAsset common.Coin) EventSwap {
 	return EventSwap{
 		Pool:               pool,
 		PriceTarget:        priceTarget,
@@ -69,6 +70,7 @@ func NewEventSwap(pool common.Asset, priceTarget, fee, tradeSlip, liquidityFeeIn
 		LiquidityFee:       fee,
 		LiquidityFeeInRune: liquidityFeeInRune,
 		InTx:               inTx,
+		EmitAsset:          emitAsset,
 	}
 }
 
@@ -85,6 +87,7 @@ func (e EventSwap) Events() (cosmos.Events, error) {
 		cosmos.NewAttribute("trade_slip", e.TradeSlip.String()),
 		cosmos.NewAttribute("liquidity_fee", e.LiquidityFee.String()),
 		cosmos.NewAttribute("liquidity_fee_in_rune", e.LiquidityFeeInRune.String()),
+		cosmos.NewAttribute("emit_asset", e.EmitAsset.String()),
 	)
 	evt = evt.AppendAttributes(e.InTx.ToAttributes()...)
 	return cosmos.Events{evt}, nil
@@ -155,16 +158,20 @@ type EventUnstake struct {
 	BasisPoints int64        `json:"basis_points"` // 1 ==> 10,0000
 	Asymmetry   cosmos.Dec   `json:"asymmetry"`    // -1.0 <==> 1.0
 	InTx        common.Tx    `json:"in_tx"`
+	EmitAsset   cosmos.Uint  `json:"emit_asset"`
+	EmitRune    cosmos.Uint  `json:"emit_rune"`
 }
 
 // NewEventUnstake create a new unstake event
-func NewEventUnstake(pool common.Asset, su cosmos.Uint, basisPts int64, asym cosmos.Dec, inTx common.Tx) EventUnstake {
+func NewEventUnstake(pool common.Asset, su cosmos.Uint, basisPts int64, asym cosmos.Dec, inTx common.Tx, emitAsset, emitRune cosmos.Uint) EventUnstake {
 	return EventUnstake{
 		Pool:        pool,
 		StakeUnits:  su,
 		BasisPoints: basisPts,
 		Asymmetry:   asym,
 		InTx:        inTx,
+		EmitAsset:   emitAsset,
+		EmitRune:    emitRune,
 	}
 }
 
@@ -179,7 +186,9 @@ func (e EventUnstake) Events() (cosmos.Events, error) {
 		cosmos.NewAttribute("pool", e.Pool.String()),
 		cosmos.NewAttribute("stake_units", e.StakeUnits.String()),
 		cosmos.NewAttribute("basis_points", strconv.FormatInt(e.BasisPoints, 10)),
-		cosmos.NewAttribute("asymmetry", e.Asymmetry.String()))
+		cosmos.NewAttribute("asymmetry", e.Asymmetry.String()),
+		cosmos.NewAttribute("emit_asset", e.EmitAsset.String()),
+		cosmos.NewAttribute("emit_rune", e.EmitRune.String()))
 	evt = evt.AppendAttributes(e.InTx.ToAttributes()...)
 	return cosmos.Events{evt}, nil
 }
