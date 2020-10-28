@@ -19,6 +19,7 @@ func (s EventSuite) TestSwapEvent(c *C) {
 		cosmos.NewUint(5),
 		cosmos.ZeroUint(),
 		GetRandomTx(),
+		common.NewCoin(common.BNBAsset, cosmos.NewUint(100)),
 	)
 	c.Check(evt.Type(), Equals, "swap")
 	events, err := evt.Events()
@@ -49,7 +50,8 @@ func (s EventSuite) TestUnstakeEvent(c *C) {
 		5000,
 		cosmos.NewDec(0),
 		GetRandomTx(),
-	)
+		cosmos.NewUint(100),
+		cosmos.NewUint(100))
 	c.Check(evt.Type(), Equals, "unstake")
 	events, err := evt.Events()
 	c.Check(err, IsNil)
