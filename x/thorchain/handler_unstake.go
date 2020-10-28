@@ -92,7 +92,8 @@ func (h UnstakeHandler) handle(ctx cosmos.Context, msg MsgUnStake, version semve
 		int64(msg.UnstakeBasisPoints.Uint64()),
 		cosmos.ZeroDec(),
 		msg.Tx,
-	)
+		assetAmount,
+		runeAmt)
 	if err := h.mgr.EventMgr().EmitEvent(ctx, unstakeEvt); err != nil {
 		return nil, multierror.Append(errFailSaveEvent, err)
 	}
@@ -205,7 +206,8 @@ func (h UnstakeHandler) handleV2(ctx cosmos.Context, msg MsgUnStake, version sem
 		int64(msg.UnstakeBasisPoints.Uint64()),
 		cosmos.ZeroDec(),
 		msg.Tx,
-	)
+		assetAmount,
+		runeAmt)
 	if err := h.mgr.EventMgr().EmitEvent(ctx, unstakeEvt); err != nil {
 		return nil, multierror.Append(errFailSaveEvent, err)
 	}
