@@ -211,6 +211,11 @@ func (h StakeHandler) stake(ctx cosmos.Context,
 		// if the pools is for gas asset on the chain, automatically enable it
 		if !pool.Asset.Equals(pool.Asset.Chain.GetGasAsset()) {
 			defaultPoolStatus = constAccessor.GetStringValue(constants.DefaultPoolStatus)
+		} else {
+			poolEvent := NewEventPool(pool.Asset, GetPoolStatus(defaultPoolStatus))
+			if err := h.mgr.EventMgr().EmitEvent(ctx, poolEvent); err != nil {
+				ctx.Logger().Error("fail to emit pool event", "error", err)
+			}
 		}
 		pool.Status = GetPoolStatus(defaultPoolStatus)
 	}
