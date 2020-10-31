@@ -204,7 +204,7 @@ func (h StakeHandler) stake(ctx cosmos.Context,
 	if err != nil {
 		return ErrInternal(err, fmt.Sprintf("fail to get pool(%s)", asset))
 	}
-
+	emitPoolEnabledEvent := false
 	// if THORNode have no balance, set the default pool status
 	if pool.BalanceAsset.IsZero() && pool.BalanceRune.IsZero() {
 		defaultPoolStatus := PoolEnabled.String()
@@ -213,6 +213,9 @@ func (h StakeHandler) stake(ctx cosmos.Context,
 			defaultPoolStatus = constAccessor.GetStringValue(constants.DefaultPoolStatus)
 		}
 		pool.Status = GetPoolStatus(defaultPoolStatus)
+		if pool.Status == PoolEnabled {
+			emitPoolEnabledEvent = true
+		}
 	}
 
 	su, err := h.keeper.GetStaker(ctx, asset, runeAddr)
@@ -268,8 +271,13 @@ func (h StakeHandler) stake(ctx cosmos.Context,
 	if err := h.keeper.SetPool(ctx, pool); err != nil {
 		return ErrInternal(err, "fail to save pool")
 	}
+	if emitPoolEnabledEvent {
+		poolEvent := NewEventPool(pool.Asset, PoolEnabled)
+		if err := h.mgr.EventMgr().EmitEvent(ctx, poolEvent); err != nil {
+			ctx.Logger().Error("fail to emit pool event", "error", err)
+		}
+	}
 	// maintain staker structure
-
 	fex := su.Units
 	totalStakerUnits := fex.Add(stakerUnits)
 	su.Units = totalStakerUnits
@@ -312,7 +320,7 @@ func (h StakeHandler) stakeV14(ctx cosmos.Context,
 	if err != nil {
 		return ErrInternal(err, fmt.Sprintf("fail to get pool(%s)", asset))
 	}
-
+	emitPoolEnabledEvent := false
 	// if THORNode have no balance, set the default pool status
 	if pool.BalanceAsset.IsZero() && pool.BalanceRune.IsZero() {
 		defaultPoolStatus := PoolEnabled.String()
@@ -321,6 +329,9 @@ func (h StakeHandler) stakeV14(ctx cosmos.Context,
 			defaultPoolStatus = constAccessor.GetStringValue(constants.DefaultPoolStatus)
 		}
 		pool.Status = GetPoolStatus(defaultPoolStatus)
+		if pool.Status == PoolEnabled {
+			emitPoolEnabledEvent = true
+		}
 	}
 
 	su, err := h.keeper.GetStaker(ctx, asset, runeAddr)
@@ -375,6 +386,12 @@ func (h StakeHandler) stakeV14(ctx cosmos.Context,
 	ctx.Logger().Info(fmt.Sprintf("Post-Pool: %sRUNE %sAsset", pool.BalanceRune, pool.BalanceAsset))
 	if err := h.keeper.SetPool(ctx, pool); err != nil {
 		return ErrInternal(err, "fail to save pool")
+	}
+	if emitPoolEnabledEvent {
+		poolEvent := NewEventPool(pool.Asset, PoolEnabled)
+		if err := h.mgr.EventMgr().EmitEvent(ctx, poolEvent); err != nil {
+			ctx.Logger().Error("fail to emit pool event", "error", err)
+		}
 	}
 	// maintain staker structure
 
