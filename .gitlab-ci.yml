@@ -55,6 +55,8 @@ lint_code:
   except:
     - schedules
   before_script:
+    - apk update
+    - apk add make
     - go get mvdan.cc/gofumpt
   script:
     - make lint-verbose
