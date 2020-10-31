@@ -56,7 +56,7 @@ lint_code:
     - schedules
   before_script:
     - apk update
-    - apk add make
+    - apk add --no-cache git make build-base
     - go get mvdan.cc/gofumpt
   script:
     - make lint-verbose
