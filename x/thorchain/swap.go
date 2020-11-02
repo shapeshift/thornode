@@ -61,6 +61,9 @@ func swap(ctx cosmos.Context,
 	if err := validatePools(ctx, keeper, source, target); err != nil {
 		return cosmos.ZeroUint(), swapEvents, err
 	}
+	if !destination.IsChain(target.Chain) {
+		return cosmos.ZeroUint(), swapEvents, fmt.Errorf("destination address is not a valid %s address", target.Chain)
+	}
 	poolsBeforeSwap := make([]Pool, 0)
 	pools := make([]Pool, 0)
 	isDoubleSwap := !source.IsRune() && !target.IsRune()
