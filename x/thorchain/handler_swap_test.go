@@ -41,7 +41,7 @@ func (s *HandlerSwapSuite) TestValidate(c *C) {
 		BNBGasFeeSingleton,
 		"",
 	)
-	msg := NewMsgSwap(tx, common.BNBAsset, signerBNBAddr, cosmos.ZeroUint(), observerAddr)
+	msg := NewMsgSwap(tx, common.BNBAsset, signerBNBAddr, cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(), observerAddr)
 	err := handler.validate(ctx, msg, ver)
 	c.Assert(err, IsNil)
 
@@ -126,7 +126,7 @@ func (s *HandlerSwapSuite) TestHandle(c *C) {
 		BNBGasFeeSingleton,
 		"",
 	)
-	msg := NewMsgSwap(tx, common.BNBAsset, signerBNBAddr, cosmos.ZeroUint(), observerAddr)
+	msg := NewMsgSwap(tx, common.BNBAsset, signerBNBAddr, cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(), observerAddr)
 	result, err = handler.Run(ctx, msg, ver, constAccessor)
 	c.Assert(err.Error(), Equals, errors.New("BNB.BNB pool doesn't exist").Error())
 	c.Assert(result, IsNil)
@@ -146,7 +146,7 @@ func (s *HandlerSwapSuite) TestHandle(c *C) {
 		BNBGasFeeSingleton,
 		"",
 	)
-	msgSwapPriceProtection := NewMsgSwap(tx, common.BNBAsset, signerBNBAddr, cosmos.NewUint(2*common.One), observerAddr)
+	msgSwapPriceProtection := NewMsgSwap(tx, common.BNBAsset, signerBNBAddr, cosmos.NewUint(2*common.One), common.NoAddress, cosmos.ZeroUint(), observerAddr)
 	result, err = handler.Run(ctx, msgSwapPriceProtection, ver, constAccessor)
 	c.Assert(err.Error(), Equals, errors.New("emit asset 192233756 less than price limit 200000000").Error())
 	c.Assert(result, IsNil)
@@ -185,7 +185,7 @@ func (s *HandlerSwapSuite) TestHandle(c *C) {
 	c.Assert(err, NotNil)
 	c.Assert(result, IsNil)
 	c.Check(errors.Is(err, errBadVersion), Equals, true)
-	msgSwap := NewMsgSwap(GetRandomTx(), common.EmptyAsset, GetRandomBNBAddress(), cosmos.ZeroUint(), GetRandomBech32Addr())
+	msgSwap := NewMsgSwap(GetRandomTx(), common.EmptyAsset, GetRandomBNBAddress(), cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(), GetRandomBech32Addr())
 	result, err = handler.Run(ctx, msgSwap, ver, constAccessor)
 	c.Assert(err, NotNil)
 	c.Assert(result, IsNil)

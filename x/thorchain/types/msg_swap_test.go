@@ -29,7 +29,7 @@ func (MsgSwapSuite) TestMsgSwap(c *C) {
 		"SWAP:BNB.BNB",
 	)
 
-	m := NewMsgSwap(tx, common.BNBAsset, bnbAddress, cosmos.NewUint(200000000), addr)
+	m := NewMsgSwap(tx, common.BNBAsset, bnbAddress, cosmos.NewUint(200000000), common.NoAddress, cosmos.ZeroUint(), addr)
 	EnsureMsgBasicCorrect(m, c)
 	c.Check(m.Type(), Equals, "swap")
 
@@ -136,7 +136,7 @@ func (MsgSwapSuite) TestMsgSwap(c *C) {
 			"SWAP:BNB.BNB",
 		)
 
-		m := NewMsgSwap(tx, item.target, item.destination, item.targetPrice, item.signer)
+		m := NewMsgSwap(tx, item.target, item.destination, item.targetPrice, common.NoAddress, cosmos.ZeroUint(), item.signer)
 		c.Assert(m.ValidateBasic(), NotNil)
 	}
 }
