@@ -12,15 +12,15 @@ func (s *KeeperSwapQueueSuite) TestKeeperSwapQueue(c *C) {
 	ctx, k := setupKeeperForTest(c)
 
 	// not found
-	_, err := k.GetSwapQueueItem(ctx, GetRandomTxHash())
+	_, err := k.GetSwapQueueItem(ctx, GetRandomTxHash(), 0)
 	c.Assert(err, NotNil)
 
 	msg := MsgSwap{
 		Tx: GetRandomTx(),
 	}
 
-	c.Assert(k.SetSwapQueueItem(ctx, msg), IsNil)
-	msg2, err := k.GetSwapQueueItem(ctx, msg.Tx.ID)
+	c.Assert(k.SetSwapQueueItem(ctx, msg, 0), IsNil)
+	msg2, err := k.GetSwapQueueItem(ctx, msg.Tx.ID, 0)
 	c.Assert(err, IsNil)
 	c.Check(msg2.Tx.ID.Equals(msg.Tx.ID), Equals, true)
 
@@ -28,7 +28,7 @@ func (s *KeeperSwapQueueSuite) TestKeeperSwapQueue(c *C) {
 	defer iter.Close()
 
 	// test remove
-	k.RemoveSwapQueueItem(ctx, msg.Tx.ID)
-	_, err = k.GetSwapQueueItem(ctx, msg.Tx.ID)
+	k.RemoveSwapQueueItem(ctx, msg.Tx.ID, 0)
+	_, err = k.GetSwapQueueItem(ctx, msg.Tx.ID, 0)
 	c.Check(err, NotNil)
 }

@@ -155,9 +155,7 @@ func (h NativeTxHandler) handleV1(ctx cosmos.Context, msg MsgNativeTx, version s
 
 	// if its a swap, send it to our queue for processing later
 	if isSwap {
-		if err := h.keeper.SetSwapQueueItem(ctx, m.(MsgSwap)); err != nil {
-			return nil, err
-		}
+		h.addSwap(ctx, m.(MsgSwap), constAccessor)
 		return &cosmos.Result{}, nil
 	}
 
@@ -173,4 +171,37 @@ func (h NativeTxHandler) handleV1(ctx cosmos.Context, msg MsgNativeTx, version s
 		}
 	}
 	return result, nil
+}
+
+func (h NativeTxHandler) addSwap(ctx cosmos.Context, msg MsgSwap, constAccessor constants.ConstantValues) {
+	amt := cosmos.ZeroUint()
+	if !msg.AffiliateBasisPoints.IsZero() && msg.AffiliateAddress.IsChain(common.THORChain) {
+		amt = common.GetShare(
+			msg.AffiliateBasisPoints,
+			cosmos.NewUint(10000),
+			msg.Tx.Coins[0].Amount,
+		)
+		msg.Tx.Coins[0].Amount = common.SafeSub(msg.Tx.Coins[0].Amount, amt)
+	}
+
+	if err := h.keeper.SetSwapQueueItem(ctx, msg, 0); err != nil {
+		ctx.Logger().Error("fail to add swap to queue", "error", err)
+	}
+
+	if !amt.IsZero() {
+		to_address, err := msg.AffiliateAddress.AccAddress()
+		if err != nil {
+			ctx.Logger().Error("fail to convert address into AccAddress", "msg", msg.AffiliateAddress, "error", err)
+		} else {
+			nativeChainGasFee := constAccessor.GetInt64Value(constants.NativeChainGasFee)
+			amt = common.SafeSub(amt, cosmos.NewUint(uint64(nativeChainGasFee)))
+
+			supplier := h.keeper.Supply()
+			coin, _ := common.NewCoin(common.RuneNative, amt).Native()
+			sdkErr := supplier.SendCoinsFromModuleToAccount(ctx, AsgardName, to_address, cosmos.NewCoins(coin))
+			if sdkErr != nil {
+				ctx.Logger().Error("fail to send native rune to affiliate", "msg", msg.AffiliateAddress, "error", err)
+			}
+		}
+	}
 }
