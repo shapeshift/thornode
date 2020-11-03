@@ -116,7 +116,7 @@ func setupKeeperForTest(c *C) (cosmos.Context, keeper.Keeper) {
 	supplyKeeper.SetSupply(ctx, supply.NewSupply(totalSupply))
 	k := kv1.NewKVStore(bk, supplyKeeper, keyThorchain, cdc)
 
-	FundModule(c, ctx, k, AsgardName, 100000000)
+	FundModule(c, ctx, k, AsgardName, 1*common.One)
 
 	return ctx, k
 }

@@ -2,6 +2,8 @@ package thorchain
 
 import (
 	"sort"
+	"strconv"
+	"strings"
 
 	"github.com/blang/semver"
 
@@ -17,9 +19,10 @@ type SwapQv1 struct {
 }
 
 type swapItem struct {
-	msg  MsgSwap
-	fee  cosmos.Uint
-	slip cosmos.Uint
+	index int
+	msg   MsgSwap
+	fee   cosmos.Uint
+	slip  cosmos.Uint
 }
 type swapItems []swapItem
 
@@ -29,31 +32,45 @@ func NewSwapQv1(k keeper.Keeper) *SwapQv1 {
 }
 
 // FetchQueue - grabs all swap queue items from the kvstore and returns them
-func (vm *SwapQv1) FetchQueue(ctx cosmos.Context) ([]MsgSwap, error) {
-	msgs := make([]MsgSwap, 0)
+func (vm *SwapQv1) FetchQueue(ctx cosmos.Context) (swapItems, error) {
+	items := make(swapItems, 0)
 	iterator := vm.k.GetSwapQueueIterator(ctx)
 	defer iterator.Close()
 	for ; iterator.Valid(); iterator.Next() {
 		var msg MsgSwap
 		if err := vm.k.Cdc().UnmarshalBinaryBare(iterator.Value(), &msg); err != nil {
-			return msgs, err
+			ctx.Logger().Error("fail to fetch swap msg from queue", "error", err)
+			continue
 		}
-		msgs = append(msgs, msg)
+
+		ss := strings.Split(string(iterator.Key()), "-")
+		i, err := strconv.Atoi(ss[len(ss)-1])
+		if err != nil {
+			ctx.Logger().Error("fail to parse swap queue msg index", "key", iterator.Key(), "error", err)
+			continue
+		}
+
+		items = append(items, swapItem{
+			msg:   msg,
+			index: i,
+			fee:   cosmos.ZeroUint(),
+			slip:  cosmos.ZeroUint(),
+		})
 	}
 
-	return msgs, nil
+	return items, nil
 }
 
 // EndBlock trigger the real swap to be processed
 func (vm *SwapQv1) EndBlock(ctx cosmos.Context, mgr Manager, version semver.Version, constAccessor constants.ConstantValues) error {
 	handler := NewSwapHandler(vm.k, mgr)
-	msgs, err := vm.FetchQueue(ctx)
+	swaps, err := vm.FetchQueue(ctx)
 	if err != nil {
 		ctx.Logger().Error("fail to fetch swap queue from store", "error", err)
 		return err
 	}
 
-	swaps, err := vm.scoreMsgs(ctx, msgs)
+	swaps, err = vm.scoreMsgs(ctx, swaps)
 	if err != nil {
 		ctx.Logger().Error("fail to fetch swap items", "error", err)
 		// continue, don't exit, just do them out of order (instead of not at all)
@@ -62,7 +79,6 @@ func (vm *SwapQv1) EndBlock(ctx cosmos.Context, mgr Manager, version semver.Vers
 
 	for i := 0; i < vm.getTodoNum(len(swaps)); i++ {
 		pick := swaps[i]
-
 		_, err := handler.handle(ctx, pick.msg, version, constAccessor)
 		if err != nil {
 			ctx.Logger().Error("fail to swap", "msg", pick.msg.Tx.String(), "error", err)
@@ -70,9 +86,8 @@ func (vm *SwapQv1) EndBlock(ctx cosmos.Context, mgr Manager, version semver.Vers
 				ctx.Logger().Error("fail to refund swap", "error", err)
 			}
 		}
-		vm.k.RemoveSwapQueueItem(ctx, pick.msg.Tx.ID)
+		vm.k.RemoveSwapQueueItem(ctx, pick.msg.Tx.ID, pick.index)
 	}
-
 	return nil
 }
 
@@ -95,32 +110,25 @@ func (vm *SwapQv1) getTodoNum(queueLen int) int {
 
 // scoreMsgs - this takes a list of MsgSwap, and converts them to a scored
 // swapItem list
-func (vm *SwapQv1) scoreMsgs(ctx cosmos.Context, msgs []MsgSwap) (swapItems, error) {
+func (vm *SwapQv1) scoreMsgs(ctx cosmos.Context, items swapItems) (swapItems, error) {
 	pools := make(map[common.Asset]Pool, 0)
-	items := make(swapItems, 0)
 
-	for _, msg := range msgs {
-		if _, ok := pools[msg.TargetAsset]; !ok {
+	for i, item := range items {
+		if _, ok := pools[item.msg.TargetAsset]; !ok {
 			var err error
-			pools[msg.TargetAsset], err = vm.k.GetPool(ctx, msg.TargetAsset)
+			pools[item.msg.TargetAsset], err = vm.k.GetPool(ctx, item.msg.TargetAsset)
 			if err != nil {
-				return items, err
+				ctx.Logger().Error("fail to get pool", "pool", item.msg.TargetAsset, "error", err)
+				continue
 			}
 		}
 
-		item := swapItem{
-			msg:  msg,
-			fee:  cosmos.ZeroUint(),
-			slip: cosmos.ZeroUint(),
-		}
-
-		pool := pools[msg.TargetAsset]
+		pool := pools[item.msg.TargetAsset]
 		if pool.IsEmpty() || !pool.IsEnabled() || pool.BalanceRune.IsZero() || pool.BalanceAsset.IsZero() {
-			items = append(items, item)
 			continue
 		}
 
-		sourceCoin := msg.Tx.Coins[0]
+		sourceCoin := item.msg.Tx.Coins[0]
 
 		// Get our X, x, Y values
 		var X, x, Y cosmos.Uint
@@ -133,13 +141,11 @@ func (vm *SwapQv1) scoreMsgs(ctx cosmos.Context, msgs []MsgSwap) (swapItems, err
 			X = pool.BalanceAsset
 		}
 
-		item.fee = calcLiquidityFee(X, x, Y)
+		items[i].fee = calcLiquidityFee(X, x, Y)
 		if sourceCoin.Asset.IsRune() {
-			item.fee = pool.AssetValueInRune(item.fee)
+			items[i].fee = pool.AssetValueInRune(item.fee)
 		}
-		item.slip = calcSwapSlip(X, x)
-
-		items = append(items, item)
+		items[i].slip = calcSwapSlip(X, x)
 	}
 
 	return items, nil

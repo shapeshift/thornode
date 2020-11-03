@@ -7,21 +7,25 @@ import (
 
 // MsgSwap defines a MsgSwap message
 type MsgSwap struct {
-	Tx          common.Tx         `json:"tx"`           // request tx
-	TargetAsset common.Asset      `json:"target_asset"` // target asset
-	Destination common.Address    `json:"destination"`  // destination , used for swap and send , the destination address THORNode send it to
-	TradeTarget cosmos.Uint       `json:"trade_target"`
-	Signer      cosmos.AccAddress `json:"signer"`
+	Tx                   common.Tx         `json:"tx"`           // request tx
+	TargetAsset          common.Asset      `json:"target_asset"` // target asset
+	Destination          common.Address    `json:"destination"`  // destination , used for swap and send , the destination address THORNode send it to
+	TradeTarget          cosmos.Uint       `json:"trade_target"`
+	AffiliateAddress     common.Address    `json:"affiliate_address"`
+	AffiliateBasisPoints cosmos.Uint       `json:"affiliate_basis_points"`
+	Signer               cosmos.AccAddress `json:"signer"`
 }
 
 // NewMsgSwap is a constructor function for MsgSwap
-func NewMsgSwap(tx common.Tx, target common.Asset, destination common.Address, tradeTarget cosmos.Uint, signer cosmos.AccAddress) MsgSwap {
+func NewMsgSwap(tx common.Tx, target common.Asset, destination common.Address, tradeTarget cosmos.Uint, affAddr common.Address, affPts cosmos.Uint, signer cosmos.AccAddress) MsgSwap {
 	return MsgSwap{
-		Tx:          tx,
-		TargetAsset: target,
-		Destination: destination,
-		TradeTarget: tradeTarget,
-		Signer:      signer,
+		Tx:                   tx,
+		TargetAsset:          target,
+		Destination:          destination,
+		TradeTarget:          tradeTarget,
+		AffiliateAddress:     affAddr,
+		AffiliateBasisPoints: affPts,
+		Signer:               signer,
 	}
 }
 
@@ -55,6 +59,15 @@ func (msg MsgSwap) ValidateBasic() error {
 	}
 	if msg.Destination.IsEmpty() {
 		return cosmos.ErrUnknownRequest("swap Destination cannot be empty")
+	}
+	if msg.AffiliateAddress.IsEmpty() && !msg.AffiliateBasisPoints.IsZero() {
+		return cosmos.ErrUnknownRequest("swap affiliate address is empty while affiliate basis points is non-zero")
+	}
+	if !msg.Destination.IsChain(msg.TargetAsset.Chain) {
+		return cosmos.ErrUnknownRequest("swap destination address is not the same chain as the target asset")
+	}
+	if !msg.AffiliateAddress.IsEmpty() && !msg.AffiliateAddress.IsChain(common.THORChain) {
+		return cosmos.ErrUnknownRequest("swap affiliate address must be a THOR address")
 	}
 	return nil
 }

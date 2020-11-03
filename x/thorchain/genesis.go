@@ -261,8 +261,8 @@ func InitGenesis(ctx cosmos.Context, keeper keeper.Keeper, data GenesisState) []
 		keeper.SetErrataTxVoter(ctx, item)
 	}
 
-	for _, item := range data.MsgSwaps {
-		if err := keeper.SetSwapQueueItem(ctx, item); err != nil {
+	for i, item := range data.MsgSwaps {
+		if err := keeper.SetSwapQueueItem(ctx, item, i); err != nil {
 			panic(err)
 		}
 	}
