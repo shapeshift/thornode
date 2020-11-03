@@ -207,10 +207,10 @@ type KeeperErrataTx interface {
 }
 
 type KeeperSwapQueue interface {
-	SetSwapQueueItem(ctx cosmos.Context, msg MsgSwap) error
+	SetSwapQueueItem(ctx cosmos.Context, msg MsgSwap, i int) error
 	GetSwapQueueIterator(ctx cosmos.Context) cosmos.Iterator
-	GetSwapQueueItem(ctx cosmos.Context, txID common.TxID) (MsgSwap, error)
-	RemoveSwapQueueItem(ctx cosmos.Context, txID common.TxID)
+	GetSwapQueueItem(ctx cosmos.Context, txID common.TxID, i int) (MsgSwap, error)
+	RemoveSwapQueueItem(ctx cosmos.Context, txID common.TxID, i int)
 }
 
 type KeeperMimir interface {

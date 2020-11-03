@@ -303,10 +303,10 @@ func (k KVStoreDummy) GetBanVoter(_ cosmos.Context, _ cosmos.AccAddress) (BanVot
 func (k KVStoreDummy) GetBanVoterIterator(ctx cosmos.Context) cosmos.Iterator {
 	return nil
 }
-func (k KVStoreDummy) SetSwapQueueItem(ctx cosmos.Context, msg MsgSwap) error  { return kaboom }
-func (k KVStoreDummy) GetSwapQueueIterator(ctx cosmos.Context) cosmos.Iterator { return nil }
-func (k KVStoreDummy) RemoveSwapQueueItem(ctx cosmos.Context, _ common.TxID)   {}
-func (k KVStoreDummy) GetSwapQueueItem(ctx cosmos.Context, txID common.TxID) (MsgSwap, error) {
+func (k KVStoreDummy) SetSwapQueueItem(ctx cosmos.Context, msg MsgSwap, i int) error { return kaboom }
+func (k KVStoreDummy) GetSwapQueueIterator(ctx cosmos.Context) cosmos.Iterator       { return nil }
+func (k KVStoreDummy) RemoveSwapQueueItem(ctx cosmos.Context, _ common.TxID, _ int)  {}
+func (k KVStoreDummy) GetSwapQueueItem(ctx cosmos.Context, txID common.TxID, _ int) (MsgSwap, error) {
 	return MsgSwap{}, kaboom
 }
 func (k KVStoreDummy) GetMimir(_ cosmos.Context, key string) (int64, error) { return 0, kaboom }

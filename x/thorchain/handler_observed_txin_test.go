@@ -123,7 +123,7 @@ type TestObservedTxInHandleKeeper struct {
 	txOut     *TxOut
 }
 
-func (k *TestObservedTxInHandleKeeper) SetSwapQueueItem(_ cosmos.Context, msg MsgSwap) error {
+func (k *TestObservedTxInHandleKeeper) SetSwapQueueItem(_ cosmos.Context, msg MsgSwap, _ int) error {
 	k.msg = msg
 	return nil
 }
@@ -585,4 +585,32 @@ func (HandlerObservedTxInSuite) TestObservedTxHandler_validations(c *C) {
 			tc.validator(c, ctx, result, err, helper, tc.name)
 		}
 	}
+}
+
+func (s HandlerObservedTxInSuite) TestSwapWithAffiliate(c *C) {
+	ctx, k := setupKeeperForTest(c)
+
+	queue := NewSwapQv1(k)
+	mgr := NewManagers(k)
+	mgr.BeginBlock(ctx)
+	handler := NewObservedTxInHandler(k, mgr)
+	ver := constants.SWVersion
+	constAccessor := constants.GetConstantValues(ver)
+
+	msg := NewMsgSwap(common.Tx{
+		ID:          common.TxID("5E1DF027321F1FE37CA19B9ECB11C2B4ABEC0D8322199D335D9CE4C39F85F115"),
+		FromAddress: GetRandomBNBAddress(),
+		ToAddress:   GetRandomBNBAddress(),
+		Gas:         BNBGasFeeSingleton,
+		Chain:       common.BNBChain,
+		Coins:       common.Coins{common.NewCoin(common.BNBAsset, cosmos.NewUint(2*common.One))},
+	}, common.BNBAsset, GetRandomBNBAddress(), cosmos.ZeroUint(), GetRandomTHORAddress(), cosmos.NewUint(1000),
+		GetRandomBech32Addr(),
+	)
+	handler.addSwap(ctx, msg, constAccessor)
+	swaps, err := queue.FetchQueue(ctx)
+	c.Assert(err, IsNil)
+	c.Assert(swaps, HasLen, 2, Commentf("%d", len(swaps)))
+	c.Check(swaps[0].msg.Tx.Coins[0].Amount.Uint64(), Equals, uint64(180000000))
+	c.Check(swaps[1].msg.Tx.Coins[0].Amount.Uint64(), Equals, uint64(20000000))
 }
