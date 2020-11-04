@@ -156,11 +156,17 @@ func (h ObservedTxInHandler) handleV1(ctx cosmos.Context, version semver.Version
 			ctx.Logger().Error("fail to get vault", "error", err)
 			continue
 		}
-
-		vault.AddFunds(tx.Tx.Coins)
+		// when the fund is send to asgard , it can be added to vault immediately
+		if vault.IsAsgard() {
+			vault.AddFunds(tx.Tx.Coins)
+		}
 		vault.InboundTxCount++
 		memo, _ := ParseMemo(tx.Tx.Memo) // ignore err
 		if vault.IsYggdrasil() && memo.IsType(TxYggdrasilFund) {
+			// only add the fund to yggdrasil vault when the memo is yggdrasil+
+			// no one should send fund to yggdrasil vault , if somehow scammer / airdrop send fund to yggdrasil vault
+			// those will be ignored
+			vault.AddFunds(tx.Tx.Coins)
 			vault.RemovePendingTxBlockHeights(memo.GetBlockHeight())
 		}
 		if err := h.keeper.SetVault(ctx, vault); err != nil {
@@ -316,11 +322,16 @@ func (h ObservedTxInHandler) handleV13(ctx cosmos.Context, version semver.Versio
 			ctx.Logger().Error("fail to get vault", "error", err)
 			continue
 		}
-
-		vault.AddFunds(tx.Tx.Coins)
+		if vault.IsAsgard() {
+			vault.AddFunds(tx.Tx.Coins)
+		}
 		vault.InboundTxCount++
 		memo, _ := ParseMemo(tx.Tx.Memo) // ignore err
 		if vault.IsYggdrasil() && memo.IsType(TxYggdrasilFund) {
+			// only add the fund to yggdrasil vault when the memo is yggdrasil+
+			// no one should send fund to yggdrasil vault , if somehow scammer / airdrop send fund to yggdrasil vault
+			// those will be ignored
+			vault.AddFunds(tx.Tx.Coins)
 			vault.RemovePendingTxBlockHeights(memo.GetBlockHeight())
 		}
 		if err := h.keeper.SetVault(ctx, vault); err != nil {
