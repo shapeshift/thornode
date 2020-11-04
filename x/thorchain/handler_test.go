@@ -224,7 +224,7 @@ func (HandlerSuite) TestHandleTxInUnstakeMemo(c *C) {
 		Gas:         BNBGasFeeSingleton,
 	}
 
-	msg := NewMsgUnStake(tx, staker.RuneAddress, cosmos.NewUint(uint64(MaxUnstakeBasisPoints)), common.BNBAsset, w.activeNodeAccount.NodeAddress)
+	msg := NewMsgUnStake(tx, staker.RuneAddress, cosmos.NewUint(uint64(MaxUnstakeBasisPoints)), common.BNBAsset, common.EmptyAsset, w.activeNodeAccount.NodeAddress)
 	c.Assert(err, IsNil)
 
 	handler := NewInternalHandler(w.keeper, w.mgr)
