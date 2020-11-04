@@ -16,16 +16,18 @@ type MsgUnStake struct {
 	RuneAddress        common.Address    `json:"rune_address"`          // it should be the rune address
 	UnstakeBasisPoints cosmos.Uint       `json:"withdraw_basis_points"` // withdraw basis points
 	Asset              common.Asset      `json:"asset"`                 // asset asset asset
+	WithdrawalAsset    common.Asset      `json:"withdrawal_asset"`      // asset to be withdrawn
 	Signer             cosmos.AccAddress `json:"signer"`
 }
 
 // NewMsgUnStake is a constructor function for MsgSetPoolData
-func NewMsgUnStake(tx common.Tx, runeAddress common.Address, withdrawBasisPoints cosmos.Uint, asset common.Asset, signer cosmos.AccAddress) MsgUnStake {
+func NewMsgUnStake(tx common.Tx, runeAddress common.Address, withdrawBasisPoints cosmos.Uint, asset, withdrawalAsset common.Asset, signer cosmos.AccAddress) MsgUnStake {
 	return MsgUnStake{
 		Tx:                 tx,
 		RuneAddress:        runeAddress,
 		UnstakeBasisPoints: withdrawBasisPoints,
 		Asset:              asset,
+		WithdrawalAsset:    withdrawalAsset,
 		Signer:             signer,
 	}
 }
@@ -58,6 +60,9 @@ func (msg MsgUnStake) ValidateBasic() error {
 	}
 	if msg.UnstakeBasisPoints.GT(cosmos.NewUint(MaxUnstakeBasisPoints)) {
 		return cosmos.ErrUnknownRequest("UnstakeBasisPoints is larger than maximum withdraw basis points")
+	}
+	if !msg.WithdrawalAsset.IsEmpty() && !msg.WithdrawalAsset.IsRune() && !msg.WithdrawalAsset.Equals(msg.Asset) {
+		return cosmos.ErrUnknownRequest("Withdrawal asset must be empty, rune, or pool asset")
 	}
 	return nil
 }
