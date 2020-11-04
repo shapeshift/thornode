@@ -31,9 +31,8 @@ const (
 	// SatsPervBytes it should be enough , this one will only be used if signer can't find any previous UTXO , and fee info from local storage.
 	SatsPervBytes = 25
 	// MinUTXOConfirmation UTXO that has less confirmation then this will not be spent , unless it is yggdrasil
-	MinUTXOConfirmation  = 6
+	MinUTXOConfirmation  = 1
 	defaultMaxBTCFeeRate = btcutil.SatoshiPerBitcoin / 10
-	MinRelayFee          = 1000
 )
 
 func getBTCPrivateKey(key crypto.PrivKey) (*btcec.PrivateKey, error) {
@@ -250,10 +249,10 @@ func (c *Client) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, err
 		c.logger.Info().Msgf("gas amount: %d is larger than maximum fee: %f , diff add to customer: %d", gasAmtSats, maxFeeSats, diffSats)
 		gasAmtSats = uint64(maxFeeSats)
 		coinToCustomer.Amount = coinToCustomer.Amount.AddUint64(diffSats)
-	} else if gasAmtSats < MinRelayFee {
-		diffStats := MinRelayFee - gasAmtSats
-		c.logger.Info().Msgf("gas amount: %d is less than min relay fee: %d, diff remove from customer: %d", gasAmtSats, MinRelayFee, diffStats)
-		gasAmtSats = MinRelayFee
+	} else if gasAmtSats < c.minRelayFeeSats {
+		diffStats := c.minRelayFeeSats - gasAmtSats
+		c.logger.Info().Msgf("gas amount: %d is less than min relay fee: %d, diff remove from customer: %d", gasAmtSats, c.minRelayFeeSats, diffStats)
+		gasAmtSats = c.minRelayFeeSats
 		coinToCustomer.Amount = coinToCustomer.Amount.SubUint64(diffStats)
 	}
 
