@@ -56,6 +56,7 @@ type Client struct {
 	currentBlockHeight int64
 	asgardAddresses    []common.Address
 	lastAsgard         time.Time
+	minRelayFeeSats    uint64
 }
 
 // NewClient generates a new Client
@@ -103,6 +104,7 @@ func NewClient(thorKeys *thorclient.Keys, cfg config.ChainConfiguration, server 
 		nodePubKey:       nodePubKey,
 		memPoolLock:      &sync.Mutex{},
 		processedMemPool: make(map[string]bool),
+		minRelayFeeSats:  1000, // 1000 sats is the default minimal relay fee
 	}
 
 	var path string // if not set later, will in memory storage
@@ -128,6 +130,7 @@ func NewClient(thorKeys *thorclient.Keys, cfg config.ChainConfiguration, server 
 	if err := c.registerAddressInWalletAsWatch(c.nodePubKey); err != nil {
 		return nil, fmt.Errorf("fail to register (%s): %w", c.nodePubKey, err)
 	}
+	c.updateNetworkInfo()
 	return c, nil
 }
 
@@ -492,11 +495,25 @@ func (c *Client) FetchTxs(height int64) (types.TxIn, error) {
 	if err != nil {
 		return types.TxIn{}, fmt.Errorf("fail to extract txs from block: %w", err)
 	}
-
+	c.updateNetworkInfo()
 	if err := c.sendNetworkFee(height); err != nil {
 		c.logger.Err(err).Msg("fail to send network fee")
 	}
 	return txs, nil
+}
+
+func (c *Client) updateNetworkInfo() {
+	networkInfo, err := c.client.GetNetworkInfo()
+	if err != nil {
+		c.logger.Err(err).Msg("fail to get network info")
+		return
+	}
+	amt, err := btcutil.NewAmount(networkInfo.RelayFee)
+	if err != nil {
+		c.logger.Err(err).Msg("fail to get minimum relay fee")
+		return
+	}
+	c.minRelayFeeSats = uint64(amt.ToUnit(btcutil.AmountSatoshi))
 }
 
 func (c *Client) sendNetworkFee(height int64) error {
@@ -509,8 +526,8 @@ func (c *Client) sendNetworkFee(height int64) error {
 		return nil
 	}
 	medianFee := uint64(result.MedianFee)
-	if result.MedianFee < MinRelayFee {
-		medianFee = MinRelayFee
+	if uint64(result.MedianFee) < c.minRelayFeeSats {
+		medianFee = c.minRelayFeeSats
 	}
 	rate := medianFee / uint64(result.MedianTxSize)
 	if rate*uint64(result.MedianTxSize) < medianFee {
@@ -759,7 +776,7 @@ func (c *Client) RegisterPublicKey(pkey common.PubKey) error {
 
 // getBlockRequiredConfirmation find out how many confirmation the given txIn need to have before it can be send to THORChain
 func (c *Client) getBlockRequiredConfirmation(txIn types.TxIn, height int64) (int64, error) {
-	totalTxValue := txIn.GetTotalTransactionValue(common.BTCAsset)
+	totalTxValue := txIn.GetTotalTransactionValue(common.BTCAsset, c.asgardAddresses)
 	stats, err := c.client.GetBlockStats(height, nil)
 	if err != nil {
 		return 0, fmt.Errorf("fail to get block stats with height(%d): %w", height, err)
@@ -772,6 +789,7 @@ func (c *Client) getBlockRequiredConfirmation(txIn types.TxIn, height int64) (in
 }
 
 // ConfirmationCountReady will be called by observer before send the txIn to thorchain
+// confirmation counting is on block level , refer to https://medium.com/coinmonks/1confvalue-a-simple-pow-confirmation-rule-of-thumb-a8d9c6c483dd for detail
 func (c *Client) ConfirmationCountReady(txIn types.TxIn) bool {
 	if len(txIn.TxArray) == 0 {
 		return true
@@ -790,5 +808,6 @@ func (c *Client) ConfirmationCountReady(txIn types.TxIn) bool {
 	if confirm <= 1 {
 		return true
 	}
-	return (c.currentBlockHeight - blockHeight) >= confirm
+	// every tx in txIn already have at least 1 confirmation
+	return (c.currentBlockHeight - blockHeight + 1) >= confirm
 }
