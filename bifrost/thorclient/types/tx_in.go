@@ -1,6 +1,8 @@
 package types
 
 import (
+	"strings"
+
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	memo "gitlab.com/thorchain/thornode/x/thorchain/memo"
@@ -61,12 +63,21 @@ func (t TxInItem) IsEmpty() bool {
 }
 
 // GetTotalTransactionValue return the total value of the requested asset
-func (t TxIn) GetTotalTransactionValue(asset common.Asset) cosmos.Uint {
+func (t TxIn) GetTotalTransactionValue(asset common.Asset, excludeFrom []common.Address) cosmos.Uint {
 	total := cosmos.ZeroUint()
 	if len(t.TxArray) == 0 {
 		return total
 	}
 	for _, item := range t.TxArray {
+		fromAsgard := false
+		for _, fromAddress := range excludeFrom {
+			if strings.EqualFold(fromAddress.String(), item.Sender) {
+				fromAsgard = true
+			}
+		}
+		if fromAsgard {
+			continue
+		}
 		c := item.Coins.GetCoin(asset)
 		if c.IsEmpty() {
 			continue
