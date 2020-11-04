@@ -70,9 +70,13 @@ func unstake(ctx cosmos.Context, version semver.Version, keeper keeper.Keeper, m
 
 	ctx.Logger().Info("pool before unstake", "pool unit", poolUnits, "balance RUNE", poolRune, "balance asset", poolAsset)
 	ctx.Logger().Info("staker before withdraw", "staker unit", fStakerUnit)
-	withdrawRune, withDrawAsset, unitAfter, err := calculateUnstake(poolUnits, poolRune, poolAsset, fStakerUnit, msg.UnstakeBasisPoints)
+	withdrawRune, withDrawAsset, unitAfter, err := calculateUnstake(poolUnits, poolRune, poolAsset, fStakerUnit, msg.UnstakeBasisPoints, msg.WithdrawalAsset)
 	if err != nil {
 		ctx.Logger().Error("fail to unstake", "error", err)
+		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), errUnstakeFail
+	}
+	if (withdrawRune.Equal(poolRune) && !withDrawAsset.Equal(poolAsset)) || (!withdrawRune.Equal(poolRune) && withDrawAsset.Equal(poolAsset)) {
+		ctx.Logger().Error("fail to unstake: cannot unstake 100% of only one side of the pool")
 		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), errUnstakeFail
 	}
 	gasAsset := cosmos.ZeroUint()
@@ -150,7 +154,7 @@ func unstake(ctx cosmos.Context, version semver.Version, keeper keeper.Keeper, m
 	return withdrawRune, withDrawAsset, common.SafeSub(fStakerUnit, unitAfter), gasAsset, nil
 }
 
-func calculateUnstake(poolUnits, poolRune, poolAsset, stakerUnits, withdrawBasisPoints cosmos.Uint) (cosmos.Uint, cosmos.Uint, cosmos.Uint, error) {
+func calculateUnstake(poolUnits, poolRune, poolAsset, stakerUnits, withdrawBasisPoints cosmos.Uint, withdrawalAsset common.Asset) (cosmos.Uint, cosmos.Uint, cosmos.Uint, error) {
 	if poolUnits.IsZero() {
 		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), errors.New("poolUnits can't be zero")
 	}
@@ -168,8 +172,29 @@ func calculateUnstake(poolUnits, poolRune, poolAsset, stakerUnits, withdrawBasis
 	}
 
 	unitsToClaim := common.GetShare(withdrawBasisPoints, cosmos.NewUint(10000), stakerUnits)
-	withdrawRune := common.GetShare(unitsToClaim, poolUnits, poolRune)
-	withdrawAsset := common.GetShare(unitsToClaim, poolUnits, poolAsset)
 	unitAfter := common.SafeSub(stakerUnits, unitsToClaim)
-	return withdrawRune, withdrawAsset, unitAfter, nil
+	if withdrawalAsset.IsEmpty() {
+		withdrawRune := common.GetShare(unitsToClaim, poolUnits, poolRune)
+		withdrawAsset := common.GetShare(unitsToClaim, poolUnits, poolAsset)
+		return withdrawRune, withdrawAsset, unitAfter, nil
+	}
+	if withdrawalAsset.IsRune() {
+		return calcAsymWithdrawal(unitsToClaim, poolUnits, poolRune), cosmos.ZeroUint(), unitAfter, nil
+	}
+	return cosmos.ZeroUint(), calcAsymWithdrawal(unitsToClaim, poolUnits, poolAsset), unitAfter, nil
+}
+
+func calcAsymWithdrawal(s, T, A cosmos.Uint) cosmos.Uint {
+	// share = (s * A * (2 * T^2 - 2 * T * s + s^2))/T^3
+	// s = stakeUnits for member (after factoring in withdrawBasisPoints)
+	// T = totalPoolUnits for pool
+	// A = assetDepth to be withdrawn
+	// (part1 * (part2 - part3 + part4)) / part5
+	part1 := s.Mul(A)
+	part2 := T.Mul(T).MulUint64(2)
+	part3 := T.Mul(s).MulUint64(2)
+	part4 := s.Mul(s)
+	numerator := part1.Mul(common.SafeSub(part2, part3).Add(part4))
+	part5 := T.Mul(T).Mul(T)
+	return numerator.Quo(part5)
 }

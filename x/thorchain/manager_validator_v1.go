@@ -742,6 +742,7 @@ func (vm *validatorMgrV1) ragnarokPools(ctx cosmos.Context, nth int64, mgr Manag
 					staker.RuneAddress,
 					cosmos.NewUint(uint64(basisPoints)),
 					pool.Asset,
+					common.EmptyAsset,
 					na.NodeAddress,
 				)
 
