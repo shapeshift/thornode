@@ -204,7 +204,7 @@ func (s UnstakeSuite) TestCalculateUnsake(c *C) {
 
 	for _, item := range inputs {
 		c.Logf("name:%s", item.name)
-		withDrawRune, withDrawAsset, unitAfter, err := calculateUnstake(item.poolUnit, item.poolRune, item.poolAsset, item.stakerUnit, item.percentage)
+		withDrawRune, withDrawAsset, unitAfter, err := calculateUnstake(item.poolUnit, item.poolRune, item.poolAsset, item.stakerUnit, item.percentage, common.EmptyAsset)
 		if item.expectedErr == nil {
 			c.Assert(err, IsNil)
 		} else {
@@ -397,7 +397,6 @@ func (UnstakeSuite) TestUnstake(c *C) {
 			assetAmount:   cosmos.ZeroUint(),
 			expectedError: errors.New("empty asset"),
 		},
-
 		{
 			name: "invalid-basis-point",
 			msg: MsgUnStake{
@@ -507,6 +506,72 @@ func (UnstakeSuite) TestUnstake(c *C) {
 	}
 }
 
+func (UnstakeSuite) TestUnstakeAsym(c *C) {
+	accountAddr := GetRandomNodeAccount(NodeWhiteListed).NodeAddress
+	runeAddress := GetRandomRUNEAddress()
+
+	testCases := []struct {
+		name          string
+		msg           MsgUnStake
+		runeAmount    cosmos.Uint
+		assetAmount   cosmos.Uint
+		expectedError error
+	}{
+		{
+			name: "all-good-asymmetric-rune",
+			msg: MsgUnStake{
+				RuneAddress:        runeAddress,
+				UnstakeBasisPoints: cosmos.NewUint(10000),
+				Asset:              common.BNBAsset,
+				Tx:                 common.Tx{ID: "28B40BF105A112389A339A64BD1A042E6140DC9082C679586C6CF493A9FDE3FE"},
+				WithdrawalAsset:    common.RuneAsset(),
+				Signer:             accountAddr,
+			},
+			runeAmount:    cosmos.NewUint(6250000000),
+			assetAmount:   cosmos.ZeroUint(),
+			expectedError: nil,
+		},
+		{
+			name: "all-good-asymmetric-asset",
+			msg: MsgUnStake{
+				RuneAddress:        runeAddress,
+				UnstakeBasisPoints: cosmos.NewUint(10000),
+				Asset:              common.BNBAsset,
+				Tx:                 common.Tx{ID: "28B40BF105A112389A339A64BD1A042E6140DC9082C679586C6CF493A9FDE3FE"},
+				WithdrawalAsset:    common.BNBAsset,
+				Signer:             accountAddr,
+			},
+			runeAmount:    cosmos.ZeroUint(),
+			assetAmount:   cosmos.NewUint(6250000000),
+			expectedError: nil,
+		},
+	}
+	for _, tc := range testCases {
+		c.Logf("name:%s", tc.name)
+		version := constants.SWVersion
+		ctx, k := setupKeeperForTest(c)
+		ps := getUnstakeTestKeeper2(c, ctx, k, runeAddress)
+		mgr := NewManagers(ps)
+		mgr.BeginBlock(ctx)
+		ps.SaveNetworkFee(ctx, common.BNBChain, NetworkFee{
+			Chain:              common.BNBChain,
+			TransactionSize:    1,
+			TransactionFeeRate: bnbSingleTxFee.Uint64(),
+		})
+		r, asset, _, _, err := unstake(ctx, version, ps, tc.msg, mgr)
+		if tc.expectedError != nil {
+			c.Assert(err, NotNil)
+			c.Check(err.Error(), Equals, tc.expectedError.Error())
+			c.Check(r.Uint64(), Equals, tc.runeAmount.Uint64())
+			c.Check(asset.Uint64(), Equals, tc.assetAmount.Uint64())
+			continue
+		}
+		c.Assert(err, IsNil)
+		c.Assert(r.Uint64(), Equals, tc.runeAmount.Uint64(), Commentf("%d != %d", r.Uint64(), tc.runeAmount.Uint64()))
+		c.Assert(asset.Equal(tc.assetAmount), Equals, true, Commentf("expect:%s, however got:%s", tc.assetAmount.String(), asset.String()))
+	}
+}
+
 func getUnstakeTestKeeper(c *C, ctx cosmos.Context, k keeper.Keeper, runeAddress common.Address) keeper.Keeper {
 	store := NewUnstakeTestKeeper(k)
 	pool := Pool{
@@ -514,6 +579,38 @@ func getUnstakeTestKeeper(c *C, ctx cosmos.Context, k keeper.Keeper, runeAddress
 		BalanceAsset: cosmos.NewUint(100 * common.One),
 		Asset:        common.BNBAsset,
 		PoolUnits:    cosmos.NewUint(100 * common.One),
+		Status:       PoolEnabled,
+	}
+	c.Assert(store.SetPool(ctx, pool), IsNil)
+	staker := Staker{
+		Asset:        pool.Asset,
+		RuneAddress:  runeAddress,
+		AssetAddress: runeAddress,
+		Units:        cosmos.NewUint(100 * common.One),
+		PendingRune:  cosmos.ZeroUint(),
+	}
+	store.SetStaker(ctx, staker)
+	if common.RuneAsset().Chain.Equals(common.THORChain) {
+		accAddr, err := staker.RuneAddress.AccAddress()
+		c.Assert(err, IsNil)
+		amt := store.GetStakerBalance(ctx, pool.Asset.LiquidityAsset(), accAddr)
+		if amt.IsZero() {
+			err = store.AddStake(ctx, common.NewCoin(pool.Asset.LiquidityAsset(), staker.Units), accAddr)
+			c.Assert(err, IsNil)
+		}
+	}
+
+	return store
+}
+
+// this one has an extra staker already set
+func getUnstakeTestKeeper2(c *C, ctx cosmos.Context, k keeper.Keeper, runeAddress common.Address) keeper.Keeper {
+	store := NewUnstakeTestKeeper(k)
+	pool := Pool{
+		BalanceRune:  cosmos.NewUint(100 * common.One),
+		BalanceAsset: cosmos.NewUint(100 * common.One),
+		Asset:        common.BNBAsset,
+		PoolUnits:    cosmos.NewUint(200 * common.One),
 		Status:       PoolEnabled,
 	}
 	c.Assert(store.SetPool(ctx, pool), IsNil)

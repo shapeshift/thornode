@@ -25,7 +25,7 @@ func (MsgUnstakeSuite) TestMsgUnstake(c *C) {
 	)
 	runeAddr := GetRandomRUNEAddress()
 	acc1 := GetRandomBech32Addr()
-	m := NewMsgUnStake(tx, runeAddr, cosmos.NewUint(10000), common.BNBAsset, acc1)
+	m := NewMsgUnStake(tx, runeAddr, cosmos.NewUint(10000), common.BNBAsset, common.EmptyAsset, acc1)
 	EnsureMsgBasicCorrect(m, c)
 	c.Check(m.Type(), Equals, "unstake")
 
@@ -87,7 +87,7 @@ func (MsgUnstakeSuite) TestMsgUnstake(c *C) {
 		},
 	}
 	for _, item := range inputs {
-		m := NewMsgUnStake(item.tx, item.publicAddress, item.withdrawBasisPoints, item.asset, item.signer)
+		m := NewMsgUnStake(item.tx, item.publicAddress, item.withdrawBasisPoints, item.asset, common.EmptyAsset, item.signer)
 		c.Check(m.ValidateBasic(), NotNil)
 	}
 }

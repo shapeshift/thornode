@@ -133,7 +133,7 @@ func (HandlerUnstakeSuite) TestUnstakeHandler(c *C) {
 	// let's just unstake
 	unstakeHandler := NewUnstakeHandler(k, NewDummyMgr())
 
-	msgUnstake := NewMsgUnStake(GetRandomTx(), runeAddr, cosmos.NewUint(uint64(MaxUnstakeBasisPoints)), common.BNBAsset, activeNodeAccount.NodeAddress)
+	msgUnstake := NewMsgUnStake(GetRandomTx(), runeAddr, cosmos.NewUint(uint64(MaxUnstakeBasisPoints)), common.BNBAsset, common.EmptyAsset, activeNodeAccount.NodeAddress)
 	_, err = unstakeHandler.Run(ctx, msgUnstake, ver, constAccessor)
 	c.Assert(err, IsNil)
 
@@ -151,27 +151,27 @@ func (HandlerUnstakeSuite) TestUnstakeHandler_Validation(c *C) {
 	}{
 		{
 			name:           "empty signer should fail",
-			msg:            NewMsgUnStake(GetRandomTx(), GetRandomRUNEAddress(), cosmos.NewUint(uint64(MaxUnstakeBasisPoints)), common.BNBAsset, cosmos.AccAddress{}),
+			msg:            NewMsgUnStake(GetRandomTx(), GetRandomRUNEAddress(), cosmos.NewUint(uint64(MaxUnstakeBasisPoints)), common.BNBAsset, common.EmptyAsset, cosmos.AccAddress{}),
 			expectedResult: errUnstakeFailValidation,
 		},
 		{
 			name:           "empty asset should fail",
-			msg:            NewMsgUnStake(GetRandomTx(), GetRandomRUNEAddress(), cosmos.NewUint(uint64(MaxUnstakeBasisPoints)), common.Asset{}, GetRandomNodeAccount(NodeActive).NodeAddress),
+			msg:            NewMsgUnStake(GetRandomTx(), GetRandomRUNEAddress(), cosmos.NewUint(uint64(MaxUnstakeBasisPoints)), common.Asset{}, common.EmptyAsset, GetRandomNodeAccount(NodeActive).NodeAddress),
 			expectedResult: errUnstakeFailValidation,
 		},
 		{
 			name:           "empty RUNE address should fail",
-			msg:            NewMsgUnStake(GetRandomTx(), common.NoAddress, cosmos.NewUint(uint64(MaxUnstakeBasisPoints)), common.BNBAsset, GetRandomNodeAccount(NodeActive).NodeAddress),
+			msg:            NewMsgUnStake(GetRandomTx(), common.NoAddress, cosmos.NewUint(uint64(MaxUnstakeBasisPoints)), common.BNBAsset, common.EmptyAsset, GetRandomNodeAccount(NodeActive).NodeAddress),
 			expectedResult: errUnstakeFailValidation,
 		},
 		{
 			name:           "withdraw basis point is 0 should fail",
-			msg:            NewMsgUnStake(GetRandomTx(), GetRandomRUNEAddress(), cosmos.ZeroUint(), common.BNBAsset, GetRandomNodeAccount(NodeActive).NodeAddress),
+			msg:            NewMsgUnStake(GetRandomTx(), GetRandomRUNEAddress(), cosmos.ZeroUint(), common.BNBAsset, common.EmptyAsset, GetRandomNodeAccount(NodeActive).NodeAddress),
 			expectedResult: errUnstakeFailValidation,
 		},
 		{
 			name:           "withdraw basis point is larger than 10000 should fail",
-			msg:            NewMsgUnStake(GetRandomTx(), GetRandomRUNEAddress(), cosmos.NewUint(uint64(MaxUnstakeBasisPoints+100)), common.BNBAsset, GetRandomNodeAccount(NodeActive).NodeAddress),
+			msg:            NewMsgUnStake(GetRandomTx(), GetRandomRUNEAddress(), cosmos.NewUint(uint64(MaxUnstakeBasisPoints+100)), common.BNBAsset, common.EmptyAsset, GetRandomNodeAccount(NodeActive).NodeAddress),
 			expectedResult: errUnstakeFailValidation,
 		},
 	}
@@ -250,7 +250,7 @@ func (HandlerUnstakeSuite) TestUnstakeHandler_mockFailScenarios(c *C) {
 
 	for _, tc := range testCases {
 		unstakeHandler := NewUnstakeHandler(tc.k, NewDummyMgr())
-		msgUnstake := NewMsgUnStake(GetRandomTx(), GetRandomRUNEAddress(), cosmos.NewUint(uint64(MaxUnstakeBasisPoints)), common.BNBAsset, activeNodeAccount.NodeAddress)
+		msgUnstake := NewMsgUnStake(GetRandomTx(), GetRandomRUNEAddress(), cosmos.NewUint(uint64(MaxUnstakeBasisPoints)), common.BNBAsset, common.EmptyAsset, activeNodeAccount.NodeAddress)
 		_, err := unstakeHandler.Run(ctx, msgUnstake, ver, constAccessor)
 		c.Assert(errors.Is(err, tc.expectedResult), Equals, true, Commentf(tc.name))
 	}

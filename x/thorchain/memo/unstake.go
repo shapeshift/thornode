@@ -10,15 +10,18 @@ import (
 
 type UnstakeMemo struct {
 	MemoBase
-	Amount cosmos.Uint
+	Amount          cosmos.Uint
+	WithdrawalAsset common.Asset
 }
 
-func (m UnstakeMemo) GetAmount() cosmos.Uint { return m.Amount }
+func (m UnstakeMemo) GetAmount() cosmos.Uint           { return m.Amount }
+func (m UnstakeMemo) GetWithdrawalAsset() common.Asset { return m.WithdrawalAsset }
 
-func NewUnstakeMemo(asset common.Asset, amt cosmos.Uint) UnstakeMemo {
+func NewUnstakeMemo(asset common.Asset, amt cosmos.Uint, withdrawalAsset common.Asset) UnstakeMemo {
 	return UnstakeMemo{
-		MemoBase: MemoBase{TxType: TxUnstake, Asset: asset},
-		Amount:   amt,
+		MemoBase:        MemoBase{TxType: TxUnstake, Asset: asset},
+		Amount:          amt,
+		WithdrawalAsset: withdrawalAsset,
 	}
 }
 
@@ -27,15 +30,22 @@ func ParseUnstakeMemo(asset common.Asset, parts []string) (UnstakeMemo, error) {
 	if len(parts) < 2 {
 		return UnstakeMemo{}, fmt.Errorf("not enough parameters")
 	}
-	withdrawlBasisPts := cosmos.ZeroUint()
+	withdrawalBasisPts := cosmos.ZeroUint()
+	withdrawalAsset := common.EmptyAsset
 	if len(parts) > 2 {
-		withdrawlBasisPts, err = cosmos.ParseUint(parts[2])
+		withdrawalBasisPts, err = cosmos.ParseUint(parts[2])
 		if err != nil {
 			return UnstakeMemo{}, err
 		}
-		if withdrawlBasisPts.IsZero() || withdrawlBasisPts.GT(cosmos.NewUint(types.MaxUnstakeBasisPoints)) {
+		if withdrawalBasisPts.IsZero() || withdrawalBasisPts.GT(cosmos.NewUint(types.MaxUnstakeBasisPoints)) {
 			return UnstakeMemo{}, fmt.Errorf("withdraw amount %s is invalid", parts[2])
 		}
 	}
-	return NewUnstakeMemo(asset, withdrawlBasisPts), nil
+	if len(parts) > 3 {
+		withdrawalAsset, err = common.NewAsset(parts[3])
+		if err != nil {
+			return UnstakeMemo{}, err
+		}
+	}
+	return NewUnstakeMemo(asset, withdrawalBasisPts, withdrawalAsset), nil
 }

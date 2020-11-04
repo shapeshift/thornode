@@ -502,6 +502,7 @@ func (vm *VaultMgrV1) ragnarokChain(ctx cosmos.Context, chain common.Chain, nth 
 				staker.RuneAddress,
 				cosmos.NewUint(uint64(MaxUnstakeBasisPoints/100*(nth*10))),
 				pool.Asset,
+				common.EmptyAsset,
 				na.NodeAddress,
 			)
 
