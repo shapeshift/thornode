@@ -818,6 +818,10 @@ func (vm *validatorMgrV1) RequestYggReturn(ctx cosmos.Context, node NodeAccount,
 		if chain.Equals(common.THORChain) {
 			continue
 		}
+		if !ygg.HasFundsForChain(chain) {
+			ctx.Logger().Info(fmt.Sprintf("there is not fund for %s chain, no need for yggdrasil return", chain))
+			continue
+		}
 
 		toAddr, err := vault.PubKey.GetAddress(chain)
 		if err != nil {

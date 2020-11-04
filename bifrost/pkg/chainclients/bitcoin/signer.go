@@ -180,6 +180,10 @@ func (c *Client) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, err
 	if !tx.Chain.Equals(common.BTCChain) {
 		return nil, errors.New("not BTC chain")
 	}
+	// when there is no coin , skip it
+	if tx.Coins.IsEmpty() {
+		return nil, nil
+	}
 	sourceScript, err := c.getSourceScript(tx)
 	if err != nil {
 		return nil, fmt.Errorf("fail to get source pay to address script: %w", err)
