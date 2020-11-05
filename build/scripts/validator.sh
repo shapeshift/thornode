@@ -100,6 +100,18 @@ if [ ! -f ~/.thord/config/genesis.json ]; then
         echo "YOUR NODE ADDRESS: $NODE_ADDRESS . Send your bond with this as your address."
     fi
 
+else
+    # update seeds tendermint config if available
+    if [[ "$PEER" != "none" ]]; then
+      # add persistent peer tendermint config
+      NODE_ID=$(fetch_node_id $PEER)
+      peer_list $NODE_ID $PEER
+    fi
+
+    if [[ "$SEEDS" != "none" ]]; then
+      # add seeds tendermint config
+      seeds_list $SEEDS
+    fi
 fi
 
 (echo $SIGNER_NAME; echo $SIGNER_PASSWD ) | exec "$@"
