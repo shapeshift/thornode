@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -o pipefail
+
 CHAIN_ID="${CHAIN_ID:=thorchain}"
 BINANCE_HOST="${BINANCE_HOST:=http://binance-mock:26660}"
 BINANCE_START_BLOCK_HEIGHT="${BINANCE_START_BLOCK_HEIGHT:=0}"
