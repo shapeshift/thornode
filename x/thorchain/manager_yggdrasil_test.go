@@ -177,9 +177,5 @@ func (s YggdrasilSuite) TestFund(c *C) {
 	c.Assert(err1, IsNil)
 	items, err := mgr.TxOutStore().GetOutboundItems(ctx)
 	c.Assert(err, IsNil)
-	if common.RuneAsset().Chain.Equals(common.THORChain) {
-		c.Assert(items, HasLen, 1)
-	} else {
-		c.Assert(items, HasLen, 2)
-	}
+	c.Assert(items, HasLen, 1)
 }

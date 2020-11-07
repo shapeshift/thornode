@@ -32,10 +32,7 @@ func (k KVStore) GetPools(ctx cosmos.Context) (Pools, error) {
 func (k KVStore) GetPool(ctx cosmos.Context, asset common.Asset) (Pool, error) {
 	record := NewPool()
 	_, err := k.get(ctx, k.GetKey(ctx, prefixPool, asset.String()), &record)
-
-	if common.RuneAsset().Chain.Equals(common.THORChain) {
-		record.PoolUnits = k.GetTotalSupply(ctx, asset.LiquidityAsset())
-	}
+	record.PoolUnits = k.GetTotalSupply(ctx, asset.LiquidityAsset())
 
 	return record, err
 }

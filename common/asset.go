@@ -123,13 +123,7 @@ func (a *Asset) UnmarshalJSON(data []byte) error {
 
 // RuneAsset return RUNE Asset depends on different environment
 func RuneAsset() Asset {
-	if strings.EqualFold(os.Getenv("NATIVE"), "true") {
-		return RuneNative
-	}
-	if strings.EqualFold(os.Getenv("NET"), "testnet") || strings.EqualFold(os.Getenv("NET"), "mocknet") {
-		return Rune67CAsset
-	}
-	return RuneB1AAsset
+	return RuneNative
 }
 
 // BEP2RuneAsset is RUNE on BEP2

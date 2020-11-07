@@ -462,11 +462,7 @@ func (s *SlashingSuite) TestDoubleSign(c *C) {
 	c.Assert(err, IsNil)
 
 	c.Check(keeper.na.Bond.Equal(cosmos.NewUint(9995000000)), Equals, true, Commentf("%d", keeper.na.Bond.Uint64()))
-	if common.RuneAsset().Chain.Equals(common.THORChain) {
-		c.Check(keeper.modules[ReserveName], Equals, int64(5000000))
-	} else {
-		c.Check(keeper.vaultData.TotalReserve.Equal(cosmos.NewUint(5000000)), Equals, true)
-	}
+	c.Check(keeper.modules[ReserveName], Equals, int64(5000000))
 }
 
 func (s *SlashingSuite) TestIncreaseDecreaseSlashPoints(c *C) {
