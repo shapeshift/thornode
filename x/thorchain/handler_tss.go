@@ -180,16 +180,9 @@ func (h TssHandler) handleV1(ctx cosmos.Context, msg MsgTssPool, version semver.
 					}
 					ctx.Logger().Info("fail keygen , slash bond", "address", na.NodeAddress, "amount", slashBond.String())
 					na.Bond = common.SafeSub(na.Bond, slashBond)
-					if common.RuneAsset().Chain.Equals(common.THORChain) {
-						coin := common.NewCoin(common.RuneNative, slashBond)
-						if err := h.keeper.SendFromModuleToModule(ctx, BondName, ReserveName, coin); err != nil {
-							return nil, fmt.Errorf("fail to transfer funds from bond to reserve: %w", err)
-						}
-					} else {
-						reserveVault.TotalReserve = reserveVault.TotalReserve.Add(slashBond)
-						if err := h.keeper.SetVaultData(ctx, reserveVault); err != nil {
-							ctx.Logger().Error("fail to set vault data", "error", err)
-						}
+					coin := common.NewCoin(common.RuneNative, slashBond)
+					if err := h.keeper.SendFromModuleToModule(ctx, BondName, ReserveName, coin); err != nil {
+						return nil, fmt.Errorf("fail to transfer funds from bond to reserve: %w", err)
 					}
 
 				}
@@ -306,18 +299,10 @@ func (h TssHandler) handleV13(ctx cosmos.Context, msg MsgTssPool, version semver
 					}
 					ctx.Logger().Info("fail keygen , slash bond", "address", na.NodeAddress, "amount", slashBond.String())
 					na.Bond = common.SafeSub(na.Bond, slashBond)
-					if common.RuneAsset().Chain.Equals(common.THORChain) {
-						coin := common.NewCoin(common.RuneNative, slashBond)
-						if err := h.keeper.SendFromModuleToModule(ctx, BondName, ReserveName, coin); err != nil {
-							return nil, fmt.Errorf("fail to transfer funds from bond to reserve: %w", err)
-						}
-					} else {
-						reserveVault.TotalReserve = reserveVault.TotalReserve.Add(slashBond)
-						if err := h.keeper.SetVaultData(ctx, reserveVault); err != nil {
-							ctx.Logger().Error("fail to set vault data", "error", err)
-						}
+					coin := common.NewCoin(common.RuneNative, slashBond)
+					if err := h.keeper.SendFromModuleToModule(ctx, BondName, ReserveName, coin); err != nil {
+						return nil, fmt.Errorf("fail to transfer funds from bond to reserve: %w", err)
 					}
-
 				}
 				if err := h.keeper.SetNodeAccount(ctx, na); err != nil {
 					return nil, fmt.Errorf("fail to save node account: %w", err)

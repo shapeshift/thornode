@@ -57,11 +57,6 @@ func (h SwitchHandler) validateV1(ctx cosmos.Context, msg MsgSwitch) error {
 		return err
 	}
 
-	// when using BEP2 rune, cannot swap rune
-	if !common.RuneAsset().Chain.Equals(common.THORChain) {
-		return errors.New("when using BEP2 rune, cannot swap rune assets")
-	}
-
 	// if we are getting a non-native asset, ensure its signed by an active
 	// node account
 	if !msg.Tx.Coins[0].IsNative() {

@@ -231,13 +231,7 @@ func (s *HelperSuite) TestRefundBondHappyPath(c *C) {
 	slashAmt := yggAssetInRune.MulUint64(3).QuoUint64(2)
 	items, err := mgr.TxOutStore().GetOutboundItems(ctx)
 	c.Assert(err, IsNil)
-	if common.RuneAsset().Chain.Equals(common.THORChain) {
-		c.Assert(items, HasLen, 0)
-	} else {
-		c.Check(items, HasLen, 1)
-		outCoin := items[0].Coin
-		c.Check(outCoin.Amount.Equal(cosmos.NewUint(12098*common.One)), Equals, true, Commentf("%d", outCoin.Amount.Uint64()))
-	}
+	c.Assert(items, HasLen, 0)
 	p, err := keeper.GetPool(ctx, common.BNBAsset)
 	c.Assert(err, IsNil)
 	expectedPoolRune := cosmos.NewUint(23789 * common.One).Sub(cosmos.NewUint(3946 * common.One)).Add(slashAmt)

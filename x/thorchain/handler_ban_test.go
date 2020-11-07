@@ -141,11 +141,7 @@ func (s *HandlerBanSuite) TestHandle(c *C) {
 	_, err := handler.handle(ctx, msg, constants.SWVersion, constAccessor)
 	c.Assert(err, IsNil)
 	c.Check(int64(keeper.banner1.Bond.Uint64()), Equals, int64(99900000))
-	if common.RuneAsset().Chain.Equals(common.THORChain) {
-		c.Check(keeper.modules[ReserveName], Equals, int64(100000))
-	} else {
-		c.Check(int64(keeper.vaultData.TotalReserve.Uint64()), Equals, int64(100000))
-	}
+	c.Check(keeper.modules[ReserveName], Equals, int64(100000))
 	c.Check(keeper.toBan.ForcedToLeave, Equals, false)
 	c.Check(keeper.ban.Signers, HasLen, 1)
 
@@ -153,11 +149,7 @@ func (s *HandlerBanSuite) TestHandle(c *C) {
 	_, err = handler.handle(ctx, msg, constants.SWVersion, constAccessor)
 	c.Assert(err, IsNil)
 	c.Check(int64(keeper.banner1.Bond.Uint64()), Equals, int64(99900000))
-	if common.RuneAsset().Chain.Equals(common.THORChain) {
-		c.Check(keeper.modules[ReserveName], Equals, int64(100000))
-	} else {
-		c.Check(int64(keeper.vaultData.TotalReserve.Uint64()), Equals, int64(100000))
-	}
+	c.Check(keeper.modules[ReserveName], Equals, int64(100000))
 	c.Check(keeper.toBan.ForcedToLeave, Equals, false)
 	c.Check(keeper.ban.Signers, HasLen, 1)
 
@@ -166,11 +158,7 @@ func (s *HandlerBanSuite) TestHandle(c *C) {
 	_, err = handler.handle(ctx, msg, constants.SWVersion, constAccessor)
 	c.Assert(err, IsNil)
 	c.Check(int64(keeper.banner2.Bond.Uint64()), Equals, int64(99900000))
-	if common.RuneAsset().Chain.Equals(common.THORChain) {
-		c.Check(keeper.modules[ReserveName], Equals, int64(200000))
-	} else {
-		c.Check(int64(keeper.vaultData.TotalReserve.Uint64()), Equals, int64(200000))
-	}
+	c.Check(keeper.modules[ReserveName], Equals, int64(200000))
 	c.Check(keeper.toBan.ForcedToLeave, Equals, true)
 	c.Check(keeper.toBan.LeaveHeight, Equals, int64(18))
 	c.Check(keeper.ban.Signers, HasLen, 2)
@@ -206,11 +194,7 @@ func (s *HandlerBanSuite) TestHandleV10(c *C) {
 	_, err := handler.handle(ctx, msg, ver, constAccessor)
 	c.Assert(err, IsNil)
 	c.Check(int64(keeper.banner1.Bond.Uint64()), Equals, int64(99900000))
-	if common.RuneAsset().Chain.Equals(common.THORChain) {
-		c.Check(keeper.modules[ReserveName], Equals, int64(100000))
-	} else {
-		c.Check(int64(keeper.vaultData.TotalReserve.Uint64()), Equals, int64(100000))
-	}
+	c.Check(keeper.modules[ReserveName], Equals, int64(100000))
 	c.Check(keeper.toBan.ForcedToLeave, Equals, false)
 	c.Check(keeper.ban.Signers, HasLen, 1)
 
@@ -218,11 +202,7 @@ func (s *HandlerBanSuite) TestHandleV10(c *C) {
 	_, err = handler.handle(ctx, msg, ver, constAccessor)
 	c.Assert(err, IsNil)
 	c.Check(int64(keeper.banner1.Bond.Uint64()), Equals, int64(99900000))
-	if common.RuneAsset().Chain.Equals(common.THORChain) {
-		c.Check(keeper.modules[ReserveName], Equals, int64(100000))
-	} else {
-		c.Check(int64(keeper.vaultData.TotalReserve.Uint64()), Equals, int64(100000))
-	}
+	c.Check(keeper.modules[ReserveName], Equals, int64(100000))
 	c.Check(keeper.toBan.ForcedToLeave, Equals, false)
 	c.Check(keeper.ban.Signers, HasLen, 1)
 
@@ -231,11 +211,7 @@ func (s *HandlerBanSuite) TestHandleV10(c *C) {
 	_, err = handler.handle(ctx, msg, ver, constAccessor)
 	c.Assert(err, IsNil)
 	c.Check(int64(keeper.banner2.Bond.Uint64()), Equals, int64(99900000))
-	if common.RuneAsset().Chain.Equals(common.THORChain) {
-		c.Check(keeper.modules[ReserveName], Equals, int64(200000))
-	} else {
-		c.Check(int64(keeper.vaultData.TotalReserve.Uint64()), Equals, int64(200000))
-	}
+	c.Check(keeper.modules[ReserveName], Equals, int64(200000))
 	c.Check(keeper.toBan.ForcedToLeave, Equals, true)
 	c.Check(keeper.toBan.LeaveHeight, Equals, int64(18))
 	c.Check(keeper.ban.Signers, HasLen, 2)
@@ -526,7 +502,7 @@ func (s *HandlerBanSuite) TestBanHandlerValidation(c *C) {
 		semver.MustParse("0.13.0"),
 	}
 	for _, tc := range testCases {
-		if common.RuneAsset().Chain.Equals(common.THORChain) && tc.skipForNativeRUNE {
+		if tc.skipForNativeRUNE {
 			continue
 		}
 		for _, ver := range versions {

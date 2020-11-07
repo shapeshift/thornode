@@ -205,12 +205,10 @@ func (HandlerSuite) TestHandleTxInUnstakeMemo(c *C) {
 	}
 	w.keeper.SetStaker(w.ctx, staker)
 
-	if common.RuneAsset().Chain.Equals(common.THORChain) {
-		accAddr, err := staker.RuneAddress.AccAddress()
-		c.Assert(err, IsNil)
-		err = w.keeper.AddStake(w.ctx, common.NewCoin(pool.Asset.LiquidityAsset(), staker.Units), accAddr)
-		c.Assert(err, IsNil)
-	}
+	accAddr, err := staker.RuneAddress.AccAddress()
+	c.Assert(err, IsNil)
+	err = w.keeper.AddStake(w.ctx, common.NewCoin(pool.Asset.LiquidityAsset(), staker.Units), accAddr)
+	c.Assert(err, IsNil)
 
 	tx := common.Tx{
 		ID:    GetRandomTxHash(),
@@ -244,10 +242,7 @@ func (HandlerSuite) TestHandleTxInUnstakeMemo(c *C) {
 	c.Check(pool.Status, Equals, PoolBootstrap)
 	c.Check(pool.PoolUnits.Uint64(), Equals, uint64(0), Commentf("%d", pool.PoolUnits.Uint64()))
 	c.Check(pool.BalanceRune.Uint64(), Equals, uint64(0), Commentf("%d", pool.BalanceRune.Uint64()))
-	remainGas := uint64(75000)
-	if common.RuneAsset().Chain.Equals(common.THORChain) {
-		remainGas = 37500
-	}
+	remainGas := uint64(37500)
 	c.Check(pool.BalanceAsset.Uint64(), Equals, remainGas, Commentf("%d", pool.BalanceAsset.Uint64())) // leave a little behind for gas
 }
 
@@ -464,10 +459,7 @@ func (HandlerSuite) TestGetMsgStakeFromMemo(c *C) {
 			cosmos.NewUint(100*common.One)),
 	}
 
-	runeAddr := txin.Tx.FromAddress
-	if common.RuneAsset().Chain.Equals(common.THORChain) {
-		runeAddr = GetRandomRUNEAddress()
-	}
+	runeAddr := GetRandomRUNEAddress()
 	lokiStakeMemo, err := ParseMemo(fmt.Sprintf("stake:BNB.LOKI:%s", runeAddr))
 	c.Assert(err, IsNil)
 	msg4, err4 := getMsgStakeFromMemo(w.ctx, lokiStakeMemo.(StakeMemo), txin, GetRandomBech32Addr())

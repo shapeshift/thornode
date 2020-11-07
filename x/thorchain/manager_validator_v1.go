@@ -470,11 +470,6 @@ func (vm *validatorMgrV1) ragnarokProtocolStage2(ctx cosmos.Context, nth int64, 
 		ctx.Logger().Error("fail to ragnarok bond", "error", err)
 	}
 
-	// refund reserve contributors
-	if err := vm.ragnarokReserve(ctx, nth, mgr); err != nil {
-		ctx.Logger().Error("fail to ragnarok reserve", "error", err)
-	}
-
 	// refund stakers. This is last to ensure there is likely gas for the
 	// returning bond and reserve
 	if err := vm.ragnarokPools(ctx, nth, mgr, constAccessor); err != nil {
@@ -494,89 +489,6 @@ func (vm *validatorMgrV1) ragnarokBondReward(ctx cosmos.Context) error {
 			return fmt.Errorf("fail to pay node account(%s) bond award: %w", item.NodeAddress.String(), err)
 		}
 	}
-	return nil
-}
-
-func (vm *validatorMgrV1) ragnarokReserve(ctx cosmos.Context, nth int64, mgr Manager) error {
-	// don't ragnarok the reserve when rune is a native token
-	if common.RuneAsset().Chain.Equals(common.THORChain) {
-		return nil
-	}
-
-	contribs, err := vm.k.GetReservesContributors(ctx)
-	if err != nil {
-		ctx.Logger().Error("can't get reserve contributors", "error", err)
-		return err
-	}
-	if len(contribs) == 0 {
-		return nil
-	}
-	vaultData, err := vm.k.GetVaultData(ctx)
-	if err != nil {
-		ctx.Logger().Error("can't get vault data", "error", err)
-		return err
-	}
-
-	if vaultData.TotalReserve.IsZero() {
-		return nil
-	}
-
-	totalReserve := vaultData.TotalReserve
-	totalContributions := cosmos.ZeroUint()
-	for _, contrib := range contribs {
-		totalContributions = totalContributions.Add(contrib.Amount)
-	}
-
-	// Since reserves are spent over time (via block rewards), reserve
-	// contributors do not get back the full amounts they put in. Instead they
-	// should get a percentage of the remaining amount, relative to the amount
-	// they contributed. We'll be reducing the total reserve supply as we
-	// refund reserves
-
-	// nth * 10 == the amount of the bond we want to send
-	for i, contrib := range contribs {
-		share := common.GetShare(
-			contrib.Amount,
-			totalContributions,
-			totalReserve,
-		)
-		if nth > 10 { // cap at 10
-			nth = 10
-		}
-		amt := share.MulUint64(uint64(nth)).QuoUint64(10)
-		vaultData.TotalReserve = common.SafeSub(vaultData.TotalReserve, amt)
-		contribs[i].Amount = common.SafeSub(contrib.Amount, amt)
-
-		// refund contribution
-		txOutItem := &TxOutItem{
-			Chain:     common.RuneAsset().Chain,
-			ToAddress: contrib.Address,
-			InHash:    common.BlankTxID,
-			Coin:      common.NewCoin(common.RuneAsset(), amt),
-			Memo:      NewRagnarokMemo(common.BlockHeight(ctx)).String(),
-		}
-		_, err = vm.txOutStore.TryAddTxOutItem(ctx, mgr, txOutItem)
-		if err != nil && !errors.Is(err, ErrNotEnoughToPayFee) {
-			return fmt.Errorf("fail to add outbound transaction")
-		}
-
-		// add a pending rangarok transaction
-		pending, err := vm.k.GetRagnarokPending(ctx)
-		if err != nil {
-			return fmt.Errorf("fail to get ragnarok pending: %w", err)
-		}
-		vm.k.SetRagnarokPending(ctx, pending+1)
-
-	}
-
-	if err := vm.k.SetVaultData(ctx, vaultData); err != nil {
-		return err
-	}
-
-	if err := vm.k.SetReserveContributors(ctx, contribs); err != nil {
-		return err
-	}
-
 	return nil
 }
 

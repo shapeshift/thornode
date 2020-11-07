@@ -116,17 +116,13 @@ func unstake(ctx cosmos.Context, version semver.Version, keeper keeper.Keeper, m
 
 	ctx.Logger().Info("pool after unstake", "pool unit", pool.PoolUnits, "balance RUNE", pool.BalanceRune, "balance asset", pool.BalanceAsset)
 	// update staker
-	if common.RuneAsset().Chain.Equals(common.THORChain) {
-		acc, err := stakerUnit.RuneAddress.AccAddress()
-		if err != nil {
-			return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), ErrInternal(err, "fail to convert rune address")
-		}
-		err = keeper.RemoveStake(ctx, common.NewCoin(pool.Asset.LiquidityAsset(), stakerUnit.Units.Sub(unitAfter)), acc)
-		if err != nil {
-			return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), ErrInternal(err, "fail to withdraw stake")
-		}
-	} else {
-		stakerUnit.Units = unitAfter
+	acc, err := stakerUnit.RuneAddress.AccAddress()
+	if err != nil {
+		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), ErrInternal(err, "fail to convert rune address")
+	}
+	err = keeper.RemoveStake(ctx, common.NewCoin(pool.Asset.LiquidityAsset(), stakerUnit.Units.Sub(unitAfter)), acc)
+	if err != nil {
+		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), ErrInternal(err, "fail to withdraw stake")
 	}
 	stakerUnit.LastUnStakeHeight = common.BlockHeight(ctx)
 

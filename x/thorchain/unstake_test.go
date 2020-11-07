@@ -329,10 +329,7 @@ func (UnstakeSuite) TestUnstake(c *C) {
 	ps := NewUnstakeTestKeeper(k)
 	ps2 := getUnstakeTestKeeper(c, ctx, k, runeAddress)
 
-	remainGas := uint64(75000)
-	if common.RuneAsset().Chain.Equals(common.THORChain) {
-		remainGas = 37500
-	}
+	remainGas := uint64(37500)
 	testCases := []struct {
 		name          string
 		msg           MsgUnStake
@@ -590,14 +587,12 @@ func getUnstakeTestKeeper(c *C, ctx cosmos.Context, k keeper.Keeper, runeAddress
 		PendingRune:  cosmos.ZeroUint(),
 	}
 	store.SetStaker(ctx, staker)
-	if common.RuneAsset().Chain.Equals(common.THORChain) {
-		accAddr, err := staker.RuneAddress.AccAddress()
+	accAddr, err := staker.RuneAddress.AccAddress()
+	c.Assert(err, IsNil)
+	amt := store.GetStakerBalance(ctx, pool.Asset.LiquidityAsset(), accAddr)
+	if amt.IsZero() {
+		err = store.AddStake(ctx, common.NewCoin(pool.Asset.LiquidityAsset(), staker.Units), accAddr)
 		c.Assert(err, IsNil)
-		amt := store.GetStakerBalance(ctx, pool.Asset.LiquidityAsset(), accAddr)
-		if amt.IsZero() {
-			err = store.AddStake(ctx, common.NewCoin(pool.Asset.LiquidityAsset(), staker.Units), accAddr)
-			c.Assert(err, IsNil)
-		}
 	}
 
 	return store
@@ -622,14 +617,12 @@ func getUnstakeTestKeeper2(c *C, ctx cosmos.Context, k keeper.Keeper, runeAddres
 		PendingRune:  cosmos.ZeroUint(),
 	}
 	store.SetStaker(ctx, staker)
-	if common.RuneAsset().Chain.Equals(common.THORChain) {
-		accAddr, err := staker.RuneAddress.AccAddress()
+	accAddr, err := staker.RuneAddress.AccAddress()
+	c.Assert(err, IsNil)
+	amt := store.GetStakerBalance(ctx, pool.Asset.LiquidityAsset(), accAddr)
+	if amt.IsZero() {
+		err = store.AddStake(ctx, common.NewCoin(pool.Asset.LiquidityAsset(), staker.Units), accAddr)
 		c.Assert(err, IsNil)
-		amt := store.GetStakerBalance(ctx, pool.Asset.LiquidityAsset(), accAddr)
-		if amt.IsZero() {
-			err = store.AddStake(ctx, common.NewCoin(pool.Asset.LiquidityAsset(), staker.Units), accAddr)
-			c.Assert(err, IsNil)
-		}
 	}
 
 	return store
