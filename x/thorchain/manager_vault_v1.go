@@ -524,11 +524,7 @@ func (vm *VaultMgrV1) UpdateVaultData(ctx cosmos.Context, constAccessor constant
 	}
 
 	totalReserve := cosmos.ZeroUint()
-	if common.RuneAsset().Chain.Equals(common.THORChain) {
-		totalReserve = vm.k.GetRuneBalanceOfModule(ctx, ReserveName)
-	} else {
-		totalReserve = vaultData.TotalReserve
-	}
+	totalReserve = vm.k.GetRuneBalanceOfModule(ctx, ReserveName)
 
 	// when total reserve is zero , can't pay reward
 	if totalReserve.IsZero() {
@@ -575,14 +571,10 @@ func (vm *VaultMgrV1) UpdateVaultData(ctx cosmos.Context, constAccessor constant
 		totalRewards = totalReserve
 	}
 	totalReserve = common.SafeSub(totalReserve, totalRewards)
-	if common.RuneAsset().Chain.Equals(common.THORChain) {
-		coin := common.NewCoin(common.RuneNative, bondReward)
-		if err := vm.k.SendFromModuleToModule(ctx, ReserveName, BondName, coin); err != nil {
-			ctx.Logger().Error("fail to transfer funds from reserve to bond", "error", err)
-			return fmt.Errorf("fail to transfer funds from reserve to bond: %w", err)
-		}
-	} else {
-		vaultData.TotalReserve = totalReserve
+	coin := common.NewCoin(common.RuneNative, bondReward)
+	if err := vm.k.SendFromModuleToModule(ctx, ReserveName, BondName, coin); err != nil {
+		ctx.Logger().Error("fail to transfer funds from reserve to bond", "error", err)
+		return fmt.Errorf("fail to transfer funds from reserve to bond: %w", err)
 	}
 	vaultData.BondRewardRune = vaultData.BondRewardRune.Add(bondReward) // Add here for individual Node collection later
 
@@ -631,12 +623,10 @@ func (vm *VaultMgrV1) UpdateVaultData(ctx cosmos.Context, constAccessor constant
 				continue
 			}
 			poolDeficit := vm.calcPoolDeficit(stakerDeficit, totalLiquidityFees, poolFees)
-			if common.RuneAsset().Chain.Equals(common.THORChain) {
-				coin := common.NewCoin(common.RuneNative, poolDeficit)
-				if err := vm.k.SendFromModuleToModule(ctx, AsgardName, BondName, coin); err != nil {
-					ctx.Logger().Error("fail to transfer funds from asgard to bond", "error", err)
-					return fmt.Errorf("fail to transfer funds from asgard to bond: %w", err)
-				}
+			coin := common.NewCoin(common.RuneNative, poolDeficit)
+			if err := vm.k.SendFromModuleToModule(ctx, AsgardName, BondName, coin); err != nil {
+				ctx.Logger().Error("fail to transfer funds from asgard to bond", "error", err)
+				return fmt.Errorf("fail to transfer funds from asgard to bond: %w", err)
 			}
 			if poolDeficit.GT(pool.BalanceRune) {
 				poolDeficit = pool.BalanceRune
@@ -704,11 +694,9 @@ func (vm *VaultMgrV1) payPoolRewards(ctx cosmos.Context, poolRewards []cosmos.Ui
 		if err := vm.k.SetPool(ctx, pools[i]); err != nil {
 			return fmt.Errorf("fail to set pool: %w", err)
 		}
-		if common.RuneAsset().Chain.Equals(common.THORChain) {
-			coin := common.NewCoin(common.RuneNative, reward)
-			if err := vm.k.SendFromModuleToModule(ctx, ReserveName, AsgardName, coin); err != nil {
-				return fmt.Errorf("fail to transfer funds from reserve to asgard: %w", err)
-			}
+		coin := common.NewCoin(common.RuneNative, reward)
+		if err := vm.k.SendFromModuleToModule(ctx, ReserveName, AsgardName, coin); err != nil {
+			return fmt.Errorf("fail to transfer funds from reserve to asgard: %w", err)
 		}
 	}
 	return nil

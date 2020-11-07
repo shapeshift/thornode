@@ -152,25 +152,13 @@ func (gm *GasMgrV1) ProcessGas(ctx cosmos.Context, keeper keeper.Keeper) {
 		}
 		runeGas := pool.AssetValueInRune(gas.Amount) // Convert to Rune (gas will never be RUNE)
 		// If Rune owed now exceeds the Total Reserve, return it all
-		if common.RuneAsset().Chain.Equals(common.THORChain) {
-			if runeGas.LT(keeper.GetRuneBalanceOfModule(ctx, ReserveName)) {
-				coin := common.NewCoin(common.RuneNative, runeGas)
-				if err := keeper.SendFromModuleToModule(ctx, ReserveName, AsgardName, coin); err != nil {
-					ctx.Logger().Error("fail to transfer funds from reserve to asgard", "pool", gas.Asset, "error", err)
-					continue
-				}
-				pool.BalanceRune = pool.BalanceRune.Add(runeGas) // Add to the pool
+		if runeGas.LT(keeper.GetRuneBalanceOfModule(ctx, ReserveName)) {
+			coin := common.NewCoin(common.RuneNative, runeGas)
+			if err := keeper.SendFromModuleToModule(ctx, ReserveName, AsgardName, coin); err != nil {
+				ctx.Logger().Error("fail to transfer funds from reserve to asgard", "pool", gas.Asset, "error", err)
+				continue
 			}
-		} else {
-			if runeGas.LTE(vault.TotalReserve) {
-				vault.TotalReserve = common.SafeSub(vault.TotalReserve, runeGas) // Deduct from the Reserve.
-				pool.BalanceRune = pool.BalanceRune.Add(runeGas)                 // Add to the pool
-			} else {
-				// since we didn't move any funds from reserve to the pool, set
-				// the runeGas to zero so we emit the gas event to reflect the
-				// appropriate amount
-				runeGas = cosmos.ZeroUint()
-			}
+			pool.BalanceRune = pool.BalanceRune.Add(runeGas) // Add to the pool
 		}
 		pool.BalanceAsset = common.SafeSub(pool.BalanceAsset, gas.Amount)
 

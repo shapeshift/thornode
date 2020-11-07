@@ -102,21 +102,10 @@ func (h VersionHandler) handleV1(ctx cosmos.Context, msg MsgSetVersion, constAcc
 	}
 
 	// add bond to reserve
-	if common.RuneAsset().Chain.Equals(common.THORChain) {
-		coin := common.NewCoin(common.RuneNative, cost)
-		if err := h.keeper.SendFromAccountToModule(ctx, msg.Signer, ReserveName, coin); err != nil {
-			ctx.Logger().Error("fail to transfer funds from bond to reserve", "error", err)
-			return err
-		}
-	} else {
-		vaultData, err := h.keeper.GetVaultData(ctx)
-		if err != nil {
-			return fmt.Errorf("fail to get vault data: %w", err)
-		}
-		vaultData.TotalReserve = vaultData.TotalReserve.Add(cost)
-		if err := h.keeper.SetVaultData(ctx, vaultData); err != nil {
-			return fmt.Errorf("fail to save vault data: %w", err)
-		}
+	coin := common.NewCoin(common.RuneNative, cost)
+	if err := h.keeper.SendFromAccountToModule(ctx, msg.Signer, ReserveName, coin); err != nil {
+		ctx.Logger().Error("fail to transfer funds from bond to reserve", "error", err)
+		return err
 	}
 
 	ctx.EventManager().EmitEvent(

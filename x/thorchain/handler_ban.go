@@ -118,21 +118,10 @@ func (h BanHandler) handleV1(ctx cosmos.Context, msg MsgBan, constAccessor const
 		}
 		banner.Bond = common.SafeSub(banner.Bond, slashAmount)
 
-		if common.RuneAsset().Chain.Equals(common.THORChain) {
-			coin := common.NewCoin(common.RuneNative, slashAmount)
-			if err := h.keeper.SendFromModuleToModule(ctx, BondName, ReserveName, coin); err != nil {
-				ctx.Logger().Error("fail to transfer funds from bond to reserve", "error", err)
-				return nil, err
-			}
-		} else {
-			vaultData, err := h.keeper.GetVaultData(ctx)
-			if err != nil {
-				return nil, fmt.Errorf("fail to get vault data: %w", err)
-			}
-			vaultData.TotalReserve = vaultData.TotalReserve.Add(slashAmount)
-			if err := h.keeper.SetVaultData(ctx, vaultData); err != nil {
-				return nil, fmt.Errorf("fail to save vault data: %w", err)
-			}
+		coin := common.NewCoin(common.RuneNative, slashAmount)
+		if err := h.keeper.SendFromModuleToModule(ctx, BondName, ReserveName, coin); err != nil {
+			ctx.Logger().Error("fail to transfer funds from bond to reserve", "error", err)
+			return nil, err
 		}
 
 		if err := h.keeper.SetNodeAccount(ctx, banner); err != nil {
@@ -215,21 +204,10 @@ func (h BanHandler) handleV13(ctx cosmos.Context, msg MsgBan, constAccessor cons
 		}
 		banner.Bond = common.SafeSub(banner.Bond, slashAmount)
 
-		if common.RuneAsset().Chain.Equals(common.THORChain) {
-			coin := common.NewCoin(common.RuneNative, slashAmount)
-			if err := h.keeper.SendFromModuleToModule(ctx, BondName, ReserveName, coin); err != nil {
-				ctx.Logger().Error("fail to transfer funds from bond to reserve", "error", err)
-				return nil, err
-			}
-		} else {
-			vaultData, err := h.keeper.GetVaultData(ctx)
-			if err != nil {
-				return nil, fmt.Errorf("fail to get vault data: %w", err)
-			}
-			vaultData.TotalReserve = vaultData.TotalReserve.Add(slashAmount)
-			if err := h.keeper.SetVaultData(ctx, vaultData); err != nil {
-				return nil, fmt.Errorf("fail to save vault data: %w", err)
-			}
+		coin := common.NewCoin(common.RuneNative, slashAmount)
+		if err := h.keeper.SendFromModuleToModule(ctx, BondName, ReserveName, coin); err != nil {
+			ctx.Logger().Error("fail to transfer funds from bond to reserve", "error", err)
+			return nil, err
 		}
 
 		if err := h.keeper.SetNodeAccount(ctx, banner); err != nil {

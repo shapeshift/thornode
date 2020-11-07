@@ -276,19 +276,17 @@ func InitGenesis(ctx cosmos.Context, keeper keeper.Keeper, data GenesisState) []
 		keeper.SetObservedNetworkFeeVoter(ctx, nf)
 	}
 
-	if common.RuneAsset().Chain.Equals(common.THORChain) {
-		// Mint coins into the reserve
-		coin, err := common.NewCoin(common.RuneNative, cosmos.NewUint(data.Reserve)).Native()
-		if err != nil {
-			panic(err)
-		}
-		coins := cosmos.NewCoins(coin)
-		if err := keeper.Supply().MintCoins(ctx, ModuleName, coins); err != nil {
-			panic(err)
-		}
-		if err := keeper.Supply().SendCoinsFromModuleToModule(ctx, ModuleName, ReserveName, coins); err != nil {
-			panic(err)
-		}
+	// Mint coins into the reserve
+	coin, err := common.NewCoin(common.RuneNative, cosmos.NewUint(data.Reserve)).Native()
+	if err != nil {
+		panic(err)
+	}
+	coins := cosmos.NewCoins(coin)
+	if err := keeper.Supply().MintCoins(ctx, ModuleName, coins); err != nil {
+		panic(err)
+	}
+	if err := keeper.Supply().SendCoinsFromModuleToModule(ctx, ModuleName, ReserveName, coins); err != nil {
+		panic(err)
 	}
 
 	for _, admin := range ADMINS {
@@ -311,11 +309,9 @@ func InitGenesis(ctx cosmos.Context, keeper keeper.Keeper, data GenesisState) []
 		}
 	}
 
-	if common.RuneAsset().Chain.Equals(common.THORChain) {
-		ctx.Logger().Info("Reserve Module", "address", keeper.Supply().GetModuleAddress(ReserveName).String())
-		ctx.Logger().Info("Bond    Module", "address", keeper.Supply().GetModuleAddress(BondName).String())
-		ctx.Logger().Info("Asgard  Module", "address", keeper.Supply().GetModuleAddress(AsgardName).String())
-	}
+	ctx.Logger().Info("Reserve Module", "address", keeper.Supply().GetModuleAddress(ReserveName).String())
+	ctx.Logger().Info("Bond    Module", "address", keeper.Supply().GetModuleAddress(BondName).String())
+	ctx.Logger().Info("Asgard  Module", "address", keeper.Supply().GetModuleAddress(AsgardName).String())
 
 	return validators
 }

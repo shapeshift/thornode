@@ -30,11 +30,9 @@ func (s *KeeperStakerSuite) TestStaker(c *C) {
 		RuneAddress:  GetRandomRUNEAddress(),
 		AssetAddress: GetRandomBTCAddress(),
 	}
-	if common.RuneAsset().Chain.Equals(common.THORChain) {
-		acc, err := staker.RuneAddress.AccAddress()
-		c.Assert(err, IsNil)
-		c.Assert(k.AddStake(ctx, common.NewCoin(staker.Asset.LiquidityAsset(), staker.Units), acc), IsNil)
-	}
+	acc, err := staker.RuneAddress.AccAddress()
+	c.Assert(err, IsNil)
+	c.Assert(k.AddStake(ctx, common.NewCoin(staker.Asset.LiquidityAsset(), staker.Units), acc), IsNil)
 
 	k.SetStaker(ctx, staker)
 	staker, err = k.GetStaker(ctx, asset, staker.RuneAddress)

@@ -39,13 +39,11 @@ func (k KVStore) GetStaker(ctx cosmos.Context, asset common.Asset, addr common.A
 		return record, err
 	}
 
-	if common.RuneAsset().Chain.Equals(common.THORChain) {
-		accAddr, err := addr.AccAddress()
-		if err != nil {
-			return record, err
-		}
-		record.Units = k.GetStakerBalance(ctx, asset.LiquidityAsset(), accAddr)
+	accAddr, err := addr.AccAddress()
+	if err != nil {
+		return record, err
 	}
+	record.Units = k.GetStakerBalance(ctx, asset.LiquidityAsset(), accAddr)
 
 	return record, err
 }

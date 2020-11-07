@@ -222,11 +222,7 @@ func (vts *ValidatorMgrV1TestSuite) TestRagnarokBond(c *C) {
 	c.Check(activeNode.Bond.Equal(cosmos.NewUint(90)), Equals, true)
 	items, err := mgr.TxOutStore().GetOutboundItems(ctx)
 	c.Assert(err, IsNil)
-	if common.RuneAsset().Chain.Equals(common.THORChain) {
-		c.Check(items, HasLen, 0, Commentf("Len %d", items))
-	} else {
-		c.Check(items, HasLen, 1, Commentf("Len %d", items))
-	}
+	c.Check(items, HasLen, 0, Commentf("Len %d", items))
 	mgr.TxOutStore().ClearOutboundItems(ctx)
 
 	c.Assert(vMgr.ragnarokBond(ctx, 12, mgr), IsNil)
@@ -235,11 +231,7 @@ func (vts *ValidatorMgrV1TestSuite) TestRagnarokBond(c *C) {
 	c.Check(activeNode.Bond.Equal(cosmos.NewUint(72)), Equals, true)
 	items, err = mgr.TxOutStore().GetOutboundItems(ctx)
 	c.Assert(err, IsNil)
-	if common.RuneAsset().Chain.Equals(common.THORChain) {
-		c.Check(items, HasLen, 0, Commentf("Len %d", items))
-	} else {
-		c.Check(items, HasLen, 1, Commentf("Len %d", items))
-	}
+	c.Check(items, HasLen, 0, Commentf("Len %d", items))
 }
 
 func (vts *ValidatorMgrV1TestSuite) TestFindCounToRemove(c *C) {

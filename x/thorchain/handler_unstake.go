@@ -142,15 +142,6 @@ func (h UnstakeHandler) handle(ctx cosmos.Context, msg MsgUnStake, version semve
 		Coin:      common.NewCoin(common.RuneAsset(), runeAmt),
 		Memo:      memo,
 	}
-	if !common.RuneAsset().Chain.Equals(common.THORChain) {
-		if !gasAsset.IsZero() {
-			if msg.Asset.IsBNB() {
-				toi.MaxGas = common.Gas{
-					common.NewCoin(common.RuneAsset().Chain.GetGasAsset(), gasAsset.QuoUint64(2)),
-				}
-			}
-		}
-	}
 	okRune, err := h.mgr.TxOutStore().TryAddTxOutItem(ctx, h.mgr, toi)
 	if err != nil {
 		// emitted asset doesn't enough to cover fee, continue
@@ -187,14 +178,11 @@ func (h UnstakeHandler) handleV2(ctx cosmos.Context, msg MsgUnStake, version sem
 	}
 
 	// snapshot original coin holdings, this is so we can add back the stake if unsuccessful
-	originalLtokens := cosmos.ZeroUint()
-	if common.RuneAsset().Chain.Equals(common.THORChain) {
-		acc, err := msg.RuneAddress.AccAddress()
-		if err != nil {
-			return nil, ErrInternal(err, "fail to get staker address")
-		}
-		originalLtokens = h.keeper.GetStakerBalance(ctx, msg.Asset.LiquidityAsset(), acc)
+	acc, err := msg.RuneAddress.AccAddress()
+	if err != nil {
+		return nil, ErrInternal(err, "fail to get staker address")
 	}
+	originalLtokens := h.keeper.GetStakerBalance(ctx, msg.Asset.LiquidityAsset(), acc)
 
 	runeAmt, assetAmount, units, gasAsset, err := unstake(ctx, version, h.keeper, msg, h.mgr)
 	if err != nil {
@@ -249,22 +237,20 @@ func (h UnstakeHandler) handleV2(ctx cosmos.Context, msg MsgUnStake, version sem
 			}
 			h.keeper.SetStaker(ctx, staker)
 
-			if common.RuneAsset().Chain.Equals(common.THORChain) {
-				acc, err := msg.RuneAddress.AccAddress()
+			acc, err := msg.RuneAddress.AccAddress()
+			if err != nil {
+				return nil, ErrInternal(err, "fail to get staker address")
+			}
+			stakerCoins := h.keeper.GetStakerBalance(ctx, msg.Asset.LiquidityAsset(), acc)
+			if originalLtokens.GT(stakerCoins) {
+				coin := common.NewCoin(
+					msg.Asset.LiquidityAsset(),
+					originalLtokens.Sub(stakerCoins),
+				)
+				// re-add stake back to the account
+				err := h.keeper.AddStake(ctx, coin, acc)
 				if err != nil {
-					return nil, ErrInternal(err, "fail to get staker address")
-				}
-				stakerCoins := h.keeper.GetStakerBalance(ctx, msg.Asset.LiquidityAsset(), acc)
-				if originalLtokens.GT(stakerCoins) {
-					coin := common.NewCoin(
-						msg.Asset.LiquidityAsset(),
-						originalLtokens.Sub(stakerCoins),
-					)
-					// re-add stake back to the account
-					err := h.keeper.AddStake(ctx, coin, acc)
-					if err != nil {
-						return nil, ErrInternal(err, "fail to undo stake")
-					}
+					return nil, ErrInternal(err, "fail to undo stake")
 				}
 			}
 			return nil, multierror.Append(errFailAddOutboundTx, err)
@@ -281,15 +267,6 @@ func (h UnstakeHandler) handleV2(ctx cosmos.Context, msg MsgUnStake, version sem
 		ToAddress: staker.RuneAddress,
 		Coin:      common.NewCoin(common.RuneAsset(), runeAmt),
 		Memo:      memo,
-	}
-	if !common.RuneAsset().Chain.Equals(common.THORChain) {
-		if !gasAsset.IsZero() {
-			if msg.Asset.IsBNB() {
-				toi.MaxGas = common.Gas{
-					common.NewCoin(common.RuneAsset().Chain.GetGasAsset(), gasAsset.QuoUint64(2)),
-				}
-			}
-		}
 	}
 	// there is much much less chance thorchain doesn't have enough RUNE
 	okRune, err := h.mgr.TxOutStore().TryAddTxOutItem(ctx, h.mgr, toi)
