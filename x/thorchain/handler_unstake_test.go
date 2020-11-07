@@ -71,13 +71,11 @@ func (mfp *MockUnstakeKeeper) GetStaker(ctx cosmos.Context, asset common.Asset, 
 	if mfp.failStaker {
 		return Staker{}, errors.New("fail to get staker")
 	}
-	if common.RuneAsset().Chain.Equals(common.THORChain) {
-		accAddr, err := addr.AccAddress()
-		if err != nil {
-			return mfp.staker, err
-		}
-		mfp.staker.Units = mfp.keeper.GetStakerBalance(ctx, asset.LiquidityAsset(), accAddr)
+	accAddr, err := addr.AccAddress()
+	if err != nil {
+		return mfp.staker, err
 	}
+	mfp.staker.Units = mfp.keeper.GetStakerBalance(ctx, asset.LiquidityAsset(), accAddr)
 	return mfp.staker, nil
 }
 

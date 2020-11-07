@@ -77,21 +77,10 @@ func (s *SlasherV13) HandleDoubleSign(ctx cosmos.Context, addr crypto.Address, i
 			}
 			na.Bond = common.SafeSub(na.Bond, slashAmount)
 
-			if common.RuneAsset().Chain.Equals(common.THORChain) {
-				coin := common.NewCoin(common.RuneNative, slashAmount)
-				if err := s.keeper.SendFromModuleToModule(ctx, BondName, ReserveName, coin); err != nil {
-					ctx.Logger().Error("fail to transfer funds from bond to reserve", "error", err)
-					return fmt.Errorf("fail to transfer funds from bond to reserve: %w", err)
-				}
-			} else {
-				vaultData, err := s.keeper.GetVaultData(ctx)
-				if err != nil {
-					return fmt.Errorf("fail to get vault data: %w", err)
-				}
-				vaultData.TotalReserve = vaultData.TotalReserve.Add(slashAmount)
-				if err := s.keeper.SetVaultData(ctx, vaultData); err != nil {
-					return fmt.Errorf("fail to save vault data: %w", err)
-				}
+			coin := common.NewCoin(common.RuneNative, slashAmount)
+			if err := s.keeper.SendFromModuleToModule(ctx, BondName, ReserveName, coin); err != nil {
+				ctx.Logger().Error("fail to transfer funds from bond to reserve", "error", err)
+				return fmt.Errorf("fail to transfer funds from bond to reserve: %w", err)
 			}
 
 			return s.keeper.SetNodeAccount(ctx, na)

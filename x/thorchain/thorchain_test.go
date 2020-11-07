@@ -90,10 +90,7 @@ func (s *ThorchainSuite) TestStaking(c *C) {
 	pool, err = keeper.GetPool(ctx, common.BNBAsset)
 	c.Assert(err, IsNil)
 	c.Check(pool.BalanceRune.IsZero(), Equals, true)
-	remainGas := uint64(75000)
-	if common.RuneAsset().Chain.Equals(common.THORChain) {
-		remainGas = 37500
-	}
+	remainGas := uint64(37500)
 	c.Check(pool.BalanceAsset.Uint64(), Equals, uint64(remainGas)) // leave a little behind for gas
 	c.Check(pool.PoolUnits.IsZero(), Equals, true)
 
@@ -230,17 +227,9 @@ func (s *ThorchainSuite) TestChurn(c *C) {
 	c.Assert(err, IsNil)
 	items, err := mgr.TxOutStore().GetOutboundItems(ctx)
 	c.Assert(err, IsNil)
-	if common.RuneAsset().Chain.Equals(common.THORChain) {
-		c.Assert(items, HasLen, 1)
-		item := items[0]
-		c.Check(item.Coin.Amount.Uint64(), Equals, uint64(1579962500), Commentf("%d", item.Coin.Amount.Uint64()))
-	} else {
-		c.Assert(items, HasLen, 2)
-		item := items[0]
-		c.Check(item.Coin.Amount.Uint64(), Equals, uint64(2000000000), Commentf("%d", item.Coin.Amount.Uint64()))
-		item = items[1]
-		c.Check(item.Coin.Amount.Uint64(), Equals, uint64(1579925000), Commentf("%d", item.Coin.Amount.Uint64()))
-	}
+	c.Assert(items, HasLen, 1)
+	item := items[0]
+	c.Check(item.Coin.Amount.Uint64(), Equals, uint64(1579962500), Commentf("%d", item.Coin.Amount.Uint64()))
 	// check we empty the rest at the last migration event
 	migrateInterval := consts.GetInt64Value(constants.FundMigrationInterval)
 	ctx = ctx.WithBlockHeight(vault.StatusSince + (migrateInterval * 7))
@@ -251,18 +240,9 @@ func (s *ThorchainSuite) TestChurn(c *C) {
 	mgr.VaultMgr().EndBlock(ctx, mgr, consts) // should attempt to send 100% of the coin values
 	items, err = mgr.TxOutStore().GetOutboundItems(ctx)
 	c.Assert(err, IsNil)
-	if common.RuneAsset().Chain.Equals(common.THORChain) {
-		c.Assert(items, HasLen, 1, Commentf("%d", len(items)))
-		item := items[0]
-		c.Check(item.Coin.Amount.Uint64(), Equals, uint64(7899962500), Commentf("%d", item.Coin.Amount.Uint64()))
-
-	} else {
-		c.Assert(items, HasLen, 2, Commentf("%d", len(items)))
-		item := items[0]
-		c.Check(item.Coin.Amount.Uint64(), Equals, uint64(10000000000), Commentf("%d", item.Coin.Amount.Uint64()))
-		item = items[1]
-		c.Check(item.Coin.Amount.Uint64(), Equals, uint64(7899925000), Commentf("%d", item.Coin.Amount.Uint64()))
-	}
+	c.Assert(items, HasLen, 1, Commentf("%d", len(items)))
+	item = items[0]
+	c.Check(item.Coin.Amount.Uint64(), Equals, uint64(7899962500), Commentf("%d", item.Coin.Amount.Uint64()))
 }
 
 func (s *ThorchainSuite) TestRagnarok(c *C) {
@@ -353,28 +333,6 @@ func (s *ThorchainSuite) TestRagnarok(c *C) {
 		c.Assert(keeper.SetVault(ctx, ygg), IsNil)
 	}
 
-	// Add reserve contributors
-	reserves := ReserveContributors{}
-	if !common.RuneAsset().Chain.Equals(common.THORChain) {
-		contrib1 := GetRandomBNBAddress()
-		contrib2 := GetRandomBNBAddress()
-		reserves = ReserveContributors{
-			NewReserveContributor(contrib1, cosmos.NewUint(400_000_000*common.One)),
-			NewReserveContributor(contrib2, cosmos.NewUint(100_000*common.One)),
-		}
-		resHandler := NewReserveContributorHandler(keeper, mgr)
-		for _, res := range reserves {
-			asgard.AddFunds(common.Coins{
-				common.NewCoin(common.RuneAsset(), res.Amount),
-			})
-			msg := NewMsgReserveContributor(GetRandomTx(), res, bonders[0].NodeAddress)
-			result, err := resHandler.handle(ctx, msg, ver)
-			c.Assert(err, IsNil)
-			c.Assert(result, NotNil)
-		}
-		c.Assert(keeper.SetVault(ctx, asgard), IsNil)
-	}
-
 	// ////////////////////////////////////////////////////////
 	// ////////////// Start Ragnarok Protocol /////////////////
 	// ////////////////////////////////////////////////////////
@@ -423,30 +381,10 @@ func (s *ThorchainSuite) TestRagnarok(c *C) {
 		items, err := mgr.TxOutStore().GetOutboundItems(ctx)
 		c.Assert(err, IsNil)
 
-		if common.RuneAsset().Chain.Equals(common.THORChain) {
-			if i <= 10 {
-				c.Assert(items, HasLen, 2, Commentf("%d", len(items)))
-			} else {
-				c.Assert(items, HasLen, 3, Commentf("%d", len(items)))
-			}
+		if i <= 10 {
+			c.Assert(items, HasLen, 2, Commentf("%d", len(items)))
 		} else {
-			if i <= 10 || i == 20 {
-				c.Assert(items, HasLen, 6, Commentf("%d", len(items)))
-			} else {
-				c.Assert(items, HasLen, 9, Commentf("%d", len(items)))
-			}
-		}
-
-		if !common.RuneAsset().Chain.Equals(common.THORChain) {
-			// validate bonders have correct coin amounts being sent to them on each round of ragnarok
-			if i > 10 && i < 20 {
-				for _, bonder := range bonders {
-					items := mgr.TxOutStore().GetOutboundItemByToAddress(ctx, bonder.BondAddress)
-					c.Assert(items, HasLen, 1)
-					outCoin := common.NewCoin(common.RuneAsset(), calcExpectedValue(bonder.Bond, i-10, 9))
-					c.Assert(items[0].Coin.Equals(outCoin), Equals, true, Commentf("expect:%s, however:%s", outCoin.String(), items[0].Coin.String()))
-				}
-			}
+			c.Assert(items, HasLen, 3, Commentf("%d", len(items)))
 		}
 
 		// validate stakers get their returns
@@ -461,16 +399,6 @@ func (s *ThorchainSuite) TestRagnarok(c *C) {
 				}
 			} else {
 				c.Assert(items, HasLen, 1, Commentf("%d", len(items)))
-			}
-		}
-
-		// validate reserve contributors get their returns
-		if i <= 10 {
-			for _, res := range reserves {
-				items := mgr.TxOutStore().GetOutboundItemByToAddress(ctx, res.Address)
-				c.Assert(items, HasLen, 1)
-				outCoin := common.NewCoin(common.RuneAsset(), calcExpectedValue(res.Amount, i, 10))
-				c.Assert(items[0].Coin.Equals(outCoin), Equals, true, Commentf("expect:%s, however:%s", outCoin, items[0].Coin))
 			}
 		}
 

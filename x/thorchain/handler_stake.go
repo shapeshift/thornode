@@ -395,19 +395,13 @@ func (h StakeHandler) stakeV14(ctx cosmos.Context,
 	}
 	// maintain staker structure
 
-	if common.RuneAsset().Chain.Equals(common.THORChain) {
-		acc, err := su.RuneAddress.AccAddress()
-		if err != nil {
-			return ErrInternal(err, "fail to convert rune address")
-		}
-		err = h.keeper.AddStake(ctx, common.NewCoin(pool.Asset.LiquidityAsset(), stakerUnits), acc)
-		if err != nil {
-			return ErrInternal(err, "fail to add stake")
-		}
-	} else {
-		fex := su.Units
-		totalStakerUnits := fex.Add(stakerUnits)
-		su.Units = totalStakerUnits
+	acc, err := su.RuneAddress.AccAddress()
+	if err != nil {
+		return ErrInternal(err, "fail to convert rune address")
+	}
+	err = h.keeper.AddStake(ctx, common.NewCoin(pool.Asset.LiquidityAsset(), stakerUnits), acc)
+	if err != nil {
+		return ErrInternal(err, "fail to add stake")
 	}
 	h.keeper.SetStaker(ctx, su)
 	runeTxID := requestTxHash

@@ -25,10 +25,7 @@ func GetRandomNodeAccount(status NodeStatus) NodeAccount {
 		Ed25519:   GetRandomPubKey(),
 	}
 	addr, _ := pubKeys.Secp256k1.GetThorAddress()
-	bondAddr := GetRandomBNBAddress()
-	if common.RuneAsset().Chain.Equals(common.THORChain) {
-		bondAddr = common.Address(addr.String())
-	}
+	bondAddr := common.Address(addr.String())
 	na := NewNodeAccount(addr, status, pubKeys, k, cosmos.NewUint(100*common.One), bondAddr, 1)
 	na.Version = constants.SWVersion
 	if na.Status == Active {
@@ -75,10 +72,7 @@ func GetRandomBech32ConsensusPubKey() string {
 
 // GetRandomRuneAddress will just create a random rune address used for test purpose
 func GetRandomRUNEAddress() common.Address {
-	if common.RuneAsset().Chain.Equals(common.THORChain) {
-		return GetRandomTHORAddress()
-	}
-	return GetRandomBNBAddress()
+	return GetRandomTHORAddress()
 }
 
 // GetRandomTHORAddress will just create a random thor address used for test purpose

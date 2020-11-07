@@ -1,8 +1,6 @@
 package thorchain
 
 import (
-	"errors"
-
 	"github.com/blang/semver"
 	. "gopkg.in/check.v1"
 
@@ -34,35 +32,23 @@ func (s *HandlerSwitchSuite) TestValidate(c *C) {
 	handler := NewSwitchHandler(k, NewDummyMgr())
 
 	constantAccessor := constants.GetConstantValues(constants.SWVersion)
-	if common.RuneAsset().Chain.Equals(common.THORChain) {
-		destination = GetRandomTHORAddress()
-		// happy path
-		msg := NewMsgSwitch(tx, destination, na.NodeAddress)
-		result, err := handler.Run(ctx, msg, constants.SWVersion, constantAccessor)
-		c.Assert(err, IsNil)
-		c.Assert(result, NotNil)
+	destination = GetRandomTHORAddress()
+	// happy path
+	msg := NewMsgSwitch(tx, destination, na.NodeAddress)
+	result, err := handler.Run(ctx, msg, constants.SWVersion, constantAccessor)
+	c.Assert(err, IsNil)
+	c.Assert(result, NotNil)
 
-		// invalid version
-		result, err = handler.Run(ctx, msg, semver.Version{}, constantAccessor)
-		c.Assert(err, Equals, errBadVersion)
-		c.Assert(result, IsNil)
+	// invalid version
+	result, err = handler.Run(ctx, msg, semver.Version{}, constantAccessor)
+	c.Assert(err, Equals, errBadVersion)
+	c.Assert(result, IsNil)
 
-		// invalid msg
-		msg = MsgSwitch{}
-		result, err = handler.Run(ctx, msg, constants.SWVersion, constantAccessor)
-		c.Assert(err, NotNil)
-		c.Assert(result, IsNil)
-	} else {
-		// no swapping when using BEP2 rune
-		msg := NewMsgSwitch(tx, destination, na.NodeAddress)
-		result, err := handler.Run(ctx, msg, constants.SWVersion, constantAccessor)
-		c.Assert(err, NotNil)
-		c.Assert(result, IsNil)
-		result, err = handler.Run(ctx, NewMsgMimir("whatever", 1, GetRandomBech32Addr()), constants.SWVersion, constantAccessor)
-		c.Assert(err, NotNil)
-		c.Assert(result, IsNil)
-		c.Assert(errors.Is(err, errInvalidMessage), Equals, true)
-	}
+	// invalid msg
+	msg = MsgSwitch{}
+	result, err = handler.Run(ctx, msg, constants.SWVersion, constantAccessor)
+	c.Assert(err, NotNil)
+	c.Assert(result, IsNil)
 }
 
 func (s *HandlerSwitchSuite) TestGettingNativeTokens(c *C) {

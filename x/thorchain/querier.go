@@ -297,9 +297,7 @@ func queryVaultData(ctx cosmos.Context, keeper keeper.Keeper) ([]byte, error) {
 		return nil, fmt.Errorf("fail to get vault: %w", err)
 	}
 
-	if common.RuneAsset().Chain.Equals(common.THORChain) {
-		data.TotalReserve = keeper.GetRuneBalanceOfModule(ctx, ReserveName)
-	}
+	data.TotalReserve = keeper.GetRuneBalanceOfModule(ctx, ReserveName)
 
 	res, err := codec.MarshalJSONIndent(keeper.Cdc(), data)
 	if err != nil {

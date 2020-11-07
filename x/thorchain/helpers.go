@@ -270,10 +270,7 @@ func refundBond(ctx cosmos.Context, tx common.Tx, amt cosmos.Uint, nodeAcc *Node
 			return fmt.Errorf("fail to emit bond event: %w", err)
 		}
 
-		refundAddress := nodeAcc.BondAddress
-		if common.RuneAsset().Chain.Equals(common.THORChain) {
-			refundAddress = common.Address(nodeAcc.NodeAddress.String())
-		}
+		refundAddress := common.Address(nodeAcc.NodeAddress.String())
 
 		// refund bond
 		txOutItem := &TxOutItem{
