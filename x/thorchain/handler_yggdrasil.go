@@ -65,7 +65,9 @@ func (h YggdrasilHandler) validateV1(ctx cosmos.Context, msg MsgYggdrasil) error
 
 func (h YggdrasilHandler) handle(ctx cosmos.Context, msg MsgYggdrasil, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	ctx.Logger().Info("receive MsgYggdrasil", "pubkey", msg.PubKey.String(), "add_funds", msg.AddFunds, "coins", msg.Coins)
-	if version.GTE(semver.MustParse("0.8.0")) {
+	if version.GTE(semver.MustParse("0.17.0")) {
+		return h.handleV3(ctx, msg, version)
+	} else if version.GTE(semver.MustParse("0.8.0")) {
 		return h.handleV2(ctx, msg, version)
 	} else if version.GTE(semver.MustParse("0.1.0")) {
 		return h.handleV1(ctx, msg, version)
@@ -169,6 +171,110 @@ func (h YggdrasilHandler) handleV2(ctx cosmos.Context, msg MsgYggdrasil, version
 	}
 
 	shouldSlash := true
+	for i, tx := range txOut.TxArray {
+		// yggdrasil is the memo used by thorchain to identify fund migration
+		// to a yggdrasil vault.
+		// it use yggdrasil+/-:{block height} to mark a tx out caused by vault
+		// rotation
+		// this type of tx out is special , because it doesn't have relevant tx
+		// in to trigger it, it is trigger by thorchain itself.
+		fromAddress, _ := tx.VaultPubKey.GetAddress(tx.Chain)
+		matchCoin := msg.Tx.Coins.Equals(common.Coins{tx.Coin})
+		// when outbound is gas asset
+		if !matchCoin && tx.Coin.Asset.Equals(tx.Chain.GetGasAsset()) {
+			asset := tx.Chain.GetGasAsset()
+			intendToSpend := tx.Coin.Amount.Add(tx.MaxGas.ToCoins().GetCoin(asset).Amount)
+			actualSpend := msg.Tx.Coins.GetCoin(asset).Amount.Add(msg.Tx.Gas.ToCoins().GetCoin(asset).Amount)
+			if intendToSpend.Equal(actualSpend) {
+				ctx.Logger().Info(fmt.Sprintf("intend to spend: %s, actual spend: %s are the same , override match coin", intendToSpend, actualSpend))
+				matchCoin = true
+			}
+		}
+		if tx.InHash.Equals(common.BlankTxID) &&
+			tx.OutHash.IsEmpty() &&
+			tx.ToAddress.Equals(msg.Tx.ToAddress) &&
+			fromAddress.Equals(msg.Tx.FromAddress) {
+
+			// only need to check the coin if yggdrasil+
+			if msg.AddFunds && !matchCoin {
+				continue
+			}
+
+			txOut.TxArray[i].OutHash = msg.Tx.ID
+			shouldSlash = false
+
+			if err := h.keeper.SetTxOut(ctx, txOut); nil != err {
+				ctx.Logger().Error("fail to save tx out", "error", err)
+			}
+
+			break
+		}
+	}
+
+	if shouldSlash {
+		ctx.Logger().Info("slash node account, no matched tx out item", "outbound tx", msg.Tx)
+		if err := h.slash(ctx, version, msg.PubKey, msg.Tx.Coins); err != nil {
+			return nil, ErrInternal(err, "fail to slash account")
+		}
+	}
+
+	vault, err := h.keeper.GetVault(ctx, msg.PubKey)
+	if err != nil && !errors.Is(err, kvTypes.ErrVaultNotFound) {
+		return nil, fmt.Errorf("fail to get yggdrasil: %w", err)
+	}
+	if len(vault.Type) == 0 {
+		vault.Status = ActiveVault
+		vault.Type = YggdrasilVault
+	}
+
+	if err := h.keeper.SetLastSignedHeight(ctx, msg.BlockHeight); err != nil {
+		ctx.Logger().Info("fail to update last signed height", "error", err)
+	}
+
+	if msg.AddFunds {
+		return h.handleYggdrasilFund(ctx, msg, vault)
+	}
+	return h.handleYggdrasilReturnV2(ctx, msg, vault, version)
+}
+
+func (h YggdrasilHandler) handleV3(ctx cosmos.Context, msg MsgYggdrasil, version semver.Version) (*cosmos.Result, error) {
+	// update txOut record with our TxID that sent funds out of the pool
+	txOut, err := h.keeper.GetTxOut(ctx, msg.BlockHeight)
+	if err != nil {
+		return nil, ErrInternal(err, "unable to get txOut record")
+	}
+
+	shouldSlash := true
+
+	// if ygg is returning funds, don't slash if they are sending to asgard vault
+	if !msg.AddFunds {
+		// check if the node account is active, it shouldn't be
+		na, err := h.keeper.GetNodeAccountByPubKey(ctx, msg.PubKey)
+		if err != nil {
+			ctx.Logger().Error("fail to get node account", "error", err)
+		}
+		if na.Status != NodeActive {
+			active, err := h.keeper.GetAsgardVaultsByStatus(ctx, ActiveVault)
+			if err != nil {
+				ctx.Logger().Error("fail to get vaults", "error", err)
+			}
+			retiring, err := h.keeper.GetAsgardVaultsByStatus(ctx, RetiringVault)
+			if err != nil {
+				ctx.Logger().Error("fail to get vaults", "error", err)
+			}
+			for _, v := range append(active, retiring...) {
+				addr, err := v.PubKey.GetAddress(msg.Tx.Chain)
+				if err != nil {
+					ctx.Logger().Error("fail to get address from pubkey", "error", err)
+				}
+				if !addr.IsEmpty() && addr.Equals(msg.Tx.ToAddress) {
+					shouldSlash = false
+					break
+				}
+			}
+		}
+	}
+
 	for i, tx := range txOut.TxArray {
 		// yggdrasil is the memo used by thorchain to identify fund migration
 		// to a yggdrasil vault.

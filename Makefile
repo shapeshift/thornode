@@ -6,8 +6,10 @@ NOW=$(shell date +'%Y-%m-%d_%T')
 COMMIT:=$(shell git log -1 --format='%H')
 VERSION:=$(shell cat version)
 TAG?=testnet
+TEST_DIR?="./..."
 # native coin denom string
 REDIMSTRING=[a-zA-Z][a-zA-Z0-9:\\/\\\-\\_\\.]{2,127}
+
 
 ldflags = -X gitlab.com/thorchain/thornode/constants.Version=$(VERSION) \
 		  -X gitlab.com/thorchain/thornode/constants.GitCommit=$(COMMIT) \
@@ -49,7 +51,7 @@ go.sum: go.mod
 	go mod verify
 
 test-coverage:
-	@go test ${TEST_BUILD_FLAGS} -v -coverprofile coverage.out ./...
+	@go test ${TEST_BUILD_FLAGS} -v -coverprofile coverage.out ${TEST_DIR}
 
 coverage-report: test-coverage
 	@go tool cover -html=cover.txt
@@ -58,10 +60,10 @@ clear:
 	clear
 
 test:
-	@go test ${TEST_BUILD_FLAGS} ./...
+	@go test ${TEST_BUILD_FLAGS} ${TEST_DIR}
 
 test-watch: clear
-	@gow -c test ${TEST_BUILD_FLAGS} -mod=readonly ./...
+	@gow -c test ${TEST_BUILD_FLAGS} -mod=readonly ${TEST_DIR}
 
 format:
 	@gofumpt -w .
