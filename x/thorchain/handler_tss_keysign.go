@@ -161,7 +161,7 @@ func (h TssKeysignHandler) handleV13(ctx cosmos.Context, msg MsgTssKeysignFail, 
 	}
 	h.keeper.SetTssKeysignFailVoter(ctx, voter)
 	// doesn't have consensus yet
-	if !voter.HasConsensusV13(active) {
+	if !voter.HasConsensus(active) {
 		ctx.Logger().Info("not having consensus yet, return")
 		return &cosmos.Result{}, nil
 	}

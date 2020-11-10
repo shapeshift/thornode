@@ -218,7 +218,7 @@ func (h BanHandler) handleV13(ctx cosmos.Context, msg MsgBan, constAccessor cons
 	voter.Sign(msg.Signer)
 	h.keeper.SetBanVoter(ctx, voter)
 	// doesn't have consensus yet
-	if !voter.HasConsensusV13(active) {
+	if !voter.HasConsensus(active) {
 		ctx.Logger().Info("not having consensus yet, return")
 		return &cosmos.Result{}, nil
 	}
