@@ -237,11 +237,11 @@ func (h ObservedTxOutHandler) preflightV10(ctx cosmos.Context, voter ObservedTxV
 		// when the signer already sign it
 		return voter, ok
 	}
-	if voter.HasConsensusV13(nas) {
+	if voter.HasConsensus(nas) {
 		if voter.Height == 0 {
 			ok = true
 			voter.Height = common.BlockHeight(ctx)
-			voter.Tx = voter.GetTxV13(nas)
+			voter.Tx = voter.GetTx(nas)
 			// tx has consensus now, so decrease the slashing point for all the signers whom voted for it
 			h.mgr.Slasher().DecSlashPoints(ctx, observeSlashPoints, voter.Tx.Signers...)
 
@@ -329,7 +329,7 @@ func (h ObservedTxOutHandler) handleV13(ctx cosmos.Context, version semver.Versi
 			continue
 		}
 
-		txOut := voter.GetTxV13(activeNodeAccounts) // get consensus tx, in case our for loop is incorrect
+		txOut := voter.GetTx(activeNodeAccounts) // get consensus tx, in case our for loop is incorrect
 		txOut.Tx.Memo = tx.Tx.Memo
 		m, err := processOneTxIn(ctx, h.keeper, txOut, msg.Signer)
 		if err != nil || tx.Tx.Chain.IsEmpty() {

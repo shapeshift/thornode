@@ -113,7 +113,7 @@ func (tos *TxOutStorageV13) prepareTxOutItem(ctx cosmos.Context, toi *TxOutItem)
 				if err != nil {
 					return false, fmt.Errorf("fail to get observed tx voter: %w", err)
 				}
-				tx := voter.GetTxV13(activeNodeAccounts)
+				tx := voter.GetTx(activeNodeAccounts)
 
 				// collect yggdrasil pools is going to get a list of yggdrasil vault that THORChain can used to send out fund
 				yggs, err := tos.collectYggdrasilPools(ctx, tx, toi.Chain.GetGasAsset())
