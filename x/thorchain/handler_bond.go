@@ -111,7 +111,8 @@ func (h BondHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Versio
 		return nil, err
 	}
 
-	if err := h.handle(ctx, msg, version, constAccessor); err != nil {
+	result, err := h.handle(ctx, msg, version, constAccessor)
+	if err != nil {
 		ctx.Logger().Error("fail to process msg bond", "error", err)
 		return nil, err
 	}
@@ -120,10 +121,20 @@ func (h BondHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Versio
 		return nil, cosmos.Wrapf(errFailSaveEvent, "fail to emit bond event: %w", err)
 	}
 
+	return result, nil
+}
+
+func (h BondHandler) handle(ctx cosmos.Context, msg MsgBond, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+	if version.GTE(semver.MustParse("0.1.0")) {
+		if err := h.handleV1(ctx, msg, version, constAccessor); err != nil {
+			ctx.Logger().Error("fail to process msg bond", "error", err)
+			return nil, err
+		}
+	}
 	return &cosmos.Result{}, nil
 }
 
-func (h BondHandler) handle(ctx cosmos.Context, msg MsgBond, version semver.Version, constAccessor constants.ConstantValues) error {
+func (h BondHandler) handleV1(ctx cosmos.Context, msg MsgBond, version semver.Version, constAccessor constants.ConstantValues) error {
 	// THORNode will not have pub keys at the moment, so have to leave it empty
 	emptyPubKeySet := common.PubKeySet{
 		Secp256k1: common.EmptyPubKey,

@@ -55,7 +55,7 @@ func (h ReserveContributorHandler) validateV1(ctx cosmos.Context, msg MsgReserve
 func (h ReserveContributorHandler) handle(ctx cosmos.Context, msg MsgReserveContributor, version semver.Version) (*cosmos.Result, error) {
 	ctx.Logger().Info("handleMsgReserveContributor request")
 	if version.GTE(semver.MustParse("0.1.0")) {
-		if err := h.HandleV1(ctx, msg, version); err != nil {
+		if err := h.handleV1(ctx, msg, version); err != nil {
 			return nil, ErrInternal(err, "fail to process reserve contributor")
 		}
 		return &cosmos.Result{}, nil
@@ -63,8 +63,8 @@ func (h ReserveContributorHandler) handle(ctx cosmos.Context, msg MsgReserveCont
 	return nil, errBadVersion
 }
 
-// HandleV1  process MsgReserveContributor
-func (h ReserveContributorHandler) HandleV1(ctx cosmos.Context, msg MsgReserveContributor, version semver.Version) error {
+// handleV1  process MsgReserveContributor
+func (h ReserveContributorHandler) handleV1(ctx cosmos.Context, msg MsgReserveContributor, version semver.Version) error {
 	reses, err := h.keeper.GetReservesContributors(ctx)
 	if err != nil {
 		return err
