@@ -79,6 +79,7 @@ func (vts *ValidatorMgrV1TestSuite) TestRagnarokForChaosnet(c *C) {
 		constants.MinimumNodesForBFT:            4,
 		constants.ChurnInterval:                 256,
 		constants.ChurnRetryInterval:            720,
+		constants.AsgardSize:                    30,
 	}, map[constants.ConstantName]bool{
 		constants.StrictBondLiquidityRatio: false,
 	}, map[constants.ConstantName]string{})
@@ -232,6 +233,80 @@ func (vts *ValidatorMgrV1TestSuite) TestRagnarokBond(c *C) {
 	items, err = mgr.TxOutStore().GetOutboundItems(ctx)
 	c.Assert(err, IsNil)
 	c.Check(items, HasLen, 0, Commentf("Len %d", items))
+}
+
+func (vts *ValidatorMgrV1TestSuite) TestGetChangedNodes(c *C) {
+	ctx, k := setupKeeperForTest(c)
+	ctx = ctx.WithBlockHeight(1)
+	ver := constants.SWVersion
+
+	mgr := NewDummyMgr()
+	vMgr := newValidatorMgrV1(k, mgr.VaultMgr(), mgr.TxOutStore(), mgr.EventMgr())
+	c.Assert(vMgr, NotNil)
+
+	constAccessor := constants.GetConstantValues(ver)
+	err := vMgr.setupValidatorNodes(ctx, 0, constAccessor)
+	c.Assert(err, IsNil)
+
+	activeNode := GetRandomNodeAccount(NodeActive)
+	activeNode.Bond = cosmos.NewUint(100)
+	activeNode.ForcedToLeave = true
+	c.Assert(k.SetNodeAccount(ctx, activeNode), IsNil)
+
+	disabledNode := GetRandomNodeAccount(NodeDisabled)
+	disabledNode.Bond = cosmos.ZeroUint()
+	c.Assert(k.SetNodeAccount(ctx, disabledNode), IsNil)
+
+	vault := NewVault(common.BlockHeight(ctx), ActiveVault, AsgardVault, GetRandomPubKey(), common.Chains{common.BNBChain})
+	vault.Membership = append(vault.Membership, activeNode.PubKeySet.Secp256k1)
+	c.Assert(k.SetVault(ctx, vault), IsNil)
+
+	newNodes, removedNodes, err := vMgr.getChangedNodes(ctx, NodeAccounts{activeNode})
+	c.Assert(err, IsNil)
+	c.Assert(newNodes, HasLen, 0)
+	c.Assert(removedNodes, HasLen, 1)
+}
+
+func (vts *ValidatorMgrV1TestSuite) TestSplitNext(c *C) {
+	ctx, k := setupKeeperForTest(c)
+	mgr := NewDummyMgr()
+	vMgr := newValidatorMgrV1(k, mgr.VaultMgr(), mgr.TxOutStore(), mgr.EventMgr())
+	c.Assert(vMgr, NotNil)
+
+	nas := make(NodeAccounts, 0)
+	for i := 0; i < 90; i++ {
+		na := GetRandomNodeAccount(NodeActive)
+		na.Bond = cosmos.NewUint(uint64(i))
+		nas = append(nas, na)
+	}
+	sets := vMgr.splitNext(ctx, nas, 30)
+	c.Assert(sets, HasLen, 3)
+	c.Assert(sets[0], HasLen, 30)
+	c.Assert(sets[1], HasLen, 30)
+	c.Assert(sets[2], HasLen, 30)
+
+	nas = make(NodeAccounts, 0)
+	for i := 0; i < 100; i++ {
+		na := GetRandomNodeAccount(NodeActive)
+		na.Bond = cosmos.NewUint(uint64(i))
+		nas = append(nas, na)
+	}
+	sets = vMgr.splitNext(ctx, nas, 30)
+	c.Assert(sets, HasLen, 4)
+	c.Assert(sets[0], HasLen, 25)
+	c.Assert(sets[1], HasLen, 25)
+	c.Assert(sets[2], HasLen, 25)
+	c.Assert(sets[3], HasLen, 25)
+
+	nas = make(NodeAccounts, 0)
+	for i := 0; i < 3; i++ {
+		na := GetRandomNodeAccount(NodeActive)
+		na.Bond = cosmos.NewUint(uint64(i))
+		nas = append(nas, na)
+	}
+	sets = vMgr.splitNext(ctx, nas, 30)
+	c.Assert(sets, HasLen, 1)
+	c.Assert(sets[0], HasLen, 3)
 }
 
 func (vts *ValidatorMgrV1TestSuite) TestFindCounToRemove(c *C) {

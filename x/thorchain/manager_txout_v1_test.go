@@ -8,13 +8,14 @@ import (
 	"gitlab.com/thorchain/thornode/constants"
 )
 
-type TxOutStoreSuite struct{}
+type TxOutStoreV1Suite struct{}
 
-var _ = Suite(&TxOutStoreSuite{})
+var _ = Suite(&TxOutStoreV1Suite{})
 
-func (s TxOutStoreSuite) TestAddGasFees(c *C) {
+func (s TxOutStoreV1Suite) TestAddGasFees(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	tx := GetRandomObservedTx()
+
 	version := constants.SWVersion
 	constAccessor := constants.GetConstantValues(version)
 	gasMgr := NewGasMgrV1(constAccessor, k)
@@ -23,7 +24,7 @@ func (s TxOutStoreSuite) TestAddGasFees(c *C) {
 	c.Assert(gasMgr.gas, HasLen, 1)
 }
 
-func (s TxOutStoreSuite) TestAddOutTxItem(c *C) {
+func (s TxOutStoreV1Suite) TestAddOutTxItem(c *C) {
 	w := getHandlerTestWrapper(c, 1, true, true)
 	vault := GetRandomVault()
 	vault.Coins = common.Coins{
@@ -118,7 +119,7 @@ func (s TxOutStoreSuite) TestAddOutTxItem(c *C) {
 	c.Assert(msgs[2].VaultPubKey.String(), Equals, vault.PubKey.String())
 }
 
-func (s TxOutStoreSuite) TestAddOutTxItemWithoutBFT(c *C) {
+func (s TxOutStoreV1Suite) TestAddOutTxItemWithoutBFT(c *C) {
 	w := getHandlerTestWrapper(c, 1, true, true)
 	vault := GetRandomVault()
 	vault.Coins = common.Coins{

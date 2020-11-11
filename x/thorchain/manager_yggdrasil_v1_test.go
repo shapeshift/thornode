@@ -10,11 +10,11 @@ import (
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
-type YggdrasilManagerV11Suite struct{}
+type YggdrasilManagerV1Suite struct{}
 
-var _ = Suite(&YggdrasilManagerV11Suite{})
+var _ = Suite(&YggdrasilManagerV1Suite{})
 
-func (s YggdrasilManagerV11Suite) TestCalcTargetAmounts(c *C) {
+func (s YggdrasilManagerV1Suite) TestCalcTargetAmounts(c *C) {
 	var pools []Pool
 	p := NewPool()
 	p.Asset = common.BNBAsset
@@ -33,7 +33,7 @@ func (s YggdrasilManagerV11Suite) TestCalcTargetAmounts(c *C) {
 
 	totalBond := cosmos.NewUint(8000 * common.One)
 	bond := cosmos.NewUint(200 * common.One)
-	ymgr := NewYggMgrV13(keeper.KVStoreDummy{})
+	ymgr := NewYggMgrV1(keeper.KVStoreDummy{})
 	yggFundLimit := cosmos.NewUint(50)
 	coins, err := ymgr.calcTargetYggCoins(pools, ygg, bond, totalBond, yggFundLimit)
 	c.Assert(err, IsNil)
@@ -44,7 +44,7 @@ func (s YggdrasilManagerV11Suite) TestCalcTargetAmounts(c *C) {
 	c.Check(coins[1].Amount.Uint64(), Equals, cosmos.NewUint(2.8125*common.One).Uint64(), Commentf("%d vs %d", coins[1].Amount.Uint64(), cosmos.NewUint(2.8125*common.One).Uint64()))
 }
 
-func (s YggdrasilManagerV11Suite) TestCalcTargetAmounts2(c *C) {
+func (s YggdrasilManagerV1Suite) TestCalcTargetAmounts2(c *C) {
 	// Adding specific test per PR request
 	// https://gitlab.com/thorchain/thornode/merge_requests/246#note_241913460
 	var pools []Pool
@@ -59,7 +59,7 @@ func (s YggdrasilManagerV11Suite) TestCalcTargetAmounts2(c *C) {
 
 	totalBond := cosmos.NewUint(3000000 * common.One)
 	bond := cosmos.NewUint(1000000 * common.One)
-	ymgr := NewYggMgrV13(keeper.KVStoreDummy{})
+	ymgr := NewYggMgrV1(keeper.KVStoreDummy{})
 	yggFundLimit := cosmos.NewUint(50)
 	coins, err := ymgr.calcTargetYggCoins(pools, ygg, bond, totalBond, yggFundLimit)
 	c.Assert(err, IsNil)
@@ -68,7 +68,7 @@ func (s YggdrasilManagerV11Suite) TestCalcTargetAmounts2(c *C) {
 	c.Check(coins[0].Amount.Uint64(), Equals, cosmos.NewUint(0.16666667*common.One).Uint64(), Commentf("%d vs %d", coins[0].Amount.Uint64(), cosmos.NewUint(0.16666667*common.One).Uint64()))
 }
 
-func (s YggdrasilManagerV11Suite) TestCalcTargetAmounts3(c *C) {
+func (s YggdrasilManagerV1Suite) TestCalcTargetAmounts3(c *C) {
 	// pre populate the yggdrasil vault with funds already, ensure we don't
 	// double up on funds.
 	var pools []Pool
@@ -94,7 +94,7 @@ func (s YggdrasilManagerV11Suite) TestCalcTargetAmounts3(c *C) {
 
 	totalBond := cosmos.NewUint(8000 * common.One)
 	bond := cosmos.NewUint(200 * common.One)
-	ymgr := NewYggMgrV13(keeper.KVStoreDummy{})
+	ymgr := NewYggMgrV1(keeper.KVStoreDummy{})
 	yggFundLimit := cosmos.NewUint(50)
 	coins, err := ymgr.calcTargetYggCoins(pools, ygg, bond, totalBond, yggFundLimit)
 	c.Assert(err, IsNil)
@@ -103,7 +103,7 @@ func (s YggdrasilManagerV11Suite) TestCalcTargetAmounts3(c *C) {
 	c.Check(coins[0].Amount.Uint64(), Equals, cosmos.NewUint(1*common.One).Uint64(), Commentf("%d vs %d", coins[0].Amount.Uint64(), cosmos.NewUint(2.8125*common.One).Uint64()))
 }
 
-func (s YggdrasilManagerV11Suite) TestCalcTargetAmounts4(c *C) {
+func (s YggdrasilManagerV1Suite) TestCalcTargetAmounts4(c *C) {
 	// test under bonded scenario
 	var pools []Pool
 	p := NewPool()
@@ -128,7 +128,7 @@ func (s YggdrasilManagerV11Suite) TestCalcTargetAmounts4(c *C) {
 
 	totalBond := cosmos.NewUint(2000 * common.One)
 	bond := cosmos.NewUint(200 * common.One)
-	ymgr := NewYggMgrV13(keeper.KVStoreDummy{})
+	ymgr := NewYggMgrV1(keeper.KVStoreDummy{})
 	yggFundLimit := cosmos.NewUint(50)
 	coins, err := ymgr.calcTargetYggCoins(pools, ygg, bond, totalBond, yggFundLimit)
 	c.Assert(err, IsNil)
@@ -137,7 +137,7 @@ func (s YggdrasilManagerV11Suite) TestCalcTargetAmounts4(c *C) {
 	c.Check(coins[0].Amount.Uint64(), Equals, cosmos.NewUint(1*common.One).Uint64(), Commentf("%d vs %d", coins[0].Amount.Uint64(), cosmos.NewUint(2.8125*common.One).Uint64()))
 }
 
-func (s YggdrasilManagerV11Suite) TestFund(c *C) {
+func (s YggdrasilManagerV1Suite) TestFund(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	vault := GetRandomVault()
 	vault.Coins = common.Coins{
@@ -155,7 +155,7 @@ func (s YggdrasilManagerV11Suite) TestFund(c *C) {
 	}
 	ver := semver.MustParse("0.13.0")
 	constAccessor := constants.GetConstantValues(ver)
-	ymgr := NewYggMgrV13(k)
+	ymgr := NewYggMgrV1(k)
 	err := ymgr.Fund(ctx, mgr, constAccessor)
 	c.Assert(err, IsNil)
 	na1 := GetRandomNodeAccount(NodeActive)
@@ -173,7 +173,7 @@ func (s YggdrasilManagerV11Suite) TestFund(c *C) {
 	c.Assert(items, HasLen, 1)
 }
 
-func (s YggdrasilManagerV11Suite) TestNotEnabledPoolAssetWillNotFundYggdrasil(c *C) {
+func (s YggdrasilManagerV1Suite) TestNotEnabledPoolAssetWillNotFundYggdrasil(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	vault := GetRandomVault()
 	asset, err := common.NewAsset("BNB.BUSD-BD1")
@@ -194,7 +194,7 @@ func (s YggdrasilManagerV11Suite) TestNotEnabledPoolAssetWillNotFundYggdrasil(c 
 	}
 	ver := semver.MustParse("0.16.0")
 	constAccessor := constants.GetConstantValues(ver)
-	ymgr := NewYggMgrV13(k)
+	ymgr := NewYggMgrV1(k)
 	err = ymgr.Fund(ctx, mgr, constAccessor)
 	c.Assert(err, IsNil)
 	na1 := GetRandomNodeAccount(NodeActive)
@@ -220,7 +220,7 @@ func (s YggdrasilManagerV11Suite) TestNotEnabledPoolAssetWillNotFundYggdrasil(c 
 	c.Assert(items, HasLen, 1)
 }
 
-func (s YggdrasilManagerV11Suite) TestAbandonYggdrasil(c *C) {
+func (s YggdrasilManagerV1Suite) TestAbandonYggdrasil(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	vault := GetRandomVault()
 	vault.Coins = common.Coins{
@@ -258,7 +258,7 @@ func (s YggdrasilManagerV11Suite) TestAbandonYggdrasil(c *C) {
 	c.Assert(k.SetVault(ctx, yggdrasilVault), IsNil)
 	ver := semver.MustParse("0.13.0")
 	constAccessor := constants.GetConstantValues(ver)
-	ymgr := NewYggMgrV13(k)
+	ymgr := NewYggMgrV1(k)
 	err := ymgr.Fund(ctx, mgr, constAccessor)
 	c.Assert(err, IsNil)
 	// make sure the yggdrasil vault had been removed
@@ -289,7 +289,7 @@ func (a *abandonYggdrasilTestHelper) GetAsgardVaultsByStatus(ctx cosmos.Context,
 	return a.Keeper.GetAsgardVaultsByStatus(ctx, status)
 }
 
-func (s YggdrasilManagerV11Suite) TestAbandonYggdrasilWithDifferentConditions(c *C) {
+func (s YggdrasilManagerV1Suite) TestAbandonYggdrasilWithDifferentConditions(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	vault := GetRandomVault()
 	vault.Coins = common.Coins{
@@ -329,21 +329,21 @@ func (s YggdrasilManagerV11Suite) TestAbandonYggdrasilWithDifferentConditions(c 
 		Keeper:                       k,
 		failToGetAsgardVaultByStatus: true,
 	}
-	ymgr := NewYggMgrV13(kh)
+	ymgr := NewYggMgrV1(kh)
 	c.Assert(ymgr.abandonYggdrasilVaults(ctx, mgr), NotNil)
 
 	kh = &abandonYggdrasilTestHelper{
 		Keeper:               k,
 		failToGetNodeAccount: true,
 	}
-	ymgr = NewYggMgrV13(kh)
+	ymgr = NewYggMgrV1(kh)
 	c.Assert(ymgr.abandonYggdrasilVaults(ctx, mgr), IsNil)
 	c.Assert(k.VaultExists(ctx, naDisabled.PubKeySet.Secp256k1), Equals, true)
 
 	// when bond is zero , it shouldn't do anything
 	naDisabled.Bond = cosmos.ZeroUint()
 	c.Assert(k.SetNodeAccount(ctx, naDisabled), IsNil)
-	ymgr = NewYggMgrV13(k)
+	ymgr = NewYggMgrV1(k)
 	c.Assert(ymgr.abandonYggdrasilVaults(ctx, mgr), IsNil)
 	c.Assert(k.VaultExists(ctx, naDisabled.PubKeySet.Secp256k1), Equals, true)
 
@@ -359,7 +359,7 @@ func (s YggdrasilManagerV11Suite) TestAbandonYggdrasilWithDifferentConditions(c 
 	}
 	c.Assert(k.SetVault(ctx, asgardVault), IsNil)
 
-	ymgr = NewYggMgrV13(k)
+	ymgr = NewYggMgrV1(k)
 	c.Assert(ymgr.abandonYggdrasilVaults(ctx, mgr), IsNil)
 	c.Assert(k.VaultExists(ctx, naDisabled.PubKeySet.Secp256k1), Equals, true)
 }
