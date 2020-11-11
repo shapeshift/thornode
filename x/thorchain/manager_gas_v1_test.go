@@ -51,7 +51,7 @@ func (GasManagerTestSuite) TestGetFee(c *C) {
 	constAccessor := constants.NewConstantValue010()
 	gasMgr := NewGasMgrV1(constAccessor, k)
 	fee := gasMgr.GetFee(ctx, common.BNBChain)
-	defaultTxFee := constAccessor.GetInt64Value(constants.TransactionFee)
+	defaultTxFee := constAccessor.GetInt64Value(constants.OutboundTransactionFee)
 	// when there is no network fee available, it should just get from the constants
 	c.Assert(fee, Equals, defaultTxFee)
 	networkFee := NewNetworkFee(common.BNBChain, 1, bnbSingleTxFee.Uint64())

@@ -111,7 +111,7 @@ func (h TssKeysignHandler) handleV1(ctx cosmos.Context, msg MsgTssKeysignFail, v
 	voter.Signers = nil
 	h.keeper.SetTssKeysignFailVoter(ctx, voter)
 
-	slashPoints := constAccessor.GetInt64Value(constants.FailKeySignSlashPoints)
+	slashPoints := constAccessor.GetInt64Value(constants.FailKeysignSlashPoints)
 	// fail to generate a new tss key let's slash the node account
 
 	for _, node := range msg.Blame.BlameNodes {
@@ -171,7 +171,7 @@ func (h TssKeysignHandler) handleV13(ctx cosmos.Context, msg MsgTssKeysignFail, 
 	voter.Signers = nil
 	h.keeper.SetTssKeysignFailVoter(ctx, voter)
 
-	slashPoints := constAccessor.GetInt64Value(constants.FailKeySignSlashPoints)
+	slashPoints := constAccessor.GetInt64Value(constants.FailKeysignSlashPoints)
 	// fail to generate a new tss key let's slash the node account
 
 	for _, node := range msg.Blame.BlameNodes {

@@ -72,15 +72,15 @@ func (vts *ValidatorMgrV1TestSuite) TestRagnarokForChaosnet(c *C) {
 	vMgr := newValidatorMgrV1(k, mgr.VaultMgr(), mgr.TxOutStore(), mgr.EventMgr())
 
 	constAccessor := constants.NewDummyConstants(map[constants.ConstantName]int64{
-		constants.DesireValidatorSet:            12,
+		constants.DesiredValidatorSet:           12,
 		constants.ArtificialRagnarokBlockHeight: 1024,
 		constants.BadValidatorRate:              256,
 		constants.OldValidatorRate:              256,
 		constants.MinimumNodesForBFT:            4,
-		constants.RotatePerBlockHeight:          256,
-		constants.RotateRetryBlocks:             720,
+		constants.ChurnInterval:                 256,
+		constants.ChurnRetryInterval:            720,
 	}, map[constants.ConstantName]bool{
-		constants.StrictBondStakeRatio: false,
+		constants.StrictBondLiquidityRatio: false,
 	}, map[constants.ConstantName]string{})
 	for i := 0; i < 12; i++ {
 		node := GetRandomNodeAccount(NodeReady)
