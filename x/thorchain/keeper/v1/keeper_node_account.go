@@ -148,7 +148,7 @@ func (k KVStore) GetMinJoinVersionV1(ctx cosmos.Context) semver.Version {
 
 	for _, info := range vCount {
 		// skip those version that doesn't have majority
-		if !HasSuperMajorityV13(info.count, totalCount) {
+		if !HasSuperMajority(info.count, totalCount) {
 			continue
 		}
 		if info.version.GT(version) {

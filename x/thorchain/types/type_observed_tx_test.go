@@ -114,8 +114,6 @@ func (s TypeObservedTxSuite) TestVoter(c *C) {
 	c.Check(tx.IsEmpty(), Equals, true)
 	c.Check(voter.HasConsensus(trusts3), Equals, true)
 	c.Check(voter.HasConsensus(trusts4), Equals, false)
-	c.Check(voter.HasConsensusV13(trusts3), Equals, true)
-	c.Check(voter.HasConsensusV13(trusts4), Equals, false)
 	c.Check(voter.Key().Equals(txID), Equals, true)
 	c.Check(voter.String() == txID.String(), Equals, true)
 
@@ -198,7 +196,6 @@ func (TypeObservedTxSuite) TestSetTxToComplete(c *C) {
 	voter.Add(observedTx, activeNodes[1].NodeAddress)
 	voter.Add(observedTx, activeNodes[2].NodeAddress)
 	c.Assert(voter.HasConsensus(activeNodes), Equals, true)
-	c.Assert(voter.HasConsensusV13(activeNodes), Equals, true)
 	consensusTx := voter.GetTx(activeNodes)
 	c.Assert(consensusTx.IsEmpty(), Equals, false)
 	c.Assert(voter.Tx.IsEmpty(), Equals, false)

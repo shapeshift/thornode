@@ -226,7 +226,7 @@ func (s *SlasherV17) LackSigning(ctx cosmos.Context, constAccessor constants.Con
 			}
 
 			// check observedTx has done status. Skip if it does already.
-			voterTx := voter.GetTxV13(NodeAccounts{})
+			voterTx := voter.GetTx(NodeAccounts{})
 			if voterTx.IsDone(len(voter.Actions)) {
 				if len(voterTx.OutHashes) > 0 {
 					txs.TxArray[i].OutHash = voterTx.OutHashes[0]
