@@ -3,6 +3,7 @@ package thorchain
 import (
 	"errors"
 
+	"github.com/blang/semver"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
@@ -11,12 +12,98 @@ import (
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
-type SlashingSuite struct{}
+type SlashingV1Suite struct{}
 
-var _ = Suite(&SlashingSuite{})
+var _ = Suite(&SlashingV1Suite{})
 
-func (s *SlashingSuite) SetUpSuite(c *C) {
-	SetupConfigForTest()
+type TestSlashingLackKeeper struct {
+	keeper.KVStoreDummy
+	txOut                      *TxOut
+	na                         NodeAccount
+	vaults                     Vaults
+	voter                      ObservedTxVoter
+	failToGetAllPendingEvents  bool
+	failGetTxOut               bool
+	failGetVault               bool
+	failGetNodeAccountByPubKey bool
+	failSetNodeAccount         bool
+	failGetAsgardByStatus      bool
+	failGetObservedTxVoter     bool
+	failSetTxOut               bool
+	slashPts                   map[string]int64
+}
+
+func (k *TestSlashingLackKeeper) PoolExist(ctx cosmos.Context, asset common.Asset) bool {
+	return true
+}
+
+func (k *TestSlashingLackKeeper) ListTxMarker(ctx cosmos.Context, hash string) (TxMarkers, error) {
+	return TxMarkers{
+		NewTxMarker(common.BlockHeight(ctx), "my memo"),
+	}, nil
+}
+
+func (k *TestSlashingLackKeeper) GetObservedTxInVoter(_ cosmos.Context, _ common.TxID) (ObservedTxVoter, error) {
+	if k.failGetObservedTxVoter {
+		return ObservedTxVoter{}, kaboom
+	}
+	return k.voter, nil
+}
+
+func (k *TestSlashingLackKeeper) SetObservedTxInVoter(_ cosmos.Context, voter ObservedTxVoter) {
+	k.voter = voter
+}
+
+func (k *TestSlashingLackKeeper) GetVault(_ cosmos.Context, pk common.PubKey) (Vault, error) {
+	if k.failGetVault {
+		return Vault{}, kaboom
+	}
+	return k.vaults[0], nil
+}
+
+func (k *TestSlashingLackKeeper) GetAsgardVaultsByStatus(_ cosmos.Context, _ VaultStatus) (Vaults, error) {
+	if k.failGetAsgardByStatus {
+		return nil, kaboom
+	}
+	return k.vaults, nil
+}
+
+func (k *TestSlashingLackKeeper) GetTxOut(_ cosmos.Context, _ int64) (*TxOut, error) {
+	if k.failGetTxOut {
+		return nil, kaboom
+	}
+	return k.txOut, nil
+}
+
+func (k *TestSlashingLackKeeper) SetTxOut(_ cosmos.Context, tx *TxOut) error {
+	if k.failSetTxOut {
+		return kaboom
+	}
+	k.txOut = tx
+	return nil
+}
+
+func (k *TestSlashingLackKeeper) IncNodeAccountSlashPoints(_ cosmos.Context, addr cosmos.AccAddress, pts int64) error {
+	if _, ok := k.slashPts[addr.String()]; !ok {
+		k.slashPts[addr.String()] = 0
+	}
+	k.slashPts[addr.String()] += pts
+	return nil
+}
+
+func (k *TestSlashingLackKeeper) GetNodeAccountByPubKey(_ cosmos.Context, _ common.PubKey) (NodeAccount, error) {
+	if k.failGetNodeAccountByPubKey {
+		return NodeAccount{}, kaboom
+	}
+	return k.na, nil
+}
+
+func (k *TestSlashingLackKeeper) SetNodeAccount(_ cosmos.Context, na NodeAccount) error {
+	if k.failSetNodeAccount {
+		return kaboom
+	}
+	k.na = na
+	return nil
 }
 
 type TestSlashObservingKeeper struct {
@@ -68,158 +155,148 @@ func (k *TestSlashObservingKeeper) SetNodeAccount(_ cosmos.Context, na NodeAccou
 	return errors.New("node account not found")
 }
 
-func (s *SlashingSuite) TestObservingSlashing(c *C) {
-	var err error
-	ctx, _ := setupKeeperForTest(c)
-
-	nas := NodeAccounts{
-		GetRandomNodeAccount(NodeActive),
-		GetRandomNodeAccount(NodeActive),
-	}
-	keeper := &TestSlashObservingKeeper{
-		nas:      nas,
-		addrs:    []cosmos.AccAddress{nas[0].NodeAddress},
-		slashPts: make(map[string]int64, 0),
-	}
-	ver := constants.SWVersion
-	constAccessor := constants.GetConstantValues(ver)
-
-	slasher := NewSlasherV1(keeper)
-	// should slash na2 only
-	lackOfObservationPenalty := constAccessor.GetInt64Value(constants.LackOfObservationPenalty)
-	err = slasher.LackObserving(ctx, constAccessor)
-	c.Assert(err, IsNil)
-	c.Assert(keeper.slashPts[nas[0].NodeAddress.String()], Equals, int64(0))
-	c.Assert(keeper.slashPts[nas[1].NodeAddress.String()], Equals, lackOfObservationPenalty)
-
-	// manually clear the observing address, as clear observing address had been moved to moduleManager begin block
-	keeper.ClearObservingAddresses(ctx)
-	// since THORNode have cleared all node addresses in slashForObservingAddresses,
-	// running it a second time should result in slashing nobody.
-	err = slasher.LackObserving(ctx, constAccessor)
-	c.Assert(err, IsNil)
-	c.Assert(keeper.slashPts[nas[0].NodeAddress.String()], Equals, int64(0))
-	c.Assert(keeper.slashPts[nas[1].NodeAddress.String()], Equals, lackOfObservationPenalty)
-}
-
-func (s *SlashingSuite) TestLackObservingErrors(c *C) {
-	ctx, _ := setupKeeperForTest(c)
-
-	nas := NodeAccounts{
-		GetRandomNodeAccount(NodeActive),
-		GetRandomNodeAccount(NodeActive),
-	}
-	keeper := &TestSlashObservingKeeper{
-		nas:      nas,
-		addrs:    []cosmos.AccAddress{nas[0].NodeAddress},
-		slashPts: make(map[string]int64, 0),
-	}
-	ver := constants.SWVersion
-	constAccessor := constants.GetConstantValues(ver)
-	slasher := NewSlasherV1(keeper)
-	keeper.failGetObservingAddress = true
-	c.Assert(slasher.LackObserving(ctx, constAccessor), NotNil)
-	keeper.failGetObservingAddress = false
-	keeper.failListActiveNodeAccount = true
-	c.Assert(slasher.LackObserving(ctx, constAccessor), NotNil)
-	keeper.failListActiveNodeAccount = false
-}
-
-type TestSlashingLackKeeper struct {
+type TestDoubleSlashKeeper struct {
 	keeper.KVStoreDummy
-	txOut                      *TxOut
-	na                         NodeAccount
-	vaults                     Vaults
-	voter                      ObservedTxVoter
-	failToGetAllPendingEvents  bool
-	failGetTxOut               bool
-	failGetVault               bool
-	failGetNodeAccountByPubKey bool
-	failSetNodeAccount         bool
-	failGetAsgardByStatus      bool
-	failGetObservedTxVoter     bool
-	failSetTxOut               bool
-	slashPts                   map[string]int64
+	na          NodeAccount
+	vaultData   VaultData
+	slashPoints map[string]int64
+	modules     map[string]int64
 }
 
-func (k *TestSlashingLackKeeper) PoolExist(ctx cosmos.Context, asset common.Asset) bool {
-	return true
-}
-
-func (k *TestSlashingLackKeeper) ListTxMarker(ctx cosmos.Context, hash string) (TxMarkers, error) {
-	return TxMarkers{
-		NewTxMarker(common.BlockHeight(ctx), "my memo"),
-	}, nil
-}
-
-func (k *TestSlashingLackKeeper) GetObservedTxInVoter(_ cosmos.Context, _ common.TxID) (ObservedTxVoter, error) {
-	if k.failGetObservedTxVoter {
-		return ObservedTxVoter{}, kaboom
-	}
-	return k.voter, nil
-}
-
-func (k *TestSlashingLackKeeper) SetObservedTxInVoter(_ cosmos.Context, voter ObservedTxVoter) {
-	k.voter = voter
-}
-
-func (k *TestSlashingLackKeeper) GetVault(_ cosmos.Context, pk common.PubKey) (Vault, error) {
-	if k.failGetVault {
-		return Vault{}, kaboom
-	}
-	return k.vaults[0], nil
-}
-
-func (k *TestSlashingLackKeeper) GetLeastSecure(ctx cosmos.Context, vaults Vaults, signingTransPeriod int64) Vault {
-	return vaults[0]
-}
-
-func (k *TestSlashingLackKeeper) GetAsgardVaultsByStatus(_ cosmos.Context, _ VaultStatus) (Vaults, error) {
-	if k.failGetAsgardByStatus {
-		return nil, kaboom
-	}
-	return k.vaults, nil
-}
-
-func (k *TestSlashingLackKeeper) GetTxOut(_ cosmos.Context, _ int64) (*TxOut, error) {
-	if k.failGetTxOut {
-		return nil, kaboom
-	}
-	return k.txOut, nil
-}
-
-func (k *TestSlashingLackKeeper) SetTxOut(_ cosmos.Context, tx *TxOut) error {
-	if k.failSetTxOut {
-		return kaboom
-	}
-	k.txOut = tx
+func (k *TestDoubleSlashKeeper) SendFromModuleToModule(_ cosmos.Context, from, to string, coin common.Coin) error {
+	k.modules[from] -= int64(coin.Amount.Uint64())
+	k.modules[to] += int64(coin.Amount.Uint64())
 	return nil
 }
 
-func (k *TestSlashingLackKeeper) IncNodeAccountSlashPoints(_ cosmos.Context, addr cosmos.AccAddress, pts int64) error {
-	if _, ok := k.slashPts[addr.String()]; !ok {
-		k.slashPts[addr.String()] = 0
-	}
-	k.slashPts[addr.String()] += pts
-	return nil
+func (k *TestDoubleSlashKeeper) ListActiveNodeAccounts(ctx cosmos.Context) (NodeAccounts, error) {
+	return NodeAccounts{k.na}, nil
 }
 
-func (k *TestSlashingLackKeeper) GetNodeAccountByPubKey(_ cosmos.Context, _ common.PubKey) (NodeAccount, error) {
-	if k.failGetNodeAccountByPubKey {
-		return NodeAccount{}, kaboom
-	}
-	return k.na, nil
-}
-
-func (k *TestSlashingLackKeeper) SetNodeAccount(_ cosmos.Context, na NodeAccount) error {
-	if k.failSetNodeAccount {
-		return kaboom
-	}
+func (k *TestDoubleSlashKeeper) SetNodeAccount(ctx cosmos.Context, na NodeAccount) error {
 	k.na = na
 	return nil
 }
 
-func (s *SlashingSuite) TestNodeSignSlashErrors(c *C) {
+func (k *TestDoubleSlashKeeper) GetVaultData(ctx cosmos.Context) (VaultData, error) {
+	return k.vaultData, nil
+}
+
+func (k *TestDoubleSlashKeeper) SetVaultData(ctx cosmos.Context, data VaultData) error {
+	k.vaultData = data
+	return nil
+}
+
+func (k *TestDoubleSlashKeeper) IncNodeAccountSlashPoints(ctx cosmos.Context, addr cosmos.AccAddress, pts int64) error {
+	k.slashPoints[addr.String()] += pts
+	return nil
+}
+
+func (k *TestDoubleSlashKeeper) DecNodeAccountSlashPoints(ctx cosmos.Context, addr cosmos.AccAddress, pts int64) error {
+	k.slashPoints[addr.String()] -= pts
+	return nil
+}
+
+func (s *SlashingV1Suite) SetUpSuite(c *C) {
+	SetupConfigForTest()
+}
+
+func (s *SlashingV1Suite) TestObservingSlashing(c *C) {
+	var err error
+	ctx, k := setupKeeperForTest(c)
+	naActiveAfterTx := GetRandomNodeAccount(NodeActive)
+	naActiveAfterTx.ActiveBlockHeight = 1030
+	nas := NodeAccounts{
+		GetRandomNodeAccount(NodeActive),
+		GetRandomNodeAccount(NodeActive),
+		GetRandomNodeAccount(NodeStandby),
+		naActiveAfterTx,
+	}
+	for _, item := range nas {
+		c.Assert(k.SetNodeAccount(ctx, item), IsNil)
+	}
+	height := int64(1024)
+	txOut := NewTxOut(height)
+	txHash := GetRandomTxHash()
+	observedTx := GetRandomObservedTx()
+	txVoter := NewObservedTxVoter(txHash, []ObservedTx{
+		observedTx,
+	})
+	txVoter.Height = 1024
+	txVoter.Add(observedTx, nas[0].NodeAddress)
+	k.SetObservedTxInVoter(ctx, txVoter)
+
+	txOut.TxArray = append(txOut.TxArray, &TxOutItem{
+		Chain:       common.BNBChain,
+		InHash:      txHash,
+		ToAddress:   GetRandomBNBAddress(),
+		VaultPubKey: GetRandomPubKey(),
+		Coin:        common.NewCoin(common.BNBAsset, cosmos.NewUint(1024)),
+		Memo:        "whatever",
+	})
+
+	k.SetTxOut(ctx, txOut)
+
+	ctx = ctx.WithBlockHeight(height + 300)
+	ver := semver.MustParse("0.17.0")
+	constAccessor := constants.GetConstantValues(ver)
+
+	slasher := NewSlasherV1(k)
+	// should slash na2 only
+	lackOfObservationPenalty := constAccessor.GetInt64Value(constants.LackOfObservationPenalty)
+	err = slasher.LackObserving(ctx, constAccessor)
+	c.Assert(err, IsNil)
+	slashPoint, err := k.GetNodeAccountSlashPoints(ctx, nas[0].NodeAddress)
+	c.Assert(err, IsNil)
+	c.Assert(slashPoint, Equals, int64(0))
+
+	slashPoint, err = k.GetNodeAccountSlashPoints(ctx, nas[1].NodeAddress)
+	c.Assert(err, IsNil)
+	c.Assert(slashPoint, Equals, lackOfObservationPenalty)
+
+	// standby node should not be slashed
+	slashPoint, err = k.GetNodeAccountSlashPoints(ctx, nas[2].NodeAddress)
+	c.Assert(err, IsNil)
+	c.Assert(slashPoint, Equals, int64(0))
+
+	// if node is active after the tx get observed , it should not be slashed
+	slashPoint, err = k.GetNodeAccountSlashPoints(ctx, nas[3].NodeAddress)
+	c.Assert(err, IsNil)
+	c.Assert(slashPoint, Equals, int64(0))
+
+	ctx = ctx.WithBlockHeight(height + 301)
+	err = slasher.LackObserving(ctx, constAccessor)
+
+	c.Assert(err, IsNil)
+	slashPoint, err = k.GetNodeAccountSlashPoints(ctx, nas[0].NodeAddress)
+	c.Assert(err, IsNil)
+	c.Assert(slashPoint, Equals, int64(0))
+
+	slashPoint, err = k.GetNodeAccountSlashPoints(ctx, nas[1].NodeAddress)
+	c.Assert(err, IsNil)
+	c.Assert(slashPoint, Equals, lackOfObservationPenalty)
+}
+
+func (s *SlashingV1Suite) TestLackObservingErrors(c *C) {
+	ctx, _ := setupKeeperForTest(c)
+
+	nas := NodeAccounts{
+		GetRandomNodeAccount(NodeActive),
+		GetRandomNodeAccount(NodeActive),
+	}
+	keeper := &TestSlashObservingKeeper{
+		nas:      nas,
+		addrs:    []cosmos.AccAddress{nas[0].NodeAddress},
+		slashPts: make(map[string]int64, 0),
+	}
+	ver := semver.MustParse("0.17.0")
+	constAccessor := constants.GetConstantValues(ver)
+	slasher := NewSlasherV1(keeper)
+	err := slasher.LackObserving(ctx, constAccessor)
+	c.Assert(err, IsNil)
+}
+
+func (s *SlashingV1Suite) TestNodeSignSlashErrors(c *C) {
 	testCases := []struct {
 		name        string
 		condition   func(keeper *TestSlashingLackKeeper)
@@ -272,7 +349,7 @@ func (s *SlashingSuite) TestNodeSignSlashErrors(c *C) {
 		c.Logf("name:%s", item.name)
 		ctx, _ := setupKeeperForTest(c)
 		ctx = ctx.WithBlockHeight(201) // set blockheight
-		ver := constants.SWVersion
+		ver := semver.MustParse("0.17.0")
 		constAccessor := constants.GetConstantValues(ver)
 		na := GetRandomNodeAccount(NodeActive)
 		inTx := common.NewTx(
@@ -322,11 +399,11 @@ func (s *SlashingSuite) TestNodeSignSlashErrors(c *C) {
 	}
 }
 
-func (s *SlashingSuite) TestNotSigningSlash(c *C) {
+func (s *SlashingV1Suite) TestNotSigningSlash(c *C) {
 	ctx, _ := setupKeeperForTest(c)
 	ctx = ctx.WithBlockHeight(201) // set blockheight
 	txOutStore := NewTxStoreDummy()
-	ver := constants.SWVersion
+	ver := semver.MustParse("0.17.0")
 	constAccessor := constants.GetConstantValues(ver)
 	na := GetRandomNodeAccount(NodeActive)
 	inTx := common.NewTx(
@@ -386,7 +463,7 @@ func (s *SlashingSuite) TestNotSigningSlash(c *C) {
 	c.Assert(keeper.voter.Actions[0].VaultPubKey.Equals(outItems[0].VaultPubKey), Equals, true)
 }
 
-func (s *SlashingSuite) TestNewSlasher(c *C) {
+func (s *SlashingV1Suite) TestNewSlasher(c *C) {
 	nas := NodeAccounts{
 		GetRandomNodeAccount(NodeActive),
 		GetRandomNodeAccount(NodeActive),
@@ -400,49 +477,7 @@ func (s *SlashingSuite) TestNewSlasher(c *C) {
 	c.Assert(slasher, NotNil)
 }
 
-type TestDoubleSlashKeeper struct {
-	keeper.KVStoreDummy
-	na          NodeAccount
-	vaultData   VaultData
-	slashPoints map[string]int64
-	modules     map[string]int64
-}
-
-func (k *TestDoubleSlashKeeper) SendFromModuleToModule(_ cosmos.Context, from, to string, coin common.Coin) error {
-	k.modules[from] -= int64(coin.Amount.Uint64())
-	k.modules[to] += int64(coin.Amount.Uint64())
-	return nil
-}
-
-func (k *TestDoubleSlashKeeper) ListActiveNodeAccounts(ctx cosmos.Context) (NodeAccounts, error) {
-	return NodeAccounts{k.na}, nil
-}
-
-func (k *TestDoubleSlashKeeper) SetNodeAccount(ctx cosmos.Context, na NodeAccount) error {
-	k.na = na
-	return nil
-}
-
-func (k *TestDoubleSlashKeeper) GetVaultData(ctx cosmos.Context) (VaultData, error) {
-	return k.vaultData, nil
-}
-
-func (k *TestDoubleSlashKeeper) SetVaultData(ctx cosmos.Context, data VaultData) error {
-	k.vaultData = data
-	return nil
-}
-
-func (k *TestDoubleSlashKeeper) IncNodeAccountSlashPoints(ctx cosmos.Context, addr cosmos.AccAddress, pts int64) error {
-	k.slashPoints[addr.String()] += pts
-	return nil
-}
-
-func (k *TestDoubleSlashKeeper) DecNodeAccountSlashPoints(ctx cosmos.Context, addr cosmos.AccAddress, pts int64) error {
-	k.slashPoints[addr.String()] -= pts
-	return nil
-}
-
-func (s *SlashingSuite) TestDoubleSign(c *C) {
+func (s *SlashingV1Suite) TestDoubleSign(c *C) {
 	ctx, _ := setupKeeperForTest(c)
 	constAccessor := constants.GetConstantValues(constants.SWVersion)
 
@@ -462,10 +497,14 @@ func (s *SlashingSuite) TestDoubleSign(c *C) {
 	c.Assert(err, IsNil)
 
 	c.Check(keeper.na.Bond.Equal(cosmos.NewUint(9995000000)), Equals, true, Commentf("%d", keeper.na.Bond.Uint64()))
-	c.Check(keeper.modules[ReserveName], Equals, int64(5000000))
+	if common.RuneAsset().Chain.Equals(common.THORChain) {
+		c.Check(keeper.modules[ReserveName], Equals, int64(5000000))
+	} else {
+		c.Check(keeper.vaultData.TotalReserve.Equal(cosmos.NewUint(5000000)), Equals, true)
+	}
 }
 
-func (s *SlashingSuite) TestIncreaseDecreaseSlashPoints(c *C) {
+func (s *SlashingV1Suite) TestIncreaseDecreaseSlashPoints(c *C) {
 	ctx, _ := setupKeeperForTest(c)
 
 	na := GetRandomNodeAccount(NodeActive)

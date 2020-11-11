@@ -15,10 +15,6 @@ import (
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
-const (
-	genesisBlockHeight = 1
-)
-
 // validatorMgrV1 is to manage a list of validators , and rotate them
 type validatorMgrV1 struct {
 	k          keeper.Keeper
@@ -100,12 +96,27 @@ func (vm *validatorMgrV1) BeginBlock(ctx cosmos.Context, constAccessor constants
 		desiredValidatorSet = constAccessor.GetInt64Value(constants.DesiredValidatorSet)
 	}
 	churnRetryInterval := constAccessor.GetInt64Value(constants.ChurnRetryInterval)
+	asgardSize, err := vm.k.GetMimir(ctx, constants.AsgardSize.String())
+	if asgardSize < 0 || err != nil {
+		asgardSize = constAccessor.GetInt64Value(constants.AsgardSize)
+	}
 
 	// calculate if we need to retry a churn because we are overdue for a
 	// successful one
-	retryChurn := common.BlockHeight(ctx)-lastHeight > churnInterval && (common.BlockHeight(ctx)-lastHeight-churnInterval)%churnRetryInterval == 0
+	nas, err := vm.k.ListActiveNodeAccounts(ctx)
+	if err != nil {
+		return err
+	}
+	expected_active_vaults := int64(len(nas)) / asgardSize
+	if int64(len(nas))%asgardSize > 0 {
+		expected_active_vaults += 1
+	}
+	incompleteChurnCheck := int64(len(vaults)) != expected_active_vaults
+	oldVaultCheck := common.BlockHeight(ctx)-lastHeight > churnInterval
+	onChurnTick := (common.BlockHeight(ctx)-lastHeight-churnInterval)%churnRetryInterval == 0
+	retryChurn := (oldVaultCheck || incompleteChurnCheck) && onChurnTick
 
-	if common.BlockHeight(ctx)%churnInterval == 0 || retryChurn {
+	if lastHeight+churnInterval == common.BlockHeight(ctx) || retryChurn {
 		if retryChurn {
 			ctx.Logger().Info("Checking for node account rotation... (retry)")
 		} else {
@@ -129,13 +140,65 @@ func (vm *validatorMgrV1) BeginBlock(ctx cosmos.Context, constAccessor constants
 			return err
 		}
 		if ok {
-			if err := vm.vaultMgr.TriggerKeygen(ctx, next); err != nil {
-				return err
+			for _, nodeacc_set := range vm.splitNext(ctx, next, asgardSize) {
+				if err := vm.vaultMgr.TriggerKeygen(ctx, nodeacc_set); err != nil {
+					return err
+				}
 			}
 		}
 	}
 
 	return nil
+}
+
+// splits given list of node accounts into separate list of nas, for separate
+// asgard vaults
+func (vm *validatorMgrV1) splitNext(ctx cosmos.Context, nas NodeAccounts, asgardSize int64) []NodeAccounts {
+	// calculate the number of asgard vaults we'll need to support the given
+	// list of node accounts
+	group_num := int64(len(nas)) / asgardSize
+	if int64(len(nas))%asgardSize > 0 {
+		group_num += 1
+	}
+
+	// sort by bond size, descending. This should help ensure that bond
+	// distribution between asgard vaults is somewhat close to each other,
+	// while still maintain that each asgard has the same number of members
+	sort.SliceStable(nas, func(i, j int) bool {
+		return nas[i].Bond.GT(nas[j].Bond)
+	})
+
+	groups := make([]NodeAccounts, group_num)
+	for i, na := range nas {
+		groups[i%len(groups)] = append(groups[i%len(groups)], na)
+	}
+
+	// sanity checks
+	for i, group := range groups {
+		// ensure no group is more than the max
+		if int64(len(group)) > asgardSize {
+			ctx.Logger().Info("Skipping rotation due to an Asgard group is larger than the max size.")
+			return nil
+		}
+		// ensure no group is less than the min
+		if int64(len(group)) < 2 {
+			ctx.Logger().Info("Skipping rotation due to an Asgard group is smaller than the min size.")
+			return nil
+		}
+		// ensure a single group is significantly larger than another
+		if i > 0 {
+			diff := len(groups[i]) - len(groups[i-1])
+			if diff < 0 {
+				diff = -diff
+			}
+			if diff > 1 {
+				ctx.Logger().Info("Skipping rotation due to an Asgard groups having dissimilar membership size.")
+				return nil
+			}
+		}
+	}
+
+	return groups
 }
 
 // EndBlock when block commit
@@ -276,11 +339,6 @@ func (vm *validatorMgrV1) getChangedNodes(ctx cosmos.Context, activeNodes NodeAc
 	var newActive NodeAccounts    // store the list of new active users
 	var removedNodes NodeAccounts // nodes that had been removed
 
-	readyNodes, err := vm.k.ListNodeAccountsByStatus(ctx, NodeReady)
-	if err != nil {
-		return newActive, removedNodes, fmt.Errorf("fail to list ready node accounts: %w", err)
-	}
-
 	activeVaults, err := vm.k.GetAsgardVaultsByStatus(ctx, ActiveVault)
 	if err != nil {
 		ctx.Logger().Error("fail to get active asgards", "error", err)
@@ -303,18 +361,23 @@ func (vm *validatorMgrV1) getChangedNodes(ctx cosmos.Context, activeNodes NodeAc
 				break
 			}
 		}
+		if na.ForcedToLeave {
+			found = false
+		}
 		if !found && len(membership) > 0 {
 			removedNodes = append(removedNodes, na)
 		}
 	}
 
 	// find ready nodes that change to active
-	for _, na := range readyNodes {
-		for _, member := range membership {
-			if na.PubKeySet.Contains(member) {
-				newActive = append(newActive, na)
-				break
-			}
+	for _, pk := range membership {
+		na, err := vm.k.GetNodeAccountByPubKey(ctx, pk)
+		if err != nil {
+			ctx.Logger().Error("fail to get node account", "error", err)
+			continue
+		}
+		if na.Status != NodeActive {
+			newActive = append(newActive, na)
 		}
 	}
 
@@ -645,6 +708,13 @@ func (vm *validatorMgrV1) ragnarokPools(ctx cosmos.Context, nth int64, mgr Manag
 				position.Number++
 				var staker Staker
 				vm.k.Cdc().MustUnmarshalBinaryBare(iterator.Value(), &staker)
+
+				accAddr, err := staker.RuneAddress.AccAddress()
+				if err != nil {
+					ctx.Logger().Error("fail to get stake tokens", "staker", staker.RuneAddress, "error", err)
+					continue
+				}
+				staker.Units = vm.k.GetStakerBalance(ctx, pool.Asset.LiquidityAsset(), accAddr)
 				if staker.Units.IsZero() {
 					continue
 				}
@@ -659,7 +729,7 @@ func (vm *validatorMgrV1) ragnarokPools(ctx cosmos.Context, nth int64, mgr Manag
 				)
 
 				unstakeHandler := NewUnstakeHandler(vm.k, mgr)
-				_, err := unstakeHandler.Run(ctx, unstakeMsg, version, constAccessor)
+				_, err = unstakeHandler.Run(ctx, unstakeMsg, version, constAccessor)
 				if err != nil {
 					ctx.Logger().Error("fail to unstake", "staker", staker.RuneAddress, "error", err)
 				} else {
@@ -723,7 +793,9 @@ func (vm *validatorMgrV1) RequestYggReturn(ctx cosmos.Context, node NodeAccount,
 	}
 	chains = chains.Distinct()
 
-	vault := active.SelectByMaxCoin(common.RuneAsset())
+	signingTransactionPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
+	// select vault that is most secure
+	vault := vm.k.GetMostSecure(ctx, active, signingTransactionPeriod)
 	if vault.IsEmpty() {
 		return fmt.Errorf("unable to determine asgard vault")
 	}
@@ -735,7 +807,6 @@ func (vm *validatorMgrV1) RequestYggReturn(ctx cosmos.Context, node NodeAccount,
 			ctx.Logger().Info(fmt.Sprintf("there is not fund for %s chain, no need for yggdrasil return", chain))
 			continue
 		}
-
 		toAddr, err := vault.PubKey.GetAddress(chain)
 		if err != nil {
 			return err
@@ -1002,7 +1073,7 @@ func (vm *validatorMgrV1) markLowerVersion(ctx cosmos.Context, rate int64) error
 // findLowerVersionActor go through the active node account list , find the node account that has version
 // that is lower than the minimum join version
 func (vm *validatorMgrV1) findLowerVersionActor(ctx cosmos.Context) (NodeAccount, error) {
-	minimumVersion := vm.k.GetMinJoinVersion(ctx)
+	minimumVersion := vm.k.GetMinJoinVersionV1(ctx)
 	activeNodes, err := vm.k.ListNodeAccountsByStatus(ctx, NodeActive)
 	if err != nil {
 		return NodeAccount{}, err
@@ -1204,4 +1275,82 @@ func findMaxAbleToLeave(count int) int {
 	}
 
 	return max
+}
+
+func getPendingTxOut(ctx cosmos.Context, k keeper.Keeper, constAccessor constants.ConstantValues) ([]*TxOutItem, error) {
+	signingTransactionPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
+	startHeight := common.BlockHeight(ctx) - signingTransactionPeriod
+	var txOutItems []*TxOutItem
+	for height := startHeight; height <= common.BlockHeight(ctx); height++ {
+		txs, err := k.GetTxOut(ctx, height)
+		if err != nil {
+			ctx.Logger().Error("fail to get tx out array from key value store", "error", err)
+			return nil, fmt.Errorf("fail to get tx out array from key value store: %w", err)
+		}
+		for _, tx := range txs.TxArray {
+			// migration , those internal triggered txout has blank in txhash
+			if tx.OutHash.IsEmpty() && !tx.InHash.Equals(common.BlankTxID) {
+				txOutItems = append(txOutItems, tx)
+			}
+		}
+	}
+	return txOutItems, nil
+}
+
+func getPoolAssetBalance(asset common.Asset, vaults Vaults, txOutItems []*TxOutItem) cosmos.Uint {
+	amount := cosmos.ZeroUint()
+	for _, v := range vaults {
+		amount = amount.Add(v.GetCoin(asset).Amount)
+	}
+	for _, item := range txOutItems {
+		if item.Coin.Asset.Equals(asset) {
+			amount = common.SafeSub(amount, item.Coin.Amount)
+		}
+	}
+
+	return amount
+}
+
+func fixPoolAsset(ctx cosmos.Context, keep keeper.Keeper, constAccessor constants.ConstantValues) error {
+	pools, err := keep.GetPools(ctx)
+	if err != nil {
+		return fmt.Errorf("fail to get pools: %w", err)
+	}
+	txOutItems, err := getPendingTxOut(ctx, keep, constAccessor)
+	if err != nil {
+		return fmt.Errorf("fail to get txout items: %w", err)
+	}
+
+	vaults := Vaults{}
+	iter := keep.GetVaultIterator(ctx)
+	defer iter.Close()
+	for ; iter.Valid(); iter.Next() {
+		var vault Vault
+		if err := keep.Cdc().UnmarshalBinaryBare(iter.Value(), &vault); err != nil {
+			ctx.Logger().Error("fail to unmarshal vault", "error", err)
+			continue
+		}
+		if vault.IsEmpty() {
+			continue
+		}
+		if !vault.HasFunds() {
+			continue
+		}
+
+		// this include yggdrasil vaults as well
+		if vault.Status != ActiveVault && vault.Status != RetiringVault {
+			continue
+		}
+		vaults = append(vaults, vault)
+	}
+
+	for _, p := range pools {
+		totalAsset := getPoolAssetBalance(p.Asset, vaults, txOutItems)
+		ctx.Logger().Info("update pool asset amount", "before", p.BalanceAsset.String(), "after", totalAsset.String())
+		p.BalanceAsset = totalAsset
+		if err := keep.SetPool(ctx, p); err != nil {
+			ctx.Logger().Error("fail to save pool: %w", err)
+		}
+	}
+	return nil
 }
