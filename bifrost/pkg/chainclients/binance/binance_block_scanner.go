@@ -418,7 +418,6 @@ func (b *BinanceBlockScanner) fromTxToTxIn(hash, encodedTx string, blockHeight i
 		// stuck if someone has issued a mini token.
 		return nil, nil
 	}
-
 	return b.fromStdTx(hash, t, blockHeight)
 }
 
