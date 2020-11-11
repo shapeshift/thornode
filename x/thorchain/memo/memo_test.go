@@ -83,7 +83,7 @@ func (s *MemoSuite) TestParseWithAbbreviated(c *C) {
 	c.Check(memo.GetDestination().String(), Equals, "bnb1lejrrtta9cgr49fuh7ktu3sddhe0ff7wenlpn6")
 	c.Check(memo.GetSlipLimit().Equal(cosmos.ZeroUint()), Equals, true)
 
-	memo, err = ParseMemo("OUTBOUND:MUKVQILIHIAUSEOVAXBFEZAJKYHFJYHRUUYGQJZGFYBYVXCXYNEMUOAIQKFQLLCX")
+	memo, err = ParseMemo("OUT:MUKVQILIHIAUSEOVAXBFEZAJKYHFJYHRUUYGQJZGFYBYVXCXYNEMUOAIQKFQLLCX")
 	c.Assert(err, IsNil)
 	c.Check(memo.IsType(TxOutbound), Equals, true, Commentf("%s", memo.GetType()))
 	c.Check(memo.IsOutbound(), Equals, true)
@@ -240,11 +240,11 @@ func (s *MemoSuite) TestParse(c *C) {
 	c.Check(memo.String(), Equals, "MIGRATE:100")
 
 	txID := types.GetRandomTxHash()
-	memo, err = ParseMemo("OUTBOUND:" + txID.String())
+	memo, err = ParseMemo("OUT:" + txID.String())
 	c.Check(err, IsNil)
 	c.Check(memo.IsOutbound(), Equals, true)
 	c.Check(memo.GetTxID(), Equals, txID)
-	c.Check(memo.String(), Equals, "OUTBOUND:"+txID.String())
+	c.Check(memo.String(), Equals, "OUT:"+txID.String())
 
 	refundMemo := "REFUND:" + txID.String()
 	memo, err = ParseMemo(refundMemo)
@@ -315,7 +315,7 @@ func (s *MemoSuite) TestParse(c *C) {
 	c.Assert(err, NotNil)
 	_, err = ParseMemo("leave")
 	c.Assert(err, NotNil)
-	_, err = ParseMemo("outbound") // not enough parameter
+	_, err = ParseMemo("out") // not enough parameter
 	c.Assert(err, NotNil)
 	_, err = ParseMemo("bond") // not enough parameter
 	c.Assert(err, NotNil)
