@@ -57,7 +57,7 @@ func (gm *GasMgrV1) GetGas() common.Gas {
 // GetFee retrieve the network fee information from kv store, and calculate the dynamic fee customer should pay
 // the return value is the amount of fee in RUNE
 func (gm *GasMgrV1) GetFee(ctx cosmos.Context, chain common.Chain) int64 {
-	transactionFee := gm.constantsAccessor.GetInt64Value(constants.TransactionFee)
+	transactionFee := gm.constantsAccessor.GetInt64Value(constants.OutboundTransactionFee)
 	if chain.Equals(common.THORChain) {
 		return transactionFee
 	}

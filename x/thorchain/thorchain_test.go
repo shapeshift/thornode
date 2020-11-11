@@ -153,7 +153,7 @@ func (s *ThorchainSuite) TestChurn(c *C) {
 	c.Assert(keeper.SetNodeAccount(ctx, na), IsNil)
 
 	// trigger marking bad actors as well as a keygen
-	rotateHeight := consts.GetInt64Value(constants.RotatePerBlockHeight)
+	rotateHeight := consts.GetInt64Value(constants.ChurnInterval)
 	ctx = ctx.WithBlockHeight(rotateHeight)
 	c.Assert(mgr.ValidatorMgr().BeginBlock(ctx, consts), IsNil)
 
