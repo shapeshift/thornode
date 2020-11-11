@@ -66,15 +66,16 @@ func (h LeaveHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Versi
 		return nil, err
 	}
 
-	if err := h.handle(ctx, msg, version, constAccessor); err != nil {
-		ctx.Logger().Error("fail to process msg leave", "error", err)
-		return nil, err
+	if version.GTE(semver.MustParse("0.1.0")) {
+		if err := h.handleV1(ctx, msg, version, constAccessor); err != nil {
+			ctx.Logger().Error("fail to process msg leave", "error", err)
+			return nil, err
+		}
 	}
-
 	return &cosmos.Result{}, nil
 }
 
-func (h LeaveHandler) handle(ctx cosmos.Context, msg MsgLeave, version semver.Version, constAccessor constants.ConstantValues) error {
+func (h LeaveHandler) handleV1(ctx cosmos.Context, msg MsgLeave, version semver.Version, constAccessor constants.ConstantValues) error {
 	nodeAcc, err := h.keeper.GetNodeAccount(ctx, msg.NodeAddress)
 	if err != nil {
 		return ErrInternal(err, "fail to get node account by bond address")

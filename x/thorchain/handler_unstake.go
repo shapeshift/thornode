@@ -28,7 +28,7 @@ func NewUnstakeHandler(keeper keeper.Keeper, mgr Manager) UnstakeHandler {
 }
 
 // Run is the main entry point of unstake
-func (h UnstakeHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, _ constants.ConstantValues) (*cosmos.Result, error) {
+func (h UnstakeHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	msg, ok := m.(MsgUnStake)
 	if !ok {
 		return nil, errInvalidMessage
@@ -39,16 +39,10 @@ func (h UnstakeHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Ver
 		ctx.Logger().Error("MsgUnStake failed validation", "error", err)
 		return nil, err
 	}
-	if version.GTE(semver.MustParse("0.7.0")) {
-		result, err := h.handleV2(ctx, msg, version)
-		if err != nil {
-			ctx.Logger().Error("failed to process MsgUnStake", "error", err)
-		}
-		return result, err
-	}
-	result, err := h.handle(ctx, msg, version)
+
+	result, err := h.handle(ctx, msg, version, constAccessor)
 	if err != nil {
-		ctx.Logger().Error("failed to process MsgUnStake", "error", err)
+		ctx.Logger().Error("fail to process msg unstake", "error", err)
 	}
 	return result, err
 }
@@ -77,7 +71,16 @@ func (h UnstakeHandler) validateV1(ctx cosmos.Context, msg MsgUnStake) error {
 	return nil
 }
 
-func (h UnstakeHandler) handle(ctx cosmos.Context, msg MsgUnStake, version semver.Version) (*cosmos.Result, error) {
+func (h UnstakeHandler) handle(ctx cosmos.Context, msg MsgUnStake, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+	if version.GTE(semver.MustParse("0.7.0")) {
+		return h.handleV7(ctx, msg, version, constAccessor)
+	} else if version.GTE(semver.MustParse("0.1.0")) {
+		return h.handleV1(ctx, msg, version, constAccessor)
+	}
+	return nil, errBadVersion
+}
+
+func (h UnstakeHandler) handleV1(ctx cosmos.Context, msg MsgUnStake, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	staker, err := h.keeper.GetStaker(ctx, msg.Asset, msg.RuneAddress)
 	if err != nil {
 		return nil, multierror.Append(errFailGetStaker, err)
@@ -167,7 +170,7 @@ func (h UnstakeHandler) handle(ctx cosmos.Context, msg MsgUnStake, version semve
 	return &cosmos.Result{}, nil
 }
 
-func (h UnstakeHandler) handleV2(ctx cosmos.Context, msg MsgUnStake, version semver.Version) (*cosmos.Result, error) {
+func (h UnstakeHandler) handleV7(ctx cosmos.Context, msg MsgUnStake, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	staker, err := h.keeper.GetStaker(ctx, msg.Asset, msg.RuneAddress)
 	if err != nil {
 		return nil, multierror.Append(errFailGetStaker, err)
