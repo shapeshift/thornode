@@ -175,7 +175,7 @@ func (s *HandlerObservedTxOutSuite) testHandleWithVersion(c *C, ver semver.Versi
 
 	constAccessor := constants.GetConstantValues(ver)
 	tx := GetRandomTx()
-	tx.Memo = fmt.Sprintf("OUTBOUND:%s", tx.ID)
+	tx.Memo = fmt.Sprintf("OUT:%s", tx.ID)
 	obTx := NewObservedTx(tx, 12, GetRandomPubKey())
 	txs := ObservedTxs{obTx}
 	pk := GetRandomPubKey()
@@ -333,7 +333,7 @@ func setupAnObservedTxOut(ctx cosmos.Context, helper *HandlerObservedTxOutTestHe
 	tx.Coins = common.Coins{
 		common.NewCoin(common.BNBAsset, cosmos.NewUint(common.One*3)),
 	}
-	tx.Memo = "OUTBOUND:" + GetRandomTxHash().String()
+	tx.Memo = "OUT:" + GetRandomTxHash().String()
 	addr, err := pk.GetAddress(tx.Coins[0].Asset.Chain)
 	c.Assert(err, IsNil)
 	tx.ToAddress = GetRandomBNBAddress()

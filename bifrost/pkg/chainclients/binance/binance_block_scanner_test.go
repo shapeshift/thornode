@@ -298,7 +298,7 @@ func (s *BlockScannerTestSuite) TestFromTxToTxIn(c *C) {
 	c.Assert(txInItems, HasLen, 1)
 	txInItem := txInItems[0]
 	c.Check(txInItem, NotNil)
-	c.Check(txInItem.Memo, Equals, "OUTBOUND:825")
+	c.Check(txInItem.Memo, Equals, "OUT:825")
 	c.Check(txInItem.Sender, Equals, "tbnb1yycn4mh6ffwpjf584t8lpp7c27ghu03gpvqkfj")
 	c.Check(len(txInItem.Coins), Equals, 1)
 	c.Check(txInItem.Coins[0].Asset.String(), Equals, "BNB.RUNE-A1F")
@@ -330,7 +330,7 @@ func (s *BlockScannerTestSuite) TestFromStdTx(c *C) {
 		"tbnb1yycn4mh6ffwpjf584t8lpp7c27ghu03gpvqkfj",
 		"tbnb1yxfyeda8pnlxlmx0z3cwx74w9xevspwdpzdxpj",
 		types.Coins{types.Coin{Denom: "BNB", Amount: 194765912}},
-		"outbound:256",
+		"out:256",
 	)
 	c.Assert(err, IsNil)
 
@@ -339,7 +339,7 @@ func (s *BlockScannerTestSuite) TestFromStdTx(c *C) {
 	c.Assert(items, HasLen, 1)
 	item := items[0]
 	c.Check(item.Tx, Equals, "abcd")
-	c.Check(item.Memo, Equals, "outbound:256")
+	c.Check(item.Memo, Equals, "out:256")
 	c.Check(item.Sender, Equals, "tbnb1yycn4mh6ffwpjf584t8lpp7c27ghu03gpvqkfj")
 	c.Check(item.To, Equals, "tbnb1yxfyeda8pnlxlmx0z3cwx74w9xevspwdpzdxpj")
 

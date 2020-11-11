@@ -13,7 +13,7 @@ type OutboundMemo struct {
 
 func (m OutboundMemo) GetTxID() common.TxID { return m.TxID }
 func (m OutboundMemo) String() string {
-	return fmt.Sprintf("OUTBOUND:%s", m.TxID.String())
+	return fmt.Sprintf("OUT:%s", m.TxID.String())
 }
 
 func NewOutboundMemo(txID common.TxID) OutboundMemo {
