@@ -136,7 +136,7 @@ func (h NetworkFeeHandler) handleV13(ctx cosmos.Context, msg MsgNetworkFee, vers
 	}
 	h.keeper.SetObservedNetworkFeeVoter(ctx, voter)
 	// doesn't have consensus yet
-	if !voter.HasConsensusV13(active) {
+	if !voter.HasConsensus(active) {
 		ctx.Logger().Info("not having consensus yet, return")
 		return &cosmos.Result{}, nil
 	}

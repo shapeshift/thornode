@@ -8,7 +8,6 @@ import (
 	"sort"
 
 	"gitlab.com/thorchain/thornode/common"
-	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 const (
@@ -17,29 +16,7 @@ const (
 )
 
 // HasSuperMajority return true when it has 2/3 majority
-// Deprecated: this method will not return correct result for example signer:8 , total:15 it should be false , instead it will return true
-// use HasSuperMajorityV13 instead
 func HasSuperMajority(signers, total int) bool {
-	if signers > total {
-		return false // will not have majority if THORNode have more signers than node accounts. This shouldn't be possible
-	}
-	if signers <= 0 {
-		return false // edge case
-	}
-	mU := cosmos.NewUint(SuperMajorityFactor)
-
-	// 10*4 / (6.67*2) <= 3
-	// 4*4 / (3*2) <= 3
-	// 3*4 / (2*2) <= 3
-	// Is able to determine "majority" without needing floats or DECs
-	tU := cosmos.NewUint(uint64(total))
-	sU := cosmos.NewUint(uint64(signers))
-	factor := tU.MulUint64(2).Quo(sU)
-	return mU.GTE(factor)
-}
-
-// HasSuperMajorityV13 return true when it has 2/3 majority
-func HasSuperMajorityV13(signers, total int) bool {
 	if signers > total {
 		return false // will not have majority if THORNode have more signers than node accounts. This shouldn't be possible
 	}
@@ -55,26 +32,8 @@ func HasSuperMajorityV13(signers, total int) bool {
 }
 
 // HasSimpleMajority return true when it has more than 1/2
-// Deprecated: this method will not return correct result in some cases
-func HasSimpleMajority(signers, total int) bool {
-	if signers > total {
-		return false // will not have majority if THORNode have more signers than node accounts. This shouldn't be possible
-	}
-	if signers <= 0 {
-		return false // edge case
-	}
-	mU := cosmos.NewUint(SimpleMajorityFactor)
-
-	// Is able to determine "majority" without needing floats or DECs
-	tU := cosmos.NewUint(uint64(total))
-	sU := cosmos.NewUint(uint64(signers))
-	factor := tU.Quo(sU)
-	return mU.GTE(factor)
-}
-
-// HasSimpleMajorityV13 return true when it has more than 1/2
 // this method replace HasSimpleMajority, which is not correct
-func HasSimpleMajorityV13(signers, total int) bool {
+func HasSimpleMajority(signers, total int) bool {
 	if signers > total {
 		return false // will not have majority if THORNode have more signers than node accounts. This shouldn't be possible
 	}

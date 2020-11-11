@@ -231,7 +231,7 @@ func (h TssHandler) handleV13(ctx cosmos.Context, msg MsgTssPool, version semver
 	}
 	h.keeper.SetTssVoter(ctx, voter)
 	// doesn't have consensus yet
-	if !voter.HasConsensusV13() {
+	if !voter.HasConsensus() {
 		ctx.Logger().Info("not having consensus yet, return")
 		return &cosmos.Result{}, nil
 	}
@@ -245,7 +245,7 @@ func (h TssHandler) handleV13(ctx cosmos.Context, msg MsgTssPool, version semver
 			if msg.KeygenType == AsgardKeygen {
 				vaultType = AsgardVault
 			}
-			vault := NewVault(common.BlockHeight(ctx), ActiveVault, vaultType, voter.PoolPubKey, voter.ConsensusChainsV13())
+			vault := NewVault(common.BlockHeight(ctx), ActiveVault, vaultType, voter.PoolPubKey, voter.ConsensusChains())
 			vault.Membership = voter.PubKeys
 
 			signingParty, err := ChooseSignerParty(voter.PubKeys, common.BlockHeight(ctx), len(voter.PubKeys))

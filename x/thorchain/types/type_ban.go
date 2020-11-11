@@ -69,18 +69,3 @@ func (b BanVoter) HasConsensus(nodeAccounts NodeAccounts) bool {
 
 	return false
 }
-
-// HasConsensusV13 return true if there are majority accounts sign off the BanVoter
-func (b BanVoter) HasConsensusV13(nodeAccounts NodeAccounts) bool {
-	var count int
-	for _, signer := range b.Signers {
-		if nodeAccounts.IsNodeKeys(signer) {
-			count++
-		}
-	}
-	if HasSuperMajorityV13(count, len(nodeAccounts)) {
-		return true
-	}
-
-	return false
-}
