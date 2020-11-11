@@ -76,7 +76,6 @@ func (s *SlasherV1) HandleDoubleSign(ctx cosmos.Context, addr crypto.Address, in
 				slashAmount = na.Bond
 			}
 			na.Bond = common.SafeSub(na.Bond, slashAmount)
-
 			coin := common.NewCoin(common.RuneNative, slashAmount)
 			if err := s.keeper.SendFromModuleToModule(ctx, BondName, ReserveName, coin); err != nil {
 				ctx.Logger().Error("fail to transfer funds from bond to reserve", "error", err)
@@ -92,30 +91,57 @@ func (s *SlasherV1) HandleDoubleSign(ctx cosmos.Context, addr crypto.Address, in
 
 // LackObserving Slash node accounts that didn't observe a single inbound txn
 func (s *SlasherV1) LackObserving(ctx cosmos.Context, constAccessor constants.ConstantValues) error {
-	accs, err := s.keeper.GetObservingAddresses(ctx)
-	if err != nil {
-		return fmt.Errorf("fail to get observing addresses: %w", err)
-	}
-
-	if len(accs) == 0 {
-		// nobody observed anything, THORNode must of had no input txs within this block
+	signingTransPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
+	height := ctx.BlockHeight()
+	if height < signingTransPeriod {
 		return nil
 	}
+	heightToCheck := height - signingTransPeriod
+	tx, err := s.keeper.GetTxOut(ctx, heightToCheck)
+	if err != nil {
+		return fmt.Errorf("fail to get txout for block height(%d): %w", heightToCheck, err)
+	}
+	// no txout , return
+	if tx == nil || tx.IsEmpty() {
+		return nil
+	}
+	for _, item := range tx.TxArray {
+		if item.InHash.IsEmpty() {
+			continue
+		}
+		if item.InHash.Equals(common.BlankTxID) {
+			continue
+		}
+		if err := s.slashNotObserving(ctx, item.InHash, constAccessor); err != nil {
+			ctx.Logger().Error("fail to slash not observing", "error", err)
+		}
+	}
 
+	return nil
+}
+
+func (s *SlasherV1) slashNotObserving(ctx cosmos.Context, txHash common.TxID, constAccessor constants.ConstantValues) error {
+	voter, err := s.keeper.GetObservedTxInVoter(ctx, txHash)
+	if err != nil {
+		return fmt.Errorf("fail to get observe txin voter (%s): %w", txHash.String(), err)
+	}
 	nodes, err := s.keeper.ListActiveNodeAccounts(ctx)
 	if err != nil {
 		return fmt.Errorf("unable to get list of active accounts: %w", err)
 	}
 
 	for _, na := range nodes {
+		// the node is active after the tx finalised
+		if na.ActiveBlockHeight > voter.Height {
+			continue
+		}
 		found := false
-		for _, addr := range accs {
+		for _, addr := range voter.Txs[0].Signers {
 			if na.NodeAddress.Equals(addr) {
 				found = true
 				break
 			}
 		}
-
 		// this na is not found, therefore it should be slashed
 		if !found {
 			lackOfObservationPenalty := constAccessor.GetInt64Value(constants.LackOfObservationPenalty)
@@ -124,7 +150,6 @@ func (s *SlasherV1) LackObserving(ctx cosmos.Context, constAccessor constants.Co
 			}
 		}
 	}
-
 	return nil
 }
 
@@ -224,15 +249,15 @@ func (s *SlasherV1) LackSigning(ctx cosmos.Context, constAccessor constants.Cons
 				tx.Memo = mark.Memo
 			}
 
-			// Save the tx to as a new tx, select Asgard to send it this time.
-			tx.VaultPubKey = vault.PubKey
-
 			memo, _ := ParseMemo(tx.Memo) // ignore err
 			if memo.IsInternal() {
 				// there is a different mechanism for rescheduling outbound
 				// transactions for migration transactions
 				continue
 			}
+
+			// Save the tx to as a new tx, select Asgard to send it this time.
+			tx.VaultPubKey = vault.PubKey
 
 			// if a pool with the asset name doesn't exist, skip rescheduling
 			if !tx.Coin.Asset.IsRune() && !s.keeper.PoolExist(ctx, tx.Coin.Asset) {

@@ -1,6 +1,7 @@
 package thorchain
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/blang/semver"
@@ -12,6 +13,13 @@ import (
 	"gitlab.com/thorchain/thornode/constants"
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
+
+const (
+	genesisBlockHeight = 1
+)
+
+// ErrNotEnoughToPayFee will happen when the emitted asset is not enough to pay for fee
+var ErrNotEnoughToPayFee = errors.New("not enough asset to pay for fees")
 
 // Manager is an interface to define all the required methods
 type Manager interface {
@@ -224,9 +232,7 @@ func GetEventManager(version semver.Version) (EventManager, error) {
 // GetTxOutStore will return an implementation of the txout store that
 func GetTxOutStore(keeper keeper.Keeper, version semver.Version, eventMgr EventManager, gasManager GasManager) (TxOutStore, error) {
 	constAcessor := constants.GetConstantValues(version)
-	if version.GTE(semver.MustParse("0.13.0")) {
-		return NewTxOutStorageV13(keeper, constAcessor, eventMgr, gasManager), nil
-	} else if version.GTE(semver.MustParse("0.1.0")) {
+	if version.GTE(semver.MustParse("0.1.0")) {
 		return NewTxOutStorageV1(keeper, constAcessor, eventMgr, gasManager), nil
 	}
 	return nil, errInvalidVersion
@@ -242,9 +248,7 @@ func GetVaultManager(keeper keeper.Keeper, version semver.Version, txOutStore Tx
 
 // GetValidatorManager create a new instance of Validator Manager
 func GetValidatorManager(keeper keeper.Keeper, version semver.Version, vaultMgr VaultManager, txOutStore TxOutStore, eventMgr EventManager) (ValidatorManager, error) {
-	if version.GTE(semver.MustParse("0.13.0")) {
-		return newValidatorMgrV13(keeper, vaultMgr, txOutStore, eventMgr), nil
-	} else if version.GTE(semver.MustParse("0.1.0")) {
+	if version.GTE(semver.MustParse("0.1.0")) {
 		return newValidatorMgrV1(keeper, vaultMgr, txOutStore, eventMgr), nil
 	}
 	return nil, errInvalidVersion
@@ -269,11 +273,7 @@ func GetSwapQueue(keeper keeper.Keeper, version semver.Version) (SwapQueue, erro
 
 // GetSlasher return an implementation of Slasher
 func GetSlasher(keeper keeper.Keeper, version semver.Version) (Slasher, error) {
-	if version.GTE(semver.MustParse("0.17.0")) {
-		return NewSlasherV17(keeper), nil
-	} else if version.GTE(semver.MustParse("0.13.0")) {
-		return NewSlasherV13(keeper), nil
-	} else if version.GTE(semver.MustParse("0.1.0")) {
+	if version.GTE(semver.MustParse("0.1.0")) {
 		return NewSlasherV1(keeper), nil
 	}
 	return nil, errInvalidVersion
@@ -281,9 +281,7 @@ func GetSlasher(keeper keeper.Keeper, version semver.Version) (Slasher, error) {
 
 // GetYggManager return an implementation of YggManager
 func GetYggManager(keeper keeper.Keeper, version semver.Version) (YggManager, error) {
-	if version.GTE(semver.MustParse("0.13.0")) {
-		return NewYggMgrV13(keeper), nil
-	} else if version.GTE(semver.MustParse("0.1.0")) {
+	if version.GTE(semver.MustParse("0.1.0")) {
 		return NewYggMgrV1(keeper), nil
 	}
 	return nil, errInvalidVersion

@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/hashicorp/go-multierror"
+
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
@@ -54,6 +56,10 @@ func (ymgr YggMgrV1) Fund(ctx cosmos.Context, mgr Manager, constAccessor constan
 		return nil
 	}
 
+	// check abandon yggdrasil
+	if err := ymgr.abandonYggdrasilVaults(ctx, mgr); err != nil {
+		ctx.Logger().Error("fail to check whether need to abandon yggdrasil vault", "error", err)
+	}
 	// Gather list of all pools
 	pools, err := ymgr.keeper.GetPools(ctx)
 	if err != nil {
@@ -131,7 +137,7 @@ func (ymgr YggMgrV1) Fund(ctx cosmos.Context, mgr Manager, constAccessor constan
 	}
 
 	if len(sendCoins) > 0 {
-		count, err := ymgr.sendCoinsToYggdrasil(ctx, sendCoins, ygg, mgr)
+		count, err := ymgr.sendCoinsToYggdrasil(ctx, sendCoins, ygg, mgr, constAccessor)
 		if err != nil {
 			return err
 		}
@@ -148,7 +154,7 @@ func (ymgr YggMgrV1) Fund(ctx cosmos.Context, mgr Manager, constAccessor constan
 
 // sendCoinsToYggdrasil - adds outbound txs to send the given coins to a
 // yggdrasil pool
-func (ymgr YggMgrV1) sendCoinsToYggdrasil(ctx cosmos.Context, coins common.Coins, ygg Vault, mgr Manager) (int, error) {
+func (ymgr YggMgrV1) sendCoinsToYggdrasil(ctx cosmos.Context, coins common.Coins, ygg Vault, mgr Manager, constAccessor constants.ConstantValues) (int, error) {
 	var count int
 
 	active, err := ymgr.keeper.GetAsgardVaultsByStatus(ctx, ActiveVault)
@@ -172,8 +178,16 @@ func (ymgr YggMgrV1) sendCoinsToYggdrasil(ctx cosmos.Context, coins common.Coins
 			if coin.Amount.Equal(cosmos.ZeroUint()) {
 				continue
 			}
+
 			// select active vault to send funds from
-			vault := active.SelectByMaxCoin(coin.Asset)
+			filterVaults := make(Vaults, 0)
+			for _, v := range active {
+				if !coin.Amount.GT(v.GetCoin(coin.Asset).Amount) {
+					filterVaults = append(filterVaults, v)
+				}
+			}
+			signingTransactionPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
+			vault := ymgr.keeper.GetLeastSecure(ctx, filterVaults, signingTransactionPeriod)
 			if vault.IsEmpty() {
 				continue
 			}
@@ -203,7 +217,6 @@ func (ymgr YggMgrV1) sendCoinsToYggdrasil(ctx cosmos.Context, coins common.Coins
 					gasCoin,
 				},
 			}
-
 			if err := mgr.TxOutStore().UnSafeAddTxOutItem(ctx, mgr, toi); err != nil {
 				return count, err
 			}
@@ -262,7 +275,9 @@ func (ymgr YggMgrV1) calcTargetYggCoins(pools []Pool, ygg Vault, yggBond, totalB
 		coin := common.NewCoin(pool.Asset, common.SafeSub(assetAmt, yggCoin.Amount))
 		if !coin.IsEmpty() {
 			counter = counter.Add(runeAmt)
-			coins = append(coins, coin)
+			if !coin.IsNative() {
+				coins = append(coins, coin)
+			}
 		}
 	}
 
@@ -270,7 +285,9 @@ func (ymgr YggMgrV1) calcTargetYggCoins(pools []Pool, ygg Vault, yggBond, totalB
 	runeCoin.Amount = common.SafeSub(runeCoin.Amount, yggRune.Amount)
 	if !runeCoin.IsEmpty() {
 		counter = counter.Add(runeCoin.Amount)
-		coins = append(coins, runeCoin)
+		if !runeCoin.IsNative() {
+			coins = append(coins, runeCoin)
+		}
 	}
 
 	// ensure THORNode don't send too much value in coins to the ygg pool
@@ -279,4 +296,90 @@ func (ymgr YggMgrV1) calcTargetYggCoins(pools []Pool, ygg Vault, yggBond, totalB
 	}
 
 	return coins, nil
+}
+
+// abandonYggdrasilVaults is going to find out those yggdrasil pool
+func (ymgr YggMgrV1) abandonYggdrasilVaults(ctx cosmos.Context, mgr Manager) error {
+	activeVaults, err := ymgr.keeper.GetAsgardVaultsByStatus(ctx, ActiveVault)
+	if err != nil {
+		return fmt.Errorf("fail to get active asgard vaults: %w", err)
+	}
+	retiringAsgards, err := ymgr.keeper.GetAsgardVaultsByStatus(ctx, RetiringVault)
+	if err != nil {
+		return fmt.Errorf("fail to get retiring asgard vaults: %w", err)
+	}
+	allVaults := append(activeVaults, retiringAsgards...)
+
+	slasher := mgr.Slasher()
+	vaultIter := ymgr.keeper.GetVaultIterator(ctx)
+	defer vaultIter.Close()
+	for ; vaultIter.Valid(); vaultIter.Next() {
+		var v Vault
+		if err := ymgr.keeper.Cdc().UnmarshalBinaryBare(vaultIter.Value(), &v); err != nil {
+			ctx.Logger().Error("fail to unmarshal vault", "error", err)
+			continue
+		}
+		if !v.IsYggdrasil() {
+			continue
+		}
+		if !v.HasFunds() {
+			continue
+		}
+		na, err := ymgr.keeper.GetNodeAccountByPubKey(ctx, v.PubKey)
+		if err != nil {
+			ctx.Logger().Error("fail to get node account by pub key", "error", err, "pubkey", v.PubKey)
+			continue
+		}
+		if na.Status != NodeDisabled {
+			continue
+		}
+		if na.Bond.IsZero() {
+			continue
+		}
+
+		// check whether the disabled node is part of the active vault / retiring vault
+		// when the node is still belongs to the retiring vault means , it has just been churned out
+		// thus give it more time to return yggdrasil fund
+		shouldSlash := true
+		for _, vault := range allVaults {
+			if vault.Contains(na.PubKeySet.Secp256k1) {
+				shouldSlash = false
+				break
+			}
+		}
+		if !shouldSlash {
+			continue
+		}
+
+		if err := ymgr.slash(ctx, slasher, mgr, na.PubKeySet.Secp256k1, v); err != nil {
+			ctx.Logger().Error("fail to slash node account", "key", na.PubKeySet.Secp256k1, "error", err)
+			continue
+		}
+
+		// assume slash finished successfully, delete the yggdrasil vault
+		if err := ymgr.keeper.DeleteVault(ctx, na.PubKeySet.Secp256k1); err != nil {
+			ctx.Logger().Error("fail to delete yggdrasil vault", "key", na.PubKeySet.Secp256k1, "error", err)
+		}
+	}
+	return nil
+}
+
+func (ymgr YggMgrV1) slash(ctx cosmos.Context, slasher Slasher, mgr Manager, pk common.PubKey, ygg Vault) error {
+	ctx.Logger().Info(fmt.Sprintf("slash, node account %s churned out , but fail to return yggdrasil fund", pk.String()), "coins", ygg.Coins.String())
+	var returnErr error
+	for _, c := range ygg.Coins {
+		if err := slasher.SlashNodeAccount(ctx, pk, c.Asset, c.Amount, mgr); err != nil {
+			ctx.Logger().Error("fail to slash account", "error", err)
+			if returnErr == nil {
+				returnErr = err
+			} else {
+				returnErr = multierror.Append(returnErr, err)
+			}
+		}
+		ygg.SubFunds(common.Coins{c})
+		if err := ymgr.keeper.SetVault(ctx, ygg); err != nil {
+			return fmt.Errorf("fail to save yggdrasil vault: %w", err)
+		}
+	}
+	return returnErr
 }
