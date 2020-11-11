@@ -39,7 +39,7 @@ func (h StakeHandler) validateV1(ctx cosmos.Context, msg MsgStake, constAccessor
 		return errStakeFailValidation
 	}
 
-	ensureStakeNoLargerThanBond := constAccessor.GetBoolValue(constants.StrictBondStakeRatio)
+	ensureStakeNoLargerThanBond := constAccessor.GetBoolValue(constants.StrictBondLiquidityRatio)
 	// the following  only applicable for chaosnet
 	totalStakeRUNE, err := h.getTotalStakeRUNE(ctx)
 	if err != nil {
