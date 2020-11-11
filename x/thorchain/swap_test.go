@@ -82,7 +82,7 @@ func (k *TestSwapKeeper) GetGas(ctx cosmos.Context, _ common.Asset) ([]cosmos.Ui
 func (k *TestSwapKeeper) GetAsgardVaultsByStatus(ctx cosmos.Context, status VaultStatus) (Vaults, error) {
 	vault := GetRandomVault()
 	vault.Coins = common.Coins{
-		common.NewCoin(common.BNBAsset, cosmos.NewUint(100*common.One)),
+		common.NewCoin(common.BNBAsset, cosmos.NewUint(10000*common.One)),
 	}
 	return Vaults{
 		vault,
@@ -96,6 +96,14 @@ func (k *TestSwapKeeper) GetObservedTxInVoter(ctx cosmos.Context, hash common.Tx
 }
 func (k *TestSwapKeeper) AppendTxMarker(_ cosmos.Context, _ string, _ TxMarker) error { return nil }
 func (k *TestSwapKeeper) AppendTxOut(_ cosmos.Context, _ int64, _ *TxOutItem) error   { return nil }
+func (k *TestSwapKeeper) GetTxOut(ctx cosmos.Context, height int64) (*TxOut, error) {
+	return NewTxOut(1), nil
+}
+
+func (k *TestSwapKeeper) GetLeastSecure(_ cosmos.Context, vaults Vaults, _ int64) Vault {
+	return vaults[0]
+}
+
 func (s *SwapSuite) TestSwap(c *C) {
 	poolStorage := &TestSwapKeeper{}
 	ctx, _ := setupKeeperForTest(c)
