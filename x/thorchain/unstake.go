@@ -64,7 +64,7 @@ func unstake(ctx cosmos.Context, version semver.Version, keeper keeper.Keeper, m
 
 	cv := constants.GetConstantValues(version)
 	height := common.BlockHeight(ctx)
-	if height < (stakerUnit.LastStakeHeight + cv.GetInt64Value(constants.StakeLockUpBlocks)) {
+	if height < (stakerUnit.LastStakeHeight + cv.GetInt64Value(constants.LiquidityLockUpBlocks)) {
 		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), errUnstakeWithin24Hours
 	}
 

@@ -149,7 +149,7 @@ func (HandlerStakeSuite) TestStakeHandler_NoPool_ShouldCreateNewPool(c *C) {
 	constAccessor := constants.NewDummyConstants(map[constants.ConstantName]int64{
 		constants.MaximumStakeRune: 600_000_00000000,
 	}, map[constants.ConstantName]bool{
-		constants.StrictBondStakeRatio: true,
+		constants.StrictBondLiquidityRatio: true,
 	}, map[constants.ConstantName]string{})
 
 	msgSetStake := NewMsgStake(
@@ -220,7 +220,7 @@ func (HandlerStakeSuite) TestStakeHandlerValidation(c *C) {
 	constAccessor := constants.NewDummyConstants(map[constants.ConstantName]int64{
 		constants.MaximumStakeRune: 600_000_00000000,
 	}, map[constants.ConstantName]bool{
-		constants.StrictBondStakeRatio: true,
+		constants.StrictBondLiquidityRatio: true,
 	}, map[constants.ConstantName]string{})
 
 	for _, item := range testCases {

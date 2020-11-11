@@ -78,7 +78,7 @@ func (h ErrataTxHandler) handleV1(ctx cosmos.Context, msg MsgErrataTx, version s
 		return nil, err
 	}
 	observeSlashPoints := constAccessor.GetInt64Value(constants.ObserveSlashPoints)
-	observeFlex := constAccessor.GetInt64Value(constants.ObserveFlex)
+	observeFlex := constAccessor.GetInt64Value(constants.ObservationDelayFlexibility)
 	h.mgr.Slasher().IncSlashPoints(ctx, observeSlashPoints, msg.Signer)
 	if !voter.Sign(msg.Signer) {
 		ctx.Logger().Info("signer already signed MsgErrataTx", "signer", msg.Signer.String(), "txid", msg.TxID)

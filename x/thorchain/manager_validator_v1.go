@@ -55,9 +55,9 @@ func (vm *validatorMgrV1) BeginBlock(ctx cosmos.Context, constAccessor constants
 		return err
 	}
 
-	rotatePerBlockHeight, err := vm.k.GetMimir(ctx, constants.RotatePerBlockHeight.String())
-	if rotatePerBlockHeight < 0 || err != nil {
-		rotatePerBlockHeight = constAccessor.GetInt64Value(constants.RotatePerBlockHeight)
+	churnInterval, err := vm.k.GetMimir(ctx, constants.ChurnInterval.String())
+	if churnInterval < 0 || err != nil {
+		churnInterval = constAccessor.GetInt64Value(constants.ChurnInterval)
 	}
 
 	// when total active nodes is more than MinimumNodesForBFT + 2, start to churn node in and out
@@ -77,7 +77,7 @@ func (vm *validatorMgrV1) BeginBlock(ctx cosmos.Context, constAccessor constants
 			return err
 		}
 		// when the active nodes didn't upgrade , boot them out one at a time
-		if err := vm.markLowerVersion(ctx, rotatePerBlockHeight); err != nil {
+		if err := vm.markLowerVersion(ctx, churnInterval); err != nil {
 			return err
 		}
 	}
@@ -95,17 +95,17 @@ func (vm *validatorMgrV1) BeginBlock(ctx cosmos.Context, constAccessor constants
 	}
 
 	// get constants
-	desireValidatorSet, err := vm.k.GetMimir(ctx, constants.DesireValidatorSet.String())
-	if desireValidatorSet < 0 || err != nil {
-		desireValidatorSet = constAccessor.GetInt64Value(constants.DesireValidatorSet)
+	desiredValidatorSet, err := vm.k.GetMimir(ctx, constants.DesiredValidatorSet.String())
+	if desiredValidatorSet < 0 || err != nil {
+		desiredValidatorSet = constAccessor.GetInt64Value(constants.DesiredValidatorSet)
 	}
-	rotateRetryBlocks := constAccessor.GetInt64Value(constants.RotateRetryBlocks)
+	churnRetryInterval := constAccessor.GetInt64Value(constants.ChurnRetryInterval)
 
 	// calculate if we need to retry a churn because we are overdue for a
 	// successful one
-	retryChurn := common.BlockHeight(ctx)-lastHeight > rotatePerBlockHeight && (common.BlockHeight(ctx)-lastHeight-rotatePerBlockHeight)%rotateRetryBlocks == 0
+	retryChurn := common.BlockHeight(ctx)-lastHeight > churnInterval && (common.BlockHeight(ctx)-lastHeight-churnInterval)%churnRetryInterval == 0
 
-	if common.BlockHeight(ctx)%rotatePerBlockHeight == 0 || retryChurn {
+	if common.BlockHeight(ctx)%churnInterval == 0 || retryChurn {
 		if retryChurn {
 			ctx.Logger().Info("Checking for node account rotation... (retry)")
 		} else {
@@ -124,7 +124,7 @@ func (vm *validatorMgrV1) BeginBlock(ctx cosmos.Context, constAccessor constants
 			}
 		}
 
-		next, ok, err := vm.nextVaultNodeAccounts(ctx, int(desireValidatorSet), constAccessor)
+		next, ok, err := vm.nextVaultNodeAccounts(ctx, int(desiredValidatorSet), constAccessor)
 		if err != nil {
 			return err
 		}
@@ -824,12 +824,12 @@ func (vm *validatorMgrV1) setupValidatorNodes(ctx cosmos.Context, height int64, 
 	sort.Sort(activeCandidateNodes)
 	sort.Sort(readyNodes)
 	activeCandidateNodes = append(activeCandidateNodes, readyNodes...)
-	desireValidatorSet, err := vm.k.GetMimir(ctx, constants.DesireValidatorSet.String())
-	if desireValidatorSet < 0 || err != nil {
-		desireValidatorSet = constAccessor.GetInt64Value(constants.DesireValidatorSet)
+	desiredValidatorSet, err := vm.k.GetMimir(ctx, constants.DesiredValidatorSet.String())
+	if desiredValidatorSet < 0 || err != nil {
+		desiredValidatorSet = constAccessor.GetInt64Value(constants.DesiredValidatorSet)
 	}
 	for idx, item := range activeCandidateNodes {
-		if int64(idx) < desireValidatorSet {
+		if int64(idx) < desiredValidatorSet {
 			item.UpdateStatus(NodeActive, common.BlockHeight(ctx))
 		} else {
 			item.UpdateStatus(NodeStandby, common.BlockHeight(ctx))

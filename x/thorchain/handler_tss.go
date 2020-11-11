@@ -103,7 +103,7 @@ func (h TssHandler) handleV1(ctx cosmos.Context, msg MsgTssPool, version semver.
 		voter.PubKeys = msg.PubKeys
 	}
 	observeSlashPoints := constAccessor.GetInt64Value(constants.ObserveSlashPoints)
-	observeFlex := constAccessor.GetInt64Value(constants.ObserveFlex)
+	observeFlex := constAccessor.GetInt64Value(constants.ObservationDelayFlexibility)
 	h.mgr.Slasher().IncSlashPoints(ctx, observeSlashPoints, msg.Signer)
 	if !voter.Sign(msg.Signer, msg.Chains) {
 		ctx.Logger().Info("signer already signed MsgTssPool", "signer", msg.Signer.String(), "txid", msg.ID)
@@ -222,7 +222,7 @@ func (h TssHandler) handleV13(ctx cosmos.Context, msg MsgTssPool, version semver
 		voter.PubKeys = msg.PubKeys
 	}
 	observeSlashPoints := constAccessor.GetInt64Value(constants.ObserveSlashPoints)
-	observeFlex := constAccessor.GetInt64Value(constants.ObserveFlex)
+	observeFlex := constAccessor.GetInt64Value(constants.ObservationDelayFlexibility)
 	h.mgr.Slasher().IncSlashPoints(ctx, observeSlashPoints, msg.Signer)
 	if !voter.Sign(msg.Signer, msg.Chains) {
 		ctx.Logger().Info("signer already signed MsgTssPool", "signer", msg.Signer.String(), "txid", msg.ID)

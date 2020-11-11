@@ -192,7 +192,7 @@ func (tos *TxOutStorageV1) prepareTxOutItem(ctx cosmos.Context, toi *TxOutItem) 
 		}
 	}
 
-	// Deduct TransactionFee from TOI and add to Reserve
+	// Deduct OutboundTransactionFee from TOI and add to Reserve
 	memo, err := ParseMemo(toi.Memo) // ignore err
 	if err == nil && !memo.IsType(TxYggdrasilFund) && !memo.IsType(TxYggdrasilReturn) && !memo.IsType(TxMigrate) && !memo.IsType(TxRagnarok) {
 		var runeFee cosmos.Uint

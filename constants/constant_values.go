@@ -12,18 +12,15 @@ type ConstantName int
 const (
 	EmissionCurve ConstantName = iota
 	BlocksPerYear
-	TransactionFee
+	OutboundTransactionFee
 	NativeChainGasFee
 	NewPoolCycle
 	MinimumNodesForYggdrasil
 	MinimumNodesForBFT
-	ValidatorRotateInNumBeforeFull
-	ValidatorRotateOutNumBeforeFull
-	ValidatorRotateNumAfterFull
-	DesireValidatorSet
+	DesiredValidatorSet
 	AsgardSize
-	RotatePerBlockHeight
-	RotateRetryBlocks
+	ChurnInterval
+	ChurnRetryInterval
 	ValidatorsChangeWindow
 	LeaveProcessPerBlockHeight
 	BadValidatorRate
@@ -36,13 +33,13 @@ const (
 	WhiteListGasAsset
 	ArtificialRagnarokBlockHeight
 	MaximumStakeRune
-	StrictBondStakeRatio
+	StrictBondLiquidityRatio
 	DefaultPoolStatus
 	FailKeygenSlashPoints
-	FailKeySignSlashPoints
-	StakeLockUpBlocks
+	FailKeysignSlashPoints
+	LiquidityLockUpBlocks
 	ObserveSlashPoints
-	ObserveFlex
+	ObservationDelayFlexibility
 	YggFundLimit
 	JailTimeKeygen
 	JailTimeKeysign
@@ -50,43 +47,40 @@ const (
 )
 
 var nameToString = map[ConstantName]string{
-	EmissionCurve:                   "EmissionCurve",
-	BlocksPerYear:                   "BlocksPerYear",
-	TransactionFee:                  "TransactionFee",
-	NativeChainGasFee:               "NativeChainGasFee",
-	NewPoolCycle:                    "NewPoolCycle",
-	MinimumNodesForYggdrasil:        "MinimumNodesForYggdrasil",
-	MinimumNodesForBFT:              "MinimumNodesForBFT",
-	ValidatorRotateInNumBeforeFull:  "ValidatorRotateInNumBeforeFull",
-	ValidatorRotateOutNumBeforeFull: "ValidatorRotateOutNumBeforeFull",
-	ValidatorRotateNumAfterFull:     "ValidatorRotateNumAfterFull",
-	DesireValidatorSet:              "DesireValidatorSet",
-	AsgardSize:                      "AsgardSize",
-	RotatePerBlockHeight:            "RotatePerBlockHeight",
-	RotateRetryBlocks:               "RotateRetryBlocks",
-	ValidatorsChangeWindow:          "ValidatorsChangeWindow",
-	LeaveProcessPerBlockHeight:      "LeaveProcessPerBlockHeight",
-	BadValidatorRate:                "BadValidatorRate",
-	OldValidatorRate:                "OldValidatorRate",
-	LackOfObservationPenalty:        "LackOfObservationPenalty",
-	SigningTransactionPeriod:        "SigningTransactionPeriod",
-	DoubleSignMaxAge:                "DoubleSignMaxAge",
-	MinimumBondInRune:               "MinimumBondInRune",
-	FundMigrationInterval:           "FundMigrationInterval",
-	WhiteListGasAsset:               "WhiteListGasAsset",
-	ArtificialRagnarokBlockHeight:   "ArtificialRagnarokBlockHeight",
-	MaximumStakeRune:                "MaximumStakeRune",
-	StrictBondStakeRatio:            "StrictBondStakeRatio",
-	DefaultPoolStatus:               "DefaultPoolStatus",
-	FailKeygenSlashPoints:           "FailKeygenSlashPoints",
-	FailKeySignSlashPoints:          "FailKeySignSlashPoints",
-	StakeLockUpBlocks:               "StakeLockUpBlocks",
-	ObserveSlashPoints:              "ObserveSlashPoints",
-	ObserveFlex:                     "ObserveFlex",
-	YggFundLimit:                    "YggFundLimit",
-	JailTimeKeygen:                  "JailTimeKeygen",
-	JailTimeKeysign:                 "JailTimeKeysign",
-	CliTxCost:                       "CliTxCost",
+	EmissionCurve:                 "EmissionCurve",
+	BlocksPerYear:                 "BlocksPerYear",
+	OutboundTransactionFee:        "OutboundTransactionFee",
+	NativeChainGasFee:             "NativeChainGasFee",
+	NewPoolCycle:                  "NewPoolCycle",
+	MinimumNodesForYggdrasil:      "MinimumNodesForYggdrasil",
+	MinimumNodesForBFT:            "MinimumNodesForBFT",
+	DesiredValidatorSet:           "DesiredValidatorSet",
+	AsgardSize:                    "AsgardSize",
+	ChurnInterval:                 "ChurnInterval",
+	ChurnRetryInterval:            "ChurnRetryInterval",
+	ValidatorsChangeWindow:        "ValidatorsChangeWindow",
+	LeaveProcessPerBlockHeight:    "LeaveProcessPerBlockHeight",
+	BadValidatorRate:              "BadValidatorRate",
+	OldValidatorRate:              "OldValidatorRate",
+	LackOfObservationPenalty:      "LackOfObservationPenalty",
+	SigningTransactionPeriod:      "SigningTransactionPeriod",
+	DoubleSignMaxAge:              "DoubleSignMaxAge",
+	MinimumBondInRune:             "MinimumBondInRune",
+	FundMigrationInterval:         "FundMigrationInterval",
+	WhiteListGasAsset:             "WhiteListGasAsset",
+	ArtificialRagnarokBlockHeight: "ArtificialRagnarokBlockHeight",
+	MaximumStakeRune:              "MaximumStakeRune",
+	StrictBondLiquidityRatio:      "StrictBondLiquidityRatio",
+	DefaultPoolStatus:             "DefaultPoolStatus",
+	FailKeygenSlashPoints:         "FailKeygenSlashPoints",
+	FailKeysignSlashPoints:        "FailKeysignSlashPoints",
+	LiquidityLockUpBlocks:         "LiquidityLockUpBlocks",
+	ObserveSlashPoints:            "ObserveSlashPoints",
+	ObservationDelayFlexibility:   "ObservationDelayFlexibility",
+	YggFundLimit:                  "YggFundLimit",
+	JailTimeKeygen:                "JailTimeKeygen",
+	JailTimeKeysign:               "JailTimeKeysign",
+	CliTxCost:                     "CliTxCost",
 }
 
 // String implement fmt.stringer
