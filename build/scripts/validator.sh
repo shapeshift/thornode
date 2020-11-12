@@ -68,7 +68,16 @@ if [ ! -f ~/.thord/config/genesis.json ]; then
         # send bond transaction to mock binance
         $(dirname "$0")/mock-bond.sh $BINANCE $ADDRESS $NODE_ADDRESS $PEER_API
 
+        # switch the BNB bond to native RUNE
+        $(dirname "$0")/mock-switch.sh $BINANCE $ADDRESS $NODE_ADDRESS $PEER_API
+
         sleep 30 # wait for thorchain to register the new node account
+        # send native rune tx
+        $(dirname "$0")/native-rune-payload.sh $PEER_API '[{"asset": "RUNE","amount": "100000000000000"}]' "bond:$NODE_ADDRESS" $NODE_ADDRESS tmp.json
+
+        printf "$SIGNER_PASSWD\n$SIGNER_PASSWD\n" | thorcli tx sign tmp.json --node tcp://$PEER:26657 --from $SIGNER_NAME --output-document tmp-signed.json
+        printf "$SIGNER_PASSWD\n" | thorcli tx broadcast tmp-signed.json  --node tcp://$PEER:26657 --from $SIGNER_NAME
+        # send bond
 
         NODE_PUB_KEY=$(echo $SIGNER_PASSWD | thorcli keys show thorchain --pubkey)
         VALIDATOR=$(thord tendermint show-validator)
