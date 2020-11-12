@@ -119,7 +119,7 @@ func (HandlerUnstakeSuite) TestUnstakeHandler(c *C) {
 	// Happy path , this is a round trip , first we stake, then we unstake
 	runeAddr := GetRandomRUNEAddress()
 	stakeHandler := NewStakeHandler(k, NewDummyMgr())
-	err := stakeHandler.stakeV14(ctx,
+	err := stakeHandler.stakeV1(ctx,
 		common.BNBAsset,
 		cosmos.NewUint(common.One*100),
 		cosmos.NewUint(common.One*100),
