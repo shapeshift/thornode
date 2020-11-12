@@ -266,17 +266,6 @@ func (s *HandlerYggdrasilSuite) TestYggdrasilHandler(c *C) {
 			},
 		},
 		{
-			name: "fail to get asgard vaults should return an error",
-			messageCreator: func(helper yggdrasilHandlerTestHelper) cosmos.Msg {
-				return NewMsgYggdrasil(GetRandomTx(), helper.yggVault.PubKey, 12, false, common.Coins{common.NewCoin(common.BNBAsset, cosmos.OneUint())}, helper.nodeAccount.NodeAddress)
-			},
-			runner: func(handler YggdrasilHandler, msg cosmos.Msg, helper yggdrasilHandlerTestHelper) (*cosmos.Result, error) {
-				helper.keeper.errGetAsgardVaults = true
-				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
-			},
-			expectedResult: errInternal,
-		},
-		{
 			name: "fail to get node accounts should return an error",
 			messageCreator: func(helper yggdrasilHandlerTestHelper) cosmos.Msg {
 				fromAddr, _ := helper.yggVault.PubKey.GetAddress(common.BNBChain)
