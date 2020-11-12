@@ -26,9 +26,7 @@ func NewBondHandler(keeper keeper.Keeper, mgr Manager) BondHandler {
 }
 
 func (h BondHandler) validate(ctx cosmos.Context, msg MsgBond, version semver.Version, constAccessor constants.ConstantValues) error {
-	if version.GTE(semver.MustParse("0.8.0")) {
-		return h.validateV2(ctx, version, msg, constAccessor)
-	} else if version.GTE(semver.MustParse("0.1.0")) {
+	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, version, msg, constAccessor)
 	}
 	return errBadVersion
@@ -40,38 +38,6 @@ func (h BondHandler) validateV1(ctx cosmos.Context, version semver.Version, msg 
 	}
 	// When RUNE is on thorchain , pay bond doesn't need to be active node
 	// in fact , usually the node will not be active at the time it bond
-
-	minBond, err := h.keeper.GetMimir(ctx, constants.MinimumBondInRune.String())
-	if minBond < 0 || err != nil {
-		minBond = constAccessor.GetInt64Value(constants.MinimumBondInRune)
-	}
-	minValidatorBond := cosmos.NewUint(uint64(minBond))
-
-	nodeAccount, err := h.keeper.GetNodeAccount(ctx, msg.NodeAddress)
-	if err != nil {
-		return ErrInternal(err, fmt.Sprintf("fail to get node account(%s)", msg.NodeAddress))
-	}
-
-	bond := msg.Bond.Add(nodeAccount.Bond)
-	if bond.LT(minValidatorBond) {
-		return cosmos.ErrUnknownRequest(fmt.Sprintf("not enough rune to be whitelisted , minimum validator bond (%s) , bond(%s)", minValidatorBond.String(), bond))
-	}
-
-	maxBond, err := h.keeper.GetMimir(ctx, "MaximumBondInRune")
-	if maxBond > 0 && err == nil {
-		maxValidatorBond := cosmos.NewUint(uint64(maxBond))
-		if bond.GT(maxValidatorBond) {
-			return cosmos.ErrUnknownRequest(fmt.Sprintf("too much bond, max validator bond (%s), bond(%s)", maxValidatorBond.String(), bond))
-		}
-	}
-
-	return nil
-}
-
-func (h BondHandler) validateV2(ctx cosmos.Context, version semver.Version, msg MsgBond, constAccessor constants.ConstantValues) error {
-	if err := msg.ValidateBasic(); err != nil {
-		return err
-	}
 
 	nodeAccount, err := h.keeper.GetNodeAccount(ctx, msg.NodeAddress)
 	if err != nil {
