@@ -79,6 +79,8 @@ if [ ! -f ~/.thord/config/genesis.json ]; then
         printf "$SIGNER_PASSWD\n" | thorcli tx broadcast tmp-signed.json  --node tcp://$PEER:26657 --from $SIGNER_NAME
         # send bond
 
+        sleep 10 # wait for thorchain to commit a block , otherwise it get the wrong sequence number
+
         NODE_PUB_KEY=$(echo $SIGNER_PASSWD | thorcli keys show thorchain --pubkey)
         VALIDATOR=$(thord tendermint show-validator)
 
