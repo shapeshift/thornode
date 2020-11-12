@@ -38,10 +38,9 @@ func (h BondHandler) validateV1(ctx cosmos.Context, version semver.Version, msg 
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
+	// When RUNE is on thorchain , pay bond doesn't need to be active node
+	// in fact , usually the node will not be active at the time it bond
 
-	if !isSignedByActiveNodeAccounts(ctx, h.keeper, msg.GetSigners()) {
-		return cosmos.ErrUnauthorized("msg is not signed by an active node account")
-	}
 	minBond, err := h.keeper.GetMimir(ctx, constants.MinimumBondInRune.String())
 	if minBond < 0 || err != nil {
 		minBond = constAccessor.GetInt64Value(constants.MinimumBondInRune)
@@ -72,10 +71,6 @@ func (h BondHandler) validateV1(ctx cosmos.Context, version semver.Version, msg 
 func (h BondHandler) validateV2(ctx cosmos.Context, version semver.Version, msg MsgBond, constAccessor constants.ConstantValues) error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
-	}
-
-	if !isSignedByActiveNodeAccounts(ctx, h.keeper, msg.GetSigners()) {
-		return cosmos.ErrUnauthorized("msg is not signed by an active node account")
 	}
 
 	nodeAccount, err := h.keeper.GetNodeAccount(ctx, msg.NodeAddress)
@@ -154,29 +149,10 @@ func (h BondHandler) handleV1(ctx cosmos.Context, msg MsgBond, version semver.Ve
 				cosmos.NewAttribute("address", msg.NodeAddress.String()),
 			))
 	}
-
 	nodeAccount.Bond = nodeAccount.Bond.Add(msg.Bond)
-
 	if err := h.keeper.SetNodeAccount(ctx, nodeAccount); err != nil {
 		return ErrInternal(err, fmt.Sprintf("fail to save node account(%s)", nodeAccount))
 	}
-	return h.mintGasAsset(ctx, msg, constAccessor)
-}
 
-func (h BondHandler) mintGasAsset(ctx cosmos.Context, msg MsgBond, constAccessor constants.ConstantValues) error {
-	whiteListGasAsset := constAccessor.GetInt64Value(constants.WhiteListGasAsset)
-	coinsToMint, err := cosmos.ParseCoins(fmt.Sprintf("%dthor", whiteListGasAsset))
-	if err != nil {
-		return ErrInternal(err, "fail to parse coins")
-	}
-	// mint some gas asset
-	err = h.keeper.Supply().MintCoins(ctx, ModuleName, coinsToMint)
-	if err != nil {
-		ctx.Logger().Error("fail to mint gas assets", "error", err)
-		return ErrInternal(err, "fail to mint gas assets: %w")
-	}
-	if err := h.keeper.Supply().SendCoinsFromModuleToAccount(ctx, ModuleName, msg.NodeAddress, coinsToMint); err != nil {
-		return ErrInternal(err, fmt.Sprintf("fail to send newly minted gas asset to node address(%s)", msg.NodeAddress))
-	}
 	return nil
 }

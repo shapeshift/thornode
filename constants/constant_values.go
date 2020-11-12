@@ -30,7 +30,6 @@ const (
 	DoubleSignMaxAge
 	MinimumBondInRune
 	FundMigrationInterval
-	WhiteListGasAsset
 	ArtificialRagnarokBlockHeight
 	MaximumStakeRune
 	StrictBondLiquidityRatio
@@ -67,7 +66,6 @@ var nameToString = map[ConstantName]string{
 	DoubleSignMaxAge:              "DoubleSignMaxAge",
 	MinimumBondInRune:             "MinimumBondInRune",
 	FundMigrationInterval:         "FundMigrationInterval",
-	WhiteListGasAsset:             "WhiteListGasAsset",
 	ArtificialRagnarokBlockHeight: "ArtificialRagnarokBlockHeight",
 	MaximumStakeRune:              "MaximumStakeRune",
 	StrictBondLiquidityRatio:      "StrictBondLiquidityRatio",

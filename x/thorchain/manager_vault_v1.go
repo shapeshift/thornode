@@ -53,8 +53,9 @@ func (vm *VaultMgrV1) processGenesisSetup(ctx cosmos.Context) error {
 	}
 	if len(active) == 1 {
 		vault := NewVault(0, ActiveVault, AsgardVault, active[0].PubKeySet.Secp256k1, common.Chains{
-			common.RuneAsset().Chain,
+			common.THORChain,
 			common.BTCChain,
+			common.BNBChain,
 		})
 		vault.Membership = common.PubKeys{active[0].PubKeySet.Secp256k1}
 		if err := vm.k.SetVault(ctx, vault); err != nil {
