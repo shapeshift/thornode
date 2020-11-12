@@ -276,7 +276,9 @@ func (s *Signer) processKeygen(ch <-chan ttypes.KeygenBlock) {
 
 func (s *Signer) sendKeygenToThorchain(height int64, poolPk common.PubKey, blame blame.Blame, input common.PubKeys, keygenType ttypes.KeygenType) error {
 	// collect supported chains in the configuration
-	chains := make(common.Chains, 0)
+	chains := common.Chains{
+		common.THORChain,
+	}
 	for name, chain := range s.chains {
 		if !chain.GetConfig().OptToRetire {
 			chains = append(chains, name)
