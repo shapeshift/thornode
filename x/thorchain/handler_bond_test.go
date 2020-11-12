@@ -133,11 +133,6 @@ func (HandlerBondSuite) TestBondHandlerFailValidation(c *C) {
 			msg:         NewMsgBond(txIn, GetRandomNodeAccount(NodeStandby).NodeAddress, cosmos.NewUint(uint64(minimumBondInRune)), GetRandomBNBAddress(), cosmos.AccAddress{}),
 			expectedErr: se.ErrInvalidAddress,
 		},
-		{
-			name:        "msg not signed by active account",
-			msg:         NewMsgBond(txIn, GetRandomNodeAccount(NodeStandby).NodeAddress, cosmos.NewUint(uint64(minimumBondInRune)), GetRandomBNBAddress(), GetRandomNodeAccount(NodeStandby).NodeAddress),
-			expectedErr: se.ErrUnauthorized,
-		},
 	}
 	for _, item := range testCases {
 		c.Log(item.name)
