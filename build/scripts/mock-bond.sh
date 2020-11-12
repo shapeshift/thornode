@@ -36,11 +36,3 @@ curl -v -s -X POST -d "[{
   \"memo\": \"\"
 }]" $1/broadcast/easy
 
-curl -v -s -X POST -d "[{
-  \"from\": \"$2\",
-  \"to\": \"$POOL_ADDRESS\",
-  \"coins\":[
-      {\"denom\": \"RUNE-67C\", \"amount\": 100000000000000}
-  ],
-  \"memo\": \"BOND:$3\"
-}]" $1/broadcast/easy
