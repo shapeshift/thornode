@@ -15,7 +15,7 @@ func RegisterCodec(cdc *codec.Codec) {
 	cdc.RegisterConcrete(MsgSwap{}, "thorchain/Swap", nil)
 	cdc.RegisterConcrete(MsgTssPool{}, "thorchain/TssPool", nil)
 	cdc.RegisterConcrete(MsgTssKeysignFail{}, "thorchain/TssKeysignFail", nil)
-	cdc.RegisterConcrete(MsgStake{}, "thorchain/Stake", nil)
+	cdc.RegisterConcrete(MsgAddLiquidity{}, "thorchain/AddLiquidity", nil)
 	cdc.RegisterConcrete(MsgUnStake{}, "thorchain/UnStake", nil)
 	cdc.RegisterConcrete(MsgObservedTxIn{}, "thorchain/ObservedTxIn", nil)
 	cdc.RegisterConcrete(MsgObservedTxOut{}, "thorchain/ObservedTxOut", nil)

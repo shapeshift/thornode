@@ -208,9 +208,9 @@ func (h ObservedTxInHandler) handleV1(ctx cosmos.Context, version semver.Version
 
 		// check if we've halted trading
 		_, isSwap := m.(MsgSwap)
-		_, isStake := m.(MsgStake)
+		_, isAddLiquidity := m.(MsgAddLiquidity)
 		haltTrading, err := h.keeper.GetMimir(ctx, "HaltTrading")
-		if isSwap || isStake {
+		if isSwap || isAddLiquidity {
 			if (haltTrading > 0 && haltTrading < common.BlockHeight(ctx) && err == nil) || h.keeper.RagnarokInProgress(ctx) {
 				ctx.Logger().Info("trading is halted!!")
 				if newErr := refundTx(ctx, tx, h.mgr, h.keeper, constAccessor, se.ErrUnauthorized.ABCICode(), "trading halted", ""); nil != newErr {

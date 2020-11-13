@@ -14,7 +14,7 @@ type TxType uint8
 
 const (
 	TxUnknown TxType = iota
-	TxStake
+	TxAdd
 	TxUnstake
 	TxSwap
 	TxOutbound
@@ -32,9 +32,8 @@ const (
 )
 
 var stringToTxTypeMap = map[string]TxType{
-	"stake":      TxStake,
-	"st":         TxStake,
-	"+":          TxStake,
+	"add":        TxAdd,
+	"+":          TxAdd,
 	"withdraw":   TxUnstake,
 	"unstake":    TxUnstake,
 	"wd":         TxUnstake,
@@ -58,7 +57,7 @@ var stringToTxTypeMap = map[string]TxType{
 }
 
 var txToStringMap = map[TxType]string{
-	TxStake:           "stake",
+	TxAdd:             "add",
 	TxUnstake:         "unstake",
 	TxSwap:            "swap",
 	TxOutbound:        "out",
@@ -87,7 +86,7 @@ func StringToTxType(s string) (TxType, error) {
 
 func (tx TxType) IsInbound() bool {
 	switch tx {
-	case TxStake, TxUnstake, TxSwap, TxDonate, TxBond, TxUnbond, TxLeave, TxSwitch, TxReserve:
+	case TxAdd, TxUnstake, TxSwap, TxDonate, TxBond, TxUnbond, TxLeave, TxSwitch, TxReserve:
 		return true
 	default:
 		return false
@@ -178,7 +177,7 @@ func ParseMemo(memo string) (Memo, error) {
 
 	var asset common.Asset
 	switch tx {
-	case TxDonate, TxStake, TxSwap, TxUnstake:
+	case TxDonate, TxAdd, TxSwap, TxUnstake:
 		if len(parts) < 2 {
 			return noMemo, fmt.Errorf("cannot parse given memo: length %d", len(parts))
 		}
@@ -193,8 +192,8 @@ func ParseMemo(memo string) (Memo, error) {
 		return ParseLeaveMemo(parts)
 	case TxDonate:
 		return NewDonateMemo(asset), nil
-	case TxStake:
-		return ParseStakeMemo(asset, parts)
+	case TxAdd:
+		return ParseAddLiquidityMemo(asset, parts)
 	case TxUnstake:
 		return ParseUnstakeMemo(asset, parts)
 	case TxSwap:
