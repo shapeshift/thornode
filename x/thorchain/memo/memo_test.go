@@ -22,7 +22,7 @@ func (s *MemoSuite) SetUpSuite(c *C) {
 }
 
 func (s *MemoSuite) TestTxType(c *C) {
-	for _, trans := range []TxType{TxStake, TxUnstake, TxSwap, TxOutbound, TxAdd, TxBond, TxUnbond, TxLeave, TxSwitch} {
+	for _, trans := range []TxType{TxStake, TxUnstake, TxSwap, TxOutbound, TxDonate, TxBond, TxUnbond, TxLeave, TxSwitch} {
 		tx, err := StringToTxType(trans.String())
 		c.Assert(err, IsNil)
 		c.Check(tx, Equals, trans)
@@ -32,10 +32,10 @@ func (s *MemoSuite) TestTxType(c *C) {
 
 func (s *MemoSuite) TestParseWithAbbreviated(c *C) {
 	// happy paths
-	memo, err := ParseMemo("%:" + common.RuneAsset().String())
+	memo, err := ParseMemo("d:" + common.RuneAsset().String())
 	c.Assert(err, IsNil)
 	c.Check(memo.GetAsset().String(), Equals, common.RuneAsset().String())
-	c.Check(memo.IsType(TxAdd), Equals, true, Commentf("MEMO: %+v", memo))
+	c.Check(memo.IsType(TxDonate), Equals, true, Commentf("MEMO: %+v", memo))
 	c.Check(memo.IsInbound(), Equals, true)
 	c.Check(memo.IsInternal(), Equals, false)
 	c.Check(memo.IsOutbound(), Equals, false)
@@ -170,11 +170,11 @@ func (s *MemoSuite) TestParseWithAbbreviated(c *C) {
 
 func (s *MemoSuite) TestParse(c *C) {
 	// happy paths
-	memo, err := ParseMemo("add:" + common.RuneAsset().String())
+	memo, err := ParseMemo("d:" + common.RuneAsset().String())
 	c.Assert(err, IsNil)
 	c.Check(memo.GetAsset().String(), Equals, common.RuneAsset().String())
-	c.Check(memo.IsType(TxAdd), Equals, true, Commentf("MEMO: %+v", memo))
-	c.Check(memo.String(), Equals, "ADD:"+common.RuneAsset().String())
+	c.Check(memo.IsType(TxDonate), Equals, true, Commentf("MEMO: %+v", memo))
+	c.Check(memo.String(), Equals, "DONATE:"+common.RuneAsset().String())
 
 	memo, err = ParseMemo("STAKE:" + common.RuneAsset().String())
 	c.Assert(err, IsNil)

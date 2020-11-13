@@ -10,61 +10,61 @@ import (
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
-// AddHandler is to handle Add message
-type AddHandler struct {
+// DonateHandler is to handle donate message
+type DonateHandler struct {
 	keeper keeper.Keeper
 	mgr    Manager
 }
 
-// NewAddHandler create a new instance of AddHandler
-func NewAddHandler(keeper keeper.Keeper, mgr Manager) AddHandler {
-	return AddHandler{
+// NewDonateHandler create a new instance of DonateHandler
+func NewDonateHandler(keeper keeper.Keeper, mgr Manager) DonateHandler {
+	return DonateHandler{
 		keeper: keeper,
 		mgr:    mgr,
 	}
 }
 
-// Run is the main entry point to execute Add logic
-func (h AddHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
-	msg, ok := m.(MsgAdd)
+// Run is the main entry point to execute donate logic
+func (h DonateHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+	msg, ok := m.(MsgDonate)
 	if !ok {
 		return nil, errInvalidMessage
 	}
-	ctx.Logger().Info(fmt.Sprintf("receive msg add %s", msg.Tx.ID))
+	ctx.Logger().Info(fmt.Sprintf("receive msg donate %s", msg.Tx.ID))
 	if err := h.validate(ctx, msg, version); err != nil {
-		ctx.Logger().Error("msg add failed validation", "error", err)
+		ctx.Logger().Error("msg donate failed validation", "error", err)
 		return nil, err
 	}
 	return h.handle(ctx, msg, version, constAccessor)
 }
 
-func (h AddHandler) validate(ctx cosmos.Context, msg MsgAdd, version semver.Version) error {
+func (h DonateHandler) validate(ctx cosmos.Context, msg MsgDonate, version semver.Version) error {
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, msg)
 	}
 	return errBadVersion
 }
 
-func (h AddHandler) validateV1(ctx cosmos.Context, msg MsgAdd) error {
+func (h DonateHandler) validateV1(ctx cosmos.Context, msg MsgDonate) error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
 	return nil
 }
 
-// handle process MsgAdd, MsgAdd add asset and RUNE to the asset pool
+// handle process MsgDonate, MsgDonate add asset and RUNE to the asset pool
 // it simply increase the pool asset/RUNE balance but without taking any of the pool units
-func (h AddHandler) handle(ctx cosmos.Context, msg MsgAdd, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+func (h DonateHandler) handle(ctx cosmos.Context, msg MsgDonate, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	if version.GTE(semver.MustParse("0.1.0")) {
 		if err := h.handleV1(ctx, msg, version, constAccessor); err != nil {
-			ctx.Logger().Error("fail to process msg add", "error", err)
+			ctx.Logger().Error("fail to process msg donate", "error", err)
 			return nil, err
 		}
 	}
 	return &cosmos.Result{}, nil
 }
 
-func (h AddHandler) handleV1(ctx cosmos.Context, msg MsgAdd, version semver.Version, constAccessor constants.ConstantValues) error {
+func (h DonateHandler) handleV1(ctx cosmos.Context, msg MsgDonate, version semver.Version, constAccessor constants.ConstantValues) error {
 	pool, err := h.keeper.GetPool(ctx, msg.Asset)
 	if err != nil {
 		return ErrInternal(err, fmt.Sprintf("fail to get pool for (%s)", msg.Asset))
@@ -79,9 +79,9 @@ func (h AddHandler) handleV1(ctx cosmos.Context, msg MsgAdd, version semver.Vers
 		return ErrInternal(err, fmt.Sprintf("fail to set pool(%s)", pool))
 	}
 	// emit event
-	addEvt := NewEventAdd(pool.Asset, msg.Tx)
-	if err := h.mgr.EventMgr().EmitEvent(ctx, addEvt); err != nil {
-		return cosmos.Wrapf(errFailSaveEvent, "fail to save add events: %w", err)
+	donateEvt := NewEventDonate(pool.Asset, msg.Tx)
+	if err := h.mgr.EventMgr().EmitEvent(ctx, donateEvt); err != nil {
+		return cosmos.Wrapf(errFailSaveEvent, "fail to save donate events: %w", err)
 	}
 	return nil
 }
