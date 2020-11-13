@@ -98,7 +98,7 @@ func getInternalHandlerMapping(keeper keeper.Keeper, mgr Manager) map[string]Msg
 	m[MsgBond{}.Type()] = NewBondHandler(keeper, mgr)
 	m[MsgUnBond{}.Type()] = NewUnBondHandler(keeper, mgr)
 	m[MsgLeave{}.Type()] = NewLeaveHandler(keeper, mgr)
-	m[MsgAdd{}.Type()] = NewAddHandler(keeper, mgr)
+	m[MsgDonate{}.Type()] = NewDonateHandler(keeper, mgr)
 	m[MsgUnStake{}.Type()] = NewUnstakeHandler(keeper, mgr)
 	m[MsgStake{}.Type()] = NewStakeHandler(keeper, mgr)
 	m[MsgRefundTx{}.Type()] = NewRefundHandler(keeper, mgr)
@@ -160,8 +160,8 @@ func processOneTxIn(ctx cosmos.Context, keeper keeper.Keeper, tx ObservedTx, sig
 		newMsg, err = getMsgUnstakeFromMemo(m, tx, signer)
 	case SwapMemo:
 		newMsg, err = getMsgSwapFromMemo(m, tx, signer)
-	case AddMemo:
-		newMsg, err = getMsgAddFromMemo(m, tx, signer)
+	case DonateMemo:
+		newMsg, err = getMsgDonateFromMemo(m, tx, signer)
 	case RefundMemo:
 		newMsg, err = getMsgRefundFromMemo(m, tx, signer)
 	case OutboundMemo:
@@ -238,10 +238,10 @@ func getMsgStakeFromMemo(ctx cosmos.Context, memo StakeMemo, tx ObservedTx, sign
 	return NewMsgStake(tx.Tx, memo.GetAsset(), runeCoin.Amount, assetCoin.Amount, runeAddr, assetAddr, signer), nil
 }
 
-func getMsgAddFromMemo(memo AddMemo, tx ObservedTx, signer cosmos.AccAddress) (cosmos.Msg, error) {
+func getMsgDonateFromMemo(memo DonateMemo, tx ObservedTx, signer cosmos.AccAddress) (cosmos.Msg, error) {
 	runeCoin := tx.Tx.Coins.GetCoin(common.RuneAsset())
 	assetCoin := tx.Tx.Coins.GetCoin(memo.GetAsset())
-	return NewMsgAdd(tx.Tx, memo.GetAsset(), runeCoin.Amount, assetCoin.Amount, signer), nil
+	return NewMsgDonate(tx.Tx, memo.GetAsset(), runeCoin.Amount, assetCoin.Amount, signer), nil
 }
 
 func getMsgRefundFromMemo(memo RefundMemo, tx ObservedTx, signer cosmos.AccAddress) (cosmos.Msg, error) {

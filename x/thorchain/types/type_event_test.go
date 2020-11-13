@@ -175,9 +175,9 @@ func (s EventSuite) TestEventFee(c *C) {
 	c.Assert(evts, HasLen, 1)
 }
 
-func (s EventSuite) TestEventAdd(c *C) {
-	e := NewEventAdd(common.BNBAsset, GetRandomTx())
-	c.Check(e.Type(), Equals, "add")
+func (s EventSuite) TestEventDonate(c *C) {
+	e := NewEventDonate(common.BNBAsset, GetRandomTx())
+	c.Check(e.Type(), Equals, "donate")
 	events, err := e.Events()
 	c.Check(err, IsNil)
 	c.Check(events, NotNil)

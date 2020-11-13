@@ -13,7 +13,7 @@ const (
 	SwapEventType     = `swap`
 	StakeEventType    = `stake`
 	UnstakeEventType  = `unstake`
-	AddEventType      = `add`
+	DonateEventType   = `donate`
 	PoolEventType     = `pool`
 	RewardEventType   = `rewards`
 	RefundEventType   = `refund`
@@ -194,26 +194,26 @@ func (e EventUnstake) Events() (cosmos.Events, error) {
 }
 
 // EventAdd represent add operation
-type EventAdd struct {
+type EventDonate struct {
 	Pool common.Asset `json:"pool"`
 	InTx common.Tx    `json:"in_tx"`
 }
 
-// NewEventAdd create a new add event
-func NewEventAdd(pool common.Asset, inTx common.Tx) EventAdd {
-	return EventAdd{
+// NewEventDonate create a new donate event
+func NewEventDonate(pool common.Asset, inTx common.Tx) EventDonate {
+	return EventDonate{
 		Pool: pool,
 		InTx: inTx,
 	}
 }
 
-// Type return add event type
-func (e EventAdd) Type() string {
-	return AddEventType
+// Type return donate event type
+func (e EventDonate) Type() string {
+	return DonateEventType
 }
 
 // Events get all events
-func (e EventAdd) Events() (cosmos.Events, error) {
+func (e EventDonate) Events() (cosmos.Events, error) {
 	evt := cosmos.NewEvent(e.Type(),
 		cosmos.NewAttribute("pool", e.Pool.String()))
 	evt = evt.AppendAttributes(e.InTx.ToAttributes()...)
