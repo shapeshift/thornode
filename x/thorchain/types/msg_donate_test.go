@@ -7,21 +7,21 @@ import (
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
-type MsgAddSuite struct{}
+type MsgDonateSuite struct{}
 
-var _ = Suite(&MsgAddSuite{})
+var _ = Suite(&MsgDonateSuite{})
 
-func (mas *MsgAddSuite) SetUpSuite(c *C) {
+func (mas *MsgDonateSuite) SetUpSuite(c *C) {
 	SetupConfigForTest()
 }
 
-func (mas *MsgAddSuite) TestMsgAdd(c *C) {
+func (mas *MsgDonateSuite) TestMsgDonate(c *C) {
 	tx := GetRandomTx()
 	addr := GetRandomBech32Addr()
 	c.Check(addr.Empty(), Equals, false)
-	ma := NewMsgAdd(tx, common.BNBAsset, cosmos.NewUint(100000000), cosmos.NewUint(100000000), addr)
+	ma := NewMsgDonate(tx, common.BNBAsset, cosmos.NewUint(100000000), cosmos.NewUint(100000000), addr)
 	c.Check(ma.Route(), Equals, RouterKey)
-	c.Check(ma.Type(), Equals, "add")
+	c.Check(ma.Type(), Equals, "donate")
 	err := ma.ValidateBasic()
 	c.Assert(err, IsNil)
 	buf := ma.GetSignBytes()
@@ -63,8 +63,8 @@ func (mas *MsgAddSuite) TestMsgAdd(c *C) {
 	for _, item := range inputs {
 		tx := GetRandomTx()
 		tx.ID = item.txHash
-		msgAdd := NewMsgAdd(tx, item.ticker, item.rune, item.asset, item.signer)
-		err := msgAdd.ValidateBasic()
+		msgDonate := NewMsgDonate(tx, item.ticker, item.rune, item.asset, item.signer)
+		err := msgDonate.ValidateBasic()
 		c.Assert(err, NotNil)
 	}
 }

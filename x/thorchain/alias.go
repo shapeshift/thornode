@@ -69,7 +69,7 @@ var (
 	NewMsgObservedTxIn             = types.NewMsgObservedTxIn
 	NewMsgObservedTxOut            = types.NewMsgObservedTxOut
 	NewMsgNoOp                     = types.NewMsgNoOp
-	NewMsgAdd                      = types.NewMsgAdd
+	NewMsgDonate                   = types.NewMsgDonate
 	NewMsgStake                    = types.NewMsgStake
 	NewMsgUnStake                  = types.NewMsgUnStake
 	NewMsgSwap                     = types.NewMsgSwap
@@ -79,7 +79,7 @@ var (
 	NewTxOut                       = types.NewTxOut
 	NewEventRewards                = types.NewEventRewards
 	NewEventPool                   = types.NewEventPool
-	NewEventAdd                    = types.NewEventAdd
+	NewEventDonate                 = types.NewEventDonate
 	NewEventSwap                   = types.NewEventSwap
 	NewEventStake                  = types.NewEventStake
 	NewEventUnstake                = types.NewEventUnstake
@@ -150,7 +150,7 @@ type (
 	MsgBond                        = types.MsgBond
 	MsgUnBond                      = types.MsgUnBond
 	MsgNoOp                        = types.MsgNoOp
-	MsgAdd                         = types.MsgAdd
+	MsgDonate                      = types.MsgDonate
 	MsgUnStake                     = types.MsgUnStake
 	MsgStake                       = types.MsgStake
 	MsgOutboundTx                  = types.MsgOutboundTx
@@ -200,7 +200,7 @@ type (
 	EventSwap                      = types.EventSwap
 	EventStake                     = types.EventStake
 	EventUnstake                   = types.EventUnstake
-	EventAdd                       = types.EventAdd
+	EventDonate                    = types.EventDonate
 	EventRewards                   = types.EventRewards
 	EventErrata                    = types.EventErrata
 	EventReserve                   = types.EventReserve
@@ -235,7 +235,7 @@ type (
 	SwapMemo            = mem.SwapMemo
 	StakeMemo           = mem.StakeMemo
 	UnstakeMemo         = mem.UnstakeMemo
-	AddMemo             = mem.AddMemo
+	DonateMemo          = mem.DonateMemo
 	RefundMemo          = mem.RefundMemo
 	MigrateMemo         = mem.MigrateMemo
 	RagnarokMemo        = mem.RagnarokMemo
