@@ -59,7 +59,7 @@ func unstake(ctx cosmos.Context, version semver.Version, keeper keeper.Keeper, m
 	poolAsset := pool.BalanceAsset
 	fStakerUnit := stakerUnit.Units
 	if stakerUnit.Units.IsZero() || msg.UnstakeBasisPoints.IsZero() {
-		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), errNoStakeUnitLeft
+		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), errNoLiquidityUnitLeft
 	}
 
 	cv := constants.GetConstantValues(version)

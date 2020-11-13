@@ -44,7 +44,7 @@ const (
 
 	// Memos
 	TxSwap            = mem.TxSwap
-	TxStake           = mem.TxStake
+	TxAdd             = mem.TxAdd
 	TxBond            = mem.TxBond
 	TxYggdrasilFund   = mem.TxYggdrasilFund
 	TxYggdrasilReturn = mem.TxYggdrasilReturn
@@ -70,7 +70,7 @@ var (
 	NewMsgObservedTxOut            = types.NewMsgObservedTxOut
 	NewMsgNoOp                     = types.NewMsgNoOp
 	NewMsgDonate                   = types.NewMsgDonate
-	NewMsgStake                    = types.NewMsgStake
+	NewMsgAddLiquidity             = types.NewMsgAddLiquidity
 	NewMsgUnStake                  = types.NewMsgUnStake
 	NewMsgSwap                     = types.NewMsgSwap
 	NewKeygen                      = types.NewKeygen
@@ -81,7 +81,7 @@ var (
 	NewEventPool                   = types.NewEventPool
 	NewEventDonate                 = types.NewEventDonate
 	NewEventSwap                   = types.NewEventSwap
-	NewEventStake                  = types.NewEventStake
+	NewEventAddLiquidity           = types.NewEventAddLiquidity
 	NewEventUnstake                = types.NewEventUnstake
 	NewEventRefund                 = types.NewEventRefund
 	NewEventBond                   = types.NewEventBond
@@ -152,7 +152,7 @@ type (
 	MsgNoOp                        = types.MsgNoOp
 	MsgDonate                      = types.MsgDonate
 	MsgUnStake                     = types.MsgUnStake
-	MsgStake                       = types.MsgStake
+	MsgAddLiquidity                = types.MsgAddLiquidity
 	MsgOutboundTx                  = types.MsgOutboundTx
 	MsgMimir                       = types.MsgMimir
 	MsgMigrate                     = types.MsgMigrate
@@ -198,7 +198,7 @@ type (
 	Keygen                         = types.Keygen
 	KeygenBlock                    = types.KeygenBlock
 	EventSwap                      = types.EventSwap
-	EventStake                     = types.EventStake
+	EventAddLiquidity              = types.EventAddLiquidity
 	EventUnstake                   = types.EventUnstake
 	EventDonate                    = types.EventDonate
 	EventRewards                   = types.EventRewards
@@ -233,7 +233,7 @@ type (
 
 	// Memo
 	SwapMemo            = mem.SwapMemo
-	StakeMemo           = mem.StakeMemo
+	AddLiquidityMemo    = mem.AddLiquidityMemo
 	UnstakeMemo         = mem.UnstakeMemo
 	DonateMemo          = mem.DonateMemo
 	RefundMemo          = mem.RefundMemo

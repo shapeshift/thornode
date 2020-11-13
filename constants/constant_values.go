@@ -31,7 +31,7 @@ const (
 	MinimumBondInRune
 	FundMigrationInterval
 	ArtificialRagnarokBlockHeight
-	MaximumStakeRune
+	MaximumLiquidityRune
 	StrictBondLiquidityRatio
 	DefaultPoolStatus
 	FailKeygenSlashPoints
@@ -67,7 +67,7 @@ var nameToString = map[ConstantName]string{
 	MinimumBondInRune:             "MinimumBondInRune",
 	FundMigrationInterval:         "FundMigrationInterval",
 	ArtificialRagnarokBlockHeight: "ArtificialRagnarokBlockHeight",
-	MaximumStakeRune:              "MaximumStakeRune",
+	MaximumLiquidityRune:          "MaximumLiquidityRune",
 	StrictBondLiquidityRatio:      "StrictBondLiquidityRatio",
 	DefaultPoolStatus:             "DefaultPoolStatus",
 	FailKeygenSlashPoints:         "FailKeygenSlashPoints",

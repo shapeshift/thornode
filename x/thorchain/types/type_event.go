@@ -10,20 +10,20 @@ import (
 
 // all event types support by THORChain
 const (
-	SwapEventType     = `swap`
-	StakeEventType    = `stake`
-	UnstakeEventType  = `unstake`
-	DonateEventType   = `donate`
-	PoolEventType     = `pool`
-	RewardEventType   = `rewards`
-	RefundEventType   = `refund`
-	BondEventType     = `bond`
-	GasEventType      = `gas`
-	ReserveEventType  = `reserve`
-	SlashEventType    = `slash`
-	ErrataEventType   = `errata`
-	FeeEventType      = `fee`
-	OutboundEventType = `outbound`
+	SwapEventType         = `swap`
+	AddLiquidityEventType = `add_liquidity`
+	UnstakeEventType      = `unstake`
+	DonateEventType       = `donate`
+	PoolEventType         = `pool`
+	RewardEventType       = `rewards`
+	RefundEventType       = `refund`
+	BondEventType         = `bond`
+	GasEventType          = `gas`
+	ReserveEventType      = `reserve`
+	SlashEventType        = `slash`
+	ErrataEventType       = `errata`
+	FeeEventType          = `fee`
+	OutboundEventType     = `outbound`
 )
 
 // PoolMod pool modifications
@@ -93,8 +93,8 @@ func (e EventSwap) Events() (cosmos.Events, error) {
 	return cosmos.Events{evt}, nil
 }
 
-// EventStake stake event
-type EventStake struct {
+// EventAddLiquidity event
+type EventAddLiquidity struct {
 	Pool         common.Asset   `json:"pool"`
 	StakeUnits   cosmos.Uint    `json:"stake_units"`
 	RuneAddress  common.Address `json:"rune_address"`
@@ -105,16 +105,16 @@ type EventStake struct {
 	AssetAddress common.Address `json:"asset_address"`
 }
 
-// NewEventStake create a new stake event
-func NewEventStake(pool common.Asset,
+// NewEventAddLiquidity create a new add liquidity event
+func NewEventAddLiquidity(pool common.Asset,
 	su cosmos.Uint,
 	runeAddress common.Address,
 	runeAmount,
 	assetAmount cosmos.Uint,
 	runeTxID,
 	assetTxID common.TxID,
-	assetAddress common.Address) EventStake {
-	return EventStake{
+	assetAddress common.Address) EventAddLiquidity {
+	return EventAddLiquidity{
 		Pool:         pool,
 		StakeUnits:   su,
 		RuneAddress:  runeAddress,
@@ -127,12 +127,12 @@ func NewEventStake(pool common.Asset,
 }
 
 // Type return the event type
-func (e EventStake) Type() string {
-	return StakeEventType
+func (e EventAddLiquidity) Type() string {
+	return AddLiquidityEventType
 }
 
 // Events return cosmos.Events which is cosmos.Attribute(key value pairs)
-func (e EventStake) Events() (cosmos.Events, error) {
+func (e EventAddLiquidity) Events() (cosmos.Events, error) {
 	evt := cosmos.NewEvent(e.Type(),
 		cosmos.NewAttribute("pool", e.Pool.String()),
 		cosmos.NewAttribute("stake_units", e.StakeUnits.String()),
