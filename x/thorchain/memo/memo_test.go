@@ -22,7 +22,7 @@ func (s *MemoSuite) SetUpSuite(c *C) {
 }
 
 func (s *MemoSuite) TestTxType(c *C) {
-	for _, trans := range []TxType{TxStake, TxUnstake, TxSwap, TxOutbound, TxDonate, TxBond, TxUnbond, TxLeave, TxSwitch} {
+	for _, trans := range []TxType{TxAdd, TxUnstake, TxSwap, TxOutbound, TxDonate, TxBond, TxUnbond, TxLeave, TxSwitch} {
 		tx, err := StringToTxType(trans.String())
 		c.Assert(err, IsNil)
 		c.Check(tx, Equals, trans)
@@ -43,7 +43,7 @@ func (s *MemoSuite) TestParseWithAbbreviated(c *C) {
 	memo, err = ParseMemo("+:" + common.RuneAsset().String())
 	c.Assert(err, IsNil)
 	c.Check(memo.GetAsset().String(), Equals, common.RuneAsset().String())
-	c.Check(memo.IsType(TxStake), Equals, true, Commentf("MEMO: %+v", memo))
+	c.Check(memo.IsType(TxAdd), Equals, true, Commentf("MEMO: %+v", memo))
 	c.Check(memo.IsInbound(), Equals, true)
 	c.Check(memo.IsInternal(), Equals, false)
 	c.Check(memo.IsOutbound(), Equals, false)
@@ -176,18 +176,18 @@ func (s *MemoSuite) TestParse(c *C) {
 	c.Check(memo.IsType(TxDonate), Equals, true, Commentf("MEMO: %+v", memo))
 	c.Check(memo.String(), Equals, "DONATE:"+common.RuneAsset().String())
 
-	memo, err = ParseMemo("STAKE:" + common.RuneAsset().String())
+	memo, err = ParseMemo("ADD:" + common.RuneAsset().String())
 	c.Assert(err, IsNil)
 	c.Check(memo.GetAsset().String(), Equals, common.RuneAsset().String())
-	c.Check(memo.IsType(TxStake), Equals, true, Commentf("MEMO: %+v", memo))
+	c.Check(memo.IsType(TxAdd), Equals, true, Commentf("MEMO: %+v", memo))
 	c.Check(memo.String(), Equals, "")
 
-	memo, err = ParseMemo("STAKE:BTC.BTC")
+	memo, err = ParseMemo("ADD:BTC.BTC")
 	c.Assert(err, NotNil)
-	memo, err = ParseMemo("STAKE:BTC.BTC:bc1qwqdg6squsna38e46795at95yu9atm8azzmyvckulcc7kytlcckxswvvzej")
+	memo, err = ParseMemo("ADD:BTC.BTC:bc1qwqdg6squsna38e46795at95yu9atm8azzmyvckulcc7kytlcckxswvvzej")
 	c.Assert(err, IsNil)
 	c.Check(memo.GetDestination().String(), Equals, "bc1qwqdg6squsna38e46795at95yu9atm8azzmyvckulcc7kytlcckxswvvzej")
-	c.Check(memo.IsType(TxStake), Equals, true, Commentf("MEMO: %+v", memo))
+	c.Check(memo.IsType(TxAdd), Equals, true, Commentf("MEMO: %+v", memo))
 
 	memo, err = ParseMemo("WITHDRAW:" + common.RuneAsset().String() + ":25")
 	c.Assert(err, IsNil)

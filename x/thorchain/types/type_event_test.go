@@ -27,8 +27,8 @@ func (s EventSuite) TestSwapEvent(c *C) {
 	c.Check(events, NotNil)
 }
 
-func (s EventSuite) TestStakeEvent(c *C) {
-	evt := NewEventStake(
+func (s EventSuite) TestAddLiqudityEvent(c *C) {
+	evt := NewEventAddLiquidity(
 		common.BNBAsset,
 		cosmos.NewUint(5),
 		GetRandomRUNEAddress(),
@@ -38,7 +38,7 @@ func (s EventSuite) TestStakeEvent(c *C) {
 		GetRandomTxHash(),
 		GetRandomBNBAddress(),
 	)
-	c.Check(evt.Type(), Equals, "stake")
+	c.Check(evt.Type(), Equals, "add_liquidity")
 	events, err := evt.Events()
 	c.Check(err, IsNil)
 	c.Check(events, NotNil)

@@ -7,11 +7,11 @@ import (
 	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
-type MsgStakeSuite struct{}
+type MsgAddLiquiditySuite struct{}
 
-var _ = Suite(&MsgStakeSuite{})
+var _ = Suite(&MsgAddLiquiditySuite{})
 
-func (MsgStakeSuite) TestMsgStake(c *C) {
+func (MsgAddLiquiditySuite) TestMsgAddLiquidity(c *C) {
 	addr := GetRandomBech32Addr()
 	c.Check(addr.Empty(), Equals, false)
 	runeAddress := GetRandomRUNEAddress()
@@ -28,9 +28,9 @@ func (MsgStakeSuite) TestMsgStake(c *C) {
 		BNBGasFeeSingleton,
 		"",
 	)
-	m := NewMsgStake(tx, common.BNBAsset, cosmos.NewUint(100000000), cosmos.NewUint(100000000), runeAddress, assetAddress, addr)
+	m := NewMsgAddLiquidity(tx, common.BNBAsset, cosmos.NewUint(100000000), cosmos.NewUint(100000000), runeAddress, assetAddress, addr)
 	EnsureMsgBasicCorrect(m, c)
-	c.Check(m.Type(), Equals, "stake")
+	c.Check(m.Type(), Equals, "add_liquidity")
 
 	inputs := []struct {
 		asset     common.Asset
@@ -107,7 +107,7 @@ func (MsgStakeSuite) TestMsgStake(c *C) {
 			BNBGasFeeSingleton,
 			"",
 		)
-		m := NewMsgStake(tx, item.asset, item.r, item.amt, item.runeAddr, item.assetAddr, item.signer)
+		m := NewMsgAddLiquidity(tx, item.asset, item.r, item.amt, item.runeAddr, item.assetAddr, item.signer)
 		c.Assert(m.ValidateBasic(), NotNil, Commentf("%d) %s\n", i, m))
 	}
 }
