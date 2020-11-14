@@ -395,9 +395,9 @@ func (HandlerSuite) TestGetMsgUnBondFromMemo(c *C) {
 func (HandlerSuite) TestGetMsgStakeFromMemo(c *C) {
 	w := getHandlerTestWrapper(c, 1, true, false)
 	// Stake BNB, however THORNode send T-CAN as coin , which is incorrect, should result in an error
-	m, err := ParseMemo(fmt.Sprintf("stake:BNB.BNB:%s", GetRandomRUNEAddress()))
+	m, err := ParseMemo(fmt.Sprintf("add:BNB.BNB:%s", GetRandomRUNEAddress()))
 	c.Assert(err, IsNil)
-	stakeMemo, ok := m.(StakeMemo)
+	stakeMemo, ok := m.(AddLiquidityMemo)
 	c.Assert(ok, Equals, true)
 	tcanAsset, err := common.NewAsset("BNB.TCAN-014")
 	c.Assert(err, IsNil)
@@ -423,7 +423,7 @@ func (HandlerSuite) TestGetMsgStakeFromMemo(c *C) {
 		common.EmptyPubKey,
 	)
 
-	msg, err := getMsgStakeFromMemo(w.ctx, stakeMemo, txin, GetRandomBech32Addr())
+	msg, err := getMsgAddLiquidityFromMemo(w.ctx, stakeMemo, txin, GetRandomBech32Addr())
 	c.Assert(msg, NotNil)
 	c.Assert(err, IsNil)
 
@@ -434,7 +434,7 @@ func (HandlerSuite) TestGetMsgStakeFromMemo(c *C) {
 	}
 
 	// stake only rune should be fine
-	msg1, err1 := getMsgStakeFromMemo(w.ctx, stakeMemo, txin, GetRandomBech32Addr())
+	msg1, err1 := getMsgAddLiquidityFromMemo(w.ctx, stakeMemo, txin, GetRandomBech32Addr())
 	c.Assert(msg1, NotNil)
 	c.Assert(err1, IsNil)
 
@@ -446,7 +446,7 @@ func (HandlerSuite) TestGetMsgStakeFromMemo(c *C) {
 	}
 
 	// stake only token(BNB) should be fine
-	msg2, err2 := getMsgStakeFromMemo(w.ctx, stakeMemo, txin, GetRandomBech32Addr())
+	msg2, err2 := getMsgAddLiquidityFromMemo(w.ctx, stakeMemo, txin, GetRandomBech32Addr())
 	c.Assert(msg2, NotNil)
 	c.Assert(err2, IsNil)
 
@@ -460,15 +460,15 @@ func (HandlerSuite) TestGetMsgStakeFromMemo(c *C) {
 	}
 
 	runeAddr := GetRandomRUNEAddress()
-	lokiStakeMemo, err := ParseMemo(fmt.Sprintf("stake:BNB.LOKI:%s", runeAddr))
+	lokiAddLiquidityMemo, err := ParseMemo(fmt.Sprintf("add:BNB.LOKI:%s", runeAddr))
 	c.Assert(err, IsNil)
-	msg4, err4 := getMsgStakeFromMemo(w.ctx, lokiStakeMemo.(StakeMemo), txin, GetRandomBech32Addr())
+	msg4, err4 := getMsgAddLiquidityFromMemo(w.ctx, lokiAddLiquidityMemo.(AddLiquidityMemo), txin, GetRandomBech32Addr())
 	c.Assert(err4, IsNil)
 	c.Assert(msg4, NotNil)
-	msgStake := msg4.(MsgStake)
-	c.Assert(msgStake, NotNil)
-	c.Assert(msgStake.RuneAddress, Equals, runeAddr)
-	c.Assert(msgStake.AssetAddress, Equals, txin.Tx.FromAddress)
+	msgAddLiquidity := msg4.(MsgAddLiquidity)
+	c.Assert(msgAddLiquidity, NotNil)
+	c.Assert(msgAddLiquidity.RuneAddress, Equals, runeAddr)
+	c.Assert(msgAddLiquidity.AssetAddress, Equals, txin.Tx.FromAddress)
 }
 
 func (HandlerSuite) TestMsgLeaveFromMemo(c *C) {

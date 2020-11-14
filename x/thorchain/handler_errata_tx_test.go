@@ -112,7 +112,7 @@ func (s *HandlerErrataTxSuite) TestErrataHandlerHappyPath(c *C) {
 					Coins: common.Coins{
 						common.NewCoin(common.RuneAsset(), cosmos.NewUint(30*common.One)),
 					},
-					Memo: fmt.Sprintf("STAKE:BNB.BNB:%s", GetRandomRUNEAddress()),
+					Memo: fmt.Sprintf("ADD:BNB.BNB:%s", GetRandomRUNEAddress()),
 				},
 			},
 		},
@@ -412,7 +412,7 @@ func (s *HandlerErrataTxSuite) TestErrataHandlerDifferentError(c *C) {
 				helper.SetNodeAccount(ctx, nodeAccount)
 				observedTx := GetRandomObservedTx()
 				observedTx.Tx.Chain = common.BTCChain
-				observedTx.Tx.Memo = "stake:BTC:" + observedTx.Tx.FromAddress.String()
+				observedTx.Tx.Memo = "add:BTC:" + observedTx.Tx.FromAddress.String()
 				staker := Staker{
 					Asset:           common.BTCAsset,
 					AssetAddress:    GetRandomBNBAddress(),

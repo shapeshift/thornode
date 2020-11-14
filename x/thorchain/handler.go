@@ -100,7 +100,7 @@ func getInternalHandlerMapping(keeper keeper.Keeper, mgr Manager) map[string]Msg
 	m[MsgLeave{}.Type()] = NewLeaveHandler(keeper, mgr)
 	m[MsgDonate{}.Type()] = NewDonateHandler(keeper, mgr)
 	m[MsgUnStake{}.Type()] = NewUnstakeHandler(keeper, mgr)
-	m[MsgStake{}.Type()] = NewStakeHandler(keeper, mgr)
+	m[MsgAddLiquidity{}.Type()] = NewAddLiquidityHandler(keeper, mgr)
 	m[MsgRefundTx{}.Type()] = NewRefundHandler(keeper, mgr)
 	m[MsgMigrate{}.Type()] = NewMigrateHandler(keeper, mgr)
 	m[MsgRagnarok{}.Type()] = NewRagnarokHandler(keeper, mgr)
@@ -154,8 +154,8 @@ func processOneTxIn(ctx cosmos.Context, keeper keeper.Keeper, tx ObservedTx, sig
 	var newMsg cosmos.Msg
 	// interpret the memo and initialize a corresponding msg event
 	switch m := memo.(type) {
-	case StakeMemo:
-		newMsg, err = getMsgStakeFromMemo(ctx, m, tx, signer)
+	case AddLiquidityMemo:
+		newMsg, err = getMsgAddLiquidityFromMemo(ctx, m, tx, signer)
 	case UnstakeMemo:
 		newMsg, err = getMsgUnstakeFromMemo(m, tx, signer)
 	case SwapMemo:
@@ -210,7 +210,7 @@ func getMsgUnstakeFromMemo(memo UnstakeMemo, tx ObservedTx, signer cosmos.AccAdd
 	return NewMsgUnStake(tx.Tx, tx.Tx.FromAddress, withdrawAmount, memo.GetAsset(), memo.GetWithdrawalAsset(), signer), nil
 }
 
-func getMsgStakeFromMemo(ctx cosmos.Context, memo StakeMemo, tx ObservedTx, signer cosmos.AccAddress) (cosmos.Msg, error) {
+func getMsgAddLiquidityFromMemo(ctx cosmos.Context, memo AddLiquidityMemo, tx ObservedTx, signer cosmos.AccAddress) (cosmos.Msg, error) {
 	// Extract the Rune amount and the asset amount from the transaction. At least one of them must be
 	// nonzero. If THORNode saw two types of coins, one of them must be the asset coin.
 	runeCoin := tx.Tx.Coins.GetCoin(common.RuneAsset())
@@ -235,7 +235,7 @@ func getMsgStakeFromMemo(ctx cosmos.Context, memo StakeMemo, tx ObservedTx, sign
 		}
 	}
 
-	return NewMsgStake(tx.Tx, memo.GetAsset(), runeCoin.Amount, assetCoin.Amount, runeAddr, assetAddr, signer), nil
+	return NewMsgAddLiquidity(tx.Tx, memo.GetAsset(), runeCoin.Amount, assetCoin.Amount, runeAddr, assetAddr, signer), nil
 }
 
 func getMsgDonateFromMemo(memo DonateMemo, tx ObservedTx, signer cosmos.AccAddress) (cosmos.Msg, error) {
