@@ -20,7 +20,7 @@ const (
 	PoolSuspended = types.Suspended
 
 	// Admin config keys
-	MaxUnstakeBasisPoints = types.MaxUnstakeBasisPoints
+	MaxWithdrawBasisPoints = types.MaxWithdrawBasisPoints
 
 	// Vaults
 	AsgardVault    = types.AsgardVault
@@ -71,7 +71,7 @@ var (
 	NewMsgNoOp                     = types.NewMsgNoOp
 	NewMsgDonate                   = types.NewMsgDonate
 	NewMsgAddLiquidity             = types.NewMsgAddLiquidity
-	NewMsgUnStake                  = types.NewMsgUnStake
+	NewMsgWithdrawLiquidity        = types.NewMsgWithdrawLiquidity
 	NewMsgSwap                     = types.NewMsgSwap
 	NewKeygen                      = types.NewKeygen
 	NewKeygenBlock                 = types.NewKeygenBlock
@@ -82,7 +82,7 @@ var (
 	NewEventDonate                 = types.NewEventDonate
 	NewEventSwap                   = types.NewEventSwap
 	NewEventAddLiquidity           = types.NewEventAddLiquidity
-	NewEventUnstake                = types.NewEventUnstake
+	NewEventWithdraw               = types.NewEventWithdraw
 	NewEventRefund                 = types.NewEventRefund
 	NewEventBond                   = types.NewEventBond
 	NewEventGas                    = types.NewEventGas
@@ -151,7 +151,7 @@ type (
 	MsgUnBond                      = types.MsgUnBond
 	MsgNoOp                        = types.MsgNoOp
 	MsgDonate                      = types.MsgDonate
-	MsgUnStake                     = types.MsgUnStake
+	MsgWithdrawLiquidity           = types.MsgWithdrawLiquidity
 	MsgAddLiquidity                = types.MsgAddLiquidity
 	MsgOutboundTx                  = types.MsgOutboundTx
 	MsgMimir                       = types.MsgMimir
@@ -199,7 +199,7 @@ type (
 	KeygenBlock                    = types.KeygenBlock
 	EventSwap                      = types.EventSwap
 	EventAddLiquidity              = types.EventAddLiquidity
-	EventUnstake                   = types.EventUnstake
+	EventWithdraw                  = types.EventWithdraw
 	EventDonate                    = types.EventDonate
 	EventRewards                   = types.EventRewards
 	EventErrata                    = types.EventErrata
@@ -229,22 +229,22 @@ type (
 	NetworkFee                     = types.NetworkFee
 	ObservedNetworkFeeVoter        = types.ObservedNetworkFeeVoter
 	Jail                           = types.Jail
-	RagnarokUnstakePosition        = types.RagnarokUnstakePosition
+	RagnarokWithdrawPosition       = types.RagnarokWithdrawPosition
 
 	// Memo
-	SwapMemo            = mem.SwapMemo
-	AddLiquidityMemo    = mem.AddLiquidityMemo
-	UnstakeMemo         = mem.UnstakeMemo
-	DonateMemo          = mem.DonateMemo
-	RefundMemo          = mem.RefundMemo
-	MigrateMemo         = mem.MigrateMemo
-	RagnarokMemo        = mem.RagnarokMemo
-	BondMemo            = mem.BondMemo
-	UnbondMemo          = mem.UnbondMemo
-	OutboundMemo        = mem.OutboundMemo
-	LeaveMemo           = mem.LeaveMemo
-	YggdrasilFundMemo   = mem.YggdrasilFundMemo
-	YggdrasilReturnMemo = mem.YggdrasilReturnMemo
-	ReserveMemo         = mem.ReserveMemo
-	SwitchMemo          = mem.SwitchMemo
+	SwapMemo              = mem.SwapMemo
+	AddLiquidityMemo      = mem.AddLiquidityMemo
+	WithdrawLiquidityMemo = mem.WithdrawLiquidityMemo
+	DonateMemo            = mem.DonateMemo
+	RefundMemo            = mem.RefundMemo
+	MigrateMemo           = mem.MigrateMemo
+	RagnarokMemo          = mem.RagnarokMemo
+	BondMemo              = mem.BondMemo
+	UnbondMemo            = mem.UnbondMemo
+	OutboundMemo          = mem.OutboundMemo
+	LeaveMemo             = mem.LeaveMemo
+	YggdrasilFundMemo     = mem.YggdrasilFundMemo
+	YggdrasilReturnMemo   = mem.YggdrasilReturnMemo
+	ReserveMemo           = mem.ReserveMemo
+	SwitchMemo            = mem.SwitchMemo
 )

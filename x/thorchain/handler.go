@@ -99,7 +99,7 @@ func getInternalHandlerMapping(keeper keeper.Keeper, mgr Manager) map[string]Msg
 	m[MsgUnBond{}.Type()] = NewUnBondHandler(keeper, mgr)
 	m[MsgLeave{}.Type()] = NewLeaveHandler(keeper, mgr)
 	m[MsgDonate{}.Type()] = NewDonateHandler(keeper, mgr)
-	m[MsgUnStake{}.Type()] = NewUnstakeHandler(keeper, mgr)
+	m[MsgWithdrawLiquidity{}.Type()] = NewWithdrawLiquidityHandler(keeper, mgr)
 	m[MsgAddLiquidity{}.Type()] = NewAddLiquidityHandler(keeper, mgr)
 	m[MsgRefundTx{}.Type()] = NewRefundHandler(keeper, mgr)
 	m[MsgMigrate{}.Type()] = NewMigrateHandler(keeper, mgr)
@@ -156,8 +156,8 @@ func processOneTxIn(ctx cosmos.Context, keeper keeper.Keeper, tx ObservedTx, sig
 	switch m := memo.(type) {
 	case AddLiquidityMemo:
 		newMsg, err = getMsgAddLiquidityFromMemo(ctx, m, tx, signer)
-	case UnstakeMemo:
-		newMsg, err = getMsgUnstakeFromMemo(m, tx, signer)
+	case WithdrawLiquidityMemo:
+		newMsg, err = getMsgWithdrawFromMemo(m, tx, signer)
 	case SwapMemo:
 		newMsg, err = getMsgSwapFromMemo(m, tx, signer)
 	case DonateMemo:
@@ -202,12 +202,12 @@ func getMsgSwapFromMemo(memo SwapMemo, tx ObservedTx, signer cosmos.AccAddress) 
 	return NewMsgSwap(tx.Tx, memo.GetAsset(), memo.Destination, memo.SlipLimit, memo.AffiliateAddress, memo.AffiliateBasisPoints, signer), nil
 }
 
-func getMsgUnstakeFromMemo(memo UnstakeMemo, tx ObservedTx, signer cosmos.AccAddress) (cosmos.Msg, error) {
-	withdrawAmount := cosmos.NewUint(MaxUnstakeBasisPoints)
+func getMsgWithdrawFromMemo(memo WithdrawLiquidityMemo, tx ObservedTx, signer cosmos.AccAddress) (cosmos.Msg, error) {
+	withdrawAmount := cosmos.NewUint(MaxWithdrawBasisPoints)
 	if !memo.GetAmount().IsZero() {
 		withdrawAmount = memo.GetAmount()
 	}
-	return NewMsgUnStake(tx.Tx, tx.Tx.FromAddress, withdrawAmount, memo.GetAsset(), memo.GetWithdrawalAsset(), signer), nil
+	return NewMsgWithdrawLiquidity(tx.Tx, tx.Tx.FromAddress, withdrawAmount, memo.GetAsset(), memo.GetWithdrawalAsset(), signer), nil
 }
 
 func getMsgAddLiquidityFromMemo(ctx cosmos.Context, memo AddLiquidityMemo, tx ObservedTx, signer cosmos.AccAddress) (cosmos.Msg, error) {

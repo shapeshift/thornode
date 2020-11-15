@@ -7,11 +7,11 @@ import (
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
-type MsgUnstakeSuite struct{}
+type MsgWithdrawSuite struct{}
 
-var _ = Suite(&MsgUnstakeSuite{})
+var _ = Suite(&MsgWithdrawSuite{})
 
-func (MsgUnstakeSuite) TestMsgUnstake(c *C) {
+func (s *MsgWithdrawSuite) TestMsgWithdrawLiquidity(c *C) {
 	txID := GetRandomTxHash()
 	tx := common.NewTx(
 		txID,
@@ -25,9 +25,9 @@ func (MsgUnstakeSuite) TestMsgUnstake(c *C) {
 	)
 	runeAddr := GetRandomRUNEAddress()
 	acc1 := GetRandomBech32Addr()
-	m := NewMsgUnStake(tx, runeAddr, cosmos.NewUint(10000), common.BNBAsset, common.EmptyAsset, acc1)
+	m := NewMsgWithdrawLiquidity(tx, runeAddr, cosmos.NewUint(10000), common.BNBAsset, common.EmptyAsset, acc1)
 	EnsureMsgBasicCorrect(m, c)
-	c.Check(m.Type(), Equals, "unstake")
+	c.Check(m.Type(), Equals, "withdraw")
 
 	inputs := []struct {
 		tx                  common.Tx
@@ -87,7 +87,7 @@ func (MsgUnstakeSuite) TestMsgUnstake(c *C) {
 		},
 	}
 	for _, item := range inputs {
-		m := NewMsgUnStake(item.tx, item.publicAddress, item.withdrawBasisPoints, item.asset, common.EmptyAsset, item.signer)
+		m := NewMsgWithdrawLiquidity(item.tx, item.publicAddress, item.withdrawBasisPoints, item.asset, common.EmptyAsset, item.signer)
 		c.Check(m.ValidateBasic(), NotNil)
 	}
 }

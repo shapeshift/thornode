@@ -12,7 +12,7 @@ import (
 const (
 	SwapEventType         = `swap`
 	AddLiquidityEventType = `add_liquidity`
-	UnstakeEventType      = `unstake`
+	WithdrawEventType     = `withdraw`
 	DonateEventType       = `donate`
 	PoolEventType         = `pool`
 	RewardEventType       = `rewards`
@@ -151,8 +151,8 @@ func (e EventAddLiquidity) Events() (cosmos.Events, error) {
 	}, nil
 }
 
-// EventUnstake represent unstake
-type EventUnstake struct {
+// EventWithdraw represent withdraw
+type EventWithdraw struct {
 	Pool        common.Asset `json:"pool"`
 	StakeUnits  cosmos.Uint  `json:"stake_units"`
 	BasisPoints int64        `json:"basis_points"` // 1 ==> 10,0000
@@ -162,9 +162,9 @@ type EventUnstake struct {
 	EmitRune    cosmos.Uint  `json:"emit_rune"`
 }
 
-// NewEventUnstake create a new unstake event
-func NewEventUnstake(pool common.Asset, su cosmos.Uint, basisPts int64, asym cosmos.Dec, inTx common.Tx, emitAsset, emitRune cosmos.Uint) EventUnstake {
-	return EventUnstake{
+// NewEventWithdraw create a new withdraw event
+func NewEventWithdraw(pool common.Asset, su cosmos.Uint, basisPts int64, asym cosmos.Dec, inTx common.Tx, emitAsset, emitRune cosmos.Uint) EventWithdraw {
+	return EventWithdraw{
 		Pool:        pool,
 		StakeUnits:  su,
 		BasisPoints: basisPts,
@@ -175,13 +175,13 @@ func NewEventUnstake(pool common.Asset, su cosmos.Uint, basisPts int64, asym cos
 	}
 }
 
-// Type return the unstake event type
-func (e EventUnstake) Type() string {
-	return UnstakeEventType
+// Type return the withdraw event type
+func (e EventWithdraw) Type() string {
+	return WithdrawEventType
 }
 
 // Events return the cosmos event
-func (e EventUnstake) Events() (cosmos.Events, error) {
+func (e EventWithdraw) Events() (cosmos.Events, error) {
 	evt := cosmos.NewEvent(e.Type(),
 		cosmos.NewAttribute("pool", e.Pool.String()),
 		cosmos.NewAttribute("stake_units", e.StakeUnits.String()),

@@ -81,10 +81,10 @@ func (k KVStoreDummy) GetRagnarokPending(_ cosmos.Context) (int64, error) {
 }
 func (k KVStoreDummy) SetRagnarokPending(_ cosmos.Context, _ int64) {}
 func (k KVStoreDummy) RagnarokInProgress(_ cosmos.Context) bool     { return false }
-func (k KVStoreDummy) GetRagnarokUnstakPosition(ctx cosmos.Context) (RagnarokUnstakePosition, error) {
-	return RagnarokUnstakePosition{}, kaboom
+func (k KVStoreDummy) GetRagnarokWithdrawPosition(ctx cosmos.Context) (RagnarokWithdrawPosition, error) {
+	return RagnarokWithdrawPosition{}, kaboom
 }
-func (k KVStoreDummy) SetRagnarokUnstakPosition(_tx cosmos.Context, _ RagnarokUnstakePosition) {}
+func (k KVStoreDummy) SetRagnarokWithdrawPosition(_tx cosmos.Context, _ RagnarokWithdrawPosition) {}
 
 func (k KVStoreDummy) GetPoolBalances(_ cosmos.Context, _, _ common.Asset) (cosmos.Uint, cosmos.Uint) {
 	return cosmos.ZeroUint(), cosmos.ZeroUint()
