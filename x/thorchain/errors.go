@@ -32,13 +32,13 @@ const (
 	CodeAddLiquidityRUNEOverLimit     uint32 = 125
 	CodeAddLiquidityRUNEMoreThanBond  uint32 = 126
 
-	CodeUnstakeFailValidation uint32 = 130
-	CodeFailAddOutboundTx     uint32 = 131
-	CodeFailSaveEvent         uint32 = 132
-	CodeNoLiquidityUnitLeft   uint32 = 135
-	CodeUnstakeWithin24Hours  uint32 = 136
-	CodeUnstakeFail           uint32 = 137
-	CodeEmptyChain            uint32 = 138
+	CodeWithdrawFailValidation uint32 = 130
+	CodeFailAddOutboundTx      uint32 = 131
+	CodeFailSaveEvent          uint32 = 132
+	CodeNoLiquidityUnitLeft    uint32 = 135
+	CodeWithdrawWithin24Hours  uint32 = 136
+	CodeWithdrawFail           uint32 = 137
+	CodeEmptyChain             uint32 = 138
 )
 
 var (
@@ -54,7 +54,7 @@ var (
 	errAddLiquidityRUNEMoreThanBond  = se.Register(DefaultCodespace, CodeAddLiquidityRUNEMoreThanBond, "add liquidity rune is more than bond")
 	errInvalidPoolStatus             = se.Register(DefaultCodespace, CodeInvalidPoolStatus, "invalid pool status")
 	errFailAddOutboundTx             = se.Register(DefaultCodespace, CodeFailAddOutboundTx, "prepare outbound tx not successful")
-	errUnstakeFailValidation         = se.Register(DefaultCodespace, CodeUnstakeFailValidation, "fail to validate unstake")
+	errWithdrawFailValidation        = se.Register(DefaultCodespace, CodeWithdrawFailValidation, "fail to validate withdraw")
 	errFailGetStaker                 = se.Register(DefaultCodespace, CodeFailGetStaker, "fail to get staker")
 	errAddLiquidityMismatchAssetAddr = se.Register(DefaultCodespace, CodeAddLiquidityMismatchAssetAddr, "mismatch of asset address")
 	errSwapFailNotEnoughFee          = se.Register(DefaultCodespace, CodeSwapFailNotEnoughFee, "fail swap, not enough fee")
@@ -63,8 +63,8 @@ var (
 	errSwapFailInvalidBalance        = se.Register(DefaultCodespace, CodeSwapFailInvalidBalance, "fail swap, invalid balance")
 	errSwapFailNotEnoughBalance      = se.Register(DefaultCodespace, CodeSwapFailNotEnoughBalance, "fail swap, not enough balance")
 	errNoLiquidityUnitLeft           = se.Register(DefaultCodespace, CodeNoLiquidityUnitLeft, "nothing to withdraw")
-	errUnstakeWithin24Hours          = se.Register(DefaultCodespace, CodeUnstakeWithin24Hours, "you cannot unstake for 24 hours after staking for this blockchain")
-	errUnstakeFail                   = se.Register(DefaultCodespace, CodeUnstakeFail, "fail to unstake")
+	errWithdrawWithin24Hours         = se.Register(DefaultCodespace, CodeWithdrawWithin24Hours, "you cannot withdraw for 24 hours after staking for this blockchain")
+	errWithdrawFail                  = se.Register(DefaultCodespace, CodeWithdrawFail, "fail to withdraw")
 	errInternal                      = se.Register(DefaultCodespace, CodeInternalError, "internal error")
 )
 

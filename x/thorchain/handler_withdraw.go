@@ -13,51 +13,51 @@ import (
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
-// UnstakeHandler to process unstake requests
-type UnstakeHandler struct {
+// WithdrawLiqudityHandler to process withdraw requests
+type WithdrawLiquidityHandler struct {
 	keeper keeper.Keeper
 	mgr    Manager
 }
 
-// NewUnstakeHandler create a new instance of UnstakeHandler to process unstake request
-func NewUnstakeHandler(keeper keeper.Keeper, mgr Manager) UnstakeHandler {
-	return UnstakeHandler{
+// NewWithdrawLiquidityHandler create a new instance of WithdrawLiquidityHandler to process withdraw request
+func NewWithdrawLiquidityHandler(keeper keeper.Keeper, mgr Manager) WithdrawLiquidityHandler {
+	return WithdrawLiquidityHandler{
 		keeper: keeper,
 		mgr:    mgr,
 	}
 }
 
-// Run is the main entry point of unstake
-func (h UnstakeHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
-	msg, ok := m.(MsgUnStake)
+// Run is the main entry point of withdraw
+func (h WithdrawLiquidityHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+	msg, ok := m.(MsgWithdrawLiquidity)
 	if !ok {
 		return nil, errInvalidMessage
 	}
-	ctx.Logger().Info(fmt.Sprintf("receive MsgUnStake from : %s(%s) unstake (%s)", msg, msg.RuneAddress, msg.UnstakeBasisPoints))
+	ctx.Logger().Info(fmt.Sprintf("receive MsgWithdrawLiquidity from : %s(%s) withdraw (%s)", msg, msg.RuneAddress, msg.BasisPoints))
 
 	if err := h.validate(ctx, msg, version); err != nil {
-		ctx.Logger().Error("MsgUnStake failed validation", "error", err)
+		ctx.Logger().Error("MsgWithdrawLiquidity failed validation", "error", err)
 		return nil, err
 	}
 
 	result, err := h.handle(ctx, msg, version, constAccessor)
 	if err != nil {
-		ctx.Logger().Error("fail to process msg unstake", "error", err)
+		ctx.Logger().Error("fail to process msg withdraw", "error", err)
 		return nil, err
 	}
 	return result, err
 }
 
-func (h UnstakeHandler) validate(ctx cosmos.Context, msg MsgUnStake, version semver.Version) error {
+func (h WithdrawLiquidityHandler) validate(ctx cosmos.Context, msg MsgWithdrawLiquidity, version semver.Version) error {
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, msg)
 	}
 	return errBadVersion
 }
 
-func (h UnstakeHandler) validateV1(ctx cosmos.Context, msg MsgUnStake) error {
+func (h WithdrawLiquidityHandler) validateV1(ctx cosmos.Context, msg MsgWithdrawLiquidity) error {
 	if err := msg.ValidateBasic(); err != nil {
-		return errUnstakeFailValidation
+		return errWithdrawFailValidation
 	}
 	pool, err := h.keeper.GetPool(ctx, msg.Asset)
 	if err != nil {
@@ -72,14 +72,14 @@ func (h UnstakeHandler) validateV1(ctx cosmos.Context, msg MsgUnStake) error {
 	return nil
 }
 
-func (h UnstakeHandler) handle(ctx cosmos.Context, msg MsgUnStake, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+func (h WithdrawLiquidityHandler) handle(ctx cosmos.Context, msg MsgWithdrawLiquidity, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.handleV1(ctx, msg, version, constAccessor)
 	}
 	return nil, errBadVersion
 }
 
-func (h UnstakeHandler) handleV1(ctx cosmos.Context, msg MsgUnStake, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+func (h WithdrawLiquidityHandler) handleV1(ctx cosmos.Context, msg MsgWithdrawLiquidity, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	staker, err := h.keeper.GetStaker(ctx, msg.Asset, msg.RuneAddress)
 	if err != nil {
 		return nil, multierror.Append(errFailGetStaker, err)
@@ -96,19 +96,19 @@ func (h UnstakeHandler) handleV1(ctx cosmos.Context, msg MsgUnStake, version sem
 	}
 	originalLtokens := h.keeper.GetStakerBalance(ctx, msg.Asset.LiquidityAsset(), acc)
 
-	runeAmt, assetAmount, units, gasAsset, err := unstake(ctx, version, h.keeper, msg, h.mgr)
+	runeAmt, assetAmount, units, gasAsset, err := withdraw(ctx, version, h.keeper, msg, h.mgr)
 	if err != nil {
-		return nil, ErrInternal(err, "fail to process UnStake request")
+		return nil, ErrInternal(err, "fail to process withdraw request")
 	}
-	unstakeEvt := NewEventUnstake(
+	withdrawEvt := NewEventWithdraw(
 		msg.Asset,
 		units,
-		int64(msg.UnstakeBasisPoints.Uint64()),
+		int64(msg.BasisPoints.Uint64()),
 		cosmos.ZeroDec(),
 		msg.Tx,
 		assetAmount,
 		runeAmt)
-	if err := h.mgr.EventMgr().EmitEvent(ctx, unstakeEvt); err != nil {
+	if err := h.mgr.EventMgr().EmitEvent(ctx, withdrawEvt); err != nil {
 		return nil, multierror.Append(errFailSaveEvent, err)
 	}
 
@@ -140,8 +140,8 @@ func (h UnstakeHandler) handleV1(ctx cosmos.Context, msg MsgUnStake, version sem
 	okAsset, err := h.mgr.TxOutStore().TryAddTxOutItem(ctx, h.mgr, toi)
 	if err != nil {
 		// the emit asset not enough to pay fee,continue
-		// other situation will be none of the vault has enough fund to fulfill this unstake
-		// thus unstake need to be revert
+		// other situation will be none of the vault has enough fund to fulfill this withdraw
+		// thus withdraw need to be revert
 		if !errors.Is(err, ErrNotEnoughToPayFee) {
 			// restore pool and staker
 			if err := h.keeper.SetPool(ctx, pool); err != nil {

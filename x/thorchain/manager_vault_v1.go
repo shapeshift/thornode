@@ -455,7 +455,7 @@ func (vm *VaultMgrV1) recallChainFunds(ctx cosmos.Context, chain common.Chain, m
 	return nil
 }
 
-// ragnarokChain - ends a chain by unstaking all stakers of any pool that's
+// ragnarokChain - ends a chain by withdrawing all stakers of any pool that's
 // asset is on the given chain
 func (vm *VaultMgrV1) ragnarokChain(ctx cosmos.Context, chain common.Chain, nth int64, mgr Manager, constAccessor constants.ConstantValues) error {
 	version := vm.k.GetLowestActiveVersion(ctx)
@@ -473,7 +473,7 @@ func (vm *VaultMgrV1) ragnarokChain(ctx cosmos.Context, chain common.Chain, nth 
 	if err != nil {
 		return err
 	}
-	unstakeHandler := NewUnstakeHandler(vm.k, mgr)
+	withdrawHandler := NewWithdrawLiquidityHandler(vm.k, mgr)
 
 	active, err := vm.k.GetAsgardVaultsByStatus(ctx, ActiveVault)
 	if err != nil {
@@ -498,18 +498,18 @@ func (vm *VaultMgrV1) ragnarokChain(ctx cosmos.Context, chain common.Chain, nth 
 				continue
 			}
 
-			unstakeMsg := NewMsgUnStake(
+			withdrawMsg := NewMsgWithdrawLiquidity(
 				common.GetRagnarokTx(pool.Asset.Chain, staker.RuneAddress, staker.RuneAddress),
 				staker.RuneAddress,
-				cosmos.NewUint(uint64(MaxUnstakeBasisPoints/100*(nth*10))),
+				cosmos.NewUint(uint64(MaxWithdrawBasisPoints/100*(nth*10))),
 				pool.Asset,
 				common.EmptyAsset,
 				na.NodeAddress,
 			)
 
-			_, err := unstakeHandler.Run(ctx, unstakeMsg, version, constAccessor)
+			_, err := withdrawHandler.Run(ctx, withdrawMsg, version, constAccessor)
 			if err != nil {
-				ctx.Logger().Error("fail to unstake", "staker", staker.RuneAddress, "error", err)
+				ctx.Logger().Error("fail to withdraw", "staker", staker.RuneAddress, "error", err)
 			}
 		}
 	}

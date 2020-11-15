@@ -44,8 +44,8 @@ func (s EventSuite) TestAddLiqudityEvent(c *C) {
 	c.Check(events, NotNil)
 }
 
-func (s EventSuite) TestUnstakeEvent(c *C) {
-	evt := NewEventUnstake(
+func (s EventSuite) TestWithdrawEvent(c *C) {
+	evt := NewEventWithdraw(
 		common.BNBAsset,
 		cosmos.NewUint(6),
 		5000,
@@ -53,7 +53,7 @@ func (s EventSuite) TestUnstakeEvent(c *C) {
 		GetRandomTx(),
 		cosmos.NewUint(100),
 		cosmos.NewUint(100))
-	c.Check(evt.Type(), Equals, "unstake")
+	c.Check(evt.Type(), Equals, "withdraw")
 	events, err := evt.Events()
 	c.Check(err, IsNil)
 	c.Check(events, NotNil)

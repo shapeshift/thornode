@@ -22,7 +22,7 @@ func (s *MemoSuite) SetUpSuite(c *C) {
 }
 
 func (s *MemoSuite) TestTxType(c *C) {
-	for _, trans := range []TxType{TxAdd, TxUnstake, TxSwap, TxOutbound, TxDonate, TxBond, TxUnbond, TxLeave, TxSwitch} {
+	for _, trans := range []TxType{TxAdd, TxWithdraw, TxSwap, TxOutbound, TxDonate, TxBond, TxUnbond, TxLeave, TxSwitch} {
 		tx, err := StringToTxType(trans.String())
 		c.Assert(err, IsNil)
 		c.Check(tx, Equals, trans)
@@ -51,7 +51,7 @@ func (s *MemoSuite) TestParseWithAbbreviated(c *C) {
 	memo, err = ParseMemo(fmt.Sprintf("-:%s:25", common.RuneAsset().String()))
 	c.Assert(err, IsNil)
 	c.Check(memo.GetAsset().String(), Equals, common.RuneAsset().String())
-	c.Check(memo.IsType(TxUnstake), Equals, true, Commentf("MEMO: %+v", memo))
+	c.Check(memo.IsType(TxWithdraw), Equals, true, Commentf("MEMO: %+v", memo))
 	c.Check(memo.GetAmount().Uint64(), Equals, uint64(25), Commentf("%d", memo.GetAmount().Uint64()))
 	c.Check(memo.IsInbound(), Equals, true)
 	c.Check(memo.IsInternal(), Equals, false)
@@ -192,7 +192,7 @@ func (s *MemoSuite) TestParse(c *C) {
 	memo, err = ParseMemo("WITHDRAW:" + common.RuneAsset().String() + ":25")
 	c.Assert(err, IsNil)
 	c.Check(memo.GetAsset().String(), Equals, common.RuneAsset().String())
-	c.Check(memo.IsType(TxUnstake), Equals, true, Commentf("MEMO: %+v", memo))
+	c.Check(memo.IsType(TxWithdraw), Equals, true, Commentf("MEMO: %+v", memo))
 	c.Check(memo.GetAmount().Equal(cosmos.NewUint(25)), Equals, true, Commentf("%d", memo.GetAmount().Uint64()))
 
 	memo, err = ParseMemo("SWAP:" + common.RuneAsset().String() + ":bnb1lejrrtta9cgr49fuh7ktu3sddhe0ff7wenlpn6:870000000")
