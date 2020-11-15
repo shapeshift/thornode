@@ -177,7 +177,7 @@ func (HandlerSuite) TestIsSignedByActiveNodeAccounts(c *C) {
 	c.Check(isSignedByActiveNodeAccounts(ctx, k, []cosmos.AccAddress{nodeAccount1.NodeAddress}), Equals, false)
 }
 
-func (HandlerSuite) TestHandleTxInUnstakeMemo(c *C) {
+func (HandlerSuite) TestHandleTxInWithdrawLiquidityMemo(c *C) {
 	w := getHandlerTestWrapper(c, 1, true, false)
 
 	vault := GetRandomVault()
@@ -222,7 +222,7 @@ func (HandlerSuite) TestHandleTxInUnstakeMemo(c *C) {
 		Gas:         BNBGasFeeSingleton,
 	}
 
-	msg := NewMsgUnStake(tx, staker.RuneAddress, cosmos.NewUint(uint64(MaxUnstakeBasisPoints)), common.BNBAsset, common.EmptyAsset, w.activeNodeAccount.NodeAddress)
+	msg := NewMsgWithdrawLiquidity(tx, staker.RuneAddress, cosmos.NewUint(uint64(MaxWithdrawBasisPoints)), common.BNBAsset, common.EmptyAsset, w.activeNodeAccount.NodeAddress)
 	c.Assert(err, IsNil)
 
 	handler := NewInternalHandler(w.keeper, w.mgr)
@@ -339,7 +339,7 @@ func (HandlerSuite) TestGetMsgSwapFromMemo(c *C) {
 	c.Assert(err, IsNil)
 }
 
-func (HandlerSuite) TestGetMsgUnstakeFromMemo(c *C) {
+func (HandlerSuite) TestGetMsgWithdrawFromMemo(c *C) {
 	w := getHandlerTestWrapper(c, 1, true, false)
 	tx := GetRandomTx()
 	tx.Memo = "withdraw:10000"
@@ -350,7 +350,7 @@ func (HandlerSuite) TestGetMsgUnstakeFromMemo(c *C) {
 	msg, err := processOneTxIn(w.ctx, w.keeper, obTx, w.activeNodeAccount.NodeAddress)
 	c.Assert(err, IsNil)
 	c.Assert(msg, NotNil)
-	c.Assert(msg.Type(), Equals, MsgUnStake{}.Type())
+	c.Assert(msg.Type(), Equals, MsgWithdrawLiquidity{}.Type())
 }
 
 func (HandlerSuite) TestGetMsgMigrationFromMemo(c *C) {

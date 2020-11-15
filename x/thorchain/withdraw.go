@@ -12,7 +12,7 @@ import (
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
-func validateUnstake(ctx cosmos.Context, keeper keeper.Keeper, msg MsgUnStake) error {
+func validateWithdraw(ctx cosmos.Context, keeper keeper.Keeper, msg MsgWithdrawLiquidity) error {
 	if msg.RuneAddress.IsEmpty() {
 		return errors.New("empty rune address")
 	}
@@ -22,9 +22,9 @@ func validateUnstake(ctx cosmos.Context, keeper keeper.Keeper, msg MsgUnStake) e
 	if msg.Asset.IsEmpty() {
 		return errors.New("empty asset")
 	}
-	withdrawBasisPoints := msg.UnstakeBasisPoints
-	if !withdrawBasisPoints.GTE(cosmos.ZeroUint()) || withdrawBasisPoints.GT(cosmos.NewUint(MaxUnstakeBasisPoints)) {
-		return fmt.Errorf("withdraw basis points %s is invalid", msg.UnstakeBasisPoints)
+	withdrawBasisPoints := msg.BasisPoints
+	if !withdrawBasisPoints.GTE(cosmos.ZeroUint()) || withdrawBasisPoints.GT(cosmos.NewUint(MaxWithdrawBasisPoints)) {
+		return fmt.Errorf("withdraw basis points %s is invalid", msg.BasisPoints)
 	}
 	if !keeper.PoolExist(ctx, msg.Asset) {
 		// pool doesn't exist
@@ -33,11 +33,11 @@ func validateUnstake(ctx cosmos.Context, keeper keeper.Keeper, msg MsgUnStake) e
 	return nil
 }
 
-// unstake withdraw all the asset
-// it returns runeAmt,assetAmount,units, lastUnstake,err
-func unstake(ctx cosmos.Context, version semver.Version, keeper keeper.Keeper, msg MsgUnStake, manager Manager) (cosmos.Uint, cosmos.Uint, cosmos.Uint, cosmos.Uint, error) {
-	if err := validateUnstake(ctx, keeper, msg); err != nil {
-		ctx.Logger().Error("msg unstake fail validation", "error", err)
+// withdraw all the asset
+// it returns runeAmt,assetAmount,units, lastWithdraw,err
+func withdraw(ctx cosmos.Context, version semver.Version, keeper keeper.Keeper, msg MsgWithdrawLiquidity, manager Manager) (cosmos.Uint, cosmos.Uint, cosmos.Uint, cosmos.Uint, error) {
+	if err := validateWithdraw(ctx, keeper, msg); err != nil {
+		ctx.Logger().Error("msg withdraw fail validation", "error", err)
 		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), err
 	}
 
@@ -58,26 +58,26 @@ func unstake(ctx cosmos.Context, version semver.Version, keeper keeper.Keeper, m
 	poolRune := pool.BalanceRune
 	poolAsset := pool.BalanceAsset
 	fStakerUnit := stakerUnit.Units
-	if stakerUnit.Units.IsZero() || msg.UnstakeBasisPoints.IsZero() {
+	if stakerUnit.Units.IsZero() || msg.BasisPoints.IsZero() {
 		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), errNoLiquidityUnitLeft
 	}
 
 	cv := constants.GetConstantValues(version)
 	height := common.BlockHeight(ctx)
 	if height < (stakerUnit.LastStakeHeight + cv.GetInt64Value(constants.LiquidityLockUpBlocks)) {
-		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), errUnstakeWithin24Hours
+		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), errWithdrawWithin24Hours
 	}
 
-	ctx.Logger().Info("pool before unstake", "pool unit", poolUnits, "balance RUNE", poolRune, "balance asset", poolAsset)
+	ctx.Logger().Info("pool before withdraw", "pool unit", poolUnits, "balance RUNE", poolRune, "balance asset", poolAsset)
 	ctx.Logger().Info("staker before withdraw", "staker unit", fStakerUnit)
-	withdrawRune, withDrawAsset, unitAfter, err := calculateUnstake(poolUnits, poolRune, poolAsset, fStakerUnit, msg.UnstakeBasisPoints, msg.WithdrawalAsset)
+	withdrawRune, withDrawAsset, unitAfter, err := calculateWithdraw(poolUnits, poolRune, poolAsset, fStakerUnit, msg.BasisPoints, msg.WithdrawalAsset)
 	if err != nil {
-		ctx.Logger().Error("fail to unstake", "error", err)
-		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), errUnstakeFail
+		ctx.Logger().Error("fail to withdraw", "error", err)
+		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), errWithdrawFail
 	}
 	if (withdrawRune.Equal(poolRune) && !withDrawAsset.Equal(poolAsset)) || (!withdrawRune.Equal(poolRune) && withDrawAsset.Equal(poolAsset)) {
-		ctx.Logger().Error("fail to unstake: cannot unstake 100% of only one side of the pool")
-		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), errUnstakeFail
+		ctx.Logger().Error("fail to withdraw: cannot withdraw 100% of only one side of the pool")
+		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), errWithdrawFail
 	}
 	gasAsset := cosmos.ZeroUint()
 	// If the pool is empty, and there is a gas asset, subtract required gas
@@ -85,7 +85,7 @@ func unstake(ctx cosmos.Context, version semver.Version, keeper keeper.Keeper, m
 		maxGas, err := manager.GasMgr().GetMaxGas(ctx, pool.Asset.Chain)
 		if err != nil {
 			ctx.Logger().Error("fail to get gas for asset", "asset", pool.Asset, "error", err)
-			return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), errUnstakeFail
+			return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), errWithdrawFail
 		}
 		// minus gas costs for our transactions
 		// TODO: chain specific logic should be in a single location
@@ -114,7 +114,7 @@ func unstake(ctx cosmos.Context, version semver.Version, keeper keeper.Keeper, m
 	pool.BalanceRune = common.SafeSub(poolRune, withdrawRune)
 	pool.BalanceAsset = common.SafeSub(poolAsset, withDrawAsset)
 
-	ctx.Logger().Info("pool after unstake", "pool unit", pool.PoolUnits, "balance RUNE", pool.BalanceRune, "balance asset", pool.BalanceAsset)
+	ctx.Logger().Info("pool after withdraw", "pool unit", pool.PoolUnits, "balance RUNE", pool.BalanceRune, "balance asset", pool.BalanceAsset)
 	// update staker
 	acc, err := stakerUnit.RuneAddress.AccAddress()
 	if err != nil {
@@ -150,7 +150,7 @@ func unstake(ctx cosmos.Context, version semver.Version, keeper keeper.Keeper, m
 	return withdrawRune, withDrawAsset, common.SafeSub(fStakerUnit, unitAfter), gasAsset, nil
 }
 
-func calculateUnstake(poolUnits, poolRune, poolAsset, stakerUnits, withdrawBasisPoints cosmos.Uint, withdrawalAsset common.Asset) (cosmos.Uint, cosmos.Uint, cosmos.Uint, error) {
+func calculateWithdraw(poolUnits, poolRune, poolAsset, stakerUnits, withdrawBasisPoints cosmos.Uint, withdrawalAsset common.Asset) (cosmos.Uint, cosmos.Uint, cosmos.Uint, error) {
 	if poolUnits.IsZero() {
 		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), errors.New("poolUnits can't be zero")
 	}
@@ -163,7 +163,7 @@ func calculateUnstake(poolUnits, poolRune, poolAsset, stakerUnits, withdrawBasis
 	if stakerUnits.IsZero() {
 		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), errors.New("staker unit can't be zero")
 	}
-	if withdrawBasisPoints.GT(cosmos.NewUint(MaxUnstakeBasisPoints)) {
+	if withdrawBasisPoints.GT(cosmos.NewUint(MaxWithdrawBasisPoints)) {
 		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), fmt.Errorf("withdraw basis point %s is not valid", withdrawBasisPoints.String())
 	}
 

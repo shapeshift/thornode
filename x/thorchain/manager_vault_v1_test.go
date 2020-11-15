@@ -243,7 +243,7 @@ func (s *VaultManagerV1TestSuite) TestRagnarokChain(c *C) {
 	items, err := txOutStore.GetOutboundItems(ctx)
 	c.Assert(err, IsNil)
 
-	// 1 ygg return + 4 unstakes
+	// 1 ygg return + 4 withdrawals
 	c.Check(items, HasLen, 3, Commentf("Len %d", items))
 	c.Check(items[0].Memo, Equals, NewYggdrasilReturn(common.BlockHeight(ctx)).String())
 	c.Check(items[0].Chain.Equals(common.BTCChain), Equals, true)
