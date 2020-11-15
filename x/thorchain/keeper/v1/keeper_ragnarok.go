@@ -53,14 +53,14 @@ func (k KVStore) SetRagnarokPending(ctx cosmos.Context, pending int64) {
 	k.set(ctx, k.GetKey(ctx, prefixRagnarokPending, ""), pending)
 }
 
-// GetRagnarokUnstakPosition get ragnarok unstaking position
-func (k KVStore) GetRagnarokUnstakPosition(ctx cosmos.Context) (RagnarokUnstakePosition, error) {
-	record := RagnarokUnstakePosition{}
+// GetRagnarokWithdrawPosition get ragnarok withdrawing position
+func (k KVStore) GetRagnarokWithdrawPosition(ctx cosmos.Context) (RagnarokWithdrawPosition, error) {
+	record := RagnarokWithdrawPosition{}
 	_, err := k.get(ctx, k.GetKey(ctx, prefixRagnarokPosition, ""), &record)
 	return record, err
 }
 
-// SetRagnarokUnstakPosition set ragnarok unstake position
-func (k KVStore) SetRagnarokUnstakPosition(ctx cosmos.Context, position RagnarokUnstakePosition) {
+// SetRagnarokWithdrawPosition set ragnarok withdraw position
+func (k KVStore) SetRagnarokWithdrawPosition(ctx cosmos.Context, position RagnarokWithdrawPosition) {
 	k.set(ctx, k.GetKey(ctx, prefixRagnarokPosition, ""), position)
 }

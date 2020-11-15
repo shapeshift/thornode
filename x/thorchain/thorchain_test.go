@@ -70,17 +70,17 @@ func (s *ThorchainSuite) TestStaking(c *C) {
 	c.Check(staker2.Units.IsZero(), Equals, false)
 
 	version := constants.SWVersion
-	// unstake for user1
-	msg := NewMsgUnStake(GetRandomTx(), user1rune, cosmos.NewUint(10000), common.BNBAsset, common.EmptyAsset, GetRandomBech32Addr())
-	_, _, _, _, err = unstake(ctx, version, keeper, msg, NewDummyMgr())
+	// withdraw for user1
+	msg := NewMsgWithdrawLiquidity(GetRandomTx(), user1rune, cosmos.NewUint(10000), common.BNBAsset, common.EmptyAsset, GetRandomBech32Addr())
+	_, _, _, _, err = withdraw(ctx, version, keeper, msg, NewDummyMgr())
 	c.Assert(err, IsNil)
 	staker1, err = keeper.GetStaker(ctx, common.BNBAsset, user1rune)
 	c.Assert(err, IsNil)
 	c.Check(staker1.Units.IsZero(), Equals, true)
 
-	// unstake for user2
-	msg = NewMsgUnStake(GetRandomTx(), user2rune, cosmos.NewUint(10000), common.BNBAsset, common.EmptyAsset, GetRandomBech32Addr())
-	_, _, _, _, err = unstake(ctx, version, keeper, msg, NewDummyMgr())
+	// withdraw for user2
+	msg = NewMsgWithdrawLiquidity(GetRandomTx(), user2rune, cosmos.NewUint(10000), common.BNBAsset, common.EmptyAsset, GetRandomBech32Addr())
+	_, _, _, _, err = withdraw(ctx, version, keeper, msg, NewDummyMgr())
 	c.Assert(err, IsNil)
 	staker2, err = keeper.GetStaker(ctx, common.BNBAsset, user2rune)
 	c.Assert(err, IsNil)

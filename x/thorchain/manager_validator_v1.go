@@ -456,7 +456,7 @@ func (vm *validatorMgrV1) processRagnarok(ctx cosmos.Context, mgr Manager, const
 		return fmt.Errorf("fail to get ragnarok nth: %w", err)
 	}
 
-	position, err := vm.k.GetRagnarokUnstakPosition(ctx)
+	position, err := vm.k.GetRagnarokWithdrawPosition(ctx)
 	if err != nil {
 		return fmt.Errorf("fail to get ragnarok position: %w", err)
 	}
@@ -635,7 +635,7 @@ func (vm *validatorMgrV1) ragnarokPools(ctx cosmos.Context, nth int64, mgr Manag
 	}
 	na := nas[0]
 
-	position, err := vm.k.GetRagnarokUnstakPosition(ctx)
+	position, err := vm.k.GetRagnarokWithdrawPosition(ctx)
 	if err != nil {
 		return fmt.Errorf("fail to get ragnarok position: %w", err)
 	}
@@ -648,9 +648,9 @@ func (vm *validatorMgrV1) ragnarokPools(ctx cosmos.Context, nth int64, mgr Manag
 	// send them, its only a very small portion that is not refunded.
 	var basisPoints int64
 	if nth > 20 || (nth%10) == 0 {
-		basisPoints = MaxUnstakeBasisPoints
+		basisPoints = MaxWithdrawBasisPoints
 	} else {
-		basisPoints = (nth % 10) * (MaxUnstakeBasisPoints / 10)
+		basisPoints = (nth % 10) * (MaxWithdrawBasisPoints / 10)
 	}
 
 	// go through all the pools
@@ -678,7 +678,7 @@ func (vm *validatorMgrV1) ragnarokPools(ctx cosmos.Context, nth int64, mgr Manag
 	version := vm.k.GetLowestActiveVersion(ctx)
 
 	nextPool := false
-	maxUnstakesPerBlock := 20
+	maxWithdrawsPerBlock := 20
 	count := 0
 
 	for i := len(pools) - 1; i >= 0; i-- { // iterate backwards
@@ -695,7 +695,7 @@ func (vm *validatorMgrV1) ragnarokPools(ctx cosmos.Context, nth int64, mgr Manag
 		nextPool = true
 		position.Pool = pool.Asset
 
-		// unstake gas asset pool on the back 10 nths
+		// withdraw gas asset pool on the back 10 nths
 		if nth <= 10 && pool.Asset.Chain.GetGasAsset().Equals(pool.Asset) {
 			continue
 		}
@@ -719,7 +719,7 @@ func (vm *validatorMgrV1) ragnarokPools(ctx cosmos.Context, nth int64, mgr Manag
 					continue
 				}
 
-				unstakeMsg := NewMsgUnStake(
+				withdrawMsg := NewMsgWithdrawLiquidity(
 					common.GetRagnarokTx(pool.Asset.Chain, staker.RuneAddress, staker.RuneAddress),
 					staker.RuneAddress,
 					cosmos.NewUint(uint64(basisPoints)),
@@ -728,10 +728,10 @@ func (vm *validatorMgrV1) ragnarokPools(ctx cosmos.Context, nth int64, mgr Manag
 					na.NodeAddress,
 				)
 
-				unstakeHandler := NewUnstakeHandler(vm.k, mgr)
-				_, err = unstakeHandler.Run(ctx, unstakeMsg, version, constAccessor)
+				withdrawHandler := NewWithdrawLiquidityHandler(vm.k, mgr)
+				_, err = withdrawHandler.Run(ctx, withdrawMsg, version, constAccessor)
 				if err != nil {
-					ctx.Logger().Error("fail to unstake", "staker", staker.RuneAddress, "error", err)
+					ctx.Logger().Error("fail to withdraw", "staker", staker.RuneAddress, "error", err)
 				} else {
 					count++
 					pending, err := vm.k.GetRagnarokPending(ctx)
@@ -739,23 +739,23 @@ func (vm *validatorMgrV1) ragnarokPools(ctx cosmos.Context, nth int64, mgr Manag
 						return fmt.Errorf("fail to get ragnarok pending: %w", err)
 					}
 					vm.k.SetRagnarokPending(ctx, pending+2) // two outbound txs
-					if count >= maxUnstakesPerBlock {
+					if count >= maxWithdrawsPerBlock {
 						break
 					}
 				}
 			}
 		}
 		iterator.Close()
-		if count >= maxUnstakesPerBlock {
+		if count >= maxWithdrawsPerBlock {
 			break
 		}
 		position.Number = 0
 	}
 
-	if count < maxUnstakesPerBlock { // we've completed all pools/stakers, reset the position
-		position = RagnarokUnstakePosition{}
+	if count < maxWithdrawsPerBlock { // we've completed all pools/stakers, reset the position
+		position = RagnarokWithdrawPosition{}
 	}
-	vm.k.SetRagnarokUnstakPosition(ctx, position)
+	vm.k.SetRagnarokWithdrawPosition(ctx, position)
 
 	return nil
 }
