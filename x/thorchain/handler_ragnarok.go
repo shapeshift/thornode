@@ -100,6 +100,7 @@ func (h RagnarokHandler) handleV1(ctx cosmos.Context, version semver.Version, ms
 					matchCoin = true
 				}
 			}
+
 			if tx.InHash.Equals(common.BlankTxID) &&
 				tx.OutHash.IsEmpty() &&
 				matchCoin &&

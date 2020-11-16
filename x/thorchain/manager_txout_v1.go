@@ -206,6 +206,7 @@ func (tos *TxOutStorageV1) prepareTxOutItem(ctx cosmos.Context, toi *TxOutItem) 
 		toi.MaxGas = common.Gas{
 			common.NewCoin(gasAsset, maxAmt),
 		}
+		toi.GasRate = tos.gasManager.GetGasRate(ctx, toi.Chain)
 	}
 
 	// Deduct OutboundTransactionFee from TOI and add to Reserve
