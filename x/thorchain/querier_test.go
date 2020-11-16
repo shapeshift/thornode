@@ -196,30 +196,30 @@ func (s *QuerierSuite) TestQuerierRagnarokInProgress(c *C) {
 	c.Assert(ragnarok, Equals, false)
 }
 
-func (s *QuerierSuite) TestQueryStakers(c *C) {
+func (s *QuerierSuite) TestQueryLiquidityProviders(c *C) {
 	req := abci.RequestQuery{
 		Data:   nil,
-		Path:   query.QueryStakers.Key,
+		Path:   query.QueryLiquidityProviders.Key,
 		Height: s.ctx.BlockHeight(),
 		Prove:  false,
 	}
-	// test stakers
-	result, err := s.querier(s.ctx, []string{query.QueryStakers.Key, "BNB.BNB"}, req)
+	// test liquidity providers
+	result, err := s.querier(s.ctx, []string{query.QueryLiquidityProviders.Key, "BNB.BNB"}, req)
 	c.Assert(result, NotNil)
 	c.Assert(err, IsNil)
-	s.k.SetStaker(s.ctx, Staker{
-		Asset:             common.BNBAsset,
-		RuneAddress:       GetRandomBNBAddress(),
-		AssetAddress:      GetRandomBNBAddress(),
-		LastStakeHeight:   1024,
-		LastUnStakeHeight: 0,
-		Units:             cosmos.NewUint(10),
+	s.k.SetLiquidityProvider(s.ctx, LiquidityProvider{
+		Asset:              common.BNBAsset,
+		RuneAddress:        GetRandomBNBAddress(),
+		AssetAddress:       GetRandomBNBAddress(),
+		LastAddHeight:      1024,
+		LastWithdrawHeight: 0,
+		Units:              cosmos.NewUint(10),
 	})
-	result, err = s.querier(s.ctx, []string{query.QueryStakers.Key, "BNB.BNB"}, req)
+	result, err = s.querier(s.ctx, []string{query.QueryLiquidityProviders.Key, "BNB.BNB"}, req)
 	c.Assert(err, IsNil)
-	var stakers []Staker
-	c.Assert(s.k.Cdc().UnmarshalJSON(result, &stakers), IsNil)
-	c.Assert(stakers, HasLen, 1)
+	var lps LiquidityProviders
+	c.Assert(s.k.Cdc().UnmarshalJSON(result, &lps), IsNil)
+	c.Assert(lps, HasLen, 1)
 }
 
 func (s *QuerierSuite) TestQueryTxInVoter(c *C) {

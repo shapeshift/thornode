@@ -47,9 +47,9 @@ func withdraw(ctx cosmos.Context, version semver.Version, keeper keeper.Keeper, 
 		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), err
 	}
 
-	stakerUnit, err := keeper.GetStaker(ctx, msg.Asset, msg.RuneAddress)
+	lp, err := keeper.GetLiquidityProvider(ctx, msg.Asset, msg.RuneAddress)
 	if err != nil {
-		ctx.Logger().Error("can't find staker", "error", err)
+		ctx.Logger().Error("can't find liquidity provider", "error", err)
 		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), err
 
 	}
@@ -57,20 +57,20 @@ func withdraw(ctx cosmos.Context, version semver.Version, keeper keeper.Keeper, 
 	poolUnits := pool.PoolUnits
 	poolRune := pool.BalanceRune
 	poolAsset := pool.BalanceAsset
-	fStakerUnit := stakerUnit.Units
-	if stakerUnit.Units.IsZero() || msg.BasisPoints.IsZero() {
+	fLiquidityProviderUnit := lp.Units
+	if lp.Units.IsZero() || msg.BasisPoints.IsZero() {
 		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), errNoLiquidityUnitLeft
 	}
 
 	cv := constants.GetConstantValues(version)
 	height := common.BlockHeight(ctx)
-	if height < (stakerUnit.LastStakeHeight + cv.GetInt64Value(constants.LiquidityLockUpBlocks)) {
+	if height < (lp.LastAddHeight + cv.GetInt64Value(constants.LiquidityLockUpBlocks)) {
 		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), errWithdrawWithin24Hours
 	}
 
 	ctx.Logger().Info("pool before withdraw", "pool unit", poolUnits, "balance RUNE", poolRune, "balance asset", poolAsset)
-	ctx.Logger().Info("staker before withdraw", "staker unit", fStakerUnit)
-	withdrawRune, withDrawAsset, unitAfter, err := calculateWithdraw(poolUnits, poolRune, poolAsset, fStakerUnit, msg.BasisPoints, msg.WithdrawalAsset)
+	ctx.Logger().Info("liquidity provider before withdraw", "liquidity provider unit", fLiquidityProviderUnit)
+	withdrawRune, withDrawAsset, unitAfter, err := calculateWithdraw(poolUnits, poolRune, poolAsset, fLiquidityProviderUnit, msg.BasisPoints, msg.WithdrawalAsset)
 	if err != nil {
 		ctx.Logger().Error("fail to withdraw", "error", err)
 		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), errWithdrawFail
@@ -81,7 +81,7 @@ func withdraw(ctx cosmos.Context, version semver.Version, keeper keeper.Keeper, 
 	}
 	gasAsset := cosmos.ZeroUint()
 	// If the pool is empty, and there is a gas asset, subtract required gas
-	if common.SafeSub(poolUnits, fStakerUnit).Add(unitAfter).IsZero() {
+	if common.SafeSub(poolUnits, fLiquidityProviderUnit).Add(unitAfter).IsZero() {
 		maxGas, err := manager.GasMgr().GetMaxGas(ctx, pool.Asset.Chain)
 		if err != nil {
 			ctx.Logger().Error("fail to get gas for asset", "asset", pool.Asset, "error", err)
@@ -105,26 +105,26 @@ func withdraw(ctx cosmos.Context, version semver.Version, keeper keeper.Keeper, 
 		}
 	}
 
-	withdrawRune = withdrawRune.Add(stakerUnit.PendingRune) // extract pending rune
-	stakerUnit.PendingRune = cosmos.ZeroUint()              // reset pending to zero
+	withdrawRune = withdrawRune.Add(lp.PendingRune) // extract pending rune
+	lp.PendingRune = cosmos.ZeroUint()              // reset pending to zero
 
 	ctx.Logger().Info("client withdraw", "RUNE", withdrawRune, "asset", withDrawAsset, "units left", unitAfter)
 	// update pool
-	pool.PoolUnits = common.SafeSub(poolUnits, fStakerUnit).Add(unitAfter)
+	pool.PoolUnits = common.SafeSub(poolUnits, fLiquidityProviderUnit).Add(unitAfter)
 	pool.BalanceRune = common.SafeSub(poolRune, withdrawRune)
 	pool.BalanceAsset = common.SafeSub(poolAsset, withDrawAsset)
 
 	ctx.Logger().Info("pool after withdraw", "pool unit", pool.PoolUnits, "balance RUNE", pool.BalanceRune, "balance asset", pool.BalanceAsset)
-	// update staker
-	acc, err := stakerUnit.RuneAddress.AccAddress()
+	// update liquidity provider
+	acc, err := lp.RuneAddress.AccAddress()
 	if err != nil {
 		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), ErrInternal(err, "fail to convert rune address")
 	}
-	err = keeper.RemoveStake(ctx, common.NewCoin(pool.Asset.LiquidityAsset(), stakerUnit.Units.Sub(unitAfter)), acc)
+	err = keeper.RemoveStake(ctx, common.NewCoin(pool.Asset.LiquidityAsset(), lp.Units.Sub(unitAfter)), acc)
 	if err != nil {
 		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), ErrInternal(err, "fail to withdraw stake")
 	}
-	stakerUnit.LastUnStakeHeight = common.BlockHeight(ctx)
+	lp.LastWithdrawHeight = common.BlockHeight(ctx)
 
 	// Create a pool event if THORNode have no rune or assets
 	if pool.BalanceAsset.IsZero() || pool.BalanceRune.IsZero() {
@@ -139,18 +139,18 @@ func withdraw(ctx cosmos.Context, version semver.Version, keeper keeper.Keeper, 
 		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), ErrInternal(err, "fail to save pool")
 	}
 	if keeper.RagnarokInProgress(ctx) {
-		keeper.SetStaker(ctx, stakerUnit)
+		keeper.SetLiquidityProvider(ctx, lp)
 	} else {
-		if !stakerUnit.Units.IsZero() {
-			keeper.SetStaker(ctx, stakerUnit)
+		if !lp.Units.IsZero() {
+			keeper.SetLiquidityProvider(ctx, lp)
 		} else {
-			keeper.RemoveStaker(ctx, stakerUnit)
+			keeper.RemoveLiquidityProvider(ctx, lp)
 		}
 	}
-	return withdrawRune, withDrawAsset, common.SafeSub(fStakerUnit, unitAfter), gasAsset, nil
+	return withdrawRune, withDrawAsset, common.SafeSub(fLiquidityProviderUnit, unitAfter), gasAsset, nil
 }
 
-func calculateWithdraw(poolUnits, poolRune, poolAsset, stakerUnits, withdrawBasisPoints cosmos.Uint, withdrawalAsset common.Asset) (cosmos.Uint, cosmos.Uint, cosmos.Uint, error) {
+func calculateWithdraw(poolUnits, poolRune, poolAsset, lpUnits, withdrawBasisPoints cosmos.Uint, withdrawalAsset common.Asset) (cosmos.Uint, cosmos.Uint, cosmos.Uint, error) {
 	if poolUnits.IsZero() {
 		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), errors.New("poolUnits can't be zero")
 	}
@@ -160,15 +160,15 @@ func calculateWithdraw(poolUnits, poolRune, poolAsset, stakerUnits, withdrawBasi
 	if poolAsset.IsZero() {
 		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), errors.New("pool asset balance can't be zero")
 	}
-	if stakerUnits.IsZero() {
-		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), errors.New("staker unit can't be zero")
+	if lpUnits.IsZero() {
+		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), errors.New("liquidity provider unit can't be zero")
 	}
 	if withdrawBasisPoints.GT(cosmos.NewUint(MaxWithdrawBasisPoints)) {
 		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), fmt.Errorf("withdraw basis point %s is not valid", withdrawBasisPoints.String())
 	}
 
-	unitsToClaim := common.GetShare(withdrawBasisPoints, cosmos.NewUint(10000), stakerUnits)
-	unitAfter := common.SafeSub(stakerUnits, unitsToClaim)
+	unitsToClaim := common.GetShare(withdrawBasisPoints, cosmos.NewUint(10000), lpUnits)
+	unitAfter := common.SafeSub(lpUnits, unitsToClaim)
 	if withdrawalAsset.IsEmpty() {
 		withdrawRune := common.GetShare(unitsToClaim, poolUnits, poolRune)
 		withdrawAsset := common.GetShare(unitsToClaim, poolUnits, poolAsset)

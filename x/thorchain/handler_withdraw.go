@@ -80,9 +80,9 @@ func (h WithdrawLiquidityHandler) handle(ctx cosmos.Context, msg MsgWithdrawLiqu
 }
 
 func (h WithdrawLiquidityHandler) handleV1(ctx cosmos.Context, msg MsgWithdrawLiquidity, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
-	staker, err := h.keeper.GetStaker(ctx, msg.Asset, msg.RuneAddress)
+	lp, err := h.keeper.GetLiquidityProvider(ctx, msg.Asset, msg.RuneAddress)
 	if err != nil {
-		return nil, multierror.Append(errFailGetStaker, err)
+		return nil, multierror.Append(errFailGetLiquidityProvider, err)
 	}
 	pool, err := h.keeper.GetPool(ctx, msg.Asset)
 	if err != nil {
@@ -92,9 +92,9 @@ func (h WithdrawLiquidityHandler) handleV1(ctx cosmos.Context, msg MsgWithdrawLi
 	// snapshot original coin holdings, this is so we can add back the stake if unsuccessful
 	acc, err := msg.RuneAddress.AccAddress()
 	if err != nil {
-		return nil, ErrInternal(err, "fail to get staker address")
+		return nil, ErrInternal(err, "fail to get liquidity provider address")
 	}
-	originalLtokens := h.keeper.GetStakerBalance(ctx, msg.Asset.LiquidityAsset(), acc)
+	originalLtokens := h.keeper.GetLiquidityProviderBalance(ctx, msg.Asset.LiquidityAsset(), acc)
 
 	runeAmt, assetAmount, units, gasAsset, err := withdraw(ctx, version, h.keeper, msg, h.mgr)
 	if err != nil {
@@ -120,7 +120,7 @@ func (h WithdrawLiquidityHandler) handleV1(ctx cosmos.Context, msg MsgWithdrawLi
 	toi := &TxOutItem{
 		Chain:     msg.Asset.Chain,
 		InHash:    msg.Tx.ID,
-		ToAddress: staker.AssetAddress,
+		ToAddress: lp.AssetAddress,
 		Coin:      common.NewCoin(msg.Asset, assetAmount),
 		Memo:      memo,
 	}
@@ -143,21 +143,21 @@ func (h WithdrawLiquidityHandler) handleV1(ctx cosmos.Context, msg MsgWithdrawLi
 		// other situation will be none of the vault has enough fund to fulfill this withdraw
 		// thus withdraw need to be revert
 		if !errors.Is(err, ErrNotEnoughToPayFee) {
-			// restore pool and staker
+			// restore pool and liquidity provider
 			if err := h.keeper.SetPool(ctx, pool); err != nil {
 				return nil, ErrInternal(err, "fail to save pool")
 			}
-			h.keeper.SetStaker(ctx, staker)
+			h.keeper.SetLiquidityProvider(ctx, lp)
 
 			acc, err := msg.RuneAddress.AccAddress()
 			if err != nil {
-				return nil, ErrInternal(err, "fail to get staker address")
+				return nil, ErrInternal(err, "fail to get liquidity provider address")
 			}
-			stakerCoins := h.keeper.GetStakerBalance(ctx, msg.Asset.LiquidityAsset(), acc)
-			if originalLtokens.GT(stakerCoins) {
+			lpCoins := h.keeper.GetLiquidityProviderBalance(ctx, msg.Asset.LiquidityAsset(), acc)
+			if originalLtokens.GT(lpCoins) {
 				coin := common.NewCoin(
 					msg.Asset.LiquidityAsset(),
-					originalLtokens.Sub(stakerCoins),
+					originalLtokens.Sub(lpCoins),
 				)
 				// re-add stake back to the account
 				err := h.keeper.AddStake(ctx, coin, acc)
@@ -176,7 +176,7 @@ func (h WithdrawLiquidityHandler) handleV1(ctx cosmos.Context, msg MsgWithdrawLi
 	toi = &TxOutItem{
 		Chain:     common.RuneAsset().Chain,
 		InHash:    msg.Tx.ID,
-		ToAddress: staker.RuneAddress,
+		ToAddress: lp.RuneAddress,
 		Coin:      common.NewCoin(common.RuneAsset(), runeAmt),
 		Memo:      memo,
 	}

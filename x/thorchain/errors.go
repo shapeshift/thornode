@@ -26,7 +26,7 @@ const (
 	CodeSwapFailNotEnoughBalance uint32 = 115
 
 	CodeAddLiquidityFailValidation    uint32 = 120
-	CodeFailGetStaker                 uint32 = 122
+	CodeFailGetLiquidityProvider      uint32 = 122
 	CodeAddLiquidityMismatchAssetAddr uint32 = 123
 	CodeStakeInvalidPoolAsset         uint32 = 124
 	CodeAddLiquidityRUNEOverLimit     uint32 = 125
@@ -55,7 +55,7 @@ var (
 	errInvalidPoolStatus             = se.Register(DefaultCodespace, CodeInvalidPoolStatus, "invalid pool status")
 	errFailAddOutboundTx             = se.Register(DefaultCodespace, CodeFailAddOutboundTx, "prepare outbound tx not successful")
 	errWithdrawFailValidation        = se.Register(DefaultCodespace, CodeWithdrawFailValidation, "fail to validate withdraw")
-	errFailGetStaker                 = se.Register(DefaultCodespace, CodeFailGetStaker, "fail to get staker")
+	errFailGetLiquidityProvider      = se.Register(DefaultCodespace, CodeFailGetLiquidityProvider, "fail to get liquidity provider")
 	errAddLiquidityMismatchAssetAddr = se.Register(DefaultCodespace, CodeAddLiquidityMismatchAssetAddr, "mismatch of asset address")
 	errSwapFailNotEnoughFee          = se.Register(DefaultCodespace, CodeSwapFailNotEnoughFee, "fail swap, not enough fee")
 	errSwapFail                      = se.Register(DefaultCodespace, CodeSwapFail, "fail swap")

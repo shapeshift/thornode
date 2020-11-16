@@ -15,7 +15,7 @@ import (
 // GenesisState strcture that used to store the data THORNode put in genesis
 type GenesisState struct {
 	Pools                []Pool                    `json:"pools"`
-	Stakers              []Staker                  `json:"stakers"`
+	LiquidityProviders   LiquidityProviders        `json:"liquidity_providers"`
 	ObservedTxInVoters   ObservedTxVoters          `json:"observed_tx_in_voters"`
 	ObservedTxOutVoters  ObservedTxVoters          `json:"observed_tx_out_voters"`
 	TxOuts               []TxOut                   `json:"txouts"`
@@ -127,7 +127,7 @@ func DefaultGenesisState() GenesisState {
 		Pools:                []Pool{},
 		NodeAccounts:         NodeAccounts{},
 		TxOuts:               make([]TxOut, 0),
-		Stakers:              make([]Staker, 0),
+		LiquidityProviders:   make(LiquidityProviders, 0),
 		Vaults:               make(Vaults, 0),
 		ObservedTxInVoters:   make(ObservedTxVoters, 0),
 		ObservedTxOutVoters:  make(ObservedTxVoters, 0),
@@ -155,8 +155,8 @@ func InitGenesis(ctx cosmos.Context, keeper keeper.Keeper, data GenesisState) []
 		}
 	}
 
-	for _, stake := range data.Stakers {
-		keeper.SetStaker(ctx, stake)
+	for _, lp := range data.LiquidityProviders {
+		keeper.SetLiquidityProvider(ctx, lp)
 	}
 
 	validators := make([]abci.ValidatorUpdate, 0, len(data.NodeAccounts))
@@ -316,16 +316,16 @@ func InitGenesis(ctx cosmos.Context, keeper keeper.Keeper, data GenesisState) []
 	return validators
 }
 
-func getStakers(ctx cosmos.Context, k keeper.Keeper, asset common.Asset) []Staker {
-	stakers := make([]Staker, 0)
-	iterator := k.GetStakerIterator(ctx, asset)
+func getLiquidityProviders(ctx cosmos.Context, k keeper.Keeper, asset common.Asset) LiquidityProviders {
+	liquidity_providers := make(LiquidityProviders, 0)
+	iterator := k.GetLiquidityProviderIterator(ctx, asset)
 	defer iterator.Close()
 	for ; iterator.Valid(); iterator.Next() {
-		var ps Staker
-		k.Cdc().MustUnmarshalBinaryBare(iterator.Value(), &ps)
-		stakers = append(stakers, ps)
+		var lp LiquidityProvider
+		k.Cdc().MustUnmarshalBinaryBare(iterator.Value(), &lp)
+		liquidity_providers = append(liquidity_providers, lp)
 	}
-	return stakers
+	return liquidity_providers
 }
 
 // ExportGenesis export the data in Genesis
@@ -337,9 +337,9 @@ func ExportGenesis(ctx cosmos.Context, k keeper.Keeper) GenesisState {
 		panic(err)
 	}
 
-	var stakers []Staker
+	var liquidity_providers LiquidityProviders
 	for _, pool := range pools {
-		stakers = append(stakers, getStakers(ctx, k, pool.Asset)...)
+		liquidity_providers = append(liquidity_providers, getLiquidityProviders(ctx, k, pool.Asset)...)
 	}
 
 	var nodeAccounts NodeAccounts
@@ -488,7 +488,7 @@ func ExportGenesis(ctx cosmos.Context, k keeper.Keeper) GenesisState {
 	}
 	return GenesisState{
 		Pools:                pools,
-		Stakers:              stakers,
+		LiquidityProviders:   liquidity_providers,
 		ObservedTxInVoters:   observedTxInVoters,
 		ObservedTxOutVoters:  observedTxOutVoters,
 		TxOuts:               outs,

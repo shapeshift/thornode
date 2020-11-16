@@ -22,7 +22,7 @@ type MockAddLiquidityKeeper struct {
 	activeNodeAccount  NodeAccount
 	failGetPool        bool
 	failGetNextEventID bool
-	staker             Staker
+	lp                 LiquidityProvider
 }
 
 func (m *MockAddLiquidityKeeper) PoolExist(_ cosmos.Context, asset common.Asset) bool {
@@ -56,16 +56,16 @@ func (m *MockAddLiquidityKeeper) GetNodeAccount(_ cosmos.Context, addr cosmos.Ac
 	return NodeAccount{}, errors.New("not exist")
 }
 
-func (m *MockAddLiquidityKeeper) GetStaker(_ cosmos.Context, asset common.Asset, addr common.Address) (Staker, error) {
-	return m.staker, nil
+func (m *MockAddLiquidityKeeper) GetLiquidityProvider(_ cosmos.Context, asset common.Asset, addr common.Address) (LiquidityProvider, error) {
+	return m.lp, nil
 }
 
-func (m *MockAddLiquidityKeeper) SetStaker(ctx cosmos.Context, staker Staker) {
-	m.staker = staker
+func (m *MockAddLiquidityKeeper) SetLiquidityProvider(ctx cosmos.Context, lp LiquidityProvider) {
+	m.lp = lp
 }
 
 func (m *MockAddLiquidityKeeper) AddStake(ctx cosmos.Context, coin common.Coin, _ cosmos.AccAddress) error {
-	m.staker.Units = m.staker.Units.Add(coin.Amount)
+	m.lp.Units = m.lp.Units.Add(coin.Amount)
 	return nil
 }
 
@@ -91,7 +91,7 @@ func (s *HandlerAddLiquiditySuite) TestAddLiquidityHandler(c *C) {
 			PoolUnits:    cosmos.ZeroUint(),
 			Status:       PoolEnabled,
 		},
-		staker: Staker{
+		lp: LiquidityProvider{
 			Asset:        common.BNBAsset,
 			RuneAddress:  runeAddr,
 			AssetAddress: bnbAddr,
@@ -145,7 +145,7 @@ func (s *HandlerAddLiquiditySuite) TestAddLiquidityHandler_NoPool_ShouldCreateNe
 			BalanceAsset: cosmos.ZeroUint(),
 			PoolUnits:    cosmos.ZeroUint(),
 		},
-		staker: Staker{
+		lp: LiquidityProvider{
 			Asset:        common.BNBAsset,
 			RuneAddress:  runeAddr,
 			AssetAddress: bnbAddr,
@@ -210,7 +210,7 @@ func (s *HandlerAddLiquiditySuite) TestAddLiquidityHandlerValidation(c *C) {
 			PoolUnits:    cosmos.ZeroUint(),
 			Status:       PoolEnabled,
 		},
-		staker: Staker{
+		lp: LiquidityProvider{
 			Asset:        common.BNBAsset,
 			RuneAddress:  runeAddr,
 			AssetAddress: bnbAddr,
@@ -244,7 +244,7 @@ func (s *HandlerAddLiquiditySuite) TestAddLiquidityHandlerValidation(c *C) {
 			expectedResult: errAddLiquidityFailValidation,
 		},
 		{
-			name:           "total staker is more than total bond should fail",
+			name:           "total liquidity provider is more than total bond should fail",
 			msg:            NewMsgAddLiquidity(GetRandomTx(), common.BNBAsset, cosmos.NewUint(common.One*5000), cosmos.NewUint(common.One*5000), GetRandomBNBAddress(), GetRandomBNBAddress(), activeNodeAccount.NodeAddress),
 			expectedResult: errAddLiquidityRUNEMoreThanBond,
 		},
@@ -352,7 +352,7 @@ func (p *AddLiquidityTestKeeper) PoolExist(ctx cosmos.Context, asset common.Asse
 	return ok
 }
 
-var notExistStakerAsset, _ = common.NewAsset("BNB.NotExistStakerAsset")
+var notExistLiquidityProviderAsset, _ = common.NewAsset("BNB.NotExistLiquidityProviderAsset")
 
 func (p *AddLiquidityTestKeeper) GetPool(ctx cosmos.Context, asset common.Asset) (Pool, error) {
 	if p, ok := p.store[asset.String()]; ok {
@@ -366,27 +366,27 @@ func (p *AddLiquidityTestKeeper) SetPool(ctx cosmos.Context, ps Pool) error {
 	return nil
 }
 
-func (p *AddLiquidityTestKeeper) GetStaker(ctx cosmos.Context, asset common.Asset, addr common.Address) (Staker, error) {
-	if notExistStakerAsset.Equals(asset) {
-		return Staker{}, errors.New("simulate error for test")
+func (p *AddLiquidityTestKeeper) GetLiquidityProvider(ctx cosmos.Context, asset common.Asset, addr common.Address) (LiquidityProvider, error) {
+	if notExistLiquidityProviderAsset.Equals(asset) {
+		return LiquidityProvider{}, errors.New("simulate error for test")
 	}
-	staker := Staker{
+	lp := LiquidityProvider{
 		Asset:       asset,
 		RuneAddress: addr,
 		Units:       cosmos.ZeroUint(),
 		PendingRune: cosmos.ZeroUint(),
 	}
-	key := p.GetKey(ctx, "staker/", staker.Key())
+	key := p.GetKey(ctx, "lp/", lp.Key())
 	if res, ok := p.store[key]; ok {
-		return res.(Staker), nil
+		return res.(LiquidityProvider), nil
 	}
-	staker.Units = p.liquidityUnits
-	return staker, nil
+	lp.Units = p.liquidityUnits
+	return lp, nil
 }
 
-func (p *AddLiquidityTestKeeper) SetStaker(ctx cosmos.Context, staker Staker) {
-	key := p.GetKey(ctx, "staker/", staker.Key())
-	p.store[key] = staker
+func (p *AddLiquidityTestKeeper) SetLiquidityProvider(ctx cosmos.Context, lp LiquidityProvider) {
+	key := p.GetKey(ctx, "lp/", lp.Key())
+	p.store[key] = lp
 }
 
 func (p *AddLiquidityTestKeeper) AddStake(ctx cosmos.Context, coin common.Coin, addr cosmos.AccAddress) error {
@@ -513,14 +513,14 @@ func (s *HandlerAddLiquiditySuite) TestAddLiquidityV1(c *C) {
 	}), IsNil)
 	err = h.addLiquidityV1(ctx, common.BNBAsset, cosmos.NewUint(100*common.One), cosmos.NewUint(100*common.One), runeAddress, assetAddress, txID, constAccessor)
 	c.Assert(err, IsNil)
-	su, err := ps.GetStaker(ctx, common.BNBAsset, runeAddress)
+	su, err := ps.GetLiquidityProvider(ctx, common.BNBAsset, runeAddress)
 	c.Assert(err, IsNil)
 	// c.Assert(su.Units.Equal(cosmos.NewUint(11250000000)), Equals, true, Commentf("%d", su.Units.Uint64()))
 
 	c.Assert(ps.SetPool(ctx, Pool{
 		BalanceRune:  cosmos.NewUint(100 * common.One),
 		BalanceAsset: cosmos.NewUint(100 * common.One),
-		Asset:        notExistStakerAsset,
+		Asset:        notExistLiquidityProviderAsset,
 		PoolUnits:    cosmos.NewUint(100 * common.One),
 		Status:       PoolEnabled,
 	}), IsNil)
@@ -530,7 +530,7 @@ func (s *HandlerAddLiquiditySuite) TestAddLiquidityV1(c *C) {
 	err = h.addLiquidityV1(ctx, common.BNBAsset, cosmos.ZeroUint(), cosmos.NewUint(100*common.One), runeAddress, assetAddress, txID, constAccessor)
 	c.Assert(err, IsNil)
 
-	err = h.addLiquidityV1(ctx, notExistStakerAsset, cosmos.NewUint(100*common.One), cosmos.NewUint(100*common.One), runeAddress, assetAddress, txID, constAccessor)
+	err = h.addLiquidityV1(ctx, notExistLiquidityProviderAsset, cosmos.NewUint(100*common.One), cosmos.NewUint(100*common.One), runeAddress, assetAddress, txID, constAccessor)
 	c.Assert(err, NotNil)
 	c.Assert(ps.SetPool(ctx, Pool{
 		BalanceRune:  cosmos.NewUint(100 * common.One),
@@ -541,8 +541,8 @@ func (s *HandlerAddLiquiditySuite) TestAddLiquidityV1(c *C) {
 	}), IsNil)
 
 	for i := 1; i <= 150; i++ {
-		staker := Staker{Units: cosmos.NewUint(common.One / 5000)}
-		ps.SetStaker(ctx, staker)
+		lp := LiquidityProvider{Units: cosmos.NewUint(common.One / 5000)}
+		ps.SetLiquidityProvider(ctx, lp)
 	}
 	err = h.addLiquidityV1(ctx, common.BNBAsset, cosmos.NewUint(common.One), cosmos.NewUint(common.One), runeAddress, assetAddress, txID, constAccessor)
 	c.Assert(err, IsNil)
@@ -566,13 +566,13 @@ func (s *HandlerAddLiquiditySuite) TestAddLiquidityV1(c *C) {
 	// add rune
 	err = h.addLiquidityV1(ctx, common.BTCAsset, cosmos.NewUint(100*common.One), cosmos.ZeroUint(), runeAddress, btcAddress, txID, constAccessor)
 	c.Assert(err, IsNil)
-	su, err = ps.GetStaker(ctx, common.BTCAsset, runeAddress)
+	su, err = ps.GetLiquidityProvider(ctx, common.BTCAsset, runeAddress)
 	c.Assert(err, IsNil)
 	// c.Check(su.Units.IsZero(), Equals, true)
 	// add btc
 	err = h.addLiquidityV1(ctx, common.BTCAsset, cosmos.ZeroUint(), cosmos.NewUint(100*common.One), runeAddress, btcAddress, txID, constAccessor)
 	c.Assert(err, IsNil)
-	su, err = ps.GetStaker(ctx, common.BTCAsset, runeAddress)
+	su, err = ps.GetLiquidityProvider(ctx, common.BTCAsset, runeAddress)
 	c.Assert(err, IsNil)
 	c.Check(su.Units.IsZero(), Equals, false)
 	p, err = ps.GetPool(ctx, common.BTCAsset)

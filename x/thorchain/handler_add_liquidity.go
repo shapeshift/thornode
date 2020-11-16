@@ -188,12 +188,12 @@ func (h AddLiquidityHandler) addLiquidityV1(ctx cosmos.Context,
 		}
 	}
 
-	su, err := h.keeper.GetStaker(ctx, asset, runeAddr)
+	su, err := h.keeper.GetLiquidityProvider(ctx, asset, runeAddr)
 	if err != nil {
-		return ErrInternal(err, "fail to get staker")
+		return ErrInternal(err, "fail to get liquidity provider")
 	}
 
-	su.LastStakeHeight = common.BlockHeight(ctx)
+	su.LastAddHeight = common.BlockHeight(ctx)
 	if su.RuneAddress.IsEmpty() {
 		su.RuneAddress = runeAddr
 	}
@@ -211,7 +211,7 @@ func (h AddLiquidityHandler) addLiquidityV1(ctx cosmos.Context,
 		if addAssetAmount.IsZero() {
 			su.PendingRune = su.PendingRune.Add(addRuneAmount)
 			su.PendingTxID = requestTxHash
-			h.keeper.SetStaker(ctx, su)
+			h.keeper.SetLiquidityProvider(ctx, su)
 			// cross chain liquidity , this is the first tx
 			return nil
 		}
@@ -256,7 +256,7 @@ func (h AddLiquidityHandler) addLiquidityV1(ctx cosmos.Context,
 	if err != nil {
 		return ErrInternal(err, "fail to add liquidity")
 	}
-	h.keeper.SetStaker(ctx, su)
+	h.keeper.SetLiquidityProvider(ctx, su)
 	runeTxID := requestTxHash
 	assetTxID := requestTxHash
 	if !su.PendingTxID.IsEmpty() {

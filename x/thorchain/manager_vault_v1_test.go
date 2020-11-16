@@ -26,7 +26,7 @@ type TestRagnarokChainKeeper struct {
 	retireVault Vault
 	yggVault    Vault
 	pools       Pools
-	stakers     []Staker
+	lps         LiquidityProviders
 	na          NodeAccount
 	err         error
 }
@@ -95,59 +95,59 @@ func (k *TestRagnarokChainKeeper) PoolExist(_ cosmos.Context, _ common.Asset) bo
 	return true
 }
 
-func (k *TestRagnarokChainKeeper) GetStakerIterator(ctx cosmos.Context, _ common.Asset) cosmos.Iterator {
+func (k *TestRagnarokChainKeeper) GetLiquidityProviderIterator(ctx cosmos.Context, _ common.Asset) cosmos.Iterator {
 	cdc := makeTestCodec()
 	iter := keeper.NewDummyIterator()
-	for _, staker := range k.stakers {
-		iter.AddItem([]byte("key"), cdc.MustMarshalBinaryBare(staker))
+	for _, lp := range k.lps {
+		iter.AddItem([]byte("key"), cdc.MustMarshalBinaryBare(lp))
 	}
 	return iter
 }
 
 func (k *TestRagnarokChainKeeper) AddStake(ctx cosmos.Context, coin common.Coin, addr cosmos.AccAddress) error {
-	staker, _ := common.NewAddress(addr.String())
-	for i, skr := range k.stakers {
-		if staker.Equals(skr.RuneAddress) {
-			k.stakers[i].Units = k.stakers[i].Units.Add(coin.Amount)
+	lp, _ := common.NewAddress(addr.String())
+	for i, skr := range k.lps {
+		if lp.Equals(skr.RuneAddress) {
+			k.lps[i].Units = k.lps[i].Units.Add(coin.Amount)
 		}
 	}
 	return nil
 }
 
 func (k *TestRagnarokChainKeeper) RemoveStake(ctx cosmos.Context, coin common.Coin, addr cosmos.AccAddress) error {
-	staker, _ := common.NewAddress(addr.String())
-	for i, skr := range k.stakers {
-		if staker.Equals(skr.RuneAddress) {
-			k.stakers[i].Units = k.stakers[i].Units.Sub(coin.Amount)
+	lp, _ := common.NewAddress(addr.String())
+	for i, skr := range k.lps {
+		if lp.Equals(skr.RuneAddress) {
+			k.lps[i].Units = k.lps[i].Units.Sub(coin.Amount)
 		}
 	}
 	return nil
 }
 
-func (k *TestRagnarokChainKeeper) GetStaker(_ cosmos.Context, asset common.Asset, addr common.Address) (Staker, error) {
+func (k *TestRagnarokChainKeeper) GetLiquidityProvider(_ cosmos.Context, asset common.Asset, addr common.Address) (LiquidityProvider, error) {
 	if asset.Equals(common.BTCAsset) {
-		for i, staker := range k.stakers {
-			if addr.Equals(staker.RuneAddress) {
-				return k.stakers[i], k.err
+		for i, lp := range k.lps {
+			if addr.Equals(lp.RuneAddress) {
+				return k.lps[i], k.err
 			}
 		}
 	}
-	return Staker{}, k.err
+	return LiquidityProvider{}, k.err
 }
 
-func (k *TestRagnarokChainKeeper) SetStaker(_ cosmos.Context, staker Staker) {
-	for i, skr := range k.stakers {
-		if staker.RuneAddress.Equals(skr.RuneAddress) {
-			staker.Units = k.stakers[i].Units
-			k.stakers[i] = staker
+func (k *TestRagnarokChainKeeper) SetLiquidityProvider(_ cosmos.Context, lp LiquidityProvider) {
+	for i, skr := range k.lps {
+		if lp.RuneAddress.Equals(skr.RuneAddress) {
+			lp.Units = k.lps[i].Units
+			k.lps[i] = lp
 		}
 	}
 }
 
-func (k *TestRagnarokChainKeeper) RemoveStaker(_ cosmos.Context, staker Staker) {
-	for i, skr := range k.stakers {
-		if staker.RuneAddress.Equals(skr.RuneAddress) {
-			k.stakers[i] = staker
+func (k *TestRagnarokChainKeeper) RemoveLiquidityProvider(_ cosmos.Context, lp LiquidityProvider) {
+	for i, skr := range k.lps {
+		if lp.RuneAddress.Equals(skr.RuneAddress) {
+			k.lps[i] = lp
 		}
 	}
 }
@@ -200,18 +200,18 @@ func (s *VaultManagerV1TestSuite) TestRagnarokChain(c *C) {
 	bnbPool.PoolUnits = cosmos.NewUint(1600)
 
 	addr := GetRandomRUNEAddress()
-	stakers := []Staker{
+	lps := LiquidityProviders{
 		{
-			RuneAddress:     addr,
-			LastStakeHeight: 5,
-			Units:           btcPool.PoolUnits.QuoUint64(2),
-			PendingRune:     cosmos.ZeroUint(),
+			RuneAddress:   addr,
+			LastAddHeight: 5,
+			Units:         btcPool.PoolUnits.QuoUint64(2),
+			PendingRune:   cosmos.ZeroUint(),
 		},
 		{
-			RuneAddress:     GetRandomRUNEAddress(),
-			LastStakeHeight: 10,
-			Units:           btcPool.PoolUnits.QuoUint64(2),
-			PendingRune:     cosmos.ZeroUint(),
+			RuneAddress:   GetRandomRUNEAddress(),
+			LastAddHeight: 10,
+			Units:         btcPool.PoolUnits.QuoUint64(2),
+			PendingRune:   cosmos.ZeroUint(),
 		},
 	}
 
@@ -221,7 +221,7 @@ func (s *VaultManagerV1TestSuite) TestRagnarokChain(c *C) {
 		retireVault: retireVault,
 		yggVault:    yggVault,
 		pools:       Pools{bnbPool, btcPool},
-		stakers:     stakers,
+		lps:         lps,
 	}
 
 	mgr := NewDummyMgr()
@@ -233,7 +233,7 @@ func (s *VaultManagerV1TestSuite) TestRagnarokChain(c *C) {
 	c.Check(keeper.pools[1].Asset.Equals(common.BTCAsset), Equals, true)
 	c.Check(keeper.pools[1].PoolUnits.IsZero(), Equals, true, Commentf("%d\n", keeper.pools[1].PoolUnits.Uint64()))
 	c.Check(keeper.pools[0].PoolUnits.Equal(cosmos.NewUint(1600)), Equals, true)
-	for _, skr := range keeper.stakers {
+	for _, skr := range keeper.lps {
 		c.Check(skr.Units.IsZero(), Equals, true)
 	}
 
@@ -338,35 +338,35 @@ func (s *VaultManagerV1TestSuite) TestCalcBlockRewards(c *C) {
 	constAccessor := constants.GetConstantValues(ver)
 	emissionCurve := constAccessor.GetInt64Value(constants.EmissionCurve)
 	blocksPerYear := constAccessor.GetInt64Value(constants.BlocksPerYear)
-	bondR, poolR, stakerD := vaultMgr.calcBlockRewards(cosmos.NewUint(1000*common.One), cosmos.NewUint(2000*common.One), cosmos.NewUint(1000*common.One), cosmos.ZeroUint(), emissionCurve, blocksPerYear)
+	bondR, poolR, lpD := vaultMgr.calcBlockRewards(cosmos.NewUint(1000*common.One), cosmos.NewUint(2000*common.One), cosmos.NewUint(1000*common.One), cosmos.ZeroUint(), emissionCurve, blocksPerYear)
 	c.Check(bondR.Uint64(), Equals, uint64(1761), Commentf("%d", bondR.Uint64()))
 	c.Check(poolR.Uint64(), Equals, uint64(880), Commentf("%d", poolR.Uint64()))
-	c.Check(stakerD.Uint64(), Equals, uint64(0), Commentf("%d", poolR.Uint64()))
+	c.Check(lpD.Uint64(), Equals, uint64(0), Commentf("%d", poolR.Uint64()))
 
-	bondR, poolR, stakerD = vaultMgr.calcBlockRewards(cosmos.NewUint(1000*common.One), cosmos.NewUint(2000*common.One), cosmos.NewUint(1000*common.One), cosmos.NewUint(3000), emissionCurve, blocksPerYear)
+	bondR, poolR, lpD = vaultMgr.calcBlockRewards(cosmos.NewUint(1000*common.One), cosmos.NewUint(2000*common.One), cosmos.NewUint(1000*common.One), cosmos.NewUint(3000), emissionCurve, blocksPerYear)
 	c.Check(bondR.Uint64(), Equals, uint64(3761), Commentf("%d", bondR.Uint64()))
 	c.Check(poolR.Uint64(), Equals, uint64(0), Commentf("%d", poolR.Uint64()))
-	c.Check(stakerD.Uint64(), Equals, uint64(1120), Commentf("%d", poolR.Uint64()))
+	c.Check(lpD.Uint64(), Equals, uint64(1120), Commentf("%d", poolR.Uint64()))
 
-	bondR, poolR, stakerD = vaultMgr.calcBlockRewards(cosmos.NewUint(1000*common.One), cosmos.NewUint(2000*common.One), cosmos.ZeroUint(), cosmos.ZeroUint(), emissionCurve, blocksPerYear)
+	bondR, poolR, lpD = vaultMgr.calcBlockRewards(cosmos.NewUint(1000*common.One), cosmos.NewUint(2000*common.One), cosmos.ZeroUint(), cosmos.ZeroUint(), emissionCurve, blocksPerYear)
 	c.Check(bondR.Uint64(), Equals, uint64(0), Commentf("%d", bondR.Uint64()))
 	c.Check(poolR.Uint64(), Equals, uint64(0), Commentf("%d", poolR.Uint64()))
-	c.Check(stakerD.Uint64(), Equals, uint64(0), Commentf("%d", poolR.Uint64()))
+	c.Check(lpD.Uint64(), Equals, uint64(0), Commentf("%d", poolR.Uint64()))
 
-	bondR, poolR, stakerD = vaultMgr.calcBlockRewards(cosmos.NewUint(1000*common.One), cosmos.NewUint(1000*common.One), cosmos.NewUint(1000*common.One), cosmos.ZeroUint(), emissionCurve, blocksPerYear)
+	bondR, poolR, lpD = vaultMgr.calcBlockRewards(cosmos.NewUint(1000*common.One), cosmos.NewUint(1000*common.One), cosmos.NewUint(1000*common.One), cosmos.ZeroUint(), emissionCurve, blocksPerYear)
 	c.Check(bondR.Uint64(), Equals, uint64(2641), Commentf("%d", bondR.Uint64()))
 	c.Check(poolR.Uint64(), Equals, uint64(0), Commentf("%d", poolR.Uint64()))
-	c.Check(stakerD.Uint64(), Equals, uint64(0), Commentf("%d", poolR.Uint64()))
+	c.Check(lpD.Uint64(), Equals, uint64(0), Commentf("%d", poolR.Uint64()))
 
-	bondR, poolR, stakerD = vaultMgr.calcBlockRewards(cosmos.ZeroUint(), cosmos.NewUint(1000*common.One), cosmos.NewUint(1000*common.One), cosmos.ZeroUint(), emissionCurve, blocksPerYear)
+	bondR, poolR, lpD = vaultMgr.calcBlockRewards(cosmos.ZeroUint(), cosmos.NewUint(1000*common.One), cosmos.NewUint(1000*common.One), cosmos.ZeroUint(), emissionCurve, blocksPerYear)
 	c.Check(bondR.Uint64(), Equals, uint64(0), Commentf("%d", bondR.Uint64()))
 	c.Check(poolR.Uint64(), Equals, uint64(2641), Commentf("%d", poolR.Uint64()))
-	c.Check(stakerD.Uint64(), Equals, uint64(0), Commentf("%d", poolR.Uint64()))
+	c.Check(lpD.Uint64(), Equals, uint64(0), Commentf("%d", poolR.Uint64()))
 
-	bondR, poolR, stakerD = vaultMgr.calcBlockRewards(cosmos.NewUint(2001*common.One), cosmos.NewUint(1000*common.One), cosmos.NewUint(1000*common.One), cosmos.ZeroUint(), emissionCurve, blocksPerYear)
+	bondR, poolR, lpD = vaultMgr.calcBlockRewards(cosmos.NewUint(2001*common.One), cosmos.NewUint(1000*common.One), cosmos.NewUint(1000*common.One), cosmos.ZeroUint(), emissionCurve, blocksPerYear)
 	c.Check(bondR.Uint64(), Equals, uint64(2641), Commentf("%d", bondR.Uint64()))
 	c.Check(poolR.Uint64(), Equals, uint64(0), Commentf("%d", poolR.Uint64()))
-	c.Check(stakerD.Uint64(), Equals, uint64(0), Commentf("%d", poolR.Uint64()))
+	c.Check(lpD.Uint64(), Equals, uint64(0), Commentf("%d", poolR.Uint64()))
 }
 
 func (s *VaultManagerV1TestSuite) TestCalcPoolDeficit(c *C) {
@@ -377,9 +377,9 @@ func (s *VaultManagerV1TestSuite) TestCalcPoolDeficit(c *C) {
 	mgr := NewDummyMgr()
 	vaultMgr := NewVaultMgrV1(keeper.KVStoreDummy{}, mgr.TxOutStore(), mgr.EventMgr())
 
-	stakerDeficit := cosmos.NewUint(1120)
-	amt1 := vaultMgr.calcPoolDeficit(stakerDeficit, totalFees, pool1Fees)
-	amt2 := vaultMgr.calcPoolDeficit(stakerDeficit, totalFees, pool2Fees)
+	lpDeficit := cosmos.NewUint(1120)
+	amt1 := vaultMgr.calcPoolDeficit(lpDeficit, totalFees, pool1Fees)
+	amt2 := vaultMgr.calcPoolDeficit(lpDeficit, totalFees, pool2Fees)
 
 	c.Check(amt1.Equal(cosmos.NewUint(280)), Equals, true, Commentf("%d", amt1.Uint64()))
 	c.Check(amt2.Equal(cosmos.NewUint(840)), Equals, true, Commentf("%d", amt2.Uint64()))

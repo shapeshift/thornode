@@ -35,7 +35,7 @@ func (q Query) Path(args ...string) string {
 var (
 	QueryPool               = Query{Key: "pool", EndpointTemplate: "/%s/pool/{%s}"}
 	QueryPools              = Query{Key: "pools", EndpointTemplate: "/%s/pools"}
-	QueryStakers            = Query{Key: "stakers", EndpointTemplate: "/%s/pool/{%s}/stakers"}
+	QueryLiquidityProviders = Query{Key: "lps", EndpointTemplate: "/%s/pool/{%s}/liquidity_providers"}
 	QueryTxIn               = Query{Key: "txin", EndpointTemplate: "/%s/tx/{%s}"}
 	QueryTxInVoter          = Query{Key: "txinvoter", EndpointTemplate: "/%s/tx/{%s}/voter"}
 	QueryKeysignArray       = Query{Key: "keysign", EndpointTemplate: "/%s/keysign/{%s}"}
@@ -69,7 +69,7 @@ var (
 var Queries = []Query{
 	QueryPool,
 	QueryPools,
-	QueryStakers,
+	QueryLiquidityProviders,
 	QueryTxInVoter,
 	QueryTxIn,
 	QueryKeysignArray,
