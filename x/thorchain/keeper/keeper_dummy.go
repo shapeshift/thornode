@@ -102,21 +102,24 @@ func (k KVStoreDummy) EnableAPool(_ cosmos.Context) {}
 func (k KVStoreDummy) GetPool(_ cosmos.Context, _ common.Asset) (Pool, error) {
 	return Pool{}, kaboom
 }
-func (k KVStoreDummy) GetPools(_ cosmos.Context) (Pools, error)                           { return nil, kaboom }
-func (k KVStoreDummy) SetPool(_ cosmos.Context, _ Pool) error                             { return kaboom }
-func (k KVStoreDummy) PoolExist(_ cosmos.Context, _ common.Asset) bool                    { return false }
-func (k KVStoreDummy) RemovePool(_ cosmos.Context, _ common.Asset)                        {}
-func (k KVStoreDummy) GetStakerIterator(_ cosmos.Context, _ common.Asset) cosmos.Iterator { return nil }
-func (k KVStoreDummy) GetStaker(_ cosmos.Context, _ common.Asset, _ common.Address) (Staker, error) {
-	return Staker{}, kaboom
+func (k KVStoreDummy) GetPools(_ cosmos.Context) (Pools, error)        { return nil, kaboom }
+func (k KVStoreDummy) SetPool(_ cosmos.Context, _ Pool) error          { return kaboom }
+func (k KVStoreDummy) PoolExist(_ cosmos.Context, _ common.Asset) bool { return false }
+func (k KVStoreDummy) RemovePool(_ cosmos.Context, _ common.Asset)     {}
+func (k KVStoreDummy) GetLiquidityProviderIterator(_ cosmos.Context, _ common.Asset) cosmos.Iterator {
+	return nil
 }
-func (k KVStoreDummy) SetStaker(_ cosmos.Context, _ Staker)    {}
-func (k KVStoreDummy) RemoveStaker(_ cosmos.Context, _ Staker) {}
+
+func (k KVStoreDummy) GetLiquidityProvider(_ cosmos.Context, _ common.Asset, _ common.Address) (LiquidityProvider, error) {
+	return LiquidityProvider{}, kaboom
+}
+func (k KVStoreDummy) SetLiquidityProvider(_ cosmos.Context, _ LiquidityProvider)    {}
+func (k KVStoreDummy) RemoveLiquidityProvider(_ cosmos.Context, _ LiquidityProvider) {}
 func (k KVStoreDummy) GetTotalSupply(ctx cosmos.Context, asset common.Asset) cosmos.Uint {
 	return cosmos.ZeroUint()
 }
 
-func (k KVStoreDummy) GetStakerBalance(ctx cosmos.Context, _ common.Asset, _ cosmos.AccAddress) cosmos.Uint {
+func (k KVStoreDummy) GetLiquidityProviderBalance(ctx cosmos.Context, _ common.Asset, _ cosmos.AccAddress) cosmos.Uint {
 	return cosmos.ZeroUint()
 }
 

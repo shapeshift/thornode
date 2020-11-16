@@ -9,9 +9,9 @@ import (
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper/types"
 )
 
-// GetStakerIterator iterate stakers
-func (k KVStore) GetStakerIterator(ctx cosmos.Context, asset common.Asset) cosmos.Iterator {
-	key := k.GetKey(ctx, prefixStaker, Staker{Asset: asset}.Key())
+// GetLiquidityProviderIterator iterate liquidity providers
+func (k KVStore) GetLiquidityProviderIterator(ctx cosmos.Context, asset common.Asset) cosmos.Iterator {
+	key := k.GetKey(ctx, prefixLiquidityProvider, LiquidityProvider{Asset: asset}.Key())
 	return k.getIterator(ctx, types.DbPrefix(key))
 }
 
@@ -26,15 +26,15 @@ func (k KVStore) GetTotalSupply(ctx cosmos.Context, asset common.Asset) cosmos.U
 	return cosmos.ZeroUint()
 }
 
-// GetStaker retrieve staker from the data store
-func (k KVStore) GetStaker(ctx cosmos.Context, asset common.Asset, addr common.Address) (Staker, error) {
-	record := Staker{
+// GetLiquidityProvider retrieve liquidity provider from the data store
+func (k KVStore) GetLiquidityProvider(ctx cosmos.Context, asset common.Asset, addr common.Address) (LiquidityProvider, error) {
+	record := LiquidityProvider{
 		Asset:       asset,
 		RuneAddress: addr,
 		Units:       cosmos.ZeroUint(),
 		PendingRune: cosmos.ZeroUint(),
 	}
-	_, err := k.get(ctx, k.GetKey(ctx, prefixStaker, record.Key()), &record)
+	_, err := k.get(ctx, k.GetKey(ctx, prefixLiquidityProvider, record.Key()), &record)
 	if err != nil {
 		return record, err
 	}
@@ -43,22 +43,22 @@ func (k KVStore) GetStaker(ctx cosmos.Context, asset common.Asset, addr common.A
 	if err != nil {
 		return record, err
 	}
-	record.Units = k.GetStakerBalance(ctx, asset.LiquidityAsset(), accAddr)
+	record.Units = k.GetLiquidityProviderBalance(ctx, asset.LiquidityAsset(), accAddr)
 
 	return record, err
 }
 
-// SetStaker save the staker to kv store
-func (k KVStore) SetStaker(ctx cosmos.Context, staker Staker) {
-	k.set(ctx, k.GetKey(ctx, prefixStaker, staker.Key()), staker)
+// SetLiquidityProvider save the liquidity provider to kv store
+func (k KVStore) SetLiquidityProvider(ctx cosmos.Context, lp LiquidityProvider) {
+	k.set(ctx, k.GetKey(ctx, prefixLiquidityProvider, lp.Key()), lp)
 }
 
-// RemoveStaker remove the staker to kv store
-func (k KVStore) RemoveStaker(ctx cosmos.Context, staker Staker) {
-	k.del(ctx, k.GetKey(ctx, prefixStaker, staker.Key()))
+// RemoveLiquidityProvider remove the liquidity provider to kv store
+func (k KVStore) RemoveLiquidityProvider(ctx cosmos.Context, lp LiquidityProvider) {
+	k.del(ctx, k.GetKey(ctx, prefixLiquidityProvider, lp.Key()))
 }
 
-func (k KVStore) GetStakerBalance(ctx cosmos.Context, asset common.Asset, addr cosmos.AccAddress) cosmos.Uint {
+func (k KVStore) GetLiquidityProviderBalance(ctx cosmos.Context, asset common.Asset, addr cosmos.AccAddress) cosmos.Uint {
 	bank := k.CoinKeeper()
 	nativeDenom := strings.ToLower(asset.Symbol.String())
 	for _, coin := range bank.GetCoins(ctx, addr) {

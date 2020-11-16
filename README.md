@@ -55,7 +55,7 @@ The THORChain facilitates the following transactions, which are made on external
 - **SWAP**: Anyone can send in assets and swap to another, including sending to a destination address, and including optional price protection. 
 - **BOND**: Anyone can bond assets and attempt to become a Node. Bonds must be greater than the `minimumBondAmount`, else they will be refunded. 
 - **LEAVE**: Nodes can voluntarily leave the system and their bond and rewards will be paid out. Leaving takes 6 hours. 
-- **RESERVE**: Anyone can add assets to the Protocol Reserve, which pays out to Nodes and Stakers. 220,447,472 Rune will be funded in this way. 
+- **RESERVE**: Anyone can add assets to the Protocol Reserve, which pays out to Nodes and Liquidity Providers. 220,447,472 Rune will be funded in this way. 
 
 ### Continuous Liquidity Pools
 The Staking, Unstaking and Swapping logic is based on the `CLP` Continuous Liquidity Pool algorithm. 
