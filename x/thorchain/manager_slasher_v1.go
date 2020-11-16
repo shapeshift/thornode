@@ -125,6 +125,10 @@ func (s *SlasherV1) slashNotObserving(ctx cosmos.Context, txHash common.TxID, co
 	if err != nil {
 		return fmt.Errorf("fail to get observe txin voter (%s): %w", txHash.String(), err)
 	}
+	// for native RUNE tx , there is no observed tx voter
+	if len(voter.Txs) == 0 {
+		return nil
+	}
 	nodes, err := s.keeper.ListActiveNodeAccounts(ctx)
 	if err != nil {
 		return fmt.Errorf("unable to get list of active accounts: %w", err)
@@ -258,7 +262,7 @@ func (s *SlasherV1) LackSigning(ctx cosmos.Context, constAccessor constants.Cons
 
 			// Save the tx to as a new tx, select Asgard to send it this time.
 			tx.VaultPubKey = vault.PubKey
-
+			tx.GasRate = mgr.GasMgr().GetGasRate(ctx, tx.Chain)
 			// if a pool with the asset name doesn't exist, skip rescheduling
 			if !tx.Coin.Asset.IsRune() && !s.keeper.PoolExist(ctx, tx.Coin.Asset) {
 				ctx.Logger().Error("fail to add outbound tx", "error", "coin is not rune and does not have an associated pool")

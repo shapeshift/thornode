@@ -32,3 +32,7 @@ func (m *DummyGasManager) GetMaxGas(ctx cosmos.Context, chain common.Chain) (com
 	}
 	return common.NoCoin, kaboom
 }
+
+func (m *DummyGasManager) GetGasRate(ctx cosmos.Context, chain common.Chain) int64 {
+	return 1
+}

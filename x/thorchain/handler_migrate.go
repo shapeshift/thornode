@@ -95,6 +95,7 @@ func (h MigrateHandler) handleV1(ctx cosmos.Context, version semver.Version, msg
 				matchCoin = true
 			}
 		}
+
 		if tx.InHash.Equals(common.BlankTxID) &&
 			tx.OutHash.IsEmpty() &&
 			matchCoin &&
