@@ -86,6 +86,24 @@ func (gm *GasMgrV1) GetFee(ctx cosmos.Context, chain common.Chain) int64 {
 	return int64(pool.AssetValueInRune(cosmos.NewUint(networkFee.TransactionSize * networkFee.TransactionFeeRate * 3)).Uint64())
 }
 
+// GetGasRate return the gas rate
+func (gm *GasMgrV1) GetGasRate(ctx cosmos.Context, chain common.Chain) int64 {
+	transactionFee := gm.constantsAccessor.GetInt64Value(constants.OutboundTransactionFee)
+	if chain.Equals(common.THORChain) {
+		return transactionFee
+	}
+	networkFee, err := gm.keeper.GetNetworkFee(ctx, chain)
+	if err != nil {
+		ctx.Logger().Error("fail to get network fee", "error", err)
+		return transactionFee
+	}
+	if err := networkFee.Valid(); err != nil {
+		ctx.Logger().Error("network fee is invalid", "error", err, "chain", chain)
+		return transactionFee
+	}
+	return int64(networkFee.TransactionFeeRate) * 3 / 2
+}
+
 // GetMaxGas will calculate the maximum gas fee a tx can use
 func (gm *GasMgrV1) GetMaxGas(ctx cosmos.Context, chain common.Chain) (common.Coin, error) {
 	gasAsset := chain.GetGasAsset()

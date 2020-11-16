@@ -522,19 +522,11 @@ func (c *Client) sendNetworkFee(height int64) error {
 		return fmt.Errorf("fail to get block stats")
 	}
 	// fee rate and tx size should not be 0
-	if result.MedianFee == 0 || result.MedianTxSize == 0 {
+	if result.AverageFeeRate == 0 {
 		return nil
 	}
-	medianFee := uint64(result.MedianFee)
-	if uint64(result.MedianFee) < c.minRelayFeeSats {
-		medianFee = c.minRelayFeeSats
-	}
-	rate := medianFee / uint64(result.MedianTxSize)
-	if rate*uint64(result.MedianTxSize) < medianFee {
-		rate++
-	}
-
-	txid, err := c.bridge.PostNetworkFee(height, common.BTCChain, uint64(result.MedianTxSize), rate)
+	// the tx size is hard code to 250 here , as most of time thornode will spend 1 input, have 3 output
+	txid, err := c.bridge.PostNetworkFee(height, common.BTCChain, uint64(250), uint64(result.AverageFeeRate))
 	if err != nil {
 		return fmt.Errorf("fail to post network fee to thornode: %w", err)
 	}

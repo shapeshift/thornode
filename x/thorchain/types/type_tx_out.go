@@ -2,6 +2,7 @@ package types
 
 import (
 	"errors"
+	"strconv"
 	"strings"
 
 	"gitlab.com/thorchain/thornode/common"
@@ -15,6 +16,7 @@ type TxOutItem struct {
 	Coin        common.Coin    `json:"coin"`
 	Memo        string         `json:"memo"`
 	MaxGas      common.Gas     `json:"max_gas"`
+	GasRate     int64          `json:"gas_rate"`
 	InHash      common.TxID    `json:"in_hash"`
 	OutHash     common.TxID    `json:"out_hash"`
 	ModuleName  string         `json:"-"` // used to pass which cosmos module to remove native funds from
@@ -34,6 +36,9 @@ func (toi TxOutItem) Valid() error {
 	if toi.VaultPubKey.IsEmpty() {
 		return errors.New("vault pubkey cannot be empty")
 	}
+	if toi.GasRate == 0 {
+		return errors.New("gas rate is zero")
+	}
 	if toi.Chain.GetGasAsset().IsEmpty() {
 		return errors.New("invalid base asset")
 	}
@@ -43,6 +48,7 @@ func (toi TxOutItem) Valid() error {
 	if err := toi.MaxGas.Valid(); err != nil {
 		return err
 	}
+
 	return nil
 }
 
@@ -80,6 +86,9 @@ func (toi TxOutItem) Equals(toi2 TxOutItem) bool {
 	if toi.Memo != toi2.Memo {
 		return false
 	}
+	if toi.GasRate != toi2.GasRate {
+		return false
+	}
 
 	return true
 }
@@ -91,6 +100,7 @@ func (toi TxOutItem) String() string {
 	sb.WriteString("Asset:" + toi.Coin.Asset.String())
 	sb.WriteString("Amount:" + toi.Coin.Amount.String())
 	sb.WriteString("Memo:" + toi.Memo)
+	sb.WriteString("GasRate:" + strconv.FormatInt(toi.GasRate, 10))
 	return sb.String()
 }
 

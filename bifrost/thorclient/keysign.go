@@ -2,7 +2,6 @@ package thorclient
 
 import (
 	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -31,7 +30,7 @@ func (b *ThorchainBridge) GetKeysign(blockHeight int64, pk string) (types.TxOut,
 		return types.TxOut{}, fmt.Errorf("failed to get tx from a block height: %w", err)
 	}
 	var query QueryKeysign
-	if err := json.Unmarshal(body, &query); err != nil {
+	if err := b.cdc.UnmarshalJSON(body, &query); err != nil {
 		b.errCounter.WithLabelValues("fail_unmarshal_tx_out", strconv.FormatInt(blockHeight, 10)).Inc()
 		return types.TxOut{}, fmt.Errorf("failed to unmarshal TxOut: %w", err)
 	}

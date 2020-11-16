@@ -209,6 +209,7 @@ func (TypeObservedTxSuite) TestSetTxToComplete(c *C) {
 		VaultPubKey: observePoolAddr,
 		Coin:        tx.Coins[0],
 		Memo:        "",
+		GasRate:     1,
 	}
 	voter.Actions = append(voter.Actions, toi)
 	c.Assert(voter.AddOutTx(tx), Equals, true)

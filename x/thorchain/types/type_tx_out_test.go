@@ -25,6 +25,7 @@ func (TxOutTestSuite) TestTxOut(c *C) {
 		ToAddress:   toAddr,
 		InHash:      GetRandomTxHash(),
 		Coin:        common.NewCoin(common.BNBAsset, cosmos.NewUint(100*common.One)),
+		GasRate:     1,
 	}
 	txOut.TxArray = append(txOut.TxArray, txOutItem)
 	c.Assert(txOut.TxArray, NotNil)
@@ -42,6 +43,7 @@ func (TxOutTestSuite) TestTxOut(c *C) {
 		ToAddress:   toAddr,
 		VaultPubKey: pk,
 		Coin:        common.NoCoin,
+		GasRate:     1,
 	})
 	c.Assert(txOut1.Valid(), NotNil)
 
@@ -52,6 +54,7 @@ func (TxOutTestSuite) TestTxOut(c *C) {
 		ToAddress:   "",
 		VaultPubKey: pk,
 		Coin:        common.NewCoin(common.BNBAsset, cosmos.NewUint(100*common.One)),
+		GasRate:     1,
 	})
 	c.Assert(txOut2.Valid(), NotNil)
 	txOut3 := NewTxOut(4)
@@ -61,6 +64,7 @@ func (TxOutTestSuite) TestTxOut(c *C) {
 		ToAddress:   toAddr,
 		VaultPubKey: common.EmptyPubKey,
 		Coin:        common.NewCoin(common.BNBAsset, cosmos.NewUint(100*common.One)),
+		GasRate:     1,
 	})
 	c.Assert(txOut3.Valid(), NotNil)
 }
@@ -78,7 +82,8 @@ func (TxOutTestSuite) TestTxOutItem(c *C) {
 		MaxGas: common.Gas{
 			common.NewCoin(common.BNBAsset, bnbSingleTxFee),
 		},
-		InHash: GetRandomTxHash(),
+		GasRate: 1,
+		InHash:  GetRandomTxHash(),
 	}
 	hash, err := txOutItem.TxHash()
 	c.Check(err, IsNil)
@@ -159,6 +164,7 @@ func (TxOutTestSuite) TestTxOutItem(c *C) {
 			Memo:        "something memo",
 			MaxGas:      tc.maxGas,
 			InHash:      tc.inHash,
+			GasRate:     1,
 		}
 		c.Check(item.Valid(), NotNil, Commentf(tc.name))
 		if item.MaxGas.Valid() == nil {

@@ -135,6 +135,7 @@ func (h WithdrawLiquidityHandler) handleV1(ctx cosmos.Context, msg MsgWithdrawLi
 				common.NewCoin(msg.Asset.Chain.GetGasAsset(), gasAsset),
 			}
 		}
+		toi.GasRate = h.mgr.GasMgr().GetGasRate(ctx, msg.Asset.Chain)
 	}
 
 	okAsset, err := h.mgr.TxOutStore().TryAddTxOutItem(ctx, h.mgr, toi)

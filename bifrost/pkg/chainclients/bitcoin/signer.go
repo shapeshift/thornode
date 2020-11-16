@@ -58,22 +58,26 @@ func (c *Client) getChainCfg() *chaincfg.Params {
 }
 
 func (c *Client) getGasCoin(tx stypes.TxOutItem, vSize int64) common.Coin {
-	if !tx.MaxGas.IsEmpty() {
-		return tx.MaxGas.ToCoins().GetCoin(common.BTCAsset)
-	}
-	gasRate := int64(SatsPervBytes)
-	fee, vBytes, err := c.blockMetaAccessor.GetTransactionFee()
-	if err != nil {
-		c.logger.Error().Err(err).Msg("fail to get previous transaction fee from local storage")
-		return common.NewCoin(common.BTCAsset, cosmos.NewUint(uint64(vSize*gasRate)))
-	}
-	if fee != 0.0 && vSize != 0 {
-		amt, err := btcutil.NewAmount(fee)
+	gasRate := tx.GasRate
+	// if the gas rate is zero , then try to get from last transaction fee
+	if gasRate == 0 {
+		fee, vBytes, err := c.blockMetaAccessor.GetTransactionFee()
 		if err != nil {
-			c.logger.Err(err).Msg("fail to convert amount from float64 to int64")
-		} else {
-			gasRate = int64(amt) / int64(vBytes) // sats per vbyte
+			c.logger.Error().Err(err).Msg("fail to get previous transaction fee from local storage")
+			return common.NewCoin(common.BTCAsset, cosmos.NewUint(uint64(vSize*gasRate)))
 		}
+		if fee != 0.0 && vSize != 0 {
+			amt, err := btcutil.NewAmount(fee)
+			if err != nil {
+				c.logger.Err(err).Msg("fail to convert amount from float64 to int64")
+			} else {
+				gasRate = int64(amt) / int64(vBytes) // sats per vbyte
+			}
+		}
+	}
+	// still empty , default to 25
+	if gasRate == 0 {
+		gasRate = int64(SatsPervBytes)
 	}
 	return common.NewCoin(common.BTCAsset, cosmos.NewUint(uint64(gasRate*vSize)))
 }
@@ -85,7 +89,7 @@ func (c *Client) isYggdrasil(key common.PubKey) bool {
 
 // getAllUtxos go through all the block meta in the local storage, it will spend all UTXOs in  block that might be evicted from local storage soon
 // it also try to spend enough UTXOs that can add up to more than the given total
-func (c *Client) getUtxoToSpend(pubKey common.PubKey, total float64) ([]btcjson.ListUnspentResult, error) {
+func (c *Client) getUtxoToSpend(pubKey common.PubKey, total float64, tx stypes.TxOutItem) ([]btcjson.ListUnspentResult, error) {
 	var result []btcjson.ListUnspentResult
 	minConfirmation := 0
 	// Yggdrasil vault is funded by asgard , which will only spend UTXO that is older than 10 blocks, so yggdrasil doesn't need
@@ -104,17 +108,39 @@ func (c *Client) getUtxoToSpend(pubKey common.PubKey, total float64) ([]btcjson.
 		}
 		return utxos[i].TxID < utxos[j].TxID
 	})
+
 	target := 0.0
 	for _, item := range utxos {
 		if isYggdrasil || item.Confirmations >= MinUTXOConfirmation || c.isSelfTransaction(item.TxID) {
 			result = append(result, item)
-			if item.Amount+target >= total {
-				break
-			}
 			target += item.Amount
+			if target >= total {
+				// ensure the total amount is enough to pay customer and gas
+				size := c.estimateTxSize(len(result))
+				estimateGasSats := int64(size) * tx.GasRate
+				if (target - btcutil.Amount(tx.Coins.GetCoin(common.BTCAsset).Amount.Uint64()).ToBTC()) >= btcutil.Amount(estimateGasSats).ToBTC() {
+					break
+				}
+			}
+
 		}
 	}
 	return result, nil
+}
+
+// estimate
+func (c *Client) estimateTxSize(utxoCount int) float64 {
+	const (
+		overhead        = 10.75
+		vBytesPerInput  = 67.75
+		vBytesPerOutput = 31
+		vBytesNullData  = 80
+	)
+	// a typical thorchain outbound tx will have the following
+	// 2 OUTPUT , one to customer, change back to self
+	// 1 OP_RETURN , for memo
+	// number of UTXO
+	return overhead + vBytesNullData + 2*vBytesPerOutput + float64(utxoCount)*vBytesPerInput
 }
 
 // isSelfTransaction check the block meta to see whether the transactions is broadcast by ourselves
@@ -153,10 +179,6 @@ func (c *Client) getBlockHeight() (int64, error) {
 func (c *Client) getBTCPaymentAmount(tx stypes.TxOutItem) float64 {
 	amtToPay := tx.Coins.GetCoin(common.BTCAsset).Amount.Uint64()
 	amtToPayInBTC := btcutil.Amount(int64(amtToPay)).ToBTC()
-	if !tx.MaxGas.IsEmpty() {
-		gasAmt := tx.MaxGas.ToCoins().GetCoin(common.BTCAsset).Amount
-		amtToPayInBTC += btcutil.Amount(int64(gasAmt.Uint64())).ToBTC()
-	}
 	return amtToPayInBTC
 }
 
@@ -187,7 +209,7 @@ func (c *Client) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, err
 	if err != nil {
 		return nil, fmt.Errorf("fail to get source pay to address script: %w", err)
 	}
-	txes, err := c.getUtxoToSpend(tx.VaultPubKey, c.getBTCPaymentAmount(tx))
+	txes, err := c.getUtxoToSpend(tx.VaultPubKey, c.getBTCPaymentAmount(tx), tx)
 	if err != nil {
 		return nil, fmt.Errorf("fail to get unspent UTXO")
 	}
@@ -225,8 +247,7 @@ func (c *Client) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, err
 		return nil, fmt.Errorf("fail to parse total amount(%f),err: %w", totalAmt, err)
 	}
 	coinToCustomer := tx.Coins.GetCoin(common.BTCAsset)
-	totalSize := redeemTx.SerializeSize()
-	vSize := mempool.GetTxVirtualSize(btcutil.NewTx(redeemTx))
+	totalSize := c.estimateTxSize(len(txes))
 
 	// bitcoind has a default rule max fee rate should less than 0.1 BTC / kb
 	// the MaxGas coming from THORChain doesn't follow this rule , thus the MaxGas might be over the limit
@@ -234,8 +255,8 @@ func (c *Client) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, err
 	// the rest paid to customer to make sure the total doesn't change
 
 	// maxFee in sats
-	maxFeeSats := float64(totalSize) * defaultMaxBTCFeeRate / 1024
-	gasCoin := c.getGasCoin(tx, vSize)
+	maxFeeSats := totalSize * defaultMaxBTCFeeRate / 1024
+	gasCoin := c.getGasCoin(tx, int64(totalSize))
 	gasAmtSats := gasCoin.Amount.Uint64()
 
 	// for yggdrasil, need to left some coin to pay for fee, this logic is per chain, given different chain charge fees differently
@@ -246,18 +267,25 @@ func (c *Client) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, err
 	// make sure the transaction fee is not more than 0.1 BTC / kb , otherwise it might reject the transaction
 	if gasAmtSats > uint64(maxFeeSats) {
 		diffSats := gasAmtSats - uint64(maxFeeSats) // in sats
-		c.logger.Info().Msgf("gas amount: %d is larger than maximum fee: %f , diff add to customer: %d", gasAmtSats, maxFeeSats, diffSats)
+		c.logger.Info().Msgf("gas amount: %d is larger than maximum fee: %f , diff: %d", gasAmtSats, maxFeeSats, diffSats)
 		gasAmtSats = uint64(maxFeeSats)
-		coinToCustomer.Amount = coinToCustomer.Amount.AddUint64(diffSats)
 	} else if gasAmtSats < c.minRelayFeeSats {
 		diffStats := c.minRelayFeeSats - gasAmtSats
 		c.logger.Info().Msgf("gas amount: %d is less than min relay fee: %d, diff remove from customer: %d", gasAmtSats, c.minRelayFeeSats, diffStats)
 		gasAmtSats = c.minRelayFeeSats
-		coinToCustomer.Amount = coinToCustomer.Amount.SubUint64(diffStats)
 	}
 
+	// if the total gas spend is more than max gas , then we have to take away some from the amount pay to customer
+	if !tx.MaxGas.IsEmpty() {
+		maxGasCoin := tx.MaxGas.ToCoins().GetCoin(common.BTCAsset)
+		if gasAmtSats > maxGasCoin.Amount.Uint64() {
+			gap := gasAmtSats - maxGasCoin.Amount.Uint64()
+			c.logger.Info().Msgf("max gas: %s, need to spend on gas: %s , gap: %d will be deduct from payment to customer", tx.MaxGas, gasCoin, gap)
+			coinToCustomer.Amount = common.SafeSub(coinToCustomer.Amount, cosmos.NewUint(gap))
+		}
+	}
 	gasAmt := btcutil.Amount(gasAmtSats)
-	if err := c.blockMetaAccessor.UpsertTransactionFee(gasAmt.ToBTC(), int32(vSize)); err != nil {
+	if err := c.blockMetaAccessor.UpsertTransactionFee(gasAmt.ToBTC(), int32(totalSize)); err != nil {
 		c.logger.Err(err).Msg("fail to save gas info to UTXO storage")
 	}
 
@@ -303,6 +331,9 @@ func (c *Client) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, err
 	if utxoErr != nil {
 		return nil, fmt.Errorf("fail to sign the message: %w", utxoErr)
 	}
+	finalSize := redeemTx.SerializeSize()
+	finalVBytes := mempool.GetTxVirtualSize(btcutil.NewTx(redeemTx))
+	c.logger.Info().Msgf("estimate:%d, final size: %d, final vbyte: %d", int64(totalSize), finalSize, finalVBytes)
 	var signedTx bytes.Buffer
 	if err := redeemTx.Serialize(&signedTx); err != nil {
 		return nil, fmt.Errorf("fail to serialize tx to bytes: %w", err)

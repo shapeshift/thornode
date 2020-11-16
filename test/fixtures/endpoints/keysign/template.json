@@ -12,9 +12,10 @@
                 "memo": "",
                 "out_hash": "",
                 "to": "tbnb145wcuncewfkuc4v6an0r9laswejygcul43c3wu",
-                "vault_pubkey": "tthorpub1addwnpepqfgpnhk4z80fglgp4cget35dsdzpfxdkudtzw09pm2t0wv6rvhds2flawm6"
+                "vault_pubkey": "tthorpub1addwnpepqfgpnhk4z80fglgp4cget35dsdzpfxdkudtzw09pm2t0wv6rvhds2flawm6",
+                "gas_rate": "1"
             }
         ]
     },
-    "signature": "KC1bdBA+Tj94Px77SJ+CLTyyCBi8mx0oEjLsaRE4GZJEWXbZkWAL/UKQT6dmH14t10Gxz5uouztChOfmxFzJ9A=="
+    "signature": "wSrz3/lEtbnKgNCmFtBpEWW1BqOwHvqkElwsz86XixhU9Kd9eHjdt+dLLJz/avRT7IdTW+2M9hyk5H11dTqjlQ=="
 }
