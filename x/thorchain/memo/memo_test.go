@@ -298,7 +298,7 @@ func (s *MemoSuite) TestParse(c *C) {
 	c.Assert(err, NotNil)
 	_, err = ParseMemo("swap") // not enough parameters
 	c.Assert(err, NotNil)
-	_, err = ParseMemo("swap:bnb:STAKER-1:5.6") // bad destination
+	_, err = ParseMemo("swap:bnb:PROVIDER-1:5.6") // bad destination
 	c.Assert(err, NotNil)
 	_, err = ParseMemo("swap:bnb:bad_DES:5.6") // bad destination
 	c.Assert(err, NotNil)

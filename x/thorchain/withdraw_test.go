@@ -77,14 +77,14 @@ func (k *WithdrawTestKeeper) RemoveStake(ctx cosmos.Context, coin common.Coin, a
 	return k.keeper.RemoveStake(ctx, coin, addr)
 }
 
-func (k *WithdrawTestKeeper) GetStaker(ctx cosmos.Context, asset common.Asset, addr common.Address) (Staker, error) {
+func (k *WithdrawTestKeeper) GetLiquidityProvider(ctx cosmos.Context, asset common.Asset, addr common.Address) (LiquidityProvider, error) {
 	if asset.Equals(common.Asset{Chain: common.BNBChain, Symbol: "NOTEXISTSTICKER", Ticker: "NOTEXISTSTICKER"}) {
-		return types.Staker{}, errors.New("you asked for it")
+		return types.LiquidityProvider{}, errors.New("you asked for it")
 	}
-	if notExistStakerAsset.Equals(asset) {
-		return Staker{}, errors.New("simulate error for test")
+	if notExistLiquidityProviderAsset.Equals(asset) {
+		return LiquidityProvider{}, errors.New("simulate error for test")
 	}
-	return k.keeper.GetStaker(ctx, asset, addr)
+	return k.keeper.GetLiquidityProvider(ctx, asset, addr)
 }
 
 func (k *WithdrawTestKeeper) GetNetworkFee(ctx cosmos.Context, chain common.Chain) (NetworkFee, error) {
@@ -96,8 +96,8 @@ func (k *WithdrawTestKeeper) SaveNetworkFee(ctx cosmos.Context, chain common.Cha
 	return nil
 }
 
-func (k *WithdrawTestKeeper) SetStaker(ctx cosmos.Context, staker Staker) {
-	k.keeper.SetStaker(ctx, staker)
+func (k *WithdrawTestKeeper) SetLiquidityProvider(ctx cosmos.Context, lp LiquidityProvider) {
+	k.keeper.SetLiquidityProvider(ctx, lp)
 }
 
 func (s WithdrawSuite) TestCalculateUnsake(c *C) {
@@ -106,7 +106,7 @@ func (s WithdrawSuite) TestCalculateUnsake(c *C) {
 		poolUnit              cosmos.Uint
 		poolRune              cosmos.Uint
 		poolAsset             cosmos.Uint
-		stakerUnit            cosmos.Uint
+		lpUnit                cosmos.Uint
 		percentage            cosmos.Uint
 		expectedWithdrawRune  cosmos.Uint
 		expectedWithdrawAsset cosmos.Uint
@@ -118,7 +118,7 @@ func (s WithdrawSuite) TestCalculateUnsake(c *C) {
 			poolUnit:              cosmos.ZeroUint(),
 			poolRune:              cosmos.ZeroUint(),
 			poolAsset:             cosmos.ZeroUint(),
-			stakerUnit:            cosmos.ZeroUint(),
+			lpUnit:                cosmos.ZeroUint(),
 			percentage:            cosmos.ZeroUint(),
 			expectedWithdrawRune:  cosmos.ZeroUint(),
 			expectedWithdrawAsset: cosmos.ZeroUint(),
@@ -131,7 +131,7 @@ func (s WithdrawSuite) TestCalculateUnsake(c *C) {
 			poolUnit:              cosmos.NewUint(500 * common.One),
 			poolRune:              cosmos.ZeroUint(),
 			poolAsset:             cosmos.ZeroUint(),
-			stakerUnit:            cosmos.ZeroUint(),
+			lpUnit:                cosmos.ZeroUint(),
 			percentage:            cosmos.ZeroUint(),
 			expectedWithdrawRune:  cosmos.ZeroUint(),
 			expectedWithdrawAsset: cosmos.ZeroUint(),
@@ -144,7 +144,7 @@ func (s WithdrawSuite) TestCalculateUnsake(c *C) {
 			poolUnit:              cosmos.NewUint(500 * common.One),
 			poolRune:              cosmos.NewUint(500 * common.One),
 			poolAsset:             cosmos.ZeroUint(),
-			stakerUnit:            cosmos.ZeroUint(),
+			lpUnit:                cosmos.ZeroUint(),
 			percentage:            cosmos.ZeroUint(),
 			expectedWithdrawRune:  cosmos.ZeroUint(),
 			expectedWithdrawAsset: cosmos.ZeroUint(),
@@ -152,16 +152,16 @@ func (s WithdrawSuite) TestCalculateUnsake(c *C) {
 			expectedErr:           errors.New("pool asset balance can't be zero"),
 		},
 		{
-			name:                  "negative-stakerUnit",
+			name:                  "negative-liquidity-provider-unit",
 			poolUnit:              cosmos.NewUint(500 * common.One),
 			poolRune:              cosmos.NewUint(500 * common.One),
 			poolAsset:             cosmos.NewUint(5100 * common.One),
-			stakerUnit:            cosmos.ZeroUint(),
+			lpUnit:                cosmos.ZeroUint(),
 			percentage:            cosmos.ZeroUint(),
 			expectedWithdrawRune:  cosmos.ZeroUint(),
 			expectedWithdrawAsset: cosmos.ZeroUint(),
 			expectedUnitLeft:      cosmos.ZeroUint(),
-			expectedErr:           errors.New("staker unit can't be zero"),
+			expectedErr:           errors.New("liquidity provider unit can't be zero"),
 		},
 
 		{
@@ -169,7 +169,7 @@ func (s WithdrawSuite) TestCalculateUnsake(c *C) {
 			poolUnit:              cosmos.NewUint(500 * common.One),
 			poolRune:              cosmos.NewUint(500 * common.One),
 			poolAsset:             cosmos.NewUint(500 * common.One),
-			stakerUnit:            cosmos.NewUint(100 * common.One),
+			lpUnit:                cosmos.NewUint(100 * common.One),
 			percentage:            cosmos.NewUint(12000),
 			expectedWithdrawRune:  cosmos.ZeroUint(),
 			expectedWithdrawAsset: cosmos.ZeroUint(),
@@ -181,7 +181,7 @@ func (s WithdrawSuite) TestCalculateUnsake(c *C) {
 			poolUnit:              cosmos.NewUint(700 * common.One),
 			poolRune:              cosmos.NewUint(700 * common.One),
 			poolAsset:             cosmos.NewUint(700 * common.One),
-			stakerUnit:            cosmos.NewUint(200 * common.One),
+			lpUnit:                cosmos.NewUint(200 * common.One),
 			percentage:            cosmos.NewUint(10000),
 			expectedUnitLeft:      cosmos.ZeroUint(),
 			expectedWithdrawAsset: cosmos.NewUint(200 * common.One),
@@ -193,7 +193,7 @@ func (s WithdrawSuite) TestCalculateUnsake(c *C) {
 			poolUnit:              cosmos.NewUint(100),
 			poolRune:              cosmos.NewUint(15 * common.One),
 			poolAsset:             cosmos.NewUint(155 * common.One),
-			stakerUnit:            cosmos.NewUint(100),
+			lpUnit:                cosmos.NewUint(100),
 			percentage:            cosmos.NewUint(1000),
 			expectedUnitLeft:      cosmos.NewUint(90),
 			expectedWithdrawAsset: cosmos.NewUint(1550000000),
@@ -204,7 +204,7 @@ func (s WithdrawSuite) TestCalculateUnsake(c *C) {
 
 	for _, item := range inputs {
 		c.Logf("name:%s", item.name)
-		withDrawRune, withDrawAsset, unitAfter, err := calculateWithdraw(item.poolUnit, item.poolRune, item.poolAsset, item.stakerUnit, item.percentage, common.EmptyAsset)
+		withDrawRune, withDrawAsset, unitAfter, err := calculateWithdraw(item.poolUnit, item.poolRune, item.poolAsset, item.lpUnit, item.percentage, common.EmptyAsset)
 		if item.expectedErr == nil {
 			c.Assert(err, IsNil)
 		} else {
@@ -423,7 +423,7 @@ func (WithdrawSuite) TestWithdraw(c *C) {
 			expectedError: errors.New("pool-BNB.NOTEXIST doesn't exist"),
 		},
 		{
-			name: "invalid-pool-staker-notexist",
+			name: "invalid-pool-liquidity-provider-notexist",
 			msg: MsgWithdrawLiquidity{
 				RuneAddress: runeAddress,
 				BasisPoints: cosmos.NewUint(10000),
@@ -579,26 +579,26 @@ func getWithdrawTestKeeper(c *C, ctx cosmos.Context, k keeper.Keeper, runeAddres
 		Status:       PoolEnabled,
 	}
 	c.Assert(store.SetPool(ctx, pool), IsNil)
-	staker := Staker{
+	lp := LiquidityProvider{
 		Asset:        pool.Asset,
 		RuneAddress:  runeAddress,
 		AssetAddress: runeAddress,
 		Units:        cosmos.NewUint(100 * common.One),
 		PendingRune:  cosmos.ZeroUint(),
 	}
-	store.SetStaker(ctx, staker)
-	accAddr, err := staker.RuneAddress.AccAddress()
+	store.SetLiquidityProvider(ctx, lp)
+	accAddr, err := lp.RuneAddress.AccAddress()
 	c.Assert(err, IsNil)
-	amt := store.GetStakerBalance(ctx, pool.Asset.LiquidityAsset(), accAddr)
+	amt := store.GetLiquidityProviderBalance(ctx, pool.Asset.LiquidityAsset(), accAddr)
 	if amt.IsZero() {
-		err = store.AddStake(ctx, common.NewCoin(pool.Asset.LiquidityAsset(), staker.Units), accAddr)
+		err = store.AddStake(ctx, common.NewCoin(pool.Asset.LiquidityAsset(), lp.Units), accAddr)
 		c.Assert(err, IsNil)
 	}
 
 	return store
 }
 
-// this one has an extra staker already set
+// this one has an extra liquidity provider already set
 func getWithdrawTestKeeper2(c *C, ctx cosmos.Context, k keeper.Keeper, runeAddress common.Address) keeper.Keeper {
 	store := NewWithdrawTestKeeper(k)
 	pool := Pool{
@@ -609,19 +609,19 @@ func getWithdrawTestKeeper2(c *C, ctx cosmos.Context, k keeper.Keeper, runeAddre
 		Status:       PoolEnabled,
 	}
 	c.Assert(store.SetPool(ctx, pool), IsNil)
-	staker := Staker{
+	lp := LiquidityProvider{
 		Asset:        pool.Asset,
 		RuneAddress:  runeAddress,
 		AssetAddress: runeAddress,
 		Units:        cosmos.NewUint(100 * common.One),
 		PendingRune:  cosmos.ZeroUint(),
 	}
-	store.SetStaker(ctx, staker)
-	accAddr, err := staker.RuneAddress.AccAddress()
+	store.SetLiquidityProvider(ctx, lp)
+	accAddr, err := lp.RuneAddress.AccAddress()
 	c.Assert(err, IsNil)
-	amt := store.GetStakerBalance(ctx, pool.Asset.LiquidityAsset(), accAddr)
+	amt := store.GetLiquidityProviderBalance(ctx, pool.Asset.LiquidityAsset(), accAddr)
 	if amt.IsZero() {
-		err = store.AddStake(ctx, common.NewCoin(pool.Asset.LiquidityAsset(), staker.Units), accAddr)
+		err = store.AddStake(ctx, common.NewCoin(pool.Asset.LiquidityAsset(), lp.Units), accAddr)
 		c.Assert(err, IsNil)
 	}
 

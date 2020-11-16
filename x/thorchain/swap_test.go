@@ -50,11 +50,11 @@ func (k *TestSwapKeeper) GetPool(ctx cosmos.Context, asset common.Asset) (types.
 }
 func (k *TestSwapKeeper) SetPool(ctx cosmos.Context, ps types.Pool) error { return nil }
 
-func (k *TestSwapKeeper) GetStaker(ctx cosmos.Context, asset common.Asset, addr common.Address) (types.Staker, error) {
+func (k *TestSwapKeeper) GetLiquidityProvider(ctx cosmos.Context, asset common.Asset, addr common.Address) (types.LiquidityProvider, error) {
 	if asset.Equals(common.Asset{Chain: common.BNBChain, Symbol: "NOTEXISTSTICKER", Ticker: "NOTEXISTSTICKER"}) {
-		return types.Staker{}, errors.New("you asked for it")
+		return types.LiquidityProvider{}, errors.New("you asked for it")
 	}
-	return Staker{
+	return LiquidityProvider{
 		Asset:        asset,
 		RuneAddress:  addr,
 		AssetAddress: addr,
@@ -63,7 +63,7 @@ func (k *TestSwapKeeper) GetStaker(ctx cosmos.Context, asset common.Asset, addr 
 	}, nil
 }
 
-func (k *TestSwapKeeper) SetStaker(ctx cosmos.Context, ps types.Staker) {}
+func (k *TestSwapKeeper) SetLiquidityProvider(ctx cosmos.Context, ps types.LiquidityProvider) {}
 
 func (k *TestSwapKeeper) AddToLiquidityFees(ctx cosmos.Context, asset common.Asset, fs cosmos.Uint) error {
 	return nil

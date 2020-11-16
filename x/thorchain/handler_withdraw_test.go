@@ -18,14 +18,14 @@ var _ = Suite(&HandlerWithdrawSuite{})
 
 type MockWithdrawKeeper struct {
 	keeper.KVStoreDummy
-	activeNodeAccount NodeAccount
-	currentPool       Pool
-	failPool          bool
-	suspendedPool     bool
-	failStaker        bool
-	failAddEvents     bool
-	staker            Staker
-	keeper            keeper.Keeper
+	activeNodeAccount     NodeAccount
+	currentPool           Pool
+	failPool              bool
+	suspendedPool         bool
+	failLiquidityProvider bool
+	failAddEvents         bool
+	lp                    LiquidityProvider
+	keeper                keeper.Keeper
 }
 
 func (mfp *MockWithdrawKeeper) PoolExist(_ cosmos.Context, asset common.Asset) bool {
@@ -61,22 +61,22 @@ func (mfp *MockWithdrawKeeper) GetNodeAccount(_ cosmos.Context, addr cosmos.AccA
 	return NodeAccount{}, nil
 }
 
-func (mfp *MockWithdrawKeeper) GetStakerIterator(ctx cosmos.Context, _ common.Asset) cosmos.Iterator {
+func (mfp *MockWithdrawKeeper) GetLiquidityProviderIterator(ctx cosmos.Context, _ common.Asset) cosmos.Iterator {
 	iter := keeper.NewDummyIterator()
-	iter.AddItem([]byte("key"), mfp.Cdc().MustMarshalBinaryBare(mfp.staker))
+	iter.AddItem([]byte("key"), mfp.Cdc().MustMarshalBinaryBare(mfp.lp))
 	return iter
 }
 
-func (mfp *MockWithdrawKeeper) GetStaker(ctx cosmos.Context, asset common.Asset, addr common.Address) (Staker, error) {
-	if mfp.failStaker {
-		return Staker{}, errors.New("fail to get staker")
+func (mfp *MockWithdrawKeeper) GetLiquidityProvider(ctx cosmos.Context, asset common.Asset, addr common.Address) (LiquidityProvider, error) {
+	if mfp.failLiquidityProvider {
+		return LiquidityProvider{}, errors.New("fail to get liquidity provider")
 	}
 	accAddr, err := addr.AccAddress()
 	if err != nil {
-		return mfp.staker, err
+		return mfp.lp, err
 	}
-	mfp.staker.Units = mfp.keeper.GetStakerBalance(ctx, asset.LiquidityAsset(), accAddr)
-	return mfp.staker, nil
+	mfp.lp.Units = mfp.keeper.GetLiquidityProviderBalance(ctx, asset.LiquidityAsset(), accAddr)
+	return mfp.lp, nil
 }
 
 func (mfp *MockWithdrawKeeper) AddStake(ctx cosmos.Context, coin common.Coin, addr cosmos.AccAddress) error {
@@ -87,8 +87,8 @@ func (mfp *MockWithdrawKeeper) RemoveStake(ctx cosmos.Context, coin common.Coin,
 	return mfp.keeper.RemoveStake(ctx, coin, addr)
 }
 
-func (mfp *MockWithdrawKeeper) SetStaker(_ cosmos.Context, staker Staker) {
-	mfp.staker = staker
+func (mfp *MockWithdrawKeeper) SetLiquidityProvider(_ cosmos.Context, lp LiquidityProvider) {
+	mfp.lp = lp
 }
 
 func (mfp *MockWithdrawKeeper) GetGas(ctx cosmos.Context, asset common.Asset) ([]cosmos.Uint, error) {
@@ -109,7 +109,7 @@ func (HandlerWithdrawSuite) TestWithdrawHandler(c *C) {
 			PoolUnits:    cosmos.ZeroUint(),
 			Status:       PoolEnabled,
 		},
-		staker: Staker{
+		lp: LiquidityProvider{
 			Units:       cosmos.ZeroUint(),
 			PendingRune: cosmos.ZeroUint(),
 		},
@@ -192,7 +192,7 @@ func (HandlerWithdrawSuite) TestWithdrawHandler_mockFailScenarios(c *C) {
 		PoolUnits:    cosmos.ZeroUint(),
 		Status:       PoolEnabled,
 	}
-	staker := Staker{
+	lp := LiquidityProvider{
 		Units:       cosmos.ZeroUint(),
 		PendingRune: cosmos.ZeroUint(),
 	}
@@ -206,7 +206,7 @@ func (HandlerWithdrawSuite) TestWithdrawHandler_mockFailScenarios(c *C) {
 			k: &MockWithdrawKeeper{
 				activeNodeAccount: activeNodeAccount,
 				failPool:          true,
-				staker:            staker,
+				lp:                lp,
 				keeper:            k,
 			},
 			expectedResult: errInternal,
@@ -216,20 +216,20 @@ func (HandlerWithdrawSuite) TestWithdrawHandler_mockFailScenarios(c *C) {
 			k: &MockWithdrawKeeper{
 				activeNodeAccount: activeNodeAccount,
 				suspendedPool:     true,
-				staker:            staker,
+				lp:                lp,
 				keeper:            k,
 			},
 			expectedResult: errInvalidPoolStatus,
 		},
 		{
-			name: "fail to get staker withdraw should fail",
+			name: "fail to get liquidity provider withdraw should fail",
 			k: &MockWithdrawKeeper{
-				activeNodeAccount: activeNodeAccount,
-				failStaker:        true,
-				staker:            staker,
-				keeper:            k,
+				activeNodeAccount:     activeNodeAccount,
+				failLiquidityProvider: true,
+				lp:                    lp,
+				keeper:                k,
 			},
-			expectedResult: errFailGetStaker,
+			expectedResult: errFailGetLiquidityProvider,
 		},
 		{
 			name: "fail to add incomplete event withdraw should fail",
@@ -237,7 +237,7 @@ func (HandlerWithdrawSuite) TestWithdrawHandler_mockFailScenarios(c *C) {
 				activeNodeAccount: activeNodeAccount,
 				currentPool:       currentPool,
 				failAddEvents:     true,
-				staker:            staker,
+				lp:                lp,
 				keeper:            k,
 			},
 			expectedResult: errInternal,

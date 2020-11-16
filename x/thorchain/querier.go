@@ -25,8 +25,8 @@ func NewQuerier(keeper keeper.Keeper, kbs KeybaseStore) cosmos.Querier {
 			return queryPool(ctx, path[1:], req, keeper)
 		case q.QueryPools.Key:
 			return queryPools(ctx, req, keeper)
-		case q.QueryStakers.Key:
-			return queryStakers(ctx, path[1:], req, keeper)
+		case q.QueryLiquidityProviders.Key:
+			return queryLiquidityProviders(ctx, path[1:], req, keeper)
 		case q.QueryTxInVoter.Key:
 			return queryTxInVoter(ctx, path[1:], req, keeper)
 		case q.QueryTxIn.Key:
@@ -321,7 +321,7 @@ func queryPoolAddresses(ctx cosmos.Context, path []string, req abci.RequestQuery
 	}
 
 	// TODO: halted trading should be enabled per chain. This will be used to
-	// decom a chain and not accept new trades/stakes
+	// decom a chain and not accept new trades/liquidity providing
 
 	type address struct {
 		Chain   common.Chain   `json:"chain"`
@@ -575,8 +575,8 @@ func queryObserver(ctx cosmos.Context, path []string, req abci.RequestQuery, kee
 	return res, nil
 }
 
-// queryStakers
-func queryStakers(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
+// queryLiquidityProviders
+func queryLiquidityProviders(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
 	if len(path) == 0 {
 		return nil, errors.New("asset not provided")
 	}
@@ -585,18 +585,18 @@ func queryStakers(ctx cosmos.Context, path []string, req abci.RequestQuery, keep
 		ctx.Logger().Error("fail to get parse asset", "error", err)
 		return nil, fmt.Errorf("fail to parse asset: %w", err)
 	}
-	var stakers []Staker
-	iterator := keeper.GetStakerIterator(ctx, asset)
+	var lps LiquidityProviders
+	iterator := keeper.GetLiquidityProviderIterator(ctx, asset)
 	defer iterator.Close()
 	for ; iterator.Valid(); iterator.Next() {
-		var staker Staker
-		keeper.Cdc().MustUnmarshalBinaryBare(iterator.Value(), &staker)
-		stakers = append(stakers, staker)
+		var lp LiquidityProvider
+		keeper.Cdc().MustUnmarshalBinaryBare(iterator.Value(), &lp)
+		lps = append(lps, lp)
 	}
-	res, err := codec.MarshalJSONIndent(keeper.Cdc(), stakers)
+	res, err := codec.MarshalJSONIndent(keeper.Cdc(), lps)
 	if err != nil {
-		ctx.Logger().Error("fail to marshal stakers to json", "error", err)
-		return nil, fmt.Errorf("fail to marshal stakers to json: %w", err)
+		ctx.Logger().Error("fail to marshal liquidity providers to json", "error", err)
+		return nil, fmt.Errorf("fail to marshal liquidity providers to json: %w", err)
 	}
 	return res, nil
 }
@@ -636,7 +636,7 @@ func queryPools(ctx cosmos.Context, req abci.RequestQuery, keeper keeper.Keeper)
 		if err := keeper.Cdc().UnmarshalBinaryBare(iterator.Value(), &pool); err != nil {
 			return nil, fmt.Errorf("fail to unmarshal pool: %w", err)
 		}
-		// ignore pool if no stake units
+		// ignore pool if no liquidity provider units
 		if pool.PoolUnits.IsZero() {
 			continue
 		}

@@ -28,7 +28,7 @@ type Keeper interface {
 	// Keeper Interfaces
 	KeeperPool
 	KeeperLastHeight
-	KeeperStaker
+	KeeperLiquidityProvider
 	KeeperNodeAccount
 	KeeperObserver
 	KeeperObservedTx
@@ -69,12 +69,12 @@ type KeeperLastHeight interface {
 	GetLastObserveHeight(ctx cosmos.Context, address cosmos.AccAddress) (map[common.Chain]int64, error)
 }
 
-type KeeperStaker interface {
-	GetStakerIterator(ctx cosmos.Context, _ common.Asset) cosmos.Iterator
-	GetStaker(ctx cosmos.Context, asset common.Asset, addr common.Address) (Staker, error)
-	SetStaker(ctx cosmos.Context, staker Staker)
-	RemoveStaker(ctx cosmos.Context, staker Staker)
-	GetStakerBalance(ctx cosmos.Context, _ common.Asset, _ cosmos.AccAddress) cosmos.Uint
+type KeeperLiquidityProvider interface {
+	GetLiquidityProviderIterator(ctx cosmos.Context, _ common.Asset) cosmos.Iterator
+	GetLiquidityProvider(ctx cosmos.Context, asset common.Asset, addr common.Address) (LiquidityProvider, error)
+	SetLiquidityProvider(ctx cosmos.Context, lp LiquidityProvider)
+	RemoveLiquidityProvider(ctx cosmos.Context, lp LiquidityProvider)
+	GetLiquidityProviderBalance(ctx cosmos.Context, _ common.Asset, _ cosmos.AccAddress) cosmos.Uint
 	AddStake(ctx cosmos.Context, _ common.Coin, _ cosmos.AccAddress) error
 	RemoveStake(ctx cosmos.Context, _ common.Coin, _ cosmos.AccAddress) error
 	GetTotalSupply(ctx cosmos.Context, asset common.Asset) cosmos.Uint

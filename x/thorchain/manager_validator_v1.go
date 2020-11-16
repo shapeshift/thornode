@@ -533,7 +533,7 @@ func (vm *validatorMgrV1) ragnarokProtocolStage2(ctx cosmos.Context, nth int64, 
 		ctx.Logger().Error("fail to ragnarok bond", "error", err)
 	}
 
-	// refund stakers. This is last to ensure there is likely gas for the
+	// refund liquidity providers. This is last to ensure there is likely gas for the
 	// returning bond and reserve
 	if err := vm.ragnarokPools(ctx, nth, mgr, constAccessor); err != nil {
 		ctx.Logger().Error("fail to ragnarok pools", "error", err)
@@ -701,27 +701,27 @@ func (vm *validatorMgrV1) ragnarokPools(ctx cosmos.Context, nth int64, mgr Manag
 		}
 
 		j := int64(-1)
-		iterator := vm.k.GetStakerIterator(ctx, pool.Asset)
+		iterator := vm.k.GetLiquidityProviderIterator(ctx, pool.Asset)
 		for ; iterator.Valid(); iterator.Next() {
 			j++
 			if j == position.Number {
 				position.Number++
-				var staker Staker
-				vm.k.Cdc().MustUnmarshalBinaryBare(iterator.Value(), &staker)
+				var lp LiquidityProvider
+				vm.k.Cdc().MustUnmarshalBinaryBare(iterator.Value(), &lp)
 
-				accAddr, err := staker.RuneAddress.AccAddress()
+				accAddr, err := lp.RuneAddress.AccAddress()
 				if err != nil {
-					ctx.Logger().Error("fail to get stake tokens", "staker", staker.RuneAddress, "error", err)
+					ctx.Logger().Error("fail to get stake tokens", "liquidity provider", lp.RuneAddress, "error", err)
 					continue
 				}
-				staker.Units = vm.k.GetStakerBalance(ctx, pool.Asset.LiquidityAsset(), accAddr)
-				if staker.Units.IsZero() {
+				lp.Units = vm.k.GetLiquidityProviderBalance(ctx, pool.Asset.LiquidityAsset(), accAddr)
+				if lp.Units.IsZero() {
 					continue
 				}
 
 				withdrawMsg := NewMsgWithdrawLiquidity(
-					common.GetRagnarokTx(pool.Asset.Chain, staker.RuneAddress, staker.RuneAddress),
-					staker.RuneAddress,
+					common.GetRagnarokTx(pool.Asset.Chain, lp.RuneAddress, lp.RuneAddress),
+					lp.RuneAddress,
 					cosmos.NewUint(uint64(basisPoints)),
 					pool.Asset,
 					common.EmptyAsset,
@@ -731,7 +731,7 @@ func (vm *validatorMgrV1) ragnarokPools(ctx cosmos.Context, nth int64, mgr Manag
 				withdrawHandler := NewWithdrawLiquidityHandler(vm.k, mgr)
 				_, err = withdrawHandler.Run(ctx, withdrawMsg, version, constAccessor)
 				if err != nil {
-					ctx.Logger().Error("fail to withdraw", "staker", staker.RuneAddress, "error", err)
+					ctx.Logger().Error("fail to withdraw", "liquidity provider", lp.RuneAddress, "error", err)
 				} else {
 					count++
 					pending, err := vm.k.GetRagnarokPending(ctx)
@@ -752,7 +752,7 @@ func (vm *validatorMgrV1) ragnarokPools(ctx cosmos.Context, nth int64, mgr Manag
 		position.Number = 0
 	}
 
-	if count < maxWithdrawsPerBlock { // we've completed all pools/stakers, reset the position
+	if count < maxWithdrawsPerBlock { // we've completed all pools/liquidity providers, reset the position
 		position = RagnarokWithdrawPosition{}
 	}
 	vm.k.SetRagnarokWithdrawPosition(ctx, position)

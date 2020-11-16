@@ -196,18 +196,18 @@ func (HandlerSuite) TestHandleTxInWithdrawLiquidityMemo(c *C) {
 	c.Assert(w.keeper.SetPool(w.ctx, pool), IsNil)
 
 	runeAddr := GetRandomRUNEAddress()
-	staker := Staker{
+	lp := LiquidityProvider{
 		Asset:        common.BNBAsset,
 		RuneAddress:  runeAddr,
 		AssetAddress: GetRandomBNBAddress(),
 		PendingRune:  cosmos.ZeroUint(),
 		Units:        cosmos.NewUint(100),
 	}
-	w.keeper.SetStaker(w.ctx, staker)
+	w.keeper.SetLiquidityProvider(w.ctx, lp)
 
-	accAddr, err := staker.RuneAddress.AccAddress()
+	accAddr, err := lp.RuneAddress.AccAddress()
 	c.Assert(err, IsNil)
-	err = w.keeper.AddStake(w.ctx, common.NewCoin(pool.Asset.LiquidityAsset(), staker.Units), accAddr)
+	err = w.keeper.AddStake(w.ctx, common.NewCoin(pool.Asset.LiquidityAsset(), lp.Units), accAddr)
 	c.Assert(err, IsNil)
 
 	tx := common.Tx{
@@ -217,12 +217,12 @@ func (HandlerSuite) TestHandleTxInWithdrawLiquidityMemo(c *C) {
 			common.NewCoin(common.RuneAsset(), cosmos.NewUint(1*common.One)),
 		},
 		Memo:        "withdraw:BNB.BNB",
-		FromAddress: staker.RuneAddress,
+		FromAddress: lp.RuneAddress,
 		ToAddress:   vaultAddr,
 		Gas:         BNBGasFeeSingleton,
 	}
 
-	msg := NewMsgWithdrawLiquidity(tx, staker.RuneAddress, cosmos.NewUint(uint64(MaxWithdrawBasisPoints)), common.BNBAsset, common.EmptyAsset, w.activeNodeAccount.NodeAddress)
+	msg := NewMsgWithdrawLiquidity(tx, lp.RuneAddress, cosmos.NewUint(uint64(MaxWithdrawBasisPoints)), common.BNBAsset, common.EmptyAsset, w.activeNodeAccount.NodeAddress)
 	c.Assert(err, IsNil)
 
 	handler := NewInternalHandler(w.keeper, w.mgr)

@@ -7553,12 +7553,12 @@
       "amount": "4000000000000000"
     }
   ],
-  "stakers": [
+  "liquidity_providers": [
     {
       "asset": "BTC.BTC",
       "asset_address": "bcrt1q0s4mg25tu6termrk8egltfyme4q7sg3h8kkydt",
-      "last_stake": "16",
-      "last_unstake": "108",
+      "last_add": "16",
+      "last_withdraw": "108",
       "pending_rune": "0",
       "pending_tx_id": "E7D4103012764957FE0F151B17D531A0778EF7CD4ED8C5F42287E6568A2BA1D7",
       "rune_address": "tbnb1mkymsmnqenxthlmaa9f60kd6wgr9yjy9h5mz6q",
@@ -7567,8 +7567,8 @@
     {
       "asset": "ETH.ETH",
       "asset_address": "0xfabb9cc6ec839b1214bb11c53377a56a6ed81762",
-      "last_stake": "19",
-      "last_unstake": "88",
+      "last_add": "19",
+      "last_withdraw": "88",
       "pending_rune": "0",
       "pending_tx_id": "8B6057E6F38AE694C560DB908F0BE855F492B0B78FF6D7E5AD67ED5C2948E572",
       "rune_address": "tbnb1mkymsmnqenxthlmaa9f60kd6wgr9yjy9h5mz6q",

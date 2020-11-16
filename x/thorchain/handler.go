@@ -218,7 +218,7 @@ func getMsgAddLiquidityFromMemo(ctx cosmos.Context, memo AddLiquidityMemo, tx Ob
 
 	runeAddr := tx.Tx.FromAddress
 	assetAddr := memo.GetDestination()
-	// this is to cover multi-chain scenario, for example BTC , staker who
+	// this is to cover multi-chain scenario, for example BTC , liquidity provider who
 	// would like to stake in BTC pool,  will have to complete
 	// the stake operation by sending in two asymmetric stake tx, one tx on BTC
 	// chain with memo stake:BTC:<RUNE address> ,
