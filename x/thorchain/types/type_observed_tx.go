@@ -169,10 +169,20 @@ func (tx ObservedTxVoter) String() string {
 func (tx ObservedTxVoter) matchActionItem(outboundTx common.Tx) bool {
 	for _, toi := range tx.Actions {
 		// note: Coins.Contains will match amount as well
+		matchCoin := outboundTx.Coins.Contains(toi.Coin)
+		if !matchCoin && toi.Coin.Asset.Equals(toi.Chain.GetGasAsset()) {
+			asset := toi.Chain.GetGasAsset()
+			intendToSpend := toi.Coin.Amount.Add(toi.MaxGas.ToCoins().GetCoin(asset).Amount)
+			actualSpend := outboundTx.Coins.GetCoin(asset).Amount.Add(outboundTx.Gas.ToCoins().GetCoin(asset).Amount)
+			if intendToSpend.Equal(actualSpend) {
+				matchCoin = true
+			}
+
+		}
 		if strings.EqualFold(toi.Memo, outboundTx.Memo) &&
 			toi.ToAddress.Equals(outboundTx.ToAddress) &&
 			toi.Chain.Equals(outboundTx.Chain) &&
-			outboundTx.Coins.Contains(toi.Coin) {
+			matchCoin {
 			return true
 		}
 	}
