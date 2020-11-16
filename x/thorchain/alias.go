@@ -184,7 +184,8 @@ type (
 	PoolStatus                     = types.PoolStatus
 	Pool                           = types.Pool
 	Pools                          = types.Pools
-	Staker                         = types.Staker
+	LiquidityProvider              = types.LiquidityProvider
+	LiquidityProviders             = types.LiquidityProviders
 	ObservedTxs                    = types.ObservedTxs
 	ObservedTx                     = types.ObservedTx
 	ObservedTxVoter                = types.ObservedTxVoter

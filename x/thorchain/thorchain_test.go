@@ -56,35 +56,35 @@ func (s *ThorchainSuite) TestStaking(c *C) {
 	c.Assert(err, IsNil)
 	err = addHandler.addLiquidityV1(ctx, common.BNBAsset, cosmos.NewUint(100*common.One), cosmos.NewUint(100*common.One), user1rune, user1asset, txID, constAccessor)
 	c.Assert(err, IsNil)
-	staker1, err := keeper.GetStaker(ctx, common.BNBAsset, user1rune)
+	lp1, err := keeper.GetLiquidityProvider(ctx, common.BNBAsset, user1rune)
 	c.Assert(err, IsNil)
-	c.Check(staker1.Units.IsZero(), Equals, false)
+	c.Check(lp1.Units.IsZero(), Equals, false)
 
 	// stake for user2
 	err = addHandler.addLiquidityV1(ctx, common.BNBAsset, cosmos.NewUint(75*common.One), cosmos.NewUint(75*common.One), user2rune, user2asset, txID, constAccessor)
 	c.Assert(err, IsNil)
 	err = addHandler.addLiquidityV1(ctx, common.BNBAsset, cosmos.NewUint(75*common.One), cosmos.NewUint(75*common.One), user2rune, user2asset, txID, constAccessor)
 	c.Assert(err, IsNil)
-	staker2, err := keeper.GetStaker(ctx, common.BNBAsset, user2rune)
+	lp2, err := keeper.GetLiquidityProvider(ctx, common.BNBAsset, user2rune)
 	c.Assert(err, IsNil)
-	c.Check(staker2.Units.IsZero(), Equals, false)
+	c.Check(lp2.Units.IsZero(), Equals, false)
 
 	version := constants.SWVersion
 	// withdraw for user1
 	msg := NewMsgWithdrawLiquidity(GetRandomTx(), user1rune, cosmos.NewUint(10000), common.BNBAsset, common.EmptyAsset, GetRandomBech32Addr())
 	_, _, _, _, err = withdraw(ctx, version, keeper, msg, NewDummyMgr())
 	c.Assert(err, IsNil)
-	staker1, err = keeper.GetStaker(ctx, common.BNBAsset, user1rune)
+	lp1, err = keeper.GetLiquidityProvider(ctx, common.BNBAsset, user1rune)
 	c.Assert(err, IsNil)
-	c.Check(staker1.Units.IsZero(), Equals, true)
+	c.Check(lp1.Units.IsZero(), Equals, true)
 
 	// withdraw for user2
 	msg = NewMsgWithdrawLiquidity(GetRandomTx(), user2rune, cosmos.NewUint(10000), common.BNBAsset, common.EmptyAsset, GetRandomBech32Addr())
 	_, _, _, _, err = withdraw(ctx, version, keeper, msg, NewDummyMgr())
 	c.Assert(err, IsNil)
-	staker2, err = keeper.GetStaker(ctx, common.BNBAsset, user2rune)
+	lp2, err = keeper.GetLiquidityProvider(ctx, common.BNBAsset, user2rune)
 	c.Assert(err, IsNil)
-	c.Check(staker2.Units.IsZero(), Equals, true)
+	c.Check(lp2.Units.IsZero(), Equals, true)
 
 	// check pool is now empty
 	pool, err = keeper.GetPool(ctx, common.BNBAsset)
@@ -99,9 +99,9 @@ func (s *ThorchainSuite) TestStaking(c *C) {
 	c.Assert(err, IsNil)
 	err = addHandler.addLiquidityV1(ctx, common.BNBAsset, cosmos.NewUint(100*common.One), cosmos.NewUint(100*common.One), user1rune, user1asset, txID, constAccessor)
 	c.Assert(err, IsNil)
-	staker1, err = keeper.GetStaker(ctx, common.BNBAsset, user1rune)
+	lp1, err = keeper.GetLiquidityProvider(ctx, common.BNBAsset, user1rune)
 	c.Assert(err, IsNil)
-	c.Check(staker1.Units.IsZero(), Equals, false)
+	c.Check(lp1.Units.IsZero(), Equals, false)
 
 	// check pool is NOT empty
 	pool, err = keeper.GetPool(ctx, common.BNBAsset)
@@ -275,28 +275,28 @@ func (s *ThorchainSuite) TestRagnarok(c *C) {
 	pool.Status = PoolEnabled
 	c.Assert(keeper.SetPool(ctx, pool), IsNil)
 	addHandler := NewAddLiquidityHandler(keeper, mgr)
-	// add stakers
-	staker1 := GetRandomRUNEAddress() // Staker1
-	staker1asset := GetRandomBNBAddress()
-	err = addHandler.addLiquidityV1(ctx, common.BNBAsset, cosmos.NewUint(100*common.One), cosmos.NewUint(10*common.One), staker1, staker1asset, GetRandomTxHash(), consts)
+	// add liquidity providers
+	lp1 := GetRandomRUNEAddress() // LiquidityProvider1
+	lp1asset := GetRandomBNBAddress()
+	err = addHandler.addLiquidityV1(ctx, common.BNBAsset, cosmos.NewUint(100*common.One), cosmos.NewUint(10*common.One), lp1, lp1asset, GetRandomTxHash(), consts)
 	c.Assert(err, IsNil)
-	err = addHandler.addLiquidityV1(ctx, boltAsset, cosmos.NewUint(50*common.One), cosmos.NewUint(11*common.One), staker1, staker1asset, GetRandomTxHash(), consts)
+	err = addHandler.addLiquidityV1(ctx, boltAsset, cosmos.NewUint(50*common.One), cosmos.NewUint(11*common.One), lp1, lp1asset, GetRandomTxHash(), consts)
 	c.Assert(err, IsNil)
-	staker2 := GetRandomRUNEAddress() // staker2
-	staker2asset := GetRandomBNBAddress()
-	err = addHandler.addLiquidityV1(ctx, common.BNBAsset, cosmos.NewUint(155*common.One), cosmos.NewUint(15*common.One), staker2, staker2asset, GetRandomTxHash(), consts)
+	lp2 := GetRandomRUNEAddress() // liquidity provider 2
+	lp2asset := GetRandomBNBAddress()
+	err = addHandler.addLiquidityV1(ctx, common.BNBAsset, cosmos.NewUint(155*common.One), cosmos.NewUint(15*common.One), lp2, lp2asset, GetRandomTxHash(), consts)
 	c.Assert(err, IsNil)
-	err = addHandler.addLiquidityV1(ctx, boltAsset, cosmos.NewUint(20*common.One), cosmos.NewUint(4*common.One), staker2, staker2asset, GetRandomTxHash(), consts)
+	err = addHandler.addLiquidityV1(ctx, boltAsset, cosmos.NewUint(20*common.One), cosmos.NewUint(4*common.One), lp2, lp2asset, GetRandomTxHash(), consts)
 	c.Assert(err, IsNil)
-	staker3 := GetRandomRUNEAddress() // staker3
-	staker3asset := GetRandomBNBAddress()
-	err = addHandler.addLiquidityV1(ctx, common.BNBAsset, cosmos.NewUint(155*common.One), cosmos.NewUint(15*common.One), staker3, staker3asset, GetRandomTxHash(), consts)
+	lp3 := GetRandomRUNEAddress() // liquidity provider 3
+	lp3asset := GetRandomBNBAddress()
+	err = addHandler.addLiquidityV1(ctx, common.BNBAsset, cosmos.NewUint(155*common.One), cosmos.NewUint(15*common.One), lp3, lp3asset, GetRandomTxHash(), consts)
 	c.Assert(err, IsNil)
-	stakers := []common.Address{
-		staker1, staker2, staker3,
+	lps := []common.Address{
+		lp1, lp2, lp3,
 	}
-	stakersAssets := []common.Address{
-		staker1asset, staker2asset, staker3asset,
+	lpsAssets := []common.Address{
+		lp1asset, lp2asset, lp3asset,
 	}
 
 	// get new pool data
@@ -387,12 +387,12 @@ func (s *ThorchainSuite) TestRagnarok(c *C) {
 			c.Assert(items, HasLen, 3, Commentf("%d", len(items)))
 		}
 
-		// validate stakers get their returns
-		for j, staker := range stakersAssets {
-			items := mgr.TxOutStore().GetOutboundItemByToAddress(ctx, staker)
+		// validate liquidity providers get their returns
+		for j, lp := range lpsAssets {
+			items := mgr.TxOutStore().GetOutboundItemByToAddress(ctx, lp)
 			// TODO: check item amounts
 			if i <= 10 {
-				if j == len(stakers)-1 {
+				if j == len(lps)-1 {
 					c.Assert(items, HasLen, 0, Commentf("%d", len(items)))
 				} else {
 					c.Assert(items, HasLen, 1, Commentf("%d", len(items)))
@@ -447,24 +447,24 @@ func (s *ThorchainSuite) TestRagnarokNoOneLeave(c *C) {
 	pool.Asset = boltAsset
 	c.Assert(keeper.SetPool(ctx, pool), IsNil)
 	addHandler := NewAddLiquidityHandler(keeper, NewDummyMgr())
-	// add stakers
-	staker1 := GetRandomRUNEAddress() // Staker1
-	err = addHandler.addLiquidityV1(ctx, common.BNBAsset, cosmos.NewUint(100*common.One), cosmos.NewUint(10*common.One), staker1, staker1, GetRandomTxHash(), consts)
+	// add liquidity providers
+	lp1 := GetRandomRUNEAddress() // LiquidityProvider1
+	err = addHandler.addLiquidityV1(ctx, common.BNBAsset, cosmos.NewUint(100*common.One), cosmos.NewUint(10*common.One), lp1, lp1, GetRandomTxHash(), consts)
 	c.Assert(err, IsNil)
-	err = addHandler.addLiquidityV1(ctx, boltAsset, cosmos.NewUint(50*common.One), cosmos.NewUint(11*common.One), staker1, staker1, GetRandomTxHash(), consts)
+	err = addHandler.addLiquidityV1(ctx, boltAsset, cosmos.NewUint(50*common.One), cosmos.NewUint(11*common.One), lp1, lp1, GetRandomTxHash(), consts)
 	c.Assert(err, IsNil)
-	staker2 := GetRandomRUNEAddress() // staker2
-	err = addHandler.addLiquidityV1(ctx, common.BNBAsset, cosmos.NewUint(155*common.One), cosmos.NewUint(15*common.One), staker2, staker2, GetRandomTxHash(), consts)
+	lp2 := GetRandomRUNEAddress() // liquidity provider 2
+	err = addHandler.addLiquidityV1(ctx, common.BNBAsset, cosmos.NewUint(155*common.One), cosmos.NewUint(15*common.One), lp2, lp2, GetRandomTxHash(), consts)
 	c.Assert(err, IsNil)
-	err = addHandler.addLiquidityV1(ctx, boltAsset, cosmos.NewUint(20*common.One), cosmos.NewUint(4*common.One), staker2, staker2, GetRandomTxHash(), consts)
+	err = addHandler.addLiquidityV1(ctx, boltAsset, cosmos.NewUint(20*common.One), cosmos.NewUint(4*common.One), lp2, lp2, GetRandomTxHash(), consts)
 	c.Assert(err, IsNil)
-	staker3 := GetRandomRUNEAddress() // staker3
-	err = addHandler.addLiquidityV1(ctx, common.BNBAsset, cosmos.NewUint(155*common.One), cosmos.NewUint(15*common.One), staker3, staker3, GetRandomTxHash(), consts)
+	lp3 := GetRandomRUNEAddress() // liquidity provider 3
+	err = addHandler.addLiquidityV1(ctx, common.BNBAsset, cosmos.NewUint(155*common.One), cosmos.NewUint(15*common.One), lp3, lp3, GetRandomTxHash(), consts)
 	c.Assert(err, IsNil)
-	stakers := []common.Address{
-		staker1, staker2, staker3,
+	lps := []common.Address{
+		lp1, lp2, lp3,
 	}
-	_ = stakers
+	_ = lps
 
 	// get new pool data
 	bnbPool, err := keeper.GetPool(ctx, common.BNBAsset)

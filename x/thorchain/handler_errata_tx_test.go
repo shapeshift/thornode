@@ -21,7 +21,7 @@ type TestErrataTxKeeper struct {
 	observedTx ObservedTxVoter
 	pool       Pool
 	na         NodeAccount
-	stakers    []Staker
+	lps        LiquidityProviders
 	err        error
 }
 
@@ -46,19 +46,19 @@ func (k *TestErrataTxKeeper) SetPool(_ cosmos.Context, pool Pool) error {
 	return k.err
 }
 
-func (k *TestErrataTxKeeper) GetStaker(_ cosmos.Context, asset common.Asset, addr common.Address) (Staker, error) {
-	for _, staker := range k.stakers {
-		if staker.RuneAddress.Equals(addr) {
-			return staker, k.err
+func (k *TestErrataTxKeeper) GetLiquidityProvider(_ cosmos.Context, asset common.Asset, addr common.Address) (LiquidityProvider, error) {
+	for _, lp := range k.lps {
+		if lp.RuneAddress.Equals(addr) {
+			return lp, k.err
 		}
 	}
-	return Staker{}, k.err
+	return LiquidityProvider{}, k.err
 }
 
-func (k *TestErrataTxKeeper) SetStaker(_ cosmos.Context, staker Staker) {
-	for i, skr := range k.stakers {
-		if skr.RuneAddress.Equals(staker.RuneAddress) {
-			k.stakers[i] = staker
+func (k *TestErrataTxKeeper) SetLiquidityProvider(_ cosmos.Context, lp LiquidityProvider) {
+	for i, skr := range k.lps {
+		if skr.RuneAddress.Equals(lp.RuneAddress) {
+			k.lps[i] = lp
 		}
 	}
 }
@@ -122,18 +122,18 @@ func (s *HandlerErrataTxSuite) TestErrataHandlerHappyPath(c *C) {
 			BalanceRune:  cosmos.NewUint(100 * common.One),
 			BalanceAsset: cosmos.NewUint(100 * common.One),
 		},
-		stakers: []Staker{
+		lps: LiquidityProviders{
 			{
-				RuneAddress:     addr,
-				LastStakeHeight: 5,
-				Units:           totalUnits.QuoUint64(2),
-				PendingRune:     cosmos.ZeroUint(),
+				RuneAddress:   addr,
+				LastAddHeight: 5,
+				Units:         totalUnits.QuoUint64(2),
+				PendingRune:   cosmos.ZeroUint(),
 			},
 			{
-				RuneAddress:     GetRandomBNBAddress(),
-				LastStakeHeight: 10,
-				Units:           totalUnits.QuoUint64(2),
-				PendingRune:     cosmos.ZeroUint(),
+				RuneAddress:   GetRandomBNBAddress(),
+				LastAddHeight: 10,
+				Units:         totalUnits.QuoUint64(2),
+				PendingRune:   cosmos.ZeroUint(),
 			},
 		},
 	}
@@ -146,8 +146,8 @@ func (s *HandlerErrataTxSuite) TestErrataHandlerHappyPath(c *C) {
 	c.Assert(err, IsNil)
 	c.Check(keeper.pool.BalanceRune.Equal(cosmos.NewUint(70*common.One)), Equals, true)
 	c.Check(keeper.pool.BalanceAsset.Equal(cosmos.NewUint(100*common.One)), Equals, true)
-	c.Check(keeper.stakers[0].Units.IsZero(), Equals, true, Commentf("%d", keeper.stakers[0].Units.Uint64()))
-	c.Check(keeper.stakers[0].LastStakeHeight, Equals, int64(18))
+	c.Check(keeper.lps[0].Units.IsZero(), Equals, true, Commentf("%d", keeper.lps[0].Units.Uint64()))
+	c.Check(keeper.lps[0].LastAddHeight, Equals, int64(18))
 }
 
 type ErrataTxHandlerTestHelper struct {
@@ -156,7 +156,7 @@ type ErrataTxHandlerTestHelper struct {
 	failGetErrataTxVoter      bool
 	failGetObserveTxVoter     bool
 	failGetPool               bool
-	failGetStaker             bool
+	failGetLiquidityProvider  bool
 	failSetPool               bool
 }
 
@@ -194,11 +194,11 @@ func (k *ErrataTxHandlerTestHelper) GetPool(ctx cosmos.Context, asset common.Ass
 	return k.Keeper.GetPool(ctx, asset)
 }
 
-func (k *ErrataTxHandlerTestHelper) GetStaker(ctx cosmos.Context, asset common.Asset, addr common.Address) (Staker, error) {
-	if k.failGetStaker {
-		return Staker{}, kaboom
+func (k *ErrataTxHandlerTestHelper) GetLiquidityProvider(ctx cosmos.Context, asset common.Asset, addr common.Address) (LiquidityProvider, error) {
+	if k.failGetLiquidityProvider {
+		return LiquidityProvider{}, kaboom
 	}
-	return k.Keeper.GetStaker(ctx, asset, addr)
+	return k.Keeper.GetLiquidityProvider(ctx, asset, addr)
 }
 
 func (k *ErrataTxHandlerTestHelper) SetPool(ctx cosmos.Context, pool Pool) error {
@@ -405,7 +405,7 @@ func (s *HandlerErrataTxSuite) TestErrataHandlerDifferentError(c *C) {
 			},
 		},
 		{
-			name: "if fail to get staker it should return an error",
+			name: "if fail to get liquidity provider it should return an error",
 			messageProvider: func(ctx cosmos.Context, helper *ErrataTxHandlerTestHelper) cosmos.Msg {
 				// add an active node account
 				nodeAccount := GetRandomNodeAccount(NodeActive)
@@ -413,14 +413,14 @@ func (s *HandlerErrataTxSuite) TestErrataHandlerDifferentError(c *C) {
 				observedTx := GetRandomObservedTx()
 				observedTx.Tx.Chain = common.BTCChain
 				observedTx.Tx.Memo = "add:BTC:" + observedTx.Tx.FromAddress.String()
-				staker := Staker{
-					Asset:           common.BTCAsset,
-					AssetAddress:    GetRandomBNBAddress(),
-					LastStakeHeight: 1024,
-					RuneAddress:     observedTx.Tx.FromAddress,
+				lp := LiquidityProvider{
+					Asset:         common.BTCAsset,
+					AssetAddress:  GetRandomBNBAddress(),
+					LastAddHeight: 1024,
+					RuneAddress:   observedTx.Tx.FromAddress,
 				}
-				helper.SetStaker(ctx, staker)
-				helper.failGetStaker = true
+				helper.SetLiquidityProvider(ctx, lp)
+				helper.failGetLiquidityProvider = true
 				pool := NewPool()
 				pool.Asset = common.BTCAsset
 				pool.BalanceRune = cosmos.NewUint(common.One * 100)

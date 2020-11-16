@@ -120,7 +120,7 @@ func (h ErrataTxHandler) handleV1(ctx cosmos.Context, msg MsgErrataTx, version s
 
 	memo, _ := ParseMemo(tx.Memo)
 	if !memo.IsType(TxSwap) && !memo.IsType(TxAdd) {
-		// must be a swap or stake transaction
+		// must be a swap or add transaction
 		return &cosmos.Result{}, nil
 	}
 	// fetch pool from memo
@@ -142,17 +142,17 @@ func (h ErrataTxHandler) handleV1(ctx cosmos.Context, msg MsgErrataTx, version s
 	pool.BalanceRune = common.SafeSub(pool.BalanceRune, runeCoin.Amount)
 	pool.BalanceAsset = common.SafeSub(pool.BalanceAsset, assetCoin.Amount)
 	if memo.IsType(TxAdd) {
-		staker, err := h.keeper.GetStaker(ctx, memo.GetAsset(), tx.FromAddress)
+		lp, err := h.keeper.GetLiquidityProvider(ctx, memo.GetAsset(), tx.FromAddress)
 		if err != nil {
-			return nil, fmt.Errorf("fail to get staker: %w", err)
+			return nil, fmt.Errorf("fail to get liquidity provider: %w", err)
 		}
 
-		// since this address is being malicious, zero their staking units
-		pool.PoolUnits = common.SafeSub(pool.PoolUnits, staker.Units)
-		staker.Units = cosmos.ZeroUint()
-		staker.LastStakeHeight = common.BlockHeight(ctx)
+		// since this address is being malicious, zero their liquidity provider units
+		pool.PoolUnits = common.SafeSub(pool.PoolUnits, lp.Units)
+		lp.Units = cosmos.ZeroUint()
+		lp.LastAddHeight = common.BlockHeight(ctx)
 
-		h.keeper.SetStaker(ctx, staker)
+		h.keeper.SetLiquidityProvider(ctx, lp)
 	}
 
 	if err := h.keeper.SetPool(ctx, pool); err != nil {
