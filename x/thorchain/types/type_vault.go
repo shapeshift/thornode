@@ -118,8 +118,10 @@ func (v Vault) Valid() error {
 // HasFunds check whether the vault pool has fund
 func (v Vault) HasFunds() bool {
 	for _, coin := range v.Coins {
-		if !coin.Amount.IsZero() {
-			return true
+		if !coin.Asset.IsRune() { // non-native rune is omitted from the calculation
+			if !coin.Amount.IsZero() {
+				return true
+			}
 		}
 	}
 	return false
