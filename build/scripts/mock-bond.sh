@@ -24,7 +24,7 @@ if [ -z $4 ]; then
     exit 1
 fi
 
-POOL_ADDRESS=$(curl -s $4:1317/thorchain/pool_addresses | jq -r ".current[0].address")
+INBOUND_ADDRESS=$(curl -s $4:1317/thorchain/inbound_addresses | jq -r '.current[]|select(.chain=="BNB") .address')
 
 curl -v -s -X POST -d "[{
   \"from\": \"tbnb1ht7v08hv2lhtmk8y7szl2hjexqryc3hcldlztl\",

@@ -13,41 +13,53 @@ func (b *ThorchainBridge) GetLastObservedInHeight(chain common.Chain) (int64, er
 	if err != nil {
 		return 0, fmt.Errorf("failed to GetLastObservedInHeight: %w", err)
 	}
-	return lastblock.LastChainHeight, nil
+	for _, item := range lastblock {
+		if item.Chain == chain {
+			return item.LastChainHeight, nil
+		}
+	}
+	return 0, fmt.Errorf("fail to GetLastObservedInHeight,chain(%s)", chain)
 }
 
 // GetLastSignedOutHeight returns the lastsignedout value for thorchain
-func (b *ThorchainBridge) GetLastSignedOutHeight() (int64, error) {
-	lastblock, err := b.getLastBlock("")
+func (b *ThorchainBridge) GetLastSignedOutHeight(chain common.Chain) (int64, error) {
+	lastblock, err := b.getLastBlock(chain)
 	if err != nil {
 		return 0, fmt.Errorf("failed to GetLastSignedOutHeight: %w", err)
 	}
-	return lastblock.LastSignedHeight, nil
+	for _, item := range lastblock {
+		if item.Chain == chain {
+			return item.LastSignedHeight, nil
+		}
+	}
+	return 0, fmt.Errorf("fail to GetLastSignedOutHeight,chain(%s)", chain)
 }
 
 // GetBlockHeight returns the current height for thorchain blocks
 func (b *ThorchainBridge) GetBlockHeight() (int64, error) {
-	lastblock, err := b.getLastBlock("")
+	lastblock, err := b.getLastBlock(common.EmptyChain)
 	if err != nil {
 		return 0, fmt.Errorf("failed to GetThorchainHeight: %w", err)
 	}
-	return lastblock.Thorchain, nil
+	for _, item := range lastblock {
+		return item.Thorchain, nil
+	}
+	return 0, fmt.Errorf("failed to GetThorchainHeight")
 }
 
-// getLastBlock calls the /lastblock/{chain} endpoint and Unmarshal's into the QueryResHeights type
-func (b *ThorchainBridge) getLastBlock(chain common.Chain) (types.QueryResHeights, error) {
+// getLastBlock calls the /lastblock/{chain} endpoint and Unmarshal's into the QueryResLastBlockHeights type
+func (b *ThorchainBridge) getLastBlock(chain common.Chain) ([]types.QueryResLastBlockHeights, error) {
 	path := LastBlockEndpoint
-	if chain.String() != "" {
+	if !chain.IsEmpty() {
 		path = fmt.Sprintf("%s/%s", path, chain.String())
 	}
 	buf, _, err := b.getWithPath(path)
 	if err != nil {
-		return types.QueryResHeights{}, fmt.Errorf("failed to get lastblock: %w", err)
+		return nil, fmt.Errorf("failed to get lastblock: %w", err)
 	}
-	var lastBlock types.QueryResHeights
+	var lastBlock []types.QueryResLastBlockHeights
 	if err := b.cdc.UnmarshalJSON(buf, &lastBlock); err != nil {
-		b.errCounter.WithLabelValues("fail_unmarshal_lastblock", "").Inc()
-		return types.QueryResHeights{}, fmt.Errorf("failed to unmarshal last block: %w", err)
+		return nil, fmt.Errorf("failed to unmarshal last block: %w", err)
 	}
 	return lastBlock, nil
 }
