@@ -2,83 +2,102 @@ FORMAT: 1A
 HOST: http://localhost:1317
 
 # THORChain API
-This documentation outlines the API for the [BEPSwap](bepswap.com) THORChain API.
+This documentation outlines the API for THORChain.
 
 NOTE: This document is a **work in progress**.
 
 # Group Health Check
 
-## Ping [/thorchain/ping]
+## Ping [GET /thorchain/ping]
 
-### Ping [GET]
-
-+ Response 200 (application/json)
-    {
-        "ping": "pong"
-    }
-
++ Response 200 (plain/text)
+    + Attributes 
+        + ping: "pong" (string)
+    
+    + Body
+            {"ping":"pong"}
 
 # Group Pools
 This section documents the pools API resources.
 
-## Get a Pool [/thorchain/pool/{ticker}]
+## Pool [/thorchain/pool/{ticker}]
+
+A pool contains all the information of THORChain liquidity pool
 
 + Parameters
-    + ticker: "bnb" (required, string) - The ticker of the pool
+    + ticker: `BNB.BNB` (required, string) - The ticker of the pool
 
-### Get a Pool [GET]
++ Attributes
+    + balance_rune (string) -  Amount of rune the pool has
+    + balance_asset (string) - Amount of asset the pool has
+    + ticker (string) -  the ticker of the non-rune asset
+    + pool_units (string) -  total number of units within the pool
+    + status (string) -  the status of the pool
+
+### Get a pool [GET]
+Retrieve a liquidity pool with the given ticker
+
 + Response 200 (application/json)
-    + Attributes (Pool)
+    + Attribute (Pool)
+    
+### Get all the liquidity pools [GET /thorchain/pools]
+Retrieve all the liquidity pools from THORChain
 
-## Get Pool List [/thorchain/pools]
-
-### Get Pools [GET]
 + Response 200 (application/json)
     + Attributes (array[Pool])
 
-## Get List of liquidity providers for a pool [/thorchain/pool/{ticker}/liquidity_providers]
+## LiquidityProvider [/thorchain/pool/{ticker}/liquidity_providers]
 
 + Parameters
-    + ticker: "bnb" (required, string) - The ticker of the pool
+    + ticker: "BNB.BNB" (required, string) - The ticker of the pool
 
-### Get Pools [GET]
++ Attributes (object)
+    + asset (string) -  the asset of the non-rune asset
+    + rune_address (string) - the rune address of the liquidity provider
+    + asset_address (string) - the non-rune asset address of the liquidity provider
+    + last_add (string) - block height of the last add
+    + last_withdraw (string) - block height of the last withdraw
+    + units (string) - the total number of units of the pool
+    + pending_rune (string) - rune that has been provided, but not committed yet. Awaiting a provision of the non-rune asset
+
+### Get all liquidity providers of a pool [GET]
+
 + Response 200 (application/json)
-    + Attributes (LiquidityProvider)
-
+    + Attributes (array[LiquidityProvider])
 
 # Group Tx
-
-## Get a Tx [/thorchain/tx/{hash}]
+This section document Tx API resource
+## Tx [/thorchain/tx/{hash}]
 
 + Parameters
-    + ticker: "E17A0906E015F0C343691C18E475C8CB5F3F6C63F5BCDE0F3A341909763CC92B" (required, string) - Tx hash of a binance transaction
+    + hash: `E17A0906E015F0C343691C18E475C8CB5F3F6C63F5BCDE0F3A341909763CC92B` (required, string) - Tx hash of an inbound transaction or outbound transaction
++ Attributes
+    + tx (ObservedTx) -  observed tx information
+     
+### Get a tx with given hash [GET]
+Retrieve a tx with the given hash from THORChain
 
-### Get TX Information [GET]
 + Response 200 (application/json)
-    + Attributes (Tx)
+    + Attributes (object)
+
+## Get tx signers [GET /thorchain/tx/{hash}/signers]
+
++ Parameters
+    + hash: "E17A0906E015F0C343691C18E475C8CB5F3F6C63F5BCDE0F3A341909763CC92B" (required, string) - Tx hash of an inbound transaction or outbound transaction
+
++ Response 200 (application/json)
+    + Attributes (object)
 
 
+# Group nodes
 
-## Data Structures
+# Group vaults
 
-### Pool
-+ balance_rune: Amount of rune the pool has
-+ balance_asset: Amount of asset the pool has
-+ ticker: the ticker of the non-rune asset
-+ pool_units: total number of units within the pool
-+ status: the status of the pool
+# Group others
 
-### LiquidityProvider
-+ asset: the asset of the non-rune asset
-+ units: the total number of units of the pool
-+ rune_address: the rune address of the liquidity provider
-+ asset_address: the non-rune asset address of the liquidity provider
-+ last_add block height of the last add
-+ last_withdraw: block height of the last withdraw
-+ pending_rune: rune that has been provided, but not committed yet. Awaiting a provision of the non-rune asset
+# Data Structures
 
-### Tx
-+ request: request tx hash
-+ status: status of tx
-+ done: completed tx hash
-+ sender: bnb address of requester
+## ObservedTx (object)
++ id (string) - transaction hash
++ chain (string) - chain
++ from_address (string) - from address
