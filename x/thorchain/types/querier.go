@@ -10,16 +10,16 @@ import (
 	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
-// QueryResHeights used to return the block height query
-type QueryResHeights struct {
+// QueryResLastBlockHeights used to return the block height query
+type QueryResLastBlockHeights struct {
 	Chain            common.Chain `json:"chain"`
 	LastChainHeight  int64        `json:"lastobservedin"`
 	LastSignedHeight int64        `json:"lastsignedout"`
 	Thorchain        int64        `json:"thorchain"`
 }
 
-// String implement fmt.Stringer return a string representation of QueryResHeights
-func (h QueryResHeights) String() string {
+// String implement fmt.Stringer return a string representation of QueryResLastBlockHeights
+func (h QueryResLastBlockHeights) String() string {
 	return fmt.Sprintf("Chain: %d, Signed: %d, THORChain: %d", h.LastChainHeight, h.LastSignedHeight, h.Thorchain)
 }
 
@@ -94,24 +94,25 @@ type QueryChainHeight struct {
 
 // QueryNodeAccount hold all the information related to node account
 type QueryNodeAccount struct {
-	NodeAddress         cosmos.AccAddress  `json:"node_address"`
-	Status              NodeStatus         `json:"status"`
-	PubKeySet           common.PubKeySet   `json:"pub_key_set"`
-	ValidatorConsPubKey string             `json:"validator_cons_pub_key"`
-	Bond                cosmos.Uint        `json:"bond"`
-	ActiveBlockHeight   int64              `json:"active_block_height"`
-	BondAddress         common.Address     `json:"bond_address"`
-	StatusSince         int64              `json:"status_since"`
-	SignerMembership    common.PubKeys     `json:"signer_membership"`
-	RequestedToLeave    bool               `json:"requested_to_leave"`
-	ForcedToLeave       bool               `json:"forced_to_leave"`
-	LeaveHeight         int64              `json:"leave_height"`
-	IPAddress           string             `json:"ip_address"`
-	Version             semver.Version     `json:"version"`
-	SlashPoints         int64              `json:"slash_points"`
-	Jail                Jail               `json:"jail"`
-	CurrentAward        cosmos.Uint        `json:"current_award"`
-	ObserveChains       []QueryChainHeight `json:"observe_chains"`
+	NodeAddress         cosmos.AccAddress              `json:"node_address"`
+	Status              NodeStatus                     `json:"status"`
+	PubKeySet           common.PubKeySet               `json:"pub_key_set"`
+	ValidatorConsPubKey string                         `json:"validator_cons_pub_key"`
+	Bond                cosmos.Uint                    `json:"bond"`
+	ActiveBlockHeight   int64                          `json:"active_block_height"`
+	BondAddress         common.Address                 `json:"bond_address"`
+	StatusSince         int64                          `json:"status_since"`
+	SignerMembership    common.PubKeys                 `json:"signer_membership"`
+	RequestedToLeave    bool                           `json:"requested_to_leave"`
+	ForcedToLeave       bool                           `json:"forced_to_leave"`
+	LeaveHeight         int64                          `json:"leave_height"`
+	IPAddress           string                         `json:"ip_address"`
+	Version             semver.Version                 `json:"version"`
+	SlashPoints         int64                          `json:"slash_points"`
+	Jail                Jail                           `json:"jail"`
+	CurrentAward        cosmos.Uint                    `json:"current_award"`
+	ObserveChains       []QueryChainHeight             `json:"observe_chains"`
+	PreflightStatus     QueryNodeAccountPreflightCheck `json:"preflight_status"`
 }
 
 // NewQueryNodeAccount create a new QueryNodeAccount based on the given node account parameter

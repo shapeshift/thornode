@@ -138,7 +138,7 @@ func (s *QuerierSuite) TestQueryNodeAccounts(c *C) {
 	ctx, keeper := setupKeeperForTest(c)
 
 	querier := NewQuerier(keeper, s.kb)
-	path := []string{"nodeaccounts"}
+	path := []string{"nodes"}
 
 	signer := GetRandomBech32Addr()
 	bondAddr := GetRandomBNBAddress()
@@ -225,18 +225,18 @@ func (s *QuerierSuite) TestQueryLiquidityProviders(c *C) {
 func (s *QuerierSuite) TestQueryTxInVoter(c *C) {
 	req := abci.RequestQuery{
 		Data:   nil,
-		Path:   query.QueryTxInVoter.Key,
+		Path:   query.QueryTxVoter.Key,
 		Height: s.ctx.BlockHeight(),
 		Prove:  false,
 	}
 	tx := GetRandomTx()
 	// test getTxInVoter
-	result, err := s.querier(s.ctx, []string{query.QueryTxInVoter.Key, tx.ID.String()}, req)
+	result, err := s.querier(s.ctx, []string{query.QueryTxVoter.Key, tx.ID.String()}, req)
 	c.Assert(result, IsNil)
 	c.Assert(err, NotNil)
 	observedTxInVote := NewObservedTxVoter(tx.ID, []ObservedTx{NewObservedTx(tx, s.ctx.BlockHeight(), GetRandomPubKey())})
 	s.k.SetObservedTxInVoter(s.ctx, observedTxInVote)
-	result, err = s.querier(s.ctx, []string{query.QueryTxInVoter.Key, tx.ID.String()}, req)
+	result, err = s.querier(s.ctx, []string{query.QueryTxVoter.Key, tx.ID.String()}, req)
 	c.Assert(err, IsNil)
 	c.Assert(result, NotNil)
 	var voter ObservedTxVoter
@@ -247,13 +247,13 @@ func (s *QuerierSuite) TestQueryTxInVoter(c *C) {
 func (s *QuerierSuite) TestQueryTx(c *C) {
 	req := abci.RequestQuery{
 		Data:   nil,
-		Path:   query.QueryTxIn.Key,
+		Path:   query.QueryTx.Key,
 		Height: s.ctx.BlockHeight(),
 		Prove:  false,
 	}
 	tx := GetRandomTx()
 	// test get tx in
-	result, err := s.querier(s.ctx, []string{query.QueryTxIn.Key, tx.ID.String()}, req)
+	result, err := s.querier(s.ctx, []string{query.QueryTx.Key, tx.ID.String()}, req)
 	c.Assert(result, IsNil)
 	c.Assert(err, NotNil)
 	nodeAccount := GetRandomNodeAccount(NodeActive)
@@ -262,7 +262,7 @@ func (s *QuerierSuite) TestQueryTx(c *C) {
 	c.Assert(err, IsNil)
 	voter.Add(NewObservedTx(tx, s.ctx.BlockHeight(), nodeAccount.PubKeySet.Secp256k1), nodeAccount.NodeAddress)
 	s.k.SetObservedTxInVoter(s.ctx, voter)
-	result, err = s.querier(s.ctx, []string{query.QueryTxIn.Key, tx.ID.String()}, req)
+	result, err = s.querier(s.ctx, []string{query.QueryTx.Key, tx.ID.String()}, req)
 	c.Assert(err, IsNil)
 	var newTx ObservedTx
 	c.Assert(s.k.Cdc().UnmarshalJSON(result, &newTx), IsNil)
@@ -333,7 +333,7 @@ func (s *QuerierSuite) TestQueryHeights(c *C) {
 	}, abci.RequestQuery{})
 	c.Assert(result, NotNil)
 	c.Assert(err, IsNil)
-	var q QueryResHeights
+	var q []QueryResLastBlockHeights
 	c.Assert(s.k.Cdc().UnmarshalJSON(result, &q), IsNil)
 
 	result, err = s.querier(s.ctx, []string{
@@ -351,42 +351,6 @@ func (s *QuerierSuite) TestQueryHeights(c *C) {
 	c.Assert(result, NotNil)
 	c.Assert(err, IsNil)
 	c.Assert(s.k.Cdc().UnmarshalJSON(result, &q), IsNil)
-}
-
-func (s *QuerierSuite) TestQueryObservers(c *C) {
-	result, err := s.querier(s.ctx, []string{
-		query.QueryObservers.Key,
-	}, abci.RequestQuery{})
-	c.Assert(result, NotNil)
-	c.Assert(err, IsNil)
-	var q []string
-	c.Assert(s.k.Cdc().UnmarshalJSON(result, &q), IsNil)
-
-	result, err = s.querier(s.ctx, []string{
-		query.QueryObserver.Key,
-		"whatever",
-	}, abci.RequestQuery{})
-	c.Assert(result, IsNil)
-	c.Assert(err, NotNil)
-
-	activeNode := GetRandomNodeAccount(NodeActive)
-	s.k.SetNodeAccount(s.ctx, activeNode)
-	s.k.SetNodeAccount(s.ctx, GetRandomNodeAccount(NodeActive))
-	result, err = s.querier(s.ctx, []string{
-		query.QueryObserver.Key,
-		GetRandomBech32Addr().String(),
-	}, abci.RequestQuery{})
-	c.Assert(result, IsNil)
-	c.Assert(err, NotNil)
-
-	result, err = s.querier(s.ctx, []string{
-		query.QueryObserver.Key,
-		activeNode.NodeAddress.String(),
-	}, abci.RequestQuery{})
-	c.Assert(result, NotNil)
-	c.Assert(err, IsNil)
-	var na NodeAccount
-	c.Assert(s.k.Cdc().UnmarshalJSON(result, &na), IsNil)
 }
 
 func (s *QuerierSuite) TestQueryTssSigners(c *C) {
@@ -473,13 +437,13 @@ func (s *QuerierSuite) TestQueryBan(c *C) {
 
 func (s *QuerierSuite) TestQueryNodeAccount(c *C) {
 	result, err := s.querier(s.ctx, []string{
-		query.QueryNodeAccount.Key,
+		query.QueryNode.Key,
 	}, abci.RequestQuery{})
 	c.Assert(result, IsNil)
 	c.Assert(err, NotNil)
 
 	result, err = s.querier(s.ctx, []string{
-		query.QueryNodeAccount.Key,
+		query.QueryNode.Key,
 		"Whatever",
 	}, abci.RequestQuery{})
 	c.Assert(result, IsNil)
@@ -488,7 +452,7 @@ func (s *QuerierSuite) TestQueryNodeAccount(c *C) {
 	na := GetRandomNodeAccount(NodeActive)
 	s.k.SetNodeAccount(s.ctx, na)
 	result, err = s.querier(s.ctx, []string{
-		query.QueryNodeAccount.Key,
+		query.QueryNode.Key,
 		na.NodeAddress.String(),
 	}, abci.RequestQuery{})
 	c.Assert(result, NotNil)
@@ -497,37 +461,11 @@ func (s *QuerierSuite) TestQueryNodeAccount(c *C) {
 	c.Assert(s.k.Cdc().UnmarshalJSON(result, &r), IsNil)
 }
 
-func (s *QuerierSuite) TestQueryNodeAccountCheck(c *C) {
-	result, err := s.querier(s.ctx, []string{
-		query.QueryNodeAccountCheck.Key,
-	}, abci.RequestQuery{})
-	c.Assert(result, IsNil)
-	c.Assert(err, NotNil)
-
-	result, err = s.querier(s.ctx, []string{
-		query.QueryNodeAccountCheck.Key,
-		"Whatever",
-	}, abci.RequestQuery{})
-	c.Assert(result, IsNil)
-	c.Assert(err, NotNil)
-
-	na := GetRandomNodeAccount(NodeStandby)
-	s.k.SetNodeAccount(s.ctx, na)
-	result, err = s.querier(s.ctx, []string{
-		query.QueryNodeAccountCheck.Key,
-		na.NodeAddress.String(),
-	}, abci.RequestQuery{})
-	c.Assert(result, NotNil)
-	c.Assert(err, IsNil)
-	var r QueryNodeAccountPreflightCheck
-	c.Assert(s.k.Cdc().UnmarshalJSON(result, &r), IsNil)
-}
-
 func (s *QuerierSuite) TestQueryPoolAddresses(c *C) {
 	na := GetRandomNodeAccount(NodeActive)
 	s.k.SetNodeAccount(s.ctx, na)
 	result, err := s.querier(s.ctx, []string{
-		query.QueryPoolAddresses.Key,
+		query.QueryInboundAddresses.Key,
 		na.NodeAddress.String(),
 	}, abci.RequestQuery{})
 	c.Assert(result, NotNil)
@@ -572,7 +510,7 @@ func (s *QuerierSuite) TestQueryKeysignArrayPubKey(c *C) {
 
 func (s *QuerierSuite) TestQueryVaultData(c *C) {
 	result, err := s.querier(s.ctx, []string{
-		query.QueryVaultData.Key,
+		query.QueryNetworkData.Key,
 	}, abci.RequestQuery{})
 	c.Assert(result, NotNil)
 	c.Assert(err, IsNil)

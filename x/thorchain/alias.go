@@ -176,7 +176,7 @@ type (
 	QueryQueue                     = types.QueryQueue
 	QueryNodeAccountPreflightCheck = types.QueryNodeAccountPreflightCheck
 	QueryKeygenBlock               = types.QueryKeygenBlock
-	QueryResHeights                = types.QueryResHeights
+	QueryResLastBlockHeights       = types.QueryResLastBlockHeights
 	QueryKeysign                   = types.QueryKeysign
 	QueryYggdrasilVaults           = types.QueryYggdrasilVaults
 	QueryNodeAccount               = types.QueryNodeAccount

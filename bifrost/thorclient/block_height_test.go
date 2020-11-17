@@ -64,7 +64,7 @@ func (s *BlockHeightSuite) TestGetLastObservedInHeight(c *C) {
 	c.Assert(height, Equals, int64(17))
 
 	s.fixture = "../../test/fixtures/endpoints/lastblock/eth.json"
-	height, err = s.bridge.GetLastObservedInHeight(common.BTCChain)
+	height, err = s.bridge.GetLastObservedInHeight(common.ETHChain)
 	c.Assert(err, IsNil)
 	c.Assert(height, NotNil)
 	c.Assert(height, Equals, int64(12345))
@@ -72,7 +72,7 @@ func (s *BlockHeightSuite) TestGetLastObservedInHeight(c *C) {
 
 func (s *BlockHeightSuite) TestGetLastSignedHeight(c *C) {
 	s.fixture = "../../test/fixtures/endpoints/lastblock/bnb.json"
-	height, err := s.bridge.GetLastSignedOutHeight()
+	height, err := s.bridge.GetLastSignedOutHeight(common.BNBChain)
 	c.Assert(err, IsNil)
 	c.Assert(height, NotNil)
 	c.Assert(height, Equals, int64(2))
