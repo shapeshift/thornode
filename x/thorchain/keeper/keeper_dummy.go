@@ -123,11 +123,11 @@ func (k KVStoreDummy) GetLiquidityProviderBalance(ctx cosmos.Context, _ common.A
 	return cosmos.ZeroUint()
 }
 
-func (k KVStoreDummy) AddStake(ctx cosmos.Context, _ common.Coin, _ cosmos.AccAddress) error {
+func (k KVStoreDummy) AddOwnership(ctx cosmos.Context, _ common.Coin, _ cosmos.AccAddress) error {
 	return kaboom
 }
 
-func (k KVStoreDummy) RemoveStake(ctx cosmos.Context, _ common.Coin, _ cosmos.AccAddress) error {
+func (k KVStoreDummy) RemoveOwnership(ctx cosmos.Context, _ common.Coin, _ cosmos.AccAddress) error {
 	return kaboom
 }
 

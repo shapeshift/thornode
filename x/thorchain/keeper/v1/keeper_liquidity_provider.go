@@ -69,7 +69,7 @@ func (k KVStore) GetLiquidityProviderBalance(ctx cosmos.Context, asset common.As
 	return cosmos.ZeroUint()
 }
 
-func (k KVStore) AddStake(ctx cosmos.Context, coin common.Coin, addr cosmos.AccAddress) error {
+func (k KVStore) AddOwnership(ctx cosmos.Context, coin common.Coin, addr cosmos.AccAddress) error {
 	supplier := k.Supply()
 	coinToMint, err := coin.Native()
 	if err != nil {
@@ -87,7 +87,7 @@ func (k KVStore) AddStake(ctx cosmos.Context, coin common.Coin, addr cosmos.AccA
 	return nil
 }
 
-func (k KVStore) RemoveStake(ctx cosmos.Context, coin common.Coin, addr cosmos.AccAddress) error {
+func (k KVStore) RemoveOwnership(ctx cosmos.Context, coin common.Coin, addr cosmos.AccAddress) error {
 	supplier := k.Supply()
 	coinToBurn, err := coin.Native()
 	if err != nil {

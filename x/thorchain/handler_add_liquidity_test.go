@@ -64,7 +64,7 @@ func (m *MockAddLiquidityKeeper) SetLiquidityProvider(ctx cosmos.Context, lp Liq
 	m.lp = lp
 }
 
-func (m *MockAddLiquidityKeeper) AddStake(ctx cosmos.Context, coin common.Coin, _ cosmos.AccAddress) error {
+func (m *MockAddLiquidityKeeper) AddOwnership(ctx cosmos.Context, coin common.Coin, _ cosmos.AccAddress) error {
 	m.lp.Units = m.lp.Units.Add(coin.Amount)
 	return nil
 }
@@ -103,7 +103,7 @@ func (s *HandlerAddLiquiditySuite) TestAddLiquidityHandler(c *C) {
 	mgr := NewManagers(k)
 	c.Assert(mgr.BeginBlock(ctx), IsNil)
 	addHandler := NewAddLiquidityHandler(k, mgr)
-	preStakePool, err := k.GetPool(ctx, common.BNBAsset)
+	preLiquidityPool, err := k.GetPool(ctx, common.BNBAsset)
 	c.Assert(err, IsNil)
 	addTxHash := GetRandomTxHash()
 	tx := common.NewTx(
@@ -126,10 +126,10 @@ func (s *HandlerAddLiquiditySuite) TestAddLiquidityHandler(c *C) {
 		activeNodeAccount.NodeAddress)
 	_, err = addHandler.Run(ctx, msg, ver, constAccessor)
 	c.Assert(err, IsNil)
-	postStakePool, err := k.GetPool(ctx, common.BNBAsset)
+	postLiquidityPool, err := k.GetPool(ctx, common.BNBAsset)
 	c.Assert(err, IsNil)
-	c.Assert(postStakePool.BalanceAsset.String(), Equals, preStakePool.BalanceAsset.Add(msg.AssetAmount).String())
-	c.Assert(postStakePool.BalanceRune.String(), Equals, preStakePool.BalanceRune.Add(msg.RuneAmount).String())
+	c.Assert(postLiquidityPool.BalanceAsset.String(), Equals, preLiquidityPool.BalanceAsset.Add(msg.AssetAmount).String())
+	c.Assert(postLiquidityPool.BalanceRune.String(), Equals, preLiquidityPool.BalanceRune.Add(msg.RuneAmount).String())
 }
 
 func (s *HandlerAddLiquiditySuite) TestAddLiquidityHandler_NoPool_ShouldCreateNewPool(c *C) {
@@ -157,9 +157,9 @@ func (s *HandlerAddLiquiditySuite) TestAddLiquidityHandler_NoPool_ShouldCreateNe
 	mgr := NewManagers(k)
 	c.Assert(mgr.BeginBlock(ctx), IsNil)
 	addHandler := NewAddLiquidityHandler(k, mgr)
-	preStakePool, err := k.GetPool(ctx, common.BNBAsset)
+	preLiquidityPool, err := k.GetPool(ctx, common.BNBAsset)
 	c.Assert(err, IsNil)
-	c.Assert(preStakePool.IsEmpty(), Equals, true)
+	c.Assert(preLiquidityPool.IsEmpty(), Equals, true)
 	addTxHash := GetRandomTxHash()
 	tx := common.NewTx(
 		addTxHash,
@@ -186,10 +186,10 @@ func (s *HandlerAddLiquiditySuite) TestAddLiquidityHandler_NoPool_ShouldCreateNe
 		activeNodeAccount.NodeAddress)
 	_, err = addHandler.Run(ctx, msg, ver, constAccessor)
 	c.Assert(err, IsNil)
-	postStakePool, err := k.GetPool(ctx, common.BNBAsset)
+	postLiquidityPool, err := k.GetPool(ctx, common.BNBAsset)
 	c.Assert(err, IsNil)
-	c.Assert(postStakePool.BalanceAsset.String(), Equals, preStakePool.BalanceAsset.Add(msg.AssetAmount).String())
-	c.Assert(postStakePool.BalanceRune.String(), Equals, preStakePool.BalanceRune.Add(msg.RuneAmount).String())
+	c.Assert(postLiquidityPool.BalanceAsset.String(), Equals, preLiquidityPool.BalanceAsset.Add(msg.AssetAmount).String())
+	c.Assert(postLiquidityPool.BalanceRune.String(), Equals, preLiquidityPool.BalanceRune.Add(msg.RuneAmount).String())
 
 	// bad version
 	_, err = addHandler.Run(ctx, msg, semver.Version{}, constAccessor)
@@ -389,7 +389,7 @@ func (p *AddLiquidityTestKeeper) SetLiquidityProvider(ctx cosmos.Context, lp Liq
 	p.store[key] = lp
 }
 
-func (p *AddLiquidityTestKeeper) AddStake(ctx cosmos.Context, coin common.Coin, addr cosmos.AccAddress) error {
+func (p *AddLiquidityTestKeeper) AddOwnership(ctx cosmos.Context, coin common.Coin, addr cosmos.AccAddress) error {
 	p.liquidityUnits = p.liquidityUnits.Add(coin.Amount)
 	return nil
 }
@@ -553,7 +553,7 @@ func (s *HandlerAddLiquiditySuite) TestAddLiquidityV1(c *C) {
 	c.Assert(err, IsNil)
 	c.Check(p.PoolUnits.Equal(cosmos.NewUint(201*common.One)), Equals, true, Commentf("%d", p.PoolUnits.Uint64()))
 
-	// Test atomic cross chain staking
+	// Test atomic cross chain liquidity provision
 	// create BTC pool
 	c.Assert(ps.SetPool(ctx, Pool{
 		BalanceRune:  cosmos.ZeroUint(),

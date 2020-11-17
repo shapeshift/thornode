@@ -79,12 +79,12 @@ func (mfp *MockWithdrawKeeper) GetLiquidityProvider(ctx cosmos.Context, asset co
 	return mfp.lp, nil
 }
 
-func (mfp *MockWithdrawKeeper) AddStake(ctx cosmos.Context, coin common.Coin, addr cosmos.AccAddress) error {
-	return mfp.keeper.AddStake(ctx, coin, addr)
+func (mfp *MockWithdrawKeeper) AddOwnership(ctx cosmos.Context, coin common.Coin, addr cosmos.AccAddress) error {
+	return mfp.keeper.AddOwnership(ctx, coin, addr)
 }
 
-func (mfp *MockWithdrawKeeper) RemoveStake(ctx cosmos.Context, coin common.Coin, addr cosmos.AccAddress) error {
-	return mfp.keeper.RemoveStake(ctx, coin, addr)
+func (mfp *MockWithdrawKeeper) RemoveOwnership(ctx cosmos.Context, coin common.Coin, addr cosmos.AccAddress) error {
+	return mfp.keeper.RemoveOwnership(ctx, coin, addr)
 }
 
 func (mfp *MockWithdrawKeeper) SetLiquidityProvider(_ cosmos.Context, lp LiquidityProvider) {
@@ -116,7 +116,7 @@ func (HandlerWithdrawSuite) TestWithdrawHandler(c *C) {
 	}
 	ver := semver.MustParse("0.7.0")
 	constAccessor := constants.GetConstantValues(ver)
-	// Happy path , this is a round trip , first we stake, then we withdraw
+	// Happy path , this is a round trip , first we provide liquidity, then we withdraw
 	runeAddr := GetRandomRUNEAddress()
 	addHandler := NewAddLiquidityHandler(k, NewDummyMgr())
 	err := addHandler.addLiquidityV1(ctx,

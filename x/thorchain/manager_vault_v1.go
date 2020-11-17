@@ -532,14 +532,14 @@ func (vm *VaultMgrV1) UpdateVaultData(ctx cosmos.Context, constAccessor constant
 		return nil
 	}
 	currentHeight := uint64(common.BlockHeight(ctx))
-	pools, totalStaked, err := vm.getTotalStakedRune(ctx)
+	pools, totalProvidedLiquidity, err := vm.getTotalProvidedLiquidityRune(ctx)
 	if err != nil {
-		return fmt.Errorf("fail to get enabled pools and total staked rune: %w", err)
+		return fmt.Errorf("fail to get enabled pools and total provided liquidity rune: %w", err)
 	}
 
-	// If no Rune is staked, then don't give out block rewards.
-	if totalStaked.IsZero() {
-		return nil // If no Rune is staked, then don't give out block rewards.
+	// If no Rune is provided liquidity, then don't give out block rewards.
+	if totalProvidedLiquidity.IsZero() {
+		return nil // If no Rune is provided liquidity, then don't give out block rewards.
 	}
 
 	// get total liquidity fees
@@ -562,7 +562,7 @@ func (vm *VaultMgrV1) UpdateVaultData(ctx cosmos.Context, constAccessor constant
 		emissionCurve = constAccessor.GetInt64Value(constants.EmissionCurve)
 	}
 	blocksOerYear := constAccessor.GetInt64Value(constants.BlocksPerYear)
-	bondReward, totalPoolRewards, lpDeficit := vm.calcBlockRewards(totalStaked, totalBonded, totalReserve, totalLiquidityFees, emissionCurve, blocksOerYear)
+	bondReward, totalPoolRewards, lpDeficit := vm.calcBlockRewards(totalProvidedLiquidity, totalBonded, totalReserve, totalLiquidityFees, emissionCurve, blocksOerYear)
 
 	// given bondReward and toolPoolRewards are both calculated base on totalReserve, thus it should always have enough to pay the bond reward
 
@@ -592,7 +592,7 @@ func (vm *VaultMgrV1) UpdateVaultData(ctx cosmos.Context, constAccessor constant
 			}
 			amt := cosmos.ZeroUint()
 			if totalLiquidityFees.IsZero() {
-				amt = common.GetShare(pool.BalanceRune, totalStaked, totalPoolRewards)
+				amt = common.GetShare(pool.BalanceRune, totalProvidedLiquidity, totalPoolRewards)
 			} else {
 				fees, err := vm.k.GetPoolLiquidityFees(ctx, currentHeight, pool.Asset)
 				if err != nil {
@@ -657,9 +657,9 @@ func (vm *VaultMgrV1) UpdateVaultData(ctx cosmos.Context, constAccessor constant
 	return vm.k.SetVaultData(ctx, vaultData)
 }
 
-func (vm *VaultMgrV1) getTotalStakedRune(ctx cosmos.Context) (Pools, cosmos.Uint, error) {
-	// First get active pools and total staked Rune
-	totalStaked := cosmos.ZeroUint()
+func (vm *VaultMgrV1) getTotalProvidedLiquidityRune(ctx cosmos.Context) (Pools, cosmos.Uint, error) {
+	// First get active pools and total provided liquidity Rune
+	totalProvidedLiquidity := cosmos.ZeroUint()
 	var pools Pools
 	iterator := vm.k.GetPoolIterator(ctx)
 	defer iterator.Close()
@@ -669,11 +669,11 @@ func (vm *VaultMgrV1) getTotalStakedRune(ctx cosmos.Context) (Pools, cosmos.Uint
 			return nil, cosmos.ZeroUint(), fmt.Errorf("fail to unmarhsl pool: %w", err)
 		}
 		if !pool.BalanceRune.IsZero() {
-			totalStaked = totalStaked.Add(pool.BalanceRune)
+			totalProvidedLiquidity = totalProvidedLiquidity.Add(pool.BalanceRune)
 			pools = append(pools, pool)
 		}
 	}
-	return pools, totalStaked, nil
+	return pools, totalProvidedLiquidity, nil
 }
 
 func (vm *VaultMgrV1) getTotalActiveBond(ctx cosmos.Context) (cosmos.Uint, error) {
@@ -709,7 +709,7 @@ func (vm *VaultMgrV1) calcPoolDeficit(lpDeficit, totalFees, poolFees cosmos.Uint
 }
 
 // Calculate the block rewards that bonders and liquidity providers should receive
-func (vm *VaultMgrV1) calcBlockRewards(totalStaked, totalBonded, totalReserve, totalLiquidityFees cosmos.Uint, emissionCurve, blocksPerYear int64) (cosmos.Uint, cosmos.Uint, cosmos.Uint) {
+func (vm *VaultMgrV1) calcBlockRewards(totalProvidedLiquidity, totalBonded, totalReserve, totalLiquidityFees cosmos.Uint, emissionCurve, blocksPerYear int64) (cosmos.Uint, cosmos.Uint, cosmos.Uint) {
 	// Block Rewards will take the latest reserve, divide it by the emission
 	// curve factor, then divide by blocks per year
 	trD := cosmos.NewDec(int64(totalReserve.Uint64()))
@@ -720,8 +720,8 @@ func (vm *VaultMgrV1) calcBlockRewards(totalStaked, totalBonded, totalReserve, t
 
 	systemIncome := blockReward.Add(totalLiquidityFees) // Get total system income for block
 
-	lpSplit := vm.getPoolShare(totalStaked, totalBonded, systemIncome) // Get liquidity provider share
-	bonderSplit := common.SafeSub(systemIncome, lpSplit)               // Remainder to Bonders
+	lpSplit := vm.getPoolShare(totalProvidedLiquidity, totalBonded, systemIncome) // Get liquidity provider share
+	bonderSplit := common.SafeSub(systemIncome, lpSplit)                          // Remainder to Bonders
 
 	lpDeficit := cosmos.ZeroUint()
 	poolReward := cosmos.ZeroUint()
@@ -737,20 +737,20 @@ func (vm *VaultMgrV1) calcBlockRewards(totalStaked, totalBonded, totalReserve, t
 	return bonderSplit, poolReward, lpDeficit
 }
 
-func (vm *VaultMgrV1) getPoolShare(totalStaked, totalBonded, totalRewards cosmos.Uint) cosmos.Uint {
-	// Targets a linear change in rewards from 0% staked, 33% staked, 100% staked.
-	// 0% staked: All rewards to liquidity providers
-	// 33% staked: 33% to liquidity providers
-	// 100% staked: All rewards to Bonders
+func (vm *VaultMgrV1) getPoolShare(totalProvidedLiquidity, totalBonded, totalRewards cosmos.Uint) cosmos.Uint {
+	// Targets a linear change in rewards from 0% provided liquidity, 33% provided liquidity, 100% provided liquidity.
+	// 0% provided liquidity: All rewards to liquidity providers
+	// 33% provided liquidity: 33% to liquidity providers
+	// 100% provided liquidity: All rewards to Bonders
 
-	if totalStaked.GTE(totalBonded) { // Zero payments to liquidity providers when staked == bonded
+	if totalProvidedLiquidity.GTE(totalBonded) { // Zero payments to liquidity providers when provided liquidity == bonded
 		return cosmos.ZeroUint()
 	}
 
 	// factor = (y + x) / (y - x).
 	// pool share = 1 / factor
-	total := totalBonded.Add(totalStaked)
-	part := common.SafeSub(totalBonded, totalStaked)
+	total := totalBonded.Add(totalProvidedLiquidity)
+	part := common.SafeSub(totalBonded, totalProvidedLiquidity)
 	return common.GetShare(part, total, totalRewards)
 }
 

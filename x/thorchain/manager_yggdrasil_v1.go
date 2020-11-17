@@ -235,25 +235,25 @@ func (ymgr YggMgrV1) calcTargetYggCoins(pools []Pool, ygg Vault, yggBond, totalB
 	runeCoin := common.NewCoin(common.RuneAsset(), cosmos.ZeroUint())
 	var coins common.Coins
 
-	// calculate total staked rune in our pools
-	totalStakedRune := cosmos.ZeroUint()
+	// calculate total liquidity provided rune in our pools
+	totalLiquidityRune := cosmos.ZeroUint()
 	for _, pool := range pools {
-		totalStakedRune = totalStakedRune.Add(pool.BalanceRune)
+		totalLiquidityRune = totalLiquidityRune.Add(pool.BalanceRune)
 	}
-	if totalStakedRune.IsZero() {
-		// if nothing is staked, no coins should be issued
+	if totalLiquidityRune.IsZero() {
+		// if nothing is liquidity provided, no coins should be issued
 		return nil, nil
 	}
 
 	// if we're under bonded, calculate as if we're not. Otherwise, we'll try
 	// to send too much funds to ygg vaults
 	bondVal := totalBond.MulUint64(2)
-	if bondVal.LT(totalStakedRune.MulUint64(4)) {
-		bondVal = totalStakedRune.MulUint64(4)
+	if bondVal.LT(totalLiquidityRune.MulUint64(4)) {
+		bondVal = totalLiquidityRune.MulUint64(4)
 	}
 	// figure out what percentage of the bond this yggdrasil pool has. They
 	// should get half of that value.
-	targetRune := common.GetShare(yggBond, bondVal, totalStakedRune)
+	targetRune := common.GetShare(yggBond, bondVal, totalLiquidityRune)
 	// check if more rune would be allocated to this pool than their bond allows
 	if targetRune.GT(yggBond.Mul(yggFundLimit).QuoUint64(100)) {
 		targetRune = yggBond.Mul(yggFundLimit).QuoUint64(100)
@@ -267,9 +267,9 @@ func (ymgr YggMgrV1) calcTargetYggCoins(pools []Pool, ygg Vault, yggBond, totalB
 		if !pool.IsEnabled() {
 			continue
 		}
-		runeAmt := common.GetShare(targetRune, totalStakedRune, pool.BalanceRune)
+		runeAmt := common.GetShare(targetRune, totalLiquidityRune, pool.BalanceRune)
 		runeCoin.Amount = runeCoin.Amount.Add(runeAmt)
-		assetAmt := common.GetShare(targetRune, totalStakedRune, pool.BalanceAsset)
+		assetAmt := common.GetShare(targetRune, totalLiquidityRune, pool.BalanceAsset)
 		// add rune amt (not asset since the two are considered to be equal)
 		// in a single pool X, the value of 1% asset X in RUNE ,equals the 1% RUNE in the same pool
 		yggCoin := ygg.GetCoin(pool.Asset)
