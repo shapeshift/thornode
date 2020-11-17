@@ -360,7 +360,7 @@ func (s *HandlerErrataTxSuite) TestErrataHandlerDifferentError(c *C) {
 			},
 		},
 		{
-			name: "if the tx is not swap nor stake, it should not do anything",
+			name: "if the tx is not swap nor provide liquidity, it should not do anything",
 			messageProvider: func(ctx cosmos.Context, helper *ErrataTxHandlerTestHelper) cosmos.Msg {
 				// add an active node account
 				nodeAccount := GetRandomNodeAccount(NodeActive)

@@ -207,7 +207,7 @@ func (HandlerSuite) TestHandleTxInWithdrawLiquidityMemo(c *C) {
 
 	accAddr, err := lp.RuneAddress.AccAddress()
 	c.Assert(err, IsNil)
-	err = w.keeper.AddStake(w.ctx, common.NewCoin(pool.Asset.LiquidityAsset(), lp.Units), accAddr)
+	err = w.keeper.AddOwnership(w.ctx, common.NewCoin(pool.Asset.LiquidityAsset(), lp.Units), accAddr)
 	c.Assert(err, IsNil)
 
 	tx := common.Tx{
@@ -392,12 +392,12 @@ func (HandlerSuite) TestGetMsgUnBondFromMemo(c *C) {
 	c.Assert(msg.Type(), Equals, MsgUnBond{}.Type())
 }
 
-func (HandlerSuite) TestGetMsgStakeFromMemo(c *C) {
+func (HandlerSuite) TestGetMsgLiquidityFromMemo(c *C) {
 	w := getHandlerTestWrapper(c, 1, true, false)
-	// Stake BNB, however THORNode send T-CAN as coin , which is incorrect, should result in an error
+	// provide BNB, however THORNode send T-CAN as coin , which is incorrect, should result in an error
 	m, err := ParseMemo(fmt.Sprintf("add:BNB.BNB:%s", GetRandomRUNEAddress()))
 	c.Assert(err, IsNil)
-	stakeMemo, ok := m.(AddLiquidityMemo)
+	lpMemo, ok := m.(AddLiquidityMemo)
 	c.Assert(ok, Equals, true)
 	tcanAsset, err := common.NewAsset("BNB.TCAN-014")
 	c.Assert(err, IsNil)
@@ -423,18 +423,18 @@ func (HandlerSuite) TestGetMsgStakeFromMemo(c *C) {
 		common.EmptyPubKey,
 	)
 
-	msg, err := getMsgAddLiquidityFromMemo(w.ctx, stakeMemo, txin, GetRandomBech32Addr())
+	msg, err := getMsgAddLiquidityFromMemo(w.ctx, lpMemo, txin, GetRandomBech32Addr())
 	c.Assert(msg, NotNil)
 	c.Assert(err, IsNil)
 
-	// Asymentic stake should works fine, only RUNE
+	// Asymentic liquidity provision should works fine, only RUNE
 	txin.Tx.Coins = common.Coins{
 		common.NewCoin(runeAsset,
 			cosmos.NewUint(100*common.One)),
 	}
 
-	// stake only rune should be fine
-	msg1, err1 := getMsgAddLiquidityFromMemo(w.ctx, stakeMemo, txin, GetRandomBech32Addr())
+	// provide only rune should be fine
+	msg1, err1 := getMsgAddLiquidityFromMemo(w.ctx, lpMemo, txin, GetRandomBech32Addr())
 	c.Assert(msg1, NotNil)
 	c.Assert(err1, IsNil)
 
@@ -445,8 +445,8 @@ func (HandlerSuite) TestGetMsgStakeFromMemo(c *C) {
 			cosmos.NewUint(100*common.One)),
 	}
 
-	// stake only token(BNB) should be fine
-	msg2, err2 := getMsgAddLiquidityFromMemo(w.ctx, stakeMemo, txin, GetRandomBech32Addr())
+	// provide only token(BNB) should be fine
+	msg2, err2 := getMsgAddLiquidityFromMemo(w.ctx, lpMemo, txin, GetRandomBech32Addr())
 	c.Assert(msg2, NotNil)
 	c.Assert(err2, IsNil)
 

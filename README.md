@@ -24,7 +24,7 @@ THORChain is a decentralised liquidity network built with [CosmosSDK](cosmos.net
 ### THORNodes
 The THORNode software allows a node to join and service the network, which will run with a minimum of four nodes. The only limitation to the number of nodes that can participate is set by the `minimumBondAmount`, which is the minimum amount of capital required to join. Nodes are not permissioned; any node that can bond the required amount of capital can be scheduled to churn in. 
 
-THORChain comes to consensus about events observed on external networks via witness transactions from nodes. Swap and stake logic is then applied to these finalised events. Each event causes a state change in THORChain, and some events generate an output transaction which require assets to be moved (outgoing swaps or bond/liquidity withdrawals). These output transactions are then batched, signed by a threshold signature scheme protocol and broadcast back to the respective external network. The final gas fee on the network is then accounted for and the transaction complete. 
+THORChain comes to consensus about events observed on external networks via witness transactions from nodes. Swap and liquidity provision logic is then applied to these finalised events. Each event causes a state change in THORChain, and some events generate an output transaction which require assets to be moved (outgoing swaps or bond/liquidity withdrawals). These output transactions are then batched, signed by a threshold signature scheme protocol and broadcast back to the respective external network. The final gas fee on the network is then accounted for and the transaction complete. 
 
 This is described as a "1-way state peg", where only state enters the system, derived from external networks. There are no pegged tokens or 2-way pegs, because they are not necessary. On-chain Bitcoin can be swapped with on-chain Ethereum in the time it takes to finalise the confirmed event. 
 
@@ -50,15 +50,15 @@ To remove a chain, nodes can stop witnessing it. If a super-majority of nodes do
 
 ### Transactions 
 The THORChain facilitates the following transactions, which are made on external networks and replayed into the THORChain via witness transactions:
-- **STAKE**: Anyone can stake assets in pools. If the asset hasn't been seen before, a new pool is created. 
-- **WITHDRAW**: Anyone who is staking can withdraw their claim on the pool.
+- **ADD LIQUIDITY**: Anyone can provide assets in pools. If the asset hasn't been seen before, a new pool is created. 
+- **WITHDRAW LIQUIDITY**: Anyone who is providing liquidity can withdraw their claim on the pool.
 - **SWAP**: Anyone can send in assets and swap to another, including sending to a destination address, and including optional price protection. 
 - **BOND**: Anyone can bond assets and attempt to become a Node. Bonds must be greater than the `minimumBondAmount`, else they will be refunded. 
 - **LEAVE**: Nodes can voluntarily leave the system and their bond and rewards will be paid out. Leaving takes 6 hours. 
 - **RESERVE**: Anyone can add assets to the Protocol Reserve, which pays out to Nodes and Liquidity Providers. 220,447,472 Rune will be funded in this way. 
 
 ### Continuous Liquidity Pools
-The Staking, Unstaking and Swapping logic is based on the `CLP` Continuous Liquidity Pool algorithm. 
+The Provision of liquidity logic is based on the `CLP` Continuous Liquidity Pool algorithm. 
 
 **Swaps**
 The algorithm for processing assets swaps is given by:
@@ -73,16 +73,16 @@ The slip-based fee model has the following benefits:
 * Asymptotes to zero over time, ensuring pool prices match reference prices
 * Prevents Impermanent Loss to liquidity providers
 
-**Staking**
-The stake units awarded to a liquidity provider is given by:
-`stakeUnits = ((R + T) * (r * T + R * t))/(4 * R * T)`, where `r = Rune Staked, R = Rune Balance, T = Token Balance, t = Token Staked`
+**Provide Liquidity**
+The provier units awarded to a liquidity provider is given by:
+`liquidityUnits = ((R + T) * (r * T + R * t))/(4 * R * T)`, where `r = Rune Provided, R = Rune Balance, T = Token Balance, t = Token Provided`
 
-This allows them to stake asymmetrically since it has no opinion on price. 
+This allows them to provide liquidity asymmetrically since it has no opinion on price. 
 
 ### Incentives
-The system is safest and most capital-efficient when 67% of Rune is bonded and 33% is staked in pools. At this point, nodes will be paid 67% of the System Income, and liquidity providers will be paid 33% of the income. The Sytem Income is the block rewards (`blockReward = totalReserve / 6 / 6311390`) plus the liquidity fees collected in that block. 
+The system is safest and most capital-efficient when 67% of Rune is bonded and 33% is provided liquidity in pools. At this point, nodes will be paid 67% of the System Income, and liquidity providers will be paid 33% of the income. The Sytem Income is the block rewards (`blockReward = totalReserve / 6 / 6311390`) plus the liquidity fees collected in that block. 
 
-An Incentive Pendulum ensures that liquidity providers receive 100% of the income when 0% is staked (inefficent), and 0% of the income when `totalStaked >= totalBonded` (unsafe).
+An Incentive Pendulum ensures that liquidity providers receive 100% of the income when 0% is provided liquidity (inefficent), and 0% of the income when `totalLiquidity >= totalBonded` (unsafe).
 The Total Reserve accumulates the `transactionFee`, which pays for outgoing gas fees and stabilises long-term value accrual. 
 
 ### Governance

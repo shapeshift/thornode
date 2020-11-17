@@ -89,7 +89,7 @@ func (h WithdrawLiquidityHandler) handleV1(ctx cosmos.Context, msg MsgWithdrawLi
 		return nil, ErrInternal(err, "fail to get pool")
 	}
 
-	// snapshot original coin holdings, this is so we can add back the stake if unsuccessful
+	// snapshot original coin holdings, this is so we can add back the liquidity if unsuccessful
 	acc, err := msg.RuneAddress.AccAddress()
 	if err != nil {
 		return nil, ErrInternal(err, "fail to get liquidity provider address")
@@ -160,10 +160,10 @@ func (h WithdrawLiquidityHandler) handleV1(ctx cosmos.Context, msg MsgWithdrawLi
 					msg.Asset.LiquidityAsset(),
 					originalLtokens.Sub(lpCoins),
 				)
-				// re-add stake back to the account
-				err := h.keeper.AddStake(ctx, coin, acc)
+				// re-add liquidity back to the account
+				err := h.keeper.AddOwnership(ctx, coin, acc)
 				if err != nil {
-					return nil, ErrInternal(err, "fail to undo stake")
+					return nil, ErrInternal(err, "fail to undo liquidity provision")
 				}
 			}
 			return nil, multierror.Append(errFailAddOutboundTx, err)

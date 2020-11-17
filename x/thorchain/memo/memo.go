@@ -35,7 +35,6 @@ var stringToTxTypeMap = map[string]TxType{
 	"add":        TxAdd,
 	"+":          TxAdd,
 	"withdraw":   TxWithdraw,
-	"unstake":    TxWithdraw,
 	"wd":         TxWithdraw,
 	"-":          TxWithdraw,
 	"swap":       TxSwap,

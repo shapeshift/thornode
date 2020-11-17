@@ -8,7 +8,8 @@ import (
 	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
-// LiquidityProvider is a structure to store the information about a customer who staked in a pool
+// LiquidityProvider is a structure to store the information about a customer
+// who provide liquidity in a pool
 type LiquidityProvider struct {
 	Asset              common.Asset   `json:"asset"`
 	RuneAddress        common.Address `json:"rune_address"`
@@ -25,7 +26,7 @@ type LiquidityProviders []LiquidityProvider
 // Valid check whether lp represent valid information
 func (lp LiquidityProvider) Valid() error {
 	if lp.LastAddHeight == 0 {
-		return errors.New("last stake height cannot be empty")
+		return errors.New("last add liquidity height cannot be empty")
 	}
 	if lp.RuneAddress.IsEmpty() {
 		return errors.New("rune address cannot be empty")

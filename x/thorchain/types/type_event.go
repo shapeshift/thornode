@@ -95,14 +95,14 @@ func (e EventSwap) Events() (cosmos.Events, error) {
 
 // EventAddLiquidity event
 type EventAddLiquidity struct {
-	Pool         common.Asset   `json:"pool"`
-	StakeUnits   cosmos.Uint    `json:"stake_units"`
-	RuneAddress  common.Address `json:"rune_address"`
-	RuneAmount   cosmos.Uint    `json:"rune_amount"`
-	AssetAmount  cosmos.Uint    `json:"asset_amount"`
-	RuneTxID     common.TxID    `json:"rune_tx_id"`
-	AssetTxID    common.TxID    `json:"asset_tx_id"`
-	AssetAddress common.Address `json:"asset_address"`
+	Pool          common.Asset   `json:"pool"`
+	ProviderUnits cosmos.Uint    `json:"liquidity_provider_units"`
+	RuneAddress   common.Address `json:"rune_address"`
+	RuneAmount    cosmos.Uint    `json:"rune_amount"`
+	AssetAmount   cosmos.Uint    `json:"asset_amount"`
+	RuneTxID      common.TxID    `json:"rune_tx_id"`
+	AssetTxID     common.TxID    `json:"asset_tx_id"`
+	AssetAddress  common.Address `json:"asset_address"`
 }
 
 // NewEventAddLiquidity create a new add liquidity event
@@ -115,14 +115,14 @@ func NewEventAddLiquidity(pool common.Asset,
 	assetTxID common.TxID,
 	assetAddress common.Address) EventAddLiquidity {
 	return EventAddLiquidity{
-		Pool:         pool,
-		StakeUnits:   su,
-		RuneAddress:  runeAddress,
-		RuneAmount:   runeAmount,
-		AssetAmount:  assetAmount,
-		RuneTxID:     runeTxID,
-		AssetTxID:    assetTxID,
-		AssetAddress: assetAddress,
+		Pool:          pool,
+		ProviderUnits: su,
+		RuneAddress:   runeAddress,
+		RuneAmount:    runeAmount,
+		AssetAmount:   assetAmount,
+		RuneTxID:      runeTxID,
+		AssetTxID:     assetTxID,
+		AssetAddress:  assetAddress,
 	}
 }
 
@@ -135,7 +135,7 @@ func (e EventAddLiquidity) Type() string {
 func (e EventAddLiquidity) Events() (cosmos.Events, error) {
 	evt := cosmos.NewEvent(e.Type(),
 		cosmos.NewAttribute("pool", e.Pool.String()),
-		cosmos.NewAttribute("stake_units", e.StakeUnits.String()),
+		cosmos.NewAttribute("liquidity_provider_units", e.ProviderUnits.String()),
 		cosmos.NewAttribute("rune_address", e.RuneAddress.String()),
 		cosmos.NewAttribute("rune_amount", e.RuneAmount.String()),
 		cosmos.NewAttribute("asset_amount", e.AssetAmount.String()),
@@ -153,25 +153,25 @@ func (e EventAddLiquidity) Events() (cosmos.Events, error) {
 
 // EventWithdraw represent withdraw
 type EventWithdraw struct {
-	Pool        common.Asset `json:"pool"`
-	StakeUnits  cosmos.Uint  `json:"stake_units"`
-	BasisPoints int64        `json:"basis_points"` // 1 ==> 10,0000
-	Asymmetry   cosmos.Dec   `json:"asymmetry"`    // -1.0 <==> 1.0
-	InTx        common.Tx    `json:"in_tx"`
-	EmitAsset   cosmos.Uint  `json:"emit_asset"`
-	EmitRune    cosmos.Uint  `json:"emit_rune"`
+	Pool          common.Asset `json:"pool"`
+	ProviderUnits cosmos.Uint  `json:"liquidity_provider_units"`
+	BasisPoints   int64        `json:"basis_points"` // 1 ==> 10,0000
+	Asymmetry     cosmos.Dec   `json:"asymmetry"`    // -1.0 <==> 1.0
+	InTx          common.Tx    `json:"in_tx"`
+	EmitAsset     cosmos.Uint  `json:"emit_asset"`
+	EmitRune      cosmos.Uint  `json:"emit_rune"`
 }
 
 // NewEventWithdraw create a new withdraw event
 func NewEventWithdraw(pool common.Asset, su cosmos.Uint, basisPts int64, asym cosmos.Dec, inTx common.Tx, emitAsset, emitRune cosmos.Uint) EventWithdraw {
 	return EventWithdraw{
-		Pool:        pool,
-		StakeUnits:  su,
-		BasisPoints: basisPts,
-		Asymmetry:   asym,
-		InTx:        inTx,
-		EmitAsset:   emitAsset,
-		EmitRune:    emitRune,
+		Pool:          pool,
+		ProviderUnits: su,
+		BasisPoints:   basisPts,
+		Asymmetry:     asym,
+		InTx:          inTx,
+		EmitAsset:     emitAsset,
+		EmitRune:      emitRune,
 	}
 }
 
@@ -184,7 +184,7 @@ func (e EventWithdraw) Type() string {
 func (e EventWithdraw) Events() (cosmos.Events, error) {
 	evt := cosmos.NewEvent(e.Type(),
 		cosmos.NewAttribute("pool", e.Pool.String()),
-		cosmos.NewAttribute("stake_units", e.StakeUnits.String()),
+		cosmos.NewAttribute("liquidity_provider_units", e.ProviderUnits.String()),
 		cosmos.NewAttribute("basis_points", strconv.FormatInt(e.BasisPoints, 10)),
 		cosmos.NewAttribute("asymmetry", e.Asymmetry.String()),
 		cosmos.NewAttribute("emit_asset", e.EmitAsset.String()),

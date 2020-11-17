@@ -32,7 +32,7 @@ func (s *KeeperLiquidityProviderSuite) TestLiquidityProvider(c *C) {
 	}
 	acc, err := lp.RuneAddress.AccAddress()
 	c.Assert(err, IsNil)
-	c.Assert(k.AddStake(ctx, common.NewCoin(lp.Asset.LiquidityAsset(), lp.Units), acc), IsNil)
+	c.Assert(k.AddOwnership(ctx, common.NewCoin(lp.Asset.LiquidityAsset(), lp.Units), acc), IsNil)
 
 	k.SetLiquidityProvider(ctx, lp)
 	lp, err = k.GetLiquidityProvider(ctx, asset, lp.RuneAddress)

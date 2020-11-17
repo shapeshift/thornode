@@ -526,7 +526,7 @@ func (vm *validatorMgrV1) ragnarokProtocolStage2(ctx cosmos.Context, nth int64, 
 	// If THORNode can no longer be BFT, do a graceful shutdown of the entire network.
 	// 1) THORNode will request all yggdrasil pool to return fund , if THORNode don't have yggdrasil pool THORNode will go to step 3 directly
 	// 2) upon receiving the yggdrasil fund,  THORNode will refund the validator's bond
-	// 3) once all yggdrasil fund get returned, return all fund to stakes
+	// 3) once all yggdrasil fund get returned, return all fund to liquidity providers
 
 	// refund bonders
 	if err := vm.ragnarokBond(ctx, nth, mgr); err != nil {
@@ -643,7 +643,7 @@ func (vm *validatorMgrV1) ragnarokPools(ctx cosmos.Context, nth int64, mgr Manag
 	// each round of refund, we increase the percentage by 10%. This ensures
 	// that we slowly refund each person, while not sending out too much too
 	// fast. Also, we won't be running into any gas related issues until the
-	// very last round, which, by my calculations, if someone staked 100 coins,
+	// very last round, which, by my calculations, if someone provided 100 coins,
 	// the last tx will send them 0.036288. So if we don't have enough gas to
 	// send them, its only a very small portion that is not refunded.
 	var basisPoints int64
@@ -711,7 +711,7 @@ func (vm *validatorMgrV1) ragnarokPools(ctx cosmos.Context, nth int64, mgr Manag
 
 				accAddr, err := lp.RuneAddress.AccAddress()
 				if err != nil {
-					ctx.Logger().Error("fail to get stake tokens", "liquidity provider", lp.RuneAddress, "error", err)
+					ctx.Logger().Error("fail to get address", "liquidity provider", lp.RuneAddress, "error", err)
 					continue
 				}
 				lp.Units = vm.k.GetLiquidityProviderBalance(ctx, pool.Asset.LiquidityAsset(), accAddr)

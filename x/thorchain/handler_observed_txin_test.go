@@ -556,10 +556,10 @@ func (HandlerObservedTxInSuite) TestObservedTxHandler_validations(c *C) {
 			},
 		},
 		{
-			name: "normal stake , it should success",
+			name: "normal provision, it should success",
 			messageProvider: func(c *C, ctx cosmos.Context, helper *ObservedTxInHandlerTestHelper) cosmos.Msg {
 				m := setupAnLegitObservedTx(ctx, helper, c)
-				m.Txs[0].Tx.Memo = "stake:BNB.BNB"
+				m.Txs[0].Tx.Memo = "add:BNB.BNB"
 				return m
 			},
 			validator: func(c *C, ctx cosmos.Context, result *cosmos.Result, err error, helper *ObservedTxInHandlerTestHelper, name string) {

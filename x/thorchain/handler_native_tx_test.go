@@ -26,7 +26,7 @@ func (s *HandlerNativeTxSuite) TestValidate(c *C) {
 	coins := common.Coins{
 		common.NewCoin(common.RuneNative, cosmos.NewUint(200*common.One)),
 	}
-	msg := NewMsgNativeTx(coins, fmt.Sprintf("STAKE:BNB.BNB:%s", GetRandomRUNEAddress()), addr)
+	msg := NewMsgNativeTx(coins, fmt.Sprintf("ADD:BNB.BNB:%s", GetRandomRUNEAddress()), addr)
 
 	handler := NewNativeTxHandler(k, NewDummyMgr())
 	err := handler.validate(ctx, msg, constants.SWVersion)

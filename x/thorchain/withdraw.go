@@ -120,9 +120,9 @@ func withdraw(ctx cosmos.Context, version semver.Version, keeper keeper.Keeper, 
 	if err != nil {
 		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), ErrInternal(err, "fail to convert rune address")
 	}
-	err = keeper.RemoveStake(ctx, common.NewCoin(pool.Asset.LiquidityAsset(), lp.Units.Sub(unitAfter)), acc)
+	err = keeper.RemoveOwnership(ctx, common.NewCoin(pool.Asset.LiquidityAsset(), lp.Units.Sub(unitAfter)), acc)
 	if err != nil {
-		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), ErrInternal(err, "fail to withdraw stake")
+		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), ErrInternal(err, "fail to withdraw liquidity")
 	}
 	lp.LastWithdrawHeight = common.BlockHeight(ctx)
 
@@ -182,7 +182,7 @@ func calculateWithdraw(poolUnits, poolRune, poolAsset, lpUnits, withdrawBasisPoi
 
 func calcAsymWithdrawal(s, T, A cosmos.Uint) cosmos.Uint {
 	// share = (s * A * (2 * T^2 - 2 * T * s + s^2))/T^3
-	// s = stakeUnits for member (after factoring in withdrawBasisPoints)
+	// s = liquidity provider units for member (after factoring in withdrawBasisPoints)
 	// T = totalPoolUnits for pool
 	// A = assetDepth to be withdrawn
 	// (part1 * (part2 - part3 + part4)) / part5

@@ -15,7 +15,7 @@ type PoolStatus int
 
 // |    State    | Swap | Add   | Withdraw  | Refunding |
 // | ----------- | ---- | ----- | --------- | --------- |
-// | `bootstrap` | no   | yes   | yes       | Refund Invalid Stakes && all Swaps |
+// | `bootstrap` | no   | yes   | yes       | Refund Invalid Add/Remove Liquidity && all Swaps |
 // | `enabled`   | yes  | yes   | yes       | Refund Invalid Tx |
 // | `suspended` | no   | no    | no        | Refund all |
 const (
