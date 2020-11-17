@@ -26,7 +26,7 @@ func NewSlasherV1(keeper keeper.Keeper) *SlasherV1 {
 // BeginBlock called when a new block get proposed to detect whether there are duplicate vote
 func (s *SlasherV1) BeginBlock(ctx cosmos.Context, req abci.RequestBeginBlock, constAccessor constants.ConstantValues) {
 	// Iterate through any newly discovered evidence of infraction
-	// Slash any validators (and since-unbonded stake within the unbonding period)
+	// Slash any validators (and since-unbonded liquidity within the unbonding period)
 	// who contributed to valid infractions
 	for _, evidence := range req.ByzantineValidators {
 		switch evidence.Type {

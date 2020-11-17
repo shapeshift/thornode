@@ -35,7 +35,7 @@ type ThorchainSuite struct{}
 
 var _ = Suite(&ThorchainSuite{})
 
-func (s *ThorchainSuite) TestStaking(c *C) {
+func (s *ThorchainSuite) TestLiquidityProvision(c *C) {
 	var err error
 	ctx, keeper := setupKeeperForTest(c)
 	user1rune := GetRandomRUNEAddress()
@@ -51,7 +51,7 @@ func (s *ThorchainSuite) TestStaking(c *C) {
 	pool.Asset = common.BNBAsset
 	c.Assert(keeper.SetPool(ctx, pool), IsNil)
 	addHandler := NewAddLiquidityHandler(keeper, NewDummyMgr())
-	// stake for user1
+	// liquidity provider for user1
 	err = addHandler.addLiquidityV1(ctx, common.BNBAsset, cosmos.NewUint(100*common.One), cosmos.NewUint(100*common.One), user1rune, user1asset, txID, constAccessor)
 	c.Assert(err, IsNil)
 	err = addHandler.addLiquidityV1(ctx, common.BNBAsset, cosmos.NewUint(100*common.One), cosmos.NewUint(100*common.One), user1rune, user1asset, txID, constAccessor)
@@ -60,7 +60,7 @@ func (s *ThorchainSuite) TestStaking(c *C) {
 	c.Assert(err, IsNil)
 	c.Check(lp1.Units.IsZero(), Equals, false)
 
-	// stake for user2
+	// liquidity provider for user2
 	err = addHandler.addLiquidityV1(ctx, common.BNBAsset, cosmos.NewUint(75*common.One), cosmos.NewUint(75*common.One), user2rune, user2asset, txID, constAccessor)
 	c.Assert(err, IsNil)
 	err = addHandler.addLiquidityV1(ctx, common.BNBAsset, cosmos.NewUint(75*common.One), cosmos.NewUint(75*common.One), user2rune, user2asset, txID, constAccessor)
@@ -94,7 +94,7 @@ func (s *ThorchainSuite) TestStaking(c *C) {
 	c.Check(pool.BalanceAsset.Uint64(), Equals, uint64(remainGas)) // leave a little behind for gas
 	c.Check(pool.PoolUnits.IsZero(), Equals, true)
 
-	// stake for user1, again
+	// liquidity provider for user1, again
 	err = addHandler.addLiquidityV1(ctx, common.BNBAsset, cosmos.NewUint(100*common.One), cosmos.NewUint(100*common.One), user1rune, user1asset, txID, constAccessor)
 	c.Assert(err, IsNil)
 	err = addHandler.addLiquidityV1(ctx, common.BNBAsset, cosmos.NewUint(100*common.One), cosmos.NewUint(100*common.One), user1rune, user1asset, txID, constAccessor)
@@ -320,7 +320,7 @@ func (s *ThorchainSuite) TestRagnarok(c *C) {
 		})
 		c.Assert(keeper.SetVault(ctx, asgard), IsNil)
 
-		// create yggdrasil vault, with 1/3 of the staked funds
+		// create yggdrasil vault, with 1/3 of the liquidity provider funds
 		ygg := GetRandomVault()
 		ygg.PubKey = na.PubKeySet.Secp256k1
 		ygg.Type = YggdrasilVault
@@ -488,7 +488,7 @@ func (s *ThorchainSuite) TestRagnarokNoOneLeave(c *C) {
 		asgard.Membership = append(asgard.Membership, na.PubKeySet.Secp256k1)
 		c.Assert(keeper.SetVault(ctx, asgard), IsNil)
 
-		// create yggdrasil vault, with 1/3 of the staked funds
+		// create yggdrasil vault, with 1/3 of the liquidity provider funds
 		ygg := GetRandomVault()
 		ygg.PubKey = na.PubKeySet.Secp256k1
 		ygg.Type = YggdrasilVault

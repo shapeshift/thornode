@@ -104,7 +104,7 @@ func (k *TestRagnarokChainKeeper) GetLiquidityProviderIterator(ctx cosmos.Contex
 	return iter
 }
 
-func (k *TestRagnarokChainKeeper) AddStake(ctx cosmos.Context, coin common.Coin, addr cosmos.AccAddress) error {
+func (k *TestRagnarokChainKeeper) AddOwnership(ctx cosmos.Context, coin common.Coin, addr cosmos.AccAddress) error {
 	lp, _ := common.NewAddress(addr.String())
 	for i, skr := range k.lps {
 		if lp.Equals(skr.RuneAddress) {
@@ -114,7 +114,7 @@ func (k *TestRagnarokChainKeeper) AddStake(ctx cosmos.Context, coin common.Coin,
 	return nil
 }
 
-func (k *TestRagnarokChainKeeper) RemoveStake(ctx cosmos.Context, coin common.Coin, addr cosmos.AccAddress) error {
+func (k *TestRagnarokChainKeeper) RemoveOwnership(ctx cosmos.Context, coin common.Coin, addr cosmos.AccAddress) error {
 	lp, _ := common.NewAddress(addr.String())
 	for i, skr := range k.lps {
 		if lp.Equals(skr.RuneAddress) {
@@ -294,7 +294,7 @@ func (s *VaultManagerV1TestSuite) TestUpdateVaultData(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(vaultMgr.UpdateVaultData(ctx, constAccessor, mgr.GasMgr(), mgr.EventMgr()), IsNil)
 
-	// total staked is zero , should not doing anything
+	// total provided liquidity is zero , should not doing anything
 	vd.TotalReserve = cosmos.NewUint(common.One * 100)
 	err = k.SetVaultData(ctx, vd)
 	c.Assert(err, IsNil)
@@ -532,7 +532,7 @@ func (*VaultManagerV1TestSuite) TestGetTotalActiveBond(c *C) {
 	c.Assert(bond.Uint64() > 0, Equals, true)
 }
 
-func (*VaultManagerV1TestSuite) TestGetTotalStakedRune(c *C) {
+func (*VaultManagerV1TestSuite) TestGetTotalLiquidityRune(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	helper := NewVaultGenesisSetupTestHelper(k)
 	mgr := NewManagers(helper)
@@ -544,10 +544,10 @@ func (*VaultManagerV1TestSuite) TestGetTotalStakedRune(c *C) {
 	p.BalanceAsset = cosmos.NewUint(common.One * 100)
 	p.Status = PoolEnabled
 	c.Assert(helper.SetPool(ctx, p), IsNil)
-	pools, totalStaked, err := vaultMgr.getTotalStakedRune(ctx)
+	pools, totalLiquidity, err := vaultMgr.getTotalProvidedLiquidityRune(ctx)
 	c.Assert(err, IsNil)
 	c.Assert(pools, HasLen, 1)
-	c.Assert(totalStaked.Equal(p.BalanceRune), Equals, true)
+	c.Assert(totalLiquidity.Equal(p.BalanceRune), Equals, true)
 }
 
 func (*VaultManagerV1TestSuite) TestPayPoolRewards(c *C) {
