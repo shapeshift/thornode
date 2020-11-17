@@ -36,21 +36,18 @@ var (
 	QueryPool               = Query{Key: "pool", EndpointTemplate: "/%s/pool/{%s}"}
 	QueryPools              = Query{Key: "pools", EndpointTemplate: "/%s/pools"}
 	QueryLiquidityProviders = Query{Key: "lps", EndpointTemplate: "/%s/pool/{%s}/liquidity_providers"}
-	QueryTxIn               = Query{Key: "txin", EndpointTemplate: "/%s/tx/{%s}"}
-	QueryTxInVoter          = Query{Key: "txinvoter", EndpointTemplate: "/%s/tx/{%s}/voter"}
+	QueryTx                 = Query{Key: "tx", EndpointTemplate: "/%s/tx/{%s}"}
+	QueryTxVoter            = Query{Key: "txvoter", EndpointTemplate: "/%s/tx/{%s}/signers"}
 	QueryKeysignArray       = Query{Key: "keysign", EndpointTemplate: "/%s/keysign/{%s}"}
 	QueryKeysignArrayPubkey = Query{Key: "keysignpubkey", EndpointTemplate: "/%s/keysign/{%s}/{%s}"}
 	QueryKeygensPubkey      = Query{Key: "keygenspubkey", EndpointTemplate: "/%s/keygen/{%s}/{%s}"}
 	QueryQueue              = Query{Key: "outqueue", EndpointTemplate: "/%s/queue"}
 	QueryHeights            = Query{Key: "heights", EndpointTemplate: "/%s/lastblock"}
 	QueryChainHeights       = Query{Key: "chainheights", EndpointTemplate: "/%s/lastblock/{%s}"}
-	QueryObservers          = Query{Key: "observers", EndpointTemplate: "/%s/observers"}
-	QueryObserver           = Query{Key: "observer", EndpointTemplate: "/%s/observer/{%s}"}
-	QueryNodeAccounts       = Query{Key: "nodeaccounts", EndpointTemplate: "/%s/nodeaccounts"}
-	QueryNodeAccount        = Query{Key: "nodeaccount", EndpointTemplate: "/%s/nodeaccount/{%s}"}
-	QueryNodeAccountCheck   = Query{Key: "nodeaccountcheck", EndpointTemplate: "/%s/nodeaccount/{%s}/preflight"}
-	QueryPoolAddresses      = Query{Key: "pooladdresses", EndpointTemplate: "/%s/pool_addresses"}
-	QueryVaultData          = Query{Key: "vaultdata", EndpointTemplate: "/%s/vault"}
+	QueryNodes              = Query{Key: "nodes", EndpointTemplate: "/%s/nodes"}
+	QueryNode               = Query{Key: "node", EndpointTemplate: "/%s/node/{%s}"}
+	QueryInboundAddresses   = Query{Key: "inboundaddresses", EndpointTemplate: "/%s/inbound_addresses"}
+	QueryNetworkData        = Query{Key: "networkdata", EndpointTemplate: "/%s/network"}
 	QueryBalanceModule      = Query{Key: "balancemodule", EndpointTemplate: "/%s/balance/module/{%s}"}
 	QueryVaultsAsgard       = Query{Key: "vaultsasgard", EndpointTemplate: "/%s/vaults/asgard"}
 	QueryVaultsYggdrasil    = Query{Key: "vaultsyggdrasil", EndpointTemplate: "/%s/vaults/yggdrasil"}
@@ -70,20 +67,17 @@ var Queries = []Query{
 	QueryPool,
 	QueryPools,
 	QueryLiquidityProviders,
-	QueryTxInVoter,
-	QueryTxIn,
+	QueryTxVoter,
+	QueryTx,
 	QueryKeysignArray,
 	QueryKeysignArrayPubkey,
 	QueryQueue,
 	QueryHeights,
 	QueryChainHeights,
-	QueryObservers,
-	QueryObserver,
-	QueryNodeAccount,
-	QueryNodeAccountCheck,
-	QueryNodeAccounts,
-	QueryPoolAddresses,
-	QueryVaultData,
+	QueryNode,
+	QueryNodes,
+	QueryInboundAddresses,
+	QueryNetworkData,
 	QueryBalanceModule,
 	QueryVaultsAsgard,
 	QueryVaultsYggdrasil,

@@ -29,11 +29,11 @@ if [ -z $5 ]; then
     exit 1
 fi
 
-POOL_ADDRESS=$(curl -s $1:1317/thorchain/pool_addresses | jq -r ".current[0].address")
+INBOUND_ADDRESS=$(curl -s $1:1317/thorchain/inbound_addresses | jq -r '.current[]|select(.chain=="BNB") .address')
 
 curl -s -X POST -d "[{
   \"from\": \"$2\",
-  \"to\": \"$POOL_ADDRESS\",
+  \"to\": \"$INBOUND_ADDRESS\",
   \"coins\":[
       {\"denom\": \"$4\", \"amount\": $3}
   ],

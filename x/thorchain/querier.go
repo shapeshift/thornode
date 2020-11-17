@@ -27,10 +27,10 @@ func NewQuerier(keeper keeper.Keeper, kbs KeybaseStore) cosmos.Querier {
 			return queryPools(ctx, req, keeper)
 		case q.QueryLiquidityProviders.Key:
 			return queryLiquidityProviders(ctx, path[1:], req, keeper)
-		case q.QueryTxInVoter.Key:
-			return queryTxInVoter(ctx, path[1:], req, keeper)
-		case q.QueryTxIn.Key:
-			return queryTxIn(ctx, path[1:], req, keeper)
+		case q.QueryTxVoter.Key:
+			return queryTxVoters(ctx, path[1:], req, keeper)
+		case q.QueryTx.Key:
+			return queryTx(ctx, path[1:], req, keeper)
 		case q.QueryKeysignArray.Key:
 			return queryKeysign(ctx, kbs, path[1:], req, keeper)
 		case q.QueryKeysignArrayPubkey.Key:
@@ -40,23 +40,17 @@ func NewQuerier(keeper keeper.Keeper, kbs KeybaseStore) cosmos.Querier {
 		case q.QueryQueue.Key:
 			return queryQueue(ctx, path[1:], req, keeper)
 		case q.QueryHeights.Key:
-			return queryHeights(ctx, path[1:], req, keeper)
+			return queryLastBlockHeights(ctx, path[1:], req, keeper)
 		case q.QueryChainHeights.Key:
-			return queryHeights(ctx, path[1:], req, keeper)
-		case q.QueryObservers.Key:
-			return queryObservers(ctx, path[1:], req, keeper)
-		case q.QueryObserver.Key:
-			return queryObserver(ctx, path[1:], req, keeper)
-		case q.QueryNodeAccount.Key:
-			return queryNodeAccount(ctx, path[1:], req, keeper)
-		case q.QueryNodeAccountCheck.Key:
-			return queryNodeAccountCheck(ctx, path[1:], req, keeper)
-		case q.QueryNodeAccounts.Key:
-			return queryNodeAccounts(ctx, path[1:], req, keeper)
-		case q.QueryPoolAddresses.Key:
-			return queryPoolAddresses(ctx, path[1:], req, keeper)
-		case q.QueryVaultData.Key:
-			return queryVaultData(ctx, keeper)
+			return queryLastBlockHeights(ctx, path[1:], req, keeper)
+		case q.QueryNode.Key:
+			return queryNode(ctx, path[1:], req, keeper)
+		case q.QueryNodes.Key:
+			return queryNodes(ctx, path[1:], req, keeper)
+		case q.QueryInboundAddresses.Key:
+			return queryInboundAddresses(ctx, path[1:], req, keeper)
+		case q.QueryNetworkData.Key:
+			return queryNetworkData(ctx, keeper)
 		case q.QueryBalanceModule.Key:
 			return queryBalanceModule(ctx, path[1:], keeper)
 		case q.QueryVaultsAsgard.Key:
@@ -290,7 +284,7 @@ func queryVaultsPubkeys(ctx cosmos.Context, keeper keeper.Keeper) ([]byte, error
 	return res, nil
 }
 
-func queryVaultData(ctx cosmos.Context, keeper keeper.Keeper) ([]byte, error) {
+func queryNetworkData(ctx cosmos.Context, keeper keeper.Keeper) ([]byte, error) {
 	data, err := keeper.GetVaultData(ctx)
 	if err != nil {
 		ctx.Logger().Error("fail to get vault", "error", err)
@@ -307,7 +301,7 @@ func queryVaultData(ctx cosmos.Context, keeper keeper.Keeper) ([]byte, error) {
 	return res, nil
 }
 
-func queryPoolAddresses(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
+func queryInboundAddresses(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
 	haltTrading, err := keeper.GetMimir(ctx, "HaltTrading")
 	if err != nil {
 		ctx.Logger().Error("fail to get HaltTrading mimir", "error", err)
@@ -348,6 +342,10 @@ func queryPoolAddresses(ctx cosmos.Context, path []string, req abci.RequestQuery
 	}
 
 	for _, chain := range chains {
+		// tx send to thorchain doesn't need an address , thus here skip it
+		if chain == common.THORChain {
+			continue
+		}
 		vaultAddress, err := vault.PubKey.GetAddress(chain)
 		if err != nil {
 			ctx.Logger().Error("fail to get address for chain", "error", err)
@@ -373,7 +371,9 @@ func queryPoolAddresses(ctx cosmos.Context, path []string, req abci.RequestQuery
 	return res, nil
 }
 
-func queryNodeAccount(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
+// queryNode return the Node information related to the request node address
+// /thorchain/node/{nodeaddress}
+func queryNode(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
 	if len(path) == 0 {
 		return nil, errors.New("node address not provided")
 	}
@@ -412,6 +412,7 @@ func queryNodeAccount(ctx cosmos.Context, path []string, req abci.RequestQuery, 
 		earnedBlocks := nodeAcc.CalcBondUnits(common.BlockHeight(ctx), slashPts)
 		result.CurrentAward = vaultData.CalcNodeRewards(earnedBlocks)
 	}
+
 	chainHeights, err := keeper.GetLastObserveHeight(ctx, addr)
 	if err != nil {
 		return nil, fmt.Errorf("fail to get last observe chain height: %w", err)
@@ -422,6 +423,12 @@ func queryNodeAccount(ctx cosmos.Context, path []string, req abci.RequestQuery, 
 			Height: h,
 		})
 	}
+	preflightCheckResult, err := getNodePreflightResult(ctx, keeper, nodeAcc)
+	if err != nil {
+		ctx.Logger().Error("fail to get node preflight result", "error", err)
+	} else {
+		result.PreflightStatus = preflightCheckResult
+	}
 	res, err := codec.MarshalJSONIndent(keeper.Cdc(), result)
 	if err != nil {
 		return nil, fmt.Errorf("fail to marshal node account to json: %w", err)
@@ -430,55 +437,32 @@ func queryNodeAccount(ctx cosmos.Context, path []string, req abci.RequestQuery, 
 	return res, nil
 }
 
-func queryNodeAccountCheck(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
-	if len(path) == 0 {
-		return nil, errors.New("node address not provided")
+func getNodePreflightResult(ctx cosmos.Context, keeper keeper.Keeper, nodeAcc NodeAccount) (QueryNodeAccountPreflightCheck, error) {
+	mgr := NewManagers(keeper)
+	if err := mgr.BeginBlock(ctx); err != nil {
+		return QueryNodeAccountPreflightCheck{}, fmt.Errorf("fail to build manager: %w", err)
 	}
-	nodeAddress := path[0]
-	addr, err := cosmos.AccAddressFromBech32(nodeAddress)
-	if err != nil {
-		return nil, cosmos.ErrUnknownRequest("invalid account address")
-	}
-
-	nodeAcc, err := keeper.GetNodeAccount(ctx, addr)
-	if err != nil {
-		return nil, fmt.Errorf("fail to get node accounts: %w", err)
-	}
-	if nodeAcc.Status == NodeUnknown {
-		return nil, fmt.Errorf("node (%s) doesn't exist", nodeAddress)
-	}
-
 	version := keeper.GetLowestActiveVersion(ctx)
 	constAccessor := constants.GetConstantValues(version)
 	if constAccessor == nil {
-		return nil, fmt.Errorf("constants for version(%s) is not available", version)
+		return QueryNodeAccountPreflightCheck{}, fmt.Errorf("constants for version(%s) is not available", version)
 	}
-
-	mgr := NewManagers(keeper)
-	err = mgr.BeginBlock(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("fail to build manager: %w", err)
-	}
-	result := QueryNodeAccountPreflightCheck{}
+	preflightResult := QueryNodeAccountPreflightCheck{}
 	status, err := mgr.ValidatorMgr().NodeAccountPreflightCheck(ctx, nodeAcc, constAccessor)
-	result.Status = status
+	preflightResult.Status = status
 	if err != nil {
-		result.Description = err.Error()
-		result.Code = 1
+		preflightResult.Description = err.Error()
+		preflightResult.Code = 1
 	} else {
-		result.Description = "OK"
-		result.Code = 0
+		preflightResult.Description = "OK"
+		preflightResult.Code = 0
 	}
-
-	res, err := codec.MarshalJSONIndent(keeper.Cdc(), result)
-	if err != nil {
-		return nil, fmt.Errorf("fail to marshal node account to json: %w", err)
-	}
-
-	return res, nil
+	return preflightResult, nil
 }
 
-func queryNodeAccounts(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
+// queryNodes return all the nodes that has bond
+// /thorchain/nodes
+func queryNodes(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
 	nodeAccounts, err := keeper.ListNodeAccountsWithBond(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("fail to get node accounts: %w", err)
@@ -519,57 +503,18 @@ func queryNodeAccounts(ctx cosmos.Context, path []string, req abci.RequestQuery,
 				Height: h,
 			})
 		}
+		preflightCheckResult, err := getNodePreflightResult(ctx, keeper, na)
+		if err != nil {
+			ctx.Logger().Error("fail to get node preflight result", "error", err)
+		} else {
+			result[i].PreflightStatus = preflightCheckResult
+		}
 	}
 
 	res, err := codec.MarshalJSONIndent(keeper.Cdc(), result)
 	if err != nil {
 		ctx.Logger().Error("fail to marshal observers to json", "error", err)
 		return nil, fmt.Errorf("fail to marshal observers to json: %w", err)
-	}
-
-	return res, nil
-}
-
-// queryObservers will only return all the active accounts
-func queryObservers(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
-	activeAccounts, err := keeper.ListActiveNodeAccounts(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("fail to get node account iterator: %w", err)
-	}
-	result := make([]string, 0, len(activeAccounts))
-	for _, item := range activeAccounts {
-		result = append(result, item.NodeAddress.String())
-	}
-	res, err := codec.MarshalJSONIndent(keeper.Cdc(), result)
-	if err != nil {
-		ctx.Logger().Error("fail to marshal observers to json", "error", err)
-		return nil, fmt.Errorf("fail to marshal observers to json: %w", err)
-	}
-
-	return res, nil
-}
-
-func queryObserver(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
-	if len(path) == 0 {
-		return nil, errors.New("observer address not provided")
-	}
-	observerAddr := path[0]
-	addr, err := cosmos.AccAddressFromBech32(observerAddr)
-	if err != nil {
-		return nil, fmt.Errorf("invalid account address: %w", err)
-	}
-
-	nodeAcc, err := keeper.GetNodeAccount(ctx, addr)
-	if err != nil {
-		return nil, fmt.Errorf("fail to get node account: %w", err)
-	}
-	if nodeAcc.Status == NodeUnknown {
-		return nil, fmt.Errorf("node account(%s) doesn't exist", observerAddr)
-	}
-	res, err := codec.MarshalJSONIndent(keeper.Cdc(), nodeAcc)
-	if err != nil {
-		ctx.Logger().Error("fail to marshal node account to json", "error", err)
-		return nil, fmt.Errorf("fail to marshal node account to json: %w", err)
 	}
 
 	return res, nil
@@ -649,7 +594,7 @@ func queryPools(ctx cosmos.Context, req abci.RequestQuery, keeper keeper.Keeper)
 	return res, nil
 }
 
-func queryTxInVoter(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
+func queryTxVoters(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
 	if len(path) == 0 {
 		return nil, errors.New("tx id not provided")
 	}
@@ -663,9 +608,17 @@ func queryTxInVoter(ctx cosmos.Context, path []string, req abci.RequestQuery, ke
 		ctx.Logger().Error("fail to get observed tx voter", "error", err)
 		return nil, fmt.Errorf("fail to get observed tx voter: %w", err)
 	}
+	// when tx in voter doesn't exist , double check tx out voter
 	if len(voter.Txs) == 0 {
-		return nil, fmt.Errorf("tx voter not exist")
+		voter, err = keeper.GetObservedTxOutVoter(ctx, hash)
+		if err != nil {
+			return nil, fmt.Errorf("fail to get observed tx out voter: %w", err)
+		}
+		if len(voter.Txs) == 0 {
+			return nil, fmt.Errorf("tx: %s doesn't exist", hash)
+		}
 	}
+
 	res, err := codec.MarshalJSONIndent(keeper.Cdc(), voter)
 	if err != nil {
 		ctx.Logger().Error("fail to marshal tx hash to json", "error", err)
@@ -674,7 +627,7 @@ func queryTxInVoter(ctx cosmos.Context, path []string, req abci.RequestQuery, ke
 	return res, nil
 }
 
-func queryTxIn(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
+func queryTx(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
 	if len(path) == 0 {
 		return nil, errors.New("tx id not provided")
 	}
@@ -689,7 +642,13 @@ func queryTxIn(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper 
 		return nil, fmt.Errorf("fail to get observed tx voter: %w", err)
 	}
 	if len(voter.Txs) == 0 {
-		return nil, fmt.Errorf("tx: %s doesn't exist", hash)
+		voter, err = keeper.GetObservedTxOutVoter(ctx, hash)
+		if err != nil {
+			return nil, fmt.Errorf("fail to get observed tx out voter: %w", err)
+		}
+		if len(voter.Txs) == 0 {
+			return nil, fmt.Errorf("tx: %s doesn't exist", hash)
+		}
 	}
 
 	nodeAccounts, err := keeper.ListActiveNodeAccounts(ctx)
@@ -870,35 +829,52 @@ func queryQueue(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper
 	return res, nil
 }
 
-func queryHeights(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
-	chain := common.BNBChain
+func queryLastBlockHeights(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
+	var chains common.Chains
 	if len(path) > 0 && len(path[0]) > 0 {
 		var err error
-		chain, err = common.NewChain(path[0])
+		chain, err := common.NewChain(path[0])
 		if err != nil {
-			ctx.Logger().Error("fail to retrieve chain", "error", err)
+			ctx.Logger().Error("fail to parse chain", "error", err, "chain", path[0])
 			return nil, fmt.Errorf("fail to retrieve chain: %w", err)
 		}
+		chains = append(chains, chain)
+	} else {
+		asgards, err := keeper.GetAsgardVaultsByStatus(ctx, ActiveVault)
+		if err != nil {
+			return nil, fmt.Errorf("fail to get active asgard: %w", err)
+		}
+		for _, vault := range asgards {
+			chains = vault.Chains.Distinct()
+			break
+		}
 	}
-	chainHeight, err := keeper.GetLastChainHeight(ctx, chain)
-	if err != nil {
-		return nil, fmt.Errorf("fail to get last chain height: %w", err)
+	var result []QueryResLastBlockHeights
+	for _, c := range chains {
+		if c == common.THORChain {
+			continue
+		}
+		chainHeight, err := keeper.GetLastChainHeight(ctx, c)
+		if err != nil {
+			return nil, fmt.Errorf("fail to get last chain height: %w", err)
+		}
+
+		signed, err := keeper.GetLastSignedHeight(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("fail to get last sign height: %w", err)
+		}
+		result = append(result, QueryResLastBlockHeights{
+			Chain:            c,
+			LastChainHeight:  chainHeight,
+			LastSignedHeight: signed,
+			Thorchain:        common.BlockHeight(ctx),
+		})
 	}
 
-	signed, err := keeper.GetLastSignedHeight(ctx)
+	res, err := codec.MarshalJSONIndent(keeper.Cdc(), result)
 	if err != nil {
-		return nil, fmt.Errorf("fail to get last sign height: %w", err)
-	}
-
-	res, err := codec.MarshalJSONIndent(keeper.Cdc(), QueryResHeights{
-		Chain:            chain,
-		LastChainHeight:  chainHeight,
-		LastSignedHeight: signed,
-		Thorchain:        common.BlockHeight(ctx),
-	})
-	if err != nil {
-		ctx.Logger().Error("fail to marshal events to json", "error", err)
-		return nil, fmt.Errorf("fail to marshal events to json: %w", err)
+		ctx.Logger().Error("fail to marshal query response to json", "error", err)
+		return nil, fmt.Errorf("fail to marshal response to json: %w", err)
 	}
 	return res, nil
 }

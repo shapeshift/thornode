@@ -24,11 +24,11 @@ if [ -z $4 ]; then
     exit 1
 fi
 
-POOL_ADDRESS=$(curl -s $1:1317/thorchain/pool_addresses | jq -r ".current[0].address")
+INBOUND_ADDRESS=$(curl -s $1:1317/thorchain/inbound_addresses | jq -r '.current[]|select(.chain=="BNB") .address')
 
 curl -v -s -X POST -d "[{
   \"from\": \"$2\",
-  \"to\": \"$POOL_ADDRESS\",
+  \"to\": \"$INBOUND_ADDRESS\",
   \"coins\":[
       {\"denom\": \"RUNE-67C\", \"amount\": 1}
   ],
