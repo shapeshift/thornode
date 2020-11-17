@@ -65,9 +65,6 @@ if [ ! -f ~/.thord/config/genesis.json ]; then
         gen_bnb_address
         ADDRESS=$(cat ~/.bond/address.txt)
 
-        # send bond transaction to mock binance
-        $(dirname "$0")/mock-bond.sh $BINANCE $ADDRESS $NODE_ADDRESS $PEER_API
-
         # switch the BNB bond to native RUNE
         $(dirname "$0")/mock-switch.sh $BINANCE $ADDRESS $NODE_ADDRESS $PEER_API
 

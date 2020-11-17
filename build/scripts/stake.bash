@@ -14,13 +14,13 @@ if [ -z $2 ]; then
     exit 1
 fi
 
-POOL_ADDRESS=$(curl -s $1:1317/thorchain/pool_addresses | jq -r ".current[0].address")
+INBOUND_ADDRESS=$(curl -s $1:1317/thorchain/inbound_addresses | jq -r '.current[]|select(.chain=="BNB") .address')
 
 # NOTE: the from address doesn't matter at all (mock binance doesn't care)
 
 curl -vvv -s -X POST -d "{
   \"from\": \"tbnb1rlmrd83gv7rk2thusqm7dx38z8jgur80t8kq28\",
-  \"to\": \"$POOL_ADDRESS\",
+  \"to\": \"$INBOUND_ADDRESS\",
   \"coins\":[
       {\"denom\": \"BNB.RUNE-67C\", \"amount\": 100000000000},
       {\"denom\": \"BNB.BNB\", \"amount\": 7000000000}
