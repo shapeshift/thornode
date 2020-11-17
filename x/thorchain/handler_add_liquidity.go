@@ -159,7 +159,7 @@ func (h AddLiquidityHandler) addLiquidityV1(ctx cosmos.Context,
 	runeAddr, assetAddr common.Address,
 	requestTxHash common.TxID,
 	constAccessor constants.ConstantValues) error {
-	ctx.Logger().Info(fmt.Sprintf("%s staking %s %s", asset, addRuneAmount, addAssetAmount))
+	ctx.Logger().Info(fmt.Sprintf("%s liquidity provision %s %s", asset, addRuneAmount, addAssetAmount))
 	if err := h.validateAddLiquidityMessage(ctx, h.keeper, asset, requestTxHash, runeAddr, assetAddr); err != nil {
 		return fmt.Errorf("add liquidity message fail validation: %w", err)
 	}
@@ -252,7 +252,7 @@ func (h AddLiquidityHandler) addLiquidityV1(ctx cosmos.Context,
 	if err != nil {
 		return ErrInternal(err, "fail to convert rune address")
 	}
-	err = h.keeper.AddStake(ctx, common.NewCoin(pool.Asset.LiquidityAsset(), liquidityUnits), acc)
+	err = h.keeper.AddOwnership(ctx, common.NewCoin(pool.Asset.LiquidityAsset(), liquidityUnits), acc)
 	if err != nil {
 		return ErrInternal(err, "fail to add liquidity")
 	}
@@ -274,8 +274,8 @@ func (h AddLiquidityHandler) addLiquidityV1(ctx cosmos.Context,
 	return nil
 }
 
-// r = rune staked;
-// a = asset staked
+// r = rune provided;
+// a = asset provided
 // R = rune Balance (before)
 // A = asset Balance (before)
 // P = existing Pool Units

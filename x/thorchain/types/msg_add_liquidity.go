@@ -53,7 +53,7 @@ func (msg MsgAddLiquidity) ValidateBasic() error {
 	if msg.Asset.IsRune() {
 		return cosmos.ErrUnknownRequest("invalid pool asset")
 	}
-	// test scenario we get two coins, but none are rune, invalid stake
+	// test scenario we get two coins, but none are rune, invalid liquidity provider
 	if len(msg.Tx.Coins) == 2 && (msg.AssetAmount.IsZero() || msg.RuneAmount.IsZero()) {
 		return cosmos.ErrUnknownRequest("did not find both coins")
 	}

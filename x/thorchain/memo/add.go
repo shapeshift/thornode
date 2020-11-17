@@ -25,9 +25,9 @@ func ParseAddLiquidityMemo(asset common.Asset, parts []string) (AddLiquidityMemo
 	var err error
 	if !asset.Chain.Equals(common.RuneAsset().Chain) {
 		if len(parts) < 3 {
-			// cannot stake into a non THOR-based pool when THORNode don't have an
-			// associated address
-			return AddLiquidityMemo{}, fmt.Errorf("invalid stake. Cannot stake to a non THOR-based pool without providing an associated address")
+			// cannot provide liquidity into a non THOR-based pool when
+			// THORNode don't have an associated address
+			return AddLiquidityMemo{}, fmt.Errorf("invalid liquidity provider. Cannot provide liquidity to a non THOR-based pool without providing an associated address")
 		}
 		addr, err = common.NewAddress(parts[2])
 		if err != nil {

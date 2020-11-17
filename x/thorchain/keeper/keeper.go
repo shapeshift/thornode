@@ -75,8 +75,8 @@ type KeeperLiquidityProvider interface {
 	SetLiquidityProvider(ctx cosmos.Context, lp LiquidityProvider)
 	RemoveLiquidityProvider(ctx cosmos.Context, lp LiquidityProvider)
 	GetLiquidityProviderBalance(ctx cosmos.Context, _ common.Asset, _ cosmos.AccAddress) cosmos.Uint
-	AddStake(ctx cosmos.Context, _ common.Coin, _ cosmos.AccAddress) error
-	RemoveStake(ctx cosmos.Context, _ common.Coin, _ cosmos.AccAddress) error
+	AddOwnership(ctx cosmos.Context, _ common.Coin, _ cosmos.AccAddress) error
+	RemoveOwnership(ctx cosmos.Context, _ common.Coin, _ cosmos.AccAddress) error
 	GetTotalSupply(ctx cosmos.Context, asset common.Asset) cosmos.Uint
 }
 

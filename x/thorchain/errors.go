@@ -28,7 +28,7 @@ const (
 	CodeAddLiquidityFailValidation    uint32 = 120
 	CodeFailGetLiquidityProvider      uint32 = 122
 	CodeAddLiquidityMismatchAssetAddr uint32 = 123
-	CodeStakeInvalidPoolAsset         uint32 = 124
+	CodeLiquidityInvalidPoolAsset     uint32 = 124
 	CodeAddLiquidityRUNEOverLimit     uint32 = 125
 	CodeAddLiquidityRUNEMoreThanBond  uint32 = 126
 
@@ -63,7 +63,7 @@ var (
 	errSwapFailInvalidBalance        = se.Register(DefaultCodespace, CodeSwapFailInvalidBalance, "fail swap, invalid balance")
 	errSwapFailNotEnoughBalance      = se.Register(DefaultCodespace, CodeSwapFailNotEnoughBalance, "fail swap, not enough balance")
 	errNoLiquidityUnitLeft           = se.Register(DefaultCodespace, CodeNoLiquidityUnitLeft, "nothing to withdraw")
-	errWithdrawWithin24Hours         = se.Register(DefaultCodespace, CodeWithdrawWithin24Hours, "you cannot withdraw for 24 hours after staking for this blockchain")
+	errWithdrawWithin24Hours         = se.Register(DefaultCodespace, CodeWithdrawWithin24Hours, "you cannot withdraw for 24 hours after providing liquidity for this blockchain")
 	errWithdrawFail                  = se.Register(DefaultCodespace, CodeWithdrawFail, "fail to withdraw")
 	errInternal                      = se.Register(DefaultCodespace, CodeInternalError, "internal error")
 )
