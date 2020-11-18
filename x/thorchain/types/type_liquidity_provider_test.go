@@ -30,16 +30,8 @@ func (LiquidityProviderSuite) TestLiquidityProvider(c *C) {
 	lp2 := LiquidityProvider{
 		Asset:         common.BNBAsset,
 		RuneAddress:   common.NoAddress,
-		AssetAddress:  GetRandomBTCAddress(),
-		LastAddHeight: 100,
-	}
-	c.Check(lp2.Valid(), NotNil)
-
-	lp3 := LiquidityProvider{
-		Asset:         common.BNBAsset,
-		RuneAddress:   GetRandomBNBAddress(),
 		AssetAddress:  common.NoAddress,
 		LastAddHeight: 100,
 	}
-	c.Check(lp3.Valid(), NotNil)
+	c.Check(lp2.Valid(), NotNil)
 }

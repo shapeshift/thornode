@@ -29,27 +29,39 @@ func (k KVStore) GetTotalSupply(ctx cosmos.Context, asset common.Asset) cosmos.U
 // GetLiquidityProvider retrieve liquidity provider from the data store
 func (k KVStore) GetLiquidityProvider(ctx cosmos.Context, asset common.Asset, addr common.Address) (LiquidityProvider, error) {
 	record := LiquidityProvider{
-		Asset:       asset,
-		RuneAddress: addr,
-		Units:       cosmos.ZeroUint(),
-		PendingRune: cosmos.ZeroUint(),
+		Asset:        asset,
+		RuneAddress:  addr,
+		Units:        cosmos.ZeroUint(),
+		PendingRune:  cosmos.ZeroUint(),
+		PendingAsset: cosmos.ZeroUint(),
 	}
+	if !addr.IsChain(common.RuneAsset().Chain) {
+		record.AssetAddress = addr
+		record.RuneAddress = common.NoAddress
+	}
+
 	_, err := k.get(ctx, k.GetKey(ctx, prefixLiquidityProvider, record.Key()), &record)
 	if err != nil {
 		return record, err
 	}
 
-	accAddr, err := addr.AccAddress()
-	if err != nil {
-		return record, err
+	if addr.IsChain(common.THORChain) {
+		accAddr, err := addr.AccAddress()
+		if err != nil {
+			return record, err
+		}
+		record.Units = k.GetLiquidityProviderBalance(ctx, asset.LiquidityAsset(), accAddr)
 	}
-	record.Units = k.GetLiquidityProviderBalance(ctx, asset.LiquidityAsset(), accAddr)
 
-	return record, err
+	return record, nil
 }
 
 // SetLiquidityProvider save the liquidity provider to kv store
 func (k KVStore) SetLiquidityProvider(ctx cosmos.Context, lp LiquidityProvider) {
+	if !lp.RuneAddress.IsEmpty() && lp.RuneAddress.IsChain(common.THORChain) {
+		lp.Units = cosmos.ZeroUint()
+	}
+
 	k.set(ctx, k.GetKey(ctx, prefixLiquidityProvider, lp.Key()), lp)
 }
 
