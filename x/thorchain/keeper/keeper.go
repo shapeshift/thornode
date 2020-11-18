@@ -36,7 +36,7 @@ type Keeper interface {
 	KeeperLiquidityFees
 	KeeperVault
 	KeeperReserveContributors
-	KeeperVaultData
+	KeeperNetwork
 	KeeperTss
 	KeeperTssKeysignFail
 	KeeperKeygen
@@ -151,10 +151,10 @@ type KeeperReserveContributors interface {
 	AddFeeToReserve(ctx cosmos.Context, fee cosmos.Uint) error
 }
 
-// KeeperVaultData func to access Vault in key value store
-type KeeperVaultData interface {
-	GetVaultData(ctx cosmos.Context) (VaultData, error)
-	SetVaultData(ctx cosmos.Context, data VaultData) error
+// KeeperNetwork func to access network data in key value store
+type KeeperNetwork interface {
+	GetNetwork(ctx cosmos.Context) (Network, error)
+	SetNetwork(ctx cosmos.Context, data Network) error
 }
 
 type KeeperTss interface {

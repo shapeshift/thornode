@@ -84,9 +84,9 @@ func (GasManagerTestSuite) TestGetFee(c *C) {
 
 type gasManagerTestHelper struct {
 	keeper.Keeper
-	failGetVaultData bool
-	failGetPool      bool
-	failSetPool      bool
+	failGetNetwork bool
+	failGetPool    bool
+	failSetPool    bool
 }
 
 func newGasManagerTestHelper(k keeper.Keeper) *gasManagerTestHelper {
@@ -95,11 +95,11 @@ func newGasManagerTestHelper(k keeper.Keeper) *gasManagerTestHelper {
 	}
 }
 
-func (g *gasManagerTestHelper) GetVaultData(ctx cosmos.Context) (VaultData, error) {
-	if g.failGetVaultData {
-		return VaultData{}, kaboom
+func (g *gasManagerTestHelper) GetNetwork(ctx cosmos.Context) (Network, error) {
+	if g.failGetNetwork {
+		return Network{}, kaboom
 	}
-	return g.Keeper.GetVaultData(ctx)
+	return g.Keeper.GetNetwork(ctx)
 }
 
 func (g *gasManagerTestHelper) GetPool(ctx cosmos.Context, asset common.Asset) (Pool, error) {
@@ -125,9 +125,9 @@ func (GasManagerTestSuite) TestDifferentValidations(c *C) {
 	eventMgr := NewEventMgrV1()
 	gasMgr.EndBlock(ctx, helper, eventMgr)
 
-	helper.failGetVaultData = true
+	helper.failGetNetwork = true
 	gasMgr.EndBlock(ctx, helper, eventMgr)
-	helper.failGetVaultData = false
+	helper.failGetNetwork = false
 
 	helper.failGetPool = true
 	gasMgr.AddGasAsset(common.Gas{

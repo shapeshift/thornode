@@ -30,7 +30,7 @@ var (
 	NewPool                    = types.NewPool
 	NewJail                    = types.NewJail
 	NewTxMarker                = types.NewTxMarker
-	NewVaultData               = types.NewVaultData
+	NewNetwork                 = types.NewNetwork
 	NewObservedTx              = types.NewObservedTx
 	NewTssVoter                = types.NewTssVoter
 	NewBanVoter                = types.NewBanVoter
@@ -80,7 +80,7 @@ type (
 	NodeAccount              = types.NodeAccount
 	NodeAccounts             = types.NodeAccounts
 	NodeStatus               = types.NodeStatus
-	VaultData                = types.VaultData
+	Network                  = types.Network
 	VaultStatus              = types.VaultStatus
 	TxMarker                 = types.TxMarker
 	TxMarkers                = types.TxMarkers

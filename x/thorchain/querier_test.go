@@ -511,13 +511,13 @@ func (s *QuerierSuite) TestQueryKeysignArrayPubKey(c *C) {
 	c.Assert(s.k.Cdc().UnmarshalJSON(result, &r), IsNil)
 }
 
-func (s *QuerierSuite) TestQueryVaultData(c *C) {
+func (s *QuerierSuite) TestQueryNetwork(c *C) {
 	result, err := s.querier(s.ctx, []string{
-		query.QueryNetworkData.Key,
+		query.QueryNetwork.Key,
 	}, abci.RequestQuery{})
 	c.Assert(result, NotNil)
 	c.Assert(err, IsNil)
-	var r VaultData
+	var r Network
 	c.Assert(s.k.Cdc().UnmarshalJSON(result, &r), IsNil)
 }
 

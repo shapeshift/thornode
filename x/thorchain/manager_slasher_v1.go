@@ -317,13 +317,13 @@ func (s *SlasherV1) SlashNodeAccount(ctx cosmos.Context, observedPubKey common.P
 			slashAmount = nodeAccount.Bond
 		}
 		nodeAccount.Bond = common.SafeSub(nodeAccount.Bond, slashAmount)
-		vaultData, err := s.keeper.GetVaultData(ctx)
+		network, err := s.keeper.GetNetwork(ctx)
 		if err != nil {
-			return fmt.Errorf("fail to get vault data: %w", err)
+			return fmt.Errorf("fail to get network data: %w", err)
 		}
-		vaultData.TotalReserve = vaultData.TotalReserve.Add(amountToReserve)
-		if err := s.keeper.SetVaultData(ctx, vaultData); err != nil {
-			return fmt.Errorf("fail to save vault data: %w", err)
+		network.TotalReserve = network.TotalReserve.Add(amountToReserve)
+		if err := s.keeper.SetNetwork(ctx, network); err != nil {
+			return fmt.Errorf("fail to save network data: %w", err)
 		}
 		return s.keeper.SetNodeAccount(ctx, nodeAccount)
 	}

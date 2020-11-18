@@ -21,8 +21,8 @@ type TestVersionlKeeper struct {
 	failNodeAccount     NodeAccount
 	emptyNodeAccount    NodeAccount
 	failSaveNodeAccount bool
-	failGetVaultData    bool
-	failSetVaultData    bool
+	failGetNetwork      bool
+	failSetNetwork      bool
 }
 
 func (k *TestVersionlKeeper) SendFromAccountToModule(ctx cosmos.Context, from cosmos.AccAddress, to string, coin common.Coin) error {
@@ -47,15 +47,15 @@ func (k *TestVersionlKeeper) SetNodeAccount(_ cosmos.Context, na NodeAccount) er
 	return nil
 }
 
-func (k *TestVersionlKeeper) GetVaultData(ctx cosmos.Context) (VaultData, error) {
-	if k.failGetVaultData {
-		return NewVaultData(), kaboom
+func (k *TestVersionlKeeper) GetNetwork(ctx cosmos.Context) (Network, error) {
+	if k.failGetNetwork {
+		return NewNetwork(), kaboom
 	}
-	return NewVaultData(), nil
+	return NewNetwork(), nil
 }
 
-func (k *TestVersionlKeeper) SetVaultData(ctx cosmos.Context, data VaultData) error {
-	if k.failSetVaultData {
+func (k *TestVersionlKeeper) SetNetwork(ctx cosmos.Context, data Network) error {
+	if k.failSetNetwork {
 		return kaboom
 	}
 	return nil
@@ -131,15 +131,15 @@ func (s *HandlerVersionSuite) TestHandle(c *C) {
 
 	if !common.RuneAsset().Equals(common.RuneNative) {
 		// BEP2 RUNE
-		keeper.failGetVaultData = true
+		keeper.failGetNetwork = true
 		result, err = handler.Run(ctx, msg, ver, constAccessor)
 		c.Assert(err, NotNil)
 		c.Assert(result, IsNil)
-		keeper.failGetVaultData = false
-		keeper.failSetVaultData = true
+		keeper.failGetNetwork = false
+		keeper.failSetNetwork = true
 		result, err = handler.Run(ctx, msg, ver, constAccessor)
 		c.Assert(err, NotNil)
 		c.Assert(result, IsNil)
-		keeper.failSetVaultData = false
+		keeper.failSetNetwork = false
 	}
 }

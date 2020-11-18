@@ -59,9 +59,9 @@ func (smgr *StoreMgr) migrate(ctx cosmos.Context, i uint64, constantAccessor con
 		}
 	case 12:
 		// https://gitlab.com/thorchain/thornode/-/merge_requests/1203
-		vaultData, err := smgr.keeper.GetVaultData(ctx)
+		network, err := smgr.keeper.GetNetwork(ctx)
 		if err != nil {
-			ctx.Logger().Error("fail to get vault data", "error", err)
+			ctx.Logger().Error("fail to get network data", "error", err)
 			return err
 		}
 
@@ -84,9 +84,9 @@ func (smgr *StoreMgr) migrate(ctx cosmos.Context, i uint64, constantAccessor con
 		if !attacker.IsEmpty() {
 			stolen := cosmos.NewUint(34777 * common.One)
 			stolen = stolen.Sub(attacker.Bond)
-			vaultData.TotalReserve = vaultData.TotalReserve.Sub(stolen)
-			if err := smgr.keeper.SetVaultData(ctx, vaultData); err != nil {
-				ctx.Logger().Error("fail to set vault data", "error", err)
+			network.TotalReserve = network.TotalReserve.Sub(stolen)
+			if err := smgr.keeper.SetNetwork(ctx, network); err != nil {
+				ctx.Logger().Error("fail to set network data", "error", err)
 				return err
 			}
 

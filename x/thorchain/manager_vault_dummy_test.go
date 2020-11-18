@@ -28,6 +28,6 @@ func (vm *VaultMgrDummy) RotateVault(ctx cosmos.Context, vault Vault) error {
 	return nil
 }
 
-func (vm *VaultMgrDummy) UpdateVaultData(ctx cosmos.Context, constAccessor constants.ConstantValues, gasManager GasManager, eventMgr EventManager) error {
+func (vm *VaultMgrDummy) UpdateNetwork(ctx cosmos.Context, constAccessor constants.ConstantValues, gasManager GasManager, eventMgr EventManager) error {
 	return nil
 }

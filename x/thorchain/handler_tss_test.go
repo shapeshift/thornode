@@ -38,8 +38,8 @@ type tssKeeperHelper struct {
 	errGetTssVoter        bool
 	errFailSaveVault      bool
 	errFailGetNodeAccount bool
-	errFailGetVaultData   bool
-	errFailSetVaultData   bool
+	errFailGetNetwork     bool
+	errFailSetNetwork     bool
 	errFailSetNodeAccount bool
 }
 
@@ -71,18 +71,18 @@ func (k *tssKeeperHelper) ListActiveNodeAccounts(ctx cosmos.Context) (NodeAccoun
 	return k.Keeper.ListActiveNodeAccounts(ctx)
 }
 
-func (k *tssKeeperHelper) GetVaultData(ctx cosmos.Context) (VaultData, error) {
-	if k.errFailGetVaultData {
-		return VaultData{}, kaboom
+func (k *tssKeeperHelper) GetNetwork(ctx cosmos.Context) (Network, error) {
+	if k.errFailGetNetwork {
+		return Network{}, kaboom
 	}
-	return k.Keeper.GetVaultData(ctx)
+	return k.Keeper.GetNetwork(ctx)
 }
 
-func (k *tssKeeperHelper) SetVaultData(ctx cosmos.Context, data VaultData) error {
-	if k.errFailSetVaultData {
+func (k *tssKeeperHelper) SetNetwork(ctx cosmos.Context, data Network) error {
+	if k.errFailSetNetwork {
 		return kaboom
 	}
-	return k.Keeper.SetVaultData(ctx, data)
+	return k.Keeper.SetNetwork(ctx, data)
 }
 
 func (k *tssKeeperHelper) SetNodeAccount(ctx cosmos.Context, na NodeAccount) error {
@@ -434,7 +434,7 @@ func (s *HandlerTssSuite) testTssHandlerWithVersion(c *C, ver semver.Version) {
 			expectedResult: nil,
 		},
 		{
-			name: "fail to keygen but can't get vault data should return an error",
+			name: "fail to keygen but can't get network data should return an error",
 			messageCreator: func(helper tssHandlerTestHelper) cosmos.Msg {
 				b := blame.Blame{
 					FailReason: "who knows",
@@ -457,7 +457,7 @@ func (s *HandlerTssSuite) testTssHandlerWithVersion(c *C, ver semver.Version) {
 				return tssMsg
 			},
 			runner: func(handler TssHandler, msg cosmos.Msg, helper tssHandlerTestHelper) (*cosmos.Result, error) {
-				helper.keeper.errFailGetVaultData = true
+				helper.keeper.errFailGetNetwork = true
 				return handler.Run(helper.ctx, msg, ver, helper.constAccessor)
 			},
 			expectedResult: kaboom,
@@ -486,11 +486,11 @@ func (s *HandlerTssSuite) testTssHandlerWithVersion(c *C, ver semver.Version) {
 				return tssMsg
 			},
 			runner: func(handler TssHandler, msg cosmos.Msg, helper tssHandlerTestHelper) (*cosmos.Result, error) {
-				vd := VaultData{
+				vd := Network{
 					BondRewardRune: cosmos.NewUint(5000 * common.One),
 					TotalBondUnits: cosmos.NewUint(10000),
 				}
-				_ = helper.keeper.SetVaultData(helper.ctx, vd)
+				_ = helper.keeper.SetNetwork(helper.ctx, vd)
 				return handler.Run(helper.ctx, msg, ver, helper.constAccessor)
 			},
 			validator: func(helper tssHandlerTestHelper, msg cosmos.Msg, result *cosmos.Result, c *C) {
@@ -506,7 +506,7 @@ func (s *HandlerTssSuite) testTssHandlerWithVersion(c *C, ver semver.Version) {
 			expectedResult: nil,
 		},
 		{
-			name: "fail to keygen and none active account, fail to set vault data should return an error",
+			name: "fail to keygen and none active account, fail to set network data should return an error",
 			messageCreator: func(helper tssHandlerTestHelper) cosmos.Msg {
 				b := blame.Blame{
 					FailReason: "who knows",
@@ -529,12 +529,12 @@ func (s *HandlerTssSuite) testTssHandlerWithVersion(c *C, ver semver.Version) {
 				return tssMsg
 			},
 			runner: func(handler TssHandler, msg cosmos.Msg, helper tssHandlerTestHelper) (*cosmos.Result, error) {
-				vd := VaultData{
+				vd := Network{
 					BondRewardRune: cosmos.NewUint(5000 * common.One),
 					TotalBondUnits: cosmos.NewUint(10000),
 				}
-				_ = helper.keeper.SetVaultData(helper.ctx, vd)
-				helper.keeper.errFailSetVaultData = true
+				_ = helper.keeper.SetNetwork(helper.ctx, vd)
+				helper.keeper.errFailSetNetwork = true
 				return handler.Run(helper.ctx, msg, ver, helper.constAccessor)
 			},
 			expectedResult: nil,

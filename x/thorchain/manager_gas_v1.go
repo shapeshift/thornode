@@ -148,9 +148,9 @@ func (gm *GasMgrV1) EndBlock(ctx cosmos.Context, keeper keeper.Keeper, eventMana
 
 // ProcessGas to subsidise the pool with RUNE for the gas they have spent
 func (gm *GasMgrV1) ProcessGas(ctx cosmos.Context, keeper keeper.Keeper) {
-	vault, err := keeper.GetVaultData(ctx)
+	vault, err := keeper.GetNetwork(ctx)
 	if err != nil {
-		ctx.Logger().Error("fail to get vault data", "error", err)
+		ctx.Logger().Error("fail to get network data", "error", err)
 		return
 	}
 	for _, gas := range gm.gas {
@@ -194,7 +194,7 @@ func (gm *GasMgrV1) ProcessGas(ctx cosmos.Context, keeper keeper.Keeper) {
 		gm.gasEvent.UpsertGasPool(gasPool)
 	}
 
-	if err := keeper.SetVaultData(ctx, vault); err != nil {
-		ctx.Logger().Error("fail to set vault data", "error", err)
+	if err := keeper.SetNetwork(ctx, vault); err != nil {
+		ctx.Logger().Error("fail to set network data", "error", err)
 	}
 }
