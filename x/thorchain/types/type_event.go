@@ -10,20 +10,22 @@ import (
 
 // all event types support by THORChain
 const (
-	SwapEventType         = `swap`
-	AddLiquidityEventType = `add_liquidity`
-	WithdrawEventType     = `withdraw`
-	DonateEventType       = `donate`
-	PoolEventType         = `pool`
-	RewardEventType       = `rewards`
-	RefundEventType       = `refund`
-	BondEventType         = `bond`
-	GasEventType          = `gas`
-	ReserveEventType      = `reserve`
-	SlashEventType        = `slash`
-	ErrataEventType       = `errata`
-	FeeEventType          = `fee`
-	OutboundEventType     = `outbound`
+	SwapEventType             = `swap`
+	AddLiquidityEventType     = `add_liquidity`
+	WithdrawEventType         = `withdraw`
+	DonateEventType           = `donate`
+	PoolEventType             = `pool`
+	RewardEventType           = `rewards`
+	RefundEventType           = `refund`
+	BondEventType             = `bond`
+	GasEventType              = `gas`
+	ReserveEventType          = `reserve`
+	SlashEventType            = `slash`
+	ErrataEventType           = `errata`
+	FeeEventType              = `fee`
+	OutboundEventType         = `outbound`
+	TSSKeygenMetricEventType  = `tss_keygen`
+	TSSKeysignMetricEventType = `tss_keysign`
 )
 
 // PoolMod pool modifications
@@ -547,5 +549,59 @@ func (e EventOutbound) Events() (cosmos.Events, error) {
 	evt := cosmos.NewEvent(e.Type(),
 		cosmos.NewAttribute("in_tx_id", e.InTxID.String()))
 	evt = evt.AppendAttributes(e.Tx.ToAttributes()...)
+	return cosmos.Events{evt}, nil
+}
+
+// EventTssKeygenMetric is an event to represent the time it takes to do Keygen
+type EventTssKeygenMetric struct {
+	PubKey           common.PubKey
+	MedianDurationMs int64
+}
+
+// NewEventTssKeygenMetric create a new EventTssMetric
+func NewEventTssKeygenMetric(pubkey common.PubKey, medianDurationMS int64) EventTssKeygenMetric {
+	return EventTssKeygenMetric{
+		PubKey:           pubkey,
+		MedianDurationMs: medianDurationMS,
+	}
+}
+
+// Type  return a string which represent the type of this event
+func (e EventTssKeygenMetric) Type() string {
+	return TSSKeygenMetricEventType
+}
+
+// Events return cosmos sdk events
+func (e EventTssKeygenMetric) Events() (cosmos.Events, error) {
+	evt := cosmos.NewEvent(e.Type(),
+		cosmos.NewAttribute("pubkey", e.PubKey.String()),
+		cosmos.NewAttribute("median_duration_ms", strconv.FormatInt(e.MedianDurationMs, 10)))
+	return cosmos.Events{evt}, nil
+}
+
+// EventTssKeysignMetric is an event to represent the time it takes to do keysign
+type EventTssKeysignMetric struct {
+	TxID             common.TxID
+	MedianDurationMs int64
+}
+
+// NewEventTssKeysignMetric create a new EventTssMetric
+func NewEventTssKeysignMetric(txID common.TxID, medianDurationMS int64) EventTssKeysignMetric {
+	return EventTssKeysignMetric{
+		TxID:             txID,
+		MedianDurationMs: medianDurationMS,
+	}
+}
+
+// Type  return a string which represent the type of this event
+func (e EventTssKeysignMetric) Type() string {
+	return TSSKeysignMetricEventType
+}
+
+// Events return cosmos sdk events
+func (e EventTssKeysignMetric) Events() (cosmos.Events, error) {
+	evt := cosmos.NewEvent(e.Type(),
+		cosmos.NewAttribute("txid", e.TxID.String()),
+		cosmos.NewAttribute("median_duration_ms", strconv.FormatInt(e.MedianDurationMs, 10)))
 	return cosmos.Events{evt}, nil
 }

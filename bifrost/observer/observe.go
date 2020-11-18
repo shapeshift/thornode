@@ -27,42 +27,48 @@ const maxTxArrayLen = 100
 
 // Observer observer service
 type Observer struct {
-	logger            zerolog.Logger
-	chains            map[common.Chain]chainclients.ChainClient
-	stopChan          chan struct{}
-	pubkeyMgr         pubkeymanager.PubKeyValidator
-	onDeck            []types.TxIn
-	lock              *sync.Mutex
-	globalTxsQueue    chan types.TxIn
-	globalErrataQueue chan types.ErrataBlock
-	m                 *metrics.Metrics
-	errCounter        *prometheus.CounterVec
-	thorchainBridge   *thorclient.ThorchainBridge
-	storage           *ObserverStorage
+	logger              zerolog.Logger
+	chains              map[common.Chain]chainclients.ChainClient
+	stopChan            chan struct{}
+	pubkeyMgr           pubkeymanager.PubKeyValidator
+	onDeck              []types.TxIn
+	lock                *sync.Mutex
+	globalTxsQueue      chan types.TxIn
+	globalErrataQueue   chan types.ErrataBlock
+	m                   *metrics.Metrics
+	errCounter          *prometheus.CounterVec
+	thorchainBridge     *thorclient.ThorchainBridge
+	storage             *ObserverStorage
+	tssKeysignMetricMgr *metrics.TssKeysignMetricMgr
 }
 
 // NewObserver create a new instance of Observer for chain
 func NewObserver(pubkeyMgr pubkeymanager.PubKeyValidator,
 	chains map[common.Chain]chainclients.ChainClient,
 	thorchainBridge *thorclient.ThorchainBridge,
-	m *metrics.Metrics, dataPath string) (*Observer, error) {
+	m *metrics.Metrics, dataPath string,
+	tssKeysignMetricMgr *metrics.TssKeysignMetricMgr) (*Observer, error) {
 	logger := log.Logger.With().Str("module", "observer").Logger()
 	storage, err := NewObserverStorage(dataPath)
 	if err != nil {
 		return nil, fmt.Errorf("fail to create observer storage: %w", err)
 	}
+	if tssKeysignMetricMgr == nil {
+		return nil, fmt.Errorf("tss keysign manager is nil")
+	}
 	return &Observer{
-		logger:            logger,
-		chains:            chains,
-		stopChan:          make(chan struct{}),
-		m:                 m,
-		pubkeyMgr:         pubkeyMgr,
-		lock:              &sync.Mutex{},
-		globalTxsQueue:    make(chan types.TxIn),
-		globalErrataQueue: make(chan types.ErrataBlock),
-		errCounter:        m.GetCounterVec(metrics.ObserverError),
-		thorchainBridge:   thorchainBridge,
-		storage:           storage,
+		logger:              logger,
+		chains:              chains,
+		stopChan:            make(chan struct{}),
+		m:                   m,
+		pubkeyMgr:           pubkeyMgr,
+		lock:                &sync.Mutex{},
+		globalTxsQueue:      make(chan types.TxIn),
+		globalErrataQueue:   make(chan types.ErrataBlock),
+		errCounter:          m.GetCounterVec(metrics.ObserverError),
+		thorchainBridge:     thorchainBridge,
+		storage:             storage,
+		tssKeysignMetricMgr: tssKeysignMetricMgr,
 	}, nil
 }
 
@@ -424,11 +430,12 @@ func (o *Observer) getThorchainTxIns(txIn types.TxIn) (stypes.ObservedTxs, error
 			o.errCounter.WithLabelValues("fail to parse observed pool address", item.ObservedVaultPubKey.String()).Inc()
 			return nil, fmt.Errorf("fail to parse observed pool address: %s: %w", item.ObservedVaultPubKey.String(), err)
 		}
+
 		txs[i] = stypes.NewObservedTx(
 			common.NewTx(txID, sender, to, item.Coins, item.Gas, item.Memo),
 			item.BlockHeight,
-			item.ObservedVaultPubKey,
-		)
+			item.ObservedVaultPubKey)
+		txs[i].KeysignMs = o.tssKeysignMetricMgr.GetTssKeysignMetric(item.Tx)
 	}
 	return txs, nil
 }

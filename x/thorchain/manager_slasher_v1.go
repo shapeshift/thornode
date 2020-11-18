@@ -125,7 +125,6 @@ func (s *SlasherV1) slashNotObserving(ctx cosmos.Context, txHash common.TxID, co
 	if err != nil {
 		return fmt.Errorf("fail to get observe txin voter (%s): %w", txHash.String(), err)
 	}
-	// for native RUNE tx , there is no observed tx voter
 	if len(voter.Txs) == 0 {
 		return nil
 	}

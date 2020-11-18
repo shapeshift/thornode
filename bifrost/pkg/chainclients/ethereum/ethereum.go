@@ -269,15 +269,15 @@ func (c *Client) GetAccountByAddress(address string) (common.Account, error) {
 }
 
 // BroadcastTx decodes tx using rlp and broadcasts too Ethereum chain
-func (c *Client) BroadcastTx(stx stypes.TxOutItem, hexTx []byte) error {
+func (c *Client) BroadcastTx(stx stypes.TxOutItem, hexTx []byte) (string, error) {
 	tx := &etypes.Transaction{}
 	if err := json.Unmarshal(hexTx, tx); err != nil {
-		return err
+		return "", err
 	}
 	if err := c.client.SendTransaction(context.Background(), tx); err != nil {
-		return err
+		return "", err
 	}
-	return nil
+	return tx.Hash().String(), nil
 }
 
 // ConfirmationCountReady check whether the given txIn is ready to be send to THORChain
