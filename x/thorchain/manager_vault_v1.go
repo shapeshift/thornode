@@ -134,7 +134,9 @@ func (vm *VaultMgrV1) EndBlock(ctx cosmos.Context, mgr Manager, constAccessor co
 		// move partial funds every 30 minutes
 		if (common.BlockHeight(ctx)-vault.StatusSince)%migrateInterval == 0 {
 			for _, coin := range vault.Coins {
-				if coin.IsNative() {
+				// non-native rune assets are no migrated, therefore they are
+				// burned in each churn
+				if coin.IsNative() || coin.Asset.IsRune() {
 					continue
 				}
 
