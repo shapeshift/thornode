@@ -216,23 +216,18 @@ func getMsgAddLiquidityFromMemo(ctx cosmos.Context, memo AddLiquidityMemo, tx Ob
 	runeCoin := tx.Tx.Coins.GetCoin(common.RuneAsset())
 	assetCoin := tx.Tx.Coins.GetCoin(memo.GetAsset())
 
-	runeAddr := tx.Tx.FromAddress
-	assetAddr := memo.GetDestination()
-	// this is to cover multi-chain scenario, for example BTC , liquidity provider who
-	// would like to provide in BTC pool,  will have to complete
-	// the provide operation by sending in two asymmetric provide tx, one tx on BTC
-	// chain with memo add:BTC:<RUNE address> ,
-	// and another one on Binance chain with add:BTC , with only RUNE as the coin
-	// Thorchain will use the <RUNE address> to match these two together , and
-	// consider it as one provider.
-	if !runeAddr.IsChain(common.RuneAsset().Chain) {
+	var runeAddr common.Address
+	var assetAddr common.Address
+	if tx.Tx.Chain.Equals(common.THORChain) {
+		runeAddr = tx.Tx.FromAddress
+		assetAddr = memo.GetDestination()
+	} else {
 		runeAddr = memo.GetDestination()
 		assetAddr = tx.Tx.FromAddress
-	} else {
-		// if it is on THOR chain , while the asset addr is empty, then the asset addr is runeAddr
-		if assetAddr.IsEmpty() {
-			assetAddr = runeAddr
-		}
+	}
+	// in case we are providing native rune and another native asset
+	if memo.GetAsset().Chain.Equals(common.THORChain) {
+		assetAddr = runeAddr
 	}
 
 	return NewMsgAddLiquidity(tx.Tx, memo.GetAsset(), runeCoin.Amount, assetCoin.Amount, runeAddr, assetAddr, signer), nil

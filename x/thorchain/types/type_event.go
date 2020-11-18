@@ -141,11 +141,13 @@ func (e EventAddLiquidity) Events() (cosmos.Events, error) {
 		cosmos.NewAttribute("asset_amount", e.AssetAmount.String()),
 		cosmos.NewAttribute("asset_address", e.AssetAddress.String()),
 	)
-	if !e.RuneTxID.Equals(e.AssetTxID) {
+	if !e.RuneTxID.Equals(e.AssetTxID) && !e.RuneTxID.IsEmpty() {
 		evt = evt.AppendAttributes(cosmos.NewAttribute(fmt.Sprintf("%s_txid", common.RuneAsset().Chain), e.RuneTxID.String()))
 	}
 
-	evt = evt.AppendAttributes(cosmos.NewAttribute(fmt.Sprintf("%s_txid", e.Pool.Chain), e.AssetTxID.String()))
+	if !e.AssetTxID.IsEmpty() {
+		evt = evt.AppendAttributes(cosmos.NewAttribute(fmt.Sprintf("%s_txid", e.Pool.Chain), e.AssetTxID.String()))
+	}
 	return cosmos.Events{
 		evt,
 	}, nil
