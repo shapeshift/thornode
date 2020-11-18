@@ -11,6 +11,7 @@ type ConstantName int
 
 const (
 	EmissionCurve ConstantName = iota
+	IncentiveCurve
 	BlocksPerYear
 	OutboundTransactionFee
 	NativeChainGasFee
@@ -47,6 +48,7 @@ const (
 
 var nameToString = map[ConstantName]string{
 	EmissionCurve:                 "EmissionCurve",
+	IncentiveCurve:                "IncentiveCurve",
 	BlocksPerYear:                 "BlocksPerYear",
 	OutboundTransactionFee:        "OutboundTransactionFee",
 	NativeChainGasFee:             "NativeChainGasFee",
