@@ -232,7 +232,6 @@ func (ymgr YggMgrV1) sendCoinsToYggdrasil(ctx cosmos.Context, coins common.Coins
 // pool should have, relative to how much they have bonded (which should be
 // target == bond * yggFundLimit / 100).
 func (ymgr YggMgrV1) calcTargetYggCoins(pools []Pool, ygg Vault, yggBond, totalBond, yggFundLimit cosmos.Uint) (common.Coins, error) {
-	runeCoin := common.NewCoin(common.RuneAsset(), cosmos.ZeroUint())
 	var coins common.Coins
 
 	// calculate total liquidity provided rune in our pools
@@ -268,7 +267,6 @@ func (ymgr YggMgrV1) calcTargetYggCoins(pools []Pool, ygg Vault, yggBond, totalB
 			continue
 		}
 		runeAmt := common.GetShare(targetRune, totalLiquidityRune, pool.BalanceRune)
-		runeCoin.Amount = runeCoin.Amount.Add(runeAmt)
 		assetAmt := common.GetShare(targetRune, totalLiquidityRune, pool.BalanceAsset)
 		// add rune amt (not asset since the two are considered to be equal)
 		// in a single pool X, the value of 1% asset X in RUNE ,equals the 1% RUNE in the same pool
@@ -279,15 +277,6 @@ func (ymgr YggMgrV1) calcTargetYggCoins(pools []Pool, ygg Vault, yggBond, totalB
 			if !coin.IsNative() {
 				coins = append(coins, coin)
 			}
-		}
-	}
-
-	yggRune := ygg.GetCoin(common.RuneAsset())
-	runeCoin.Amount = common.SafeSub(runeCoin.Amount, yggRune.Amount)
-	if !runeCoin.IsEmpty() {
-		counter = counter.Add(runeCoin.Amount)
-		if !runeCoin.IsNative() {
-			coins = append(coins, runeCoin)
 		}
 	}
 

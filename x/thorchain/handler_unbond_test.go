@@ -137,7 +137,7 @@ func (HandlerUnBondSuite) TestUnBondHandler_Run(c *C) {
 	k.vault = Vault{
 		Type: YggdrasilVault,
 		Coins: common.Coins{
-			common.NewCoin(common.RuneAsset(), cosmos.NewUint(uint64(1))),
+			common.NewCoin(common.BNBAsset, cosmos.NewUint(uint64(1))),
 		},
 		PubKey: standbyNodeAccount.PubKeySet.Secp256k1,
 	}
