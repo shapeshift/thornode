@@ -210,7 +210,7 @@ func (s *EthereumSuite) TestClient(c *C) {
 	pk := types2.GetRandomPubKey()
 	addr := e2.GetAddress(pk)
 	c.Check(len(addr), Equals, 42)
-	err = e2.BroadcastTx(stypes.TxOutItem{}, []byte(`{
+	_, err = e2.BroadcastTx(stypes.TxOutItem{}, []byte(`{
 		"from":"0xa7d9ddbe1f17865597fbd27ec712455208b6b76d",
 		"gas":"0xc350",
 		"gasPrice":"0x4a817c800",
@@ -239,6 +239,6 @@ func (s *EthereumSuite) TestClient(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(r, NotNil)
 
-	err = e2.BroadcastTx(out, r)
+	_, err = e2.BroadcastTx(out, r)
 	c.Assert(err, IsNil)
 }

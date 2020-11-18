@@ -264,7 +264,10 @@ func (s *QuerierSuite) TestQueryTx(c *C) {
 	s.k.SetObservedTxInVoter(s.ctx, voter)
 	result, err = s.querier(s.ctx, []string{query.QueryTx.Key, tx.ID.String()}, req)
 	c.Assert(err, IsNil)
-	var newTx ObservedTx
+	var newTx struct {
+		ObservedTx    `json:"observed_tx"`
+		KeygenMetrics types.TssKeysignMetric `json:"keysign_metric,omitempty"`
+	}
 	c.Assert(s.k.Cdc().UnmarshalJSON(result, &newTx), IsNil)
 	c.Assert(newTx.Valid(), IsNil)
 }

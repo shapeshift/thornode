@@ -63,13 +63,8 @@ func (msg MsgAddLiquidity) ValidateBasic() error {
 	if msg.RuneAmount.IsZero() && msg.AssetAmount.IsZero() {
 		return cosmos.ErrUnknownRequest("rune and asset amounts cannot both be empty")
 	}
-	if msg.RuneAddress.IsEmpty() {
-		return cosmos.ErrUnknownRequest("rune address cannot be empty")
-	}
-	if !msg.Asset.Chain.Equals(common.RuneAsset().Chain) {
-		if msg.AssetAddress.IsEmpty() {
-			return cosmos.ErrUnknownRequest("asset address cannot be empty")
-		}
+	if msg.RuneAddress.IsEmpty() && msg.AssetAddress.IsEmpty() {
+		return cosmos.ErrUnknownRequest("rune address and asset address cannot be empty")
 	}
 	return nil
 }

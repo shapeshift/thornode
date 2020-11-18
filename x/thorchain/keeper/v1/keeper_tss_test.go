@@ -27,3 +27,18 @@ func (s *KeeperTssSuite) TestTssVoter(c *C) {
 	c.Check(iter, NotNil)
 	iter.Close()
 }
+
+func (s *KeeperTssSuite) TestTssKeygenMetric(c *C) {
+	ctx, k := setupKeeperForTest(c)
+	pk := GetRandomPubKey()
+	metric, err := k.GetTssKeygenMetric(ctx, pk)
+	c.Assert(err, IsNil)
+	c.Assert(metric, NotNil)
+	metric.AddNodeTssTime(GetRandomBech32Addr(), 1024)
+	k.SetTssKeygenMetric(ctx, metric)
+
+	metric1, err := k.GetTssKeygenMetric(ctx, pk)
+	c.Assert(err, IsNil)
+	c.Assert(metric1, NotNil)
+	c.Assert(metric1.NodeTssTimes, HasLen, 1)
+}

@@ -117,7 +117,17 @@ func (h ObservedTxOutHandler) handleV1(ctx cosmos.Context, version semver.Versio
 			ctx.Logger().Info("Not valid Observed Pubkey", tx.ObservedPubKey)
 			continue
 		}
-
+		if tx.KeysignMs > 0 {
+			keysignMetric, err := h.keeper.GetTssKeysignMetric(ctx, tx.Tx.ID)
+			if err != nil {
+				ctx.Logger().Error("fail to get keysing metric", "error", err)
+			} else {
+				for _, addr := range tx.Signers {
+					keysignMetric.AddNodeTssTime(addr, tx.KeysignMs)
+				}
+				h.keeper.SetTssKeysignMetric(ctx, keysignMetric)
+			}
+		}
 		voter, err := h.keeper.GetObservedTxOutVoter(ctx, tx.Tx.ID)
 		if err != nil {
 			ctx.Logger().Error("fail to get tx out voter", "error", err)
@@ -216,6 +226,18 @@ func (h ObservedTxOutHandler) handleV1(ctx cosmos.Context, version semver.Versio
 		// active/inactive observing node accounts
 		h.mgr.ObMgr().AppendObserver(tx.Tx.Chain, txOut.Signers)
 
+		// emit tss keysign metrics
+		if tx.KeysignMs > 0 {
+			keysignMetric, err := h.keeper.GetTssKeysignMetric(ctx, tx.Tx.ID)
+			if err != nil {
+				ctx.Logger().Error("fail to get tss keysign metric", "error", err, "hash", tx.Tx.ID)
+			} else {
+				evt := NewEventTssKeysignMetric(keysignMetric.TxID, keysignMetric.GetMedianTime())
+				if err := h.mgr.EventMgr().EmitEvent(ctx, evt); err != nil {
+					ctx.Logger().Error("fail to emit tss metric event", "error", err)
+				}
+			}
+		}
 		_, err = handler(ctx, m)
 		if err != nil {
 			ctx.Logger().Error("handler failed:", "error", err)
