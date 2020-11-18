@@ -79,7 +79,7 @@ func registerSwaggerAPI(storeName string, rtr *mux.Router) {
 	if err != nil {
 		panic(err)
 	}
-	pathPrefix := fmt.Sprintf("/%s/doc/", storeName)
+	pathPrefix := fmt.Sprintf("/%s/docs/", storeName)
 	staticServer := http.FileServer(statikFS)
 	rtr.PathPrefix(pathPrefix).Handler(http.StripPrefix(pathPrefix, staticServer))
 }

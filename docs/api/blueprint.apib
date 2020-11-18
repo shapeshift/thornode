@@ -20,22 +20,22 @@ NOTE: This document is a **work in progress**.
 # Group Pools
 This section documents the pools API resources.
 
-## Pool [/thorchain/pool/{ticker}]
+## Pool [/thorchain/pool/{asset}]
 
 A pool contains all the information of THORChain liquidity pool
 
 + Parameters
-    + ticker: `BNB.BNB` (required, string) - The ticker of the pool
+    + asset: `BNB.BNB` (required, string) - The asset of the pool
 
 + Attributes
     + balance_rune (string) -  Amount of rune the pool has
     + balance_asset (string) - Amount of asset the pool has
-    + ticker (string) -  the ticker of the non-rune asset
+    + asset (string) -  the asset of the non-rune asset
     + pool_units (string) -  total number of units within the pool
     + status (string) -  the status of the pool
 
 ### Get a pool [GET]
-Retrieve a liquidity pool with the given ticker
+Retrieve a liquidity pool with the given asset
 
 + Response 200 (application/json)
     + Attribute (Pool)
@@ -46,10 +46,10 @@ Retrieve all the liquidity pools from THORChain
 + Response 200 (application/json)
     + Attributes (array[Pool])
 
-## LiquidityProvider [/thorchain/pool/{ticker}/liquidity_providers]
+## LiquidityProvider [/thorchain/pool/{asset}/liquidity_providers]
 
 + Parameters
-    + ticker: "BNB.BNB" (required, string) - The ticker of the pool
+    + asset: "BNB.BNB" (required, string) - The asset of the pool
 
 + Attributes (object)
     + asset (string) -  the asset of the non-rune asset
@@ -542,8 +542,8 @@ last block height
     + chain: "BNB" (string,required) - chain 
 + Attributes
     + chain (string) - chain
-    + lastobservedin (string) - last observed in block height
-    + lastsignout (string) - last sign out block height
+    + last_observed_in (string) - last observed in block height
+    + last_sign_out (string) - last sign out block height
     + thorchain (string) - current thorchain block height
 
 ### Get last block height per chain [GET]
@@ -555,8 +555,8 @@ Retrieve the last block height information about the request chain
             [
                 {
                     "chain": "BNB",
-                    "lastobservedin": "1590",
-                    "lastsignedout": "109",
+                    "last_observed_in": "1590",
+                    "last_signed_out": "109",
                     "thorchain": "1548"
                 }
             ]
@@ -569,8 +569,8 @@ Retrieve lastest block infomation across all chains
         [
                 {
                     "chain": "BNB",
-                    "lastobservedin": "1590",
-                    "lastsignedout": "109",
+                    "last_observed_in": "1590",
+                    "last_signed_out": "109",
                     "thorchain": "1548"
                 }
         ]
