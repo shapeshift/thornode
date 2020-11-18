@@ -15,3 +15,9 @@ make convert
 make swagger
 ```
 Open a browser to [http://localhost](http://localhost)
+
+## generate statik package
+```
+go get github.com/rakyll/statik
+statik -src=./swagger-ui
+```

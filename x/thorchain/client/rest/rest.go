@@ -9,7 +9,9 @@ import (
 	"github.com/didip/tollbooth"
 	"github.com/didip/tollbooth/limiter"
 	"github.com/gorilla/mux"
+	"github.com/rakyll/statik/fs"
 
+	_ "gitlab.com/thorchain/thornode/docs/statik"
 	"gitlab.com/thorchain/thornode/x/thorchain/query"
 )
 
@@ -68,6 +70,18 @@ func RegisterRoutes(cliCtx context.CLIContext, r *mux.Router, storeName string) 
 
 	r.Use(mux.CORSMethodMiddleware(r))
 	r.Use(customCORSHeader())
+	registerSwaggerAPI(storeName, r)
+}
+
+// RegisterSwaggerAPI registers swagger route with API Server
+func registerSwaggerAPI(storeName string, rtr *mux.Router) {
+	statikFS, err := fs.New()
+	if err != nil {
+		panic(err)
+	}
+	pathPrefix := fmt.Sprintf("/%s/doc/", storeName)
+	staticServer := http.FileServer(statikFS)
+	rtr.PathPrefix(pathPrefix).Handler(http.StripPrefix(pathPrefix, staticServer))
 }
 
 func customCORSHeader() mux.MiddlewareFunc {
