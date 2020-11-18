@@ -87,4 +87,6 @@ type (
 	NetworkFee               = types.NetworkFee
 	ObservedNetworkFeeVoter  = types.ObservedNetworkFeeVoter
 	RagnarokWithdrawPosition = types.RagnarokWithdrawPosition
+	TssKeygenMetric          = types.TssKeygenMetric
+	TssKeysignMetric         = types.TssKeysignMetric
 )

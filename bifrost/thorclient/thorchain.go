@@ -212,24 +212,13 @@ func (b *ThorchainBridge) PostKeysignFailure(blame blame.Blame, height int64, me
 
 // GetErrataStdTx get errata tx from params
 func (b *ThorchainBridge) GetErrataStdTx(txID common.TxID, chain common.Chain) (*authtypes.StdTx, error) {
-	start := time.Now()
-	defer func() {
-		b.m.GetHistograms(metrics.SignToThorchainDuration).Observe(time.Since(start).Seconds())
-	}()
-
 	msg := stypes.NewMsgErrataTx(txID, chain, b.keys.GetSignerInfo().GetAddress())
-
 	return makeStdTx([]cosmos.Msg{msg}), nil
 }
 
 // GetKeygenStdTx get keygen tx from params
-func (b *ThorchainBridge) GetKeygenStdTx(poolPubKey common.PubKey, blame blame.Blame, inputPks common.PubKeys, keygenType stypes.KeygenType, chains common.Chains, height int64) (*authtypes.StdTx, error) {
-	start := time.Now()
-	defer func() {
-		b.m.GetHistograms(metrics.SignToThorchainDuration).Observe(time.Since(start).Seconds())
-	}()
-	msg := stypes.NewMsgTssPool(inputPks, poolPubKey, keygenType, height, blame, chains, b.keys.GetSignerInfo().GetAddress())
-
+func (b *ThorchainBridge) GetKeygenStdTx(poolPubKey common.PubKey, blame blame.Blame, inputPks common.PubKeys, keygenType stypes.KeygenType, chains common.Chains, height int64, keygenTime int64) (*authtypes.StdTx, error) {
+	msg := stypes.NewMsgTssPool(inputPks, poolPubKey, keygenType, height, blame, chains, b.keys.GetSignerInfo().GetAddress(), keygenTime)
 	return makeStdTx([]cosmos.Msg{msg}), nil
 }
 
@@ -239,11 +228,6 @@ func (b *ThorchainBridge) GetObservationsStdTx(txIns stypes.ObservedTxs) (*autht
 		b.errCounter.WithLabelValues("nothing_to_sign", "").Inc()
 		return nil, errors.New("nothing to be signed")
 	}
-	start := time.Now()
-	defer func() {
-		b.m.GetHistograms(metrics.SignToThorchainDuration).Observe(time.Since(start).Seconds())
-	}()
-
 	var inbound stypes.ObservedTxs
 	var outbound stypes.ObservedTxs
 
@@ -263,7 +247,7 @@ func (b *ThorchainBridge) GetObservationsStdTx(txIns stypes.ObservedTxs) (*autht
 		} else if tx.Tx.FromAddress.Equals(obAddr) {
 			outbound = append(outbound, tx)
 		} else {
-			return nil, errors.New("Could not determine if this tx as inbound or outbound")
+			return nil, errors.New("could not determine if this tx as inbound or outbound")
 		}
 	}
 

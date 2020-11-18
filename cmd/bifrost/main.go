@@ -173,9 +173,9 @@ func main() {
 	}
 
 	chains := chainclients.LoadChains(k, cfg.Chains, tssIns, thorchainBridge, m, keySignPartyMgr, pubkeyMgr)
-
+	tssKeysignMetricMgr := metrics.NewTssKeysignMetricMgr()
 	// start observer
-	obs, err := observer.NewObserver(pubkeyMgr, chains, thorchainBridge, m, cfg.Chains[0].BlockScanner.DBPath)
+	obs, err := observer.NewObserver(pubkeyMgr, chains, thorchainBridge, m, cfg.Chains[0].BlockScanner.DBPath, tssKeysignMetricMgr)
 	if err != nil {
 		log.Fatal().Err(err).Msg("fail to create observer")
 	}
@@ -184,7 +184,7 @@ func main() {
 	}
 
 	// start signer
-	sign, err := signer.NewSigner(cfg.Signer, thorchainBridge, k, pubkeyMgr, tssIns, chains, m)
+	sign, err := signer.NewSigner(cfg.Signer, thorchainBridge, k, pubkeyMgr, tssIns, chains, m, tssKeysignMetricMgr)
 	if err != nil {
 		log.Fatal().Err(err).Msg("fail to create instance of signer")
 	}

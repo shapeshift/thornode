@@ -44,6 +44,8 @@ type Signer struct {
 	tssKeygen             *tss.KeyGen
 	pubkeyMgr             pubkeymanager.PubKeyValidator
 	constantsProvider     *ConstantsProvider
+	localPubKey           common.PubKey
+	tssKeysignMetricMgr   *metrics.TssKeysignMetricMgr
 }
 
 // NewSigner create a new instance of signer
@@ -53,12 +55,15 @@ func NewSigner(cfg config.SignerConfiguration,
 	pubkeyMgr pubkeymanager.PubKeyValidator,
 	tssServer *tssp.TssServer,
 	chains map[common.Chain]chainclients.ChainClient,
-	m *metrics.Metrics) (*Signer, error) {
+	m *metrics.Metrics,
+	tssKeysignMetricMgr *metrics.TssKeysignMetricMgr) (*Signer, error) {
 	storage, err := NewSignerStore(cfg.SignerDbPath, thorchainBridge.GetConfig().SignerPasswd)
 	if err != nil {
 		return nil, fmt.Errorf("fail to create thorchain scan storage: %w", err)
 	}
-
+	if tssKeysignMetricMgr == nil {
+		return nil, fmt.Errorf("fail to create signer , tss keysign metric manager is nil")
+	}
 	var na *ttypes.NodeAccount
 	for i := 0; i < 300; i++ { // wait for 5 min before timing out
 		var err error
@@ -114,6 +119,8 @@ func NewSigner(cfg config.SignerConfiguration,
 		thorchainBridge:       thorchainBridge,
 		tssKeygen:             kg,
 		constantsProvider:     constantProvider,
+		localPubKey:           na.PubKeySet.Secp256k1,
+		tssKeysignMetricMgr:   tssKeysignMetricMgr,
 	}, nil
 }
 
@@ -250,13 +257,13 @@ func (s *Signer) processKeygen(ch <-chan ttypes.KeygenBlock) {
 				for _, pk := range keygenReq.Members {
 					s.pubkeyMgr.AddPubKey(pk, false)
 				}
-
+				keygenStart := time.Now()
 				pubKey, blame, err := s.tssKeygen.GenerateNewKey(keygenReq.Members)
 				if !blame.IsEmpty() {
 					err := fmt.Errorf("reason: %s, nodes %+v", blame.FailReason, blame.BlameNodes)
 					s.logger.Error().Err(err).Msg("Blame")
 				}
-
+				keygenTime := time.Since(keygenStart).Milliseconds()
 				if err != nil {
 					s.errCounter.WithLabelValues("fail_to_keygen_pubkey", "").Inc()
 					s.logger.Error().Err(err).Msg("fail to generate new pubkey")
@@ -265,7 +272,7 @@ func (s *Signer) processKeygen(ch <-chan ttypes.KeygenBlock) {
 					s.pubkeyMgr.AddPubKey(pubKey.Secp256k1, true)
 				}
 
-				if err := s.sendKeygenToThorchain(keygenBlock.Height, pubKey.Secp256k1, blame, keygenReq.Members, keygenReq.Type); err != nil {
+				if err := s.sendKeygenToThorchain(keygenBlock.Height, pubKey.Secp256k1, blame, keygenReq.Members, keygenReq.Type, keygenTime); err != nil {
 					s.errCounter.WithLabelValues("fail_to_broadcast_keygen", "").Inc()
 					s.logger.Error().Err(err).Msg("fail to broadcast keygen")
 				}
@@ -274,7 +281,7 @@ func (s *Signer) processKeygen(ch <-chan ttypes.KeygenBlock) {
 	}
 }
 
-func (s *Signer) sendKeygenToThorchain(height int64, poolPk common.PubKey, blame blame.Blame, input common.PubKeys, keygenType ttypes.KeygenType) error {
+func (s *Signer) sendKeygenToThorchain(height int64, poolPk common.PubKey, blame blame.Blame, input common.PubKeys, keygenType ttypes.KeygenType, keygenTime int64) error {
 	// collect supported chains in the configuration
 	chains := common.Chains{
 		common.THORChain,
@@ -285,7 +292,7 @@ func (s *Signer) sendKeygenToThorchain(height int64, poolPk common.PubKey, blame
 		}
 	}
 
-	stdTx, err := s.thorchainBridge.GetKeygenStdTx(poolPk, blame, input, keygenType, chains, height)
+	stdTx, err := s.thorchainBridge.GetKeygenStdTx(poolPk, blame, input, keygenType, chains, height, keygenTime)
 	strHeight := strconv.FormatInt(height, 10)
 	if err != nil {
 		s.errCounter.WithLabelValues("fail_to_sign", strHeight).Inc()
@@ -379,23 +386,27 @@ func (s *Signer) signAndBroadcast(item TxOutStoreItem) error {
 			return nil
 		}
 	}
-
+	startKeySign := time.Now()
 	signedTx, err := chain.SignTx(tx, height)
 	if err != nil {
 		s.logger.Error().Err(err).Msg("fail to sign tx")
 		return err
 	}
+	elapse := time.Since(startKeySign)
 
 	// looks like the transaction is already signed
 	if len(signedTx) == 0 {
 		s.logger.Warn().Msgf("signed transaction is empty")
 		return nil
 	}
-	if err := chain.BroadcastTx(tx, signedTx); err != nil {
+	hash, err := chain.BroadcastTx(tx, signedTx)
+	if err != nil {
 		s.logger.Error().Err(err).Msg("fail to broadcast tx to chain")
 		return err
 	}
-
+	if s.isTssKeysign(tx.VaultPubKey) {
+		s.tssKeysignMetricMgr.SetTssKeysignMetric(hash, elapse.Milliseconds())
+	}
 	return nil
 }
 
@@ -433,6 +444,10 @@ func (s *Signer) handleYggReturn(height int64, tx types.TxOutItem) (types.TxOutI
 	}
 
 	return tx, nil
+}
+
+func (s *Signer) isTssKeysign(pubKey common.PubKey) bool {
+	return !s.localPubKey.Equals(pubKey)
 }
 
 // Stop the signer process

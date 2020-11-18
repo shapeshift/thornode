@@ -202,8 +202,8 @@ func (b *MockChainClient) GetChain() common.Chain {
 	return common.BNBChain
 }
 
-func (b *MockChainClient) BroadcastTx(_ stypes.TxOutItem, tx []byte) error {
-	return nil
+func (b *MockChainClient) BroadcastTx(_ stypes.TxOutItem, tx []byte) (string, error) {
+	return "", nil
 }
 
 func (b *MockChainClient) GetAddress(poolPubKey common.PubKey) string {
