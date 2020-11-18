@@ -64,7 +64,7 @@ func (h TssHandler) validateV1(ctx cosmos.Context, msg MsgTssPool) error {
 	for _, keygen := range keygenBlock.Keygens {
 		for _, member := range keygen.Members {
 			addr, err := member.GetThorAddress()
-			if addr.Equals(msg.Signer) && err == nil {
+			if err == nil && addr.Equals(msg.Signer) {
 				return nil
 			}
 		}
@@ -86,7 +86,17 @@ func (h TssHandler) handleV1(ctx cosmos.Context, msg MsgTssPool, version semver.
 	if !msg.Blame.IsEmpty() {
 		ctx.Logger().Error(msg.Blame.String())
 	}
-
+	// only record TSS metric when keygen is success
+	if msg.IsSuccess() && !msg.PoolPubKey.IsEmpty() {
+		metric, err := h.keeper.GetTssKeygenMetric(ctx, msg.PoolPubKey)
+		if err != nil {
+			ctx.Logger().Error("fail to get keygen metric", "error", err)
+		} else {
+			ctx.Logger().Info("save keygen metric to db")
+			metric.AddNodeTssTime(msg.Signer, msg.KeygenTime)
+			h.keeper.SetTssKeygenMetric(ctx, metric)
+		}
+	}
 	voter, err := h.keeper.GetTssVoter(ctx, msg.ID)
 	if err != nil {
 		return nil, fmt.Errorf("fail to get tss voter: %w", err)
@@ -137,6 +147,19 @@ func (h TssHandler) handleV1(ctx cosmos.Context, msg MsgTssPool, version semver.
 			}
 			if err := h.mgr.VaultMgr().RotateVault(ctx, vault); err != nil {
 				return nil, fmt.Errorf("fail to rotate vault: %w", err)
+			}
+			metric, err := h.keeper.GetTssKeygenMetric(ctx, msg.PoolPubKey)
+			if err != nil {
+				ctx.Logger().Error("fail to get keygen metric", "error", err)
+			} else {
+				var total int64
+				for _, item := range metric.NodeTssTimes {
+					total += item.TssTime
+				}
+				evt := NewEventTssKeygenMetric(metric.PubKey, metric.GetMedianTime())
+				if err := h.mgr.EventMgr().EmitEvent(ctx, evt); err != nil {
+					ctx.Logger().Error("fail to emit tss metric event", "error", err)
+				}
 			}
 		} else {
 			// if a node fail to join the keygen, thus hold off the network

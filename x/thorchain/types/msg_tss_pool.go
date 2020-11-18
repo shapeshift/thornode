@@ -23,10 +23,11 @@ type MsgTssPool struct {
 	Blame      blame.Blame       `json:"blame"`
 	Chains     common.Chains     `json:"chains"`
 	Signer     cosmos.AccAddress `json:"signer"`
+	KeygenTime int64             `json:"keygen_time"` // keygen time in ms
 }
 
 // NewMsgTssPool is a constructor function for MsgTssPool
-func NewMsgTssPool(pks common.PubKeys, poolpk common.PubKey, KeygenType KeygenType, height int64, bl blame.Blame, chains common.Chains, signer cosmos.AccAddress) MsgTssPool {
+func NewMsgTssPool(pks common.PubKeys, poolpk common.PubKey, KeygenType KeygenType, height int64, bl blame.Blame, chains common.Chains, signer cosmos.AccAddress, keygenTime int64) MsgTssPool {
 	return MsgTssPool{
 		ID:         getTssID(pks, poolpk, height, bl),
 		PubKeys:    pks,
@@ -36,6 +37,7 @@ func NewMsgTssPool(pks common.PubKeys, poolpk common.PubKey, KeygenType KeygenTy
 		Blame:      bl,
 		Chains:     chains,
 		Signer:     signer,
+		KeygenTime: keygenTime,
 	}
 }
 

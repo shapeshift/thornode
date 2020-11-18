@@ -461,11 +461,11 @@ func (b *Binance) GetAccountByAddress(address string) (common.Account, error) {
 }
 
 // broadcastTx is to broadcast the tx to binance chain
-func (b *Binance) BroadcastTx(tx stypes.TxOutItem, hexTx []byte) error {
+func (b *Binance) BroadcastTx(tx stypes.TxOutItem, hexTx []byte) (string, error) {
 	u, err := url.Parse(b.cfg.RPCHost)
 	if err != nil {
 		log.Error().Msgf("Error parsing rpc (%s): %s", b.cfg.RPCHost, err)
-		return err
+		return "", err
 	}
 	u.Path = "broadcast_tx_commit"
 	values := u.Query()
@@ -473,12 +473,12 @@ func (b *Binance) BroadcastTx(tx stypes.TxOutItem, hexTx []byte) error {
 	u.RawQuery = values.Encode()
 	resp, err := http.Post(u.String(), "", nil)
 	if err != nil {
-		return fmt.Errorf("fail to broadcast tx to binance chain: %w", err)
+		return "", fmt.Errorf("fail to broadcast tx to binance chain: %w", err)
 	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return fmt.Errorf("fail to read response body: %w", err)
+		return "", fmt.Errorf("fail to read response body: %w", err)
 	}
 
 	// NOTE: we can actually see two different json responses for the same end.
@@ -492,7 +492,7 @@ func (b *Binance) BroadcastTx(tx stypes.TxOutItem, hexTx []byte) error {
 	err = b.cdc.UnmarshalJSON(body, &commit)
 	if err != nil {
 		b.logger.Error().Err(err).Msgf("fail unmarshal commit: %s", string(body))
-		return fmt.Errorf("fail to unmarshal commit: %w", err)
+		return "", fmt.Errorf("fail to unmarshal commit: %w", err)
 	}
 	// check for any failure logs
 	// Error code 4 is used for bad account sequence number. We expect to
@@ -506,20 +506,20 @@ func (b *Binance) BroadcastTx(tx stypes.TxOutItem, hexTx []byte) error {
 		err := errors.New(checkTx.Log)
 		b.logger.Info().Str("body", string(body)).Msg("broadcast response from Binance Chain")
 		b.logger.Error().Err(err).Msg("fail to broadcast")
-		return fmt.Errorf("fail to broadcast: %w", err)
+		return "", fmt.Errorf("fail to broadcast: %w", err)
 	}
 
 	deliverTx := commit.Result.DeliverTx
 	if deliverTx.Code > 0 {
 		err := errors.New(deliverTx.Log)
 		b.logger.Error().Err(err).Msg("fail to broadcast")
-		return fmt.Errorf("fail to broadcast: %w", err)
+		return "", fmt.Errorf("fail to broadcast: %w", err)
 	}
 
 	// increment sequence number
 	b.accts.SeqInc(tx.VaultPubKey)
 
-	return nil
+	return commit.Result.Hash.String(), nil
 }
 
 // ConfirmationCountReady binance chain has almost instant finality , so doesn't need to wait for confirmation

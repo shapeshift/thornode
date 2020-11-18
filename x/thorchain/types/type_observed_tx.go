@@ -24,6 +24,7 @@ type ObservedTx struct {
 	BlockHeight    int64               `json:"block_height"`
 	Signers        []cosmos.AccAddress `json:"signers"` // node keys of node account saw this tx
 	ObservedPubKey common.PubKey       `json:"observed_pub_key"`
+	KeysignMs      int64               `json:"keysign_ms"` // this field is optional
 }
 
 // ObservedTxs a list of ObservedTx

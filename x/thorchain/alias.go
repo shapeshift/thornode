@@ -91,6 +91,8 @@ var (
 	NewEventErrata                 = types.NewEventErrata
 	NewEventFee                    = types.NewEventFee
 	NewEventOutbound               = types.NewEventOutbound
+	NewEventTssKeygenMetric        = types.NewEventTssKeygenMetric
+	NewEventTssKeysignMetric       = types.NewEventTssKeysignMetric
 	NewPoolMod                     = types.NewPoolMod
 	NewMsgRefundTx                 = types.NewMsgRefundTx
 	NewMsgOutboundTx               = types.NewMsgOutboundTx
@@ -132,6 +134,7 @@ var (
 	GetRandomPubKeySet             = types.GetRandomPubKeySet
 	SetupConfigForTest             = types.SetupConfigForTest
 	HasSimpleMajority              = types.HasSimpleMajority
+	NewTssKeysignMetric            = types.NewTssKeysignMetric
 
 	// Memo
 	ParseMemo          = mem.ParseMemo

@@ -161,6 +161,11 @@ type KeeperTss interface {
 	SetTssVoter(_ cosmos.Context, tss TssVoter)
 	GetTssVoterIterator(_ cosmos.Context) cosmos.Iterator
 	GetTssVoter(_ cosmos.Context, _ string) (TssVoter, error)
+	SetTssKeygenMetric(_ cosmos.Context, metric *TssKeygenMetric)
+	GetTssKeygenMetric(_ cosmos.Context, key common.PubKey) (*TssKeygenMetric, error)
+	SetTssKeysignMetric(_ cosmos.Context, metric *TssKeysignMetric)
+	GetTssKeysignMetric(_ cosmos.Context, txID common.TxID) (*TssKeysignMetric, error)
+	GetLatestTssKeysignMetric(_ cosmos.Context) (*TssKeysignMetric, error)
 }
 
 type KeeperTssKeysignFail interface {
