@@ -42,7 +42,7 @@
                 ]
             }
         },
-        "/thorchain/pool/{ticker}": {
+        "/thorchain/pool/{asset}": {
             "get": {
                 "responses": {
                     "200": {
@@ -52,7 +52,7 @@
                             "application/json": {
                                 "balance_rune": "",
                                 "balance_asset": "",
-                                "ticker": "",
+                                "asset": "",
                                 "pool_units": "",
                                 "status": ""
                             }
@@ -69,9 +69,9 @@
                                     "type": "string",
                                     "description": "Amount of asset the pool has"
                                 },
-                                "ticker": {
+                                "asset": {
                                     "type": "string",
-                                    "description": "the ticker of the non-rune asset"
+                                    "description": "the asset of the non-rune asset"
                                 },
                                 "pool_units": {
                                     "type": "string",
@@ -86,15 +86,15 @@
                     }
                 },
                 "summary": "Get a pool",
-                "description": "Retrieve a liquidity pool with the given ticker",
+                "description": "Retrieve a liquidity pool with the given asset",
                 "tags": [
                     "Pools"
                 ],
                 "parameters": [
                     {
-                        "name": "ticker",
+                        "name": "asset",
                         "in": "path",
-                        "description": "The ticker of the pool",
+                        "description": "The asset of the pool",
                         "required": true,
                         "type": "string"
                     }
@@ -115,7 +115,7 @@
                                 {
                                     "balance_rune": "",
                                     "balance_asset": "",
-                                    "ticker": "",
+                                    "asset": "",
                                     "pool_units": "",
                                     "status": ""
                                 }
@@ -138,7 +138,7 @@
                 ]
             }
         },
-        "/thorchain/pool/{ticker}/liquidity_providers": {
+        "/thorchain/pool/{asset}/liquidity_providers": {
             "get": {
                 "responses": {
                     "200": {
@@ -170,9 +170,9 @@
                 ],
                 "parameters": [
                     {
-                        "name": "ticker",
+                        "name": "asset",
                         "in": "path",
-                        "description": "The ticker of the pool",
+                        "description": "The asset of the pool",
                         "required": true,
                         "type": "string"
                     }
@@ -970,8 +970,8 @@
                             "application/json": [
                                 {
                                     "chain": "BNB",
-                                    "lastobservedin": "1590",
-                                    "lastsignedout": "109",
+                                    "last_observed_in": "1590",
+                                    "last_signed_out": "109",
                                     "thorchain": "1548"
                                 }
                             ]
@@ -1238,7 +1238,7 @@
                                         },
                                         "tx_array": {
                                             "type": "array",
-                                            "description": "list of tx out"
+                                            "description": "list of tx out items"
                                         }
                                     }
                                 },
@@ -1289,7 +1289,7 @@
                 "balance_asset": {
                     "type": "string"
                 },
-                "ticker": {
+                "asset": {
                     "type": "string"
                 },
                 "pool_units": {
@@ -1520,10 +1520,10 @@
                 "chain": {
                     "type": "string"
                 },
-                "lastobservedin": {
+                "last_observed_in": {
                     "type": "string"
                 },
-                "lastsignout": {
+                "last_sign_out": {
                     "type": "string"
                 },
                 "thorchain": {
