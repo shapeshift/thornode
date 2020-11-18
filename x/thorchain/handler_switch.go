@@ -1,7 +1,6 @@
 package thorchain
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/blang/semver"
@@ -85,78 +84,15 @@ func (h SwitchHandler) handleV1(ctx cosmos.Context, msg MsgSwitch, version semve
 		return nil, fmt.Errorf("mimir has halted THORChain transactions")
 	}
 
-	if msg.Tx.Coins[0].IsNative() {
-		return h.toBEP2(ctx, msg, constAccessor)
+	if !msg.Tx.Coins[0].IsNative() && msg.Tx.Coins[0].Asset.IsRune() {
+		return h.toNative(ctx, msg)
 	}
 
-	return h.toNative(ctx, msg)
-}
-
-func (h SwitchHandler) toBEP2(ctx cosmos.Context, msg MsgSwitch, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
-	bank := h.keeper.CoinKeeper()
-
-	vaultData, err := h.keeper.GetVaultData(ctx)
-	if err != nil {
-		return nil, ErrInternal(err, "fail to get vault data")
-	}
-	coin, err := common.NewCoin(common.RuneNative, msg.Tx.Coins[0].Amount).Native()
-	if err != nil {
-		return nil, ErrInternal(err, "fail to get native coin")
-	}
-
-	// ensure we have enough BEP2 rune assets to fulfill the request
-	if vaultData.TotalBEP2Rune.LT(msg.Tx.Coins[0].Amount) {
-		return nil, ErrInternal(err, "not enough funds in the vault")
-	}
-
-	addr, err := cosmos.AccAddressFromBech32(msg.Tx.FromAddress.String())
-	if err != nil {
-		return nil, ErrInternal(err, "fail to parse thor address")
-	}
-
-	// add gas fee
-	nativeChainGasFee := constAccessor.GetInt64Value(constants.NativeChainGasFee)
-	coin.Amount.AddRaw(nativeChainGasFee)
-
-	if !bank.HasCoins(ctx, addr, cosmos.NewCoins(coin)) {
-		return nil, ErrInternal(err, "insufficient funds")
-	}
-	if _, err := bank.SubtractCoins(ctx, addr, cosmos.NewCoins(coin)); err != nil {
-		return nil, ErrInternal(err, "fail to burn native rune coins")
-	}
-
-	vaultData.TotalBEP2Rune = common.SafeSub(vaultData.TotalBEP2Rune, msg.Tx.Coins[0].Amount)
-
-	toi := &TxOutItem{
-		Chain:     common.BNBChain, // BEP2 RUNE is always on binance chain
-		InHash:    msg.Tx.ID,
-		ToAddress: msg.Destination,
-		Coin:      common.NewCoin(common.BEP2RuneAsset(), msg.Tx.Coins[0].Amount),
-	}
-	ok, err := h.mgr.TxOutStore().TryAddTxOutItem(ctx, h.mgr, toi)
-	if err != nil {
-		if !errors.Is(err, ErrNotEnoughToPayFee) {
-			return nil, ErrInternal(err, "fail to add outbound tx")
-		}
-		ok = true
-	}
-	if !ok {
-		return nil, errFailAddOutboundTx
-	}
-
-	if err := h.keeper.SetVaultData(ctx, vaultData); err != nil {
-		return nil, ErrInternal(err, "fail to set vault data")
-	}
-	return &cosmos.Result{}, nil
+	return nil, fmt.Errorf("only non-native rune can be 'switched' to native rune")
 }
 
 func (h SwitchHandler) toNative(ctx cosmos.Context, msg MsgSwitch) (*cosmos.Result, error) {
 	bank := h.keeper.CoinKeeper()
-
-	vaultData, err := h.keeper.GetVaultData(ctx)
-	if err != nil {
-		return nil, ErrInternal(err, "fail to get vault data")
-	}
 
 	coin, err := common.NewCoin(common.RuneNative, msg.Tx.Coins[0].Amount).Native()
 	if err != nil {
@@ -169,11 +105,6 @@ func (h SwitchHandler) toNative(ctx cosmos.Context, msg MsgSwitch) (*cosmos.Resu
 	}
 	if _, err := bank.AddCoins(ctx, addr, cosmos.NewCoins(coin)); err != nil {
 		return nil, ErrInternal(err, "fail to mint native rune coins")
-	}
-	vaultData.TotalBEP2Rune = vaultData.TotalBEP2Rune.Add(msg.Tx.Coins[0].Amount)
-
-	if err := h.keeper.SetVaultData(ctx, vaultData); err != nil {
-		return nil, ErrInternal(err, "fail to set vault data")
 	}
 	return &cosmos.Result{}, nil
 }
