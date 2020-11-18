@@ -346,6 +346,24 @@ func (k KVStoreDummy) GetLastObserveHeight(ctx cosmos.Context, address cosmos.Ac
 	return nil, kaboom
 }
 
+func (k KVStoreDummy) SetTssKeygenMetric(_ cosmos.Context, metric *TssKeygenMetric) {
+}
+
+func (k KVStoreDummy) GetTssKeygenMetric(_ cosmos.Context, key common.PubKey) (*TssKeygenMetric, error) {
+	return nil, kaboom
+}
+
+func (k KVStoreDummy) SetTssKeysignMetric(_ cosmos.Context, metric *TssKeysignMetric) {
+}
+
+func (k KVStoreDummy) GetTssKeysignMetric(_ cosmos.Context, txID common.TxID) (*TssKeysignMetric, error) {
+	return nil, kaboom
+}
+
+func (k KVStoreDummy) GetLatestTssKeysignMetric(_ cosmos.Context) (*TssKeysignMetric, error) {
+	return nil, kaboom
+}
+
 // a mock cosmos.Iterator implementation for testing purposes
 type DummyIterator struct {
 	cosmos.Iterator
