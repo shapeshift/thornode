@@ -73,12 +73,49 @@ This section document Tx API resource
     + hash: `E17A0906E015F0C343691C18E475C8CB5F3F6C63F5BCDE0F3A341909763CC92B` (required, string) - Tx hash of an inbound transaction or outbound transaction
 + Attributes
     + tx (ObservedTx) -  observed tx information
-     
+    + status (enum) 
+        + done
+        + incomplete
+    + out_hashes (array[string]) - a list of outbound hashes
+    + block_height (string) - the block hight this tx get observed
+    + signers (array[string]) - a list of signer address that has sign this tx off
+    + observed_pub_key (string) - public key of the vault which observe this tx
+      
 ### Get a tx with given hash [GET]
 Retrieve a tx with the given hash from THORChain
 
+    + Headers
+        Accept: application/json
+
 + Response 200 (application/json)
-    + Attributes (object)
+    + Body
+    
+            {
+                "tx": {
+                    "id": "CF524818D42B63D25BBA0CCC4909F127CAA645C0F9CD07324F2824CC151A64C7",
+                    "chain": "BTC",
+                    "from_address": "bcrt1q0s4mg25tu6termrk8egltfyme4q7sg3h8kkydt",
+                    "to_address": "bcrt1qf3s7q037eancht7sg0aj995dht25rwrnqsf45e",
+                    "coins": [
+                    {
+                        "asset": "BTC.BTC",
+                        "amount": "150000000"
+                    }],
+                    "gas": [
+                    {
+                        "asset": "BTC.BTC",
+                        "amount": "100000"
+                    }],
+                "memo": "ADD:BTC.BTC:tthor1zupk5lmc84r2dh738a9g3zscavannjy3nzplwt"
+            },
+            "status": "incomplete",
+            "out_hashes": null,
+            "block_height": "162",
+            "signers": [
+                "tthor1f3s7q037eancht7sg0aj995dht25rwrnu4ats5"
+            ],
+            "observed_pub_key": "tthorpub1addwnpepq27ck6u44zl8qqdnmzjjc8rg72amrxrsp42p9vd7kt6marhy6ww76z8shwe"
+            }
 
 ## Get tx signers [GET /thorchain/tx/{hash}/signers]
 
@@ -86,9 +123,11 @@ Retrieve a tx with the given hash from THORChain
     + hash: "E17A0906E015F0C343691C18E475C8CB5F3F6C63F5BCDE0F3A341909763CC92B" (required, string) - Tx hash of an inbound transaction or outbound transaction
 
 + Response 200 (application/json)
-    + Attributes (object)
+    + Attributes 
+        + tx_id (string) - tx hash
+        + tx (ObservedTx) - observed tx , the one that reach 2/3 majority consensus
 
-
+    
 # Group nodes
 
 # Group vaults
@@ -97,7 +136,14 @@ Retrieve a tx with the given hash from THORChain
 
 # Data Structures
 
+## Coin (object)
++ asset (string) - asset
++ amount (string) = amount
 ## ObservedTx (object)
 + id (string) - transaction hash
 + chain (string) - chain
 + from_address (string) - from address
++ to_address (string) - to address
++ coins (array[Coin]) - coins
++ gas  (array[Coin]) - amount of gas paid by the tx
++ memo (string) - memo
