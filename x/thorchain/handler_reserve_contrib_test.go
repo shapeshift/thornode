@@ -21,8 +21,8 @@ type reserveContributorKeeper struct {
 	keeper.Keeper
 	errGetReserveContributors bool
 	errSetReserveContributors bool
-	errGetVaultData           bool
-	errSetVaultData           bool
+	errGetNetwork             bool
+	errSetNetwork             bool
 }
 
 func newReserveContributorKeeper(k keeper.Keeper) *reserveContributorKeeper {
@@ -45,18 +45,18 @@ func (k *reserveContributorKeeper) SetReserveContributors(ctx cosmos.Context, co
 	return k.Keeper.SetReserveContributors(ctx, contributors)
 }
 
-func (k *reserveContributorKeeper) GetVaultData(ctx cosmos.Context) (VaultData, error) {
-	if k.errGetVaultData {
-		return VaultData{}, kaboom
+func (k *reserveContributorKeeper) GetNetwork(ctx cosmos.Context) (Network, error) {
+	if k.errGetNetwork {
+		return Network{}, kaboom
 	}
-	return k.Keeper.GetVaultData(ctx)
+	return k.Keeper.GetNetwork(ctx)
 }
 
-func (k *reserveContributorKeeper) SetVaultData(ctx cosmos.Context, data VaultData) error {
-	if k.errSetVaultData {
+func (k *reserveContributorKeeper) SetNetwork(ctx cosmos.Context, data Network) error {
+	if k.errSetNetwork {
 		return kaboom
 	}
-	return k.Keeper.SetVaultData(ctx, data)
+	return k.Keeper.SetNetwork(ctx, data)
 }
 
 type reserveContributorHandlerHelper struct {
@@ -194,23 +194,23 @@ func (h HandlerReserveContributorSuite) TestReserveContributorHandler(c *C) {
 			expectedResult: errInternal,
 		},
 		{
-			name: "fail to get vault data should return an error",
+			name: "fail to get network data should return an error",
 			messageCreator: func(helper reserveContributorHandlerHelper) cosmos.Msg {
 				return NewMsgReserveContributor(GetRandomTx(), helper.reserveContributor, helper.nodeAccount.NodeAddress)
 			},
 			runner: func(handler ReserveContributorHandler, helper reserveContributorHandlerHelper, msg cosmos.Msg) (*cosmos.Result, error) {
-				helper.keeper.errGetVaultData = true
+				helper.keeper.errGetNetwork = true
 				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
 			},
 			expectedResult: errInternal,
 		},
 		{
-			name: "fail to set vault data should return an error",
+			name: "fail to set network data should return an error",
 			messageCreator: func(helper reserveContributorHandlerHelper) cosmos.Msg {
 				return NewMsgReserveContributor(GetRandomTx(), helper.reserveContributor, helper.nodeAccount.NodeAddress)
 			},
 			runner: func(handler ReserveContributorHandler, helper reserveContributorHandlerHelper, msg cosmos.Msg) (*cosmos.Result, error) {
-				helper.keeper.errSetVaultData = true
+				helper.keeper.errSetNetwork = true
 				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
 			},
 			expectedResult: errInternal,

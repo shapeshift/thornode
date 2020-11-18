@@ -55,7 +55,7 @@ type (
 	NodeAccount              = types.NodeAccount
 	NodeAccounts             = types.NodeAccounts
 	NodeStatus               = types.NodeStatus
-	VaultData                = types.VaultData
+	Network                  = types.Network
 	VaultStatus              = types.VaultStatus
 	TxMarker                 = types.TxMarker
 	TxMarkers                = types.TxMarkers

@@ -264,8 +264,8 @@ func (k KVStoreDummy) SetReserveContributors(_ cosmos.Context, _ ReserveContribu
 
 func (k KVStoreDummy) HasValidVaultPools(_ cosmos.Context) (bool, error)     { return false, kaboom }
 func (k KVStoreDummy) AddFeeToReserve(_ cosmos.Context, _ cosmos.Uint) error { return kaboom }
-func (k KVStoreDummy) GetVaultData(_ cosmos.Context) (VaultData, error)      { return VaultData{}, kaboom }
-func (k KVStoreDummy) SetVaultData(_ cosmos.Context, _ VaultData) error      { return kaboom }
+func (k KVStoreDummy) GetNetwork(_ cosmos.Context) (Network, error)          { return Network{}, kaboom }
+func (k KVStoreDummy) SetNetwork(_ cosmos.Context, _ Network) error          { return kaboom }
 
 func (k KVStoreDummy) SetTssKeysignFailVoter(_ cosmos.Context, tss TssKeysignFailVoter) {
 }

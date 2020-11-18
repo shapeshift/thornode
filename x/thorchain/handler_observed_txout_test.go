@@ -125,11 +125,11 @@ func (k *TestObservedTxOutHandleKeeper) SetVault(_ cosmos.Context, ygg Vault) er
 	return nil
 }
 
-func (k *TestObservedTxOutHandleKeeper) GetVaultData(_ cosmos.Context) (VaultData, error) {
-	return NewVaultData(), nil
+func (k *TestObservedTxOutHandleKeeper) GetNetwork(_ cosmos.Context) (Network, error) {
+	return NewNetwork(), nil
 }
 
-func (k *TestObservedTxOutHandleKeeper) SetVaultData(_ cosmos.Context, _ VaultData) error {
+func (k *TestObservedTxOutHandleKeeper) SetNetwork(_ cosmos.Context, _ Network) error {
 	return nil
 }
 

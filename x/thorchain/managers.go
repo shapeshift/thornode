@@ -86,7 +86,7 @@ type VaultManager interface {
 	TriggerKeygen(ctx cosmos.Context, nas NodeAccounts) error
 	RotateVault(ctx cosmos.Context, vault Vault) error
 	EndBlock(ctx cosmos.Context, mgr Manager, constAccessor constants.ConstantValues) error
-	UpdateVaultData(ctx cosmos.Context, constAccessor constants.ConstantValues, gasManager GasManager, eventMgr EventManager) error
+	UpdateNetwork(ctx cosmos.Context, constAccessor constants.ConstantValues, gasManager GasManager, eventMgr EventManager) error
 }
 
 // SwapQueue interface define the contract of Swap Queue

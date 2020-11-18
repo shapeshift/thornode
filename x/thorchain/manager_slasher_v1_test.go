@@ -158,7 +158,7 @@ func (k *TestSlashObservingKeeper) SetNodeAccount(_ cosmos.Context, na NodeAccou
 type TestDoubleSlashKeeper struct {
 	keeper.KVStoreDummy
 	na          NodeAccount
-	vaultData   VaultData
+	network     Network
 	slashPoints map[string]int64
 	modules     map[string]int64
 }
@@ -178,12 +178,12 @@ func (k *TestDoubleSlashKeeper) SetNodeAccount(ctx cosmos.Context, na NodeAccoun
 	return nil
 }
 
-func (k *TestDoubleSlashKeeper) GetVaultData(ctx cosmos.Context) (VaultData, error) {
-	return k.vaultData, nil
+func (k *TestDoubleSlashKeeper) GetNetwork(ctx cosmos.Context) (Network, error) {
+	return k.network, nil
 }
 
-func (k *TestDoubleSlashKeeper) SetVaultData(ctx cosmos.Context, data VaultData) error {
-	k.vaultData = data
+func (k *TestDoubleSlashKeeper) SetNetwork(ctx cosmos.Context, data Network) error {
+	k.network = data
 	return nil
 }
 
@@ -485,9 +485,9 @@ func (s *SlashingV1Suite) TestDoubleSign(c *C) {
 	na.Bond = cosmos.NewUint(100 * common.One)
 
 	keeper := &TestDoubleSlashKeeper{
-		na:        na,
-		vaultData: NewVaultData(),
-		modules:   make(map[string]int64, 0),
+		na:      na,
+		network: NewNetwork(),
+		modules: make(map[string]int64, 0),
 	}
 	slasher := NewSlasherV1(keeper)
 
@@ -500,7 +500,7 @@ func (s *SlashingV1Suite) TestDoubleSign(c *C) {
 	if common.RuneAsset().Chain.Equals(common.THORChain) {
 		c.Check(keeper.modules[ReserveName], Equals, int64(5000000))
 	} else {
-		c.Check(keeper.vaultData.TotalReserve.Equal(cosmos.NewUint(5000000)), Equals, true)
+		c.Check(keeper.network.TotalReserve.Equal(cosmos.NewUint(5000000)), Equals, true)
 	}
 }
 
@@ -512,7 +512,7 @@ func (s *SlashingV1Suite) TestIncreaseDecreaseSlashPoints(c *C) {
 
 	keeper := &TestDoubleSlashKeeper{
 		na:          na,
-		vaultData:   NewVaultData(),
+		network:     NewNetwork(),
 		slashPoints: make(map[string]int64),
 	}
 	slasher := NewSlasherV1(keeper)

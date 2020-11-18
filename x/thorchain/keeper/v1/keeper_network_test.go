@@ -7,22 +7,22 @@ import (
 	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
-type KeeperVaultDataSuite struct{}
+type KeeperNetworkSuite struct{}
 
-var _ = Suite(&KeeperVaultDataSuite{})
+var _ = Suite(&KeeperNetworkSuite{})
 
-func (KeeperVaultDataSuite) TestVaultData(c *C) {
+func (KeeperNetworkSuite) TestNetwork(c *C) {
 	ctx, k := setupKeeperForTest(c)
-	vd, err := k.GetVaultData(ctx)
+	vd, err := k.GetNetwork(ctx)
 	c.Check(err, IsNil)
 	c.Check(vd.BondRewardRune.Equal(cosmos.ZeroUint()), Equals, true)
 
-	vd1 := NewVaultData()
+	vd1 := NewNetwork()
 	vd1.BondRewardRune = cosmos.NewUint(common.One * 100)
-	err1 := k.SetVaultData(ctx, vd1)
+	err1 := k.SetNetwork(ctx, vd1)
 	c.Assert(err1, IsNil)
 
-	vd2, err2 := k.GetVaultData(ctx)
+	vd2, err2 := k.GetNetwork(ctx)
 	c.Check(err2, IsNil)
 	c.Check(vd2.BondRewardRune.Equal(vd1.BondRewardRune), Equals, true)
 }

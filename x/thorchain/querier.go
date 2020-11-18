@@ -49,8 +49,8 @@ func NewQuerier(keeper keeper.Keeper, kbs KeybaseStore) cosmos.Querier {
 			return queryNodes(ctx, path[1:], req, keeper)
 		case q.QueryInboundAddresses.Key:
 			return queryInboundAddresses(ctx, path[1:], req, keeper)
-		case q.QueryNetworkData.Key:
-			return queryNetworkData(ctx, keeper)
+		case q.QueryNetwork.Key:
+			return queryNetwork(ctx, keeper)
 		case q.QueryBalanceModule.Key:
 			return queryBalanceModule(ctx, path[1:], keeper)
 		case q.QueryVaultsAsgard.Key:
@@ -288,8 +288,8 @@ func queryVaultsPubkeys(ctx cosmos.Context, keeper keeper.Keeper) ([]byte, error
 	return res, nil
 }
 
-func queryNetworkData(ctx cosmos.Context, keeper keeper.Keeper) ([]byte, error) {
-	data, err := keeper.GetVaultData(ctx)
+func queryNetwork(ctx cosmos.Context, keeper keeper.Keeper) ([]byte, error) {
+	data, err := keeper.GetNetwork(ctx)
 	if err != nil {
 		ctx.Logger().Error("fail to get vault", "error", err)
 		return nil, fmt.Errorf("fail to get vault: %w", err)
@@ -299,7 +299,7 @@ func queryNetworkData(ctx cosmos.Context, keeper keeper.Keeper) ([]byte, error) 
 
 	res, err := codec.MarshalJSONIndent(keeper.Cdc(), data)
 	if err != nil {
-		ctx.Logger().Error("fail to marshal vault data to json", "error", err)
+		ctx.Logger().Error("fail to marshal network data to json", "error", err)
 		return nil, fmt.Errorf("fail to marshal response to json: %w", err)
 	}
 	return res, nil
@@ -407,14 +407,14 @@ func queryNode(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper 
 	// CurrentAward is an estimation of reward for node in active status
 	// Node in other status should not have current reward
 	if nodeAcc.Status == NodeActive {
-		vaultData, err := keeper.GetVaultData(ctx)
+		network, err := keeper.GetNetwork(ctx)
 		if err != nil {
-			return nil, fmt.Errorf("fail to get vaultData: %w", err)
+			return nil, fmt.Errorf("fail to get network: %w", err)
 		}
 
 		// find number of blocks they were well behaved (ie active - slash points)
 		earnedBlocks := nodeAcc.CalcBondUnits(common.BlockHeight(ctx), slashPts)
-		result.CurrentAward = vaultData.CalcNodeRewards(earnedBlocks)
+		result.CurrentAward = network.CalcNodeRewards(earnedBlocks)
 	}
 
 	chainHeights, err := keeper.GetLastObserveHeight(ctx, addr)
@@ -472,9 +472,9 @@ func queryNodes(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper
 		return nil, fmt.Errorf("fail to get node accounts: %w", err)
 	}
 
-	vaultData, err := keeper.GetVaultData(ctx)
+	network, err := keeper.GetNetwork(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("fail to get vaultData: %w", err)
+		return nil, fmt.Errorf("fail to get network: %w", err)
 	}
 
 	result := make([]QueryNodeAccount, len(nodeAccounts))
@@ -489,7 +489,7 @@ func queryNodes(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper
 		result[i] = NewQueryNodeAccount(na)
 		result[i].SlashPoints = slashPts
 		if na.Status == NodeActive {
-			result[i].CurrentAward = vaultData.CalcNodeRewards(earnedBlocks)
+			result[i].CurrentAward = network.CalcNodeRewards(earnedBlocks)
 		}
 
 		jail, err := keeper.GetNodeAccountJail(ctx, na.NodeAddress)
