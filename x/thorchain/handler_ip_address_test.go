@@ -32,11 +32,11 @@ func (k *TestIPAddresslKeeper) SetNodeAccount(_ cosmos.Context, na NodeAccount) 
 	return nil
 }
 
-func (k *TestIPAddresslKeeper) GetVaultData(ctx cosmos.Context) (VaultData, error) {
-	return NewVaultData(), nil
+func (k *TestIPAddresslKeeper) GetNetwork(ctx cosmos.Context) (Network, error) {
+	return NewNetwork(), nil
 }
 
-func (k *TestIPAddresslKeeper) SetVaultData(ctx cosmos.Context, data VaultData) error {
+func (k *TestIPAddresslKeeper) SetNetwork(ctx cosmos.Context, data Network) error {
 	return nil
 }
 

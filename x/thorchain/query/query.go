@@ -47,7 +47,7 @@ var (
 	QueryNodes              = Query{Key: "nodes", EndpointTemplate: "/%s/nodes"}
 	QueryNode               = Query{Key: "node", EndpointTemplate: "/%s/node/{%s}"}
 	QueryInboundAddresses   = Query{Key: "inboundaddresses", EndpointTemplate: "/%s/inbound_addresses"}
-	QueryNetworkData        = Query{Key: "networkdata", EndpointTemplate: "/%s/network"}
+	QueryNetwork            = Query{Key: "network", EndpointTemplate: "/%s/network"}
 	QueryBalanceModule      = Query{Key: "balancemodule", EndpointTemplate: "/%s/balance/module/{%s}"}
 	QueryVaultsAsgard       = Query{Key: "vaultsasgard", EndpointTemplate: "/%s/vaults/asgard"}
 	QueryVaultsYggdrasil    = Query{Key: "vaultsyggdrasil", EndpointTemplate: "/%s/vaults/yggdrasil"}
@@ -79,7 +79,7 @@ var Queries = []Query{
 	QueryNode,
 	QueryNodes,
 	QueryInboundAddresses,
-	QueryNetworkData,
+	QueryNetwork,
 	QueryBalanceModule,
 	QueryVaultsAsgard,
 	QueryVaultsYggdrasil,

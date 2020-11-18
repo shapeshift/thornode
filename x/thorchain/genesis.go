@@ -26,7 +26,7 @@ type GenesisState struct {
 	LastSignedHeight     int64                     `json:"last_signed_height"`
 	LastChainHeights     map[string]int64          `json:"last_chain_heights"`
 	ReserveContributors  ReserveContributors       `json:"reserve_contributors"`
-	VaultData            VaultData                 `json:"vault_data"`
+	Network              Network                   `json:"network"`
 	TssVoters            []TssVoter                `json:"tss_voters"`
 	TssKeysignFailVoters []TssKeysignFailVoter     `json:"tss_keysign_fail_voters"`
 	KeygenBlocks         []KeygenBlock             `json:"keygen_blocks"`
@@ -135,7 +135,7 @@ func DefaultGenesisState() GenesisState {
 		LastSignedHeight:     0,
 		LastChainHeights:     make(map[string]int64),
 		ReserveContributors:  ReserveContributors{},
-		VaultData:            NewVaultData(),
+		Network:              NewNetwork(),
 		TssVoters:            make([]TssVoter, 0),
 		TssKeysignFailVoters: make([]TssKeysignFailVoter, 0),
 		KeygenBlocks:         make([]KeygenBlock, 0),
@@ -225,7 +225,7 @@ func InitGenesis(ctx cosmos.Context, keeper keeper.Keeper, data GenesisState) []
 			panic(err)
 		}
 	}
-	if err := keeper.SetVaultData(ctx, data.VaultData); err != nil {
+	if err := keeper.SetNetwork(ctx, data.Network); err != nil {
 		panic(err)
 	}
 
@@ -406,7 +406,7 @@ func ExportGenesis(ctx cosmos.Context, k keeper.Keeper) GenesisState {
 		panic(err)
 	}
 
-	vaultData, err := k.GetVaultData(ctx)
+	network, err := k.GetNetwork(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -498,7 +498,7 @@ func ExportGenesis(ctx cosmos.Context, k keeper.Keeper) GenesisState {
 		LastSignedHeight:     lastSignedHeight,
 		LastChainHeights:     lastChainHeights,
 		ReserveContributors:  reserveContributors,
-		VaultData:            vaultData,
+		Network:              network,
 		TssVoters:            tssVoters,
 		TssKeysignFailVoters: tssKeySignFailVoters,
 		KeygenBlocks:         keygenBlocks,

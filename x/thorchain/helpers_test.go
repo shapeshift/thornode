@@ -305,11 +305,11 @@ func (s *HelperSuite) TestEnableNextPool(c *C) {
 
 type addGasFeesKeeperHelper struct {
 	keeper.Keeper
-	errGetVaultData bool
-	errSetVaultData bool
-	errGetPool      bool
-	errSetPool      bool
-	errSetEvent     bool
+	errGetNetwork bool
+	errSetNetwork bool
+	errGetPool    bool
+	errSetPool    bool
+	errSetEvent   bool
 }
 
 func newAddGasFeesKeeperHelper(keeper keeper.Keeper) *addGasFeesKeeperHelper {
@@ -318,18 +318,18 @@ func newAddGasFeesKeeperHelper(keeper keeper.Keeper) *addGasFeesKeeperHelper {
 	}
 }
 
-func (h *addGasFeesKeeperHelper) GetVaultData(ctx cosmos.Context) (VaultData, error) {
-	if h.errGetVaultData {
-		return VaultData{}, kaboom
+func (h *addGasFeesKeeperHelper) GetNetwork(ctx cosmos.Context) (Network, error) {
+	if h.errGetNetwork {
+		return Network{}, kaboom
 	}
-	return h.Keeper.GetVaultData(ctx)
+	return h.Keeper.GetNetwork(ctx)
 }
 
-func (h *addGasFeesKeeperHelper) SetVaultData(ctx cosmos.Context, data VaultData) error {
-	if h.errSetVaultData {
+func (h *addGasFeesKeeperHelper) SetNetwork(ctx cosmos.Context, data Network) error {
+	if h.errSetNetwork {
 		return kaboom
 	}
-	return h.Keeper.SetVaultData(ctx, data)
+	return h.Keeper.SetNetwork(ctx, data)
 }
 
 func (h *addGasFeesKeeperHelper) SetPool(ctx cosmos.Context, pool Pool) error {

@@ -183,9 +183,9 @@ func (am AppModule) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.V
 
 	am.mgr.ObMgr().EndBlock(ctx, am.keeper)
 
-	// update vault data to account for block rewards and reward units
-	if err := am.mgr.VaultMgr().UpdateVaultData(ctx, constantValues, am.mgr.GasMgr(), am.mgr.EventMgr()); err != nil {
-		ctx.Logger().Error("fail to update vault data", "error", err)
+	// update network data to account for block rewards and reward units
+	if err := am.mgr.VaultMgr().UpdateNetwork(ctx, constantValues, am.mgr.GasMgr(), am.mgr.EventMgr()); err != nil {
+		ctx.Logger().Error("fail to update network data", "error", err)
 	}
 
 	if err := am.mgr.VaultMgr().EndBlock(ctx, am.mgr, constantValues); err != nil {

@@ -391,7 +391,7 @@ func (vm *validatorMgrV1) payNodeAccountBondAward(ctx cosmos.Context, na NodeAcc
 	}
 	// The node account seems to have become a non active node account.
 	// Therefore, lets give them their bond rewards.
-	vault, err := vm.k.GetVaultData(ctx)
+	vault, err := vm.k.GetNetwork(ctx)
 	if err != nil {
 		return fmt.Errorf("fail to get vault: %w", err)
 	}
@@ -422,8 +422,8 @@ func (vm *validatorMgrV1) payNodeAccountBondAward(ctx cosmos.Context, na NodeAcc
 		cosmos.NewUint(uint64(totalActiveBlocks)),
 	)
 
-	if err := vm.k.SetVaultData(ctx, vault); err != nil {
-		return fmt.Errorf("fail to save vault data: %w", err)
+	if err := vm.k.SetNetwork(ctx, vault); err != nil {
+		return fmt.Errorf("fail to save network data: %w", err)
 	}
 	na.ActiveBlockHeight = 0
 	return vm.k.SetNodeAccount(ctx, na)

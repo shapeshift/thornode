@@ -274,7 +274,7 @@ func (s *VaultManagerV1TestSuite) TestRagnarokChain(c *C) {
 	helper.failGetActiveAsgardVault = false
 }
 
-func (s *VaultManagerV1TestSuite) TestUpdateVaultData(c *C) {
+func (s *VaultManagerV1TestSuite) TestUpdateNetwork(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	ver := constants.SWVersion
 	constAccessor := constants.GetConstantValues(ver)
@@ -283,22 +283,22 @@ func (s *VaultManagerV1TestSuite) TestUpdateVaultData(c *C) {
 	mgr.BeginBlock(ctx)
 	vaultMgr := NewVaultMgrV1(helper, mgr.TxOutStore(), mgr.EventMgr())
 
-	// fail to get VaultData should return error
-	helper.failGetVaultData = true
-	c.Assert(vaultMgr.UpdateVaultData(ctx, constAccessor, mgr.gasMgr, mgr.eventMgr), NotNil)
-	helper.failGetVaultData = false
+	// fail to get Network should return error
+	helper.failGetNetwork = true
+	c.Assert(vaultMgr.UpdateNetwork(ctx, constAccessor, mgr.gasMgr, mgr.eventMgr), NotNil)
+	helper.failGetNetwork = false
 
 	// TotalReserve is zero , should not doing anything
-	vd := NewVaultData()
-	err := k.SetVaultData(ctx, vd)
+	vd := NewNetwork()
+	err := k.SetNetwork(ctx, vd)
 	c.Assert(err, IsNil)
-	c.Assert(vaultMgr.UpdateVaultData(ctx, constAccessor, mgr.GasMgr(), mgr.EventMgr()), IsNil)
+	c.Assert(vaultMgr.UpdateNetwork(ctx, constAccessor, mgr.GasMgr(), mgr.EventMgr()), IsNil)
 
 	// total provided liquidity is zero , should not doing anything
 	vd.TotalReserve = cosmos.NewUint(common.One * 100)
-	err = k.SetVaultData(ctx, vd)
+	err = k.SetNetwork(ctx, vd)
 	c.Assert(err, IsNil)
-	c.Assert(vaultMgr.UpdateVaultData(ctx, constAccessor, mgr.GasMgr(), mgr.EventMgr()), IsNil)
+	c.Assert(vaultMgr.UpdateNetwork(ctx, constAccessor, mgr.GasMgr(), mgr.EventMgr()), IsNil)
 
 	p := NewPool()
 	p.Asset = common.BNBAsset
@@ -307,27 +307,27 @@ func (s *VaultManagerV1TestSuite) TestUpdateVaultData(c *C) {
 	p.Status = PoolEnabled
 	c.Assert(helper.SetPool(ctx, p), IsNil)
 	// no active node , thus no bond
-	c.Assert(vaultMgr.UpdateVaultData(ctx, constAccessor, mgr.GasMgr(), mgr.EventMgr()), IsNil)
+	c.Assert(vaultMgr.UpdateNetwork(ctx, constAccessor, mgr.GasMgr(), mgr.EventMgr()), IsNil)
 
 	// with liquidity fee , and bonds
 	helper.Keeper.AddToLiquidityFees(ctx, common.BNBAsset, cosmos.NewUint(50*common.One))
 
-	c.Assert(vaultMgr.UpdateVaultData(ctx, constAccessor, mgr.GasMgr(), mgr.EventMgr()), IsNil)
+	c.Assert(vaultMgr.UpdateNetwork(ctx, constAccessor, mgr.GasMgr(), mgr.EventMgr()), IsNil)
 	// add bond
 	helper.Keeper.SetNodeAccount(ctx, GetRandomNodeAccount(NodeActive))
 	helper.Keeper.SetNodeAccount(ctx, GetRandomNodeAccount(NodeActive))
-	c.Assert(vaultMgr.UpdateVaultData(ctx, constAccessor, mgr.GasMgr(), mgr.EventMgr()), IsNil)
+	c.Assert(vaultMgr.UpdateNetwork(ctx, constAccessor, mgr.GasMgr(), mgr.EventMgr()), IsNil)
 
 	// fail to get total liquidity fee should result an error
 	helper.failGetTotalLiquidityFee = true
 	if common.RuneAsset().Equals(common.RuneNative) {
 		FundModule(c, ctx, helper, ReserveName, 100)
 	}
-	c.Assert(vaultMgr.UpdateVaultData(ctx, constAccessor, mgr.GasMgr(), mgr.EventMgr()), NotNil)
+	c.Assert(vaultMgr.UpdateNetwork(ctx, constAccessor, mgr.GasMgr(), mgr.EventMgr()), NotNil)
 	helper.failGetTotalLiquidityFee = false
 
 	helper.failToListActiveAccounts = true
-	c.Assert(vaultMgr.UpdateVaultData(ctx, constAccessor, mgr.GasMgr(), mgr.EventMgr()), NotNil)
+	c.Assert(vaultMgr.UpdateNetwork(ctx, constAccessor, mgr.GasMgr(), mgr.EventMgr()), NotNil)
 }
 
 func (s *VaultManagerV1TestSuite) TestCalcBlockRewards(c *C) {
@@ -393,7 +393,7 @@ type VaultManagerTestHelpKeeper struct {
 	failGetRetiringAsgardVault bool
 	failGetActiveAsgardVault   bool
 	failToSetPool              bool
-	failGetVaultData           bool
+	failGetNetwork             bool
 	failGetTotalLiquidityFee   bool
 	failGetPools               bool
 }
@@ -404,11 +404,11 @@ func NewVaultGenesisSetupTestHelper(k keeper.Keeper) *VaultManagerTestHelpKeeper
 	}
 }
 
-func (h *VaultManagerTestHelpKeeper) GetVaultData(ctx cosmos.Context) (VaultData, error) {
-	if h.failGetVaultData {
-		return VaultData{}, kaboom
+func (h *VaultManagerTestHelpKeeper) GetNetwork(ctx cosmos.Context) (Network, error) {
+	if h.failGetNetwork {
+		return Network{}, kaboom
 	}
-	return h.Keeper.GetVaultData(ctx)
+	return h.Keeper.GetNetwork(ctx)
 }
 
 func (h *VaultManagerTestHelpKeeper) GetAsgardVaults(ctx cosmos.Context) (Vaults, error) {

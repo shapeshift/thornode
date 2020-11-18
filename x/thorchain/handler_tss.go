@@ -190,7 +190,7 @@ func (h TssHandler) handleV1(ctx cosmos.Context, msg MsgTssPool, version semver.
 
 					// take out bond from the node account and add it to vault bond reward RUNE
 					// thus good behaviour node will get reward
-					reserveVault, err := h.keeper.GetVaultData(ctx)
+					reserveVault, err := h.keeper.GetNetwork(ctx)
 					if err != nil {
 						return nil, fmt.Errorf("fail to get reserve vault: %w", err)
 					}

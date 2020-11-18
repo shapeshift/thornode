@@ -37,7 +37,7 @@ const (
 	prefixNodeAccount            kvTypes.DbPrefix = "node_account/"
 	prefixVault                  kvTypes.DbPrefix = "vault/"
 	prefixVaultAsgardIndex       kvTypes.DbPrefix = "vault_asgard_index/"
-	prefixVaultData              kvTypes.DbPrefix = "vault_data/"
+	prefixNetwork                kvTypes.DbPrefix = "network/"
 	prefixObservingAddresses     kvTypes.DbPrefix = "observing_addresses/"
 	prefixReserves               kvTypes.DbPrefix = "reserves/"
 	prefixTss                    kvTypes.DbPrefix = "tss/"

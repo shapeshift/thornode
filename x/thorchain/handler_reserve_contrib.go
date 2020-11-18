@@ -75,14 +75,14 @@ func (h ReserveContributorHandler) handleV1(ctx cosmos.Context, msg MsgReserveCo
 		return fmt.Errorf("fail to save reserve contributors: %w", err)
 	}
 
-	vault, err := h.keeper.GetVaultData(ctx)
+	vault, err := h.keeper.GetNetwork(ctx)
 	if err != nil {
-		return fmt.Errorf("fail to get vault data: %w", err)
+		return fmt.Errorf("fail to get network data: %w", err)
 	}
 
 	vault.TotalReserve = vault.TotalReserve.Add(msg.Contributor.Amount)
-	if err := h.keeper.SetVaultData(ctx, vault); err != nil {
-		return fmt.Errorf("fail to save vault data: %w", err)
+	if err := h.keeper.SetNetwork(ctx, vault); err != nil {
+		return fmt.Errorf("fail to save network data: %w", err)
 	}
 	reserveEvent := NewEventReserve(msg.Contributor, msg.Tx)
 	if err := h.mgr.EventMgr().EmitEvent(ctx, reserveEvent); err != nil {

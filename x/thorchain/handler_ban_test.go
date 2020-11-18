@@ -19,13 +19,13 @@ type HandlerBanSuite struct{}
 
 type TestBanKeeper struct {
 	keeper.KVStoreDummy
-	ban       BanVoter
-	toBan     NodeAccount
-	banner1   NodeAccount
-	banner2   NodeAccount
-	vaultData VaultData
-	err       error
-	modules   map[string]int64
+	ban     BanVoter
+	toBan   NodeAccount
+	banner1 NodeAccount
+	banner2 NodeAccount
+	network Network
+	err     error
+	modules map[string]int64
 }
 
 func (k *TestBanKeeper) SendFromModuleToModule(_ cosmos.Context, from, to string, coin common.Coin) error {
@@ -67,12 +67,12 @@ func (k *TestBanKeeper) SetNodeAccount(_ cosmos.Context, na NodeAccount) error {
 	return k.err
 }
 
-func (k *TestBanKeeper) GetVaultData(ctx cosmos.Context) (VaultData, error) {
-	return k.vaultData, nil
+func (k *TestBanKeeper) GetNetwork(ctx cosmos.Context) (Network, error) {
+	return k.network, nil
 }
 
-func (k *TestBanKeeper) SetVaultData(ctx cosmos.Context, data VaultData) error {
-	k.vaultData = data
+func (k *TestBanKeeper) SetNetwork(ctx cosmos.Context, data Network) error {
+	k.network = data
 	return nil
 }
 
@@ -126,12 +126,12 @@ func (s *HandlerBanSuite) TestHandle(c *C) {
 	banner2.Bond = cosmos.NewUint(uint64(minBond))
 
 	keeper := &TestBanKeeper{
-		ban:       NewBanVoter(toBan.NodeAddress),
-		toBan:     toBan,
-		banner1:   banner1,
-		banner2:   banner2,
-		vaultData: NewVaultData(),
-		modules:   make(map[string]int64, 0),
+		ban:     NewBanVoter(toBan.NodeAddress),
+		toBan:   toBan,
+		banner1: banner1,
+		banner2: banner2,
+		network: NewNetwork(),
+		modules: make(map[string]int64, 0),
 	}
 
 	handler := NewBanHandler(keeper, NewDummyMgr())
@@ -179,12 +179,12 @@ func (s *HandlerBanSuite) TestHandleV10(c *C) {
 	banner2.Bond = cosmos.NewUint(uint64(minBond))
 
 	keeper := &TestBanKeeper{
-		ban:       NewBanVoter(toBan.NodeAddress),
-		toBan:     toBan,
-		banner1:   banner1,
-		banner2:   banner2,
-		vaultData: NewVaultData(),
-		modules:   make(map[string]int64, 0),
+		ban:     NewBanVoter(toBan.NodeAddress),
+		toBan:   toBan,
+		banner1: banner1,
+		banner2: banner2,
+		network: NewNetwork(),
+		modules: make(map[string]int64, 0),
 	}
 
 	handler := NewBanHandler(keeper, NewDummyMgr())
@@ -226,8 +226,8 @@ type TestBanKeeperHelper struct {
 	failToGetBannerNodeAccount   bool
 	failToListActiveNodeAccounts bool
 	failToGetBanVoter            bool
-	failToGetVaultData           bool
-	failToSetVaultData           bool
+	failToGetNetwork             bool
+	failToSetNetwork             bool
 	failToSaveBanner             bool
 	failToSaveToBan              bool
 }
@@ -262,18 +262,18 @@ func (k *TestBanKeeperHelper) GetBanVoter(ctx cosmos.Context, addr cosmos.AccAdd
 	return k.Keeper.GetBanVoter(ctx, addr)
 }
 
-func (k *TestBanKeeperHelper) GetVaultData(ctx cosmos.Context) (VaultData, error) {
-	if k.failToGetVaultData {
-		return VaultData{}, kaboom
+func (k *TestBanKeeperHelper) GetNetwork(ctx cosmos.Context) (Network, error) {
+	if k.failToGetNetwork {
+		return Network{}, kaboom
 	}
-	return k.Keeper.GetVaultData(ctx)
+	return k.Keeper.GetNetwork(ctx)
 }
 
-func (k *TestBanKeeperHelper) SetVaultData(ctx cosmos.Context, vaultData VaultData) error {
-	if k.failToSetVaultData {
+func (k *TestBanKeeperHelper) SetNetwork(ctx cosmos.Context, network Network) error {
+	if k.failToSetNetwork {
 		return kaboom
 	}
-	return k.Keeper.SetVaultData(ctx, vaultData)
+	return k.Keeper.SetNetwork(ctx, network)
 }
 
 func (k *TestBanKeeperHelper) SetNodeAccount(ctx cosmos.Context, na NodeAccount) error {
@@ -418,11 +418,11 @@ func (s *HandlerBanSuite) TestBanHandlerValidation(c *C) {
 			},
 		},
 		{
-			name: "fail to get vault data should return an error",
+			name: "fail to get network data should return an error",
 			messageProvider: func(ctx cosmos.Context, helper *TestBanKeeperHelper) cosmos.Msg {
 				toBanAcct := GetRandomNodeAccount(NodeActive)
 				helper.SetNodeAccount(ctx, toBanAcct)
-				helper.failToGetVaultData = true
+				helper.failToGetNetwork = true
 				return NewMsgBan(toBanAcct.NodeAddress, bannerNodeAddr)
 			},
 			validator: func(c *C, result *cosmos.Result, err error, helper *TestBanKeeperHelper, name string) {
@@ -432,11 +432,11 @@ func (s *HandlerBanSuite) TestBanHandlerValidation(c *C) {
 			skipForNativeRUNE: true,
 		},
 		{
-			name: "fail to set vault data should return an error",
+			name: "fail to set network data should return an error",
 			messageProvider: func(ctx cosmos.Context, helper *TestBanKeeperHelper) cosmos.Msg {
 				toBanAcct := GetRandomNodeAccount(NodeActive)
 				helper.SetNodeAccount(ctx, toBanAcct)
-				helper.failToSetVaultData = true
+				helper.failToSetNetwork = true
 				return NewMsgBan(toBanAcct.NodeAddress, bannerNodeAddr)
 			},
 			validator: func(c *C, result *cosmos.Result, err error, helper *TestBanKeeperHelper, name string) {
