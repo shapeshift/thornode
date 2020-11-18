@@ -73,9 +73,6 @@ func (s *HandlerSwitchSuite) TestGettingNativeTokens(c *C) {
 	addr, err := cosmos.AccAddressFromBech32(destination.String())
 	c.Assert(err, IsNil)
 	c.Check(k.CoinKeeper().HasCoins(ctx, addr, cosmos.NewCoins(coin)), Equals, true)
-	vaultData, err := k.GetVaultData(ctx)
-	c.Assert(err, IsNil)
-	c.Check(vaultData.TotalBEP2Rune.Equal(cosmos.NewUint(100*common.One)), Equals, true)
 
 	// check that we can add more an account
 	_, err = handler.handle(ctx, msg, constants.SWVersion, constAccessor)
@@ -83,84 +80,10 @@ func (s *HandlerSwitchSuite) TestGettingNativeTokens(c *C) {
 	coin, err = common.NewCoin(common.RuneNative, cosmos.NewUint(200*common.One)).Native()
 	c.Assert(err, IsNil)
 	c.Check(k.CoinKeeper().HasCoins(ctx, addr, cosmos.NewCoins(coin)), Equals, true)
-	vaultData, err = k.GetVaultData(ctx)
-	c.Assert(err, IsNil)
-	c.Check(vaultData.TotalBEP2Rune.Equal(cosmos.NewUint(200*common.One)), Equals, true)
-}
-
-func (s *HandlerSwitchSuite) TestGettingBEP2Tokens(c *C) {
-	ctx, k := setupKeeperForTest(c)
-	constAccessor := constants.GetConstantValues(constants.SWVersion)
-
-	vaultData := NewVaultData()
-	vaultData.TotalBEP2Rune = cosmos.NewUint(500 * common.One)
-	c.Assert(k.SetVaultData(ctx, vaultData), IsNil)
-
-	na := GetRandomNodeAccount(NodeActive)
-	c.Assert(k.SetNodeAccount(ctx, na), IsNil)
-
-	from := GetRandomBech32Addr()
-	tx := GetRandomTx()
-	tx.FromAddress = common.Address(from.String())
-	tx.Coins = common.Coins{
-		common.NewCoin(common.RuneNative, cosmos.NewUint(100*common.One)),
-	}
-	destination := GetRandomBNBAddress()
-
-	coin, err := common.NewCoin(common.RuneNative, cosmos.NewUint(800*common.One)).Native()
-	c.Assert(err, IsNil)
-	k.CoinKeeper().AddCoins(ctx, from, cosmos.NewCoins(coin))
-
-	mgr := NewDummyMgr()
-	handler := NewSwitchHandler(k, mgr)
-
-	msg := NewMsgSwitch(tx, destination, na.NodeAddress)
-	_, err = handler.handle(ctx, msg, constants.SWVersion, constAccessor)
-	c.Assert(err, IsNil)
-
-	coin, err = common.NewCoin(common.RuneNative, cosmos.NewUint(700*common.One)).Native()
-	c.Assert(err, IsNil)
-	c.Check(k.CoinKeeper().HasCoins(ctx, from, cosmos.NewCoins(coin)), Equals, true)
-	vaultData, err = k.GetVaultData(ctx)
-	c.Assert(err, IsNil)
-	c.Check(vaultData.TotalBEP2Rune.Equal(cosmos.NewUint(400*common.One)), Equals, true)
-	items, err := mgr.TxOutStore().GetOutboundItems(ctx)
-	c.Assert(err, IsNil)
-	c.Assert(items, HasLen, 1)
-
-	// check that we can subtract more an account
-	_, err = handler.handle(ctx, msg, constants.SWVersion, constAccessor)
-	c.Assert(err, IsNil)
-	coin, err = common.NewCoin(common.RuneNative, cosmos.NewUint(600*common.One)).Native()
-	c.Assert(err, IsNil)
-	c.Check(k.CoinKeeper().HasCoins(ctx, from, cosmos.NewCoins(coin)), Equals, true)
-	vaultData, err = k.GetVaultData(ctx)
-	c.Assert(err, IsNil)
-	c.Check(vaultData.TotalBEP2Rune.Equal(cosmos.NewUint(300*common.One)), Equals, true, Commentf("%d", vaultData.TotalBEP2Rune.Uint64()))
-	items, err = mgr.TxOutStore().GetOutboundItems(ctx)
-	c.Assert(err, IsNil)
-	c.Assert(items, HasLen, 2)
-
-	// check that we can't overdraw
-	msg.Tx.Coins[0].Amount = cosmos.NewUint(400 * common.One)
-	_, err = handler.handle(ctx, msg, constants.SWVersion, constAccessor)
-	c.Assert(err, NotNil)
-	coin, err = common.NewCoin(common.RuneNative, cosmos.NewUint(600*common.One)).Native()
-	c.Assert(err, IsNil)
-	c.Check(k.CoinKeeper().HasCoins(ctx, from, cosmos.NewCoins(coin)), Equals, true)
-	vaultData, err = k.GetVaultData(ctx)
-	c.Assert(err, IsNil)
-	c.Check(vaultData.TotalBEP2Rune.Equal(cosmos.NewUint(300*common.One)), Equals, true, Commentf("%d", vaultData.TotalBEP2Rune.Uint64()))
-	items, err = mgr.TxOutStore().GetOutboundItems(ctx)
-	c.Assert(err, IsNil)
-
-	c.Assert(items, HasLen, 2)
 }
 
 type HandlerSwitchTestHelper struct {
 	keeper.Keeper
-	failGetVaultData  bool
-	failSaveVaultData bool
 }
 
 func NewHandlerSwitchTestHelper(k keeper.Keeper) *HandlerSwitchTestHelper {
@@ -169,35 +92,18 @@ func NewHandlerSwitchTestHelper(k keeper.Keeper) *HandlerSwitchTestHelper {
 	}
 }
 
-func (h *HandlerSwitchTestHelper) GetVaultData(ctx cosmos.Context) (VaultData, error) {
-	if h.failGetVaultData {
-		return VaultData{}, kaboom
-	}
-	return h.Keeper.GetVaultData(ctx)
-}
-
-func (h *HandlerSwitchTestHelper) SetVaultData(ctx cosmos.Context, vaultData VaultData) error {
-	if h.failSaveVaultData {
-		return kaboom
-	}
-	return h.Keeper.SetVaultData(ctx, vaultData)
-}
-
 func (s *HandlerSwitchSuite) getAValidSwitchMsg(ctx cosmos.Context, helper *HandlerSwitchTestHelper) MsgSwitch {
 	na := GetRandomNodeAccount(NodeActive)
-	from := GetRandomBech32Addr()
+	from := GetRandomBNBAddress()
 	tx := GetRandomTx()
 	tx.FromAddress = common.Address(from.String())
 	tx.Coins = common.Coins{
-		common.NewCoin(common.RuneNative, cosmos.NewUint(100*common.One)),
+		common.NewCoin(common.BEP2RuneAsset(), cosmos.NewUint(100*common.One)),
 	}
-	destination := GetRandomBNBAddress()
+	destination := GetRandomBech32Addr()
 	helper.Keeper.SetNodeAccount(ctx, na)
-	vaultData, _ := helper.Keeper.GetVaultData(ctx)
-	vaultData.TotalBEP2Rune = cosmos.NewUint(common.One * 100)
-	helper.Keeper.SetVaultData(ctx, vaultData)
 	coin, _ := common.NewCoin(common.RuneNative, cosmos.NewUint(800*common.One)).Native()
-	helper.Keeper.CoinKeeper().AddCoins(ctx, from, cosmos.NewCoins(coin))
+	helper.Keeper.CoinKeeper().AddCoins(ctx, destination, cosmos.NewCoins(coin))
 	vault := GetRandomVault()
 	vault.Type = AsgardVault
 	vault.Status = ActiveVault
@@ -205,7 +111,7 @@ func (s *HandlerSwitchSuite) getAValidSwitchMsg(ctx cosmos.Context, helper *Hand
 		common.NewCoin(common.BEP2RuneAsset(), cosmos.NewUint(100*common.One)),
 	})
 	helper.Keeper.SetVault(ctx, vault)
-	return NewMsgSwitch(tx, destination, na.NodeAddress)
+	return NewMsgSwitch(tx, common.Address(destination.String()), na.NodeAddress)
 }
 
 func (s *HandlerSwitchSuite) TestSwitchHandlerDifferentValidations(c *C) {
@@ -226,30 +132,6 @@ func (s *HandlerSwitchSuite) TestSwitchHandlerDifferentValidations(c *C) {
 			},
 		},
 		{
-			name: "fail get vault data should return an error",
-			messageProvider: func(c *C, ctx cosmos.Context, helper *HandlerSwitchTestHelper) cosmos.Msg {
-				helper.failGetVaultData = true
-				return s.getAValidSwitchMsg(ctx, helper)
-			},
-			validator: func(c *C, ctx cosmos.Context, result *cosmos.Result, err error, helper *HandlerSwitchTestHelper, name string) {
-				c.Check(err, NotNil, Commentf(name))
-				c.Check(result, IsNil, Commentf(name))
-			},
-		},
-		{
-			name: "fail get vault data should return an error(to native RUNE)",
-			messageProvider: func(c *C, ctx cosmos.Context, helper *HandlerSwitchTestHelper) cosmos.Msg {
-				helper.failGetVaultData = true
-				m := s.getAValidSwitchMsg(ctx, helper)
-				m.Tx.Coins[0].Asset = common.BEP2RuneAsset()
-				return m
-			},
-			validator: func(c *C, ctx cosmos.Context, result *cosmos.Result, err error, helper *HandlerSwitchTestHelper, name string) {
-				c.Check(err, NotNil, Commentf(name))
-				c.Check(result, IsNil, Commentf(name))
-			},
-		},
-		{
 			name: "Not enough RUNE to pay for fees should not fail",
 			messageProvider: func(c *C, ctx cosmos.Context, helper *HandlerSwitchTestHelper) cosmos.Msg {
 				m := s.getAValidSwitchMsg(ctx, helper)
@@ -261,30 +143,6 @@ func (s *HandlerSwitchSuite) TestSwitchHandlerDifferentValidations(c *C) {
 				c.Check(result, NotNil, Commentf(name))
 			},
 			nativeRune: true,
-		},
-		{
-			name: "fail to save vault data should result an error",
-			messageProvider: func(c *C, ctx cosmos.Context, helper *HandlerSwitchTestHelper) cosmos.Msg {
-				helper.failSaveVaultData = true
-				return s.getAValidSwitchMsg(ctx, helper)
-			},
-			validator: func(c *C, ctx cosmos.Context, result *cosmos.Result, err error, helper *HandlerSwitchTestHelper, name string) {
-				c.Check(err, NotNil, Commentf(name))
-				c.Check(result, IsNil, Commentf(name))
-			},
-		},
-		{
-			name: "fail to save vault data should result an error(to native RUNE)",
-			messageProvider: func(c *C, ctx cosmos.Context, helper *HandlerSwitchTestHelper) cosmos.Msg {
-				helper.failSaveVaultData = true
-				m := s.getAValidSwitchMsg(ctx, helper)
-				m.Tx.Coins[0].Asset = common.BEP2RuneAsset()
-				return m
-			},
-			validator: func(c *C, ctx cosmos.Context, result *cosmos.Result, err error, helper *HandlerSwitchTestHelper, name string) {
-				c.Check(err, NotNil, Commentf(name))
-				c.Check(result, IsNil, Commentf(name))
-			},
 		},
 	}
 
