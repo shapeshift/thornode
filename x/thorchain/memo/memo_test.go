@@ -183,7 +183,7 @@ func (s *MemoSuite) TestParse(c *C) {
 	c.Check(memo.String(), Equals, "")
 
 	memo, err = ParseMemo("ADD:BTC.BTC")
-	c.Assert(err, NotNil)
+	c.Assert(err, IsNil)
 	memo, err = ParseMemo("ADD:BTC.BTC:bc1qwqdg6squsna38e46795at95yu9atm8azzmyvckulcc7kytlcckxswvvzej")
 	c.Assert(err, IsNil)
 	c.Check(memo.GetDestination().String(), Equals, "bc1qwqdg6squsna38e46795at95yu9atm8azzmyvckulcc7kytlcckxswvvzej")

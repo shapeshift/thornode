@@ -15,13 +15,12 @@ import (
 // GetHeight    get chain height
 // GetAddress   gets address for public key pool in chain
 // GetAccount   gets account from thorclient in cain
-// GetGasFee    calculates gas fee based on number of simple transfer sents
 // GetConfig	gets the chain configuration
 // Start
 // Stop
 type ChainClient interface {
 	SignTx(tx stypes.TxOutItem, height int64) ([]byte, error)
-	BroadcastTx(_ stypes.TxOutItem, _ []byte) error
+	BroadcastTx(_ stypes.TxOutItem, _ []byte) (string, error)
 	GetHeight() (int64, error)
 	GetAddress(poolPubKey common.PubKey) string
 	GetAccount(poolPubKey common.PubKey) (common.Account, error)

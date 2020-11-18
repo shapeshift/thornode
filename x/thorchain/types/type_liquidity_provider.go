@@ -17,7 +17,8 @@ type LiquidityProvider struct {
 	LastAddHeight      int64          `json:"last_add"`
 	LastWithdrawHeight int64          `json:"last_withdraw"`
 	Units              cosmos.Uint    `json:"units"`
-	PendingRune        cosmos.Uint    `json:"pending_rune"` // number of rune coins
+	PendingRune        cosmos.Uint    `json:"pending_rune"`  // number of rune coins
+	PendingAsset       cosmos.Uint    `json:"pending_asset"` // number of asset coins
 	PendingTxID        common.TxID    `json:"pending_tx_id"`
 }
 
@@ -28,11 +29,8 @@ func (lp LiquidityProvider) Valid() error {
 	if lp.LastAddHeight == 0 {
 		return errors.New("last add liquidity height cannot be empty")
 	}
-	if lp.RuneAddress.IsEmpty() {
-		return errors.New("rune address cannot be empty")
-	}
-	if lp.AssetAddress.IsEmpty() {
-		return errors.New("asset address cannot be empty")
+	if lp.AssetAddress.IsEmpty() && lp.RuneAddress.IsEmpty() {
+		return errors.New("asset address and rune address cannot be empty")
 	}
 	return nil
 }

@@ -110,8 +110,9 @@ func (HandlerWithdrawSuite) TestWithdrawHandler(c *C) {
 			Status:       PoolEnabled,
 		},
 		lp: LiquidityProvider{
-			Units:       cosmos.ZeroUint(),
-			PendingRune: cosmos.ZeroUint(),
+			Units:        cosmos.ZeroUint(),
+			PendingRune:  cosmos.ZeroUint(),
+			PendingAsset: cosmos.ZeroUint(),
 		},
 	}
 	ver := semver.MustParse("0.7.0")
@@ -193,8 +194,9 @@ func (HandlerWithdrawSuite) TestWithdrawHandler_mockFailScenarios(c *C) {
 		Status:       PoolEnabled,
 	}
 	lp := LiquidityProvider{
-		Units:       cosmos.ZeroUint(),
-		PendingRune: cosmos.ZeroUint(),
+		Units:        cosmos.ZeroUint(),
+		PendingRune:  cosmos.ZeroUint(),
+		PendingAsset: cosmos.ZeroUint(),
 	}
 	testCases := []struct {
 		name           string

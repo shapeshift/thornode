@@ -75,6 +75,10 @@ func NewQuerier(keeper keeper.Keeper, kbs KeybaseStore) cosmos.Querier {
 			return queryRagnarok(ctx, keeper)
 		case q.QueryPendingOutbound.Key:
 			return queryPendingOutbound(ctx, keeper)
+		case q.QueryTssKeygenMetrics.Key:
+			return queryTssKeygenMetric(ctx, path[1:], req, keeper)
+		case q.QueryTssMetrics.Key:
+			return queryTssMetric(ctx, path[1:], req, keeper)
 		default:
 			return nil, cosmos.ErrUnknownRequest(
 				fmt.Sprintf("unknown thorchain query endpoint: %s", path[0]),
@@ -655,7 +659,19 @@ func queryTx(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper ke
 	if err != nil {
 		return nil, fmt.Errorf("fail to get node accounts: %w", err)
 	}
-	res, err := codec.MarshalJSONIndent(keeper.Cdc(), voter.GetTx(nodeAccounts))
+	keysignMetric, err := keeper.GetTssKeysignMetric(ctx, hash)
+	if err != nil {
+		ctx.Logger().Error("fatil to get keysign metrics", "error", err)
+	}
+	result := struct {
+		ObservedTx     `json:"observed_tx"`
+		KeysignMetrics types.TssKeysignMetric `json:"keysign_metric,omitempty"`
+	}{
+		ObservedTx:     voter.GetTx(nodeAccounts),
+		KeysignMetrics: *keysignMetric,
+	}
+
+	res, err := codec.MarshalJSONIndent(keeper.Cdc(), result)
 	if err != nil {
 		ctx.Logger().Error("fail to marshal tx hash to json", "error", err)
 		return nil, fmt.Errorf("fail to marshal tx hash to json: %w", err)
@@ -1001,4 +1017,63 @@ func queryPendingOutbound(ctx cosmos.Context, keeper keeper.Keeper) ([]byte, err
 		return nil, fmt.Errorf("fail to marshal pending outbound tx to json: %w", err)
 	}
 	return res, nil
+}
+
+func queryTssKeygenMetric(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
+	var pubKeys common.PubKeys
+	if len(path) > 0 {
+		pkey, err := common.NewPubKey(path[0])
+		if err != nil {
+			return nil, fmt.Errorf("fail to parse pubkey(%s) err:%w", path[0], err)
+		}
+		pubKeys = append(pubKeys, pkey)
+	}
+	var result []*types.TssKeygenMetric
+	for _, pkey := range pubKeys {
+		m, err := keeper.GetTssKeygenMetric(ctx, pkey)
+		if err != nil {
+			return nil, fmt.Errorf("fail to get tss keygen metric for pubkey(%s):%w", pkey, err)
+		}
+		result = append(result, m)
+	}
+	res, err := codec.MarshalJSONIndent(keeper.Cdc(), result)
+	if err != nil {
+		return nil, fmt.Errorf("fail to marshal keygen metrics to json: %w", err)
+	}
+	return res, nil
+}
+
+func queryTssMetric(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
+	var pubKeys common.PubKeys
+	// get all active asgard
+	vaults, err := keeper.GetAsgardVaultsByStatus(ctx, ActiveVault)
+	if err != nil {
+		return nil, fmt.Errorf("fail to get active asgards:%w", err)
+	}
+	for _, v := range vaults {
+		pubKeys = append(pubKeys, v.PubKey)
+	}
+	var keygenMetrics []*types.TssKeygenMetric
+	for _, pkey := range pubKeys {
+		m, err := keeper.GetTssKeygenMetric(ctx, pkey)
+		if err != nil {
+			return nil, fmt.Errorf("fail to get tss keygen metric for pubkey(%s):%w", pkey, err)
+		}
+		if len(m.NodeTssTimes) == 0 {
+			continue
+		}
+		keygenMetrics = append(keygenMetrics, m)
+	}
+	keysignMetric, err := keeper.GetLatestTssKeysignMetric(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("fail to get keysign metric:%w", err)
+	}
+	m := struct {
+		KeygenMetrics []*types.TssKeygenMetric `json:"keygen"`
+		KeysignMetric *types.TssKeysignMetric  `json:"keysign"`
+	}{
+		KeygenMetrics: keygenMetrics,
+		KeysignMetric: keysignMetric,
+	}
+	return codec.MarshalJSONIndent(keeper.Cdc(), m)
 }

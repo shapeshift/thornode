@@ -378,15 +378,16 @@ func (c *Client) signUTXO(redeemTx *wire.MsgTx, tx stypes.TxOutItem, amount int6
 }
 
 // BroadcastTx will broadcast the given payload to BTC chain
-func (c *Client) BroadcastTx(txOut stypes.TxOutItem, payload []byte) error {
+func (c *Client) BroadcastTx(txOut stypes.TxOutItem, payload []byte) (string, error) {
 	redeemTx := wire.NewMsgTx(wire.TxVersion)
 	buf := bytes.NewBuffer(payload)
 	if err := redeemTx.Deserialize(buf); err != nil {
-		return fmt.Errorf("fail to deserialize payload: %w", err)
+		return "", fmt.Errorf("fail to deserialize payload: %w", err)
 	}
+
 	height, err := c.getBlockHeight()
 	if err != nil {
-		return fmt.Errorf("fail to get block height: %w", err)
+		return "", fmt.Errorf("fail to get block height: %w", err)
 	}
 	bm, err := c.blockMetaAccessor.GetBlockMeta(height)
 	if err != nil {
@@ -408,12 +409,12 @@ func (c *Client) BroadcastTx(txOut stypes.TxOutItem, payload []byte) error {
 	if err != nil {
 		if rpcErr, ok := err.(*btcjson.RPCError); ok && rpcErr.Code == btcjson.ErrRPCTxAlreadyInChain {
 			// this means the tx had been broadcast to chain, it must be another signer finished quicker then us
-			return nil
+			return redeemTx.TxHash().String(), nil
 		}
 
-		return fmt.Errorf("fail to broadcast transaction to chain: %w", err)
+		return "", fmt.Errorf("fail to broadcast transaction to chain: %w", err)
 	}
 	// save tx id to block meta in case we need to errata later
 	c.logger.Info().Str("hash", txHash.String()).Msg("broadcast to BTC chain successfully")
-	return nil
+	return txHash.String(), nil
 }
