@@ -1,8 +1,6 @@
 package thorchain
 
 import (
-	"fmt"
-
 	"gitlab.com/thorchain/thornode/common"
 )
 
@@ -21,14 +19,9 @@ func NewAddLiquidityMemo(asset common.Asset, addr common.Address) AddLiquidityMe
 }
 
 func ParseAddLiquidityMemo(asset common.Asset, parts []string) (AddLiquidityMemo, error) {
-	var addr common.Address
+	addr := common.NoAddress
 	var err error
-	if !asset.Chain.Equals(common.RuneAsset().Chain) {
-		if len(parts) < 3 {
-			// cannot provide liquidity into a non THOR-based pool when
-			// THORNode don't have an associated address
-			return AddLiquidityMemo{}, fmt.Errorf("invalid liquidity provider. Cannot provide liquidity to a non THOR-based pool without providing an associated address")
-		}
+	if len(parts) == 3 {
 		addr, err = common.NewAddress(parts[2])
 		if err != nil {
 			return AddLiquidityMemo{}, err
