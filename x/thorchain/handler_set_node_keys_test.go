@@ -34,11 +34,11 @@ func (k *TestSetNodeKeysKeeper) EnsureNodeKeysUnique(_ cosmos.Context, _ string,
 	return k.ensure
 }
 
-func (k *TestSetNodeKeysKeeper) GetVaultData(ctx cosmos.Context) (VaultData, error) {
-	return NewVaultData(), nil
+func (k *TestSetNodeKeysKeeper) GetNetwork(ctx cosmos.Context) (Network, error) {
+	return NewNetwork(), nil
 }
 
-func (k *TestSetNodeKeysKeeper) SetVaultData(ctx cosmos.Context, data VaultData) error {
+func (k *TestSetNodeKeysKeeper) SetNetwork(ctx cosmos.Context, data Network) error {
 	return nil
 }
 
@@ -121,8 +121,8 @@ type TestSetNodeKeysHandleKeeper struct {
 	keeper.Keeper
 	failGetNodeAccount bool
 	failSetNodeAccount bool
-	failGetVaultData   bool
-	failSetVaultData   bool
+	failGetNetwork     bool
+	failSetNetwork     bool
 }
 
 func NewTestSetNodeKeysHandleKeeper(k keeper.Keeper) *TestSetNodeKeysHandleKeeper {
@@ -149,18 +149,18 @@ func (k *TestSetNodeKeysHandleKeeper) SetNodeAccount(ctx cosmos.Context, na Node
 	return k.Keeper.SetNodeAccount(ctx, na)
 }
 
-func (k *TestSetNodeKeysHandleKeeper) GetVaultData(ctx cosmos.Context) (VaultData, error) {
-	if k.failGetVaultData {
-		return VaultData{}, kaboom
+func (k *TestSetNodeKeysHandleKeeper) GetNetwork(ctx cosmos.Context) (Network, error) {
+	if k.failGetNetwork {
+		return Network{}, kaboom
 	}
-	return k.Keeper.GetVaultData(ctx)
+	return k.Keeper.GetNetwork(ctx)
 }
 
-func (k *TestSetNodeKeysHandleKeeper) SetVaultData(ctx cosmos.Context, data VaultData) error {
-	if k.failSetVaultData {
+func (k *TestSetNodeKeysHandleKeeper) SetNetwork(ctx cosmos.Context, data Network) error {
+	if k.failSetNetwork {
 		return kaboom
 	}
-	return k.Keeper.SetVaultData(ctx, data)
+	return k.Keeper.SetNetwork(ctx, data)
 }
 
 func (k *TestSetNodeKeysHandleKeeper) EnsureNodeKeysUnique(_ cosmos.Context, consensPubKey string, pubKeys common.PubKeySet) error {
@@ -246,11 +246,11 @@ func (s *HandlerSetNodeKeysSuite) TestHandle(c *C) {
 			},
 		},
 		{
-			name: "fail to get vault data should return an error",
+			name: "fail to get network data should return an error",
 			messageProvider: func(c *C, ctx cosmos.Context, helper *TestSetNodeKeysHandleKeeper) cosmos.Msg {
 				nodeAcct := GetRandomNodeAccount(NodeWhiteListed)
 				c.Assert(helper.Keeper.SetNodeAccount(ctx, nodeAcct), IsNil)
-				helper.failGetVaultData = true
+				helper.failGetNetwork = true
 				return NewMsgSetNodeKeys(nodeAcct.PubKeySet, nodeAcct.ValidatorConsPubKey, nodeAcct.NodeAddress)
 			},
 			validator: func(c *C, ctx cosmos.Context, result *cosmos.Result, err error, helper *TestSetNodeKeysHandleKeeper, name string) {
@@ -260,11 +260,11 @@ func (s *HandlerSetNodeKeysSuite) TestHandle(c *C) {
 			skipForNativeRune: true,
 		},
 		{
-			name: "fail to set vault data should return an error",
+			name: "fail to set network data should return an error",
 			messageProvider: func(c *C, ctx cosmos.Context, helper *TestSetNodeKeysHandleKeeper) cosmos.Msg {
 				nodeAcct := GetRandomNodeAccount(NodeWhiteListed)
 				c.Assert(helper.Keeper.SetNodeAccount(ctx, nodeAcct), IsNil)
-				helper.failSetVaultData = true
+				helper.failSetNetwork = true
 				return NewMsgSetNodeKeys(nodeAcct.PubKeySet, nodeAcct.ValidatorConsPubKey, nodeAcct.NodeAddress)
 			},
 			validator: func(c *C, ctx cosmos.Context, result *cosmos.Result, err error, helper *TestSetNodeKeysHandleKeeper, name string) {

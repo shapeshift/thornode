@@ -519,11 +519,11 @@ func (vm *VaultMgrV1) ragnarokChain(ctx cosmos.Context, chain common.Chain, nth 
 	return nil
 }
 
-// UpdateVaultData Update the vault data to reflect changing in this block
-func (vm *VaultMgrV1) UpdateVaultData(ctx cosmos.Context, constAccessor constants.ConstantValues, gasManager GasManager, eventMgr EventManager) error {
-	vaultData, err := vm.k.GetVaultData(ctx)
+// UpdateNetwork Update the network data to reflect changing in this block
+func (vm *VaultMgrV1) UpdateNetwork(ctx cosmos.Context, constAccessor constants.ConstantValues, gasManager GasManager, eventMgr EventManager) error {
+	network, err := vm.k.GetNetwork(ctx)
 	if err != nil {
-		return fmt.Errorf("fail to get existing vault data: %w", err)
+		return fmt.Errorf("fail to get existing network data: %w", err)
 	}
 
 	totalReserve := cosmos.ZeroUint()
@@ -579,7 +579,7 @@ func (vm *VaultMgrV1) UpdateVaultData(ctx cosmos.Context, constAccessor constant
 		ctx.Logger().Error("fail to transfer funds from reserve to bond", "error", err)
 		return fmt.Errorf("fail to transfer funds from reserve to bond: %w", err)
 	}
-	vaultData.BondRewardRune = vaultData.BondRewardRune.Add(bondReward) // Add here for individual Node collection later
+	network.BondRewardRune = network.BondRewardRune.Add(bondReward) // Add here for individual Node collection later
 
 	var evtPools []PoolAmt
 
@@ -635,7 +635,7 @@ func (vm *VaultMgrV1) UpdateVaultData(ctx cosmos.Context, constAccessor constant
 				poolDeficit = pool.BalanceRune
 			}
 			pool.BalanceRune = common.SafeSub(pool.BalanceRune, poolDeficit)
-			vaultData.BondRewardRune = vaultData.BondRewardRune.Add(poolDeficit)
+			network.BondRewardRune = network.BondRewardRune.Add(poolDeficit)
 			if err := vm.k.SetPool(ctx, pool); err != nil {
 				return fmt.Errorf("fail to set pool: %w", err)
 			}
@@ -654,9 +654,9 @@ func (vm *VaultMgrV1) UpdateVaultData(ctx cosmos.Context, constAccessor constant
 	if err != nil {
 		return fmt.Errorf("fail to get total active node account: %w", err)
 	}
-	vaultData.TotalBondUnits = vaultData.TotalBondUnits.Add(cosmos.NewUint(uint64(i))) // Add 1 unit for each active Node
+	network.TotalBondUnits = network.TotalBondUnits.Add(cosmos.NewUint(uint64(i))) // Add 1 unit for each active Node
 
-	return vm.k.SetVaultData(ctx, vaultData)
+	return vm.k.SetNetwork(ctx, network)
 }
 
 func (vm *VaultMgrV1) getTotalProvidedLiquidityRune(ctx cosmos.Context) (Pools, cosmos.Uint, error) {
