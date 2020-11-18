@@ -563,8 +563,12 @@ func (vm *VaultMgrV1) UpdateVaultData(ctx cosmos.Context, constAccessor constant
 	if emissionCurve < 0 || err != nil {
 		emissionCurve = constAccessor.GetInt64Value(constants.EmissionCurve)
 	}
+	incentiveCurve, err := vm.k.GetMimir(ctx, constants.IncentiveCurve.String())
+	if incentiveCurve < 0 || err != nil {
+		incentiveCurve = constAccessor.GetInt64Value(constants.IncentiveCurve)
+	}
 	blocksOerYear := constAccessor.GetInt64Value(constants.BlocksPerYear)
-	bondReward, totalPoolRewards, lpDeficit := vm.calcBlockRewards(totalProvidedLiquidity, totalBonded, totalReserve, totalLiquidityFees, emissionCurve, blocksOerYear)
+	bondReward, totalPoolRewards, lpDeficit := vm.calcBlockRewards(totalProvidedLiquidity, totalBonded, totalReserve, totalLiquidityFees, emissionCurve, incentiveCurve, blocksOerYear)
 
 	// given bondReward and toolPoolRewards are both calculated base on totalReserve, thus it should always have enough to pay the bond reward
 
@@ -711,7 +715,7 @@ func (vm *VaultMgrV1) calcPoolDeficit(lpDeficit, totalFees, poolFees cosmos.Uint
 }
 
 // Calculate the block rewards that bonders and liquidity providers should receive
-func (vm *VaultMgrV1) calcBlockRewards(totalProvidedLiquidity, totalBonded, totalReserve, totalLiquidityFees cosmos.Uint, emissionCurve, blocksPerYear int64) (cosmos.Uint, cosmos.Uint, cosmos.Uint) {
+func (vm *VaultMgrV1) calcBlockRewards(totalProvidedLiquidity, totalBonded, totalReserve, totalLiquidityFees cosmos.Uint, emissionCurve, incentiveCurve, blocksPerYear int64) (cosmos.Uint, cosmos.Uint, cosmos.Uint) {
 	// Block Rewards will take the latest reserve, divide it by the emission
 	// curve factor, then divide by blocks per year
 	trD := cosmos.NewDec(int64(totalReserve.Uint64()))
@@ -722,8 +726,8 @@ func (vm *VaultMgrV1) calcBlockRewards(totalProvidedLiquidity, totalBonded, tota
 
 	systemIncome := blockReward.Add(totalLiquidityFees) // Get total system income for block
 
-	lpSplit := vm.getPoolShare(totalProvidedLiquidity, totalBonded, systemIncome) // Get liquidity provider share
-	bonderSplit := common.SafeSub(systemIncome, lpSplit)                          // Remainder to Bonders
+	lpSplit := vm.getPoolShare(incentiveCurve, totalProvidedLiquidity, totalBonded, systemIncome) // Get liquidity provider share
+	bonderSplit := common.SafeSub(systemIncome, lpSplit)                                          // Remainder to Bonders
 
 	lpDeficit := cosmos.ZeroUint()
 	poolReward := cosmos.ZeroUint()
@@ -739,19 +743,35 @@ func (vm *VaultMgrV1) calcBlockRewards(totalProvidedLiquidity, totalBonded, tota
 	return bonderSplit, poolReward, lpDeficit
 }
 
-func (vm *VaultMgrV1) getPoolShare(totalProvidedLiquidity, totalBonded, totalRewards cosmos.Uint) cosmos.Uint {
-	// Targets a linear change in rewards from 0% provided liquidity, 33% provided liquidity, 100% provided liquidity.
-	// 0% provided liquidity: All rewards to liquidity providers
-	// 33% provided liquidity: 33% to liquidity providers
-	// 100% provided liquidity: All rewards to Bonders
-
+func (vm *VaultMgrV1) getPoolShare(incentiveCurve int64, totalProvidedLiquidity, totalBonded, totalRewards cosmos.Uint) cosmos.Uint {
+	/*
+		Pooled : Share
+		0 : 100%
+		33% : 50% <- need to be 50% to match node rewards, when 33% is pooled
+		50% : 0%
+		https://gitlab.com/thorchain/thornode/-/issues/693
+	*/
+	if incentiveCurve <= 0 {
+		incentiveCurve = 1
+	}
 	if totalProvidedLiquidity.GTE(totalBonded) { // Zero payments to liquidity providers when provided liquidity == bonded
 		return cosmos.ZeroUint()
 	}
+	/*
+		B = bondedRune
+		P = pooledRune
+		incentiveCurve = 33
+		poolShareFactor = (B - P)/(B + P/incentiveCurve)
+	*/
 
-	// factor = (y + x) / (y - x).
-	// pool share = 1 / factor
-	total := totalBonded.Add(totalProvidedLiquidity)
+	var total cosmos.Uint
+	if incentiveCurve >= 100 {
+		total = totalBonded
+	} else {
+		inD := cosmos.NewDec(incentiveCurve)
+		divi := cosmos.NewDecFromBigInt(totalProvidedLiquidity.BigInt()).Quo(inD)
+		total = cosmos.NewUint(uint64((divi).RoundInt64())).Add(totalBonded)
+	}
 	part := common.SafeSub(totalBonded, totalProvidedLiquidity)
 	return common.GetShare(part, total, totalRewards)
 }
