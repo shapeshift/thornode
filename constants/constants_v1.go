@@ -5,6 +5,7 @@ func NewConstantValue010() *ConstantVals {
 	return &ConstantVals{
 		int64values: map[ConstantName]int64{
 			EmissionCurve:               6,
+			IncentiveCurve:              100, // configures incentive pendulum
 			BlocksPerYear:               6311390,
 			OutboundTransactionFee:      1_00000000,         // A 1.0 Rune fee on all swaps and withdrawals
 			NativeChainGasFee:           1_0000000,          // A 0.1 Rune fee on all on chain txs
