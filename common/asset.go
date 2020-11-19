@@ -95,6 +95,14 @@ func (a Asset) String() string {
 	return fmt.Sprintf("%s.%s", a.Chain.String(), a.Symbol.String())
 }
 
+func (a Asset) IsGasAsset() bool {
+	gasAsset := a.Chain.GetGasAsset()
+	if gasAsset.IsEmpty() {
+		return false
+	}
+	return a.Equals(gasAsset)
+}
+
 // IsRune is a helper function ,return true only when the asset represent RUNE
 func (a Asset) IsRune() bool {
 	return a.Equals(Rune67CAsset) || a.Equals(RuneB1AAsset) || a.Equals(RuneNative)

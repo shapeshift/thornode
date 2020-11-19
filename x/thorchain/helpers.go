@@ -333,8 +333,36 @@ func isSignedByActiveNodeAccounts(ctx cosmos.Context, keeper keeper.Keeper, sign
 	return true
 }
 
-func enableNextPool(ctx cosmos.Context, keeper keeper.Keeper, eventManager EventManager) error {
-	var pools []Pool
+func cyclePools(ctx cosmos.Context, maxAvailablePools, minRunePoolDepth int64, keeper keeper.Keeper, eventManager EventManager) error {
+	var availblePoolCount int64
+	onDeck := NewPool()        // currently staged pool that could get promoted
+	choppingBlock := NewPool() // currently available pool that is on the chopping block to being demoted
+	minRuneDepth := cosmos.NewUint(uint64(minRunePoolDepth))
+
+	// quick func to check the validity of a pool
+	valid_pool := func(pool Pool) bool {
+		if pool.BalanceAsset.IsZero() || pool.BalanceRune.IsZero() || pool.BalanceRune.LT(minRuneDepth) {
+			return false
+		}
+		return true
+	}
+
+	// quick func to save a pool status and emit event
+	set_pool := func(pool Pool) error {
+		poolEvt := NewEventPool(pool.Asset, pool.Status)
+		if err := eventManager.EmitEvent(ctx, poolEvt); err != nil {
+			return fmt.Errorf("fail to emit pool event: %w", err)
+		}
+
+		switch pool.Status {
+		case PoolAvailable:
+			ctx.Logger().Info("New available pool", "pool", pool.Asset)
+		case PoolStaged:
+			ctx.Logger().Info("Pool demoted to staged status", "pool", pool.Asset)
+		}
+		return keeper.SetPool(ctx, pool)
+	}
+
 	iterator := keeper.GetPoolIterator(ctx)
 	defer iterator.Close()
 	for ; iterator.Valid(); iterator.Next() {
@@ -343,31 +371,64 @@ func enableNextPool(ctx cosmos.Context, keeper keeper.Keeper, eventManager Event
 			return err
 		}
 
-		if pool.Status == PoolStaged && !pool.BalanceAsset.IsZero() && !pool.BalanceRune.IsZero() {
-			pools = append(pools, pool)
+		switch pool.Status {
+		case PoolAvailable:
+			// any available pools that have no asset, no rune, or less than
+			// min rune, moves back to staged status
+			if valid_pool(pool) {
+				availblePoolCount += 1
+			} else {
+				if !pool.Asset.IsGasAsset() {
+					pool.Status = PoolStaged
+					if err := set_pool(pool); err != nil {
+						return err
+					}
+				}
+			}
+			if pool.BalanceRune.LT(choppingBlock.BalanceRune) || choppingBlock.IsEmpty() {
+				// omit pools that are gas assets from being on the chopping
+				// block, removing these pool requires a chain ragnarok, and
+				// cannot be handled individually
+				if !pool.Asset.IsGasAsset() {
+					choppingBlock = pool
+				}
+			}
+		case PoolStaged:
+			if valid_pool(pool) && onDeck.BalanceRune.LT(pool.BalanceRune) {
+				onDeck = pool
+			}
 		}
 	}
 
-	if len(pools) == 0 {
-		return nil
+	if availblePoolCount >= maxAvailablePools {
+		// if we've hit our max available pools, and the onDeck pool is less
+		// than the chopping block pool, then we do make no changes, by
+		// resetting the variables
+		if onDeck.BalanceRune.LTE(choppingBlock.BalanceRune) {
+			onDeck = NewPool()        // reset
+			choppingBlock = NewPool() // reset
+		}
+	} else {
+		// since we haven't hit the max number of available pools, there is no
+		// available pool on the chopping block
+		choppingBlock = NewPool() // reset
 	}
 
-	pool := pools[0]
-	for _, p := range pools {
-		// find the pool that has most RUNE, also exclude those pool that doesn't have asset
-		if pool.BalanceRune.LT(p.BalanceRune) {
-			pool = p
+	if !onDeck.IsEmpty() {
+		onDeck.Status = PoolAvailable
+		if err := set_pool(onDeck); err != nil {
+			return err
 		}
 	}
 
-	poolEvt := NewEventPool(pool.Asset, PoolAvailable)
-	if err := eventManager.EmitEvent(ctx, poolEvt); err != nil {
-		return fmt.Errorf("fail to emit pool event: %w", err)
+	if !choppingBlock.IsEmpty() {
+		choppingBlock.Status = PoolStaged
+		if err := set_pool(choppingBlock); err != nil {
+			return err
+		}
 	}
 
-	pool.Status = PoolAvailable
-	ctx.Logger().Info("Available a new pool", "pool", pool.Asset)
-	return keeper.SetPool(ctx, pool)
+	return nil
 }
 
 func wrapError(ctx cosmos.Context, err error, wrap string) error {

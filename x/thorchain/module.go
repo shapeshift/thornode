@@ -170,13 +170,21 @@ func (am AppModule) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.V
 		ctx.Logger().Error("Unable to slash for lack of signing:", "error", err)
 	}
 
-	newPoolCycle, err := am.keeper.GetMimir(ctx, constants.NewPoolCycle.String())
-	if newPoolCycle < 0 || err != nil {
-		newPoolCycle = constantValues.GetInt64Value(constants.NewPoolCycle)
+	poolCycle, err := am.keeper.GetMimir(ctx, constants.PoolCycle.String())
+	if poolCycle < 0 || err != nil {
+		poolCycle = constantValues.GetInt64Value(constants.PoolCycle)
 	}
-	// Enable a pool every newPoolCycle
-	if common.BlockHeight(ctx)%newPoolCycle == 0 && !am.keeper.RagnarokInProgress(ctx) {
-		if err := enableNextPool(ctx, am.keeper, am.mgr.EventMgr()); err != nil {
+	// Enable a pool every poolCycle
+	if common.BlockHeight(ctx)%poolCycle == 0 && !am.keeper.RagnarokInProgress(ctx) {
+		maxAvailablePools, err := am.keeper.GetMimir(ctx, constants.MaxAvailablePools.String())
+		if maxAvailablePools < 0 || err != nil {
+			maxAvailablePools = constantValues.GetInt64Value(constants.MaxAvailablePools)
+		}
+		minRunePoolDepth, err := am.keeper.GetMimir(ctx, constants.MinRunePoolDepth.String())
+		if minRunePoolDepth < 0 || err != nil {
+			minRunePoolDepth = constantValues.GetInt64Value(constants.MinRunePoolDepth)
+		}
+		if err := cyclePools(ctx, maxAvailablePools, minRunePoolDepth, am.keeper, am.mgr.EventMgr()); err != nil {
 			ctx.Logger().Error("Unable to enable a pool", "error", err)
 		}
 	}
