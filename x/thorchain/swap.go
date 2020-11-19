@@ -21,7 +21,7 @@ func validatePools(ctx cosmos.Context, keeper keeper.Keeper, assets ...common.As
 				return ErrInternal(err, fmt.Sprintf("fail to get %s pool", asset))
 			}
 
-			if pool.Status != PoolEnabled {
+			if pool.Status != PoolAvailable {
 				return errInvalidPoolStatus
 			}
 		}
@@ -196,7 +196,7 @@ func swapOne(ctx cosmos.Context,
 		return cosmos.ZeroUint(), Pool{}, Pool{}, evt, ErrInternal(poolErr, fmt.Sprintf("fail to get pool(%s)", asset))
 	}
 	poolBefore = pool
-	if pool.Status != PoolEnabled {
+	if pool.Status != PoolAvailable {
 		return cosmos.ZeroUint(), poolBefore, pool, evt, errInvalidPoolStatus
 	}
 

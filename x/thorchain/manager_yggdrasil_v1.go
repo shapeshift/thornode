@@ -263,7 +263,7 @@ func (ymgr YggMgrV1) calcTargetYggCoins(pools []Pool, ygg Vault, yggBond, totalB
 	// ygg by accident.
 	counter := cosmos.ZeroUint()
 	for _, pool := range pools {
-		if !pool.IsEnabled() {
+		if !pool.IsAvailable() {
 			continue
 		}
 		runeAmt := common.GetShare(targetRune, totalLiquidityRune, pool.BalanceRune)

@@ -343,7 +343,7 @@ func enableNextPool(ctx cosmos.Context, keeper keeper.Keeper, eventManager Event
 			return err
 		}
 
-		if pool.Status == PoolBootstrap && !pool.BalanceAsset.IsZero() && !pool.BalanceRune.IsZero() {
+		if pool.Status == PoolStaged && !pool.BalanceAsset.IsZero() && !pool.BalanceRune.IsZero() {
 			pools = append(pools, pool)
 		}
 	}
@@ -360,13 +360,13 @@ func enableNextPool(ctx cosmos.Context, keeper keeper.Keeper, eventManager Event
 		}
 	}
 
-	poolEvt := NewEventPool(pool.Asset, PoolEnabled)
+	poolEvt := NewEventPool(pool.Asset, PoolAvailable)
 	if err := eventManager.EmitEvent(ctx, poolEvt); err != nil {
 		return fmt.Errorf("fail to emit pool event: %w", err)
 	}
 
-	pool.Status = PoolEnabled
-	ctx.Logger().Info("Enabled a new pool", "pool", pool.Asset)
+	pool.Status = PoolAvailable
+	ctx.Logger().Info("Available a new pool", "pool", pool.Asset)
 	return keeper.SetPool(ctx, pool)
 }
 

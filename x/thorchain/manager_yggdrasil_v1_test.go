@@ -173,7 +173,7 @@ func (s YggdrasilManagerV1Suite) TestFund(c *C) {
 	c.Assert(items, HasLen, 1)
 }
 
-func (s YggdrasilManagerV1Suite) TestNotEnabledPoolAssetWillNotFundYggdrasil(c *C) {
+func (s YggdrasilManagerV1Suite) TestNotAvailablePoolAssetWillNotFundYggdrasil(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	vault := GetRandomVault()
 	asset, err := common.NewAsset("BNB.BUSD-BD1")
@@ -210,7 +210,7 @@ func (s YggdrasilManagerV1Suite) TestNotEnabledPoolAssetWillNotFundYggdrasil(c *
 	busdPool.Asset = asset
 	busdPool.BalanceRune = cosmos.NewUint(100000 * common.One)
 	busdPool.BalanceAsset = cosmos.NewUint(10000 * common.One)
-	busdPool.Status = PoolBootstrap
+	busdPool.Status = PoolStaged
 	c.Assert(k.SetPool(ctx, busdPool), IsNil)
 
 	err1 := ymgr.Fund(ctx, mgr, constAccessor)

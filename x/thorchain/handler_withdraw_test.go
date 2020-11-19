@@ -107,7 +107,7 @@ func (HandlerWithdrawSuite) TestWithdrawHandler(c *C) {
 			BalanceAsset: cosmos.ZeroUint(),
 			Asset:        common.BNBAsset,
 			PoolUnits:    cosmos.ZeroUint(),
-			Status:       PoolEnabled,
+			Status:       PoolAvailable,
 		},
 		lp: LiquidityProvider{
 			Units:        cosmos.ZeroUint(),
@@ -191,7 +191,7 @@ func (HandlerWithdrawSuite) TestWithdrawHandler_mockFailScenarios(c *C) {
 		BalanceAsset: cosmos.ZeroUint(),
 		Asset:        common.BNBAsset,
 		PoolUnits:    cosmos.ZeroUint(),
-		Status:       PoolEnabled,
+		Status:       PoolAvailable,
 	}
 	lp := LiquidityProvider{
 		Units:        cosmos.ZeroUint(),
