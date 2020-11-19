@@ -153,7 +153,9 @@
                                     "last_add": "",
                                     "last_withdraw": "",
                                     "units": "",
-                                    "pending_rune": ""
+                                    "pending_rune": "",
+                                    "pending_asset": "",
+                                    "pending_tx_id": ""
                                 }
                             ]
                         },
@@ -895,7 +897,7 @@
                         "description": "OK",
                         "headers": {},
                         "examples": {
-                            "applicaton/json": "{\n    \"bond_reward_rune\": \"857134475040\",\n    \"total_bond_units\": \"0\",\n    \"total_reserve\": \"21999180112172346\",\n    \"total_bep2_rune\": \"0\"\n}\n"
+                            "applicaton/json": "{\n    \"bond_reward_rune\": \"857134475040\",\n    \"total_bond_units\": \"0\",\n    \"total_reserve\": \"21999180112172346\"\n}\n"
                         },
                         "schema": {
                             "$ref": "#/definitions/network"
@@ -1324,6 +1326,12 @@
                 },
                 "pending_rune": {
                     "type": "string"
+                },
+                "pending_asset": {
+                    "type": "string"
+                },
+                "pending_tx_id": {
+                    "type": "string"
                 }
             }
         },
@@ -1488,9 +1496,6 @@
                     "type": "string"
                 },
                 "total_reserve": {
-                    "type": "string"
-                },
-                "total_bep2_rune": {
                     "type": "string"
                 }
             }

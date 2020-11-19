@@ -59,6 +59,8 @@ Retrieve all the liquidity pools from THORChain
     + last_withdraw (string) - block height of the last withdraw
     + units (string) - the total number of units of the pool
     + pending_rune (string) - rune that has been provided, but not committed yet. Awaiting a provision of the non-rune asset
+    + pending_asset (string) - asset
+    + pending_tx_id (string) - pending tx id
 
 ### Get all liquidity providers of a pool [GET]
 
@@ -485,7 +487,6 @@ This section document all api related to network
     + bond_reward_rune (string) - total amount of awarded rune for node operators
     + total_bond_units (string) - total amount of bond units
     + total_reserve (string) - total amount of reserve in rune
-    + total_bep2_rune (string) - total amount of bep2 rune
 ### Get network data [GET]
 
 Retrieve network data from THORChain
@@ -497,8 +498,7 @@ Retrieve network data from THORChain
             {
                 "bond_reward_rune": "857134475040",
                 "total_bond_units": "0",
-                "total_reserve": "21999180112172346",
-                "total_bep2_rune": "0"
+                "total_reserve": "21999180112172346"
             }
 ## inbound_addresses [/thorchain/inbound_addresses]
 inbound addresses will return a list of address , one per chain.  the address might change frequently if THORChain has multiple asgards
