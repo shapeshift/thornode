@@ -165,7 +165,7 @@ func (h AddLiquidityHandler) addLiquidityV1(ctx cosmos.Context,
 	originalUnits := pool.PoolUnits
 	// if THORNode have no balance, set the default pool status
 	if originalUnits.IsZero() {
-		defaultPoolStatus := PoolEnabled.String()
+		defaultPoolStatus := PoolAvailable.String()
 		// if the pools is for gas asset on the chain, automatically enable it
 		if !pool.Asset.Equals(pool.Asset.Chain.GetGasAsset()) {
 			defaultPoolStatus = constAccessor.GetStringValue(constants.DefaultPoolStatus)
@@ -252,8 +252,8 @@ func (h AddLiquidityHandler) addLiquidityV1(ctx cosmos.Context,
 	if err := h.keeper.SetPool(ctx, pool); err != nil {
 		return ErrInternal(err, "fail to save pool")
 	}
-	if originalUnits.IsZero() && !pool.PoolUnits.IsZero() && pool.Status == PoolEnabled {
-		poolEvent := NewEventPool(pool.Asset, PoolEnabled)
+	if originalUnits.IsZero() && !pool.PoolUnits.IsZero() && pool.Status == PoolAvailable {
+		poolEvent := NewEventPool(pool.Asset, PoolAvailable)
 		if err := h.mgr.EventMgr().EmitEvent(ctx, poolEvent); err != nil {
 			ctx.Logger().Error("fail to emit pool event", "error", err)
 		}

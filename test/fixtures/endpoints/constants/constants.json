@@ -31,6 +31,6 @@
     "StrictBondLiquidityRatio": false
   },
   "string_values": {
-    "DefaultPoolStatus": "Enabled"
+    "DefaultPoolStatus": "Available"
   }
 }

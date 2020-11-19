@@ -60,10 +60,10 @@ func (s EventSuite) TestWithdrawEvent(c *C) {
 }
 
 func (s EventSuite) TestPool(c *C) {
-	evt := NewEventPool(common.BNBAsset, Enabled)
+	evt := NewEventPool(common.BNBAsset, Available)
 	c.Check(evt.Type(), Equals, "pool")
 	c.Check(evt.Pool.String(), Equals, common.BNBAsset.String())
-	c.Check(evt.Status.String(), Equals, Enabled.String())
+	c.Check(evt.Status.String(), Equals, Available.String())
 	events, err := evt.Events()
 	c.Check(err, IsNil)
 	c.Check(events, NotNil)

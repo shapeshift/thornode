@@ -124,7 +124,7 @@ func (vm *SwapQv1) scoreMsgs(ctx cosmos.Context, items swapItems) (swapItems, er
 		}
 
 		pool := pools[item.msg.TargetAsset]
-		if pool.IsEmpty() || !pool.IsEnabled() || pool.BalanceRune.IsZero() || pool.BalanceAsset.IsZero() {
+		if pool.IsEmpty() || !pool.IsAvailable() || pool.BalanceRune.IsZero() || pool.BalanceAsset.IsZero() {
 			continue
 		}
 

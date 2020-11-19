@@ -76,7 +76,7 @@ func (s *HelperSuite) TestSubsidizePoolWithSlashBond(c *C) {
 	poolBNB.Asset = common.BNBAsset
 	poolBNB.BalanceRune = cosmos.NewUint(100 * common.One)
 	poolBNB.BalanceAsset = cosmos.NewUint(100 * common.One)
-	poolBNB.Status = PoolEnabled
+	poolBNB.Status = PoolAvailable
 	c.Assert(k.SetPool(ctx, poolBNB), IsNil)
 
 	poolTCAN := NewPool()
@@ -85,14 +85,14 @@ func (s *HelperSuite) TestSubsidizePoolWithSlashBond(c *C) {
 	poolTCAN.Asset = tCanAsset
 	poolTCAN.BalanceRune = cosmos.NewUint(200 * common.One)
 	poolTCAN.BalanceAsset = cosmos.NewUint(200 * common.One)
-	poolTCAN.Status = PoolEnabled
+	poolTCAN.Status = PoolAvailable
 	c.Assert(k.SetPool(ctx, poolTCAN), IsNil)
 
 	poolBTC := NewPool()
 	poolBTC.Asset = common.BTCAsset
 	poolBTC.BalanceAsset = cosmos.NewUint(300 * common.One)
 	poolBTC.BalanceRune = cosmos.NewUint(300 * common.One)
-	poolBTC.Status = PoolEnabled
+	poolBTC.Status = PoolAvailable
 	c.Assert(k.SetPool(ctx, poolBTC), IsNil)
 	ygg.Type = YggdrasilVault
 	ygg.Coins = common.Coins{
@@ -247,14 +247,14 @@ func (s *HelperSuite) TestEnableNextPool(c *C) {
 	c.Assert(err, IsNil)
 	pool := NewPool()
 	pool.Asset = common.BNBAsset
-	pool.Status = PoolEnabled
+	pool.Status = PoolAvailable
 	pool.BalanceRune = cosmos.NewUint(100 * common.One)
 	pool.BalanceAsset = cosmos.NewUint(100 * common.One)
 	c.Assert(k.SetPool(ctx, pool), IsNil)
 
 	pool = NewPool()
 	pool.Asset = common.BTCAsset
-	pool.Status = PoolBootstrap
+	pool.Status = PoolStaged
 	pool.BalanceRune = cosmos.NewUint(50 * common.One)
 	pool.BalanceAsset = cosmos.NewUint(50 * common.One)
 	c.Assert(k.SetPool(ctx, pool), IsNil)
@@ -263,7 +263,7 @@ func (s *HelperSuite) TestEnableNextPool(c *C) {
 	c.Assert(err, IsNil)
 	pool = NewPool()
 	pool.Asset = ethAsset
-	pool.Status = PoolBootstrap
+	pool.Status = PoolStaged
 	pool.BalanceRune = cosmos.NewUint(40 * common.One)
 	pool.BalanceAsset = cosmos.NewUint(40 * common.One)
 	c.Assert(k.SetPool(ctx, pool), IsNil)
@@ -272,7 +272,7 @@ func (s *HelperSuite) TestEnableNextPool(c *C) {
 	c.Assert(err, IsNil)
 	pool = NewPool()
 	pool.Asset = xmrAsset
-	pool.Status = PoolBootstrap
+	pool.Status = PoolStaged
 	pool.BalanceRune = cosmos.NewUint(40 * common.One)
 	pool.BalanceAsset = cosmos.NewUint(0 * common.One)
 	c.Assert(k.SetPool(ctx, pool), IsNil)
@@ -282,25 +282,25 @@ func (s *HelperSuite) TestEnableNextPool(c *C) {
 	c.Assert(err, IsNil)
 	pool = NewPool()
 	pool.Asset = usdAsset
-	pool.Status = PoolBootstrap
+	pool.Status = PoolStaged
 	pool.BalanceRune = cosmos.NewUint(140 * common.One)
 	pool.BalanceAsset = cosmos.NewUint(0 * common.One)
 	c.Assert(k.SetPool(ctx, pool), IsNil)
 	// should enable BTC
 	c.Assert(enableNextPool(ctx, k, eventMgr), IsNil)
 	pool, err = k.GetPool(ctx, common.BTCAsset)
-	c.Check(pool.Status, Equals, PoolEnabled)
+	c.Check(pool.Status, Equals, PoolAvailable)
 
 	// should enable ETH
 	c.Assert(enableNextPool(ctx, k, eventMgr), IsNil)
 	pool, err = k.GetPool(ctx, ethAsset)
-	c.Check(pool.Status, Equals, PoolEnabled)
+	c.Check(pool.Status, Equals, PoolAvailable)
 
 	// should NOT enable XMR, since it has no assets
 	c.Assert(enableNextPool(ctx, k, eventMgr), IsNil)
 	pool, err = k.GetPool(ctx, xmrAsset)
 	c.Assert(pool.IsEmpty(), Equals, false)
-	c.Check(pool.Status, Equals, PoolBootstrap)
+	c.Check(pool.Status, Equals, PoolStaged)
 }
 
 type addGasFeesKeeperHelper struct {
@@ -360,14 +360,14 @@ func newAddGasFeeTestHelper(c *C) addGasFeeTestHelper {
 	pool.Asset = common.BNBAsset
 	pool.BalanceAsset = cosmos.NewUint(100 * common.One)
 	pool.BalanceRune = cosmos.NewUint(100 * common.One)
-	pool.Status = PoolEnabled
+	pool.Status = PoolAvailable
 	c.Assert(k.SetPool(ctx, pool), IsNil)
 
 	poolBTC := NewPool()
 	poolBTC.Asset = common.BTCAsset
 	poolBTC.BalanceAsset = cosmos.NewUint(100 * common.One)
 	poolBTC.BalanceRune = cosmos.NewUint(100 * common.One)
-	poolBTC.Status = PoolEnabled
+	poolBTC.Status = PoolAvailable
 	c.Assert(k.SetPool(ctx, poolBTC), IsNil)
 
 	na := GetRandomNodeAccount(NodeActive)

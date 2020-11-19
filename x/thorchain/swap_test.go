@@ -43,7 +43,7 @@ func (k *TestSwapKeeper) GetPool(ctx cosmos.Context, asset common.Asset) (types.
 			BalanceRune:  cosmos.NewUint(100).MulUint64(common.One),
 			BalanceAsset: cosmos.NewUint(100).MulUint64(common.One),
 			PoolUnits:    cosmos.NewUint(100).MulUint64(common.One),
-			Status:       types.Enabled,
+			Status:       PoolAvailable,
 			Asset:        asset,
 		}, nil
 	}

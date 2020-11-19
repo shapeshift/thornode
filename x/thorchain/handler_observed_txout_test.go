@@ -349,7 +349,7 @@ func setupAnObservedTxOut(ctx cosmos.Context, helper *HandlerObservedTxOutTestHe
 	p.Asset = common.BNBAsset
 	p.BalanceRune = cosmos.NewUint(100 * common.One)
 	p.BalanceAsset = cosmos.NewUint(100 * common.One)
-	p.Status = PoolEnabled
+	p.Status = PoolAvailable
 	helper.Keeper.SetPool(ctx, p)
 	return NewMsgObservedTxOut(txs, activeNodeAccount.NodeAddress)
 }

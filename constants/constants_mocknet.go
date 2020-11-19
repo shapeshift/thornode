@@ -22,6 +22,6 @@ func init() {
 		StrictBondLiquidityRatio: false,
 	}
 	stringOverrides = map[ConstantName]string{
-		DefaultPoolStatus: "Enabled",
+		DefaultPoolStatus: "Available",
 	}
 }
