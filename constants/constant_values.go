@@ -15,7 +15,9 @@ const (
 	BlocksPerYear
 	OutboundTransactionFee
 	NativeChainGasFee
-	NewPoolCycle
+	PoolCycle
+	MinRunePoolDepth
+	MaxAvailablePools
 	MinimumNodesForYggdrasil
 	MinimumNodesForBFT
 	DesiredValidatorSet
@@ -55,7 +57,9 @@ var nameToString = map[ConstantName]string{
 	BlocksPerYear:                 "BlocksPerYear",
 	OutboundTransactionFee:        "OutboundTransactionFee",
 	NativeChainGasFee:             "NativeChainGasFee",
-	NewPoolCycle:                  "NewPoolCycle",
+	PoolCycle:                     "PoolCycle",
+	MinRunePoolDepth:              "MinRunePoolDepth",
+	MaxAvailablePools:             "MaxAvailablePools",
 	MinimumNodesForYggdrasil:      "MinimumNodesForYggdrasil",
 	MinimumNodesForBFT:            "MinimumNodesForBFT",
 	DesiredValidatorSet:           "DesiredValidatorSet",

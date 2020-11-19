@@ -287,17 +287,17 @@ func (s *HelperSuite) TestEnableNextPool(c *C) {
 	pool.BalanceAsset = cosmos.NewUint(0 * common.One)
 	c.Assert(k.SetPool(ctx, pool), IsNil)
 	// should enable BTC
-	c.Assert(enableNextPool(ctx, k, eventMgr), IsNil)
+	c.Assert(cyclePools(ctx, 100, 1, k, eventMgr), IsNil)
 	pool, err = k.GetPool(ctx, common.BTCAsset)
 	c.Check(pool.Status, Equals, PoolAvailable)
 
 	// should enable ETH
-	c.Assert(enableNextPool(ctx, k, eventMgr), IsNil)
+	c.Assert(cyclePools(ctx, 100, 1, k, eventMgr), IsNil)
 	pool, err = k.GetPool(ctx, ethAsset)
 	c.Check(pool.Status, Equals, PoolAvailable)
 
 	// should NOT enable XMR, since it has no assets
-	c.Assert(enableNextPool(ctx, k, eventMgr), IsNil)
+	c.Assert(cyclePools(ctx, 100, 1, k, eventMgr), IsNil)
 	pool, err = k.GetPool(ctx, xmrAsset)
 	c.Assert(pool.IsEmpty(), Equals, false)
 	c.Check(pool.Status, Equals, PoolStaged)

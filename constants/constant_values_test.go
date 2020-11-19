@@ -14,7 +14,7 @@ func (ConstantsTestSuite) TestConstantName_String(c *C) {
 		EmissionCurve,
 		BlocksPerYear,
 		OutboundTransactionFee,
-		NewPoolCycle,
+		PoolCycle,
 		MinimumNodesForYggdrasil,
 		MinimumNodesForBFT,
 		DesiredValidatorSet,
