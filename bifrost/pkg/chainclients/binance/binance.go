@@ -49,11 +49,10 @@ type Binance struct {
 	storage         *blockscanner.BlockScannerStorage
 	blockScanner    *blockscanner.BlockScanner
 	bnbScanner      *BinanceBlockScanner
-	keysignPartyMgr *thorclient.KeySignPartyMgr
 }
 
 // NewBinance create new instance of binance client
-func NewBinance(thorKeys *thorclient.Keys, cfg config.ChainConfiguration, server *tssp.TssServer, thorchainBridge *thorclient.ThorchainBridge, m *metrics.Metrics, keySignPartyMgr *thorclient.KeySignPartyMgr) (*Binance, error) {
+func NewBinance(thorKeys *thorclient.Keys, cfg config.ChainConfiguration, server *tssp.TssServer, thorchainBridge *thorclient.ThorchainBridge, m *metrics.Metrics) (*Binance, error) {
 	tssKm, err := tss.NewKeySign(server, thorchainBridge)
 	if err != nil {
 		return nil, fmt.Errorf("fail to create tss signer: %w", err)
@@ -86,7 +85,6 @@ func NewBinance(thorKeys *thorclient.Keys, cfg config.ChainConfiguration, server
 		tssKeyManager:   tssKm,
 		localKeyManager: localKm,
 		thorchainBridge: thorchainBridge,
-		keysignPartyMgr: keySignPartyMgr,
 	}
 
 	if err := b.checkIsTestNet(); err != nil {
@@ -344,51 +342,36 @@ func (b *Binance) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, er
 	return hexTx, nil
 }
 
-func (b *Binance) sign(signMsg btx.StdSignMsg, poolPubKey common.PubKey, signerPubKeys common.PubKeys) ([]byte, error) {
+func (b *Binance) sign(signMsg btx.StdSignMsg, poolPubKey common.PubKey) ([]byte, error) {
 	if b.localKeyManager.Pubkey().Equals(poolPubKey) {
 		return b.localKeyManager.Sign(signMsg)
 	}
 	k := b.tssKeyManager.(tss.ThorchainKeyManager)
-	return k.SignWithPool(signMsg, poolPubKey, signerPubKeys)
+	return k.SignWithPool(signMsg, poolPubKey)
 }
 
 // signMsg is design to sign a given message until it success or the same message had been send out by other signer
 func (b *Binance) signMsg(signMsg btx.StdSignMsg, from string, poolPubKey common.PubKey, thorchainHeight int64, txOutItem stypes.TxOutItem) ([]byte, error) {
-	keySignParty, err := b.keysignPartyMgr.GetKeySignParty(poolPubKey)
-	if err != nil {
-		b.logger.Error().Err(err).Msg("fail to get keysign party")
-		return nil, err
-	}
-
-	// let's retry before we give up on the signing party
-	retryMax := 3
-	var finalErr error
-	for i := 0; i < retryMax; i++ {
-		rawBytes, err := b.sign(signMsg, poolPubKey, keySignParty)
-		if err == nil && rawBytes != nil {
-			b.keysignPartyMgr.SaveKeySignParty(poolPubKey, keySignParty)
-			return rawBytes, nil
-		}
-		b.keysignPartyMgr.RemoveKeySignParty(poolPubKey)
-		finalErr = err
+	rawBytes, err := b.sign(signMsg, poolPubKey)
+	if err == nil && rawBytes != nil {
+		return rawBytes, nil
 	}
 	var keysignError tss.KeysignError
-	if errors.As(finalErr, &keysignError) {
+	if errors.As(err, &keysignError) {
+		// don't know which node to blame , so just return
 		if len(keysignError.Blame.BlameNodes) == 0 {
-			// TSS doesn't know which node to blame
-			return nil, finalErr
+			return nil, err
 		}
-
-		// key sign error forward the keysign blame to thorchain
+		// fail to sign a message , forward keysign failure to THORChain , so the relevant party can be blamed
 		txID, errPostKeysignFail := b.thorchainBridge.PostKeysignFailure(keysignError.Blame, thorchainHeight, txOutItem.Memo, txOutItem.Coins, poolPubKey)
 		if errPostKeysignFail != nil {
 			b.logger.Error().Err(errPostKeysignFail).Msg("fail to post keysign failure to thorchain")
-			return nil, multierror.Append(finalErr, errPostKeysignFail)
+			return nil, multierror.Append(err, errPostKeysignFail)
 		}
 		b.logger.Info().Str("tx_id", txID.String()).Msgf("post keysign failure to thorchain")
 	}
-	b.logger.Error().Err(finalErr).Msgf("fail to sign msg with memo: %s", signMsg.Memo)
-	return nil, finalErr
+	b.logger.Error().Err(err).Msgf("fail to sign msg with memo: %s", signMsg.Memo)
+	return nil, err
 }
 
 func (b *Binance) GetAccount(pkey common.PubKey) (common.Account, error) {

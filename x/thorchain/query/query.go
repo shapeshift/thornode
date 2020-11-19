@@ -53,7 +53,6 @@ var (
 	QueryVaultsYggdrasil    = Query{Key: "vaultsyggdrasil", EndpointTemplate: "/%s/vaults/yggdrasil"}
 	QueryVault              = Query{Key: "vault", EndpointTemplate: "/%s/vault/{%s}/{%s}"}
 	QueryVaultPubkeys       = Query{Key: "vaultpubkeys", EndpointTemplate: "/%s/vaults/pubkeys"}
-	QueryTSSSigners         = Query{Key: "tsssigner", EndpointTemplate: "/%s/vaults/{%s}/signers"}
 	QueryConstantValues     = Query{Key: "constants", EndpointTemplate: "/%s/constants"}
 	QueryVersion            = Query{Key: "version", EndpointTemplate: "/%s/version"}
 	QueryMimirValues        = Query{Key: "mimirs", EndpointTemplate: "/%s/mimir"}
@@ -86,7 +85,6 @@ var Queries = []Query{
 	QueryVaultPubkeys,
 	QueryVault,
 	QueryKeygensPubkey,
-	QueryTSSSigners,
 	QueryConstantValues,
 	QueryVersion,
 	QueryMimirValues,

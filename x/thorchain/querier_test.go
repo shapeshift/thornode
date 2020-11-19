@@ -356,47 +356,6 @@ func (s *QuerierSuite) TestQueryHeights(c *C) {
 	c.Assert(s.k.Cdc().UnmarshalJSON(result, &q), IsNil)
 }
 
-func (s *QuerierSuite) TestQueryTssSigners(c *C) {
-	result, err := s.querier(s.ctx, []string{
-		query.QueryTSSSigners.Key,
-		"",
-	}, abci.RequestQuery{})
-	c.Assert(result, IsNil)
-	c.Assert(err, NotNil)
-
-	result, err = s.querier(s.ctx, []string{
-		query.QueryTSSSigners.Key,
-		"blabalbal",
-	}, abci.RequestQuery{})
-	c.Assert(result, IsNil)
-	c.Assert(err, NotNil)
-
-	result, err = s.querier(s.ctx, []string{
-		query.QueryTSSSigners.Key,
-		GetRandomVault().PubKey.String(),
-	}, abci.RequestQuery{})
-	c.Assert(result, IsNil)
-	c.Assert(err, NotNil)
-	vault := GetRandomVault()
-	vault.Membership = common.PubKeys{
-		GetRandomPubKey(),
-		GetRandomPubKey(),
-		GetRandomPubKey(),
-		GetRandomPubKey(),
-		GetRandomPubKey(),
-	}
-	s.k.SetVault(s.ctx, vault)
-	result, err = s.querier(s.ctx, []string{
-		query.QueryTSSSigners.Key,
-		vault.PubKey.String(),
-	}, abci.RequestQuery{})
-	c.Assert(result, NotNil)
-	c.Assert(err, IsNil)
-
-	var signerParty common.PubKeys
-	c.Assert(s.k.Cdc().UnmarshalJSON(result, &signerParty), IsNil)
-}
-
 func (s *QuerierSuite) TestQueryConstantValues(c *C) {
 	result, err := s.querier(s.ctx, []string{
 		query.QueryConstantValues.Key,
