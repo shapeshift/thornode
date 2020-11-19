@@ -13,8 +13,8 @@ import (
 // QueryResLastBlockHeights used to return the block height query
 type QueryResLastBlockHeights struct {
 	Chain            common.Chain `json:"chain"`
-	LastChainHeight  int64        `json:"lastobservedin"`
-	LastSignedHeight int64        `json:"lastsignedout"`
+	LastChainHeight  int64        `json:"last_observed_in"`
+	LastSignedHeight int64        `json:"last_signed_out"`
 	Thorchain        int64        `json:"thorchain"`
 }
 
