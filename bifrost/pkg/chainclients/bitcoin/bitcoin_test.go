@@ -30,12 +30,11 @@ import (
 func TestPackage(t *testing.T) { TestingT(t) }
 
 type BitcoinSuite struct {
-	client          *Client
-	server          *httptest.Server
-	bridge          *thorclient.ThorchainBridge
-	cfg             config.ChainConfiguration
-	m               *metrics.Metrics
-	keySignPartyMgr *thorclient.KeySignPartyMgr
+	client *Client
+	server *httptest.Server
+	bridge *thorclient.ThorchainBridge
+	cfg    config.ChainConfiguration
+	m      *metrics.Metrics
 }
 
 var _ = Suite(
@@ -143,9 +142,8 @@ func (s *BitcoinSuite) SetUpTest(c *C) {
 	cfg.ChainHost = s.server.Listener.Addr().String()
 	s.bridge, err = thorclient.NewThorchainBridge(cfg, s.m, thorKeys)
 	c.Assert(err, IsNil)
-	s.keySignPartyMgr = thorclient.NewKeySignPartyMgr(s.bridge)
 	s.cfg.RPCHost = s.server.Listener.Addr().String()
-	s.client, err = NewClient(thorKeys, s.cfg, nil, s.bridge, s.m, s.keySignPartyMgr)
+	s.client, err = NewClient(thorKeys, s.cfg, nil, s.bridge, s.m)
 	c.Assert(err, IsNil)
 	c.Assert(s.client, NotNil)
 }

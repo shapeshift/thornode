@@ -30,11 +30,10 @@ import (
 func TestPackage(t *testing.T) { TestingT(t) }
 
 type BinancechainSuite struct {
-	thordir         string
-	thorKeys        *thorclient.Keys
-	bridge          *thorclient.ThorchainBridge
-	m               *metrics.Metrics
-	keySignPartyMgr *thorclient.KeySignPartyMgr
+	thordir  string
+	thorKeys *thorclient.Keys
+	bridge   *thorclient.ThorchainBridge
+	m        *metrics.Metrics
 }
 
 var _ = Suite(&BinancechainSuite{})
@@ -81,7 +80,6 @@ func (s *BinancechainSuite) SetUpSuite(c *C) {
 	c.Assert(err, IsNil)
 	s.bridge, err = thorclient.NewThorchainBridge(cfg, s.m, s.thorKeys)
 	c.Assert(err, IsNil)
-	s.keySignPartyMgr = thorclient.NewKeySignPartyMgr(s.bridge)
 }
 
 func (s *BinancechainSuite) TearDownSuite(c *C) {
@@ -110,7 +108,7 @@ func (s *BinancechainSuite) TestNewBinance(c *C) {
 		BlockScanner: config.BlockScannerConfiguration{
 			StartBlockHeight: 1, // avoids querying thorchain for block height
 		},
-	}, nil, s.bridge, s.m, s.keySignPartyMgr)
+	}, nil, s.bridge, s.m)
 	c.Assert(err2, IsNil)
 	c.Assert(b2, NotNil)
 }
@@ -213,7 +211,7 @@ func (s *BinancechainSuite) TestGetHeight(c *C) {
 			RPCHost:          server.URL,
 			StartBlockHeight: 1, // avoids querying thorchain for block height
 		},
-	}, nil, s.bridge, s.m, s.keySignPartyMgr)
+	}, nil, s.bridge, s.m)
 	c.Assert(err, IsNil)
 
 	height, err := b.GetHeight()
@@ -273,7 +271,7 @@ func (s *BinancechainSuite) TestSignTx(c *C) {
 			RPCHost:          server.URL,
 			StartBlockHeight: 1, // avoids querying thorchain for block height
 		},
-	}, nil, b, s.m, thorclient.NewKeySignPartyMgr(b))
+	}, nil, b, s.m)
 	c.Assert(err2, IsNil)
 	c.Assert(b2, NotNil)
 	pk, err := common.NewPubKeyFromCrypto(b2.localKeyManager.GetPrivKey().PubKey())
@@ -315,7 +313,7 @@ func (s *BinancechainSuite) TestGetGasFee(c *C) {
 			RPCHost:          server.URL,
 			StartBlockHeight: 1, // avoids querying thorchain for block height
 		},
-	}, nil, b, s.m, s.keySignPartyMgr)
+	}, nil, b, s.m)
 	c.Assert(err2, IsNil)
 	c.Assert(b2, NotNil)
 	b2.bnbScanner = &BinanceBlockScanner{

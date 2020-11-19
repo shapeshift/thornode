@@ -37,12 +37,11 @@ import (
 func TestPackage(t *testing.T) { TestingT(t) }
 
 type ObserverSuite struct {
-	m               *metrics.Metrics
-	thordir         string
-	thorKeys        *thorclient.Keys
-	bridge          *thorclient.ThorchainBridge
-	b               *binance.Binance
-	keySignPartyMgr *thorclient.KeySignPartyMgr
+	m        *metrics.Metrics
+	thordir  string
+	thorKeys *thorclient.Keys
+	bridge   *thorclient.ThorchainBridge
+	b        *binance.Binance
 }
 
 var _ = Suite(&ObserverSuite{})
@@ -114,7 +113,7 @@ func (s *ObserverSuite) NewMockBinanceInstance(c *C, jsonData string) {
 		MaxHttpRequestRetry:        10,
 		StartBlockHeight:           1, // avoids querying thorchain for block height
 		EnforceBlockHeight:         true,
-	}}, nil, s.bridge, s.m, s.keySignPartyMgr)
+	}}, nil, s.bridge, s.m)
 	c.Assert(err, IsNil)
 	c.Assert(s.b, NotNil)
 }
@@ -188,7 +187,6 @@ func (s *ObserverSuite) SetUpSuite(c *C) {
 	s.bridge, err = thorclient.NewThorchainBridge(cfg, s.m, s.thorKeys)
 	c.Assert(s.bridge, NotNil)
 	c.Assert(err, IsNil)
-	s.keySignPartyMgr = thorclient.NewKeySignPartyMgr(s.bridge)
 	priv, err := s.thorKeys.GetPrivateKey()
 	c.Assert(err, IsNil)
 	pk, err := common.NewPubKeyFromCrypto(priv.PubKey())
