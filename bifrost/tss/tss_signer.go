@@ -66,14 +66,14 @@ func (s *KeySign) ExportAsKeyStore(password string) (*keys.EncryptedKeyJSON, err
 	return nil, nil
 }
 
-func (s *KeySign) makeSignature(msg tx.StdSignMsg, poolPubKey string, signerPubKeys common.PubKeys) (sig tx.StdSignature, err error) {
+func (s *KeySign) makeSignature(msg tx.StdSignMsg, poolPubKey string) (sig tx.StdSignature, err error) {
 	var stdSignature tx.StdSignature
 	pk, err := cosmos.GetPubKeyFromBech32(cosmos.Bech32PubKeyTypeAccPub, poolPubKey)
 	if err != nil {
 		return stdSignature, fmt.Errorf("fail to get pub key: %w", err)
 	}
 	hashedMsg := crypto.Sha256(msg.Bytes())
-	signPack, err := s.RemoteSign(hashedMsg, poolPubKey, signerPubKeys)
+	signPack, err := s.RemoteSign(hashedMsg, poolPubKey)
 	if err != nil {
 		return stdSignature, fmt.Errorf("fail to TSS sign: %w", err)
 	}
@@ -99,8 +99,8 @@ func (s *KeySign) Sign(msg tx.StdSignMsg) ([]byte, error) {
 	return nil, nil
 }
 
-func (s *KeySign) SignWithPool(msg tx.StdSignMsg, poolPubKey common.PubKey, signerPubKeys common.PubKeys) ([]byte, error) {
-	sig, err := s.makeSignature(msg, poolPubKey.String(), signerPubKeys)
+func (s *KeySign) SignWithPool(msg tx.StdSignMsg, poolPubKey common.PubKey) ([]byte, error) {
+	sig, err := s.makeSignature(msg, poolPubKey.String())
 	if err != nil {
 		return nil, err
 	}
@@ -115,13 +115,13 @@ func (s *KeySign) SignWithPool(msg tx.StdSignMsg, poolPubKey common.PubKey, sign
 	return bz, nil
 }
 
-func (s *KeySign) RemoteSign(msg []byte, poolPubKey string, signerPubKeys common.PubKeys) ([]byte, error) {
+func (s *KeySign) RemoteSign(msg []byte, poolPubKey string) ([]byte, error) {
 	if len(msg) == 0 {
 		return nil, nil
 	}
 
 	encodedMsg := base64.StdEncoding.EncodeToString(msg)
-	rResult, sResult, err := s.toLocalTSSSigner(poolPubKey, encodedMsg, signerPubKeys)
+	rResult, sResult, err := s.toLocalTSSSigner(poolPubKey, encodedMsg)
 	if err != nil {
 		return nil, fmt.Errorf("fail to tss sign: %w", err)
 	}
@@ -186,10 +186,10 @@ func (s *KeySign) getVersion() semver.Version {
 }
 
 // toLocalTSSSigner will send the request to local signer
-func (s *KeySign) toLocalTSSSigner(poolPubKey, sendmsg string, signerPubKeys common.PubKeys) (string, string, error) {
+func (s *KeySign) toLocalTSSSigner(poolPubKey, msgToSign string) (string, string, error) {
 	tssMsg := keysign.Request{
 		PoolPubKey: poolPubKey,
-		Message:    sendmsg,
+		Message:    msgToSign,
 	}
 	currentVersion := s.getVersion()
 	tssMsg.Version = currentVersion.String()
@@ -202,7 +202,7 @@ func (s *KeySign) toLocalTSSSigner(poolPubKey, sendmsg string, signerPubKeys com
 	// this is just round the block height to the nearest 10
 	tssMsg.BlockHeight = blockHeight / 10 * 10
 
-	s.logger.Debug().Str("payload", fmt.Sprintf("PoolPubKey: %s, Message: %s, Signers: %+v", tssMsg.PoolPubKey, tssMsg.Message, tssMsg.SignerPubKeys)).Msg("msg to tss Local node")
+	s.logger.Debug().Str("payload", fmt.Sprintf("PoolPubKey: %s, Message: %s, Signers: %+v", tssMsg.PoolPubKey, tssMsg.Message, tssMsg.SignerPubKeys)).Msg("msgToSign to tss Local node")
 
 	ch := make(chan bool, 1)
 	defer close(ch)
