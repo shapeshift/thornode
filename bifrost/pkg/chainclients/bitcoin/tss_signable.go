@@ -9,7 +9,6 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/tendermint/tendermint/crypto/secp256k1"
 
-	"gitlab.com/thorchain/thornode/bifrost/thorclient"
 	"gitlab.com/thorchain/thornode/bifrost/tss"
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
@@ -17,33 +16,25 @@ import (
 
 // TssSignable is a signable implementation backed by tss
 type TssSignable struct {
-	poolPubKey      common.PubKey
-	tssKeyManager   tss.ThorchainKeyManager
-	logger          zerolog.Logger
-	keySignPartyMgr *thorclient.KeySignPartyMgr
+	poolPubKey    common.PubKey
+	tssKeyManager tss.ThorchainKeyManager
+	logger        zerolog.Logger
 }
 
 // NewTssSignable create a new instance of TssSignable
-func NewTssSignable(pubKey common.PubKey, manager tss.ThorchainKeyManager, keySignPartyMgr *thorclient.KeySignPartyMgr) (*TssSignable, error) {
+func NewTssSignable(pubKey common.PubKey, manager tss.ThorchainKeyManager) (*TssSignable, error) {
 	return &TssSignable{
-		poolPubKey:      pubKey,
-		tssKeyManager:   manager,
-		logger:          log.Logger.With().Str("module", "tss_signable").Logger(),
-		keySignPartyMgr: keySignPartyMgr,
+		poolPubKey:    pubKey,
+		tssKeyManager: manager,
+		logger:        log.Logger.With().Str("module", "tss_signable").Logger(),
 	}, nil
 }
 
 // Sign the given payload
 func (ts *TssSignable) Sign(payload []byte) (*btcec.Signature, error) {
 	ts.logger.Info().Msgf("msg to sign:%s", base64.StdEncoding.EncodeToString(payload))
-	keySignParty, err := ts.keySignPartyMgr.GetKeySignParty(ts.poolPubKey)
+	result, err := ts.tssKeyManager.RemoteSign(payload, ts.poolPubKey.String())
 	if err != nil {
-		ts.logger.Error().Err(err).Msg("fail to get keysign party")
-		return nil, err
-	}
-	result, err := ts.tssKeyManager.RemoteSign(payload, ts.poolPubKey.String(), keySignParty)
-	if err != nil {
-		ts.keySignPartyMgr.RemoveKeySignParty(ts.poolPubKey)
 		return nil, err
 	}
 	var sig btcec.Signature
@@ -55,7 +46,6 @@ func (ts *TssSignable) Sign(payload []byte) (*btcec.Signature, error) {
 	} else {
 		ts.logger.Info().Msg("the signature can't be verified")
 	}
-	ts.keySignPartyMgr.SaveKeySignParty(ts.poolPubKey, keySignParty)
 	return &sig, nil
 }
 

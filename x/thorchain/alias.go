@@ -99,7 +99,6 @@ var (
 	NewMsgMigrate                  = types.NewMsgMigrate
 	NewMsgRagnarok                 = types.NewMsgRagnarok
 	NewQueryNodeAccount            = types.NewQueryNodeAccount
-	ChooseSignerParty              = types.ChooseSignerParty
 	GetThreshold                   = types.GetThreshold
 	ModuleCdc                      = types.ModuleCdc
 	RegisterCodec                  = types.RegisterCodec

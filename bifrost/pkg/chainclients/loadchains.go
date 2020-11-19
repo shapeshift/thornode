@@ -20,7 +20,6 @@ func LoadChains(thorKeys *thorclient.Keys,
 	server *tss.TssServer,
 	thorchainBridge *thorclient.ThorchainBridge,
 	m *metrics.Metrics,
-	keySignPartyMgr *thorclient.KeySignPartyMgr,
 	pkMggr pubkeymanager.PubKeyValidator) map[common.Chain]ChainClient {
 	logger := log.Logger.With().Str("module", "bifrost").Logger()
 	chains := make(map[common.Chain]ChainClient, 0)
@@ -28,21 +27,21 @@ func LoadChains(thorKeys *thorclient.Keys,
 	for _, chain := range cfg {
 		switch chain.ChainID {
 		case common.BNBChain:
-			bnb, err := binance.NewBinance(thorKeys, chain, server, thorchainBridge, m, keySignPartyMgr)
+			bnb, err := binance.NewBinance(thorKeys, chain, server, thorchainBridge, m)
 			if err != nil {
 				logger.Error().Err(err).Str("chain_id", chain.ChainID.String()).Msg("fail to load chain")
 				continue
 			}
 			chains[common.BNBChain] = bnb
 		case common.ETHChain:
-			eth, err := ethereum.NewClient(thorKeys, chain, server, thorchainBridge, m, keySignPartyMgr)
+			eth, err := ethereum.NewClient(thorKeys, chain, server, thorchainBridge, m)
 			if err != nil {
 				logger.Error().Err(err).Str("chain_id", chain.ChainID.String()).Msg("fail to load chain")
 				continue
 			}
 			chains[common.ETHChain] = eth
 		case common.BTCChain:
-			btc, err := bitcoin.NewClient(thorKeys, chain, server, thorchainBridge, m, keySignPartyMgr)
+			btc, err := bitcoin.NewClient(thorKeys, chain, server, thorchainBridge, m)
 			if err != nil {
 				logger.Error().Err(err).Str("chain_id", chain.ChainID.String()).Msg("fail to load chain")
 				continue

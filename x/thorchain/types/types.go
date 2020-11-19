@@ -2,12 +2,7 @@ package types
 
 import (
 	"errors"
-	"fmt"
 	"math"
-	"math/rand"
-	"sort"
-
-	"gitlab.com/thorchain/thornode/common"
 )
 
 const (
@@ -54,35 +49,4 @@ func GetThreshold(value int) (int, error) {
 	}
 	threshold := int(math.Ceil(float64(value) * 2.0 / 3.0))
 	return threshold, nil
-}
-
-// ChooseSignerParty use pseodurandom number generate to choose 2/3 majority signer to form a key sign party
-func ChooseSignerParty(pubKeys common.PubKeys, seed int64, total int) (common.PubKeys, error) {
-	totalCandidates := len(pubKeys)
-	signers := common.PubKeys{}
-	sort.SliceStable(pubKeys, func(i, j int) bool {
-		return pubKeys[i].String() < pubKeys[j].String()
-	})
-
-	threshold, err := GetThreshold(total)
-	if err != nil {
-		return common.PubKeys{}, fmt.Errorf("fail to get threshold: %w", err)
-	}
-	if totalCandidates < threshold {
-		return common.PubKeys{}, fmt.Errorf("total(%d) is less than threshold(%d)", totalCandidates, threshold)
-	}
-	source := rand.NewSource(seed)
-	rnd := rand.New(source)
-	for {
-		// keep choosing until it get threshold number of signers
-		idx := rnd.Intn(totalCandidates)
-		k := pubKeys[idx]
-		if !signers.Contains(k) {
-			signers = append(signers, k)
-			if len(signers) == threshold {
-				break
-			}
-		}
-	}
-	return signers, nil
 }

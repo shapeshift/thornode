@@ -14,7 +14,7 @@ import (
 
 	"gitlab.com/thorchain/thornode/bifrost/tss"
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 var (
@@ -46,13 +46,13 @@ func (w *KeySignWrapper) GetPubKey() common.PubKey {
 	return w.pubKey
 }
 
-func (w *KeySignWrapper) Sign(tx *etypes.Transaction, poolPubKey common.PubKey, signerPubKeys common.PubKeys) ([]byte, error) {
+func (w *KeySignWrapper) Sign(tx *etypes.Transaction, poolPubKey common.PubKey) ([]byte, error) {
 	var err error
 	var sig []byte
 	if w.pubKey.Equals(poolPubKey) {
 		sig, err = w.sign(tx)
 	} else {
-		sig, err = w.multiSig(tx, poolPubKey.String(), signerPubKeys)
+		sig, err = w.multiSig(tx, poolPubKey.String())
 		if sig != nil {
 			sig = append(sig, vByte)
 		}
@@ -80,13 +80,13 @@ func (w *KeySignWrapper) sign(tx *etypes.Transaction) ([]byte, error) {
 	return sig, nil
 }
 
-func (w *KeySignWrapper) multiSig(tx *etypes.Transaction, poolPubKey string, signerPubKeys common.PubKeys) ([]byte, error) {
+func (w *KeySignWrapper) multiSig(tx *etypes.Transaction, poolPubKey string) ([]byte, error) {
 	pk, err := cosmos.GetPubKeyFromBech32(cosmos.Bech32PubKeyTypeAccPub, poolPubKey)
 	if err != nil {
 		return nil, fmt.Errorf("fail to get pub key: %w", err)
 	}
 	hash := eipSigner.Hash(tx)
-	sig, err := w.tssKeyManager.RemoteSign(hash[:], poolPubKey, signerPubKeys)
+	sig, err := w.tssKeyManager.RemoteSign(hash[:], poolPubKey)
 	if err != nil || sig == nil {
 		return nil, fmt.Errorf("fail to TSS sign: %w", err)
 	}

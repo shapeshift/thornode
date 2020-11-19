@@ -61,8 +61,6 @@ func NewQuerier(keeper keeper.Keeper, kbs KeybaseStore) cosmos.Querier {
 			return queryVault(ctx, path[1:], keeper)
 		case q.QueryVaultPubkeys.Key:
 			return queryVaultsPubkeys(ctx, keeper)
-		case q.QueryTSSSigners.Key:
-			return queryTSSSigners(ctx, path[1:], req, keeper)
 		case q.QueryConstantValues.Key:
 			return queryConstantValues(ctx, path[1:], req, keeper)
 		case q.QueryVersion.Key:
@@ -892,35 +890,6 @@ func queryLastBlockHeights(ctx cosmos.Context, path []string, req abci.RequestQu
 		ctx.Logger().Error("fail to marshal query response to json", "error", err)
 		return nil, fmt.Errorf("fail to marshal response to json: %w", err)
 	}
-	return res, nil
-}
-
-// queryTSSSigner
-func queryTSSSigners(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
-	if len(path) == 0 {
-		return nil, fmt.Errorf("vault pubkey not provided")
-	}
-	vaultPubKey := path[0]
-	if len(vaultPubKey) == 0 {
-		ctx.Logger().Error("empty vault pub key")
-		return nil, fmt.Errorf("empty pool pub key")
-	}
-	pk, err := common.NewPubKey(vaultPubKey)
-	if err != nil {
-		ctx.Logger().Error("fail to parse pool pub key", "error", err)
-		return nil, fmt.Errorf("invalid pool pub key(%s): %w", vaultPubKey, err)
-	}
-	vault, err := keeper.GetVault(ctx, pk)
-	if err != nil {
-		ctx.Logger().Error("fail to get vault", "error", err)
-		return nil, fmt.Errorf("fail to get vault: %w", err)
-	}
-	res, err := codec.MarshalJSONIndent(keeper.Cdc(), vault.SigningParty)
-	if err != nil {
-		ctx.Logger().Error("fail to marshal to json", "error", err)
-		return nil, fmt.Errorf("fail to marshal to json: %w", err)
-	}
-
 	return res, nil
 }
 
