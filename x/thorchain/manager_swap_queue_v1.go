@@ -64,6 +64,16 @@ func (vm *SwapQv1) FetchQueue(ctx cosmos.Context) (swapItems, error) {
 // EndBlock trigger the real swap to be processed
 func (vm *SwapQv1) EndBlock(ctx cosmos.Context, mgr Manager, version semver.Version, constAccessor constants.ConstantValues) error {
 	handler := NewSwapHandler(vm.k, mgr)
+
+	minSwapsPerBlock, err := vm.k.GetMimir(ctx, constants.MinSwapsPerBlock.String())
+	if minSwapsPerBlock < 0 || err != nil {
+		minSwapsPerBlock = constAccessor.GetInt64Value(constants.MinSwapsPerBlock)
+	}
+	maxSwapsPerBlock, err := vm.k.GetMimir(ctx, constants.MaxSwapsPerBlock.String())
+	if maxSwapsPerBlock < 0 || err != nil {
+		maxSwapsPerBlock = constAccessor.GetInt64Value(constants.MaxSwapsPerBlock)
+	}
+
 	swaps, err := vm.FetchQueue(ctx)
 	if err != nil {
 		ctx.Logger().Error("fail to fetch swap queue from store", "error", err)
@@ -77,7 +87,7 @@ func (vm *SwapQv1) EndBlock(ctx cosmos.Context, mgr Manager, version semver.Vers
 	}
 	swaps = swaps.Sort()
 
-	for i := 0; i < vm.getTodoNum(len(swaps)); i++ {
+	for i := int64(0); i < vm.getTodoNum(int64(len(swaps)), minSwapsPerBlock, maxSwapsPerBlock); i++ {
 		pick := swaps[i]
 		_, err := handler.handle(ctx, pick.msg, version, constAccessor)
 		if err != nil {
@@ -92,18 +102,16 @@ func (vm *SwapQv1) EndBlock(ctx cosmos.Context, mgr Manager, version semver.Vers
 }
 
 // getTodoNum - determine how many swaps to do.
-func (vm *SwapQv1) getTodoNum(queueLen int) int {
+func (vm *SwapQv1) getTodoNum(queueLen, minSwapsPerBlock, maxSwapsPerBlock int64) int64 {
 	// Do half the length of the queue. Unless...
-	//	1. The queue length is greater than 200
-	//  2. The queue legnth is less than 10
-	maxSwaps := 100 // TODO: make this a constant
-	minSwaps := 10  // TODO: make this a constant
+	//	1. The queue length is greater than maxSwapsPerBlock
+	//  2. The queue legnth is less than minSwapsPerBlock
 	todo := queueLen / 2
-	if minSwaps >= queueLen {
+	if minSwapsPerBlock >= queueLen {
 		todo = queueLen
 	}
-	if maxSwaps < todo {
-		todo = maxSwaps
+	if maxSwapsPerBlock < todo {
+		todo = maxSwapsPerBlock
 	}
 	return todo
 }

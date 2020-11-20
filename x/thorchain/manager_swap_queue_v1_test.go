@@ -15,13 +15,13 @@ var _ = Suite(&SwapQueueSuite{})
 func (s SwapQueueSuite) TestGetTodoNum(c *C) {
 	queue := NewSwapQv1(keeper.KVStoreDummy{})
 
-	c.Check(queue.getTodoNum(50), Equals, 25)     // halves it
-	c.Check(queue.getTodoNum(11), Equals, 5)      // halves it
-	c.Check(queue.getTodoNum(10), Equals, 10)     // does all of them
-	c.Check(queue.getTodoNum(1), Equals, 1)       // does all of them
-	c.Check(queue.getTodoNum(0), Equals, 0)       // does none
-	c.Check(queue.getTodoNum(10000), Equals, 100) // does max 100
-	c.Check(queue.getTodoNum(200), Equals, 100)   // does max 100
+	c.Check(queue.getTodoNum(50, 10, 100), Equals, int64(25))     // halves it
+	c.Check(queue.getTodoNum(11, 10, 100), Equals, int64(5))      // halves it
+	c.Check(queue.getTodoNum(10, 10, 100), Equals, int64(10))     // does all of them
+	c.Check(queue.getTodoNum(1, 10, 100), Equals, int64(1))       // does all of them
+	c.Check(queue.getTodoNum(0, 10, 100), Equals, int64(0))       // does none
+	c.Check(queue.getTodoNum(10000, 10, 100), Equals, int64(100)) // does max 100
+	c.Check(queue.getTodoNum(200, 10, 100), Equals, int64(100))   // does max 100
 }
 
 func (s SwapQueueSuite) TestScoreMsgs(c *C) {
