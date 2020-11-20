@@ -128,11 +128,11 @@ func withdraw(ctx cosmos.Context, version semver.Version, keeper keeper.Keeper, 
 
 	// Create a pool event if THORNode have no rune or assets
 	if pool.BalanceAsset.IsZero() || pool.BalanceRune.IsZero() {
-		poolEvt := NewEventPool(pool.Asset, PoolBootstrap)
+		poolEvt := NewEventPool(pool.Asset, PoolStaged)
 		if err := manager.EventMgr().EmitEvent(ctx, poolEvt); nil != err {
 			ctx.Logger().Error("fail to emit pool event", "error", err)
 		}
-		pool.Status = PoolBootstrap
+		pool.Status = PoolStaged
 	}
 
 	if err := keeper.SetPool(ctx, pool); err != nil {

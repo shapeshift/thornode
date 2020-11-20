@@ -62,7 +62,7 @@ func (GasManagerTestSuite) TestGetFee(c *C) {
 		BalanceRune:  cosmos.NewUint(100 * common.One),
 		BalanceAsset: cosmos.NewUint(100 * common.One),
 		Asset:        common.BNBAsset,
-		Status:       PoolEnabled,
+		Status:       PoolAvailable,
 	}), IsNil)
 	fee = gasMgr.GetFee(ctx, common.BNBChain)
 	c.Assert(fee, Equals, int64(bnbSingleTxFee.Uint64()*3))
@@ -76,7 +76,7 @@ func (GasManagerTestSuite) TestGetFee(c *C) {
 		BalanceRune:  cosmos.NewUint(100 * common.One),
 		BalanceAsset: cosmos.NewUint(100 * common.One),
 		Asset:        common.BTCAsset,
-		Status:       PoolEnabled,
+		Status:       PoolAvailable,
 	}), IsNil)
 	fee = gasMgr.GetFee(ctx, common.BTCChain)
 	c.Assert(fee, Equals, int64(70*50*3))
@@ -142,7 +142,7 @@ func (GasManagerTestSuite) TestDifferentValidations(c *C) {
 	p.Asset = common.BNBAsset
 	p.BalanceAsset = cosmos.NewUint(common.One * 100)
 	p.BalanceRune = cosmos.NewUint(common.One * 100)
-	p.Status = PoolEnabled
+	p.Status = PoolAvailable
 	c.Assert(helper.Keeper.SetPool(ctx, p), IsNil)
 	gasMgr.AddGasAsset(common.Gas{
 		common.NewCoin(common.BNBAsset, cosmos.NewUint(37500)),

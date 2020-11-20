@@ -133,7 +133,7 @@ func (s *ThorchainSuite) TestChurn(c *C) {
 		BalanceAsset: cosmos.NewUint(common.One),
 		Asset:        common.BNBAsset,
 		PoolUnits:    cosmos.NewUint(common.One),
-		Status:       PoolEnabled,
+		Status:       PoolAvailable,
 	})
 	addresses := make([]cosmos.AccAddress, 4)
 	for i := 0; i <= 3; i++ {
@@ -268,12 +268,12 @@ func (s *ThorchainSuite) TestRagnarok(c *C) {
 	// create pools
 	pool := NewPool()
 	pool.Asset = common.BNBAsset
-	pool.Status = PoolEnabled
+	pool.Status = PoolAvailable
 	c.Assert(keeper.SetPool(ctx, pool), IsNil)
 	boltAsset, err := common.NewAsset("BNB.BOLT-123")
 	c.Assert(err, IsNil)
 	pool.Asset = boltAsset
-	pool.Status = PoolEnabled
+	pool.Status = PoolAvailable
 	c.Assert(keeper.SetPool(ctx, pool), IsNil)
 	addHandler := NewAddLiquidityHandler(keeper, mgr)
 	// add liquidity providers

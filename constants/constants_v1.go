@@ -37,7 +37,7 @@ func NewConstantValue010() *ConstantVals {
 			StrictBondLiquidityRatio: true,
 		},
 		stringValues: map[ConstantName]string{
-			DefaultPoolStatus: "Bootstrap",
+			DefaultPoolStatus: "Staged",
 		},
 	}
 }
