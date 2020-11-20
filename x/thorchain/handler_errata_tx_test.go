@@ -425,7 +425,7 @@ func (s *HandlerErrataTxSuite) TestErrataHandlerDifferentError(c *C) {
 				pool.Asset = common.BTCAsset
 				pool.BalanceRune = cosmos.NewUint(common.One * 100)
 				pool.BalanceAsset = cosmos.NewUint(common.One * 100)
-				pool.Status = PoolEnabled
+				pool.Status = PoolAvailable
 				helper.Keeper.SetPool(ctx, pool)
 				voter := ObservedTxVoter{
 					TxID:   observedTx.Tx.ID,
@@ -454,7 +454,7 @@ func (s *HandlerErrataTxSuite) TestErrataHandlerDifferentError(c *C) {
 				pool.Asset = common.BTCAsset
 				pool.BalanceRune = cosmos.NewUint(common.One * 100)
 				pool.BalanceAsset = cosmos.NewUint(common.One * 100)
-				pool.Status = PoolEnabled
+				pool.Status = PoolAvailable
 				helper.Keeper.SetPool(ctx, pool)
 				voter := ObservedTxVoter{
 					TxID:   observedTx.Tx.ID,

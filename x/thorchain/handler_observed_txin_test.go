@@ -384,7 +384,7 @@ func setupAnLegitObservedTx(ctx cosmos.Context, helper *ObservedTxInHandlerTestH
 	p.Asset = common.BNBAsset
 	p.BalanceRune = cosmos.NewUint(100 * common.One)
 	p.BalanceAsset = cosmos.NewUint(100 * common.One)
-	p.Status = PoolEnabled
+	p.Status = PoolAvailable
 	helper.Keeper.SetPool(ctx, p)
 	return NewMsgObservedTxIn(ObservedTxs{
 		obTx,

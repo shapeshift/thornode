@@ -304,7 +304,7 @@ func (s *VaultManagerV1TestSuite) TestUpdateNetwork(c *C) {
 	p.Asset = common.BNBAsset
 	p.BalanceRune = cosmos.NewUint(common.One * 100)
 	p.BalanceAsset = cosmos.NewUint(common.One * 100)
-	p.Status = PoolEnabled
+	p.Status = PoolAvailable
 	c.Assert(helper.SetPool(ctx, p), IsNil)
 	// no active node , thus no bond
 	c.Assert(vaultMgr.UpdateNetwork(ctx, constAccessor, mgr.GasMgr(), mgr.EventMgr()), IsNil)
@@ -544,7 +544,7 @@ func (*VaultManagerV1TestSuite) TestGetTotalLiquidityRune(c *C) {
 	p.Asset = common.BNBAsset
 	p.BalanceRune = cosmos.NewUint(common.One * 100)
 	p.BalanceAsset = cosmos.NewUint(common.One * 100)
-	p.Status = PoolEnabled
+	p.Status = PoolAvailable
 	c.Assert(helper.SetPool(ctx, p), IsNil)
 	pools, totalLiquidity, err := vaultMgr.getTotalProvidedLiquidityRune(ctx)
 	c.Assert(err, IsNil)
@@ -562,7 +562,7 @@ func (*VaultManagerV1TestSuite) TestPayPoolRewards(c *C) {
 	p.Asset = common.BNBAsset
 	p.BalanceRune = cosmos.NewUint(common.One * 100)
 	p.BalanceAsset = cosmos.NewUint(common.One * 100)
-	p.Status = PoolEnabled
+	p.Status = PoolAvailable
 	c.Assert(helper.SetPool(ctx, p), IsNil)
 	vaultMgr.payPoolRewards(ctx, []cosmos.Uint{cosmos.NewUint(100 * common.One)}, Pools{p})
 	helper.failToSetPool = true

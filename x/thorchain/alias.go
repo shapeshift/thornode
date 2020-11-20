@@ -15,8 +15,8 @@ const (
 	DefaultCodespace = types.DefaultCodespace
 
 	// pool status
-	PoolEnabled   = types.Enabled
-	PoolBootstrap = types.Bootstrap
+	PoolAvailable = types.Available
+	PoolStaged    = types.Staged
 	PoolSuspended = types.Suspended
 
 	// Admin config keys

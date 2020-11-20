@@ -536,7 +536,7 @@ func (vm *VaultMgrV1) UpdateNetwork(ctx cosmos.Context, constAccessor constants.
 	currentHeight := uint64(common.BlockHeight(ctx))
 	pools, totalProvidedLiquidity, err := vm.getTotalProvidedLiquidityRune(ctx)
 	if err != nil {
-		return fmt.Errorf("fail to get enabled pools and total provided liquidity rune: %w", err)
+		return fmt.Errorf("fail to get available pools and total provided liquidity rune: %w", err)
 	}
 
 	// If no Rune is provided liquidity, then don't give out block rewards.
@@ -593,7 +593,7 @@ func (vm *VaultMgrV1) UpdateNetwork(ctx cosmos.Context, constAccessor constants.
 		var rewardPools []Pool
 		// Pool Rewards are based on Fee Share
 		for _, pool := range pools {
-			if !pool.IsEnabled() {
+			if !pool.IsAvailable() {
 				continue
 			}
 			amt := cosmos.ZeroUint()
@@ -619,7 +619,7 @@ func (vm *VaultMgrV1) UpdateNetwork(ctx cosmos.Context, constAccessor constants.
 	} else { // Else deduct pool deficit
 
 		for _, pool := range pools {
-			if !pool.IsEnabled() {
+			if !pool.IsAvailable() {
 				continue
 			}
 			poolFees, err := vm.k.GetPoolLiquidityFees(ctx, currentHeight, pool.Asset)

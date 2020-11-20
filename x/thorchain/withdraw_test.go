@@ -54,7 +54,7 @@ func (k *WithdrawTestKeeper) GetPool(ctx cosmos.Context, asset common.Asset) (ty
 			BalanceRune:  cosmos.NewUint(100).MulUint64(common.One),
 			BalanceAsset: cosmos.NewUint(100).MulUint64(common.One),
 			PoolUnits:    cosmos.NewUint(100).MulUint64(common.One),
-			Status:       types.Enabled,
+			Status:       PoolAvailable,
 			Asset:        asset,
 		}, nil
 	}
@@ -576,7 +576,7 @@ func getWithdrawTestKeeper(c *C, ctx cosmos.Context, k keeper.Keeper, runeAddres
 		BalanceAsset: cosmos.NewUint(100 * common.One),
 		Asset:        common.BNBAsset,
 		PoolUnits:    cosmos.NewUint(100 * common.One),
-		Status:       PoolEnabled,
+		Status:       PoolAvailable,
 	}
 	c.Assert(store.SetPool(ctx, pool), IsNil)
 	lp := LiquidityProvider{
@@ -606,7 +606,7 @@ func getWithdrawTestKeeper2(c *C, ctx cosmos.Context, k keeper.Keeper, runeAddre
 		BalanceAsset: cosmos.NewUint(100 * common.One),
 		Asset:        common.BNBAsset,
 		PoolUnits:    cosmos.NewUint(200 * common.One),
-		Status:       PoolEnabled,
+		Status:       PoolAvailable,
 	}
 	c.Assert(store.SetPool(ctx, pool), IsNil)
 	lp := LiquidityProvider{

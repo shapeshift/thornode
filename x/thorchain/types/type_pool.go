@@ -15,18 +15,18 @@ type PoolStatus int
 
 // |    State    | Swap | Add   | Withdraw  | Refunding |
 // | ----------- | ---- | ----- | --------- | --------- |
-// | `bootstrap` | no   | yes   | yes       | Refund Invalid Add/Remove Liquidity && all Swaps |
-// | `enabled`   | yes  | yes   | yes       | Refund Invalid Tx |
+// | `staged`    | no   | yes   | yes       | Refund Invalid Add/Remove Liquidity && all Swaps |
+// | `available` | yes  | yes   | yes       | Refund Invalid Tx |
 // | `suspended` | no   | no    | no        | Refund all |
 const (
-	Enabled PoolStatus = iota
-	Bootstrap
+	Available PoolStatus = iota
+	Staged
 	Suspended
 )
 
 var poolStatusStr = map[string]PoolStatus{
-	"Enabled":   Enabled,
-	"Bootstrap": Bootstrap,
+	"Available": Available,
+	"Staged":    Staged,
 	"Suspended": Suspended,
 }
 
@@ -92,7 +92,7 @@ func NewPool() Pool {
 		BalanceRune:  cosmos.ZeroUint(),
 		BalanceAsset: cosmos.ZeroUint(),
 		PoolUnits:    cosmos.ZeroUint(),
-		Status:       Enabled,
+		Status:       Available,
 	}
 }
 
@@ -104,9 +104,9 @@ func (ps Pool) Valid() error {
 	return nil
 }
 
-// IsEnabled check whether the pool is in Enabled status
-func (ps Pool) IsEnabled() bool {
-	return ps.Status == Enabled
+// IsAvailable check whether the pool is in Available status
+func (ps Pool) IsAvailable() bool {
+	return ps.Status == Available
 }
 
 // Empty will return true when the asset is empty
@@ -128,12 +128,12 @@ func (ps Pool) String() string {
 // EnsureValidPoolStatus make sure the pool is in a valid status otherwise it return an error
 func (ps Pool) EnsureValidPoolStatus(msg cosmos.Msg) error {
 	switch ps.Status {
-	case Enabled:
+	case Available:
 		return nil
-	case Bootstrap:
+	case Staged:
 		switch msg.(type) {
 		case MsgSwap:
-			return errors.New("pool is in bootstrap status, can't swap")
+			return errors.New("pool is in staged status, can't swap")
 		default:
 			return nil
 		}

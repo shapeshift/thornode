@@ -43,7 +43,7 @@ func (PoolTestSuite) TestPool(c *C) {
 	c.Check(p.EnsureValidPoolStatus(m), IsNil)
 	msgNoop := NewMsgNoOp(GetRandomObservedTx(), signer)
 	c.Check(p.EnsureValidPoolStatus(msgNoop), IsNil)
-	p.Status = Enabled
+	p.Status = Available
 	c.Check(p.EnsureValidPoolStatus(m), IsNil)
 	p.Status = PoolStatus(100)
 	c.Check(p.EnsureValidPoolStatus(msgNoop), NotNil)
@@ -59,11 +59,11 @@ func (PoolTestSuite) TestPool(c *C) {
 	p1.BalanceAsset = cosmos.NewUint(50 * common.One)
 	c.Check(p1.Valid(), IsNil)
 
-	c.Check(p1.IsEnabled(), Equals, true)
+	c.Check(p1.IsAvailable(), Equals, true)
 
-	// When Pool is in bootstrap mode , it can't swap
+	// When Pool is in staged status, it can't swap
 	p2 := NewPool()
-	p2.Status = Bootstrap
+	p2.Status = Staged
 	msgSwap := NewMsgSwap(GetRandomTx(), common.BNBAsset, GetRandomBNBAddress(), cosmos.NewUint(1000), common.NoAddress, cosmos.ZeroUint(), GetRandomBech32Addr())
 	c.Check(p2.EnsureValidPoolStatus(msgSwap), NotNil)
 	c.Check(p2.EnsureValidPoolStatus(msgNoop), IsNil)
@@ -71,16 +71,16 @@ func (PoolTestSuite) TestPool(c *C) {
 
 func (PoolTestSuite) TestPoolStatus(c *C) {
 	inputs := []string{
-		"enabled", "bootstrap", "suspended", "whatever",
+		"available", "staged", "suspended", "whatever",
 	}
 	for _, item := range inputs {
 		ps := GetPoolStatus(item)
 		c.Assert(ps.Valid(), IsNil)
 	}
 	var ps PoolStatus
-	err := json.Unmarshal([]byte(`"Enabled"`), &ps)
+	err := json.Unmarshal([]byte(`"Available"`), &ps)
 	c.Assert(err, IsNil)
-	c.Check(ps == Enabled, Equals, true)
+	c.Check(ps == Available, Equals, true)
 	err = json.Unmarshal([]byte(`{asdf}`), &ps)
 	c.Assert(err, NotNil)
 

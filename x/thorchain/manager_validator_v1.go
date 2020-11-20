@@ -659,15 +659,15 @@ func (vm *validatorMgrV1) ragnarokPools(ctx cosmos.Context, nth int64, mgr Manag
 		ctx.Logger().Error("can't get pools", "error", err)
 		return err
 	}
-	// set all pools to bootstrap mode
+	// set all pools to staged status
 	for _, pool := range pools {
-		if pool.Status != PoolBootstrap {
-			poolEvent := NewEventPool(pool.Asset, PoolBootstrap)
+		if pool.Status != PoolStaged {
+			poolEvent := NewEventPool(pool.Asset, PoolStaged)
 			if err := vm.eventMgr.EmitEvent(ctx, poolEvent); err != nil {
 				ctx.Logger().Error("fail to emit pool event", "error", err)
 			}
 
-			pool.Status = PoolBootstrap
+			pool.Status = PoolStaged
 			if err := vm.k.SetPool(ctx, pool); err != nil {
 				ctx.Logger().Error(err.Error())
 				return err

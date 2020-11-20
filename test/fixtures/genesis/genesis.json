@@ -7536,14 +7536,14 @@
       "balance_asset": "216512868",
       "balance_rune": "35842229408",
       "pool_units": "22567500000",
-      "status": "Enabled"
+      "status": "Available"
     },
     {
       "asset": "ETH.ETH",
       "balance_asset": "3617508188",
       "balance_rune": "44781808357",
       "pool_units": "24300000000",
-      "status": "Enabled"
+      "status": "Available"
     }
   ],
   "reserve": "0",
