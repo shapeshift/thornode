@@ -52,5 +52,11 @@ func (b *ThorchainBridge) GetKeysign(blockHeight int64, pk string) (types.TxOut,
 		return types.TxOut{}, errors.New("invalid keysign signature: bad signature")
 	}
 
+	// ensure the block height received is the one requested. Without this
+	// check, an attacker could use a replay attack to steal funds
+	if query.Keysign.Height != blockHeight {
+		return types.TxOut{}, fmt.Errorf("invalid keysign: block height mismatch (%d vs %d)", query.Keysign.Height, blockHeight)
+	}
+
 	return query.Keysign, nil
 }
