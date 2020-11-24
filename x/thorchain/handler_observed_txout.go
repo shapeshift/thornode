@@ -122,9 +122,7 @@ func (h ObservedTxOutHandler) handleV1(ctx cosmos.Context, version semver.Versio
 			if err != nil {
 				ctx.Logger().Error("fail to get keysing metric", "error", err)
 			} else {
-				for _, addr := range tx.Signers {
-					keysignMetric.AddNodeTssTime(addr, tx.KeysignMs)
-				}
+				keysignMetric.AddNodeTssTime(msg.Signer, tx.KeysignMs)
 				h.keeper.SetTssKeysignMetric(ctx, keysignMetric)
 			}
 		}

@@ -150,6 +150,9 @@ func (v Vault) CoinLength() (count int) {
 func (v Vault) CoinLengthByChain(c common.Chain) int {
 	total := 0
 	for _, coin := range v.Coins {
+		if coin.Asset.IsRune() {
+			continue
+		}
 		if coin.Asset.Chain.Equals(c) && !coin.Amount.IsZero() {
 			total++
 		}
@@ -221,10 +224,6 @@ func (v *Vault) SubFunds(coins common.Coins) {
 func (v *Vault) subFund(coin common.Coin) {
 	for i, ycoin := range v.Coins {
 		if coin.Asset.Equals(ycoin.Asset) {
-			// safeguard to protect against enter negative values
-			if coin.Amount.GTE(ycoin.Amount) {
-				coin.Amount = ycoin.Amount
-			}
 			v.Coins[i].Amount = common.SafeSub(ycoin.Amount, coin.Amount)
 			return
 		}

@@ -93,6 +93,8 @@ func (h MigrateHandler) handleV1(ctx cosmos.Context, version semver.Version, msg
 			if intendToSpend.Equal(actualSpend) {
 				ctx.Logger().Info(fmt.Sprintf("intend to spend: %s, actual spend: %s are the same , override match coin", intendToSpend, actualSpend))
 				matchCoin = true
+				// although here might detect there some some discrepancy between MaxGas , and actual gas
+				// but migrate is internal tx , asset didn't leave the network , thus doesn't need to update pool
 			}
 		}
 
