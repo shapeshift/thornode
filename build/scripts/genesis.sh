@@ -87,10 +87,9 @@ if [ "$SEED" = "$(hostname)" ]; then
     echo "NET: $NET"
     if [ "$NET" == "mocknet" ]; then
         echo "setting up accounts ...."
-        add_account tthor1j08ys4ct2hzzc2hcz6h2hgrvlmsjynawtaa5zs rune 5000000000000
-        add_account tthor1zupk5lmc84r2dh738a9g3zscavannjy3nzplwt rune 25000000000100
-        add_account tthor1qqnde7kqe5sf96j6zf8jpzwr44dh4gkddurry6 rune 5090000000000
-        # add_account thor1qqnde7kqe5sf96j6zf8jpzwr44dh4gkdftjnal funny 5090000000000
+        add_account tthor1z63f3mzwv3g75az80xwmhrawdqcjpaekk0kd54 rune 5000000000000
+        add_account tthor1wz78qmrkplrdhy37tw0tnvn0tkm5pqd6zdp257 rune 25000000000100
+        add_account tthor1xwusttz86hqfuk5z7amcgqsg7vp6g8zhsp5lu2 rune 5090000000000
     fi
 
     reserve 22000000000000000
