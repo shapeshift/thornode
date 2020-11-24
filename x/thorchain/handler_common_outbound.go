@@ -95,10 +95,39 @@ func (h CommonOutboundTxHandler) handle(ctx cosmos.Context, version semver.Versi
 				asset := txOutItem.Chain.GetGasAsset()
 				intendToSpend := txOutItem.Coin.Amount.Add(txOutItem.MaxGas.ToCoins().GetCoin(asset).Amount)
 				actualSpend := tx.Tx.Coins.GetCoin(asset).Amount.Add(tx.Tx.Gas.ToCoins().GetCoin(asset).Amount)
-				diffGas := common.SafeSub(txOutItem.MaxGas.ToCoins().GetCoin(asset).Amount, tx.Tx.Gas.ToCoins().GetCoin(asset).Amount)
 				if intendToSpend.Equal(actualSpend) {
+					diffGas := common.SafeSub(txOutItem.MaxGas.ToCoins().GetCoin(asset).Amount, tx.Tx.Gas.ToCoins().GetCoin(asset).Amount)
 					ctx.Logger().Info(fmt.Sprintf("intend to spend: %s, actual spend: %s are the same , override match coin, gas difference: %s ", intendToSpend, actualSpend, diffGas))
 					matchCoin = true
+
+					// when the actual gas is less than max gas , the gap had been paid to customer
+					if diffGas.GT(cosmos.ZeroUint()) {
+						pool, err := h.keeper.GetPool(ctx, asset)
+						if err != nil {
+							ctx.Logger().Error("fail to get pool", "error", err, "asset", asset)
+						} else {
+							runeValue := pool.AssetValueInRune(diffGas)
+							pool.BalanceRune = pool.BalanceRune.Add(runeValue)
+							pool.BalanceAsset = common.SafeSub(pool.BalanceAsset, diffGas)
+							//	send RUNE to asgard
+							if err := h.keeper.SendFromModuleToModule(ctx, ReserveName, AsgardName, common.NewCoin(common.RuneAsset(), runeValue)); err != nil {
+								ctx.Logger().Error("fail to send fund from Reserve to Asgard", "error", err)
+							}
+							network, err := h.keeper.GetNetwork(ctx)
+							if err != nil {
+								ctx.Logger().Error("fail to get network", "error", err)
+							} else {
+								network.TotalReserve = common.SafeSub(network.TotalReserve, runeValue)
+								if err := h.keeper.SetNetwork(ctx, network); err != nil {
+									ctx.Logger().Error("fail to save network", "error", err)
+								}
+							}
+
+							if err := h.keeper.SetPool(ctx, pool); err != nil {
+								ctx.Logger().Error("fail to save pool", "error", err, "asset", asset)
+							}
+						}
+					}
 				}
 			}
 			if txOutItem.InHash.Equals(inTxID) &&

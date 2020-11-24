@@ -15,6 +15,7 @@ import (
 
 	ctypes "github.com/binance-chain/go-sdk/common/types"
 	"github.com/btcsuite/btcd/btcec"
+	"github.com/btcsuite/btcd/btcjson"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/cosmos/cosmos-sdk/client/keys"
 	cKeys "github.com/cosmos/cosmos-sdk/crypto/keys"
@@ -358,5 +359,34 @@ func (s *BitcoinSignerSuite) TestIsSelfTransaction(c *C) {
 	c.Check(s.client.isSelfTransaction("66d2d6b5eb564972c59e4797683a1225a02515a41119f0a8919381236b63e948"), Equals, true)
 }
 
-func (s *BitcoinSignerSuite) TestGetAllUTXOs(c *C) {
+func (s *BitcoinSignerSuite) TestEstimateTxSize(c *C) {
+	txOutItem := stypes.TxOutItem{
+		Chain:       common.BNBChain,
+		ToAddress:   types2.GetRandomBTCAddress(),
+		VaultPubKey: types2.GetRandomPubKey(),
+		SeqNo:       0,
+		Coins: common.Coins{
+			common.NewCoin(common.BTCAsset, cosmos.NewUint(10)),
+		},
+		MaxGas: common.Gas{
+			common.NewCoin(common.BTCAsset, cosmos.NewUint(1)),
+		},
+		InHash:  "",
+		OutHash: "",
+		Memo:    "MIGRATE:1234",
+	}
+	size, err := s.client.estimateTxSize(txOutItem, []btcjson.ListUnspentResult{
+		{
+			TxID:      "66d2d6b5eb564972c59e4797683a1225a02515a41119f0a8919381236b63e948",
+			Vout:      0,
+			Spendable: true,
+		},
+		{
+			TxID:      "c5946215d82d5870ba2b1e8f245d8aa1446783975aa3a592cf55589fccbf285f",
+			Vout:      0,
+			Spendable: true,
+		},
+	})
+	c.Assert(err, IsNil)
+	c.Assert(size, Equals, int64(177))
 }

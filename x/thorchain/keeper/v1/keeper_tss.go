@@ -36,7 +36,9 @@ func (k KVStore) SetTssKeygenMetric(ctx cosmos.Context, metric *TssKeygenMetric)
 
 // GetTssKeysignMetric get tss keygen metric from key value store
 func (k KVStore) GetTssKeysignMetric(ctx cosmos.Context, txID common.TxID) (*TssKeysignMetric, error) {
-	record := TssKeysignMetric{}
+	record := TssKeysignMetric{
+		TxID: txID,
+	}
 	_, err := k.get(ctx, k.GetKey(ctx, prefixTssKeysignMetric, txID.String()), &record)
 	return &record, err
 }
