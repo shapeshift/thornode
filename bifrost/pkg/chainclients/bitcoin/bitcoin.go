@@ -35,6 +35,8 @@ const (
 	BlockCacheSize      = 100
 	MaximumConfirmation = 99999999
 	MaxAsgardAddresses  = 100
+	// EstimateAverageTxSize for THORChain the estimate tx size is hard code to 250 here , as most of time it will spend 1 input, have 3 output
+	EstimateAverageTxSize = 250
 )
 
 // Client observes bitcoin chain and allows to sign and broadcast tx
@@ -525,8 +527,8 @@ func (c *Client) sendNetworkFee(height int64) error {
 	if result.AverageFeeRate == 0 {
 		return nil
 	}
-	// the tx size is hard code to 250 here , as most of time thornode will spend 1 input, have 3 output
-	txid, err := c.bridge.PostNetworkFee(height, common.BTCChain, uint64(250), uint64(result.AverageFeeRate))
+
+	txid, err := c.bridge.PostNetworkFee(height, common.BTCChain, uint64(EstimateAverageTxSize), uint64(result.AverageFeeRate))
 	if err != nil {
 		return fmt.Errorf("fail to post network fee to thornode: %w", err)
 	}

@@ -663,7 +663,7 @@ func queryTx(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper ke
 	}
 	result := struct {
 		ObservedTx     `json:"observed_tx"`
-		KeysignMetrics types.TssKeysignMetric `json:"keysign_metric,omitempty"`
+		KeysignMetrics types.TssKeysignMetric `json:"keysign_metric"`
 	}{
 		ObservedTx:     voter.GetTx(nodeAccounts),
 		KeysignMetrics: *keysignMetric,
