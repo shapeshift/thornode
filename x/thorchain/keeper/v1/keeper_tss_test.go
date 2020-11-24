@@ -42,3 +42,18 @@ func (s *KeeperTssSuite) TestTssKeygenMetric(c *C) {
 	c.Assert(metric1, NotNil)
 	c.Assert(metric1.NodeTssTimes, HasLen, 1)
 }
+
+func (s *KeeperTssSuite) TestTssKeysignMetric(c *C) {
+	ctx, k := setupKeeperForTest(c)
+	txID := GetRandomTxHash()
+	metric, err := k.GetTssKeysignMetric(ctx, txID)
+	c.Assert(err, IsNil)
+	c.Assert(metric, NotNil)
+	metric.AddNodeTssTime(GetRandomBech32Addr(), 1024)
+	k.SetTssKeysignMetric(ctx, metric)
+
+	metric1, err := k.GetTssKeysignMetric(ctx, txID)
+	c.Assert(err, IsNil)
+	c.Assert(metric1, NotNil)
+	c.Assert(metric1.NodeTssTimes, HasLen, 1)
+}
