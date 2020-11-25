@@ -768,17 +768,40 @@ func (c *Client) RegisterPublicKey(pkey common.PubKey) error {
 	return c.registerAddressInWalletAsWatch(pkey)
 }
 
+func (c *Client) getCoinbaseValue(blockHeight int64) (int64, error) {
+	hash, err := c.client.GetBlockHash(blockHeight)
+	if err != nil {
+		return 0, fmt.Errorf("fail to get block hash:%w", err)
+	}
+	result, err := c.client.GetBlockVerboseTx(hash)
+	if err != nil {
+		return 0, fmt.Errorf("fail to get block verbose tx: %w", err)
+	}
+	for _, tx := range result.Tx {
+		if len(tx.Vin) == 1 && tx.Vin[0].IsCoinBase() {
+			total := float64(0)
+			for _, opt := range tx.Vout {
+				total += opt.Value
+			}
+			amt, err := btcutil.NewAmount(total)
+			if err != nil {
+				return 0, fmt.Errorf("fail to parse amount: %w", err)
+			}
+			return int64(amt), nil
+		}
+	}
+	return 0, fmt.Errorf("fail to get coinbase value")
+}
+
 // getBlockRequiredConfirmation find out how many confirmation the given txIn need to have before it can be send to THORChain
 func (c *Client) getBlockRequiredConfirmation(txIn types.TxIn, height int64) (int64, error) {
 	totalTxValue := txIn.GetTotalTransactionValue(common.BTCAsset, c.asgardAddresses)
-	stats, err := c.client.GetBlockStats(height, nil)
+	totalFeeAndSubsidy, err := c.getCoinbaseValue(height)
 	if err != nil {
-		return 0, fmt.Errorf("fail to get block stats with height(%d): %w", height, err)
+		return totalFeeAndSubsidy, fmt.Errorf("fail to get coinbase value: %w", err)
 	}
-
-	totalFeeAndSubsidy := txIn.GetTotalGas().AddUint64(uint64(stats.Subsidy))
-	confirm := totalTxValue.MulUint64(2).Quo(totalFeeAndSubsidy).Uint64()
-	c.logger.Info().Msgf("totalTxValue:%s,total subsidy:%d,total fee and Subsidy:%s,confirmation:%d", totalTxValue, stats.Subsidy, totalFeeAndSubsidy, confirm)
+	confirm := totalTxValue.MulUint64(2).QuoUint64(uint64(totalFeeAndSubsidy)).Uint64()
+	c.logger.Info().Msgf("totalTxValue:%s,total fee and Subsidy:%d,confirmation:%d", totalTxValue, totalFeeAndSubsidy, confirm)
 	return int64(confirm), nil
 }
 
