@@ -292,10 +292,18 @@ func queryNetwork(ctx cosmos.Context, keeper keeper.Keeper) ([]byte, error) {
 		ctx.Logger().Error("fail to get vault", "error", err)
 		return nil, fmt.Errorf("fail to get vault: %w", err)
 	}
+	type NetworkResp struct {
+		BondRewardRune cosmos.Uint `json:"bond_reward_rune"` // The total amount of awarded rune for bonders
+		TotalBondUnits cosmos.Uint `json:"total_bond_units"` // Total amount of bond units
+		TotalReserve   cosmos.Uint `json:"total_reserve"`
+	}
+	result := NetworkResp{
+		BondRewardRune: data.BondRewardRune,
+		TotalBondUnits: data.TotalBondUnits,
+		TotalReserve:   keeper.GetRuneBalanceOfModule(ctx, ReserveName),
+	}
 
-	data.TotalReserve = keeper.GetRuneBalanceOfModule(ctx, ReserveName)
-
-	res, err := codec.MarshalJSONIndent(keeper.Cdc(), data)
+	res, err := codec.MarshalJSONIndent(keeper.Cdc(), result)
 	if err != nil {
 		ctx.Logger().Error("fail to marshal network data to json", "error", err)
 		return nil, fmt.Errorf("fail to marshal response to json: %w", err)

@@ -194,28 +194,6 @@ func (h HandlerReserveContributorSuite) TestReserveContributorHandler(c *C) {
 			expectedResult: errInternal,
 		},
 		{
-			name: "fail to get network data should return an error",
-			messageCreator: func(helper reserveContributorHandlerHelper) cosmos.Msg {
-				return NewMsgReserveContributor(GetRandomTx(), helper.reserveContributor, helper.nodeAccount.NodeAddress)
-			},
-			runner: func(handler ReserveContributorHandler, helper reserveContributorHandlerHelper, msg cosmos.Msg) (*cosmos.Result, error) {
-				helper.keeper.errGetNetwork = true
-				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
-			},
-			expectedResult: errInternal,
-		},
-		{
-			name: "fail to set network data should return an error",
-			messageCreator: func(helper reserveContributorHandlerHelper) cosmos.Msg {
-				return NewMsgReserveContributor(GetRandomTx(), helper.reserveContributor, helper.nodeAccount.NodeAddress)
-			},
-			runner: func(handler ReserveContributorHandler, helper reserveContributorHandlerHelper, msg cosmos.Msg) (*cosmos.Result, error) {
-				helper.keeper.errSetNetwork = true
-				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
-			},
-			expectedResult: errInternal,
-		},
-		{
 			name: "normal reserve contribute message should return success",
 			messageCreator: func(helper reserveContributorHandlerHelper) cosmos.Msg {
 				return NewMsgReserveContributor(GetRandomTx(), helper.reserveContributor, helper.nodeAccount.NodeAddress)
