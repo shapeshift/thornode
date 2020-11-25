@@ -294,10 +294,6 @@ func (s *VaultManagerV1TestSuite) TestUpdateNetwork(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(vaultMgr.UpdateNetwork(ctx, constAccessor, mgr.GasMgr(), mgr.EventMgr()), IsNil)
 
-	// total provided liquidity is zero , should not doing anything
-	vd.TotalReserve = cosmos.NewUint(common.One * 100)
-	err = k.SetNetwork(ctx, vd)
-	c.Assert(err, IsNil)
 	c.Assert(vaultMgr.UpdateNetwork(ctx, constAccessor, mgr.GasMgr(), mgr.EventMgr()), IsNil)
 
 	p := NewPool()
