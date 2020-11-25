@@ -90,7 +90,7 @@ type outboundTxHandlerTestHelper struct {
 	constAccessor constants.ConstantValues
 	nodeAccount   NodeAccount
 	inboundTx     ObservedTx
-	toi           *TxOutItem
+	toi           TxOutItem
 	mgr           Manager
 }
 
@@ -226,7 +226,7 @@ func newOutboundTxHandlerTestHelper(c *C) outboundTxHandlerTestHelper {
 
 	constAccessor := constants.GetConstantValues(version)
 	txOutStorage := NewTxOutStorageV1(keeper, constAccessor, NewDummyEventMgr(), NewGasMgrV1(constAccessor, keeper))
-	toi := &TxOutItem{
+	toi := TxOutItem{
 		Chain:       common.BNBChain,
 		ToAddress:   tx.Tx.FromAddress,
 		VaultPubKey: yggVault.PubKey,

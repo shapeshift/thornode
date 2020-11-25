@@ -227,7 +227,7 @@ func (s *SlasherV1) LackSigning(ctx cosmos.Context, constAccessor constants.Cons
 
 			// update the actions in the voter with the new vault pubkey
 			for i, action := range voter.Actions {
-				if action.Equals(*tx) {
+				if action.Equals(tx) {
 					voter.Actions[i].VaultPubKey = vault.PubKey
 				}
 			}

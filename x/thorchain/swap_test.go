@@ -107,15 +107,15 @@ func (k *TestSwapKeeper) GetTxOut(ctx cosmos.Context, _ int64) (*TxOut, error) {
 	return NewTxOut(ctx.BlockHeight()), nil
 }
 
-func (k *TestSwapKeeper) GetLeastSecure(ctx cosmos.Context, _ Vaults, _ int64) Vault {
-	vault := GetRandomVault()
-	vault.Coins = common.Coins{
-		common.NewCoin(common.BNBAsset, cosmos.NewUint(100*common.One)),
-	}
-	return vault
+func (k *TestSwapKeeper) GetLeastSecure(ctx cosmos.Context, vaults Vaults, _ int64) Vault {
+	return vaults[0]
+}
+
+func (k TestSwapKeeper) SortBySecurity(_ cosmos.Context, vaults Vaults, _ int64) Vaults {
+	return vaults
 }
 func (k *TestSwapKeeper) AppendTxMarker(_ cosmos.Context, _ string, _ TxMarker) error { return nil }
-func (k *TestSwapKeeper) AppendTxOut(_ cosmos.Context, _ int64, _ *TxOutItem) error   { return nil }
+func (k *TestSwapKeeper) AppendTxOut(_ cosmos.Context, _ int64, _ TxOutItem) error    { return nil }
 
 func (s *SwapSuite) TestSwap(c *C) {
 	poolStorage := &TestSwapKeeper{}
