@@ -983,7 +983,7 @@ func queryPendingOutbound(ctx cosmos.Context, keeper keeper.Keeper) ([]byte, err
 		}
 		for _, tx := range txs.TxArray {
 			if tx.OutHash.IsEmpty() {
-				result = append(result, *tx)
+				result = append(result, tx)
 			}
 		}
 	}

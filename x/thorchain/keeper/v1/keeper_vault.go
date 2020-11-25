@@ -37,8 +37,8 @@ func (k KVStore) GetLeastSecure(ctx cosmos.Context, vaults Vaults, signingTransP
 // value of the vault is to the total bond of the members of that vault. Sorts
 // by least secure to most secure.
 func (k KVStore) SortBySecurity(ctx cosmos.Context, vaults Vaults, signingTransPeriod int64) Vaults {
-	if len(vaults) == 0 {
-		return Vaults{}
+	if len(vaults) <= 1 {
+		return vaults
 	}
 
 	type VaultSecurity struct {

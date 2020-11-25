@@ -589,7 +589,7 @@ func (vm *validatorMgrV1) ragnarokBond(ctx cosmos.Context, nth int64, mgr Manage
 		amt := na.Bond.MulUint64(uint64(nth)).QuoUint64(10)
 
 		// refund bond
-		txOutItem := &TxOutItem{
+		txOutItem := TxOutItem{
 			Chain:      common.RuneAsset().Chain,
 			ToAddress:  na.BondAddress,
 			InHash:     common.BlankTxID,
@@ -812,7 +812,7 @@ func (vm *validatorMgrV1) RequestYggReturn(ctx cosmos.Context, node NodeAccount,
 			return err
 		}
 		if !toAddr.IsEmpty() {
-			txOutItem := &TxOutItem{
+			txOutItem := TxOutItem{
 				Chain:       chain,
 				ToAddress:   toAddr,
 				InHash:      common.BlankTxID,

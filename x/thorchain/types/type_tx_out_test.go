@@ -19,7 +19,7 @@ func (TxOutTestSuite) TestTxOut(c *C) {
 	c.Assert(txOut.TxArray, HasLen, 0)
 	c.Assert(txOut.IsEmpty(), Equals, true)
 	c.Assert(txOut.Valid(), IsNil)
-	txOutItem := &TxOutItem{
+	txOutItem := TxOutItem{
 		Chain:       common.BNBChain,
 		VaultPubKey: pk,
 		ToAddress:   toAddr,
@@ -37,7 +37,7 @@ func (TxOutTestSuite) TestTxOut(c *C) {
 
 	txOut1 := NewTxOut(2)
 	txOut1.TxArray = append(txOut1.TxArray, txOutItem)
-	txOut1.TxArray = append(txOut1.TxArray, &TxOutItem{
+	txOut1.TxArray = append(txOut1.TxArray, TxOutItem{
 		Chain:       common.BNBChain,
 		InHash:      GetRandomTxHash(),
 		ToAddress:   toAddr,
@@ -48,7 +48,7 @@ func (TxOutTestSuite) TestTxOut(c *C) {
 	c.Assert(txOut1.Valid(), NotNil)
 
 	txOut2 := NewTxOut(3)
-	txOut2.TxArray = append(txOut2.TxArray, &TxOutItem{
+	txOut2.TxArray = append(txOut2.TxArray, TxOutItem{
 		Chain:       common.BNBChain,
 		InHash:      GetRandomTxHash(),
 		ToAddress:   "",
@@ -58,7 +58,7 @@ func (TxOutTestSuite) TestTxOut(c *C) {
 	})
 	c.Assert(txOut2.Valid(), NotNil)
 	txOut3 := NewTxOut(4)
-	txOut3.TxArray = append(txOut3.TxArray, &TxOutItem{
+	txOut3.TxArray = append(txOut3.TxArray, TxOutItem{
 		Chain:       common.BNBChain,
 		InHash:      GetRandomTxHash(),
 		ToAddress:   toAddr,
