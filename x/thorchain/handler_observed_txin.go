@@ -82,7 +82,22 @@ func (h ObservedTxInHandler) preflightV1(ctx cosmos.Context, voter ObservedTxVot
 	if !voter.Add(tx, signer) {
 		return voter, ok
 	}
-	if voter.HasConsensus(nas) {
+	if voter.HasFinalised(nas) {
+		if voter.FinalisedHeight == 0 {
+			ok = true
+			voter.FinalisedHeight = common.BlockHeight(ctx)
+			voter.Tx = voter.GetTx(nas)
+			// tx has consensus now, so decrease the slashing points for all the signers whom had voted for it
+			h.mgr.Slasher().DecSlashPoints(ctx, observeSlashPoints, voter.Tx.Signers...)
+		} else {
+			// event the tx had been processed , given the signer just a bit late , so still take away their slash points
+			// but only when the tx signer are voting is the tx that already reached consensus
+			if common.BlockHeight(ctx) <= (voter.Height+observeFlex) && voter.Tx.Equals(tx) {
+				h.mgr.Slasher().DecSlashPoints(ctx, observeSlashPoints, signer)
+			}
+		}
+	}
+	if !ok && voter.HasConsensus(nas) && !tx.IsFinal() {
 		if voter.Height == 0 {
 			ok = true
 			voter.Height = common.BlockHeight(ctx)
@@ -99,6 +114,7 @@ func (h ObservedTxInHandler) preflightV1(ctx cosmos.Context, voter ObservedTxVot
 			}
 		}
 	}
+
 	h.keeper.SetObservedTxInVoter(ctx, voter)
 
 	// Check to see if we have enough identical observations to process the transaction
@@ -127,7 +143,7 @@ func (h ObservedTxInHandler) handleV1(ctx cosmos.Context, version semver.Version
 
 		voter, ok := h.preflightV1(ctx, voter, activeNodeAccounts, tx, msg.Signer, version, constAccessor)
 		if !ok {
-			if voter.Height == common.BlockHeight(ctx) {
+			if voter.Height == common.BlockHeight(ctx) || voter.FinalisedHeight == common.BlockHeight(ctx) {
 				// we've already process the transaction, but we should still
 				// update the observing addresses
 				h.mgr.ObMgr().AppendObserver(tx.Tx.Chain, msg.GetSigners())
@@ -149,26 +165,44 @@ func (h ObservedTxInHandler) handleV1(ctx cosmos.Context, version semver.Version
 		}
 
 		ctx.Logger().Info("handleMsgObservedTxIn request", "Tx:", tx.String())
+		if voter.Reverted {
+			ctx.Logger().Info("tx had been reverted", "Tx", tx.String())
+			continue
+		}
 
-		txIn := voter.GetTx(activeNodeAccounts)
-		txIn.Tx.Memo = tx.Tx.Memo
+		var txIn ObservedTx
+		if voter.HasFinalised(activeNodeAccounts) || voter.HasConsensus(activeNodeAccounts) {
+			voter.Tx.Tx.Memo = tx.Tx.Memo
+			txIn = voter.Tx
+		}
 		vault, err := h.keeper.GetVault(ctx, tx.ObservedPubKey)
 		if err != nil {
 			ctx.Logger().Error("fail to get vault", "error", err)
 			continue
 		}
 		if vault.IsAsgard() {
-			vault.AddFunds(tx.Tx.Coins)
+			if !voter.UpdatedVault {
+				vault.AddFunds(tx.Tx.Coins)
+				voter.UpdatedVault = true
+			}
 		}
-		vault.InboundTxCount++
+		if voter.HasFinalised(activeNodeAccounts) {
+			vault.InboundTxCount++
+		}
 		memo, _ := ParseMemo(tx.Tx.Memo) // ignore err
 		if vault.IsYggdrasil() && memo.IsType(TxYggdrasilFund) {
 			// only add the fund to yggdrasil vault when the memo is yggdrasil+
 			// no one should send fund to yggdrasil vault , if somehow scammer / airdrop send fund to yggdrasil vault
 			// those will be ignored
-			vault.AddFunds(tx.Tx.Coins)
+			// also only asgard will send fund to yggdrasil , thus doesn't need to have confirmation counting
+			if !voter.UpdatedVault {
+				vault.AddFunds(tx.Tx.Coins)
+				voter.UpdatedVault = true
+			}
 			vault.RemovePendingTxBlockHeights(memo.GetBlockHeight())
 		}
+		// save the changes in Tx Voter to key value store
+		h.keeper.SetObservedTxInVoter(ctx, voter)
 		if err := h.keeper.SetVault(ctx, vault); err != nil {
 			ctx.Logger().Error("fail to set vault", "error", err)
 			continue
@@ -188,6 +222,19 @@ func (h ObservedTxInHandler) handleV1(ctx cosmos.Context, version semver.Version
 			continue
 		}
 
+		if err := h.keeper.SetLastChainHeight(ctx, tx.Tx.Chain, tx.BlockHeight); err != nil {
+			ctx.Logger().Error("fail to set last chain height", "error", err)
+		}
+
+		// add addresses to observing addresses. This is used to detect
+		// active/inactive observing node accounts
+
+		h.mgr.ObMgr().AppendObserver(tx.Tx.Chain, txIn.Signers)
+
+		if !voter.HasFinalised(activeNodeAccounts) {
+			ctx.Logger().Info("Tx has not been finalised yet , waiting for confirmation counting", "hash", voter.TxID)
+			continue
+		}
 		// construct msg from memo
 		m, txErr := processOneTxIn(ctx, h.keeper, txIn, msg.Signer)
 		if txErr != nil {
@@ -197,14 +244,6 @@ func (h ObservedTxInHandler) handleV1(ctx cosmos.Context, version semver.Version
 			}
 			continue
 		}
-
-		if err := h.keeper.SetLastChainHeight(ctx, tx.Tx.Chain, tx.BlockHeight); err != nil {
-			ctx.Logger().Error("fail to set last chain height", "error", err)
-		}
-
-		// add addresses to observing addresses. This is used to detect
-		// active/inactive observing node accounts
-		h.mgr.ObMgr().AppendObserver(tx.Tx.Chain, txIn.Signers)
 
 		// check if we've halted trading
 		_, isSwap := m.(MsgSwap)

@@ -28,6 +28,7 @@ type ChainClient interface {
 	GetChain() common.Chain
 	Start(globalTxsQueue chan stypes.TxIn, globalErrataQueue chan stypes.ErrataBlock)
 	GetConfig() config.ChainConfiguration
+	GetConfirmationCount(txIn stypes.TxIn) int64
 	ConfirmationCountReady(txIn stypes.TxIn) bool
 	Stop()
 }

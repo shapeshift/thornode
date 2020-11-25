@@ -53,7 +53,7 @@ func (HandlerMigrateSuite) TestMigrate(c *C) {
 		FromAddress: GetRandomBNBAddress(),
 		ToAddress:   addr,
 		Gas:         BNBGasFeeSingleton,
-	}, 12, GetRandomPubKey())
+	}, 12, GetRandomPubKey(), 12)
 
 	msgMigrate := NewMsgMigrate(tx, 1, keeper.activeNodeAccount.NodeAddress)
 	err = handler.validate(ctx, msgMigrate, ver)
@@ -146,7 +146,7 @@ func (HandlerMigrateSuite) TestMigrateHappyPath(c *C) {
 		FromAddress: addr,
 		ToAddress:   newVaultAddr,
 		Gas:         BNBGasFeeSingleton,
-	}, 1, retireVault.PubKey)
+	}, 1, retireVault.PubKey, 1)
 
 	msgMigrate := NewMsgMigrate(tx, 1, keeper.activeNodeAccount.NodeAddress)
 	constantAccessor := constants.GetConstantValues(constants.SWVersion)
@@ -192,7 +192,7 @@ func (HandlerMigrateSuite) TestSlash(c *C) {
 		FromAddress: addr,
 		ToAddress:   newVaultAddr,
 		Gas:         BNBGasFeeSingleton,
-	}, 1, retireVault.PubKey)
+	}, 1, retireVault.PubKey, 1)
 
 	msgMigrate := NewMsgMigrate(tx, 1, keeper.activeNodeAccount.NodeAddress)
 	_, err = handler.handleV1(ctx, constants.SWVersion, msgMigrate)

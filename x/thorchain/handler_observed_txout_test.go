@@ -48,7 +48,7 @@ func (s *HandlerObservedTxOutSuite) testValidateWithVersion(c *C, ver semver.Ver
 
 	// happy path
 	pk := GetRandomPubKey()
-	txs := ObservedTxs{NewObservedTx(GetRandomTx(), 12, pk)}
+	txs := ObservedTxs{NewObservedTx(GetRandomTx(), 12, pk, 12)}
 	txs[0].Tx.FromAddress, err = pk.GetAddress(txs[0].Tx.Coins[0].Asset.Chain)
 	c.Assert(err, IsNil)
 	msg := NewMsgObservedTxOut(txs, activeNodeAccount.NodeAddress)
@@ -166,7 +166,6 @@ func (k *TestObservedTxOutHandleKeeper) SetPool(ctx cosmos.Context, pool Pool) e
 
 func (s *HandlerObservedTxOutSuite) TestHandle(c *C) {
 	s.testHandleWithVersion(c, constants.SWVersion)
-	s.testHandleWithVersion(c, semver.MustParse("0.13.0"))
 }
 
 func (s *HandlerObservedTxOutSuite) testHandleWithVersion(c *C, ver semver.Version) {
@@ -176,7 +175,7 @@ func (s *HandlerObservedTxOutSuite) testHandleWithVersion(c *C, ver semver.Versi
 	constAccessor := constants.GetConstantValues(ver)
 	tx := GetRandomTx()
 	tx.Memo = fmt.Sprintf("OUT:%s", tx.ID)
-	obTx := NewObservedTx(tx, 12, GetRandomPubKey())
+	obTx := NewObservedTx(tx, 12, GetRandomPubKey(), 12)
 	txs := ObservedTxs{obTx}
 	pk := GetRandomPubKey()
 	c.Assert(err, IsNil)
@@ -221,7 +220,6 @@ func (s *HandlerObservedTxOutSuite) testHandleWithVersion(c *C, ver semver.Versi
 
 func (s *HandlerObservedTxOutSuite) TestHandleStolenFunds(c *C) {
 	s.testHandleStolenFundsWithVersion(c, constants.SWVersion)
-	s.testHandleStolenFundsWithVersion(c, semver.MustParse("0.13.0"))
 }
 
 func (s *HandlerObservedTxOutSuite) testHandleStolenFundsWithVersion(c *C, ver semver.Version) {
@@ -231,7 +229,7 @@ func (s *HandlerObservedTxOutSuite) testHandleStolenFundsWithVersion(c *C, ver s
 	constAccessor := constants.GetConstantValues(ver)
 	tx := GetRandomTx()
 	tx.Memo = "I AM A THIEF!" // bad memo
-	obTx := NewObservedTx(tx, 12, GetRandomPubKey())
+	obTx := NewObservedTx(tx, 12, GetRandomPubKey(), 12)
 	obTx.Tx.Coins = common.Coins{
 		common.NewCoin(common.RuneAsset(), cosmos.NewUint(300*common.One)),
 		common.NewCoin(common.BNBAsset, cosmos.NewUint(100*common.One)),
@@ -338,7 +336,7 @@ func setupAnObservedTxOut(ctx cosmos.Context, helper *HandlerObservedTxOutTestHe
 	c.Assert(err, IsNil)
 	tx.ToAddress = GetRandomBNBAddress()
 	tx.FromAddress = addr
-	obTx := NewObservedTx(tx, ctx.BlockHeight(), pk)
+	obTx := NewObservedTx(tx, ctx.BlockHeight(), pk, ctx.BlockHeight())
 	txs := ObservedTxs{obTx}
 	c.Assert(err, IsNil)
 	vault := GetRandomVault()
@@ -375,7 +373,7 @@ func (HandlerObservedTxOutSuite) TestHandlerObservedTxOut_DifferentValidations(c
 			name: "message fail validation should return an error",
 			messageProvider: func(c *C, ctx cosmos.Context, helper *HandlerObservedTxOutTestHelper) cosmos.Msg {
 				return NewMsgObservedTxOut(ObservedTxs{
-					NewObservedTx(GetRandomTx(), ctx.BlockHeight(), GetRandomPubKey()),
+					NewObservedTx(GetRandomTx(), ctx.BlockHeight(), GetRandomPubKey(), ctx.BlockHeight()),
 				}, GetRandomBech32Addr())
 			},
 			validator: func(c *C, ctx cosmos.Context, result *cosmos.Result, err error, helper *HandlerObservedTxOutTestHelper, name string) {

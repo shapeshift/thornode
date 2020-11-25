@@ -56,7 +56,7 @@ func (s *HandlerObservedTxInSuite) TestValidate(c *C) {
 	// happy path
 	ver := constants.SWVersion
 	pk := GetRandomPubKey()
-	txs := ObservedTxs{NewObservedTx(GetRandomTx(), 12, pk)}
+	txs := ObservedTxs{NewObservedTx(GetRandomTx(), 12, pk, 12)}
 	txs[0].Tx.ToAddress, err = pk.GetAddress(txs[0].Tx.Coins[0].Asset.Chain)
 	c.Assert(err, IsNil)
 	msg := NewMsgObservedTxIn(txs, activeNodeAccount.NodeAddress)
@@ -100,7 +100,7 @@ func (s *HandlerObservedTxInSuite) TestFailure(c *C) {
 	}
 	mgr := NewDummyMgr()
 
-	tx := NewObservedTx(GetRandomTx(), 12, GetRandomPubKey())
+	tx := NewObservedTx(GetRandomTx(), 12, GetRandomPubKey(), 12)
 	ver := constants.SWVersion
 	constAccessor := constants.GetConstantValues(ver)
 	err := refundTx(ctx, tx, mgr, keeper, constAccessor, CodeInvalidMemo, "Invalid memo", "")
@@ -112,15 +112,16 @@ func (s *HandlerObservedTxInSuite) TestFailure(c *C) {
 
 type TestObservedTxInHandleKeeper struct {
 	keeper.KVStoreDummy
-	nas       NodeAccounts
-	voter     ObservedTxVoter
-	yggExists bool
-	height    int64
-	msg       MsgSwap
-	pool      Pool
-	observing []cosmos.AccAddress
-	vault     Vault
-	txOut     *TxOut
+	nas                  NodeAccounts
+	voter                ObservedTxVoter
+	yggExists            bool
+	height               int64
+	msg                  MsgSwap
+	pool                 Pool
+	observing            []cosmos.AccAddress
+	vault                Vault
+	txOut                *TxOut
+	setLastObserveHeight bool
 }
 
 func (k *TestObservedTxInHandleKeeper) SetSwapQueueItem(_ cosmos.Context, msg MsgSwap, _ int) error {
@@ -199,9 +200,147 @@ func (k *TestObservedTxInHandleKeeper) SetTxOut(ctx cosmos.Context, blockOut *Tx
 	return kaboom
 }
 
+func (k *TestObservedTxInHandleKeeper) SetLastObserveHeight(ctx cosmos.Context, chain common.Chain, address cosmos.AccAddress, height int64) error {
+	k.setLastObserveHeight = true
+	return nil
+}
+
 func (s *HandlerObservedTxInSuite) TestHandle(c *C) {
 	s.testHandleWithVersion(c, constants.SWVersion)
-	s.testHandleWithVersion(c, semver.MustParse("0.13.0"))
+	s.testHandleWithConfirmation(c, constants.SWVersion)
+}
+
+func (s *HandlerObservedTxInSuite) testHandleWithConfirmation(c *C, ver semver.Version) {
+	var err error
+	ctx, _ := setupKeeperForTest(c)
+	constAccessor := constants.GetConstantValues(ver)
+	tx := GetRandomTx()
+	tx.Memo = "SWAP:BTC.BTC:" + GetRandomBTCAddress().String()
+	obTx := NewObservedTx(tx, 12, GetRandomPubKey(), 15)
+	txs := ObservedTxs{obTx}
+	pk := GetRandomPubKey()
+	txs[0].Tx.ToAddress, err = pk.GetAddress(txs[0].Tx.Coins[0].Asset.Chain)
+	vault := GetRandomVault()
+	vault.PubKey = obTx.ObservedPubKey
+
+	keeper := &TestObservedTxInHandleKeeper{
+		nas: NodeAccounts{
+			GetRandomNodeAccount(NodeActive),
+			GetRandomNodeAccount(NodeActive),
+			GetRandomNodeAccount(NodeActive),
+			GetRandomNodeAccount(NodeActive),
+		},
+		vault: vault,
+		pool: Pool{
+			Asset:        common.BNBAsset,
+			BalanceRune:  cosmos.NewUint(200),
+			BalanceAsset: cosmos.NewUint(300),
+		},
+		yggExists: true,
+	}
+	mgr := NewManagers(keeper)
+	c.Assert(mgr.BeginBlock(ctx), IsNil)
+	handler := NewObservedTxInHandler(keeper, mgr)
+
+	// first not confirmed message
+	msg := NewMsgObservedTxIn(txs, keeper.nas[0].NodeAddress)
+	_, err = handler.handle(ctx, msg, ver, constAccessor)
+	c.Assert(err, IsNil)
+	voter, err := keeper.GetObservedTxInVoter(ctx, tx.ID)
+	c.Assert(err, IsNil)
+	c.Assert(voter.Txs, HasLen, 1)
+	// tx has not reach consensus yet, thus fund should not be credit to vault
+	c.Assert(keeper.vault.HasFunds(), Equals, false)
+	c.Assert(voter.UpdatedVault, Equals, false)
+	c.Assert(voter.FinalisedHeight, Equals, int64(0))
+	c.Assert(voter.Height, Equals, int64(0))
+	mgr.ObMgr().EndBlock(ctx, keeper)
+
+	// second not confirmed message
+	msg1 := NewMsgObservedTxIn(txs, keeper.nas[1].NodeAddress)
+	_, err = handler.handle(ctx, msg1, ver, constAccessor)
+	c.Assert(err, IsNil)
+	voter, err = keeper.GetObservedTxInVoter(ctx, tx.ID)
+	c.Assert(err, IsNil)
+	c.Assert(voter.Txs, HasLen, 1)
+	c.Assert(voter.UpdatedVault, Equals, false)
+	c.Assert(voter.FinalisedHeight, Equals, int64(0))
+	c.Assert(voter.Height, Equals, int64(0))
+	c.Assert(keeper.vault.HasFunds(), Equals, false)
+
+	// third not confirmed message
+	msg2 := NewMsgObservedTxIn(txs, keeper.nas[2].NodeAddress)
+	_, err = handler.handle(ctx, msg2, ver, constAccessor)
+	c.Assert(err, IsNil)
+	voter, err = keeper.GetObservedTxInVoter(ctx, tx.ID)
+	c.Assert(err, IsNil)
+	c.Assert(voter.Txs, HasLen, 1)
+	c.Assert(voter.UpdatedVault, Equals, true)
+	c.Assert(voter.FinalisedHeight, Equals, int64(0))
+	c.Check(keeper.height, Equals, int64(12))
+	// make sure fund has been credit to vault correctly
+	bnbCoin := keeper.vault.Coins.GetCoin(common.BNBAsset)
+	c.Assert(bnbCoin.Amount.Equal(cosmos.OneUint()), Equals, true)
+	// make sure the logic has not been processed , as tx has not been finalised , still waiting for confirmation
+	c.Check(keeper.msg.Tx.ID.Equals(tx.ID), Equals, false)
+
+	// fourth not confirmed message
+	msg3 := NewMsgObservedTxIn(txs, keeper.nas[3].NodeAddress)
+	_, err = handler.handle(ctx, msg3, ver, constAccessor)
+	c.Assert(err, IsNil)
+	voter, err = keeper.GetObservedTxInVoter(ctx, tx.ID)
+	c.Assert(err, IsNil)
+	c.Assert(voter.Txs, HasLen, 1)
+	c.Assert(voter.UpdatedVault, Equals, true)
+	c.Assert(voter.FinalisedHeight, Equals, int64(0))
+	c.Check(keeper.height, Equals, int64(12))
+	// make sure fund has not been doubled
+	bnbCoin = keeper.vault.Coins.GetCoin(common.BNBAsset)
+	c.Assert(bnbCoin.Amount.Equal(cosmos.OneUint()), Equals, true)
+	c.Check(keeper.msg.Tx.ID.Equals(tx.ID), Equals, false)
+
+	//  first finalised message
+	txs[0].BlockHeight = 15
+	fMsg := NewMsgObservedTxIn(txs, keeper.nas[0].NodeAddress)
+	_, err = handler.handle(ctx, fMsg, ver, constAccessor)
+	c.Assert(err, IsNil)
+	voter, err = keeper.GetObservedTxInVoter(ctx, tx.ID)
+	c.Assert(err, IsNil)
+	c.Assert(voter.UpdatedVault, Equals, true)
+	c.Assert(voter.FinalisedHeight, Equals, int64(0))
+	c.Assert(voter.Height, Equals, int64(18))
+	// make sure fund has not been doubled
+	bnbCoin = keeper.vault.Coins.GetCoin(common.BNBAsset)
+	c.Assert(bnbCoin.Amount.Equal(cosmos.OneUint()), Equals, true)
+	c.Check(keeper.msg.Tx.ID.Equals(tx.ID), Equals, false)
+
+	// second finalised message
+	fMsg1 := NewMsgObservedTxIn(txs, keeper.nas[1].NodeAddress)
+	_, err = handler.handle(ctx, fMsg1, ver, constAccessor)
+	c.Assert(err, IsNil)
+	voter, err = keeper.GetObservedTxInVoter(ctx, tx.ID)
+	c.Assert(err, IsNil)
+	c.Assert(voter.UpdatedVault, Equals, true)
+	c.Assert(voter.FinalisedHeight, Equals, int64(0))
+	c.Assert(voter.Height, Equals, int64(18))
+	// make sure fund has not been doubled
+	bnbCoin = keeper.vault.Coins.GetCoin(common.BNBAsset)
+	c.Assert(bnbCoin.Amount.Equal(cosmos.OneUint()), Equals, true)
+	c.Check(keeper.msg.Tx.ID.Equals(tx.ID), Equals, false)
+
+	// third finalised message
+	fMsg2 := NewMsgObservedTxIn(txs, keeper.nas[2].NodeAddress)
+	_, err = handler.handle(ctx, fMsg2, ver, constAccessor)
+	c.Assert(err, IsNil)
+	voter, err = keeper.GetObservedTxInVoter(ctx, tx.ID)
+	c.Assert(err, IsNil)
+	c.Assert(voter.UpdatedVault, Equals, true)
+	c.Assert(voter.FinalisedHeight, Equals, int64(18))
+	c.Assert(voter.Height, Equals, int64(18))
+	// make sure fund has not been doubled
+	bnbCoin = keeper.vault.Coins.GetCoin(common.BNBAsset)
+	c.Assert(bnbCoin.Amount.Equal(cosmos.OneUint()), Equals, true)
+	c.Check(keeper.msg.Tx.ID.Equals(tx.ID), Equals, true)
 }
 
 func (s *HandlerObservedTxInSuite) testHandleWithVersion(c *C, ver semver.Version) {
@@ -211,7 +350,7 @@ func (s *HandlerObservedTxInSuite) testHandleWithVersion(c *C, ver semver.Versio
 
 	tx := GetRandomTx()
 	tx.Memo = "SWAP:BTC.BTC:" + GetRandomBTCAddress().String()
-	obTx := NewObservedTx(tx, 12, GetRandomPubKey())
+	obTx := NewObservedTx(tx, 12, GetRandomPubKey(), 12)
 	txs := ObservedTxs{obTx}
 	pk := GetRandomPubKey()
 	txs[0].Tx.ToAddress, err = pk.GetAddress(txs[0].Tx.Coins[0].Asset.Chain)
@@ -230,7 +369,6 @@ func (s *HandlerObservedTxInSuite) testHandleWithVersion(c *C, ver semver.Versio
 		},
 		yggExists: true,
 	}
-
 	mgr := NewManagers(keeper)
 	c.Assert(mgr.BeginBlock(ctx), IsNil)
 	handler := NewObservedTxInHandler(keeper, mgr)
@@ -240,7 +378,6 @@ func (s *HandlerObservedTxInSuite) testHandleWithVersion(c *C, ver semver.Versio
 	_, err = handler.handle(ctx, msg, ver, constAccessor)
 	c.Assert(err, IsNil)
 	mgr.ObMgr().EndBlock(ctx, keeper)
-
 	c.Check(keeper.msg.Tx.ID.Equals(tx.ID), Equals, true)
 	c.Check(keeper.observing, HasLen, 1)
 	c.Check(keeper.height, Equals, int64(12))
@@ -251,7 +388,6 @@ func (s *HandlerObservedTxInSuite) testHandleWithVersion(c *C, ver semver.Versio
 // Test migrate memo
 func (s *HandlerObservedTxInSuite) TestMigrateMemo(c *C) {
 	s.testMigrateMemoWithVersion(c, constants.SWVersion)
-	s.testMigrateMemoWithVersion(c, semver.MustParse("0.10.0"))
 }
 
 // Test migrate memo
@@ -287,7 +423,7 @@ func (s *HandlerObservedTxInSuite) testMigrateMemoWithVersion(c *C, ver semver.V
 		FromAddress: addr,
 		ToAddress:   newVaultAddr,
 		Gas:         BNBGasFeeSingleton,
-	}, 13, vault.PubKey)
+	}, 13, vault.PubKey, 13)
 
 	txs := ObservedTxs{tx}
 	keeper := &TestObservedTxInHandleKeeper{
@@ -372,7 +508,7 @@ func setupAnLegitObservedTx(ctx cosmos.Context, helper *ObservedTxInHandlerTestH
 	addr, err := pk.GetAddress(tx.Coins[0].Asset.Chain)
 	c.Assert(err, IsNil)
 	tx.ToAddress = addr
-	obTx := NewObservedTx(tx, ctx.BlockHeight(), pk)
+	obTx := NewObservedTx(tx, ctx.BlockHeight(), pk, ctx.BlockHeight())
 	txs := ObservedTxs{obTx}
 	txs[0].Tx.ToAddress, err = pk.GetAddress(txs[0].Tx.Coins[0].Asset.Chain)
 	c.Assert(err, IsNil)
@@ -412,7 +548,7 @@ func (HandlerObservedTxInSuite) TestObservedTxHandler_validations(c *C) {
 			name: "message fail validation should return an error",
 			messageProvider: func(c *C, ctx cosmos.Context, helper *ObservedTxInHandlerTestHelper) cosmos.Msg {
 				return NewMsgObservedTxIn(ObservedTxs{
-					NewObservedTx(GetRandomTx(), ctx.BlockHeight(), GetRandomPubKey()),
+					NewObservedTx(GetRandomTx(), ctx.BlockHeight(), GetRandomPubKey(), ctx.BlockHeight()),
 				}, GetRandomBech32Addr())
 			},
 			validator: func(c *C, ctx cosmos.Context, result *cosmos.Result, err error, helper *ObservedTxInHandlerTestHelper, name string) {

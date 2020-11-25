@@ -509,3 +509,8 @@ func (b *Binance) BroadcastTx(tx stypes.TxOutItem, hexTx []byte) (string, error)
 func (b *Binance) ConfirmationCountReady(txIn stypes.TxIn) bool {
 	return true
 }
+
+// GetConfirmationCount determinate how many confirmation it required
+func (c *Binance) GetConfirmationCount(txIn stypes.TxIn) int64 {
+	return 0
+}

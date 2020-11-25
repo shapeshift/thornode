@@ -140,7 +140,7 @@ func newRefundTxHandlerTestHelper(c *C) refundTxHandlerTestHelper {
 		FromAddress: GetRandomBNBAddress(),
 		ToAddress:   addr,
 		Gas:         BNBGasFeeSingleton,
-	}, 12, GetRandomPubKey())
+	}, 12, GetRandomPubKey(), 12)
 
 	voter := NewObservedTxVoter(tx.Tx.ID, make(ObservedTxs, 0))
 	keeper := newRefundTxHandlerKeeperTestHelper(k)
@@ -312,7 +312,7 @@ func (s *HandlerRefundSuite) TestRefundTxHandlerShouldUpdateTxOut(c *C) {
 			FromAddress: fromAddr,
 			ToAddress:   helper.inboundTx.Tx.FromAddress,
 			Gas:         BNBGasFeeSingleton,
-		}, common.BlockHeight(helper.ctx), helper.yggVault.PubKey)
+		}, common.BlockHeight(helper.ctx), helper.yggVault.PubKey, common.BlockHeight(helper.ctx))
 		msg := tc.messageCreator(helper, tx)
 		_, err = tc.runner(handler, helper, msg)
 		if tc.expectedResult == nil {
@@ -339,7 +339,7 @@ func (s *HandlerRefundSuite) TestRefundTxNormalCase(c *C) {
 		FromAddress: fromAddr,
 		ToAddress:   helper.inboundTx.Tx.FromAddress,
 		Gas:         BNBGasFeeSingleton,
-	}, common.BlockHeight(helper.ctx), helper.yggVault.PubKey)
+	}, common.BlockHeight(helper.ctx), helper.yggVault.PubKey, common.BlockHeight(helper.ctx))
 	// valid outbound message, with event, with txout
 	outMsg := NewMsgRefundTx(tx, helper.inboundTx.Tx.ID, helper.nodeAccount.NodeAddress)
 	_, err = handler.Run(helper.ctx, outMsg, constants.SWVersion, helper.constAccessor)
@@ -366,7 +366,7 @@ func (s *HandlerRefundSuite) TestRefundTxHandlerSendExtraFundShouldBeSlashed(c *
 		FromAddress: fromAddr,
 		ToAddress:   helper.inboundTx.Tx.FromAddress,
 		Gas:         BNBGasFeeSingleton,
-	}, common.BlockHeight(helper.ctx), helper.nodeAccount.PubKeySet.Secp256k1)
+	}, common.BlockHeight(helper.ctx), helper.nodeAccount.PubKeySet.Secp256k1, common.BlockHeight(helper.ctx))
 	expectedBond := helper.nodeAccount.Bond.Sub(cosmos.NewUint(common.One * 2).MulUint64(3).QuoUint64(2))
 	reserve := helper.keeper.GetRuneBalanceOfModule(helper.ctx, ReserveName)
 	expectedVaultTotalReserve := reserve.Add(cosmos.NewUint(common.One * 2).QuoUint64(2))
@@ -396,7 +396,7 @@ func (s *HandlerRefundSuite) TestOutboundTxHandlerSendAdditionalCoinsShouldBeSla
 		FromAddress: fromAddr,
 		ToAddress:   helper.inboundTx.Tx.FromAddress,
 		Gas:         BNBGasFeeSingleton,
-	}, common.BlockHeight(helper.ctx), helper.nodeAccount.PubKeySet.Secp256k1)
+	}, common.BlockHeight(helper.ctx), helper.nodeAccount.PubKeySet.Secp256k1, common.BlockHeight(helper.ctx))
 	expectedBond := cosmos.NewUint(9702970297)
 	// slash one BNB and one rune
 	outMsg := NewMsgRefundTx(tx, helper.inboundTx.Tx.ID, helper.nodeAccount.NodeAddress)
@@ -422,7 +422,7 @@ func (s *HandlerRefundSuite) TestOutboundTxHandlerInvalidObservedTxVoterShouldSl
 		FromAddress: fromAddr,
 		ToAddress:   helper.inboundTx.Tx.FromAddress,
 		Gas:         BNBGasFeeSingleton,
-	}, common.BlockHeight(helper.ctx), helper.nodeAccount.PubKeySet.Secp256k1)
+	}, common.BlockHeight(helper.ctx), helper.nodeAccount.PubKeySet.Secp256k1, common.BlockHeight(helper.ctx))
 
 	expectedBond := cosmos.NewUint(9702970297)
 	reserve := helper.keeper.GetRuneBalanceOfModule(helper.ctx, ReserveName)
