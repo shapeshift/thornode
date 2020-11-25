@@ -22,7 +22,7 @@ func (MsgRagnarokSuite) TestMsgRagnarokSuite(c *C) {
 		common.Coins{common.NewCoin(common.BNBAsset, cosmos.OneUint())},
 		BNBGasFeeSingleton,
 		"ragnarok:10",
-	), 12, GetRandomPubKey())
+	), 12, GetRandomPubKey(), 12)
 	m := NewMsgRagnarok(tx, 10, acc1)
 	EnsureMsgBasicCorrect(m, c)
 	c.Check(m.Type(), Equals, "ragnarok")
@@ -67,7 +67,7 @@ func (MsgRagnarokSuite) TestMsgRagnarokSuite(c *C) {
 			common.Coins{common.NewCoin(common.BNBAsset, cosmos.OneUint())},
 			BNBGasFeeSingleton,
 			"",
-		), 12, GetRandomPubKey())
+		), 12, GetRandomPubKey(), 12)
 		m := NewMsgRagnarok(tx, item.blockHeight, item.signer)
 		err := m.ValidateBasic()
 		c.Assert(err, NotNil, Commentf("%s", err.Error()))

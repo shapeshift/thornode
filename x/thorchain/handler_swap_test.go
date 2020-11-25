@@ -169,7 +169,7 @@ func (s *HandlerSwapSuite) TestHandle(c *C) {
 			"swap:BNB.RUNE-B1A:bnb18jtza8j86hfyuj2f90zec0g5gvjh823e5psn2u:124958592",
 		),
 		1,
-		GetRandomPubKey(),
+		GetRandomPubKey(), 1,
 	)
 	msgSwapFromTxIn, err := getMsgSwapFromMemo(m.(SwapMemo), txIn, observerAddr)
 	c.Assert(err, IsNil)
@@ -232,7 +232,7 @@ func (s *HandlerSwapSuite) TestDoubleSwap(c *C) {
 			"swap:BNB.BNB:bnb18jtza8j86hfyuj2f90zec0g5gvjh823e5psn2u",
 		),
 		1,
-		GetRandomPubKey(),
+		GetRandomPubKey(), 1,
 	)
 	msgSwapFromTxIn, err := getMsgSwapFromMemo(m.(SwapMemo), txIn, observerAddr)
 	c.Assert(err, IsNil)
@@ -259,7 +259,7 @@ func (s *HandlerSwapSuite) TestDoubleSwap(c *C) {
 			"swap:BNB.BNB:bnb18jtza8j86hfyuj2f90zec0g5gvjh823e5psn2u",
 		),
 		1,
-		GetRandomPubKey(),
+		GetRandomPubKey(), 1,
 	)
 	msgSwapFromTxIn1, err := getMsgSwapFromMemo(m1.(SwapMemo), txIn1, observerAddr)
 	c.Assert(err, IsNil)

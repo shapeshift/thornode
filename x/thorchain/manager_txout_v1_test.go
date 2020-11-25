@@ -68,7 +68,12 @@ func (s TxOutStoreV1Suite) TestAddOutTxItem(c *C) {
 	inTxID := GetRandomTxHash()
 	voter := NewObservedTxVoter(inTxID, ObservedTxs{
 		ObservedTx{
-			Signers: []cosmos.AccAddress{w.activeNodeAccount.NodeAddress, acc1.NodeAddress, acc2.NodeAddress},
+			Tx:             GetRandomTx(),
+			Status:         "incomplete",
+			BlockHeight:    1,
+			Signers:        []cosmos.AccAddress{w.activeNodeAccount.NodeAddress, acc1.NodeAddress, acc2.NodeAddress},
+			KeysignMs:      0,
+			FinaliseHeight: 1,
 		},
 	})
 	w.keeper.SetObservedTxInVoter(w.ctx, voter)

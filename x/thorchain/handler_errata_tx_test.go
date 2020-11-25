@@ -100,21 +100,23 @@ func (s *HandlerErrataTxSuite) TestErrataHandlerHappyPath(c *C) {
 	na := GetRandomNodeAccount(NodeActive)
 	addr := GetRandomBNBAddress()
 	totalUnits := cosmos.NewUint(1600)
-
+	observedTx := ObservedTx{
+		Tx: common.Tx{
+			ID:          txID,
+			Chain:       common.BNBChain,
+			FromAddress: addr,
+			Coins: common.Coins{
+				common.NewCoin(common.RuneAsset(), cosmos.NewUint(30*common.One)),
+			},
+			Memo: fmt.Sprintf("ADD:BNB.BNB:%s", GetRandomRUNEAddress()),
+		},
+	}
 	keeper := &TestErrataTxKeeper{
 		na: na,
 		observedTx: ObservedTxVoter{
-			Tx: ObservedTx{
-				Tx: common.Tx{
-					ID:          txID,
-					Chain:       common.BNBChain,
-					FromAddress: addr,
-					Coins: common.Coins{
-						common.NewCoin(common.RuneAsset(), cosmos.NewUint(30*common.One)),
-					},
-					Memo: fmt.Sprintf("ADD:BNB.BNB:%s", GetRandomRUNEAddress()),
-				},
-			},
+			Tx:     observedTx,
+			Txs:    ObservedTxs{observedTx},
+			Height: 1024,
 		},
 		pool: Pool{
 			Asset:        common.BNBAsset,
@@ -349,6 +351,7 @@ func (s *HandlerErrataTxSuite) TestErrataHandlerDifferentError(c *C) {
 				voter := ObservedTxVoter{
 					TxID:   observedTx.Tx.ID,
 					Tx:     observedTx,
+					Txs:    ObservedTxs{observedTx},
 					Height: observedTx.BlockHeight,
 				}
 				helper.Keeper.SetObservedTxInVoter(ctx, voter)
@@ -371,6 +374,7 @@ func (s *HandlerErrataTxSuite) TestErrataHandlerDifferentError(c *C) {
 				voter := ObservedTxVoter{
 					TxID:   observedTx.Tx.ID,
 					Tx:     observedTx,
+					Txs:    ObservedTxs{observedTx},
 					Height: observedTx.BlockHeight,
 				}
 				helper.Keeper.SetObservedTxInVoter(ctx, voter)
@@ -394,6 +398,7 @@ func (s *HandlerErrataTxSuite) TestErrataHandlerDifferentError(c *C) {
 				voter := ObservedTxVoter{
 					TxID:   observedTx.Tx.ID,
 					Tx:     observedTx,
+					Txs:    ObservedTxs{observedTx},
 					Height: observedTx.BlockHeight,
 				}
 				helper.Keeper.SetObservedTxInVoter(ctx, voter)
@@ -430,6 +435,7 @@ func (s *HandlerErrataTxSuite) TestErrataHandlerDifferentError(c *C) {
 				voter := ObservedTxVoter{
 					TxID:   observedTx.Tx.ID,
 					Tx:     observedTx,
+					Txs:    ObservedTxs{observedTx},
 					Height: observedTx.BlockHeight,
 				}
 				helper.Keeper.SetObservedTxInVoter(ctx, voter)
@@ -459,6 +465,7 @@ func (s *HandlerErrataTxSuite) TestErrataHandlerDifferentError(c *C) {
 				voter := ObservedTxVoter{
 					TxID:   observedTx.Tx.ID,
 					Tx:     observedTx,
+					Txs:    ObservedTxs{observedTx},
 					Height: observedTx.BlockHeight,
 				}
 				helper.Keeper.SetObservedTxInVoter(ctx, voter)

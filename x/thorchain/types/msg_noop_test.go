@@ -19,6 +19,7 @@ func (MsgNoopSuite) TestMsgNoop(c *C) {
 		BlockHeight:    1,
 		Signers:        []cosmos.AccAddress{addr},
 		ObservedPubKey: GetRandomPubKey(),
+		FinaliseHeight: 1,
 	}
 	m := NewMsgNoOp(tx, addr)
 	c.Check(m.ValidateBasic(), IsNil)

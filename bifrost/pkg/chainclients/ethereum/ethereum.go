@@ -270,3 +270,7 @@ func (c *Client) ConfirmationCountReady(txIn stypes.TxIn) bool {
 	// TODO add confirmation logic for ETH
 	return true
 }
+
+func (c *Client) GetConfirmationCount(txIn stypes.TxIn) int64 {
+	return 0
+}

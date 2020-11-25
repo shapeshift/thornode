@@ -805,6 +805,24 @@ func (c *Client) getBlockRequiredConfirmation(txIn types.TxIn, height int64) (in
 	return int64(confirm), nil
 }
 
+func (c *Client) GetConfirmationCount(txIn types.TxIn) int64 {
+	if len(txIn.TxArray) == 0 {
+		return 0
+	}
+	// MemPool items doesn't need confirmation
+	if txIn.MemPool {
+		return 0
+	}
+	blockHeight := txIn.TxArray[0].BlockHeight
+	confirm, err := c.getBlockRequiredConfirmation(txIn, blockHeight)
+	c.logger.Info().Msgf("confirmation required: %d", confirm)
+	if err != nil {
+		c.logger.Err(err).Msg("fail to get block confirmation ")
+		return 0
+	}
+	return confirm
+}
+
 // ConfirmationCountReady will be called by observer before send the txIn to thorchain
 // confirmation counting is on block level , refer to https://medium.com/coinmonks/1confvalue-a-simple-pow-confirmation-rule-of-thumb-a8d9c6c483dd for detail
 func (c *Client) ConfirmationCountReady(txIn types.TxIn) bool {
@@ -816,15 +834,8 @@ func (c *Client) ConfirmationCountReady(txIn types.TxIn) bool {
 		return true
 	}
 	blockHeight := txIn.TxArray[0].BlockHeight
-	confirm, err := c.getBlockRequiredConfirmation(txIn, blockHeight)
+	confirm := txIn.ConfirmationRequired
 	c.logger.Info().Msgf("confirmation required: %d", confirm)
-	if err != nil {
-		c.logger.Err(err).Msg("fail to get block confirmation ")
-		return false
-	}
-	if confirm <= 1 {
-		return true
-	}
 	// every tx in txIn already have at least 1 confirmation
-	return (c.currentBlockHeight - blockHeight + 1) >= confirm
+	return (c.currentBlockHeight - blockHeight) >= confirm
 }
