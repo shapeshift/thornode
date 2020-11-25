@@ -17,7 +17,7 @@ var _ = Suite(&MsgObservedTxInSuite{})
 func (s *MsgObservedTxInSuite) TestMsgObservedTxIn(c *C) {
 	var err error
 	pk := GetRandomPubKey()
-	tx := NewObservedTx(GetRandomTx(), 55, pk)
+	tx := NewObservedTx(GetRandomTx(), 55, pk, 55)
 	acc := GetRandomBech32Addr()
 	tx.Tx.ToAddress, err = pk.GetAddress(tx.Tx.Coins[0].Asset.Chain)
 	c.Assert(err, IsNil)
@@ -38,13 +38,13 @@ func (s *MsgObservedTxInSuite) TestMsgObservedTxIn(c *C) {
 	m3 := NewMsgObservedTxIn(ObservedTxs{tx}, acc)
 	c.Assert(m3.ValidateBasic(), NotNil)
 
-	tx4 := NewObservedTx(GetRandomTx(), 1, pk)
+	tx4 := NewObservedTx(GetRandomTx(), 1, pk, 1)
 	m4 := NewMsgObservedTxIn(ObservedTxs{tx4}, acc)
 	err4 := m4.ValidateBasic()
 	c.Assert(err4, NotNil)
 	c.Assert(errors.Is(err4, se.ErrUnknownRequest), Equals, true)
 
-	tx5 := NewObservedTx(GetRandomTx(), 1, pk)
+	tx5 := NewObservedTx(GetRandomTx(), 1, pk, 1)
 	tx5.Tx.ToAddress, err = pk.GetAddress(tx.Tx.Coins[0].Asset.Chain)
 	tx5.OutHashes = common.TxIDs{
 		GetRandomTxHash(),
@@ -54,14 +54,14 @@ func (s *MsgObservedTxInSuite) TestMsgObservedTxIn(c *C) {
 	c.Assert(err5, NotNil)
 	c.Assert(errors.Is(err4, se.ErrUnknownRequest), Equals, true)
 
-	tx6 := NewObservedTx(GetRandomTx(), 1, pk)
+	tx6 := NewObservedTx(GetRandomTx(), 1, pk, 1)
 	tx6.Tx.FromAddress = common.Address("")
 	m6 := NewMsgObservedTxIn(ObservedTxs{tx6}, acc)
 	err6 := m6.ValidateBasic()
 	c.Assert(err6, NotNil)
 	c.Assert(errors.Is(err4, se.ErrUnknownRequest), Equals, true)
 
-	tx7 := NewObservedTx(GetRandomTx(), 1, "whatever")
+	tx7 := NewObservedTx(GetRandomTx(), 1, "whatever", 1)
 	m7 := NewMsgObservedTxIn(ObservedTxs{tx7}, acc)
 	err7 := m7.ValidateBasic()
 	c.Assert(err7, NotNil)

@@ -119,45 +119,42 @@ func (o *Observer) sendDeck() {
 	defer o.lock.Unlock()
 	newDeck := make([]types.TxIn, 0)
 	for _, deck := range o.onDeck {
-		// retried txIn will be filtered already, doesn't need to filter it again
-		if !deck.Filtered {
-			deck.TxArray = o.filterObservations(deck.Chain, deck.TxArray, deck.MemPool)
-			deck.TxArray = o.filterBinanceMemoFlag(deck.Chain, deck.TxArray)
-		}
-
 		// check if chain client has OnObservedTxIn method then call it
 		chainClient, err := o.getChain(deck.Chain)
 		if err != nil {
 			o.logger.Error().Err(err).Msg("fail to retrieve chain client")
 			continue
 		}
-
+		// retried txIn will be filtered already, doesn't need to filter it again
+		if !deck.Filtered {
+			deck.TxArray = o.filterObservations(deck.Chain, deck.TxArray, deck.MemPool)
+			deck.TxArray = o.filterBinanceMemoFlag(deck.Chain, deck.TxArray)
+			deck.ConfirmationRequired = chainClient.GetConfirmationCount(deck)
+		}
 		newTxIn := types.TxIn{
-			Chain:    deck.Chain,
-			Filtered: true,
-			MemPool:  deck.MemPool,
+			Chain:                deck.Chain,
+			Filtered:             true,
+			MemPool:              deck.MemPool,
+			SentUnFinalised:      deck.SentUnFinalised,
+			ConfirmationRequired: deck.ConfirmationRequired,
 		}
 
 		if !chainClient.ConfirmationCountReady(deck) {
 			// TxIn doesn't have enough confirmation , add it back to queue, and try it later
 			newTxIn.TxArray = append(newTxIn.TxArray, deck.TxArray...)
+			// send not finalised tx to THORChain, so THORChain can aware this inbound tx
+			if !deck.SentUnFinalised {
+				result := o.chunkifyAndSendToThorchain(deck, chainClient, false)
+				if len(result.TxArray) == 0 {
+					// all had been sent to THORChain , no left
+					newTxIn.SentUnFinalised = true
+				}
+			}
 		} else {
-			for _, txIn := range o.chunkify(deck) {
-				if err := o.signAndSendToThorchain(txIn); err != nil {
-					o.logger.Error().Err(err).Msg("fail to send to THORChain")
-					// tx failed to be forward to THORChain will be added back to queue , and retry later
-					newTxIn.TxArray = append(newTxIn.TxArray, txIn.TxArray...)
-					continue
-				}
-
-				i, ok := chainClient.(interface {
-					OnObservedTxIn(txIn types.TxInItem, blockHeight int64)
-				})
-				if ok {
-					for _, item := range txIn.TxArray {
-						i.OnObservedTxIn(item, item.BlockHeight)
-					}
-				}
+			// here all the tx either don't need confirmation counting or it already have enough
+			result := o.chunkifyAndSendToThorchain(deck, chainClient, true)
+			if len(result.TxArray) > 0 {
+				newTxIn.TxArray = append(newTxIn.TxArray, result.TxArray...)
 			}
 		}
 		if len(newTxIn.TxArray) > 0 {
@@ -172,6 +169,35 @@ func (o *Observer) sendDeck() {
 		o.logger.Error().Err(err).Msg("fail to save ondeck tx to key value store")
 	}
 	o.onDeck = newDeck
+}
+
+func (o *Observer) chunkifyAndSendToThorchain(deck types.TxIn, chainClient chainclients.ChainClient, finalised bool) types.TxIn {
+	newTxIn := types.TxIn{
+		Chain:                deck.Chain,
+		Filtered:             true,
+		MemPool:              deck.MemPool,
+		SentUnFinalised:      deck.SentUnFinalised,
+		ConfirmationRequired: deck.ConfirmationRequired,
+	}
+	deck.Finalised = finalised
+	for _, txIn := range o.chunkify(deck) {
+		if err := o.signAndSendToThorchain(txIn); err != nil {
+			o.logger.Error().Err(err).Msg("fail to send to THORChain")
+			// tx failed to be forward to THORChain will be added back to queue , and retry later
+			newTxIn.TxArray = append(newTxIn.TxArray, txIn.TxArray...)
+			continue
+		}
+
+		i, ok := chainClient.(interface {
+			OnObservedTxIn(txIn types.TxInItem, blockHeight int64)
+		})
+		if ok {
+			for _, item := range txIn.TxArray {
+				i.OnObservedTxIn(item, item.BlockHeight)
+			}
+		}
+	}
+	return newTxIn
 }
 
 func (o *Observer) processTxIns() {
@@ -198,7 +224,6 @@ func (o *Observer) processTxIns() {
 						continue
 					}
 				}
-
 				o.onDeck[i].TxArray = append(o.onDeck[i].TxArray, txIn.TxArray...)
 				found = true
 				break
@@ -230,9 +255,12 @@ func (o *Observer) chunkify(txIn types.TxIn) (result []types.TxIn) {
 	})
 	for len(txIn.TxArray) > 0 {
 		newTx := types.TxIn{
-			Chain:    txIn.Chain,
-			MemPool:  txIn.MemPool,
-			Filtered: txIn.Filtered,
+			Chain:                txIn.Chain,
+			MemPool:              txIn.MemPool,
+			Filtered:             txIn.Filtered,
+			Finalised:            txIn.Finalised,
+			SentUnFinalised:      txIn.SentUnFinalised,
+			ConfirmationRequired: txIn.ConfirmationRequired,
 		}
 		if len(txIn.TxArray) > maxTxArrayLen {
 			newTx.Count = fmt.Sprintf("%d", maxTxArrayLen)
@@ -430,11 +458,15 @@ func (o *Observer) getThorchainTxIns(txIn types.TxIn) (stypes.ObservedTxs, error
 			o.errCounter.WithLabelValues("fail to parse observed pool address", item.ObservedVaultPubKey.String()).Inc()
 			return nil, fmt.Errorf("fail to parse observed pool address: %s: %w", item.ObservedVaultPubKey.String(), err)
 		}
-
+		height := item.BlockHeight
+		if txIn.Finalised {
+			height = height + txIn.ConfirmationRequired
+		}
 		txs[i] = stypes.NewObservedTx(
 			common.NewTx(txID, sender, to, item.Coins, item.Gas, item.Memo),
-			item.BlockHeight,
-			item.ObservedVaultPubKey)
+			height,
+			item.ObservedVaultPubKey,
+			item.BlockHeight+txIn.ConfirmationRequired)
 		txs[i].KeysignMs = o.tssKeysignMetricMgr.GetTssKeysignMetric(item.Tx)
 	}
 	return txs, nil

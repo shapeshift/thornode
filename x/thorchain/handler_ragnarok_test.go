@@ -58,7 +58,7 @@ func (HandlerRagnarokSuite) TestRagnarok(c *C) {
 		FromAddress: GetRandomBNBAddress(),
 		ToAddress:   addr,
 		Gas:         BNBGasFeeSingleton,
-	}, 12, GetRandomPubKey())
+	}, 12, GetRandomPubKey(), 12)
 
 	msgRagnarok := NewMsgRagnarok(tx, 1, keeper.activeNodeAccount.NodeAddress)
 	err = handler.validate(ctx, msgRagnarok, ver)
@@ -161,7 +161,7 @@ func (HandlerRagnarokSuite) TestRagnarokHappyPath(c *C) {
 		FromAddress: addr,
 		ToAddress:   newVaultAddr,
 		Gas:         BNBGasFeeSingleton,
-	}, 1, retireVault.PubKey)
+	}, 1, retireVault.PubKey, 1)
 
 	msgRagnarok := NewMsgRagnarok(tx, 1, keeper.activeNodeAccount.NodeAddress)
 	ver := constants.SWVersion
@@ -218,7 +218,7 @@ func (HandlerRagnarokSuite) TestSlash(c *C) {
 		FromAddress: addr,
 		ToAddress:   newVaultAddr,
 		Gas:         BNBGasFeeSingleton,
-	}, 1, retireVault.PubKey)
+	}, 1, retireVault.PubKey, 1)
 
 	msgRagnarok := NewMsgRagnarok(tx, 1, keeper.activeNodeAccount.NodeAddress)
 	_, err = handler.handleV1(ctx, constants.SWVersion, msgRagnarok, constAccessor)

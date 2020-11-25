@@ -9,11 +9,14 @@ import (
 )
 
 type TxIn struct {
-	Count    string       `json:"count"`
-	Chain    common.Chain `json:"chain"`
-	TxArray  []TxInItem   `json:"txArray"`
-	Filtered bool         `json:"filtered"`
-	MemPool  bool         `json:"mem_pool"` // indicate whether this item is in the mempool or not
+	Count                string       `json:"count"`
+	Chain                common.Chain `json:"chain"`
+	TxArray              []TxInItem   `json:"txArray"`
+	Filtered             bool         `json:"filtered"`
+	MemPool              bool         `json:"mem_pool"`          // indicate whether this item is in the mempool or not
+	SentUnFinalised      bool         `json:"sent_un_finalised"` // indicate whehter unfinalised tx had been sent to THORChain
+	Finalised            bool         `json:"finalised"`
+	ConfirmationRequired int64        `json:"confirmation_required"`
 }
 
 type TxInItem struct {

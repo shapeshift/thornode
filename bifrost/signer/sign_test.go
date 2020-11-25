@@ -230,6 +230,10 @@ func (b *MockChainClient) ConfirmationCountReady(txIn stypes.TxIn) bool {
 	return true
 }
 
+func (b *MockChainClient) GetConfirmationCount(txIn stypes.TxIn) int64 {
+	return 0
+}
+
 func (s *SignSuite) TestHandleYggReturn_Success_FeeSingleton(c *C) {
 	sign := &Signer{
 		chains: map[common.Chain]chainclients.ChainClient{

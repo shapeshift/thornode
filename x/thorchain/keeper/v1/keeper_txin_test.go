@@ -14,7 +14,7 @@ func (s *KeeperTxInSuite) TestTxInVoter(c *C) {
 	tx := GetRandomTx()
 	voter := NewObservedTxVoter(
 		tx.ID,
-		ObservedTxs{NewObservedTx(tx, 12, GetRandomPubKey())},
+		ObservedTxs{NewObservedTx(tx, 12, GetRandomPubKey(), 12)},
 	)
 
 	k.SetObservedTxInVoter(ctx, voter)
@@ -30,7 +30,7 @@ func (s *KeeperTxInSuite) TestTxInVoter(c *C) {
 	voter1 := NewObservedTxVoter(
 		tx.ID,
 		ObservedTxs{
-			NewObservedTx(tx, 12, GetRandomPubKey()),
+			NewObservedTx(tx, 12, GetRandomPubKey(), 12),
 		},
 	)
 	k.SetObservedTxOutVoter(ctx, voter1)
@@ -38,7 +38,6 @@ func (s *KeeperTxInSuite) TestTxInVoter(c *C) {
 	voterOut1, err := k.GetObservedTxOutVoter(ctx, voter1.TxID)
 	c.Assert(err, IsNil)
 	c.Assert(voterOut1.TxID.Equals(tx.ID), Equals, true)
-	c.Check(voterOut1.Txs, HasLen, 1)
 
 	// ensure that if the voter doesn't exist, we DON'T error
 	tx = GetRandomTx()

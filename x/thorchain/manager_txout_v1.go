@@ -365,6 +365,7 @@ func (tos *TxOutStorageV1) nativeTxOut(ctx cosmos.Context, mgr Manager, toi *TxO
 		ObservedPubKey: active[0].PubKey,
 		BlockHeight:    common.BlockHeight(ctx),
 		Tx:             tx,
+		FinaliseHeight: common.BlockHeight(ctx),
 	}
 	m, err := processOneTxIn(ctx, tos.keeper, observedTx, supplier.GetModuleAddress(AsgardName))
 	if err != nil {
