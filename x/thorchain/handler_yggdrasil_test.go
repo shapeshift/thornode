@@ -386,7 +386,7 @@ func (s *HandlerYggdrasilSuite) TestYggdrasilHandler(c *C) {
 					Memo:        "yggdrasil-:30",
 				}
 				txOut := NewTxOut(30)
-				txOut.TxArray = append(txOut.TxArray, &TxOutItem{
+				txOut.TxArray = append(txOut.TxArray, TxOutItem{
 					Chain:       common.BNBChain,
 					ToAddress:   tx.ToAddress,
 					VaultPubKey: helper.yggVault.PubKey,
@@ -423,7 +423,7 @@ func (s *HandlerYggdrasilSuite) TestYggdrasilHandler(c *C) {
 					Memo:        "yggdrasil-:30",
 				}
 				txOut := NewTxOut(30)
-				txOut.TxArray = append(txOut.TxArray, &TxOutItem{
+				txOut.TxArray = append(txOut.TxArray, TxOutItem{
 					Chain:       common.BNBChain,
 					ToAddress:   tx.ToAddress,
 					VaultPubKey: helper.yggVault.PubKey,

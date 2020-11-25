@@ -35,7 +35,7 @@ func (tos *TxOutStorageV1) GetBlockOut(ctx cosmos.Context) (*TxOut, error) {
 }
 
 // GetOutboundItems read all the outbound item from kv store
-func (tos *TxOutStorageV1) GetOutboundItems(ctx cosmos.Context) ([]*TxOutItem, error) {
+func (tos *TxOutStorageV1) GetOutboundItems(ctx cosmos.Context) ([]TxOutItem, error) {
 	block, err := tos.keeper.GetTxOut(ctx, common.BlockHeight(ctx))
 	if block == nil {
 		return nil, nil
@@ -49,7 +49,7 @@ func (tos *TxOutStorageV1) GetOutboundItemByToAddress(ctx cosmos.Context, to com
 	items, _ := tos.GetOutboundItems(ctx)
 	for _, item := range items {
 		if item.ToAddress.Equals(to) {
-			filterItems = append(filterItems, *item)
+			filterItems = append(filterItems, item)
 		}
 	}
 	return filterItems
@@ -63,41 +63,58 @@ func (tos *TxOutStorageV1) ClearOutboundItems(ctx cosmos.Context) {
 // TryAddTxOutItem add an outbound tx to block
 // return bool indicate whether the transaction had been added successful or not
 // return error indicate error
-func (tos *TxOutStorageV1) TryAddTxOutItem(ctx cosmos.Context, mgr Manager, toi *TxOutItem) (bool, error) {
-	success, err := tos.prepareTxOutItem(ctx, toi)
+func (tos *TxOutStorageV1) TryAddTxOutItem(ctx cosmos.Context, mgr Manager, toi TxOutItem) (bool, error) {
+	outputs, err := tos.prepareTxOutItem(ctx, toi)
 	if err != nil {
-		return success, fmt.Errorf("fail to prepare outbound tx: %w", err)
+		return false, fmt.Errorf("fail to prepare outbound tx: %w", err)
 	}
-	if !success {
+	if len(outputs) == 0 {
 		return false, nil
 	}
 	// add tx to block out
-	if err := tos.addToBlockOut(ctx, mgr, toi); err != nil {
-		return false, err
+	for _, output := range outputs {
+		if err := tos.addToBlockOut(ctx, mgr, output); err != nil {
+			return false, err
+		}
 	}
 	return true, nil
 }
 
 // UnSafeAddTxOutItem - blindly adds a tx out, skipping vault selection, transaction
 // fee deduction, etc
-func (tos *TxOutStorageV1) UnSafeAddTxOutItem(ctx cosmos.Context, mgr Manager, toi *TxOutItem) error {
+func (tos *TxOutStorageV1) UnSafeAddTxOutItem(ctx cosmos.Context, mgr Manager, toi TxOutItem) error {
 	return tos.addToBlockOut(ctx, mgr, toi)
 }
 
 // prepareTxOutItem will do some data validation which include the following
 // 1. Make sure it has a legitimate memo
-// 2. choose an appropriate pool,Yggdrasil or Asgard
+// 2. choose an appropriate vault(s) to send from (ygg first, active asgard, then retiring asgard)
 // 3. deduct transaction fee, keep in mind, only take transaction fee when active nodes are  more then minimumBFT
-// return bool indicated whether the given TxOutItem should be added into block or not
-func (tos *TxOutStorageV1) prepareTxOutItem(ctx cosmos.Context, toi *TxOutItem) (bool, error) {
+// return list of outbound transactions
+func (tos *TxOutStorageV1) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem) ([]TxOutItem, error) {
 	// Default the memo to the standard outbound memo
 	if toi.Memo == "" {
 		toi.Memo = NewOutboundMemo(toi.InHash).String()
 	}
+	// Ensure the InHash is set
+	if toi.InHash.IsEmpty() {
+		toi.InHash = common.BlankTxID
+	}
 
-	if !toi.Chain.Equals(common.THORChain) {
-		// If THORNode don't have a pool already selected to send from, discover one.
-		if toi.VaultPubKey.IsEmpty() {
+	var outputs []TxOutItem
+	signingTransactionPeriod := tos.constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
+
+	if toi.Chain.Equals(common.THORChain) {
+		outputs = append(outputs, toi)
+	} else {
+		if !toi.VaultPubKey.IsEmpty() {
+			// a vault is already manually selected, blindly go forth with that
+			outputs = append(outputs, toi)
+		} else {
+			// THORNode don't have a vault already selected to send from, discover one.
+			vaults := make(Vaults, 0) // a sorted list of vaults to send funds from
+
+			/////////////// COLLECT YGGDRASIL VAULTS ///////////////////////////
 			// When deciding which Yggdrasil pool will send out our tx out, we
 			// should consider which ones observed the inbound request tx, as
 			// yggdrasil pools can go offline. Here THORNode get the voter record and
@@ -111,183 +128,179 @@ func (tos *TxOutStorageV1) prepareTxOutItem(ctx cosmos.Context, toi *TxOutItem) 
 			if len(activeNodeAccounts) > 0 {
 				voter, err := tos.keeper.GetObservedTxInVoter(ctx, toi.InHash)
 				if err != nil {
-					return false, fmt.Errorf("fail to get observed tx voter: %w", err)
+					return nil, fmt.Errorf("fail to get observed tx voter: %w", err)
 				}
 				tx := voter.GetTx(activeNodeAccounts)
 
-				// collect yggdrasil pools is going to get a list of yggdrasil vault that THORChain can used to send out fund
+				// collect yggdrasil pools is going to get a list of yggdrasil
+				// vault that THORChain can used to send out fund
 				yggs, err := tos.collectYggdrasilPools(ctx, tx, toi.Chain.GetGasAsset())
 				if err != nil {
-					return false, fmt.Errorf("fail to collect yggdrasil pool: %w", err)
+					return nil, fmt.Errorf("fail to collect yggdrasil pool: %w", err)
 				}
 
-				vault := yggs.SelectByMaxCoin(toi.Coin.Asset)
-				// if none of the ygg vaults have enough funds, don't select one
-				// and we'll select an asgard vault a few lines down
-				if toi.Coin.Amount.LT(vault.GetCoin(toi.Coin.Asset).Amount) {
-					toi.VaultPubKey = vault.PubKey
-				}
+				// add yggdrasil vaults first
+				vaults = append(vaults, yggs.SortBy(toi.Coin.Asset)...)
 			}
-		}
+			////////////////////////////////////////////////////////////////
 
-		// Apparently  couldn't find a yggdrasil vault to send from, so use asgard
-		if toi.VaultPubKey.IsEmpty() {
+			/////////////// COLLECT ACTIVE ASGARD VAULTS ///////////////////
 			active, err := tos.keeper.GetAsgardVaultsByStatus(ctx, ActiveVault)
 			if err != nil {
 				ctx.Logger().Error("fail to get active vaults", "error", err)
 			}
 
-			// filter active vaults that don't have enough funds to send requested amount
-			filterVaults := make(Vaults, 0)
-			for _, v := range active {
-				v, err = tos.deductVaultPendingOutboundBalance(ctx, v)
+			for i := range active {
+				active[i], err = tos.deductVaultPendingOutboundBalance(ctx, active[i])
 				if err != nil {
 					ctx.Logger().Error("fail to deduct outstanding outbound balance from asgard vault", "error", err)
 					continue
 				}
-				if !toi.Coin.Amount.GT(v.GetCoin(toi.Coin.Asset).Amount) {
-					filterVaults = append(filterVaults, v)
-				}
 			}
-			signingTransactionPeriod := tos.constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
-			vault := tos.keeper.GetLeastSecure(ctx, filterVaults, signingTransactionPeriod)
-			if vault.IsEmpty() {
-				return false, fmt.Errorf("empty vault, cannot send out fund: %s", toi.Coin)
-			} else {
-				toi.VaultPubKey = vault.PubKey
-			}
-		}
+			vaults = append(vaults, tos.keeper.SortBySecurity(ctx, active, signingTransactionPeriod)...)
+			////////////////////////////////////////////////////////////////
 
-		// couldn't find an active asgard to send from , so use retiring asgard
-		// usually active asgard will be able to send out fund , however there are some edge cases active asgard
-		// might not have enough fund , for example , newly created asgard, fund migration is till on the way
-		if toi.VaultPubKey.IsEmpty() {
-			active, err := tos.keeper.GetAsgardVaultsByStatus(ctx, RetiringVault)
+			/////////////// COLLECT RETIRING ASGARD VAULTS /////////////////
+			retiring, err := tos.keeper.GetAsgardVaultsByStatus(ctx, RetiringVault)
 			if err != nil {
 				ctx.Logger().Error("fail to get retiring vaults", "error", err)
 			}
-			vault := active.SelectByMaxCoin(toi.Coin.Asset)
-			if vault.IsEmpty() {
-				return false, fmt.Errorf("empty vault, cannot send out fund: %s", toi.Coin)
+			for i := range retiring {
+				retiring[i], err = tos.deductVaultPendingOutboundBalance(ctx, retiring[i])
+				if err != nil {
+					ctx.Logger().Error("fail to deduct outstanding outbound balance from asgard vault", "error", err)
+					continue
+				}
 			}
-			vault, err = tos.deductVaultPendingOutboundBalance(ctx, vault)
-			if err != nil {
-				return false, fmt.Errorf("fail to deduct outstanding outbound balance from asgard vault: %w", err)
-			}
-			if toi.Coin.Amount.GT(vault.GetCoin(toi.Coin.Asset).Amount) {
-				// not enough funds
-				return false, fmt.Errorf("vault %s, does not have enough funds. Has %s, but requires %s", vault.PubKey, vault.GetCoin(toi.Coin.Asset), toi.Coin)
-			}
-			toi.VaultPubKey = vault.PubKey
-		}
+			vaults = append(vaults, tos.keeper.SortBySecurity(ctx, retiring, signingTransactionPeriod)...)
+			////////////////////////////////////////////////////////////////
 
-		// Ensure THORNode are not sending from and to the same address
-		fromAddr, err := toi.VaultPubKey.GetAddress(toi.Chain)
-		if err != nil || fromAddr.IsEmpty() || toi.ToAddress.Equals(fromAddr) {
-			return false, err
-		}
-	}
+			// iterate over discovered vaults and find vaults to send funds from
+			for _, vault := range vaults {
+				// Ensure THORNode are not sending from and to the same address
+				fromAddr, err := vault.PubKey.GetAddress(toi.Chain)
+				if err != nil || fromAddr.IsEmpty() || toi.ToAddress.Equals(fromAddr) {
+					continue
+				}
+				toi.VaultPubKey = vault.PubKey
+				if toi.Coin.Amount.LTE(vault.GetCoin(toi.Coin.Asset).Amount) {
+					outputs = append(outputs, toi)
+					toi.Coin.Amount = cosmos.ZeroUint()
+					break
+				} else {
+					toi.VaultPubKey = vault.PubKey
+					remainingAmount := common.SafeSub(toi.Coin.Amount, vault.GetCoin(toi.Coin.Asset).Amount)
+					toi.Coin.Amount = common.SafeSub(toi.Coin.Amount, remainingAmount)
+					outputs = append(outputs, toi)
+					toi.Coin.Amount = remainingAmount
+				}
+			}
 
-	// Ensure the InHash is set
-	if toi.InHash == "" {
-		toi.InHash = common.BlankTxID
+			// Check we found enough funds to satisfy the request, error if we didn't
+			if !toi.Coin.Amount.IsZero() {
+				return nil, fmt.Errorf("insufficient funds for outbound request: %s %s remaining", toi.ToAddress.String(), toi.Coin.String())
+			}
+		}
 	}
 
 	transactionFee := tos.gasManager.GetFee(ctx, toi.Chain)
-	if toi.MaxGas.IsEmpty() {
-		gasAsset := toi.Chain.GetGasAsset()
-		pool, err := tos.keeper.GetPool(ctx, gasAsset)
-		if err != nil {
-			return false, fmt.Errorf("failed to get gas asset pool: %w", err)
-		}
-
-		// max gas amount is the transaction fee divided by two, in asset amount
-		maxAmt := pool.RuneValueInAsset(cosmos.NewUint(uint64(transactionFee / 2)))
-		toi.MaxGas = common.Gas{
-			common.NewCoin(gasAsset, maxAmt),
-		}
-		toi.GasRate = tos.gasManager.GetGasRate(ctx, toi.Chain)
-	}
-
-	// Deduct OutboundTransactionFee from TOI and add to Reserve
-	memo, err := ParseMemo(toi.Memo) // ignore err
-	if err == nil && !memo.IsType(TxYggdrasilFund) && !memo.IsType(TxYggdrasilReturn) && !memo.IsType(TxMigrate) && !memo.IsType(TxRagnarok) {
-		var runeFee cosmos.Uint
-		if toi.Coin.Asset.IsRune() {
-			if toi.Coin.Amount.LTE(cosmos.NewUint(uint64(transactionFee))) {
-				runeFee = toi.Coin.Amount // Fee is the full amount
-			} else {
-				runeFee = cosmos.NewUint(uint64(transactionFee)) // Fee is the prescribed fee
-			}
-			toi.Coin.Amount = common.SafeSub(toi.Coin.Amount, runeFee)
-			fee := common.NewFee(common.Coins{common.NewCoin(toi.Coin.Asset, runeFee)}, cosmos.ZeroUint())
-			if err := tos.eventMgr.EmitFeeEvent(ctx, NewEventFee(toi.InHash, fee)); err != nil {
-				ctx.Logger().Error("Failed to emit fee event", "error", err)
-			}
-
-			if err := tos.keeper.AddFeeToReserve(ctx, runeFee); err != nil {
-				// Add to reserve
-				ctx.Logger().Error("fail to add fee to reserve", "error", err)
-			}
-
-		} else {
-			pool, err := tos.keeper.GetPool(ctx, toi.Coin.Asset) // Get pool
+	for i, toi := range outputs {
+		if toi.MaxGas.IsEmpty() {
+			gasAsset := toi.Chain.GetGasAsset()
+			pool, err := tos.keeper.GetPool(ctx, gasAsset)
 			if err != nil {
-				// the error is already logged within kvstore
-				return false, fmt.Errorf("fail to get pool: %w", err)
+				return nil, fmt.Errorf("failed to get gas asset pool: %w", err)
 			}
 
-			assetFee := pool.RuneValueInAsset(cosmos.NewUint(uint64(transactionFee))) // Get fee in Asset value
-			if toi.Coin.Amount.LTE(assetFee) {
-				assetFee = toi.Coin.Amount // Fee is the full amount
-				runeFee = pool.AssetValueInRune(assetFee)
-			} else {
-				runeFee = cosmos.NewUint(uint64(transactionFee))
+			// max gas amount is the transaction fee divided by two, in asset amount
+			maxAmt := pool.RuneValueInAsset(cosmos.NewUint(uint64(transactionFee / 2)))
+			toi.MaxGas = common.Gas{
+				common.NewCoin(gasAsset, maxAmt),
 			}
+			toi.GasRate = tos.gasManager.GetGasRate(ctx, toi.Chain)
+		}
 
-			toi.Coin.Amount = common.SafeSub(toi.Coin.Amount, assetFee) // Deduct Asset fee
-			pool.BalanceAsset = pool.BalanceAsset.Add(assetFee)         // Add Asset fee to Pool
-			var poolDeduct cosmos.Uint
-			if runeFee.GT(pool.BalanceRune) {
-				poolDeduct = pool.BalanceRune
+		// Deduct OutboundTransactionFee from TOI and add to Reserve
+		memo, err := ParseMemo(toi.Memo) // ignore err
+		if err == nil && !memo.IsType(TxYggdrasilFund) && !memo.IsType(TxYggdrasilReturn) && !memo.IsType(TxMigrate) && !memo.IsType(TxRagnarok) {
+			var runeFee cosmos.Uint
+			if toi.Coin.Asset.IsRune() {
+				if toi.Coin.Amount.LTE(cosmos.NewUint(uint64(transactionFee))) {
+					runeFee = toi.Coin.Amount // Fee is the full amount
+				} else {
+					runeFee = cosmos.NewUint(uint64(transactionFee)) // Fee is the prescribed fee
+				}
+				toi.Coin.Amount = common.SafeSub(toi.Coin.Amount, runeFee)
+				fee := common.NewFee(common.Coins{common.NewCoin(toi.Coin.Asset, runeFee)}, cosmos.ZeroUint())
+				if err := tos.eventMgr.EmitFeeEvent(ctx, NewEventFee(toi.InHash, fee)); err != nil {
+					ctx.Logger().Error("Failed to emit fee event", "error", err)
+				}
+
+				if err := tos.keeper.AddFeeToReserve(ctx, runeFee); err != nil {
+					// Add to reserve
+					ctx.Logger().Error("fail to add fee to reserve", "error", err)
+				}
+
 			} else {
-				poolDeduct = runeFee
-			}
-			pool.BalanceRune = common.SafeSub(pool.BalanceRune, runeFee) // Deduct Rune from Pool
-			fee := common.NewFee(common.Coins{common.NewCoin(toi.Coin.Asset, assetFee)}, poolDeduct)
-			if err := tos.eventMgr.EmitFeeEvent(ctx, NewEventFee(toi.InHash, fee)); err != nil {
-				ctx.Logger().Error("Failed to emit fee event", "error", err)
-			}
-			if err := tos.keeper.SetPool(ctx, pool); err != nil { // Set Pool
-				return false, fmt.Errorf("fail to save pool: %w", err)
-			}
-			if err := tos.keeper.AddFeeToReserve(ctx, runeFee); err != nil {
-				return false, fmt.Errorf("fail to add fee to reserve: %w", err)
+				pool, err := tos.keeper.GetPool(ctx, toi.Coin.Asset) // Get pool
+				if err != nil {
+					// the error is already logged within kvstore
+					return nil, fmt.Errorf("fail to get pool: %w", err)
+				}
+
+				assetFee := pool.RuneValueInAsset(cosmos.NewUint(uint64(transactionFee))) // Get fee in Asset value
+				if toi.Coin.Amount.LTE(assetFee) {
+					assetFee = toi.Coin.Amount // Fee is the full amount
+					runeFee = pool.AssetValueInRune(assetFee)
+				} else {
+					runeFee = cosmos.NewUint(uint64(transactionFee))
+				}
+
+				toi.Coin.Amount = common.SafeSub(toi.Coin.Amount, assetFee) // Deduct Asset fee
+				pool.BalanceAsset = pool.BalanceAsset.Add(assetFee)         // Add Asset fee to Pool
+				var poolDeduct cosmos.Uint
+				if runeFee.GT(pool.BalanceRune) {
+					poolDeduct = pool.BalanceRune
+				} else {
+					poolDeduct = runeFee
+				}
+				pool.BalanceRune = common.SafeSub(pool.BalanceRune, runeFee) // Deduct Rune from Pool
+				fee := common.NewFee(common.Coins{common.NewCoin(toi.Coin.Asset, assetFee)}, poolDeduct)
+				if err := tos.eventMgr.EmitFeeEvent(ctx, NewEventFee(toi.InHash, fee)); err != nil {
+					ctx.Logger().Error("Failed to emit fee event", "error", err)
+				}
+				if err := tos.keeper.SetPool(ctx, pool); err != nil { // Set Pool
+					return nil, fmt.Errorf("fail to save pool: %w", err)
+				}
+				if err := tos.keeper.AddFeeToReserve(ctx, runeFee); err != nil {
+					return nil, fmt.Errorf("fail to add fee to reserve: %w", err)
+				}
 			}
 		}
+
+		// When we request Yggdrasil pool to return the fund, the coin field is actually empty
+		// Signer when it sees an tx out item with memo "yggdrasil-" it will query the account on relevant chain
+		// and coin field will be filled there, thus we have to let this one go
+		if toi.Coin.IsEmpty() && !memo.IsType(TxYggdrasilReturn) {
+			ctx.Logger().Info("tx out item has zero coin", toi.String())
+			return nil, ErrNotEnoughToPayFee
+		}
+
+		// increment out number of out tx for this in tx
+		voter, err := tos.keeper.GetObservedTxInVoter(ctx, toi.InHash)
+		if err != nil {
+			return nil, fmt.Errorf("fail to get observed tx voter: %w", err)
+		}
+		voter.Height = common.BlockHeight(ctx)
+		voter.Actions = append(voter.Actions, toi)
+		tos.keeper.SetObservedTxInVoter(ctx, voter)
+		outputs[i] = toi
 	}
 
-	// When we request Yggdrasil pool to return the fund, the coin field is actually empty
-	// Signer when it sees an tx out item with memo "yggdrasil-" it will query the account on relevant chain
-	// and coin field will be filled there, thus we have to let this one go
-	if toi.Coin.IsEmpty() && !memo.IsType(TxYggdrasilReturn) {
-		ctx.Logger().Info("tx out item has zero coin", toi.String())
-		return false, ErrNotEnoughToPayFee
-	}
-
-	// increment out number of out tx for this in tx
-	voter, err := tos.keeper.GetObservedTxInVoter(ctx, toi.InHash)
-	if err != nil {
-		return false, fmt.Errorf("fail to get observed tx voter: %w", err)
-	}
-	voter.Height = common.BlockHeight(ctx)
-	voter.Actions = append(voter.Actions, *toi)
-	tos.keeper.SetObservedTxInVoter(ctx, voter)
-
-	return true, nil
+	return outputs, nil
 }
 
-func (tos *TxOutStorageV1) addToBlockOut(ctx cosmos.Context, mgr Manager, toi *TxOutItem) error {
+func (tos *TxOutStorageV1) addToBlockOut(ctx cosmos.Context, mgr Manager, toi TxOutItem) error {
 	// THORChain , native RUNE will not need to forward the txout to bifrost
 	if toi.Chain.Equals(common.THORChain) {
 		return tos.nativeTxOut(ctx, mgr, toi)
@@ -320,7 +333,7 @@ func (tos *TxOutStorageV1) addToBlockOut(ctx cosmos.Context, mgr Manager, toi *T
 	return tos.keeper.AppendTxOut(ctx, common.BlockHeight(ctx), toi)
 }
 
-func (tos *TxOutStorageV1) nativeTxOut(ctx cosmos.Context, mgr Manager, toi *TxOutItem) error {
+func (tos *TxOutStorageV1) nativeTxOut(ctx cosmos.Context, mgr Manager, toi TxOutItem) error {
 	supplier := tos.keeper.Supply()
 
 	addr, err := cosmos.AccAddressFromBech32(toi.ToAddress.String())

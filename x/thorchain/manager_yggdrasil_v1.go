@@ -206,7 +206,7 @@ func (ymgr YggMgrV1) sendCoinsToYggdrasil(ctx cosmos.Context, coins common.Coins
 				ctx.Logger().Error("fail to get max gas coin", "error", err)
 				continue
 			}
-			toi := &TxOutItem{
+			toi := TxOutItem{
 				Chain:       coin.Asset.Chain,
 				ToAddress:   to,
 				InHash:      common.BlankTxID,

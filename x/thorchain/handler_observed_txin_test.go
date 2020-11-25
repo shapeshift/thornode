@@ -269,7 +269,7 @@ func (s *HandlerObservedTxInSuite) testMigrateMemoWithVersion(c *C, ver semver.V
 	newVaultAddr, err := newVault.PubKey.GetAddress(common.BNBChain)
 	c.Assert(err, IsNil)
 
-	txout.TxArray = append(txout.TxArray, &TxOutItem{
+	txout.TxArray = append(txout.TxArray, TxOutItem{
 		Chain:       common.BNBChain,
 		InHash:      common.BlankTxID,
 		ToAddress:   newVaultAddr,

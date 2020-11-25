@@ -14,7 +14,7 @@ var _ = Suite(&KeeperTxOutSuite{})
 func (KeeperTxOutSuite) TestKeeperTxOut(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	txOut := NewTxOut(1)
-	txOutItem := &TxOutItem{
+	txOutItem := TxOutItem{
 		Chain:       common.BNBChain,
 		ToAddress:   GetRandomBNBAddress(),
 		VaultPubKey: GetRandomPubKey(),

@@ -226,7 +226,7 @@ func (s *SlashingV1Suite) TestObservingSlashing(c *C) {
 	txVoter.Add(observedTx, nas[0].NodeAddress)
 	k.SetObservedTxInVoter(ctx, txVoter)
 
-	txOut.TxArray = append(txOut.TxArray, &TxOutItem{
+	txOut.TxArray = append(txOut.TxArray, TxOutItem{
 		Chain:       common.BNBChain,
 		InHash:      txHash,
 		ToAddress:   GetRandomBNBAddress(),
@@ -364,7 +364,7 @@ func (s *SlashingV1Suite) TestNodeSignSlashErrors(c *C) {
 			"SWAP:BNB.BNB",
 		)
 
-		txOutItem := &TxOutItem{
+		txOutItem := TxOutItem{
 			Chain:       common.BNBChain,
 			InHash:      inTx.ID,
 			VaultPubKey: na.PubKeySet.Secp256k1,
@@ -383,7 +383,7 @@ func (s *SlashingV1Suite) TestNodeSignSlashErrors(c *C) {
 			na:     na,
 			vaults: Vaults{ygg},
 			voter: ObservedTxVoter{
-				Actions: []TxOutItem{*txOutItem},
+				Actions: []TxOutItem{txOutItem},
 			},
 			slashPts: make(map[string]int64, 0),
 		}
@@ -418,7 +418,7 @@ func (s *SlashingV1Suite) TestNotSigningSlash(c *C) {
 		"SWAP:BNB.BNB",
 	)
 
-	txOutItem := &TxOutItem{
+	txOutItem := TxOutItem{
 		Chain:       common.BNBChain,
 		InHash:      inTx.ID,
 		VaultPubKey: na.PubKeySet.Secp256k1,
@@ -440,7 +440,7 @@ func (s *SlashingV1Suite) TestNotSigningSlash(c *C) {
 		na:     na,
 		vaults: Vaults{ygg},
 		voter: ObservedTxVoter{
-			Actions: []TxOutItem{*txOutItem},
+			Actions: []TxOutItem{txOutItem},
 		},
 		slashPts: make(map[string]int64, 0),
 	}

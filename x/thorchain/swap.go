@@ -120,7 +120,7 @@ func swap(ctx cosmos.Context,
 			return assetAmount, swapEvents, fmt.Errorf("fail to add to liquidity fees: %w", err)
 		}
 	}
-	toi := &TxOutItem{
+	toi := TxOutItem{
 		Chain:     target.Chain,
 		InHash:    tx.ID,
 		ToAddress: destination,

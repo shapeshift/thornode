@@ -117,7 +117,7 @@ func (h WithdrawLiquidityHandler) handleV1(ctx cosmos.Context, msg MsgWithdrawLi
 		// tx id is blank, must be triggered by the ragnarok protocol
 		memo = NewRagnarokMemo(common.BlockHeight(ctx)).String()
 	}
-	toi := &TxOutItem{
+	toi := TxOutItem{
 		Chain:     msg.Asset.Chain,
 		InHash:    msg.Tx.ID,
 		ToAddress: lp.AssetAddress,
@@ -174,7 +174,7 @@ func (h WithdrawLiquidityHandler) handleV1(ctx cosmos.Context, msg MsgWithdrawLi
 		return nil, errFailAddOutboundTx
 	}
 
-	toi = &TxOutItem{
+	toi = TxOutItem{
 		Chain:     common.RuneAsset().Chain,
 		InHash:    msg.Tx.ID,
 		ToAddress: lp.RuneAddress,

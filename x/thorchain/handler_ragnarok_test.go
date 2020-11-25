@@ -134,7 +134,7 @@ func (HandlerRagnarokSuite) TestRagnarokHappyPath(c *C) {
 	txout := NewTxOut(1)
 	newVaultAddr, err := newVault.PubKey.GetAddress(common.BNBChain)
 	c.Assert(err, IsNil)
-	txout.TxArray = append(txout.TxArray, &TxOutItem{
+	txout.TxArray = append(txout.TxArray, TxOutItem{
 		Chain:       common.BNBChain,
 		InHash:      common.BlankTxID,
 		ToAddress:   newVaultAddr,
