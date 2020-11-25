@@ -709,7 +709,7 @@ func (s *BitcoinSuite) TestConfirmationCountReady(c *C) {
 		Filtered: true,
 		MemPool:  true,
 	}), Equals, true)
-
+	s.client.currentBlockHeight = 3
 	c.Assert(s.client.ConfirmationCountReady(types.TxIn{
 		Chain: common.BTCChain,
 		TxArray: []types.TxInItem{
@@ -725,8 +725,9 @@ func (s *BitcoinSuite) TestConfirmationCountReady(c *C) {
 				ObservedVaultPubKey: pkey,
 			},
 		},
-		Filtered: true,
-		MemPool:  false,
+		Filtered:             true,
+		MemPool:              false,
+		ConfirmationRequired: 0,
 	}), Equals, true)
 
 	c.Assert(s.client.ConfirmationCountReady(types.TxIn{
@@ -747,7 +748,8 @@ func (s *BitcoinSuite) TestConfirmationCountReady(c *C) {
 				ObservedVaultPubKey: pkey,
 			},
 		},
-		Filtered: true,
-		MemPool:  false,
+		Filtered:             true,
+		MemPool:              false,
+		ConfirmationRequired: 5,
 	}), Equals, false)
 }

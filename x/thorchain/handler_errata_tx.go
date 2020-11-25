@@ -107,15 +107,36 @@ func (h ErrataTxHandler) handleV1(ctx cosmos.Context, msg MsgErrataTx, version s
 	if err != nil {
 		return nil, err
 	}
-	if observedVoter.Tx.IsEmpty() {
+
+	if len(observedVoter.Txs) == 0 {
 		return nil, se.Wrap(errInternal, fmt.Sprintf("cannot find tx: %s", msg.TxID))
+	}
+	// set the observed Tx to reverted
+	observedVoter.SetReverted()
+	h.keeper.SetObservedTxInVoter(ctx, observedVoter)
+	if observedVoter.Tx.IsEmpty() || !observedVoter.Tx.IsFinal() {
+		ctx.Logger().Info("tx is not finalised, so nothing need to be done", "tx_id", msg.TxID)
+		return &cosmos.Result{}, nil
 	}
 
 	tx := observedVoter.Tx.Tx
-
 	if !tx.Chain.Equals(msg.Chain) {
 		// does not match chain
 		return &cosmos.Result{}, nil
+	}
+	if observedVoter.UpdatedVault {
+		vaultPubKey := observedVoter.Tx.ObservedPubKey
+		if !vaultPubKey.IsEmpty() {
+			// try to deduct the asset from asgard
+			vault, err := h.keeper.GetVault(ctx, vaultPubKey)
+			if err != nil {
+				return nil, fmt.Errorf("fail to get active asgard vaults: %w", err)
+			}
+			vault.SubFunds(tx.Coins)
+			if err := h.keeper.SetVault(ctx, vault); err != nil {
+				return nil, fmt.Errorf("fail to save vault, err: %w", err)
+			}
+		}
 	}
 
 	memo, _ := ParseMemo(tx.Memo)

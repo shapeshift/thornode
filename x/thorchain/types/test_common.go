@@ -38,7 +38,7 @@ func GetRandomNodeAccount(status NodeStatus) NodeAccount {
 }
 
 func GetRandomObservedTx() ObservedTx {
-	return NewObservedTx(GetRandomTx(), 33, GetRandomPubKey())
+	return NewObservedTx(GetRandomTx(), 33, GetRandomPubKey(), 33)
 }
 
 // GetRandomTx
