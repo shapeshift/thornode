@@ -3,7 +3,6 @@ package thorchain
 import (
 	"fmt"
 
-	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
@@ -52,51 +51,7 @@ func (smgr *StoreMgr) Iterator(ctx cosmos.Context) error {
 func (smgr *StoreMgr) migrate(ctx cosmos.Context, i uint64, constantAccessor constants.ConstantValues) error {
 	ctx.Logger().Info("Migrating store to new version", "version", i)
 	// add the logic to migrate store here when it is needed
-	switch i {
-	case 8:
-		if err := fixPoolAsset(ctx, smgr.keeper, constantAccessor); err != nil {
-			ctx.Logger().Error("fail to update pool asset", "error", err)
-		}
-	case 12:
-		// https://gitlab.com/thorchain/thornode/-/merge_requests/1203
-		network, err := smgr.keeper.GetNetwork(ctx)
-		if err != nil {
-			ctx.Logger().Error("fail to get network data", "error", err)
-			return err
-		}
 
-		// this address will only exist on choasnet, thus on other environment, it will fail to parse the address
-		// given that , if the address fail to parse , the migration should be skipped
-		attackerAddr, err := cosmos.AccAddressFromBech32("thor1706lhut7y6r4h6jjrcjyr7z6jxkjghf37nkfjn")
-		if err != nil {
-			ctx.Logger().Error("fail to acc address", "error", err)
-			break
-		}
-
-		attacker, err := smgr.keeper.GetNodeAccount(ctx, attackerAddr)
-		if err != nil {
-			ctx.Logger().Error("fail to get attacker node account", "error", err)
-			return err
-		}
-
-		// check if attacker exists. This is so this modification doesn't
-		// happen on testnet or other environments
-		if !attacker.IsEmpty() {
-			stolen := cosmos.NewUint(34777 * common.One)
-			stolen = stolen.Sub(attacker.Bond)
-			network.TotalReserve = network.TotalReserve.Sub(stolen)
-			if err := smgr.keeper.SetNetwork(ctx, network); err != nil {
-				ctx.Logger().Error("fail to set network data", "error", err)
-				return err
-			}
-
-			attacker.Bond = cosmos.ZeroUint()
-			if err := smgr.keeper.SetNodeAccount(ctx, attacker); err != nil {
-				ctx.Logger().Error("fail to set attacker node account", "error", err)
-				return err
-			}
-		}
-	}
 	smgr.keeper.SetStoreVersion(ctx, int64(i))
 	return nil
 }

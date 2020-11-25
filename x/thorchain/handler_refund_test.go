@@ -154,6 +154,7 @@ func newRefundTxHandlerTestHelper(c *C) refundTxHandlerTestHelper {
 	nodeAccount.NodeAddress, err = yggVault.PubKey.GetThorAddress()
 	c.Assert(err, IsNil)
 	nodeAccount.Bond = cosmos.NewUint(100 * common.One)
+	FundModule(c, ctx, k, BondName, nodeAccount.Bond.Uint64())
 	nodeAccount.PubKeySet = common.NewPubKeySet(yggVault.PubKey, yggVault.PubKey)
 	c.Assert(keeper.SetNodeAccount(ctx, nodeAccount), IsNil)
 
@@ -285,32 +286,6 @@ func (s *HandlerRefundSuite) TestRefundTxHandlerShouldUpdateTxOut(c *C) {
 			expectedResult: errInternal,
 		},
 		{
-			name: "fail to get network data should result in an error",
-			messageCreator: func(helper refundTxHandlerTestHelper, tx ObservedTx) cosmos.Msg {
-				tx.Tx.Coins = append(tx.Tx.Coins, common.NewCoin(common.BNBAsset, cosmos.NewUint(common.One)))
-				tx.Tx.Coins = append(tx.Tx.Coins, common.NewCoin(common.RuneAsset(), cosmos.NewUint(common.One*2)))
-				return NewMsgRefundTx(tx, helper.inboundTx.Tx.ID, helper.nodeAccount.NodeAddress)
-			},
-			runner: func(handler RefundHandler, helper refundTxHandlerTestHelper, msg cosmos.Msg) (*cosmos.Result, error) {
-				helper.keeper.errGetNetwork = true
-				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
-			},
-			expectedResult: errInternal,
-		},
-		{
-			name: "fail to set network data should result in an error",
-			messageCreator: func(helper refundTxHandlerTestHelper, tx ObservedTx) cosmos.Msg {
-				tx.Tx.Coins = append(tx.Tx.Coins, common.NewCoin(common.BNBAsset, cosmos.NewUint(common.One)))
-				tx.Tx.Coins = append(tx.Tx.Coins, common.NewCoin(common.RuneAsset(), cosmos.NewUint(common.One*2)))
-				return NewMsgRefundTx(tx, helper.inboundTx.Tx.ID, helper.nodeAccount.NodeAddress)
-			},
-			runner: func(handler RefundHandler, helper refundTxHandlerTestHelper, msg cosmos.Msg) (*cosmos.Result, error) {
-				helper.keeper.errSetNetwork = true
-				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
-			},
-			expectedResult: errInternal,
-		},
-		{
 			name: "valid outbound message, no event, no txout",
 			messageCreator: func(helper refundTxHandlerTestHelper, tx ObservedTx) cosmos.Msg {
 				return NewMsgRefundTx(tx, helper.inboundTx.Tx.ID, helper.nodeAccount.NodeAddress)
@@ -393,18 +368,16 @@ func (s *HandlerRefundSuite) TestRefundTxHandlerSendExtraFundShouldBeSlashed(c *
 		Gas:         BNBGasFeeSingleton,
 	}, common.BlockHeight(helper.ctx), helper.nodeAccount.PubKeySet.Secp256k1)
 	expectedBond := helper.nodeAccount.Bond.Sub(cosmos.NewUint(common.One * 2).MulUint64(3).QuoUint64(2))
-	network, err := helper.keeper.GetNetwork(helper.ctx)
-	c.Assert(err, IsNil)
-	expectedVaultTotalReserve := network.TotalReserve.Add(cosmos.NewUint(common.One * 2).QuoUint64(2))
+	reserve := helper.keeper.GetRuneBalanceOfModule(helper.ctx, ReserveName)
+	expectedVaultTotalReserve := reserve.Add(cosmos.NewUint(common.One * 2).QuoUint64(2))
 	// valid outbound message, with event, with txout
 	outMsg := NewMsgRefundTx(tx, helper.inboundTx.Tx.ID, helper.nodeAccount.NodeAddress)
 	_, err = handler.Run(helper.ctx, outMsg, constants.SWVersion, helper.constAccessor)
 	c.Assert(err, IsNil)
 	na, err := helper.keeper.GetNodeAccount(helper.ctx, helper.nodeAccount.NodeAddress)
 	c.Assert(na.Bond.Equal(expectedBond), Equals, true)
-	network, err = helper.keeper.GetNetwork(helper.ctx)
-	c.Assert(err, IsNil)
-	c.Assert(network.TotalReserve.Equal(expectedVaultTotalReserve), Equals, true)
+	newReserve := helper.keeper.GetRuneBalanceOfModule(helper.ctx, ReserveName)
+	c.Assert(newReserve.Equal(expectedVaultTotalReserve), Equals, true)
 }
 
 func (s *HandlerRefundSuite) TestOutboundTxHandlerSendAdditionalCoinsShouldBeSlashed(c *C) {
@@ -452,10 +425,9 @@ func (s *HandlerRefundSuite) TestOutboundTxHandlerInvalidObservedTxVoterShouldSl
 	}, common.BlockHeight(helper.ctx), helper.nodeAccount.PubKeySet.Secp256k1)
 
 	expectedBond := cosmos.NewUint(9702970297)
-	network, err := helper.keeper.GetNetwork(helper.ctx)
-	c.Assert(err, IsNil)
+	reserve := helper.keeper.GetRuneBalanceOfModule(helper.ctx, ReserveName)
 	// expected 0.5 slashed RUNE be added to reserve
-	expectedVaultTotalReserve := network.TotalReserve.Add(cosmos.NewUint(common.One).QuoUint64(2))
+	expectedVaultTotalReserve := reserve.Add(cosmos.NewUint(common.One).QuoUint64(2))
 	pool, err := helper.keeper.GetPool(helper.ctx, common.BNBAsset)
 	c.Assert(err, IsNil)
 	poolBNB := common.SafeSub(pool.BalanceAsset, cosmos.NewUint(common.One))
@@ -467,9 +439,8 @@ func (s *HandlerRefundSuite) TestOutboundTxHandlerInvalidObservedTxVoterShouldSl
 	na, err := helper.keeper.GetNodeAccount(helper.ctx, helper.nodeAccount.NodeAddress)
 	c.Assert(na.Bond.Equal(expectedBond), Equals, true, Commentf("Bond: %d != %d", na.Bond.Uint64(), expectedBond.Uint64()))
 
-	network, err = helper.keeper.GetNetwork(helper.ctx)
-	c.Assert(err, IsNil)
-	c.Assert(network.TotalReserve.Equal(expectedVaultTotalReserve), Equals, true)
+	newReserve := helper.keeper.GetRuneBalanceOfModule(helper.ctx, ReserveName)
+	c.Assert(newReserve.Equal(expectedVaultTotalReserve), Equals, true)
 	pool, err = helper.keeper.GetPool(helper.ctx, common.BNBAsset)
 	c.Assert(err, IsNil)
 	c.Assert(pool.BalanceRune.Equal(cosmos.NewUint(10047029703)), Equals, true, Commentf("%d/%d", pool.BalanceRune.Uint64(), cosmos.NewUint(10047029703).Uint64()))
