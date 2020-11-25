@@ -74,49 +74,54 @@ func (s TxOutStoreV1Suite) TestAddOutTxItem(c *C) {
 	w.keeper.SetObservedTxInVoter(w.ctx, voter)
 
 	// Should get acc2. Acc3 hasn't signed and acc2 is the highest value
-	item := &TxOutItem{
+	item := TxOutItem{
 		Chain:     common.BNBChain,
 		ToAddress: GetRandomBNBAddress(),
 		InHash:    inTxID,
 		Coin:      common.NewCoin(common.BNBAsset, cosmos.NewUint(20*common.One)),
 	}
 	txOutStore := w.mgr.TxOutStore()
-	txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item)
+	ok, err := txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item)
+	c.Assert(err, IsNil)
+	c.Assert(ok, Equals, true)
 	msgs, err := txOutStore.GetOutboundItems(w.ctx)
 	c.Assert(err, IsNil)
 	c.Assert(msgs, HasLen, 1)
 	c.Assert(msgs[0].VaultPubKey.String(), Equals, acc2.PubKeySet.Secp256k1.String())
-	c.Assert(msgs[0].Coin.Amount.Equal(cosmos.NewUint(19*common.One)), Equals, true)
-
+	c.Assert(msgs[0].Coin.Amount.Equal(cosmos.NewUint(19*common.One)), Equals, true, Commentf("%d", msgs[0].Coin.Amount.Uint64()))
 	// Should get acc1. Acc3 hasn't signed and acc1 now has the highest amount
 	// of coin.
-	item = &TxOutItem{
+	item = TxOutItem{
 		Chain:     common.BNBChain,
 		ToAddress: GetRandomBNBAddress(),
 		InHash:    inTxID,
 		Coin:      common.NewCoin(common.BNBAsset, cosmos.NewUint(20*common.One)),
 	}
+	txOutStore.ClearOutboundItems(w.ctx)
 	success, err := txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item)
 	c.Assert(success, Equals, true)
 	c.Assert(err, IsNil)
 	msgs, err = txOutStore.GetOutboundItems(w.ctx)
 	c.Assert(err, IsNil)
-	c.Assert(msgs, HasLen, 2)
-	c.Assert(msgs[1].VaultPubKey.String(), Equals, acc1.PubKeySet.Secp256k1.String())
+	c.Assert(msgs, HasLen, 1)
+	c.Assert(msgs[0].VaultPubKey.String(), Equals, acc2.PubKeySet.Secp256k1.String())
 
-	item = &TxOutItem{
+	item = TxOutItem{
 		Chain:     common.BNBChain,
 		ToAddress: GetRandomBNBAddress(),
 		InHash:    inTxID,
 		Coin:      common.NewCoin(common.BNBAsset, cosmos.NewUint(1000*common.One)),
 	}
+	txOutStore.ClearOutboundItems(w.ctx)
 	success, err = txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item)
 	c.Assert(err, IsNil)
 	c.Assert(success, Equals, true)
 	msgs, err = txOutStore.GetOutboundItems(w.ctx)
 	c.Assert(err, IsNil)
 	c.Assert(msgs, HasLen, 3)
-	c.Assert(msgs[2].VaultPubKey.String(), Equals, vault.PubKey.String())
+	c.Check(msgs[0].VaultPubKey.String(), Equals, acc2.PubKeySet.Secp256k1.String())
+	c.Check(msgs[1].VaultPubKey.String(), Equals, acc1.PubKeySet.Secp256k1.String())
+	c.Check(msgs[2].VaultPubKey.String(), Equals, vault.PubKey.String())
 }
 
 func (s TxOutStoreV1Suite) TestAddOutTxItemWithoutBFT(c *C) {
@@ -128,7 +133,7 @@ func (s TxOutStoreV1Suite) TestAddOutTxItemWithoutBFT(c *C) {
 	w.keeper.SetVault(w.ctx, vault)
 
 	inTxID := GetRandomTxHash()
-	item := &TxOutItem{
+	item := TxOutItem{
 		Chain:     common.BNBChain,
 		ToAddress: GetRandomBNBAddress(),
 		InHash:    inTxID,
@@ -141,5 +146,5 @@ func (s TxOutStoreV1Suite) TestAddOutTxItemWithoutBFT(c *C) {
 	msgs, err := txOutStore.GetOutboundItems(w.ctx)
 	c.Assert(err, IsNil)
 	c.Assert(msgs, HasLen, 1)
-	c.Assert(msgs[0].Coin.Amount.Equal(cosmos.NewUint(19*common.One)), Equals, true)
+	c.Assert(msgs[0].Coin.Amount.Equal(cosmos.NewUint(19*common.One)), Equals, true, Commentf("%d", msgs[0].Coin.Amount.Uint64()))
 }

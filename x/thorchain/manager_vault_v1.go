@@ -190,7 +190,7 @@ func (vm *VaultMgrV1) EndBlock(ctx cosmos.Context, mgr Manager, constAccessor co
 					)
 				}
 
-				toi := &TxOutItem{
+				toi := TxOutItem{
 					Chain:       coin.Asset.Chain,
 					InHash:      common.BlankTxID,
 					ToAddress:   addr,
@@ -436,7 +436,7 @@ func (vm *VaultMgrV1) recallChainFunds(ctx cosmos.Context, chain common.Chain, m
 		}
 
 		if !toAddr.IsEmpty() {
-			txOutItem := &TxOutItem{
+			txOutItem := TxOutItem{
 				Chain:       chain,
 				ToAddress:   toAddr,
 				InHash:      common.BlankTxID,

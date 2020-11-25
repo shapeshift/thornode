@@ -69,7 +69,7 @@ func refundTx(ctx cosmos.Context, tx ObservedTx, mgr Manager, keeper keeper.Keep
 		}
 
 		if coin.Asset.IsRune() || !pool.BalanceRune.IsZero() {
-			toi := &TxOutItem{
+			toi := TxOutItem{
 				Chain:       coin.Asset.Chain,
 				InHash:      tx.Tx.ID,
 				ToAddress:   tx.Tx.FromAddress,
@@ -273,7 +273,7 @@ func refundBond(ctx cosmos.Context, tx common.Tx, amt cosmos.Uint, nodeAcc *Node
 		refundAddress := common.Address(nodeAcc.NodeAddress.String())
 
 		// refund bond
-		txOutItem := &TxOutItem{
+		txOutItem := TxOutItem{
 			Chain:       common.RuneAsset().Chain,
 			ToAddress:   refundAddress,
 			VaultPubKey: vault.PubKey,

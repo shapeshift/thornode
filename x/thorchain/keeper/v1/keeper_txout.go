@@ -7,7 +7,7 @@ import (
 )
 
 // AppendTxOut - append the given item to txOut
-func (k KVStore) AppendTxOut(ctx cosmos.Context, height int64, item *TxOutItem) error {
+func (k KVStore) AppendTxOut(ctx cosmos.Context, height int64, item TxOutItem) error {
 	block, err := k.GetTxOut(ctx, height)
 	if err != nil {
 		return err

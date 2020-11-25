@@ -62,7 +62,7 @@ func (s *QuerierSuite) TestQueryKeysign(c *C) {
 	pk := GetRandomPubKey()
 	toAddr := GetRandomBNBAddress()
 	txOut := NewTxOut(1)
-	txOutItem := &TxOutItem{
+	txOutItem := TxOutItem{
 		Chain:       common.BNBChain,
 		VaultPubKey: pk,
 		ToAddress:   toAddr,
