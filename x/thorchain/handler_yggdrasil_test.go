@@ -106,6 +106,7 @@ func newYggdrasilHandlerTestHelper(c *C) yggdrasilHandlerTestHelper {
 	// active account
 	nodeAccount := GetRandomNodeAccount(NodeActive)
 	nodeAccount.Bond = cosmos.NewUint(100 * common.One)
+	FundModule(c, ctx, k, BondName, nodeAccount.Bond.Uint64())
 	c.Assert(keeper.SetNodeAccount(ctx, nodeAccount), IsNil)
 
 	constAccessor := constants.GetConstantValues(version)

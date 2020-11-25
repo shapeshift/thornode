@@ -113,15 +113,6 @@ func (h CommonOutboundTxHandler) handle(ctx cosmos.Context, version semver.Versi
 							if err := h.keeper.SendFromModuleToModule(ctx, ReserveName, AsgardName, common.NewCoin(common.RuneAsset(), runeValue)); err != nil {
 								ctx.Logger().Error("fail to send fund from Reserve to Asgard", "error", err)
 							}
-							network, err := h.keeper.GetNetwork(ctx)
-							if err != nil {
-								ctx.Logger().Error("fail to get network", "error", err)
-							} else {
-								network.TotalReserve = common.SafeSub(network.TotalReserve, runeValue)
-								if err := h.keeper.SetNetwork(ctx, network); err != nil {
-									ctx.Logger().Error("fail to save network", "error", err)
-								}
-							}
 
 							if err := h.keeper.SetPool(ctx, pool); err != nil {
 								ctx.Logger().Error("fail to save pool", "error", err, "asset", asset)

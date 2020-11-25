@@ -240,11 +240,13 @@ func (s YggdrasilManagerV1Suite) TestAbandonYggdrasil(c *C) {
 	for i := 0; i < 6; i++ {
 		na := GetRandomNodeAccount(NodeActive)
 		na.Bond = cosmos.NewUint(common.One * 1000000)
+		FundModule(c, ctx, k, BondName, na.Bond.Uint64())
 		c.Assert(k.SetNodeAccount(ctx, na), IsNil)
 	}
 	naDisabled := GetRandomNodeAccount(NodeDisabled)
 	naDisabled.RequestedToLeave = true
 	naDisabled.Bond = cosmos.NewUint(common.One * 1000000)
+	FundModule(c, ctx, k, BondName, naDisabled.Bond.Uint64())
 	c.Assert(k.SetNodeAccount(ctx, naDisabled), IsNil)
 
 	yggdrasilVault := GetRandomVault()

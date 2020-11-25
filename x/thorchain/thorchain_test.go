@@ -17,18 +17,11 @@ import (
 
 func TestPackage(t *testing.T) { TestingT(t) }
 
-var (
-	bnbSingleTxFee = cosmos.NewUint(37500)
-	bnbMultiTxFee  = cosmos.NewUint(30000)
-)
+var bnbSingleTxFee = cosmos.NewUint(37500)
 
 // Gas Fees
 var BNBGasFeeSingleton = common.Gas{
 	{Asset: common.BNBAsset, Amount: bnbSingleTxFee},
-}
-
-var BNBGasFeeMulti = common.Gas{
-	{Asset: common.BNBAsset, Amount: bnbMultiTxFee},
 }
 
 type ThorchainSuite struct{}
@@ -91,7 +84,7 @@ func (s *ThorchainSuite) TestLiquidityProvision(c *C) {
 	c.Assert(err, IsNil)
 	c.Check(pool.BalanceRune.IsZero(), Equals, true)
 	remainGas := uint64(37500)
-	c.Check(pool.BalanceAsset.Uint64(), Equals, uint64(remainGas)) // leave a little behind for gas
+	c.Check(pool.BalanceAsset.Uint64(), Equals, remainGas) // leave a little behind for gas
 	c.Check(pool.PoolUnits.IsZero(), Equals, true)
 
 	// liquidity provider for user1, again
@@ -123,18 +116,18 @@ func (s *ThorchainSuite) TestChurn(c *C) {
 		common.NewCoin(common.RuneAsset(), cosmos.NewUint(100*common.One)),
 		common.NewCoin(common.BNBAsset, cosmos.NewUint(79*common.One)),
 	})
-	keeper.SaveNetworkFee(ctx, common.BNBChain, NetworkFee{
+	c.Assert(keeper.SaveNetworkFee(ctx, common.BNBChain, NetworkFee{
 		Chain:              common.BNBChain,
 		TransactionSize:    1,
 		TransactionFeeRate: 37500,
-	})
-	keeper.SetPool(ctx, Pool{
+	}), IsNil)
+	c.Assert(keeper.SetPool(ctx, Pool{
 		BalanceRune:  cosmos.NewUint(common.One),
 		BalanceAsset: cosmos.NewUint(common.One),
 		Asset:        common.BNBAsset,
 		PoolUnits:    cosmos.NewUint(common.One),
 		Status:       PoolAvailable,
-	})
+	}), IsNil)
 	addresses := make([]cosmos.AccAddress, 4)
 	for i := 0; i <= 3; i++ {
 		na := GetRandomNodeAccount(NodeActive)
@@ -238,7 +231,7 @@ func (s *ThorchainSuite) TestChurn(c *C) {
 	c.Assert(err, IsNil)
 	vault.PendingTxBlockHeights = nil
 	c.Assert(keeper.SetVault(ctx, vault), IsNil)
-	mgr.VaultMgr().EndBlock(ctx, mgr, consts) // should attempt to send 100% of the coin values
+	c.Check(mgr.VaultMgr().EndBlock(ctx, mgr, consts), IsNil) // should attempt to send 100% of the coin values
 	items, err = mgr.TxOutStore().GetOutboundItems(ctx)
 	c.Assert(err, IsNil)
 	c.Assert(items, HasLen, 1, Commentf("%d", len(items)))
@@ -312,6 +305,7 @@ func (s *ThorchainSuite) TestRagnarok(c *C) {
 	for i := 1; i <= bonderCount; i++ {
 		na := GetRandomNodeAccount(NodeActive)
 		na.Bond = cosmos.NewUint(1_000_000 * uint64(i) * common.One)
+		FundModule(c, ctx, keeper, BondName, na.Bond.Uint64())
 		c.Assert(keeper.SetNodeAccount(ctx, na), IsNil)
 		bonders[i-1] = na
 
@@ -340,8 +334,8 @@ func (s *ThorchainSuite) TestRagnarok(c *C) {
 	network := Network{
 		BondRewardRune: cosmos.NewUint(1000_000 * common.One),
 		TotalBondUnits: cosmos.NewUint(3 * 1014), // block height * node count
-		TotalReserve:   cosmos.NewUint(400_100_000 * common.One),
 	}
+	FundModule(c, ctx, keeper, ReserveName, cosmos.NewUint(400_100_000*common.One).Uint64())
 	c.Assert(keeper.SetNetwork(ctx, network), IsNil)
 	ctx = ctx.WithBlockHeight(1024)
 
@@ -402,27 +396,12 @@ func (s *ThorchainSuite) TestRagnarok(c *C) {
 				c.Assert(items, HasLen, 1, Commentf("%d", len(items)))
 			}
 		}
-
 		mgr.TxOutStore().ClearOutboundItems(ctx) // clear out txs
 		keeper.SetRagnarokPending(ctx, 0)
 		items, err = mgr.TxOutStore().GetOutboundItems(ctx)
 		c.Assert(items, HasLen, 0)
 		c.Assert(err, IsNil)
 	}
-}
-
-// calculate the expected coin amount taken from a original amount at nth round
-// of ragnarok
-func calcExpectedValue(total cosmos.Uint, nth, limit int) cosmos.Uint {
-	var amt cosmos.Uint
-	for i := uint64(1); i <= uint64(nth); i++ {
-		if i == uint64(limit) {
-			i = 10
-		}
-		amt = total.MulUint64(i).QuoUint64(10)
-		total = total.Sub(amt)
-	}
-	return amt
 }
 
 func (s *ThorchainSuite) TestRagnarokNoOneLeave(c *C) {

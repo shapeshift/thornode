@@ -317,14 +317,10 @@ func (s *SlasherV1) SlashNodeAccount(ctx cosmos.Context, observedPubKey common.P
 			slashAmount = nodeAccount.Bond
 		}
 		nodeAccount.Bond = common.SafeSub(nodeAccount.Bond, slashAmount)
-		network, err := s.keeper.GetNetwork(ctx)
-		if err != nil {
-			return fmt.Errorf("fail to get network data: %w", err)
+		if err := s.keeper.SendFromModuleToModule(ctx, BondName, ReserveName, common.NewCoin(common.RuneAsset(), amountToReserve)); err != nil {
+			return fmt.Errorf("fail to send rune from bond to reserve: %w", err)
 		}
-		network.TotalReserve = network.TotalReserve.Add(amountToReserve)
-		if err := s.keeper.SetNetwork(ctx, network); err != nil {
-			return fmt.Errorf("fail to save network data: %w", err)
-		}
+
 		return s.keeper.SetNodeAccount(ctx, nodeAccount)
 	}
 	pool, err := s.keeper.GetPool(ctx, asset)
