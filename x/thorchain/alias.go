@@ -87,6 +87,7 @@ var (
 	NewEventBond                   = types.NewEventBond
 	NewEventGas                    = types.NewEventGas
 	NewEventSlash                  = types.NewEventSlash
+	NewEventSlashPoint             = types.NewEventSlashPoint
 	NewEventReserve                = types.NewEventReserve
 	NewEventErrata                 = types.NewEventErrata
 	NewEventFee                    = types.NewEventFee

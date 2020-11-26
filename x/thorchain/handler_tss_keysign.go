@@ -125,6 +125,9 @@ func (h TssKeysignHandler) handleV1(ctx cosmos.Context, msg MsgTssKeysignFail, v
 			ctx.Logger().Error("fail to inc slash points", "error", err)
 		}
 
+		if err := h.mgr.EventMgr().EmitEvent(ctx, NewEventSlashPoint(na.NodeAddress, slashPoints, "fail keysign")); err != nil {
+			ctx.Logger().Error("fail to emit slash point event")
+		}
 		// go to jail
 		ctx.Logger().Info("jailing node", "pubkey", na.PubKeySet.Secp256k1)
 		jailTime := constAccessor.GetInt64Value(constants.JailTimeKeysign)
