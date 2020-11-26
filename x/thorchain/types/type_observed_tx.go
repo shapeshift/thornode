@@ -340,13 +340,25 @@ func (tx *ObservedTxVoter) getConsensusTx(accounts NodeAccounts, final bool) Obs
 	return ObservedTx{}
 }
 
+// SetReverted set all the tx status to `Reverted` , only when a relevant errata tx had been processed
 func (tx *ObservedTxVoter) SetReverted() {
+	tx.setStatus(Reverted)
+}
+
+func (tx *ObservedTxVoter) setStatus(toStatus status) {
 	for _, item := range tx.Txs {
-		item.Status = Reverted
+		item.Status = toStatus
 	}
 
 	tx.Reverted = true
 	if !tx.Tx.IsEmpty() {
-		tx.Tx.Status = Reverted
+		tx.Tx.Status = toStatus
 	}
+}
+
+// SetDone set all the tx status to `done`
+// usually the status will be set to done once the outbound tx get observed and processed
+// there are some situation , it doesn't have outbound , those will need to set manually
+func (tx *ObservedTxVoter) SetDone() {
+	tx.setStatus(Done)
 }

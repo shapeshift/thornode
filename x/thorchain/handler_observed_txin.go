@@ -271,6 +271,11 @@ func (h ObservedTxInHandler) handleV1(ctx cosmos.Context, version semver.Version
 				ctx.Logger().Error("fail to refund", "error", err)
 			}
 		}
+		// for those Memo that will not have outbound at all , set the observedTx to done
+		if !memo.GetType().HasOutbound() {
+			voter.SetDone()
+			h.keeper.SetObservedTxInVoter(ctx, voter)
+		}
 	}
 	return &cosmos.Result{}, nil
 }
