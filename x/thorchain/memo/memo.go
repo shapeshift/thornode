@@ -113,7 +113,7 @@ func (tx TxType) IsInternal() bool {
 // HasOutbound whether the txtype might trigger outbound tx
 func (tx TxType) HasOutbound() bool {
 	switch tx {
-	case TxAdd, TxBond, TxDonate, TxYggdrasilReturn, TxReserve, TxMigrate, TxRagnarok:
+	case TxAdd, TxBond, TxDonate, TxYggdrasilReturn, TxReserve, TxMigrate, TxRagnarok, TxSwitch:
 		return false
 	default:
 		return true
