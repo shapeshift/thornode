@@ -203,6 +203,9 @@ func (s *SlasherV1) LackSigning(ctx cosmos.Context, constAccessor constants.Cons
 				if err := s.keeper.IncNodeAccountSlashPoints(ctx, na.NodeAddress, signingTransPeriod*2); err != nil {
 					ctx.Logger().Error("fail to inc slash points", "error", err, "node addr", na.NodeAddress.String())
 				}
+				if err := mgr.EventMgr().EmitEvent(ctx, NewEventSlashPoint(na.NodeAddress, signingTransPeriod*2, fmt.Sprintf("fail to sign out tx after %d blocks", signingTransPeriod))); err != nil {
+					ctx.Logger().Error("fail to emit slash point event")
+				}
 				releaseHeight := common.BlockHeight(ctx) + (signingTransPeriod * 2)
 				reason := "fail to send yggdrasil transaction"
 				if err := s.keeper.SetNodeAccountJail(ctx, na.NodeAddress, releaseHeight, reason); err != nil {

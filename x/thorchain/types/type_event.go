@@ -26,6 +26,7 @@ const (
 	OutboundEventType         = `outbound`
 	TSSKeygenMetricEventType  = `tss_keygen`
 	TSSKeysignMetricEventType = `tss_keysign`
+	SlashPointEventType       = `slash_points`
 )
 
 // PoolMod pool modifications
@@ -605,5 +606,35 @@ func (e EventTssKeysignMetric) Events() (cosmos.Events, error) {
 	evt := cosmos.NewEvent(e.Type(),
 		cosmos.NewAttribute("txid", e.TxID.String()),
 		cosmos.NewAttribute("median_duration_ms", strconv.FormatInt(e.MedianDurationMs, 10)))
+	return cosmos.Events{evt}, nil
+}
+
+// EventSlashPoint is an event to represent node account accumulate slash points
+type EventSlashPoint struct {
+	NodeAddress cosmos.AccAddress `json:"node_address"`
+	SlashPoints int64             `json:"slash_points"`
+	Reason      string            `json:"reason"`
+}
+
+// NewEventSlashPoint create a new slash point event
+func NewEventSlashPoint(addr cosmos.AccAddress, slashPoints int64, reason string) EventSlashPoint {
+	return EventSlashPoint{
+		NodeAddress: addr,
+		SlashPoints: slashPoints,
+		Reason:      reason,
+	}
+}
+
+// Type return a string which represent the type of this event
+func (e EventSlashPoint) Type() string {
+	return SlashPointEventType
+}
+
+// Events return cosmos sdk events
+func (e EventSlashPoint) Events() (cosmos.Events, error) {
+	evt := cosmos.NewEvent(e.Type(),
+		cosmos.NewAttribute("node_address", e.NodeAddress.String()),
+		cosmos.NewAttribute("slash_points", strconv.FormatInt(e.SlashPoints, 10)),
+		cosmos.NewAttribute("reason", e.Reason))
 	return cosmos.Events{evt}, nil
 }
