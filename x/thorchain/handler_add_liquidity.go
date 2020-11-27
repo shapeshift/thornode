@@ -210,7 +210,7 @@ func (h AddLiquidityHandler) addLiquidityV1(ctx cosmos.Context,
 
 	// if we have an asset address and no asset amount, put the rune pending
 	if !assetAddr.IsEmpty() && addAssetAmount.IsZero() {
-		su.PendingRune = su.PendingRune.Add(addRuneAmount)
+		su.PendingRune = addRuneAmount
 		su.PendingTxID = requestTxHash
 		h.keeper.SetLiquidityProvider(ctx, su)
 		return nil
@@ -218,7 +218,7 @@ func (h AddLiquidityHandler) addLiquidityV1(ctx cosmos.Context,
 
 	// if we have a rune address and no rune asset, put the asset in pending
 	if !runeAddr.IsEmpty() && addRuneAmount.IsZero() {
-		su.PendingAsset = su.PendingAsset.Add(addAssetAmount)
+		su.PendingAsset = addAssetAmount
 		su.PendingTxID = requestTxHash
 		h.keeper.SetLiquidityProvider(ctx, su)
 		return nil
