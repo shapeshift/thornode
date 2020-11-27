@@ -97,6 +97,7 @@ func (mfp *MockWithdrawKeeper) GetGas(ctx cosmos.Context, asset common.Asset) ([
 
 func (HandlerWithdrawSuite) TestWithdrawHandler(c *C) {
 	// w := getHandlerTestWrapper(c, 1, true, true)
+	SetupConfigForTest()
 	ctx, keeper := setupKeeperForTest(c)
 	activeNodeAccount := GetRandomNodeAccount(NodeActive)
 	k := &MockWithdrawKeeper{

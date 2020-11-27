@@ -13,8 +13,8 @@ import (
 )
 
 func validateWithdraw(ctx cosmos.Context, keeper keeper.Keeper, msg MsgWithdrawLiquidity) error {
-	if msg.RuneAddress.IsEmpty() {
-		return errors.New("empty rune address")
+	if msg.WithdrawAddress.IsEmpty() {
+		return errors.New("empty withdraw address")
 	}
 	if msg.Tx.ID.IsEmpty() {
 		return errors.New("request tx hash is empty")
@@ -47,7 +47,7 @@ func withdraw(ctx cosmos.Context, version semver.Version, keeper keeper.Keeper, 
 		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), err
 	}
 
-	lp, err := keeper.GetLiquidityProvider(ctx, msg.Asset, msg.RuneAddress)
+	lp, err := keeper.GetLiquidityProvider(ctx, msg.Asset, msg.WithdrawAddress)
 	if err != nil {
 		ctx.Logger().Error("can't find liquidity provider", "error", err)
 		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), err
@@ -70,7 +70,18 @@ func withdraw(ctx cosmos.Context, version semver.Version, keeper keeper.Keeper, 
 
 	ctx.Logger().Info("pool before withdraw", "pool unit", poolUnits, "balance RUNE", poolRune, "balance asset", poolAsset)
 	ctx.Logger().Info("liquidity provider before withdraw", "liquidity provider unit", fLiquidityProviderUnit)
-	withdrawRune, withDrawAsset, unitAfter, err := calculateWithdraw(poolUnits, poolRune, poolAsset, fLiquidityProviderUnit, msg.BasisPoints, msg.WithdrawalAsset)
+
+	assetToWithdraw := msg.WithdrawalAsset
+	if assetToWithdraw.IsEmpty() {
+		// for asymmetric staked lps, need to override the asset
+		if lp.RuneAddress.IsEmpty() {
+			assetToWithdraw = pool.Asset
+		}
+		if lp.AssetAddress.IsEmpty() {
+			assetToWithdraw = common.RuneAsset()
+		}
+	}
+	withdrawRune, withDrawAsset, unitAfter, err := calculateWithdraw(poolUnits, poolRune, poolAsset, fLiquidityProviderUnit, msg.BasisPoints, assetToWithdraw)
 	if err != nil {
 		ctx.Logger().Error("fail to withdraw", "error", err)
 		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), errWithdrawFail
@@ -115,15 +126,19 @@ func withdraw(ctx cosmos.Context, version semver.Version, keeper keeper.Keeper, 
 	pool.BalanceAsset = common.SafeSub(poolAsset, withDrawAsset)
 
 	ctx.Logger().Info("pool after withdraw", "pool unit", pool.PoolUnits, "balance RUNE", pool.BalanceRune, "balance asset", pool.BalanceAsset)
-	// update liquidity provider
-	acc, err := lp.RuneAddress.AccAddress()
-	if err != nil {
-		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), ErrInternal(err, "fail to convert rune address")
+	if !lp.RuneAddress.IsEmpty() {
+		// update liquidity provider
+		acc, err := lp.RuneAddress.AccAddress()
+		if err != nil {
+			return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), ErrInternal(err, "fail to convert rune address")
+		}
+		err = keeper.RemoveOwnership(ctx, common.NewCoin(pool.Asset.LiquidityAsset(), lp.Units.Sub(unitAfter)), acc)
+		if err != nil {
+			return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), ErrInternal(err, "fail to withdraw liquidity")
+		}
 	}
-	err = keeper.RemoveOwnership(ctx, common.NewCoin(pool.Asset.LiquidityAsset(), lp.Units.Sub(unitAfter)), acc)
-	if err != nil {
-		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), ErrInternal(err, "fail to withdraw liquidity")
-	}
+
+	lp.Units = unitAfter
 	lp.LastWithdrawHeight = common.BlockHeight(ctx)
 
 	// Create a pool event if THORNode have no rune or assets
