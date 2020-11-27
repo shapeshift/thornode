@@ -229,3 +229,11 @@ func (EventSuite) TestEventOutbound(c *C) {
 	c.Check(err, IsNil)
 	c.Check(events, NotNil)
 }
+
+func (EventSuite) TestEventSlashPoint(c *C) {
+	e := NewEventSlashPoint(GetRandomBech32Addr(), 100, "what ever")
+	c.Check(e.Type(), Equals, "slash_points")
+	events, err := e.Events()
+	c.Check(err, IsNil)
+	c.Check(events, NotNil)
+}

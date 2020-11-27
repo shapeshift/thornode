@@ -174,6 +174,10 @@ func (h TssHandler) handleV1(ctx cosmos.Context, msg MsgTssPool, version semver.
 					if err := h.keeper.IncNodeAccountSlashPoints(ctx, na.NodeAddress, slashPoints); err != nil {
 						ctx.Logger().Error("fail to inc slash points", "error", err)
 					}
+
+					if err := h.mgr.EventMgr().EmitEvent(ctx, NewEventSlashPoint(na.NodeAddress, slashPoints, "fail keygen")); err != nil {
+						ctx.Logger().Error("fail to emit slash point event")
+					}
 				} else {
 					// go to jail
 					jailTime := constAccessor.GetInt64Value(constants.JailTimeKeygen)
