@@ -142,6 +142,96 @@ func (HandlerWithdrawSuite) TestWithdrawHandler(c *C) {
 	c.Assert(err, NotNil)
 }
 
+func (HandlerWithdrawSuite) TestAsymmetricWithdraw(c *C) {
+	SetupConfigForTest()
+	ctx, keeper := setupKeeperForTest(c)
+	activeNodeAccount := GetRandomNodeAccount(NodeActive)
+	ver := semver.MustParse("0.7.0")
+	constAccessor := constants.GetConstantValues(ver)
+	pool := NewPool()
+	pool.Asset = common.BTCAsset
+	pool.BalanceAsset = cosmos.ZeroUint()
+	pool.BalanceRune = cosmos.ZeroUint()
+	pool.Status = PoolAvailable
+	keeper.SetPool(ctx, pool)
+	// Happy path , this is a round trip , first we provide liquidity, then we withdraw
+	// Let's stake some BTC first
+	runeAddr := GetRandomRUNEAddress()
+	btcAddress := GetRandomBTCAddress()
+	addHandler := NewAddLiquidityHandler(keeper, NewDummyMgr())
+	// stake some RUNE first
+	err := addHandler.addLiquidityV1(ctx,
+		common.BTCAsset,
+		cosmos.NewUint(common.One*100),
+		cosmos.ZeroUint(),
+		runeAddr,
+		btcAddress,
+		GetRandomTxHash(),
+		constAccessor)
+	c.Assert(err, IsNil)
+	lp, err := keeper.GetLiquidityProvider(ctx, common.BTCAsset, runeAddr)
+	c.Assert(err, IsNil)
+	c.Assert(lp.Valid(), IsNil)
+	c.Assert(lp.PendingRune.Equal(cosmos.NewUint(common.One*100)), Equals, true)
+	// Stake some BTC , make sure stake finished
+	err = addHandler.addLiquidityV1(ctx, common.BTCAsset, cosmos.ZeroUint(), cosmos.NewUint(100*common.One), runeAddr, btcAddress, GetRandomTxHash(), constAccessor)
+	c.Assert(err, IsNil)
+	lp, err = keeper.GetLiquidityProvider(ctx, common.BTCAsset, runeAddr)
+	c.Assert(err, IsNil)
+	c.Assert(lp.Valid(), IsNil)
+	c.Assert(lp.PendingRune.IsZero(), Equals, true)
+	// symmetric stake, units is measured by liquidity tokens
+	c.Assert(lp.Units.IsZero(), Equals, false)
+	lpAddr, err := runeAddr.AccAddress()
+	c.Assert(err, IsNil)
+
+	lpUnits := keeper.GetLiquidityProviderBalance(ctx, common.BTCAsset.LiquidityAsset(), lpAddr)
+	c.Assert(lpUnits.Equal(lp.Units), Equals, true)
+
+	runeAddr1 := GetRandomRUNEAddress()
+	err = addHandler.addLiquidityV1(ctx, common.BTCAsset, cosmos.NewUint(50*common.One), cosmos.ZeroUint(), runeAddr1, common.NoAddress, GetRandomTxHash(), constAccessor)
+	c.Assert(err, IsNil)
+	lp, err = keeper.GetLiquidityProvider(ctx, common.BTCAsset, runeAddr1)
+	c.Assert(err, IsNil)
+	c.Assert(lp.Valid(), IsNil)
+	c.Assert(lp.PendingRune.IsZero(), Equals, true)
+	c.Assert(lp.PendingAsset.IsZero(), Equals, true)
+	c.Assert(lp.Units.IsZero(), Equals, false)
+
+	// let's withdraw the RUNE we just staked
+	withdrawHandler := NewWithdrawLiquidityHandler(keeper, NewDummyMgr())
+	msgWithdraw := NewMsgWithdrawLiquidity(GetRandomTx(), runeAddr1, cosmos.NewUint(uint64(MaxWithdrawBasisPoints)), common.BTCAsset, common.EmptyAsset, activeNodeAccount.NodeAddress)
+	_, err = withdrawHandler.Run(ctx, msgWithdraw, ver, constAccessor)
+	c.Assert(err, IsNil)
+	lp, err = keeper.GetLiquidityProvider(ctx, common.BTCAsset, runeAddr1)
+	c.Assert(err, IsNil)
+	c.Assert(lp.Valid(), NotNil)
+
+	// stake some BTC only
+	btcAddress1 := GetRandomBTCAddress()
+	err = addHandler.addLiquidityV1(ctx, common.BTCAsset, cosmos.ZeroUint(), cosmos.NewUint(50*common.One),
+		common.NoAddress, btcAddress1, GetRandomTxHash(), constAccessor)
+	c.Assert(err, IsNil)
+	lp, err = keeper.GetLiquidityProvider(ctx, common.BTCAsset, btcAddress1)
+	c.Assert(err, IsNil)
+	c.Assert(lp.Valid(), IsNil)
+	c.Assert(lp.PendingRune.IsZero(), Equals, true)
+	c.Assert(lp.PendingAsset.IsZero(), Equals, true)
+	c.Assert(lp.Units.IsZero(), Equals, false)
+
+	// let's withdraw the BTC we just staked
+	msgWithdraw = NewMsgWithdrawLiquidity(GetRandomTx(), btcAddress1, cosmos.NewUint(uint64(MaxWithdrawBasisPoints)), common.BTCAsset, common.EmptyAsset, activeNodeAccount.NodeAddress)
+	_, err = withdrawHandler.Run(ctx, msgWithdraw, ver, constAccessor)
+	c.Assert(err, IsNil)
+	lp, err = keeper.GetLiquidityProvider(ctx, common.BTCAsset, btcAddress1)
+	c.Assert(err, IsNil)
+	c.Assert(lp.Valid(), NotNil)
+
+	// Bad version should fail
+	_, err = withdrawHandler.Run(ctx, msgWithdraw, semver.Version{}, constAccessor)
+	c.Assert(err, NotNil)
+}
+
 func (HandlerWithdrawSuite) TestWithdrawHandler_Validation(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	testCases := []struct {
