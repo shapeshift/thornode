@@ -46,6 +46,7 @@ const (
 	CliTxCost
 	MinSwapsPerBlock
 	MaxSwapsPerBlock
+	MinSlashPointsForBadValidator
 )
 
 var nameToString = map[ConstantName]string{
@@ -85,6 +86,7 @@ var nameToString = map[ConstantName]string{
 	CliTxCost:                     "CliTxCost",
 	MinSwapsPerBlock:              "MinSwapsPerBlock",
 	MaxSwapsPerBlock:              "MaxSwapsPerBlock",
+	MinSlashPointsForBadValidator: "MinSlashPointsForBadValidator",
 }
 
 // String implement fmt.stringer
