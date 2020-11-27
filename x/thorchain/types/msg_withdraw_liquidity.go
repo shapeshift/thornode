@@ -1,8 +1,6 @@
 package types
 
 import (
-	"fmt"
-
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 )
@@ -13,7 +11,7 @@ const MaxWithdrawBasisPoints = 10_000
 // MsgWithdrawLiquidity is used to withdraw
 type MsgWithdrawLiquidity struct {
 	Tx              common.Tx         `json:"tx"`
-	RuneAddress     common.Address    `json:"rune_address"`     // it should be the rune address
+	WithdrawAddress common.Address    `json:"withdraw_address"` //
 	BasisPoints     cosmos.Uint       `json:"basis_points"`     // withdraw basis points
 	Asset           common.Asset      `json:"asset"`            // asset asset asset
 	WithdrawalAsset common.Asset      `json:"withdrawal_asset"` // asset to be withdrawn
@@ -21,10 +19,10 @@ type MsgWithdrawLiquidity struct {
 }
 
 // NewMsgWithdrawLiquidity is a constructor function for MsgWithdrawLiquidity
-func NewMsgWithdrawLiquidity(tx common.Tx, runeAddress common.Address, withdrawBasisPoints cosmos.Uint, asset, withdrawalAsset common.Asset, signer cosmos.AccAddress) MsgWithdrawLiquidity {
+func NewMsgWithdrawLiquidity(tx common.Tx, withdrawAddress common.Address, withdrawBasisPoints cosmos.Uint, asset, withdrawalAsset common.Asset, signer cosmos.AccAddress) MsgWithdrawLiquidity {
 	return MsgWithdrawLiquidity{
 		Tx:              tx,
-		RuneAddress:     runeAddress,
+		WithdrawAddress: withdrawAddress,
 		BasisPoints:     withdrawBasisPoints,
 		Asset:           asset,
 		WithdrawalAsset: withdrawalAsset,
@@ -49,11 +47,8 @@ func (msg MsgWithdrawLiquidity) ValidateBasic() error {
 	if msg.Asset.IsEmpty() {
 		return cosmos.ErrUnknownRequest("pool asset cannot be empty")
 	}
-	if msg.RuneAddress.IsEmpty() {
+	if msg.WithdrawAddress.IsEmpty() {
 		return cosmos.ErrUnknownRequest("address cannot be empty")
-	}
-	if !msg.RuneAddress.IsChain(common.RuneAsset().Chain) {
-		return cosmos.ErrUnknownRequest(fmt.Sprintf("address must be a %s address", common.RuneAsset().Chain))
 	}
 	if msg.BasisPoints.IsZero() {
 		return cosmos.ErrUnknownRequest("basis points can't be zero")
