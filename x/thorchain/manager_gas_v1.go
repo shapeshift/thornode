@@ -42,8 +42,11 @@ func (gm *GasMgrV1) BeginBlock() {
 }
 
 // AddGasAsset to the EventGas
-func (gm *GasMgrV1) AddGasAsset(gas common.Gas) {
+func (gm *GasMgrV1) AddGasAsset(gas common.Gas, increaseTxCount bool) {
 	gm.gas = gm.gas.Add(gas)
+	if !increaseTxCount {
+		return
+	}
 	for _, coin := range gas {
 		gm.gasCount[coin.Asset]++
 	}
@@ -132,6 +135,7 @@ func (gm *GasMgrV1) GetMaxGas(ctx cosmos.Context, chain common.Chain) (common.Co
 	return common.NewCoin(gasAsset, amount), nil
 }
 
+// SubGas will subtract the gas from the gas manager
 func (gm *GasMgrV1) SubGas(gas common.Gas) {
 	gm.gas = gm.gas.Sub(gas)
 }
