@@ -62,7 +62,11 @@ func (vm *validatorMgrV1) BeginBlock(ctx cosmos.Context, constAccessor constants
 		if badValidatorRate < 0 || err != nil {
 			badValidatorRate = constAccessor.GetInt64Value(constants.BadValidatorRate)
 		}
-		if err := vm.markBadActor(ctx, badValidatorRate); err != nil {
+		minSlashPointsForBadValidator, err := vm.k.GetMimir(ctx, constants.MinSlashPointsForBadValidator.String())
+		if err != nil || minSlashPointsForBadValidator < 0 {
+			minSlashPointsForBadValidator = constAccessor.GetInt64Value(constants.MinSlashPointsForBadValidator)
+		}
+		if err := vm.markBadActor(ctx, minSlashPointsForBadValidator, badValidatorRate); err != nil {
 			return err
 		}
 		oldValidatorRate, err := vm.k.GetMimir(ctx, constants.OldValidatorRate.String())
@@ -914,7 +918,7 @@ func (vm *validatorMgrV1) setupValidatorNodes(ctx cosmos.Context, height int64, 
 }
 
 // Iterate over active node accounts, finding bad actors with high slash points
-func (vm *validatorMgrV1) findBadActors(ctx cosmos.Context) (NodeAccounts, error) {
+func (vm *validatorMgrV1) findBadActors(ctx cosmos.Context, minSlashPointsForBadValidator, badValidatorRate int64) (NodeAccounts, error) {
 	badActors := make(NodeAccounts, 0)
 	nas, err := vm.k.ListActiveNodeAccounts(ctx)
 	if err != nil {
@@ -942,12 +946,13 @@ func (vm *validatorMgrV1) findBadActors(ctx cosmos.Context) (NodeAccounts, error
 		if err != nil {
 			ctx.Logger().Error("fail to get node slash points", "error", err)
 		}
-		if slashPts == 0 {
+
+		if slashPts <= minSlashPointsForBadValidator {
 			continue
 		}
 
-		if common.BlockHeight(ctx)-na.StatusSince < 720 {
-			// this node account is too new (1 hour) to be considered for removal
+		if common.BlockHeight(ctx)-na.StatusSince < badValidatorRate {
+			// give the node a graceful period before consider it is bad
 			continue
 		}
 
@@ -1041,9 +1046,9 @@ func (vm *validatorMgrV1) markOldActor(ctx cosmos.Context, rate int64) error {
 }
 
 // Mark a bad actor to be churned out
-func (vm *validatorMgrV1) markBadActor(ctx cosmos.Context, rate int64) error {
+func (vm *validatorMgrV1) markBadActor(ctx cosmos.Context, minSlashPointsForBadValidator, rate int64) error {
 	if common.BlockHeight(ctx)%rate == 0 {
-		nas, err := vm.findBadActors(ctx)
+		nas, err := vm.findBadActors(ctx, minSlashPointsForBadValidator, rate)
 		if err != nil {
 			return err
 		}
