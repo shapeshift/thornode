@@ -203,12 +203,14 @@ func (s *VaultManagerV1TestSuite) TestRagnarokChain(c *C) {
 	lps := LiquidityProviders{
 		{
 			RuneAddress:   addr,
+			AssetAddress:  GetRandomBTCAddress(),
 			LastAddHeight: 5,
 			Units:         btcPool.PoolUnits.QuoUint64(2),
 			PendingRune:   cosmos.ZeroUint(),
 		},
 		{
 			RuneAddress:   GetRandomRUNEAddress(),
+			AssetAddress:  GetRandomBTCAddress(),
 			LastAddHeight: 10,
 			Units:         btcPool.PoolUnits.QuoUint64(2),
 			PendingRune:   cosmos.ZeroUint(),
