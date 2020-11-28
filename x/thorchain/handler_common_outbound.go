@@ -99,19 +99,18 @@ func (h CommonOutboundTxHandler) handle(ctx cosmos.Context, version semver.Versi
 					matchCoin = true
 					maxGasAmt := txOutItem.MaxGas.ToCoins().GetCoin(asset).Amount
 					realGasAmt := tx.Tx.Gas.ToCoins().GetCoin(asset).Amount
+					ctx.Logger().Info(fmt.Sprintf("intend to spend: %s, actual spend: %s are the same , override match coin, max_gas: %s , actual gas: %s ", intendToSpend, actualSpend, maxGasAmt, realGasAmt))
 					if maxGasAmt.GT(realGasAmt) {
 						// the outbound spend less than MaxGas
 						diffGas := maxGasAmt.Sub(realGasAmt)
 						h.mgr.GasMgr().AddGasAsset(common.Gas{
 							common.NewCoin(asset, diffGas),
 						}, false)
-						ctx.Logger().Info(fmt.Sprintf("intend to spend: %s, actual spend: %s are the same , override match coin, spend less gas: %s ", intendToSpend, actualSpend, diffGas))
 					} else {
 						diffGas := realGasAmt.Sub(maxGasAmt)
 						h.mgr.GasMgr().SubGas(common.Gas{
 							common.NewCoin(asset, diffGas),
 						})
-						ctx.Logger().Info(fmt.Sprintf("intend to spend: %s, actual spend: %s are the same , override match coin, spend more gas: %s ", intendToSpend, actualSpend, diffGas))
 					}
 				}
 			}
