@@ -146,6 +146,7 @@ func (g Gas) Sub(g2 Gas) Gas {
 		for i, gc1 := range g {
 			if gc1.Asset.Equals(gc2.Asset) {
 				g[i].Amount = SafeSub(g[i].Amount, gc2.Amount)
+				break
 			}
 		}
 	}
