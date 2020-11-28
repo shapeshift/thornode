@@ -132,6 +132,10 @@ func (gm *GasMgrV1) GetMaxGas(ctx cosmos.Context, chain common.Chain) (common.Co
 	return common.NewCoin(gasAsset, amount), nil
 }
 
+func (gm *GasMgrV1) SubGas(gas common.Gas) {
+	gm.gas = gm.gas.Sub(gas)
+}
+
 // EndBlock emit the events
 func (gm *GasMgrV1) EndBlock(ctx cosmos.Context, keeper keeper.Keeper, eventManager EventManager) {
 	gm.ProcessGas(ctx, keeper)

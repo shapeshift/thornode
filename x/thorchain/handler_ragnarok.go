@@ -96,27 +96,22 @@ func (h RagnarokHandler) handleV1(ctx cosmos.Context, version semver.Version, ms
 				intendToSpend := tx.Coin.Amount.Add(tx.MaxGas.ToCoins().GetCoin(asset).Amount)
 				actualSpend := msg.Tx.Tx.Coins.GetCoin(asset).Amount.Add(msg.Tx.Tx.Gas.ToCoins().GetCoin(asset).Amount)
 				if intendToSpend.Equal(actualSpend) {
-					diffGas := common.SafeSub(tx.MaxGas.ToCoins().GetCoin(asset).Amount, msg.Tx.Tx.Gas.ToCoins().GetCoin(asset).Amount)
-					ctx.Logger().Info(fmt.Sprintf("intend to spend: %s, actual spend: %s are the same , override match coin, gas difference: %s ", intendToSpend, actualSpend, diffGas))
 					matchCoin = true
-
-					// when the actual gas is less than max gas , the gap had been paid to customer
-					if diffGas.GT(cosmos.ZeroUint()) {
-						pool, err := h.keeper.GetPool(ctx, asset)
-						if err != nil {
-							ctx.Logger().Error("fail to get pool", "error", err, "asset", asset)
-						} else {
-							runeValue := pool.AssetValueInRune(diffGas)
-							pool.BalanceRune = pool.BalanceRune.Add(runeValue)
-							pool.BalanceAsset = common.SafeSub(pool.BalanceAsset, diffGas)
-							//	send RUNE to asgard
-							if err := h.keeper.SendFromModuleToModule(ctx, ReserveName, AsgardName, common.NewCoin(common.RuneAsset(), runeValue)); err != nil {
-								ctx.Logger().Error("fail to send fund from Reserve to Asgard", "error", err)
-							}
-							if err := h.keeper.SetPool(ctx, pool); err != nil {
-								ctx.Logger().Error("fail to save pool", "error", err, "asset", asset)
-							}
-						}
+					maxGasAmt := tx.MaxGas.ToCoins().GetCoin(asset).Amount
+					realGasAmt := msg.Tx.Tx.Gas.ToCoins().GetCoin(asset).Amount
+					if maxGasAmt.GT(realGasAmt) {
+						// the outbound spend less than MaxGas
+						diffGas := maxGasAmt.Sub(realGasAmt)
+						h.mgr.GasMgr().AddGasAsset(common.Gas{
+							common.NewCoin(asset, diffGas),
+						})
+						ctx.Logger().Info(fmt.Sprintf("intend to spend: %s, actual spend: %s are the same , override match coin, spend less gas: %s ", intendToSpend, actualSpend, diffGas))
+					} else {
+						diffGas := realGasAmt.Sub(maxGasAmt)
+						h.mgr.GasMgr().SubGas(common.Gas{
+							common.NewCoin(asset, diffGas),
+						})
+						ctx.Logger().Info(fmt.Sprintf("intend to spend: %s, actual spend: %s are the same , override match coin, spend more gas: %s ", intendToSpend, actualSpend, diffGas))
 					}
 				}
 			}
