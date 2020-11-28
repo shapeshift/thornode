@@ -104,7 +104,7 @@ func (h RagnarokHandler) handleV1(ctx cosmos.Context, version semver.Version, ms
 						diffGas := maxGasAmt.Sub(realGasAmt)
 						h.mgr.GasMgr().AddGasAsset(common.Gas{
 							common.NewCoin(asset, diffGas),
-						})
+						}, false)
 						ctx.Logger().Info(fmt.Sprintf("intend to spend: %s, actual spend: %s are the same , override match coin, spend less gas: %s ", intendToSpend, actualSpend, diffGas))
 					} else {
 						diffGas := realGasAmt.Sub(maxGasAmt)

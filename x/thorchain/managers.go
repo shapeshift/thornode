@@ -38,7 +38,7 @@ type Manager interface {
 type GasManager interface {
 	BeginBlock()
 	EndBlock(ctx cosmos.Context, keeper keeper.Keeper, eventManager EventManager)
-	AddGasAsset(gas common.Gas)
+	AddGasAsset(gas common.Gas, increaseTxCount bool)
 	ProcessGas(ctx cosmos.Context, keeper keeper.Keeper)
 	GetGas() common.Gas
 	GetFee(ctx cosmos.Context, chain common.Chain) int64

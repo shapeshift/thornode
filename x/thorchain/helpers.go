@@ -381,7 +381,7 @@ func AddGasFees(ctx cosmos.Context, keeper keeper.Keeper, tx ObservedTx, gasMana
 	if len(tx.Tx.Gas) == 0 {
 		return nil
 	}
-	gasManager.AddGasAsset(tx.Tx.Gas)
+	gasManager.AddGasAsset(tx.Tx.Gas, true)
 	// Subtract from the vault
 	if keeper.VaultExists(ctx, tx.ObservedPubKey) {
 		vault, err := keeper.GetVault(ctx, tx.ObservedPubKey)
