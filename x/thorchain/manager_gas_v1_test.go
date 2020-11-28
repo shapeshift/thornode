@@ -31,16 +31,16 @@ func (GasManagerTestSuite) TestGasManagerV1(c *C) {
 	gasMgr.AddGasAsset(common.Gas{
 		common.NewCoin(common.BNBAsset, cosmos.NewUint(37500)),
 		common.NewCoin(common.BTCAsset, cosmos.NewUint(1000)),
-	})
+	}, true)
 	c.Assert(gasMgr.GetGas(), HasLen, 2)
 	gasMgr.AddGasAsset(common.Gas{
 		common.NewCoin(common.BNBAsset, cosmos.NewUint(38500)),
 		common.NewCoin(common.BTCAsset, cosmos.NewUint(2000)),
-	})
+	}, true)
 	c.Assert(gasMgr.GetGas(), HasLen, 2)
 	gasMgr.AddGasAsset(common.Gas{
 		common.NewCoin(common.ETHAsset, cosmos.NewUint(38500)),
-	})
+	}, true)
 	c.Assert(gasMgr.GetGas(), HasLen, 3)
 	eventMgr := NewEventMgrV1()
 	gasMgr.EndBlock(ctx, k, eventMgr)
@@ -134,7 +134,7 @@ func (GasManagerTestSuite) TestDifferentValidations(c *C) {
 		common.NewCoin(common.BNBAsset, cosmos.NewUint(37500)),
 		common.NewCoin(common.BTCAsset, cosmos.NewUint(1000)),
 		common.NewCoin(common.ETHAsset, cosmos.ZeroUint()),
-	})
+	}, true)
 	gasMgr.EndBlock(ctx, helper, eventMgr)
 	helper.failGetPool = false
 	helper.failSetPool = true
@@ -146,6 +146,6 @@ func (GasManagerTestSuite) TestDifferentValidations(c *C) {
 	c.Assert(helper.Keeper.SetPool(ctx, p), IsNil)
 	gasMgr.AddGasAsset(common.Gas{
 		common.NewCoin(common.BNBAsset, cosmos.NewUint(37500)),
-	})
+	}, true)
 	gasMgr.EndBlock(ctx, helper, eventMgr)
 }
