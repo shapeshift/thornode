@@ -9,7 +9,9 @@ func NewConstantValue010() *ConstantVals {
 			BlocksPerYear:                 6311390,
 			OutboundTransactionFee:        1_00000000,         // A 1.0 Rune fee on all swaps and withdrawals
 			NativeChainGasFee:             1_0000000,          // A 0.1 Rune fee on all on chain txs
-			NewPoolCycle:                  51840,              // Enable a pool every 3 days
+			PoolCycle:                     51840,              // Make a pool available every 3 days
+			MinRunePoolDepth:              10000_00000000,     // minimum rune pool depth to be an available pool
+			MaxAvailablePools:             100,                // maximum number of available pools
 			MinimumNodesForYggdrasil:      6,                  // No yggdrasil pools if THORNode have less than 6 active nodes
 			MinimumNodesForBFT:            4,                  // Minimum node count to keep network running. Below this, Ragnarök is performed.
 			DesiredValidatorSet:           90,                 // desire validator set
