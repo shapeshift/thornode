@@ -140,6 +140,18 @@ func (g Gas) Add(g2 Gas) Gas {
 	return append(g, newGasCoins...)
 }
 
+// Sub subtract the given amount gas from existing gas object
+func (g Gas) Sub(g2 Gas) Gas {
+	for _, gc2 := range g2 {
+		for i, gc1 := range g {
+			if gc1.Asset.Equals(gc2.Asset) {
+				g[i].Amount = SafeSub(g[i].Amount, gc2.Amount)
+			}
+		}
+	}
+	return g
+}
+
 // Equals Check if two lists of coins are equal to each other. Order does not matter
 func (g Gas) Equals(gas2 Gas) bool {
 	if len(g) != len(gas2) {
