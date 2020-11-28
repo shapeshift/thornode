@@ -16,7 +16,9 @@ func NewDummyGasManager() *DummyGasManager {
 func (m *DummyGasManager) BeginBlock() {}
 func (m *DummyGasManager) EndBlock(ctx cosmos.Context, keeper keeper.Keeper, eventManager EventManager) {
 }
-func (m *DummyGasManager) AddGasAsset(gas common.Gas)                          {}
+func (m *DummyGasManager) AddGasAsset(gas common.Gas, increaseTxCount bool)    {}
+func (m *DummyGasManager) SubGas(gas common.Gas)                               {}
+func (m *DummyGasManager) AddGas(gas common.Gas)                               {}
 func (m *DummyGasManager) GetGas() common.Gas                                  { return nil }
 func (m *DummyGasManager) ProcessGas(ctx cosmos.Context, keeper keeper.Keeper) {}
 func (m *DummyGasManager) GetFee(ctx cosmos.Context, chain common.Chain) int64 {
