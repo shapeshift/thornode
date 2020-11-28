@@ -33,7 +33,7 @@ func (h WithdrawLiquidityHandler) Run(ctx cosmos.Context, m cosmos.Msg, version 
 	if !ok {
 		return nil, errInvalidMessage
 	}
-	ctx.Logger().Info(fmt.Sprintf("receive MsgWithdrawLiquidity from : %s(%s) withdraw (%s)", msg, msg.RuneAddress, msg.BasisPoints))
+	ctx.Logger().Info(fmt.Sprintf("receive MsgWithdrawLiquidity from : %s(%s) withdraw (%s)", msg, msg.WithdrawAddress, msg.BasisPoints))
 
 	if err := h.validate(ctx, msg, version); err != nil {
 		ctx.Logger().Error("MsgWithdrawLiquidity failed validation", "error", err)
@@ -80,7 +80,7 @@ func (h WithdrawLiquidityHandler) handle(ctx cosmos.Context, msg MsgWithdrawLiqu
 }
 
 func (h WithdrawLiquidityHandler) handleV1(ctx cosmos.Context, msg MsgWithdrawLiquidity, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
-	lp, err := h.keeper.GetLiquidityProvider(ctx, msg.Asset, msg.RuneAddress)
+	lp, err := h.keeper.GetLiquidityProvider(ctx, msg.Asset, msg.WithdrawAddress)
 	if err != nil {
 		return nil, multierror.Append(errFailGetLiquidityProvider, err)
 	}
@@ -88,14 +88,15 @@ func (h WithdrawLiquidityHandler) handleV1(ctx cosmos.Context, msg MsgWithdrawLi
 	if err != nil {
 		return nil, ErrInternal(err, "fail to get pool")
 	}
-
-	// snapshot original coin holdings, this is so we can add back the liquidity if unsuccessful
-	acc, err := msg.RuneAddress.AccAddress()
-	if err != nil {
-		return nil, ErrInternal(err, "fail to get liquidity provider address")
+	originalLtokens := cosmos.ZeroUint()
+	if msg.WithdrawAddress.IsChain(common.THORChain) {
+		// snapshot original coin holdings, this is so we can add back the liquidity if unsuccessful
+		acc, err := msg.WithdrawAddress.AccAddress()
+		if err != nil {
+			return nil, ErrInternal(err, "fail to get liquidity provider address")
+		}
+		originalLtokens = h.keeper.GetLiquidityProviderBalance(ctx, msg.Asset.LiquidityAsset(), acc)
 	}
-	originalLtokens := h.keeper.GetLiquidityProviderBalance(ctx, msg.Asset.LiquidityAsset(), acc)
-
 	runeAmt, assetAmount, units, gasAsset, err := withdraw(ctx, version, h.keeper, msg, h.mgr)
 	if err != nil {
 		return nil, ErrInternal(err, "fail to process withdraw request")
@@ -117,84 +118,87 @@ func (h WithdrawLiquidityHandler) handleV1(ctx cosmos.Context, msg MsgWithdrawLi
 		// tx id is blank, must be triggered by the ragnarok protocol
 		memo = NewRagnarokMemo(common.BlockHeight(ctx)).String()
 	}
-	toi := TxOutItem{
-		Chain:     msg.Asset.Chain,
-		InHash:    msg.Tx.ID,
-		ToAddress: lp.AssetAddress,
-		Coin:      common.NewCoin(msg.Asset, assetAmount),
-		Memo:      memo,
-	}
-	if !gasAsset.IsZero() {
-		// TODO: chain specific logic should be in a single location
-		if msg.Asset.IsBNB() {
-			toi.MaxGas = common.Gas{
-				common.NewCoin(common.RuneAsset().Chain.GetGasAsset(), gasAsset.QuoUint64(2)),
-			}
-		} else if msg.Asset.Chain.GetGasAsset().Equals(msg.Asset) {
-			toi.MaxGas = common.Gas{
-				common.NewCoin(msg.Asset.Chain.GetGasAsset(), gasAsset),
-			}
+	if !assetAmount.IsZero() {
+		toi := TxOutItem{
+			Chain:     msg.Asset.Chain,
+			InHash:    msg.Tx.ID,
+			ToAddress: lp.AssetAddress,
+			Coin:      common.NewCoin(msg.Asset, assetAmount),
+			Memo:      memo,
 		}
-		toi.GasRate = h.mgr.GasMgr().GetGasRate(ctx, msg.Asset.Chain)
-	}
-
-	okAsset, err := h.mgr.TxOutStore().TryAddTxOutItem(ctx, h.mgr, toi)
-	if err != nil {
-		// the emit asset not enough to pay fee,continue
-		// other situation will be none of the vault has enough fund to fulfill this withdraw
-		// thus withdraw need to be revert
-		if !errors.Is(err, ErrNotEnoughToPayFee) {
-			// restore pool and liquidity provider
-			if err := h.keeper.SetPool(ctx, pool); err != nil {
-				return nil, ErrInternal(err, "fail to save pool")
-			}
-			h.keeper.SetLiquidityProvider(ctx, lp)
-
-			acc, err := msg.RuneAddress.AccAddress()
-			if err != nil {
-				return nil, ErrInternal(err, "fail to get liquidity provider address")
-			}
-			lpCoins := h.keeper.GetLiquidityProviderBalance(ctx, msg.Asset.LiquidityAsset(), acc)
-			if originalLtokens.GT(lpCoins) {
-				coin := common.NewCoin(
-					msg.Asset.LiquidityAsset(),
-					originalLtokens.Sub(lpCoins),
-				)
-				// re-add liquidity back to the account
-				err := h.keeper.AddOwnership(ctx, coin, acc)
-				if err != nil {
-					return nil, ErrInternal(err, "fail to undo liquidity provision")
+		if !gasAsset.IsZero() {
+			// TODO: chain specific logic should be in a single location
+			if msg.Asset.IsBNB() {
+				toi.MaxGas = common.Gas{
+					common.NewCoin(common.RuneAsset().Chain.GetGasAsset(), gasAsset.QuoUint64(2)),
+				}
+			} else if msg.Asset.Chain.GetGasAsset().Equals(msg.Asset) {
+				toi.MaxGas = common.Gas{
+					common.NewCoin(msg.Asset.Chain.GetGasAsset(), gasAsset),
 				}
 			}
-			return nil, multierror.Append(errFailAddOutboundTx, err)
+			toi.GasRate = h.mgr.GasMgr().GetGasRate(ctx, msg.Asset.Chain)
 		}
-		okAsset = true
-	}
-	if !okAsset {
-		return nil, errFailAddOutboundTx
-	}
 
-	toi = TxOutItem{
-		Chain:     common.RuneAsset().Chain,
-		InHash:    msg.Tx.ID,
-		ToAddress: lp.RuneAddress,
-		Coin:      common.NewCoin(common.RuneAsset(), runeAmt),
-		Memo:      memo,
-	}
-	// there is much much less chance thorchain doesn't have enough RUNE
-	okRune, err := h.mgr.TxOutStore().TryAddTxOutItem(ctx, h.mgr, toi)
-	if err != nil {
-		// emitted asset doesn't enough to cover fee, continue
-		if !errors.Is(err, ErrNotEnoughToPayFee) {
-			return nil, multierror.Append(errFailAddOutboundTx, err)
+		okAsset, err := h.mgr.TxOutStore().TryAddTxOutItem(ctx, h.mgr, toi)
+		if err != nil {
+			// the emit asset not enough to pay fee,continue
+			// other situation will be none of the vault has enough fund to fulfill this withdraw
+			// thus withdraw need to be revert
+			if !errors.Is(err, ErrNotEnoughToPayFee) {
+				// restore pool and liquidity provider
+				if err := h.keeper.SetPool(ctx, pool); err != nil {
+					return nil, ErrInternal(err, "fail to save pool")
+				}
+				h.keeper.SetLiquidityProvider(ctx, lp)
+				if !originalLtokens.IsZero() {
+					acc, err := msg.WithdrawAddress.AccAddress()
+					if err != nil {
+						return nil, ErrInternal(err, "fail to get liquidity provider address")
+					}
+					lpCoins := h.keeper.GetLiquidityProviderBalance(ctx, msg.Asset.LiquidityAsset(), acc)
+					if originalLtokens.GT(lpCoins) {
+						coin := common.NewCoin(
+							msg.Asset.LiquidityAsset(),
+							originalLtokens.Sub(lpCoins),
+						)
+						// re-add liquidity back to the account
+						err := h.keeper.AddOwnership(ctx, coin, acc)
+						if err != nil {
+							return nil, ErrInternal(err, "fail to undo liquidity provision")
+						}
+					}
+				}
+				return nil, multierror.Append(errFailAddOutboundTx, err)
+			}
+			okAsset = true
 		}
-		okRune = true
+		if !okAsset {
+			return nil, errFailAddOutboundTx
+		}
 	}
+	if !runeAmt.IsZero() {
+		toi := TxOutItem{
+			Chain:     common.RuneAsset().Chain,
+			InHash:    msg.Tx.ID,
+			ToAddress: lp.RuneAddress,
+			Coin:      common.NewCoin(common.RuneAsset(), runeAmt),
+			Memo:      memo,
+		}
+		// there is much much less chance thorchain doesn't have enough RUNE
+		okRune, err := h.mgr.TxOutStore().TryAddTxOutItem(ctx, h.mgr, toi)
+		if err != nil {
+			// emitted asset doesn't enough to cover fee, continue
+			if !errors.Is(err, ErrNotEnoughToPayFee) {
+				return nil, multierror.Append(errFailAddOutboundTx, err)
+			}
+			okRune = true
+		}
 
-	if !okRune {
-		return nil, errFailAddOutboundTx
+		if !okRune {
+			return nil, errFailAddOutboundTx
+		}
 	}
-
 	// Get rune (if any) and donate it to the reserve
 	coin := msg.Tx.Coins.GetCoin(common.RuneAsset())
 	if !coin.IsEmpty() {
