@@ -66,13 +66,6 @@ func (s *MsgWithdrawSuite) TestMsgWithdrawLiquidity(c *C) {
 		},
 		{
 			tx:                  GetRandomTx(),
-			publicAddress:       common.Address("whatever"),
-			withdrawBasisPoints: cosmos.NewUint(10000),
-			asset:               common.BNBAsset,
-			signer:              acc1,
-		},
-		{
-			tx:                  GetRandomTx(),
 			publicAddress:       runeAddr,
 			withdrawBasisPoints: cosmos.NewUint(10000),
 			asset:               common.BNBAsset,
