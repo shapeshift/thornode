@@ -92,7 +92,7 @@ func (h ObservedTxInHandler) preflightV1(ctx cosmos.Context, voter ObservedTxVot
 		} else {
 			// event the tx had been processed , given the signer just a bit late , so still take away their slash points
 			// but only when the tx signer are voting is the tx that already reached consensus
-			if common.BlockHeight(ctx) <= (voter.Height+observeFlex) && voter.Tx.Equals(tx) {
+			if common.BlockHeight(ctx) <= (voter.FinalisedHeight+observeFlex) && voter.Tx.Equals(tx) {
 				h.mgr.Slasher().DecSlashPoints(ctx, observeSlashPoints, signer)
 			}
 		}
@@ -308,7 +308,7 @@ func (h ObservedTxInHandler) addSwap(ctx cosmos.Context, msg MsgSwap, constAcces
 		)
 		affiliateSwap.Tx.Coins[0].Amount = amt
 
-		if err := h.keeper.SetSwapQueueItem(ctx, msg, 1); err != nil {
+		if err := h.keeper.SetSwapQueueItem(ctx, affiliateSwap, 1); err != nil {
 			ctx.Logger().Error("fail to add swap to queue", "error", err)
 		}
 	}

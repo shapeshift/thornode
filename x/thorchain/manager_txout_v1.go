@@ -291,7 +291,7 @@ func (tos *TxOutStorageV1) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem) (
 		if err != nil {
 			return nil, fmt.Errorf("fail to get observed tx voter: %w", err)
 		}
-		voter.Height = common.BlockHeight(ctx)
+		voter.FinalisedHeight = common.BlockHeight(ctx)
 		voter.Actions = append(voter.Actions, toi)
 		tos.keeper.SetObservedTxInVoter(ctx, voter)
 		outputs[i] = toi
