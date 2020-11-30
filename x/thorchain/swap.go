@@ -112,14 +112,7 @@ func swap(ctx cosmos.Context,
 			return cosmos.ZeroUint(), swapEvents, errSwapFail
 		}
 	}
-	for _, evt := range swapEvents {
-		if err := mgr.EventMgr().EmitSwapEvent(ctx, evt); err != nil {
-			ctx.Logger().Error("fail to emit swap event", "error", err)
-		}
-		if err := keeper.AddToLiquidityFees(ctx, evt.Pool, evt.LiquidityFeeInRune); err != nil {
-			return assetAmount, swapEvents, fmt.Errorf("fail to add to liquidity fees: %w", err)
-		}
-	}
+
 	toi := TxOutItem{
 		Chain:     target.Chain,
 		InHash:    tx.ID,
@@ -146,7 +139,15 @@ func swap(ctx cosmos.Context,
 	if !ok {
 		return assetAmount, swapEvents, errFailAddOutboundTx
 	}
-
+	// emit the swap events , by this stage , it is guarantee that swap already happened
+	for _, evt := range swapEvents {
+		if err := mgr.EventMgr().EmitSwapEvent(ctx, evt); err != nil {
+			ctx.Logger().Error("fail to emit swap event", "error", err)
+		}
+		if err := keeper.AddToLiquidityFees(ctx, evt.Pool, evt.LiquidityFeeInRune); err != nil {
+			return assetAmount, swapEvents, fmt.Errorf("fail to add to liquidity fees: %w", err)
+		}
+	}
 	return assetAmount, swapEvents, nil
 }
 
