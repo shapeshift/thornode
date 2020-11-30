@@ -91,7 +91,7 @@ func (h ObservedTxOutHandler) preflightV1(ctx cosmos.Context, voter ObservedTxVo
 
 		} else {
 			// event the tx had been processed , given the signer just a bit late , so we still take away their slash points
-			if common.BlockHeight(ctx) <= (voter.Height+observeFlex) && voter.Tx.Equals(tx) {
+			if common.BlockHeight(ctx) <= (voter.FinalisedHeight+observeFlex) && voter.Tx.Equals(tx) {
 				h.mgr.Slasher().DecSlashPoints(ctx, observeSlashPoints, signer)
 			}
 		}
@@ -241,7 +241,8 @@ func (h ObservedTxOutHandler) handleV1(ctx cosmos.Context, version semver.Versio
 			ctx.Logger().Error("handler failed:", "error", err)
 			continue
 		}
+		voter.SetDone()
+		h.keeper.SetObservedTxOutVoter(ctx, voter)
 	}
-
 	return &cosmos.Result{}, nil
 }

@@ -94,11 +94,11 @@ func (k *refundTxHandlerKeeperTestHelper) SetNodeAccount(ctx cosmos.Context, na 
 	return k.Keeper.SetNodeAccount(ctx, na)
 }
 
-func (k *refundTxHandlerKeeperTestHelper) GetVault(ctx cosmos.Context, _ common.PubKey) (Vault, error) {
+func (k *refundTxHandlerKeeperTestHelper) GetVault(_ cosmos.Context, _ common.PubKey) (Vault, error) {
 	return k.vault, nil
 }
 
-func (k *refundTxHandlerKeeperTestHelper) SetVault(ctx cosmos.Context, v Vault) error {
+func (k *refundTxHandlerKeeperTestHelper) SetVault(_ cosmos.Context, v Vault) error {
 	k.vault = v
 	return nil
 }
@@ -142,13 +142,10 @@ func newRefundTxHandlerTestHelper(c *C) refundTxHandlerTestHelper {
 		Gas:         BNBGasFeeSingleton,
 	}, 12, GetRandomPubKey(), 12)
 
-	voter := NewObservedTxVoter(tx.Tx.ID, make(ObservedTxs, 0))
-	keeper := newRefundTxHandlerKeeperTestHelper(k)
-	voter.Height = common.BlockHeight(ctx)
-	keeper.SetObservedTxOutVoter(ctx, voter)
+	keeperTestHelper := newRefundTxHandlerKeeperTestHelper(k)
 
 	mgr := NewDummyMgr()
-	mgr.slasher = NewSlasherV1(keeper)
+	mgr.slasher = NewSlasherV1(keeperTestHelper)
 
 	nodeAccount := GetRandomNodeAccount(NodeActive)
 	nodeAccount.NodeAddress, err = yggVault.PubKey.GetThorAddress()
@@ -156,12 +153,18 @@ func newRefundTxHandlerTestHelper(c *C) refundTxHandlerTestHelper {
 	nodeAccount.Bond = cosmos.NewUint(100 * common.One)
 	FundModule(c, ctx, k, BondName, nodeAccount.Bond.Uint64())
 	nodeAccount.PubKeySet = common.NewPubKeySet(yggVault.PubKey, yggVault.PubKey)
-	c.Assert(keeper.SetNodeAccount(ctx, nodeAccount), IsNil)
+	c.Assert(keeperTestHelper.SetNodeAccount(ctx, nodeAccount), IsNil)
 
-	c.Assert(keeper.SetPool(ctx, pool), IsNil)
+	c.Assert(keeperTestHelper.SetPool(ctx, pool), IsNil)
+
+	voter := NewObservedTxVoter(tx.Tx.ID, make(ObservedTxs, 0))
+	voter.Add(tx, nodeAccount.NodeAddress)
+	voter.Tx = voter.GetTx(NodeAccounts{nodeAccount})
+	voter.FinalisedHeight = common.BlockHeight(ctx)
+	keeperTestHelper.SetObservedTxOutVoter(ctx, voter)
 
 	constAccessor := constants.GetConstantValues(version)
-	txOutStorage := NewTxOutStorageV1(keeper, constAccessor, NewDummyEventMgr(), NewGasMgrV1(constAccessor, keeper))
+	txOutStorage := NewTxOutStorageV1(keeperTestHelper, constAccessor, NewDummyEventMgr(), NewGasMgrV1(constAccessor, keeperTestHelper))
 	toi := TxOutItem{
 		Chain:       common.BNBChain,
 		ToAddress:   tx.Tx.FromAddress,
@@ -178,7 +181,7 @@ func newRefundTxHandlerTestHelper(c *C) refundTxHandlerTestHelper {
 		ctx:           ctx,
 		pool:          pool,
 		version:       version,
-		keeper:        keeper,
+		keeper:        keeperTestHelper,
 		asgardVault:   asgardVault,
 		yggVault:      yggVault,
 		nodeAccount:   nodeAccount,
@@ -375,6 +378,7 @@ func (s *HandlerRefundSuite) TestRefundTxHandlerSendExtraFundShouldBeSlashed(c *
 	_, err = handler.Run(helper.ctx, outMsg, constants.SWVersion, helper.constAccessor)
 	c.Assert(err, IsNil)
 	na, err := helper.keeper.GetNodeAccount(helper.ctx, helper.nodeAccount.NodeAddress)
+	c.Assert(err, IsNil)
 	c.Assert(na.Bond.Equal(expectedBond), Equals, true)
 	newReserve := helper.keeper.GetRuneBalanceOfModule(helper.ctx, ReserveName)
 	c.Assert(newReserve.Equal(expectedVaultTotalReserve), Equals, true)
@@ -403,6 +407,7 @@ func (s *HandlerRefundSuite) TestOutboundTxHandlerSendAdditionalCoinsShouldBeSla
 	_, err = handler.Run(helper.ctx, outMsg, constants.SWVersion, helper.constAccessor)
 	c.Assert(err, IsNil)
 	na, err := helper.keeper.GetNodeAccount(helper.ctx, helper.nodeAccount.NodeAddress)
+	c.Assert(err, IsNil)
 	c.Assert(na.Bond.Equal(expectedBond), Equals, true, Commentf("Bond: %d != %d", na.Bond.Uint64(), expectedBond.Uint64()))
 }
 
@@ -437,6 +442,7 @@ func (s *HandlerRefundSuite) TestOutboundTxHandlerInvalidObservedTxVoterShouldSl
 	_, err = handler.Run(helper.ctx, outMsg, constants.SWVersion, helper.constAccessor)
 	c.Assert(err, IsNil)
 	na, err := helper.keeper.GetNodeAccount(helper.ctx, helper.nodeAccount.NodeAddress)
+	c.Assert(err, IsNil)
 	c.Assert(na.Bond.Equal(expectedBond), Equals, true, Commentf("Bond: %d != %d", na.Bond.Uint64(), expectedBond.Uint64()))
 
 	newReserve := helper.keeper.GetRuneBalanceOfModule(helper.ctx, ReserveName)

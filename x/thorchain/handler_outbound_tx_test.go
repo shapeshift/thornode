@@ -209,10 +209,7 @@ func newOutboundTxHandlerTestHelper(c *C) outboundTxHandlerTestHelper {
 		Gas:         BNBGasFeeSingleton,
 	}, 12, GetRandomPubKey(), 12)
 
-	voter := NewObservedTxVoter(tx.Tx.ID, make(ObservedTxs, 0))
 	keeper := newOutboundTxHandlerKeeperHelper(k)
-	voter.Height = common.BlockHeight(ctx)
-	keeper.SetObservedTxOutVoter(ctx, voter)
 
 	nodeAccount := GetRandomNodeAccount(NodeActive)
 	nodeAccount.NodeAddress, err = yggVault.PubKey.GetThorAddress()
@@ -223,6 +220,11 @@ func newOutboundTxHandlerTestHelper(c *C) outboundTxHandlerTestHelper {
 	c.Assert(keeper.SetNodeAccount(ctx, nodeAccount), IsNil)
 
 	c.Assert(keeper.SetPool(ctx, pool), IsNil)
+	voter := NewObservedTxVoter(tx.Tx.ID, make(ObservedTxs, 0))
+	voter.Add(tx, nodeAccount.NodeAddress)
+	voter.FinalisedHeight = common.BlockHeight(ctx)
+	voter.Tx = voter.GetTx(NodeAccounts{nodeAccount})
+	keeper.SetObservedTxOutVoter(ctx, voter)
 
 	constAccessor := constants.GetConstantValues(version)
 	txOutStorage := NewTxOutStorageV1(keeper, constAccessor, NewDummyEventMgr(), NewGasMgrV1(constAccessor, keeper))
