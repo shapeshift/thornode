@@ -101,17 +101,6 @@ func (h WithdrawLiquidityHandler) handleV1(ctx cosmos.Context, msg MsgWithdrawLi
 	if err != nil {
 		return nil, ErrInternal(err, "fail to process withdraw request")
 	}
-	withdrawEvt := NewEventWithdraw(
-		msg.Asset,
-		units,
-		int64(msg.BasisPoints.Uint64()),
-		cosmos.ZeroDec(),
-		msg.Tx,
-		assetAmount,
-		runeAmt)
-	if err := h.mgr.EventMgr().EmitEvent(ctx, withdrawEvt); err != nil {
-		return nil, multierror.Append(errFailSaveEvent, err)
-	}
 
 	memo := ""
 	if msg.Tx.ID.Equals(common.BlankTxID) {
@@ -198,6 +187,18 @@ func (h WithdrawLiquidityHandler) handleV1(ctx cosmos.Context, msg MsgWithdrawLi
 		if !okRune {
 			return nil, errFailAddOutboundTx
 		}
+	}
+
+	withdrawEvt := NewEventWithdraw(
+		msg.Asset,
+		units,
+		int64(msg.BasisPoints.Uint64()),
+		cosmos.ZeroDec(),
+		msg.Tx,
+		assetAmount,
+		runeAmt)
+	if err := h.mgr.EventMgr().EmitEvent(ctx, withdrawEvt); err != nil {
+		return nil, multierror.Append(errFailSaveEvent, err)
 	}
 	// Get rune (if any) and donate it to the reserve
 	coin := msg.Tx.Coins.GetCoin(common.RuneAsset())
