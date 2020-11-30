@@ -70,7 +70,7 @@ func (h CommonOutboundTxHandler) handle(ctx cosmos.Context, version semver.Versi
 	// been sent out by signer , then it will create a new TxOutItem
 	// here THORNode will have to mark all the TxOutItem to complete one the tx
 	// get processed
-	for height := voter.Height; height <= common.BlockHeight(ctx); height += signingTransPeriod {
+	for height := voter.FinalisedHeight; height <= common.BlockHeight(ctx); height += signingTransPeriod {
 
 		// update txOut record with our TxID that sent funds out of the pool
 		txOut, err := h.keeper.GetTxOut(ctx, height)
@@ -159,7 +159,7 @@ func (h CommonOutboundTxHandler) handle(ctx cosmos.Context, version semver.Versi
 		}
 	}
 
-	if err := h.keeper.SetLastSignedHeight(ctx, voter.Height); err != nil {
+	if err := h.keeper.SetLastSignedHeight(ctx, voter.FinalisedHeight); err != nil {
 		ctx.Logger().Info("fail to update last signed height", "error", err)
 	}
 

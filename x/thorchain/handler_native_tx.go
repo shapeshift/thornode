@@ -129,6 +129,17 @@ func (h NativeTxHandler) handleV1(ctx cosmos.Context, msg MsgNativeTx, version s
 
 	// construct msg from memo
 	txIn := ObservedTx{Tx: tx}
+	txInVoter := NewObservedTxVoter(txIn.Tx.ID, []ObservedTx{txIn})
+	activeNodes, err := h.keeper.ListActiveNodeAccounts(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("fail to get all active nodes: %w", err)
+	}
+	for _, node := range activeNodes {
+		txInVoter.Add(txIn, node.NodeAddress)
+	}
+	txInVoter.FinalisedHeight = common.BlockHeight(ctx)
+	txInVoter.Tx = txInVoter.GetTx(activeNodes)
+	h.keeper.SetObservedTxInVoter(ctx, txInVoter)
 	m, txErr := processOneTxIn(ctx, h.keeper, txIn, msg.Signer)
 	if txErr != nil {
 		ctx.Logger().Error("fail to process native inbound tx", "error", txErr.Error(), "tx hash", tx.ID.String())
@@ -169,6 +180,11 @@ func (h NativeTxHandler) handleV1(ctx cosmos.Context, msg MsgNativeTx, version s
 		if err := refundTx(ctx, txIn, h.mgr, h.keeper, constAccessor, code, err.Error(), targetModule); err != nil {
 			return nil, fmt.Errorf("fail to refund tx: %w", err)
 		}
+	}
+	// for those Memo that will not have outbound at all , set the observedTx to done
+	if !memo.GetType().HasOutbound() {
+		txInVoter.SetDone()
+		h.keeper.SetObservedTxInVoter(ctx, txInVoter)
 	}
 	return result, nil
 }
