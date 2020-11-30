@@ -79,7 +79,6 @@ func (vm *SwapQv1) EndBlock(ctx cosmos.Context, mgr Manager, version semver.Vers
 		ctx.Logger().Error("fail to fetch swap queue from store", "error", err)
 		return err
 	}
-
 	swaps, err = vm.scoreMsgs(ctx, swaps)
 	if err != nil {
 		ctx.Logger().Error("fail to fetch swap items", "error", err)
@@ -175,6 +174,7 @@ func (items swapItems) Sort() swapItems {
 	type score struct {
 		msg   MsgSwap
 		score int
+		index int
 	}
 
 	// add liquidity fee score
@@ -183,13 +183,14 @@ func (items swapItems) Sort() swapItems {
 		scores[i] = score{
 			msg:   item.msg,
 			score: i,
+			index: item.index,
 		}
 	}
 
 	// add slip score
 	for i, item := range bySlip {
 		for j, score := range scores {
-			if score.msg.Tx.ID.Equals(item.msg.Tx.ID) {
+			if score.msg.Tx.ID.Equals(item.msg.Tx.ID) && score.index == item.index {
 				scores[j].score += i
 				break
 			}
@@ -214,7 +215,7 @@ func (items swapItems) Sort() swapItems {
 	sorted := make(swapItems, len(items))
 	for i, score := range scores {
 		for _, item := range items {
-			if item.msg.Tx.ID.Equals(score.msg.Tx.ID) {
+			if item.msg.Tx.ID.Equals(score.msg.Tx.ID) && score.index == item.index {
 				sorted[i] = item
 				break
 			}

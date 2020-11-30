@@ -6,12 +6,14 @@ import (
 
 	"github.com/blang/semver"
 	se "github.com/cosmos/cosmos-sdk/types/errors"
+	tmtypes "github.com/tendermint/tendermint/types"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
 type HandlerNativeTxSuite struct{}
@@ -45,9 +47,14 @@ func (s *HandlerNativeTxSuite) TestValidate(c *C) {
 func (s *HandlerNativeTxSuite) TestHandle(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	banker := k.CoinKeeper()
-	constAccessor := constants.GetConstantValues(constants.SWVersion)
-
-	handler := NewNativeTxHandler(k, NewDummyMgr())
+	constAccessor := constants.NewDummyConstants(map[constants.ConstantName]int64{
+		constants.OutboundTransactionFee: 1000_000,
+	}, map[constants.ConstantName]bool{}, map[constants.ConstantName]string{})
+	activeNode := GetRandomNodeAccount(NodeActive)
+	k.SetNodeAccount(ctx, activeNode)
+	dummyMgr := NewDummyMgr()
+	dummyMgr.gasMgr = NewGasMgrV1(constAccessor, k)
+	handler := NewNativeTxHandler(k, dummyMgr)
 
 	addr := GetRandomBech32Addr()
 
@@ -59,11 +66,24 @@ func (s *HandlerNativeTxSuite) TestHandle(c *C) {
 	c.Assert(err, IsNil)
 	_, err = banker.AddCoins(ctx, addr, cosmos.NewCoins(funds))
 	c.Assert(err, IsNil)
-
+	pool := NewPool()
+	pool.Asset = common.BNBAsset
+	pool.BalanceAsset = cosmos.NewUint(100 * common.One)
+	pool.BalanceRune = cosmos.NewUint(100 * common.One)
+	pool.Status = PoolAvailable
+	c.Assert(k.SetPool(ctx, pool), IsNil)
 	msg := NewMsgNativeTx(coins, "ADD:BNB.BNB", addr)
 
 	_, err = handler.handle(ctx, msg, constants.SWVersion, constAccessor)
 	c.Assert(err, IsNil)
+	// ensure observe tx had been saved
+	hash := tmtypes.Tx(ctx.TxBytes()).Hash()
+	txID, err := common.NewTxID(fmt.Sprintf("%X", hash))
+	c.Assert(err, IsNil)
+	voter, err := k.GetObservedTxInVoter(ctx, txID)
+	c.Assert(err, IsNil)
+	c.Assert(voter.Tx.IsEmpty(), Equals, false)
+	c.Assert(voter.Tx.Status, Equals, types.Done)
 }
 
 type HandlerNativeTxTestHelper struct {
