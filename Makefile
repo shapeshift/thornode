@@ -8,13 +8,10 @@ VERSION:=$(shell cat version)
 TAG?=testnet
 TEST_DIR?="./..."
 # native coin denom string
-REDIMSTRING=[a-zA-Z][a-zA-Z0-9:\\/\\\-\\_\\.]{2,127}
-
 
 ldflags = -X gitlab.com/thorchain/thornode/constants.Version=$(VERSION) \
 		  -X gitlab.com/thorchain/thornode/constants.GitCommit=$(COMMIT) \
 		  -X gitlab.com/thorchain/thornode/constants.BuildTime=${NOW} \
-		  -X github.com/cosmos/cosmos-sdk/types.reDnmString=$(REDIMSTRING) \
 		  -X github.com/cosmos/cosmos-sdk/version.Name=THORChain \
 		  -X github.com/cosmos/cosmos-sdk/version.ServerName=thord \
 		  -X github.com/cosmos/cosmos-sdk/version.ClientName=thorcli \
@@ -22,10 +19,8 @@ ldflags = -X gitlab.com/thorchain/thornode/constants.Version=$(VERSION) \
 		  -X github.com/cosmos/cosmos-sdk/version.Commit=$(COMMIT) \
 		  -X github.com/cosmos/cosmos-sdk/version.BuildTags=$(TAG)
 
-test_ldflags = -X github.com/cosmos/cosmos-sdk/types.reDnmString=$(REDIMSTRING)
-
 BUILD_FLAGS := -ldflags '$(ldflags)' -tags ${TAG} -a
-TEST_BUILD_FLAGS := -ldflags '$(test_ldflags)' -tags mocknet -a
+TEST_BUILD_FLAGS :=  -tags mocknet -a
 
 BINARIES=./cmd/thorcli ./cmd/thord ./cmd/bifrost ./tools/generate
 

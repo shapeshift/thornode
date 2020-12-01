@@ -3,7 +3,7 @@ module gitlab.com/thorchain/thornode
 go 1.14
 
 require (
-	github.com/99designs/keyring v1.1.3
+	github.com/99designs/keyring v1.1.6
 	github.com/binance-chain/go-sdk v1.2.3
 	github.com/binance-chain/ledger-cosmos-go v0.9.9 // indirect
 	github.com/binance-chain/tss-lib v1.3.2
@@ -11,7 +11,7 @@ require (
 	github.com/btcsuite/btcd v0.20.1-beta.0.20200414114020-8b54b0b96418
 	github.com/btcsuite/btcutil v1.0.2
 	github.com/cenkalti/backoff v2.2.1+incompatible
-	github.com/cosmos/cosmos-sdk v0.39.1
+	github.com/cosmos/cosmos-sdk v0.39.2
 	github.com/cosmos/go-bip39 v0.0.0-20180819234021-555e2067c45d
 	github.com/decred/dcrd/dcrec/edwards v1.0.0
 	github.com/didip/tollbooth v4.0.2+incompatible
@@ -37,7 +37,7 @@ require (
 	github.com/syndtr/goleveldb v1.0.1-0.20190923125748-758128399b1d
 	github.com/tendermint/btcd v0.1.1
 	github.com/tendermint/go-amino v0.15.1
-	github.com/tendermint/tendermint v0.33.7
+	github.com/tendermint/tendermint v0.33.9
 	github.com/tendermint/tm-db v0.5.1
 	github.com/zondax/ledger-go v0.11.0 // indirect
 	gitlab.com/thorchain/tss/go-tss v1.2.3
