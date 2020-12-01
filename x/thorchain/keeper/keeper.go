@@ -3,6 +3,7 @@ package keeper
 import (
 	"github.com/blang/semver"
 	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/bank"
 	"github.com/cosmos/cosmos-sdk/x/supply"
 
@@ -16,6 +17,7 @@ type Keeper interface {
 	Cdc() *codec.Codec
 	Supply() supply.Keeper
 	CoinKeeper() bank.Keeper
+	AccountKeeper() auth.AccountKeeper
 	Version() int64
 	GetKey(ctx cosmos.Context, prefix kvTypes.DbPrefix, key string) string
 	GetStoreVersion(ctx cosmos.Context) int64
@@ -237,6 +239,6 @@ type KeeperObservedNetworkFeeVoter interface {
 }
 
 // NewKVStore creates new instances of the thorchain Keeper
-func NewKVStore(coinKeeper bank.Keeper, supplyKeeper supply.Keeper, storeKey cosmos.StoreKey, cdc *codec.Codec) Keeper {
-	return kv1.NewKVStore(coinKeeper, supplyKeeper, storeKey, cdc)
+func NewKVStore(coinKeeper bank.Keeper, supplyKeeper supply.Keeper, ak auth.AccountKeeper, storeKey cosmos.StoreKey, cdc *codec.Codec) Keeper {
+	return kv1.NewKVStore(coinKeeper, supplyKeeper, ak, storeKey, cdc)
 }

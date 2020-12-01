@@ -6,6 +6,7 @@ import (
 
 	"github.com/blang/semver"
 	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/bank"
 	"github.com/cosmos/cosmos-sdk/x/supply"
 	"github.com/tendermint/tendermint/libs/log"
@@ -20,9 +21,10 @@ var kaboom = errors.New("Kaboom!!!")
 
 type KVStoreDummy struct{}
 
-func (k KVStoreDummy) Cdc() *codec.Codec       { return types.MakeTestCodec() }
-func (k KVStoreDummy) Supply() supply.Keeper   { return supply.Keeper{} }
-func (k KVStoreDummy) CoinKeeper() bank.Keeper { return bank.BaseKeeper{} }
+func (k KVStoreDummy) Cdc() *codec.Codec                 { return types.MakeTestCodec() }
+func (k KVStoreDummy) Supply() supply.Keeper             { return supply.Keeper{} }
+func (k KVStoreDummy) CoinKeeper() bank.Keeper           { return bank.BaseKeeper{} }
+func (k KVStoreDummy) AccountKeeper() auth.AccountKeeper { return auth.AccountKeeper{} }
 func (k KVStoreDummy) Logger(ctx cosmos.Context) log.Logger {
 	return ctx.Logger().With("module", fmt.Sprintf("x/%s", ModuleName))
 }

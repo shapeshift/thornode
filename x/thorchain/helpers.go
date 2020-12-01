@@ -12,6 +12,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/client/input"
 	ckeys "github.com/cosmos/cosmos-sdk/crypto/keys"
+	"github.com/cosmos/cosmos-sdk/x/auth/exported"
 	"github.com/hashicorp/go-multierror"
 
 	"gitlab.com/thorchain/thornode/common"
@@ -333,7 +334,7 @@ func isSignedByActiveNodeAccounts(ctx cosmos.Context, keeper keeper.Keeper, sign
 	return true
 }
 
-func cyclePools(ctx cosmos.Context, maxAvailablePools, minRunePoolDepth int64, keeper keeper.Keeper, eventManager EventManager) error {
+func cyclePools(ctx cosmos.Context, maxAvailablePools, minRunePoolDepth, stagedPoolCost int64, keeper keeper.Keeper, eventManager EventManager) error {
 	var availblePoolCount int64
 	onDeck := NewPool()        // currently staged pool that could get promoted
 	choppingBlock := NewPool() // currently available pool that is on the chopping block to being demoted
@@ -394,8 +395,83 @@ func cyclePools(ctx cosmos.Context, maxAvailablePools, minRunePoolDepth int64, k
 				}
 			}
 		case PoolStaged:
-			if valid_pool(pool) && onDeck.BalanceRune.LT(pool.BalanceRune) {
-				onDeck = pool
+			// deduct staged pool rune fee
+			fee := cosmos.NewUint(uint64(stagedPoolCost))
+			if fee.GT(pool.BalanceRune) {
+				fee = pool.BalanceRune
+			}
+			pool.BalanceRune = common.SafeSub(pool.BalanceRune, fee)
+			if err := keeper.SetPool(ctx, pool); err != nil {
+				ctx.Logger().Error("fail to save pool", "pool", pool.Asset, "err", err)
+			}
+
+			if err := keeper.AddFeeToReserve(ctx, fee); err != nil {
+				ctx.Logger().Error("fail to add rune to reserve", "from pool", pool.Asset, "err", err)
+			}
+
+			// check if the rune balance is zero, and asset balance IS NOT
+			// zero. This is because we don't want to abandon a pool that is in
+			// the process of being created (race condition). We can safely
+			// assume, if a pool has asset, but no rune, it should be
+			// abandoned.
+			if pool.BalanceRune.IsZero() && !pool.BalanceAsset.IsZero() {
+				// the staged pool no longer has any rune, abandon the pool
+				// and liquidity provider, and burn the asset (via zero'ing
+				// the vaults for the asset, and churning away from the
+				// tokens)
+				ctx.Logger().Info("burning pool", "pool", pool.Asset)
+
+				// delete all liquidity provider records
+				iterator := keeper.GetLiquidityProviderIterator(ctx, pool.Asset)
+				defer iterator.Close()
+				for ; iterator.Valid(); iterator.Next() {
+					var lp LiquidityProvider
+					keeper.Cdc().MustUnmarshalBinaryBare(iterator.Value(), &lp)
+					keeper.RemoveLiquidityProvider(ctx, lp)
+				}
+
+				// burn all pool ownership tokens
+				burnAccts := func(acct exported.Account) bool {
+					for _, coin := range acct.GetCoins() {
+						if coin.Denom == pool.Asset.LiquidityAsset().Native() {
+							toRemove := common.NewCoin(pool.Asset.LiquidityAsset(), cosmos.NewUint(coin.Amount.Uint64()))
+							if err := keeper.RemoveOwnership(ctx, toRemove, acct.GetAddress()); err != nil {
+								ctx.Logger().Error("fail to remove pool ownership", "pool", pool.Asset, "address", acct.GetAddress(), "err", err)
+							}
+							return false
+						}
+					}
+					return false // always return false, which will never halt the iterator
+				}
+				keeper.AccountKeeper().IterateAccounts(ctx, burnAccts)
+
+				// delete the pool
+				keeper.RemovePool(ctx, pool.Asset)
+
+				// zero vaults with the pool asset
+				vaultIter := keeper.GetVaultIterator(ctx)
+				defer vaultIter.Close()
+				for ; vaultIter.Valid(); vaultIter.Next() {
+					var vault Vault
+					keeper.Cdc().MustUnmarshalBinaryBare(vaultIter.Value(), &vault)
+
+					if vault.HasAsset(pool.Asset) {
+						for i, coin := range vault.Coins {
+							if pool.Asset.Equals(coin.Asset) {
+								vault.Coins[i].Amount = cosmos.ZeroUint()
+								if err := keeper.SetVault(ctx, vault); err != nil {
+									ctx.Logger().Error("fail to save vault", "error", err)
+								}
+								break
+							}
+						}
+					}
+				}
+
+			} else {
+				if valid_pool(pool) && onDeck.BalanceRune.LT(pool.BalanceRune) {
+					onDeck = pool
+				}
 			}
 		}
 	}

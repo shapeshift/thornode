@@ -144,6 +144,13 @@ func (h AddLiquidityHandler) validateAddLiquidityMessage(ctx cosmos.Context, kee
 	if !keeper.PoolExist(ctx, asset) {
 		return fmt.Errorf("%s doesn't exist", asset)
 	}
+	pool, err := h.keeper.GetPool(ctx, asset)
+	if err != nil {
+		return ErrInternal(err, fmt.Sprintf("fail to get pool(%s)", asset))
+	}
+	if pool.Status == PoolStaged && (runeAddr.IsEmpty() || assetAddr.IsEmpty()) {
+		return fmt.Errorf("cannot add single sided liquidity while a pool is staged")
+	}
 	return nil
 }
 

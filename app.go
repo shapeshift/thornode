@@ -131,6 +131,7 @@ func NewThorchainApp(logger log.Logger, db dbm.DB, baseAppOptions ...func(*bam.B
 	app.thorchainKeeper = keeper.NewKVStore(
 		app.bankKeeper,
 		app.supplyKeeper,
+		app.accountKeeper,
 		keys[thorchain.StoreKey],
 		app.cdc,
 	)
