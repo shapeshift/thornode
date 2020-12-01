@@ -5,11 +5,6 @@
         "version": "",
         "description": "This documentation outlines the API for THORChain.\n\nNOTE: This document is a **work in progress**."
     },
-    "host": "localhost:1317",
-    "basePath": "/",
-    "schemes": [
-        "http"
-    ],
     "paths": {
         "/thorchain/ping": {
             "get": {
