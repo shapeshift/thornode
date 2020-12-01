@@ -202,7 +202,7 @@ func (tos *TxOutStorageV1) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem) (
 			}
 		}
 	}
-
+	var finalOutput []TxOutItem
 	transactionFee := tos.gasManager.GetFee(ctx, toi.Chain)
 	for i := range outputs {
 		if outputs[i].MaxGas.IsEmpty() {
@@ -289,9 +289,10 @@ func (tos *TxOutStorageV1) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem) (
 		// When we request Yggdrasil pool to return the fund, the coin field is actually empty
 		// Signer when it sees an tx out item with memo "yggdrasil-" it will query the account on relevant chain
 		// and coin field will be filled there, thus we have to let this one go
+
 		if outputs[i].Coin.IsEmpty() && !memo.IsType(TxYggdrasilReturn) {
 			ctx.Logger().Info("tx out item has zero coin", outputs[i].String())
-			return nil, ErrNotEnoughToPayFee
+			continue
 		}
 
 		// increment out number of out tx for this in tx
@@ -302,9 +303,10 @@ func (tos *TxOutStorageV1) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem) (
 		voter.FinalisedHeight = common.BlockHeight(ctx)
 		voter.Actions = append(voter.Actions, outputs[i])
 		tos.keeper.SetObservedTxInVoter(ctx, voter)
+		finalOutput = append(finalOutput, outputs[i])
 	}
 
-	return outputs, nil
+	return finalOutput, nil
 }
 
 func (tos *TxOutStorageV1) addToBlockOut(ctx cosmos.Context, mgr Manager, toi TxOutItem) error {
