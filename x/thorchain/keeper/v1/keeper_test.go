@@ -3,6 +3,7 @@ package keeperv1
 import (
 	"testing"
 
+	"github.com/cosmos/cosmos-sdk/types"
 	. "gopkg.in/check.v1"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -15,6 +16,7 @@ import (
 	"github.com/tendermint/tendermint/libs/log"
 	dbm "github.com/tendermint/tm-db"
 
+	"gitlab.com/thorchain/thornode/cmd"
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 )
@@ -60,6 +62,9 @@ var (
 )
 
 func setupKeeperForTest(c *C) (cosmos.Context, KVStore) {
+	types.SetCoinDenomRegex(func() string {
+		return cmd.DenomRegex
+	})
 	keyAcc := cosmos.NewKVStoreKey(auth.StoreKey)
 	keyParams := cosmos.NewKVStoreKey(params.StoreKey)
 	tkeyParams := cosmos.NewTransientStoreKey(params.TStoreKey)
