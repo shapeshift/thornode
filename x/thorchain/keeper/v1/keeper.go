@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/bank"
 	"github.com/cosmos/cosmos-sdk/x/supply"
 
@@ -69,21 +70,23 @@ func dbError(ctx cosmos.Context, wrapper string, err error) error {
 
 // KVStore Keeper maintains the link to data storage and exposes getter/setter methods for the various parts of the state machine
 type KVStore struct {
-	coinKeeper   bank.Keeper
-	supplyKeeper supply.Keeper
-	storeKey     cosmos.StoreKey // Unexposed key to access store from cosmos.Context
-	cdc          *codec.Codec    // The wire codec for binary encoding/decoding.
-	version      int64
+	coinKeeper    bank.Keeper
+	supplyKeeper  supply.Keeper
+	accountKeeper auth.AccountKeeper
+	storeKey      cosmos.StoreKey // Unexposed key to access store from cosmos.Context
+	cdc           *codec.Codec    // The wire codec for binary encoding/decoding.
+	version       int64
 }
 
 // NewKVStore creates new instances of the thorchain Keeper
-func NewKVStore(coinKeeper bank.Keeper, supplyKeeper supply.Keeper, storeKey cosmos.StoreKey, cdc *codec.Codec) KVStore {
+func NewKVStore(coinKeeper bank.Keeper, supplyKeeper supply.Keeper, accountKeeper auth.AccountKeeper, storeKey cosmos.StoreKey, cdc *codec.Codec) KVStore {
 	return KVStore{
-		coinKeeper:   coinKeeper,
-		supplyKeeper: supplyKeeper,
-		storeKey:     storeKey,
-		cdc:          cdc,
-		version:      version,
+		coinKeeper:    coinKeeper,
+		supplyKeeper:  supplyKeeper,
+		accountKeeper: accountKeeper,
+		storeKey:      storeKey,
+		cdc:           cdc,
+		version:       version,
 	}
 }
 
@@ -100,6 +103,11 @@ func (k KVStore) Supply() supply.Keeper {
 // CoinKeeper return the keeper from bank handler
 func (k KVStore) CoinKeeper() bank.Keeper {
 	return k.coinKeeper
+}
+
+// AccountKeeper return the keeper from auth handler
+func (k KVStore) AccountKeeper() auth.AccountKeeper {
+	return k.accountKeeper
 }
 
 // Version return the current version
