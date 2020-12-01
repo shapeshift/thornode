@@ -9,4 +9,5 @@ const (
 	Bech32PrefixValPub   = "tthorvpub"
 	Bech32PrefixConsAddr = "tthorc"
 	Bech32PrefixConsPub  = "tthorcpub"
+	DenomRegex           = `[a-zA-Z][a-zA-Z0-9:\\/\\\-\\_\\.]{2,127}`
 )
