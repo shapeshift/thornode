@@ -204,9 +204,9 @@ func (tos *TxOutStorageV1) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem) (
 	}
 
 	transactionFee := tos.gasManager.GetFee(ctx, toi.Chain)
-	for i, toi := range outputs {
-		if toi.MaxGas.IsEmpty() {
-			gasAsset := toi.Chain.GetGasAsset()
+	for i := range outputs {
+		if outputs[i].MaxGas.IsEmpty() {
+			gasAsset := outputs[i].Chain.GetGasAsset()
 			pool, err := tos.keeper.GetPool(ctx, gasAsset)
 			if err != nil {
 				return nil, fmt.Errorf("failed to get gas asset pool: %w", err)
@@ -214,25 +214,25 @@ func (tos *TxOutStorageV1) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem) (
 
 			// max gas amount is the transaction fee divided by two, in asset amount
 			maxAmt := pool.RuneValueInAsset(cosmos.NewUint(uint64(transactionFee / 2)))
-			toi.MaxGas = common.Gas{
+			outputs[i].MaxGas = common.Gas{
 				common.NewCoin(gasAsset, maxAmt),
 			}
-			toi.GasRate = tos.gasManager.GetGasRate(ctx, toi.Chain)
+			outputs[i].GasRate = tos.gasManager.GetGasRate(ctx, outputs[i].Chain)
 		}
 
 		// Deduct OutboundTransactionFee from TOI and add to Reserve
-		memo, err := ParseMemo(toi.Memo) // ignore err
+		memo, err := ParseMemo(outputs[i].Memo) // ignore err
 		if err == nil && !memo.IsType(TxYggdrasilFund) && !memo.IsType(TxYggdrasilReturn) && !memo.IsType(TxMigrate) && !memo.IsType(TxRagnarok) {
 			var runeFee cosmos.Uint
-			if toi.Coin.Asset.IsRune() {
-				if toi.Coin.Amount.LTE(cosmos.NewUint(uint64(transactionFee))) {
-					runeFee = toi.Coin.Amount // Fee is the full amount
+			if outputs[i].Coin.Asset.IsRune() {
+				if outputs[i].Coin.Amount.LTE(cosmos.NewUint(uint64(transactionFee))) {
+					runeFee = outputs[i].Coin.Amount // Fee is the full amount
 				} else {
 					runeFee = cosmos.NewUint(uint64(transactionFee)) // Fee is the prescribed fee
 				}
-				toi.Coin.Amount = common.SafeSub(toi.Coin.Amount, runeFee)
-				fee := common.NewFee(common.Coins{common.NewCoin(toi.Coin.Asset, runeFee)}, cosmos.ZeroUint())
-				if err := tos.eventMgr.EmitFeeEvent(ctx, NewEventFee(toi.InHash, fee)); err != nil {
+				outputs[i].Coin.Amount = common.SafeSub(outputs[i].Coin.Amount, runeFee)
+				fee := common.NewFee(common.Coins{common.NewCoin(outputs[i].Coin.Asset, runeFee)}, cosmos.ZeroUint())
+				if err := tos.eventMgr.EmitFeeEvent(ctx, NewEventFee(outputs[i].InHash, fee)); err != nil {
 					ctx.Logger().Error("Failed to emit fee event", "error", err)
 				}
 
@@ -242,38 +242,46 @@ func (tos *TxOutStorageV1) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem) (
 				}
 
 			} else {
-				pool, err := tos.keeper.GetPool(ctx, toi.Coin.Asset) // Get pool
+				pool, err := tos.keeper.GetPool(ctx, outputs[i].Coin.Asset) // Get pool
 				if err != nil {
 					// the error is already logged within kvstore
 					return nil, fmt.Errorf("fail to get pool: %w", err)
 				}
 
-				assetFee := pool.RuneValueInAsset(cosmos.NewUint(uint64(transactionFee))) // Get fee in Asset value
-				if toi.Coin.Amount.LTE(assetFee) {
-					assetFee = toi.Coin.Amount // Fee is the full amount
-					runeFee = pool.AssetValueInRune(assetFee)
-				} else {
-					runeFee = cosmos.NewUint(uint64(transactionFee))
-				}
+				// if the pool status is not available, then we cannot trust
+				// the pool price to be accurate, as arbitrage isn't being done
+				// on the pool. Therefore, we cannot know how much asset to
+				// withhold from the outbound transaction. In this
+				// circumstance, we rely on what is calling this function
+				// (prepareTxOutItem()) to double withhold from the rune side
+				if pool.Status == PoolAvailable {
+					assetFee := pool.RuneValueInAsset(cosmos.NewUint(uint64(transactionFee))) // Get fee in Asset value
+					if outputs[i].Coin.Amount.LTE(assetFee) {
+						assetFee = outputs[i].Coin.Amount // Fee is the full amount
+						runeFee = pool.AssetValueInRune(assetFee)
+					} else {
+						runeFee = cosmos.NewUint(uint64(transactionFee))
+					}
 
-				toi.Coin.Amount = common.SafeSub(toi.Coin.Amount, assetFee) // Deduct Asset fee
-				pool.BalanceAsset = pool.BalanceAsset.Add(assetFee)         // Add Asset fee to Pool
-				var poolDeduct cosmos.Uint
-				if runeFee.GT(pool.BalanceRune) {
-					poolDeduct = pool.BalanceRune
-				} else {
-					poolDeduct = runeFee
-				}
-				pool.BalanceRune = common.SafeSub(pool.BalanceRune, runeFee) // Deduct Rune from Pool
-				fee := common.NewFee(common.Coins{common.NewCoin(toi.Coin.Asset, assetFee)}, poolDeduct)
-				if err := tos.eventMgr.EmitFeeEvent(ctx, NewEventFee(toi.InHash, fee)); err != nil {
-					ctx.Logger().Error("Failed to emit fee event", "error", err)
-				}
-				if err := tos.keeper.SetPool(ctx, pool); err != nil { // Set Pool
-					return nil, fmt.Errorf("fail to save pool: %w", err)
-				}
-				if err := tos.keeper.AddFeeToReserve(ctx, runeFee); err != nil {
-					return nil, fmt.Errorf("fail to add fee to reserve: %w", err)
+					outputs[i].Coin.Amount = common.SafeSub(outputs[i].Coin.Amount, assetFee) // Deduct Asset fee
+					pool.BalanceAsset = pool.BalanceAsset.Add(assetFee)                       // Add Asset fee to Pool
+					var poolDeduct cosmos.Uint
+					if runeFee.GT(pool.BalanceRune) {
+						poolDeduct = pool.BalanceRune
+					} else {
+						poolDeduct = runeFee
+					}
+					pool.BalanceRune = common.SafeSub(pool.BalanceRune, runeFee) // Deduct Rune from Pool
+					fee := common.NewFee(common.Coins{common.NewCoin(outputs[i].Coin.Asset, assetFee)}, poolDeduct)
+					if err := tos.eventMgr.EmitFeeEvent(ctx, NewEventFee(outputs[i].InHash, fee)); err != nil {
+						ctx.Logger().Error("Failed to emit fee event", "error", err)
+					}
+					if err := tos.keeper.SetPool(ctx, pool); err != nil { // Set Pool
+						return nil, fmt.Errorf("fail to save pool: %w", err)
+					}
+					if err := tos.keeper.AddFeeToReserve(ctx, runeFee); err != nil {
+						return nil, fmt.Errorf("fail to add fee to reserve: %w", err)
+					}
 				}
 			}
 		}
@@ -281,20 +289,19 @@ func (tos *TxOutStorageV1) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem) (
 		// When we request Yggdrasil pool to return the fund, the coin field is actually empty
 		// Signer when it sees an tx out item with memo "yggdrasil-" it will query the account on relevant chain
 		// and coin field will be filled there, thus we have to let this one go
-		if toi.Coin.IsEmpty() && !memo.IsType(TxYggdrasilReturn) {
-			ctx.Logger().Info("tx out item has zero coin", toi.String())
+		if outputs[i].Coin.IsEmpty() && !memo.IsType(TxYggdrasilReturn) {
+			ctx.Logger().Info("tx out item has zero coin", outputs[i].String())
 			return nil, ErrNotEnoughToPayFee
 		}
 
 		// increment out number of out tx for this in tx
-		voter, err := tos.keeper.GetObservedTxInVoter(ctx, toi.InHash)
+		voter, err := tos.keeper.GetObservedTxInVoter(ctx, outputs[i].InHash)
 		if err != nil {
 			return nil, fmt.Errorf("fail to get observed tx voter: %w", err)
 		}
 		voter.FinalisedHeight = common.BlockHeight(ctx)
-		voter.Actions = append(voter.Actions, toi)
+		voter.Actions = append(voter.Actions, outputs[i])
 		tos.keeper.SetObservedTxInVoter(ctx, voter)
-		outputs[i] = toi
 	}
 
 	return outputs, nil

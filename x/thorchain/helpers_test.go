@@ -287,20 +287,83 @@ func (s *HelperSuite) TestEnableNextPool(c *C) {
 	pool.BalanceAsset = cosmos.NewUint(0 * common.One)
 	c.Assert(k.SetPool(ctx, pool), IsNil)
 	// should enable BTC
-	c.Assert(cyclePools(ctx, 100, 1, k, eventMgr), IsNil)
+	c.Assert(cyclePools(ctx, 100, 1, 0, k, eventMgr), IsNil)
 	pool, err = k.GetPool(ctx, common.BTCAsset)
 	c.Check(pool.Status, Equals, PoolAvailable)
 
 	// should enable ETH
-	c.Assert(cyclePools(ctx, 100, 1, k, eventMgr), IsNil)
+	c.Assert(cyclePools(ctx, 100, 1, 0, k, eventMgr), IsNil)
 	pool, err = k.GetPool(ctx, ethAsset)
 	c.Check(pool.Status, Equals, PoolAvailable)
 
 	// should NOT enable XMR, since it has no assets
-	c.Assert(cyclePools(ctx, 100, 1, k, eventMgr), IsNil)
+	c.Assert(cyclePools(ctx, 100, 1, 10*common.One, k, eventMgr), IsNil)
 	pool, err = k.GetPool(ctx, xmrAsset)
 	c.Assert(pool.IsEmpty(), Equals, false)
 	c.Check(pool.Status, Equals, PoolStaged)
+	c.Check(pool.BalanceRune.Uint64(), Equals, uint64(30*common.One))
+}
+
+func (s *HelperSuite) TestAbandonPool(c *C) {
+	ctx, k := setupKeeperForTest(c)
+	eventMgr := NewDummyEventMgr()
+	usdAsset, err := common.NewAsset("BNB.TUSDB")
+	c.Assert(err, IsNil)
+	pool := NewPool()
+	pool.Asset = usdAsset
+	pool.Status = PoolStaged
+	pool.BalanceRune = cosmos.NewUint(100 * common.One)
+	pool.BalanceAsset = cosmos.NewUint(100 * common.One)
+	c.Assert(k.SetPool(ctx, pool), IsNil)
+
+	vault := GetRandomVault()
+	vault.Coins = common.Coins{
+		common.NewCoin(usdAsset, cosmos.NewUint(100*common.One)),
+		common.NewCoin(common.BNBAsset, cosmos.NewUint(100*common.One)),
+	}
+	c.Assert(k.SetVault(ctx, vault), IsNil)
+
+	runeAddr := GetRandomRUNEAddress()
+	bnbAddr := GetRandomBNBAddress()
+	lp := LiquidityProvider{
+		Asset:        usdAsset,
+		RuneAddress:  runeAddr,
+		AssetAddress: bnbAddr,
+		Units:        cosmos.ZeroUint(),
+		PendingRune:  cosmos.ZeroUint(),
+		PendingAsset: cosmos.ZeroUint(),
+	}
+	k.SetLiquidityProvider(ctx, lp)
+	accAddr, err := runeAddr.AccAddress()
+	c.Assert(err, IsNil)
+	c.Assert(k.AddOwnership(ctx, common.NewCoin(usdAsset.LiquidityAsset(), cosmos.NewUint(1000)), accAddr), IsNil)
+	c.Assert(k.GetLiquidityProviderBalance(ctx, usdAsset.LiquidityAsset(), accAddr).Uint64(), Equals, uint64(1000))
+
+	// cycle pools
+	c.Assert(cyclePools(ctx, 100, 1, 100*common.One, k, eventMgr), IsNil)
+
+	// check pool was deleted
+	pool, err = k.GetPool(ctx, usdAsset)
+	c.Assert(pool.BalanceRune.IsZero(), Equals, true)
+	c.Assert(pool.BalanceAsset.IsZero(), Equals, true)
+
+	// check vault remove pool asset
+	vault, err = k.GetVault(ctx, vault.PubKey)
+	c.Assert(err, IsNil)
+	c.Assert(vault.HasAsset(usdAsset), Equals, false)
+	c.Assert(vault.CoinLength(), Equals, 1)
+
+	// check that liquidity provider got removed
+	count := 0
+	iterator := k.GetLiquidityProviderIterator(ctx, usdAsset)
+	defer iterator.Close()
+	for ; iterator.Valid(); iterator.Next() {
+		count++
+	}
+	c.Assert(count, Equals, 0)
+
+	// check that pool ownership tokens are removed
+	c.Assert(k.GetLiquidityProviderBalance(ctx, usdAsset.LiquidityAsset(), accAddr).IsZero(), Equals, true)
 }
 
 type addGasFeesKeeperHelper struct {

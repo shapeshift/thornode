@@ -69,6 +69,10 @@ func (h WithdrawLiquidityHandler) validateV1(ctx cosmos.Context, msg MsgWithdraw
 		return multierror.Append(errInvalidPoolStatus, err)
 	}
 
+	if pool.Status != PoolAvailable && !msg.WithdrawalAsset.IsEmpty() {
+		return fmt.Errorf("cannot specify a withdrawal asset while the pool is not available")
+	}
+
 	return nil
 }
 
@@ -166,6 +170,15 @@ func (h WithdrawLiquidityHandler) handleV1(ctx cosmos.Context, msg MsgWithdrawLi
 			return nil, errFailAddOutboundTx
 		}
 	}
+
+	// If the pool is in staged status, then we won't have withheld the asset
+	// above from being deducted a fee/gas from the transaction. So we have to
+	// do it here, on the rune side.
+	if pool.Status != PoolAvailable {
+		transactionFee := h.mgr.GasMgr().GetFee(ctx, msg.Asset.Chain)
+		runeAmt = common.SafeSub(runeAmt, cosmos.NewUint(uint64(transactionFee)))
+	}
+
 	if !runeAmt.IsZero() {
 		toi := TxOutItem{
 			Chain:     common.RuneAsset().Chain,

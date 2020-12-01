@@ -18,6 +18,7 @@ const (
 	PoolCycle
 	MinRunePoolDepth
 	MaxAvailablePools
+	StagedPoolCost
 	MinimumNodesForYggdrasil
 	MinimumNodesForBFT
 	DesiredValidatorSet
@@ -60,6 +61,7 @@ var nameToString = map[ConstantName]string{
 	PoolCycle:                     "PoolCycle",
 	MinRunePoolDepth:              "MinRunePoolDepth",
 	MaxAvailablePools:             "MaxAvailablePools",
+	StagedPoolCost:                "StagedPoolCost",
 	MinimumNodesForYggdrasil:      "MinimumNodesForYggdrasil",
 	MinimumNodesForBFT:            "MinimumNodesForBFT",
 	DesiredValidatorSet:           "DesiredValidatorSet",
