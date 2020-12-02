@@ -121,18 +121,6 @@ func (k KVStoreDummy) GetTotalSupply(ctx cosmos.Context, asset common.Asset) cos
 	return cosmos.ZeroUint()
 }
 
-func (k KVStoreDummy) GetLiquidityProviderBalance(ctx cosmos.Context, _ common.Asset, _ cosmos.AccAddress) cosmos.Uint {
-	return cosmos.ZeroUint()
-}
-
-func (k KVStoreDummy) AddOwnership(ctx cosmos.Context, _ common.Coin, _ cosmos.AccAddress) error {
-	return kaboom
-}
-
-func (k KVStoreDummy) RemoveOwnership(ctx cosmos.Context, _ common.Coin, _ cosmos.AccAddress) error {
-	return kaboom
-}
-
 func (k KVStoreDummy) TotalActiveNodeAccount(_ cosmos.Context) (int, error) { return 0, kaboom }
 func (k KVStoreDummy) ListNodeAccountsWithBond(_ cosmos.Context) (NodeAccounts, error) {
 	return nil, kaboom

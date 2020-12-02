@@ -126,17 +126,6 @@ func withdraw(ctx cosmos.Context, version semver.Version, keeper keeper.Keeper, 
 	pool.BalanceAsset = common.SafeSub(poolAsset, withDrawAsset)
 
 	ctx.Logger().Info("pool after withdraw", "pool unit", pool.PoolUnits, "balance RUNE", pool.BalanceRune, "balance asset", pool.BalanceAsset)
-	if !lp.RuneAddress.IsEmpty() {
-		// update liquidity provider
-		acc, err := lp.RuneAddress.AccAddress()
-		if err != nil {
-			return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), ErrInternal(err, "fail to convert rune address")
-		}
-		err = keeper.RemoveOwnership(ctx, common.NewCoin(pool.Asset.LiquidityAsset(), lp.Units.Sub(unitAfter)), acc)
-		if err != nil {
-			return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), ErrInternal(err, "fail to withdraw liquidity")
-		}
-	}
 
 	lp.Units = unitAfter
 	lp.LastWithdrawHeight = common.BlockHeight(ctx)

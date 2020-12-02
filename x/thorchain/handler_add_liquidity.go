@@ -266,18 +266,7 @@ func (h AddLiquidityHandler) addLiquidityV1(ctx cosmos.Context,
 		}
 	}
 
-	if su.RuneAddress.IsEmpty() {
-		su.Units = su.Units.Add(liquidityUnits)
-	} else {
-		acc, err := su.RuneAddress.AccAddress()
-		if err != nil {
-			return ErrInternal(err, "fail to convert rune address")
-		}
-		err = h.keeper.AddOwnership(ctx, common.NewCoin(pool.Asset.LiquidityAsset(), liquidityUnits), acc)
-		if err != nil {
-			return ErrInternal(err, "fail to add liquidity")
-		}
-	}
+	su.Units = su.Units.Add(liquidityUnits)
 	h.keeper.SetLiquidityProvider(ctx, su)
 
 	evt := NewEventAddLiquidity(asset, liquidityUnits, runeAddr, addRuneAmount, addAssetAmount, runeTxID, assetTxID, assetAddr)
