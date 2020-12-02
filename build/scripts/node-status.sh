@@ -80,7 +80,7 @@ if [ "$VALIDATOR" == "true" ]; then
 fi
 
 echo
-echo "API         http://$IP:1317/thorchain/doc"
+echo "API         http://$IP:1317/thorchain/doc/"
 echo "RPC         http://$IP:$THOR_DAEMON_SERVICE_PORT_RPC"
 echo "MIDGARD     http://$IP:8080/v1/doc"
 
