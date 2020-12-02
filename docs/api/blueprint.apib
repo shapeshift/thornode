@@ -1,5 +1,4 @@
 FORMAT: 1A
-HOST: http://localhost:1317
 
 # THORChain API
 This documentation outlines the API for THORChain.
@@ -11,7 +10,7 @@ NOTE: This document is a **work in progress**.
 ## Ping [GET /thorchain/ping]
 
 + Response 200 (plain/text)
-    + Attributes 
+    + Attributes
         + ping: "pong" (string)
     + Body
 
@@ -39,7 +38,7 @@ Retrieve a liquidity pool with the given asset
 
 + Response 200 (application/json)
     + Attribute (Pool)
-    
+
 ### Get all the liquidity pools [GET /thorchain/pools]
 Retrieve all the liquidity pools from THORChain
 
@@ -75,20 +74,20 @@ This section document Tx API resource
     + hash: `E17A0906E015F0C343691C18E475C8CB5F3F6C63F5BCDE0F3A341909763CC92B` (required, string) - Tx hash of an inbound transaction or outbound transaction
 + Attributes
     + tx (ObservedTx) -  observed tx information
-    + status (enum) 
+    + status (enum)
         + done
         + incomplete
     + out_hashes (array[string]) - a list of outbound hashes
     + block_height (string) - the block hight this tx get observed
     + signers (array[string]) - a list of signer address that has sign this tx off
     + observed_pub_key (string) - public key of the vault which observe this tx
-      
+
 ### Get a tx with given hash [GET]
 Retrieve a tx with the given hash from THORChain
 
 + Response 200 (application/json)
     + Body
-    
+
             {
                 "tx": {
                     "id": "CF524818D42B63D25BBA0CCC4909F127CAA645C0F9CD07324F2824CC151A64C7",
@@ -121,7 +120,7 @@ Retrieve a tx with the given hash from THORChain
 + Parameters
     + hash: "E17A0906E015F0C343691C18E475C8CB5F3F6C63F5BCDE0F3A341909763CC92B" (required, string) - Tx hash of an inbound transaction or outbound transaction
 
-+ Attributes 
++ Attributes
     + tx_id (string) - tx hash
     + tx (ObservedTx) - observed tx , the tx that reach 2/3 majority consensus
     + height (string) - block height that this tx reach super majority consensus
@@ -206,17 +205,17 @@ This section document all the API for Node resource
 
 + Parameters
     + node_address: "tthor1f3s7q037eancht7sg0aj995dht25rwrnu4ats5" (string,required) - node address
-    
+
 + Attributes
     + node_address (string) - node address
     + status (string) - status , values can be active,disabled,standby
     + pub_key_set
         + secp256k1 (string) - secp256k1 public key
-        + ed25519 (string) - ed25519 public key 
+        + ed25519 (string) - ed25519 public key
     + validator_cons_pub_key (string) - the consensus pubkey used by the node
     + bond (string) - current bond
     + active_block_height (string) - block height this node become active
-    + bond_address (string) - bond address 
+    + bond_address (string) - bond address
     + status_since (string) - block height this node become current status
     + signer_membership (array[string]) - a list of vault public key that this node is a member of
     + requested_to_leave (boolean) - indicate whether this node had requested to leave_height
@@ -230,11 +229,11 @@ This section document all the API for Node resource
         + reason (string) - why the node has been jailed
     + current_award (string) - node current award
     + observe_chains - chain and block heights this node is observing , this is useful to know whether a node is falling behind in regards to observing
-    + preflight_status 
+    + preflight_status
         + status (string) - what status the node will be in next
         + reason (string) - why the node will be in the status above
         + code (string) - error code
-    
+
 ### Get a node [GET]
 
 Retrieve the node with given node address from THORChain
@@ -290,10 +289,10 @@ Retrieve the node with given node address from THORChain
 
 
 ### Get all nodes [GET /thorchain/nodes]
-Retrieve all nodes that have bond 
+Retrieve all nodes that have bond
 + Response 200 (application/json)
     + Attributes (array[Node])
-     
+
 # Group vaults
 ## vault [/thorchain/vaults/asgard]
 + Attributes
@@ -312,7 +311,7 @@ Retrieve all nodes that have bond
 
 
 ### Get asgard vaults [GET]
-Retrieve all current active asgard vaults from thorchain 
+Retrieve all current active asgard vaults from thorchain
 + Response 200 (application/json)
     + Attributes(array[vault])
     + Body
@@ -420,7 +419,7 @@ Retrieve all yggdrasil vaults from THORChain
     + address: "tbnb1257g60tcxvu4dvflpszgkwq34d5vw6pgvws4qe" (string,required) - address of the chain, need to match with chain Parameters
 + Response 200 (application/json)
     + Attributes (vault)
-    + Body 
+    + Body
 
             {
                 "block_height": "0",
@@ -506,7 +505,7 @@ inbound addresses will return a list of address , one per chain.  the address mi
     + chain (string) - chain
     + pub_key (string) - public key
     + address (string) - address
-    + halted (boolean) - indicate whether this chain has halted 
+    + halted (boolean) - indicate whether this chain has halted
 
 ### Get inbound addresses [GET]
 Retrieve all the inbound addresses from THORChain
@@ -537,9 +536,9 @@ Retrieve all the inbound addresses from THORChain
                 ]
             }
 ## last_block_height [/thorchain/lastblock/{chain}]
-last block height 
+last block height
 + Parameters
-    + chain: "BNB" (string,required) - chain 
+    + chain: "BNB" (string,required) - chain
 + Attributes
     + chain (string) - chain
     + last_observed_in (string) - last observed in block height
@@ -561,7 +560,7 @@ Retrieve the last block height information about the request chain
                 }
             ]
 ### Get all last block height [/thorchain/lastblock]
-Retrieve lastest block infomation across all chains 
+Retrieve lastest block infomation across all chains
 + Response 200 (application/json)
     + Attributes(array[last_block_height]
     + Body
@@ -652,7 +651,7 @@ This is just a true / false indicate whether THORChain is in ragnarok or not
     + height: 1024 (int,required) - block height
     + pubkey: "" (string,required) - node public key
 + Attributes
-    + keygen_block 
+    + keygen_block
         + height (string) - block height
         + keygens (array[string]) - a list node public keys , indicate who should be part of this keygen
     + signature (string) - base64 encoded signaure of the keygen block
@@ -676,7 +675,7 @@ Retrieve keygen block  from THORChain
     + height: 1024 (int,required) - block height
     + pubkey: "" (string,required) - node public key
 + Attributes
-    + keysign 
+    + keysign
         + height (string) - block height
         + tx_array (array[txoutitem]) - list of tx out items
     + signature (string) - base64 encoded signature of keysign
