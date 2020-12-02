@@ -103,6 +103,7 @@ func (tos *TxOutStorageV1) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem) (
 
 	var outputs []TxOutItem
 	signingTransactionPeriod := tos.constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
+	transactionFee := tos.gasManager.GetFee(ctx, toi.Chain)
 
 	if toi.Chain.Equals(common.THORChain) {
 		outputs = append(outputs, toi)
@@ -111,6 +112,12 @@ func (tos *TxOutStorageV1) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem) (
 			// a vault is already manually selected, blindly go forth with that
 			outputs = append(outputs, toi)
 		} else {
+			pool, err := tos.keeper.GetPool(ctx, toi.Coin.Asset) // Get pool
+			if err != nil {
+				// the error is already logged within kvstore
+				return nil, fmt.Errorf("fail to get pool: %w", err)
+			}
+			feeInAsset := pool.RuneValueInAsset(cosmos.NewUint(uint64(transactionFee)))
 			// THORNode don't have a vault already selected to send from, discover one.
 			vaults := make(Vaults, 0) // a sorted list of vaults to send funds from
 
@@ -182,6 +189,10 @@ func (tos *TxOutStorageV1) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem) (
 				if err != nil || fromAddr.IsEmpty() || toi.ToAddress.Equals(fromAddr) {
 					continue
 				}
+				// if the asset in the vault is not enough to pay for the fee , then skip it
+				if vault.GetCoin(toi.Coin.Asset).Amount.LTE(feeInAsset) {
+					continue
+				}
 				toi.VaultPubKey = vault.PubKey
 				if toi.Coin.Amount.LTE(vault.GetCoin(toi.Coin.Asset).Amount) {
 					outputs = append(outputs, toi)
@@ -203,7 +214,7 @@ func (tos *TxOutStorageV1) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem) (
 		}
 	}
 	var finalOutput []TxOutItem
-	transactionFee := tos.gasManager.GetFee(ctx, toi.Chain)
+
 	for i := range outputs {
 		if outputs[i].MaxGas.IsEmpty() {
 			gasAsset := outputs[i].Chain.GetGasAsset()
@@ -242,12 +253,12 @@ func (tos *TxOutStorageV1) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem) (
 				}
 
 			} else {
-				pool, err := tos.keeper.GetPool(ctx, outputs[i].Coin.Asset) // Get pool
+
+				pool, err := tos.keeper.GetPool(ctx, toi.Coin.Asset) // Get pool
 				if err != nil {
 					// the error is already logged within kvstore
 					return nil, fmt.Errorf("fail to get pool: %w", err)
 				}
-
 				// if the pool status is not available, then we cannot trust
 				// the pool price to be accurate, as arbitrage isn't being done
 				// on the pool. Therefore, we cannot know how much asset to
