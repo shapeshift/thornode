@@ -713,12 +713,6 @@ func (vm *validatorMgrV1) ragnarokPools(ctx cosmos.Context, nth int64, mgr Manag
 				var lp LiquidityProvider
 				vm.k.Cdc().MustUnmarshalBinaryBare(iterator.Value(), &lp)
 
-				accAddr, err := lp.RuneAddress.AccAddress()
-				if err != nil {
-					ctx.Logger().Error("fail to get address", "liquidity provider", lp.RuneAddress, "error", err)
-					continue
-				}
-				lp.Units = vm.k.GetLiquidityProviderBalance(ctx, pool.Asset.LiquidityAsset(), accAddr)
 				if lp.Units.IsZero() {
 					continue
 				}

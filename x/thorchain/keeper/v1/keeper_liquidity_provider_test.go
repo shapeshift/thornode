@@ -30,10 +30,6 @@ func (s *KeeperLiquidityProviderSuite) TestLiquidityProvider(c *C) {
 		RuneAddress:  GetRandomRUNEAddress(),
 		AssetAddress: GetRandomBTCAddress(),
 	}
-	acc, err := lp.RuneAddress.AccAddress()
-	c.Assert(err, IsNil)
-	c.Assert(k.AddOwnership(ctx, common.NewCoin(lp.Asset.LiquidityAsset(), lp.Units), acc), IsNil)
-
 	k.SetLiquidityProvider(ctx, lp)
 	lp, err = k.GetLiquidityProvider(ctx, asset, lp.RuneAddress)
 	c.Assert(err, IsNil)
