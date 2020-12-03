@@ -15,7 +15,7 @@ func (k KVStore) GetVaultIterator(ctx cosmos.Context) cosmos.Iterator {
 	return k.getIterator(ctx, prefixVault)
 }
 
-// With given list of vaults, find the vault that is most secure
+// GetMostSecure with given list of vaults, find the vault that is most secure
 func (k KVStore) GetMostSecure(ctx cosmos.Context, vaults Vaults, signingTransPeriod int64) Vault {
 	vaults = k.SortBySecurity(ctx, vaults, signingTransPeriod)
 	if len(vaults) == 0 {
@@ -24,7 +24,7 @@ func (k KVStore) GetMostSecure(ctx cosmos.Context, vaults Vaults, signingTransPe
 	return vaults[len(vaults)-1]
 }
 
-// With given list of vaults, find the vault that is least secure
+// GetLeastSecure with given list of vaults, find the vault that is least secure
 func (k KVStore) GetLeastSecure(ctx cosmos.Context, vaults Vaults, signingTransPeriod int64) Vault {
 	vaults = k.SortBySecurity(ctx, vaults, signingTransPeriod)
 	if len(vaults) == 0 {

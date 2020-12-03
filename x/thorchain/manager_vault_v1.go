@@ -143,15 +143,29 @@ func (vm *VaultMgrV1) EndBlock(ctx cosmos.Context, mgr Manager, constAccessor co
 				if coin.Amount.Equal(cosmos.ZeroUint()) {
 					continue
 				}
-
-				// determine which active asgard vault to send funds to. Select
-				// based on which has the most security
-				signingTransactionPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
-				target := vm.k.GetMostSecure(ctx, active, signingTransactionPeriod)
-				if target.PubKey.Equals(vault.PubKey) {
-					continue
+				var target Vault
+				// when migrate assets from retiring vault to a new vault , if it is gas asset, like (BNB, BTC) , make
+				// sure each new vault will get gas asset, take BNB for an example , it might get a lot of BEP2 asset
+				// into the new vault , but without any BNB, which will make the vault unavailable , as it doesn't have BNB to
+				// pay for gas. In a real production environment
+				if coin.Asset.IsGasAsset() {
+					for _, activeVault := range active {
+						if activeVault.HasAsset(coin.Asset) {
+							continue
+						}
+						target = activeVault
+						break
+					}
 				}
-
+				if target.IsEmpty() {
+					// determine which active asgard vault to send funds to. Select
+					// based on which has the most security
+					signingTransactionPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
+					target = vm.k.GetMostSecure(ctx, active, signingTransactionPeriod)
+					if target.PubKey.Equals(vault.PubKey) {
+						continue
+					}
+				}
 				// get address of asgard pubkey
 				addr, err := target.PubKey.GetAddress(coin.Asset.Chain)
 				if err != nil {
