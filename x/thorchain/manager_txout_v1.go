@@ -118,10 +118,14 @@ func (tos *TxOutStorageV1) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem) (
 				return nil, fmt.Errorf("fail to get pool: %w", err)
 			}
 			feeInAsset := pool.RuneValueInAsset(cosmos.NewUint(uint64(transactionFee)))
+			maxGasAsset, err := tos.gasManager.GetMaxGas(ctx, toi.Chain)
+			if err != nil {
+				ctx.Logger().Error("fail to get max gas asset", "error", err)
+			}
 			// THORNode don't have a vault already selected to send from, discover one.
 			vaults := make(Vaults, 0) // a sorted list of vaults to send funds from
 
-			/////////////// COLLECT YGGDRASIL VAULTS ///////////////////////////
+			// ///////////// COLLECT YGGDRASIL VAULTS ///////////////////////////
 			// When deciding which Yggdrasil pool will send out our tx out, we
 			// should consider which ones observed the inbound request tx, as
 			// yggdrasil pools can go offline. Here THORNode get the voter record and
@@ -149,9 +153,9 @@ func (tos *TxOutStorageV1) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem) (
 				// add yggdrasil vaults first
 				vaults = append(vaults, yggs.SortBy(toi.Coin.Asset)...)
 			}
-			////////////////////////////////////////////////////////////////
+			// //////////////////////////////////////////////////////////////
 
-			/////////////// COLLECT ACTIVE ASGARD VAULTS ///////////////////
+			// ///////////// COLLECT ACTIVE ASGARD VAULTS ///////////////////
 			active, err := tos.keeper.GetAsgardVaultsByStatus(ctx, ActiveVault)
 			if err != nil {
 				ctx.Logger().Error("fail to get active vaults", "error", err)
@@ -165,9 +169,9 @@ func (tos *TxOutStorageV1) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem) (
 				}
 			}
 			vaults = append(vaults, tos.keeper.SortBySecurity(ctx, active, signingTransactionPeriod)...)
-			////////////////////////////////////////////////////////////////
+			// //////////////////////////////////////////////////////////////
 
-			/////////////// COLLECT RETIRING ASGARD VAULTS /////////////////
+			// ///////////// COLLECT RETIRING ASGARD VAULTS /////////////////
 			retiring, err := tos.keeper.GetAsgardVaultsByStatus(ctx, RetiringVault)
 			if err != nil {
 				ctx.Logger().Error("fail to get retiring vaults", "error", err)
@@ -180,7 +184,7 @@ func (tos *TxOutStorageV1) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem) (
 				}
 			}
 			vaults = append(vaults, tos.keeper.SortBySecurity(ctx, retiring, signingTransactionPeriod)...)
-			////////////////////////////////////////////////////////////////
+			// //////////////////////////////////////////////////////////////
 
 			// iterate over discovered vaults and find vaults to send funds from
 			for _, vault := range vaults {
@@ -193,6 +197,12 @@ func (tos *TxOutStorageV1) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem) (
 				if vault.GetCoin(toi.Coin.Asset).Amount.LTE(feeInAsset) {
 					continue
 				}
+				// if the vault doesn't have gas asset in it , or it doesn't have enough to pay for gas
+				gasAsset := vault.GetCoin(toi.Chain.GetGasAsset())
+				if gasAsset.IsEmpty() || gasAsset.Amount.LT(maxGasAsset.Amount) {
+					continue
+				}
+
 				toi.VaultPubKey = vault.PubKey
 				if toi.Coin.Amount.LTE(vault.GetCoin(toi.Coin.Asset).Amount) {
 					outputs = append(outputs, toi)

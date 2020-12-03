@@ -17,6 +17,7 @@ func init() {
 		CliTxCost:             0,
 		JailTimeKeygen:        10,
 		JailTimeKeysign:       10,
+		AsgardSize:            6,
 	}
 	boolOverrides = map[ConstantName]bool{
 		StrictBondLiquidityRatio: false,
