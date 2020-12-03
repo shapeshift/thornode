@@ -35,9 +35,73 @@ func GetTxCmd(storeKey string, cdc *codec.Codec) *cobra.Command {
 		GetCmdSetIPAddress(cdc),
 		GetCmdBan(cdc),
 		GetCmdMimir(cdc),
+		GetCmdNativeTx(cdc),
+		GetCmdSend(cdc),
 	)...)
 
 	return thorchainTxCmd
+}
+
+// GetCmdNativeTx command to send a native transaction
+func GetCmdNativeTx(cdc *codec.Codec) *cobra.Command {
+	return &cobra.Command{
+		Use:   "txn [amount] [coin] [memo]",
+		Short: "sends a native transaction",
+		Args:  cobra.ExactArgs(3),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			inBuf := bufio.NewReader(cmd.InOrStdin())
+			cliCtx := context.NewCLIContextWithInput(inBuf).WithCodec(cdc)
+			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
+
+			amt, err := strconv.ParseInt(args[0], 10, 64)
+			if err != nil {
+				return fmt.Errorf("invalid amount (must be an integer): %w", err)
+			}
+
+			asset, err := common.NewAsset(args[1])
+			if err != nil {
+				return fmt.Errorf("invalid asset: %w", err)
+			}
+
+			coin := common.NewCoin(asset, cosmos.NewUint(uint64(amt)))
+
+			msg := types.NewMsgNativeTx(common.Coins{coin}, args[2], cliCtx.GetFromAddress())
+			if err := msg.ValidateBasic(); err != nil {
+				return err
+			}
+			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []cosmos.Msg{msg})
+		},
+	}
+}
+
+// GetCmdSend command to send funds
+func GetCmdSend(cdc *codec.Codec) *cobra.Command {
+	return &cobra.Command{
+		Use:   "send [to_address] [coins]",
+		Short: "sends funds",
+		Args:  cobra.ExactArgs(3),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			inBuf := bufio.NewReader(cmd.InOrStdin())
+			cliCtx := context.NewCLIContextWithInput(inBuf).WithCodec(cdc)
+			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
+
+			toAddr, err := cosmos.AccAddressFromBech32(args[0])
+			if err != nil {
+				return fmt.Errorf("invalid address: %w", err)
+			}
+
+			coins, err := cosmos.ParseCoins(args[1])
+			if err != nil {
+				return fmt.Errorf("invalid coins: %w", err)
+			}
+
+			msg := types.NewMsgSend(cliCtx.GetFromAddress(), toAddr, coins)
+			if err := msg.ValidateBasic(); err != nil {
+				return err
+			}
+			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []cosmos.Msg{msg})
+		},
+	}
 }
 
 // GetCmdMimir command to change a mimir attribute
