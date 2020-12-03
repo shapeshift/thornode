@@ -9,7 +9,7 @@ services:
       dockerfile: ./build/docker/Dockerfile
       args:
         TAG: ${TAG:-mainnet}
-    image: registry.gitlab.com/thorchain/thornode:${TAG:-latest}
+    image: ${IMAGE:-registry.gitlab.com/thorchain/thornode}:${TAG:-latest}
     restart: unless-stopped
     environment:
       NET: ${NET:-mainnet}
@@ -44,7 +44,7 @@ services:
       dockerfile: ./build/docker/Dockerfile
       args:
         TAG: ${TAG:-mainnet}
-    image: registry.gitlab.com/thorchain/thornode:${TAG:-latest}
+    image: ${IMAGE:-registry.gitlab.com/thorchain/thornode}:${TAG:-latest}
     restart: unless-stopped
     environment:
       NODES: 1
@@ -78,7 +78,7 @@ services:
       dockerfile: ./build/docker/Dockerfile
       args:
         TAG: ${TAG:-mainnet}
-    image: registry.gitlab.com/thorchain/thornode:${TAG:-latest}
+    image: ${IMAGE:-registry.gitlab.com/thorchain/thornode}:${TAG:-latest}
     environment:
       CHAIN_DAEMON: thor-daemon:26657
       NET: ${NET:-mainnet}

@@ -7,7 +7,7 @@ services:
     build:
       context: ../../..
       dockerfile: ./build/docker/Dockerfile
-    image: registry.gitlab.com/thorchain/thornode:${TAG:-latest}
+    image: ${IMAGE:-registry.gitlab.com/thorchain/thornode}:${TAG:-latest}
     restart: unless-stopped
     environment:
       NET: testnet
@@ -36,7 +36,7 @@ services:
     build:
       context: ../../..
       dockerfile: ./build/docker/Dockerfile
-    image: registry.gitlab.com/thorchain/thornode:${TAG:-latest}
+    image: ${IMAGE:-registry.gitlab.com/thorchain/thornode}:${TAG:-latest}
     restart: unless-stopped
     environment:
       NET: testnet
@@ -61,7 +61,7 @@ services:
       dockerfile: ./build/docker/Dockerfile
     depends_on:
       - thor-daemon
-    image: registry.gitlab.com/thorchain/thornode:${TAG:-latest}
+    image: ${IMAGE:-registry.gitlab.com/thorchain/thornode}:${TAG:-latest}
     restart: unless-stopped
     environment:
       NET: testnet
