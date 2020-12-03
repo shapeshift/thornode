@@ -69,14 +69,6 @@ func (k *WithdrawTestKeeper) GetGas(ctx cosmos.Context, asset common.Asset) ([]c
 	return []cosmos.Uint{cosmos.NewUint(37500), cosmos.NewUint(30000)}, nil
 }
 
-func (k *WithdrawTestKeeper) AddOwnership(ctx cosmos.Context, coin common.Coin, addr cosmos.AccAddress) error {
-	return k.keeper.AddOwnership(ctx, coin, addr)
-}
-
-func (k *WithdrawTestKeeper) RemoveOwnership(ctx cosmos.Context, coin common.Coin, addr cosmos.AccAddress) error {
-	return k.keeper.RemoveOwnership(ctx, coin, addr)
-}
-
 func (k *WithdrawTestKeeper) GetLiquidityProvider(ctx cosmos.Context, asset common.Asset, addr common.Address) (LiquidityProvider, error) {
 	if asset.Equals(common.Asset{Chain: common.BNBChain, Symbol: "NOTEXISTSTICKER", Ticker: "NOTEXISTSTICKER"}) {
 		return types.LiquidityProvider{}, errors.New("you asked for it")
@@ -587,14 +579,6 @@ func getWithdrawTestKeeper(c *C, ctx cosmos.Context, k keeper.Keeper, runeAddres
 		PendingRune:  cosmos.ZeroUint(),
 	}
 	store.SetLiquidityProvider(ctx, lp)
-	accAddr, err := lp.RuneAddress.AccAddress()
-	c.Assert(err, IsNil)
-	amt := store.GetLiquidityProviderBalance(ctx, pool.Asset.LiquidityAsset(), accAddr)
-	if amt.IsZero() {
-		err = store.AddOwnership(ctx, common.NewCoin(pool.Asset.LiquidityAsset(), lp.Units), accAddr)
-		c.Assert(err, IsNil)
-	}
-
 	return store
 }
 
@@ -617,13 +601,5 @@ func getWithdrawTestKeeper2(c *C, ctx cosmos.Context, k keeper.Keeper, runeAddre
 		PendingRune:  cosmos.ZeroUint(),
 	}
 	store.SetLiquidityProvider(ctx, lp)
-	accAddr, err := lp.RuneAddress.AccAddress()
-	c.Assert(err, IsNil)
-	amt := store.GetLiquidityProviderBalance(ctx, pool.Asset.LiquidityAsset(), accAddr)
-	if amt.IsZero() {
-		err = store.AddOwnership(ctx, common.NewCoin(pool.Asset.LiquidityAsset(), lp.Units), accAddr)
-		c.Assert(err, IsNil)
-	}
-
 	return store
 }

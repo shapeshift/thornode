@@ -334,10 +334,6 @@ func (s *HelperSuite) TestAbandonPool(c *C) {
 		PendingAsset: cosmos.ZeroUint(),
 	}
 	k.SetLiquidityProvider(ctx, lp)
-	accAddr, err := runeAddr.AccAddress()
-	c.Assert(err, IsNil)
-	c.Assert(k.AddOwnership(ctx, common.NewCoin(usdAsset.LiquidityAsset(), cosmos.NewUint(1000)), accAddr), IsNil)
-	c.Assert(k.GetLiquidityProviderBalance(ctx, usdAsset.LiquidityAsset(), accAddr).Uint64(), Equals, uint64(1000))
 
 	// cycle pools
 	c.Assert(cyclePools(ctx, 100, 1, 100*common.One, k, eventMgr), IsNil)
@@ -361,9 +357,6 @@ func (s *HelperSuite) TestAbandonPool(c *C) {
 		count++
 	}
 	c.Assert(count, Equals, 0)
-
-	// check that pool ownership tokens are removed
-	c.Assert(k.GetLiquidityProviderBalance(ctx, usdAsset.LiquidityAsset(), accAddr).IsZero(), Equals, true)
 }
 
 type addGasFeesKeeperHelper struct {

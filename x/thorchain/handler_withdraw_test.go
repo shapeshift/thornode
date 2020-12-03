@@ -71,20 +71,7 @@ func (mfp *MockWithdrawKeeper) GetLiquidityProvider(ctx cosmos.Context, asset co
 	if mfp.failLiquidityProvider {
 		return LiquidityProvider{}, errors.New("fail to get liquidity provider")
 	}
-	accAddr, err := addr.AccAddress()
-	if err != nil {
-		return mfp.lp, err
-	}
-	mfp.lp.Units = mfp.keeper.GetLiquidityProviderBalance(ctx, asset.LiquidityAsset(), accAddr)
 	return mfp.lp, nil
-}
-
-func (mfp *MockWithdrawKeeper) AddOwnership(ctx cosmos.Context, coin common.Coin, addr cosmos.AccAddress) error {
-	return mfp.keeper.AddOwnership(ctx, coin, addr)
-}
-
-func (mfp *MockWithdrawKeeper) RemoveOwnership(ctx cosmos.Context, coin common.Coin, addr cosmos.AccAddress) error {
-	return mfp.keeper.RemoveOwnership(ctx, coin, addr)
 }
 
 func (mfp *MockWithdrawKeeper) SetLiquidityProvider(_ cosmos.Context, lp LiquidityProvider) {
@@ -182,11 +169,6 @@ func (HandlerWithdrawSuite) TestAsymmetricWithdraw(c *C) {
 	c.Assert(lp.PendingRune.IsZero(), Equals, true)
 	// symmetric stake, units is measured by liquidity tokens
 	c.Assert(lp.Units.IsZero(), Equals, false)
-	lpAddr, err := runeAddr.AccAddress()
-	c.Assert(err, IsNil)
-
-	lpUnits := keeper.GetLiquidityProviderBalance(ctx, common.BTCAsset.LiquidityAsset(), lpAddr)
-	c.Assert(lpUnits.Equal(lp.Units), Equals, true)
 
 	runeAddr1 := GetRandomRUNEAddress()
 	err = addHandler.addLiquidityV1(ctx, common.BTCAsset, cosmos.NewUint(50*common.One), cosmos.ZeroUint(), runeAddr1, common.NoAddress, GetRandomTxHash(), constAccessor)
