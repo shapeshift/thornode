@@ -205,11 +205,6 @@ func (HandlerSuite) TestHandleTxInWithdrawLiquidityMemo(c *C) {
 	}
 	w.keeper.SetLiquidityProvider(w.ctx, lp)
 
-	accAddr, err := lp.RuneAddress.AccAddress()
-	c.Assert(err, IsNil)
-	err = w.keeper.AddOwnership(w.ctx, common.NewCoin(pool.Asset.LiquidityAsset(), lp.Units), accAddr)
-	c.Assert(err, IsNil)
-
 	tx := common.Tx{
 		ID:    GetRandomTxHash(),
 		Chain: common.BNBChain,

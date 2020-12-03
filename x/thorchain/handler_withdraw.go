@@ -92,15 +92,6 @@ func (h WithdrawLiquidityHandler) handleV1(ctx cosmos.Context, msg MsgWithdrawLi
 	if err != nil {
 		return nil, ErrInternal(err, "fail to get pool")
 	}
-	originalLtokens := cosmos.ZeroUint()
-	if msg.WithdrawAddress.IsChain(common.THORChain) {
-		// snapshot original coin holdings, this is so we can add back the liquidity if unsuccessful
-		acc, err := msg.WithdrawAddress.AccAddress()
-		if err != nil {
-			return nil, ErrInternal(err, "fail to get liquidity provider address")
-		}
-		originalLtokens = h.keeper.GetLiquidityProviderBalance(ctx, msg.Asset.LiquidityAsset(), acc)
-	}
 	runeAmt, assetAmount, units, gasAsset, err := withdraw(ctx, version, h.keeper, msg, h.mgr)
 	if err != nil {
 		return nil, ErrInternal(err, "fail to process withdraw request")
@@ -144,24 +135,6 @@ func (h WithdrawLiquidityHandler) handleV1(ctx cosmos.Context, msg MsgWithdrawLi
 					return nil, ErrInternal(err, "fail to save pool")
 				}
 				h.keeper.SetLiquidityProvider(ctx, lp)
-				if !originalLtokens.IsZero() {
-					acc, err := msg.WithdrawAddress.AccAddress()
-					if err != nil {
-						return nil, ErrInternal(err, "fail to get liquidity provider address")
-					}
-					lpCoins := h.keeper.GetLiquidityProviderBalance(ctx, msg.Asset.LiquidityAsset(), acc)
-					if originalLtokens.GT(lpCoins) {
-						coin := common.NewCoin(
-							msg.Asset.LiquidityAsset(),
-							originalLtokens.Sub(lpCoins),
-						)
-						// re-add liquidity back to the account
-						err := h.keeper.AddOwnership(ctx, coin, acc)
-						if err != nil {
-							return nil, ErrInternal(err, "fail to undo liquidity provision")
-						}
-					}
-				}
 				return nil, multierror.Append(errFailAddOutboundTx, err)
 			}
 			okAsset = true

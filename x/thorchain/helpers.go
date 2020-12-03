@@ -12,7 +12,6 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/client/input"
 	ckeys "github.com/cosmos/cosmos-sdk/crypto/keys"
-	"github.com/cosmos/cosmos-sdk/x/auth/exported"
 	"github.com/hashicorp/go-multierror"
 
 	"gitlab.com/thorchain/thornode/common"
@@ -429,21 +428,6 @@ func cyclePools(ctx cosmos.Context, maxAvailablePools, minRunePoolDepth, stagedP
 					keeper.Cdc().MustUnmarshalBinaryBare(iterator.Value(), &lp)
 					keeper.RemoveLiquidityProvider(ctx, lp)
 				}
-
-				// burn all pool ownership tokens
-				burnAccts := func(acct exported.Account) bool {
-					for _, coin := range acct.GetCoins() {
-						if coin.Denom == pool.Asset.LiquidityAsset().Native() {
-							toRemove := common.NewCoin(pool.Asset.LiquidityAsset(), cosmos.NewUint(coin.Amount.Uint64()))
-							if err := keeper.RemoveOwnership(ctx, toRemove, acct.GetAddress()); err != nil {
-								ctx.Logger().Error("fail to remove pool ownership", "pool", pool.Asset, "address", acct.GetAddress(), "err", err)
-							}
-							return false
-						}
-					}
-					return false // always return false, which will never halt the iterator
-				}
-				keeper.AccountKeeper().IterateAccounts(ctx, burnAccts)
 
 				// delete the pool
 				keeper.RemovePool(ctx, pool.Asset)
