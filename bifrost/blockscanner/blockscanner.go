@@ -99,7 +99,7 @@ func (b *BlockScanner) scanBlocks() {
 	if err != nil {
 		b.errorCounter.WithLabelValues("fail_get_scan_pos", "").Inc()
 		b.logger.Error().Err(err).Msgf("fail to get current block scan pos, %s will start from %d", b.cfg.ChainID, b.previousBlock)
-	} else {
+	} else if currentPos > b.previousBlock {
 		b.previousBlock = currentPos
 	}
 	b.metrics.GetCounter(metrics.CurrentPosition).Add(float64(currentPos))
