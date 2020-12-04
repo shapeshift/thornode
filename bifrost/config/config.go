@@ -73,7 +73,6 @@ type BlockScannerConfiguration struct {
 	MaxHttpRequestRetry        int           `json:"max_http_request_retry" mapstructure:"max_http_request_retry"`
 	BlockHeightDiscoverBackoff time.Duration `json:"block_height_discover_back_off" mapstructure:"block_height_discover_back_off"`
 	BlockRetryInterval         time.Duration `json:"block_retry_interval" mapstructure:"block_retry_interval"`
-	EnforceBlockHeight         bool          `json:"enforce_block_height" mapstructure:"enforce_block_height"`
 	DBPath                     string        `json:"db_path" mapstructure:"db_path"`
 	ChainID                    common.Chain  `json:"chain_id" mapstructure:"chain_id"`
 }
