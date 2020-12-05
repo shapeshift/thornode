@@ -12,12 +12,13 @@ import (
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
 type HandlerBondSuite struct{}
 
 type TestBondKeeper struct {
-	keeper.KVStoreDummy
+	keeper.Keeper
 	activeNodeAccount   NodeAccount
 	failGetNodeAccount  NodeAccount
 	notEmptyNodeAccount NodeAccount
@@ -40,8 +41,10 @@ var _ = Suite(&HandlerBondSuite{})
 
 func (HandlerBondSuite) TestBondHandler_Run(c *C) {
 	ctx, k1 := setupKeeperForTest(c)
+
 	activeNodeAccount := GetRandomNodeAccount(NodeActive)
 	k := &TestBondKeeper{
+		Keeper:              k1,
 		activeNodeAccount:   activeNodeAccount,
 		failGetNodeAccount:  GetRandomNodeAccount(NodeActive),
 		notEmptyNodeAccount: GetRandomNodeAccount(NodeActive),
@@ -57,15 +60,23 @@ func (HandlerBondSuite) TestBondHandler_Run(c *C) {
 		GetRandomBNBAddress(),
 		GetRandomBNBAddress(),
 		common.Coins{
-			common.NewCoin(common.RuneAsset(), cosmos.NewUint(uint64(minimumBondInRune))),
+			common.NewCoin(common.RuneAsset(), cosmos.NewUint(uint64(minimumBondInRune+common.One))),
 		},
 		BNBGasFeeSingleton,
 		"bond",
 	)
-	msg := NewMsgBond(txIn, GetRandomNodeAccount(NodeStandby).NodeAddress, cosmos.NewUint(uint64(minimumBondInRune)), GetRandomBNBAddress(), activeNodeAccount.NodeAddress)
+	FundModule(c, ctx, k1, BondName, uint64(minimumBondInRune))
+	msg := NewMsgBond(txIn, GetRandomNodeAccount(NodeStandby).NodeAddress, cosmos.NewUint(uint64(minimumBondInRune)+common.One), GetRandomBNBAddress(), activeNodeAccount.NodeAddress)
 	_, err := handler.Run(ctx, msg, ver, constAccessor)
 	c.Assert(err, IsNil)
-
+	coin := common.NewCoin(common.RuneNative, cosmos.NewUint(common.One))
+	nativeRuneCoin, err := coin.Native()
+	c.Assert(err, IsNil)
+	c.Assert(k1.CoinKeeper().HasCoins(ctx, msg.NodeAddress, cosmos.NewCoins(nativeRuneCoin)), Equals, true)
+	na, err := k1.GetNodeAccount(ctx, msg.NodeAddress)
+	c.Assert(err, IsNil)
+	c.Assert(na.Status.String(), Equals, types.WhiteListed.String())
+	c.Assert(na.Bond.Equal(cosmos.NewUint(uint64(minimumBondInRune))), Equals, true)
 	// invalid version
 	handler = NewBondHandler(k, NewDummyMgr())
 	ver = semver.Version{}
@@ -78,9 +89,10 @@ func (HandlerBondSuite) TestBondHandler_Run(c *C) {
 	_, err = handler.Run(ctx, msg, ver, constAccessor)
 	c.Assert(errors.Is(err, errInternal), Equals, true)
 
+	// When node account is active , it is ok to bond
 	msg = NewMsgBond(txIn, k.notEmptyNodeAccount.NodeAddress, cosmos.NewUint(uint64(minimumBondInRune)), GetRandomBNBAddress(), activeNodeAccount.NodeAddress)
 	_, err = handler.Run(ctx, msg, ver, constAccessor)
-	c.Assert(errors.Is(err, errInternal), Equals, true)
+	c.Assert(err, IsNil)
 }
 
 func (HandlerBondSuite) TestBondHandlerFailValidation(c *C) {
