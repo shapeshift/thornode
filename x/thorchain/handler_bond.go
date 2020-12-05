@@ -116,9 +116,27 @@ func (h BondHandler) handleV1(ctx cosmos.Context, msg MsgBond, version semver.Ve
 			))
 	}
 	nodeAccount.Bond = nodeAccount.Bond.Add(msg.Bond)
+
+	accountKeeper := h.keeper.AccountKeeper()
+	acct := accountKeeper.GetAccount(ctx, msg.NodeAddress)
+
+	// when node bond for the first time , send 1 RUNE to node address
+	// so as the node address will be created on THORChain otherwise node account won't be able to send tx
+	if acct == nil && nodeAccount.Bond.GTE(cosmos.NewUint(common.One)) {
+		supplier := h.keeper.Supply()
+		coin := common.NewCoin(common.RuneNative, cosmos.NewUint(common.One))
+		nativeRuneCoin, err := coin.Native()
+		if err != nil {
+			ctx.Logger().Error("fail to create native RUNE coin", "error", err)
+		}
+		if err := supplier.SendCoinsFromModuleToAccount(ctx, BondName, msg.NodeAddress, cosmos.NewCoins(nativeRuneCoin)); err != nil {
+			ctx.Logger().Error("fail to send one RUNE to node address", "error", err)
+		}
+		nodeAccount.Bond = common.SafeSub(nodeAccount.Bond, cosmos.NewUint(common.One))
+	}
+
 	if err := h.keeper.SetNodeAccount(ctx, nodeAccount); err != nil {
 		return ErrInternal(err, fmt.Sprintf("fail to save node account(%s)", nodeAccount))
 	}
-
 	return nil
 }
