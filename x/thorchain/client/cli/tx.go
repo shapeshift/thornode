@@ -79,7 +79,7 @@ func GetCmdSend(cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
 		Use:   "send [to_address] [coins]",
 		Short: "sends funds",
-		Args:  cobra.ExactArgs(3),
+		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			inBuf := bufio.NewReader(cmd.InOrStdin())
 			cliCtx := context.NewCLIContextWithInput(inBuf).WithCodec(cdc)

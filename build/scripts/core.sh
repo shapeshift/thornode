@@ -95,7 +95,7 @@ init_chain () {
     echo $SIGNER_PASSWD | thorcli keys list
 
     for user in $@; do # iterate over our list of comma separated users "alice,jack"
-        thord add-genesis-account $user 1000thor
+        thord add-genesis-account $user 100000000rune
     done
 
     thorcli config chain-id thorchain
