@@ -3,12 +3,12 @@ package thorchain
 import (
 	"strconv"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	abci "github.com/tendermint/tendermint/abci/types"
 	. "gopkg.in/check.v1"
 
 	ckeys "github.com/cosmos/cosmos-sdk/crypto/keys"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/hd"
+	types2 "github.com/cosmos/cosmos-sdk/types"
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
@@ -530,10 +530,15 @@ func (s *QuerierSuite) TestQueryBalanceModule(c *C) {
 	s.k.SetVault(s.ctx, GetRandomVault())
 	result, err := s.querier(s.ctx, []string{
 		query.QueryBalanceModule.Key,
+		"asgard",
 	}, abci.RequestQuery{})
 	c.Assert(result, NotNil)
 	c.Assert(err, IsNil)
-	var r sdk.Coins
+	var r struct {
+		Name    string            `json:"name"`
+		Address cosmos.AccAddress `json:"address"`
+		Coins   types2.Coins      `json:"coins"`
+	}
 	c.Assert(s.k.Cdc().UnmarshalJSON(result, &r), IsNil)
 }
 
