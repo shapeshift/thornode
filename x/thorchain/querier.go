@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/cosmos/cosmos-sdk/codec"
+	types2 "github.com/cosmos/cosmos-sdk/types"
 	abci "github.com/tendermint/tendermint/abci/types"
 
 	"gitlab.com/thorchain/thornode/common"
@@ -96,13 +97,28 @@ func queryRagnarok(ctx cosmos.Context, keeper keeper.Keeper) ([]byte, error) {
 
 func queryBalanceModule(ctx cosmos.Context, path []string, keeper keeper.Keeper) ([]byte, error) {
 	supplier := keeper.Supply()
-	mod := supplier.GetModuleAccount(ctx, AsgardName)
+	moduleName := path[0]
+	if len(moduleName) == 0 {
+		moduleName = AsgardName
+	}
 
-	res, err := codec.MarshalJSONIndent(keeper.Cdc(), mod.GetCoins())
+	mod := supplier.GetModuleAccount(ctx, moduleName)
+	if mod == nil {
+		return nil, fmt.Errorf("fail to get module account:%s", moduleName)
+	}
+	balance := struct {
+		Name    string            `json:"name"`
+		Address cosmos.AccAddress `json:"address"`
+		Coins   types2.Coins      `json:"coins"`
+	}{
+		Name:    moduleName,
+		Address: mod.GetAddress(),
+		Coins:   mod.GetCoins(),
+	}
+	res, err := codec.MarshalJSONIndent(keeper.Cdc(), balance)
 	if err != nil {
 		return nil, ErrInternal(err, "fail to marshal response to json")
 	}
-
 	return res, nil
 }
 

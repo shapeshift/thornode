@@ -26,7 +26,6 @@ func (h NetworkFeeHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.
 	if !ok {
 		return nil, errInvalidMessage
 	}
-	ctx.Logger().Info("receive msg network fee")
 	if err := h.validate(ctx, msg, version); err != nil {
 		ctx.Logger().Error("MsgNetworkFee failed validation", "error", err)
 		return nil, err
@@ -57,7 +56,6 @@ func (h NetworkFeeHandler) validateV1(ctx cosmos.Context, msg MsgNetworkFee) err
 
 // handle process MsgNetworkFee
 func (h NetworkFeeHandler) handle(ctx cosmos.Context, msg MsgNetworkFee, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
-	ctx.Logger().Info("handle MsgNetworkFee request", "chain", msg.Chain, "block height", msg.BlockHeight)
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.handleV1(ctx, msg, version, constAccessor)
 	}
@@ -86,7 +84,6 @@ func (h NetworkFeeHandler) handleV1(ctx cosmos.Context, msg MsgNetworkFee, versi
 	h.keeper.SetObservedNetworkFeeVoter(ctx, voter)
 	// doesn't have consensus yet
 	if !voter.HasConsensus(active) {
-		ctx.Logger().Info("not having consensus yet, return")
 		return &cosmos.Result{}, nil
 	}
 
