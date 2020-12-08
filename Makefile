@@ -6,6 +6,7 @@ NOW=$(shell date +'%Y-%m-%d_%T')
 COMMIT:=$(shell git log -1 --format='%H')
 VERSION:=$(shell cat version)
 TAG?=testnet
+IMAGE?=registry.gitlab.com/thorchain/thornode
 TEST_DIR?="./..."
 # native coin denom string
 
@@ -99,7 +100,7 @@ export:
 	thord export
 
 pull:
-	docker pull registry.gitlab.com/thorchain/thornode:mocknet
+	docker pull ${IMAGE}:mocknet
 	docker pull registry.gitlab.com/thorchain/midgard
 	docker pull registry.gitlab.com/thorchain/bepswap/bepswap-web-ui
 	docker pull registry.gitlab.com/thorchain/bepswap/mock-binance
