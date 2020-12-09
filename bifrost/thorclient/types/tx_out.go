@@ -8,11 +8,11 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 )
 
+// TxOutItem represent the information of a tx bifrost need to process
 type TxOutItem struct {
 	Chain       common.Chain   `json:"chain"`
 	ToAddress   common.Address `json:"to"`
 	VaultPubKey common.PubKey  `json:"vault_pubkey"`
-	SeqNo       uint64         `json:"seq_no"`
 	Coins       common.Coins   `json:"coins"`
 	Memo        string         `json:"memo"`
 	MaxGas      common.Gas     `json:"max_gas"`
@@ -21,11 +21,13 @@ type TxOutItem struct {
 	OutHash     common.TxID    `json:"out_hash"`
 }
 
+// Hash return a sha256 hash that can uniquely represent the TxOutItem
 func (tx TxOutItem) Hash() string {
 	str := fmt.Sprintf("%s|%s|%s|%s|%s|%s", tx.Chain, tx.ToAddress, tx.VaultPubKey, tx.Coins, tx.Memo, tx.InHash)
 	return fmt.Sprintf("%X", sha256.Sum256([]byte(str)))
 }
 
+// Equals compare two TxOutItem , return true when they are the same , otherwise false
 func (tx TxOutItem) Equals(tx2 TxOutItem) bool {
 	if !tx.Chain.Equals(tx2.Chain) {
 		return false
@@ -51,6 +53,11 @@ func (tx TxOutItem) Equals(tx2 TxOutItem) bool {
 	return true
 }
 
+// TxArrayItem used to represent the tx out item coming from THORChain, there is little difference between TxArrayItem
+// and TxOutItem defined above , only Coin <-> Coins field are different.
+// TxArrayItem from THORChain has Coin , which only have a single coin
+// TxOutItem used in bifrost need to support Coins , because when Yggdrasil return , it send all the coins back to asgard
+// using multisend
 type TxArrayItem struct {
 	Chain       common.Chain   `json:"chain"`
 	ToAddress   common.Address `json:"to"`
@@ -63,6 +70,7 @@ type TxArrayItem struct {
 	OutHash     common.TxID    `json:"out_hash"`
 }
 
+// TxOutItem convert the information to TxOutItem
 func (tx TxArrayItem) TxOutItem() TxOutItem {
 	return TxOutItem{
 		Chain:       tx.Chain,
@@ -77,12 +85,8 @@ func (tx TxArrayItem) TxOutItem() TxOutItem {
 	}
 }
 
+// TxOut represent the tx out information , bifrost need to sign and process
 type TxOut struct {
 	Height  int64         `json:"height,string"`
 	TxArray []TxArrayItem `json:"tx_array"`
-}
-
-// GetKey will return a key we can used it to save the infor to level db
-func (tai TxArrayItem) GetKey(height int64) string {
-	return fmt.Sprintf("%d-%s-%s-%s-%s-%s", height, tai.InHash, tai.VaultPubKey, tai.Memo, tai.Coin, tai.ToAddress)
 }
