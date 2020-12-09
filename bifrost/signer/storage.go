@@ -37,13 +37,15 @@ type TxOutStoreItem struct {
 	TxOutItem types.TxOutItem
 	Status    TxStatus
 	Height    int64
+	Index     int64
 }
 
-func NewTxOutStoreItem(height int64, item types.TxOutItem) TxOutStoreItem {
+func NewTxOutStoreItem(height int64, item types.TxOutItem, idx int64) TxOutStoreItem {
 	return TxOutStoreItem{
 		TxOutItem: item,
 		Height:    height,
 		Status:    TxAvailable,
+		Index:     idx,
 	}
 }
 
@@ -51,9 +53,11 @@ func (s *TxOutStoreItem) Key() string {
 	buf, _ := json.Marshal(struct {
 		TxOutItem types.TxOutItem
 		Height    int64
+		Index     int64
 	}{
 		s.TxOutItem,
 		s.Height,
+		s.Index,
 	})
 	sha256Bytes := sha256.Sum256(buf)
 	return fmt.Sprintf("%s%s", txOutPrefix, hex.EncodeToString(sha256Bytes[:]))
