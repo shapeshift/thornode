@@ -163,7 +163,6 @@ func (s *BitcoinSignerSuite) TestSignTx(c *C) {
 		Chain:       common.BNBChain,
 		ToAddress:   types2.GetRandomBNBAddress(),
 		VaultPubKey: types2.GetRandomPubKey(),
-		SeqNo:       0,
 		Coins: common.Coins{
 			common.NewCoin(common.BTCAsset, cosmos.NewUint(10)),
 		},
@@ -215,7 +214,6 @@ func (s *BitcoinSignerSuite) TestSignTxHappyPathWithPrivateKey(c *C) {
 		Chain:       common.BTCChain,
 		ToAddress:   addr,
 		VaultPubKey: "tthorpub1addwnpepqw2k68efthm08f0f5akhjs6fk5j2pze4wkwt4fmnymf9yd463puruhh0lyz",
-		SeqNo:       0,
 		Coins: common.Coins{
 			common.NewCoin(common.BTCAsset, cosmos.NewUint(10)),
 		},
@@ -255,7 +253,6 @@ func (s *BitcoinSignerSuite) TestSignTxWithoutPredefinedMaxGas(c *C) {
 		Chain:       common.BTCChain,
 		ToAddress:   addr,
 		VaultPubKey: "tthorpub1addwnpepqw2k68efthm08f0f5akhjs6fk5j2pze4wkwt4fmnymf9yd463puruhh0lyz",
-		SeqNo:       0,
 		Coins: common.Coins{
 			common.NewCoin(common.BTCAsset, cosmos.NewUint(10)),
 		},
@@ -301,7 +298,6 @@ func (s *BitcoinSignerSuite) TestSignTxWithTSS(c *C) {
 		Chain:       common.BTCChain,
 		ToAddress:   addr,
 		VaultPubKey: "tthorpub1addwnpepqwm9wsafv26hzqurtjvuuj3xk4j3jyc9yj2uastnmuuqjney9ep3clzt622",
-		SeqNo:       0,
 		Coins: common.Coins{
 			common.NewCoin(common.BTCAsset, cosmos.NewUint(10)),
 		},
@@ -331,7 +327,6 @@ func (s *BitcoinSignerSuite) TestBroadcastTx(c *C) {
 		Chain:       common.BNBChain,
 		ToAddress:   types2.GetRandomBNBAddress(),
 		VaultPubKey: types2.GetRandomPubKey(),
-		SeqNo:       0,
 		Coins: common.Coins{
 			common.NewCoin(common.BTCAsset, cosmos.NewUint(10)),
 		},
@@ -364,7 +359,6 @@ func (s *BitcoinSignerSuite) TestEstimateTxSize(c *C) {
 		Chain:       common.BNBChain,
 		ToAddress:   types2.GetRandomBTCAddress(),
 		VaultPubKey: types2.GetRandomPubKey(),
-		SeqNo:       0,
 		Coins: common.Coins{
 			common.NewCoin(common.BTCAsset, cosmos.NewUint(10)),
 		},

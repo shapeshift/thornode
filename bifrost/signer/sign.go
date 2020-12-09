@@ -229,7 +229,7 @@ func (s *Signer) processTxnOut(ch <-chan types.TxOut, idx int) {
 			s.logger.Info().Msgf("Received a TxOut Array of %v from the Thorchain", txOut)
 			items := make([]TxOutStoreItem, len(txOut.TxArray))
 			for i, tx := range txOut.TxArray {
-				items[i] = NewTxOutStoreItem(txOut.Height, tx.TxOutItem())
+				items[i] = NewTxOutStoreItem(txOut.Height, tx.TxOutItem(), int64(i))
 			}
 			if err := s.storage.Batch(items); err != nil {
 				s.logger.Error().Err(err).Msg("fail to save tx out items to storage")

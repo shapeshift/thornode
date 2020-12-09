@@ -22,7 +22,7 @@ func (s *StorageSuite) TestStorage(c *C) {
 	store, err := NewSignerStore("", "my secret passphrase")
 	c.Assert(err, IsNil)
 
-	item := NewTxOutStoreItem(12, types.TxOutItem{Memo: "foo"})
+	item := NewTxOutStoreItem(12, types.TxOutItem{Memo: "foo"}, 1)
 
 	c.Assert(store.Set(item), IsNil)
 	c.Check(store.Has(item.Key()), Equals, true)
@@ -39,13 +39,13 @@ func (s *StorageSuite) TestStorage(c *C) {
 
 	pk := common.PubKey("tthorpub1addwnpepqfup3y8p0egd7ml7vrnlxgl3wvnp89mpn0tjpj0p2nm2gh0n9hlrvrtylay")
 
-	spent := NewTxOutStoreItem(10, types.TxOutItem{Chain: common.BNBChain, VaultPubKey: pk, Memo: "spent"})
+	spent := NewTxOutStoreItem(10, types.TxOutItem{Chain: common.BNBChain, VaultPubKey: pk, Memo: "spent"}, 0)
 	spent.Status = TxSpent
 	items = []TxOutStoreItem{
-		NewTxOutStoreItem(12, types.TxOutItem{Chain: common.BTCChain, VaultPubKey: pk, Memo: "foo"}),
-		NewTxOutStoreItem(12, types.TxOutItem{Chain: common.BNBChain, VaultPubKey: pk, Memo: "bar"}),
-		NewTxOutStoreItem(13, types.TxOutItem{Chain: common.BNBChain, VaultPubKey: pk, Memo: "baz"}),
-		NewTxOutStoreItem(10, types.TxOutItem{Chain: common.BTCChain, VaultPubKey: pk, Memo: "boo"}),
+		NewTxOutStoreItem(12, types.TxOutItem{Chain: common.BTCChain, VaultPubKey: pk, Memo: "foo"}, 0),
+		NewTxOutStoreItem(12, types.TxOutItem{Chain: common.BNBChain, VaultPubKey: pk, Memo: "bar"}, 1),
+		NewTxOutStoreItem(13, types.TxOutItem{Chain: common.BNBChain, VaultPubKey: pk, Memo: "baz"}, 2),
+		NewTxOutStoreItem(10, types.TxOutItem{Chain: common.BTCChain, VaultPubKey: pk, Memo: "boo"}, 3),
 		spent,
 	}
 
@@ -69,10 +69,10 @@ func (s *StorageSuite) TestStorage(c *C) {
 }
 
 func (s *StorageSuite) TestKey(c *C) {
-	item1 := NewTxOutStoreItem(12, types.TxOutItem{Memo: "foo"})
-	item2 := NewTxOutStoreItem(12, types.TxOutItem{Memo: "foo"})
-	item3 := NewTxOutStoreItem(1222, types.TxOutItem{Memo: "foo"})
-	item4 := NewTxOutStoreItem(12, types.TxOutItem{Memo: "bar"})
+	item1 := NewTxOutStoreItem(12, types.TxOutItem{Memo: "foo"}, 1)
+	item2 := NewTxOutStoreItem(12, types.TxOutItem{Memo: "foo"}, 1)
+	item3 := NewTxOutStoreItem(1222, types.TxOutItem{Memo: "foo"}, 3)
+	item4 := NewTxOutStoreItem(12, types.TxOutItem{Memo: "bar"}, 4)
 	c.Check(item1.Key(), Equals, item2.Key())
 	c.Check(item1.Key(), Not(Equals), item3.Key())
 	c.Check(item1.Key(), Not(Equals), item4.Key())
