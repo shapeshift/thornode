@@ -198,10 +198,13 @@ func (vm *VaultMgrV1) EndBlock(ctx cosmos.Context, mgr Manager, constAccessor co
 						ctx.Logger().Error("fail to get max gas: %w", err)
 						return err
 					}
-					amt = common.SafeSub(
-						amt,
-						gas.Amount.MulUint64(uint64(vault.CoinLengthByChain(coin.Asset.Chain))),
-					)
+					gasAmount := gas.Amount.MulUint64(uint64(vault.CoinLengthByChain(coin.Asset.Chain)))
+					amt = common.SafeSub(amt, gasAmount)
+
+					// if remainder is less than the gas amount, just send it all now
+					if common.SafeSub(coin.Amount, amt).LTE(gasAmount) {
+						amt = common.SafeSub(coin.Amount, gasAmount)
+					}
 				}
 
 				toi := TxOutItem{
