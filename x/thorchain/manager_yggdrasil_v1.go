@@ -13,10 +13,12 @@ import (
 	kvTypes "gitlab.com/thorchain/thornode/x/thorchain/keeper/types"
 )
 
+// YggMgrV1 is an implementation of YggManager
 type YggMgrV1 struct {
 	keeper keeper.Keeper
 }
 
+// NewYggMgrV1 create a new instance of YggMgrV1 which implement YggManager interface
 func NewYggMgrV1(keeper keeper.Keeper) *YggMgrV1 {
 	return &YggMgrV1{
 		keeper: keeper,
@@ -179,33 +181,48 @@ func (ymgr YggMgrV1) sendCoinsToYggdrasil(ctx cosmos.Context, coins common.Coins
 				continue
 			}
 
+			gasCoin, err := mgr.GasMgr().GetMaxGas(ctx, coin.Asset.Chain)
+			if err != nil {
+				ctx.Logger().Error("fail to get max gas coin", "error", err)
+				continue
+			}
+
+			// when the coin need to be send to yggdrasil is gas coin , for example BNB(Binance) / BTC (Bitcoin)
+			// the gas cost need to be count in , as the gas cost will be paid by the chosen vault
+			totalAmount := coin.Amount
+			if coin.Asset.Equals(gasCoin.Asset) {
+				totalAmount = totalAmount.Add(gasCoin.Amount)
+			}
 			// select active vault to send funds from
 			filterVaults := make(Vaults, 0)
 			for _, v := range active {
-				if !coin.Amount.GT(v.GetCoin(coin.Asset).Amount) {
-					filterVaults = append(filterVaults, v)
+
+				// when  vault doesn't have enough gas coin should be ignored from funding yggdrasil
+				// for example, if the network need to send BUSD to yggdrasil vault , however
+				// the least secure vault doesn't have enough BNB in it to pay for the fee, like less than (0.00375) in it
+				if gasCoin.Amount.GT(v.GetCoin(gasCoin.Asset).Amount) {
+					continue
 				}
+
+				// when vault doesn't have enough balance
+				if totalAmount.GT(v.GetCoin(coin.Asset).Amount) {
+					continue
+				}
+
+				filterVaults = append(filterVaults, v)
 			}
 			signingTransactionPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
 			vault := ymgr.keeper.GetLeastSecure(ctx, filterVaults, signingTransactionPeriod)
 			if vault.IsEmpty() {
 				continue
 			}
-			if coin.Amount.GT(vault.GetCoin(coin.Asset).Amount) {
-				// not enough funds
-				continue
-			}
 
 			to, err := ygg.PubKey.GetAddress(coin.Asset.Chain)
 			if err != nil {
-				ctx.Logger().Error("fail to get address for pubkey", "pubkey", ygg.PubKey, "chain", coin.Asset.Chain, "error", err)
+				ctx.Logger().Error("fail to get address from pub key", "pub key", ygg.PubKey, "chain", coin.Asset.Chain, "error", err)
 				continue
 			}
-			gasCoin, err := mgr.GasMgr().GetMaxGas(ctx, coin.Asset.Chain)
-			if err != nil {
-				ctx.Logger().Error("fail to get max gas coin", "error", err)
-				continue
-			}
+
 			toi := TxOutItem{
 				Chain:       coin.Asset.Chain,
 				ToAddress:   to,
