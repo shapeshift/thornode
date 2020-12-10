@@ -9,7 +9,12 @@ else
 endif
 
 run-mocknet-standalone:
-	IMAGE=${IMAGE} TAG=mocknet NET=mocknet docker-compose -p thornode -f ${path}../components/standalone.base.yml -f ${path}../components/midgard.yml -f ${path}../components/mock-binance.yml -f ${path}../components/bitcoin-regtest.yml -f ${path}../components/bitcoin-abc-regtest.yml -f ${path}../components/ethereum-localnet.yml up --remove-orphans -d
+	IMAGE=${IMAGE} TAG=mocknet NET=mocknet docker-compose -p thornode \
+		-f ${path}../components/standalone.base.yml -f ${path}../components/frontend.yml \
+		-f ${path}../components/midgard.yml -f ${path}../components/midgard.${uname_S}.yml \
+		-f ${path}../components/mock-binance.yml -f ${path}../components/bitcoin-regtest.yml \
+		-f ${path}../components/ethereum-localnet.yml -f ${path}../components/bitcoin-abc-regtest.yml \
+		-f ${path}../mocknet/standalone.yml -f ${path}../components/standalone.${uname_S}.yml up --remove-orphans -d
 
 reset-mocknet-standalone: stop clean run-mocknet-standalone
 
