@@ -6,5 +6,8 @@ services:
     restart: unless-stopped
     image: registry.gitlab.com/thorchain/devops/bitcoin-abc:0.22.8
     environment:
+      RPC_PORT: "28443"
       BLOCK_TIME: ${BLOCK_TIME:-1}
+    ports:
+      - "28443:28443"
     entrypoint: "/scripts/entrypoint-mock.sh"
