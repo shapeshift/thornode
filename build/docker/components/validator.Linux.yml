@@ -10,7 +10,7 @@ services:
       TSS_HOST: localhost
       SIGNER_PASSWD: ${SIGNER_PASSWD}
       BTC_HOST: ${BTC_HOST:-localhost:18443}
-      BCH_HOST: ${BCH_HOST:-bitcoin-abc-regtest:18443}
+      BCH_HOST: ${BCH_HOST:-bitcoin-abc-regtest:28443}
       ETH_HOST: ${ETH_HOST:-http://localhost:8545}
   thor-daemon:
     network_mode: "host"
