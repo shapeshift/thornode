@@ -48,7 +48,6 @@ services:
     image: ${IMAGE:-registry.gitlab.com/thorchain/thornode}:${TAG:-latest}
     restart: unless-stopped
     environment:
-      NATIVE: ${NATIVE:-none}
       NODES: 1
       SEED: thor-daemon
       NET: ${NET:-:-mainnet}
