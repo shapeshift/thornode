@@ -19,6 +19,7 @@ services:
       PEER: ${PEER}
       SIGNER_PASSWD: ${SIGNER_PASSWD}
       BTC_HOST: ${BTC_HOST:-bitcoin-regtest:18443}
+      BCH_HOST: ${BCH_HOST:-bitcoin-abc-regtest:18443}
       ETH_HOST: ${ETH_HOST:-http://ethereum-localnet:8545}
     entrypoint:
       /docker/scripts/bifrost.sh
