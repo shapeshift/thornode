@@ -307,6 +307,14 @@ func (tos *TxOutStorageV1) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem) (
 			}
 		}
 
+		// when it is ragnarok , the network doesn't charge fee , however if the output asset is gas asset,
+		// then the amount of max gas need to be taken away from the customer , otherwise the vault will be insolvent and doesn't
+		// have enough to fulfill outbound
+		// Also the MaxGas has not put back to pool ,so there is no need to subside pool when ragnarok is in progress
+		if memo.IsType(TxRagnarok) && outputs[i].Coin.Asset.IsGasAsset() {
+			gasAmt := outputs[i].MaxGas.ToCoins().GetCoin(outputs[i].Coin.Asset).Amount
+			outputs[i].Coin.Amount = common.SafeSub(outputs[i].Coin.Amount, gasAmt)
+		}
 		// When we request Yggdrasil pool to return the fund, the coin field is actually empty
 		// Signer when it sees an tx out item with memo "yggdrasil-" it will query the account on relevant chain
 		// and coin field will be filled there, thus we have to let this one go
@@ -316,14 +324,17 @@ func (tos *TxOutStorageV1) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem) (
 			continue
 		}
 
-		// increment out number of out tx for this in tx
-		voter, err := tos.keeper.GetObservedTxInVoter(ctx, outputs[i].InHash)
-		if err != nil {
-			return nil, fmt.Errorf("fail to get observed tx voter: %w", err)
+		if !outputs[i].InHash.Equals(common.BlankTxID) {
+			// increment out number of out tx for this in tx
+			voter, err := tos.keeper.GetObservedTxInVoter(ctx, outputs[i].InHash)
+			if err != nil {
+				return nil, fmt.Errorf("fail to get observed tx voter: %w", err)
+			}
+			voter.FinalisedHeight = common.BlockHeight(ctx)
+			voter.Actions = append(voter.Actions, outputs[i])
+			tos.keeper.SetObservedTxInVoter(ctx, voter)
 		}
-		voter.FinalisedHeight = common.BlockHeight(ctx)
-		voter.Actions = append(voter.Actions, outputs[i])
-		tos.keeper.SetObservedTxInVoter(ctx, voter)
+
 		finalOutput = append(finalOutput, outputs[i])
 	}
 

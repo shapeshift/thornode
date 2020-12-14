@@ -111,27 +111,18 @@ func (gm *GasMgrV1) GetGasRate(ctx cosmos.Context, chain common.Chain) int64 {
 func (gm *GasMgrV1) GetMaxGas(ctx cosmos.Context, chain common.Chain) (common.Coin, error) {
 	gasAsset := chain.GetGasAsset()
 	var amount cosmos.Uint
-	if gm.keeper.PoolExist(ctx, gasAsset) {
-		pool, err := gm.keeper.GetPool(ctx, gasAsset)
-		if err != nil {
-			return common.NoCoin, fmt.Errorf("failed to get gas asset pool: %w", err)
-		}
-		transactionFee := gm.GetFee(ctx, chain)
-		// max gas amount is the transaction fee divided by two, in asset amount
-		maxAmt := pool.RuneValueInAsset(cosmos.NewUint(uint64(transactionFee / 2)))
-		if chain.IsBNB() {
-			// for Binance chain , the fee is fix, thus we give 1/3 as max gas
-			maxAmt = pool.RuneValueInAsset(cosmos.NewUint(uint64(transactionFee / 3)))
-		}
-		amount = maxAmt
-	} else {
-		// if there is not gas asset pool which is rare
-		nf, err := gm.keeper.GetNetworkFee(ctx, chain)
-		if err != nil {
-			return common.NoCoin, fmt.Errorf("fail to get network fee for chain(%s): %w", chain, err)
-		}
-		amount = cosmos.NewUint(nf.TransactionSize * nf.TransactionFeeRate)
+
+	// if there is not gas asset pool which is rare
+	nf, err := gm.keeper.GetNetworkFee(ctx, chain)
+	if err != nil {
+		return common.NoCoin, fmt.Errorf("fail to get network fee for chain(%s): %w", chain, err)
 	}
+	if chain.IsBNB() {
+		amount = cosmos.NewUint(nf.TransactionSize * nf.TransactionFeeRate)
+	} else {
+		amount = cosmos.NewUint(nf.TransactionSize * nf.TransactionFeeRate).MulUint64(3).QuoUint64(2)
+	}
+
 	return common.NewCoin(gasAsset, amount), nil
 }
 
@@ -156,6 +147,10 @@ func (gm *GasMgrV1) EndBlock(ctx cosmos.Context, keeper keeper.Keeper, eventMana
 
 // ProcessGas to subsidise the pool with RUNE for the gas they have spent
 func (gm *GasMgrV1) ProcessGas(ctx cosmos.Context, keeper keeper.Keeper) {
+	if keeper.RagnarokInProgress(ctx) {
+		// ragnarok is in progress , stop
+		return
+	}
 	vault, err := keeper.GetNetwork(ctx)
 	if err != nil {
 		ctx.Logger().Error("fail to get network data", "error", err)

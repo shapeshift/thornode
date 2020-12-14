@@ -86,6 +86,7 @@ func (a Asset) String() string {
 	return fmt.Sprintf("%s.%s", a.Chain.String(), a.Symbol.String())
 }
 
+// IsGasAsset check whether asset is base asset used to pay for gas
 func (a Asset) IsGasAsset() bool {
 	gasAsset := a.Chain.GetGasAsset()
 	if gasAsset.IsEmpty() {

@@ -240,6 +240,7 @@ func (s *ThorchainSuite) TestChurn(c *C) {
 }
 
 func (s *ThorchainSuite) TestRagnarok(c *C) {
+	SetupConfigForTest()
 	var err error
 	ctx, keeper := setupKeeperForTest(c)
 	ctx = ctx.WithBlockHeight(10)
@@ -268,6 +269,10 @@ func (s *ThorchainSuite) TestRagnarok(c *C) {
 	pool.Asset = boltAsset
 	pool.Status = PoolAvailable
 	c.Assert(keeper.SetPool(ctx, pool), IsNil)
+	pool = NewPool()
+	pool.Asset = common.BTCAsset
+	pool.Status = PoolAvailable
+	c.Assert(keeper.SetPool(ctx, pool), IsNil)
 	addHandler := NewAddLiquidityHandler(keeper, mgr)
 	// add liquidity providers
 	lp1 := GetRandomRUNEAddress() // LiquidityProvider1
@@ -286,6 +291,24 @@ func (s *ThorchainSuite) TestRagnarok(c *C) {
 	lp3asset := GetRandomBNBAddress()
 	err = addHandler.addLiquidityV1(ctx, common.BNBAsset, cosmos.NewUint(155*common.One), cosmos.NewUint(15*common.One), lp3, lp3asset, GetRandomTxHash(), consts)
 	c.Assert(err, IsNil)
+
+	lp4 := GetRandomTHORAddress() // liquidity provider 4 , BTC
+	lp4Asset := GetRandomBTCAddress()
+	err = addHandler.addLiquidityV1(ctx, common.BTCAsset, cosmos.NewUint(100*common.One), cosmos.NewUint(100*common.One), lp4, lp4Asset, GetRandomTxHash(), consts)
+	c.Assert(err, IsNil)
+
+	lp5 := GetRandomTHORAddress() // Rune only
+	err = addHandler.addLiquidityV1(ctx, common.BTCAsset, cosmos.NewUint(100*common.One), cosmos.ZeroUint(), lp5, common.NoAddress, GetRandomTxHash(), consts)
+	c.Assert(err, IsNil)
+	lp6Asset := GetRandomBTCAddress() // BTC only
+
+	err = addHandler.addLiquidityV1(ctx, common.BTCAsset, cosmos.ZeroUint(), cosmos.NewUint(100*common.One), common.NoAddress, lp6Asset, GetRandomTxHash(), consts)
+	c.Assert(err, IsNil)
+
+	asgard.AddFunds(common.Coins{
+		common.NewCoin(common.BTCAsset, cosmos.NewUint(101*common.One)),
+	})
+
 	lps := []common.Address{
 		lp1, lp2, lp3,
 	}
@@ -350,7 +373,7 @@ func (s *ThorchainSuite) TestRagnarok(c *C) {
 		c.Assert(err, IsNil)
 		bonders[idx].Bond = na.Bond
 	}
-	// make sure we have enough yggdrasil returns
+	// make sure all yggdrasil vault get recalled
 	items, err := mgr.TxOutStore().GetOutboundItems(ctx)
 	c.Assert(err, IsNil)
 	c.Assert(items, HasLen, bonderCount)
@@ -378,8 +401,6 @@ func (s *ThorchainSuite) TestRagnarok(c *C) {
 
 		if i <= 10 {
 			c.Assert(items, HasLen, 2, Commentf("%d", len(items)))
-		} else {
-			c.Assert(items, HasLen, 3, Commentf("%d", len(items)))
 		}
 
 		// validate liquidity providers get their returns
@@ -387,7 +408,7 @@ func (s *ThorchainSuite) TestRagnarok(c *C) {
 			items := mgr.TxOutStore().GetOutboundItemByToAddress(ctx, lp)
 			// TODO: check item amounts
 			if i <= 10 {
-				if j == len(lps)-1 {
+				if j >= len(lps)-1 {
 					c.Assert(items, HasLen, 0, Commentf("%d", len(items)))
 				} else {
 					c.Assert(items, HasLen, 1, Commentf("%d", len(items)))

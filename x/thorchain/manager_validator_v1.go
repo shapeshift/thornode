@@ -631,8 +631,7 @@ func (vm *validatorMgrV1) ragnarokBond(ctx cosmos.Context, nth int64, mgr Manage
 func (vm *validatorMgrV1) ragnarokPools(ctx cosmos.Context, nth int64, mgr Manager, constAccessor constants.ConstantValues) error {
 	nas, err := vm.k.ListActiveNodeAccounts(ctx)
 	if err != nil {
-		ctx.Logger().Error("can't get active nodes", "error", err)
-		return err
+		return fmt.Errorf("fail to get active nodes: %w", err)
 	}
 	if len(nas) == 0 {
 		return fmt.Errorf("can't find any active nodes")
@@ -660,8 +659,7 @@ func (vm *validatorMgrV1) ragnarokPools(ctx cosmos.Context, nth int64, mgr Manag
 	// go through all the pools
 	pools, err := vm.k.GetPools(ctx)
 	if err != nil {
-		ctx.Logger().Error("can't get pools", "error", err)
-		return err
+		return fmt.Errorf("fail to get pools: %w", err)
 	}
 	// set all pools to staged status
 	for _, pool := range pools {
@@ -673,8 +671,7 @@ func (vm *validatorMgrV1) ragnarokPools(ctx cosmos.Context, nth int64, mgr Manag
 
 			pool.Status = PoolStaged
 			if err := vm.k.SetPool(ctx, pool); err != nil {
-				ctx.Logger().Error(err.Error())
-				return err
+				return fmt.Errorf("fail to set pool %s to Stage status: %w", pool.Asset, err)
 			}
 		}
 	}
@@ -700,7 +697,7 @@ func (vm *validatorMgrV1) ragnarokPools(ctx cosmos.Context, nth int64, mgr Manag
 		position.Pool = pool.Asset
 
 		// withdraw gas asset pool on the back 10 nths
-		if nth <= 10 && pool.Asset.Chain.GetGasAsset().Equals(pool.Asset) {
+		if nth <= 10 && pool.Asset.IsGasAsset() {
 			continue
 		}
 
@@ -711,18 +708,33 @@ func (vm *validatorMgrV1) ragnarokPools(ctx cosmos.Context, nth int64, mgr Manag
 			if j == position.Number {
 				position.Number++
 				var lp LiquidityProvider
-				vm.k.Cdc().MustUnmarshalBinaryBare(iterator.Value(), &lp)
+				if err := vm.k.Cdc().UnmarshalBinaryBare(iterator.Value(), &lp); err != nil {
+					ctx.Logger().Error("fail to unmarshal liquidity provider", "error", err)
+					continue
+				}
 
 				if lp.Units.IsZero() {
 					continue
 				}
-
+				var withdrawAddr common.Address
+				withdrawAsset := common.EmptyAsset
+				if !lp.RuneAddress.IsEmpty() {
+					withdrawAddr = lp.RuneAddress
+					// if liquidity provider only add RUNE , then asset address will be empty
+					if lp.AssetAddress.IsEmpty() {
+						withdrawAsset = common.RuneAsset()
+					}
+				} else {
+					// if liquidity provider only add Asset, then RUNE Address will be empty
+					withdrawAddr = lp.AssetAddress
+					withdrawAsset = lp.Asset
+				}
 				withdrawMsg := NewMsgWithdrawLiquidity(
-					common.GetRagnarokTx(pool.Asset.Chain, lp.RuneAddress, lp.RuneAddress),
-					lp.RuneAddress,
+					common.GetRagnarokTx(pool.Asset.Chain, withdrawAddr, withdrawAddr),
+					withdrawAddr,
 					cosmos.NewUint(uint64(basisPoints)),
 					pool.Asset,
-					common.EmptyAsset,
+					withdrawAsset,
 					na.NodeAddress,
 				)
 
@@ -731,14 +743,17 @@ func (vm *validatorMgrV1) ragnarokPools(ctx cosmos.Context, nth int64, mgr Manag
 				if err != nil {
 					ctx.Logger().Error("fail to withdraw", "liquidity provider", lp.RuneAddress, "error", err)
 				} else {
-					count++
-					pending, err := vm.k.GetRagnarokPending(ctx)
-					if err != nil {
-						return fmt.Errorf("fail to get ragnarok pending: %w", err)
-					}
-					vm.k.SetRagnarokPending(ctx, pending+2) // two outbound txs
-					if count >= maxWithdrawsPerBlock {
-						break
+					// when withdraw asset is only RUNE , then it should process more , because RUNE asset doesn't leave THORChain
+					if !withdrawAsset.Equals(common.RuneAsset()) {
+						count++
+						pending, err := vm.k.GetRagnarokPending(ctx)
+						if err != nil {
+							return fmt.Errorf("fail to get ragnarok pending: %w", err)
+						}
+						vm.k.SetRagnarokPending(ctx, pending+1)
+						if count >= maxWithdrawsPerBlock {
+							break
+						}
 					}
 				}
 			}
@@ -858,7 +873,8 @@ func (vm *validatorMgrV1) recallYggFunds(ctx cosmos.Context, mgr Manager, constA
 			return fmt.Errorf("fail to request yggdrasil fund back: %w", err)
 		}
 	}
-	return fmt.Errorf("some yggdrasil vaults (%d) still have funds", len(vaults))
+	ctx.Logger().Info("some yggdrasil vaults (%d) still have funds", len(vaults))
+	return nil
 }
 
 // setupValidatorNodes it is one off it only get called when genesis
