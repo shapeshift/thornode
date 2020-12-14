@@ -502,7 +502,17 @@ func AddGasFees(ctx cosmos.Context, keeper keeper.Keeper, tx ObservedTx, gasMana
 	if len(tx.Tx.Gas) == 0 {
 		return nil
 	}
-	gasManager.AddGasAsset(tx.Tx.Gas, true)
+	if keeper.RagnarokInProgress(ctx) {
+		// when ragnarok is in progress, if the tx is for gas coin then doesn't subsidise the pool with reserve
+		// liquidity providers they need to pay their own gas
+		// if the outbound coin is not gas asset, then reserve will subsidise it , otherwise the gas asset pool will be in a loss
+		gasAsset := tx.Tx.Chain.GetGasAsset()
+		if tx.Tx.Coins.GetCoin(gasAsset).IsEmpty() {
+			gasManager.AddGasAsset(tx.Tx.Gas, true)
+		}
+	} else {
+		gasManager.AddGasAsset(tx.Tx.Gas, true)
+	}
 	// Subtract from the vault
 	if keeper.VaultExists(ctx, tx.ObservedPubKey) {
 		vault, err := keeper.GetVault(ctx, tx.ObservedPubKey)
