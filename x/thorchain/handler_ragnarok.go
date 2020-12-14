@@ -73,6 +73,10 @@ func (h RagnarokHandler) slash(ctx cosmos.Context, version semver.Version, tx Ob
 }
 
 func (h RagnarokHandler) handleV1(ctx cosmos.Context, version semver.Version, msg MsgRagnarok, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+	// for ragnarok on thorchain ,
+	if msg.Tx.Tx.Chain.Equals(common.THORChain) {
+		return &cosmos.Result{}, nil
+	}
 	shouldSlash := true
 	signingTransPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
 	for height := msg.BlockHeight; height <= common.BlockHeight(ctx); height += signingTransPeriod {
@@ -100,18 +104,7 @@ func (h RagnarokHandler) handleV1(ctx cosmos.Context, version semver.Version, ms
 					maxGasAmt := tx.MaxGas.ToCoins().GetCoin(asset).Amount
 					realGasAmt := msg.Tx.Tx.Gas.ToCoins().GetCoin(asset).Amount
 					ctx.Logger().Info(fmt.Sprintf("intend to spend: %s, actual spend: %s are the same , override match coin, max_gas: %s , actual gas: %s ", intendToSpend, actualSpend, maxGasAmt, realGasAmt))
-					if maxGasAmt.GT(realGasAmt) {
-						// the outbound spend less than MaxGas
-						diffGas := maxGasAmt.Sub(realGasAmt)
-						h.mgr.GasMgr().AddGasAsset(common.Gas{
-							common.NewCoin(asset, diffGas),
-						}, false)
-					} else {
-						diffGas := realGasAmt.Sub(maxGasAmt)
-						h.mgr.GasMgr().SubGas(common.Gas{
-							common.NewCoin(asset, diffGas),
-						})
-					}
+					// the network didn't charge fee when it is ragnarok , thus it doesn't need to adjust gas
 				}
 			}
 

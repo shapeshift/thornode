@@ -512,17 +512,30 @@ func (vm *VaultMgrV1) ragnarokChain(ctx cosmos.Context, chain common.Chain, nth 
 		defer iterator.Close()
 		for ; iterator.Valid(); iterator.Next() {
 			var lp LiquidityProvider
-			vm.k.Cdc().MustUnmarshalBinaryBare(iterator.Value(), &lp)
-			if lp.Units.IsZero() {
+
+			if err := vm.k.Cdc().UnmarshalBinaryBare(iterator.Value(), &lp); err != nil {
+				ctx.Logger().Error("fail to unmarshal liquidity provider", "error", err)
 				continue
 			}
-
+			var withdrawAddr common.Address
+			withdrawAsset := common.EmptyAsset
+			if !lp.RuneAddress.IsEmpty() {
+				withdrawAddr = lp.RuneAddress
+				// if liquidity provider only add RUNE , then asset address will be empty
+				if lp.AssetAddress.IsEmpty() {
+					withdrawAsset = common.RuneAsset()
+				}
+			} else {
+				// if liquidity provider only add Asset, then RUNE Address will be empty
+				withdrawAddr = lp.AssetAddress
+				withdrawAsset = lp.Asset
+			}
 			withdrawMsg := NewMsgWithdrawLiquidity(
-				common.GetRagnarokTx(pool.Asset.Chain, lp.RuneAddress, lp.RuneAddress),
-				lp.RuneAddress,
+				common.GetRagnarokTx(pool.Asset.Chain, withdrawAddr, withdrawAddr),
+				withdrawAddr,
 				cosmos.NewUint(uint64(MaxWithdrawBasisPoints/100*(nth*10))),
 				pool.Asset,
-				common.EmptyAsset,
+				withdrawAsset,
 				na.NodeAddress,
 			)
 
