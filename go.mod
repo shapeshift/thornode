@@ -40,7 +40,7 @@ require (
 	github.com/tendermint/tendermint v0.33.9
 	github.com/tendermint/tm-db v0.5.1
 	github.com/zondax/ledger-go v0.11.0 // indirect
-	gitlab.com/thorchain/tss/go-tss v1.2.6
+	gitlab.com/thorchain/tss/go-tss v1.2.7
 	gitlab.com/thorchain/txscript v0.0.0-20200413023754-8aaf3443d92b
 	golang.org/x/tools v0.0.0-20200731060945-b5fad4ed8dd6 // indirect
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f
