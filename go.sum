@@ -1043,8 +1043,8 @@ github.com/zondax/ledger-go v0.11.0 h1:EEqUh6eaZucWAaGo87G7sJiqRNJpzBZr+I9PpGgjj
 github.com/zondax/ledger-go v0.11.0/go.mod h1:NI6JDs8VWwgh+9Bf1vPZMm9Xufp2Q7Iwm2IzxJWzmus=
 gitlab.com/thorchain/binance-sdk v1.2.2 h1:ov8QJWUxpgtLm4J5DeCq9PivQ5GJrrmVyFZbHscGQX4=
 gitlab.com/thorchain/binance-sdk v1.2.2/go.mod h1:gUS/olWbY1cDykTH9G0wfTDYQctiRoNt3UcfWVWM0qU=
-gitlab.com/thorchain/tss/go-tss v1.2.6 h1:GPkPkoXWgLYTRxzEcB2UM1YcItvvq8JRpNsMheZDUAg=
-gitlab.com/thorchain/tss/go-tss v1.2.6/go.mod h1:TBY6M+ko89m8AmaUwy0tinVfjVZqoiKiSIfI5swtPUg=
+gitlab.com/thorchain/tss/go-tss v1.2.7 h1:SkgN3WuxPTITOfENtIREotuX2QPCJi9ELOXI/NenKLA=
+gitlab.com/thorchain/tss/go-tss v1.2.7/go.mod h1:TBY6M+ko89m8AmaUwy0tinVfjVZqoiKiSIfI5swtPUg=
 gitlab.com/thorchain/tss/tss-lib v0.0.0-20201118045712-70b2cb4bf916 h1:rM3TjCVZzn3cYQV1L8KuvwXOZ5yvMdB2C5YyExI/m9Y=
 gitlab.com/thorchain/tss/tss-lib v0.0.0-20201118045712-70b2cb4bf916/go.mod h1:i7bv+PuILDZmCiU3mtZXgOfgQkWLdLngByT2KDfyzpE=
 gitlab.com/thorchain/txscript v0.0.0-20200413023754-8aaf3443d92b h1:YHIcnYNNp7iCyQw6MXbiRSN0YtrpKR8E/fr7Y5HwDHM=
