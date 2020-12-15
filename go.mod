@@ -17,6 +17,8 @@ require (
 	github.com/decred/dcrd/dcrec/edwards v1.0.0
 	github.com/didip/tollbooth v4.0.2+incompatible
 	github.com/ethereum/go-ethereum v1.9.12
+	github.com/gcash/bchd v0.17.1
+	github.com/gcash/bchutil v0.0.0-20201025062739-fc759989ee3e
 	github.com/google/go-cmp v0.5.1 // indirect
 	github.com/gorilla/mux v1.7.4
 	github.com/hashicorp/go-multierror v1.1.0
@@ -40,9 +42,10 @@ require (
 	github.com/tendermint/tendermint v0.33.9
 	github.com/tendermint/tm-db v0.5.1
 	github.com/zondax/ledger-go v0.11.0 // indirect
+	gitlab.com/thorchain/bchd-txscript v0.0.0-20201215130046-eb70e572119d
 	gitlab.com/thorchain/tss/go-tss v1.2.6
 	gitlab.com/thorchain/txscript v0.0.0-20200413023754-8aaf3443d92b
-	golang.org/x/tools v0.0.0-20200731060945-b5fad4ed8dd6 // indirect
+	golang.org/x/tools/gopls v0.5.5 // indirect
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f
 	gopkg.in/ini.v1 v1.52.0 // indirect
 )

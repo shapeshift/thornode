@@ -1,10 +1,10 @@
 version: '3'
 
 services:
-  bitcoin-abc-regtest:
-    container_name: bitcoin-abc-regtest
+  bitcoin-cash-regtest:
+    container_name: bitcoin-cash-regtest
     restart: unless-stopped
-    image: registry.gitlab.com/thorchain/devops/bitcoin-abc:0.22.8
+    image: registry.gitlab.com/thorchain/devops/bitcoin-cash:22.2.0
     environment:
       RPC_PORT: "28443"
       BLOCK_TIME: ${BLOCK_TIME:-1}

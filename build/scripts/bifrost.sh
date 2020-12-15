@@ -16,7 +16,7 @@ ETH_HOST="${ETH_HOST:=http://ethereum-localnet:8545}"
 ETH_START_BLOCK_HEIGHT="${ETH_START_BLOCK_HEIGHT:=0}"
 
 # Bitcoin Cash chain config
-BCH_HOST="${BCH_HOST:=bitcoin-abc-regtest:18443}"
+BCH_HOST="${BCH_HOST:=bitcoin-cash-regtest:18443}"
 BCH_START_BLOCK_HEIGHT="${BCH_START_BLOCK_HEIGHT:=0}"
 
 DB_PATH="${DB_PATH:=/var/data}"
@@ -133,7 +133,7 @@ echo "{
           \"block_scan_processors\": 1,
           \"block_height_discover_back_off\": \"5s\",
           \"block_retry_interval\": \"10s\",
-          \"chain_id\": \"BTC\",
+          \"chain_id\": \"BCH\",
           \"http_request_timeout\": \"30s\",
           \"http_request_read_timeout\": \"30s\",
           \"http_request_write_timeout\": \"30s\",
