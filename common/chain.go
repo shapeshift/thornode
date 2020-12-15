@@ -15,6 +15,7 @@ var (
 	BNBChain   = Chain("BNB")
 	ETHChain   = Chain("ETH")
 	BTCChain   = Chain("BTC")
+	BCHChain   = Chain("BCH")
 	THORChain  = Chain("THOR")
 )
 
