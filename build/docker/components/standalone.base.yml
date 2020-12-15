@@ -17,7 +17,7 @@ services:
       CHAIN_RPC: thor-daemon:26657
       BINANCE_HOST: ${BINANCE_HOST:-http://binance-mock:26660}
       BTC_HOST: ${BTC_HOST:-bitcoin-regtest:18443}
-      BCH_HOST: ${BCH_HOST:-bitcoin-abc-regtest:28443}
+      BCH_HOST: ${BCH_HOST:-bitcoin-cash-regtest:28443}
       ETH_HOST: ${ETH_HOST:-http://ethereum-localnet:8545}
       PEER: ${PEER:-}
       SIGNER_PASSWD: ${SIGNER_PASSWD:-}
