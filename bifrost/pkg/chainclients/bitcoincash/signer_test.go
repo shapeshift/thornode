@@ -208,7 +208,9 @@ func (s *BitcoinSignerCashSuite) TestSignTx(c *C) {
 }
 
 func (s *BitcoinSignerCashSuite) TestSignTxHappyPathWithPrivateKey(c *C) {
-	addr, err := types2.GetRandomPubKey().GetAddress(common.BCHChain)
+	pubkey, err := common.NewPubKey("tthorpub1addwnpepqt7qug8vk9r3saw8n4r803ydj2g3dqwx0mvq5akhnze86fc536xcycgtrnv")
+	c.Assert(err, IsNil)
+	addr, err := pubkey.GetAddress(common.BCHChain)
 	c.Assert(err, IsNil)
 	txOutItem := stypes.TxOutItem{
 		Chain:       common.BCHChain,
@@ -297,7 +299,7 @@ func (s *BitcoinSignerCashSuite) TestSignTxWithTSS(c *C) {
 	txOutItem := stypes.TxOutItem{
 		Chain:       common.BCHChain,
 		ToAddress:   addr,
-		VaultPubKey: "tthorpub1addwnpepqt7qug8vk9r3saw8n4r803ydj2g3dqwx0mvq5akhnze86fc536xcycgtrnv",
+		VaultPubKey: "tthorpub1addwnpepqw2k68efthm08f0f5akhjs6fk5j2pze4wkwt4fmnymf9yd463puruhh0lyz",
 		Coins: common.Coins{
 			common.NewCoin(common.BCHAsset, cosmos.NewUint(10)),
 		},
