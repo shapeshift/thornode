@@ -66,7 +66,7 @@ func getHandlerMapping(keeper keeper.Keeper, mgr Manager) map[string]MsgHandler 
 
 	// native handlers (non-consensus)
 	m[MsgSend{}.Type()] = NewSendHandler(keeper, mgr)
-	m[MsgNativeTx{}.Type()] = NewNativeTxHandler(keeper, mgr)
+	m[MsgDeposit{}.Type()] = NewDepositHandler(keeper, mgr)
 	return m
 }
 

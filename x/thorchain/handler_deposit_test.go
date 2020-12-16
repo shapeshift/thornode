@@ -16,11 +16,11 @@ import (
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
-type HandlerNativeTxSuite struct{}
+type HandlerDepositSuite struct{}
 
-var _ = Suite(&HandlerNativeTxSuite{})
+var _ = Suite(&HandlerDepositSuite{})
 
-func (s *HandlerNativeTxSuite) TestValidate(c *C) {
+func (s *HandlerDepositSuite) TestValidate(c *C) {
 	ctx, k := setupKeeperForTest(c)
 
 	addr := GetRandomBech32Addr()
@@ -28,9 +28,9 @@ func (s *HandlerNativeTxSuite) TestValidate(c *C) {
 	coins := common.Coins{
 		common.NewCoin(common.RuneNative, cosmos.NewUint(200*common.One)),
 	}
-	msg := NewMsgNativeTx(coins, fmt.Sprintf("ADD:BNB.BNB:%s", GetRandomRUNEAddress()), addr)
+	msg := NewMsgDeposit(coins, fmt.Sprintf("ADD:BNB.BNB:%s", GetRandomRUNEAddress()), addr)
 
-	handler := NewNativeTxHandler(k, NewDummyMgr())
+	handler := NewDepositHandler(k, NewDummyMgr())
 	err := handler.validate(ctx, msg, constants.SWVersion)
 	c.Assert(err, IsNil)
 
@@ -39,12 +39,12 @@ func (s *HandlerNativeTxSuite) TestValidate(c *C) {
 	c.Assert(err, Equals, errInvalidVersion)
 
 	// invalid msg
-	msg = MsgNativeTx{}
+	msg = MsgDeposit{}
 	err = handler.validate(ctx, msg, constants.SWVersion)
 	c.Assert(err, NotNil)
 }
 
-func (s *HandlerNativeTxSuite) TestHandle(c *C) {
+func (s *HandlerDepositSuite) TestHandle(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	banker := k.CoinKeeper()
 	constAccessor := constants.NewDummyConstants(map[constants.ConstantName]int64{
@@ -54,7 +54,7 @@ func (s *HandlerNativeTxSuite) TestHandle(c *C) {
 	k.SetNodeAccount(ctx, activeNode)
 	dummyMgr := NewDummyMgr()
 	dummyMgr.gasMgr = NewGasMgrV1(constAccessor, k)
-	handler := NewNativeTxHandler(k, dummyMgr)
+	handler := NewDepositHandler(k, dummyMgr)
 
 	addr := GetRandomBech32Addr()
 
@@ -72,7 +72,7 @@ func (s *HandlerNativeTxSuite) TestHandle(c *C) {
 	pool.BalanceRune = cosmos.NewUint(100 * common.One)
 	pool.Status = PoolAvailable
 	c.Assert(k.SetPool(ctx, pool), IsNil)
-	msg := NewMsgNativeTx(coins, "ADD:BNB.BNB", addr)
+	msg := NewMsgDeposit(coins, "ADD:BNB.BNB", addr)
 
 	_, err = handler.handle(ctx, msg, constants.SWVersion, constAccessor)
 	c.Assert(err, IsNil)
@@ -86,29 +86,29 @@ func (s *HandlerNativeTxSuite) TestHandle(c *C) {
 	c.Assert(voter.Tx.Status, Equals, types.Done)
 }
 
-type HandlerNativeTxTestHelper struct {
+type HandlerDepositTestHelper struct {
 	keeper.Keeper
 }
 
-func NewHandlerNativeTxTestHelper(k keeper.Keeper) *HandlerNativeTxTestHelper {
-	return &HandlerNativeTxTestHelper{
+func NewHandlerDepositTestHelper(k keeper.Keeper) *HandlerDepositTestHelper {
+	return &HandlerDepositTestHelper{
 		Keeper: k,
 	}
 }
 
-func (s *HandlerNativeTxSuite) TestDifferentValidation(c *C) {
+func (s *HandlerDepositSuite) TestDifferentValidation(c *C) {
 	acctAddr := GetRandomBech32Addr()
 	testCases := []struct {
 		name            string
-		messageProvider func(c *C, ctx cosmos.Context, helper *HandlerNativeTxTestHelper) cosmos.Msg
-		validator       func(c *C, ctx cosmos.Context, result *cosmos.Result, err error, helper *HandlerNativeTxTestHelper, name string)
+		messageProvider func(c *C, ctx cosmos.Context, helper *HandlerDepositTestHelper) cosmos.Msg
+		validator       func(c *C, ctx cosmos.Context, result *cosmos.Result, err error, helper *HandlerDepositTestHelper, name string)
 	}{
 		{
 			name: "invalid message should result an error",
-			messageProvider: func(c *C, ctx cosmos.Context, helper *HandlerNativeTxTestHelper) cosmos.Msg {
+			messageProvider: func(c *C, ctx cosmos.Context, helper *HandlerDepositTestHelper) cosmos.Msg {
 				return NewMsgNetworkFee(ctx.BlockHeight(), common.BNBChain, 1, bnbSingleTxFee.Uint64(), GetRandomBech32Addr())
 			},
-			validator: func(c *C, ctx cosmos.Context, result *cosmos.Result, err error, helper *HandlerNativeTxTestHelper, name string) {
+			validator: func(c *C, ctx cosmos.Context, result *cosmos.Result, err error, helper *HandlerDepositTestHelper, name string) {
 				c.Check(err, NotNil, Commentf(name))
 				c.Check(result, IsNil, Commentf(name))
 				c.Check(errors.Is(err, errInvalidMessage), Equals, true, Commentf(name))
@@ -116,24 +116,24 @@ func (s *HandlerNativeTxSuite) TestDifferentValidation(c *C) {
 		},
 		{
 			name: "coin is not on THORChain should result in an error",
-			messageProvider: func(c *C, ctx cosmos.Context, helper *HandlerNativeTxTestHelper) cosmos.Msg {
-				return NewMsgNativeTx(common.Coins{
+			messageProvider: func(c *C, ctx cosmos.Context, helper *HandlerDepositTestHelper) cosmos.Msg {
+				return NewMsgDeposit(common.Coins{
 					common.NewCoin(common.BNBAsset, cosmos.NewUint(100)),
 				}, "hello", GetRandomBech32Addr())
 			},
-			validator: func(c *C, ctx cosmos.Context, result *cosmos.Result, err error, helper *HandlerNativeTxTestHelper, name string) {
+			validator: func(c *C, ctx cosmos.Context, result *cosmos.Result, err error, helper *HandlerDepositTestHelper, name string) {
 				c.Check(err, NotNil, Commentf(name))
 				c.Check(result, IsNil, Commentf(name))
 			},
 		},
 		{
 			name: "Insufficient funds should result in an error",
-			messageProvider: func(c *C, ctx cosmos.Context, helper *HandlerNativeTxTestHelper) cosmos.Msg {
-				return NewMsgNativeTx(common.Coins{
+			messageProvider: func(c *C, ctx cosmos.Context, helper *HandlerDepositTestHelper) cosmos.Msg {
+				return NewMsgDeposit(common.Coins{
 					common.NewCoin(common.RuneNative, cosmos.NewUint(100)),
 				}, "hello", GetRandomBech32Addr())
 			},
-			validator: func(c *C, ctx cosmos.Context, result *cosmos.Result, err error, helper *HandlerNativeTxTestHelper, name string) {
+			validator: func(c *C, ctx cosmos.Context, result *cosmos.Result, err error, helper *HandlerDepositTestHelper, name string) {
 				c.Check(err, NotNil, Commentf(name))
 				c.Check(result, IsNil, Commentf(name))
 				c.Check(errors.Is(err, se.ErrInsufficientFunds), Equals, true, Commentf(name))
@@ -141,15 +141,15 @@ func (s *HandlerNativeTxSuite) TestDifferentValidation(c *C) {
 		},
 		{
 			name: "invalid memo should refund",
-			messageProvider: func(c *C, ctx cosmos.Context, helper *HandlerNativeTxTestHelper) cosmos.Msg {
+			messageProvider: func(c *C, ctx cosmos.Context, helper *HandlerDepositTestHelper) cosmos.Msg {
 				FundAccount(c, ctx, helper.Keeper, acctAddr, 100)
 				vault := NewVault(ctx.BlockHeight(), ActiveVault, AsgardVault, GetRandomPubKey(), common.Chains{common.BNBChain, common.THORChain})
 				c.Check(helper.Keeper.SetVault(ctx, vault), IsNil)
-				return NewMsgNativeTx(common.Coins{
+				return NewMsgDeposit(common.Coins{
 					common.NewCoin(common.RuneNative, cosmos.NewUint(2*common.One)),
 				}, "hello", acctAddr)
 			},
-			validator: func(c *C, ctx cosmos.Context, result *cosmos.Result, err error, helper *HandlerNativeTxTestHelper, name string) {
+			validator: func(c *C, ctx cosmos.Context, result *cosmos.Result, err error, helper *HandlerDepositTestHelper, name string) {
 				c.Check(err, IsNil, Commentf(name))
 				c.Check(result, NotNil, Commentf(name))
 				banker := helper.Keeper.CoinKeeper()
@@ -163,10 +163,10 @@ func (s *HandlerNativeTxSuite) TestDifferentValidation(c *C) {
 	}
 	for _, tc := range testCases {
 		ctx, k := setupKeeperForTest(c)
-		helper := NewHandlerNativeTxTestHelper(k)
+		helper := NewHandlerDepositTestHelper(k)
 		mgr := NewManagers(helper)
 		mgr.BeginBlock(ctx)
-		handler := NewNativeTxHandler(helper, mgr)
+		handler := NewDepositHandler(helper, mgr)
 		msg := tc.messageProvider(c, ctx, helper)
 		constantAccessor := constants.GetConstantValues(constants.SWVersion)
 		result, err := handler.Run(ctx, msg, semver.MustParse("0.1.0"), constantAccessor)

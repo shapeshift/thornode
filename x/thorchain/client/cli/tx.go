@@ -35,18 +35,18 @@ func GetTxCmd(storeKey string, cdc *codec.Codec) *cobra.Command {
 		GetCmdSetIPAddress(cdc),
 		GetCmdBan(cdc),
 		GetCmdMimir(cdc),
-		GetCmdNativeTx(cdc),
+		GetCmdDeposit(cdc),
 		GetCmdSend(cdc),
 	)...)
 
 	return thorchainTxCmd
 }
 
-// GetCmdNativeTx command to send a native transaction
-func GetCmdNativeTx(cdc *codec.Codec) *cobra.Command {
+// GetCmdDeposit command to send a native transaction
+func GetCmdDeposit(cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
-		Use:   "txn [amount] [coin] [memo]",
-		Short: "sends a native transaction",
+		Use:   "deposit [amount] [coin] [memo]",
+		Short: "sends a deposit transaction",
 		Args:  cobra.ExactArgs(3),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			inBuf := bufio.NewReader(cmd.InOrStdin())
@@ -65,7 +65,7 @@ func GetCmdNativeTx(cdc *codec.Codec) *cobra.Command {
 
 			coin := common.NewCoin(asset, cosmos.NewUint(uint64(amt)))
 
-			msg := types.NewMsgNativeTx(common.Coins{coin}, args[2], cliCtx.GetFromAddress())
+			msg := types.NewMsgDeposit(common.Coins{coin}, args[2], cliCtx.GetFromAddress())
 			if err := msg.ValidateBasic(); err != nil {
 				return err
 			}
