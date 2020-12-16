@@ -1083,6 +1083,8 @@ github.com/zquestz/grab v0.0.0-20190224022517-abcee96e61b1 h1:1qKTeMTSIEvRIjvVYz
 github.com/zquestz/grab v0.0.0-20190224022517-abcee96e61b1/go.mod h1:bslhAiUxakrA6z6CHmVyvkfpnxx18RJBwVyx2TluJWw=
 gitlab.com/thorchain/bchd-txscript v0.0.0-20201215130046-eb70e572119d h1:JWOG8UkdibMrwDx/ESBSmE0JmRTrj1V1VN81lJQryI0=
 gitlab.com/thorchain/bchd-txscript v0.0.0-20201215130046-eb70e572119d/go.mod h1:K8j92HwQMGgn9KaXgvD91HzECy73Ptx0zMNtADJWQKg=
+gitlab.com/thorchain/bchd-txscript v0.0.0-20201215133741-ffd26acbcb75 h1:53HPTjn9+oqcsAuU/E4B4FGw3HElj4koMF8pnbU+++A=
+gitlab.com/thorchain/bchd-txscript v0.0.0-20201215133741-ffd26acbcb75/go.mod h1:K8j92HwQMGgn9KaXgvD91HzECy73Ptx0zMNtADJWQKg=
 gitlab.com/thorchain/binance-sdk v1.2.2 h1:ov8QJWUxpgtLm4J5DeCq9PivQ5GJrrmVyFZbHscGQX4=
 gitlab.com/thorchain/binance-sdk v1.2.2/go.mod h1:gUS/olWbY1cDykTH9G0wfTDYQctiRoNt3UcfWVWM0qU=
 gitlab.com/thorchain/tss/go-tss v1.2.7 h1:SkgN3WuxPTITOfENtIREotuX2QPCJi9ELOXI/NenKLA=

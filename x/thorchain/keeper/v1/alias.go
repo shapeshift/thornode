@@ -48,6 +48,7 @@ var (
 	GetRandomNodeAccount       = types.GetRandomNodeAccount
 	GetRandomBNBAddress        = types.GetRandomBNBAddress
 	GetRandomBTCAddress        = types.GetRandomBTCAddress
+	GetRandomBCHAddress        = types.GetRandomBCHAddress
 	GetRandomRUNEAddress       = types.GetRandomRUNEAddress
 	GetRandomTxHash            = types.GetRandomTxHash
 	GetRandomBech32Addr        = types.GetRandomBech32Addr
