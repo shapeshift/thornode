@@ -59,7 +59,7 @@ func (h SendHandler) validateV1(ctx cosmos.Context, msg MsgSend) error {
 	// check if we're sending to asgard, bond modules. If we are, forward to the native tx handler
 	supplier := h.keeper.Supply()
 	if msg.ToAddress.Equals(supplier.GetModuleAddress(AsgardName)) || msg.ToAddress.Equals(supplier.GetModuleAddress(BondName)) {
-		return errors.New("cannot use MsgSend for Asgard or Bond transactions, use NativeTx instead")
+		return errors.New("cannot use MsgSend for Asgard or Bond transactions, use MsgDeposit instead")
 	}
 
 	return nil

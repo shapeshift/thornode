@@ -64,8 +64,8 @@ func RegisterRoutes(cliCtx context.CLIContext, r *mux.Router, storeName string) 
 	).Methods(http.MethodPost)
 
 	r.HandleFunc(
-		fmt.Sprintf("/%s/native/tx", storeName),
-		newNativeTxHandler(cliCtx),
+		fmt.Sprintf("/%s/deposit", storeName),
+		newDepositHandler(cliCtx),
 	).Methods(http.MethodPost)
 
 	r.Use(mux.CORSMethodMiddleware(r))

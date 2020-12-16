@@ -14,58 +14,58 @@ import (
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
-// NativeTxHandler is to process native messages on THORChain
-type NativeTxHandler struct {
+// DepositHandler is to process native messages on THORChain
+type DepositHandler struct {
 	keeper keeper.Keeper
 	mgr    Manager
 }
 
-// NewNativeTxHandler create a new instance of NativeTxHandler
-func NewNativeTxHandler(keeper keeper.Keeper, mgr Manager) NativeTxHandler {
-	return NativeTxHandler{
+// NewDepositHandler create a new instance of DepositHandler
+func NewDepositHandler(keeper keeper.Keeper, mgr Manager) DepositHandler {
+	return DepositHandler{
 		keeper: keeper,
 		mgr:    mgr,
 	}
 }
 
-// Run is the main entry of NativeTxHandler
-func (h NativeTxHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
-	msg, ok := m.(MsgNativeTx)
+// Run is the main entry of DepositHandler
+func (h DepositHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+	msg, ok := m.(MsgDeposit)
 	if !ok {
 		return nil, errInvalidMessage
 	}
 	if err := h.validate(ctx, msg, version); err != nil {
-		ctx.Logger().Error("MsgNativeTx failed validation", "error", err)
+		ctx.Logger().Error("MsgDeposit failed validation", "error", err)
 		return nil, err
 	}
 	result, err := h.handle(ctx, msg, version, constAccessor)
 	if err != nil {
-		ctx.Logger().Error("fail to process MsgNativeTx", "error", err)
+		ctx.Logger().Error("fail to process MsgDeposit", "error", err)
 		return nil, err
 	}
 	return result, nil
 }
 
-func (h NativeTxHandler) validate(ctx cosmos.Context, msg MsgNativeTx, version semver.Version) error {
+func (h DepositHandler) validate(ctx cosmos.Context, msg MsgDeposit, version semver.Version) error {
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, msg)
 	}
 	return errInvalidVersion
 }
 
-func (h NativeTxHandler) validateV1(ctx cosmos.Context, msg MsgNativeTx) error {
+func (h DepositHandler) validateV1(ctx cosmos.Context, msg MsgDeposit) error {
 	return msg.ValidateBasic()
 }
 
-func (h NativeTxHandler) handle(ctx cosmos.Context, msg MsgNativeTx, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
-	ctx.Logger().Info("receive MsgNativeTx", "from", msg.GetSigners()[0], "coins", msg.Coins, "memo", msg.Memo)
+func (h DepositHandler) handle(ctx cosmos.Context, msg MsgDeposit, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+	ctx.Logger().Info("receive MsgDeposit", "from", msg.GetSigners()[0], "coins", msg.Coins, "memo", msg.Memo)
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.handleV1(ctx, msg, version, constAccessor)
 	}
 	return nil, errInvalidVersion
 }
 
-func (h NativeTxHandler) handleV1(ctx cosmos.Context, msg MsgNativeTx, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+func (h DepositHandler) handleV1(ctx cosmos.Context, msg MsgDeposit, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	banker := h.keeper.CoinKeeper()
 	supplier := h.keeper.Supply()
 	// TODO: this shouldn't be tied to swaps, and should be cheaper. But
@@ -189,7 +189,7 @@ func (h NativeTxHandler) handleV1(ctx cosmos.Context, msg MsgNativeTx, version s
 	return result, nil
 }
 
-func (h NativeTxHandler) addSwap(ctx cosmos.Context, msg MsgSwap, constAccessor constants.ConstantValues) {
+func (h DepositHandler) addSwap(ctx cosmos.Context, msg MsgSwap, constAccessor constants.ConstantValues) {
 	amt := cosmos.ZeroUint()
 	if !msg.AffiliateBasisPoints.IsZero() && msg.AffiliateAddress.IsChain(common.THORChain) {
 		amt = common.GetShare(
