@@ -119,18 +119,21 @@ func (vm *SwapQv1) getTodoNum(queueLen, minSwapsPerBlock, maxSwapsPerBlock int64
 // swapItem list
 func (vm *SwapQv1) scoreMsgs(ctx cosmos.Context, items swapItems) (swapItems, error) {
 	pools := make(map[common.Asset]Pool, 0)
-
 	for i, item := range items {
-		if _, ok := pools[item.msg.TargetAsset]; !ok {
+		poolAsset := item.msg.TargetAsset
+		if poolAsset.IsRune() {
+			poolAsset = item.msg.Tx.Coins[0].Asset
+		}
+		if _, ok := pools[poolAsset]; !ok {
 			var err error
-			pools[item.msg.TargetAsset], err = vm.k.GetPool(ctx, item.msg.TargetAsset)
+			pools[poolAsset], err = vm.k.GetPool(ctx, poolAsset)
 			if err != nil {
-				ctx.Logger().Error("fail to get pool", "pool", item.msg.TargetAsset, "error", err)
+				ctx.Logger().Error("fail to get pool", "pool", poolAsset, "error", err)
 				continue
 			}
 		}
 
-		pool := pools[item.msg.TargetAsset]
+		pool := pools[poolAsset]
 		if pool.IsEmpty() || !pool.IsAvailable() || pool.BalanceRune.IsZero() || pool.BalanceAsset.IsZero() {
 			continue
 		}
