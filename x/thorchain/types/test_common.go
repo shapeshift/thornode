@@ -98,6 +98,12 @@ func GetRandomBTCAddress() common.Address {
 	return addr
 }
 
+func GetRandomBCHAddress() common.Address {
+	pubKey := GetRandomPubKey()
+	addr, _ := pubKey.GetAddress(common.BCHChain)
+	return addr
+}
+
 // GetRandomTxHash create a random txHash used for test purpose
 func GetRandomTxHash() common.TxID {
 	txHash, _ := common.NewTxID(common.RandStringBytesMask(64))

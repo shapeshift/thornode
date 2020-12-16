@@ -10,6 +10,9 @@ import (
 	"github.com/btcsuite/btcutil"
 	"github.com/btcsuite/btcutil/bech32"
 
+	bchchaincfg "github.com/gcash/bchd/chaincfg"
+	"github.com/gcash/bchutil"
+
 	"github.com/cosmos/cosmos-sdk/crypto/keys"
 	eth "github.com/ethereum/go-ethereum/crypto"
 	"github.com/tendermint/tendermint/crypto"
@@ -131,6 +134,25 @@ func (pubKey PubKey) GetAddress(chain Chain) (Address, error) {
 			net = &chaincfg.MainNetParams
 		}
 		addr, err := btcutil.NewAddressWitnessPubKeyHash(pk.Address().Bytes(), net)
+		if err != nil {
+			return NoAddress, fmt.Errorf("fail to bech32 encode the address, err:%w", err)
+		}
+		return NewAddress(addr.String())
+	case BCHChain:
+		pk, err := cosmos.GetPubKeyFromBech32(cosmos.Bech32PubKeyTypeAccPub, string(pubKey))
+		if err != nil {
+			return NoAddress, err
+		}
+		var net *bchchaincfg.Params
+		switch chainNetwork {
+		case MockNet:
+			net = &bchchaincfg.RegressionNetParams
+		case TestNet:
+			net = &bchchaincfg.TestNet3Params
+		case MainNet:
+			net = &bchchaincfg.MainNetParams
+		}
+		addr, err := bchutil.NewAddressPubKeyHash(pk.Address().Bytes(), net)
 		if err != nil {
 			return NoAddress, fmt.Errorf("fail to bech32 encode the address, err:%w", err)
 		}

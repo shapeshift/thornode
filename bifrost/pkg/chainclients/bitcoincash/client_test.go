@@ -13,9 +13,9 @@ import (
 	"time"
 
 	ctypes "github.com/binance-chain/go-sdk/common/types"
-	"github.com/gcash/bchd/btcjson"
 	"github.com/cosmos/cosmos-sdk/client/keys"
 	cKeys "github.com/cosmos/cosmos-sdk/crypto/keys"
+	"github.com/gcash/bchd/btcjson"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/bifrost/config"
@@ -29,7 +29,7 @@ import (
 
 func TestPackage(t *testing.T) { TestingT(t) }
 
-type BitcoinSuite struct {
+type BitcoinCashSuite struct {
 	client *Client
 	server *httptest.Server
 	bridge *thorclient.ThorchainBridge
@@ -38,7 +38,7 @@ type BitcoinSuite struct {
 }
 
 var _ = Suite(
-	&BitcoinSuite{},
+	&BitcoinCashSuite{},
 )
 
 var m *metrics.Metrics
@@ -59,10 +59,10 @@ func GetMetricForTest(c *C) *metrics.Metrics {
 	return m
 }
 
-func (s *BitcoinSuite) SetUpTest(c *C) {
+func (s *BitcoinCashSuite) SetUpTest(c *C) {
 	s.m = GetMetricForTest(c)
 	s.cfg = config.ChainConfiguration{
-		ChainID:     "BTC",
+		ChainID:     "BCH",
 		UserName:    "bob",
 		Password:    "password",
 		DisableTLS:  true,
@@ -148,7 +148,7 @@ func (s *BitcoinSuite) SetUpTest(c *C) {
 	c.Assert(s.client, NotNil)
 }
 
-func (s *BitcoinSuite) TearDownTest(c *C) {
+func (s *BitcoinCashSuite) TearDownTest(c *C) {
 	s.server.Close()
 }
 
@@ -163,7 +163,7 @@ func httpTestHandler(c *C, rw http.ResponseWriter, fixture string) {
 	}
 }
 
-func (s *BitcoinSuite) TestGetBlock(c *C) {
+func (s *BitcoinCashSuite) TestGetBlock(c *C) {
 	block, err := s.client.getBlock(1696761)
 	c.Assert(err, IsNil)
 	c.Assert(block.Hash, Equals, "000000008de7a25f64f9780b6c894016d2c63716a89f7c9e704ebb7e8377a0c8")
@@ -171,21 +171,21 @@ func (s *BitcoinSuite) TestGetBlock(c *C) {
 	c.Assert(len(block.Tx), Equals, 110)
 }
 
-func (s *BitcoinSuite) TestFetchTxs(c *C) {
+func (s *BitcoinCashSuite) TestFetchTxs(c *C) {
 	txs, err := s.client.FetchTxs(0)
 	c.Assert(err, IsNil)
-	c.Assert(txs.Chain, Equals, common.BTCChain)
+	c.Assert(txs.Chain, Equals, common.BCHChain)
 	c.Assert(txs.Count, Equals, "105")
 	c.Assert(txs.TxArray[0].BlockHeight, Equals, int64(1696761))
 	c.Assert(txs.TxArray[0].Tx, Equals, "24ed2d26fd5d4e0e8fa86633e40faf1bdfc8d1903b1cd02855286312d48818a2")
 	c.Assert(txs.TxArray[0].Sender, Equals, "tb1qdxxlx4r4jk63cve3rjpj428m26xcukjn5yegff")
 	c.Assert(txs.TxArray[0].To, Equals, "mv4rnyY3Su5gjcDNzbMLKBQkBicCtHUtFB")
-	c.Assert(txs.TxArray[0].Coins.Equals(common.Coins{common.NewCoin(common.BTCAsset, cosmos.NewUint(10000000))}), Equals, true)
-	c.Assert(txs.TxArray[0].Gas.Equals(common.Gas{common.NewCoin(common.BTCAsset, cosmos.NewUint(22705334))}), Equals, true)
+	c.Assert(txs.TxArray[0].Coins.Equals(common.Coins{common.NewCoin(common.BCHAsset, cosmos.NewUint(10000000))}), Equals, true)
+	c.Assert(txs.TxArray[0].Gas.Equals(common.Gas{common.NewCoin(common.BCHAsset, cosmos.NewUint(22705334))}), Equals, true)
 	c.Assert(len(txs.TxArray), Equals, 105)
 }
 
-func (s *BitcoinSuite) TestGetSender(c *C) {
+func (s *BitcoinCashSuite) TestGetSender(c *C) {
 	tx := btcjson.TxRawResult{
 		Vin: []btcjson.Vin{
 			{
@@ -204,7 +204,7 @@ func (s *BitcoinSuite) TestGetSender(c *C) {
 	c.Assert(sender, Equals, "tb1qdxxlx4r4jk63cve3rjpj428m26xcukjn5yegff")
 }
 
-func (s *BitcoinSuite) TestGetMemo(c *C) {
+func (s *BitcoinCashSuite) TestGetMemo(c *C) {
 	tx := btcjson.TxRawResult{
 		Vout: []btcjson.Vout{
 			{
@@ -250,7 +250,7 @@ func (s *BitcoinSuite) TestGetMemo(c *C) {
 	c.Assert(memo, Equals, "")
 }
 
-func (s *BitcoinSuite) TestIgnoreTx(c *C) {
+func (s *BitcoinCashSuite) TestIgnoreTx(c *C) {
 	// valid tx that will NOT be ignored
 	tx := btcjson.TxRawResult{
 		Vin: []btcjson.Vin{
@@ -468,7 +468,7 @@ func (s *BitcoinSuite) TestIgnoreTx(c *C) {
 	c.Assert(ignored, Equals, false)
 }
 
-func (s *BitcoinSuite) TestGetGas(c *C) {
+func (s *BitcoinCashSuite) TestGetGas(c *C) {
 	// vin[0] returns value 0.19590108
 	tx := btcjson.TxRawResult{
 		Vin: []btcjson.Vin{
@@ -493,7 +493,7 @@ func (s *BitcoinSuite) TestGetGas(c *C) {
 	}
 	gas, err := s.client.getGas(&tx)
 	c.Assert(err, IsNil)
-	c.Assert(gas.Equals(common.Gas{common.NewCoin(common.BTCAsset, cosmos.NewUint(7244430))}), Equals, true)
+	c.Assert(gas.Equals(common.Gas{common.NewCoin(common.BCHAsset, cosmos.NewUint(7244430))}), Equals, true)
 
 	tx = btcjson.TxRawResult{
 		Vin: []btcjson.Vin{
@@ -524,28 +524,28 @@ func (s *BitcoinSuite) TestGetGas(c *C) {
 	}
 	gas, err = s.client.getGas(&tx)
 	c.Assert(err, IsNil)
-	c.Assert(gas.Equals(common.Gas{common.NewCoin(common.BTCAsset, cosmos.NewUint(149013))}), Equals, true)
+	c.Assert(gas.Equals(common.Gas{common.NewCoin(common.BCHAsset, cosmos.NewUint(149013))}), Equals, true)
 }
 
-func (s *BitcoinSuite) TestGetChain(c *C) {
+func (s *BitcoinCashSuite) TestGetChain(c *C) {
 	chain := s.client.GetChain()
-	c.Assert(chain, Equals, common.BTCChain)
+	c.Assert(chain, Equals, common.BCHChain)
 }
 
-func (s *BitcoinSuite) TestGetAddress(c *C) {
+func (s *BitcoinCashSuite) TestGetAddress(c *C) {
 	os.Setenv("NET", "mainnet")
 	pubkey := common.PubKey("tthorpub1addwnpepqt7qug8vk9r3saw8n4r803ydj2g3dqwx0mvq5akhnze86fc536xcycgtrnv")
 	addr := s.client.GetAddress(pubkey)
-	c.Assert(addr, Equals, "bc1q2gjc0rnhy4nrxvuklk6ptwkcs9kcr59mcl2q9j")
+	c.Assert(addr, Equals, "qpfztpuwwujkvvenjm7mg9d6mzqkmqwshv07z34njm")
 }
 
-func (s *BitcoinSuite) TestGetHeight(c *C) {
+func (s *BitcoinCashSuite) TestGetHeight(c *C) {
 	height, err := s.client.GetHeight()
 	c.Assert(err, IsNil)
 	c.Assert(height, Equals, int64(10))
 }
 
-func (s *BitcoinSuite) TestGetAccount(c *C) {
+func (s *BitcoinCashSuite) TestGetAccount(c *C) {
 	acct, err := s.client.GetAccount("tthorpub1addwnpepqt7qug8vk9r3saw8n4r803ydj2g3dqwx0mvq5akhnze86fc536xcycgtrnv")
 	c.Assert(err, IsNil)
 	c.Assert(acct.AccountNumber, Equals, int64(0))
@@ -559,11 +559,11 @@ func (s *BitcoinSuite) TestGetAccount(c *C) {
 	c.Assert(acct1.Coins, HasLen, 0)
 }
 
-func (s *BitcoinSuite) TestOnObservedTxIn(c *C) {
+func (s *BitcoinCashSuite) TestOnObservedTxIn(c *C) {
 	pkey := ttypes.GetRandomPubKey()
 	txIn := types.TxIn{
 		Count: "1",
-		Chain: common.BTCChain,
+		Chain: common.BCHChain,
 		TxArray: []types.TxInItem{
 			{
 				BlockHeight: 1,
@@ -571,7 +571,7 @@ func (s *BitcoinSuite) TestOnObservedTxIn(c *C) {
 				Sender:      "bc1q2gjc0rnhy4nrxvuklk6ptwkcs9kcr59mcl2q9j",
 				To:          "bc1q0s4mg25tu6termrk8egltfyme4q7sg3h0e56p3",
 				Coins: common.Coins{
-					common.NewCoin(common.BTCAsset, cosmos.NewUint(123456789)),
+					common.NewCoin(common.BCHAsset, cosmos.NewUint(123456789)),
 				},
 				Memo:                "MEMO",
 				ObservedVaultPubKey: pkey,
@@ -587,7 +587,7 @@ func (s *BitcoinSuite) TestOnObservedTxIn(c *C) {
 
 	txIn = types.TxIn{
 		Count: "1",
-		Chain: common.BTCChain,
+		Chain: common.BCHChain,
 		TxArray: []types.TxInItem{
 			{
 				BlockHeight: 2,
@@ -595,7 +595,7 @@ func (s *BitcoinSuite) TestOnObservedTxIn(c *C) {
 				Sender:      "bc1q0s4mg25tu6termrk8egltfyme4q7sg3h0e56p3",
 				To:          "bc1q2gjc0rnhy4nrxvuklk6ptwkcs9kcr59mcl2q9j",
 				Coins: common.Coins{
-					common.NewCoin(common.BTCAsset, cosmos.NewUint(123456)),
+					common.NewCoin(common.BCHAsset, cosmos.NewUint(123456)),
 				},
 				Memo:                "MEMO",
 				ObservedVaultPubKey: pkey,
@@ -611,7 +611,7 @@ func (s *BitcoinSuite) TestOnObservedTxIn(c *C) {
 
 	txIn = types.TxIn{
 		Count: "2",
-		Chain: common.BTCChain,
+		Chain: common.BCHChain,
 		TxArray: []types.TxInItem{
 			{
 				BlockHeight: 3,
@@ -619,7 +619,7 @@ func (s *BitcoinSuite) TestOnObservedTxIn(c *C) {
 				Sender:      "bc1q0s4mg25tu6termrk8egltfyme4q7sg3h0e56p3",
 				To:          "bc1q2gjc0rnhy4nrxvuklk6ptwkcs9kcr59mcl2q9j",
 				Coins: common.Coins{
-					common.NewCoin(common.BTCAsset, cosmos.NewUint(12345678)),
+					common.NewCoin(common.BCHAsset, cosmos.NewUint(12345678)),
 				},
 				Memo:                "MEMO",
 				ObservedVaultPubKey: pkey,
@@ -630,7 +630,7 @@ func (s *BitcoinSuite) TestOnObservedTxIn(c *C) {
 				Sender:      "bc1q0s4mg25tu6termrk8egltfyme4q7sg3h0e56p3",
 				To:          "bc1q2gjc0rnhy4nrxvuklk6ptwkcs9kcr59mcl2q9j",
 				Coins: common.Coins{
-					common.NewCoin(common.BTCAsset, cosmos.NewUint(123456)),
+					common.NewCoin(common.BCHAsset, cosmos.NewUint(123456)),
 				},
 				Memo:                "MEMO",
 				ObservedVaultPubKey: pkey,
@@ -648,7 +648,7 @@ func (s *BitcoinSuite) TestOnObservedTxIn(c *C) {
 	c.Assert(blockMeta, NotNil)
 }
 
-func (s *BitcoinSuite) TestProcessReOrg(c *C) {
+func (s *BitcoinCashSuite) TestProcessReOrg(c *C) {
 	// can't get previous block meta should not error
 	var result btcjson.GetBlockVerboseTxResult
 	blockContent, err := ioutil.ReadFile("../../../../test/fixtures/btc/block.json")
@@ -672,7 +672,7 @@ func (s *BitcoinSuite) TestProcessReOrg(c *C) {
 	c.Assert(blockMeta, NotNil)
 }
 
-func (s *BitcoinSuite) TestGetMemPool(c *C) {
+func (s *BitcoinCashSuite) TestGetMemPool(c *C) {
 	txIns, err := s.client.getMemPool(1024)
 	c.Assert(err, IsNil)
 	c.Assert(txIns.TxArray, HasLen, 1)
@@ -683,16 +683,16 @@ func (s *BitcoinSuite) TestGetMemPool(c *C) {
 	c.Assert(txIns.TxArray, HasLen, 0)
 }
 
-func (s *BitcoinSuite) TestConfirmationCountReady(c *C) {
+func (s *BitcoinCashSuite) TestConfirmationCountReady(c *C) {
 	c.Assert(s.client.ConfirmationCountReady(types.TxIn{
-		Chain:    common.BTCChain,
+		Chain:    common.BCHChain,
 		TxArray:  nil,
 		Filtered: true,
 		MemPool:  false,
 	}), Equals, true)
 	pkey := ttypes.GetRandomPubKey()
 	c.Assert(s.client.ConfirmationCountReady(types.TxIn{
-		Chain: common.BTCChain,
+		Chain: common.BCHChain,
 		TxArray: []types.TxInItem{
 			{
 				BlockHeight: 2,
@@ -700,7 +700,7 @@ func (s *BitcoinSuite) TestConfirmationCountReady(c *C) {
 				Sender:      "bc1q0s4mg25tu6termrk8egltfyme4q7sg3h0e56p3",
 				To:          "bc1q2gjc0rnhy4nrxvuklk6ptwkcs9kcr59mcl2q9j",
 				Coins: common.Coins{
-					common.NewCoin(common.BTCAsset, cosmos.NewUint(123456)),
+					common.NewCoin(common.BCHAsset, cosmos.NewUint(123456)),
 				},
 				Memo:                "MEMO",
 				ObservedVaultPubKey: pkey,
@@ -711,7 +711,7 @@ func (s *BitcoinSuite) TestConfirmationCountReady(c *C) {
 	}), Equals, true)
 	s.client.currentBlockHeight = 3
 	c.Assert(s.client.ConfirmationCountReady(types.TxIn{
-		Chain: common.BTCChain,
+		Chain: common.BCHChain,
 		TxArray: []types.TxInItem{
 			{
 				BlockHeight: 2,
@@ -719,7 +719,7 @@ func (s *BitcoinSuite) TestConfirmationCountReady(c *C) {
 				Sender:      "bc1q0s4mg25tu6termrk8egltfyme4q7sg3h0e56p3",
 				To:          "bc1q2gjc0rnhy4nrxvuklk6ptwkcs9kcr59mcl2q9j",
 				Coins: common.Coins{
-					common.NewCoin(common.BTCAsset, cosmos.NewUint(123456)),
+					common.NewCoin(common.BCHAsset, cosmos.NewUint(123456)),
 				},
 				Memo:                "MEMO",
 				ObservedVaultPubKey: pkey,
@@ -731,7 +731,7 @@ func (s *BitcoinSuite) TestConfirmationCountReady(c *C) {
 	}), Equals, true)
 
 	c.Assert(s.client.ConfirmationCountReady(types.TxIn{
-		Chain: common.BTCChain,
+		Chain: common.BCHChain,
 		TxArray: []types.TxInItem{
 			{
 				BlockHeight: 2,
@@ -739,10 +739,10 @@ func (s *BitcoinSuite) TestConfirmationCountReady(c *C) {
 				Sender:      "bc1q0s4mg25tu6termrk8egltfyme4q7sg3h0e56p3",
 				To:          "bc1q2gjc0rnhy4nrxvuklk6ptwkcs9kcr59mcl2q9j",
 				Coins: common.Coins{
-					common.NewCoin(common.BTCAsset, cosmos.NewUint(12345600000)),
+					common.NewCoin(common.BCHAsset, cosmos.NewUint(12345600000)),
 				},
 				Gas: common.Gas{
-					common.NewCoin(common.BTCAsset, cosmos.NewUint(40000)),
+					common.NewCoin(common.BCHAsset, cosmos.NewUint(40000)),
 				},
 				Memo:                "MEMO",
 				ObservedVaultPubKey: pkey,
