@@ -57,6 +57,7 @@ var (
 	NewNetworkFee              = types.NewNetworkFee
 	NewTssKeysignFailVoter     = types.NewTssKeysignFailVoter
 	SetupConfigForTest         = types.SetupConfigForTest
+	NewChainContract           = types.NewChainContract
 )
 
 type (
@@ -89,4 +90,5 @@ type (
 	RagnarokWithdrawPosition = types.RagnarokWithdrawPosition
 	TssKeygenMetric          = types.TssKeygenMetric
 	TssKeysignMetric         = types.TssKeysignMetric
+	ChainContract            = types.ChainContract
 )

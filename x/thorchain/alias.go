@@ -234,6 +234,7 @@ type (
 	ObservedNetworkFeeVoter        = types.ObservedNetworkFeeVoter
 	Jail                           = types.Jail
 	RagnarokWithdrawPosition       = types.RagnarokWithdrawPosition
+	ChainContract                  = types.ChainContract
 
 	// Memo
 	SwapMemo              = mem.SwapMemo

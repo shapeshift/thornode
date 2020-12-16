@@ -353,6 +353,14 @@ func (k KVStoreDummy) GetTssKeysignMetric(_ cosmos.Context, txID common.TxID) (*
 func (k KVStoreDummy) GetLatestTssKeysignMetric(_ cosmos.Context) (*TssKeysignMetric, error) {
 	return nil, kaboom
 }
+func (k KVStoreDummy) SetChainContract(ctx cosmos.Context, cc ChainContract) {}
+func (k KVStoreDummy) GetChainContract(ctx cosmos.Context, chain common.Chain) (ChainContract, error) {
+	return ChainContract{}, kaboom
+}
+
+func (k KVStoreDummy) GetChainContractIterator(ctx cosmos.Context) cosmos.Iterator {
+	return nil
+}
 
 // a mock cosmos.Iterator implementation for testing purposes
 type DummyIterator struct {

@@ -344,10 +344,11 @@ func queryInboundAddresses(ctx cosmos.Context, path []string, req abci.RequestQu
 	// decom a chain and not accept new trades/liquidity providing
 
 	type address struct {
-		Chain   common.Chain   `json:"chain"`
-		PubKey  common.PubKey  `json:"pub_key"`
-		Address common.Address `json:"address"`
-		Halted  bool           `json:"halted"`
+		Chain    common.Chain   `json:"chain"`
+		PubKey   common.PubKey  `json:"pub_key"`
+		Address  common.Address `json:"address"`
+		Contract common.Address `json:"contract"`
+		Halted   bool           `json:"halted"`
 	}
 
 	var resp struct {
@@ -377,12 +378,18 @@ func queryInboundAddresses(ctx cosmos.Context, path []string, req abci.RequestQu
 			ctx.Logger().Error("fail to get address for chain", "error", err)
 			return nil, fmt.Errorf("fail to get address for chain: %w", err)
 		}
+		cc, err := keeper.GetChainContract(ctx, chain)
+		if err != nil {
+			ctx.Logger().Error("fail to get chain contract", "error", err)
+			return nil, fmt.Errorf("fail to get chain contract: %w", err)
+		}
 
 		addr := address{
-			Chain:   chain,
-			PubKey:  vault.PubKey,
-			Address: vaultAddress,
-			Halted:  halted,
+			Chain:    chain,
+			PubKey:   vault.PubKey,
+			Address:  vaultAddress,
+			Contract: cc.Contract,
+			Halted:   halted,
 		}
 
 		resp.Current = append(resp.Current, addr)
