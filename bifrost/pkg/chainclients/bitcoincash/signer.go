@@ -381,7 +381,7 @@ func (c *Client) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, err
 func (c *Client) signUTXO(redeemTx *wire.MsgTx, tx stypes.TxOutItem, amount int64, sourceScript []byte, idx int, thorchainHeight int64) error {
 	sigHashes := txscript.NewTxSigHashes(redeemTx)
 	sig := c.ksWrapper.GetSignable(tx.VaultPubKey)
-	witness, err := txscript.WitnessSignature(redeemTx, sigHashes, idx, amount, sourceScript, txscript.SigHashAll, sig, true)
+	sigscript, err := txscript.LegacySignatureScript(redeemTx, sigHashes, idx, amount, sourceScript, txscript.SigHashAll, sig, true)
 	if err != nil {
 		var keysignError tss.KeysignError
 		if errors.As(err, &keysignError) {
@@ -401,7 +401,7 @@ func (c *Client) signUTXO(redeemTx *wire.MsgTx, tx stypes.TxOutItem, amount int6
 		return fmt.Errorf("fail to get witness: %w", err)
 	}
 
-	redeemTx.TxIn[idx].Witness = witness
+	redeemTx.TxIn[idx].SignatureScript = sigscript
 	flag := txscript.StandardVerifyFlags
 	engine, err := txscript.NewEngine(sourceScript, redeemTx, idx, flag, nil, nil, amount)
 	if err != nil {
