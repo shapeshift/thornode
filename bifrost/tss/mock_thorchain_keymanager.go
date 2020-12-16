@@ -48,9 +48,9 @@ func (k *MockThorchainKeyManager) RemoteSign(msg []byte, poolPubKey string) ([]b
 		return getSignature("VqAlcVM+9ciiCL+/VBVNjekbLUjB5/NXI6ui0ZdTRZM=", "ENP93vjudq9s+UQu87nFPDZ1LKNurzRTo/hMIqetAb4=")
 	}
 	// this is the key we are using to test TSS keysign result in BCH chain
-	//tthorpub1addwnpepqt7qug8vk9r3saw8n4r803ydj2g3dqwx0mvq5akhnze86fc536xcycgtrnv
-	if poolPubKey == "tthorpub1addwnpepqt7qug8vk9r3saw8n4r803ydj2g3dqwx0mvq5akhnze86fc536xcycgtrnv" {
-		return getSignature("VqAlcVM+9ciiCL+/VBVNjekbLUjB5/NXI6ui0ZdTRZM=", "ENP93vjudq9s+UQu87nFPDZ1LKNurzRTo/hMIqetAb4=")
+	//tthorpub1addwnpepqw2k68efthm08f0f5akhjs6fk5j2pze4wkwt4fmnymf9yd463puruhh0lyz
+	if poolPubKey == "tthorpub1addwnpepqw2k68efthm08f0f5akhjs6fk5j2pze4wkwt4fmnymf9yd463puruhh0lyz" {
+		return getSignature("1C7Tn7XHX9JAPGoOQKK14CpTGd7W8fyq0iWP5DNt2DY=", "GjDYG1zmAo7JHdtiP7l+s4PRFiV7cH9d4bDoeEMrQgo=")
 	}
 	return nil, nil
 }
