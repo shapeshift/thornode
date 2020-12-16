@@ -7,7 +7,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/tendermint/tendermint/crypto/secp256k1"
-	"gitlab.com/thorchain/txscript"
+	txscript "gitlab.com/thorchain/bchd-txscript"
 
 	"gitlab.com/thorchain/thornode/bifrost/tss"
 	"gitlab.com/thorchain/thornode/common"

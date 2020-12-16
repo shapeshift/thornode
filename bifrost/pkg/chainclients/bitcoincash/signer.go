@@ -12,7 +12,6 @@ import (
 	"github.com/gcash/bchd/btcjson"
 	"github.com/gcash/bchd/chaincfg"
 	"github.com/gcash/bchd/chaincfg/chainhash"
-	"github.com/gcash/bchd/mempool"
 	"github.com/gcash/bchd/wire"
 	"github.com/gcash/bchutil"
 	"github.com/hashicorp/go-multierror"
@@ -32,7 +31,7 @@ const (
 	SatsPervBytes = 25
 	// MinUTXOConfirmation UTXO that has less confirmation then this will not be spent , unless it is yggdrasil
 	MinUTXOConfirmation  = 1
-	defaultMaxBTCFeeRate = bchutil.SatoshiPerBitcoin / 10
+	defaultMaxBCHFeeRate = bchutil.SatoshiPerBitcoin / 10
 )
 
 func getBCHPrivateKey(key crypto.PrivKey) (*bchec.PrivateKey, error) {
@@ -147,7 +146,7 @@ func (c *Client) getBlockHeight() (int64, error) {
 	if err != nil {
 		return 0, fmt.Errorf("fail to get best block hash: %w", err)
 	}
-	blockInfo, err := c.client.GetBlockVerbose(hash)
+	blockInfo, err := c.client.GetBlockVerbose(hash, false)
 	if err != nil {
 		return 0, fmt.Errorf("fail to get the best block detail: %w", err)
 	}
@@ -157,10 +156,10 @@ func (c *Client) getBlockHeight() (int64, error) {
 
 func (c *Client) getBCHPaymentAmount(tx stypes.TxOutItem) float64 {
 	amtToPay := tx.Coins.GetCoin(common.BCHAsset).Amount.Uint64()
-	amtToPayInBCH := bchutil.Amount(int64(amtToPay)).ToBTC()
+	amtToPayInBCH := bchutil.Amount(int64(amtToPay)).ToBCH()
 	if !tx.MaxGas.IsEmpty() {
 		gasAmt := tx.MaxGas.ToCoins().GetCoin(common.BCHAsset).Amount
-		amtToPayInBCH += bchutil.Amount(int64(gasAmt.Uint64())).ToBTC()
+		amtToPayInBCH += bchutil.Amount(int64(gasAmt.Uint64())).ToBCH()
 	}
 	return amtToPayInBCH
 }
@@ -194,7 +193,7 @@ func (c *Client) estimateTxSize(tx stypes.TxOutItem, txes []btcjson.ListUnspentR
 		}
 		// double check that the utxo is still valid
 		outputPoint := wire.NewOutPoint(txID, item.Vout)
-		sourceTxIn := wire.NewTxIn(outputPoint, nil, nil)
+		sourceTxIn := wire.NewTxIn(outputPoint, nil)
 		redeemTx.AddTxIn(sourceTxIn)
 	}
 	outputAddr, err := bchutil.DecodeAddress(tx.ToAddress.String(), c.getChainCfg())
@@ -219,7 +218,7 @@ func (c *Client) estimateTxSize(tx stypes.TxOutItem, txes []btcjson.ListUnspentR
 		redeemTx.AddTxOut(wire.NewTxOut(0, nullDataScript))
 	}
 	// given the output in redeemTx has not been signed , so the estimated tx size will be smaller than the real size
-	return mempool.GetTxVirtualSize(bchutil.NewTx(redeemTx)), nil
+	return int64(redeemTx.SerializeSize()), nil
 }
 
 // SignTx is going to generate the outbound transaction, and also sign it
@@ -249,7 +248,7 @@ func (c *Client) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, err
 		}
 		// double check that the utxo is still valid
 		outputPoint := wire.NewOutPoint(txID, item.Vout)
-		sourceTxIn := wire.NewTxIn(outputPoint, nil, nil)
+		sourceTxIn := wire.NewTxIn(outputPoint, nil)
 		redeemTx.AddTxIn(sourceTxIn)
 		totalAmt += item.Amount
 		amt, err := bchutil.NewAmount(item.Amount)
@@ -284,7 +283,7 @@ func (c *Client) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, err
 	// the rest paid to customer to make sure the total doesn't change
 
 	// maxFee in sats
-	maxFeeSats := totalSize * defaultMaxBTCFeeRate / 1024
+	maxFeeSats := totalSize * defaultMaxBCHFeeRate / 1024
 	gasCoin := c.getGasCoin(tx, totalSize)
 	gasAmtSats := gasCoin.Amount.Uint64()
 
@@ -319,7 +318,7 @@ func (c *Client) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, err
 		}
 	}
 	gasAmt := bchutil.Amount(gasAmtSats)
-	if err := c.blockMetaAccessor.UpsertTransactionFee(gasAmt.ToBTC(), int32(totalSize)); err != nil {
+	if err := c.blockMetaAccessor.UpsertTransactionFee(gasAmt.ToBCH(), int32(totalSize)); err != nil {
 		c.logger.Err(err).Msg("fail to save gas info to UTXO storage")
 	}
 
@@ -368,8 +367,7 @@ func (c *Client) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, err
 		return nil, fmt.Errorf("fail to sign the message: %w", utxoErr)
 	}
 	finalSize := redeemTx.SerializeSize()
-	finalVBytes := mempool.GetTxVirtualSize(bchutil.NewTx(redeemTx))
-	c.logger.Info().Msgf("estimate:%d, final size: %d, final vbyte: %d", totalSize, finalSize, finalVBytes)
+	c.logger.Info().Msgf("estimate:%d, final size: %d", totalSize, finalSize)
 	var signedTx bytes.Buffer
 	if err := redeemTx.Serialize(&signedTx); err != nil {
 		return nil, fmt.Errorf("fail to serialize tx to bytes: %w", err)
@@ -379,9 +377,9 @@ func (c *Client) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, err
 }
 
 func (c *Client) signUTXO(redeemTx *wire.MsgTx, tx stypes.TxOutItem, amount int64, sourceScript []byte, idx int, thorchainHeight int64) error {
-	sigHashes := txscript.NewTxSigHashes(redeemTx)
-	sig := c.ksWrapper.GetSignable(tx.VaultPubKey)
-	sigscript, err := txscript.LegacySignatureScript(redeemTx, sigHashes, idx, amount, sourceScript, txscript.SigHashAll, sig, true)
+	signable := c.ksWrapper.GetSignable(tx.VaultPubKey)
+	sigHashType := txscript.SigHashAll
+	sig, err := txscript.RawTxInECDSASignature(redeemTx, idx, sourceScript, sigHashType, signable, amount)
 	if err != nil {
 		var keysignError tss.KeysignError
 		if errors.As(err, &keysignError) {
@@ -401,6 +399,11 @@ func (c *Client) signUTXO(redeemTx *wire.MsgTx, tx stypes.TxOutItem, amount int6
 		return fmt.Errorf("fail to get witness: %w", err)
 	}
 
+	pkData := signable.GetPubKey().SerializeCompressed()
+	sigscript, err := txscript.NewScriptBuilder().AddData(sig).AddData(pkData).Script()
+	if err != nil {
+		return fmt.Errorf("fail to build signature script: %w", err)
+	}
 	redeemTx.TxIn[idx].SignatureScript = sigscript
 	flag := txscript.StandardVerifyFlags
 	engine, err := txscript.NewEngine(sourceScript, redeemTx, idx, flag, nil, nil, amount)

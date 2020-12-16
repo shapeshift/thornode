@@ -101,7 +101,7 @@ func NewClient(thorKeys *thorclient.Keys, cfg config.ChainConfiguration, server 
 	}
 
 	c := &Client{
-		logger:           log.Logger.With().Str("module", "bitcoin-cash").Logger(),
+		logger:           log.Logger.With().Str("module", "bitcoincash").Logger(),
 		cfg:              cfg,
 		chain:            cfg.ChainID,
 		client:           client,
