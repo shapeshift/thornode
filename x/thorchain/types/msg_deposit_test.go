@@ -10,11 +10,11 @@ import (
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
-type MsgNativeTxSuite struct{}
+type MsgDepositSuite struct{}
 
-var _ = Suite(&MsgNativeTxSuite{})
+var _ = Suite(&MsgDepositSuite{})
 
-func (MsgNativeTxSuite) TestMsgNativeTxSuite(c *C) {
+func (MsgDepositSuite) TestMsgDepositSuite(c *C) {
 	acc1 := GetRandomBech32Addr()
 	c.Assert(acc1.Empty(), Equals, false)
 
@@ -22,9 +22,9 @@ func (MsgNativeTxSuite) TestMsgNativeTxSuite(c *C) {
 		common.NewCoin(common.RuneNative, cosmos.NewUint(12*common.One)),
 	}
 	memo := "hello"
-	msg := NewMsgNativeTx(coins, memo, acc1)
+	msg := NewMsgDeposit(coins, memo, acc1)
 	c.Assert(msg.Route(), Equals, RouterKey)
-	c.Assert(msg.Type(), Equals, "native_tx")
+	c.Assert(msg.Type(), Equals, "deposit")
 	c.Assert(msg.ValidateBasic(), IsNil)
 	c.Assert(len(msg.GetSignBytes()) > 0, Equals, true)
 	c.Assert(msg.GetSigners(), NotNil)
@@ -34,22 +34,22 @@ func (MsgNativeTxSuite) TestMsgNativeTxSuite(c *C) {
 	coins = common.Coins{
 		common.NewCoin(common.BTCAsset, cosmos.NewUint(12*common.One)),
 	}
-	msg = NewMsgNativeTx(coins, memo, acc1)
+	msg = NewMsgDeposit(coins, memo, acc1)
 	c.Assert(msg.ValidateBasic(), NotNil)
 
-	msg1 := NewMsgNativeTx(coins, "memo", cosmos.AccAddress{})
+	msg1 := NewMsgDeposit(coins, "memo", cosmos.AccAddress{})
 	err1 := msg1.ValidateBasic()
 	c.Assert(err1, NotNil)
 	c.Assert(errors.Is(err1, se.ErrInvalidAddress), Equals, true)
 
-	msg2 := NewMsgNativeTx(common.Coins{
+	msg2 := NewMsgDeposit(common.Coins{
 		common.NewCoin(common.EmptyAsset, cosmos.ZeroUint()),
 	}, "memo", acc1)
 	err2 := msg2.ValidateBasic()
 	c.Assert(err2, NotNil)
 	c.Assert(errors.Is(err2, se.ErrUnknownRequest), Equals, true)
 
-	msg3 := NewMsgNativeTx(common.Coins{
+	msg3 := NewMsgDeposit(common.Coins{
 		common.NewCoin(common.RuneNative, cosmos.NewUint(12*common.One)),
 	}, "asdfsdkljadslfasfaqcvbncvncvbncvbncvbncvbncvbncvbncvbncvbncvbnsdfasdfasfasdfkjqwerqlkwerqlerqwlkerjqlwkerjqwlkerjqwlkerjqlkwerjklqwerjqwlkerjqlwkerjwqelr", acc1)
 	err3 := msg3.ValidateBasic()

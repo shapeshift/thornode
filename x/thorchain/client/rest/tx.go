@@ -13,15 +13,15 @@ import (
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
-type nativeTx struct {
+type deposit struct {
 	BaseReq rest.BaseReq `json:"base_req"`
 	Coins   common.Coins `json:"coins"`
 	Memo    string       `json:"memo"`
 }
 
-func newNativeTxHandler(cliCtx context.CLIContext) http.HandlerFunc {
+func newDepositHandler(cliCtx context.CLIContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req nativeTx
+		var req deposit
 
 		if !rest.ReadRESTReq(w, r, cliCtx.Codec, &req) {
 			rest.WriteErrorResponse(w, http.StatusBadRequest, "failed to parse request")
@@ -40,7 +40,7 @@ func newNativeTxHandler(cliCtx context.CLIContext) http.HandlerFunc {
 			return
 		}
 
-		msg := types.NewMsgNativeTx(req.Coins, req.Memo, addr)
+		msg := types.NewMsgDeposit(req.Coins, req.Memo, addr)
 		err = msg.ValidateBasic()
 		if err != nil {
 			rest.WriteErrorResponse(w, http.StatusBadRequest, err.Error())
