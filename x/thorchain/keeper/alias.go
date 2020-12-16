@@ -62,4 +62,5 @@ type (
 	NetworkFee               = types.NetworkFee
 	ObservedNetworkFeeVoter  = types.ObservedNetworkFeeVoter
 	RagnarokWithdrawPosition = types.RagnarokWithdrawPosition
+	ChainContract            = types.ChainContract
 )
