@@ -7,16 +7,16 @@ import (
 	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
-// MsgNativeTx defines a MsgNativeTx message
-type MsgNativeTx struct {
+// MsgDeposit defines a MsgDeposit message
+type MsgDeposit struct {
 	Coins  common.Coins      `json:"coins"`
 	Memo   string            `json:"memo"`
 	Signer cosmos.AccAddress `json:"signer"`
 }
 
-// NewMsgNativeTx is a constructor function for NewMsgNativeTx
-func NewMsgNativeTx(coins common.Coins, memo string, signer cosmos.AccAddress) MsgNativeTx {
-	return MsgNativeTx{
+// NewMsgDeposit is a constructor function for NewMsgDeposit
+func NewMsgDeposit(coins common.Coins, memo string, signer cosmos.AccAddress) MsgDeposit {
+	return MsgDeposit{
 		Coins:  coins,
 		Memo:   memo,
 		Signer: signer,
@@ -24,13 +24,13 @@ func NewMsgNativeTx(coins common.Coins, memo string, signer cosmos.AccAddress) M
 }
 
 // Route should return the route key of the module
-func (msg MsgNativeTx) Route() string { return RouterKey }
+func (msg MsgDeposit) Route() string { return RouterKey }
 
 // Type should return the action
-func (msg MsgNativeTx) Type() string { return "native_tx" }
+func (msg MsgDeposit) Type() string { return "deposit" }
 
 // ValidateBasic runs stateless checks on the message
-func (msg MsgNativeTx) ValidateBasic() error {
+func (msg MsgDeposit) ValidateBasic() error {
 	if msg.Signer.Empty() {
 		return cosmos.ErrInvalidAddress(msg.Signer.String())
 	}
@@ -50,11 +50,11 @@ func (msg MsgNativeTx) ValidateBasic() error {
 }
 
 // GetSignBytes encodes the message for signing
-func (msg MsgNativeTx) GetSignBytes() []byte {
+func (msg MsgDeposit) GetSignBytes() []byte {
 	return cosmos.MustSortJSON(ModuleCdc.MustMarshalJSON(msg))
 }
 
 // GetSigners defines whose signature is required
-func (msg MsgNativeTx) GetSigners() []cosmos.AccAddress {
+func (msg MsgDeposit) GetSigners() []cosmos.AccAddress {
 	return []cosmos.AccAddress{msg.Signer}
 }
