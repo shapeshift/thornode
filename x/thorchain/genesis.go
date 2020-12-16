@@ -35,6 +35,7 @@ type GenesisState struct {
 	MsgSwaps             []MsgSwap                 `json:"msg_swaps"`
 	NetworkFees          []NetworkFee              `json:"network_fees"`
 	NetworkFeeVoters     []ObservedNetworkFeeVoter `json:"network_fee_voters"`
+	ChainContracts       []ChainContract           `json:"chain_contracts"`
 }
 
 // NewGenesisState create a new instance of GenesisState
@@ -118,6 +119,12 @@ func ValidateGenesis(data GenesisState) error {
 		}
 	}
 
+	for _, cc := range data.ChainContracts {
+		if cc.IsEmpty() {
+			return fmt.Errorf("chain contract cannot be empty")
+		}
+	}
+
 	return nil
 }
 
@@ -144,6 +151,7 @@ func DefaultGenesisState() GenesisState {
 		MsgSwaps:             make([]MsgSwap, 0),
 		NetworkFees:          make([]NetworkFee, 0),
 		NetworkFeeVoters:     make([]ObservedNetworkFeeVoter, 0),
+		ChainContracts:       make([]ChainContract, 0),
 	}
 }
 
@@ -274,6 +282,10 @@ func InitGenesis(ctx cosmos.Context, keeper keeper.Keeper, data GenesisState) []
 
 	for _, nf := range data.NetworkFeeVoters {
 		keeper.SetObservedNetworkFeeVoter(ctx, nf)
+	}
+
+	for _, cc := range data.ChainContracts {
+		keeper.SetChainContract(ctx, cc)
 	}
 
 	// Mint coins into the reserve
@@ -486,6 +498,15 @@ func ExportGenesis(ctx cosmos.Context, k keeper.Keeper) GenesisState {
 		k.Cdc().MustUnmarshalBinaryBare(iterNetworkFeeVoter.Value(), &nf)
 		networkFeeVoters = append(networkFeeVoters, nf)
 	}
+	chainContracts := make([]ChainContract, 0)
+	iter := k.GetChainContractIterator(ctx)
+	defer iter.Close()
+	for ; iter.Valid(); iter.Next() {
+		var cc ChainContract
+		k.Cdc().MustUnmarshalBinaryBare(iter.Value(), &cc)
+		chainContracts = append(chainContracts, cc)
+	}
+
 	return GenesisState{
 		Pools:                pools,
 		LiquidityProviders:   liquidity_providers,
