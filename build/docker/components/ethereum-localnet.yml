@@ -7,6 +7,7 @@ services:
     image: registry.gitlab.com/thorchain/ethereum-mock
     ports:
       - "8545:8545"
+      - "30301:30301"
       - "30303:30303"
     volumes:
       - "../../scripts:/docker/scripts"
