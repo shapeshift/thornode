@@ -26,6 +26,8 @@ type Keeper interface {
 	SendFromModuleToModule(ctx cosmos.Context, from, to string, coin common.Coin) error
 	SendFromAccountToModule(ctx cosmos.Context, from cosmos.AccAddress, to string, coin common.Coin) error
 	SendFromModuleToAccount(ctx cosmos.Context, from string, to cosmos.AccAddress, coin common.Coin) error
+	MintToModule(ctx cosmos.Context, module string, coin common.Coin) error
+	BurnFromModule(ctx cosmos.Context, module string, coin common.Coin) error
 
 	// Keeper Interfaces
 	KeeperPool

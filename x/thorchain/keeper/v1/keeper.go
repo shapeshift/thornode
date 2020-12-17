@@ -218,3 +218,33 @@ func (k KVStore) SendFromModuleToAccount(ctx cosmos.Context, from string, to cos
 	)
 	return k.Supply().SendCoinsFromModuleToAccount(ctx, from, to, coins)
 }
+
+func (k KVStore) BurnFromModule(ctx cosmos.Context, module string, coin common.Coin) error {
+	supplier := k.Supply()
+	coinToBurn, err := coin.Native()
+	if err != nil {
+		return fmt.Errorf("fail to parse coins: %w", err)
+	}
+	coinsToBurn := cosmos.Coins{coinToBurn}
+	err = supplier.BurnCoins(ctx, module, coinsToBurn)
+	if err != nil {
+		return fmt.Errorf("fail to burn assets: %w", err)
+	}
+
+	return nil
+}
+
+func (k KVStore) MintToModule(ctx cosmos.Context, module string, coin common.Coin) error {
+	supplier := k.Supply()
+	coinToMint, err := coin.Native()
+	if err != nil {
+		return fmt.Errorf("fail to parse coins: %w", err)
+	}
+	coinsToMint := cosmos.Coins{coinToMint}
+	err = supplier.MintCoins(ctx, module, coinsToMint)
+	if err != nil {
+		return fmt.Errorf("fail to burn assets: %w", err)
+	}
+
+	return nil
+}
