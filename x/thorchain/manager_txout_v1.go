@@ -229,6 +229,9 @@ func (tos *TxOutStorageV1) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem) (
 			outputs[i].MaxGas = common.Gas{
 				common.NewCoin(gasAsset, maxAmt),
 			}
+			if outputs[i].MaxGas.IsEmpty() {
+				return nil, fmt.Errorf("max gas cannot be empty: %s", outputs[i].MaxGas)
+			}
 			outputs[i].GasRate = int64(tos.gasManager.GetGasRate(ctx, outputs[i].Chain).Uint64())
 		}
 
