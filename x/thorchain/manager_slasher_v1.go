@@ -278,7 +278,7 @@ func (s *SlasherV1) LackSigning(ctx cosmos.Context, constAccessor constants.Cons
 
 			// Save the tx to as a new tx, select Asgard to send it this time.
 			tx.VaultPubKey = vault.PubKey
-			tx.GasRate = mgr.GasMgr().GetGasRate(ctx, tx.Chain)
+			tx.GasRate = int64(mgr.GasMgr().GetGasRate(ctx, tx.Chain).Uint64())
 			// if a pool with the asset name doesn't exist, skip rescheduling
 			if !tx.Coin.Asset.IsRune() && !s.keeper.PoolExist(ctx, tx.Coin.Asset) {
 				ctx.Logger().Error("fail to add outbound tx", "error", "coin is not rune and does not have an associated pool")

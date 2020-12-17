@@ -3,6 +3,7 @@ package thorchain
 import (
 	"github.com/blang/semver"
 
+	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
@@ -60,7 +61,7 @@ func (h SwapHandler) handle(ctx cosmos.Context, msg MsgSwap, version semver.Vers
 }
 
 func (h SwapHandler) handleV1(ctx cosmos.Context, msg MsgSwap, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
-	transactionFee := h.mgr.GasMgr().GetFee(ctx, msg.TargetAsset.Chain)
+	transactionFee := h.mgr.GasMgr().GetFee(ctx, msg.TargetAsset.Chain, common.RuneAsset())
 	_, _, swapErr := swap(
 		ctx,
 		h.keeper,
@@ -68,7 +69,8 @@ func (h SwapHandler) handleV1(ctx cosmos.Context, msg MsgSwap, version semver.Ve
 		msg.TargetAsset,
 		msg.Destination,
 		msg.TradeTarget,
-		cosmos.NewUint(uint64(transactionFee)), h.mgr)
+		transactionFee,
+		h.mgr)
 	if swapErr != nil {
 		return nil, swapErr
 	}
