@@ -45,7 +45,7 @@ type ChainConfiguration struct {
 	ChainNetwork string                    `json:"chain_network" mapstructure:"chain_network"`
 	UserName     string                    `json:"username" mapstructure:"username"`
 	Password     string                    `json:"password" mapstructure:"password"`
-	RPCHost      string                    `jsonn:"rpc_host" mapstructure:"rpc_host"`
+	RPCHost      string                    `json:"rpc_host" mapstructure:"rpc_host"`
 	HTTPostMode  bool                      `json:"http_post_mode" mapstructure:"http_post_mode"` // Bitcoin core only supports HTTP POST mode
 	DisableTLS   bool                      `json:"disable_tls" mapstructure:"disable_tls"`       // Bitcoin core does not provide TLS by default
 	BlockScanner BlockScannerConfiguration `json:"block_scanner" mapstructure:"block_scanner"`

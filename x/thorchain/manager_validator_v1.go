@@ -252,9 +252,8 @@ func (vm *validatorMgrV1) EndBlock(ctx cosmos.Context, mgr Manager, constAccesso
 			if err := vm.processRagnarok(ctx, mgr, constAccessor); err != nil {
 				ctx.Logger().Error("fail to process ragnarok protocol", "error", err)
 			}
+			return nil
 		}
-		// by return
-		return nil
 	}
 
 	// no change
