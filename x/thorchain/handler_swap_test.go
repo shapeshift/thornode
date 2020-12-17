@@ -68,7 +68,12 @@ func (k *TestSwapHandleKeeper) PoolExist(_ cosmos.Context, asset common.Asset) b
 }
 
 func (k *TestSwapHandleKeeper) GetPool(_ cosmos.Context, asset common.Asset) (Pool, error) {
-	return k.pools[asset], nil
+	if pool, ok := k.pools[asset]; ok {
+		return pool, nil
+	}
+	pool := NewPool()
+	pool.Asset = asset
+	return pool, nil
 }
 
 func (k *TestSwapHandleKeeper) SetPool(_ cosmos.Context, pool Pool) error {

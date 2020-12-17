@@ -50,36 +50,36 @@ func (GasManagerTestSuite) TestGetFee(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	constAccessor := constants.NewConstantValue010()
 	gasMgr := NewGasMgrV1(constAccessor, k)
-	fee := gasMgr.GetFee(ctx, common.BNBChain)
-	defaultTxFee := constAccessor.GetInt64Value(constants.OutboundTransactionFee)
+	fee := gasMgr.GetFee(ctx, common.BNBChain, common.RuneAsset())
+	defaultTxFee := uint64(constAccessor.GetInt64Value(constants.OutboundTransactionFee))
 	// when there is no network fee available, it should just get from the constants
-	c.Assert(fee, Equals, defaultTxFee)
+	c.Assert(fee.Uint64(), Equals, defaultTxFee)
 	networkFee := NewNetworkFee(common.BNBChain, 1, bnbSingleTxFee.Uint64())
 	c.Assert(k.SaveNetworkFee(ctx, common.BNBChain, networkFee), IsNil)
-	fee = gasMgr.GetFee(ctx, common.BNBChain)
-	c.Assert(fee, Equals, defaultTxFee)
+	fee = gasMgr.GetFee(ctx, common.BNBChain, common.RuneAsset())
+	c.Assert(fee.Uint64(), Equals, defaultTxFee)
 	c.Assert(k.SetPool(ctx, Pool{
 		BalanceRune:  cosmos.NewUint(100 * common.One),
 		BalanceAsset: cosmos.NewUint(100 * common.One),
 		Asset:        common.BNBAsset,
 		Status:       PoolAvailable,
 	}), IsNil)
-	fee = gasMgr.GetFee(ctx, common.BNBChain)
-	c.Assert(fee, Equals, int64(bnbSingleTxFee.Uint64()*3))
+	fee = gasMgr.GetFee(ctx, common.BNBChain, common.RuneAsset())
+	c.Assert(fee.Uint64(), Equals, bnbSingleTxFee.Uint64()*3, Commentf("%d vs %d", fee.Uint64(), bnbSingleTxFee.Uint64()*3))
 
 	// BTC chain
 	networkFee = NewNetworkFee(common.BTCChain, 70, 50)
 	c.Assert(k.SaveNetworkFee(ctx, common.BTCChain, networkFee), IsNil)
-	fee = gasMgr.GetFee(ctx, common.BTCChain)
-	c.Assert(fee, Equals, defaultTxFee)
+	fee = gasMgr.GetFee(ctx, common.BTCChain, common.RuneAsset())
+	c.Assert(fee.Uint64(), Equals, defaultTxFee)
 	c.Assert(k.SetPool(ctx, Pool{
 		BalanceRune:  cosmos.NewUint(100 * common.One),
 		BalanceAsset: cosmos.NewUint(100 * common.One),
 		Asset:        common.BTCAsset,
 		Status:       PoolAvailable,
 	}), IsNil)
-	fee = gasMgr.GetFee(ctx, common.BTCChain)
-	c.Assert(fee, Equals, int64(70*50*3))
+	fee = gasMgr.GetFee(ctx, common.BTCChain, common.RuneAsset())
+	c.Assert(fee.Uint64(), Equals, uint64(70*50*3))
 }
 
 type gasManagerTestHelper struct {

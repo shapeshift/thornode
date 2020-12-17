@@ -41,9 +41,9 @@ type GasManager interface {
 	AddGasAsset(gas common.Gas, increaseTxCount bool)
 	ProcessGas(ctx cosmos.Context, keeper keeper.Keeper)
 	GetGas() common.Gas
-	GetFee(ctx cosmos.Context, chain common.Chain) int64
+	GetFee(ctx cosmos.Context, chain common.Chain, asset common.Asset) cosmos.Uint
 	GetMaxGas(ctx cosmos.Context, chain common.Chain) (common.Coin, error)
-	GetGasRate(ctx cosmos.Context, chain common.Chain) int64
+	GetGasRate(ctx cosmos.Context, chain common.Chain) cosmos.Uint
 	SubGas(gas common.Gas)
 }
 
