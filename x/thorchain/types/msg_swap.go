@@ -63,7 +63,7 @@ func (msg MsgSwap) ValidateBasic() error {
 	if msg.AffiliateAddress.IsEmpty() && !msg.AffiliateBasisPoints.IsZero() {
 		return cosmos.ErrUnknownRequest("swap affiliate address is empty while affiliate basis points is non-zero")
 	}
-	if !msg.Destination.IsChain(msg.TargetAsset.Chain) {
+	if !msg.Destination.IsChain(msg.TargetAsset.Chain) && !msg.Destination.IsChain(common.THORChain) {
 		return cosmos.ErrUnknownRequest("swap destination address is not the same chain as the target asset")
 	}
 	if !msg.AffiliateAddress.IsEmpty() && !msg.AffiliateAddress.IsChain(common.THORChain) {
