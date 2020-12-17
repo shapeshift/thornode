@@ -70,8 +70,8 @@ func (h DepositHandler) handleV1(ctx cosmos.Context, msg MsgDeposit, version sem
 	supplier := h.keeper.Supply()
 	// TODO: this shouldn't be tied to swaps, and should be cheaper. But
 	// OutboundTransactionFee will be fine for now.
-	transactionFee := h.mgr.GasMgr().GetFee(ctx, common.THORChain)
-	gas := common.NewCoin(common.RuneNative, cosmos.NewUint(uint64(transactionFee)))
+	transactionFee := h.mgr.GasMgr().GetFee(ctx, common.THORChain, common.RuneAsset())
+	gas := common.NewCoin(common.RuneNative, transactionFee)
 	gasFee, err := gas.Native()
 	if err != nil {
 		return nil, fmt.Errorf("fail to get gas fee: %w", err)

@@ -233,7 +233,7 @@ func (ymgr YggMgrV1) sendCoinsToYggdrasil(ctx cosmos.Context, coins common.Coins
 				MaxGas: common.Gas{
 					gasCoin,
 				},
-				GasRate: mgr.GasMgr().GetGasRate(ctx, coin.Asset.Chain),
+				GasRate: int64(mgr.GasMgr().GetGasRate(ctx, coin.Asset.Chain).Uint64()),
 			}
 			if err := mgr.TxOutStore().UnSafeAddTxOutItem(ctx, mgr, toi); err != nil {
 				return count, err
