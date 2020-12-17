@@ -12,6 +12,8 @@ services:
       TSS_HOST: localhost
   thor-daemon:
     network_mode: "host"
+    environment:
+      ETH_HOST: ${ETH_HOST:-http://localhost:8545}
   thor-api:
     network_mode: "host"
     environment:

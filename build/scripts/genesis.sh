@@ -9,6 +9,8 @@ SIGNER_NAME="${SIGNER_NAME:=thorchain}"
 SIGNER_PASSWD="${SIGNER_PASSWD:=password}"
 NODES="${NODES:=1}"
 SEED="${SEED:=thor-daemon}" # the hostname of the master node
+CONTRACT="${CONTRACT}"
+ETH_HOST="${ETH_HOST:=http://ethereum-localnet:8545}"
 # config the keyring to use file backend
 thorcli config keyring-backend file
 
@@ -91,6 +93,11 @@ if [ "$SEED" = "$(hostname)" ]; then
         add_account tthor1wz78qmrkplrdhy37tw0tnvn0tkm5pqd6zdp257 rune 25000000000100
         add_account tthor1xwusttz86hqfuk5z7amcgqsg7vp6g8zhsp5lu2 rune 5090000000000
         reserve 22000000000000000
+        # deploy eth contract
+        deploy_eth_contract $ETH_HOST
+    else
+      echo "ETH Contract Address: $CONTRACT"
+      set_eth_contract $CONTRACT
     fi
     if [ "$NET" == "testnet" ]; then
         reserve 22000000000000000
