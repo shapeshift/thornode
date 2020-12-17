@@ -168,7 +168,20 @@ gen_bnb_address () {
     fi
 }
 
+deploy_eth_contract () {
+    echo "Deploying eth contracts..."
+    python3 scripts/eth/eth-tool.py --ethereum $1 deploy --from_address 0x3fd2d4ce97b082d4bce3f9fee2a3d60668d2f473 >& /tmp/contract.log
+    cat /tmp/contract.log
+    CONTRACT=$(cat /tmp/contract.log | grep "Vault Contract Address" | awk '{print $NF}')
+    echo "Contract Address: $CONTRACT"
 
+    set_eth_contract $CONTRACT
+}
+
+set_eth_contract () {
+  jq --arg CONTRACT $1 '.app_state.thorchain.chain_contracts = [{"chain": "ETH", "address": $CONTRACT}]' ~/.thord/config/genesis.json > /tmp/genesis.json
+    mv /tmp/genesis.json ~/.thord/config/genesis.json
+}
 
 fetch_genesis () {
     until curl -s "$1:$PORT_RPC" > /dev/null; do
