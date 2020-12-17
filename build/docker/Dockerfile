@@ -26,8 +26,10 @@ RUN make install
 #
 FROM alpine
 
-RUN apk add --update jq curl bind-tools && \
+RUN apk add --update gcc musl-dev python3-dev libffi-dev openssl-dev jq curl bind-tools py3-pip && \
     rm -rf /var/cache/apk/*
+
+RUN pip3 install requests==2.22.0 web3==5.12.0
 
 # Copy the compiled binaires over.
 COPY --from=build /go/bin/generate /usr/bin/

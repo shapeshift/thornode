@@ -48,6 +48,7 @@ services:
       SEED: thor-daemon
       TSSKEYGEN: 172.32.10.2:4040
       TSSKEYGENLIST: 172.32.10.2:6040,172.32.10.3:6041,172.32.10.4:6042,172.32.10.5:6043
+      CONTRACT: ${CONTRACT:-}
     ports:
       - "26657:26657"
       - "26656:26656"
