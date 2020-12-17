@@ -34,4 +34,4 @@ curl -v -s -X  POST -d  "{
         \"chain_id\": \"thorchain\",
         \"from\": \"$4\"
     }
-}" http://$1:1317/thorchain/native/tx -o $5
+}" http://$1:1317/thorchain/deposit -o $5
