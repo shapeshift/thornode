@@ -61,7 +61,7 @@ func (gm *GasMgrV1) GetGas() common.Gas {
 // the return value is the amount of fee in RUNE
 func (gm *GasMgrV1) GetFee(ctx cosmos.Context, chain common.Chain, asset common.Asset) cosmos.Uint {
 	transactionFee := cosmos.NewUint(uint64(gm.constantsAccessor.GetInt64Value(constants.OutboundTransactionFee)))
-	if chain.Equals(common.THORChain) && asset.IsRune() {
+	if chain.Equals(common.THORChain) && asset.Chain.Equals(chain) {
 		return transactionFee
 	}
 	networkFee, err := gm.keeper.GetNetworkFee(ctx, chain)
