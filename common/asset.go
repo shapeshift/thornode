@@ -21,7 +21,8 @@ var (
 	// RuneB1AAsset RUNE on Binance main net
 	RuneB1AAsset = Asset{Chain: BNBChain, Symbol: "RUNE-B1A", Ticker: "RUNE"} // mainnet
 	// RuneNative RUNE on thorchain
-	RuneNative = Asset{Chain: THORChain, Symbol: "RUNE", Ticker: "RUNE"}
+	RuneNative   = Asset{Chain: THORChain, Symbol: "RUNE", Ticker: "RUNE"}
+	Layer2Prefix = "s"
 )
 
 // Asset represent an asset in THORChain it is in BNB.BNB format
@@ -66,6 +67,53 @@ func NewAsset(input string) (Asset, error) {
 // Equals determinate whether two assets are equivalent
 func (a Asset) Equals(a2 Asset) bool {
 	return a.Chain.Equals(a2.Chain) && a.Symbol.Equals(a2.Symbol) && a.Ticker.Equals(a2.Ticker)
+}
+
+func (a Asset) isNativeUtilityAsset() bool {
+	if !a.Chain.Equals(THORChain) {
+		return false
+	}
+	if !strings.Contains(a.Symbol.String(), "/") {
+		return false
+	}
+	return true
+}
+
+// Get layer1 asset version
+func (a Asset) GetLayer1Asset() Asset {
+	if !a.IsLayer2Asset() {
+		return a
+	}
+	parts := strings.Split(a.Symbol.String(), "/")
+	chain := parts[0][1:len(parts[0])]
+	return Asset{
+		Chain:  Chain(chain),
+		Symbol: Symbol(parts[1]),
+		Ticker: a.Ticker,
+	}
+}
+
+// Get layer2 asset of asset
+func (a Asset) GetLayer2Asset() Asset {
+	if a.IsLayer2Asset() {
+		return a
+	}
+	return Asset{
+		Chain:  THORChain,
+		Symbol: Symbol(strings.ToLower(fmt.Sprintf("%s%s/%s", Layer2Prefix, a.Chain, a.Symbol))),
+		Ticker: a.Ticker,
+	}
+}
+
+// Check if asset is a pegged asset
+func (a Asset) IsLayer2Asset() bool {
+	if !a.isNativeUtilityAsset() {
+		return false
+	}
+	if !strings.HasPrefix(strings.ToLower(a.Symbol.String()), Layer2Prefix) {
+		return false
+	}
+	return true
 }
 
 // Native return native asset, only relevant on THORChain
