@@ -53,6 +53,14 @@ func (k KVStoreDummy) SendFromModuleToAccount(ctx cosmos.Context, from string, t
 	return kaboom
 }
 
+func (k KVStoreDummy) MintToModule(ctx cosmos.Context, module string, coin common.Coin) error {
+	return kaboom
+}
+
+func (k KVStoreDummy) BurnFromModule(ctx cosmos.Context, module string, coin common.Coin) error {
+	return kaboom
+}
+
 func (k KVStoreDummy) SetLastSignedHeight(_ cosmos.Context, _ int64) error { return kaboom }
 func (k KVStoreDummy) GetLastSignedHeight(_ cosmos.Context) (int64, error) {
 	return 0, kaboom

@@ -72,6 +72,5 @@ func (h SwapHandler) handleV1(ctx cosmos.Context, msg MsgSwap, version semver.Ve
 	if swapErr != nil {
 		return nil, swapErr
 	}
-
 	return &cosmos.Result{}, nil
 }

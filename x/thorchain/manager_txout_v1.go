@@ -386,6 +386,13 @@ func (tos *TxOutStorageV1) nativeTxOut(ctx cosmos.Context, mgr Manager, toi TxOu
 		toi.ModuleName = AsgardName
 	}
 
+	// mint if we're sending from THORChain module
+	if toi.ModuleName == ModuleName {
+		if err := tos.keeper.MintToModule(ctx, toi.ModuleName, toi.Coin); err != nil {
+			return fmt.Errorf("fail to mint coins during txout: %w", err)
+		}
+	}
+
 	// send funds from module
 	sdkErr := tos.keeper.SendFromModuleToAccount(ctx, toi.ModuleName, addr, toi.Coin)
 	if sdkErr != nil {
