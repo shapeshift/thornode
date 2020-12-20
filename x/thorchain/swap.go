@@ -53,10 +53,10 @@ func swap(ctx cosmos.Context,
 	transactionFee cosmos.Uint, mgr Manager) (cosmos.Uint, []EventSwap, error) {
 	var swapEvents []EventSwap
 
-	// determine if target is layer1 vs layer2 asset
+	// determine if target is layer1 vs synthetic asset
 	if !target.IsRune() && !destination.IsChain(target.Chain) {
 		if destination.IsChain(common.THORChain) {
-			target = target.GetLayer2Asset()
+			target = target.GetSyntheticAsset()
 		} else {
 			target = target.GetLayer1Asset()
 		}
@@ -92,7 +92,6 @@ func swap(ctx cosmos.Context,
 		swapEvt.OutTxs = common.NewTx(common.BlankTxID, tx.FromAddress, tx.ToAddress, tx.Coins, tx.Gas, tx.Memo)
 		swapEvents = append(swapEvents, swapEvt)
 	}
-
 	assetAmount, poolBefore, pool, swapEvt, swapErr := swapOne(ctx, keeper, tx, target, destination, tradeTarget, transactionFee)
 	if swapErr != nil {
 		return cosmos.ZeroUint(), swapEvents, swapErr
@@ -128,7 +127,8 @@ func swap(ctx cosmos.Context,
 		ToAddress: destination,
 		Coin:      common.NewCoin(target, assetAmount),
 	}
-	if target.IsLayer2Asset() || source.IsLayer2Asset() {
+	// let the txout manager mint our outbound asset if it is a synthetic asset
+	if toi.Coin.Asset.IsSyntheticAsset() {
 		toi.ModuleName = ModuleName
 	}
 
@@ -188,7 +188,7 @@ func swapOne(ctx cosmos.Context,
 			return cosmos.ZeroUint(), Pool{}, Pool{}, evt, errSwapFailNotEnoughFee
 		}
 	}
-	if asset.IsLayer2Asset() {
+	if asset.IsSyntheticAsset() {
 		asset = asset.GetLayer1Asset()
 	}
 
@@ -256,9 +256,9 @@ func swapOne(ctx cosmos.Context,
 
 	ctx.Logger().Info(fmt.Sprintf("Pre-Pool: %sRune %sAsset", pool.BalanceRune, pool.BalanceAsset))
 
-	if source.IsLayer2Asset() || target.IsLayer2Asset() {
+	if source.IsSyntheticAsset() || target.IsSyntheticAsset() {
 		// we're doing a virtual swap
-		if source.IsLayer2Asset() {
+		if source.IsSyntheticAsset() {
 			// our source is a pegged asset, burn it all
 			if err := keeper.SendFromModuleToModule(ctx, AsgardName, ModuleName, tx.Coins[0]); err != nil {
 				return cosmos.ZeroUint(), poolBefore, pool, evt, fmt.Errorf("fail to move coins during swap: %w", err)
@@ -267,7 +267,7 @@ func swapOne(ctx cosmos.Context,
 				return cosmos.ZeroUint(), poolBefore, pool, evt, fmt.Errorf("fail to burn coins during swap: %w", err)
 			}
 			// mint rune to asgard module and so we can add it to the pool
-			toMint := common.NewCoin(common.RuneAsset(), liquidityFee)
+			toMint := common.NewCoin(common.RuneAsset(), liquidityFee.Add(emitAssets))
 			if err := keeper.MintToModule(ctx, ModuleName, toMint); err != nil {
 				return cosmos.ZeroUint(), poolBefore, pool, evt, fmt.Errorf("fail to mint coins during swap: %w", err)
 			}
