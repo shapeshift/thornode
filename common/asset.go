@@ -21,8 +21,8 @@ var (
 	// RuneB1AAsset RUNE on Binance main net
 	RuneB1AAsset = Asset{Chain: BNBChain, Symbol: "RUNE-B1A", Ticker: "RUNE"} // mainnet
 	// RuneNative RUNE on thorchain
-	RuneNative   = Asset{Chain: THORChain, Symbol: "RUNE", Ticker: "RUNE"}
-	Layer2Prefix = "s"
+	RuneNative      = Asset{Chain: THORChain, Symbol: "RUNE", Ticker: "RUNE"}
+	SyntheticPrefix = "s"
 )
 
 // Asset represent an asset in THORChain it is in BNB.BNB format
@@ -81,7 +81,7 @@ func (a Asset) isNativeUtilityAsset() bool {
 
 // Get layer1 asset version
 func (a Asset) GetLayer1Asset() Asset {
-	if !a.IsLayer2Asset() {
+	if !a.IsSyntheticAsset() {
 		return a
 	}
 	parts := strings.Split(a.Symbol.String(), "/")
@@ -93,24 +93,24 @@ func (a Asset) GetLayer1Asset() Asset {
 	}
 }
 
-// Get layer2 asset of asset
-func (a Asset) GetLayer2Asset() Asset {
-	if a.IsLayer2Asset() {
+// Get synthetic asset of asset
+func (a Asset) GetSyntheticAsset() Asset {
+	if a.IsSyntheticAsset() {
 		return a
 	}
 	return Asset{
 		Chain:  THORChain,
-		Symbol: Symbol(strings.ToLower(fmt.Sprintf("%s%s/%s", Layer2Prefix, a.Chain, a.Symbol))),
+		Symbol: Symbol(strings.ToLower(fmt.Sprintf("%s%s/%s", SyntheticPrefix, a.Chain, a.Symbol))),
 		Ticker: a.Ticker,
 	}
 }
 
 // Check if asset is a pegged asset
-func (a Asset) IsLayer2Asset() bool {
+func (a Asset) IsSyntheticAsset() bool {
 	if !a.isNativeUtilityAsset() {
 		return false
 	}
-	if !strings.HasPrefix(strings.ToLower(a.Symbol.String()), Layer2Prefix) {
+	if !strings.HasPrefix(strings.ToLower(a.Symbol.String()), SyntheticPrefix) {
 		return false
 	}
 	return true
