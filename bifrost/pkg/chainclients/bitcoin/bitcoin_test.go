@@ -100,6 +100,8 @@ func (s *BitcoinSuite) SetUpTest(c *C) {
 			json.NewDecoder(req.Body).Decode(&r)
 
 			switch {
+			case r.Method == "getnetworkinfo":
+				httpTestHandler(c, rw, "../../../../test/fixtures/btc/getnetworkinfo.json")
 			case r.Method == "getblockhash":
 				httpTestHandler(c, rw, "../../../../test/fixtures/btc/blockhash.json")
 			case r.Method == "getblock":
@@ -127,7 +129,7 @@ func (s *BitcoinSuite) SetUpTest(c *C) {
 			case r.Method == "getblockstats":
 				httpTestHandler(c, rw, "../../../../test/fixtures/btc/blockstats.json")
 			}
-		} else if strings.HasPrefix(req.RequestURI, "/thorchain/nodeaccount/") {
+		} else if strings.HasPrefix(req.RequestURI, "/thorchain/node/") {
 			httpTestHandler(c, rw, "../../../../test/fixtures/endpoints/nodeaccount/template.json")
 		} else if req.RequestURI == "/thorchain/lastblock" {
 			httpTestHandler(c, rw, "../../../../test/fixtures/endpoints/lastblock/btc.json")

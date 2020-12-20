@@ -89,11 +89,13 @@ func (s *BitcoinSignerSuite) SetUpTest(c *C) {
 			}{}
 			buf, err := ioutil.ReadAll(req.Body)
 			c.Assert(err, IsNil)
-			c.Assert(json.Unmarshal(buf, &r), IsNil)
+			json.Unmarshal(buf, &r)
 			defer func() {
 				c.Assert(req.Body.Close(), IsNil)
 			}()
 			switch r.Method {
+			case "getnetworkinfo":
+				httpTestHandler(c, rw, "../../../../test/fixtures/btc/getnetworkinfo.json")
 			case "getbestblockhash":
 				httpTestHandler(c, rw, "../../../../test/fixtures/btc/getbestblockhash.json")
 			case "getblock":
