@@ -2,6 +2,7 @@ package binance
 
 import (
 	"encoding/json"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -28,6 +29,7 @@ import (
 type BlockScannerTestSuite struct {
 	m      *metrics.Metrics
 	bridge *thorclient.ThorchainBridge
+	keys   *thorclient.Keys
 }
 
 var _ = Suite(&BlockScannerTestSuite{})
@@ -50,6 +52,7 @@ func (s *BlockScannerTestSuite) SetUpSuite(c *C) {
 	c.Assert(err, IsNil)
 	s.bridge, err = thorclient.NewThorchainBridge(cfg, s.m, thorKeys)
 	c.Assert(err, IsNil)
+	s.keys = thorKeys
 }
 
 func getConfigForTest(rpcHost string) config.BlockScannerConfiguration {
@@ -400,10 +403,25 @@ func (s *BlockScannerTestSuite) TestFromStdTx(c *C) {
 	c.Check(item.Coins, HasLen, 1)
 }
 
+func httpTestHandler(c *C, rw http.ResponseWriter, fixture string) {
+	content, err := ioutil.ReadFile(fixture)
+	if err != nil {
+		c.Fatal(err)
+	}
+	rw.Header().Set("Content-Type", "application/json")
+	if _, err := rw.Write(content); err != nil {
+		c.Fatal(err)
+	}
+}
+
 func (s *BlockScannerTestSuite) TestUpdateGasFees(c *C) {
 	server := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		// Send response to be tested
-		rw.Write([]byte(`{
+		switch {
+		case strings.HasPrefix(req.RequestURI, "/thorchain/node/"):
+			httpTestHandler(c, rw, "../../../../test/fixtures/endpoints/nodeaccount/template.json")
+		case req.RequestURI == `/abci_query?path="/param/fees"&height=10`:
+			rw.Write([]byte(`
+{
   "jsonrpc": "2.0",
   "id": "",
   "result": {
@@ -412,17 +430,27 @@ func (s *BlockScannerTestSuite) TestUpdateGasFees(c *C) {
     }
   }
 }`))
+		}
 	}))
 	// Close the server when test finishes
 	defer server.Close()
-
+	bridge, err := thorclient.NewThorchainBridge(config.ClientConfiguration{
+		ChainID:         "thorchain",
+		ChainHost:       server.Listener.Addr().String(),
+		SignerName:      "bob",
+		SignerPasswd:    "password",
+		ChainHomeFolder: "",
+	}, s.m, s.keys)
+	c.Assert(err, IsNil)
 	// test against mock server
 	b := BinanceBlockScanner{
 		cfg: config.BlockScannerConfiguration{
 			RPCHost: "http://" + server.Listener.Addr().String(),
 		},
-		http:   &http.Client{},
-		bridge: s.bridge,
+		http: &http.Client{
+			Timeout: time.Second,
+		},
+		bridge: bridge,
 		m:      s.m,
 	}
 	c.Assert(b.updateFees(10), IsNil)
