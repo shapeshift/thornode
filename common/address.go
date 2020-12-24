@@ -58,6 +58,12 @@ func NewAddress(address string) (Address, error) {
 		return Address(address), nil
 	}
 
+	// Check BCH address formats with mocknet
+	_, err = bchutil.DecodeAddress(address, &bchchaincfg.RegressionNetParams)
+	if err == nil {
+		return Address(address), nil
+	}
+
 	return NoAddress, fmt.Errorf("address format not supported: %s", address)
 }
 
@@ -89,7 +95,7 @@ func (addr Address) IsChain(chain Chain) bool {
 		return false
 	case BCHChain:
 		prefix, _, err := bech32.Decode(addr.String())
-		if err == nil && (prefix == "q" || prefix == "qq") {
+		if err == nil && (prefix == "q" || prefix == "qq" || prefix == "qz") {
 			return true
 		}
 		// Check mainnet other formats
