@@ -94,21 +94,18 @@ func (addr Address) IsChain(chain Chain) bool {
 		}
 		return false
 	case BCHChain:
-		prefix, _, err := bech32.Decode(addr.String())
-<<<<<<< HEAD
-		if err == nil && (prefix == "q" || prefix == "qq" || prefix == "qz") {
-=======
-		if err == nil && (prefix == "q" || prefix == "qq") {
->>>>>>> b5db23c8f5e505cf6fd6d409b85d933c6ccc7100
-			return true
-		}
 		// Check mainnet other formats
-		_, err = bchutil.DecodeAddress(addr.String(), &bchchaincfg.MainNetParams)
+		_, err := bchutil.DecodeAddress(addr.String(), &bchchaincfg.MainNetParams)
 		if err == nil {
 			return true
 		}
 		// Check testnet other formats
 		_, err = bchutil.DecodeAddress(addr.String(), &bchchaincfg.TestNet3Params)
+		if err == nil {
+			return true
+		}
+		// Check mocknet / regression other formats
+		_, err = bchutil.DecodeAddress(addr.String(), &bchchaincfg.RegressionNetParams)
 		if err == nil {
 			return true
 		}
