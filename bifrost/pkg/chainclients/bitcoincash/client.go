@@ -62,8 +62,14 @@ type Client struct {
 	minRelayFeeSats    uint64
 }
 
+// ResultBlockStats result from raw RPC call blockstats
 type ResultBlockStats struct {
 	AverageFeeRate int64
+}
+
+// ResultNetworkInfo result from raw RPC call getnetworkinfo
+type ResultNetworkInfo struct {
+	RelayFee float64
 }
 
 // NewClient generates a new Client
@@ -510,7 +516,13 @@ func (c *Client) FetchTxs(height int64) (types.TxIn, error) {
 }
 
 func (c *Client) updateNetworkInfo() {
-	networkInfo, err := c.client.GetInfo()
+	infoResult, err := c.client.RawRequest("getnetworkinfo", []json.RawMessage{})
+	if err != nil {
+		c.logger.Err(err).Msg("fail to get network info")
+		return
+	}
+	var networkInfo ResultNetworkInfo
+	err = json.Unmarshal(infoResult, &networkInfo)
 	if err != nil {
 		c.logger.Err(err).Msg("fail to get network info")
 		return
@@ -524,11 +536,11 @@ func (c *Client) updateNetworkInfo() {
 }
 
 func (c *Client) sendNetworkFee(height int64) error {
-	heightJson, err := json.Marshal(height)
+	heightJSON, err := json.Marshal(height)
 	if err != nil {
 		return fmt.Errorf("fail to get block stats: %w", err)
 	}
-	rawResult, err := c.client.RawRequest("getblockstats", []json.RawMessage{heightJson})
+	rawResult, err := c.client.RawRequest("getblockstats", []json.RawMessage{heightJSON})
 	if err != nil {
 		return fmt.Errorf("fail to get block stats: %w", err)
 	}
@@ -561,7 +573,7 @@ func (c *Client) getBlock(height int64) (*btcjson.GetBlockVerboseTxResult, error
 
 func (c *Client) getTxIn(tx *btcjson.TxRawResult, height int64) (types.TxInItem, error) {
 	if c.ignoreTx(tx) {
-		c.logger.Debug().Msgf("ignore (%s) , not correct format", tx.Hash)
+		c.logger.Debug().Msgf("ignore tx (%s) at height %d, not correct format", tx.Txid, height)
 		return types.TxInItem{}, nil
 	}
 
@@ -587,17 +599,29 @@ func (c *Client) getTxIn(tx *btcjson.TxRawResult, height int64) (types.TxInItem,
 	if err != nil {
 		return types.TxInItem{}, fmt.Errorf("fail to get gas from tx: %w", err)
 	}
+
+	to := c.stripAddress(output.ScriptPubKey.Addresses[0])
+
 	return types.TxInItem{
 		BlockHeight: height,
 		Tx:          tx.Txid,
 		Sender:      sender,
-		To:          output.ScriptPubKey.Addresses[0],
+		To:          to,
 		Coins: common.Coins{
 			common.NewCoin(common.BCHAsset, cosmos.NewUint(amt)),
 		},
 		Memo: memo,
 		Gas:  gas,
 	}, nil
+}
+
+// stripAddress removes prefix on bch addresses
+func (c *Client) stripAddress(addr string) string {
+	split := strings.Split(addr, ":")
+	if len(split) > 1 {
+		return split[1]
+	}
+	return split[0]
 }
 
 // extractTxs extracts txs from a block to type TxIn
@@ -712,7 +736,7 @@ func (c *Client) getSender(tx *btcjson.TxRawResult) (string, error) {
 	if len(vout.ScriptPubKey.Addresses) == 0 {
 		return "", fmt.Errorf("no address available in vout")
 	}
-	return vout.ScriptPubKey.Addresses[0], nil
+	return c.stripAddress(vout.ScriptPubKey.Addresses[0]), nil
 }
 
 // getMemo returns memo for a btc tx, using vout OP_RETURN
