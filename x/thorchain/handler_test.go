@@ -117,7 +117,11 @@ func setupKeeperForTest(c *C) (cosmos.Context, keeper.Keeper) {
 	k := kv1.NewKVStore(bk, supplyKeeper, ak, keyThorchain, cdc)
 
 	FundModule(c, ctx, k, AsgardName, common.One)
-
+	k.SaveNetworkFee(ctx, common.BNBChain, NetworkFee{
+		Chain:              common.BNBChain,
+		TransactionSize:    1,
+		TransactionFeeRate: 37500,
+	})
 	return ctx, k
 }
 
