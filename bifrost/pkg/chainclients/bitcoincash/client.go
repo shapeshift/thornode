@@ -64,12 +64,12 @@ type Client struct {
 
 // ResultBlockStats result from raw RPC call blockstats
 type ResultBlockStats struct {
-	AverageFeeRate int64
+	AverageFeeRate float64 `json:"avgfeerate"`
 }
 
 // ResultNetworkInfo result from raw RPC call getnetworkinfo
 type ResultNetworkInfo struct {
-	RelayFee float64
+	RelayFee float64 `json:"relayfee"`
 }
 
 // NewClient generates a new Client
@@ -554,7 +554,7 @@ func (c *Client) sendNetworkFee(height int64) error {
 		return nil
 	}
 
-	txid, err := c.bridge.PostNetworkFee(height, common.BCHChain, uint64(EstimateAverageTxSize), uint64(result.AverageFeeRate))
+	txid, err := c.bridge.PostNetworkFee(height, common.BCHChain, uint64(EstimateAverageTxSize), uint64(result.AverageFeeRate*common.One))
 	if err != nil {
 		return fmt.Errorf("fail to post network fee to thornode: %w", err)
 	}

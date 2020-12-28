@@ -14,7 +14,7 @@ var (
 	BNBAsset = Asset{Chain: BNBChain, Symbol: "BNB", Ticker: "BNB"}
 	// BTCAsset BTC
 	BTCAsset = Asset{Chain: BTCChain, Symbol: "BTC", Ticker: "BTC"}
-	// BTCAsset BCH
+	// BCHAsset BCH
 	BCHAsset = Asset{Chain: BCHChain, Symbol: "BCH", Ticker: "BCH"}
 	// ETHAsset ETH
 	ETHAsset = Asset{Chain: ETHChain, Symbol: "ETH", Ticker: "ETH"}

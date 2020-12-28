@@ -301,7 +301,7 @@ func (o *Observer) filterObservations(chain common.Chain, items []types.TxInItem
 // it allow account to enable memo check flag, with the flag enabled , if a tx doesn't have memo, or doesn't have correct memo will be rejected by the chain ,
 // unfortunately THORChain won't be able to deal with these accounts , as THORChain will not know what kind of memo it required to send the tx through
 // given that Bifrost have to filter out those txes
-// the logic has to be here as THORChain is chain agnostic , customer can swap from BTC/ETC to BNB
+// the logic has to be here as THORChain is chain agnostic , customer can swap from BTC/ETH to BNB
 func (o *Observer) filterBinanceMemoFlag(chain common.Chain, items []types.TxInItem) (txs []types.TxInItem) {
 	bnbClient, ok := o.chains[common.BNBChain]
 	if !ok {
