@@ -256,13 +256,13 @@ SELECT create_hypertable('slash_amounts', 'block_timestamp', chunk_time_interval
 
 CREATE TABLE stake_events (
 	pool			VARCHAR(60) NOT NULL,
-	asset_tx		VARCHAR(64) NOT NULL,
-	asset_chain		VARCHAR(8) NOT NULL,
-	asset_addr		VARCHAR(90) NOT NULL,
+	asset_tx		VARCHAR(64),
+	asset_chain		VARCHAR(8),
+	asset_addr		VARCHAR(90),
 	asset_E8		BIGINT NOT NULL,
 	stake_units		BIGINT NOT NULL,
-	rune_tx			VARCHAR(64) NOT NULL,
-	rune_addr		VARCHAR(90) NOT NULL,
+	rune_tx			VARCHAR(64),
+	rune_addr		VARCHAR(90),
 	rune_E8			BIGINT NOT NULL,
 	block_timestamp	BIGINT NOT NULL
 );
