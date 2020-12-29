@@ -4,7 +4,7 @@ services:
   midgard:
     network_mode: "host"
     environment:
-      MIDGARD_THORCHAIN_THORNODE_URL: http://localhost:1317/thorchain
+      MIDGARD_THORCHAIN_THOR_NODE_URL: http://localhost:1317/thorchain
       MIDGARD_THORCHAIN_TENDERMINT_URL: http://localhost:26657/websocket
       MIDGARD_TIMESCALE_HOST: localhost
 
