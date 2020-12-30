@@ -22,7 +22,6 @@ import (
 	"gitlab.com/thorchain/thornode/bifrost/thorclient/types"
 	"gitlab.com/thorchain/thornode/bifrost/tss"
 	"gitlab.com/thorchain/thornode/common"
-	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 	"gitlab.com/thorchain/thornode/x/thorchain"
 	ttypes "gitlab.com/thorchain/thornode/x/thorchain/types"
@@ -426,19 +425,17 @@ func (s *Signer) handleYggReturn(height int64, tx types.TxOutItem) (types.TxOutI
 	tx.Memo = thorchain.NewYggdrasilReturn(height).String()
 	acct, err := chain.GetAccount(tx.VaultPubKey)
 	if err != nil {
-		s.logger.Error().Err(err).Msg("failed to get chain account info")
-		return tx, err
+		return tx, fmt.Errorf("fail to get chain account info: %w", err)
 	}
 	tx.Coins = make(common.Coins, 0)
 	for _, coin := range acct.Coins {
-		asset, err := common.NewAsset(coin.Denom)
+		asset, err := common.NewAsset(coin.Asset.String())
 		asset.Chain = tx.Chain
 		if err != nil {
-			s.logger.Error().Err(err).Msg("failed to parse asset")
-			return tx, err
+			return tx, fmt.Errorf("fail to parse asset: %w", err)
 		}
-		if coin.Amount > 0 {
-			amount := cosmos.NewUint(coin.Amount)
+		if coin.Amount.Uint64() > 0 {
+			amount := coin.Amount
 			tx.Coins = append(tx.Coins, common.NewCoin(asset, amount))
 		}
 	}
