@@ -439,11 +439,15 @@ func (b *Binance) GetAccountByAddress(address string) (common.Account, error) {
 	if err != nil {
 		return common.Account{}, err
 	}
-	account := common.NewAccount(acc.BaseAccount.Sequence, acc.BaseAccount.AccountNumber, common.GetCoins(acc.BaseAccount.Coins), acc.Flags > 0)
+	coins, err := common.GetCoins(common.BNBChain, acc.BaseAccount.Coins)
+	if err != nil {
+		return common.Account{}, err
+	}
+	account := common.NewAccount(acc.BaseAccount.Sequence, acc.BaseAccount.AccountNumber, coins, acc.Flags > 0)
 	return account, nil
 }
 
-// broadcastTx is to broadcast the tx to binance chain
+// BroadcastTx is to broadcast the tx to binance chain
 func (b *Binance) BroadcastTx(tx stypes.TxOutItem, hexTx []byte) (string, error) {
 	u, err := url.Parse(b.cfg.RPCHost)
 	if err != nil {
