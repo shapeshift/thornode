@@ -24,6 +24,7 @@ import (
 	stypes "gitlab.com/thorchain/thornode/bifrost/thorclient/types"
 	"gitlab.com/thorchain/thornode/bifrost/tss"
 	"gitlab.com/thorchain/thornode/common"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 // Client is a structure to sign and broadcast tx to Ethereum chain used by signer mostly
@@ -245,7 +246,10 @@ func (c *Client) GetAccount(pkey common.PubKey) (common.Account, error) {
 	if err != nil {
 		return common.Account{}, fmt.Errorf("fail to get account nonce: %w", err)
 	}
-	account := common.NewAccount(int64(nonce), 0, common.AccountCoins{common.AccountCoin{Amount: balance.Uint64(), Denom: "ETH.ETH"}}, false)
+	account := common.NewAccount(int64(nonce), 0,
+		common.Coins{
+			common.NewCoin(common.ETHAsset, cosmos.NewUint(balance.Uint64())),
+		}, false)
 	return account, nil
 }
 
