@@ -20,7 +20,8 @@ func LoadChains(thorKeys *thorclient.Keys,
 	server *tss.TssServer,
 	thorchainBridge *thorclient.ThorchainBridge,
 	m *metrics.Metrics,
-	pkMggr pubkeymanager.PubKeyValidator) map[common.Chain]ChainClient {
+	pubKeyValidator pubkeymanager.PubKeyValidator,
+	poolMgr thorclient.PoolManager) map[common.Chain]ChainClient {
 	logger := log.Logger.With().Str("module", "bifrost").Logger()
 	chains := make(map[common.Chain]ChainClient, 0)
 
@@ -46,7 +47,7 @@ func LoadChains(thorKeys *thorclient.Keys,
 				logger.Error().Err(err).Str("chain_id", chain.ChainID.String()).Msg("fail to load chain")
 				continue
 			}
-			pkMggr.RegisterCallback(btc.RegisterPublicKey)
+			pubKeyValidator.RegisterCallback(btc.RegisterPublicKey)
 			chains[common.BTCChain] = btc
 		default:
 			continue
