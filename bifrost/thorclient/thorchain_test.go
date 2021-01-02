@@ -64,6 +64,8 @@ func (s *ThorchainSuite) SetUpSuite(c *C) {
 			httpTestHandler(c, rw, "../../test/fixtures/endpoints/version/version.json")
 		case strings.HasPrefix(req.RequestURI, MimirEndpoint):
 			httpTestHandler(c, rw, "../../test/fixtures/endpoints/mimir/mimir.json")
+		case strings.HasPrefix(req.RequestURI, InboundAddressesEndpoint):
+			httpTestHandler(c, rw, "../../test/fixtures/endpoints/inbound_addresses/inbound_addresses.json")
 
 		}
 	}))
@@ -235,7 +237,7 @@ func (s *ThorchainSuite) TestGetAsgards(c *C) {
 func (s *ThorchainSuite) TestGetPubKeys(c *C) {
 	pks, err := s.bridge.GetPubKeys()
 	c.Assert(err, IsNil)
-	c.Assert(pks, HasLen, 5)
+	c.Assert(pks, HasLen, 6)
 }
 
 func (s *ThorchainSuite) TestPostNetworkFee(c *C) {
@@ -267,4 +269,10 @@ func (s *ThorchainSuite) TestGetMimir(c *C) {
 	result, err := s.bridge.GetMimir("HaltBNBChain")
 	c.Assert(err, IsNil)
 	c.Assert(result, Equals, int64(10))
+}
+
+func (s *ThorchainSuite) TestGetContractAddress(c *C) {
+	result, err := s.bridge.GetContractAddress()
+	c.Assert(err, IsNil)
+	c.Assert(result[0].Contracts[common.ETHChain].String(), Equals, "0xE65e9d372F8cAcc7b6dfcd4af6507851Ed31bb44")
 }

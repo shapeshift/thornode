@@ -170,8 +170,8 @@ func main() {
 			chainCfg.BlockScanner.RPCHost = fmt.Sprintf("http://%s", chainCfg.BlockScanner.RPCHost)
 		}
 	}
-
-	chains := chainclients.LoadChains(k, cfg.Chains, tssIns, thorchainBridge, m, pubkeyMgr)
+	poolMgr := thorclient.NewPoolMgr(thorchainBridge)
+	chains := chainclients.LoadChains(k, cfg.Chains, tssIns, thorchainBridge, m, pubkeyMgr, poolMgr)
 	tssKeysignMetricMgr := metrics.NewTssKeysignMetricMgr()
 	// start observer
 	obs, err := observer.NewObserver(pubkeyMgr, chains, thorchainBridge, m, cfg.Chains[0].BlockScanner.DBPath, tssKeysignMetricMgr)
