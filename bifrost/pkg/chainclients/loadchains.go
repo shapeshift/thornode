@@ -56,7 +56,7 @@ func LoadChains(thorKeys *thorclient.Keys,
 				logger.Error().Err(err).Str("chain_id", chain.ChainID.String()).Msg("fail to load chain")
 				continue
 			}
-			pkMggr.RegisterCallback(bch.RegisterPublicKey)
+			pubKeyValidator.RegisterCallback(bch.RegisterPublicKey)
 			chains[common.BCHChain] = bch
 		default:
 			continue
