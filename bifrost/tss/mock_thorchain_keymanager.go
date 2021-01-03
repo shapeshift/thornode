@@ -10,8 +10,7 @@ import (
 )
 
 // MockThorchainKeymanager is to mock the TSS , so as we could test it
-type MockThorchainKeyManager struct {
-}
+type MockThorchainKeyManager struct{}
 
 func (k *MockThorchainKeyManager) Sign(tx.StdSignMsg) ([]byte, error) {
 	return nil, nil

@@ -6,8 +6,7 @@ import (
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
-type DummyGasManager struct {
-}
+type DummyGasManager struct{}
 
 func NewDummyGasManager() *DummyGasManager {
 	return &DummyGasManager{}
