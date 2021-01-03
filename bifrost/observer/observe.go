@@ -30,7 +30,7 @@ type Observer struct {
 	logger              zerolog.Logger
 	chains              map[common.Chain]chainclients.ChainClient
 	stopChan            chan struct{}
-	pubkeyMgr           pubkeymanager.PubKeyValidator
+	pubkeyMgr           *pubkeymanager.PubKeyManager
 	onDeck              []types.TxIn
 	lock                *sync.Mutex
 	globalTxsQueue      chan types.TxIn
@@ -43,7 +43,7 @@ type Observer struct {
 }
 
 // NewObserver create a new instance of Observer for chain
-func NewObserver(pubkeyMgr pubkeymanager.PubKeyValidator,
+func NewObserver(pubkeyMgr *pubkeymanager.PubKeyManager,
 	chains map[common.Chain]chainclients.ChainClient,
 	thorchainBridge *thorclient.ThorchainBridge,
 	m *metrics.Metrics, dataPath string,

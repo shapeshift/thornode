@@ -2,33 +2,33 @@ package common
 
 import (
 	"github.com/binance-chain/go-sdk/common/types"
+
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
-type AccountCoin struct {
-	Amount uint64
-	Denom  string
-}
-
-type AccountCoins []AccountCoin
-
+// Account define a struct to hold account information across all chain
 type Account struct {
 	Sequence      int64
 	AccountNumber int64
-	Coins         AccountCoins
+	Coins         Coins
 	HasMemoFlag   bool
 }
 
 // GetCoins transforms from binance coins
-func GetCoins(accCoins []types.Coin) AccountCoins {
-	coins := make(AccountCoins, 0)
+func GetCoins(chain Chain, accCoins []types.Coin) (Coins, error) {
+	coins := make(Coins, 0)
 	for _, coin := range accCoins {
-		coins = append(coins, AccountCoin{Amount: uint64(coin.Amount), Denom: coin.Denom})
+		asset, err := NewAsset(chain.String() + "." + coin.Denom)
+		if err != nil {
+			return nil, err
+		}
+		coins = append(coins, NewCoin(asset, cosmos.NewUint(uint64(coin.Amount))))
 	}
-	return coins
+	return coins, nil
 }
 
-// NewAccount
-func NewAccount(sequence, accountNumber int64, coins AccountCoins, hasMemoFlag bool) Account {
+// NewAccount create a new instance of Account
+func NewAccount(sequence, accountNumber int64, coins Coins, hasMemoFlag bool) Account {
 	return Account{
 		Sequence:      sequence,
 		AccountNumber: accountNumber,

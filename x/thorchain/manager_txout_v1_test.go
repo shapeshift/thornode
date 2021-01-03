@@ -93,7 +93,7 @@ func (s TxOutStoreV1Suite) TestAddOutTxItem(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(msgs, HasLen, 1)
 	c.Assert(msgs[0].VaultPubKey.String(), Equals, acc2.PubKeySet.Secp256k1.String())
-	c.Assert(msgs[0].Coin.Amount.Equal(cosmos.NewUint(19*common.One)), Equals, true, Commentf("%d", msgs[0].Coin.Amount.Uint64()))
+	c.Assert(msgs[0].Coin.Amount.Equal(cosmos.NewUint(1999887500)), Equals, true, Commentf("%d", msgs[0].Coin.Amount.Uint64()))
 	// Should get acc1. Acc3 hasn't signed and acc1 now has the highest amount
 	// of coin.
 	item = TxOutItem{
@@ -151,5 +151,5 @@ func (s TxOutStoreV1Suite) TestAddOutTxItemWithoutBFT(c *C) {
 	msgs, err := txOutStore.GetOutboundItems(w.ctx)
 	c.Assert(err, IsNil)
 	c.Assert(msgs, HasLen, 1)
-	c.Assert(msgs[0].Coin.Amount.Equal(cosmos.NewUint(19*common.One)), Equals, true, Commentf("%d", msgs[0].Coin.Amount.Uint64()))
+	c.Assert(msgs[0].Coin.Amount.Equal(cosmos.NewUint(1999887500)), Equals, true, Commentf("%d", msgs[0].Coin.Amount.Uint64()))
 }

@@ -99,15 +99,16 @@ func (s *PubKeyMgrSuite) TestFetchKeys(c *C) {
 	pubkeyMgr.AddPubKey(pk2, false)
 	c.Check(hasCallbackFired, Equals, true)
 	// add a key that is the node account, ensure it doesn't get removed
-	pubkeyMgr.pubkeys = append(pubkeyMgr.pubkeys, PK{
+	pubkeyMgr.pubkeys = append(pubkeyMgr.pubkeys, pubKeyInfo{
 		PubKey:      pk3,
 		Signer:      true,
 		NodeAccount: true,
+		Contacts:    map[common.Chain]common.Address{},
 	})
 	c.Check(len(pubkeyMgr.GetPubKeys()), Equals, 2)
 	err = pubkeyMgr.Start()
 	c.Assert(err, IsNil)
-	pubkeyMgr.FetchPubKeys()
+	pubkeyMgr.fetchPubKeys()
 	pubKeys := pubkeyMgr.GetPubKeys()
 	c.Check(len(pubKeys), Equals, 3)
 	c.Check(pubKeys[0].Equals(pk1), Equals, false)

@@ -222,14 +222,15 @@ func (tos *TxOutStorageV1) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem) (
 
 	for i := range outputs {
 		if outputs[i].MaxGas.IsEmpty() {
-			gasAsset := outputs[i].Chain.GetGasAsset()
-
-			// max gas amount is the transaction fee divided by two, in asset amount
-			maxAmt := transactionFeeAsset.QuoUint64(2)
-			outputs[i].MaxGas = common.Gas{
-				common.NewCoin(gasAsset, maxAmt),
+			maxGas, err := tos.gasManager.GetMaxGas(ctx, outputs[i].Chain)
+			if err != nil {
+				return nil, fmt.Errorf("fail to get max gas: %w", err)
 			}
-			if outputs[i].MaxGas.IsEmpty() {
+			// max gas amount is the transaction fee divided by two, in asset amount
+			outputs[i].MaxGas = common.Gas{
+				maxGas,
+			}
+			if outputs[i].MaxGas.IsEmpty() && !outputs[i].Chain.Equals(common.THORChain) {
 				return nil, fmt.Errorf("max gas cannot be empty: %s", outputs[i].MaxGas)
 			}
 			outputs[i].GasRate = int64(tos.gasManager.GetGasRate(ctx, outputs[i].Chain).Uint64())
