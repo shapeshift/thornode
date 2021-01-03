@@ -17,11 +17,12 @@ import (
 	"gitlab.com/thorchain/thornode/constants"
 )
 
+// OnNewPubKey is a function that used as a callback , if somehow we need to do additional process when a new pubkey get added
 type OnNewPubKey func(pk common.PubKey) error
 
+// PubKeyValidator define the method that can be used to interact with public keys
 type PubKeyValidator interface {
 	IsValidPoolAddress(addr string, chain common.Chain) (bool, common.ChainPoolInfo)
-	FetchPubKeys()
 	HasPubKey(pk common.PubKey) bool
 	AddPubKey(pk common.PubKey, _ bool)
 	AddNodePubKey(pk common.PubKey)
@@ -29,41 +30,43 @@ type PubKeyValidator interface {
 	GetSignPubKeys() common.PubKeys
 	GetNodePubKey() common.PubKey
 	GetPubKeys() common.PubKeys
-	Start() error
-	Stop() error
 	RegisterCallback(callback OnNewPubKey)
+	GetContracts(chain common.Chain) []common.Address
+	GetContract(chain common.Chain, pk common.PubKey) common.Address
 }
 
-type PK struct {
+// pubKeyInfo is a struct to store pubkey information  in memory
+type pubKeyInfo struct {
 	PubKey      common.PubKey
+	Contacts    map[common.Chain]common.Address
 	Signer      bool
 	NodeAccount bool
 }
 
-// PubKeyManager it manages a list of pubkeys
+// PubKeyManager manager an always up to date pubkeys , which implement PubKeyValidator interface
 type PubKeyManager struct {
-	cdc             *codec.Codec
-	thorchainBridge *thorclient.ThorchainBridge
-	pubkeys         []PK
-	rwMutex         *sync.RWMutex
-	logger          zerolog.Logger
-	errCounter      *prometheus.CounterVec
-	m               *metrics.Metrics
-	stopChan        chan struct{}
-	callback        []OnNewPubKey
+	cdc        *codec.Codec
+	bridge     *thorclient.ThorchainBridge
+	pubkeys    []pubKeyInfo
+	rwMutex    *sync.RWMutex
+	logger     zerolog.Logger
+	errCounter *prometheus.CounterVec
+	m          *metrics.Metrics
+	stopChan   chan struct{}
+	callback   []OnNewPubKey
 }
 
 // NewPubKeyManager create a new instance of PubKeyManager
 func NewPubKeyManager(bridge *thorclient.ThorchainBridge, m *metrics.Metrics) (*PubKeyManager, error) {
 	return &PubKeyManager{
-		cdc:             thorclient.MakeCodec(),
-		logger:          log.With().Str("module", "thorchain_bridge").Logger(),
-		thorchainBridge: bridge,
-		errCounter:      m.GetCounterVec(metrics.PubKeyManagerError),
-		m:               m,
-		stopChan:        make(chan struct{}),
-		rwMutex:         &sync.RWMutex{},
-		callback:        []OnNewPubKey{},
+		cdc:        thorclient.MakeCodec(),
+		logger:     log.With().Str("module", "public_key_mgr").Logger(),
+		bridge:     bridge,
+		errCounter: m.GetCounterVec(metrics.PubKeyManagerError),
+		m:          m,
+		stopChan:   make(chan struct{}),
+		rwMutex:    &sync.RWMutex{},
+		callback:   []OnNewPubKey{},
 	}, nil
 }
 
@@ -76,6 +79,8 @@ func (pkm *PubKeyManager) Start() error {
 	for _, pk := range pubkeys {
 		pkm.AddPubKey(pk, false)
 	}
+	// get smart contract address from THORNode , and update it's internal
+	pkm.updateContractAddresses()
 	go pkm.updatePubKeys()
 	return nil
 }
@@ -87,6 +92,24 @@ func (pkm *PubKeyManager) Stop() error {
 	return nil
 }
 
+func (pkm *PubKeyManager) updateContractAddresses() {
+	pkm.rwMutex.Lock()
+	defer pkm.rwMutex.Unlock()
+	pairs, err := pkm.bridge.GetContractAddress()
+	if err != nil {
+		pkm.logger.Err(err).Msg("fail to get contract address")
+		return
+	}
+	for _, pair := range pairs {
+		for idx, item := range pkm.pubkeys {
+			if item.PubKey == pair.PubKey {
+				pkm.pubkeys[idx].Contacts = pair.Contracts
+			}
+		}
+	}
+}
+
+// GetPubKeys return all the public keys managed by this PubKeyManager
 func (pkm *PubKeyManager) GetPubKeys() common.PubKeys {
 	pubkeys := make(common.PubKeys, len(pkm.pubkeys))
 	for i, pk := range pkm.pubkeys {
@@ -95,6 +118,7 @@ func (pkm *PubKeyManager) GetPubKeys() common.PubKeys {
 	return pubkeys
 }
 
+// GetSignPubKeys get all the public keys that local node is a signer
 func (pkm *PubKeyManager) GetSignPubKeys() common.PubKeys {
 	pubkeys := make(common.PubKeys, 0)
 	for _, pk := range pkm.pubkeys {
@@ -105,6 +129,7 @@ func (pkm *PubKeyManager) GetSignPubKeys() common.PubKeys {
 	return pubkeys
 }
 
+// GetNodePubKey get node account pub key
 func (pkm *PubKeyManager) GetNodePubKey() common.PubKey {
 	for _, pk := range pkm.pubkeys {
 		if pk.NodeAccount {
@@ -114,6 +139,7 @@ func (pkm *PubKeyManager) GetNodePubKey() common.PubKey {
 	return common.EmptyPubKey
 }
 
+// HasPubKey return true if the given public key exist
 func (pkm *PubKeyManager) HasPubKey(pk common.PubKey) bool {
 	for _, pubkey := range pkm.pubkeys {
 		if pk.Equals(pubkey.PubKey) {
@@ -123,6 +149,7 @@ func (pkm *PubKeyManager) HasPubKey(pk common.PubKey) bool {
 	return false
 }
 
+// AddPubKey add the given public key to internal storage
 func (pkm *PubKeyManager) AddPubKey(pk common.PubKey, signer bool) {
 	pkm.rwMutex.Lock()
 	defer pkm.rwMutex.Unlock()
@@ -138,15 +165,17 @@ func (pkm *PubKeyManager) AddPubKey(pk common.PubKey, signer bool) {
 		}
 	} else {
 		// pubkey doesn't exist yet, append it...
-		pkm.pubkeys = append(pkm.pubkeys, PK{
+		pkm.pubkeys = append(pkm.pubkeys, pubKeyInfo{
 			PubKey:      pk,
 			Signer:      signer,
 			NodeAccount: false,
+			Contacts:    map[common.Chain]common.Address{},
 		})
 		pkm.fireCallback(pk)
 	}
 }
 
+// AddNodePubKey add the given public key as a node public key to internal storage
 func (pkm *PubKeyManager) AddNodePubKey(pk common.PubKey) {
 	pkm.rwMutex.Lock()
 	defer pkm.rwMutex.Unlock()
@@ -160,39 +189,42 @@ func (pkm *PubKeyManager) AddNodePubKey(pk common.PubKey) {
 	}
 
 	if !pkm.HasPubKey(pk) {
-		pkm.pubkeys = append(pkm.pubkeys, PK{
+		pkm.pubkeys = append(pkm.pubkeys, pubKeyInfo{
 			PubKey:      pk,
 			Signer:      true,
 			NodeAccount: true,
+			Contacts:    map[common.Chain]common.Address{},
 		})
 		// a new pubkey get added , fire callback
 		pkm.fireCallback(pk)
 	}
 }
 
+// RemovePubKey remove the given public key from internal storage
 func (pkm *PubKeyManager) RemovePubKey(pk common.PubKey) {
 	pkm.rwMutex.Lock()
 	defer pkm.rwMutex.Unlock()
 	for i, pubkey := range pkm.pubkeys {
 		if pk.Equals(pubkey.PubKey) {
 			pkm.pubkeys[i] = pkm.pubkeys[len(pkm.pubkeys)-1] // Copy last element to index i.
-			pkm.pubkeys[len(pkm.pubkeys)-1] = PK{}           // Erase last element (write zero value).
+			pkm.pubkeys[len(pkm.pubkeys)-1] = pubKeyInfo{}   // Erase last element (write zero value).
 			pkm.pubkeys = pkm.pubkeys[:len(pkm.pubkeys)-1]   // Truncate slice.
 			break
 		}
 	}
 }
 
-func (pkm *PubKeyManager) FetchPubKeys() {
+func (pkm *PubKeyManager) fetchPubKeys() {
 	pubkeys, err := pkm.getPubkeys()
 	if err != nil {
-		pkm.logger.Error().Err(err).Msg("fail to get pubkeys from thorchain")
+		pkm.logger.Error().Err(err).Msg("fail to get pubkeys from THORChain")
+		return
 	}
 	for _, pk := range pubkeys {
 		pkm.AddPubKey(pk, false)
 	}
 
-	vaults, err := pkm.thorchainBridge.GetAsgards()
+	vaults, err := pkm.bridge.GetAsgards()
 	if err != nil {
 		return
 	}
@@ -203,7 +235,6 @@ func (pkm *PubKeyManager) FetchPubKeys() {
 			pubkeys = append(pubkeys, vault.PubKey)
 		}
 	}
-
 	// prune retired addresses
 	for i, pk := range pkm.pubkeys {
 		if pk.NodeAccount {
@@ -226,7 +257,8 @@ func (pkm *PubKeyManager) updatePubKeys() {
 		case <-pkm.stopChan:
 			return
 		case <-time.After(constants.ThorchainBlockTime):
-			pkm.FetchPubKeys()
+			pkm.fetchPubKeys()
+			pkm.updateContractAddresses()
 		}
 	}
 }
@@ -256,11 +288,12 @@ func (pkm *PubKeyManager) IsValidPoolAddress(addr string, chain common.Chain) (b
 	return false, common.EmptyChainPoolInfo
 }
 
-// getPubkeys from thorchain
+// getPubkeys from THORChain
 func (pkm *PubKeyManager) getPubkeys() (common.PubKeys, error) {
-	return pkm.thorchainBridge.GetPubKeys()
+	return pkm.bridge.GetPubKeys()
 }
 
+// RegisterCallback register a call back that will be fired when a new key get added into the local memory storage
 func (pkm *PubKeyManager) RegisterCallback(callback OnNewPubKey) {
 	pkm.callback = append(pkm.callback, callback)
 }
@@ -271,4 +304,37 @@ func (pkm *PubKeyManager) fireCallback(pk common.PubKey) {
 			pkm.logger.Err(err).Msg("fail to call callback")
 		}
 	}
+}
+
+// GetContracts return all the contracts for the requested chain
+func (pkm *PubKeyManager) GetContracts(chain common.Chain) []common.Address {
+	pkm.rwMutex.RLock()
+	defer pkm.rwMutex.RUnlock()
+	var result []common.Address
+	for _, pk := range pkm.pubkeys {
+		if pk.Contacts == nil {
+			continue
+		}
+		if addr, ok := pk.Contacts[chain]; ok {
+			result = append(result, addr)
+		}
+	}
+	return result
+}
+
+// GetContract return the contract address that match the given chain and pubkey
+func (pkm *PubKeyManager) GetContract(chain common.Chain, pubKey common.PubKey) common.Address {
+	pkm.rwMutex.RLock()
+	defer pkm.rwMutex.RUnlock()
+	var result common.Address
+	for _, pk := range pkm.pubkeys {
+		if !pk.PubKey.Equals(pubKey) {
+			continue
+		}
+		if pk.Contacts == nil {
+			continue
+		}
+		result = pk.Contacts[chain]
+	}
+	return result
 }

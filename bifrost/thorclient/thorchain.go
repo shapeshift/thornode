@@ -47,9 +47,11 @@ const (
 	RagnarokEndpoint         = "/thorchain/ragnarok"
 	MimirEndpoint            = "/thorchain/mimir"
 	ChainVersionEndpoint     = "/thorchain/version"
+	InboundAddressesEndpoint = "/thorchain/inbound_addresses"
+	PoolsEndpoint            = "/thorchain/pools"
 )
 
-// ThorchainBridge will be used to send tx to thorchain
+// ThorchainBridge will be used to send tx to THORChain
 type ThorchainBridge struct {
 	logger        zerolog.Logger
 	cdc           *codec.Codec
@@ -472,7 +474,7 @@ func (b *ThorchainBridge) GetThorchainVersion() (semver.Version, error) {
 	return version.Current, nil
 }
 
-// Mimir - get mimir settings
+// GetMimir - get mimir settings
 func (b *ThorchainBridge) GetMimir(key string) (int64, error) {
 	buf, s, err := b.getWithPath(MimirEndpoint)
 	if err != nil {
@@ -489,4 +491,70 @@ func (b *ThorchainBridge) GetMimir(key string) (int64, error) {
 		return strconv.ParseInt(val, 10, 64)
 	}
 	return 0, nil
+}
+
+// PubKeyContractAddressPair is an entry to map pubkey and contract addresses
+type PubKeyContractAddressPair struct {
+	PubKey    common.PubKey
+	Contracts map[common.Chain]common.Address
+}
+
+// GetContractAddress retrieve the contract address from asgard
+func (b *ThorchainBridge) GetContractAddress() ([]PubKeyContractAddressPair, error) {
+	buf, s, err := b.getWithPath(InboundAddressesEndpoint)
+	if err != nil {
+		return nil, fmt.Errorf("fail to get inbound addresses: %w", err)
+	}
+	if s != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status code: %d", s)
+	}
+	type address struct {
+		Chain    common.Chain   `json:"chain"`
+		PubKey   common.PubKey  `json:"pub_key"`
+		Address  common.Address `json:"address"`
+		Contract common.Address `json:"contract"`
+		Halted   bool           `json:"halted"`
+	}
+	var resp struct {
+		Current []address `json:"current"`
+	}
+	if err := b.cdc.UnmarshalJSON(buf, &resp); err != nil {
+		return nil, fmt.Errorf("fail to unmarshal response: %w", err)
+	}
+	var result []PubKeyContractAddressPair
+	for _, item := range resp.Current {
+		exist := false
+		for _, pair := range result {
+			if item.PubKey.Equals(pair.PubKey) {
+				pair.Contracts[item.Chain] = item.Contract
+				exist = true
+				break
+			}
+		}
+		if !exist {
+			pair := PubKeyContractAddressPair{
+				PubKey:    item.PubKey,
+				Contracts: map[common.Chain]common.Address{},
+			}
+			pair.Contracts[item.Chain] = item.Contract
+			result = append(result, pair)
+		}
+	}
+	return result, nil
+}
+
+// GetPools get pools from THORChain
+func (b *ThorchainBridge) GetPools() (stypes.Pools, error) {
+	buf, s, err := b.getWithPath(PoolsEndpoint)
+	if err != nil {
+		return nil, fmt.Errorf("fail to get pools addresses: %w", err)
+	}
+	if s != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status code: %d", s)
+	}
+	var pools stypes.Pools
+	if err := b.cdc.UnmarshalJSON(buf, &pools); err != nil {
+		return nil, fmt.Errorf("fail to unmarshal pools from json: %w", err)
+	}
+	return pools, nil
 }

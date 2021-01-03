@@ -4,5 +4,5 @@ services:
   midgard:
     #network_mode: "host"
     environment:
-      CHAIN_API: thor-api:1317
-      CHAIN_RPC: thor-daemon:26657
+      MIDGARD_THORCHAIN_THOR_NODE_URL: http://thor-api:1317/thorchain
+      MIDGARD_THORCHAIN_TENDERMINT_URL: http://thor-daemon:26657/websocket
