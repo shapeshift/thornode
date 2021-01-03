@@ -550,7 +550,7 @@ func (s *BitcoinCashSuite) TestGetAccount(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(acct.AccountNumber, Equals, int64(0))
 	c.Assert(acct.Sequence, Equals, int64(0))
-	c.Assert(acct.Coins[0].Amount, Equals, uint64(2502000000))
+	c.Assert(acct.Coins[0].Equals(common.NewCoin(common.BCHAsset, cosmos.NewUint(2502000000))), Equals, true)
 
 	acct1, err := s.client.GetAccount("")
 	c.Assert(err, NotNil)
