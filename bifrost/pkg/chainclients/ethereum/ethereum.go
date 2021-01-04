@@ -2,13 +2,16 @@ package ethereum
 
 import (
 	"context"
-	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
+	"strings"
+	"time"
 
+	"github.com/ethereum/go-ethereum"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	ecommon "github.com/ethereum/go-ethereum/common"
+	ecore "github.com/ethereum/go-ethereum/core"
 	etypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/hashicorp/go-multierror"
@@ -20,29 +23,51 @@ import (
 	"gitlab.com/thorchain/thornode/bifrost/config"
 	"gitlab.com/thorchain/thornode/bifrost/metrics"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/ethereum/types"
+	"gitlab.com/thorchain/thornode/bifrost/pubkeymanager"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient"
 	stypes "gitlab.com/thorchain/thornode/bifrost/thorclient/types"
 	"gitlab.com/thorchain/thornode/bifrost/tss"
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/constants"
+	mem "gitlab.com/thorchain/thornode/x/thorchain/memo"
 )
+
+const (
+	maxAsgardAddresses = 100
+)
+
+var blockReward *big.Int = big.NewInt(2e18) // in Wei
 
 // Client is a structure to sign and broadcast tx to Ethereum chain used by signer mostly
 type Client struct {
 	logger          zerolog.Logger
 	cfg             config.ChainConfiguration
-	chainID         types.ChainID
-	pk              common.PubKey
+	localPubKey     common.PubKey
 	client          *ethclient.Client
-	kw              *KeySignWrapper
-	ethScanner      *BlockScanner
-	thorchainBridge *thorclient.ThorchainBridge
+	kw              *keySignWrapper
+	ethScanner      *ETHScanner
+	bridge          *thorclient.ThorchainBridge
 	blockScanner    *blockscanner.BlockScanner
+	vaultABI        *abi.ABI
+	pubkeyMgr       pubkeymanager.PubKeyValidator
+	poolMgr         thorclient.PoolManager
+	asgardAddresses []common.Address
+	lastAsgard      time.Time
 }
 
 // NewClient create new instance of Ethereum client
-func NewClient(thorKeys *thorclient.Keys, cfg config.ChainConfiguration, server *tssp.TssServer, thorchainBridge *thorclient.ThorchainBridge, m *metrics.Metrics) (*Client, error) {
-	tssKm, err := tss.NewKeySign(server, thorchainBridge)
+func NewClient(thorKeys *thorclient.Keys,
+	cfg config.ChainConfiguration,
+	server *tssp.TssServer,
+	bridge *thorclient.ThorchainBridge,
+	m *metrics.Metrics,
+	pubkeyMgr pubkeymanager.PubKeyValidator,
+	poolMgr thorclient.PoolManager) (*Client, error) {
+	if thorKeys == nil {
+		return nil, fmt.Errorf("fail to create ETH client,thor keys is empty")
+	}
+	tssKm, err := tss.NewKeySign(server, bridge)
 	if err != nil {
 		return nil, fmt.Errorf("fail to create tss signer: %w", err)
 	}
@@ -57,34 +82,48 @@ func NewClient(thorKeys *thorclient.Keys, cfg config.ChainConfiguration, server 
 		return nil, fmt.Errorf("fail to get pub key: %w", err)
 	}
 
-	if thorchainBridge == nil {
-		return nil, errors.New("thorchain bridge is nil")
+	if bridge == nil {
+		return nil, errors.New("THORChain bridge is nil")
 	}
-
+	if pubkeyMgr == nil {
+		return nil, errors.New("pubkey manager is nil")
+	}
+	if poolMgr == nil {
+		return nil, errors.New("pool manager is nil")
+	}
 	ethPrivateKey, err := getETHPrivateKey(priv)
 	if err != nil {
 		return nil, err
 	}
 
-	keysignWrapper := &KeySignWrapper{
-		privKey:       ethPrivateKey,
-		pubKey:        pk,
-		tssKeyManager: tssKm,
-		logger:        log.With().Str("module", "local_signer").Str("chain", common.ETHChain.String()).Logger(),
-	}
 	ethClient, err := ethclient.Dial(cfg.RPCHost)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("fail to dial ETH rpc host(%s): %w", cfg.RPCHost, err)
 	}
+	chainID, err := getChainID(ethClient, cfg.BlockScanner.HttpRequestTimeout)
+	if err != nil {
+		log.Info().Err(err).Msg("fail to get chain id from ETH node, default to LocalNet")
+	}
+	keysignWrapper, err := newKeySignWrapper(ethPrivateKey, pk, tssKm, chainID)
+	if err != nil {
+		return nil, fmt.Errorf("fail to create ETH key sign wrapper: %w", err)
+	}
+	vaultABI, _, err := getContractABI()
+	if err != nil {
+		return nil, fmt.Errorf("fail to get contract abi: %w", err)
+	}
+	pubkeyMgr.GetPubKeys()
 	c := &Client{
-		logger:          log.With().Str("module", "ethereum").Logger(),
-		cfg:             cfg,
-		client:          ethClient,
-		pk:              pk,
-		kw:              keysignWrapper,
-		thorchainBridge: thorchainBridge,
+		logger:      log.With().Str("module", "ethereum").Logger(),
+		cfg:         cfg,
+		client:      ethClient,
+		localPubKey: pk,
+		kw:          keysignWrapper,
+		bridge:      bridge,
+		vaultABI:    vaultABI,
+		pubkeyMgr:   pubkeyMgr,
+		poolMgr:     poolMgr,
 	}
-	c.InitChainID()
 
 	var path string // if not set later, will in memory storage
 	if len(c.cfg.BlockScanner.DBPath) > 0 {
@@ -95,49 +134,68 @@ func NewClient(thorKeys *thorclient.Keys, cfg config.ChainConfiguration, server 
 		return c, fmt.Errorf("fail to create blockscanner storage: %w", err)
 	}
 
-	c.ethScanner, err = NewBlockScanner(c.cfg.BlockScanner, storage, c.chainID, c.client, c.thorchainBridge, m)
+	c.ethScanner, err = NewETHScanner(c.cfg.BlockScanner, storage, chainID, c.client, c.bridge, m, pubkeyMgr)
 	if err != nil {
 		return c, fmt.Errorf("fail to create eth block scanner: %w", err)
 	}
 
-	c.blockScanner, err = blockscanner.NewBlockScanner(c.cfg.BlockScanner, storage, m, c.thorchainBridge, c.ethScanner)
+	c.blockScanner, err = blockscanner.NewBlockScanner(c.cfg.BlockScanner, storage, m, c.bridge, c.ethScanner)
 	if err != nil {
 		return c, fmt.Errorf("fail to create block scanner: %w", err)
 	}
+	localNodeETHAddress, err := c.localPubKey.GetAddress(common.ETHChain)
+	if err != nil {
+		c.logger.Err(err).Msg("fail to get local node's ETH address")
+	}
+	c.logger.Info().Msgf("local node ETH address %s", localNodeETHAddress)
 
 	return c, nil
 }
 
+// IsETH return true if the token address equals to ethToken address
+func IsETH(token string) bool {
+	return strings.EqualFold(token, ethToken)
+}
+
+// Start to monitor Ethereum block chain
 func (c *Client) Start(globalTxsQueue chan stypes.TxIn, globalErrataQueue chan stypes.ErrataBlock) {
 	c.blockScanner.Start(globalTxsQueue)
 	c.ethScanner.globalErrataQueue = globalErrataQueue
 }
 
+// Stop ETH client
 func (c *Client) Stop() {
 	c.blockScanner.Stop()
 	c.client.Close()
 }
 
+// GetConfig return the configurations used by ETH chain
 func (c *Client) GetConfig() config.ChainConfiguration {
 	return c.cfg
 }
 
-// IsTestNet determinate whether we are running on test net by checking the status
-func (c *Client) InitChainID() {
-	chainID, err := c.client.ChainID(context.Background())
-	if err != nil {
-		c.logger.Error().Err(err).Msg("Unable to get chain id")
-		chainID = big.NewInt(types.Localnet)
-	}
-	c.chainID = types.ChainID(chainID.Int64())
-	vByte = byte(int(vByte) + int(2*c.chainID))
-	eipSigner = etypes.NewEIP155Signer(chainID)
+func (c *Client) getContext() (context.Context, context.CancelFunc) {
+	return context.WithTimeout(context.Background(), c.cfg.BlockScanner.HttpRequestTimeout)
 }
 
+// getChainID retrieve the chain id from ETH node, and determinate whether we are running on test net by checking the status
+// when it failed to get chain id , it will assume LocalNet
+func getChainID(client *ethclient.Client, timeout time.Duration) (*big.Int, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	chainID, err := client.ChainID(ctx)
+	if err != nil {
+		chainID = big.NewInt(types.Localnet)
+	}
+	return chainID, err
+}
+
+// GetChain get chain
 func (c *Client) GetChain() common.Chain {
 	return common.ETHChain
 }
 
+// GetHeight gets height from eth scanner
 func (c *Client) GetHeight() (int64, error) {
 	return c.ethScanner.GetHeight()
 }
@@ -152,59 +210,225 @@ func (c *Client) GetAddress(poolPubKey common.PubKey) string {
 	return addr.String()
 }
 
-func (c *Client) GetGasFee(count uint64) common.Gas {
-	return common.GetETHGasFee(big.NewInt(1), count)
+// GetGasFee gets gas fee
+func (c *Client) GetGasFee(gas uint64) common.Gas {
+	return common.GetETHGasFee(c.GetGasPrice(), gas)
 }
 
-func (c *Client) GetGasPrice() (*big.Int, error) {
-	return c.client.SuggestGasPrice(context.Background())
+// GetGasPrice gets gas price from eth scanner
+func (c *Client) GetGasPrice() *big.Int {
+	gasPrice := c.ethScanner.GetGasPrice()
+	return gasPrice
 }
 
+// estimateGas estimates gas for tx
+func (c *Client) estimateGas(from string, tx *etypes.Transaction) (uint64, error) {
+	ctx, cancel := c.getContext()
+	defer cancel()
+	return c.client.EstimateGas(ctx, ethereum.CallMsg{
+		From:     ecommon.HexToAddress(from),
+		To:       tx.To(),
+		GasPrice: tx.GasPrice(),
+		Gas:      tx.Gas(),
+		Value:    tx.Value(),
+		Data:     tx.Data(),
+	})
+}
+
+// GetNonce gets nonce
 func (c *Client) GetNonce(addr string) (uint64, error) {
-	nonce, err := c.client.PendingNonceAt(context.Background(), ecommon.HexToAddress(addr))
+	ctx, cancel := c.getContext()
+	defer cancel()
+	nonce, err := c.client.PendingNonceAt(ctx, ecommon.HexToAddress(addr))
 	if err != nil {
 		return 0, fmt.Errorf("fail to get account nonce: %w", err)
 	}
 	return nonce, nil
 }
 
+func getTokenAddressFromAsset(asset common.Asset) string {
+	if asset.Equals(common.ETHAsset) {
+		return ethToken
+	}
+	allParts := strings.Split(asset.Symbol.String(), "-")
+	return allParts[len(allParts)-1]
+}
+
+func (c *Client) getSmartContractAddr() common.Address {
+	addresses := c.pubkeyMgr.GetContracts(common.ETHChain)
+	if len(addresses) > 0 {
+		return addresses[len(addresses)-1]
+	}
+	return common.NoAddress
+}
+
+func (c *Client) convertSigningAmount(amt *big.Int, token string) *big.Int {
+	if IsETH(token) {
+		return amt
+	}
+	tm, err := c.ethScanner.getTokenMeta(token)
+	if err != nil {
+		c.logger.Err(err).Msgf("fail to get token meta for token: %s", token)
+		return amt
+	}
+
+	if tm.Decimal == defaultDecimals {
+		// when the smart contract is using 1e18 as decimals , that means is based on WEI
+		// thus the input amt is correct amount to send out
+		return amt
+	}
+	var value big.Int
+	amt = amt.Mul(amt, value.Exp(big.NewInt(10), big.NewInt(int64(tm.Decimal)), nil))
+	amt = amt.Div(amt, value.Exp(big.NewInt(10), big.NewInt(defaultDecimals), nil))
+	return amt
+}
+
 // SignTx sign the the given TxArrayItem
 func (c *Client) SignTx(tx stypes.TxOutItem, height int64) ([]byte, error) {
-	toAddr := tx.ToAddress.String()
+	if !tx.Chain.Equals(common.ETHChain) {
+		return nil, fmt.Errorf("chain %s is not support by ETH chain client", tx.Chain)
+	}
+	if tx.ToAddress.IsEmpty() {
+		return nil, fmt.Errorf("to address is empty")
+	}
+	if tx.VaultPubKey.IsEmpty() {
+		return nil, fmt.Errorf("vault public key is empty")
+	}
+
+	if len(tx.Memo) == 0 {
+		return nil, fmt.Errorf("can't sign tx when it doesn't have memo")
+	}
+
+	memo, err := mem.ParseMemo(tx.Memo)
+	if err != nil {
+		return nil, fmt.Errorf("fail to parse memo(%s):%w", tx.Memo, err)
+	}
+
+	if memo.IsInbound() {
+		return nil, fmt.Errorf("inbound memo should not be used for outbound tx")
+	}
+
+	contractAddr := c.getSmartContractAddr()
+	if contractAddr.IsEmpty() {
+		return nil, fmt.Errorf("can't sign tx , fail to get smart contract address")
+	}
 
 	value := big.NewInt(0)
-	for _, coin := range tx.Coins {
-		value.Add(value, coin.Amount.BigInt())
+	ethValue := big.NewInt(0)
+	var tokenAddr string
+	if len(tx.Coins) == 1 {
+		coin := tx.Coins[0]
+		tokenAddr = getTokenAddressFromAsset(coin.Asset)
+		value = value.Add(value, coin.Amount.BigInt())
+		value = c.convertSigningAmount(value, tokenAddr)
+		if IsETH(tokenAddr) {
+			ethValue = value
+		}
 	}
-	if len(toAddr) == 0 || value.Uint64() == 0 {
-		c.logger.Error().Msg("invalid tx params")
-		return nil, nil
-	}
-	fromAddr := c.GetAddress(tx.VaultPubKey)
 
-	nonce, err := c.GetNonce(fromAddr)
+	fromAddr, err := tx.VaultPubKey.GetAddress(common.ETHChain)
 	if err != nil {
-		c.logger.Error().Err(err).Msg("fail to fetch latest nonce")
-		return nil, err
+		return nil, fmt.Errorf("fail to get ETH address for pub key(%s): %w", tx.VaultPubKey, err)
+	}
+
+	dest := ecommon.HexToAddress(tx.ToAddress.String())
+	var data []byte
+
+	switch memo.GetType() {
+	case mem.TxOutbound, mem.TxRefund:
+		if IsETH(tokenAddr) {
+			data, err = c.vaultABI.Pack("transferETH", dest, tx.Memo)
+			if err != nil {
+				return nil, fmt.Errorf("fail to create data to call smart contract(transferETH): %w", err)
+			}
+		} else {
+			data, err = c.vaultABI.Pack("transferOut", dest, ecommon.HexToAddress(tokenAddr), value, tx.Memo)
+			if err != nil {
+				return nil, fmt.Errorf("fail to create data to call smart contract(transferOut): %w", err)
+			}
+		}
+	case mem.TxMigrate, mem.TxYggdrasilFund:
+		if IsETH(tokenAddr) {
+			data, err = c.vaultABI.Pack("transferETH", dest, tx.Memo)
+			if err != nil {
+				return nil, fmt.Errorf("fail to create data to call smart contract(transferETH): %w", err)
+			}
+		} else {
+			data, err = c.vaultABI.Pack("transferAllowance", dest, ecommon.HexToAddress(tokenAddr), value, tx.Memo)
+			if err != nil {
+				return nil, fmt.Errorf("fail to create data to call smart contract(transferAllowance): %w", err)
+			}
+		}
+	case mem.TxYggdrasilReturn:
+		var coins []RouterCoin
+		for _, item := range tx.Coins {
+			assetAddr := getTokenAddressFromAsset(item.Asset)
+			assetAmt := c.convertSigningAmount(item.Amount.BigInt(), assetAddr)
+			if IsETH(assetAddr) {
+				ethValue = assetAmt
+				continue
+			}
+			coins = append(coins, RouterCoin{
+				Asset:  ecommon.HexToAddress(assetAddr),
+				Amount: assetAmt,
+			})
+		}
+		data, err = c.vaultABI.Pack("transferVaultAssets", dest, coins, tx.Memo)
+		if err != nil {
+			return nil, fmt.Errorf("fail to create data to call smart contract(transferVaultAssets): %w", err)
+		}
+	}
+
+	nonce, err := c.GetNonce(fromAddr.String())
+	if err != nil {
+		return nil, fmt.Errorf("fail to fetch account(%s) nonce : %w", fromAddr, err)
 	}
 	c.logger.Info().Uint64("nonce", nonce).Msg("account info")
 
-	gasPrice := c.ethScanner.GetGasPrice()
-	gasOut := big.NewInt(0)
-	for _, coin := range tx.MaxGas {
-		gasOut.Add(gasOut, coin.Amount.BigInt())
+	// outbound tx always send to smart contract address
+	createdTx := etypes.NewTransaction(nonce, ecommon.HexToAddress(contractAddr.String()), ethValue, MaxContractGas, big.NewInt(tx.GasRate), data)
+	estimatedGas, err := c.estimateGas(fromAddr.String(), createdTx)
+	if err != nil {
+		return nil, fmt.Errorf("fail to estimate gas: %w", err)
 	}
-	encodedData := []byte(hex.EncodeToString([]byte(tx.Memo)))
-	// calculate gas based on memo and gas price and compare against max gas
-	gasFee := common.GetETHGasFee(big.NewInt(1), uint64(len(tx.Memo)))[0].Amount.BigInt()
-	if gasOut.Cmp(gasFee.Mul(gasFee, gasPrice)) == -1 {
-		return nil, fmt.Errorf("not enough max gas: %s", gasOut.String())
+	c.logger.Info().Msgf("estimated gas unit: %d", estimatedGas)
+
+	// compare the gas rate prescribed by thorchain against the price it can get from the chai
+	// ensure signer always pay enough higher gas price
+	gasRate := big.NewInt(tx.GasRate)
+	if gasRate.Cmp(c.GetGasPrice()) < 0 {
+		gasRate = c.GetGasPrice()
 	}
-	gasOut.Div(gasOut, gasPrice)
+	c.logger.Info().Msgf("gas rate: %s", gasRate)
+	if ethValue.Uint64() > 0 {
+		// in the case that a transaction need more than MaxContractGas to send out
+		// which is rare , and also it is sending ETH.ETH, make sure it left enough to pay for gas
+		gasOut := big.NewInt(0)
+		for _, coin := range tx.MaxGas {
+			gasOut.Add(gasOut, coin.Amount.BigInt())
+		}
+		total := big.NewInt(int64(estimatedGas) * gasRate.Int64())
+		// if total > gasOut
+		if total.Cmp(gasOut) == 1 {
+			gap := total.Sub(total, gasOut)
+			ethValue = ethValue.Sub(ethValue, gap)
+			c.logger.Info().Msgf("max gas: %s not enough to pay for gas, deduct some from customer: %s, customer get paid: %s", gasOut, gap, ethValue)
+		} else {
+			extra := gasOut.Sub(gasOut, total)
+			if extra.Uint64() > 0 {
+				ethValue = ethValue.Add(ethValue, extra)
+			}
+			c.logger.Info().Msgf("%s extra ETH.ETH pay to customer,customer get paid: %s", extra, ethValue)
+		}
+		createdTx = etypes.NewTransaction(nonce, ecommon.HexToAddress(contractAddr.String()), ethValue, estimatedGas, gasRate, data)
+	} else {
+		// sending ERC20 tokens, if it need more than maximum gas , so be it , treasure will subsidise ETH.ETH pool
+		if estimatedGas > MaxContractGas {
+			createdTx = etypes.NewTransaction(nonce, ecommon.HexToAddress(contractAddr.String()), ethValue, estimatedGas, gasRate, data)
+		}
+	}
 
-	createdTx := etypes.NewTransaction(nonce, ecommon.HexToAddress(toAddr), value, gasOut.Uint64(), gasPrice, encodedData)
-
-	rawTx, err := c.sign(createdTx, fromAddr, tx.VaultPubKey, height, tx)
+	rawTx, err := c.sign(createdTx, tx.VaultPubKey, height, tx)
 	if err != nil || len(rawTx) == 0 {
 		return nil, fmt.Errorf("fail to sign message: %w", err)
 	}
@@ -212,7 +436,7 @@ func (c *Client) SignTx(tx stypes.TxOutItem, height int64) ([]byte, error) {
 }
 
 // sign is design to sign a given message with keysign party and keysign wrapper
-func (c *Client) sign(tx *etypes.Transaction, from string, poolPubKey common.PubKey, height int64, txOutItem stypes.TxOutItem) ([]byte, error) {
+func (c *Client) sign(tx *etypes.Transaction, poolPubKey common.PubKey, height int64, txOutItem stypes.TxOutItem) ([]byte, error) {
 	rawBytes, err := c.kw.Sign(tx, poolPubKey)
 	if err == nil && rawBytes != nil {
 		return rawBytes, nil
@@ -221,49 +445,110 @@ func (c *Client) sign(tx *etypes.Transaction, from string, poolPubKey common.Pub
 	if errors.As(err, &keysignError) {
 		if len(keysignError.Blame.BlameNodes) == 0 {
 			// TSS doesn't know which node to blame
-			return nil, err
+			return nil, fmt.Errorf("fail to sign tx: %w", err)
 		}
 		// key sign error forward the keysign blame to thorchain
-		txID, errPostKeysignFail := c.thorchainBridge.PostKeysignFailure(keysignError.Blame, height, txOutItem.Memo, txOutItem.Coins, txOutItem.VaultPubKey)
+		txID, errPostKeysignFail := c.bridge.PostKeysignFailure(keysignError.Blame, height, txOutItem.Memo, txOutItem.Coins, txOutItem.VaultPubKey)
 		if errPostKeysignFail != nil {
-			c.logger.Error().Err(errPostKeysignFail).Msg("fail to post keysign failure to thorchain")
 			return nil, multierror.Append(err, errPostKeysignFail)
 		}
 		c.logger.Info().Str("tx_id", txID.String()).Msgf("post keysign failure to thorchain")
 	}
-	c.logger.Error().Err(err).Msg("fail to sign tx")
-	return nil, err
+	return nil, fmt.Errorf("fail to sign tx: %w", err)
+}
+
+// GetBalance call smart contract to find out the balance of the given address and token
+func (c *Client) GetBalance(addr, token string) (*big.Int, error) {
+	ctx, cancel := c.getContext()
+	defer cancel()
+	if IsETH(token) {
+		return c.client.BalanceAt(ctx, ecommon.HexToAddress(addr), nil)
+	}
+	contractAddr := c.getSmartContractAddr()
+	input, err := c.vaultABI.Pack("vaultAllowance", ecommon.HexToAddress(token), ecommon.HexToAddress(addr))
+	if err != nil {
+		return nil, fmt.Errorf("fail to create vaultAllowance data to call smart contract")
+	}
+	toAddr := ecommon.HexToAddress(contractAddr.String())
+	res, err := c.client.CallContract(ctx, ethereum.CallMsg{
+		From: ecommon.HexToAddress(addr),
+		To:   &toAddr,
+		Data: input,
+	}, nil)
+	if err != nil {
+		return nil, err
+	}
+	output, err := c.vaultABI.Unpack("vaultAllowance", res)
+	if err != nil {
+		return nil, err
+	}
+	value := *abi.ConvertType(output[0], new(*big.Int)).(**big.Int)
+	return value, nil
+}
+
+// GetBalances gets all the balances of the given address
+func (c *Client) GetBalances(addr string) (common.Coins, error) {
+	// for all the tokens , this chain client have deal with before
+	tokens, err := c.ethScanner.GetTokens()
+	if err != nil {
+		return nil, fmt.Errorf("fail to get all the tokens: %w", err)
+	}
+	coins := common.Coins{}
+	for _, token := range tokens {
+		balance, err := c.GetBalance(addr, token.Address)
+		if err != nil {
+			continue
+		}
+		asset := common.ETHAsset
+		if !IsETH(token.Address) {
+			asset, err = common.NewAsset(fmt.Sprintf("ETH.%s-%s", token.Symbol, token.Address))
+			if err != nil {
+				return nil, err
+			}
+		}
+		coins = append(coins, common.NewCoin(asset, cosmos.NewUintFromBigInt(balance)))
+	}
+	return coins, nil
 }
 
 // GetAccount gets account by address in eth client
-func (c *Client) GetAccount(pkey common.PubKey) (common.Account, error) {
-	addr := c.GetAddress(pkey)
+func (c *Client) GetAccount(pk common.PubKey) (common.Account, error) {
+	addr := c.GetAddress(pk)
 	nonce, err := c.GetNonce(addr)
 	if err != nil {
 		return common.Account{}, err
 	}
-	balance, err := c.client.BalanceAt(context.Background(), ecommon.HexToAddress(addr), nil)
+	coins, err := c.GetBalances(addr)
 	if err != nil {
-		return common.Account{}, fmt.Errorf("fail to get account nonce: %w", err)
+		return common.Account{}, err
 	}
-	account := common.NewAccount(int64(nonce), 0,
-		common.Coins{
-			common.NewCoin(common.ETHAsset, cosmos.NewUint(balance.Uint64())),
-		}, false)
+	account := common.NewAccount(int64(nonce), 0, coins, false)
 	return account, nil
 }
 
+// GetAccountByAddress return account information
 func (c *Client) GetAccountByAddress(address string) (common.Account, error) {
-	return common.Account{}, nil
+	nonce, err := c.GetNonce(address)
+	if err != nil {
+		return common.Account{}, err
+	}
+	coins, err := c.GetBalances(address)
+	if err != nil {
+		return common.Account{}, err
+	}
+	account := common.NewAccount(int64(nonce), 0, coins, false)
+	return account, nil
 }
 
 // BroadcastTx decodes tx using rlp and broadcasts too Ethereum chain
 func (c *Client) BroadcastTx(stx stypes.TxOutItem, hexTx []byte) (string, error) {
 	tx := &etypes.Transaction{}
-	if err := json.Unmarshal(hexTx, tx); err != nil {
+	if err := tx.UnmarshalJSON(hexTx); err != nil {
 		return "", err
 	}
-	if err := c.client.SendTransaction(context.Background(), tx); err != nil {
+	ctx, cancel := c.getContext()
+	defer cancel()
+	if err := c.client.SendTransaction(ctx, tx); err != nil && err.Error() != ecore.ErrAlreadyKnown.Error() && err.Error() != ecore.ErrNonceTooLow.Error() {
 		return "", err
 	}
 	return tx.Hash().String(), nil
@@ -271,10 +556,140 @@ func (c *Client) BroadcastTx(stx stypes.TxOutItem, hexTx []byte) (string, error)
 
 // ConfirmationCountReady check whether the given txIn is ready to be send to THORChain
 func (c *Client) ConfirmationCountReady(txIn stypes.TxIn) bool {
-	// TODO add confirmation logic for ETH
-	return true
+	if len(txIn.TxArray) == 0 {
+		return true
+	}
+	// MemPool items doesn't need confirmation
+	if txIn.MemPool {
+		return true
+	}
+	blockHeight := txIn.TxArray[0].BlockHeight
+	confirm := txIn.ConfirmationRequired
+	c.logger.Info().Msgf("confirmation required: %d", confirm)
+	// every tx in txIn already have at least 1 confirmation
+	return (c.ethScanner.currentBlockHeight - blockHeight) >= confirm
 }
 
+func (c *Client) getBlockReward(height int64) (*big.Int, error) {
+	ctx, cancel := c.getContext()
+	defer cancel()
+	block, err := c.client.BlockByNumber(ctx, big.NewInt(height))
+	if err != nil {
+		return nil, fmt.Errorf("fail to get block by height: %d,err: %w", height, err)
+	}
+	// need to check this
+	totalGasUsed := new(big.Int).Mul(big.NewInt(int64(block.GasUsed())), c.GetGasPrice())
+	temp := new(big.Int).Mul(blockReward, big.NewInt(int64(len(block.Uncles()))))
+	uncleReward := new(big.Int).Div(temp, big.NewInt(32)) // each uncle block reward is (block reward / 32)
+	totalReward := blockReward.Add(blockReward, uncleReward)
+	rewardPlusFee := totalReward.Add(totalReward, totalGasUsed)
+	return rewardPlusFee, nil
+}
+
+func (c *Client) getTotalTransactionValue(txIn stypes.TxIn, excludeFrom []common.Address) cosmos.Uint {
+	total := cosmos.ZeroUint()
+	if len(txIn.TxArray) == 0 {
+		return total
+	}
+	for _, item := range txIn.TxArray {
+		fromAsgard := false
+		for _, fromAddress := range excludeFrom {
+			if strings.EqualFold(fromAddress.String(), item.Sender) {
+				fromAsgard = true
+				break
+			}
+		}
+		if fromAsgard {
+			continue
+		}
+		for _, coin := range item.Coins {
+			if coin.IsEmpty() {
+				continue
+			}
+			amount := coin.Amount
+			if !coin.Asset.Equals(common.ETHAsset) {
+				var err error
+				amount, err = c.poolMgr.GetValue(coin.Asset, common.ETHAsset, coin.Amount)
+				if err != nil {
+					c.logger.Err(err).Msgf("fail to get value for %s", coin.Asset)
+					continue
+				}
+
+			}
+			total = total.Add(amount)
+		}
+	}
+	return total
+}
+
+// getBlockRequiredConfirmation find out how many confirmation the given txIn need to have before it can be send to THORChain
+func (c *Client) getBlockRequiredConfirmation(txIn stypes.TxIn, height int64) (int64, error) {
+	asgards, err := c.getAsgardAddress()
+	if err != nil {
+		c.logger.Err(err).Msg("fail to get asgard addresses")
+		asgards = c.asgardAddresses
+	}
+	c.logger.Info().Msgf("asgards: %+v", asgards)
+	totalTxValue := c.getTotalTransactionValue(txIn, asgards)
+	totalFeeAndSubsidy, err := c.getBlockReward(height)
+	if err != nil {
+		return 0, fmt.Errorf("fail to get coinbase value: %w", err)
+	}
+	confirm := totalTxValue.MulUint64(2).Quo(cosmos.NewUintFromBigInt(totalFeeAndSubsidy)).Uint64()
+	c.logger.Info().Msgf("totalTxValue:%s,total fee and Subsidy:%d,confirmation:%d", totalTxValue, totalFeeAndSubsidy, confirm)
+	return int64(confirm), nil
+}
+
+// GetConfirmationCount decide the given txIn how many confirmation it requires
 func (c *Client) GetConfirmationCount(txIn stypes.TxIn) int64 {
-	return 0
+	if len(txIn.TxArray) == 0 {
+		return 0
+	}
+	// MemPool items doesn't need confirmation
+	if txIn.MemPool {
+		return 0
+	}
+	blockHeight := txIn.TxArray[0].BlockHeight
+	confirm, err := c.getBlockRequiredConfirmation(txIn, blockHeight)
+	c.logger.Info().Msgf("confirmation required: %d", confirm)
+	if err != nil {
+		c.logger.Err(err).Msg("fail to get block confirmation ")
+		return 0
+	}
+	return confirm
+}
+
+func (c *Client) getAsgardAddress() ([]common.Address, error) {
+	if time.Now().Sub(c.lastAsgard) < constants.ThorchainBlockTime && c.asgardAddresses != nil {
+		return c.asgardAddresses, nil
+	}
+	vaults, err := c.bridge.GetAsgards()
+	if err != nil {
+		return nil, fmt.Errorf("fail to get asgards : %w", err)
+	}
+
+	for _, v := range vaults {
+		addr, err := v.PubKey.GetAddress(common.ETHChain)
+		if err != nil {
+			c.logger.Err(err).Msg("fail to get address")
+			continue
+		}
+		found := false
+		for _, item := range c.asgardAddresses {
+			if item.Equals(addr) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			c.asgardAddresses = append(c.asgardAddresses, addr)
+		}
+
+	}
+	if len(c.asgardAddresses) > maxAsgardAddresses {
+		startIdx := len(c.asgardAddresses) - maxAsgardAddresses
+		c.asgardAddresses = c.asgardAddresses[startIdx:]
+	}
+	c.lastAsgard = time.Now()
+	return c.asgardAddresses, nil
 }

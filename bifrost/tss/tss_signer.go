@@ -73,7 +73,7 @@ func (s *KeySign) makeSignature(msg tx.StdSignMsg, poolPubKey string) (sig tx.St
 		return stdSignature, fmt.Errorf("fail to get pub key: %w", err)
 	}
 	hashedMsg := crypto.Sha256(msg.Bytes())
-	signPack, err := s.RemoteSign(hashedMsg, poolPubKey)
+	signPack, _, err := s.RemoteSign(hashedMsg, poolPubKey)
 	if err != nil {
 		return stdSignature, fmt.Errorf("fail to TSS sign: %w", err)
 	}
@@ -115,28 +115,31 @@ func (s *KeySign) SignWithPool(msg tx.StdSignMsg, poolPubKey common.PubKey) ([]b
 	return bz, nil
 }
 
-func (s *KeySign) RemoteSign(msg []byte, poolPubKey string) ([]byte, error) {
+func (s *KeySign) RemoteSign(msg []byte, poolPubKey string) ([]byte, []byte, error) {
 	if len(msg) == 0 {
-		return nil, nil
+		return nil, nil, nil
 	}
 
 	encodedMsg := base64.StdEncoding.EncodeToString(msg)
-	rResult, sResult, err := s.toLocalTSSSigner(poolPubKey, encodedMsg)
+	rResult, sResult, recoveryId, err := s.toLocalTSSSigner(poolPubKey, encodedMsg)
 	if err != nil {
-		return nil, fmt.Errorf("fail to tss sign: %w", err)
+		return nil, nil, fmt.Errorf("fail to tss sign: %w", err)
 	}
 
 	if len(rResult) == 0 && len(sResult) == 0 {
 		// this means the node tried to do keygen , however this node has not been chosen to take part in the keysign committee
-		return nil, nil
+		return nil, nil, nil
 	}
-	s.logger.Debug().Str("R", rResult).Str("S", sResult).Msg("tss result")
+	s.logger.Debug().Str("R", rResult).Str("S", sResult).Str("recovery", recoveryId).Msg("tss result")
 	data, err := getSignature(rResult, sResult)
 	if err != nil {
-		return nil, fmt.Errorf("fail to decode tss signature: %w", err)
+		return nil, nil, fmt.Errorf("fail to decode tss signature: %w", err)
 	}
-
-	return data, nil
+	bRecoveryId, err := base64.StdEncoding.DecodeString(recoveryId)
+	if err != nil {
+		return nil, nil, fmt.Errorf("fail to decode recovery id: %w", err)
+	}
+	return data, bRecoveryId, nil
 }
 
 func getSignature(r, s string) ([]byte, error) {
@@ -186,7 +189,7 @@ func (s *KeySign) getVersion() semver.Version {
 }
 
 // toLocalTSSSigner will send the request to local signer
-func (s *KeySign) toLocalTSSSigner(poolPubKey, msgToSign string) (string, string, error) {
+func (s *KeySign) toLocalTSSSigner(poolPubKey, msgToSign string) (string, string, string, error) {
 	tssMsg := keysign.Request{
 		PoolPubKey: poolPubKey,
 		Message:    msgToSign,
@@ -197,7 +200,7 @@ func (s *KeySign) toLocalTSSSigner(poolPubKey, msgToSign string) (string, string
 	// get current thorchain block height
 	blockHeight, err := s.bridge.GetBlockHeight()
 	if err != nil {
-		return "", "", fmt.Errorf("fail to get current thorchain block height: %w", err)
+		return "", "", "", fmt.Errorf("fail to get current thorchain block height: %w", err)
 	}
 	// this is just round the block height to the nearest 10
 	tssMsg.BlockHeight = blockHeight / 10 * 10
@@ -223,14 +226,14 @@ func (s *KeySign) toLocalTSSSigner(poolPubKey, msgToSign string) (string, string
 	}
 
 	if err != nil {
-		return "", "", fmt.Errorf("fail to send request to local TSS node: %w", err)
+		return "", "", "", fmt.Errorf("fail to send request to local TSS node: %w", err)
 	}
 
 	// 1 means success,2 means fail , 0 means NA
 	if keySignResp.Status == 1 && keySignResp.Blame.IsEmpty() {
-		return keySignResp.R, keySignResp.S, nil
+		return keySignResp.R, keySignResp.S, keySignResp.RecoveryID, nil
 	}
 
 	// Blame need to be passed back to thorchain , so as thorchain can use the information to slash relevant node account
-	return "", "", NewKeysignError(keySignResp.Blame)
+	return "", "", "", NewKeysignError(keySignResp.Blame)
 }

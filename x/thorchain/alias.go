@@ -51,6 +51,7 @@ const (
 	TxMigrate         = mem.TxMigrate
 	TxRagnarok        = mem.TxRagnarok
 	TxReserve         = mem.TxReserve
+	TxOutbound        = mem.TxOutbound
 )
 
 var (
