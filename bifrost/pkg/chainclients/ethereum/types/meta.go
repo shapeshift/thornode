@@ -1,11 +1,9 @@
 package types
 
 import (
-	"math/big"
+	"github.com/ethereum/go-ethereum/core/types"
 
-	etypes "github.com/ethereum/go-ethereum/core/types"
-
-	"gitlab.com/thorchain/thornode/common"
+	stypes "gitlab.com/thorchain/thornode/bifrost/thorclient/types"
 )
 
 // BlockMeta is a structure to store the blocks bifrost scanned
@@ -16,27 +14,48 @@ type BlockMeta struct {
 	Transactions []TransactionMeta `json:"transactions"`
 }
 
+// TransactionMeta transaction meta data
 type TransactionMeta struct {
-	Hash        string        `json:"hash"`
-	Value       *big.Int      `json:"value"`
-	BlockHeight int64         `json:"block_height"`
-	VaultPubKey common.PubKey `json:"vault_pub_key"`
+	Hash        string `json:"hash"`
+	BlockHeight int64  `json:"block_height"`
+}
+
+// TokenMeta is a struct to store token meta data
+type TokenMeta struct {
+	Symbol  string `json:"symbol"`
+	Address string `json:"address"`
+	Decimal uint64 `json:"decimal"` // Decimal means the number of decimals https://docs.openzeppelin.com/contracts/3.x/api/token/erc20#ERC20-decimals--
 }
 
 // NewBlockMeta create a new instance of BlockMeta
-func NewBlockMeta(block *etypes.Block) *BlockMeta {
+func NewBlockMeta(block *types.Header, txIn stypes.TxIn) *BlockMeta {
 	txsMeta := make([]TransactionMeta, 0)
-	for _, tx := range block.Transactions() {
+
+	for _, tx := range txIn.TxArray {
 		txsMeta = append(txsMeta, TransactionMeta{
-			Hash:        tx.Hash().Hex(),
-			Value:       tx.Value(),
-			BlockHeight: int64(block.NumberU64()),
+			Hash:        tx.Tx,
+			BlockHeight: block.Number.Int64(),
 		})
 	}
+
 	return &BlockMeta{
-		PreviousHash: block.ParentHash().Hex(),
-		Height:       int64(block.NumberU64()),
+		PreviousHash: block.ParentHash.Hex(),
+		Height:       block.Number.Int64(),
 		BlockHash:    block.Hash().Hex(),
 		Transactions: txsMeta,
 	}
+}
+
+// NewTokenMeta create a new instance of TokenMeta
+func NewTokenMeta(symbol, address string, decimal uint64) TokenMeta {
+	return TokenMeta{
+		Symbol:  symbol,
+		Address: address,
+		Decimal: decimal,
+	}
+}
+
+// IsEmpty return true when both symbol and address are empty
+func (tm TokenMeta) IsEmpty() bool {
+	return tm.Symbol == "" && tm.Address == ""
 }

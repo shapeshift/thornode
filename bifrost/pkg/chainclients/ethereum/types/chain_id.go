@@ -1,9 +1,10 @@
 package types
 
-// Ethereum chain id type
+// ChainID represent Ethereum chain id type
 type ChainID int
 
 const (
+	// Mainnet - mainnet
 	Mainnet ChainID = iota + 1
 	_
 	Ropsten

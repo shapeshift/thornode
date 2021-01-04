@@ -15,6 +15,8 @@ type Address string
 
 var NoAddress Address = Address("")
 
+const ETHAddressLen = 42
+
 // NewAddress create a new Address. Supports Binance, Bitcoin, and Ethereum
 func NewAddress(address string) (Address, error) {
 	if len(address) == 0 {

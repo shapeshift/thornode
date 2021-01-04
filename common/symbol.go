@@ -26,7 +26,7 @@ func NewSymbol(input string) (Symbol, error) {
 		return "", errors.New("invalid symbol")
 	}
 
-	return Symbol(input), nil
+	return Symbol(strings.ToUpper(input)), nil
 }
 
 // Ticker return the ticker part of symbol

@@ -18,6 +18,7 @@ services:
       BINANCE_HOST: ${BINANCE_HOST:-http://binance-mock:26660}
       BTC_HOST: ${BTC_HOST:-bitcoin-regtest:18443}
       ETH_HOST: ${ETH_HOST:-http://ethereum-localnet:8545}
+      CONTARCT: ${CONTARCT:-0xE65e9d372F8cAcc7b6dfcd4af6507851Ed31bb44}
       PEER: ${PEER:-}
       SIGNER_PASSWD: ${SIGNER_PASSWD:-}
       SIGNER_SEED_PHRASE: ${SIGNER_SEED_PHRASE:-}

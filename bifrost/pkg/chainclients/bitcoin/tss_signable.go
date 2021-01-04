@@ -33,7 +33,7 @@ func NewTssSignable(pubKey common.PubKey, manager tss.ThorchainKeyManager) (*Tss
 // Sign the given payload
 func (ts *TssSignable) Sign(payload []byte) (*btcec.Signature, error) {
 	ts.logger.Info().Msgf("msg to sign:%s", base64.StdEncoding.EncodeToString(payload))
-	result, err := ts.tssKeyManager.RemoteSign(payload, ts.poolPubKey.String())
+	result, _, err := ts.tssKeyManager.RemoteSign(payload, ts.poolPubKey.String())
 	if err != nil {
 		return nil, err
 	}

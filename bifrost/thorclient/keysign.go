@@ -34,7 +34,10 @@ func (b *ThorchainBridge) GetKeysign(blockHeight int64, pk string) (types.TxOut,
 		b.errCounter.WithLabelValues("fail_unmarshal_tx_out", strconv.FormatInt(blockHeight, 10)).Inc()
 		return types.TxOut{}, fmt.Errorf("failed to unmarshal TxOut: %w", err)
 	}
-
+	// there is no txout item , thus no need to validate signature either
+	if len(query.Keysign.TxArray) == 0 {
+		return query.Keysign, nil
+	}
 	if query.Signature == "" {
 		return types.TxOut{}, errors.New("invalid keysign signature: empty")
 	}

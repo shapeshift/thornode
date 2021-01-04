@@ -22,7 +22,7 @@ type KeySignWrapper struct {
 	logger        zerolog.Logger
 }
 
-// NewKeysignWrapper create a new instance of Keysign Wrapper
+// NewKeySignWrapper create a new instance of Keysign Wrapper
 func NewKeySignWrapper(privateKey *btcec.PrivateKey, tssKeyManager tss.ThorchainKeyManager) (*KeySignWrapper, error) {
 	pubKey, err := GetBech32AccountPubKey(privateKey)
 	if err != nil {
