@@ -491,15 +491,15 @@ func (c *Client) FetchTxs(height int64) (types.TxIn, error) {
 		}()
 	}
 
-	txs, err := c.extractTxs(block, blockMeta)
+	txIn, err := c.extractTxs(block, blockMeta)
 	if err != nil {
-		return types.TxIn{}, fmt.Errorf("fail to extract txs from block: %w", err)
+		return types.TxIn{}, fmt.Errorf("fail to extract txIn from block: %w", err)
 	}
 	c.updateNetworkInfo()
 	if err := c.sendNetworkFee(height); err != nil {
 		c.logger.Err(err).Msg("fail to send network fee")
 	}
-	return txs, nil
+	return txIn, nil
 }
 
 func (c *Client) updateNetworkInfo() {
@@ -803,6 +803,7 @@ func (c *Client) getBlockRequiredConfirmation(txIn types.TxIn, height int64) (in
 	return int64(confirm), nil
 }
 
+// GetConfirmationCount return the number of blocks the tx need to wait before processing in THORChain
 func (c *Client) GetConfirmationCount(txIn types.TxIn) int64 {
 	if len(txIn.TxArray) == 0 {
 		return 0

@@ -6,6 +6,8 @@ import (
 
 	etypes "github.com/ethereum/go-ethereum/core/types"
 	. "gopkg.in/check.v1"
+
+	stypes "gitlab.com/thorchain/thornode/bifrost/thorclient/types"
 )
 
 func Test(t *testing.T) { TestingT(t) }
@@ -53,10 +55,12 @@ func (b *MetaTestSuite) TestMeta(c *C) {
 		"transactionsRoot": "0x88df016429689c079f3b2f6ad39fa052532c56795b733da78a91ebe6a713944b",
 		"uncles": []
 	}`
-	var header etypes.Header
+	var header *etypes.Header
 	err := json.Unmarshal([]byte(blockJson), &header)
 	c.Assert(err, IsNil)
-	block := etypes.NewBlock(&header, nil, nil, nil)
-	blockMeta := NewBlockMeta(block)
+	blockMeta := NewBlockMeta(header, stypes.TxIn{TxArray: []stypes.TxInItem{{Tx: "0x88df016429689c079f3b2f6ad39fa052532c56795b733da78a91ebe6a713944b"}}})
 	c.Assert(blockMeta, NotNil)
+
+	tokenMeta := NewTokenMeta("TKN", "0xa7d9ddbe1f17865597fbd27ec712455208b6b76d", 18)
+	c.Assert(tokenMeta, NotNil)
 }

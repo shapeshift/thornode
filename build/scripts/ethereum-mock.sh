@@ -1,6 +1,7 @@
 #!/bin/sh
+if [ "$ETH_BLOCK_TIME" == "-1" ]; then
+  ETH_BLOCK_TIME=11
+fi
 
-BLOCK_PERIOD=0
-
-geth --dev --dev.period $BLOCK_PERIOD --verbosity 2 --networkid 15 --datadir "data" -mine --miner.threads 1 -rpc --rpcaddr 0.0.0.0 --rpcport 8545 --allow-insecure-unlock -nousb --rpcapi "eth,net,web3,miner,personal,txpool,debug" --rpccorsdomain "*" -nodiscover --rpcvhosts="*"
+geth --dev --dev.period $ETH_BLOCK_TIME --verbosity 2 --networkid 15 --datadir "data" -mine --miner.threads 1 -rpc --rpcaddr 0.0.0.0 --rpcport 8545 --allow-insecure-unlock -nousb --rpcapi "eth,net,web3,miner,personal,txpool,debug" --rpccorsdomain "*" -nodiscover --rpcvhosts="*"
 
