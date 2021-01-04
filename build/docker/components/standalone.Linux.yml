@@ -9,6 +9,7 @@ services:
       BINANCE_HOST: ${BINANCE_HOST:-http://localhost:26660}
       BTC_HOST: ${BTC_HOST:-localhost:18443}
       ETH_HOST: ${ETH_HOST:-http://localhost:8545}
+      CONTRACT: ${CONTARCT:-0xE65e9d372F8cAcc7b6dfcd4af6507851Ed31bb44}
       TSS_HOST: localhost
   thor-daemon:
     network_mode: "host"

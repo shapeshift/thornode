@@ -820,12 +820,10 @@ func queryKeysign(ctx cosmos.Context, kbs KeybaseStore, path []string, req abci.
 		ctx.Logger().Error("fail to sign keysign", "error", err)
 		return nil, fmt.Errorf("fail to sign keysign: %w", err)
 	}
-
 	query := QueryKeysign{
 		Keysign:   *txs,
 		Signature: base64.StdEncoding.EncodeToString(sig),
 	}
-
 	res, err := codec.MarshalJSONIndent(keeper.Cdc(), query)
 	if err != nil {
 		ctx.Logger().Error("fail to marshal tx hash to json", "error", err)

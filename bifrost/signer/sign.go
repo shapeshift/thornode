@@ -275,6 +275,7 @@ func (s *Signer) processKeygen(ch <-chan ttypes.KeygenBlock) {
 					s.errCounter.WithLabelValues("fail_to_broadcast_keygen", "").Inc()
 					s.logger.Error().Err(err).Msg("fail to broadcast keygen")
 				}
+
 			}
 		}
 	}
