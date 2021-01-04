@@ -6,8 +6,7 @@ import (
 	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
-type DummyObserverManager struct {
-}
+type DummyObserverManager struct{}
 
 func NewDummyObserverManager() *DummyObserverManager {
 	return &DummyObserverManager{}

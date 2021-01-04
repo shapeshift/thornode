@@ -52,8 +52,7 @@ func (mts *MockTssServer) KeySign(req keysign.Request) (keysign.Response, error)
 	return keysign.NewResponse("", "", common.Success, blame.Blame{}), nil
 }
 
-type HealthServerTestSuite struct {
-}
+type HealthServerTestSuite struct{}
 
 var _ = Suite(&HealthServerTestSuite{})
 

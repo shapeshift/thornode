@@ -5,8 +5,7 @@ import (
 )
 
 // DummyEventMgr used for test purpose , and it implement EventManager interface
-type DummyEventMgr struct {
-}
+type DummyEventMgr struct{}
 
 func NewDummyEventMgr() *DummyEventMgr {
 	return &DummyEventMgr{}
