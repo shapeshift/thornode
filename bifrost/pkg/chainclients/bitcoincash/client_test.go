@@ -101,36 +101,36 @@ func (s *BitcoinCashSuite) SetUpTest(c *C) {
 
 			switch {
 			case r.Method == "getblockhash":
-				httpTestHandler(c, rw, "../../../../test/fixtures/btc/blockhash.json")
+				httpTestHandler(c, rw, "../../../../test/fixtures/bch/blockhash.json")
 			case r.Method == "getblock":
-				httpTestHandler(c, rw, "../../../../test/fixtures/btc/block_verbose.json")
+				httpTestHandler(c, rw, "../../../../test/fixtures/bch/block_verbose.json")
 			case r.Method == "gettransaction":
 				if r.Params[0] == "27de3e1865c098cd4fded71bae1e8236fd27ce5dce6e524a9ac5cd1a17b5c241" {
-					httpTestHandler(c, rw, "../../../../test/fixtures/btc/tx-c241.json")
+					httpTestHandler(c, rw, "../../../../test/fixtures/bch/tx-c241.json")
 				}
 			case r.Method == "getrawtransaction":
 				if r.Params[0] == "5b0876dcc027d2f0c671fc250460ee388df39697c3ff082007b6ddd9cb9a7513" {
-					httpTestHandler(c, rw, "../../../../test/fixtures/btc/tx-5b08.json")
+					httpTestHandler(c, rw, "../../../../test/fixtures/bch/tx-5b08.json")
 				} else if r.Params[0] == "54ef2f4679fb90af42e8d963a5d85645d0fd86e5fe8ea4e69dbf2d444cb26528" {
-					httpTestHandler(c, rw, "../../../../test/fixtures/btc/tx-54ef.json")
+					httpTestHandler(c, rw, "../../../../test/fixtures/bch/tx-54ef.json")
 				} else {
-					httpTestHandler(c, rw, "../../../../test/fixtures/btc/tx.json")
+					httpTestHandler(c, rw, "../../../../test/fixtures/bch/tx.json")
 				}
 			case r.Method == "getblockcount":
-				httpTestHandler(c, rw, "../../../../test/fixtures/btc/blockcount.json")
+				httpTestHandler(c, rw, "../../../../test/fixtures/bch/blockcount.json")
 			case r.Method == "importaddress":
-				httpTestHandler(c, rw, "../../../../test/fixtures/btc/importaddress.json")
+				httpTestHandler(c, rw, "../../../../test/fixtures/bch/importaddress.json")
 			case r.Method == "listunspent":
-				httpTestHandler(c, rw, "../../../../test/fixtures/btc/listunspent.json")
+				httpTestHandler(c, rw, "../../../../test/fixtures/bch/listunspent.json")
 			case r.Method == "getrawmempool":
-				httpTestHandler(c, rw, "../../../../test/fixtures/btc/getrawmempool.json")
+				httpTestHandler(c, rw, "../../../../test/fixtures/bch/getrawmempool.json")
 			case r.Method == "getblockstats":
-				httpTestHandler(c, rw, "../../../../test/fixtures/btc/blockstats.json")
+				httpTestHandler(c, rw, "../../../../test/fixtures/bch/blockstats.json")
 			}
 		} else if strings.HasPrefix(req.RequestURI, "/thorchain/nodeaccount/") {
 			httpTestHandler(c, rw, "../../../../test/fixtures/endpoints/nodeaccount/template.json")
 		} else if req.RequestURI == "/thorchain/lastblock" {
-			httpTestHandler(c, rw, "../../../../test/fixtures/endpoints/lastblock/btc.json")
+			httpTestHandler(c, rw, "../../../../test/fixtures/endpoints/lastblock/bch.json")
 		} else if strings.HasPrefix(req.RequestURI, "/auth/accounts/") {
 			_, err := rw.Write([]byte(`{ "jsonrpc": "2.0", "id": "", "result": { "height": "0", "result": { "value": { "account_number": "0", "sequence": "0" } } } }`))
 			c.Assert(err, IsNil)
@@ -178,7 +178,7 @@ func (s *BitcoinCashSuite) TestFetchTxs(c *C) {
 	c.Assert(txs.Count, Equals, "105")
 	c.Assert(txs.TxArray[0].BlockHeight, Equals, int64(1696761))
 	c.Assert(txs.TxArray[0].Tx, Equals, "24ed2d26fd5d4e0e8fa86633e40faf1bdfc8d1903b1cd02855286312d48818a2")
-	c.Assert(txs.TxArray[0].Sender, Equals, "tb1qdxxlx4r4jk63cve3rjpj428m26xcukjn5yegff")
+	c.Assert(txs.TxArray[0].Sender, Equals, "qzfc77h794v2scmrmsj7sjreuzmy2q9p8sc74ea43r")
 	c.Assert(txs.TxArray[0].To, Equals, "mv4rnyY3Su5gjcDNzbMLKBQkBicCtHUtFB")
 	c.Assert(txs.TxArray[0].Coins.Equals(common.Coins{common.NewCoin(common.BCHAsset, cosmos.NewUint(10000000))}), Equals, true)
 	c.Assert(txs.TxArray[0].Gas.Equals(common.Gas{common.NewCoin(common.BCHAsset, cosmos.NewUint(22705334))}), Equals, true)
@@ -196,12 +196,12 @@ func (s *BitcoinCashSuite) TestGetSender(c *C) {
 	}
 	sender, err := s.client.getSender(&tx)
 	c.Assert(err, IsNil)
-	c.Assert(sender, Equals, "n3jYBjCzgGNydQwf83Hz6GBzGBhMkKfgL1")
+	c.Assert(sender, Equals, "qqqzdh86crxjpyh2tgfy7gyfcwk4k74ze55ympqehp")
 
 	tx.Vin[0].Vout = 1
 	sender, err = s.client.getSender(&tx)
 	c.Assert(err, IsNil)
-	c.Assert(sender, Equals, "tb1qdxxlx4r4jk63cve3rjpj428m26xcukjn5yegff")
+	c.Assert(sender, Equals, "qzfc77h794v2scmrmsj7sjreuzmy2q9p8sc74ea43r")
 }
 
 func (s *BitcoinCashSuite) TestGetMemo(c *C) {
@@ -263,13 +263,13 @@ func (s *BitcoinCashSuite) TestIgnoreTx(c *C) {
 			{
 				Value: 0.12345678,
 				ScriptPubKey: btcjson.ScriptPubKeyResult{
-					Addresses: []string{"tb1qkq7weysjn6ljc2ywmjmwp8ttcckg8yyxjdz5k6"},
+					Addresses: []string{"qzfc77h794v2scmrmsj7sjreuzmy2q9p8sc74ea43r"},
 				},
 			},
 			{
 				ScriptPubKey: btcjson.ScriptPubKeyResult{
 					Asm:       "OP_RETURN 74686f72636861696e3a636f6e736f6c6964617465",
-					Addresses: []string{"tb1qkq7weysjn6ljc2ywmjmwp8ttcckg8yyxjdz5k6"},
+					Addresses: []string{"qzfc77h794v2scmrmsj7sjreuzmy2q9p8sc74ea43r"},
 					Type:      "nulldata",
 				},
 			},
@@ -303,7 +303,7 @@ func (s *BitcoinCashSuite) TestIgnoreTx(c *C) {
 			{
 				Value: 0,
 				ScriptPubKey: btcjson.ScriptPubKeyResult{
-					Addresses: []string{"tb1qkq7weysjn6ljc2ywmjmwp8ttcckg8yyxjdz5k6"},
+					Addresses: []string{"qzfc77h794v2scmrmsj7sjreuzmy2q9p8sc74ea43r"},
 				},
 			},
 			{
@@ -328,7 +328,7 @@ func (s *BitcoinCashSuite) TestIgnoreTx(c *C) {
 			{
 				Value: 0.1234565,
 				ScriptPubKey: btcjson.ScriptPubKeyResult{
-					Addresses: []string{"tb1qkq7weysjn6ljc2ywmjmwp8ttcckg8yyxjdz5k6"},
+					Addresses: []string{"qzfc77h794v2scmrmsj7sjreuzmy2q9p8sc74ea43r"},
 				},
 			},
 			{
@@ -348,7 +348,7 @@ func (s *BitcoinCashSuite) TestIgnoreTx(c *C) {
 			{
 				Value: 0.1234565,
 				ScriptPubKey: btcjson.ScriptPubKeyResult{
-					Addresses: []string{"tb1qkq7weysjn6ljc2ywmjmwp8ttcckg8yyxjdz5k6"},
+					Addresses: []string{"qzfc77h794v2scmrmsj7sjreuzmy2q9p8sc74ea43r"},
 				},
 			},
 			{
@@ -374,8 +374,8 @@ func (s *BitcoinCashSuite) TestIgnoreTx(c *C) {
 				Value: 0.1234565,
 				ScriptPubKey: btcjson.ScriptPubKeyResult{
 					Addresses: []string{
-						"tb1qkq7weysjn6ljc2ywmjmwp8ttcckg8yyxjdz5k6",
-						"bc1q0s4mg25tu6termrk8egltfyme4q7sg3h0e56p3",
+						"qzfc77h794v2scmrmsj7sjreuzmy2q9p8sc74ea43r",
+						"qqqzdh86crxjpyh2tgfy7gyfcwk4k74ze55ympqehp",
 					},
 				},
 			},
@@ -402,7 +402,7 @@ func (s *BitcoinCashSuite) TestIgnoreTx(c *C) {
 				Value: 0.1234565,
 				ScriptPubKey: btcjson.ScriptPubKeyResult{
 					Addresses: []string{
-						"bc1q0s4mg25tu6termrk8egltfyme4q7sg3h0e56p3",
+						"qqqzdh86crxjpyh2tgfy7gyfcwk4k74ze55ympqehp",
 					},
 				},
 			},
@@ -410,7 +410,7 @@ func (s *BitcoinCashSuite) TestIgnoreTx(c *C) {
 				Value: 0.1234565,
 				ScriptPubKey: btcjson.ScriptPubKeyResult{
 					Addresses: []string{
-						"tb1qkq7weysjn6ljc2ywmjmwp8ttcckg8yyxjdz5k6",
+						"qzfc77h794v2scmrmsj7sjreuzmy2q9p8sc74ea43r",
 					},
 				},
 			},
@@ -418,7 +418,7 @@ func (s *BitcoinCashSuite) TestIgnoreTx(c *C) {
 				Value: 0.1234565,
 				ScriptPubKey: btcjson.ScriptPubKeyResult{
 					Addresses: []string{
-						"tb1qkq7weysjn6ljc2ywmjmwp8ttcckg8yyxjdz5k6",
+						"qzfc77h794v2scmrmsj7sjreuzmy2q9p8sc74ea43r",
 					},
 				},
 			},
@@ -445,7 +445,7 @@ func (s *BitcoinCashSuite) TestIgnoreTx(c *C) {
 				Value: 0.1234565,
 				ScriptPubKey: btcjson.ScriptPubKeyResult{
 					Addresses: []string{
-						"bc1q0s4mg25tu6termrk8egltfyme4q7sg3h0e56p3",
+						"qqqzdh86crxjpyh2tgfy7gyfcwk4k74ze55ympqehp",
 					},
 				},
 			},
@@ -453,7 +453,7 @@ func (s *BitcoinCashSuite) TestIgnoreTx(c *C) {
 				Value: 0.1234565,
 				ScriptPubKey: btcjson.ScriptPubKeyResult{
 					Addresses: []string{
-						"tb1qkq7weysjn6ljc2ywmjmwp8ttcckg8yyxjdz5k6",
+						"qzfc77h794v2scmrmsj7sjreuzmy2q9p8sc74ea43r",
 					},
 				},
 			},
@@ -481,7 +481,7 @@ func (s *BitcoinCashSuite) TestGetGas(c *C) {
 			{
 				Value: 0.12345678,
 				ScriptPubKey: btcjson.ScriptPubKeyResult{
-					Addresses: []string{"tb1qkq7weysjn6ljc2ywmjmwp8ttcckg8yyxjdz5k6"},
+					Addresses: []string{"qzfc77h794v2scmrmsj7sjreuzmy2q9p8sc74ea43r"},
 				},
 			},
 			{
@@ -506,13 +506,13 @@ func (s *BitcoinCashSuite) TestGetGas(c *C) {
 			{
 				Value: 0.00195384,
 				ScriptPubKey: btcjson.ScriptPubKeyResult{
-					Addresses: []string{"tb1qkq7weysjn6ljc2ywmjmwp8ttcckg8yyxjdz5k6"},
+					Addresses: []string{"qzfc77h794v2scmrmsj7sjreuzmy2q9p8sc74ea43r"},
 				},
 			},
 			{
 				Value: 1.49655603,
 				ScriptPubKey: btcjson.ScriptPubKeyResult{
-					Addresses: []string{"tb1qkq7weysjn6ljc2ywmjmwp8ttcckg8yyxjdz5k6"},
+					Addresses: []string{"qzfc77h794v2scmrmsj7sjreuzmy2q9p8sc74ea43r"},
 				},
 			},
 			{
@@ -568,8 +568,8 @@ func (s *BitcoinCashSuite) TestOnObservedTxIn(c *C) {
 			{
 				BlockHeight: 1,
 				Tx:          "31f8699ce9028e9cd37f8a6d58a79e614a96e3fdd0f58be5fc36d2d95484716f",
-				Sender:      "bc1q2gjc0rnhy4nrxvuklk6ptwkcs9kcr59mcl2q9j",
-				To:          "bc1q0s4mg25tu6termrk8egltfyme4q7sg3h0e56p3",
+				Sender:      "qqqzdh86crxjpyh2tgfy7gyfcwk4k74ze55ympqehp",
+				To:          "qpfztpuwwujkvvenjm7mg9d6mzqkmqwshv07z34njm",
 				Coins: common.Coins{
 					common.NewCoin(common.BCHAsset, cosmos.NewUint(123456789)),
 				},
@@ -592,8 +592,8 @@ func (s *BitcoinCashSuite) TestOnObservedTxIn(c *C) {
 			{
 				BlockHeight: 2,
 				Tx:          "24ed2d26fd5d4e0e8fa86633e40faf1bdfc8d1903b1cd02855286312d48818a2",
-				Sender:      "bc1q0s4mg25tu6termrk8egltfyme4q7sg3h0e56p3",
-				To:          "bc1q2gjc0rnhy4nrxvuklk6ptwkcs9kcr59mcl2q9j",
+				Sender:      "qqqzdh86crxjpyh2tgfy7gyfcwk4k74ze55ympqehp",
+				To:          "qpfztpuwwujkvvenjm7mg9d6mzqkmqwshv07z34njm",
 				Coins: common.Coins{
 					common.NewCoin(common.BCHAsset, cosmos.NewUint(123456)),
 				},
@@ -616,8 +616,8 @@ func (s *BitcoinCashSuite) TestOnObservedTxIn(c *C) {
 			{
 				BlockHeight: 3,
 				Tx:          "44ed2d26fd5d4e0e8fa86633e40faf1bdfc8d1903b1cd02855286312d48818a2",
-				Sender:      "bc1q0s4mg25tu6termrk8egltfyme4q7sg3h0e56p3",
-				To:          "bc1q2gjc0rnhy4nrxvuklk6ptwkcs9kcr59mcl2q9j",
+				Sender:      "qqqzdh86crxjpyh2tgfy7gyfcwk4k74ze55ympqehp",
+				To:          "qpfztpuwwujkvvenjm7mg9d6mzqkmqwshv07z34njm",
 				Coins: common.Coins{
 					common.NewCoin(common.BCHAsset, cosmos.NewUint(12345678)),
 				},
@@ -627,8 +627,8 @@ func (s *BitcoinCashSuite) TestOnObservedTxIn(c *C) {
 			{
 				BlockHeight: 3,
 				Tx:          "54ed2d26fd5d4e0e8fa86633e40faf1bdfc8d1903b1cd02855286312d48818a2",
-				Sender:      "bc1q0s4mg25tu6termrk8egltfyme4q7sg3h0e56p3",
-				To:          "bc1q2gjc0rnhy4nrxvuklk6ptwkcs9kcr59mcl2q9j",
+				Sender:      "qqqzdh86crxjpyh2tgfy7gyfcwk4k74ze55ympqehp",
+				To:          "qpfztpuwwujkvvenjm7mg9d6mzqkmqwshv07z34njm",
 				Coins: common.Coins{
 					common.NewCoin(common.BCHAsset, cosmos.NewUint(123456)),
 				},
@@ -697,8 +697,8 @@ func (s *BitcoinCashSuite) TestConfirmationCountReady(c *C) {
 			{
 				BlockHeight: 2,
 				Tx:          "24ed2d26fd5d4e0e8fa86633e40faf1bdfc8d1903b1cd02855286312d48818a2",
-				Sender:      "bc1q0s4mg25tu6termrk8egltfyme4q7sg3h0e56p3",
-				To:          "bc1q2gjc0rnhy4nrxvuklk6ptwkcs9kcr59mcl2q9j",
+				Sender:      "qqqzdh86crxjpyh2tgfy7gyfcwk4k74ze55ympqehp",
+				To:          "qpfztpuwwujkvvenjm7mg9d6mzqkmqwshv07z34njm",
 				Coins: common.Coins{
 					common.NewCoin(common.BCHAsset, cosmos.NewUint(123456)),
 				},
@@ -716,8 +716,8 @@ func (s *BitcoinCashSuite) TestConfirmationCountReady(c *C) {
 			{
 				BlockHeight: 2,
 				Tx:          "24ed2d26fd5d4e0e8fa86633e40faf1bdfc8d1903b1cd02855286312d48818a2",
-				Sender:      "bc1q0s4mg25tu6termrk8egltfyme4q7sg3h0e56p3",
-				To:          "bc1q2gjc0rnhy4nrxvuklk6ptwkcs9kcr59mcl2q9j",
+				Sender:      "qqqzdh86crxjpyh2tgfy7gyfcwk4k74ze55ympqehp",
+				To:          "qpfztpuwwujkvvenjm7mg9d6mzqkmqwshv07z34njm",
 				Coins: common.Coins{
 					common.NewCoin(common.BCHAsset, cosmos.NewUint(123456)),
 				},
@@ -736,8 +736,8 @@ func (s *BitcoinCashSuite) TestConfirmationCountReady(c *C) {
 			{
 				BlockHeight: 2,
 				Tx:          "24ed2d26fd5d4e0e8fa86633e40faf1bdfc8d1903b1cd02855286312d48818a2",
-				Sender:      "bc1q0s4mg25tu6termrk8egltfyme4q7sg3h0e56p3",
-				To:          "bc1q2gjc0rnhy4nrxvuklk6ptwkcs9kcr59mcl2q9j",
+				Sender:      "qqqzdh86crxjpyh2tgfy7gyfcwk4k74ze55ympqehp",
+				To:          "qpfztpuwwujkvvenjm7mg9d6mzqkmqwshv07z34njm",
 				Coins: common.Coins{
 					common.NewCoin(common.BCHAsset, cosmos.NewUint(12345600000)),
 				},

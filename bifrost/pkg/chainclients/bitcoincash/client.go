@@ -40,7 +40,7 @@ const (
 	EstimateAverageTxSize = 250
 )
 
-// Client observes bitcoin chain and allows to sign and broadcast tx
+// Client observes bitcoin cash chain and allows to sign and broadcast tx
 type Client struct {
 	logger             zerolog.Logger
 	cfg                config.ChainConfiguration
@@ -62,16 +62,6 @@ type Client struct {
 	minRelayFeeSats    uint64
 }
 
-// ResultBlockStats result from raw RPC call blockstats
-type ResultBlockStats struct {
-	AverageFeeRate float64 `json:"avgfeerate"`
-}
-
-// ResultNetworkInfo result from raw RPC call getnetworkinfo
-type ResultNetworkInfo struct {
-	RelayFee float64 `json:"relayfee"`
-}
-
 // NewClient generates a new Client
 func NewClient(thorKeys *thorclient.Keys, cfg config.ChainConfiguration, server *tssp.TssServer, bridge *thorclient.ThorchainBridge, m *metrics.Metrics) (*Client, error) {
 	client, err := rpcclient.New(&rpcclient.ConnConfig{
@@ -82,7 +72,7 @@ func NewClient(thorKeys *thorclient.Keys, cfg config.ChainConfiguration, server 
 		HTTPPostMode: cfg.HTTPostMode,
 	}, nil)
 	if err != nil {
-		return nil, fmt.Errorf("fail to create bitcoin rpc client: %w", err)
+		return nil, fmt.Errorf("fail to create bitcoin cash rpc client: %w", err)
 	}
 	tssKm, err := tss.NewKeySign(server, bridge)
 	if err != nil {
@@ -277,7 +267,7 @@ func (c *Client) isFromAsgard(txIn types.TxInItem) bool {
 }
 
 // OnObservedTxIn gets called from observer when we have a valid observation
-// For bitcoin chain client we want to save the utxo we can spend later to sign
+// For bitcoin cash chain client we want to save the utxo we can spend later to sign
 func (c *Client) OnObservedTxIn(txIn types.TxInItem, blockHeight int64) {
 	hash, err := chainhash.NewHashFromStr(txIn.Tx)
 	if err != nil {
@@ -324,9 +314,9 @@ func (c *Client) processReorg(block *btcjson.GetBlockVerboseTxResult) error {
 	return c.reConfirmTx()
 }
 
-// reConfirmTx will be kicked off only when chain client detected a re-org on bitcoin chain
+// reConfirmTx will be kicked off only when chain client detected a re-org on bitcoin cash chain
 // it will read through all the block meta data from local storage , and go through all the UTXOs.
-// For each UTXO , it will send a RPC request to bitcoin chain , double check whether the TX exist or not
+// For each UTXO , it will send a RPC request to bitcoin cash chain , double check whether the TX exist or not
 // if the tx still exist , then it is all good, if a transaction previous we detected , however doesn't exist anymore , that means
 // the transaction had been removed from chain,  chain client should report to thorchain
 func (c *Client) reConfirmTx() error {
@@ -476,7 +466,7 @@ func (c *Client) FetchTxs(height int64) (types.TxIn, error) {
 	}
 	c.currentBlockHeight = height
 	if err := c.processReorg(block); err != nil {
-		c.logger.Err(err).Msg("fail to process bitcoin re-org")
+		c.logger.Err(err).Msg("fail to process bitcoin cash re-org")
 	}
 	blockMeta, err := c.blockMetaAccessor.GetBlockMeta(block.Height)
 	if err != nil {
@@ -518,7 +508,9 @@ func (c *Client) updateNetworkInfo() {
 		c.logger.Err(err).Msg("fail to get network info")
 		return
 	}
-	var networkInfo ResultNetworkInfo
+	var networkInfo struct {
+		RelayFee float64 `json:"relayfee"`
+	}
 	err = json.Unmarshal(infoResult, &networkInfo)
 	if err != nil {
 		c.logger.Err(err).Msg("fail to get network info")
@@ -541,7 +533,9 @@ func (c *Client) sendNetworkFee(height int64) error {
 	if err != nil {
 		return fmt.Errorf("fail to get block stats: %w", err)
 	}
-	var result ResultBlockStats
+	var result struct {
+		AverageFeeRate float64 `json:"avgfeerate"`
+	}
 	err = json.Unmarshal(rawResult, &result)
 	if err != nil {
 		return fmt.Errorf("fail to get block stats: %w", err)
@@ -764,7 +758,7 @@ func (c *Client) getGas(tx *btcjson.TxRawResult) (common.Gas, error) {
 		}
 		vinTx, err := c.client.GetRawTransactionVerbose(txHash)
 		if err != nil {
-			return common.Gas{}, fmt.Errorf("fail to query raw tx from bitcoin node")
+			return common.Gas{}, fmt.Errorf("fail to query raw tx from bitcoin cash node")
 		}
 
 		amount, err := bchutil.NewAmount(vinTx.Vout[vin.Vout].Value)
@@ -798,7 +792,7 @@ func (c *Client) registerAddressInWalletAsWatch(pkey common.PubKey) error {
 	return c.client.ImportAddressRescan(addr.String(), "", false)
 }
 
-// RegisterPublicKey register the given pubkey to bitcoin wallet
+// RegisterPublicKey register the given pubkey to bitcoin cash wallet
 func (c *Client) RegisterPublicKey(pkey common.PubKey) error {
 	return c.registerAddressInWalletAsWatch(pkey)
 }
