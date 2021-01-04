@@ -120,45 +120,73 @@ func (vm *SwapQv1) getTodoNum(queueLen, minSwapsPerBlock, maxSwapsPerBlock int64
 func (vm *SwapQv1) scoreMsgs(ctx cosmos.Context, items swapItems) (swapItems, error) {
 	pools := make(map[common.Asset]Pool, 0)
 	for i, item := range items {
-		poolAsset := item.msg.TargetAsset
-		if poolAsset.IsRune() {
-			poolAsset = item.msg.Tx.Coins[0].Asset
-		}
-		if _, ok := pools[poolAsset]; !ok {
-			var err error
-			pools[poolAsset], err = vm.k.GetPool(ctx, poolAsset)
-			if err != nil {
-				ctx.Logger().Error("fail to get pool", "pool", poolAsset, "error", err)
+		// the asset customer send
+		sourceAsset := item.msg.Tx.Coins[0].Asset
+		// the asset customer want
+		targetAsset := item.msg.TargetAsset
+
+		for _, a := range []common.Asset{sourceAsset, targetAsset} {
+			if a.IsRune() {
 				continue
+			}
+
+			if _, ok := pools[a]; !ok {
+				var err error
+				pools[a], err = vm.k.GetPool(ctx, a)
+				if err != nil {
+					ctx.Logger().Error("fail to get pool", "pool", a, "error", err)
+					continue
+				}
 			}
 		}
 
+		poolAsset := sourceAsset
+		if poolAsset.IsRune() {
+			poolAsset = targetAsset
+		}
 		pool := pools[poolAsset]
 		if pool.IsEmpty() || !pool.IsAvailable() || pool.BalanceRune.IsZero() || pool.BalanceAsset.IsZero() {
 			continue
 		}
+		vm.getLiquidityFeeAndSlip(pool, item.msg.Tx.Coins[0], &items[i])
 
-		sourceCoin := item.msg.Tx.Coins[0]
-
-		// Get our X, x, Y values
-		var X, x, Y cosmos.Uint
-		x = sourceCoin.Amount
-		if sourceCoin.Asset.IsRune() {
-			X = pool.BalanceRune
-			Y = pool.BalanceAsset
-		} else {
-			Y = pool.BalanceRune
-			X = pool.BalanceAsset
+		if sourceAsset.IsRune() || targetAsset.IsRune() {
+			// single swap , stop here
+			continue
 		}
-
-		items[i].fee = calcLiquidityFee(X, x, Y)
-		if sourceCoin.Asset.IsRune() {
-			items[i].fee = pool.AssetValueInRune(item.fee)
+		// double swap , thus need to convert source coin to RUNE and calculate fee and slip again
+		runeCoin := common.NewCoin(common.RuneAsset(), pool.AssetValueInRune(item.msg.Tx.Coins[0].Amount))
+		poolAsset = targetAsset
+		pool = pools[poolAsset]
+		if pool.IsEmpty() || !pool.IsAvailable() || pool.BalanceRune.IsZero() || pool.BalanceAsset.IsZero() {
+			continue
 		}
-		items[i].slip = calcSwapSlip(X, x)
+		vm.getLiquidityFeeAndSlip(pool, runeCoin, &items[i])
 	}
 
 	return items, nil
+}
+
+// getLiquidityFeeAndSlip calculate liquidity fee and slip, fee is in RUNE
+func (vm *SwapQv1) getLiquidityFeeAndSlip(pool Pool, sourceCoin common.Coin, item *swapItem) {
+	// Get our X, x, Y values
+	var X, x, Y cosmos.Uint
+	x = sourceCoin.Amount
+	if sourceCoin.Asset.IsRune() {
+		X = pool.BalanceRune
+		Y = pool.BalanceAsset
+	} else {
+		Y = pool.BalanceRune
+		X = pool.BalanceAsset
+	}
+
+	fee := calcLiquidityFee(X, x, Y)
+	if sourceCoin.Asset.IsRune() {
+		fee = pool.AssetValueInRune(fee)
+	}
+	slip := calcSwapSlip(X, x)
+	item.fee = item.fee.Add(fee)
+	item.slip = item.slip.Add(slip)
 }
 
 func (items swapItems) Sort() swapItems {
