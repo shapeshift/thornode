@@ -7,8 +7,7 @@ import (
 	. "gopkg.in/check.v1"
 )
 
-type ManagersTestSuite struct {
-}
+type ManagersTestSuite struct{}
 
 var _ = Suite(&ManagersTestSuite{})
 
