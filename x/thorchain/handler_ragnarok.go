@@ -100,10 +100,12 @@ func (h RagnarokHandler) handleV1(ctx cosmos.Context, version semver.Version, ms
 				intendToSpend := tx.Coin.Amount.Add(tx.MaxGas.ToCoins().GetCoin(asset).Amount)
 				actualSpend := msg.Tx.Tx.Coins.GetCoin(asset).Amount.Add(msg.Tx.Tx.Gas.ToCoins().GetCoin(asset).Amount)
 				if intendToSpend.Equal(actualSpend) {
-					matchCoin = true
 					maxGasAmt := tx.MaxGas.ToCoins().GetCoin(asset).Amount
 					realGasAmt := msg.Tx.Tx.Gas.ToCoins().GetCoin(asset).Amount
-					ctx.Logger().Info(fmt.Sprintf("intend to spend: %s, actual spend: %s are the same , override match coin, max_gas: %s , actual gas: %s ", intendToSpend, actualSpend, maxGasAmt, realGasAmt))
+					if maxGasAmt.GTE(realGasAmt) {
+						matchCoin = true
+						ctx.Logger().Info(fmt.Sprintf("intend to spend: %s, actual spend: %s are the same , override match coin, max_gas: %s , actual gas: %s ", intendToSpend, actualSpend, maxGasAmt, realGasAmt))
+					}
 					// the network didn't charge fee when it is ragnarok , thus it doesn't need to adjust gas
 				}
 			}
