@@ -308,9 +308,8 @@ func (c *Client) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, err
 	if !tx.MaxGas.IsEmpty() {
 		maxGasCoin := tx.MaxGas.ToCoins().GetCoin(common.BTCAsset)
 		if gasAmtSats > maxGasCoin.Amount.Uint64() {
-			gap := gasAmtSats - maxGasCoin.Amount.Uint64()
-			c.logger.Info().Msgf("max gas: %s, need to spend on gas: %s , gap: %d will be deduct from payment to customer", tx.MaxGas, gasCoin, gap)
-			coinToCustomer.Amount = common.SafeSub(coinToCustomer.Amount, cosmos.NewUint(gap))
+			c.logger.Info().Msgf("max gas: %s, however estimated gas need %d", tx.MaxGas, gasAmtSats)
+			gasAmtSats = maxGasCoin.Amount.Uint64()
 		} else if gasAmtSats < maxGasCoin.Amount.Uint64() {
 			// if the tx spend less gas then the estimated MaxGas , then the extra can be added to the coinToCustomer
 			gap := maxGasCoin.Amount.Uint64() - gasAmtSats
