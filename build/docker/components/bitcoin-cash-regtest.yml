@@ -1,0 +1,13 @@
+version: '3'
+
+services:
+  bitcoin-cash-regtest:
+    container_name: bitcoin-cash-regtest
+    restart: unless-stopped
+    image: registry.gitlab.com/thorchain/devops/bitcoin-cash:22.2.0
+    environment:
+      RPC_PORT: "28443"
+      BLOCK_TIME: ${BLOCK_TIME:-1}
+    ports:
+      - "28443:28443"
+    entrypoint: "/scripts/entrypoint-mock.sh"

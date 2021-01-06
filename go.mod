@@ -16,6 +16,8 @@ require (
 	github.com/cosmos/go-bip39 v0.0.0-20180819234021-555e2067c45d
 	github.com/decred/dcrd/dcrec/edwards v1.0.0
 	github.com/didip/tollbooth v4.0.2+incompatible
+	github.com/gcash/bchd v0.17.1
+	github.com/gcash/bchutil v0.0.0-20201025062739-fc759989ee3e
 	github.com/ethereum/go-ethereum v1.9.25
 	github.com/google/go-cmp v0.5.4 // indirect
 	github.com/gorilla/mux v1.7.4
@@ -41,8 +43,10 @@ require (
 	github.com/tendermint/tendermint v0.33.9
 	github.com/tendermint/tm-db v0.5.1
 	github.com/zondax/ledger-go v0.11.0 // indirect
-	gitlab.com/thorchain/tss/go-tss v1.2.8
+	gitlab.com/thorchain/bchd-txscript v0.0.0-20201215133741-ffd26acbcb75
 	gitlab.com/thorchain/txscript v0.0.0-20200413023754-8aaf3443d92b
+	golang.org/x/tools/gopls v0.5.5 // indirect
+	gitlab.com/thorchain/tss/go-tss v1.2.8
 	golang.org/x/mod v0.4.0 // indirect
 	golang.org/x/tools v0.0.0-20210101214203-2dba1e4ea05c // indirect
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f

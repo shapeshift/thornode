@@ -55,6 +55,7 @@ func (vm *VaultMgrV1) processGenesisSetup(ctx cosmos.Context) error {
 		vault := NewVault(0, ActiveVault, AsgardVault, active[0].PubKeySet.Secp256k1, common.Chains{
 			common.THORChain,
 			common.BTCChain,
+			common.BCHChain,
 			common.BNBChain,
 			common.ETHChain,
 		})

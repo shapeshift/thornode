@@ -24,6 +24,7 @@ type KeyData struct {
 	pub      string
 	addrBNB  KeyDataAddr
 	addrBTC  KeyDataAddr
+	addrBCH  KeyDataAddr
 	addrETH  KeyDataAddr
 	addrTHOR KeyDataAddr
 }
@@ -54,6 +55,11 @@ func (s *PubKeyTestSuite) SetUpSuite(c *C) {
 				testnet: "tb1qj08ys4ct2hzzc2hcz6h2hgrvlmsjynaw43s835",
 				mocknet: "bcrt1qj08ys4ct2hzzc2hcz6h2hgrvlmsjynawhcf2xa",
 			},
+			addrBCH: KeyDataAddr{
+				mainnet: "qzfuujzhpd2ugtp2lqt2a2aqdnlwzgj04cswjhml4x",
+				testnet: "qzfuujzhpd2ugtp2lqt2a2aqdnlwzgj04c5uksegj6",
+				mocknet: "qzfuujzhpd2ugtp2lqt2a2aqdnlwzgj04cwqq36m3u",
+			},
 		},
 		{
 			priv: "289c2857d4598e37fb9647507e47a309d6133539bf21a8b9cb6df88fd5232032",
@@ -72,6 +78,11 @@ func (s *PubKeyTestSuite) SetUpSuite(c *C) {
 				mainnet: "bc1qzupk5lmc84r2dh738a9g3zscavannjy38ghlxu",
 				testnet: "tb1qzupk5lmc84r2dh738a9g3zscavannjy3dwvva0",
 				mocknet: "bcrt1qzupk5lmc84r2dh738a9g3zscavannjy3084p2x",
+			},
+			addrBCH: KeyDataAddr{
+				mainnet: "qqtsx6nl0q75dfkl6yl54zy2rr4nkwwgjyzgwf5228",
+				testnet: "qqtsx6nl0q75dfkl6yl54zy2rr4nkwwgjyx62wkadm",
+				mocknet: "qqtsx6nl0q75dfkl6yl54zy2rr4nkwwgjyuxu04wwa",
 			},
 		},
 		{
@@ -92,6 +103,11 @@ func (s *PubKeyTestSuite) SetUpSuite(c *C) {
 				testnet: "tb1qqqnde7kqe5sf96j6zf8jpzwr44dh4gkdnswsh7",
 				mocknet: "bcrt1qqqnde7kqe5sf96j6zf8jpzwr44dh4gkd3ehaqh",
 			},
+			addrBCH: KeyDataAddr{
+				mainnet: "qqqzdh86crxjpyh2tgfy7gyfcwk4k74ze522f8panm",
+				testnet: "qqqzdh86crxjpyh2tgfy7gyfcwk4k74ze5wcdqr258",
+				mocknet: "qqqzdh86crxjpyh2tgfy7gyfcwk4k74ze55ympqehp",
+			},
 		},
 		{
 			priv: "a96e62ed3955e65be32703f12d87b6b5cf26039ecfa948dc5107a495418e5330",
@@ -111,6 +127,11 @@ func (s *PubKeyTestSuite) SetUpSuite(c *C) {
 				testnet: "tb1q0s4mg25tu6termrk8egltfyme4q7sg3h9l0f6z",
 				mocknet: "bcrt1q0s4mg25tu6termrk8egltfyme4q7sg3h8kkydt",
 			},
+			addrBCH: KeyDataAddr{
+				mainnet: "qp7zhdp230nf0y0vwcl9radyn0x5r6pzxuqvhx5vs3",
+				testnet: "qp7zhdp230nf0y0vwcl9radyn0x5r6pzxuy7npkmhd",
+				mocknet: "qp7zhdp230nf0y0vwcl9radyn0x5r6pzxu7z9q4g5t",
+			},
 		},
 		{
 			priv: "9294f4d108465fd293f7fe299e6923ef71a77f2cb1eb6d4394839c64ec25d5c0",
@@ -129,6 +150,11 @@ func (s *PubKeyTestSuite) SetUpSuite(c *C) {
 				mainnet: "bc1qjw8h4l3dtz5xxc7uyh5ys70qkezspgfurtjs2p",
 				testnet: "tb1qjw8h4l3dtz5xxc7uyh5ys70qkezspgfufdfr3j",
 				mocknet: "bcrt1qjw8h4l3dtz5xxc7uyh5ys70qkezspgfutyswxm",
+			},
+			addrBCH: KeyDataAddr{
+				mainnet: "qzfc77h794v2scmrmsj7sjreuzmy2q9p8sxs8lu34e",
+				testnet: "qzfc77h794v2scmrmsj7sjreuzmy2q9p8szzrc7xj9",
+				mocknet: "qzfc77h794v2scmrmsj7sjreuzmy2q9p8sc74ea43r",
 			},
 		},
 	}
@@ -213,6 +239,10 @@ func (s *PubKeyTestSuite) TestPubKeyGetAddress(c *C) {
 		c.Assert(err, IsNil)
 		c.Assert(addrBTC.String(), Equals, d.addrBTC.mainnet)
 
+		addrBCH, err := pk.GetAddress(BCHChain)
+		c.Assert(err, IsNil)
+		c.Assert(addrBCH.String(), Equals, d.addrBCH.mainnet)
+
 		os.Setenv("NET", "testnet")
 		addrETH, err = pk.GetAddress(ETHChain)
 		c.Assert(err, IsNil)
@@ -225,6 +255,10 @@ func (s *PubKeyTestSuite) TestPubKeyGetAddress(c *C) {
 		addrBTC, err = pk.GetAddress(BTCChain)
 		c.Assert(err, IsNil)
 		c.Assert(addrBTC.String(), Equals, d.addrBTC.testnet)
+
+		addrBCH, err = pk.GetAddress(BCHChain)
+		c.Assert(err, IsNil)
+		c.Assert(addrBCH.String(), Equals, d.addrBCH.testnet)
 
 		os.Setenv("NET", "mocknet")
 		addrETH, err = pk.GetAddress(ETHChain)
@@ -239,5 +273,8 @@ func (s *PubKeyTestSuite) TestPubKeyGetAddress(c *C) {
 		c.Assert(err, IsNil)
 		c.Assert(addrBTC.String(), Equals, d.addrBTC.mocknet)
 
+		addrBCH, err = pk.GetAddress(BCHChain)
+		c.Assert(err, IsNil)
+		c.Assert(addrBCH.String(), Equals, d.addrBCH.mocknet)
 	}
 }

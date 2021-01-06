@@ -8,6 +8,7 @@ import (
 	"gitlab.com/thorchain/thornode/bifrost/metrics"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/binance"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/bitcoin"
+	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/bitcoincash"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/ethereum"
 	"gitlab.com/thorchain/thornode/bifrost/pubkeymanager"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient"
@@ -49,6 +50,14 @@ func LoadChains(thorKeys *thorclient.Keys,
 			}
 			pubKeyValidator.RegisterCallback(btc.RegisterPublicKey)
 			chains[common.BTCChain] = btc
+		case common.BCHChain:
+			bch, err := bitcoincash.NewClient(thorKeys, chain, server, thorchainBridge, m)
+			if err != nil {
+				logger.Error().Err(err).Str("chain_id", chain.ChainID.String()).Msg("fail to load chain")
+				continue
+			}
+			pubKeyValidator.RegisterCallback(bch.RegisterPublicKey)
+			chains[common.BCHChain] = bch
 		default:
 			continue
 		}
