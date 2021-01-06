@@ -106,11 +106,10 @@ func (h CommonOutboundTxHandler) handle(ctx cosmos.Context, version semver.Versi
 						h.mgr.GasMgr().AddGasAsset(common.Gas{
 							common.NewCoin(asset, diffGas),
 						}, false)
-					} else {
-						diffGas := realGasAmt.Sub(maxGasAmt)
-						h.mgr.GasMgr().SubGas(common.Gas{
-							common.NewCoin(asset, diffGas),
-						})
+					} else if maxGasAmt.LT(realGasAmt) {
+						// signer spend more than the maximum gas prescribed by THORChain , slash it
+						ctx.Logger().Info(fmt.Sprintf("max gas: %s, real gas spend: %s ,gap %s , slash node", maxGasAmt.String(), realGasAmt.String(), common.SafeSub(realGasAmt, maxGasAmt).String()))
+						matchCoin = false
 					}
 				}
 			}

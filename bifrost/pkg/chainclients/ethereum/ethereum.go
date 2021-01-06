@@ -393,28 +393,27 @@ func (c *Client) SignTx(tx stypes.TxOutItem, height int64) ([]byte, error) {
 	}
 	c.logger.Info().Msgf("estimated gas unit: %d", estimatedGas)
 
-	// compare the gas rate prescribed by thorchain against the price it can get from the chai
+	// compare the gas rate prescribed by THORChain against the price it can get from the chai
 	// ensure signer always pay enough higher gas price
 	gasRate := big.NewInt(tx.GasRate)
 	if gasRate.Cmp(c.GetGasPrice()) < 0 {
 		gasRate = c.GetGasPrice()
 	}
 	c.logger.Info().Msgf("gas rate: %s", gasRate)
+	gasOut := big.NewInt(0)
+	for _, coin := range tx.MaxGas {
+		gasOut.Add(gasOut, coin.Amount.BigInt())
+	}
+	totalGas := big.NewInt(int64(estimatedGas) * gasRate.Int64())
 	if ethValue.Uint64() > 0 {
-		// in the case that a transaction need more than MaxContractGas to send out
-		// which is rare , and also it is sending ETH.ETH, make sure it left enough to pay for gas
-		gasOut := big.NewInt(0)
-		for _, coin := range tx.MaxGas {
-			gasOut.Add(gasOut, coin.Amount.BigInt())
-		}
-		total := big.NewInt(int64(estimatedGas) * gasRate.Int64())
-		// if total > gasOut
-		if total.Cmp(gasOut) == 1 {
-			gap := total.Sub(total, gasOut)
-			ethValue = ethValue.Sub(ethValue, gap)
-			c.logger.Info().Msgf("max gas: %s not enough to pay for gas, deduct some from customer: %s, customer get paid: %s", gasOut, gap, ethValue)
+		// when the estimated gas is larger than the MaxGas that is allowed to be used
+		// adjust the gas price to reflect that , so not breach the MaxGas restriction
+		// This might cause the tx to delay
+		if totalGas.Cmp(gasOut) == 1 {
+			gasRate = gasOut.Div(gasOut, big.NewInt(int64(estimatedGas)))
+			c.logger.Info().Msgf("based on estimated gas unit (%d) , total gas will be %s, which is more than %s, so adjust gas rate to %s", estimatedGas, totalGas.String(), gasOut.String(), gasRate.String())
 		} else {
-			extra := gasOut.Sub(gasOut, total)
+			extra := gasOut.Sub(gasOut, totalGas)
 			if extra.Uint64() > 0 {
 				ethValue = ethValue.Add(ethValue, extra)
 			}
@@ -422,10 +421,13 @@ func (c *Client) SignTx(tx stypes.TxOutItem, height int64) ([]byte, error) {
 		}
 		createdTx = etypes.NewTransaction(nonce, ecommon.HexToAddress(contractAddr.String()), ethValue, estimatedGas, gasRate, data)
 	} else {
-		// sending ERC20 tokens, if it need more than maximum gas , so be it , treasure will subsidise ETH.ETH pool
-		if estimatedGas > MaxContractGas {
-			createdTx = etypes.NewTransaction(nonce, ecommon.HexToAddress(contractAddr.String()), ethValue, estimatedGas, gasRate, data)
+		// ERC20 tokens , if the total gas is more than the max gas , then let's calculate a gas rate
+		// adjust the gas price to reflect that , so not breach the MaxGas restriction
+		// This might cause the tx to delay
+		if totalGas.Cmp(gasOut) == 1 {
+			gasRate = gasOut.Div(gasOut, big.NewInt(int64(estimatedGas)))
 		}
+		createdTx = etypes.NewTransaction(nonce, ecommon.HexToAddress(contractAddr.String()), ethValue, estimatedGas, gasRate, data)
 	}
 
 	rawTx, err := c.sign(createdTx, tx.VaultPubKey, height, tx)
@@ -541,7 +543,7 @@ func (c *Client) GetAccountByAddress(address string) (common.Account, error) {
 }
 
 // BroadcastTx decodes tx using rlp and broadcasts too Ethereum chain
-func (c *Client) BroadcastTx(stx stypes.TxOutItem, hexTx []byte) (string, error) {
+func (c *Client) BroadcastTx(_ stypes.TxOutItem, hexTx []byte) (string, error) {
 	tx := &etypes.Transaction{}
 	if err := tx.UnmarshalJSON(hexTx); err != nil {
 		return "", err
