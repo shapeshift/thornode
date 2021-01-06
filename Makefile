@@ -20,8 +20,8 @@ ldflags = -X gitlab.com/thorchain/thornode/constants.Version=$(VERSION) \
 		  -X github.com/cosmos/cosmos-sdk/version.Commit=$(COMMIT) \
 		  -X github.com/cosmos/cosmos-sdk/version.BuildTags=$(TAG)
 
-BUILD_FLAGS := -ldflags '$(ldflags)' -tags ${TAG} -a
-TEST_BUILD_FLAGS :=  -tags mocknet -a
+BUILD_FLAGS := -ldflags '$(ldflags)' -tags ${TAG}
+TEST_BUILD_FLAGS :=  -tags mocknet
 
 BINARIES=./cmd/thorcli ./cmd/thord ./cmd/bifrost ./tools/generate
 

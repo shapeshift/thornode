@@ -57,6 +57,7 @@ func (vm *VaultMgrV1) processGenesisSetup(ctx cosmos.Context) error {
 			common.BTCChain,
 			common.BCHChain,
 			common.BNBChain,
+			common.ETHChain,
 		})
 		vault.Membership = common.PubKeys{active[0].PubKeySet.Secp256k1}
 		if err := vm.k.SetVault(ctx, vault); err != nil {
@@ -199,12 +200,39 @@ func (vm *VaultMgrV1) EndBlock(ctx cosmos.Context, mgr Manager, constAccessor co
 						ctx.Logger().Error("fail to get max gas: %w", err)
 						return err
 					}
+					// if remainder is less than the gas amount, just send it all now
+					if common.SafeSub(coin.Amount, amt).LTE(gas.Amount) {
+						amt = coin.Amount
+					}
+
 					gasAmount := gas.Amount.MulUint64(uint64(vault.CoinLengthByChain(coin.Asset.Chain)))
 					amt = common.SafeSub(amt, gasAmount)
 
-					// if remainder is less than the gas amount, just send it all now
-					if common.SafeSub(coin.Amount, amt).LTE(gasAmount) {
-						amt = common.SafeSub(coin.Amount, gasAmount)
+					// the left amount is not enough to pay for gas, likely only dust left, the network can't migrate it across
+					// and this will only happen after 5th round
+					if amt.IsZero() && nth > 5 {
+						ctx.Logger().Info(fmt.Sprintf("%s is not enough to pay for gas %s, thus burn it", coin, gasAmount))
+						vault.SubFunds(common.Coins{
+							coin,
+						})
+						// use reserve to subsidise the pool for the lost
+						p, err := vm.k.GetPool(ctx, coin.Asset)
+						if err != nil {
+							return fmt.Errorf("fail to get pool for asset %s, err:%w", coin.Asset, err)
+						}
+						runeAmt := p.AssetValueInRune(coin.Amount)
+						if err := vm.k.SendFromModuleToModule(ctx, ReserveName, AsgardName, common.NewCoin(common.RuneAsset(), runeAmt)); err != nil {
+							return fmt.Errorf("fail to transfer RUNE from reserve to asgard,err:%w", err)
+						}
+						p.BalanceRune = p.BalanceRune.Add(runeAmt)
+						p.BalanceAsset = common.SafeSub(p.BalanceAsset, coin.Amount)
+						if err := vm.k.SetPool(ctx, p); err != nil {
+							return fmt.Errorf("fail to save pool: %w", err)
+						}
+						if err := vm.k.SetVault(ctx, vault); err != nil {
+							return fmt.Errorf("fail to save vault: %w", err)
+						}
+						continue
 					}
 				}
 

@@ -10,6 +10,7 @@ import (
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/ethereum/types"
+	stypes "gitlab.com/thorchain/thornode/bifrost/thorclient/types"
 )
 
 type EthereumBlockMetaAccessorTestSuite struct{}
@@ -18,41 +19,8 @@ var _ = Suite(
 	&EthereumBlockMetaAccessorTestSuite{},
 )
 
-func CreateBlock(height int) (*etypes.Block, error) {
+func CreateBlock(height int) (*etypes.Header, error) {
 	strHeight := fmt.Sprintf("%x", height)
-	var tx *etypes.Transaction = &etypes.Transaction{}
-	if err := tx.UnmarshalJSON([]byte(`{
-		"blockHash":"0x78bfef68fccd4507f9f4804ba5c65eb2f928ea45b3383ade88aaa720f1209cba",
-		"blockNumber":"0x` + strHeight + `",
-		"from":"0xa7d9ddbe1f17865597fbd27ec712455208b6b76d",
-		"gas":"0xc350",
-		"gasPrice":"0x4a817c800",
-		"hash":"0x88df016429689c079f3b2f6ad39fa052532c56795b733da78a91ebe6a713944b",
-		"input":"0x68656c6c6f21",
-		"nonce":"0x15",
-		"to":"0xf02c1c8e6114b1dbe8937a39260b5b0a374432bb",
-		"transactionIndex":"0x0",
-		"value":"0xf3dbb76162000",
-		"v":"0x25",
-		"r":"0x1b5e176d927f8e9ab405058b2d2457392da3e20f328b16ddabcebc33eaac5fea",
-		"s":"0x4ba69724e8f69de52f0125ad8b3c5c2cef33019bac3249e2c0a2192766d1721c"
-	}`)); err != nil {
-		return nil, err
-	}
-	var receipt *etypes.Receipt = &etypes.Receipt{}
-	if err := receipt.UnmarshalJSON([]byte(`{
-		"transactionHash":"0x88df016429689c079f3b2f6ad39fa052532c56795b733da78a91ebe6a713944b",
-		"transactionIndex":"0x0",
-		"blockNumber":"0x` + strHeight + `",
-		"blockHash":"0x78bfef68fccd4507f9f4804ba5c65eb2f928ea45b3383ade88aaa720f1209cba",
-		"cumulativeGasUsed":"0xc350",
-		"gasUsed":"0x4dc",
-		"logsBloom":"0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
-		"logs":[],
-		"status":"0x1"
-	}`)); err != nil {
-		return nil, err
-	}
 	blockJson := `{
 		"parentHash":"0x8b535592eb3192017a527bbf8e3596da86b3abea51d6257898b2ced9d3a83826",
 		"difficulty": "0x31962a3fc82b",
@@ -76,8 +44,7 @@ func CreateBlock(height int) (*etypes.Block, error) {
 	if err := json.Unmarshal([]byte(blockJson), &header); err != nil {
 		return nil, err
 	}
-	block := etypes.NewBlock(header, etypes.Transactions{tx}, nil, etypes.Receipts{receipt})
-	return block, nil
+	return header, nil
 }
 
 func (s *EthereumBlockMetaAccessorTestSuite) TestNewBlockMetaAccessor(c *C) {
@@ -99,7 +66,7 @@ func (s *EthereumBlockMetaAccessorTestSuite) TestBlockMetaAccessor(c *C) {
 
 	block, err := CreateBlock(1722479)
 	c.Assert(err, IsNil)
-	blockMeta := types.NewBlockMeta(block)
+	blockMeta := types.NewBlockMeta(block, stypes.TxIn{TxArray: []stypes.TxInItem{{Tx: "0x88df016429689c079f3b2f6ad39fa052532c56795b733da78a91ebe6a713944b"}}})
 	c.Assert(blockMetaAccessor.SaveBlockMeta(blockMeta.Height, blockMeta), IsNil)
 
 	key := blockMetaAccessor.getBlockMetaKey(blockMeta.Height)
@@ -116,7 +83,7 @@ func (s *EthereumBlockMetaAccessorTestSuite) TestBlockMetaAccessor(c *C) {
 	for i := 0; i < 1024; i++ {
 		block, err = CreateBlock(i)
 		c.Assert(err, IsNil)
-		bm := types.NewBlockMeta(block)
+		bm := types.NewBlockMeta(block, stypes.TxIn{TxArray: []stypes.TxInItem{{Tx: "0x88df016429689c079f3b2f6ad39fa052532c56795b733da78a91ebe6a713944b"}}})
 		c.Assert(blockMetaAccessor.SaveBlockMeta(bm.Height, bm), IsNil)
 	}
 	blockMetas, err := blockMetaAccessor.GetBlockMetas()

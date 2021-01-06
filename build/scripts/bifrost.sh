@@ -24,7 +24,8 @@ CHAIN_API="${CHAIN_API:=127.0.0.1:1317}"
 CHAIN_RPC="${CHAIN_RPC:=127.0.0.1:26657}"
 SIGNER_NAME="${SIGNER_NAME:=thorchain}"
 SIGNER_PASSWD="${SIGNER_PASSWD:=password}"
-START_BLOCK_HEIGHT="${START_BLOCK_HEIGHT:=1}"
+START_BLOCK_HEIGHT="${START_BLOCK_HEIGHT:=0}"
+CONTRACT="${CONTRACT:=0x8c2A90D36Ec9F745C9B28B588Cba5e2A978A1656}"
 
 $(dirname "$0")/wait-for-thorchain-api.sh $CHAIN_API
 
@@ -149,6 +150,7 @@ echo "{
         \"password\": \"$SIGNER_PASSWD\",
         \"http_post_mode\": 1,
         \"disable_tls\": 1,
+        \"contract\": \"$CONTRACT\",
         \"block_scanner\": {
           \"rpc_host\": \"$ETH_HOST\",
           \"enforce_block_height\": false,
