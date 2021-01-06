@@ -8,6 +8,8 @@ import (
 	"github.com/btcsuite/btcutil"
 	"github.com/btcsuite/btcutil/bech32"
 	eth "github.com/ethereum/go-ethereum/common"
+	bchchaincfg "github.com/gcash/bchd/chaincfg"
+	"github.com/gcash/bchutil"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
@@ -46,6 +48,24 @@ func NewAddress(address string) (Address, error) {
 		return Address(address), nil
 	}
 
+	// Check other BCH address formats with mainnet
+	_, err = bchutil.DecodeAddress(address, &bchchaincfg.MainNetParams)
+	if err == nil {
+		return Address(address), nil
+	}
+
+	// Check BCH address formats with testnet
+	_, err = bchutil.DecodeAddress(address, &bchchaincfg.TestNet3Params)
+	if err == nil {
+		return Address(address), nil
+	}
+
+	// Check BCH address formats with mocknet
+	_, err = bchutil.DecodeAddress(address, &bchchaincfg.RegressionNetParams)
+	if err == nil {
+		return Address(address), nil
+	}
+
 	return NoAddress, fmt.Errorf("address format not supported: %s", address)
 }
 
@@ -71,6 +91,23 @@ func (addr Address) IsChain(chain Chain) bool {
 		}
 		// Check testnet other formats
 		_, err = btcutil.DecodeAddress(addr.String(), &chaincfg.TestNet3Params)
+		if err == nil {
+			return true
+		}
+		return false
+	case BCHChain:
+		// Check mainnet other formats
+		_, err := bchutil.DecodeAddress(addr.String(), &bchchaincfg.MainNetParams)
+		if err == nil {
+			return true
+		}
+		// Check testnet other formats
+		_, err = bchutil.DecodeAddress(addr.String(), &bchchaincfg.TestNet3Params)
+		if err == nil {
+			return true
+		}
+		// Check mocknet / regression other formats
+		_, err = bchutil.DecodeAddress(addr.String(), &bchchaincfg.RegressionNetParams)
 		if err == nil {
 			return true
 		}

@@ -15,6 +15,7 @@ var (
 	BNBChain   = Chain("BNB")
 	ETHChain   = Chain("ETH")
 	BTCChain   = Chain("BTC")
+	BCHChain   = Chain("BCH")
 	THORChain  = Chain("THOR")
 )
 
@@ -91,6 +92,8 @@ func (c Chain) GetGasAsset() Asset {
 		return BNBAsset
 	case BTCChain:
 		return BTCAsset
+	case BCHChain:
+		return BCHAsset
 	case ETHChain:
 		return ETHAsset
 	default:

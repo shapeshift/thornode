@@ -19,12 +19,14 @@ func (s *AddressSuite) TestAddress(c *C) {
 	c.Check(addr.IsChain(ETHChain), Equals, false)
 	c.Check(addr.IsChain(BTCChain), Equals, false)
 	c.Check(addr.IsChain(THORChain), Equals, false)
+	c.Check(addr.IsChain(BCHChain), Equals, false)
 
 	addr, err = NewAddress("tbnb12ymaslcrhnkj0tvmecyuejdvk25k2nnurqjvyp")
 	c.Check(addr.IsChain(BNBChain), Equals, true)
 	c.Check(addr.IsChain(ETHChain), Equals, false)
 	c.Check(addr.IsChain(BTCChain), Equals, false)
 	c.Check(addr.IsChain(THORChain), Equals, false)
+	c.Check(addr.IsChain(BCHChain), Equals, false)
 
 	// random
 	c.Check(err, IsNil)
@@ -46,12 +48,14 @@ func (s *AddressSuite) TestAddress(c *C) {
 	c.Check(addr.IsChain(BNBChain), Equals, false)
 	c.Check(addr.IsChain(ETHChain), Equals, false)
 	c.Check(addr.IsChain(BTCChain), Equals, false)
+	c.Check(addr.IsChain(BCHChain), Equals, false)
 	addr, err = NewAddress("tthor1x6m28lezv00ugcahqv5w2eagrm9396j2gf6zjpd4auf9mv4h")
 	c.Assert(err, IsNil)
 	c.Check(addr.IsChain(THORChain), Equals, true)
 	c.Check(addr.IsChain(BNBChain), Equals, false)
 	c.Check(addr.IsChain(ETHChain), Equals, false)
 	c.Check(addr.IsChain(BTCChain), Equals, false)
+	c.Check(addr.IsChain(BCHChain), Equals, false)
 
 	// eth tests
 	addr, err = NewAddress("0x90f2b1ae50e6018230e90a33f98c7844a0ab635a")
@@ -60,6 +64,7 @@ func (s *AddressSuite) TestAddress(c *C) {
 	c.Check(addr.IsChain(BNBChain), Equals, false)
 	c.Check(addr.IsChain(BTCChain), Equals, false)
 	c.Check(addr.IsChain(THORChain), Equals, false)
+	c.Check(addr.IsChain(BCHChain), Equals, false)
 	// wrong length
 	_, err = NewAddress("0x90f2b1ae50e6018230e90a33f98c7844a0ab635aaaaaaaaa")
 	c.Check(err, NotNil)
@@ -76,6 +81,7 @@ func (s *AddressSuite) TestAddress(c *C) {
 	c.Check(addr.IsChain(ETHChain), Equals, false)
 	c.Check(addr.IsChain(BNBChain), Equals, false)
 	c.Check(addr.IsChain(THORChain), Equals, false)
+	c.Check(addr.IsChain(BCHChain), Equals, true)
 
 	// tesnet p2pkh
 	addr, err = NewAddress("mrX9vMRYLfVy1BnZbc5gZjuyaqH3ZW2ZHz")
@@ -84,6 +90,7 @@ func (s *AddressSuite) TestAddress(c *C) {
 	c.Check(addr.IsChain(ETHChain), Equals, false)
 	c.Check(addr.IsChain(BNBChain), Equals, false)
 	c.Check(addr.IsChain(THORChain), Equals, false)
+	c.Check(addr.IsChain(BCHChain), Equals, true)
 
 	// mainnet p2pkh
 	addr, err = NewAddress("12MzCDwodF9G1e7jfwLXfR164RNtx4BRVG")
@@ -92,6 +99,7 @@ func (s *AddressSuite) TestAddress(c *C) {
 	c.Check(addr.IsChain(ETHChain), Equals, false)
 	c.Check(addr.IsChain(BNBChain), Equals, false)
 	c.Check(addr.IsChain(THORChain), Equals, false)
+	c.Check(addr.IsChain(BCHChain), Equals, true)
 
 	// mainnet p2sh
 	addr, err = NewAddress("3QJmV3qfvL9SuYo34YihAf3sRCW3qSinyC")
@@ -100,6 +108,7 @@ func (s *AddressSuite) TestAddress(c *C) {
 	c.Check(addr.IsChain(ETHChain), Equals, false)
 	c.Check(addr.IsChain(BNBChain), Equals, false)
 	c.Check(addr.IsChain(THORChain), Equals, false)
+	c.Check(addr.IsChain(BCHChain), Equals, true)
 
 	// mainnet p2sh 2
 	addr, err = NewAddress("3NukJ6fYZJ5Kk8bPjycAnruZkE5Q7UW7i8")
@@ -108,6 +117,7 @@ func (s *AddressSuite) TestAddress(c *C) {
 	c.Check(addr.IsChain(ETHChain), Equals, false)
 	c.Check(addr.IsChain(BNBChain), Equals, false)
 	c.Check(addr.IsChain(THORChain), Equals, false)
+	c.Check(addr.IsChain(BCHChain), Equals, true)
 
 	// testnet p2sh
 	addr, err = NewAddress("2NBFNJTktNa7GZusGbDbGKRZTxdK9VVez3n")
@@ -116,6 +126,7 @@ func (s *AddressSuite) TestAddress(c *C) {
 	c.Check(addr.IsChain(ETHChain), Equals, false)
 	c.Check(addr.IsChain(BNBChain), Equals, false)
 	c.Check(addr.IsChain(THORChain), Equals, false)
+	c.Check(addr.IsChain(BCHChain), Equals, true)
 
 	// mainnet p2pk compressed (0x02)
 	addr, err = NewAddress("02192d74d0cb94344c9569c2e77901573d8d7903c3ebec3a957724895dca52c6b4")
@@ -124,6 +135,7 @@ func (s *AddressSuite) TestAddress(c *C) {
 	c.Check(addr.IsChain(ETHChain), Equals, false)
 	c.Check(addr.IsChain(BNBChain), Equals, false)
 	c.Check(addr.IsChain(THORChain), Equals, false)
+	c.Check(addr.IsChain(BCHChain), Equals, true)
 
 	// mainnet p2pk compressed (0x03)
 	addr, err = NewAddress("03b0bd634234abbb1ba1e986e884185c61cf43e001f9137f23c2c409273eb16e65")
@@ -132,6 +144,7 @@ func (s *AddressSuite) TestAddress(c *C) {
 	c.Check(addr.IsChain(ETHChain), Equals, false)
 	c.Check(addr.IsChain(BNBChain), Equals, false)
 	c.Check(addr.IsChain(THORChain), Equals, false)
+	c.Check(addr.IsChain(BCHChain), Equals, true)
 
 	// mainnet p2pk uncompressed (0x04)
 	addr, err = NewAddress("0411db93e1dcdb8a016b49840f8c53bc1eb68a382e97b1482ecad7b148a6909a5cb2" +
@@ -141,6 +154,7 @@ func (s *AddressSuite) TestAddress(c *C) {
 	c.Check(addr.IsChain(ETHChain), Equals, false)
 	c.Check(addr.IsChain(BNBChain), Equals, false)
 	c.Check(addr.IsChain(THORChain), Equals, false)
+	c.Check(addr.IsChain(BCHChain), Equals, true)
 
 	// mainnet p2pk hybrid (0x06)
 	addr, err = NewAddress("06192d74d0cb94344c9569c2e77901573d8d7903c3ebec3a957724895dca52c6b4" +
@@ -150,6 +164,7 @@ func (s *AddressSuite) TestAddress(c *C) {
 	c.Check(addr.IsChain(ETHChain), Equals, false)
 	c.Check(addr.IsChain(BNBChain), Equals, false)
 	c.Check(addr.IsChain(THORChain), Equals, false)
+	c.Check(addr.IsChain(BCHChain), Equals, true)
 
 	// mainnet p2pk hybrid (0x07)
 	addr, err = NewAddress("07b0bd634234abbb1ba1e986e884185c61cf43e001f9137f23c2c409273eb16e65" +
@@ -159,6 +174,7 @@ func (s *AddressSuite) TestAddress(c *C) {
 	c.Check(addr.IsChain(ETHChain), Equals, false)
 	c.Check(addr.IsChain(BNBChain), Equals, false)
 	c.Check(addr.IsChain(THORChain), Equals, false)
+	c.Check(addr.IsChain(BCHChain), Equals, true)
 
 	// testnet p2pk compressed (0x02)
 	addr, err = NewAddress("02192d74d0cb94344c9569c2e77901573d8d7903c3ebec3a957724895dca52c6b4")
@@ -167,6 +183,7 @@ func (s *AddressSuite) TestAddress(c *C) {
 	c.Check(addr.IsChain(ETHChain), Equals, false)
 	c.Check(addr.IsChain(BNBChain), Equals, false)
 	c.Check(addr.IsChain(THORChain), Equals, false)
+	c.Check(addr.IsChain(BCHChain), Equals, true)
 
 	// segwit mainnet p2wpkh v0
 	addr, err = NewAddress("BC1QW508D6QEJXTDG4Y5R3ZARVARY0C5XW7KV8F3T4")
@@ -175,6 +192,7 @@ func (s *AddressSuite) TestAddress(c *C) {
 	c.Check(addr.IsChain(ETHChain), Equals, false)
 	c.Check(addr.IsChain(BNBChain), Equals, false)
 	c.Check(addr.IsChain(THORChain), Equals, false)
+	c.Check(addr.IsChain(BCHChain), Equals, false)
 
 	// segwit mainnet p2wsh v0
 	addr, err = NewAddress("bc1qrp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3qccfmv3")
@@ -183,6 +201,7 @@ func (s *AddressSuite) TestAddress(c *C) {
 	c.Check(addr.IsChain(ETHChain), Equals, false)
 	c.Check(addr.IsChain(BNBChain), Equals, false)
 	c.Check(addr.IsChain(THORChain), Equals, false)
+	c.Check(addr.IsChain(BCHChain), Equals, false)
 
 	// segwit testnet p2wpkh v0
 	addr, err = NewAddress("tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx")
@@ -191,6 +210,7 @@ func (s *AddressSuite) TestAddress(c *C) {
 	c.Check(addr.IsChain(ETHChain), Equals, false)
 	c.Check(addr.IsChain(BNBChain), Equals, false)
 	c.Check(addr.IsChain(THORChain), Equals, false)
+	c.Check(addr.IsChain(BCHChain), Equals, false)
 
 	// segwit testnet p2wsh witness v0
 	addr, err = NewAddress("tb1qqqqqp399et2xygdj5xreqhjjvcmzhxw4aywxecjdzew6hylgvsesrxh6hy")
@@ -199,6 +219,7 @@ func (s *AddressSuite) TestAddress(c *C) {
 	c.Check(addr.IsChain(ETHChain), Equals, false)
 	c.Check(addr.IsChain(BNBChain), Equals, false)
 	c.Check(addr.IsChain(THORChain), Equals, false)
+	c.Check(addr.IsChain(BCHChain), Equals, false)
 
 	// segwit mainnet witness v1
 	addr, err = NewAddress("bc1pw508d6qejxtdg4y5r3zarvary0c5xw7kw508d6qejxtdg4y5r3zarvary0c5xw7k7grplx")
@@ -207,6 +228,7 @@ func (s *AddressSuite) TestAddress(c *C) {
 	c.Check(addr.IsChain(ETHChain), Equals, false)
 	c.Check(addr.IsChain(BNBChain), Equals, false)
 	c.Check(addr.IsChain(THORChain), Equals, false)
+	c.Check(addr.IsChain(BCHChain), Equals, false)
 
 	// segwit mainnet witness v16
 	addr, err = NewAddress("BC1SW50QA3JX3S")
@@ -215,10 +237,22 @@ func (s *AddressSuite) TestAddress(c *C) {
 	c.Check(addr.IsChain(ETHChain), Equals, false)
 	c.Check(addr.IsChain(BNBChain), Equals, false)
 	c.Check(addr.IsChain(THORChain), Equals, false)
+	c.Check(addr.IsChain(BCHChain), Equals, false)
 
 	// segwit invalid hrp bech32 succeed but IsChain fails
 	addr, err = NewAddress("tc1qw508d6qejxtdg4y5r3zarvary0c5xw7kg3g4ty")
 	c.Check(err, IsNil)
+	c.Check(addr.IsChain(BTCChain), Equals, false)
+	c.Check(addr.IsChain(ETHChain), Equals, false)
+	c.Check(addr.IsChain(BNBChain), Equals, false)
+	c.Check(addr.IsChain(THORChain), Equals, false)
+	c.Check(addr.IsChain(BCHChain), Equals, false)
+
+	// bch tests
+	// testnet bech32 address
+	addr, err = NewAddress("qq0y8fmkq48rt3z5dlkv87ged93ranf2ggkuz9gfl8")
+	c.Check(err, IsNil)
+	c.Check(addr.IsChain(BCHChain), Equals, true)
 	c.Check(addr.IsChain(BTCChain), Equals, false)
 	c.Check(addr.IsChain(ETHChain), Equals, false)
 	c.Check(addr.IsChain(BNBChain), Equals, false)
