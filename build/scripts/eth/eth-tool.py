@@ -58,6 +58,7 @@ class TestEthereum:
             self.web3.eth.defaultAccount, self.passphrase
         )
 
+
     def deploy_init_contracts(self):
         self.vault = self.deploy_vault()
         token = self.deploy_token()

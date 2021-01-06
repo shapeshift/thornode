@@ -222,14 +222,14 @@ func (tos *TxOutStorageV1) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem) (
 
 	for i := range outputs {
 		if outputs[i].MaxGas.IsEmpty() {
-			maxGas, err := tos.gasManager.GetMaxGas(ctx, outputs[i].Chain)
+			maxGasCoin, err := tos.gasManager.GetMaxGas(ctx, outputs[i].Chain)
 			if err != nil {
-				return nil, fmt.Errorf("fail to get max gas: %w", err)
+				return nil, fmt.Errorf("fail to get max gas coin: %w", err)
 			}
-			// max gas amount is the transaction fee divided by two, in asset amount
 			outputs[i].MaxGas = common.Gas{
-				maxGas,
+				maxGasCoin,
 			}
+			// THOR Chain doesn't need to have max gas
 			if outputs[i].MaxGas.IsEmpty() && !outputs[i].Chain.Equals(common.THORChain) {
 				return nil, fmt.Errorf("max gas cannot be empty: %s", outputs[i].MaxGas)
 			}
@@ -355,10 +355,6 @@ func (tos *TxOutStorageV1) addToBlockOut(ctx cosmos.Context, mgr Manager, toi Tx
 	err = tos.keeper.AppendTxMarker(ctx, hash, mark)
 	if err != nil {
 		return err
-	}
-	// ETH smoke test doesn't implement dynamic fee correctly yet
-	if toi.Coin.Asset.Chain.Equals(common.ETHChain) {
-		toi.Memo = ""
 	}
 
 	return tos.keeper.AppendTxOut(ctx, common.BlockHeight(ctx), toi)

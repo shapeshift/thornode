@@ -36,7 +36,7 @@ func LoadChains(thorKeys *thorclient.Keys,
 			}
 			chains[common.BNBChain] = bnb
 		case common.ETHChain:
-			eth, err := ethereum.NewClient(thorKeys, chain, server, thorchainBridge, m)
+			eth, err := ethereum.NewClient(thorKeys, chain, server, thorchainBridge, m, pubKeyValidator, poolMgr)
 			if err != nil {
 				logger.Error().Err(err).Str("chain_id", chain.ChainID.String()).Msg("fail to load chain")
 				continue

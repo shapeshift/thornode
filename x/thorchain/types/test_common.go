@@ -71,7 +71,7 @@ func GetRandomBech32ConsensusPubKey() string {
 	return result
 }
 
-// GetRandomRuneAddress will just create a random rune address used for test purpose
+// GetRandomRUNEAddress will just create a random rune address used for test purpose
 func GetRandomRUNEAddress() common.Address {
 	return GetRandomTHORAddress()
 }

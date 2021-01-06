@@ -16,14 +16,15 @@ require (
 	github.com/cosmos/go-bip39 v0.0.0-20180819234021-555e2067c45d
 	github.com/decred/dcrd/dcrec/edwards v1.0.0
 	github.com/didip/tollbooth v4.0.2+incompatible
-	github.com/ethereum/go-ethereum v1.9.12
 	github.com/gcash/bchd v0.17.1
 	github.com/gcash/bchutil v0.0.0-20201025062739-fc759989ee3e
-	github.com/google/go-cmp v0.5.1 // indirect
+	github.com/ethereum/go-ethereum v1.9.25
+	github.com/google/go-cmp v0.5.4 // indirect
 	github.com/gorilla/mux v1.7.4
 	github.com/hashicorp/go-multierror v1.1.0
 	github.com/hashicorp/go-retryablehttp v0.6.4
 	github.com/ipfs/go-log v1.0.4
+	github.com/magiconair/properties v1.8.1
 	github.com/multiformats/go-multiaddr v0.3.1
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/prometheus/client_golang v1.5.1
@@ -36,16 +37,18 @@ require (
 	github.com/spf13/cobra v1.0.0
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.6.3
-	github.com/syndtr/goleveldb v1.0.1-0.20190923125748-758128399b1d
+	github.com/syndtr/goleveldb v1.0.1-0.20200815110645-5c35d600f0ca
 	github.com/tendermint/btcd v0.1.1
 	github.com/tendermint/go-amino v0.15.1
 	github.com/tendermint/tendermint v0.33.9
 	github.com/tendermint/tm-db v0.5.1
 	github.com/zondax/ledger-go v0.11.0 // indirect
-	gitlab.com/thorchain/tss/go-tss v1.2.7
 	gitlab.com/thorchain/bchd-txscript v0.0.0-20201215133741-ffd26acbcb75
 	gitlab.com/thorchain/txscript v0.0.0-20200413023754-8aaf3443d92b
 	golang.org/x/tools/gopls v0.5.5 // indirect
+	gitlab.com/thorchain/tss/go-tss v1.2.8
+	golang.org/x/mod v0.4.0 // indirect
+	golang.org/x/tools v0.0.0-20210101214203-2dba1e4ea05c // indirect
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f
 	gopkg.in/ini.v1 v1.52.0 // indirect
 )

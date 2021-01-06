@@ -12,7 +12,7 @@ import (
 
 // PrefixTxStorage declares prefix to use in leveldb to avoid conflicts
 const (
-	PrefixBlockMeta = `blockmeta-`
+	PrefixBlockMeta = `eth-blockmeta-`
 )
 
 // LevelDBBlockMetaAccessor struct
@@ -26,7 +26,7 @@ func NewLevelDBBlockMetaAccessor(db *leveldb.DB) (*LevelDBBlockMetaAccessor, err
 }
 
 func (t *LevelDBBlockMetaAccessor) getBlockMetaKey(height int64) string {
-	return fmt.Sprintf(PrefixBlockMeta+"%d", height)
+	return fmt.Sprintf("%s%d", PrefixBlockMeta, height)
 }
 
 // GetBlockMeta at given block height ,  when the requested block meta doesn't exist , it will return nil , thus caller need to double check it

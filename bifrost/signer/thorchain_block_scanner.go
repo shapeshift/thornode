@@ -17,7 +17,6 @@ import (
 	"gitlab.com/thorchain/thornode/bifrost/pubkeymanager"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient/types"
-	stypes "gitlab.com/thorchain/thornode/bifrost/thorclient/types"
 	ttypes "gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
@@ -76,14 +75,14 @@ func (c *ThorchainBlockScan) FetchMemPool(height int64) (types.TxIn, error) {
 	return types.TxIn{}, nil
 }
 
-func (b *ThorchainBlockScan) FetchTxs(height int64) (stypes.TxIn, error) {
+func (b *ThorchainBlockScan) FetchTxs(height int64) (types.TxIn, error) {
 	if err := b.processTxOutBlock(height); err != nil {
-		return stypes.TxIn{}, err
+		return types.TxIn{}, err
 	}
 	if err := b.processKeygenBlock(height); err != nil {
-		return stypes.TxIn{}, err
+		return types.TxIn{}, err
 	}
-	return stypes.TxIn{}, nil
+	return types.TxIn{}, nil
 }
 
 func (b *ThorchainBlockScan) processKeygenBlock(blockHeight int64) error {
