@@ -4,9 +4,9 @@ services:
   ethereum-localnet:
     container_name: ethereum-localnet
     restart: unless-stopped
-    image: registry.gitlab.com/thorchain/ethereum-mock
+    image: ethereum/client-go:latest
     environment:
-      ETH_BLOCK_TIME: ${ETH_BLOCK_TIME:-11}
+      ETH_BLOCK_TIME: ${ETH_BLOCK_TIME:-5}
     ports:
       - "8545:8545"
       - "30301:30301"
