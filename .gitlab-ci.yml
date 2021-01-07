@@ -90,10 +90,10 @@ smoke-test:thornode:
       if [[ $CI_MERGE_REQUEST_TARGET_BRANCH_NAME != "" ]]; then
         HEIMDALL_BRANCH=$CI_MERGE_REQUEST_TARGET_BRANCH_NAME
       else
-        HEIMDALL_BRANCH=master
+        HEIMDALL_BRANCH=develop
       fi
     - echo $HEIMDALL_BRANCH
-    - (git clone --single-branch -b $CI_COMMIT_REF_NAME https://gitlab.com/thorchain/heimdall.git && make -C heimdall build) || git clone --single-branch -b $HEIMDALL_BRANCH https://gitlab.com/thorchain/heimdall.git
+    - (git clone --single-branch -b $CI_COMMIT_REF_NAME https://gitlab.com/thorchain/heimdall.git) || git clone --single-branch -b $HEIMDALL_BRANCH https://gitlab.com/thorchain/heimdall.git
     - (git clone --single-branch -b $CI_COMMIT_REF_NAME https://gitlab.com/thorchain/midgard-v2.git && cd midgard-v2 && docker build -t registry.gitlab.com/thorchain/midgard:develop . && cd ..) || true
     - NATIVE=true DOCKER_TLS_CERTDIR="/certs" make -C build/docker reset-mocknet-standalone
 
@@ -103,7 +103,7 @@ smoke-test:thornode:
     name: integration
   script:
     - cd ./heimdall
-    - RUNE=THOR.RUNE make smoke
+    - RUNE=THOR.RUNE make build smoke
   after_script:
     - DOCKER_TLS_CERTDIR="/certs" ./scripts/docker_logs.sh
 
