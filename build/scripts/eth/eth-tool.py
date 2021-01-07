@@ -1,14 +1,14 @@
-import requests
 import argparse
 import json
-import os
-import sys
 import logging
-import time
+import os
 import socket
+import sys
+import time
 from contextlib import closing
 from urllib.parse import urlparse
 
+import requests
 from web3 import Web3, HTTPProvider
 from web3.middleware import geth_poa_middleware
 
@@ -43,6 +43,7 @@ class TestEthereum:
         self.url = base_url
         self.web3 = Web3(HTTPProvider(base_url))
         self.web3.middleware_onion.inject(geth_poa_middleware, layer=0)
+        # import all the private keys
         for key in self.private_keys:
             payload = json.dumps(
                 {"method": "personal_importRawKey", "params": [key, self.passphrase]}
@@ -52,12 +53,33 @@ class TestEthereum:
                 requests.request("POST", base_url, data=payload, headers=headers)
             except requests.exceptions.RequestException as e:
                 logging.error(f"{e}")
+
         self.accounts = self.web3.geth.personal.list_accounts()
+        self.web3.eth.defaultAccount = self.accounts[0]
+        self.web3.geth.personal.unlock_account(
+            self.accounts[0], ""
+        )
+
+        logging.info(f"balance: {self.web3.eth.getBalance(self.accounts[0])}")
+        for x in range(1, len(self.accounts)):
+            self.fund_account(self.accounts[0], self.accounts[1], 92000000000000000000, x == 1)
+
         self.web3.eth.defaultAccount = self.accounts[1]
         self.web3.geth.personal.unlock_account(
             self.web3.eth.defaultAccount, self.passphrase
         )
 
+    def fund_account(self, from_address, to_address, amount, wait_for_commit):
+        tx = {
+            "from": Web3.toChecksumAddress(from_address),
+            "to": Web3.toChecksumAddress(to_address),
+            "value": amount,
+            "gas": self.calculate_gas(""),
+        }
+        if wait_for_commit:
+            # wait for the transaction to be mined
+            tx_hash = self.web3.geth.personal.sendTransaction(tx, "")
+            self.web3.eth.waitForTransactionReceipt(tx_hash)
 
     def deploy_init_contracts(self):
         self.vault = self.deploy_vault()
@@ -67,15 +89,6 @@ class TestEthereum:
 
     def calculate_gas(self, msg):
         return self.default_gas + self.gas_per_byte * len(msg)
-
-    def set_vault_address(self, addr):
-        """
-        Set the vault eth address
-        """
-        tx_hash = self.vault.functions.addAsgard(
-            [Web3.toChecksumAddress(addr)]
-        ).transact()
-        self.web3.eth.waitForTransactionReceipt(tx_hash)
 
     def deploy_token(self, abi_file="data_token.json", bytecode_file="data_token.txt"):
         abi = json.load(open(os.path.join(os.path.dirname(__file__), abi_file)))
@@ -95,83 +108,14 @@ class TestEthereum:
         logging.info(f"Vault Contract Address: {receipt.contractAddress}")
         return self.web3.eth.contract(address=receipt.contractAddress, abi=abi)
 
-    def transfer(self, from_address, to_address, amount, memo):
-        """
-        Make a transaction/transfer on localnet Ethereum
-        """
-
-        for account in self.web3.eth.accounts:
-            if account.lower() == from_address.lower():
-                self.web3.geth.personal.unlock_account(account, self.passphrase)
-                self.web3.eth.defaultAccount = account
-
-        symbol = "ETH"
-        spent_gas = 0
-        if memo == self.seed:
-            if symbol == self.chain:
-                tx = {
-                    "from": Web3.toChecksumAddress(from_address),
-                    "to": Web3.toChecksumAddress(to_address),
-                    "value": amount,
-                    "data": "0x" + memo.encode().hex(),
-                    "gas": self.calculate_gas(memo),
-                }
-                tx_hash = self.web3.geth.personal.send_transaction(tx, self.passphrase)
-            else:
-                tx_hash = (
-                    self.tokens[symbol.split("-")[0]]
-                    .functions.transfer(
-                        Web3.toChecksumAddress(to_address), amount
-                    )
-                    .transact()
-                )
-        else:
-            if memo.find(":ETH.") != -1:
-                splits = symbol.split("-")
-                parts = memo.split("-")
-                if symbol != self.chain:
-                    if len(parts) != 2 or len(splits) != 2:
-                        logging.error("incorrect ETH txn memo")
-                    ps = parts[1].split(":")
-                    if len(ps) != 2:
-                        logging.error("incorrect ETH txn memo")
-                    memo = parts[0] + ":" + ps[1]
-            if symbol.split("-")[0] == self.chain:
-                abi = json.load(open(os.path.join(os.path.dirname(__file__), "data_vault.json")))
-                self.vault = self.web3.eth.contract(address=to_address, abi=abi)
-                tx_hash = self.vault.functions.deposit(memo.encode("utf-8")).transact(
-                    {"value": amount}
-                )
-            else:
-                tx_hash = (
-                    self.tokens[symbol.split("-")[0]]
-                    .functions.approve(
-                        Web3.toChecksumAddress(self.vault.address), amount
-                    )
-                    .transact()
-                )
-                receipt = self.web3.eth.waitForTransactionReceipt(tx_hash)
-                spent_gas = receipt.cumulativeGasUsed
-                tx_hash = self.vault.functions.deposit(
-                    Web3.toChecksumAddress(
-                        symbol.split("-")[1]
-                    ),
-                    amount,
-                    memo.encode("utf-8"),
-                ).transact()
-
-        receipt = self.web3.eth.waitForTransactionReceipt(tx_hash)
-        tx_hash = receipt.transactionHash.hex()[2:]
-        logging.info(f"TX Hash: 0x{tx_hash}")
-        # processed_log = self.vault.events.Deposit().processLog(receipt['logs'][0])
-        # print(processed_log)
 
 def check_socket(host, port):
-        with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as sock:
-            if sock.connect_ex((host, port)) == 0:
-                return True
-            else:
-                return False
+    with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as sock:
+        if sock.connect_ex((host, port)) == 0:
+            return True
+        else:
+            return False
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -185,13 +129,6 @@ def main():
     deploy_parser = subparsers.add_parser('deploy')
     deploy_parser.set_defaults(name='deploy')
     deploy_parser.add_argument("--from_address", help="from address")
-
-    transfer_parser = subparsers.add_parser('transfer')
-    transfer_parser.set_defaults(name='transfer')
-    transfer_parser.add_argument("--from_address", help="from address")
-    transfer_parser.add_argument("--to_address", help="to address")
-    transfer_parser.add_argument("--memo", help="memo")
-    transfer_parser.add_argument("--amount", type=int, help="ETH amount")
 
     args = parser.parse_args()
     defaultEth = "http://ethereum-localnet:8545"
@@ -210,15 +147,13 @@ def main():
             logging.info("Ethereum node does not appear to be running... exiting")
             sys.exit(1)
         time.sleep(1)
-        
+
     test_ethereum = TestEthereum(args.ethereum)
 
     if args.name == "deploy":
         logging.info("Deploying contracts...")
         test_ethereum.deploy_init_contracts()
-    if args.name == "transfer":
-        logging.info(f"Transferring. {args.from_address} ==> {args.to_address} {args.amount} {args.memo}")
-        test_ethereum.transfer(args.from_address, args.to_address, args.amount, args.memo)
+
     logging.info("Done.")
 
 
