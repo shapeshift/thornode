@@ -25,6 +25,7 @@ stages:
 
 unit_tests:
   stage: test
+  cache: {}
   tags:
     - thorchain
   except:
