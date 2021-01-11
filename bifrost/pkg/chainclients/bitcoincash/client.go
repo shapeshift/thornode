@@ -625,14 +625,6 @@ func (c *Client) extractTxs(block *btcjson.GetBlockVerboseTxResult, blockMeta *B
 	for _, tx := range block.Tx {
 		// mempool transaction get committed to block , thus remove it from mempool cache
 		c.removeFromMemPoolCache(tx.Hash)
-		h, err := chainhash.NewHashFromStr(tx.Hash)
-		if err != nil {
-			return types.TxIn{}, fmt.Errorf("fail to parse transaction hash(%s):%w", tx.Hash, err)
-		}
-		// if it is an outbound tx , than we already observed it from mempool ,so ignore it
-		if blockMeta.TransactionHashExist(h.String()) {
-			continue
-		}
 		txInItem, err := c.getTxIn(&tx, block.Height)
 		if err != nil {
 			c.logger.Err(err).Msg("fail to get TxInItem")
