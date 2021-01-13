@@ -76,7 +76,7 @@ func (s *BitcoinSignerCashSuite) SetUpTest(c *C) {
 	thorKeys := thorclient.NewKeysWithKeybase(kb, info, cfg.SignerPasswd)
 
 	s.server = httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		if req.RequestURI == "/thorchain/vaults/tthorpub1addwnpepqwm9wsafv26hzqurtjvuuj3xk4j3jyc9yj2uastnmuuqjney9ep3clzt622/signers" {
+		if req.RequestURI == "/thorchain/vaults/tthorpub1addwnpepqwznsrgk2t5vn2cszr6ku6zned6tqxknugzw3vhdcjza284d7djp5rql6vn/signers" {
 			_, err := rw.Write([]byte("[]"))
 			c.Assert(err, IsNil)
 		} else if strings.HasPrefix(req.RequestURI, "/thorchain/vaults") && strings.HasSuffix(req.RequestURI, "/signers") {
@@ -108,7 +108,7 @@ func (s *BitcoinSignerCashSuite) SetUpTest(c *C) {
 				httpTestHandler(c, rw, "../../../../test/fixtures/btc/importaddress.json")
 			case "listunspent":
 				body := string(buf)
-				if strings.Contains(body, "tb1qr6uzy0nds0uhcrlzphsxxqpycsksy423pdjrsf") {
+				if strings.Contains(body, "qrlyry9jfa5k0cu55z2xze5admmr6fj7ygz7fu3jj8") {
 					httpTestHandler(c, rw, "../../../../test/fixtures/btc/listunspent-tss.json")
 				} else {
 					httpTestHandler(c, rw, "../../../../test/fixtures/btc/listunspent.json")
@@ -258,7 +258,7 @@ func (s *BitcoinSignerCashSuite) TestSignTxWithoutPredefinedMaxGas(c *C) {
 		Coins: common.Coins{
 			common.NewCoin(common.BCHAsset, cosmos.NewUint(10)),
 		},
-		Memo:    "hello from thorchain",
+		Memo:    "YGGDRASIL-:101",
 		GasRate: 25,
 		InHash:  "",
 		OutHash: "",
@@ -292,14 +292,14 @@ func (s *BitcoinSignerCashSuite) TestSignTxWithoutPredefinedMaxGas(c *C) {
 }
 
 func (s *BitcoinSignerCashSuite) TestSignTxWithTSS(c *C) {
-	pubkey, err := common.NewPubKey("tthorpub1addwnpepqt7qug8vk9r3saw8n4r803ydj2g3dqwx0mvq5akhnze86fc536xcycgtrnv")
+	pubkey, err := common.NewPubKey("tthorpub1addwnpepqwznsrgk2t5vn2cszr6ku6zned6tqxknugzw3vhdcjza284d7djp5rql6vn")
 	c.Assert(err, IsNil)
 	addr, err := pubkey.GetAddress(common.BCHChain)
 	c.Assert(err, IsNil)
 	txOutItem := stypes.TxOutItem{
 		Chain:       common.BCHChain,
 		ToAddress:   addr,
-		VaultPubKey: "tthorpub1addwnpepqw2k68efthm08f0f5akhjs6fk5j2pze4wkwt4fmnymf9yd463puruhh0lyz",
+		VaultPubKey: "tthorpub1addwnpepqwznsrgk2t5vn2cszr6ku6zned6tqxknugzw3vhdcjza284d7djp5rql6vn",
 		Coins: common.Coins{
 			common.NewCoin(common.BCHAsset, cosmos.NewUint(10)),
 		},

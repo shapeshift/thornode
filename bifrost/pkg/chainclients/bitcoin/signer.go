@@ -25,6 +25,7 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/x/thorchain"
+	mem "gitlab.com/thorchain/thornode/x/thorchain/memo"
 )
 
 const (
@@ -109,14 +110,9 @@ func (c *Client) getUtxoToSpend(pubKey common.PubKey, total float64) ([]btcjson.
 		return utxos[i].TxID < utxos[j].TxID
 	})
 
-	target := 0.0
 	for _, item := range utxos {
 		if isYggdrasil || item.Confirmations >= MinUTXOConfirmation || c.isSelfTransaction(item.TxID) {
 			result = append(result, item)
-			if item.Amount+target >= total {
-				break
-			}
-			target += item.Amount
 		}
 	}
 	return result, nil
@@ -315,6 +311,16 @@ func (c *Client) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, err
 			gap := maxGasCoin.Amount.Uint64() - gasAmtSats
 			c.logger.Info().Msgf("max gas is: %s, however only: %d is required, gap: %d goes to customer", tx.MaxGas, gasAmtSats, gap)
 			coinToCustomer.Amount = coinToCustomer.Amount.Add(cosmos.NewUint(gap))
+		}
+	} else {
+		memo, err := mem.ParseMemo(tx.Memo)
+		if err != nil {
+			return nil, fmt.Errorf("fail to parse memo: %w", err)
+		}
+		if memo.GetType() == mem.TxYggdrasilReturn {
+			gap := gasAmtSats
+			c.logger.Info().Msgf("yggdrasil return asset , need gas: %d", gap)
+			coinToCustomer.Amount = common.SafeSub(coinToCustomer.Amount, cosmos.NewUint(gap))
 		}
 	}
 	gasAmt := btcutil.Amount(gasAmtSats)
