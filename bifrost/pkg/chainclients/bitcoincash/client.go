@@ -544,8 +544,15 @@ func (c *Client) sendNetworkFee(height int64) error {
 	if result.AverageFeeRate == 0 {
 		return nil
 	}
+	feeRate := uint64(result.AverageFeeRate * common.One)
+	if EstimateAverageTxSize*feeRate < c.minRelayFeeSats {
+		feeRate = c.minRelayFeeSats / EstimateAverageTxSize
+		if feeRate*EstimateAverageTxSize < c.minRelayFeeSats {
+			feeRate++
+		}
+	}
 
-	txid, err := c.bridge.PostNetworkFee(height, common.BCHChain, uint64(EstimateAverageTxSize), uint64(result.AverageFeeRate*common.One))
+	txid, err := c.bridge.PostNetworkFee(height, common.BCHChain, uint64(EstimateAverageTxSize), feeRate)
 	if err != nil {
 		return fmt.Errorf("fail to post network fee to thornode: %w", err)
 	}

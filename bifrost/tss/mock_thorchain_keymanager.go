@@ -1,6 +1,8 @@
 package tss
 
 import (
+	"encoding/base64"
+
 	ctypes "github.com/binance-chain/go-sdk/common/types"
 	"github.com/binance-chain/go-sdk/keys"
 	"github.com/binance-chain/go-sdk/types/tx"
@@ -42,16 +44,16 @@ func (k *MockThorchainKeyManager) SignWithPool(msg tx.StdSignMsg, poolPubKey com
 
 func (k *MockThorchainKeyManager) RemoteSign(msg []byte, poolPubKey string) ([]byte, []byte, error) {
 	// this is the key we are using to test TSS keysign result in BTC chain
-	// tthorpub1addwnpepqwm9wsafv26hzqurtjvuuj3xk4j3jyc9yj2uastnmuuqjney9ep3clzt622
-	if poolPubKey == "tthorpub1addwnpepqwm9wsafv26hzqurtjvuuj3xk4j3jyc9yj2uastnmuuqjney9ep3clzt622" {
-		sig, err := getSignature("VqAlcVM+9ciiCL+/VBVNjekbLUjB5/NXI6ui0ZdTRZM=", "ENP93vjudq9s+UQu87nFPDZ1LKNurzRTo/hMIqetAb4=")
-		return sig, nil, err
-	}
-	// this is the key we are using to test TSS keysign result in BCH chain
-	// tthorpub1addwnpepqw2k68efthm08f0f5akhjs6fk5j2pze4wkwt4fmnymf9yd463puruhh0lyz
-	if poolPubKey == "tthorpub1addwnpepqw2k68efthm08f0f5akhjs6fk5j2pze4wkwt4fmnymf9yd463puruhh0lyz" {
-		sig, err := getSignature("1C7Tn7XHX9JAPGoOQKK14CpTGd7W8fyq0iWP5DNt2DY=", "GjDYG1zmAo7JHdtiP7l+s4PRFiV7cH9d4bDoeEMrQgo=")
-		return sig, nil, err
+	// tthorpub1addwnpepqwznsrgk2t5vn2cszr6ku6zned6tqxknugzw3vhdcjza284d7djp5rql6vn
+	if poolPubKey == "tthorpub1addwnpepqwznsrgk2t5vn2cszr6ku6zned6tqxknugzw3vhdcjza284d7djp5rql6vn" {
+		msgToSign := base64.StdEncoding.EncodeToString(msg)
+		if msgToSign == "wqYuqkdeLjxtkKjmeAK0fOZygdw8zZgsDaJX7mrqWRE=" {
+			sig, err := getSignature("ku/n0D18euwqkgM0kZn0OVX9+D7wfDBIWBMya1SGxWg=", "fw0sE6osjVN6vQtr9WxFrOpdxizPz9etSTOKGdjDY9A=")
+			return sig, nil, err
+		} else {
+			sig, err := getSignature("256CpfiML7BDP1nXqKRc3Fq01PALeKwpXYv9P/H3Xhk=", "LoX6cVND0JN8bbZSTsoJcwLCysAKhyYtB2BFM3sdP98=")
+			return sig, nil, err
+		}
 	}
 	return nil, nil, nil
 }
