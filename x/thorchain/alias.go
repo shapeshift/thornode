@@ -184,6 +184,8 @@ type (
 	QueryResLastBlockHeights       = types.QueryResLastBlockHeights
 	QueryKeysign                   = types.QueryKeysign
 	QueryYggdrasilVaults           = types.QueryYggdrasilVaults
+	QueryVaultsPubKeys             = types.QueryVaultsPubKeys
+	QueryVaultPubKeyContract       = types.QueryVaultPubKeyContract
 	QueryNodeAccount               = types.QueryNodeAccount
 	QueryChainAddress              = types.QueryChainAddress
 	PoolStatus                     = types.PoolStatus

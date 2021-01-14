@@ -3,6 +3,7 @@ package ethereum
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/util"
@@ -26,7 +27,7 @@ func NewLevelDBTokenMeta(db *leveldb.DB) (*LevelDBTokenMeta, error) {
 }
 
 func (t *LevelDBTokenMeta) getTokenMetaKey(address string) string {
-	return fmt.Sprintf("%s%s", prefixTokenMeta, address)
+	return fmt.Sprintf("%s%s", prefixTokenMeta, strings.ToUpper(address))
 }
 
 // GetTokenMeta for given token address
@@ -63,7 +64,7 @@ func (t *LevelDBTokenMeta) SaveTokenMeta(symbol, address string, decimals uint64
 
 // GetTokens returns all the token metas in storage
 func (t *LevelDBTokenMeta) GetTokens() ([]*types.TokenMeta, error) {
-	TokenMetas := make([]*types.TokenMeta, 0)
+	tokenMetas := make([]*types.TokenMeta, 0)
 	iterator := t.db.NewIterator(util.BytesPrefix([]byte(prefixTokenMeta)), nil)
 	defer iterator.Release()
 	for iterator.Next() {
@@ -71,11 +72,21 @@ func (t *LevelDBTokenMeta) GetTokens() ([]*types.TokenMeta, error) {
 		if len(buf) == 0 {
 			continue
 		}
-		var TokenMeta types.TokenMeta
-		if err := json.Unmarshal(buf, &TokenMeta); err != nil {
+		var tokenMeta types.TokenMeta
+		if err := json.Unmarshal(buf, &tokenMeta); err != nil {
 			return nil, fmt.Errorf("fail to unmarshal token meta: %w", err)
 		}
-		TokenMetas = append(TokenMetas, &TokenMeta)
+		found := false
+		for _, item := range tokenMetas {
+			if strings.EqualFold(item.Address, tokenMeta.Address) &&
+				strings.EqualFold(item.Symbol, tokenMeta.Symbol) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			tokenMetas = append(tokenMetas, &tokenMeta)
+		}
 	}
-	return TokenMetas, nil
+	return tokenMetas, nil
 }

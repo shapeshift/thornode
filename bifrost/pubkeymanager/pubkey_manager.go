@@ -77,10 +77,11 @@ func (pkm *PubKeyManager) Start() error {
 		return fmt.Errorf("fail to get pubkeys from thorchain: %w", err)
 	}
 	for _, pk := range pubkeys {
-		pkm.AddPubKey(pk, false)
+		pkm.AddPubKey(pk.PubKey, false)
 	}
+
 	// get smart contract address from THORNode , and update it's internal
-	pkm.updateContractAddresses()
+	pkm.updateContractAddresses(pubkeys)
 	go pkm.updatePubKeys()
 	return nil
 }
@@ -92,14 +93,9 @@ func (pkm *PubKeyManager) Stop() error {
 	return nil
 }
 
-func (pkm *PubKeyManager) updateContractAddresses() {
+func (pkm *PubKeyManager) updateContractAddresses(pairs []thorclient.PubKeyContractAddressPair) {
 	pkm.rwMutex.Lock()
 	defer pkm.rwMutex.Unlock()
-	pairs, err := pkm.bridge.GetContractAddress()
-	if err != nil {
-		pkm.logger.Err(err).Msg("fail to get contract address")
-		return
-	}
 	for _, pair := range pairs {
 		for idx, item := range pkm.pubkeys {
 			if item.PubKey == pair.PubKey {
@@ -215,15 +211,17 @@ func (pkm *PubKeyManager) RemovePubKey(pk common.PubKey) {
 }
 
 func (pkm *PubKeyManager) fetchPubKeys() {
-	pubkeys, err := pkm.getPubkeys()
+	addressPairs, err := pkm.getPubkeys()
 	if err != nil {
 		pkm.logger.Error().Err(err).Msg("fail to get pubkeys from THORChain")
 		return
 	}
-	for _, pk := range pubkeys {
-		pkm.AddPubKey(pk, false)
+	var pubkeys common.PubKeys
+	for _, pk := range addressPairs {
+		pkm.AddPubKey(pk.PubKey, false)
+		pubkeys = append(pubkeys, pk.PubKey)
 	}
-
+	pkm.updateContractAddresses(addressPairs)
 	vaults, err := pkm.bridge.GetAsgards()
 	if err != nil {
 		return
@@ -258,7 +256,6 @@ func (pkm *PubKeyManager) updatePubKeys() {
 			return
 		case <-time.After(constants.ThorchainBlockTime):
 			pkm.fetchPubKeys()
-			pkm.updateContractAddresses()
 		}
 	}
 }
@@ -289,7 +286,7 @@ func (pkm *PubKeyManager) IsValidPoolAddress(addr string, chain common.Chain) (b
 }
 
 // getPubkeys from THORChain
-func (pkm *PubKeyManager) getPubkeys() (common.PubKeys, error) {
+func (pkm *PubKeyManager) getPubkeys() ([]thorclient.PubKeyContractAddressPair, error) {
 	return pkm.bridge.GetPubKeys()
 }
 

@@ -63,7 +63,7 @@ func (k *TestRefundBondKeeper) SetPool(_ cosmos.Context, p Pool) error {
 
 func (k *TestRefundBondKeeper) DeleteVault(_ cosmos.Context, key common.PubKey) error {
 	if k.ygg.PubKey.Equals(key) {
-		k.ygg = NewVault(1, InactiveVault, AsgardVault, GetRandomPubKey(), common.Chains{common.BNBChain})
+		k.ygg = NewVault(1, InactiveVault, AsgardVault, GetRandomPubKey(), common.Chains{common.BNBChain}, []ChainContract{})
 	}
 	return nil
 }
@@ -173,13 +173,13 @@ func (s *HelperSuite) TestRefundBondError(c *C) {
 	c.Assert(refundBond(ctx, tx, cosmos.ZeroUint(), &na, keeper1, mgr), NotNil)
 
 	// if the vault is not a yggdrasil pool , it should return an error
-	ygg := NewVault(common.BlockHeight(ctx), ActiveVault, AsgardVault, pk, common.Chains{common.BNBChain})
+	ygg := NewVault(common.BlockHeight(ctx), ActiveVault, AsgardVault, pk, common.Chains{common.BNBChain}, []ChainContract{})
 	ygg.Coins = common.Coins{}
 	keeper1.ygg = ygg
 	c.Assert(refundBond(ctx, tx, cosmos.ZeroUint(), &na, keeper1, mgr), NotNil)
 
 	// fail to get pool should fail
-	ygg = NewVault(common.BlockHeight(ctx), ActiveVault, YggdrasilVault, pk, common.Chains{common.BNBChain})
+	ygg = NewVault(common.BlockHeight(ctx), ActiveVault, YggdrasilVault, pk, common.Chains{common.BNBChain}, []ChainContract{})
 	ygg.Coins = common.Coins{
 		common.NewCoin(common.RuneAsset(), cosmos.NewUint(27*common.One)),
 		common.NewCoin(common.BNBAsset, cosmos.NewUint(27*common.One)),
@@ -207,7 +207,7 @@ func (s *HelperSuite) TestRefundBondHappyPath(c *C) {
 	mgr := NewDummyMgr()
 	pk := GetRandomPubKey()
 	na.PubKeySet.Secp256k1 = pk
-	ygg := NewVault(common.BlockHeight(ctx), ActiveVault, YggdrasilVault, pk, common.Chains{common.BNBChain})
+	ygg := NewVault(common.BlockHeight(ctx), ActiveVault, YggdrasilVault, pk, common.Chains{common.BNBChain}, []ChainContract{})
 
 	ygg.Coins = common.Coins{
 		common.NewCoin(common.RuneAsset(), cosmos.NewUint(3946*common.One)),
@@ -428,7 +428,7 @@ func newAddGasFeeTestHelper(c *C) addGasFeeTestHelper {
 
 	na := GetRandomNodeAccount(NodeActive)
 	c.Assert(k.SetNodeAccount(ctx, na), IsNil)
-	yggVault := NewVault(common.BlockHeight(ctx), ActiveVault, YggdrasilVault, na.PubKeySet.Secp256k1, common.Chains{common.BNBChain})
+	yggVault := NewVault(common.BlockHeight(ctx), ActiveVault, YggdrasilVault, na.PubKeySet.Secp256k1, common.Chains{common.BNBChain}, []ChainContract{})
 	c.Assert(k.SetVault(ctx, yggVault), IsNil)
 	version := constants.SWVersion
 	constAccessor := constants.GetConstantValues(version)

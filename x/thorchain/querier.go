@@ -265,12 +265,9 @@ func queryYggdrasilVaults(ctx cosmos.Context, keeper keeper.Keeper) ([]byte, err
 }
 
 func queryVaultsPubkeys(ctx cosmos.Context, keeper keeper.Keeper) ([]byte, error) {
-	var resp struct {
-		Asgard    common.PubKeys `json:"asgard"`
-		Yggdrasil common.PubKeys `json:"yggdrasil"`
-	}
-	resp.Asgard = make(common.PubKeys, 0)
-	resp.Yggdrasil = make(common.PubKeys, 0)
+	var resp QueryVaultsPubKeys
+	resp.Asgard = make([]QueryVaultPubKeyContract, 0)
+	resp.Yggdrasil = make([]QueryVaultPubKeyContract, 0)
 	iter := keeper.GetVaultIterator(ctx)
 	defer iter.Close()
 	for ; iter.Valid(); iter.Next() {
@@ -286,11 +283,17 @@ func queryVaultsPubkeys(ctx cosmos.Context, keeper keeper.Keeper) ([]byte, error
 				return nil, fmt.Errorf("fail to unmarshal vault: %w", err)
 			}
 			if !na.Bond.IsZero() {
-				resp.Yggdrasil = append(resp.Yggdrasil, vault.PubKey)
+				resp.Yggdrasil = append(resp.Yggdrasil, QueryVaultPubKeyContract{
+					PubKey:    vault.PubKey,
+					Contracts: vault.Contracts,
+				})
 			}
 		} else if vault.IsAsgard() {
 			if vault.Status == ActiveVault || vault.Status == RetiringVault {
-				resp.Asgard = append(resp.Asgard, vault.PubKey)
+				resp.Asgard = append(resp.Asgard, QueryVaultPubKeyContract{
+					PubKey:    vault.PubKey,
+					Contracts: vault.Contracts,
+				})
 			}
 		}
 	}
@@ -378,11 +381,7 @@ func queryInboundAddresses(ctx cosmos.Context, path []string, req abci.RequestQu
 			ctx.Logger().Error("fail to get address for chain", "error", err)
 			return nil, fmt.Errorf("fail to get address for chain: %w", err)
 		}
-		cc, err := keeper.GetChainContract(ctx, chain)
-		if err != nil {
-			ctx.Logger().Error("fail to get chain contract", "error", err)
-			return nil, fmt.Errorf("fail to get chain contract: %w", err)
-		}
+		cc := vault.GetContract(chain)
 
 		addr := address{
 			Chain:    chain,

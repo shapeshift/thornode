@@ -1,12 +1,60 @@
 {
   "asgard": [
-    "tthorpub1addwnpepqflvfv08t6qt95lmttd6wpf3ss8wx63e9vf6fvyuj2yy6nnyna576rfzjks",
-    "tthorpub1addwnpepq2flfr96skc5lkwdv0n5xjsnhmuju20x3zndgu42zd8dtkrud9m2vajhww6",
-    "tthorpub1addwnpepqwhnus6xs4208d4ynm05lv493amz3fexfjfx4vptntedd7k0ajlcunlfxxs",
-    "tthorpub1addwnpepq2mza4j4vplyjw295pkq8j2dan627lz6vufeu22pjx5vnnyjted5vwq3e3d"
+    {
+      "pub_key": "tthorpub1addwnpepqflvfv08t6qt95lmttd6wpf3ss8wx63e9vf6fvyuj2yy6nnyna576rfzjks",
+      "contracts": [
+        {
+          "chain": "ETH",
+          "address": "0xE65e9d372F8cAcc7b6dfcd4af6507851Ed31bb44"
+        }
+      ]
+    },
+    {
+      "pub_key": "tthorpub1addwnpepq2flfr96skc5lkwdv0n5xjsnhmuju20x3zndgu42zd8dtkrud9m2vajhww6",
+      "contracts": [
+        {
+          "chain": "ETH",
+          "address": "0xE65e9d372F8cAcc7b6dfcd4af6507851Ed31bb44"
+        }
+      ]
+    },
+    {
+      "pub_key": "tthorpub1addwnpepqwhnus6xs4208d4ynm05lv493amz3fexfjfx4vptntedd7k0ajlcunlfxxs",
+      "contracts": [
+        {
+          "chain": "ETH",
+          "address": "0xE65e9d372F8cAcc7b6dfcd4af6507851Ed31bb44"
+        }
+      ]
+    },
+    {
+      "pub_key": "tthorpub1addwnpepq2mza4j4vplyjw295pkq8j2dan627lz6vufeu22pjx5vnnyjted5vwq3e3d",
+      "contracts": [
+        {
+          "chain": "ETH",
+          "address": "0xE65e9d372F8cAcc7b6dfcd4af6507851Ed31bb44"
+        }
+      ]
+    }
   ],
   "yggdrasil": [
-    "tthorpub1addwnpepq27s79a9xk8hjcpjuthmwnl2z4su43uynekcjuqcnmhpemfgfrh6sm4yd8e",
-    "tthorpub1addwnpepqtsgdw5dj7pj497vr2397pnfctf0d3lf7f2ssu39hts45567syh5xuz5jrs"
+    {
+      "pub_key": "tthorpub1addwnpepq27s79a9xk8hjcpjuthmwnl2z4su43uynekcjuqcnmhpemfgfrh6sm4yd8e",
+      "contracts": [
+        {
+          "chain": "ETH",
+          "address": "0xE65e9d372F8cAcc7b6dfcd4af6507851Ed31bb44"
+        }
+      ]
+    },
+    {
+      "pub_key": "tthorpub1addwnpepqtsgdw5dj7pj497vr2397pnfctf0d3lf7f2ssu39hts45567syh5xuz5jrs",
+      "contracts": [
+        {
+          "chain": "ETH",
+          "address": "0xE65e9d372F8cAcc7b6dfcd4af6507851Ed31bb44"
+        }
+      ]
+    }
   ]
 }

@@ -338,6 +338,8 @@ func (c *Client) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, err
 	if balance < 0 {
 		return nil, fmt.Errorf("not enough balance to pay customer: %d", balance)
 	}
+
+	// if the balance is dust , then just donate it to miners
 	if balance > 0 {
 		c.logger.Info().Msgf("send %d back to self", balance)
 		redeemTx.AddTxOut(wire.NewTxOut(balance, sourceScript))

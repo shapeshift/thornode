@@ -143,7 +143,7 @@ func (s *HandlerDepositSuite) TestDifferentValidation(c *C) {
 			name: "invalid memo should refund",
 			messageProvider: func(c *C, ctx cosmos.Context, helper *HandlerDepositTestHelper) cosmos.Msg {
 				FundAccount(c, ctx, helper.Keeper, acctAddr, 100)
-				vault := NewVault(ctx.BlockHeight(), ActiveVault, AsgardVault, GetRandomPubKey(), common.Chains{common.BNBChain, common.THORChain})
+				vault := NewVault(ctx.BlockHeight(), ActiveVault, AsgardVault, GetRandomPubKey(), common.Chains{common.BNBChain, common.THORChain}, []ChainContract{})
 				c.Check(helper.Keeper.SetVault(ctx, vault), IsNil)
 				return NewMsgDeposit(common.Coins{
 					common.NewCoin(common.RuneNative, cosmos.NewUint(2*common.One)),

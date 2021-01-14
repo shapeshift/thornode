@@ -132,7 +132,7 @@ func newTssHandlerTestHelper(c *C, version semver.Version) tssHandlerTestHelper 
 	voter := NewTssVoter(msg.ID, members, poolPk)
 	keeper.SetTssVoter(ctx, voter)
 
-	asgardVault := NewVault(common.BlockHeight(ctx), ActiveVault, AsgardVault, GetRandomPubKey(), common.Chains{common.RuneAsset().Chain})
+	asgardVault := NewVault(common.BlockHeight(ctx), ActiveVault, AsgardVault, GetRandomPubKey(), common.Chains{common.RuneAsset().Chain}, []ChainContract{})
 	c.Assert(keeper.SetVault(ctx, asgardVault), IsNil)
 	return tssHandlerTestHelper{
 		ctx:           ctx,

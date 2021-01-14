@@ -52,13 +52,14 @@ func (vm *VaultMgrV1) processGenesisSetup(ctx cosmos.Context) error {
 		return errors.New("no active accounts,cannot proceed")
 	}
 	if len(active) == 1 {
-		vault := NewVault(0, ActiveVault, AsgardVault, active[0].PubKeySet.Secp256k1, common.Chains{
+		supportChains := common.Chains{
 			common.THORChain,
 			common.BTCChain,
 			common.BCHChain,
 			common.BNBChain,
 			common.ETHChain,
-		})
+		}
+		vault := NewVault(0, ActiveVault, AsgardVault, active[0].PubKeySet.Secp256k1, supportChains, vm.k.GetChainContracts(ctx, supportChains))
 		vault.Membership = common.PubKeys{active[0].PubKeySet.Secp256k1}
 		if err := vm.k.SetVault(ctx, vault); err != nil {
 			return fmt.Errorf("fail to save vault: %w", err)
@@ -384,7 +385,7 @@ func (vm *VaultMgrV1) manageChains(ctx cosmos.Context, mgr Manager, constAccesso
 	}
 
 	for _, chain := range chains {
-		if err := vm.recallChainFunds(ctx, chain, mgr); err != nil {
+		if err := vm.RecallChainFunds(ctx, chain, mgr, common.PubKeys{}); err != nil {
 			return err
 		}
 
@@ -438,9 +439,9 @@ func (vm *VaultMgrV1) findChainsToRetire(ctx cosmos.Context) (common.Chains, err
 	return chains, nil
 }
 
-// recallChainFunds - sends a message to bifrost nodes to send back all funds
+// RecallChainFunds - sends a message to bifrost nodes to send back all funds
 // associated with given chain
-func (vm *VaultMgrV1) recallChainFunds(ctx cosmos.Context, chain common.Chain, mgr Manager) error {
+func (vm *VaultMgrV1) RecallChainFunds(ctx cosmos.Context, chain common.Chain, mgr Manager, excludeNodes common.PubKeys) error {
 	allNodes, err := vm.k.ListNodeAccountsWithBond(ctx)
 	if err != nil {
 		return fmt.Errorf("fail to list all node accounts: %w", err)
@@ -465,6 +466,9 @@ func (vm *VaultMgrV1) recallChainFunds(ctx cosmos.Context, chain common.Chain, m
 
 	// get yggdrasil to return funds back to asgard
 	for _, node := range allNodes {
+		if excludeNodes.Contains(node.PubKeySet.Secp256k1) {
+			continue
+		}
 		if !vm.k.VaultExists(ctx, node.PubKeySet.Secp256k1) {
 			continue
 		}
@@ -489,6 +493,7 @@ func (vm *VaultMgrV1) recallChainFunds(ctx cosmos.Context, chain common.Chain, m
 				VaultPubKey: ygg.PubKey,
 				Coin:        common.NewCoin(common.RuneAsset(), cosmos.ZeroUint()),
 				Memo:        NewYggdrasilReturn(common.BlockHeight(ctx)).String(),
+				GasRate:     int64(mgr.GasMgr().GetGasRate(ctx, chain).Uint64()),
 			}
 			// yggdrasil- will not set coin field here, when signer see a
 			// TxOutItem that has memo "yggdrasil-" it will query the chain
