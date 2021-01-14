@@ -88,6 +88,7 @@ type VaultManager interface {
 	RotateVault(ctx cosmos.Context, vault Vault) error
 	EndBlock(ctx cosmos.Context, mgr Manager, constAccessor constants.ConstantValues) error
 	UpdateNetwork(ctx cosmos.Context, constAccessor constants.ConstantValues, gasManager GasManager, eventMgr EventManager) error
+	RecallChainFunds(ctx cosmos.Context, chain common.Chain, mgr Manager, excludeNode common.PubKeys) error
 }
 
 // SwapQueue interface define the contract of Swap Queue

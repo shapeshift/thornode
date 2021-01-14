@@ -93,7 +93,7 @@ func (s *QuerierSuite) TestQueryPool(c *C) {
 	path := []string{"pools"}
 
 	pubKey := GetRandomPubKey()
-	asgard := NewVault(common.BlockHeight(ctx), ActiveVault, AsgardVault, pubKey, common.Chains{common.BNBChain})
+	asgard := NewVault(common.BlockHeight(ctx), ActiveVault, AsgardVault, pubKey, common.Chains{common.BNBChain}, []ChainContract{})
 	c.Assert(keeper.SetVault(ctx, asgard), IsNil)
 
 	poolBNB := NewPool()
@@ -508,21 +508,30 @@ func (s *QuerierSuite) TestQueryYggdrasilVault(c *C) {
 }
 
 func (s *QuerierSuite) TestQueryVaultPubKeys(c *C) {
+	node := GetRandomNodeAccount(NodeActive)
+	c.Assert(s.k.SetNodeAccount(s.ctx, node), IsNil)
 	vault := GetRandomVault()
+	vault.PubKey = node.PubKeySet.Secp256k1
 	vault.Type = YggdrasilVault
 	vault.AddFunds(common.Coins{
 		common.NewCoin(common.BNBAsset, cosmos.NewUint(common.One*100)),
 	})
-	s.k.SetVault(s.ctx, vault)
+	vault.Contracts = []types.ChainContract{
+		{
+			Chain:    "ETH",
+			Contract: "0xE65e9d372F8cAcc7b6dfcd4af6507851Ed31bb44",
+		},
+	}
+	c.Assert(s.k.SetVault(s.ctx, vault), IsNil)
+	vault1 := GetRandomVault()
+	vault1.Contracts = vault.Contracts
+	c.Assert(s.k.SetVault(s.ctx, vault1), IsNil)
 	result, err := s.querier(s.ctx, []string{
 		query.QueryVaultPubkeys.Key,
 	}, abci.RequestQuery{})
 	c.Assert(result, NotNil)
 	c.Assert(err, IsNil)
-	var r struct {
-		Asgard    common.PubKeys `json:"asgard"`
-		Yggdrasil common.PubKeys `json:"yggdrasil"`
-	}
+	var r types.QueryVaultsPubKeys
 	c.Assert(s.k.Cdc().UnmarshalJSON(result, &r), IsNil)
 }
 

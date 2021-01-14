@@ -1,7 +1,8 @@
 package thorchain
 
 import (
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 )
 
@@ -29,5 +30,9 @@ func (vm *VaultMgrDummy) RotateVault(ctx cosmos.Context, vault Vault) error {
 }
 
 func (vm *VaultMgrDummy) UpdateNetwork(ctx cosmos.Context, constAccessor constants.ConstantValues, gasManager GasManager, eventMgr EventManager) error {
+	return nil
+}
+
+func (vm *VaultMgrDummy) RecallChainFunds(ctx cosmos.Context, chain common.Chain, mgr Manager, excludeNodeKeys common.PubKeys) error {
 	return nil
 }

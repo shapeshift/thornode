@@ -241,6 +241,7 @@ type KeeperObservedNetworkFeeVoter interface {
 type KeeperChainContract interface {
 	SetChainContract(ctx cosmos.Context, cc ChainContract)
 	GetChainContract(ctx cosmos.Context, chain common.Chain) (ChainContract, error)
+	GetChainContracts(ctx cosmos.Context, chains common.Chains) []ChainContract
 	GetChainContractIterator(ctx cosmos.Context) cosmos.Iterator
 }
 

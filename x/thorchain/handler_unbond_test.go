@@ -75,9 +75,9 @@ func (HandlerUnBondSuite) TestUnBondHandler_Run(c *C) {
 	standbyNodeAccount := GetRandomNodeAccount(NodeStandby)
 	c.Assert(k1.SetNodeAccount(ctx, activeNodeAccount), IsNil)
 	c.Assert(k1.SetNodeAccount(ctx, standbyNodeAccount), IsNil)
-	vault := NewVault(12, ActiveVault, YggdrasilVault, standbyNodeAccount.PubKeySet.Secp256k1, nil)
+	vault := NewVault(12, ActiveVault, YggdrasilVault, standbyNodeAccount.PubKeySet.Secp256k1, nil, []ChainContract{})
 	c.Assert(k1.SetVault(ctx, vault), IsNil)
-	vault = NewVault(12, ActiveVault, AsgardVault, GetRandomPubKey(), nil)
+	vault = NewVault(12, ActiveVault, AsgardVault, GetRandomPubKey(), nil, []ChainContract{})
 	vault.Coins = common.Coins{
 		common.NewCoin(common.RuneAsset(), cosmos.NewUint(10000*common.One)),
 	}

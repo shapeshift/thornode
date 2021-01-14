@@ -285,6 +285,7 @@ func (vm *validatorMgrV1) EndBlock(ctx cosmos.Context, mgr Manager, constAccesso
 			Power:  100,
 		})
 	}
+	removedNodeKeys := common.PubKeys{}
 	for _, na := range removedNodes {
 		status := NodeStandby
 		if na.RequestedToLeave || na.ForcedToLeave {
@@ -315,12 +316,15 @@ func (vm *validatorMgrV1) EndBlock(ctx cosmos.Context, mgr Manager, constAccesso
 			ctx.Logger().Error("fail to parse consensus public key", "key", na.ValidatorConsPubKey, "error", err)
 			continue
 		}
+		removedNodeKeys = append(removedNodeKeys, na.PubKeySet.Secp256k1)
 		validators = append(validators, abci.ValidatorUpdate{
 			PubKey: tmtypes.TM2PB.PubKey(pk),
 			Power:  0,
 		})
 	}
-
+	if err := vm.checkContractUpgrade(ctx, mgr, removedNodeKeys); err != nil {
+		ctx.Logger().Error("fail to check contract upgrade", "error", err)
+	}
 	// reset all nodes in ready status back to standby status
 	ready, err := vm.k.ListNodeAccountsByStatus(ctx, NodeReady)
 	if err != nil {
@@ -334,6 +338,53 @@ func (vm *validatorMgrV1) EndBlock(ctx cosmos.Context, mgr Manager, constAccesso
 	}
 
 	return validators
+}
+
+// checkContractUpgrade for those chains that support smart contract, it the contract get changed , then the network have to recall all
+// the yggdrasil fund for chain, take ETH for example , if the smart contract used to process transactions on ETH chain get updated for some reason
+// then the network has to recall all the fund on ETH(include both ETH and ERC20)
+func (vm *validatorMgrV1) checkContractUpgrade(ctx cosmos.Context, mgr Manager, removedNodeKeys common.PubKeys) error {
+	activeVaults, err := vm.k.GetAsgardVaultsByStatus(ctx, ActiveVault)
+	if err != nil {
+		return fmt.Errorf("fail to get active asgards: %w", err)
+	}
+	retiringVaults, err := vm.k.GetAsgardVaultsByStatus(ctx, RetiringVault)
+	if err != nil {
+		return fmt.Errorf("fail to get retiring asgards: %w", err)
+	}
+
+	// no active asgard vault , not possible
+	if len(activeVaults) == 0 {
+		return nil
+	}
+	if len(retiringVaults) == 0 {
+		return nil
+	}
+	oldChainContracts := retiringVaults[0].Contracts
+	newChainContracts := activeVaults[0].Contracts
+	chains := common.Chains{}
+	for _, old := range oldChainContracts {
+		found := false
+		for _, n := range newChainContracts {
+			if n.Chain.Equals(old.Chain) {
+				found = true
+				if !n.Contract.Equals(old.Contract) {
+					// contract address get changed , need to recall funds
+					chains = append(chains, n.Chain)
+				}
+			}
+		}
+		if !found {
+			chains = append(chains, old.Chain)
+		}
+	}
+
+	for _, c := range chains.Distinct() {
+		if err := vm.vaultMgr.RecallChainFunds(ctx, c, mgr, removedNodeKeys); err != nil {
+			ctx.Logger().Error("fail to recall chain fund", "error", err, "chain", c.String())
+		}
+	}
+	return nil
 }
 
 // getChangedNodes to identify which node had been removed ,and which one had been added
@@ -831,6 +882,9 @@ func (vm *validatorMgrV1) RequestYggReturn(ctx cosmos.Context, node NodeAccount,
 				VaultPubKey: ygg.PubKey,
 				Coin:        common.NewCoin(common.RuneAsset(), cosmos.ZeroUint()),
 				Memo:        NewYggdrasilReturn(common.BlockHeight(ctx)).String(),
+				GasRate:     int64(mgr.GasMgr().GetGasRate(ctx, chain).Uint64()),
+				// DO NOT specify MaxGas , for yggdrasil return , should allow node to spend more on gas , for example ETH, return multiple
+				// ERC20 token / ETH at the same time cost a lot gas
 			}
 
 			// yggdrasil- will not set coin field here, when signer see a TxOutItem that has memo "yggdrasil-" it will query the chain
@@ -1125,6 +1179,7 @@ func (vm *validatorMgrV1) markReadyActors(ctx cosmos.Context, constAccessor cons
 	return nil
 }
 
+// NodeAccountPreflightCheck preflight check to find out what the node account's next status will be
 func (vm *validatorMgrV1) NodeAccountPreflightCheck(ctx cosmos.Context, na NodeAccount, constAccessor constants.ConstantValues) (NodeStatus, error) {
 	// ensure banned nodes can't get churned in again
 	if na.ForcedToLeave {

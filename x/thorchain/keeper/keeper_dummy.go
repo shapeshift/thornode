@@ -370,6 +370,10 @@ func (k KVStoreDummy) GetChainContractIterator(ctx cosmos.Context) cosmos.Iterat
 	return nil
 }
 
+func (k KVStoreDummy) GetChainContracts(ctx cosmos.Context, chains common.Chains) []ChainContract {
+	return nil
+}
+
 // a mock cosmos.Iterator implementation for testing purposes
 type DummyIterator struct {
 	cosmos.Iterator
