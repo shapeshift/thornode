@@ -34,24 +34,25 @@ const (
 
 // Vault usually represent the account THORNode is using
 type Vault struct {
-	BlockHeight           int64          `json:"block_height"`
-	PubKey                common.PubKey  `json:"pub_key"`
-	Coins                 common.Coins   `json:"coins"`
-	Type                  VaultType      `json:"type"`
-	Status                VaultStatus    `json:"status"`
-	StatusSince           int64          `json:"status_since"`
-	Membership            common.PubKeys `json:"membership"`
-	Chains                common.Chains  `json:"chains"`
-	InboundTxCount        int64          `json:"inbound_tx_count"`
-	OutboundTxCount       int64          `json:"outbound_tx_count"`
-	PendingTxBlockHeights []int64        `json:"pending_tx_heights"`
+	BlockHeight           int64           `json:"block_height"`
+	PubKey                common.PubKey   `json:"pub_key"`
+	Coins                 common.Coins    `json:"coins"`
+	Type                  VaultType       `json:"type"`
+	Status                VaultStatus     `json:"status"`
+	StatusSince           int64           `json:"status_since"`
+	Membership            common.PubKeys  `json:"membership"`
+	Chains                common.Chains   `json:"chains"`
+	InboundTxCount        int64           `json:"inbound_tx_count"`
+	OutboundTxCount       int64           `json:"outbound_tx_count"`
+	PendingTxBlockHeights []int64         `json:"pending_tx_heights"`
+	Contracts             []ChainContract `json:"contracts"` // for those block chain that support smart contract ETH for example
 }
 
 // Vaults a list of vault
 type Vaults []Vault
 
 // NewVault create a new instance of vault
-func NewVault(height int64, status VaultStatus, vtype VaultType, pk common.PubKey, chains common.Chains) Vault {
+func NewVault(height int64, status VaultStatus, vtype VaultType, pk common.PubKey, chains common.Chains, contracts []ChainContract) Vault {
 	return Vault{
 		BlockHeight: height,
 		StatusSince: height,
@@ -60,6 +61,7 @@ func NewVault(height int64, status VaultStatus, vtype VaultType, pk common.PubKe
 		Type:        vtype,
 		Status:      status,
 		Chains:      chains,
+		Contracts:   contracts,
 	}
 }
 
@@ -88,6 +90,7 @@ func (v Vault) Contains(pubkey common.PubKey) bool {
 	return v.Membership.Contains(pubkey)
 }
 
+// MembershipEquals check whether the vault has the same membership as the given pubkeys
 func (v Vault) MembershipEquals(pks common.PubKeys) bool {
 	if len(v.Membership) != len(pks) {
 		return false
@@ -190,6 +193,30 @@ func (v Vault) GetMembers(activeObservers []cosmos.AccAddress) (common.PubKeys, 
 		}
 	}
 	return signers, nil
+}
+
+// GetContract return the contract that match the request chain
+func (v Vault) GetContract(chain common.Chain) ChainContract {
+	for _, item := range v.Contracts {
+		if item.Chain.Equals(chain) {
+			return item
+		}
+	}
+	return ChainContract{}
+}
+
+// UpdateContract update the chain contract
+func (v *Vault) UpdateContract(chainContract ChainContract) {
+	exist := false
+	for i, item := range v.Contracts {
+		if item.Chain.Equals(chainContract.Chain) {
+			v.Contracts[i] = chainContract
+			exist = true
+		}
+	}
+	if !exist {
+		v.Contracts = append(v.Contracts, chainContract)
+	}
 }
 
 // AddFunds add given coins into vault

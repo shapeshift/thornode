@@ -95,7 +95,17 @@ func (ymgr YggMgrV1) Fund(ctx cosmos.Context, mgr Manager, constAccessor constan
 		if !errors.Is(err, kvTypes.ErrVaultNotFound) {
 			return fmt.Errorf("fail to get yggdrasil: %w", err)
 		}
-		ygg = NewVault(common.BlockHeight(ctx), ActiveVault, YggdrasilVault, na.PubKeySet.Secp256k1, nil)
+		// get what chain asgard currently support
+		asgards, err := ymgr.keeper.GetAsgardVaultsByStatus(ctx, ActiveVault)
+		if err != nil {
+			return fmt.Errorf("fail to get active asgards: %w", err)
+		}
+		if len(asgards) == 0 {
+			return fmt.Errorf("can't find current active asgard: %w", err)
+		}
+		supportChains := asgards[0].Chains
+		// supported chain for yggdrasil vault will be set at the time when it get created
+		ygg = NewVault(common.BlockHeight(ctx), ActiveVault, YggdrasilVault, na.PubKeySet.Secp256k1, supportChains, ymgr.keeper.GetChainContracts(ctx, supportChains))
 		ygg.Membership = append(ygg.Membership, na.PubKeySet.Secp256k1)
 
 		if err := ymgr.keeper.SetVault(ctx, ygg); err != nil {
@@ -187,6 +197,8 @@ func (ymgr YggMgrV1) sendCoinsToYggdrasil(ctx cosmos.Context, coins common.Coins
 				continue
 			}
 
+			ymgr.shouldFundYggdrasil(ctx, active[0], ygg, coin.Asset.Chain)
+
 			// when the coin need to be send to yggdrasil is gas coin , for example BNB(Binance) / BTC (Bitcoin)
 			// the gas cost need to be count in , as the gas cost will be paid by the chosen vault
 			totalAmount := coin.Amount
@@ -243,6 +255,24 @@ func (ymgr YggMgrV1) sendCoinsToYggdrasil(ctx cosmos.Context, coins common.Coins
 	}
 
 	return count, nil
+}
+
+// shoudFundYggdrasil  make sure asgard and the yggdrasil is using the same contract for the given chain.
+// in a scenario that when contract get updated , all yggdrasil vaults will have to return their fund from old contract to
+// new contract , once that happen and detected by THORChain, yggdrasil vault's smart contract will be updated to the new address
+// if there are different , means yggdrasil didn't transfer their fund from old control to new one
+// thus asgard should not send yggdrasil fund for the chain
+func (ymgr YggMgrV1) shouldFundYggdrasil(ctx cosmos.Context, asgard, ygg Vault, chain common.Chain) bool {
+	asgardContract := asgard.GetContract(chain)
+	if asgardContract.IsEmpty() {
+		// the request chain doesn't support contract
+		return true
+	}
+	yggContract := ygg.GetContract(chain)
+	if asgardContract.Contract.Equals(yggContract.Contract) {
+		return true
+	}
+	return false
 }
 
 // calcTargetYggCoins - calculate the amount of coins of each pool a yggdrasil

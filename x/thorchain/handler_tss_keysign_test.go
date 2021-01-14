@@ -104,7 +104,7 @@ func newTssKeysignHandlerTestHelper(c *C, ver semver.Version) tssKeysignFailHand
 		FailReason: "whatever",
 		BlameNodes: []blame.Node{members[0], members[1]},
 	}
-	asgardVault := NewVault(common.BlockHeight(ctx), ActiveVault, AsgardVault, GetRandomPubKey(), common.Chains{common.BNBChain})
+	asgardVault := NewVault(common.BlockHeight(ctx), ActiveVault, AsgardVault, GetRandomPubKey(), common.Chains{common.BNBChain}, []ChainContract{})
 	c.Assert(keeper.SetVault(ctx, asgardVault), IsNil)
 	return tssKeysignFailHandlerTestHelper{
 		ctx:           ctx,

@@ -2,6 +2,7 @@ package ethereum
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/storage"
@@ -27,26 +28,32 @@ func (s *EthereumTokenMetaTestSuite) TestTokenMeta(c *C) {
 	memStorage := storage.NewMemStorage()
 	db, err := leveldb.Open(memStorage, nil)
 	c.Assert(err, IsNil)
-	TokenMeta, err := NewLevelDBTokenMeta(db)
+	tokenMeta, err := NewLevelDBTokenMeta(db)
 	c.Assert(err, IsNil)
-	c.Assert(TokenMeta, NotNil)
+	c.Assert(tokenMeta, NotNil)
 
-	c.Assert(TokenMeta.SaveTokenMeta("TKN", "0xa7d9ddbe1f17865597fbd27ec712455208b6b76d", 18), IsNil)
+	c.Assert(tokenMeta.SaveTokenMeta("TKN", "0xa7d9ddbe1f17865597fbd27ec712455208b6b76d", 18), IsNil)
 
-	key := TokenMeta.getTokenMetaKey("0xa7d9ddbe1f17865597fbd27ec712455208b6b76d")
-	c.Assert(key, Equals, fmt.Sprintf(prefixTokenMeta+"%s", "0xa7d9ddbe1f17865597fbd27ec712455208b6b76d"))
+	key := tokenMeta.getTokenMetaKey("0xa7d9ddbe1f17865597fbd27ec712455208b6b76d")
+	c.Assert(key, Equals, fmt.Sprintf(prefixTokenMeta+"%s", strings.ToUpper("0xa7d9ddbe1f17865597fbd27ec712455208b6b76d")))
 
-	tm, err := TokenMeta.GetTokenMeta("0xa7d9ddbe1f17865597fbd27ec712455208b6b76d")
+	tm, err := tokenMeta.GetTokenMeta("0xa7d9ddbe1f17865597fbd27ec712455208b6b76d")
 	c.Assert(err, IsNil)
 	c.Assert(tm, NotNil)
 
-	ntm, err := TokenMeta.GetTokenMeta("0xa7d9ddbs1f17865597fbd27ec712455208b6b76d")
+	ntm, err := tokenMeta.GetTokenMeta("0xa7d9ddbs1f17865597fbd27ec712455208b6b76d")
 	c.Assert(err, IsNil)
 	c.Assert(ntm.IsEmpty(), Equals, true)
 
-	c.Assert(TokenMeta.SaveTokenMeta("TRN", "0xa7d9ddbs1f17865597fbd27ec712455208b6b76d", 18), IsNil)
+	c.Assert(tokenMeta.SaveTokenMeta("TRN", "0xa7d9ddbs1f17865597fbd27ec712455208b6b76d", 18), IsNil)
 
-	TokenMetas, err := TokenMeta.GetTokens()
+	tokens, err := tokenMeta.GetTokens()
 	c.Assert(err, IsNil)
-	c.Assert(TokenMetas, HasLen, 2)
+	c.Assert(tokens, HasLen, 2)
+
+	// make sure we are not going to set a new token
+	c.Assert(tokenMeta.SaveTokenMeta("TRN", "0xA7D9ddbs1f17865597fbd27ec712455208b6b76d", 18), IsNil)
+	tokens, err = tokenMeta.GetTokens()
+	c.Assert(err, IsNil)
+	c.Assert(tokens, HasLen, 2)
 }

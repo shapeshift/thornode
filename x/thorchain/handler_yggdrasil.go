@@ -225,10 +225,14 @@ func (h YggdrasilHandler) handleYggdrasilReturnV1(ctx cosmos.Context, msg MsgYgg
 			return nil, ErrInternal(err, "unable to get asgard vaults")
 		}
 		vaults := Vaults{}
+		var contracts []ChainContract
 		for _, v := range asgardVaults {
 			// make sure vaults have both active asgard vault , and also retiring asgard vault
 			if v.Status == ActiveVault || v.Status == RetiringVault {
 				vaults = append(vaults, v)
+			}
+			if v.Status == ActiveVault {
+				contracts = v.Contracts
 			}
 		}
 
@@ -242,6 +246,40 @@ func (h YggdrasilHandler) handleYggdrasilReturnV1(ctx cosmos.Context, msg MsgYgg
 			// not sending to asgard , slash the node account
 			if err := h.slash(ctx, version, msg.PubKey, msg.Tx.Coins); err != nil {
 				return nil, ErrInternal(err, "fail to slash account for sending fund to a none asgard vault using yggdrasil-")
+			}
+		}
+
+		// when yggdrasil return fund , check all the chains that support contract
+		// once all the fund had been returned, then update the chain's contract to match asgard contract address
+		// thus new yggdrasil will be fund with new contract
+		for _, contract := range contracts {
+			if vault.HasFundsForChain(contract.Chain) {
+				var noneZeroCoins common.Coins
+				for _, c := range vault.Coins {
+					if !c.Asset.Chain.Equals(contract.Chain) {
+						continue
+					}
+					if c.Amount.IsZero() {
+						continue
+					}
+					noneZeroCoins = append(noneZeroCoins, c)
+				}
+				// there are more than 1 coins that are not zero , that means yggdrasil vault doesn't send everything back yet
+				if len(noneZeroCoins) > 1 {
+					continue
+				}
+				// None zero coin is not gas coin,for example on ETH , the coin has outstanding balance is not ETH
+				if !noneZeroCoins[0].Asset.Equals(contract.Chain.GetGasAsset()) {
+					continue
+				}
+				// if the logic reach here , which means there might only have gas coin left with some balance in it
+				// which is ok, because gas asset is not going to be hold by the smart contract , it will be hold by vault itself
+				// thus the network can go ahead and update the vault's contract
+				ctx.Logger().Info("only gas token left in the vault, continue to update contract", "gas token", contract.Chain.GetGasAsset().String(), "amount", noneZeroCoins[0].Amount.String())
+			}
+			vault.UpdateContract(contract)
+			if err := h.keeper.SetVault(ctx, vault); err != nil {
+				return nil, fmt.Errorf("fail to save vault: %w", err)
 			}
 		}
 

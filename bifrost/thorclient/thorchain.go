@@ -381,7 +381,8 @@ func (b *ThorchainBridge) GetAsgards() (stypes.Vaults, error) {
 	return vaults, nil
 }
 
-func (b *ThorchainBridge) GetPubKeys() (common.PubKeys, error) {
+// GetPubKeys retrieve asgard vaults and yggdrasil vaults , and it's relevant smart contracts
+func (b *ThorchainBridge) GetPubKeys() ([]PubKeyContractAddressPair, error) {
 	buf, s, err := b.getWithPath(PubKeysEndpoint)
 	if err != nil {
 		return nil, fmt.Errorf("fail to get asgard vaults: %w", err)
@@ -389,15 +390,23 @@ func (b *ThorchainBridge) GetPubKeys() (common.PubKeys, error) {
 	if s != http.StatusOK {
 		return nil, fmt.Errorf("unexpected status code %d", s)
 	}
-	var pubs struct {
-		Asgard    common.PubKeys `json:"asgard"`
-		Yggdrasil common.PubKeys `json:"yggdrasil"`
-	}
-	if err := b.cdc.UnmarshalJSON(buf, &pubs); err != nil {
+	var result stypes.QueryVaultsPubKeys
+	if err := b.cdc.UnmarshalJSON(buf, &result); err != nil {
 		return nil, fmt.Errorf("fail to unmarshal pubkeys: %w", err)
 	}
-	pubkeys := append(pubs.Asgard, pubs.Yggdrasil...)
-	return pubkeys, nil
+	var addressPairs []PubKeyContractAddressPair
+	for _, v := range append(result.Asgard, result.Yggdrasil...) {
+		kp := PubKeyContractAddressPair{
+			PubKey:    v.PubKey,
+			Contracts: make(map[common.Chain]common.Address),
+		}
+		for _, item := range v.Contracts {
+			kp.Contracts[item.Chain] = item.Contract
+		}
+
+		addressPairs = append(addressPairs, kp)
+	}
+	return addressPairs, nil
 }
 
 // PostNetworkFee send network fee message to THORNode
