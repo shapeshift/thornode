@@ -595,10 +595,10 @@ func (*VaultManagerV1TestSuite) TestRecallChainFunds(c *C) {
 	mgr.BeginBlock(ctx)
 	vaultMgr := NewVaultMgrV1(helper, mgr.TxOutStore(), mgr.EventMgr())
 	helper.failToListActiveAccounts = true
-	c.Assert(vaultMgr.recallChainFunds(ctx, common.BNBChain, mgr), NotNil)
+	c.Assert(vaultMgr.RecallChainFunds(ctx, common.BNBChain, mgr, common.PubKeys{}), NotNil)
 	helper.failToListActiveAccounts = false
 
 	helper.failGetActiveAsgardVault = true
-	c.Assert(vaultMgr.recallChainFunds(ctx, common.BNBChain, mgr), NotNil)
+	c.Assert(vaultMgr.RecallChainFunds(ctx, common.BNBChain, mgr, common.PubKeys{}), NotNil)
 	helper.failGetActiveAsgardVault = false
 }

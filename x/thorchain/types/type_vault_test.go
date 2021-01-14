@@ -19,7 +19,7 @@ func (s *VaultSuite) TestVault(c *C) {
 	c.Check(vault.IsEmpty(), Equals, true)
 	c.Check(vault.Valid(), NotNil)
 
-	vault = NewVault(12, ActiveVault, YggdrasilVault, pk, common.Chains{common.BNBChain})
+	vault = NewVault(12, ActiveVault, YggdrasilVault, pk, common.Chains{common.BNBChain}, []ChainContract{})
 	c.Check(vault.PubKey.Equals(pk), Equals, true)
 	c.Check(vault.HasFunds(), Equals, false)
 	c.Check(vault.IsEmpty(), Equals, false)
@@ -62,7 +62,7 @@ func (s *VaultSuite) TestVault(c *C) {
 	c.Assert(vault.Chains.Has(common.ETHChain), Equals, true)
 	c.Assert(vault.Chains.Has(common.BTCChain), Equals, true)
 
-	vault1 := NewVault(1024, ActiveVault, AsgardVault, pk, common.Chains{common.BNBChain, common.BTCChain, common.ETHChain})
+	vault1 := NewVault(1024, ActiveVault, AsgardVault, pk, common.Chains{common.BNBChain, common.BTCChain, common.ETHChain}, []ChainContract{})
 	vault1.Membership = append(vault.Membership, pk)
 	c.Check(vault1.IsType(AsgardVault), Equals, true)
 	c.Check(vault1.IsType(YggdrasilVault), Equals, false)
@@ -75,7 +75,7 @@ func (s *VaultSuite) TestVault(c *C) {
 }
 
 func (s *VaultSuite) TestGetTssSigners(c *C) {
-	vault := NewVault(12, ActiveVault, AsgardVault, GetRandomPubKey(), common.Chains{common.BNBChain})
+	vault := NewVault(12, ActiveVault, AsgardVault, GetRandomPubKey(), common.Chains{common.BNBChain}, []ChainContract{})
 	nodeAccounts := NodeAccounts{}
 	memberShip := common.PubKeys{}
 	for i := 0; i < 10; i++ {
@@ -96,7 +96,7 @@ func (s *VaultSuite) TestGetTssSigners(c *C) {
 }
 
 func (s *VaultSuite) TestPendingTxBlockHeights(c *C) {
-	vault := NewVault(12, ActiveVault, AsgardVault, GetRandomPubKey(), common.Chains{common.BNBChain})
+	vault := NewVault(12, ActiveVault, AsgardVault, GetRandomPubKey(), common.Chains{common.BNBChain}, []ChainContract{})
 
 	version := constants.SWVersion
 	constAccessor := constants.GetConstantValues(version)
@@ -121,7 +121,7 @@ func (s *VaultSuite) TestVaultSort(c *C) {
 			common.BTCChain,
 			common.BNBChain,
 			common.ETHChain,
-		})
+		}, []ChainContract{})
 	vault.AddFunds(common.Coins{
 		common.NewCoin(common.BNBAsset, cosmos.NewUint(common.One*100)),
 		common.NewCoin(common.BTCAsset, cosmos.NewUint(common.One*50)),
@@ -132,7 +132,7 @@ func (s *VaultSuite) TestVaultSort(c *C) {
 			common.BTCChain,
 			common.BNBChain,
 			common.ETHChain,
-		})
+		}, []ChainContract{})
 	vault1.AddFunds(common.Coins{
 		common.NewCoin(common.BNBAsset, cosmos.NewUint(common.One*90)),
 		common.NewCoin(common.BTCAsset, cosmos.NewUint(common.One*90)),

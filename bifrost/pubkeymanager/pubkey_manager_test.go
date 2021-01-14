@@ -1,6 +1,7 @@
 package pubkeymanager
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -72,7 +73,19 @@ func (s *PubKeyMgrSuite) TestFetchKeys(c *C) {
 		c.Logf("================>:%s", r.RequestURI)
 		switch r.RequestURI {
 		case "/thorchain/vaults/pubkeys":
-			if _, err := w.Write([]byte(fmt.Sprintf(`{"asgard": ["%s"], "yggdrasil": []}`, pk1))); err != nil {
+			var result types.QueryVaultsPubKeys
+			result.Asgard = append(result.Asgard, types.QueryVaultPubKeyContract{
+				PubKey: pk1,
+				Contracts: []types.ChainContract{
+					{
+						Chain:    common.ETHChain,
+						Contract: "0xE65e9d372F8cAcc7b6dfcd4af6507851Ed31bb44",
+					},
+				},
+			})
+			buf, err := json.MarshalIndent(result, "", "	")
+			c.Assert(err, IsNil)
+			if _, err := w.Write(buf); err != nil {
 				c.Error(err)
 			}
 		case "/thorchain/vaults/asgard":

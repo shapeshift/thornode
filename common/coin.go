@@ -151,7 +151,7 @@ func (cs Coins) Contains(c Coin) bool {
 	return false
 }
 
-// Gets a specific coin by asset. Assumes there is only one of this coin in the
+// GetCoin gets a specific coin by asset. Assumes there is only one of this coin in the
 // list.
 func (cs Coins) GetCoin(asset Asset) Coin {
 	for _, item := range cs {
@@ -160,4 +160,15 @@ func (cs Coins) GetCoin(asset Asset) Coin {
 		}
 	}
 	return NoCoin
+}
+
+// Distinct return a new Coins ,which duplicated coins had been removed
+func (cs Coins) Distinct() Coins {
+	newCoins := Coins{}
+	for _, item := range cs {
+		if !newCoins.Contains(item) {
+			newCoins = append(newCoins, item)
+		}
+	}
+	return newCoins
 }
