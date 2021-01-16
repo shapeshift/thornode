@@ -37,12 +37,6 @@ func (k *TestSlashingLackKeeper) PoolExist(ctx cosmos.Context, asset common.Asse
 	return true
 }
 
-func (k *TestSlashingLackKeeper) ListTxMarker(ctx cosmos.Context, hash string) (TxMarkers, error) {
-	return TxMarkers{
-		NewTxMarker(common.BlockHeight(ctx), "my memo"),
-	}, nil
-}
-
 func (k *TestSlashingLackKeeper) GetObservedTxInVoter(_ cosmos.Context, _ common.TxID) (ObservedTxVoter, error) {
 	if k.failGetObservedTxVoter {
 		return ObservedTxVoter{}, kaboom
@@ -458,7 +452,7 @@ func (s *SlashingV1Suite) TestNotSigningSlash(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(outItems, HasLen, 1)
 	c.Assert(outItems[0].VaultPubKey.Equals(keeper.vaults[0].PubKey), Equals, true)
-	c.Assert(outItems[0].Memo, Equals, "my memo")
+	c.Assert(outItems[0].Memo, Equals, "")
 	c.Assert(keeper.voter.Actions, HasLen, 1)
 	// ensure we've updated our action item
 	c.Assert(keeper.voter.Actions[0].VaultPubKey.Equals(outItems[0].VaultPubKey), Equals, true)

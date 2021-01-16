@@ -142,17 +142,6 @@ func (h ObservedTxOutHandler) handleV1(ctx cosmos.Context, version semver.Versio
 			}
 			continue
 		}
-		tx.Tx.Memo = fetchMemo(ctx, constAccessor, h.keeper, tx.Tx)
-		if len(tx.Tx.Memo) == 0 {
-			// we didn't find our memo, it might be yggdrasil return. These are
-			// tx markers without coin amounts because we allow yggdrasil to
-			// figure out the coin amounts
-			txYgg := tx.Tx
-			txYgg.Coins = common.Coins{
-				common.NewCoin(common.RuneAsset(), cosmos.ZeroUint()),
-			}
-			tx.Tx.Memo = fetchMemo(ctx, constAccessor, h.keeper, txYgg)
-		}
 		ctx.Logger().Info("handleMsgObservedTxOut request", "Tx:", tx.String())
 
 		// if memo isn't valid or its an inbound memo, and its funds moving

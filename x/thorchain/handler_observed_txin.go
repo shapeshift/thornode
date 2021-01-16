@@ -152,17 +152,6 @@ func (h ObservedTxInHandler) handleV1(ctx cosmos.Context, version semver.Version
 		}
 
 		// all logic after this  is after consensus
-		tx.Tx.Memo = fetchMemo(ctx, constAccessor, h.keeper, tx.Tx)
-		if len(tx.Tx.Memo) == 0 {
-			// we didn't find our memo, it might be yggdrasil return. These are
-			// tx markers without coin amounts because we allow yggdrasil to
-			// figure out the coin amounts
-			txYgg := tx.Tx
-			txYgg.Coins = common.Coins{
-				common.NewCoin(common.RuneAsset(), cosmos.ZeroUint()),
-			}
-			tx.Tx.Memo = fetchMemo(ctx, constAccessor, h.keeper, txYgg)
-		}
 
 		ctx.Logger().Info("handleMsgObservedTxIn request", "Tx:", tx.String())
 		if voter.Reverted {
