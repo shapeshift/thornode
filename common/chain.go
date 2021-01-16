@@ -6,6 +6,7 @@ import (
 
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/cosmos/cosmos-sdk/types"
+	ltcchaincfg "github.com/ltcsuite/ltcd/chaincfg"
 	btypes "gitlab.com/thorchain/binance-sdk/common/types"
 )
 
@@ -14,6 +15,7 @@ var (
 	BNBChain   = Chain("BNB")
 	ETHChain   = Chain("ETH")
 	BTCChain   = Chain("BTC")
+	LTCChain   = Chain("LTC")
 	BCHChain   = Chain("BCH")
 	THORChain  = Chain("THOR")
 
@@ -94,6 +96,8 @@ func (c Chain) GetGasAsset() Asset {
 		return BNBAsset
 	case BTCChain:
 		return BTCAsset
+	case LTCChain:
+		return LTCAsset
 	case BCHChain:
 		return BCHAsset
 	case ETHChain:
@@ -117,6 +121,8 @@ func (c Chain) AddressPrefix(cn ChainNetwork) string {
 			return types.GetConfig().GetBech32AccountAddrPrefix()
 		case BTCChain:
 			return chaincfg.RegressionNetParams.Bech32HRPSegwit
+		case LTCChain:
+			return ltcchaincfg.RegressionNetParams.Bech32HRPSegwit
 		}
 	case TestNet:
 		switch c {
@@ -129,6 +135,8 @@ func (c Chain) AddressPrefix(cn ChainNetwork) string {
 			return types.GetConfig().GetBech32AccountAddrPrefix()
 		case BTCChain:
 			return chaincfg.TestNet3Params.Bech32HRPSegwit
+		case LTCChain:
+			return ltcchaincfg.TestNet4Params.Bech32HRPSegwit
 		}
 	case MainNet:
 		switch c {
@@ -140,6 +148,8 @@ func (c Chain) AddressPrefix(cn ChainNetwork) string {
 			return types.GetConfig().GetBech32AccountAddrPrefix()
 		case BTCChain:
 			return chaincfg.MainNetParams.Bech32HRPSegwit
+		case LTCChain:
+			return ltcchaincfg.MainNetParams.Bech32HRPSegwit
 		}
 	}
 	return ""

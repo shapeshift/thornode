@@ -18,6 +18,7 @@ services:
       BINANCE_HOST: ${BINANCE_HOST:-http://binance-mock:26660}
       BTC_HOST: ${BTC_HOST:-bitcoin-regtest:18443}
       BCH_HOST: ${BCH_HOST:-bitcoin-cash-regtest:28443}
+      LTC_HOST: ${LTC_HOST:-litecoin-regtest:38443}
       ETH_HOST: ${ETH_HOST:-http://ethereum-localnet:8545}
       CONTRACT: ${CONTRACT:-0xE65e9d372F8cAcc7b6dfcd4af6507851Ed31bb44}
       PEER: ${PEER:-}
