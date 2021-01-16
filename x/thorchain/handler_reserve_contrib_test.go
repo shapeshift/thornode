@@ -31,20 +31,6 @@ func newReserveContributorKeeper(k keeper.Keeper) *reserveContributorKeeper {
 	}
 }
 
-func (k *reserveContributorKeeper) GetReservesContributors(ctx cosmos.Context) (ReserveContributors, error) {
-	if k.errGetReserveContributors {
-		return ReserveContributors{}, kaboom
-	}
-	return k.Keeper.GetReservesContributors(ctx)
-}
-
-func (k *reserveContributorKeeper) SetReserveContributors(ctx cosmos.Context, contributors ReserveContributors) error {
-	if k.errSetReserveContributors {
-		return kaboom
-	}
-	return k.Keeper.SetReserveContributors(ctx, contributors)
-}
-
 func (k *reserveContributorKeeper) GetNetwork(ctx cosmos.Context) (Network, error) {
 	if k.errGetNetwork {
 		return Network{}, kaboom
@@ -96,7 +82,6 @@ func newReserveContributorHandlerHelper(c *C) reserveContributorHandlerHelper {
 }
 
 func (h HandlerReserveContributorSuite) TestReserveContributorHandler(c *C) {
-	c.Skip("TODO: disable reserve contributor handler")
 	testCases := []struct {
 		name           string
 		messageCreator func(helper reserveContributorHandlerHelper) cosmos.Msg
@@ -197,7 +182,9 @@ func (h HandlerReserveContributorSuite) TestReserveContributorHandler(c *C) {
 		{
 			name: "normal reserve contribute message should return success",
 			messageCreator: func(helper reserveContributorHandlerHelper) cosmos.Msg {
-				return NewMsgReserveContributor(GetRandomTx(), helper.reserveContributor, helper.nodeAccount.NodeAddress)
+				tx := GetRandomTx()
+				tx.Coins = common.NewCoins(common.NewCoin(common.RuneAsset(), cosmos.NewUint(10*common.One)))
+				return NewMsgReserveContributor(tx, helper.reserveContributor, helper.nodeAccount.NodeAddress)
 			},
 			runner: func(handler ReserveContributorHandler, helper reserveContributorHandlerHelper, msg cosmos.Msg) (*cosmos.Result, error) {
 				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)

@@ -154,8 +154,6 @@ type KeeperVault interface {
 }
 
 type KeeperReserveContributors interface {
-	GetReservesContributors(ctx cosmos.Context) (ReserveContributors, error)
-	SetReserveContributors(ctx cosmos.Context, contributors ReserveContributors) error
 	AddFeeToReserve(ctx cosmos.Context, fee cosmos.Uint) error
 }
 

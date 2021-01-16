@@ -5,6 +5,7 @@ import (
 
 	"github.com/blang/semver"
 
+	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
@@ -65,14 +66,9 @@ func (h ReserveContributorHandler) handle(ctx cosmos.Context, msg MsgReserveCont
 
 // handleV1  process MsgReserveContributor
 func (h ReserveContributorHandler) handleV1(ctx cosmos.Context, msg MsgReserveContributor, version semver.Version) error {
-	reses, err := h.keeper.GetReservesContributors(ctx)
-	if err != nil {
-		return err
-	}
-
-	reses = reses.Add(msg.Contributor)
-	if err := h.keeper.SetReserveContributors(ctx, reses); err != nil {
-		return fmt.Errorf("fail to save reserve contributors: %w", err)
+	coin := msg.Tx.Coins.GetCoin(common.RuneAsset())
+	if err := h.keeper.AddFeeToReserve(ctx, coin.Amount); err != nil {
+		return fmt.Errorf("fail to add to reserve: %w", err)
 	}
 
 	reserveEvent := NewEventReserve(msg.Contributor, msg.Tx)
