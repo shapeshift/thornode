@@ -312,15 +312,6 @@ func (k KVStoreDummy) GetGas(_ cosmos.Context, _ common.Asset) ([]cosmos.Uint, e
 func (k KVStoreDummy) SetGas(_ cosmos.Context, _ common.Asset, _ []cosmos.Uint) {}
 func (k KVStoreDummy) GetGasIterator(ctx cosmos.Context) cosmos.Iterator        { return nil }
 
-func (k KVStoreDummy) ListTxMarker(_ cosmos.Context, _ string) (TxMarkers, error) {
-	return nil, kaboom
-}
-func (k KVStoreDummy) SetTxMarkers(_ cosmos.Context, _ string, _ TxMarkers) error  { return kaboom }
-func (k KVStoreDummy) AppendTxMarker(_ cosmos.Context, _ string, _ TxMarker) error { return kaboom }
-func (k KVStoreDummy) GetAllTxMarkers(ctx cosmos.Context) (map[string]TxMarkers, error) {
-	return nil, kaboom
-}
-
 func (k KVStoreDummy) SetErrataTxVoter(_ cosmos.Context, _ ErrataTxVoter)        {}
 func (k KVStoreDummy) GetErrataTxVoterIterator(_ cosmos.Context) cosmos.Iterator { return nil }
 func (k KVStoreDummy) GetErrataTxVoter(_ cosmos.Context, _ common.TxID, _ common.Chain) (ErrataTxVoter, error) {

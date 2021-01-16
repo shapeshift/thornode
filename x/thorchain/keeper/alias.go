@@ -57,8 +57,6 @@ type (
 	NodeStatus               = types.NodeStatus
 	Network                  = types.Network
 	VaultStatus              = types.VaultStatus
-	TxMarker                 = types.TxMarker
-	TxMarkers                = types.TxMarkers
 	NetworkFee               = types.NetworkFee
 	ObservedNetworkFeeVoter  = types.ObservedNetworkFeeVoter
 	RagnarokWithdrawPosition = types.RagnarokWithdrawPosition

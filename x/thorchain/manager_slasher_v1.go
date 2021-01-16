@@ -249,25 +249,6 @@ func (s *SlasherV1) LackSigning(ctx cosmos.Context, constAccessor constants.Cons
 			}
 			s.keeper.SetObservedTxInVoter(ctx, voter)
 
-			// recover memo if not already available
-			if tx.Memo == "" {
-				// fetch memo from tx marker
-				hash, err := tx.TxHash()
-				if err != nil {
-					ctx.Logger().Error("fail to get hash", "error", err)
-					continue
-				}
-				marks, err := s.keeper.ListTxMarker(ctx, hash)
-				if err != nil {
-					ctx.Logger().Error("fail to get markers", "error", err)
-					continue
-				}
-				period := constAccessor.GetInt64Value(constants.SigningTransactionPeriod) * 3
-				marks = marks.FilterByMinHeight(common.BlockHeight(ctx) - period)
-				mark, _ := marks.Pop()
-				tx.Memo = mark.Memo
-			}
-
 			memo, _ := ParseMemo(tx.Memo) // ignore err
 			if memo.IsInternal() {
 				// there is a different mechanism for rescheduling outbound

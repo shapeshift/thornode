@@ -108,38 +108,6 @@ func getInternalHandlerMapping(keeper keeper.Keeper, mgr Manager) map[string]Msg
 	return m
 }
 
-func fetchMemo(ctx cosmos.Context, constAccessor constants.ConstantValues, keeper keeper.Keeper, tx common.Tx) string {
-	if len(tx.Memo) > 0 {
-		return tx.Memo
-	}
-
-	var memo string
-	// attempt to pull memo from tx marker
-	hash := tx.Hash()
-	marks, err := keeper.ListTxMarker(ctx, hash)
-	if err != nil {
-		ctx.Logger().Error("fail to get tx marker", "error", err)
-	}
-	if len(marks) > 0 {
-		// filter out expired tx markers
-		period := constAccessor.GetInt64Value(constants.SigningTransactionPeriod) * 3
-		marks = marks.FilterByMinHeight(common.BlockHeight(ctx) - period)
-
-		// if we still have a marker, add the memo
-		if len(marks) > 0 {
-			var mark TxMarker
-			mark, marks = marks.Pop()
-			memo = mark.Memo
-		}
-
-		// update our marker list
-		if err := keeper.SetTxMarkers(ctx, hash, marks); err != nil {
-			ctx.Logger().Error("fail to set tx markers", "error", err)
-		}
-	}
-	return memo
-}
-
 func processOneTxIn(ctx cosmos.Context, keeper keeper.Keeper, tx ObservedTx, signer cosmos.AccAddress) (cosmos.Msg, error) {
 	if len(tx.Tx.Coins) == 0 {
 		return nil, cosmos.ErrUnknownRequest("no coin found")
