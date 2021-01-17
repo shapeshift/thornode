@@ -3,6 +3,8 @@ package types
 import (
 	"errors"
 	"fmt"
+
+	"gitlab.com/thorchain/thornode/common"
 )
 
 // LiquidityProviders a list of liquidity providers
@@ -19,7 +21,14 @@ func (m *LiquidityProvider) Valid() error {
 	return nil
 }
 
+func (lp LiquidityProvider) GetAddress() common.Address {
+	if !lp.RuneAddress.IsEmpty() {
+		return lp.RuneAddress
+	}
+	return lp.AssetAddress
+}
+
 // Key return a string which can be used to identify lp
-func (m *LiquidityProvider) Key() string {
-	return fmt.Sprintf("%s/%s", m.Asset.String(), m.RuneAddress.String())
+func (lp LiquidityProvider) Key() string {
+	return fmt.Sprintf("%s/%s", lp.Asset.String(), lp.GetAddress().String())
 }
