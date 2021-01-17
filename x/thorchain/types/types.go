@@ -6,7 +6,9 @@ import (
 )
 
 const (
-	SuperMajorityFactor  = 3
+	// SuperMajorityFactor - super majority 2/3
+	SuperMajorityFactor = 3
+	// SimpleMajorityFactor - simple majority 1/2
 	SimpleMajorityFactor = 2
 )
 

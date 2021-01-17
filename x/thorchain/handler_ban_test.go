@@ -28,9 +28,9 @@ type TestBanKeeper struct {
 	modules map[string]int64
 }
 
-func (k *TestBanKeeper) SendFromModuleToModule(_ cosmos.Context, from, to string, coin common.Coin) error {
-	k.modules[from] -= int64(coin.Amount.Uint64())
-	k.modules[to] += int64(coin.Amount.Uint64())
+func (k *TestBanKeeper) SendFromModuleToModule(_ cosmos.Context, from, to string, coins common.Coins) error {
+	k.modules[from] -= int64(coins[0].Amount.Uint64())
+	k.modules[to] += int64(coins[0].Amount.Uint64())
 	return nil
 }
 
@@ -100,16 +100,16 @@ func (s *HandlerBanSuite) TestValidate(c *C) {
 	handler := NewBanHandler(keeper, NewDummyMgr())
 	// happy path
 	msg := NewMsgBan(toBan.NodeAddress, banner1.NodeAddress)
-	err := handler.validate(ctx, msg, constants.SWVersion)
+	err := handler.validate(ctx, *msg, constants.SWVersion)
 	c.Assert(err, IsNil)
 
 	// invalid version
-	err = handler.validate(ctx, msg, semver.Version{})
+	err = handler.validate(ctx, *msg, semver.Version{})
 	c.Assert(err, Equals, errBadVersion)
 
 	// invalid msg
-	msg = MsgBan{}
-	err = handler.validate(ctx, msg, constants.SWVersion)
+	msg = &MsgBan{}
+	err = handler.validate(ctx, *msg, constants.SWVersion)
 	c.Assert(err, NotNil)
 }
 
@@ -138,7 +138,7 @@ func (s *HandlerBanSuite) TestHandle(c *C) {
 
 	// ban with banner 1
 	msg := NewMsgBan(toBan.NodeAddress, banner1.NodeAddress)
-	_, err := handler.handle(ctx, msg, constants.SWVersion, constAccessor)
+	_, err := handler.handle(ctx, *msg, constants.SWVersion, constAccessor)
 	c.Assert(err, IsNil)
 	c.Check(int64(keeper.banner1.Bond.Uint64()), Equals, int64(99900000))
 	c.Check(keeper.modules[ReserveName], Equals, int64(100000))
@@ -146,7 +146,7 @@ func (s *HandlerBanSuite) TestHandle(c *C) {
 	c.Check(keeper.ban.Signers, HasLen, 1)
 
 	// ensure banner 1 can't ban twice
-	_, err = handler.handle(ctx, msg, constants.SWVersion, constAccessor)
+	_, err = handler.handle(ctx, *msg, constants.SWVersion, constAccessor)
 	c.Assert(err, IsNil)
 	c.Check(int64(keeper.banner1.Bond.Uint64()), Equals, int64(99900000))
 	c.Check(keeper.modules[ReserveName], Equals, int64(100000))
@@ -155,7 +155,7 @@ func (s *HandlerBanSuite) TestHandle(c *C) {
 
 	// ban with banner 2, which should actually ban the node account
 	msg = NewMsgBan(toBan.NodeAddress, banner2.NodeAddress)
-	_, err = handler.handle(ctx, msg, constants.SWVersion, constAccessor)
+	_, err = handler.handle(ctx, *msg, constants.SWVersion, constAccessor)
 	c.Assert(err, IsNil)
 	c.Check(int64(keeper.banner2.Bond.Uint64()), Equals, int64(99900000))
 	c.Check(keeper.modules[ReserveName], Equals, int64(200000))
@@ -191,7 +191,7 @@ func (s *HandlerBanSuite) TestHandleV10(c *C) {
 
 	// ban with banner 1
 	msg := NewMsgBan(toBan.NodeAddress, banner1.NodeAddress)
-	_, err := handler.handle(ctx, msg, ver, constAccessor)
+	_, err := handler.handle(ctx, *msg, ver, constAccessor)
 	c.Assert(err, IsNil)
 	c.Check(int64(keeper.banner1.Bond.Uint64()), Equals, int64(99900000))
 	c.Check(keeper.modules[ReserveName], Equals, int64(100000))
@@ -199,7 +199,7 @@ func (s *HandlerBanSuite) TestHandleV10(c *C) {
 	c.Check(keeper.ban.Signers, HasLen, 1)
 
 	// ensure banner 1 can't ban twice
-	_, err = handler.handle(ctx, msg, ver, constAccessor)
+	_, err = handler.handle(ctx, *msg, ver, constAccessor)
 	c.Assert(err, IsNil)
 	c.Check(int64(keeper.banner1.Bond.Uint64()), Equals, int64(99900000))
 	c.Check(keeper.modules[ReserveName], Equals, int64(100000))
@@ -208,7 +208,7 @@ func (s *HandlerBanSuite) TestHandleV10(c *C) {
 
 	// ban with banner 2, which should actually ban the node account
 	msg = NewMsgBan(toBan.NodeAddress, banner2.NodeAddress)
-	_, err = handler.handle(ctx, msg, ver, constAccessor)
+	_, err = handler.handle(ctx, *msg, ver, constAccessor)
 	c.Assert(err, IsNil)
 	c.Check(int64(keeper.banner2.Bond.Uint64()), Equals, int64(99900000))
 	c.Check(keeper.modules[ReserveName], Equals, int64(200000))

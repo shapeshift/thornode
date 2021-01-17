@@ -223,7 +223,7 @@ func (s *HandlerAddLiquiditySuite) TestAddLiquidityHandlerValidation(c *C) {
 	}
 	testCases := []struct {
 		name           string
-		msg            MsgAddLiquidity
+		msg            *MsgAddLiquidity
 		expectedResult error
 	}{
 		{

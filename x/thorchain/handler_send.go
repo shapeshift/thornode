@@ -29,15 +29,15 @@ func NewSendHandler(keeper keeper.Keeper, mgr Manager) SendHandler {
 
 // Run the main entry point to process MsgSend
 func (h SendHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
-	msg, ok := m.(MsgSend)
+	msg, ok := m.(*MsgSend)
 	if !ok {
 		return nil, errInvalidMessage
 	}
-	if err := h.validate(ctx, msg, version); err != nil {
+	if err := h.validate(ctx, *msg, version); err != nil {
 		ctx.Logger().Error("MsgSend failed validation", "error", err)
 		return nil, err
 	}
-	result, err := h.handle(ctx, msg, version, constAccessor)
+	result, err := h.handle(ctx, *msg, version, constAccessor)
 	if err != nil {
 		ctx.Logger().Error("fail to process MsgSend", "error", err)
 	}
@@ -57,8 +57,7 @@ func (h SendHandler) validateV1(ctx cosmos.Context, msg MsgSend) error {
 	}
 
 	// check if we're sending to asgard, bond modules. If we are, forward to the native tx handler
-	supplier := h.keeper.Supply()
-	if msg.ToAddress.Equals(supplier.GetModuleAddress(AsgardName)) || msg.ToAddress.Equals(supplier.GetModuleAddress(BondName)) {
+	if msg.ToAddress.Equals(h.keeper.GetModuleAccAddress(AsgardName)) || msg.ToAddress.Equals(h.keeper.GetModuleAccAddress(BondName)) {
 		return errors.New("cannot use MsgSend for Asgard or Bond transactions, use MsgDeposit instead")
 	}
 
@@ -74,9 +73,6 @@ func (h SendHandler) handle(ctx cosmos.Context, msg MsgSend, version semver.Vers
 }
 
 func (h SendHandler) handleV1(ctx cosmos.Context, msg MsgSend, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
-	banker := h.keeper.CoinKeeper()
-	supplier := h.keeper.Supply()
-
 	haltHeight, err := h.keeper.GetMimir(ctx, "HaltTHORChain")
 	if err != nil {
 		return nil, fmt.Errorf("failed to get mimir setting: %w", err)
@@ -86,23 +82,24 @@ func (h SendHandler) handleV1(ctx cosmos.Context, msg MsgSend, version semver.Ve
 	}
 
 	nativeChainGasFee := constAccessor.GetInt64Value(constants.NativeChainGasFee)
-	gasFee, err := common.NewCoin(common.RuneNative, cosmos.NewUint(uint64(nativeChainGasFee))).Native()
+	gas := common.NewCoin(common.RuneNative, cosmos.NewUint(uint64(nativeChainGasFee)))
+	gasFee, err := gas.Native()
 	if err != nil {
 		return nil, ErrInternal(err, "fail to get gas fee")
 	}
 
 	totalCoins := cosmos.NewCoins(gasFee).Add(msg.Amount...)
-	if !banker.HasCoins(ctx, msg.FromAddress, totalCoins) {
+	if !h.keeper.HasCoins(ctx, msg.FromAddress, totalCoins) {
 		return nil, cosmos.ErrInsufficientCoins(err, "insufficient funds")
 	}
 
 	// send gas to reserve
-	sdkErr := supplier.SendCoinsFromAccountToModule(ctx, msg.FromAddress, ReserveName, cosmos.NewCoins(gasFee))
+	sdkErr := h.keeper.SendFromAccountToModule(ctx, msg.FromAddress, ReserveName, common.NewCoins(gas))
 	if sdkErr != nil {
 		return nil, fmt.Errorf("unable to send gas to reserve: %w", sdkErr)
 	}
 
-	sdkErr = banker.SendCoins(ctx, msg.FromAddress, msg.ToAddress, msg.Amount)
+	sdkErr = h.keeper.SendCoins(ctx, msg.FromAddress, msg.ToAddress, msg.Amount)
 	if sdkErr != nil {
 		return nil, sdkErr
 	}

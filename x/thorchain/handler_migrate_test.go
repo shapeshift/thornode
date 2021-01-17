@@ -56,16 +56,16 @@ func (HandlerMigrateSuite) TestMigrate(c *C) {
 	}, 12, GetRandomPubKey(), 12)
 
 	msgMigrate := NewMsgMigrate(tx, 1, keeper.activeNodeAccount.NodeAddress)
-	err = handler.validate(ctx, msgMigrate, ver)
+	err = handler.validate(ctx, *msgMigrate, ver)
 	c.Assert(err, IsNil)
 
 	// invalid version
-	err = handler.validate(ctx, msgMigrate, semver.Version{})
+	err = handler.validate(ctx, *msgMigrate, semver.Version{})
 	c.Assert(err, Equals, errInvalidVersion)
 
 	// invalid msg
-	msgMigrate = MsgMigrate{}
-	err = handler.validate(ctx, msgMigrate, ver)
+	msgMigrate = &MsgMigrate{}
+	err = handler.validate(ctx, *msgMigrate, ver)
 	c.Assert(err, NotNil)
 }
 
@@ -195,7 +195,7 @@ func (HandlerMigrateSuite) TestSlash(c *C) {
 	}, 1, retireVault.PubKey, 1)
 
 	msgMigrate := NewMsgMigrate(tx, 1, keeper.activeNodeAccount.NodeAddress)
-	_, err = handler.handleV1(ctx, constants.SWVersion, msgMigrate)
+	_, err = handler.handleV1(ctx, constants.SWVersion, *msgMigrate)
 	c.Assert(err, IsNil)
 	c.Assert(keeper.activeNodeAccount.Bond.Equal(cosmos.NewUint(9999998464)), Equals, true, Commentf("%d", keeper.activeNodeAccount.Bond.Uint64()))
 }

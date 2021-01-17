@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/binance-chain/go-sdk/client"
-	"github.com/binance-chain/go-sdk/keys"
+	"gitlab.com/thorchain/binance-sdk/client"
+	"gitlab.com/thorchain/binance-sdk/keys"
 
-	ctypes "github.com/binance-chain/go-sdk/common/types"
+	ctypes "gitlab.com/thorchain/binance-sdk/common/types"
 )
 
 // main : Extract information from a Binance keystore file.

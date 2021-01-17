@@ -28,17 +28,17 @@ func NewObservedTxInHandler(keeper keeper.Keeper, mgr Manager) ObservedTxInHandl
 
 // Run is the main entry point of ObservedTxInHandler
 func (h ObservedTxInHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
-	msg, ok := m.(MsgObservedTxIn)
+	msg, ok := m.(*MsgObservedTxIn)
 	if !ok {
 		return nil, errInvalidMessage
 	}
-	err := h.validate(ctx, msg, version)
+	err := h.validate(ctx, *msg, version)
 	if err != nil {
 		ctx.Logger().Error("MsgObservedTxIn failed validation", "error", err)
 		return nil, err
 	}
 
-	result, err := h.handle(ctx, msg, version, constAccessor)
+	result, err := h.handle(ctx, *msg, version, constAccessor)
 	if err != nil {
 		ctx.Logger().Error("fail to handle MsgObservedTxIn message", "error", err)
 	}
@@ -88,7 +88,7 @@ func (h ObservedTxInHandler) preflightV1(ctx cosmos.Context, voter ObservedTxVot
 			voter.FinalisedHeight = common.BlockHeight(ctx)
 			voter.Tx = voter.GetTx(nas)
 			// tx has consensus now, so decrease the slashing points for all the signers whom had voted for it
-			h.mgr.Slasher().DecSlashPoints(ctx, observeSlashPoints, voter.Tx.Signers...)
+			h.mgr.Slasher().DecSlashPoints(ctx, observeSlashPoints, voter.Tx.GetSigners()...)
 		} else {
 			// event the tx had been processed , given the signer just a bit late , so still take away their slash points
 			// but only when the tx signer are voting is the tx that already reached consensus
@@ -105,7 +105,7 @@ func (h ObservedTxInHandler) preflightV1(ctx cosmos.Context, voter ObservedTxVot
 			voter.Tx = voter.GetTx(nas)
 
 			// tx has consensus now, so decrease the slashing points for all the signers whom had voted for it
-			h.mgr.Slasher().DecSlashPoints(ctx, observeSlashPoints, voter.Tx.Signers...)
+			h.mgr.Slasher().DecSlashPoints(ctx, observeSlashPoints, voter.Tx.GetSigners()...)
 		} else {
 			// event the tx had been processed , given the signer just a bit late , so still take away their slash points
 			// but only when the tx signer are voting is the tx that already reached consensus
@@ -229,7 +229,7 @@ func (h ObservedTxInHandler) handleV1(ctx cosmos.Context, version semver.Version
 		// add addresses to observing addresses. This is used to detect
 		// active/inactive observing node accounts
 
-		h.mgr.ObMgr().AppendObserver(tx.Tx.Chain, txIn.Signers)
+		h.mgr.ObMgr().AppendObserver(tx.Tx.Chain, txIn.GetSigners())
 
 		if !voter.HasFinalised(activeNodeAccounts) {
 			ctx.Logger().Info("Tx has not been finalised yet , waiting for confirmation counting", "hash", voter.TxID)
@@ -246,8 +246,8 @@ func (h ObservedTxInHandler) handleV1(ctx cosmos.Context, version semver.Version
 		}
 
 		// check if we've halted trading
-		_, isSwap := m.(MsgSwap)
-		_, isAddLiquidity := m.(MsgAddLiquidity)
+		swapMsg, isSwap := m.(*MsgSwap)
+		_, isAddLiquidity := m.(*MsgAddLiquidity)
 		haltTrading, err := h.keeper.GetMimir(ctx, "HaltTrading")
 		if isSwap || isAddLiquidity {
 			if (haltTrading > 0 && haltTrading < common.BlockHeight(ctx) && err == nil) || h.keeper.RagnarokInProgress(ctx) {
@@ -261,7 +261,7 @@ func (h ObservedTxInHandler) handleV1(ctx cosmos.Context, version semver.Version
 
 		// if its a swap, send it to our queue for processing later
 		if isSwap {
-			h.addSwap(ctx, m.(MsgSwap), constAccessor)
+			h.addSwap(ctx, *swapMsg, constAccessor)
 			continue
 		}
 
@@ -296,8 +296,7 @@ func (h ObservedTxInHandler) addSwap(ctx cosmos.Context, msg MsgSwap, constAcces
 	}
 
 	if !amt.IsZero() {
-		affiliateSwap := MsgSwap{}
-		affiliateSwap = NewMsgSwap(
+		affiliateSwap := NewMsgSwap(
 			msg.Tx,
 			common.RuneAsset(),
 			msg.AffiliateAddress,
@@ -308,7 +307,7 @@ func (h ObservedTxInHandler) addSwap(ctx cosmos.Context, msg MsgSwap, constAcces
 		)
 		affiliateSwap.Tx.Coins[0].Amount = amt
 
-		if err := h.keeper.SetSwapQueueItem(ctx, affiliateSwap, 1); err != nil {
+		if err := h.keeper.SetSwapQueueItem(ctx, *affiliateSwap, 1); err != nil {
 			ctx.Logger().Error("fail to add swap to queue", "error", err)
 		}
 	}

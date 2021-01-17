@@ -9,14 +9,13 @@ import (
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcutil"
 	"github.com/btcsuite/btcutil/bech32"
+	"github.com/cosmos/cosmos-sdk/crypto/codec"
 
 	bchchaincfg "github.com/gcash/bchd/chaincfg"
 	"github.com/gcash/bchutil"
 
-	"github.com/cosmos/cosmos-sdk/crypto/keys"
 	eth "github.com/ethereum/go-ethereum/crypto"
 	"github.com/tendermint/tendermint/crypto"
-	cryptoAmino "github.com/tendermint/tendermint/crypto/encoding/amino"
 
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
@@ -36,12 +35,6 @@ var EmptyPubKey PubKey
 // EmptyPubKeySet
 var EmptyPubKeySet PubKeySet
 
-// PubKeySet contains two pub keys , secp256k1 and ed25519
-type PubKeySet struct {
-	Secp256k1 PubKey `json:"secp256k1"`
-	Ed25519   PubKey `json:"ed25519"`
-}
-
 // NewPubKey create a new instance of PubKey
 // key is bech32 encoded string
 func NewPubKey(key string) (PubKey, error) {
@@ -57,7 +50,11 @@ func NewPubKey(key string) (PubKey, error) {
 
 // NewPubKeyFromCrypto
 func NewPubKeyFromCrypto(pk crypto.PubKey) (PubKey, error) {
-	s, err := cosmos.Bech32ifyPubKey(cosmos.Bech32PubKeyTypeAccPub, pk)
+	tmp, err := codec.FromTmPubKeyInterface(pk)
+	if err != nil {
+		return EmptyPubKey, fmt.Errorf("fail to create PubKey from crypto.PubKey,err:%w", err)
+	}
+	s, err := cosmos.Bech32ifyPubKey(cosmos.Bech32PubKeyTypeAccPub, tmp)
 	if err != nil {
 		return EmptyPubKey, fmt.Errorf("fail to create PubKey from crypto.PubKey,err:%w", err)
 	}
@@ -113,7 +110,7 @@ func (pubKey PubKey) GetAddress(chain Chain) (Address, error) {
 			return NoAddress, err
 		}
 		// parse compressed bytes removing 5 first bytes (amino encoding) to get uncompressed
-		pub, err := secp256k1.ParsePubKey(pk.Bytes()[5:], secp256k1.S256())
+		pub, err := secp256k1.ParsePubKey(pk.Bytes(), secp256k1.S256())
 		if err != nil {
 			return NoAddress, err
 		}
@@ -182,20 +179,6 @@ func (pubKey *PubKey) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
-	if strings.HasPrefix(s, "bnbp") {
-		buf, err := cosmos.GetFromBech32(s, "bnbp")
-		if err != nil {
-			return fmt.Errorf("fail to get from bech32 ,err:%w", err)
-		}
-		pk, err := cryptoAmino.PubKeyFromBytes(buf)
-		if err != nil {
-			return fmt.Errorf("fail to create pub key from bytes,err:%w", err)
-		}
-		s, err = cosmos.Bech32ifyPubKey(cosmos.Bech32PubKeyTypeAccPub, pk)
-		if err != nil {
-			return fmt.Errorf("fail to bech32 acc pub:%w", err)
-		}
-	}
 	pk, err := NewPubKey(s)
 	if err != nil {
 		return err
@@ -229,6 +212,14 @@ func (pks PubKeys) String() string {
 		strs[i] = pks[i].String()
 	}
 	return strings.Join(strs, ", ")
+}
+
+func (pks PubKeys) Strings() []string {
+	strings := make([]string, len(pks))
+	for i, pk := range pks {
+		strings[i] = pk.String()
+	}
+	return strings
 }
 
 // ConvertAndEncode converts from a base64 encoded byte string to hex or base32 encoded byte string and then to bech32
@@ -273,9 +264,9 @@ func (pks PubKeySet) String() string {
 // GetAddress
 func (pks PubKeySet) GetAddress(chain Chain) (Address, error) {
 	switch chain.GetSigningAlgo() {
-	case keys.Secp256k1:
+	case SigningAlgoSecp256k1:
 		return pks.Secp256k1.GetAddress(chain)
-	case keys.Ed25519:
+	case SigningAlgoEd25519:
 		return pks.Ed25519.GetAddress(chain)
 	}
 	return NoAddress, fmt.Errorf("unknow signing algorithm")

@@ -25,7 +25,7 @@ type TestVersionlKeeper struct {
 	failSetNetwork      bool
 }
 
-func (k *TestVersionlKeeper) SendFromAccountToModule(ctx cosmos.Context, from cosmos.AccAddress, to string, coin common.Coin) error {
+func (k *TestVersionlKeeper) SendFromAccountToModule(ctx cosmos.Context, from cosmos.AccAddress, to string, coins common.Coins) error {
 	return nil
 }
 
@@ -76,7 +76,7 @@ func (s *HandlerVersionSuite) TestValidate(c *C) {
 	// happy path
 	ver := constants.SWVersion
 	constAccessor := constants.GetConstantValues(ver)
-	msg := NewMsgSetVersion(ver, keeper.na.NodeAddress)
+	msg := NewMsgSetVersion(ver.String(), keeper.na.NodeAddress)
 	result, err := handler.Run(ctx, msg, ver, constAccessor)
 	c.Assert(err, IsNil)
 	c.Assert(result, NotNil)
@@ -87,19 +87,19 @@ func (s *HandlerVersionSuite) TestValidate(c *C) {
 	c.Assert(result, IsNil)
 
 	// invalid msg
-	msg = MsgSetVersion{}
+	msg = &MsgSetVersion{}
 	result, err = handler.Run(ctx, msg, ver, constAccessor)
 	c.Assert(result, IsNil)
 	c.Assert(err, NotNil)
 
 	// fail to get node account should fail
-	msg1 := NewMsgSetVersion(ver, keeper.failNodeAccount.NodeAddress)
+	msg1 := NewMsgSetVersion(ver.String(), keeper.failNodeAccount.NodeAddress)
 	result, err = handler.Run(ctx, msg1, ver, constAccessor)
 	c.Assert(err, NotNil)
 	c.Assert(result, IsNil)
 
 	// node account empty should fail
-	msg2 := NewMsgSetVersion(ver, keeper.emptyNodeAccount.NodeAddress)
+	msg2 := NewMsgSetVersion(ver.String(), keeper.emptyNodeAccount.NodeAddress)
 	result, err = handler.Run(ctx, msg2, ver, constAccessor)
 	c.Assert(err, NotNil)
 	c.Assert(result, IsNil)
@@ -117,10 +117,10 @@ func (s *HandlerVersionSuite) TestHandle(c *C) {
 
 	handler := NewVersionHandler(keeper, NewDummyMgr())
 
-	msg := NewMsgSetVersion(semver.MustParse("2.0.0"), GetRandomBech32Addr())
-	err := handler.handle(ctx, msg, ver, constAccessor)
+	msg := NewMsgSetVersion("2.0.0", GetRandomBech32Addr())
+	err := handler.handle(ctx, *msg, ver, constAccessor)
 	c.Assert(err, IsNil)
-	c.Check(keeper.na.Version.String(), Equals, "2.0.0")
+	c.Check(keeper.na.Version, Equals, "2.0.0")
 
 	// fail to set node account should return an error
 	keeper.failSaveNodeAccount = true

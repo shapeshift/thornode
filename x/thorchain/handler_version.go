@@ -27,17 +27,16 @@ func NewVersionHandler(keeper keeper.Keeper, mgr Manager) VersionHandler {
 
 // Run it the main entry point to execute Version logic
 func (h VersionHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
-	msg, ok := m.(MsgSetVersion)
+	msg, ok := m.(*MsgSetVersion)
 	if !ok {
 		return nil, errInvalidMessage
 	}
-	ctx.Logger().Info("receive version number",
-		"version", msg.Version.String())
-	if err := h.validate(ctx, msg, version, constAccessor); err != nil {
+	ctx.Logger().Info("receive version number", "version", msg.Version)
+	if err := h.validate(ctx, *msg, version, constAccessor); err != nil {
 		ctx.Logger().Error("msg set version failed validation", "error", err)
 		return nil, err
 	}
-	if err := h.handle(ctx, msg, version, constAccessor); err != nil {
+	if err := h.handle(ctx, *msg, version, constAccessor); err != nil {
 		ctx.Logger().Error("fail to process msg set version", "error", err)
 		return nil, err
 	}
@@ -74,7 +73,7 @@ func (h VersionHandler) validateV1(ctx cosmos.Context, msg MsgSetVersion, constA
 }
 
 func (h VersionHandler) handle(ctx cosmos.Context, msg MsgSetVersion, version semver.Version, constAccessor constants.ConstantValues) error {
-	ctx.Logger().Info("handleMsgSetVersion request", "Version:", msg.Version.String())
+	ctx.Logger().Info("handleMsgSetVersion request", "Version:", msg.Version)
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.handleV1(ctx, msg, constAccessor)
 	}
@@ -87,8 +86,13 @@ func (h VersionHandler) handleV1(ctx cosmos.Context, msg MsgSetVersion, constAcc
 		return cosmos.ErrUnauthorized(fmt.Errorf("unable to find account(%s):%w", msg.Signer, err).Error())
 	}
 
-	if nodeAccount.Version.LT(msg.Version) {
-		nodeAccount.Version = msg.Version
+	version, err := msg.GetVersion()
+	if err != nil {
+		return fmt.Errorf("fail to save node account: %w", err)
+	}
+
+	if nodeAccount.GetVersion().LT(version) {
+		nodeAccount.Version = version.String()
 	}
 
 	cost := cosmos.NewUint(uint64(constAccessor.GetInt64Value(constants.CliTxCost)))
@@ -103,15 +107,17 @@ func (h VersionHandler) handleV1(ctx cosmos.Context, msg MsgSetVersion, constAcc
 
 	// add bond to reserve
 	coin := common.NewCoin(common.RuneNative, cost)
-	if err := h.keeper.SendFromAccountToModule(ctx, msg.Signer, ReserveName, coin); err != nil {
-		ctx.Logger().Error("fail to transfer funds from bond to reserve", "error", err)
-		return err
+	if !cost.IsZero() {
+		if err := h.keeper.SendFromAccountToModule(ctx, msg.Signer, ReserveName, common.NewCoins(coin)); err != nil {
+			ctx.Logger().Error("fail to transfer funds from bond to reserve", "error", err)
+			return err
+		}
 	}
 
 	ctx.EventManager().EmitEvent(
 		cosmos.NewEvent("set_version",
 			cosmos.NewAttribute("thor_address", msg.Signer.String()),
-			cosmos.NewAttribute("version", msg.Version.String())))
+			cosmos.NewAttribute("version", msg.Version)))
 
 	return nil
 }

@@ -150,7 +150,7 @@ func (s *KeeperNodeAccountSuite) TestGetMinJoinVersion(c *C) {
 		ctx, k := setupKeeperForTest(c)
 		for _, ni := range item.nodeInfoes {
 			na1 := GetRandomNodeAccount(ni.status)
-			na1.Version = ni.version
+			na1.Version = ni.version.String()
 			c.Assert(k.SetNodeAccount(ctx, na1), IsNil)
 		}
 		c.Check(k.GetMinJoinVersion(ctx).Equals(item.expectedVersion), Equals, true, Commentf("%+v", k.GetMinJoinVersion(ctx)))

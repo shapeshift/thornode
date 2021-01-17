@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cosmos/cosmos-sdk/crypto/codec"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	ecommon "github.com/ethereum/go-ethereum/common"
@@ -77,7 +78,11 @@ func NewClient(thorKeys *thorclient.Keys,
 		return nil, fmt.Errorf("fail to get private key: %w", err)
 	}
 
-	pk, err := common.NewPubKeyFromCrypto(priv.PubKey())
+	temp, err := codec.ToTmPubKeyInterface(priv.PubKey())
+	if err != nil {
+		return nil, fmt.Errorf("fail to get tm pub key: %w", err)
+	}
+	pk, err := common.NewPubKeyFromCrypto(temp)
 	if err != nil {
 		return nil, fmt.Errorf("fail to get pub key: %w", err)
 	}

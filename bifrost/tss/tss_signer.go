@@ -7,14 +7,14 @@ import (
 	"math/big"
 	"time"
 
-	ctypes "github.com/binance-chain/go-sdk/common/types"
-	"github.com/binance-chain/go-sdk/keys"
-	"github.com/binance-chain/go-sdk/types/tx"
 	"github.com/blang/semver"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/tendermint/btcd/btcec"
 	"github.com/tendermint/tendermint/crypto"
+	ctypes "gitlab.com/thorchain/binance-sdk/common/types"
+	"gitlab.com/thorchain/binance-sdk/keys"
+	"gitlab.com/thorchain/binance-sdk/types/tx"
 	"gitlab.com/thorchain/tss/go-tss/keysign"
 	"gitlab.com/thorchain/tss/go-tss/tss"
 
@@ -22,6 +22,7 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
+	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
 // KeySign is a proxy between signer and TSS
@@ -81,7 +82,7 @@ func (s *KeySign) makeSignature(msg tx.StdSignMsg, poolPubKey string) (sig tx.St
 	if signPack == nil {
 		return stdSignature, nil
 	}
-	if pk.VerifyBytes(msg.Bytes(), signPack) {
+	if pk.VerifySignature(msg.Bytes(), signPack) {
 		s.logger.Info().Msg("we can successfully verify the bytes")
 	} else {
 		s.logger.Error().Msg("Oops! we cannot verify the bytes")
@@ -90,7 +91,6 @@ func (s *KeySign) makeSignature(msg tx.StdSignMsg, poolPubKey string) (sig tx.St
 	return tx.StdSignature{
 		AccountNumber: msg.AccountNumber,
 		Sequence:      msg.Sequence,
-		PubKey:        pk,
 		Signature:     signPack,
 	}, nil
 }
@@ -234,6 +234,18 @@ func (s *KeySign) toLocalTSSSigner(poolPubKey, msgToSign string) (string, string
 		return keySignResp.R, keySignResp.S, keySignResp.RecoveryID, nil
 	}
 
+	// copy blame to our own struct
+	blame := types.Blame{
+		FailReason: keySignResp.Blame.FailReason,
+		IsUnicast:  keySignResp.Blame.IsUnicast,
+		BlameNodes: make([]types.Node, len(keySignResp.Blame.BlameNodes)),
+	}
+	for i, n := range keySignResp.Blame.BlameNodes {
+		blame.BlameNodes[i].Pubkey = n.Pubkey
+		blame.BlameNodes[i].BlameData = n.BlameData
+		blame.BlameNodes[i].BlameSignature = n.BlameSignature
+	}
+
 	// Blame need to be passed back to thorchain , so as thorchain can use the information to slash relevant node account
-	return "", "", "", NewKeysignError(keySignResp.Blame)
+	return "", "", "", NewKeysignError(blame)
 }

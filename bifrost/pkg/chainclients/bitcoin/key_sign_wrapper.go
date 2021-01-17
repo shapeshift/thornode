@@ -39,8 +39,7 @@ func NewKeySignWrapper(privateKey *btcec.PrivateKey, tssKeyManager tss.Thorchain
 // GetBech32AccountPubKey convert the given private key to
 func GetBech32AccountPubKey(key *btcec.PrivateKey) (common.PubKey, error) {
 	buf := key.PubKey().SerializeCompressed()
-	var pk secp256k1.PubKeySecp256k1
-	copy(pk[:], buf)
+	pk := secp256k1.PubKey(buf)
 	return common.NewPubKeyFromCrypto(pk)
 }
 

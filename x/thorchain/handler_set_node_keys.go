@@ -28,15 +28,15 @@ func NewSetNodeKeysHandler(keeper keeper.Keeper, mgr Manager) SetNodeKeysHandler
 
 // Run is the main entry point to process MsgSetNodeKeys
 func (h SetNodeKeysHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
-	msg, ok := m.(MsgSetNodeKeys)
+	msg, ok := m.(*MsgSetNodeKeys)
 	if !ok {
 		return nil, errInvalidMessage
 	}
-	if err := h.validate(ctx, msg, version, constAccessor); err != nil {
+	if err := h.validate(ctx, *msg, version, constAccessor); err != nil {
 		ctx.Logger().Error("MsgSetNodeKeys failed validation", "error", err)
 		return nil, err
 	}
-	result, err := h.handle(ctx, msg, version, constAccessor)
+	result, err := h.handle(ctx, *msg, version, constAccessor)
 	if err != nil {
 		ctx.Logger().Error("fail to process MsgSetNodeKey", "error", err)
 	}
@@ -114,7 +114,7 @@ func (h SetNodeKeysHandler) handleV1(ctx cosmos.Context, msg MsgSetNodeKeys, ver
 
 	// add 10 bond to reserve
 	coin := common.NewCoin(common.RuneNative, cost)
-	if err := h.keeper.SendFromAccountToModule(ctx, msg.Signer, ReserveName, coin); err != nil {
+	if err := h.keeper.SendFromAccountToModule(ctx, msg.Signer, ReserveName, common.NewCoins(coin)); err != nil {
 		ctx.Logger().Error("fail to transfer funds from bond to reserve", "error", err)
 		return nil, err
 	}

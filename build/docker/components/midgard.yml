@@ -7,8 +7,8 @@ services:
     image: registry.gitlab.com/thorchain/midgard:develop
     restart: unless-stopped
     environment:
-      MIDGARD_THORCHAIN_THOR_NODE_URL: http://thor-api:1317/thorchain
-      MIDGARD_THORCHAIN_TENDERMINT_URL: http://thor-daemon:26657/websocket
+      MIDGARD_THORCHAIN_THOR_NODE_URL: http://thornode:1317/thorchain
+      MIDGARD_THORCHAIN_TENDERMINT_URL: http://thornode:26657/websocket
       MIDGARD_TIMESCALE_HOST: pg
     ports:
       - 8080:8080

@@ -60,10 +60,10 @@ func (s EventSuite) TestWithdrawEvent(c *C) {
 }
 
 func (s EventSuite) TestPool(c *C) {
-	evt := NewEventPool(common.BNBAsset, Available)
+	evt := NewEventPool(common.BNBAsset, PoolStatus_Available)
 	c.Check(evt.Type(), Equals, "pool")
 	c.Check(evt.Pool.String(), Equals, common.BNBAsset.String())
-	c.Check(evt.Status.String(), Equals, Available.String())
+	c.Check(evt.Status.String(), Equals, PoolStatus_Available.String())
 	events, err := evt.Events()
 	c.Check(err, IsNil)
 	c.Check(events, NotNil)
@@ -194,7 +194,7 @@ func (EventSuite) TestEventRefund(c *C) {
 }
 
 func (EventSuite) TestEventBond(c *C) {
-	e := NewEventBond(cosmos.NewUint(100), BondPaid, GetRandomTx())
+	e := NewEventBond(cosmos.NewUint(100), BondType_bond_paid, GetRandomTx())
 	c.Check(e.Type(), Equals, "bond")
 	events, err := e.Events()
 	c.Check(err, IsNil)

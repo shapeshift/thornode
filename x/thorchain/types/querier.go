@@ -126,12 +126,12 @@ func NewQueryNodeAccount(na NodeAccount) QueryNodeAccount {
 		ActiveBlockHeight:   na.ActiveBlockHeight,
 		BondAddress:         na.BondAddress,
 		StatusSince:         na.StatusSince,
-		SignerMembership:    na.SignerMembership,
+		SignerMembership:    na.GetSignerMembership(),
 		RequestedToLeave:    na.RequestedToLeave,
 		ForcedToLeave:       na.ForcedToLeave,
 		LeaveHeight:         na.LeaveHeight,
 		IPAddress:           na.IPAddress,
-		Version:             na.Version,
+		Version:             na.GetVersion(),
 	}
 }
 

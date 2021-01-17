@@ -53,17 +53,6 @@ func (tx TxID) String() string {
 	return string(tx)
 }
 
-// Tx transaction
-type Tx struct {
-	ID          TxID    `json:"id"`
-	Chain       Chain   `json:"chain"`
-	FromAddress Address `json:"from_address"`
-	ToAddress   Address `json:"to_address"`
-	Coins       Coins   `json:"coins"`
-	Gas         Gas     `json:"gas"`
-	Memo        string  `json:"memo"`
-}
-
 // Txs a list of Tx
 type Txs []Tx
 

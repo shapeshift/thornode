@@ -30,15 +30,15 @@ func NewDepositHandler(keeper keeper.Keeper, mgr Manager) DepositHandler {
 
 // Run is the main entry of DepositHandler
 func (h DepositHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
-	msg, ok := m.(MsgDeposit)
+	msg, ok := m.(*MsgDeposit)
 	if !ok {
 		return nil, errInvalidMessage
 	}
-	if err := h.validate(ctx, msg, version); err != nil {
+	if err := h.validate(ctx, *msg, version); err != nil {
 		ctx.Logger().Error("MsgDeposit failed validation", "error", err)
 		return nil, err
 	}
-	result, err := h.handle(ctx, msg, version, constAccessor)
+	result, err := h.handle(ctx, *msg, version, constAccessor)
 	if err != nil {
 		ctx.Logger().Error("fail to process MsgDeposit", "error", err)
 		return nil, err
@@ -66,8 +66,6 @@ func (h DepositHandler) handle(ctx cosmos.Context, msg MsgDeposit, version semve
 }
 
 func (h DepositHandler) handleV1(ctx cosmos.Context, msg MsgDeposit, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
-	banker := h.keeper.CoinKeeper()
-	supplier := h.keeper.Supply()
 	// TODO: this shouldn't be tied to swaps, and should be cheaper. But
 	// OutboundTransactionFee will be fine for now.
 	transactionFee := h.mgr.GasMgr().GetFee(ctx, common.THORChain, common.RuneAsset())
@@ -83,12 +81,12 @@ func (h DepositHandler) handleV1(ctx cosmos.Context, msg MsgDeposit, version sem
 	}
 
 	totalCoins := cosmos.NewCoins(gasFee).Add(coins...)
-	if !banker.HasCoins(ctx, msg.GetSigners()[0], totalCoins) {
+	if !h.keeper.HasCoins(ctx, msg.GetSigners()[0], totalCoins) {
 		return nil, cosmos.ErrInsufficientCoins(err, "insufficient funds")
 	}
 
 	// send gas to reserve
-	sdkErr := supplier.SendCoinsFromAccountToModule(ctx, msg.GetSigners()[0], ReserveName, cosmos.NewCoins(gasFee))
+	sdkErr := h.keeper.SendFromAccountToModule(ctx, msg.GetSigners()[0], ReserveName, common.NewCoins(gas))
 	if sdkErr != nil {
 		return nil, fmt.Errorf("unable to send gas to reserve: %w", sdkErr)
 	}
@@ -102,7 +100,7 @@ func (h DepositHandler) handleV1(ctx cosmos.Context, msg MsgDeposit, version sem
 	if err != nil {
 		return nil, fmt.Errorf("fail to get from address: %w", err)
 	}
-	to, err := common.NewAddress(supplier.GetModuleAddress(AsgardName).String())
+	to, err := h.keeper.GetModuleAddress(AsgardName)
 	if err != nil {
 		return nil, fmt.Errorf("fail to get to address: %w", err)
 	}
@@ -122,7 +120,7 @@ func (h DepositHandler) handleV1(ctx cosmos.Context, msg MsgDeposit, version sem
 		targetModule = AsgardName
 	}
 	// send funds to target module
-	sdkErr = supplier.SendCoinsFromAccountToModule(ctx, msg.GetSigners()[0], targetModule, coins)
+	sdkErr = h.keeper.SendFromAccountToModule(ctx, msg.GetSigners()[0], targetModule, msg.Coins)
 	if sdkErr != nil {
 		return nil, sdkErr
 	}
@@ -151,8 +149,8 @@ func (h DepositHandler) handleV1(ctx cosmos.Context, msg MsgDeposit, version sem
 	}
 
 	// check if we've halted trading
-	_, isSwap := m.(MsgSwap)
-	_, isAddLiquidity := m.(MsgAddLiquidity)
+	_, isSwap := m.(*MsgSwap)
+	_, isAddLiquidity := m.(*MsgAddLiquidity)
 	haltTrading, err := h.keeper.GetMimir(ctx, "HaltTrading")
 	if isSwap || isAddLiquidity {
 		if (haltTrading > 0 && haltTrading < common.BlockHeight(ctx) && err == nil) || h.keeper.RagnarokInProgress(ctx) {
@@ -166,7 +164,8 @@ func (h DepositHandler) handleV1(ctx cosmos.Context, msg MsgDeposit, version sem
 
 	// if its a swap, send it to our queue for processing later
 	if isSwap {
-		h.addSwap(ctx, m.(MsgSwap), constAccessor)
+		msg := m.(*MsgSwap)
+		h.addSwap(ctx, *msg, constAccessor)
 		return &cosmos.Result{}, nil
 	}
 
@@ -212,9 +211,8 @@ func (h DepositHandler) addSwap(ctx cosmos.Context, msg MsgSwap, constAccessor c
 			nativeChainGasFee := constAccessor.GetInt64Value(constants.NativeChainGasFee)
 			amt = common.SafeSub(amt, cosmos.NewUint(uint64(nativeChainGasFee)))
 
-			supplier := h.keeper.Supply()
-			coin, _ := common.NewCoin(common.RuneNative, amt).Native()
-			sdkErr := supplier.SendCoinsFromModuleToAccount(ctx, AsgardName, to_address, cosmos.NewCoins(coin))
+			coin := common.NewCoin(common.RuneNative, amt)
+			sdkErr := h.keeper.SendFromModuleToAccount(ctx, AsgardName, to_address, common.NewCoins(coin))
 			if sdkErr != nil {
 				ctx.Logger().Error("fail to send native rune to affiliate", "msg", msg.AffiliateAddress, "error", err)
 			}

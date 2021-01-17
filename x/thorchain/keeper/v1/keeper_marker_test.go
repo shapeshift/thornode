@@ -9,6 +9,7 @@ type KeeperTxMarkerSuite struct{}
 var _ = Suite(&KeeperTxMarkerSuite{})
 
 func (s *KeeperTxMarkerSuite) TestTxMarker(c *C) {
+	c.Skip("kill marker support")
 	ctx, k := setupKeeperForTest(c)
 
 	mark1 := NewTxMarker(25, "my memo")

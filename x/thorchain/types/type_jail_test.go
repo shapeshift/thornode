@@ -4,11 +4,10 @@ import (
 	. "gopkg.in/check.v1"
 
 	"github.com/cosmos/cosmos-sdk/store"
-	"github.com/cosmos/cosmos-sdk/x/auth"
-	"github.com/cosmos/cosmos-sdk/x/params"
-	"github.com/cosmos/cosmos-sdk/x/supply"
-	abci "github.com/tendermint/tendermint/abci/types"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	paramstypes "github.com/cosmos/cosmos-sdk/x/params/types"
 	"github.com/tendermint/tendermint/libs/log"
+	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
 	dbm "github.com/tendermint/tm-db"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
@@ -29,22 +28,20 @@ func (s JailSuite) TestIsJailed(c *C) {
 	addr := GetRandomBech32Addr()
 	jail := NewJail(addr)
 
-	keyAcc := cosmos.NewKVStoreKey(auth.StoreKey)
-	keyParams := cosmos.NewKVStoreKey(params.StoreKey)
-	tkeyParams := cosmos.NewTransientStoreKey(params.TStoreKey)
-	keySupply := cosmos.NewKVStoreKey(supply.StoreKey)
+	keyAcc := cosmos.NewKVStoreKey(authtypes.StoreKey)
+	keyParams := cosmos.NewKVStoreKey(paramstypes.StoreKey)
+	tkeyParams := cosmos.NewTransientStoreKey(paramstypes.TStoreKey)
 
 	db := dbm.NewMemDB()
 	ms := store.NewCommitMultiStore(db)
 	ms.MountStoreWithDB(keyAcc, cosmos.StoreTypeIAVL, db)
-	ms.MountStoreWithDB(keySupply, cosmos.StoreTypeIAVL, db)
 	ms.MountStoreWithDB(keyParams, cosmos.StoreTypeIAVL, db)
 	ms.MountStoreWithDB(cosmos.NewKVStoreKey("thorchain"), cosmos.StoreTypeIAVL, db)
 	ms.MountStoreWithDB(tkeyParams, cosmos.StoreTypeTransient, db)
 	err := ms.LoadLatestVersion()
 	c.Assert(err, IsNil)
 
-	ctx := cosmos.NewContext(ms, abci.Header{ChainID: "thorchain"}, false, log.NewNopLogger())
+	ctx := cosmos.NewContext(ms, tmproto.Header{ChainID: "thorchain"}, false, log.NewNopLogger())
 	ctx = ctx.WithBlockHeight(100)
 
 	c.Check(jail.IsJailed(ctx), Equals, false)

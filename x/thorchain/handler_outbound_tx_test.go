@@ -63,20 +63,20 @@ func (s *HandlerOutboundTxSuite) TestValidate(c *C) {
 	}, 12, GetRandomPubKey(), 12)
 
 	msgOutboundTx := NewMsgOutboundTx(tx, tx.Tx.ID, keeper.activeNodeAccount.NodeAddress)
-	sErr := handler.validate(ctx, msgOutboundTx, ver)
+	sErr := handler.validate(ctx, *msgOutboundTx, ver)
 	c.Assert(sErr, IsNil)
 
 	// invalid version
-	sErr = handler.validate(ctx, msgOutboundTx, semver.Version{})
+	sErr = handler.validate(ctx, *msgOutboundTx, semver.Version{})
 	c.Assert(sErr, Equals, errBadVersion)
 
-	result, err := handler.handle(ctx, msgOutboundTx, semver.Version{}, constants.GetConstantValues(constants.SWVersion))
+	result, err := handler.handle(ctx, *msgOutboundTx, semver.Version{}, constants.GetConstantValues(constants.SWVersion))
 	c.Check(result, IsNil)
 	c.Check(err, NotNil)
 
 	// invalid msg
-	msgOutboundTx = MsgOutboundTx{}
-	sErr = handler.validate(ctx, msgOutboundTx, ver)
+	msgOutboundTx = &MsgOutboundTx{}
+	sErr = handler.validate(ctx, *msgOutboundTx, ver)
 	c.Assert(sErr, NotNil)
 }
 

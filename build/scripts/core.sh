@@ -16,18 +16,18 @@ add_node_account () {
     NODE_PUB_KEY_ED25519=$6
     IP_ADDRESS=$7
     MEMBERSHIP=$8
-    jq --arg IP_ADDRESS $IP_ADDRESS --arg VERSION $VERSION --arg BOND_ADDRESS "$BOND_ADDRESS" --arg VALIDATOR "$VALIDATOR" --arg NODE_ADDRESS "$NODE_ADDRESS" --arg NODE_PUB_KEY "$NODE_PUB_KEY" --arg NODE_PUB_KEY_ED25519 "$NODE_PUB_KEY_ED25519" '.app_state.thorchain.node_accounts += [{"node_address": $NODE_ADDRESS, "version": $VERSION, "ip_address": $IP_ADDRESS, "status":"active", "active_block_height": "0", "bond_address":$BOND_ADDRESS, "signer_membership": [], "validator_cons_pub_key":$VALIDATOR, "pub_key_set":{"secp256k1":$NODE_PUB_KEY,"ed25519":$NODE_PUB_KEY_ED25519}}]' <~/.thord/config/genesis.json >/tmp/genesis.json
-    mv /tmp/genesis.json ~/.thord/config/genesis.json
+    jq --arg IP_ADDRESS $IP_ADDRESS --arg VERSION $VERSION --arg BOND_ADDRESS "$BOND_ADDRESS" --arg VALIDATOR "$VALIDATOR" --arg NODE_ADDRESS "$NODE_ADDRESS" --arg NODE_PUB_KEY "$NODE_PUB_KEY" --arg NODE_PUB_KEY_ED25519 "$NODE_PUB_KEY_ED25519" '.app_state.thorchain.node_accounts += [{"node_address": $NODE_ADDRESS, "version": $VERSION, "ip_address": $IP_ADDRESS, "status": "Active", "active_block_height": "0", "bond_address":$BOND_ADDRESS, "signer_membership": [], "validator_cons_pub_key":$VALIDATOR, "pub_key_set":{"secp256k1":$NODE_PUB_KEY,"ed25519":$NODE_PUB_KEY_ED25519}}]' <~/.thornode/config/genesis.json >/tmp/genesis.json
+    mv /tmp/genesis.json ~/.thornode/config/genesis.json
     if [ ! -z "$MEMBERSHIP" ]; then
-        jq --arg MEMBERSHIP "$MEMBERSHIP" '.app_state.thorchain.node_accounts[-1].signer_membership += [$MEMBERSHIP]' ~/.thord/config/genesis.json > /tmp/genesis.json
-        mv /tmp/genesis.json ~/.thord/config/genesis.json
+        jq --arg MEMBERSHIP "$MEMBERSHIP" '.app_state.thorchain.node_accounts[-1].signer_membership += [$MEMBERSHIP]' ~/.thornode/config/genesis.json > /tmp/genesis.json
+        mv /tmp/genesis.json ~/.thornode/config/genesis.json
     fi
 }
 
 add_last_event_id () {
     echo "Adding last event id $1"
-    jq --arg ID $1 '.app_state.thorchain.last_event_id = $ID' ~/.thord/config/genesis.json > /tmp/genesis.json
-    mv /tmp/genesis.json ~/.thord/config/genesis.json
+    jq --arg ID $1 '.app_state.thorchain.last_event_id = $ID' ~/.thornode/config/genesis.json > /tmp/genesis.json
+    mv /tmp/genesis.json ~/.thornode/config/genesis.json
 }
 
 add_gas_config () {
@@ -35,55 +35,57 @@ add_gas_config () {
     shift
 
     # add asset to gas
-    jq --argjson path "[\"app_state\", \"thorchain\", \"gas\", \"$asset\"]" 'getpath($path) = []' ~/.thord/config/genesis.json > /tmp/genesis.json
-    mv /tmp/genesis.json ~/.thord/config/genesis.json
+    jq --argjson path "[\"app_state\", \"thorchain\", \"gas\", \"$asset\"]" 'getpath($path) = []' ~/.thornode/config/genesis.json > /tmp/genesis.json
+    mv /tmp/genesis.json ~/.thornode/config/genesis.json
 
     for unit in $@; do
-        jq --argjson path "[\"app_state\", \"thorchain\", \"gas\", \"$asset\"]" --arg unit "$unit" 'getpath($path) += [$unit]' ~/.thord/config/genesis.json > /tmp/genesis.json
-        mv /tmp/genesis.json ~/.thord/config/genesis.json
+        jq --argjson path "[\"app_state\", \"thorchain\", \"gas\", \"$asset\"]" --arg unit "$unit" 'getpath($path) += [$unit]' ~/.thornode/config/genesis.json > /tmp/genesis.json
+        mv /tmp/genesis.json ~/.thornode/config/genesis.json
     done
 }
 
 reserve () {
-    jq --arg RESERVE $1 '.app_state.thorchain.reserve = $RESERVE' <~/.thord/config/genesis.json >/tmp/genesis.json
-    mv /tmp/genesis.json ~/.thord/config/genesis.json
+    jq --arg RESERVE $1 '.app_state.thorchain.reserve = $RESERVE' <~/.thornode/config/genesis.json >/tmp/genesis.json
+    mv /tmp/genesis.json ~/.thornode/config/genesis.json
 }
 
 
 disable_bank_send () {
-    jq '.app_state.bank.send_enabled = false' <~/.thord/config/genesis.json >/tmp/genesis.json
-    mv /tmp/genesis.json ~/.thord/config/genesis.json
+    jq '.app_state.bank.params.default_send_enabled = false' <~/.thornode/config/genesis.json >/tmp/genesis.json
+    mv /tmp/genesis.json ~/.thornode/config/genesis.json
+
+    jq '.app_state.transfer.params.send_enabled = false' <~/.thornode/config/genesis.json >/tmp/genesis.json
+    mv /tmp/genesis.json ~/.thornode/config/genesis.json
 }
 
 add_account () {
     jq --arg ADDRESS $1 --arg ASSET $2 --arg AMOUNT $3 '.app_state.auth.accounts += [{
-        "type": "cosmos-sdk/Account",
-        "value": {
-          "address": $ADDRESS,
-          "coins": [
-            {
-              "denom": $ASSET,
-              "amount": $AMOUNT
-            }
-          ],
-          "public_key": null,
-          "account_number": "0",
-          "sequence": "0"
-        }
-    }]' <~/.thord/config/genesis.json >/tmp/genesis.json
-    mv /tmp/genesis.json ~/.thord/config/genesis.json
+        "@type": "/cosmos.auth.v1beta1.BaseAccount",
+        "address": $ADDRESS,
+        "pub_key": null,
+        "account_number": "0",
+        "sequence": "0"
+    }]' <~/.thornode/config/genesis.json >/tmp/genesis.json
+        # "coins": [ { "denom": $ASSET, "amount": $AMOUNT } ],
+    mv /tmp/genesis.json ~/.thornode/config/genesis.json
+    
+    jq --arg ADDRESS $1 --arg ASSET $2 --arg AMOUNT $3 '.app_state.bank.balances += [{
+        "address": $ADDRESS,
+        "coins": [ { "denom": $ASSET, "amount": $AMOUNT } ],
+    }]' <~/.thornode/config/genesis.json >/tmp/genesis.json
+    mv /tmp/genesis.json ~/.thornode/config/genesis.json
 }
 
 add_vault () {
     POOL_PUBKEY=$1; shift
 
-    jq --arg POOL_PUBKEY "$POOL_PUBKEY" '.app_state.thorchain.vaults += [{"block_height": "0", "pub_key": $POOL_PUBKEY, "coins":[], "type": "asgard", "status":"active", "status_since": "0", "membership":[]}]' <~/.thord/config/genesis.json >/tmp/genesis.json
-    mv /tmp/genesis.json ~/.thord/config/genesis.json
+    jq --arg POOL_PUBKEY "$POOL_PUBKEY" '.app_state.thorchain.vaults += [{"block_height": "0", "pub_key": $POOL_PUBKEY, "coins":[], "type": "asgard", "status":"active", "status_since": "0", "membership":[]}]' <~/.thornode/config/genesis.json >/tmp/genesis.json
+    mv /tmp/genesis.json ~/.thornode/config/genesis.json
 
     export IFS=","
     for pubkey in $@; do # iterate over our list of comma separated pubkeys
-        jq --arg PUBKEY "$pubkey" '.app_state.thorchain.vaults[0].membership += [$PUBKEY]' ~/.thord/config/genesis.json > /tmp/genesis.json
-        mv /tmp/genesis.json ~/.thord/config/genesis.json
+        jq --arg PUBKEY "$pubkey" '.app_state.thorchain.vaults[0].membership += [$PUBKEY]' ~/.thornode/config/genesis.json > /tmp/genesis.json
+        mv /tmp/genesis.json ~/.thornode/config/genesis.json
     done
 }
 
@@ -91,23 +93,23 @@ add_vault () {
 init_chain () {
     export IFS=","
 
-    thord init local --chain-id thorchain
-    echo $SIGNER_PASSWD | thorcli keys list
+    thornode init local --chain-id thorchain
+    echo $SIGNER_PASSWD | thornode keys list --keyring-backend file
 
     for user in $@; do # iterate over our list of comma separated users "alice,jack"
-        thord add-genesis-account $user 100000000rune
+        thornode add-genesis-account $user 100000000rune
     done
 
-    thorcli config chain-id thorchain
-    thorcli config output json
-    thorcli config indent true
-    thorcli config trust-node true
+    # thornode config chain-id thorchain
+    # thornode config output json
+    # thornode config indent true
+    # thornode config trust-node true
 }
 
 peer_list () {
     PEERUSER="$1@$2:$PORT_P2P"
     PEERSISTENT_PEER_TARGET='persistent_peers = ""'
-    sed -i -e "s/$PEERSISTENT_PEER_TARGET/persistent_peers = \"$PEERUSER\"/g" ~/.thord/config/config.toml
+    sed -i -e "s/$PEERSISTENT_PEER_TARGET/persistent_peers = \"$PEERUSER\"/g" ~/.thornode/config/config.toml
 }
 
 seeds_list () {
@@ -126,24 +128,24 @@ seeds_list () {
       fi
     done
     IFS=$OLD_IFS
-    sed -i -e "s/seeds =.*/seeds = \"$SEED_LIST\"/g" ~/.thord/config/config.toml
+    sed -i -e "s/seeds =.*/seeds = \"$SEED_LIST\"/g" ~/.thornode/config/config.toml
 }
 
 enable_internal_traffic () {
     ADDR='addr_book_strict = true'
     ADDR_STRICT_FALSE='addr_book_strict = false'
-    sed -i -e "s/$ADDR/$ADDR_STRICT_FALSE/g" ~/.thord/config/config.toml
+    sed -i -e "s/$ADDR/$ADDR_STRICT_FALSE/g" ~/.thornode/config/config.toml
 }
 
 external_address () {
     IP=$1
     NET=$2
     ADDR="$IP:$PORT_P2P"
-    sed -i -e "s/external_address =.*/external_address = \"$ADDR\"/g" ~/.thord/config/config.toml
+    sed -i -e "s/external_address =.*/external_address = \"$ADDR\"/g" ~/.thornode/config/config.toml
 }
 
 enable_telemetry () {
-    sed -i -e "s/prometheus = false/prometheus = true/g" ~/.thord/config/config.toml
+    sed -i -e "s/prometheus = false/prometheus = true/g" ~/.thornode/config/config.toml
 }
 
 gen_bnb_address () {
@@ -179,17 +181,17 @@ deploy_eth_contract () {
 }
 
 set_eth_contract () {
-  jq --arg CONTRACT $1 '.app_state.thorchain.chain_contracts = [{"chain": "ETH", "address": $CONTRACT}]' ~/.thord/config/genesis.json > /tmp/genesis.json
-    mv /tmp/genesis.json ~/.thord/config/genesis.json
+  jq --arg CONTRACT $1 '.app_state.thorchain.chain_contracts = [{"chain": "ETH", "contract": $CONTRACT}]' ~/.thornode/config/genesis.json > /tmp/genesis.json
+    mv /tmp/genesis.json ~/.thornode/config/genesis.json
 }
 
 fetch_genesis () {
     until curl -s "$1:$PORT_RPC" > /dev/null; do
         sleep 3
     done
-    curl -s $1:$PORT_RPC/genesis | jq .result.genesis > ~/.thord/config/genesis.json
-    thord validate-genesis
-    cat ~/.thord/config/genesis.json
+    curl -s $1:$PORT_RPC/genesis | jq .result.genesis > ~/.thornode/config/genesis.json
+    thornode validate-genesis --trace
+    cat ~/.thornode/config/genesis.json
 }
 
 fetch_genesis_from_seeds () {
@@ -199,9 +201,9 @@ fetch_genesis_from_seeds () {
     SEED_LIST=""
     for SEED in $SEEDS
     do
-      curl -sL --fail -m 10 $SEED:$PORT_RPC/genesis | jq .result.genesis > ~/.thord/config/genesis.json || continue
-      thord validate-genesis
-      cat ~/.thord/config/genesis.json
+      curl -sL --fail -m 10 $SEED:$PORT_RPC/genesis | jq .result.genesis > ~/.thornode/config/genesis.json || continue
+      thornode validate-genesis
+      cat ~/.thornode/config/genesis.json
       break
     done
     IFS=$OLD_IFS
@@ -218,9 +220,9 @@ set_node_keys () {
   SIGNER_NAME=$1
   SIGNER_PASSWD=$2
   PEER=$3
-  NODE_PUB_KEY=$(echo $SIGNER_PASSWD | thorcli keys show thorchain --pubkey)
-  VALIDATOR=$(thord tendermint show-validator)
-  printf "$SIGNER_PASSWD\n$SIGNER_PASSWD\n" | thorcli tx thorchain set-node-keys $NODE_PUB_KEY $NODE_PUB_KEY $VALIDATOR --node tcp://$PEER:$PORT_RPC --from $SIGNER_NAME --yes
+  NODE_PUB_KEY=$(echo $SIGNER_PASSWD | thornode keys show thorchain --pubkey --keyring-backend file)
+  VALIDATOR=$(thornode tendermint show-validator)
+  printf "$SIGNER_PASSWD\n$SIGNER_PASSWD\n" | thornode tx thorchain set-node-keys $NODE_PUB_KEY $NODE_PUB_KEY $VALIDATOR --node tcp://$PEER:$PORT_RPC --from $SIGNER_NAME --yes
 }
 
 set_ip_address () {
@@ -228,9 +230,9 @@ set_ip_address () {
   SIGNER_PASSWD=$2
   PEER=$3
   NODE_IP_ADDRESS=${4:-$(curl -s http://whatismyip.akamai.com)}
-  printf "$SIGNER_PASSWD\n$SIGNER_PASSWD\n" | thorcli tx thorchain set-ip-address $NODE_IP_ADDRESS --node tcp://$PEER:$PORT_RPC --from $SIGNER_NAME --yes
+  printf "$SIGNER_PASSWD\n$SIGNER_PASSWD\n" | thornode tx thorchain set-ip-address $NODE_IP_ADDRESS --node tcp://$PEER:$PORT_RPC --from $SIGNER_NAME --yes
 }
 
 fetch_version () {
-    thorcli query thorchain version --chain-id thorchain --trust-node --output json | jq -r .version
+    thornode query thorchain version --output json | jq -r .version
 }

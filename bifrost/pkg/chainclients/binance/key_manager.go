@@ -7,17 +7,16 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	ctypes "github.com/binance-chain/go-sdk/common/types"
-	"github.com/binance-chain/go-sdk/keys"
-	"github.com/binance-chain/go-sdk/types/tx"
-	"github.com/tendermint/tendermint/crypto"
-	"github.com/tendermint/tendermint/crypto/secp256k1"
+	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
+	ctypes "gitlab.com/thorchain/binance-sdk/common/types"
+	"gitlab.com/thorchain/binance-sdk/keys"
+	"gitlab.com/thorchain/binance-sdk/types/tx"
 
 	"gitlab.com/thorchain/thornode/common"
 )
 
 type keyManager struct {
-	privKey  crypto.PrivKey
+	privKey  cryptotypes.PrivKey
 	addr     ctypes.AccAddress
 	pubkey   common.PubKey
 	mnemonic string
@@ -35,11 +34,7 @@ func (m *keyManager) ExportAsMnemonic() (string, error) {
 }
 
 func (m *keyManager) ExportAsPrivateKey() (string, error) {
-	secpPrivateKey, ok := m.privKey.(secp256k1.PrivKeySecp256k1)
-	if !ok {
-		return "", fmt.Errorf(" Only PrivKeySecp256k1 key is supported ")
-	}
-	return hex.EncodeToString(secpPrivateKey[:]), nil
+	return hex.EncodeToString(m.privKey.Bytes()), nil
 }
 
 func (m *keyManager) ExportAsKeyStore(password string) (*keys.EncryptedKeyJSON, error) {
@@ -60,7 +55,7 @@ func (m *keyManager) Sign(msg tx.StdSignMsg) ([]byte, error) {
 	return bz, nil
 }
 
-func (m *keyManager) GetPrivKey() crypto.PrivKey {
+func (m *keyManager) GetPrivKey() cryptotypes.PrivKey {
 	return m.privKey
 }
 
@@ -79,7 +74,6 @@ func (m *keyManager) makeSignature(msg tx.StdSignMsg) (sig tx.StdSignature, err 
 	return tx.StdSignature{
 		AccountNumber: msg.AccountNumber,
 		Sequence:      msg.Sequence,
-		PubKey:        m.privKey.PubKey(),
 		Signature:     sigBytes,
 	}, nil
 }

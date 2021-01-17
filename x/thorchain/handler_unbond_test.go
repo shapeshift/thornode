@@ -197,7 +197,7 @@ func (HandlerUnBondSuite) TestUnBondHandlerFailValidation(c *C) {
 	txInNoTxID.ID = ""
 	testCases := []struct {
 		name        string
-		msg         MsgUnBond
+		msg         *MsgUnBond
 		expectedErr error
 	}{
 		{

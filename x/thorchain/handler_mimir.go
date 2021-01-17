@@ -27,16 +27,16 @@ func NewMimirHandler(keeper keeper.Keeper, mgr Manager) MimirHandler {
 
 // Run is the main entry point to execute mimir logic
 func (h MimirHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, _ constants.ConstantValues) (*cosmos.Result, error) {
-	msg, ok := m.(MsgMimir)
+	msg, ok := m.(*MsgMimir)
 	if !ok {
 		return nil, errInvalidMessage
 	}
 	ctx.Logger().Info("receive mimir", "key", msg.Key, "value", msg.Value)
-	if err := h.validate(ctx, msg, version); err != nil {
+	if err := h.validate(ctx, *msg, version); err != nil {
 		ctx.Logger().Error("msg mimir failed validation", "error", err)
 		return nil, err
 	}
-	if err := h.handle(ctx, msg, version); err != nil {
+	if err := h.handle(ctx, *msg, version); err != nil {
 		ctx.Logger().Error("fail to process msg set mimir", "error", err)
 		return nil, err
 	}

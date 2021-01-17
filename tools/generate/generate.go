@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/binance-chain/go-sdk/common/types"
-	"github.com/binance-chain/go-sdk/keys"
+	"gitlab.com/thorchain/binance-sdk/common/types"
+	"gitlab.com/thorchain/binance-sdk/keys"
 
 	bech32 "github.com/btcsuite/btcutil/bech32"
 )

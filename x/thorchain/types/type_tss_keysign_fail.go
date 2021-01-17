@@ -4,13 +4,6 @@ import (
 	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
-// TssKeysignFailVoter a voter structure to store TssKeySign Failure information
-type TssKeysignFailVoter struct {
-	ID      string              `json:"id"` // checksum of sorted input pubkeys
-	Height  int64               `json:"height"`
-	Signers []cosmos.AccAddress `json:"signers"`
-}
-
 // NewTssKeysignFailVoter create a new instance of TssKeysignFailVoter
 func NewTssKeysignFailVoter(id string, height int64) TssKeysignFailVoter {
 	return TssKeysignFailVoter{
@@ -19,9 +12,21 @@ func NewTssKeysignFailVoter(id string, height int64) TssKeysignFailVoter {
 	}
 }
 
+func (m *TssKeysignFailVoter) GetSigners() []cosmos.AccAddress {
+	addrs := make([]cosmos.AccAddress, 0)
+	for _, a := range m.Signers {
+		addr, err := cosmos.AccAddressFromBech32(a)
+		if err != nil {
+			continue
+		}
+		addrs = append(addrs, addr)
+	}
+	return addrs
+}
+
 // HasSigned - check if given address has signed
-func (tss TssKeysignFailVoter) HasSigned(signer cosmos.AccAddress) bool {
-	for _, sign := range tss.Signers {
+func (m *TssKeysignFailVoter) HasSigned(signer cosmos.AccAddress) bool {
+	for _, sign := range m.GetSigners() {
 		if sign.Equals(signer) {
 			return true
 		}
@@ -30,18 +35,18 @@ func (tss TssKeysignFailVoter) HasSigned(signer cosmos.AccAddress) bool {
 }
 
 // Sign this voter with given signer address
-func (tss *TssKeysignFailVoter) Sign(signer cosmos.AccAddress) bool {
-	if tss.HasSigned(signer) {
+func (m *TssKeysignFailVoter) Sign(signer cosmos.AccAddress) bool {
+	if m.HasSigned(signer) {
 		return false
 	}
-	tss.Signers = append(tss.Signers, signer)
+	m.Signers = append(m.Signers, signer.String())
 	return true
 }
 
 // HasConsensus determine if this tss pool has enough signers
-func (tss *TssKeysignFailVoter) HasConsensus(nas NodeAccounts) bool {
+func (m *TssKeysignFailVoter) HasConsensus(nas NodeAccounts) bool {
 	var count int
-	for _, signer := range tss.Signers {
+	for _, signer := range m.GetSigners() {
 		if nas.IsNodeKeys(signer) {
 			count++
 		}
@@ -50,11 +55,11 @@ func (tss *TssKeysignFailVoter) HasConsensus(nas NodeAccounts) bool {
 }
 
 // Empty to check whether this Voter is empty or not
-func (tss *TssKeysignFailVoter) Empty() bool {
-	return len(tss.ID) == 0 || tss.Height == 0
+func (m *TssKeysignFailVoter) Empty() bool {
+	return len(m.ID) == 0 || m.Height == 0
 }
 
 // String implement fmt.Stringer , return's the ID
-func (tss *TssKeysignFailVoter) String() string {
-	return tss.ID
+func (m *TssKeysignFailVoter) String() string {
+	return m.ID
 }

@@ -26,8 +26,10 @@ func matchTestAddress(addr, testAddr string, chain common.Chain) (bool, common.C
 	if strings.EqualFold(testAddr, addr) {
 		pubKey, _ := common.NewPubKey(validpb)
 		cpi, err := common.NewChainPoolInfo(chain, pubKey)
+		if err != nil {
+			fmt.Println(err)
+		}
 		cpi.PoolAddress = common.Address(testAddr)
-		fmt.Println(err)
 		return true, cpi
 	}
 	return false, common.EmptyChainPoolInfo

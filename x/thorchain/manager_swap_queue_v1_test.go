@@ -41,7 +41,7 @@ func (s SwapQueueSuite) TestScoreMsgs(c *C) {
 	queue := NewSwapQv1(k)
 
 	// check that we sort by liquidity ok
-	msgs := []MsgSwap{
+	msgs := []*MsgSwap{
 		NewMsgSwap(common.Tx{
 			ID:    common.TxID("5E1DF027321F1FE37CA19B9ECB11C2B4ABEC0D8322199D335D9CE4C39F85F115"),
 			Coins: common.Coins{common.NewCoin(common.RuneAsset(), cosmos.NewUint(2*common.One))},
@@ -84,7 +84,7 @@ func (s SwapQueueSuite) TestScoreMsgs(c *C) {
 	swaps := make(swapItems, len(msgs))
 	for i, msg := range msgs {
 		swaps[i] = swapItem{
-			msg:  msg,
+			msg:  *msg,
 			fee:  cosmos.ZeroUint(),
 			slip: cosmos.ZeroUint(),
 		}
@@ -103,7 +103,7 @@ func (s SwapQueueSuite) TestScoreMsgs(c *C) {
 	c.Check(swaps[6].msg.Tx.Coins[0].Amount.Equal(cosmos.NewUint(1*common.One)), Equals, true, Commentf("%d", swaps[6].msg.Tx.Coins[0].Amount.Uint64()))
 
 	// check that slip is taken into account
-	msgs = []MsgSwap{
+	msgs = []*MsgSwap{
 		NewMsgSwap(common.Tx{
 			ID:    GetRandomTxHash(),
 			Coins: common.Coins{common.NewCoin(common.BNBAsset, cosmos.NewUint(2*common.One))},
@@ -165,7 +165,7 @@ func (s SwapQueueSuite) TestScoreMsgs(c *C) {
 	swaps = make(swapItems, len(msgs))
 	for i, msg := range msgs {
 		swaps[i] = swapItem{
-			msg:  msg,
+			msg:  *msg,
 			fee:  cosmos.ZeroUint(),
 			slip: cosmos.ZeroUint(),
 		}

@@ -14,6 +14,7 @@ import (
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/rpcclient"
 	"github.com/btcsuite/btcutil"
+	"github.com/cosmos/cosmos-sdk/crypto/codec"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	tssp "gitlab.com/thorchain/tss/go-tss/tss"
@@ -90,7 +91,12 @@ func NewClient(thorKeys *thorclient.Keys, cfg config.ChainConfiguration, server 
 	if err != nil {
 		return nil, fmt.Errorf("fail to create keysign wrapper: %w", err)
 	}
-	nodePubKey, err := common.NewPubKeyFromCrypto(thorKeys.GetSignerInfo().GetPubKey())
+
+	temp, err := codec.ToTmPubKeyInterface(thorPrivateKey.PubKey())
+	if err != nil {
+		return nil, fmt.Errorf("fail to get tm pub key: %w", err)
+	}
+	nodePubKey, err := common.NewPubKeyFromCrypto(temp)
 	if err != nil {
 		return nil, fmt.Errorf("fail to get the node pubkey: %w", err)
 	}

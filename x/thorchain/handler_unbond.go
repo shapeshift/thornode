@@ -81,7 +81,7 @@ func (h UnBondHandler) validateV1(ctx cosmos.Context, version semver.Version, ms
 
 // Run execute the handler
 func (h UnBondHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
-	msg, ok := m.(MsgUnBond)
+	msg, ok := m.(*MsgUnBond)
 	if !ok {
 		return nil, errInvalidMessage
 	}
@@ -89,13 +89,13 @@ func (h UnBondHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Vers
 		"node address", msg.NodeAddress,
 		"request hash", msg.TxIn.ID,
 		"amount", msg.Amount)
-	if err := h.validate(ctx, msg, version, constAccessor); err != nil {
+	if err := h.validate(ctx, *msg, version, constAccessor); err != nil {
 		ctx.Logger().Error("msg unbond fail validation", "error", err)
 		return nil, err
 	}
 
 	if version.GTE(semver.MustParse("0.1.0")) {
-		if err := h.handleV1(ctx, msg, version, constAccessor); err != nil {
+		if err := h.handleV1(ctx, *msg, version, constAccessor); err != nil {
 			ctx.Logger().Error("fail to process msg unbond", "error", err)
 			return nil, err
 		}

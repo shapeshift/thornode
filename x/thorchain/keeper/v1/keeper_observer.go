@@ -1,13 +1,15 @@
 package keeperv1
 
-import "gitlab.com/thorchain/thornode/common/cosmos"
+import (
+	"gitlab.com/thorchain/thornode/common/cosmos"
+)
 
 // GetObservingAddresses - get list of observed addresses. This is a list of
 // addresses that have recently contributed via observing a tx that got 2/3rds
 // majority
 func (k KVStore) GetObservingAddresses(ctx cosmos.Context) ([]cosmos.AccAddress, error) {
 	record := make([]cosmos.AccAddress, 0)
-	_, err := k.get(ctx, k.GetKey(ctx, prefixObservingAddresses, ""), &record)
+	_, err := k.getAccAddresses(ctx, k.GetKey(ctx, prefixObservingAddresses, ""), &record)
 	return record, err
 }
 
@@ -35,7 +37,7 @@ func (k KVStore) AddObservingAddresses(ctx cosmos.Context, inAddresses []cosmos.
 		}
 	}
 
-	k.set(ctx, k.GetKey(ctx, prefixObservingAddresses, ""), uniq)
+	k.setAccAddresses(ctx, k.GetKey(ctx, prefixObservingAddresses, ""), uniq)
 	return nil
 }
 

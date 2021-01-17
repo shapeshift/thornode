@@ -1,7 +1,6 @@
 package thorchain
 
 import (
-	"github.com/blang/semver"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
@@ -48,7 +47,6 @@ func (vts *ValidatorMgrV1TestSuite) TestSetupValidatorNodes(c *C) {
 	c.Assert(vMgr1.BeginBlock(ctx, constAccessor), IsNil)
 	activeNodes, err := k.ListActiveNodeAccounts(ctx)
 	c.Assert(err, IsNil)
-	c.Logf("active nodes:%s", activeNodes)
 	c.Assert(len(activeNodes) == 2, Equals, true)
 
 	activeNode1 := GetRandomNodeAccount(NodeActive)
@@ -95,9 +93,9 @@ func (vts *ValidatorMgrV1TestSuite) TestRagnarokForChaosnet(c *C) {
 	// trigger ragnarok
 	ctx = ctx.WithBlockHeight(1024)
 	c.Assert(vMgr.BeginBlock(ctx, constAccessor), IsNil)
-	vault := NewVault(common.BlockHeight(ctx), ActiveVault, AsgardVault, GetRandomPubKey(), common.Chains{common.BNBChain}, []ChainContract{})
+	vault := NewVault(common.BlockHeight(ctx), ActiveVault, AsgardVault, GetRandomPubKey(), common.Chains{common.BNBChain}.Strings(), []ChainContract{})
 	for _, item := range nodeAccounts {
-		vault.Membership = append(vault.Membership, item.PubKeySet.Secp256k1)
+		vault.Membership = append(vault.Membership, item.PubKeySet.Secp256k1.String())
 	}
 	c.Assert(k.SetVault(ctx, vault), IsNil)
 	updates := vMgr.EndBlock(ctx, mgr, constAccessor)
@@ -120,11 +118,11 @@ func (vts *ValidatorMgrV1TestSuite) TestLowerVersion(c *C) {
 
 	for i := 0; i < 5; i++ {
 		activeNode := GetRandomNodeAccount(NodeActive)
-		activeNode.Version = semver.MustParse("0.5.0")
+		activeNode.Version = "0.5.0"
 		c.Assert(k.SetNodeAccount(ctx, activeNode), IsNil)
 	}
 	activeNode1 := GetRandomNodeAccount(NodeActive)
-	activeNode1.Version = semver.MustParse("0.4.0")
+	activeNode1.Version = "0.4.0"
 	c.Assert(k.SetNodeAccount(ctx, activeNode1), IsNil)
 
 	c.Assert(vMgr.markLowerVersion(ctx, 360), IsNil)
@@ -299,8 +297,8 @@ func (vts *ValidatorMgrV1TestSuite) TestGetChangedNodes(c *C) {
 	disabledNode.Bond = cosmos.ZeroUint()
 	c.Assert(k.SetNodeAccount(ctx, disabledNode), IsNil)
 
-	vault := NewVault(common.BlockHeight(ctx), ActiveVault, AsgardVault, GetRandomPubKey(), common.Chains{common.BNBChain}, []ChainContract{})
-	vault.Membership = append(vault.Membership, activeNode.PubKeySet.Secp256k1)
+	vault := NewVault(common.BlockHeight(ctx), ActiveVault, AsgardVault, GetRandomPubKey(), common.Chains{common.BNBChain}.Strings(), []ChainContract{})
+	vault.Membership = append(vault.Membership, activeNode.PubKeySet.Secp256k1.String())
 	c.Assert(k.SetVault(ctx, vault), IsNil)
 
 	newNodes, removedNodes, err := vMgr.getChangedNodes(ctx, NodeAccounts{activeNode})

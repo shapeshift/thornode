@@ -163,9 +163,9 @@ type TestDoubleSlashKeeper struct {
 	modules     map[string]int64
 }
 
-func (k *TestDoubleSlashKeeper) SendFromModuleToModule(_ cosmos.Context, from, to string, coin common.Coin) error {
-	k.modules[from] -= int64(coin.Amount.Uint64())
-	k.modules[to] += int64(coin.Amount.Uint64())
+func (k *TestDoubleSlashKeeper) SendFromModuleToModule(_ cosmos.Context, from, to string, coins common.Coins) error {
+	k.modules[from] -= int64(coins[0].Amount.Uint64())
+	k.modules[to] += int64(coins[0].Amount.Uint64())
 	return nil
 }
 
