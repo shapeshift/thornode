@@ -27,15 +27,15 @@ func NewObservedTxOutHandler(keeper keeper.Keeper, mgr Manager) ObservedTxOutHan
 
 // Run is the main entry point for ObservedTxOutHandler
 func (h ObservedTxOutHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
-	msg, ok := m.(MsgObservedTxOut)
+	msg, ok := m.(*MsgObservedTxOut)
 	if !ok {
 		return nil, errInvalidMessage
 	}
-	if err := h.validate(ctx, msg, version); err != nil {
+	if err := h.validate(ctx, *msg, version); err != nil {
 		ctx.Logger().Error("MsgObserveTxOut failed validation", "error", err)
 		return nil, err
 	}
-	result, err := h.handle(ctx, msg, version, constAccessor)
+	result, err := h.handle(ctx, *msg, version, constAccessor)
 	if err != nil {
 		ctx.Logger().Error("fail to handle MsgObserveTxOut", "error", err)
 	}
@@ -87,7 +87,7 @@ func (h ObservedTxOutHandler) preflightV1(ctx cosmos.Context, voter ObservedTxVo
 			voter.FinalisedHeight = common.BlockHeight(ctx)
 			voter.Tx = voter.GetTx(nas)
 			// tx has consensus now, so decrease the slashing point for all the signers whom voted for it
-			h.mgr.Slasher().DecSlashPoints(ctx, observeSlashPoints, voter.Tx.Signers...)
+			h.mgr.Slasher().DecSlashPoints(ctx, observeSlashPoints, voter.Tx.GetSigners()...)
 
 		} else {
 			// event the tx had been processed , given the signer just a bit late , so we still take away their slash points
@@ -222,7 +222,7 @@ func (h ObservedTxOutHandler) handleV1(ctx cosmos.Context, version semver.Versio
 
 		// add addresses to observing addresses. This is used to detect
 		// active/inactive observing node accounts
-		h.mgr.ObMgr().AppendObserver(tx.Tx.Chain, txOut.Signers)
+		h.mgr.ObMgr().AppendObserver(tx.Tx.Chain, txOut.GetSigners())
 
 		// emit tss keysign metrics
 		if tx.KeysignMs > 0 {

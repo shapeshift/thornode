@@ -63,7 +63,7 @@ func (mfp *MockWithdrawKeeper) GetNodeAccount(_ cosmos.Context, addr cosmos.AccA
 
 func (mfp *MockWithdrawKeeper) GetLiquidityProviderIterator(ctx cosmos.Context, _ common.Asset) cosmos.Iterator {
 	iter := keeper.NewDummyIterator()
-	iter.AddItem([]byte("key"), mfp.Cdc().MustMarshalBinaryBare(mfp.lp))
+	iter.AddItem([]byte("key"), mfp.Cdc().MustMarshalBinaryBare(&mfp.lp))
 	return iter
 }
 
@@ -218,7 +218,7 @@ func (HandlerWithdrawSuite) TestWithdrawHandler_Validation(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	testCases := []struct {
 		name           string
-		msg            MsgWithdrawLiquidity
+		msg            *MsgWithdrawLiquidity
 		expectedResult error
 	}{
 		{

@@ -5,7 +5,7 @@
       "contracts": [
         {
           "chain": "ETH",
-          "address": "0xE65e9d372F8cAcc7b6dfcd4af6507851Ed31bb44"
+          "contract": "0xE65e9d372F8cAcc7b6dfcd4af6507851Ed31bb44"
         }
       ]
     },
@@ -14,7 +14,7 @@
       "contracts": [
         {
           "chain": "ETH",
-          "address": "0xE65e9d372F8cAcc7b6dfcd4af6507851Ed31bb44"
+          "contract": "0xE65e9d372F8cAcc7b6dfcd4af6507851Ed31bb44"
         }
       ]
     },
@@ -23,7 +23,7 @@
       "contracts": [
         {
           "chain": "ETH",
-          "address": "0xE65e9d372F8cAcc7b6dfcd4af6507851Ed31bb44"
+          "contract": "0xE65e9d372F8cAcc7b6dfcd4af6507851Ed31bb44"
         }
       ]
     },
@@ -32,7 +32,7 @@
       "contracts": [
         {
           "chain": "ETH",
-          "address": "0xE65e9d372F8cAcc7b6dfcd4af6507851Ed31bb44"
+          "contract": "0xE65e9d372F8cAcc7b6dfcd4af6507851Ed31bb44"
         }
       ]
     }
@@ -43,7 +43,7 @@
       "contracts": [
         {
           "chain": "ETH",
-          "address": "0xE65e9d372F8cAcc7b6dfcd4af6507851Ed31bb44"
+          "contract": "0xE65e9d372F8cAcc7b6dfcd4af6507851Ed31bb44"
         }
       ]
     },
@@ -52,7 +52,7 @@
       "contracts": [
         {
           "chain": "ETH",
-          "address": "0xE65e9d372F8cAcc7b6dfcd4af6507851Ed31bb44"
+          "contract": "0xE65e9d372F8cAcc7b6dfcd4af6507851Ed31bb44"
         }
       ]
     }

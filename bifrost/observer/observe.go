@@ -384,13 +384,9 @@ func (o *Observer) filterErrataTx(block types.ErrataBlock) {
 }
 
 func (o *Observer) sendErrataTxToThorchain(height int64, txID common.TxID, chain common.Chain) error {
-	stdTx, err := o.thorchainBridge.GetErrataStdTx(txID, chain)
+	errataMsg := o.thorchainBridge.GetErrataMsg(txID, chain)
 	strHeight := strconv.FormatInt(height, 10)
-	if err != nil {
-		o.errCounter.WithLabelValues("fail_to_sign", strHeight).Inc()
-		return fmt.Errorf("fail to sign the tx: %w", err)
-	}
-	txID, err = o.thorchainBridge.Broadcast(*stdTx, types.TxSync)
+	txID, err := o.thorchainBridge.Broadcast(errataMsg)
 	if err != nil {
 		o.errCounter.WithLabelValues("fail_to_send_to_thorchain", strHeight).Inc()
 		return fmt.Errorf("fail to send the tx to thorchain: %w", err)
@@ -404,20 +400,20 @@ func (o *Observer) signAndSendToThorchain(txIn types.TxIn) error {
 	if err != nil {
 		return fmt.Errorf("failed to get node status: %w", err)
 	}
-	if nodeStatus != stypes.Active {
+	if nodeStatus != stypes.NodeStatus_Active {
 		return nil
 	}
 	txs, err := o.getThorchainTxIns(txIn)
 	if err != nil {
 		return fmt.Errorf("fail to convert txin to thorchain txin: %w", err)
 	}
-	stdTx, err := o.thorchainBridge.GetObservationsStdTx(txs)
+	msgs, err := o.thorchainBridge.GetObservationsStdTx(txs)
 	if err != nil {
 		return fmt.Errorf("fail to sign the tx: %w", err)
 	}
 	bf := backoff.NewExponentialBackOff()
 	return backoff.Retry(func() error {
-		txID, err := o.thorchainBridge.Broadcast(*stdTx, types.TxSync)
+		txID, err := o.thorchainBridge.Broadcast(msgs...)
 		if err != nil {
 			return fmt.Errorf("fail to send the tx to thorchain: %w", err)
 		}

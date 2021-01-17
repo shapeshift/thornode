@@ -1,29 +1,27 @@
 package thorclient
 
 import (
-	"bytes"
-	"errors"
 	"fmt"
 	"sync/atomic"
 	"time"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	clienttx "github.com/cosmos/cosmos-sdk/client/tx"
+	"github.com/cosmos/cosmos-sdk/types/tx/signing"
+	flag "github.com/spf13/pflag"
+
+	stypes "github.com/cosmos/cosmos-sdk/types"
 
 	"gitlab.com/thorchain/thornode/bifrost/metrics"
-	"gitlab.com/thorchain/thornode/bifrost/thorclient/types"
 	"gitlab.com/thorchain/thornode/common"
 )
 
 // Broadcast Broadcasts tx to thorchain
-func (b *ThorchainBridge) Broadcast(stdTx authtypes.StdTx, mode types.TxMode) (common.TxID, error) {
+func (b *ThorchainBridge) Broadcast(msgs ...stypes.Msg) (common.TxID, error) {
 	b.broadcastLock.Lock()
 	defer b.broadcastLock.Unlock()
 
 	noTxID := common.TxID("")
-	if !mode.IsValid() {
-		return noTxID, errors.New(fmt.Sprintf("transaction Mode (%s) is invalid", mode))
-	}
+
 	start := time.Now()
 	defer func() {
 		b.m.GetHistograms(metrics.SendToThorchainDuration).Observe(time.Since(start).Seconds())
@@ -46,54 +44,38 @@ func (b *ThorchainBridge) Broadcast(stdTx authtypes.StdTx, mode types.TxMode) (c
 	}
 
 	b.logger.Info().Uint64("account_number", b.accountNumber).Uint64("sequence_number", b.seqNumber).Msg("account info")
-	stdMsg := authtypes.StdSignMsg{
-		ChainID:       string(b.cfg.ChainID),
-		AccountNumber: b.accountNumber,
-		Sequence:      b.seqNumber,
-		Fee:           stdTx.Fee,
-		Msgs:          stdTx.GetMsgs(),
-		Memo:          stdTx.GetMemo(),
-	}
-	sig, err := authtypes.MakeSignature(b.keys.GetKeybase(), b.cfg.SignerName, b.cfg.SignerPasswd, stdMsg)
+
+	flags := flag.NewFlagSet("thorchain", 0)
+
+	ctx := b.GetContext()
+	factory := clienttx.NewFactoryCLI(ctx, flags)
+	factory = factory.WithAccountNumber(b.accountNumber)
+	factory = factory.WithSequence(b.seqNumber)
+	factory = factory.WithSignMode(signing.SignMode_SIGN_MODE_DIRECT)
+
+	builder, err := clienttx.BuildUnsignedTx(factory, msgs...)
 	if err != nil {
-		b.errCounter.WithLabelValues("fail_sign", "").Inc()
-		return noTxID, fmt.Errorf("fail to sign the message: %w", err)
+		return noTxID, err
+	}
+	builder.SetGasLimit(100000000)
+	err = clienttx.Sign(factory, ctx.GetFromName(), builder, true)
+	if err != nil {
+		return noTxID, err
 	}
 
-	signed := authtypes.NewStdTx(
-		stdTx.GetMsgs(),
-		stdTx.Fee,
-		[]authtypes.StdSignature{sig},
-		stdTx.GetMemo(),
-	)
+	txBytes, err := ctx.TxConfig.TxEncoder()(builder.GetTx())
+	if err != nil {
+		return noTxID, err
+	}
+
+	// broadcast to a Tendermint node
+	commit, err := ctx.BroadcastTx(txBytes)
+	if err != nil {
+		return noTxID, fmt.Errorf("fail to broadcast tx: %w", err)
+	}
 
 	b.m.GetCounter(metrics.TxToThorchainSigned).Inc()
-
-	var setTx types.SetTx
-	setTx.Mode = mode.String()
-	setTx.Tx.Msg = signed.Msgs
-	setTx.Tx.Fee = signed.Fee
-	setTx.Tx.Signatures = signed.Signatures
-	setTx.Tx.Memo = signed.Memo
-	result, err := b.cdc.MarshalJSON(setTx)
-	if err != nil {
-		b.errCounter.WithLabelValues("fail_marshal_settx", "").Inc()
-		return noTxID, fmt.Errorf("fail to marshal settx to json: %w", err)
-	}
-
-	b.logger.Info().Int("size", len(result)).Str("payload", string(result)).Msg("post to thorchain")
-	body, err := b.post(BroadcastTxsEndpoint, "application/json", bytes.NewBuffer(result))
-	if err != nil {
-		return noTxID, fmt.Errorf("fail to post tx to thorchain: %w", err)
-	}
-	var commit sdk.TxResponse
-	b.logger.Debug().Str("body", string(body)).Msg("broadcast response from THORChain")
-	err = b.cdc.UnmarshalJSON(body, &commit)
-	if err != nil {
-		b.errCounter.WithLabelValues("fail_unmarshal_commit", "").Inc()
-		b.logger.Error().Err(err).Msg("fail unmarshal commit")
-		return common.BlankTxID, fmt.Errorf("fail to broadcast: %w", err)
-	}
+	// b.logger.Debug().Str("body", string(body)).Msg("broadcast response from THORChain")
 	txHash, err := common.NewTxID(commit.TxHash)
 	if err != nil {
 		return common.BlankTxID, fmt.Errorf("fail to convert txhash: %w", err)

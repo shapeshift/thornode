@@ -8,14 +8,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/binance-chain/go-sdk/common/types"
-	"github.com/binance-chain/go-sdk/types/msg"
-	"github.com/binance-chain/go-sdk/types/tx"
-	"github.com/cosmos/cosmos-sdk/client/keys"
-	cKeys "github.com/cosmos/cosmos-sdk/crypto/keys"
+	"github.com/cosmos/cosmos-sdk/crypto/hd"
+	cKeys "github.com/cosmos/cosmos-sdk/crypto/keyring"
+	"gitlab.com/thorchain/binance-sdk/common/types"
+	"gitlab.com/thorchain/binance-sdk/types/msg"
+	"gitlab.com/thorchain/binance-sdk/types/tx"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/bifrost/thorclient"
+	"gitlab.com/thorchain/thornode/cmd"
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/x/thorchain"
 
@@ -45,10 +46,10 @@ func (s *BlockScannerTestSuite) SetUpSuite(c *C) {
 		ChainHomeFolder: "",
 	}
 
-	kb := keys.NewInMemoryKeyBase()
-	info, _, err := kb.CreateMnemonic(cfg.SignerName, cKeys.English, cfg.SignerPasswd, cKeys.Secp256k1)
+	kb := cKeys.NewInMemory()
+	_, _, err := kb.NewMnemonic(cfg.SignerName, cKeys.English, cmd.THORChainHDPath, hd.Secp256k1)
 	c.Assert(err, IsNil)
-	thorKeys := thorclient.NewKeysWithKeybase(kb, info, cfg.SignerPasswd)
+	thorKeys := thorclient.NewKeysWithKeybase(kb, cfg.SignerName, cfg.SignerPasswd)
 	c.Assert(err, IsNil)
 	s.bridge, err = thorclient.NewThorchainBridge(cfg, s.m, thorKeys)
 	c.Assert(err, IsNil)
@@ -278,12 +279,12 @@ func (s *BlockScannerTestSuite) TestFromTxToTxIn(c *C) {
 		bs, err := NewBinanceBlockScanner(getConfigForTest("127.0.0.1"), blockscanner.NewMockScannerStorage(), true, s.bridge, s.m)
 		c.Assert(err, IsNil)
 		c.Assert(bs, NotNil)
-		c.Log(input)
+		// c.Log(input)
 		for _, item := range query.Result.Txs {
-			txInItem, err := bs.fromTxToTxIn(item.Hash, item.Tx, 2)
 			c.Logf("hash:%s", item.Hash)
-			c.Check(txInItem, txInItemCheck)
-			c.Check(err, errCheck)
+			txInItem, err := bs.fromTxToTxIn(item.Hash, item.Tx, 2)
+			c.Assert(err, errCheck)
+			c.Check(txInItem, txInItemCheck, Commentf("%+v", txInItem))
 			if txInItem != nil {
 				return txInItem
 			}

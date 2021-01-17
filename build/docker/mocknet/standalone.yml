@@ -1,7 +1,7 @@
 version: '3'
 
 services:
-  thor-daemon:
+  thornode:
     environment:
       NATIVE: ${NATIVE:-none}
   bifrost:

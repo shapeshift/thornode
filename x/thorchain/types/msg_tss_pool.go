@@ -7,28 +7,13 @@ import (
 	"sort"
 	"strings"
 
-	"gitlab.com/thorchain/tss/go-tss/blame"
-
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
-// MsgTssPool defines a MsgTssPool message
-type MsgTssPool struct {
-	ID         string            `json:"id"`
-	PoolPubKey common.PubKey     `json:"pool_pub_key"`
-	KeygenType KeygenType        `json:"keygen_type"`
-	PubKeys    common.PubKeys    `json:"pubkeys"`
-	Height     int64             `json:"height"`
-	Blame      blame.Blame       `json:"blame"`
-	Chains     common.Chains     `json:"chains"`
-	Signer     cosmos.AccAddress `json:"signer"`
-	KeygenTime int64             `json:"keygen_time"` // keygen time in ms
-}
-
 // NewMsgTssPool is a constructor function for MsgTssPool
-func NewMsgTssPool(pks common.PubKeys, poolpk common.PubKey, KeygenType KeygenType, height int64, bl blame.Blame, chains common.Chains, signer cosmos.AccAddress, keygenTime int64) MsgTssPool {
-	return MsgTssPool{
+func NewMsgTssPool(pks []string, poolpk common.PubKey, KeygenType KeygenType, height int64, bl Blame, chains []string, signer cosmos.AccAddress, keygenTime int64) *MsgTssPool {
+	return &MsgTssPool{
 		ID:         getTssID(pks, poolpk, height, bl),
 		PubKeys:    pks,
 		PoolPubKey: poolpk,
@@ -42,10 +27,10 @@ func NewMsgTssPool(pks common.PubKeys, poolpk common.PubKey, KeygenType KeygenTy
 }
 
 // getTssID
-func getTssID(members common.PubKeys, poolPk common.PubKey, height int64, bl blame.Blame) string {
+func getTssID(members []string, poolPk common.PubKey, height int64, bl Blame) string {
 	// ensure input pubkeys list is deterministically sorted
 	sort.SliceStable(members, func(i, j int) bool {
-		return members[i].String() < members[j].String()
+		return members[i] < members[j]
 	})
 
 	pubkeys := make([]string, len(bl.BlameNodes))
@@ -58,7 +43,7 @@ func getTssID(members common.PubKeys, poolPk common.PubKey, height int64, bl bla
 
 	sb := strings.Builder{}
 	for _, item := range members {
-		sb.WriteString("m:" + item.String())
+		sb.WriteString("m:" + item)
 	}
 	for _, item := range pubkeys {
 		sb.WriteString("p:" + item)
@@ -70,60 +55,92 @@ func getTssID(members common.PubKeys, poolPk common.PubKey, height int64, bl bla
 }
 
 // Route should return the route key of the module
-func (msg MsgTssPool) Route() string { return RouterKey }
+func (m *MsgTssPool) Route() string { return RouterKey }
 
 // Type should return the action
-func (msg MsgTssPool) Type() string { return "set_tss_pool" }
+func (m MsgTssPool) Type() string { return "set_tss_pool" }
 
 // ValidateBasic runs stateless checks on the message
-func (msg MsgTssPool) ValidateBasic() error {
-	if msg.Signer.Empty() {
-		return cosmos.ErrInvalidAddress(msg.Signer.String())
+func (m *MsgTssPool) ValidateBasic() error {
+	if m.Signer.Empty() {
+		return cosmos.ErrInvalidAddress(m.Signer.String())
 	}
-	if len(msg.ID) == 0 {
+	if len(m.ID) == 0 {
 		return cosmos.ErrUnknownRequest("ID cannot be blank")
 	}
-	if len(msg.PubKeys) < 2 {
+	if len(m.PubKeys) < 2 {
 		return cosmos.ErrUnknownRequest("Must have at least 2 pub keys")
 	}
-	if len(msg.PubKeys) > 100 {
+	if len(m.PubKeys) > 100 {
 		return cosmos.ErrUnknownRequest("Must have no more then 100 pub keys")
 	}
-	for _, pk := range msg.PubKeys {
+	pks := m.GetPubKeys()
+	if len(m.PubKeys) != len(pks) {
+		return cosmos.ErrUnknownRequest("One or more pubkeys were not valid")
+	}
+	for _, pk := range pks {
 		if pk.IsEmpty() {
 			return cosmos.ErrUnknownRequest("Pubkey cannot be empty")
 		}
 	}
 	// PoolPubKey can't be empty only when keygen success
-	if msg.IsSuccess() {
-		if msg.PoolPubKey.IsEmpty() {
+	if m.IsSuccess() {
+		if m.PoolPubKey.IsEmpty() {
 			return cosmos.ErrUnknownRequest("Pool pubkey cannot be empty")
 		}
 	}
 	// ensure pool pubkey is a valid bech32 pubkey
-	if _, err := common.NewPubKey(msg.PoolPubKey.String()); err != nil {
+	if _, err := common.NewPubKey(m.PoolPubKey.String()); err != nil {
 		return cosmos.ErrUnknownRequest(err.Error())
 	}
-	if !msg.Chains.Has(common.RuneAsset().Chain) {
+	chains := m.GetChains()
+	if len(chains) != len(m.Chains) {
+		return cosmos.ErrUnknownRequest("One or more chains were not valid")
+	}
+	if !chains.Has(common.RuneAsset().Chain) {
 		return cosmos.ErrUnknownRequest("must support rune asset chain")
 	}
-	if len(msg.Chains) != len(msg.Chains.Distinct()) {
+	if len(chains) != len(chains.Distinct()) {
 		return cosmos.ErrUnknownRequest("cannot have duplicate chains")
 	}
 	return nil
 }
 
 // IsSuccess when blame is empty , then treat it as success
-func (msg MsgTssPool) IsSuccess() bool {
-	return msg.Blame.IsEmpty()
+func (m MsgTssPool) IsSuccess() bool {
+	return m.Blame.IsEmpty()
+}
+
+func (m MsgTssPool) GetChains() common.Chains {
+	chains := make(common.Chains, 0)
+	for _, c := range m.Chains {
+		chain, err := common.NewChain(c)
+		if err != nil {
+			continue
+		}
+		chains = append(chains, chain)
+	}
+	return chains
+}
+
+func (m MsgTssPool) GetPubKeys() common.PubKeys {
+	pubkeys := make(common.PubKeys, 0)
+	for _, pk := range m.PubKeys {
+		pk, err := common.NewPubKey(pk)
+		if err != nil {
+			continue
+		}
+		pubkeys = append(pubkeys, pk)
+	}
+	return pubkeys
 }
 
 // GetSignBytes encodes the message for signing
-func (msg MsgTssPool) GetSignBytes() []byte {
-	return cosmos.MustSortJSON(ModuleCdc.MustMarshalJSON(msg))
+func (m *MsgTssPool) GetSignBytes() []byte {
+	return cosmos.MustSortJSON(ModuleCdc.MustMarshalJSON(m))
 }
 
 // GetSigners defines whose signature is required
-func (msg MsgTssPool) GetSigners() []cosmos.AccAddress {
-	return []cosmos.AccAddress{msg.Signer}
+func (m *MsgTssPool) GetSigners() []cosmos.AccAddress {
+	return []cosmos.AccAddress{m.Signer}
 }

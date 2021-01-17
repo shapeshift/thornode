@@ -25,16 +25,16 @@ func (s *HandlerMimirSuite) TestValidate(c *C) {
 	// happy path
 	ver := constants.SWVersion
 	msg := NewMsgMimir("foo", 44, addr)
-	err := handler.validate(ctx, msg, ver)
+	err := handler.validate(ctx, *msg, ver)
 	c.Assert(err, IsNil)
 
 	// invalid version
-	err = handler.validate(ctx, msg, semver.Version{})
+	err = handler.validate(ctx, *msg, semver.Version{})
 	c.Assert(err, Equals, errBadVersion)
 
 	// invalid msg
-	msg = MsgMimir{}
-	err = handler.validate(ctx, msg, ver)
+	msg = &MsgMimir{}
+	err = handler.validate(ctx, *msg, ver)
 	c.Assert(err, NotNil)
 }
 
@@ -45,7 +45,7 @@ func (s *HandlerMimirSuite) TestHandle(c *C) {
 	handler := NewMimirHandler(keeper, NewDummyMgr())
 
 	msg := NewMsgMimir("foo", 55, GetRandomBech32Addr())
-	sdkErr := handler.handle(ctx, msg, ver)
+	sdkErr := handler.handle(ctx, *msg, ver)
 	c.Assert(sdkErr, IsNil)
 	val, err := keeper.GetMimir(ctx, "foo")
 	c.Assert(err, IsNil)
@@ -57,8 +57,9 @@ func (s *HandlerMimirSuite) TestHandle(c *C) {
 	c.Check(result, IsNil)
 
 	result, err = handler.Run(ctx, msg, constants.SWVersion, constants.GetConstantValues(constants.SWVersion))
-	c.Check(err, NotNil)
-	c.Check(result, IsNil)
+	c.Assert(err, NotNil)
+	c.Assert(result, IsNil)
+
 	addr, err := cosmos.AccAddressFromBech32(ADMINS[0])
 	c.Check(err, IsNil)
 	msg1 := NewMsgMimir("hello", 1, addr)
@@ -67,5 +68,5 @@ func (s *HandlerMimirSuite) TestHandle(c *C) {
 	c.Check(result, NotNil)
 
 	// invalid version should result an error
-	c.Check(handler.handle(ctx, msg, semver.MustParse("0.0.1")), NotNil)
+	c.Check(handler.handle(ctx, *msg, semver.MustParse("0.0.1")), NotNil)
 }

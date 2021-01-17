@@ -27,16 +27,16 @@ func NewIPAddressHandler(keeper keeper.Keeper, mgr Manager) IPAddressHandler {
 
 // Run it the main entry point to execute ip address logic
 func (h IPAddressHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
-	msg, ok := m.(MsgSetIPAddress)
+	msg, ok := m.(*MsgSetIPAddress)
 	if !ok {
 		return nil, errInvalidMessage
 	}
 	ctx.Logger().Info("receive ip address", "address", msg.IPAddress)
-	if err := h.validate(ctx, msg, version, constAccessor); err != nil {
+	if err := h.validate(ctx, *msg, version, constAccessor); err != nil {
 		ctx.Logger().Error("msg set version failed validation", "error", err)
 		return nil, err
 	}
-	if err := h.handle(ctx, msg, version, constAccessor); err != nil {
+	if err := h.handle(ctx, *msg, version, constAccessor); err != nil {
 		ctx.Logger().Error("fail to process msg set version", "error", err)
 		return nil, err
 	}
@@ -102,9 +102,11 @@ func (h IPAddressHandler) handleV1(ctx cosmos.Context, msg MsgSetIPAddress, cons
 
 	// add cost to reserve
 	coin := common.NewCoin(common.RuneNative, cost)
-	if err := h.keeper.SendFromAccountToModule(ctx, msg.Signer, ReserveName, coin); err != nil {
-		ctx.Logger().Error("fail to transfer funds from bond to reserve", "error", err)
-		return err
+	if !cost.IsZero() {
+		if err := h.keeper.SendFromAccountToModule(ctx, msg.Signer, ReserveName, common.NewCoins(coin)); err != nil {
+			ctx.Logger().Error("fail to transfer funds from bond to reserve", "error", err)
+			return err
+		}
 	}
 
 	ctx.EventManager().EmitEvent(

@@ -1,6 +1,7 @@
 package thorclient
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
@@ -15,7 +16,7 @@ func (b *ThorchainBridge) GetNodeAccount(thorAddr string) (*types.NodeAccount, e
 		return &types.NodeAccount{}, fmt.Errorf("failed to get node account: %w", err)
 	}
 	var na types.NodeAccount
-	if err := b.cdc.UnmarshalJSON(body, &na); err != nil {
+	if err := json.Unmarshal(body, &na); err != nil {
 		b.errCounter.WithLabelValues("fail_unmarshal_node_account", thorAddr).Inc()
 		return &types.NodeAccount{}, fmt.Errorf("failed to unmarshal node account: %w", err)
 	}

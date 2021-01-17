@@ -4,8 +4,8 @@ import (
 	. "gopkg.in/check.v1"
 
 	"github.com/cosmos/cosmos-sdk/store"
-	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/libs/log"
+	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
 	dbm "github.com/tendermint/tm-db"
 
 	"gitlab.com/thorchain/thornode/common/cosmos"
@@ -18,7 +18,7 @@ var _ = Suite(&BlockHeightSuite{})
 func (BlockHeightSuite) TestBlockHeight(c *C) {
 	db := dbm.NewMemDB()
 	ms := store.NewCommitMultiStore(db)
-	ctx := cosmos.NewContext(ms, abci.Header{ChainID: "thorchain"}, false, log.NewNopLogger())
+	ctx := cosmos.NewContext(ms, tmproto.Header{ChainID: "thorchain"}, false, log.NewNopLogger())
 	ctx = ctx.WithBlockHeight(18)
 
 	c.Assert(BlockHeight(ctx), Equals, int64(18))

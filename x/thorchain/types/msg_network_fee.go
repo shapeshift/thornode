@@ -5,18 +5,9 @@ import (
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
-// MsgNetworkFee is message bifrost will be used to send chain related network fee to THORNode
-type MsgNetworkFee struct {
-	BlockHeight        int64             `json:"block_height"`
-	Chain              common.Chain      `json:"chain"`
-	TransactionSize    uint64            `json:"transaction_size"`
-	TransactionFeeRate uint64            `json:"transaction_fee_rate"`
-	Signer             cosmos.AccAddress `json:"signer"`
-}
-
 // NewMsgNetworkFee create a new instance of MsgNetworkFee
-func NewMsgNetworkFee(blockHeight int64, chain common.Chain, transactionSize, transactionFeeRate uint64, signer cosmos.AccAddress) MsgNetworkFee {
-	return MsgNetworkFee{
+func NewMsgNetworkFee(blockHeight int64, chain common.Chain, transactionSize, transactionFeeRate uint64, signer cosmos.AccAddress) *MsgNetworkFee {
+	return &MsgNetworkFee{
 		BlockHeight:        blockHeight,
 		Chain:              chain,
 		TransactionSize:    transactionSize,
@@ -26,37 +17,37 @@ func NewMsgNetworkFee(blockHeight int64, chain common.Chain, transactionSize, tr
 }
 
 // Route should return the Route of the module
-func (msg MsgNetworkFee) Route() string { return RouterKey }
+func (m *MsgNetworkFee) Route() string { return RouterKey }
 
 // Type should return the action
-func (msg MsgNetworkFee) Type() string { return "set_network_fee" }
+func (m MsgNetworkFee) Type() string { return "set_network_fee" }
 
 // ValidateBasic runs stateless checks on the message
-func (msg MsgNetworkFee) ValidateBasic() error {
-	if msg.BlockHeight < 0 {
+func (m *MsgNetworkFee) ValidateBasic() error {
+	if m.BlockHeight < 0 {
 		return cosmos.ErrUnknownRequest("block height can't be negative")
 	}
-	if msg.Signer.Empty() {
-		return cosmos.ErrInvalidAddress(msg.Signer.String())
+	if m.Signer.Empty() {
+		return cosmos.ErrInvalidAddress(m.Signer.String())
 	}
-	if msg.Chain.IsEmpty() {
+	if m.Chain.IsEmpty() {
 		return cosmos.ErrUnknownRequest("chain can't be empty")
 	}
-	if msg.TransactionSize <= 0 {
+	if m.TransactionSize <= 0 {
 		return cosmos.ErrUnknownRequest("invalid transaction size")
 	}
-	if msg.TransactionFeeRate <= 0 {
+	if m.TransactionFeeRate <= 0 {
 		return cosmos.ErrUnknownRequest("invalid transaction fee rate")
 	}
 	return nil
 }
 
 // GetSignBytes encodes the message for signing
-func (msg MsgNetworkFee) GetSignBytes() []byte {
-	return cosmos.MustSortJSON(ModuleCdc.MustMarshalJSON(msg))
+func (m *MsgNetworkFee) GetSignBytes() []byte {
+	return cosmos.MustSortJSON(ModuleCdc.MustMarshalJSON(m))
 }
 
 // GetSigners defines whose signature is required
-func (msg MsgNetworkFee) GetSigners() []cosmos.AccAddress {
-	return []cosmos.AccAddress{msg.Signer}
+func (m *MsgNetworkFee) GetSigners() []cosmos.AccAddress {
+	return []cosmos.AccAddress{m.Signer}
 }

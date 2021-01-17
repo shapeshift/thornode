@@ -52,21 +52,21 @@ func (s *HandlerObservedTxOutSuite) testValidateWithVersion(c *C, ver semver.Ver
 	txs[0].Tx.FromAddress, err = pk.GetAddress(txs[0].Tx.Coins[0].Asset.Chain)
 	c.Assert(err, IsNil)
 	msg := NewMsgObservedTxOut(txs, activeNodeAccount.NodeAddress)
-	err = handler.validate(ctx, msg, ver)
+	err = handler.validate(ctx, *msg, ver)
 	c.Assert(err, IsNil)
 
 	// invalid version
-	err = handler.validate(ctx, msg, semver.Version{})
+	err = handler.validate(ctx, *msg, semver.Version{})
 	c.Assert(err, Equals, errInvalidVersion)
 
 	// inactive node account
 	msg = NewMsgObservedTxOut(txs, GetRandomBech32Addr())
-	err = handler.validate(ctx, msg, ver)
+	err = handler.validate(ctx, *msg, ver)
 	c.Assert(errors.Is(err, se.ErrUnauthorized), Equals, true)
 
 	// invalid msg
-	msg = MsgObservedTxOut{}
-	err = handler.validate(ctx, msg, ver)
+	msg = &MsgObservedTxOut{}
+	err = handler.validate(ctx, *msg, ver)
 	c.Assert(err, NotNil)
 }
 
@@ -180,7 +180,7 @@ func (s *HandlerObservedTxOutSuite) testHandleWithVersion(c *C, ver semver.Versi
 	pk := GetRandomPubKey()
 	c.Assert(err, IsNil)
 
-	ygg := NewVault(common.BlockHeight(ctx), ActiveVault, YggdrasilVault, pk, common.Chains{common.BNBChain}, []ChainContract{})
+	ygg := NewVault(common.BlockHeight(ctx), ActiveVault, YggdrasilVault, pk, common.Chains{common.BNBChain}.Strings(), []ChainContract{})
 	ygg.Coins = common.Coins{
 		common.NewCoin(common.RuneAsset(), cosmos.NewUint(500)),
 		common.NewCoin(common.BNBAsset, cosmos.NewUint(200*common.One)),
@@ -205,7 +205,7 @@ func (s *HandlerObservedTxOutSuite) testHandleWithVersion(c *C, ver semver.Versi
 
 	c.Assert(err, IsNil)
 	msg := NewMsgObservedTxOut(txs, keeper.nas[0].NodeAddress)
-	_, err = handler.handle(ctx, msg, ver, constAccessor)
+	_, err = handler.handle(ctx, *msg, ver, constAccessor)
 	c.Assert(err, IsNil)
 	c.Assert(err, IsNil)
 	mgr.ObMgr().EndBlock(ctx, keeper)
@@ -242,7 +242,7 @@ func (s *HandlerObservedTxOutSuite) testHandleStolenFundsWithVersion(c *C, ver s
 	na.Bond = cosmos.NewUint(1000000 * common.One)
 	na.PubKeySet.Secp256k1 = pk
 
-	ygg := NewVault(common.BlockHeight(ctx), ActiveVault, YggdrasilVault, pk, common.Chains{common.BNBChain}, []ChainContract{})
+	ygg := NewVault(common.BlockHeight(ctx), ActiveVault, YggdrasilVault, pk, common.Chains{common.BNBChain}.Strings(), []ChainContract{})
 	ygg.Coins = common.Coins{
 		common.NewCoin(common.RuneAsset(), cosmos.NewUint(500*common.One)),
 		common.NewCoin(common.BNBAsset, cosmos.NewUint(200*common.One)),
@@ -267,7 +267,7 @@ func (s *HandlerObservedTxOutSuite) testHandleStolenFundsWithVersion(c *C, ver s
 
 	c.Assert(err, IsNil)
 	msg := NewMsgObservedTxOut(txs, keeper.nas[0].NodeAddress)
-	_, err = handler.handle(ctx, msg, ver, constAccessor)
+	_, err = handler.handle(ctx, *msg, ver, constAccessor)
 	c.Assert(err, IsNil)
 	// make sure the coin has been subtract from the vault
 	c.Check(ygg.Coins.GetCoin(common.BNBAsset).Amount.Equal(cosmos.NewUint(9999962500)), Equals, true, Commentf("%d", ygg.Coins.GetCoin(common.BNBAsset).Amount.Uint64()))
@@ -324,7 +324,7 @@ func (h *HandlerObservedTxOutTestHelper) SetVault(ctx cosmos.Context, vault Vaul
 	return h.Keeper.SetVault(ctx, vault)
 }
 
-func setupAnObservedTxOut(ctx cosmos.Context, helper *HandlerObservedTxOutTestHelper, c *C) MsgObservedTxOut {
+func setupAnObservedTxOut(ctx cosmos.Context, helper *HandlerObservedTxOutTestHelper, c *C) *MsgObservedTxOut {
 	activeNodeAccount := GetRandomNodeAccount(NodeActive)
 	pk := GetRandomPubKey()
 	tx := GetRandomTx()

@@ -87,19 +87,19 @@ func (s TypeObservedTxSuite) TestVoter(c *C) {
 	trusts3 := NodeAccounts{
 		NodeAccount{
 			NodeAddress:         acc1,
-			Status:              Active,
+			Status:              NodeStatus_Active,
 			PubKeySet:           accPubKeySet1,
 			ValidatorConsPubKey: accConsPub1,
 		},
 		NodeAccount{
 			NodeAddress:         acc2,
-			Status:              Active,
+			Status:              NodeStatus_Active,
 			PubKeySet:           accPubKeySet2,
 			ValidatorConsPubKey: accConsPub2,
 		},
 		NodeAccount{
 			NodeAddress:         acc3,
-			Status:              Active,
+			Status:              NodeStatus_Active,
 			PubKeySet:           accPubKeySet3,
 			ValidatorConsPubKey: accConsPub3,
 		},
@@ -107,25 +107,25 @@ func (s TypeObservedTxSuite) TestVoter(c *C) {
 	trusts4 := NodeAccounts{
 		NodeAccount{
 			NodeAddress:         acc1,
-			Status:              Active,
+			Status:              NodeStatus_Active,
 			PubKeySet:           accPubKeySet1,
 			ValidatorConsPubKey: accConsPub1,
 		},
 		NodeAccount{
 			NodeAddress:         acc2,
-			Status:              Active,
+			Status:              NodeStatus_Active,
 			PubKeySet:           accPubKeySet2,
 			ValidatorConsPubKey: accConsPub2,
 		},
 		NodeAccount{
 			NodeAddress:         acc3,
-			Status:              Active,
+			Status:              NodeStatus_Active,
 			PubKeySet:           accPubKeySet3,
 			ValidatorConsPubKey: accConsPub3,
 		},
 		NodeAccount{
 			NodeAddress:         acc4,
-			Status:              Active,
+			Status:              NodeStatus_Active,
 			PubKeySet:           accPubKeySet4,
 			ValidatorConsPubKey: accConsPub4,
 		},
@@ -139,6 +139,7 @@ func (s TypeObservedTxSuite) TestVoter(c *C) {
 	tx = voter.GetTx(trusts4)
 	c.Check(tx.IsEmpty(), Equals, true)
 	c.Assert(voter.HasConsensus(trusts3), Equals, true)
+	voter.Tx = ObservedTx{} // reset the final observed tx
 	c.Check(voter.HasConsensus(trusts4), Equals, false)
 	c.Check(voter.Key().Equals(txID), Equals, true)
 	c.Check(voter.String() == txID.String(), Equals, true)
@@ -147,6 +148,7 @@ func (s TypeObservedTxSuite) TestVoter(c *C) {
 	txFinalised = voter.GetTx(trusts4)
 	c.Check(txFinalised.IsEmpty(), Equals, true)
 	c.Check(voter.HasFinalised(trusts3), Equals, true)
+	voter.Tx = ObservedTx{}
 	c.Check(voter.HasFinalised(trusts4), Equals, false)
 	c.Check(voter.Key().Equals(txID), Equals, true)
 	c.Check(voter.String() == txID.String(), Equals, true)
@@ -216,10 +218,10 @@ func (s TypeObservedTxSuite) TestVoter(c *C) {
 
 func (TypeObservedTxSuite) TestSetTxToComplete(c *C) {
 	activeNodes := NodeAccounts{
-		GetRandomNodeAccount(Active),
-		GetRandomNodeAccount(Active),
-		GetRandomNodeAccount(Active),
-		GetRandomNodeAccount(Active),
+		GetRandomNodeAccount(NodeStatus_Active),
+		GetRandomNodeAccount(NodeStatus_Active),
+		GetRandomNodeAccount(NodeStatus_Active),
+		GetRandomNodeAccount(NodeStatus_Active),
 	}
 	tx1 := GetRandomTx()
 	tx1.Memo = "whatever"
@@ -260,8 +262,8 @@ func (TypeObservedTxSuite) TestSetTxToComplete(c *C) {
 	// add it again should return true, but without any real action
 	c.Assert(voter.AddOutTx(tx), Equals, true)
 	c.Assert(voter.AddOutTx(GetRandomTx()), Equals, false)
-	c.Assert(voter.Tx.Status, Equals, Done)
-	c.Assert(voter.Tx.OutHashes[0], Equals, tx.ID)
+	c.Assert(voter.Tx.Status, Equals, Status_done)
+	c.Assert(voter.Tx.OutHashes[0], Equals, tx.ID.String())
 
 	c.Assert(voter.IsDone(), Equals, true)
 	voter.Tx = voter.GetTx(activeNodes)
@@ -270,10 +272,10 @@ func (TypeObservedTxSuite) TestSetTxToComplete(c *C) {
 
 func (TypeObservedTxSuite) TestAddOutTx(c *C) {
 	activeNodes := NodeAccounts{
-		GetRandomNodeAccount(Active),
-		GetRandomNodeAccount(Active),
-		GetRandomNodeAccount(Active),
-		GetRandomNodeAccount(Active),
+		GetRandomNodeAccount(NodeStatus_Active),
+		GetRandomNodeAccount(NodeStatus_Active),
+		GetRandomNodeAccount(NodeStatus_Active),
+		GetRandomNodeAccount(NodeStatus_Active),
 	}
 	tx1 := GetRandomTx()
 	tx1.Memo = "whatever"
@@ -322,8 +324,8 @@ func (TypeObservedTxSuite) TestAddOutTx(c *C) {
 	c.Assert(voter.AddOutTx(tx), Equals, true)
 	c.Assert(voter.AddOutTx(GetRandomTx()), Equals, false)
 	if !voter.Tx.IsEmpty() {
-		c.Assert(voter.Tx.Status, Equals, Done)
-		c.Assert(voter.Tx.OutHashes[0], Equals, tx.ID)
+		c.Assert(voter.Tx.Status, Equals, Status_done)
+		c.Assert(voter.Tx.OutHashes[0], Equals, tx.ID.String())
 	}
 
 	c.Assert(voter.IsDone(), Equals, true)

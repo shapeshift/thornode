@@ -19,7 +19,7 @@ type TestIPAddresslKeeper struct {
 	na NodeAccount
 }
 
-func (k *TestIPAddresslKeeper) SendFromAccountToModule(ctx cosmos.Context, from cosmos.AccAddress, to string, coin common.Coin) error {
+func (k *TestIPAddresslKeeper) SendFromAccountToModule(ctx cosmos.Context, from cosmos.AccAddress, to string, coins common.Coins) error {
 	return nil
 }
 
@@ -54,16 +54,16 @@ func (s *HandlerIPAddressSuite) TestValidate(c *C) {
 	ver := constants.SWVersion
 	constAccessor := constants.GetConstantValues(ver)
 	msg := NewMsgSetIPAddress("8.8.8.8", keeper.na.NodeAddress)
-	err := handler.validate(ctx, msg, ver, constAccessor)
+	err := handler.validate(ctx, *msg, ver, constAccessor)
 	c.Assert(err, IsNil)
 
 	// invalid version
-	err = handler.validate(ctx, msg, semver.Version{}, constAccessor)
+	err = handler.validate(ctx, *msg, semver.Version{}, constAccessor)
 	c.Assert(err, Equals, errBadVersion)
 
 	// invalid msg
-	msg = MsgSetIPAddress{}
-	err = handler.validate(ctx, msg, ver, constAccessor)
+	msg = &MsgSetIPAddress{}
+	err = handler.validate(ctx, *msg, ver, constAccessor)
 	c.Assert(err, NotNil)
 }
 
@@ -79,11 +79,11 @@ func (s *HandlerIPAddressSuite) TestHandle(c *C) {
 	handler := NewIPAddressHandler(keeper, NewDummyMgr())
 
 	msg := NewMsgSetIPAddress("192.168.0.1", GetRandomBech32Addr())
-	err := handler.handle(ctx, msg, ver, constAccessor)
+	err := handler.handle(ctx, *msg, ver, constAccessor)
 	c.Assert(err, IsNil)
 	c.Check(keeper.na.IPAddress, Equals, "192.168.0.1")
 
-	err1 := handler.handle(ctx, msg, semver.MustParse("0.0.1"), constAccessor)
+	err1 := handler.handle(ctx, *msg, semver.MustParse("0.0.1"), constAccessor)
 	c.Check(err1, NotNil)
 	c.Check(errors.Is(err1, errBadVersion), Equals, true)
 }
@@ -178,6 +178,9 @@ func (s *HandlerIPAddressSuite) TestHandlerSetIPAddress_validation(c *C) {
 			name: "all good - happy path",
 			messageProvider: func(ctx cosmos.Context, helper *HandlerIPAddressTestHelper) cosmos.Msg {
 				nodeAccount := GetRandomNodeAccount(NodeWhiteListed)
+				helper.SendFromModuleToAccount(ctx, ModuleName, nodeAccount.NodeAddress, common.Coins{
+					common.NewCoin(common.RuneAsset(), cosmos.NewUint(1000*common.One)),
+				})
 				helper.Keeper.SetNodeAccount(ctx, nodeAccount)
 				return NewMsgSetIPAddress("192.168.0.1", nodeAccount.NodeAddress)
 			},
@@ -189,6 +192,7 @@ func (s *HandlerIPAddressSuite) TestHandlerSetIPAddress_validation(c *C) {
 	}
 	for _, tc := range testCases {
 		ctx, k := setupKeeperForTest(c)
+		c.Logf("Name: %s", tc.name)
 		helper := NewHandlerIPAddressTestHelper(k)
 		mgr := NewManagers(helper)
 		mgr.BeginBlock(ctx)

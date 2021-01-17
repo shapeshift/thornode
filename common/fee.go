@@ -1,12 +1,10 @@
 package common
 
-import "gitlab.com/thorchain/thornode/common/cosmos"
+import (
+	"fmt"
 
-// Fee represent fee
-type Fee struct {
-	Coins      Coins       `json:"coins"`
-	PoolDeduct cosmos.Uint `json:"pool_deduct"`
-}
+	"gitlab.com/thorchain/thornode/common/cosmos"
+)
 
 // NewFee return a new instance of Fee
 func NewFee(coins Coins, poolDeduct cosmos.Uint) Fee {
@@ -14,4 +12,8 @@ func NewFee(coins Coins, poolDeduct cosmos.Uint) Fee {
 		Coins:      coins,
 		PoolDeduct: poolDeduct,
 	}
+}
+
+func (f Fee) String() string {
+	return fmt.Sprintf("%d: %s", f.PoolDeduct.Uint64(), f.Coins.String())
 }

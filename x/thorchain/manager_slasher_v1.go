@@ -5,7 +5,6 @@ import (
 
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto"
-	tmtypes "github.com/tendermint/tendermint/types"
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
@@ -30,7 +29,7 @@ func (s *SlasherV1) BeginBlock(ctx cosmos.Context, req abci.RequestBeginBlock, c
 	// who contributed to valid infractions
 	for _, evidence := range req.ByzantineValidators {
 		switch evidence.Type {
-		case tmtypes.ABCIEvidenceTypeDuplicateVote:
+		case abci.EvidenceType_DUPLICATE_VOTE:
 			if err := s.HandleDoubleSign(ctx, evidence.Validator.Address, evidence.Height, constAccessor); err != nil {
 				ctx.Logger().Error("fail to slash for double signing a block", "error", err)
 			}
@@ -77,7 +76,7 @@ func (s *SlasherV1) HandleDoubleSign(ctx cosmos.Context, addr crypto.Address, in
 			}
 			na.Bond = common.SafeSub(na.Bond, slashAmount)
 			coin := common.NewCoin(common.RuneNative, slashAmount)
-			if err := s.keeper.SendFromModuleToModule(ctx, BondName, ReserveName, coin); err != nil {
+			if err := s.keeper.SendFromModuleToModule(ctx, BondName, ReserveName, common.NewCoins(coin)); err != nil {
 				ctx.Logger().Error("fail to transfer funds from bond to reserve", "error", err)
 				return fmt.Errorf("fail to transfer funds from bond to reserve: %w", err)
 			}
@@ -141,7 +140,7 @@ func (s *SlasherV1) slashNotObserving(ctx cosmos.Context, txHash common.TxID, co
 			if tx.IsFinal() {
 				height = voter.FinalisedHeight
 			}
-			s.checkSignerAndSlash(ctx, nodes, height, tx.Signers, constAccessor)
+			s.checkSignerAndSlash(ctx, nodes, height, tx.GetSigners(), constAccessor)
 		}
 	}
 	return nil
@@ -236,8 +235,8 @@ func (s *SlasherV1) LackSigning(ctx cosmos.Context, constAccessor constants.Cons
 			// check observedTx has done status. Skip if it does already.
 			voterTx := voter.GetTx(NodeAccounts{})
 			if voterTx.IsDone(len(voter.Actions)) {
-				if len(voterTx.OutHashes) > 0 {
-					txs.TxArray[i].OutHash = voterTx.OutHashes[0]
+				if len(voterTx.OutHashes) > 0 && len(voterTx.GetOutHashes()) > 0 {
+					txs.TxArray[i].OutHash = voterTx.GetOutHashes()[0]
 				}
 				continue
 			}
@@ -334,7 +333,7 @@ func (s *SlasherV1) SlashNodeAccount(ctx cosmos.Context, observedPubKey common.P
 			slashAmount = nodeAccount.Bond
 		}
 		nodeAccount.Bond = common.SafeSub(nodeAccount.Bond, slashAmount)
-		if err := s.keeper.SendFromModuleToModule(ctx, BondName, ReserveName, common.NewCoin(common.RuneAsset(), amountToReserve)); err != nil {
+		if err := s.keeper.SendFromModuleToModule(ctx, BondName, ReserveName, common.NewCoins(common.NewCoin(common.RuneAsset(), amountToReserve))); err != nil {
 			return fmt.Errorf("fail to send rune from bond to reserve: %w", err)
 		}
 

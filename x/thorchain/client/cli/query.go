@@ -2,9 +2,7 @@ package cli
 
 import (
 	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/client/flags"
-	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/spf13/cobra"
 
 	"gitlab.com/thorchain/thornode/constants"
@@ -21,37 +19,41 @@ func (v ver) String() string {
 	return v.Version
 }
 
-func GetQueryCmd(storeKey string, cdc *codec.Codec) *cobra.Command {
-	thorchainQueryCmd := &cobra.Command{
+func GetQueryCmd() *cobra.Command {
+	cmd := &cobra.Command{
 		Use:                        types.ModuleName,
-		Short:                      "Querying commands for the thorchain module",
+		Short:                      "Querying commands for the THORChain module",
 		DisableFlagParsing:         true,
 		SuggestionsMinimumDistance: 2,
 		RunE:                       client.ValidateCmd,
 	}
 
-	thorchainQueryCmd.AddCommand(flags.GetCommands(
-		GetCmdGetVersion(storeKey, cdc),
-	)...)
-	return thorchainQueryCmd
+	cmd.AddCommand(GetCmdGetVersion())
+	return cmd
 }
 
 // GetCmdGetVersion queries current version
-func GetCmdGetVersion(queryRoute string, cdc *codec.Codec) *cobra.Command {
-	return &cobra.Command{
+func GetCmdGetVersion() *cobra.Command {
+	cmd := &cobra.Command{
 		Use:   "version",
-		Short: "Gets the thorchain version and build information",
-		Args:  cobra.ExactArgs(0),
+		Short: "Gets the THORChain version and build information",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cliCtx := context.NewCLIContext().WithCodec(cdc)
-			cliCtx.OutputFormat = "json"
+			clientCtx, err := client.GetClientQueryContext(cmd)
+			if err != nil {
+				return err
+			}
+			clientCtx.OutputFormat = "json"
 
 			out := ver{
 				Version:   constants.SWVersion.String(),
 				GitCommit: constants.GitCommit,
 				BuildTime: constants.BuildTime,
 			}
-			return cliCtx.PrintOutput(out)
+			return clientCtx.PrintObjectLegacy(out)
 		},
 	}
+
+	flags.AddQueryFlagsToCmd(cmd)
+
+	return cmd
 }

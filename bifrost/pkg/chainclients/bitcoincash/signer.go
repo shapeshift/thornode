@@ -8,6 +8,7 @@ import (
 	"strings"
 	"sync"
 
+	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	"github.com/gcash/bchd/bchec"
 	"github.com/gcash/bchd/btcjson"
 	"github.com/gcash/bchd/chaincfg"
@@ -15,8 +16,6 @@ import (
 	"github.com/gcash/bchd/wire"
 	"github.com/gcash/bchutil"
 	"github.com/hashicorp/go-multierror"
-	"github.com/tendermint/tendermint/crypto"
-	"github.com/tendermint/tendermint/crypto/secp256k1"
 	txscript "gitlab.com/thorchain/bchd-txscript"
 
 	stypes "gitlab.com/thorchain/thornode/bifrost/thorclient/types"
@@ -35,12 +34,8 @@ const (
 	defaultMaxBCHFeeRate = bchutil.SatoshiPerBitcoin / 10
 )
 
-func getBCHPrivateKey(key crypto.PrivKey) (*bchec.PrivateKey, error) {
-	priKey, ok := key.(secp256k1.PrivKeySecp256k1)
-	if !ok {
-		return nil, errors.New("invalid private key type")
-	}
-	privateKey, _ := bchec.PrivKeyFromBytes(bchec.S256(), priKey[:])
+func getBCHPrivateKey(key cryptotypes.PrivKey) (*bchec.PrivateKey, error) {
+	privateKey, _ := bchec.PrivKeyFromBytes(bchec.S256(), key.Bytes())
 	return privateKey, nil
 }
 

@@ -21,7 +21,7 @@ func (ObservedNetworkFeeVoterTestSuite) TestObservedNetworkFeeVoter(c *C) {
 	c.Check(voter.Signers, HasLen, 1)
 	c.Check(voter.HasConsensus(nil), Equals, false)
 	nas := NodeAccounts{
-		NodeAccount{NodeAddress: addr, Status: Active},
+		NodeAccount{NodeAddress: addr, Status: NodeStatus_Active},
 	}
 	c.Check(voter.HasConsensus(nas), Equals, true)
 	c.Check(len(voter.String()) > 0, Equals, true)

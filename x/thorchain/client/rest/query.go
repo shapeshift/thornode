@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/cosmos/cosmos-sdk/client/context"
+	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/types/rest"
 	"github.com/gorilla/mux"
 
@@ -13,14 +13,14 @@ import (
 )
 
 // Ping - endpoint to check that the API is up and available
-func pingHandler(cliCtx context.CLIContext, storeName string) http.HandlerFunc {
+func pingHandler(cliCtx client.Context, storeName string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, `{"ping":"pong"}`)
 	}
 }
 
 // Generic wrapper to generate GET handler
-func getHandlerWrapper(q query.Query, storeName string, cliCtx context.CLIContext) http.HandlerFunc {
+func getHandlerWrapper(q query.Query, storeName string, cliCtx client.Context) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		heightStr, ok := r.URL.Query()["height"]
 		if ok && len(heightStr) > 0 {

@@ -5,38 +5,10 @@ import (
 	"fmt"
 
 	abci "github.com/tendermint/tendermint/abci/types"
-	tmtypes "github.com/tendermint/tendermint/types"
-
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
-
-// GenesisState strcture that used to store the data THORNode put in genesis
-type GenesisState struct {
-	Pools                []Pool                    `json:"pools"`
-	LiquidityProviders   LiquidityProviders        `json:"liquidity_providers"`
-	ObservedTxInVoters   ObservedTxVoters          `json:"observed_tx_in_voters"`
-	ObservedTxOutVoters  ObservedTxVoters          `json:"observed_tx_out_voters"`
-	TxOuts               []TxOut                   `json:"txouts"`
-	NodeAccounts         NodeAccounts              `json:"node_accounts"`
-	Vaults               Vaults                    `json:"vaults"`
-	Reserve              uint64                    `json:"reserve"`
-	BanVoters            []BanVoter                `json:"ban_voters"`
-	LastSignedHeight     int64                     `json:"last_signed_height"`
-	LastChainHeights     map[string]int64          `json:"last_chain_heights"`
-	ReserveContributors  ReserveContributors       `json:"reserve_contributors"`
-	Network              Network                   `json:"network"`
-	TssVoters            []TssVoter                `json:"tss_voters"`
-	TssKeysignFailVoters []TssKeysignFailVoter     `json:"tss_keysign_fail_voters"`
-	KeygenBlocks         []KeygenBlock             `json:"keygen_blocks"`
-	AllTxMarkers         map[string]TxMarkers      `json:"all_tx_markers"`
-	ErrataTxVoters       []ErrataTxVoter           `json:"errata_tx_voters"`
-	MsgSwaps             []MsgSwap                 `json:"msg_swaps"`
-	NetworkFees          []NetworkFee              `json:"network_fees"`
-	NetworkFeeVoters     []ObservedNetworkFeeVoter `json:"network_fee_voters"`
-	ChainContracts       []ChainContract           `json:"chain_contracts"`
-}
 
 // NewGenesisState create a new instance of GenesisState
 func NewGenesisState() GenesisState {
@@ -146,7 +118,6 @@ func DefaultGenesisState() GenesisState {
 		TssVoters:            make([]TssVoter, 0),
 		TssKeysignFailVoters: make([]TssKeysignFailVoter, 0),
 		KeygenBlocks:         make([]KeygenBlock, 0),
-		AllTxMarkers:         make(map[string]TxMarkers),
 		ErrataTxVoters:       make([]ErrataTxVoter, 0),
 		MsgSwaps:             make([]MsgSwap, 0),
 		NetworkFees:          make([]NetworkFee, 0),
@@ -176,10 +147,7 @@ func InitGenesis(ctx cosmos.Context, keeper keeper.Keeper, data GenesisState) []
 				ctx.Logger().Error("fail to parse consensus public key", "key", nodeAccount.ValidatorConsPubKey, "error", err)
 				panic(err)
 			}
-			validators = append(validators, abci.ValidatorUpdate{
-				PubKey: tmtypes.TM2PB.PubKey(pk),
-				Power:  100,
-			})
+			validators = append(validators, abci.Ed25519ValidatorUpdate(pk.Bytes(), 100))
 		}
 
 		if err := keeper.SetNodeAccount(ctx, nodeAccount); err != nil {
@@ -230,7 +198,7 @@ func InitGenesis(ctx cosmos.Context, keeper keeper.Keeper, data GenesisState) []
 	}
 	if len(data.ReserveContributors) > 0 {
 		if err := keeper.SetReserveContributors(ctx, data.ReserveContributors); err != nil {
-			panic(err)
+			// panic(err)
 		}
 	}
 	if err := keeper.SetNetwork(ctx, data.Network); err != nil {
@@ -257,11 +225,6 @@ func InitGenesis(ctx cosmos.Context, keeper keeper.Keeper, data GenesisState) []
 		keeper.SetKeygenBlock(ctx, item)
 	}
 
-	for hash, item := range data.AllTxMarkers {
-		if err := keeper.SetTxMarkers(ctx, hash, item); err != nil {
-			panic(err)
-		}
-	}
 	for _, item := range data.ErrataTxVoters {
 		if item.Empty() {
 			continue
@@ -289,16 +252,14 @@ func InitGenesis(ctx cosmos.Context, keeper keeper.Keeper, data GenesisState) []
 	}
 
 	// Mint coins into the reserve
-	coin, err := common.NewCoin(common.RuneNative, cosmos.NewUint(data.Reserve)).Native()
-	if err != nil {
-		panic(err)
-	}
-	coins := cosmos.NewCoins(coin)
-	if err := keeper.Supply().MintCoins(ctx, ModuleName, coins); err != nil {
-		panic(err)
-	}
-	if err := keeper.Supply().SendCoinsFromModuleToModule(ctx, ModuleName, ReserveName, coins); err != nil {
-		panic(err)
+	if data.Reserve > 0 {
+		coin := common.NewCoin(common.RuneNative, cosmos.NewUint(data.Reserve))
+		if err := keeper.MintToModule(ctx, ModuleName, coin); err != nil {
+			panic(err)
+		}
+		if err := keeper.SendFromModuleToModule(ctx, ModuleName, ReserveName, common.NewCoins(coin)); err != nil {
+			panic(err)
+		}
 	}
 
 	for _, admin := range ADMINS {
@@ -306,24 +267,24 @@ func InitGenesis(ctx cosmos.Context, keeper keeper.Keeper, data GenesisState) []
 		if err != nil {
 			panic(err)
 		}
-		// give mimir gas
-		coinsToMint, err := cosmos.ParseCoins("1000thor")
-		if err != nil {
-			panic(err)
-		}
+		mimir, _ := common.NewAsset("THOR.MIMIR")
+		coin := common.NewCoin(mimir, cosmos.NewUint(1000*common.One))
 		// mint some gas asset
-		err = keeper.Supply().MintCoins(ctx, ModuleName, coinsToMint)
+		err = keeper.MintToModule(ctx, ModuleName, coin)
 		if err != nil {
 			panic(err)
 		}
-		if err := keeper.Supply().SendCoinsFromModuleToAccount(ctx, ModuleName, addr, coinsToMint); err != nil {
+		if err := keeper.SendFromModuleToAccount(ctx, ModuleName, addr, common.NewCoins(coin)); err != nil {
 			panic(err)
 		}
 	}
 
-	ctx.Logger().Info("Reserve Module", "address", keeper.Supply().GetModuleAddress(ReserveName).String())
-	ctx.Logger().Info("Bond    Module", "address", keeper.Supply().GetModuleAddress(BondName).String())
-	ctx.Logger().Info("Asgard  Module", "address", keeper.Supply().GetModuleAddress(AsgardName).String())
+	reserveAddr, _ := keeper.GetModuleAddress(ReserveName)
+	ctx.Logger().Info("Reserve Module", "address", reserveAddr.String())
+	bondAddr, _ := keeper.GetModuleAddress(BondName)
+	ctx.Logger().Info("Bond    Module", "address", bondAddr.String())
+	asgardAddr, _ := keeper.GetModuleAddress(AsgardName)
+	ctx.Logger().Info("Asgard  Module", "address", asgardAddr.String())
 
 	return validators
 }
@@ -415,7 +376,7 @@ func ExportGenesis(ctx cosmos.Context, k keeper.Keeper) GenesisState {
 
 	reserveContributors, err := k.GetReservesContributors(ctx)
 	if err != nil {
-		panic(err)
+		// panic(err)
 	}
 
 	network, err := k.GetNetwork(ctx)
@@ -456,11 +417,6 @@ func ExportGenesis(ctx cosmos.Context, k keeper.Keeper) GenesisState {
 		var kb KeygenBlock
 		k.Cdc().MustUnmarshalBinaryBare(iterKeygenBlocks.Value(), &kb)
 		keygenBlocks = append(keygenBlocks, kb)
-	}
-
-	allTxMarkers, err := k.GetAllTxMarkers(ctx)
-	if err != nil {
-		panic(err)
 	}
 
 	errataVoters := make([]ErrataTxVoter, 0)
@@ -523,7 +479,6 @@ func ExportGenesis(ctx cosmos.Context, k keeper.Keeper) GenesisState {
 		TssVoters:            tssVoters,
 		TssKeysignFailVoters: tssKeySignFailVoters,
 		KeygenBlocks:         keygenBlocks,
-		AllTxMarkers:         allTxMarkers,
 		ErrataTxVoters:       errataVoters,
 		MsgSwaps:             swapMsgs,
 		NetworkFees:          networkFees,

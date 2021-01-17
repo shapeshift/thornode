@@ -8,44 +8,30 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 )
 
-// TxOutItem represent a tx need to be sent out
-type TxOutItem struct {
-	Chain       common.Chain   `json:"chain"`
-	ToAddress   common.Address `json:"to"`
-	VaultPubKey common.PubKey  `json:"vault_pubkey"`
-	Coin        common.Coin    `json:"coin"`
-	Memo        string         `json:"memo"`
-	MaxGas      common.Gas     `json:"max_gas"`
-	GasRate     int64          `json:"gas_rate"`
-	InHash      common.TxID    `json:"in_hash"`
-	OutHash     common.TxID    `json:"out_hash"`
-	ModuleName  string         `json:"-"` // used to pass which cosmos module to remove native funds from
-}
-
 // Valid check whether TxOutItem hold valid information
-func (toi TxOutItem) Valid() error {
-	if toi.Chain.IsEmpty() {
+func (m TxOutItem) Valid() error {
+	if m.Chain.IsEmpty() {
 		return errors.New("chain cannot be empty")
 	}
-	if toi.InHash.IsEmpty() {
+	if m.InHash.IsEmpty() {
 		return errors.New("In Hash cannot be empty")
 	}
-	if toi.ToAddress.IsEmpty() {
+	if m.ToAddress.IsEmpty() {
 		return errors.New("To address cannot be empty")
 	}
-	if toi.VaultPubKey.IsEmpty() {
+	if m.VaultPubKey.IsEmpty() {
 		return errors.New("vault pubkey cannot be empty")
 	}
-	if toi.GasRate == 0 {
+	if m.GasRate == 0 {
 		return errors.New("gas rate is zero")
 	}
-	if toi.Chain.GetGasAsset().IsEmpty() {
+	if m.Chain.GetGasAsset().IsEmpty() {
 		return errors.New("invalid base asset")
 	}
-	if err := toi.Coin.Valid(); err != nil {
+	if err := m.Coin.Valid(); err != nil {
 		return err
 	}
-	if err := toi.MaxGas.Valid(); err != nil {
+	if err := m.MaxGas.Valid(); err != nil {
 		return err
 	}
 
@@ -53,40 +39,40 @@ func (toi TxOutItem) Valid() error {
 }
 
 // TxHash return a hash value generated based on the TxOutItem
-func (toi TxOutItem) TxHash() (string, error) {
-	fromAddr, err := toi.VaultPubKey.GetAddress(toi.Chain)
+func (m TxOutItem) TxHash() (string, error) {
+	fromAddr, err := m.VaultPubKey.GetAddress(m.Chain)
 	if err != nil {
 		return "", err
 	}
 	tx := common.Tx{
 		FromAddress: fromAddr,
-		ToAddress:   toi.ToAddress,
-		Coins:       common.Coins{toi.Coin},
+		ToAddress:   m.ToAddress,
+		Coins:       common.Coins{m.Coin},
 	}
 	return tx.Hash(), nil
 }
 
 // Equals compare two tx out item
-func (toi TxOutItem) Equals(toi2 TxOutItem) bool {
-	if !toi.Chain.Equals(toi2.Chain) {
+func (m TxOutItem) Equals(toi2 TxOutItem) bool {
+	if !m.Chain.Equals(toi2.Chain) {
 		return false
 	}
-	if !toi.ToAddress.Equals(toi2.ToAddress) {
+	if !m.ToAddress.Equals(toi2.ToAddress) {
 		return false
 	}
-	if !toi.VaultPubKey.Equals(toi2.VaultPubKey) {
+	if !m.VaultPubKey.Equals(toi2.VaultPubKey) {
 		return false
 	}
-	if !toi.Coin.Equals(toi2.Coin) {
+	if !m.Coin.Equals(toi2.Coin) {
 		return false
 	}
-	if !toi.InHash.Equals(toi2.InHash) {
+	if !m.InHash.Equals(toi2.InHash) {
 		return false
 	}
-	if toi.Memo != toi2.Memo {
+	if m.Memo != toi2.Memo {
 		return false
 	}
-	if toi.GasRate != toi2.GasRate {
+	if m.GasRate != toi2.GasRate {
 		return false
 	}
 
@@ -94,20 +80,14 @@ func (toi TxOutItem) Equals(toi2 TxOutItem) bool {
 }
 
 // String implement stringer interface
-func (toi TxOutItem) String() string {
+func (m TxOutItem) String() string {
 	sb := strings.Builder{}
-	sb.WriteString("To Address:" + toi.ToAddress.String())
-	sb.WriteString("Asset:" + toi.Coin.Asset.String())
-	sb.WriteString("Amount:" + toi.Coin.Amount.String())
-	sb.WriteString("Memo:" + toi.Memo)
-	sb.WriteString("GasRate:" + strconv.FormatInt(toi.GasRate, 10))
+	sb.WriteString("To Address:" + m.ToAddress.String())
+	sb.WriteString("Asset:" + m.Coin.Asset.String())
+	sb.WriteString("Amount:" + m.Coin.Amount.String())
+	sb.WriteString("Memo:" + m.Memo)
+	sb.WriteString("GasRate:" + strconv.FormatInt(m.GasRate, 10))
 	return sb.String()
-}
-
-// TxOut is a structure represent all the tx THORNode need to return to client
-type TxOut struct {
-	Height  int64       `json:"height"`
-	TxArray []TxOutItem `json:"tx_array"`
 }
 
 // NewTxOut create a new item ot TxOut
@@ -119,13 +99,13 @@ func NewTxOut(height int64) *TxOut {
 }
 
 // IsEmpty to determinate whether there are txitm in this TxOut
-func (out TxOut) IsEmpty() bool {
-	return len(out.TxArray) == 0
+func (m *TxOut) IsEmpty() bool {
+	return len(m.TxArray) == 0
 }
 
 // Valid check every item in it's internal txarray, return an error if it is not valid
-func (out TxOut) Valid() error {
-	for _, tx := range out.TxArray {
+func (m *TxOut) Valid() error {
+	for _, tx := range m.TxArray {
 		if err := tx.Valid(); err != nil {
 			return err
 		}

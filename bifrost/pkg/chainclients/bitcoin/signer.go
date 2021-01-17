@@ -15,9 +15,8 @@ import (
 	"github.com/btcsuite/btcd/mempool"
 	"github.com/btcsuite/btcd/wire"
 	"github.com/btcsuite/btcutil"
+	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	"github.com/hashicorp/go-multierror"
-	"github.com/tendermint/tendermint/crypto"
-	"github.com/tendermint/tendermint/crypto/secp256k1"
 	"gitlab.com/thorchain/txscript"
 
 	stypes "gitlab.com/thorchain/thornode/bifrost/thorclient/types"
@@ -36,12 +35,8 @@ const (
 	defaultMaxBTCFeeRate = btcutil.SatoshiPerBitcoin / 10
 )
 
-func getBTCPrivateKey(key crypto.PrivKey) (*btcec.PrivateKey, error) {
-	priKey, ok := key.(secp256k1.PrivKeySecp256k1)
-	if !ok {
-		return nil, errors.New("invalid private key type")
-	}
-	privateKey, _ := btcec.PrivKeyFromBytes(btcec.S256(), priKey[:])
+func getBTCPrivateKey(key cryptotypes.PrivKey) (*btcec.PrivateKey, error) {
+	privateKey, _ := btcec.PrivKeyFromBytes(btcec.S256(), key.Bytes())
 	return privateKey, nil
 }
 

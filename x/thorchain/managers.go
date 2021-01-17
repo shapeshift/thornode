@@ -51,8 +51,8 @@ type GasManager interface {
 type EventManager interface {
 	EmitEvent(ctx cosmos.Context, evt EmitEventItem) error
 	EmitGasEvent(ctx cosmos.Context, gasEvent *EventGas) error
-	EmitSwapEvent(ctx cosmos.Context, swap EventSwap) error
-	EmitFeeEvent(ctx cosmos.Context, feeEvent EventFee) error
+	EmitSwapEvent(ctx cosmos.Context, swap *EventSwap) error
+	EmitFeeEvent(ctx cosmos.Context, feeEvent *EventFee) error
 }
 
 // TxOutStore define the method required for TxOutStore

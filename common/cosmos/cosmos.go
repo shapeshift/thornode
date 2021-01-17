@@ -1,13 +1,26 @@
 package cosmos
 
 import (
+	"bufio"
+	"bytes"
+	"fmt"
+	"os"
+	"os/user"
+	"path/filepath"
+	"strings"
+
+	"github.com/cosmos/cosmos-sdk/client/input"
+	ckeys "github.com/cosmos/cosmos-sdk/crypto/keyring"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	se "github.com/cosmos/cosmos-sdk/types/errors"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/hashicorp/go-multierror"
 )
 
 var (
 	KeyringServiceName      = sdk.KeyringServiceName
+	NewRoute                = sdk.NewRoute
+	NewKVStoreKeys          = sdk.NewKVStoreKeys
 	NewUint                 = sdk.NewUint
 	ParseUint               = sdk.ParseUint
 	NewInt                  = sdk.NewInt
@@ -17,7 +30,7 @@ var (
 	OneUint                 = sdk.OneUint
 	NewCoin                 = sdk.NewCoin
 	NewCoins                = sdk.NewCoins
-	ParseCoins              = sdk.ParseCoins
+	ParseCoins              = sdk.ParseCoinsNormalized
 	NewDecWithPrec          = sdk.NewDecWithPrec
 	NewDecFromBigInt        = sdk.NewDecFromBigInt
 	NewIntFromBigInt        = sdk.NewIntFromBigInt
@@ -29,7 +42,7 @@ var (
 	NewDecFromStr           = sdk.NewDecFromStr
 	GetConfig               = sdk.GetConfig
 	NewEvent                = sdk.NewEvent
-	RegisterCodec           = sdk.RegisterCodec
+	RegisterCodec           = sdk.RegisterLegacyAminoCodec
 	NewEventManager         = sdk.NewEventManager
 	EventTypeMessage        = sdk.EventTypeMessage
 	AttributeKeyModule      = sdk.AttributeKeyModule
@@ -51,6 +64,7 @@ var (
 
 type (
 	Context    = sdk.Context
+	Route      = sdk.Route
 	Uint       = sdk.Uint
 	Coin       = sdk.Coin
 	Coins      = sdk.Coins
@@ -66,6 +80,7 @@ type (
 	StoreKey   = sdk.StoreKey
 	Querier    = sdk.Querier
 	TxResponse = sdk.TxResponse
+	Account    = authtypes.AccountI
 )
 
 func ErrUnknownRequest(msg string) error {
@@ -86,4 +101,60 @@ func ErrUnauthorized(msg string) error {
 
 func ErrInsufficientCoins(err error, msg string) error {
 	return se.Wrap(multierror.Append(se.ErrInsufficientFunds, err), msg)
+}
+
+/*
+func SetupThorchainForTest(c *C) (config.ClientConfiguration, ckeys.Info, ckeys.Keybase) {
+	thorchain.SetupConfigForTest()
+	cfg := config.ClientConfiguration{
+		ChainID:         "thorchain",
+		ChainHost:       "localhost",
+		SignerName:      "bob",
+		SignerPasswd:    "password",
+		ChainHomeFolder: ".",
+	}
+	kb := ckeys.NewInMemory()
+	info, _, err := kb.NewMnemonic(cfg.SignerName, ckeys.English, cfg.SignerPasswd, hd.Secp256k1)
+	c.Assert(err, IsNil)
+	return cfg, info, kb
+}
+*/
+
+// KeybaseStore to store keys
+type KeybaseStore struct {
+	Keybase      ckeys.Keyring
+	SignerName   string
+	SignerPasswd string
+}
+
+func SignerCreds() (string, string) {
+	reader := bufio.NewReader(os.Stdin)
+	username, _ := input.GetString("Enter Signer name:", reader)
+	password, _ := input.GetPassword("Enter Signer password:", reader)
+
+	return strings.TrimSpace(username), strings.TrimSpace(password)
+}
+
+// GetKeybase will create an instance of Keybase
+func GetKeybase(thorchainHome string) (KeybaseStore, error) {
+	username, password := SignerCreds()
+	buf := bytes.NewBufferString(password)
+	// the library used by keyring is using ReadLine , which expect a new line
+	buf.WriteByte('\n')
+
+	cliDir := thorchainHome
+	if len(thorchainHome) == 0 {
+		usr, err := user.Current()
+		if err != nil {
+			return KeybaseStore{}, fmt.Errorf("fail to get current user,err:%w", err)
+		}
+		cliDir = filepath.Join(usr.HomeDir, ".thornode")
+	}
+
+	kb, err := ckeys.New(KeyringServiceName(), ckeys.BackendFile, cliDir, buf)
+	return KeybaseStore{
+		SignerName:   username,
+		SignerPasswd: password,
+		Keybase:      kb,
+	}, err
 }

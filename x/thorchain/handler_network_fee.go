@@ -22,15 +22,15 @@ func NewNetworkFeeHandler(keeper keeper.Keeper, mgr Manager) NetworkFeeHandler {
 
 // Run is the main entry point for network fee logic
 func (h NetworkFeeHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
-	msg, ok := m.(MsgNetworkFee)
+	msg, ok := m.(*MsgNetworkFee)
 	if !ok {
 		return nil, errInvalidMessage
 	}
-	if err := h.validate(ctx, msg, version); err != nil {
+	if err := h.validate(ctx, *msg, version); err != nil {
 		ctx.Logger().Error("MsgNetworkFee failed validation", "error", err)
 		return nil, err
 	}
-	result, err := h.handle(ctx, msg, version, constAccessor)
+	result, err := h.handle(ctx, *msg, version, constAccessor)
 	if err != nil {
 		ctx.Logger().Error("fail to process MsgNetworkFee", "error", err)
 	}
@@ -98,7 +98,7 @@ func (h NetworkFeeHandler) handleV1(ctx cosmos.Context, msg MsgNetworkFee, versi
 	voter.BlockHeight = common.BlockHeight(ctx)
 	h.keeper.SetObservedNetworkFeeVoter(ctx, voter)
 	// decrease the slash points
-	h.mgr.Slasher().DecSlashPoints(ctx, observeSlashPoints, voter.Signers...)
+	h.mgr.Slasher().DecSlashPoints(ctx, observeSlashPoints, voter.GetSigners()...)
 	ctx.Logger().Info("update network fee", "chain", msg.Chain.String(), "transaction-size", msg.TransactionSize, "fee-rate", msg.TransactionFeeRate)
 	if err := h.keeper.SaveNetworkFee(ctx, msg.Chain, NetworkFee{
 		Chain:              msg.Chain,

@@ -5,9 +5,8 @@ import (
 	"strings"
 
 	"github.com/cosmos/cosmos-sdk/codec"
-	"github.com/cosmos/cosmos-sdk/x/auth"
-	"github.com/cosmos/cosmos-sdk/x/bank"
-	"github.com/cosmos/cosmos-sdk/x/supply"
+	authkeeper "github.com/cosmos/cosmos-sdk/x/auth/keeper"
+	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
@@ -40,7 +39,6 @@ const (
 	prefixVaultAsgardIndex       kvTypes.DbPrefix = "vault_asgard_index/"
 	prefixNetwork                kvTypes.DbPrefix = "network/"
 	prefixObservingAddresses     kvTypes.DbPrefix = "observing_addresses/"
-	prefixReserves               kvTypes.DbPrefix = "reserves/"
 	prefixTss                    kvTypes.DbPrefix = "tss/"
 	prefixTssKeysignFailure      kvTypes.DbPrefix = "tssKeysignFailure/"
 	prefixKeygen                 kvTypes.DbPrefix = "keygen/"
@@ -71,19 +69,17 @@ func dbError(ctx cosmos.Context, wrapper string, err error) error {
 
 // KVStore Keeper maintains the link to data storage and exposes getter/setter methods for the various parts of the state machine
 type KVStore struct {
-	coinKeeper    bank.Keeper
-	supplyKeeper  supply.Keeper
-	accountKeeper auth.AccountKeeper
+	cdc           codec.BinaryMarshaler
+	coinKeeper    bankkeeper.Keeper
+	accountKeeper authkeeper.AccountKeeper
 	storeKey      cosmos.StoreKey // Unexposed key to access store from cosmos.Context
-	cdc           *codec.Codec    // The wire codec for binary encoding/decoding.
 	version       int64
 }
 
 // NewKVStore creates new instances of the thorchain Keeper
-func NewKVStore(coinKeeper bank.Keeper, supplyKeeper supply.Keeper, accountKeeper auth.AccountKeeper, storeKey cosmos.StoreKey, cdc *codec.Codec) KVStore {
+func NewKVStore(cdc codec.BinaryMarshaler, coinKeeper bankkeeper.Keeper, accountKeeper authkeeper.AccountKeeper, storeKey cosmos.StoreKey) KVStore {
 	return KVStore{
 		coinKeeper:    coinKeeper,
-		supplyKeeper:  supplyKeeper,
 		accountKeeper: accountKeeper,
 		storeKey:      storeKey,
 		cdc:           cdc,
@@ -92,23 +88,8 @@ func NewKVStore(coinKeeper bank.Keeper, supplyKeeper supply.Keeper, accountKeepe
 }
 
 // Cdc return the amino codec
-func (k KVStore) Cdc() *codec.Codec {
+func (k KVStore) Cdc() codec.BinaryMarshaler {
 	return k.cdc
-}
-
-// Supply return the keeper from supply handler
-func (k KVStore) Supply() supply.Keeper {
-	return k.supplyKeeper
-}
-
-// CoinKeeper return the keeper from bank handler
-func (k KVStore) CoinKeeper() bank.Keeper {
-	return k.coinKeeper
-}
-
-// AccountKeeper return the keeper from auth handler
-func (k KVStore) AccountKeeper() auth.AccountKeeper {
-	return k.accountKeeper
 }
 
 // Version return the current version
@@ -121,6 +102,14 @@ func (k KVStore) GetKey(ctx cosmos.Context, prefix kvTypes.DbPrefix, key string)
 	return fmt.Sprintf("%s/%s", prefix, strings.ToUpper(key))
 }
 
+// SetStoreVersion save the store version
+func (k KVStore) SetStoreVersion(ctx cosmos.Context, value int64) {
+	key := k.GetKey(ctx, prefixStoreVersion, "")
+	store := ctx.KVStore(k.storeKey)
+	ver := ProtoInt64{value}
+	store.Set([]byte(key), k.cdc.MustMarshalBinaryBare(&ver))
+}
+
 // GetStoreVersion get the current key value store version
 func (k KVStore) GetStoreVersion(ctx cosmos.Context) int64 {
 	key := k.GetKey(ctx, prefixStoreVersion, "")
@@ -129,27 +118,16 @@ func (k KVStore) GetStoreVersion(ctx cosmos.Context) int64 {
 		// thornode start at version 0.6.0, thus when there is no store version , it return 6
 		return 6
 	}
-	var value int64
+	var ver ProtoInt64
 	buf := store.Get([]byte(key))
-	k.cdc.MustUnmarshalBinaryBare(buf, &value)
-	return value
+	k.cdc.MustUnmarshalBinaryBare(buf, &ver)
+	return ver.Value
 }
 
 // getIterator - get an iterator for given prefix
 func (k KVStore) getIterator(ctx cosmos.Context, prefix types.DbPrefix) cosmos.Iterator {
 	store := ctx.KVStore(k.storeKey)
 	return cosmos.KVStorePrefixIterator(store, []byte(prefix))
-}
-
-// set - save data from the kvstore
-func (k KVStore) set(ctx cosmos.Context, key string, record interface{}) {
-	store := ctx.KVStore(k.storeKey)
-	buf := k.cdc.MustMarshalBinaryBare(record)
-	if buf == nil {
-		store.Delete([]byte(key))
-	} else {
-		store.Set([]byte(key), buf)
-	}
 }
 
 // del - delete data from the kvstore
@@ -160,73 +138,165 @@ func (k KVStore) del(ctx cosmos.Context, key string) {
 	}
 }
 
-// get - fetches data from the kvstore
-func (k KVStore) get(ctx cosmos.Context, key string, record interface{}) (bool, error) {
-	store := ctx.KVStore(k.storeKey)
-	if !store.Has([]byte(key)) {
-		return false, nil
-	}
-
-	bz := store.Get([]byte(key))
-	if err := k.cdc.UnmarshalBinaryBare(bz, record); err != nil {
-		return true, dbError(ctx, fmt.Sprintf("Unmarshal kvstore: %s", key), err)
-	}
-	return true, nil
-}
-
 // has - kvstore has key
 func (k KVStore) has(ctx cosmos.Context, key string) bool {
 	store := ctx.KVStore(k.storeKey)
 	return store.Has([]byte(key))
 }
 
-// SetStoreVersion save the store version
-func (k KVStore) SetStoreVersion(ctx cosmos.Context, value int64) {
-	key := k.GetKey(ctx, prefixStoreVersion, "")
+func (k KVStore) setInt64(ctx cosmos.Context, key string, record int64) {
 	store := ctx.KVStore(k.storeKey)
-	store.Set([]byte(key), k.cdc.MustMarshalBinaryBare(value))
+	value := ProtoInt64{record}
+	buf := k.cdc.MustMarshalBinaryBare(&value)
+	if buf == nil {
+		store.Delete([]byte(key))
+	} else {
+		store.Set([]byte(key), buf)
+	}
+}
+
+func (k KVStore) getInt64(ctx cosmos.Context, key string, record *int64) (bool, error) {
+	store := ctx.KVStore(k.storeKey)
+	if !store.Has([]byte(key)) {
+		return false, nil
+	}
+
+	value := ProtoInt64{}
+	bz := store.Get([]byte(key))
+	if err := k.cdc.UnmarshalBinaryBare(bz, &value); err != nil {
+		return true, dbError(ctx, fmt.Sprintf("Unmarshal kvstore: (%T) %s", record, key), err)
+	}
+	*record = value.GetValue()
+	return true, nil
+}
+
+func (k KVStore) setUint64(ctx cosmos.Context, key string, record uint64) {
+	store := ctx.KVStore(k.storeKey)
+	value := ProtoUint64{record}
+	buf := k.cdc.MustMarshalBinaryBare(&value)
+	if buf == nil {
+		store.Delete([]byte(key))
+	} else {
+		store.Set([]byte(key), buf)
+	}
+}
+
+func (k KVStore) getUint64(ctx cosmos.Context, key string, record *uint64) (bool, error) {
+	store := ctx.KVStore(k.storeKey)
+	if !store.Has([]byte(key)) {
+		return false, nil
+	}
+
+	value := ProtoUint64{*record}
+	bz := store.Get([]byte(key))
+	if err := k.cdc.UnmarshalBinaryBare(bz, &value); err != nil {
+		return true, dbError(ctx, fmt.Sprintf("Unmarshal kvstore: (%T) %s", record, key), err)
+	}
+	*record = value.GetValue()
+	return true, nil
+}
+
+func (k KVStore) setAccAddresses(ctx cosmos.Context, key string, record []cosmos.AccAddress) {
+	store := ctx.KVStore(k.storeKey)
+	value := ProtoAccAddresses{record}
+	buf := k.cdc.MustMarshalBinaryBare(&value)
+	if buf == nil {
+		store.Delete([]byte(key))
+	} else {
+		store.Set([]byte(key), buf)
+	}
+}
+
+func (k KVStore) getAccAddresses(ctx cosmos.Context, key string, record *[]cosmos.AccAddress) (bool, error) {
+	store := ctx.KVStore(k.storeKey)
+	if !store.Has([]byte(key)) {
+		return false, nil
+	}
+
+	var value ProtoAccAddresses
+	bz := store.Get([]byte(key))
+	if err := k.cdc.UnmarshalBinaryBare(bz, &value); err != nil {
+		return true, dbError(ctx, fmt.Sprintf("Unmarshal kvstore: (%T) %s", record, key), err)
+	}
+	*record = value.Value
+	return true, nil
+}
+
+func (k KVStore) setStrings(ctx cosmos.Context, key string, record []string) {
+	store := ctx.KVStore(k.storeKey)
+	value := ProtoStrings{Value: record}
+	buf := k.cdc.MustMarshalBinaryBare(&value)
+	if buf == nil {
+		store.Delete([]byte(key))
+	} else {
+		store.Set([]byte(key), buf)
+	}
+}
+
+func (k KVStore) getStrings(ctx cosmos.Context, key string, record *[]string) (bool, error) {
+	store := ctx.KVStore(k.storeKey)
+	if !store.Has([]byte(key)) {
+		return false, nil
+	}
+
+	var value ProtoStrings
+	bz := store.Get([]byte(key))
+	if err := k.cdc.UnmarshalBinaryBare(bz, &value); err != nil {
+		return true, dbError(ctx, fmt.Sprintf("Unmarshal kvstore: (%T) %s", record, key), err)
+	}
+	*record = value.Value
+	return true, nil
 }
 
 // GetRuneBalanceOfModule get the RUNE balance
 func (k KVStore) GetRuneBalanceOfModule(ctx cosmos.Context, moduleName string) cosmos.Uint {
-	addr := k.supplyKeeper.GetModuleAddress(moduleName)
-	coins := k.coinKeeper.GetCoins(ctx, addr)
-	amt := coins.AmountOf(common.RuneNative.Native())
-	return cosmos.NewUintFromBigInt(amt.BigInt())
+	addr := k.accountKeeper.GetModuleAddress(moduleName)
+	coin := k.coinKeeper.GetBalance(ctx, addr, common.RuneNative.Native())
+	return cosmos.NewUintFromBigInt(coin.Amount.BigInt())
 }
 
 // SendFromModuleToModule transfer asset from one module to another
-func (k KVStore) SendFromModuleToModule(ctx cosmos.Context, from, to string, coin common.Coin) error {
-	coins := cosmos.NewCoins(
-		cosmos.NewCoin(coin.Asset.Native(), cosmos.NewIntFromBigInt(coin.Amount.BigInt())),
-	)
-	return k.Supply().SendCoinsFromModuleToModule(ctx, from, to, coins)
+func (k KVStore) SendFromModuleToModule(ctx cosmos.Context, from, to string, coins common.Coins) error {
+	cosmosCoins := make(cosmos.Coins, len(coins))
+	for i, c := range coins {
+		cosmosCoins[i] = cosmos.NewCoin(c.Asset.Native(), cosmos.NewIntFromBigInt(c.Amount.BigInt()))
+	}
+	return k.coinKeeper.SendCoinsFromModuleToModule(ctx, from, to, cosmosCoins)
+}
+
+func (k KVStore) SendCoins(ctx cosmos.Context, from, to cosmos.AccAddress, coins cosmos.Coins) error {
+	return k.coinKeeper.SendCoins(ctx, from, to, coins)
+}
+
+func (k KVStore) AddCoins(ctx cosmos.Context, addr cosmos.AccAddress, coins cosmos.Coins) error {
+	return k.coinKeeper.AddCoins(ctx, addr, coins)
 }
 
 // SendFromAccountToModule transfer fund from one account to a module
-func (k KVStore) SendFromAccountToModule(ctx cosmos.Context, from cosmos.AccAddress, to string, coin common.Coin) error {
-	coins := cosmos.NewCoins(
-		cosmos.NewCoin(coin.Asset.Native(), cosmos.NewIntFromBigInt(coin.Amount.BigInt())),
-	)
-	return k.Supply().SendCoinsFromAccountToModule(ctx, from, to, coins)
+func (k KVStore) SendFromAccountToModule(ctx cosmos.Context, from cosmos.AccAddress, to string, coins common.Coins) error {
+	cosmosCoins := make(cosmos.Coins, len(coins))
+	for i, c := range coins {
+		cosmosCoins[i] = cosmos.NewCoin(c.Asset.Native(), cosmos.NewIntFromBigInt(c.Amount.BigInt()))
+	}
+	return k.coinKeeper.SendCoinsFromAccountToModule(ctx, from, to, cosmosCoins)
 }
 
 // SendFromModuleToAccount transfer fund from module to an account
-func (k KVStore) SendFromModuleToAccount(ctx cosmos.Context, from string, to cosmos.AccAddress, coin common.Coin) error {
-	coins := cosmos.NewCoins(
-		cosmos.NewCoin(coin.Asset.Native(), cosmos.NewIntFromBigInt(coin.Amount.BigInt())),
-	)
-	return k.Supply().SendCoinsFromModuleToAccount(ctx, from, to, coins)
+func (k KVStore) SendFromModuleToAccount(ctx cosmos.Context, from string, to cosmos.AccAddress, coins common.Coins) error {
+	cosmosCoins := make(cosmos.Coins, len(coins))
+	for i, c := range coins {
+		cosmosCoins[i] = cosmos.NewCoin(c.Asset.Native(), cosmos.NewIntFromBigInt(c.Amount.BigInt()))
+	}
+	return k.coinKeeper.SendCoinsFromModuleToAccount(ctx, from, to, cosmosCoins)
 }
 
 func (k KVStore) BurnFromModule(ctx cosmos.Context, module string, coin common.Coin) error {
-	supplier := k.Supply()
 	coinToBurn, err := coin.Native()
 	if err != nil {
 		return fmt.Errorf("fail to parse coins: %w", err)
 	}
 	coinsToBurn := cosmos.Coins{coinToBurn}
-	err = supplier.BurnCoins(ctx, module, coinsToBurn)
+	err = k.coinKeeper.BurnCoins(ctx, module, coinsToBurn)
 	if err != nil {
 		return fmt.Errorf("fail to burn assets: %w", err)
 	}
@@ -235,16 +305,44 @@ func (k KVStore) BurnFromModule(ctx cosmos.Context, module string, coin common.C
 }
 
 func (k KVStore) MintToModule(ctx cosmos.Context, module string, coin common.Coin) error {
-	supplier := k.Supply()
 	coinToMint, err := coin.Native()
 	if err != nil {
 		return fmt.Errorf("fail to parse coins: %w", err)
 	}
 	coinsToMint := cosmos.Coins{coinToMint}
-	err = supplier.MintCoins(ctx, module, coinsToMint)
+	err = k.coinKeeper.MintCoins(ctx, module, coinsToMint)
 	if err != nil {
 		return fmt.Errorf("fail to burn assets: %w", err)
 	}
 
 	return nil
+}
+
+func (k KVStore) MintAndSendToAccount(ctx cosmos.Context, to cosmos.AccAddress, coin common.Coin) error {
+	// Mint coins into the reserve
+	if err := k.MintToModule(ctx, ModuleName, coin); err != nil {
+		return err
+	}
+	return k.SendFromModuleToAccount(ctx, ModuleName, to, common.NewCoins(coin))
+}
+
+func (k KVStore) GetModuleAddress(module string) (common.Address, error) {
+	return common.NewAddress(k.accountKeeper.GetModuleAddress(module).String())
+}
+
+func (k KVStore) GetModuleAccAddress(module string) cosmos.AccAddress {
+	return k.accountKeeper.GetModuleAddress(module)
+}
+
+func (k KVStore) GetBalance(ctx cosmos.Context, addr cosmos.AccAddress) cosmos.Coins {
+	return k.coinKeeper.GetAllBalances(ctx, addr)
+}
+
+func (k KVStore) HasCoins(ctx cosmos.Context, addr cosmos.AccAddress, coins cosmos.Coins) bool {
+	balance := k.coinKeeper.GetAllBalances(ctx, addr)
+	return balance.IsAllGTE(coins)
+}
+
+func (k KVStore) GetAccount(ctx cosmos.Context, addr cosmos.AccAddress) cosmos.Account {
+	return k.accountKeeper.GetAccount(ctx, addr)
 }

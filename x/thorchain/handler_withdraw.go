@@ -29,18 +29,18 @@ func NewWithdrawLiquidityHandler(keeper keeper.Keeper, mgr Manager) WithdrawLiqu
 
 // Run is the main entry point of withdraw
 func (h WithdrawLiquidityHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
-	msg, ok := m.(MsgWithdrawLiquidity)
+	msg, ok := m.(*MsgWithdrawLiquidity)
 	if !ok {
 		return nil, errInvalidMessage
 	}
-	ctx.Logger().Info(fmt.Sprintf("receive MsgWithdrawLiquidity from : %s(%s) withdraw (%s)", msg, msg.WithdrawAddress, msg.BasisPoints))
+	ctx.Logger().Info(fmt.Sprintf("receive MsgWithdrawLiquidity from : %s(%s) withdraw (%s)", *msg, msg.WithdrawAddress, msg.BasisPoints))
 
-	if err := h.validate(ctx, msg, version); err != nil {
+	if err := h.validate(ctx, *msg, version); err != nil {
 		ctx.Logger().Error("MsgWithdrawLiquidity failed validation", "error", err)
 		return nil, err
 	}
 
-	result, err := h.handle(ctx, msg, version, constAccessor)
+	result, err := h.handle(ctx, *msg, version, constAccessor)
 	if err != nil {
 		ctx.Logger().Error("fail to process msg withdraw", "error", err)
 		return nil, err
@@ -65,7 +65,7 @@ func (h WithdrawLiquidityHandler) validateV1(ctx cosmos.Context, msg MsgWithdraw
 		return ErrInternal(err, errMsg)
 	}
 
-	if err := pool.EnsureValidPoolStatus(msg); err != nil {
+	if err := pool.EnsureValidPoolStatus(&msg); err != nil {
 		return multierror.Append(errInvalidPoolStatus, err)
 	}
 

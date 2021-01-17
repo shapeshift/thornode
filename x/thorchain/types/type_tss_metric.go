@@ -7,18 +7,6 @@ import (
 	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
-// NodeTssTime
-type NodeTssTime struct {
-	Address cosmos.AccAddress `json:"address"`
-	TssTime int64             `json:"tss_time"`
-}
-
-// TssMetric is a struct to store Tss Keygen metrics
-type TssKeygenMetric struct {
-	PubKey       common.PubKey `json:"pub_key"`
-	NodeTssTimes []NodeTssTime `json:"node_tss_times"`
-}
-
 // NewTssKeygenMetric create a new instance of TssKeygenMetric
 func NewTssKeygenMetric(pubkey common.PubKey) *TssKeygenMetric {
 	return &TssKeygenMetric{PubKey: pubkey}
@@ -38,12 +26,6 @@ func (m *TssKeygenMetric) AddNodeTssTime(addr cosmos.AccAddress, keygenTime int6
 // GetMedianTime return the median time
 func (m *TssKeygenMetric) GetMedianTime() int64 {
 	return getMedianTime(m.NodeTssTimes)
-}
-
-// TssKeysignMetric is a struct to store Tss keysign metrics
-type TssKeysignMetric struct {
-	TxID         common.TxID   `json:"tx_id"`
-	NodeTssTimes []NodeTssTime `json:"node_tss_times"`
 }
 
 // NewTssKeysignMetric create a new instance of TssKeysignMetric

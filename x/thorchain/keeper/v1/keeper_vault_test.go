@@ -19,12 +19,12 @@ func (s *KeeperVaultSuite) TestVault(c *C) {
 	c.Check(existVault, Equals, false)
 
 	pubKey := GetRandomPubKey()
-	yggdrasil := NewVault(common.BlockHeight(ctx), ActiveVault, YggdrasilVault, pubKey, common.Chains{common.BNBChain}, []ChainContract{})
+	yggdrasil := NewVault(common.BlockHeight(ctx), ActiveVault, YggdrasilVault, pubKey, common.Chains{common.BNBChain}.Strings(), []ChainContract{})
 	err = k.SetVault(ctx, yggdrasil)
 	c.Assert(err, IsNil)
 	c.Assert(k.VaultExists(ctx, pubKey), Equals, true)
 	pubKey1 := GetRandomPubKey()
-	yggdrasil1 := NewVault(common.BlockHeight(ctx), ActiveVault, YggdrasilVault, pubKey1, common.Chains{common.BNBChain}, []ChainContract{})
+	yggdrasil1 := NewVault(common.BlockHeight(ctx), ActiveVault, YggdrasilVault, pubKey1, common.Chains{common.BNBChain}.Strings(), []ChainContract{})
 	yggdrasil1.PendingTxBlockHeights = []int64{35}
 	yggdrasil1.Coins = common.Coins{
 		common.NewCoin(common.BNBAsset, types.NewUint(100)),
@@ -43,9 +43,9 @@ func (s *KeeperVaultSuite) TestVault(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(asgards, HasLen, 0)
 	pubKey = GetRandomPubKey()
-	asgard := NewVault(common.BlockHeight(ctx), ActiveVault, AsgardVault, pubKey, common.Chains{common.BNBChain}, []ChainContract{})
+	asgard := NewVault(common.BlockHeight(ctx), ActiveVault, AsgardVault, pubKey, common.Chains{common.BNBChain}.Strings(), []ChainContract{})
 	c.Assert(k.SetVault(ctx, asgard), IsNil)
-	asgard2 := NewVault(common.BlockHeight(ctx), InactiveVault, AsgardVault, GetRandomPubKey(), common.Chains{common.BNBChain}, []ChainContract{})
+	asgard2 := NewVault(common.BlockHeight(ctx), InactiveVault, AsgardVault, GetRandomPubKey(), common.Chains{common.BNBChain}.Strings(), []ChainContract{})
 	c.Assert(k.SetVault(ctx, asgard2), IsNil)
 	asgards, err = k.GetAsgardVaultsByStatus(ctx, ActiveVault)
 	c.Assert(err, IsNil)
@@ -58,7 +58,7 @@ func (s *KeeperVaultSuite) TestVault(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(asgards, HasLen, 0)
 
-	vault1 := NewVault(1024, ActiveVault, AsgardVault, GetRandomPubKey(), common.Chains{common.BNBChain}, []ChainContract{})
+	vault1 := NewVault(1024, ActiveVault, AsgardVault, GetRandomPubKey(), common.Chains{common.BNBChain}.Strings(), []ChainContract{})
 	vault1.AddFunds(common.Coins{
 		common.NewCoin(common.BNBAsset, cosmos.NewUint(common.One*100)),
 	})
@@ -97,33 +97,33 @@ func (s *KeeperVaultSuite) TestVaultSorBySecurity(c *C) {
 	c.Assert(k.SetPool(ctx, pool1), IsNil)
 
 	// Create three vaults
-	vault1 := NewVault(1024, ActiveVault, AsgardVault, GetRandomPubKey(), common.Chains{common.BNBChain}, []ChainContract{})
+	vault1 := NewVault(1024, ActiveVault, AsgardVault, GetRandomPubKey(), common.Chains{common.BNBChain}.Strings(), []ChainContract{})
 	vault1.AddFunds(common.Coins{
 		common.NewCoin(common.RuneAsset(), cosmos.NewUint(common.One*200)),
 	})
-	vault1.Membership = common.PubKeys{
-		na1.PubKeySet.Secp256k1,
-		na6.PubKeySet.Secp256k1,
+	vault1.Membership = []string{
+		na1.PubKeySet.Secp256k1.String(),
+		na6.PubKeySet.Secp256k1.String(),
 	}
 	c.Check(k.SetVault(ctx, vault1), IsNil)
 
-	vault2 := NewVault(1024, ActiveVault, AsgardVault, GetRandomPubKey(), common.Chains{common.BNBChain}, []ChainContract{})
+	vault2 := NewVault(1024, ActiveVault, AsgardVault, GetRandomPubKey(), common.Chains{common.BNBChain}.Strings(), []ChainContract{})
 	vault2.AddFunds(common.Coins{
 		common.NewCoin(common.BNBAsset, cosmos.NewUint(common.One*1000)),
 	})
-	vault2.Membership = common.PubKeys{
-		na2.PubKeySet.Secp256k1,
-		na5.PubKeySet.Secp256k1,
+	vault2.Membership = []string{
+		na2.PubKeySet.Secp256k1.String(),
+		na5.PubKeySet.Secp256k1.String(),
 	}
 	c.Check(k.SetVault(ctx, vault2), IsNil)
 
-	vault3 := NewVault(1024, ActiveVault, AsgardVault, GetRandomPubKey(), common.Chains{common.BNBChain}, []ChainContract{})
+	vault3 := NewVault(1024, ActiveVault, AsgardVault, GetRandomPubKey(), common.Chains{common.BNBChain}.Strings(), []ChainContract{})
 	vault3.AddFunds(common.Coins{
 		common.NewCoin(common.BNBAsset, cosmos.NewUint(common.One*100)),
 	})
-	vault3.Membership = common.PubKeys{
-		na3.PubKeySet.Secp256k1,
-		na4.PubKeySet.Secp256k1,
+	vault3.Membership = []string{
+		na3.PubKeySet.Secp256k1.String(),
+		na4.PubKeySet.Secp256k1.String(),
 	}
 	c.Check(k.SetVault(ctx, vault3), IsNil)
 

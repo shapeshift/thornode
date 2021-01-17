@@ -42,16 +42,16 @@ func (s *HandlerSwapSuite) TestValidate(c *C) {
 		"",
 	)
 	msg := NewMsgSwap(tx, common.BNBAsset, signerBNBAddr, cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(), observerAddr)
-	err := handler.validate(ctx, msg, ver)
+	err := handler.validate(ctx, *msg, ver)
 	c.Assert(err, IsNil)
 
 	// invalid version
-	err = handler.validate(ctx, msg, semver.Version{})
+	err = handler.validate(ctx, *msg, semver.Version{})
 	c.Assert(err, Equals, errInvalidVersion)
 
 	// invalid msg
-	msg = MsgSwap{}
-	err = handler.validate(ctx, msg, ver)
+	msg = &MsgSwap{}
+	err = handler.validate(ctx, *msg, ver)
 	c.Assert(err, NotNil)
 }
 
@@ -141,7 +141,7 @@ func (s *HandlerSwapSuite) TestHandle(c *C) {
 	pool.BalanceRune = cosmos.NewUint(100 * common.One)
 	c.Assert(keeper.SetPool(ctx, pool), IsNil)
 	// fund is not enough to pay for transaction fee
-	_, err = handler.handle(ctx, msg, ver, constAccessor)
+	_, err = handler.handle(ctx, *msg, ver, constAccessor)
 	c.Assert(err, NotNil)
 
 	tx = common.NewTx(txID, signerBNBAddr, signerBNBAddr,
@@ -181,15 +181,15 @@ func (s *HandlerSwapSuite) TestHandle(c *C) {
 	items, err := mgr.TxOutStore().GetOutboundItems(ctx)
 	c.Assert(err, IsNil)
 	c.Assert(items, HasLen, 0)
-	_, err = handler.Run(ctx, msgSwapFromTxIn.(MsgSwap), ver, constAccessor)
+	_, err = handler.Run(ctx, msgSwapFromTxIn.(*MsgSwap), ver, constAccessor)
 	c.Assert(err, IsNil)
 	items, err = mgr.TxOutStore().GetOutboundItems(ctx)
 	c.Assert(err, IsNil)
 	c.Assert(items, HasLen, 1)
-	result, err = handler.handle(ctx, msgSwapFromTxIn.(MsgSwap), semver.Version{}, constAccessor)
+	result, err = handler.Run(ctx, msgSwapFromTxIn, semver.Version{}, constAccessor)
 	c.Assert(err, NotNil)
 	c.Assert(result, IsNil)
-	c.Check(errors.Is(err, errBadVersion), Equals, true)
+	c.Check(errors.Is(err, errInvalidVersion), Equals, true, Commentf("%+v", err))
 	msgSwap := NewMsgSwap(GetRandomTx(), common.EmptyAsset, GetRandomBNBAddress(), cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(), GetRandomBech32Addr())
 	result, err = handler.Run(ctx, msgSwap, ver, constAccessor)
 	c.Assert(err, NotNil)
@@ -246,7 +246,7 @@ func (s *HandlerSwapSuite) TestDoubleSwap(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(items, HasLen, 0)
 
-	_, err = handler.handle(ctx, msgSwapFromTxIn.(MsgSwap), ver, constAccessor)
+	_, err = handler.Run(ctx, msgSwapFromTxIn, ver, constAccessor)
 	c.Assert(err, IsNil)
 
 	items, err = mgr.TxOutStore().GetOutboundItems(ctx)
@@ -269,7 +269,7 @@ func (s *HandlerSwapSuite) TestDoubleSwap(c *C) {
 	msgSwapFromTxIn1, err := getMsgSwapFromMemo(m1.(SwapMemo), txIn1, observerAddr)
 	c.Assert(err, IsNil)
 	mgr.TxOutStore().ClearOutboundItems(ctx)
-	_, err = handler.handle(ctx, msgSwapFromTxIn1.(MsgSwap), ver, constAccessor)
+	_, err = handler.Run(ctx, msgSwapFromTxIn1, ver, constAccessor)
 	c.Assert(err, Equals, errSwapFailNotEnoughFee)
 
 	items, err = mgr.TxOutStore().GetOutboundItems(ctx)

@@ -12,14 +12,14 @@ func (k KVStore) GetMimir(ctx cosmos.Context, key string) (int64, error) {
 	}
 
 	record := int64(-1)
-	_, err := k.get(ctx, k.GetKey(ctx, prefixMimir, key), &record)
+	_, err := k.getInt64(ctx, k.GetKey(ctx, prefixMimir, key), &record)
 	return record, err
 }
 
 // haveKraken - check to see if we have "released the kraken"
 func (k KVStore) haveKraken(ctx cosmos.Context) bool {
 	record := int64(-1)
-	_, _ = k.get(ctx, k.GetKey(ctx, prefixMimir, KRAKEN), &record)
+	_, _ = k.getInt64(ctx, k.GetKey(ctx, prefixMimir, KRAKEN), &record)
 	return record >= 0
 }
 
@@ -29,7 +29,7 @@ func (k KVStore) SetMimir(ctx cosmos.Context, key string, value int64) {
 	if k.haveKraken(ctx) {
 		return
 	}
-	k.set(ctx, k.GetKey(ctx, prefixMimir, key), value)
+	k.setInt64(ctx, k.GetKey(ctx, prefixMimir, key), value)
 }
 
 // GetMimirIterator iterate gas units
