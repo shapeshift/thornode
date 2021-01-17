@@ -2,6 +2,7 @@ package app
 
 import (
 	"github.com/cosmos/cosmos-sdk/std"
+
 	"gitlab.com/thorchain/thornode/app/params"
 )
 
