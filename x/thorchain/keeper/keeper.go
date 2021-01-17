@@ -51,7 +51,6 @@ type Keeper interface {
 	KeeperTssKeysignFail
 	KeeperKeygen
 	KeeperRagnarok
-	KeeperTxMarker
 	KeeperErrataTx
 	KeeperBanVoter
 	KeeperSwapQueue
@@ -204,13 +203,6 @@ type KeeperRagnarok interface {
 	SetRagnarokPending(_ cosmos.Context, _ int64)
 	GetRagnarokWithdrawPosition(ctx cosmos.Context) (RagnarokWithdrawPosition, error)
 	SetRagnarokWithdrawPosition(ctx cosmos.Context, position RagnarokWithdrawPosition)
-}
-
-type KeeperTxMarker interface {
-	ListTxMarker(ctx cosmos.Context, hash string) (TxMarkers, error)
-	SetTxMarkers(ctx cosmos.Context, hash string, marks TxMarkers) error
-	AppendTxMarker(ctx cosmos.Context, hash string, mark TxMarker) error
-	GetAllTxMarkers(ctx cosmos.Context) (map[string]TxMarkers, error)
 }
 
 type KeeperErrataTx interface {

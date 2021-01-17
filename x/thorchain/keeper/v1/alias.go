@@ -29,7 +29,6 @@ const (
 var (
 	NewPool                    = types.NewPool
 	NewJail                    = types.NewJail
-	NewTxMarker                = types.NewTxMarker
 	NewNetwork                 = types.NewNetwork
 	NewObservedTx              = types.NewObservedTx
 	NewTssVoter                = types.NewTssVoter
@@ -84,8 +83,6 @@ type (
 	NodeStatus               = types.NodeStatus
 	Network                  = types.Network
 	VaultStatus              = types.VaultStatus
-	TxMarker                 = types.TxMarker
-	TxMarkers                = types.TxMarkers
 	NetworkFee               = types.NetworkFee
 	ObservedNetworkFeeVoter  = types.ObservedNetworkFeeVoter
 	RagnarokWithdrawPosition = types.RagnarokWithdrawPosition

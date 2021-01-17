@@ -46,7 +46,6 @@ const (
 	prefixRagnarokNth            kvTypes.DbPrefix = "ragnarokNth/"
 	prefixRagnarokPending        kvTypes.DbPrefix = "ragnarokPending/"
 	prefixRagnarokPosition       kvTypes.DbPrefix = "ragnarokPosition/"
-	prefixSupportedTxMarker      kvTypes.DbPrefix = "marker/"
 	prefixErrataTx               kvTypes.DbPrefix = "errata/"
 	prefixBanVoter               kvTypes.DbPrefix = "ban/"
 	prefixNodeSlashPoints        kvTypes.DbPrefix = "slash/"

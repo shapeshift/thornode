@@ -114,8 +114,7 @@ func (k *TestSwapKeeper) GetLeastSecure(ctx cosmos.Context, vaults Vaults, _ int
 func (k TestSwapKeeper) SortBySecurity(_ cosmos.Context, vaults Vaults, _ int64) Vaults {
 	return vaults
 }
-func (k *TestSwapKeeper) AppendTxMarker(_ cosmos.Context, _ string, _ TxMarker) error { return nil }
-func (k *TestSwapKeeper) AppendTxOut(_ cosmos.Context, _ int64, _ TxOutItem) error    { return nil }
+func (k *TestSwapKeeper) AppendTxOut(_ cosmos.Context, _ int64, _ TxOutItem) error { return nil }
 func (k *TestSwapKeeper) GetNetworkFee(ctx cosmos.Context, chain common.Chain) (NetworkFee, error) {
 	if chain.Equals(common.BNBChain) {
 		return NetworkFee{
