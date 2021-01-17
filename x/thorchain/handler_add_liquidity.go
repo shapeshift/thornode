@@ -196,7 +196,7 @@ func (h AddLiquidityHandler) addLiquidityV1(ctx cosmos.Context,
 	if su.AssetAddress.IsEmpty() {
 		su.AssetAddress = assetAddr
 	} else {
-		if !su.AssetAddress.Equals(assetAddr) {
+		if !assetAddr.IsEmpty() && !su.AssetAddress.Equals(assetAddr) {
 			// mismatch of asset addresses from what is known to the address
 			// given. Refund it.
 			return errAddLiquidityMismatchAssetAddr
