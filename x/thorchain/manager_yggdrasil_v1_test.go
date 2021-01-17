@@ -358,7 +358,7 @@ func (s YggdrasilManagerV1Suite) TestAbandonYggdrasilWithDifferentConditions(c *
 	asgardVault.Membership = common.PubKeys{
 		GetRandomPubKey(),
 		naDisabled.PubKeySet.Secp256k1,
-	}
+	}.Strings()
 	c.Assert(k.SetVault(ctx, asgardVault), IsNil)
 
 	ymgr = NewYggMgrV1(k)

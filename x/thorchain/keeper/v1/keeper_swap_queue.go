@@ -8,9 +8,32 @@ import (
 	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
+func (k KVStore) setMsgSwap(ctx cosmos.Context, key string, record MsgSwap) {
+	store := ctx.KVStore(k.storeKey)
+	buf := k.cdc.MustMarshalBinaryBare(&record)
+	if buf == nil {
+		store.Delete([]byte(key))
+	} else {
+		store.Set([]byte(key), buf)
+	}
+}
+
+func (k KVStore) getMsgSwap(ctx cosmos.Context, key string, record *MsgSwap) (bool, error) {
+	store := ctx.KVStore(k.storeKey)
+	if !store.Has([]byte(key)) {
+		return false, nil
+	}
+
+	bz := store.Get([]byte(key))
+	if err := k.cdc.UnmarshalBinaryBare(bz, record); err != nil {
+		return true, dbError(ctx, fmt.Sprintf("Unmarshal kvstore: (%T) %s", record, key), err)
+	}
+	return true, nil
+}
+
 // SetSwapQueueItem - writes a swap item to the kv store
 func (k KVStore) SetSwapQueueItem(ctx cosmos.Context, msg MsgSwap, i int) error {
-	k.set(ctx, k.GetKey(ctx, prefixSwapQueueItem, fmt.Sprintf("%s-%d", msg.Tx.ID.String(), i)), msg)
+	k.setMsgSwap(ctx, k.GetKey(ctx, prefixSwapQueueItem, fmt.Sprintf("%s-%d", msg.Tx.ID.String(), i)), msg)
 	return nil
 }
 
@@ -22,7 +45,7 @@ func (k KVStore) GetSwapQueueIterator(ctx cosmos.Context) cosmos.Iterator {
 // GetSwapQueueItem - write the given swap queue item information to key values tore
 func (k KVStore) GetSwapQueueItem(ctx cosmos.Context, txID common.TxID, i int) (MsgSwap, error) {
 	record := MsgSwap{}
-	ok, err := k.get(ctx, k.GetKey(ctx, prefixSwapQueueItem, fmt.Sprintf("%s-%d", txID.String(), i)), &record)
+	ok, err := k.getMsgSwap(ctx, k.GetKey(ctx, prefixSwapQueueItem, fmt.Sprintf("%s-%d", txID.String(), i)), &record)
 	if !ok {
 		return record, errors.New("not found")
 	}

@@ -8,36 +8,35 @@ import (
 	"os/user"
 	"path/filepath"
 
-	ckeys "github.com/cosmos/cosmos-sdk/crypto/keys"
+	"github.com/cosmos/cosmos-sdk/crypto"
+	ckeys "github.com/cosmos/cosmos-sdk/crypto/keyring"
+	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/tendermint/tendermint/crypto"
 )
 
 const (
 	// folder name for thorchain thorcli
-	thorchainCliFolderName = `.thorcli`
+	thorchainCliFolderName = `.thornode`
 )
 
 // Keys manages all the keys used by thorchain
 type Keys struct {
 	signerName string
 	password   string // TODO this is a bad way , need to fix it
-	signerInfo ckeys.Info
-	kb         ckeys.Keybase
+	kb         ckeys.Keyring
 }
 
 // NewKeysWithKeybase create a new instance of Keys
-func NewKeysWithKeybase(kb ckeys.Keybase, signerInfo ckeys.Info, password string) *Keys {
+func NewKeysWithKeybase(kb ckeys.Keyring, name, password string) *Keys {
 	return &Keys{
-		signerName: signerInfo.GetName(),
+		signerName: name,
 		password:   password,
-		signerInfo: signerInfo,
 		kb:         kb,
 	}
 }
 
-// NewKeys create a new instance of keys
-func GetKeyringKeybase(chainHomeFolder, signerName, password string) (ckeys.Keybase, ckeys.Info, error) {
+// GetKeyringKeybase return keyring and key info
+func GetKeyringKeybase(chainHomeFolder, signerName, password string) (ckeys.Keyring, ckeys.Info, error) {
 	if len(signerName) == 0 {
 		return nil, nil, fmt.Errorf("signer name is empty")
 	}
@@ -59,7 +58,7 @@ func GetKeyringKeybase(chainHomeFolder, signerName, password string) (ckeys.Keyb
 		os.Stdin = oldStdIn
 	}()
 	os.Stdin = nil
-	si, err := kb.Get(signerName)
+	si, err := kb.Key(signerName)
 	if err != nil {
 		return nil, nil, fmt.Errorf("fail to get signer info(%s): %w", signerName, err)
 	}
@@ -67,7 +66,7 @@ func GetKeyringKeybase(chainHomeFolder, signerName, password string) (ckeys.Keyb
 }
 
 // getKeybase will create an instance of Keybase
-func getKeybase(thorchainHome string, reader io.Reader) (ckeys.Keybase, error) {
+func getKeybase(thorchainHome string, reader io.Reader) (ckeys.Keyring, error) {
 	cliDir := thorchainHome
 	if len(thorchainHome) == 0 {
 		usr, err := user.Current()
@@ -77,20 +76,33 @@ func getKeybase(thorchainHome string, reader io.Reader) (ckeys.Keybase, error) {
 		cliDir = filepath.Join(usr.HomeDir, thorchainCliFolderName)
 	}
 
-	return ckeys.NewKeyring(sdk.KeyringServiceName(), ckeys.BackendFile, cliDir, reader)
+	return ckeys.New(sdk.KeyringServiceName(), ckeys.BackendFile, cliDir, reader)
 }
 
 // GetSignerInfo return signer info
 func (k *Keys) GetSignerInfo() ckeys.Info {
-	return k.signerInfo
+	info, err := k.kb.Key(k.signerName)
+	if err != nil {
+		panic(err)
+	}
+	return info
 }
 
 // GetPrivateKey return the private key
-func (k *Keys) GetPrivateKey() (crypto.PrivKey, error) {
-	return k.kb.ExportPrivateKeyObject(k.signerName, k.password)
+func (k *Keys) GetPrivateKey() (cryptotypes.PrivKey, error) {
+	// return k.kb.ExportPrivateKeyObject(k.signerName)
+	privKeyArmor, err := k.kb.ExportPrivKeyArmor(k.signerName, k.password)
+	if err != nil {
+		return nil, err
+	}
+	priKey, _, err := crypto.UnarmorDecryptPrivKey(privKeyArmor, k.password)
+	if err != nil {
+		return nil, fmt.Errorf("fail to unarmor private key: %w", err)
+	}
+	return priKey, nil
 }
 
 // GetKeybase return the keybase
-func (k *Keys) GetKeybase() ckeys.Keybase {
+func (k *Keys) GetKeybase() ckeys.Keyring {
 	return k.kb
 }

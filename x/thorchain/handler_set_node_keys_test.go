@@ -22,7 +22,7 @@ type TestSetNodeKeysKeeper struct {
 	ensure error
 }
 
-func (k *TestSetNodeKeysKeeper) SendFromAccountToModule(ctx cosmos.Context, from cosmos.AccAddress, to string, coin common.Coin) error {
+func (k *TestSetNodeKeysKeeper) SendFromAccountToModule(ctx cosmos.Context, from cosmos.AccAddress, to string, coins common.Coins) error {
 	return nil
 }
 
@@ -67,7 +67,7 @@ func (s *HandlerSetNodeKeysSuite) TestValidate(c *C) {
 	pubKeys := GetRandomPubKeySet()
 
 	msg := NewMsgSetNodeKeys(pubKeys, consensPubKey, signer)
-	err := handler.validate(ctx, msg, ver, constAccessor)
+	err := handler.validate(ctx, *msg, ver, constAccessor)
 	c.Assert(err, IsNil)
 	result, err := handler.Run(ctx, msg, ver, constAccessor)
 	c.Assert(err, IsNil)
@@ -76,37 +76,37 @@ func (s *HandlerSetNodeKeysSuite) TestValidate(c *C) {
 	// cannot set node keys for active account
 	keeper.na.Status = NodeActive
 	msg = NewMsgSetNodeKeys(pubKeys, consensPubKey, keeper.na.NodeAddress)
-	err = handler.validate(ctx, msg, ver, constAccessor)
+	err = handler.validate(ctx, *msg, ver, constAccessor)
 	c.Assert(err, NotNil)
 
 	// cannot set node keys for disabled account
 	keeper.na.Status = NodeDisabled
 	msg = NewMsgSetNodeKeys(pubKeys, consensPubKey, keeper.na.NodeAddress)
-	err = handler.validate(ctx, msg, ver, constAccessor)
+	err = handler.validate(ctx, *msg, ver, constAccessor)
 	c.Assert(err, NotNil)
 
 	// cannot set node keys when duplicate
 	keeper.na.Status = NodeStandby
 	keeper.ensure = fmt.Errorf("duplicate keys")
 	msg = NewMsgSetNodeKeys(keeper.na.PubKeySet, consensPubKey, keeper.na.NodeAddress)
-	err = handler.validate(ctx, msg, ver, constAccessor)
+	err = handler.validate(ctx, *msg, ver, constAccessor)
 	c.Assert(err, ErrorMatches, "duplicate keys")
 	keeper.ensure = nil
 
 	// new version GT
-	err = handler.validate(ctx, msg, semver.MustParse("2.0.0"), constAccessor)
+	err = handler.validate(ctx, *msg, semver.MustParse("2.0.0"), constAccessor)
 	c.Assert(err, IsNil)
 
 	// invalid version
-	err = handler.validate(ctx, msg, semver.Version{}, constAccessor)
+	err = handler.validate(ctx, *msg, semver.Version{}, constAccessor)
 	c.Assert(err, Equals, errInvalidVersion)
 	result, err = handler.Run(ctx, msg, semver.Version{}, constAccessor)
 	c.Check(err, NotNil)
 	c.Check(result, IsNil)
 
 	// invalid msg
-	msg = MsgSetNodeKeys{}
-	err = handler.validate(ctx, msg, ver, constAccessor)
+	msg = &MsgSetNodeKeys{}
+	err = handler.validate(ctx, *msg, ver, constAccessor)
 	c.Assert(err, NotNil)
 	result, err = handler.Run(ctx, msg, ver, constAccessor)
 	c.Assert(err, NotNil)
@@ -131,7 +131,7 @@ func NewTestSetNodeKeysHandleKeeper(k keeper.Keeper) *TestSetNodeKeysHandleKeepe
 	}
 }
 
-func (k *TestSetNodeKeysHandleKeeper) SendFromAccountToModule(ctx cosmos.Context, from cosmos.AccAddress, to string, coin common.Coin) error {
+func (k *TestSetNodeKeysHandleKeeper) SendFromAccountToModule(ctx cosmos.Context, from cosmos.AccAddress, to string, coins common.Coins) error {
 	return nil
 }
 
@@ -194,7 +194,7 @@ func (s *HandlerSetNodeKeysSuite) TestHandle(c *C) {
 	c.Assert(helper.Keeper.SetNodeAccount(ctx, nodeAccount), IsNil)
 
 	// happy path
-	_, err := handler.handle(ctx, msgNodeKeys, ver, constAccessor)
+	_, err := handler.handle(ctx, *msgNodeKeys, ver, constAccessor)
 	c.Assert(err, IsNil)
 	na, err := helper.Keeper.GetNodeAccount(ctx, msgNodeKeys.Signer)
 	c.Assert(err, IsNil)

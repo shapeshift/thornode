@@ -59,15 +59,15 @@ func (tx TxOutItem) Equals(tx2 TxOutItem) bool {
 // TxOutItem used in bifrost need to support Coins , because when Yggdrasil return , it send all the coins back to asgard
 // using multisend
 type TxArrayItem struct {
-	Chain       common.Chain   `json:"chain"`
-	ToAddress   common.Address `json:"to"`
-	VaultPubKey common.PubKey  `json:"vault_pubkey"`
+	Chain       common.Chain   `json:"chain,omitempty"`
+	ToAddress   common.Address `json:"to_address,omitempty"`
+	VaultPubKey common.PubKey  `json:"vault_pub_key,omitempty"`
 	Coin        common.Coin    `json:"coin"`
-	Memo        string         `json:"memo"`
+	Memo        string         `json:"memo,omitempty"`
 	MaxGas      common.Gas     `json:"max_gas"`
-	GasRate     int64          `json:"gas_rate"`
-	InHash      common.TxID    `json:"in_hash"`
-	OutHash     common.TxID    `json:"out_hash"`
+	GasRate     int64          `json:"gas_rate,omitempty"`
+	InHash      common.TxID    `json:"in_hash,omitempty"`
+	OutHash     common.TxID    `json:"out_hash,omitempty"`
 }
 
 // TxOutItem convert the information to TxOutItem
@@ -87,6 +87,6 @@ func (tx TxArrayItem) TxOutItem() TxOutItem {
 
 // TxOut represent the tx out information , bifrost need to sign and process
 type TxOut struct {
-	Height  int64         `json:"height,string"`
+	Height  int64         `json:"height"`
 	TxArray []TxArrayItem `json:"tx_array"`
 }

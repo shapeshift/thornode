@@ -23,15 +23,15 @@ func NewOutboundTxHandler(keeper keeper.Keeper, mgr Manager) OutboundTxHandler {
 }
 
 func (h OutboundTxHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
-	msg, ok := m.(MsgOutboundTx)
+	msg, ok := m.(*MsgOutboundTx)
 	if !ok {
 		return nil, errInvalidMessage
 	}
-	if err := h.validate(ctx, msg, version); err != nil {
+	if err := h.validate(ctx, *msg, version); err != nil {
 		ctx.Logger().Error("MsgOutboundTx failed validation", "error", err)
 		return nil, err
 	}
-	result, err := h.handle(ctx, msg, version, constAccessor)
+	result, err := h.handle(ctx, *msg, version, constAccessor)
 	if err != nil {
 		ctx.Logger().Error("fail to handle MsgOutboundTx", "error", err)
 	}

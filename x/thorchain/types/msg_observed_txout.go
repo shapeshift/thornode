@@ -4,35 +4,29 @@ import (
 	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
-// MsgObservedTxOut defines a MsgObservedTxOut message
-type MsgObservedTxOut struct {
-	Txs    ObservedTxs       `json:"txs"`
-	Signer cosmos.AccAddress `json:"signer"`
-}
-
 // NewMsgObservedTxOut is a constructor function for MsgObservedTxOut
-func NewMsgObservedTxOut(txs ObservedTxs, signer cosmos.AccAddress) MsgObservedTxOut {
-	return MsgObservedTxOut{
+func NewMsgObservedTxOut(txs ObservedTxs, signer cosmos.AccAddress) *MsgObservedTxOut {
+	return &MsgObservedTxOut{
 		Txs:    txs,
 		Signer: signer,
 	}
 }
 
 // Route should return the route key of the module
-func (msg MsgObservedTxOut) Route() string { return RouterKey }
+func (m *MsgObservedTxOut) Route() string { return RouterKey }
 
 // Type should return the action
-func (msg MsgObservedTxOut) Type() string { return "set_observed_txout" }
+func (m MsgObservedTxOut) Type() string { return "set_observed_txout" }
 
 // ValidateBasic runs stateless checks on the message
-func (msg MsgObservedTxOut) ValidateBasic() error {
-	if msg.Signer.Empty() {
-		return cosmos.ErrInvalidAddress(msg.Signer.String())
+func (m *MsgObservedTxOut) ValidateBasic() error {
+	if m.Signer.Empty() {
+		return cosmos.ErrInvalidAddress(m.Signer.String())
 	}
-	if len(msg.Txs) == 0 {
+	if len(m.Txs) == 0 {
 		return cosmos.ErrUnknownRequest("Txs cannot be empty")
 	}
-	for _, tx := range msg.Txs {
+	for _, tx := range m.Txs {
 		if err := tx.Valid(); err != nil {
 			return cosmos.ErrUnknownRequest(err.Error())
 		}
@@ -49,7 +43,7 @@ func (msg MsgObservedTxOut) ValidateBasic() error {
 		if len(tx.OutHashes) > 0 {
 			return cosmos.ErrUnknownRequest("out hashes must be empty")
 		}
-		if tx.Status != Incomplete {
+		if tx.Status != Status_incomplete {
 			return cosmos.ErrUnknownRequest("status must be incomplete")
 		}
 	}
@@ -57,11 +51,11 @@ func (msg MsgObservedTxOut) ValidateBasic() error {
 }
 
 // GetSignBytes encodes the message for signing
-func (msg MsgObservedTxOut) GetSignBytes() []byte {
-	return cosmos.MustSortJSON(ModuleCdc.MustMarshalJSON(msg))
+func (m *MsgObservedTxOut) GetSignBytes() []byte {
+	return cosmos.MustSortJSON(ModuleCdc.MustMarshalJSON(m))
 }
 
 // GetSigners defines whose signature is required
-func (msg MsgObservedTxOut) GetSigners() []cosmos.AccAddress {
-	return []cosmos.AccAddress{msg.Signer}
+func (m *MsgObservedTxOut) GetSigners() []cosmos.AccAddress {
+	return []cosmos.AccAddress{m.Signer}
 }

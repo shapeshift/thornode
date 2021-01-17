@@ -1,6 +1,6 @@
 {
     "keysign": {
-        "height": "1718",
+        "height": 1718,
         "tx_array": [
             {
                 "chain": "BNB",
@@ -11,11 +11,11 @@
                 "in_hash": "ENULZOBGZHEKFOIBYRLLBELKFZVGXOBLTRQGTOWNDHMPZQMBLGJETOXJLHPVQIKY",
                 "memo": "",
                 "out_hash": "",
-                "to": "tbnb145wcuncewfkuc4v6an0r9laswejygcul43c3wu",
-                "vault_pubkey": "tthorpub1addwnpepqfgpnhk4z80fglgp4cget35dsdzpfxdkudtzw09pm2t0wv6rvhds2flawm6",
-                "gas_rate": "1"
+                "to_address": "tbnb145wcuncewfkuc4v6an0r9laswejygcul43c3wu",
+                "vault_pub_key": "tthorpub1addwnpepqfgpnhk4z80fglgp4cget35dsdzpfxdkudtzw09pm2t0wv6rvhds2flawm6",
+                "gas_rate": 1
             }
         ]
     },
-    "signature": "wSrz3/lEtbnKgNCmFtBpEWW1BqOwHvqkElwsz86XixhU9Kd9eHjdt+dLLJz/avRT7IdTW+2M9hyk5H11dTqjlQ=="
+    "signature": "J4KpopwXY7JXzJ1WCvK7n4Yr/fcoEn9+Zcsx3vAmCqkfzYOlvRXufj8fncjkX9tUp60O8zFZaPot29C5jFaPew=="
 }

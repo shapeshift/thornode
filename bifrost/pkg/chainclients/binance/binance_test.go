@@ -12,15 +12,17 @@ import (
 	"testing"
 	"time"
 
-	ctypes "github.com/binance-chain/go-sdk/common/types"
-	"github.com/cosmos/cosmos-sdk/client/keys"
-	cKeys "github.com/cosmos/cosmos-sdk/crypto/keys"
+	"github.com/cosmos/cosmos-sdk/crypto/codec"
+	"github.com/cosmos/cosmos-sdk/crypto/hd"
+	cKeys "github.com/cosmos/cosmos-sdk/crypto/keyring"
+	ctypes "gitlab.com/thorchain/binance-sdk/common/types"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/bifrost/config"
 	"gitlab.com/thorchain/thornode/bifrost/metrics"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient/types"
+	"gitlab.com/thorchain/thornode/cmd"
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 
@@ -73,10 +75,10 @@ func (s *BinancechainSuite) SetUpSuite(c *C) {
 		ChainHomeFolder: s.thordir,
 	}
 
-	kb := keys.NewInMemoryKeyBase()
-	info, _, err := kb.CreateMnemonic(cfg.SignerName, cKeys.English, cfg.SignerPasswd, cKeys.Secp256k1)
+	kb := cKeys.NewInMemory()
+	_, _, err := kb.NewMnemonic(cfg.SignerName, cKeys.English, cmd.THORChainHDPath, hd.Secp256k1)
 	c.Assert(err, IsNil)
-	s.thorKeys = thorclient.NewKeysWithKeybase(kb, info, cfg.SignerPasswd)
+	s.thorKeys = thorclient.NewKeysWithKeybase(kb, cfg.SignerName, cfg.SignerPasswd)
 	c.Assert(err, IsNil)
 	s.bridge, err = thorclient.NewThorchainBridge(cfg, s.m, s.thorKeys)
 	c.Assert(err, IsNil)
@@ -274,9 +276,11 @@ func (s *BinancechainSuite) TestSignTx(c *C) {
 	}, nil, b, s.m)
 	c.Assert(err2, IsNil)
 	c.Assert(b2, NotNil)
-	pk, err := common.NewPubKeyFromCrypto(b2.localKeyManager.GetPrivKey().PubKey())
+	tmp, err := codec.ToTmPubKeyInterface(b2.localKeyManager.GetPrivKey().PubKey())
 	c.Assert(err, IsNil)
-	txOut := getTxOutFromJsonInput(`{ "height": "1718", "hash": "", "tx_array": [ { "vault_pubkey":"tthorpub1addwnpepq2jgpsw2lalzuk7sgtmyakj7l6890f5cfpwjyfp8k4y4t7cw2vk8v2ch5uz","seq_no":"0","to": "tbnb1hzwfk6t3sqjfuzlr0ur9lj920gs37gg92gtay9", "coin":  { "asset": "BNB", "amount": "194765912" }  } ]}`, c)
+	pk, err := common.NewPubKeyFromCrypto(tmp)
+	c.Assert(err, IsNil)
+	txOut := getTxOutFromJsonInput(`{ "height": 1718, "hash": "", "tx_array": [ { "vault_pub_key":"tthorpub1addwnpepq2jgpsw2lalzuk7sgtmyakj7l6890f5cfpwjyfp8k4y4t7cw2vk8v2ch5uz","to_address": "tbnb1hzwfk6t3sqjfuzlr0ur9lj920gs37gg92gtay9", "coin":  { "asset": "BNB", "amount": "194765912" }  } ]}`, c)
 	txOut.TxArray[0].VaultPubKey = pk
 	out := txOut.TxArray[0].TxOutItem()
 	r, err := b2.SignTx(out, 1440)

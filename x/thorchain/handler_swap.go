@@ -25,15 +25,15 @@ func NewSwapHandler(keeper keeper.Keeper, mgr Manager) SwapHandler {
 
 // Run is the main entry point of swap message
 func (h SwapHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
-	msg, ok := m.(MsgSwap)
+	msg, ok := m.(*MsgSwap)
 	if !ok {
 		return nil, errInvalidMessage
 	}
-	if err := h.validate(ctx, msg, version); err != nil {
+	if err := h.validate(ctx, *msg, version); err != nil {
 		ctx.Logger().Error("MsgSwap failed validation", "error", err)
 		return nil, err
 	}
-	result, err := h.handle(ctx, msg, version, constAccessor)
+	result, err := h.handle(ctx, *msg, version, constAccessor)
 	if err != nil {
 		ctx.Logger().Error("fail to handle MsgSwap", "error", err)
 		return nil, err

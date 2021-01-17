@@ -2,16 +2,43 @@ package keeperv1
 
 import (
 	"errors"
-	"fmt"
-	"strings"
 
 	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
+func (k KVStore) setTxMarkers(ctx cosmos.Context, key string, record TxMarkers) {
+	return
+	/*
+		store := ctx.KVStore(k.storeKey)
+		buf := k.cdc.MustMarshalBinaryBare(&record)
+		if buf == nil {
+			store.Delete([]byte(key))
+		} else {
+			store.Set([]byte(key), buf)
+		}
+	*/
+}
+
+func (k KVStore) getTxMarkers(ctx cosmos.Context, key string, record *TxMarkers) (bool, error) {
+	return true, nil
+	/*
+		store := ctx.KVStore(k.storeKey)
+		if !store.Has([]byte(key)) {
+			return false, nil
+		}
+
+		bz := store.Get([]byte(key))
+		if err := k.cdc.UnmarshalBinaryBare(bz, record); err != nil {
+			return true, dbError(ctx, fmt.Sprintf("Unmarshal kvstore: (%T) %s", record, key), err)
+		}
+		return true, nil
+	*/
+}
+
 // ListTxMarker get all tx marker related to the given hash
 func (k KVStore) ListTxMarker(ctx cosmos.Context, hash string) (TxMarkers, error) {
 	record := make(TxMarkers, 0)
-	_, err := k.get(ctx, k.GetKey(ctx, prefixSupportedTxMarker, hash), &record)
+	_, err := k.getTxMarkers(ctx, k.GetKey(ctx, prefixSupportedTxMarker, hash), &record)
 	return record, err
 }
 
@@ -24,7 +51,7 @@ func (k KVStore) SetTxMarkers(ctx cosmos.Context, hash string, orig TxMarkers) e
 		}
 	}
 
-	k.set(ctx, k.GetKey(ctx, prefixSupportedTxMarker, hash), marks)
+	k.setTxMarkers(ctx, k.GetKey(ctx, prefixSupportedTxMarker, hash), marks)
 	return nil
 }
 
@@ -38,7 +65,7 @@ func (k KVStore) AppendTxMarker(ctx cosmos.Context, hash string, mark TxMarker) 
 		return err
 	}
 	marks = append(marks, mark)
-	k.set(ctx, k.GetKey(ctx, prefixSupportedTxMarker, hash), marks)
+	k.setTxMarkers(ctx, k.GetKey(ctx, prefixSupportedTxMarker, hash), marks)
 	return nil
 }
 
@@ -48,14 +75,16 @@ func (k KVStore) GetAllTxMarkers(ctx cosmos.Context) (map[string]TxMarkers, erro
 	iter := k.getIterator(ctx, prefixSupportedTxMarker)
 	defer iter.Close()
 	for ; iter.Valid(); iter.Next() {
-		var marker TxMarkers
-		if err := k.cdc.UnmarshalBinaryBare(iter.Value(), &marker); err != nil {
-			return nil, fmt.Errorf("fail to unmarshal tx marker: %w", err)
-		}
+		/*
+			var marker TxMarkers
+			if err := k.cdc.UnmarshalBinaryBare(iter.Value(), &marker); err != nil {
+				return nil, fmt.Errorf("fail to unmarshal tx marker: %w", err)
+			}
 
-		strKey := string(iter.Key())
-		k := strings.TrimPrefix(strKey, string(prefixSupportedTxMarker+"/"))
-		result[k] = marker
+			strKey := string(iter.Key())
+			k := strings.TrimPrefix(strKey, string(prefixSupportedTxMarker+"/"))
+			result[k] = marker
+		*/
 	}
 	return result, nil
 }

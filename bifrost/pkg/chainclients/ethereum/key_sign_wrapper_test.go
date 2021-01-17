@@ -3,8 +3,9 @@ package ethereum
 import (
 	"math/big"
 
-	"github.com/cosmos/cosmos-sdk/client/keys"
-	cKeys "github.com/cosmos/cosmos-sdk/crypto/keys"
+	"github.com/cosmos/cosmos-sdk/crypto/codec"
+	"github.com/cosmos/cosmos-sdk/crypto/hd"
+	cKeys "github.com/cosmos/cosmos-sdk/crypto/keyring"
 	ecommon "github.com/ethereum/go-ethereum/common"
 	etypes "github.com/ethereum/go-ethereum/core/types"
 	. "gopkg.in/check.v1"
@@ -12,6 +13,7 @@ import (
 	"gitlab.com/thorchain/thornode/bifrost/config"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient"
 	"gitlab.com/thorchain/thornode/bifrost/tss"
+	"gitlab.com/thorchain/thornode/cmd"
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
@@ -33,13 +35,15 @@ func (s *ETHKeysignWrapperTestSuite) SetUpSuite(c *C) {
 		SignerPasswd: "password",
 	}
 
-	kb := keys.NewInMemoryKeyBase()
-	info, _, err := kb.CreateMnemonic(cfg.SignerName, cKeys.English, cfg.SignerPasswd, cKeys.Secp256k1)
+	kb := cKeys.NewInMemory()
+	_, _, err := kb.NewMnemonic(cfg.SignerName, cKeys.English, cmd.THORChainHDPath, hd.Secp256k1)
 	c.Assert(err, IsNil)
-	s.thorKeys = thorclient.NewKeysWithKeybase(kb, info, cfg.SignerPasswd)
+	s.thorKeys = thorclient.NewKeysWithKeybase(kb, cfg.SignerName, cfg.SignerPasswd)
 
 	privateKey, err := s.thorKeys.GetPrivateKey()
-	pk, err := common.NewPubKeyFromCrypto(privateKey.PubKey())
+	temp, err := codec.ToTmPubKeyInterface(privateKey.PubKey())
+	c.Assert(err, IsNil)
+	pk, err := common.NewPubKeyFromCrypto(temp)
 	c.Assert(err, IsNil)
 	keyMgr := &tss.MockThorchainKeyManager{}
 	ethPrivateKey, err := getETHPrivateKey(privateKey)

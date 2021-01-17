@@ -27,17 +27,17 @@ func NewRefundHandler(keeper keeper.Keeper, mgr Manager) RefundHandler {
 
 // Run is the main entry point to process refund outbound message
 func (h RefundHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
-	msg, ok := m.(MsgRefundTx)
+	msg, ok := m.(*MsgRefundTx)
 	if !ok {
 		return nil, errInvalidMessage
 	}
 	ctx.Logger().Info("receive MsgRefund", "tx ID", msg.InTxID.String())
-	if err := h.validate(ctx, msg, version, constAccessor); err != nil {
+	if err := h.validate(ctx, *msg, version, constAccessor); err != nil {
 		ctx.Logger().Error("MsgRefund fail validation", "error", err)
 		return nil, err
 	}
 
-	result, err := h.handle(ctx, msg, version, constAccessor)
+	result, err := h.handle(ctx, *msg, version, constAccessor)
 	if err != nil {
 		ctx.Logger().Error("fail to process MsgRefund", "error", err)
 	}

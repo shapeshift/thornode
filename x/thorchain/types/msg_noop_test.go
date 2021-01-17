@@ -14,10 +14,10 @@ func (MsgNoopSuite) TestMsgNoop(c *C) {
 	c.Check(addr.Empty(), Equals, false)
 	tx := ObservedTx{
 		Tx:             GetRandomTx(),
-		Status:         Done,
+		Status:         Status_done,
 		OutHashes:      nil,
 		BlockHeight:    1,
-		Signers:        []cosmos.AccAddress{addr},
+		Signers:        []string{addr.String()},
 		ObservedPubKey: GetRandomPubKey(),
 		FinaliseHeight: 1,
 	}

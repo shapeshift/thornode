@@ -26,15 +26,15 @@ func NewReserveContributorHandler(keeper keeper.Keeper, mgr Manager) ReserveCont
 
 // Run is the main entry point for ReserveContributorHandler
 func (h ReserveContributorHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, _ constants.ConstantValues) (*cosmos.Result, error) {
-	msg, ok := m.(MsgReserveContributor)
+	msg, ok := m.(*MsgReserveContributor)
 	if !ok {
 		return nil, errInvalidMessage
 	}
-	if err := h.validate(ctx, msg, version); err != nil {
+	if err := h.validate(ctx, *msg, version); err != nil {
 		ctx.Logger().Error("MsgReserveContributor failed validation", "error", err)
 		return nil, err
 	}
-	result, err := h.handle(ctx, msg, version)
+	result, err := h.handle(ctx, *msg, version)
 	if err != nil {
 		ctx.Logger().Error("fail to process MsgReserveContributor", "error", err)
 	}

@@ -286,7 +286,7 @@ func (s *HandlerYggdrasilSuite) TestYggdrasilHandler(c *C) {
 				return NewMsgYggdrasil(tx, GetRandomPubKey(), 12, false, coins, helper.nodeAccount.NodeAddress)
 			},
 			runner: func(handler YggdrasilHandler, msg cosmos.Msg, helper yggdrasilHandlerTestHelper) (*cosmos.Result, error) {
-				ygg := msg.(MsgYggdrasil)
+				ygg := msg.(*MsgYggdrasil)
 				addr, _ := ygg.PubKey.GetThorAddress()
 				helper.keeper.errGetNodeAccount = addr
 				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)

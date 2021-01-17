@@ -195,7 +195,7 @@ func (gm *GasMgrV1) ProcessGas(ctx cosmos.Context, keeper keeper.Keeper) {
 		// If Rune owed now exceeds the Total Reserve, return it all
 		if runeGas.LT(keeper.GetRuneBalanceOfModule(ctx, ReserveName)) {
 			coin := common.NewCoin(common.RuneNative, runeGas)
-			if err := keeper.SendFromModuleToModule(ctx, ReserveName, AsgardName, coin); err != nil {
+			if err := keeper.SendFromModuleToModule(ctx, ReserveName, AsgardName, common.NewCoins(coin)); err != nil {
 				ctx.Logger().Error("fail to transfer funds from reserve to asgard", "pool", gas.Asset, "error", err)
 				continue
 			}

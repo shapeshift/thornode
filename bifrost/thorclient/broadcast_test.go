@@ -5,11 +5,11 @@ import (
 	"net/http/httptest"
 	"strings"
 
-	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/bifrost/config"
-	"gitlab.com/thorchain/thornode/bifrost/thorclient/types"
+	"gitlab.com/thorchain/thornode/common"
+	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
 type BroadcastSuite struct {
@@ -33,11 +33,12 @@ func (s *BroadcastSuite) SetUpSuite(c *C) {
 		}
 	}))
 
-	cfg, info, kb := SetupThorchainForTest(c)
+	cfg, _, kb := SetupThorchainForTest(c)
 	s.cfg = cfg
 	s.cfg.ChainHost = s.server.Listener.Addr().String()
+	s.cfg.ChainRPC = s.server.Listener.Addr().String()
 	var err error
-	s.bridge, err = NewThorchainBridge(s.cfg, GetMetricForTest(c), NewKeysWithKeybase(kb, info, cfg.SignerPasswd))
+	s.bridge, err = NewThorchainBridge(s.cfg, GetMetricForTest(c), NewKeysWithKeybase(kb, cfg.SignerName, cfg.SignerPasswd))
 	s.bridge.httpClient.RetryMax = 1
 	c.Assert(err, IsNil)
 	c.Assert(s.bridge, NotNil)
@@ -49,9 +50,9 @@ func (s *BroadcastSuite) TearDownSuite(c *C) {
 
 func (s *BroadcastSuite) TestBroadcast(c *C) {
 	s.fixture = "../../test/fixtures/endpoints/txs/success.json"
-	stdTx := authtypes.StdTx{}
-	mode := types.TxSync
-	txID, err := s.bridge.Broadcast(stdTx, mode)
+	msg := types.NewMsgNetworkFee(1, common.BNBChain, 1, 37500, types.GetRandomBech32Addr())
+	// the message get broadcast doesn't really matter
+	txID, err := s.bridge.Broadcast(msg)
 	c.Assert(err, IsNil)
 	c.Check(
 		txID.String(),
@@ -62,9 +63,7 @@ func (s *BroadcastSuite) TestBroadcast(c *C) {
 	c.Check(s.bridge.seqNumber, Equals, uint64(6))
 
 	s.fixture = "../../test/fixtures/endpoints/txs/bad_seq_num.json"
-	stdTx = authtypes.StdTx{}
-	mode = types.TxSync
-	txID, err = s.bridge.Broadcast(stdTx, mode)
+	txID, err = s.bridge.Broadcast(msg)
 	c.Assert(err, NotNil)
 	c.Check(
 		txID.String(),

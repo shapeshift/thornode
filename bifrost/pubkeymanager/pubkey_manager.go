@@ -45,7 +45,7 @@ type pubKeyInfo struct {
 
 // PubKeyManager manager an always up to date pubkeys , which implement PubKeyValidator interface
 type PubKeyManager struct {
-	cdc        *codec.Codec
+	cdc        *codec.LegacyAmino
 	bridge     *thorclient.ThorchainBridge
 	pubkeys    []pubKeyInfo
 	rwMutex    *sync.RWMutex
@@ -59,7 +59,7 @@ type PubKeyManager struct {
 // NewPubKeyManager create a new instance of PubKeyManager
 func NewPubKeyManager(bridge *thorclient.ThorchainBridge, m *metrics.Metrics) (*PubKeyManager, error) {
 	return &PubKeyManager{
-		cdc:        thorclient.MakeCodec(),
+		cdc:        thorclient.MakeLegacyCodec(),
 		logger:     log.With().Str("module", "public_key_mgr").Logger(),
 		bridge:     bridge,
 		errCounter: m.GetCounterVec(metrics.PubKeyManagerError),
@@ -228,7 +228,7 @@ func (pkm *PubKeyManager) fetchPubKeys() {
 	}
 
 	for _, vault := range vaults {
-		if vault.Membership.Contains(pkm.GetNodePubKey()) {
+		if vault.GetMembership().Contains(pkm.GetNodePubKey()) {
 			pkm.AddPubKey(vault.PubKey, true)
 			pubkeys = append(pubkeys, vault.PubKey)
 		}

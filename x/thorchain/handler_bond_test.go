@@ -12,7 +12,6 @@ import (
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
-	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
 type HandlerBondSuite struct{}
@@ -72,10 +71,10 @@ func (HandlerBondSuite) TestBondHandler_Run(c *C) {
 	coin := common.NewCoin(common.RuneNative, cosmos.NewUint(common.One))
 	nativeRuneCoin, err := coin.Native()
 	c.Assert(err, IsNil)
-	c.Assert(k1.CoinKeeper().HasCoins(ctx, msg.NodeAddress, cosmos.NewCoins(nativeRuneCoin)), Equals, true)
+	c.Assert(k1.HasCoins(ctx, msg.NodeAddress, cosmos.NewCoins(nativeRuneCoin)), Equals, true)
 	na, err := k1.GetNodeAccount(ctx, msg.NodeAddress)
 	c.Assert(err, IsNil)
-	c.Assert(na.Status.String(), Equals, types.WhiteListed.String())
+	c.Assert(na.Status.String(), Equals, NodeWhiteListed.String())
 	c.Assert(na.Bond.Equal(cosmos.NewUint(uint64(minimumBondInRune))), Equals, true)
 	// invalid version
 	handler = NewBondHandler(k, NewDummyMgr())
@@ -117,7 +116,7 @@ func (HandlerBondSuite) TestBondHandlerFailValidation(c *C) {
 	txInNoTxID.ID = ""
 	testCases := []struct {
 		name        string
-		msg         MsgBond
+		msg         *MsgBond
 		expectedErr error
 	}{
 		{

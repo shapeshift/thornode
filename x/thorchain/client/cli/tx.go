@@ -1,16 +1,12 @@
 package cli
 
 import (
-	"bufio"
 	"fmt"
 	"strconv"
 
 	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/client/flags"
-	"github.com/cosmos/cosmos-sdk/codec"
-	"github.com/cosmos/cosmos-sdk/x/auth"
-	"github.com/cosmos/cosmos-sdk/x/auth/client/utils"
+	"github.com/cosmos/cosmos-sdk/client/tx"
 	"github.com/spf13/cobra"
 
 	"gitlab.com/thorchain/thornode/common"
@@ -20,38 +16,38 @@ import (
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
-func GetTxCmd(storeKey string, cdc *codec.Codec) *cobra.Command {
-	thorchainTxCmd := &cobra.Command{
+func GetTxCmd() *cobra.Command {
+	cmd := &cobra.Command{
 		Use:                        types.ModuleName,
-		Short:                      "thorchain transaction subcommands",
+		Short:                      "THORChain transaction subcommands",
 		DisableFlagParsing:         true,
 		SuggestionsMinimumDistance: 2,
 		RunE:                       client.ValidateCmd,
 	}
 
-	thorchainTxCmd.AddCommand(flags.PostCommands(
-		GetCmdSetNodeKeys(cdc),
-		GetCmdSetVersion(cdc),
-		GetCmdSetIPAddress(cdc),
-		GetCmdBan(cdc),
-		GetCmdMimir(cdc),
-		GetCmdDeposit(cdc),
-		GetCmdSend(cdc),
-	)...)
+	cmd.AddCommand(GetCmdSetNodeKeys())
+	cmd.AddCommand(GetCmdSetNodeKeys())
+	cmd.AddCommand(GetCmdSetVersion())
+	cmd.AddCommand(GetCmdSetIPAddress())
+	cmd.AddCommand(GetCmdBan())
+	cmd.AddCommand(GetCmdMimir())
+	cmd.AddCommand(GetCmdDeposit())
+	cmd.AddCommand(GetCmdSend())
 
-	return thorchainTxCmd
+	return cmd
 }
 
 // GetCmdDeposit command to send a native transaction
-func GetCmdDeposit(cdc *codec.Codec) *cobra.Command {
-	return &cobra.Command{
+func GetCmdDeposit() *cobra.Command {
+	cmd := &cobra.Command{
 		Use:   "deposit [amount] [coin] [memo]",
 		Short: "sends a deposit transaction",
 		Args:  cobra.ExactArgs(3),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			inBuf := bufio.NewReader(cmd.InOrStdin())
-			cliCtx := context.NewCLIContextWithInput(inBuf).WithCodec(cdc)
-			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
+			clientCtx, err := client.GetClientTxContext(cmd)
+			if err != nil {
+				return err
+			}
 
 			amt, err := strconv.ParseInt(args[0], 10, 64)
 			if err != nil {
@@ -65,25 +61,30 @@ func GetCmdDeposit(cdc *codec.Codec) *cobra.Command {
 
 			coin := common.NewCoin(asset, cosmos.NewUint(uint64(amt)))
 
-			msg := types.NewMsgDeposit(common.Coins{coin}, args[2], cliCtx.GetFromAddress())
+			msg := types.NewMsgDeposit(common.Coins{coin}, args[2], clientCtx.GetFromAddress())
 			if err := msg.ValidateBasic(); err != nil {
 				return err
 			}
-			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []cosmos.Msg{msg})
+			return tx.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), msg)
 		},
 	}
+
+	flags.AddTxFlagsToCmd(cmd)
+
+	return cmd
 }
 
 // GetCmdSend command to send funds
-func GetCmdSend(cdc *codec.Codec) *cobra.Command {
+func GetCmdSend() *cobra.Command {
 	return &cobra.Command{
 		Use:   "send [to_address] [coins]",
 		Short: "sends funds",
 		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			inBuf := bufio.NewReader(cmd.InOrStdin())
-			cliCtx := context.NewCLIContextWithInput(inBuf).WithCodec(cdc)
-			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
+			clientCtx, err := client.GetClientTxContext(cmd)
+			if err != nil {
+				return err
+			}
 
 			toAddr, err := cosmos.AccAddressFromBech32(args[0])
 			if err != nil {
@@ -95,116 +96,120 @@ func GetCmdSend(cdc *codec.Codec) *cobra.Command {
 				return fmt.Errorf("invalid coins: %w", err)
 			}
 
-			msg := types.NewMsgSend(cliCtx.GetFromAddress(), toAddr, coins)
+			msg := types.NewMsgSend(clientCtx.GetFromAddress(), toAddr, coins)
 			if err := msg.ValidateBasic(); err != nil {
 				return err
 			}
-			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []cosmos.Msg{msg})
+			return tx.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), msg)
 		},
 	}
 }
 
 // GetCmdMimir command to change a mimir attribute
-func GetCmdMimir(cdc *codec.Codec) *cobra.Command {
+func GetCmdMimir() *cobra.Command {
 	return &cobra.Command{
 		Use:   "mimir [key] [value]",
 		Short: "updates a mimir attribute (admin only)",
 		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			inBuf := bufio.NewReader(cmd.InOrStdin())
-			cliCtx := context.NewCLIContextWithInput(inBuf).WithCodec(cdc)
-			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
+			clientCtx, err := client.GetClientTxContext(cmd)
+			if err != nil {
+				return err
+			}
 
 			val, err := strconv.ParseInt(args[1], 10, 64)
 			if err != nil {
 				return fmt.Errorf("invalid value (must be an integer): %w", err)
 			}
 
-			msg := types.NewMsgMimir(args[0], val, cliCtx.GetFromAddress())
+			msg := types.NewMsgMimir(args[0], val, clientCtx.GetFromAddress())
 			if err := msg.ValidateBasic(); err != nil {
 				return err
 			}
-			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []cosmos.Msg{msg})
+			return tx.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), msg)
 		},
 	}
 }
 
 // GetCmdBan command to ban a node accounts
-func GetCmdBan(cdc *codec.Codec) *cobra.Command {
+func GetCmdBan() *cobra.Command {
 	return &cobra.Command{
 		Use:   "ban [node address]",
 		Short: "votes to ban a node address (caution: costs 0.1% of minimum bond)",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			inBuf := bufio.NewReader(cmd.InOrStdin())
-			cliCtx := context.NewCLIContextWithInput(inBuf).WithCodec(cdc)
-			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
+			clientCtx, err := client.GetClientTxContext(cmd)
+			if err != nil {
+				return err
+			}
 
 			addr, err := cosmos.AccAddressFromBech32(args[0])
 			if err != nil {
 				return fmt.Errorf("invalid node address: %w", err)
 			}
 
-			msg := types.NewMsgBan(addr, cliCtx.GetFromAddress())
+			msg := types.NewMsgBan(addr, clientCtx.GetFromAddress())
 			if err := msg.ValidateBasic(); err != nil {
 				return err
 			}
-			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []cosmos.Msg{msg})
+			return tx.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), msg)
 		},
 	}
 }
 
 // GetCmdSetIPAddress command to set a node accounts IP Address
-func GetCmdSetIPAddress(cdc *codec.Codec) *cobra.Command {
+func GetCmdSetIPAddress() *cobra.Command {
 	return &cobra.Command{
 		Use:   "set-ip-address [ip address]",
 		Short: "update registered ip address",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			inBuf := bufio.NewReader(cmd.InOrStdin())
-			cliCtx := context.NewCLIContextWithInput(inBuf).WithCodec(cdc)
-			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
+			clientCtx, err := client.GetClientTxContext(cmd)
+			if err != nil {
+				return err
+			}
 
-			msg := types.NewMsgSetIPAddress(args[0], cliCtx.GetFromAddress())
+			msg := types.NewMsgSetIPAddress(args[0], clientCtx.GetFromAddress())
 			if err := msg.ValidateBasic(); err != nil {
 				return err
 			}
-			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []cosmos.Msg{msg})
+			return tx.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), msg)
 		},
 	}
 }
 
 // GetCmdSetVersion command to set an admin config
-func GetCmdSetVersion(cdc *codec.Codec) *cobra.Command {
+func GetCmdSetVersion() *cobra.Command {
 	return &cobra.Command{
 		Use:   "set-version",
 		Short: "update registered version",
 		Args:  cobra.ExactArgs(0),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			inBuf := bufio.NewReader(cmd.InOrStdin())
-			cliCtx := context.NewCLIContextWithInput(inBuf).WithCodec(cdc)
-			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
+			clientCtx, err := client.GetClientTxContext(cmd)
+			if err != nil {
+				return err
+			}
 
-			msg := types.NewMsgSetVersion(constants.SWVersion, cliCtx.GetFromAddress())
+			msg := types.NewMsgSetVersion(constants.SWVersion.String(), clientCtx.GetFromAddress())
 			if err := msg.ValidateBasic(); err != nil {
 				return err
 			}
-			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []cosmos.Msg{msg})
+			return tx.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), msg)
 		},
 	}
 }
 
 // GetCmdSetNodeKeys command to add a node keys
-func GetCmdSetNodeKeys(cdc *codec.Codec) *cobra.Command {
+func GetCmdSetNodeKeys() *cobra.Command {
 	return &cobra.Command{
 		Use:   "set-node-keys  [secp256k1] [ed25519] [validator_consensus_pub_key]",
 		Short: "set node keys, the account use to sign this tx has to be whitelist first",
 		Args:  cobra.ExactArgs(3),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			inBuf := bufio.NewReader(cmd.InOrStdin())
-			cliCtx := context.NewCLIContextWithInput(inBuf).WithCodec(cdc)
-			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
-			txBldr = txBldr.WithGas(600000) // set gas
+			clientCtx, err := client.GetClientTxContext(cmd)
+			if err != nil {
+				return err
+			}
 
 			secp256k1Key, err := common.NewPubKey(args[0])
 			if err != nil {
@@ -223,12 +228,12 @@ func GetCmdSetNodeKeys(cdc *codec.Codec) *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("fail to convert public key to string: %w", err)
 			}
-			msg := types.NewMsgSetNodeKeys(pk, validatorConsPubKeyStr, cliCtx.GetFromAddress())
+			msg := types.NewMsgSetNodeKeys(pk, validatorConsPubKeyStr, clientCtx.GetFromAddress())
 			err = msg.ValidateBasic()
 			if err != nil {
 				return err
 			}
-			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []cosmos.Msg{msg})
+			return tx.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), msg)
 		},
 	}
 }

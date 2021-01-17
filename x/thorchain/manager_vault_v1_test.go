@@ -179,7 +179,7 @@ func (s *VaultManagerV1TestSuite) TestRagnarokChain(c *C) {
 		common.NewCoin(common.BNBAsset, cosmos.NewUint(100*common.One)),
 	}
 	retireVault := GetRandomVault()
-	retireVault.Chains = common.Chains{common.BNBChain, common.BTCChain}
+	retireVault.Chains = common.Chains{common.BNBChain, common.BTCChain}.Strings()
 	yggVault := GetRandomVault()
 	yggVault.Type = YggdrasilVault
 	yggVault.Coins = common.Coins{

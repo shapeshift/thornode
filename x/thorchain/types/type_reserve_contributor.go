@@ -7,12 +7,6 @@ import (
 	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
-// ReserveContributor track contributor
-type ReserveContributor struct {
-	Address common.Address `json:"address"`
-	Amount  cosmos.Uint    `json:"amount"`
-}
-
 // ReserveContributors a list of reserve contributors
 type ReserveContributors []ReserveContributor
 
@@ -25,16 +19,16 @@ func NewReserveContributor(addr common.Address, amt cosmos.Uint) ReserveContribu
 }
 
 // IsEmpty return true when the reserve contributor's address is empty
-func (res ReserveContributor) IsEmpty() bool {
-	return res.Address.IsEmpty()
+func (m *ReserveContributor) IsEmpty() bool {
+	return m.Address.IsEmpty()
 }
 
 // Valid check whether reserve contributor has all necessary values
-func (res ReserveContributor) Valid() error {
-	if res.Amount.IsZero() {
+func (m *ReserveContributor) Valid() error {
+	if m.Amount.IsZero() {
 		return errors.New("amount cannot be zero")
 	}
-	if res.Address.IsEmpty() {
+	if m.Address.IsEmpty() {
 		return errors.New("address cannot be empty")
 	}
 	return nil

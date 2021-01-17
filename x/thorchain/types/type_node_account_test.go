@@ -3,64 +3,16 @@ package types
 import (
 	"encoding/json"
 	"sort"
-	"strings"
 
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 type NodeAccountSuite struct{}
 
 var _ = Suite(&NodeAccountSuite{})
-
-func (NodeAccountSuite) TestGetNodeStatus(c *C) {
-	input := map[string]NodeStatus{
-		"unknown":     Unknown,
-		"Unknown":     Unknown,
-		"uNknown":     Unknown,
-		"WhiteListed": WhiteListed,
-		"WHITELISTED": WhiteListed,
-		"whitelisted": WhiteListed,
-		"Standby":     Standby,
-		"standby":     Standby,
-		"StanDby":     Standby,
-		"active":      Active,
-		"Active":      Active,
-		"aCtive":      Active,
-		"ACTIVE":      Active,
-		"disabled":    Disabled,
-		"Disabled":    Disabled,
-		"disabLed":    Disabled,
-		"ready":       Ready,
-		"Ready":       Ready,
-		"rEady":       Ready,
-	}
-	for k, v := range input {
-		r := GetNodeStatus(k)
-		if r != v {
-			c.Errorf("expect %s,however THORNode got %s", v, r)
-		}
-		c.Check(r.String(), Equals, strings.ToLower(k))
-		c.Check(v.Valid(), IsNil)
-		buf, err := json.Marshal(v)
-		c.Assert(err, IsNil)
-		c.Assert(len(buf) > 0, Equals, true)
-	}
-	ns := NodeStatus(255)
-	c.Assert(ns.String(), Equals, "")
-	c.Check(ns.Valid(), NotNil)
-	ns = GetNodeStatus("Whatever")
-	c.Assert(ns, Equals, Unknown)
-	nodeStatus := Active
-	result, err := json.Marshal(nodeStatus)
-	c.Check(err, IsNil)
-	c.Check(result, NotNil)
-	var newNodeStatus NodeStatus
-	c.Check(json.Unmarshal(result, &newNodeStatus), IsNil)
-	c.Check(newNodeStatus, Equals, nodeStatus)
-}
 
 func (NodeAccountSuite) TestNodeAccount(c *C) {
 	addr := GetRandomBech32Addr()
@@ -73,7 +25,10 @@ func (NodeAccountSuite) TestNodeAccount(c *C) {
 		Ed25519:   GetRandomPubKey(),
 	}
 
-	na := NewNodeAccount(nodeAddress, Active, pubKeys, bepConsPubKey, cosmos.NewUint(common.One), bondAddr, 1)
+	na := NewNodeAccount(nodeAddress, NodeStatus_Active, pubKeys, bepConsPubKey, cosmos.NewUint(common.One), bondAddr, 1)
+	result, err := json.MarshalIndent(na, "", "	")
+	c.Assert(err, IsNil)
+	c.Log(string(result))
 	c.Assert(na.IsEmpty(), Equals, false)
 	c.Assert(na.Valid(), IsNil)
 	c.Assert(na.Bond.Uint64(), Equals, uint64(common.One))
@@ -83,19 +38,19 @@ func (NodeAccountSuite) TestNodeAccount(c *C) {
 	c.Assert(nas.IsNodeKeys(addr), Equals, false)
 	c.Assert(nas.IsNodeKeys(nodeAddress), Equals, true)
 	c.Logf("node account:%s", na)
-	naEmpty := NewNodeAccount(cosmos.AccAddress{}, Active, pubKeys, bepConsPubKey, cosmos.NewUint(common.One), bondAddr, 1)
+	naEmpty := NewNodeAccount(cosmos.AccAddress{}, NodeStatus_Active, pubKeys, bepConsPubKey, cosmos.NewUint(common.One), bondAddr, 1)
 	c.Assert(naEmpty.Valid(), NotNil)
 	c.Assert(naEmpty.IsEmpty(), Equals, true)
-	invalidBondAddr := NewNodeAccount(cosmos.AccAddress{}, Active, pubKeys, bepConsPubKey, cosmos.NewUint(common.One), "", 1)
+	invalidBondAddr := NewNodeAccount(cosmos.AccAddress{}, NodeStatus_Active, pubKeys, bepConsPubKey, cosmos.NewUint(common.One), "", 1)
 	c.Assert(invalidBondAddr.Valid(), NotNil)
 
-	na1 := NewNodeAccount(nodeAddress, Active, pubKeys, bepConsPubKey, cosmos.NewUint(common.One), common.NoAddress, 1)
+	na1 := NewNodeAccount(nodeAddress, NodeStatus_Active, pubKeys, bepConsPubKey, cosmos.NewUint(common.One), common.NoAddress, 1)
 	c.Check(na1.Valid(), NotNil)
 
-	na2 := NewNodeAccount(nodeAddress, Unknown, pubKeys, bepConsPubKey, cosmos.NewUint(common.One), bondAddr, 1)
+	na2 := NewNodeAccount(nodeAddress, NodeStatus_Unknown, pubKeys, bepConsPubKey, cosmos.NewUint(common.One), bondAddr, 1)
 	c.Check(na2.Valid(), NotNil)
 
-	na3 := NewNodeAccount(nodeAddress, Active, pubKeys, bepConsPubKey, cosmos.NewUint(common.One), bondAddr, 1)
+	na3 := NewNodeAccount(nodeAddress, NodeStatus_Active, pubKeys, bepConsPubKey, cosmos.NewUint(common.One), bondAddr, 1)
 	c.Check(na3.Equals(na), Equals, true)
 	c.Check(na3.Equals(na1), Equals, false)
 }
@@ -103,7 +58,7 @@ func (NodeAccountSuite) TestNodeAccount(c *C) {
 func (NodeAccountSuite) TestNodeAccountsSort(c *C) {
 	var accounts NodeAccounts
 	for {
-		na := GetRandomNodeAccount(Active)
+		na := GetRandomNodeAccount(NodeStatus_Active)
 		dup := false
 		for _, node := range accounts {
 			if na.NodeAddress.Equals(node.NodeAddress) {
@@ -139,7 +94,7 @@ func (NodeAccountSuite) TestNodeAccountsSort(c *C) {
 func (NodeAccountSuite) TestNodeAccountUpdateStatusAndSort(c *C) {
 	var accounts NodeAccounts
 	for i := 0; i < 10; i++ {
-		na := GetRandomNodeAccount(Active)
+		na := GetRandomNodeAccount(NodeStatus_Active)
 		accounts = append(accounts, na)
 	}
 	isSorted := sort.SliceIsSorted(accounts, func(i, j int) bool {
@@ -149,7 +104,7 @@ func (NodeAccountSuite) TestNodeAccountUpdateStatusAndSort(c *C) {
 }
 
 func (NodeAccountSuite) TestTryAddSignerPubKey(c *C) {
-	na := NewNodeAccount(GetRandomBech32Addr(), Active, GetRandomPubKeySet(), GetRandomBech32ConsensusPubKey(), cosmos.NewUint(100*common.One), GetRandomBNBAddress(), 1)
+	na := NewNodeAccount(GetRandomBech32Addr(), NodeStatus_Active, GetRandomPubKeySet(), GetRandomBech32ConsensusPubKey(), cosmos.NewUint(100*common.One), GetRandomBNBAddress(), 1)
 	pk := GetRandomPubKey()
 	emptyPK := common.EmptyPubKey
 	// make sure it get added

@@ -9,12 +9,8 @@ import (
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
-type Coin struct {
-	Asset  Asset       `json:"asset"`
-	Amount cosmos.Uint `json:"amount"`
-}
-
 var NoCoin = Coin{
+	Asset:  EmptyAsset,
 	Amount: cosmos.ZeroUint(),
 }
 
@@ -26,6 +22,14 @@ func NewCoin(asset Asset, amount cosmos.Uint) Coin {
 		Asset:  asset,
 		Amount: amount,
 	}
+}
+
+func NewCoins(coins ...Coin) Coins {
+	result := make(Coins, len(coins))
+	for i, c := range coins {
+		result[i] = c
+	}
+	return result
 }
 
 func (c Coin) Equals(cc Coin) bool {

@@ -96,6 +96,7 @@ func newReserveContributorHandlerHelper(c *C) reserveContributorHandlerHelper {
 }
 
 func (h HandlerReserveContributorSuite) TestReserveContributorHandler(c *C) {
+	c.Skip("TODO: disable reserve contributor handler")
 	testCases := []struct {
 		name           string
 		messageCreator func(helper reserveContributorHandlerHelper) cosmos.Msg

@@ -41,7 +41,6 @@ func (s *HandlerSendSuite) TestValidate(c *C) {
 
 func (s *HandlerSendSuite) TestHandle(c *C) {
 	ctx, k := setupKeeperForTest(c)
-	banker := k.CoinKeeper()
 	constAccessor := constants.GetConstantValues(constants.SWVersion)
 
 	addr1 := GetRandomBech32Addr()
@@ -49,7 +48,7 @@ func (s *HandlerSendSuite) TestHandle(c *C) {
 
 	funds, err := common.NewCoin(common.RuneNative, cosmos.NewUint(200*common.One)).Native()
 	c.Assert(err, IsNil)
-	_, err = banker.AddCoins(ctx, addr1, cosmos.NewCoins(funds))
+	err = k.AddCoins(ctx, addr1, cosmos.NewCoins(funds))
 	c.Assert(err, IsNil)
 
 	coin, err := common.NewCoin(common.RuneNative, cosmos.NewUint(12*common.One)).Native()
@@ -78,7 +77,4 @@ func (s *HandlerSendSuite) TestHandle(c *C) {
 	}
 	_, err = handler.handle(ctx, msg, constants.SWVersion, constAccessor)
 	c.Assert(err, NotNil)
-	result, err = handler.Run(ctx, msg, constants.SWVersion, constAccessor)
-	c.Assert(err, NotNil)
-	c.Assert(result, IsNil)
 }

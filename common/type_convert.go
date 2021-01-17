@@ -3,7 +3,12 @@ package common
 import (
 	"fmt"
 
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
+	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
+	"github.com/tendermint/tendermint/crypto"
+	tmsecp256k1 "github.com/tendermint/tendermint/crypto/secp256k1"
+
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 // One is useful type so THORNode doesn't need to manage 8 zeroes all the time
@@ -43,4 +48,14 @@ func SafeSub(input1, input2 cosmos.Uint) cosmos.Uint {
 		return cosmos.ZeroUint()
 	}
 	return input1.Sub(input2)
+}
+
+// CosmosPrivateKeyToTMPrivateKey convert cosmos implementation of private key to tendermint private key
+func CosmosPrivateKeyToTMPrivateKey(privateKey cryptotypes.PrivKey) crypto.PrivKey {
+	switch k := privateKey.(type) {
+	case *secp256k1.PrivKey:
+		return tmsecp256k1.PrivKey(k.Bytes())
+	default:
+		return nil
+	}
 }

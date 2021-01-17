@@ -5,12 +5,6 @@ import (
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
-// Network keep track of reserve , reward and bond
-type Network struct {
-	BondRewardRune cosmos.Uint `json:"bond_reward_rune"` // The total amount of awarded rune for bonders
-	TotalBondUnits cosmos.Uint `json:"total_bond_units"` // Total amount of bond units
-}
-
 // NewNetwork create a new instance Network it is empty though
 func NewNetwork() Network {
 	return Network{
@@ -20,6 +14,6 @@ func NewNetwork() Network {
 }
 
 // CalcNodeRewards calculate node rewards
-func (v Network) CalcNodeRewards(nodeUnits cosmos.Uint) cosmos.Uint {
-	return common.GetShare(nodeUnits, v.TotalBondUnits, v.BondRewardRune)
+func (m *Network) CalcNodeRewards(nodeUnits cosmos.Uint) cosmos.Uint {
+	return common.GetShare(nodeUnits, m.TotalBondUnits, m.BondRewardRune)
 }

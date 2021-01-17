@@ -28,16 +28,16 @@ func NewTssKeysignHandler(keeper keeper.Keeper, mgr Manager) TssKeysignHandler {
 
 // Run is the main entry to process MsgTssKeysignFail
 func (h TssKeysignHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
-	msg, ok := m.(MsgTssKeysignFail)
+	msg, ok := m.(*MsgTssKeysignFail)
 	if !ok {
 		return nil, errInvalidMessage
 	}
-	err := h.validate(ctx, msg, version)
+	err := h.validate(ctx, *msg, version)
 	if err != nil {
 		ctx.Logger().Error("MsgTssKeysignFail failed validation", "error", err)
 		return nil, err
 	}
-	result, err := h.handle(ctx, msg, version, constAccessor)
+	result, err := h.handle(ctx, *msg, version, constAccessor)
 	if err != nil {
 		ctx.Logger().Error("failed to process MsgTssKeysignFail", "error", err)
 	}
@@ -105,7 +105,7 @@ func (h TssKeysignHandler) handleV1(ctx cosmos.Context, msg MsgTssKeysignFail, v
 	}
 	ctx.Logger().Info("has tss keysign consensus!!")
 
-	h.mgr.Slasher().DecSlashPoints(ctx, observeSlashPoints, voter.Signers...)
+	h.mgr.Slasher().DecSlashPoints(ctx, observeSlashPoints, voter.GetSigners()...)
 	voter.Signers = nil
 	h.keeper.SetTssKeysignFailVoter(ctx, voter)
 

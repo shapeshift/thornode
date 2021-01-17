@@ -60,21 +60,21 @@ func (s *HandlerObservedTxInSuite) TestValidate(c *C) {
 	txs[0].Tx.ToAddress, err = pk.GetAddress(txs[0].Tx.Coins[0].Asset.Chain)
 	c.Assert(err, IsNil)
 	msg := NewMsgObservedTxIn(txs, activeNodeAccount.NodeAddress)
-	err = handler.validate(ctx, msg, ver)
+	err = handler.validate(ctx, *msg, ver)
 	c.Assert(err, IsNil)
 
 	// invalid version
-	err = handler.validate(ctx, msg, semver.Version{})
+	err = handler.validate(ctx, *msg, semver.Version{})
 	c.Assert(err, Equals, errInvalidVersion)
 
 	// inactive node account
 	msg = NewMsgObservedTxIn(txs, GetRandomBech32Addr())
-	err = handler.validate(ctx, msg, ver)
+	err = handler.validate(ctx, *msg, ver)
 	c.Assert(errors.Is(err, se.ErrUnauthorized), Equals, true)
 
 	// invalid msg
-	msg = MsgObservedTxIn{}
-	err = handler.validate(ctx, msg, ver)
+	msg = &MsgObservedTxIn{}
+	err = handler.validate(ctx, *msg, ver)
 	c.Assert(err, NotNil)
 }
 
@@ -244,7 +244,7 @@ func (s *HandlerObservedTxInSuite) testHandleWithConfirmation(c *C, ver semver.V
 
 	// first not confirmed message
 	msg := NewMsgObservedTxIn(txs, keeper.nas[0].NodeAddress)
-	_, err = handler.handle(ctx, msg, ver, constAccessor)
+	_, err = handler.handle(ctx, *msg, ver, constAccessor)
 	c.Assert(err, IsNil)
 	voter, err := keeper.GetObservedTxInVoter(ctx, tx.ID)
 	c.Assert(err, IsNil)
@@ -258,7 +258,7 @@ func (s *HandlerObservedTxInSuite) testHandleWithConfirmation(c *C, ver semver.V
 
 	// second not confirmed message
 	msg1 := NewMsgObservedTxIn(txs, keeper.nas[1].NodeAddress)
-	_, err = handler.handle(ctx, msg1, ver, constAccessor)
+	_, err = handler.handle(ctx, *msg1, ver, constAccessor)
 	c.Assert(err, IsNil)
 	voter, err = keeper.GetObservedTxInVoter(ctx, tx.ID)
 	c.Assert(err, IsNil)
@@ -270,7 +270,7 @@ func (s *HandlerObservedTxInSuite) testHandleWithConfirmation(c *C, ver semver.V
 
 	// third not confirmed message
 	msg2 := NewMsgObservedTxIn(txs, keeper.nas[2].NodeAddress)
-	_, err = handler.handle(ctx, msg2, ver, constAccessor)
+	_, err = handler.handle(ctx, *msg2, ver, constAccessor)
 	c.Assert(err, IsNil)
 	voter, err = keeper.GetObservedTxInVoter(ctx, tx.ID)
 	c.Assert(err, IsNil)
@@ -286,7 +286,7 @@ func (s *HandlerObservedTxInSuite) testHandleWithConfirmation(c *C, ver semver.V
 
 	// fourth not confirmed message
 	msg3 := NewMsgObservedTxIn(txs, keeper.nas[3].NodeAddress)
-	_, err = handler.handle(ctx, msg3, ver, constAccessor)
+	_, err = handler.handle(ctx, *msg3, ver, constAccessor)
 	c.Assert(err, IsNil)
 	voter, err = keeper.GetObservedTxInVoter(ctx, tx.ID)
 	c.Assert(err, IsNil)
@@ -302,7 +302,7 @@ func (s *HandlerObservedTxInSuite) testHandleWithConfirmation(c *C, ver semver.V
 	//  first finalised message
 	txs[0].BlockHeight = 15
 	fMsg := NewMsgObservedTxIn(txs, keeper.nas[0].NodeAddress)
-	_, err = handler.handle(ctx, fMsg, ver, constAccessor)
+	_, err = handler.handle(ctx, *fMsg, ver, constAccessor)
 	c.Assert(err, IsNil)
 	voter, err = keeper.GetObservedTxInVoter(ctx, tx.ID)
 	c.Assert(err, IsNil)
@@ -316,7 +316,7 @@ func (s *HandlerObservedTxInSuite) testHandleWithConfirmation(c *C, ver semver.V
 
 	// second finalised message
 	fMsg1 := NewMsgObservedTxIn(txs, keeper.nas[1].NodeAddress)
-	_, err = handler.handle(ctx, fMsg1, ver, constAccessor)
+	_, err = handler.handle(ctx, *fMsg1, ver, constAccessor)
 	c.Assert(err, IsNil)
 	voter, err = keeper.GetObservedTxInVoter(ctx, tx.ID)
 	c.Assert(err, IsNil)
@@ -330,7 +330,7 @@ func (s *HandlerObservedTxInSuite) testHandleWithConfirmation(c *C, ver semver.V
 
 	// third finalised message
 	fMsg2 := NewMsgObservedTxIn(txs, keeper.nas[2].NodeAddress)
-	_, err = handler.handle(ctx, fMsg2, ver, constAccessor)
+	_, err = handler.handle(ctx, *fMsg2, ver, constAccessor)
 	c.Assert(err, IsNil)
 	voter, err = keeper.GetObservedTxInVoter(ctx, tx.ID)
 	c.Assert(err, IsNil)
@@ -375,7 +375,7 @@ func (s *HandlerObservedTxInSuite) testHandleWithVersion(c *C, ver semver.Versio
 
 	c.Assert(err, IsNil)
 	msg := NewMsgObservedTxIn(txs, keeper.nas[0].NodeAddress)
-	_, err = handler.handle(ctx, msg, ver, constAccessor)
+	_, err = handler.handle(ctx, *msg, ver, constAccessor)
 	c.Assert(err, IsNil)
 	mgr.ObMgr().EndBlock(ctx, keeper)
 	c.Check(keeper.msg.Tx.ID.Equals(tx.ID), Equals, true)
@@ -443,7 +443,7 @@ func (s *HandlerObservedTxInSuite) testMigrateMemoWithVersion(c *C, ver semver.V
 
 	c.Assert(err, IsNil)
 	msg := NewMsgObservedTxIn(txs, keeper.nas[0].NodeAddress)
-	_, err = handler.handle(ctx, msg, ver, constAccessor)
+	_, err = handler.handle(ctx, *msg, ver, constAccessor)
 	c.Assert(err, IsNil)
 }
 
@@ -497,7 +497,7 @@ func (h *ObservedTxInHandlerTestHelper) SetVault(ctx cosmos.Context, vault Vault
 	return h.Keeper.SetVault(ctx, vault)
 }
 
-func setupAnLegitObservedTx(ctx cosmos.Context, helper *ObservedTxInHandlerTestHelper, c *C) MsgObservedTxIn {
+func setupAnLegitObservedTx(ctx cosmos.Context, helper *ObservedTxInHandlerTestHelper, c *C) *MsgObservedTxIn {
 	activeNodeAccount := GetRandomNodeAccount(NodeActive)
 	pk := GetRandomPubKey()
 	tx := GetRandomTx()
@@ -743,7 +743,7 @@ func (s HandlerObservedTxInSuite) TestSwapWithAffiliate(c *C) {
 	}, common.BNBAsset, GetRandomBNBAddress(), cosmos.ZeroUint(), GetRandomTHORAddress(), cosmos.NewUint(1000),
 		GetRandomBech32Addr(),
 	)
-	handler.addSwap(ctx, msg, constAccessor)
+	handler.addSwap(ctx, *msg, constAccessor)
 	swaps, err := queue.FetchQueue(ctx)
 	c.Assert(err, IsNil)
 	c.Assert(swaps, HasLen, 2, Commentf("%d", len(swaps)))

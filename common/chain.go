@@ -4,10 +4,9 @@ import (
 	"errors"
 	"strings"
 
-	btypes "github.com/binance-chain/go-sdk/common/types"
 	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/cosmos/cosmos-sdk/crypto/keys"
 	"github.com/cosmos/cosmos-sdk/types"
+	btypes "gitlab.com/thorchain/binance-sdk/common/types"
 )
 
 var (
@@ -17,10 +16,12 @@ var (
 	BTCChain   = Chain("BTC")
 	BCHChain   = Chain("BCH")
 	THORChain  = Chain("THOR")
+
+	SigningAlgoSecp256k1 = SigninAlgo("secp256k1")
+	SigningAlgoEd25519   = SigninAlgo("ed25519")
 )
 
-// NoSigningAlgo empty signing algorithm
-const NoSigningAlgo = keys.SigningAlgo("")
+type SigninAlgo string
 
 // Chain is an alias of string , represent a block chain
 type Chain string
@@ -75,12 +76,13 @@ func (c Chain) IsBNB() bool {
 }
 
 // GetSigningAlgo get the signing algorithm for the given chain
-func (c Chain) GetSigningAlgo() keys.SigningAlgo {
+func (c Chain) GetSigningAlgo() SigninAlgo {
 	switch c {
 	case BNBChain, ETHChain, BTCChain, THORChain:
-		return keys.Secp256k1
+		return SigningAlgoSecp256k1
+	default:
+		return SigningAlgoSecp256k1
 	}
-	return keys.Secp256k1
 }
 
 // GetGasAsset chain's base asset
@@ -162,4 +164,12 @@ func (chains Chains) Distinct() Chains {
 		}
 	}
 	return newChains
+}
+
+func (chains Chains) Strings() []string {
+	strings := make([]string, len(chains))
+	for i, c := range chains {
+		strings[i] = c.String()
+	}
+	return strings
 }

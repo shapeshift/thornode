@@ -12,10 +12,10 @@ const (
 	RouterKey   = types.RouterKey
 	StoreKey    = types.StoreKey
 
-	ActiveVault = types.ActiveVault
+	ActiveVault = types.VaultStatus_ActiveVault
 
 	// Node status
-	NodeActive = types.Active
+	NodeActive = types.NodeStatus_Active
 )
 
 var (

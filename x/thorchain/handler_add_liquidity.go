@@ -75,19 +75,19 @@ func (h AddLiquidityHandler) validateV1(ctx cosmos.Context, msg MsgAddLiquidity,
 
 // Run execute the handler
 func (h AddLiquidityHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
-	msg, ok := m.(MsgAddLiquidity)
+	msg, ok := m.(*MsgAddLiquidity)
 	if !ok {
 		return nil, errInvalidMessage
 	}
 	ctx.Logger().Info("received add liquidity request",
 		"asset", msg.Asset.String(),
 		"tx", msg.Tx)
-	if err := h.validate(ctx, msg, version, constAccessor); err != nil {
+	if err := h.validate(ctx, *msg, version, constAccessor); err != nil {
 		ctx.Logger().Error("msg add liquidity fail validation", "error", err)
 		return nil, err
 	}
 
-	if err := h.handle(ctx, msg, version, constAccessor); err != nil {
+	if err := h.handle(ctx, *msg, version, constAccessor); err != nil {
 		ctx.Logger().Error("fail to process msg add liquidity", "error", err)
 		return nil, err
 	}
@@ -115,7 +115,7 @@ func (h AddLiquidityHandler) handleV1(ctx cosmos.Context, msg MsgAddLiquidity, v
 			return ErrInternal(err, "fail to save pool to key value store")
 		}
 	}
-	if err := pool.EnsureValidPoolStatus(msg); err != nil {
+	if err := pool.EnsureValidPoolStatus(&msg); err != nil {
 		ctx.Logger().Error("fail to check pool status", "error", err)
 		return errInvalidPoolStatus
 	}

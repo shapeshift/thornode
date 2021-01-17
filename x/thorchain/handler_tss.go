@@ -27,16 +27,16 @@ func NewTssHandler(keeper keeper.Keeper, mgr Manager) TssHandler {
 
 // Run is the main entry for TssHandler
 func (h TssHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
-	msg, ok := m.(MsgTssPool)
+	msg, ok := m.(*MsgTssPool)
 	if !ok {
 		return nil, errInvalidMessage
 	}
-	err := h.validate(ctx, msg, version)
+	err := h.validate(ctx, *msg, version)
 	if err != nil {
 		ctx.Logger().Error("msg_tss_pool failed validation", "error", err)
 		return nil, err
 	}
-	result, err := h.handle(ctx, msg, version, constAccessor)
+	result, err := h.handle(ctx, *msg, version, constAccessor)
 	if err != nil {
 		ctx.Logger().Error("failed to process MsgTssPool", "error", err)
 		return nil, err
@@ -62,7 +62,7 @@ func (h TssHandler) validateV1(ctx cosmos.Context, msg MsgTssPool) error {
 	}
 
 	for _, keygen := range keygenBlock.Keygens {
-		for _, member := range keygen.Members {
+		for _, member := range keygen.GetMembers() {
 			addr, err := member.GetThorAddress()
 			if err == nil && addr.Equals(msg.Signer) {
 				return nil
@@ -128,14 +128,14 @@ func (h TssHandler) handleV1(ctx cosmos.Context, msg MsgTssPool, version semver.
 	if voter.BlockHeight == 0 {
 		voter.BlockHeight = common.BlockHeight(ctx)
 		h.keeper.SetTssVoter(ctx, voter)
-		h.mgr.Slasher().DecSlashPoints(ctx, observeSlashPoints, voter.Signers...)
+		h.mgr.Slasher().DecSlashPoints(ctx, observeSlashPoints, voter.GetSigners()...)
 		if msg.IsSuccess() {
 			vaultType := YggdrasilVault
 			if msg.KeygenType == AsgardKeygen {
 				vaultType = AsgardVault
 			}
 			chains := voter.ConsensusChains()
-			vault := NewVault(common.BlockHeight(ctx), ActiveVault, vaultType, voter.PoolPubKey, chains, h.keeper.GetChainContracts(ctx, chains))
+			vault := NewVault(common.BlockHeight(ctx), ActiveVault, vaultType, voter.PoolPubKey, chains.Strings(), h.keeper.GetChainContracts(ctx, chains))
 			vault.Membership = voter.PubKeys
 
 			if err := h.keeper.SetVault(ctx, vault); err != nil {
@@ -202,8 +202,10 @@ func (h TssHandler) handleV1(ctx cosmos.Context, msg MsgTssPool, version semver.
 					ctx.Logger().Info("fail keygen , slash bond", "address", na.NodeAddress, "amount", slashBond.String())
 					na.Bond = common.SafeSub(na.Bond, slashBond)
 					coin := common.NewCoin(common.RuneNative, slashBond)
-					if err := h.keeper.SendFromModuleToModule(ctx, BondName, ReserveName, coin); err != nil {
-						return nil, fmt.Errorf("fail to transfer funds from bond to reserve: %w", err)
+					if !coin.Amount.IsZero() {
+						if err := h.keeper.SendFromModuleToModule(ctx, BondName, ReserveName, common.NewCoins(coin)); err != nil {
+							return nil, fmt.Errorf("fail to transfer funds from bond to reserve: %w", err)
+						}
 					}
 				}
 				if err := h.keeper.SetNodeAccount(ctx, na); err != nil {

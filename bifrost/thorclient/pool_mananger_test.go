@@ -20,7 +20,7 @@ var _ = Suite(&PoolManagerTestSuite{})
 
 func (s *PoolManagerTestSuite) SetUpSuite(c *C) {
 	thorchain.SetupConfigForTest()
-	cfg, info, kb := SetupThorchainForTest(c)
+	cfg, _, kb := SetupThorchainForTest(c)
 	s.server = httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		switch req.RequestURI {
 		case PoolsEndpoint:
@@ -29,7 +29,7 @@ func (s *PoolManagerTestSuite) SetUpSuite(c *C) {
 	}))
 	cfg.ChainHost = s.server.Listener.Addr().String()
 	cfg.ChainRPC = s.server.Listener.Addr().String()
-	bridge, err := NewThorchainBridge(cfg, GetMetricForTest(c), NewKeysWithKeybase(kb, info, cfg.SignerPasswd))
+	bridge, err := NewThorchainBridge(cfg, GetMetricForTest(c), NewKeysWithKeybase(kb, cfg.SignerName, cfg.SignerPasswd))
 	c.Assert(err, IsNil)
 	s.bridge = bridge
 	s.bridge.httpClient.RetryMax = 1 // fail fast

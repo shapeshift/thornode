@@ -27,14 +27,6 @@ var (
 	SyntheticPrefix = "s"
 )
 
-// Asset represent an asset in THORChain it is in BNB.BNB format
-// for example BNB.RUNE-67C , BNB.RUNE-B1A
-type Asset struct {
-	Chain  Chain  `json:"chain"`
-	Symbol Symbol `json:"symbol"`
-	Ticker Ticker `json:"ticker"`
-}
-
 // NewAsset parse the given input into Asset object
 func NewAsset(input string) (Asset, error) {
 	var err error

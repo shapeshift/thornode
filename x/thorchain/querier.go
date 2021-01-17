@@ -2,11 +2,11 @@ package thorchain
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strconv"
 
-	"github.com/cosmos/cosmos-sdk/codec"
 	types2 "github.com/cosmos/cosmos-sdk/types"
 	abci "github.com/tendermint/tendermint/abci/types"
 
@@ -19,7 +19,7 @@ import (
 )
 
 // NewQuerier is the module level router for state queries
-func NewQuerier(keeper keeper.Keeper, kbs KeybaseStore) cosmos.Querier {
+func NewQuerier(keeper keeper.Keeper, kbs cosmos.KeybaseStore) cosmos.Querier {
 	return func(ctx cosmos.Context, path []string, req abci.RequestQuery) (res []byte, err error) {
 		switch path[0] {
 		case q.QueryPool.Key:
@@ -88,7 +88,7 @@ func NewQuerier(keeper keeper.Keeper, kbs KeybaseStore) cosmos.Querier {
 
 func queryRagnarok(ctx cosmos.Context, keeper keeper.Keeper) ([]byte, error) {
 	ragnarokInProgress := keeper.RagnarokInProgress(ctx)
-	res, err := codec.MarshalJSONIndent(keeper.Cdc(), ragnarokInProgress)
+	res, err := json.MarshalIndent(ragnarokInProgress, "", "	")
 	if err != nil {
 		return nil, ErrInternal(err, "fail to marshal response to json")
 	}
@@ -96,26 +96,23 @@ func queryRagnarok(ctx cosmos.Context, keeper keeper.Keeper) ([]byte, error) {
 }
 
 func queryBalanceModule(ctx cosmos.Context, path []string, keeper keeper.Keeper) ([]byte, error) {
-	supplier := keeper.Supply()
 	moduleName := path[0]
 	if len(moduleName) == 0 {
 		moduleName = AsgardName
 	}
 
-	mod := supplier.GetModuleAccount(ctx, moduleName)
-	if mod == nil {
-		return nil, fmt.Errorf("fail to get module account:%s", moduleName)
-	}
+	modAddr := keeper.GetModuleAccAddress(moduleName)
+	bal := keeper.GetBalance(ctx, modAddr)
 	balance := struct {
 		Name    string            `json:"name"`
 		Address cosmos.AccAddress `json:"address"`
 		Coins   types2.Coins      `json:"coins"`
 	}{
 		Name:    moduleName,
-		Address: mod.GetAddress(),
-		Coins:   mod.GetCoins(),
+		Address: modAddr,
+		Coins:   bal,
 	}
-	res, err := codec.MarshalJSONIndent(keeper.Cdc(), balance)
+	res, err := json.MarshalIndent(balance, "", "	")
 	if err != nil {
 		return nil, ErrInternal(err, "fail to marshal response to json")
 	}
@@ -148,8 +145,7 @@ func queryVault(ctx cosmos.Context, path []string, keeper keeper.Keeper) ([]byte
 			continue
 		}
 		if vaultAddr.Equals(addr) {
-
-			res, err := codec.MarshalJSONIndent(keeper.Cdc(), v)
+			res, err := json.MarshalIndent(v, "", "	")
 			if err != nil {
 				ctx.Logger().Error("fail to marshal vaults response to json", "error", err)
 				return nil, fmt.Errorf("fail to marshal response to json: %w", err)
@@ -179,7 +175,7 @@ func queryAsgardVaults(ctx cosmos.Context, keeper keeper.Keeper) ([]byte, error)
 		}
 	}
 
-	res, err := codec.MarshalJSONIndent(keeper.Cdc(), vaultsWithFunds)
+	res, err := json.MarshalIndent(vaultsWithFunds, "", "	")
 	if err != nil {
 		ctx.Logger().Error("fail to marshal vaults response to json", "error", err)
 		return nil, fmt.Errorf("fail to marshal response to json: %w", err)
@@ -190,7 +186,7 @@ func queryAsgardVaults(ctx cosmos.Context, keeper keeper.Keeper) ([]byte, error)
 
 func getVaultChainAddress(ctx cosmos.Context, vault Vault) []QueryChainAddress {
 	var result []QueryChainAddress
-	allChains := append(vault.Chains, common.THORChain)
+	allChains := append(vault.GetChains(), common.THORChain)
 	for _, c := range allChains.Distinct() {
 		addr, err := vault.PubKey.GetAddress(c)
 		if err != nil {
@@ -255,7 +251,7 @@ func queryYggdrasilVaults(ctx cosmos.Context, keeper keeper.Keeper) ([]byte, err
 		}
 	}
 
-	res, err := codec.MarshalJSONIndent(keeper.Cdc(), respVaults)
+	res, err := json.MarshalIndent(respVaults, "", "	")
 	if err != nil {
 		ctx.Logger().Error("fail to marshal vaults response to json", "error", err)
 		return nil, fmt.Errorf("fail to marshal response to json: %w", err)
@@ -297,7 +293,7 @@ func queryVaultsPubkeys(ctx cosmos.Context, keeper keeper.Keeper) ([]byte, error
 			}
 		}
 	}
-	res, err := codec.MarshalJSONIndent(keeper.Cdc(), resp)
+	res, err := json.MarshalIndent(resp, "", "	")
 	if err != nil {
 		ctx.Logger().Error("fail to marshal pubkeys response to json", "error", err)
 		return nil, fmt.Errorf("fail to marshal response to json: %w", err)
@@ -322,7 +318,7 @@ func queryNetwork(ctx cosmos.Context, keeper keeper.Keeper) ([]byte, error) {
 		TotalReserve:   keeper.GetRuneBalanceOfModule(ctx, ReserveName),
 	}
 
-	res, err := codec.MarshalJSONIndent(keeper.Cdc(), result)
+	res, err := json.MarshalIndent(result, "", "	")
 	if err != nil {
 		ctx.Logger().Error("fail to marshal network data to json", "error", err)
 		return nil, fmt.Errorf("fail to marshal response to json: %w", err)
@@ -365,7 +361,7 @@ func queryInboundAddresses(ctx cosmos.Context, path []string, req abci.RequestQu
 	// select vault that is most secure
 	vault := keeper.GetMostSecure(ctx, active, signingTransactionPeriod)
 
-	chains := vault.Chains
+	chains := vault.GetChains()
 
 	if len(chains) == 0 {
 		chains = common.Chains{common.RuneAsset().Chain}
@@ -394,7 +390,7 @@ func queryInboundAddresses(ctx cosmos.Context, path []string, req abci.RequestQu
 		resp.Current = append(resp.Current, addr)
 	}
 
-	res, err := codec.MarshalJSONIndent(keeper.Cdc(), resp)
+	res, err := json.MarshalIndent(resp, "", "	")
 	if err != nil {
 		ctx.Logger().Error("fail to marshal current pool address to json", "error", err)
 		return nil, fmt.Errorf("fail to marshal current pool address to json: %w", err)
@@ -461,7 +457,7 @@ func queryNode(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper 
 	} else {
 		result.PreflightStatus = preflightCheckResult
 	}
-	res, err := codec.MarshalJSONIndent(keeper.Cdc(), result)
+	res, err := json.MarshalIndent(result, "", "	")
 	if err != nil {
 		return nil, fmt.Errorf("fail to marshal node account to json: %w", err)
 	}
@@ -543,7 +539,7 @@ func queryNodes(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper
 		}
 	}
 
-	res, err := codec.MarshalJSONIndent(keeper.Cdc(), result)
+	res, err := json.MarshalIndent(result, "", "	")
 	if err != nil {
 		ctx.Logger().Error("fail to marshal observers to json", "error", err)
 		return nil, fmt.Errorf("fail to marshal observers to json: %w", err)
@@ -570,7 +566,7 @@ func queryLiquidityProviders(ctx cosmos.Context, path []string, req abci.Request
 		keeper.Cdc().MustUnmarshalBinaryBare(iterator.Value(), &lp)
 		lps = append(lps, lp)
 	}
-	res, err := codec.MarshalJSONIndent(keeper.Cdc(), lps)
+	res, err := json.MarshalIndent(lps, "", "	")
 	if err != nil {
 		ctx.Logger().Error("fail to marshal liquidity providers to json", "error", err)
 		return nil, fmt.Errorf("fail to marshal liquidity providers to json: %w", err)
@@ -598,7 +594,7 @@ func queryPool(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper 
 		return nil, fmt.Errorf("pool: %s doesn't exist", path[0])
 	}
 
-	res, err := codec.MarshalJSONIndent(keeper.Cdc(), pool)
+	res, err := json.MarshalIndent(pool, "", "	")
 	if err != nil {
 		return nil, fmt.Errorf("could not marshal result to JSON: %w", err)
 	}
@@ -619,7 +615,7 @@ func queryPools(ctx cosmos.Context, req abci.RequestQuery, keeper keeper.Keeper)
 		}
 		pools = append(pools, pool)
 	}
-	res, err := codec.MarshalJSONIndent(keeper.Cdc(), pools)
+	res, err := json.MarshalIndent(pools, "", "	")
 	if err != nil {
 		return nil, fmt.Errorf("could not marshal pools result to json: %w", err)
 	}
@@ -651,7 +647,7 @@ func queryTxVoters(ctx cosmos.Context, path []string, req abci.RequestQuery, kee
 		}
 	}
 
-	res, err := codec.MarshalJSONIndent(keeper.Cdc(), voter)
+	res, err := json.MarshalIndent(voter, "", "	")
 	if err != nil {
 		ctx.Logger().Error("fail to marshal tx hash to json", "error", err)
 		return nil, fmt.Errorf("fail to marshal tx hash to json: %w", err)
@@ -698,7 +694,7 @@ func queryTx(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper ke
 		KeysignMetrics: *keysignMetric,
 	}
 	result.ObservedTx = voter.GetTx(nodeAccounts)
-	res, err := codec.MarshalJSONIndent(keeper.Cdc(), result)
+	res, err := json.MarshalIndent(result, "", "	")
 	if err != nil {
 		ctx.Logger().Error("fail to marshal tx hash to json", "error", err)
 		return nil, fmt.Errorf("fail to marshal tx hash to json: %w", err)
@@ -706,7 +702,7 @@ func queryTx(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper ke
 	return res, nil
 }
 
-func queryKeygen(ctx cosmos.Context, kbs KeybaseStore, path []string, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
+func queryKeygen(ctx cosmos.Context, kbs cosmos.KeybaseStore, path []string, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
 	if len(path) == 0 {
 		return nil, errors.New("block height not provided")
 	}
@@ -736,19 +732,19 @@ func queryKeygen(ctx cosmos.Context, kbs KeybaseStore, path []string, req abci.R
 		// only return those keygen contains the request pub key
 		newKeygenBlock := NewKeygenBlock(keygenBlock.Height)
 		for _, keygen := range keygenBlock.Keygens {
-			if keygen.Members.Contains(pk) {
+			if keygen.GetMembers().Contains(pk) {
 				newKeygenBlock.Keygens = append(newKeygenBlock.Keygens, keygen)
 			}
 		}
 		keygenBlock = newKeygenBlock
 	}
 
-	buf, err := keeper.Cdc().MarshalBinaryBare(keygenBlock)
+	buf, err := json.Marshal(keygenBlock)
 	if err != nil {
 		ctx.Logger().Error("fail to marshal keygen block to json", "error", err)
 		return nil, fmt.Errorf("fail to marshal keygen block to json: %w", err)
 	}
-	sig, _, err := kbs.Keybase.Sign(kbs.SignerName, kbs.SignerPasswd, buf)
+	sig, _, err := kbs.Keybase.Sign("thorchain", buf)
 	if err != nil {
 		ctx.Logger().Error("fail to sign keygen", "error", err)
 		return nil, fmt.Errorf("fail to sign keygen: %w", err)
@@ -759,7 +755,7 @@ func queryKeygen(ctx cosmos.Context, kbs KeybaseStore, path []string, req abci.R
 		Signature:   base64.StdEncoding.EncodeToString(sig),
 	}
 
-	res, err := codec.MarshalJSONIndent(keeper.Cdc(), query)
+	res, err := json.MarshalIndent(query, "", "	")
 	if err != nil {
 		ctx.Logger().Error("fail to marshal keygen block to json", "error", err)
 		return nil, fmt.Errorf("fail to marshal keygen block to json: %w", err)
@@ -767,7 +763,7 @@ func queryKeygen(ctx cosmos.Context, kbs KeybaseStore, path []string, req abci.R
 	return res, nil
 }
 
-func queryKeysign(ctx cosmos.Context, kbs KeybaseStore, path []string, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
+func queryKeysign(ctx cosmos.Context, kbs cosmos.KeybaseStore, path []string, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
 	if len(path) == 0 {
 		return nil, errors.New("block height not provided")
 	}
@@ -809,12 +805,12 @@ func queryKeysign(ctx cosmos.Context, kbs KeybaseStore, path []string, req abci.
 		txs = newTxs
 	}
 
-	buf, err := keeper.Cdc().MarshalBinaryBare(txs)
+	buf, err := json.Marshal(txs)
 	if err != nil {
 		ctx.Logger().Error("fail to marshal keysign block to json", "error", err)
 		return nil, fmt.Errorf("fail to marshal keysign block to json: %w", err)
 	}
-	sig, _, err := kbs.Keybase.Sign(kbs.SignerName, kbs.SignerPasswd, buf)
+	sig, _, err := kbs.Keybase.Sign("thorchain", buf)
 	if err != nil {
 		ctx.Logger().Error("fail to sign keysign", "error", err)
 		return nil, fmt.Errorf("fail to sign keysign: %w", err)
@@ -823,7 +819,8 @@ func queryKeysign(ctx cosmos.Context, kbs KeybaseStore, path []string, req abci.
 		Keysign:   *txs,
 		Signature: base64.StdEncoding.EncodeToString(sig),
 	}
-	res, err := codec.MarshalJSONIndent(keeper.Cdc(), query)
+
+	res, err := json.MarshalIndent(query, "", "	")
 	if err != nil {
 		ctx.Logger().Error("fail to marshal tx hash to json", "error", err)
 		return nil, fmt.Errorf("fail to marshal tx hash to json: %w", err)
@@ -862,7 +859,7 @@ func queryQueue(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper
 		}
 	}
 
-	res, err := codec.MarshalJSONIndent(keeper.Cdc(), query)
+	res, err := json.MarshalIndent(query, "", "	")
 	if err != nil {
 		ctx.Logger().Error("fail to marshal out queue to json", "error", err)
 		return nil, fmt.Errorf("fail to marshal out queue to json: %w", err)
@@ -886,7 +883,7 @@ func queryLastBlockHeights(ctx cosmos.Context, path []string, req abci.RequestQu
 			return nil, fmt.Errorf("fail to get active asgard: %w", err)
 		}
 		for _, vault := range asgards {
-			chains = vault.Chains.Distinct()
+			chains = vault.GetChains().Distinct()
 			break
 		}
 	}
@@ -912,7 +909,7 @@ func queryLastBlockHeights(ctx cosmos.Context, path []string, req abci.RequestQu
 		})
 	}
 
-	res, err := codec.MarshalJSONIndent(keeper.Cdc(), result)
+	res, err := json.MarshalIndent(result, "", "	")
 	if err != nil {
 		ctx.Logger().Error("fail to marshal query response to json", "error", err)
 		return nil, fmt.Errorf("fail to marshal response to json: %w", err)
@@ -923,7 +920,7 @@ func queryLastBlockHeights(ctx cosmos.Context, path []string, req abci.RequestQu
 func queryConstantValues(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
 	ver := keeper.GetLowestActiveVersion(ctx)
 	constAccessor := constants.GetConstantValues(ver)
-	res, err := codec.MarshalJSONIndent(keeper.Cdc(), constAccessor)
+	res, err := json.MarshalIndent(constAccessor, "", "	")
 	if err != nil {
 		ctx.Logger().Error("fail to marshal constant values to json", "error", err)
 		return nil, fmt.Errorf("fail to marshal constant values to json: %w", err)
@@ -936,7 +933,7 @@ func queryVersion(ctx cosmos.Context, path []string, req abci.RequestQuery, keep
 		Current: keeper.GetLowestActiveVersion(ctx),
 		Next:    keeper.GetMinJoinVersion(ctx),
 	}
-	res, err := codec.MarshalJSONIndent(keeper.Cdc(), ver)
+	res, err := json.MarshalIndent(ver, "", "	")
 	if err != nil {
 		ctx.Logger().Error("fail to marshal version to json", "error", err)
 		return nil, fmt.Errorf("fail to marshal version to json: %w", err)
@@ -949,14 +946,14 @@ func queryMimirValues(ctx cosmos.Context, path []string, req abci.RequestQuery, 
 	iter := keeper.GetMimirIterator(ctx)
 	defer iter.Close()
 	for ; iter.Valid(); iter.Next() {
-		var value int64
-		if err := keeper.Cdc().UnmarshalBinaryBare(iter.Value(), &value); err != nil {
-			ctx.Logger().Error("fail to unmarshal mimir attribute", "error", err)
-			return nil, fmt.Errorf("fail to unmarshal mimir attribute:  %w", err)
+		value, err := keeper.GetMimir(ctx, string(iter.Key()))
+		if err != nil {
+			ctx.Logger().Error("fail to unmarshal mimir value", "error", err)
+			return nil, fmt.Errorf("fail to unmarshal mimir value: %w", err)
 		}
 		values[string(iter.Key())] = value
 	}
-	res, err := codec.MarshalJSONIndent(keeper.Cdc(), values)
+	res, err := json.MarshalIndent(values, "", "	")
 	if err != nil {
 		ctx.Logger().Error("fail to marshal mimir values to json", "error", err)
 		return nil, fmt.Errorf("fail to marshal mimir values to json: %w", err)
@@ -980,7 +977,7 @@ func queryBan(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper k
 		return nil, fmt.Errorf("fail to get ban voter: %w", err)
 	}
 
-	res, err := codec.MarshalJSONIndent(keeper.Cdc(), ban)
+	res, err := json.MarshalIndent(ban, "", "	")
 	if err != nil {
 		ctx.Logger().Error("fail to marshal ban voter to json", "error", err)
 		return nil, fmt.Errorf("fail to ban voter to json: %w", err)
@@ -1007,7 +1004,7 @@ func queryPendingOutbound(ctx cosmos.Context, keeper keeper.Keeper) ([]byte, err
 		}
 	}
 
-	res, err := codec.MarshalJSONIndent(keeper.Cdc(), result)
+	res, err := json.MarshalIndent(result, "", "	")
 	if err != nil {
 		ctx.Logger().Error("fail to marshal pending outbound tx to json", "error", err)
 		return nil, fmt.Errorf("fail to marshal pending outbound tx to json: %w", err)
@@ -1032,7 +1029,7 @@ func queryTssKeygenMetric(ctx cosmos.Context, path []string, req abci.RequestQue
 		}
 		result = append(result, m)
 	}
-	res, err := codec.MarshalJSONIndent(keeper.Cdc(), result)
+	res, err := json.MarshalIndent(result, "", "	")
 	if err != nil {
 		return nil, fmt.Errorf("fail to marshal keygen metrics to json: %w", err)
 	}
@@ -1071,5 +1068,5 @@ func queryTssMetric(ctx cosmos.Context, path []string, req abci.RequestQuery, ke
 		KeygenMetrics: keygenMetrics,
 		KeysignMetric: keysignMetric,
 	}
-	return codec.MarshalJSONIndent(keeper.Cdc(), m)
+	return json.MarshalIndent(m, "", "	")
 }

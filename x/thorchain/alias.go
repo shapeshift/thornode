@@ -15,32 +15,33 @@ const (
 	DefaultCodespace = types.DefaultCodespace
 
 	// pool status
-	PoolAvailable = types.Available
-	PoolStaged    = types.Staged
-	PoolSuspended = types.Suspended
+	PoolAvailable = types.PoolStatus_Available
+	PoolStaged    = types.PoolStatus_Staged
+	PoolSuspended = types.PoolStatus_Suspended
 
 	// Admin config keys
 	MaxWithdrawBasisPoints = types.MaxWithdrawBasisPoints
 
 	// Vaults
-	AsgardVault    = types.AsgardVault
-	YggdrasilVault = types.YggdrasilVault
-	ActiveVault    = types.ActiveVault
-	InactiveVault  = types.InactiveVault
-	RetiringVault  = types.RetiringVault
+	AsgardVault    = types.VaultType_AsgardVault
+	YggdrasilVault = types.VaultType_YggdrasilVault
+	UnknownVault   = types.VaultType_UnknownVault
+	ActiveVault    = types.VaultStatus_ActiveVault
+	InactiveVault  = types.VaultStatus_InactiveVault
+	RetiringVault  = types.VaultStatus_RetiringVault
 
 	// Node status
-	NodeActive      = types.Active
-	NodeWhiteListed = types.WhiteListed
-	NodeDisabled    = types.Disabled
-	NodeReady       = types.Ready
-	NodeStandby     = types.Standby
-	NodeUnknown     = types.Unknown
+	NodeActive      = types.NodeStatus_Active
+	NodeWhiteListed = types.NodeStatus_Whitelisted
+	NodeDisabled    = types.NodeStatus_Disabled
+	NodeReady       = types.NodeStatus_Ready
+	NodeStandby     = types.NodeStatus_Standby
+	NodeUnknown     = types.NodeStatus_Unknown
 
 	// Bond type
-	BondPaid     = types.BondPaid
-	BondReturned = types.BondReturned
-	AsgardKeygen = types.AsgardKeygen
+	BondPaid     = types.BondType_bond_paid
+	BondReturned = types.BondType_bond_returned
+	AsgardKeygen = types.KeygenType_AsgardKeygen
 
 	// Memos
 	TxSwap            = mem.TxSwap
@@ -104,6 +105,7 @@ var (
 	GetThreshold                   = types.GetThreshold
 	ModuleCdc                      = types.ModuleCdc
 	RegisterCodec                  = types.RegisterCodec
+	RegisterInterfaces             = types.RegisterInterfaces
 	NewNodeAccount                 = types.NewNodeAccount
 	NewVault                       = types.NewVault
 	NewReserveContributor          = types.NewReserveContributor
@@ -137,6 +139,7 @@ var (
 	SetupConfigForTest             = types.SetupConfigForTest
 	HasSimpleMajority              = types.HasSimpleMajority
 	NewTssKeysignMetric            = types.NewTssKeysignMetric
+	DefaultGenesis                 = types.DefaultGenesis
 
 	// Memo
 	ParseMemo          = mem.ParseMemo
@@ -239,6 +242,8 @@ type (
 	Jail                           = types.Jail
 	RagnarokWithdrawPosition       = types.RagnarokWithdrawPosition
 	ChainContract                  = types.ChainContract
+	Blame                          = types.Blame
+	Node                           = types.Node
 
 	// Memo
 	SwapMemo              = mem.SwapMemo

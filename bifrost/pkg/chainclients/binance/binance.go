@@ -11,16 +11,17 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/binance-chain/go-sdk/common/types"
-	ctypes "github.com/binance-chain/go-sdk/common/types"
-	"github.com/binance-chain/go-sdk/keys"
-	ttypes "github.com/binance-chain/go-sdk/types"
-	"github.com/binance-chain/go-sdk/types/msg"
-	btx "github.com/binance-chain/go-sdk/types/tx"
 	"github.com/cosmos/cosmos-sdk/codec"
+	cryptocodec "github.com/cosmos/cosmos-sdk/crypto/codec"
 	"github.com/hashicorp/go-multierror"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"gitlab.com/thorchain/binance-sdk/common/types"
+	ctypes "gitlab.com/thorchain/binance-sdk/common/types"
+	"gitlab.com/thorchain/binance-sdk/keys"
+	ttypes "gitlab.com/thorchain/binance-sdk/types"
+	"gitlab.com/thorchain/binance-sdk/types/msg"
+	btx "gitlab.com/thorchain/binance-sdk/types/tx"
 	tssp "gitlab.com/thorchain/tss/go-tss/tss"
 
 	"gitlab.com/thorchain/thornode/bifrost/blockscanner"
@@ -38,7 +39,7 @@ import (
 type Binance struct {
 	logger          zerolog.Logger
 	cfg             config.ChainConfiguration
-	cdc             *codec.Codec
+	cdc             *codec.LegacyAmino
 	chainID         string
 	isTestNet       bool
 	client          *http.Client
@@ -63,7 +64,11 @@ func NewBinance(thorKeys *thorclient.Keys, cfg config.ChainConfiguration, server
 		return nil, fmt.Errorf("fail to get private key: %w", err)
 	}
 
-	pk, err := common.NewPubKeyFromCrypto(priv.PubKey())
+	temp, err := cryptocodec.ToTmPubKeyInterface(priv.PubKey())
+	if err != nil {
+		return nil, fmt.Errorf("fail to get tm pub key: %w", err)
+	}
+	pk, err := common.NewPubKeyFromCrypto(temp)
 	if err != nil {
 		return nil, fmt.Errorf("fail to get pub key: %w", err)
 	}
@@ -79,7 +84,7 @@ func NewBinance(thorKeys *thorclient.Keys, cfg config.ChainConfiguration, server
 	b := &Binance{
 		logger:          log.With().Str("module", "binance").Logger(),
 		cfg:             cfg,
-		cdc:             thorclient.MakeCodec(),
+		cdc:             thorclient.MakeLegacyCodec(),
 		accts:           NewBinanceMetaDataStore(),
 		client:          &http.Client{},
 		tssKeyManager:   tssKm,

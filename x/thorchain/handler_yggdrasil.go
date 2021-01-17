@@ -36,15 +36,15 @@ func NewYggdrasilHandler(keeper keeper.Keeper, mgr Manager) YggdrasilHandler {
 
 // Run execute the logic in Yggdrasil Handler
 func (h YggdrasilHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
-	msg, ok := m.(MsgYggdrasil)
+	msg, ok := m.(*MsgYggdrasil)
 	if !ok {
 		return nil, errInvalidMessage
 	}
-	if err := h.validate(ctx, msg, version); err != nil {
+	if err := h.validate(ctx, *msg, version); err != nil {
 		ctx.Logger().Error("MsgYggdrasil failed validation", "error", err)
 		return nil, err
 	}
-	result, err := h.handle(ctx, msg, version, constAccessor)
+	result, err := h.handle(ctx, *msg, version, constAccessor)
 	if err != nil {
 		ctx.Logger().Error("failed to process MsgYggdrasil", "error", err)
 		return nil, err
@@ -179,7 +179,7 @@ func (h YggdrasilHandler) handleV1(ctx cosmos.Context, msg MsgYggdrasil, version
 	if err != nil && !errors.Is(err, kvTypes.ErrVaultNotFound) {
 		return nil, fmt.Errorf("fail to get yggdrasil: %w", err)
 	}
-	if len(vault.Type) == 0 {
+	if vault.IsType(UnknownVault) {
 		vault.Status = ActiveVault
 		vault.Type = YggdrasilVault
 	}

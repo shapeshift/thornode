@@ -54,20 +54,20 @@ func (h LeaveHandler) validateV1(ctx cosmos.Context, msg MsgLeave) error {
 
 // Run execute the handler
 func (h LeaveHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
-	msg, ok := m.(MsgLeave)
+	msg, ok := m.(*MsgLeave)
 	if !ok {
 		return nil, errInvalidMessage
 	}
 	ctx.Logger().Info("receive MsgLeave",
 		"sender", msg.Tx.FromAddress.String(),
 		"request tx hash", msg.Tx.ID)
-	if err := h.validate(ctx, msg, version); err != nil {
+	if err := h.validate(ctx, *msg, version); err != nil {
 		ctx.Logger().Error("msg leave fail validation", "error", err)
 		return nil, err
 	}
 
 	if version.GTE(semver.MustParse("0.1.0")) {
-		if err := h.handleV1(ctx, msg, version, constAccessor); err != nil {
+		if err := h.handleV1(ctx, *msg, version, constAccessor); err != nil {
 			ctx.Logger().Error("fail to process msg leave", "error", err)
 			return nil, err
 		}
@@ -104,7 +104,7 @@ func (h LeaveHandler) handleV1(ctx cosmos.Context, msg MsgLeave, version semver.
 		}
 		isMemberOfRetiringVault := false
 		for _, v := range vaults {
-			if v.Membership.Contains(nodeAcc.PubKeySet.Secp256k1) {
+			if v.GetMembership().Contains(nodeAcc.PubKeySet.Secp256k1) {
 				isMemberOfRetiringVault = true
 				ctx.Logger().Info("node account is still part of the retiring vault,can't return bond yet")
 				break

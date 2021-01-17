@@ -45,7 +45,7 @@ func (s *HandlerSwitchSuite) TestValidate(c *C) {
 	c.Assert(result, IsNil)
 
 	// invalid msg
-	msg = MsgSwitch{}
+	msg = &MsgSwitch{}
 	result, err = handler.Run(ctx, msg, constants.SWVersion, constantAccessor)
 	c.Assert(err, NotNil)
 	c.Assert(result, IsNil)
@@ -66,20 +66,20 @@ func (s *HandlerSwitchSuite) TestGettingNativeTokens(c *C) {
 
 	msg := NewMsgSwitch(tx, destination, na.NodeAddress)
 	constAccessor := constants.GetConstantValues(constants.SWVersion)
-	_, err := handler.handle(ctx, msg, constants.SWVersion, constAccessor)
+	_, err := handler.handle(ctx, *msg, constants.SWVersion, constAccessor)
 	c.Assert(err, IsNil)
 	coin, err := common.NewCoin(common.RuneNative, cosmos.NewUint(100*common.One)).Native()
 	c.Assert(err, IsNil)
 	addr, err := cosmos.AccAddressFromBech32(destination.String())
 	c.Assert(err, IsNil)
-	c.Check(k.CoinKeeper().HasCoins(ctx, addr, cosmos.NewCoins(coin)), Equals, true)
+	c.Check(k.HasCoins(ctx, addr, cosmos.NewCoins(coin)), Equals, true, Commentf("%s", k.GetBalance(ctx, addr)))
 
 	// check that we can add more an account
-	_, err = handler.handle(ctx, msg, constants.SWVersion, constAccessor)
+	_, err = handler.handle(ctx, *msg, constants.SWVersion, constAccessor)
 	c.Assert(err, IsNil)
 	coin, err = common.NewCoin(common.RuneNative, cosmos.NewUint(200*common.One)).Native()
 	c.Assert(err, IsNil)
-	c.Check(k.CoinKeeper().HasCoins(ctx, addr, cosmos.NewCoins(coin)), Equals, true)
+	c.Check(k.HasCoins(ctx, addr, cosmos.NewCoins(coin)), Equals, true)
 }
 
 type HandlerSwitchTestHelper struct {
@@ -92,7 +92,7 @@ func NewHandlerSwitchTestHelper(k keeper.Keeper) *HandlerSwitchTestHelper {
 	}
 }
 
-func (s *HandlerSwitchSuite) getAValidSwitchMsg(ctx cosmos.Context, helper *HandlerSwitchTestHelper) MsgSwitch {
+func (s *HandlerSwitchSuite) getAValidSwitchMsg(ctx cosmos.Context, helper *HandlerSwitchTestHelper) *MsgSwitch {
 	na := GetRandomNodeAccount(NodeActive)
 	from := GetRandomBNBAddress()
 	tx := GetRandomTx()
@@ -103,7 +103,7 @@ func (s *HandlerSwitchSuite) getAValidSwitchMsg(ctx cosmos.Context, helper *Hand
 	destination := GetRandomBech32Addr()
 	helper.Keeper.SetNodeAccount(ctx, na)
 	coin, _ := common.NewCoin(common.RuneNative, cosmos.NewUint(800*common.One)).Native()
-	helper.Keeper.CoinKeeper().AddCoins(ctx, destination, cosmos.NewCoins(coin))
+	helper.Keeper.AddCoins(ctx, destination, cosmos.NewCoins(coin))
 	vault := GetRandomVault()
 	vault.Type = AsgardVault
 	vault.Status = ActiveVault

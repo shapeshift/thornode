@@ -15,6 +15,10 @@ linters-settings:
     ignore: fmt:.*,io/ioutil:^Read.*,github.com/spf13/cobra:MarkFlagRequired,github.com/spf13/viper:BindPFlag
   golint:
     min-confidence: 1.1
+  exhaustive:
+    check-generated: false
+  exhaustivestruct:
+    check-generated: false
 issues:
   exclude:
     - composite
@@ -22,3 +26,5 @@ run:
   tests: false
   deadline: 15m
   timeout: 5m
+  skip-files:
+    - ".*\\.pb\\.go$"

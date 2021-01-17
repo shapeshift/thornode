@@ -10,6 +10,29 @@ import (
 	kvTypes "gitlab.com/thorchain/thornode/x/thorchain/keeper/types"
 )
 
+func (k KVStore) setVault(ctx cosmos.Context, key string, record Vault) {
+	store := ctx.KVStore(k.storeKey)
+	buf := k.cdc.MustMarshalBinaryBare(&record)
+	if buf == nil {
+		store.Delete([]byte(key))
+	} else {
+		store.Set([]byte(key), buf)
+	}
+}
+
+func (k KVStore) getVault(ctx cosmos.Context, key string, record *Vault) (bool, error) {
+	store := ctx.KVStore(k.storeKey)
+	if !store.Has([]byte(key)) {
+		return false, nil
+	}
+
+	bz := store.Get([]byte(key))
+	if err := k.cdc.UnmarshalBinaryBare(bz, record); err != nil {
+		return true, dbError(ctx, fmt.Sprintf("Unmarshal kvstore: (%T) %s", record, key), err)
+	}
+	return true, nil
+}
+
 // GetVaultIterator only iterate vault pools
 func (k KVStore) GetVaultIterator(ctx cosmos.Context) cosmos.Iterator {
 	return k.getIterator(ctx, prefixVault)
@@ -51,7 +74,7 @@ func (k KVStore) SortBySecurity(ctx cosmos.Context, vaults Vaults, signingTransP
 	for i, vault := range vaults {
 		// get total bond
 		totalBond := cosmos.ZeroUint()
-		for _, pk := range vault.Membership {
+		for _, pk := range vault.GetMembership() {
 			na, err := k.GetNodeAccountByPubKey(ctx, pk)
 			if err != nil {
 				ctx.Logger().Error("failed to get node account by pubkey", "error", err)
@@ -154,7 +177,7 @@ func (k KVStore) SetVault(ctx cosmos.Context, vault Vault) error {
 		}
 	}
 
-	k.set(ctx, k.GetKey(ctx, prefixVault, vault.PubKey.String()), vault)
+	k.setVault(ctx, k.GetKey(ctx, prefixVault, vault.PubKey.String()), vault)
 	return nil
 }
 
@@ -169,7 +192,7 @@ func (k KVStore) GetVault(ctx cosmos.Context, pk common.PubKey) (Vault, error) {
 		BlockHeight: common.BlockHeight(ctx),
 		PubKey:      pk,
 	}
-	ok, err := k.get(ctx, k.GetKey(ctx, prefixVault, pk.String()), &record)
+	ok, err := k.getVault(ctx, k.GetKey(ctx, prefixVault, pk.String()), &record)
 	if !ok {
 		return record, fmt.Errorf("vault with pubkey(%s) doesn't exist: %w", pk, kvTypes.ErrVaultNotFound)
 	}
@@ -196,9 +219,19 @@ func (k KVStore) HasValidVaultPools(ctx cosmos.Context) (bool, error) {
 }
 
 func (k KVStore) getAsgardIndex(ctx cosmos.Context) (common.PubKeys, error) {
-	record := make(common.PubKeys, 0)
-	_, err := k.get(ctx, k.GetKey(ctx, prefixVaultAsgardIndex, ""), &record)
-	return record, err
+	record := make([]string, 0)
+	_, err := k.getStrings(ctx, k.GetKey(ctx, prefixVaultAsgardIndex, ""), &record)
+	if err != nil {
+		return nil, err
+	}
+	pks := make(common.PubKeys, len(record))
+	for i, s := range record {
+		pks[i], err = common.NewPubKey(s)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return pks, nil
 }
 
 func (k KVStore) addAsgardIndex(ctx cosmos.Context, pubkey common.PubKey) error {
@@ -212,7 +245,7 @@ func (k KVStore) addAsgardIndex(ctx cosmos.Context, pubkey common.PubKey) error 
 		}
 	}
 	pks = append(pks, pubkey)
-	k.set(ctx, k.GetKey(ctx, prefixVaultAsgardIndex, ""), pks)
+	k.setStrings(ctx, k.GetKey(ctx, prefixVaultAsgardIndex, ""), pks.Strings())
 	return nil
 }
 
@@ -281,7 +314,7 @@ func (k KVStore) DeleteVault(ctx cosmos.Context, pubkey common.PubKey) error {
 			}
 		}
 
-		k.set(ctx, k.GetKey(ctx, prefixVaultAsgardIndex, ""), newPks)
+		k.setStrings(ctx, k.GetKey(ctx, prefixVaultAsgardIndex, ""), newPks.Strings())
 	}
 	// delete the actual vault
 	k.del(ctx, k.GetKey(ctx, prefixVault, vault.PubKey.String()))

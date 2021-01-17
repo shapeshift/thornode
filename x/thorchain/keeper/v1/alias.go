@@ -12,18 +12,18 @@ const (
 	StoreKey    = types.StoreKey
 
 	// Vaults
-	AsgardVault    = types.AsgardVault
-	YggdrasilVault = types.YggdrasilVault
-	ActiveVault    = types.ActiveVault
-	InactiveVault  = types.InactiveVault
+	AsgardVault    = types.VaultType_AsgardVault
+	YggdrasilVault = types.VaultType_YggdrasilVault
+	ActiveVault    = types.VaultStatus_ActiveVault
+	InactiveVault  = types.VaultStatus_InactiveVault
 
 	// Node status
-	NodeActive  = types.Active
-	NodeStandby = types.Standby
-	NodeUnknown = types.Unknown
+	NodeActive  = types.NodeStatus_Active
+	NodeStandby = types.NodeStatus_Standby
+	NodeUnknown = types.NodeStatus_Unknown
 
 	// Bond type
-	AsgardKeygen = types.AsgardKeygen
+	AsgardKeygen = types.KeygenType_AsgardKeygen
 )
 
 var (
@@ -92,4 +92,9 @@ type (
 	TssKeygenMetric          = types.TssKeygenMetric
 	TssKeysignMetric         = types.TssKeysignMetric
 	ChainContract            = types.ChainContract
+
+	ProtoInt64        = types.ProtoInt64
+	ProtoUint64       = types.ProtoUint64
+	ProtoAccAddresses = types.ProtoAccAddresses
+	ProtoStrings      = types.ProtoStrings
 )

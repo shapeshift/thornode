@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/cosmos/cosmos-sdk/client/context"
+	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/didip/tollbooth"
 	"github.com/didip/tollbooth/limiter"
 	"github.com/gorilla/mux"
@@ -21,7 +21,7 @@ const (
 )
 
 // RegisterRoutes - Central function to define routes that get registered by the main application
-func RegisterRoutes(cliCtx context.CLIContext, r *mux.Router, storeName string) {
+func RegisterRoutes(cliCtx client.Context, r *mux.Router, storeName string) {
 	// Health Check Endpoint
 	r.HandleFunc(
 		fmt.Sprintf("/%s/ping", storeName),

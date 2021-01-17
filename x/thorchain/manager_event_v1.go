@@ -38,7 +38,7 @@ func (m *EventMgrV1) EmitGasEvent(ctx cosmos.Context, gasEvent *EventGas) error 
 }
 
 // EmitSwapEvent emit swap event to block
-func (m *EventMgrV1) EmitSwapEvent(ctx cosmos.Context, swap EventSwap) error {
+func (m *EventMgrV1) EmitSwapEvent(ctx cosmos.Context, swap *EventSwap) error {
 	// OutTxs is a temporary field that we used, as for now we need to keep backward compatibility so the
 	// events change doesn't break midgard and smoke test, for double swap , we first swap the source asset to RUNE ,
 	// and then from RUNE to target asset, so the first will be marked as success
@@ -52,7 +52,7 @@ func (m *EventMgrV1) EmitSwapEvent(ctx cosmos.Context, swap EventSwap) error {
 }
 
 // EmitFeeEvent emit a fee event through event manager
-func (m *EventMgrV1) EmitFeeEvent(ctx cosmos.Context, feeEvent EventFee) error {
+func (m *EventMgrV1) EmitFeeEvent(ctx cosmos.Context, feeEvent *EventFee) error {
 	if feeEvent.Fee.Coins.IsEmpty() && feeEvent.Fee.PoolDeduct.IsZero() {
 		return nil
 	}

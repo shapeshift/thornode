@@ -26,16 +26,16 @@ func NewDonateHandler(keeper keeper.Keeper, mgr Manager) DonateHandler {
 
 // Run is the main entry point to execute donate logic
 func (h DonateHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
-	msg, ok := m.(MsgDonate)
+	msg, ok := m.(*MsgDonate)
 	if !ok {
 		return nil, errInvalidMessage
 	}
 	ctx.Logger().Info(fmt.Sprintf("receive msg donate %s", msg.Tx.ID))
-	if err := h.validate(ctx, msg, version); err != nil {
+	if err := h.validate(ctx, *msg, version); err != nil {
 		ctx.Logger().Error("msg donate failed validation", "error", err)
 		return nil, err
 	}
-	return h.handle(ctx, msg, version, constAccessor)
+	return h.handle(ctx, *msg, version, constAccessor)
 }
 
 func (h DonateHandler) validate(ctx cosmos.Context, msg MsgDonate, version semver.Version) error {

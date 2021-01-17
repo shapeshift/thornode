@@ -13,6 +13,29 @@ import (
 	"gitlab.com/thorchain/thornode/constants"
 )
 
+func (k KVStore) setNodeAccount(ctx cosmos.Context, key string, record NodeAccount) {
+	store := ctx.KVStore(k.storeKey)
+	buf := k.cdc.MustMarshalBinaryBare(&record)
+	if buf == nil {
+		store.Delete([]byte(key))
+	} else {
+		store.Set([]byte(key), buf)
+	}
+}
+
+func (k KVStore) getNodeAccount(ctx cosmos.Context, key string, record *NodeAccount) (bool, error) {
+	store := ctx.KVStore(k.storeKey)
+	if !store.Has([]byte(key)) {
+		return false, nil
+	}
+
+	bz := store.Get([]byte(key))
+	if err := k.cdc.UnmarshalBinaryBare(bz, record); err != nil {
+		return true, dbError(ctx, fmt.Sprintf("Unmarshal kvstore: (%T) %s", record, key), err)
+	}
+	return true, nil
+}
+
 // TotalActiveNodeAccount count the number of active node account
 func (k KVStore) TotalActiveNodeAccount(ctx cosmos.Context) (int, error) {
 	activeNodes, err := k.ListActiveNodeAccounts(ctx)
@@ -72,22 +95,22 @@ func (k KVStore) GetMinJoinVersion(ctx cosmos.Context) semver.Version {
 		return semver.Version{}
 	}
 	sort.SliceStable(nodes, func(i, j int) bool {
-		return nodes[i].Version.LT(nodes[j].Version)
+		return nodes[i].GetVersion().LT(nodes[j].GetVersion())
 	})
 	for _, na := range nodes {
-		v, ok := vCount[na.Version.String()]
+		v, ok := vCount[na.Version]
 		if ok {
 			v.count = v.count + 1
-			vCount[na.Version.String()] = v
+			vCount[na.Version] = v
 		} else {
-			vCount[na.Version.String()] = tmpVersionInfo{
-				version: na.Version,
+			vCount[na.Version] = tmpVersionInfo{
+				version: na.GetVersion(),
 				count:   1,
 			}
 		}
 		// assume all versions are backward compatible
 		for k, v := range vCount {
-			if v.version.LT(na.Version) {
+			if v.version.LT(na.GetVersion()) {
 				v.count = v.count + 1
 				vCount[k] = v
 			}
@@ -122,22 +145,22 @@ func (k KVStore) GetMinJoinVersionV1(ctx cosmos.Context) semver.Version {
 		return semver.Version{}
 	}
 	sort.SliceStable(nodes, func(i, j int) bool {
-		return nodes[i].Version.LT(nodes[j].Version)
+		return nodes[i].GetVersion().LT(nodes[j].GetVersion())
 	})
 	for _, na := range nodes {
-		v, ok := vCount[na.Version.String()]
+		v, ok := vCount[na.Version]
 		if ok {
 			v.count = v.count + 1
-			vCount[na.Version.String()] = v
+			vCount[na.Version] = v
 		} else {
-			vCount[na.Version.String()] = tmpVersionInfo{
-				version: na.Version,
+			vCount[na.Version] = tmpVersionInfo{
+				version: na.GetVersion(),
 				count:   1,
 			}
 		}
 		// assume all versions are backward compatible
 		for k, v := range vCount {
-			if v.version.LT(na.Version) {
+			if v.version.LT(na.GetVersion()) {
 				v.count = v.count + 1
 				vCount[k] = v
 			}
@@ -167,10 +190,10 @@ func (k KVStore) GetLowestActiveVersion(ctx cosmos.Context) semver.Version {
 		return constants.SWVersion
 	}
 	if len(nodes) > 0 {
-		version := nodes[0].Version
+		version := nodes[0].GetVersion()
 		for _, na := range nodes {
-			if na.Version.LT(version) {
-				version = na.Version
+			if na.GetVersion().LT(version) {
+				version = na.GetVersion()
 			}
 		}
 		return version
@@ -185,7 +208,7 @@ func (k KVStore) GetNodeAccount(ctx cosmos.Context, addr cosmos.AccAddress) (Nod
 		Ed25519:   common.EmptyPubKey,
 	}
 	record := NewNodeAccount(addr, NodeUnknown, emptyPubKeySet, "", cosmos.ZeroUint(), "", common.BlockHeight(ctx))
-	_, err := k.get(ctx, k.GetKey(ctx, prefixNodeAccount, addr.String()), &record)
+	_, err := k.getNodeAccount(ctx, k.GetKey(ctx, prefixNodeAccount, addr.String()), &record)
 	return record, err
 }
 
@@ -213,7 +236,7 @@ func (k KVStore) SetNodeAccount(ctx cosmos.Context, na NodeAccount) error {
 		}
 	}
 
-	k.set(ctx, k.GetKey(ctx, prefixNodeAccount, na.NodeAddress.String()), na)
+	k.setNodeAccount(ctx, k.GetKey(ctx, prefixNodeAccount, na.NodeAddress.String()), na)
 
 	return nil
 }
@@ -254,7 +277,7 @@ func (k KVStore) GetNodeAccountIterator(ctx cosmos.Context) cosmos.Iterator {
 // node address
 func (k KVStore) GetNodeAccountSlashPoints(ctx cosmos.Context, addr cosmos.AccAddress) (int64, error) {
 	record := int64(0)
-	_, err := k.get(ctx, k.GetKey(ctx, prefixNodeSlashPoints, addr.String()), &record)
+	_, err := k.getInt64(ctx, k.GetKey(ctx, prefixNodeSlashPoints, addr.String()), &record)
 	return record, err
 }
 
@@ -265,7 +288,7 @@ func (k KVStore) SetNodeAccountSlashPoints(ctx cosmos.Context, addr cosmos.AccAd
 	if pts < 0 {
 		return
 	}
-	k.set(ctx, k.GetKey(ctx, prefixNodeSlashPoints, addr.String()), pts)
+	k.setInt64(ctx, k.GetKey(ctx, prefixNodeSlashPoints, addr.String()), pts)
 }
 
 // ResetNodeAccountSlashPoints - reset the slash points to zero for associated
@@ -296,10 +319,33 @@ func (k KVStore) DecNodeAccountSlashPoints(ctx cosmos.Context, addr cosmos.AccAd
 	return nil
 }
 
+func (k KVStore) setJail(ctx cosmos.Context, key string, record Jail) {
+	store := ctx.KVStore(k.storeKey)
+	buf := k.cdc.MustMarshalBinaryBare(&record)
+	if buf == nil {
+		store.Delete([]byte(key))
+	} else {
+		store.Set([]byte(key), buf)
+	}
+}
+
+func (k KVStore) getJail(ctx cosmos.Context, key string, record *Jail) (bool, error) {
+	store := ctx.KVStore(k.storeKey)
+	if !store.Has([]byte(key)) {
+		return false, nil
+	}
+
+	bz := store.Get([]byte(key))
+	if err := k.cdc.UnmarshalBinaryBare(bz, record); err != nil {
+		return true, dbError(ctx, fmt.Sprintf("Unmarshal kvstore: (%T) %s", record, key), err)
+	}
+	return true, nil
+}
+
 // GetNodeAccountJail - gets jail details for a given node address
 func (k KVStore) GetNodeAccountJail(ctx cosmos.Context, addr cosmos.AccAddress) (Jail, error) {
 	record := NewJail(addr)
-	_, err := k.get(ctx, k.GetKey(ctx, prefixNodeJail, addr.String()), &record)
+	_, err := k.getJail(ctx, k.GetKey(ctx, prefixNodeJail, addr.String()), &record)
 	return record, err
 }
 
@@ -316,6 +362,6 @@ func (k KVStore) SetNodeAccountJail(ctx cosmos.Context, addr cosmos.AccAddress, 
 	jail.ReleaseHeight = height
 	jail.Reason = reason
 
-	k.set(ctx, k.GetKey(ctx, prefixNodeJail, addr.String()), jail)
+	k.setJail(ctx, k.GetKey(ctx, prefixNodeJail, addr.String()), jail)
 	return nil
 }
