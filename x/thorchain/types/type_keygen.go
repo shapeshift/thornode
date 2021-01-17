@@ -13,14 +13,6 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 )
 
-// KeygenBlock represent the TSS Keygen in a block
-// THORChain can potentially trigger multiple TSS Keygen in one block
-// for example multiple Asgard, also when Yggdrasil start to use TSS as well
-type KeygenBlock struct {
-	Height  int64    `json:"height,string"`
-	Keygens []Keygen `json:"keygens"`
-}
-
 // NewKeygenBlock create a new KeygenBlock
 func NewKeygenBlock(height int64) KeygenBlock {
 	return KeygenBlock{
@@ -29,14 +21,14 @@ func NewKeygenBlock(height int64) KeygenBlock {
 }
 
 // IsEmpty determinate whether KeygenBlock is empty
-func (k KeygenBlock) IsEmpty() bool {
-	return len(k.Keygens) == 0 && k.Height <= 0
+func (m *KeygenBlock) IsEmpty() bool {
+	return len(m.Keygens) == 0 && m.Height <= 0
 }
 
 // String implement fmt.Stringer print out a string version of keygen block
-func (k KeygenBlock) String() string {
+func (m *KeygenBlock) String() string {
 	var keygens []string
-	for _, keygen := range k.Keygens {
+	for _, keygen := range m.Keygens {
 		keygens = append(keygens, keygen.String())
 	}
 	return strings.Join(keygens, "\n")
@@ -44,8 +36,8 @@ func (k KeygenBlock) String() string {
 
 // Contains will go through the keygen items and find out whether the given
 // keygen already exist in the block or not
-func (k KeygenBlock) Contains(keygen Keygen) bool {
-	for _, item := range k.Keygens {
+func (m *KeygenBlock) Contains(keygen Keygen) bool {
+	for _, item := range m.Keygens {
 		if item.ID.Equals(keygen.ID) {
 			return true
 		}
@@ -53,69 +45,37 @@ func (k KeygenBlock) Contains(keygen Keygen) bool {
 	return false
 }
 
-// KeygenType are two types of key Asgard Yggdrasil;
-type KeygenType byte
-
-const (
-	// UnknownKeygen unknown
-	UnknownKeygen KeygenType = iota
-	// AsgardKeygen asgard
-	AsgardKeygen
-	// YggdrasilKeygen yggdrasil
-	YggdrasilKeygen
-)
-
-// String implement fmt.Stringer
-func (kt KeygenType) String() string {
-	switch kt {
-	case UnknownKeygen:
-		return "unknown"
-	case AsgardKeygen:
-		return "asgard"
-	case YggdrasilKeygen:
-		return "yggdrasil"
-	}
-	return ""
-}
-
-// GetKeygenTypeFromString parse the given string as KeygenType
-func GetKeygenTypeFromString(t string) KeygenType {
+// getKeygenTypeFromString parse the given string as KeygenType
+func getKeygenTypeFromString(t string) KeygenType {
 	switch {
-	case strings.EqualFold(t, "asgard"):
-		return AsgardKeygen
-	case strings.EqualFold(t, "yggdrasil"):
-		return YggdrasilKeygen
+	case strings.EqualFold(t, "asgardKeygen"):
+		return KeygenType_AsgardKeygen
+	case strings.EqualFold(t, "yggdrasilKeygen"):
+		return KeygenType_YggdrasilKeygen
 	}
-	return UnknownKeygen
+	return KeygenType_UnknownKeygen
 }
 
 // MarshalJSON marshal keygen type to JSON in string form
-func (kt KeygenType) MarshalJSON() ([]byte, error) {
-	return json.Marshal(kt.String())
+func (x KeygenType) MarshalJSON() ([]byte, error) {
+	return json.Marshal(x.String())
 }
 
 // UnmarshalJSON convert string form back to PoolStatus
-func (kt *KeygenType) UnmarshalJSON(b []byte) error {
+func (x *KeygenType) UnmarshalJSON(b []byte) error {
 	var s string
 	if err := json.Unmarshal(b, &s); err != nil {
 		return err
 	}
-	*kt = GetKeygenTypeFromString(s)
+	*x = getKeygenTypeFromString(s)
 	return nil
 }
 
-// Keygen one keygen
-type Keygen struct {
-	ID      common.TxID    `json:"id"`
-	Type    KeygenType     `json:"type"`
-	Members common.PubKeys `json:"members"`
-}
-
 // NewKeygen create a new instance of Keygen
-func NewKeygen(height int64, members common.PubKeys, keygenType KeygenType) (Keygen, error) {
+func NewKeygen(height int64, members []string, keygenType KeygenType) (Keygen, error) {
 	// sort the members
 	sort.SliceStable(members, func(i, j int) bool {
-		return members[i].String() < members[j].String()
+		return members[i] < members[j]
 	})
 	id, err := getKeygenID(height, members, keygenType)
 	if err != nil {
@@ -129,12 +89,12 @@ func NewKeygen(height int64, members common.PubKeys, keygenType KeygenType) (Key
 }
 
 // getKeygenID will create ID based on the pub keys
-func getKeygenID(height int64, members common.PubKeys, keygenType KeygenType) (common.TxID, error) {
+func getKeygenID(height int64, members []string, keygenType KeygenType) (common.TxID, error) {
 	sb := strings.Builder{}
 	sb.WriteString(strconv.FormatInt(height, 10))
 	sb.WriteString(keygenType.String())
 	for _, m := range members {
-		sb.WriteString(m.String())
+		sb.WriteString(m)
 	}
 	h := sha256.New()
 	_, err := h.Write([]byte(sb.String()))
@@ -145,23 +105,35 @@ func getKeygenID(height int64, members common.PubKeys, keygenType KeygenType) (c
 	return common.TxID(hex.EncodeToString(h.Sum(nil))), nil
 }
 
+func (m *Keygen) GetMembers() common.PubKeys {
+	pubkeys := make(common.PubKeys, 0)
+	for _, pk := range m.Members {
+		pk, err := common.NewPubKey(pk)
+		if err != nil {
+			continue
+		}
+		pubkeys = append(pubkeys, pk)
+	}
+	return pubkeys
+}
+
 // IsEmpty check whether there are any keys in the keygen
-func (k Keygen) IsEmpty() bool {
-	return len(k.Members) == 0 || len(k.ID) == 0
+func (m *Keygen) IsEmpty() bool {
+	return len(m.Members) == 0 || len(m.ID) == 0
 }
 
 // Valid is to check whether the keygen members are valid
-func (k Keygen) Valid() error {
-	if k.Type == UnknownKeygen {
+func (m *Keygen) Valid() error {
+	if m.Type == KeygenType_UnknownKeygen {
 		return errors.New("unknown keygen")
 	}
-	return k.Members.Valid()
+	return m.GetMembers().Valid()
 }
 
 // String implement of fmt.Stringer
-func (k Keygen) String() string {
+func (m *Keygen) String() string {
 	return fmt.Sprintf(`id:%s
 	type:%s
 	member:%+v
-`, k.ID, k.Type, k.Members)
+`, m.ID, m.Type, m.Members)
 }

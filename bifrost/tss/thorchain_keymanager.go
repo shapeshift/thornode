@@ -1,8 +1,8 @@
 package tss
 
 import (
-	"github.com/binance-chain/go-sdk/keys"
-	"github.com/binance-chain/go-sdk/types/tx"
+	"gitlab.com/thorchain/binance-sdk/keys"
+	"gitlab.com/thorchain/binance-sdk/types/tx"
 
 	"gitlab.com/thorchain/thornode/common"
 )

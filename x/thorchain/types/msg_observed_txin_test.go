@@ -34,7 +34,7 @@ func (s *MsgObservedTxInSuite) TestMsgObservedTxIn(c *C) {
 	// will not accept observations with pre-determined signers. This is
 	// important to ensure an observer can fake signers from other node accounts
 	// *IMPORTANT* DON'T REMOVE THIS CHECK
-	tx.Signers = append(tx.Signers, GetRandomBech32Addr())
+	tx.Signers = append(tx.Signers, GetRandomBech32Addr().String())
 	m3 := NewMsgObservedTxIn(ObservedTxs{tx}, acc)
 	c.Assert(m3.ValidateBasic(), NotNil)
 
@@ -46,8 +46,8 @@ func (s *MsgObservedTxInSuite) TestMsgObservedTxIn(c *C) {
 
 	tx5 := NewObservedTx(GetRandomTx(), 1, pk, 1)
 	tx5.Tx.ToAddress, err = pk.GetAddress(tx.Tx.Coins[0].Asset.Chain)
-	tx5.OutHashes = common.TxIDs{
-		GetRandomTxHash(),
+	tx5.OutHashes = []string{
+		GetRandomTxHash().String(),
 	}
 	m5 := NewMsgObservedTxIn(ObservedTxs{tx5}, acc)
 	err5 := m5.ValidateBasic()

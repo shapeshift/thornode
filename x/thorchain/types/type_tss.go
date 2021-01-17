@@ -7,18 +7,8 @@ import (
 	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
-// TssVoter keep track of tss message
-type TssVoter struct {
-	ID          string              `json:"id"` // checksum of sorted input pubkeys
-	PoolPubKey  common.PubKey       `json:"pool_pub_key"`
-	PubKeys     common.PubKeys      `json:"pubkeys"`
-	BlockHeight int64               `json:"block_height"`
-	Chains      common.Chains       `json:"chains"`
-	Signers     []cosmos.AccAddress `json:"signers"`
-}
-
 // NewTssVoter create a new instance of TssVoter
-func NewTssVoter(id string, pks common.PubKeys, pool common.PubKey) TssVoter {
+func NewTssVoter(id string, pks []string, pool common.PubKey) TssVoter {
 	return TssVoter{
 		ID:         id,
 		PubKeys:    pks,
@@ -26,9 +16,45 @@ func NewTssVoter(id string, pks common.PubKeys, pool common.PubKey) TssVoter {
 	}
 }
 
+func (m *TssVoter) GetChains() common.Chains {
+	chains := make(common.Chains, 0)
+	for _, c := range m.Chains {
+		chain, err := common.NewChain(c)
+		if err != nil {
+			continue
+		}
+		chains = append(chains, chain)
+	}
+	return chains
+}
+
+func (m *TssVoter) GetPubKeys() common.PubKeys {
+	pubkeys := make(common.PubKeys, 0)
+	for _, pk := range m.PubKeys {
+		pk, err := common.NewPubKey(pk)
+		if err != nil {
+			continue
+		}
+		pubkeys = append(pubkeys, pk)
+	}
+	return pubkeys
+}
+
+func (m *TssVoter) GetSigners() []cosmos.AccAddress {
+	addrs := make([]cosmos.AccAddress, 0)
+	for _, a := range m.Signers {
+		addr, err := cosmos.AccAddressFromBech32(a)
+		if err != nil {
+			continue
+		}
+		addrs = append(addrs, addr)
+	}
+	return addrs
+}
+
 // HasSigned - check if given address has signed
-func (tss TssVoter) HasSigned(signer cosmos.AccAddress) bool {
-	for _, sign := range tss.Signers {
+func (m *TssVoter) HasSigned(signer cosmos.AccAddress) bool {
+	for _, sign := range m.GetSigners() {
 		if sign.Equals(signer) {
 			return true
 		}
@@ -37,15 +63,15 @@ func (tss TssVoter) HasSigned(signer cosmos.AccAddress) bool {
 }
 
 // Sign this voter with given signer address
-func (tss *TssVoter) Sign(signer cosmos.AccAddress, chains common.Chains) bool {
-	if tss.HasSigned(signer) {
+func (m *TssVoter) Sign(signer cosmos.AccAddress, chains []string) bool {
+	if m.HasSigned(signer) {
 		return false
 	}
-	for _, pk := range tss.PubKeys {
+	for _, pk := range m.GetPubKeys() {
 		addr, err := pk.GetThorAddress()
 		if addr.Equals(signer) && err == nil {
-			tss.Signers = append(tss.Signers, signer)
-			tss.Chains = append(tss.Chains, chains...)
+			m.Signers = append(m.Signers, signer.String())
+			m.Chains = append(m.Chains, chains...)
 			return true
 		}
 	}
@@ -53,9 +79,9 @@ func (tss *TssVoter) Sign(signer cosmos.AccAddress, chains common.Chains) bool {
 }
 
 // ConsensusChains - get a list of chains that have 2/3rds majority
-func (tss *TssVoter) ConsensusChains() common.Chains {
+func (m *TssVoter) ConsensusChains() common.Chains {
 	chainCount := make(map[common.Chain]int, 0)
-	for _, chain := range tss.Chains {
+	for _, chain := range m.GetChains() {
 		if _, ok := chainCount[chain]; !ok {
 			chainCount[chain] = 0
 		}
@@ -64,7 +90,7 @@ func (tss *TssVoter) ConsensusChains() common.Chains {
 
 	chains := make(common.Chains, 0)
 	for chain, count := range chainCount {
-		if HasSuperMajority(count, len(tss.PubKeys)) {
+		if HasSuperMajority(count, len(m.PubKeys)) {
 			chains = append(chains, chain)
 		}
 	}
@@ -78,16 +104,16 @@ func (tss *TssVoter) ConsensusChains() common.Chains {
 }
 
 // HasConsensus determine if this tss pool has enough signers
-func (tss *TssVoter) HasConsensus() bool {
-	return HasSuperMajority(len(tss.Signers), len(tss.PubKeys))
+func (m *TssVoter) HasConsensus() bool {
+	return HasSuperMajority(len(m.Signers), len(m.PubKeys))
 }
 
-// Empty check whether TssVoter represent empty info
-func (tss *TssVoter) IsEmpty() bool {
-	return len(tss.ID) == 0 || len(tss.PoolPubKey) == 0 || len(tss.PubKeys) == 0
+// IsEmpty check whether TssVoter represent empty info
+func (m *TssVoter) IsEmpty() bool {
+	return len(m.ID) == 0 || len(m.PoolPubKey) == 0 || len(m.PubKeys) == 0
 }
 
 // String implement fmt.Stringer
-func (tss *TssVoter) String() string {
-	return tss.ID
+func (m *TssVoter) String() string {
+	return m.ID
 }

@@ -29,11 +29,11 @@ func (s *KeysignSuite) SetUpSuite(c *C) {
 		}
 	}))
 
-	cfg, info, kb := SetupThorchainForTest(c)
+	cfg, _, kb := SetupThorchainForTest(c)
 	s.cfg = cfg
 	s.cfg.ChainHost = s.server.Listener.Addr().String()
 	var err error
-	s.bridge, err = NewThorchainBridge(s.cfg, GetMetricForTest(c), NewKeysWithKeybase(kb, info, cfg.SignerPasswd))
+	s.bridge, err = NewThorchainBridge(s.cfg, GetMetricForTest(c), NewKeysWithKeybase(kb, cfg.SignerName, cfg.SignerPasswd))
 	s.bridge.httpClient.RetryMax = 1
 	c.Assert(err, IsNil)
 	c.Assert(s.bridge, NotNil)
@@ -44,7 +44,6 @@ func (s *KeysignSuite) TearDownSuite(c *C) {
 }
 
 func (s *KeysignSuite) TestGetKeysign(c *C) {
-	c.Skip("bad json")
 	s.fixture = "../../test/fixtures/endpoints/keysign/template.json"
 	pk := types.GetRandomPubKey()
 	keysign, err := s.bridge.GetKeysign(1718, pk.String())

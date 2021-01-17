@@ -1,6 +1,7 @@
 include Makefile.cicd
 .PHONY: build test tools export healthcheck
 
+module = gitlab.com/thorchain/thornode
 GOBIN?=${GOPATH}/bin
 NOW=$(shell date +'%Y-%m-%d_%T')
 COMMIT:=$(shell git log -1 --format='%H')
@@ -23,7 +24,7 @@ ldflags = -X gitlab.com/thorchain/thornode/constants.Version=$(VERSION) \
 BUILD_FLAGS := -ldflags '$(ldflags)' -tags ${TAG}
 TEST_BUILD_FLAGS :=  -tags mocknet
 
-BINARIES=./cmd/thorcli ./cmd/thord ./cmd/bifrost ./tools/generate
+BINARIES=./cmd/thornode ./cmd/bifrost ./tools/generate
 
 # variables default for healthcheck against full stack in docker
 CHAIN_API?=localhost:1317
@@ -31,10 +32,13 @@ MIDGARD_API?=localhost:8080
 
 all: lint install
 
-build:
+protob:
+	@sh scripts/protocgen.sh
+
+build: protob
 	go build ${BUILD_FLAGS} ${BINARIES}
 
-install: go.sum
+install: go.sum protob
 	go install ${BUILD_FLAGS} ${BINARIES}
 
 tools:
@@ -59,21 +63,21 @@ test:
 	@go test ${TEST_BUILD_FLAGS} ${TEST_DIR}
 
 test-watch: clear
-	@gow -c test ${TEST_BUILD_FLAGS} -mod=readonly ${TEST_DIR}
+	@gow -c test ${TEST_BUILD_FLAGS} ${TEST_DIR}
 
 format:
 	@gofumpt -w .
 
-lint-pre:
+lint-pre: protob
 	@gofumpt -d cmd x bifrost common constants tools # for display
 	@test -z "$(shell gofumpt -l cmd x bifrost common constants tools)" # cause error
 	@go mod verify
 
 lint: lint-pre
-	@golangci-lint run
+	@golangci-lint run --skip-files ".*\\.pb\\.go$$"
 
 lint-verbose: lint-pre
-	@golangci-lint run -v
+	golangci-lint run -v --skip-files ".*\\.pb\\.go$$"
 
 start-daemon:
 	thord start --log_level "main:info,state:debug,*:error"

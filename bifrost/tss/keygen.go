@@ -8,13 +8,13 @@ import (
 	"github.com/blang/semver"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	"gitlab.com/thorchain/tss/go-tss/blame"
 	"gitlab.com/thorchain/tss/go-tss/keygen"
 	"gitlab.com/thorchain/tss/go-tss/tss"
 
 	"gitlab.com/thorchain/thornode/bifrost/thorclient"
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/constants"
+	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
 // KeyGen is
@@ -59,10 +59,10 @@ func (kg *KeyGen) getVersion() semver.Version {
 	return kg.currentVersion
 }
 
-func (kg *KeyGen) GenerateNewKey(pKeys common.PubKeys) (common.PubKeySet, blame.Blame, error) {
+func (kg *KeyGen) GenerateNewKey(pKeys common.PubKeys) (common.PubKeySet, types.Blame, error) {
 	// No need to do key gen
 	if len(pKeys) == 0 {
-		return common.EmptyPubKeySet, blame.Blame{}, nil
+		return common.EmptyPubKeySet, types.Blame{}, nil
 	}
 	var keys []string
 	for _, item := range pKeys {
@@ -75,7 +75,7 @@ func (kg *KeyGen) GenerateNewKey(pKeys common.PubKeys) (common.PubKeySet, blame.
 	// get current THORChain block height
 	blockHeight, err := kg.bridge.GetBlockHeight()
 	if err != nil {
-		return common.EmptyPubKeySet, blame.Blame{}, fmt.Errorf("fail to get current thorchain block height: %w", err)
+		return common.EmptyPubKeySet, types.Blame{}, fmt.Errorf("fail to get current thorchain block height: %w", err)
 	}
 
 	// this is just round the block height to the nearest 10
@@ -100,19 +100,31 @@ func (kg *KeyGen) GenerateNewKey(pKeys common.PubKeys) (common.PubKeySet, blame.
 		panic("tss keygen timeout")
 	}
 
+	// copy blame to our own struct
+	blame := types.Blame{
+		FailReason: resp.Blame.FailReason,
+		IsUnicast:  resp.Blame.IsUnicast,
+		BlameNodes: make([]types.Node, len(resp.Blame.BlameNodes)),
+	}
+	for i, n := range resp.Blame.BlameNodes {
+		blame.BlameNodes[i].Pubkey = n.Pubkey
+		blame.BlameNodes[i].BlameData = n.BlameData
+		blame.BlameNodes[i].BlameSignature = n.BlameSignature
+	}
+
 	if err != nil {
 		// the resp from kg.server.Keygen will not be nil
-		if resp.Blame.IsEmpty() {
-			resp.Blame.FailReason = err.Error()
+		if blame.IsEmpty() {
+			blame.FailReason = err.Error()
 		}
-		return common.EmptyPubKeySet, resp.Blame, fmt.Errorf("fail to keygen,err:%w", err)
+		return common.EmptyPubKeySet, blame, fmt.Errorf("fail to keygen,err:%w", err)
 	}
 
 	cpk, err := common.NewPubKey(resp.PubKey)
 	if err != nil {
-		return common.EmptyPubKeySet, resp.Blame, fmt.Errorf("fail to create common.PubKey,%w", err)
+		return common.EmptyPubKeySet, blame, fmt.Errorf("fail to create common.PubKey,%w", err)
 	}
 
 	// TODO later on THORNode need to have both secp256k1 key and ed25519
-	return common.NewPubKeySet(cpk, cpk), resp.Blame, nil
+	return common.NewPubKeySet(cpk, cpk), blame, nil
 }

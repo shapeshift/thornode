@@ -1,5 +1,5 @@
 {
-    "active_block_height": "1",
+    "active_block_height": 1,
     "bond": "0",
     "bond_address": "tbnb1czyqwfxptfnk7aey99cu820ftr28hw2fcvrh74",
     "node_address": "tthor1tdfqy34uptx207scymqsy4k5uzfmry5sf7z3dw",
@@ -13,9 +13,9 @@
     "signer_membership": [
         "tthorpub1addwnpepq2kdyjkm6y9aa3kxl8wfaverka6pvkek2ygrmhx6sj3ec6h0fegws6fcmjl"
     ],
-    "slash_points": "0",
+    "slash_points": 0,
     "status": "active",
-    "status_since": "1",
+    "status_since": 1,
     "validator_cons_pub_key": "tthorcpub1zcjduepqmfu6urfdeewa35250fjhwq2h0daljs7w20wvqc3p5c0tpzx60jcqzm5gjg",
     "version": "0.1.0"
 }

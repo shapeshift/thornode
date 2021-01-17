@@ -28,7 +28,7 @@ func (s *TypeErrataTxSuite) TestVoter(c *C) {
 
 	c.Check(errata.HasConsensus(nil), Equals, false)
 	nas := NodeAccounts{
-		NodeAccount{NodeAddress: addr, Status: Active},
+		NodeAccount{NodeAddress: addr, Status: NodeStatus_Active},
 	}
 	c.Check(errata.HasConsensus(nas), Equals, true)
 	errata1 := NewErrataTxVoter(GetRandomTxHash(), common.EmptyChain)

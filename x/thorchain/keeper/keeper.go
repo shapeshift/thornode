@@ -3,9 +3,8 @@ package keeper
 import (
 	"github.com/blang/semver"
 	"github.com/cosmos/cosmos-sdk/codec"
-	"github.com/cosmos/cosmos-sdk/x/auth"
-	"github.com/cosmos/cosmos-sdk/x/bank"
-	"github.com/cosmos/cosmos-sdk/x/supply"
+	authkeeper "github.com/cosmos/cosmos-sdk/x/auth/keeper"
+	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
@@ -14,20 +13,27 @@ import (
 )
 
 type Keeper interface {
-	Cdc() *codec.Codec
-	Supply() supply.Keeper
-	CoinKeeper() bank.Keeper
-	AccountKeeper() auth.AccountKeeper
+	Cdc() codec.BinaryMarshaler
 	Version() int64
 	GetKey(ctx cosmos.Context, prefix kvTypes.DbPrefix, key string) string
 	GetStoreVersion(ctx cosmos.Context) int64
 	SetStoreVersion(ctx cosmos.Context, ver int64)
 	GetRuneBalanceOfModule(ctx cosmos.Context, moduleName string) cosmos.Uint
-	SendFromModuleToModule(ctx cosmos.Context, from, to string, coin common.Coin) error
-	SendFromAccountToModule(ctx cosmos.Context, from cosmos.AccAddress, to string, coin common.Coin) error
-	SendFromModuleToAccount(ctx cosmos.Context, from string, to cosmos.AccAddress, coin common.Coin) error
+	SendFromModuleToModule(ctx cosmos.Context, from, to string, coin common.Coins) error
+	SendFromAccountToModule(ctx cosmos.Context, from cosmos.AccAddress, to string, coin common.Coins) error
+	SendFromModuleToAccount(ctx cosmos.Context, from string, to cosmos.AccAddress, coin common.Coins) error
 	MintToModule(ctx cosmos.Context, module string, coin common.Coin) error
 	BurnFromModule(ctx cosmos.Context, module string, coin common.Coin) error
+	MintAndSendToAccount(ctx cosmos.Context, to cosmos.AccAddress, coin common.Coin) error
+	GetModuleAddress(module string) (common.Address, error)
+	GetModuleAccAddress(module string) cosmos.AccAddress
+	GetBalance(ctx cosmos.Context, addr cosmos.AccAddress) cosmos.Coins
+	HasCoins(ctx cosmos.Context, addr cosmos.AccAddress, coins cosmos.Coins) bool
+	GetAccount(ctx cosmos.Context, addr cosmos.AccAddress) cosmos.Account
+
+	// passthrough funcs
+	SendCoins(ctx cosmos.Context, from, to cosmos.AccAddress, coins cosmos.Coins) error
+	AddCoins(ctx cosmos.Context, addr cosmos.AccAddress, coins cosmos.Coins) error
 
 	// Keeper Interfaces
 	KeeperPool
@@ -246,6 +252,6 @@ type KeeperChainContract interface {
 }
 
 // NewKVStore creates new instances of the thorchain Keeper
-func NewKVStore(coinKeeper bank.Keeper, supplyKeeper supply.Keeper, ak auth.AccountKeeper, storeKey cosmos.StoreKey, cdc *codec.Codec) Keeper {
-	return kv1.NewKVStore(coinKeeper, supplyKeeper, ak, storeKey, cdc)
+func NewKeeper(cdc codec.BinaryMarshaler, coinKeeper bankkeeper.Keeper, accountKeeper authkeeper.AccountKeeper, storeKey cosmos.StoreKey) Keeper {
+	return kv1.NewKVStore(cdc, coinKeeper, accountKeeper, storeKey)
 }

@@ -78,16 +78,16 @@ func (s *HandlerErrataTxSuite) TestValidate(c *C) {
 	// happy path
 	ver := constants.SWVersion
 	msg := NewMsgErrataTx(GetRandomTxHash(), common.BNBChain, keeper.na.NodeAddress)
-	err := handler.validate(ctx, msg, ver)
+	err := handler.validate(ctx, *msg, ver)
 	c.Assert(err, IsNil)
 
 	// invalid version
-	err = handler.validate(ctx, msg, semver.Version{})
+	err = handler.validate(ctx, *msg, semver.Version{})
 	c.Assert(err, Equals, errBadVersion)
 
 	// invalid msg
-	msg = MsgErrataTx{}
-	err = handler.validate(ctx, msg, ver)
+	msg = &MsgErrataTx{}
+	err = handler.validate(ctx, *msg, ver)
 	c.Assert(err, NotNil)
 }
 
@@ -144,7 +144,7 @@ func (s *HandlerErrataTxSuite) TestErrataHandlerHappyPath(c *C) {
 	c.Assert(mgr.BeginBlock(ctx), IsNil)
 	handler := NewErrataTxHandler(keeper, mgr)
 	msg := NewMsgErrataTx(txID, common.BNBChain, na.NodeAddress)
-	_, err := handler.handle(ctx, msg, ver, constAccessor)
+	_, err := handler.handle(ctx, *msg, ver, constAccessor)
 	c.Assert(err, IsNil)
 	c.Check(keeper.pool.BalanceRune.Equal(cosmos.NewUint(70*common.One)), Equals, true)
 	c.Check(keeper.pool.BalanceAsset.Equal(cosmos.NewUint(100*common.One)), Equals, true)

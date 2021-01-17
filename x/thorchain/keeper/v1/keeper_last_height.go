@@ -16,14 +16,14 @@ func (k KVStore) SetLastSignedHeight(ctx cosmos.Context, height int64) error {
 		err := fmt.Errorf("last signed height %d is larger than %d, block height can't go backward ", lastHeight, height)
 		return dbError(ctx, "", err)
 	}
-	k.set(ctx, k.GetKey(ctx, prefixLastSignedHeight, ""), height)
+	k.setInt64(ctx, k.GetKey(ctx, prefixLastSignedHeight, ""), height)
 	return nil
 }
 
 // GetLastSignedHeight get last signed height from key value store
 func (k KVStore) GetLastSignedHeight(ctx cosmos.Context) (int64, error) {
 	var record int64
-	_, err := k.get(ctx, k.GetKey(ctx, prefixLastSignedHeight, ""), &record)
+	_, err := k.getInt64(ctx, k.GetKey(ctx, prefixLastSignedHeight, ""), &record)
 	return record, err
 }
 
@@ -34,14 +34,14 @@ func (k KVStore) SetLastChainHeight(ctx cosmos.Context, chain common.Chain, heig
 		err := fmt.Errorf("last block height %d is larger than %d, block height can't go backward ", lastHeight, height)
 		return dbError(ctx, "", err)
 	}
-	k.set(ctx, k.GetKey(ctx, prefixLastChainHeight, chain.String()), height)
+	k.setInt64(ctx, k.GetKey(ctx, prefixLastChainHeight, chain.String()), height)
 	return nil
 }
 
 // GetLastChainHeight get last chain height
 func (k KVStore) GetLastChainHeight(ctx cosmos.Context, chain common.Chain) (int64, error) {
 	var record int64
-	_, err := k.get(ctx, k.GetKey(ctx, prefixLastChainHeight, chain.String()), &record)
+	_, err := k.getInt64(ctx, k.GetKey(ctx, prefixLastChainHeight, chain.String()), &record)
 	return record, err
 }
 
@@ -57,9 +57,9 @@ func (k KVStore) GetLastChainHeights(ctx cosmos.Context) (map[common.Chain]int64
 		if err != nil {
 			return nil, fmt.Errorf("fail to parse chain: %w", err)
 		}
-		var height int64
-		k.cdc.MustUnmarshalBinaryBare(iter.Value(), &height)
-		result[chain] = height
+		value := ProtoInt64{}
+		k.cdc.MustUnmarshalBinaryBare(iter.Value(), &value)
+		result[chain] = value.Value
 	}
 	return result, nil
 }
@@ -68,7 +68,7 @@ func (k KVStore) GetLastChainHeights(ctx cosmos.Context) (map[common.Chain]int64
 func (k KVStore) SetLastObserveHeight(ctx cosmos.Context, chain common.Chain, address cosmos.AccAddress, height int64) error {
 	var lastHeight int64
 	key := k.GetKey(ctx, prefixLastObserveHeight, address.String()) + "/" + chain.String()
-	exist, err := k.get(ctx, key, &lastHeight)
+	exist, err := k.getInt64(ctx, key, &lastHeight)
 	if err != nil {
 		ctx.Logger().Error("fail to get last observe height", "error", err)
 	}
@@ -77,7 +77,7 @@ func (k KVStore) SetLastObserveHeight(ctx cosmos.Context, chain common.Chain, ad
 		return nil
 	}
 
-	k.set(ctx, key, height)
+	k.setInt64(ctx, key, height)
 	return nil
 }
 
@@ -94,9 +94,9 @@ func (k KVStore) GetLastObserveHeight(ctx cosmos.Context, address cosmos.AccAddr
 		if err != nil {
 			return nil, fmt.Errorf("fail to parse chain: %w", err)
 		}
-		var height int64
-		k.cdc.MustUnmarshalBinaryBare(iter.Value(), &height)
-		result[chain] = height
+		value := ProtoInt64{}
+		k.cdc.MustUnmarshalBinaryBare(iter.Value(), &value)
+		result[chain] = value.Value
 	}
 	return result, nil
 }

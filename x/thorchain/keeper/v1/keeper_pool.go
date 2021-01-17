@@ -2,10 +2,34 @@ package keeperv1
 
 import (
 	"errors"
+	"fmt"
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 )
+
+func (k KVStore) setPool(ctx cosmos.Context, key string, record Pool) {
+	store := ctx.KVStore(k.storeKey)
+	buf := k.cdc.MustMarshalBinaryBare(&record)
+	if buf == nil {
+		store.Delete([]byte(key))
+	} else {
+		store.Set([]byte(key), buf)
+	}
+}
+
+func (k KVStore) getPool(ctx cosmos.Context, key string, record *Pool) (bool, error) {
+	store := ctx.KVStore(k.storeKey)
+	if !store.Has([]byte(key)) {
+		return false, nil
+	}
+
+	bz := store.Get([]byte(key))
+	if err := k.cdc.UnmarshalBinaryBare(bz, record); err != nil {
+		return true, dbError(ctx, fmt.Sprintf("Unmarshal kvstore: (%T) %s", record, key), err)
+	}
+	return true, nil
+}
 
 // GetPoolIterator iterate pools
 func (k KVStore) GetPoolIterator(ctx cosmos.Context) cosmos.Iterator {
@@ -34,7 +58,7 @@ func (k KVStore) GetPool(ctx cosmos.Context, asset common.Asset) (Pool, error) {
 		asset = asset.GetLayer1Asset()
 	}
 	record := NewPool()
-	_, err := k.get(ctx, k.GetKey(ctx, prefixPool, asset.String()), &record)
+	_, err := k.getPool(ctx, k.GetKey(ctx, prefixPool, asset.String()), &record)
 
 	return record, err
 }
@@ -45,7 +69,7 @@ func (k KVStore) SetPool(ctx cosmos.Context, pool Pool) error {
 		return errors.New("cannot save a pool with an empty asset")
 	}
 
-	k.set(ctx, k.GetKey(ctx, prefixPool, pool.Asset.String()), pool)
+	k.setPool(ctx, k.GetKey(ctx, prefixPool, pool.Asset.String()), pool)
 	return nil
 }
 

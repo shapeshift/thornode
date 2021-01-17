@@ -8,39 +8,37 @@ set -o pipefail
 SIGNER_NAME="${SIGNER_NAME:=thorchain}"
 SIGNER_PASSWD="${SIGNER_PASSWD:=password}"
 NODES="${NODES:=1}"
-SEED="${SEED:=thor-daemon}" # the hostname of the master node
+SEED="${SEED:=thornode}" # the hostname of the master node
 CONTRACT="${CONTRACT}"
 ETH_HOST="${ETH_HOST:=http://ethereum-localnet:8545}"
-# config the keyring to use file backend
-thorcli config keyring-backend file
-
+THORNODE_API_ENABLED=true
 # find or generate our BNB address
 gen_bnb_address
 ADDRESS=$(cat ~/.bond/address.txt)
 
 # create thorchain user, if it doesn't already
-echo $SIGNER_PASSWD | thorcli keys show $SIGNER_NAME
+echo $SIGNER_PASSWD | thornode keys show $SIGNER_NAME --keyring-backend file
 if [ $? -gt 0 ]; then
   if [ "$SIGNER_SEED_PHRASE" != "" ]; then
-    printf "$SIGNER_SEED_PHRASE\n$SIGNER_PASSWD\n$SIGNER_PASSWD\n" | thorcli keys add $SIGNER_NAME --recover
-    NODE_PUB_KEY_ED25519=$(printf "$SIGNER_PASSWD\n$SIGNER_SEED_PHRASE\n" | thorcli ed25519)
+    printf "$SIGNER_SEED_PHRASE\n$SIGNER_PASSWD\n$SIGNER_PASSWD\n" | thornode keys --keyring-backend file add $SIGNER_NAME --recover
+    NODE_PUB_KEY_ED25519=$(printf "$SIGNER_PASSWD\n$SIGNER_SEED_PHRASE\n" | thornode ed25519 )
   else
-     RESULT=$(printf "$SIGNER_PASSWD\n$SIGNER_PASSWD\n" | thorcli keys add $SIGNER_NAME -o json 2>&1 >/dev/null)
+     RESULT=$(printf "$SIGNER_PASSWD\n$SIGNER_PASSWD\n" | thornode keys --keyring-backend file add $SIGNER_NAME --output json 2>&1)
      MNEMONIC=$(echo $RESULT | jq -r '.mnemonic')
-     NODE_PUB_KEY_ED25519=$(printf "$SIGNER_PASSWD\n$MNEMONIC\n" | thorcli ed25519)
+     NODE_PUB_KEY_ED25519=$(printf "$SIGNER_PASSWD\n$MNEMONIC\n" | thornode ed25519)
   fi
 fi
 
-VALIDATOR=$(thord tendermint show-validator)
-NODE_ADDRESS=$(echo $SIGNER_PASSWD | thorcli keys show thorchain -a)
-NODE_PUB_KEY=$(echo $SIGNER_PASSWD | thorcli keys show thorchain -p)
+VALIDATOR=$(thornode tendermint show-validator)
+NODE_ADDRESS=$(echo $SIGNER_PASSWD | thornode keys show thorchain -a --keyring-backend file)
+NODE_PUB_KEY=$(echo $SIGNER_PASSWD | thornode keys show thorchain -p --keyring-backend file)
 VERSION=$(fetch_version)
 
 mkdir -p /tmp/shared
 
 if [ "$SEED" = "$(hostname)" ]; then
   echo "I AM THE SEED NODE"
-  thord tendermint show-node-id >/tmp/shared/node.txt
+  thornode tendermint show-node-id >/tmp/shared/node.txt
 fi
 
 # write node account data to json file in shared directory
@@ -52,7 +50,7 @@ while [ "$(ls -1 /tmp/shared/node_*.json | wc -l | tr -d '[:space:]')" != "$NODE
 done
 
 if [ "$SEED" = "$(hostname)" ]; then
-  if [ ! -f ~/.thord/config/genesis.json ]; then
+  if [ ! -f ~/.thornode/config/genesis.json ]; then
     # get a list of addresses (thor bech32)
     ADDRS=""
     for f in /tmp/shared/node_*.json; do
@@ -80,7 +78,7 @@ if [ "$SEED" = "$(hostname)" ]; then
     done
 
     # add gases
-    add_gas_config "BNB.BNB" 37500 30000
+    # add_gas_config "BNB.BNB" 37500 30000
 
     # disable default bank transfer, and opt to use our own custom one
     disable_bank_send
@@ -112,14 +110,14 @@ if [ "$SEED" = "$(hostname)" ]; then
     # use external IP if available
     [ ! -z $EXTERNAL_IP ] && external_address $EXTERNAL_IP $NET
 
-    cat ~/.thord/config/genesis.json
-    thord validate-genesis
+    cat ~/.thornode/config/genesis.json
+    thornode validate-genesis --trace
   fi
 fi
 
 # setup peer connection
 if [ "$SEED" != "$(hostname)" ]; then
-  if [ ! -f ~/.thord/config/genesis.json ]; then
+  if [ ! -f ~/.thornode/config/genesis.json ]; then
     echo "I AM NOT THE SEED"
 
     init_chain $NODE_ADDRESS
@@ -128,7 +126,7 @@ if [ "$SEED" != "$(hostname)" ]; then
     echo "NODE ID: $NODE_ID"
     peer_list $NODE_ID $SEED
 
-    cat ~/.thord/config/genesis.json
+    cat ~/.thornode/config/genesis.json
   fi
 fi
 

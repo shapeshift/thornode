@@ -1,28 +1,15 @@
 package thorchain
 
 import (
-	"bufio"
-	"bytes"
 	"errors"
 	"fmt"
-	"os"
-	"os/user"
-	"path/filepath"
-	"strings"
 
-	"github.com/cosmos/cosmos-sdk/client/input"
-	ckeys "github.com/cosmos/cosmos-sdk/crypto/keys"
 	"github.com/hashicorp/go-multierror"
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
-)
-
-const (
-	// folder name for thorchain thorcli
-	thorchainCliFolderName = `.thorcli`
 )
 
 // nativeRuneModuleName will be empty if it is not NATIVE Rune
@@ -311,9 +298,8 @@ func isSignedByActiveNodeAccounts(ctx cosmos.Context, keeper keeper.Keeper, sign
 	if len(signers) == 0 {
 		return false
 	}
-	supplier := keeper.Supply()
 	for _, signer := range signers {
-		if signer.Equals(supplier.GetModuleAddress(AsgardName)) {
+		if signer.Equals(keeper.GetModuleAccAddress(AsgardName)) {
 			continue
 		}
 		nodeAccount, err := keeper.GetNodeAccount(ctx, signer)
@@ -527,44 +513,4 @@ func AddGasFees(ctx cosmos.Context, keeper keeper.Keeper, tx ObservedTx, gasMana
 		}
 	}
 	return nil
-}
-
-// KeybaseStore to store keys
-type KeybaseStore struct {
-	Keybase      ckeys.Keybase
-	SignerName   string
-	SignerPasswd string
-}
-
-func signerCreds() (string, string) {
-	reader := bufio.NewReader(os.Stdin)
-	username, _ := input.GetString("Enter Signer name:", reader)
-	password, _ := input.GetPassword("Enter Signer password:", reader)
-
-	return strings.TrimSpace(username), strings.TrimSpace(password)
-}
-
-// getKeybase will create an instance of Keybase
-func getKeybase(thorchainHome string) (KeybaseStore, error) {
-	username, password := signerCreds()
-
-	buf := bytes.NewBufferString(password)
-	// the library used by keyring is using ReadLine , which expect a new line
-	buf.WriteByte('\n')
-
-	cliDir := thorchainHome
-	if len(thorchainHome) == 0 {
-		usr, err := user.Current()
-		if err != nil {
-			return KeybaseStore{}, fmt.Errorf("fail to get current user,err:%w", err)
-		}
-		cliDir = filepath.Join(usr.HomeDir, thorchainCliFolderName)
-	}
-
-	kb, err := ckeys.NewKeyring(cosmos.KeyringServiceName(), ckeys.BackendFile, cliDir, buf)
-	return KeybaseStore{
-		SignerName:   username,
-		SignerPasswd: password,
-		Keybase:      kb,
-	}, err
 }

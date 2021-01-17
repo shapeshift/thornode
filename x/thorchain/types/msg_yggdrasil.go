@@ -5,19 +5,11 @@ import (
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
 
-// MsgYggdrasil defines a MsgYggdrasil message
-type MsgYggdrasil struct {
-	Tx          common.Tx         `json:"tx"`
-	PubKey      common.PubKey     `json:"pub_key"`
-	AddFunds    bool              `json:"add_funds"`
-	Coins       common.Coins      `json:"coins"`
-	BlockHeight int64             `json:"block_height"`
-	Signer      cosmos.AccAddress `json:"signer"`
-}
+var _ cosmos.Msg = &MsgYggdrasil{}
 
 // NewMsgYggdrasil is a constructor function for MsgYggdrasil
-func NewMsgYggdrasil(tx common.Tx, pk common.PubKey, blockHeight int64, addFunds bool, coins common.Coins, signer cosmos.AccAddress) MsgYggdrasil {
-	return MsgYggdrasil{
+func NewMsgYggdrasil(tx common.Tx, pk common.PubKey, blockHeight int64, addFunds bool, coins common.Coins, signer cosmos.AccAddress) *MsgYggdrasil {
+	return &MsgYggdrasil{
 		Tx:          tx,
 		PubKey:      pk,
 		AddFunds:    addFunds,
@@ -28,40 +20,40 @@ func NewMsgYggdrasil(tx common.Tx, pk common.PubKey, blockHeight int64, addFunds
 }
 
 // Route should return the route key of the module
-func (msg MsgYggdrasil) Route() string { return RouterKey }
+func (m *MsgYggdrasil) Route() string { return RouterKey }
 
 // Type should return the action
-func (msg MsgYggdrasil) Type() string { return "set_yggdrasil" }
+func (m MsgYggdrasil) Type() string { return "set_yggdrasil" }
 
 // ValidateBasic runs stateless checks on the message
-func (msg MsgYggdrasil) ValidateBasic() error {
-	if msg.Signer.Empty() {
-		return cosmos.ErrInvalidAddress(msg.Signer.String())
+func (m *MsgYggdrasil) ValidateBasic() error {
+	if m.Signer.Empty() {
+		return cosmos.ErrInvalidAddress(m.Signer.String())
 	}
-	if msg.PubKey.IsEmpty() {
+	if m.PubKey.IsEmpty() {
 		return cosmos.ErrUnknownRequest("pubkey cannot be empty")
 	}
-	if msg.BlockHeight <= 0 {
+	if m.BlockHeight <= 0 {
 		return cosmos.ErrUnknownRequest("invalid block height")
 	}
-	if err := msg.Tx.Valid(); err != nil {
+	if err := m.Tx.Valid(); err != nil {
 		return cosmos.ErrUnknownRequest(err.Error())
 	}
-	if len(msg.Coins) == 0 {
+	if len(m.Coins) == 0 {
 		return cosmos.ErrUnknownRequest("no coins")
 	}
-	if err := msg.Coins.Valid(); err != nil {
+	if err := m.Coins.Valid(); err != nil {
 		return cosmos.ErrInvalidCoins(err.Error())
 	}
 	return nil
 }
 
 // GetSignBytes encodes the message for signing
-func (msg MsgYggdrasil) GetSignBytes() []byte {
-	return cosmos.MustSortJSON(ModuleCdc.MustMarshalJSON(msg))
+func (m *MsgYggdrasil) GetSignBytes() []byte {
+	return cosmos.MustSortJSON(ModuleCdc.MustMarshalJSON(m))
 }
 
 // GetSigners defines whose signature is required
-func (msg MsgYggdrasil) GetSigners() []cosmos.AccAddress {
-	return []cosmos.AccAddress{msg.Signer}
+func (m *MsgYggdrasil) GetSigners() []cosmos.AccAddress {
+	return []cosmos.AccAddress{m.Signer}
 }

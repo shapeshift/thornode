@@ -7,10 +7,12 @@ import (
 	"strconv"
 	"time"
 
-	cKeys "github.com/cosmos/cosmos-sdk/crypto/keys"
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	hd "github.com/cosmos/cosmos-sdk/crypto/hd"
+	cKeys "github.com/cosmos/cosmos-sdk/crypto/keyring"
 	. "gopkg.in/check.v1"
 
+	"gitlab.com/thorchain/thornode/cmd"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/x/thorchain"
 )
 
@@ -36,12 +38,10 @@ func (*KeysSuite) setupKeysForTest(c *C) string {
 	buf.WriteByte('\n')
 	buf.WriteString(signerPasswordForTest)
 	buf.WriteByte('\n')
-	kb, err := cKeys.NewKeyring(sdk.KeyringServiceName(), cKeys.BackendFile, thorcliDir, buf)
+	kb, err := cKeys.New(cosmos.KeyringServiceName(), cKeys.BackendFile, thorcliDir, buf)
 	c.Assert(err, IsNil)
-	info, _, err := kb.CreateMnemonic(signerNameForTest, cKeys.English, signerPasswordForTest, cKeys.Secp256k1)
-	c.Logf("name:%s", info.GetName())
+	_, _, err = kb.NewMnemonic(signerNameForTest, cKeys.English, cmd.THORChainHDPath, hd.Secp256k1)
 	c.Assert(err, IsNil)
-	kb.CloseDB()
 	return thorcliDir
 }
 
@@ -61,15 +61,14 @@ func (ks *KeysSuite) TestNewKeys(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(k, NotNil)
 	c.Assert(info, NotNil)
-	ki := NewKeysWithKeybase(k, info, signerPasswordForTest)
+	ki := NewKeysWithKeybase(k, signerNameForTest, signerPasswordForTest)
 	kInfo := ki.GetSignerInfo()
 	c.Assert(kInfo, NotNil)
 	c.Assert(kInfo.GetName(), Equals, signerNameForTest)
 	priKey, err := ki.GetPrivateKey()
 	c.Assert(err, IsNil)
 	c.Assert(priKey, NotNil)
-	c.Assert(priKey.Bytes(), HasLen, 37)
+	c.Assert(priKey.Bytes(), HasLen, 32)
 	kb := ki.GetKeybase()
 	c.Assert(kb, NotNil)
-	kb.CloseDB()
 }

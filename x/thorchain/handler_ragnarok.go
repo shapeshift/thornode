@@ -27,15 +27,15 @@ func NewRagnarokHandler(keeper keeper.Keeper, mgr Manager) RagnarokHandler {
 
 // Run is the main entry point of ragnarok handler
 func (h RagnarokHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
-	msg, ok := m.(MsgRagnarok)
+	msg, ok := m.(*MsgRagnarok)
 	if !ok {
 		return nil, errInvalidMessage
 	}
-	if err := h.validate(ctx, msg, version); err != nil {
+	if err := h.validate(ctx, *msg, version); err != nil {
 		ctx.Logger().Error("MsgRagnarok failed validation", "error", err)
 		return nil, err
 	}
-	result, err := h.handle(ctx, version, msg, constAccessor)
+	result, err := h.handle(ctx, version, *msg, constAccessor)
 	if err != nil {
 		ctx.Logger().Error("fail to process MsgRagnarok", "error", err)
 	}

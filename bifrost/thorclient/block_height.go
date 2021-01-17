@@ -1,6 +1,7 @@
 package thorclient
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"gitlab.com/thorchain/thornode/common"
@@ -58,7 +59,7 @@ func (b *ThorchainBridge) getLastBlock(chain common.Chain) ([]types.QueryResLast
 		return nil, fmt.Errorf("failed to get lastblock: %w", err)
 	}
 	var lastBlock []types.QueryResLastBlockHeights
-	if err := b.cdc.UnmarshalJSON(buf, &lastBlock); err != nil {
+	if err := json.Unmarshal(buf, &lastBlock); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal last block: %w", err)
 	}
 	return lastBlock, nil

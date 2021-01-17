@@ -28,15 +28,15 @@ func NewSwitchHandler(keeper keeper.Keeper, mgr Manager) SwitchHandler {
 
 // Run it the main entry point to execute Switch logic
 func (h SwitchHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
-	msg, ok := m.(MsgSwitch)
+	msg, ok := m.(*MsgSwitch)
 	if !ok {
 		return nil, errInvalidMessage
 	}
-	if err := h.validate(ctx, msg, version); err != nil {
+	if err := h.validate(ctx, *msg, version); err != nil {
 		ctx.Logger().Error("msg switch failed validation", "error", err)
 		return nil, err
 	}
-	result, err := h.handle(ctx, msg, version, constAccessor)
+	result, err := h.handle(ctx, *msg, version, constAccessor)
 	if err != nil {
 		ctx.Logger().Error("failed to process msg switch", "error", err)
 		return nil, err
@@ -92,18 +92,13 @@ func (h SwitchHandler) handleV1(ctx cosmos.Context, msg MsgSwitch, version semve
 }
 
 func (h SwitchHandler) toNative(ctx cosmos.Context, msg MsgSwitch) (*cosmos.Result, error) {
-	bank := h.keeper.CoinKeeper()
-
-	coin, err := common.NewCoin(common.RuneNative, msg.Tx.Coins[0].Amount).Native()
-	if err != nil {
-		return nil, ErrInternal(err, "fail to get native coin")
-	}
+	coin := common.NewCoin(common.RuneNative, msg.Tx.Coins[0].Amount)
 
 	addr, err := cosmos.AccAddressFromBech32(msg.Destination.String())
 	if err != nil {
 		return nil, ErrInternal(err, "fail to parse thor address")
 	}
-	if _, err := bank.AddCoins(ctx, addr, cosmos.NewCoins(coin)); err != nil {
+	if err := h.keeper.MintAndSendToAccount(ctx, addr, coin); err != nil {
 		return nil, ErrInternal(err, "fail to mint native rune coins")
 	}
 	return &cosmos.Result{}, nil

@@ -31,6 +31,10 @@ unit_tests:
   except:
     - schedules
   coverage: '/total:\s+\(statements\)\s+(\d+.\d+\%)/'
+  before_script:
+    - apt update
+    - apt install -y protobuf-compiler
+    - make protob
   script:
     - make test-coverage
     - go tool cover -func=coverage.out
@@ -45,8 +49,11 @@ lint_code:
     - schedules
   before_script:
     - go get mvdan.cc/gofumpt
+    - apt update
+    - apt install -y protobuf-compiler
+    - make protob
   script:
-    - make lint-verbose
+    - golangci-lint run -v --skip-files ".*\\.pb\\.go$"
 
 # Build docker image
 build-thornode:
@@ -65,7 +72,7 @@ build-thornode:
     - docker:19-dind
   before_script:
     - apk update
-    - apk add make git jq curl
+    - apk add make git jq curl protoc
     - make docker-gitlab-login
   script:
     - make docker-gitlab-build
@@ -73,7 +80,7 @@ build-thornode:
 
 smoke-test:thornode:
   stage: smoke-test
-  image: docker/compose:alpine-1.25.4
+  image: docker/compose:alpine-1.27.4
   tags:
     - thorchain
   services:
@@ -86,7 +93,7 @@ smoke-test:thornode:
       - ./logs/
   before_script:
     - apk update
-    - apk add git make
+    - apk add git make protoc
     - |-
       if [[ $CI_MERGE_REQUEST_TARGET_BRANCH_NAME != "" ]]; then
         HEIMDALL_BRANCH=$CI_MERGE_REQUEST_TARGET_BRANCH_NAME

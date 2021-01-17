@@ -6,8 +6,6 @@ import (
 	se "github.com/cosmos/cosmos-sdk/types/errors"
 	. "gopkg.in/check.v1"
 
-	"gitlab.com/thorchain/tss/go-tss/blame"
-
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
@@ -17,9 +15,9 @@ type MsgTssKeysignFailSuite struct{}
 var _ = Suite(&MsgTssKeysignFailSuite{})
 
 func (s MsgTssKeysignFailSuite) TestMsgTssKeysignFail(c *C) {
-	b := blame.Blame{
+	b := Blame{
 		FailReason: "fail to TSS sign",
-		BlameNodes: []blame.Node{
+		BlameNodes: []Node{
 			{Pubkey: GetRandomPubKey().String()},
 			{Pubkey: GetRandomPubKey().String()},
 		},
@@ -30,7 +28,7 @@ func (s MsgTssKeysignFailSuite) TestMsgTssKeysignFail(c *C) {
 	msg := NewMsgTssKeysignFail(1, b, "hello", coins, GetRandomBech32Addr(), GetRandomPubKey())
 	c.Check(msg.Type(), Equals, "set_tss_keysign_fail")
 	EnsureMsgBasicCorrect(msg, c)
-	c.Check(NewMsgTssKeysignFail(1, blame.Blame{}, "hello", coins, GetRandomBech32Addr(), GetRandomPubKey()), NotNil)
+	c.Check(NewMsgTssKeysignFail(1, Blame{}, "hello", coins, GetRandomBech32Addr(), GetRandomPubKey()), NotNil)
 	c.Check(NewMsgTssKeysignFail(1, b, "", coins, GetRandomBech32Addr(), GetRandomPubKey()), NotNil)
 	c.Check(NewMsgTssKeysignFail(1, b, "hello", common.Coins{}, GetRandomBech32Addr(), GetRandomPubKey()), NotNil)
 	c.Check(NewMsgTssKeysignFail(1, b, "hello", common.Coins{
@@ -50,7 +48,7 @@ func (s MsgTssKeysignFailSuite) TestMsgTssKeysignFail(c *C) {
 	c.Check(err3, NotNil)
 	c.Check(errors.Is(err3, se.ErrUnknownRequest), Equals, true)
 
-	msg4 := NewMsgTssKeysignFail(1, blame.Blame{}, "hello", coins, GetRandomBech32Addr(), GetRandomPubKey())
+	msg4 := NewMsgTssKeysignFail(1, Blame{}, "hello", coins, GetRandomBech32Addr(), GetRandomPubKey())
 	err4 := msg4.ValidateBasic()
 	c.Check(err4, NotNil)
 	c.Check(errors.Is(err4, se.ErrUnknownRequest), Equals, true)

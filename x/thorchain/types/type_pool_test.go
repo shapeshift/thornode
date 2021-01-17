@@ -43,12 +43,12 @@ func (PoolTestSuite) TestPool(c *C) {
 	c.Check(p.EnsureValidPoolStatus(m), IsNil)
 	msgNoop := NewMsgNoOp(GetRandomObservedTx(), signer)
 	c.Check(p.EnsureValidPoolStatus(msgNoop), IsNil)
-	p.Status = Available
+	p.Status = PoolStatus_Available
 	c.Check(p.EnsureValidPoolStatus(m), IsNil)
 	p.Status = PoolStatus(100)
 	c.Check(p.EnsureValidPoolStatus(msgNoop), NotNil)
 
-	p.Status = Suspended
+	p.Status = PoolStatus_Suspended
 	c.Check(p.EnsureValidPoolStatus(msgNoop), NotNil)
 	p1 := NewPool()
 	c.Check(p1.Valid(), NotNil)
@@ -63,7 +63,7 @@ func (PoolTestSuite) TestPool(c *C) {
 
 	// When Pool is in staged status, it can't swap
 	p2 := NewPool()
-	p2.Status = Staged
+	p2.Status = PoolStatus_Staged
 	msgSwap := NewMsgSwap(GetRandomTx(), common.BNBAsset, GetRandomBNBAddress(), cosmos.NewUint(1000), common.NoAddress, cosmos.ZeroUint(), GetRandomBech32Addr())
 	c.Check(p2.EnsureValidPoolStatus(msgSwap), NotNil)
 	c.Check(p2.EnsureValidPoolStatus(msgNoop), IsNil)
@@ -71,7 +71,7 @@ func (PoolTestSuite) TestPool(c *C) {
 
 func (PoolTestSuite) TestPoolStatus(c *C) {
 	inputs := []string{
-		"available", "staged", "suspended", "whatever",
+		"Available", "Staged", "Suspended", "whatever",
 	}
 	for _, item := range inputs {
 		ps := GetPoolStatus(item)
@@ -80,13 +80,11 @@ func (PoolTestSuite) TestPoolStatus(c *C) {
 	var ps PoolStatus
 	err := json.Unmarshal([]byte(`"Available"`), &ps)
 	c.Assert(err, IsNil)
-	c.Check(ps == Available, Equals, true)
+	c.Check(ps == PoolStatus_Available, Equals, true)
 	err = json.Unmarshal([]byte(`{asdf}`), &ps)
 	c.Assert(err, NotNil)
 
 	buf, err := json.Marshal(ps)
 	c.Check(err, IsNil)
 	c.Check(buf, NotNil)
-	invalidPoolStatus := PoolStatus(100)
-	c.Check(invalidPoolStatus.Valid(), NotNil)
 }

@@ -27,14 +27,14 @@ func NewMigrateHandler(keeper keeper.Keeper, mgr Manager) MigrateHandler {
 
 // Run is the main entry point of Migrate handler
 func (h MigrateHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, _ constants.ConstantValues) (*cosmos.Result, error) {
-	msg, ok := m.(MsgMigrate)
+	msg, ok := m.(*MsgMigrate)
 	if !ok {
 		return nil, errInvalidMessage
 	}
-	if err := h.validate(ctx, msg, version); err != nil {
+	if err := h.validate(ctx, *msg, version); err != nil {
 		return nil, err
 	}
-	return h.handle(ctx, msg, version)
+	return h.handle(ctx, *msg, version)
 }
 
 func (h MigrateHandler) validate(ctx cosmos.Context, msg MsgMigrate, version semver.Version) error {

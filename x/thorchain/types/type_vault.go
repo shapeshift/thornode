@@ -10,49 +10,11 @@ import (
 	"gitlab.com/thorchain/thornode/constants"
 )
 
-// VaultType there are two different types of Vault in thorchain
-type VaultType string
-
-// different type of vaults
-const (
-	UnknownVault   VaultType = "unknown"
-	AsgardVault    VaultType = "asgard"
-	YggdrasilVault VaultType = "yggdrasil"
-)
-
-// VaultStatus status of vault
-type VaultStatus string
-
-const (
-	// ActiveVault means the vault is currently actively in use
-	ActiveVault VaultStatus = "active"
-	// RetiringVault means the vault is in the process of retiring
-	RetiringVault VaultStatus = "retiring"
-	// InactiveVault means the vault is not active anymore
-	InactiveVault VaultStatus = "inactive"
-)
-
-// Vault usually represent the account THORNode is using
-type Vault struct {
-	BlockHeight           int64           `json:"block_height"`
-	PubKey                common.PubKey   `json:"pub_key"`
-	Coins                 common.Coins    `json:"coins"`
-	Type                  VaultType       `json:"type"`
-	Status                VaultStatus     `json:"status"`
-	StatusSince           int64           `json:"status_since"`
-	Membership            common.PubKeys  `json:"membership"`
-	Chains                common.Chains   `json:"chains"`
-	InboundTxCount        int64           `json:"inbound_tx_count"`
-	OutboundTxCount       int64           `json:"outbound_tx_count"`
-	PendingTxBlockHeights []int64         `json:"pending_tx_heights"`
-	Contracts             []ChainContract `json:"contracts"` // for those block chain that support smart contract ETH for example
-}
-
 // Vaults a list of vault
 type Vaults []Vault
 
 // NewVault create a new instance of vault
-func NewVault(height int64, status VaultStatus, vtype VaultType, pk common.PubKey, chains common.Chains, contracts []ChainContract) Vault {
+func NewVault(height int64, status VaultStatus, vtype VaultType, pk common.PubKey, chains []string, contracts []ChainContract) Vault {
 	return Vault{
 		BlockHeight: height,
 		StatusSince: height,
@@ -65,38 +27,62 @@ func NewVault(height int64, status VaultStatus, vtype VaultType, pk common.PubKe
 	}
 }
 
+func (m Vault) GetChains() common.Chains {
+	chains := make(common.Chains, 0)
+	for _, c := range m.Chains {
+		chain, err := common.NewChain(c)
+		if err != nil {
+			continue
+		}
+		chains = append(chains, chain)
+	}
+	return chains
+}
+
+func (m Vault) GetMembership() common.PubKeys {
+	pubkeys := make(common.PubKeys, 0)
+	for _, pk := range m.Membership {
+		pk, err := common.NewPubKey(pk)
+		if err != nil {
+			continue
+		}
+		pubkeys = append(pubkeys, pk)
+	}
+	return pubkeys
+}
+
 // IsType determine whether the vault is given type
-func (v Vault) IsType(vtype VaultType) bool {
-	return v.Type == vtype
+func (m Vault) IsType(vtype VaultType) bool {
+	return m.Type == vtype
 }
 
 // IsAsgard check whether the vault is Asgard vault, it returns true when it is an asgard vault
-func (v Vault) IsAsgard() bool {
-	return v.IsType(AsgardVault)
+func (m Vault) IsAsgard() bool {
+	return m.IsType(VaultType_AsgardVault)
 }
 
 // IsYggdrasil return true when the vault is YggdrasilVault
-func (v Vault) IsYggdrasil() bool {
-	return v.IsType(YggdrasilVault)
+func (m Vault) IsYggdrasil() bool {
+	return m.IsType(VaultType_YggdrasilVault)
 }
 
 // IsEmpty returns true when the vault pubkey is empty
-func (v Vault) IsEmpty() bool {
-	return v.PubKey.IsEmpty()
+func (m Vault) IsEmpty() bool {
+	return m.PubKey.IsEmpty()
 }
 
 // Contains check whether the given pubkey is party of the originally node who create this vault
-func (v Vault) Contains(pubkey common.PubKey) bool {
-	return v.Membership.Contains(pubkey)
+func (m Vault) Contains(pubkey common.PubKey) bool {
+	return m.GetMembership().Contains(pubkey)
 }
 
 // MembershipEquals check whether the vault has the same membership as the given pubkeys
-func (v Vault) MembershipEquals(pks common.PubKeys) bool {
-	if len(v.Membership) != len(pks) {
+func (m Vault) MembershipEquals(pks common.PubKeys) bool {
+	if len(m.Membership) != len(pks) {
 		return false
 	}
 	for _, pk := range pks {
-		if !v.Contains(pk) {
+		if !m.Contains(pk) {
 			return false
 		}
 	}
@@ -104,22 +90,22 @@ func (v Vault) MembershipEquals(pks common.PubKeys) bool {
 }
 
 // UpdateStatus set the vault to given status
-func (v *Vault) UpdateStatus(s VaultStatus, height int64) {
-	v.Status = s
-	v.StatusSince = height
+func (m *Vault) UpdateStatus(s VaultStatus, height int64) {
+	m.Status = s
+	m.StatusSince = height
 }
 
 // Valid check whether Vault has all necessary values
-func (v Vault) Valid() error {
-	if v.PubKey.IsEmpty() {
+func (m Vault) Valid() error {
+	if m.PubKey.IsEmpty() {
 		return errors.New("pubkey cannot be empty")
 	}
 	return nil
 }
 
 // HasFunds check whether the vault pool has fund
-func (v Vault) HasFunds() bool {
-	for _, coin := range v.Coins {
+func (m Vault) HasFunds() bool {
+	for _, coin := range m.Coins {
 		if !coin.Asset.IsRune() { // non-native rune is omitted from the calculation
 			if !coin.Amount.IsZero() {
 				return true
@@ -130,8 +116,8 @@ func (v Vault) HasFunds() bool {
 }
 
 // HasFundsForChain check whether the vault pool has funds for a specific chain
-func (v Vault) HasFundsForChain(chain common.Chain) bool {
-	for _, coin := range v.Coins {
+func (m Vault) HasFundsForChain(chain common.Chain) bool {
+	for _, coin := range m.Coins {
 		if coin.Asset.Chain.Equals(chain) && !coin.Amount.IsZero() {
 			return true
 		}
@@ -140,8 +126,8 @@ func (v Vault) HasFundsForChain(chain common.Chain) bool {
 }
 
 // CoinLength - counts the number of coins this vault has
-func (v Vault) CoinLength() (count int) {
-	for _, coin := range v.Coins {
+func (m Vault) CoinLength() (count int) {
+	for _, coin := range m.Coins {
 		if !coin.Amount.IsZero() {
 			count++
 		}
@@ -150,9 +136,9 @@ func (v Vault) CoinLength() (count int) {
 }
 
 // CoinLengthByChain - count the number of coins this vault has for the given chain
-func (v Vault) CoinLengthByChain(c common.Chain) int {
+func (m Vault) CoinLengthByChain(c common.Chain) int {
 	total := 0
-	for _, coin := range v.Coins {
+	for _, coin := range m.Coins {
 		if coin.Asset.IsRune() {
 			continue
 		}
@@ -164,13 +150,13 @@ func (v Vault) CoinLengthByChain(c common.Chain) int {
 }
 
 // HasAsset Check if this vault has a particular asset
-func (v Vault) HasAsset(asset common.Asset) bool {
-	return !v.GetCoin(asset).Amount.IsZero()
+func (m Vault) HasAsset(asset common.Asset) bool {
+	return !m.GetCoin(asset).Amount.IsZero()
 }
 
 // GetCoin return coin type of given asset
-func (v Vault) GetCoin(asset common.Asset) common.Coin {
-	for _, coin := range v.Coins {
+func (m Vault) GetCoin(asset common.Asset) common.Coin {
+	for _, coin := range m.Coins {
 		if coin.Asset.Equals(asset) {
 			return coin
 		}
@@ -179,9 +165,9 @@ func (v Vault) GetCoin(asset common.Asset) common.Coin {
 }
 
 // GetMembers return members who's address exist in the given list
-func (v Vault) GetMembers(activeObservers []cosmos.AccAddress) (common.PubKeys, error) {
+func (m Vault) GetMembers(activeObservers []cosmos.AccAddress) (common.PubKeys, error) {
 	signers := common.PubKeys{}
-	for _, k := range v.Membership {
+	for _, k := range m.GetMembership() {
 		addr, err := k.GetThorAddress()
 		if err != nil {
 			return common.PubKeys{}, fmt.Errorf("fail to get thor address: %w", err)
@@ -220,73 +206,73 @@ func (v *Vault) UpdateContract(chainContract ChainContract) {
 }
 
 // AddFunds add given coins into vault
-func (v *Vault) AddFunds(coins common.Coins) {
+func (m *Vault) AddFunds(coins common.Coins) {
 	for _, coin := range coins {
-		v.addFund(coin)
+		m.addFund(coin)
 	}
 }
 
-func (v *Vault) addFund(coin common.Coin) {
-	for i, ycoin := range v.Coins {
+func (m *Vault) addFund(coin common.Coin) {
+	for i, ycoin := range m.Coins {
 		if ycoin.Asset.Equals(coin.Asset) {
-			v.Coins[i].Amount = ycoin.Amount.Add(coin.Amount)
+			m.Coins[i].Amount = ycoin.Amount.Add(coin.Amount)
 			return
 		}
 	}
 
-	if !v.Chains.Has(coin.Asset.Chain) {
-		v.Chains = append(v.Chains, coin.Asset.Chain)
+	if !m.GetChains().Has(coin.Asset.Chain) {
+		m.Chains = append(m.Chains, coin.Asset.Chain.String())
 	}
 
-	v.Coins = append(v.Coins, coin)
+	m.Coins = append(m.Coins, coin)
 }
 
 // SubFunds subtract given coins from vault
-func (v *Vault) SubFunds(coins common.Coins) {
+func (m *Vault) SubFunds(coins common.Coins) {
 	for _, coin := range coins {
-		v.subFund(coin)
+		m.subFund(coin)
 	}
 }
 
-func (v *Vault) subFund(coin common.Coin) {
-	for i, ycoin := range v.Coins {
+func (m *Vault) subFund(coin common.Coin) {
+	for i, ycoin := range m.Coins {
 		if coin.Asset.Equals(ycoin.Asset) {
-			v.Coins[i].Amount = common.SafeSub(ycoin.Amount, coin.Amount)
+			m.Coins[i].Amount = common.SafeSub(ycoin.Amount, coin.Amount)
 			return
 		}
 	}
 }
 
 // AppendPendingTxBlockHeights will add current block height into the list , also remove the block height that is too old
-func (v *Vault) AppendPendingTxBlockHeights(blockHeight int64, constAccessor constants.ConstantValues) {
+func (m *Vault) AppendPendingTxBlockHeights(blockHeight int64, constAccessor constants.ConstantValues) {
 	heights := []int64{blockHeight}
-	for _, item := range v.PendingTxBlockHeights {
+	for _, item := range m.PendingTxBlockHeights {
 		if (blockHeight - item) <= constAccessor.GetInt64Value(constants.SigningTransactionPeriod) {
 			heights = append(heights, item)
 		}
 	}
-	v.PendingTxBlockHeights = heights
+	m.PendingTxBlockHeights = heights
 }
 
 // RemovePendingTxBlockHeights remove the given block height from internal pending tx block height
-func (v *Vault) RemovePendingTxBlockHeights(blockHeight int64) {
+func (m *Vault) RemovePendingTxBlockHeights(blockHeight int64) {
 	idxToRemove := -1
-	for idx, item := range v.PendingTxBlockHeights {
+	for idx, item := range m.PendingTxBlockHeights {
 		if item == blockHeight {
 			idxToRemove = idx
 			break
 		}
 	}
 	if idxToRemove != -1 {
-		v.PendingTxBlockHeights = append(v.PendingTxBlockHeights[:idxToRemove], v.PendingTxBlockHeights[idxToRemove+1:]...)
+		m.PendingTxBlockHeights = append(m.PendingTxBlockHeights[:idxToRemove], m.PendingTxBlockHeights[idxToRemove+1:]...)
 	}
 }
 
 // LenPendingTxBlockHeights count how many outstanding block heights in the vault
 // if the a block height is older than SigningTransactionPeriod , it will ignore
-func (v *Vault) LenPendingTxBlockHeights(currentBlockHeight int64, constAccessor constants.ConstantValues) int {
+func (m *Vault) LenPendingTxBlockHeights(currentBlockHeight int64, constAccessor constants.ConstantValues) int {
 	total := 0
-	for _, item := range v.PendingTxBlockHeights {
+	for _, item := range m.PendingTxBlockHeights {
 		if (currentBlockHeight - item) <= constAccessor.GetInt64Value(constants.SigningTransactionPeriod) {
 			total++
 		}

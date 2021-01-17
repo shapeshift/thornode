@@ -59,8 +59,8 @@ func (vm *VaultMgrV1) processGenesisSetup(ctx cosmos.Context) error {
 			common.BNBChain,
 			common.ETHChain,
 		}
-		vault := NewVault(0, ActiveVault, AsgardVault, active[0].PubKeySet.Secp256k1, supportChains, vm.k.GetChainContracts(ctx, supportChains))
-		vault.Membership = common.PubKeys{active[0].PubKeySet.Secp256k1}
+		vault := NewVault(0, ActiveVault, AsgardVault, active[0].PubKeySet.Secp256k1, supportChains.Strings(), vm.k.GetChainContracts(ctx, supportChains))
+		vault.Membership = common.PubKeys{active[0].PubKeySet.Secp256k1}.Strings()
 		if err := vm.k.SetVault(ctx, vault); err != nil {
 			return fmt.Errorf("fail to save vault: %w", err)
 		}
@@ -222,7 +222,7 @@ func (vm *VaultMgrV1) EndBlock(ctx cosmos.Context, mgr Manager, constAccessor co
 							return fmt.Errorf("fail to get pool for asset %s, err:%w", coin.Asset, err)
 						}
 						runeAmt := p.AssetValueInRune(coin.Amount)
-						if err := vm.k.SendFromModuleToModule(ctx, ReserveName, AsgardName, common.NewCoin(common.RuneAsset(), runeAmt)); err != nil {
+						if err := vm.k.SendFromModuleToModule(ctx, ReserveName, AsgardName, common.NewCoins(common.NewCoin(common.RuneAsset(), runeAmt))); err != nil {
 							return fmt.Errorf("fail to transfer RUNE from reserve to asgard,err:%w", err)
 						}
 						p.BalanceRune = p.BalanceRune.Add(runeAmt)
@@ -278,9 +278,9 @@ func (vm *VaultMgrV1) TriggerKeygen(ctx cosmos.Context, nas NodeAccounts) error 
 		ctx.Logger().Info("churn event skipped due to mimir has halted churning")
 		return nil
 	}
-	var members common.PubKeys
+	var members []string
 	for i := range nas {
-		members = append(members, nas[i].PubKeySet.Secp256k1)
+		members = append(members, nas[i].PubKeySet.Secp256k1.String())
 	}
 	keygen, err := NewKeygen(common.BlockHeight(ctx), members, AsgardKeygen)
 	if err != nil {
@@ -302,7 +302,7 @@ func (vm *VaultMgrV1) TriggerKeygen(ctx cosmos.Context, nas NodeAccounts) error 
 		return fmt.Errorf("fail to get active vaults: %w", err)
 	}
 	for _, vault := range active {
-		if vault.MembershipEquals(members) {
+		if vault.MembershipEquals(keygen.GetMembers()) {
 			ctx.Logger().Info("skip keygen due to vault already existing")
 			return nil
 		}
@@ -321,7 +321,7 @@ func (vm *VaultMgrV1) RotateVault(ctx cosmos.Context, vault Vault) error {
 
 	// find vaults the new vault conflicts with, mark them as inactive
 	for _, asgard := range active {
-		for _, member := range asgard.Membership {
+		for _, member := range asgard.GetMembership() {
 			if vault.Contains(member) {
 				asgard.UpdateStatus(RetiringVault, common.BlockHeight(ctx))
 				if err := vm.k.SetVault(ctx, asgard); err != nil {
@@ -337,7 +337,7 @@ func (vm *VaultMgrV1) RotateVault(ctx cosmos.Context, vault Vault) error {
 	}
 
 	// Update Node account membership
-	for _, member := range vault.Membership {
+	for _, member := range vault.GetMembership() {
 		na, err := vm.k.GetNodeAccountByPubKey(ctx, member)
 		if err != nil {
 			return err
@@ -418,14 +418,14 @@ func (vm *VaultMgrV1) findChainsToRetire(ctx cosmos.Context) (common.Chains, err
 	// collect all chains for active vaults
 	activeChains := make(common.Chains, 0)
 	for _, v := range active {
-		activeChains = append(activeChains, v.Chains...)
+		activeChains = append(activeChains, v.GetChains()...)
 	}
 	activeChains = activeChains.Distinct()
 
 	// collect all chains for retiring vaults
 	retiringChains := make(common.Chains, 0)
 	for _, v := range retiring {
-		retiringChains = append(retiringChains, v.Chains...)
+		retiringChains = append(retiringChains, v.GetChains()...)
 	}
 	retiringChains = retiringChains.Distinct()
 
@@ -643,7 +643,7 @@ func (vm *VaultMgrV1) UpdateNetwork(ctx cosmos.Context, constAccessor constants.
 	}
 	totalReserve = common.SafeSub(totalReserve, totalRewards)
 	coin := common.NewCoin(common.RuneNative, bondReward)
-	if err := vm.k.SendFromModuleToModule(ctx, ReserveName, BondName, coin); err != nil {
+	if err := vm.k.SendFromModuleToModule(ctx, ReserveName, BondName, common.NewCoins(coin)); err != nil {
 		ctx.Logger().Error("fail to transfer funds from reserve to bond", "error", err)
 		return fmt.Errorf("fail to transfer funds from reserve to bond: %w", err)
 	}
@@ -695,7 +695,7 @@ func (vm *VaultMgrV1) UpdateNetwork(ctx cosmos.Context, constAccessor constants.
 			}
 			poolDeficit := vm.calcPoolDeficit(lpDeficit, totalLiquidityFees, poolFees)
 			coin := common.NewCoin(common.RuneNative, poolDeficit)
-			if err := vm.k.SendFromModuleToModule(ctx, AsgardName, BondName, coin); err != nil {
+			if err := vm.k.SendFromModuleToModule(ctx, AsgardName, BondName, common.NewCoins(coin)); err != nil {
 				ctx.Logger().Error("fail to transfer funds from asgard to bond", "error", err)
 				return fmt.Errorf("fail to transfer funds from asgard to bond: %w", err)
 			}
@@ -766,7 +766,7 @@ func (vm *VaultMgrV1) payPoolRewards(ctx cosmos.Context, poolRewards []cosmos.Ui
 			return fmt.Errorf("fail to set pool: %w", err)
 		}
 		coin := common.NewCoin(common.RuneNative, reward)
-		if err := vm.k.SendFromModuleToModule(ctx, ReserveName, AsgardName, coin); err != nil {
+		if err := vm.k.SendFromModuleToModule(ctx, ReserveName, AsgardName, common.NewCoins(coin)); err != nil {
 			return fmt.Errorf("fail to transfer funds from reserve to asgard: %w", err)
 		}
 	}

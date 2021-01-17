@@ -28,15 +28,15 @@ func NewBanHandler(keeper keeper.Keeper, mgr Manager) BanHandler {
 
 // Run is the main entry point to execute Ban logic
 func (h BanHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
-	msg, ok := m.(MsgBan)
+	msg, ok := m.(*MsgBan)
 	if !ok {
 		return nil, errInvalidMessage
 	}
-	if err := h.validate(ctx, msg, version); err != nil {
+	if err := h.validate(ctx, *msg, version); err != nil {
 		ctx.Logger().Error("msg ban failed validation", "error", err)
 		return nil, err
 	}
-	return h.handle(ctx, msg, version, constAccessor)
+	return h.handle(ctx, *msg, version, constAccessor)
 }
 
 func (h BanHandler) validate(ctx cosmos.Context, msg MsgBan, version semver.Version) error {
@@ -117,7 +117,7 @@ func (h BanHandler) handleV1(ctx cosmos.Context, msg MsgBan, constAccessor const
 		banner.Bond = common.SafeSub(banner.Bond, slashAmount)
 
 		coin := common.NewCoin(common.RuneNative, slashAmount)
-		if err := h.keeper.SendFromModuleToModule(ctx, BondName, ReserveName, coin); err != nil {
+		if err := h.keeper.SendFromModuleToModule(ctx, BondName, ReserveName, common.NewCoins(coin)); err != nil {
 			ctx.Logger().Error("fail to transfer funds from bond to reserve", "error", err)
 			return nil, err
 		}

@@ -91,7 +91,7 @@ func (HandlerDonateSuite) TestHandleMsgDonateValidation(c *C) {
 	w := getHandlerTestWrapper(c, 1, true, false)
 	testCases := []struct {
 		name        string
-		msg         MsgDonate
+		msg         *MsgDonate
 		expectedErr error
 	}{
 		{
