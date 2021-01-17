@@ -337,26 +337,6 @@ func (tos *TxOutStorageV1) addToBlockOut(ctx cosmos.Context, mgr Manager, toi Tx
 		return tos.nativeTxOut(ctx, mgr, toi)
 	}
 
-	hash, err := toi.TxHash()
-	if err != nil {
-		return err
-	}
-
-	// add a tx marker
-	mark := NewTxMarker(common.BlockHeight(ctx), toi.Memo)
-	memo, _ := ParseMemo(toi.Memo)
-	if memo.IsInternal() {
-		// need to add twice because observed inbound and outbound handler will observe
-		err = tos.keeper.AppendTxMarker(ctx, hash, mark)
-		if err != nil {
-			return err
-		}
-	}
-	err = tos.keeper.AppendTxMarker(ctx, hash, mark)
-	if err != nil {
-		return err
-	}
-
 	return tos.keeper.AppendTxOut(ctx, common.BlockHeight(ctx), toi)
 }
 

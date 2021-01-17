@@ -572,16 +572,3 @@ func (s *HandlerSuite) TestExternalHandler(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(result, NotNil)
 }
-
-func (s *HandlerSuite) TestFetchMemo(c *C) {
-	c.Skip("TODO: delete tx marker test")
-	w := getHandlerTestWrapper(c, 1, true, true)
-	tx := GetRandomTx()
-	tx.Memo = ""
-	w.keeper.SetTxMarkers(w.ctx, tx.Hash(), TxMarkers{
-		NewTxMarker(w.ctx.BlockHeight(), "HelloWorld"),
-	})
-	constantAccessor := constants.GetConstantValues(constants.SWVersion)
-	memo := fetchMemo(w.ctx, constantAccessor, w.keeper, tx)
-	c.Assert(memo, Equals, "HelloWorld")
-}
