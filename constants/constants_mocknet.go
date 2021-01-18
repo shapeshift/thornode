@@ -12,7 +12,7 @@ func init() {
 		BadValidatorRate:      60,          // 5 min
 		OldValidatorRate:      60,          // 5 min
 		MinimumBondInRune:     100_000_000, // 1 rune
-		FundMigrationInterval: 60,
+		FundMigrationInterval: 40,
 		LiquidityLockUpBlocks: 0,
 		CliTxCost:             0,
 		JailTimeKeygen:        10,

@@ -1,5 +1,5 @@
 #!/bin/sh
-
+set -x
 set -o pipefail
 
 source $(dirname "$0")/core.sh
@@ -10,30 +10,27 @@ PEER_API="${PEER_API:=$PEER}" # the hostname of a seed node API if different
 SIGNER_NAME="${SIGNER_NAME:=thorchain}"
 SIGNER_PASSWD="${SIGNER_PASSWD:=password}"
 BINANCE=${BINANCE:=$PEER:26660}
-
+THORNODE_API_ENABLED=true
 if [ ! -f ~/.thord/config/genesis.json ]; then
     if [[ "$PEER" == "none" && "$SEEDS" == "none" ]]; then
         echo "Missing PEER / SEEDS"
         exit 1
     fi
 
-    # config the keyring to use file backend
-    thorcli config keyring-backend file
-
     # create thorchain user, if it doesn't already
-    echo $SIGNER_PASSWD | thorcli keys show $SIGNER_NAME
+    echo $SIGNER_PASSWD | thornode keys show $SIGNER_NAME --keyring-backend file
     if [ $? -gt 0 ]; then
       if [ "$SIGNER_SEED_PHRASE" != "" ]; then
-        printf "$SIGNER_SEED_PHRASE\n$SIGNER_PASSWD\n$SIGNER_PASSWD\n" | thorcli keys add $SIGNER_NAME --recover
-        NODE_PUB_KEY_ED25519=$(echo "$SIGNER_PASSWD\n$SIGNER_SEED_PHRASE\n" | thorcli ed25519)
+        printf "$SIGNER_SEED_PHRASE\n$SIGNER_PASSWD\n$SIGNER_PASSWD\n" | thornode keys --keyring-backend file add $SIGNER_NAME --recover
+        NODE_PUB_KEY_ED25519=$(echo "$SIGNER_PASSWD\n$SIGNER_SEED_PHRASE\n" | thornode ed25519)
       else
-        RESULT=$(printf "$SIGNER_PASSWD\n$SIGNER_PASSWD\n" | thorcli keys add $SIGNER_NAME -o json 2>&1 >/dev/null)
+        RESULT=$(printf "$SIGNER_PASSWD\n$SIGNER_PASSWD\n" | thornode keys --keyring-backend file add $SIGNER_NAME --output json 2>&1)
         MNEMONIC=$(echo $RESULT|jq -r '.mnemonic')
-        NODE_PUB_KEY_ED25519=$(printf "$SIGNER_PASSWD\n$MNEMONIC\n" | thorcli ed25519)
+        NODE_PUB_KEY_ED25519=$(printf "$SIGNER_PASSWD\n$MNEMONIC\n" | thornode ed25519)
       fi
     fi
 
-    NODE_ADDRESS=$(echo $SIGNER_PASSWD | thorcli keys show $SIGNER_NAME -a)
+    NODE_ADDRESS=$(echo $SIGNER_PASSWD | thornode keys show $SIGNER_NAME -a --keyring-backend file)
     init_chain $NODE_ADDRESS
 
     if [[ "$PEER" != "none" ]]; then
@@ -66,23 +63,21 @@ if [ ! -f ~/.thord/config/genesis.json ]; then
         ADDRESS=$(cat ~/.bond/address.txt)
 
         # switch the BNB bond to native RUNE
-        $(dirname "$0")/mock-switch.sh $BINANCE $ADDRESS $NODE_ADDRESS $PEER_API
+        $(dirname "$0")/mock-switch.sh $BINANCE $ADDRESS $NODE_ADDRESS $PEER
 
         sleep 30 # wait for thorchain to register the new node account
-        # send native rune tx
-        $(dirname "$0")/native-rune-payload.sh $PEER_API '[{"asset": "RUNE","amount": "100000000000000"}]' "bond:$NODE_ADDRESS" $NODE_ADDRESS tmp.json
 
-        printf "$SIGNER_PASSWD\n$SIGNER_PASSWD\n" | thorcli tx sign tmp.json --node tcp://$PEER:26657 --from $SIGNER_NAME --output-document tmp-signed.json
-        printf "$SIGNER_PASSWD\n" | thorcli tx broadcast tmp-signed.json  --node tcp://$PEER:26657 --from $SIGNER_NAME
+        printf "$SIGNER_PASSWD\n" | thornode tx thorchain deposit 100000000000000 RUNE "bond:$NODE_ADDRESS"  --node tcp://$PEER:26657 --from $SIGNER_NAME --keyring-backend=file --chain-id thorchain --yes
+
         # send bond
 
         sleep 10 # wait for thorchain to commit a block , otherwise it get the wrong sequence number
 
-        NODE_PUB_KEY=$(echo $SIGNER_PASSWD | thorcli keys show thorchain --pubkey)
-        VALIDATOR=$(thord tendermint show-validator)
+        NODE_PUB_KEY=$(echo $SIGNER_PASSWD | thornode keys show thorchain --pubkey --keyring-backend=file)
+        VALIDATOR=$(thornode tendermint show-validator)
 
         # set node keys
-        until printf "$SIGNER_PASSWD\n$SIGNER_PASSWD\n" | thorcli tx thorchain set-node-keys $NODE_PUB_KEY $NODE_PUB_KEY_ED25519 $VALIDATOR --node tcp://$PEER:26657 --from $SIGNER_NAME --yes; do
+        until printf "$SIGNER_PASSWD\n" | thornode tx thorchain set-node-keys $NODE_PUB_KEY $NODE_PUB_KEY_ED25519 $VALIDATOR --node tcp://$PEER:26657 --from $SIGNER_NAME --keyring-backend=file --chain-id thorchain --yes; do
           sleep 5
         done
 
@@ -90,13 +85,13 @@ if [ ! -f ~/.thord/config/genesis.json ]; then
         sleep 10 # wait for thorchain to commit a block
 
         NODE_IP_ADDRESS=${EXTERNAL_IP:=$(curl -s http://whatismyip.akamai.com)}
-        until printf "$SIGNER_PASSWD\n$SIGNER_PASSWD\n" | thorcli tx thorchain set-ip-address $NODE_IP_ADDRESS --node tcp://$PEER:26657 --from $SIGNER_NAME --yes; do
+        until printf "$SIGNER_PASSWD\n" | thornode tx thorchain set-ip-address $NODE_IP_ADDRESS --node tcp://$PEER:26657 --from $SIGNER_NAME --keyring-backend=file --chain-id thorchain  --yes; do
           sleep 5
         done
 
         sleep 10 # wait for thorchain to commit a block
         # set node version
-        until printf "$SIGNER_PASSWD\n$SIGNER_PASSWD\n" | thorcli tx thorchain set-version --node tcp://$PEER:26657 --from $SIGNER_NAME --yes; do
+        until printf "$SIGNER_PASSWD\n" | thornode tx thorchain set-version --node tcp://$PEER:26657 --from $SIGNER_NAME --keyring-backend=file --chain-id thorchain  --yes; do
           sleep 5
         done
 
