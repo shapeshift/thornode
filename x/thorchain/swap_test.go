@@ -38,6 +38,14 @@ func (k *TestSwapKeeper) PoolExist(ctx cosmos.Context, asset common.Asset) bool 
 func (k *TestSwapKeeper) GetPool(ctx cosmos.Context, asset common.Asset) (types.Pool, error) {
 	if asset.Equals(common.Asset{Chain: common.BNBChain, Symbol: "NOTEXIST", Ticker: "NOTEXIST"}) {
 		return types.Pool{}, nil
+	} else if asset.Equals(common.BCHAsset) {
+		return types.Pool{
+			BalanceRune:  cosmos.NewUint(100).MulUint64(common.One),
+			BalanceAsset: cosmos.NewUint(100).MulUint64(common.One),
+			PoolUnits:    cosmos.NewUint(100).MulUint64(common.One),
+			Status:       PoolStaged,
+			Asset:        asset,
+		}, nil
 	} else {
 		return types.Pool{
 			BalanceRune:  cosmos.NewUint(100).MulUint64(common.One),
@@ -123,7 +131,24 @@ func (k *TestSwapKeeper) GetNetworkFee(ctx cosmos.Context, chain common.Chain) (
 			TransactionFeeRate: 37500,
 		}, nil
 	}
+	if chain.Equals(common.THORChain) {
+		return NetworkFee{
+			Chain:              common.THORChain,
+			TransactionSize:    1,
+			TransactionFeeRate: 1_00000000,
+		}, nil
+	}
 	return NetworkFee{}, kaboom
+}
+
+func (k *TestSwapKeeper) SendFromModuleToModule(ctx cosmos.Context, from, to string, coin common.Coins) error {
+	return nil
+}
+func (k *TestSwapKeeper) BurnFromModule(ctx cosmos.Context, module string, coin common.Coin) error {
+	return nil
+}
+func (k *TestSwapKeeper) MintToModule(ctx cosmos.Context, module string, coin common.Coin) error {
+	return nil
 }
 
 func (s *SwapSuite) TestSwap(c *C) {
@@ -309,6 +334,19 @@ func (s *SwapSuite) TestSwap(c *C) {
 			expectedErr:   nil,
 			events:        2,
 		},
+		{
+			name:          "swap-synth-to-rune-when-pool-is-not-available",
+			requestTxHash: "hash",
+			source:        common.BCHAsset.GetSyntheticAsset(),
+			target:        common.RuneAsset(),
+			amount:        cosmos.NewUint(5 * common.One),
+			requester:     "tester",
+			destination:   GetRandomTHORAddress(),
+			returnAmount:  cosmos.NewUint(453514739),
+			tradeTarget:   cosmos.NewUint(453514738),
+			expectedErr:   nil,
+			events:        1,
+		},
 	}
 
 	for _, item := range inputs {
@@ -326,6 +364,7 @@ func (s *SwapSuite) TestSwap(c *C) {
 		tx.Chain = common.BNBChain
 		m := NewManagers(poolStorage)
 		m.BeginBlock(ctx)
+		m.txOutStore = NewTxStoreDummy()
 
 		amount, evts, err := swap(ctx, poolStorage, tx, item.target, item.destination, item.tradeTarget, cosmos.NewUint(1000_000), m)
 		if item.expectedErr == nil {

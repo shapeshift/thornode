@@ -68,7 +68,11 @@ func swap(ctx cosmos.Context,
 	source := tx.Coins[0].Asset
 
 	if err := validatePools(ctx, keeper, source, target); err != nil {
-		return cosmos.ZeroUint(), swapEvents, err
+		if err == errInvalidPoolStatus && source.IsSyntheticAsset() && target.IsRune() {
+			// the pool is not available, but we can allow synthetic assets to still swap back to rune ok
+		} else {
+			return cosmos.ZeroUint(), swapEvents, err
+		}
 	}
 	if !destination.IsChain(target.Chain) {
 		return cosmos.ZeroUint(), swapEvents, fmt.Errorf("destination address is not a valid %s address", target.Chain)
@@ -214,9 +218,6 @@ func swapOne(ctx cosmos.Context,
 		return cosmos.ZeroUint(), Pool{}, Pool{}, evt, ErrInternal(poolErr, fmt.Sprintf("fail to get pool(%s)", asset))
 	}
 	poolBefore = pool
-	if pool.Status != PoolAvailable {
-		return cosmos.ZeroUint(), poolBefore, pool, evt, errInvalidPoolStatus
-	}
 
 	// Get our X, x, Y values
 	if source.IsRune() {
