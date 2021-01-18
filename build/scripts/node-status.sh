@@ -14,6 +14,7 @@ API=http://thor-api:1317
 THOR_DAEMON_SERVICE_PORT_RPC="${THOR_DAEMON_SERVICE_PORT_RPC:=26657}"
 BINANCE_DAEMON_SERVICE_PORT_RPC="${BINANCE_DAEMON_SERVICE_PORT_RPC:=26657}"
 BITCOIN_DAEMON_SERVICE_PORT_RPC="${BITCOIN_DAEMON_SERVICE_PORT_RPC:=18443}"
+LITECOIN_DAEMON_SERVICE_PORT_RPC="${LITECOIN_DAEMON_SERVICE_PORT_RPC:=18443}"
 BITCOIN_CASH_DAEMON_SERVICE_PORT_RPC="${BITCOIN_CASH_DAEMON_SERVICE_PORT_RPC:=18443}"
 ETHEREUM_DAEMON_SERVICE_PORT_RPC="${ETHEREUM_DAEMON_SERVICE_PORT_RPC:=8545}"
 
@@ -41,6 +42,13 @@ if [ "$VALIDATOR" == "true" ]; then
   BTC_SYNC_HEIGHT=$(echo $BTC_RESULT | jq -r ".result.blocks")
   BTC_PROGRESS=$(echo $BTC_RESULT | jq -r ".result.verificationprogress")
   BTC_PROGRESS=$(printf "%.3f%%" $(jq -n $BTC_PROGRESS*100 2> /dev/null) 2> /dev/null) || BTC_PROGRESS=Error
+
+  # calculate LTC chain sync progress
+  LTC_RESULT=$(curl -sL --fail -m 10 --data-binary '{"jsonrpc": "1.0", "id": "node-status", "method": "getblockchaininfo", "params": []}' -H 'content-type: text/plain;' http://thorchain:password@litecoin-daemon:$LITECOIN_DAEMON_SERVICE_PORT_RPC)
+  LTC_HEIGHT=$(echo $LTC_RESULT | jq -r ".result.headers")
+  LTC_SYNC_HEIGHT=$(echo $LTC_RESULT | jq -r ".result.blocks")
+  LTC_PROGRESS=$(echo $LTC_RESULT | jq -r ".result.verificationprogress")
+  LTC_PROGRESS=$(printf "%.3f%%" $(jq -n $LTC_PROGRESS*100 2> /dev/null) 2> /dev/null) || LTC_PROGRESS=Error
 
   # calculate ETH chain sync progress
   ETH_RESULT=$(curl -X POST -sL --fail -m 10 --data '{"jsonrpc":"2.0","method":"eth_syncing","params":[],"id":1}' -H 'content-type: application/json' http://ethereum-daemon:$ETHEREUM_DAEMON_SERVICE_PORT_RPC)
@@ -112,5 +120,6 @@ printf "%-11s %-10s %-10s\n" THOR "$THOR_PROGRESS" "$(format_int $THOR_SYNC_HEIG
 [ "$VALIDATOR" == "true" ] && printf "%-11s %-10s %-10s\n" BNB "$BNB_PROGRESS" "$(format_int $BNB_SYNC_HEIGHT)/$(format_int $BNB_HEIGHT)"
 [ "$VALIDATOR" == "true" ] && printf "%-11s %-10s %-10s\n" BTC "$BTC_PROGRESS" "$(format_int $BTC_SYNC_HEIGHT)/$(format_int $BTC_HEIGHT)"
 [ "$VALIDATOR" == "true" ] && printf "%-11s %-10s %-10s\n" ETH "$ETH_PROGRESS" "$(format_int $ETH_SYNC_HEIGHT)/$(format_int $ETH_HEIGHT)"
+[ "$VALIDATOR" == "true" ] && printf "%-11s %-10s %-10s\n" LTC "$LTC_PROGRESS" "$(format_int $LTC_SYNC_HEIGHT)/$(format_int $LTC_HEIGHT)"
 [ "$VALIDATOR" == "true" ] && printf "%-11s %-10s %-10s\n" BCH "$BCH_PROGRESS" "$(format_int $BCH_SYNC_HEIGHT)/$(format_int $BCH_HEIGHT)"
 exit 0
