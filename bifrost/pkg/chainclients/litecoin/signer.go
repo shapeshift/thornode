@@ -8,6 +8,7 @@ import (
 	"strings"
 	"sync"
 
+	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	"github.com/hashicorp/go-multierror"
 	"github.com/ltcsuite/ltcd/btcec"
 	"github.com/ltcsuite/ltcd/btcjson"
@@ -16,8 +17,6 @@ import (
 	"github.com/ltcsuite/ltcd/mempool"
 	"github.com/ltcsuite/ltcd/wire"
 	"github.com/ltcsuite/ltcutil"
-	"github.com/tendermint/tendermint/crypto"
-	"github.com/tendermint/tendermint/crypto/secp256k1"
 	txscript "gitlab.com/thorchain/ltcd-txscript"
 
 	stypes "gitlab.com/thorchain/thornode/bifrost/thorclient/types"
@@ -36,12 +35,8 @@ const (
 	defaultMaxLTCFeeRate = ltcutil.SatoshiPerBitcoin / 10
 )
 
-func getLTCPrivateKey(key crypto.PrivKey) (*btcec.PrivateKey, error) {
-	priKey, ok := key.(secp256k1.PrivKeySecp256k1)
-	if !ok {
-		return nil, errors.New("invalid private key type")
-	}
-	privateKey, _ := btcec.PrivKeyFromBytes(btcec.S256(), priKey[:])
+func getLTCPrivateKey(key cryptotypes.PrivKey) (*btcec.PrivateKey, error) {
+	privateKey, _ := btcec.PrivKeyFromBytes(btcec.S256(), key.Bytes())
 	return privateKey, nil
 }
 

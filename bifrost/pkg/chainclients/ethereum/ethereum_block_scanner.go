@@ -332,7 +332,7 @@ func (e *ETHScanner) extractTxs(block *etypes.Block) (stypes.TxIn, error) {
 		if txInItem != nil {
 			txInItem.BlockHeight = block.Number().Int64()
 			txInbound.TxArray = append(txInbound.TxArray, *txInItem)
-			e.logger.Info().Str("hash", tx.Hash().Hex()).Msgf("%s got %d tx", e.cfg.ChainID, 1)
+			e.logger.Debug().Str("hash", tx.Hash().Hex()).Msgf("%s got %d tx", e.cfg.ChainID, 1)
 		}
 	}
 	if len(txInbound.TxArray) == 0 {
