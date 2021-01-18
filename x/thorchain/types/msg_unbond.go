@@ -28,13 +28,16 @@ func (m *MsgUnBond) ValidateBasic() error {
 		return cosmos.ErrInvalidAddress("node address cannot be empty")
 	}
 	if m.Amount.IsZero() {
-		return cosmos.ErrUnknownRequest("bond cannot be zero")
+		return cosmos.ErrUnknownRequest("unbond amount cannot be zero")
 	}
 	if m.BondAddress.IsEmpty() {
 		return cosmos.ErrInvalidAddress("bond address cannot be empty")
 	}
-	if err := m.TxIn.Valid(); err != nil {
-		return cosmos.ErrUnknownRequest(err.Error())
+	if m.TxIn.ID.IsEmpty() {
+		return cosmos.ErrUnknownRequest("tx id cannot be empty")
+	}
+	if m.TxIn.FromAddress.IsEmpty() {
+		return cosmos.ErrInvalidAddress("tx from address cannot be empty")
 	}
 	if m.Signer.Empty() {
 		return cosmos.ErrInvalidAddress("empty signer address")
