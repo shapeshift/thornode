@@ -12,6 +12,10 @@ var (
 	ModuleCdc = codec.NewAminoCodec(amino)
 )
 
+func init() {
+	RegisterCodec(amino)
+}
+
 // RegisterCodec register the msg types for amino
 func RegisterCodec(cdc *codec.LegacyAmino) {
 	cdc.RegisterConcrete(&MsgSwap{}, "thorchain/Swap", nil)

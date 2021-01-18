@@ -23,12 +23,9 @@ services:
       ETH_HOST: ${ETH_HOST:-http://ethereum-localnet:8545}
     entrypoint:
       /docker/scripts/bifrost.sh
-    depends_on:
-      - thor-api
     volumes:
       - "../../scripts:/docker/scripts"
-      - ${HOME}/.thornode/validator/.thord:/root/.thord
-      - ${HOME}/.thornode/validator/.thorcli:/root/.thorcli
+      - ${HOME}/.thornode/validator/.thornode:/root/.thornode
       - ${HOME}/.thornode/validator/.bifrost/data:/var/data/bifrost
       - ${HOME}/.thornode/validator/.bifrost/etc:/etc/bifrost
     command: ["bifrost", "-c", "/etc/bifrost/config.json"]
@@ -38,9 +35,9 @@ services:
         max-size: "128m"
         max-file: "3"
 
-  thor-daemon:
-    container_name: thor-daemon
-    hostname: thor-daemon
+  thornode:
+    container_name: thornode
+    hostname: thornode
     build:
       context: ../../..
       dockerfile: ./build/docker/Dockerfile
@@ -52,9 +49,11 @@ services:
       NET: ${NET}
       PEER: ${PEER}
       SIGNER_PASSWD: ${SIGNER_PASSWD}
+      THORNODE_API_ENABLE: "true"
     ports:
       - "26657:26657"
       - "26656:26656"
+      - "1317:1317"
     expose:
       - "26656"
       - "26657"
@@ -62,40 +61,9 @@ services:
       /docker/scripts/validator.sh
     volumes:
       - "../../scripts:/docker/scripts"
-      - ${HOME}/.thornode/validator/.thord:/root/.thord
-      - ${HOME}/.thornode/validator/.thorcli:/root/.thorcli
+      - ${HOME}/.thornode/validator/.thornode:/root/.thornode
       - ${HOME}/.thornode/validator/.bond:/root/.bond
-    command: ["thord", "start", "--log_level", "main:info,state:debug,*:error", "--rpc.laddr", "tcp://0.0.0.0:26657"]
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "128m"
-        max-file: "3"
-
-  thor-api:
-    container_name: thor-api
-    hostname: thor-api
-    build:
-      context: ../../..
-      dockerfile: ./build/docker/Dockerfile
-      args:
-        TAG: ${TAG:-mainnet}
-    image: ${IMAGE:-registry.gitlab.com/thorchain/thornode}:${TAG:-latest}
-    restart: unless-stopped
-    environment:
-      NET: ${NET}
-      CHAIN_DAEMON: thor-daemon:26657
-    ports:
-      - "1317:1317"
-    expose:
-      - "1317"
-    entrypoint:
-      /docker/scripts/rest.sh
-    volumes:
-      - "../../scripts:/docker/scripts"
-      - ${HOME}/.thornode/validator/.thord:/root/.thord
-      - ${HOME}/.thornode/validator/.thorcli:/root/.thorcli
-    command: ["thorcli", "rest-server", "--chain-id", "thorchain", "--laddr", "tcp://0.0.0.0:1317", "--node", "tcp://thor-daemon:26657"]
+    command: ["thornode", "start", "--log_level", "info", "--log_format","json","--rpc.laddr", "tcp://0.0.0.0:26657"]
     logging:
       driver: "json-file"
       options:
