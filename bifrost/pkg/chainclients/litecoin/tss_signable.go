@@ -4,10 +4,10 @@ import (
 	"encoding/base64"
 	"math/big"
 
+	"github.com/cosmos/cosmos-sdk/crypto/codec"
 	"github.com/ltcsuite/ltcd/btcec"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	"github.com/tendermint/tendermint/crypto/secp256k1"
 
 	"gitlab.com/thorchain/thornode/bifrost/tss"
 	"gitlab.com/thorchain/thornode/common"
@@ -55,12 +55,12 @@ func (ts *TssSignable) GetPubKey() *btcec.PublicKey {
 		ts.logger.Err(err).Str("pubkey", ts.poolPubKey.String()).Msg("fail to get pubic key from the bech32 pool public key string")
 		return nil
 	}
-	secpPubKey, ok := cpk.(secp256k1.PubKeySecp256k1)
-	if !ok {
-		ts.logger.Error().Str("pubkey", ts.poolPubKey.String()).Msg("it is not a secp256 k1 public key")
+	secpPubKey, err := codec.ToTmPubKeyInterface(cpk)
+	if err != nil {
+		ts.logger.Err(err).Msgf("%s is not a secp256 k1 public key", ts.poolPubKey)
 		return nil
 	}
-	newPubkey, err := btcec.ParsePubKey(secpPubKey[:], btcec.S256())
+	newPubkey, err := btcec.ParsePubKey(secpPubKey.Bytes(), btcec.S256())
 	if err != nil {
 		ts.logger.Err(err).Msg("fail to parse public key")
 		return nil

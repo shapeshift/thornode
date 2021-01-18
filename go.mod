@@ -8,6 +8,7 @@ require (
 	github.com/Masterminds/semver v1.5.0 // indirect
 	github.com/Masterminds/sprig v2.22.0+incompatible // indirect
 	github.com/aokoli/goutils v1.1.0 // indirect
+	github.com/binance-chain/go-sdk v1.2.5
 	github.com/binance-chain/ledger-cosmos-go v0.9.9 // indirect
 	github.com/binance-chain/tss-lib v1.3.2
 	github.com/blang/semver v3.5.1+incompatible
@@ -32,12 +33,11 @@ require (
 	github.com/huandu/xstrings v1.3.2 // indirect
 	github.com/imdario/mergo v0.3.11 // indirect
 	github.com/ipfs/go-log v1.0.4
+	github.com/ltcsuite/ltcd v0.20.1-beta.0.20201210074626-c807bfe31ef0
+	github.com/ltcsuite/ltcutil v1.0.2-beta
 	github.com/magiconair/properties v1.8.4
 	github.com/mitchellh/copystructure v1.0.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.1 // indirect
-	github.com/ltcsuite/ltcd v0.20.1-beta.0.20201210074626-c807bfe31ef0
-	github.com/ltcsuite/ltcutil v1.0.2-beta
-	github.com/magiconair/properties v1.8.1
 	github.com/multiformats/go-multiaddr v0.3.1
 	github.com/mwitkow/go-proto-validators v0.3.2 // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
@@ -58,8 +58,8 @@ require (
 	github.com/tendermint/tm-db v0.6.3
 	gitlab.com/thorchain/bchd-txscript v0.0.0-20201215133741-ffd26acbcb75
 	gitlab.com/thorchain/binance-sdk v1.2.3-0.20210117202539-d569b6b9ba5d
-	gitlab.com/thorchain/tss/go-tss v1.2.9-0.20210117231716-2d12e95fd812
 	gitlab.com/thorchain/ltcd-txscript v0.0.0-20210116072501-842a529a7b5a
+	gitlab.com/thorchain/tss/go-tss v1.2.9-0.20210117231716-2d12e95fd812
 	gitlab.com/thorchain/txscript v0.0.0-20200413023754-8aaf3443d92b
 	golang.org/x/mod v0.4.0 // indirect
 	golang.org/x/tools v0.0.0-20210101214203-2dba1e4ea05c // indirect
