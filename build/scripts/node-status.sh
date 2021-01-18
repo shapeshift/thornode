@@ -11,7 +11,7 @@ format_int () {
 }
 
 API=http://thornode:1317
-THOR_DAEMON_SERVICE_PORT_RPC="${THOR_DAEMON_SERVICE_PORT_RPC:=26657}"
+THORNODE_SERVICE_PORT_RPC="${THORNODE_SERVICE_PORT_RPC:=26657}"
 BINANCE_DAEMON_SERVICE_PORT_RPC="${BINANCE_DAEMON_SERVICE_PORT_RPC:=26657}"
 BITCOIN_DAEMON_SERVICE_PORT_RPC="${BITCOIN_DAEMON_SERVICE_PORT_RPC:=18443}"
 LITECOIN_DAEMON_SERVICE_PORT_RPC="${LITECOIN_DAEMON_SERVICE_PORT_RPC:=18443}"
@@ -72,15 +72,15 @@ if [ "$VALIDATOR" == "true" ]; then
 fi
 
 # calculate THOR chain sync progress
-THOR_SYNC_HEIGHT=$(curl -sL --fail -m 10 localhost:$THOR_DAEMON_SERVICE_PORT_RPC/status | jq -r ".result.sync_info.latest_block_height")
+THOR_SYNC_HEIGHT=$(curl -sL --fail -m 10 localhost:$THORNODE_SERVICE_PORT_RPC/status | jq -r ".result.sync_info.latest_block_height")
 if [ "$PEER" != "" ]; then
-  THOR_HEIGHT=$(curl -sL --fail -m 10 $PEER:$THOR_DAEMON_SERVICE_PORT_RPC/status | jq -r ".result.sync_info.latest_block_height")
+  THOR_HEIGHT=$(curl -sL --fail -m 10 $PEER:$THORNODE_SERVICE_PORT_RPC/status | jq -r ".result.sync_info.latest_block_height")
 elif [ "$SEEDS" != "" ]; then
   OLD_IFS=$IFS
   IFS=","
   for PEER in $SEEDS
   do
-    THOR_HEIGHT=$(curl -sL --fail -m 10 $PEER:$THOR_DAEMON_SERVICE_PORT_RPC/status | jq -r ".result.sync_info.latest_block_height") || continue
+    THOR_HEIGHT=$(curl -sL --fail -m 10 $PEER:$THORNODE_SERVICE_PORT_RPC/status | jq -r ".result.sync_info.latest_block_height") || continue
     break
   done
   IFS=$OLD_IFS
@@ -111,7 +111,7 @@ fi
 
 echo
 echo "API         http://$IP:1317/thorchain/doc/"
-echo "RPC         http://$IP:$THOR_DAEMON_SERVICE_PORT_RPC"
+echo "RPC         http://$IP:$THORNODE_SERVICE_PORT_RPC"
 echo "MIDGARD     http://$IP:8080/v2/doc"
 
 echo
