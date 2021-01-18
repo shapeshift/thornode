@@ -212,7 +212,4 @@ func (s *BlockScannerTestSuite) TestBadConnection(c *C) {
 	cbs.Start(make(chan types.TxIn))
 	time.Sleep(time.Second * 1)
 	cbs.Stop()
-	// metric, err := m.GetCounterVec(metrics.BlockScannerError).GetMetricWithLabelValues("fail_get_block", "http://localhost:23450/block")
-	// c.Assert(err, IsNil)
-	// c.Check(int(testutil.ToFloat64(metric)), Equals, 1)
 }
