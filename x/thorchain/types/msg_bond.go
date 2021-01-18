@@ -39,11 +39,11 @@ func (m *MsgBond) ValidateBasic() error {
 	if len(m.TxIn.Coins) > 1 {
 		return cosmos.ErrUnknownRequest("cannot bond more than one coin")
 	}
+	if len(m.TxIn.Coins) == 0 {
+		return cosmos.ErrUnknownRequest("must bond with rune")
+	}
 	if !m.TxIn.Coins[0].Asset.IsRune() {
 		return cosmos.ErrUnknownRequest("cannot bond non-rune asset")
-	}
-	if m.TxIn.Coins.IsEmpty() {
-		return cosmos.ErrUnknownRequest("cannot bond with empty coins")
 	}
 	if m.Signer.Empty() {
 		return cosmos.ErrInvalidAddress("empty signer address")

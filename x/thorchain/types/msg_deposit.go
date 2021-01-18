@@ -27,9 +27,6 @@ func (m *MsgDeposit) ValidateBasic() error {
 	if m.Signer.Empty() {
 		return cosmos.ErrInvalidAddress(m.Signer.String())
 	}
-	if err := m.Coins.Valid(); err != nil {
-		return cosmos.ErrUnknownRequest(err.Error())
-	}
 	for _, coin := range m.Coins {
 		if !coin.IsNative() {
 			return cosmos.ErrUnknownRequest("all coins must be native to THORChain")
