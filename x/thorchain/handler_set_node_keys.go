@@ -114,9 +114,11 @@ func (h SetNodeKeysHandler) handleV1(ctx cosmos.Context, msg MsgSetNodeKeys, ver
 
 	// add 10 bond to reserve
 	coin := common.NewCoin(common.RuneNative, cost)
-	if err := h.keeper.SendFromAccountToModule(ctx, msg.Signer, ReserveName, common.NewCoins(coin)); err != nil {
-		ctx.Logger().Error("fail to transfer funds from bond to reserve", "error", err)
-		return nil, err
+	if !cost.IsZero() {
+		if err := h.keeper.SendFromAccountToModule(ctx, msg.Signer, ReserveName, common.NewCoins(coin)); err != nil {
+			ctx.Logger().Error("fail to transfer funds from bond to reserve", "error", err)
+			return nil, err
+		}
 	}
 
 	ctx.EventManager().EmitEvent(

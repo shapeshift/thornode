@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
@@ -26,14 +26,15 @@ func GetTxCmd() *cobra.Command {
 	}
 
 	cmd.AddCommand(GetCmdSetNodeKeys())
-	cmd.AddCommand(GetCmdSetNodeKeys())
 	cmd.AddCommand(GetCmdSetVersion())
 	cmd.AddCommand(GetCmdSetIPAddress())
 	cmd.AddCommand(GetCmdBan())
 	cmd.AddCommand(GetCmdMimir())
 	cmd.AddCommand(GetCmdDeposit())
 	cmd.AddCommand(GetCmdSend())
-
+	for _, subCmd := range cmd.Commands() {
+		flags.AddTxFlagsToCmd(subCmd)
+	}
 	return cmd
 }
 
@@ -68,9 +69,6 @@ func GetCmdDeposit() *cobra.Command {
 			return tx.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), msg)
 		},
 	}
-
-	flags.AddTxFlagsToCmd(cmd)
-
 	return cmd
 }
 

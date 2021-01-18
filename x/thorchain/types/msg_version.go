@@ -42,6 +42,6 @@ func (m *MsgSetVersion) GetSignBytes() []byte {
 }
 
 // GetSigners defines whose signature is required
-func (m MsgSetVersion) GetSigners() []cosmos.AccAddress {
+func (m *MsgSetVersion) GetSigners() []cosmos.AccAddress {
 	return []cosmos.AccAddress{m.Signer}
 }
