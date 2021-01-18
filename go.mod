@@ -54,8 +54,8 @@ require (
 	github.com/tendermint/tendermint v0.34.1
 	github.com/tendermint/tm-db v0.6.3
 	gitlab.com/thorchain/bchd-txscript v0.0.0-20201215133741-ffd26acbcb75
-	gitlab.com/thorchain/binance-sdk v1.2.3-0.20210107014608-b4fbc9dde698
-	gitlab.com/thorchain/tss/go-tss v1.2.9-0.20210108195522-47874e87a9b3
+	gitlab.com/thorchain/binance-sdk v1.2.3-0.20210117202539-d569b6b9ba5d
+	gitlab.com/thorchain/tss/go-tss v1.2.9-0.20210117231716-2d12e95fd812
 	gitlab.com/thorchain/txscript v0.0.0-20200413023754-8aaf3443d92b
 	golang.org/x/mod v0.4.0 // indirect
 	golang.org/x/tools v0.0.0-20210101214203-2dba1e4ea05c // indirect
