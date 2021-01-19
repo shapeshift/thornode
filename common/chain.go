@@ -61,6 +61,10 @@ func (c Chain) Equals(c2 Chain) bool {
 	return strings.EqualFold(c.String(), c2.String())
 }
 
+func (c Chain) IsTHORChain() bool {
+	return c.Equals(THORChain)
+}
+
 // IsEmpty is to determinate whether the chain is empty
 func (c Chain) IsEmpty() bool {
 	return strings.TrimSpace(c.String()) == ""

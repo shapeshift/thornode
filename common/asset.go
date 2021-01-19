@@ -81,7 +81,7 @@ func (a Asset) GetLayer1Asset() Asset {
 		return a
 	}
 	parts := strings.Split(a.Symbol.String(), "/")
-	chain := parts[0][1:len(parts[0])]
+	chain := parts[0][len(SyntheticPrefix):len(parts[0])]
 	return Asset{
 		Chain:  Chain(chain),
 		Symbol: Symbol(parts[1]),
