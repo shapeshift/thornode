@@ -68,7 +68,7 @@ add_account () {
     }]' <~/.thornode/config/genesis.json >/tmp/genesis.json
         # "coins": [ { "denom": $ASSET, "amount": $AMOUNT } ],
     mv /tmp/genesis.json ~/.thornode/config/genesis.json
-    
+
     jq --arg ADDRESS $1 --arg ASSET $2 --arg AMOUNT $3 '.app_state.bank.balances += [{
         "address": $ADDRESS,
         "coins": [ { "denom": $ASSET, "amount": $AMOUNT } ],
@@ -172,6 +172,10 @@ gen_bnb_address () {
 
 deploy_eth_contract () {
     echo "Deploying eth contracts..."
+    until curl -s "$1" > /dev/null; do
+        echo "Waiting for ETH node to be available ($1)"
+        sleep 3
+    done
     python3 scripts/eth/eth-tool.py --ethereum $1 deploy --from_address 0x3fd2d4ce97b082d4bce3f9fee2a3d60668d2f473 >& /tmp/contract.log
     cat /tmp/contract.log
     CONTRACT=$(cat /tmp/contract.log | grep "Vault Contract Address" | awk '{print $NF}')
