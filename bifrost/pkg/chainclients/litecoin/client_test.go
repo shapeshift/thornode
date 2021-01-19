@@ -1,4 +1,4 @@
-package bitcoincash
+package litecoin
 
 import (
 	"encoding/json"
@@ -14,7 +14,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/crypto/hd"
 	cKeys "github.com/cosmos/cosmos-sdk/crypto/keyring"
-	"github.com/gcash/bchd/btcjson"
+	"github.com/ltcsuite/ltcd/btcjson"
 	ctypes "gitlab.com/thorchain/binance-sdk/common/types"
 	. "gopkg.in/check.v1"
 
@@ -30,7 +30,7 @@ import (
 
 func TestPackage(t *testing.T) { TestingT(t) }
 
-type BitcoinCashSuite struct {
+type LitecoinSuite struct {
 	client *Client
 	server *httptest.Server
 	bridge *thorclient.ThorchainBridge
@@ -39,7 +39,7 @@ type BitcoinCashSuite struct {
 }
 
 var _ = Suite(
-	&BitcoinCashSuite{},
+	&LitecoinSuite{},
 )
 
 var m *metrics.Metrics
@@ -60,10 +60,10 @@ func GetMetricForTest(c *C) *metrics.Metrics {
 	return m
 }
 
-func (s *BitcoinCashSuite) SetUpTest(c *C) {
+func (s *LitecoinSuite) SetUpTest(c *C) {
 	s.m = GetMetricForTest(c)
 	s.cfg = config.ChainConfiguration{
-		ChainID:     "BCH",
+		ChainID:     "LTC",
 		UserName:    "bob",
 		Password:    "password",
 		DisableTLS:  true,
@@ -102,38 +102,38 @@ func (s *BitcoinCashSuite) SetUpTest(c *C) {
 
 			switch {
 			case r.Method == "getnetworkinfo":
-				httpTestHandler(c, rw, "../../../../test/fixtures/btc/getnetworkinfo.json")
+				httpTestHandler(c, rw, "../../../../test/fixtures/ltc/getnetworkinfo.json")
 			case r.Method == "getblockhash":
-				httpTestHandler(c, rw, "../../../../test/fixtures/bch/blockhash.json")
+				httpTestHandler(c, rw, "../../../../test/fixtures/ltc/blockhash.json")
 			case r.Method == "getblock":
-				httpTestHandler(c, rw, "../../../../test/fixtures/bch/block_verbose.json")
+				httpTestHandler(c, rw, "../../../../test/fixtures/ltc/block_verbose.json")
 			case r.Method == "gettransaction":
 				if r.Params[0] == "27de3e1865c098cd4fded71bae1e8236fd27ce5dce6e524a9ac5cd1a17b5c241" {
-					httpTestHandler(c, rw, "../../../../test/fixtures/bch/tx-c241.json")
+					httpTestHandler(c, rw, "../../../../test/fixtures/ltc/tx-c241.json")
 				}
 			case r.Method == "getrawtransaction":
 				if r.Params[0] == "5b0876dcc027d2f0c671fc250460ee388df39697c3ff082007b6ddd9cb9a7513" {
-					httpTestHandler(c, rw, "../../../../test/fixtures/bch/tx-5b08.json")
+					httpTestHandler(c, rw, "../../../../test/fixtures/ltc/tx-5b08.json")
 				} else if r.Params[0] == "54ef2f4679fb90af42e8d963a5d85645d0fd86e5fe8ea4e69dbf2d444cb26528" {
-					httpTestHandler(c, rw, "../../../../test/fixtures/bch/tx-54ef.json")
+					httpTestHandler(c, rw, "../../../../test/fixtures/ltc/tx-54ef.json")
 				} else {
-					httpTestHandler(c, rw, "../../../../test/fixtures/bch/tx.json")
+					httpTestHandler(c, rw, "../../../../test/fixtures/ltc/tx.json")
 				}
 			case r.Method == "getblockcount":
-				httpTestHandler(c, rw, "../../../../test/fixtures/bch/blockcount.json")
+				httpTestHandler(c, rw, "../../../../test/fixtures/ltc/blockcount.json")
 			case r.Method == "importaddress":
-				httpTestHandler(c, rw, "../../../../test/fixtures/bch/importaddress.json")
+				httpTestHandler(c, rw, "../../../../test/fixtures/ltc/importaddress.json")
 			case r.Method == "listunspent":
-				httpTestHandler(c, rw, "../../../../test/fixtures/bch/listunspent.json")
+				httpTestHandler(c, rw, "../../../../test/fixtures/ltc/listunspent.json")
 			case r.Method == "getrawmempool":
-				httpTestHandler(c, rw, "../../../../test/fixtures/bch/getrawmempool.json")
+				httpTestHandler(c, rw, "../../../../test/fixtures/ltc/getrawmempool.json")
 			case r.Method == "getblockstats":
-				httpTestHandler(c, rw, "../../../../test/fixtures/bch/blockstats.json")
+				httpTestHandler(c, rw, "../../../../test/fixtures/ltc/blockstats.json")
 			}
-		} else if strings.HasPrefix(req.RequestURI, "/thorchain/nodeaccount/") {
+		} else if strings.HasPrefix(req.RequestURI, "/thorchain/node/") {
 			httpTestHandler(c, rw, "../../../../test/fixtures/endpoints/nodeaccount/template.json")
 		} else if req.RequestURI == "/thorchain/lastblock" {
-			httpTestHandler(c, rw, "../../../../test/fixtures/endpoints/lastblock/bch.json")
+			httpTestHandler(c, rw, "../../../../test/fixtures/endpoints/lastblock/ltc.json")
 		} else if strings.HasPrefix(req.RequestURI, "/auth/accounts/") {
 			_, err := rw.Write([]byte(`{ "jsonrpc": "2.0", "id": "", "result": { "height": "0", "result": { "value": { "account_number": "0", "sequence": "0" } } } }`))
 			c.Assert(err, IsNil)
@@ -153,7 +153,7 @@ func (s *BitcoinCashSuite) SetUpTest(c *C) {
 	c.Assert(s.client, NotNil)
 }
 
-func (s *BitcoinCashSuite) TearDownTest(c *C) {
+func (s *LitecoinSuite) TearDownTest(c *C) {
 	s.server.Close()
 }
 
@@ -168,7 +168,7 @@ func httpTestHandler(c *C, rw http.ResponseWriter, fixture string) {
 	}
 }
 
-func (s *BitcoinCashSuite) TestGetBlock(c *C) {
+func (s *LitecoinSuite) TestGetBlock(c *C) {
 	block, err := s.client.getBlock(1696761)
 	c.Assert(err, IsNil)
 	c.Assert(block.Hash, Equals, "000000008de7a25f64f9780b6c894016d2c63716a89f7c9e704ebb7e8377a0c8")
@@ -176,21 +176,21 @@ func (s *BitcoinCashSuite) TestGetBlock(c *C) {
 	c.Assert(len(block.Tx), Equals, 110)
 }
 
-func (s *BitcoinCashSuite) TestFetchTxs(c *C) {
+func (s *LitecoinSuite) TestFetchTxs(c *C) {
 	txs, err := s.client.FetchTxs(0)
 	c.Assert(err, IsNil)
-	c.Assert(txs.Chain, Equals, common.BCHChain)
+	c.Assert(txs.Chain, Equals, common.LTCChain)
 	c.Assert(txs.Count, Equals, "105")
 	c.Assert(txs.TxArray[0].BlockHeight, Equals, int64(1696761))
 	c.Assert(txs.TxArray[0].Tx, Equals, "24ed2d26fd5d4e0e8fa86633e40faf1bdfc8d1903b1cd02855286312d48818a2")
-	c.Assert(txs.TxArray[0].Sender, Equals, "qzfc77h794v2scmrmsj7sjreuzmy2q9p8sc74ea43r")
+	c.Assert(txs.TxArray[0].Sender, Equals, "tltc1qjw8h4l3dtz5xxc7uyh5ys70qkezspgfus9tapm")
 	c.Assert(txs.TxArray[0].To, Equals, "mv4rnyY3Su5gjcDNzbMLKBQkBicCtHUtFB")
-	c.Assert(txs.TxArray[0].Coins.Equals(common.Coins{common.NewCoin(common.BCHAsset, cosmos.NewUint(10000000))}), Equals, true)
-	c.Assert(txs.TxArray[0].Gas.Equals(common.Gas{common.NewCoin(common.BCHAsset, cosmos.NewUint(22705334))}), Equals, true)
+	c.Assert(txs.TxArray[0].Coins.Equals(common.Coins{common.NewCoin(common.LTCAsset, cosmos.NewUint(10000000))}), Equals, true)
+	c.Assert(txs.TxArray[0].Gas.Equals(common.Gas{common.NewCoin(common.LTCAsset, cosmos.NewUint(22705334))}), Equals, true)
 	c.Assert(len(txs.TxArray), Equals, 105)
 }
 
-func (s *BitcoinCashSuite) TestGetSender(c *C) {
+func (s *LitecoinSuite) TestGetSender(c *C) {
 	tx := btcjson.TxRawResult{
 		Vin: []btcjson.Vin{
 			{
@@ -201,15 +201,15 @@ func (s *BitcoinCashSuite) TestGetSender(c *C) {
 	}
 	sender, err := s.client.getSender(&tx)
 	c.Assert(err, IsNil)
-	c.Assert(sender, Equals, "qqqzdh86crxjpyh2tgfy7gyfcwk4k74ze55ympqehp")
+	c.Assert(sender, Equals, "n3jYBjCzgGNydQwf83Hz6GBzGBhMkKfgL1")
 
 	tx.Vin[0].Vout = 1
 	sender, err = s.client.getSender(&tx)
 	c.Assert(err, IsNil)
-	c.Assert(sender, Equals, "qzfc77h794v2scmrmsj7sjreuzmy2q9p8sc74ea43r")
+	c.Assert(sender, Equals, "tltc1qjw8h4l3dtz5xxc7uyh5ys70qkezspgfus9tapm")
 }
 
-func (s *BitcoinCashSuite) TestGetMemo(c *C) {
+func (s *LitecoinSuite) TestGetMemo(c *C) {
 	tx := btcjson.TxRawResult{
 		Vout: []btcjson.Vout{
 			{
@@ -255,7 +255,7 @@ func (s *BitcoinCashSuite) TestGetMemo(c *C) {
 	c.Assert(memo, Equals, "")
 }
 
-func (s *BitcoinCashSuite) TestIgnoreTx(c *C) {
+func (s *LitecoinSuite) TestIgnoreTx(c *C) {
 	// valid tx that will NOT be ignored
 	tx := btcjson.TxRawResult{
 		Vin: []btcjson.Vin{
@@ -268,13 +268,13 @@ func (s *BitcoinCashSuite) TestIgnoreTx(c *C) {
 			{
 				Value: 0.12345678,
 				ScriptPubKey: btcjson.ScriptPubKeyResult{
-					Addresses: []string{"qzfc77h794v2scmrmsj7sjreuzmy2q9p8sc74ea43r"},
+					Addresses: []string{"tltc1qjw8h4l3dtz5xxc7uyh5ys70qkezspgfus9tapm"},
 				},
 			},
 			{
 				ScriptPubKey: btcjson.ScriptPubKeyResult{
 					Asm:       "OP_RETURN 74686f72636861696e3a636f6e736f6c6964617465",
-					Addresses: []string{"qzfc77h794v2scmrmsj7sjreuzmy2q9p8sc74ea43r"},
+					Addresses: []string{"tltc1qjw8h4l3dtz5xxc7uyh5ys70qkezspgfus9tapm"},
 					Type:      "nulldata",
 				},
 			},
@@ -308,7 +308,7 @@ func (s *BitcoinCashSuite) TestIgnoreTx(c *C) {
 			{
 				Value: 0,
 				ScriptPubKey: btcjson.ScriptPubKeyResult{
-					Addresses: []string{"qzfc77h794v2scmrmsj7sjreuzmy2q9p8sc74ea43r"},
+					Addresses: []string{"tltc1qjw8h4l3dtz5xxc7uyh5ys70qkezspgfus9tapm"},
 				},
 			},
 			{
@@ -333,7 +333,7 @@ func (s *BitcoinCashSuite) TestIgnoreTx(c *C) {
 			{
 				Value: 0.1234565,
 				ScriptPubKey: btcjson.ScriptPubKeyResult{
-					Addresses: []string{"qzfc77h794v2scmrmsj7sjreuzmy2q9p8sc74ea43r"},
+					Addresses: []string{"tltc1qjw8h4l3dtz5xxc7uyh5ys70qkezspgfus9tapm"},
 				},
 			},
 			{
@@ -353,7 +353,7 @@ func (s *BitcoinCashSuite) TestIgnoreTx(c *C) {
 			{
 				Value: 0.1234565,
 				ScriptPubKey: btcjson.ScriptPubKeyResult{
-					Addresses: []string{"qzfc77h794v2scmrmsj7sjreuzmy2q9p8sc74ea43r"},
+					Addresses: []string{"tltc1qjw8h4l3dtz5xxc7uyh5ys70qkezspgfus9tapm"},
 				},
 			},
 			{
@@ -379,8 +379,8 @@ func (s *BitcoinCashSuite) TestIgnoreTx(c *C) {
 				Value: 0.1234565,
 				ScriptPubKey: btcjson.ScriptPubKeyResult{
 					Addresses: []string{
-						"qzfc77h794v2scmrmsj7sjreuzmy2q9p8sc74ea43r",
-						"qqqzdh86crxjpyh2tgfy7gyfcwk4k74ze55ympqehp",
+						"tltc1qjw8h4l3dtz5xxc7uyh5ys70qkezspgfus9tapm",
+						"ltc1q2gjc0rnhy4nrxvuklk6ptwkcs9kcr59mursyaz",
 					},
 				},
 			},
@@ -407,7 +407,7 @@ func (s *BitcoinCashSuite) TestIgnoreTx(c *C) {
 				Value: 0.1234565,
 				ScriptPubKey: btcjson.ScriptPubKeyResult{
 					Addresses: []string{
-						"qqqzdh86crxjpyh2tgfy7gyfcwk4k74ze55ympqehp",
+						"ltc1q2gjc0rnhy4nrxvuklk6ptwkcs9kcr59mursyaz",
 					},
 				},
 			},
@@ -415,7 +415,7 @@ func (s *BitcoinCashSuite) TestIgnoreTx(c *C) {
 				Value: 0.1234565,
 				ScriptPubKey: btcjson.ScriptPubKeyResult{
 					Addresses: []string{
-						"qzfc77h794v2scmrmsj7sjreuzmy2q9p8sc74ea43r",
+						"tltc1qjw8h4l3dtz5xxc7uyh5ys70qkezspgfus9tapm",
 					},
 				},
 			},
@@ -423,7 +423,7 @@ func (s *BitcoinCashSuite) TestIgnoreTx(c *C) {
 				Value: 0.1234565,
 				ScriptPubKey: btcjson.ScriptPubKeyResult{
 					Addresses: []string{
-						"qzfc77h794v2scmrmsj7sjreuzmy2q9p8sc74ea43r",
+						"tltc1qjw8h4l3dtz5xxc7uyh5ys70qkezspgfus9tapm",
 					},
 				},
 			},
@@ -450,7 +450,7 @@ func (s *BitcoinCashSuite) TestIgnoreTx(c *C) {
 				Value: 0.1234565,
 				ScriptPubKey: btcjson.ScriptPubKeyResult{
 					Addresses: []string{
-						"qqqzdh86crxjpyh2tgfy7gyfcwk4k74ze55ympqehp",
+						"ltc1q2gjc0rnhy4nrxvuklk6ptwkcs9kcr59mursyaz",
 					},
 				},
 			},
@@ -458,7 +458,7 @@ func (s *BitcoinCashSuite) TestIgnoreTx(c *C) {
 				Value: 0.1234565,
 				ScriptPubKey: btcjson.ScriptPubKeyResult{
 					Addresses: []string{
-						"qzfc77h794v2scmrmsj7sjreuzmy2q9p8sc74ea43r",
+						"tltc1qjw8h4l3dtz5xxc7uyh5ys70qkezspgfus9tapm",
 					},
 				},
 			},
@@ -473,7 +473,7 @@ func (s *BitcoinCashSuite) TestIgnoreTx(c *C) {
 	c.Assert(ignored, Equals, false)
 }
 
-func (s *BitcoinCashSuite) TestGetGas(c *C) {
+func (s *LitecoinSuite) TestGetGas(c *C) {
 	// vin[0] returns value 0.19590108
 	tx := btcjson.TxRawResult{
 		Vin: []btcjson.Vin{
@@ -486,7 +486,7 @@ func (s *BitcoinCashSuite) TestGetGas(c *C) {
 			{
 				Value: 0.12345678,
 				ScriptPubKey: btcjson.ScriptPubKeyResult{
-					Addresses: []string{"qzfc77h794v2scmrmsj7sjreuzmy2q9p8sc74ea43r"},
+					Addresses: []string{"tltc1qjw8h4l3dtz5xxc7uyh5ys70qkezspgfus9tapm"},
 				},
 			},
 			{
@@ -498,7 +498,7 @@ func (s *BitcoinCashSuite) TestGetGas(c *C) {
 	}
 	gas, err := s.client.getGas(&tx)
 	c.Assert(err, IsNil)
-	c.Assert(gas.Equals(common.Gas{common.NewCoin(common.BCHAsset, cosmos.NewUint(7244430))}), Equals, true)
+	c.Assert(gas.Equals(common.Gas{common.NewCoin(common.LTCAsset, cosmos.NewUint(7244430))}), Equals, true)
 
 	tx = btcjson.TxRawResult{
 		Vin: []btcjson.Vin{
@@ -511,13 +511,13 @@ func (s *BitcoinCashSuite) TestGetGas(c *C) {
 			{
 				Value: 0.00195384,
 				ScriptPubKey: btcjson.ScriptPubKeyResult{
-					Addresses: []string{"qzfc77h794v2scmrmsj7sjreuzmy2q9p8sc74ea43r"},
+					Addresses: []string{"tltc1qjw8h4l3dtz5xxc7uyh5ys70qkezspgfus9tapm"},
 				},
 			},
 			{
 				Value: 1.49655603,
 				ScriptPubKey: btcjson.ScriptPubKeyResult{
-					Addresses: []string{"qzfc77h794v2scmrmsj7sjreuzmy2q9p8sc74ea43r"},
+					Addresses: []string{"tltc1qjw8h4l3dtz5xxc7uyh5ys70qkezspgfus9tapm"},
 				},
 			},
 			{
@@ -529,33 +529,33 @@ func (s *BitcoinCashSuite) TestGetGas(c *C) {
 	}
 	gas, err = s.client.getGas(&tx)
 	c.Assert(err, IsNil)
-	c.Assert(gas.Equals(common.Gas{common.NewCoin(common.BCHAsset, cosmos.NewUint(149013))}), Equals, true)
+	c.Assert(gas.Equals(common.Gas{common.NewCoin(common.LTCAsset, cosmos.NewUint(149013))}), Equals, true)
 }
 
-func (s *BitcoinCashSuite) TestGetChain(c *C) {
+func (s *LitecoinSuite) TestGetChain(c *C) {
 	chain := s.client.GetChain()
-	c.Assert(chain, Equals, common.BCHChain)
+	c.Assert(chain, Equals, common.LTCChain)
 }
 
-func (s *BitcoinCashSuite) TestGetAddress(c *C) {
+func (s *LitecoinSuite) TestGetAddress(c *C) {
 	os.Setenv("NET", "mainnet")
 	pubkey := common.PubKey("tthorpub1addwnpepqt7qug8vk9r3saw8n4r803ydj2g3dqwx0mvq5akhnze86fc536xcycgtrnv")
 	addr := s.client.GetAddress(pubkey)
-	c.Assert(addr, Equals, "qpfztpuwwujkvvenjm7mg9d6mzqkmqwshv07z34njm")
+	c.Assert(addr, Equals, "ltc1q2gjc0rnhy4nrxvuklk6ptwkcs9kcr59mursyaz")
 }
 
-func (s *BitcoinCashSuite) TestGetHeight(c *C) {
+func (s *LitecoinSuite) TestGetHeight(c *C) {
 	height, err := s.client.GetHeight()
 	c.Assert(err, IsNil)
 	c.Assert(height, Equals, int64(10))
 }
 
-func (s *BitcoinCashSuite) TestGetAccount(c *C) {
+func (s *LitecoinSuite) TestGetAccount(c *C) {
 	acct, err := s.client.GetAccount("tthorpub1addwnpepqt7qug8vk9r3saw8n4r803ydj2g3dqwx0mvq5akhnze86fc536xcycgtrnv")
 	c.Assert(err, IsNil)
 	c.Assert(acct.AccountNumber, Equals, int64(0))
 	c.Assert(acct.Sequence, Equals, int64(0))
-	c.Assert(acct.Coins[0].Equals(common.NewCoin(common.BCHAsset, cosmos.NewUint(2502000000))), Equals, true)
+	c.Assert(acct.Coins[0].Amount.Uint64(), Equals, uint64(2502000000))
 
 	acct1, err := s.client.GetAccount("")
 	c.Assert(err, NotNil)
@@ -564,19 +564,19 @@ func (s *BitcoinCashSuite) TestGetAccount(c *C) {
 	c.Assert(acct1.Coins, HasLen, 0)
 }
 
-func (s *BitcoinCashSuite) TestOnObservedTxIn(c *C) {
+func (s *LitecoinSuite) TestOnObservedTxIn(c *C) {
 	pkey := ttypes.GetRandomPubKey()
 	txIn := types.TxIn{
 		Count: "1",
-		Chain: common.BCHChain,
+		Chain: common.LTCChain,
 		TxArray: []types.TxInItem{
 			{
 				BlockHeight: 1,
 				Tx:          "31f8699ce9028e9cd37f8a6d58a79e614a96e3fdd0f58be5fc36d2d95484716f",
-				Sender:      "qqqzdh86crxjpyh2tgfy7gyfcwk4k74ze55ympqehp",
-				To:          "qpfztpuwwujkvvenjm7mg9d6mzqkmqwshv07z34njm",
+				Sender:      "ltc1q2gjc0rnhy4nrxvuklk6ptwkcs9kcr59mursyaz",
+				To:          "ltc1qjw8h4l3dtz5xxc7uyh5ys70qkezspgfu8hg5j3",
 				Coins: common.Coins{
-					common.NewCoin(common.BCHAsset, cosmos.NewUint(123456789)),
+					common.NewCoin(common.LTCAsset, cosmos.NewUint(123456789)),
 				},
 				Memo:                "MEMO",
 				ObservedVaultPubKey: pkey,
@@ -592,15 +592,15 @@ func (s *BitcoinCashSuite) TestOnObservedTxIn(c *C) {
 
 	txIn = types.TxIn{
 		Count: "1",
-		Chain: common.BCHChain,
+		Chain: common.LTCChain,
 		TxArray: []types.TxInItem{
 			{
 				BlockHeight: 2,
 				Tx:          "24ed2d26fd5d4e0e8fa86633e40faf1bdfc8d1903b1cd02855286312d48818a2",
-				Sender:      "qqqzdh86crxjpyh2tgfy7gyfcwk4k74ze55ympqehp",
-				To:          "qpfztpuwwujkvvenjm7mg9d6mzqkmqwshv07z34njm",
+				Sender:      "ltc1q2gjc0rnhy4nrxvuklk6ptwkcs9kcr59mursyaz",
+				To:          "ltc1qjw8h4l3dtz5xxc7uyh5ys70qkezspgfu8hg5j3",
 				Coins: common.Coins{
-					common.NewCoin(common.BCHAsset, cosmos.NewUint(123456)),
+					common.NewCoin(common.LTCAsset, cosmos.NewUint(123456)),
 				},
 				Memo:                "MEMO",
 				ObservedVaultPubKey: pkey,
@@ -616,15 +616,15 @@ func (s *BitcoinCashSuite) TestOnObservedTxIn(c *C) {
 
 	txIn = types.TxIn{
 		Count: "2",
-		Chain: common.BCHChain,
+		Chain: common.LTCChain,
 		TxArray: []types.TxInItem{
 			{
 				BlockHeight: 3,
 				Tx:          "44ed2d26fd5d4e0e8fa86633e40faf1bdfc8d1903b1cd02855286312d48818a2",
-				Sender:      "qqqzdh86crxjpyh2tgfy7gyfcwk4k74ze55ympqehp",
-				To:          "qpfztpuwwujkvvenjm7mg9d6mzqkmqwshv07z34njm",
+				Sender:      "ltc1q2gjc0rnhy4nrxvuklk6ptwkcs9kcr59mursyaz",
+				To:          "ltc1qjw8h4l3dtz5xxc7uyh5ys70qkezspgfu8hg5j3",
 				Coins: common.Coins{
-					common.NewCoin(common.BCHAsset, cosmos.NewUint(12345678)),
+					common.NewCoin(common.LTCAsset, cosmos.NewUint(12345678)),
 				},
 				Memo:                "MEMO",
 				ObservedVaultPubKey: pkey,
@@ -632,10 +632,10 @@ func (s *BitcoinCashSuite) TestOnObservedTxIn(c *C) {
 			{
 				BlockHeight: 3,
 				Tx:          "54ed2d26fd5d4e0e8fa86633e40faf1bdfc8d1903b1cd02855286312d48818a2",
-				Sender:      "qqqzdh86crxjpyh2tgfy7gyfcwk4k74ze55ympqehp",
-				To:          "qpfztpuwwujkvvenjm7mg9d6mzqkmqwshv07z34njm",
+				Sender:      "ltc1q2gjc0rnhy4nrxvuklk6ptwkcs9kcr59mursyaz",
+				To:          "ltc1qjw8h4l3dtz5xxc7uyh5ys70qkezspgfu8hg5j3",
 				Coins: common.Coins{
-					common.NewCoin(common.BCHAsset, cosmos.NewUint(123456)),
+					common.NewCoin(common.LTCAsset, cosmos.NewUint(123456)),
 				},
 				Memo:                "MEMO",
 				ObservedVaultPubKey: pkey,
@@ -653,10 +653,10 @@ func (s *BitcoinCashSuite) TestOnObservedTxIn(c *C) {
 	c.Assert(blockMeta, NotNil)
 }
 
-func (s *BitcoinCashSuite) TestProcessReOrg(c *C) {
+func (s *LitecoinSuite) TestProcessReOrg(c *C) {
 	// can't get previous block meta should not error
 	var result btcjson.GetBlockVerboseTxResult
-	blockContent, err := ioutil.ReadFile("../../../../test/fixtures/bch/block.json")
+	blockContent, err := ioutil.ReadFile("../../../../test/fixtures/ltc/block.json")
 	c.Assert(err, IsNil)
 	c.Assert(json.Unmarshal(blockContent, &result), IsNil)
 	// should not trigger re-org process
@@ -677,7 +677,7 @@ func (s *BitcoinCashSuite) TestProcessReOrg(c *C) {
 	c.Assert(blockMeta, NotNil)
 }
 
-func (s *BitcoinCashSuite) TestGetMemPool(c *C) {
+func (s *LitecoinSuite) TestGetMemPool(c *C) {
 	txIns, err := s.client.getMemPool(1024)
 	c.Assert(err, IsNil)
 	c.Assert(txIns.TxArray, HasLen, 1)
@@ -688,24 +688,24 @@ func (s *BitcoinCashSuite) TestGetMemPool(c *C) {
 	c.Assert(txIns.TxArray, HasLen, 0)
 }
 
-func (s *BitcoinCashSuite) TestConfirmationCountReady(c *C) {
+func (s *LitecoinSuite) TestConfirmationCountReady(c *C) {
 	c.Assert(s.client.ConfirmationCountReady(types.TxIn{
-		Chain:    common.BCHChain,
+		Chain:    common.LTCChain,
 		TxArray:  nil,
 		Filtered: true,
 		MemPool:  false,
 	}), Equals, true)
 	pkey := ttypes.GetRandomPubKey()
 	c.Assert(s.client.ConfirmationCountReady(types.TxIn{
-		Chain: common.BCHChain,
+		Chain: common.LTCChain,
 		TxArray: []types.TxInItem{
 			{
 				BlockHeight: 2,
 				Tx:          "24ed2d26fd5d4e0e8fa86633e40faf1bdfc8d1903b1cd02855286312d48818a2",
-				Sender:      "qqqzdh86crxjpyh2tgfy7gyfcwk4k74ze55ympqehp",
-				To:          "qpfztpuwwujkvvenjm7mg9d6mzqkmqwshv07z34njm",
+				Sender:      "ltc1q2gjc0rnhy4nrxvuklk6ptwkcs9kcr59mursyaz",
+				To:          "ltc1qjw8h4l3dtz5xxc7uyh5ys70qkezspgfu8hg5j3",
 				Coins: common.Coins{
-					common.NewCoin(common.BCHAsset, cosmos.NewUint(123456)),
+					common.NewCoin(common.LTCAsset, cosmos.NewUint(123456)),
 				},
 				Memo:                "MEMO",
 				ObservedVaultPubKey: pkey,
@@ -716,15 +716,15 @@ func (s *BitcoinCashSuite) TestConfirmationCountReady(c *C) {
 	}), Equals, true)
 	s.client.currentBlockHeight = 3
 	c.Assert(s.client.ConfirmationCountReady(types.TxIn{
-		Chain: common.BCHChain,
+		Chain: common.LTCChain,
 		TxArray: []types.TxInItem{
 			{
 				BlockHeight: 2,
 				Tx:          "24ed2d26fd5d4e0e8fa86633e40faf1bdfc8d1903b1cd02855286312d48818a2",
-				Sender:      "qqqzdh86crxjpyh2tgfy7gyfcwk4k74ze55ympqehp",
-				To:          "qpfztpuwwujkvvenjm7mg9d6mzqkmqwshv07z34njm",
+				Sender:      "ltc1q2gjc0rnhy4nrxvuklk6ptwkcs9kcr59mursyaz",
+				To:          "ltc1qjw8h4l3dtz5xxc7uyh5ys70qkezspgfu8hg5j3",
 				Coins: common.Coins{
-					common.NewCoin(common.BCHAsset, cosmos.NewUint(123456)),
+					common.NewCoin(common.LTCAsset, cosmos.NewUint(123456)),
 				},
 				Memo:                "MEMO",
 				ObservedVaultPubKey: pkey,
@@ -736,18 +736,18 @@ func (s *BitcoinCashSuite) TestConfirmationCountReady(c *C) {
 	}), Equals, true)
 
 	c.Assert(s.client.ConfirmationCountReady(types.TxIn{
-		Chain: common.BCHChain,
+		Chain: common.LTCChain,
 		TxArray: []types.TxInItem{
 			{
 				BlockHeight: 2,
 				Tx:          "24ed2d26fd5d4e0e8fa86633e40faf1bdfc8d1903b1cd02855286312d48818a2",
-				Sender:      "qqqzdh86crxjpyh2tgfy7gyfcwk4k74ze55ympqehp",
-				To:          "qpfztpuwwujkvvenjm7mg9d6mzqkmqwshv07z34njm",
+				Sender:      "ltc1q2gjc0rnhy4nrxvuklk6ptwkcs9kcr59mursyaz",
+				To:          "ltc1qjw8h4l3dtz5xxc7uyh5ys70qkezspgfu8hg5j3",
 				Coins: common.Coins{
-					common.NewCoin(common.BCHAsset, cosmos.NewUint(12345600000)),
+					common.NewCoin(common.LTCAsset, cosmos.NewUint(12345600000)),
 				},
 				Gas: common.Gas{
-					common.NewCoin(common.BCHAsset, cosmos.NewUint(40000)),
+					common.NewCoin(common.LTCAsset, cosmos.NewUint(40000)),
 				},
 				Memo:                "MEMO",
 				ObservedVaultPubKey: pkey,

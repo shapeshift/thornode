@@ -25,6 +25,7 @@ type KeyData struct {
 	pub      string
 	addrBNB  KeyDataAddr
 	addrBTC  KeyDataAddr
+	addrLTC  KeyDataAddr
 	addrBCH  KeyDataAddr
 	addrETH  KeyDataAddr
 	addrTHOR KeyDataAddr
@@ -56,6 +57,11 @@ func (s *PubKeyTestSuite) SetUpSuite(c *C) {
 				testnet: "tb1qj08ys4ct2hzzc2hcz6h2hgrvlmsjynaw43s835",
 				mocknet: "bcrt1qj08ys4ct2hzzc2hcz6h2hgrvlmsjynawhcf2xa",
 			},
+			addrLTC: KeyDataAddr{
+				mainnet: "ltc1qj08ys4ct2hzzc2hcz6h2hgrvlmsjynawmt3sjh",
+				testnet: "tltc1qj08ys4ct2hzzc2hcz6h2hgrvlmsjynawvejepa",
+				mocknet: "rltc1qj08ys4ct2hzzc2hcz6h2hgrvlmsjynawf4nr3r",
+			},
 			addrBCH: KeyDataAddr{
 				mainnet: "qzfuujzhpd2ugtp2lqt2a2aqdnlwzgj04cswjhml4x",
 				testnet: "qzfuujzhpd2ugtp2lqt2a2aqdnlwzgj04c5uksegj6",
@@ -79,6 +85,11 @@ func (s *PubKeyTestSuite) SetUpSuite(c *C) {
 				mainnet: "bc1qzupk5lmc84r2dh738a9g3zscavannjy38ghlxu",
 				testnet: "tb1qzupk5lmc84r2dh738a9g3zscavannjy3dwvva0",
 				mocknet: "bcrt1qzupk5lmc84r2dh738a9g3zscavannjy3084p2x",
+			},
+			addrLTC: KeyDataAddr{
+				mainnet: "ltc1qzupk5lmc84r2dh738a9g3zscavannjy3r5dm7v",
+				testnet: "tltc1qzupk5lmc84r2dh738a9g3zscavannjy35xwjdx",
+				mocknet: "rltc1qzupk5lmc84r2dh738a9g3zscavannjy3320gac",
 			},
 			addrBCH: KeyDataAddr{
 				mainnet: "qqtsx6nl0q75dfkl6yl54zy2rr4nkwwgjyzgwf5228",
@@ -104,6 +115,11 @@ func (s *PubKeyTestSuite) SetUpSuite(c *C) {
 				testnet: "tb1qqqnde7kqe5sf96j6zf8jpzwr44dh4gkdnswsh7",
 				mocknet: "bcrt1qqqnde7kqe5sf96j6zf8jpzwr44dh4gkd3ehaqh",
 			},
+			addrLTC: KeyDataAddr{
+				mainnet: "ltc1qqqnde7kqe5sf96j6zf8jpzwr44dh4gkda2085a",
+				testnet: "tltc1qqqnde7kqe5sf96j6zf8jpzwr44dh4gkd2cvw8h",
+				mocknet: "rltc1qqqnde7kqe5sf96j6zf8jpzwr44dh4gkd05d5hf",
+			},
 			addrBCH: KeyDataAddr{
 				mainnet: "qqqzdh86crxjpyh2tgfy7gyfcwk4k74ze522f8panm",
 				testnet: "qqqzdh86crxjpyh2tgfy7gyfcwk4k74ze5wcdqr258",
@@ -128,6 +144,11 @@ func (s *PubKeyTestSuite) SetUpSuite(c *C) {
 				testnet: "tb1q0s4mg25tu6termrk8egltfyme4q7sg3h9l0f6z",
 				mocknet: "bcrt1q0s4mg25tu6termrk8egltfyme4q7sg3h8kkydt",
 			},
+			addrLTC: KeyDataAddr{
+				mainnet: "ltc1q0s4mg25tu6termrk8egltfyme4q7sg3ht9w7ep",
+				testnet: "tltc1q0s4mg25tu6termrk8egltfyme4q7sg3huhdh2t",
+				mocknet: "rltc1q0s4mg25tu6termrk8egltfyme4q7sg3hemvd64",
+			},
 			addrBCH: KeyDataAddr{
 				mainnet: "qp7zhdp230nf0y0vwcl9radyn0x5r6pzxuqvhx5vs3",
 				testnet: "qp7zhdp230nf0y0vwcl9radyn0x5r6pzxuy7npkmhd",
@@ -151,6 +172,11 @@ func (s *PubKeyTestSuite) SetUpSuite(c *C) {
 				mainnet: "bc1qjw8h4l3dtz5xxc7uyh5ys70qkezspgfurtjs2p",
 				testnet: "tb1qjw8h4l3dtz5xxc7uyh5ys70qkezspgfufdfr3j",
 				mocknet: "bcrt1qjw8h4l3dtz5xxc7uyh5ys70qkezspgfutyswxm",
+			},
+			addrLTC: KeyDataAddr{
+				mainnet: "ltc1qjw8h4l3dtz5xxc7uyh5ys70qkezspgfu8hg5j3",
+				testnet: "tltc1qjw8h4l3dtz5xxc7uyh5ys70qkezspgfus9tapm",
+				mocknet: "rltc1qjw8h4l3dtz5xxc7uyh5ys70qkezspgfu4f2839",
 			},
 			addrBCH: KeyDataAddr{
 				mainnet: "qzfc77h794v2scmrmsj7sjreuzmy2q9p8sxs8lu34e",
@@ -239,6 +265,10 @@ func (s *PubKeyTestSuite) TestPubKeyGetAddress(c *C) {
 		c.Assert(err, IsNil)
 		c.Assert(addrBTC.String(), Equals, d.addrBTC.mainnet)
 
+		addrLTC, err := pk.GetAddress(LTCChain)
+		c.Assert(err, IsNil)
+		c.Assert(addrLTC.String(), Equals, d.addrLTC.mainnet)
+
 		addrBCH, err := pk.GetAddress(BCHChain)
 		c.Assert(err, IsNil)
 		c.Assert(addrBCH.String(), Equals, d.addrBCH.mainnet)
@@ -256,6 +286,10 @@ func (s *PubKeyTestSuite) TestPubKeyGetAddress(c *C) {
 		c.Assert(err, IsNil)
 		c.Assert(addrBTC.String(), Equals, d.addrBTC.testnet)
 
+		addrLTC, err = pk.GetAddress(LTCChain)
+		c.Assert(err, IsNil)
+		c.Assert(addrLTC.String(), Equals, d.addrLTC.testnet)
+
 		addrBCH, err = pk.GetAddress(BCHChain)
 		c.Assert(err, IsNil)
 		c.Assert(addrBCH.String(), Equals, d.addrBCH.testnet)
@@ -272,6 +306,10 @@ func (s *PubKeyTestSuite) TestPubKeyGetAddress(c *C) {
 		addrBTC, err = pk.GetAddress(BTCChain)
 		c.Assert(err, IsNil)
 		c.Assert(addrBTC.String(), Equals, d.addrBTC.mocknet)
+
+		addrLTC, err = pk.GetAddress(LTCChain)
+		c.Assert(err, IsNil)
+		c.Assert(addrLTC.String(), Equals, d.addrLTC.mocknet)
 
 		addrBCH, err = pk.GetAddress(BCHChain)
 		c.Assert(err, IsNil)

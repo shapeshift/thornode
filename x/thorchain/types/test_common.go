@@ -103,6 +103,12 @@ func GetRandomBTCAddress() common.Address {
 	return addr
 }
 
+func GetRandomLTCAddress() common.Address {
+	pubKey := GetRandomPubKey()
+	addr, _ := pubKey.GetAddress(common.LTCChain)
+	return addr
+}
+
 func GetRandomBCHAddress() common.Address {
 	pubKey := GetRandomPubKey()
 	addr, _ := pubKey.GetAddress(common.BCHChain)

@@ -2,6 +2,7 @@ package common
 
 import (
 	"github.com/btcsuite/btcd/chaincfg"
+	ltcchaincfg "github.com/ltcsuite/ltcd/chaincfg"
 	btypes "gitlab.com/thorchain/binance-sdk/common/types"
 	. "gopkg.in/check.v1"
 )
@@ -42,4 +43,8 @@ func (s ChainSuite) TestChain(c *C) {
 	c.Assert(BTCChain.AddressPrefix(MockNet), Equals, chaincfg.RegressionNetParams.Bech32HRPSegwit)
 	c.Assert(BTCChain.AddressPrefix(TestNet), Equals, chaincfg.TestNet3Params.Bech32HRPSegwit)
 	c.Assert(BTCChain.AddressPrefix(MainNet), Equals, chaincfg.MainNetParams.Bech32HRPSegwit)
+
+	c.Assert(LTCChain.AddressPrefix(MockNet), Equals, ltcchaincfg.RegressionNetParams.Bech32HRPSegwit)
+	c.Assert(LTCChain.AddressPrefix(TestNet), Equals, ltcchaincfg.TestNet4Params.Bech32HRPSegwit)
+	c.Assert(LTCChain.AddressPrefix(MainNet), Equals, ltcchaincfg.MainNetParams.Bech32HRPSegwit)
 }
