@@ -34,6 +34,7 @@ func GetTxCmd() *cobra.Command {
 	cmd.AddCommand(GetCmdSend())
 	for _, subCmd := range cmd.Commands() {
 		flags.AddTxFlagsToCmd(subCmd)
+		subCmd.Flag(flags.FlagGas).DefValue = flags.GasFlagAuto
 	}
 	return cmd
 }
@@ -49,7 +50,6 @@ func GetCmdDeposit() *cobra.Command {
 			if err != nil {
 				return err
 			}
-
 			amt, err := strconv.ParseInt(args[0], 10, 64)
 			if err != nil {
 				return fmt.Errorf("invalid amount (must be an integer): %w", err)
@@ -66,6 +66,7 @@ func GetCmdDeposit() *cobra.Command {
 			if err := msg.ValidateBasic(); err != nil {
 				return err
 			}
+
 			return tx.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), msg)
 		},
 	}
@@ -83,7 +84,6 @@ func GetCmdSend() *cobra.Command {
 			if err != nil {
 				return err
 			}
-
 			toAddr, err := cosmos.AccAddressFromBech32(args[0])
 			if err != nil {
 				return fmt.Errorf("invalid address: %w", err)

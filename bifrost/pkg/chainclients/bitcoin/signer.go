@@ -23,7 +23,6 @@ import (
 	"gitlab.com/thorchain/thornode/bifrost/tss"
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
-	"gitlab.com/thorchain/thornode/x/thorchain"
 	mem "gitlab.com/thorchain/thornode/x/thorchain/memo"
 )
 
@@ -278,11 +277,6 @@ func (c *Client) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, err
 	maxFeeSats := totalSize * defaultMaxBTCFeeRate / 1024
 	gasCoin := c.getGasCoin(tx, totalSize)
 	gasAmtSats := gasCoin.Amount.Uint64()
-
-	// for yggdrasil, need to left some coin to pay for fee, this logic is per chain, given different chain charge fees differently
-	if strings.EqualFold(tx.Memo, thorchain.NewYggdrasilReturn(thorchainHeight).String()) {
-		coinToCustomer.Amount = common.SafeSub(coinToCustomer.Amount, cosmos.NewUint(gasAmtSats))
-	}
 
 	// make sure the transaction fee is not more than 0.1 BTC / kb , otherwise it might reject the transaction
 	if gasAmtSats > uint64(maxFeeSats) {
