@@ -11,6 +11,10 @@ BINANCE_START_BLOCK_HEIGHT="${BINANCE_START_BLOCK_HEIGHT:=0}"
 BTC_HOST="${BTC_HOST:=bitcoin-regtest:18443}"
 BTC_START_BLOCK_HEIGHT="${BTC_START_BLOCK_HEIGHT:=0}"
 
+# Litecoin core chain config
+LTC_HOST="${LTC_HOST:=litecoin-regtest:18443}"
+LTC_START_BLOCK_HEIGHT="${LTC_START_BLOCK_HEIGHT:=0}"
+
 # Ethereum chain config
 ETH_HOST="${ETH_HOST:=http://ethereum-localnet:8545}"
 ETH_START_BLOCK_HEIGHT="${ETH_START_BLOCK_HEIGHT:=0}"
@@ -115,6 +119,28 @@ echo "{
           \"http_request_write_timeout\": \"30s\",
           \"max_http_request_retry\": 10,
           \"start_block_height\": $BTC_START_BLOCK_HEIGHT,
+          \"db_path\": \"$OBSERVER_PATH\"
+        }
+      },
+      {
+        \"chain_id\": \"LTC\",
+        \"rpc_host\": \"$LTC_HOST\",
+        \"username\": \"$SIGNER_NAME\",
+        \"password\": \"$SIGNER_PASSWD\",
+        \"http_post_mode\": 1,
+        \"disable_tls\": 1,
+        \"block_scanner\": {
+          \"rpc_host\": \"$LTC_HOST\",
+          \"enforce_block_height\": false,
+          \"block_scan_processors\": 1,
+          \"block_height_discover_back_off\": \"5s\",
+          \"block_retry_interval\": \"10s\",
+          \"chain_id\": \"LTC\",
+          \"http_request_timeout\": \"30s\",
+          \"http_request_read_timeout\": \"30s\",
+          \"http_request_write_timeout\": \"30s\",
+          \"max_http_request_retry\": 10,
+          \"start_block_height\": $LTC_START_BLOCK_HEIGHT,
           \"db_path\": \"$OBSERVER_PATH\"
         }
       },

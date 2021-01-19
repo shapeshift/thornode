@@ -10,6 +10,8 @@ import (
 	eth "github.com/ethereum/go-ethereum/common"
 	bchchaincfg "github.com/gcash/bchd/chaincfg"
 	"github.com/gcash/bchutil"
+	ltcchaincfg "github.com/ltcsuite/ltcd/chaincfg"
+	"github.com/ltcsuite/ltcutil"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
@@ -44,6 +46,18 @@ func NewAddress(address string) (Address, error) {
 
 	// Check BTC address formats with testnet
 	_, err = btcutil.DecodeAddress(address, &chaincfg.TestNet3Params)
+	if err == nil {
+		return Address(address), nil
+	}
+
+	// Check other LTC address formats with mainnet
+	_, err = ltcutil.DecodeAddress(address, &ltcchaincfg.MainNetParams)
+	if err == nil {
+		return Address(address), nil
+	}
+
+	// Check LTC address formats with testnet
+	_, err = ltcutil.DecodeAddress(address, &ltcchaincfg.TestNet4Params)
 	if err == nil {
 		return Address(address), nil
 	}
@@ -91,6 +105,22 @@ func (addr Address) IsChain(chain Chain) bool {
 		}
 		// Check testnet other formats
 		_, err = btcutil.DecodeAddress(addr.String(), &chaincfg.TestNet3Params)
+		if err == nil {
+			return true
+		}
+		return false
+	case LTCChain:
+		prefix, _, err := bech32.Decode(addr.String())
+		if err == nil && (prefix == "ltc" || prefix == "tltc" || prefix == "rltc") {
+			return true
+		}
+		// Check mainnet other formats
+		_, err = ltcutil.DecodeAddress(addr.String(), &ltcchaincfg.MainNetParams)
+		if err == nil {
+			return true
+		}
+		// Check testnet other formats
+		_, err = ltcutil.DecodeAddress(addr.String(), &ltcchaincfg.TestNet4Params)
 		if err == nil {
 			return true
 		}
