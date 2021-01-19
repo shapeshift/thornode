@@ -63,7 +63,43 @@ func (h UnBondHandler) validateV1(ctx cosmos.Context, version semver.Version, ms
 	}
 
 	if ygg.HasFunds() {
-		return cosmos.ErrUnknownRequest("cannot unbond while yggdrasil vault still has funds")
+		canUnbond := true
+		totalRuneValue := cosmos.ZeroUint()
+		for _, c := range ygg.Coins {
+			if c.Amount.IsZero() {
+				continue
+			}
+			if !c.Asset.IsGasAsset() {
+				// None gas asset has not been sent back to asgard in full
+				canUnbond = false
+				break
+			}
+			chain := c.GetAsset().Chain
+			maxGas, err := h.mgr.GasMgr().GetMaxGas(ctx, chain)
+			if err != nil {
+				ctx.Logger().Error("fail to get max gas", "chain", chain, "error", err)
+				canUnbond = false
+				break
+			}
+			if c.Amount.GT(maxGas.Amount) {
+				canUnbond = false
+			}
+			pool, err := h.keeper.GetPool(ctx, c.Asset)
+			if err != nil {
+				ctx.Logger().Error("fail to get pool", "asset", c.Asset, "error", err)
+				canUnbond = false
+				break
+			}
+			totalRuneValue = totalRuneValue.Add(pool.AssetValueInRune(c.Amount))
+		}
+		if !canUnbond {
+			return cosmos.ErrUnknownRequest("cannot unbond while yggdrasil vault still has funds")
+		}
+		totalRuneValue = totalRuneValue.MulUint64(3).QuoUint64(2)
+		totalAmountCanBeUnbond := common.SafeSub(na.Bond, totalRuneValue)
+		if msg.Amount.GT(totalAmountCanBeUnbond) {
+			return cosmos.ErrUnknownRequest(fmt.Sprintf("unbond amount %s is more than %s , not allowed", msg.Amount, totalAmountCanBeUnbond))
+		}
 	}
 
 	jail, err := h.keeper.GetNodeAccountJail(ctx, msg.NodeAddress)
