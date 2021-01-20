@@ -158,28 +158,6 @@ func (h HandlerReserveContributorSuite) TestReserveContributorHandler(c *C) {
 			expectedResult: se.ErrUnknownRequest,
 		},
 		{
-			name: "fail to get reserve contributor should return an error",
-			messageCreator: func(helper reserveContributorHandlerHelper) cosmos.Msg {
-				return NewMsgReserveContributor(GetRandomTx(), helper.reserveContributor, helper.nodeAccount.NodeAddress)
-			},
-			runner: func(handler ReserveContributorHandler, helper reserveContributorHandlerHelper, msg cosmos.Msg) (*cosmos.Result, error) {
-				helper.keeper.errGetReserveContributors = true
-				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
-			},
-			expectedResult: errInternal,
-		},
-		{
-			name: "fail to set reserve contributor should return an error",
-			messageCreator: func(helper reserveContributorHandlerHelper) cosmos.Msg {
-				return NewMsgReserveContributor(GetRandomTx(), helper.reserveContributor, helper.nodeAccount.NodeAddress)
-			},
-			runner: func(handler ReserveContributorHandler, helper reserveContributorHandlerHelper, msg cosmos.Msg) (*cosmos.Result, error) {
-				helper.keeper.errSetReserveContributors = true
-				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
-			},
-			expectedResult: errInternal,
-		},
-		{
 			name: "normal reserve contribute message should return success",
 			messageCreator: func(helper reserveContributorHandlerHelper) cosmos.Msg {
 				tx := GetRandomTx()
