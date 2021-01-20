@@ -5,7 +5,6 @@ import (
 
 	"github.com/blang/semver"
 
-	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
@@ -66,10 +65,7 @@ func (h ReserveContributorHandler) handle(ctx cosmos.Context, msg MsgReserveCont
 
 // handleV1  process MsgReserveContributor
 func (h ReserveContributorHandler) handleV1(ctx cosmos.Context, msg MsgReserveContributor, version semver.Version) error {
-	coin := msg.Tx.Coins.GetCoin(common.RuneAsset())
-	if err := h.keeper.AddFeeToReserve(ctx, coin.Amount); err != nil {
-		return fmt.Errorf("fail to add to reserve: %w", err)
-	}
+	// the actually sending of rune into the reserve is handled in the handler_deposit.go file.
 
 	reserveEvent := NewEventReserve(msg.Contributor, msg.Tx)
 	if err := h.mgr.EventMgr().EmitEvent(ctx, reserveEvent); err != nil {
