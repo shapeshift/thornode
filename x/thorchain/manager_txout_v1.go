@@ -275,23 +275,34 @@ func (tos *TxOutStorageV1) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem) (
 					}
 
 					outputs[i].Coin.Amount = common.SafeSub(outputs[i].Coin.Amount, assetFee) // Deduct Asset fee
-					pool.BalanceAsset = pool.BalanceAsset.Add(assetFee)                       // Add Asset fee to Pool
-					var poolDeduct cosmos.Uint
-					if runeFee.GT(pool.BalanceRune) {
-						poolDeduct = pool.BalanceRune
+					if outputs[i].Coin.Asset.IsSyntheticAsset() {
+						// mint runeFee to reserve
+						coin := common.NewCoin(common.RuneAsset(), runeFee)
+						if err := tos.keeper.MintToModule(ctx, ModuleName, coin); err != nil {
+							return nil, fmt.Errorf("fail to mint rune: %w", err)
+						}
+						if err := tos.keeper.SendFromModuleToModule(ctx, ModuleName, ReserveName, common.NewCoins(coin)); err != nil {
+							return nil, fmt.Errorf("fail to mint rune: %w", err)
+						}
 					} else {
-						poolDeduct = runeFee
-					}
-					pool.BalanceRune = common.SafeSub(pool.BalanceRune, runeFee) // Deduct Rune from Pool
-					fee := common.NewFee(common.Coins{common.NewCoin(outputs[i].Coin.Asset, assetFee)}, poolDeduct)
-					if err := tos.eventMgr.EmitFeeEvent(ctx, NewEventFee(outputs[i].InHash, fee)); err != nil {
-						ctx.Logger().Error("fail to emit fee event", "error", err)
-					}
-					if err := tos.keeper.SetPool(ctx, pool); err != nil { // Set Pool
-						return nil, fmt.Errorf("fail to save pool: %w", err)
-					}
-					if err := tos.keeper.AddFeeToReserve(ctx, runeFee); err != nil {
-						return nil, fmt.Errorf("fail to add fee to reserve: %w", err)
+						pool.BalanceAsset = pool.BalanceAsset.Add(assetFee) // Add Asset fee to Pool
+						var poolDeduct cosmos.Uint
+						if runeFee.GT(pool.BalanceRune) {
+							poolDeduct = pool.BalanceRune
+						} else {
+							poolDeduct = runeFee
+						}
+						pool.BalanceRune = common.SafeSub(pool.BalanceRune, runeFee) // Deduct Rune from Pool
+						fee := common.NewFee(common.Coins{common.NewCoin(outputs[i].Coin.Asset, assetFee)}, poolDeduct)
+						if err := tos.eventMgr.EmitFeeEvent(ctx, NewEventFee(outputs[i].InHash, fee)); err != nil {
+							ctx.Logger().Error("fail to emit fee event", "error", err)
+						}
+						if err := tos.keeper.SetPool(ctx, pool); err != nil { // Set Pool
+							return nil, fmt.Errorf("fail to save pool: %w", err)
+						}
+						if err := tos.keeper.AddFeeToReserve(ctx, runeFee); err != nil {
+							return nil, fmt.Errorf("fail to add fee to reserve: %w", err)
+						}
 					}
 				}
 			}

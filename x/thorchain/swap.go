@@ -132,7 +132,7 @@ func swap(ctx cosmos.Context,
 		Coin:      common.NewCoin(target, assetAmount),
 	}
 	// let the txout manager mint our outbound asset if it is a synthetic asset
-	if toi.Coin.Asset.IsSyntheticAsset() {
+	if toi.Chain.IsTHORChain() && (toi.Coin.Asset.IsSyntheticAsset() || source.IsSyntheticAsset()) {
 		toi.ModuleName = ModuleName
 	}
 
