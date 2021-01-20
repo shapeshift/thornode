@@ -212,7 +212,6 @@ func (vm *validatorMgrV1) EndBlock(ctx cosmos.Context, mgr Manager, constAccesso
 		ctx.Logger().Error("fail to get all active nodes", "error", err)
 		return nil
 	}
-
 	// when ragnarok is in progress, just process ragnarok
 	if vm.k.RagnarokInProgress(ctx) {
 		// process ragnarok
@@ -287,7 +286,6 @@ func (vm *validatorMgrV1) EndBlock(ctx cosmos.Context, mgr Manager, constAccesso
 		if na.RequestedToLeave || na.ForcedToLeave {
 			status = NodeDisabled
 		}
-
 		ctx.EventManager().EmitEvent(
 			cosmos.NewEvent("UpdateNodeAccountStatus",
 				cosmos.NewAttribute("Address", na.NodeAddress.String()),
@@ -297,7 +295,6 @@ func (vm *validatorMgrV1) EndBlock(ctx cosmos.Context, mgr Manager, constAccesso
 		if err := vm.k.SetNodeAccount(ctx, na); err != nil {
 			ctx.Logger().Error("fail to save node account", "error", err)
 		}
-
 		if err := vm.payNodeAccountBondAward(ctx, na); err != nil {
 			ctx.Logger().Error("fail to pay node account bond award", "error", err)
 		}
@@ -313,7 +310,7 @@ func (vm *validatorMgrV1) EndBlock(ctx cosmos.Context, mgr Manager, constAccesso
 			continue
 		}
 		removedNodeKeys = append(removedNodeKeys, na.PubKeySet.Secp256k1)
-		validators = append(validators, abci.Ed25519ValidatorUpdate(pk.Bytes(), 100))
+		validators = append(validators, abci.Ed25519ValidatorUpdate(pk.Bytes(), 0))
 	}
 	if err := vm.checkContractUpgrade(ctx, mgr, removedNodeKeys); err != nil {
 		ctx.Logger().Error("fail to check contract upgrade", "error", err)
@@ -423,7 +420,8 @@ func (vm *validatorMgrV1) getChangedNodes(ctx cosmos.Context, activeNodes NodeAc
 			ctx.Logger().Error("fail to get node account", "error", err)
 			continue
 		}
-		if na.Status != NodeActive {
+		// Disabled account can't go back , it should not be include in the newActive
+		if na.Status != NodeActive && na.Status != NodeDisabled {
 			newActive = append(newActive, na)
 		}
 	}

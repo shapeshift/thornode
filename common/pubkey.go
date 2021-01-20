@@ -279,7 +279,7 @@ func (pks PubKeySet) String() string {
 	return fmt.Sprintf(`
 	secp256k1: %s
 	ed25519: %s
-`, pks.Ed25519.String(), pks.Ed25519.String())
+`, pks.Secp256k1.String(), pks.Ed25519.String())
 }
 
 // GetAddress
