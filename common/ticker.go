@@ -24,8 +24,8 @@ type (
 // legitimate ticker
 func NewTicker(ticker string) (Ticker, error) {
 	noTicker := Ticker("")
-	if len(ticker) < 3 {
-		return noTicker, errors.New("ticker error: not enough characters")
+	if len(ticker) == 0 {
+		return noTicker, errors.New("ticker error: empty ticker")
 	}
 
 	if len(ticker) > 13 {

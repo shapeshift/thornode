@@ -444,7 +444,8 @@ func (b *BinanceBlockScanner) fromStdTx(hash string, stdTx tx.StdTx, blockHeight
 			txInItem.To = receiver.Address.String()
 			txInItem.Coins, err = b.getCoinsForTxIn(sendMsg.Outputs, txInItem.To)
 			if err != nil {
-				return nil, fmt.Errorf("fail to convert coins: %w", err)
+				b.logger.Err(err).Msgf("fail to convert coins: %+v", sendMsg.Outputs)
+				continue
 			}
 			// no valid coin in the tx , thus ignore the tx
 			if txInItem.Coins.IsEmpty() {
