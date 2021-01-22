@@ -312,7 +312,7 @@ func (s *MemoSuite) TestParse(c *C) {
 	c.Assert(err, NotNil)
 
 	_, err = ParseMemo("withdraw:A")
-	c.Assert(err, NotNil)
+	c.Assert(err, IsNil)
 	_, err = ParseMemo("leave")
 	c.Assert(err, NotNil)
 	_, err = ParseMemo("out") // not enough parameter
