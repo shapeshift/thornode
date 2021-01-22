@@ -26,6 +26,7 @@ var (
 	RuneB1AAsset = Asset{Chain: BNBChain, Symbol: "RUNE-B1A", Ticker: "RUNE"} // mainnet
 	// RuneNative RUNE on thorchain
 	RuneNative      = Asset{Chain: THORChain, Symbol: "RUNE", Ticker: "RUNE"}
+	RuneERC20Asset  = Asset{Chain: ETHChain, Symbol: "RUNE-0x3155ba85d5f96b2d030a4966af206230e46849cb", Ticker: "RUNE"}
 	SyntheticPrefix = "thor"
 )
 
@@ -141,7 +142,7 @@ func (a Asset) IsGasAsset() bool {
 
 // IsRune is a helper function ,return true only when the asset represent RUNE
 func (a Asset) IsRune() bool {
-	return a.Equals(Rune67CAsset) || a.Equals(RuneB1AAsset) || a.Equals(RuneNative)
+	return a.Equals(Rune67CAsset) || a.Equals(RuneB1AAsset) || a.Equals(RuneNative) || a.Equals(RuneERC20Asset)
 }
 
 // IsBNB is a helper function, return true only when the asset represent BNB
