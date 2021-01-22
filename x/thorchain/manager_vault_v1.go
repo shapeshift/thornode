@@ -117,12 +117,12 @@ func (vm *VaultMgrV1) EndBlock(ctx cosmos.Context, mgr Manager, constAccessor co
 	if err != nil {
 		return err
 	}
-	expected_active_vaults := int64(len(nas)) / asgardSize
+	expectedActiveVaults := int64(len(nas)) / asgardSize
 	if int64(len(nas))%asgardSize > 0 {
-		expected_active_vaults += 1
+		expectedActiveVaults += 1
 	}
-	if int64(len(active)) != expected_active_vaults {
-		ctx.Logger().Info("Skipping the migration of funds while active vaults are being created", "active", len(active), "expected", expected_active_vaults)
+	if int64(len(active)) != expectedActiveVaults {
+		ctx.Logger().Info("Skipping the migration of funds while active vaults are being created", "active", len(active), "expected", expectedActiveVaults)
 		return nil
 	}
 
