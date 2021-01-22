@@ -50,7 +50,7 @@ func swap(ctx cosmos.Context,
 	target common.Asset,
 	destination common.Address,
 	tradeTarget cosmos.Uint,
-	transactionFee cosmos.Uint, mgr Manager) (cosmos.Uint, []*EventSwap, error) {
+	transactionFee cosmos.Uint, synthVirtualDepthMult int64, mgr Manager) (cosmos.Uint, []*EventSwap, error) {
 	var swapEvents []*EventSwap
 
 	// determine if target is layer1 vs synthetic asset
@@ -85,7 +85,7 @@ func swap(ctx cosmos.Context,
 		var swapEvt *EventSwap
 		var amt cosmos.Uint
 		// Here we use a tradeTarget of 0 because the target is for the next swap asset in a double swap
-		amt, poolBefore, sourcePool, swapEvt, swapErr := swapOne(ctx, keeper, tx, common.RuneAsset(), destination, cosmos.ZeroUint(), transactionFee)
+		amt, poolBefore, sourcePool, swapEvt, swapErr := swapOne(ctx, keeper, tx, common.RuneAsset(), destination, cosmos.ZeroUint(), transactionFee, synthVirtualDepthMult)
 		if swapErr != nil {
 			return cosmos.ZeroUint(), swapEvents, swapErr
 		}
@@ -96,7 +96,7 @@ func swap(ctx cosmos.Context,
 		swapEvt.OutTxs = common.NewTx(common.BlankTxID, tx.FromAddress, tx.ToAddress, tx.Coins, tx.Gas, tx.Memo)
 		swapEvents = append(swapEvents, swapEvt)
 	}
-	assetAmount, poolBefore, pool, swapEvt, swapErr := swapOne(ctx, keeper, tx, target, destination, tradeTarget, transactionFee)
+	assetAmount, poolBefore, pool, swapEvt, swapErr := swapOne(ctx, keeper, tx, target, destination, tradeTarget, transactionFee, synthVirtualDepthMult)
 	if swapErr != nil {
 		return cosmos.ZeroUint(), swapEvents, swapErr
 	}
@@ -174,7 +174,8 @@ func swapOne(ctx cosmos.Context,
 	target common.Asset,
 	destination common.Address,
 	tradeTarget cosmos.Uint,
-	transactionFee cosmos.Uint) (amt cosmos.Uint, poolBefore, poolResult Pool, evt *EventSwap, swapErr error) {
+	transactionFee cosmos.Uint,
+	synthVirtualDepthMult int64) (amt cosmos.Uint, poolBefore, poolResult Pool, evt *EventSwap, swapErr error) {
 	source := tx.Coins[0].Asset
 	amount := tx.Coins[0].Amount
 
@@ -228,6 +229,12 @@ func swapOne(ctx cosmos.Context,
 		X = pool.BalanceAsset
 	}
 	x = amount
+
+	// give 2x virtual pool depth if we're swapping with a synthetic asset
+	if source.IsSyntheticAsset() || target.IsSyntheticAsset() {
+		X = X.MulUint64(uint64(synthVirtualDepthMult))
+		Y = Y.MulUint64(uint64(synthVirtualDepthMult))
+	}
 
 	// check our X,x,Y values are valid
 	if x.IsZero() {
