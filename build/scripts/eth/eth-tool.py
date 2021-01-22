@@ -103,7 +103,8 @@ class TestEthereum:
         abi = json.load(open(os.path.join(os.path.dirname(__file__), "data_vault.json")))
         bytecode = open(os.path.join(os.path.dirname(__file__), "data_vault.txt"), "r").read()
         vault = self.web3.eth.contract(abi=abi, bytecode=bytecode)
-        tx_hash = vault.constructor().transact()
+        # hard code here , as this only used for mock net test
+        tx_hash = vault.constructor(Web3.toChecksumAddress("0x3155ba85d5f96b2d030a4966af206230e46849cb")).transact()
         receipt = self.web3.eth.waitForTransactionReceipt(tx_hash)
         logging.info(f"Vault Contract Address: {receipt.contractAddress}")
         return self.web3.eth.contract(address=receipt.contractAddress, abi=abi)

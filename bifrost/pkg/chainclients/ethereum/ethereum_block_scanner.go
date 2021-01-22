@@ -197,10 +197,10 @@ func (e *ETHScanner) updateGasPrice() {
 
 // vaultDepositEvent represent a vault deposit
 type vaultDepositEvent struct {
-	To    ecommon.Address
-	Asset ecommon.Address
-	Value *big.Int
-	Memo  string
+	To     ecommon.Address
+	Asset  ecommon.Address
+	Amount *big.Int
+	Memo   string
 }
 
 func (e *ETHScanner) parseDeposit(log etypes.Log) (vaultDepositEvent, error) {
@@ -250,11 +250,11 @@ func (e *ETHScanner) unpackVaultLog(out interface{}, event string, log etypes.Lo
 }
 
 type vaultTransferOutEvent struct {
-	Vault ecommon.Address
-	To    ecommon.Address
-	Asset ecommon.Address
-	Value *big.Int
-	Memo  string
+	Vault  ecommon.Address
+	To     ecommon.Address
+	Asset  ecommon.Address
+	Amount *big.Int
+	Memo   string
 }
 
 func (e *ETHScanner) parseTransferOut(log etypes.Log) (vaultTransferOutEvent, error) {
@@ -270,7 +270,7 @@ type vaultTransferAllowanceEvent struct {
 	OldVault ecommon.Address
 	NewVault ecommon.Address
 	Asset    ecommon.Address
-	Value    *big.Int
+	Amount   *big.Int
 	Memo     string
 }
 
@@ -340,7 +340,7 @@ func (e *ETHScanner) extractTxs(block *etypes.Block) (stypes.TxIn, error) {
 		return stypes.TxIn{}, nil
 	}
 	txInbound.Count = strconv.Itoa(len(txInbound.TxArray))
-
+	e.logger.Info().Int64("block", int64(block.NumberU64())).Msgf("there are %s tx in this block need to process", txInbound.Count)
 	return txInbound, nil
 }
 
@@ -617,7 +617,7 @@ func (e *ETHScanner) getTxInFromSmartContract(tx *etypes.Transaction) (*stypes.T
 			if err != nil {
 				return nil, fmt.Errorf("fail to get asset from token address: %w", err)
 			}
-			txInItem.Coins = append(txInItem.Coins, common.NewCoin(asset, e.convertAmount(depositEvt.Asset.String(), depositEvt.Value)))
+			txInItem.Coins = append(txInItem.Coins, common.NewCoin(asset, e.convertAmount(depositEvt.Asset.String(), depositEvt.Amount)))
 		case transferOutEvent:
 			transferOutEvt, err := e.parseTransferOut(*item)
 			if err != nil {
@@ -631,7 +631,7 @@ func (e *ETHScanner) getTxInFromSmartContract(tx *etypes.Transaction) (*stypes.T
 			if err != nil {
 				return nil, fmt.Errorf("fail to get asset from token address: %w", err)
 			}
-			txInItem.Coins = append(txInItem.Coins, common.NewCoin(asset, e.convertAmount(transferOutEvt.Asset.String(), transferOutEvt.Value)))
+			txInItem.Coins = append(txInItem.Coins, common.NewCoin(asset, e.convertAmount(transferOutEvt.Asset.String(), transferOutEvt.Amount)))
 		case transferAllowanceEvent:
 			transferAllowanceEvt, err := e.parseTransferAllowanceEvent(*item)
 			if err != nil {
@@ -645,7 +645,7 @@ func (e *ETHScanner) getTxInFromSmartContract(tx *etypes.Transaction) (*stypes.T
 			if err != nil {
 				return nil, fmt.Errorf("fail to get asset from token address: %w", err)
 			}
-			txInItem.Coins = append(txInItem.Coins, common.NewCoin(asset, e.convertAmount(transferAllowanceEvt.Asset.String(), transferAllowanceEvt.Value)))
+			txInItem.Coins = append(txInItem.Coins, common.NewCoin(asset, e.convertAmount(transferAllowanceEvt.Asset.String(), transferAllowanceEvt.Amount)))
 		case vaultTransferEvent:
 			transferEvent, err := e.parseVaultTransfer(*item)
 			if err != nil {
