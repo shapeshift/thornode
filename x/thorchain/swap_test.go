@@ -342,7 +342,7 @@ func (s *SwapSuite) TestSwap(c *C) {
 			amount:        cosmos.NewUint(5 * common.One),
 			requester:     "tester",
 			destination:   GetRandomTHORAddress(),
-			returnAmount:  cosmos.NewUint(453514739),
+			returnAmount:  cosmos.NewUint(475907198),
 			tradeTarget:   cosmos.NewUint(453514738),
 			expectedErr:   nil,
 			events:        1,
@@ -366,7 +366,7 @@ func (s *SwapSuite) TestSwap(c *C) {
 		m.BeginBlock(ctx)
 		m.txOutStore = NewTxStoreDummy()
 
-		amount, evts, err := swap(ctx, poolStorage, tx, item.target, item.destination, item.tradeTarget, cosmos.NewUint(1000_000), m)
+		amount, evts, err := swap(ctx, poolStorage, tx, item.target, item.destination, item.tradeTarget, cosmos.NewUint(1000_000), 2, m)
 		if item.expectedErr == nil {
 			c.Assert(err, IsNil)
 			c.Assert(evts, HasLen, item.events)
