@@ -447,12 +447,6 @@ func (b *ThorchainBridge) PostNetworkFee(height int64, chain common.Chain, trans
 		b.m.GetHistograms(metrics.SignToThorchainDuration).Observe(time.Since(start).Seconds())
 	}()
 	msg := stypes.NewMsgNetworkFee(height, chain, transactionSize, transactionRate, b.keys.GetSignerInfo().GetAddress())
-	// stdTx := legacytx.NewStdTx(
-	// 	[]cosmos.Msg{msg},
-	// 	legacytx.NewStdFee(10000000000, nil), // fee
-	// 	nil,                                  // signatures
-	// 	"",                                   // memo
-	// )
 	return b.Broadcast(msg)
 }
 
