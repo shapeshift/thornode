@@ -22,7 +22,7 @@ func (s TickerSuite) TestTicker(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(tomobTicker.String(), Equals, "TOMOB-1E1")
 	_, err = NewTicker("t") // too short
-	c.Assert(err, NotNil)
+	c.Assert(err, IsNil)
 
 	maxCharacterTicker, err := NewTicker("TICKER789-XXX")
 	c.Assert(err, IsNil)
