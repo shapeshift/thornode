@@ -36,6 +36,7 @@ func NewConstantValue010() *ConstantVals {
 			CliTxCost:                     1_00000000,         // amount of bonded rune to move to the reserve when using a cli command
 			MinSwapsPerBlock:              10,                 // process all swaps if queue is less than this number
 			MaxSwapsPerBlock:              100,                // max swaps to process per block
+			VirtualMultSynths:             2,                  // pool depth multiplier for synthetic swaps
 			MinSlashPointsForBadValidator: 100,                // The minimum slash point
 		},
 		boolValues: map[ConstantName]bool{

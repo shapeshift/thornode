@@ -49,6 +49,7 @@ const (
 	CliTxCost
 	MinSwapsPerBlock
 	MaxSwapsPerBlock
+	VirtualMultSynths
 	MinSlashPointsForBadValidator
 )
 
@@ -92,6 +93,7 @@ var nameToString = map[ConstantName]string{
 	CliTxCost:                     "CliTxCost",
 	MinSwapsPerBlock:              "MinSwapsPerBlock",
 	MaxSwapsPerBlock:              "MaxSwapsPerBlock",
+	VirtualMultSynths:             "VirtualMultSynths",
 	MinSlashPointsForBadValidator: "MinSlashPointsForBadValidator",
 }
 
