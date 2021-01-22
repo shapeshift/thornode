@@ -101,5 +101,23 @@ func (h SwitchHandler) toNative(ctx cosmos.Context, msg MsgSwitch) (*cosmos.Resu
 	if err := h.keeper.MintAndSendToAccount(ctx, addr, coin); err != nil {
 		return nil, ErrInternal(err, "fail to mint native rune coins")
 	}
+
+	// update network data
+	network, err := h.keeper.GetNetwork(ctx)
+	if err != nil {
+		// do not cause the transaction to fail
+		ctx.Logger().Error("failed to get network", "error", err)
+	}
+
+	switch msg.Tx.Chain {
+	case common.BNBChain:
+		network.BurnedBep2Rune = network.BurnedBep2Rune.Add(coin.Amount)
+	case common.ETHChain:
+		network.BurnedErc20Rune = network.BurnedErc20Rune.Add(coin.Amount)
+	}
+	if err := h.keeper.SetNetwork(ctx, network); err != nil {
+		ctx.Logger().Error("failed to set network", "error", err)
+	}
+
 	return &cosmos.Result{}, nil
 }
