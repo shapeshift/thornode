@@ -17,7 +17,7 @@ import (
 	"github.com/btcsuite/btcutil"
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	"github.com/hashicorp/go-multierror"
-	"gitlab.com/thorchain/txscript"
+	"gitlab.com/thorchain/bifrost/txscript"
 
 	stypes "gitlab.com/thorchain/thornode/bifrost/thorclient/types"
 	"gitlab.com/thorchain/thornode/bifrost/tss"
