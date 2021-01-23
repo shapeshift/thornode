@@ -198,7 +198,7 @@ func getMsgAddLiquidityFromMemo(ctx cosmos.Context, memo AddLiquidityMemo, tx Ob
 		assetAddr = runeAddr
 	}
 
-	return NewMsgAddLiquidity(tx.Tx, memo.GetAsset(), runeCoin.Amount, assetCoin.Amount, runeAddr, assetAddr, signer), nil
+	return NewMsgAddLiquidity(tx.Tx, memo.GetAsset(), runeCoin.Amount, assetCoin.Amount, runeAddr, assetAddr, memo.AffiliateAddress, memo.AffiliateBasisPoints, signer), nil
 }
 
 func getMsgDonateFromMemo(memo DonateMemo, tx ObservedTx, signer cosmos.AccAddress) (cosmos.Msg, error) {
