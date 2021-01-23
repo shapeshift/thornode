@@ -8,15 +8,17 @@ import (
 var _ cosmos.Msg = &MsgAddLiquidity{}
 
 // NewMsgAddLiquidity is a constructor function for MsgAddLiquidity
-func NewMsgAddLiquidity(tx common.Tx, asset common.Asset, r, amount cosmos.Uint, runeAddr, assetAddr common.Address, signer cosmos.AccAddress) *MsgAddLiquidity {
+func NewMsgAddLiquidity(tx common.Tx, asset common.Asset, r, amount cosmos.Uint, runeAddr, assetAddr common.Address, affAddr common.Address, affPts cosmos.Uint, signer cosmos.AccAddress) *MsgAddLiquidity {
 	return &MsgAddLiquidity{
-		Tx:           tx,
-		Asset:        asset,
-		AssetAmount:  amount,
-		RuneAmount:   r,
-		RuneAddress:  runeAddr,
-		AssetAddress: assetAddr,
-		Signer:       signer,
+		Tx:                   tx,
+		Asset:                asset,
+		AssetAmount:          amount,
+		RuneAmount:           r,
+		RuneAddress:          runeAddr,
+		AssetAddress:         assetAddr,
+		AffiliateAddress:     affAddr,
+		AffiliateBasisPoints: affPts,
+		Signer:               signer,
 	}
 }
 
@@ -56,6 +58,12 @@ func (m *MsgAddLiquidity) ValidateBasic() error {
 	}
 	if m.RuneAddress.IsEmpty() && m.AssetAddress.IsEmpty() {
 		return cosmos.ErrUnknownRequest("rune address and asset address cannot be empty")
+	}
+	if m.AffiliateAddress.IsEmpty() && !m.AffiliateBasisPoints.IsZero() {
+		return cosmos.ErrUnknownRequest("affiliate address is empty while affiliate basis points is non-zero")
+	}
+	if !m.AffiliateAddress.IsEmpty() && !m.AffiliateAddress.IsChain(common.THORChain) {
+		return cosmos.ErrUnknownRequest("affiliate address must be a THOR address")
 	}
 	return nil
 }
