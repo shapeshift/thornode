@@ -16,7 +16,7 @@ import (
 	"github.com/gcash/bchd/wire"
 	"github.com/gcash/bchutil"
 	"github.com/hashicorp/go-multierror"
-	txscript "gitlab.com/thorchain/bchd-txscript"
+	txscript "gitlab.com/thorchain/bifrost/bchd-txscript"
 
 	stypes "gitlab.com/thorchain/thornode/bifrost/thorclient/types"
 	"gitlab.com/thorchain/thornode/bifrost/tss"
