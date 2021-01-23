@@ -55,11 +55,11 @@ require (
 	github.com/tendermint/go-amino v0.16.0
 	github.com/tendermint/tendermint v0.34.2
 	github.com/tendermint/tm-db v0.6.3
-	gitlab.com/thorchain/bchd-txscript v0.0.0-20201215133741-ffd26acbcb75
+	gitlab.com/thorchain/bifrost/bchd-txscript v0.0.0-20210123055555-abb86a2e300a
+	gitlab.com/thorchain/bifrost/ltcd-txscript v0.0.0-20210123055845-c0f9cad51f13
+	gitlab.com/thorchain/bifrost/txscript v0.0.0-20210123055850-29da989e6f5a
 	gitlab.com/thorchain/binance-sdk v1.2.3-0.20210117202539-d569b6b9ba5d
-	gitlab.com/thorchain/ltcd-txscript v0.0.0-20210116072501-842a529a7b5a
 	gitlab.com/thorchain/tss/go-tss v1.2.9-0.20210117231716-2d12e95fd812
-	gitlab.com/thorchain/txscript v0.0.0-20200413023754-8aaf3443d92b
 	golang.org/x/mod v0.4.0 // indirect
 	golang.org/x/tools v0.0.0-20210101214203-2dba1e4ea05c // indirect
 	google.golang.org/genproto v0.0.0-20210122163508-8081c04a3579 // indirect
