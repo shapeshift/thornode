@@ -115,6 +115,7 @@ func (HandlerWithdrawSuite) TestWithdrawHandler(c *C) {
 		runeAddr,
 		GetRandomBNBAddress(),
 		GetRandomTxHash(),
+		false,
 		constAccessor)
 	c.Assert(err, IsNil)
 	// let's just withdraw
@@ -154,6 +155,7 @@ func (HandlerWithdrawSuite) TestAsymmetricWithdraw(c *C) {
 		runeAddr,
 		btcAddress,
 		GetRandomTxHash(),
+		true,
 		constAccessor)
 	c.Assert(err, IsNil)
 	lp, err := keeper.GetLiquidityProvider(ctx, common.BTCAsset, runeAddr)
@@ -161,7 +163,7 @@ func (HandlerWithdrawSuite) TestAsymmetricWithdraw(c *C) {
 	c.Assert(lp.Valid(), IsNil)
 	c.Assert(lp.PendingRune.Equal(cosmos.NewUint(common.One*100)), Equals, true)
 	// Stake some BTC , make sure stake finished
-	err = addHandler.addLiquidityV1(ctx, common.BTCAsset, cosmos.ZeroUint(), cosmos.NewUint(100*common.One), runeAddr, btcAddress, GetRandomTxHash(), constAccessor)
+	err = addHandler.addLiquidityV1(ctx, common.BTCAsset, cosmos.ZeroUint(), cosmos.NewUint(100*common.One), runeAddr, btcAddress, GetRandomTxHash(), false, constAccessor)
 	c.Assert(err, IsNil)
 	lp, err = keeper.GetLiquidityProvider(ctx, common.BTCAsset, runeAddr)
 	c.Assert(err, IsNil)
@@ -171,7 +173,7 @@ func (HandlerWithdrawSuite) TestAsymmetricWithdraw(c *C) {
 	c.Assert(lp.Units.IsZero(), Equals, false)
 
 	runeAddr1 := GetRandomRUNEAddress()
-	err = addHandler.addLiquidityV1(ctx, common.BTCAsset, cosmos.NewUint(50*common.One), cosmos.ZeroUint(), runeAddr1, common.NoAddress, GetRandomTxHash(), constAccessor)
+	err = addHandler.addLiquidityV1(ctx, common.BTCAsset, cosmos.NewUint(50*common.One), cosmos.ZeroUint(), runeAddr1, common.NoAddress, GetRandomTxHash(), false, constAccessor)
 	c.Assert(err, IsNil)
 	lp, err = keeper.GetLiquidityProvider(ctx, common.BTCAsset, runeAddr1)
 	c.Assert(err, IsNil)
@@ -192,7 +194,7 @@ func (HandlerWithdrawSuite) TestAsymmetricWithdraw(c *C) {
 	// stake some BTC only
 	btcAddress1 := GetRandomBTCAddress()
 	err = addHandler.addLiquidityV1(ctx, common.BTCAsset, cosmos.ZeroUint(), cosmos.NewUint(50*common.One),
-		common.NoAddress, btcAddress1, GetRandomTxHash(), constAccessor)
+		common.NoAddress, btcAddress1, GetRandomTxHash(), false, constAccessor)
 	c.Assert(err, IsNil)
 	lp, err = keeper.GetLiquidityProvider(ctx, common.BTCAsset, btcAddress1)
 	c.Assert(err, IsNil)

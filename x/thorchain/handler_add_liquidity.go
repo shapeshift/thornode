@@ -119,15 +119,71 @@ func (h AddLiquidityHandler) handleV1(ctx cosmos.Context, msg MsgAddLiquidity, v
 		ctx.Logger().Error("fail to check pool status", "error", err)
 		return errInvalidPoolStatus
 	}
-	return h.addLiquidityV1(
+
+	// figure out if we need to stage the funds and wait for a follow on
+	// transaction to commit all funds atomically
+	stage := false
+	if !msg.AssetAddress.IsEmpty() && msg.AssetAmount.IsZero() {
+		stage = true
+	}
+	if !msg.RuneAddress.IsEmpty() && msg.RuneAmount.IsZero() {
+		stage = true
+	}
+
+	if msg.AffiliateBasisPoints.IsZero() {
+		return h.addLiquidityV1(
+			ctx,
+			msg.Asset,
+			msg.RuneAmount,
+			msg.AssetAmount,
+			msg.RuneAddress,
+			msg.AssetAddress,
+			msg.Tx.ID,
+			stage,
+			constAccessor)
+	}
+
+	// add liquidity has an affiliate fee, add liquidity for both the user and their affiliate
+	affiliateRune := common.GetShare(msg.AffiliateBasisPoints, cosmos.NewUint(10000), msg.RuneAmount)
+	affiliateAsset := common.GetShare(msg.AffiliateBasisPoints, cosmos.NewUint(10000), msg.AssetAmount)
+	userRune := common.SafeSub(msg.RuneAmount, affiliateRune)
+	userAsset := common.SafeSub(msg.AssetAmount, affiliateAsset)
+
+	err = h.addLiquidityV1(
 		ctx,
 		msg.Asset,
-		msg.RuneAmount,
-		msg.AssetAmount,
+		userRune,
+		userAsset,
 		msg.RuneAddress,
 		msg.AssetAddress,
 		msg.Tx.ID,
-		constAccessor)
+		stage,
+		constAccessor,
+	)
+	if err != nil {
+		return err
+	}
+
+	err = h.addLiquidityV1(
+		ctx,
+		msg.Asset,
+		affiliateRune,
+		affiliateAsset,
+		msg.AffiliateAddress,
+		common.NoAddress,
+		msg.Tx.ID,
+		stage,
+		constAccessor,
+	)
+	if err != nil {
+		// we swallow this error so we don't trigger a refund, when we've
+		// already successfully added liquidity for the user. If we were to
+		// refund here, funds could be leaked from the network. In order, to
+		// error here, we would need to revert the user addLiquidity
+		// function first (TODO).
+		ctx.Logger().Error("fail to add liquidity for affiliate", "address", msg.AffiliateAddress, "error", err)
+	}
+	return nil
 }
 
 // validateAddLiquidityMessage is to do some validation, and make sure it is legit
@@ -159,6 +215,7 @@ func (h AddLiquidityHandler) addLiquidityV1(ctx cosmos.Context,
 	addRuneAmount, addAssetAmount cosmos.Uint,
 	runeAddr, assetAddr common.Address,
 	requestTxHash common.TxID,
+	stage bool,
 	constAccessor constants.ConstantValues) error {
 	ctx.Logger().Info(fmt.Sprintf("%s liquidity provision %s %s", asset, addRuneAmount, addAssetAmount))
 	if err := h.validateAddLiquidityMessage(ctx, h.keeper, asset, requestTxHash, runeAddr, assetAddr); err != nil {
@@ -216,7 +273,7 @@ func (h AddLiquidityHandler) addLiquidityV1(ctx cosmos.Context,
 	addAssetAmount = su.PendingAsset.Add(addAssetAmount)
 
 	// if we have an asset address and no asset amount, put the rune pending
-	if !assetAddr.IsEmpty() && addAssetAmount.IsZero() {
+	if stage && addAssetAmount.IsZero() {
 		su.PendingRune = addRuneAmount
 		su.PendingTxID = requestTxHash
 		h.keeper.SetLiquidityProvider(ctx, su)
@@ -224,7 +281,7 @@ func (h AddLiquidityHandler) addLiquidityV1(ctx cosmos.Context,
 	}
 
 	// if we have a rune address and no rune asset, put the asset in pending
-	if !runeAddr.IsEmpty() && addRuneAmount.IsZero() {
+	if stage && addRuneAmount.IsZero() {
 		su.PendingAsset = addAssetAmount
 		su.PendingTxID = requestTxHash
 		h.keeper.SetLiquidityProvider(ctx, su)
