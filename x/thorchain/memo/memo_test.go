@@ -189,6 +189,9 @@ func (s *MemoSuite) TestParse(c *C) {
 	c.Check(memo.GetDestination().String(), Equals, "bc1qwqdg6squsna38e46795at95yu9atm8azzmyvckulcc7kytlcckxswvvzej")
 	c.Check(memo.IsType(TxAdd), Equals, true, Commentf("MEMO: %+v", memo))
 
+	memo, err = ParseMemo("ADD:BNB.BNB:tbnb18f55frcvknxvcpx2vvpfedvw4l8eutuhca3lll:tthor176xrckly4p7efq7fshhcuc2kax3dyxu9hguzl7:1000")
+	c.Assert(err, IsNil)
+
 	memo, err = ParseMemo("WITHDRAW:" + common.RuneAsset().String() + ":25")
 	c.Assert(err, IsNil)
 	c.Check(memo.GetAsset().String(), Equals, common.RuneAsset().String())
