@@ -17,7 +17,7 @@ import (
 	"github.com/ltcsuite/ltcd/mempool"
 	"github.com/ltcsuite/ltcd/wire"
 	"github.com/ltcsuite/ltcutil"
-	txscript "gitlab.com/thorchain/ltcd-txscript"
+	txscript "gitlab.com/thorchain/bifrost/ltcd-txscript"
 
 	stypes "gitlab.com/thorchain/thornode/bifrost/thorclient/types"
 	"gitlab.com/thorchain/thornode/bifrost/tss"
