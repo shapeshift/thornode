@@ -61,11 +61,15 @@ func (vm *validatorMgrV1) BeginBlock(ctx cosmos.Context, constAccessor constants
 		if badValidatorRate < 0 || err != nil {
 			badValidatorRate = constAccessor.GetInt64Value(constants.BadValidatorRate)
 		}
+		redline, err := vm.k.GetMimir(ctx, constants.BadValidatorRedline.String())
+		if err != nil || redline < 0 {
+			redline = constAccessor.GetInt64Value(constants.BadValidatorRedline)
+		}
 		minSlashPointsForBadValidator, err := vm.k.GetMimir(ctx, constants.MinSlashPointsForBadValidator.String())
 		if err != nil || minSlashPointsForBadValidator < 0 {
 			minSlashPointsForBadValidator = constAccessor.GetInt64Value(constants.MinSlashPointsForBadValidator)
 		}
-		if err := vm.markBadActor(ctx, minSlashPointsForBadValidator, badValidatorRate); err != nil {
+		if err := vm.markBadActor(ctx, minSlashPointsForBadValidator, redline, badValidatorRate); err != nil {
 			return err
 		}
 		oldValidatorRate, err := vm.k.GetMimir(ctx, constants.OldValidatorRate.String())
@@ -972,7 +976,7 @@ func (vm *validatorMgrV1) setupValidatorNodes(ctx cosmos.Context, height int64, 
 }
 
 // Iterate over active node accounts, finding bad actors with high slash points
-func (vm *validatorMgrV1) findBadActors(ctx cosmos.Context, minSlashPointsForBadValidator, badValidatorRate int64) (NodeAccounts, error) {
+func (vm *validatorMgrV1) findBadActors(ctx cosmos.Context, minSlashPointsForBadValidator, badValidatorRedline, badValidatorRate int64) (NodeAccounts, error) {
 	badActors := make(NodeAccounts, 0)
 	nas, err := vm.k.ListActiveNodeAccounts(ctx)
 	if err != nil {
@@ -1040,7 +1044,7 @@ func (vm *validatorMgrV1) findBadActors(ctx cosmos.Context, minSlashPointsForBad
 	// be able to churn out more than 1/3rd of our node accounts in a single
 	// churn, as that could threaten the security of the funds. This logic to
 	// protect against this is not inside this function.
-	redline := avgScore.QuoUint64(3)
+	redline := avgScore.QuoUint64(uint64(badValidatorRedline))
 
 	// find any node accounts that have crossed the red line
 	for _, track := range tracker {
@@ -1100,9 +1104,9 @@ func (vm *validatorMgrV1) markOldActor(ctx cosmos.Context, rate int64) error {
 }
 
 // Mark a bad actor to be churned out
-func (vm *validatorMgrV1) markBadActor(ctx cosmos.Context, minSlashPointsForBadValidator, rate int64) error {
+func (vm *validatorMgrV1) markBadActor(ctx cosmos.Context, minSlashPointsForBadValidator, redline, rate int64) error {
 	if common.BlockHeight(ctx)%rate == 0 {
-		nas, err := vm.findBadActors(ctx, minSlashPointsForBadValidator, rate)
+		nas, err := vm.findBadActors(ctx, minSlashPointsForBadValidator, redline, rate)
 		if err != nil {
 			return err
 		}
