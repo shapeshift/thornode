@@ -243,3 +243,47 @@ func (HandlerUnBondSuite) TestUnBondHandlerFailValidation(c *C) {
 		c.Check(errors.Is(err, item.expectedErr), Equals, true, Commentf("name: %s, %s", item.name, err))
 	}
 }
+func (HandlerUnBondSuite) TestUnBondHanlder_retiringvault(c *C) {
+	ctx, k1 := setupKeeperForTest(c)
+	// happy path
+	activeNodeAccount := GetRandomNodeAccount(NodeActive)
+	standbyNodeAccount := GetRandomNodeAccount(NodeStandby)
+	c.Assert(k1.SetNodeAccount(ctx, activeNodeAccount), IsNil)
+	c.Assert(k1.SetNodeAccount(ctx, standbyNodeAccount), IsNil)
+	vault := NewVault(12, ActiveVault, YggdrasilVault, standbyNodeAccount.PubKeySet.Secp256k1, []string{
+		common.BNBChain.String(), common.BTCChain.String(), common.ETHChain.String(), common.LTCChain.String(), common.BCHChain.String(),
+	}, []ChainContract{})
+	c.Assert(k1.SetVault(ctx, vault), IsNil)
+	vault = NewVault(12, ActiveVault, AsgardVault, GetRandomPubKey(), nil, []ChainContract{})
+	vault.Coins = common.Coins{
+		common.NewCoin(common.RuneAsset(), cosmos.NewUint(10000*common.One)),
+	}
+	c.Assert(k1.SetVault(ctx, vault), IsNil)
+	retiringVault := NewVault(12, RetiringVault, AsgardVault, GetRandomPubKey(), []string{
+		common.BNBChain.String(), common.BTCChain.String(), common.ETHChain.String(), common.LTCChain.String(), common.BCHChain.String(),
+	}, []ChainContract{})
+	retiringVault.Membership = []string{
+		activeNodeAccount.PubKeySet.Secp256k1.String(),
+		standbyNodeAccount.PubKeySet.Secp256k1.String(),
+	}
+	retiringVault.Coins = common.Coins{
+		common.NewCoin(common.RuneAsset(), cosmos.NewUint(10000*common.One)),
+	}
+	c.Assert(k1.SetVault(ctx, retiringVault), IsNil)
+	handler := NewUnBondHandler(k1, NewDummyMgr())
+	ver := semver.MustParse("0.18.0")
+	constAccessor := constants.GetConstantValues(ver)
+	txIn := common.NewTx(
+		GetRandomTxHash(),
+		standbyNodeAccount.BondAddress,
+		GetRandomBNBAddress(),
+		common.Coins{
+			common.NewCoin(common.RuneAsset(), cosmos.NewUint(uint64(1))),
+		},
+		BNBGasFeeSingleton,
+		"unbond me please",
+	)
+	msg := NewMsgUnBond(txIn, standbyNodeAccount.NodeAddress, cosmos.NewUint(uint64(5*common.One)), standbyNodeAccount.BondAddress, activeNodeAccount.NodeAddress)
+	_, err := handler.Run(ctx, msg, ver, constAccessor)
+	c.Assert(err, NotNil)
+}
