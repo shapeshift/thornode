@@ -141,7 +141,7 @@ func (vts *ValidatorMgrV1TestSuite) TestBadActors(c *C) {
 	c.Assert(vMgr, NotNil)
 
 	// no bad actors with active node accounts
-	nas, err := vMgr.findBadActors(ctx, 0, 720)
+	nas, err := vMgr.findBadActors(ctx, 0, 3, 720)
 	c.Assert(err, IsNil)
 	c.Assert(nas, HasLen, 0)
 
@@ -149,7 +149,7 @@ func (vts *ValidatorMgrV1TestSuite) TestBadActors(c *C) {
 	c.Assert(k.SetNodeAccount(ctx, activeNode), IsNil)
 
 	// no bad actors with active node accounts with no slash points
-	nas, err = vMgr.findBadActors(ctx, 0, 720)
+	nas, err = vMgr.findBadActors(ctx, 0, 3, 720)
 	c.Assert(err, IsNil)
 	c.Assert(nas, HasLen, 0)
 
@@ -161,7 +161,7 @@ func (vts *ValidatorMgrV1TestSuite) TestBadActors(c *C) {
 	c.Assert(k.SetNodeAccount(ctx, activeNode), IsNil)
 
 	// finds the worse actor
-	nas, err = vMgr.findBadActors(ctx, 0, 720)
+	nas, err = vMgr.findBadActors(ctx, 0, 3, 720)
 	c.Assert(err, IsNil)
 	c.Assert(nas, HasLen, 1)
 	c.Check(nas[0].NodeAddress.Equals(activeNode.NodeAddress), Equals, true)
@@ -174,7 +174,7 @@ func (vts *ValidatorMgrV1TestSuite) TestBadActors(c *C) {
 	k.SetNodeAccountSlashPoints(ctx, bad2.NodeAddress, 5000)
 	c.Assert(k.SetNodeAccount(ctx, bad2), IsNil)
 
-	nas, err = vMgr.findBadActors(ctx, 0, 720)
+	nas, err = vMgr.findBadActors(ctx, 0, 3, 720)
 	c.Assert(err, IsNil)
 	c.Assert(nas, HasLen, 2, Commentf("%d", len(nas)))
 
@@ -200,7 +200,7 @@ func (vts *ValidatorMgrV1TestSuite) TestFindBadActors(c *C) {
 	activeNode := GetRandomNodeAccount(NodeActive)
 	c.Assert(k.SetNodeAccount(ctx, activeNode), IsNil)
 	k.SetNodeAccountSlashPoints(ctx, activeNode.NodeAddress, 50)
-	nodeAccounts, err := vMgr.findBadActors(ctx, 100, 500)
+	nodeAccounts, err := vMgr.findBadActors(ctx, 100, 3, 500)
 	c.Assert(err, IsNil)
 	c.Assert(nodeAccounts, HasLen, 0)
 
@@ -210,7 +210,7 @@ func (vts *ValidatorMgrV1TestSuite) TestFindBadActors(c *C) {
 	k.SetNodeAccountSlashPoints(ctx, activeNode1.NodeAddress, 200)
 
 	// not a full cycle yet, so even it has a lot slash points , doesn't mark as bad
-	nodeAccounts, err = vMgr.findBadActors(ctx, 100, 500)
+	nodeAccounts, err = vMgr.findBadActors(ctx, 100, 3, 500)
 	c.Assert(err, IsNil)
 	c.Assert(nodeAccounts, HasLen, 0)
 
@@ -224,7 +224,7 @@ func (vts *ValidatorMgrV1TestSuite) TestFindBadActors(c *C) {
 	k.SetNodeAccountSlashPoints(ctx, activeNode3.NodeAddress, 2000)
 	ctx = ctx.WithBlockHeight(2000)
 	// node 3 is worse than node 2, so node 3 should be marked as bad
-	nodeAccounts, err = vMgr.findBadActors(ctx, 100, 500)
+	nodeAccounts, err = vMgr.findBadActors(ctx, 100, 3, 500)
 	c.Assert(err, IsNil)
 	c.Assert(nodeAccounts, HasLen, 1)
 	c.Assert(nodeAccounts.Contains(activeNode3), Equals, true)
