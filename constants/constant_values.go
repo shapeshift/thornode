@@ -27,6 +27,7 @@ const (
 	ChurnRetryInterval
 	ValidatorsChangeWindow
 	LeaveProcessPerBlockHeight
+	BadValidatorRedline
 	BadValidatorRate
 	OldValidatorRate
 	LackOfObservationPenalty
@@ -71,6 +72,7 @@ var nameToString = map[ConstantName]string{
 	ChurnRetryInterval:            "ChurnRetryInterval",
 	ValidatorsChangeWindow:        "ValidatorsChangeWindow",
 	LeaveProcessPerBlockHeight:    "LeaveProcessPerBlockHeight",
+	BadValidatorRedline:           "BadValidatorRedline",
 	BadValidatorRate:              "BadValidatorRate",
 	OldValidatorRate:              "OldValidatorRate",
 	LackOfObservationPenalty:      "LackOfObservationPenalty",
