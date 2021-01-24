@@ -25,9 +25,10 @@ var (
 	// RuneB1AAsset RUNE on Binance main net
 	RuneB1AAsset = Asset{Chain: BNBChain, Symbol: "RUNE-B1A", Ticker: "RUNE"} // mainnet
 	// RuneNative RUNE on thorchain
-	RuneNative      = Asset{Chain: THORChain, Symbol: "RUNE", Ticker: "RUNE"}
-	RuneERC20Asset  = Asset{Chain: ETHChain, Symbol: "RUNE-0x3155ba85d5f96b2d030a4966af206230e46849cb", Ticker: "RUNE"}
-	SyntheticPrefix = "thor"
+	RuneNative            = Asset{Chain: THORChain, Symbol: "RUNE", Ticker: "RUNE"}
+	RuneERC20Asset        = Asset{Chain: ETHChain, Symbol: "RUNE-0x3155ba85d5f96b2d030a4966af206230e46849cb", Ticker: "RUNE"}
+	RuneERC20TestnetAsset = Asset{Chain: ETHChain, Symbol: "RUNE-0xb7Bbba4f4Ef2304f659500320Dbd21073f4b16Fb", Ticker: "RUNE"}
+	SyntheticPrefix       = "thor"
 )
 
 // NewAsset parse the given input into Asset object
@@ -142,7 +143,7 @@ func (a Asset) IsGasAsset() bool {
 
 // IsRune is a helper function ,return true only when the asset represent RUNE
 func (a Asset) IsRune() bool {
-	return a.Equals(Rune67CAsset) || a.Equals(RuneB1AAsset) || a.Equals(RuneNative) || a.Equals(RuneERC20Asset)
+	return a.Equals(Rune67CAsset) || a.Equals(RuneB1AAsset) || a.Equals(RuneNative) || a.Equals(RuneERC20Asset) || a.Equals(RuneERC20TestnetAsset)
 }
 
 // IsBNB is a helper function, return true only when the asset represent BNB
