@@ -57,7 +57,33 @@ func (h TssKeysignHandler) validateV1(ctx cosmos.Context, msg MsgTssKeysignFail)
 	}
 
 	if !isSignedByActiveNodeAccounts(ctx, h.keeper, msg.GetSigners()) {
-		return cosmos.ErrUnauthorized("not authorized")
+		shouldAccept := false
+		vaults, err := h.keeper.GetAsgardVaultsByStatus(ctx, RetiringVault)
+		if err != nil {
+			return ErrInternal(err, "fail to get retiring vaults")
+		}
+		if len(vaults) > 0 {
+			for _, signer := range msg.GetSigners() {
+				nodeAccount, err := h.keeper.GetNodeAccount(ctx, signer)
+				if err != nil {
+					return ErrInternal(err, "fail to get node account")
+				}
+
+				for _, v := range vaults {
+					if v.GetMembership().Contains(nodeAccount.PubKeySet.Secp256k1) {
+						shouldAccept = true
+						break
+					}
+				}
+				if shouldAccept {
+					break
+				}
+			}
+		}
+		if !shouldAccept {
+			return cosmos.ErrUnauthorized("not authorized")
+		}
+		ctx.Logger().Info("keysign failure message from retiring vault member, should accept")
 	}
 
 	active, err := h.keeper.ListActiveNodeAccounts(ctx)
@@ -82,10 +108,6 @@ func (h TssKeysignHandler) handle(ctx cosmos.Context, msg MsgTssKeysignFail, ver
 }
 
 func (h TssKeysignHandler) handleV1(ctx cosmos.Context, msg MsgTssKeysignFail, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
-	active, err := h.keeper.ListActiveNodeAccounts(ctx)
-	if err != nil {
-		return nil, wrapError(ctx, err, "fail to get list of active node accounts")
-	}
 
 	voter, err := h.keeper.GetTssKeysignFailVoter(ctx, msg.ID)
 	if err != nil {
@@ -98,8 +120,28 @@ func (h TssKeysignHandler) handleV1(ctx cosmos.Context, msg MsgTssKeysignFail, v
 		return &cosmos.Result{}, nil
 	}
 	h.keeper.SetTssKeysignFailVoter(ctx, voter)
+	vault, err := h.keeper.GetVault(ctx, msg.PubKey)
+	if err != nil {
+		return nil, wrapError(ctx, err, "fail to get vault")
+	}
+	if vault.IsEmpty() {
+		return &cosmos.Result{}, nil
+	}
+	var vaultMemberNodes NodeAccounts
+	for _, item := range vault.GetMembership() {
+		addr, err := item.GetThorAddress()
+		if err != nil {
+			return nil, wrapError(ctx, err, "fail to get thor address for "+item.String())
+		}
+		na, err := h.keeper.GetNodeAccount(ctx, addr)
+		if err != nil {
+			return nil, wrapError(ctx, err, "fail to get node account")
+		}
+		vaultMemberNodes = append(vaultMemberNodes, na)
+	}
+
 	// doesn't have consensus yet
-	if !voter.HasConsensus(active) {
+	if !voter.HasConsensus(vaultMemberNodes) {
 		ctx.Logger().Info("not having consensus yet, return")
 		return &cosmos.Result{}, nil
 	}

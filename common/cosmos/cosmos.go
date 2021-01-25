@@ -83,6 +83,8 @@ type (
 	Account    = authtypes.AccountI
 )
 
+var _ sdk.Address = AccAddress{}
+
 func ErrUnknownRequest(msg string) error {
 	return se.Wrap(se.ErrUnknownRequest, msg)
 }
