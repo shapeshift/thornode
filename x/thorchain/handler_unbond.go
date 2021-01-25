@@ -145,7 +145,21 @@ func (h UnBondHandler) handleV1(ctx cosmos.Context, msg MsgUnBond, version semve
 	if err != nil {
 		return ErrInternal(err, fmt.Sprintf("fail to get node account(%s)", msg.NodeAddress))
 	}
-
+	vaults, err := h.keeper.GetAsgardVaultsByStatus(ctx, RetiringVault)
+	if err != nil {
+		return ErrInternal(err, "fail to get retiring vault")
+	}
+	isMemberOfRetiringVault := false
+	for _, v := range vaults {
+		if v.GetMembership().Contains(na.PubKeySet.Secp256k1) {
+			isMemberOfRetiringVault = true
+			ctx.Logger().Info("node account is still part of the retiring vault,can't return bond yet")
+			break
+		}
+	}
+	if isMemberOfRetiringVault {
+		return ErrInternal(err, "fail to unbond, still part of the retiring vault")
+	}
 	if err := refundBond(ctx, msg.TxIn, msg.Amount, &na, h.keeper, h.mgr); err != nil {
 		return ErrInternal(err, "fail to unbond")
 	}

@@ -47,8 +47,11 @@ func (m *TssKeysignFailVoter) Sign(signer cosmos.AccAddress) bool {
 func (m *TssKeysignFailVoter) HasConsensus(nas NodeAccounts) bool {
 	var count int
 	for _, signer := range m.GetSigners() {
-		if nas.IsNodeKeys(signer) {
-			count++
+		for _, item := range nas {
+			if signer.Equals(item.NodeAddress) {
+				count++
+				break
+			}
 		}
 	}
 	return HasSimpleMajority(count, len(nas))
