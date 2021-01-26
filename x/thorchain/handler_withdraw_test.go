@@ -302,6 +302,7 @@ func (HandlerWithdrawSuite) TestWithdrawHandler_mockFailScenarios(c *C) {
 			name: "fail to get liquidity provider withdraw should fail",
 			k: &MockWithdrawKeeper{
 				activeNodeAccount:     activeNodeAccount,
+				currentPool:           currentPool,
 				failLiquidityProvider: true,
 				lp:                    lp,
 				keeper:                k,
