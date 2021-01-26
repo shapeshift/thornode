@@ -429,7 +429,7 @@ func (m *EventPool) GetStatus() PoolStatus {
 	if m != nil {
 		return m.Status
 	}
-	return PoolStatus_Available
+	return PoolStatus_UnknownPoolStatus
 }
 
 type PoolAmt struct {

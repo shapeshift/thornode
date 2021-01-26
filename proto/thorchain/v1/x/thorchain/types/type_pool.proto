@@ -15,9 +15,10 @@ import "gogoproto/gogo.proto";
 // | `available` | yes  | yes   | yes       | Refund Invalid Tx |
 // | `suspended` | no   | no    | no        | Refund all |
 enum PoolStatus {
-  Available = 0;
-  Staged = 1;
-  Suspended = 2;
+  UnknownPoolStatus = 0;
+  Available = 1;
+  Staged = 2;
+  Suspended = 3;
 }
 
 message Pool {
