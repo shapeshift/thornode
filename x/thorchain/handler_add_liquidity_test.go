@@ -146,6 +146,7 @@ func (s *HandlerAddLiquiditySuite) TestAddLiquidityHandler_NoPool_ShouldCreateNe
 			BalanceRune:  cosmos.ZeroUint(),
 			BalanceAsset: cosmos.ZeroUint(),
 			PoolUnits:    cosmos.ZeroUint(),
+			Status:       PoolAvailable,
 		},
 		lp: LiquidityProvider{
 			Asset:        common.BNBAsset,
