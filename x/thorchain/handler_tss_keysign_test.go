@@ -323,6 +323,7 @@ func (h HandlerTssKeysignSuite) testTssKeysignFailHandlerWithVersion(c *C, ver s
 		}
 	}
 }
+
 func (h HandlerTssKeysignSuite) TestTssKeysignFailHandler_accept_standby_node_messages(c *C) {
 	ver := semver.MustParse("0.18.0")
 	helper := newTssKeysignHandlerTestHelper(c, ver)

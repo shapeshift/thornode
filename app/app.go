@@ -100,6 +100,7 @@ var (
 	// module accounts that are allowed to receive tokens
 	allowedReceivingModAcc = map[string]bool{}
 )
+
 var (
 	_ App                     = (*THORChainApp)(nil)
 	_ servertypes.Application = (*THORChainApp)(nil)

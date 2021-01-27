@@ -32,7 +32,7 @@ message NodeAccount {
   repeated string signer_membership = 9;
   bool requested_to_leave = 10;
   bool forced_to_leave = 11;
-  int64 leave_height = 12;
+  uint64 leave_score = 12;
   string ip_address = 13 [(gogoproto.customname) = "IPAddress"];
   string version = 14;
 }

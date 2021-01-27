@@ -4,8 +4,12 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/cosmos/cosmos-sdk/codec"
+
 	"gitlab.com/thorchain/thornode/common"
 )
+
+var _ codec.ProtoMarshaler = &LiquidityProvider{}
 
 // LiquidityProviders a list of liquidity providers
 type LiquidityProviders []LiquidityProvider
