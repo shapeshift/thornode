@@ -78,7 +78,7 @@ func (c Coin) Native() (cosmos.Coin, error) {
 }
 
 func (c Coin) String() string {
-	return fmt.Sprintf("%d %s", c.Amount.Uint64(), c.Asset.String())
+	return fmt.Sprintf("%s %s", c.Amount.String(), c.Asset.String())
 }
 
 func (cs Coins) Valid() error {

@@ -93,6 +93,11 @@ func (h SwitchHandler) handleV1(ctx cosmos.Context, msg MsgSwitch, version semve
 
 func (h SwitchHandler) toNative(ctx cosmos.Context, msg MsgSwitch) (*cosmos.Result, error) {
 	coin := common.NewCoin(common.RuneNative, msg.Tx.Coins[0].Amount)
+	if msg.Tx.Coins[0].Asset.Equals(common.RuneERC20TestnetAsset) ||
+		msg.Tx.Coins[0].Asset.Equals(common.RuneERC20Asset) {
+		// ERC20 RUNE 18 decimal points
+		coin = common.NewCoin(common.RuneNative, msg.Tx.Coins[0].Amount.QuoUint64(common.One*100))
+	}
 
 	addr, err := cosmos.AccAddressFromBech32(msg.Destination.String())
 	if err != nil {
