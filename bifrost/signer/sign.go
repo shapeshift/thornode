@@ -126,7 +126,7 @@ func (s *Signer) getChain(chainID common.Chain) (chainclients.ChainClient, error
 	chain, ok := s.chains[chainID]
 	if !ok {
 		s.logger.Debug().Str("chain", chainID.String()).Msg("is not supported yet")
-		return nil, errors.New("Not supported")
+		return nil, errors.New("not supported")
 	}
 	return chain, nil
 }

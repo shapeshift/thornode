@@ -144,7 +144,7 @@ func (h BanHandler) handleV1(ctx cosmos.Context, msg MsgBan, constAccessor const
 	h.keeper.SetBanVoter(ctx, voter)
 
 	toBan.ForcedToLeave = true
-	toBan.LeaveHeight = common.BlockHeight(ctx)
+	toBan.LeaveScore = 1 // Set Leave Score to 1, which means the nodes is bad
 	if err := h.keeper.SetNodeAccount(ctx, toBan); err != nil {
 		err = fmt.Errorf("fail to save node account: %w", err)
 		return nil, err

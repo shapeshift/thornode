@@ -1,6 +1,8 @@
 package thorchain
 
 import (
+	"github.com/cosmos/cosmos-sdk/codec"
+
 	mem "gitlab.com/thorchain/thornode/x/thorchain/memo"
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
@@ -259,4 +261,8 @@ type (
 	YggdrasilReturnMemo   = mem.YggdrasilReturnMemo
 	ReserveMemo           = mem.ReserveMemo
 	SwitchMemo            = mem.SwitchMemo
+)
+
+var (
+	_ codec.ProtoMarshaler = &types.LiquidityProvider{}
 )

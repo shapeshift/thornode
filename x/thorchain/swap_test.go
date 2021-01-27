@@ -144,9 +144,11 @@ func (k *TestSwapKeeper) GetNetworkFee(ctx cosmos.Context, chain common.Chain) (
 func (k *TestSwapKeeper) SendFromModuleToModule(ctx cosmos.Context, from, to string, coin common.Coins) error {
 	return nil
 }
+
 func (k *TestSwapKeeper) BurnFromModule(ctx cosmos.Context, module string, coin common.Coin) error {
 	return nil
 }
+
 func (k *TestSwapKeeper) MintToModule(ctx cosmos.Context, module string, coin common.Coin) error {
 	return nil
 }
