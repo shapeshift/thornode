@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"fmt"
 
+	"github.com/cosmos/cosmos-sdk/crypto/codec"
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	ctypes "gitlab.com/thorchain/binance-sdk/common/types"
 	"gitlab.com/thorchain/binance-sdk/keys"
@@ -71,9 +72,17 @@ func (m *keyManager) makeSignature(msg tx.StdSignMsg) (sig tx.StdSignature, err 
 	if err != nil {
 		return
 	}
+	// this return the pubkey type which is extend protob.message
+	pubKey := m.privKey.PubKey()
+	// this convert the protobuf based pubkey back to the old version tendermint pubkey
+	tmPubKey, err := codec.ToTmPubKeyInterface(pubKey)
+	if err != nil {
+		return
+	}
 	return tx.StdSignature{
 		AccountNumber: msg.AccountNumber,
 		Sequence:      msg.Sequence,
+		PubKey:        tmPubKey,
 		Signature:     sigBytes,
 	}, nil
 }
