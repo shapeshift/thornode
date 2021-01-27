@@ -1,6 +1,7 @@
 package thorchain
 
 import (
+	"github.com/blang/semver"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
@@ -128,7 +129,7 @@ func (vts *ValidatorMgrV1TestSuite) TestLowerVersion(c *C) {
 	c.Assert(vMgr.markLowerVersion(ctx, 360), IsNil)
 	na, err := k.GetNodeAccount(ctx, activeNode1.NodeAddress)
 	c.Assert(err, IsNil)
-	c.Assert(na.LeaveHeight, Equals, int64(1440))
+	c.Assert(na.LeaveScore, Equals, uint64(143900000000))
 }
 
 func (vts *ValidatorMgrV1TestSuite) TestBadActors(c *C) {
@@ -352,7 +353,7 @@ func (vts *ValidatorMgrV1TestSuite) TestSplitNext(c *C) {
 func (vts *ValidatorMgrV1TestSuite) TestFindCounToRemove(c *C) {
 	// remove one
 	c.Check(findCountToRemove(0, NodeAccounts{
-		NodeAccount{LeaveHeight: 12},
+		NodeAccount{LeaveScore: 12},
 		NodeAccount{},
 		NodeAccount{},
 		NodeAccount{},
@@ -361,15 +362,15 @@ func (vts *ValidatorMgrV1TestSuite) TestFindCounToRemove(c *C) {
 
 	// don't remove one
 	c.Check(findCountToRemove(0, NodeAccounts{
-		NodeAccount{LeaveHeight: 12},
-		NodeAccount{LeaveHeight: 12},
+		NodeAccount{LeaveScore: 12},
+		NodeAccount{LeaveScore: 12},
 		NodeAccount{},
 		NodeAccount{},
 	}), Equals, 0)
 
 	// remove one because of request to leave
 	c.Check(findCountToRemove(0, NodeAccounts{
-		NodeAccount{LeaveHeight: 12, RequestedToLeave: true},
+		NodeAccount{LeaveScore: 12, RequestedToLeave: true},
 		NodeAccount{},
 		NodeAccount{},
 		NodeAccount{},
@@ -377,7 +378,7 @@ func (vts *ValidatorMgrV1TestSuite) TestFindCounToRemove(c *C) {
 
 	// remove one because of banned
 	c.Check(findCountToRemove(0, NodeAccounts{
-		NodeAccount{LeaveHeight: 12, ForcedToLeave: true},
+		NodeAccount{LeaveScore: 12, ForcedToLeave: true},
 		NodeAccount{},
 		NodeAccount{},
 		NodeAccount{},
@@ -385,18 +386,18 @@ func (vts *ValidatorMgrV1TestSuite) TestFindCounToRemove(c *C) {
 
 	// don't remove more than 1/3rd of node accounts
 	c.Check(findCountToRemove(0, NodeAccounts{
-		NodeAccount{LeaveHeight: 12},
-		NodeAccount{LeaveHeight: 12},
-		NodeAccount{LeaveHeight: 12},
-		NodeAccount{LeaveHeight: 12},
-		NodeAccount{LeaveHeight: 12},
-		NodeAccount{LeaveHeight: 12},
-		NodeAccount{LeaveHeight: 12},
-		NodeAccount{LeaveHeight: 12},
-		NodeAccount{LeaveHeight: 12},
-		NodeAccount{LeaveHeight: 12},
-		NodeAccount{LeaveHeight: 12},
-		NodeAccount{LeaveHeight: 12},
+		NodeAccount{LeaveScore: 12},
+		NodeAccount{LeaveScore: 12},
+		NodeAccount{LeaveScore: 12},
+		NodeAccount{LeaveScore: 12},
+		NodeAccount{LeaveScore: 12},
+		NodeAccount{LeaveScore: 12},
+		NodeAccount{LeaveScore: 12},
+		NodeAccount{LeaveScore: 12},
+		NodeAccount{LeaveScore: 12},
+		NodeAccount{LeaveScore: 12},
+		NodeAccount{LeaveScore: 12},
+		NodeAccount{LeaveScore: 12},
 	}), Equals, 3)
 }
 
@@ -416,4 +417,31 @@ func (vts *ValidatorMgrV1TestSuite) TestFindMaxAbleToLeave(c *C) {
 	c.Check(findMaxAbleToLeave(10), Equals, 3)
 	c.Check(findMaxAbleToLeave(11), Equals, 3)
 	c.Check(findMaxAbleToLeave(12), Equals, 3)
+}
+
+func (vts *ValidatorMgrV1TestSuite) TestFindNextVaultNodeAccounts(c *C) {
+	ctx, k := setupKeeperForTest(c)
+	mgr := NewDummyMgr()
+	vMgr := newValidatorMgrV1(k, mgr.VaultMgr(), mgr.TxOutStore(), mgr.EventMgr())
+	c.Assert(vMgr, NotNil)
+	ver := semver.MustParse("0.17.0")
+	constAccessor := constants.GetConstantValues(ver)
+	nas := NodeAccounts{}
+	for i := 0; i < 12; i++ {
+		na := GetRandomNodeAccount(NodeActive)
+		nas = append(nas, na)
+	}
+	nas[0].LeaveScore = 1024
+	k.SetNodeAccountSlashPoints(ctx, nas[0].NodeAddress, 50)
+	nas[1].LeaveScore = 1025
+	k.SetNodeAccountSlashPoints(ctx, nas[1].NodeAddress, 200)
+	nas[2].ForcedToLeave = true
+	nas[3].RequestedToLeave = true
+	for _, item := range nas {
+		c.Assert(k.SetNodeAccount(ctx, item), IsNil)
+	}
+	nasAfter, rotate, err := vMgr.nextVaultNodeAccounts(ctx, 12, constAccessor)
+	c.Assert(err, IsNil)
+	c.Assert(rotate, Equals, true)
+	c.Assert(nasAfter, HasLen, 10)
 }

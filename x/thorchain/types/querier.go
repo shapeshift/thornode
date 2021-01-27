@@ -105,7 +105,7 @@ type QueryNodeAccount struct {
 	SignerMembership    common.PubKeys                 `json:"signer_membership"`
 	RequestedToLeave    bool                           `json:"requested_to_leave"`
 	ForcedToLeave       bool                           `json:"forced_to_leave"`
-	LeaveHeight         int64                          `json:"leave_height"`
+	LeaveScore          uint64                         `json:"leave_height"`
 	IPAddress           string                         `json:"ip_address"`
 	Version             semver.Version                 `json:"version"`
 	SlashPoints         int64                          `json:"slash_points"`
@@ -129,7 +129,7 @@ func NewQueryNodeAccount(na NodeAccount) QueryNodeAccount {
 		SignerMembership:    na.GetSignerMembership(),
 		RequestedToLeave:    na.RequestedToLeave,
 		ForcedToLeave:       na.ForcedToLeave,
-		LeaveHeight:         na.LeaveHeight,
+		LeaveScore:          na.LeaveScore,
 		IPAddress:           na.IPAddress,
 		Version:             na.GetVersion(),
 	}

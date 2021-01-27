@@ -271,7 +271,7 @@ func (vm *validatorMgrV1) EndBlock(ctx cosmos.Context, mgr Manager, constAccesso
 				cosmos.NewAttribute("Former:", na.Status.String()),
 				cosmos.NewAttribute("Current:", NodeActive.String())))
 		na.UpdateStatus(NodeActive, height)
-		na.LeaveHeight = 0
+		na.LeaveScore = 0
 		na.RequestedToLeave = false
 		vm.k.ResetNodeAccountSlashPoints(ctx, na.NodeAddress)
 		if err := vm.k.SetNodeAccount(ctx, na); err != nil {
@@ -975,6 +975,15 @@ func (vm *validatorMgrV1) setupValidatorNodes(ctx cosmos.Context, height int64, 
 	return nil
 }
 
+func (vm *validatorMgrV1) getScore(ctx cosmos.Context, na NodeAccount, slashPts int64) cosmos.Uint {
+	// get to the 8th decimal point, but keep numbers integers for safer math
+	age := cosmos.NewUint(uint64((common.BlockHeight(ctx) - na.StatusSince) * common.One))
+	if slashPts == 0 {
+		return age
+	}
+	return age.QuoUint64(uint64(slashPts))
+}
+
 // Iterate over active node accounts, finding bad actors with high slash points
 func (vm *validatorMgrV1) findBadActors(ctx cosmos.Context, minSlashPointsForBadValidator, badValidatorRedline, badValidatorRate int64) (NodeAccounts, error) {
 	badActors := make(NodeAccounts, 0)
@@ -1014,9 +1023,7 @@ func (vm *validatorMgrV1) findBadActors(ctx cosmos.Context, minSlashPointsForBad
 			continue
 		}
 
-		// get to the 8th decimal point, but keep numbers integers for safer math
-		age := cosmos.NewUint(uint64((common.BlockHeight(ctx) - na.StatusSince) * common.One))
-		score := age.QuoUint64(uint64(slashPts))
+		score := vm.getScore(ctx, na, slashPts)
 		totalScore = totalScore.Add(score)
 
 		tracker = append(tracker, badTracker{
@@ -1081,9 +1088,13 @@ func (vm *validatorMgrV1) findOldActor(ctx cosmos.Context) (NodeAccount, error) 
 
 // Mark an old to be churned out
 func (vm *validatorMgrV1) markActor(ctx cosmos.Context, na NodeAccount, reason string) error {
-	if !na.IsEmpty() && na.LeaveHeight == 0 {
+	if !na.IsEmpty() && na.LeaveScore == 0 {
 		ctx.Logger().Info(fmt.Sprintf("Marked Validator to be churned out %s: %s", na.NodeAddress, reason))
-		na.LeaveHeight = common.BlockHeight(ctx)
+		slashPts, err := vm.k.GetNodeAccountSlashPoints(ctx, na.NodeAddress)
+		if err != nil {
+			return fmt.Errorf("fail to get node account(%s) slash points: %w", na.NodeAddress, err)
+		}
+		na.LeaveScore = vm.getScore(ctx, na, slashPts).Uint64()
 		return vm.k.SetNodeAccount(ctx, na)
 	}
 	return nil
@@ -1250,7 +1261,26 @@ func (vm *validatorMgrV1) nextVaultNodeAccounts(ctx cosmos.Context, targetCount 
 	if err != nil {
 		return nil, false, err
 	}
-	// sort by LeaveHeight ascending
+
+	// find out all the nodes that had been marked to leave , and update their score again , because even after a node has been marked
+	// to be churn out , they can continue to accumulate slash points, in the scenario that an active node go offline , and consistently fail
+	// keygen / keysign for a while , we would like to churn it out first
+	for _, item := range active {
+		if item.LeaveScore == 0 {
+			continue
+		}
+		slashPts, err := vm.k.GetNodeAccountSlashPoints(ctx, item.NodeAddress)
+		if err != nil {
+			ctx.Logger().Error("fail to get node account slash points", "error", err, "node address", item.NodeAddress.String())
+			continue
+		}
+		newScore := vm.getScore(ctx, item, slashPts)
+		if !newScore.IsZero() {
+			item.LeaveScore = newScore.Uint64()
+		}
+	}
+
+	// sort by LeaveScore ascending
 	// giving preferential treatment to people who are forced to leave
 	//  and then requested to leave
 	sort.SliceStable(active, func(i, j int) bool {
@@ -1261,13 +1291,13 @@ func (vm *validatorMgrV1) nextVaultNodeAccounts(ctx cosmos.Context, targetCount 
 			return active[i].RequestedToLeave
 		}
 		// sort by LeaveHeight ascending , but exclude LeaveHeight == 0 , because that's the default value
-		if active[i].LeaveHeight == 0 && active[j].LeaveHeight > 0 {
+		if active[i].LeaveScore == 0 && active[j].LeaveScore > 0 {
 			return false
 		}
-		if active[i].LeaveHeight > 0 && active[j].LeaveHeight == 0 {
+		if active[i].LeaveScore > 0 && active[j].LeaveScore == 0 {
 			return true
 		}
-		return active[i].LeaveHeight < active[j].LeaveHeight
+		return active[i].LeaveScore < active[j].LeaveScore
 	})
 
 	toRemove := findCountToRemove(common.BlockHeight(ctx), active)
@@ -1300,7 +1330,7 @@ func findCountToRemove(blockHeight int64, active NodeAccounts) (toRemove int) {
 	// count number of node accounts that are a candidate to leaving
 	var candidateCount int
 	for _, na := range active {
-		if na.LeaveHeight > 0 {
+		if na.LeaveScore > 0 {
 			candidateCount++
 			continue
 		}

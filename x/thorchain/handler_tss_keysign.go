@@ -108,7 +108,6 @@ func (h TssKeysignHandler) handle(ctx cosmos.Context, msg MsgTssKeysignFail, ver
 }
 
 func (h TssKeysignHandler) handleV1(ctx cosmos.Context, msg MsgTssKeysignFail, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
-
 	voter, err := h.keeper.GetTssKeysignFailVoter(ctx, msg.ID)
 	if err != nil {
 		return nil, err

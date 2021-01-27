@@ -160,7 +160,7 @@ func (s *HandlerBanSuite) TestHandle(c *C) {
 	c.Check(int64(keeper.banner2.Bond.Uint64()), Equals, int64(99900000))
 	c.Check(keeper.modules[ReserveName], Equals, int64(200000))
 	c.Check(keeper.toBan.ForcedToLeave, Equals, true)
-	c.Check(keeper.toBan.LeaveHeight, Equals, int64(18))
+	c.Check(keeper.toBan.LeaveScore, Equals, uint64(1))
 	c.Check(keeper.ban.Signers, HasLen, 2)
 	c.Check(keeper.ban.BlockHeight, Equals, int64(18))
 }
@@ -213,7 +213,7 @@ func (s *HandlerBanSuite) TestHandleV10(c *C) {
 	c.Check(int64(keeper.banner2.Bond.Uint64()), Equals, int64(99900000))
 	c.Check(keeper.modules[ReserveName], Equals, int64(200000))
 	c.Check(keeper.toBan.ForcedToLeave, Equals, true)
-	c.Check(keeper.toBan.LeaveHeight, Equals, int64(18))
+	c.Check(keeper.toBan.LeaveScore, Equals, uint64(1))
 	c.Check(keeper.ban.Signers, HasLen, 2)
 	c.Check(keeper.ban.BlockHeight, Equals, int64(18))
 }
