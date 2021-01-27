@@ -176,6 +176,9 @@ func main() {
 	}
 	poolMgr := thorclient.NewPoolMgr(thorchainBridge)
 	chains := chainclients.LoadChains(k, cfg.Chains, tssIns, thorchainBridge, m, pubkeyMgr, poolMgr)
+	if len(chains) == 0 {
+		log.Fatal().Msg("fail to load any chains")
+	}
 	tssKeysignMetricMgr := metrics.NewTssKeysignMetricMgr()
 	// start observer
 	obs, err := observer.NewObserver(pubkeyMgr, chains, thorchainBridge, m, cfg.Chains[0].BlockScanner.DBPath, tssKeysignMetricMgr)

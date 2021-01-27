@@ -243,6 +243,7 @@ func (HandlerUnBondSuite) TestUnBondHandlerFailValidation(c *C) {
 		c.Check(errors.Is(err, item.expectedErr), Equals, true, Commentf("name: %s, %s", item.name, err))
 	}
 }
+
 func (HandlerUnBondSuite) TestUnBondHanlder_retiringvault(c *C) {
 	ctx, k1 := setupKeeperForTest(c)
 	// happy path

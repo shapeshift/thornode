@@ -94,8 +94,16 @@ func (h LeaveHandler) handleV1(ctx cosmos.Context, msg MsgLeave, version semver.
 	}
 
 	if nodeAcc.Status == NodeActive {
-		if nodeAcc.LeaveHeight == 0 {
-			nodeAcc.LeaveHeight = common.BlockHeight(ctx)
+		if nodeAcc.LeaveScore == 0 {
+			// get to the 8th decimal point, but keep numbers integers for safer math
+			age := cosmos.NewUint(uint64((common.BlockHeight(ctx) - nodeAcc.StatusSince) * common.One))
+			slashPts, err := h.keeper.GetNodeAccountSlashPoints(ctx, nodeAcc.NodeAddress)
+			if err != nil || slashPts == 0 {
+				ctx.Logger().Error("fail to get node account slash points", "error", err)
+				nodeAcc.LeaveScore = age.Uint64()
+			} else {
+				nodeAcc.LeaveScore = age.QuoUint64(uint64(slashPts)).Uint64()
+			}
 		}
 	} else {
 		vaults, err := h.keeper.GetAsgardVaultsByStatus(ctx, RetiringVault)
