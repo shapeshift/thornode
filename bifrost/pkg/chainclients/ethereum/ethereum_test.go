@@ -680,7 +680,7 @@ func (s *EthereumSuite) TestGetConfirmationCount(c *C) {
 				Sender:      addr.String(),
 				To:          asgardAddresses[0].String(),
 				Coins: common.Coins{
-					common.NewCoin(common.ETHAsset, cosmos.NewUint(3e18)),
+					common.NewCoin(common.ETHAsset, cosmos.NewUint(3e8)),
 				},
 				ObservedVaultPubKey: pubkey,
 			},

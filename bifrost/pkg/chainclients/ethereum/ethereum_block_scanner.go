@@ -41,7 +41,7 @@ const (
 	symbolMethod           = "symbol"
 	decimalMethod          = "decimals"
 	defaultDecimals        = 18 // on ETH , consolidate all decimals to 18, in Wei
-	oneGWei                = 1000000000
+	tenGwei                = 10000000000
 )
 
 // ETHScanner is a scanner that understand how to interact with ETH chain ,and scan block , parse smart contract etc
@@ -196,8 +196,8 @@ func (e *ETHScanner) updateGasPrice() {
 		return
 	}
 	// make sure the gas price is at least one Gwei
-	if gasPrice.Cmp(big.NewInt(oneGWei)) < 0 {
-		gasPrice = big.NewInt(oneGWei)
+	if gasPrice.Cmp(big.NewInt(tenGwei)) < 0 {
+		gasPrice = big.NewInt(tenGwei)
 	}
 	if e.gasPrice.Cmp(gasPrice) == 0 {
 		e.gasPriceChanged = false
@@ -675,20 +675,21 @@ func (e *ETHScanner) getTxInFromSmartContract(tx *etypes.Transaction) (*stypes.T
 				}
 				txInItem.Coins = append(txInItem.Coins, common.NewCoin(asset, e.convertAmount(item.Asset.String(), item.Amount)))
 			}
+			ethValue := cosmos.NewUintFromBigInt(tx.Value())
+			if !ethValue.IsZero() {
+				ethValue = e.convertAmount(ethToken, tx.Value())
+				if txInItem.Coins.GetCoin(common.ETHAsset).IsEmpty() {
+					txInItem.Coins = append(txInItem.Coins, common.NewCoin(common.ETHAsset, ethValue))
+				}
+			}
 		}
 	}
-	ethValue := cosmos.NewUintFromBigInt(tx.Value())
-	if !ethValue.IsZero() {
-		ethValue = e.convertAmount(ethToken, tx.Value())
-		if txInItem.Coins.GetCoin(common.ETHAsset).IsEmpty() {
-			txInItem.Coins = append(txInItem.Coins, common.NewCoin(common.ETHAsset, ethValue))
-		}
-	}
+
 	e.logger.Info().Msgf("tx: %s, gas price: %s, gas used: %d,receipt status:%d", txInItem.Tx, tx.GasPrice().String(), receipt.GasUsed, receipt.Status)
 	// under no circumstance ETH gas price will be less than 1 Gwei , unless it is in dev environment
 	txGasPrice := tx.GasPrice()
-	if txGasPrice.Cmp(big.NewInt(oneGWei)) < 0 {
-		txGasPrice = big.NewInt(oneGWei)
+	if txGasPrice.Cmp(big.NewInt(tenGwei)) < 0 {
+		txGasPrice = big.NewInt(tenGwei)
 	}
 	txInItem.Gas = common.MakeETHGas(txGasPrice, receipt.GasUsed)
 	if txInItem.Coins.IsEmpty() {
