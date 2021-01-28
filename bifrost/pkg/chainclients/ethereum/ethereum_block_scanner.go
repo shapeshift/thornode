@@ -41,6 +41,7 @@ const (
 	symbolMethod           = "symbol"
 	decimalMethod          = "decimals"
 	defaultDecimals        = 18 // on ETH , consolidate all decimals to 18, in Wei
+	oneGWei                = 1000000000
 )
 
 // ETHScanner is a scanner that understand how to interact with ETH chain ,and scan block , parse smart contract etc
@@ -172,7 +173,14 @@ func (e *ETHScanner) FetchTxs(height int64) (stypes.TxIn, error) {
 	}
 	if e.gasPriceChanged {
 		// only send the network fee to THORNode when the price get changed
-		if _, err := e.bridge.PostNetworkFee(height, common.ETHChain, MaxContractGas, e.GetGasPrice().Uint64()); err != nil {
+		gasPrice := e.GetGasPrice() // gas price is in wei
+		// convert the gas price to 1E8 , the decimals used in thorchain
+		gasPriceForThorchain := big.NewInt(0).Div(gasPrice, big.NewInt(common.One*100))
+		gasValue := gasPriceForThorchain.Uint64()
+		if gasValue == 0 {
+			gasValue = 1
+		}
+		if _, err := e.bridge.PostNetworkFee(height, common.ETHChain, MaxContractGas, gasValue); err != nil {
 			e.logger.Err(err).Msg("fail to post ETH chain single transfer fee to THORNode")
 		}
 	}
@@ -186,6 +194,10 @@ func (e *ETHScanner) updateGasPrice() {
 	if err != nil {
 		e.logger.Err(err).Msg("fail to get suggest gas price")
 		return
+	}
+	// make sure the gas price is at least one Gwei
+	if gasPrice.Cmp(big.NewInt(oneGWei)) < 0 {
+		gasPrice = big.NewInt(oneGWei)
 	}
 	if e.gasPrice.Cmp(gasPrice) == 0 {
 		e.gasPriceChanged = false
@@ -549,9 +561,10 @@ func (e *ETHScanner) getTokenMeta(token string) (types.TokenMeta, error) {
 	return tokenMeta, nil
 }
 
+// convertAmount will convert the amount to 1e8 , the decimals used by THORChain
 func (e *ETHScanner) convertAmount(token string, amt *big.Int) cosmos.Uint {
 	if IsETH(token) {
-		return cosmos.NewUintFromBigInt(amt)
+		return cosmos.NewUintFromBigInt(amt).QuoUint64(common.One * 100)
 	}
 	decimals := uint64(defaultDecimals)
 	tokenMeta, err := e.getTokenMeta(token)
@@ -566,7 +579,7 @@ func (e *ETHScanner) convertAmount(token string, amt *big.Int) cosmos.Uint {
 		amt = amt.Mul(amt, value.Exp(big.NewInt(10), big.NewInt(defaultDecimals), nil))
 		amt = amt.Div(amt, value.Exp(big.NewInt(10), big.NewInt(int64(decimals)), nil))
 	}
-	return cosmos.NewUintFromBigInt(amt)
+	return cosmos.NewUintFromBigInt(amt).QuoUint64(common.One * 100)
 }
 
 func (e *ETHScanner) getAssetFromTokenAddress(token string) (common.Asset, error) {
@@ -666,12 +679,22 @@ func (e *ETHScanner) getTxInFromSmartContract(tx *etypes.Transaction) (*stypes.T
 	}
 	ethValue := cosmos.NewUintFromBigInt(tx.Value())
 	if !ethValue.IsZero() {
+		ethValue = e.convertAmount(ethToken, tx.Value())
 		if txInItem.Coins.GetCoin(common.ETHAsset).IsEmpty() {
 			txInItem.Coins = append(txInItem.Coins, common.NewCoin(common.ETHAsset, ethValue))
 		}
 	}
 	e.logger.Info().Msgf("tx: %s, gas price: %s, gas used: %d,receipt status:%d", txInItem.Tx, tx.GasPrice().String(), receipt.GasUsed, receipt.Status)
-	txInItem.Gas = common.MakeETHGas(tx.GasPrice(), receipt.GasUsed)
+	// under no circumstance ETH gas price will be less than 1 Gwei , unless it is in dev environment
+	txGasPrice := tx.GasPrice()
+	if txGasPrice.Cmp(big.NewInt(oneGWei)) < 0 {
+		txGasPrice = big.NewInt(oneGWei)
+	}
+	txInItem.Gas = common.MakeETHGas(txGasPrice, receipt.GasUsed)
+	if txInItem.Coins.IsEmpty() {
+		e.logger.Info().Msgf("there is no coin in this tx, ignore, %+v", txInItem)
+		return nil, nil
+	}
 	return txInItem, nil
 }
 
