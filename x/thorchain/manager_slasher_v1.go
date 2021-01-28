@@ -342,6 +342,10 @@ func (s *SlasherV1) SlashNodeAccount(ctx cosmos.Context, observedPubKey common.P
 		return fmt.Errorf("fail to save %s pool: %w", asset, err)
 	}
 
+	// Ban the node account
+	nodeAccount.ForcedToLeave = true
+	nodeAccount.LeaveScore = 1 // Set Leave Score to 1, which means the nodes is bad
+
 	poolSlashAmt := []PoolAmt{
 		{
 			Asset:  pool.Asset,
