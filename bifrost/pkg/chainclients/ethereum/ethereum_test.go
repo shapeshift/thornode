@@ -248,8 +248,8 @@ func (s *EthereumSuite) TestConvertSigningAmount(c *C) {
 	c.Assert(e.ethScanner.tokens.SaveTokenMeta("TKN", "0x3b7FA4dd21c6f9BA3ca375217EAD7CAb9D6bF483", 18), IsNil)
 	c.Assert(e.ethScanner.tokens.SaveTokenMeta("TKX", "0x3b7FA4dd21c6f9BA3ca375217EAD7CAb9D6bF482", 8), IsNil)
 	result := e.convertSigningAmount(big.NewInt(100), "0x3b7FA4dd21c6f9BA3ca375217EAD7CAb9D6bF483")
-	c.Assert(result.Uint64(), Equals, uint64(100))
-	result = e.convertSigningAmount(big.NewInt(1e18), "0x3b7FA4dd21c6f9BA3ca375217EAD7CAb9D6bF482")
+	c.Assert(result.Uint64(), Equals, uint64(100*common.One*100))
+	result = e.convertSigningAmount(big.NewInt(100000000), "0x3b7FA4dd21c6f9BA3ca375217EAD7CAb9D6bF482")
 	c.Assert(result.Uint64(), Equals, uint64(100000000))
 }
 
