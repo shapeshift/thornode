@@ -391,7 +391,7 @@ func (e *ETHScanner) reprocessTxs() error {
 		var errataTxs []stypes.ErrataTx
 		for _, tx := range blockMeta.Transactions {
 			if e.checkTransaction(tx.Hash) {
-				e.logger.Info().Msgf("block height: %d, tx: %s still exist", blockMeta.Height, tx.Hash)
+				e.logger.Debug().Msgf("block height: %d, tx: %s still exist", blockMeta.Height, tx.Hash)
 				metaTxs = append(metaTxs, tx)
 				continue
 			}
