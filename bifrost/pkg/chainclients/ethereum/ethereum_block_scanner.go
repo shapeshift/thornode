@@ -195,7 +195,7 @@ func (e *ETHScanner) updateGasPrice() {
 		e.logger.Err(err).Msg("fail to get suggest gas price")
 		return
 	}
-	// make sure the gas price is at least one Gwei
+	// make sure the gas price is at least ten Gwei
 	if gasPrice.Cmp(big.NewInt(tenGwei)) < 0 {
 		gasPrice = big.NewInt(tenGwei)
 	}
