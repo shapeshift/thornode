@@ -352,7 +352,7 @@ func (e *ETHScanner) extractTxs(block *etypes.Block) (stypes.TxIn, error) {
 		return stypes.TxIn{}, nil
 	}
 	txInbound.Count = strconv.Itoa(len(txInbound.TxArray))
-	e.logger.Info().Int64("block", int64(block.NumberU64())).Msgf("there are %s tx in this block need to process", txInbound.Count)
+	e.logger.Debug().Int64("block", int64(block.NumberU64())).Msgf("there are %s tx in this block need to process", txInbound.Count)
 	return txInbound, nil
 }
 
