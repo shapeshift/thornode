@@ -277,6 +277,8 @@ func (c *Client) getSmartContractByAddress(addr common.Address) common.Address {
 }
 
 func (c *Client) convertSigningAmount(amt *big.Int, token string) *big.Int {
+	// convert 1e8 to 1e18
+	amt = c.convertThorchainAmountToWei(amt)
 	if IsETH(token) {
 		return amt
 	}
@@ -295,6 +297,10 @@ func (c *Client) convertSigningAmount(amt *big.Int, token string) *big.Int {
 	amt = amt.Mul(amt, value.Exp(big.NewInt(10), big.NewInt(int64(tm.Decimal)), nil))
 	amt = amt.Div(amt, value.Exp(big.NewInt(10), big.NewInt(defaultDecimals), nil))
 	return amt
+}
+
+func (c *Client) convertThorchainAmountToWei(amt *big.Int) *big.Int {
+	return big.NewInt(0).Mul(amt, big.NewInt(common.One*100))
 }
 
 // SignTx sign the the given TxArrayItem
@@ -388,7 +394,6 @@ func (c *Client) SignTx(tx stypes.TxOutItem, height int64) ([]byte, error) {
 				Amount: assetAmt,
 			})
 		}
-
 		data, err = c.vaultABI.Pack("returnVaultAssets", ecommon.HexToAddress(newSmartContractAddr.String()), dest, coins, tx.Memo)
 		if err != nil {
 			return nil, fmt.Errorf("fail to create data to call smart contract(transferVaultAssets): %w", err)
@@ -403,7 +408,8 @@ func (c *Client) SignTx(tx stypes.TxOutItem, height int64) ([]byte, error) {
 
 	// compare the gas rate prescribed by THORChain against the price it can get from the chain
 	// ensure signer always pay enough higher gas price
-	gasRate := big.NewInt(tx.GasRate)
+	// GasRate from thorchain is in 1e8, need to convert to Wei
+	gasRate := c.convertThorchainAmountToWei(big.NewInt(tx.GasRate))
 	if gasRate.Cmp(c.GetGasPrice()) < 0 {
 		gasRate = c.GetGasPrice()
 	}
@@ -427,7 +433,7 @@ func (c *Client) SignTx(tx stypes.TxOutItem, height int64) ([]byte, error) {
 
 	gasOut := big.NewInt(0)
 	for _, coin := range tx.MaxGas {
-		gasOut.Add(gasOut, coin.Amount.BigInt())
+		gasOut.Add(gasOut, c.convertThorchainAmountToWei(coin.Amount.BigInt()))
 	}
 	totalGas := big.NewInt(int64(estimatedGas) * gasRate.Int64())
 	if ethValue.Uint64() > 0 {
@@ -545,7 +551,8 @@ func (c *Client) GetBalances(addr string) (common.Coins, error) {
 				return nil, err
 			}
 		}
-		coins = append(coins, common.NewCoin(asset, cosmos.NewUintFromBigInt(balance)))
+		bal := c.ethScanner.convertAmount(token.Address, balance)
+		coins = append(coins, common.NewCoin(asset, bal))
 	}
 
 	return coins.Distinct(), nil
@@ -671,12 +678,13 @@ func (c *Client) getBlockRequiredConfirmation(txIn stypes.TxIn, height int64) (i
 	}
 	c.logger.Debug().Msgf("asgards: %+v", asgards)
 	totalTxValue := c.getTotalTransactionValue(txIn, asgards)
+	totalTxValueInWei := c.convertThorchainAmountToWei(totalTxValue.BigInt())
 	totalFeeAndSubsidy, err := c.getBlockReward(height)
 	if err != nil {
 		return 0, fmt.Errorf("fail to get coinbase value: %w", err)
 	}
-	confirm := totalTxValue.MulUint64(2).Quo(cosmos.NewUintFromBigInt(totalFeeAndSubsidy)).Uint64()
-	c.logger.Info().Msgf("totalTxValue:%s,total fee and Subsidy:%d,confirmation:%d", totalTxValue, totalFeeAndSubsidy, confirm)
+	confirm := cosmos.NewUintFromBigInt(totalTxValueInWei).MulUint64(2).Quo(cosmos.NewUintFromBigInt(totalFeeAndSubsidy)).Uint64()
+	c.logger.Info().Msgf("totalTxValue:%s,total fee and Subsidy:%d,confirmation:%d", totalTxValueInWei, totalFeeAndSubsidy, confirm)
 	return int64(confirm), nil
 }
 

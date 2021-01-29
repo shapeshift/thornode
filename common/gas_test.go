@@ -20,10 +20,10 @@ func (s *GasSuite) TestETHGasFee(c *C) {
 		true,
 		Commentf("%d", amt.Uint64()),
 	)
-	gas = MakeETHGas(big.NewInt(20), 50000)
+	gas = MakeETHGas(big.NewInt(20), 10000000000) // 10 GWEI
 	amt = gas[0].Amount
 	c.Check(
-		amt.Equal(cosmos.NewUint(1000000)),
+		amt.Equal(cosmos.NewUint(20)),
 		Equals,
 		true,
 		Commentf("%d", amt.Uint64()),

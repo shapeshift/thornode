@@ -91,8 +91,9 @@ func GetETHGasFee(gasPrice *big.Int, msgLen uint64) Gas {
 
 // MakeETHGas return the gas for ETH
 func MakeETHGas(gasPrice *big.Int, gas uint64) Gas {
+	gasAmt := cosmos.NewUint(gas).Mul(cosmos.NewUintFromBigInt(gasPrice)).QuoUint64(One * 100)
 	return Gas{
-		{Asset: ETHAsset, Amount: cosmos.NewUint(gas).Mul(cosmos.NewUintFromBigInt(gasPrice))},
+		{Asset: ETHAsset, Amount: gasAmt},
 	}
 }
 
