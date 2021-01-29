@@ -290,7 +290,7 @@ func (s *EthereumSuite) TestClient(c *C) {
 	acct, err := e2.GetAccount(types2.GetRandomPubKey())
 	c.Assert(err, IsNil)
 	c.Check(acct.Sequence, Equals, int64(0))
-	c.Check(acct.Coins[0].Amount.Uint64(), Equals, uint64(1000000000))
+	c.Check(acct.Coins[0].Amount.Uint64(), Equals, uint64(0))
 	pk := types2.GetRandomPubKey()
 	addr := e2.GetAddress(pk)
 	c.Check(len(addr), Equals, 42)
