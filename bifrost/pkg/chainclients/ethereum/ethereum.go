@@ -394,7 +394,6 @@ func (c *Client) SignTx(tx stypes.TxOutItem, height int64) ([]byte, error) {
 				Amount: assetAmt,
 			})
 		}
-		c.logger.Info().Msgf("yggdrasil return tokens: %+v", coins)
 		data, err = c.vaultABI.Pack("returnVaultAssets", ecommon.HexToAddress(newSmartContractAddr.String()), dest, coins, tx.Memo)
 		if err != nil {
 			return nil, fmt.Errorf("fail to create data to call smart contract(transferVaultAssets): %w", err)
