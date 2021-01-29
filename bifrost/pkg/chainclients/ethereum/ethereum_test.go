@@ -248,8 +248,8 @@ func (s *EthereumSuite) TestConvertSigningAmount(c *C) {
 	c.Assert(e.ethScanner.tokens.SaveTokenMeta("TKN", "0x3b7FA4dd21c6f9BA3ca375217EAD7CAb9D6bF483", 18), IsNil)
 	c.Assert(e.ethScanner.tokens.SaveTokenMeta("TKX", "0x3b7FA4dd21c6f9BA3ca375217EAD7CAb9D6bF482", 8), IsNil)
 	result := e.convertSigningAmount(big.NewInt(100), "0x3b7FA4dd21c6f9BA3ca375217EAD7CAb9D6bF483")
-	c.Assert(result.Uint64(), Equals, uint64(100))
-	result = e.convertSigningAmount(big.NewInt(1e18), "0x3b7FA4dd21c6f9BA3ca375217EAD7CAb9D6bF482")
+	c.Assert(result.Uint64(), Equals, uint64(100*common.One*100))
+	result = e.convertSigningAmount(big.NewInt(100000000), "0x3b7FA4dd21c6f9BA3ca375217EAD7CAb9D6bF482")
 	c.Assert(result.Uint64(), Equals, uint64(100000000))
 }
 
@@ -290,7 +290,7 @@ func (s *EthereumSuite) TestClient(c *C) {
 	acct, err := e2.GetAccount(types2.GetRandomPubKey())
 	c.Assert(err, IsNil)
 	c.Check(acct.Sequence, Equals, int64(0))
-	c.Check(acct.Coins[0].Amount.Uint64(), Equals, uint64(1000000000))
+	c.Check(acct.Coins[0].Amount.Uint64(), Equals, uint64(0))
 	pk := types2.GetRandomPubKey()
 	addr := e2.GetAddress(pk)
 	c.Check(len(addr), Equals, 42)
@@ -680,7 +680,7 @@ func (s *EthereumSuite) TestGetConfirmationCount(c *C) {
 				Sender:      addr.String(),
 				To:          asgardAddresses[0].String(),
 				Coins: common.Coins{
-					common.NewCoin(common.ETHAsset, cosmos.NewUint(3e18)),
+					common.NewCoin(common.ETHAsset, cosmos.NewUint(3e8)),
 				},
 				ObservedVaultPubKey: pubkey,
 			},
