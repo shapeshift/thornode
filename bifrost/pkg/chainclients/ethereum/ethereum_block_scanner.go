@@ -693,7 +693,7 @@ func (e *ETHScanner) getTxInFromSmartContract(tx *etypes.Transaction) (*stypes.T
 	}
 	txInItem.Gas = common.MakeETHGas(txGasPrice, receipt.GasUsed)
 	if txInItem.Coins.IsEmpty() {
-		e.logger.Info().Msgf("there is no coin in this tx, ignore, %+v", txInItem)
+		e.logger.Debug().Msgf("there is no coin in this tx, ignore, %+v", txInItem)
 		return nil, nil
 	}
 	return txInItem, nil
