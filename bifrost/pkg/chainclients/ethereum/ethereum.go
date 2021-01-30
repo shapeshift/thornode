@@ -462,7 +462,7 @@ func (c *Client) SignTx(tx stypes.TxOutItem, height int64) ([]byte, error) {
 		// ERC20 tokens , if the total gas is more than the max gas , then let's calculate a gas rate
 		// adjust the gas price to reflect that , so not breach the MaxGas restriction
 		// This might cause the tx to delay
-		if totalGas.Cmp(gasOut) == 1 || memo.GetType() == mem.TxMigrate {
+		if totalGas.Cmp(gasOut) == 1 {
 			gasRate = gasOut.Div(gasOut, big.NewInt(int64(estimatedGas)))
 		}
 
@@ -699,7 +699,7 @@ func (c *Client) GetConfirmationCount(txIn stypes.TxIn) int64 {
 	}
 	blockHeight := txIn.TxArray[0].BlockHeight
 	confirm, err := c.getBlockRequiredConfirmation(txIn, blockHeight)
-	c.logger.Info().Msgf("confirmation required: %d", confirm)
+	c.logger.Debug().Msgf("confirmation required: %d", confirm)
 	if err != nil {
 		c.logger.Err(err).Msg("fail to get block confirmation ")
 		return 0
