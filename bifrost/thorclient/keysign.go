@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strconv"
 
 	btypes "gitlab.com/thorchain/thornode/bifrost/blockscanner/types"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient/types"
@@ -24,7 +23,6 @@ func (b *ThorchainBridge) GetKeysign(blockHeight int64, pk string) (types.TxOut,
 	path := fmt.Sprintf("%s/%d/%s", KeysignEndpoint, blockHeight, pk)
 	body, status, err := b.getWithPath(path)
 	if err != nil {
-		b.errCounter.WithLabelValues("fail_get_tx_out", strconv.FormatInt(blockHeight, 10)).Inc()
 		if status == http.StatusNotFound {
 			return types.TxOut{}, btypes.UnavailableBlock
 		}
@@ -32,7 +30,6 @@ func (b *ThorchainBridge) GetKeysign(blockHeight int64, pk string) (types.TxOut,
 	}
 	var query QueryKeysign
 	if err := json.Unmarshal(body, &query); err != nil {
-		b.errCounter.WithLabelValues("fail_unmarshal_tx_out", strconv.FormatInt(blockHeight, 10)).Inc()
 		return types.TxOut{}, fmt.Errorf("failed to unmarshal TxOut: %w", err)
 	}
 	// there is no txout item , thus no need to validate signature either

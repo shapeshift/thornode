@@ -3,7 +3,6 @@ package blockscanner
 import (
 	"errors"
 	"fmt"
-	"strconv"
 	"sync"
 	"time"
 
@@ -97,12 +96,10 @@ func (b *BlockScanner) scanBlocks() {
 	defer b.wg.Done()
 	currentPos, err := b.scannerStorage.GetScanPos()
 	if err != nil {
-		b.errorCounter.WithLabelValues("fail_get_scan_pos", "").Inc()
 		b.logger.Error().Err(err).Msgf("fail to get current block scan pos, %s will start from %d", b.cfg.ChainID, b.previousBlock)
 	} else if currentPos > b.previousBlock {
 		b.previousBlock = currentPos
 	}
-	b.metrics.GetCounter(metrics.CurrentPosition).Add(float64(currentPos))
 
 	lastMimirCheck := time.Now().Add(-constants.ThorchainBlockTime)
 	haltHeight := int64(0)
@@ -143,7 +140,6 @@ func (b *BlockScanner) scanBlocks() {
 			if err != nil {
 				// don't log an error if its because the block doesn't exist yet
 				if !errors.Is(err, btypes.UnavailableBlock) {
-					b.errorCounter.WithLabelValues("fail_get_block", "").Inc()
 					b.logger.Error().Err(err).Int64("block height", currentBlock).Msg("fail to get RPCBlock")
 				}
 				time.Sleep(b.cfg.BlockHeightDiscoverBackoff)
@@ -163,9 +159,7 @@ func (b *BlockScanner) scanBlocks() {
 				case b.globalTxsQueue <- txIn:
 				}
 			}
-			b.metrics.GetCounter(metrics.CurrentPosition).Inc()
 			if err := b.scannerStorage.SetScanPos(b.previousBlock); err != nil {
-				b.errorCounter.WithLabelValues("fail_save_block_pos", strconv.FormatInt(b.previousBlock, 10)).Inc()
 				b.logger.Error().Err(err).Msg("fail to save block scan pos")
 				// alert!!
 				continue

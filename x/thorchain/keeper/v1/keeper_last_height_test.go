@@ -29,7 +29,7 @@ func (s *KeeperLastHeightSuite) TestLastHeight_SetKeeperSingleChain(c *C) {
 	last, err := k.GetLastSignedHeight(ctx)
 	c.Assert(err, IsNil)
 	c.Check(last, Equals, int64(12))
-	c.Check(k.SetLastSignedHeight(ctx, 10), NotNil)
+	c.Check(k.SetLastSignedHeight(ctx, 10), IsNil)
 
 	err = k.SetLastChainHeight(ctx, common.BNBChain, 14)
 	c.Assert(err, IsNil)
