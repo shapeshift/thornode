@@ -196,7 +196,7 @@ func (s *KeySign) toLocalTSSSigner(poolPubKey, msgToSign string) (string, string
 	}
 	currentVersion := s.getVersion()
 	tssMsg.Version = currentVersion.String()
-	s.logger.Info().Msg("new TSS join party")
+	s.logger.Debug().Msg("new TSS join party")
 	// get current thorchain block height
 	blockHeight, err := s.bridge.GetBlockHeight()
 	if err != nil {

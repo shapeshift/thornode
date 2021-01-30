@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strconv"
 
 	btypes "gitlab.com/thorchain/thornode/bifrost/blockscanner/types"
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
@@ -20,12 +19,10 @@ func (b *ThorchainBridge) GetKeygenBlock(blockHeight int64, pk string) (types.Ke
 		if status == http.StatusNotFound {
 			return types.KeygenBlock{}, btypes.UnavailableBlock
 		}
-		b.errCounter.WithLabelValues("fail_get_keygen", strconv.FormatInt(blockHeight, 10)).Inc()
 		return types.KeygenBlock{}, fmt.Errorf("failed to get keygen for a block height: %w", err)
 	}
 	var query types.QueryKeygenBlock
 	if err := json.Unmarshal(body, &query); err != nil {
-		b.errCounter.WithLabelValues("fail_unmarshal_keygen", strconv.FormatInt(blockHeight, 10)).Inc()
 		return types.KeygenBlock{}, fmt.Errorf("failed to unmarshal Keygen: %w", err)
 	}
 

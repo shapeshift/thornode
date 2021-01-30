@@ -192,9 +192,7 @@ func (b *BinanceBlockScanner) updateFees(height int64) error {
 
 func (b *BinanceBlockScanner) processBlock(block blockscanner.Block) (stypes.TxIn, error) {
 	var txIn stypes.TxIn
-	strBlock := strconv.FormatInt(block.Height, 10)
 	if err := b.db.SetBlockScanStatus(block, blockscanner.Processing); err != nil {
-		b.errCounter.WithLabelValues("fail_set_block_status", strBlock).Inc()
 		return txIn, fmt.Errorf("fail to set block scan status for block %d: %w", block.Height, err)
 	}
 
@@ -214,14 +212,12 @@ func (b *BinanceBlockScanner) processBlock(block blockscanner.Block) (stypes.TxI
 	for _, txn := range block.Txs {
 		hash, err := b.getTxHash(txn)
 		if err != nil {
-			b.errCounter.WithLabelValues("fail_get_tx_hash", strBlock).Inc()
 			b.logger.Error().Err(err).Str("tx", txn).Msg("fail to get tx hash from raw data")
 			return txIn, fmt.Errorf("fail to get tx hash from tx raw data: %w", err)
 		}
 
 		txItemIns, err := b.fromTxToTxIn(hash, txn, block.Height)
 		if err != nil {
-			b.errCounter.WithLabelValues("fail_get_tx", strBlock).Inc()
 			b.logger.Error().Err(err).Str("hash", hash).Msg("fail to get one tx from server")
 			// if THORNode fail to get one tx hash from server, then THORNode should bail, because THORNode might miss tx
 			// if THORNode bail here, then THORNode should retry later
@@ -249,12 +245,10 @@ func (b *BinanceBlockScanner) processBlock(block blockscanner.Block) (stypes.TxI
 func (b *BinanceBlockScanner) getFromHttp(url string) ([]byte, error) {
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
-		b.errCounter.WithLabelValues("fail_create_http_request", url).Inc()
 		return nil, fmt.Errorf("fail to create http request: %w", err)
 	}
 	resp, err := b.http.Do(req)
 	if err != nil {
-		b.errCounter.WithLabelValues("fail_send_http_request", url).Inc()
 		return nil, fmt.Errorf("fail to get from %s: %w", url, err)
 	}
 	defer func() {
@@ -264,7 +258,6 @@ func (b *BinanceBlockScanner) getFromHttp(url string) ([]byte, error) {
 	}()
 
 	if resp.StatusCode != http.StatusOK {
-		b.errCounter.WithLabelValues("unexpected_status_code", resp.Status).Inc()
 		return nil, fmt.Errorf("unexpected status code:%d from %s", resp.StatusCode, url)
 	}
 	buf, err := ioutil.ReadAll(resp.Body)
@@ -306,18 +299,13 @@ func (b *BinanceBlockScanner) getRPCBlock(height int64) ([]string, error) {
 	url := b.BlockRequest(height)
 	buf, err := b.getFromHttp(url)
 	if err != nil {
-		b.errCounter.WithLabelValues("fail_get_block", url).Inc()
 		if strings.Contains(err.Error(), "Height must be less than or equal to the current blockchain height") {
 			return nil, bltypes.UnavailableBlock
 		}
 		return nil, err
 	}
 
-	rawTxns, err := b.UnmarshalBlock(buf)
-	if err != nil {
-		b.errCounter.WithLabelValues("fail_unmarshal_block", url).Inc()
-	}
-	return rawTxns, err
+	return b.UnmarshalBlock(buf)
 }
 
 func (b *BinanceBlockScanner) BlockRequest(height int64) string {
@@ -362,17 +350,14 @@ func (b *BinanceBlockScanner) FetchTxs(height int64) (stypes.TxIn, error) {
 	txIn, err := b.processBlock(block)
 	if err != nil {
 		if errStatus := b.db.SetBlockScanStatus(block, blockscanner.Failed); errStatus != nil {
-			b.errCounter.WithLabelValues("fail_set_block_status", "").Inc()
 			b.logger.Error().Err(err).Int64("height", block.Height).Msg("fail to set block to fail status")
 		}
-		b.errCounter.WithLabelValues("fail_search_block", "").Inc()
 		b.logger.Error().Err(err).Int64("height", block.Height).Msg("fail to search tx in block")
 		// THORNode will have a retry go routine to check it.
 		return txIn, err
 	}
 	// set a block as success
 	if err := b.db.RemoveBlockStatus(block.Height); err != nil {
-		b.errCounter.WithLabelValues("fail_remove_block_status", "").Inc()
 		b.logger.Error().Err(err).Int64("block", block.Height).Msg("fail to remove block status from data store, thus block will be re processed")
 	}
 	return txIn, nil
@@ -387,7 +372,6 @@ func (b *BinanceBlockScanner) getCoinsForTxIn(outputs []bmsg.Output, receiver st
 		for _, c := range output.Coins {
 			asset, err := common.NewAsset(fmt.Sprintf("BNB.%s", c.Denom))
 			if err != nil {
-				b.errCounter.WithLabelValues("fail_create_ticker", c.Denom).Inc()
 				return nil, fmt.Errorf("fail to create asset, %s is not valid: %w", c.Denom, err)
 			}
 
@@ -408,12 +392,10 @@ func (b *BinanceBlockScanner) fromTxToTxIn(hash, encodedTx string, blockHeight i
 	}
 	buf, err := base64.StdEncoding.DecodeString(encodedTx)
 	if err != nil {
-		b.errCounter.WithLabelValues("fail_decode_tx", hash).Inc()
 		return nil, fmt.Errorf("fail to decode tx: %w", err)
 	}
 	var t tx.StdTx
 	if err := tx.Cdc.UnmarshalBinaryLengthPrefixed(buf, &t); err != nil {
-		b.errCounter.WithLabelValues("fail_unmarshal_tx", hash).Inc()
 		// not returning an error here because it may cause binance to get
 		// stuck if someone has issued a mini token.
 		return nil, nil

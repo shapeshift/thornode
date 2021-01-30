@@ -602,7 +602,7 @@ func (e *ETHScanner) getAssetFromTokenAddress(token string) (common.Asset, error
 
 // getTxInFromSmartContract returns txInItem
 func (e *ETHScanner) getTxInFromSmartContract(tx *etypes.Transaction) (*stypes.TxInItem, error) {
-	e.logger.Info().Msg("parse tx from smart contract")
+	e.logger.Debug().Msg("parse tx from smart contract")
 	txInItem := &stypes.TxInItem{
 		Tx: tx.Hash().Hex()[2:],
 	}
