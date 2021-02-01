@@ -93,29 +93,31 @@ func (h RagnarokHandler) handleV1(ctx cosmos.Context, version semver.Version, ms
 			// in to trigger it, it is trigger by thorchain itself.
 
 			fromAddress, _ := tx.VaultPubKey.GetAddress(tx.Chain)
-			matchCoin := msg.Tx.Tx.Coins.Equals(common.Coins{tx.Coin})
-			// when outbound is gas asset
-			if !matchCoin && tx.Coin.Asset.Equals(tx.Chain.GetGasAsset()) {
-				asset := tx.Chain.GetGasAsset()
-				intendToSpend := tx.Coin.Amount.Add(tx.MaxGas.ToCoins().GetCoin(asset).Amount)
-				actualSpend := msg.Tx.Tx.Coins.GetCoin(asset).Amount.Add(msg.Tx.Tx.Gas.ToCoins().GetCoin(asset).Amount)
-				if intendToSpend.Equal(actualSpend) {
-					maxGasAmt := tx.MaxGas.ToCoins().GetCoin(asset).Amount
-					realGasAmt := msg.Tx.Tx.Gas.ToCoins().GetCoin(asset).Amount
-					if maxGasAmt.GTE(realGasAmt) {
-						matchCoin = true
-						ctx.Logger().Info(fmt.Sprintf("intend to spend: %s, actual spend: %s are the same , override match coin, max_gas: %s , actual gas: %s ", intendToSpend, actualSpend, maxGasAmt, realGasAmt))
-					}
-					// the network didn't charge fee when it is ragnarok , thus it doesn't need to adjust gas
-				}
-			}
 
 			if tx.InHash.Equals(common.BlankTxID) &&
 				tx.OutHash.IsEmpty() &&
-				matchCoin &&
 				tx.ToAddress.Equals(msg.Tx.Tx.ToAddress) &&
 				fromAddress.Equals(msg.Tx.Tx.FromAddress) {
 
+				matchCoin := msg.Tx.Tx.Coins.Equals(common.Coins{tx.Coin})
+				// when outbound is gas asset
+				if !matchCoin && tx.Coin.Asset.Equals(tx.Chain.GetGasAsset()) {
+					asset := tx.Chain.GetGasAsset()
+					intendToSpend := tx.Coin.Amount.Add(tx.MaxGas.ToCoins().GetCoin(asset).Amount)
+					actualSpend := msg.Tx.Tx.Coins.GetCoin(asset).Amount.Add(msg.Tx.Tx.Gas.ToCoins().GetCoin(asset).Amount)
+					if intendToSpend.Equal(actualSpend) {
+						maxGasAmt := tx.MaxGas.ToCoins().GetCoin(asset).Amount
+						realGasAmt := msg.Tx.Tx.Gas.ToCoins().GetCoin(asset).Amount
+						if maxGasAmt.GTE(realGasAmt) {
+							matchCoin = true
+							ctx.Logger().Info(fmt.Sprintf("intend to spend: %s, actual spend: %s are the same , override match coin, max_gas: %s , actual gas: %s ", intendToSpend, actualSpend, maxGasAmt, realGasAmt))
+						}
+						// the network didn't charge fee when it is ragnarok , thus it doesn't need to adjust gas
+					}
+				}
+				if !matchCoin {
+					continue
+				}
 				txOut.TxArray[i].OutHash = msg.Tx.Tx.ID
 				shouldSlash = false
 				if err := h.keeper.SetTxOut(ctx, txOut); nil != err {
@@ -129,8 +131,8 @@ func (h RagnarokHandler) handleV1(ctx cosmos.Context, version semver.Version, ms
 					h.keeper.SetRagnarokPending(ctx, pending-1)
 					ctx.Logger().Info("remaining ragnarok transaction", "count", pending-1)
 				}
-
 				break
+
 			}
 		}
 	}

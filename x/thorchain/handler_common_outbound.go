@@ -89,45 +89,48 @@ func (h CommonOutboundTxHandler) handle(ctx cosmos.Context, version semver.Versi
 			// one coin in it , THORNode could use that to identify which tx it
 			// is
 
-			matchCoin := tx.Tx.Coins.Equals(common.Coins{txOutItem.Coin})
-			// when outbound is gas asset
-			if !matchCoin && txOutItem.Coin.Asset.Equals(txOutItem.Chain.GetGasAsset()) {
-				asset := txOutItem.Chain.GetGasAsset()
-				intendToSpend := txOutItem.Coin.Amount.Add(txOutItem.MaxGas.ToCoins().GetCoin(asset).Amount)
-				actualSpend := tx.Tx.Coins.GetCoin(asset).Amount.Add(tx.Tx.Gas.ToCoins().GetCoin(asset).Amount)
-				if intendToSpend.Equal(actualSpend) {
-					matchCoin = true
-					maxGasAmt := txOutItem.MaxGas.ToCoins().GetCoin(asset).Amount
-					realGasAmt := tx.Tx.Gas.ToCoins().GetCoin(asset).Amount
-					ctx.Logger().Info(fmt.Sprintf("intend to spend: %s, actual spend: %s are the same , override match coin, max_gas: %s , actual gas: %s ", intendToSpend, actualSpend, maxGasAmt, realGasAmt))
-					if maxGasAmt.GT(realGasAmt) {
-						// the outbound spend less than MaxGas
-						diffGas := maxGasAmt.Sub(realGasAmt)
-						h.mgr.GasMgr().AddGasAsset(common.Gas{
-							common.NewCoin(asset, diffGas),
-						}, false)
-					} else if maxGasAmt.LT(realGasAmt) {
-						// signer spend more than the maximum gas prescribed by THORChain , slash it
-						ctx.Logger().Info(fmt.Sprintf("max gas: %s, real gas spend: %s ,gap %s , slash node", maxGasAmt.String(), realGasAmt.String(), common.SafeSub(realGasAmt, maxGasAmt).String()))
-						matchCoin = false
-					}
-				}
-			}
 			if txOutItem.InHash.Equals(inTxID) &&
 				txOutItem.OutHash.IsEmpty() &&
-				matchCoin &&
 				tx.Tx.Chain.Equals(txOutItem.Chain) &&
 				tx.Tx.ToAddress.Equals(txOutItem.ToAddress) &&
 				tx.ObservedPubKey.Equals(txOutItem.VaultPubKey) {
+
+				matchCoin := tx.Tx.Coins.Equals(common.Coins{txOutItem.Coin})
+				// when outbound is gas asset
+				if !matchCoin && txOutItem.Coin.Asset.Equals(txOutItem.Chain.GetGasAsset()) {
+					asset := txOutItem.Chain.GetGasAsset()
+					intendToSpend := txOutItem.Coin.Amount.Add(txOutItem.MaxGas.ToCoins().GetCoin(asset).Amount)
+					actualSpend := tx.Tx.Coins.GetCoin(asset).Amount.Add(tx.Tx.Gas.ToCoins().GetCoin(asset).Amount)
+					if intendToSpend.Equal(actualSpend) {
+						matchCoin = true
+						maxGasAmt := txOutItem.MaxGas.ToCoins().GetCoin(asset).Amount
+						realGasAmt := tx.Tx.Gas.ToCoins().GetCoin(asset).Amount
+						ctx.Logger().Info(fmt.Sprintf("intend to spend: %s, actual spend: %s are the same , override match coin, max_gas: %s , actual gas: %s ", intendToSpend, actualSpend, maxGasAmt, realGasAmt))
+						if maxGasAmt.GT(realGasAmt) {
+							// the outbound spend less than MaxGas
+							diffGas := maxGasAmt.Sub(realGasAmt)
+							h.mgr.GasMgr().AddGasAsset(common.Gas{
+								common.NewCoin(asset, diffGas),
+							}, false)
+						} else if maxGasAmt.LT(realGasAmt) {
+							// signer spend more than the maximum gas prescribed by THORChain , slash it
+							ctx.Logger().Info(fmt.Sprintf("max gas: %s, real gas spend: %s ,gap %s , slash node", maxGasAmt.String(), realGasAmt.String(), common.SafeSub(realGasAmt, maxGasAmt).String()))
+							matchCoin = false
+						}
+					}
+				}
+
+				if !matchCoin {
+					continue
+				}
 				txOut.TxArray[i].OutHash = tx.Tx.ID
 				shouldSlash = false
-
 				if err := h.keeper.SetTxOut(ctx, txOut); err != nil {
 					ctx.Logger().Error("fail to save tx out", "error", err)
 				}
 				break
-			}
 
+			}
 		}
 	}
 
