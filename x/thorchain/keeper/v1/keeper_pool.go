@@ -68,7 +68,6 @@ func (k KVStore) SetPool(ctx cosmos.Context, pool Pool) error {
 	if pool.Asset.IsEmpty() {
 		return errors.New("cannot save a pool with an empty asset")
 	}
-
 	k.setPool(ctx, k.GetKey(ctx, prefixPool, pool.Asset.String()), pool)
 	return nil
 }
