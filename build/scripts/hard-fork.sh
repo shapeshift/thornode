@@ -5,15 +5,15 @@ set -ex
 DATE=$(date +%s)
 
 # backup first
-cp -r ~/.thord/config ~/.thord/config.$DATE.bak
-cp -r ~/.thord/data ~/.thord/data.$DATE.bak
+cp -r ~/.thornode/config ~/.thornode/config.$DATE.bak
+cp -r ~/.thornode/data ~/.thornode/data.$DATE.bak
 
 # export genesis file
-thord export >thorchain_genesis_export.$DATE.json
+thornode export >thorchain_genesis_export.$DATE.json
 
 # reset data, unsafe
-thord unsafe-reset-all
+thornode unsafe-reset-all
 
 # copied exported genesis file to the config directory
-cp thorchain_genesis_export.$DATE.json ~/.thord/config/genesis.json
+cp thorchain_genesis_export.$DATE.json ~/.thornode/config/genesis.json
 
