@@ -534,24 +534,22 @@ func (b *ThorchainBridge) GetContractAddress() ([]PubKeyContractAddressPair, err
 		return nil, fmt.Errorf("unexpected status code: %d", s)
 	}
 	type address struct {
-		Chain    common.Chain   `json:"chain"`
-		PubKey   common.PubKey  `json:"pub_key"`
-		Address  common.Address `json:"address"`
-		Contract common.Address `json:"contract"`
-		Halted   bool           `json:"halted"`
+		Chain   common.Chain   `json:"chain"`
+		PubKey  common.PubKey  `json:"pub_key"`
+		Address common.Address `json:"address"`
+		Router  common.Address `json:"router"`
+		Halted  bool           `json:"halted"`
 	}
-	var resp struct {
-		Current []address `json:"current"`
-	}
+	var resp []address
 	if err := json.Unmarshal(buf, &resp); err != nil {
 		return nil, fmt.Errorf("fail to unmarshal response: %w", err)
 	}
 	var result []PubKeyContractAddressPair
-	for _, item := range resp.Current {
+	for _, item := range resp {
 		exist := false
 		for _, pair := range result {
 			if item.PubKey.Equals(pair.PubKey) {
-				pair.Contracts[item.Chain] = item.Contract
+				pair.Contracts[item.Chain] = item.Router
 				exist = true
 				break
 			}
@@ -561,7 +559,7 @@ func (b *ThorchainBridge) GetContractAddress() ([]PubKeyContractAddressPair, err
 				PubKey:    item.PubKey,
 				Contracts: map[common.Chain]common.Address{},
 			}
-			pair.Contracts[item.Chain] = item.Contract
+			pair.Contracts[item.Chain] = item.Router
 			result = append(result, pair)
 		}
 	}

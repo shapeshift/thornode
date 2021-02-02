@@ -27,7 +27,7 @@ var (
 	// RuneNative RUNE on thorchain
 	RuneNative            = Asset{Chain: THORChain, Symbol: "RUNE", Ticker: "RUNE"}
 	RuneERC20Asset        = Asset{Chain: ETHChain, Symbol: "RUNE-0x3155ba85d5f96b2d030a4966af206230e46849cb", Ticker: "RUNE"}
-	RuneERC20TestnetAsset = Asset{Chain: ETHChain, Symbol: "RUNE-0xb7Bbba4f4Ef2304f659500320Dbd21073f4b16Fb", Ticker: "RUNE"}
+	RuneERC20TestnetAsset = Asset{Chain: ETHChain, Symbol: "RUNE-0xd601c6A3a36721320573885A8d8420746dA3d7A0", Ticker: "RUNE"}
 	SyntheticPrefix       = "thor"
 )
 
