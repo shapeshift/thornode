@@ -343,17 +343,13 @@ func queryInboundAddresses(ctx cosmos.Context, path []string, req abci.RequestQu
 	// decom a chain and not accept new trades/liquidity providing
 
 	type address struct {
-		Chain    common.Chain   `json:"chain"`
-		PubKey   common.PubKey  `json:"pub_key"`
-		Address  common.Address `json:"address"`
-		Contract common.Address `json:"contract"`
-		Halted   bool           `json:"halted"`
+		Chain   common.Chain   `json:"chain"`
+		PubKey  common.PubKey  `json:"pub_key"`
+		Address common.Address `json:"address"`
+		Router  common.Address `json:"router"`
+		Halted  bool           `json:"halted"`
 	}
-
-	var resp struct {
-		Current []address `json:"current"`
-	}
-
+	var resp []address
 	version := keeper.GetLowestActiveVersion(ctx)
 	constAccessor := constants.GetConstantValues(version)
 	signingTransactionPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
@@ -380,14 +376,14 @@ func queryInboundAddresses(ctx cosmos.Context, path []string, req abci.RequestQu
 		cc := vault.GetContract(chain)
 
 		addr := address{
-			Chain:    chain,
-			PubKey:   vault.PubKey,
-			Address:  vaultAddress,
-			Contract: cc.Contract,
-			Halted:   halted,
+			Chain:   chain,
+			PubKey:  vault.PubKey,
+			Address: vaultAddress,
+			Router:  cc.Contract,
+			Halted:  halted,
 		}
 
-		resp.Current = append(resp.Current, addr)
+		resp = append(resp, addr)
 	}
 
 	res, err := json.MarshalIndent(resp, "", "	")
