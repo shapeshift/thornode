@@ -1,7 +1,9 @@
 package types
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
 	"strings"
 
 	"gitlab.com/thorchain/thornode/common"
@@ -334,4 +336,22 @@ func (m *ObservedTxVoter) setStatus(toStatus Status) {
 // there are some situation , it doesn't have outbound , those will need to set manually
 func (m *ObservedTxVoter) SetDone() {
 	m.setStatus(Status_done)
+}
+
+// MarshalJSON marshal Status to JSON in string form
+func (x Status) MarshalJSON() ([]byte, error) {
+	return json.Marshal(x.String())
+}
+
+// UnmarshalJSON convert string form back to Status
+func (x *Status) UnmarshalJSON(b []byte) error {
+	var s string
+	if err := json.Unmarshal(b, &s); err != nil {
+		return err
+	}
+	if val, ok := Status_value[s]; ok {
+		*x = Status(val)
+		return nil
+	}
+	return fmt.Errorf("%s is not a valid status", s)
 }
