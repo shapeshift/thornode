@@ -263,6 +263,11 @@ func (vm *validatorMgrV1) EndBlock(ctx cosmos.Context, mgr Manager, constAccesso
 		return nil
 	}
 
+	// payout all active node accounts their rewards
+	if err := vm.ragnarokBondReward(ctx); err != nil {
+		ctx.Logger().Error("fail to pay node bond rewards", "error", err)
+	}
+
 	validators := make([]abci.ValidatorUpdate, 0, len(newNodes)+len(removedNodes))
 	for _, na := range newNodes {
 		ctx.EventManager().EmitEvent(
@@ -298,9 +303,6 @@ func (vm *validatorMgrV1) EndBlock(ctx cosmos.Context, mgr Manager, constAccesso
 		na.UpdateStatus(status, height)
 		if err := vm.k.SetNodeAccount(ctx, na); err != nil {
 			ctx.Logger().Error("fail to save node account", "error", err)
-		}
-		if err := vm.payNodeAccountBondAward(ctx, na); err != nil {
-			ctx.Logger().Error("fail to pay node account bond award", "error", err)
 		}
 
 		// return yggdrasil funds
@@ -434,15 +436,15 @@ func (vm *validatorMgrV1) getChangedNodes(ctx cosmos.Context, activeNodes NodeAc
 }
 
 // payNodeAccountBondAward pay
-func (vm *validatorMgrV1) payNodeAccountBondAward(ctx cosmos.Context, na NodeAccount) error {
+func (vm *validatorMgrV1) payNodeAccountBondAward(ctx cosmos.Context, lastChurnHeight int64, na NodeAccount) error {
 	if na.ActiveBlockHeight == 0 || na.Bond.IsZero() {
 		return nil
 	}
 	// The node account seems to have become a non active node account.
 	// Therefore, lets give them their bond rewards.
-	vault, err := vm.k.GetNetwork(ctx)
+	network, err := vm.k.GetNetwork(ctx)
 	if err != nil {
-		return fmt.Errorf("fail to get vault: %w", err)
+		return fmt.Errorf("fail to get network: %w", err)
 	}
 
 	slashPts, err := vm.k.GetNodeAccountSlashPoints(ctx, na.NodeAddress)
@@ -451,30 +453,33 @@ func (vm *validatorMgrV1) payNodeAccountBondAward(ctx cosmos.Context, na NodeAcc
 	}
 
 	// Find number of blocks they have been an active node
-	totalActiveBlocks := common.BlockHeight(ctx) - na.ActiveBlockHeight
+	totalActiveBlocks := common.BlockHeight(ctx) - lastChurnHeight
 
 	// find number of blocks they were well behaved (ie active - slash points)
 	earnedBlocks := na.CalcBondUnits(common.BlockHeight(ctx), slashPts)
 
 	// calc number of rune they are awarded
-	reward := vault.CalcNodeRewards(earnedBlocks)
+	reward := network.CalcNodeRewards(earnedBlocks)
 
 	// Add to their bond the amount rewarded
 	na.Bond = na.Bond.Add(reward)
 
 	// Minus the number of rune THORNode have awarded them
-	vault.BondRewardRune = common.SafeSub(vault.BondRewardRune, reward)
+	network.BondRewardRune = common.SafeSub(network.BondRewardRune, reward)
 
 	// Minus the number of units na has (do not include slash points)
-	vault.TotalBondUnits = common.SafeSub(
-		vault.TotalBondUnits,
+	network.TotalBondUnits = common.SafeSub(
+		network.TotalBondUnits,
 		cosmos.NewUint(uint64(totalActiveBlocks)),
 	)
 
-	if err := vm.k.SetNetwork(ctx, vault); err != nil {
+	if err := vm.k.SetNetwork(ctx, network); err != nil {
 		return fmt.Errorf("fail to save network data: %w", err)
 	}
-	na.ActiveBlockHeight = 0
+
+	// minus slash points used in this calculation
+	vm.k.SetNodeAccountSlashPoints(ctx, na.NodeAddress, slashPts-totalActiveBlocks)
+
 	return vm.k.SetNodeAccount(ctx, na)
 }
 
@@ -592,16 +597,25 @@ func (vm *validatorMgrV1) ragnarokProtocolStage2(ctx cosmos.Context, nth int64, 
 }
 
 func (vm *validatorMgrV1) ragnarokBondReward(ctx cosmos.Context) error {
+	var resultErr error
 	active, err := vm.k.ListActiveNodeAccounts(ctx)
 	if err != nil {
 		return fmt.Errorf("fail to get all active node account: %w", err)
 	}
-	for _, item := range active {
-		if err := vm.payNodeAccountBondAward(ctx, item); err != nil {
-			return fmt.Errorf("fail to pay node account(%s) bond award: %w", item.NodeAddress.String(), err)
+
+	lastChurnHeight := int64(0)
+	for _, node := range active {
+		if node.ActiveBlockHeight > lastChurnHeight {
+			lastChurnHeight = node.ActiveBlockHeight
 		}
 	}
-	return nil
+	for _, item := range active {
+		if err := vm.payNodeAccountBondAward(ctx, lastChurnHeight, item); err != nil {
+			resultErr = err
+			ctx.Logger().Error("fail to pay node account bond award", "node address", item.NodeAddress.String(), "error", err)
+		}
+	}
+	return resultErr
 }
 
 func (vm *validatorMgrV1) ragnarokBond(ctx cosmos.Context, nth int64, mgr Manager) error {
