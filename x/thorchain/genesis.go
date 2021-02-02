@@ -98,7 +98,7 @@ func ValidateGenesis(data GenesisState) error {
 // DefaultGenesisState the default values THORNode put in the Genesis
 func DefaultGenesisState() GenesisState {
 	return GenesisState{
-		Pools:                []Pool{},
+		Pools:                make([]Pool, 0),
 		NodeAccounts:         NodeAccounts{},
 		TxOuts:               make([]TxOut, 0),
 		LiquidityProviders:   make(LiquidityProviders, 0),
@@ -466,5 +466,6 @@ func ExportGenesis(ctx cosmos.Context, k keeper.Keeper) GenesisState {
 		MsgSwaps:             swapMsgs,
 		NetworkFees:          networkFees,
 		NetworkFeeVoters:     networkFeeVoters,
+		ChainContracts:       chainContracts,
 	}
 }
