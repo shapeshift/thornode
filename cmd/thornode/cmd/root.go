@@ -211,13 +211,13 @@ func createSimappAndExport(
 	encCfg.Marshaler = codec.NewProtoCodec(encCfg.InterfaceRegistry)
 	var a *app.THORChainApp
 	if height != -1 {
-		a = app.New(appName, logger, db, traceStore, false, map[int64]bool{}, "", uint(1), encCfg)
+		a = app.New(appName, logger, db, traceStore, false, map[int64]bool{}, cast.ToString(appOpts.Get(flags.FlagHome)), uint(1), encCfg)
 
 		if err := a.LoadHeight(height); err != nil {
 			return servertypes.ExportedApp{}, err
 		}
 	} else {
-		a = app.New(appName, logger, db, traceStore, true, map[int64]bool{}, "", uint(1), encCfg)
+		a = app.New(appName, logger, db, traceStore, true, map[int64]bool{}, cast.ToString(appOpts.Get(flags.FlagHome)), uint(1), encCfg)
 	}
 
 	return a.ExportAppStateAndValidators(forZeroHeight, jailWhiteList)

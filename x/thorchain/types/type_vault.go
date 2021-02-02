@@ -1,6 +1,7 @@
 package types
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"sort"
@@ -330,4 +331,40 @@ func (vs Vaults) HasAddress(chain common.Chain, address common.Address) (bool, e
 		}
 	}
 	return false, nil
+}
+
+// MarshalJSON marshal vault status to string
+func (x VaultStatus) MarshalJSON() ([]byte, error) {
+	return json.Marshal(x.String())
+}
+
+// UnmarshalJSON parse string type back to VaultStatus
+func (x *VaultStatus) UnmarshalJSON(b []byte) error {
+	var s string
+	if err := json.Unmarshal(b, &s); err != nil {
+		return err
+	}
+	if val, ok := VaultStatus_value[s]; ok {
+		*x = VaultStatus(val)
+		return nil
+	}
+	return fmt.Errorf("invalid vault status value: %s", s)
+}
+
+// MarshalJSON marshal vault type to string
+func (x VaultType) MarshalJSON() ([]byte, error) {
+	return json.Marshal(x.String())
+}
+
+// UnmarshalJSON parse string type back to VaultType
+func (x *VaultType) UnmarshalJSON(b []byte) error {
+	var s string
+	if err := json.Unmarshal(b, &s); err != nil {
+		return err
+	}
+	if val, ok := VaultType_value[s]; ok {
+		*x = VaultType(val)
+		return nil
+	}
+	return fmt.Errorf("invalid vault type value: %s", s)
 }
