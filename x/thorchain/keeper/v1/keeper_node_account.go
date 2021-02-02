@@ -286,7 +286,7 @@ func (k KVStore) GetNodeAccountSlashPoints(ctx cosmos.Context, addr cosmos.AccAd
 func (k KVStore) SetNodeAccountSlashPoints(ctx cosmos.Context, addr cosmos.AccAddress, pts int64) {
 	// make sure slash point doesn't go to negative
 	if pts < 0 {
-		return
+		pts = 0
 	}
 	k.setInt64(ctx, k.GetKey(ctx, prefixNodeSlashPoints, addr.String()), pts)
 }

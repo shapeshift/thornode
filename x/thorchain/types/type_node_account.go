@@ -104,6 +104,9 @@ func (m *NodeAccount) UpdateStatus(status NodeStatus, height int64) {
 	}
 	m.Status = status
 	m.StatusSince = height
+	if status != NodeStatus_Active {
+		m.ActiveBlockHeight = 0
+	}
 }
 
 // Equals compare two node account, to see whether they are equal
