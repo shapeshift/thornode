@@ -1354,7 +1354,7 @@
                 }
             }
         },
-        "tx signers": {
+        "txSigners": {
             "type": "object",
             "required": [],
             "properties": {
