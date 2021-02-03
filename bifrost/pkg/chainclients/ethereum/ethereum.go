@@ -23,7 +23,6 @@ import (
 	"gitlab.com/thorchain/thornode/bifrost/blockscanner"
 	"gitlab.com/thorchain/thornode/bifrost/config"
 	"gitlab.com/thorchain/thornode/bifrost/metrics"
-	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/ethereum/types"
 	"gitlab.com/thorchain/thornode/bifrost/pubkeymanager"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient"
 	stypes "gitlab.com/thorchain/thornode/bifrost/thorclient/types"
@@ -107,7 +106,7 @@ func NewClient(thorKeys *thorclient.Keys,
 	}
 	chainID, err := getChainID(ethClient, cfg.BlockScanner.HttpRequestTimeout)
 	if err != nil {
-		log.Info().Err(err).Msg("fail to get chain id from ETH node, default to LocalNet")
+		return nil, err
 	}
 	keysignWrapper, err := newKeySignWrapper(ethPrivateKey, pk, tssKm, chainID)
 	if err != nil {
@@ -190,7 +189,7 @@ func getChainID(client *ethclient.Client, timeout time.Duration) (*big.Int, erro
 	defer cancel()
 	chainID, err := client.ChainID(ctx)
 	if err != nil {
-		chainID = big.NewInt(types.Localnet)
+		return nil, fmt.Errorf("fail to get chain id ,err: %w", err)
 	}
 	return chainID, err
 }
