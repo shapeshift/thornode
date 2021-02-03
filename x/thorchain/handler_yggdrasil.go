@@ -232,7 +232,7 @@ func (h YggdrasilHandler) handleYggdrasilReturnV1(ctx cosmos.Context, msg MsgYgg
 				vaults = append(vaults, v)
 			}
 			if v.Status == ActiveVault {
-				contracts = v.Contracts
+				contracts = v.Routers
 			}
 		}
 

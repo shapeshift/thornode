@@ -76,10 +76,10 @@ func (s *EthereumSuite) SetUpTest(c *C) {
 			c.Assert(json.Unmarshal(content, &pubKeysVault), IsNil)
 			pubKeysVault.Yggdrasil = append(pubKeysVault.Yggdrasil, types2.QueryVaultPubKeyContract{
 				PubKey: pk,
-				Contracts: []types2.ChainContract{
+				Routers: []types2.ChainContract{
 					{
-						Chain:    common.ETHChain,
-						Contract: "0xE65e9d372F8cAcc7b6dfcd4af6507851Ed31bb44",
+						Chain:  common.ETHChain,
+						Router: "0xE65e9d372F8cAcc7b6dfcd4af6507851Ed31bb44",
 					},
 				},
 			})

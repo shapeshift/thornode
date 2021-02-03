@@ -19,7 +19,7 @@ func (s *KeeperChainContractSuite) TestChainContractVoter(c *C) {
 	cc, err := k.GetChainContract(ctx, chain)
 	c.Assert(err, IsNil)
 	c.Check(cc.Chain.Equals(chain), Equals, true)
-	c.Check(cc.Contract.Equals(addr), Equals, true)
+	c.Check(cc.Router.Equals(addr), Equals, true)
 
 	cc1, err := k.GetChainContract(ctx, common.BTCChain)
 	c.Check(err, IsNil)
