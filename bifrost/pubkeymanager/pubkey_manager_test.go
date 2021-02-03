@@ -76,10 +76,10 @@ func (s *PubKeyMgrSuite) TestFetchKeys(c *C) {
 			var result types.QueryVaultsPubKeys
 			result.Asgard = append(result.Asgard, types.QueryVaultPubKeyContract{
 				PubKey: pk1,
-				Contracts: []types.ChainContract{
+				Routers: []types.ChainContract{
 					{
-						Chain:    common.ETHChain,
-						Contract: "0xE65e9d372F8cAcc7b6dfcd4af6507851Ed31bb44",
+						Chain:  common.ETHChain,
+						Router: "0xE65e9d372F8cAcc7b6dfcd4af6507851Ed31bb44",
 					},
 				},
 			})

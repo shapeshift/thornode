@@ -15,7 +15,7 @@ import (
 type Vaults []Vault
 
 // NewVault create a new instance of vault
-func NewVault(height int64, status VaultStatus, vtype VaultType, pk common.PubKey, chains []string, contracts []ChainContract) Vault {
+func NewVault(height int64, status VaultStatus, vtype VaultType, pk common.PubKey, chains []string, routers []ChainContract) Vault {
 	return Vault{
 		BlockHeight: height,
 		StatusSince: height,
@@ -24,7 +24,7 @@ func NewVault(height int64, status VaultStatus, vtype VaultType, pk common.PubKe
 		Type:        vtype,
 		Status:      status,
 		Chains:      chains,
-		Contracts:   contracts,
+		Routers:     routers,
 	}
 }
 
@@ -184,7 +184,7 @@ func (m Vault) GetMembers(activeObservers []cosmos.AccAddress) (common.PubKeys, 
 
 // GetContract return the contract that match the request chain
 func (v Vault) GetContract(chain common.Chain) ChainContract {
-	for _, item := range v.Contracts {
+	for _, item := range v.Routers {
 		if item.Chain.Equals(chain) {
 			return item
 		}
@@ -195,14 +195,14 @@ func (v Vault) GetContract(chain common.Chain) ChainContract {
 // UpdateContract update the chain contract
 func (v *Vault) UpdateContract(chainContract ChainContract) {
 	exist := false
-	for i, item := range v.Contracts {
+	for i, item := range v.Routers {
 		if item.Chain.Equals(chainContract.Chain) {
-			v.Contracts[i] = chainContract
+			v.Routers[i] = chainContract
 			exist = true
 		}
 	}
 	if !exist {
-		v.Contracts = append(v.Contracts, chainContract)
+		v.Routers = append(v.Routers, chainContract)
 	}
 }
 
