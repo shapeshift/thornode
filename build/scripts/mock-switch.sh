@@ -24,7 +24,7 @@ if [ -z $4 ]; then
     exit 1
 fi
 
-INBOUND_ADDRESS=$(curl -s $4:1317/thorchain/inbound_addresses | jq -r '.current[]|select(.chain=="BNB") .address')
+INBOUND_ADDRESS=$(curl -s $4:1317/thorchain/inbound_addresses | jq -r '.[]|select(.chain=="BNB") .address')
 
 curl -v -s -X POST -d "[{
   \"from\": \"$2\",
