@@ -280,15 +280,15 @@ func queryVaultsPubkeys(ctx cosmos.Context, keeper keeper.Keeper) ([]byte, error
 			}
 			if !na.Bond.IsZero() {
 				resp.Yggdrasil = append(resp.Yggdrasil, QueryVaultPubKeyContract{
-					PubKey:    vault.PubKey,
-					Contracts: vault.Contracts,
+					PubKey:  vault.PubKey,
+					Routers: vault.Routers,
 				})
 			}
 		} else if vault.IsAsgard() {
 			if vault.Status == ActiveVault || vault.Status == RetiringVault {
 				resp.Asgard = append(resp.Asgard, QueryVaultPubKeyContract{
-					PubKey:    vault.PubKey,
-					Contracts: vault.Contracts,
+					PubKey:  vault.PubKey,
+					Routers: vault.Routers,
 				})
 			}
 		}
@@ -379,7 +379,7 @@ func queryInboundAddresses(ctx cosmos.Context, path []string, req abci.RequestQu
 			Chain:   chain,
 			PubKey:  vault.PubKey,
 			Address: vaultAddress,
-			Router:  cc.Contract,
+			Router:  cc.Router,
 			Halted:  halted,
 		}
 

@@ -274,7 +274,7 @@ func (ymgr YggMgrV1) shouldFundYggdrasil(ctx cosmos.Context, asgard, ygg Vault, 
 		return true
 	}
 	yggContract := ygg.GetContract(chain)
-	if asgardContract.Contract.Equals(yggContract.Contract) {
+	if asgardContract.Router.Equals(yggContract.Router) {
 		return true
 	}
 	return false

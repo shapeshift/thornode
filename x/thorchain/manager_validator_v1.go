@@ -356,15 +356,15 @@ func (vm *validatorMgrV1) checkContractUpgrade(ctx cosmos.Context, mgr Manager, 
 	if len(retiringVaults) == 0 {
 		return nil
 	}
-	oldChainContracts := retiringVaults[0].Contracts
-	newChainContracts := activeVaults[0].Contracts
+	oldChainRouters := retiringVaults[0].Routers
+	newChainRouters := activeVaults[0].Routers
 	chains := common.Chains{}
-	for _, old := range oldChainContracts {
+	for _, old := range oldChainRouters {
 		found := false
-		for _, n := range newChainContracts {
+		for _, n := range newChainRouters {
 			if n.Chain.Equals(old.Chain) {
 				found = true
-				if !n.Contract.Equals(old.Contract) {
+				if !n.Router.Equals(old.Router) {
 					// contract address get changed , need to recall funds
 					chains = append(chains, n.Chain)
 				}

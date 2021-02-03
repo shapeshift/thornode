@@ -422,8 +422,8 @@ func (b *ThorchainBridge) GetPubKeys() ([]PubKeyContractAddressPair, error) {
 			PubKey:    v.PubKey,
 			Contracts: make(map[common.Chain]common.Address),
 		}
-		for _, item := range v.Contracts {
-			kp.Contracts[item.Chain] = item.Contract
+		for _, item := range v.Routers {
+			kp.Contracts[item.Chain] = item.Router
 		}
 
 		addressPairs = append(addressPairs, kp)
