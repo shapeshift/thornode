@@ -565,15 +565,15 @@ func (s *QuerierSuite) TestQueryVaultPubKeys(c *C) {
 	vault.AddFunds(common.Coins{
 		common.NewCoin(common.BNBAsset, cosmos.NewUint(common.One*100)),
 	})
-	vault.Contracts = []types.ChainContract{
+	vault.Routers = []types.ChainContract{
 		{
-			Chain:    "ETH",
-			Contract: "0xE65e9d372F8cAcc7b6dfcd4af6507851Ed31bb44",
+			Chain:  "ETH",
+			Router: "0xE65e9d372F8cAcc7b6dfcd4af6507851Ed31bb44",
 		},
 	}
 	c.Assert(s.k.SetVault(s.ctx, vault), IsNil)
 	vault1 := GetRandomVault()
-	vault1.Contracts = vault.Contracts
+	vault1.Routers = vault.Routers
 	c.Assert(s.k.SetVault(s.ctx, vault1), IsNil)
 	result, err := s.querier(s.ctx, []string{
 		query.QueryVaultPubkeys.Key,

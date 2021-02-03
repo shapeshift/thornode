@@ -10,5 +10,5 @@ import "gogoproto/gogo.proto";
 
 message ChainContract {
   string chain = 1 [(gogoproto.casttype) = "gitlab.com/thorchain/thornode/common.Chain"];
-  string contract = 2 [(gogoproto.casttype) = "gitlab.com/thorchain/thornode/common.Address"];
+  string router = 2 [(gogoproto.casttype) = "gitlab.com/thorchain/thornode/common.Address"];
 }
