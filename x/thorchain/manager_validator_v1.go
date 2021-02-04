@@ -17,13 +17,13 @@ import (
 // validatorMgrV1 is to manage a list of validators , and rotate them
 type validatorMgrV1 struct {
 	k          keeper.Keeper
-	vaultMgr   VaultManager
+	vaultMgr   NetworkManager
 	txOutStore TxOutStore
 	eventMgr   EventManager
 }
 
 // newValidatorMgrV1 create a new instance of validatorMgrV1
-func newValidatorMgrV1(k keeper.Keeper, vaultMgr VaultManager, txOutStore TxOutStore, eventMgr EventManager) *validatorMgrV1 {
+func newValidatorMgrV1(k keeper.Keeper, vaultMgr NetworkManager, txOutStore TxOutStore, eventMgr EventManager) *validatorMgrV1 {
 	return &validatorMgrV1{
 		k:          k,
 		vaultMgr:   vaultMgr,

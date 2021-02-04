@@ -16,23 +16,23 @@ const (
 	EventTypeInactiveVault = "InactiveVault"
 )
 
-// VaultMgrV1 is going to manage the vaults
-type VaultMgrV1 struct {
+// NetworkMgrV1 is going to manage the vaults
+type NetworkMgrV1 struct {
 	k          keeper.Keeper
 	txOutStore TxOutStore
 	eventMgr   EventManager
 }
 
-// NewVaultMgrV1 create a new vault manager
-func NewVaultMgrV1(k keeper.Keeper, txOutStore TxOutStore, eventMgr EventManager) *VaultMgrV1 {
-	return &VaultMgrV1{
+// NewNetworkMgrV1 create a new vault manager
+func NewNetworkMgrV1(k keeper.Keeper, txOutStore TxOutStore, eventMgr EventManager) *NetworkMgrV1 {
+	return &NetworkMgrV1{
 		k:          k,
 		txOutStore: txOutStore,
 		eventMgr:   eventMgr,
 	}
 }
 
-func (vm *VaultMgrV1) processGenesisSetup(ctx cosmos.Context) error {
+func (vm *NetworkMgrV1) processGenesisSetup(ctx cosmos.Context) error {
 	if common.BlockHeight(ctx) != genesisBlockHeight {
 		return nil
 	}
@@ -75,7 +75,7 @@ func (vm *VaultMgrV1) processGenesisSetup(ctx cosmos.Context) error {
 }
 
 // EndBlock move funds from retiring asgard vaults
-func (vm *VaultMgrV1) EndBlock(ctx cosmos.Context, mgr Manager, constAccessor constants.ConstantValues) error {
+func (vm *NetworkMgrV1) EndBlock(ctx cosmos.Context, mgr Manager, constAccessor constants.ConstantValues) error {
 	if common.BlockHeight(ctx) == genesisBlockHeight {
 		return vm.processGenesisSetup(ctx)
 	}
@@ -273,7 +273,7 @@ func (vm *VaultMgrV1) EndBlock(ctx cosmos.Context, mgr Manager, constAccessor co
 }
 
 // TriggerKeygen generate a record to instruct signer kick off keygen process
-func (vm *VaultMgrV1) TriggerKeygen(ctx cosmos.Context, nas NodeAccounts) error {
+func (vm *NetworkMgrV1) TriggerKeygen(ctx cosmos.Context, nas NodeAccounts) error {
 	halt, err := vm.k.GetMimir(ctx, "HaltChurning")
 	if halt > 0 && halt <= common.BlockHeight(ctx) && err == nil {
 		ctx.Logger().Info("churn event skipped due to mimir has halted churning")
@@ -314,7 +314,7 @@ func (vm *VaultMgrV1) TriggerKeygen(ctx cosmos.Context, nas NodeAccounts) error 
 }
 
 // RotateVault update vault to Retiring and new vault to active
-func (vm *VaultMgrV1) RotateVault(ctx cosmos.Context, vault Vault) error {
+func (vm *NetworkMgrV1) RotateVault(ctx cosmos.Context, vault Vault) error {
 	active, err := vm.k.GetAsgardVaultsByStatus(ctx, ActiveVault)
 	if err != nil {
 		return err
@@ -361,7 +361,7 @@ func (vm *VaultMgrV1) RotateVault(ctx cosmos.Context, vault Vault) error {
 
 // manageChains - checks to see if we have any chains that we are ragnaroking,
 // and ragnaroks them
-func (vm *VaultMgrV1) manageChains(ctx cosmos.Context, mgr Manager, constAccessor constants.ConstantValues) error {
+func (vm *NetworkMgrV1) manageChains(ctx cosmos.Context, mgr Manager, constAccessor constants.ConstantValues) error {
 	chains, err := vm.findChainsToRetire(ctx)
 	if err != nil {
 		return err
@@ -404,7 +404,7 @@ func (vm *VaultMgrV1) manageChains(ctx cosmos.Context, mgr Manager, constAccesso
 // findChainsToRetire - evaluates the chains associated with active asgard
 // vaults vs retiring asgard vaults to detemine if any chains need to be
 // ragnarok'ed
-func (vm *VaultMgrV1) findChainsToRetire(ctx cosmos.Context) (common.Chains, error) {
+func (vm *NetworkMgrV1) findChainsToRetire(ctx cosmos.Context) (common.Chains, error) {
 	chains := make(common.Chains, 0)
 
 	active, err := vm.k.GetAsgardVaultsByStatus(ctx, ActiveVault)
@@ -442,7 +442,7 @@ func (vm *VaultMgrV1) findChainsToRetire(ctx cosmos.Context) (common.Chains, err
 
 // RecallChainFunds - sends a message to bifrost nodes to send back all funds
 // associated with given chain
-func (vm *VaultMgrV1) RecallChainFunds(ctx cosmos.Context, chain common.Chain, mgr Manager, excludeNodes common.PubKeys) error {
+func (vm *NetworkMgrV1) RecallChainFunds(ctx cosmos.Context, chain common.Chain, mgr Manager, excludeNodes common.PubKeys) error {
 	allNodes, err := vm.k.ListNodeAccountsWithBond(ctx)
 	if err != nil {
 		return fmt.Errorf("fail to list all node accounts: %w", err)
@@ -511,7 +511,7 @@ func (vm *VaultMgrV1) RecallChainFunds(ctx cosmos.Context, chain common.Chain, m
 
 // ragnarokChain - ends a chain by withdrawing all liquidity providers of any pool that's
 // asset is on the given chain
-func (vm *VaultMgrV1) ragnarokChain(ctx cosmos.Context, chain common.Chain, nth int64, mgr Manager, constAccessor constants.ConstantValues) error {
+func (vm *NetworkMgrV1) ragnarokChain(ctx cosmos.Context, chain common.Chain, nth int64, mgr Manager, constAccessor constants.ConstantValues) error {
 	version := vm.k.GetLowestActiveVersion(ctx)
 	nas, err := vm.k.ListActiveNodeAccounts(ctx)
 	if err != nil {
@@ -585,7 +585,7 @@ func (vm *VaultMgrV1) ragnarokChain(ctx cosmos.Context, chain common.Chain, nth 
 }
 
 // UpdateNetwork Update the network data to reflect changing in this block
-func (vm *VaultMgrV1) UpdateNetwork(ctx cosmos.Context, constAccessor constants.ConstantValues, gasManager GasManager, eventMgr EventManager) error {
+func (vm *NetworkMgrV1) UpdateNetwork(ctx cosmos.Context, constAccessor constants.ConstantValues, gasManager GasManager, eventMgr EventManager) error {
 	network, err := vm.k.GetNetwork(ctx)
 	if err != nil {
 		return fmt.Errorf("fail to get existing network data: %w", err)
@@ -728,7 +728,7 @@ func (vm *VaultMgrV1) UpdateNetwork(ctx cosmos.Context, constAccessor constants.
 	return vm.k.SetNetwork(ctx, network)
 }
 
-func (vm *VaultMgrV1) getTotalProvidedLiquidityRune(ctx cosmos.Context) (Pools, cosmos.Uint, error) {
+func (vm *NetworkMgrV1) getTotalProvidedLiquidityRune(ctx cosmos.Context) (Pools, cosmos.Uint, error) {
 	// First get active pools and total provided liquidity Rune
 	totalProvidedLiquidity := cosmos.ZeroUint()
 	var pools Pools
@@ -747,7 +747,7 @@ func (vm *VaultMgrV1) getTotalProvidedLiquidityRune(ctx cosmos.Context) (Pools, 
 	return pools, totalProvidedLiquidity, nil
 }
 
-func (vm *VaultMgrV1) getTotalActiveBond(ctx cosmos.Context) (cosmos.Uint, error) {
+func (vm *NetworkMgrV1) getTotalActiveBond(ctx cosmos.Context) (cosmos.Uint, error) {
 	totalBonded := cosmos.ZeroUint()
 	nodes, err := vm.k.ListActiveNodeAccounts(ctx)
 	if err != nil {
@@ -760,7 +760,7 @@ func (vm *VaultMgrV1) getTotalActiveBond(ctx cosmos.Context) (cosmos.Uint, error
 }
 
 // Pays out Rewards
-func (vm *VaultMgrV1) payPoolRewards(ctx cosmos.Context, poolRewards []cosmos.Uint, pools Pools) error {
+func (vm *NetworkMgrV1) payPoolRewards(ctx cosmos.Context, poolRewards []cosmos.Uint, pools Pools) error {
 	for i, reward := range poolRewards {
 		pools[i].BalanceRune = pools[i].BalanceRune.Add(reward)
 		if err := vm.k.SetPool(ctx, pools[i]); err != nil {
@@ -775,12 +775,12 @@ func (vm *VaultMgrV1) payPoolRewards(ctx cosmos.Context, poolRewards []cosmos.Ui
 }
 
 // Calculate pool deficit based on the pool's accrued fees compared with total fees.
-func (vm *VaultMgrV1) calcPoolDeficit(lpDeficit, totalFees, poolFees cosmos.Uint) cosmos.Uint {
+func (vm *NetworkMgrV1) calcPoolDeficit(lpDeficit, totalFees, poolFees cosmos.Uint) cosmos.Uint {
 	return common.GetShare(poolFees, totalFees, lpDeficit)
 }
 
 // Calculate the block rewards that bonders and liquidity providers should receive
-func (vm *VaultMgrV1) calcBlockRewards(totalProvidedLiquidity, totalBonded, totalReserve, totalLiquidityFees cosmos.Uint, emissionCurve, incentiveCurve, blocksPerYear int64) (cosmos.Uint, cosmos.Uint, cosmos.Uint) {
+func (vm *NetworkMgrV1) calcBlockRewards(totalProvidedLiquidity, totalBonded, totalReserve, totalLiquidityFees cosmos.Uint, emissionCurve, incentiveCurve, blocksPerYear int64) (cosmos.Uint, cosmos.Uint, cosmos.Uint) {
 	// Block Rewards will take the latest reserve, divide it by the emission
 	// curve factor, then divide by blocks per year
 	trD := cosmos.NewDec(int64(totalReserve.Uint64()))
@@ -808,7 +808,7 @@ func (vm *VaultMgrV1) calcBlockRewards(totalProvidedLiquidity, totalBonded, tota
 	return bonderSplit, poolReward, lpDeficit
 }
 
-func (vm *VaultMgrV1) getPoolShare(incentiveCurve int64, totalProvidedLiquidity, totalBonded, totalRewards cosmos.Uint) cosmos.Uint {
+func (vm *NetworkMgrV1) getPoolShare(incentiveCurve int64, totalProvidedLiquidity, totalBonded, totalRewards cosmos.Uint) cosmos.Uint {
 	/*
 		Pooled : Share
 		0 : 100%

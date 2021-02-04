@@ -379,15 +379,17 @@ func (tos *TxOutStorageV1) nativeTxOut(ctx cosmos.Context, mgr Manager, toi TxOu
 		ctx.Logger().Error("fail to get from address", "err", err)
 		return err
 	}
-
-	transactionFee := tos.constAccessor.GetInt64Value(constants.OutboundTransactionFee)
+	outboundTxFee, err := tos.keeper.GetMimir(ctx, constants.OutboundTransactionFee.String())
+	if outboundTxFee < 0 || err != nil {
+		outboundTxFee = tos.constAccessor.GetInt64Value(constants.OutboundTransactionFee)
+	}
 
 	tx := common.NewTx(
 		common.BlankTxID,
 		from,
 		toi.ToAddress,
 		common.Coins{toi.Coin},
-		common.Gas{common.NewCoin(common.RuneAsset(), cosmos.NewUint(uint64(transactionFee)))},
+		common.Gas{common.NewCoin(common.RuneAsset(), cosmos.NewUint(uint64(outboundTxFee)))},
 		toi.Memo,
 	)
 
