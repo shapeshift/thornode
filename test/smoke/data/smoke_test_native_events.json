@@ -43,7 +43,7 @@
         "type": "rewards",
         "attributes": [
             {
-                "bond_reward": "3"
+                "bond_reward": "0"
             }
         ]
     },
@@ -51,7 +51,7 @@
         "type": "rewards",
         "attributes": [
             {
-                "bond_reward": "5"
+                "bond_reward": "0"
             }
         ]
     },
@@ -99,7 +99,7 @@
         "type": "rewards",
         "attributes": [
             {
-                "bond_reward": "5"
+                "bond_reward": "0"
             }
         ]
     },
@@ -107,7 +107,7 @@
         "type": "rewards",
         "attributes": [
             {
-                "bond_reward": "8"
+                "bond_reward": "0"
             }
         ]
     },
@@ -155,7 +155,7 @@
         "type": "rewards",
         "attributes": [
             {
-                "bond_reward": "8"
+                "bond_reward": "0"
             }
         ]
     },
@@ -163,7 +163,7 @@
         "type": "rewards",
         "attributes": [
             {
-                "bond_reward": "11"
+                "bond_reward": "0"
             }
         ]
     },
@@ -211,7 +211,7 @@
         "type": "rewards",
         "attributes": [
             {
-                "bond_reward": "11"
+                "bond_reward": "0"
             }
         ]
     },
@@ -219,7 +219,7 @@
         "type": "rewards",
         "attributes": [
             {
-                "bond_reward": "13"
+                "bond_reward": "0"
             }
         ]
     },
@@ -267,7 +267,7 @@
         "type": "rewards",
         "attributes": [
             {
-                "bond_reward": "13"
+                "bond_reward": "0"
             }
         ]
     },
@@ -275,7 +275,7 @@
         "type": "rewards",
         "attributes": [
             {
-                "bond_reward": "16"
+                "bond_reward": "0"
             }
         ]
     },
@@ -323,7 +323,7 @@
         "type": "rewards",
         "attributes": [
             {
-                "bond_reward": "16"
+                "bond_reward": "0"
             }
         ]
     },
@@ -331,7 +331,7 @@
         "type": "rewards",
         "attributes": [
             {
-                "bond_reward": "16"
+                "bond_reward": "0"
             }
         ]
     },
@@ -379,7 +379,7 @@
         "type": "rewards",
         "attributes": [
             {
-                "bond_reward": "18"
+                "bond_reward": "0"
             }
         ]
     },
@@ -430,7 +430,7 @@
         "type": "rewards",
         "attributes": [
             {
-                "bond_reward": "19"
+                "bond_reward": "1"
             }
         ]
     },
@@ -498,7 +498,7 @@
         "type": "rewards",
         "attributes": [
             {
-                "bond_reward": "20"
+                "bond_reward": "2"
             }
         ]
     },
@@ -566,7 +566,7 @@
         "type": "rewards",
         "attributes": [
             {
-                "bond_reward": "21"
+                "bond_reward": "3"
             }
         ]
     },
@@ -623,7 +623,7 @@
                 "tx_id": "TODO"
             },
             {
-                "coins": "100000000 THOR.RUNE"
+                "coins": "2000000 THOR.RUNE"
             },
             {
                 "pool_deduct": "0"
@@ -634,7 +634,7 @@
         "type": "rewards",
         "attributes": [
             {
-                "bond_reward": "26"
+                "bond_reward": "2"
             }
         ]
     },
@@ -668,7 +668,7 @@
         "type": "rewards",
         "attributes": [
             {
-                "bond_reward": "28"
+                "bond_reward": "3"
             }
         ]
     },
@@ -676,7 +676,7 @@
         "type": "rewards",
         "attributes": [
             {
-                "bond_reward": "28"
+                "bond_reward": "3"
             }
         ]
     },
@@ -684,7 +684,7 @@
         "type": "rewards",
         "attributes": [
             {
-                "bond_reward": "28"
+                "bond_reward": "3"
             }
         ]
     },
@@ -718,7 +718,7 @@
         "type": "rewards",
         "attributes": [
             {
-                "bond_reward": "31"
+                "bond_reward": "3"
             }
         ]
     },
@@ -752,7 +752,7 @@
         "type": "rewards",
         "attributes": [
             {
-                "bond_reward": "31"
+                "bond_reward": "3"
             }
         ]
     },
@@ -792,7 +792,7 @@
                 "tx_id": "TODO"
             },
             {
-                "coins": "100000000 THOR.RUNE"
+                "coins": "2000000 THOR.RUNE"
             },
             {
                 "pool_deduct": "0"
@@ -803,7 +803,7 @@
         "type": "rewards",
         "attributes": [
             {
-                "bond_reward": "36"
+                "bond_reward": "3"
             }
         ]
     },
@@ -843,7 +843,7 @@
                 "tx_id": "TODO"
             },
             {
-                "coins": "100000000 THOR.RUNE"
+                "coins": "2000000 THOR.RUNE"
             },
             {
                 "pool_deduct": "0"
@@ -854,7 +854,7 @@
         "type": "rewards",
         "attributes": [
             {
-                "bond_reward": "42"
+                "bond_reward": "3"
             }
         ]
     },
@@ -905,7 +905,7 @@
         "type": "rewards",
         "attributes": [
             {
-                "bond_reward": "43"
+                "bond_reward": "4"
             }
         ]
     },
@@ -1072,7 +1072,7 @@
                 "tx_id": "TODO"
             },
             {
-                "coins": "100000000 THOR.RUNE"
+                "coins": "2000000 THOR.RUNE"
             },
             {
                 "pool_deduct": "0"
@@ -1405,7 +1405,7 @@
                 "tx_id": "TODO"
             },
             {
-                "coins": "100000000 THOR.RUNE"
+                "coins": "2000000 THOR.RUNE"
             },
             {
                 "pool_deduct": "0"
@@ -1532,7 +1532,7 @@
                 "tx_id": "TODO"
             },
             {
-                "coins": "100000000 THOR.RUNE"
+                "coins": "2000000 THOR.RUNE"
             },
             {
                 "pool_deduct": "0"
@@ -1659,7 +1659,7 @@
                 "tx_id": "TODO"
             },
             {
-                "coins": "100000000 THOR.RUNE"
+                "coins": "2000000 THOR.RUNE"
             },
             {
                 "pool_deduct": "0"
@@ -1714,7 +1714,7 @@
                 "tx_id": "TODO"
             },
             {
-                "coins": "100000000 THOR.RUNE"
+                "coins": "2000000 THOR.RUNE"
             },
             {
                 "pool_deduct": "0"
@@ -1783,7 +1783,7 @@
                 "tx_id": "TODO"
             },
             {
-                "coins": "100000000 THOR.RUNE"
+                "coins": "2000000 THOR.RUNE"
             },
             {
                 "pool_deduct": "0"
@@ -1869,7 +1869,7 @@
                 "tx_id": "TODO"
             },
             {
-                "coins": "100000000 THOR.RUNE"
+                "coins": "2000000 THOR.RUNE"
             },
             {
                 "pool_deduct": "0"
@@ -2231,7 +2231,7 @@
                 "tx_id": "TODO"
             },
             {
-                "coins": "100000000 THOR.RUNE"
+                "coins": "2000000 THOR.RUNE"
             },
             {
                 "pool_deduct": "0"
@@ -2317,7 +2317,7 @@
                 "tx_id": "TODO"
             },
             {
-                "coins": "100000000 THOR.RUNE"
+                "coins": "2000000 THOR.RUNE"
             },
             {
                 "pool_deduct": "0"
@@ -2403,7 +2403,7 @@
                 "tx_id": "TODO"
             },
             {
-                "coins": "100000000 THOR.RUNE"
+                "coins": "2000000 THOR.RUNE"
             },
             {
                 "pool_deduct": "0"
@@ -2475,7 +2475,7 @@
                 "tx_id": "TODO"
             },
             {
-                "coins": "100000000 THOR.RUNE"
+                "coins": "2000000 THOR.RUNE"
             },
             {
                 "pool_deduct": "0"
@@ -2734,7 +2734,7 @@
                 "tx_id": "TODO"
             },
             {
-                "coins": "100000000 THOR.RUNE"
+                "coins": "2000000 THOR.RUNE"
             },
             {
                 "pool_deduct": "0"
@@ -3153,7 +3153,7 @@
                 "tx_id": "TODO"
             },
             {
-                "coins": "100000000 THOR.RUNE"
+                "coins": "2000000 THOR.RUNE"
             },
             {
                 "pool_deduct": "0"
@@ -3236,7 +3236,7 @@
                 "tx_id": "TODO"
             },
             {
-                "coins": "100000000 THOR.RUNE"
+                "coins": "2000000 THOR.RUNE"
             },
             {
                 "pool_deduct": "0"
@@ -3322,7 +3322,7 @@
                 "tx_id": "TODO"
             },
             {
-                "coins": "100000000 THOR.RUNE"
+                "coins": "2000000 THOR.RUNE"
             },
             {
                 "pool_deduct": "0"
@@ -3405,7 +3405,7 @@
                 "tx_id": "TODO"
             },
             {
-                "coins": "100000000 THOR.RUNE"
+                "coins": "2000000 THOR.RUNE"
             },
             {
                 "pool_deduct": "0"
@@ -3488,7 +3488,7 @@
                 "tx_id": "TODO"
             },
             {
-                "coins": "100000000 THOR.RUNE"
+                "coins": "2000000 THOR.RUNE"
             },
             {
                 "pool_deduct": "0"
@@ -3571,7 +3571,7 @@
                 "tx_id": "TODO"
             },
             {
-                "coins": "100000000 THOR.RUNE"
+                "coins": "2000000 THOR.RUNE"
             },
             {
                 "pool_deduct": "0"
@@ -3654,7 +3654,7 @@
                 "tx_id": "TODO"
             },
             {
-                "coins": "100000000 THOR.RUNE"
+                "coins": "2000000 THOR.RUNE"
             },
             {
                 "pool_deduct": "0"
@@ -3737,7 +3737,7 @@
                 "tx_id": "TODO"
             },
             {
-                "coins": "100000000 THOR.RUNE"
+                "coins": "2000000 THOR.RUNE"
             },
             {
                 "pool_deduct": "0"
@@ -3820,7 +3820,7 @@
                 "tx_id": "TODO"
             },
             {
-                "coins": "100000000 THOR.RUNE"
+                "coins": "2000000 THOR.RUNE"
             },
             {
                 "pool_deduct": "0"

@@ -88,7 +88,7 @@ class MockThorchain(HttpClient):
                 txn.coins = [txn.coins]
 
             name = txn.from_address
-            txn.gas = [Coin("THOR.RUNE", 100000000)]
+            txn.gas = [Coin("THOR.RUNE", 2000000)]
             if txn.from_address in get_aliases():
                 txn.from_address = get_alias_address(txn.chain, txn.from_address)
             if txn.to_address in get_aliases():
@@ -229,4 +229,4 @@ class Thorchain(GenericChain):
         """
         With given coin set, calculates the gas owed
         """
-        return Coin(cls.coin, 100000000)
+        return Coin(cls.coin, 2000000)

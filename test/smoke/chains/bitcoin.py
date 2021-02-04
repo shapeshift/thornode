@@ -222,7 +222,7 @@ class Bitcoin(GenericChain):
     name = "Bitcoin"
     chain = "BTC"
     coin = Asset("BTC.BTC")
-    rune_fee = 100000000
+    rune_fee = 2000000
 
     @classmethod
     def _calculate_gas(cls, pool, txn):
