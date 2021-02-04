@@ -81,8 +81,12 @@ func (h SendHandler) handleV1(ctx cosmos.Context, msg MsgSend, version semver.Ve
 		return nil, fmt.Errorf("mimir has halted THORChain transactions")
 	}
 
-	nativeChainGasFee := constAccessor.GetInt64Value(constants.NativeChainGasFee)
-	gas := common.NewCoin(common.RuneNative, cosmos.NewUint(uint64(nativeChainGasFee)))
+	nativeTxFee, err := h.keeper.GetMimir(ctx, constants.NativeTransactionFee.String())
+	if err != nil || nativeTxFee < 0 {
+		nativeTxFee = constAccessor.GetInt64Value(constants.NativeTransactionFee)
+	}
+
+	gas := common.NewCoin(common.RuneNative, cosmos.NewUint(uint64(nativeTxFee)))
 	gasFee, err := gas.Native()
 	if err != nil {
 		return nil, ErrInternal(err, "fail to get gas fee")

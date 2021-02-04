@@ -60,7 +60,11 @@ func (gm *GasMgrV1) GetGas() common.Gas {
 // GetFee retrieve the network fee information from kv store, and calculate the dynamic fee customer should pay
 // the return value is the amount of fee in RUNE
 func (gm *GasMgrV1) GetFee(ctx cosmos.Context, chain common.Chain, asset common.Asset) cosmos.Uint {
-	transactionFee := cosmos.NewUint(uint64(gm.constantsAccessor.GetInt64Value(constants.OutboundTransactionFee)))
+	outboundTxFee, err := gm.keeper.GetMimir(ctx, constants.OutboundTransactionFee.String())
+	if outboundTxFee < 0 || err != nil {
+		outboundTxFee = gm.constantsAccessor.GetInt64Value(constants.OutboundTransactionFee)
+	}
+	transactionFee := cosmos.NewUint(uint64(outboundTxFee))
 	if chain.Equals(common.THORChain) && asset.Chain.Equals(chain) {
 		return transactionFee
 	}
@@ -113,7 +117,11 @@ func (gm *GasMgrV1) GetFee(ctx cosmos.Context, chain common.Chain, asset common.
 
 // GetGasRate return the gas rate
 func (gm *GasMgrV1) GetGasRate(ctx cosmos.Context, chain common.Chain) cosmos.Uint {
-	transactionFee := cosmos.NewUint(uint64(gm.constantsAccessor.GetInt64Value(constants.OutboundTransactionFee)))
+	outboundTxFee, err := gm.keeper.GetMimir(ctx, constants.OutboundTransactionFee.String())
+	if outboundTxFee < 0 || err != nil {
+		outboundTxFee = gm.constantsAccessor.GetInt64Value(constants.OutboundTransactionFee)
+	}
+	transactionFee := cosmos.NewUint(uint64(outboundTxFee))
 	if chain.Equals(common.THORChain) {
 		return transactionFee
 	}
