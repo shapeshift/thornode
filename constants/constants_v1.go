@@ -7,8 +7,8 @@ func NewConstantValue010() *ConstantVals {
 			EmissionCurve:                 6,
 			BlocksPerYear:                 6311390,
 			IncentiveCurve:                100,                // configures incentive pendulum
-			OutboundTransactionFee:        1_00000000,         // A 1.0 Rune fee on all swaps and withdrawals
-			NativeChainGasFee:             2_000000,           // A 0.02 Rune fee on all on chain txs
+			OutboundTransactionFee:        2_000000,           // A 0.02 Rune fee on all swaps and withdrawals
+			NativeTransactionFee:          2_000000,           // A 0.02 Rune fee on all on chain txs
 			PoolCycle:                     51840,              // Make a pool available every 3 days
 			MinRunePoolDepth:              10000_00000000,     // minimum rune pool depth to be an available pool
 			MaxAvailablePools:             100,                // maximum number of available pools
