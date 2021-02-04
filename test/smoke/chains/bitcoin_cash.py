@@ -228,7 +228,7 @@ class BitcoinCash(GenericChain):
     name = "Bitcoin-Cash"
     chain = "BCH"
     coin = Asset("BCH.BCH")
-    rune_fee = 100000000
+    rune_fee = 2000000
 
     @classmethod
     def _calculate_gas(cls, pool, txn):

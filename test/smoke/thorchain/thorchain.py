@@ -162,7 +162,7 @@ class ThorchainState:
     A complete implementation of the thorchain logic/behavior
     """
 
-    rune_fee = 1 * Coin.ONE
+    rune_fee = 2000000
 
     def __init__(self):
         self.pools = []
@@ -631,7 +631,7 @@ class ThorchainState:
         out_txs = []
 
         if tx.chain == "THOR":
-            self.reserve += 100000000
+            self.reserve += self.rune_fee
         if tx.memo.startswith("ADD:"):
             out_txs = self.handle_add_liquidity(tx)
         elif tx.memo.startswith("DONATE:"):
@@ -1324,7 +1324,7 @@ class Pool(Jsonable):
         if self.is_zero():
             return 0
 
-        return self.get_rune_in_asset(100000000)
+        return self.get_rune_in_asset(2000000)
 
     def sub(self, rune_amt, asset_amt):
         """
