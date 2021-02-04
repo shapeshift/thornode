@@ -1130,8 +1130,8 @@ gitlab.com/thorchain/bifrost/txscript v0.0.0-20210123055850-29da989e6f5a/go.mod 
 gitlab.com/thorchain/binance-sdk v1.2.3-0.20210102180356-7b2f8924ed23/go.mod h1:SW01IZMpqlPNPdhHnn99qnJNvg8ll/agyyW7p85npwY=
 gitlab.com/thorchain/binance-sdk v1.2.3-0.20210117202539-d569b6b9ba5d h1:GGPSI9gU22zW75m1YO7ZEMFtVEI5NgyK4g17CIXFjqI=
 gitlab.com/thorchain/binance-sdk v1.2.3-0.20210117202539-d569b6b9ba5d/go.mod h1:SW01IZMpqlPNPdhHnn99qnJNvg8ll/agyyW7p85npwY=
-gitlab.com/thorchain/tss/go-tss v1.2.9-0.20210203045802-ac331eeec71d h1:bO+OtEq2Cb5UDy/tlIpQtDs8TitWvtdnzKqX1ThP77o=
-gitlab.com/thorchain/tss/go-tss v1.2.9-0.20210203045802-ac331eeec71d/go.mod h1:i8CpOb+hr18ncmx98BZGO6xpBkA7Id+jB0KnSf5zzsY=
+gitlab.com/thorchain/tss/go-tss v1.2.9 h1:S/6XyZlUGaVVyXCPD4u+zFTpNobAWfo8mYzrwMRayyU=
+gitlab.com/thorchain/tss/go-tss v1.2.9/go.mod h1:i8CpOb+hr18ncmx98BZGO6xpBkA7Id+jB0KnSf5zzsY=
 gitlab.com/thorchain/tss/tss-lib v0.0.0-20201118045712-70b2cb4bf916 h1:rM3TjCVZzn3cYQV1L8KuvwXOZ5yvMdB2C5YyExI/m9Y=
 gitlab.com/thorchain/tss/tss-lib v0.0.0-20201118045712-70b2cb4bf916/go.mod h1:i7bv+PuILDZmCiU3mtZXgOfgQkWLdLngByT2KDfyzpE=
 go.etcd.io/bbolt v1.3.2/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
@@ -1418,8 +1418,8 @@ google.golang.org/genproto v0.0.0-20201022181438-0ff5f38871d5/go.mod h1:FWY/as6D
 google.golang.org/genproto v0.0.0-20201111145450-ac7456db90a6/go.mod h1:FWY/as6DDZQgahTzZj3fqbO1CbirC29ZNUFHwi0/+no=
 google.golang.org/genproto v0.0.0-20201119123407-9b1e624d6bc4/go.mod h1:FWY/as6DDZQgahTzZj3fqbO1CbirC29ZNUFHwi0/+no=
 google.golang.org/genproto v0.0.0-20210114201628-6edceaf6022f/go.mod h1:FWY/as6DDZQgahTzZj3fqbO1CbirC29ZNUFHwi0/+no=
-google.golang.org/genproto v0.0.0-20210202153253-cf70463f6119 h1:m9+RjTMas6brUP8DBxSAa/WIPFy7FIhKpvk+9Ppce8E=
-google.golang.org/genproto v0.0.0-20210202153253-cf70463f6119/go.mod h1:FWY/as6DDZQgahTzZj3fqbO1CbirC29ZNUFHwi0/+no=
+google.golang.org/genproto v0.0.0-20210203152818-3206188e46ba h1:np3A9jnmE/eMtrOwwvUycmQ1XoLyj5nqZ41bAyYLqJ0=
+google.golang.org/genproto v0.0.0-20210203152818-3206188e46ba/go.mod h1:FWY/as6DDZQgahTzZj3fqbO1CbirC29ZNUFHwi0/+no=
 google.golang.org/grpc v1.17.0/go.mod h1:6QZJwpn2B+Zp71q/5VxRsJ6NXXVCE5NRUHRo+f3cWCs=
 google.golang.org/grpc v1.19.0/go.mod h1:mqu4LbDTu4XGKhr4mRzUsmM4RtVoemTSY81AxZiDr8c=
 google.golang.org/grpc v1.19.1/go.mod h1:mqu4LbDTu4XGKhr4mRzUsmM4RtVoemTSY81AxZiDr8c=

@@ -14,7 +14,7 @@ const (
 	IncentiveCurve
 	BlocksPerYear
 	OutboundTransactionFee
-	NativeChainGasFee
+	NativeTransactionFee
 	PoolCycle
 	MinRunePoolDepth
 	MaxAvailablePools
@@ -59,7 +59,7 @@ var nameToString = map[ConstantName]string{
 	IncentiveCurve:                "IncentiveCurve",
 	BlocksPerYear:                 "BlocksPerYear",
 	OutboundTransactionFee:        "OutboundTransactionFee",
-	NativeChainGasFee:             "NativeChainGasFee",
+	NativeTransactionFee:          "NativeTransactionFee",
 	PoolCycle:                     "PoolCycle",
 	MinRunePoolDepth:              "MinRunePoolDepth",
 	MaxAvailablePools:             "MaxAvailablePools",

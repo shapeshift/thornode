@@ -66,10 +66,11 @@ func (h DepositHandler) handle(ctx cosmos.Context, msg MsgDeposit, version semve
 }
 
 func (h DepositHandler) handleV1(ctx cosmos.Context, msg MsgDeposit, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
-	// TODO: this shouldn't be tied to swaps, and should be cheaper. But
-	// OutboundTransactionFee will be fine for now.
-	transactionFee := h.mgr.GasMgr().GetFee(ctx, common.THORChain, common.RuneAsset())
-	gas := common.NewCoin(common.RuneNative, transactionFee)
+	nativeTxFee, err := h.keeper.GetMimir(ctx, constants.NativeTransactionFee.String())
+	if err != nil || nativeTxFee < 0 {
+		nativeTxFee = constAccessor.GetInt64Value(constants.NativeTransactionFee)
+	}
+	gas := common.NewCoin(common.RuneNative, cosmos.NewUint(uint64(nativeTxFee)))
 	gasFee, err := gas.Native()
 	if err != nil {
 		return nil, fmt.Errorf("fail to get gas fee: %w", err)
@@ -208,8 +209,11 @@ func (h DepositHandler) addSwap(ctx cosmos.Context, msg MsgSwap, constAccessor c
 		if err != nil {
 			ctx.Logger().Error("fail to convert address into AccAddress", "msg", msg.AffiliateAddress, "error", err)
 		} else {
-			nativeChainGasFee := constAccessor.GetInt64Value(constants.NativeChainGasFee)
-			amt = common.SafeSub(amt, cosmos.NewUint(uint64(nativeChainGasFee)))
+			nativeTxFee, err := h.keeper.GetMimir(ctx, constants.NativeTransactionFee.String())
+			if err != nil || nativeTxFee < 0 {
+				nativeTxFee = constAccessor.GetInt64Value(constants.NativeTransactionFee)
+			}
+			amt = common.SafeSub(amt, cosmos.NewUint(uint64(nativeTxFee)))
 
 			coin := common.NewCoin(common.RuneNative, amt)
 			sdkErr := h.keeper.SendFromModuleToAccount(ctx, AsgardName, to_address, common.NewCoins(coin))

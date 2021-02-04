@@ -258,7 +258,7 @@ func (s *HandlerSwapSuite) TestDoubleSwap(c *C) {
 	txIn1 := NewObservedTx(
 		common.NewTx(GetRandomTxHash(), signerBNBAddr, GetRandomBNBAddress(),
 			common.Coins{
-				common.NewCoin(tCanAsset, cosmos.NewUint(10000000)),
+				common.NewCoin(tCanAsset, cosmos.NewUint(100000)),
 			},
 			BNBGasFeeSingleton,
 			"swap:BNB.BNB:bnb18jtza8j86hfyuj2f90zec0g5gvjh823e5psn2u",

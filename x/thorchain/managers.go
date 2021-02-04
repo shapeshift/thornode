@@ -26,7 +26,7 @@ type Manager interface {
 	GasMgr() GasManager
 	EventMgr() EventManager
 	TxOutStore() TxOutStore
-	VaultMgr() VaultManager
+	VaultMgr() NetworkManager
 	ValidatorMgr() ValidatorManager
 	ObMgr() ObserverManager
 	SwapQ() SwapQueue
@@ -82,8 +82,8 @@ type ValidatorManager interface {
 	NodeAccountPreflightCheck(ctx cosmos.Context, na NodeAccount, constAccessor constants.ConstantValues) (NodeStatus, error)
 }
 
-// VaultManager interface define the contract of Vault Manager
-type VaultManager interface {
+// NetworkManager interface define the contract of Vault Manager
+type NetworkManager interface {
 	TriggerKeygen(ctx cosmos.Context, nas NodeAccounts) error
 	RotateVault(ctx cosmos.Context, vault Vault) error
 	EndBlock(ctx cosmos.Context, mgr Manager, constAccessor constants.ConstantValues) error
@@ -118,7 +118,7 @@ type Mgrs struct {
 	gasMgr         GasManager
 	eventMgr       EventManager
 	txOutStore     TxOutStore
-	vaultMgr       VaultManager
+	networkMgr     NetworkManager
 	validatorMgr   ValidatorManager
 	obMgr          ObserverManager
 	swapQ          SwapQueue
@@ -156,12 +156,12 @@ func (mgr *Mgrs) BeginBlock(ctx cosmos.Context) error {
 		return fmt.Errorf("fail to get tx out store: %w", err)
 	}
 
-	mgr.vaultMgr, err = GetVaultManager(mgr.Keeper, v, mgr.txOutStore, mgr.eventMgr)
+	mgr.networkMgr, err = GetVaultManager(mgr.Keeper, v, mgr.txOutStore, mgr.eventMgr)
 	if err != nil {
 		return fmt.Errorf("fail to get vault manager: %w", err)
 	}
 
-	mgr.validatorMgr, err = GetValidatorManager(mgr.Keeper, v, mgr.vaultMgr, mgr.txOutStore, mgr.eventMgr)
+	mgr.validatorMgr, err = GetValidatorManager(mgr.Keeper, v, mgr.networkMgr, mgr.txOutStore, mgr.eventMgr)
 	if err != nil {
 		return fmt.Errorf("fail to get validator manager: %w", err)
 	}
@@ -197,8 +197,8 @@ func (mgr *Mgrs) EventMgr() EventManager { return mgr.eventMgr }
 // TxOutStore return an TxOutStore
 func (mgr *Mgrs) TxOutStore() TxOutStore { return mgr.txOutStore }
 
-// VaultMgr return a valid VaultManager
-func (mgr *Mgrs) VaultMgr() VaultManager { return mgr.vaultMgr }
+// VaultMgr return a valid NetworkManager
+func (mgr *Mgrs) VaultMgr() NetworkManager { return mgr.networkMgr }
 
 // ValidatorMgr return an implementation of ValidatorManager
 func (mgr *Mgrs) ValidatorMgr() ValidatorManager { return mgr.validatorMgr }
@@ -241,16 +241,16 @@ func GetTxOutStore(keeper keeper.Keeper, version semver.Version, eventMgr EventM
 	return nil, errInvalidVersion
 }
 
-// GetVaultManager retrieve a VaultManager that is compatible with the given version
-func GetVaultManager(keeper keeper.Keeper, version semver.Version, txOutStore TxOutStore, eventMgr EventManager) (VaultManager, error) {
+// GetVaultManager retrieve a NetworkManager that is compatible with the given version
+func GetVaultManager(keeper keeper.Keeper, version semver.Version, txOutStore TxOutStore, eventMgr EventManager) (NetworkManager, error) {
 	if version.GTE(semver.MustParse("0.1.0")) {
-		return NewVaultMgrV1(keeper, txOutStore, eventMgr), nil
+		return NewNetworkMgrV1(keeper, txOutStore, eventMgr), nil
 	}
 	return nil, errInvalidVersion
 }
 
 // GetValidatorManager create a new instance of Validator Manager
-func GetValidatorManager(keeper keeper.Keeper, version semver.Version, vaultMgr VaultManager, txOutStore TxOutStore, eventMgr EventManager) (ValidatorManager, error) {
+func GetValidatorManager(keeper keeper.Keeper, version semver.Version, vaultMgr NetworkManager, txOutStore TxOutStore, eventMgr EventManager) (ValidatorManager, error) {
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return newValidatorMgrV1(keeper, vaultMgr, txOutStore, eventMgr), nil
 	}

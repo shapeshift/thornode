@@ -47,7 +47,7 @@ func (s *HandlerDepositSuite) TestValidate(c *C) {
 func (s *HandlerDepositSuite) TestHandle(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	constAccessor := constants.NewDummyConstants(map[constants.ConstantName]int64{
-		constants.OutboundTransactionFee: 1000_000,
+		constants.NativeTransactionFee: 1000_000,
 	}, map[constants.ConstantName]bool{}, map[constants.ConstantName]string{})
 	activeNode := GetRandomNodeAccount(NodeActive)
 	k.SetNodeAccount(ctx, activeNode)
