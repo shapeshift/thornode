@@ -449,7 +449,7 @@ class ThorchainState:
         return outbounds
 
     def adjust_eth_gas(self, tx):
-        if not tx.gas[0].asset.is_eth():
+        if not tx.gas[0].asset.is_eth() or not tx.coins[0].asset.is_eth():
             return
         asset = tx.gas[0].asset
         max_gas = tx.max_gas[0].amount
@@ -461,8 +461,19 @@ class ThorchainState:
         eth_pool.sub(gap_in_rune_value, 0)
         self.set_pool(eth_pool)
         self.reserve += gap_in_rune_value
+        # this event is required otherwise midgard won't know
+        # the pool changed
+        event = Event(
+            "fee",
+            [
+                {"tx_id": tx.id},
+                {"coins": f"{gap} {asset}"},
+                {"pool_deduct": gap_in_rune_value},
+            ],
+        )
+        self.events.append(event)
         logging.info(
-            f"max gas:{tx.max_gas[0].amount},however only:{tx.gas[0].amount} used , add {gap_in_rune_value} to reserve"
+            f"max gas:{tx.max_gas[0].amount},however only:{tx.gas[0].amount} used,add {gap_in_rune_value} to reserve"
         )
 
     def _total_liquidity(self):
