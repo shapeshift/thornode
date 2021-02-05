@@ -448,7 +448,7 @@ class ThorchainState:
                 self.reserve += rune_fee
         return outbounds
 
-    def adjust_eth_gas(self, tx):
+    def adjust_eth_gas(self, tx, txn):
         if not tx.gas[0].asset.is_eth() or not tx.coins[0].asset.is_eth():
             return
         asset = tx.gas[0].asset
@@ -466,7 +466,7 @@ class ThorchainState:
         event = Event(
             "fee",
             [
-                {"tx_id": tx.id},
+                {"tx_id": txn.in_tx_id},
                 {"coins": f"{gap} {asset}"},
                 {"pool_deduct": gap_in_rune_value},
             ],
