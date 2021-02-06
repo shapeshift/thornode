@@ -425,6 +425,7 @@ class Smoker:
                         self.thorchain_state.handle_rewards()
 
                     elif evt_t.type == "outbound" and processed and pending_txs > 0:
+                        logging.info(f"outbound event:{evt_t}")
                         # figure out which outbound event is which tx
                         for out in outbounds:
                             if out.coins_str() == evt_t.get("coin"):
@@ -435,6 +436,7 @@ class Smoker:
 
                     elif not processed:
                         outbounds = self.sim_trigger_tx(txn)
+                        logging.info(f"===> outbounds:{outbounds}")
                         pending_txs = len(outbounds)
                         processed = True
                 continue
