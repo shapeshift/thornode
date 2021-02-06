@@ -872,7 +872,6 @@ class ThorchainState:
                 asset_amt -= gas_amt
             elif pool.asset.is_eth():
                 gas = self.get_gas(asset.get_chain(), tx)
-                logging.info(f"last ETH: gas({gas}), dynamic fee({dynamic_fee}) ")
                 asset_amt -= int(dynamic_fee)
                 outbound_asset_amt -= dynamic_fee
                 pool.asset_balance += dynamic_fee
