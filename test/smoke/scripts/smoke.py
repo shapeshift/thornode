@@ -428,9 +428,6 @@ class Smoker:
                         # figure out which outbound event is which tx
                         for out in outbounds:
                             if out.coins_str() == evt_t.get("coin"):
-                                self.thorchain_state.adjust_eth_gas(
-                                    out, evt_t.get("in_tx_id")
-                                )
                                 self.thorchain_state.generate_outbound_events(
                                     txn, [out]
                                 )
