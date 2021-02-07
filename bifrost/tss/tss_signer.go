@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/blang/semver"
+	"github.com/cosmos/cosmos-sdk/crypto/codec"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/tendermint/btcd/btcec"
@@ -88,9 +89,15 @@ func (s *KeySign) makeSignature(msg tx.StdSignMsg, poolPubKey string) (sig tx.St
 		s.logger.Error().Msg("Oops! we cannot verify the bytes")
 	}
 
+	// this convert the protobuf based pubkey back to the old version tendermint pubkey
+	tmPubKey, err := codec.ToTmPubKeyInterface(pk)
+	if err != nil {
+		return
+	}
 	return tx.StdSignature{
 		AccountNumber: msg.AccountNumber,
 		Sequence:      msg.Sequence,
+		PubKey:        tmPubKey,
 		Signature:     signPack,
 	}, nil
 }
