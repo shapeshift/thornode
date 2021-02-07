@@ -260,9 +260,9 @@ class ThorchainState:
                 tx.gas[0].asset.is_btc()
                 or tx.gas[0].asset.is_bch()
                 or tx.gas[0].asset.is_ltc()
-                or (tx.gas[0].asset.is_eth() and tx.coins[0].asset.is_eth())
             ):
                 gases = tx.max_gas
+
             for gas in gases:
                 if gas.asset not in gas_coins:
                     gas_coins[gas.asset] = Coin(gas.asset)
@@ -416,11 +416,7 @@ class ThorchainState:
                         if coin.asset.get_chain() == "ETH" and not asset_fee == 0:
                             if coin.asset.is_eth():
                                 tx.max_gas = [Coin(coin.asset, int(asset_fee / 2))]
-                                gap = (
-                                    int(asset_fee / 2)
-                                    - Ethereum._calculate_gas(pool, tx).amount
-                                )
-                                coin.amount += gap
+
                             elif coin.asset.is_erc():
                                 gas_asset = self.get_gas_asset("ETH")
                                 pool_gas = self.get_pool(gas_asset)
@@ -877,7 +873,7 @@ class ThorchainState:
             elif pool.asset.is_eth():
                 gas = self.get_gas(asset.get_chain(), tx)
                 asset_amt -= int(dynamic_fee)
-                outbound_asset_amt -= gas.amount
+                outbound_asset_amt -= dynamic_fee
                 pool.asset_balance += dynamic_fee
             elif pool.asset.is_btc():
                 # the last withdraw tx , it need to spend everything
