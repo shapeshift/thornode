@@ -101,7 +101,7 @@ func (tx Tx) Hash() string {
 
 // String implement fmt.Stringer return a string representation of the tx
 func (tx Tx) String() string {
-	return fmt.Sprintf("%s: %s ==> %s (Memo: %s) %s", tx.ID, tx.FromAddress, tx.ToAddress, tx.Memo, tx.Coins)
+	return fmt.Sprintf("%s: %s ==> %s (Memo: %s) %s (gas: %s)", tx.ID, tx.FromAddress, tx.ToAddress, tx.Memo, tx.Coins, tx.Gas)
 }
 
 // IsEmpty check whether the ID field is empty or not
