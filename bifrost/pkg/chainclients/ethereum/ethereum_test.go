@@ -324,7 +324,8 @@ func (s *EthereumSuite) TestClient(c *C) {
                     "asset": "ETH.ETH",
                     "amount": "300000"
                 }
-            ]
+            ],
+			"gas_rate":1
         }
     ]
 }`)

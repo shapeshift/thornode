@@ -675,16 +675,16 @@ func (e *ETHScanner) getTxInFromSmartContract(tx *etypes.Transaction) (*stypes.T
 				}
 				txInItem.Coins = append(txInItem.Coins, common.NewCoin(asset, e.convertAmount(item.Asset.String(), item.Amount)))
 			}
-			ethValue := cosmos.NewUintFromBigInt(tx.Value())
-			if !ethValue.IsZero() {
-				ethValue = e.convertAmount(ethToken, tx.Value())
-				if txInItem.Coins.GetCoin(common.ETHAsset).IsEmpty() {
-					txInItem.Coins = append(txInItem.Coins, common.NewCoin(common.ETHAsset, ethValue))
-				}
-			}
 		}
 	}
-
+	// it is important to keep this part outside the above loop, as when we do router upgrade , which might generate multiple deposit event , along with tx that has eth value in it
+	ethValue := cosmos.NewUintFromBigInt(tx.Value())
+	if !ethValue.IsZero() {
+		ethValue = e.convertAmount(ethToken, tx.Value())
+		if txInItem.Coins.GetCoin(common.ETHAsset).IsEmpty() {
+			txInItem.Coins = append(txInItem.Coins, common.NewCoin(common.ETHAsset, ethValue))
+		}
+	}
 	e.logger.Info().Msgf("tx: %s, gas price: %s, gas used: %d,receipt status:%d", txInItem.Tx, tx.GasPrice().String(), receipt.GasUsed, receipt.Status)
 	// under no circumstance ETH gas price will be less than 1 Gwei , unless it is in dev environment
 	txGasPrice := tx.GasPrice()
@@ -696,6 +696,7 @@ func (e *ETHScanner) getTxInFromSmartContract(tx *etypes.Transaction) (*stypes.T
 		e.logger.Debug().Msgf("there is no coin in this tx, ignore, %+v", txInItem)
 		return nil, nil
 	}
+	e.logger.Debug().Msgf("tx in item: %+v", txInItem)
 	return txInItem, nil
 }
 

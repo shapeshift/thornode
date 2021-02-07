@@ -200,6 +200,9 @@ func (gm *GasMgrV1) ProcessGas(ctx cosmos.Context, keeper keeper.Keeper) {
 			continue
 		}
 		runeGas := pool.AssetValueInRune(gas.Amount) // Convert to Rune (gas will never be RUNE)
+		if runeGas.IsZero() {
+			continue
+		}
 		// If Rune owed now exceeds the Total Reserve, return it all
 		if runeGas.LT(keeper.GetRuneBalanceOfModule(ctx, ReserveName)) {
 			coin := common.NewCoin(common.RuneNative, runeGas)
