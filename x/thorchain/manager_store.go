@@ -51,7 +51,6 @@ func (smgr *StoreMgr) Iterator(ctx cosmos.Context) error {
 func (smgr *StoreMgr) migrate(ctx cosmos.Context, i uint64, constantAccessor constants.ConstantValues) error {
 	ctx.Logger().Info("Migrating store to new version", "version", i)
 	// add the logic to migrate store here when it is needed
-
 	smgr.keeper.SetStoreVersion(ctx, int64(i))
 	return nil
 }

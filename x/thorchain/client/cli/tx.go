@@ -20,7 +20,6 @@ func GetTxCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:                        types.ModuleName,
 		Short:                      "THORChain transaction subcommands",
-		DisableFlagParsing:         true,
 		SuggestionsMinimumDistance: 2,
 		RunE:                       client.ValidateCmd,
 	}
@@ -34,7 +33,6 @@ func GetTxCmd() *cobra.Command {
 	cmd.AddCommand(GetCmdSend())
 	for _, subCmd := range cmd.Commands() {
 		flags.AddTxFlagsToCmd(subCmd)
-		subCmd.Flag(flags.FlagGas).DefValue = flags.GasFlagAuto
 	}
 	return cmd
 }

@@ -11,7 +11,7 @@ SIGNER_NAME="${SIGNER_NAME:=thorchain}"
 SIGNER_PASSWD="${SIGNER_PASSWD:=password}"
 BINANCE=${BINANCE:=$PEER:26660}
 THORNODE_API_ENABLED=true
-if [ ! -f ~/.thord/config/genesis.json ]; then
+if [ ! -f ~/.thornode/config/genesis.json ]; then
     if [[ "$PEER" == "none" && "$SEEDS" == "none" ]]; then
         echo "Missing PEER / SEEDS"
         exit 1

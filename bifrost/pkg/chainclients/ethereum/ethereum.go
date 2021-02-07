@@ -353,6 +353,7 @@ func (c *Client) SignTx(tx stypes.TxOutItem, height int64) ([]byte, error) {
 	dest := ecommon.HexToAddress(tx.ToAddress.String())
 	var data []byte
 
+	hasRouterUpdated := false
 	switch memo.GetType() {
 	case mem.TxOutbound, mem.TxRefund:
 		data, err = c.vaultABI.Pack("transferOut", dest, ecommon.HexToAddress(tokenAddr), value, tx.Memo)
@@ -380,6 +381,8 @@ func (c *Client) SignTx(tx stypes.TxOutItem, height int64) ([]byte, error) {
 		if newSmartContractAddr.IsEmpty() {
 			return nil, fmt.Errorf("fail to get new smart contract address")
 		}
+		hasRouterUpdated = !newSmartContractAddr.Equals(contractAddr)
+
 		var coins []RouterCoin
 		for _, item := range tx.Coins {
 			assetAddr := getTokenAddressFromAsset(item.Asset)
@@ -428,7 +431,7 @@ func (c *Client) SignTx(tx stypes.TxOutItem, height int64) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("fail to estimate gas: %w", err)
 	}
-	c.logger.Info().Msgf("estimated gas unit: %d", estimatedGas)
+	c.logger.Info().Msgf("memo:%s estimated gas unit: %d", tx.Memo, estimatedGas)
 
 	gasOut := big.NewInt(0)
 	for _, coin := range tx.MaxGas {
@@ -440,21 +443,25 @@ func (c *Client) SignTx(tx stypes.TxOutItem, height int64) ([]byte, error) {
 		// adjust the gas price to reflect that , so not breach the MaxGas restriction
 		// This might cause the tx to delay
 		if totalGas.Cmp(gasOut) == 1 {
+			// for Yggdrasil return , the total gas will always larger than gasOut , as we don't specify MaxGas
 			if memo.GetType() == mem.TxYggdrasilReturn {
+				if hasRouterUpdated {
+					// when we are doing smart contract upgrade , we inflate the estimate gas by 1.5 , to give it more room with gas
+					estimatedGas = estimatedGas * 3 / 2
+					totalGas = big.NewInt(int64(estimatedGas) * gasRate.Int64())
+				}
 				// yggdrasil return fund
 				gap := totalGas.Sub(totalGas, gasOut)
-				c.logger.Info().Msgf("yggdrasil return fund , gass need: %s", gap.String())
+				c.logger.Info().Msgf("yggdrasil return fund , gas need: %s", gap.String())
 				ethValue = ethValue.Sub(ethValue, gap)
 			} else {
 				gasRate = gasOut.Div(gasOut, big.NewInt(int64(estimatedGas)))
 				c.logger.Info().Msgf("based on estimated gas unit (%d) , total gas will be %s, which is more than %s, so adjust gas rate to %s", estimatedGas, totalGas.String(), gasOut.String(), gasRate.String())
 			}
 		} else {
-			extra := gasOut.Sub(gasOut, totalGas)
-			if extra.Uint64() > 0 {
-				ethValue = ethValue.Add(ethValue, extra)
-				c.logger.Info().Msgf("%s extra ETH.ETH pay to customer,customer get paid: %s", extra, ethValue)
-			}
+			// override estimate gas with the max
+			estimatedGas = big.NewInt(0).Div(gasOut, gasRate).Uint64()
+			c.logger.Info().Msgf("transaction with memo %s can spend up to %d gas unit, gasRate:%s", tx.Memo, estimatedGas, gasRate)
 		}
 		createdTx = etypes.NewTransaction(nonce, ecommon.HexToAddress(contractAddr.String()), ethValue, estimatedGas, gasRate, data)
 	} else {
@@ -464,7 +471,6 @@ func (c *Client) SignTx(tx stypes.TxOutItem, height int64) ([]byte, error) {
 		if totalGas.Cmp(gasOut) == 1 {
 			gasRate = gasOut.Div(gasOut, big.NewInt(int64(estimatedGas)))
 		}
-
 		createdTx = etypes.NewTransaction(nonce, ecommon.HexToAddress(contractAddr.String()), ethValue, estimatedGas, gasRate, data)
 	}
 
@@ -512,6 +518,7 @@ func (c *Client) GetBalance(addr, token string) (*big.Int, error) {
 	if err != nil {
 		return nil, fmt.Errorf("fail to create vaultAllowance data to call smart contract")
 	}
+	c.logger.Debug().Msgf("query contract:%s for balance", contractAddresses[0].String())
 	toAddr := ecommon.HexToAddress(contractAddresses[0].String())
 	res, err := c.client.CallContract(ctx, ethereum.CallMsg{
 		From: ecommon.HexToAddress(addr),
@@ -587,7 +594,7 @@ func (c *Client) GetAccountByAddress(address string) (common.Account, error) {
 }
 
 // BroadcastTx decodes tx using rlp and broadcasts too Ethereum chain
-func (c *Client) BroadcastTx(_ stypes.TxOutItem, hexTx []byte) (string, error) {
+func (c *Client) BroadcastTx(txOutItem stypes.TxOutItem, hexTx []byte) (string, error) {
 	tx := &etypes.Transaction{}
 	if err := tx.UnmarshalJSON(hexTx); err != nil {
 		return "", err
@@ -597,6 +604,7 @@ func (c *Client) BroadcastTx(_ stypes.TxOutItem, hexTx []byte) (string, error) {
 	if err := c.client.SendTransaction(ctx, tx); err != nil && err.Error() != ecore.ErrAlreadyKnown.Error() && err.Error() != ecore.ErrNonceTooLow.Error() {
 		return "", err
 	}
+	c.logger.Info().Msgf("broadcast tx with memo: %s to ETH chain , hash: %s", txOutItem.Memo, tx.Hash().String())
 	return tx.Hash().String(), nil
 }
 
