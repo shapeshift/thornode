@@ -748,3 +748,8 @@ func (c *Client) getAsgardAddress() ([]common.Address, error) {
 	c.lastAsgard = time.Now()
 	return c.asgardAddresses, nil
 }
+
+// OnObservedTxIn gets called from observer when we have a valid observation
+func (c *Client) OnObservedTxIn(txIn stypes.TxInItem, blockHeight int64) {
+	c.ethScanner.onObservedTxIn(txIn, blockHeight)
+}

@@ -539,6 +539,10 @@ func (s *BlockScannerTestSuite) TestProcessReOrg(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(blockNew, NotNil)
 	blockMeta := types.NewBlockMeta(block, stypes.TxIn{TxArray: []stypes.TxInItem{{Tx: "0x88df016429689c079f3b2f6ad39fa052532c56795b733da78a91ebe6a713944b"}}})
+	blockMeta.Transactions = append(blockMeta.Transactions, types.TransactionMeta{
+		Hash:        "0x88df016429689c079f3b2f6ad39fa052532c56795b733da78a91ebe6a713944b",
+		BlockHeight: block.Number.Int64(),
+	})
 	// add one UTXO which will trigger the re-org process next
 	c.Assert(bs.blockMetaAccessor.SaveBlockMeta(0, blockMeta), IsNil)
 	bs.globalErrataQueue = make(chan stypes.ErrataBlock, 1)
