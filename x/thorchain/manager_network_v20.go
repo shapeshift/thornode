@@ -109,25 +109,6 @@ func (vm *NetworkMgrV20) EndBlock(ctx cosmos.Context, mgr Manager, constAccessor
 		}
 	}
 
-	// calculate if we have the correct number of active asgard vaults (ie
-	// partial churn), skip migration if we don't
-	asgardSize, err := vm.k.GetMimir(ctx, constants.AsgardSize.String())
-	if asgardSize < 0 || err != nil {
-		asgardSize = constAccessor.GetInt64Value(constants.AsgardSize)
-	}
-	nas, err := vm.k.ListActiveNodeAccounts(ctx)
-	if err != nil {
-		return err
-	}
-	expectedActiveVaults := int64(len(nas)) / asgardSize
-	if int64(len(nas))%asgardSize > 0 {
-		expectedActiveVaults += 1
-	}
-	if int64(len(active)) != expectedActiveVaults {
-		ctx.Logger().Info("Skipping the migration of funds while active vaults are being created", "active", len(active), "expected", expectedActiveVaults)
-		return nil
-	}
-
 	for _, vault := range retiring {
 		if !vault.HasFunds() {
 			vault.Status = InactiveVault
