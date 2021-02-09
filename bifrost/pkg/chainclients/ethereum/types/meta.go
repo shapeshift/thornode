@@ -31,13 +31,6 @@ type TokenMeta struct {
 func NewBlockMeta(block *types.Header, txIn stypes.TxIn) *BlockMeta {
 	txsMeta := make([]TransactionMeta, 0)
 
-	for _, tx := range txIn.TxArray {
-		txsMeta = append(txsMeta, TransactionMeta{
-			Hash:        tx.Tx,
-			BlockHeight: block.Number.Int64(),
-		})
-	}
-
 	return &BlockMeta{
 		PreviousHash: block.ParentHash.Hex(),
 		Height:       block.Number.Int64(),
