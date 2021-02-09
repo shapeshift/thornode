@@ -32,21 +32,21 @@ func LoadChains(thorKeys *thorclient.Keys,
 		case common.BNBChain:
 			bnb, err := binance.NewBinance(thorKeys, chain, server, thorchainBridge, m)
 			if err != nil {
-				logger.Error().Err(err).Str("chain_id", chain.ChainID.String()).Msg("fail to load chain")
+				logger.Fatal().Err(err).Str("chain_id", chain.ChainID.String()).Msg("fail to load chain")
 				continue
 			}
 			chains[common.BNBChain] = bnb
 		case common.ETHChain:
 			eth, err := ethereum.NewClient(thorKeys, chain, server, thorchainBridge, m, pubKeyValidator, poolMgr)
 			if err != nil {
-				logger.Error().Err(err).Str("chain_id", chain.ChainID.String()).Msg("fail to load chain")
+				logger.Fatal().Err(err).Str("chain_id", chain.ChainID.String()).Msg("fail to load chain")
 				continue
 			}
 			chains[common.ETHChain] = eth
 		case common.BTCChain:
 			btc, err := bitcoin.NewClient(thorKeys, chain, server, thorchainBridge, m)
 			if err != nil {
-				logger.Error().Err(err).Str("chain_id", chain.ChainID.String()).Msg("fail to load chain")
+				logger.Fatal().Err(err).Str("chain_id", chain.ChainID.String()).Msg("fail to load chain")
 				continue
 			}
 			pubKeyValidator.RegisterCallback(btc.RegisterPublicKey)
@@ -54,7 +54,7 @@ func LoadChains(thorKeys *thorclient.Keys,
 		case common.BCHChain:
 			bch, err := bitcoincash.NewClient(thorKeys, chain, server, thorchainBridge, m)
 			if err != nil {
-				logger.Error().Err(err).Str("chain_id", chain.ChainID.String()).Msg("fail to load chain")
+				logger.Fatal().Err(err).Str("chain_id", chain.ChainID.String()).Msg("fail to load chain")
 				continue
 			}
 			pubKeyValidator.RegisterCallback(bch.RegisterPublicKey)
@@ -62,7 +62,7 @@ func LoadChains(thorKeys *thorclient.Keys,
 		case common.LTCChain:
 			ltc, err := litecoin.NewClient(thorKeys, chain, server, thorchainBridge, m)
 			if err != nil {
-				logger.Error().Err(err).Str("chain_id", chain.ChainID.String()).Msg("fail to load chain")
+				logger.Fatal().Err(err).Str("chain_id", chain.ChainID.String()).Msg("fail to load chain")
 				continue
 			}
 			pubKeyValidator.RegisterCallback(ltc.RegisterPublicKey)
