@@ -28,6 +28,7 @@ type KeyData struct {
 	addrLTC  KeyDataAddr
 	addrBCH  KeyDataAddr
 	addrETH  KeyDataAddr
+	addrDOGE KeyDataAddr
 	addrTHOR KeyDataAddr
 }
 
@@ -67,6 +68,11 @@ func (s *PubKeyTestSuite) SetUpSuite(c *C) {
 				testnet: "qzfuujzhpd2ugtp2lqt2a2aqdnlwzgj04c5uksegj6",
 				mocknet: "qzfuujzhpd2ugtp2lqt2a2aqdnlwzgj04cwqq36m3u",
 			},
+			addrDOGE: KeyDataAddr{
+				mainnet: "DJcczDr7oNvfj5qP17Qa7p9ZUNTfnYYDJC",
+				testnet: "nhfgiEb2jMPPc4Qa2w42NDjriEqxmHeSRG",
+				mocknet: "mtzUk1zTJzTdyC8Pz6PPPyCHTEL5RLVyDJ",
+			},
 		},
 		{
 			priv: "289c2857d4598e37fb9647507e47a309d6133539bf21a8b9cb6df88fd5232032",
@@ -95,6 +101,11 @@ func (s *PubKeyTestSuite) SetUpSuite(c *C) {
 				mainnet: "qqtsx6nl0q75dfkl6yl54zy2rr4nkwwgjyzgwf5228",
 				testnet: "qqtsx6nl0q75dfkl6yl54zy2rr4nkwwgjyx62wkadm",
 				mocknet: "qqtsx6nl0q75dfkl6yl54zy2rr4nkwwgjyuxu04wwa",
+			},
+			addrDOGE: KeyDataAddr{
+				mainnet: "D7EnB23qxiWTBGD1z9N6Ui7VXonCgY9eeE",
+				testnet: "nWHqu2nktgyB4EnD1y1Yj7hnmgAVhpTUgC",
+				mocknet: "mhcdvpCBUL3RRNW2y8LuksADWfecEmkzju",
 			},
 		},
 		{
@@ -125,6 +136,11 @@ func (s *PubKeyTestSuite) SetUpSuite(c *C) {
 				testnet: "qqqzdh86crxjpyh2tgfy7gyfcwk4k74ze5wcdqr258",
 				mocknet: "qqqzdh86crxjpyh2tgfy7gyfcwk4k74ze55ympqehp",
 			},
+			addrDOGE: KeyDataAddr{
+				mainnet: "D59u6XAtQCybdvFB4ZLWH4h8cK5SY8show",
+				testnet: "nUCxpXuoLBSKWtpN6NyxXUHRrBTjXLqFz1",
+				mocknet: "mfXkrKKDupWZt2YC3YKKZDjrbAwrBFwj8W",
+			},
 		},
 		{
 			priv: "a96e62ed3955e65be32703f12d87b6b5cf26039ecfa948dc5107a495418e5330",
@@ -154,6 +170,11 @@ func (s *PubKeyTestSuite) SetUpSuite(c *C) {
 				testnet: "qp7zhdp230nf0y0vwcl9radyn0x5r6pzxuy7npkmhd",
 				mocknet: "qp7zhdp230nf0y0vwcl9radyn0x5r6pzxu7z9q4g5t",
 			},
+			addrDOGE: KeyDataAddr{
+				mainnet: "DGTegdtiJ6Y9fteiWtHNS5bpjCJSrY4Kiz",
+				testnet: "nfWiQeddE4zsYsDuYhvpgVC7y4gjr5RyqK",
+				mocknet: "mrqWSS33oi57uzwjVsGBiEeYi4ArRRWHV4",
+			},
 		},
 		{
 			priv: "9294f4d108465fd293f7fe299e6923ef71a77f2cb1eb6d4394839c64ec25d5c0",
@@ -182,6 +203,11 @@ func (s *PubKeyTestSuite) SetUpSuite(c *C) {
 				mainnet: "qzfc77h794v2scmrmsj7sjreuzmy2q9p8sxs8lu34e",
 				testnet: "qzfc77h794v2scmrmsj7sjreuzmy2q9p8szzrc7xj9",
 				mocknet: "qzfc77h794v2scmrmsj7sjreuzmy2q9p8sc74ea43r",
+			},
+			addrDOGE: KeyDataAddr{
+				mainnet: "DJbKker23xfz3ufxAbqUuQwp1EBibGJJHu",
+				testnet: "nhePUfavyw8hvtF9CRUw9pY7F6a1YXDtbY",
+				mocknet: "mtyBWSzMZaCxJ1xy9apJBZzXz648BZrpJg",
 			},
 		},
 	}
@@ -273,6 +299,10 @@ func (s *PubKeyTestSuite) TestPubKeyGetAddress(c *C) {
 		c.Assert(err, IsNil)
 		c.Assert(addrBCH.String(), Equals, d.addrBCH.mainnet)
 
+		addrDOGE, err := pk.GetAddress(DOGEChain)
+		c.Assert(err, IsNil)
+		c.Assert(addrDOGE.String(), Equals, d.addrDOGE.mainnet)
+
 		os.Setenv("NET", "testnet")
 		addrETH, err = pk.GetAddress(ETHChain)
 		c.Assert(err, IsNil)
@@ -294,6 +324,10 @@ func (s *PubKeyTestSuite) TestPubKeyGetAddress(c *C) {
 		c.Assert(err, IsNil)
 		c.Assert(addrBCH.String(), Equals, d.addrBCH.testnet)
 
+		addrDOGE, err = pk.GetAddress(DOGEChain)
+		c.Assert(err, IsNil)
+		c.Assert(addrDOGE.String(), Equals, d.addrDOGE.testnet)
+
 		os.Setenv("NET", "mocknet")
 		addrETH, err = pk.GetAddress(ETHChain)
 		c.Assert(err, IsNil)
@@ -314,5 +348,9 @@ func (s *PubKeyTestSuite) TestPubKeyGetAddress(c *C) {
 		addrBCH, err = pk.GetAddress(BCHChain)
 		c.Assert(err, IsNil)
 		c.Assert(addrBCH.String(), Equals, d.addrBCH.mocknet)
+
+		addrDOGE, err = pk.GetAddress(DOGEChain)
+		c.Assert(err, IsNil)
+		c.Assert(addrDOGE.String(), Equals, d.addrDOGE.mocknet)
 	}
 }

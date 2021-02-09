@@ -7,6 +7,8 @@ import (
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcutil"
 	"github.com/btcsuite/btcutil/bech32"
+	dogchaincfg "github.com/eager7/dogd/chaincfg"
+	"github.com/eager7/dogutil"
 	eth "github.com/ethereum/go-ethereum/common"
 	bchchaincfg "github.com/gcash/bchd/chaincfg"
 	"github.com/gcash/bchutil"
@@ -62,7 +64,7 @@ func NewAddress(address string) (Address, error) {
 		return Address(address), nil
 	}
 
-	// Check other BCH address formats with mainnet
+	// Check BCH address formats with mainnet
 	_, err = bchutil.DecodeAddress(address, &bchchaincfg.MainNetParams)
 	if err == nil {
 		return Address(address), nil
@@ -76,6 +78,24 @@ func NewAddress(address string) (Address, error) {
 
 	// Check BCH address formats with mocknet
 	_, err = bchutil.DecodeAddress(address, &bchchaincfg.RegressionNetParams)
+	if err == nil {
+		return Address(address), nil
+	}
+
+	// Check DOGE address formats with mainnet
+	_, err = dogutil.DecodeAddress(address, &dogchaincfg.MainNetParams)
+	if err == nil {
+		return Address(address), nil
+	}
+
+	// Check DOGE address formats with testnet
+	_, err = dogutil.DecodeAddress(address, &dogchaincfg.TestNet3Params)
+	if err == nil {
+		return Address(address), nil
+	}
+
+	// Check DOGE address formats with mocknet
+	_, err = dogutil.DecodeAddress(address, &dogchaincfg.RegressionNetParams)
 	if err == nil {
 		return Address(address), nil
 	}
@@ -138,6 +158,23 @@ func (addr Address) IsChain(chain Chain) bool {
 		}
 		// Check mocknet / regression other formats
 		_, err = bchutil.DecodeAddress(addr.String(), &bchchaincfg.RegressionNetParams)
+		if err == nil {
+			return true
+		}
+		return false
+	case DOGEChain:
+		// Check mainnet other formats
+		_, err := dogutil.DecodeAddress(addr.String(), &dogchaincfg.MainNetParams)
+		if err == nil {
+			return true
+		}
+		// Check testnet other formats
+		_, err = dogutil.DecodeAddress(addr.String(), &dogchaincfg.TestNet3Params)
+		if err == nil {
+			return true
+		}
+		// Check mocknet / regression other formats
+		_, err = dogutil.DecodeAddress(addr.String(), &dogchaincfg.RegressionNetParams)
 		if err == nil {
 			return true
 		}

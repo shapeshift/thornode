@@ -18,6 +18,8 @@ var (
 	LTCAsset = Asset{Chain: LTCChain, Symbol: "LTC", Ticker: "LTC"}
 	// BCHAsset BCH
 	BCHAsset = Asset{Chain: BCHChain, Symbol: "BCH", Ticker: "BCH"}
+	// DOGEAsset DOGE
+	DOGEAsset = Asset{Chain: DOGEChain, Symbol: "DOGE", Ticker: "DOGE"}
 	// ETHAsset ETH
 	ETHAsset = Asset{Chain: ETHChain, Symbol: "ETH", Ticker: "ETH"}
 	// Rune67CAsset RUNE on Binance test net

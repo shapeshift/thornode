@@ -6,6 +6,7 @@ import (
 
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/cosmos/cosmos-sdk/types"
+	dogchaincfg "github.com/eager7/dogd/chaincfg"
 	ltcchaincfg "github.com/ltcsuite/ltcd/chaincfg"
 	btypes "gitlab.com/thorchain/binance-sdk/common/types"
 )
@@ -17,6 +18,7 @@ var (
 	BTCChain   = Chain("BTC")
 	LTCChain   = Chain("LTC")
 	BCHChain   = Chain("BCH")
+	DOGEChain  = Chain("DOGE")
 	THORChain  = Chain("THOR")
 
 	SigningAlgoSecp256k1 = SigninAlgo("secp256k1")
@@ -104,6 +106,8 @@ func (c Chain) GetGasAsset() Asset {
 		return LTCAsset
 	case BCHChain:
 		return BCHAsset
+	case DOGEChain:
+		return DOGEAsset
 	case ETHChain:
 		return ETHAsset
 	default:
@@ -127,6 +131,8 @@ func (c Chain) AddressPrefix(cn ChainNetwork) string {
 			return chaincfg.RegressionNetParams.Bech32HRPSegwit
 		case LTCChain:
 			return ltcchaincfg.RegressionNetParams.Bech32HRPSegwit
+		case DOGEChain:
+			return dogchaincfg.RegressionNetParams.Bech32HRPSegwit
 		}
 	case TestNet:
 		switch c {
@@ -141,6 +147,8 @@ func (c Chain) AddressPrefix(cn ChainNetwork) string {
 			return chaincfg.TestNet3Params.Bech32HRPSegwit
 		case LTCChain:
 			return ltcchaincfg.TestNet4Params.Bech32HRPSegwit
+		case DOGEChain:
+			return dogchaincfg.TestNet3Params.Bech32HRPSegwit
 		}
 	case MainNet:
 		switch c {
@@ -154,6 +162,8 @@ func (c Chain) AddressPrefix(cn ChainNetwork) string {
 			return chaincfg.MainNetParams.Bech32HRPSegwit
 		case LTCChain:
 			return ltcchaincfg.MainNetParams.Bech32HRPSegwit
+		case DOGEChain:
+			return dogchaincfg.MainNetParams.Bech32HRPSegwit
 		}
 	}
 	return ""
