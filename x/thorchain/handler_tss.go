@@ -305,7 +305,7 @@ func (h TssHandler) handleV20(ctx cosmos.Context, msg MsgTssPool, version semver
 					}
 				}
 			} else {
-				ctx.Logger().Info("expecting %d vaults, however only got %d so far, let's wait", len(keygenBlock.Keygens), len(initVaults))
+				ctx.Logger().Info(fmt.Sprintf("expecting %d vaults, however only got %d so far, let's wait", len(keygenBlock.Keygens), len(initVaults)))
 			}
 
 			metric, err := h.keeper.GetTssKeygenMetric(ctx, msg.PoolPubKey)
