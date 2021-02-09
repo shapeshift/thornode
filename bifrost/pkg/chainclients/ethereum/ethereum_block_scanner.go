@@ -355,7 +355,31 @@ func (e *ETHScanner) extractTxs(block *etypes.Block) (stypes.TxIn, error) {
 	e.logger.Debug().Int64("block", int64(block.NumberU64())).Msgf("there are %s tx in this block need to process", txInbound.Count)
 	return txInbound, nil
 }
+func (e *ETHScanner) onObservedTxIn(txIn stypes.TxInItem, blockHeight int64) {
+	blockMeta, err := e.blockMetaAccessor.GetBlockMeta(blockHeight)
+	if err != nil {
+		e.logger.Err(err).Msgf("fail to get block meta on block height(%d)", blockHeight)
+		return
+	}
 
+	if blockMeta == nil {
+		e.logger.Error().Msgf("block meta for height:%d is nil", blockHeight)
+		return
+	}
+	for _, item := range blockMeta.Transactions {
+		if item.Hash == txIn.Tx {
+			return
+		}
+	}
+
+	blockMeta.Transactions = append(blockMeta.Transactions, types.TransactionMeta{
+		Hash:        txIn.Tx,
+		BlockHeight: blockHeight,
+	})
+	if err := e.blockMetaAccessor.SaveBlockMeta(blockHeight, blockMeta); err != nil {
+		e.logger.Err(err).Msgf("fail to save block meta to storage,block height(%d)", blockHeight)
+	}
+}
 func (e *ETHScanner) processReorg(block *etypes.Header) error {
 	previousHeight := block.Number.Int64() - 1
 	prevBlockMeta, err := e.blockMetaAccessor.GetBlockMeta(previousHeight)
