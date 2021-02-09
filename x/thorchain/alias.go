@@ -31,6 +31,7 @@ const (
 	ActiveVault    = types.VaultStatus_ActiveVault
 	InactiveVault  = types.VaultStatus_InactiveVault
 	RetiringVault  = types.VaultStatus_RetiringVault
+	InitVault      = types.VaultStatus_InitVault
 
 	// Node status
 	NodeActive      = types.NodeStatus_Active
