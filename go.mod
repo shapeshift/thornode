@@ -19,6 +19,8 @@ require (
 	github.com/decred/dcrd/dcrec/edwards v1.0.0
 	github.com/didip/tollbooth v4.0.2+incompatible
 	github.com/envoyproxy/protoc-gen-validate v0.4.1 // indirect
+	github.com/eager7/dogd v0.0.0-20200427085516-2caf59f59dbb
+	github.com/eager7/dogutil v0.0.0-20200427040807-200e961ba4b5
 	github.com/ethereum/go-ethereum v1.9.25
 	github.com/gcash/bchd v0.17.1
 	github.com/gcash/bchutil v0.0.0-20201025062739-fc759989ee3e
