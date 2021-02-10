@@ -31,6 +31,8 @@ const (
 	// MinUTXOConfirmation UTXO that has less confirmation then this will not be spent , unless it is yggdrasil
 	MinUTXOConfirmation  = 1
 	defaultMaxBCHFeeRate = bchutil.SatoshiPerBitcoin / 10
+	maxUTXOsToSpend      = 15
+	signUTXOBatchSize    = 10
 )
 
 func getBCHPrivateKey(key cryptotypes.PrivKey) (*bchec.PrivateKey, error) {
@@ -102,10 +104,17 @@ func (c *Client) getUtxoToSpend(pubKey common.PubKey, total float64) ([]btcjson.
 		}
 		return utxos[i].TxID < utxos[j].TxID
 	})
-
+	var toSpend float64
 	for _, item := range utxos {
 		if isYggdrasil || item.Confirmations >= MinUTXOConfirmation || c.isSelfTransaction(item.TxID) {
 			result = append(result, item)
+			toSpend = toSpend + item.Amount
+		}
+		// in the scenario that there are too many unspent utxos available, make sure it doesn't spend too much
+		// as too much UTXO will cause huge pressure on TSS, also make sure it will spend at least maxUTXOsToSpend
+		// so the UTXOs will be consolidated
+		if len(result) >= maxUTXOsToSpend && toSpend >= total {
+			break
 		}
 	}
 	return result, nil
@@ -357,6 +366,14 @@ func (c *Client) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, err
 				}
 			}
 		}(idx, outputAmount)
+		if (idx+1)%signUTXOBatchSize == 0 {
+			// Let's wait until the batch is finished first
+			wg.Wait()
+		}
+		// if the first batch already error out , bail
+		if utxoErr != nil {
+			break
+		}
 	}
 	wg.Wait()
 	if utxoErr != nil {
