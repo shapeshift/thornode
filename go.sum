@@ -245,6 +245,7 @@ github.com/eager7/dogd v0.0.0-20200427033722-13db756ab6a8/go.mod h1:5IBAcuraCh1f
 github.com/eager7/dogd v0.0.0-20200427085516-2caf59f59dbb h1:YH+i2oQCof4buKeHtjCXqppMfZQ5P0YvTUQcrTO5G7o=
 github.com/eager7/dogd v0.0.0-20200427085516-2caf59f59dbb/go.mod h1:fpLV30Ek7iCGesvxt8Y+WI87q4s/auwdwokoWctdnZk=
 github.com/eager7/doglog v0.0.0-20200426084830-384027fc4565/go.mod h1:bFnpHxKLVu82/oWCKTdMmC7Z79FFMbMJ+ylJQicf7dI=
+github.com/eager7/doglog v0.0.0-20200427040431-a0db59f0a792 h1:YCWgPaQQlUD4NAMLSqnty8DPIBJeX+tp/2qkhIzr4Xo=
 github.com/eager7/doglog v0.0.0-20200427040431-a0db59f0a792/go.mod h1:bFnpHxKLVu82/oWCKTdMmC7Z79FFMbMJ+ylJQicf7dI=
 github.com/eager7/dogutil v0.0.0-20200427033507-8353d4a5b7fd/go.mod h1:wHHELBR7B/P0Dyvy0vdrx/JI3bi2sDQGn7bZzwf/TSw=
 github.com/eager7/dogutil v0.0.0-20200427040807-200e961ba4b5 h1:lOGAC6H9SF5UeJV6dQ45bzYBglPGYAdBj338GH10xXE=
@@ -1175,6 +1176,8 @@ github.com/zondax/hid v0.9.0/go.mod h1:l5wttcP0jwtdLjqjMMWFVEE7d1zO0jvSPA9OPZxWp
 github.com/zquestz/grab v0.0.0-20190224022517-abcee96e61b1/go.mod h1:bslhAiUxakrA6z6CHmVyvkfpnxx18RJBwVyx2TluJWw=
 gitlab.com/thorchain/bifrost/bchd-txscript v0.0.0-20210123055555-abb86a2e300a h1:cRDPoaGDC7VcR8AsQUc1xtEpQbQicnsOB+eqaZYnqno=
 gitlab.com/thorchain/bifrost/bchd-txscript v0.0.0-20210123055555-abb86a2e300a/go.mod h1:+4LjBY4dWH+QZsFwxCAxiPsUJrqQXBZU/+63juh3dgY=
+gitlab.com/thorchain/bifrost/dogd-txscript v0.0.0-20210210114734-b88bfb72ff40 h1:q9k0DOz8IgEqEo5afuE7H2XHr7DZwgjKcmC/sJ/DbAQ=
+gitlab.com/thorchain/bifrost/dogd-txscript v0.0.0-20210210114734-b88bfb72ff40/go.mod h1:5wmYMmCXaI9ZRrUyl9DCwcoH2lfSgsipZy+n60JlWDY=
 gitlab.com/thorchain/bifrost/ltcd-txscript v0.0.0-20210123055845-c0f9cad51f13 h1:bnOYRcn3QR5eHyKC1k/1NAiBX+vK2bASjDVsvCZnACY=
 gitlab.com/thorchain/bifrost/ltcd-txscript v0.0.0-20210123055845-c0f9cad51f13/go.mod h1:pnmFFACV58T80xQb43Qrl6rXZy/j7bahnLQiKVRJgio=
 gitlab.com/thorchain/bifrost/txscript v0.0.0-20210123055850-29da989e6f5a h1:EfAUscs3/8zj443ZEj7BMzYi9CypL0XQ1AAnHzHYNyM=

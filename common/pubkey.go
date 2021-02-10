@@ -94,7 +94,7 @@ func (pubKey PubKey) GetAddress(chain Chain) (Address, error) {
 		}
 		str, err := ConvertAndEncode(chain.AddressPrefix(chainNetwork), pk.Address().Bytes())
 		if err != nil {
-			return NoAddress, fmt.Errorf("fail to bech32 encode the address, err:%w", err)
+			return NoAddress, fmt.Errorf("fail to bech32 encode the address, err: %w", err)
 		}
 		return NewAddress(str)
 	case THORChain:
@@ -104,7 +104,7 @@ func (pubKey PubKey) GetAddress(chain Chain) (Address, error) {
 		}
 		str, err := ConvertAndEncode(chain.AddressPrefix(chainNetwork), pk.Address().Bytes())
 		if err != nil {
-			return NoAddress, fmt.Errorf("fail to bech32 encode the address, err:%w", err)
+			return NoAddress, fmt.Errorf("fail to bech32 encode the address, err: %w", err)
 		}
 		return NewAddress(str)
 	case ETHChain:
@@ -136,7 +136,7 @@ func (pubKey PubKey) GetAddress(chain Chain) (Address, error) {
 		}
 		addr, err := btcutil.NewAddressWitnessPubKeyHash(pk.Address().Bytes(), net)
 		if err != nil {
-			return NoAddress, fmt.Errorf("fail to bech32 encode the address, err:%w", err)
+			return NoAddress, fmt.Errorf("fail to bech32 encode the address, err: %w", err)
 		}
 		return NewAddress(addr.String())
 	case LTCChain:
@@ -155,7 +155,7 @@ func (pubKey PubKey) GetAddress(chain Chain) (Address, error) {
 		}
 		addr, err := ltcutil.NewAddressWitnessPubKeyHash(pk.Address().Bytes(), net)
 		if err != nil {
-			return NoAddress, fmt.Errorf("fail to bech32 encode the address, err:%w", err)
+			return NoAddress, fmt.Errorf("fail to bech32 encode the address, err: %w", err)
 		}
 		return NewAddress(addr.String())
 	case DOGEChain:
@@ -174,7 +174,7 @@ func (pubKey PubKey) GetAddress(chain Chain) (Address, error) {
 		}
 		addr, err := dogutil.NewAddressPubKeyHash(pk.Address().Bytes(), net)
 		if err != nil {
-			return NoAddress, fmt.Errorf("fail to bech32 encode the address, err:%w", err)
+			return NoAddress, fmt.Errorf("fail to encode the address, err: %w", err)
 		}
 		return NewAddress(addr.String())
 	case BCHChain:
@@ -193,7 +193,7 @@ func (pubKey PubKey) GetAddress(chain Chain) (Address, error) {
 		}
 		addr, err := bchutil.NewAddressPubKeyHash(pk.Address().Bytes(), net)
 		if err != nil {
-			return NoAddress, fmt.Errorf("fail to bech32 encode the address, err:%w", err)
+			return NoAddress, fmt.Errorf("fail to encode the address, err: %w", err)
 		}
 		return NewAddress(addr.String())
 	}

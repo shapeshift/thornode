@@ -326,6 +326,8 @@ func (c *Client) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, err
 	}
 	wg := &sync.WaitGroup{}
 	var utxoErr error
+	c.logger.Info().Msgf("UTXOs to sign: %d", len(redeemTx.TxIn))
+
 	for idx, txIn := range redeemTx.TxIn {
 		outputAmount := int64(individualAmounts[txIn.PreviousOutPoint.Hash])
 		wg.Add(1)
