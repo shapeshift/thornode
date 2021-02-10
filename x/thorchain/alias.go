@@ -136,6 +136,7 @@ var (
 	GetRandomBTCAddress            = types.GetRandomBTCAddress
 	GetRandomLTCAddress            = types.GetRandomLTCAddress
 	GetRandomBCHAddress            = types.GetRandomBCHAddress
+	GetRandomDOGEAddress           = types.GetRandomDOGEAddress
 	GetRandomTxHash                = types.GetRandomTxHash
 	GetRandomBech32Addr            = types.GetRandomBech32Addr
 	GetRandomBech32ConsensusPubKey = types.GetRandomBech32ConsensusPubKey
