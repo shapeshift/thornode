@@ -96,7 +96,9 @@ func (h AddLiquidityHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semve
 }
 
 func (h AddLiquidityHandler) handle(ctx cosmos.Context, msg MsgAddLiquidity, version semver.Version, constAccessor constants.ConstantValues) error {
-	if version.GTE(semver.MustParse("0.1.0")) {
+	if version.GTE(semver.MustParse("0.21.0")) {
+		return h.handleV21(ctx, msg, version, constAccessor)
+	} else if version.GTE(semver.MustParse("0.1.0")) {
 		return h.handleV1(ctx, msg, version, constAccessor)
 	}
 	return errBadVersion
@@ -115,6 +117,107 @@ func (h AddLiquidityHandler) handleV1(ctx cosmos.Context, msg MsgAddLiquidity, v
 			return ErrInternal(err, "fail to save pool to key value store")
 		}
 	}
+
+	if err := pool.EnsureValidPoolStatus(&msg); err != nil {
+		ctx.Logger().Error("fail to check pool status", "error", err)
+		return errInvalidPoolStatus
+	}
+
+	// figure out if we need to stage the funds and wait for a follow on
+	// transaction to commit all funds atomically
+	stage := false
+	if !msg.AssetAddress.IsEmpty() && msg.AssetAmount.IsZero() {
+		stage = true
+	}
+	if !msg.RuneAddress.IsEmpty() && msg.RuneAmount.IsZero() {
+		stage = true
+	}
+
+	if msg.AffiliateBasisPoints.IsZero() {
+		return h.addLiquidityV1(
+			ctx,
+			msg.Asset,
+			msg.RuneAmount,
+			msg.AssetAmount,
+			msg.RuneAddress,
+			msg.AssetAddress,
+			msg.Tx.ID,
+			stage,
+			constAccessor)
+	}
+
+	// add liquidity has an affiliate fee, add liquidity for both the user and their affiliate
+	affiliateRune := common.GetShare(msg.AffiliateBasisPoints, cosmos.NewUint(10000), msg.RuneAmount)
+	affiliateAsset := common.GetShare(msg.AffiliateBasisPoints, cosmos.NewUint(10000), msg.AssetAmount)
+	userRune := common.SafeSub(msg.RuneAmount, affiliateRune)
+	userAsset := common.SafeSub(msg.AssetAmount, affiliateAsset)
+
+	err = h.addLiquidityV1(
+		ctx,
+		msg.Asset,
+		userRune,
+		userAsset,
+		msg.RuneAddress,
+		msg.AssetAddress,
+		msg.Tx.ID,
+		stage,
+		constAccessor,
+	)
+	if err != nil {
+		return err
+	}
+
+	err = h.addLiquidityV1(
+		ctx,
+		msg.Asset,
+		affiliateRune,
+		affiliateAsset,
+		msg.AffiliateAddress,
+		common.NoAddress,
+		msg.Tx.ID,
+		stage,
+		constAccessor,
+	)
+	if err != nil {
+		// we swallow this error so we don't trigger a refund, when we've
+		// already successfully added liquidity for the user. If we were to
+		// refund here, funds could be leaked from the network. In order, to
+		// error here, we would need to revert the user addLiquidity
+		// function first (TODO).
+		ctx.Logger().Error("fail to add liquidity for affiliate", "address", msg.AffiliateAddress, "error", err)
+	}
+	return nil
+}
+func (h AddLiquidityHandler) handleV21(ctx cosmos.Context, msg MsgAddLiquidity, version semver.Version, constAccessor constants.ConstantValues) (errResult error) {
+	pool, err := h.keeper.GetPool(ctx, msg.Asset)
+	if err != nil {
+		return ErrInternal(err, "fail to get pool")
+	}
+
+	if pool.IsEmpty() {
+		ctx.Logger().Info("pool doesn't exist yet, creating a new one...", "symbol", msg.Asset.String(), "creator", msg.RuneAddress)
+		pool.Asset = msg.Asset
+		if err := h.keeper.SetPool(ctx, pool); err != nil {
+			return ErrInternal(err, "fail to save pool to key value store")
+		}
+	}
+
+	// if the pool decimals hasn't been set, it will still be 0. If we have a
+	// pool asset coin, get the decimals from that transaction. This will only
+	// set the decimals once.
+	if pool.Decimals == 0 {
+		coin := msg.GetTx().Coins.GetCoin(pool.Asset)
+		if !coin.IsEmpty() {
+			if coin.Decimals > 0 {
+				pool.Decimals = coin.Decimals
+			}
+			ctx.Logger().Info("try update pool decimals", "asset", msg.Asset, "pool decimals", pool.Decimals)
+			if err := h.keeper.SetPool(ctx, pool); err != nil {
+				return ErrInternal(err, "fail to save pool to key value store")
+			}
+		}
+	}
+
 	if err := pool.EnsureValidPoolStatus(&msg); err != nil {
 		ctx.Logger().Error("fail to check pool status", "error", err)
 		return errInvalidPoolStatus

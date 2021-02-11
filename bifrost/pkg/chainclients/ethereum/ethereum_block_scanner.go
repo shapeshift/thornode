@@ -577,6 +577,7 @@ func (e *ETHScanner) getTokenMeta(token string) (types.TokenMeta, error) {
 		if err != nil {
 			e.logger.Err(err).Msgf("fail to get decimals from smart contract, default to: %d", defaultDecimals)
 		}
+		e.logger.Info().Msgf("token:%s, decimals: %d", token, decimals)
 		tokenMeta = types.NewTokenMeta(symbol, token, decimals)
 		if err = e.tokens.SaveTokenMeta(symbol, token, decimals); err != nil {
 			return types.TokenMeta{}, fmt.Errorf("fail to save token meta: %w", err)
@@ -604,6 +605,25 @@ func (e *ETHScanner) convertAmount(token string, amt *big.Int) cosmos.Uint {
 		amt = amt.Div(amt, value.Exp(big.NewInt(10), big.NewInt(int64(decimals)), nil))
 	}
 	return cosmos.NewUintFromBigInt(amt).QuoUint64(common.One * 100)
+}
+
+// return value 0 means use the default value which is common.THORChainDecimals, use 1e8 as precision
+func (e *ETHScanner) getTokenDecimalsForTHORChain(token string) int64 {
+	if IsETH(token) {
+		return 0
+	}
+	tokenMeta, err := e.getTokenMeta(token)
+	if err != nil {
+		e.logger.Err(err).Msgf("fail to get token meta for token address: %s", token)
+	}
+	if tokenMeta.IsEmpty() {
+		return 0
+	}
+	// when the token's precision is more than THORChain , that's fine , just use THORChainDecimals
+	if tokenMeta.Decimal >= common.THORChainDecimals {
+		return 0
+	}
+	return int64(tokenMeta.Decimal)
 }
 
 func (e *ETHScanner) getAssetFromTokenAddress(token string) (common.Asset, error) {
@@ -654,7 +674,9 @@ func (e *ETHScanner) getTxInFromSmartContract(tx *etypes.Transaction) (*stypes.T
 			if err != nil {
 				return nil, fmt.Errorf("fail to get asset from token address: %w", err)
 			}
-			txInItem.Coins = append(txInItem.Coins, common.NewCoin(asset, e.convertAmount(depositEvt.Asset.String(), depositEvt.Amount)))
+			decimals := e.getTokenDecimalsForTHORChain(depositEvt.Asset.String())
+			e.logger.Info().Msgf("token:%s,decimals:%d", depositEvt.Asset, decimals)
+			txInItem.Coins = append(txInItem.Coins, common.NewCoin(asset, e.convertAmount(depositEvt.Asset.String(), depositEvt.Amount)).WithDecimals(decimals))
 		case transferOutEvent:
 			transferOutEvt, err := e.parseTransferOut(*item)
 			if err != nil {
@@ -668,7 +690,8 @@ func (e *ETHScanner) getTxInFromSmartContract(tx *etypes.Transaction) (*stypes.T
 			if err != nil {
 				return nil, fmt.Errorf("fail to get asset from token address: %w", err)
 			}
-			txInItem.Coins = append(txInItem.Coins, common.NewCoin(asset, e.convertAmount(transferOutEvt.Asset.String(), transferOutEvt.Amount)))
+			decimals := e.getTokenDecimalsForTHORChain(transferOutEvt.Asset.String())
+			txInItem.Coins = append(txInItem.Coins, common.NewCoin(asset, e.convertAmount(transferOutEvt.Asset.String(), transferOutEvt.Amount)).WithDecimals(decimals))
 		case transferAllowanceEvent:
 			transferAllowanceEvt, err := e.parseTransferAllowanceEvent(*item)
 			if err != nil {
@@ -682,7 +705,8 @@ func (e *ETHScanner) getTxInFromSmartContract(tx *etypes.Transaction) (*stypes.T
 			if err != nil {
 				return nil, fmt.Errorf("fail to get asset from token address: %w", err)
 			}
-			txInItem.Coins = append(txInItem.Coins, common.NewCoin(asset, e.convertAmount(transferAllowanceEvt.Asset.String(), transferAllowanceEvt.Amount)))
+			decimals := e.getTokenDecimalsForTHORChain(transferAllowanceEvt.Asset.String())
+			txInItem.Coins = append(txInItem.Coins, common.NewCoin(asset, e.convertAmount(transferAllowanceEvt.Asset.String(), transferAllowanceEvt.Amount)).WithDecimals(decimals))
 		case vaultTransferEvent:
 			transferEvent, err := e.parseVaultTransfer(*item)
 			if err != nil {
@@ -697,7 +721,8 @@ func (e *ETHScanner) getTxInFromSmartContract(tx *etypes.Transaction) (*stypes.T
 				if err != nil {
 					return nil, fmt.Errorf("fail to get asset from token address: %w", err)
 				}
-				txInItem.Coins = append(txInItem.Coins, common.NewCoin(asset, e.convertAmount(item.Asset.String(), item.Amount)))
+				decimals := e.getTokenDecimalsForTHORChain(item.Asset.String())
+				txInItem.Coins = append(txInItem.Coins, common.NewCoin(asset, e.convertAmount(item.Asset.String(), item.Amount)).WithDecimals(decimals))
 			}
 		}
 	}
