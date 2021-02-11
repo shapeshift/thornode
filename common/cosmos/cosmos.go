@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"math/big"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -16,6 +17,8 @@ import (
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/hashicorp/go-multierror"
 )
+
+const DefaultCoinDecimals = 8
 
 var (
 	KeyringServiceName      = sdk.KeyringServiceName
@@ -121,6 +124,19 @@ func SetupThorchainForTest(c *C) (config.ClientConfiguration, ckeys.Info, ckeys.
 	return cfg, info, kb
 }
 */
+
+// RoundToDecimal round the given amt to the desire decimals
+func RoundToDecimal(amt Uint, dec int64) Uint {
+	if dec != 0 && dec < DefaultCoinDecimals {
+		prec := DefaultCoinDecimals - dec
+		if prec == 0 { // sanity check
+			return amt
+		}
+		precisionAdjust := sdk.NewUintFromBigInt(big.NewInt(0).Exp(big.NewInt(10), big.NewInt(prec), nil))
+		amt = amt.Quo(precisionAdjust).Mul(precisionAdjust)
+	}
+	return amt
+}
 
 // KeybaseStore to store keys
 type KeybaseStore struct {

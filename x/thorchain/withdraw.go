@@ -90,6 +90,9 @@ func withdraw(ctx cosmos.Context, version semver.Version, keeper keeper.Keeper, 
 		ctx.Logger().Error("fail to withdraw: cannot withdraw 100% of only one side of the pool")
 		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), errWithdrawFail
 	}
+	if version.GTE(semver.MustParse("0.21.0")) {
+		withDrawAsset = cosmos.RoundToDecimal(withDrawAsset, pool.Decimals)
+	}
 	gasAsset := cosmos.ZeroUint()
 	// If the pool is empty, and there is a gas asset, subtract required gas
 	if common.SafeSub(poolUnits, fLiquidityProviderUnit).Add(unitAfter).IsZero() {

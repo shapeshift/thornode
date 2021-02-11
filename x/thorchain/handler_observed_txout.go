@@ -62,7 +62,16 @@ func (h ObservedTxOutHandler) validateV1(ctx cosmos.Context, msg MsgObservedTxOu
 }
 
 func (h ObservedTxOutHandler) handle(ctx cosmos.Context, msg MsgObservedTxOut, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+	if version.GTE(semver.MustParse("0.21.0")) {
+		return h.handleV1(ctx, version, msg, constAccessor)
+	}
 	if version.GTE(semver.MustParse("0.1.0")) {
+		// clear all the decimals if it is not 0.21.0
+		for _, tx := range msg.Txs {
+			for idx, c := range tx.Tx.Coins {
+				tx.Tx.Coins[idx] = c.WithDecimals(0)
+			}
+		}
 		return h.handleV1(ctx, version, msg, constAccessor)
 	}
 
