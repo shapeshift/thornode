@@ -16,6 +16,7 @@ message Asset {
 message Coin {
     Asset asset = 1 [(gogoproto.nullable) = false];
     string amount = 2 [(gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Uint", (gogoproto.nullable) = false];
+    int64 decimals = 3;
 }
 
 // PubKeySet contains two pub keys , secp256k1 and ed25519

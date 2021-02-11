@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"gitlab.com/thorchain/thornode/common"
@@ -80,6 +81,7 @@ func (m Pool) String() string {
 	sb.WriteString(fmt.Sprintln("asset: " + m.Asset.String()))
 	sb.WriteString(fmt.Sprintln("pool-units: " + m.PoolUnits.String()))
 	sb.WriteString(fmt.Sprintln("status: " + m.Status.String()))
+	sb.WriteString(fmt.Sprintln("decimals:" + strconv.FormatInt(m.Decimals, 10)))
 	return sb.String()
 }
 

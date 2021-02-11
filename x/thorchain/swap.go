@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/blang/semver"
+
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
@@ -247,6 +249,10 @@ func swapOne(ctx cosmos.Context,
 	liquidityFee = calcLiquidityFee(X, x, Y)
 	tradeSlip = calcSwapSlip(X, x)
 	emitAssets = calcAssetEmission(X, x, Y)
+	version := keeper.GetLowestActiveVersion(ctx)
+	if version.GTE(semver.MustParse("0.21.0")) {
+		emitAssets = cosmos.RoundToDecimal(emitAssets, pool.Decimals)
+	}
 	swapEvt.LiquidityFee = liquidityFee
 
 	if source.IsRune() {
