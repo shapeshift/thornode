@@ -573,6 +573,9 @@ func (c *Client) getTxIn(tx *btcjson.TxRawResult, height int64) (types.TxInItem,
 	if err != nil {
 		return types.TxInItem{}, fmt.Errorf("fail to get output from tx: %w", err)
 	}
+	if output.Value <= minSpendableUTXOAmount {
+		return types.TxInItem{}, fmt.Errorf("amount is less than %f, consider as dust,ignore", minSpendableUTXOAmount)
+	}
 	amount, err := btcutil.NewAmount(output.Value)
 	if err != nil {
 		return types.TxInItem{}, fmt.Errorf("fail to parse float64: %w", err)

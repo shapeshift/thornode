@@ -30,10 +30,11 @@ const (
 	// SatsPervBytes it should be enough , this one will only be used if signer can't find any previous UTXO , and fee info from local storage.
 	SatsPervBytes = 25
 	// MinUTXOConfirmation UTXO that has less confirmation then this will not be spent , unless it is yggdrasil
-	MinUTXOConfirmation  = 1
-	defaultMaxBTCFeeRate = btcutil.SatoshiPerBitcoin / 10
-	maxUTXOsToSpend      = 15
-	signUTXOBatchSize    = 10
+	MinUTXOConfirmation    = 1
+	defaultMaxBTCFeeRate   = btcutil.SatoshiPerBitcoin / 10
+	maxUTXOsToSpend        = 15
+	signUTXOBatchSize      = 10
+	minSpendableUTXOAmount = 0.0001 // If UTXO is less than this , it will not observed , and will not spend it either
 )
 
 func getBTCPrivateKey(key cryptotypes.PrivKey) (*btcec.PrivateKey, error) {
@@ -107,6 +108,9 @@ func (c *Client) getUtxoToSpend(pubKey common.PubKey, total float64) ([]btcjson.
 	})
 	var toSpend float64
 	for _, item := range utxos {
+		if item.Amount <= minSpendableUTXOAmount {
+			continue
+		}
 		if isYggdrasil || item.Confirmations >= MinUTXOConfirmation || c.isSelfTransaction(item.TxID) {
 			result = append(result, item)
 			toSpend = toSpend + item.Amount
