@@ -88,15 +88,16 @@ func (AppModuleBasic) GetTxCmd() *cobra.Command {
 	return cli.GetTxCmd()
 }
 
-//____________________________________________________________________________
+// ____________________________________________________________________________
 
 // AppModule implements an application module for the thorchain module.
 type AppModule struct {
 	AppModuleBasic
-	keeper       keeper.Keeper
-	coinKeeper   bankkeeper.Keeper
-	mgr          *Mgrs
-	keybaseStore cosmos.KeybaseStore
+	keeper             keeper.Keeper
+	coinKeeper         bankkeeper.Keeper
+	mgr                *Mgrs
+	keybaseStore       cosmos.KeybaseStore
+	existingValidators []string
 }
 
 // NewAppModule creates a new AppModule Object
@@ -151,6 +152,13 @@ func (am AppModule) NewQuerierHandler() sdk.Querier {
 
 // BeginBlock called when a block get proposed
 func (am AppModule) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
+	info := req.GetLastCommitInfo()
+	var existingValidators []string
+	for _, v := range info.GetVotes() {
+		addr := sdk.ValAddress(v.Validator.GetAddress())
+		existingValidators = append(existingValidators, addr.String())
+	}
+	am.existingValidators = existingValidators
 	ctx.Logger().Debug("Begin Block", "height", req.Header.Height)
 	version := am.keeper.GetLowestActiveVersion(ctx)
 
@@ -182,7 +190,6 @@ func (am AppModule) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
 // EndBlock called when a block get committed
 func (am AppModule) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.ValidatorUpdate {
 	ctx.Logger().Debug("End Block", "height", req.Height)
-
 	version := am.keeper.GetLowestActiveVersion(ctx)
 	constantValues := constants.GetConstantValues(version)
 	if constantValues == nil {
@@ -235,7 +242,7 @@ func (am AppModule) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.V
 		ctx.Logger().Error("fail to end block for vault manager", "error", err)
 	}
 
-	validators := am.mgr.ValidatorMgr().EndBlock(ctx, am.mgr, constantValues)
+	validators := am.mgr.ValidatorMgr().EndBlock(ctx, am.mgr, constantValues, am.existingValidators)
 
 	// Fill up Yggdrasil vaults
 	// We do this AFTER validatorMgr.EndBlock, because we don't want to send
