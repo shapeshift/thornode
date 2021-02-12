@@ -359,9 +359,10 @@ func (s *BlockScannerTestSuite) TestFromTxToTxIn(c *C) {
 	c.Check(txInItem.Sender, Equals, "0xa7d9ddbe1f17865597fbd27ec712455208b6b76d")
 	c.Check(txInItem.To, Equals, "0xf02c1c8e6114b1dbe8937a39260b5b0a374432bb")
 	c.Check(len(txInItem.Coins), Equals, 1)
+
 	c.Check(txInItem.Coins[0].Asset.String(), Equals, "ETH.ETH")
 	c.Check(
-		txInItem.Coins[0].Amount.Equal(cosmos.NewUint(4290000000000000)),
+		txInItem.Coins[0].Amount.Equal(cosmos.NewUint(429000)),
 		Equals,
 		true,
 	)
