@@ -18,7 +18,7 @@ func (vm *ValidatorDummyMgr) BeginBlock(_ cosmos.Context, _ constants.ConstantVa
 	return kaboom
 }
 
-func (vm *ValidatorDummyMgr) EndBlock(_ cosmos.Context, _ Manager, _ constants.ConstantValues) []abci.ValidatorUpdate {
+func (vm *ValidatorDummyMgr) EndBlock(_ cosmos.Context, _ Manager, _ constants.ConstantValues, existingValidators []string) []abci.ValidatorUpdate {
 	return nil
 }
 

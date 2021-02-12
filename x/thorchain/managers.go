@@ -76,7 +76,7 @@ type ObserverManager interface {
 // ValidatorManager define the method to manage validators
 type ValidatorManager interface {
 	BeginBlock(ctx cosmos.Context, constAccessor constants.ConstantValues) error
-	EndBlock(ctx cosmos.Context, mgr Manager, constAccessor constants.ConstantValues) []abci.ValidatorUpdate
+	EndBlock(ctx cosmos.Context, mgr Manager, constAccessor constants.ConstantValues, existingValidators []string) []abci.ValidatorUpdate
 	RequestYggReturn(ctx cosmos.Context, node NodeAccount, mgr Manager, constAccessor constants.ConstantValues) error
 	processRagnarok(ctx cosmos.Context, mgr Manager, constAccessor constants.ConstantValues) error
 	NodeAccountPreflightCheck(ctx cosmos.Context, na NodeAccount, constAccessor constants.ConstantValues) (NodeStatus, error)

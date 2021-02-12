@@ -6,6 +6,7 @@ import (
 	"net"
 	"sort"
 
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	abci "github.com/tendermint/tendermint/abci/types"
 
 	"gitlab.com/thorchain/thornode/common"
@@ -209,7 +210,7 @@ func (vm *validatorMgrV1) splitNext(ctx cosmos.Context, nas NodeAccounts, asgard
 }
 
 // EndBlock when block commit
-func (vm *validatorMgrV1) EndBlock(ctx cosmos.Context, mgr Manager, constAccessor constants.ConstantValues) []abci.ValidatorUpdate {
+func (vm *validatorMgrV1) EndBlock(ctx cosmos.Context, mgr Manager, constAccessor constants.ConstantValues, existingValidators []string) []abci.ValidatorUpdate {
 	height := common.BlockHeight(ctx)
 	activeNodes, err := vm.k.ListActiveNodeAccounts(ctx)
 	if err != nil {
@@ -315,8 +316,19 @@ func (vm *validatorMgrV1) EndBlock(ctx cosmos.Context, mgr Manager, constAccesso
 			ctx.Logger().Error("fail to parse consensus public key", "key", na.ValidatorConsPubKey, "error", err)
 			continue
 		}
+		caddr := sdk.GetConsAddress(pk).String()
 		removedNodeKeys = append(removedNodeKeys, na.PubKeySet.Secp256k1)
-		validators = append(validators, abci.Ed25519ValidatorUpdate(pk.Bytes(), 0))
+		if ctx.BlockHeight() >= 124864 {
+			for _, exist := range existingValidators {
+				if exist == caddr {
+					validators = append(validators, abci.Ed25519ValidatorUpdate(pk.Bytes(), 0))
+					break
+				}
+			}
+			ctx.Logger().Info("validator is not present, so can't be removed", "validator address", caddr)
+		} else {
+			validators = append(validators, abci.Ed25519ValidatorUpdate(pk.Bytes(), 0))
+		}
 	}
 	if err := vm.checkContractUpgrade(ctx, mgr, removedNodeKeys); err != nil {
 		ctx.Logger().Error("fail to check contract upgrade", "error", err)

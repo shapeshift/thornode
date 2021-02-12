@@ -198,7 +198,7 @@ func (s *ThorchainSuite) TestChurn(c *C) {
 	c.Assert(vault2.Membership, HasLen, 4)
 
 	// check our validators get rotated appropriately
-	validators := mgr.ValidatorMgr().EndBlock(ctx, mgr, consts)
+	validators := mgr.ValidatorMgr().EndBlock(ctx, mgr, consts, []string{})
 	nas, err := keeper.ListActiveNodeAccounts(ctx)
 	c.Assert(err, IsNil)
 	c.Assert(nas, HasLen, 4)
@@ -523,7 +523,7 @@ func (s *ThorchainSuite) TestRagnarokNoOneLeave(c *C) {
 	asgard.Membership = asgard.Membership[:len(asgard.Membership)-1]
 	c.Assert(keeper.SetVault(ctx, asgard), IsNil)
 	// no validator should leave, because it trigger ragnarok
-	updates := mgr.ValidatorMgr().EndBlock(ctx, mgr, consts)
+	updates := mgr.ValidatorMgr().EndBlock(ctx, mgr, consts, []string{})
 	c.Assert(updates, IsNil)
 	ragnarokHeight, err := keeper.GetRagnarokBlockHeight(ctx)
 	c.Assert(err, IsNil)
@@ -533,5 +533,5 @@ func (s *ThorchainSuite) TestRagnarokNoOneLeave(c *C) {
 	ctx = ctx.WithBlockHeight(currentHeight + migrateInterval)
 	c.Assert(mgr.ValidatorMgr().BeginBlock(ctx, consts), IsNil)
 	mgr.TxOutStore().ClearOutboundItems(ctx)
-	c.Assert(mgr.ValidatorMgr().EndBlock(ctx, mgr, consts), IsNil)
+	c.Assert(mgr.ValidatorMgr().EndBlock(ctx, mgr, consts, []string{}), IsNil)
 }
