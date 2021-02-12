@@ -319,13 +319,17 @@ func (vm *validatorMgrV1) EndBlock(ctx cosmos.Context, mgr Manager, constAccesso
 		caddr := sdk.GetConsAddress(pk).String()
 		removedNodeKeys = append(removedNodeKeys, na.PubKeySet.Secp256k1)
 		if ctx.BlockHeight() >= 124864 {
+			found := false
 			for _, exist := range existingValidators {
 				if exist == caddr {
 					validators = append(validators, abci.Ed25519ValidatorUpdate(pk.Bytes(), 0))
+					found = true
 					break
 				}
 			}
-			ctx.Logger().Info("validator is not present, so can't be removed", "validator address", caddr)
+			if !found {
+				ctx.Logger().Info("validator is not present, so can't be removed", "validator address", caddr)
+			}
 		} else {
 			validators = append(validators, abci.Ed25519ValidatorUpdate(pk.Bytes(), 0))
 		}
