@@ -99,7 +99,7 @@ func (vts *ValidatorMgrV1TestSuite) TestRagnarokForChaosnet(c *C) {
 		vault.Membership = append(vault.Membership, item.PubKeySet.Secp256k1.String())
 	}
 	c.Assert(k.SetVault(ctx, vault), IsNil)
-	updates := vMgr.EndBlock(ctx, mgr, constAccessor)
+	updates := vMgr.EndBlock(ctx, mgr, constAccessor, []string{})
 	// ragnarok , no one leaves
 	c.Assert(updates, IsNil)
 	ragnarokHeight, err := k.GetRagnarokBlockHeight(ctx)
