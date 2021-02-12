@@ -770,8 +770,13 @@ func (e *ETHScanner) getTxInFromTransaction(tx *etypes.Transaction) (*stypes.TxI
 			txInItem.Memo = string(memo)
 		}
 	}
-	txInItem.Coins = append(txInItem.Coins, common.NewCoin(asset, cosmos.NewUintFromBigInt(tx.Value())))
-	txInItem.Gas = common.MakeETHGas(tx.GasPrice(), tx.Gas())
+	ethValue := e.convertAmount(ethToken, tx.Value())
+	txInItem.Coins = append(txInItem.Coins, common.NewCoin(asset, ethValue))
+	txGasPrice := tx.GasPrice()
+	if txGasPrice.Cmp(big.NewInt(tenGwei)) < 0 {
+		txGasPrice = big.NewInt(tenGwei)
+	}
+	txInItem.Gas = common.MakeETHGas(txGasPrice, tx.Gas())
 	return txInItem, nil
 }
 
