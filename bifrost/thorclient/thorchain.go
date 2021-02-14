@@ -310,7 +310,7 @@ func (b *ThorchainBridge) EnsureNodeWhitelisted() error {
 	if err != nil {
 		return fmt.Errorf("failed to get node status: %w", err)
 	}
-	if status == stypes.NodeStatus_Disabled || status == stypes.NodeStatus_Unknown {
+	if status == stypes.NodeStatus_Unknown {
 		return fmt.Errorf("node account status %s , will not be able to forward transaction to thorchain", status)
 	}
 	return nil
