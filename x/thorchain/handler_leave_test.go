@@ -18,7 +18,7 @@ type HandlerLeaveSuite struct{}
 var _ = Suite(&HandlerLeaveSuite{})
 
 func (HandlerLeaveSuite) TestLeaveHandler_NotActiveNodeLeave(c *C) {
-	w := getHandlerTestWrapper(c, 1, true, false)
+	w := getHandlerTestWrapperWithVersion(c, 1, true, false, semver.MustParse("0.23.0"))
 	vault := GetRandomVault()
 	w.keeper.SetVault(w.ctx, vault)
 	leaveHandler := NewLeaveHandler(w.keeper, NewDummyMgr())
@@ -49,7 +49,7 @@ func (HandlerLeaveSuite) TestLeaveHandler_NotActiveNodeLeave(c *C) {
 }
 
 func (HandlerLeaveSuite) TestLeaveHandlerV5_NotActiveNodeLeave(c *C) {
-	w := getHandlerTestWrapper(c, 1, true, false)
+	w := getHandlerTestWrapperWithVersion(c, 1, true, false, semver.MustParse("0.23.0"))
 	vault := GetRandomVault()
 	w.keeper.SetVault(w.ctx, vault)
 	leaveHandler := NewLeaveHandler(w.keeper, NewDummyMgr())
@@ -84,7 +84,7 @@ func (HandlerLeaveSuite) TestLeaveHandlerV5_NotActiveNodeLeave(c *C) {
 
 func (HandlerLeaveSuite) TestLeaveHandler_ActiveNodeLeave(c *C) {
 	var err error
-	w := getHandlerTestWrapper(c, 1, true, false)
+	w := getHandlerTestWrapperWithVersion(c, 1, true, false, semver.MustParse("0.23.0"))
 	leaveHandler := NewLeaveHandler(w.keeper, NewDummyMgr())
 	acc2 := GetRandomNodeAccount(NodeActive)
 	acc2.Bond = cosmos.NewUint(100 * common.One)
@@ -111,7 +111,7 @@ func (HandlerLeaveSuite) TestLeaveHandler_ActiveNodeLeave(c *C) {
 
 func (HandlerLeaveSuite) TestLeaveHandlerV5_ActiveNodeLeave(c *C) {
 	var err error
-	w := getHandlerTestWrapper(c, 1, true, false)
+	w := getHandlerTestWrapperWithVersion(c, 1, true, false, semver.MustParse("0.23.0"))
 	leaveHandler := NewLeaveHandler(w.keeper, NewDummyMgr())
 	acc2 := GetRandomNodeAccount(NodeActive)
 	acc2.Bond = cosmos.NewUint(100 * common.One)
@@ -137,7 +137,7 @@ func (HandlerLeaveSuite) TestLeaveHandlerV5_ActiveNodeLeave(c *C) {
 }
 
 func (HandlerLeaveSuite) TestLeaveJail(c *C) {
-	w := getHandlerTestWrapper(c, 1, true, false)
+	w := getHandlerTestWrapperWithVersion(c, 1, true, false, semver.MustParse("0.23.0"))
 	vault := GetRandomVault()
 	w.keeper.SetVault(w.ctx, vault)
 	leaveHandler := NewLeaveHandler(w.keeper, NewDummyMgr())
@@ -169,7 +169,7 @@ func (HandlerLeaveSuite) TestLeaveJail(c *C) {
 }
 
 func (HandlerLeaveSuite) TestLeaveValidation(c *C) {
-	w := getHandlerTestWrapper(c, 1, true, false)
+	w := getHandlerTestWrapperWithVersion(c, 1, true, false, semver.MustParse("0.23.0"))
 	ver := constants.SWVersion
 	constAccessor := constants.GetConstantValues(ver)
 	testCases := []struct {
@@ -462,7 +462,7 @@ func (HandlerLeaveSuite) TestLeaveDifferentValidations(c *C) {
 		mgr.BeginBlock(ctx)
 		handler := NewLeaveHandler(helper, mgr)
 		msg := tc.messageProvider(ctx, helper)
-		ver := semver.MustParse("0.5.0")
+		ver := semver.MustParse("0.23.0")
 		constantAccessor := constants.GetConstantValues(ver)
 		result, err := handler.Run(ctx, msg, ver, constantAccessor)
 		tc.validator(c, ctx, result, err, helper, tc.name, msg)

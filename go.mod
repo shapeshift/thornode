@@ -50,7 +50,7 @@ require (
 	gitlab.com/thorchain/tss/go-tss v1.2.9
 	golang.org/x/mod v0.4.0 // indirect
 	golang.org/x/tools v0.0.0-20210101214203-2dba1e4ea05c // indirect
-	google.golang.org/genproto v0.0.0-20210211221406-4ccc9a5e4183 // indirect
+	google.golang.org/genproto v0.0.0-20210212180131-e7f2df4ecc2d // indirect
 	gopkg.in/check.v1 v1.0.0-20200902074654-038fdea0a05b
 	gopkg.in/ini.v1 v1.52.0 // indirect
 	honnef.co/go/tools v0.0.1-2020.1.6 // indirect
