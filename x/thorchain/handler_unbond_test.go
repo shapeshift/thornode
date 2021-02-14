@@ -84,7 +84,7 @@ func (HandlerUnBondSuite) TestUnBondHandler_Run(c *C) {
 	c.Assert(k1.SetVault(ctx, vault), IsNil)
 
 	handler := NewUnBondHandler(k1, NewDummyMgr())
-	ver := semver.MustParse("0.12.0")
+	ver := semver.MustParse("0.23.0")
 	constAccessor := constants.GetConstantValues(ver)
 	txIn := common.NewTx(
 		GetRandomTxHash(),
@@ -128,7 +128,7 @@ func (HandlerUnBondSuite) TestUnBondHandler_Run(c *C) {
 	c.Assert(errors.Is(err, errBadVersion), Equals, true)
 
 	// simulate fail to get node account
-	ver = constants.SWVersion
+	ver = semver.MustParse("0.23.0")
 	msg = NewMsgUnBond(txIn, k.failGetNodeAccount.NodeAddress, cosmos.NewUint(uint64(1)), GetRandomBNBAddress(), activeNodeAccount.NodeAddress)
 	_, err = handler.Run(ctx, msg, ver, constAccessor)
 	c.Assert(errors.Is(err, errInternal), Equals, true)
@@ -181,7 +181,7 @@ func (HandlerUnBondSuite) TestUnBondHandlerFailValidation(c *C) {
 	activeNodeAccount := GetRandomNodeAccount(NodeActive)
 	c.Assert(k.SetNodeAccount(ctx, activeNodeAccount), IsNil)
 	handler := NewUnBondHandler(k, NewDummyMgr())
-	ver := constants.SWVersion
+	ver := semver.MustParse("0.23.0")
 	constAccessor := constants.GetConstantValues(ver)
 	txIn := common.NewTx(
 		GetRandomTxHash(),
@@ -272,7 +272,7 @@ func (HandlerUnBondSuite) TestUnBondHanlder_retiringvault(c *C) {
 	}
 	c.Assert(k1.SetVault(ctx, retiringVault), IsNil)
 	handler := NewUnBondHandler(k1, NewDummyMgr())
-	ver := semver.MustParse("0.18.0")
+	ver := semver.MustParse("0.23.0")
 	constAccessor := constants.GetConstantValues(ver)
 	txIn := common.NewTx(
 		GetRandomTxHash(),
