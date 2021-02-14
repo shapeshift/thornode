@@ -165,18 +165,18 @@ func (s *HelperSuite) TestRefundBondError(c *C) {
 	mgr := NewDummyMgr()
 	tx := GetRandomTx()
 	keeper1 := &TestRefundBondKeeper{}
-	c.Assert(refundBond(ctx, tx, cosmos.ZeroUint(), &na, keeper1, mgr), IsNil)
+	c.Assert(refundBondV23(ctx, tx, cosmos.ZeroUint(), &na, keeper1, mgr), IsNil)
 
 	// fail to get vault should return an error
 	na.UpdateStatus(NodeStandby, common.BlockHeight(ctx))
 	keeper1.na = na
-	c.Assert(refundBond(ctx, tx, cosmos.ZeroUint(), &na, keeper1, mgr), NotNil)
+	c.Assert(refundBondV23(ctx, tx, cosmos.ZeroUint(), &na, keeper1, mgr), NotNil)
 
 	// if the vault is not a yggdrasil pool , it should return an error
 	ygg := NewVault(common.BlockHeight(ctx), ActiveVault, AsgardVault, pk, common.Chains{common.BNBChain}.Strings(), []ChainContract{})
 	ygg.Coins = common.Coins{}
 	keeper1.ygg = ygg
-	c.Assert(refundBond(ctx, tx, cosmos.ZeroUint(), &na, keeper1, mgr), NotNil)
+	c.Assert(refundBondV23(ctx, tx, cosmos.ZeroUint(), &na, keeper1, mgr), NotNil)
 
 	// fail to get pool should fail
 	ygg = NewVault(common.BlockHeight(ctx), ActiveVault, YggdrasilVault, pk, common.Chains{common.BNBChain}.Strings(), []ChainContract{})
@@ -185,7 +185,7 @@ func (s *HelperSuite) TestRefundBondError(c *C) {
 		common.NewCoin(common.BNBAsset, cosmos.NewUint(27*common.One)),
 	}
 	keeper1.ygg = ygg
-	c.Assert(refundBond(ctx, tx, cosmos.ZeroUint(), &na, keeper1, mgr), NotNil)
+	c.Assert(refundBondV23(ctx, tx, cosmos.ZeroUint(), &na, keeper1, mgr), NotNil)
 
 	// when ygg asset in RUNE is more then bond , thorchain should slash the node account with all their bond
 	keeper1.pool = Pool{
@@ -193,7 +193,7 @@ func (s *HelperSuite) TestRefundBondError(c *C) {
 		BalanceRune:  cosmos.NewUint(1024 * common.One),
 		BalanceAsset: cosmos.NewUint(167 * common.One),
 	}
-	c.Assert(refundBond(ctx, tx, cosmos.ZeroUint(), &na, keeper1, mgr), IsNil)
+	c.Assert(refundBondV23(ctx, tx, cosmos.ZeroUint(), &na, keeper1, mgr), IsNil)
 	// make sure no tx has been generated for refund
 	items, err := mgr.TxOutStore().GetOutboundItems(ctx)
 	c.Assert(err, IsNil)
@@ -226,7 +226,7 @@ func (s *HelperSuite) TestRefundBondHappyPath(c *C) {
 	tx := GetRandomTx()
 	yggAssetInRune, err := getTotalYggValueInRune(ctx, keeper, ygg)
 	c.Assert(err, IsNil)
-	err = refundBond(ctx, tx, cosmos.ZeroUint(), &na, keeper, mgr)
+	err = refundBondV23(ctx, tx, cosmos.ZeroUint(), &na, keeper, mgr)
 	c.Assert(err, IsNil)
 	slashAmt := yggAssetInRune.MulUint64(3).QuoUint64(2)
 	items, err := mgr.TxOutStore().GetOutboundItems(ctx)
