@@ -307,8 +307,26 @@ Retrieve all nodes that have bond
     + inbound_tx_count (string) - number of inbound tx to this vault , across all chain
     + outbound_tx_count (string) - number of outbound tx from this vault
     + pending_tx_heights (array[string]) - pending txes for migration
-    + signing_party (array[string]) - signing party
+    + routers (array[ChainRouter]) - chain router
+    + addresses (array[ChainAddress]) - chain addresses
 
+## yggdrasilvault [/thorchain/vaults/yggdrasil]
++ Attributes
+    + block_height (string) - block height when the vault get created
+    + pub_key (string) - vault's public key
+    + coins (array[Coin]) - coins in this asgard vault
+    + type (string) - vault type , it could be asgard or yggdrasil
+    + status_since (string) - block height this vault get to current status
+    + membership (array[string]) - a list of node public key , represent which nodes created this vault
+    + chains (array[string]) - a list of chains this vault support
+    + inbound_tx_count (string) - number of inbound tx to this vault , across all chain
+    + outbound_tx_count (string) - number of outbound tx from this vault
+    + pending_tx_heights (array[string]) - pending txes for migration
+    + routers (array[ChainRouter]) - chain router
+    + status (string) - node status , it could be active , standby etc
+    + bond (string) - bond
+    + total_value (string) - total value in this yggdrasil vault
+    + addresses (array[ChainAddress]) - chain addresses
 
 ### Get asgard vaults [GET]
 Retrieve all current active asgard vaults from thorchain
@@ -318,53 +336,99 @@ Retrieve all current active asgard vaults from thorchain
 
             [
                 {
-                    "block_height": "0",
-                    "pub_key": "tthorpub1addwnpepqd9nqqmgay6mju0yq72ptjucmk9atawtev4v4n6wkee5y26q80eccg0xk37",
+                    "block_height": 30,
+                    "pub_key": "tthorpub1addwnpepqfha5sms6cyxgmr9y6j3lg5pxzyc3x9g4hkanlwu2j5jgkva4ncaurn5zmd",
                     "coins": [
-                    {
-                        "asset": "BNB.BNB",
-                        "amount": "0"
-                    },
-                    {
-                        "asset": "BTC.BTC",
-                        "amount": "0"
-                    },
-                    {
-                        "asset": "ETH.ETH",
-                        "amount": "3604472318"
-                    },
-                    {
-                        "asset": "BNB.LOK-3C0",
-                        "amount": "0"
-                    },
-                    {
-                        "asset": "BNB.TCAN-014",
-                        "amount": "1000000"
-                    }
+                        {
+                            "asset": "BNB.RUNE-67C",
+                            "amount": "3000000000000000"
+                        },
+                        {
+                            "asset": "BNB.BNB",
+                            "amount": "100000000000"
+                        },
+                        {
+                            "asset": "BNB.LOK-3C0",
+                            "amount": "40000000000"
+                        },
+                        {
+                            "asset": "BNB.BTCB-101",
+                            "amount": "40000000000"
+                        },
+                        {
+                            "asset": "BTC.BTC",
+                            "amount": "100000000"
+                        },
+                        {
+                            "asset": "LTC.LTC",
+                            "amount": "500000000"
+                        },
+                        {
+                            "asset": "BCH.BCH",
+                            "amount": "500000000"
+                        },
+                        {
+                            "asset": "ETH.TKN-0X3B7FA4DD21C6F9BA3CA375217EAD7CAB9D6BF483",
+                            "amount": "500000000"
+                        },
+                        {
+                            "asset": "ETH.ETH",
+                            "amount": "1000000000"
+                        }
                     ],
-                    "type": "asgard",
-                    "status": "active",
-                    "status_since": "0",
+                    "type": "AsgardVault",
+                    "status": "ActiveVault",
                     "membership": [
-                    "tthorpub1addwnpepqd9nqqmgay6mju0yq72ptjucmk9atawtev4v4n6wkee5y26q80eccg0xk37"
+                        "tthorpub1addwnpepqfha5sms6cyxgmr9y6j3lg5pxzyc3x9g4hkanlwu2j5jgkva4ncaurn5zmd"
                     ],
                     "chains": [
-                    "THOR",
-                    "BTC",
-                    "BNB",
-                    "ETH"
+                        "THOR",
+                        "BTC",
+                        "LTC",
+                        "BCH",
+                        "BNB",
+                        "ETH"
                     ],
-                    "inbound_tx_count": "21",
-                    "outbound_tx_count": "23",
-                    "pending_tx_heights": null,
-                    "signing_party": null
+                    "inbound_tx_count": 11,
+                    "routers": [
+                        {
+                            "chain": "ETH",
+                            "router": "0xE65e9d372F8cAcc7b6dfcd4af6507851Ed31bb44"
+                        }
+                    ],
+                    "addresses": [
+                        {
+                            "chain": "THOR",
+                            "address": "tthor1syneecwgwvn6zkv47k3cq65fuzrp24yzxyk279"
+                        },
+                        {
+                            "chain": "BTC",
+                            "address": "bcrt1qsyneecwgwvn6zkv47k3cq65fuzrp24yz6pz56g"
+                        },
+                        {
+                            "chain": "LTC",
+                            "address": "rltc1qsyneecwgwvn6zkv47k3cq65fuzrp24yzyvcadk"
+                        },
+                        {
+                            "chain": "BCH",
+                            "address": "qzqj088pepej0g2ejh668qr238sgv925sg4g5hp57p"
+                        },
+                        {
+                            "chain": "BNB",
+                            "address": "tbnb1syneecwgwvn6zkv47k3cq65fuzrp24yzg9gfnq"
+                        },
+                        {
+                            "chain": "ETH",
+                            "address": "0x61666aa597b4344f855d25b92385b5eb0c650074"
+                        }
+                    ]
                 }
             ]
 
 ### get all yggdrasil vaults [GET /thorchain/vaults/yggdrasil]
 Retrieve all yggdrasil vaults from THORChain
 + Response 200 (application/json)
-    + Attributes (array[vault])
+    + Attributes (array[yggdrasilvault])
     + Body
 
             [
@@ -408,60 +472,136 @@ Retrieve all yggdrasil vaults from THORChain
                     "inbound_tx_count": "21",
                     "outbound_tx_count": "23",
                     "pending_tx_heights": null,
-                    "signing_party": null
+                    "routers": [
+                        {
+                            "chain": "ETH",
+                            "router": "0xE65e9d372F8cAcc7b6dfcd4af6507851Ed31bb44"
+                        }
+                    ],
+                    "addresses": [
+                        {
+                            "chain": "THOR",
+                            "address": "tthor1syneecwgwvn6zkv47k3cq65fuzrp24yzxyk279"
+                        },
+                        {
+                            "chain": "BTC",
+                            "address": "bcrt1qsyneecwgwvn6zkv47k3cq65fuzrp24yz6pz56g"
+                        },
+                        {
+                            "chain": "LTC",
+                            "address": "rltc1qsyneecwgwvn6zkv47k3cq65fuzrp24yzyvcadk"
+                        },
+                        {
+                            "chain": "BCH",
+                            "address": "qzqj088pepej0g2ejh668qr238sgv925sg4g5hp57p"
+                        },
+                        {
+                            "chain": "BNB",
+                            "address": "tbnb1syneecwgwvn6zkv47k3cq65fuzrp24yzg9gfnq"
+                        },
+                        {
+                            "chain": "ETH",
+                            "address": "0x61666aa597b4344f855d25b92385b5eb0c650074"
+                        }
+                    ]
                 }
             ]
 
-### get a vault by address [GET /thorchain/vault/{chain}/{address}]
+### get a vault by pubkey [GET /thorchain/vault/{pubkey}]
 
 + Parameters
-    + chain: "BNB" (string,required) - chain
-    + address: "tbnb1257g60tcxvu4dvflpszgkwq34d5vw6pgvws4qe" (string,required) - address of the chain, need to match with chain Parameters
+    + pubkey: "" (string,required) - pubkey of the vault
 + Response 200 (application/json)
     + Attributes (vault)
     + Body
 
             {
-                "block_height": "0",
-                "pub_key": "tthorpub1addwnpepqd9nqqmgay6mju0yq72ptjucmk9atawtev4v4n6wkee5y26q80eccg0xk37",
+                "block_height": 30,
+                "pub_key": "tthorpub1addwnpepqfha5sms6cyxgmr9y6j3lg5pxzyc3x9g4hkanlwu2j5jgkva4ncaurn5zmd",
                 "coins": [
                     {
+                        "asset": "BNB.RUNE-67C",
+                        "amount": "3000000000000000"
+                    },
+                    {
                         "asset": "BNB.BNB",
-                        "amount": "0"
-                    },
-                    {
-                        "asset": "BTC.BTC",
-                        "amount": "0"
-                    },
-                    {
-                        "asset": "ETH.ETH",
-                        "amount": "3604472318"
+                        "amount": "100000000000"
                     },
                     {
                         "asset": "BNB.LOK-3C0",
-                        "amount": "0"
+                        "amount": "40000000000"
                     },
                     {
-                        "asset": "BNB.TCAN-014",
-                        "amount": "1000000"
+                        "asset": "BNB.BTCB-101",
+                        "amount": "40000000000"
+                    },
+                    {
+                        "asset": "BTC.BTC",
+                        "amount": "100000000"
+                    },
+                    {
+                        "asset": "LTC.LTC",
+                        "amount": "500000000"
+                    },
+                    {
+                        "asset": "BCH.BCH",
+                        "amount": "500000000"
+                    },
+                    {
+                        "asset": "ETH.TKN-0X3B7FA4DD21C6F9BA3CA375217EAD7CAB9D6BF483",
+                        "amount": "500000000"
+                    },
+                    {
+                        "asset": "ETH.ETH",
+                        "amount": "1000000000"
                     }
                 ],
-                "type": "asgard",
-                "status": "active",
-                "status_since": "0",
+                "type": "AsgardVault",
+                "status": "ActiveVault",
                 "membership": [
-                    "tthorpub1addwnpepqd9nqqmgay6mju0yq72ptjucmk9atawtev4v4n6wkee5y26q80eccg0xk37"
+                    "tthorpub1addwnpepqfha5sms6cyxgmr9y6j3lg5pxzyc3x9g4hkanlwu2j5jgkva4ncaurn5zmd"
                 ],
                 "chains": [
                     "THOR",
                     "BTC",
+                    "LTC",
+                    "BCH",
                     "BNB",
                     "ETH"
                 ],
-                "inbound_tx_count": "21",
-                "outbound_tx_count": "23",
-                "pending_tx_heights": null,
-                "signing_party": null
+                "inbound_tx_count": 11,
+                "routers": [
+                    {
+                        "chain": "ETH",
+                        "router": "0xE65e9d372F8cAcc7b6dfcd4af6507851Ed31bb44"
+                    }
+                ],
+                "addresses": [
+                    {
+                        "chain": "THOR",
+                        "address": "tthor1syneecwgwvn6zkv47k3cq65fuzrp24yzxyk279"
+                    },
+                    {
+                        "chain": "BTC",
+                        "address": "bcrt1qsyneecwgwvn6zkv47k3cq65fuzrp24yz6pz56g"
+                    },
+                    {
+                        "chain": "LTC",
+                        "address": "rltc1qsyneecwgwvn6zkv47k3cq65fuzrp24yzyvcadk"
+                    },
+                    {
+                        "chain": "BCH",
+                        "address": "qzqj088pepej0g2ejh668qr238sgv925sg4g5hp57p"
+                    },
+                    {
+                        "chain": "BNB",
+                        "address": "tbnb1syneecwgwvn6zkv47k3cq65fuzrp24yzg9gfnq"
+                    },
+                    {
+                        "chain": "ETH",
+                        "address": "0x61666aa597b4344f855d25b92385b5eb0c650074"
+                    }
+                ]
             }
 
 ### get vault pubkeys [GET /thorchain/vaults/pubkeys]
@@ -513,8 +653,8 @@ Retrieve all the inbound addresses from THORChain
     + Attributes(array[inbound_addresses])
     + Body
 
-            {
-                "current": [
+            
+                [
                     {
                     "chain": "BTC",
                     "pub_key": "tthorpub1addwnpepqd9nqqmgay6mju0yq72ptjucmk9atawtev4v4n6wkee5y26q80eccg0xk37",
@@ -534,7 +674,7 @@ Retrieve all the inbound addresses from THORChain
                     "halted": false
                     }
                 ]
-            }
+            
 ## last_block_height [/thorchain/lastblock/{chain}]
 last block height
 + Parameters
@@ -736,3 +876,9 @@ Retrieve keysign information from THORChain
 + gas_rate (string) - gas rate , signer has to use this gas rate to sign an outbound tx
 + in_hash (string) - inbound tx hash
 + out_hash (string) - outbound tx hash , this will be available after the txout item had been signed and observed back by bifrost
+## ChainRouter (object)
++ chain (string) - chain
++ router (string) - router address
+## ChainAddress (object)
++ chain (string) - chain
++ address (string) - address

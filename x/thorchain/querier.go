@@ -120,17 +120,14 @@ func queryBalanceModule(ctx cosmos.Context, path []string, keeper keeper.Keeper)
 }
 
 func queryVault(ctx cosmos.Context, path []string, keeper keeper.Keeper) ([]byte, error) {
-	if len(path) < 2 {
+	if len(path) < 1 {
 		return nil, errors.New("not enough parameters")
 	}
-	chain, err := common.NewChain(path[0])
+	pubkey, err := common.NewPubKey(path[0])
 	if err != nil {
-		return nil, fmt.Errorf("%s is invalid chain,%w", path[0], err)
+		return nil, fmt.Errorf("%s is invalid pubkey", path[0])
 	}
-	addr, err := common.NewAddress(path[1])
-	if err != nil {
-		return nil, fmt.Errorf("%s is invalid address,%w", path[1], err)
-	}
+
 	iter := keeper.GetVaultIterator(ctx)
 	defer iter.Close()
 	for ; iter.Valid(); iter.Next() {
@@ -139,13 +136,23 @@ func queryVault(ctx cosmos.Context, path []string, keeper keeper.Keeper) ([]byte
 			ctx.Logger().Error("fail to unmarshal vault", "error", err)
 			continue
 		}
-		vaultAddr, err := v.PubKey.GetAddress(chain)
-		if err != nil {
-			ctx.Logger().Error("fail to get vault address", "error", err, "chain", chain.String())
-			continue
-		}
-		if vaultAddr.Equals(addr) {
-			res, err := json.MarshalIndent(v, "", "	")
+		if v.PubKey.Equals(pubkey) {
+			resp := types.QueryVaultResp{
+				BlockHeight:           v.BlockHeight,
+				PubKey:                v.PubKey,
+				Coins:                 v.Coins,
+				Type:                  v.Type,
+				Status:                v.Status,
+				StatusSince:           v.StatusSince,
+				Membership:            v.Membership,
+				Chains:                v.Chains,
+				InboundTxCount:        v.InboundTxCount,
+				OutboundTxCount:       v.OutboundTxCount,
+				PendingTxBlockHeights: v.PendingTxBlockHeights,
+				Routers:               v.Routers,
+				Addresses:             getVaultChainAddress(ctx, v),
+			}
+			res, err := json.MarshalIndent(resp, "", "	")
 			if err != nil {
 				ctx.Logger().Error("fail to marshal vaults response to json", "error", err)
 				return nil, fmt.Errorf("fail to marshal response to json: %w", err)
@@ -162,7 +169,7 @@ func queryAsgardVaults(ctx cosmos.Context, keeper keeper.Keeper) ([]byte, error)
 		return nil, fmt.Errorf("fail to get asgard vaults: %w", err)
 	}
 
-	var vaultsWithFunds Vaults
+	var vaultsWithFunds []types.QueryVaultResp
 	for _, vault := range vaults {
 		if vault.Status == InactiveVault {
 			continue
@@ -171,7 +178,21 @@ func queryAsgardVaults(ctx cosmos.Context, keeper keeper.Keeper) ([]byte, error)
 			continue
 		}
 		if vault.HasFunds() || vault.Status == ActiveVault {
-			vaultsWithFunds = append(vaultsWithFunds, vault)
+			vaultsWithFunds = append(vaultsWithFunds, types.QueryVaultResp{
+				BlockHeight:           vault.BlockHeight,
+				PubKey:                vault.PubKey,
+				Coins:                 vault.Coins,
+				Type:                  vault.Type,
+				Status:                vault.Status,
+				StatusSince:           vault.StatusSince,
+				Membership:            vault.Membership,
+				Chains:                vault.Chains,
+				InboundTxCount:        vault.InboundTxCount,
+				OutboundTxCount:       vault.OutboundTxCount,
+				PendingTxBlockHeights: vault.PendingTxBlockHeights,
+				Routers:               vault.Routers,
+				Addresses:             getVaultChainAddress(ctx, vault),
+			})
 		}
 	}
 
@@ -243,11 +264,21 @@ func queryYggdrasilVaults(ctx cosmos.Context, keeper keeper.Keeper) ([]byte, err
 		}
 
 		respVaults[i] = QueryYggdrasilVaults{
-			Vault:      vault,
-			Status:     na.Status,
-			Bond:       na.Bond,
-			TotalValue: totalValue,
-			Addresses:  getVaultChainAddress(ctx, vault),
+			BlockHeight:           vault.BlockHeight,
+			PubKey:                vault.PubKey,
+			Coins:                 vault.Coins,
+			Type:                  vault.Type,
+			StatusSince:           vault.StatusSince,
+			Membership:            vault.Membership,
+			Chains:                vault.Chains,
+			InboundTxCount:        vault.InboundTxCount,
+			OutboundTxCount:       vault.OutboundTxCount,
+			PendingTxBlockHeights: vault.PendingTxBlockHeights,
+			Routers:               vault.Routers,
+			Status:                na.Status,
+			Bond:                  na.Bond,
+			TotalValue:            totalValue,
+			Addresses:             getVaultChainAddress(ctx, vault),
 		}
 	}
 
