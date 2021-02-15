@@ -10,6 +10,7 @@ services:
       TSS_HOST: localhost
       SIGNER_PASSWD: ${SIGNER_PASSWD}
       BTC_HOST: ${BTC_HOST:-localhost:18443}
+      DOGE_HOST: ${DOGE_HOST:-localhost:18332}
       BCH_HOST: ${BCH_HOST:-localhost:28443}
       LTC_HOST: ${LTC_HOST:-localhost:38443}
       ETH_HOST: ${ETH_HOST:-http://localhost:8545}
