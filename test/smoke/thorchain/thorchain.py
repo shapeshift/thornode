@@ -173,9 +173,9 @@ class ThorchainState:
         self.bond_reward = 0
         self.vault_pubkey = None
         self.network_fees = {}
-        self.btc_estimate_size = 192
-        self.bch_estimate_size = 198
-        self.ltc_estimate_size = 192
+        self.btc_estimate_size = 188
+        self.bch_estimate_size = 269
+        self.ltc_estimate_size = 188
         self.btc_tx_rate = 0
         self.bch_tx_rate = 0
         self.ltc_tx_rate = 0
@@ -397,21 +397,30 @@ class ThorchainState:
                             gap = int(asset_fee / 2) - self.btc_estimate_size * int(
                                 self.btc_tx_rate * 3 / 2
                             )
-                            coin.amount += gap
+                            if gap > 0:
+                                coin.amount += gap
+                            else:
+                                tx.gas = tx.max_gas
 
                         if coin.asset.is_bch() and not asset_fee == 0:
                             tx.max_gas = [Coin(coin.asset, int(asset_fee / 2))]
                             gap = int(asset_fee / 2) - self.bch_estimate_size * int(
                                 self.bch_tx_rate * 3 / 2
                             )
-                            coin.amount += gap
+                            if gap > 0:
+                                coin.amount += gap
+                            else:
+                                tx.gas = tx.max_gas
 
                         if coin.asset.is_ltc() and not asset_fee == 0:
                             tx.max_gas = [Coin(coin.asset, int(asset_fee / 2))]
                             gap = int(asset_fee / 2) - self.ltc_estimate_size * int(
                                 self.ltc_tx_rate * 3 / 2
                             )
-                            coin.amount += gap
+                            if gap > 0:
+                                coin.amount += gap
+                            else:
+                                tx.gas = tx.max_gas
 
                         if coin.asset.get_chain() == "ETH" and not asset_fee == 0:
                             if coin.asset.is_eth():
@@ -858,9 +867,9 @@ class ThorchainState:
         # if this is our last liquidity provider of bnb, subtract a little BNB for gas.
         emit_asset = asset_amt
         outbound_asset_amt = asset_amt
-        self.btc_estimate_size = 233
-        self.bch_estimate_size = 239
-        self.ltc_estimate_size = 233
+        self.btc_estimate_size = 255
+        self.bch_estimate_size = 417
+        self.ltc_estimate_size = 255
         if pool.total_units == 0:
             if pool.asset.is_bnb():
                 gas_amt = gas.amount
@@ -877,8 +886,8 @@ class ThorchainState:
                 pool.asset_balance += dynamic_fee
             elif pool.asset.is_btc():
                 # the last withdraw tx , it need to spend everything
-                # so it will use about 2 UTXO , estimate size is 288
-                self.btc_estimate_size = 192
+                # usually it is only 1 UTXO left
+                self.btc_estimate_size = 188
                 # left enough gas asset otherwise it will get into negative
                 emit_asset -= int(dynamic_fee)
                 estimate_gas_asset = (
@@ -890,8 +899,8 @@ class ThorchainState:
                 asset_amt -= int(dynamic_fee)
             elif pool.asset.is_bch():
                 # the last withdraw tx , it need to spend everything
-                # so it will use about 2 UTXO , estimate size is 288
-                self.bch_estimate_size = 198
+                # usually it is only 1 UTXO left
+                self.bch_estimate_size = 269
                 # left enough gas asset otherwise it will get into negative
                 emit_asset -= int(dynamic_fee)
                 estimate_gas_asset = (
@@ -903,8 +912,8 @@ class ThorchainState:
                 asset_amt -= int(dynamic_fee)
             elif pool.asset.is_ltc():
                 # the last withdraw tx , it need to spend everything
-                # so it will use about 2 UTXO , estimate size is 288
-                self.ltc_estimate_size = 192
+                # usually it is only 1 UTXO left
+                self.ltc_estimate_size = 188
                 # left enough gas asset otherwise it will get into negative
                 emit_asset -= int(dynamic_fee)
                 estimate_gas_asset = (
