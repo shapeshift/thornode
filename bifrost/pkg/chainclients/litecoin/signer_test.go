@@ -360,21 +360,7 @@ func (s *LitecoinSignerSuite) TestIsSelfTransaction(c *C) {
 }
 
 func (s *LitecoinSignerSuite) TestEstimateTxSize(c *C) {
-	txOutItem := stypes.TxOutItem{
-		Chain:       common.LTCChain,
-		ToAddress:   types2.GetRandomLTCAddress(),
-		VaultPubKey: types2.GetRandomPubKey(),
-		Coins: common.Coins{
-			common.NewCoin(common.LTCAsset, cosmos.NewUint(10)),
-		},
-		MaxGas: common.Gas{
-			common.NewCoin(common.LTCAsset, cosmos.NewUint(1)),
-		},
-		InHash:  "",
-		OutHash: "",
-		Memo:    "MIGRATE:1234",
-	}
-	size, err := s.client.estimateTxSize(txOutItem, []btcjson.ListUnspentResult{
+	size := s.client.estimateTxSize("OUT:2180B871F2DEA2546E1403DBFE9C26B062ABAFFD979CF3A65F2B4D2230105CF1", []btcjson.ListUnspentResult{
 		{
 			TxID:      "66d2d6b5eb564972c59e4797683a1225a02515a41119f0a8919381236b63e948",
 			Vout:      0,
@@ -386,6 +372,5 @@ func (s *LitecoinSignerSuite) TestEstimateTxSize(c *C) {
 			Spendable: true,
 		},
 	})
-	c.Assert(err, IsNil)
-	c.Assert(size, Equals, int64(177))
+	c.Assert(size, Equals, int64(255))
 }
