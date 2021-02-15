@@ -2,6 +2,7 @@ package dogecoin
 
 import (
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strconv"
@@ -10,11 +11,11 @@ import (
 	"time"
 
 	"github.com/cosmos/cosmos-sdk/crypto/codec"
-	"github.com/eager7/dogutil"
 	"github.com/eager7/dogd/btcec"
 	"github.com/eager7/dogd/btcjson"
 	"github.com/eager7/dogd/chaincfg/chainhash"
 	"github.com/eager7/dogd/rpcclient"
+	"github.com/eager7/dogutil"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	tssp "gitlab.com/thorchain/tss/go-tss/tss"
@@ -523,18 +524,18 @@ func (c *Client) updateNetworkInfo() {
 }
 
 func (c *Client) sendNetworkFee(height int64) error {
-	result, err := c.client.GetBlockStats(height, nil)
+	result, err := c.client.EstimateSmartFee(1, &btcjson.EstimateModeConservative)
 	if err != nil {
-		return fmt.Errorf("fail to get block stats")
+		return fmt.Errorf("fail to estimate smart fee")
 	}
 	// fee rate and tx size should not be 0
-	if result.AverageFeeRate == 0 {
+	if *result.FeeRate == float64(-1) {
 		return nil
 	}
-	feeRate := result.AverageFeeRate
-	if EstimateAverageTxSize*uint64(feeRate) < c.minRelayFeeSats {
-		feeRate = int64(c.minRelayFeeSats) / EstimateAverageTxSize
-		if uint64(feeRate)*EstimateAverageTxSize < c.minRelayFeeSats {
+	feeRate := uint64(*result.FeeRate * 1000) // BTC/kbytes -> sats/bytes
+	if EstimateAverageTxSize*feeRate < c.minRelayFeeSats {
+		feeRate = c.minRelayFeeSats / EstimateAverageTxSize
+		if feeRate*EstimateAverageTxSize < c.minRelayFeeSats {
 			feeRate++
 		}
 	}
@@ -552,7 +553,49 @@ func (c *Client) getBlock(height int64) (*btcjson.GetBlockVerboseTxResult, error
 	if err != nil {
 		return &btcjson.GetBlockVerboseTxResult{}, err
 	}
-	return c.client.GetBlockVerboseTx(hash)
+	hashJSON, err := json.Marshal(hash.String())
+	if err != nil {
+		return &btcjson.GetBlockVerboseTxResult{}, err
+	}
+	rawBlock, err := c.client.RawRequest("getblock", []json.RawMessage{hashJSON})
+	if err != nil {
+		return &btcjson.GetBlockVerboseTxResult{}, err
+	}
+	var block btcjson.GetBlockVerboseResult
+	err = json.Unmarshal(rawBlock, &block)
+	if err != nil {
+		return &btcjson.GetBlockVerboseTxResult{}, err
+	}
+	blockResult := btcjson.GetBlockVerboseTxResult{
+		Hash:          block.Hash,
+		Confirmations: block.Confirmations,
+		StrippedSize:  block.StrippedSize,
+		Size:          block.Size,
+		Weight:        block.Weight,
+		Height:        block.Height,
+		Version:       block.Version,
+		VersionHex:    block.VersionHex,
+		MerkleRoot:    block.MerkleRoot,
+		Time:          block.Time,
+		Nonce:         block.Nonce,
+		Bits:          block.Bits,
+		Difficulty:    block.Difficulty,
+		PreviousHash:  block.PreviousHash,
+		NextHash:      block.NextHash,
+	}
+	for _, txID := range block.Tx {
+		txHash, err := chainhash.NewHashFromStr(txID)
+		if err != nil {
+			return &btcjson.GetBlockVerboseTxResult{}, err
+		}
+		tx, err := c.client.GetRawTransactionVerbose(txHash)
+		if err != nil {
+			return &btcjson.GetBlockVerboseTxResult{}, err
+		}
+		blockResult.Tx = append(blockResult.Tx, *tx)
+	}
+	c.logger.Info().Msgf("block %v", blockResult)
+	return &blockResult, nil
 }
 
 func (c *Client) getTxIn(tx *btcjson.TxRawResult, height int64) (types.TxInItem, error) {
