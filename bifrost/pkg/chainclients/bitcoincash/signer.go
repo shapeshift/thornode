@@ -183,45 +183,14 @@ func (c *Client) getSourceScript(tx stypes.TxOutItem) ([]byte, error) {
 
 // estimateTxSize will create a temporary MsgTx, and use it to estimate the final tx size
 // the value in the temporary MsgTx is not real
-func (c *Client) estimateTxSize(tx stypes.TxOutItem, txes []btcjson.ListUnspentResult) (int64, error) {
-	sourceScript, err := c.getSourceScript(tx)
-	if err != nil {
-		return 0, fmt.Errorf("fail to get source pay to address script: %w", err)
-	}
-	redeemTx := wire.NewMsgTx(wire.TxVersion)
-	for _, item := range txes {
-		txID, err := chainhash.NewHashFromStr(item.TxID)
-		if err != nil {
-			return 0, fmt.Errorf("fail to parse txID(%s): %w", item.TxID, err)
-		}
-		// double check that the utxo is still valid
-		outputPoint := wire.NewOutPoint(txID, item.Vout)
-		sourceTxIn := wire.NewTxIn(outputPoint, nil)
-		redeemTx.AddTxIn(sourceTxIn)
-	}
-	outputAddr, err := bchutil.DecodeAddress(tx.ToAddress.String(), c.getChainCfg())
-	if err != nil {
-		return 0, fmt.Errorf("fail to decode next address: %w", err)
-	}
-	buf, err := txscript.PayToAddrScript(outputAddr)
-	if err != nil {
-		return 0, fmt.Errorf("fail to get pay to address script: %w", err)
-	}
-
-	redeemTxOut := wire.NewTxOut(int64(1024), buf)
-	redeemTx.AddTxOut(redeemTxOut)
-	redeemTx.AddTxOut(wire.NewTxOut(1024, sourceScript))
-
-	// memo
-	if len(tx.Memo) != 0 {
-		nullDataScript, err := txscript.NullDataScript([]byte(tx.Memo))
-		if err != nil {
-			return 0, fmt.Errorf("fail to generate null data script: %w", err)
-		}
-		redeemTx.AddTxOut(wire.NewTxOut(0, nullDataScript))
-	}
-	// given the output in redeemTx has not been signed , so the estimated tx size will be smaller than the real size
-	return int64(redeemTx.SerializeSize()), nil
+// https://bitcoinops.org/en/tools/calc-size/
+func (c *Client) estimateTxSize(memo string, txes []btcjson.ListUnspentResult) int64 {
+	// overhead - 10
+	// Per input - 148
+	// Per output - 34 , we might have 1 / 2 output , depends on the circumstances , here we only count 1  output , would rather underestimate
+	// so we won't hit absurd hight fee issue
+	// overhead for NULL DATA - 9 , len(memo) is the size of memo
+	return int64(10 + 148*len(txes) + 34 + 9 + len([]byte(memo)))
 }
 
 // SignTx is going to generate the outbound transaction, and also sign it
@@ -275,10 +244,7 @@ func (c *Client) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, err
 		return nil, fmt.Errorf("fail to parse total amount(%f),err: %w", totalAmt, err)
 	}
 	coinToCustomer := tx.Coins.GetCoin(common.BCHAsset)
-	totalSize, err := c.estimateTxSize(tx, txes)
-	if err != nil {
-		return nil, fmt.Errorf("fail to estimate tx size, err:%w", err)
-	}
+	totalSize := c.estimateTxSize(tx.Memo, txes)
 
 	// bitcoind has a default rule max fee rate should less than 0.1 BCH / kb
 	// the MaxGas coming from THORChain doesn't follow this rule , thus the MaxGas might be over the limit
@@ -300,7 +266,6 @@ func (c *Client) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, err
 		gasAmtSats = c.minRelayFeeSats
 	}
 
-	// if the total gas spend is more than max gas , then we have to take away some from the amount pay to customer
 	if !tx.MaxGas.IsEmpty() {
 		maxGasCoin := tx.MaxGas.ToCoins().GetCoin(common.BCHAsset)
 		if gasAmtSats > maxGasCoin.Amount.Uint64() {
