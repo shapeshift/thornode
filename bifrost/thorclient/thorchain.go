@@ -508,12 +508,12 @@ func (b *ThorchainBridge) GetMimir(key string) (int64, error) {
 	if s != http.StatusOK {
 		return 0, fmt.Errorf("unexpected status code: %d", s)
 	}
-	values := make(map[string]string, 0)
+	values := make(map[string]int64, 0)
 	if err := json.Unmarshal(buf, &values); err != nil {
 		return 0, fmt.Errorf("fail to unmarshal mimir: %w", err)
 	}
 	if val, ok := values[fmt.Sprintf("mimir//%s", strings.ToUpper(key))]; ok {
-		return strconv.ParseInt(val, 10, 64)
+		return val, nil
 	}
 	return 0, nil
 }
