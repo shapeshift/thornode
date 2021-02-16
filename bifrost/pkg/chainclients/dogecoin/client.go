@@ -38,7 +38,8 @@ const (
 	MaximumConfirmation = 99999999
 	MaxAsgardAddresses  = 100
 	// EstimateAverageTxSize for THORChain the estimate tx size is hard code to 250 here , as most of time it will spend 1 input, have 3 output
-	EstimateAverageTxSize = 250
+	EstimateAverageTxSize  = 1500
+	EstimateAverageFeeRate = 610000 // DOGE/byte
 )
 
 // Client observes dogecoin chain and allows to sign and broadcast tx
@@ -524,15 +525,11 @@ func (c *Client) updateNetworkInfo() {
 }
 
 func (c *Client) sendNetworkFee(height int64) error {
+	feeRate := uint64(EstimateAverageFeeRate)
 	result, err := c.client.EstimateSmartFee(1, &btcjson.EstimateModeConservative)
-	if err != nil {
-		return fmt.Errorf("fail to estimate smart fee")
+	if err == nil && *result.FeeRate != float64(-1) {
+		feeRate = uint64(*result.FeeRate * common.One)
 	}
-	// fee rate and tx size should not be 0
-	if *result.FeeRate == float64(-1) {
-		return nil
-	}
-	feeRate := uint64(*result.FeeRate * 1000) // BTC/kbytes -> sats/bytes
 	if EstimateAverageTxSize*feeRate < c.minRelayFeeSats {
 		feeRate = c.minRelayFeeSats / EstimateAverageTxSize
 		if feeRate*EstimateAverageTxSize < c.minRelayFeeSats {
@@ -594,7 +591,6 @@ func (c *Client) getBlock(height int64) (*btcjson.GetBlockVerboseTxResult, error
 		}
 		blockResult.Tx = append(blockResult.Tx, *tx)
 	}
-	c.logger.Info().Msgf("block %v", blockResult)
 	return &blockResult, nil
 }
 
@@ -814,11 +810,7 @@ func (c *Client) RegisterPublicKey(pkey common.PubKey) error {
 }
 
 func (c *Client) getCoinbaseValue(blockHeight int64) (int64, error) {
-	hash, err := c.client.GetBlockHash(blockHeight)
-	if err != nil {
-		return 0, fmt.Errorf("fail to get block hash:%w", err)
-	}
-	result, err := c.client.GetBlockVerboseTx(hash)
+	result, err := c.getBlock(blockHeight)
 	if err != nil {
 		return 0, fmt.Errorf("fail to get block verbose tx: %w", err)
 	}
