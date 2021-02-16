@@ -173,21 +173,21 @@ func (s *DogecoinSuite) TestGetBlock(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(block.Hash, Equals, "000000008de7a25f64f9780b6c894016d2c63716a89f7c9e704ebb7e8377a0c8")
 	c.Assert(block.Tx[0].Txid, Equals, "31f8699ce9028e9cd37f8a6d58a79e614a96e3fdd0f58be5fc36d2d95484716f")
-	c.Assert(len(block.Tx), Equals, 110)
+	c.Assert(len(block.Tx), Equals, 4)
 }
 
 func (s *DogecoinSuite) TestFetchTxs(c *C) {
 	txs, err := s.client.FetchTxs(0)
 	c.Assert(err, IsNil)
 	c.Assert(txs.Chain, Equals, common.DOGEChain)
-	c.Assert(txs.Count, Equals, "105")
+	c.Assert(txs.Count, Equals, "1")
 	c.Assert(txs.TxArray[0].BlockHeight, Equals, int64(1696761))
-	c.Assert(txs.TxArray[0].Tx, Equals, "24ed2d26fd5d4e0e8fa86633e40faf1bdfc8d1903b1cd02855286312d48818a2")
+	c.Assert(txs.TxArray[0].Tx, Equals, "54ef2f4679fb90af42e8d963a5d85645d0fd86e5fe8ea4e69dbf2d444cb26528")
 	c.Assert(txs.TxArray[0].Sender, Equals, "nfWiQeddE4zsYsDuYhvpgVC7y4gjr5RyqK")
 	c.Assert(txs.TxArray[0].To, Equals, "mv4rnyY3Su5gjcDNzbMLKBQkBicCtHUtFB")
-	c.Assert(txs.TxArray[0].Coins.Equals(common.Coins{common.NewCoin(common.DOGEAsset, cosmos.NewUint(10000000))}), Equals, true)
-	c.Assert(txs.TxArray[0].Gas.Equals(common.Gas{common.NewCoin(common.DOGEAsset, cosmos.NewUint(22705334))}), Equals, true)
-	c.Assert(len(txs.TxArray), Equals, 105)
+	c.Assert(txs.TxArray[0].Coins.Equals(common.Coins{common.NewCoin(common.DOGEAsset, cosmos.NewUint(4072503))}), Equals, true)
+	c.Assert(txs.TxArray[0].Gas.Equals(common.Gas{common.NewCoin(common.DOGEAsset, cosmos.NewUint(11083355))}), Equals, true)
+	c.Assert(len(txs.TxArray), Equals, 1)
 }
 
 func (s *DogecoinSuite) TestGetSender(c *C) {
