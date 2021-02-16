@@ -457,7 +457,7 @@ func queryNode(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper 
 	result.Jail = jail
 	// CurrentAward is an estimation of reward for node in active status
 	// Node in other status should not have current reward
-	if nodeAcc.Status == NodeActive {
+	if nodeAcc.Status == NodeActive && !nodeAcc.Bond.IsZero() {
 		network, err := keeper.GetNetwork(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("fail to get network: %w", err)
@@ -973,12 +973,12 @@ func queryMimirValues(ctx cosmos.Context, path []string, req abci.RequestQuery, 
 	iter := keeper.GetMimirIterator(ctx)
 	defer iter.Close()
 	for ; iter.Valid(); iter.Next() {
-		value, err := keeper.GetMimir(ctx, string(iter.Key()))
-		if err != nil {
+		value := types.ProtoInt64{}
+		if err := keeper.Cdc().UnmarshalBinaryBare(iter.Value(), &value); err != nil {
 			ctx.Logger().Error("fail to unmarshal mimir value", "error", err)
 			return nil, fmt.Errorf("fail to unmarshal mimir value: %w", err)
 		}
-		values[string(iter.Key())] = value
+		values[string(iter.Key())] = value.GetValue()
 	}
 	res, err := json.MarshalIndent(values, "", "	")
 	if err != nil {
