@@ -98,7 +98,8 @@ if [ "$SEED" = "$(hostname)" ]; then
       set_eth_contract $CONTRACT
     fi
     if [ "$NET" == "testnet" ]; then
-        reserve 22000000000000000
+        # mint 1m RUNE to reserve for testnet
+        reserve 100000000000000
     fi
 
     # enable telemetry through prometheus metrics endpoint
