@@ -10,7 +10,7 @@ endif
 
 run-mocknet-standalone:
 	IMAGE=${IMAGE} TAG=mocknet NET=mocknet docker-compose -p thornode \
-		-f ${path}../components/standalone.base.yml -f ${path}../components/frontend.yml \
+		-f ${path}../components/standalone.base.yml \
 		-f ${path}../components/midgard.yml -f ${path}../components/midgard.${uname_S}.yml \
 		-f ${path}../components/mock-binance.yml -f ${path}../components/bitcoin-regtest.yml -f ${path}../components/litecoin-regtest.yml \
 		-f ${path}../components/ethereum-localnet.yml -f ${path}../components/bitcoin-cash-regtest.yml -f ${path}../components/dogecoin-regtest.yml \
