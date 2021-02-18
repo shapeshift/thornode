@@ -560,7 +560,6 @@ func (c *Client) getTxIn(tx *btcjson.TxRawResult, height int64) (types.TxInItem,
 		c.logger.Debug().Msgf("ignore (%s) , not correct format", tx.Hash)
 		return types.TxInItem{}, nil
 	}
-
 	sender, err := c.getSender(tx)
 	if err != nil {
 		return types.TxInItem{}, fmt.Errorf("fail to get sender from tx: %w", err)
@@ -572,9 +571,6 @@ func (c *Client) getTxIn(tx *btcjson.TxRawResult, height int64) (types.TxInItem,
 	output, err := c.getOutput(sender, tx)
 	if err != nil {
 		return types.TxInItem{}, fmt.Errorf("fail to get output from tx: %w", err)
-	}
-	if output.Value <= minSpendableUTXOAmount {
-		return types.TxInItem{}, fmt.Errorf("amount is less than %f, consider as dust,ignore", minSpendableUTXOAmount)
 	}
 	amount, err := btcutil.NewAmount(output.Value)
 	if err != nil {
@@ -615,6 +611,12 @@ func (c *Client) extractTxs(block *btcjson.GetBlockVerboseTxResult, blockMeta *B
 			continue
 		}
 		if txInItem.IsEmpty() {
+			continue
+		}
+		if txInItem.Coins.IsEmpty() {
+			continue
+		}
+		if txInItem.Coins[0].Amount.LTE(cosmos.NewUint(minSpendableUTXOAmountSats)) {
 			continue
 		}
 		txItems = append(txItems, txInItem)
