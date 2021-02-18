@@ -28,4 +28,5 @@ message Pool {
   string pool_units = 4 [(gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Uint", (gogoproto.nullable) = false];
   PoolStatus status = 5;
   int64 decimals = 6;
+  string synth_units = 7 [(gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Uint", (gogoproto.nullable) = false];
 }
