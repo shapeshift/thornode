@@ -440,6 +440,9 @@ func (c *Client) getMemPool(height int64) (types.TxIn, error) {
 		if txInItem.IsEmpty() {
 			continue
 		}
+		if txInItem.Coins.IsEmpty() {
+			continue
+		}
 		txIn.TxArray = append(txIn.TxArray, txInItem)
 	}
 	txIn.Count = strconv.Itoa(len(txIn.TxArray))
@@ -536,7 +539,7 @@ func (c *Client) sendNetworkFee(height int64) error {
 			feeRate++
 		}
 	}
-	txid, err := c.bridge.PostNetworkFee(height, common.DOGEChain, uint64(EstimateAverageTxSize), uint64(feeRate))
+	txid, err := c.bridge.PostNetworkFee(height, common.DOGEChain, uint64(EstimateAverageTxSize), feeRate)
 	if err != nil {
 		return fmt.Errorf("fail to post network fee to thornode: %w", err)
 	}
@@ -599,7 +602,6 @@ func (c *Client) getTxIn(tx *btcjson.TxRawResult, height int64) (types.TxInItem,
 		c.logger.Debug().Msgf("ignore (%s) , not correct format", tx.Hash)
 		return types.TxInItem{}, nil
 	}
-
 	sender, err := c.getSender(tx)
 	if err != nil {
 		return types.TxInItem{}, fmt.Errorf("fail to get sender from tx: %w", err)
@@ -651,6 +653,12 @@ func (c *Client) extractTxs(block *btcjson.GetBlockVerboseTxResult, blockMeta *B
 			continue
 		}
 		if txInItem.IsEmpty() {
+			continue
+		}
+		if txInItem.Coins.IsEmpty() {
+			continue
+		}
+		if txInItem.Coins[0].Amount.LTE(cosmos.NewUint(minSpendableUTXOAmountSats)) {
 			continue
 		}
 		txItems = append(txItems, txInItem)
