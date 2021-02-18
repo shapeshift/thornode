@@ -43,6 +43,7 @@ func (k *TestSwapKeeper) GetPool(ctx cosmos.Context, asset common.Asset) (types.
 			BalanceRune:  cosmos.NewUint(100).MulUint64(common.One),
 			BalanceAsset: cosmos.NewUint(100).MulUint64(common.One),
 			PoolUnits:    cosmos.NewUint(100).MulUint64(common.One),
+			SynthUnits:   cosmos.ZeroUint(),
 			Status:       PoolStaged,
 			Asset:        asset,
 		}, nil
@@ -51,6 +52,7 @@ func (k *TestSwapKeeper) GetPool(ctx cosmos.Context, asset common.Asset) (types.
 			BalanceRune:  cosmos.NewUint(100).MulUint64(common.One),
 			BalanceAsset: cosmos.NewUint(100).MulUint64(common.One),
 			PoolUnits:    cosmos.NewUint(100).MulUint64(common.One),
+			SynthUnits:   cosmos.ZeroUint(),
 			Status:       PoolAvailable,
 			Asset:        asset,
 		}, nil
@@ -368,7 +370,7 @@ func (s *SwapSuite) TestSwap(c *C) {
 		m.BeginBlock(ctx)
 		m.txOutStore = NewTxStoreDummy()
 
-		amount, evts, err := swap(ctx, poolStorage, tx, item.target, item.destination, item.tradeTarget, cosmos.NewUint(1000_000), 2, m)
+		amount, evts, err := swapV1(ctx, poolStorage, tx, item.target, item.destination, item.tradeTarget, cosmos.NewUint(1000_000), 2, m)
 		if item.expectedErr == nil {
 			c.Assert(err, IsNil)
 			c.Assert(evts, HasLen, item.events)
@@ -386,12 +388,12 @@ func (s *SwapSuite) TestSwap(c *C) {
 func (s SwapSuite) TestValidatePools(c *C) {
 	keeper := &TestSwapKeeper{}
 	ctx, _ := setupKeeperForTest(c)
-	c.Check(validatePools(ctx, keeper, common.RuneAsset()), IsNil)
-	c.Check(validatePools(ctx, keeper, common.Asset{Chain: common.BNBChain, Ticker: "NOTEXIST", Symbol: "NOTEXIST"}), NotNil)
+	c.Check(validatePoolsV1(ctx, keeper, common.RuneAsset()), IsNil)
+	c.Check(validatePoolsV1(ctx, keeper, common.Asset{Chain: common.BNBChain, Ticker: "NOTEXIST", Symbol: "NOTEXIST"}), NotNil)
 }
 
 func (s SwapSuite) TestValidateMessage(c *C) {
-	c.Check(validateMessage(
+	c.Check(validateMessageV1(
 		common.NewTx(
 			GetRandomTxHash(),
 			GetRandomBNBAddress(),
@@ -405,7 +407,7 @@ func (s SwapSuite) TestValidateMessage(c *C) {
 		common.BNBAsset,
 		"bnbYYY",
 	), IsNil)
-	c.Check(validateMessage(
+	c.Check(validateMessageV1(
 		common.NewTx(
 			"",
 			GetRandomBNBAddress(),
@@ -419,7 +421,7 @@ func (s SwapSuite) TestValidateMessage(c *C) {
 		common.BNBAsset,
 		"bnbYYY",
 	), NotNil)
-	c.Check(validateMessage(
+	c.Check(validateMessageV1(
 		common.NewTx(
 			GetRandomTxHash(),
 			GetRandomBNBAddress(),
@@ -433,7 +435,7 @@ func (s SwapSuite) TestValidateMessage(c *C) {
 		common.BNBAsset,
 		"bnbYYY",
 	), NotNil)
-	c.Check(validateMessage(
+	c.Check(validateMessageV1(
 		common.NewTx(
 			GetRandomTxHash(),
 			GetRandomBNBAddress(),
@@ -447,7 +449,7 @@ func (s SwapSuite) TestValidateMessage(c *C) {
 		common.Asset{},
 		"bnbYYY",
 	), NotNil)
-	c.Check(validateMessage(
+	c.Check(validateMessageV1(
 		common.NewTx(
 			GetRandomTxHash(),
 			GetRandomBNBAddress(),
@@ -461,7 +463,7 @@ func (s SwapSuite) TestValidateMessage(c *C) {
 		common.BNBAsset,
 		"bnbYYY",
 	), NotNil)
-	c.Check(validateMessage(
+	c.Check(validateMessageV1(
 		common.NewTx(
 			GetRandomTxHash(),
 			"",
@@ -475,7 +477,7 @@ func (s SwapSuite) TestValidateMessage(c *C) {
 		common.BNBAsset,
 		"bnbYYY",
 	), NotNil)
-	c.Check(validateMessage(
+	c.Check(validateMessageV1(
 		common.NewTx(
 			GetRandomTxHash(),
 			GetRandomBNBAddress(),
@@ -498,9 +500,9 @@ func (s SwapSuite) TestCalculators(c *C) {
 
 	// These calculations are verified by using the spreadsheet
 	// https://docs.google.com/spreadsheets/d/1wJHYBRKBdw_WP7nUyVnkySPkOmPUNoiRGsEqgBVVXKU/edit#gid=0
-	c.Check(calcAssetEmission(X, x, Y).Uint64(), Equals, uint64(826446280))
-	c.Check(calcLiquidityFee(X, x, Y).Uint64(), Equals, uint64(82644628))
-	c.Check(calcSwapSlip(X, x).Uint64(), Equals, uint64(909), Commentf("%d", calcSwapSlip(X, x).Uint64()))
+	c.Check(calcAssetEmissionV1(X, x, Y).Uint64(), Equals, uint64(826446280))
+	c.Check(calcLiquidityFeeV1(X, x, Y).Uint64(), Equals, uint64(82644628))
+	c.Check(calcSwapSlipV1(X, x).Uint64(), Equals, uint64(909), Commentf("%d", calcSwapSlipV1(X, x).Uint64()))
 
 	// side of the pool is zero
 	X = cosmos.NewUint(100 * common.One)
@@ -509,9 +511,9 @@ func (s SwapSuite) TestCalculators(c *C) {
 
 	// These calculations are verified by using the spreadsheet
 	// https://docs.google.com/spreadsheets/d/1wJHYBRKBdw_WP7nUyVnkySPkOmPUNoiRGsEqgBVVXKU/edit#gid=0
-	c.Check(calcAssetEmission(X, x, Y).Uint64(), Equals, uint64(0))
-	c.Check(calcLiquidityFee(X, x, Y).Uint64(), Equals, uint64(0))
-	c.Check(calcSwapSlip(X, x).Uint64(), Equals, uint64(909), Commentf("%d", calcSwapSlip(X, x).Uint64()))
+	c.Check(calcAssetEmissionV1(X, x, Y).Uint64(), Equals, uint64(0))
+	c.Check(calcLiquidityFeeV1(X, x, Y).Uint64(), Equals, uint64(0))
+	c.Check(calcSwapSlipV1(X, x).Uint64(), Equals, uint64(909), Commentf("%d", calcSwapSlipV1(X, x).Uint64()))
 
 	// side of the pool is zero
 	X = cosmos.NewUint(0 * common.One)
@@ -520,7 +522,7 @@ func (s SwapSuite) TestCalculators(c *C) {
 
 	// These calculations are verified by using the spreadsheet
 	// https://docs.google.com/spreadsheets/d/1wJHYBRKBdw_WP7nUyVnkySPkOmPUNoiRGsEqgBVVXKU/edit#gid=0
-	c.Check(calcAssetEmission(X, x, Y).Uint64(), Equals, uint64(0))
-	c.Check(calcLiquidityFee(X, x, Y).Uint64(), Equals, uint64(100*common.One), Commentf("%d", calcLiquidityFee(X, x, Y).Uint64()))
-	c.Check(calcSwapSlip(X, x).Uint64(), Equals, uint64(10000), Commentf("%d", calcSwapSlip(X, x).Uint64()))
+	c.Check(calcAssetEmissionV1(X, x, Y).Uint64(), Equals, uint64(0))
+	c.Check(calcLiquidityFeeV1(X, x, Y).Uint64(), Equals, uint64(100*common.One), Commentf("%d", calcLiquidityFeeV1(X, x, Y).Uint64()))
+	c.Check(calcSwapSlipV1(X, x).Uint64(), Equals, uint64(10000), Commentf("%d", calcSwapSlipV1(X, x).Uint64()))
 }
