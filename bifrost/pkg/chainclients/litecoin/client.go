@@ -572,9 +572,6 @@ func (c *Client) getTxIn(tx *btcjson.TxRawResult, height int64) (types.TxInItem,
 	if err != nil {
 		return types.TxInItem{}, fmt.Errorf("fail to get output from tx: %w", err)
 	}
-	if output.Value <= minSpendableUTXOAmount {
-		return types.TxInItem{}, fmt.Errorf("amount is less than %f, consider as dust,ignore", minSpendableUTXOAmount)
-	}
 	amount, err := ltcutil.NewAmount(output.Value)
 	if err != nil {
 		return types.TxInItem{}, fmt.Errorf("fail to parse float64: %w", err)
@@ -614,6 +611,12 @@ func (c *Client) extractTxs(block *btcjson.GetBlockVerboseTxResult, blockMeta *B
 			continue
 		}
 		if txInItem.IsEmpty() {
+			continue
+		}
+		if txInItem.Coins.IsEmpty() {
+			continue
+		}
+		if txInItem.Coins[0].Amount.LTE(cosmos.NewUint(minSpendableUTXOAmountSats)) {
 			continue
 		}
 		txItems = append(txItems, txInItem)
