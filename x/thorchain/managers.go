@@ -245,7 +245,9 @@ func GetTxOutStore(keeper keeper.Keeper, version semver.Version, eventMgr EventM
 
 // GetVaultManager retrieve a NetworkManager that is compatible with the given version
 func GetVaultManager(keeper keeper.Keeper, version semver.Version, txOutStore TxOutStore, eventMgr EventManager) (NetworkManager, error) {
-	if version.GTE(semver.MustParse("0.21.0")) {
+	if version.GTE(semver.MustParse("0.24.0")) {
+		return NewNetworkMgrV24(keeper, txOutStore, eventMgr), nil
+	} else if version.GTE(semver.MustParse("0.21.0")) {
 		return NewNetworkMgrV21(keeper, txOutStore, eventMgr), nil
 	} else if version.GTE(semver.MustParse("0.20.0")) {
 		return NewNetworkMgrV20(keeper, txOutStore, eventMgr), nil
