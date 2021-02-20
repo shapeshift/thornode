@@ -1,7 +1,8 @@
-package bitcoincash
+package dogecoin
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"sort"
@@ -9,14 +10,15 @@ import (
 	"sync"
 
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
-	"github.com/gcash/bchd/bchec"
-	"github.com/gcash/bchd/btcjson"
-	"github.com/gcash/bchd/chaincfg"
-	"github.com/gcash/bchd/chaincfg/chainhash"
-	"github.com/gcash/bchd/wire"
-	"github.com/gcash/bchutil"
+	"github.com/eager7/dogd/btcec"
+	"github.com/eager7/dogd/btcjson"
+	"github.com/eager7/dogd/chaincfg"
+	"github.com/eager7/dogd/chaincfg/chainhash"
+	"github.com/eager7/dogd/mempool"
+	"github.com/eager7/dogd/wire"
+	"github.com/eager7/dogutil"
 	"github.com/hashicorp/go-multierror"
-	txscript "gitlab.com/thorchain/bifrost/bchd-txscript"
+	txscript "gitlab.com/thorchain/bifrost/dogd-txscript"
 
 	stypes "gitlab.com/thorchain/thornode/bifrost/thorclient/types"
 	"gitlab.com/thorchain/thornode/bifrost/tss"
@@ -30,14 +32,14 @@ const (
 	SatsPervBytes = 25
 	// MinUTXOConfirmation UTXO that has less confirmation then this will not be spent , unless it is yggdrasil
 	MinUTXOConfirmation        = 1
-	defaultMaxBCHFeeRate       = bchutil.SatoshiPerBitcoin / 10
+	defaultMaxDOGEFeeRate      = dogutil.SatoshiPerBitcoin * 10
 	maxUTXOsToSpend            = 15
 	signUTXOBatchSize          = 10
 	minSpendableUTXOAmountSats = 10000 // If UTXO is less than this , it will not observed , and will not spend it either
 )
 
-func getBCHPrivateKey(key cryptotypes.PrivKey) (*bchec.PrivateKey, error) {
-	privateKey, _ := bchec.PrivKeyFromBytes(bchec.S256(), key.Bytes())
+func getDOGEPrivateKey(key cryptotypes.PrivKey) (*btcec.PrivateKey, error) {
+	privateKey, _ := btcec.PrivKeyFromBytes(btcec.S256(), key.Bytes())
 	return privateKey, nil
 }
 
@@ -61,10 +63,10 @@ func (c *Client) getGasCoin(tx stypes.TxOutItem, vSize int64) common.Coin {
 		fee, vBytes, err := c.blockMetaAccessor.GetTransactionFee()
 		if err != nil {
 			c.logger.Error().Err(err).Msg("fail to get previous transaction fee from local storage")
-			return common.NewCoin(common.BCHAsset, cosmos.NewUint(uint64(vSize*gasRate)))
+			return common.NewCoin(common.DOGEAsset, cosmos.NewUint(uint64(vSize*gasRate)))
 		}
 		if fee != 0.0 && vSize != 0 {
-			amt, err := bchutil.NewAmount(fee)
+			amt, err := dogutil.NewAmount(fee)
 			if err != nil {
 				c.logger.Err(err).Msg("fail to convert amount from float64 to int64")
 			} else {
@@ -76,7 +78,7 @@ func (c *Client) getGasCoin(tx stypes.TxOutItem, vSize int64) common.Coin {
 	if gasRate == 0 {
 		gasRate = int64(SatsPervBytes)
 	}
-	return common.NewCoin(common.BCHAsset, cosmos.NewUint(uint64(gasRate*vSize)))
+	return common.NewCoin(common.DOGEAsset, cosmos.NewUint(uint64(gasRate*vSize)))
 }
 
 // isYggdrasil - when the pubkey and node pubkey is the same that means it is signing from yggdrasil
@@ -106,7 +108,7 @@ func (c *Client) getUtxoToSpend(pubKey common.PubKey, total float64) ([]btcjson.
 		return utxos[i].TxID < utxos[j].TxID
 	})
 	var toSpend float64
-	minUTXOAmt := bchutil.Amount(minSpendableUTXOAmountSats).ToBCH()
+	minUTXOAmt := dogutil.Amount(minSpendableUTXOAmountSats).ToBTC()
 	for _, item := range utxos {
 		if item.Amount <= minUTXOAmt {
 			continue
@@ -150,32 +152,40 @@ func (c *Client) getBlockHeight() (int64, error) {
 	if err != nil {
 		return 0, fmt.Errorf("fail to get best block hash: %w", err)
 	}
-	blockInfo, err := c.client.GetBlockVerbose(hash, false)
+	hashJSON, err := json.Marshal(hash.String())
 	if err != nil {
-		return 0, fmt.Errorf("fail to get the best block detail: %w", err)
+		return 0, fmt.Errorf("fail to marshal block hash: %w", err)
 	}
-
+	rawBlock, err := c.client.RawRequest("getblock", []json.RawMessage{hashJSON})
+	if err != nil {
+		return 0, fmt.Errorf("fail to get best block detail: %w", err)
+	}
+	var blockInfo btcjson.GetBlockVerboseResult
+	err = json.Unmarshal(rawBlock, &blockInfo)
+	if err != nil {
+		return 0, fmt.Errorf("fail to unmarshal block detail: %w", err)
+	}
 	return blockInfo.Height, nil
 }
 
-func (c *Client) getBCHPaymentAmount(tx stypes.TxOutItem) float64 {
-	amtToPay := tx.Coins.GetCoin(common.BCHAsset).Amount.Uint64()
-	amtToPayInBCH := bchutil.Amount(int64(amtToPay)).ToBCH()
+func (c *Client) getDOGEPaymentAmount(tx stypes.TxOutItem) float64 {
+	amtToPay := tx.Coins.GetCoin(common.DOGEAsset).Amount.Uint64()
+	amtToPayInDOGE := dogutil.Amount(int64(amtToPay)).ToBTC()
 	if !tx.MaxGas.IsEmpty() {
-		gasAmt := tx.MaxGas.ToCoins().GetCoin(common.BCHAsset).Amount
-		amtToPayInBCH += bchutil.Amount(int64(gasAmt.Uint64())).ToBCH()
+		gasAmt := tx.MaxGas.ToCoins().GetCoin(common.DOGEAsset).Amount
+		amtToPayInDOGE += dogutil.Amount(int64(gasAmt.Uint64())).ToBTC()
 	}
-	return amtToPayInBCH
+	return amtToPayInDOGE
 }
 
 // getSourceScript retrieve pay to addr script from tx source
 func (c *Client) getSourceScript(tx stypes.TxOutItem) ([]byte, error) {
-	sourceAddr, err := tx.VaultPubKey.GetAddress(common.BCHChain)
+	sourceAddr, err := tx.VaultPubKey.GetAddress(common.DOGEChain)
 	if err != nil {
 		return nil, fmt.Errorf("fail to get source address: %w", err)
 	}
 
-	addr, err := bchutil.DecodeAddress(sourceAddr.String(), c.getChainCfg())
+	addr, err := dogutil.DecodeAddress(sourceAddr.String(), c.getChainCfg())
 	if err != nil {
 		return nil, fmt.Errorf("fail to decode source address(%s): %w", sourceAddr.String(), err)
 	}
@@ -196,8 +206,8 @@ func (c *Client) estimateTxSize(memo string, txes []btcjson.ListUnspentResult) i
 
 // SignTx is going to generate the outbound transaction, and also sign it
 func (c *Client) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, error) {
-	if !tx.Chain.Equals(common.BCHChain) {
-		return nil, errors.New("not BCH chain")
+	if !tx.Chain.Equals(common.DOGEChain) {
+		return nil, errors.New("not DOGE chain")
 	}
 	// when there is no coin , skip it
 	if tx.Coins.IsEmpty() {
@@ -207,13 +217,13 @@ func (c *Client) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, err
 	if err != nil {
 		return nil, fmt.Errorf("fail to get source pay to address script: %w", err)
 	}
-	txes, err := c.getUtxoToSpend(tx.VaultPubKey, c.getBCHPaymentAmount(tx))
+	txes, err := c.getUtxoToSpend(tx.VaultPubKey, c.getDOGEPaymentAmount(tx))
 	if err != nil {
 		return nil, fmt.Errorf("fail to get unspent UTXO")
 	}
 	redeemTx := wire.NewMsgTx(wire.TxVersion)
 	totalAmt := float64(0)
-	individualAmounts := make(map[chainhash.Hash]bchutil.Amount, len(txes))
+	individualAmounts := make(map[chainhash.Hash]dogutil.Amount, len(txes))
 	for _, item := range txes {
 		txID, err := chainhash.NewHashFromStr(item.TxID)
 		if err != nil {
@@ -221,17 +231,17 @@ func (c *Client) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, err
 		}
 		// double check that the utxo is still valid
 		outputPoint := wire.NewOutPoint(txID, item.Vout)
-		sourceTxIn := wire.NewTxIn(outputPoint, nil)
+		sourceTxIn := wire.NewTxIn(outputPoint, nil, nil)
 		redeemTx.AddTxIn(sourceTxIn)
 		totalAmt += item.Amount
-		amt, err := bchutil.NewAmount(item.Amount)
+		amt, err := dogutil.NewAmount(item.Amount)
 		if err != nil {
 			return nil, fmt.Errorf("fail to parse amount(%f): %w", item.Amount, err)
 		}
 		individualAmounts[*txID] = amt
 	}
 
-	outputAddr, err := bchutil.DecodeAddress(tx.ToAddress.String(), c.getChainCfg())
+	outputAddr, err := dogutil.DecodeAddress(tx.ToAddress.String(), c.getChainCfg())
 	if err != nil {
 		return nil, fmt.Errorf("fail to decode next address: %w", err)
 	}
@@ -240,35 +250,37 @@ func (c *Client) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, err
 		return nil, fmt.Errorf("fail to get pay to address script: %w", err)
 	}
 
-	total, err := bchutil.NewAmount(totalAmt)
+	total, err := dogutil.NewAmount(totalAmt)
 	if err != nil {
 		return nil, fmt.Errorf("fail to parse total amount(%f),err: %w", totalAmt, err)
 	}
-	coinToCustomer := tx.Coins.GetCoin(common.BCHAsset)
+	coinToCustomer := tx.Coins.GetCoin(common.DOGEAsset)
 	totalSize := c.estimateTxSize(tx.Memo, txes)
 
-	// bitcoind has a default rule max fee rate should less than 0.1 BCH / kb
+	// dogecoind has a default rule max fee rate should less than 0.1 DOGE / kb
 	// the MaxGas coming from THORChain doesn't follow this rule , thus the MaxGas might be over the limit
 	// as such , signer need to double check, if the MaxGas is over the limit , just pay the limit
 	// the rest paid to customer to make sure the total doesn't change
 
 	// maxFee in sats
-	maxFeeSats := totalSize * defaultMaxBCHFeeRate / 1024
+	maxFeeSats := totalSize * defaultMaxDOGEFeeRate / 1024
 	gasCoin := c.getGasCoin(tx, totalSize)
 	gasAmtSats := gasCoin.Amount.Uint64()
 
-	// make sure the transaction fee is not more than 0.1 BCH / kb , otherwise it might reject the transaction
+	// make sure the transaction fee is not more than 0.1 DOGE / kb , otherwise it might reject the transaction
 	if gasAmtSats > uint64(maxFeeSats) {
 		diffSats := gasAmtSats - uint64(maxFeeSats) // in sats
 		c.logger.Info().Msgf("gas amount: %d is larger than maximum fee: %d , diff: %d", gasAmtSats, uint64(maxFeeSats), diffSats)
 		gasAmtSats = uint64(maxFeeSats)
 	} else if gasAmtSats < c.minRelayFeeSats {
-		c.logger.Info().Msgf("gas amount: %d is less than min relay fee: %d,use min relay fee instead", gasAmtSats, c.minRelayFeeSats)
+		diffStats := c.minRelayFeeSats - gasAmtSats
+		c.logger.Info().Msgf("gas amount: %d is less than min relay fee: %d, diff remove from customer: %d", gasAmtSats, c.minRelayFeeSats, diffStats)
 		gasAmtSats = c.minRelayFeeSats
 	}
 
+	// if the total gas spend is more than max gas , then we have to take away some from the amount pay to customer
 	if !tx.MaxGas.IsEmpty() {
-		maxGasCoin := tx.MaxGas.ToCoins().GetCoin(common.BCHAsset)
+		maxGasCoin := tx.MaxGas.ToCoins().GetCoin(common.DOGEAsset)
 		if gasAmtSats > maxGasCoin.Amount.Uint64() {
 			c.logger.Info().Msgf("max gas: %s, however estimated gas need %d", tx.MaxGas, gasAmtSats)
 			gasAmtSats = maxGasCoin.Amount.Uint64()
@@ -289,8 +301,8 @@ func (c *Client) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, err
 			coinToCustomer.Amount = common.SafeSub(coinToCustomer.Amount, cosmos.NewUint(gap))
 		}
 	}
-	gasAmt := bchutil.Amount(gasAmtSats)
-	if err := c.blockMetaAccessor.UpsertTransactionFee(gasAmt.ToBCH(), int32(totalSize)); err != nil {
+	gasAmt := dogutil.Amount(gasAmtSats)
+	if err := c.blockMetaAccessor.UpsertTransactionFee(gasAmt.ToBTC(), int32(totalSize)); err != nil {
 		c.logger.Err(err).Msg("fail to save gas info to UTXO storage")
 	}
 
@@ -301,13 +313,10 @@ func (c *Client) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, err
 	// balance to ourselves
 	// add output to pay the balance back ourselves
 	balance := int64(total) - redeemTxOut.Value - int64(gasAmt)
-
 	c.logger.Info().Msgf("total: %d, to customer: %d, gas: %d", int64(total), redeemTxOut.Value, int64(gasAmt))
 	if balance < 0 {
 		return nil, fmt.Errorf("not enough balance to pay customer: %d", balance)
 	}
-
-	// if the balance is dust , then just donate it to miners
 	if balance > 0 {
 		c.logger.Info().Msgf("send %d back to self", balance)
 		redeemTx.AddTxOut(wire.NewTxOut(balance, sourceScript))
@@ -352,7 +361,8 @@ func (c *Client) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, err
 		return nil, fmt.Errorf("fail to sign the message: %w", utxoErr)
 	}
 	finalSize := redeemTx.SerializeSize()
-	c.logger.Info().Msgf("estimate:%d, final size: %d", totalSize, finalSize)
+	finalVBytes := mempool.GetTxVirtualSize(dogutil.NewTx(redeemTx))
+	c.logger.Info().Msgf("estimate:%d, final size: %d, final vbyte: %d", totalSize, finalSize, finalVBytes)
 	var signedTx bytes.Buffer
 	if err := redeemTx.Serialize(&signedTx); err != nil {
 		return nil, fmt.Errorf("fail to serialize tx to bytes: %w", err)
@@ -363,8 +373,7 @@ func (c *Client) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, err
 
 func (c *Client) signUTXO(redeemTx *wire.MsgTx, tx stypes.TxOutItem, amount int64, sourceScript []byte, idx int, thorchainHeight int64) error {
 	signable := c.ksWrapper.GetSignable(tx.VaultPubKey)
-	sigHashType := txscript.SigHashAll
-	sig, err := txscript.RawTxInECDSASignature(redeemTx, idx, sourceScript, sigHashType, signable, amount)
+	sig, err := txscript.RawTxInSignature(redeemTx, idx, sourceScript, txscript.SigHashAll, signable)
 	if err != nil {
 		var keysignError tss.KeysignError
 		if errors.As(err, &keysignError) {
@@ -401,7 +410,7 @@ func (c *Client) signUTXO(redeemTx *wire.MsgTx, tx stypes.TxOutItem, amount int6
 	return nil
 }
 
-// BroadcastTx will broadcast the given payload to BCH chain
+// BroadcastTx will broadcast the given payload to DOGE chain
 func (c *Client) BroadcastTx(txOut stypes.TxOutItem, payload []byte) (string, error) {
 	redeemTx := wire.NewMsgTx(wire.TxVersion)
 	buf := bytes.NewBuffer(payload)
@@ -439,6 +448,6 @@ func (c *Client) BroadcastTx(txOut stypes.TxOutItem, payload []byte) (string, er
 		return "", fmt.Errorf("fail to broadcast transaction to chain: %w", err)
 	}
 	// save tx id to block meta in case we need to errata later
-	c.logger.Info().Str("hash", txHash.String()).Msg("broadcast to BCH chain successfully")
+	c.logger.Info().Str("hash", txHash.String()).Msg("broadcast to DOGE chain successfully")
 	return txHash.String(), nil
 }

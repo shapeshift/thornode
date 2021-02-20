@@ -17,6 +17,7 @@ services:
       CHAIN_RPC: thornode:26657
       BINANCE_HOST: ${BINANCE_HOST:-http://binance-mock:26660}
       BTC_HOST: ${BTC_HOST:-bitcoin-regtest:18443}
+      DOGE_HOST: ${DOGE_HOST:-dogecoin-regtest:18332}
       BCH_HOST: ${BCH_HOST:-bitcoin-cash-regtest:28443}
       LTC_HOST: ${LTC_HOST:-litecoin-regtest:38443}
       ETH_HOST: ${ETH_HOST:-http://ethereum-localnet:8545}
