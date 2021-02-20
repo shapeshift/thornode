@@ -2,6 +2,7 @@ package common
 
 import (
 	"github.com/btcsuite/btcd/chaincfg"
+	dogchaincfg "github.com/eager7/dogd/chaincfg"
 	ltcchaincfg "github.com/ltcsuite/ltcd/chaincfg"
 	btypes "gitlab.com/thorchain/binance-sdk/common/types"
 	. "gopkg.in/check.v1"
@@ -34,6 +35,9 @@ func (s ChainSuite) TestChain(c *C) {
 	c.Assert(BNBChain.GetGasAsset(), Equals, BNBAsset)
 	c.Assert(BTCChain.GetGasAsset(), Equals, BTCAsset)
 	c.Assert(ETHChain.GetGasAsset(), Equals, ETHAsset)
+	c.Assert(LTCChain.GetGasAsset(), Equals, LTCAsset)
+	c.Assert(BCHChain.GetGasAsset(), Equals, BCHAsset)
+	c.Assert(DOGEChain.GetGasAsset(), Equals, DOGEAsset)
 	c.Assert(EmptyChain.GetGasAsset(), Equals, EmptyAsset)
 
 	c.Assert(BNBChain.AddressPrefix(MockNet), Equals, btypes.TestNetwork.Bech32Prefixes())
@@ -47,4 +51,8 @@ func (s ChainSuite) TestChain(c *C) {
 	c.Assert(LTCChain.AddressPrefix(MockNet), Equals, ltcchaincfg.RegressionNetParams.Bech32HRPSegwit)
 	c.Assert(LTCChain.AddressPrefix(TestNet), Equals, ltcchaincfg.TestNet4Params.Bech32HRPSegwit)
 	c.Assert(LTCChain.AddressPrefix(MainNet), Equals, ltcchaincfg.MainNetParams.Bech32HRPSegwit)
+
+	c.Assert(DOGEChain.AddressPrefix(MockNet), Equals, dogchaincfg.RegressionNetParams.Bech32HRPSegwit)
+	c.Assert(DOGEChain.AddressPrefix(TestNet), Equals, dogchaincfg.TestNet3Params.Bech32HRPSegwit)
+	c.Assert(DOGEChain.AddressPrefix(MainNet), Equals, dogchaincfg.MainNetParams.Bech32HRPSegwit)
 }

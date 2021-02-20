@@ -40,4 +40,32 @@ func (s AssetSuite) TestAsset(c *C) {
 	c.Check(asset.Ticker.Equals(Ticker("KNC")), Equals, true)
 	asset, err = NewAsset("ETH.RUNE-0x3155ba85d5f96b2d030a4966af206230e46849cb")
 	c.Assert(err, IsNil)
+
+	// DOGE test
+	asset, err = NewAsset("doge.doge")
+	c.Assert(err, IsNil)
+	c.Check(asset.Chain.Equals(DOGEChain), Equals, true)
+	c.Check(asset.Equals(DOGEAsset), Equals, true)
+	c.Check(asset.IsRune(), Equals, false)
+	c.Check(asset.IsEmpty(), Equals, false)
+	c.Check(asset.String(), Equals, "DOGE.DOGE")
+
+	// BCH test
+	asset, err = NewAsset("bch.bch")
+	c.Assert(err, IsNil)
+	c.Check(asset.Chain.Equals(BCHChain), Equals, true)
+	c.Check(asset.Equals(BCHAsset), Equals, true)
+	c.Check(asset.IsRune(), Equals, false)
+	c.Check(asset.IsEmpty(), Equals, false)
+	c.Check(asset.String(), Equals, "BCH.BCH")
+
+	// LTC test
+	asset, err = NewAsset("ltc.ltc")
+	c.Assert(err, IsNil)
+	c.Check(asset.Chain.Equals(LTCChain), Equals, true)
+	c.Check(asset.Equals(LTCAsset), Equals, true)
+	c.Check(asset.IsRune(), Equals, false)
+	c.Check(asset.IsEmpty(), Equals, false)
+	c.Check(asset.String(), Equals, "LTC.LTC")
+
 }

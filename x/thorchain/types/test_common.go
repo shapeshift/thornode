@@ -109,6 +109,12 @@ func GetRandomLTCAddress() common.Address {
 	return addr
 }
 
+func GetRandomDOGEAddress() common.Address {
+	pubKey := GetRandomPubKey()
+	addr, _ := pubKey.GetAddress(common.DOGEChain)
+	return addr
+}
+
 func GetRandomBCHAddress() common.Address {
 	pubKey := GetRandomPubKey()
 	addr, _ := pubKey.GetAddress(common.BCHChain)
