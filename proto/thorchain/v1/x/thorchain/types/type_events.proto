@@ -46,6 +46,7 @@ message EventWithdraw {
   common.Tx in_tx = 5 [(gogoproto.nullable) = false];
   string emit_asset = 6 [(gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Uint", (gogoproto.nullable) = false];
   string emit_rune = 7 [(gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Uint", (gogoproto.nullable) = false];
+  string imp_loss_protection = 8 [(gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Uint", (gogoproto.nullable) = false];
 }
 
 message EventDonate {

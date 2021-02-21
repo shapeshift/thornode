@@ -124,15 +124,16 @@ func (m *EventAddLiquidity) Events() (cosmos.Events, error) {
 }
 
 // NewEventWithdraw create a new withdraw event
-func NewEventWithdraw(pool common.Asset, su cosmos.Uint, basisPts int64, asym cosmos.Dec, inTx common.Tx, emitAsset, emitRune cosmos.Uint) *EventWithdraw {
+func NewEventWithdraw(pool common.Asset, su cosmos.Uint, basisPts int64, asym cosmos.Dec, inTx common.Tx, emitAsset, emitRune, impLoss cosmos.Uint) *EventWithdraw {
 	return &EventWithdraw{
-		Pool:          pool,
-		ProviderUnits: su,
-		BasisPoints:   basisPts,
-		Asymmetry:     asym,
-		InTx:          inTx,
-		EmitAsset:     emitAsset,
-		EmitRune:      emitRune,
+		Pool:              pool,
+		ProviderUnits:     su,
+		BasisPoints:       basisPts,
+		Asymmetry:         asym,
+		InTx:              inTx,
+		EmitAsset:         emitAsset,
+		EmitRune:          emitRune,
+		ImpLossProtection: impLoss,
 	}
 }
 
@@ -149,7 +150,8 @@ func (m *EventWithdraw) Events() (cosmos.Events, error) {
 		cosmos.NewAttribute("basis_points", strconv.FormatInt(m.BasisPoints, 10)),
 		cosmos.NewAttribute("asymmetry", m.Asymmetry.String()),
 		cosmos.NewAttribute("emit_asset", m.EmitAsset.String()),
-		cosmos.NewAttribute("emit_rune", m.EmitRune.String()))
+		cosmos.NewAttribute("emit_rune", m.EmitRune.String()),
+		cosmos.NewAttribute("imp_loss_protection", m.ImpLossProtection.String()))
 	evt = evt.AppendAttributes(m.InTx.ToAttributes()...)
 	return cosmos.Events{evt}, nil
 }

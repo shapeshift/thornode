@@ -52,7 +52,9 @@ func (s EventSuite) TestWithdrawEvent(c *C) {
 		cosmos.NewDec(0),
 		GetRandomTx(),
 		cosmos.NewUint(100),
-		cosmos.NewUint(100))
+		cosmos.NewUint(100),
+		cosmos.ZeroUint(),
+	)
 	c.Check(evt.Type(), Equals, "withdraw")
 	events, err := evt.Events()
 	c.Check(err, IsNil)
