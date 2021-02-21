@@ -39,6 +39,7 @@ func NewConstantValue010() *ConstantVals {
 			MaxSwapsPerBlock:              100,                // max swaps to process per block
 			VirtualMultSynths:             2,                  // pool depth multiplier for synthetic swaps
 			MinSlashPointsForBadValidator: 100,                // The minimum slash point
+			FullImpLossProtectionBlocks:   1728000,            // number of blocks before a liquidity provider gets 100% impermanent loss protection
 		},
 		boolValues: map[ConstantName]bool{
 			StrictBondLiquidityRatio: true,

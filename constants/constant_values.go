@@ -52,6 +52,7 @@ const (
 	MaxSwapsPerBlock
 	VirtualMultSynths
 	MinSlashPointsForBadValidator
+	FullImpLossProtectionBlocks
 )
 
 var nameToString = map[ConstantName]string{
@@ -97,6 +98,7 @@ var nameToString = map[ConstantName]string{
 	MaxSwapsPerBlock:              "MaxSwapsPerBlock",
 	VirtualMultSynths:             "VirtualMultSynths",
 	MinSlashPointsForBadValidator: "MinSlashPointsForBadValidator",
+	FullImpLossProtectionBlocks:   "FullImpLossProtectionBlocks",
 }
 
 // String implement fmt.stringer
