@@ -881,7 +881,12 @@ func queryQueue(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper
 		}
 		for _, tx := range txs.TxArray {
 			if tx.OutHash.IsEmpty() {
-				query.Outbound++
+				memo, _ := ParseMemo(tx.Memo)
+				if memo.IsInternal() {
+					query.Internal++
+				} else if memo.IsOutbound() {
+					query.Outbound++
+				}
 			}
 		}
 	}

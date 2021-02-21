@@ -28,6 +28,7 @@ func (h QueryResLastBlockHeights) String() string {
 type QueryQueue struct {
 	Swap     int64 `json:"swap"`
 	Outbound int64 `json:"outbound"`
+	Internal int64 `json:"internal"`
 }
 
 // String implement fmt.Stringer
