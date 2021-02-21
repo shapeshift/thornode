@@ -967,6 +967,7 @@ class ThorchainState:
                 {"asymmetry": "0.000000000000000000"},
                 {"emit_asset": asset_amt},
                 {"emit_rune": rune_amt},
+                {"imp_loss_protection": "0"},
                 *tx.get_attributes(),
             ],
         )
@@ -1414,6 +1415,8 @@ class Pool(Jsonable):
         self.add(rune_amt, asset_amt)
         self.total_units += units
         lp.units += units
+        lp.rune_deposit_value += get_share(units, self.total_units, self.rune_balance)
+        lp.asset_deposit_value += get_share(units, self.total_units, self.asset_balance)
         self.set_liquidity_provider(lp)
         return units, rune_amt, asset_amt, lp.pending_tx
 
@@ -1429,6 +1432,8 @@ class Pool(Jsonable):
             lp.units, withdraw_basis_points
         )
         lp.units -= units
+        lp.rune_deposit_value -= get_share(units, self.total_units, self.rune_balance)
+        lp.asset_deposit_value -= get_share(units, self.total_units, self.asset_balance)
         self.set_liquidity_provider(lp)
         self.total_units -= units
         self.sub(rune_amt, asset_amt)
@@ -1491,6 +1496,8 @@ class LiquidityProvider(Jsonable):
         self.pending_rune = 0
         self.pending_asset = 0
         self.pending_tx = None
+        self.rune_deposit_value = 0
+        self.asset_deposit_value = 0
 
     def add(self, units):
         """
