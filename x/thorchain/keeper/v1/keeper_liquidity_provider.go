@@ -51,11 +51,13 @@ func (k KVStore) GetTotalSupply(ctx cosmos.Context, asset common.Asset) cosmos.U
 // GetLiquidityProvider retrieve liquidity provider from the data store
 func (k KVStore) GetLiquidityProvider(ctx cosmos.Context, asset common.Asset, addr common.Address) (LiquidityProvider, error) {
 	record := LiquidityProvider{
-		Asset:        asset,
-		RuneAddress:  addr,
-		Units:        cosmos.ZeroUint(),
-		PendingRune:  cosmos.ZeroUint(),
-		PendingAsset: cosmos.ZeroUint(),
+		Asset:             asset,
+		RuneAddress:       addr,
+		Units:             cosmos.ZeroUint(),
+		PendingRune:       cosmos.ZeroUint(),
+		PendingAsset:      cosmos.ZeroUint(),
+		RuneDepositValue:  cosmos.ZeroUint(),
+		AssetDepositValue: cosmos.ZeroUint(),
 	}
 	if !addr.IsChain(common.RuneAsset().Chain) {
 		record.AssetAddress = addr

@@ -196,7 +196,7 @@ func (s WithdrawSuite) TestCalculateUnsake(c *C) {
 
 	for _, item := range inputs {
 		c.Logf("name:%s", item.name)
-		withDrawRune, withDrawAsset, unitAfter, err := calculateWithdraw(item.poolUnit, item.poolRune, item.poolAsset, item.lpUnit, item.percentage, common.EmptyAsset)
+		withDrawRune, withDrawAsset, unitAfter, err := calculateWithdrawV1(item.poolUnit, item.poolRune, item.poolAsset, item.lpUnit, item.percentage, common.EmptyAsset)
 		if item.expectedErr == nil {
 			c.Assert(err, IsNil)
 		} else {
@@ -304,7 +304,7 @@ func (s WithdrawSuite) TestValidateWithdraw(c *C) {
 		ctx, _ := setupKeeperForTest(c)
 		ps := &WithdrawTestKeeper{}
 		c.Logf("name:%s", item.name)
-		err := validateWithdraw(ctx, ps, item.msg)
+		err := validateWithdrawV1(ctx, ps, item.msg)
 		if item.expectedError != nil {
 			c.Assert(err, NotNil)
 			c.Assert(err.Error(), Equals, item.expectedError.Error())
@@ -481,7 +481,7 @@ func (WithdrawSuite) TestWithdraw(c *C) {
 			TransactionSize:    1,
 			TransactionFeeRate: bnbSingleTxFee.Uint64(),
 		})
-		r, asset, _, _, err := withdraw(ctx, version, tc.ps, tc.msg, mgr)
+		r, asset, _, _, err := withdrawV1(ctx, version, tc.ps, tc.msg, mgr)
 		if tc.expectedError != nil {
 			c.Assert(err, NotNil)
 			c.Check(err.Error(), Equals, tc.expectedError.Error())
@@ -547,7 +547,7 @@ func (WithdrawSuite) TestWithdrawAsym(c *C) {
 			TransactionSize:    1,
 			TransactionFeeRate: bnbSingleTxFee.Uint64(),
 		})
-		r, asset, _, _, err := withdraw(ctx, version, ps, tc.msg, mgr)
+		r, asset, _, _, err := withdrawV1(ctx, version, ps, tc.msg, mgr)
 		if tc.expectedError != nil {
 			c.Assert(err, NotNil)
 			c.Check(err.Error(), Equals, tc.expectedError.Error())

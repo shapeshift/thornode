@@ -96,7 +96,9 @@ func (h AddLiquidityHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semve
 }
 
 func (h AddLiquidityHandler) handle(ctx cosmos.Context, msg MsgAddLiquidity, version semver.Version, constAccessor constants.ConstantValues) error {
-	if version.GTE(semver.MustParse("0.21.0")) {
+	if version.GTE(semver.MustParse("0.24.0")) {
+		return h.handleV24(ctx, msg, version, constAccessor)
+	} else if version.GTE(semver.MustParse("0.21.0")) {
 		return h.handleV21(ctx, msg, version, constAccessor)
 	} else if version.GTE(semver.MustParse("0.1.0")) {
 		return h.handleV1(ctx, msg, version, constAccessor)
@@ -188,6 +190,7 @@ func (h AddLiquidityHandler) handleV1(ctx cosmos.Context, msg MsgAddLiquidity, v
 	}
 	return nil
 }
+
 func (h AddLiquidityHandler) handleV21(ctx cosmos.Context, msg MsgAddLiquidity, version semver.Version, constAccessor constants.ConstantValues) (errResult error) {
 	pool, err := h.keeper.GetPool(ctx, msg.Asset)
 	if err != nil {
@@ -268,6 +271,107 @@ func (h AddLiquidityHandler) handleV21(ctx cosmos.Context, msg MsgAddLiquidity, 
 	}
 
 	err = h.addLiquidityV1(
+		ctx,
+		msg.Asset,
+		affiliateRune,
+		affiliateAsset,
+		msg.AffiliateAddress,
+		common.NoAddress,
+		msg.Tx.ID,
+		stage,
+		constAccessor,
+	)
+	if err != nil {
+		// we swallow this error so we don't trigger a refund, when we've
+		// already successfully added liquidity for the user. If we were to
+		// refund here, funds could be leaked from the network. In order, to
+		// error here, we would need to revert the user addLiquidity
+		// function first (TODO).
+		ctx.Logger().Error("fail to add liquidity for affiliate", "address", msg.AffiliateAddress, "error", err)
+	}
+	return nil
+}
+
+func (h AddLiquidityHandler) handleV24(ctx cosmos.Context, msg MsgAddLiquidity, version semver.Version, constAccessor constants.ConstantValues) (errResult error) {
+	pool, err := h.keeper.GetPool(ctx, msg.Asset)
+	if err != nil {
+		return ErrInternal(err, "fail to get pool")
+	}
+
+	if pool.IsEmpty() {
+		ctx.Logger().Info("pool doesn't exist yet, creating a new one...", "symbol", msg.Asset.String(), "creator", msg.RuneAddress)
+		pool.Asset = msg.Asset
+		if err := h.keeper.SetPool(ctx, pool); err != nil {
+			return ErrInternal(err, "fail to save pool to key value store")
+		}
+	}
+
+	// if the pool decimals hasn't been set, it will still be 0. If we have a
+	// pool asset coin, get the decimals from that transaction. This will only
+	// set the decimals once.
+	if pool.Decimals == 0 {
+		coin := msg.GetTx().Coins.GetCoin(pool.Asset)
+		if !coin.IsEmpty() {
+			if coin.Decimals > 0 {
+				pool.Decimals = coin.Decimals
+			}
+			ctx.Logger().Info("try update pool decimals", "asset", msg.Asset, "pool decimals", pool.Decimals)
+			if err := h.keeper.SetPool(ctx, pool); err != nil {
+				return ErrInternal(err, "fail to save pool to key value store")
+			}
+		}
+	}
+
+	if err := pool.EnsureValidPoolStatus(&msg); err != nil {
+		ctx.Logger().Error("fail to check pool status", "error", err)
+		return errInvalidPoolStatus
+	}
+
+	// figure out if we need to stage the funds and wait for a follow on
+	// transaction to commit all funds atomically
+	stage := false
+	if !msg.AssetAddress.IsEmpty() && msg.AssetAmount.IsZero() {
+		stage = true
+	}
+	if !msg.RuneAddress.IsEmpty() && msg.RuneAmount.IsZero() {
+		stage = true
+	}
+
+	if msg.AffiliateBasisPoints.IsZero() {
+		return h.addLiquidityV24(
+			ctx,
+			msg.Asset,
+			msg.RuneAmount,
+			msg.AssetAmount,
+			msg.RuneAddress,
+			msg.AssetAddress,
+			msg.Tx.ID,
+			stage,
+			constAccessor)
+	}
+
+	// add liquidity has an affiliate fee, add liquidity for both the user and their affiliate
+	affiliateRune := common.GetShare(msg.AffiliateBasisPoints, cosmos.NewUint(10000), msg.RuneAmount)
+	affiliateAsset := common.GetShare(msg.AffiliateBasisPoints, cosmos.NewUint(10000), msg.AssetAmount)
+	userRune := common.SafeSub(msg.RuneAmount, affiliateRune)
+	userAsset := common.SafeSub(msg.AssetAmount, affiliateAsset)
+
+	err = h.addLiquidityV24(
+		ctx,
+		msg.Asset,
+		userRune,
+		userAsset,
+		msg.RuneAddress,
+		msg.AssetAddress,
+		msg.Tx.ID,
+		stage,
+		constAccessor,
+	)
+	if err != nil {
+		return err
+	}
+
+	err = h.addLiquidityV24(
 		ctx,
 		msg.Asset,
 		affiliateRune,
@@ -427,6 +531,131 @@ func (h AddLiquidityHandler) addLiquidityV1(ctx cosmos.Context,
 	}
 
 	su.Units = su.Units.Add(liquidityUnits)
+	h.keeper.SetLiquidityProvider(ctx, su)
+
+	evt := NewEventAddLiquidity(asset, liquidityUnits, runeAddr, addRuneAmount, addAssetAmount, runeTxID, assetTxID, assetAddr)
+	if err := h.mgr.EventMgr().EmitEvent(ctx, evt); err != nil {
+		return ErrInternal(err, "fail to emit add liquidity event")
+	}
+	return nil
+}
+
+func (h AddLiquidityHandler) addLiquidityV24(ctx cosmos.Context,
+	asset common.Asset,
+	addRuneAmount, addAssetAmount cosmos.Uint,
+	runeAddr, assetAddr common.Address,
+	requestTxHash common.TxID,
+	stage bool,
+	constAccessor constants.ConstantValues) error {
+	ctx.Logger().Info(fmt.Sprintf("%s liquidity provision %s %s", asset, addRuneAmount, addAssetAmount))
+	if err := h.validateAddLiquidityMessage(ctx, h.keeper, asset, requestTxHash, runeAddr, assetAddr); err != nil {
+		return fmt.Errorf("add liquidity message fail validation: %w", err)
+	}
+
+	pool, err := h.keeper.GetPool(ctx, asset)
+	if err != nil {
+		return ErrInternal(err, fmt.Sprintf("fail to get pool(%s)", asset))
+	}
+	originalUnits := pool.PoolUnits
+	// if THORNode have no balance, set the default pool status
+	if originalUnits.IsZero() {
+		defaultPoolStatus := PoolAvailable.String()
+		// if the pools is for gas asset on the chain, automatically enable it
+		if !pool.Asset.Equals(pool.Asset.Chain.GetGasAsset()) {
+			defaultPoolStatus = constAccessor.GetStringValue(constants.DefaultPoolStatus)
+		}
+		pool.Status = GetPoolStatus(defaultPoolStatus)
+	}
+
+	fetchAddr := runeAddr
+	if fetchAddr.IsEmpty() {
+		fetchAddr = assetAddr
+	}
+	su, err := h.keeper.GetLiquidityProvider(ctx, asset, fetchAddr)
+	if err != nil {
+		return ErrInternal(err, "fail to get liquidity provider")
+	}
+
+	su.LastAddHeight = common.BlockHeight(ctx)
+	if su.RuneAddress.IsEmpty() {
+		su.RuneAddress = runeAddr
+	}
+	if su.AssetAddress.IsEmpty() {
+		su.AssetAddress = assetAddr
+	} else {
+		if !assetAddr.IsEmpty() && !su.AssetAddress.Equals(assetAddr) {
+			// mismatch of asset addresses from what is known to the address
+			// given. Refund it.
+			return errAddLiquidityMismatchAssetAddr
+		}
+	}
+
+	// get tx hashes
+	runeTxID := requestTxHash
+	assetTxID := requestTxHash
+	if addRuneAmount.IsZero() {
+		runeTxID = su.PendingTxID
+	} else {
+		assetTxID = su.PendingTxID
+	}
+
+	addRuneAmount = su.PendingRune.Add(addRuneAmount)
+	addAssetAmount = su.PendingAsset.Add(addAssetAmount)
+
+	// if we have an asset address and no asset amount, put the rune pending
+	if stage && addAssetAmount.IsZero() {
+		su.PendingRune = addRuneAmount
+		su.PendingTxID = requestTxHash
+		h.keeper.SetLiquidityProvider(ctx, su)
+		return nil
+	}
+
+	// if we have a rune address and no rune asset, put the asset in pending
+	if stage && addRuneAmount.IsZero() {
+		su.PendingAsset = addAssetAmount
+		su.PendingTxID = requestTxHash
+		h.keeper.SetLiquidityProvider(ctx, su)
+		return nil
+	}
+
+	su.PendingAsset = cosmos.ZeroUint()
+	su.PendingRune = cosmos.ZeroUint()
+
+	ctx.Logger().Info(fmt.Sprintf("Pre-Pool: %sRUNE %sAsset", pool.BalanceRune, pool.BalanceAsset))
+	ctx.Logger().Info(fmt.Sprintf("Adding Liquidity: %sRUNE %sAsset", addRuneAmount, addAssetAmount))
+
+	balanceRune := pool.BalanceRune
+	balanceAsset := pool.BalanceAsset
+
+	oldPoolUnits := pool.PoolUnits
+	newPoolUnits, liquidityUnits, err := calculatePoolUnitsV1(oldPoolUnits, balanceRune, balanceAsset, addRuneAmount, addAssetAmount)
+	if err != nil {
+		return ErrInternal(err, "fail to calculate pool unit")
+	}
+
+	ctx.Logger().Info(fmt.Sprintf("current pool units : %s ,liquidity units : %s", newPoolUnits, liquidityUnits))
+	poolRune := balanceRune.Add(addRuneAmount)
+	poolAsset := balanceAsset.Add(addAssetAmount)
+	pool.PoolUnits = newPoolUnits
+	pool.BalanceRune = poolRune
+	pool.BalanceAsset = poolAsset
+	ctx.Logger().Info(fmt.Sprintf("Post-Pool: %sRUNE %sAsset", pool.BalanceRune, pool.BalanceAsset))
+	if pool.BalanceRune.IsZero() || pool.BalanceAsset.IsZero() {
+		return ErrInternal(err, "pool cannot have zero rune or asset balance")
+	}
+	if err := h.keeper.SetPool(ctx, pool); err != nil {
+		return ErrInternal(err, "fail to save pool")
+	}
+	if originalUnits.IsZero() && !pool.PoolUnits.IsZero() && pool.Status == PoolAvailable {
+		poolEvent := NewEventPool(pool.Asset, PoolAvailable)
+		if err := h.mgr.EventMgr().EmitEvent(ctx, poolEvent); err != nil {
+			ctx.Logger().Error("fail to emit pool event", "error", err)
+		}
+	}
+
+	su.Units = su.Units.Add(liquidityUnits)
+	su.RuneDepositValue = su.RuneDepositValue.Add(common.GetShare(liquidityUnits, pool.PoolUnits, pool.BalanceRune))
+	su.AssetDepositValue = su.AssetDepositValue.Add(common.GetShare(liquidityUnits, pool.PoolUnits, pool.BalanceAsset))
 	h.keeper.SetLiquidityProvider(ctx, su)
 
 	evt := NewEventAddLiquidity(asset, liquidityUnits, runeAddr, addRuneAmount, addAssetAmount, runeTxID, assetTxID, assetAddr)
