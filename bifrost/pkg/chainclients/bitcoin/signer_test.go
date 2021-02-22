@@ -167,7 +167,7 @@ func (s *BitcoinSignerSuite) TestSignTx(c *C) {
 		ToAddress:   types2.GetRandomBNBAddress(),
 		VaultPubKey: types2.GetRandomPubKey(),
 		Coins: common.Coins{
-			common.NewCoin(common.BTCAsset, cosmos.NewUint(10)),
+			common.NewCoin(common.BTCAsset, cosmos.NewUint(10000000000)),
 		},
 		MaxGas: common.Gas{
 			common.NewCoin(common.BTCAsset, cosmos.NewUint(1001)),
@@ -199,13 +199,6 @@ func (s *BitcoinSignerSuite) TestSignTx(c *C) {
 
 	// nothing to sign , because there is not enough UTXO
 	result, err = s.client.SignTx(txOutItem, 4)
-	c.Assert(err, NotNil)
-	c.Assert(result, IsNil)
-
-	blockMeta := NewBlockMeta("", 100, "")
-	c.Assert(s.client.blockMetaAccessor.SaveBlockMeta(100, blockMeta), IsNil)
-
-	result, err = s.client.SignTx(txOutItem, 5)
 	c.Assert(err, NotNil)
 	c.Assert(result, IsNil)
 }
