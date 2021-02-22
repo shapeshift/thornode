@@ -60,7 +60,7 @@ require (
 	gitlab.com/thorchain/bifrost/ltcd-txscript v0.0.0-20210123055845-c0f9cad51f13
 	gitlab.com/thorchain/bifrost/txscript v0.0.0-20210123055850-29da989e6f5a
 	gitlab.com/thorchain/binance-sdk v1.2.3-0.20210117202539-d569b6b9ba5d
-	gitlab.com/thorchain/tss/go-tss v1.2.9
+	gitlab.com/thorchain/tss/go-tss v1.3.0
 	golang.org/x/crypto v0.0.0-20210220033148-5ea612d1eb83 // indirect
 	golang.org/x/mod v0.4.0 // indirect
 	golang.org/x/tools v0.0.0-20210101214203-2dba1e4ea05c // indirect
