@@ -34,7 +34,6 @@ const (
 	MinUTXOConfirmation        = 1
 	defaultMaxDOGEFeeRate      = dogutil.SatoshiPerBitcoin * 10
 	maxUTXOsToSpend            = 15
-	signUTXOBatchSize          = 10
 	minSpendableUTXOAmountSats = 10000 // If UTXO is less than this , it will not observed , and will not spend it either
 )
 
@@ -347,14 +346,6 @@ func (c *Client) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, err
 				}
 			}
 		}(idx, outputAmount)
-		if (idx+1)%signUTXOBatchSize == 0 {
-			// Let's wait until the batch is finished first
-			wg.Wait()
-		}
-		// if the first batch already error out , bail
-		if utxoErr != nil {
-			break
-		}
 	}
 	wg.Wait()
 	if utxoErr != nil {

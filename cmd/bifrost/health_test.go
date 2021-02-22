@@ -49,7 +49,7 @@ func (mts *MockTssServer) KeySign(req keysign.Request) (keysign.Response, error)
 	if mts.failToKeySign {
 		return keysign.Response{}, errors.New("you ask for it")
 	}
-	return keysign.NewResponse("", "", "", common.Success, blame.Blame{}), nil
+	return keysign.NewResponse(nil, common.Success, blame.Blame{}), nil
 }
 
 type HealthServerTestSuite struct{}

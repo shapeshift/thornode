@@ -18,7 +18,6 @@ import (
 	"github.com/rs/zerolog/log"
 	"gitlab.com/thorchain/binance-sdk/common/types"
 	ctypes "gitlab.com/thorchain/binance-sdk/common/types"
-	"gitlab.com/thorchain/binance-sdk/keys"
 	ttypes "gitlab.com/thorchain/binance-sdk/types"
 	"gitlab.com/thorchain/binance-sdk/types/msg"
 	btx "gitlab.com/thorchain/binance-sdk/types/tx"
@@ -44,7 +43,7 @@ type Binance struct {
 	isTestNet       bool
 	client          *http.Client
 	accts           *BinanceMetaDataStore
-	tssKeyManager   keys.KeyManager
+	tssKeyManager   *tss.KeySign
 	localKeyManager *keyManager
 	thorchainBridge *thorclient.ThorchainBridge
 	storage         *blockscanner.BlockScannerStorage
@@ -121,11 +120,13 @@ func NewBinance(thorKeys *thorclient.Keys, cfg config.ChainConfiguration, server
 
 // Start Binance chain client
 func (b *Binance) Start(globalTxsQueue chan stypes.TxIn, globalErrataQueue chan stypes.ErrataBlock) {
+	b.tssKeyManager.Start()
 	b.blockScanner.Start(globalTxsQueue)
 }
 
 // Stop Binance chain client
 func (b *Binance) Stop() {
+	b.tssKeyManager.Stop()
 	b.blockScanner.Stop()
 }
 
@@ -351,8 +352,7 @@ func (b *Binance) sign(signMsg btx.StdSignMsg, poolPubKey common.PubKey) ([]byte
 	if b.localKeyManager.Pubkey().Equals(poolPubKey) {
 		return b.localKeyManager.Sign(signMsg)
 	}
-	k := b.tssKeyManager.(tss.ThorchainKeyManager)
-	return k.SignWithPool(signMsg, poolPubKey)
+	return b.tssKeyManager.SignWithPool(signMsg, poolPubKey)
 }
 
 // signMsg is design to sign a given message until it success or the same message had been send out by other signer

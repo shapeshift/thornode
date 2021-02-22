@@ -62,6 +62,7 @@ type Client struct {
 	asgardAddresses    []common.Address
 	lastAsgard         time.Time
 	minRelayFeeSats    uint64
+	tssKeySigner       *tss.KeySign
 }
 
 // NewClient generates a new Client
@@ -115,6 +116,7 @@ func NewClient(thorKeys *thorclient.Keys, cfg config.ChainConfiguration, server 
 		memPoolLock:      &sync.Mutex{},
 		processedMemPool: make(map[string]bool),
 		minRelayFeeSats:  1000, // 1000 sats is the default minimal relay fee
+		tssKeySigner:     tssKm,
 	}
 
 	var path string // if not set later, will in memory storage
@@ -146,6 +148,7 @@ func NewClient(thorKeys *thorclient.Keys, cfg config.ChainConfiguration, server 
 
 // Start starts the block scanner
 func (c *Client) Start(globalTxsQueue chan types.TxIn, globalErrataQueue chan types.ErrataBlock) {
+	c.tssKeySigner.Start()
 	c.blockScanner.Start(globalTxsQueue)
 	c.globalErrataQueue = globalErrataQueue
 }
@@ -153,6 +156,7 @@ func (c *Client) Start(globalTxsQueue chan types.TxIn, globalErrataQueue chan ty
 // Stop stops the block scanner
 func (c *Client) Stop() {
 	c.blockScanner.Stop()
+	c.tssKeySigner.Stop()
 }
 
 // GetConfig - get the chain configuration
