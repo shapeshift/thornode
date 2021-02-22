@@ -34,7 +34,12 @@ func withdrawV24(ctx cosmos.Context, version semver.Version, keeper keeper.Keepe
 	poolRune := pool.BalanceRune
 	poolAsset := pool.BalanceAsset
 	fLiquidityProviderUnit := lp.Units
-	if lp.Units.IsZero() || msg.BasisPoints.IsZero() {
+	if lp.Units.IsZero() {
+		if !lp.PendingRune.IsZero() || !lp.PendingAsset.IsZero() {
+			keeper.RemoveLiquidityProvider(ctx, lp)
+			// remove lp
+			return lp.PendingRune, lp.PendingAsset, cosmos.ZeroUint(), lp.Units, cosmos.ZeroUint(), nil
+		}
 		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), errNoLiquidityUnitLeft
 	}
 

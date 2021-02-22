@@ -4,8 +4,8 @@ import (
 	"encoding/base64"
 	"math/big"
 
-	"github.com/eager7/dogd/btcec"
 	"github.com/cosmos/cosmos-sdk/crypto/codec"
+	"github.com/eager7/dogd/btcec"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
