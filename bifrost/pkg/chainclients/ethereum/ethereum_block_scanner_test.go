@@ -547,7 +547,9 @@ func (s *BlockScannerTestSuite) TestProcessReOrg(c *C) {
 	// add one UTXO which will trigger the re-org process next
 	c.Assert(bs.blockMetaAccessor.SaveBlockMeta(0, blockMeta), IsNil)
 	bs.globalErrataQueue = make(chan stypes.ErrataBlock, 1)
-	c.Assert(bs.processReorg(blockNew), IsNil)
+	reorgedBlocks, err := bs.processReorg(blockNew)
+	c.Assert(err, IsNil)
+	c.Assert(reorgedBlocks, IsNil)
 	// make sure there is errata block in the queue
 	c.Assert(bs.globalErrataQueue, HasLen, 1)
 	blockMeta, err = bs.blockMetaAccessor.GetBlockMeta(0)

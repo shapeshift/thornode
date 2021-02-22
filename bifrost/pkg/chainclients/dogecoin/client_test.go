@@ -660,7 +660,9 @@ func (s *DogecoinSuite) TestProcessReOrg(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(json.Unmarshal(blockContent, &result), IsNil)
 	// should not trigger re-org process
-	c.Assert(s.client.processReorg(&result), IsNil)
+	reOrgedTxIns, err := s.client.processReorg(&result)
+	c.Assert(err, IsNil)
+	c.Assert(reOrgedTxIns, IsNil)
 
 	// add one UTXO which will trigger the re-org process next
 	previousHeight := result.Height - 1
@@ -669,7 +671,9 @@ func (s *DogecoinSuite) TestProcessReOrg(c *C) {
 	blockMeta.AddCustomerTransaction(hash)
 	c.Assert(s.client.blockMetaAccessor.SaveBlockMeta(previousHeight, blockMeta), IsNil)
 	s.client.globalErrataQueue = make(chan types.ErrataBlock, 1)
-	c.Assert(s.client.processReorg(&result), IsNil)
+	reOrgedTxIns, err = s.client.processReorg(&result)
+	c.Assert(err, IsNil)
+	c.Assert(reOrgedTxIns, NotNil)
 	// make sure there is errata block in the queue
 	c.Assert(s.client.globalErrataQueue, HasLen, 1)
 	blockMeta, err = s.client.blockMetaAccessor.GetBlockMeta(previousHeight)

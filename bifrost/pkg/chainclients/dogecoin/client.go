@@ -303,23 +303,45 @@ func (c *Client) OnObservedTxIn(txIn types.TxInItem, blockHeight int64) {
 	}
 }
 
-func (c *Client) processReorg(block *btcjson.GetBlockVerboseTxResult) error {
+func (c *Client) processReorg(block *btcjson.GetBlockVerboseTxResult) ([]types.TxIn, error) {
 	previousHeight := block.Height - 1
 	prevBlockMeta, err := c.blockMetaAccessor.GetBlockMeta(previousHeight)
 	if err != nil {
-		return fmt.Errorf("fail to get block meta of height(%d) : %w", previousHeight, err)
+		return nil, fmt.Errorf("fail to get block meta of height(%d) : %w", previousHeight, err)
 	}
 	if prevBlockMeta == nil {
-		return nil
+		return nil, nil
 	}
 	// the block's previous hash need to be the same as the block hash chain client recorded in block meta
 	// blockMetas[PreviousHeight].BlockHash == Block.PreviousHash
 	if strings.EqualFold(prevBlockMeta.BlockHash, block.PreviousHash) {
-		return nil
+		return nil, nil
 	}
 
 	c.logger.Info().Msgf("re-org detected, current block height:%d ,previous block hash is : %s , however block meta at height: %d, block hash is %s", block.Height, block.PreviousHash, prevBlockMeta.Height, prevBlockMeta.BlockHash)
-	return c.reConfirmTx()
+	blockHeights, err := c.reConfirmTx()
+	if err != nil {
+		c.logger.Err(err).Msgf("fail to reprocess all txs")
+	}
+	var txIns []types.TxIn
+	for _, item := range blockHeights {
+		b, err := c.getBlock(item)
+		if err != nil {
+			c.logger.Err(err).Msgf("fail to get block from RPC for height:%d", item)
+			continue
+		}
+		txIn, err := c.extractTxs(b)
+		if err != nil {
+			c.logger.Err(err).Msgf("fail to extract txIn from block")
+			continue
+		}
+
+		if len(txIn.TxArray) == 0 {
+			continue
+		}
+		txIns = append(txIns, txIn)
+	}
+	return txIns, nil
 }
 
 // reConfirmTx will be kicked off only when chain client detected a re-org on dogecoin chain
@@ -327,12 +349,12 @@ func (c *Client) processReorg(block *btcjson.GetBlockVerboseTxResult) error {
 // For each UTXO , it will send a RPC request to dogecoin chain , double check whether the TX exist or not
 // if the tx still exist , then it is all good, if a transaction previous we detected , however doesn't exist anymore , that means
 // the transaction had been removed from chain,  chain client should report to thorchain
-func (c *Client) reConfirmTx() error {
+func (c *Client) reConfirmTx() ([]int64, error) {
 	blockMetas, err := c.blockMetaAccessor.GetBlockMetas()
 	if err != nil {
-		return fmt.Errorf("fail to get block metas from local storage: %w", err)
+		return nil, fmt.Errorf("fail to get block metas from local storage: %w", err)
 	}
-
+	var rescanBlockHeights []int64
 	for _, blockMeta := range blockMetas {
 		var errataTxs []types.ErrataTx
 		for _, tx := range blockMeta.CustomerTransactions {
@@ -363,13 +385,16 @@ func (c *Client) reConfirmTx() error {
 		if err != nil {
 			c.logger.Err(err).Msgf("fail to get block verbose tx result: %d", blockMeta.Height)
 		}
+		if !strings.EqualFold(blockMeta.BlockHash, r.Hash) {
+			rescanBlockHeights = append(rescanBlockHeights, blockMeta.Height)
+		}
 		blockMeta.PreviousHash = r.PreviousHash
 		blockMeta.BlockHash = r.Hash
 		if err := c.blockMetaAccessor.SaveBlockMeta(blockMeta.Height, blockMeta); err != nil {
 			c.logger.Err(err).Msgf("fail to save block meta of height: %d ", blockMeta.Height)
 		}
 	}
-	return nil
+	return rescanBlockHeights, nil
 }
 
 // confirmTx check a tx is valid on chain post reorg
@@ -462,26 +487,40 @@ func (c *Client) FetchMemPool(height int64) (types.TxIn, error) {
 
 // FetchTxs retrieves txs for a block height
 func (c *Client) FetchTxs(height int64) (types.TxIn, error) {
+	txIn := types.TxIn{
+		Chain:   common.DOGEChain,
+		TxArray: nil,
+	}
 	block, err := c.getBlock(height)
 	if err != nil {
 		if rpcErr, ok := err.(*btcjson.RPCError); ok && rpcErr.Code == btcjson.ErrRPCInvalidParameter {
 			// this means the tx had been broadcast to chain, it must be another signer finished quicker then us
-			return types.TxIn{}, btypes.UnavailableBlock
+			return txIn, btypes.UnavailableBlock
 		}
-		return types.TxIn{}, fmt.Errorf("fail to get block: %w", err)
+		return txIn, fmt.Errorf("fail to get block: %w", err)
 	}
 
 	// if somehow the block is not valid
 	if block.Hash == "" && block.PreviousHash == "" {
-		return types.TxIn{}, fmt.Errorf("fail to get block: %w", err)
+		return txIn, fmt.Errorf("fail to get block: %w", err)
 	}
 	c.currentBlockHeight = height
-	if err := c.processReorg(block); err != nil {
+	reScannedTxs, err := c.processReorg(block)
+	if err != nil {
 		c.logger.Err(err).Msg("fail to process dogecoin re-org")
 	}
+	if len(reScannedTxs) > 0 {
+		for _, item := range reScannedTxs {
+			if len(item.TxArray) == 0 {
+				continue
+			}
+			txIn.TxArray = append(txIn.TxArray, item.TxArray...)
+		}
+	}
+
 	blockMeta, err := c.blockMetaAccessor.GetBlockMeta(block.Height)
 	if err != nil {
-		return types.TxIn{}, fmt.Errorf("fail to get block meta from storage: %w", err)
+		return txIn, fmt.Errorf("fail to get block meta from storage: %w", err)
 	}
 	if blockMeta == nil {
 		blockMeta = NewBlockMeta(block.PreviousHash, block.Height, block.Hash)
@@ -491,7 +530,7 @@ func (c *Client) FetchTxs(height int64) (types.TxIn, error) {
 	}
 
 	if err := c.blockMetaAccessor.SaveBlockMeta(block.Height, blockMeta); err != nil {
-		return types.TxIn{}, fmt.Errorf("fail to save block meta into storage: %w", err)
+		return txIn, fmt.Errorf("fail to save block meta into storage: %w", err)
 	}
 	pruneHeight := height - BlockCacheSize
 	if pruneHeight > 0 {
@@ -502,14 +541,18 @@ func (c *Client) FetchTxs(height int64) (types.TxIn, error) {
 		}()
 	}
 
-	txIn, err := c.extractTxs(block, blockMeta)
+	txInBlock, err := c.extractTxs(block)
 	if err != nil {
 		return types.TxIn{}, fmt.Errorf("fail to extract txIn from block: %w", err)
+	}
+	if len(txInBlock.TxArray) > 0 {
+		txIn.TxArray = append(txIn.TxArray, txInBlock.TxArray...)
 	}
 	c.updateNetworkInfo()
 	if err := c.sendNetworkFee(height); err != nil {
 		c.logger.Err(err).Msg("fail to send network fee")
 	}
+	txIn.Count = strconv.Itoa(len(txIn.TxArray))
 	return txIn, nil
 }
 
@@ -638,7 +681,7 @@ func (c *Client) getTxIn(tx *btcjson.TxRawResult, height int64) (types.TxInItem,
 }
 
 // extractTxs extracts txs from a block to type TxIn
-func (c *Client) extractTxs(block *btcjson.GetBlockVerboseTxResult, blockMeta *BlockMeta) (types.TxIn, error) {
+func (c *Client) extractTxs(block *btcjson.GetBlockVerboseTxResult) (types.TxIn, error) {
 	txIn := types.TxIn{
 		Chain:   c.GetChain(),
 		MemPool: false,

@@ -298,20 +298,40 @@ func (e *ETHScanner) parseTransferAllowanceEvent(log etypes.Log) (vaultTransferA
 // processBlock extracts transactions from block
 func (e *ETHScanner) processBlock(block *etypes.Block) (stypes.TxIn, error) {
 	height := int64(block.NumberU64())
-
+	txIn := stypes.TxIn{
+		Chain:           common.ETHChain,
+		TxArray:         nil,
+		Filtered:        false,
+		MemPool:         false,
+		SentUnFinalised: false,
+		Finalised:       false,
+	}
 	// Update gas price
 	e.updateGasPrice()
-	if err := e.processReorg(block.Header()); err != nil {
+	reorgedTxIns, err := e.processReorg(block.Header())
+	if err != nil {
 		e.logger.Error().Err(err).Msgf("fail to process reorg for block %d", height)
-		return stypes.TxIn{}, err
+		return txIn, err
+	}
+	if len(reorgedTxIns) > 0 {
+		for _, item := range reorgedTxIns {
+			if len(item.TxArray) == 0 {
+				continue
+			}
+			txIn.TxArray = append(txIn.TxArray, item.TxArray...)
+		}
 	}
 
 	if block.Transactions().Len() == 0 {
-		return stypes.TxIn{}, nil
+		return txIn, nil
 	}
-	txIn, err := e.extractTxs(block)
+
+	txInBlock, err := e.extractTxs(block)
 	if err != nil {
-		return stypes.TxIn{}, err
+		return txIn, err
+	}
+	if len(txInBlock.TxArray) > 0 {
+		txIn.TxArray = append(txIn.TxArray, txInBlock.TxArray...)
 	}
 
 	blockMeta := types.NewBlockMeta(block.Header(), txIn)
@@ -380,23 +400,48 @@ func (e *ETHScanner) onObservedTxIn(txIn stypes.TxInItem, blockHeight int64) {
 		e.logger.Err(err).Msgf("fail to save block meta to storage,block height(%d)", blockHeight)
 	}
 }
-func (e *ETHScanner) processReorg(block *etypes.Header) error {
+
+// processReorg will compare block's parent hash and the block hash we have in store
+// when there is a reorg detected , it will return true, other false
+func (e *ETHScanner) processReorg(block *etypes.Header) ([]stypes.TxIn, error) {
 	previousHeight := block.Number.Int64() - 1
 	prevBlockMeta, err := e.blockMetaAccessor.GetBlockMeta(previousHeight)
 	if err != nil {
-		return fmt.Errorf("fail to get block meta of height(%d) : %w", previousHeight, err)
+		return nil, fmt.Errorf("fail to get block meta of height(%d) : %w", previousHeight, err)
 	}
 	if prevBlockMeta == nil {
-		return nil
+		return nil, nil
 	}
 	// the block's previous hash need to be the same as the block hash chain client recorded in block meta
 	// blockMetas[PreviousHeight].BlockHash == Block.PreviousHash
 	if strings.EqualFold(prevBlockMeta.BlockHash, block.ParentHash.Hex()) {
-		return nil
+		return nil, nil
 	}
-
 	e.logger.Info().Msgf("re-org detected, current block height:%d ,previous block hash is : %s , however block meta at height: %d, block hash is %s", block.Number.Int64(), block.ParentHash.Hex(), prevBlockMeta.Height, prevBlockMeta.BlockHash)
-	return e.reprocessTxs()
+	heights, err := e.reprocessTxs()
+	if err != nil {
+		e.logger.Err(err).Msg("fail to reprocess all txs")
+	}
+	var txIns []stypes.TxIn
+	for _, item := range heights {
+		block, err := e.getRPCBlock(item)
+		if err != nil {
+			e.logger.Err(err).Msgf("fail to get block from RPC endpoint, height:%d", item)
+			continue
+		}
+		if block.Transactions().Len() == 0 {
+			continue
+		}
+		txIn, err := e.extractTxs(block)
+		if err != nil {
+			e.logger.Err(err).Msgf("fail to extract txs from block (%d)", item)
+			continue
+		}
+		if len(txIn.TxArray) > 0 {
+			txIns = append(txIns, txIn)
+		}
+	}
+	return txIns, nil
 }
 
 // reprocessTx will be kicked off only when chain client detected a re-org on ethereum chain
@@ -404,12 +449,13 @@ func (e *ETHScanner) processReorg(block *etypes.Header) error {
 // For each transaction, it will send a RPC request to ethereuem chain, double check whether the TX exist or not
 // if the tx still exist, then it is all good, if a transaction previous we detected, however doesn't exist anymore, that means
 // the transaction had been removed from chain, chain client should report to thorchain
-func (e *ETHScanner) reprocessTxs() error {
+// []int64 is the block heights that need to be rescanned
+func (e *ETHScanner) reprocessTxs() ([]int64, error) {
 	blockMetas, err := e.blockMetaAccessor.GetBlockMetas()
 	if err != nil {
-		return fmt.Errorf("fail to get block metas from local storage: %w", err)
+		return nil, fmt.Errorf("fail to get block metas from local storage: %w", err)
 	}
-
+	var rescanBlockHeights []int64
 	for _, blockMeta := range blockMetas {
 		metaTxs := make([]types.TransactionMeta, 0)
 		var errataTxs []stypes.ErrataTx
@@ -437,6 +483,11 @@ func (e *ETHScanner) reprocessTxs() error {
 		if err != nil {
 			e.logger.Err(err).Msgf("fail to get block verbose tx result: %d", blockMeta.Height)
 		}
+
+		if !strings.EqualFold(blockMeta.BlockHash, block.Hash().Hex()) {
+			// if the block hash is different as previously recorded , then the block should be rescanned
+			rescanBlockHeights = append(rescanBlockHeights, blockMeta.Height)
+		}
 		blockMeta.PreviousHash = block.ParentHash.Hex()
 		blockMeta.BlockHash = block.Hash().Hex()
 		blockMeta.Transactions = metaTxs
@@ -444,7 +495,7 @@ func (e *ETHScanner) reprocessTxs() error {
 			e.logger.Err(err).Msgf("fail to save block meta of height: %d ", blockMeta.Height)
 		}
 	}
-	return nil
+	return rescanBlockHeights, nil
 }
 
 func (e *ETHScanner) checkTransaction(hash string) bool {
