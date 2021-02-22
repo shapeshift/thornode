@@ -169,20 +169,6 @@ func (WithdrawV24Suite) TestWithdraw(c *C) {
 			expectedError: errors.New("empty withdraw address"),
 		},
 		{
-			name: "empty-withdraw-basis-points",
-			msg: MsgWithdrawLiquidity{
-				WithdrawAddress: runeAddress,
-				BasisPoints:     cosmos.ZeroUint(),
-				Asset:           common.BNBAsset,
-				Tx:              common.Tx{ID: "28B40BF105A112389A339A64BD1A042E6140DC9082C679586C6CF493A9FDE3FE"},
-				Signer:          accountAddr,
-			},
-			ps:            ps,
-			runeAmount:    cosmos.ZeroUint(),
-			assetAmount:   cosmos.ZeroUint(),
-			expectedError: errors.New("nothing to withdraw"),
-		},
-		{
 			name: "empty-request-txhash",
 			msg: MsgWithdrawLiquidity{
 				WithdrawAddress: runeAddress,
@@ -264,7 +250,7 @@ func (WithdrawV24Suite) TestWithdraw(c *C) {
 			ps:            ps,
 			runeAmount:    cosmos.ZeroUint(),
 			assetAmount:   cosmos.ZeroUint(),
-			expectedError: errors.New("nothing to withdraw"),
+			expectedError: nil,
 		},
 		{
 			name: "all-good-half",
