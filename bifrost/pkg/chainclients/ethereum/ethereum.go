@@ -54,6 +54,7 @@ type Client struct {
 	poolMgr         thorclient.PoolManager
 	asgardAddresses []common.Address
 	lastAsgard      time.Time
+	tssKeySigner    *tss.KeySign
 }
 
 // NewClient create new instance of Ethereum client
@@ -118,15 +119,16 @@ func NewClient(thorKeys *thorclient.Keys,
 	}
 	pubkeyMgr.GetPubKeys()
 	c := &Client{
-		logger:      log.With().Str("module", "ethereum").Logger(),
-		cfg:         cfg,
-		client:      ethClient,
-		localPubKey: pk,
-		kw:          keysignWrapper,
-		bridge:      bridge,
-		vaultABI:    vaultABI,
-		pubkeyMgr:   pubkeyMgr,
-		poolMgr:     poolMgr,
+		logger:       log.With().Str("module", "ethereum").Logger(),
+		cfg:          cfg,
+		client:       ethClient,
+		localPubKey:  pk,
+		kw:           keysignWrapper,
+		bridge:       bridge,
+		vaultABI:     vaultABI,
+		pubkeyMgr:    pubkeyMgr,
+		poolMgr:      poolMgr,
+		tssKeySigner: tssKm,
 	}
 
 	var path string // if not set later, will in memory storage
@@ -163,12 +165,14 @@ func IsETH(token string) bool {
 
 // Start to monitor Ethereum block chain
 func (c *Client) Start(globalTxsQueue chan stypes.TxIn, globalErrataQueue chan stypes.ErrataBlock) {
+	c.tssKeySigner.Start()
 	c.blockScanner.Start(globalTxsQueue)
 	c.ethScanner.globalErrataQueue = globalErrataQueue
 }
 
 // Stop ETH client
 func (c *Client) Stop() {
+	c.tssKeySigner.Stop()
 	c.blockScanner.Stop()
 	c.client.Close()
 }

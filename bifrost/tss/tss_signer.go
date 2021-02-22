@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"sync"
 	"time"
 
 	"github.com/blang/semver"
@@ -26,6 +27,11 @@ import (
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
+const (
+	maxKeysignPerRequest = 15 // the maximum number of messages include in one single TSS keysign request
+	tssKeysignTimeout    = 5  // in minutes, the maximum time bifrost is going to wait before the tss result come back
+)
+
 // KeySign is a proxy between signer and TSS
 type KeySign struct {
 	logger         zerolog.Logger
@@ -33,14 +39,20 @@ type KeySign struct {
 	bridge         *thorclient.ThorchainBridge
 	currentVersion semver.Version
 	lastCheck      time.Time
+	wg             *sync.WaitGroup
+	taskQueue      chan *tssKeySignTask
+	done           chan struct{}
 }
 
 // NewKeySign create a new instance of KeySign
 func NewKeySign(server *tss.TssServer, bridge *thorclient.ThorchainBridge) (*KeySign, error) {
 	return &KeySign{
-		server: server,
-		bridge: bridge,
-		logger: log.With().Str("module", "tss_signer").Logger(),
+		server:    server,
+		bridge:    bridge,
+		logger:    log.With().Str("module", "tss_signer").Logger(),
+		wg:        &sync.WaitGroup{},
+		taskQueue: make(chan *tssKeySignTask),
+		done:      make(chan struct{}),
 	}, nil
 }
 
@@ -102,6 +114,18 @@ func (s *KeySign) makeSignature(msg tx.StdSignMsg, poolPubKey string) (sig tx.St
 	}, nil
 }
 
+// Start the keysign workers
+func (s *KeySign) Start() {
+	s.wg.Add(1)
+	go s.processKeySignTasks()
+}
+
+// Stop Keysign
+func (s *KeySign) Stop() {
+	close(s.done)
+	s.wg.Wait()
+	close(s.taskQueue)
+}
 func (s *KeySign) Sign(msg tx.StdSignMsg) ([]byte, error) {
 	return nil, nil
 }
@@ -122,33 +146,101 @@ func (s *KeySign) SignWithPool(msg tx.StdSignMsg, poolPubKey common.PubKey) ([]b
 	return bz, nil
 }
 
+// RemoteSign send the request to local task queue
 func (s *KeySign) RemoteSign(msg []byte, poolPubKey string) ([]byte, []byte, error) {
 	if len(msg) == 0 {
 		return nil, nil, nil
 	}
 
 	encodedMsg := base64.StdEncoding.EncodeToString(msg)
-	rResult, sResult, recoveryId, err := s.toLocalTSSSigner(poolPubKey, encodedMsg)
-	if err != nil {
-		return nil, nil, fmt.Errorf("fail to tss sign: %w", err)
+	task := tssKeySignTask{
+		PoolPubKey: poolPubKey,
+		Msg:        encodedMsg,
+		Resp:       make(chan tssKeySignResult, 1),
 	}
+	s.taskQueue <- &task
+	select {
+	case resp := <-task.Resp:
+		if resp.Err != nil {
+			return nil, nil, fmt.Errorf("fail to tss sign: %w", resp.Err)
+		}
 
-	if len(rResult) == 0 && len(sResult) == 0 {
-		// this means the node tried to do keygen , however this node has not been chosen to take part in the keysign committee
-		return nil, nil, nil
+		if len(resp.R) == 0 && len(resp.S) == 0 {
+			// this means the node tried to do keysign , however this node has not been chosen to take part in the keysign committee
+			return nil, nil, nil
+		}
+		s.logger.Debug().Str("R", resp.R).Str("S", resp.S).Str("recovery", resp.RecoveryID).Msg("tss result")
+		data, err := getSignature(resp.R, resp.S)
+		if err != nil {
+			return nil, nil, fmt.Errorf("fail to decode tss signature: %w", err)
+		}
+		bRecoveryId, err := base64.StdEncoding.DecodeString(resp.RecoveryID)
+		if err != nil {
+			return nil, nil, fmt.Errorf("fail to decode recovery id: %w", err)
+		}
+		return data, bRecoveryId, nil
+	case <-time.After(time.Minute * tssKeysignTimeout):
+		return nil, nil, fmt.Errorf("TIMEOUT: fail to sign message:%s after %d minutes", encodedMsg, tssKeysignTimeout)
 	}
-	s.logger.Debug().Str("R", rResult).Str("S", sResult).Str("recovery", recoveryId).Msg("tss result")
-	data, err := getSignature(rResult, sResult)
-	if err != nil {
-		return nil, nil, fmt.Errorf("fail to decode tss signature: %w", err)
-	}
-	bRecoveryId, err := base64.StdEncoding.DecodeString(recoveryId)
-	if err != nil {
-		return nil, nil, fmt.Errorf("fail to decode recovery id: %w", err)
-	}
-	return data, bRecoveryId, nil
 }
 
+type tssKeySignTask struct {
+	PoolPubKey string
+	Msg        string
+	Resp       chan tssKeySignResult
+}
+
+type tssKeySignResult struct {
+	R          string
+	S          string
+	RecoveryID string
+	Err        error
+}
+
+func (s *KeySign) processKeySignTasks() {
+	defer s.wg.Done()
+	tasks := make(map[string][]*tssKeySignTask)
+	taskLock := sync.Mutex{}
+	for {
+		select {
+		case <-s.done:
+			// requested to exit
+			return
+		case t := <-s.taskQueue:
+			taskLock.Lock()
+			_, ok := tasks[t.PoolPubKey]
+			if !ok {
+				tasks[t.PoolPubKey] = []*tssKeySignTask{
+					t,
+				}
+			} else {
+				tasks[t.PoolPubKey] = append(tasks[t.PoolPubKey], t)
+			}
+			taskLock.Unlock()
+		case <-time.After(time.Second):
+			// This implementation will check the tasks every second , and send whatever is in the queue to TSS
+			// if it has more than maxKeysignPerRequest(15) in the queue , it will only send the first maxKeysignPerRequest(15) of them
+			// the reset will be send in the next request
+			taskLock.Lock()
+			for k, v := range tasks {
+				if len(v) == 0 {
+					delete(tasks, k)
+					continue
+				}
+				totalTasks := len(v)
+				// send no more than maxKeysignPerRequest messages in a single TSS keysign request
+				if totalTasks > maxKeysignPerRequest {
+					totalTasks = maxKeysignPerRequest
+				}
+				s.wg.Add(1)
+				signingTask := v[:totalTasks]
+				tasks[k] = v[totalTasks:]
+				go s.toLocalTSSSigner(k, signingTask)
+			}
+			taskLock.Unlock()
+		}
+	}
+}
 func getSignature(r, s string) ([]byte, error) {
 	rBytes, err := base64.StdEncoding.DecodeString(r)
 	if err != nil {
@@ -195,11 +287,29 @@ func (s *KeySign) getVersion() semver.Version {
 	return s.currentVersion
 }
 
+func (s *KeySign) setTssKeySignTasksFail(tasks []*tssKeySignTask, err error) {
+	for _, item := range tasks {
+		select {
+		case item.Resp <- tssKeySignResult{
+			Err: err,
+		}:
+		case <-time.After(time.Second):
+			// this is a fallback , if fail to send a failed result back to caller , it doesn't stuck
+			continue
+		}
+	}
+}
+
 // toLocalTSSSigner will send the request to local signer
-func (s *KeySign) toLocalTSSSigner(poolPubKey, msgToSign string) (string, string, string, error) {
+func (s *KeySign) toLocalTSSSigner(poolPubKey string, tasks []*tssKeySignTask) {
+	defer s.wg.Done()
+	var msgToSign []string
+	for _, item := range tasks {
+		msgToSign = append(msgToSign, item.Msg)
+	}
 	tssMsg := keysign.Request{
 		PoolPubKey: poolPubKey,
-		Message:    msgToSign,
+		Messages:   msgToSign,
 	}
 	currentVersion := s.getVersion()
 	tssMsg.Version = currentVersion.String()
@@ -207,38 +317,46 @@ func (s *KeySign) toLocalTSSSigner(poolPubKey, msgToSign string) (string, string
 	// get current thorchain block height
 	blockHeight, err := s.bridge.GetBlockHeight()
 	if err != nil {
-		return "", "", "", fmt.Errorf("fail to get current thorchain block height: %w", err)
+		s.setTssKeySignTasksFail(tasks, fmt.Errorf("fail to get block height from thorchain: %w", err))
+		return
 	}
 	// this is just round the block height to the nearest 10
 	tssMsg.BlockHeight = blockHeight / 10 * 10
 
-	s.logger.Debug().Str("payload", fmt.Sprintf("PoolPubKey: %s, Message: %s, Signers: %+v", tssMsg.PoolPubKey, tssMsg.Message, tssMsg.SignerPubKeys)).Msg("msgToSign to tss Local node")
+	s.logger.Debug().Msgf("msgToSign to tss Local node PoolPubKey: %s, Messages: %+v", tssMsg.PoolPubKey, tssMsg.Messages)
 
-	ch := make(chan bool, 1)
-	defer close(ch)
-	timer := time.NewTimer(5 * time.Minute)
-	defer timer.Stop()
-
-	var keySignResp keysign.Response
-	go func() {
-		keySignResp, err = s.server.KeySign(tssMsg)
-		ch <- true
-	}()
-
-	select {
-	case <-ch:
-		// do nothing
-	case <-timer.C:
-		panic("tss signer timeout")
-	}
-
+	keySignResp, err := s.server.KeySign(tssMsg)
 	if err != nil {
-		return "", "", "", fmt.Errorf("fail to send request to local TSS node: %w", err)
+		s.setTssKeySignTasksFail(tasks, fmt.Errorf("fail tss keysign: %w", err))
+		return
 	}
 
 	// 1 means success,2 means fail , 0 means NA
-	if keySignResp.Status == 1 && keySignResp.Blame.IsEmpty() {
-		return keySignResp.R, keySignResp.S, keySignResp.RecoveryID, nil
+	if keySignResp.Status == 1 && len(keySignResp.Blame.BlameNodes) == 0 {
+		s.logger.Info().Msgf("response: %+v", keySignResp)
+		// success
+		for _, t := range tasks {
+			found := false
+			for _, sig := range keySignResp.Signatures {
+				if t.Msg == sig.Msg {
+					t.Resp <- tssKeySignResult{
+						R:          sig.R,
+						S:          sig.S,
+						RecoveryID: sig.RecoveryID,
+						Err:        nil,
+					}
+					found = true
+					break
+				}
+			}
+			// Didn't find the signature in the tss keysign result , notify the task , so it doesn't get stuck
+			if !found {
+				t.Resp <- tssKeySignResult{
+					Err: fmt.Errorf("didn't find signature for message %s in the keysign result", t.Msg),
+				}
+			}
+		}
+		return
 	}
 
 	// copy blame to our own struct
@@ -254,5 +372,5 @@ func (s *KeySign) toLocalTSSSigner(poolPubKey, msgToSign string) (string, string
 	}
 
 	// Blame need to be passed back to thorchain , so as thorchain can use the information to slash relevant node account
-	return "", "", "", NewKeysignError(blame)
+	s.setTssKeySignTasksFail(tasks, NewKeysignError(blame))
 }
