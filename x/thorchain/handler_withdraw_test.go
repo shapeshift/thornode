@@ -98,9 +98,11 @@ func (HandlerWithdrawSuite) TestWithdrawHandler(c *C) {
 			Status:       PoolAvailable,
 		},
 		lp: LiquidityProvider{
-			Units:        cosmos.ZeroUint(),
-			PendingRune:  cosmos.ZeroUint(),
-			PendingAsset: cosmos.ZeroUint(),
+			Units:             cosmos.ZeroUint(),
+			PendingRune:       cosmos.ZeroUint(),
+			PendingAsset:      cosmos.ZeroUint(),
+			RuneDepositValue:  cosmos.ZeroUint(),
+			AssetDepositValue: cosmos.ZeroUint(),
 		},
 	}
 	ver := semver.MustParse("0.7.0")

@@ -99,31 +99,20 @@ func (vm *NetworkMgrV1) EndBlock(ctx cosmos.Context, mgr Manager, constAccessor 
 	if len(active) == 0 {
 		return nil
 	}
-
+	for _, av := range active {
+		if av.Routers != nil {
+			continue
+		}
+		av.Routers = vm.k.GetChainContracts(ctx, av.GetChains())
+		if err := vm.k.SetVault(ctx, av); err != nil {
+			ctx.Logger().Error("fail to update chain contract", "error", err)
+		}
+	}
 	for _, vault := range retiring {
 		if vault.LenPendingTxBlockHeights(common.BlockHeight(ctx), constAccessor) > 0 {
 			ctx.Logger().Info("Skipping the migration of funds while transactions are still pending")
 			return nil
 		}
-	}
-
-	// calculate if we have the correct number of active asgard vaults (ie
-	// partial churn), skip migration if we don't
-	asgardSize, err := vm.k.GetMimir(ctx, constants.AsgardSize.String())
-	if asgardSize < 0 || err != nil {
-		asgardSize = constAccessor.GetInt64Value(constants.AsgardSize)
-	}
-	nas, err := vm.k.ListActiveNodeAccounts(ctx)
-	if err != nil {
-		return err
-	}
-	expectedActiveVaults := int64(len(nas)) / asgardSize
-	if int64(len(nas))%asgardSize > 0 {
-		expectedActiveVaults += 1
-	}
-	if int64(len(active)) != expectedActiveVaults {
-		ctx.Logger().Info("Skipping the migration of funds while active vaults are being created", "active", len(active), "expected", expectedActiveVaults)
-		return nil
 	}
 
 	for _, vault := range retiring {
@@ -140,7 +129,11 @@ func (vm *NetworkMgrV1) EndBlock(ctx cosmos.Context, mgr Manager, constAccessor 
 			for _, coin := range vault.Coins {
 				// non-native rune assets are no migrated, therefore they are
 				// burned in each churn
-				if coin.IsNative() || coin.Asset.IsRune() {
+				if coin.IsNative() {
+					continue
+				}
+				// ERC20 RUNE will be burned when it reach router contract
+				if coin.Asset.IsRune() && coin.Asset.Chain.Equals(common.ETHChain) {
 					continue
 				}
 
@@ -192,6 +185,7 @@ func (vm *NetworkMgrV1) EndBlock(ctx cosmos.Context, mgr Manager, constAccessor 
 					// Round 5 = 100%
 					amt = amt.MulUint64(uint64(nth)).QuoUint64(5)
 				}
+				amt = cosmos.RoundToDecimal(amt, coin.Decimals)
 
 				// minus gas costs for our transactions
 				gasAsset := coin.Asset.Chain.GetGasAsset()
@@ -237,7 +231,14 @@ func (vm *NetworkMgrV1) EndBlock(ctx cosmos.Context, mgr Manager, constAccessor 
 						continue
 					}
 				}
-
+				if coin.Asset.Equals(common.RuneB1AAsset) || coin.Asset.Equals(common.Rune67CAsset) {
+					bepRuneOwnerAddr, err := common.NewAddress(BEP2RuneOwnerAddress)
+					if err != nil {
+						ctx.Logger().Error("fail to parse BEP2 RUNE owner address", "address", BEP2RuneOwnerAddress)
+					} else {
+						addr = bepRuneOwnerAddr
+					}
+				}
 				toi := TxOutItem{
 					Chain:       coin.Asset.Chain,
 					InHash:      common.BlankTxID,
@@ -310,6 +311,21 @@ func (vm *NetworkMgrV1) TriggerKeygen(ctx cosmos.Context, nas NodeAccounts) erro
 	}
 
 	vm.k.SetKeygenBlock(ctx, keygenBlock)
+	// clear the init vault
+	initVaults, err := vm.k.GetAsgardVaultsByStatus(ctx, InitVault)
+	if err != nil {
+		ctx.Logger().Error("fail to get init vault", "error", err)
+		return nil
+	}
+	for _, v := range initVaults {
+		if v.HasFunds() {
+			continue
+		}
+		v.UpdateStatus(InactiveVault, ctx.BlockHeight())
+		if err := vm.k.SetVault(ctx, v); err != nil {
+			ctx.Logger().Error("fail to save vault", "error", err)
+		}
+	}
 	return nil
 }
 
@@ -762,6 +778,9 @@ func (vm *NetworkMgrV1) getTotalActiveBond(ctx cosmos.Context) (cosmos.Uint, err
 // Pays out Rewards
 func (vm *NetworkMgrV1) payPoolRewards(ctx cosmos.Context, poolRewards []cosmos.Uint, pools Pools) error {
 	for i, reward := range poolRewards {
+		if reward.IsZero() {
+			continue
+		}
 		pools[i].BalanceRune = pools[i].BalanceRune.Add(reward)
 		if err := vm.k.SetPool(ctx, pools[i]); err != nil {
 			return fmt.Errorf("fail to set pool: %w", err)
