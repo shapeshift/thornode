@@ -7,9 +7,9 @@ import (
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 type HandlerAddLiquiditySuite struct{}
@@ -92,12 +92,14 @@ func (s *HandlerAddLiquiditySuite) TestAddLiquidityHandler(c *C) {
 			Status:       PoolAvailable,
 		},
 		lp: LiquidityProvider{
-			Asset:        common.BNBAsset,
-			RuneAddress:  runeAddr,
-			AssetAddress: bnbAddr,
-			Units:        cosmos.ZeroUint(),
-			PendingRune:  cosmos.ZeroUint(),
-			PendingAsset: cosmos.ZeroUint(),
+			Asset:             common.BNBAsset,
+			RuneAddress:       runeAddr,
+			AssetAddress:      bnbAddr,
+			Units:             cosmos.ZeroUint(),
+			PendingRune:       cosmos.ZeroUint(),
+			PendingAsset:      cosmos.ZeroUint(),
+			RuneDepositValue:  cosmos.ZeroUint(),
+			AssetDepositValue: cosmos.ZeroUint(),
 		},
 	}
 	// happy path
@@ -149,12 +151,14 @@ func (s *HandlerAddLiquiditySuite) TestAddLiquidityHandler_NoPool_ShouldCreateNe
 			Status:       PoolAvailable,
 		},
 		lp: LiquidityProvider{
-			Asset:        common.BNBAsset,
-			RuneAddress:  runeAddr,
-			AssetAddress: bnbAddr,
-			Units:        cosmos.ZeroUint(),
-			PendingRune:  cosmos.ZeroUint(),
-			PendingAsset: cosmos.ZeroUint(),
+			Asset:             common.BNBAsset,
+			RuneAddress:       runeAddr,
+			AssetAddress:      bnbAddr,
+			Units:             cosmos.ZeroUint(),
+			PendingRune:       cosmos.ZeroUint(),
+			PendingAsset:      cosmos.ZeroUint(),
+			RuneDepositValue:  cosmos.ZeroUint(),
+			AssetDepositValue: cosmos.ZeroUint(),
 		},
 	}
 	// happy path
@@ -216,12 +220,14 @@ func (s *HandlerAddLiquiditySuite) TestAddLiquidityHandlerValidation(c *C) {
 			Status:       PoolAvailable,
 		},
 		lp: LiquidityProvider{
-			Asset:        common.BNBAsset,
-			RuneAddress:  runeAddr,
-			AssetAddress: bnbAddr,
-			Units:        cosmos.ZeroUint(),
-			PendingRune:  cosmos.ZeroUint(),
-			PendingAsset: cosmos.ZeroUint(),
+			Asset:             common.BNBAsset,
+			RuneAddress:       runeAddr,
+			AssetAddress:      bnbAddr,
+			Units:             cosmos.ZeroUint(),
+			PendingRune:       cosmos.ZeroUint(),
+			PendingAsset:      cosmos.ZeroUint(),
+			RuneDepositValue:  cosmos.ZeroUint(),
+			AssetDepositValue: cosmos.ZeroUint(),
 		},
 	}
 	testCases := []struct {
@@ -373,11 +379,13 @@ func (p *AddLiquidityTestKeeper) GetLiquidityProvider(ctx cosmos.Context, asset 
 		return LiquidityProvider{}, errors.New("simulate error for test")
 	}
 	lp := LiquidityProvider{
-		Asset:        asset,
-		RuneAddress:  addr,
-		Units:        cosmos.ZeroUint(),
-		PendingRune:  cosmos.ZeroUint(),
-		PendingAsset: cosmos.ZeroUint(),
+		Asset:             asset,
+		RuneAddress:       addr,
+		Units:             cosmos.ZeroUint(),
+		PendingRune:       cosmos.ZeroUint(),
+		PendingAsset:      cosmos.ZeroUint(),
+		RuneDepositValue:  cosmos.ZeroUint(),
+		AssetDepositValue: cosmos.ZeroUint(),
 	}
 	key := p.GetKey(ctx, "lp/", lp.Key())
 	if res, ok := p.store[key]; ok {

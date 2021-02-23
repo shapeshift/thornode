@@ -218,9 +218,7 @@ func (mgr *Mgrs) YggManager() YggManager { return mgr.yggManager }
 // GetGasManager return GasManager
 func GetGasManager(version semver.Version, keeper keeper.Keeper) (GasManager, error) {
 	constAcessor := constants.GetConstantValues(version)
-	if version.GTE(semver.MustParse("0.21.0")) {
-		return NewGasMgrV21(constAcessor, keeper), nil
-	} else if version.GTE(semver.MustParse("0.1.0")) {
+	if version.GTE(semver.MustParse("0.1.0")) {
 		return NewGasMgrV1(constAcessor, keeper), nil
 	}
 	return nil, errInvalidVersion
@@ -245,13 +243,7 @@ func GetTxOutStore(keeper keeper.Keeper, version semver.Version, eventMgr EventM
 
 // GetVaultManager retrieve a NetworkManager that is compatible with the given version
 func GetVaultManager(keeper keeper.Keeper, version semver.Version, txOutStore TxOutStore, eventMgr EventManager) (NetworkManager, error) {
-	if version.GTE(semver.MustParse("0.24.0")) {
-		return NewNetworkMgrV24(keeper, txOutStore, eventMgr), nil
-	} else if version.GTE(semver.MustParse("0.21.0")) {
-		return NewNetworkMgrV21(keeper, txOutStore, eventMgr), nil
-	} else if version.GTE(semver.MustParse("0.20.0")) {
-		return NewNetworkMgrV20(keeper, txOutStore, eventMgr), nil
-	} else if version.GTE(semver.MustParse("0.1.0")) {
+	if version.GTE(semver.MustParse("0.1.0")) {
 		return NewNetworkMgrV1(keeper, txOutStore, eventMgr), nil
 	}
 	return nil, errInvalidVersion
@@ -292,9 +284,7 @@ func GetSlasher(keeper keeper.Keeper, version semver.Version) (Slasher, error) {
 
 // GetYggManager return an implementation of YggManager
 func GetYggManager(keeper keeper.Keeper, version semver.Version) (YggManager, error) {
-	if version.GTE(semver.MustParse("0.21.0")) {
-		return NewYggMgrV21(keeper), nil
-	} else if version.GTE(semver.MustParse("0.1.0")) {
+	if version.GTE(semver.MustParse("0.1.0")) {
 		return NewYggMgrV1(keeper), nil
 	}
 	return nil, errInvalidVersion

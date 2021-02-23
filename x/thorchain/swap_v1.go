@@ -4,8 +4,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/blang/semver"
-
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
@@ -70,8 +68,8 @@ func swapV1(ctx cosmos.Context,
 	source := tx.Coins[0].Asset
 
 	if err := validatePoolsV1(ctx, keeper, source, target); err != nil {
-		if err == errInvalidPoolStatus && source.IsSyntheticAsset() && target.IsRune() {
-			// the pool is not available, but we can allow synthetic assets to still swap back to rune ok
+		if err == errInvalidPoolStatus && source.IsSyntheticAsset() {
+			// the pool is not available, but we can allow synthetic assets to still swap back to rune/asset ok
 		} else {
 			return cosmos.ZeroUint(), swapEvents, err
 		}
@@ -79,6 +77,10 @@ func swapV1(ctx cosmos.Context,
 	if !destination.IsChain(target.Chain) {
 		return cosmos.ZeroUint(), swapEvents, fmt.Errorf("destination address is not a valid %s address", target.Chain)
 	}
+	if source.Equals(target) {
+		return cosmos.ZeroUint(), swapEvents, fmt.Errorf("cannot swap from %s --> %s, assets match", source, target)
+	}
+
 	poolsBeforeSwap := make([]Pool, 0)
 	pools := make([]Pool, 0)
 	isDoubleSwap := !source.IsRune() && !target.IsRune()
@@ -249,10 +251,7 @@ func swapOneV1(ctx cosmos.Context,
 	liquidityFee = calcLiquidityFeeV1(X, x, Y)
 	tradeSlip = calcSwapSlipV1(X, x)
 	emitAssets = calcAssetEmissionV1(X, x, Y)
-	version := keeper.GetLowestActiveVersion(ctx)
-	if version.GTE(semver.MustParse("0.21.0")) {
-		emitAssets = cosmos.RoundToDecimal(emitAssets, pool.Decimals)
-	}
+	emitAssets = cosmos.RoundToDecimal(emitAssets, pool.Decimals)
 	swapEvt.LiquidityFee = liquidityFee
 
 	if source.IsRune() {
@@ -262,6 +261,7 @@ func swapOneV1(ctx cosmos.Context,
 		swapEvt.LiquidityFeeInRune = liquidityFee
 	}
 	swapEvt.TradeSlip = tradeSlip
+	swapEvt.EmitAsset = common.NewCoin(target, emitAssets)
 
 	// do THORNode have enough balance to swap?
 	if emitAssets.GTE(Y) {
@@ -271,46 +271,39 @@ func swapOneV1(ctx cosmos.Context,
 	ctx.Logger().Info(fmt.Sprintf("Pre-Pool: %sRune %sAsset", pool.BalanceRune, pool.BalanceAsset))
 
 	if source.IsSyntheticAsset() || target.IsSyntheticAsset() {
-		// we're doing a virtual swap
+		// we're doing a synth swap
 		if source.IsSyntheticAsset() {
 			// our source is a pegged asset, burn it all
+			totalSynthSupply := keeper.GetTotalSupply(ctx, source)
+			minusSynthUnits := common.GetShare(x, totalSynthSupply, pool.SynthUnits)
+			pool.BalanceRune = common.SafeSub(pool.BalanceRune, emitAssets)
+			pool.SynthUnits = common.SafeSub(pool.SynthUnits, minusSynthUnits)
+			pool.PoolUnits = common.SafeSub(pool.PoolUnits, minusSynthUnits)
 			if err := keeper.SendFromModuleToModule(ctx, AsgardName, ModuleName, tx.Coins); err != nil {
 				return cosmos.ZeroUint(), poolBefore, pool, evt, fmt.Errorf("fail to move coins during swap: %w", err)
 			}
 			if err := keeper.BurnFromModule(ctx, ModuleName, tx.Coins[0]); err != nil {
 				return cosmos.ZeroUint(), poolBefore, pool, evt, fmt.Errorf("fail to burn coins during swap: %w", err)
 			}
-			// mint rune to asgard module and so we can add it to the pool
-			toMint := common.NewCoin(common.RuneAsset(), liquidityFee.Add(emitAssets))
-			if err := keeper.MintToModule(ctx, ModuleName, toMint); err != nil {
-				return cosmos.ZeroUint(), poolBefore, pool, evt, fmt.Errorf("fail to mint coins during swap: %w", err)
-			}
-			if err := keeper.SendFromModuleToModule(ctx, ModuleName, AsgardName, common.NewCoins(toMint)); err != nil {
-				return cosmos.ZeroUint(), poolBefore, pool, evt, fmt.Errorf("fail to move coins during swap: %w", err)
-			}
 		} else {
-			// our source is assumed to be rune, burn it all except the
-			// liquidity fee
-			toBurn := tx.Coins[0]
-			toBurn.Amount = common.SafeSub(toBurn.Amount, liquidityFee)
-			if err := keeper.SendFromModuleToModule(ctx, AsgardName, ModuleName, common.NewCoins(toBurn)); err != nil {
-				return cosmos.ZeroUint(), poolBefore, pool, evt, fmt.Errorf("fail to move coins during swap: %w", err)
+			// our source is assumed to be rune
+			// mint synth units so that LPs don't get access to the extra rune in the pool.
+			// the minting of the synths themselves is handled in the txout manager
+			newPoolUnits, synthUnits, err := calculatePoolUnitsV1(pool.PoolUnits, pool.BalanceRune, pool.BalanceAsset, x, cosmos.ZeroUint())
+			if err != nil {
+				return cosmos.ZeroUint(), poolBefore, pool, evt, ErrInternal(err, "fail to calculate synth unit")
 			}
-			if err := keeper.BurnFromModule(ctx, ModuleName, toBurn); err != nil {
-				return cosmos.ZeroUint(), poolBefore, pool, evt, fmt.Errorf("fail to burn coins during swap: %w", err)
-			}
+			pool.PoolUnits = newPoolUnits
+			pool.SynthUnits = pool.SynthUnits.Add(synthUnits)
+			pool.BalanceRune = pool.BalanceRune.Add(x)
 		}
-		// add rune to the layer1 pool
-		pool.BalanceRune = pool.BalanceRune.Add(liquidityFee)
 	} else {
 		if source.IsRune() {
 			pool.BalanceRune = X.Add(x)
 			pool.BalanceAsset = common.SafeSub(Y, emitAssets)
-			swapEvt.EmitAsset = common.NewCoin(pool.Asset, emitAssets)
 		} else {
 			pool.BalanceAsset = X.Add(x)
 			pool.BalanceRune = common.SafeSub(Y, emitAssets)
-			swapEvt.EmitAsset = common.NewCoin(common.RuneAsset(), emitAssets)
 		}
 	}
 	ctx.Logger().Info(fmt.Sprintf("Post-swap: %sRune %sAsset , user get:%s ", pool.BalanceRune, pool.BalanceAsset, emitAssets))

@@ -18,7 +18,7 @@ type HandlerLeaveSuite struct{}
 var _ = Suite(&HandlerLeaveSuite{})
 
 func (HandlerLeaveSuite) TestLeaveHandler_NotActiveNodeLeave(c *C) {
-	w := getHandlerTestWrapperWithVersion(c, 1, true, false, semver.MustParse("0.23.0"))
+	w := getHandlerTestWrapperWithVersion(c, 1, true, false, semver.MustParse("0.1.0"))
 	vault := GetRandomVault()
 	w.keeper.SetVault(w.ctx, vault)
 	leaveHandler := NewLeaveHandler(w.keeper, NewDummyMgr())
@@ -40,38 +40,7 @@ func (HandlerLeaveSuite) TestLeaveHandler_NotActiveNodeLeave(c *C) {
 		"LEAVE",
 	)
 	msgLeave := NewMsgLeave(tx, acc2.NodeAddress, w.activeNodeAccount.NodeAddress)
-	ver := constants.SWVersion
-	constAccessor := constants.GetConstantValues(ver)
-	_, err := leaveHandler.Run(w.ctx, msgLeave, ver, constAccessor)
-	c.Assert(err, IsNil)
-	_, err = leaveHandler.Run(w.ctx, msgLeave, semver.Version{}, constAccessor)
-	c.Assert(err, NotNil)
-}
-
-func (HandlerLeaveSuite) TestLeaveHandlerV5_NotActiveNodeLeave(c *C) {
-	w := getHandlerTestWrapperWithVersion(c, 1, true, false, semver.MustParse("0.23.0"))
-	vault := GetRandomVault()
-	w.keeper.SetVault(w.ctx, vault)
-	leaveHandler := NewLeaveHandler(w.keeper, NewDummyMgr())
-	acc2 := GetRandomNodeAccount(NodeStandby)
-	acc2.Bond = cosmos.NewUint(100 * common.One)
-	c.Assert(w.keeper.SetNodeAccount(w.ctx, acc2), IsNil)
-	ygg := NewVault(common.BlockHeight(w.ctx), ActiveVault, YggdrasilVault, acc2.PubKeySet.Secp256k1, common.Chains{common.RuneAsset().Chain}.Strings(), []ChainContract{})
-	c.Assert(w.keeper.SetVault(w.ctx, ygg), IsNil)
-
-	FundModule(c, w.ctx, w.keeper, BondName, 100)
-
-	txID := GetRandomTxHash()
-	tx := common.NewTx(
-		txID,
-		acc2.BondAddress,
-		GetRandomBNBAddress(),
-		common.Coins{common.NewCoin(common.RuneAsset(), cosmos.OneUint())},
-		BNBGasFeeSingleton,
-		"LEAVE",
-	)
-	msgLeave := NewMsgLeave(tx, acc2.NodeAddress, w.activeNodeAccount.NodeAddress)
-	ver := semver.MustParse("0.5.0")
+	ver := semver.MustParse("0.1.0")
 	constAccessor := constants.GetConstantValues(ver)
 	_, err := leaveHandler.Run(w.ctx, msgLeave, ver, constAccessor)
 	c.Assert(err, IsNil)
@@ -84,7 +53,7 @@ func (HandlerLeaveSuite) TestLeaveHandlerV5_NotActiveNodeLeave(c *C) {
 
 func (HandlerLeaveSuite) TestLeaveHandler_ActiveNodeLeave(c *C) {
 	var err error
-	w := getHandlerTestWrapperWithVersion(c, 1, true, false, semver.MustParse("0.23.0"))
+	w := getHandlerTestWrapperWithVersion(c, 1, true, false, semver.MustParse("0.1.0"))
 	leaveHandler := NewLeaveHandler(w.keeper, NewDummyMgr())
 	acc2 := GetRandomNodeAccount(NodeActive)
 	acc2.Bond = cosmos.NewUint(100 * common.One)
@@ -111,7 +80,7 @@ func (HandlerLeaveSuite) TestLeaveHandler_ActiveNodeLeave(c *C) {
 
 func (HandlerLeaveSuite) TestLeaveHandlerV5_ActiveNodeLeave(c *C) {
 	var err error
-	w := getHandlerTestWrapperWithVersion(c, 1, true, false, semver.MustParse("0.23.0"))
+	w := getHandlerTestWrapperWithVersion(c, 1, true, false, semver.MustParse("0.1.0"))
 	leaveHandler := NewLeaveHandler(w.keeper, NewDummyMgr())
 	acc2 := GetRandomNodeAccount(NodeActive)
 	acc2.Bond = cosmos.NewUint(100 * common.One)
@@ -137,7 +106,7 @@ func (HandlerLeaveSuite) TestLeaveHandlerV5_ActiveNodeLeave(c *C) {
 }
 
 func (HandlerLeaveSuite) TestLeaveJail(c *C) {
-	w := getHandlerTestWrapperWithVersion(c, 1, true, false, semver.MustParse("0.23.0"))
+	w := getHandlerTestWrapperWithVersion(c, 1, true, false, semver.MustParse("0.1.0"))
 	vault := GetRandomVault()
 	w.keeper.SetVault(w.ctx, vault)
 	leaveHandler := NewLeaveHandler(w.keeper, NewDummyMgr())
@@ -169,7 +138,7 @@ func (HandlerLeaveSuite) TestLeaveJail(c *C) {
 }
 
 func (HandlerLeaveSuite) TestLeaveValidation(c *C) {
-	w := getHandlerTestWrapperWithVersion(c, 1, true, false, semver.MustParse("0.23.0"))
+	w := getHandlerTestWrapperWithVersion(c, 1, true, false, semver.MustParse("0.1.0"))
 	ver := constants.SWVersion
 	constAccessor := constants.GetConstantValues(ver)
 	testCases := []struct {
@@ -462,7 +431,7 @@ func (HandlerLeaveSuite) TestLeaveDifferentValidations(c *C) {
 		mgr.BeginBlock(ctx)
 		handler := NewLeaveHandler(helper, mgr)
 		msg := tc.messageProvider(ctx, helper)
-		ver := semver.MustParse("0.23.0")
+		ver := semver.MustParse("0.1.0")
 		constantAccessor := constants.GetConstantValues(ver)
 		result, err := handler.Run(ctx, msg, ver, constantAccessor)
 		tc.validator(c, ctx, result, err, helper, tc.name, msg)

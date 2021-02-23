@@ -323,7 +323,7 @@ func (ymgr YggMgrV1) calcTargetYggCoins(pools []Pool, ygg Vault, yggBond, totalB
 		// add rune amt (not asset since the two are considered to be equal)
 		// in a single pool X, the value of 1% asset X in RUNE ,equals the 1% RUNE in the same pool
 		yggCoin := ygg.GetCoin(pool.Asset)
-		coin := common.NewCoin(pool.Asset, common.SafeSub(assetAmt, yggCoin.Amount))
+		coin := common.NewCoin(pool.Asset, cosmos.RoundToDecimal(common.SafeSub(assetAmt, yggCoin.Amount), pool.Decimals))
 		if !coin.IsEmpty() {
 			counter = counter.Add(runeAmt)
 			if !coin.IsNative() {
