@@ -385,144 +385,81 @@ func (s *SwapSuite) TestSwap(c *C) {
 	}
 }
 
-func (s SwapSuite) TestValidatePools(c *C) {
-	keeper := &TestSwapKeeper{}
-	ctx, _ := setupKeeperForTest(c)
-	c.Check(validatePoolsV1(ctx, keeper, common.RuneAsset()), IsNil)
-	c.Check(validatePoolsV1(ctx, keeper, common.Asset{Chain: common.BNBChain, Ticker: "NOTEXIST", Symbol: "NOTEXIST"}), NotNil)
-}
+func (s *SwapSuite) TestSynthSwap(c *C) {
+	ctx, k := setupKeeperForTest(c)
+	pool := NewPool()
+	pool.Asset = common.BNBAsset
+	pool.BalanceRune = cosmos.NewUint(1111 * common.One)
+	pool.BalanceAsset = cosmos.NewUint(34 * common.One)
+	pool.PoolUnits = pool.BalanceRune
+	c.Assert(k.SetPool(ctx, pool), IsNil)
 
-func (s SwapSuite) TestValidateMessage(c *C) {
-	c.Check(validateMessageV1(
-		common.NewTx(
-			GetRandomTxHash(),
-			GetRandomBNBAddress(),
-			GetRandomBNBAddress(),
-			common.Coins{
-				common.NewCoin(common.RuneAsset(), cosmos.NewUint(3429850000)),
-			},
-			BNBGasFeeSingleton,
-			"",
+	addr := GetRandomTHORAddress()
+	tx := common.NewTx(
+		GetRandomTxHash(),
+		addr,
+		addr,
+		common.NewCoins(
+			common.NewCoin(common.RuneAsset(), cosmos.NewUint(50*common.One)),
 		),
-		common.BNBAsset,
-		"bnbYYY",
-	), IsNil)
-	c.Check(validateMessageV1(
-		common.NewTx(
-			"",
-			GetRandomBNBAddress(),
-			GetRandomBNBAddress(),
-			common.Coins{
-				common.NewCoin(common.RuneAsset(), cosmos.NewUint(3429850000)),
-			},
-			BNBGasFeeSingleton,
-			"",
-		),
-		common.BNBAsset,
-		"bnbYYY",
-	), NotNil)
-	c.Check(validateMessageV1(
-		common.NewTx(
-			GetRandomTxHash(),
-			GetRandomBNBAddress(),
-			GetRandomBNBAddress(),
-			common.Coins{
-				common.NewCoin(common.Asset{}, cosmos.NewUint(3429850000)),
-			},
-			BNBGasFeeSingleton,
-			"",
-		),
-		common.BNBAsset,
-		"bnbYYY",
-	), NotNil)
-	c.Check(validateMessageV1(
-		common.NewTx(
-			GetRandomTxHash(),
-			GetRandomBNBAddress(),
-			GetRandomBNBAddress(),
-			common.Coins{
-				common.NewCoin(common.RuneAsset(), cosmos.NewUint(3429850000)),
-			},
-			BNBGasFeeSingleton,
-			"",
-		),
-		common.Asset{},
-		"bnbYYY",
-	), NotNil)
-	c.Check(validateMessageV1(
-		common.NewTx(
-			GetRandomTxHash(),
-			GetRandomBNBAddress(),
-			GetRandomBNBAddress(),
-			common.Coins{
-				common.NewCoin(common.RuneAsset(), cosmos.ZeroUint()),
-			},
-			BNBGasFeeSingleton,
-			"",
-		),
-		common.BNBAsset,
-		"bnbYYY",
-	), NotNil)
-	c.Check(validateMessageV1(
-		common.NewTx(
-			GetRandomTxHash(),
-			"",
-			GetRandomBNBAddress(),
-			common.Coins{
-				common.NewCoin(common.RuneAsset(), cosmos.NewUint(3429850000)),
-			},
-			BNBGasFeeSingleton,
-			"",
-		),
-		common.BNBAsset,
-		"bnbYYY",
-	), NotNil)
-	c.Check(validateMessageV1(
-		common.NewTx(
-			GetRandomTxHash(),
-			GetRandomBNBAddress(),
-			GetRandomBNBAddress(),
-			common.Coins{
-				common.NewCoin(common.RuneAsset(), cosmos.NewUint(3429850000)),
-			},
-			BNBGasFeeSingleton,
-			"",
-		),
-		common.BNBAsset,
+		BNBGasFeeSingleton,
 		"",
-	), NotNil)
-}
+	)
+	tx.Chain = common.BNBChain
+	m := NewManagers(k)
+	m.BeginBlock(ctx)
+	m.txOutStore = NewTxStoreDummy()
 
-func (s SwapSuite) TestCalculators(c *C) {
-	X := cosmos.NewUint(100 * common.One)
-	x := cosmos.NewUint(10 * common.One)
-	Y := cosmos.NewUint(100 * common.One)
+	// swap rune --> synth
+	amount, _, err := swapV1(ctx, k, tx, common.BNBAsset, addr, cosmos.ZeroUint(), cosmos.NewUint(1000_000), 2, m)
+	c.Assert(err, IsNil)
+	c.Check(amount.Uint64(), Equals, uint64(146354579))
+	pool, err = k.GetPool(ctx, common.BNBAsset)
+	c.Assert(err, IsNil)
+	c.Check(pool.BalanceAsset.Uint64(), Equals, uint64(34*common.One))
+	c.Check(pool.BalanceRune.Uint64(), Equals, uint64(1161*common.One), Commentf("%d", pool.BalanceRune.Uint64()))
+	c.Check(pool.PoolUnits.Uint64(), Equals, uint64(113492334194), Commentf("%d", pool.PoolUnits.Uint64()))
+	c.Check(pool.SynthUnits.Uint64(), Equals, uint64(2392334194), Commentf("%d", pool.SynthUnits.Uint64()))
+	coin := common.NewCoin(common.BNBAsset.GetSyntheticAsset(), amount)
+	c.Assert(k.MintToModule(ctx, ModuleName, coin), IsNil)
+	c.Assert(k.SendFromModuleToModule(ctx, ModuleName, AsgardName, common.NewCoins(coin)), IsNil)
 
-	// These calculations are verified by using the spreadsheet
-	// https://docs.google.com/spreadsheets/d/1wJHYBRKBdw_WP7nUyVnkySPkOmPUNoiRGsEqgBVVXKU/edit#gid=0
-	c.Check(calcAssetEmissionV1(X, x, Y).Uint64(), Equals, uint64(826446280))
-	c.Check(calcLiquidityFeeV1(X, x, Y).Uint64(), Equals, uint64(82644628))
-	c.Check(calcSwapSlipV1(X, x).Uint64(), Equals, uint64(909), Commentf("%d", calcSwapSlipV1(X, x).Uint64()))
+	// do another rune --> synth
+	amount, _, err = swapV1(ctx, k, tx, common.BNBAsset, addr, cosmos.ZeroUint(), cosmos.NewUint(1000_000), 2, m)
+	c.Assert(err, IsNil)
+	c.Check(amount.Uint64(), Equals, uint64(140317475), Commentf("%d", amount.Uint64()))
+	pool, err = k.GetPool(ctx, common.BNBAsset)
+	c.Assert(err, IsNil)
+	c.Check(pool.BalanceAsset.Uint64(), Equals, uint64(34*common.One))
+	c.Check(pool.BalanceRune.Uint64(), Equals, uint64(1211*common.One), Commentf("%d", pool.BalanceRune.Uint64()))
+	c.Check(pool.PoolUnits.Uint64(), Equals, uint64(115835280812), Commentf("%d", pool.PoolUnits.Uint64()))
+	c.Check(pool.SynthUnits.Uint64(), Equals, uint64(4735280812), Commentf("%d", pool.SynthUnits.Uint64()))
+	coin = common.NewCoin(common.BNBAsset.GetSyntheticAsset(), amount)
+	c.Assert(k.MintToModule(ctx, ModuleName, coin), IsNil)
+	c.Assert(k.SendFromModuleToModule(ctx, ModuleName, AsgardName, common.NewCoins(coin)), IsNil)
 
-	// side of the pool is zero
-	X = cosmos.NewUint(100 * common.One)
-	x = cosmos.NewUint(10 * common.One)
-	Y = cosmos.NewUint(0 * common.One)
+	// swap synth --> rune
+	tx.Coins = common.NewCoins(common.NewCoin(common.BNBAsset.GetSyntheticAsset(), cosmos.NewUint(146354579)))
+	amount, _, err = swapV1(ctx, k, tx, common.RuneAsset(), addr, cosmos.ZeroUint(), cosmos.NewUint(1000_000), 2, m)
+	c.Assert(err, IsNil)
+	c.Check(amount.Uint64(), Equals, uint64(4995459815), Commentf("%d", amount.Uint64()))
+	pool, err = k.GetPool(ctx, common.BNBAsset)
+	c.Assert(err, IsNil)
+	c.Check(pool.BalanceAsset.Uint64(), Equals, uint64(34*common.One))
+	c.Check(pool.BalanceRune.Uint64(), Equals, uint64(116104540185), Commentf("%d", pool.BalanceRune.Uint64()))
+	c.Check(pool.PoolUnits.Uint64(), Equals, uint64(113417779629), Commentf("%d", pool.PoolUnits.Uint64()))
+	c.Check(pool.SynthUnits.Uint64(), Equals, uint64(2317779629), Commentf("%d", pool.SynthUnits.Uint64()))
 
-	// These calculations are verified by using the spreadsheet
-	// https://docs.google.com/spreadsheets/d/1wJHYBRKBdw_WP7nUyVnkySPkOmPUNoiRGsEqgBVVXKU/edit#gid=0
-	c.Check(calcAssetEmissionV1(X, x, Y).Uint64(), Equals, uint64(0))
-	c.Check(calcLiquidityFeeV1(X, x, Y).Uint64(), Equals, uint64(0))
-	c.Check(calcSwapSlipV1(X, x).Uint64(), Equals, uint64(909), Commentf("%d", calcSwapSlipV1(X, x).Uint64()))
-
-	// side of the pool is zero
-	X = cosmos.NewUint(0 * common.One)
-	x = cosmos.NewUint(10 * common.One)
-	Y = cosmos.NewUint(100 * common.One)
-
-	// These calculations are verified by using the spreadsheet
-	// https://docs.google.com/spreadsheets/d/1wJHYBRKBdw_WP7nUyVnkySPkOmPUNoiRGsEqgBVVXKU/edit#gid=0
-	c.Check(calcAssetEmissionV1(X, x, Y).Uint64(), Equals, uint64(0))
-	c.Check(calcLiquidityFeeV1(X, x, Y).Uint64(), Equals, uint64(100*common.One), Commentf("%d", calcLiquidityFeeV1(X, x, Y).Uint64()))
-	c.Check(calcSwapSlipV1(X, x).Uint64(), Equals, uint64(10000), Commentf("%d", calcSwapSlipV1(X, x).Uint64()))
+	// swap synth --> rune again
+	totalSupply := k.GetTotalSupply(ctx, common.BNBAsset.GetSyntheticAsset())
+	tx.Coins = common.NewCoins(common.NewCoin(common.BNBAsset.GetSyntheticAsset(), totalSupply))
+	amount, _, err = swapV1(ctx, k, tx, common.RuneAsset(), addr, cosmos.ZeroUint(), cosmos.NewUint(1000_000), 2, m)
+	c.Assert(err, IsNil)
+	c.Check(amount.Uint64(), Equals, uint64(4599823821), Commentf("%d", amount.Uint64()))
+	pool, err = k.GetPool(ctx, common.BNBAsset)
+	c.Assert(err, IsNil)
+	c.Check(pool.BalanceAsset.Uint64(), Equals, uint64(34*common.One))
+	c.Check(pool.BalanceRune.Uint64(), Equals, uint64(111504716364), Commentf("%d", pool.BalanceRune.Uint64()))
+	c.Check(pool.PoolUnits.Uint64(), Equals, uint64(111100000000), Commentf("%d", pool.PoolUnits.Uint64()))
+	c.Check(pool.SynthUnits.Uint64(), Equals, uint64(0), Commentf("%d", pool.SynthUnits.Uint64()))
 }
