@@ -92,6 +92,111 @@ func (k *WithdrawTestKeeper) SetLiquidityProvider(ctx cosmos.Context, lp Liquidi
 	k.keeper.SetLiquidityProvider(ctx, lp)
 }
 
+// TestValidateWithdraw is to test validateWithdraw function
+func (s WithdrawSuite) TestValidateWithdraw(c *C) {
+	accountAddr := GetRandomNodeAccount(NodeWhiteListed).NodeAddress
+	runeAddress, err := common.NewAddress("bnb1g0xakzh03tpa54khxyvheeu92hwzypkdce77rm")
+	if err != nil {
+		c.Error("fail to create new BNB Address")
+	}
+	inputs := []struct {
+		name          string
+		msg           MsgWithdrawLiquidity
+		expectedError error
+	}{
+		{
+			name: "empty-rune-address",
+			msg: MsgWithdrawLiquidity{
+				WithdrawAddress: "",
+				BasisPoints:     cosmos.NewUint(10000),
+				Asset:           common.BNBAsset,
+				Tx:              common.Tx{ID: "28B40BF105A112389A339A64BD1A042E6140DC9082C679586C6CF493A9FDE3FE"},
+				Signer:          accountAddr,
+			},
+			expectedError: errors.New("empty withdraw address"),
+		},
+		{
+			name: "empty-withdraw-basis-points",
+			msg: MsgWithdrawLiquidity{
+				WithdrawAddress: runeAddress,
+				BasisPoints:     cosmos.ZeroUint(),
+				Asset:           common.BNBAsset,
+				Tx:              common.Tx{ID: "28B40BF105A112389A339A64BD1A042E6140DC9082C679586C6CF493A9FDE3FE"},
+				Signer:          accountAddr,
+			},
+			expectedError: errors.New("withdraw basis points 0 is invalid"),
+		},
+		{
+			name: "empty-request-txhash",
+			msg: MsgWithdrawLiquidity{
+				WithdrawAddress: runeAddress,
+				BasisPoints:     cosmos.NewUint(10000),
+				Asset:           common.BNBAsset,
+				Tx:              common.Tx{},
+				Signer:          accountAddr,
+			},
+			expectedError: errors.New("request tx hash is empty"),
+		},
+		{
+			name: "empty-asset",
+			msg: MsgWithdrawLiquidity{
+				WithdrawAddress: runeAddress,
+				BasisPoints:     cosmos.NewUint(10000),
+				Asset:           common.Asset{},
+				Tx:              common.Tx{ID: "28B40BF105A112389A339A64BD1A042E6140DC9082C679586C6CF493A9FDE3FE"},
+				Signer:          accountAddr,
+			},
+			expectedError: errors.New("empty asset"),
+		},
+		{
+			name: "invalid-basis-point",
+			msg: MsgWithdrawLiquidity{
+				WithdrawAddress: runeAddress,
+				BasisPoints:     cosmos.NewUint(10001),
+				Asset:           common.BNBAsset,
+				Tx:              common.Tx{ID: "28B40BF105A112389A339A64BD1A042E6140DC9082C679586C6CF493A9FDE3FE"},
+				Signer:          accountAddr,
+			},
+			expectedError: errors.New("withdraw basis points 10001 is invalid"),
+		},
+		{
+			name: "invalid-pool-notexist",
+			msg: MsgWithdrawLiquidity{
+				WithdrawAddress: runeAddress,
+				BasisPoints:     cosmos.NewUint(10000),
+				Asset:           common.Asset{Chain: common.BNBChain, Ticker: "NOTEXIST", Symbol: "NOTEXIST"},
+				Tx:              common.Tx{ID: "28B40BF105A112389A339A64BD1A042E6140DC9082C679586C6CF493A9FDE3FE"},
+				Signer:          accountAddr,
+			},
+			expectedError: errors.New("pool-BNB.NOTEXIST doesn't exist"),
+		},
+		{
+			name: "all-good",
+			msg: MsgWithdrawLiquidity{
+				WithdrawAddress: runeAddress,
+				BasisPoints:     cosmos.NewUint(10000),
+				Asset:           common.BNBAsset,
+				Tx:              common.Tx{ID: "28B40BF105A112389A339A64BD1A042E6140DC9082C679586C6CF493A9FDE3FE"},
+				Signer:          accountAddr,
+			},
+			expectedError: nil,
+		},
+	}
+
+	for _, item := range inputs {
+		ctx, _ := setupKeeperForTest(c)
+		ps := &WithdrawTestKeeper{}
+		c.Logf("name:%s", item.name)
+		err := validateWithdrawV1(ctx, ps, item.msg)
+		if item.expectedError != nil {
+			c.Assert(err, NotNil)
+			c.Assert(err.Error(), Equals, item.expectedError.Error())
+			continue
+		}
+		c.Assert(err, IsNil)
+	}
+}
+
 func (s WithdrawSuite) TestCalculateUnsake(c *C) {
 	inputs := []struct {
 		name                  string
@@ -209,111 +314,6 @@ func (s WithdrawSuite) TestCalculateUnsake(c *C) {
 	}
 }
 
-// TestValidateWithdraw is to test validateWithdraw function
-func (s WithdrawSuite) TestValidateWithdraw(c *C) {
-	accountAddr := GetRandomNodeAccount(NodeWhiteListed).NodeAddress
-	runeAddress, err := common.NewAddress("bnb1g0xakzh03tpa54khxyvheeu92hwzypkdce77rm")
-	if err != nil {
-		c.Error("fail to create new BNB Address")
-	}
-	inputs := []struct {
-		name          string
-		msg           MsgWithdrawLiquidity
-		expectedError error
-	}{
-		{
-			name: "empty-rune-address",
-			msg: MsgWithdrawLiquidity{
-				WithdrawAddress: "",
-				BasisPoints:     cosmos.NewUint(10000),
-				Asset:           common.BNBAsset,
-				Tx:              common.Tx{ID: "28B40BF105A112389A339A64BD1A042E6140DC9082C679586C6CF493A9FDE3FE"},
-				Signer:          accountAddr,
-			},
-			expectedError: errors.New("empty withdraw address"),
-		},
-		{
-			name: "empty-withdraw-basis-points",
-			msg: MsgWithdrawLiquidity{
-				WithdrawAddress: runeAddress,
-				BasisPoints:     cosmos.ZeroUint(),
-				Asset:           common.BNBAsset,
-				Tx:              common.Tx{ID: "28B40BF105A112389A339A64BD1A042E6140DC9082C679586C6CF493A9FDE3FE"},
-				Signer:          accountAddr,
-			},
-			expectedError: nil,
-		},
-		{
-			name: "empty-request-txhash",
-			msg: MsgWithdrawLiquidity{
-				WithdrawAddress: runeAddress,
-				BasisPoints:     cosmos.NewUint(10000),
-				Asset:           common.BNBAsset,
-				Tx:              common.Tx{},
-				Signer:          accountAddr,
-			},
-			expectedError: errors.New("request tx hash is empty"),
-		},
-		{
-			name: "empty-asset",
-			msg: MsgWithdrawLiquidity{
-				WithdrawAddress: runeAddress,
-				BasisPoints:     cosmos.NewUint(10000),
-				Asset:           common.Asset{},
-				Tx:              common.Tx{ID: "28B40BF105A112389A339A64BD1A042E6140DC9082C679586C6CF493A9FDE3FE"},
-				Signer:          accountAddr,
-			},
-			expectedError: errors.New("empty asset"),
-		},
-		{
-			name: "invalid-basis-point",
-			msg: MsgWithdrawLiquidity{
-				WithdrawAddress: runeAddress,
-				BasisPoints:     cosmos.NewUint(10001),
-				Asset:           common.BNBAsset,
-				Tx:              common.Tx{ID: "28B40BF105A112389A339A64BD1A042E6140DC9082C679586C6CF493A9FDE3FE"},
-				Signer:          accountAddr,
-			},
-			expectedError: errors.New("withdraw basis points 10001 is invalid"),
-		},
-		{
-			name: "invalid-pool-notexist",
-			msg: MsgWithdrawLiquidity{
-				WithdrawAddress: runeAddress,
-				BasisPoints:     cosmos.NewUint(10000),
-				Asset:           common.Asset{Chain: common.BNBChain, Ticker: "NOTEXIST", Symbol: "NOTEXIST"},
-				Tx:              common.Tx{ID: "28B40BF105A112389A339A64BD1A042E6140DC9082C679586C6CF493A9FDE3FE"},
-				Signer:          accountAddr,
-			},
-			expectedError: errors.New("pool-BNB.NOTEXIST doesn't exist"),
-		},
-		{
-			name: "all-good",
-			msg: MsgWithdrawLiquidity{
-				WithdrawAddress: runeAddress,
-				BasisPoints:     cosmos.NewUint(10000),
-				Asset:           common.BNBAsset,
-				Tx:              common.Tx{ID: "28B40BF105A112389A339A64BD1A042E6140DC9082C679586C6CF493A9FDE3FE"},
-				Signer:          accountAddr,
-			},
-			expectedError: nil,
-		},
-	}
-
-	for _, item := range inputs {
-		ctx, _ := setupKeeperForTest(c)
-		ps := &WithdrawTestKeeper{}
-		c.Logf("name:%s", item.name)
-		err := validateWithdrawV1(ctx, ps, item.msg)
-		if item.expectedError != nil {
-			c.Assert(err, NotNil)
-			c.Assert(err.Error(), Equals, item.expectedError.Error())
-			continue
-		}
-		c.Assert(err, IsNil)
-	}
-}
-
 func (WithdrawSuite) TestWithdraw(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	accountAddr := GetRandomNodeAccount(NodeWhiteListed).NodeAddress
@@ -426,7 +426,7 @@ func (WithdrawSuite) TestWithdraw(c *C) {
 			ps:            ps,
 			runeAmount:    cosmos.ZeroUint(),
 			assetAmount:   cosmos.ZeroUint(),
-			expectedError: nil,
+			expectedError: errors.New("withdraw basis points 0 is invalid"),
 		},
 		{
 			name: "all-good-half",
@@ -467,7 +467,7 @@ func (WithdrawSuite) TestWithdraw(c *C) {
 			TransactionSize:    1,
 			TransactionFeeRate: bnbSingleTxFee.Uint64(),
 		})
-		r, asset, _, _, err := withdrawV1(ctx, version, tc.ps, tc.msg, mgr)
+		r, asset, _, _, _, err := withdrawV1(ctx, version, tc.ps, tc.msg, mgr)
 		if tc.expectedError != nil {
 			c.Assert(err, NotNil)
 			c.Check(err.Error(), Equals, tc.expectedError.Error())
@@ -533,7 +533,7 @@ func (WithdrawSuite) TestWithdrawAsym(c *C) {
 			TransactionSize:    1,
 			TransactionFeeRate: bnbSingleTxFee.Uint64(),
 		})
-		r, asset, _, _, err := withdrawV1(ctx, version, ps, tc.msg, mgr)
+		r, asset, _, _, _, err := withdrawV1(ctx, version, ps, tc.msg, mgr)
 		if tc.expectedError != nil {
 			c.Assert(err, NotNil)
 			c.Check(err.Error(), Equals, tc.expectedError.Error())
@@ -546,7 +546,6 @@ func (WithdrawSuite) TestWithdrawAsym(c *C) {
 		c.Assert(asset.Equal(tc.assetAmount), Equals, true, Commentf("expect:%s, however got:%s", tc.assetAmount.String(), asset.String()))
 	}
 }
-
 func (WithdrawSuite) TestWithdrawPendingRuneOrAsset(c *C) {
 	version := constants.SWVersion
 	accountAddr := GetRandomNodeAccount(NodeActive).NodeAddress
@@ -581,7 +580,7 @@ func (WithdrawSuite) TestWithdrawPendingRuneOrAsset(c *C) {
 		WithdrawalAsset: common.BNBAsset,
 		Signer:          accountAddr,
 	}
-	runeAmt, assetAmt, unitsLeft, gas, err := withdrawV1(ctx, version, k, msg, mgr)
+	runeAmt, assetAmt, _, unitsLeft, gas, err := withdrawV1(ctx, version, k, msg, mgr)
 	c.Assert(err, IsNil)
 	c.Assert(runeAmt.Equal(cosmos.NewUint(1024)), Equals, true)
 	c.Assert(assetAmt.IsZero(), Equals, true)
@@ -608,7 +607,7 @@ func (WithdrawSuite) TestWithdrawPendingRuneOrAsset(c *C) {
 		WithdrawalAsset: common.BNBAsset,
 		Signer:          accountAddr,
 	}
-	runeAmt, assetAmt, unitsLeft, gas, err = withdrawV1(ctx, version, k, msg1, mgr)
+	runeAmt, assetAmt, _, unitsLeft, gas, err = withdrawV1(ctx, version, k, msg1, mgr)
 	c.Assert(err, IsNil)
 	c.Assert(assetAmt.Equal(cosmos.NewUint(1024)), Equals, true)
 	c.Assert(runeAmt.IsZero(), Equals, true)
@@ -627,11 +626,17 @@ func getWithdrawTestKeeper(c *C, ctx cosmos.Context, k keeper.Keeper, runeAddres
 	}
 	c.Assert(store.SetPool(ctx, pool), IsNil)
 	lp := LiquidityProvider{
-		Asset:        pool.Asset,
-		RuneAddress:  runeAddress,
-		AssetAddress: runeAddress,
-		Units:        cosmos.NewUint(100 * common.One),
-		PendingRune:  cosmos.ZeroUint(),
+		Asset:              pool.Asset,
+		RuneAddress:        runeAddress,
+		AssetAddress:       runeAddress,
+		LastAddHeight:      0,
+		LastWithdrawHeight: 0,
+		Units:              cosmos.NewUint(100 * common.One),
+		PendingRune:        cosmos.ZeroUint(),
+		PendingAsset:       cosmos.ZeroUint(),
+		PendingTxID:        "",
+		RuneDepositValue:   cosmos.NewUint(100 * common.One),
+		AssetDepositValue:  cosmos.NewUint(100 * common.One),
 	}
 	store.SetLiquidityProvider(ctx, lp)
 	return store

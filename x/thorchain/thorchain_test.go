@@ -4,6 +4,7 @@ import (
 	"sort"
 	"testing"
 
+	"github.com/cosmos/cosmos-sdk/types"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
@@ -63,7 +64,7 @@ func (s *ThorchainSuite) TestLiquidityProvision(c *C) {
 	version := constants.SWVersion
 	// withdraw for user1
 	msg := NewMsgWithdrawLiquidity(GetRandomTx(), user1rune, cosmos.NewUint(10000), common.BNBAsset, common.EmptyAsset, GetRandomBech32Addr())
-	_, _, _, _, err = withdrawV1(ctx, version, keeper, *msg, NewDummyMgr())
+	_, _, _, _, _, err = withdrawV1(ctx, version, keeper, *msg, NewDummyMgr())
 	c.Assert(err, IsNil)
 	lp1, err = keeper.GetLiquidityProvider(ctx, common.BNBAsset, user1rune)
 	c.Assert(err, IsNil)
@@ -71,7 +72,7 @@ func (s *ThorchainSuite) TestLiquidityProvision(c *C) {
 
 	// withdraw for user2
 	msg = NewMsgWithdrawLiquidity(GetRandomTx(), user2rune, cosmos.NewUint(10000), common.BNBAsset, common.EmptyAsset, GetRandomBech32Addr())
-	_, _, _, _, err = withdrawV1(ctx, version, keeper, *msg, NewDummyMgr())
+	_, _, _, _, _, err = withdrawV1(ctx, version, keeper, *msg, NewDummyMgr())
 	c.Assert(err, IsNil)
 	lp2, err = keeper.GetLiquidityProvider(ctx, common.BNBAsset, user2rune)
 	c.Assert(err, IsNil)
@@ -127,6 +128,7 @@ func (s *ThorchainSuite) TestChurn(c *C) {
 		Status:       PoolAvailable,
 	}), IsNil)
 	addresses := make([]cosmos.AccAddress, 4)
+	var existingValidators []string
 	for i := 0; i <= 3; i++ {
 		na := GetRandomNodeAccount(NodeActive)
 		addresses[i] = na.NodeAddress
@@ -134,6 +136,13 @@ func (s *ThorchainSuite) TestChurn(c *C) {
 		if i == 0 { // give the first node account slash points
 			na.RequestedToLeave = true
 		}
+		pk, err := cosmos.GetPubKeyFromBech32(cosmos.Bech32PubKeyTypeConsPub, na.ValidatorConsPubKey)
+		if err != nil {
+			ctx.Logger().Error("fail to parse consensus public key", "key", na.ValidatorConsPubKey, "error", err)
+			continue
+		}
+		caddr := types.GetConsAddress(pk).String()
+		existingValidators = append(existingValidators, caddr)
 		vault.Membership = append(vault.Membership, na.PubKeySet.Secp256k1.String())
 		c.Assert(keeper.SetNodeAccount(ctx, na), IsNil)
 	}
@@ -198,7 +207,7 @@ func (s *ThorchainSuite) TestChurn(c *C) {
 	c.Assert(vault2.Membership, HasLen, 4)
 
 	// check our validators get rotated appropriately
-	validators := mgr.ValidatorMgr().EndBlock(ctx, mgr, consts, []string{})
+	validators := mgr.ValidatorMgr().EndBlock(ctx, mgr, consts, existingValidators)
 	nas, err := keeper.ListActiveNodeAccounts(ctx)
 	c.Assert(err, IsNil)
 	c.Assert(nas, HasLen, 4)

@@ -202,18 +202,22 @@ func (s *NetworkManagerV1TestSuite) TestRagnarokChain(c *C) {
 	addr := GetRandomRUNEAddress()
 	lps := LiquidityProviders{
 		{
-			RuneAddress:   addr,
-			AssetAddress:  GetRandomBTCAddress(),
-			LastAddHeight: 5,
-			Units:         btcPool.PoolUnits.QuoUint64(2),
-			PendingRune:   cosmos.ZeroUint(),
+			RuneAddress:       addr,
+			AssetAddress:      GetRandomBTCAddress(),
+			LastAddHeight:     5,
+			Units:             btcPool.PoolUnits.QuoUint64(2),
+			PendingRune:       cosmos.ZeroUint(),
+			AssetDepositValue: cosmos.ZeroUint(),
+			RuneDepositValue:  cosmos.ZeroUint(),
 		},
 		{
-			RuneAddress:   GetRandomRUNEAddress(),
-			AssetAddress:  GetRandomBTCAddress(),
-			LastAddHeight: 10,
-			Units:         btcPool.PoolUnits.QuoUint64(2),
-			PendingRune:   cosmos.ZeroUint(),
+			RuneAddress:       GetRandomRUNEAddress(),
+			AssetAddress:      GetRandomBTCAddress(),
+			LastAddHeight:     10,
+			Units:             btcPool.PoolUnits.QuoUint64(2),
+			PendingRune:       cosmos.ZeroUint(),
+			AssetDepositValue: cosmos.ZeroUint(),
+			RuneDepositValue:  cosmos.ZeroUint(),
 		},
 	}
 
