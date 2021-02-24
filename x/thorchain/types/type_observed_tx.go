@@ -298,19 +298,28 @@ func (m *ObservedTxVoter) GetTx(nodeAccounts NodeAccounts) ObservedTx {
 }
 
 func (m *ObservedTxVoter) getConsensusTx(accounts NodeAccounts, final bool) ObservedTx {
+	var txFinal ObservedTx
+	voters := make(map[string]bool)
 	for _, txIn := range m.Txs {
-		var count int
 		if txIn.IsFinal() != final {
 			continue
 		}
+		if txFinal.IsEmpty() {
+			txFinal = txIn
+		}
+		if !txFinal.Tx.ID.Equals(txIn.Tx.ID) {
+			continue
+		}
+
 		for _, signer := range txIn.GetSigners() {
-			if accounts.IsNodeKeys(signer) {
-				count++
+			_, exist := voters[signer.String()]
+			if !exist && accounts.IsNodeKeys(signer) {
+				voters[signer.String()] = true
 			}
 		}
-		if HasSuperMajority(count, len(accounts)) {
-			return txIn
-		}
+	}
+	if HasSuperMajority(len(voters), len(accounts)) {
+		return txFinal
 	}
 	return ObservedTx{}
 }
