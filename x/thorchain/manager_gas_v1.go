@@ -112,7 +112,7 @@ func (gm *GasMgrV1) GetFee(ctx cosmos.Context, chain common.Chain, asset common.
 	if pool.BalanceAsset.Equal(cosmos.ZeroUint()) || pool.BalanceRune.Equal(cosmos.ZeroUint()) {
 		return transactionFee
 	}
-	return cosmos.RoundToDecimal(pool.RuneValueInAsset(fee), pool.Decimals)
+	return pool.RuneValueInAsset(fee)
 }
 
 // GetGasRate return the gas rate
