@@ -13,7 +13,6 @@ var _ = Suite(&TypeObservedTxSuite{})
 
 func (s TypeObservedTxSuite) TestVoter(c *C) {
 	txID := GetRandomTxHash()
-
 	bnb := GetRandomBNBAddress()
 	acc1 := GetRandomBech32Addr()
 	acc2 := GetRandomBech32Addr()
@@ -423,4 +422,103 @@ func (TypeObservedTxSuite) TestObservedTxVote(c *C) {
 	observedTx1.SetDone(txID, 2)
 	observedTx1.SetDone(txID, 2)
 	c.Check(observedTx1.IsDone(2), Equals, false)
+}
+func (TypeObservedTxSuite) TestObservedTxGetConsensus(c *C) {
+	txID := GetRandomTxHash()
+	acc1 := GetRandomBech32Addr()
+	acc2 := GetRandomBech32Addr()
+	acc3 := GetRandomBech32Addr()
+	acc4 := GetRandomBech32Addr()
+
+	accConsPub1 := GetRandomBech32ConsensusPubKey()
+	accConsPub2 := GetRandomBech32ConsensusPubKey()
+	accConsPub3 := GetRandomBech32ConsensusPubKey()
+	accConsPub4 := GetRandomBech32ConsensusPubKey()
+
+	accPubKeySet1 := GetRandomPubKeySet()
+	accPubKeySet2 := GetRandomPubKeySet()
+	accPubKeySet3 := GetRandomPubKeySet()
+	accPubKeySet4 := GetRandomPubKeySet()
+
+	tx1 := GetRandomTx()
+	tx1.Memo = "hello"
+	observePoolAddr := GetRandomPubKey()
+
+	voter := NewObservedTxVoter(txID, nil)
+	obTx1 := NewObservedTx(tx1, 1, observePoolAddr, 1)
+	obTx2 := NewObservedTx(tx1, 1, observePoolAddr, 2)
+
+	c.Check(len(obTx1.String()) > 0, Equals, true)
+
+	voter.Add(obTx1, acc1)
+	c.Assert(voter.Txs, HasLen, 1)
+
+	voter.Add(obTx1, acc1) // check THORNode don't duplicate the same signer
+	c.Assert(voter.Txs, HasLen, 1)
+	c.Assert(voter.Txs[0].Signers, HasLen, 1)
+
+	voter.Add(obTx1, acc2) // append a signature
+	c.Assert(voter.Txs, HasLen, 1)
+	c.Assert(voter.Txs[0].Signers, HasLen, 2)
+
+	voter.Add(obTx2, acc1) // same validator seeing a different version of tx
+	c.Assert(voter.Txs, HasLen, 2)
+	c.Assert(voter.Txs[0].Signers, HasLen, 2)
+
+	voter.Add(obTx2, acc3) // second version
+	c.Assert(voter.Txs, HasLen, 2)
+	c.Assert(voter.Txs[0].Signers, HasLen, 2)
+	c.Assert(voter.Txs[1].Signers, HasLen, 2)
+
+	obTx1Finalised := NewObservedTx(tx1, 2, observePoolAddr, 2)
+
+	voter.Add(obTx1Finalised, acc2)
+	c.Assert(voter.Txs, HasLen, 3)
+
+	voter.Add(obTx1Finalised, acc1) // check THORNode don't duplicate the same signer
+	c.Assert(voter.Txs, HasLen, 3)
+	c.Assert(voter.Txs[2].Signers, HasLen, 2)
+
+	voter.Add(obTx1Finalised, acc2) // append a signature
+	c.Assert(voter.Txs, HasLen, 3)
+	c.Assert(voter.Txs[2].Signers, HasLen, 2)
+
+	trusts4 := NodeAccounts{
+		NodeAccount{
+			NodeAddress:         acc1,
+			Status:              NodeStatus_Active,
+			PubKeySet:           accPubKeySet1,
+			ValidatorConsPubKey: accConsPub1,
+		},
+		NodeAccount{
+			NodeAddress:         acc2,
+			Status:              NodeStatus_Active,
+			PubKeySet:           accPubKeySet2,
+			ValidatorConsPubKey: accConsPub2,
+		},
+		NodeAccount{
+			NodeAddress:         acc3,
+			Status:              NodeStatus_Active,
+			PubKeySet:           accPubKeySet3,
+			ValidatorConsPubKey: accConsPub3,
+		},
+		NodeAccount{
+			NodeAddress:         acc4,
+			Status:              NodeStatus_Active,
+			PubKeySet:           accPubKeySet4,
+			ValidatorConsPubKey: accConsPub4,
+		},
+	}
+
+	tx := voter.GetTx(trusts4)
+	c.Assert(tx.IsEmpty(), Equals, true)
+
+	voter.Add(obTx1Finalised, acc4) // append a signature
+	c.Assert(voter.Txs, HasLen, 3)
+	c.Assert(voter.Txs[2].Signers, HasLen, 3)
+
+	tx = voter.GetTx(trusts4)
+	c.Assert(tx.IsEmpty(), Equals, false)
+	c.Assert(tx.Equals(obTx1), Equals, true)
+
 }

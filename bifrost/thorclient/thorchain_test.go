@@ -34,7 +34,7 @@ var _ = Suite(&ThorchainSuite{})
 
 func (s *ThorchainSuite) SetUpSuite(c *C) {
 	cfg2 := cosmos.GetConfig()
-	cfg2.SetBech32PrefixForAccount(cmd.Bech32PrefixAccAddr, cmd.Bech32PrefixAccPub)
+	cfg2.SetBech32PrefixForAccount(cmd.Bech32PrefixAccAddr, cmd.Bech32PrefixAccAddr)
 	cfg, _, kb := SetupThorchainForTest(c)
 	s.cfg = cfg
 	s.server = httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {

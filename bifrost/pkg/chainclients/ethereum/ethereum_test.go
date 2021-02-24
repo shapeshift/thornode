@@ -687,5 +687,5 @@ func (s *EthereumSuite) TestGetConfirmationCount(c *C) {
 			},
 		},
 		MemPool: false,
-	}), Equals, int64(3))
+	}), Equals, int64(2))
 }
