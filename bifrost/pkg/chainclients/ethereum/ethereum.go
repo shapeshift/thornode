@@ -635,8 +635,13 @@ func (c *Client) getBlockReward(height int64) (*big.Int, error) {
 	if err != nil {
 		return nil, fmt.Errorf("fail to get block by height: %d,err: %w", height, err)
 	}
+	totalGasUsed := new(big.Int)
+	for _, tx := range block.Transactions() {
+		gasPrice := tx.GasPrice()
+		gasUsedInTx := new(big.Int).Mul(gasPrice, big.NewInt(int64(tx.Gas())))
+		totalGasUsed = totalGasUsed.Add(totalGasUsed, gasUsedInTx)
+	}
 	// need to check this
-	totalGasUsed := new(big.Int).Mul(big.NewInt(int64(block.GasUsed())), c.GetGasPrice())
 	temp := new(big.Int).Mul(blockReward, big.NewInt(int64(len(block.Uncles()))))
 	uncleReward := new(big.Int).Div(temp, big.NewInt(32)) // each uncle block reward is (block reward / 32)
 	totalReward := blockReward.Add(blockReward, uncleReward)
