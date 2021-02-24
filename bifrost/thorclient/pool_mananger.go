@@ -75,6 +75,5 @@ func (pm *PoolMgr) GetValue(source, target common.Asset, amount cosmos.Uint) (co
 	if destPool.IsEmpty() {
 		return cosmos.ZeroUint(), fmt.Errorf("pool:%s doesn't exist", destPool)
 	}
-	amt := destPool.RuneValueInAsset(runeValue)
-	return cosmos.RoundToDecimal(amt, destPool.Decimals), nil
+	return destPool.RuneValueInAsset(runeValue), nil
 }

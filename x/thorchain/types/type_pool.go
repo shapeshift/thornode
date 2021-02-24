@@ -119,5 +119,6 @@ func (m Pool) RuneValueInAsset(amt cosmos.Uint) cosmos.Uint {
 	if m.BalanceRune.IsZero() || m.BalanceAsset.IsZero() {
 		return cosmos.ZeroUint()
 	}
-	return common.GetShare(m.BalanceAsset, m.BalanceRune, amt)
+	assetAmt := common.GetShare(m.BalanceAsset, m.BalanceRune, amt)
+	return cosmos.RoundToDecimal(assetAmt, m.Decimals)
 }
