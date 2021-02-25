@@ -290,6 +290,18 @@ func (vs Vaults) SortBy(sortBy common.Asset) Vaults {
 	return vs
 }
 
+// Has return vaults that have that amount of coins in it
+func (vs Vaults) Has(target common.Coin) Vaults {
+	have := make(Vaults, 0)
+	for _, v := range vs {
+		coin := v.GetCoin(target.Asset)
+		if coin.Amount.GTE(target.Amount) {
+			have = append(have, v)
+		}
+	}
+	return have
+}
+
 // SelectByMinCoin return the vault that has least of given asset
 func (vs Vaults) SelectByMinCoin(asset common.Asset) (vault Vault) {
 	if len(vs) == 1 {
