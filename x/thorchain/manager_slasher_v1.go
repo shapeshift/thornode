@@ -212,19 +212,6 @@ func (s *SlasherV1) LackSigning(ctx cosmos.Context, constAccessor constants.Cons
 				}
 			}
 
-			active, err := s.keeper.GetAsgardVaultsByStatus(ctx, ActiveVault)
-			if err != nil {
-				return fmt.Errorf("fail to get active asgard vaults: %w", err)
-			}
-
-			vault = active.SelectByMaxCoin(tx.Coin.Asset)
-			if vault.IsEmpty() {
-				ctx.Logger().Error("unable to determine asgard vault to send funds")
-				resultErr = fmt.Errorf("unable to determine asgard vault to send funds")
-				continue
-			}
-
-			// update original tx action in observed tx
 			voter, err := s.keeper.GetObservedTxInVoter(ctx, tx.InHash)
 			if err != nil {
 				ctx.Logger().Error("fail to get observed tx voter", "error", err)
@@ -232,6 +219,52 @@ func (s *SlasherV1) LackSigning(ctx cosmos.Context, constAccessor constants.Cons
 				continue
 			}
 
+			active, err := s.keeper.GetAsgardVaultsByStatus(ctx, ActiveVault)
+			if err != nil {
+				return fmt.Errorf("fail to get active asgard vaults: %w", err)
+			}
+			available := active.Has(tx.Coin).SortBy(tx.Coin.Asset)
+			if len(available) == 0 {
+				// we need to give it somewhere to send from, even if that
+				// asgard doesn't have enough funds. This is because if we
+				// don't the transaction will just be dropped on the floor,
+				// which is bad. Instead it may try to send from an asgard that
+				// doesn't have enough funds, fail, and then get rescheduled
+				// again later. Maybe by then the network will have enough
+				// funds to satisfy.
+				// TODO add split logic to send it out from multiple asgards in
+				// this edge case.
+				ctx.Logger().Error("unable to determine asgard vault to send funds, trying first asgard")
+				if len(active) > 0 {
+					vault = active[0]
+				}
+			} else {
+				// each time we reschedule a transaction, we take the age of
+				// the transaction, and move it to an vault that has less funds
+				// than last time. This is here to ensure that if an asgard
+				// vault becomes unavailable, the network will reschedule the
+				// transaction on a different asgard vault.
+				age := common.BlockHeight(ctx) - voter.FinalisedHeight
+				if vault.IsYggdrasil() {
+					// since the last attempt was a yggdrasil vault, lets
+					// artificially inflate the age to ensure that the first
+					// attempt is the largest asgard vault with funds
+					age -= signingTransPeriod
+					if age < 0 {
+						age = 0
+					}
+				}
+				rep := int(age / signingTransPeriod)
+				if vault.PubKey.Equals(available[rep%len(available)].PubKey) {
+					// looks like the new vault is going to be the same as the
+					// old vault, increment rep to ensure a differ asgard is
+					// chosen (if there is more than one option)
+					rep++
+				}
+				vault = available[rep%len(available)]
+			}
+
+			// update original tx action in observed tx
 			// check observedTx has done status. Skip if it does already.
 			voterTx := voter.GetTx(NodeAccounts{})
 			if voterTx.IsDone(len(voter.Actions)) {
