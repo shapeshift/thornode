@@ -4,7 +4,7 @@ services:
   ethereum-localnet:
     container_name: ethereum-localnet
     restart: unless-stopped
-    image: ethereum/client-go:latest
+    image: ethereum/client-go:v1.9.25
     environment:
       ETH_BLOCK_TIME: ${ETH_BLOCK_TIME:-5}
     ports:
