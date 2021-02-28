@@ -424,6 +424,7 @@ func (e *ETHScanner) processReorg(block *etypes.Header) ([]stypes.TxIn, error) {
 	}
 	var txIns []stypes.TxIn
 	for _, item := range heights {
+		e.logger.Info().Msgf("rescan block height: %d", item)
 		block, err := e.getRPCBlock(item)
 		if err != nil {
 			e.logger.Err(err).Msgf("fail to get block from RPC endpoint, height:%d", item)
@@ -471,12 +472,11 @@ func (e *ETHScanner) reprocessTxs() ([]int64, error) {
 				Chain: common.ETHChain,
 			})
 		}
-		if len(errataTxs) == 0 {
-			continue
-		}
-		e.globalErrataQueue <- stypes.ErrataBlock{
-			Height: blockMeta.Height,
-			Txs:    errataTxs,
+		if len(errataTxs) > 0 {
+			e.globalErrataQueue <- stypes.ErrataBlock{
+				Height: blockMeta.Height,
+				Txs:    errataTxs,
+			}
 		}
 		// Let's get the block again to fix the block hash
 		block, err := e.getHeader(blockMeta.Height)
