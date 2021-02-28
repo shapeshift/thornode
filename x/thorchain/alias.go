@@ -71,7 +71,9 @@ var (
 	NewMsgMimir                    = types.NewMsgMimir
 	NewMsgDeposit                  = types.NewMsgDeposit
 	NewMsgTssPool                  = types.NewMsgTssPool
+	NewMsgTssPoolV26               = types.NewMsgTssPoolV26
 	NewMsgTssKeysignFail           = types.NewMsgTssKeysignFail
+	NewMsgTssKeysignFailV26        = types.NewMsgTssKeysignFailV26
 	NewMsgObservedTxIn             = types.NewMsgObservedTxIn
 	NewMsgObservedTxOut            = types.NewMsgObservedTxOut
 	NewMsgNoOp                     = types.NewMsgNoOp

@@ -47,6 +47,50 @@ func getMsgTssKeysignFailID(members []Node, height int64, memo string, coins com
 	return hex.EncodeToString(hash.Sum([]byte(sb.String())))
 }
 
+// NewMsgTssKeysignFailV26 create a new instance of MsgTssKeysignFail message
+func NewMsgTssKeysignFailV26(height int64, blame Blame, memo string, coins common.Coins, signer cosmos.AccAddress, pubKey common.PubKey) (*MsgTssKeysignFail, error) {
+	id, err := getMsgTssKeysignFailIDV26(blame.BlameNodes, height, memo, coins, pubKey)
+	if err != nil {
+		return nil, fmt.Errorf("fail to get keysign fail id:%w", err)
+	}
+	return &MsgTssKeysignFail{
+		ID:     id,
+		Height: height,
+		Blame:  blame,
+		Memo:   memo,
+		Coins:  coins,
+		Signer: signer,
+		PubKey: pubKey,
+	}, nil
+}
+
+// getTssKeysignFailID this method will use all the members that caused the tss
+// keysign failure , as well as the block height of the txout item to generate
+// a hash, given that , if the same party keep failing the same txout item ,
+// then we will only slash it once.
+func getMsgTssKeysignFailIDV26(members []Node, height int64, memo string, coins common.Coins, pubKey common.PubKey) (string, error) {
+	// ensure input pubkeys list is deterministically sorted
+	sort.SliceStable(members, func(i, j int) bool {
+		return members[i].Pubkey < members[j].Pubkey
+	})
+	sb := strings.Builder{}
+	for _, item := range members {
+		sb.WriteString(item.Pubkey)
+	}
+	sb.WriteString(fmt.Sprintf("%d", height))
+	sb.WriteString(memo)
+	sb.WriteString(pubKey.String())
+	for _, c := range coins {
+		sb.WriteString(c.String())
+	}
+	hash := sha256.New()
+	_, err := hash.Write([]byte(sb.String()))
+	if err != nil {
+		return "", fmt.Errorf("fail to create hash id,err:%w", err)
+	}
+	return hex.EncodeToString(hash.Sum(nil)), nil
+}
+
 // Route should return the route key of the module
 func (m *MsgTssKeysignFail) Route() string { return RouterKey }
 

@@ -291,7 +291,10 @@ func (s *Signer) sendKeygenToThorchain(height int64, poolPk common.PubKey, blame
 		}
 	}
 
-	keygenMsg := s.thorchainBridge.GetKeygenStdTx(poolPk, blame, input, keygenType, chains, height, keygenTime)
+	keygenMsg, err := s.thorchainBridge.GetKeygenStdTx(poolPk, blame, input, keygenType, chains, height, keygenTime)
+	if err != nil {
+		return fmt.Errorf("fail to get keygen id: %w", err)
+	}
 	strHeight := strconv.FormatInt(height, 10)
 
 	txID, err := s.thorchainBridge.Broadcast(keygenMsg)
