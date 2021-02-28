@@ -327,6 +327,7 @@ func (c *Client) processReorg(block *btcjson.GetBlockVerboseTxResult) ([]types.T
 	}
 	var txIns []types.TxIn
 	for _, item := range blockHeights {
+		c.logger.Info().Msgf("rescan block height: %d", item)
 		b, err := c.getBlock(item)
 		if err != nil {
 			c.logger.Err(err).Msgf("fail to get block from RPC for height:%d", item)
