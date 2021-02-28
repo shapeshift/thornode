@@ -80,8 +80,12 @@ func (h BanHandler) handleV1(ctx cosmos.Context, msg MsgBan, constAccessor const
 		// already ban, no need to ban again
 		return &cosmos.Result{}, nil
 	}
-	if toBan.Status != NodeActive {
-		return nil, se.Wrap(errInternal, "cannot ban a node account that is not current active")
+
+	switch toBan.Status {
+	case NodeActive, NodeStandby:
+		// we can ban an active or standby node
+	default:
+		return nil, se.Wrap(errInternal, "cannot ban a node account that is not currently active or standby")
 	}
 
 	banner, err := h.keeper.GetNodeAccount(ctx, msg.Signer)
