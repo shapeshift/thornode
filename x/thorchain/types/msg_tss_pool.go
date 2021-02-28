@@ -54,6 +54,57 @@ func getTssID(members []string, poolPk common.PubKey, height int64, bl Blame) st
 	return hex.EncodeToString(hash.Sum([]byte(sb.String())))
 }
 
+// NewMsgTssPoolV26 is a constructor function for MsgTssPool
+func NewMsgTssPoolV26(pks []string, poolpk common.PubKey, KeygenType KeygenType, height int64, bl Blame, chains []string, signer cosmos.AccAddress, keygenTime int64) (*MsgTssPool, error) {
+	id, err := getTssIDV26(pks, poolpk, height, bl)
+	if err != nil {
+		return nil, fmt.Errorf("fail to get tss id: %w", err)
+	}
+	return &MsgTssPool{
+		ID:         id,
+		PubKeys:    pks,
+		PoolPubKey: poolpk,
+		Height:     height,
+		KeygenType: KeygenType,
+		Blame:      bl,
+		Chains:     chains,
+		Signer:     signer,
+		KeygenTime: keygenTime,
+	}, nil
+}
+
+// getTssID
+func getTssIDV26(members []string, poolPk common.PubKey, height int64, bl Blame) (string, error) {
+	// ensure input pubkeys list is deterministically sorted
+	sort.SliceStable(members, func(i, j int) bool {
+		return members[i] < members[j]
+	})
+
+	pubkeys := make([]string, len(bl.BlameNodes))
+	for i, node := range bl.BlameNodes {
+		pubkeys[i] = node.Pubkey
+	}
+	sort.SliceStable(pubkeys, func(i, j int) bool {
+		return pubkeys[i] < pubkeys[j]
+	})
+
+	sb := strings.Builder{}
+	for _, item := range members {
+		sb.WriteString("m:" + item)
+	}
+	for _, item := range pubkeys {
+		sb.WriteString("p:" + item)
+	}
+	sb.WriteString(poolPk.String())
+	sb.WriteString(fmt.Sprintf("%d", height))
+	hash := sha256.New()
+	_, err := hash.Write([]byte(sb.String()))
+	if err != nil {
+		return "", fmt.Errorf("fail to get tss id: %w", err)
+	}
+	return hex.EncodeToString(hash.Sum(nil)), nil
+}
+
 // Route should return the route key of the module
 func (m *MsgTssPool) Route() string { return RouterKey }
 

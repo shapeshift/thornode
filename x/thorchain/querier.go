@@ -127,40 +127,36 @@ func queryVault(ctx cosmos.Context, path []string, keeper keeper.Keeper) ([]byte
 	if err != nil {
 		return nil, fmt.Errorf("%s is invalid pubkey", path[0])
 	}
-
-	iter := keeper.GetVaultIterator(ctx)
-	defer iter.Close()
-	for ; iter.Valid(); iter.Next() {
-		var v Vault
-		if err := keeper.Cdc().UnmarshalBinaryBare(iter.Value(), &v); err != nil {
-			ctx.Logger().Error("fail to unmarshal vault", "error", err)
-			continue
-		}
-		if v.PubKey.Equals(pubkey) {
-			resp := types.QueryVaultResp{
-				BlockHeight:           v.BlockHeight,
-				PubKey:                v.PubKey,
-				Coins:                 v.Coins,
-				Type:                  v.Type,
-				Status:                v.Status,
-				StatusSince:           v.StatusSince,
-				Membership:            v.Membership,
-				Chains:                v.Chains,
-				InboundTxCount:        v.InboundTxCount,
-				OutboundTxCount:       v.OutboundTxCount,
-				PendingTxBlockHeights: v.PendingTxBlockHeights,
-				Routers:               v.Routers,
-				Addresses:             getVaultChainAddress(ctx, v),
-			}
-			res, err := json.MarshalIndent(resp, "", "	")
-			if err != nil {
-				ctx.Logger().Error("fail to marshal vaults response to json", "error", err)
-				return nil, fmt.Errorf("fail to marshal response to json: %w", err)
-			}
-			return res, nil
-		}
+	v, err := keeper.GetVault(ctx, pubkey)
+	if err != nil {
+		return nil, fmt.Errorf("fail to get vault with pubkey(%s),err:%w", pubkey, err)
 	}
-	return nil, errors.New("vault not found")
+	if v.IsEmpty() {
+		return nil, errors.New("vault not found")
+	}
+
+	resp := types.QueryVaultResp{
+		BlockHeight:           v.BlockHeight,
+		PubKey:                v.PubKey,
+		Coins:                 v.Coins,
+		Type:                  v.Type,
+		Status:                v.Status,
+		StatusSince:           v.StatusSince,
+		Membership:            v.Membership,
+		Chains:                v.Chains,
+		InboundTxCount:        v.InboundTxCount,
+		OutboundTxCount:       v.OutboundTxCount,
+		PendingTxBlockHeights: v.PendingTxBlockHeights,
+		Routers:               v.Routers,
+		Addresses:             getVaultChainAddress(ctx, v),
+	}
+	res, err := json.MarshalIndent(resp, "", "	")
+	if err != nil {
+		ctx.Logger().Error("fail to marshal vaults response to json", "error", err)
+		return nil, fmt.Errorf("fail to marshal response to json: %w", err)
+	}
+	return res, nil
+
 }
 
 func queryAsgardVaults(ctx cosmos.Context, keeper keeper.Keeper) ([]byte, error) {
@@ -296,6 +292,7 @@ func queryVaultsPubkeys(ctx cosmos.Context, keeper keeper.Keeper) ([]byte, error
 	resp.Asgard = make([]QueryVaultPubKeyContract, 0)
 	resp.Yggdrasil = make([]QueryVaultPubKeyContract, 0)
 	iter := keeper.GetVaultIterator(ctx)
+
 	defer iter.Close()
 	for ; iter.Valid(); iter.Next() {
 		var vault Vault
