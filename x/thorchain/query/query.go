@@ -56,6 +56,7 @@ var (
 	QueryConstantValues     = Query{Key: "constants", EndpointTemplate: "/%s/constants"}
 	QueryVersion            = Query{Key: "version", EndpointTemplate: "/%s/version"}
 	QueryMimirValues        = Query{Key: "mimirs", EndpointTemplate: "/%s/mimir"}
+	QueryMimirWithKey       = Query{Key: "mimirwithkey", EndpointTemplate: "/%s/mimir/%s"}
 	QueryBan                = Query{Key: "ban", EndpointTemplate: "/%s/ban/{%s}"}
 	QueryRagnarok           = Query{Key: "ragnarok", EndpointTemplate: "/%s/ragnarok"}
 	QueryPendingOutbound    = Query{Key: "pendingoutbound", EndpointTemplate: "/%s/queue/outbound"}
@@ -88,6 +89,7 @@ var Queries = []Query{
 	QueryConstantValues,
 	QueryVersion,
 	QueryMimirValues,
+	QueryMimirWithKey,
 	QueryBan,
 	QueryRagnarok,
 	QueryPendingOutbound,
