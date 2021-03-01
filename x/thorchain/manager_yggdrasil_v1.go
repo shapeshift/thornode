@@ -92,6 +92,11 @@ func (ymgr YggMgrV1) Fund(ctx cosmos.Context, mgr Manager, constAccessor constan
 		return nil
 	}
 
+	// when node account request to leave , stop sending more yggdrasil fund to them
+	if na.RequestedToLeave {
+		return nil
+	}
+
 	// figure out if THORNode need to send them assets.
 	// get a list of coin/amounts this yggdrasil pool should have, ideally.
 	// TODO: We are assuming here that the pub key is Secp256K1

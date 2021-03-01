@@ -504,21 +504,18 @@ func (b *ThorchainBridge) GetThorchainVersion() (semver.Version, error) {
 
 // GetMimir - get mimir settings
 func (b *ThorchainBridge) GetMimir(key string) (int64, error) {
-	buf, s, err := b.getWithPath(MimirEndpoint)
+	buf, s, err := b.getWithPath(MimirEndpoint + "/" + key)
 	if err != nil {
 		return 0, fmt.Errorf("fail to get mimir: %w", err)
 	}
 	if s != http.StatusOK {
 		return 0, fmt.Errorf("unexpected status code: %d", s)
 	}
-	values := make(map[string]int64, 0)
-	if err := json.Unmarshal(buf, &values); err != nil {
+	var value int64
+	if err := json.Unmarshal(buf, &value); err != nil {
 		return 0, fmt.Errorf("fail to unmarshal mimir: %w", err)
 	}
-	if val, ok := values[fmt.Sprintf("mimir//%s", strings.ToUpper(key))]; ok {
-		return val, nil
-	}
-	return 0, nil
+	return value, nil
 }
 
 // PubKeyContractAddressPair is an entry to map pubkey and contract addresses
