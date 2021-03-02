@@ -68,6 +68,8 @@ func NewQuerier(keeper keeper.Keeper, kbs cosmos.KeybaseStore) cosmos.Querier {
 			return queryVersion(ctx, path[1:], req, keeper)
 		case q.QueryMimirValues.Key:
 			return queryMimirValues(ctx, path[1:], req, keeper)
+		case q.QueryMimirWithKey.Key:
+			return queryMimirWithKey(ctx, path[1:], req, keeper)
 		case q.QueryBan.Key:
 			return queryBan(ctx, path[1:], req, keeper)
 		case q.QueryRagnarok.Key:
@@ -336,14 +338,18 @@ func queryNetwork(ctx cosmos.Context, keeper keeper.Keeper) ([]byte, error) {
 		return nil, fmt.Errorf("fail to get vault: %w", err)
 	}
 	type NetworkResp struct {
-		BondRewardRune cosmos.Uint `json:"bond_reward_rune"` // The total amount of awarded rune for bonders
-		TotalBondUnits cosmos.Uint `json:"total_bond_units"` // Total amount of bond units
-		TotalReserve   cosmos.Uint `json:"total_reserve"`
+		BondRewardRune  cosmos.Uint `json:"bond_reward_rune"` // The total amount of awarded rune for bonders
+		TotalBondUnits  cosmos.Uint `json:"total_bond_units"` // Total amount of bond units
+		TotalReserve    cosmos.Uint `json:"total_reserve"`
+		BurnedBep2Rune  cosmos.Uint `json:"burned_bep_2_rune"`
+		BurnedErc20Rune cosmos.Uint `json:"burned_erc_20_rune"`
 	}
 	result := NetworkResp{
-		BondRewardRune: data.BondRewardRune,
-		TotalBondUnits: data.TotalBondUnits,
-		TotalReserve:   keeper.GetRuneBalanceOfModule(ctx, ReserveName),
+		BondRewardRune:  data.BondRewardRune,
+		TotalBondUnits:  data.TotalBondUnits,
+		TotalReserve:    keeper.GetRuneBalanceOfModule(ctx, ReserveName),
+		BurnedBep2Rune:  data.BurnedBep2Rune,
+		BurnedErc20Rune: data.BurnedErc20Rune,
 	}
 
 	res, err := json.MarshalIndent(result, "", "	")
@@ -969,7 +975,22 @@ func queryVersion(ctx cosmos.Context, path []string, req abci.RequestQuery, keep
 	}
 	return res, nil
 }
+func queryMimirWithKey(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
+	if len(path) == 0 && len(path[0]) == 0 {
+		return nil, fmt.Errorf("no mimir key")
+	}
+	v, err := keeper.GetMimir(ctx, path[0])
+	if err != nil {
+		return nil, fmt.Errorf("fail to get mimir with key:%s, err : %w", path[0], err)
+	}
 
+	res, err := json.MarshalIndent(v, "", "	")
+	if err != nil {
+		ctx.Logger().Error("fail to marshal mimir value to json", "error", err)
+		return nil, fmt.Errorf("fail to marshal mimir values to json: %w", err)
+	}
+	return res, nil
+}
 func queryMimirValues(ctx cosmos.Context, path []string, req abci.RequestQuery, keeper keeper.Keeper) ([]byte, error) {
 	values := make(map[string]int64, 0)
 	iter := keeper.GetMimirIterator(ctx)
