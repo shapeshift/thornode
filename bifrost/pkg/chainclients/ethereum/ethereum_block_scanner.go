@@ -501,9 +501,12 @@ func (e *ETHScanner) reprocessTxs() ([]int64, error) {
 func (e *ETHScanner) checkTransaction(hash string) bool {
 	ctx, cancel := e.getContext()
 	defer cancel()
-	receipt, err := e.client.TransactionReceipt(ctx, ecommon.HexToHash(hash))
-	if err != nil || receipt == nil {
+	tx, pending, err := e.client.TransactionByHash(ctx, ecommon.HexToHash(hash))
+	if err != nil || tx == nil {
 		return false
+	}
+	if pending {
+		e.logger.Info().Msgf("tx: %s is in pending status", hash)
 	}
 	return true
 }
