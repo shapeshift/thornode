@@ -38,6 +38,7 @@ const (
 	MaxAsgardAddresses  = 100
 	// EstimateAverageTxSize for THORChain the estimate tx size is hard code to 250 here , as most of time it will spend 1 input, have 3 output
 	EstimateAverageTxSize = 250
+	DefaultCoinbaseValue  = 12.5
 )
 
 // Client observes litecoin chain and allows to sign and broadcast tx
@@ -853,7 +854,14 @@ func (c *Client) getBlockRequiredConfirmation(txIn types.TxIn, height int64) (in
 	totalTxValue := txIn.GetTotalTransactionValue(common.LTCAsset, c.asgardAddresses)
 	totalFeeAndSubsidy, err := c.getCoinbaseValue(height)
 	if err != nil {
-		return totalFeeAndSubsidy, fmt.Errorf("fail to get coinbase value: %w", err)
+		c.logger.Err(err).Msg("fail to get coinbase value")
+	}
+	if totalFeeAndSubsidy == 0 {
+		cbValue, err := ltcutil.NewAmount(DefaultCoinbaseValue)
+		if err != nil {
+			return 0, fmt.Errorf("fail to parse default coinbase value:%w", err)
+		}
+		totalFeeAndSubsidy = int64(cbValue)
 	}
 	confirm := totalTxValue.MulUint64(2).QuoUint64(uint64(totalFeeAndSubsidy)).Uint64()
 	c.logger.Info().Msgf("totalTxValue:%s,total fee and Subsidy:%d,confirmation:%d", totalTxValue, totalFeeAndSubsidy, confirm)
