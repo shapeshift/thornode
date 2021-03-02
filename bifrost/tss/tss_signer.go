@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"sort"
 	"sync"
 	"time"
 
@@ -231,6 +232,12 @@ func (s *KeySign) processKeySignTasks() {
 				// send no more than maxKeysignPerRequest messages in a single TSS keysign request
 				if totalTasks > maxKeysignPerRequest {
 					totalTasks = maxKeysignPerRequest
+					// when there are more than maxKeysignPerRequest messages in the task queue need to be signed
+					// the messages has to be sorted , because the order of messages that get into the slice is not deterministic
+					// so it need to sorted to make sure all bifrosts send the same messages to tss
+					sort.SliceStable(v, func(i, j int) bool {
+						return v[i].Msg < v[j].Msg
+					})
 				}
 				s.wg.Add(1)
 				signingTask := v[:totalTasks]
