@@ -31,7 +31,7 @@ import (
 )
 
 const (
-	BlockCacheSize         = 100
+	BlockCacheSize         = 6000
 	MaxContractGas         = 80000
 	depositEvent           = "0xef519b7eb82aaf6ac376a6df2d793843ebfd593de5f1a0601d3cc6ab49ebb395"
 	transferOutEvent       = "0xa9cd03aa3c1b4515114539cd53d22085129d495cb9e9f9af77864526240f1bf7"
