@@ -75,8 +75,8 @@ type ObserverManager interface {
 
 // ValidatorManager define the method to manage validators
 type ValidatorManager interface {
-	BeginBlock(ctx cosmos.Context, constAccessor constants.ConstantValues) error
-	EndBlock(ctx cosmos.Context, mgr Manager, constAccessor constants.ConstantValues, existingValidators []string) []abci.ValidatorUpdate
+	BeginBlock(ctx cosmos.Context, constAccessor constants.ConstantValues, existingValidators []string) error
+	EndBlock(ctx cosmos.Context, mgr Manager, constAccessor constants.ConstantValues) []abci.ValidatorUpdate
 	RequestYggReturn(ctx cosmos.Context, node NodeAccount, mgr Manager, constAccessor constants.ConstantValues) error
 	processRagnarok(ctx cosmos.Context, mgr Manager, constAccessor constants.ConstantValues) error
 	NodeAccountPreflightCheck(ctx cosmos.Context, na NodeAccount, constAccessor constants.ConstantValues) (NodeStatus, error)
@@ -251,7 +251,9 @@ func GetVaultManager(keeper keeper.Keeper, version semver.Version, txOutStore Tx
 
 // GetValidatorManager create a new instance of Validator Manager
 func GetValidatorManager(keeper keeper.Keeper, version semver.Version, vaultMgr NetworkManager, txOutStore TxOutStore, eventMgr EventManager) (ValidatorManager, error) {
-	if version.GTE(semver.MustParse("0.1.0")) {
+	if version.GTE(semver.MustParse("0.28.0")) {
+		return newValidatorMgrV28(keeper, vaultMgr, txOutStore, eventMgr), nil
+	} else if version.GTE(semver.MustParse("0.1.0")) {
 		return newValidatorMgrV1(keeper, vaultMgr, txOutStore, eventMgr), nil
 	}
 	return nil, errInvalidVersion
