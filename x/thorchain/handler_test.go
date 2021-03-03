@@ -151,7 +151,7 @@ func getHandlerTestWrapperWithVersion(c *C, height int64, withActiveNode, withAc
 
 	FundModule(c, ctx, k, AsgardName, 100000000)
 
-	c.Assert(mgr.ValidatorMgr().BeginBlock(ctx, constAccessor), IsNil)
+	c.Assert(mgr.ValidatorMgr().BeginBlock(ctx, constAccessor, nil), IsNil)
 
 	return handlerTestWrapper{
 		ctx:                  ctx,

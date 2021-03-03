@@ -14,11 +14,11 @@ func NewValidatorDummyMgr() *ValidatorDummyMgr {
 	return &ValidatorDummyMgr{}
 }
 
-func (vm *ValidatorDummyMgr) BeginBlock(_ cosmos.Context, _ constants.ConstantValues) error {
+func (vm *ValidatorDummyMgr) BeginBlock(_ cosmos.Context, _ constants.ConstantValues, _ []string) error {
 	return kaboom
 }
 
-func (vm *ValidatorDummyMgr) EndBlock(_ cosmos.Context, _ Manager, _ constants.ConstantValues, existingValidators []string) []abci.ValidatorUpdate {
+func (vm *ValidatorDummyMgr) EndBlock(_ cosmos.Context, _ Manager, _ constants.ConstantValues) []abci.ValidatorUpdate {
 	return nil
 }
 

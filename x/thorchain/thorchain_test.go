@@ -141,7 +141,7 @@ func (s *ThorchainSuite) TestChurn(c *C) {
 			ctx.Logger().Error("fail to parse consensus public key", "key", na.ValidatorConsPubKey, "error", err)
 			continue
 		}
-		caddr := types.GetConsAddress(pk).String()
+		caddr := types.ValAddress(pk.Address()).String()
 		existingValidators = append(existingValidators, caddr)
 		vault.Membership = append(vault.Membership, na.PubKeySet.Secp256k1.String())
 		c.Assert(keeper.SetNodeAccount(ctx, na), IsNil)
@@ -155,7 +155,8 @@ func (s *ThorchainSuite) TestChurn(c *C) {
 	// trigger marking bad actors as well as a keygen
 	rotateHeight := consts.GetInt64Value(constants.ChurnInterval) + vault.BlockHeight
 	ctx = ctx.WithBlockHeight(rotateHeight)
-	c.Assert(mgr.ValidatorMgr().BeginBlock(ctx, consts), IsNil)
+	valMgr := newValidatorMgrV28(keeper, mgr.VaultMgr(), mgr.TxOutStore(), mgr.EventMgr())
+	c.Assert(valMgr.BeginBlock(ctx, consts, existingValidators), IsNil)
 
 	// check we've created a keygen, with the correct members
 	keygenBlock, err := keeper.GetKeygenBlock(ctx, common.BlockHeight(ctx))
@@ -207,7 +208,7 @@ func (s *ThorchainSuite) TestChurn(c *C) {
 	c.Assert(vault2.Membership, HasLen, 4)
 
 	// check our validators get rotated appropriately
-	validators := mgr.ValidatorMgr().EndBlock(ctx, mgr, consts, existingValidators)
+	validators := valMgr.EndBlock(ctx, mgr, consts)
 	nas, err := keeper.ListActiveNodeAccounts(ctx)
 	c.Assert(err, IsNil)
 	c.Assert(nas, HasLen, 4)
@@ -532,7 +533,7 @@ func (s *ThorchainSuite) TestRagnarokNoOneLeave(c *C) {
 	asgard.Membership = asgard.Membership[:len(asgard.Membership)-1]
 	c.Assert(keeper.SetVault(ctx, asgard), IsNil)
 	// no validator should leave, because it trigger ragnarok
-	updates := mgr.ValidatorMgr().EndBlock(ctx, mgr, consts, []string{})
+	updates := mgr.ValidatorMgr().EndBlock(ctx, mgr, consts)
 	c.Assert(updates, IsNil)
 	ragnarokHeight, err := keeper.GetRagnarokBlockHeight(ctx)
 	c.Assert(err, IsNil)
@@ -540,7 +541,7 @@ func (s *ThorchainSuite) TestRagnarokNoOneLeave(c *C) {
 	currentHeight := common.BlockHeight(ctx)
 	migrateInterval := consts.GetInt64Value(constants.FundMigrationInterval)
 	ctx = ctx.WithBlockHeight(currentHeight + migrateInterval)
-	c.Assert(mgr.ValidatorMgr().BeginBlock(ctx, consts), IsNil)
+	c.Assert(mgr.ValidatorMgr().BeginBlock(ctx, consts, nil), IsNil)
 	mgr.TxOutStore().ClearOutboundItems(ctx)
-	c.Assert(mgr.ValidatorMgr().EndBlock(ctx, mgr, consts, []string{}), IsNil)
+	c.Assert(mgr.ValidatorMgr().EndBlock(ctx, mgr, consts), IsNil)
 }
