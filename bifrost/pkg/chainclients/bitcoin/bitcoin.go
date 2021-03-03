@@ -33,7 +33,7 @@ import (
 
 // BlockCacheSize the number of block meta that get store in storage.
 const (
-	BlockCacheSize      = 100
+	BlockCacheSize      = 144
 	MaximumConfirmation = 99999999
 	MaxAsgardAddresses  = 100
 	// EstimateAverageTxSize for THORChain the estimate tx size is hard code to 250 here , as most of time it will spend 1 input, have 3 output
@@ -408,19 +408,19 @@ func (c *Client) confirmTx(txHash *chainhash.Hash) bool {
 	_, err := c.client.GetMempoolEntry(txHash.String())
 	if err == nil {
 		return true
+	} else {
+		c.logger.Err(err).Msgf("fail to confirm tx(%s) from mempool", txHash.String())
 	}
 	// then get raw tx and check if it has confirmations or not
 	// if no confirmation and not in mempool then invalid
-	result, err := c.client.GetTransaction(txHash)
+	_, err = c.client.GetTransaction(txHash)
 	if err != nil {
 		if rpcErr, ok := err.(*btcjson.RPCError); ok && rpcErr.Code == btcjson.ErrRPCNoTxInfo {
 			return false
 		}
-		return true
+		c.logger.Err(err).Msgf("fail to get tx (%s) from chain , assume it is ok", txHash)
 	}
-	if result.Confirmations == 0 {
-		return false
-	}
+
 	return true
 }
 
