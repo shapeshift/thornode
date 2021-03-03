@@ -81,6 +81,11 @@ func (t TxIn) GetTotalTransactionValue(asset common.Asset, excludeFrom []common.
 		if fromAsgard {
 			continue
 		}
+		// skip confirmation counting if it is internal tx
+		m, err := memo.ParseMemo(item.Memo)
+		if err == nil && m.IsInternal() {
+			continue
+		}
 		c := item.Coins.GetCoin(asset)
 		if c.IsEmpty() {
 			continue
