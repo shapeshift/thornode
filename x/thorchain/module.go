@@ -93,11 +93,10 @@ func (AppModuleBasic) GetTxCmd() *cobra.Command {
 // AppModule implements an application module for the thorchain module.
 type AppModule struct {
 	AppModuleBasic
-	keeper             keeper.Keeper
-	coinKeeper         bankkeeper.Keeper
-	mgr                *Mgrs
-	keybaseStore       cosmos.KeybaseStore
-	existingValidators []string
+	keeper       keeper.Keeper
+	coinKeeper   bankkeeper.Keeper
+	mgr          *Mgrs
+	keybaseStore cosmos.KeybaseStore
 }
 
 // NewAppModule creates a new AppModule Object
@@ -158,7 +157,7 @@ func (am AppModule) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
 		addr := sdk.ValAddress(v.Validator.GetAddress())
 		existingValidators = append(existingValidators, addr.String())
 	}
-	am.existingValidators = existingValidators
+
 	ctx.Logger().Debug("Begin Block", "height", req.Header.Height)
 	version := am.keeper.GetLowestActiveVersion(ctx)
 
@@ -182,7 +181,7 @@ func (am AppModule) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
 
 	am.mgr.Slasher().BeginBlock(ctx, req, constantValues)
 
-	if err := am.mgr.ValidatorMgr().BeginBlock(ctx, constantValues); err != nil {
+	if err := am.mgr.ValidatorMgr().BeginBlock(ctx, constantValues, existingValidators); err != nil {
 		ctx.Logger().Error("Fail to begin block on validator", "error", err)
 	}
 }
@@ -242,7 +241,7 @@ func (am AppModule) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.V
 		ctx.Logger().Error("fail to end block for vault manager", "error", err)
 	}
 
-	validators := am.mgr.ValidatorMgr().EndBlock(ctx, am.mgr, constantValues, am.existingValidators)
+	validators := am.mgr.ValidatorMgr().EndBlock(ctx, am.mgr, constantValues)
 
 	// Fill up Yggdrasil vaults
 	// We do this AFTER validatorMgr.EndBlock, because we don't want to send
