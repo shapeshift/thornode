@@ -411,7 +411,11 @@ func (o *Observer) signAndSendToThorchain(txIn types.TxIn) error {
 	if err != nil {
 		return fmt.Errorf("fail to sign the tx: %w", err)
 	}
+	if len(msgs) == 0 {
+		return nil
+	}
 	bf := backoff.NewExponentialBackOff()
+	bf.MaxElapsedTime = constants.ThorchainBlockTime
 	return backoff.Retry(func() error {
 		txID, err := o.thorchainBridge.Broadcast(msgs...)
 		if err != nil {
@@ -425,9 +429,13 @@ func (o *Observer) signAndSendToThorchain(txIn types.TxIn) error {
 // getThorchainTxIns convert to the type thorchain expected
 // maybe in later THORNode can just refactor this to use the type in thorchain
 func (o *Observer) getThorchainTxIns(txIn types.TxIn) (stypes.ObservedTxs, error) {
-	txs := make(stypes.ObservedTxs, len(txIn.TxArray))
+	txs := make(stypes.ObservedTxs, 0, len(txIn.TxArray))
 	o.logger.Debug().Msgf("len %d", len(txIn.TxArray))
-	for i, item := range txIn.TxArray {
+	for _, item := range txIn.TxArray {
+		if item.Coins.IsEmpty() {
+			o.logger.Info().Msgf("item(%+v) , coins are empty , so ignore", item)
+			continue
+		}
 		o.logger.Debug().Str("tx-hash", item.Tx).Msg("txInItem")
 		blockHeight := strconv.FormatInt(item.BlockHeight, 10)
 		txID, err := common.NewTxID(item.Tx)
@@ -458,12 +466,13 @@ func (o *Observer) getThorchainTxIns(txIn types.TxIn) (stypes.ObservedTxs, error
 		if txIn.Finalised {
 			height = height + txIn.ConfirmationRequired
 		}
-		txs[i] = stypes.NewObservedTx(
+		tx := stypes.NewObservedTx(
 			common.NewTx(txID, sender, to, item.Coins, item.Gas, item.Memo),
 			height,
 			item.ObservedVaultPubKey,
 			item.BlockHeight+txIn.ConfirmationRequired)
-		txs[i].KeysignMs = o.tssKeysignMetricMgr.GetTssKeysignMetric(item.Tx)
+		tx.KeysignMs = o.tssKeysignMetricMgr.GetTssKeysignMetric(item.Tx)
+		txs = append(txs, tx)
 	}
 	return txs, nil
 }
