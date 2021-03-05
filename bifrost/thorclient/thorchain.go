@@ -253,7 +253,7 @@ func (b *ThorchainBridge) GetKeygenStdTx(poolPubKey common.PubKey, blame stypes.
 // GetObservationsStdTx get observations tx from txIns
 func (b *ThorchainBridge) GetObservationsStdTx(txIns stypes.ObservedTxs) ([]cosmos.Msg, error) {
 	if len(txIns) == 0 {
-		return nil, errors.New("nothing to be signed")
+		return nil, nil
 	}
 	var inbound stypes.ObservedTxs
 	var outbound stypes.ObservedTxs
