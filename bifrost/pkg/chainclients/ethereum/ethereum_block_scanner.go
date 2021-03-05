@@ -831,6 +831,10 @@ func (e *ETHScanner) getTxInFromTransaction(tx *etypes.Transaction) (*stypes.TxI
 		txGasPrice = big.NewInt(tenGwei)
 	}
 	txInItem.Gas = common.MakeETHGas(txGasPrice, tx.Gas())
+	if txInItem.Coins.IsEmpty() {
+		e.logger.Debug().Msgf("there is no coin in this tx, ignore, %+v", txInItem)
+		return nil, nil
+	}
 	return txInItem, nil
 }
 

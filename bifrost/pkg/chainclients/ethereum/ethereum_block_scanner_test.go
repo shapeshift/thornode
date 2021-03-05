@@ -202,7 +202,7 @@ func (s *BlockScannerTestSuite) TestProcessBlock(c *C) {
 	c.Assert(bs, NotNil)
 	txIn, err := bs.FetchTxs(int64(1))
 	c.Assert(err, IsNil)
-	c.Check(len(txIn.TxArray), Equals, 1)
+	c.Check(len(txIn.TxArray), Equals, 0)
 }
 
 func httpTestHandler(c *C, rw http.ResponseWriter, fixture string) {
