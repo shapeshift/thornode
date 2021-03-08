@@ -108,6 +108,7 @@ func setupKeeperForTest(c *C) (cosmos.Context, keeper.Keeper) {
 	k := keeper.NewKeeper(marshaler, bk, ak, keyThorchain)
 	FundModule(c, ctx, k, ModuleName, 1000000*common.One)
 	FundModule(c, ctx, k, AsgardName, common.One)
+	FundModule(c, ctx, k, ReserveName, 10000*common.One)
 	k.SaveNetworkFee(ctx, common.BNBChain, NetworkFee{
 		Chain:              common.BNBChain,
 		TransactionSize:    1,
