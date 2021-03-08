@@ -10,6 +10,7 @@ import (
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	memo "gitlab.com/thorchain/thornode/x/thorchain/memo"
 )
 
 // ErrataTxHandler is to handle ErrataTx message
@@ -109,7 +110,11 @@ func (h ErrataTxHandler) handleV1(ctx cosmos.Context, msg MsgErrataTx, version s
 	}
 
 	if len(observedVoter.Txs) == 0 {
-		return nil, se.Wrap(errInternal, fmt.Sprintf("cannot find tx: %s", msg.TxID))
+		if version.GTE(semver.MustParse("0.29.0")) {
+			return h.processErrataOutboundTx(ctx, msg)
+		} else {
+			return nil, se.Wrap(errInternal, fmt.Sprintf("cannot find tx: %s", msg.TxID))
+		}
 	}
 	// set the observed Tx to reverted
 	observedVoter.SetReverted()
@@ -189,5 +194,129 @@ func (h ErrataTxHandler) handleV1(ctx cosmos.Context, msg MsgErrataTx, version s
 	if err := h.mgr.EventMgr().EmitEvent(ctx, eventErrata); err != nil {
 		return nil, ErrInternal(err, "fail to emit errata event")
 	}
+	return &cosmos.Result{}, nil
+}
+
+// processErrataOutboundTx when the network detect an outbound tx which previously had been sent out to customer , however it get re-org , and it doesn't
+// exist on the external chain anymore , then it will need to reschedule the tx
+func (h ErrataTxHandler) processErrataOutboundTx(ctx cosmos.Context, msg MsgErrataTx) (*cosmos.Result, error) {
+	txOutVoter, err := h.keeper.GetObservedTxOutVoter(ctx, msg.GetTxID())
+	if err != nil {
+		return nil, fmt.Errorf("fail to get observed tx out voter for tx (%s) : %w", msg.GetTxID(), err)
+	}
+	if len(txOutVoter.Txs) == 0 {
+		return nil, fmt.Errorf("cannot find tx: %s", msg.TxID)
+	}
+	if txOutVoter.Tx.IsEmpty() {
+		return nil, fmt.Errorf("tx out voter is not finalised")
+	}
+	tx := txOutVoter.Tx.Tx
+	if !tx.Chain.Equals(msg.Chain) || tx.Coins.IsEmpty() {
+		return &cosmos.Result{}, nil
+	}
+	// parse the outbound tx memo, so we can figure out which inbound tx triggered the outbound
+	m, err := memo.ParseMemo(tx.Memo)
+	if err != nil {
+		return nil, fmt.Errorf("fail to parse memo(%s): %w", tx.Memo, err)
+	}
+	if !m.IsOutbound() {
+		return nil, fmt.Errorf("%s is not outbound tx", m)
+	}
+	vaultPubKey := txOutVoter.Tx.ObservedPubKey
+	if !vaultPubKey.IsEmpty() {
+		v, err := h.keeper.GetVault(ctx, vaultPubKey)
+		if err != nil {
+			return nil, fmt.Errorf("fail to get vault with pubkey %s: %w", vaultPubKey, err)
+		}
+		compensate := true
+		if v.IsAsgard() {
+			if v.Status == RetiringVault || v.Status == ActiveVault {
+				v.AddFunds(tx.Coins)
+				compensate = false
+			}
+		}
+		if v.IsYggdrasil() {
+			node, err := h.keeper.GetNodeAccountByPubKey(ctx, v.PubKey)
+			if err != nil {
+				return nil, fmt.Errorf("fail to get node account with pubkey: %s,err: %w", v.PubKey, err)
+			}
+			if !node.IsEmpty() && !node.Bond.IsZero() {
+				// as long as the node still has bond , we can just credit it back to it's yggdrasil vault.
+				// if the node request to leave , but has not refund it's bond yet , then they will be slashed,
+				// if the node stay in the network , then they can still hold the fund until they leave
+				// if the node already left , but only has little bond left , the slash logic will take it all , and then
+				// subsidise pool with reserve
+				v.AddFunds(tx.Coins)
+				compensate = false
+			}
+		}
+
+		if !v.IsEmpty() {
+			if err := h.keeper.SetVault(ctx, v); err != nil {
+				return nil, fmt.Errorf("fail to save vault: %w", err)
+			}
+		}
+		if compensate {
+			for _, coin := range tx.Coins {
+				if coin.Asset.IsRune() {
+					// it is using native rune, so outbound can't be RUNE
+					continue
+				}
+				p, err := h.keeper.GetPool(ctx, coin.GetAsset())
+				if err != nil {
+					return nil, fmt.Errorf("fail to get pool(%s): %w", coin.GetAsset(), err)
+				}
+				runeValue := p.AssetValueInRune(coin.Amount)
+				p.BalanceRune = p.BalanceRune.Add(runeValue)
+				p.BalanceAsset = common.SafeSub(p.BalanceAsset, coin.Amount)
+				if err := h.keeper.SendFromModuleToModule(ctx, ReserveName, AsgardName, common.Coins{
+					common.NewCoin(common.RuneAsset(), runeValue),
+				}); err != nil {
+					return nil, fmt.Errorf("fail to send fund from reserve to asgard: %w", err)
+				}
+				if err := h.keeper.SetPool(ctx, p); err != nil {
+					return nil, fmt.Errorf("fail to save pool (%s) : %w", p.Asset, err)
+				}
+				// send errata event
+				mods := PoolMods{
+					NewPoolMod(p.Asset, runeValue, true, coin.Amount, false),
+				}
+
+				eventErrata := NewEventErrata(msg.TxID, mods)
+				if err := h.mgr.EventMgr().EmitEvent(ctx, eventErrata); err != nil {
+					return nil, ErrInternal(err, "fail to emit errata event")
+				}
+			}
+		}
+	}
+
+	if m.IsInternal() {
+		ctx.Logger().Info("%s is internal tx , don't do anything", tx.Memo)
+		return &cosmos.Result{}, nil
+	}
+	txInVoter, err := h.keeper.GetObservedTxInVoter(ctx, m.GetTxID())
+	if err != nil {
+		return nil, fmt.Errorf("fail to get tx in voter for tx (%s): %w", m.GetTxID(), err)
+	}
+
+	for _, item := range txInVoter.Actions {
+		if !item.OutHash.Equals(msg.GetTxID()) {
+			continue
+		}
+		newTxOutItem := TxOutItem{
+			Chain:     item.Chain,
+			InHash:    item.InHash,
+			ToAddress: item.ToAddress,
+			Coin:      item.Coin,
+			Memo:      item.Memo,
+		}
+		_, err := h.mgr.TxOutStore().TryAddTxOutItem(ctx, h.mgr, newTxOutItem)
+		if err != nil {
+			return nil, fmt.Errorf("fail to reschedule tx out item: %w", err)
+		}
+		break
+	}
+	txOutVoter.SetReverted()
+	h.keeper.SetObservedTxOutVoter(ctx, txOutVoter)
 	return &cosmos.Result{}, nil
 }
