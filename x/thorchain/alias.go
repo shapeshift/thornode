@@ -102,6 +102,7 @@ var (
 	NewEventOutbound               = types.NewEventOutbound
 	NewEventTssKeygenMetric        = types.NewEventTssKeygenMetric
 	NewEventTssKeysignMetric       = types.NewEventTssKeysignMetric
+	NewEventPoolBalanceChanged     = types.NewEventPoolBalanceChanged
 	NewPoolMod                     = types.NewPoolMod
 	NewMsgRefundTx                 = types.NewMsgRefundTx
 	NewMsgOutboundTx               = types.NewMsgOutboundTx

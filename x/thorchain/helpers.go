@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/blang/semver"
 	"github.com/hashicorp/go-multierror"
 
 	"gitlab.com/thorchain/thornode/common"
@@ -394,6 +395,10 @@ func cyclePools(ctx cosmos.Context, maxAvailablePools, minRunePoolDepth, stagedP
 				ctx.Logger().Error("fail to add rune to reserve", "from pool", pool.Asset, "err", err)
 			}
 
+			emitPoolBalanceChangedEvent(ctx,
+				NewPoolMod(pool.Asset, fee, false, cosmos.ZeroUint(), false),
+				"pool stage cost",
+				keeper, eventManager)
 			// check if the rune balance is zero, and asset balance IS NOT
 			// zero. This is because we don't want to abandon a pool that is in
 			// the process of being created (race condition). We can safely
@@ -513,4 +518,14 @@ func AddGasFees(ctx cosmos.Context, keeper keeper.Keeper, tx ObservedTx, gasMana
 		}
 	}
 	return nil
+}
+func emitPoolBalanceChangedEvent(ctx cosmos.Context, poolMod PoolMod, reason string, keeper keeper.Keeper, eventManager EventManager) {
+	currentVersion := keeper.GetLowestActiveVersion(ctx)
+	if !currentVersion.GTE(semver.MustParse("0.29.0")) {
+		return
+	}
+	evt := NewEventPoolBalanceChanged(poolMod, reason)
+	if err := eventManager.EmitEvent(ctx, evt); err != nil {
+		ctx.Logger().Error("fail to emit pool balance changed event", "error", err)
+	}
 }
