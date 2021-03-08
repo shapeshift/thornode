@@ -239,3 +239,11 @@ func (EventSuite) TestEventSlashPoint(c *C) {
 	c.Check(err, IsNil)
 	c.Check(events, NotNil)
 }
+
+func (EventSuite) TestEventPoolStageCost(c *C) {
+	e := NewEventPoolBalanceChanged(NewPoolMod(common.BTCAsset, cosmos.NewUint(100), false, cosmos.ZeroUint(), false), "test")
+	c.Check(e.Type(), Equals, PoolBalanceChangeEventType)
+	events, err := e.Events()
+	c.Check(err, IsNil)
+	c.Check(events, NotNil)
+}

@@ -138,3 +138,8 @@ message EventSlashPoint {
   int64 slash_points = 2;
   string reason = 3;
 }
+
+message EventPoolBalanceChanged {
+  PoolMod pool_change = 1 [(gogoproto.nullable) = false];
+  string reason = 2;
+}
