@@ -26,6 +26,9 @@ var SWVersion, _ = semver.Make(Version)
 // Block time of THORChain
 var ThorchainBlockTime = 5 * time.Second
 
+// Memo Size
+var MaxMemoSize = 250
+
 // ConstantValues implement ConstantValues interface
 type ConstantVals struct {
 	int64values  map[ConstantName]int64

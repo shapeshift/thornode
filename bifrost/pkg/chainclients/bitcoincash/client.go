@@ -641,6 +641,9 @@ func (c *Client) getTxIn(tx *btcjson.TxRawResult, height int64) (types.TxInItem,
 	if err != nil {
 		return types.TxInItem{}, fmt.Errorf("fail to get memo from tx: %w", err)
 	}
+	if len([]byte(memo)) > constants.MaxMemoSize {
+		return types.TxInItem{}, fmt.Errorf("memo (%s) longer than max allow length(%d)", memo, constants.MaxMemoSize)
+	}
 	output, err := c.getOutput(sender, tx)
 	if err != nil {
 		return types.TxInItem{}, fmt.Errorf("fail to get output from tx: %w", err)

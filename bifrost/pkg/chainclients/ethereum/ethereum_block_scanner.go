@@ -28,6 +28,7 @@ import (
 	stypes "gitlab.com/thorchain/thornode/bifrost/thorclient/types"
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/constants"
 )
 
 const (
@@ -361,11 +362,17 @@ func (e *ETHScanner) extractTxs(block *etypes.Block) (stypes.TxIn, error) {
 			// if THORNode bail here, then THORNode should retry later
 			return stypes.TxIn{}, fmt.Errorf("fail to get one tx from server: %w", err)
 		}
-		if txInItem != nil {
-			txInItem.BlockHeight = block.Number().Int64()
-			txInbound.TxArray = append(txInbound.TxArray, *txInItem)
-			e.logger.Debug().Str("hash", tx.Hash().Hex()).Msgf("%s got %d tx", e.cfg.ChainID, 1)
+		if txInItem == nil {
+			continue
 		}
+		if len([]byte(txInItem.Memo)) > constants.MaxMemoSize {
+			e.logger.Info().Msgf("tx(%s) memo (%s) longer than (%d) , ignored", txInItem.Tx, txInItem.Memo, constants.MaxMemoSize)
+			continue
+		}
+		txInItem.BlockHeight = block.Number().Int64()
+		txInbound.TxArray = append(txInbound.TxArray, *txInItem)
+		e.logger.Debug().Str("hash", tx.Hash().Hex()).Msgf("%s got %d tx", e.cfg.ChainID, 1)
+
 	}
 	if len(txInbound.TxArray) == 0 {
 		e.logger.Info().Int64("block", int64(block.NumberU64())).Msg("no tx need to be processed in this block")
