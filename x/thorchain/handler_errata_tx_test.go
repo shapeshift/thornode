@@ -10,6 +10,7 @@ import (
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
 var _ = Suite(&HandlerErrataTxSuite{})
@@ -489,4 +490,144 @@ func (s *HandlerErrataTxSuite) TestErrataHandlerDifferentError(c *C) {
 		result, err := handler.Run(ctx, msg, semver.MustParse("0.1.0"), constAccessor)
 		tc.validator(c, ctx, result, err, helper, tc.name)
 	}
+}
+
+func (*HandlerErrataTxSuite) TestProcessErrortaOutboundTx(c *C) {
+	ctx, k := setupKeeperForTest(c)
+	helper := NewErrataTxHandlerTestHelper(k)
+	mgr := NewManagers(helper)
+	mgr.BeginBlock(ctx)
+	handler := NewErrataTxHandler(helper, mgr)
+	node1 := GetRandomNodeAccount(NodeActive)
+	node2 := GetRandomNodeAccount(NodeActive)
+	node3 := GetRandomNodeAccount(NodeActive)
+	c.Assert(helper.Keeper.SetNodeAccount(ctx, node1), IsNil)
+	c.Assert(helper.Keeper.SetNodeAccount(ctx, node2), IsNil)
+	c.Assert(helper.Keeper.SetNodeAccount(ctx, node3), IsNil)
+
+	// fail to get observed tx out voter
+	txID := GetRandomTxHash()
+	msg := NewMsgErrataTx(txID, common.LTCChain, node1.NodeAddress)
+	result, err := handler.processErrataOutboundTx(ctx, *msg)
+	c.Assert(err, NotNil)
+	c.Assert(result, IsNil)
+
+	observedPubKey := GetRandomPubKey()
+	tx := common.NewTx(txID, GetRandomLTCAddress(), GetRandomLTCAddress(),
+		common.Coins{
+			common.NewCoin(common.LTCAsset, cosmos.NewUint(102400000)),
+		},
+		common.Gas{
+			common.NewCoin(common.LTCAsset, cosmos.NewUint(1000)),
+		}, "swap:LTC.LTC")
+	observedTx := []ObservedTx{
+		NewObservedTx(
+			tx,
+			1024, observedPubKey, 1024),
+	}
+	txOutVoter := NewObservedTxVoter(txID, observedTx)
+	helper.Keeper.SetObservedTxOutVoter(ctx, txOutVoter)
+	// Tx is empty , it should fail
+	result, err = handler.processErrataOutboundTx(ctx, *msg)
+	c.Assert(err, NotNil)
+	c.Assert(result, IsNil)
+	txOutVoter.Add(observedTx[0], node2.NodeAddress)
+	txOutVoter.Add(observedTx[0], node3.NodeAddress)
+	tx1 := txOutVoter.GetTx(NodeAccounts{node1, node2, node3})
+	c.Assert(tx1.IsEmpty(), Equals, false)
+	helper.Keeper.SetObservedTxOutVoter(ctx, txOutVoter)
+
+	// not outbound tx , it should fail
+	result, err = handler.processErrataOutboundTx(ctx, *msg)
+	c.Assert(err, NotNil)
+	c.Assert(result, IsNil)
+
+	// fail to get vault
+	txInID := GetRandomTxHash()
+	txOutVoter.Tx.Tx.Memo = "OUT:" + txInID.String()
+	helper.Keeper.SetObservedTxOutVoter(ctx, txOutVoter)
+	result, err = handler.processErrataOutboundTx(ctx, *msg)
+	c.Assert(err, NotNil)
+	c.Assert(result, IsNil)
+
+	// Active Asgard vault, TxInVoter not exist
+	asgardVault := NewVault(1, types.VaultStatus_ActiveVault, AsgardVault, observedPubKey, []string{
+		common.LTCChain.String(),
+		common.BTCChain.String(),
+		common.BNBChain.String(),
+	}, []ChainContract{})
+	c.Assert(helper.Keeper.SetVault(ctx, asgardVault), IsNil)
+	result, err = handler.processErrataOutboundTx(ctx, *msg)
+	c.Assert(err, IsNil)
+	c.Assert(result, NotNil)
+
+	// inactive vault , cause it to compensate asgard with reserve
+	asgardVault.UpdateStatus(types.VaultStatus_InactiveVault, 1024)
+	c.Assert(helper.Keeper.SetVault(ctx, asgardVault), IsNil)
+	result, err = handler.processErrataOutboundTx(ctx, *msg)
+	c.Assert(err, NotNil)
+	c.Assert(result, IsNil)
+
+	// With POOL , but no txin voter
+	pool := NewPool()
+	pool.Asset = common.LTCAsset
+	pool.BalanceAsset = cosmos.NewUint(1024 * common.One)
+	pool.BalanceRune = cosmos.NewUint(1024 * common.One)
+	pool.Status = PoolAvailable
+	c.Assert(helper.Keeper.SetPool(ctx, pool), IsNil)
+	result, err = handler.processErrataOutboundTx(ctx, *msg)
+	c.Assert(err, IsNil)
+	c.Assert(result, NotNil)
+	// yggdrasil vault
+	asgardVault.Type = YggdrasilVault
+
+	c.Assert(helper.Keeper.SetVault(ctx, asgardVault), IsNil)
+	result, err = handler.processErrataOutboundTx(ctx, *msg)
+	c.Assert(err, IsNil)
+	c.Assert(result, NotNil)
+
+	txInbound := common.NewTx(txInID, GetRandomLTCAddress(), GetRandomLTCAddress(),
+		common.Coins{
+			common.NewCoin(common.LTCAsset, cosmos.NewUint(102400000)),
+		},
+		common.Gas{
+			common.NewCoin(common.LTCAsset, cosmos.NewUint(1000)),
+		}, "swap:LTC.LTC")
+	observedTxInbound := []ObservedTx{
+		NewObservedTx(
+			txInbound,
+			1024, observedPubKey, 1024),
+	}
+	txInVoter := NewObservedTxVoter(txInID, observedTxInbound)
+	txInVoter.Actions = []TxOutItem{
+		{
+			Chain:     common.LTCChain,
+			InHash:    txInID,
+			ToAddress: GetRandomLTCAddress(),
+			Coin:      common.NewCoin(common.LTCAsset, cosmos.NewUint(10240000)),
+			Memo:      "OUT:" + txInID.String(),
+			OutHash:   txID,
+		},
+	}
+	helper.Keeper.SetObservedTxInVoter(ctx, txInVoter)
+	newActiveAsgardVault := NewVault(1024, ActiveVault, AsgardVault, GetRandomPubKey(), []string{
+		common.BTCChain.String(),
+		common.LTCChain.String(),
+		common.ETHChain.String(),
+	}, []ChainContract{})
+	newActiveAsgardVault.AddFunds(common.Coins{
+		common.NewCoin(common.LTCAsset, cosmos.NewUint(1024*common.One)),
+	})
+	helper.Keeper.SetVault(ctx, newActiveAsgardVault)
+	helper.Keeper.SaveNetworkFee(ctx, common.LTCChain, NetworkFee{
+		Chain:              common.LTCChain,
+		TransactionSize:    250,
+		TransactionFeeRate: 10,
+	})
+	result, err = handler.processErrataOutboundTx(ctx, *msg)
+	c.Assert(err, IsNil)
+	c.Assert(result, NotNil)
+	txOut, err := helper.Keeper.GetTxOut(ctx, ctx.BlockHeight())
+	c.Assert(err, IsNil)
+	c.Assert(txOut.TxArray, HasLen, 1)
 }
