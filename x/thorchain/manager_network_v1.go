@@ -228,6 +228,10 @@ func (vm *NetworkMgrV1) EndBlock(ctx cosmos.Context, mgr Manager, constAccessor 
 						if err := vm.k.SetVault(ctx, vault); err != nil {
 							return fmt.Errorf("fail to save vault: %w", err)
 						}
+						emitPoolBalanceChangedEvent(ctx,
+							NewPoolMod(p.Asset, runeAmt, true, coin.Amount, false),
+							"burn dust",
+							vm.k, vm.eventMgr)
 						continue
 					}
 				}

@@ -1,6 +1,9 @@
 package thorchain
 
 import (
+	"strings"
+
+	"github.com/blang/semver"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
@@ -551,4 +554,34 @@ func (s *HelperSuite) TestAddGasFees(c *C) {
 			continue
 		}
 	}
+}
+func (s *HelperSuite) TestEmitPoolStageCostEvent(c *C) {
+	ctx, k := setupKeeperForTest(c)
+	eventMgr := NewEventMgrV1()
+	emitPoolBalanceChangedEvent(ctx,
+		NewPoolMod(common.BTCAsset, cosmos.NewUint(1000), false, cosmos.ZeroUint(), false), "test", k, eventMgr)
+	found := false
+	for _, e := range ctx.EventManager().Events() {
+		if strings.EqualFold(e.Type, types.PoolBalanceChangeEventType) {
+			found = true
+			break
+		}
+	}
+	c.Assert(found, Equals, false)
+	na := GetRandomNodeAccount(NodeActive)
+	na.Version = semver.MustParse("0.29.0").String()
+	k.SetNodeAccount(ctx, na)
+
+	emitPoolBalanceChangedEvent(ctx,
+		NewPoolMod(common.BTCAsset, cosmos.NewUint(1000), false, cosmos.ZeroUint(), false),
+		"test",
+		k, eventMgr)
+	found = false
+	for _, e := range ctx.EventManager().Events() {
+		if strings.EqualFold(e.Type, types.PoolBalanceChangeEventType) {
+			found = true
+			break
+		}
+	}
+	c.Assert(found, Equals, true)
 }

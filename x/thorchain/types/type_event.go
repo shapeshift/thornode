@@ -10,23 +10,24 @@ import (
 
 // all event types support by THORChain
 const (
-	SwapEventType             = `swap`
-	AddLiquidityEventType     = `add_liquidity`
-	WithdrawEventType         = `withdraw`
-	DonateEventType           = `donate`
-	PoolEventType             = `pool`
-	RewardEventType           = `rewards`
-	RefundEventType           = `refund`
-	BondEventType             = `bond`
-	GasEventType              = `gas`
-	ReserveEventType          = `reserve`
-	SlashEventType            = `slash`
-	ErrataEventType           = `errata`
-	FeeEventType              = `fee`
-	OutboundEventType         = `outbound`
-	TSSKeygenMetricEventType  = `tss_keygen`
-	TSSKeysignMetricEventType = `tss_keysign`
-	SlashPointEventType       = `slash_points`
+	SwapEventType              = `swap`
+	AddLiquidityEventType      = `add_liquidity`
+	WithdrawEventType          = `withdraw`
+	DonateEventType            = `donate`
+	PoolEventType              = `pool`
+	RewardEventType            = `rewards`
+	RefundEventType            = `refund`
+	BondEventType              = `bond`
+	GasEventType               = `gas`
+	ReserveEventType           = `reserve`
+	SlashEventType             = `slash`
+	ErrataEventType            = `errata`
+	FeeEventType               = `fee`
+	OutboundEventType          = `outbound`
+	TSSKeygenMetricEventType   = `tss_keygen`
+	TSSKeysignMetricEventType  = `tss_keysign`
+	SlashPointEventType        = `slash_points`
+	PoolBalanceChangeEventType = "pool_balance_change"
 )
 
 // PoolMods a list of pool modifications
@@ -492,5 +493,30 @@ func (m *EventSlashPoint) Events() (cosmos.Events, error) {
 		cosmos.NewAttribute("node_address", m.NodeAddress.String()),
 		cosmos.NewAttribute("slash_points", strconv.FormatInt(m.SlashPoints, 10)),
 		cosmos.NewAttribute("reason", m.Reason))
+	return cosmos.Events{evt}, nil
+}
+
+// NewEventPoolBalanceChanged create a new instance of EventPoolBalanceChanged
+func NewEventPoolBalanceChanged(poolMod PoolMod, reason string) *EventPoolBalanceChanged {
+	return &EventPoolBalanceChanged{
+		PoolChange: poolMod,
+		Reason:     reason,
+	}
+}
+
+// Type return a string which represent the type of this event
+func (m *EventPoolBalanceChanged) Type() string {
+	return PoolBalanceChangeEventType
+}
+
+// Events return cosmos sdk events
+func (m *EventPoolBalanceChanged) Events() (cosmos.Events, error) {
+	evt := cosmos.NewEvent(m.Type(),
+		cosmos.NewAttribute("asset", m.PoolChange.Asset.String()),
+		cosmos.NewAttribute("rune_amt", m.PoolChange.RuneAmt.String()),
+		cosmos.NewAttribute("rune_add", strconv.FormatBool(m.PoolChange.RuneAdd)),
+		cosmos.NewAttribute("asset_amt", m.PoolChange.AssetAmt.String()),
+		cosmos.NewAttribute("asset_add", strconv.FormatBool(m.PoolChange.AssetAdd)))
+	cosmos.NewAttribute("reason", m.GetReason())
 	return cosmos.Events{evt}, nil
 }
