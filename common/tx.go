@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/constants"
 )
 
 type (
@@ -162,9 +163,9 @@ func (tx Tx) Valid() error {
 	if err := tx.Gas.Valid(); err != nil {
 		return err
 	}
-
-	if len([]byte(tx.Memo)) > 150 {
-		return fmt.Errorf("memo must not exceed 150 bytes: %d", len([]byte(tx.Memo)))
+	// relax this check from 150 -> 180
+	if len([]byte(tx.Memo)) > constants.MaxMemoSize {
+		return fmt.Errorf("memo must not exceed %d bytes: %d", constants.MaxMemoSize, len([]byte(tx.Memo)))
 	}
 	return nil
 }
