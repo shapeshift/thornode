@@ -48,9 +48,15 @@ func refundTx(ctx cosmos.Context, tx ObservedTx, mgr Manager, keeper keeper.Keep
 			return err
 		}
 	}
-
+	version := keeper.GetLowestActiveVersion(ctx)
 	refundCoins := make(common.Coins, 0)
 	for _, coin := range tx.Tx.Coins {
+		// TODO remove this version check later
+		if version.GTE(semver.MustParse("0.30.0")) {
+			if coin.Asset.IsRune() && coin.Asset.GetChain().Equals(common.ETHChain) {
+				continue
+			}
+		}
 		pool, err := keeper.GetPool(ctx, coin.Asset)
 		if err != nil {
 			return fmt.Errorf("fail to get pool: %w", err)
