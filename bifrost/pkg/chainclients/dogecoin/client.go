@@ -415,7 +415,7 @@ func (c *Client) confirmTx(txHash *chainhash.Hash) bool {
 	}
 	// then get raw tx and check if it has confirmations or not
 	// if no confirmation and not in mempool then invalid
-	_, err = c.client.GetTransaction(txHash)
+	_, err = c.client.GetRawTransaction(txHash)
 	if err != nil {
 		if rpcErr, ok := err.(*btcjson.RPCError); ok && rpcErr.Code == btcjson.ErrRPCNoTxInfo {
 			return false
