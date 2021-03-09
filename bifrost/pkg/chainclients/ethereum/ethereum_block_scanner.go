@@ -163,6 +163,13 @@ func (e *ETHScanner) FetchTxs(height int64) (stypes.TxIn, error) {
 		e.logger.Error().Err(err).Int64("height", height).Msg("fail to search tx in block")
 		return stypes.TxIn{}, fmt.Errorf("fail to process block: %d, err:%w", height, err)
 	}
+	// blockMeta need to be saved , even there is no transactions found on this block at the time of scan
+	// because at the time of scan , so the block hash will be stored, and it can be used to detect re-org
+	blockMeta := types.NewBlockMeta(block.Header(), txIn)
+	if err := e.blockMetaAccessor.SaveBlockMeta(blockMeta.Height, blockMeta); err != nil {
+		e.logger.Err(err).Msgf("fail to save block meta of height: %d ", blockMeta.Height)
+	}
+
 	e.currentBlockHeight = height
 	pruneHeight := height - BlockCacheSize
 	if pruneHeight > 0 {
@@ -172,6 +179,7 @@ func (e *ETHScanner) FetchTxs(height int64) (stypes.TxIn, error) {
 			}
 		}()
 	}
+
 	if e.gasPriceChanged {
 		// only send the network fee to THORNode when the price get changed
 		gasPrice := e.GetGasPrice() // gas price is in wei
@@ -333,11 +341,6 @@ func (e *ETHScanner) processBlock(block *etypes.Block) (stypes.TxIn, error) {
 	}
 	if len(txInBlock.TxArray) > 0 {
 		txIn.TxArray = append(txIn.TxArray, txInBlock.TxArray...)
-	}
-
-	blockMeta := types.NewBlockMeta(block.Header(), txIn)
-	if err := e.blockMetaAccessor.SaveBlockMeta(blockMeta.Height, blockMeta); err != nil {
-		e.logger.Err(err).Msgf("fail to save block meta of height: %d ", blockMeta.Height)
 	}
 	return txIn, nil
 }
