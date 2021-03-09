@@ -402,22 +402,18 @@ func (c *Client) reConfirmTx() ([]int64, error) {
 
 // confirmTx check a tx is valid on chain post reorg
 func (c *Client) confirmTx(txHash *chainhash.Hash) bool {
-	// first check if tx is in mempool, just signed it for example
-	// if no error it means its valid mempool tx and move on
-	_, err := c.client.GetMempoolEntry(txHash.String())
+	// GetRawTransaction, it should check transaction in mempool as well
+	_, err := c.client.GetRawTransaction(txHash)
 	if err == nil {
+		// exist , all good
 		return true
-	} else {
-		c.logger.Err(err).Msgf("fail to confirm tx(%s) from mempool", txHash.String())
 	}
-	// then get raw tx and check if it has confirmations or not
-	// if no confirmation and not in mempool then invalid
-	_, err = c.client.GetRawTransaction(txHash)
+	c.logger.Err(err).Msgf("fail to get tx (%s) from chain", txHash)
+	// double check mempool
+	_, err = c.client.GetMempoolEntry(txHash.String())
 	if err != nil {
-		if rpcErr, ok := err.(*btcjson.RPCError); ok && rpcErr.Code == btcjson.ErrRPCNoTxInfo {
-			return false
-		}
-		c.logger.Err(err).Msgf("fail to get tx (%s) from chain", txHash.String())
+		c.logger.Err(err).Msgf("fail to get tx(%s) from mempool", txHash)
+		return false
 	}
 	return true
 }
