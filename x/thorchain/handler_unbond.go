@@ -144,6 +144,13 @@ func (h UnBondHandler) handleV1(ctx cosmos.Context, msg MsgUnBond, version semve
 	if err != nil {
 		return ErrInternal(err, fmt.Sprintf("fail to get node account(%s)", msg.NodeAddress))
 	}
+	bondLockPeriod, err := h.keeper.GetMimir(ctx, constants.BondLockupPeriod.String())
+	if err != nil || bondLockPeriod < 0 {
+		bondLockPeriod = constAccessor.GetInt64Value(constants.BondLockupPeriod)
+	}
+	if common.BlockHeight(ctx)-na.StatusSince < bondLockPeriod {
+		return fmt.Errorf("node can not unbond before %d", na.StatusSince+bondLockPeriod)
+	}
 	vaults, err := h.keeper.GetAsgardVaultsByStatus(ctx, RetiringVault)
 	if err != nil {
 		return ErrInternal(err, "fail to get retiring vault")

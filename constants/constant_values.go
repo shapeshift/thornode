@@ -53,6 +53,7 @@ const (
 	VirtualMultSynths
 	MinSlashPointsForBadValidator
 	FullImpLossProtectionBlocks
+	BondLockupPeriod
 )
 
 var nameToString = map[ConstantName]string{
@@ -99,6 +100,7 @@ var nameToString = map[ConstantName]string{
 	VirtualMultSynths:             "VirtualMultSynths",
 	MinSlashPointsForBadValidator: "MinSlashPointsForBadValidator",
 	FullImpLossProtectionBlocks:   "FullImpLossProtectionBlocks",
+	BondLockupPeriod:              "BondLockupPeriod",
 }
 
 // String implement fmt.stringer

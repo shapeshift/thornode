@@ -91,7 +91,7 @@ func (s *SlasherV1) HandleDoubleSign(ctx cosmos.Context, addr crypto.Address, in
 // LackObserving Slash node accounts that didn't observe a single inbound txn
 func (s *SlasherV1) LackObserving(ctx cosmos.Context, constAccessor constants.ConstantValues) error {
 	signingTransPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
-	height := ctx.BlockHeight()
+	height := common.BlockHeight(ctx)
 	if height < signingTransPeriod {
 		return nil
 	}
