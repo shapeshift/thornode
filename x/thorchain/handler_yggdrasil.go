@@ -256,7 +256,7 @@ func (h YggdrasilHandler) handleYggdrasilReturnV1(ctx cosmos.Context, msg MsgYgg
 			if vault.HasFundsForChain(contract.Chain) {
 				var noneZeroCoins common.Coins
 				for _, c := range vault.Coins {
-					if !c.Asset.Chain.Equals(contract.Chain) {
+					if !c.Asset.GetChain().Equals(contract.Chain) {
 						continue
 					}
 					if c.Amount.IsZero() {

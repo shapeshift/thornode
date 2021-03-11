@@ -546,6 +546,7 @@ func (WithdrawSuite) TestWithdrawAsym(c *C) {
 		c.Assert(asset.Equal(tc.assetAmount), Equals, true, Commentf("expect:%s, however got:%s", tc.assetAmount.String(), asset.String()))
 	}
 }
+
 func (WithdrawSuite) TestWithdrawPendingRuneOrAsset(c *C) {
 	version := constants.SWVersion
 	accountAddr := GetRandomNodeAccount(NodeActive).NodeAddress
