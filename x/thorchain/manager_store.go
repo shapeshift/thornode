@@ -67,7 +67,7 @@ func (smgr *StoreMgr) migrateVersion30(ctx cosmos.Context, constAccessor constan
 		return
 	}
 	startHeight := common.BlockHeight(ctx) - signingTransPeriod
-	for i := startHeight; i < ctx.BlockHeight(); i++ {
+	for i := startHeight; i < common.BlockHeight(ctx); i++ {
 		txs, err := smgr.keeper.GetTxOut(ctx, i)
 		if err != nil {
 			ctx.Logger().Error(fmt.Sprintf("fail to get txout from block height(%d): %s", i, err))

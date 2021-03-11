@@ -151,7 +151,7 @@ func (h TssHandler) handleV1(ctx cosmos.Context, msg MsgTssPool, version semver.
 			}
 			if len(initVaults) == len(keygenBlock.Keygens) {
 				for _, v := range initVaults {
-					v.UpdateStatus(ActiveVault, ctx.BlockHeight())
+					v.UpdateStatus(ActiveVault, common.BlockHeight(ctx))
 					if err := h.keeper.SetVault(ctx, v); err != nil {
 						return nil, fmt.Errorf("fail to save vault: %w", err)
 					}
