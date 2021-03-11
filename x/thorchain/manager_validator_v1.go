@@ -36,9 +36,7 @@ func newValidatorMgrV1(k keeper.Keeper, vaultMgr NetworkManager, txOutStore TxOu
 
 // BeginBlock when block begin
 func (vm *validatorMgrV1) BeginBlock(ctx cosmos.Context, constAccessor constants.ConstantValues, existingValidators []string) error {
-	// TODO fix this when we prepare for chaosnet
-	// the following line is to make sure backward compatibility
-	vm.existingValidators = []string{}
+	vm.existingValidators = existingValidators
 	height := common.BlockHeight(ctx)
 	if height == genesisBlockHeight {
 		if err := vm.setupValidatorNodes(ctx, height, constAccessor); err != nil {
@@ -320,7 +318,7 @@ func (vm *validatorMgrV1) EndBlock(ctx cosmos.Context, mgr Manager, constAccesso
 			ctx.Logger().Error("fail to parse consensus public key", "key", na.ValidatorConsPubKey, "error", err)
 			continue
 		}
-		caddr := sdk.GetConsAddress(pk).String()
+		caddr := sdk.ValAddress(pk.Address()).String()
 		removedNodeKeys = append(removedNodeKeys, na.PubKeySet.Secp256k1)
 		found := false
 		for _, exist := range vm.existingValidators {
@@ -349,7 +347,6 @@ func (vm *validatorMgrV1) EndBlock(ctx cosmos.Context, mgr Manager, constAccesso
 			ctx.Logger().Error("fail to set node account", "error", err)
 		}
 	}
-
 	return validators
 }
 

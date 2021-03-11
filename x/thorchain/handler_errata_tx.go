@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/blang/semver"
-	se "github.com/cosmos/cosmos-sdk/types/errors"
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
@@ -110,11 +109,7 @@ func (h ErrataTxHandler) handleV1(ctx cosmos.Context, msg MsgErrataTx, version s
 	}
 
 	if len(observedVoter.Txs) == 0 {
-		if version.GTE(semver.MustParse("0.29.0")) {
-			return h.processErrataOutboundTx(ctx, msg)
-		} else {
-			return nil, se.Wrap(errInternal, fmt.Sprintf("cannot find tx: %s", msg.TxID))
-		}
+		return h.processErrataOutboundTx(ctx, msg)
 	}
 	// set the observed Tx to reverted
 	observedVoter.SetReverted()
