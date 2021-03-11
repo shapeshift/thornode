@@ -25,6 +25,6 @@ func (s SymbolSuite) TestSymbol(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(sym2.IsMiniToken(), Equals, false)
 
-	_, err = NewSymbol("tbnb/bnb")
+	_, err = NewSymbol("tbnb.bnb")
 	c.Assert(err, IsNil)
 }
