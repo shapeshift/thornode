@@ -325,7 +325,7 @@ func (vm *NetworkMgrV1) TriggerKeygen(ctx cosmos.Context, nas NodeAccounts) erro
 		if v.HasFunds() {
 			continue
 		}
-		v.UpdateStatus(InactiveVault, ctx.BlockHeight())
+		v.UpdateStatus(InactiveVault, common.BlockHeight(ctx))
 		if err := vm.k.SetVault(ctx, v); err != nil {
 			ctx.Logger().Error("fail to save vault", "error", err)
 		}
