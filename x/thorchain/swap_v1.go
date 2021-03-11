@@ -74,8 +74,8 @@ func swapV1(ctx cosmos.Context,
 			return cosmos.ZeroUint(), swapEvents, err
 		}
 	}
-	if !destination.IsChain(target.Chain) {
-		return cosmos.ZeroUint(), swapEvents, fmt.Errorf("destination address is not a valid %s address", target.Chain)
+	if !destination.IsChain(target.GetChain()) {
+		return cosmos.ZeroUint(), swapEvents, fmt.Errorf("destination address is not a valid %s address", target.GetChain())
 	}
 	if source.Equals(target) {
 		return cosmos.ZeroUint(), swapEvents, fmt.Errorf("cannot swap from %s --> %s, assets match", source, target)
@@ -130,7 +130,7 @@ func swapV1(ctx cosmos.Context,
 	}
 
 	toi := TxOutItem{
-		Chain:     target.Chain,
+		Chain:     target.GetChain(),
 		InHash:    tx.ID,
 		ToAddress: destination,
 		Coin:      common.NewCoin(target, assetAmount),

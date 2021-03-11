@@ -30,7 +30,7 @@ func (m *MsgObservedTxIn) ValidateBasic() error {
 		if err := tx.Valid(); err != nil {
 			return cosmos.ErrUnknownRequest(err.Error())
 		}
-		obAddr, err := tx.ObservedPubKey.GetAddress(tx.Tx.Coins[0].Asset.Chain)
+		obAddr, err := tx.ObservedPubKey.GetAddress(tx.Tx.Coins[0].Asset.GetChain())
 		if err != nil {
 			return cosmos.ErrUnknownRequest(err.Error())
 		}

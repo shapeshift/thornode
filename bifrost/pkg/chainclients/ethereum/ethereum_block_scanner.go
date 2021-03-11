@@ -385,6 +385,7 @@ func (e *ETHScanner) extractTxs(block *etypes.Block) (stypes.TxIn, error) {
 	e.logger.Debug().Int64("block", int64(block.NumberU64())).Msgf("there are %s tx in this block need to process", txInbound.Count)
 	return txInbound, nil
 }
+
 func (e *ETHScanner) onObservedTxIn(txIn stypes.TxInItem, blockHeight int64) {
 	blockMeta, err := e.blockMetaAccessor.GetBlockMeta(blockHeight)
 	if err != nil {

@@ -31,6 +31,9 @@ func NewTicker(ticker string) (Ticker, error) {
 	if len(ticker) > 13 {
 		return noTicker, errors.New("ticker error: too many characters")
 	}
+	if strings.Count(ticker, "/") > 0 {
+		return noTicker, errors.New("ticker error: cannot contain a /")
+	}
 	return Ticker(strings.ToUpper(ticker)), nil
 }
 

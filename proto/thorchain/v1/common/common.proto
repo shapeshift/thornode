@@ -4,6 +4,7 @@ package common;
 option go_package = "gitlab.com/thorchain/thornode/common";
 option (gogoproto.goproto_stringer_all) = false;
 option (gogoproto.stringer_all)         = false;
+option (gogoproto.goproto_getters_all)  = false;
 
 import "gogoproto/gogo.proto";
 
@@ -11,6 +12,7 @@ message Asset {
     string chain = 1 [(gogoproto.casttype) = "Chain"];
     string symbol = 2 [(gogoproto.casttype) = "Symbol"];
     string ticker = 3 [(gogoproto.casttype) = "Ticker"];
+    bool synth = 4;
 }
 
 message Coin {

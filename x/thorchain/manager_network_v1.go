@@ -133,7 +133,7 @@ func (vm *NetworkMgrV1) EndBlock(ctx cosmos.Context, mgr Manager, constAccessor 
 					continue
 				}
 				// ERC20 RUNE will be burned when it reach router contract
-				if coin.Asset.IsRune() && coin.Asset.Chain.Equals(common.ETHChain) {
+				if coin.Asset.IsRune() && coin.Asset.GetChain().Equals(common.ETHChain) {
 					continue
 				}
 
@@ -164,7 +164,7 @@ func (vm *NetworkMgrV1) EndBlock(ctx cosmos.Context, mgr Manager, constAccessor 
 					}
 				}
 				// get address of asgard pubkey
-				addr, err := target.PubKey.GetAddress(coin.Asset.Chain)
+				addr, err := target.PubKey.GetAddress(coin.Asset.GetChain())
 				if err != nil {
 					return err
 				}
@@ -188,10 +188,10 @@ func (vm *NetworkMgrV1) EndBlock(ctx cosmos.Context, mgr Manager, constAccessor 
 				amt = cosmos.RoundToDecimal(amt, coin.Decimals)
 
 				// minus gas costs for our transactions
-				gasAsset := coin.Asset.Chain.GetGasAsset()
+				gasAsset := coin.Asset.GetChain().GetGasAsset()
 				if coin.Asset.Equals(gasAsset) {
 					gasMgr := mgr.GasMgr()
-					gas, err := gasMgr.GetMaxGas(ctx, coin.Asset.Chain)
+					gas, err := gasMgr.GetMaxGas(ctx, coin.Asset.GetChain())
 					if err != nil {
 						ctx.Logger().Error("fail to get max gas: %w", err)
 						return err
@@ -201,7 +201,7 @@ func (vm *NetworkMgrV1) EndBlock(ctx cosmos.Context, mgr Manager, constAccessor 
 						amt = coin.Amount
 					}
 
-					gasAmount := gas.Amount.MulUint64(uint64(vault.CoinLengthByChain(coin.Asset.Chain)))
+					gasAmount := gas.Amount.MulUint64(uint64(vault.CoinLengthByChain(coin.Asset.GetChain())))
 					amt = common.SafeSub(amt, gasAmount)
 
 					// the left amount is not enough to pay for gas, likely only dust left, the network can't migrate it across
@@ -244,7 +244,7 @@ func (vm *NetworkMgrV1) EndBlock(ctx cosmos.Context, mgr Manager, constAccessor 
 					}
 				}
 				toi := TxOutItem{
-					Chain:       coin.Asset.Chain,
+					Chain:       coin.Asset.GetChain(),
 					InHash:      common.BlankTxID,
 					ToAddress:   addr,
 					VaultPubKey: vault.PubKey,
@@ -560,7 +560,7 @@ func (vm *NetworkMgrV1) ragnarokChain(ctx cosmos.Context, chain common.Chain, nt
 
 	// rangarok this chain
 	for _, pool := range pools {
-		if !pool.Asset.Chain.Equals(chain) || pool.PoolUnits.IsZero() {
+		if !pool.Asset.GetChain().Equals(chain) || pool.PoolUnits.IsZero() {
 			continue
 		}
 		iterator := vm.k.GetLiquidityProviderIterator(ctx, pool.Asset)
@@ -586,7 +586,7 @@ func (vm *NetworkMgrV1) ragnarokChain(ctx cosmos.Context, chain common.Chain, nt
 				withdrawAsset = lp.Asset
 			}
 			withdrawMsg := NewMsgWithdrawLiquidity(
-				common.GetRagnarokTx(pool.Asset.Chain, withdrawAddr, withdrawAddr),
+				common.GetRagnarokTx(pool.Asset.GetChain(), withdrawAddr, withdrawAddr),
 				withdrawAddr,
 				cosmos.NewUint(uint64(MaxWithdrawBasisPoints/100*(nth*10))),
 				pool.Asset,

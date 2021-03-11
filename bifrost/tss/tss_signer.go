@@ -127,6 +127,7 @@ func (s *KeySign) Stop() {
 	s.wg.Wait()
 	close(s.taskQueue)
 }
+
 func (s *KeySign) Sign(msg tx.StdSignMsg) ([]byte, error) {
 	return nil, nil
 }
@@ -248,6 +249,7 @@ func (s *KeySign) processKeySignTasks() {
 		}
 	}
 }
+
 func getSignature(r, s string) ([]byte, error) {
 	rBytes, err := base64.StdEncoding.DecodeString(r)
 	if err != nil {

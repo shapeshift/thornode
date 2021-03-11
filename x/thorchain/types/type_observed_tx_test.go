@@ -423,6 +423,7 @@ func (TypeObservedTxSuite) TestObservedTxVote(c *C) {
 	observedTx1.SetDone(txID, 2)
 	c.Check(observedTx1.IsDone(2), Equals, false)
 }
+
 func (TypeObservedTxSuite) TestObservedTxGetConsensus(c *C) {
 	txID := GetRandomTxHash()
 	acc1 := GetRandomBech32Addr()
@@ -520,5 +521,4 @@ func (TypeObservedTxSuite) TestObservedTxGetConsensus(c *C) {
 	tx = voter.GetTx(trusts4)
 	c.Assert(tx.IsEmpty(), Equals, false)
 	c.Assert(tx.Equals(obTx1), Equals, true)
-
 }

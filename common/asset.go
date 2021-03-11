@@ -9,28 +9,27 @@ import (
 
 var (
 	// EmptyAsset empty asset, not valid
-	EmptyAsset = Asset{Chain: EmptyChain, Symbol: "", Ticker: ""}
+	EmptyAsset = Asset{Chain: EmptyChain, Symbol: "", Ticker: "", Synth: false}
 	// BNBAsset BNB
-	BNBAsset = Asset{Chain: BNBChain, Symbol: "BNB", Ticker: "BNB"}
+	BNBAsset = Asset{Chain: BNBChain, Symbol: "BNB", Ticker: "BNB", Synth: false}
 	// BTCAsset BTC
-	BTCAsset = Asset{Chain: BTCChain, Symbol: "BTC", Ticker: "BTC"}
+	BTCAsset = Asset{Chain: BTCChain, Symbol: "BTC", Ticker: "BTC", Synth: false}
 	// LTCAsset BTC
-	LTCAsset = Asset{Chain: LTCChain, Symbol: "LTC", Ticker: "LTC"}
+	LTCAsset = Asset{Chain: LTCChain, Symbol: "LTC", Ticker: "LTC", Synth: false}
 	// BCHAsset BCH
-	BCHAsset = Asset{Chain: BCHChain, Symbol: "BCH", Ticker: "BCH"}
+	BCHAsset = Asset{Chain: BCHChain, Symbol: "BCH", Ticker: "BCH", Synth: false}
 	// DOGEAsset DOGE
-	DOGEAsset = Asset{Chain: DOGEChain, Symbol: "DOGE", Ticker: "DOGE"}
+	DOGEAsset = Asset{Chain: DOGEChain, Symbol: "DOGE", Ticker: "DOGE", Synth: false}
 	// ETHAsset ETH
-	ETHAsset = Asset{Chain: ETHChain, Symbol: "ETH", Ticker: "ETH"}
+	ETHAsset = Asset{Chain: ETHChain, Symbol: "ETH", Ticker: "ETH", Synth: false}
 	// Rune67CAsset RUNE on Binance test net
-	Rune67CAsset = Asset{Chain: BNBChain, Symbol: "RUNE-67C", Ticker: "RUNE"} // testnet asset on binance ganges
+	Rune67CAsset = Asset{Chain: BNBChain, Symbol: "RUNE-67C", Ticker: "RUNE", Synth: false} // testnet asset on binance ganges
 	// RuneB1AAsset RUNE on Binance main net
-	RuneB1AAsset = Asset{Chain: BNBChain, Symbol: "RUNE-B1A", Ticker: "RUNE"} // mainnet
+	RuneB1AAsset = Asset{Chain: BNBChain, Symbol: "RUNE-B1A", Ticker: "RUNE", Synth: false} // mainnet
 	// RuneNative RUNE on thorchain
-	RuneNative            = Asset{Chain: THORChain, Symbol: "RUNE", Ticker: "RUNE"}
-	RuneERC20Asset        = Asset{Chain: ETHChain, Symbol: "RUNE-0x3155ba85d5f96b2d030a4966af206230e46849cb", Ticker: "RUNE"}
-	RuneERC20TestnetAsset = Asset{Chain: ETHChain, Symbol: "RUNE-0xd601c6A3a36721320573885A8d8420746dA3d7A0", Ticker: "RUNE"}
-	SyntheticPrefix       = "thor"
+	RuneNative            = Asset{Chain: THORChain, Symbol: "RUNE", Ticker: "RUNE", Synth: false}
+	RuneERC20Asset        = Asset{Chain: ETHChain, Symbol: "RUNE-0x3155ba85d5f96b2d030a4966af206230e46849cb", Ticker: "RUNE", Synth: false}
+	RuneERC20TestnetAsset = Asset{Chain: ETHChain, Symbol: "RUNE-0xd601c6A3a36721320573885A8d8420746dA3d7A0", Ticker: "RUNE", Synth: false}
 )
 
 // NewAsset parse the given input into Asset object
@@ -38,7 +37,14 @@ func NewAsset(input string) (Asset, error) {
 	var err error
 	var asset Asset
 	var sym string
-	parts := strings.SplitN(input, ".", 2)
+	var parts []string
+	if strings.Count(input, "/") > 0 {
+		parts = strings.SplitN(input, "/", 2)
+		asset.Synth = true
+	} else {
+		parts = strings.SplitN(input, ".", 2)
+		asset.Synth = false
+	}
 	if len(parts) == 1 {
 		asset.Chain = THORChain
 		sym = parts[0]
@@ -66,17 +72,14 @@ func NewAsset(input string) (Asset, error) {
 
 // Equals determinate whether two assets are equivalent
 func (a Asset) Equals(a2 Asset) bool {
-	return a.Chain.Equals(a2.Chain) && a.Symbol.Equals(a2.Symbol) && a.Ticker.Equals(a2.Ticker)
+	return a.Chain.Equals(a2.Chain) && a.Symbol.Equals(a2.Symbol) && a.Ticker.Equals(a2.Ticker) && a.Synth == a2.Synth
 }
 
-func (a Asset) isNativeUtilityAsset() bool {
-	if !a.Chain.Equals(THORChain) {
-		return false
+func (a Asset) GetChain() Chain {
+	if a.Synth {
+		return THORChain
 	}
-	if !strings.Contains(a.Symbol.String(), "/") {
-		return false
-	}
-	return true
+	return a.Chain
 }
 
 // Get layer1 asset version
@@ -84,12 +87,11 @@ func (a Asset) GetLayer1Asset() Asset {
 	if !a.IsSyntheticAsset() {
 		return a
 	}
-	parts := strings.Split(a.Symbol.String(), "/")
-	chain := parts[0][len(SyntheticPrefix):len(parts[0])]
 	return Asset{
-		Chain:  Chain(chain),
-		Symbol: Symbol(parts[1]),
+		Chain:  a.Chain,
+		Symbol: a.Symbol,
 		Ticker: a.Ticker,
+		Synth:  false,
 	}
 }
 
@@ -99,29 +101,24 @@ func (a Asset) GetSyntheticAsset() Asset {
 		return a
 	}
 	return Asset{
-		Chain:  THORChain,
-		Symbol: Symbol(strings.ToLower(fmt.Sprintf("%s%s/%s", SyntheticPrefix, a.Chain, a.Symbol))),
+		Chain:  a.Chain,
+		Symbol: a.Symbol,
 		Ticker: a.Ticker,
+		Synth:  true,
 	}
 }
 
 // Check if asset is a pegged asset
 func (a Asset) IsSyntheticAsset() bool {
-	if !a.isNativeUtilityAsset() {
-		return false
-	}
-	if !strings.HasPrefix(strings.ToLower(a.Symbol.String()), SyntheticPrefix) {
-		return false
-	}
-	return true
+	return a.Synth
 }
 
 // Native return native asset, only relevant on THORChain
 func (a Asset) Native() string {
-	if !a.Chain.Equals(THORChain) {
-		return ""
+	if a.IsRune() {
+		return "rune"
 	}
-	return strings.ToLower(a.Symbol.String())
+	return strings.ToLower(a.String())
 }
 
 // IsEmpty will be true when any of the field is empty, chain,symbol or ticker
@@ -131,12 +128,16 @@ func (a Asset) IsEmpty() bool {
 
 // String implement fmt.Stringer , return the string representation of Asset
 func (a Asset) String() string {
-	return fmt.Sprintf("%s.%s", a.Chain.String(), a.Symbol.String())
+	div := "."
+	if a.Synth {
+		div = "/"
+	}
+	return fmt.Sprintf("%s%s%s", a.Chain.String(), div, a.Symbol.String())
 }
 
 // IsGasAsset check whether asset is base asset used to pay for gas
 func (a Asset) IsGasAsset() bool {
-	gasAsset := a.Chain.GetGasAsset()
+	gasAsset := a.GetChain().GetGasAsset()
 	if gasAsset.IsEmpty() {
 		return false
 	}

@@ -64,7 +64,7 @@ func refundTx(ctx cosmos.Context, tx ObservedTx, mgr Manager, keeper keeper.Keep
 
 		if coin.Asset.IsRune() || !pool.BalanceRune.IsZero() {
 			toi := TxOutItem{
-				Chain:       coin.Asset.Chain,
+				Chain:       coin.Asset.GetChain(),
 				InHash:      tx.Tx.ID,
 				ToAddress:   tx.Tx.FromAddress,
 				VaultPubKey: tx.ObservedPubKey,
