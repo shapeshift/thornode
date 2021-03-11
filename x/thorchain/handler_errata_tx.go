@@ -262,9 +262,9 @@ func (h ErrataTxHandler) processErrataOutboundTx(ctx cosmos.Context, msg MsgErra
 					// it is using native rune, so outbound can't be RUNE
 					continue
 				}
-				p, err := h.keeper.GetPool(ctx, coin.GetAsset())
+				p, err := h.keeper.GetPool(ctx, coin.Asset)
 				if err != nil {
-					return nil, fmt.Errorf("fail to get pool(%s): %w", coin.GetAsset(), err)
+					return nil, fmt.Errorf("fail to get pool(%s): %w", coin.Asset, err)
 				}
 				runeValue := p.AssetValueInRune(coin.Amount)
 				p.BalanceRune = p.BalanceRune.Add(runeValue)
