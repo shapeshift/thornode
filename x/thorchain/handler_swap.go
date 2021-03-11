@@ -61,7 +61,7 @@ func (h SwapHandler) handle(ctx cosmos.Context, msg MsgSwap, version semver.Vers
 }
 
 func (h SwapHandler) handleV1(ctx cosmos.Context, msg MsgSwap, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
-	transactionFee := h.mgr.GasMgr().GetFee(ctx, msg.TargetAsset.Chain, common.RuneAsset())
+	transactionFee := h.mgr.GasMgr().GetFee(ctx, msg.TargetAsset.GetChain(), common.RuneAsset())
 	synthVirtualDepthMult, err := h.keeper.GetMimir(ctx, constants.VirtualMultSynths.String())
 	if synthVirtualDepthMult < 1 || err != nil {
 		synthVirtualDepthMult = constAccessor.GetInt64Value(constants.VirtualMultSynths)

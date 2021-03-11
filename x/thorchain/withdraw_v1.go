@@ -123,7 +123,7 @@ func withdrawV1(ctx cosmos.Context, version semver.Version, keeper keeper.Keeper
 	gasAsset := cosmos.ZeroUint()
 	// If the pool is empty, and there is a gas asset, subtract required gas
 	if common.SafeSub(poolUnits, fLiquidityProviderUnit).Add(unitAfter).IsZero() {
-		maxGas, err := manager.GasMgr().GetMaxGas(ctx, pool.Asset.Chain)
+		maxGas, err := manager.GasMgr().GetMaxGas(ctx, pool.Asset.GetChain())
 		if err != nil {
 			ctx.Logger().Error("fail to get gas for asset", "asset", pool.Asset, "error", err)
 			return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), errWithdrawFail
@@ -137,7 +137,7 @@ func withdrawV1(ctx cosmos.Context, version semver.Version, keeper keeper.Keeper
 				maxGas.Amount.MulUint64(2), // RUNE asset is on binance chain
 			)
 			gasAsset = originalAsset.Sub(withDrawAsset)
-		} else if pool.Asset.Chain.GetGasAsset().Equals(pool.Asset) {
+		} else if pool.Asset.GetChain().GetGasAsset().Equals(pool.Asset) {
 			gasAsset = maxGas.Amount
 			if gasAsset.GT(withDrawAsset) {
 				gasAsset = withDrawAsset

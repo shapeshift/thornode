@@ -74,7 +74,7 @@ func (h UnBondHandler) validateV1(ctx cosmos.Context, version semver.Version, ms
 				canUnbond = false
 				break
 			}
-			chain := c.GetAsset().Chain
+			chain := c.Asset.GetChain()
 			maxGas, err := h.mgr.GasMgr().GetMaxGas(ctx, chain)
 			if err != nil {
 				ctx.Logger().Error("fail to get max gas", "chain", chain, "error", err)

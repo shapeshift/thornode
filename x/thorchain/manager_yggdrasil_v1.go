@@ -184,10 +184,10 @@ func (ymgr YggMgrV1) sendCoinsToYggdrasil(ctx cosmos.Context, coins common.Coins
 		// has gas to send transactions as it needs to
 		// Second iteration (2), we add non-gas assets
 		for _, coin := range coins {
-			if i == 1 && !coin.Asset.Chain.GetGasAsset().Equals(coin.Asset) {
+			if i == 1 && !coin.Asset.GetChain().GetGasAsset().Equals(coin.Asset) {
 				continue
 			}
-			if i == 2 && coin.Asset.Chain.GetGasAsset().Equals(coin.Asset) {
+			if i == 2 && coin.Asset.GetChain().GetGasAsset().Equals(coin.Asset) {
 				continue
 			}
 
@@ -196,13 +196,13 @@ func (ymgr YggMgrV1) sendCoinsToYggdrasil(ctx cosmos.Context, coins common.Coins
 				continue
 			}
 
-			gasCoin, err := mgr.GasMgr().GetMaxGas(ctx, coin.Asset.Chain)
+			gasCoin, err := mgr.GasMgr().GetMaxGas(ctx, coin.Asset.GetChain())
 			if err != nil {
 				ctx.Logger().Error("fail to get max gas coin", "error", err)
 				continue
 			}
 
-			ymgr.shouldFundYggdrasil(ctx, active[0], ygg, coin.Asset.Chain)
+			ymgr.shouldFundYggdrasil(ctx, active[0], ygg, coin.Asset.GetChain())
 
 			// when the coin need to be send to yggdrasil is gas coin , for example BNB(Binance) / BTC (Bitcoin)
 			// the gas cost need to be count in , as the gas cost will be paid by the chosen vault
@@ -234,14 +234,14 @@ func (ymgr YggMgrV1) sendCoinsToYggdrasil(ctx cosmos.Context, coins common.Coins
 				continue
 			}
 
-			to, err := ygg.PubKey.GetAddress(coin.Asset.Chain)
+			to, err := ygg.PubKey.GetAddress(coin.Asset.GetChain())
 			if err != nil {
-				ctx.Logger().Error("fail to get address from pub key", "pub key", ygg.PubKey, "chain", coin.Asset.Chain, "error", err)
+				ctx.Logger().Error("fail to get address from pub key", "pub key", ygg.PubKey, "chain", coin.Asset.GetChain(), "error", err)
 				continue
 			}
 
 			toi := TxOutItem{
-				Chain:       coin.Asset.Chain,
+				Chain:       coin.Asset.GetChain(),
 				ToAddress:   to,
 				InHash:      common.BlankTxID,
 				Memo:        NewYggdrasilFund(common.BlockHeight(ctx)).String(),
@@ -250,7 +250,7 @@ func (ymgr YggMgrV1) sendCoinsToYggdrasil(ctx cosmos.Context, coins common.Coins
 				MaxGas: common.Gas{
 					gasCoin,
 				},
-				GasRate: int64(mgr.GasMgr().GetGasRate(ctx, coin.Asset.Chain).Uint64()),
+				GasRate: int64(mgr.GasMgr().GetGasRate(ctx, coin.Asset.GetChain()).Uint64()),
 			}
 			if err := mgr.TxOutStore().UnSafeAddTxOutItem(ctx, mgr, toi); err != nil {
 				return count, err

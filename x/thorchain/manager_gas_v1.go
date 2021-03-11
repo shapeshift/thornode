@@ -65,7 +65,7 @@ func (gm *GasMgrV1) GetFee(ctx cosmos.Context, chain common.Chain, asset common.
 		outboundTxFee = gm.constantsAccessor.GetInt64Value(constants.OutboundTransactionFee)
 	}
 	transactionFee := cosmos.NewUint(uint64(outboundTxFee))
-	if chain.Equals(common.THORChain) && asset.Chain.Equals(chain) {
+	if chain.Equals(common.THORChain) && asset.GetChain().Equals(chain) {
 		return transactionFee
 	}
 	networkFee, err := gm.keeper.GetNetworkFee(ctx, chain)
@@ -84,7 +84,7 @@ func (gm *GasMgrV1) GetFee(ctx cosmos.Context, chain common.Chain, asset common.
 	// 1.5 * fee will become the max gas used to send out the tx
 	fee := cosmos.NewUint(networkFee.TransactionSize * networkFee.TransactionFeeRate * 3)
 
-	if asset.Equals(asset.Chain.GetGasAsset()) && chain.Equals(asset.Chain) {
+	if asset.Equals(asset.GetChain().GetGasAsset()) && chain.Equals(asset.GetChain()) {
 		return fee
 	}
 

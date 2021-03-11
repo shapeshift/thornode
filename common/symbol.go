@@ -15,7 +15,7 @@ const (
 	RuneB1ASymbol = Symbol("RUNE-B1A")
 )
 
-var isAlphaNumeric = regexp.MustCompile(`^[A-Za-z0-9-._/]+$`).MatchString
+var isAlphaNumeric = regexp.MustCompile(`^[A-Za-z0-9-._]+$`).MatchString
 
 // Symbol represent an asset
 type Symbol string

@@ -16,7 +16,7 @@ type AddLiquidityMemo struct {
 
 func (m AddLiquidityMemo) GetDestination() common.Address { return m.Address }
 
-func NewAddLiquidityMemo(asset common.Asset, addr common.Address, affAddr common.Address, affPts cosmos.Uint) AddLiquidityMemo {
+func NewAddLiquidityMemo(asset common.Asset, addr, affAddr common.Address, affPts cosmos.Uint) AddLiquidityMemo {
 	return AddLiquidityMemo{
 		MemoBase:             MemoBase{TxType: TxAdd, Asset: asset},
 		Address:              addr,
