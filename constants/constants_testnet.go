@@ -7,7 +7,7 @@ func init() {
 	int64Overrides = map[ConstantName]int64{
 		PoolCycle:             1000,
 		MinRunePoolDepth:      100_00000000,
-		AsgardSize:            10,
+		AsgardSize:            6,
 		DesiredValidatorSet:   30,
 		ChurnInterval:         240,
 		BadValidatorRate:      2048,
