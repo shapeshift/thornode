@@ -4,6 +4,7 @@ set -x
 set -o pipefail
 
 . $(dirname "$0")/core.sh
+. $(dirname "$0")/testnet-state.sh
 
 SIGNER_NAME="${SIGNER_NAME:=thorchain}"
 SIGNER_PASSWD="${SIGNER_PASSWD:=password}"
@@ -16,6 +17,15 @@ THORNODE_API_ENABLED=true
 gen_bnb_address
 ADDRESS=$(cat ~/.bond/address.txt)
 
+# this is required as it need to run thornode init , otherwise tendermint related commant doesn't work
+if [ "$SEED" = "$(hostname)" ]; then
+  if [ ! -f ~/.thornode/config/priv_validator_key.json ]; then
+      init_chain
+      # remove the original generate genesis file , as below will init chain again
+      rm -rf ~/.thornode/config/genesis.json
+  fi
+fi
+
 # create thorchain user, if it doesn't already
 echo $SIGNER_PASSWD | thornode keys show $SIGNER_NAME --keyring-backend file
 if [ $? -gt 0 ]; then
@@ -24,7 +34,7 @@ if [ $? -gt 0 ]; then
     NODE_PUB_KEY_ED25519=$(printf "$SIGNER_PASSWD\n$SIGNER_SEED_PHRASE\n" | thornode ed25519 )
   else
      RESULT=$(printf "$SIGNER_PASSWD\n$SIGNER_PASSWD\n" | thornode keys --keyring-backend file add $SIGNER_NAME --output json 2>&1)
-     MNEMONIC=$(echo $RESULT | jq -r '.mnemonic')
+     MNEMONIC=$(echo "$RESULT" | jq -r '.mnemonic')
      NODE_PUB_KEY_ED25519=$(printf "$SIGNER_PASSWD\n$MNEMONIC\n" | thornode ed25519)
   fi
 fi
@@ -100,6 +110,9 @@ if [ "$SEED" = "$(hostname)" ]; then
     if [ "$NET" == "testnet" ]; then
         # mint 1m RUNE to reserve for testnet
         reserve 100000000000000
+
+        # add existing account and balances
+        add_exiting_accounts
     fi
 
     # enable telemetry through prometheus metrics endpoint
