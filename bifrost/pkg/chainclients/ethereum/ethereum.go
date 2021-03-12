@@ -177,6 +177,10 @@ func (c *Client) Stop() {
 	c.client.Close()
 }
 
+func (c *Client) IsBlockScannerHealthy() bool {
+	return c.blockScanner.IsHealthy()
+}
+
 // GetConfig return the configurations used by ETH chain
 func (c *Client) GetConfig() config.ChainConfiguration {
 	return c.cfg
