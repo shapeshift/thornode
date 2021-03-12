@@ -44,6 +44,7 @@ type BlockScanner struct {
 	errorCounter    *prometheus.CounterVec
 	thorchainBridge *thorclient.ThorchainBridge
 	chainScanner    BlockScannerFetcher
+	healthy         bool // status of scanner, if last attempt to scan a block was successful or not
 }
 
 // NewBlockScanner create a new instance of BlockScanner
@@ -71,10 +72,16 @@ func NewBlockScanner(cfg config.BlockScannerConfiguration, scannerStorage Scanne
 		errorCounter:    m.GetCounterVec(metrics.CommonBlockScannerError),
 		thorchainBridge: thorchainBridge,
 		chainScanner:    chainScanner,
+		healthy:         true,
 	}
 
 	scanner.previousBlock, err = scanner.FetchLastHeight()
 	return scanner, err
+}
+
+// IsHealthy return if the block scanner is healthy or not
+func (b *BlockScanner) IsHealthy() bool {
+	return b.healthy
 }
 
 // GetMessages return the channel
@@ -141,6 +148,7 @@ func (b *BlockScanner) scanBlocks() {
 				// don't log an error if its because the block doesn't exist yet
 				if !errors.Is(err, btypes.UnavailableBlock) {
 					b.logger.Error().Err(err).Int64("block height", currentBlock).Msg("fail to get RPCBlock")
+					b.healthy = false
 				}
 				time.Sleep(b.cfg.BlockHeightDiscoverBackoff)
 				continue
@@ -151,6 +159,7 @@ func (b *BlockScanner) scanBlocks() {
 				b.logger.Info().Int64("block height", currentBlock).Int("txs", len(txIn.TxArray))
 			}
 			b.previousBlock++
+			b.healthy = true
 			b.metrics.GetCounter(metrics.TotalBlockScanned).Inc()
 			if len(txIn.TxArray) > 0 {
 				select {
