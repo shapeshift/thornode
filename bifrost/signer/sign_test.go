@@ -178,6 +178,10 @@ type MockChainClient struct {
 	account common.Account
 }
 
+func (b *MockChainClient) IsBlockScannerHealthy() bool {
+	return true
+}
+
 func (b *MockChainClient) SignTx(tai stypes.TxOutItem, height int64) ([]byte, error) {
 	return nil, nil
 }

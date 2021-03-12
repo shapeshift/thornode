@@ -349,6 +349,15 @@ func (s *Signer) signAndBroadcast(item TxOutStoreItem) error {
 		return nil // return nil and discard item
 	}
 
+	// don't sign if the block scanner is unhealthy. This is because the
+	// network may not be able to detect the outbound transaction, and
+	// therefore reschedule the transaction to another signer. In a disaster
+	// scenario, the network could broadcast a transaction several times,
+	// bleeding funds.
+	if !chain.IsBlockScannerHealthy() {
+		return fmt.Errorf("The block scanner for chain %s is unhealthy, not signing transactions due to it", chain.GetChain())
+	}
+
 	// Check if we're sending all funds back , given we don't have memo in txoutitem anymore, so it rely on the coins field to be empty
 	// In this scenario, we should chose the coins to send ourselves
 	if tx.Coins.IsEmpty() {

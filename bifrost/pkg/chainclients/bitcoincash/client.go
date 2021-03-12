@@ -164,6 +164,10 @@ func (c *Client) GetConfig() config.ChainConfiguration {
 	return c.cfg
 }
 
+func (c *Client) IsBlockScannerHealthy() bool {
+	return c.blockScanner.IsHealthy()
+}
+
 // GetChain returns BCH Chain
 func (c *Client) GetChain() common.Chain {
 	return common.BCHChain
