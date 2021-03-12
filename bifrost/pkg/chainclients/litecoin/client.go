@@ -162,6 +162,10 @@ func (c *Client) GetConfig() config.ChainConfiguration {
 	return c.cfg
 }
 
+func (c *Client) IsBlockScannerHealthy() bool {
+	return c.blockScanner.IsHealthy()
+}
+
 // GetChain returns LTC Chain
 func (c *Client) GetChain() common.Chain {
 	return common.LTCChain
