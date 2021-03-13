@@ -80,7 +80,9 @@ func (k KVStore) SortBySecurity(ctx cosmos.Context, vaults Vaults, signingTransP
 				ctx.Logger().Error("failed to get node account by pubkey", "error", err)
 				continue
 			}
-			totalBond = totalBond.Add(na.Bond)
+			if na.Status == NodeActive {
+				totalBond = totalBond.Add(na.Bond)
+			}
 		}
 
 		// get total value

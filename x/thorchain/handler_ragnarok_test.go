@@ -31,6 +31,7 @@ func (k *TestRagnarokKeeper) GetNodeAccount(_ cosmos.Context, addr cosmos.AccAdd
 
 func (HandlerRagnarokSuite) TestRagnarok(c *C) {
 	ctx, _ := setupKeeperForTest(c)
+	constants.SWVersion, _ = semver.Make("0.32.0")
 
 	keeper := &TestRagnarokKeeper{
 		activeNodeAccount: GetRandomNodeAccount(NodeActive),
@@ -128,6 +129,7 @@ func (k *TestRagnarokKeeperHappyPath) SetPool(_ cosmos.Context, p Pool) error {
 
 func (HandlerRagnarokSuite) TestRagnarokHappyPath(c *C) {
 	ctx, _ := setupKeeperForTest(c)
+	constants.SWVersion, _ = semver.Make("0.32.0")
 	retireVault := GetRandomVault()
 
 	newVault := GetRandomVault()
@@ -179,6 +181,7 @@ func (HandlerRagnarokSuite) TestRagnarokHappyPath(c *C) {
 
 func (HandlerRagnarokSuite) TestSlash(c *C) {
 	ctx, _ := setupKeeperForTest(c)
+	constants.SWVersion, _ = semver.Make("0.32.0")
 	retireVault := GetRandomVault()
 	ver := constants.SWVersion
 	constAccessor := constants.GetConstantValues(ver)

@@ -2,6 +2,7 @@ package thorchain
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/blang/semver"
 	. "gopkg.in/check.v1"
@@ -12,9 +13,9 @@ import (
 	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
-type HandlerMigrateSuite struct{}
+type HandlerMigrateV32Suite struct{}
 
-var _ = Suite(&HandlerMigrateSuite{})
+var _ = Suite(&HandlerMigrateV32Suite{})
 
 type TestMigrateKeeper struct {
 	keeper.KVStoreDummy
@@ -30,7 +31,7 @@ func (k *TestMigrateKeeper) GetNodeAccount(_ cosmos.Context, addr cosmos.AccAddr
 	return NodeAccount{}, nil
 }
 
-func (HandlerMigrateSuite) TestMigrate(c *C) {
+func (HandlerMigrateV32Suite) TestMigrate(c *C) {
 	ctx, _ := setupKeeperForTest(c)
 
 	keeper := &TestMigrateKeeper{
@@ -78,6 +79,16 @@ type TestMigrateKeeperHappyPath struct {
 	pool              Pool
 }
 
+func (k *TestMigrateKeeperHappyPath) GetVault(_ cosmos.Context, pk common.PubKey) (Vault, error) {
+	if pk.Equals(k.retireVault.PubKey) {
+		return k.retireVault, nil
+	}
+	if pk.Equals(k.newVault.PubKey) {
+		return k.newVault, nil
+	}
+	return Vault{}, fmt.Errorf("vault not found")
+}
+
 func (k *TestMigrateKeeperHappyPath) GetTxOut(ctx cosmos.Context, blockHeight int64) (*TxOut, error) {
 	if k.txout != nil && k.txout.Height == blockHeight {
 		return k.txout, nil
@@ -111,8 +122,9 @@ func (k *TestMigrateKeeperHappyPath) SetPool(_ cosmos.Context, p Pool) error {
 	return nil
 }
 
-func (HandlerMigrateSuite) TestMigrateHappyPath(c *C) {
+func (HandlerMigrateV32Suite) TestMigrateHappyPath(c *C) {
 	ctx, _ := setupKeeperForTest(c)
+	constants.SWVersion, _ = semver.Make("0.32.0")
 	retireVault := GetRandomVault()
 
 	newVault := GetRandomVault()
@@ -155,8 +167,9 @@ func (HandlerMigrateSuite) TestMigrateHappyPath(c *C) {
 	c.Assert(keeper.txout.TxArray[0].OutHash.Equals(tx.Tx.ID), Equals, true)
 }
 
-func (HandlerMigrateSuite) TestSlash(c *C) {
+func (HandlerMigrateV32Suite) TestSlash(c *C) {
 	ctx, _ := setupKeeperForTest(c)
+	constants.SWVersion, _ = semver.Make("0.32.0")
 	retireVault := GetRandomVault()
 
 	newVault := GetRandomVault()
@@ -200,7 +213,7 @@ func (HandlerMigrateSuite) TestSlash(c *C) {
 	c.Assert(keeper.activeNodeAccount.Bond.Equal(cosmos.NewUint(9999998464)), Equals, true, Commentf("%d", keeper.activeNodeAccount.Bond.Uint64()))
 }
 
-func (HandlerMigrateSuite) TestHandlerMigrateValidation(c *C) {
+func (HandlerMigrateV32Suite) TestHandlerMigrateValidation(c *C) {
 	// invalid message should return an error
 	ctx, k := setupKeeperForTest(c)
 	mgr := NewManagers(k)

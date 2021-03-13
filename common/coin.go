@@ -196,3 +196,21 @@ func (cs Coins) Distinct() Coins {
 	}
 	return newCoins
 }
+
+func (cs Coins) Add(coin Coin) Coins {
+	for i, c := range cs {
+		if c.Asset.Equals(coin.Asset) {
+			cs[i].Amount = cs[i].Amount.Add(coin.Amount)
+			return cs
+		}
+	}
+
+	return append(cs, coin)
+}
+
+func (cs Coins) Adds(coins Coins) Coins {
+	for _, c := range coins {
+		cs = cs.Add(c)
+	}
+	return cs
+}
