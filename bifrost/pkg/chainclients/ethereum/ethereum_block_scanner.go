@@ -163,6 +163,13 @@ func (e *ETHScanner) FetchTxs(height int64) (stypes.TxIn, error) {
 		e.logger.Error().Err(err).Int64("height", height).Msg("fail to search tx in block")
 		return stypes.TxIn{}, fmt.Errorf("fail to process block: %d, err:%w", height, err)
 	}
+	// blockMeta need to be saved , even there is no transactions found on this block at the time of scan
+	// because at the time of scan , so the block hash will be stored, and it can be used to detect re-org
+	blockMeta := types.NewBlockMeta(block.Header(), txIn)
+	if err := e.blockMetaAccessor.SaveBlockMeta(blockMeta.Height, blockMeta); err != nil {
+		e.logger.Err(err).Msgf("fail to save block meta of height: %d ", blockMeta.Height)
+	}
+
 	e.currentBlockHeight = height
 	pruneHeight := height - BlockCacheSize
 	if pruneHeight > 0 {
@@ -172,6 +179,7 @@ func (e *ETHScanner) FetchTxs(height int64) (stypes.TxIn, error) {
 			}
 		}()
 	}
+
 	if e.gasPriceChanged {
 		// only send the network fee to THORNode when the price get changed
 		gasPrice := e.GetGasPrice() // gas price is in wei
@@ -334,11 +342,6 @@ func (e *ETHScanner) processBlock(block *etypes.Block) (stypes.TxIn, error) {
 	if len(txInBlock.TxArray) > 0 {
 		txIn.TxArray = append(txIn.TxArray, txInBlock.TxArray...)
 	}
-
-	blockMeta := types.NewBlockMeta(block.Header(), txIn)
-	if err := e.blockMetaAccessor.SaveBlockMeta(blockMeta.Height, blockMeta); err != nil {
-		e.logger.Err(err).Msgf("fail to save block meta of height: %d ", blockMeta.Height)
-	}
 	return txIn, nil
 }
 
@@ -356,8 +359,13 @@ func (e *ETHScanner) extractTxs(block *etypes.Block) (stypes.TxIn, error) {
 
 		txInItem, err := e.fromTxToTxIn(tx)
 		if err != nil {
-			e.errCounter.WithLabelValues("fail_get_tx", "").Inc()
 			e.logger.Error().Err(err).Str("hash", tx.Hash().Hex()).Msg("fail to get one tx from server")
+			// when the err is InvalidChainID which means the transaction is not mean to be on this chain
+			// so it is safe for bifrost to ignore the transaction
+			if errors.Is(err, etypes.ErrInvalidChainId) {
+				continue
+			}
+			e.errCounter.WithLabelValues("fail_get_tx", "").Inc()
 			// if THORNode fail to get one tx hash from server, then THORNode should bail, because THORNode might miss tx
 			// if THORNode bail here, then THORNode should retry later
 			return stypes.TxIn{}, fmt.Errorf("fail to get one tx from server: %w", err)
@@ -382,6 +390,7 @@ func (e *ETHScanner) extractTxs(block *etypes.Block) (stypes.TxIn, error) {
 	e.logger.Debug().Int64("block", int64(block.NumberU64())).Msgf("there are %s tx in this block need to process", txInbound.Count)
 	return txInbound, nil
 }
+
 func (e *ETHScanner) onObservedTxIn(txIn stypes.TxInItem, blockHeight int64) {
 	blockMeta, err := e.blockMetaAccessor.GetBlockMeta(blockHeight)
 	if err != nil {

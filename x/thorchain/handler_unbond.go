@@ -74,7 +74,7 @@ func (h UnBondHandler) validateV1(ctx cosmos.Context, version semver.Version, ms
 				canUnbond = false
 				break
 			}
-			chain := c.GetAsset().Chain
+			chain := c.Asset.GetChain()
 			maxGas, err := h.mgr.GasMgr().GetMaxGas(ctx, chain)
 			if err != nil {
 				ctx.Logger().Error("fail to get max gas", "chain", chain, "error", err)
@@ -143,6 +143,13 @@ func (h UnBondHandler) handleV1(ctx cosmos.Context, msg MsgUnBond, version semve
 	na, err := h.keeper.GetNodeAccount(ctx, msg.NodeAddress)
 	if err != nil {
 		return ErrInternal(err, fmt.Sprintf("fail to get node account(%s)", msg.NodeAddress))
+	}
+	bondLockPeriod, err := h.keeper.GetMimir(ctx, constants.BondLockupPeriod.String())
+	if err != nil || bondLockPeriod < 0 {
+		bondLockPeriod = constAccessor.GetInt64Value(constants.BondLockupPeriod)
+	}
+	if common.BlockHeight(ctx)-na.StatusSince < bondLockPeriod {
+		return fmt.Errorf("node can not unbond before %d", na.StatusSince+bondLockPeriod)
 	}
 	vaults, err := h.keeper.GetAsgardVaultsByStatus(ctx, RetiringVault)
 	if err != nil {

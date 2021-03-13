@@ -201,7 +201,6 @@ func (s *DogecoinSignerSuite) TestSignTx(c *C) {
 	result, err = s.client.SignTx(txOutItem, 4)
 	c.Assert(err, NotNil)
 	c.Assert(result, IsNil)
-
 }
 
 func (s *DogecoinSignerSuite) TestSignTxHappyPathWithPrivateKey(c *C) {

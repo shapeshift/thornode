@@ -327,14 +327,13 @@ func (m *ObservedTxVoter) getConsensusTx(accounts NodeAccounts, final bool) Obse
 // SetReverted set all the tx status to `Reverted` , only when a relevant errata tx had been processed
 func (m *ObservedTxVoter) SetReverted() {
 	m.setStatus(Status_reverted)
+	m.Reverted = true
 }
 
 func (m *ObservedTxVoter) setStatus(toStatus Status) {
 	for _, item := range m.Txs {
 		item.Status = toStatus
 	}
-
-	m.Reverted = true
 	if !m.Tx.IsEmpty() {
 		m.Tx.Status = toStatus
 	}

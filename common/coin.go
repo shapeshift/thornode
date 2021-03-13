@@ -74,7 +74,7 @@ func (c Coin) Valid() error {
 
 // IsNative check whether the coin is native on THORChain
 func (c Coin) IsNative() bool {
-	return c.Asset.Chain.Equals(THORChain)
+	return c.Asset.GetChain().Equals(THORChain)
 }
 
 // Native create a new instance of cosmos.Coin

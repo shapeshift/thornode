@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/blang/semver"
-	se "github.com/cosmos/cosmos-sdk/types/errors"
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
@@ -110,11 +109,7 @@ func (h ErrataTxHandler) handleV1(ctx cosmos.Context, msg MsgErrataTx, version s
 	}
 
 	if len(observedVoter.Txs) == 0 {
-		if version.GTE(semver.MustParse("0.29.0")) {
-			return h.processErrataOutboundTx(ctx, msg)
-		} else {
-			return nil, se.Wrap(errInternal, fmt.Sprintf("cannot find tx: %s", msg.TxID))
-		}
+		return h.processErrataOutboundTx(ctx, msg)
 	}
 	// set the observed Tx to reverted
 	observedVoter.SetReverted()
@@ -262,9 +257,9 @@ func (h ErrataTxHandler) processErrataOutboundTx(ctx cosmos.Context, msg MsgErra
 					// it is using native rune, so outbound can't be RUNE
 					continue
 				}
-				p, err := h.keeper.GetPool(ctx, coin.GetAsset())
+				p, err := h.keeper.GetPool(ctx, coin.Asset)
 				if err != nil {
-					return nil, fmt.Errorf("fail to get pool(%s): %w", coin.GetAsset(), err)
+					return nil, fmt.Errorf("fail to get pool(%s): %w", coin.Asset, err)
 				}
 				runeValue := p.AssetValueInRune(coin.Amount)
 				p.BalanceRune = p.BalanceRune.Add(runeValue)

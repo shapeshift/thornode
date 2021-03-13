@@ -120,7 +120,7 @@ var _ = Suite(&KeeperTestSuit{})
 
 func (KeeperTestSuit) TestKeeperVersion(c *C) {
 	ctx, k := setupKeeperForTest(c)
-	c.Check(k.GetStoreVersion(ctx), Equals, int64(6))
+	c.Check(k.GetStoreVersion(ctx), Equals, int64(31))
 	c.Check(k.Version(), Equals, version)
 
 	k.SetStoreVersion(ctx, 2)

@@ -14,7 +14,16 @@ func (s AssetSuite) TestAsset(c *C) {
 	c.Check(asset.Equals(RuneNative), Equals, true)
 	c.Check(asset.IsRune(), Equals, true)
 	c.Check(asset.IsEmpty(), Equals, false)
+	c.Check(asset.Synth, Equals, false)
 	c.Check(asset.String(), Equals, "THOR.RUNE")
+
+	asset, err = NewAsset("thor/rune")
+	c.Assert(err, IsNil)
+	c.Check(asset.Equals(RuneNative), Equals, false)
+	c.Check(asset.IsRune(), Equals, false)
+	c.Check(asset.IsEmpty(), Equals, false)
+	c.Check(asset.Synth, Equals, true)
+	c.Check(asset.String(), Equals, "THOR/RUNE")
 
 	c.Check(asset.Chain.Equals(THORChain), Equals, true)
 	c.Check(asset.Symbol.Equals(Symbol("RUNE")), Equals, true)
@@ -67,5 +76,4 @@ func (s AssetSuite) TestAsset(c *C) {
 	c.Check(asset.IsRune(), Equals, false)
 	c.Check(asset.IsEmpty(), Equals, false)
 	c.Check(asset.String(), Equals, "LTC.LTC")
-
 }

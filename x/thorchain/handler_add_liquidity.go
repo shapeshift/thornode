@@ -248,7 +248,7 @@ func (h AddLiquidityHandler) addLiquidityV1(ctx cosmos.Context,
 	if originalUnits.IsZero() {
 		defaultPoolStatus := PoolAvailable.String()
 		// if the pools is for gas asset on the chain, automatically enable it
-		if !pool.Asset.Equals(pool.Asset.Chain.GetGasAsset()) {
+		if !pool.Asset.Equals(pool.Asset.GetChain().GetGasAsset()) {
 			defaultPoolStatus = constAccessor.GetStringValue(constants.DefaultPoolStatus)
 		}
 		pool.Status = GetPoolStatus(defaultPoolStatus)
