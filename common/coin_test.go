@@ -39,3 +39,16 @@ func (s CoinSuite) TestDistinct(c *C) {
 	newCoins := coins.Distinct()
 	c.Assert(len(newCoins), Equals, 2)
 }
+
+func (s CoinSuite) TestAdds(c *C) {
+	coins := Coins{
+		NewCoin(BNBAsset, cosmos.NewUint(1000)),
+	}
+	newCoins := coins.Adds(NewCoins(
+		NewCoin(BNBAsset, cosmos.NewUint(1000)),
+		NewCoin(BTCAsset, cosmos.NewUint(1000)),
+	))
+	c.Assert(len(newCoins), Equals, 2)
+	c.Check(newCoins.GetCoin(BNBAsset).Amount.Uint64(), Equals, uint64(2000))
+	c.Check(newCoins.GetCoin(BTCAsset).Amount.Uint64(), Equals, uint64(1000))
+}

@@ -397,6 +397,130 @@ func (s *SlasherV1) SlashNodeAccount(ctx cosmos.Context, observedPubKey common.P
 	return s.keeper.SetNodeAccount(ctx, nodeAccount)
 }
 
+// SlashVault thorchain keep monitoring the outbound tx from asgard pool
+// and yggdrasil pool, usually the txout is triggered by thorchain itself by
+// adding an item into the txout array, refer to TxOutItem for the detail, the
+// TxOutItem contains a specific coin and amount.  if somehow thorchain
+// discover signer send out fund more than the amount specified in TxOutItem,
+// it will slash the node account who does that by taking 1.5 * extra fund from
+// node account's bond and subsidise the pool that actually lost it.
+func (s *SlasherV1) SlashVault(ctx cosmos.Context, vaultPK common.PubKey, coins common.Coins, mgr Manager) error {
+	if coins.IsEmpty() {
+		return nil
+	}
+	vault, err := s.keeper.GetVault(ctx, vaultPK)
+	if err != nil {
+		return fmt.Errorf("fail to get slash vault (pubkey %s), %w", vaultPK, err)
+	}
+	membership := vault.GetMembership()
+
+	// sum the total bond of membership of the vault
+	totalBond := cosmos.ZeroUint()
+	for _, member := range membership {
+		na, err := s.keeper.GetNodeAccountByPubKey(ctx, member)
+		if err != nil {
+			ctx.Logger().Error("fail to get node account bond", "pk", member, "error", err)
+			continue
+		}
+		totalBond = totalBond.Add(na.Bond)
+	}
+
+	activeCount, _ := s.keeper.TotalActiveNodeAccount(ctx)
+
+	for _, member := range membership {
+		na, err := s.keeper.GetNodeAccountByPubKey(ctx, member)
+		if err != nil {
+			ctx.Logger().Error("fail to get node account for slash", "pk", member, "error", err)
+			continue
+		}
+
+		for _, coin := range coins {
+			if coin.IsEmpty() {
+				continue
+			}
+			slashAmount := common.GetShare(na.Bond, totalBond, coin.Amount)
+			ctx.Logger().Info("slash node account", "node address", na.NodeAddress.String(), "asset", coin.Asset.String(), "amount", slashAmount.String())
+
+			// This check for rune actually isn't required, maybe should be
+			// even removed entirely. Since a vault should never hold rune (as
+			// its a native asset to THORChain and is NOT managed by threshold
+			// signatures)
+			if coin.Asset.IsRune() {
+				// If rune, we take 1.5x the amount, and take it from their bond. We
+				// put 1/3rd of it into the reserve, and 2/3rds into the pools (but
+				// keeping the rune pool balances unchanged)
+				amountToReserve := slashAmount.QuoUint64(2)
+				// if the diff asset is RUNE , just took 1.5 * diff from their bond
+				slashAmount = slashAmount.MulUint64(3).QuoUint64(2)
+				if slashAmount.GT(na.Bond) {
+					slashAmount = na.Bond
+				}
+				na.Bond = common.SafeSub(na.Bond, slashAmount)
+				totalBond = common.SafeSub(totalBond, slashAmount)
+				if err := s.keeper.SendFromModuleToModule(ctx, BondName, ReserveName, common.NewCoins(common.NewCoin(common.RuneAsset(), amountToReserve))); err != nil {
+					ctx.Logger().Error("fail to send slash funds to the reserve", "pk", member, "error", err)
+					continue
+				}
+
+				continue
+			}
+
+			pool, err := s.keeper.GetPool(ctx, coin.Asset)
+			if err != nil {
+				ctx.Logger().Error("fail to get pool for slash", "asset", coin.Asset, "error", err)
+				continue
+			}
+			// thorchain doesn't even have a pool for the asset
+			if pool.IsEmpty() {
+				ctx.Logger().Error("cannot slash for an empty pool", "asset", coin.Asset)
+				continue
+			}
+			if slashAmount.GT(pool.BalanceAsset) {
+				slashAmount = pool.BalanceAsset
+			}
+			runeValue := pool.AssetValueInRune(slashAmount).MulUint64(3).QuoUint64(2)
+			if runeValue.GT(na.Bond) {
+				runeValue = na.Bond
+			}
+			pool.BalanceAsset = common.SafeSub(pool.BalanceAsset, slashAmount)
+			pool.BalanceRune = pool.BalanceRune.Add(runeValue)
+			na.Bond = common.SafeSub(na.Bond, runeValue)
+			totalBond = common.SafeSub(totalBond, runeValue)
+			if err := s.keeper.SetPool(ctx, pool); err != nil {
+				ctx.Logger().Error("fail to save pool for slash", "asset", coin.Asset, "error", err)
+				continue
+			}
+
+			poolSlashAmt := []PoolAmt{
+				{
+					Asset:  pool.Asset,
+					Amount: 0 - int64(slashAmount.Uint64()),
+				},
+				{
+					Asset:  common.RuneAsset(),
+					Amount: int64(runeValue.Uint64()),
+				},
+			}
+			eventSlash := NewEventSlash(pool.Asset, poolSlashAmt)
+			if err := mgr.EventMgr().EmitEvent(ctx, eventSlash); err != nil {
+				ctx.Logger().Error("fail to emit slash event", "error", err)
+			}
+		}
+
+		// Ban the node account, if we not banning the remainder node accounts
+		if activeCount > len(membership) && vault.IsYggdrasil() {
+			na.ForcedToLeave = true
+			na.LeaveScore = 1 // Set Leave Score to 1, which means the nodes is bad
+		}
+
+		err = s.keeper.SetNodeAccount(ctx, na)
+		if err != nil {
+			ctx.Logger().Error("fail to save node account for slash", "error", err)
+		}
+	}
+	return nil
+}
+
 // IncSlashPoints will increase the given account's slash points
 func (s *SlasherV1) IncSlashPoints(ctx cosmos.Context, point int64, addresses ...cosmos.AccAddress) {
 	for _, addr := range addresses {

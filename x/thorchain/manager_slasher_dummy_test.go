@@ -37,6 +37,10 @@ func (d DummySlasher) SlashNodeAccount(ctx cosmos.Context, observedPubKey common
 	return kaboom
 }
 
+func (d DummySlasher) SlashVault(ctx cosmos.Context, vaultPK common.PubKey, coins common.Coins, mgr Manager) error {
+	return kaboom
+}
+
 func (d DummySlasher) IncSlashPoints(ctx cosmos.Context, point int64, addresses ...cosmos.AccAddress) {
 	for _, addr := range addresses {
 		found := false
