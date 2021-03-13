@@ -119,7 +119,7 @@ func (m Vault) HasFunds() bool {
 // HasFundsForChain check whether the vault pool has funds for a specific chain
 func (m Vault) HasFundsForChain(chain common.Chain) bool {
 	for _, coin := range m.Coins {
-		if coin.Asset.Chain.Equals(chain) && !coin.Amount.IsZero() {
+		if coin.Asset.GetChain().Equals(chain) && !coin.Amount.IsZero() {
 			return true
 		}
 	}
@@ -143,7 +143,7 @@ func (m Vault) CoinLengthByChain(c common.Chain) int {
 		if coin.Asset.IsRune() && !coin.Asset.Equals(common.BEP2RuneAsset()) {
 			continue
 		}
-		if coin.Asset.Chain.Equals(c) && !coin.Amount.IsZero() {
+		if coin.Asset.GetChain().Equals(c) && !coin.Amount.IsZero() {
 			total++
 		}
 	}
@@ -221,8 +221,8 @@ func (m *Vault) addFund(coin common.Coin) {
 		}
 	}
 
-	if !m.GetChains().Has(coin.Asset.Chain) {
-		m.Chains = append(m.Chains, coin.Asset.Chain.String())
+	if !m.GetChains().Has(coin.Asset.GetChain()) {
+		m.Chains = append(m.Chains, coin.Asset.GetChain().String())
 	}
 
 	m.Coins = append(m.Coins, coin)

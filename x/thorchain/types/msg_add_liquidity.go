@@ -8,7 +8,7 @@ import (
 var _ cosmos.Msg = &MsgAddLiquidity{}
 
 // NewMsgAddLiquidity is a constructor function for MsgAddLiquidity
-func NewMsgAddLiquidity(tx common.Tx, asset common.Asset, r, amount cosmos.Uint, runeAddr, assetAddr common.Address, affAddr common.Address, affPts cosmos.Uint, signer cosmos.AccAddress) *MsgAddLiquidity {
+func NewMsgAddLiquidity(tx common.Tx, asset common.Asset, r, amount cosmos.Uint, runeAddr, assetAddr, affAddr common.Address, affPts cosmos.Uint, signer cosmos.AccAddress) *MsgAddLiquidity {
 	return &MsgAddLiquidity{
 		Tx:                   tx,
 		Asset:                asset,

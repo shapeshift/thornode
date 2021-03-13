@@ -201,7 +201,6 @@ func (s *BitcoinCashSignerSuite) TestSignTx(c *C) {
 	result, err = s.client.SignTx(txOutItem, 4)
 	c.Assert(err, NotNil)
 	c.Assert(result, IsNil)
-
 }
 
 func (s *BitcoinCashSignerSuite) TestSignTxHappyPathWithPrivateKey(c *C) {

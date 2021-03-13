@@ -107,15 +107,13 @@ func (s *DogecoinSuite) SetUpTest(c *C) {
 				httpTestHandler(c, rw, "../../../../test/fixtures/doge/blockhash.json")
 			case r.Method == "getblock":
 				httpTestHandler(c, rw, "../../../../test/fixtures/doge/block_verbose.json")
-			case r.Method == "gettransaction":
-				if r.Params[0] == "27de3e1865c098cd4fded71bae1e8236fd27ce5dce6e524a9ac5cd1a17b5c241" {
-					httpTestHandler(c, rw, "../../../../test/fixtures/doge/tx-c241.json")
-				}
 			case r.Method == "getrawtransaction":
 				if r.Params[0] == "5b0876dcc027d2f0c671fc250460ee388df39697c3ff082007b6ddd9cb9a7513" {
 					httpTestHandler(c, rw, "../../../../test/fixtures/doge/tx-5b08.json")
 				} else if r.Params[0] == "54ef2f4679fb90af42e8d963a5d85645d0fd86e5fe8ea4e69dbf2d444cb26528" {
 					httpTestHandler(c, rw, "../../../../test/fixtures/doge/tx-54ef.json")
+				} else if r.Params[0] == "27de3e1865c098cd4fded71bae1e8236fd27ce5dce6e524a9ac5cd1a17b5c241" {
+					httpTestHandler(c, rw, "../../../../test/fixtures/doge/tx-c241.json")
 				} else {
 					httpTestHandler(c, rw, "../../../../test/fixtures/doge/tx.json")
 				}

@@ -3,6 +3,7 @@ package thorchain
 import (
 	"fmt"
 
+	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
@@ -51,7 +52,53 @@ func (smgr *StoreMgr) Iterator(ctx cosmos.Context) error {
 func (smgr *StoreMgr) migrate(ctx cosmos.Context, i uint64, constantAccessor constants.ConstantValues) error {
 	ctx.Logger().Info("Migrating store to new version", "version", i)
 	// add the logic to migrate store here when it is needed
-
+	switch i {
+	case 30:
+		smgr.migrateVersion30(ctx, constantAccessor)
+	}
 	smgr.keeper.SetStoreVersion(ctx, int64(i))
 	return nil
+}
+
+func (smgr *StoreMgr) migrateVersion30(ctx cosmos.Context, constAccessor constants.ConstantValues) {
+	// go through the last 300 blocks , mark current stucked refund tx to be finished
+	signingTransPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
+	if common.BlockHeight(ctx) < signingTransPeriod {
+		return
+	}
+	startHeight := common.BlockHeight(ctx) - signingTransPeriod
+	for i := startHeight; i < common.BlockHeight(ctx); i++ {
+		txs, err := smgr.keeper.GetTxOut(ctx, i)
+		if err != nil {
+			ctx.Logger().Error(fmt.Sprintf("fail to get txout from block height(%d): %s", i, err))
+			continue
+		}
+		if txs == nil {
+			continue
+		}
+		if txs.IsEmpty() {
+			continue
+		}
+		found := false
+		for idx, item := range txs.TxArray {
+			if !item.OutHash.IsEmpty() {
+				continue
+			}
+			if !item.Coin.Asset.IsRune() {
+				continue
+			}
+			if !item.Chain.Equals(common.ETHChain) {
+				continue
+			}
+			ctx.Logger().Info("found tx out item , and mark it as completed")
+			txs.TxArray[idx].OutHash = common.BlankTxID
+			found = true
+			break
+		}
+		if found {
+			if err := smgr.keeper.SetTxOut(ctx, txs); err != nil {
+				ctx.Logger().Error("fail to save tx out", "error", err)
+			}
+		}
+	}
 }

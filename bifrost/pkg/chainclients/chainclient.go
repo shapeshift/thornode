@@ -30,5 +30,6 @@ type ChainClient interface {
 	GetConfig() config.ChainConfiguration
 	GetConfirmationCount(txIn stypes.TxIn) int64
 	ConfirmationCountReady(txIn stypes.TxIn) bool
+	IsBlockScannerHealthy() bool
 	Stop()
 }

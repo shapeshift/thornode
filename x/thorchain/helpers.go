@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/blang/semver"
 	"github.com/hashicorp/go-multierror"
 
 	"gitlab.com/thorchain/thornode/common"
@@ -48,9 +47,11 @@ func refundTx(ctx cosmos.Context, tx ObservedTx, mgr Manager, keeper keeper.Keep
 			return err
 		}
 	}
-
 	refundCoins := make(common.Coins, 0)
 	for _, coin := range tx.Tx.Coins {
+		if coin.Asset.IsRune() && coin.Asset.GetChain().Equals(common.ETHChain) {
+			continue
+		}
 		pool, err := keeper.GetPool(ctx, coin.Asset)
 		if err != nil {
 			return fmt.Errorf("fail to get pool: %w", err)
@@ -58,7 +59,7 @@ func refundTx(ctx cosmos.Context, tx ObservedTx, mgr Manager, keeper keeper.Keep
 
 		if coin.Asset.IsRune() || !pool.BalanceRune.IsZero() {
 			toi := TxOutItem{
-				Chain:       coin.Asset.Chain,
+				Chain:       coin.Asset.GetChain(),
 				InHash:      tx.Tx.ID,
 				ToAddress:   tx.Tx.FromAddress,
 				VaultPubKey: tx.ObservedPubKey,
@@ -520,10 +521,6 @@ func AddGasFees(ctx cosmos.Context, keeper keeper.Keeper, tx ObservedTx, gasMana
 	return nil
 }
 func emitPoolBalanceChangedEvent(ctx cosmos.Context, poolMod PoolMod, reason string, keeper keeper.Keeper, eventManager EventManager) {
-	currentVersion := keeper.GetLowestActiveVersion(ctx)
-	if !currentVersion.GTE(semver.MustParse("0.29.0")) {
-		return
-	}
 	evt := NewEventPoolBalanceChanged(poolMod, reason)
 	if err := eventManager.EmitEvent(ctx, evt); err != nil {
 		ctx.Logger().Error("fail to emit pool balance changed event", "error", err)

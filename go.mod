@@ -10,7 +10,7 @@ require (
 	github.com/btcsuite/btcd v0.21.0-beta
 	github.com/btcsuite/btcutil v1.0.2
 	github.com/cenkalti/backoff v2.2.1+incompatible
-	github.com/cosmos/cosmos-sdk v0.41.0
+	github.com/cosmos/cosmos-sdk v0.42.1
 	github.com/cosmos/go-bip39 v1.0.0
 	github.com/decred/dcrd/dcrec/edwards v1.0.0
 	github.com/didip/tollbooth v4.0.2+incompatible
@@ -43,8 +43,8 @@ require (
 	github.com/syndtr/goleveldb v1.0.1-0.20200815110645-5c35d600f0ca
 	github.com/tendermint/btcd v0.1.1
 	github.com/tendermint/go-amino v0.16.0
-	github.com/tendermint/tendermint v0.34.3
-	github.com/tendermint/tm-db v0.6.3
+	github.com/tendermint/tendermint v0.34.8
+	github.com/tendermint/tm-db v0.6.4
 	gitlab.com/thorchain/bifrost/bchd-txscript v0.0.0-20210123055555-abb86a2e300a
 	gitlab.com/thorchain/bifrost/dogd-txscript v0.0.0-20210210114734-b88bfb72ff40
 	gitlab.com/thorchain/bifrost/ltcd-txscript v0.0.0-20210123055845-c0f9cad51f13
@@ -54,7 +54,7 @@ require (
 	golang.org/x/crypto v0.0.0-20210220033148-5ea612d1eb83 // indirect
 	golang.org/x/mod v0.4.0 // indirect
 	golang.org/x/tools v0.0.0-20210101214203-2dba1e4ea05c // indirect
-	google.golang.org/genproto v0.0.0-20210303154014-9728d6b83eeb // indirect
+	google.golang.org/genproto v0.0.0-20210311153111-e2979279ddde // indirect
 	gopkg.in/check.v1 v1.0.0-20200902074654-038fdea0a05b
 	gopkg.in/ini.v1 v1.52.0 // indirect
 	honnef.co/go/tools v0.0.1-2020.1.6 // indirect

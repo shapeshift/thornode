@@ -73,6 +73,7 @@ func (h LeaveHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Versi
 	}
 	return &cosmos.Result{}, nil
 }
+
 func (h LeaveHandler) handleV1(ctx cosmos.Context, msg MsgLeave, version semver.Version, constAccessor constants.ConstantValues) error {
 	nodeAcc, err := h.keeper.GetNodeAccount(ctx, msg.NodeAddress)
 	if err != nil {
@@ -104,6 +105,13 @@ func (h LeaveHandler) handleV1(ctx cosmos.Context, msg MsgLeave, version semver.
 			}
 		}
 	} else {
+		bondLockPeriod, err := h.keeper.GetMimir(ctx, constants.BondLockupPeriod.String())
+		if err != nil || bondLockPeriod < 0 {
+			bondLockPeriod = constAccessor.GetInt64Value(constants.BondLockupPeriod)
+		}
+		if common.BlockHeight(ctx)-nodeAcc.StatusSince < bondLockPeriod {
+			return fmt.Errorf("node can not unbond before %d", nodeAcc.StatusSince+bondLockPeriod)
+		}
 		vaults, err := h.keeper.GetAsgardVaultsByStatus(ctx, RetiringVault)
 		if err != nil {
 			return ErrInternal(err, "fail to get retiring vault")

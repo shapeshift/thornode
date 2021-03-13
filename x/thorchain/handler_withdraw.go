@@ -105,7 +105,7 @@ func (h WithdrawLiquidityHandler) handleV1(ctx cosmos.Context, msg MsgWithdrawLi
 	}
 	if !assetAmount.IsZero() {
 		toi := TxOutItem{
-			Chain:     msg.Asset.Chain,
+			Chain:     msg.Asset.GetChain(),
 			InHash:    msg.Tx.ID,
 			ToAddress: lp.AssetAddress,
 			Coin:      common.NewCoin(msg.Asset, assetAmount),
@@ -115,14 +115,14 @@ func (h WithdrawLiquidityHandler) handleV1(ctx cosmos.Context, msg MsgWithdrawLi
 			// TODO: chain specific logic should be in a single location
 			if msg.Asset.IsBNB() {
 				toi.MaxGas = common.Gas{
-					common.NewCoin(common.RuneAsset().Chain.GetGasAsset(), gasAsset.QuoUint64(2)),
+					common.NewCoin(common.RuneAsset().GetChain().GetGasAsset(), gasAsset.QuoUint64(2)),
 				}
-			} else if msg.Asset.Chain.GetGasAsset().Equals(msg.Asset) {
+			} else if msg.Asset.GetChain().GetGasAsset().Equals(msg.Asset) {
 				toi.MaxGas = common.Gas{
-					common.NewCoin(msg.Asset.Chain.GetGasAsset(), gasAsset),
+					common.NewCoin(msg.Asset.GetChain().GetGasAsset(), gasAsset),
 				}
 			}
-			toi.GasRate = int64(h.mgr.GasMgr().GetGasRate(ctx, msg.Asset.Chain).Uint64())
+			toi.GasRate = int64(h.mgr.GasMgr().GetGasRate(ctx, msg.Asset.GetChain()).Uint64())
 		}
 
 		okAsset, err := h.mgr.TxOutStore().TryAddTxOutItem(ctx, h.mgr, toi)
@@ -149,13 +149,13 @@ func (h WithdrawLiquidityHandler) handleV1(ctx cosmos.Context, msg MsgWithdrawLi
 	// above from being deducted a fee/gas from the transaction. So we have to
 	// do it here, on the rune side.
 	if pool.Status != PoolAvailable {
-		transactionFee := h.mgr.GasMgr().GetFee(ctx, msg.Asset.Chain, common.RuneAsset())
+		transactionFee := h.mgr.GasMgr().GetFee(ctx, msg.Asset.GetChain(), common.RuneAsset())
 		runeAmt = common.SafeSub(runeAmt, transactionFee)
 	}
 
 	if !runeAmt.IsZero() {
 		toi := TxOutItem{
-			Chain:     common.RuneAsset().Chain,
+			Chain:     common.RuneAsset().GetChain(),
 			InHash:    msg.Tx.ID,
 			ToAddress: lp.RuneAddress,
 			Coin:      common.NewCoin(common.RuneAsset(), runeAmt),

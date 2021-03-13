@@ -270,6 +270,4 @@ type (
 	SwitchMemo            = mem.SwitchMemo
 )
 
-var (
-	_ codec.ProtoMarshaler = &types.LiquidityProvider{}
-)
+var _ codec.ProtoMarshaler = &types.LiquidityProvider{}
