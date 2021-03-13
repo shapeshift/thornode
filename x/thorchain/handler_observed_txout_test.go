@@ -243,6 +243,7 @@ func (s *HandlerObservedTxOutSuite) testHandleStolenFundsWithVersion(c *C, ver s
 	na.PubKeySet.Secp256k1 = pk
 
 	ygg := NewVault(common.BlockHeight(ctx), ActiveVault, YggdrasilVault, pk, common.Chains{common.BNBChain}.Strings(), []ChainContract{})
+	ygg.Membership = []string{pk.String()}
 	ygg.Coins = common.Coins{
 		common.NewCoin(common.RuneAsset(), cosmos.NewUint(500*common.One)),
 		common.NewCoin(common.BNBAsset, cosmos.NewUint(200*common.One)),
@@ -341,6 +342,7 @@ func setupAnObservedTxOut(ctx cosmos.Context, helper *HandlerObservedTxOutTestHe
 	c.Assert(err, IsNil)
 	vault := GetRandomVault()
 	vault.PubKey = obTx.ObservedPubKey
+	vault.Membership = []string{vault.PubKey.String()}
 	helper.Keeper.SetNodeAccount(ctx, activeNodeAccount)
 	c.Assert(helper.SetVault(ctx, vault), IsNil)
 	p := NewPool()

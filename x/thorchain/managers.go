@@ -103,6 +103,7 @@ type Slasher interface {
 	LackObserving(ctx cosmos.Context, constAccessor constants.ConstantValues) error
 	LackSigning(ctx cosmos.Context, constAccessor constants.ConstantValues, mgr Manager) error
 	SlashNodeAccount(ctx cosmos.Context, observedPubKey common.PubKey, asset common.Asset, slashAmount cosmos.Uint, mgr Manager) error
+	SlashVault(ctx cosmos.Context, vaultPK common.PubKey, coins common.Coins, mgr Manager) error
 	IncSlashPoints(ctx cosmos.Context, point int64, addresses ...cosmos.AccAddress)
 	DecSlashPoints(ctx cosmos.Context, point int64, addresses ...cosmos.AccAddress)
 }
