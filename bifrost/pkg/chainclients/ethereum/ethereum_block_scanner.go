@@ -373,6 +373,10 @@ func (e *ETHScanner) extractTxs(block *etypes.Block) (stypes.TxIn, error) {
 		if txInItem == nil {
 			continue
 		}
+		// sometimes if a transaction failed due to gas problem , it will have no `to` address
+		if len(txInItem.To) == 0 {
+			continue
+		}
 		if len([]byte(txInItem.Memo)) > constants.MaxMemoSize {
 			continue
 		}
