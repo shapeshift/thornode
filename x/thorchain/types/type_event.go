@@ -516,7 +516,7 @@ func (m *EventPoolBalanceChanged) Events() (cosmos.Events, error) {
 		cosmos.NewAttribute("rune_amt", m.PoolChange.RuneAmt.String()),
 		cosmos.NewAttribute("rune_add", strconv.FormatBool(m.PoolChange.RuneAdd)),
 		cosmos.NewAttribute("asset_amt", m.PoolChange.AssetAmt.String()),
-		cosmos.NewAttribute("asset_add", strconv.FormatBool(m.PoolChange.AssetAdd)))
-	cosmos.NewAttribute("reason", m.GetReason())
+		cosmos.NewAttribute("asset_add", strconv.FormatBool(m.PoolChange.AssetAdd)),
+		cosmos.NewAttribute("reason", m.GetReason()))
 	return cosmos.Events{evt}, nil
 }
