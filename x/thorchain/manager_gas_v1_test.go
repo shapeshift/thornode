@@ -15,7 +15,7 @@ var _ = Suite(&GasManagerTestSuite{})
 
 func (GasManagerTestSuite) TestGasManagerV1(c *C) {
 	ctx, k := setupKeeperForTest(c)
-	constAccessor := constants.GetConstantValues(constants.SWVersion)
+	constAccessor := constants.GetConstantValues(GetCurrentVersion())
 	gasMgr := NewGasMgrV1(constAccessor, k)
 	gasEvent := gasMgr.gasEvent
 	c.Assert(gasMgr, NotNil)
@@ -48,7 +48,7 @@ func (GasManagerTestSuite) TestGasManagerV1(c *C) {
 
 func (GasManagerTestSuite) TestGetFee(c *C) {
 	ctx, k := setupKeeperForTest(c)
-	constAccessor := constants.GetConstantValues(constants.SWVersion)
+	constAccessor := constants.GetConstantValues(GetCurrentVersion())
 	gasMgr := NewGasMgrV1(constAccessor, k)
 	fee := gasMgr.GetFee(ctx, common.BNBChain, common.RuneAsset())
 	defaultTxFee := uint64(constAccessor.GetInt64Value(constants.OutboundTransactionFee))
@@ -118,7 +118,7 @@ func (g *gasManagerTestHelper) SetPool(ctx cosmos.Context, p Pool) error {
 
 func (GasManagerTestSuite) TestDifferentValidations(c *C) {
 	ctx, k := setupKeeperForTest(c)
-	constAccessor := constants.GetConstantValues(constants.SWVersion)
+	constAccessor := constants.GetConstantValues(GetCurrentVersion())
 	gasMgr := NewGasMgrV1(constAccessor, k)
 	gasMgr.BeginBlock()
 	helper := newGasManagerTestHelper(k)

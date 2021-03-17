@@ -51,7 +51,7 @@ func (s *HandlerIPAddressSuite) TestValidate(c *C) {
 
 	handler := NewIPAddressHandler(keeper, NewDummyMgr())
 	// happy path
-	ver := constants.SWVersion
+	ver := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(ver)
 	msg := NewMsgSetIPAddress("8.8.8.8", keeper.na.NodeAddress)
 	err := handler.validate(ctx, *msg, ver, constAccessor)
@@ -69,7 +69,7 @@ func (s *HandlerIPAddressSuite) TestValidate(c *C) {
 
 func (s *HandlerIPAddressSuite) TestHandle(c *C) {
 	ctx, _ := setupKeeperForTest(c)
-	ver := constants.SWVersion
+	ver := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(ver)
 
 	keeper := &TestIPAddresslKeeper{
@@ -198,8 +198,8 @@ func (s *HandlerIPAddressSuite) TestHandlerSetIPAddress_validation(c *C) {
 		mgr.BeginBlock(ctx)
 		handler := NewIPAddressHandler(helper, mgr)
 		msg := tc.messageProvider(ctx, helper)
-		constantAccessor := constants.GetConstantValues(constants.SWVersion)
-		result, err := handler.Run(ctx, msg, semver.MustParse("0.1.0"), constantAccessor)
+		constantAccessor := constants.GetConstantValues(GetCurrentVersion())
+		result, err := handler.Run(ctx, msg, GetCurrentVersion(), constantAccessor)
 		tc.validator(c, ctx, result, err, helper, tc.name)
 
 	}

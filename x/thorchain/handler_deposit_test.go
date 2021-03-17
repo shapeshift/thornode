@@ -31,7 +31,7 @@ func (s *HandlerDepositSuite) TestValidate(c *C) {
 	msg := NewMsgDeposit(coins, fmt.Sprintf("ADD:BNB.BNB:%s", GetRandomRUNEAddress()), addr)
 
 	handler := NewDepositHandler(k, NewDummyMgr())
-	err := handler.validate(ctx, *msg, constants.SWVersion)
+	err := handler.validate(ctx, *msg, GetCurrentVersion())
 	c.Assert(err, IsNil)
 
 	// invalid version
@@ -40,7 +40,7 @@ func (s *HandlerDepositSuite) TestValidate(c *C) {
 
 	// invalid msg
 	msg = &MsgDeposit{}
-	err = handler.validate(ctx, *msg, constants.SWVersion)
+	err = handler.validate(ctx, *msg, GetCurrentVersion())
 	c.Assert(err, NotNil)
 }
 
@@ -73,7 +73,7 @@ func (s *HandlerDepositSuite) TestHandle(c *C) {
 	c.Assert(k.SetPool(ctx, pool), IsNil)
 	msg := NewMsgDeposit(coins, "ADD:BNB.BNB", addr)
 
-	_, err = handler.handle(ctx, *msg, constants.SWVersion, constAccessor)
+	_, err = handler.handle(ctx, *msg, GetCurrentVersion(), constAccessor)
 	c.Assert(err, IsNil)
 	// ensure observe tx had been saved
 	hash := tmtypes.Tx(ctx.TxBytes()).Hash()
@@ -166,8 +166,8 @@ func (s *HandlerDepositSuite) TestDifferentValidation(c *C) {
 		mgr.BeginBlock(ctx)
 		handler := NewDepositHandler(helper, mgr)
 		msg := tc.messageProvider(c, ctx, helper)
-		constantAccessor := constants.GetConstantValues(constants.SWVersion)
-		result, err := handler.Run(ctx, msg, semver.MustParse("0.1.0"), constantAccessor)
+		constantAccessor := constants.GetConstantValues(GetCurrentVersion())
+		result, err := handler.Run(ctx, msg, GetCurrentVersion(), constantAccessor)
 		tc.validator(c, ctx, result, err, helper, tc.name)
 	}
 }

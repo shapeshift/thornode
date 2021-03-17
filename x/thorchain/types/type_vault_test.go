@@ -98,7 +98,7 @@ func (s *VaultSuite) TestGetTssSigners(c *C) {
 func (s *VaultSuite) TestPendingTxBlockHeights(c *C) {
 	vault := NewVault(12, VaultStatus_ActiveVault, VaultType_AsgardVault, GetRandomPubKey(), common.Chains{common.BNBChain}.Strings(), []ChainContract{})
 
-	version := constants.SWVersion
+	version := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(version)
 	vault.AppendPendingTxBlockHeights(1, constAccessor)
 	c.Assert(vault.LenPendingTxBlockHeights(2, constAccessor), Equals, 1)

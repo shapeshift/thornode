@@ -31,8 +31,7 @@ func (k *TestObservedTxOutValidateKeeper) GetNodeAccount(ctx cosmos.Context, sig
 var _ = Suite(&HandlerObservedTxOutSuite{})
 
 func (s *HandlerObservedTxOutSuite) TestValidate(c *C) {
-	s.testValidateWithVersion(c, constants.SWVersion)
-	s.testValidateWithVersion(c, semver.MustParse("0.13.0"))
+	s.testValidateWithVersion(c, GetCurrentVersion())
 }
 
 func (s *HandlerObservedTxOutSuite) testValidateWithVersion(c *C, ver semver.Version) {
@@ -165,7 +164,7 @@ func (k *TestObservedTxOutHandleKeeper) SetPool(ctx cosmos.Context, pool Pool) e
 }
 
 func (s *HandlerObservedTxOutSuite) TestHandle(c *C) {
-	s.testHandleWithVersion(c, constants.SWVersion)
+	s.testHandleWithVersion(c, GetCurrentVersion())
 }
 
 func (s *HandlerObservedTxOutSuite) testHandleWithVersion(c *C, ver semver.Version) {
@@ -219,7 +218,7 @@ func (s *HandlerObservedTxOutSuite) testHandleWithVersion(c *C, ver semver.Versi
 }
 
 func (s *HandlerObservedTxOutSuite) TestHandleStolenFunds(c *C) {
-	s.testHandleStolenFundsWithVersion(c, constants.SWVersion)
+	s.testHandleStolenFundsWithVersion(c, GetCurrentVersion())
 }
 
 func (s *HandlerObservedTxOutSuite) testHandleStolenFundsWithVersion(c *C, ver semver.Version) {
@@ -487,8 +486,7 @@ func (HandlerObservedTxOutSuite) TestHandlerObservedTxOut_DifferentValidations(c
 		},
 	}
 	versions := []semver.Version{
-		constants.SWVersion,
-		semver.MustParse("0.13.0"),
+		GetCurrentVersion(),
 	}
 	for _, tc := range testCases {
 		for _, ver := range versions {

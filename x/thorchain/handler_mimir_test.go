@@ -23,7 +23,7 @@ func (s *HandlerMimirSuite) TestValidate(c *C) {
 	addr, _ := cosmos.AccAddressFromBech32(ADMINS[0])
 	handler := NewMimirHandler(keeper, NewDummyMgr())
 	// happy path
-	ver := constants.SWVersion
+	ver := GetCurrentVersion()
 	msg := NewMsgMimir("foo", 44, addr)
 	err := handler.validate(ctx, *msg, ver)
 	c.Assert(err, IsNil)
@@ -40,7 +40,7 @@ func (s *HandlerMimirSuite) TestValidate(c *C) {
 
 func (s *HandlerMimirSuite) TestHandle(c *C) {
 	ctx, keeper := setupKeeperForTest(c)
-	ver := constants.SWVersion
+	ver := GetCurrentVersion()
 
 	handler := NewMimirHandler(keeper, NewDummyMgr())
 
@@ -52,18 +52,18 @@ func (s *HandlerMimirSuite) TestHandle(c *C) {
 	c.Check(val, Equals, int64(55))
 
 	invalidMsg := NewMsgNetworkFee(ctx.BlockHeight(), common.BNBChain, 1, bnbSingleTxFee.Uint64(), GetRandomBech32Addr())
-	result, err := handler.Run(ctx, invalidMsg, constants.SWVersion, constants.GetConstantValues(constants.SWVersion))
+	result, err := handler.Run(ctx, invalidMsg, GetCurrentVersion(), constants.GetConstantValues(GetCurrentVersion()))
 	c.Check(err, NotNil)
 	c.Check(result, IsNil)
 
-	result, err = handler.Run(ctx, msg, constants.SWVersion, constants.GetConstantValues(constants.SWVersion))
+	result, err = handler.Run(ctx, msg, GetCurrentVersion(), constants.GetConstantValues(GetCurrentVersion()))
 	c.Assert(err, NotNil)
 	c.Assert(result, IsNil)
 
 	addr, err := cosmos.AccAddressFromBech32(ADMINS[0])
 	c.Check(err, IsNil)
 	msg1 := NewMsgMimir("hello", 1, addr)
-	result, err = handler.Run(ctx, msg1, constants.SWVersion, constants.GetConstantValues(constants.SWVersion))
+	result, err = handler.Run(ctx, msg1, GetCurrentVersion(), constants.GetConstantValues(GetCurrentVersion()))
 	c.Check(err, IsNil)
 	c.Check(result, NotNil)
 

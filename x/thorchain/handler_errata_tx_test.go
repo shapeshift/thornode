@@ -77,7 +77,7 @@ func (s *HandlerErrataTxSuite) TestValidate(c *C) {
 
 	handler := NewErrataTxHandler(keeper, NewDummyMgr())
 	// happy path
-	ver := constants.SWVersion
+	ver := GetCurrentVersion()
 	msg := NewMsgErrataTx(GetRandomTxHash(), common.BNBChain, keeper.na.NodeAddress)
 	err := handler.validate(ctx, *msg, ver)
 	c.Assert(err, IsNil)
@@ -94,7 +94,7 @@ func (s *HandlerErrataTxSuite) TestValidate(c *C) {
 
 func (s *HandlerErrataTxSuite) TestErrataHandlerHappyPath(c *C) {
 	ctx, _ := setupKeeperForTest(c)
-	ver := constants.SWVersion
+	ver := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(ver)
 
 	txID := GetRandomTxHash()
@@ -486,8 +486,8 @@ func (s *HandlerErrataTxSuite) TestErrataHandlerDifferentError(c *C) {
 		mgr := NewManagers(helper)
 		mgr.BeginBlock(ctx)
 		handler := NewErrataTxHandler(helper, mgr)
-		constAccessor := constants.GetConstantValues(constants.SWVersion)
-		result, err := handler.Run(ctx, msg, semver.MustParse("0.1.0"), constAccessor)
+		constAccessor := constants.GetConstantValues(GetCurrentVersion())
+		result, err := handler.Run(ctx, msg, GetCurrentVersion(), constAccessor)
 		tc.validator(c, ctx, result, err, helper, tc.name)
 	}
 }

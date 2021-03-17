@@ -432,7 +432,7 @@ func newAddGasFeeTestHelper(c *C) addGasFeeTestHelper {
 	c.Assert(k.SetNodeAccount(ctx, na), IsNil)
 	yggVault := NewVault(common.BlockHeight(ctx), ActiveVault, YggdrasilVault, na.PubKeySet.Secp256k1, common.Chains{common.BNBChain}.Strings(), []ChainContract{})
 	c.Assert(k.SetVault(ctx, yggVault), IsNil)
-	version := constants.SWVersion
+	version := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(version)
 	return addGasFeeTestHelper{
 		ctx:        ctx,

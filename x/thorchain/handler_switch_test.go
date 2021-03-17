@@ -31,11 +31,11 @@ func (s *HandlerSwitchSuite) TestValidate(c *C) {
 
 	handler := NewSwitchHandler(k, NewDummyMgr())
 
-	constantAccessor := constants.GetConstantValues(constants.SWVersion)
+	constantAccessor := constants.GetConstantValues(GetCurrentVersion())
 	destination = GetRandomTHORAddress()
 	// happy path
 	msg := NewMsgSwitch(tx, destination, na.NodeAddress)
-	result, err := handler.Run(ctx, msg, constants.SWVersion, constantAccessor)
+	result, err := handler.Run(ctx, msg, GetCurrentVersion(), constantAccessor)
 	c.Assert(err, IsNil)
 	c.Assert(result, NotNil)
 
@@ -46,7 +46,7 @@ func (s *HandlerSwitchSuite) TestValidate(c *C) {
 
 	// invalid msg
 	msg = &MsgSwitch{}
-	result, err = handler.Run(ctx, msg, constants.SWVersion, constantAccessor)
+	result, err = handler.Run(ctx, msg, GetCurrentVersion(), constantAccessor)
 	c.Assert(err, NotNil)
 	c.Assert(result, IsNil)
 }
@@ -65,8 +65,8 @@ func (s *HandlerSwitchSuite) TestGettingNativeTokens(c *C) {
 	handler := NewSwitchHandler(k, NewDummyMgr())
 
 	msg := NewMsgSwitch(tx, destination, na.NodeAddress)
-	constAccessor := constants.GetConstantValues(constants.SWVersion)
-	_, err := handler.handle(ctx, *msg, constants.SWVersion, constAccessor)
+	constAccessor := constants.GetConstantValues(GetCurrentVersion())
+	_, err := handler.handle(ctx, *msg, GetCurrentVersion(), constAccessor)
 	c.Assert(err, IsNil)
 	coin, err := common.NewCoin(common.RuneNative, cosmos.NewUint(100*common.One)).Native()
 	c.Assert(err, IsNil)
@@ -75,7 +75,7 @@ func (s *HandlerSwitchSuite) TestGettingNativeTokens(c *C) {
 	c.Check(k.HasCoins(ctx, addr, cosmos.NewCoins(coin)), Equals, true, Commentf("%s", k.GetBalance(ctx, addr)))
 
 	// check that we can add more an account
-	_, err = handler.handle(ctx, *msg, constants.SWVersion, constAccessor)
+	_, err = handler.handle(ctx, *msg, GetCurrentVersion(), constAccessor)
 	c.Assert(err, IsNil)
 	coin, err = common.NewCoin(common.RuneNative, cosmos.NewUint(200*common.One)).Native()
 	c.Assert(err, IsNil)
@@ -157,8 +157,8 @@ func (s *HandlerSwitchSuite) TestSwitchHandlerDifferentValidations(c *C) {
 		mgr.BeginBlock(ctx)
 		handler := NewSwitchHandler(helper, mgr)
 		msg := tc.messageProvider(c, ctx, helper)
-		constantAccessor := constants.GetConstantValues(constants.SWVersion)
-		result, err := handler.Run(ctx, msg, semver.MustParse("0.1.0"), constantAccessor)
+		constantAccessor := constants.GetConstantValues(GetCurrentVersion())
+		result, err := handler.Run(ctx, msg, GetCurrentVersion(), constantAccessor)
 		tc.validator(c, ctx, result, err, helper, tc.name)
 	}
 }
