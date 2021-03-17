@@ -123,8 +123,7 @@ func newTssKeysignHandlerTestHelper(c *C, ver semver.Version) tssKeysignFailHand
 }
 
 func (h HandlerTssKeysignSuite) TestTssKeysignFailHandler(c *C) {
-	h.testTssKeysignFailHandlerWithVersion(c, constants.SWVersion)
-	h.testTssKeysignFailHandlerWithVersion(c, semver.MustParse("0.13.0"))
+	h.testTssKeysignFailHandlerWithVersion(c, GetCurrentVersion())
 }
 
 func (h HandlerTssKeysignSuite) testTssKeysignFailHandlerWithVersion(c *C, ver semver.Version) {
@@ -325,7 +324,7 @@ func (h HandlerTssKeysignSuite) testTssKeysignFailHandlerWithVersion(c *C, ver s
 }
 
 func (h HandlerTssKeysignSuite) TestTssKeysignFailHandler_accept_standby_node_messages(c *C) {
-	ver := semver.MustParse("0.18.0")
+	ver := GetCurrentVersion()
 	helper := newTssKeysignHandlerTestHelper(c, ver)
 	handler := NewTssKeysignHandler(helper.keeper, NewDummyMgr())
 	vault := NewVault(1024, RetiringVault, AsgardVault, GetRandomPubKey(), []string{

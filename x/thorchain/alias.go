@@ -145,6 +145,7 @@ var (
 	GetRandomBech32ConsensusPubKey = types.GetRandomBech32ConsensusPubKey
 	GetRandomPubKey                = types.GetRandomPubKey
 	GetRandomPubKeySet             = types.GetRandomPubKeySet
+	GetCurrentVersion              = types.GetCurrentVersion
 	SetupConfigForTest             = types.SetupConfigForTest
 	HasSimpleMajority              = types.HasSimpleMajority
 	NewTssKeysignMetric            = types.NewTssKeysignMetric

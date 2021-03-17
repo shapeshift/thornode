@@ -105,7 +105,7 @@ func (HandlerWithdrawSuite) TestWithdrawHandler(c *C) {
 			AssetDepositValue: cosmos.ZeroUint(),
 		},
 	}
-	ver := semver.MustParse("0.7.0")
+	ver := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(ver)
 	// Happy path , this is a round trip , first we provide liquidity, then we withdraw
 	runeAddr := GetRandomRUNEAddress()
@@ -136,7 +136,7 @@ func (HandlerWithdrawSuite) TestAsymmetricWithdraw(c *C) {
 	SetupConfigForTest()
 	ctx, keeper := setupKeeperForTest(c)
 	activeNodeAccount := GetRandomNodeAccount(NodeActive)
-	ver := semver.MustParse("0.7.0")
+	ver := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(ver)
 	pool := NewPool()
 	pool.Asset = common.BTCAsset
@@ -251,7 +251,7 @@ func (HandlerWithdrawSuite) TestWithdrawHandler_Validation(c *C) {
 			expectedResult: errWithdrawFailValidation,
 		},
 	}
-	ver := semver.MustParse("0.7.0")
+	ver := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(ver)
 	for _, tc := range testCases {
 		withdrawHandler := NewWithdrawLiquidityHandler(k, NewDummyMgr())
@@ -323,7 +323,7 @@ func (HandlerWithdrawSuite) TestWithdrawHandler_mockFailScenarios(c *C) {
 			expectedResult: errInternal,
 		},
 	}
-	ver := semver.MustParse("0.7.0")
+	ver := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(ver)
 
 	for _, tc := range testCases {
