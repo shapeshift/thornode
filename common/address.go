@@ -184,6 +184,15 @@ func (addr Address) IsChain(chain Chain) bool {
 	}
 }
 
+func (addr Address) GetChain() Chain {
+	for _, chain := range []Chain{ETHChain, BNBChain, THORChain, BTCChain, LTCChain, BCHChain, DOGEChain} {
+		if addr.IsChain(chain) {
+			return chain
+		}
+	}
+	return EmptyChain
+}
+
 func (addr Address) AccAddress() (cosmos.AccAddress, error) {
 	return cosmos.AccAddressFromBech32(addr.String())
 }
