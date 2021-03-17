@@ -225,8 +225,9 @@ set_node_keys () {
   SIGNER_PASSWD=$2
   PEER=$3
   NODE_PUB_KEY=$(echo $SIGNER_PASSWD | thornode keys show thorchain --pubkey --keyring-backend file)
+  NODE_PUB_KEY_ED25519=$(printf "$SIGNER_PASSWD\n" | thornode ed25519)
   VALIDATOR=$(thornode tendermint show-validator)
-  printf "$SIGNER_PASSWD\n$SIGNER_PASSWD\n" | thornode tx thorchain set-node-keys $NODE_PUB_KEY $NODE_PUB_KEY $VALIDATOR --node tcp://$PEER:$PORT_RPC --from $SIGNER_NAME --yes
+  printf "$SIGNER_PASSWD\n$SIGNER_PASSWD\n" | thornode tx thorchain set-node-keys $NODE_PUB_KEY $NODE_PUB_KEY_ED25519 $VALIDATOR --node tcp://$PEER:$PORT_RPC --from $SIGNER_NAME --yes
 }
 
 set_ip_address () {
