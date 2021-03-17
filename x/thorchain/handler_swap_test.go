@@ -27,7 +27,7 @@ func (s *HandlerSwapSuite) TestValidate(c *C) {
 
 	handler := NewSwapHandler(keeper, NewDummyMgr())
 
-	ver := constants.SWVersion
+	ver := GetCurrentVersion()
 	txID := GetRandomTxHash()
 	signerBNBAddr := GetRandomBNBAddress()
 	observerAddr := keeper.activeNodeAccount.NodeAddress
@@ -109,7 +109,7 @@ func (s *HandlerSwapSuite) TestHandle(c *C) {
 	mgr.txOutStore = NewTxStoreDummy()
 	handler := NewSwapHandler(keeper, mgr)
 
-	ver := constants.SWVersion
+	ver := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(ver)
 
 	result, err := handler.Run(ctx, NewMsgMimir("what", 1, GetRandomBech32Addr()), ver, constAccessor)
@@ -202,7 +202,7 @@ func (s *HandlerSwapSuite) TestDoubleSwap(c *C) {
 		pools:             make(map[common.Asset]Pool),
 		activeNodeAccount: GetRandomNodeAccount(NodeActive),
 	}
-	ver := constants.SWVersion
+	ver := GetCurrentVersion()
 	mgr := NewManagers(keeper)
 	c.Assert(mgr.BeginBlock(ctx), IsNil)
 	mgr.txOutStore = NewTxStoreDummy()

@@ -147,8 +147,7 @@ func newTssHandlerTestHelper(c *C, version semver.Version) tssHandlerTestHelper 
 }
 
 func (s *HandlerTssSuite) TestTssHandler(c *C) {
-	s.testTssHandlerWithVersion(c, constants.SWVersion)
-	s.testTssHandlerWithVersion(c, semver.MustParse("0.13.0"))
+	s.testTssHandlerWithVersion(c, GetCurrentVersion())
 }
 
 func (s *HandlerTssSuite) testTssHandlerWithVersion(c *C, ver semver.Version) {

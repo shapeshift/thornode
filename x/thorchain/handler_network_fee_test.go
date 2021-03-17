@@ -49,8 +49,7 @@ func (k KeeperObserveNetworkFeeTest) SaveNetworkFee(ctx cosmos.Context, chain co
 }
 
 func (h *HandlerObserveNetworkFeeSuite) TestHandlerObserveNetworkFee(c *C) {
-	h.testHandlerObserveNetworkFeeWithVersion(c, constants.SWVersion)
-	h.testHandlerObserveNetworkFeeWithVersion(c, semver.MustParse("0.13.0"))
+	h.testHandlerObserveNetworkFeeWithVersion(c, GetCurrentVersion())
 }
 
 func (*HandlerObserveNetworkFeeSuite) testHandlerObserveNetworkFeeWithVersion(c *C, ver semver.Version) {

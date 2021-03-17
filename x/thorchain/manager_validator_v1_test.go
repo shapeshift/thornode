@@ -1,7 +1,6 @@
 package thorchain
 
 import (
-	"github.com/blang/semver"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
@@ -23,7 +22,7 @@ func (vts *ValidatorMgrV1TestSuite) TestSetupValidatorNodes(c *C) {
 	mgr := NewDummyMgr()
 	vMgr := newValidatorMgrV1(k, mgr.VaultMgr(), mgr.TxOutStore(), mgr.EventMgr())
 	c.Assert(vMgr, NotNil)
-	ver := constants.SWVersion
+	ver := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(ver)
 	err := vMgr.setupValidatorNodes(ctx, 0, constAccessor)
 	c.Assert(err, IsNil)
@@ -234,7 +233,7 @@ func (vts *ValidatorMgrV1TestSuite) TestFindBadActors(c *C) {
 func (vts *ValidatorMgrV1TestSuite) TestRagnarokBond(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	ctx = ctx.WithBlockHeight(1)
-	ver := constants.SWVersion
+	ver := GetCurrentVersion()
 
 	mgr := NewDummyMgr()
 	vMgr := newValidatorMgrV1(k, mgr.VaultMgr(), mgr.TxOutStore(), mgr.EventMgr())
@@ -279,7 +278,7 @@ func (vts *ValidatorMgrV1TestSuite) TestRagnarokBond(c *C) {
 func (vts *ValidatorMgrV1TestSuite) TestGetChangedNodes(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	ctx = ctx.WithBlockHeight(1)
-	ver := constants.SWVersion
+	ver := GetCurrentVersion()
 
 	mgr := NewDummyMgr()
 	vMgr := newValidatorMgrV1(k, mgr.VaultMgr(), mgr.TxOutStore(), mgr.EventMgr())
@@ -424,7 +423,7 @@ func (vts *ValidatorMgrV1TestSuite) TestFindNextVaultNodeAccounts(c *C) {
 	mgr := NewDummyMgr()
 	vMgr := newValidatorMgrV1(k, mgr.VaultMgr(), mgr.TxOutStore(), mgr.EventMgr())
 	c.Assert(vMgr, NotNil)
-	ver := semver.MustParse("0.17.0")
+	ver := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(ver)
 	nas := NodeAccounts{}
 	for i := 0; i < 12; i++ {

@@ -10,8 +10,6 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-
-	"github.com/blang/semver"
 )
 
 func TestPackage(t *testing.T) { TestingT(t) }
@@ -35,7 +33,7 @@ func (s *ThorchainSuite) TestLiquidityProvision(c *C) {
 	user2rune := GetRandomRUNEAddress()
 	user2asset := GetRandomBNBAddress()
 	txID := GetRandomTxHash()
-	constAccessor := constants.GetConstantValues(constants.SWVersion)
+	constAccessor := constants.GetConstantValues(GetCurrentVersion())
 	c.Assert(err, IsNil)
 
 	// create bnb pool
@@ -61,7 +59,7 @@ func (s *ThorchainSuite) TestLiquidityProvision(c *C) {
 	c.Assert(err, IsNil)
 	c.Check(lp2.Units.IsZero(), Equals, false)
 
-	version := constants.SWVersion
+	version := GetCurrentVersion()
 	// withdraw for user1
 	msg := NewMsgWithdrawLiquidity(GetRandomTx(), user1rune, cosmos.NewUint(10000), common.BNBAsset, common.EmptyAsset, GetRandomBech32Addr())
 	_, _, _, _, _, err = withdrawV1(ctx, version, keeper, *msg, NewDummyMgr())
@@ -105,7 +103,7 @@ func (s *ThorchainSuite) TestLiquidityProvision(c *C) {
 
 func (s *ThorchainSuite) TestChurn(c *C) {
 	ctx, keeper := setupKeeperForTest(c)
-	ver := constants.SWVersion
+	ver := GetCurrentVersion()
 	consts := constants.GetConstantValues(ver)
 	mgr := NewManagers(keeper)
 	c.Assert(mgr.BeginBlock(ctx), IsNil)
@@ -253,8 +251,7 @@ func (s *ThorchainSuite) TestRagnarok(c *C) {
 	var err error
 	ctx, keeper := setupKeeperForTest(c)
 	ctx = ctx.WithBlockHeight(10)
-	constants.SWVersion, _ = semver.Make("0.15.0")
-	ver := constants.SWVersion
+	ver := GetCurrentVersion()
 	consts := constants.GetConstantValues(ver)
 	c.Assert(keeper.SaveNetworkFee(ctx, common.BNBChain, NetworkFee{
 		Chain:              common.BNBChain,
@@ -438,7 +435,7 @@ func (s *ThorchainSuite) TestRagnarokNoOneLeave(c *C) {
 	var err error
 	ctx, keeper := setupKeeperForTest(c)
 	ctx = ctx.WithBlockHeight(10)
-	ver := constants.SWVersion
+	ver := GetCurrentVersion()
 	consts := constants.GetConstantValues(ver)
 
 	mgr := NewManagers(keeper)

@@ -1,7 +1,6 @@
 package thorchain
 
 import (
-	"github.com/blang/semver"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
@@ -153,7 +152,7 @@ func (s YggdrasilManagerV32Suite) TestFund(c *C) {
 		na.Bond = cosmos.NewUint(common.One * 1000000)
 		c.Assert(k.SetNodeAccount(ctx, na), IsNil)
 	}
-	ver := semver.MustParse("0.13.0")
+	ver := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(ver)
 	ymgr := NewYggMgrV32(k)
 	err := ymgr.Fund(ctx, mgr, constAccessor)
@@ -192,7 +191,7 @@ func (s YggdrasilManagerV32Suite) TestNotAvailablePoolAssetWillNotFundYggdrasil(
 		na.Bond = cosmos.NewUint(common.One * 1000000)
 		c.Assert(k.SetNodeAccount(ctx, na), IsNil)
 	}
-	ver := semver.MustParse("0.16.0")
+	ver := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(ver)
 	ymgr := NewYggMgrV32(k)
 	err = ymgr.Fund(ctx, mgr, constAccessor)
@@ -260,7 +259,7 @@ func (s YggdrasilManagerV32Suite) TestAbandonYggdrasil(c *C) {
 	yggdrasilVault.Type = YggdrasilVault
 	yggdrasilVault.Status = ActiveVault
 	c.Assert(k.SetVault(ctx, yggdrasilVault), IsNil)
-	ver := semver.MustParse("0.13.0")
+	ver := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(ver)
 	ymgr := NewYggMgrV32(k)
 	err := ymgr.Fund(ctx, mgr, constAccessor)

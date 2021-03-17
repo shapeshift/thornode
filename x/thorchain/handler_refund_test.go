@@ -126,7 +126,7 @@ func newRefundTxHandlerTestHelper(c *C) refundTxHandlerTestHelper {
 	pool.BalanceAsset = cosmos.NewUint(100 * common.One)
 	pool.BalanceRune = cosmos.NewUint(100 * common.One)
 
-	version := constants.SWVersion
+	version := GetCurrentVersion()
 	asgardVault := GetRandomVault()
 	asgardVault.Membership = []string{asgardVault.PubKey.String()}
 	addr, err := asgardVault.PubKey.GetAddress(common.BNBChain)
@@ -228,7 +228,7 @@ func (s *HandlerRefundSuite) TestRefundTxHandlerShouldUpdateTxOut(c *C) {
 				return NewMsgRefundTx(tx, helper.keeper.observeTxVoterErrHash, helper.nodeAccount.NodeAddress)
 			},
 			runner: func(handler RefundHandler, helper refundTxHandlerTestHelper, msg cosmos.Msg) (*cosmos.Result, error) {
-				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
+				return handler.Run(helper.ctx, msg, GetCurrentVersion(), helper.constAccessor)
 			},
 			expectedResult: errInternal,
 		},
@@ -239,7 +239,7 @@ func (s *HandlerRefundSuite) TestRefundTxHandlerShouldUpdateTxOut(c *C) {
 			},
 			runner: func(handler RefundHandler, helper refundTxHandlerTestHelper, msg cosmos.Msg) (*cosmos.Result, error) {
 				helper.keeper.errGetTxOut = true
-				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
+				return handler.Run(helper.ctx, msg, GetCurrentVersion(), helper.constAccessor)
 			},
 			expectedResult: se.ErrUnknownRequest,
 		},
@@ -249,7 +249,7 @@ func (s *HandlerRefundSuite) TestRefundTxHandlerShouldUpdateTxOut(c *C) {
 				return NewMsgRefundTx(tx, helper.inboundTx.Tx.ID, helper.nodeAccount.NodeAddress)
 			},
 			runner: func(handler RefundHandler, helper refundTxHandlerTestHelper, msg cosmos.Msg) (*cosmos.Result, error) {
-				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
+				return handler.Run(helper.ctx, msg, GetCurrentVersion(), helper.constAccessor)
 			},
 			expectedResult: nil,
 		},
@@ -300,7 +300,7 @@ func (s *HandlerRefundSuite) TestRefundTxNormalCase(c *C) {
 	}, common.BlockHeight(helper.ctx), helper.yggVault.PubKey, common.BlockHeight(helper.ctx))
 	// valid outbound message, with event, with txout
 	outMsg := NewMsgRefundTx(tx, helper.inboundTx.Tx.ID, helper.nodeAccount.NodeAddress)
-	_, err = handler.Run(helper.ctx, outMsg, constants.SWVersion, helper.constAccessor)
+	_, err = handler.Run(helper.ctx, outMsg, GetCurrentVersion(), helper.constAccessor)
 	c.Assert(err, IsNil)
 
 	// txout should had been complete
@@ -331,7 +331,7 @@ func (s *HandlerRefundSuite) TestRefundTxHandlerSendExtraFundShouldBeSlashed(c *
 	expectedVaultTotalReserve := reserve.Add(cosmos.NewUint(common.One * 2).QuoUint64(2))
 	// valid outbound message, with event, with txout
 	outMsg := NewMsgRefundTx(tx, helper.inboundTx.Tx.ID, helper.nodeAccount.NodeAddress)
-	_, err = handler.Run(helper.ctx, outMsg, constants.SWVersion, helper.constAccessor)
+	_, err = handler.Run(helper.ctx, outMsg, GetCurrentVersion(), helper.constAccessor)
 	c.Assert(err, IsNil)
 	na, err := helper.keeper.GetNodeAccount(helper.ctx, helper.nodeAccount.NodeAddress)
 	c.Assert(err, IsNil)
@@ -360,7 +360,7 @@ func (s *HandlerRefundSuite) TestOutboundTxHandlerSendAdditionalCoinsShouldBeSla
 	expectedBond := cosmos.NewUint(9699947127)
 	// slash one BNB and one rune
 	outMsg := NewMsgRefundTx(tx, helper.inboundTx.Tx.ID, helper.nodeAccount.NodeAddress)
-	_, err = handler.Run(helper.ctx, outMsg, constants.SWVersion, helper.constAccessor)
+	_, err = handler.Run(helper.ctx, outMsg, GetCurrentVersion(), helper.constAccessor)
 	c.Assert(err, IsNil)
 	na, err := helper.keeper.GetNodeAccount(helper.ctx, helper.nodeAccount.NodeAddress)
 	c.Assert(err, IsNil)
@@ -395,7 +395,7 @@ func (s *HandlerRefundSuite) TestOutboundTxHandlerInvalidObservedTxVoterShouldSl
 
 	// given the outbound tx doesn't have relevant OservedTxVoter in system , thus it should be slashed with 1.5 * the full amount of assets
 	outMsg := NewMsgRefundTx(tx, tx.Tx.ID, helper.nodeAccount.NodeAddress)
-	_, err = handler.Run(helper.ctx, outMsg, constants.SWVersion, helper.constAccessor)
+	_, err = handler.Run(helper.ctx, outMsg, GetCurrentVersion(), helper.constAccessor)
 	c.Assert(err, IsNil)
 	na, err := helper.keeper.GetNodeAccount(helper.ctx, helper.nodeAccount.NodeAddress)
 	c.Assert(err, IsNil)

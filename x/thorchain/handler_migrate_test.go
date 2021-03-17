@@ -44,7 +44,7 @@ func (HandlerMigrateV32Suite) TestMigrate(c *C) {
 	addr, err := keeper.vault.PubKey.GetAddress(common.BNBChain)
 	c.Assert(err, IsNil)
 
-	ver := constants.SWVersion
+	ver := GetCurrentVersion()
 
 	tx := NewObservedTx(common.Tx{
 		ID:          GetRandomTxHash(),
@@ -124,7 +124,6 @@ func (k *TestMigrateKeeperHappyPath) SetPool(_ cosmos.Context, p Pool) error {
 
 func (HandlerMigrateV32Suite) TestMigrateHappyPath(c *C) {
 	ctx, _ := setupKeeperForTest(c)
-	constants.SWVersion, _ = semver.Make("0.32.0")
 	retireVault := GetRandomVault()
 
 	newVault := GetRandomVault()
@@ -161,15 +160,14 @@ func (HandlerMigrateV32Suite) TestMigrateHappyPath(c *C) {
 	}, 1, retireVault.PubKey, 1)
 
 	msgMigrate := NewMsgMigrate(tx, 1, keeper.activeNodeAccount.NodeAddress)
-	constantAccessor := constants.GetConstantValues(constants.SWVersion)
-	_, err = handler.Run(ctx, msgMigrate, constants.SWVersion, constantAccessor)
+	constantAccessor := constants.GetConstantValues(GetCurrentVersion())
+	_, err = handler.Run(ctx, msgMigrate, GetCurrentVersion(), constantAccessor)
 	c.Assert(err, IsNil)
 	c.Assert(keeper.txout.TxArray[0].OutHash.Equals(tx.Tx.ID), Equals, true)
 }
 
 func (HandlerMigrateV32Suite) TestSlash(c *C) {
 	ctx, _ := setupKeeperForTest(c)
-	constants.SWVersion, _ = semver.Make("0.32.0")
 	retireVault := GetRandomVault()
 
 	newVault := GetRandomVault()
@@ -208,7 +206,7 @@ func (HandlerMigrateV32Suite) TestSlash(c *C) {
 	}, 1, retireVault.PubKey, 1)
 
 	msgMigrate := NewMsgMigrate(tx, 1, keeper.activeNodeAccount.NodeAddress)
-	_, err = handler.handleV1(ctx, constants.SWVersion, *msgMigrate)
+	_, err = handler.handleV1(ctx, GetCurrentVersion(), *msgMigrate)
 	c.Assert(err, IsNil)
 	c.Assert(keeper.activeNodeAccount.Bond.Equal(cosmos.NewUint(9999998464)), Equals, true, Commentf("%d", keeper.activeNodeAccount.Bond.Uint64()))
 }
@@ -219,8 +217,8 @@ func (HandlerMigrateV32Suite) TestHandlerMigrateValidation(c *C) {
 	mgr := NewManagers(k)
 	mgr.BeginBlock(ctx)
 	h := NewMigrateHandler(k, mgr)
-	constantAccessor := constants.GetConstantValues(constants.SWVersion)
-	result, err := h.Run(ctx, NewMsgNetworkFee(ctx.BlockHeight(), common.BNBChain, 1, bnbSingleTxFee.Uint64(), GetRandomBech32Addr()), semver.MustParse("0.1.0"), constantAccessor)
+	constantAccessor := constants.GetConstantValues(GetCurrentVersion())
+	result, err := h.Run(ctx, NewMsgNetworkFee(ctx.BlockHeight(), common.BNBChain, 1, bnbSingleTxFee.Uint64(), GetRandomBech32Addr()), GetCurrentVersion(), constantAccessor)
 	c.Check(err, NotNil)
 	c.Check(result, IsNil)
 	c.Check(errors.Is(err, errInvalidMessage), Equals, true)

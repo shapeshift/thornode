@@ -2,9 +2,13 @@
 package types
 
 import (
+	"io/ioutil"
 	"math/rand"
+	"path"
+	"runtime"
 	"time"
 
+	"github.com/blang/semver"
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/types"
 	simtypes "github.com/cosmos/cosmos-sdk/types/simulation"
@@ -167,4 +171,20 @@ func MakeTestCodec() *codec.LegacyAmino {
 	cosmos.RegisterCodec(cdc)
 	// codec.RegisterCrypto(cdc)
 	return cdc
+}
+
+// GetCurrentVersion - intended for unit tests, fetches the current version of
+// THORNode via `version` file
+func GetCurrentVersion() semver.Version {
+	_, filename, _, _ := runtime.Caller(0)
+	dir := path.Join(path.Dir(filename), "../../..")
+	dat, err := ioutil.ReadFile(path.Join(dir, "version"))
+	if err != nil {
+		panic(err)
+	}
+	v, err := semver.Make(string(dat))
+	if err != nil {
+		panic(err)
+	}
+	return v
 }

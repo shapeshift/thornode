@@ -17,7 +17,7 @@ func (s TxOutStoreV1Suite) TestAddGasFees(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	tx := GetRandomObservedTx()
 
-	version := constants.SWVersion
+	version := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(version)
 	gasMgr := NewGasMgrV1(constAccessor, k)
 	err := AddGasFees(ctx, k, tx, gasMgr)
