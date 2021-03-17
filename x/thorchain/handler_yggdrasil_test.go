@@ -94,7 +94,7 @@ func newYggdrasilHandlerTestHelper(c *C) yggdrasilHandlerTestHelper {
 	ctx, k := setupKeeperForTest(c)
 	ctx = ctx.WithBlockHeight(1023)
 
-	version, _ := semver.Make("0.32.0")
+	version := GetCurrentVersion()
 	keeper := newYggdrasilTestKeeper(k)
 
 	// test pool

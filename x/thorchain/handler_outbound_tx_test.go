@@ -50,7 +50,7 @@ func (s *HandlerOutboundTxSuite) TestValidate(c *C) {
 	addr, err := keeper.vault.PubKey.GetAddress(common.BNBChain)
 	c.Assert(err, IsNil)
 
-	ver := constants.SWVersion
+	ver := GetCurrentVersion()
 
 	tx := NewObservedTx(common.Tx{
 		ID:          GetRandomTxHash(),
@@ -70,7 +70,7 @@ func (s *HandlerOutboundTxSuite) TestValidate(c *C) {
 	sErr = handler.validate(ctx, *msgOutboundTx, semver.Version{})
 	c.Assert(sErr, Equals, errBadVersion)
 
-	result, err := handler.handle(ctx, *msgOutboundTx, semver.Version{}, constants.GetConstantValues(constants.SWVersion))
+	result, err := handler.handle(ctx, *msgOutboundTx, semver.Version{}, constants.GetConstantValues(GetCurrentVersion()))
 	c.Check(result, IsNil)
 	c.Check(err, NotNil)
 
@@ -192,7 +192,7 @@ func newOutboundTxHandlerTestHelper(c *C) outboundTxHandlerTestHelper {
 	pool.BalanceAsset = cosmos.NewUint(100 * common.One)
 	pool.BalanceRune = cosmos.NewUint(100 * common.One)
 
-	version := constants.SWVersion
+	version := GetCurrentVersion()
 	asgardVault := GetRandomVault()
 	asgardVault.Membership = []string{asgardVault.PubKey.String()}
 	c.Assert(k.SetVault(ctx, asgardVault), IsNil)
@@ -293,7 +293,7 @@ func (s *HandlerOutboundTxSuite) TestOutboundTxHandlerShouldUpdateTxOut(c *C) {
 				return NewMsgOutboundTx(tx, helper.keeper.observeTxVoterErrHash, helper.nodeAccount.NodeAddress)
 			},
 			runner: func(handler OutboundTxHandler, helper outboundTxHandlerTestHelper, msg cosmos.Msg) (*cosmos.Result, error) {
-				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
+				return handler.Run(helper.ctx, msg, GetCurrentVersion(), helper.constAccessor)
 			},
 			expectedResult: errInternal,
 		},
@@ -304,7 +304,7 @@ func (s *HandlerOutboundTxSuite) TestOutboundTxHandlerShouldUpdateTxOut(c *C) {
 			},
 			runner: func(handler OutboundTxHandler, helper outboundTxHandlerTestHelper, msg cosmos.Msg) (*cosmos.Result, error) {
 				helper.keeper.errGetTxOut = true
-				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
+				return handler.Run(helper.ctx, msg, GetCurrentVersion(), helper.constAccessor)
 			},
 			expectedResult: se.ErrUnknownRequest,
 		},
@@ -314,7 +314,7 @@ func (s *HandlerOutboundTxSuite) TestOutboundTxHandlerShouldUpdateTxOut(c *C) {
 				return NewMsgOutboundTx(tx, helper.inboundTx.Tx.ID, helper.nodeAccount.NodeAddress)
 			},
 			runner: func(handler OutboundTxHandler, helper outboundTxHandlerTestHelper, msg cosmos.Msg) (*cosmos.Result, error) {
-				return handler.Run(helper.ctx, msg, constants.SWVersion, helper.constAccessor)
+				return handler.Run(helper.ctx, msg, GetCurrentVersion(), helper.constAccessor)
 			},
 			expectedResult: nil,
 		},
@@ -365,7 +365,7 @@ func (s *HandlerOutboundTxSuite) TestOutboundTxNormalCase(c *C) {
 	}, common.BlockHeight(helper.ctx), helper.yggVault.PubKey, common.BlockHeight(helper.ctx))
 	// valid outbound message, with event, with txout
 	outMsg := NewMsgOutboundTx(tx, helper.inboundTx.Tx.ID, helper.nodeAccount.NodeAddress)
-	_, err = handler.Run(helper.ctx, outMsg, constants.SWVersion, helper.constAccessor)
+	_, err = handler.Run(helper.ctx, outMsg, GetCurrentVersion(), helper.constAccessor)
 	c.Assert(err, IsNil)
 	// txout should had been complete
 
@@ -396,7 +396,7 @@ func (s *HandlerOutboundTxSuite) TestOuboundTxHandlerSendExtraFundShouldBeSlashe
 	expectedVaultTotalReserve := reserve.Add(cosmos.NewUint(common.One * 2).QuoUint64(2))
 	// valid outbound message, with event, with txout
 	outMsg := NewMsgOutboundTx(tx, helper.inboundTx.Tx.ID, helper.nodeAccount.NodeAddress)
-	_, err = handler.Run(helper.ctx, outMsg, constants.SWVersion, helper.constAccessor)
+	_, err = handler.Run(helper.ctx, outMsg, GetCurrentVersion(), helper.constAccessor)
 	c.Assert(err, IsNil)
 	na, err := helper.keeper.GetNodeAccount(helper.ctx, helper.nodeAccount.NodeAddress)
 	c.Assert(na.Bond.Equal(expectedBond), Equals, true)
@@ -425,7 +425,7 @@ func (s *HandlerOutboundTxSuite) TestOutboundTxHandlerSendAdditionalCoinsShouldB
 	expectedBond := cosmos.NewUint(9699947127)
 	// slash one BNB, and one rune
 	outMsg := NewMsgOutboundTx(tx, helper.inboundTx.Tx.ID, helper.nodeAccount.NodeAddress)
-	_, err = handler.Run(helper.ctx, outMsg, constants.SWVersion, helper.constAccessor)
+	_, err = handler.Run(helper.ctx, outMsg, GetCurrentVersion(), helper.constAccessor)
 	c.Assert(err, IsNil)
 	na, err := helper.keeper.GetNodeAccount(helper.ctx, helper.nodeAccount.NodeAddress)
 	c.Assert(na.Bond.Equal(expectedBond), Equals, true, Commentf("%d/%d", na.Bond.Uint64(), expectedBond.Uint64()))
@@ -462,7 +462,7 @@ func (s *HandlerOutboundTxSuite) TestOutboundTxHandlerInvalidObservedTxVoterShou
 	// thus it should be slashed with 1.5 * the full amount of assets
 	outMsg := NewMsgOutboundTx(tx, tx.Tx.ID, helper.nodeAccount.NodeAddress)
 	na, _ := helper.keeper.GetNodeAccount(helper.ctx, helper.nodeAccount.NodeAddress)
-	_, err = handler.Run(helper.ctx, outMsg, constants.SWVersion, helper.constAccessor)
+	_, err = handler.Run(helper.ctx, outMsg, GetCurrentVersion(), helper.constAccessor)
 	c.Assert(err, IsNil)
 	na, err = helper.keeper.GetNodeAccount(helper.ctx, helper.nodeAccount.NodeAddress)
 	c.Assert(na.Bond.Equal(expectedBond), Equals, true, Commentf("%d/%d", na.Bond.Uint64(), expectedBond.Uint64()))

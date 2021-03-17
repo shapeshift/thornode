@@ -100,7 +100,7 @@ func (s *HandlerBanSuite) TestValidate(c *C) {
 	handler := NewBanHandler(keeper, NewDummyMgr())
 	// happy path
 	msg := NewMsgBan(toBan.NodeAddress, banner1.NodeAddress)
-	err := handler.validate(ctx, *msg, constants.SWVersion)
+	err := handler.validate(ctx, *msg, GetCurrentVersion())
 	c.Assert(err, IsNil)
 
 	// invalid version
@@ -109,13 +109,13 @@ func (s *HandlerBanSuite) TestValidate(c *C) {
 
 	// invalid msg
 	msg = &MsgBan{}
-	err = handler.validate(ctx, *msg, constants.SWVersion)
+	err = handler.validate(ctx, *msg, GetCurrentVersion())
 	c.Assert(err, NotNil)
 }
 
 func (s *HandlerBanSuite) TestHandle(c *C) {
 	ctx, _ := setupKeeperForTest(c)
-	constAccessor := constants.GetConstantValues(constants.SWVersion)
+	constAccessor := constants.GetConstantValues(GetCurrentVersion())
 	minBond := constAccessor.GetInt64Value(constants.MinimumBondInRune)
 
 	toBan := GetRandomNodeAccount(NodeActive)
@@ -138,7 +138,7 @@ func (s *HandlerBanSuite) TestHandle(c *C) {
 
 	// ban with banner 1
 	msg := NewMsgBan(toBan.NodeAddress, banner1.NodeAddress)
-	_, err := handler.handle(ctx, *msg, constants.SWVersion, constAccessor)
+	_, err := handler.handle(ctx, *msg, GetCurrentVersion(), constAccessor)
 	c.Assert(err, IsNil)
 	c.Check(int64(keeper.banner1.Bond.Uint64()), Equals, int64(99900000))
 	c.Check(keeper.modules[ReserveName], Equals, int64(100000))
@@ -146,7 +146,7 @@ func (s *HandlerBanSuite) TestHandle(c *C) {
 	c.Check(keeper.ban.Signers, HasLen, 1)
 
 	// ensure banner 1 can't ban twice
-	_, err = handler.handle(ctx, *msg, constants.SWVersion, constAccessor)
+	_, err = handler.handle(ctx, *msg, GetCurrentVersion(), constAccessor)
 	c.Assert(err, IsNil)
 	c.Check(int64(keeper.banner1.Bond.Uint64()), Equals, int64(99900000))
 	c.Check(keeper.modules[ReserveName], Equals, int64(100000))
@@ -155,7 +155,7 @@ func (s *HandlerBanSuite) TestHandle(c *C) {
 
 	// ban with banner 2, which should actually ban the node account
 	msg = NewMsgBan(toBan.NodeAddress, banner2.NodeAddress)
-	_, err = handler.handle(ctx, *msg, constants.SWVersion, constAccessor)
+	_, err = handler.handle(ctx, *msg, GetCurrentVersion(), constAccessor)
 	c.Assert(err, IsNil)
 	c.Check(int64(keeper.banner2.Bond.Uint64()), Equals, int64(99900000))
 	c.Check(keeper.modules[ReserveName], Equals, int64(200000))
@@ -167,7 +167,7 @@ func (s *HandlerBanSuite) TestHandle(c *C) {
 
 func (s *HandlerBanSuite) TestHandleV10(c *C) {
 	ctx, _ := setupKeeperForTest(c)
-	ver := semver.MustParse("0.13.0")
+	ver := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(ver)
 	minBond := constAccessor.GetInt64Value(constants.MinimumBondInRune)
 
@@ -498,8 +498,7 @@ func (s *HandlerBanSuite) TestBanHandlerValidation(c *C) {
 		},
 	}
 	versions := []semver.Version{
-		constants.SWVersion,
-		semver.MustParse("0.13.0"),
+		GetCurrentVersion(),
 	}
 	for _, tc := range testCases {
 		if tc.skipForNativeRUNE {

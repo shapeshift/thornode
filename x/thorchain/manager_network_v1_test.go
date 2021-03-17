@@ -157,7 +157,7 @@ func (k *TestRagnarokChainKeeper) GetGas(_ cosmos.Context, _ common.Asset) ([]co
 }
 
 func (k *TestRagnarokChainKeeper) GetLowestActiveVersion(_ cosmos.Context) semver.Version {
-	return constants.SWVersion
+	return GetCurrentVersion()
 }
 
 func (k *TestRagnarokChainKeeper) AddFeeToReserve(_ cosmos.Context, _ cosmos.Uint) error {
@@ -171,7 +171,7 @@ func (k *TestRagnarokChainKeeper) IsActiveObserver(_ cosmos.Context, _ cosmos.Ac
 func (s *NetworkManagerV1TestSuite) TestRagnarokChain(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	ctx = ctx.WithBlockHeight(100000)
-	ver := constants.SWVersion
+	ver := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(ver)
 
 	activeVault := GetRandomVault()
@@ -282,7 +282,7 @@ func (s *NetworkManagerV1TestSuite) TestRagnarokChain(c *C) {
 
 func (s *NetworkManagerV1TestSuite) TestUpdateNetwork(c *C) {
 	ctx, k := setupKeeperForTest(c)
-	ver := constants.SWVersion
+	ver := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(ver)
 	helper := NewVaultGenesisSetupTestHelper(k)
 	mgr := NewManagers(helper)
@@ -336,7 +336,7 @@ func (s *NetworkManagerV1TestSuite) TestCalcBlockRewards(c *C) {
 	mgr := NewDummyMgr()
 	vaultMgr := NewNetworkMgrV1(keeper.KVStoreDummy{}, mgr.TxOutStore(), mgr.EventMgr())
 
-	ver := constants.SWVersion
+	ver := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(ver)
 	emissionCurve := constAccessor.GetInt64Value(constants.EmissionCurve)
 	incentiveCurve := constAccessor.GetInt64Value(constants.IncentiveCurve)
@@ -469,7 +469,7 @@ func (h *VaultManagerTestHelpKeeper) GetPools(ctx cosmos.Context) (Pools, error)
 
 func (*NetworkManagerV1TestSuite) TestProcessGenesisSetup(c *C) {
 	ctx, k := setupKeeperForTest(c)
-	ver := constants.SWVersion
+	ver := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(ver)
 	helper := NewVaultGenesisSetupTestHelper(k)
 	ctx = ctx.WithBlockHeight(1)

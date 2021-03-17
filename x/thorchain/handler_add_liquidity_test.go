@@ -117,7 +117,7 @@ func (s *HandlerAddLiquiditySuite) TestAddLiquidityHandler(c *C) {
 		BNBGasFeeSingleton,
 		"add:BNB",
 	)
-	ver := constants.SWVersion
+	ver := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(ver)
 	msg := NewMsgAddLiquidity(
 		tx,
@@ -177,7 +177,7 @@ func (s *HandlerAddLiquiditySuite) TestAddLiquidityHandler_NoPool_ShouldCreateNe
 		BNBGasFeeSingleton,
 		"add:BNB",
 	)
-	ver := constants.SWVersion
+	ver := GetCurrentVersion()
 	constAccessor := constants.NewDummyConstants(map[constants.ConstantName]int64{
 		constants.MaximumLiquidityRune: 600_000_00000000,
 	}, map[constants.ConstantName]bool{
@@ -256,7 +256,7 @@ func (s *HandlerAddLiquiditySuite) TestAddLiquidityHandlerValidation(c *C) {
 			expectedResult: errAddLiquidityRUNEMoreThanBond,
 		},
 	}
-	ver := constants.SWVersion
+	ver := GetCurrentVersion()
 	constAccessor := constants.NewDummyConstants(map[constants.ConstantName]int64{
 		constants.MaximumLiquidityRune: 600_000_00000000,
 	}, map[constants.ConstantName]bool{
@@ -322,7 +322,7 @@ func (s *HandlerAddLiquiditySuite) TestHandlerAddLiquidityFailScenario(c *C) {
 			BNBGasFeeSingleton,
 			"add:BNB",
 		)
-		ver := constants.SWVersion
+		ver := GetCurrentVersion()
 		constAccessor := constants.GetConstantValues(ver)
 		msg := NewMsgAddLiquidity(
 			tx,
@@ -511,7 +511,7 @@ func (s *HandlerAddLiquiditySuite) TestAddLiquidityV1(c *C) {
 	assetAddress := GetRandomBNBAddress()
 	btcAddress, err := common.NewAddress("bc1qwqdg6squsna38e46795at95yu9atm8azzmyvckulcc7kytlcckxswvvzej")
 	c.Assert(err, IsNil)
-	constAccessor := constants.GetConstantValues(constants.SWVersion)
+	constAccessor := constants.GetConstantValues(GetCurrentVersion())
 	h := NewAddLiquidityHandler(ps, NewDummyMgr())
 	err = h.addLiquidityV1(ctx, common.Asset{}, cosmos.NewUint(100*common.One), cosmos.NewUint(100*common.One), runeAddress, assetAddress, txID, false, constAccessor)
 	c.Assert(err, NotNil)
@@ -606,7 +606,7 @@ func (HandlerAddLiquiditySuite) TestRuneOnlyLiquidity(c *C) {
 	}), IsNil)
 
 	runeAddr := GetRandomRUNEAddress()
-	constAccessor := constants.GetConstantValues(constants.SWVersion)
+	constAccessor := constants.GetConstantValues(GetCurrentVersion())
 	h := NewAddLiquidityHandler(k, NewDummyMgr())
 	err := h.addLiquidityV1(ctx, common.BTCAsset, cosmos.NewUint(100*common.One), cosmos.ZeroUint(), runeAddr, common.NoAddress, txID, false, constAccessor)
 	c.Assert(err, IsNil)
@@ -633,7 +633,7 @@ func (HandlerAddLiquiditySuite) TestAssetOnlyProvidedLiquidity(c *C) {
 	}), IsNil)
 
 	assetAddr := GetRandomBTCAddress()
-	constAccessor := constants.GetConstantValues(constants.SWVersion)
+	constAccessor := constants.GetConstantValues(GetCurrentVersion())
 	h := NewAddLiquidityHandler(k, NewDummyMgr())
 	err := h.addLiquidityV1(ctx, common.BTCAsset, cosmos.ZeroUint(), cosmos.NewUint(100*common.One), common.NoAddress, assetAddr, txID, false, constAccessor)
 	c.Assert(err, IsNil)

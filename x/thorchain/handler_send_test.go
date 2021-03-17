@@ -26,7 +26,7 @@ func (s *HandlerSendSuite) TestValidate(c *C) {
 		Amount:      cosmos.NewCoins(cosmos.NewCoin("dummy", cosmos.NewInt(12))),
 	}
 	handler := NewSendHandler(k, NewDummyMgr())
-	err := handler.validate(ctx, msg, constants.SWVersion)
+	err := handler.validate(ctx, msg, GetCurrentVersion())
 	c.Assert(err, IsNil)
 
 	// invalid version
@@ -35,13 +35,13 @@ func (s *HandlerSendSuite) TestValidate(c *C) {
 
 	// invalid msg
 	msg = MsgSend{}
-	err = handler.validate(ctx, msg, constants.SWVersion)
+	err = handler.validate(ctx, msg, GetCurrentVersion())
 	c.Assert(err, NotNil)
 }
 
 func (s *HandlerSendSuite) TestHandle(c *C) {
 	ctx, k := setupKeeperForTest(c)
-	constAccessor := constants.GetConstantValues(constants.SWVersion)
+	constAccessor := constants.GetConstantValues(GetCurrentVersion())
 
 	addr1 := GetRandomBech32Addr()
 	addr2 := GetRandomBech32Addr()
@@ -60,11 +60,11 @@ func (s *HandlerSendSuite) TestHandle(c *C) {
 	}
 
 	handler := NewSendHandler(k, NewDummyMgr())
-	_, err = handler.handle(ctx, msg, constants.SWVersion, constAccessor)
+	_, err = handler.handle(ctx, msg, GetCurrentVersion(), constAccessor)
 	c.Assert(err, IsNil)
 
 	// invalid msg should result in a error
-	result, err := handler.Run(ctx, NewMsgNetworkFee(ctx.BlockHeight(), common.BNBChain, 1, bnbSingleTxFee.Uint64(), GetRandomBech32Addr()), constants.SWVersion, constAccessor)
+	result, err := handler.Run(ctx, NewMsgNetworkFee(ctx.BlockHeight(), common.BNBChain, 1, bnbSingleTxFee.Uint64(), GetRandomBech32Addr()), GetCurrentVersion(), constAccessor)
 	c.Assert(err, NotNil)
 	c.Assert(result, IsNil)
 	// insufficient funds
@@ -75,6 +75,6 @@ func (s *HandlerSendSuite) TestHandle(c *C) {
 		ToAddress:   addr2,
 		Amount:      cosmos.NewCoins(coin),
 	}
-	_, err = handler.handle(ctx, msg, constants.SWVersion, constAccessor)
+	_, err = handler.handle(ctx, msg, GetCurrentVersion(), constAccessor)
 	c.Assert(err, NotNil)
 }
