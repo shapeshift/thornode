@@ -56,7 +56,9 @@ func (h SwapHandler) validateV1(ctx cosmos.Context, msg MsgSwap) error {
 
 func (h SwapHandler) handle(ctx cosmos.Context, msg MsgSwap, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	ctx.Logger().Info("receive MsgSwap", "request tx hash", msg.Tx.ID, "source asset", msg.Tx.Coins[0].Asset, "target asset", msg.TargetAsset, "signer", msg.Signer.String())
-	if version.GTE(semver.MustParse("0.32.0")) {
+	if version.GTE(semver.MustParse("0.33.0")) {
+		return h.handleV33(ctx, msg, version, constAccessor)
+	} else if version.GTE(semver.MustParse("0.32.0")) {
 		return h.handleV32(ctx, msg, version, constAccessor)
 	} else if version.GTE(semver.MustParse("0.1.0")) {
 		return h.handleV1(ctx, msg, version, constAccessor)
@@ -92,6 +94,32 @@ func (h SwapHandler) handleV32(ctx cosmos.Context, msg MsgSwap, version semver.V
 		return nil, fmt.Errorf("only NATIVE RUNE can be used for swap")
 	}
 	transactionFee := h.mgr.GasMgr().GetFee(ctx, msg.TargetAsset.GetChain(), common.RuneAsset())
+	synthVirtualDepthMult, err := h.keeper.GetMimir(ctx, constants.VirtualMultSynths.String())
+	if synthVirtualDepthMult < 1 || err != nil {
+		synthVirtualDepthMult = constAccessor.GetInt64Value(constants.VirtualMultSynths)
+	}
+	_, _, swapErr := swapV1(
+		ctx,
+		h.keeper,
+		msg.Tx,
+		msg.TargetAsset,
+		msg.Destination,
+		msg.TradeTarget,
+		transactionFee,
+		synthVirtualDepthMult,
+		h.mgr)
+	if swapErr != nil {
+		return nil, swapErr
+	}
+	return &cosmos.Result{}, nil
+}
+
+func (h SwapHandler) handleV33(ctx cosmos.Context, msg MsgSwap, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+	// TODO MOVE this into msg.ValidateBasic when prepare for chaosnet
+	if msg.GetTx().Coins.HasNoneNativeRune() {
+		return nil, fmt.Errorf("only NATIVE RUNE can be used for swap")
+	}
+	transactionFee := h.mgr.GasMgr().GetFee(ctx, msg.Destination.GetChain(), common.RuneAsset())
 	synthVirtualDepthMult, err := h.keeper.GetMimir(ctx, constants.VirtualMultSynths.String())
 	if synthVirtualDepthMult < 1 || err != nil {
 		synthVirtualDepthMult = constAccessor.GetInt64Value(constants.VirtualMultSynths)
