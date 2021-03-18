@@ -29,14 +29,19 @@ func NewCommonOutboundTxHandler(k keeper.Keeper, mgr Manager) CommonOutboundTxHa
 }
 
 func (h CommonOutboundTxHandler) slash(ctx cosmos.Context, version semver.Version, tx ObservedTx) error {
-	var returnErr error
-	for _, c := range tx.Tx.Coins {
-		if err := h.mgr.Slasher().SlashNodeAccount(ctx, tx.ObservedPubKey, c.Asset, c.Amount, h.mgr); err != nil {
-			ctx.Logger().Error("fail to slash account", "error", err)
-			returnErr = err
+	if version.GTE(semver.MustParse("0.32.0")) {
+		toSlash := tx.Tx.Coins.Adds(tx.Tx.Gas.ToCoins())
+		return h.mgr.Slasher().SlashVault(ctx, tx.ObservedPubKey, toSlash, h.mgr)
+	} else {
+		var returnErr error
+		for _, c := range tx.Tx.Coins {
+			if err := h.mgr.Slasher().SlashNodeAccount(ctx, tx.ObservedPubKey, c.Asset, c.Amount, h.mgr); err != nil {
+				ctx.Logger().Error("fail to slash account", "error", err)
+				returnErr = err
+			}
 		}
+		return returnErr
 	}
-	return returnErr
 }
 
 func (h CommonOutboundTxHandler) handle(ctx cosmos.Context, version semver.Version, tx ObservedTx, inTxID common.TxID, constAccessor constants.ConstantValues) (*cosmos.Result, error) {

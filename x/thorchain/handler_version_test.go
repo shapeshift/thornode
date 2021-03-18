@@ -74,7 +74,7 @@ func (s *HandlerVersionSuite) TestValidate(c *C) {
 
 	handler := NewVersionHandler(keeper, NewDummyMgr())
 	// happy path
-	ver := constants.SWVersion
+	ver := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(ver)
 	msg := NewMsgSetVersion(ver.String(), keeper.na.NodeAddress)
 	result, err := handler.Run(ctx, msg, ver, constAccessor)
@@ -108,7 +108,7 @@ func (s *HandlerVersionSuite) TestValidate(c *C) {
 
 func (s *HandlerVersionSuite) TestHandle(c *C) {
 	ctx, _ := setupKeeperForTest(c)
-	ver := constants.SWVersion
+	ver := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(ver)
 
 	keeper := &TestVersionlKeeper{

@@ -18,7 +18,7 @@ type HandlerLeaveSuite struct{}
 var _ = Suite(&HandlerLeaveSuite{})
 
 func (HandlerLeaveSuite) TestLeaveHandler_NotActiveNodeLeave(c *C) {
-	w := getHandlerTestWrapperWithVersion(c, 1, true, false, semver.MustParse("0.1.0"))
+	w := getHandlerTestWrapperWithVersion(c, 1, true, false, GetCurrentVersion())
 	vault := GetRandomVault()
 	w.keeper.SetVault(w.ctx, vault)
 	leaveHandler := NewLeaveHandler(w.keeper, NewDummyMgr())
@@ -40,7 +40,7 @@ func (HandlerLeaveSuite) TestLeaveHandler_NotActiveNodeLeave(c *C) {
 		"LEAVE",
 	)
 	msgLeave := NewMsgLeave(tx, acc2.NodeAddress, w.activeNodeAccount.NodeAddress)
-	ver := semver.MustParse("0.1.0")
+	ver := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(ver)
 	_, err := leaveHandler.Run(w.ctx, msgLeave, ver, constAccessor)
 	c.Assert(err, IsNil)
@@ -53,7 +53,7 @@ func (HandlerLeaveSuite) TestLeaveHandler_NotActiveNodeLeave(c *C) {
 
 func (HandlerLeaveSuite) TestLeaveHandler_ActiveNodeLeave(c *C) {
 	var err error
-	w := getHandlerTestWrapperWithVersion(c, 1, true, false, semver.MustParse("0.1.0"))
+	w := getHandlerTestWrapperWithVersion(c, 1, true, false, GetCurrentVersion())
 	leaveHandler := NewLeaveHandler(w.keeper, NewDummyMgr())
 	acc2 := GetRandomNodeAccount(NodeActive)
 	acc2.Bond = cosmos.NewUint(100 * common.One)
@@ -68,7 +68,7 @@ func (HandlerLeaveSuite) TestLeaveHandler_ActiveNodeLeave(c *C) {
 		"",
 	)
 	msgLeave := NewMsgLeave(tx, acc2.NodeAddress, w.activeNodeAccount.NodeAddress)
-	ver := constants.SWVersion
+	ver := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(ver)
 	_, err = leaveHandler.Run(w.ctx, msgLeave, ver, constAccessor)
 	c.Assert(err, IsNil)
@@ -80,7 +80,7 @@ func (HandlerLeaveSuite) TestLeaveHandler_ActiveNodeLeave(c *C) {
 
 func (HandlerLeaveSuite) TestLeaveHandlerV5_ActiveNodeLeave(c *C) {
 	var err error
-	w := getHandlerTestWrapperWithVersion(c, 1, true, false, semver.MustParse("0.1.0"))
+	w := getHandlerTestWrapperWithVersion(c, 1, true, false, GetCurrentVersion())
 	leaveHandler := NewLeaveHandler(w.keeper, NewDummyMgr())
 	acc2 := GetRandomNodeAccount(NodeActive)
 	acc2.Bond = cosmos.NewUint(100 * common.One)
@@ -95,7 +95,7 @@ func (HandlerLeaveSuite) TestLeaveHandlerV5_ActiveNodeLeave(c *C) {
 		"",
 	)
 	msgLeave := NewMsgLeave(tx, acc2.NodeAddress, w.activeNodeAccount.NodeAddress)
-	ver := semver.MustParse("0.5.0")
+	ver := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(ver)
 	_, err = leaveHandler.Run(w.ctx, msgLeave, ver, constAccessor)
 	c.Assert(err, IsNil)
@@ -106,7 +106,7 @@ func (HandlerLeaveSuite) TestLeaveHandlerV5_ActiveNodeLeave(c *C) {
 }
 
 func (HandlerLeaveSuite) TestLeaveJail(c *C) {
-	w := getHandlerTestWrapperWithVersion(c, 1, true, false, semver.MustParse("0.1.0"))
+	w := getHandlerTestWrapperWithVersion(c, 1, true, false, GetCurrentVersion())
 	vault := GetRandomVault()
 	w.keeper.SetVault(w.ctx, vault)
 	leaveHandler := NewLeaveHandler(w.keeper, NewDummyMgr())
@@ -131,15 +131,15 @@ func (HandlerLeaveSuite) TestLeaveJail(c *C) {
 		"LEAVE",
 	)
 	msgLeave := NewMsgLeave(tx, acc2.NodeAddress, w.activeNodeAccount.NodeAddress)
-	ver := constants.SWVersion
+	ver := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(ver)
 	_, err := leaveHandler.Run(w.ctx, msgLeave, ver, constAccessor)
 	c.Assert(err, NotNil)
 }
 
 func (HandlerLeaveSuite) TestLeaveValidation(c *C) {
-	w := getHandlerTestWrapperWithVersion(c, 1, true, false, semver.MustParse("0.1.0"))
-	ver := constants.SWVersion
+	w := getHandlerTestWrapperWithVersion(c, 1, true, false, GetCurrentVersion())
+	ver := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(ver)
 	testCases := []struct {
 		name          string
@@ -431,7 +431,7 @@ func (HandlerLeaveSuite) TestLeaveDifferentValidations(c *C) {
 		mgr.BeginBlock(ctx)
 		handler := NewLeaveHandler(helper, mgr)
 		msg := tc.messageProvider(ctx, helper)
-		ver := semver.MustParse("0.1.0")
+		ver := GetCurrentVersion()
 		constantAccessor := constants.GetConstantValues(ver)
 		result, err := handler.Run(ctx, msg, ver, constantAccessor)
 		tc.validator(c, ctx, result, err, helper, tc.name, msg)

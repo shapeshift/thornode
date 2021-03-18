@@ -3,7 +3,6 @@ package thorchain
 import (
 	"errors"
 
-	"github.com/blang/semver"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
@@ -233,7 +232,7 @@ func (s *SlashingV1Suite) TestObservingSlashing(c *C) {
 	k.SetTxOut(ctx, txOut)
 
 	ctx = ctx.WithBlockHeight(height + 300)
-	ver := semver.MustParse("0.17.0")
+	ver := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(ver)
 
 	slasher := NewSlasherV1(k)
@@ -284,7 +283,7 @@ func (s *SlashingV1Suite) TestLackObservingErrors(c *C) {
 		addrs:    []cosmos.AccAddress{nas[0].NodeAddress},
 		slashPts: make(map[string]int64, 0),
 	}
-	ver := semver.MustParse("0.17.0")
+	ver := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(ver)
 	slasher := NewSlasherV1(keeper)
 	err := slasher.LackObserving(ctx, constAccessor)
@@ -344,7 +343,7 @@ func (s *SlashingV1Suite) TestNodeSignSlashErrors(c *C) {
 		c.Logf("name:%s", item.name)
 		ctx, _ := setupKeeperForTest(c)
 		ctx = ctx.WithBlockHeight(201) // set blockheight
-		ver := semver.MustParse("0.17.0")
+		ver := GetCurrentVersion()
 		constAccessor := constants.GetConstantValues(ver)
 		na := GetRandomNodeAccount(NodeActive)
 		inTx := common.NewTx(
@@ -398,7 +397,7 @@ func (s *SlashingV1Suite) TestNotSigningSlash(c *C) {
 	ctx, _ := setupKeeperForTest(c)
 	ctx = ctx.WithBlockHeight(201) // set blockheight
 	txOutStore := NewTxStoreDummy()
-	ver := semver.MustParse("0.17.0")
+	ver := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(ver)
 	na := GetRandomNodeAccount(NodeActive)
 	inTx := common.NewTx(
@@ -474,7 +473,7 @@ func (s *SlashingV1Suite) TestNewSlasher(c *C) {
 
 func (s *SlashingV1Suite) TestDoubleSign(c *C) {
 	ctx, _ := setupKeeperForTest(c)
-	constAccessor := constants.GetConstantValues(constants.SWVersion)
+	constAccessor := constants.GetConstantValues(GetCurrentVersion())
 
 	na := GetRandomNodeAccount(NodeActive)
 	na.Bond = cosmos.NewUint(100 * common.One)

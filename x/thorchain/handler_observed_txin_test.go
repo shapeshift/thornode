@@ -54,7 +54,7 @@ func (s *HandlerObservedTxInSuite) TestValidate(c *C) {
 	handler := NewObservedTxInHandler(keeper, NewDummyMgr())
 
 	// happy path
-	ver := constants.SWVersion
+	ver := GetCurrentVersion()
 	pk := GetRandomPubKey()
 	txs := ObservedTxs{NewObservedTx(GetRandomTx(), 12, pk, 12)}
 	txs[0].Tx.ToAddress, err = pk.GetAddress(txs[0].Tx.Coins[0].Asset.Chain)
@@ -101,7 +101,7 @@ func (s *HandlerObservedTxInSuite) TestFailure(c *C) {
 	mgr := NewDummyMgr()
 
 	tx := NewObservedTx(GetRandomTx(), 12, GetRandomPubKey(), 12)
-	ver := constants.SWVersion
+	ver := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(ver)
 	err := refundTx(ctx, tx, mgr, keeper, constAccessor, CodeInvalidMemo, "Invalid memo", "")
 	c.Assert(err, IsNil)
@@ -175,7 +175,7 @@ func (k *TestObservedTxInHandleKeeper) SetVault(_ cosmos.Context, vault Vault) e
 }
 
 func (k *TestObservedTxInHandleKeeper) GetLowestActiveVersion(_ cosmos.Context) semver.Version {
-	return constants.SWVersion
+	return GetCurrentVersion()
 }
 
 func (k *TestObservedTxInHandleKeeper) IsActiveObserver(_ cosmos.Context, addr cosmos.AccAddress) bool {
@@ -206,8 +206,8 @@ func (k *TestObservedTxInHandleKeeper) SetLastObserveHeight(ctx cosmos.Context, 
 }
 
 func (s *HandlerObservedTxInSuite) TestHandle(c *C) {
-	s.testHandleWithVersion(c, constants.SWVersion)
-	s.testHandleWithConfirmation(c, constants.SWVersion)
+	s.testHandleWithVersion(c, GetCurrentVersion())
+	s.testHandleWithConfirmation(c, GetCurrentVersion())
 }
 
 func (s *HandlerObservedTxInSuite) testHandleWithConfirmation(c *C, ver semver.Version) {
@@ -387,7 +387,7 @@ func (s *HandlerObservedTxInSuite) testHandleWithVersion(c *C, ver semver.Versio
 
 // Test migrate memo
 func (s *HandlerObservedTxInSuite) TestMigrateMemo(c *C) {
-	s.testMigrateMemoWithVersion(c, constants.SWVersion)
+	s.testMigrateMemoWithVersion(c, GetCurrentVersion())
 }
 
 // Test migrate memo
@@ -705,8 +705,7 @@ func (HandlerObservedTxInSuite) TestObservedTxHandler_validations(c *C) {
 		},
 	}
 	versions := []semver.Version{
-		constants.SWVersion,
-		semver.MustParse("0.13.0"),
+		GetCurrentVersion(),
 	}
 	for _, tc := range testCases {
 		for _, ver := range versions {
@@ -730,7 +729,7 @@ func (s HandlerObservedTxInSuite) TestSwapWithAffiliate(c *C) {
 	mgr := NewManagers(k)
 	mgr.BeginBlock(ctx)
 	handler := NewObservedTxInHandler(k, mgr)
-	ver := constants.SWVersion
+	ver := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(ver)
 
 	msg := NewMsgSwap(common.Tx{

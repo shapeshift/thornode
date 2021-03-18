@@ -59,7 +59,7 @@ func (s *HandlerSetNodeKeysSuite) TestValidate(c *C) {
 	handler := NewSetNodeKeysHandler(keeper, NewDummyMgr())
 
 	// happy path
-	ver := constants.SWVersion
+	ver := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(ver)
 	signer := GetRandomBech32Addr()
 	c.Assert(signer.Empty(), Equals, false)
@@ -94,7 +94,7 @@ func (s *HandlerSetNodeKeysSuite) TestValidate(c *C) {
 	keeper.ensure = nil
 
 	// new version GT
-	err = handler.validate(ctx, *msg, semver.MustParse("2.0.0"), constAccessor)
+	err = handler.validate(ctx, *msg, GetCurrentVersion(), constAccessor)
 	c.Assert(err, IsNil)
 
 	// invalid version
@@ -173,7 +173,7 @@ func (s *HandlerSetNodeKeysSuite) TestHandle(c *C) {
 	mgr := NewManagers(helper)
 	mgr.BeginBlock(ctx)
 	handler := NewSetNodeKeysHandler(helper, mgr)
-	ver := constants.SWVersion
+	ver := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(ver)
 	ctx = ctx.WithBlockHeight(1)
 	signer := GetRandomBech32Addr()
@@ -284,8 +284,8 @@ func (s *HandlerSetNodeKeysSuite) TestHandle(c *C) {
 		mgr.BeginBlock(ctx)
 		handler := NewSetNodeKeysHandler(helper, mgr)
 		msg := tc.messageProvider(c, ctx, helper)
-		constantAccessor := constants.GetConstantValues(constants.SWVersion)
-		result, err := handler.Run(ctx, msg, semver.MustParse("0.1.0"), constantAccessor)
+		constantAccessor := constants.GetConstantValues(GetCurrentVersion())
+		result, err := handler.Run(ctx, msg, GetCurrentVersion(), constantAccessor)
 		tc.validator(c, ctx, result, err, helper, tc.name)
 	}
 }
