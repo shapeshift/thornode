@@ -113,8 +113,7 @@ class Health:
             if vault["coins"]:
                 vault["coins"] = [Coin.from_dict(c) for c in vault["coins"]]
 
-        yggdrasils = self.thorchain_client.get_yggdrasil_vaults()
-        self.thorchain_yggdrasils = [v["vault"] for v in yggdrasils]
+        self.thorchain_yggdrasils = self.thorchain_client.get_yggdrasil_vaults()
         for vault in self.thorchain_yggdrasils:
             if vault["coins"]:
                 vault["coins"] = [Coin.from_dict(c) for c in vault["coins"]]
