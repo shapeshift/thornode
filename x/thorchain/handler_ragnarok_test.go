@@ -41,13 +41,13 @@ func (HandlerRagnarokSuite) TestRagnarok(c *C) {
 
 	// invalid message should result errors
 	msg := NewMsgNetworkFee(ctx.BlockHeight(), common.BNBChain, 1, bnbSingleTxFee.Uint64(), GetRandomBech32Addr())
-	result, err := handler.Run(ctx, msg, constants.SWVersion, constants.GetConstantValues(constants.SWVersion))
+	result, err := handler.Run(ctx, msg, GetCurrentVersion(), constants.GetConstantValues(GetCurrentVersion()))
 	c.Check(result, IsNil, Commentf("invalid message should result an error"))
 	c.Check(err, NotNil, Commentf("invalid message should result an error"))
 	addr, err := keeper.vault.PubKey.GetAddress(common.BNBChain)
 	c.Assert(err, IsNil)
 
-	ver := constants.SWVersion
+	ver := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(ver)
 
 	tx := NewObservedTx(common.Tx{
@@ -67,7 +67,7 @@ func (HandlerRagnarokSuite) TestRagnarok(c *C) {
 	// invalid version
 	err = handler.validate(ctx, *msgRagnarok, semver.Version{})
 	c.Assert(err, Equals, errInvalidVersion)
-	result, err = handler.Run(ctx, msgRagnarok, semver.Version{}, constants.GetConstantValues(constants.SWVersion))
+	result, err = handler.Run(ctx, msgRagnarok, semver.Version{}, constants.GetConstantValues(GetCurrentVersion()))
 	c.Check(result, IsNil, Commentf("invalid version should result an error"))
 	c.Check(err, NotNil, Commentf("invalid version should result an error"))
 	c.Check(errors.Is(err, errInvalidVersion), Equals, true)
@@ -79,7 +79,7 @@ func (HandlerRagnarokSuite) TestRagnarok(c *C) {
 	msgRagnarok = &MsgRagnarok{}
 	err = handler.validate(ctx, *msgRagnarok, ver)
 	c.Assert(err, NotNil)
-	result, err = handler.Run(ctx, msgRagnarok, constants.SWVersion, constants.GetConstantValues(constants.SWVersion))
+	result, err = handler.Run(ctx, msgRagnarok, GetCurrentVersion(), constants.GetConstantValues(GetCurrentVersion()))
 	c.Check(err, NotNil, Commentf("invalid message should fail validation"))
 	c.Check(result, IsNil, Commentf("invalid message should fail validation"))
 }
@@ -164,7 +164,7 @@ func (HandlerRagnarokSuite) TestRagnarokHappyPath(c *C) {
 	}, 1, retireVault.PubKey, 1)
 
 	msgRagnarok := NewMsgRagnarok(tx, 1, keeper.activeNodeAccount.NodeAddress)
-	ver := constants.SWVersion
+	ver := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(ver)
 	_, err = handler.handleV1(ctx, ver, *msgRagnarok, constAccessor)
 	c.Assert(err, IsNil)
@@ -180,7 +180,7 @@ func (HandlerRagnarokSuite) TestRagnarokHappyPath(c *C) {
 func (HandlerRagnarokSuite) TestSlash(c *C) {
 	ctx, _ := setupKeeperForTest(c)
 	retireVault := GetRandomVault()
-	ver := constants.SWVersion
+	ver := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(ver)
 
 	newVault := GetRandomVault()
@@ -221,7 +221,7 @@ func (HandlerRagnarokSuite) TestSlash(c *C) {
 	}, 1, retireVault.PubKey, 1)
 
 	msgRagnarok := NewMsgRagnarok(tx, 1, keeper.activeNodeAccount.NodeAddress)
-	_, err = handler.handleV1(ctx, constants.SWVersion, *msgRagnarok, constAccessor)
+	_, err = handler.handleV1(ctx, GetCurrentVersion(), *msgRagnarok, constAccessor)
 	c.Assert(err, IsNil)
 	c.Assert(keeper.activeNodeAccount.Bond.Equal(cosmos.NewUint(9999998464)), Equals, true, Commentf("%d", keeper.activeNodeAccount.Bond.Uint64()))
 }

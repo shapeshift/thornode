@@ -51,7 +51,7 @@ func (HandlerDonateSuite) TestDonate(c *C) {
 	mgr := NewDummyMgr()
 	donateHandler := NewDonateHandler(w.keeper, mgr)
 	msg := NewMsgDonate(GetRandomTx(), common.BNBAsset, cosmos.NewUint(common.One*5), cosmos.NewUint(common.One*5), w.activeNodeAccount.NodeAddress)
-	ver := constants.SWVersion
+	ver := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(ver)
 	_, err = donateHandler.Run(w.ctx, msg, ver, constAccessor)
 	c.Assert(err, IsNil)
@@ -65,7 +65,7 @@ func (HandlerDonateSuite) TestDonate(c *C) {
 	_, err = donateHandler.Run(w.ctx, msg, ver, constAccessor)
 	c.Check(errors.Is(err, errBadVersion), Equals, true)
 	msgBan := NewMsgBan(GetRandomBech32Addr(), w.activeNodeAccount.NodeAddress)
-	result, err := donateHandler.Run(w.ctx, msgBan, semver.MustParse("0.1.0"), constAccessor)
+	result, err := donateHandler.Run(w.ctx, msgBan, GetCurrentVersion(), constAccessor)
 	c.Check(err, NotNil)
 	c.Check(errors.Is(err, errInvalidMessage), Equals, true)
 	c.Check(result, IsNil)
@@ -73,7 +73,7 @@ func (HandlerDonateSuite) TestDonate(c *C) {
 	testKeeper := NewHandlerDonateTestHelper(w.keeper)
 	testKeeper.failToGetPool = true
 	donateHandler1 := NewDonateHandler(testKeeper, mgr)
-	result, err = donateHandler1.Run(w.ctx, msg, semver.MustParse("0.1.0"), constAccessor)
+	result, err = donateHandler1.Run(w.ctx, msg, GetCurrentVersion(), constAccessor)
 	c.Check(err, NotNil)
 	c.Check(errors.Is(err, errInternal), Equals, true)
 	c.Check(result, IsNil)
@@ -81,7 +81,7 @@ func (HandlerDonateSuite) TestDonate(c *C) {
 	testKeeper = NewHandlerDonateTestHelper(w.keeper)
 	testKeeper.failToSavePool = true
 	donateHandler2 := NewDonateHandler(testKeeper, mgr)
-	result, err = donateHandler2.Run(w.ctx, msg, semver.MustParse("0.1.0"), constAccessor)
+	result, err = donateHandler2.Run(w.ctx, msg, GetCurrentVersion(), constAccessor)
 	c.Check(err, NotNil)
 	c.Check(errors.Is(err, errInternal), Equals, true)
 	c.Check(result, IsNil)
@@ -112,7 +112,7 @@ func (HandlerDonateSuite) TestHandleMsgDonateValidation(c *C) {
 	}
 
 	donateHandler := NewDonateHandler(w.keeper, NewDummyMgr())
-	ver := constants.SWVersion
+	ver := GetCurrentVersion()
 	cosntAccessor := constants.GetConstantValues(ver)
 	for _, item := range testCases {
 		_, err := donateHandler.Run(w.ctx, item.msg, ver, cosntAccessor)

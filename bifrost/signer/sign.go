@@ -1,6 +1,7 @@
 package signer
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strconv"
@@ -176,10 +177,24 @@ func (s *Signer) signTransactions() {
 	}
 }
 
+func (s *Signer) runWithContext(ctx context.Context, fn func() error) error {
+	ch := make(chan error)
+	go func() {
+		ch <- fn()
+	}()
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case err := <-ch:
+		return err
+	}
+}
+
 func (s *Signer) processTransactions() {
 	wg := &sync.WaitGroup{}
 	for _, items := range s.storage.OrderedLists() {
 		wg.Add(1)
+
 		go func(items []TxOutStoreItem) {
 			defer wg.Done()
 			for i, item := range items {
@@ -192,13 +207,22 @@ func (s *Signer) processTransactions() {
 					}
 
 					s.logger.Info().Msgf("Signing transaction (Num: %d | Height: %d | Status: %d): %+v", i, item.Height, item.Status, item.TxOutItem)
-					if err := s.signAndBroadcast(item); err != nil {
+					// a single keysign should not take longer than 5 minutes , regardless TSS or local
+					ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+					if err := s.runWithContext(ctx, func() error {
+						return s.signAndBroadcast(item)
+					}); err != nil {
+						if errors.Is(err, context.DeadlineExceeded) {
+							panic(fmt.Errorf("tx out item: %+v , keysign timeout : %w", item.TxOutItem, err))
+						}
 						s.logger.Error().Err(err).Msg("fail to sign and broadcast tx out store item")
 						if err := s.storage.Set(item); err != nil {
 							s.logger.Error().Err(err).Msg("fail to update tx out store item with retry #")
 						}
+						cancel()
 						return
 					}
+					cancel()
 					// We have a successful broadcast! Remove the item from our store
 					item.Status = TxSpent
 					if err := s.storage.Set(item); err != nil {

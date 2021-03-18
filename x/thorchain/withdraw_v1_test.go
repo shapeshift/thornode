@@ -8,7 +8,6 @@ import (
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
-	"gitlab.com/thorchain/thornode/constants"
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
@@ -459,7 +458,7 @@ func (WithdrawSuite) TestWithdraw(c *C) {
 	}
 	for _, tc := range testCases {
 		c.Logf("name:%s", tc.name)
-		version := constants.SWVersion
+		version := GetCurrentVersion()
 		mgr := NewManagers(tc.ps)
 		mgr.BeginBlock(ctx)
 		tc.ps.SaveNetworkFee(ctx, common.BNBChain, NetworkFee{
@@ -523,7 +522,7 @@ func (WithdrawSuite) TestWithdrawAsym(c *C) {
 	}
 	for _, tc := range testCases {
 		c.Logf("name:%s", tc.name)
-		version := constants.SWVersion
+		version := GetCurrentVersion()
 		ctx, k := setupKeeperForTest(c)
 		ps := getWithdrawTestKeeper2(c, ctx, k, runeAddress)
 		mgr := NewManagers(ps)
@@ -548,7 +547,7 @@ func (WithdrawSuite) TestWithdrawAsym(c *C) {
 }
 
 func (WithdrawSuite) TestWithdrawPendingRuneOrAsset(c *C) {
-	version := constants.SWVersion
+	version := GetCurrentVersion()
 	accountAddr := GetRandomNodeAccount(NodeActive).NodeAddress
 	ctx, k := setupKeeperForTest(c)
 	mgr := NewManagers(k)

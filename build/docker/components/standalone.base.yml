@@ -57,6 +57,7 @@ services:
       SIGNER_SEED_PHRASE: ${SIGNER_SEED_PHRASE:-}
       CONTRACT: ${CONTRACT:-}
       THORNODE_API_ENABLE: "true"
+      HARDFORK_BLOCK_HEIGHT: ${HARDFORK_BLOCK_HEIGHT:-}
     ports:
       - "26657:26657"
       - "26656:26656"

@@ -22,10 +22,10 @@ if [ ! -f ~/.thornode/config/genesis.json ]; then
     if [ $? -gt 0 ]; then
       if [ "$SIGNER_SEED_PHRASE" != "" ]; then
         printf "$SIGNER_SEED_PHRASE\n$SIGNER_PASSWD\n$SIGNER_PASSWD\n" | thornode keys --keyring-backend file add $SIGNER_NAME --recover
-        NODE_PUB_KEY_ED25519=$(echo "$SIGNER_PASSWD\n$SIGNER_SEED_PHRASE\n" | thornode ed25519)
+        NODE_PUB_KEY_ED25519=$(printf "$SIGNER_PASSWD\n$SIGNER_SEED_PHRASE\n" | thornode ed25519 )
       else
         RESULT=$(printf "$SIGNER_PASSWD\n$SIGNER_PASSWD\n" | thornode keys --keyring-backend file add $SIGNER_NAME --output json 2>&1)
-        MNEMONIC=$(echo $RESULT|jq -r '.mnemonic')
+        MNEMONIC=$(echo "$RESULT" | jq -r '.mnemonic')
         NODE_PUB_KEY_ED25519=$(printf "$SIGNER_PASSWD\n$MNEMONIC\n" | thornode ed25519)
       fi
     fi

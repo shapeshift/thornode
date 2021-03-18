@@ -311,7 +311,7 @@ func (k KVStore) MintToModule(ctx cosmos.Context, module string, coin common.Coi
 	coinsToMint := cosmos.Coins{coinToMint}
 	err = k.coinKeeper.MintCoins(ctx, module, coinsToMint)
 	if err != nil {
-		return fmt.Errorf("fail to burn assets: %w", err)
+		return fmt.Errorf("fail to mint assets: %w", err)
 	}
 
 	return nil

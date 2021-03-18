@@ -373,8 +373,11 @@ func (e *ETHScanner) extractTxs(block *etypes.Block) (stypes.TxIn, error) {
 		if txInItem == nil {
 			continue
 		}
+		// sometimes if a transaction failed due to gas problem , it will have no `to` address
+		if len(txInItem.To) == 0 {
+			continue
+		}
 		if len([]byte(txInItem.Memo)) > constants.MaxMemoSize {
-			e.logger.Info().Msgf("tx(%s) memo (%s) longer than (%d) , ignored", txInItem.Tx, txInItem.Memo, constants.MaxMemoSize)
 			continue
 		}
 		txInItem.BlockHeight = block.Number().Int64()

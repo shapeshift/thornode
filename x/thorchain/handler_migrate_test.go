@@ -2,6 +2,7 @@ package thorchain
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/blang/semver"
 	. "gopkg.in/check.v1"
@@ -12,9 +13,9 @@ import (
 	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
-type HandlerMigrateSuite struct{}
+type HandlerMigrateV32Suite struct{}
 
-var _ = Suite(&HandlerMigrateSuite{})
+var _ = Suite(&HandlerMigrateV32Suite{})
 
 type TestMigrateKeeper struct {
 	keeper.KVStoreDummy
@@ -30,7 +31,7 @@ func (k *TestMigrateKeeper) GetNodeAccount(_ cosmos.Context, addr cosmos.AccAddr
 	return NodeAccount{}, nil
 }
 
-func (HandlerMigrateSuite) TestMigrate(c *C) {
+func (HandlerMigrateV32Suite) TestMigrate(c *C) {
 	ctx, _ := setupKeeperForTest(c)
 
 	keeper := &TestMigrateKeeper{
@@ -43,7 +44,7 @@ func (HandlerMigrateSuite) TestMigrate(c *C) {
 	addr, err := keeper.vault.PubKey.GetAddress(common.BNBChain)
 	c.Assert(err, IsNil)
 
-	ver := constants.SWVersion
+	ver := GetCurrentVersion()
 
 	tx := NewObservedTx(common.Tx{
 		ID:          GetRandomTxHash(),
@@ -76,6 +77,16 @@ type TestMigrateKeeperHappyPath struct {
 	retireVault       Vault
 	txout             *TxOut
 	pool              Pool
+}
+
+func (k *TestMigrateKeeperHappyPath) GetVault(_ cosmos.Context, pk common.PubKey) (Vault, error) {
+	if pk.Equals(k.retireVault.PubKey) {
+		return k.retireVault, nil
+	}
+	if pk.Equals(k.newVault.PubKey) {
+		return k.newVault, nil
+	}
+	return Vault{}, fmt.Errorf("vault not found")
 }
 
 func (k *TestMigrateKeeperHappyPath) GetTxOut(ctx cosmos.Context, blockHeight int64) (*TxOut, error) {
@@ -111,7 +122,7 @@ func (k *TestMigrateKeeperHappyPath) SetPool(_ cosmos.Context, p Pool) error {
 	return nil
 }
 
-func (HandlerMigrateSuite) TestMigrateHappyPath(c *C) {
+func (HandlerMigrateV32Suite) TestMigrateHappyPath(c *C) {
 	ctx, _ := setupKeeperForTest(c)
 	retireVault := GetRandomVault()
 
@@ -149,13 +160,13 @@ func (HandlerMigrateSuite) TestMigrateHappyPath(c *C) {
 	}, 1, retireVault.PubKey, 1)
 
 	msgMigrate := NewMsgMigrate(tx, 1, keeper.activeNodeAccount.NodeAddress)
-	constantAccessor := constants.GetConstantValues(constants.SWVersion)
-	_, err = handler.Run(ctx, msgMigrate, constants.SWVersion, constantAccessor)
+	constantAccessor := constants.GetConstantValues(GetCurrentVersion())
+	_, err = handler.Run(ctx, msgMigrate, GetCurrentVersion(), constantAccessor)
 	c.Assert(err, IsNil)
 	c.Assert(keeper.txout.TxArray[0].OutHash.Equals(tx.Tx.ID), Equals, true)
 }
 
-func (HandlerMigrateSuite) TestSlash(c *C) {
+func (HandlerMigrateV32Suite) TestSlash(c *C) {
 	ctx, _ := setupKeeperForTest(c)
 	retireVault := GetRandomVault()
 
@@ -195,19 +206,19 @@ func (HandlerMigrateSuite) TestSlash(c *C) {
 	}, 1, retireVault.PubKey, 1)
 
 	msgMigrate := NewMsgMigrate(tx, 1, keeper.activeNodeAccount.NodeAddress)
-	_, err = handler.handleV1(ctx, constants.SWVersion, *msgMigrate)
+	_, err = handler.handleV1(ctx, GetCurrentVersion(), *msgMigrate)
 	c.Assert(err, IsNil)
 	c.Assert(keeper.activeNodeAccount.Bond.Equal(cosmos.NewUint(9999998464)), Equals, true, Commentf("%d", keeper.activeNodeAccount.Bond.Uint64()))
 }
 
-func (HandlerMigrateSuite) TestHandlerMigrateValidation(c *C) {
+func (HandlerMigrateV32Suite) TestHandlerMigrateValidation(c *C) {
 	// invalid message should return an error
 	ctx, k := setupKeeperForTest(c)
 	mgr := NewManagers(k)
 	mgr.BeginBlock(ctx)
 	h := NewMigrateHandler(k, mgr)
-	constantAccessor := constants.GetConstantValues(constants.SWVersion)
-	result, err := h.Run(ctx, NewMsgNetworkFee(ctx.BlockHeight(), common.BNBChain, 1, bnbSingleTxFee.Uint64(), GetRandomBech32Addr()), semver.MustParse("0.1.0"), constantAccessor)
+	constantAccessor := constants.GetConstantValues(GetCurrentVersion())
+	result, err := h.Run(ctx, NewMsgNetworkFee(ctx.BlockHeight(), common.BNBChain, 1, bnbSingleTxFee.Uint64(), GetRandomBech32Addr()), GetCurrentVersion(), constantAccessor)
 	c.Check(err, NotNil)
 	c.Check(result, IsNil)
 	c.Check(errors.Is(err, errInvalidMessage), Equals, true)

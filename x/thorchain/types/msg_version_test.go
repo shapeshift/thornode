@@ -3,7 +3,6 @@ package types
 import (
 	"errors"
 
-	"github.com/blang/semver"
 	se "github.com/cosmos/cosmos-sdk/types/errors"
 	. "gopkg.in/check.v1"
 
@@ -30,7 +29,7 @@ func (MsgSetVersionSuite) TestMsgSetVersionSuite(c *C) {
 	c.Check(err1, NotNil)
 	c.Check(errors.Is(err1, se.ErrInvalidAddress), Equals, true)
 
-	v := semver.MustParse("2.0.0")
+	v := GetCurrentVersion()
 	v.Build = []string{
 		"whatever",
 		"",

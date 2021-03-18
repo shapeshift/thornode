@@ -126,7 +126,7 @@ type handlerTestWrapper struct {
 }
 
 func getHandlerTestWrapper(c *C, height int64, withActiveNode, withActieBNBPool bool) handlerTestWrapper {
-	return getHandlerTestWrapperWithVersion(c, height, withActiveNode, withActieBNBPool, constants.SWVersion)
+	return getHandlerTestWrapperWithVersion(c, height, withActiveNode, withActieBNBPool, GetCurrentVersion())
 }
 
 func getHandlerTestWrapperWithVersion(c *C, height int64, withActiveNode, withActieBNBPool bool, version semver.Version) handlerTestWrapper {
@@ -265,7 +265,7 @@ func (HandlerSuite) TestRefund(c *C) {
 		1024,
 		vault.PubKey, 1024,
 	)
-	ver := constants.SWVersion
+	ver := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(ver)
 	txOutStore := w.mgr.TxOutStore()
 	c.Assert(refundTx(w.ctx, txin, w.mgr, w.keeper, constAccessor, 0, "refund", ""), IsNil)

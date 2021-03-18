@@ -9,7 +9,6 @@ import (
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
-	"gitlab.com/thorchain/thornode/constants"
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
@@ -80,7 +79,7 @@ func (k *TestSwapKeeper) AddToLiquidityFees(ctx cosmos.Context, asset common.Ass
 }
 
 func (k *TestSwapKeeper) GetLowestActiveVersion(ctx cosmos.Context) semver.Version {
-	return constants.SWVersion
+	return GetCurrentVersion()
 }
 
 func (k *TestSwapKeeper) AddFeeToReserve(ctx cosmos.Context, fee cosmos.Uint) error { return nil }

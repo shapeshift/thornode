@@ -31,8 +31,7 @@ func (k *TestObservedTxOutValidateKeeper) GetNodeAccount(ctx cosmos.Context, sig
 var _ = Suite(&HandlerObservedTxOutSuite{})
 
 func (s *HandlerObservedTxOutSuite) TestValidate(c *C) {
-	s.testValidateWithVersion(c, constants.SWVersion)
-	s.testValidateWithVersion(c, semver.MustParse("0.13.0"))
+	s.testValidateWithVersion(c, GetCurrentVersion())
 }
 
 func (s *HandlerObservedTxOutSuite) testValidateWithVersion(c *C, ver semver.Version) {
@@ -165,7 +164,7 @@ func (k *TestObservedTxOutHandleKeeper) SetPool(ctx cosmos.Context, pool Pool) e
 }
 
 func (s *HandlerObservedTxOutSuite) TestHandle(c *C) {
-	s.testHandleWithVersion(c, constants.SWVersion)
+	s.testHandleWithVersion(c, GetCurrentVersion())
 }
 
 func (s *HandlerObservedTxOutSuite) testHandleWithVersion(c *C, ver semver.Version) {
@@ -219,7 +218,7 @@ func (s *HandlerObservedTxOutSuite) testHandleWithVersion(c *C, ver semver.Versi
 }
 
 func (s *HandlerObservedTxOutSuite) TestHandleStolenFunds(c *C) {
-	s.testHandleStolenFundsWithVersion(c, constants.SWVersion)
+	s.testHandleStolenFundsWithVersion(c, GetCurrentVersion())
 }
 
 func (s *HandlerObservedTxOutSuite) testHandleStolenFundsWithVersion(c *C, ver semver.Version) {
@@ -243,6 +242,7 @@ func (s *HandlerObservedTxOutSuite) testHandleStolenFundsWithVersion(c *C, ver s
 	na.PubKeySet.Secp256k1 = pk
 
 	ygg := NewVault(common.BlockHeight(ctx), ActiveVault, YggdrasilVault, pk, common.Chains{common.BNBChain}.Strings(), []ChainContract{})
+	ygg.Membership = []string{pk.String()}
 	ygg.Coins = common.Coins{
 		common.NewCoin(common.RuneAsset(), cosmos.NewUint(500*common.One)),
 		common.NewCoin(common.BNBAsset, cosmos.NewUint(200*common.One)),
@@ -341,6 +341,7 @@ func setupAnObservedTxOut(ctx cosmos.Context, helper *HandlerObservedTxOutTestHe
 	c.Assert(err, IsNil)
 	vault := GetRandomVault()
 	vault.PubKey = obTx.ObservedPubKey
+	vault.Membership = []string{vault.PubKey.String()}
 	helper.Keeper.SetNodeAccount(ctx, activeNodeAccount)
 	c.Assert(helper.SetVault(ctx, vault), IsNil)
 	p := NewPool()
@@ -485,8 +486,7 @@ func (HandlerObservedTxOutSuite) TestHandlerObservedTxOut_DifferentValidations(c
 		},
 	}
 	versions := []semver.Version{
-		constants.SWVersion,
-		semver.MustParse("0.13.0"),
+		GetCurrentVersion(),
 	}
 	for _, tc := range testCases {
 		for _, ver := range versions {

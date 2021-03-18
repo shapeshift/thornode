@@ -440,6 +440,10 @@ func (o *Observer) getThorchainTxIns(txIn types.TxIn) (stypes.ObservedTxs, error
 			o.logger.Info().Msgf("tx (%s) memo (%s) too long", item.Tx, item.Memo)
 			continue
 		}
+		if len(item.To) == 0 {
+			o.logger.Info().Msgf("tx (%s) to address is empty,ignore it", item.Tx)
+			continue
+		}
 		o.logger.Debug().Str("tx-hash", item.Tx).Msg("txInItem")
 		blockHeight := strconv.FormatInt(item.BlockHeight, 10)
 		txID, err := common.NewTxID(item.Tx)
