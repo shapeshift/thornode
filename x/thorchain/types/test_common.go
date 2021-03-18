@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"path"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/blang/semver"
@@ -182,7 +183,7 @@ func GetCurrentVersion() semver.Version {
 	if err != nil {
 		panic(err)
 	}
-	v, err := semver.Make(string(dat))
+	v, err := semver.Make(strings.TrimSpace(string(dat)))
 	if err != nil {
 		panic(err)
 	}
