@@ -1,4 +1,4 @@
-IMAGE_NAME = registry.gitlab.com/thorchain/heimdall
+IMAGE_NAME?=registry.gitlab.com/thorchain/heimdall
 
 # ------------------------------- GitLab ------------------------------- #
 
