@@ -1,5 +1,5 @@
 include Makefile.cicd
-IMAGE_NAME = registry.gitlab.com/thorchain/heimdall
+IMAGE_NAME?=registry.gitlab.com/thorchain/heimdall
 LOGLEVEL?=INFO
 RUNE?=THOR.RUNE
 DOCKER_OPTS = --network=host --rm -e RUNE=${RUNE} -e LOGLEVEL=${LOGLEVEL} -e PYTHONPATH=/app -v ${PWD}:/app -w /app
@@ -8,7 +8,8 @@ clean:
 	rm *.pyc
 
 build:
-	@docker build -t ${IMAGE_NAME} .
+	@docker pull ${IMAGE_NAME} || true
+	@docker build --cache-from ${IMAGE_NAME} -t ${IMAGE_NAME} .
 
 lint:
 	@docker run --rm -v ${PWD}:/app pipelinecomponents/flake8:latest flake8
