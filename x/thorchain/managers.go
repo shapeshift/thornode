@@ -219,7 +219,9 @@ func (mgr *Mgrs) YggManager() YggManager { return mgr.yggManager }
 // GetGasManager return GasManager
 func GetGasManager(version semver.Version, keeper keeper.Keeper) (GasManager, error) {
 	constAcessor := constants.GetConstantValues(version)
-	if version.GTE(semver.MustParse("0.1.0")) {
+	if version.GTE(semver.MustParse("0.34.0")) {
+		return NewGasMgrV34(constAcessor, keeper), nil
+	} else if version.GTE(semver.MustParse("0.1.0")) {
 		return NewGasMgrV1(constAcessor, keeper), nil
 	}
 	return nil, errInvalidVersion
