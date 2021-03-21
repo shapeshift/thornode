@@ -107,6 +107,8 @@ func (pkm *PubKeyManager) updateContractAddresses(pairs []thorclient.PubKeyContr
 
 // GetPubKeys return all the public keys managed by this PubKeyManager
 func (pkm *PubKeyManager) GetPubKeys() common.PubKeys {
+	pkm.rwMutex.RLock()
+	defer pkm.rwMutex.RUnlock()
 	pubkeys := make(common.PubKeys, len(pkm.pubkeys))
 	for i, pk := range pkm.pubkeys {
 		pubkeys[i] = pk.PubKey
@@ -116,6 +118,8 @@ func (pkm *PubKeyManager) GetPubKeys() common.PubKeys {
 
 // GetSignPubKeys get all the public keys that local node is a signer
 func (pkm *PubKeyManager) GetSignPubKeys() common.PubKeys {
+	pkm.rwMutex.RLock()
+	defer pkm.rwMutex.RUnlock()
 	pubkeys := make(common.PubKeys, 0)
 	for _, pk := range pkm.pubkeys {
 		if pk.Signer {
@@ -127,6 +131,8 @@ func (pkm *PubKeyManager) GetSignPubKeys() common.PubKeys {
 
 // GetNodePubKey get node account pub key
 func (pkm *PubKeyManager) GetNodePubKey() common.PubKey {
+	pkm.rwMutex.RLock()
+	defer pkm.rwMutex.RUnlock()
 	for _, pk := range pkm.pubkeys {
 		if pk.NodeAccount {
 			return pk.PubKey
@@ -137,6 +143,13 @@ func (pkm *PubKeyManager) GetNodePubKey() common.PubKey {
 
 // HasPubKey return true if the given public key exist
 func (pkm *PubKeyManager) HasPubKey(pk common.PubKey) bool {
+	pkm.rwMutex.RLock()
+	defer pkm.rwMutex.RUnlock()
+	return pkm.hasPubKeyNoLock(pk)
+}
+
+// hasPubKeyNoLock internal used only
+func (pkm *PubKeyManager) hasPubKeyNoLock(pk common.PubKey) bool {
 	for _, pubkey := range pkm.pubkeys {
 		if pk.Equals(pubkey.PubKey) {
 			return true
@@ -150,7 +163,7 @@ func (pkm *PubKeyManager) AddPubKey(pk common.PubKey, signer bool) {
 	pkm.rwMutex.Lock()
 	defer pkm.rwMutex.Unlock()
 
-	if pkm.HasPubKey(pk) {
+	if pkm.hasPubKeyNoLock(pk) {
 		// pubkey already exists, update the signer... but only if signer is true
 		if signer {
 			for i, pubkey := range pkm.pubkeys {
@@ -184,7 +197,7 @@ func (pkm *PubKeyManager) AddNodePubKey(pk common.PubKey) {
 		}
 	}
 
-	if !pkm.HasPubKey(pk) {
+	if !pkm.hasPubKeyNoLock(pk) {
 		pkm.pubkeys = append(pkm.pubkeys, pubKeyInfo{
 			PubKey:      pk,
 			Signer:      true,
@@ -200,6 +213,12 @@ func (pkm *PubKeyManager) AddNodePubKey(pk common.PubKey) {
 func (pkm *PubKeyManager) RemovePubKey(pk common.PubKey) {
 	pkm.rwMutex.Lock()
 	defer pkm.rwMutex.Unlock()
+	pkm.removePubKeyInternal(pk)
+}
+
+// removePubKeyInternal is a func to be used internally , and it doesn't lock the access to pkm.pubkeys
+// caller need to lock pkm.pubkeys
+func (pkm *PubKeyManager) removePubKeyInternal(pk common.PubKey) {
 	for i, pubkey := range pkm.pubkeys {
 		if pk.Equals(pubkey.PubKey) {
 			pkm.pubkeys[i] = pkm.pubkeys[len(pkm.pubkeys)-1] // Copy last element to index i.
@@ -233,6 +252,8 @@ func (pkm *PubKeyManager) fetchPubKeys() {
 			pubkeys = append(pubkeys, vault.PubKey)
 		}
 	}
+	pkm.rwMutex.Lock()
+	defer pkm.rwMutex.Unlock()
 	// prune retired addresses
 	for i, pk := range pkm.pubkeys {
 		if pk.NodeAccount {
@@ -241,7 +262,7 @@ func (pkm *PubKeyManager) fetchPubKeys() {
 		}
 		if i < (len(pkm.pubkeys) - 2) { // don't delete the more recent (last) pubkeys
 			if !pubkeys.Contains(pk.PubKey) {
-				pkm.RemovePubKey(pk.PubKey)
+				pkm.removePubKeyInternal(pk.PubKey)
 			}
 		}
 	}
