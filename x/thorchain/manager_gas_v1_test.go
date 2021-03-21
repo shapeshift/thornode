@@ -80,6 +80,20 @@ func (GasManagerTestSuite) TestGetFee(c *C) {
 	}), IsNil)
 	fee = gasMgr.GetFee(ctx, common.BTCChain, common.RuneAsset())
 	c.Assert(fee.Uint64(), Equals, uint64(70*50*3))
+
+	// Synth asset (BTC/BTC)
+	sBTC, err := common.NewAsset("BTC/BTC")
+	c.Assert(err, IsNil)
+
+	// change the pool balance
+	c.Assert(k.SetPool(ctx, Pool{
+		BalanceRune:  cosmos.NewUint(500 * common.One),
+		BalanceAsset: cosmos.NewUint(100 * common.One),
+		Asset:        common.BTCAsset,
+		Status:       PoolAvailable,
+	}), IsNil)
+	synthAssetFee := gasMgr.GetFee(ctx, common.THORChain, sBTC)
+	c.Assert(synthAssetFee.Uint64(), Equals, uint64(400000))
 }
 
 type gasManagerTestHelper struct {

@@ -181,6 +181,9 @@ func (HandlerMigrateV32Suite) TestSlash(c *C) {
 	pool.BalanceRune = cosmos.NewUint(100 * common.One)
 	na := GetRandomNodeAccount(NodeActive)
 	na.Bond = cosmos.NewUint(100 * common.One)
+	retireVault.Membership = []string{
+		na.PubKeySet.Secp256k1.String(),
+	}
 	keeper := &TestMigrateKeeperHappyPath{
 		activeNodeAccount: na,
 		newVault:          newVault,
@@ -208,7 +211,7 @@ func (HandlerMigrateV32Suite) TestSlash(c *C) {
 	msgMigrate := NewMsgMigrate(tx, 1, keeper.activeNodeAccount.NodeAddress)
 	_, err = handler.handleV1(ctx, GetCurrentVersion(), *msgMigrate)
 	c.Assert(err, IsNil)
-	c.Assert(keeper.activeNodeAccount.Bond.Equal(cosmos.NewUint(9999998464)), Equals, true, Commentf("%d", keeper.activeNodeAccount.Bond.Uint64()))
+	c.Assert(keeper.activeNodeAccount.Bond.Equal(cosmos.NewUint(9999942214)), Equals, true, Commentf("%d", keeper.activeNodeAccount.Bond.Uint64()))
 }
 
 func (HandlerMigrateV32Suite) TestHandlerMigrateValidation(c *C) {
