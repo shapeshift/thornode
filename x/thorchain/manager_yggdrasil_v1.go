@@ -4,8 +4,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/hashicorp/go-multierror"
-
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
@@ -413,20 +411,10 @@ func (ymgr YggMgrV1) abandonYggdrasilVaults(ctx cosmos.Context, mgr Manager) err
 
 func (ymgr YggMgrV1) slash(ctx cosmos.Context, slasher Slasher, mgr Manager, pk common.PubKey, ygg Vault) error {
 	ctx.Logger().Info(fmt.Sprintf("slash, node account %s churned out , but fail to return yggdrasil fund", pk.String()), "coins", ygg.Coins.String())
-	var returnErr error
-	for _, c := range ygg.Coins {
-		if err := slasher.SlashNodeAccount(ctx, pk, c.Asset, c.Amount, mgr); err != nil {
-			ctx.Logger().Error("fail to slash account", "error", err)
-			if returnErr == nil {
-				returnErr = err
-			} else {
-				returnErr = multierror.Append(returnErr, err)
-			}
-		}
-		ygg.SubFunds(common.Coins{c})
-		if err := ymgr.keeper.SetVault(ctx, ygg); err != nil {
-			return fmt.Errorf("fail to save yggdrasil vault: %w", err)
-		}
+	err := slasher.SlashVault(ctx, pk, ygg.Coins, mgr)
+	ygg.SubFunds(ygg.Coins)
+	if err := ymgr.keeper.SetVault(ctx, ygg); err != nil {
+		return fmt.Errorf("fail to save yggdrasil vault: %w", err)
 	}
-	return returnErr
+	return err
 }

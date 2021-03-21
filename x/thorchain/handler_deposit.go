@@ -128,7 +128,6 @@ func (h DepositHandler) handleV1(ctx cosmos.Context, msg MsgDeposit, version sem
 	} else if len(coinsInMsg) == 0 {
 		// only unbond and leave can skip coins , others is required.
 		// this is a trying to trick processOneTxIn below, as it check len(txIn.Coins)
-		// TODO: remove these when we prepare for chaosnet
 		switch memo.GetType() {
 		case TxUnBond, TxLeave:
 			coinsInMsg = append(coinsInMsg, common.NoCoin)

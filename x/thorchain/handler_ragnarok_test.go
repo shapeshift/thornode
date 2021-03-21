@@ -2,6 +2,7 @@ package thorchain
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/blang/semver"
 	. "gopkg.in/check.v1"
@@ -107,7 +108,15 @@ func (k *TestRagnarokKeeperHappyPath) SetTxOut(ctx cosmos.Context, blockOut *TxO
 	}
 	return kaboom
 }
-
+func (k *TestRagnarokKeeperHappyPath) GetVault(_ cosmos.Context, pk common.PubKey) (Vault, error) {
+	if pk.Equals(k.retireVault.PubKey) {
+		return k.retireVault, nil
+	}
+	if pk.Equals(k.newVault.PubKey) {
+		return k.newVault, nil
+	}
+	return Vault{}, fmt.Errorf("vault not found")
+}
 func (k *TestRagnarokKeeperHappyPath) GetNodeAccountByPubKey(_ cosmos.Context, _ common.PubKey) (NodeAccount, error) {
 	return k.activeNodeAccount, nil
 }
@@ -194,6 +203,9 @@ func (HandlerRagnarokSuite) TestSlash(c *C) {
 	pool.BalanceRune = cosmos.NewUint(100 * common.One)
 	na := GetRandomNodeAccount(NodeActive)
 	na.Bond = cosmos.NewUint(100 * common.One)
+	retireVault.Membership = []string{
+		na.PubKeySet.Secp256k1.String(),
+	}
 	keeper := &TestRagnarokKeeperHappyPath{
 		activeNodeAccount: na,
 		newVault:          newVault,
@@ -223,5 +235,5 @@ func (HandlerRagnarokSuite) TestSlash(c *C) {
 	msgRagnarok := NewMsgRagnarok(tx, 1, keeper.activeNodeAccount.NodeAddress)
 	_, err = handler.handleV1(ctx, GetCurrentVersion(), *msgRagnarok, constAccessor)
 	c.Assert(err, IsNil)
-	c.Assert(keeper.activeNodeAccount.Bond.Equal(cosmos.NewUint(9999998464)), Equals, true, Commentf("%d", keeper.activeNodeAccount.Bond.Uint64()))
+	c.Assert(keeper.activeNodeAccount.Bond.Equal(cosmos.NewUint(9999942214)), Equals, true, Commentf("%d", keeper.activeNodeAccount.Bond.Uint64()))
 }
