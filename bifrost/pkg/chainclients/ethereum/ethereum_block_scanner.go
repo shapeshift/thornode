@@ -732,7 +732,11 @@ func (e *ETHScanner) getTxInFromSmartContract(tx *etypes.Transaction) (*stypes.T
 	if err != nil {
 		return nil, fmt.Errorf("fail to get transaction receipt: %w", err)
 	}
-
+	// 1 is Transaction success state
+	if receipt.Status != 1 {
+		e.logger.Info().Msgf("tx(%s) state: %d means failed , ignore", tx.Hash().String(), receipt.Status)
+		return nil, nil
+	}
 	for _, item := range receipt.Logs {
 		switch item.Topics[0].String() {
 		case depositEvent:
