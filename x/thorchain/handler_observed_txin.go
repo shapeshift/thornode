@@ -53,6 +53,10 @@ func (h ObservedTxInHandler) validate(ctx cosmos.Context, msg MsgObservedTxIn, v
 }
 
 func (h ObservedTxInHandler) validateV1(ctx cosmos.Context, msg MsgObservedTxIn) error {
+	return h.validateCurrent(ctx, msg)
+}
+
+func (h ObservedTxInHandler) validateCurrent(ctx cosmos.Context, msg MsgObservedTxIn) error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
@@ -123,6 +127,10 @@ func (h ObservedTxInHandler) preflightV1(ctx cosmos.Context, voter ObservedTxVot
 
 // Handle a message to observe inbound tx
 func (h ObservedTxInHandler) handleV1(ctx cosmos.Context, version semver.Version, msg MsgObservedTxIn, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+	return h.handleCurrent(ctx, version, msg, constAccessor)
+}
+
+func (h ObservedTxInHandler) handleCurrent(ctx cosmos.Context, version semver.Version, msg MsgObservedTxIn, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	activeNodeAccounts, err := h.keeper.ListActiveNodeAccounts(ctx)
 	if err != nil {
 		return nil, wrapError(ctx, err, "fail to get list of active node accounts")
@@ -250,7 +258,7 @@ func (h ObservedTxInHandler) handleV1(ctx cosmos.Context, version semver.Version
 
 		// if its a swap, send it to our queue for processing later
 		if isSwap {
-			h.addSwap(ctx, *swapMsg, constAccessor)
+			h.addSwapV1(ctx, *swapMsg, constAccessor)
 			continue
 		}
 
@@ -269,7 +277,7 @@ func (h ObservedTxInHandler) handleV1(ctx cosmos.Context, version semver.Version
 	return &cosmos.Result{}, nil
 }
 
-func (h ObservedTxInHandler) addSwap(ctx cosmos.Context, msg MsgSwap, constAccessor constants.ConstantValues) {
+func (h ObservedTxInHandler) addSwapV1(ctx cosmos.Context, msg MsgSwap, constAccessor constants.ConstantValues) {
 	amt := cosmos.ZeroUint()
 	if !msg.AffiliateBasisPoints.IsZero() && msg.AffiliateAddress.IsChain(common.THORChain) {
 		amt = common.GetShare(
