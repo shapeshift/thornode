@@ -35,6 +35,9 @@ SIGNER_PASSWD="${SIGNER_PASSWD:=password}"
 START_BLOCK_HEIGHT="${START_BLOCK_HEIGHT:=0}"
 CONTRACT="${CONTRACT:=0x8c2A90D36Ec9F745C9B28B588Cba5e2A978A1656}"
 
+RPC_USER="${RPC_USER:=thorchain}"
+RPC_PASSWD="${RPC_PASSWD:=password}"
+
 $(dirname "$0")/wait-for-thorchain-api.sh $CHAIN_API
 
 # create thorchain user, if it doesn't already
@@ -107,8 +110,8 @@ echo "{
       {
         \"chain_id\": \"BTC\",
         \"rpc_host\": \"$BTC_HOST\",
-        \"username\": \"$SIGNER_NAME\",
-        \"password\": \"$SIGNER_PASSWD\",
+        \"username\": \"$RPC_USER\",
+        \"password\": \"$RPC_PASSWD\",
         \"http_post_mode\": 1,
         \"disable_tls\": 1,
         \"block_scanner\": {
@@ -129,8 +132,8 @@ echo "{
       {
         \"chain_id\": \"DOGE\",
         \"rpc_host\": \"$DOGE_HOST\",
-        \"username\": \"$SIGNER_NAME\",
-        \"password\": \"$SIGNER_PASSWD\",
+        \"username\": \"$RPC_USER\",
+        \"password\": \"$RPC_PASSWD\",
         \"http_post_mode\": 1,
         \"disable_tls\": 1,
         \"block_scanner\": {
@@ -151,8 +154,8 @@ echo "{
       {
         \"chain_id\": \"LTC\",
         \"rpc_host\": \"$LTC_HOST\",
-        \"username\": \"$SIGNER_NAME\",
-        \"password\": \"$SIGNER_PASSWD\",
+        \"username\": \"$RPC_USER\",
+        \"password\": \"$RPC_PASSWD\",
         \"http_post_mode\": 1,
         \"disable_tls\": 1,
         \"block_scanner\": {
@@ -173,8 +176,8 @@ echo "{
       {
         \"chain_id\": \"BCH\",
         \"rpc_host\": \"$BCH_HOST\",
-        \"username\": \"$SIGNER_NAME\",
-        \"password\": \"$SIGNER_PASSWD\",
+        \"username\": \"$RPC_USER\",
+        \"password\": \"$RPC_PASSWD\",
         \"http_post_mode\": 1,
         \"disable_tls\": 1,
         \"block_scanner\": {
@@ -195,8 +198,8 @@ echo "{
       {
         \"chain_id\": \"ETH\",
         \"rpc_host\": \"$ETH_HOST\",
-        \"username\": \"$SIGNER_NAME\",
-        \"password\": \"$SIGNER_PASSWD\",
+        \"username\": \"$RPC_USER\",
+        \"password\": \"$RPC_PASSWD\",
         \"http_post_mode\": 1,
         \"disable_tls\": 1,
         \"contract\": \"$CONTRACT\",
