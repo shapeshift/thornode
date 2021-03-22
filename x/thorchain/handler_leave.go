@@ -35,6 +35,10 @@ func (h LeaveHandler) validate(ctx cosmos.Context, msg MsgLeave, version semver.
 }
 
 func (h LeaveHandler) validateV1(ctx cosmos.Context, msg MsgLeave) error {
+	return h.validateCurrent(ctx, msg)
+}
+
+func (h LeaveHandler) validateCurrent(ctx cosmos.Context, msg MsgLeave) error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
@@ -75,6 +79,10 @@ func (h LeaveHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Versi
 }
 
 func (h LeaveHandler) handleV1(ctx cosmos.Context, msg MsgLeave, version semver.Version, constAccessor constants.ConstantValues) error {
+	return h.handleCurrent(ctx, msg, version, constAccessor)
+}
+
+func (h LeaveHandler) handleCurrent(ctx cosmos.Context, msg MsgLeave, version semver.Version, constAccessor constants.ConstantValues) error {
 	nodeAcc, err := h.keeper.GetNodeAccount(ctx, msg.NodeAddress)
 	if err != nil {
 		return ErrInternal(err, "fail to get node account by bond address")

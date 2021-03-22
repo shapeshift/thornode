@@ -45,6 +45,10 @@ func (h NetworkFeeHandler) validate(ctx cosmos.Context, msg MsgNetworkFee, versi
 }
 
 func (h NetworkFeeHandler) validateV1(ctx cosmos.Context, msg MsgNetworkFee) error {
+	return h.validateCurrent(ctx, msg)
+}
+
+func (h NetworkFeeHandler) validateCurrent(ctx cosmos.Context, msg MsgNetworkFee) error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
@@ -64,6 +68,10 @@ func (h NetworkFeeHandler) handle(ctx cosmos.Context, msg MsgNetworkFee, version
 
 // handleV1 process MsgNetworkFee
 func (h NetworkFeeHandler) handleV1(ctx cosmos.Context, msg MsgNetworkFee, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+	return h.handleCurrent(ctx, msg, version, constAccessor)
+}
+
+func (h NetworkFeeHandler) handleCurrent(ctx cosmos.Context, msg MsgNetworkFee, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	active, err := h.keeper.ListActiveNodeAccounts(ctx)
 	if err != nil {
 		err = wrapError(ctx, err, "fail to get list of active node accounts")

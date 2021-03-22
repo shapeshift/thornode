@@ -52,6 +52,10 @@ func (h VersionHandler) validate(ctx cosmos.Context, msg MsgSetVersion, version 
 }
 
 func (h VersionHandler) validateV1(ctx cosmos.Context, msg MsgSetVersion, constAccessor constants.ConstantValues) error {
+	return h.validateCurrent(ctx, msg, constAccessor)
+}
+
+func (h VersionHandler) validateCurrent(ctx cosmos.Context, msg MsgSetVersion, constAccessor constants.ConstantValues) error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
@@ -81,6 +85,10 @@ func (h VersionHandler) handle(ctx cosmos.Context, msg MsgSetVersion, version se
 }
 
 func (h VersionHandler) handleV1(ctx cosmos.Context, msg MsgSetVersion, constAccessor constants.ConstantValues) error {
+	return h.handleCurrent(ctx, msg, constAccessor)
+}
+
+func (h VersionHandler) handleCurrent(ctx cosmos.Context, msg MsgSetVersion, constAccessor constants.ConstantValues) error {
 	nodeAccount, err := h.keeper.GetNodeAccount(ctx, msg.Signer)
 	if err != nil {
 		return cosmos.ErrUnauthorized(fmt.Errorf("unable to find account(%s):%w", msg.Signer, err).Error())

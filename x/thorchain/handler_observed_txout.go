@@ -50,6 +50,10 @@ func (h ObservedTxOutHandler) validate(ctx cosmos.Context, msg MsgObservedTxOut,
 }
 
 func (h ObservedTxOutHandler) validateV1(ctx cosmos.Context, msg MsgObservedTxOut) error {
+	return h.validateCurrent(ctx, msg)
+}
+
+func (h ObservedTxOutHandler) validateCurrent(ctx cosmos.Context, msg MsgObservedTxOut) error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
@@ -103,6 +107,11 @@ func (h ObservedTxOutHandler) preflightV1(ctx cosmos.Context, voter ObservedTxVo
 
 // Handle a message to observe outbound tx
 func (h ObservedTxOutHandler) handleV1(ctx cosmos.Context, version semver.Version, msg MsgObservedTxOut, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+	return h.handleCurrent(ctx, version, msg, constAccessor)
+}
+
+// Handle a message to observe outbound tx
+func (h ObservedTxOutHandler) handleCurrent(ctx cosmos.Context, version semver.Version, msg MsgObservedTxOut, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	activeNodeAccounts, err := h.keeper.ListActiveNodeAccounts(ctx)
 	if err != nil {
 		return nil, wrapError(ctx, err, "fail to get list of active node accounts")
