@@ -222,6 +222,7 @@ func (s YggdrasilManagerV1Suite) TestNotAvailablePoolAssetWillNotFundYggdrasil(c
 func (s YggdrasilManagerV1Suite) TestAbandonYggdrasil(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	vault := GetRandomVault()
+	vault.Membership = []string{vault.PubKey.String()}
 	vault.Coins = common.Coins{
 		common.NewCoin(common.RuneAsset(), cosmos.NewUint(10000*common.One)),
 		common.NewCoin(common.BNBAsset, cosmos.NewUint(10000*common.One)),
@@ -250,6 +251,7 @@ func (s YggdrasilManagerV1Suite) TestAbandonYggdrasil(c *C) {
 
 	yggdrasilVault := GetRandomVault()
 	yggdrasilVault.PubKey = naDisabled.PubKeySet.Secp256k1
+	yggdrasilVault.Membership = []string{yggdrasilVault.PubKey.String()}
 	yggdrasilVault.Coins = common.Coins{
 		common.NewCoin(common.RuneAsset(), cosmos.NewUint(250*common.One)),
 		common.NewCoin(common.BNBAsset, cosmos.NewUint(200*common.One)),
@@ -267,7 +269,7 @@ func (s YggdrasilManagerV1Suite) TestAbandonYggdrasil(c *C) {
 	// make sure the node account had been slashed with bond
 	naDisabled, err = k.GetNodeAccount(ctx, naDisabled.NodeAddress)
 	c.Assert(err, IsNil)
-	c.Assert(naDisabled.Bond.Equal(cosmos.NewUint(999325*common.One)), Equals, true)
+	c.Assert(naDisabled.Bond.Equal(cosmos.NewUint(999325*common.One)), Equals, true, Commentf("%d != %d", naDisabled.Bond.Uint64(), 999325*common.One))
 }
 
 type abandonYggdrasilTestHelper struct {
