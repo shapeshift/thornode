@@ -49,6 +49,10 @@ func (h ReserveContributorHandler) validate(ctx cosmos.Context, msg MsgReserveCo
 }
 
 func (h ReserveContributorHandler) validateV1(ctx cosmos.Context, msg MsgReserveContributor) error {
+	return h.validateCurrent(ctx, msg)
+}
+
+func (h ReserveContributorHandler) validateCurrent(ctx cosmos.Context, msg MsgReserveContributor) error {
 	return msg.ValidateBasic()
 }
 
@@ -65,6 +69,10 @@ func (h ReserveContributorHandler) handle(ctx cosmos.Context, msg MsgReserveCont
 
 // handleV1  process MsgReserveContributor
 func (h ReserveContributorHandler) handleV1(ctx cosmos.Context, msg MsgReserveContributor, version semver.Version) error {
+	return h.handleCurrent(ctx, msg, version)
+}
+
+func (h ReserveContributorHandler) handleCurrent(ctx cosmos.Context, msg MsgReserveContributor, version semver.Version) error {
 	// the actually sending of rune into the reserve is handled in the handler_deposit.go file.
 
 	reserveEvent := NewEventReserve(msg.Contributor, msg.Tx)

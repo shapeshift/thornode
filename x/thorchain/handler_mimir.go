@@ -52,6 +52,10 @@ func (h MimirHandler) validate(ctx cosmos.Context, msg MsgMimir, version semver.
 }
 
 func (h MimirHandler) validateV1(ctx cosmos.Context, msg MsgMimir) error {
+	return h.validateCurrent(ctx, msg)
+}
+
+func (h MimirHandler) validateCurrent(ctx cosmos.Context, msg MsgMimir) error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
@@ -75,6 +79,10 @@ func (h MimirHandler) handle(ctx cosmos.Context, msg MsgMimir, version semver.Ve
 }
 
 func (h MimirHandler) handleV1(ctx cosmos.Context, msg MsgMimir) error {
+	return h.handleCurrent(ctx, msg)
+}
+
+func (h MimirHandler) handleCurrent(ctx cosmos.Context, msg MsgMimir) error {
 	h.keeper.SetMimir(ctx, msg.Key, msg.Value)
 
 	ctx.EventManager().EmitEvent(

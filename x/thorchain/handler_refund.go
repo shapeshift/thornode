@@ -52,6 +52,10 @@ func (h RefundHandler) validate(ctx cosmos.Context, msg MsgRefundTx, version sem
 }
 
 func (h RefundHandler) validateV1(ctx cosmos.Context, version semver.Version, msg MsgRefundTx, constAccessor constants.ConstantValues) error {
+	return h.validateCurrent(ctx, version, msg, constAccessor)
+}
+
+func (h RefundHandler) validateCurrent(ctx cosmos.Context, version semver.Version, msg MsgRefundTx, constAccessor constants.ConstantValues) error {
 	return msg.ValidateBasic()
 }
 

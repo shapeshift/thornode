@@ -34,6 +34,10 @@ func (h AddLiquidityHandler) validate(ctx cosmos.Context, msg MsgAddLiquidity, v
 }
 
 func (h AddLiquidityHandler) validateV1(ctx cosmos.Context, msg MsgAddLiquidity, constAccessor constants.ConstantValues) error {
+	return h.validateCurrent(ctx, msg, constAccessor)
+}
+
+func (h AddLiquidityHandler) validateCurrent(ctx cosmos.Context, msg MsgAddLiquidity, constAccessor constants.ConstantValues) error {
 	if err := msg.ValidateBasic(); err != nil {
 		ctx.Logger().Error(err.Error())
 		return errAddLiquidityFailValidation
@@ -103,6 +107,10 @@ func (h AddLiquidityHandler) handle(ctx cosmos.Context, msg MsgAddLiquidity, ver
 }
 
 func (h AddLiquidityHandler) handleV1(ctx cosmos.Context, msg MsgAddLiquidity, version semver.Version, constAccessor constants.ConstantValues) (errResult error) {
+	return h.handleCurrent(ctx, msg, version, constAccessor)
+}
+
+func (h AddLiquidityHandler) handleCurrent(ctx cosmos.Context, msg MsgAddLiquidity, version semver.Version, constAccessor constants.ConstantValues) (errResult error) {
 	pool, err := h.keeper.GetPool(ctx, msg.Asset)
 	if err != nil {
 		return ErrInternal(err, "fail to get pool")
