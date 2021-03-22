@@ -65,9 +65,18 @@ func (gm *GasMgrV1) GetFee(ctx cosmos.Context, chain common.Chain, asset common.
 		outboundTxFee = gm.constantsAccessor.GetInt64Value(constants.OutboundTransactionFee)
 	}
 	transactionFee := cosmos.NewUint(uint64(outboundTxFee))
-	if chain.Equals(common.THORChain) && asset.GetChain().Equals(chain) {
+	// if the asset is Native RUNE , then we could just return the transaction Fee
+	// because transaction fee is always in native RUNE
+	if asset.IsRune() && chain.Equals(common.THORChain) {
 		return transactionFee
 	}
+
+	// if the asset is synthetic asset , it need to get the layer 1 asset pool and convert it
+	// synthetic asset live on THORChain , thus it doesn't need to get the layer1 network fee
+	if asset.IsSyntheticAsset() {
+		return gm.getRuneInAssetValue(ctx, transactionFee, asset)
+	}
+
 	networkFee, err := gm.keeper.GetNetworkFee(ctx, chain)
 	if err != nil {
 		ctx.Logger().Error("fail to get network fee", "error", err)
@@ -91,7 +100,7 @@ func (gm *GasMgrV1) GetFee(ctx cosmos.Context, chain common.Chain, asset common.
 	// convert gas asset value into rune
 	pool, err := gm.keeper.GetPool(ctx, chain.GetGasAsset())
 	if err != nil {
-		ctx.Logger().Error("fail to get pool for %s: %w", chain.GetGasAsset(), err)
+		ctx.Logger().Error("fail to get pool", "asset", asset, "error", err)
 		return transactionFee
 	}
 	if pool.BalanceAsset.Equal(cosmos.ZeroUint()) || pool.BalanceRune.Equal(cosmos.ZeroUint()) {
@@ -106,13 +115,31 @@ func (gm *GasMgrV1) GetFee(ctx cosmos.Context, chain common.Chain, asset common.
 	// convert rune value into non-gas asset value
 	pool, err = gm.keeper.GetPool(ctx, asset)
 	if err != nil {
-		ctx.Logger().Error("fail to get pool for %s: %w", asset, err)
+		ctx.Logger().Error("fail to get pool", "asset", asset, "error", err)
 		return transactionFee
 	}
 	if pool.BalanceAsset.Equal(cosmos.ZeroUint()) || pool.BalanceRune.Equal(cosmos.ZeroUint()) {
 		return transactionFee
 	}
 	return pool.RuneValueInAsset(fee)
+}
+
+// getRuneInAssetValue convert the transaction fee to asset value , when the given asset is synthetic , it will need to get
+// the layer1 asset first , and then use the pool to convert
+func (gm *GasMgrV1) getRuneInAssetValue(ctx cosmos.Context, transactionFee cosmos.Uint, asset common.Asset) cosmos.Uint {
+	if asset.IsSyntheticAsset() {
+		asset = asset.GetLayer1Asset()
+	}
+	pool, err := gm.keeper.GetPool(ctx, asset)
+	if err != nil {
+		ctx.Logger().Error("fail to get pool", "asset", asset, "error", err)
+		return transactionFee
+	}
+	if pool.BalanceAsset.Equal(cosmos.ZeroUint()) || pool.BalanceRune.Equal(cosmos.ZeroUint()) {
+		return transactionFee
+	}
+
+	return pool.RuneValueInAsset(transactionFee)
 }
 
 // GetGasRate return the gas rate
