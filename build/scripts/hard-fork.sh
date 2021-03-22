@@ -1,3 +1,5 @@
+#!/bin/sh
+
 set -ex
 
 HARDFORK_BLOCK_HEIGHT="${HARDFORK_BLOCK_HEIGHT:--1}"
