@@ -47,6 +47,10 @@ func (h ErrataTxHandler) validate(ctx cosmos.Context, msg MsgErrataTx, version s
 }
 
 func (h ErrataTxHandler) validateV1(ctx cosmos.Context, msg MsgErrataTx) error {
+	return h.validateCurrent(ctx, msg)
+}
+
+func (h ErrataTxHandler) validateCurrent(ctx cosmos.Context, msg MsgErrataTx) error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
@@ -68,6 +72,10 @@ func (h ErrataTxHandler) handle(ctx cosmos.Context, msg MsgErrataTx, version sem
 }
 
 func (h ErrataTxHandler) handleV1(ctx cosmos.Context, msg MsgErrataTx, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+	return h.handleCurrent(ctx, msg, version, constAccessor)
+}
+
+func (h ErrataTxHandler) handleCurrent(ctx cosmos.Context, msg MsgErrataTx, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	active, err := h.keeper.ListActiveNodeAccounts(ctx)
 	if err != nil {
 		return nil, wrapError(ctx, err, "fail to get list of active node accounts")

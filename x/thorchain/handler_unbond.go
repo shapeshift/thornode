@@ -34,6 +34,10 @@ func (h UnBondHandler) validate(ctx cosmos.Context, msg MsgUnBond, version semve
 }
 
 func (h UnBondHandler) validateV1(ctx cosmos.Context, version semver.Version, msg MsgUnBond, constAccessor constants.ConstantValues) error {
+	return h.validateCurrent(ctx, version, msg, constAccessor)
+}
+
+func (h UnBondHandler) validateCurrent(ctx cosmos.Context, version semver.Version, msg MsgUnBond, constAccessor constants.ConstantValues) error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
@@ -140,6 +144,10 @@ func (h UnBondHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Vers
 }
 
 func (h UnBondHandler) handleV1(ctx cosmos.Context, msg MsgUnBond, version semver.Version, constAccessor constants.ConstantValues) error {
+	return h.handleCurrent(ctx, msg, version, constAccessor)
+}
+
+func (h UnBondHandler) handleCurrent(ctx cosmos.Context, msg MsgUnBond, version semver.Version, constAccessor constants.ConstantValues) error {
 	na, err := h.keeper.GetNodeAccount(ctx, msg.NodeAddress)
 	if err != nil {
 		return ErrInternal(err, fmt.Sprintf("fail to get node account(%s)", msg.NodeAddress))
