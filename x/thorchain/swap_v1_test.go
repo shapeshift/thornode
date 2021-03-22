@@ -385,6 +385,7 @@ func (s *SwapSuite) TestSwap(c *C) {
 }
 
 func (s *SwapSuite) TestSynthSwap(c *C) {
+	c.Skip("synthetics are temporarily disabled")
 	ctx, k := setupKeeperForTest(c)
 	pool := NewPool()
 	pool.Asset = common.BNBAsset
