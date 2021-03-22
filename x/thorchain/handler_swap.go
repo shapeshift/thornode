@@ -49,6 +49,10 @@ func (h SwapHandler) validate(ctx cosmos.Context, msg MsgSwap, version semver.Ve
 }
 
 func (h SwapHandler) validateV1(ctx cosmos.Context, msg MsgSwap) error {
+	return h.validateCurrent(ctx, msg)
+}
+
+func (h SwapHandler) validateCurrent(ctx cosmos.Context, msg MsgSwap) error {
 	return msg.ValidateBasic()
 }
 
@@ -59,7 +63,12 @@ func (h SwapHandler) handle(ctx cosmos.Context, msg MsgSwap, version semver.Vers
 	}
 	return nil, errBadVersion
 }
+
 func (h SwapHandler) handleV1(ctx cosmos.Context, msg MsgSwap, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+	return h.handleCurrent(ctx, msg, version, constAccessor)
+}
+
+func (h SwapHandler) handleCurrent(ctx cosmos.Context, msg MsgSwap, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	transactionFee := h.mgr.GasMgr().GetFee(ctx, msg.Destination.GetChain(), common.RuneAsset())
 	synthVirtualDepthMult, err := h.keeper.GetMimir(ctx, constants.VirtualMultSynths.String())
 	if synthVirtualDepthMult < 1 || err != nil {

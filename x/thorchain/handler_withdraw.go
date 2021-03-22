@@ -56,6 +56,10 @@ func (h WithdrawLiquidityHandler) validate(ctx cosmos.Context, msg MsgWithdrawLi
 }
 
 func (h WithdrawLiquidityHandler) validateV1(ctx cosmos.Context, msg MsgWithdrawLiquidity) error {
+	return h.validateCurrent(ctx, msg)
+}
+
+func (h WithdrawLiquidityHandler) validateCurrent(ctx cosmos.Context, msg MsgWithdrawLiquidity) error {
 	if err := msg.ValidateBasic(); err != nil {
 		return errWithdrawFailValidation
 	}
@@ -85,6 +89,10 @@ func (h WithdrawLiquidityHandler) handle(ctx cosmos.Context, msg MsgWithdrawLiqu
 }
 
 func (h WithdrawLiquidityHandler) handleV1(ctx cosmos.Context, msg MsgWithdrawLiquidity, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+	return h.handleCurrent(ctx, msg, version, constAccessor)
+}
+
+func (h WithdrawLiquidityHandler) handleCurrent(ctx cosmos.Context, msg MsgWithdrawLiquidity, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	lp, err := h.keeper.GetLiquidityProvider(ctx, msg.Asset, msg.WithdrawAddress)
 	if err != nil {
 		return nil, multierror.Append(errFailGetLiquidityProvider, err)

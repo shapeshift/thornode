@@ -34,6 +34,10 @@ func (h CommonOutboundTxHandler) slash(ctx cosmos.Context, version semver.Versio
 }
 
 func (h CommonOutboundTxHandler) handle(ctx cosmos.Context, version semver.Version, tx ObservedTx, inTxID common.TxID, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+	return h.handleCurrent(ctx, version, tx, inTxID, constAccessor)
+}
+
+func (h CommonOutboundTxHandler) handleCurrent(ctx cosmos.Context, version semver.Version, tx ObservedTx, inTxID common.TxID, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	// note: Outbound tx usually it is related to an inbound tx except migration
 	// thus here try to get the ObservedTxInVoter,  and set the tx out hash accordingly
 	voter, err := h.keeper.GetObservedTxInVoter(ctx, inTxID)

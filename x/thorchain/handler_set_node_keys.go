@@ -51,6 +51,10 @@ func (h SetNodeKeysHandler) validate(ctx cosmos.Context, msg MsgSetNodeKeys, ver
 }
 
 func (h SetNodeKeysHandler) validateV1(ctx cosmos.Context, msg MsgSetNodeKeys, constAccessor constants.ConstantValues) error {
+	return h.validateCurrent(ctx, msg, constAccessor)
+}
+
+func (h SetNodeKeysHandler) validateCurrent(ctx cosmos.Context, msg MsgSetNodeKeys, constAccessor constants.ConstantValues) error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
@@ -93,6 +97,10 @@ func (h SetNodeKeysHandler) handle(ctx cosmos.Context, msg MsgSetNodeKeys, versi
 
 // handleV1 a message to set node keys
 func (h SetNodeKeysHandler) handleV1(ctx cosmos.Context, msg MsgSetNodeKeys, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+	return h.handleCurrent(ctx, msg, version, constAccessor)
+}
+
+func (h SetNodeKeysHandler) handleCurrent(ctx cosmos.Context, msg MsgSetNodeKeys, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	nodeAccount, err := h.keeper.GetNodeAccount(ctx, msg.Signer)
 	if err != nil {
 		ctx.Logger().Error("fail to get node account", "error", err, "address", msg.Signer.String())

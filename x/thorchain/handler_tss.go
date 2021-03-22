@@ -52,6 +52,10 @@ func (h TssHandler) validate(ctx cosmos.Context, msg MsgTssPool, version semver.
 }
 
 func (h TssHandler) validateV1(ctx cosmos.Context, msg MsgTssPool) error {
+	return h.validateCurrent(ctx, msg)
+}
+
+func (h TssHandler) validateCurrent(ctx cosmos.Context, msg MsgTssPool) error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
@@ -82,6 +86,10 @@ func (h TssHandler) handle(ctx cosmos.Context, msg MsgTssPool, version semver.Ve
 }
 
 func (h TssHandler) handleV1(ctx cosmos.Context, msg MsgTssPool, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+	return h.handleCurrent(ctx, msg, version, constAccessor)
+}
+
+func (h TssHandler) handleCurrent(ctx cosmos.Context, msg MsgTssPool, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	ctx.Logger().Info(fmt.Sprintf("current version: %s", version.String()))
 	if !msg.Blame.IsEmpty() {
 		ctx.Logger().Error(msg.Blame.String())

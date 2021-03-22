@@ -52,6 +52,10 @@ func (h SwitchHandler) validate(ctx cosmos.Context, msg MsgSwitch, version semve
 }
 
 func (h SwitchHandler) validateV1(ctx cosmos.Context, msg MsgSwitch) error {
+	return h.validateCurrent(ctx, msg)
+}
+
+func (h SwitchHandler) validateCurrent(ctx cosmos.Context, msg MsgSwitch) error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
@@ -76,6 +80,10 @@ func (h SwitchHandler) handle(ctx cosmos.Context, msg MsgSwitch, version semver.
 }
 
 func (h SwitchHandler) handleV1(ctx cosmos.Context, msg MsgSwitch, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+	return h.handleCurrent(ctx, msg, version, constAccessor)
+}
+
+func (h SwitchHandler) handleCurrent(ctx cosmos.Context, msg MsgSwitch, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	haltHeight, err := h.keeper.GetMimir(ctx, "HaltTHORChain")
 	if err != nil {
 		return nil, fmt.Errorf("failed to get mimir setting: %w", err)

@@ -46,10 +46,11 @@ func (h DonateHandler) validate(ctx cosmos.Context, msg MsgDonate, version semve
 }
 
 func (h DonateHandler) validateV1(ctx cosmos.Context, msg MsgDonate) error {
-	if err := msg.ValidateBasic(); err != nil {
-		return err
-	}
-	return nil
+	return h.validateCurrent(ctx, msg)
+}
+
+func (h DonateHandler) validateCurrent(ctx cosmos.Context, msg MsgDonate) error {
+	return msg.ValidateBasic()
 }
 
 // handle process MsgDonate, MsgDonate add asset and RUNE to the asset pool
@@ -65,6 +66,10 @@ func (h DonateHandler) handle(ctx cosmos.Context, msg MsgDonate, version semver.
 }
 
 func (h DonateHandler) handleV1(ctx cosmos.Context, msg MsgDonate, version semver.Version, constAccessor constants.ConstantValues) error {
+	return h.handleCurrent(ctx, msg, version, constAccessor)
+}
+
+func (h DonateHandler) handleCurrent(ctx cosmos.Context, msg MsgDonate, version semver.Version, constAccessor constants.ConstantValues) error {
 	pool, err := h.keeper.GetPool(ctx, msg.Asset)
 	if err != nil {
 		return ErrInternal(err, fmt.Sprintf("fail to get pool for (%s)", msg.Asset))
