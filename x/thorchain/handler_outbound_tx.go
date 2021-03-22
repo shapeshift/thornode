@@ -46,6 +46,10 @@ func (h OutboundTxHandler) validate(ctx cosmos.Context, msg MsgOutboundTx, versi
 }
 
 func (h OutboundTxHandler) validateV1(ctx cosmos.Context, msg MsgOutboundTx) error {
+	return h.validateCurrent(ctx, msg)
+}
+
+func (h OutboundTxHandler) validateCurrent(ctx cosmos.Context, msg MsgOutboundTx) error {
 	return msg.ValidateBasic()
 }
 
@@ -58,5 +62,9 @@ func (h OutboundTxHandler) handle(ctx cosmos.Context, msg MsgOutboundTx, version
 }
 
 func (h OutboundTxHandler) handleV1(ctx cosmos.Context, version semver.Version, msg MsgOutboundTx, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+	return h.handleCurrent(ctx, version, msg, constAccessor)
+}
+
+func (h OutboundTxHandler) handleCurrent(ctx cosmos.Context, version semver.Version, msg MsgOutboundTx, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	return h.ch.handle(ctx, version, msg.Tx, msg.InTxID, constAccessor)
 }

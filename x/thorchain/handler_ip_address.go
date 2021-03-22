@@ -52,6 +52,10 @@ func (h IPAddressHandler) validate(ctx cosmos.Context, msg MsgSetIPAddress, vers
 }
 
 func (h IPAddressHandler) validateV1(ctx cosmos.Context, msg MsgSetIPAddress, constAccessor constants.ConstantValues) error {
+	return h.validateCurrent(ctx, msg, constAccessor)
+}
+
+func (h IPAddressHandler) validateCurrent(ctx cosmos.Context, msg MsgSetIPAddress, constAccessor constants.ConstantValues) error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
@@ -84,6 +88,10 @@ func (h IPAddressHandler) handle(ctx cosmos.Context, msg MsgSetIPAddress, versio
 }
 
 func (h IPAddressHandler) handleV1(ctx cosmos.Context, msg MsgSetIPAddress, constAccessor constants.ConstantValues) error {
+	return h.handleCurrent(ctx, msg, constAccessor)
+}
+
+func (h IPAddressHandler) handleCurrent(ctx cosmos.Context, msg MsgSetIPAddress, constAccessor constants.ConstantValues) error {
 	nodeAccount, err := h.keeper.GetNodeAccount(ctx, msg.Signer)
 	if err != nil {
 		ctx.Logger().Error("fail to get node account", "error", err, "address", msg.Signer.String())

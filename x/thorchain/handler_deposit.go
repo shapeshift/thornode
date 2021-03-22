@@ -54,6 +54,10 @@ func (h DepositHandler) validate(ctx cosmos.Context, msg MsgDeposit, version sem
 }
 
 func (h DepositHandler) validateV1(ctx cosmos.Context, msg MsgDeposit) error {
+	return h.validateCurrent(ctx, msg)
+}
+
+func (h DepositHandler) validateCurrent(ctx cosmos.Context, msg MsgDeposit) error {
 	return msg.ValidateBasic()
 }
 
@@ -66,6 +70,10 @@ func (h DepositHandler) handle(ctx cosmos.Context, msg MsgDeposit, version semve
 }
 
 func (h DepositHandler) handleV1(ctx cosmos.Context, msg MsgDeposit, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+	return h.handleCurrent(ctx, msg, version, constAccessor)
+}
+
+func (h DepositHandler) handleCurrent(ctx cosmos.Context, msg MsgDeposit, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	nativeTxFee, err := h.keeper.GetMimir(ctx, constants.NativeTransactionFee.String())
 	if err != nil || nativeTxFee < 0 {
 		nativeTxFee = constAccessor.GetInt64Value(constants.NativeTransactionFee)
@@ -182,7 +190,7 @@ func (h DepositHandler) handleV1(ctx cosmos.Context, msg MsgDeposit, version sem
 	// if its a swap, send it to our queue for processing later
 	if isSwap {
 		msg := m.(*MsgSwap)
-		h.addSwap(ctx, *msg, constAccessor)
+		h.addSwapV1(ctx, *msg, constAccessor)
 		return &cosmos.Result{}, nil
 	}
 
@@ -208,7 +216,7 @@ func (h DepositHandler) handleV1(ctx cosmos.Context, msg MsgDeposit, version sem
 	return result, nil
 }
 
-func (h DepositHandler) addSwap(ctx cosmos.Context, msg MsgSwap, constAccessor constants.ConstantValues) {
+func (h DepositHandler) addSwapV1(ctx cosmos.Context, msg MsgSwap, constAccessor constants.ConstantValues) {
 	amt := cosmos.ZeroUint()
 	if !msg.AffiliateBasisPoints.IsZero() && msg.AffiliateAddress.IsChain(common.THORChain) {
 		amt = common.GetShare(

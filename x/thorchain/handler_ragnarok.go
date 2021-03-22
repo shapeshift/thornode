@@ -50,6 +50,10 @@ func (h RagnarokHandler) validate(ctx cosmos.Context, msg MsgRagnarok, version s
 }
 
 func (h RagnarokHandler) validateV1(ctx cosmos.Context, msg MsgRagnarok) error {
+	return h.validateCurrent(ctx, msg)
+}
+
+func (h RagnarokHandler) validateCurrent(ctx cosmos.Context, msg MsgRagnarok) error {
 	return msg.ValidateBasic()
 }
 
@@ -67,6 +71,10 @@ func (h RagnarokHandler) slashV1(ctx cosmos.Context, version semver.Version, tx 
 }
 
 func (h RagnarokHandler) handleV1(ctx cosmos.Context, version semver.Version, msg MsgRagnarok, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+	return h.handleCurrent(ctx, version, msg, constAccessor)
+}
+
+func (h RagnarokHandler) handleCurrent(ctx cosmos.Context, version semver.Version, msg MsgRagnarok, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	// for ragnarok on thorchain ,
 	if msg.Tx.Tx.Chain.Equals(common.THORChain) {
 		return &cosmos.Result{}, nil

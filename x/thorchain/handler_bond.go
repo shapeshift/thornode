@@ -33,6 +33,10 @@ func (h BondHandler) validate(ctx cosmos.Context, msg MsgBond, version semver.Ve
 }
 
 func (h BondHandler) validateV1(ctx cosmos.Context, version semver.Version, msg MsgBond, constAccessor constants.ConstantValues) error {
+	return h.validateCurrent(ctx, version, msg, constAccessor)
+}
+
+func (h BondHandler) validateCurrent(ctx cosmos.Context, version semver.Version, msg MsgBond, constAccessor constants.ConstantValues) error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
@@ -96,6 +100,10 @@ func (h BondHandler) handle(ctx cosmos.Context, msg MsgBond, version semver.Vers
 }
 
 func (h BondHandler) handleV1(ctx cosmos.Context, msg MsgBond, version semver.Version, constAccessor constants.ConstantValues) error {
+	return h.handleCurrent(ctx, msg, version, constAccessor)
+}
+
+func (h BondHandler) handleCurrent(ctx cosmos.Context, msg MsgBond, version semver.Version, constAccessor constants.ConstantValues) error {
 	// THORNode will not have pub keys at the moment, so have to leave it empty
 	emptyPubKeySet := common.PubKeySet{
 		Secp256k1: common.EmptyPubKey,

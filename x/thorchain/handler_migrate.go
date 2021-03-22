@@ -45,6 +45,10 @@ func (h MigrateHandler) validate(ctx cosmos.Context, msg MsgMigrate, version sem
 }
 
 func (h MigrateHandler) validateV1(ctx cosmos.Context, msg MsgMigrate) error {
+	return h.validateCurrent(ctx, msg)
+}
+
+func (h MigrateHandler) validateCurrent(ctx cosmos.Context, msg MsgMigrate) error {
 	if err := msg.ValidateBasic(); nil != err {
 		return err
 	}
@@ -63,7 +67,12 @@ func (h MigrateHandler) slashV1(ctx cosmos.Context, version semver.Version, tx O
 	toSlash := tx.Tx.Coins.Adds(tx.Tx.Gas.ToCoins())
 	return h.mgr.Slasher().SlashVault(ctx, tx.ObservedPubKey, toSlash, h.mgr)
 }
+
 func (h MigrateHandler) handleV1(ctx cosmos.Context, version semver.Version, msg MsgMigrate) (*cosmos.Result, error) {
+	return h.handleCurrent(ctx, version, msg)
+}
+
+func (h MigrateHandler) handleCurrent(ctx cosmos.Context, version semver.Version, msg MsgMigrate) (*cosmos.Result, error) {
 	// update txOut record with our TxID that sent funds out of the pool
 	txOut, err := h.keeper.GetTxOut(ctx, msg.BlockHeight)
 	if err != nil {
