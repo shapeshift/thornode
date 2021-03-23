@@ -62,6 +62,12 @@ func swapV1(ctx cosmos.Context,
 		}
 	}
 
+	// Temporarily disable synths
+	// TODO enable synths again by removing this code below
+	if target.IsSyntheticAsset() {
+		return cosmos.ZeroUint(), swapEvents, fmt.Errorf("synthetic assets are not yet supported")
+	}
+
 	if err := validateMessageV1(tx, target, destination); err != nil {
 		return cosmos.ZeroUint(), swapEvents, err
 	}
