@@ -180,11 +180,12 @@ func (vm *SwapQv1) getLiquidityFeeAndSlip(pool Pool, sourceCoin common.Coin, ite
 		X = pool.BalanceAsset
 	}
 
-	fee := calcLiquidityFeeV1(X, x, Y)
+	swapper := NewSwapperV1()
+	fee := swapper.calcLiquidityFee(X, x, Y)
 	if sourceCoin.Asset.IsRune() {
 		fee = pool.AssetValueInRune(fee)
 	}
-	slip := calcSwapSlipV1(X, x)
+	slip := swapper.calcSwapSlip(X, x)
 	item.fee = item.fee.Add(fee)
 	item.slip = item.slip.Add(slip)
 }
