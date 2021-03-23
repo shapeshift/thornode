@@ -9,8 +9,20 @@ import (
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
+type SwapperV1 struct {
+	pools     map[common.Asset]Pool // caches pool state changes
+	poolsOrig map[common.Asset]Pool // retains original pool state
+}
+
+func NewSwapperV1() SwapperV1 {
+	return SwapperV1{
+		pools:     make(map[common.Asset]Pool),
+		poolsOrig: make(map[common.Asset]Pool),
+	}
+}
+
 // validate if pools exist
-func validatePoolsV1(ctx cosmos.Context, keeper keeper.Keeper, assets ...common.Asset) error {
+func (s SwapperV1) validatePools(ctx cosmos.Context, keeper keeper.Keeper, assets ...common.Asset) error {
 	for _, asset := range assets {
 		if !asset.IsRune() {
 			if !keeper.PoolExist(ctx, asset) {
@@ -30,7 +42,7 @@ func validatePoolsV1(ctx cosmos.Context, keeper keeper.Keeper, assets ...common.
 }
 
 // validateMessage is trying to validate the legitimacy of the incoming message and decide whether THORNode can handle it
-func validateMessageV1(tx common.Tx, target common.Asset, destination common.Address) error {
+func (s SwapperV1) validateMessage(tx common.Tx, target common.Asset, destination common.Address) error {
 	if err := tx.Valid(); err != nil {
 		return err
 	}
@@ -44,7 +56,7 @@ func validateMessageV1(tx common.Tx, target common.Asset, destination common.Add
 	return nil
 }
 
-func swapV1(ctx cosmos.Context,
+func (s SwapperV1) swap(ctx cosmos.Context,
 	keeper keeper.Keeper,
 	tx common.Tx,
 	target common.Asset,
@@ -68,12 +80,12 @@ func swapV1(ctx cosmos.Context,
 		return cosmos.ZeroUint(), swapEvents, fmt.Errorf("synthetic assets are not yet supported")
 	}
 
-	if err := validateMessageV1(tx, target, destination); err != nil {
+	if err := s.validateMessage(tx, target, destination); err != nil {
 		return cosmos.ZeroUint(), swapEvents, err
 	}
 	source := tx.Coins[0].Asset
 
-	if err := validatePoolsV1(ctx, keeper, source, target); err != nil {
+	if err := s.validatePools(ctx, keeper, source, target); err != nil {
 		if err == errInvalidPoolStatus && source.IsSyntheticAsset() {
 			// the pool is not available, but we can allow synthetic assets to still swap back to rune/asset ok
 		} else {
@@ -87,32 +99,26 @@ func swapV1(ctx cosmos.Context,
 		return cosmos.ZeroUint(), swapEvents, fmt.Errorf("cannot swap from %s --> %s, assets match", source, target)
 	}
 
-	poolsBeforeSwap := make([]Pool, 0)
-	pools := make([]Pool, 0)
 	isDoubleSwap := !source.IsRune() && !target.IsRune()
 	if isDoubleSwap {
 		var swapErr error
 		var swapEvt *EventSwap
 		var amt cosmos.Uint
 		// Here we use a tradeTarget of 0 because the target is for the next swap asset in a double swap
-		amt, poolBefore, sourcePool, swapEvt, swapErr := swapOneV1(ctx, keeper, tx, common.RuneAsset(), destination, cosmos.ZeroUint(), transactionFee, synthVirtualDepthMult)
+		amt, swapEvt, swapErr = s.swapOne(ctx, keeper, tx, common.RuneAsset(), destination, cosmos.ZeroUint(), transactionFee, synthVirtualDepthMult)
 		if swapErr != nil {
 			return cosmos.ZeroUint(), swapEvents, swapErr
 		}
-		pools = append(pools, sourcePool)
-		poolsBeforeSwap = append(poolsBeforeSwap, poolBefore)
 		tx.Coins = common.Coins{common.NewCoin(common.RuneAsset(), amt)}
 		tx.Gas = nil
 		swapEvt.OutTxs = common.NewTx(common.BlankTxID, tx.FromAddress, tx.ToAddress, tx.Coins, tx.Gas, tx.Memo)
 		swapEvents = append(swapEvents, swapEvt)
 	}
-	assetAmount, poolBefore, pool, swapEvt, swapErr := swapOneV1(ctx, keeper, tx, target, destination, tradeTarget, transactionFee, synthVirtualDepthMult)
+	assetAmount, swapEvt, swapErr := s.swapOne(ctx, keeper, tx, target, destination, tradeTarget, transactionFee, synthVirtualDepthMult)
 	if swapErr != nil {
 		return cosmos.ZeroUint(), swapEvents, swapErr
 	}
 	swapEvents = append(swapEvents, swapEvt)
-	pools = append(pools, pool)
-	poolsBeforeSwap = append(poolsBeforeSwap, poolBefore)
 	if !tradeTarget.IsZero() && assetAmount.LT(tradeTarget) {
 		return cosmos.ZeroUint(), swapEvents, fmt.Errorf("emit asset %s less than price limit %s", assetAmount, tradeTarget)
 	}
@@ -129,7 +135,7 @@ func swapV1(ctx cosmos.Context,
 	// persistent pools to the key value store as the next step will be trying to add TxOutItem
 	// during AddTxOutItem , it will try to take some asset from the emitted asset, and add it back to pool
 	// thus it put some asset back to compensate gas
-	for _, pool := range pools {
+	for _, pool := range s.pools {
 		if err := keeper.SetPool(ctx, pool); err != nil {
 			return cosmos.ZeroUint(), swapEvents, errSwapFail
 		}
@@ -152,7 +158,7 @@ func swapV1(ctx cosmos.Context,
 		if !errors.Is(err, ErrNotEnoughToPayFee) {
 			// when it fail to send out the txout item , thus let's restore the pool balance here , thus nothing happen to the pool
 			// given the previous pool status is already in memory, so here just apply it again
-			for _, pool := range poolsBeforeSwap {
+			for _, pool := range s.poolsOrig {
 				if err := keeper.SetPool(ctx, pool); err != nil {
 					return cosmos.ZeroUint(), swapEvents, errSwapFail
 				}
@@ -179,13 +185,13 @@ func swapV1(ctx cosmos.Context,
 	return assetAmount, swapEvents, nil
 }
 
-func swapOneV1(ctx cosmos.Context,
+func (s SwapperV1) swapOne(ctx cosmos.Context,
 	keeper keeper.Keeper, tx common.Tx,
 	target common.Asset,
 	destination common.Address,
 	tradeTarget cosmos.Uint,
 	transactionFee cosmos.Uint,
-	synthVirtualDepthMult int64) (amt cosmos.Uint, poolBefore, poolResult Pool, evt *EventSwap, swapErr error) {
+	synthVirtualDepthMult int64) (amt cosmos.Uint, evt *EventSwap, swapErr error) {
 	source := tx.Coins[0].Asset
 	amount := tx.Coins[0].Amount
 
@@ -193,6 +199,8 @@ func swapOneV1(ctx cosmos.Context,
 
 	var X, x, Y, liquidityFee, emitAssets cosmos.Uint
 	var tradeSlip cosmos.Uint
+	var pool Pool
+	var err error
 
 	// Set asset to our non-rune asset
 	asset := source
@@ -200,7 +208,7 @@ func swapOneV1(ctx cosmos.Context,
 		asset = target
 		if amount.LTE(transactionFee) {
 			// stop swap , because the output will not enough to pay for transaction fee
-			return cosmos.ZeroUint(), Pool{}, Pool{}, evt, errSwapFailNotEnoughFee
+			return cosmos.ZeroUint(), evt, errSwapFailNotEnoughFee
 		}
 	}
 	if asset.IsSyntheticAsset() {
@@ -220,15 +228,20 @@ func swapOneV1(ctx cosmos.Context,
 	// Check if pool exists
 	if !keeper.PoolExist(ctx, asset) {
 		err := fmt.Errorf("pool %s doesn't exist", asset)
-		return cosmos.ZeroUint(), Pool{}, Pool{}, evt, err
+		return cosmos.ZeroUint(), evt, err
 	}
 
-	// Get our pool from the KVStore
-	pool, poolErr := keeper.GetPool(ctx, asset)
-	if poolErr != nil {
-		return cosmos.ZeroUint(), Pool{}, Pool{}, evt, ErrInternal(poolErr, fmt.Sprintf("fail to get pool(%s)", asset))
+	if p, ok := s.pools[asset]; ok {
+		// Get our pool from the cache
+		pool = p
+	} else {
+		// Get our pool from the KVStore
+		pool, err = keeper.GetPool(ctx, asset)
+		if err != nil {
+			return cosmos.ZeroUint(), evt, ErrInternal(err, fmt.Sprintf("fail to get pool(%s)", asset))
+		}
+		s.poolsOrig[asset] = pool
 	}
-	poolBefore = pool
 
 	// Get our X, x, Y values
 	if source.IsRune() {
@@ -248,15 +261,15 @@ func swapOneV1(ctx cosmos.Context,
 
 	// check our X,x,Y values are valid
 	if x.IsZero() {
-		return cosmos.ZeroUint(), poolBefore, pool, evt, errSwapFailInvalidAmount
+		return cosmos.ZeroUint(), evt, errSwapFailInvalidAmount
 	}
 	if X.IsZero() || Y.IsZero() {
-		return cosmos.ZeroUint(), poolBefore, pool, evt, errSwapFailInvalidBalance
+		return cosmos.ZeroUint(), evt, errSwapFailInvalidBalance
 	}
 
-	liquidityFee = calcLiquidityFeeV1(X, x, Y)
-	tradeSlip = calcSwapSlipV1(X, x)
-	emitAssets = calcAssetEmissionV1(X, x, Y)
+	liquidityFee = s.calcLiquidityFee(X, x, Y)
+	tradeSlip = s.calcSwapSlip(X, x)
+	emitAssets = s.calcAssetEmission(X, x, Y)
 	emitAssets = cosmos.RoundToDecimal(emitAssets, pool.Decimals)
 	swapEvt.LiquidityFee = liquidityFee
 
@@ -271,7 +284,7 @@ func swapOneV1(ctx cosmos.Context,
 
 	// do THORNode have enough balance to swap?
 	if emitAssets.GTE(Y) {
-		return cosmos.ZeroUint(), poolBefore, pool, evt, errSwapFailNotEnoughBalance
+		return cosmos.ZeroUint(), evt, errSwapFailNotEnoughBalance
 	}
 
 	ctx.Logger().Info(fmt.Sprintf("Pre-Pool: %sRune %sAsset", pool.BalanceRune, pool.BalanceAsset))
@@ -286,10 +299,10 @@ func swapOneV1(ctx cosmos.Context,
 			pool.SynthUnits = common.SafeSub(pool.SynthUnits, minusSynthUnits)
 			pool.PoolUnits = common.SafeSub(pool.PoolUnits, minusSynthUnits)
 			if err := keeper.SendFromModuleToModule(ctx, AsgardName, ModuleName, tx.Coins); err != nil {
-				return cosmos.ZeroUint(), poolBefore, pool, evt, fmt.Errorf("fail to move coins during swap: %w", err)
+				return cosmos.ZeroUint(), evt, fmt.Errorf("fail to move coins during swap: %w", err)
 			}
 			if err := keeper.BurnFromModule(ctx, ModuleName, tx.Coins[0]); err != nil {
-				return cosmos.ZeroUint(), poolBefore, pool, evt, fmt.Errorf("fail to burn coins during swap: %w", err)
+				return cosmos.ZeroUint(), evt, fmt.Errorf("fail to burn coins during swap: %w", err)
 			}
 		} else {
 			// our source is assumed to be rune
@@ -297,7 +310,7 @@ func swapOneV1(ctx cosmos.Context,
 			// the minting of the synths themselves is handled in the txout manager
 			newPoolUnits, synthUnits, err := calculatePoolUnitsV1(pool.PoolUnits, pool.BalanceRune, pool.BalanceAsset, x, cosmos.ZeroUint())
 			if err != nil {
-				return cosmos.ZeroUint(), poolBefore, pool, evt, ErrInternal(err, "fail to calculate synth unit")
+				return cosmos.ZeroUint(), evt, ErrInternal(err, "fail to calculate synth unit")
 			}
 			pool.PoolUnits = newPoolUnits
 			pool.SynthUnits = pool.SynthUnits.Add(synthUnits)
@@ -314,11 +327,14 @@ func swapOneV1(ctx cosmos.Context,
 	}
 	ctx.Logger().Info(fmt.Sprintf("Post-swap: %sRune %sAsset , user get:%s ", pool.BalanceRune, pool.BalanceAsset, emitAssets))
 
-	return emitAssets, poolBefore, pool, swapEvt, nil
+	// add the new pool to the cache
+	s.pools[pool.Asset] = pool
+
+	return emitAssets, swapEvt, nil
 }
 
 // calculate the number of assets sent to the address (includes liquidity fee)
-func calcAssetEmissionV1(X, x, Y cosmos.Uint) cosmos.Uint {
+func (s SwapperV1) calcAssetEmission(X, x, Y cosmos.Uint) cosmos.Uint {
 	// ( x * X * Y ) / ( x + X )^2
 	numerator := x.Mul(X).Mul(Y)
 	denominator := x.Add(X).Mul(x.Add(X))
@@ -329,7 +345,7 @@ func calcAssetEmissionV1(X, x, Y cosmos.Uint) cosmos.Uint {
 }
 
 // calculateFee the fee of the swap
-func calcLiquidityFeeV1(X, x, Y cosmos.Uint) cosmos.Uint {
+func (s SwapperV1) calcLiquidityFee(X, x, Y cosmos.Uint) cosmos.Uint {
 	// ( x^2 *  Y ) / ( x + X )^2
 	numerator := x.Mul(x).Mul(Y)
 	denominator := x.Add(X).Mul(x.Add(X))
@@ -340,7 +356,7 @@ func calcLiquidityFeeV1(X, x, Y cosmos.Uint) cosmos.Uint {
 }
 
 // calcSwapSlip - calculate the swap slip, expressed in basis points (10000)
-func calcSwapSlipV1(Xi, xi cosmos.Uint) cosmos.Uint {
+func (s SwapperV1) calcSwapSlip(Xi, xi cosmos.Uint) cosmos.Uint {
 	// Cast to DECs
 	xD := cosmos.NewDecFromBigInt(xi.BigInt())
 	XD := cosmos.NewDecFromBigInt(Xi.BigInt())
