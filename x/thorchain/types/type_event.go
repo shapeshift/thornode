@@ -28,6 +28,7 @@ const (
 	TSSKeysignMetricEventType  = `tss_keysign`
 	SlashPointEventType        = `slash_points`
 	PoolBalanceChangeEventType = "pool_balance_change"
+	SwitchEventType            = "switch"
 )
 
 // PoolMods a list of pool modifications
@@ -518,5 +519,28 @@ func (m *EventPoolBalanceChanged) Events() (cosmos.Events, error) {
 		cosmos.NewAttribute("asset_amt", m.PoolChange.AssetAmt.String()),
 		cosmos.NewAttribute("asset_add", strconv.FormatBool(m.PoolChange.AssetAdd)),
 		cosmos.NewAttribute("reason", m.GetReason()))
+	return cosmos.Events{evt}, nil
+}
+
+// NewEventSwitch create a new instance of EventSwitch
+func NewEventSwitch(from common.Address, to cosmos.AccAddress, coin common.Coin) *EventSwitch {
+	return &EventSwitch{
+		ToAddress:   to,
+		FromAddress: from,
+		Burn:        coin,
+	}
+}
+
+// Type return a string which represent the type of this event
+func (m *EventSwitch) Type() string {
+	return SwitchEventType
+}
+
+// Events return cosmos sdk events
+func (m *EventSwitch) Events() (cosmos.Events, error) {
+	evt := cosmos.NewEvent(m.Type(),
+		cosmos.NewAttribute("from", m.FromAddress.String()),
+		cosmos.NewAttribute("to", m.ToAddress.String()),
+		cosmos.NewAttribute("burn", m.Burn.String()))
 	return cosmos.Events{evt}, nil
 }
