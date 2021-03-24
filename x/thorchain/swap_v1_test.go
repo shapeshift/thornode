@@ -462,4 +462,58 @@ func (s *SwapSuite) TestSynthSwap(c *C) {
 	c.Check(pool.BalanceRune.Uint64(), Equals, uint64(111504716364), Commentf("%d", pool.BalanceRune.Uint64()))
 	c.Check(pool.PoolUnits.Uint64(), Equals, uint64(111100000000), Commentf("%d", pool.PoolUnits.Uint64()))
 	c.Check(pool.SynthUnits.Uint64(), Equals, uint64(0), Commentf("%d", pool.SynthUnits.Uint64()))
+
+	// swap BNB.BNB -> BNB/BNB (external asset directly to synth)
+	tx1 := common.NewTx(
+		GetRandomTxHash(),
+		addr,
+		addr,
+		common.NewCoins(
+			common.NewCoin(common.BNBAsset, cosmos.NewUint(50*common.One)),
+		),
+		BNBGasFeeSingleton,
+		"",
+	)
+	tx.Chain = common.BNBChain
+	amount, _, err = NewSwapperV1().swap(ctx, k, tx1, common.BNBAsset, addr, cosmos.ZeroUint(), cosmos.NewUint(1000_000), 2, m)
+	c.Assert(err, IsNil)
+	c.Check(amount.Uint64(), Equals, uint64(1985844476), Commentf("%d", amount.Uint64()))
+	pool, err = k.GetPool(ctx, common.BNBAsset)
+	c.Assert(err, IsNil)
+	c.Check(pool.BalanceAsset.Uint64(), Equals, uint64(84*common.One))
+	c.Check(pool.BalanceRune.Uint64(), Equals, uint64(111504716364), Commentf("%d", pool.BalanceRune.Uint64()))
+	c.Check(pool.PoolUnits.Uint64(), Equals, uint64(124483645124), Commentf("%d", pool.PoolUnits.Uint64()))
+	c.Check(pool.SynthUnits.Uint64(), Equals, uint64(13383645124), Commentf("%d", pool.SynthUnits.Uint64()))
+
+	// emit asset is not enough to pay for fee , then pool balance should be restored
+	tx2 := common.NewTx(
+		GetRandomTxHash(),
+		addr,
+		addr,
+		common.NewCoins(
+			common.NewCoin(common.BTCAsset, cosmos.NewUint(common.One/2)),
+		),
+		BNBGasFeeSingleton,
+		"",
+	)
+	tx.Chain = common.BNBChain
+	btcPool := NewPool()
+	btcPool.Asset = common.BTCAsset
+	btcPool.BalanceAsset = cosmos.NewUint(common.One)
+	btcPool.BalanceRune = cosmos.NewUint(common.One * 10)
+	btcPool.PoolUnits = cosmos.NewUint(100)
+	btcPool.SynthUnits = cosmos.ZeroUint()
+	c.Assert(k.SetPool(ctx, btcPool), IsNil)
+
+	amount, _, err = NewSwapperV1().swap(ctx, k, tx2, common.BTCAsset, addr, cosmos.ZeroUint(), cosmos.NewUint(1000_000_000_000), 2, m)
+	c.Assert(err, NotNil)
+	c.Check(amount.IsZero(), Equals, true)
+	pool, err = k.GetPool(ctx, common.BTCAsset)
+	c.Assert(err, IsNil)
+	c.Check(pool.BalanceAsset.Uint64(), Equals, uint64(common.One))
+	c.Check(pool.BalanceRune.Uint64(), Equals, uint64(10*common.One), Commentf("%d", pool.BalanceRune.Uint64()))
+	c.Check(pool.PoolUnits.Uint64(), Equals, uint64(100), Commentf("%d", pool.PoolUnits.Uint64()))
+	c.Check(pool.SynthUnits.Uint64(), Equals, uint64(0), Commentf("%d", pool.SynthUnits.Uint64()))
+	c.Logf("pool:%+v", pool)
+
 }
