@@ -93,6 +93,7 @@ var (
 	NewEventWithdraw               = types.NewEventWithdraw
 	NewEventRefund                 = types.NewEventRefund
 	NewEventBond                   = types.NewEventBond
+	NewEventSwitch                 = types.NewEventSwitch
 	NewEventGas                    = types.NewEventGas
 	NewEventSlash                  = types.NewEventSlash
 	NewEventSlashPoint             = types.NewEventSlashPoint

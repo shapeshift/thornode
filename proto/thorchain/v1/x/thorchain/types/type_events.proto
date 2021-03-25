@@ -143,3 +143,9 @@ message EventPoolBalanceChanged {
   PoolMod pool_change = 1 [(gogoproto.nullable) = false];
   string reason = 2;
 }
+
+message EventSwitch {
+  bytes to_address = 1 [(gogoproto.casttype) = "github.com/cosmos/cosmos-sdk/types.AccAddress"];
+  string from_address = 2 [(gogoproto.casttype) = "gitlab.com/thorchain/thornode/common.Address"];
+  common.Coin burn = 3 [(gogoproto.nullable) = false];
+}
