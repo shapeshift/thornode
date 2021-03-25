@@ -514,6 +514,4 @@ func (s *SwapSuite) TestSynthSwap(c *C) {
 	c.Check(pool.BalanceRune.Uint64(), Equals, uint64(10*common.One), Commentf("%d", pool.BalanceRune.Uint64()))
 	c.Check(pool.PoolUnits.Uint64(), Equals, uint64(100), Commentf("%d", pool.PoolUnits.Uint64()))
 	c.Check(pool.SynthUnits.Uint64(), Equals, uint64(0), Commentf("%d", pool.SynthUnits.Uint64()))
-	c.Logf("pool:%+v", pool)
-
 }
