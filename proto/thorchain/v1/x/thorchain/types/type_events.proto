@@ -25,6 +25,7 @@ message EventSwap {
   common.Tx in_tx = 6 [(gogoproto.nullable) = false];
   common.Tx out_txs = 7 [(gogoproto.nullable) = false];
   common.Coin emit_asset = 8 [(gogoproto.nullable) = false];
+  string synth_units = 9 [(gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Uint", (gogoproto.nullable) = false];
 }
 
 message EventAddLiquidity {
@@ -116,6 +117,7 @@ message EventErrata {
 message EventFee {
   string tx_id = 1 [(gogoproto.casttype) = "gitlab.com/thorchain/thornode/common.TxID", (gogoproto.customname) = "TxID"];
   common.Fee fee = 2 [(gogoproto.nullable) = false];
+  string synth_units = 3 [(gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Uint", (gogoproto.nullable) = false];
 }
 
 message EventOutbound {
