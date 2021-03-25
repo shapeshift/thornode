@@ -268,7 +268,7 @@ func (m *EventBond) Type() string {
 func (m *EventBond) Events() (cosmos.Events, error) {
 	evt := cosmos.NewEvent(m.Type(),
 		cosmos.NewAttribute("amount", m.Amount.String()),
-		cosmos.NewAttribute("bound_type", string(m.BondType)))
+		cosmos.NewAttribute("bond_type", string(m.BondType)))
 	evt = evt.AppendAttributes(m.TxIn.ToAttributes()...)
 	return cosmos.Events{evt}, nil
 }
