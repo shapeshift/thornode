@@ -46,7 +46,7 @@ func NewPoolMod(asset common.Asset, runeAmt cosmos.Uint, runeAdd bool, assetAmt 
 }
 
 // NewEventSwap create a new swap event
-func NewEventSwap(pool common.Asset, priceTarget, fee, tradeSlip, liquidityFeeInRune cosmos.Uint, inTx common.Tx, emitAsset common.Coin) *EventSwap {
+func NewEventSwap(pool common.Asset, priceTarget, fee, tradeSlip, liquidityFeeInRune cosmos.Uint, inTx common.Tx, emitAsset common.Coin, synthUnits cosmos.Uint) *EventSwap {
 	return &EventSwap{
 		Pool:               pool,
 		PriceTarget:        priceTarget,
@@ -55,6 +55,7 @@ func NewEventSwap(pool common.Asset, priceTarget, fee, tradeSlip, liquidityFeeIn
 		LiquidityFeeInRune: liquidityFeeInRune,
 		InTx:               inTx,
 		EmitAsset:          emitAsset,
+		SynthUnits:         synthUnits,
 	}
 }
 
@@ -73,6 +74,9 @@ func (m *EventSwap) Events() (cosmos.Events, error) {
 		cosmos.NewAttribute("liquidity_fee_in_rune", m.LiquidityFeeInRune.String()),
 		cosmos.NewAttribute("emit_asset", m.EmitAsset.String()),
 	)
+	if !m.SynthUnits.IsZero() {
+		evt = evt.AppendAttributes(cosmos.NewAttribute("synth_units", m.SynthUnits.String()))
+	}
 	evt = evt.AppendAttributes(m.InTx.ToAttributes()...)
 	return cosmos.Events{evt}, nil
 }
@@ -390,10 +394,11 @@ func (m *EventErrata) Events() (cosmos.Events, error) {
 }
 
 // NewEventFee create a new EventFee
-func NewEventFee(txID common.TxID, fee common.Fee) *EventFee {
+func NewEventFee(txID common.TxID, fee common.Fee, synthUnits cosmos.Uint) *EventFee {
 	return &EventFee{
-		TxID: txID,
-		Fee:  fee,
+		TxID:       txID,
+		Fee:        fee,
+		SynthUnits: synthUnits,
 	}
 }
 
@@ -408,6 +413,11 @@ func (m *EventFee) Events() (cosmos.Events, error) {
 		cosmos.NewAttribute("tx_id", m.TxID.String()),
 		cosmos.NewAttribute("coins", m.Fee.Coins.String()),
 		cosmos.NewAttribute("pool_deduct", m.Fee.PoolDeduct.String()))
+	if !m.SynthUnits.IsZero() {
+		evt = evt.AppendAttributes(
+			cosmos.NewAttribute("synth_units", m.SynthUnits.String()),
+		)
+	}
 	return cosmos.Events{evt}, nil
 }
 
