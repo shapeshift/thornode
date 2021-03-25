@@ -47,18 +47,24 @@ func (h DepositHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Ver
 }
 
 func (h DepositHandler) validate(ctx cosmos.Context, msg MsgDeposit, version semver.Version) error {
-	if version.GTE(semver.MustParse("0.1.0")) {
+	if version.GTE(semver.MustParse("0.36.0")) {
+		return h.validateV36(ctx, msg)
+	} else if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, msg)
 	}
 	return errInvalidVersion
 }
 
 func (h DepositHandler) validateV1(ctx cosmos.Context, msg MsgDeposit) error {
+	return msg.ValidateBasic()
+}
+
+func (h DepositHandler) validateV36(ctx cosmos.Context, msg MsgDeposit) error {
 	return h.validateCurrent(ctx, msg)
 }
 
 func (h DepositHandler) validateCurrent(ctx cosmos.Context, msg MsgDeposit) error {
-	return msg.ValidateBasic()
+	return msg.ValidateBasicV36()
 }
 
 func (h DepositHandler) handle(ctx cosmos.Context, msg MsgDeposit, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
