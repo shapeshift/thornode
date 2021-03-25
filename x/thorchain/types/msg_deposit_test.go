@@ -51,7 +51,7 @@ func (MsgDepositSuite) TestMsgDepositSuite(c *C) {
 
 	msg3 := NewMsgDeposit(common.Coins{
 		common.NewCoin(common.RuneNative, cosmos.NewUint(12*common.One)),
-	}, "asdfsdkljadslfasfaqcvbncvncvbncvbncvbncvbncvbncvbncvbncvbncvbnsdfasdfasfasdfkjqwerqlkwerqlerqwlkerjqlwkerjqwlkerjqwlkerjqlkwerjklqwerjqwlkerjqlwkerjwqelr", acc1)
+	}, "asdfsdkljadslfasfaqcvbncvncvbncvbncvbncvbncvbncvbncvbncvbncvbnsdfasdfasfasdfkjqwerqlkwerqlerqwlkerjqlwkerjqwlkerjqwlkerjqlkwerjklqwerjqwlkerjqlwkerjwqelrasdfsdkljadslfasfaqcvbncvncvbncvbncvbncvbncvbncvbncvbncvbncvbnsdfasdfasfasdfkjqwerqlkwerqlerqwlkerjqlwkerjqwlkerjqwlkerjqlkwerjklqwerjqwlkerjqlwkerjwqelr", acc1)
 	err3 := msg3.ValidateBasic()
 	c.Assert(err3, NotNil)
 	c.Assert(errors.Is(err3, se.ErrUnknownRequest), Equals, true)
