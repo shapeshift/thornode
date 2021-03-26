@@ -21,6 +21,7 @@ import (
 
 type QuerierSuite struct {
 	kb      cosmos.KeybaseStore
+	mgr     *Mgrs
 	k       keeper.Keeper
 	querier cosmos.Querier
 	ctx     cosmos.Context
@@ -52,7 +53,9 @@ func (s *QuerierSuite) SetUpTest(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	s.k = k
 	s.ctx = ctx
-	s.querier = NewQuerier(k, s.kb)
+	s.mgr = NewManagers(s.k)
+	c.Assert(s.mgr.BeginBlock(ctx), IsNil)
+	s.querier = NewQuerier(s.mgr, s.kb)
 }
 
 func (s *QuerierSuite) TestQueryKeysign(c *C) {
@@ -74,7 +77,7 @@ func (s *QuerierSuite) TestQueryKeysign(c *C) {
 		txOut: txOut,
 	}
 
-	querier := NewQuerier(keeper, s.kb)
+	querier := NewQuerier(NewManagers(keeper), s.kb)
 
 	path := []string{
 		"keysign",
@@ -89,7 +92,7 @@ func (s *QuerierSuite) TestQueryKeysign(c *C) {
 func (s *QuerierSuite) TestQueryPool(c *C) {
 	ctx, keeper := setupKeeperForTest(c)
 
-	querier := NewQuerier(keeper, s.kb)
+	querier := NewQuerier(NewManagers(keeper), s.kb)
 	path := []string{"pools"}
 
 	pubKey := GetRandomPubKey()
@@ -138,7 +141,7 @@ func (s *QuerierSuite) TestQueryPool(c *C) {
 func (s *QuerierSuite) TestVaultss(c *C) {
 	ctx, keeper := setupKeeperForTest(c)
 
-	querier := NewQuerier(keeper, s.kb)
+	querier := NewQuerier(NewManagers(keeper), s.kb)
 	path := []string{"pools"}
 
 	pubKey := GetRandomPubKey()
@@ -186,7 +189,7 @@ func (s *QuerierSuite) TestVaultss(c *C) {
 func (s *QuerierSuite) TestQueryNodeAccounts(c *C) {
 	ctx, keeper := setupKeeperForTest(c)
 
-	querier := NewQuerier(keeper, s.kb)
+	querier := NewQuerier(NewManagers(keeper), s.kb)
 	path := []string{"nodes"}
 
 	signer := GetRandomBech32Addr()
