@@ -223,6 +223,7 @@ func (s SwapperV1) swapOne(ctx cosmos.Context,
 		cosmos.ZeroUint(),
 		tx,
 		common.NoCoin,
+		cosmos.ZeroUint(),
 	)
 
 	// Check if pool exists

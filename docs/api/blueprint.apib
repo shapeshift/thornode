@@ -646,6 +646,7 @@ inbound addresses will return a list of address , one per chain.  the address mi
     + pub_key (string) - public key
     + address (string) - address
     + halted (boolean) - indicate whether this chain has halted
+    + gas_rate (string) - gas rate, for ETH , the actual gas rate is gas_rate * 10 Gwei , for BTC/BCH/LTC it is gas_rate per vbyte 
 
 ### Get inbound addresses [GET]
 Retrieve all the inbound addresses from THORChain
@@ -659,19 +660,22 @@ Retrieve all the inbound addresses from THORChain
                     "chain": "BTC",
                     "pub_key": "tthorpub1addwnpepqd9nqqmgay6mju0yq72ptjucmk9atawtev4v4n6wkee5y26q80eccg0xk37",
                     "address": "bcrt1q257g60tcxvu4dvflpszgkwq34d5vw6pg726gf3",
-                    "halted": false
+                    "halted": false,
+                    "gas_rate": "6"
                     },
                     {
                     "chain": "BNB",
                     "pub_key": "tthorpub1addwnpepqd9nqqmgay6mju0yq72ptjucmk9atawtev4v4n6wkee5y26q80eccg0xk37",
                     "address": "tbnb1257g60tcxvu4dvflpszgkwq34d5vw6pgvws4qe",
-                    "halted": false
+                    "halted": false,
+                    "gas_rate": "56250"
                     },
                     {
                     "chain": "ETH",
                     "pub_key": "tthorpub1addwnpepqd9nqqmgay6mju0yq72ptjucmk9atawtev4v4n6wkee5y26q80eccg0xk37",
                     "address": "0xfd9a66fe5eef56951d7e353afb74563ee2df052d",
                     "halted": false
+                    "gas_rate": "1",
                     }
                 ]
             
@@ -785,6 +789,53 @@ This is just a true / false indicate whether THORChain is in ragnarok or not
 
             false
 
+# Group queue
+## outbound queue [/thorchain/queue]
++ Attributes
+    + swap (number) - number of swaps in the queue
+    + outbound (number) - number of outbound tx in the queue for customer
+    + internal (number) - number of internal tx in the queue. internal tx include migration,yggdrasil+
+
+### get outbound queue [GET]
+Retrieve the outbound queue information from THORChain
++ Response 200 (application/json)
+    + Attributes(outbound queue)
+    + Body
+
+            {
+                "swap": 0,
+                "outbound": 0,
+                "internal": 0
+            }
+
+## outbound queue detail [/thorchain/queue/outbound]
+
+### get outbound queue detail [GET]
+get the list of tx out item in the queue
++ Response 200 (application/json)
+    + Attributes(array[txoutitem])
+    + Body
+
+            [
+                {
+                    "chain": "ETH",
+                    "to_address": "0xf42d7db7fde6060349d61ad29636df23cf03e4b1",
+                    "vault_pub_key": "tthorpub1addwnpepqtg7cdttvvy5wvchvwaytsklst483gmrf7cv42qkq392aa29h6cyv4p83ug",
+                    "coin": {
+                        "asset": "ETH.ETH",
+                        "amount": "158037"
+                    },
+                    "memo": "MIGRATE:14701",
+                    "max_gas": [
+                        {
+                            "asset": "ETH.ETH",
+                            "amount": "120000"
+                        }
+                    ],
+                    "gas_rate": 1,
+                    "in_hash": "0000000000000000000000000000000000000000000000000000000000000000"
+                }
+            ]
 # Group keygen/keysign
 ## keygen [/thorchain/keygen/{height}/{pubkey}]
 + Parameters
@@ -853,6 +904,7 @@ Retrieve keysign information from THORChain
                 },
                 "signature": "0cJZ7kFoe6h3VA9yC/D+joTtfq7pJibxTK6GsjpHayNjapNCig20cqqSUerscKTwRPxB2D9DJaYVJ1C41wM9Bw=="
             }
+
 # Data Structures
 
 ## Coin (object)

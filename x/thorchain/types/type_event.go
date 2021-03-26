@@ -28,6 +28,7 @@ const (
 	TSSKeysignMetricEventType  = `tss_keysign`
 	SlashPointEventType        = `slash_points`
 	PoolBalanceChangeEventType = "pool_balance_change"
+	SwitchEventType            = "switch"
 )
 
 // PoolMods a list of pool modifications
@@ -45,7 +46,7 @@ func NewPoolMod(asset common.Asset, runeAmt cosmos.Uint, runeAdd bool, assetAmt 
 }
 
 // NewEventSwap create a new swap event
-func NewEventSwap(pool common.Asset, priceTarget, fee, tradeSlip, liquidityFeeInRune cosmos.Uint, inTx common.Tx, emitAsset common.Coin) *EventSwap {
+func NewEventSwap(pool common.Asset, priceTarget, fee, tradeSlip, liquidityFeeInRune cosmos.Uint, inTx common.Tx, emitAsset common.Coin, synthUnits cosmos.Uint) *EventSwap {
 	return &EventSwap{
 		Pool:               pool,
 		PriceTarget:        priceTarget,
@@ -54,6 +55,7 @@ func NewEventSwap(pool common.Asset, priceTarget, fee, tradeSlip, liquidityFeeIn
 		LiquidityFeeInRune: liquidityFeeInRune,
 		InTx:               inTx,
 		EmitAsset:          emitAsset,
+		SynthUnits:         synthUnits,
 	}
 }
 
@@ -72,6 +74,9 @@ func (m *EventSwap) Events() (cosmos.Events, error) {
 		cosmos.NewAttribute("liquidity_fee_in_rune", m.LiquidityFeeInRune.String()),
 		cosmos.NewAttribute("emit_asset", m.EmitAsset.String()),
 	)
+	if !m.SynthUnits.IsZero() {
+		evt = evt.AppendAttributes(cosmos.NewAttribute("synth_units", m.SynthUnits.String()))
+	}
 	evt = evt.AppendAttributes(m.InTx.ToAttributes()...)
 	return cosmos.Events{evt}, nil
 }
@@ -389,10 +394,11 @@ func (m *EventErrata) Events() (cosmos.Events, error) {
 }
 
 // NewEventFee create a new EventFee
-func NewEventFee(txID common.TxID, fee common.Fee) *EventFee {
+func NewEventFee(txID common.TxID, fee common.Fee, synthUnits cosmos.Uint) *EventFee {
 	return &EventFee{
-		TxID: txID,
-		Fee:  fee,
+		TxID:       txID,
+		Fee:        fee,
+		SynthUnits: synthUnits,
 	}
 }
 
@@ -407,6 +413,11 @@ func (m *EventFee) Events() (cosmos.Events, error) {
 		cosmos.NewAttribute("tx_id", m.TxID.String()),
 		cosmos.NewAttribute("coins", m.Fee.Coins.String()),
 		cosmos.NewAttribute("pool_deduct", m.Fee.PoolDeduct.String()))
+	if !m.SynthUnits.IsZero() {
+		evt = evt.AppendAttributes(
+			cosmos.NewAttribute("synth_units", m.SynthUnits.String()),
+		)
+	}
 	return cosmos.Events{evt}, nil
 }
 
@@ -518,5 +529,28 @@ func (m *EventPoolBalanceChanged) Events() (cosmos.Events, error) {
 		cosmos.NewAttribute("asset_amt", m.PoolChange.AssetAmt.String()),
 		cosmos.NewAttribute("asset_add", strconv.FormatBool(m.PoolChange.AssetAdd)),
 		cosmos.NewAttribute("reason", m.GetReason()))
+	return cosmos.Events{evt}, nil
+}
+
+// NewEventSwitch create a new instance of EventSwitch
+func NewEventSwitch(from common.Address, to cosmos.AccAddress, coin common.Coin) *EventSwitch {
+	return &EventSwitch{
+		ToAddress:   to,
+		FromAddress: from,
+		Burn:        coin,
+	}
+}
+
+// Type return a string which represent the type of this event
+func (m *EventSwitch) Type() string {
+	return SwitchEventType
+}
+
+// Events return cosmos sdk events
+func (m *EventSwitch) Events() (cosmos.Events, error) {
+	evt := cosmos.NewEvent(m.Type(),
+		cosmos.NewAttribute("from", m.FromAddress.String()),
+		cosmos.NewAttribute("to", m.ToAddress.String()),
+		cosmos.NewAttribute("burn", m.Burn.String()))
 	return cosmos.Events{evt}, nil
 }

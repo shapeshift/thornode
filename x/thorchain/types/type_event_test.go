@@ -20,6 +20,7 @@ func (s EventSuite) TestSwapEvent(c *C) {
 		cosmos.ZeroUint(),
 		GetRandomTx(),
 		common.NewCoin(common.BNBAsset, cosmos.NewUint(100)),
+		cosmos.NewUint(5),
 	)
 	c.Check(evt.Type(), Equals, "swap")
 	events, err := evt.Events()
@@ -170,7 +171,7 @@ func (s EventSuite) TestEventFee(c *C) {
 			common.NewCoin(common.BNBAsset, cosmos.NewUint(1024)),
 		},
 		PoolDeduct: cosmos.NewUint(1023),
-	})
+	}, cosmos.NewUint(5))
 	c.Assert(event.Type(), Equals, FeeEventType)
 	evts, err := event.Events()
 	c.Assert(err, IsNil)

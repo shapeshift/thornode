@@ -246,7 +246,7 @@ func (tos *TxOutStorageV1) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem) (
 				}
 				outputs[i].Coin.Amount = common.SafeSub(outputs[i].Coin.Amount, runeFee)
 				fee := common.NewFee(common.Coins{common.NewCoin(outputs[i].Coin.Asset, runeFee)}, cosmos.ZeroUint())
-				if err := tos.eventMgr.EmitFeeEvent(ctx, NewEventFee(outputs[i].InHash, fee)); err != nil {
+				if err := tos.eventMgr.EmitFeeEvent(ctx, NewEventFee(outputs[i].InHash, fee, cosmos.ZeroUint())); err != nil {
 					ctx.Logger().Error("fail to emit fee event", "error", err)
 				}
 
@@ -291,7 +291,7 @@ func (tos *TxOutStorageV1) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem) (
 					}
 					pool.BalanceRune = common.SafeSub(pool.BalanceRune, runeFee) // Deduct Rune from Pool
 					fee := common.NewFee(common.Coins{common.NewCoin(outputs[i].Coin.Asset, assetFee)}, poolDeduct)
-					if err := tos.eventMgr.EmitFeeEvent(ctx, NewEventFee(outputs[i].InHash, fee)); err != nil {
+					if err := tos.eventMgr.EmitFeeEvent(ctx, NewEventFee(outputs[i].InHash, fee, cosmos.ZeroUint())); err != nil {
 						ctx.Logger().Error("fail to emit fee event", "error", err)
 					}
 					if err := tos.keeper.SetPool(ctx, pool); err != nil { // Set Pool

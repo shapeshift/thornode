@@ -9,6 +9,7 @@ import (
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/constants"
 )
 
 // NewMsgTssKeysignFail create a new instance of MsgTssKeysignFail message
@@ -117,8 +118,8 @@ func (m *MsgTssKeysignFail) ValidateBasic() error {
 	if m.Height <= 0 {
 		return cosmos.ErrUnknownRequest("block height cannot be equal to less than zero")
 	}
-	if len([]byte(m.Memo)) > 150 {
-		err := fmt.Errorf("memo must not exceed 150 bytes: %d", len([]byte(m.Memo)))
+	if len([]byte(m.Memo)) > constants.MaxMemoSize {
+		err := fmt.Errorf("memo must not exceed %d bytes: %d", constants.MaxMemoSize, len([]byte(m.Memo)))
 		return cosmos.ErrUnknownRequest(err.Error())
 	}
 	if m.PubKey.IsEmpty() {
