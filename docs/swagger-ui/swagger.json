@@ -943,28 +943,7 @@
                     "200": {
                         "description": "OK",
                         "headers": {},
-                        "examples": {
-                            "application/json": [
-                                {
-                                    "chain": "BTC",
-                                    "pub_key": "tthorpub1addwnpepqd9nqqmgay6mju0yq72ptjucmk9atawtev4v4n6wkee5y26q80eccg0xk37",
-                                    "address": "bcrt1q257g60tcxvu4dvflpszgkwq34d5vw6pg726gf3",
-                                    "halted": false
-                                },
-                                {
-                                    "chain": "BNB",
-                                    "pub_key": "tthorpub1addwnpepqd9nqqmgay6mju0yq72ptjucmk9atawtev4v4n6wkee5y26q80eccg0xk37",
-                                    "address": "tbnb1257g60tcxvu4dvflpszgkwq34d5vw6pgvws4qe",
-                                    "halted": false
-                                },
-                                {
-                                    "chain": "ETH",
-                                    "pub_key": "tthorpub1addwnpepqd9nqqmgay6mju0yq72ptjucmk9atawtev4v4n6wkee5y26q80eccg0xk37",
-                                    "address": "0xfd9a66fe5eef56951d7e353afb74563ee2df052d",
-                                    "halted": false
-                                }
-                            ]
-                        },
+                        "examples": {},
                         "schema": {
                             "type": "array",
                             "items": {}
@@ -977,10 +956,7 @@
                 "tags": [
                     "network"
                 ],
-                "parameters": [],
-                "produces": [
-                    "application/json"
-                ]
+                "parameters": []
             }
         },
         "/thorchain/lastblock/{chain}": {
@@ -1143,6 +1119,96 @@
                 "description": "",
                 "tags": [
                     "network"
+                ],
+                "parameters": [],
+                "produces": [
+                    "application/json"
+                ]
+            }
+        },
+        "/thorchain/queue": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "headers": {},
+                        "examples": {
+                            "application/json": {
+                                "swap": 0,
+                                "outbound": 0,
+                                "internal": 0
+                            }
+                        },
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "swap": {
+                                    "type": "number",
+                                    "description": "number of swaps in the queue"
+                                },
+                                "outbound": {
+                                    "type": "number",
+                                    "description": "number of outbound tx in the queue for customer"
+                                },
+                                "internal": {
+                                    "type": "number",
+                                    "description": "number of internal tx in the queue. internal tx include migration,yggdrasil+"
+                                }
+                            }
+                        }
+                    }
+                },
+                "summary": "get outbound queue",
+                "operationId": "get outbound queue",
+                "description": "Retrieve the outbound queue information from THORChain",
+                "tags": [
+                    "queue"
+                ],
+                "parameters": [],
+                "produces": [
+                    "application/json"
+                ]
+            }
+        },
+        "/thorchain/queue/outbound": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "headers": {},
+                        "examples": {
+                            "application/json": [
+                                {
+                                    "chain": "ETH",
+                                    "to_address": "0xf42d7db7fde6060349d61ad29636df23cf03e4b1",
+                                    "vault_pub_key": "tthorpub1addwnpepqtg7cdttvvy5wvchvwaytsklst483gmrf7cv42qkq392aa29h6cyv4p83ug",
+                                    "coin": {
+                                        "asset": "ETH.ETH",
+                                        "amount": "158037"
+                                    },
+                                    "memo": "MIGRATE:14701",
+                                    "max_gas": [
+                                        {
+                                            "asset": "ETH.ETH",
+                                            "amount": "120000"
+                                        }
+                                    ],
+                                    "gas_rate": 1,
+                                    "in_hash": "0000000000000000000000000000000000000000000000000000000000000000"
+                                }
+                            ]
+                        },
+                        "schema": {
+                            "type": "array",
+                            "items": {}
+                        }
+                    }
+                },
+                "summary": "get outbound queue detail",
+                "operationId": "get outbound queue detail",
+                "description": "get the list of tx out item in the queue",
+                "tags": [
+                    "queue"
                 ],
                 "parameters": [],
                 "produces": [
@@ -1724,6 +1790,9 @@
                 "halted": {
                     "type": "boolean",
                     "description": "indicate whether this chain has halted"
+                },
+                "gas_rate (string) - gas rate, for ETH , the actual gas rate is gas_rate * 10 Gwei , for BTC/BCH/LTC it is gas_rate per vbyte": {
+                    "type": "string"
                 }
             }
         },
@@ -1764,6 +1833,24 @@
         },
         "constants": {},
         "ragnarok": {},
+        "outbound queue": {
+            "type": "object",
+            "properties": {
+                "swap": {
+                    "type": "number",
+                    "description": "number of swaps in the queue"
+                },
+                "outbound": {
+                    "type": "number",
+                    "description": "number of outbound tx in the queue for customer"
+                },
+                "internal": {
+                    "type": "number",
+                    "description": "number of internal tx in the queue. internal tx include migration,yggdrasil+"
+                }
+            }
+        },
+        "outbound queue detail": {},
         "keygen": {
             "type": "object",
             "properties": {
@@ -1948,6 +2035,9 @@
         {
             "name": "network",
             "description": "This section document all api related to network"
+        },
+        {
+            "name": "queue"
         },
         {
             "name": "keygen/keysign"
