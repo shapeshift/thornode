@@ -76,4 +76,12 @@ func (s AssetSuite) TestAsset(c *C) {
 	c.Check(asset.IsRune(), Equals, false)
 	c.Check(asset.IsEmpty(), Equals, false)
 	c.Check(asset.String(), Equals, "LTC.LTC")
+
+	// btc/btc
+	asset, err = NewAsset("btc/btc")
+	c.Check(err, IsNil)
+	c.Check(asset.Chain.Equals(BTCChain), Equals, true)
+	c.Check(asset.Equals(BTCAsset), Equals, false)
+	c.Check(asset.IsEmpty(), Equals, false)
+	c.Check(asset.String(), Equals, "BTC/BTC")
 }

@@ -127,5 +127,10 @@ func (h SwitchHandler) toNative(ctx cosmos.Context, msg MsgSwitch) (*cosmos.Resu
 		ctx.Logger().Error("failed to set network", "error", err)
 	}
 
+	switchEvent := NewEventSwitch(msg.Tx.FromAddress, addr, msg.Tx.Coins[0])
+	if err := h.mgr.EventMgr().EmitEvent(ctx, switchEvent); err != nil {
+		ctx.Logger().Error("fail to emit switch event", "error", err)
+	}
+
 	return &cosmos.Result{}, nil
 }
