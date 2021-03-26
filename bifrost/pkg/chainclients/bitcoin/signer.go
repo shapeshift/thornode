@@ -17,6 +17,7 @@ import (
 	"github.com/btcsuite/btcutil"
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	"github.com/hashicorp/go-multierror"
+
 	"gitlab.com/thorchain/bifrost/txscript"
 
 	stypes "gitlab.com/thorchain/thornode/bifrost/thorclient/types"
@@ -89,8 +90,7 @@ func (c *Client) isYggdrasil(key common.PubKey) bool {
 func (c *Client) getUtxoToSpend(pubKey common.PubKey, total float64) ([]btcjson.ListUnspentResult, error) {
 	var result []btcjson.ListUnspentResult
 	minConfirmation := 0
-	// Yggdrasil vault is funded by asgard , which will only spend UTXO that is older than 10 blocks, so yggdrasil doesn't need
-	// to do the same logic
+
 	isYggdrasil := c.isYggdrasil(pubKey)
 	utxos, err := c.getUTXOs(minConfirmation, MaximumConfirmation, pubKey)
 	if err != nil {
@@ -108,10 +108,13 @@ func (c *Client) getUtxoToSpend(pubKey common.PubKey, total float64) ([]btcjson.
 	var toSpend float64
 	minUTXOAmt := btcutil.Amount(minSpendableUTXOAmountSats).ToBTC()
 	for _, item := range utxos {
-		if item.Amount <= minUTXOAmt {
+		isSelfTx := c.isSelfTransaction(item.TxID)
+		// when the utxo is signed yggdrasil / asgard , even amount is less than minSpendableUTXOAmountSats
+		// it is ok to spend it
+		if item.Amount <= minUTXOAmt && !isSelfTx {
 			continue
 		}
-		if isYggdrasil || item.Confirmations >= MinUTXOConfirmation || c.isSelfTransaction(item.TxID) {
+		if isYggdrasil || item.Confirmations >= MinUTXOConfirmation || isSelfTx {
 			result = append(result, item)
 			toSpend = toSpend + item.Amount
 		}
