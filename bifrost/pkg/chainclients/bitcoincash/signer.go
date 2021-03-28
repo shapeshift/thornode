@@ -16,6 +16,7 @@ import (
 	"github.com/gcash/bchd/wire"
 	"github.com/gcash/bchutil"
 	"github.com/hashicorp/go-multierror"
+
 	txscript "gitlab.com/thorchain/bifrost/bchd-txscript"
 
 	stypes "gitlab.com/thorchain/thornode/bifrost/thorclient/types"
@@ -107,10 +108,13 @@ func (c *Client) getUtxoToSpend(pubKey common.PubKey, total float64) ([]btcjson.
 	var toSpend float64
 	minUTXOAmt := bchutil.Amount(minSpendableUTXOAmountSats).ToBCH()
 	for _, item := range utxos {
-		if item.Amount <= minUTXOAmt {
+		isSelfTx := c.isSelfTransaction(item.TxID)
+		// when the utxo is signed yggdrasil / asgard , even amount is less than minSpendableUTXOAmountSats
+		// it is ok to spend it
+		if item.Amount <= minUTXOAmt && !isSelfTx {
 			continue
 		}
-		if isYggdrasil || item.Confirmations >= MinUTXOConfirmation || c.isSelfTransaction(item.TxID) {
+		if isYggdrasil || item.Confirmations >= MinUTXOConfirmation || isSelfTx {
 			result = append(result, item)
 			toSpend = toSpend + item.Amount
 		}
