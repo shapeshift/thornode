@@ -78,19 +78,17 @@ func (s *HandlerAddLiquiditySuite) SetUpSuite(c *C) {
 }
 
 func (s *HandlerAddLiquiditySuite) TestAddLiquidityHandler(c *C) {
+	var err error
 	ctx, _ := setupKeeperForTest(c)
 	activeNodeAccount := GetRandomNodeAccount(NodeActive)
 	runeAddr := GetRandomRUNEAddress()
 	bnbAddr := GetRandomBNBAddress()
+	pool := NewPool()
+	pool.Asset = common.BNBAsset
+	pool.Status = PoolAvailable
 	k := &MockAddLiquidityKeeper{
 		activeNodeAccount: activeNodeAccount,
-		currentPool: Pool{
-			BalanceRune:  cosmos.ZeroUint(),
-			BalanceAsset: cosmos.ZeroUint(),
-			Asset:        common.BNBAsset,
-			PoolUnits:    cosmos.ZeroUint(),
-			Status:       PoolAvailable,
-		},
+		currentPool:       pool,
 		lp: LiquidityProvider{
 			Asset:             common.BNBAsset,
 			RuneAddress:       runeAddr,
@@ -106,8 +104,6 @@ func (s *HandlerAddLiquiditySuite) TestAddLiquidityHandler(c *C) {
 	mgr := NewManagers(k)
 	c.Assert(mgr.BeginBlock(ctx), IsNil)
 	addHandler := NewAddLiquidityHandler(k, mgr)
-	preLiquidityPool, err := k.GetPool(ctx, common.BNBAsset)
-	c.Assert(err, IsNil)
 	addTxHash := GetRandomTxHash()
 	tx := common.NewTx(
 		addTxHash,
@@ -123,17 +119,29 @@ func (s *HandlerAddLiquiditySuite) TestAddLiquidityHandler(c *C) {
 		tx,
 		common.BNBAsset,
 		cosmos.NewUint(100*common.One),
-		cosmos.NewUint(100*common.One),
+		cosmos.ZeroUint(),
 		runeAddr,
 		bnbAddr,
 		common.NoAddress, cosmos.ZeroUint(),
 		activeNodeAccount.NodeAddress)
 	_, err = addHandler.Run(ctx, msg, ver, constAccessor)
 	c.Assert(err, IsNil)
+
+	midLiquidityPool, err := k.GetPool(ctx, common.BNBAsset)
+	c.Assert(err, IsNil)
+	c.Assert(midLiquidityPool.PendingInboundRune.String(), Equals, "10000000000")
+
+	msg.RuneAmount = cosmos.ZeroUint()
+	msg.AssetAmount = cosmos.NewUint(100 * common.One)
+	_, err = addHandler.Run(ctx, msg, ver, constAccessor)
+	c.Assert(err, IsNil)
+
 	postLiquidityPool, err := k.GetPool(ctx, common.BNBAsset)
 	c.Assert(err, IsNil)
-	c.Assert(postLiquidityPool.BalanceAsset.String(), Equals, preLiquidityPool.BalanceAsset.Add(msg.AssetAmount).String())
-	c.Assert(postLiquidityPool.BalanceRune.String(), Equals, preLiquidityPool.BalanceRune.Add(msg.RuneAmount).String())
+	c.Assert(postLiquidityPool.BalanceAsset.String(), Equals, "10000000000")
+	c.Assert(postLiquidityPool.BalanceRune.String(), Equals, "10000000000")
+	c.Assert(postLiquidityPool.PendingInboundAsset.String(), Equals, "0")
+	c.Assert(postLiquidityPool.PendingInboundRune.String(), Equals, "0")
 }
 
 func (s *HandlerAddLiquiditySuite) TestAddLiquidityHandler_NoPool_ShouldCreateNewPool(c *C) {
@@ -142,14 +150,11 @@ func (s *HandlerAddLiquiditySuite) TestAddLiquidityHandler_NoPool_ShouldCreateNe
 	activeNodeAccount.Bond = cosmos.NewUint(1000000 * common.One)
 	runeAddr := GetRandomRUNEAddress()
 	bnbAddr := GetRandomBNBAddress()
+	pool := NewPool()
+	pool.Status = PoolAvailable
 	k := &MockAddLiquidityKeeper{
 		activeNodeAccount: activeNodeAccount,
-		currentPool: Pool{
-			BalanceRune:  cosmos.ZeroUint(),
-			BalanceAsset: cosmos.ZeroUint(),
-			PoolUnits:    cosmos.ZeroUint(),
-			Status:       PoolAvailable,
-		},
+		currentPool:       pool,
 		lp: LiquidityProvider{
 			Asset:             common.BNBAsset,
 			RuneAddress:       runeAddr,
