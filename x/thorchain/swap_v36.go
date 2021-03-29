@@ -62,7 +62,7 @@ func (s *SwapperV36) swap(ctx cosmos.Context,
 	tx common.Tx,
 	target common.Asset,
 	destination common.Address,
-	tradeTarget cosmos.Uint,
+	swapTarget cosmos.Uint,
 	transactionFee cosmos.Uint, synthVirtualDepthMult int64, mgr Manager) (cosmos.Uint, []*EventSwap, error) {
 	var swapEvents []*EventSwap
 
@@ -105,7 +105,7 @@ func (s *SwapperV36) swap(ctx cosmos.Context,
 		var swapErr error
 		var swapEvt *EventSwap
 		var amt cosmos.Uint
-		// Here we use a tradeTarget of 0 because the target is for the next swap asset in a double swap
+		// Here we use a swapTarget of 0 because the target is for the next swap asset in a double swap
 		amt, swapEvt, swapErr = s.swapOne(ctx, keeper, tx, common.RuneAsset(), destination, cosmos.ZeroUint(), transactionFee, synthVirtualDepthMult)
 		if swapErr != nil {
 			return cosmos.ZeroUint(), swapEvents, swapErr
@@ -115,13 +115,13 @@ func (s *SwapperV36) swap(ctx cosmos.Context,
 		swapEvt.OutTxs = common.NewTx(common.BlankTxID, tx.FromAddress, tx.ToAddress, tx.Coins, tx.Gas, tx.Memo)
 		swapEvents = append(swapEvents, swapEvt)
 	}
-	assetAmount, swapEvt, swapErr := s.swapOne(ctx, keeper, tx, target, destination, tradeTarget, transactionFee, synthVirtualDepthMult)
+	assetAmount, swapEvt, swapErr := s.swapOne(ctx, keeper, tx, target, destination, swapTarget, transactionFee, synthVirtualDepthMult)
 	if swapErr != nil {
 		return cosmos.ZeroUint(), swapEvents, swapErr
 	}
 	swapEvents = append(swapEvents, swapEvt)
-	if !tradeTarget.IsZero() && assetAmount.LT(tradeTarget) {
-		return cosmos.ZeroUint(), swapEvents, fmt.Errorf("emit asset %s less than price limit %s", assetAmount, tradeTarget)
+	if !swapTarget.IsZero() && assetAmount.LT(swapTarget) {
+		return cosmos.ZeroUint(), swapEvents, fmt.Errorf("emit asset %s less than price limit %s", assetAmount, swapTarget)
 	}
 	if target.IsRune() {
 		if assetAmount.LTE(transactionFee) {
@@ -200,7 +200,7 @@ func (s *SwapperV36) swapOne(ctx cosmos.Context,
 	keeper keeper.Keeper, tx common.Tx,
 	target common.Asset,
 	destination common.Address,
-	tradeTarget cosmos.Uint,
+	swapTarget cosmos.Uint,
 	transactionFee cosmos.Uint,
 	synthVirtualDepthMult int64) (amt cosmos.Uint, evt *EventSwap, swapErr error) {
 	source := tx.Coins[0].Asset
@@ -209,7 +209,7 @@ func (s *SwapperV36) swapOne(ctx cosmos.Context,
 	ctx.Logger().Info(fmt.Sprintf("%s Swapping %s(%s) -> %s to %s (Fee %s)", tx.FromAddress, source, tx.Coins[0].Amount, target, destination, transactionFee))
 
 	var X, x, Y, liquidityFee, emitAssets cosmos.Uint
-	var tradeSlip cosmos.Uint
+	var swapSlip cosmos.Uint
 	var pool Pool
 	var err error
 
@@ -228,7 +228,7 @@ func (s *SwapperV36) swapOne(ctx cosmos.Context,
 
 	swapEvt := NewEventSwap(
 		asset,
-		tradeTarget,
+		swapTarget,
 		cosmos.ZeroUint(),
 		cosmos.ZeroUint(),
 		cosmos.ZeroUint(),
@@ -280,7 +280,7 @@ func (s *SwapperV36) swapOne(ctx cosmos.Context,
 	}
 
 	liquidityFee = s.calcLiquidityFee(X, x, Y)
-	tradeSlip = s.calcSwapSlip(X, x)
+	swapSlip = s.calcSwapSlip(X, x)
 	emitAssets = s.calcAssetEmission(X, x, Y)
 	emitAssets = cosmos.RoundToDecimal(emitAssets, pool.Decimals)
 	swapEvt.LiquidityFee = liquidityFee
@@ -291,7 +291,7 @@ func (s *SwapperV36) swapOne(ctx cosmos.Context,
 		// because the output asset is RUNE , so liqualidtyFee is already in RUNE
 		swapEvt.LiquidityFeeInRune = liquidityFee
 	}
-	swapEvt.TradeSlip = tradeSlip
+	swapEvt.SwapSlip = swapSlip
 	swapEvt.EmitAsset = common.NewCoin(target, emitAssets)
 
 	// do THORNode have enough balance to swap?
