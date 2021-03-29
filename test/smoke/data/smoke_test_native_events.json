@@ -973,10 +973,10 @@
                 "pool": "BNB.BNB"
             },
             {
-                "price_target": "0"
+                "swap_target": "0"
             },
             {
-                "trade_slip": "7350"
+                "swap_slip": "7350"
             },
             {
                 "liquidity_fee": "45855753911"
@@ -1014,10 +1014,10 @@
                 "pool": "BTC.BTC"
             },
             {
-                "price_target": "0"
+                "swap_target": "0"
             },
             {
-                "trade_slip": "2485"
+                "swap_slip": "2485"
             },
             {
                 "liquidity_fee": "9264509"
@@ -1086,10 +1086,10 @@
                 "pool": "BTC.BTC"
             },
             {
-                "price_target": "0"
+                "swap_target": "0"
             },
             {
-                "trade_slip": "121"
+                "swap_slip": "121"
             },
             {
                 "liquidity_fee": "9813887"
@@ -1167,10 +1167,10 @@
                 "pool": "BNB.BNB"
             },
             {
-                "price_target": "0"
+                "swap_target": "0"
             },
             {
-                "trade_slip": "4236"
+                "swap_slip": "4236"
             },
             {
                 "liquidity_fee": "12266469336"
@@ -1208,10 +1208,10 @@
                 "pool": "BCH.BCH"
             },
             {
-                "price_target": "0"
+                "swap_target": "0"
             },
             {
-                "trade_slip": "2503"
+                "swap_slip": "2503"
             },
             {
                 "liquidity_fee": "9394486"
@@ -1306,10 +1306,10 @@
                 "pool": "BNB.BNB"
             },
             {
-                "price_target": "0"
+                "swap_target": "0"
             },
             {
-                "trade_slip": "2976"
+                "swap_slip": "2976"
             },
             {
                 "liquidity_fee": "4574640899"
@@ -1347,10 +1347,10 @@
                 "pool": "LTC.LTC"
             },
             {
-                "price_target": "0"
+                "swap_target": "0"
             },
             {
-                "trade_slip": "1776"
+                "swap_slip": "1776"
             },
             {
                 "liquidity_fee": "4732151"
@@ -1419,10 +1419,10 @@
                 "pool": "LTC.LTC"
             },
             {
-                "price_target": "0"
+                "swap_target": "0"
             },
             {
-                "trade_slip": "116"
+                "swap_slip": "116"
             },
             {
                 "liquidity_fee": "8143032"
@@ -1474,10 +1474,10 @@
                 "pool": "ETH.ETH"
             },
             {
-                "price_target": "0"
+                "swap_target": "0"
             },
             {
-                "trade_slip": "5000"
+                "swap_slip": "5000"
             },
             {
                 "liquidity_fee": "10000000"
@@ -1546,10 +1546,10 @@
                 "pool": "ETH.ETH"
             },
             {
-                "price_target": "0"
+                "swap_target": "0"
             },
             {
-                "trade_slip": "3322"
+                "swap_slip": "3322"
             },
             {
                 "liquidity_fee": "10974008499"
@@ -1601,10 +1601,10 @@
                 "pool": "ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A"
             },
             {
-                "price_target": "0"
+                "swap_target": "0"
             },
             {
-                "trade_slip": "5000"
+                "swap_slip": "5000"
             },
             {
                 "liquidity_fee": "100000000"
@@ -1673,10 +1673,10 @@
                 "pool": "BCH.BCH"
             },
             {
-                "price_target": "0"
+                "swap_target": "0"
             },
             {
-                "trade_slip": "122"
+                "swap_slip": "122"
             },
             {
                 "liquidity_fee": "9857465"
@@ -1728,10 +1728,10 @@
                 "pool": "ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A"
             },
             {
-                "price_target": "0"
+                "swap_target": "0"
             },
             {
-                "trade_slip": "475"
+                "swap_slip": "475"
             },
             {
                 "liquidity_fee": "224567563"
@@ -2021,10 +2021,10 @@
                 "pool": "BNB.BNB"
             },
             {
-                "price_target": "0"
+                "swap_target": "0"
             },
             {
-                "trade_slip": "24"
+                "swap_slip": "24"
             },
             {
                 "liquidity_fee": "10014"
@@ -2093,10 +2093,10 @@
                 "pool": "BNB.BNB"
             },
             {
-                "price_target": "26572599"
+                "swap_target": "26572599"
             },
             {
-                "trade_slip": "1962"
+                "swap_slip": "1962"
             },
             {
                 "liquidity_fee": "64547274"
@@ -2165,10 +2165,10 @@
                 "pool": "BNB.BNB"
             },
             {
-                "price_target": "0"
+                "swap_target": "0"
             },
             {
-                "trade_slip": "1640"
+                "swap_slip": "1640"
             },
             {
                 "liquidity_fee": "37998750"
@@ -2504,10 +2504,10 @@
                 "pool": "BNB.BNB"
             },
             {
-                "price_target": "0"
+                "swap_target": "0"
             },
             {
-                "trade_slip": "81"
+                "swap_slip": "81"
             },
             {
                 "liquidity_fee": "4039060"
@@ -2559,10 +2559,10 @@
                 "pool": "BNB.BNB"
             },
             {
-                "price_target": "23853375"
+                "swap_target": "23853375"
             },
             {
-                "trade_slip": "1419"
+                "swap_slip": "1419"
             },
             {
                 "liquidity_fee": "24742378"
@@ -2631,10 +2631,10 @@
                 "pool": "BNB.BNB"
             },
             {
-                "price_target": "22460886"
+                "swap_target": "22460886"
             },
             {
-                "trade_slip": "1243"
+                "swap_slip": "1243"
             },
             {
                 "liquidity_fee": "16667066"
@@ -2763,10 +2763,10 @@
                 "pool": "BNB.LOK-3C0"
             },
             {
-                "price_target": "0"
+                "swap_target": "0"
             },
             {
-                "trade_slip": "1111"
+                "swap_slip": "1111"
             },
             {
                 "liquidity_fee": "617283950"
@@ -2818,10 +2818,10 @@
                 "pool": "BNB.LOK-3C0"
             },
             {
-                "price_target": "0"
+                "swap_target": "0"
             },
             {
-                "trade_slip": "999"
+                "swap_slip": "999"
             },
             {
                 "liquidity_fee": "448890943"
@@ -2916,10 +2916,10 @@
                 "pool": "BNB.LOK-3C0"
             },
             {
-                "price_target": "0"
+                "swap_target": "0"
             },
             {
-                "trade_slip": "1088"
+                "swap_slip": "1088"
             },
             {
                 "liquidity_fee": "592330021"
@@ -2957,10 +2957,10 @@
                 "pool": "BNB.BNB"
             },
             {
-                "price_target": "0"
+                "swap_target": "0"
             },
             {
-                "trade_slip": "569"
+                "swap_slip": "569"
             },
             {
                 "liquidity_fee": "3112048"
@@ -3055,10 +3055,10 @@
                 "pool": "BNB.BNB"
             },
             {
-                "price_target": "0"
+                "swap_target": "0"
             },
             {
-                "trade_slip": "55"
+                "swap_slip": "55"
             },
             {
                 "liquidity_fee": "2546331"
@@ -3096,10 +3096,10 @@
                 "pool": "BNB.LOK-3C0"
             },
             {
-                "price_target": "0"
+                "swap_target": "0"
             },
             {
-                "trade_slip": "102"
+                "swap_slip": "102"
             },
             {
                 "liquidity_fee": "4735269"
