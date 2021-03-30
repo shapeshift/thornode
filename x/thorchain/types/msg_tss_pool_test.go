@@ -20,92 +20,47 @@ func (s *MsgTssPoolSuite) TestMsgTssPool(c *C) {
 	}
 	addr := GetRandomBech32Addr()
 	keygenTime := int64(1024)
-	msg := NewMsgTssPool(pks, pk, KeygenType_AsgardKeygen, 1, Blame{}, []string{common.RuneAsset().Chain.String()}, addr, keygenTime)
-	c.Check(msg.Type(), Equals, "set_tss_pool")
-	c.Assert(msg.ValidateBasic(), IsNil)
-	EnsureMsgBasicCorrect(msg, c)
-
-	chains := []string{common.RuneAsset().Chain.String()}
-	c.Check(NewMsgTssPool(pks, pk, KeygenType_AsgardKeygen, 1, Blame{}, chains, nil, keygenTime).ValidateBasic(), NotNil)
-	c.Check(NewMsgTssPool(nil, pk, KeygenType_AsgardKeygen, 1, Blame{}, chains, addr, keygenTime).ValidateBasic(), NotNil)
-	c.Check(NewMsgTssPool(pks, "", KeygenType_AsgardKeygen, 1, Blame{}, chains, addr, keygenTime).ValidateBasic(), NotNil)
-	c.Check(NewMsgTssPool(pks, "bogusPubkey", KeygenType_AsgardKeygen, 1, Blame{}, chains, addr, keygenTime).ValidateBasic(), NotNil)
-
-	// fails on empty chain list
-	msg = NewMsgTssPool(pks, pk, KeygenType_AsgardKeygen, 1, Blame{}, []string{}, addr, keygenTime)
-	c.Check(msg.ValidateBasic(), NotNil)
-	// fails on duplicates in chain list
-	msg = NewMsgTssPool(pks, pk, KeygenType_AsgardKeygen, 1, Blame{}, []string{common.RuneAsset().Chain.String(), common.RuneAsset().Chain.String()}, addr, keygenTime)
-	c.Check(msg.ValidateBasic(), NotNil)
-
-	msg1 := NewMsgTssPool(pks, pk, KeygenType_AsgardKeygen, 1, Blame{}, chains, addr, keygenTime)
-	msg1.ID = ""
-	err1 := msg1.ValidateBasic()
-	c.Assert(err1, NotNil)
-	c.Check(errors.Is(err1, se.ErrUnknownRequest), Equals, true)
-
-	msg2 := NewMsgTssPool(append(pks, ""), pk, KeygenType_AsgardKeygen, 1, Blame{}, chains, addr, keygenTime)
-	err2 := msg2.ValidateBasic()
-	c.Assert(err2, NotNil)
-	c.Check(errors.Is(err2, se.ErrUnknownRequest), Equals, true)
-
-	var allPks []string
-	for i := 0; i < 110; i++ {
-		allPks = append(allPks, GetRandomPubKey().String())
-	}
-	msg3 := NewMsgTssPool(allPks, pk, KeygenType_AsgardKeygen, 1, Blame{}, chains, addr, keygenTime)
-	err3 := msg3.ValidateBasic()
-	c.Assert(err3, NotNil)
-	c.Check(errors.Is(err3, se.ErrUnknownRequest), Equals, true)
-}
-func (s *MsgTssPoolSuite) TestMsgTssPoolV26(c *C) {
-	pk := GetRandomPubKey()
-	pks := []string{
-		GetRandomPubKey().String(), GetRandomPubKey().String(), GetRandomPubKey().String(),
-	}
-	addr := GetRandomBech32Addr()
-	keygenTime := int64(1024)
-	msg, err := NewMsgTssPoolV26(pks, pk, KeygenType_AsgardKeygen, 1, Blame{}, []string{common.RuneAsset().Chain.String()}, addr, keygenTime)
+	msg, err := NewMsgTssPool(pks, pk, KeygenType_AsgardKeygen, 1, Blame{}, []string{common.RuneAsset().Chain.String()}, addr, keygenTime)
 	c.Assert(err, IsNil)
 	c.Check(msg.Type(), Equals, "set_tss_pool")
 	c.Assert(msg.ValidateBasic(), IsNil)
 	EnsureMsgBasicCorrect(msg, c)
 
 	chains := []string{common.RuneAsset().Chain.String()}
-	m, err := NewMsgTssPoolV26(pks, pk, KeygenType_AsgardKeygen, 1, Blame{}, chains, nil, keygenTime)
+	m, err := NewMsgTssPool(pks, pk, KeygenType_AsgardKeygen, 1, Blame{}, chains, nil, keygenTime)
 	c.Assert(m, NotNil)
 	c.Assert(err, IsNil)
 	c.Assert(m.ValidateBasic(), NotNil)
-	m, err = NewMsgTssPoolV26(nil, pk, KeygenType_AsgardKeygen, 1, Blame{}, chains, addr, keygenTime)
+	m, err = NewMsgTssPool(nil, pk, KeygenType_AsgardKeygen, 1, Blame{}, chains, addr, keygenTime)
 	c.Assert(m, NotNil)
 	c.Assert(err, IsNil)
 	c.Assert(m.ValidateBasic(), NotNil)
-	m, err = NewMsgTssPoolV26(pks, "", KeygenType_AsgardKeygen, 1, Blame{}, chains, addr, keygenTime)
+	m, err = NewMsgTssPool(pks, "", KeygenType_AsgardKeygen, 1, Blame{}, chains, addr, keygenTime)
 	c.Assert(m, NotNil)
 	c.Assert(err, IsNil)
 	c.Assert(m.ValidateBasic(), NotNil)
-	m, err = NewMsgTssPoolV26(pks, "bogusPubkey", KeygenType_AsgardKeygen, 1, Blame{}, chains, addr, keygenTime)
+	m, err = NewMsgTssPool(pks, "bogusPubkey", KeygenType_AsgardKeygen, 1, Blame{}, chains, addr, keygenTime)
 	c.Assert(m, NotNil)
 	c.Assert(err, IsNil)
 	c.Assert(m.ValidateBasic(), NotNil)
 
 	// fails on empty chain list
-	msg, err = NewMsgTssPoolV26(pks, pk, KeygenType_AsgardKeygen, 1, Blame{}, []string{}, addr, keygenTime)
+	msg, err = NewMsgTssPool(pks, pk, KeygenType_AsgardKeygen, 1, Blame{}, []string{}, addr, keygenTime)
 	c.Assert(err, IsNil)
 	c.Check(msg.ValidateBasic(), NotNil)
 	// fails on duplicates in chain list
-	msg, err = NewMsgTssPoolV26(pks, pk, KeygenType_AsgardKeygen, 1, Blame{}, []string{common.RuneAsset().Chain.String(), common.RuneAsset().Chain.String()}, addr, keygenTime)
+	msg, err = NewMsgTssPool(pks, pk, KeygenType_AsgardKeygen, 1, Blame{}, []string{common.RuneAsset().Chain.String(), common.RuneAsset().Chain.String()}, addr, keygenTime)
 	c.Assert(err, IsNil)
 	c.Check(msg.ValidateBasic(), NotNil)
 
-	msg1, err := NewMsgTssPoolV26(pks, pk, KeygenType_AsgardKeygen, 1, Blame{}, chains, addr, keygenTime)
+	msg1, err := NewMsgTssPool(pks, pk, KeygenType_AsgardKeygen, 1, Blame{}, chains, addr, keygenTime)
 	c.Assert(err, IsNil)
 	msg1.ID = ""
 	err1 := msg1.ValidateBasic()
 	c.Assert(err1, NotNil)
 	c.Check(errors.Is(err1, se.ErrUnknownRequest), Equals, true)
 
-	msg2, err := NewMsgTssPoolV26(append(pks, ""), pk, KeygenType_AsgardKeygen, 1, Blame{}, chains, addr, keygenTime)
+	msg2, err := NewMsgTssPool(append(pks, ""), pk, KeygenType_AsgardKeygen, 1, Blame{}, chains, addr, keygenTime)
 	c.Assert(err, IsNil)
 	err2 := msg2.ValidateBasic()
 	c.Assert(err2, NotNil)
@@ -115,7 +70,7 @@ func (s *MsgTssPoolSuite) TestMsgTssPoolV26(c *C) {
 	for i := 0; i < 110; i++ {
 		allPks = append(allPks, GetRandomPubKey().String())
 	}
-	msg3, err := NewMsgTssPoolV26(allPks, pk, KeygenType_AsgardKeygen, 1, Blame{}, chains, addr, keygenTime)
+	msg3, err := NewMsgTssPool(allPks, pk, KeygenType_AsgardKeygen, 1, Blame{}, chains, addr, keygenTime)
 	c.Assert(err, IsNil)
 	err3 := msg3.ValidateBasic()
 	c.Assert(err3, NotNil)

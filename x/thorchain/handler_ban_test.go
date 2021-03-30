@@ -165,59 +165,6 @@ func (s *HandlerBanSuite) TestHandle(c *C) {
 	c.Check(keeper.ban.BlockHeight, Equals, int64(18))
 }
 
-func (s *HandlerBanSuite) TestHandleV10(c *C) {
-	ctx, _ := setupKeeperForTest(c)
-	ver := GetCurrentVersion()
-	constAccessor := constants.GetConstantValues(ver)
-	minBond := constAccessor.GetInt64Value(constants.MinimumBondInRune)
-
-	toBan := GetRandomNodeAccount(NodeActive)
-	toBan.Bond = cosmos.NewUint(uint64(minBond))
-	banner1 := GetRandomNodeAccount(NodeActive)
-	banner1.Bond = cosmos.NewUint(uint64(minBond))
-	banner2 := GetRandomNodeAccount(NodeActive)
-	banner2.Bond = cosmos.NewUint(uint64(minBond))
-
-	keeper := &TestBanKeeper{
-		ban:     NewBanVoter(toBan.NodeAddress),
-		toBan:   toBan,
-		banner1: banner1,
-		banner2: banner2,
-		network: NewNetwork(),
-		modules: make(map[string]int64, 0),
-	}
-
-	handler := NewBanHandler(keeper, NewDummyMgr())
-
-	// ban with banner 1
-	msg := NewMsgBan(toBan.NodeAddress, banner1.NodeAddress)
-	_, err := handler.handle(ctx, *msg, ver, constAccessor)
-	c.Assert(err, IsNil)
-	c.Check(int64(keeper.banner1.Bond.Uint64()), Equals, int64(99900000))
-	c.Check(keeper.modules[ReserveName], Equals, int64(100000))
-	c.Check(keeper.toBan.ForcedToLeave, Equals, false)
-	c.Check(keeper.ban.Signers, HasLen, 1)
-
-	// ensure banner 1 can't ban twice
-	_, err = handler.handle(ctx, *msg, ver, constAccessor)
-	c.Assert(err, IsNil)
-	c.Check(int64(keeper.banner1.Bond.Uint64()), Equals, int64(99900000))
-	c.Check(keeper.modules[ReserveName], Equals, int64(100000))
-	c.Check(keeper.toBan.ForcedToLeave, Equals, false)
-	c.Check(keeper.ban.Signers, HasLen, 1)
-
-	// ban with banner 2, which should actually ban the node account
-	msg = NewMsgBan(toBan.NodeAddress, banner2.NodeAddress)
-	_, err = handler.handle(ctx, *msg, ver, constAccessor)
-	c.Assert(err, IsNil)
-	c.Check(int64(keeper.banner2.Bond.Uint64()), Equals, int64(99900000))
-	c.Check(keeper.modules[ReserveName], Equals, int64(200000))
-	c.Check(keeper.toBan.ForcedToLeave, Equals, true)
-	c.Check(keeper.toBan.LeaveScore, Equals, uint64(1))
-	c.Check(keeper.ban.Signers, HasLen, 2)
-	c.Check(keeper.ban.BlockHeight, Equals, int64(18))
-}
-
 type TestBanKeeperHelper struct {
 	keeper.Keeper
 	toBanNodeAddr                cosmos.AccAddress
