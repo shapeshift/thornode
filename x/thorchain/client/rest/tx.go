@@ -116,7 +116,7 @@ func newTssPoolHandler(cliCtx client.Context) http.HandlerFunc {
 			rest.WriteErrorResponse(w, http.StatusBadRequest, err.Error())
 			return
 		}
-		msg, err := types.NewMsgTssPoolV26(req.InputPubKeys, req.PoolPubKey, req.KeygenType, req.Height, req.Blame, req.Chains, addr, req.KeygenTime)
+		msg, err := types.NewMsgTssPool(req.InputPubKeys, req.PoolPubKey, req.KeygenType, req.Height, req.Blame, req.Chains, addr, req.KeygenTime)
 		if err != nil {
 			rest.WriteErrorResponse(w, http.StatusBadRequest, err.Error())
 			return
