@@ -233,7 +233,7 @@ func (b *ThorchainBridge) PostKeysignFailure(blame stypes.Blame, height int64, m
 	defer func() {
 		b.m.GetHistograms(metrics.SignToThorchainDuration).Observe(time.Since(start).Seconds())
 	}()
-	msg, err := stypes.NewMsgTssKeysignFailV26(height, blame, memo, coins, b.keys.GetSignerInfo().GetAddress(), pubkey)
+	msg, err := stypes.NewMsgTssKeysignFail(height, blame, memo, coins, b.keys.GetSignerInfo().GetAddress(), pubkey)
 	if err != nil {
 		return common.BlankTxID, fmt.Errorf("fail to create keysign fail message: %w", err)
 	}
@@ -247,7 +247,7 @@ func (b *ThorchainBridge) GetErrataMsg(txID common.TxID, chain common.Chain) sdk
 
 // GetKeygenStdTx get keygen tx from params
 func (b *ThorchainBridge) GetKeygenStdTx(poolPubKey common.PubKey, blame stypes.Blame, inputPks common.PubKeys, keygenType stypes.KeygenType, chains common.Chains, height, keygenTime int64) (sdk.Msg, error) {
-	return stypes.NewMsgTssPoolV26(inputPks.Strings(), poolPubKey, keygenType, height, blame, chains.Strings(), b.keys.GetSignerInfo().GetAddress(), keygenTime)
+	return stypes.NewMsgTssPool(inputPks.Strings(), poolPubKey, keygenType, height, blame, chains.Strings(), b.keys.GetSignerInfo().GetAddress(), keygenTime)
 }
 
 // GetObservationsStdTx get observations tx from txIns
