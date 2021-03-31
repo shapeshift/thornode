@@ -9,4 +9,5 @@ import "gogoproto/gogo.proto";
 message MsgNoOp {
   ObservedTx observed_tx = 1 [(gogoproto.nullable) = false];
   bytes signer = 2  [(gogoproto.casttype) = "github.com/cosmos/cosmos-sdk/types.AccAddress"];
+  string action = 3;
 }

@@ -163,7 +163,7 @@ func (s *HandlerTssSuite) testTssHandlerWithVersion(c *C, ver semver.Version) {
 		{
 			name: "invalid message should return an error",
 			messageCreator: func(helper tssHandlerTestHelper) cosmos.Msg {
-				return NewMsgNoOp(GetRandomObservedTx(), helper.signer)
+				return NewMsgNoOp(GetRandomObservedTx(), helper.signer, "")
 			},
 			runner: func(handler TssHandler, msg cosmos.Msg, helper tssHandlerTestHelper) (*cosmos.Result, error) {
 				return handler.Run(helper.ctx, msg, helper.version, helper.constAccessor)

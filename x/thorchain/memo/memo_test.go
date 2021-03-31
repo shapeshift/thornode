@@ -137,6 +137,20 @@ func (s *MemoSuite) TestParseWithAbbreviated(c *C) {
 	c.Check(memo.IsInternal(), Equals, false)
 	c.Check(memo.IsOutbound(), Equals, false)
 
+	memo, err = ParseMemo("noop")
+	c.Check(err, IsNil)
+	c.Check(memo.IsType(TxNoOp), Equals, true)
+	c.Check(memo.IsInbound(), Equals, true)
+	c.Check(memo.IsInternal(), Equals, false)
+	c.Check(memo.IsOutbound(), Equals, false)
+
+	memo, err = ParseMemo("noop:novault")
+	c.Check(err, IsNil)
+	c.Check(memo.IsType(TxNoOp), Equals, true)
+	c.Check(memo.IsInbound(), Equals, true)
+	c.Check(memo.IsInternal(), Equals, false)
+	c.Check(memo.IsOutbound(), Equals, false)
+
 	// unhappy paths
 	_, err = ParseMemo("")
 	c.Assert(err, NotNil)
@@ -166,6 +180,7 @@ func (s *MemoSuite) TestParseWithAbbreviated(c *C) {
 	c.Assert(err, NotNil)
 	_, err = ParseMemo("switch:")
 	c.Assert(err, NotNil)
+
 }
 
 func (s *MemoSuite) TestParse(c *C) {

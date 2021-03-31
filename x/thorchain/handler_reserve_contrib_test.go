@@ -92,7 +92,7 @@ func (h HandlerReserveContributorSuite) TestReserveContributorHandler(c *C) {
 		{
 			name: "invalid message should return error",
 			messageCreator: func(helper reserveContributorHandlerHelper) cosmos.Msg {
-				return NewMsgNoOp(GetRandomObservedTx(), helper.nodeAccount.NodeAddress)
+				return NewMsgNoOp(GetRandomObservedTx(), helper.nodeAccount.NodeAddress, "")
 			},
 			runner: func(handler ReserveContributorHandler, helper reserveContributorHandlerHelper, msg cosmos.Msg) (*cosmos.Result, error) {
 				return handler.Run(helper.ctx, msg, helper.version, helper.constAccessor)

@@ -150,7 +150,7 @@ func (s *HandlerYggdrasilSuite) TestYggdrasilHandler(c *C) {
 		{
 			name: "invalid message should return error",
 			messageCreator: func(helper yggdrasilHandlerTestHelper) cosmos.Msg {
-				return NewMsgNoOp(GetRandomObservedTx(), helper.nodeAccount.NodeAddress)
+				return NewMsgNoOp(GetRandomObservedTx(), helper.nodeAccount.NodeAddress, "")
 			},
 			runner: func(handler YggdrasilHandler, msg cosmos.Msg, helper yggdrasilHandlerTestHelper) (*cosmos.Result, error) {
 				return handler.Run(helper.ctx, msg, helper.version, helper.constAccessor)

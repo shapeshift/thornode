@@ -21,10 +21,10 @@ func (MsgNoopSuite) TestMsgNoop(c *C) {
 		ObservedPubKey: GetRandomPubKey(),
 		FinaliseHeight: 1,
 	}
-	m := NewMsgNoOp(tx, addr)
+	m := NewMsgNoOp(tx, addr, "")
 	c.Check(m.ValidateBasic(), IsNil)
 	c.Check(m.Type(), Equals, "set_noop")
 	EnsureMsgBasicCorrect(m, c)
-	mEmpty := NewMsgNoOp(tx, cosmos.AccAddress{})
+	mEmpty := NewMsgNoOp(tx, cosmos.AccAddress{}, "")
 	c.Assert(mEmpty.ValidateBasic(), NotNil)
 }

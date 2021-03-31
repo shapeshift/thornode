@@ -268,6 +268,7 @@ type (
 	YggdrasilReturnMemo   = mem.YggdrasilReturnMemo
 	ReserveMemo           = mem.ReserveMemo
 	SwitchMemo            = mem.SwitchMemo
+	NoOpMemo              = mem.NoOpMemo
 )
 
 var _ codec.ProtoMarshaler = &types.LiquidityProvider{}
