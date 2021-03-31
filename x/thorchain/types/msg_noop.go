@@ -1,14 +1,15 @@
 package types
 
 import (
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 // NewMsgNoOp is a constructor function for MsgNoOp
-func NewMsgNoOp(ObservedTx ObservedTx, signer cosmos.AccAddress) *MsgNoOp {
+func NewMsgNoOp(ObservedTx ObservedTx, signer cosmos.AccAddress, action string) *MsgNoOp {
 	return &MsgNoOp{
 		ObservedTx: ObservedTx,
 		Signer:     signer,
+		Action:     action,
 	}
 }
 
