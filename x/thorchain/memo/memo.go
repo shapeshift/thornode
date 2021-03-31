@@ -29,6 +29,7 @@ const (
 	TxMigrate
 	TxRagnarok
 	TxSwitch
+	TxNoOp
 )
 
 var stringToTxTypeMap = map[string]TxType{
@@ -53,6 +54,7 @@ var stringToTxTypeMap = map[string]TxType{
 	"migrate":    TxMigrate,
 	"ragnarok":   TxRagnarok,
 	"switch":     TxSwitch,
+	"noop":       TxNoOp,
 }
 
 var txToStringMap = map[TxType]string{
@@ -71,6 +73,7 @@ var txToStringMap = map[TxType]string{
 	TxMigrate:         "migrate",
 	TxRagnarok:        "ragnarok",
 	TxSwitch:          "switch",
+	TxNoOp:            "noop",
 }
 
 // converts a string into a txType
@@ -85,7 +88,7 @@ func StringToTxType(s string) (TxType, error) {
 
 func (tx TxType) IsInbound() bool {
 	switch tx {
-	case TxAdd, TxWithdraw, TxSwap, TxDonate, TxBond, TxUnbond, TxLeave, TxSwitch, TxReserve:
+	case TxAdd, TxWithdraw, TxSwap, TxDonate, TxBond, TxUnbond, TxLeave, TxSwitch, TxReserve, TxNoOp:
 		return true
 	default:
 		return false
@@ -227,6 +230,8 @@ func ParseMemo(memo string) (Memo, error) {
 		return ParseRagnarokMemo(parts)
 	case TxSwitch:
 		return ParseSwitchMemo(parts)
+	case TxNoOp:
+		return ParseNoOpMemo(parts)
 	default:
 		return noMemo, fmt.Errorf("TxType not supported: %s", tx.String())
 	}

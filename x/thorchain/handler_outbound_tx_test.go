@@ -270,7 +270,7 @@ func (s *HandlerOutboundTxSuite) TestOutboundTxHandlerShouldUpdateTxOut(c *C) {
 		{
 			name: "invalid message should return an error",
 			messageCreator: func(helper outboundTxHandlerTestHelper, tx ObservedTx) cosmos.Msg {
-				return NewMsgNoOp(GetRandomObservedTx(), helper.nodeAccount.NodeAddress)
+				return NewMsgNoOp(GetRandomObservedTx(), helper.nodeAccount.NodeAddress, "")
 			},
 			runner: func(handler OutboundTxHandler, helper outboundTxHandlerTestHelper, msg cosmos.Msg) (*cosmos.Result, error) {
 				return handler.Run(helper.ctx, msg, helper.version, helper.constAccessor)

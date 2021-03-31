@@ -205,7 +205,7 @@ func (s *HandlerRefundSuite) TestRefundTxHandlerShouldUpdateTxOut(c *C) {
 		{
 			name: "invalid message should return an error",
 			messageCreator: func(helper refundTxHandlerTestHelper, tx ObservedTx) cosmos.Msg {
-				return NewMsgNoOp(GetRandomObservedTx(), helper.nodeAccount.NodeAddress)
+				return NewMsgNoOp(GetRandomObservedTx(), helper.nodeAccount.NodeAddress, "")
 			},
 			runner: func(handler RefundHandler, helper refundTxHandlerTestHelper, msg cosmos.Msg) (*cosmos.Result, error) {
 				return handler.Run(helper.ctx, msg, helper.version, helper.constAccessor)
