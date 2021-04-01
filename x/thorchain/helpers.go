@@ -387,19 +387,21 @@ func cyclePools(ctx cosmos.Context, maxAvailablePools, minRunePoolDepth, stagedP
 			if fee.GT(pool.BalanceRune) {
 				fee = pool.BalanceRune
 			}
-			pool.BalanceRune = common.SafeSub(pool.BalanceRune, fee)
-			if err := keeper.SetPool(ctx, pool); err != nil {
-				ctx.Logger().Error("fail to save pool", "pool", pool.Asset, "err", err)
-			}
+			if !fee.IsZero() {
+				pool.BalanceRune = common.SafeSub(pool.BalanceRune, fee)
+				if err := keeper.SetPool(ctx, pool); err != nil {
+					ctx.Logger().Error("fail to save pool", "pool", pool.Asset, "err", err)
+				}
 
-			if err := keeper.AddFeeToReserve(ctx, fee); err != nil {
-				ctx.Logger().Error("fail to add rune to reserve", "from pool", pool.Asset, "err", err)
-			}
+				if err := keeper.AddFeeToReserve(ctx, fee); err != nil {
+					ctx.Logger().Error("fail to add rune to reserve", "from pool", pool.Asset, "err", err)
+				}
 
-			emitPoolBalanceChangedEvent(ctx,
-				NewPoolMod(pool.Asset, fee, false, cosmos.ZeroUint(), false),
-				"pool stage cost",
-				keeper, eventManager)
+				emitPoolBalanceChangedEvent(ctx,
+					NewPoolMod(pool.Asset, fee, false, cosmos.ZeroUint(), false),
+					"pool stage cost",
+					keeper, eventManager)
+			}
 			// check if the rune balance is zero, and asset balance IS NOT
 			// zero. This is because we don't want to abandon a pool that is in
 			// the process of being created (race condition). We can safely
@@ -418,11 +420,31 @@ func cyclePools(ctx cosmos.Context, maxAvailablePools, minRunePoolDepth, stagedP
 				for ; iterator.Valid(); iterator.Next() {
 					var lp LiquidityProvider
 					keeper.Cdc().MustUnmarshalBinaryBare(iterator.Value(), &lp)
+
+					withdrawEvt := NewEventWithdraw(
+						pool.Asset,
+						lp.Units,
+						int64(0),
+						cosmos.ZeroDec(),
+						common.Tx{},
+						cosmos.ZeroUint(),
+						cosmos.ZeroUint(),
+						cosmos.ZeroUint(),
+					)
+					if err := eventManager.EmitEvent(ctx, withdrawEvt); err != nil {
+						ctx.Logger().Error("fail to emit pool withdraw event", "error", err)
+					}
+
 					keeper.RemoveLiquidityProvider(ctx, lp)
 				}
 
 				// delete the pool
 				keeper.RemovePool(ctx, pool.Asset)
+
+				poolEvent := NewEventPool(pool.Asset, PoolSuspended)
+				if err := eventManager.EmitEvent(ctx, poolEvent); err != nil {
+					ctx.Logger().Error("fail to emit pool event", "error", err)
+				}
 
 				// zero vaults with the pool asset
 				vaultIter := keeper.GetVaultIterator(ctx)
