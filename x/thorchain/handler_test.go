@@ -144,6 +144,7 @@ func getHandlerTestWrapperWithVersion(c *C, height int64, withActiveNode, withAc
 		p.Status = PoolAvailable
 		p.BalanceRune = cosmos.NewUint(100 * common.One)
 		p.BalanceAsset = cosmos.NewUint(100 * common.One)
+		p.PoolUnits = cosmos.NewUint(100 * common.One)
 		c.Assert(k.SetPool(ctx, p), IsNil)
 	}
 	constAccessor := constants.GetConstantValues(version)
