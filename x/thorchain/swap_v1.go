@@ -280,7 +280,7 @@ func (s SwapperV1) swapOne(ctx cosmos.Context,
 		// because the output asset is RUNE , so liqualidtyFee is already in RUNE
 		swapEvt.LiquidityFeeInRune = liquidityFee
 	}
-	swapEvt.TradeSlip = tradeSlip
+	swapEvt.SwapSlip = tradeSlip
 	swapEvt.EmitAsset = common.NewCoin(target, emitAssets)
 
 	// do THORNode have enough balance to swap?
