@@ -1347,7 +1347,7 @@ class TestThorchainState(unittest.TestCase):
                 "refund",
                 [
                     {"code": "105"},
-                    {"reason": "invalid pool asset: unknown request"},
+                    {"reason": "asset cannot be rune: unknown request"},
                     *tx.get_attributes(),
                 ],
             ),
