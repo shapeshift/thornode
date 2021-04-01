@@ -67,7 +67,10 @@ func (h SetNodeKeysHandler) validateCurrent(ctx cosmos.Context, msg MsgSetNodeKe
 		return cosmos.ErrUnauthorized(fmt.Sprintf("unauthorized account(%s)", msg.Signer))
 	}
 
-	cost := constAccessor.GetInt64Value(constants.CliTxCost)
+	cost, err := h.keeper.GetMimir(ctx, constants.NativeTransactionFee.String())
+	if err != nil || cost < 0 {
+		cost = constAccessor.GetInt64Value(constants.NativeTransactionFee)
+	}
 	if nodeAccount.Bond.LT(cosmos.NewUint(uint64(cost))) {
 		return cosmos.ErrUnauthorized("not enough bond")
 	}
@@ -107,7 +110,11 @@ func (h SetNodeKeysHandler) handleCurrent(ctx cosmos.Context, msg MsgSetNodeKeys
 		return nil, cosmos.ErrUnauthorized(fmt.Sprintf("%s is not authorized", msg.Signer))
 	}
 
-	cost := cosmos.NewUint(uint64(constAccessor.GetInt64Value(constants.CliTxCost)))
+	c, err := h.keeper.GetMimir(ctx, constants.NativeTransactionFee.String())
+	if err != nil || c < 0 {
+		c = constAccessor.GetInt64Value(constants.NativeTransactionFee)
+	}
+	cost := cosmos.NewUint(uint64(c))
 	if cost.GT(nodeAccount.Bond) {
 		cost = nodeAccount.Bond
 	}

@@ -70,7 +70,10 @@ func (h IPAddressHandler) validateCurrent(ctx cosmos.Context, msg MsgSetIPAddres
 		return cosmos.ErrUnauthorized(fmt.Sprintf("%s is not authorizaed", msg.Signer))
 	}
 
-	cost := constAccessor.GetInt64Value(constants.CliTxCost)
+	cost, err := h.keeper.GetMimir(ctx, constants.NativeTransactionFee.String())
+	if err != nil || cost < 0 {
+		cost = constAccessor.GetInt64Value(constants.NativeTransactionFee)
+	}
 	if nodeAccount.Bond.LT(cosmos.NewUint(uint64(cost))) {
 		return cosmos.ErrUnauthorized("not enough bond")
 	}
@@ -98,7 +101,11 @@ func (h IPAddressHandler) handleCurrent(ctx cosmos.Context, msg MsgSetIPAddress,
 		return cosmos.ErrUnauthorized(fmt.Sprintf("unable to find account: %s", msg.Signer))
 	}
 
-	cost := cosmos.NewUint(uint64(constAccessor.GetInt64Value(constants.CliTxCost)))
+	c, err := h.keeper.GetMimir(ctx, constants.NativeTransactionFee.String())
+	if err != nil || c < 0 {
+		c = constAccessor.GetInt64Value(constants.NativeTransactionFee)
+	}
+	cost := cosmos.NewUint(uint64(c))
 	if cost.GT(nodeAccount.Bond) {
 		cost = nodeAccount.Bond
 	}
