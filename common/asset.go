@@ -149,6 +149,11 @@ func (a Asset) IsRune() bool {
 	return a.Equals(Rune67CAsset) || a.Equals(RuneB1AAsset) || a.Equals(RuneNative) || a.Equals(RuneERC20Asset) || a.Equals(RuneERC20TestnetAsset)
 }
 
+// IsNativeRune is a helper function, return true only when the asset represent NATIVE RUNE
+func (a Asset) IsNativeRune() bool {
+	return a.IsRune() && a.Chain.IsTHORChain()
+}
+
 // IsBNB is a helper function, return true only when the asset represent BNB
 func (a Asset) IsBNB() bool {
 	return a.Equals(BNBAsset)
