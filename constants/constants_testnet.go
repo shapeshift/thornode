@@ -14,7 +14,6 @@ func init() {
 		OldValidatorRate:      2048,
 		MinimumBondInRune:     10000_00000000, // 1 rune
 		LiquidityLockUpBlocks: 0,
-		CliTxCost:             0,
 		StagedPoolCost:        10_00000000,
 	}
 	boolOverrides = map[ConstantName]bool{
