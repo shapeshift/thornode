@@ -24,8 +24,8 @@ func (m MsgNetworkFee) Type() string { return "set_network_fee" }
 
 // ValidateBasic runs stateless checks on the message
 func (m *MsgNetworkFee) ValidateBasic() error {
-	if m.BlockHeight < 0 {
-		return cosmos.ErrUnknownRequest("block height can't be negative")
+	if m.BlockHeight <= 0 {
+		return cosmos.ErrUnknownRequest("block height can't be negative, or zero")
 	}
 	if m.Signer.Empty() {
 		return cosmos.ErrInvalidAddress(m.Signer.String())
