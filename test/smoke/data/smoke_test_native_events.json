@@ -430,7 +430,7 @@
         "type": "rewards",
         "attributes": [
             {
-                "bond_reward": "1"
+                "bond_reward": "2"
             }
         ]
     },
@@ -634,7 +634,7 @@
         "type": "rewards",
         "attributes": [
             {
-                "bond_reward": "2"
+                "bond_reward": "3"
             }
         ]
     },
@@ -905,7 +905,7 @@
         "type": "rewards",
         "attributes": [
             {
-                "bond_reward": "4"
+                "bond_reward": "5"
             }
         ]
     },
