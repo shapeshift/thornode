@@ -147,6 +147,7 @@ var (
 	GetCurrentVersion              = types.GetCurrentVersion
 	SetupConfigForTest             = types.SetupConfigForTest
 	HasSimpleMajority              = types.HasSimpleMajority
+	HasSuperMajority               = types.HasSuperMajority
 	NewTssKeysignMetric            = types.NewTssKeysignMetric
 	DefaultGenesis                 = types.DefaultGenesis
 
