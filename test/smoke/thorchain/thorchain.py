@@ -485,7 +485,7 @@ class ThorchainState:
         # calculate the block rewards based on the reserve, emission curve, and
         # blocks in a year
         emission_curve = 6
-        blocks_per_year = 6311390
+        blocks_per_year = 5256000
         block_rewards = int(
             round(float(self.reserve) / emission_curve / blocks_per_year)
         )
