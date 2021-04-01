@@ -1033,7 +1033,7 @@ class ThorchainState:
             if pool.is_zero():
                 return self.refund(tx, 108, "fail swap, invalid balance")
 
-            emit, liquidity_fee, liquidity_fee_in_rune, trade_slip, pool = self.swap(
+            emit, liquidity_fee, liquidity_fee_in_rune, swap_slip, pool = self.swap(
                 tx.coins[0], RUNE
             )
 
@@ -1068,8 +1068,8 @@ class ThorchainState:
                     "swap",
                     [
                         {"pool": pool.asset},
-                        {"price_target": 0},
-                        {"trade_slip": trade_slip},
+                        {"swap_target": 0},
+                        {"swap_slip": swap_slip},
                         {"liquidity_fee": liquidity_fee},
                         {"liquidity_fee_in_rune": liquidity_fee_in_rune},
                         {"emit_asset": f"{emit.amount} {emit.asset}"},
@@ -1102,7 +1102,7 @@ class ThorchainState:
         if pool.is_zero():
             return self.refund(tx, 108, "fail swap, invalid balance")
 
-        emit, liquidity_fee, liquidity_fee_in_rune, trade_slip, pool = self.swap(
+        emit, liquidity_fee, liquidity_fee_in_rune, swap_slip, pool = self.swap(
             in_tx.coins[0], asset
         )
         pools.append(pool)
@@ -1140,8 +1140,8 @@ class ThorchainState:
                 "swap",
                 [
                     {"pool": pool.asset},
-                    {"price_target": target_trade},
-                    {"trade_slip": trade_slip},
+                    {"swap_target": target_trade},
+                    {"swap_slip": swap_slip},
                     {"liquidity_fee": liquidity_fee},
                     {"liquidity_fee_in_rune": liquidity_fee_in_rune},
                     {"emit_asset": f"{emit.amount} {emit.asset}"},
@@ -1167,7 +1167,7 @@ class ThorchainState:
             - emit (int) - number of coins to be emitted for the swap
             - liquidity_fee (int) - liquidity fee
             - liquidity_fee_in_rune (int) - liquidity fee in rune
-            - trade_slip (int) - trade slip
+            - swap_slip (int) - trade slip
             - pool (Pool) - pool with new values
 
         """
@@ -1192,7 +1192,7 @@ class ThorchainState:
             liquidity_fee_in_rune = pool.get_asset_in_rune(liquidity_fee)
 
         # calculate trade slip
-        trade_slip = self._calc_trade_slip(X, x)
+        swap_slip = self._calc_swap_slip(X, x)
 
         # if we emit zero, return immediately
         if emit == 0:
@@ -1208,7 +1208,7 @@ class ThorchainState:
             newPool.sub(emit, 0)
             emit = Coin(RUNE, emit)
 
-        return emit, liquidity_fee, liquidity_fee_in_rune, trade_slip, newPool
+        return emit, liquidity_fee, liquidity_fee_in_rune, swap_slip, newPool
 
     def _calc_liquidity_fee(self, X, x, Y):
         """
@@ -1223,7 +1223,7 @@ class ThorchainState:
         """
         return int(float((x ** 2) * Y) / float((x + X) ** 2))
 
-    def _calc_trade_slip(self, X, x):
+    def _calc_swap_slip(self, X, x):
         """
         Calculate the trade slip from a trade
         expressed in basis points (10,000)
@@ -1234,8 +1234,8 @@ class ThorchainState:
         :returns: (int) trade slip
 
         """
-        trade_slip = 10000 * x / (X + x)
-        return int(round(trade_slip))
+        swap_slip = 10000 * x / (X + x)
+        return int(round(swap_slip))
 
     def _calc_asset_emission(self, X, x, Y):
         """
