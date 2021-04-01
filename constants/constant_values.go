@@ -47,7 +47,6 @@ const (
 	YggFundLimit
 	JailTimeKeygen
 	JailTimeKeysign
-	CliTxCost
 	MinSwapsPerBlock
 	MaxSwapsPerBlock
 	VirtualMultSynths
@@ -94,7 +93,6 @@ var nameToString = map[ConstantName]string{
 	YggFundLimit:                  "YggFundLimit",
 	JailTimeKeygen:                "JailTimeKeygen",
 	JailTimeKeysign:               "JailTimeKeysign",
-	CliTxCost:                     "CliTxCost",
 	MinSwapsPerBlock:              "MinSwapsPerBlock",
 	MaxSwapsPerBlock:              "MaxSwapsPerBlock",
 	VirtualMultSynths:             "VirtualMultSynths",
