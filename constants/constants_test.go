@@ -14,5 +14,5 @@ var _ = Suite(&ConstantsSuite{})
 
 func (s *ConstantsSuite) Test010(c *C) {
 	consts := NewConstantValue010()
-	c.Check(consts.GetInt64Value(PoolCycle), Equals, int64(51840))
+	c.Check(consts.GetInt64Value(PoolCycle), Equals, int64(43200))
 }
