@@ -273,14 +273,6 @@ func (h WithdrawLiquidityHandler) handleCurrent(ctx cosmos.Context, msg MsgWithd
 		}
 	}
 
-	// If the pool is in staged status, then we won't have withheld the asset
-	// above from being deducted a fee/gas from the transaction. So we have to
-	// do it here, on the rune side.
-	if pool.Status != PoolAvailable {
-		transactionFee := h.mgr.GasMgr().GetFee(ctx, msg.Asset.GetChain(), common.RuneAsset())
-		runeAmt = common.SafeSub(runeAmt, transactionFee)
-	}
-
 	if !runeAmt.IsZero() {
 		toi := TxOutItem{
 			Chain:     common.RuneAsset().GetChain(),
