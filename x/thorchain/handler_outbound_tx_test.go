@@ -191,6 +191,7 @@ func newOutboundTxHandlerTestHelper(c *C) outboundTxHandlerTestHelper {
 	pool.Asset = common.BNBAsset
 	pool.BalanceAsset = cosmos.NewUint(100 * common.One)
 	pool.BalanceRune = cosmos.NewUint(100 * common.One)
+	pool.PoolUnits = pool.BalanceRune
 
 	version := GetCurrentVersion()
 	asgardVault := GetRandomVault()
@@ -399,7 +400,7 @@ func (s *HandlerOutboundTxSuite) TestOuboundTxHandlerSendExtraFundShouldBeSlashe
 	_, err = handler.Run(helper.ctx, outMsg, GetCurrentVersion(), helper.constAccessor)
 	c.Assert(err, IsNil)
 	na, err := helper.keeper.GetNodeAccount(helper.ctx, helper.nodeAccount.NodeAddress)
-	c.Assert(na.Bond.Equal(expectedBond), Equals, true)
+	c.Assert(na.Bond.Equal(expectedBond), Equals, true, Commentf("expected bond:%s, real bond: %s", expectedBond, na.Bond))
 	newReserve := helper.keeper.GetRuneBalanceOfModule(helper.ctx, ReserveName)
 	c.Assert(err, IsNil)
 	c.Assert(newReserve.Equal(expectedVaultTotalReserve), Equals, true)

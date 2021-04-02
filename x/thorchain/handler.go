@@ -110,10 +110,6 @@ func getInternalHandlerMapping(keeper keeper.Keeper, mgr Manager) map[string]Msg
 }
 
 func processOneTxIn(ctx cosmos.Context, keeper keeper.Keeper, tx ObservedTx, signer cosmos.AccAddress) (cosmos.Msg, error) {
-	if len(tx.Tx.Coins) == 0 {
-		return nil, cosmos.ErrUnknownRequest("no coin found")
-	}
-
 	memo, err := ParseMemo(tx.Tx.Memo)
 	if err != nil {
 		ctx.Logger().Error("fail to parse memo", "error", err)

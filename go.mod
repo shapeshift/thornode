@@ -53,7 +53,7 @@ require (
 	gitlab.com/thorchain/tss/go-tss v1.3.0
 	golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2 // indirect
 	golang.org/x/mod v0.4.0 // indirect
-	google.golang.org/genproto v0.0.0-20210330181207-2295ebbda0c6 // indirect
+	google.golang.org/genproto v0.0.0-20210331142528-b7513248f0ba // indirect
 	gopkg.in/check.v1 v1.0.0-20200902074654-038fdea0a05b
 	gopkg.in/ini.v1 v1.52.0 // indirect
 	honnef.co/go/tools v0.0.1-2020.1.6 // indirect
