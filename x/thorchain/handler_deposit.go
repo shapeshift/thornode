@@ -132,6 +132,7 @@ func (h DepositHandler) handleCurrent(ctx cosmos.Context, msg MsgDeposit, versio
 	}
 
 	tx := common.NewTx(txID, from, to, coinsInMsg, common.Gas{gas}, msg.Memo)
+	tx.Chain = common.THORChain
 
 	// construct msg from memo
 	txIn := ObservedTx{Tx: tx}
