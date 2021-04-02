@@ -20,5 +20,6 @@ func (m *Blame) String() string {
 	sb := strings.Builder{}
 	sb.WriteString("reason:" + m.FailReason + " is_unicast:" + strconv.FormatBool(m.IsUnicast) + "\n")
 	sb.WriteString(fmt.Sprintf("nodes:%+v\n", m.BlameNodes))
+	sb.WriteString(fmt.Sprintf("is unicast:%+v\n", m.IsUnicast))
 	return sb.String()
 }

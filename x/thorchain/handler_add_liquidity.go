@@ -155,8 +155,9 @@ func (h AddLiquidityHandler) handleCurrent(ctx cosmos.Context, msg MsgAddLiquidi
 		stage = true
 	}
 
+	addLiquidity := h.addLiquidityV1
 	if msg.AffiliateBasisPoints.IsZero() {
-		return h.addLiquidityV1(
+		return addLiquidity(
 			ctx,
 			msg.Asset,
 			msg.RuneAmount,
@@ -174,7 +175,7 @@ func (h AddLiquidityHandler) handleCurrent(ctx cosmos.Context, msg MsgAddLiquidi
 	userRune := common.SafeSub(msg.RuneAmount, affiliateRune)
 	userAsset := common.SafeSub(msg.AssetAmount, affiliateAsset)
 
-	err = h.addLiquidityV1(
+	err = addLiquidity(
 		ctx,
 		msg.Asset,
 		userRune,
@@ -189,7 +190,7 @@ func (h AddLiquidityHandler) handleCurrent(ctx cosmos.Context, msg MsgAddLiquidi
 		return err
 	}
 
-	err = h.addLiquidityV1(
+	err = addLiquidity(
 		ctx,
 		msg.Asset,
 		affiliateRune,
@@ -233,6 +234,54 @@ func (h AddLiquidityHandler) validateAddLiquidityMessage(ctx cosmos.Context, kee
 		return fmt.Errorf("cannot add single sided liquidity while a pool is staged")
 	}
 	return nil
+}
+
+// r = rune provided;
+// a = asset provided
+// R = rune Balance (before)
+// A = asset Balance (before)
+// P = existing Pool Units
+// slipAdjustment = (1 - ABS((R a - r A)/((r + R) (a + A))))
+// units = ((P (a R + A r))/(2 A R))*slidAdjustment
+func calculatePoolUnitsV1(oldPoolUnits, poolRune, poolAsset, addRune, addAsset cosmos.Uint) (cosmos.Uint, cosmos.Uint, error) {
+	if addRune.Add(poolRune).IsZero() {
+		return cosmos.ZeroUint(), cosmos.ZeroUint(), errors.New("total RUNE in the pool is zero")
+	}
+	if addAsset.Add(poolAsset).IsZero() {
+		return cosmos.ZeroUint(), cosmos.ZeroUint(), errors.New("total asset in the pool is zero")
+	}
+	if poolRune.IsZero() || poolAsset.IsZero() {
+		return addRune, addRune, nil
+	}
+	P := cosmos.NewDecFromBigInt(oldPoolUnits.BigInt())
+	R := cosmos.NewDecFromBigInt(poolRune.BigInt())
+	A := cosmos.NewDecFromBigInt(poolAsset.BigInt())
+	r := cosmos.NewDecFromBigInt(addRune.BigInt())
+	a := cosmos.NewDecFromBigInt(addAsset.BigInt())
+
+	// (r + R) (a + A)
+	slipAdjDenominator := (r.Add(R)).Mul(a.Add(A))
+	// ABS((R a - r A)/((2 r + R) (a + A)))
+	var slipAdjustment cosmos.Dec
+	if R.Mul(a).GT(r.Mul(A)) {
+		slipAdjustment = R.Mul(a).Sub(r.Mul(A)).Quo(slipAdjDenominator)
+	} else {
+		slipAdjustment = r.Mul(A).Sub(R.Mul(a)).Quo(slipAdjDenominator)
+	}
+	// (1 - ABS((R a - r A)/((2 r + R) (a + A))))
+	slipAdjustment = cosmos.NewDec(1).Sub(slipAdjustment)
+
+	// ((P (a R + A r))
+	numerator := P.Mul(a.Mul(R).Add(A.Mul(r)))
+	// 2AR
+	denominator := cosmos.NewDec(2).Mul(A).Mul(R)
+	liquidityUnits := numerator.Quo(denominator).Mul(slipAdjustment)
+	newPoolUnit := P.Add(liquidityUnits)
+
+	pUnits := cosmos.NewUintFromBigInt(newPoolUnit.TruncateInt().BigInt())
+	sUnits := cosmos.NewUintFromBigInt(liquidityUnits.TruncateInt().BigInt())
+
+	return pUnits, sUnits, nil
 }
 
 func (h AddLiquidityHandler) addLiquidityV1(ctx cosmos.Context,
@@ -299,20 +348,30 @@ func (h AddLiquidityHandler) addLiquidityV1(ctx cosmos.Context,
 
 	// if we have an asset address and no asset amount, put the rune pending
 	if stage && addAssetAmount.IsZero() {
+		pool.PendingInboundRune = pool.PendingInboundRune.Add(common.SafeSub(addRuneAmount, su.PendingRune))
 		su.PendingRune = addRuneAmount
 		su.PendingTxID = requestTxHash
 		h.keeper.SetLiquidityProvider(ctx, su)
+		if err := h.keeper.SetPool(ctx, pool); err != nil {
+			ctx.Logger().Error("fail to save pool pending inbound rune", "error", err)
+		}
 		return nil
 	}
 
 	// if we have a rune address and no rune asset, put the asset in pending
 	if stage && addRuneAmount.IsZero() {
+		pool.PendingInboundAsset = pool.PendingInboundAsset.Add(common.SafeSub(addAssetAmount, su.PendingAsset))
 		su.PendingAsset = addAssetAmount
 		su.PendingTxID = requestTxHash
 		h.keeper.SetLiquidityProvider(ctx, su)
+		if err := h.keeper.SetPool(ctx, pool); err != nil {
+			ctx.Logger().Error("fail to save pool pending inbound asset", "error", err)
+		}
 		return nil
 	}
 
+	pool.PendingInboundRune = common.SafeSub(pool.PendingInboundRune, su.PendingRune)
+	pool.PendingInboundAsset = common.SafeSub(pool.PendingInboundAsset, su.PendingAsset)
 	su.PendingAsset = cosmos.ZeroUint()
 	su.PendingRune = cosmos.ZeroUint()
 
@@ -341,8 +400,8 @@ func (h AddLiquidityHandler) addLiquidityV1(ctx cosmos.Context,
 	if err := h.keeper.SetPool(ctx, pool); err != nil {
 		return ErrInternal(err, "fail to save pool")
 	}
-	if originalUnits.IsZero() && !pool.PoolUnits.IsZero() && pool.Status == PoolAvailable {
-		poolEvent := NewEventPool(pool.Asset, PoolAvailable)
+	if originalUnits.IsZero() && !pool.PoolUnits.IsZero() {
+		poolEvent := NewEventPool(pool.Asset, pool.Status)
 		if err := h.mgr.EventMgr().EmitEvent(ctx, poolEvent); err != nil {
 			ctx.Logger().Error("fail to emit pool event", "error", err)
 		}
@@ -358,54 +417,6 @@ func (h AddLiquidityHandler) addLiquidityV1(ctx cosmos.Context,
 		return ErrInternal(err, "fail to emit add liquidity event")
 	}
 	return nil
-}
-
-// r = rune provided;
-// a = asset provided
-// R = rune Balance (before)
-// A = asset Balance (before)
-// P = existing Pool Units
-// slipAdjustment = (1 - ABS((R a - r A)/((r + R) (a + A))))
-// units = ((P (a R + A r))/(2 A R))*slidAdjustment
-func calculatePoolUnitsV1(oldPoolUnits, poolRune, poolAsset, addRune, addAsset cosmos.Uint) (cosmos.Uint, cosmos.Uint, error) {
-	if addRune.Add(poolRune).IsZero() {
-		return cosmos.ZeroUint(), cosmos.ZeroUint(), errors.New("total RUNE in the pool is zero")
-	}
-	if addAsset.Add(poolAsset).IsZero() {
-		return cosmos.ZeroUint(), cosmos.ZeroUint(), errors.New("total asset in the pool is zero")
-	}
-	if poolRune.IsZero() || poolAsset.IsZero() {
-		return addRune, addRune, nil
-	}
-	P := cosmos.NewDecFromBigInt(oldPoolUnits.BigInt())
-	R := cosmos.NewDecFromBigInt(poolRune.BigInt())
-	A := cosmos.NewDecFromBigInt(poolAsset.BigInt())
-	r := cosmos.NewDecFromBigInt(addRune.BigInt())
-	a := cosmos.NewDecFromBigInt(addAsset.BigInt())
-
-	// (r + R) (a + A)
-	slipAdjDenominator := (r.Add(R)).Mul(a.Add(A))
-	// ABS((R a - r A)/((2 r + R) (a + A)))
-	var slipAdjustment cosmos.Dec
-	if R.Mul(a).GT(r.Mul(A)) {
-		slipAdjustment = R.Mul(a).Sub(r.Mul(A)).Quo(slipAdjDenominator)
-	} else {
-		slipAdjustment = r.Mul(A).Sub(R.Mul(a)).Quo(slipAdjDenominator)
-	}
-	// (1 - ABS((R a - r A)/((2 r + R) (a + A))))
-	slipAdjustment = cosmos.NewDec(1).Sub(slipAdjustment)
-
-	// ((P (a R + A r))
-	numerator := P.Mul(a.Mul(R).Add(A.Mul(r)))
-	// 2AR
-	denominator := cosmos.NewDec(2).Mul(A).Mul(R)
-	liquidityUnits := numerator.Quo(denominator).Mul(slipAdjustment)
-	newPoolUnit := P.Add(liquidityUnits)
-
-	pUnits := cosmos.NewUintFromBigInt(newPoolUnit.TruncateInt().BigInt())
-	sUnits := cosmos.NewUintFromBigInt(liquidityUnits.TruncateInt().BigInt())
-
-	return pUnits, sUnits, nil
 }
 
 // getTotalBond

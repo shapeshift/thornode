@@ -46,11 +46,11 @@ func NewPoolMod(asset common.Asset, runeAmt cosmos.Uint, runeAdd bool, assetAmt 
 }
 
 // NewEventSwap create a new swap event
-func NewEventSwap(pool common.Asset, priceTarget, fee, tradeSlip, liquidityFeeInRune cosmos.Uint, inTx common.Tx, emitAsset common.Coin, synthUnits cosmos.Uint) *EventSwap {
+func NewEventSwap(pool common.Asset, swapTarget, fee, swapSlip, liquidityFeeInRune cosmos.Uint, inTx common.Tx, emitAsset common.Coin, synthUnits cosmos.Uint) *EventSwap {
 	return &EventSwap{
 		Pool:               pool,
-		PriceTarget:        priceTarget,
-		TradeSlip:          tradeSlip,
+		SwapTarget:         swapTarget,
+		SwapSlip:           swapSlip,
 		LiquidityFee:       fee,
 		LiquidityFeeInRune: liquidityFeeInRune,
 		InTx:               inTx,
@@ -68,8 +68,8 @@ func (m *EventSwap) Type() string {
 func (m *EventSwap) Events() (cosmos.Events, error) {
 	evt := cosmos.NewEvent(m.Type(),
 		cosmos.NewAttribute("pool", m.Pool.String()),
-		cosmos.NewAttribute("price_target", m.PriceTarget.String()),
-		cosmos.NewAttribute("trade_slip", m.TradeSlip.String()),
+		cosmos.NewAttribute("swap_target", m.SwapTarget.String()),
+		cosmos.NewAttribute("swap_slip", m.SwapSlip.String()),
 		cosmos.NewAttribute("liquidity_fee", m.LiquidityFee.String()),
 		cosmos.NewAttribute("liquidity_fee_in_rune", m.LiquidityFeeInRune.String()),
 		cosmos.NewAttribute("emit_asset", m.EmitAsset.String()),
@@ -272,7 +272,7 @@ func (m *EventBond) Type() string {
 func (m *EventBond) Events() (cosmos.Events, error) {
 	evt := cosmos.NewEvent(m.Type(),
 		cosmos.NewAttribute("amount", m.Amount.String()),
-		cosmos.NewAttribute("bound_type", string(m.BondType)))
+		cosmos.NewAttribute("bond_type", string(m.BondType)))
 	evt = evt.AppendAttributes(m.TxIn.ToAttributes()...)
 	return cosmos.Events{evt}, nil
 }

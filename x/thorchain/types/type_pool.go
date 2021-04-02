@@ -48,11 +48,13 @@ type Pools []Pool
 // NewPool Returns a new Pool
 func NewPool() Pool {
 	return Pool{
-		BalanceRune:  cosmos.ZeroUint(),
-		BalanceAsset: cosmos.ZeroUint(),
-		PoolUnits:    cosmos.ZeroUint(),
-		SynthUnits:   cosmos.ZeroUint(),
-		Status:       PoolStatus_Available,
+		BalanceRune:         cosmos.ZeroUint(),
+		BalanceAsset:        cosmos.ZeroUint(),
+		PoolUnits:           cosmos.ZeroUint(),
+		SynthUnits:          cosmos.ZeroUint(),
+		PendingInboundRune:  cosmos.ZeroUint(),
+		PendingInboundAsset: cosmos.ZeroUint(),
+		Status:              PoolStatus_Available,
 	}
 }
 
@@ -82,6 +84,8 @@ func (m Pool) String() string {
 	sb.WriteString(fmt.Sprintln("asset: " + m.Asset.String()))
 	sb.WriteString(fmt.Sprintln("pool-units: " + m.PoolUnits.String()))
 	sb.WriteString(fmt.Sprintln("synth-units: " + m.SynthUnits.String()))
+	sb.WriteString(fmt.Sprintln("pending-inbound-rune: " + m.PendingInboundRune.String()))
+	sb.WriteString(fmt.Sprintln("pending-inbound-asset: " + m.PendingInboundAsset.String()))
 	sb.WriteString(fmt.Sprintln("status: " + m.Status.String()))
 	sb.WriteString(fmt.Sprintln("decimals:" + strconv.FormatInt(m.Decimals, 10)))
 	return sb.String()

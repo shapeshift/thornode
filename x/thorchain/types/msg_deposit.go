@@ -33,23 +33,6 @@ func (m *MsgDeposit) ValidateBasic() error {
 			return cosmos.ErrUnknownRequest("all coins must be native to THORChain")
 		}
 	}
-	if len([]byte(m.Memo)) > 150 {
-		err := fmt.Errorf("memo must not exceed 150 bytes: %d", len([]byte(m.Memo)))
-		return cosmos.ErrUnknownRequest(err.Error())
-	}
-	return nil
-}
-
-// ValidateBasicV36 runs stateless checks on the message
-func (m *MsgDeposit) ValidateBasicV36() error {
-	if m.Signer.Empty() {
-		return cosmos.ErrInvalidAddress(m.Signer.String())
-	}
-	for _, coin := range m.Coins {
-		if !coin.IsNative() {
-			return cosmos.ErrUnknownRequest("all coins must be native to THORChain")
-		}
-	}
 	if len([]byte(m.Memo)) > constants.MaxMemoSize {
 		err := fmt.Errorf("memo must not exceed %d bytes: %d", constants.MaxMemoSize, len([]byte(m.Memo)))
 		return cosmos.ErrUnknownRequest(err.Error())
