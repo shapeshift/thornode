@@ -9,6 +9,7 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
 type WithdrawSuite struct{}
@@ -17,6 +18,77 @@ var _ = Suite(&WithdrawSuite{})
 
 func (s *WithdrawSuite) SetUpSuite(c *C) {
 	SetupConfigForTest()
+}
+
+type WithdrawTestKeeper struct {
+	keeper.KVStoreDummy
+	store       map[string]interface{}
+	networkFees map[common.Chain]NetworkFee
+	keeper      keeper.Keeper
+}
+
+func NewWithdrawTestKeeper(keeper keeper.Keeper) *WithdrawTestKeeper {
+	return &WithdrawTestKeeper{
+		keeper:      keeper,
+		store:       make(map[string]interface{}),
+		networkFees: make(map[common.Chain]NetworkFee),
+	}
+}
+
+func (k *WithdrawTestKeeper) PoolExist(ctx cosmos.Context, asset common.Asset) bool {
+	if asset.Equals(common.Asset{Chain: common.BNBChain, Symbol: "NOTEXIST", Ticker: "NOTEXIST"}) {
+		return false
+	}
+	return true
+}
+
+func (k *WithdrawTestKeeper) GetPool(ctx cosmos.Context, asset common.Asset) (types.Pool, error) {
+	if asset.Equals(common.Asset{Chain: common.BNBChain, Symbol: "NOTEXIST", Ticker: "NOTEXIST"}) {
+		return types.Pool{}, nil
+	} else {
+		if val, ok := k.store[asset.String()]; ok {
+			return val.(types.Pool), nil
+		}
+		return types.Pool{
+			BalanceRune:  cosmos.NewUint(100).MulUint64(common.One),
+			BalanceAsset: cosmos.NewUint(100).MulUint64(common.One),
+			PoolUnits:    cosmos.NewUint(100).MulUint64(common.One),
+			Status:       PoolAvailable,
+			Asset:        asset,
+		}, nil
+	}
+}
+
+func (k *WithdrawTestKeeper) SetPool(ctx cosmos.Context, ps Pool) error {
+	k.store[ps.Asset.String()] = ps
+	return nil
+}
+
+func (k *WithdrawTestKeeper) GetGas(ctx cosmos.Context, asset common.Asset) ([]cosmos.Uint, error) {
+	return []cosmos.Uint{cosmos.NewUint(37500), cosmos.NewUint(30000)}, nil
+}
+
+func (k *WithdrawTestKeeper) GetLiquidityProvider(ctx cosmos.Context, asset common.Asset, addr common.Address) (LiquidityProvider, error) {
+	if asset.Equals(common.Asset{Chain: common.BNBChain, Symbol: "NOTEXISTSTICKER", Ticker: "NOTEXISTSTICKER"}) {
+		return types.LiquidityProvider{}, errors.New("you asked for it")
+	}
+	if notExistLiquidityProviderAsset.Equals(asset) {
+		return LiquidityProvider{}, errors.New("simulate error for test")
+	}
+	return k.keeper.GetLiquidityProvider(ctx, asset, addr)
+}
+
+func (k *WithdrawTestKeeper) GetNetworkFee(ctx cosmos.Context, chain common.Chain) (NetworkFee, error) {
+	return k.networkFees[chain], nil
+}
+
+func (k *WithdrawTestKeeper) SaveNetworkFee(ctx cosmos.Context, chain common.Chain, networkFee NetworkFee) error {
+	k.networkFees[chain] = networkFee
+	return nil
+}
+
+func (k *WithdrawTestKeeper) SetLiquidityProvider(ctx cosmos.Context, lp LiquidityProvider) {
+	k.keeper.SetLiquidityProvider(ctx, lp)
 }
 
 // TestValidateWithdraw is to test validateWithdraw function
@@ -541,4 +613,53 @@ func (WithdrawSuite) TestWithdrawPendingRuneOrAsset(c *C) {
 	c.Assert(runeAmt.IsZero(), Equals, true)
 	c.Assert(unitsLeft.IsZero(), Equals, true)
 	c.Assert(gas.IsZero(), Equals, true)
+}
+
+func getWithdrawTestKeeper(c *C, ctx cosmos.Context, k keeper.Keeper, runeAddress common.Address) keeper.Keeper {
+	store := NewWithdrawTestKeeper(k)
+	pool := Pool{
+		BalanceRune:  cosmos.NewUint(100 * common.One),
+		BalanceAsset: cosmos.NewUint(100 * common.One),
+		Asset:        common.BNBAsset,
+		PoolUnits:    cosmos.NewUint(100 * common.One),
+		Status:       PoolAvailable,
+	}
+	c.Assert(store.SetPool(ctx, pool), IsNil)
+	lp := LiquidityProvider{
+		Asset:              pool.Asset,
+		RuneAddress:        runeAddress,
+		AssetAddress:       runeAddress,
+		LastAddHeight:      0,
+		LastWithdrawHeight: 0,
+		Units:              cosmos.NewUint(100 * common.One),
+		PendingRune:        cosmos.ZeroUint(),
+		PendingAsset:       cosmos.ZeroUint(),
+		PendingTxID:        "",
+		RuneDepositValue:   cosmos.NewUint(100 * common.One),
+		AssetDepositValue:  cosmos.NewUint(100 * common.One),
+	}
+	store.SetLiquidityProvider(ctx, lp)
+	return store
+}
+
+// this one has an extra liquidity provider already set
+func getWithdrawTestKeeper2(c *C, ctx cosmos.Context, k keeper.Keeper, runeAddress common.Address) keeper.Keeper {
+	store := NewWithdrawTestKeeper(k)
+	pool := Pool{
+		BalanceRune:  cosmos.NewUint(100 * common.One),
+		BalanceAsset: cosmos.NewUint(100 * common.One),
+		Asset:        common.BNBAsset,
+		PoolUnits:    cosmos.NewUint(200 * common.One),
+		Status:       PoolAvailable,
+	}
+	c.Assert(store.SetPool(ctx, pool), IsNil)
+	lp := LiquidityProvider{
+		Asset:        pool.Asset,
+		RuneAddress:  runeAddress,
+		AssetAddress: runeAddress,
+		Units:        cosmos.NewUint(100 * common.One),
+		PendingRune:  cosmos.ZeroUint(),
+	}
+	store.SetLiquidityProvider(ctx, lp)
+	return store
 }

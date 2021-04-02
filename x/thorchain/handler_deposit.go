@@ -47,9 +47,7 @@ func (h DepositHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Ver
 }
 
 func (h DepositHandler) validate(ctx cosmos.Context, msg MsgDeposit, version semver.Version) error {
-	if version.GTE(semver.MustParse("0.36.0")) {
-		return h.validateV36(ctx, msg)
-	} else if version.GTE(semver.MustParse("0.1.0")) {
+	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, msg)
 	}
 	return errInvalidVersion
@@ -57,14 +55,6 @@ func (h DepositHandler) validate(ctx cosmos.Context, msg MsgDeposit, version sem
 
 func (h DepositHandler) validateV1(ctx cosmos.Context, msg MsgDeposit) error {
 	return msg.ValidateBasic()
-}
-
-func (h DepositHandler) validateV36(ctx cosmos.Context, msg MsgDeposit) error {
-	return h.validateCurrent(ctx, msg)
-}
-
-func (h DepositHandler) validateCurrent(ctx cosmos.Context, msg MsgDeposit) error {
-	return msg.ValidateBasicV36()
 }
 
 func (h DepositHandler) handle(ctx cosmos.Context, msg MsgDeposit, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
@@ -138,13 +128,6 @@ func (h DepositHandler) handleCurrent(ctx cosmos.Context, msg MsgDeposit, versio
 		sdkErr = h.keeper.SendFromAccountToModule(ctx, msg.GetSigners()[0], targetModule, msg.Coins)
 		if sdkErr != nil {
 			return nil, sdkErr
-		}
-	} else if len(coinsInMsg) == 0 {
-		// only unbond and leave can skip coins , others is required.
-		// this is a trying to trick processOneTxIn below, as it check len(txIn.Coins)
-		switch memo.GetType() {
-		case TxUnBond, TxLeave:
-			coinsInMsg = append(coinsInMsg, common.NoCoin)
 		}
 	}
 

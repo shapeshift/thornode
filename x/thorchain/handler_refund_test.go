@@ -125,6 +125,7 @@ func newRefundTxHandlerTestHelper(c *C) refundTxHandlerTestHelper {
 	pool.Asset = common.BNBAsset
 	pool.BalanceAsset = cosmos.NewUint(100 * common.One)
 	pool.BalanceRune = cosmos.NewUint(100 * common.One)
+	pool.PoolUnits = pool.BalanceRune
 
 	version := GetCurrentVersion()
 	asgardVault := GetRandomVault()
