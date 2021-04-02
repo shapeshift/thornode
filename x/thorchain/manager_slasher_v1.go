@@ -343,8 +343,6 @@ func (s *SlasherV1) SlashVault(ctx cosmos.Context, vaultPK common.PubKey, coins 
 		totalBond = totalBond.Add(na.Bond)
 	}
 
-	activeCount, _ := s.keeper.TotalActiveNodeAccount(ctx)
-
 	for _, member := range membership {
 		na, err := s.keeper.GetNodeAccountByPubKey(ctx, member)
 		if err != nil {
@@ -425,10 +423,35 @@ func (s *SlasherV1) SlashVault(ctx cosmos.Context, vaultPK common.PubKey, coins 
 			}
 		}
 
-		// Ban the node account, if we not banning the remainder node accounts
-		if activeCount > len(membership) && vault.IsYggdrasil() {
-			na.ForcedToLeave = true
-			na.LeaveScore = 1 // Set Leave Score to 1, which means the nodes is bad
+		// Ban the node account. Ensure we don't ban more than 1/3rd of any
+		// given active or retiring vault
+		if vault.IsYggdrasil() {
+			toBan := true
+			for _, vaultPk := range na.GetSignerMembership() {
+				vault, err := s.keeper.GetVault(ctx, vaultPk)
+				if err != nil {
+					ctx.Logger().Error("fail to get vault", "error", err)
+					continue
+				}
+				if !(vault.Status == ActiveVault || vault.Status == RetiringVault) {
+					continue
+				}
+				activeMembers := 0
+				for _, pk := range vault.GetMembership() {
+					member, _ := s.keeper.GetNodeAccountByPubKey(ctx, pk)
+					if member.Status == NodeActive {
+						activeMembers += 1
+					}
+				}
+				if !HasSuperMajority(activeMembers, len(vault.GetMembership())) {
+					toBan = false
+					break
+				}
+			}
+			if toBan {
+				na.ForcedToLeave = true
+				na.LeaveScore = 1 // Set Leave Score to 1, which means the nodes is bad
+			}
 		}
 
 		err = s.keeper.SetNodeAccount(ctx, na)

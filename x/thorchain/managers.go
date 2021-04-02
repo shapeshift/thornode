@@ -235,11 +235,7 @@ func GetEventManager(version semver.Version) (EventManager, error) {
 // GetTxOutStore will return an implementation of the txout store that
 func GetTxOutStore(keeper keeper.Keeper, version semver.Version, eventMgr EventManager, gasManager GasManager) (TxOutStore, error) {
 	constAcessor := constants.GetConstantValues(version)
-	if version.GTE(semver.MustParse("0.37.0")) {
-		return NewTxOutStorageV37(keeper, constAcessor, eventMgr, gasManager), nil
-	} else if version.GTE(semver.MustParse("0.36.0")) {
-		return NewTxOutStorageV36(keeper, constAcessor, eventMgr, gasManager), nil
-	} else if version.GTE(semver.MustParse("0.1.0")) {
+	if version.GTE(semver.MustParse("0.1.0")) {
 		return NewTxOutStorageV1(keeper, constAcessor, eventMgr, gasManager), nil
 	}
 	return nil, errInvalidVersion
@@ -280,9 +276,7 @@ func GetSwapQueue(keeper keeper.Keeper, version semver.Version) (SwapQueue, erro
 
 // GetSlasher return an implementation of Slasher
 func GetSlasher(keeper keeper.Keeper, version semver.Version) (Slasher, error) {
-	if version.GTE(semver.MustParse("0.37.0")) {
-		return NewSlasherV37(keeper), nil
-	} else if version.GTE(semver.MustParse("0.1.0")) {
+	if version.GTE(semver.MustParse("0.1.0")) {
 		return NewSlasherV1(keeper), nil
 	}
 	return nil, errInvalidVersion
