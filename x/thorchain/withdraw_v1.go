@@ -63,6 +63,11 @@ func withdrawV1(ctx cosmos.Context, version semver.Version, keeper keeper.Keeper
 	if lp.Units.IsZero() {
 		if !lp.PendingRune.IsZero() || !lp.PendingAsset.IsZero() {
 			keeper.RemoveLiquidityProvider(ctx, lp)
+			pool.PendingInboundRune = common.SafeSub(pool.PendingInboundRune, lp.PendingRune)
+			pool.PendingInboundAsset = common.SafeSub(pool.PendingInboundAsset, lp.PendingAsset)
+			if err := keeper.SetPool(ctx, pool); err != nil {
+				ctx.Logger().Error("fail to save pool pending inbound funds", "error", err)
+			}
 			// remove lp
 			return lp.PendingRune, lp.PendingAsset, cosmos.ZeroUint(), lp.Units, cosmos.ZeroUint(), nil
 		}

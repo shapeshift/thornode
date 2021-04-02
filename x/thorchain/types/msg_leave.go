@@ -28,9 +28,6 @@ func (m *MsgLeave) ValidateBasic() error {
 	if m.Tx.ID.IsEmpty() {
 		return cosmos.ErrUnknownRequest("tx id cannot be empty")
 	}
-	if m.Tx.FromAddress.IsEmpty() {
-		return cosmos.ErrInvalidAddress("tx from address cannot be empty")
-	}
 	if m.Signer.Empty() {
 		return cosmos.ErrInvalidAddress("signer cannot be empty ")
 	}

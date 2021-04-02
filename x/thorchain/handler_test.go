@@ -144,6 +144,7 @@ func getHandlerTestWrapperWithVersion(c *C, height int64, withActiveNode, withAc
 		p.Status = PoolAvailable
 		p.BalanceRune = cosmos.NewUint(100 * common.One)
 		p.BalanceAsset = cosmos.NewUint(100 * common.One)
+		p.PoolUnits = cosmos.NewUint(100 * common.One)
 		c.Assert(k.SetPool(ctx, p), IsNil)
 	}
 	constAccessor := constants.GetConstantValues(version)
@@ -569,6 +570,7 @@ func (s *HandlerSuite) TestExternalHandler(c *C) {
 	c.Check(result, IsNil)
 	na := GetRandomNodeAccount(NodeActive)
 	k.SetNodeAccount(ctx, na)
+	FundAccount(c, ctx, k, na.NodeAddress, 10*common.One)
 	result, err = handler(ctx, NewMsgSetVersion("0.1.0", na.NodeAddress))
 	c.Assert(err, IsNil)
 	c.Assert(result, NotNil)

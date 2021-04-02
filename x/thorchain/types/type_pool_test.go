@@ -41,7 +41,7 @@ func (PoolTestSuite) TestPool(c *C) {
 	m := NewMsgSwap(tx, common.BNBAsset, bnbAddress, cosmos.NewUint(2), common.NoAddress, cosmos.ZeroUint(), signer)
 
 	c.Check(p.EnsureValidPoolStatus(m), IsNil)
-	msgNoop := NewMsgNoOp(GetRandomObservedTx(), signer)
+	msgNoop := NewMsgNoOp(GetRandomObservedTx(), signer, "")
 	c.Check(p.EnsureValidPoolStatus(msgNoop), IsNil)
 	p.Status = PoolStatus_Available
 	c.Check(p.EnsureValidPoolStatus(m), IsNil)

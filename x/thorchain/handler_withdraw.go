@@ -83,13 +83,9 @@ func (h WithdrawLiquidityHandler) validateCurrent(ctx cosmos.Context, msg MsgWit
 
 func (h WithdrawLiquidityHandler) handle(ctx cosmos.Context, msg MsgWithdrawLiquidity, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	if version.GTE(semver.MustParse("0.1.0")) {
-		return h.handleV1(ctx, msg, version, constAccessor)
+		return h.handleCurrent(ctx, msg, version, constAccessor)
 	}
 	return nil, errBadVersion
-}
-
-func (h WithdrawLiquidityHandler) handleV1(ctx cosmos.Context, msg MsgWithdrawLiquidity, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
-	return h.handleCurrent(ctx, msg, version, constAccessor)
 }
 
 func (h WithdrawLiquidityHandler) handleCurrent(ctx cosmos.Context, msg MsgWithdrawLiquidity, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
@@ -151,14 +147,6 @@ func (h WithdrawLiquidityHandler) handleCurrent(ctx cosmos.Context, msg MsgWithd
 		if !okAsset {
 			return nil, errFailAddOutboundTx
 		}
-	}
-
-	// If the pool is in staged status, then we won't have withheld the asset
-	// above from being deducted a fee/gas from the transaction. So we have to
-	// do it here, on the rune side.
-	if pool.Status != PoolAvailable {
-		transactionFee := h.mgr.GasMgr().GetFee(ctx, msg.Asset.GetChain(), common.RuneAsset())
-		runeAmt = common.SafeSub(runeAmt, transactionFee)
 	}
 
 	if !runeAmt.IsZero() {

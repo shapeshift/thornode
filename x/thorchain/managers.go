@@ -102,7 +102,6 @@ type Slasher interface {
 	HandleDoubleSign(ctx cosmos.Context, addr crypto.Address, infractionHeight int64, constAccessor constants.ConstantValues) error
 	LackObserving(ctx cosmos.Context, constAccessor constants.ConstantValues) error
 	LackSigning(ctx cosmos.Context, constAccessor constants.ConstantValues, mgr Manager) error
-	SlashNodeAccount(ctx cosmos.Context, observedPubKey common.PubKey, asset common.Asset, slashAmount cosmos.Uint, mgr Manager) error
 	SlashVault(ctx cosmos.Context, vaultPK common.PubKey, coins common.Coins, mgr Manager) error
 	IncSlashPoints(ctx cosmos.Context, point int64, addresses ...cosmos.AccAddress)
 	DecSlashPoints(ctx cosmos.Context, point int64, addresses ...cosmos.AccAddress)
@@ -236,9 +235,7 @@ func GetEventManager(version semver.Version) (EventManager, error) {
 // GetTxOutStore will return an implementation of the txout store that
 func GetTxOutStore(keeper keeper.Keeper, version semver.Version, eventMgr EventManager, gasManager GasManager) (TxOutStore, error) {
 	constAcessor := constants.GetConstantValues(version)
-	if version.GTE(semver.MustParse("0.36.0")) {
-		return NewTxOutStorageV36(keeper, constAcessor, eventMgr, gasManager), nil
-	} else if version.GTE(semver.MustParse("0.1.0")) {
+	if version.GTE(semver.MustParse("0.1.0")) {
 		return NewTxOutStorageV1(keeper, constAcessor, eventMgr, gasManager), nil
 	}
 	return nil, errInvalidVersion

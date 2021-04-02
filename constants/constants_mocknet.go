@@ -14,7 +14,6 @@ func init() {
 		MinimumBondInRune:        100_000_000, // 1 rune
 		FundMigrationInterval:    40,
 		LiquidityLockUpBlocks:    0,
-		CliTxCost:                0,
 		JailTimeKeygen:           10,
 		JailTimeKeysign:          10,
 		AsgardSize:               6,

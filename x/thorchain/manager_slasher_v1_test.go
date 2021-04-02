@@ -2,7 +2,6 @@ package thorchain
 
 import (
 	"errors"
-
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"

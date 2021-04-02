@@ -58,44 +58,18 @@ func (h SwapHandler) validateCurrent(ctx cosmos.Context, msg MsgSwap) error {
 
 func (h SwapHandler) handle(ctx cosmos.Context, msg MsgSwap, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	ctx.Logger().Info("receive MsgSwap", "request tx hash", msg.Tx.ID, "source asset", msg.Tx.Coins[0].Asset, "target asset", msg.TargetAsset, "signer", msg.Signer.String())
-	if version.GTE(semver.MustParse("0.36.0")) {
+	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.handleCurrent(ctx, msg, version, constAccessor)
-	} else if version.GTE(semver.MustParse("0.1.0")) {
-		return h.handleV1(ctx, msg, version, constAccessor)
 	}
 	return nil, errBadVersion
 }
-
-func (h SwapHandler) handleV1(ctx cosmos.Context, msg MsgSwap, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
-	transactionFee := h.mgr.GasMgr().GetFee(ctx, msg.Destination.GetChain(), common.RuneAsset())
-	synthVirtualDepthMult, err := h.keeper.GetMimir(ctx, constants.VirtualMultSynths.String())
-	if synthVirtualDepthMult < 1 || err != nil {
-		synthVirtualDepthMult = constAccessor.GetInt64Value(constants.VirtualMultSynths)
-	}
-	swapper := NewSwapperV1()
-	_, _, swapErr := swapper.swap(
-		ctx,
-		h.keeper,
-		msg.Tx,
-		msg.TargetAsset,
-		msg.Destination,
-		msg.TradeTarget,
-		transactionFee,
-		synthVirtualDepthMult,
-		h.mgr)
-	if swapErr != nil {
-		return nil, swapErr
-	}
-	return &cosmos.Result{}, nil
-}
-
 func (h SwapHandler) handleCurrent(ctx cosmos.Context, msg MsgSwap, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	transactionFee := h.mgr.GasMgr().GetFee(ctx, msg.Destination.GetChain(), common.RuneAsset())
 	synthVirtualDepthMult, err := h.keeper.GetMimir(ctx, constants.VirtualMultSynths.String())
 	if synthVirtualDepthMult < 1 || err != nil {
 		synthVirtualDepthMult = constAccessor.GetInt64Value(constants.VirtualMultSynths)
 	}
-	swapper := NewSwapperV36()
+	swapper := NewSwapperV1()
 	_, _, swapErr := swapper.swap(
 		ctx,
 		h.keeper,

@@ -91,11 +91,13 @@ func (HandlerWithdrawSuite) TestWithdrawHandler(c *C) {
 		keeper:            keeper,
 		activeNodeAccount: activeNodeAccount,
 		currentPool: Pool{
-			BalanceRune:  cosmos.ZeroUint(),
-			BalanceAsset: cosmos.ZeroUint(),
-			Asset:        common.BNBAsset,
-			PoolUnits:    cosmos.ZeroUint(),
-			Status:       PoolAvailable,
+			BalanceRune:         cosmos.ZeroUint(),
+			BalanceAsset:        cosmos.ZeroUint(),
+			Asset:               common.BNBAsset,
+			PoolUnits:           cosmos.ZeroUint(),
+			PendingInboundRune:  cosmos.ZeroUint(),
+			PendingInboundAsset: cosmos.ZeroUint(),
+			Status:              PoolAvailable,
 		},
 		lp: LiquidityProvider{
 			Units:             cosmos.ZeroUint(),

@@ -39,12 +39,9 @@ func (m *MsgAddLiquidity) ValidateBasic() error {
 	if err := m.Tx.Valid(); err != nil {
 		return cosmos.ErrUnknownRequest(err.Error())
 	}
-	if m.Asset.IsEmpty() {
-		return cosmos.ErrUnknownRequest("unable to determine the intended pool for this add liquidity")
-	}
-	// There is no dedicate pool for RUNE ,because every pool will have RUNE , that's by design
+	// There is no dedicate pool for RUNE, because every pool will have RUNE, that's by design
 	if m.Asset.IsRune() {
-		return cosmos.ErrUnknownRequest("invalid pool asset")
+		return cosmos.ErrUnknownRequest("asset cannot be rune")
 	}
 	// test scenario we get two coins, but none are rune, invalid liquidity provider
 	if len(m.Tx.Coins) == 2 && (m.AssetAmount.IsZero() || m.RuneAmount.IsZero()) {

@@ -18,7 +18,7 @@ func (s *TypeTssKeysignFailTestSuite) TestVoter(c *C) {
 		{Pubkey: GetRandomPubKey().String()},
 	}
 	b := Blame{BlameNodes: nodes, FailReason: "fail to keysign"}
-	m, err := NewMsgTssKeysignFailV26(1, b, "hello", common.Coins{common.NewCoin(common.BNBAsset, cosmos.NewUint(100))}, GetRandomBech32Addr(), GetRandomPubKey())
+	m, err := NewMsgTssKeysignFail(1, b, "hello", common.Coins{common.NewCoin(common.BNBAsset, cosmos.NewUint(100))}, GetRandomBech32Addr(), GetRandomPubKey())
 	c.Assert(err, IsNil)
 	tss := NewTssKeysignFailVoter(m.ID, 1)
 	c.Check(tss.Empty(), Equals, false)
