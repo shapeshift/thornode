@@ -31,8 +31,10 @@ func (m *MsgWithdrawLiquidity) ValidateBasic() error {
 	if m.Signer.Empty() {
 		return cosmos.ErrInvalidAddress(m.Signer.String())
 	}
-	if err := m.Tx.Valid(); err != nil {
-		return cosmos.ErrUnknownRequest(err.Error())
+	// here we can't call m.Tx.Valid , because we allow user to send withdraw request without any coins in it
+	// m.Tx.Valid will reject this kind request , which result withdraw to fail
+	if m.Tx.ID.IsEmpty() {
+		return cosmos.ErrInvalidAddress("tx id cannot be empty")
 	}
 	if m.Asset.IsEmpty() {
 		return cosmos.ErrUnknownRequest("pool asset cannot be empty")
