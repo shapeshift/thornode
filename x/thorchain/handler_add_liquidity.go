@@ -65,7 +65,7 @@ func (h AddLiquidityHandler) validateCurrent(ctx cosmos.Context, msg MsgAddLiqui
 	if !ensureLiquidityNoLargerThanBond {
 		return nil
 	}
-	totalBondRune, err := h.getTotalBond(ctx)
+	totalBondRune, err := h.getTotalActiveBond(ctx)
 	if err != nil {
 		return ErrInternal(err, "fail to get total bond RUNE")
 	}
@@ -419,15 +419,15 @@ func (h AddLiquidityHandler) addLiquidityV1(ctx cosmos.Context,
 	return nil
 }
 
-// getTotalBond
-func (h AddLiquidityHandler) getTotalBond(ctx cosmos.Context) (cosmos.Uint, error) {
+// getTotalActiveBond
+func (h AddLiquidityHandler) getTotalActiveBond(ctx cosmos.Context) (cosmos.Uint, error) {
 	nodeAccounts, err := h.keeper.ListNodeAccountsWithBond(ctx)
 	if err != nil {
 		return cosmos.ZeroUint(), err
 	}
 	total := cosmos.ZeroUint()
 	for _, na := range nodeAccounts {
-		if na.Status == NodeDisabled {
+		if na.Status != NodeActive {
 			continue
 		}
 		total = total.Add(na.Bond)
