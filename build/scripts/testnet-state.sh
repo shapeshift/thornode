@@ -1994,8 +1994,13 @@ add_exiting_accounts() {
             "key": "AvZssaf4cD1EFUt34ppe5Ne9DlKj/2zVYSsPTtlrcFmj"
           },
           "sequence": "0"
-        },
-        {
+        }
+      ]' <~/.thornode/config/genesis.json >/tmp/genesis.json
+
+      mv /tmp/genesis.json ~/.thornode/config/genesis.json
+
+    jq '.app_state.auth.accounts += [
+    {
           "@type": "/cosmos.auth.v1beta1.BaseAccount",
           "account_number": "0",
           "address": "tthor1vmwa3ec2as4jft46mgzuz4qytcu48rlc4p2uhd",
@@ -4438,7 +4443,7 @@ add_exiting_accounts() {
           },
           "sequence": "0"
         }
-      ]' <~/.thornode/config/genesis.json >/tmp/genesis.json
+    ]' <~/.thornode/config/genesis.json >/tmp/genesis.json
 
     mv /tmp/genesis.json ~/.thornode/config/genesis.json
 
@@ -6389,8 +6394,12 @@ add_exiting_accounts() {
               "denom": "rune"
             }
           ]
-        },
-        {
+        }
+      ]' <~/.thornode/config/genesis.json >/tmp/genesis.json
+
+    mv /tmp/genesis.json ~/.thornode/config/genesis.json
+    jq '.app_state.bank.balances += [
+    {
           "address": "tthor1d83hp5rzdt8pyulr3ehu54u89qwwulnxk8s56x",
           "coins": [
             {
@@ -8595,6 +8604,6 @@ add_exiting_accounts() {
             }
           ]
         }
-      ]' <~/.thornode/config/genesis.json >/tmp/genesis.json
+    ]' <~/.thornode/config/genesis.json >/tmp/genesis.json
     mv /tmp/genesis.json ~/.thornode/config/genesis.json
 }
