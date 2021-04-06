@@ -411,6 +411,11 @@ func queryInboundAddresses(ctx cosmos.Context, path []string, req abci.RequestQu
 		}
 		cc := vault.GetContract(chain)
 		gasRate := mgr.GasMgr().GetGasRate(ctx, chain)
+		// because THORNode is using 1e8, while GWei in ETH is in 1e9, thus the minimum THORNode can represent is 10Gwei
+		// here convert the gas rate to Gwei , so api user don't need to convert it , make it easier for people to understand
+		if chain.Equals(common.ETHChain) {
+			gasRate = gasRate.MulUint64(10)
+		}
 		addr := address{
 			Chain:   chain,
 			PubKey:  vault.PubKey,
