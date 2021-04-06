@@ -12,6 +12,7 @@ import (
 const (
 	TransactionFeeKey = "transactionfee-"
 	PrefixBlockMeta   = `blockmeta-`
+	PrefixMempool     = "mempool-"
 )
 
 // LevelDBBlockMetaAccessor struct
@@ -26,6 +27,9 @@ func NewLevelDBBlockMetaAccessor(db *leveldb.DB) (*LevelDBBlockMetaAccessor, err
 
 func (t *LevelDBBlockMetaAccessor) getBlockMetaKey(height int64) string {
 	return fmt.Sprintf(PrefixBlockMeta+"%d", height)
+}
+func (t *LevelDBBlockMetaAccessor) getMemPoolHashKey(hash string) string {
+	return PrefixMempool + hash
 }
 
 // GetBlockMeta at given block height ,  when the requested block meta doesn't exist , it will return nil , thus caller need to double check it
@@ -133,4 +137,24 @@ func (t *LevelDBBlockMetaAccessor) GetTransactionFee() (float64, int32, error) {
 		return 0.0, 0, fmt.Errorf("fail to unmarshal transaction fee: %w", err)
 	}
 	return transactionFee.Fee, transactionFee.VSize, nil
+}
+
+// TryAddToMemPoolCache trying to add the given hash to mempool hash
+func (t *LevelDBBlockMetaAccessor) TryAddToMemPoolCache(hash string) (bool, error) {
+	key := t.getMemPoolHashKey(hash)
+	exist, err := t.db.Has([]byte(key), nil)
+	if err != nil {
+		return exist, err
+	}
+	if exist {
+		return false, nil
+	}
+	err = t.db.Put([]byte(key), []byte(hash), nil)
+	return true, err
+}
+
+// RemoveFromMemPoolCache remove the hash from cache
+func (t *LevelDBBlockMetaAccessor) RemoveFromMemPoolCache(hash string) error {
+	key := t.getMemPoolHashKey(hash)
+	return t.db.Delete([]byte(key), nil)
 }

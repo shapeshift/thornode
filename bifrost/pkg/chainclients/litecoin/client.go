@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/cosmos/cosmos-sdk/crypto/codec"
@@ -54,8 +53,6 @@ type Client struct {
 	bridge             *thorclient.ThorchainBridge
 	globalErrataQueue  chan<- types.ErrataBlock
 	nodePubKey         common.PubKey
-	memPoolLock        *sync.Mutex
-	processedMemPool   map[string]bool
 	lastMemPoolScan    time.Time
 	currentBlockHeight int64
 	asgardAddresses    []common.Address
@@ -103,18 +100,16 @@ func NewClient(thorKeys *thorclient.Keys, cfg config.ChainConfiguration, server 
 	}
 
 	c := &Client{
-		logger:           log.Logger.With().Str("module", "litecoin").Logger(),
-		cfg:              cfg,
-		chain:            cfg.ChainID,
-		client:           client,
-		privateKey:       ltcPrivateKey,
-		ksWrapper:        ksWrapper,
-		bridge:           bridge,
-		nodePubKey:       nodePubKey,
-		memPoolLock:      &sync.Mutex{},
-		processedMemPool: make(map[string]bool),
-		minRelayFeeSats:  1000, // 1000 sats is the default minimal relay fee
-		tssKeySigner:     tssKm,
+		logger:          log.Logger.With().Str("module", "litecoin").Logger(),
+		cfg:             cfg,
+		chain:           cfg.ChainID,
+		client:          client,
+		privateKey:      ltcPrivateKey,
+		ksWrapper:       ksWrapper,
+		bridge:          bridge,
+		nodePubKey:      nodePubKey,
+		minRelayFeeSats: 1000, // 1000 sats is the default minimal relay fee
+		tssKeySigner:    tssKm,
 	}
 
 	var path string // if not set later, will in memory storage
@@ -423,19 +418,17 @@ func (c *Client) confirmTx(txHash *chainhash.Hash) bool {
 }
 
 func (c *Client) removeFromMemPoolCache(hash string) {
-	c.memPoolLock.Lock()
-	defer c.memPoolLock.Unlock()
-	delete(c.processedMemPool, hash)
+	if err := c.blockMetaAccessor.RemoveFromMemPoolCache(hash); err != nil {
+		c.logger.Err(err).Msgf("fail to remove %s from mempool cache", hash)
+	}
 }
 
 func (c *Client) tryAddToMemPoolCache(hash string) bool {
-	if c.processedMemPool[hash] {
-		return false
+	exist, err := c.blockMetaAccessor.TryAddToMemPoolCache(hash)
+	if err != nil {
+		c.logger.Err(err).Msgf("fail to add mempool hash to key value store")
 	}
-	c.memPoolLock.Lock()
-	defer c.memPoolLock.Unlock()
-	c.processedMemPool[hash] = true
-	return true
+	return exist
 }
 
 func (c *Client) getMemPool(height int64) (types.TxIn, error) {

@@ -8,4 +8,6 @@ type BlockMetaAccessor interface {
 	PruneBlockMeta(height int64) error
 	UpsertTransactionFee(fee float64, vSize int32) error
 	GetTransactionFee() (float64, int32, error)
+	TryAddToMemPoolCache(hash string) (bool, error)
+	RemoveFromMemPoolCache(hash string) error
 }
