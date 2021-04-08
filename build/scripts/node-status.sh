@@ -28,6 +28,7 @@ REWARDS=$(echo $JSON | jq -r ".current_award")
 SLASH=$(echo $JSON | jq -r ".slash_points")
 STATUS=$(echo $JSON | jq -r ".status")
 PREFLIGHT=$(echo $JSON | jq -r  ".preflight_status")
+[ "$VALIDATOR" == "false" ] && IP=$EXTERNAL_IP
 
 if [ "$VALIDATOR" == "true" ]; then
   # calculate BNB chain sync progress
