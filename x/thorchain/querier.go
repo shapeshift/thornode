@@ -473,10 +473,20 @@ func queryNode(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mg
 		if err != nil {
 			return nil, fmt.Errorf("fail to get network: %w", err)
 		}
-
+		vaults, err := mgr.Keeper.GetAsgardVaultsByStatus(ctx, ActiveVault)
+		if err != nil {
+			return nil, fmt.Errorf("fail to get active vaults: %w", err)
+		}
+		if len(vaults) == 0 {
+			return nil, fmt.Errorf("no active vaults")
+		}
+		lastChurnHeight := vaults[0].BlockHeight
 		// find number of blocks they were well behaved (ie active - slash points)
-		earnedBlocks := nodeAcc.CalcBondUnits(common.BlockHeight(ctx), slashPts)
-		result.CurrentAward = network.CalcNodeRewards(earnedBlocks)
+		earnedBlocks := common.BlockHeight(ctx) - lastChurnHeight - slashPts
+		if earnedBlocks < 0 {
+			earnedBlocks = 0
+		}
+		result.CurrentAward = network.CalcNodeRewards(cosmos.NewUint(uint64(earnedBlocks)))
 	}
 
 	chainHeights, err := mgr.Keeper.GetLastObserveHeight(ctx, addr)
@@ -535,19 +545,30 @@ func queryNodes(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *M
 		return nil, fmt.Errorf("fail to get network: %w", err)
 	}
 
+	vaults, err := mgr.Keeper.GetAsgardVaultsByStatus(ctx, ActiveVault)
+	if err != nil {
+		return nil, fmt.Errorf("fail to get active vaults: %w", err)
+	}
+	if len(vaults) == 0 {
+		return nil, fmt.Errorf("no active vaults")
+	}
+	lastChurnHeight := vaults[0].BlockHeight
 	result := make([]QueryNodeAccount, len(nodeAccounts))
 	for i, na := range nodeAccounts {
 		slashPts, err := mgr.Keeper.GetNodeAccountSlashPoints(ctx, na.NodeAddress)
 		if err != nil {
 			return nil, fmt.Errorf("fail to get node slash points: %w", err)
 		}
-		// find number of blocks they were well behaved (ie active - slash points)
-		earnedBlocks := na.CalcBondUnits(common.BlockHeight(ctx), slashPts)
 
 		result[i] = NewQueryNodeAccount(na)
 		result[i].SlashPoints = slashPts
 		if na.Status == NodeActive {
-			result[i].CurrentAward = network.CalcNodeRewards(earnedBlocks)
+			// find number of blocks they were well behaved (ie active - slash points)
+			earnedBlocks := common.BlockHeight(ctx) - lastChurnHeight - slashPts
+			if earnedBlocks < 0 {
+				earnedBlocks = 0
+			}
+			result[i].CurrentAward = network.CalcNodeRewards(cosmos.NewUint(uint64(earnedBlocks)))
 		}
 
 		jail, err := mgr.Keeper.GetNodeAccountJail(ctx, na.NodeAddress)
