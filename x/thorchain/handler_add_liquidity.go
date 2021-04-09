@@ -465,7 +465,7 @@ func (h AddLiquidityHandler) getTotalBond(ctx cosmos.Context) (cosmos.Uint, erro
 	}
 	total := cosmos.ZeroUint()
 	for _, na := range nodeAccounts {
-		if na.Status != NodeDisabled {
+		if na.Status == NodeDisabled {
 			continue
 		}
 		total = total.Add(na.Bond)

@@ -198,7 +198,10 @@ func (s *QuerierSuite) TestQueryNodeAccounts(c *C) {
 	bond := cosmos.NewUint(common.One * 100)
 	nodeAccount := NewNodeAccount(signer, NodeActive, emptyPubKeySet, "", bond, bondAddr, common.BlockHeight(ctx))
 	c.Assert(keeper.SetNodeAccount(ctx, nodeAccount), IsNil)
-
+	vault := GetRandomVault()
+	vault.Status = ActiveVault
+	vault.BlockHeight = 1024
+	c.Assert(keeper.SetVault(ctx, vault), IsNil)
 	res, err := querier(ctx, path, abci.RequestQuery{})
 	c.Assert(err, IsNil)
 
@@ -465,6 +468,10 @@ func (s *QuerierSuite) TestQueryNodeAccount(c *C) {
 
 	na := GetRandomNodeAccount(NodeActive)
 	s.k.SetNodeAccount(s.ctx, na)
+	vault := GetRandomVault()
+	vault.Status = ActiveVault
+	vault.BlockHeight = 1024
+	c.Assert(s.k.SetVault(s.ctx, vault), IsNil)
 	result, err = s.querier(s.ctx, []string{
 		query.QueryNode.Key,
 		na.NodeAddress.String(),
