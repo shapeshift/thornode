@@ -80,6 +80,8 @@ message EventRefund {
 enum BondType {
   bond_paid = 0;
   bond_returned = 1;
+  bond_reward = 2;
+  bond_cost = 3;
 }
 
 message EventBond {
