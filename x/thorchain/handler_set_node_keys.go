@@ -92,7 +92,9 @@ func (h SetNodeKeysHandler) validateCurrent(ctx cosmos.Context, msg MsgSetNodeKe
 
 func (h SetNodeKeysHandler) handle(ctx cosmos.Context, msg MsgSetNodeKeys, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	ctx.Logger().Info("handleMsgSetNodeKeys request")
-	if version.GTE(semver.MustParse("0.1.0")) {
+	if version.GTE(semver.MustParse("0.41.0")) {
+		return h.handleV41(ctx, msg, version, constAccessor)
+	} else if version.GTE(semver.MustParse("0.1.0")) {
 		return h.handleV1(ctx, msg, version, constAccessor)
 	}
 	return nil, errBadVersion
@@ -100,6 +102,50 @@ func (h SetNodeKeysHandler) handle(ctx cosmos.Context, msg MsgSetNodeKeys, versi
 
 // handleV1 a message to set node keys
 func (h SetNodeKeysHandler) handleV1(ctx cosmos.Context, msg MsgSetNodeKeys, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+	nodeAccount, err := h.keeper.GetNodeAccount(ctx, msg.Signer)
+	if err != nil {
+		ctx.Logger().Error("fail to get node account", "error", err, "address", msg.Signer.String())
+		return nil, cosmos.ErrUnauthorized(fmt.Sprintf("%s is not authorized", msg.Signer))
+	}
+
+	c, err := h.keeper.GetMimir(ctx, constants.NativeTransactionFee.String())
+	if err != nil || c < 0 {
+		c = constAccessor.GetInt64Value(constants.NativeTransactionFee)
+	}
+	cost := cosmos.NewUint(uint64(c))
+	if cost.GT(nodeAccount.Bond) {
+		cost = nodeAccount.Bond
+	}
+	// Here make sure THORNode don't change the node account's bond
+	nodeAccount.UpdateStatus(NodeStandby, common.BlockHeight(ctx))
+	nodeAccount.PubKeySet = msg.PubKeySetSet
+	nodeAccount.Bond = common.SafeSub(nodeAccount.Bond, cost)
+	nodeAccount.ValidatorConsPubKey = msg.ValidatorConsPubKey
+	if err := h.keeper.SetNodeAccount(ctx, nodeAccount); err != nil {
+		return nil, fmt.Errorf("fail to save node account: %w", err)
+	}
+
+	// add 10 bond to reserve
+	coin := common.NewCoin(common.RuneNative, cost)
+	if !cost.IsZero() {
+		if err := h.keeper.SendFromAccountToModule(ctx, msg.Signer, ReserveName, common.NewCoins(coin)); err != nil {
+			ctx.Logger().Error("fail to transfer funds from bond to reserve", "error", err)
+			return nil, err
+		}
+	}
+
+	ctx.EventManager().EmitEvent(
+		cosmos.NewEvent("set_node_keys",
+			cosmos.NewAttribute("node_address", msg.Signer.String()),
+			cosmos.NewAttribute("node_secp256k1_pubkey", msg.PubKeySetSet.Secp256k1.String()),
+			cosmos.NewAttribute("node_ed25519_pubkey", msg.PubKeySetSet.Ed25519.String()),
+			cosmos.NewAttribute("validator_consensus_pub_key", msg.ValidatorConsPubKey)))
+
+	return &cosmos.Result{}, nil
+
+}
+
+func (h SetNodeKeysHandler) handleV41(ctx cosmos.Context, msg MsgSetNodeKeys, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	return h.handleCurrent(ctx, msg, version, constAccessor)
 }
 
@@ -134,6 +180,14 @@ func (h SetNodeKeysHandler) handleCurrent(ctx cosmos.Context, msg MsgSetNodeKeys
 			ctx.Logger().Error("fail to transfer funds from bond to reserve", "error", err)
 			return nil, err
 		}
+	}
+
+	tx := common.Tx{}
+	tx.ID = common.BlankTxID
+	tx.FromAddress = nodeAccount.BondAddress
+	bondEvent := NewEventBond(cost, BondCost, tx)
+	if err := h.mgr.EventMgr().EmitEvent(ctx, bondEvent); err != nil {
+		return nil, fmt.Errorf("fail to emit bond event: %w", err)
 	}
 
 	ctx.EventManager().EmitEvent(

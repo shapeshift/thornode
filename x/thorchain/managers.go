@@ -176,7 +176,7 @@ func (mgr *Mgrs) BeginBlock(ctx cosmos.Context) error {
 		return fmt.Errorf("fail to create swap queue: %w", err)
 	}
 
-	mgr.slasher, err = GetSlasher(mgr.Keeper, v)
+	mgr.slasher, err = GetSlasher(mgr.Keeper, v, mgr.eventMgr)
 	if err != nil {
 		return fmt.Errorf("fail to create swap queue: %w", err)
 	}
@@ -255,7 +255,9 @@ func GetVaultManager(keeper keeper.Keeper, version semver.Version, txOutStore Tx
 
 // GetValidatorManager create a new instance of Validator Manager
 func GetValidatorManager(keeper keeper.Keeper, version semver.Version, vaultMgr NetworkManager, txOutStore TxOutStore, eventMgr EventManager) (ValidatorManager, error) {
-	if version.GTE(semver.MustParse("0.40.0")) {
+	if version.GTE(semver.MustParse("0.41.0")) {
+		return newValidatorMgrV41(keeper, vaultMgr, txOutStore, eventMgr), nil
+	} else if version.GTE(semver.MustParse("0.40.0")) {
 		return newValidatorMgrV40(keeper, vaultMgr, txOutStore, eventMgr), nil
 	} else if version.GTE(semver.MustParse("0.1.0")) {
 		return newValidatorMgrV1(keeper, vaultMgr, txOutStore, eventMgr), nil
@@ -281,8 +283,10 @@ func GetSwapQueue(keeper keeper.Keeper, version semver.Version) (SwapQueue, erro
 }
 
 // GetSlasher return an implementation of Slasher
-func GetSlasher(keeper keeper.Keeper, version semver.Version) (Slasher, error) {
-	if version.GTE(semver.MustParse("0.1.0")) {
+func GetSlasher(keeper keeper.Keeper, version semver.Version, eventMgr EventManager) (Slasher, error) {
+	if version.GTE(semver.MustParse("0.41.0")) {
+		return NewSlasherV41(keeper, eventMgr), nil
+	} else if version.GTE(semver.MustParse("0.1.0")) {
 		return NewSlasherV1(keeper), nil
 	}
 	return nil, errInvalidVersion
