@@ -43,7 +43,7 @@ func (s *HandlerOutboundTxSuite) TestValidate(c *C) {
 	}
 
 	mgr := NewDummyMgr()
-	mgr.slasher = NewSlasherV1(keeper)
+	mgr.slasher = NewSlasherV1(keeper, NewDummyEventMgr())
 
 	handler := NewOutboundTxHandler(keeper, mgr)
 
@@ -241,7 +241,7 @@ func newOutboundTxHandlerTestHelper(c *C) outboundTxHandlerTestHelper {
 		InHash:      tx.Tx.ID,
 	}
 	mgr := NewDummyMgr()
-	mgr.slasher = NewSlasherV1(keeper)
+	mgr.slasher = NewSlasherV1(keeper, NewDummyEventMgr())
 	result, err := txOutStorage.TryAddTxOutItem(ctx, mgr, toi)
 	c.Assert(err, IsNil)
 	c.Check(result, Equals, true)

@@ -188,6 +188,7 @@ func (h TssHandler) handleCurrent(ctx cosmos.Context, msg MsgTssPool, version se
 			// if a node fail to join the keygen, thus hold off the network
 			// from churning then it will be slashed accordingly
 			slashPoints := constAccessor.GetInt64Value(constants.FailKeygenSlashPoints)
+			totalSlash := cosmos.ZeroUint()
 			for _, node := range msg.Blame.BlameNodes {
 				nodePubKey, err := common.NewPubKey(node.Pubkey)
 				if err != nil {
@@ -228,6 +229,7 @@ func (h TssHandler) handleCurrent(ctx cosmos.Context, msg MsgTssPool, version se
 					}
 					ctx.Logger().Info("fail keygen , slash bond", "address", na.NodeAddress, "amount", slashBond.String())
 					na.Bond = common.SafeSub(na.Bond, slashBond)
+					totalSlash = totalSlash.Add(slashBond)
 					coin := common.NewCoin(common.RuneNative, slashBond)
 					if !coin.Amount.IsZero() {
 						if err := h.keeper.SendFromModuleToModule(ctx, BondName, ReserveName, common.NewCoins(coin)); err != nil {
@@ -238,6 +240,15 @@ func (h TssHandler) handleCurrent(ctx cosmos.Context, msg MsgTssPool, version se
 				if err := h.keeper.SetNodeAccount(ctx, na); err != nil {
 					return nil, fmt.Errorf("fail to save node account: %w", err)
 				}
+
+				tx := common.Tx{}
+				tx.ID = common.BlankTxID
+				tx.FromAddress = na.BondAddress
+				bondEvent := NewEventBond(totalSlash, BondCost, tx)
+				if err := h.mgr.EventMgr().EmitEvent(ctx, bondEvent); err != nil {
+					return nil, fmt.Errorf("fail to emit bond event: %w", err)
+				}
+
 			}
 
 		}

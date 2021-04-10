@@ -136,6 +136,14 @@ func (h SetNodeKeysHandler) handleCurrent(ctx cosmos.Context, msg MsgSetNodeKeys
 		}
 	}
 
+	tx := common.Tx{}
+	tx.ID = common.BlankTxID
+	tx.FromAddress = nodeAccount.BondAddress
+	bondEvent := NewEventBond(cost, BondCost, tx)
+	if err := h.mgr.EventMgr().EmitEvent(ctx, bondEvent); err != nil {
+		return nil, fmt.Errorf("fail to emit bond event: %w", err)
+	}
+
 	ctx.EventManager().EmitEvent(
 		cosmos.NewEvent("set_node_keys",
 			cosmos.NewAttribute("node_address", msg.Signer.String()),

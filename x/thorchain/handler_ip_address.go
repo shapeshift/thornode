@@ -124,6 +124,14 @@ func (h IPAddressHandler) handleCurrent(ctx cosmos.Context, msg MsgSetIPAddress,
 		}
 	}
 
+	tx := common.Tx{}
+	tx.ID = common.BlankTxID
+	tx.FromAddress = nodeAccount.BondAddress
+	bondEvent := NewEventBond(cost, BondCost, tx)
+	if err := h.mgr.EventMgr().EmitEvent(ctx, bondEvent); err != nil {
+		return fmt.Errorf("fail to emit bond event: %w", err)
+	}
+
 	ctx.EventManager().EmitEvent(
 		cosmos.NewEvent("set_ip_address",
 			cosmos.NewAttribute("thor_address", msg.Signer.String()),
