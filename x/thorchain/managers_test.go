@@ -52,7 +52,7 @@ func (ManagersTestSuite) TestManagers(c *C) {
 	c.Assert(err, NotNil)
 	c.Assert(errors.Is(err, errInvalidVersion), Equals, true)
 
-	slasher, err := GetSlasher(k, ver)
+	slasher, err := GetSlasher(k, ver, mgr.EventMgr())
 	c.Assert(slasher, IsNil)
 	c.Assert(err, NotNil)
 	c.Assert(errors.Is(err, errInvalidVersion), Equals, true)

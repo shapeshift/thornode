@@ -267,7 +267,7 @@ func (vm *validatorMgrV1) EndBlock(ctx cosmos.Context, mgr Manager, constAccesso
 	}
 
 	// payout all active node accounts their rewards
-	if err := vm.ragnarokBondReward(ctx); err != nil {
+	if err := vm.ragnarokBondReward(ctx, mgr); err != nil {
 		ctx.Logger().Error("fail to pay node bond rewards", "error", err)
 	}
 
@@ -450,7 +450,7 @@ func (vm *validatorMgrV1) getChangedNodes(ctx cosmos.Context, activeNodes NodeAc
 }
 
 // payNodeAccountBondAward pay
-func (vm *validatorMgrV1) payNodeAccountBondAward(ctx cosmos.Context, lastChurnHeight int64, na NodeAccount) error {
+func (vm *validatorMgrV1) payNodeAccountBondAward(ctx cosmos.Context, lastChurnHeight int64, na NodeAccount, mgr Manager) error {
 	if na.ActiveBlockHeight == 0 || na.Bond.IsZero() {
 		return nil
 	}
@@ -470,10 +470,14 @@ func (vm *validatorMgrV1) payNodeAccountBondAward(ctx cosmos.Context, lastChurnH
 	totalActiveBlocks := common.BlockHeight(ctx) - lastChurnHeight
 
 	// find number of blocks they were well behaved (ie active - slash points)
-	earnedBlocks := na.CalcBondUnits(common.BlockHeight(ctx), slashPts)
+	// earnedBlocks := na.CalcBondUnits(common.BlockHeight(ctx), slashPts)
+	earnedBlocks := totalActiveBlocks - slashPts
+	if earnedBlocks < 0 {
+		earnedBlocks = 0
+	}
 
 	// calc number of rune they are awarded
-	reward := network.CalcNodeRewards(earnedBlocks)
+	reward := network.CalcNodeRewards(cosmos.NewUint(uint64(earnedBlocks)))
 
 	// Add to their bond the amount rewarded
 	na.Bond = na.Bond.Add(reward)
@@ -494,6 +498,14 @@ func (vm *validatorMgrV1) payNodeAccountBondAward(ctx cosmos.Context, lastChurnH
 	// minus slash points used in this calculation
 	vm.k.SetNodeAccountSlashPoints(ctx, na.NodeAddress, slashPts-totalActiveBlocks)
 
+	tx := common.Tx{}
+	tx.ID = common.BlankTxID
+	tx.ToAddress = na.BondAddress
+	bondEvent := NewEventBond(reward, BondReward, tx)
+	if err := mgr.EventMgr().EmitEvent(ctx, bondEvent); err != nil {
+		return fmt.Errorf("fail to emit bond event: %w", err)
+	}
+
 	return vm.k.SetNodeAccount(ctx, na)
 }
 
@@ -513,7 +525,7 @@ func (vm *validatorMgrV1) processRagnarok(ctx cosmos.Context, mgr Manager, const
 		if err := vm.ragnarokProtocolStage1(ctx, mgr, constAccessor); err != nil {
 			return fmt.Errorf("fail to execute ragnarok protocol step 1: %w", err)
 		}
-		if err := vm.ragnarokBondReward(ctx); err != nil {
+		if err := vm.ragnarokBondReward(ctx, mgr); err != nil {
 			return fmt.Errorf("when ragnarok triggered ,fail to give all active node bond reward %w", err)
 		}
 		return nil
@@ -610,7 +622,7 @@ func (vm *validatorMgrV1) ragnarokProtocolStage2(ctx cosmos.Context, nth int64, 
 	return nil
 }
 
-func (vm *validatorMgrV1) ragnarokBondReward(ctx cosmos.Context) error {
+func (vm *validatorMgrV1) ragnarokBondReward(ctx cosmos.Context, mgr Manager) error {
 	var resultErr error
 	active, err := vm.k.ListActiveNodeAccounts(ctx)
 	if err != nil {
@@ -624,7 +636,7 @@ func (vm *validatorMgrV1) ragnarokBondReward(ctx cosmos.Context) error {
 		}
 	}
 	for _, item := range active {
-		if err := vm.payNodeAccountBondAward(ctx, lastChurnHeight, item); err != nil {
+		if err := vm.payNodeAccountBondAward(ctx, lastChurnHeight, item, mgr); err != nil {
 			resultErr = err
 			ctx.Logger().Error("fail to pay node account bond award", "node address", item.NodeAddress.String(), "error", err)
 		}
@@ -695,6 +707,14 @@ func (vm *validatorMgrV1) ragnarokBond(ctx cosmos.Context, nth int64, mgr Manage
 		na.Bond = common.SafeSub(na.Bond, amt)
 		if err := vm.k.SetNodeAccount(ctx, na); err != nil {
 			return err
+		}
+
+		tx := common.Tx{}
+		tx.ID = common.BlankTxID
+		tx.FromAddress = na.BondAddress
+		bondEvent := NewEventBond(amt, BondCost, tx)
+		if err := mgr.EventMgr().EmitEvent(ctx, bondEvent); err != nil {
+			return fmt.Errorf("fail to emit bond event: %w", err)
 		}
 	}
 
@@ -1351,4 +1371,51 @@ func (vm *validatorMgrV1) nextVaultNodeAccounts(ctx cosmos.Context, targetCount 
 	}
 
 	return active, rotation, nil
+}
+
+// findCountToRemove - find the number of node accounts to remove
+func findCountToRemove(blockHeight int64, active NodeAccounts) (toRemove int) {
+	// count number of node accounts that are a candidate to leaving
+	var candidateCount int
+	for _, na := range active {
+		if na.LeaveScore > 0 {
+			candidateCount++
+			continue
+		}
+	}
+
+	maxRemove := findMaxAbleToLeave(len(active))
+	if len(active) > 0 {
+		if maxRemove == 0 {
+			// we can't remove any mathematically, but we always leave room for
+			// node accounts requesting to leave or are being banned
+			if active[0].ForcedToLeave || active[0].RequestedToLeave {
+				toRemove = 1
+			}
+		} else {
+			if candidateCount > maxRemove {
+				toRemove = maxRemove
+			} else {
+				toRemove = candidateCount
+			}
+		}
+	}
+	return
+}
+
+// findMaxAbleToLeave - given number of current active node account, figure out
+// the max number of individuals we can allow to leave in a single churn event
+func findMaxAbleToLeave(count int) int {
+	majority := (count * 2 / 3) + 1 // add an extra 1 to "round up" for security
+	max := count - majority
+
+	// we don't want to loose BFT by accident (only when someone leaves)
+	if count-max < 4 {
+		max = count - 4
+		if max < 0 {
+			max = 0
+		}
+	}
+
+	return max
 }

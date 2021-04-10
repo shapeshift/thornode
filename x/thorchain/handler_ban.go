@@ -137,6 +137,14 @@ func (h BanHandler) handleCurrent(ctx cosmos.Context, msg MsgBan, constAccessor 
 		if err := h.keeper.SetNodeAccount(ctx, banner); err != nil {
 			return nil, fmt.Errorf("fail to save node account: %w", err)
 		}
+
+		tx := common.Tx{}
+		tx.ID = common.BlankTxID
+		tx.FromAddress = banner.BondAddress
+		bondEvent := NewEventBond(slashAmount, BondCost, tx)
+		if err := h.mgr.EventMgr().EmitEvent(ctx, bondEvent); err != nil {
+			return nil, fmt.Errorf("fail to emit bond event: %w", err)
+		}
 	}
 
 	voter.Sign(msg.Signer)

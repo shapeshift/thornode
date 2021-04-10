@@ -217,7 +217,7 @@ func (HandlerRagnarokSuite) TestSlash(c *C) {
 	c.Assert(err, IsNil)
 
 	mgr := NewDummyMgr()
-	mgr.slasher = NewSlasherV1(keeper)
+	mgr.slasher = NewSlasherV1(keeper, NewDummyEventMgr())
 	handler := NewRagnarokHandler(keeper, mgr)
 
 	tx := NewObservedTx(common.Tx{
