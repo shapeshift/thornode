@@ -155,19 +155,15 @@ func (s *SwapperV1) swap(ctx cosmos.Context,
 
 	ok, err := mgr.TxOutStore().TryAddTxOutItem(ctx, mgr, toi)
 	if err != nil {
-		// when the emit asset is not enough to pay for tx fee, consider it as a success
-		if !errors.Is(err, ErrNotEnoughToPayFee) {
-			// when it fail to send out the txout item , thus let's restore the pool balance here , thus nothing happen to the pool
-			// given the previous pool status is already in memory, so here just apply it again
-			for _, pool := range s.poolsOrig {
-				if err := keeper.SetPool(ctx, pool); err != nil {
-					return cosmos.ZeroUint(), swapEvents, errSwapFail
-				}
+		// when it fail to send out the txout item , thus let's restore the pool balance here , thus nothing happen to the pool
+		// given the previous pool status is already in memory, so here just apply it again
+		for _, pool := range s.poolsOrig {
+			if err := keeper.SetPool(ctx, pool); err != nil {
+				return cosmos.ZeroUint(), swapEvents, errSwapFail
 			}
-
-			return assetAmount, swapEvents, ErrInternal(err, "fail to add outbound tx")
 		}
-		ok = true
+
+		return assetAmount, swapEvents, ErrInternal(err, "fail to add outbound tx")
 	}
 	if !ok {
 		return assetAmount, swapEvents, errFailAddOutboundTx

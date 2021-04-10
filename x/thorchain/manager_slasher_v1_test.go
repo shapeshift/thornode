@@ -2,6 +2,7 @@ package thorchain
 
 import (
 	"errors"
+
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
@@ -234,7 +235,7 @@ func (s *SlashingV1Suite) TestObservingSlashing(c *C) {
 	ver := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(ver)
 
-	slasher := NewSlasherV1(k)
+	slasher := NewSlasherV1(k, NewDummyEventMgr())
 	// should slash na2 only
 	lackOfObservationPenalty := constAccessor.GetInt64Value(constants.LackOfObservationPenalty)
 	err = slasher.LackObserving(ctx, constAccessor)
@@ -284,7 +285,7 @@ func (s *SlashingV1Suite) TestLackObservingErrors(c *C) {
 	}
 	ver := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(ver)
-	slasher := NewSlasherV1(keeper)
+	slasher := NewSlasherV1(keeper, NewDummyEventMgr())
 	err := slasher.LackObserving(ctx, constAccessor)
 	c.Assert(err, IsNil)
 }
@@ -382,7 +383,7 @@ func (s *SlashingV1Suite) TestNodeSignSlashErrors(c *C) {
 		}
 		signingTransactionPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
 		ctx = ctx.WithBlockHeight(3 + signingTransactionPeriod)
-		slasher := NewSlasherV1(keeper)
+		slasher := NewSlasherV1(keeper, NewDummyEventMgr())
 		item.condition(keeper)
 		if item.shouldError {
 			c.Assert(slasher.LackSigning(ctx, constAccessor, NewDummyMgr()), NotNil)
@@ -441,7 +442,7 @@ func (s *SlashingV1Suite) TestNotSigningSlash(c *C) {
 	ctx = ctx.WithBlockHeight(3 + signingTransactionPeriod)
 	mgr := NewDummyMgr()
 	mgr.txOutStore = txOutStore
-	slasher := NewSlasherV1(keeper)
+	slasher := NewSlasherV1(keeper, NewDummyEventMgr())
 	c.Assert(slasher.LackSigning(ctx, constAccessor, mgr), IsNil)
 
 	c.Check(keeper.slashPts[na.NodeAddress.String()], Equals, int64(600), Commentf("%+v\n", na))
@@ -466,7 +467,7 @@ func (s *SlashingV1Suite) TestNewSlasher(c *C) {
 		addrs:    []cosmos.AccAddress{nas[0].NodeAddress},
 		slashPts: make(map[string]int64, 0),
 	}
-	slasher := NewSlasherV1(keeper)
+	slasher := NewSlasherV1(keeper, NewDummyEventMgr())
 	c.Assert(slasher, NotNil)
 }
 
@@ -482,7 +483,7 @@ func (s *SlashingV1Suite) TestDoubleSign(c *C) {
 		network: NewNetwork(),
 		modules: make(map[string]int64, 0),
 	}
-	slasher := NewSlasherV1(keeper)
+	slasher := NewSlasherV1(keeper, NewDummyEventMgr())
 
 	pk, err := cosmos.GetPubKeyFromBech32(cosmos.Bech32PubKeyTypeConsPub, na.ValidatorConsPubKey)
 	c.Assert(err, IsNil)
@@ -504,7 +505,7 @@ func (s *SlashingV1Suite) TestIncreaseDecreaseSlashPoints(c *C) {
 		network:     NewNetwork(),
 		slashPoints: make(map[string]int64),
 	}
-	slasher := NewSlasherV1(keeper)
+	slasher := NewSlasherV1(keeper, NewDummyEventMgr())
 	addr := GetRandomBech32Addr()
 	slasher.IncSlashPoints(ctx, 1, addr)
 	slasher.DecSlashPoints(ctx, 1, addr)

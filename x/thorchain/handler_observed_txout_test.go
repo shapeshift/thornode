@@ -262,7 +262,7 @@ func (s *HandlerObservedTxOutSuite) testHandleStolenFundsWithVersion(c *C, ver s
 	keeper.txOutStore = txOutStore
 
 	mgr := NewDummyMgr()
-	mgr.slasher = NewSlasherV1(keeper)
+	mgr.slasher = NewSlasherV1(keeper, NewDummyEventMgr())
 	handler := NewObservedTxOutHandler(keeper, mgr)
 
 	c.Assert(err, IsNil)
