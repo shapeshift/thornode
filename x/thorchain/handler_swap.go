@@ -58,62 +58,13 @@ func (h SwapHandler) validateCurrent(ctx cosmos.Context, msg MsgSwap) error {
 
 func (h SwapHandler) handle(ctx cosmos.Context, msg MsgSwap, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	ctx.Logger().Info("receive MsgSwap", "request tx hash", msg.Tx.ID, "source asset", msg.Tx.Coins[0].Asset, "target asset", msg.TargetAsset, "signer", msg.Signer.String())
-	// multichain testnet has been upgraded to 0.39.0 version already , but unfortunately there is a bug in it , `handleCurrent` should use Swapperv39 , but instead it was using SwapperV1
-	// This will cause issues on chaosnet , thus need to use a new version `0.40.0` to make it right.
-	// There will have no `0.39.0` on chaosnet , chaosnet will go from 0.38.0 -> 0.40.0
-	// Once both testnet & chaosnet get upgrade to 0.40.0 the logic should be consistent
-	if version.GTE(semver.MustParse("0.40.0")) {
-		return h.handleCurrent(ctx, msg, version, constAccessor)
-	} else if version.GTE(semver.MustParse("0.39.0")) {
-		return h.handleV39(ctx, msg, version, constAccessor)
-	} else if version.GTE(semver.MustParse("0.1.0")) {
+	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.handleV1(ctx, msg, version, constAccessor)
 	}
 	return nil, errBadVersion
 }
 func (h SwapHandler) handleV1(ctx cosmos.Context, msg MsgSwap, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
-	transactionFee := h.mgr.GasMgr().GetFee(ctx, msg.Destination.GetChain(), common.RuneAsset())
-	synthVirtualDepthMult, err := h.keeper.GetMimir(ctx, constants.VirtualMultSynths.String())
-	if synthVirtualDepthMult < 1 || err != nil {
-		synthVirtualDepthMult = constAccessor.GetInt64Value(constants.VirtualMultSynths)
-	}
-	swapper := NewSwapperV1()
-	_, _, swapErr := swapper.swap(
-		ctx,
-		h.keeper,
-		msg.Tx,
-		msg.TargetAsset,
-		msg.Destination,
-		msg.TradeTarget,
-		transactionFee,
-		synthVirtualDepthMult,
-		h.mgr)
-	if swapErr != nil {
-		return nil, swapErr
-	}
-	return &cosmos.Result{}, nil
-}
-func (h SwapHandler) handleV39(ctx cosmos.Context, msg MsgSwap, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
-	transactionFee := h.mgr.GasMgr().GetFee(ctx, msg.Destination.GetChain(), common.RuneAsset())
-	synthVirtualDepthMult, err := h.keeper.GetMimir(ctx, constants.VirtualMultSynths.String())
-	if synthVirtualDepthMult < 1 || err != nil {
-		synthVirtualDepthMult = constAccessor.GetInt64Value(constants.VirtualMultSynths)
-	}
-	swapper := NewSwapperV1()
-	_, _, swapErr := swapper.swap(
-		ctx,
-		h.keeper,
-		msg.Tx,
-		msg.TargetAsset,
-		msg.Destination,
-		msg.TradeTarget,
-		transactionFee,
-		synthVirtualDepthMult,
-		h.mgr)
-	if swapErr != nil {
-		return nil, swapErr
-	}
-	return &cosmos.Result{}, nil
+	return h.handleCurrent(ctx, msg, version, constAccessor)
 }
 
 func (h SwapHandler) handleCurrent(ctx cosmos.Context, msg MsgSwap, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
@@ -122,7 +73,7 @@ func (h SwapHandler) handleCurrent(ctx cosmos.Context, msg MsgSwap, version semv
 	if synthVirtualDepthMult < 1 || err != nil {
 		synthVirtualDepthMult = constAccessor.GetInt64Value(constants.VirtualMultSynths)
 	}
-	swapper := NewSwapperV39()
+	swapper := NewSwapperV1()
 	_, _, swapErr := swapper.swap(
 		ctx,
 		h.keeper,

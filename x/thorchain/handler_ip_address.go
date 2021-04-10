@@ -83,9 +83,7 @@ func (h IPAddressHandler) validateCurrent(ctx cosmos.Context, msg MsgSetIPAddres
 
 func (h IPAddressHandler) handle(ctx cosmos.Context, msg MsgSetIPAddress, version semver.Version, constAccessor constants.ConstantValues) error {
 	ctx.Logger().Info("handleMsgSetIPAddress request", "ip address", msg.IPAddress)
-	if version.GTE(semver.MustParse("0.41.0")) {
-		return h.handleV41(ctx, msg, constAccessor)
-	} else if version.GTE(semver.MustParse("0.1.0")) {
+	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.handleV1(ctx, msg, constAccessor)
 	}
 	ctx.Logger().Error(errInvalidVersion.Error())
@@ -93,47 +91,9 @@ func (h IPAddressHandler) handle(ctx cosmos.Context, msg MsgSetIPAddress, versio
 }
 
 func (h IPAddressHandler) handleV1(ctx cosmos.Context, msg MsgSetIPAddress, constAccessor constants.ConstantValues) error {
-	nodeAccount, err := h.keeper.GetNodeAccount(ctx, msg.Signer)
-	if err != nil {
-		ctx.Logger().Error("fail to get node account", "error", err, "address", msg.Signer.String())
-		return cosmos.ErrUnauthorized(fmt.Sprintf("unable to find account: %s", msg.Signer))
-	}
-
-	c, err := h.keeper.GetMimir(ctx, constants.NativeTransactionFee.String())
-	if err != nil || c < 0 {
-		c = constAccessor.GetInt64Value(constants.NativeTransactionFee)
-	}
-	cost := cosmos.NewUint(uint64(c))
-	if cost.GT(nodeAccount.Bond) {
-		cost = nodeAccount.Bond
-	}
-	nodeAccount.IPAddress = msg.IPAddress
-	nodeAccount.Bond = common.SafeSub(nodeAccount.Bond, cost) // take bond
-	if err := h.keeper.SetNodeAccount(ctx, nodeAccount); err != nil {
-		return fmt.Errorf("fail to save node account: %w", err)
-	}
-
-	// add cost to reserve
-	coin := common.NewCoin(common.RuneNative, cost)
-	if !cost.IsZero() {
-		if err := h.keeper.SendFromAccountToModule(ctx, msg.Signer, ReserveName, common.NewCoins(coin)); err != nil {
-			ctx.Logger().Error("fail to transfer funds from bond to reserve", "error", err)
-			return err
-		}
-	}
-
-	ctx.EventManager().EmitEvent(
-		cosmos.NewEvent("set_ip_address",
-			cosmos.NewAttribute("thor_address", msg.Signer.String()),
-			cosmos.NewAttribute("address", msg.IPAddress)))
-
-	return nil
-
-}
-
-func (h IPAddressHandler) handleV41(ctx cosmos.Context, msg MsgSetIPAddress, constAccessor constants.ConstantValues) error {
 	return h.handleCurrent(ctx, msg, constAccessor)
 }
+
 func (h IPAddressHandler) handleCurrent(ctx cosmos.Context, msg MsgSetIPAddress, constAccessor constants.ConstantValues) error {
 	nodeAccount, err := h.keeper.GetNodeAccount(ctx, msg.Signer)
 	if err != nil {

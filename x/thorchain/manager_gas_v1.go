@@ -238,6 +238,10 @@ func (gm *GasMgrV1) ProcessGas(ctx cosmos.Context, keeper keeper.Keeper) {
 				continue
 			}
 			pool.BalanceRune = pool.BalanceRune.Add(runeGas) // Add to the pool
+		} else {
+			// since we don't have enough in the reserve to cover the gas used,
+			// no rune is added to the pool, sorry LPs!
+			runeGas = cosmos.ZeroUint()
 		}
 		pool.BalanceAsset = common.SafeSub(pool.BalanceAsset, gas.Amount)
 
