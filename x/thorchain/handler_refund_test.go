@@ -149,7 +149,7 @@ func newRefundTxHandlerTestHelper(c *C) refundTxHandlerTestHelper {
 	keeperTestHelper.vault = yggVault
 
 	mgr := NewDummyMgr()
-	mgr.slasher = NewSlasherV1(keeperTestHelper)
+	mgr.slasher = NewSlasherV1(keeperTestHelper, NewDummyEventMgr())
 
 	nodeAccount := GetRandomNodeAccount(NodeActive)
 	nodeAccount.NodeAddress, err = yggVault.PubKey.GetThorAddress()

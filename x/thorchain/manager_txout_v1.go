@@ -219,7 +219,9 @@ func (tos *TxOutStorageV1) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem) (
 		}
 	}
 	var finalOutput []TxOutItem
-
+	var pool Pool
+	var feeEvents []*EventFee
+	finalRuneFee := cosmos.ZeroUint()
 	for i := range outputs {
 		if outputs[i].MaxGas.IsEmpty() {
 			maxGasCoin, err := tos.gasManager.GetMaxGas(ctx, outputs[i].Chain)
@@ -236,30 +238,27 @@ func (tos *TxOutStorageV1) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem) (
 			outputs[i].GasRate = int64(tos.gasManager.GetGasRate(ctx, outputs[i].Chain).Uint64())
 		}
 
+		runeFee := transactionFeeRune // Fee is the prescribed fee
+
 		// Deduct OutboundTransactionFee from TOI and add to Reserve
 		memo, err := ParseMemo(outputs[i].Memo) // ignore err
 		if err == nil && !memo.IsType(TxYggdrasilFund) && !memo.IsType(TxYggdrasilReturn) && !memo.IsType(TxMigrate) && !memo.IsType(TxRagnarok) {
-			runeFee := transactionFeeRune // Fee is the prescribed fee
 			if outputs[i].Coin.Asset.IsRune() {
 				if outputs[i].Coin.Amount.LTE(transactionFeeRune) {
 					runeFee = outputs[i].Coin.Amount // Fee is the full amount
 				}
+				finalRuneFee = finalRuneFee.Add(runeFee)
 				outputs[i].Coin.Amount = common.SafeSub(outputs[i].Coin.Amount, runeFee)
 				fee := common.NewFee(common.Coins{common.NewCoin(outputs[i].Coin.Asset, runeFee)}, cosmos.ZeroUint())
-				if err := tos.eventMgr.EmitFeeEvent(ctx, NewEventFee(outputs[i].InHash, fee, cosmos.ZeroUint())); err != nil {
-					ctx.Logger().Error("fail to emit fee event", "error", err)
-				}
-
-				if err := tos.keeper.AddFeeToReserve(ctx, runeFee); err != nil {
-					// Add to reserve
-					ctx.Logger().Error("fail to add fee to reserve", "error", err)
-				}
-
+				feeEvents = append(feeEvents, NewEventFee(outputs[i].InHash, fee, cosmos.ZeroUint()))
 			} else {
-				pool, err := tos.keeper.GetPool(ctx, toi.Coin.Asset) // Get pool
-				if err != nil {
-					// the error is already logged within kvstore
-					return nil, fmt.Errorf("fail to get pool: %w", err)
+				if pool.IsEmpty() {
+					var err error
+					pool, err = tos.keeper.GetPool(ctx, toi.Coin.Asset) // Get pool
+					if err != nil {
+						// the error is already logged within kvstore
+						return nil, fmt.Errorf("fail to get pool: %w", err)
+					}
 				}
 
 				// if pool units is zero, no asset fee is taken
@@ -306,17 +305,10 @@ func (tos *TxOutStorageV1) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem) (
 					} else {
 						poolDeduct = runeFee
 					}
+					finalRuneFee = finalRuneFee.Add(runeFee)
 					pool.BalanceRune = common.SafeSub(pool.BalanceRune, runeFee) // Deduct Rune from Pool
 					fee := common.NewFee(common.Coins{common.NewCoin(outputs[i].Coin.Asset, assetFee)}, poolDeduct)
-					if err := tos.eventMgr.EmitFeeEvent(ctx, NewEventFee(outputs[i].InHash, fee, synthUnits)); err != nil {
-						ctx.Logger().Error("fail to emit fee event", "error", err)
-					}
-					if err := tos.keeper.SetPool(ctx, pool); err != nil { // Set Pool
-						return nil, fmt.Errorf("fail to save pool: %w", err)
-					}
-					if err := tos.keeper.AddFeeToReserve(ctx, runeFee); err != nil {
-						return nil, fmt.Errorf("fail to add fee to reserve: %w", err)
-					}
+					feeEvents = append(feeEvents, NewEventFee(outputs[i].InHash, fee, synthUnits))
 				}
 			}
 		}
@@ -334,8 +326,8 @@ func (tos *TxOutStorageV1) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem) (
 		// and coin field will be filled there, thus we have to let this one go
 
 		if outputs[i].Coin.IsEmpty() && !memo.IsType(TxYggdrasilReturn) {
-			ctx.Logger().Info("tx out item has zero coin", outputs[i].String())
-			continue
+			ctx.Logger().Info("tx out item has zero coin", "tx_out", outputs[i].String())
+			return nil, errors.New("tx out item has zero coin")
 		}
 
 		if !outputs[i].InHash.Equals(common.BlankTxID) {
@@ -350,6 +342,24 @@ func (tos *TxOutStorageV1) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem) (
 		}
 
 		finalOutput = append(finalOutput, outputs[i])
+	}
+
+	if !pool.IsEmpty() {
+		if err := tos.keeper.SetPool(ctx, pool); err != nil { // Set Pool
+			return nil, fmt.Errorf("fail to save pool: %w", err)
+		}
+	}
+	for _, feeEvent := range feeEvents {
+		if err := tos.eventMgr.EmitFeeEvent(ctx, feeEvent); err != nil {
+			ctx.Logger().Error("fail to emit fee event", "error", err)
+		}
+
+	}
+	if !finalRuneFee.IsZero() {
+		if err := tos.keeper.AddFeeToReserve(ctx, finalRuneFee); err != nil {
+			// Add to reserve
+			ctx.Logger().Error("fail to add fee to reserve", "error", err)
+		}
 	}
 
 	return finalOutput, nil

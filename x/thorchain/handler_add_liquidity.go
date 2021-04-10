@@ -27,52 +27,14 @@ func NewAddLiquidityHandler(keeper keeper.Keeper, mgr Manager) AddLiquidityHandl
 }
 
 func (h AddLiquidityHandler) validate(ctx cosmos.Context, msg MsgAddLiquidity, version semver.Version, constAccessor constants.ConstantValues) error {
-	if version.GTE(semver.MustParse("0.39.0")) {
-		return h.validateCurrent(ctx, msg, constAccessor)
-	} else if version.GTE(semver.MustParse("0.1.0")) {
+	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, msg, constAccessor)
 	}
 	return errBadVersion
 }
 
 func (h AddLiquidityHandler) validateV1(ctx cosmos.Context, msg MsgAddLiquidity, constAccessor constants.ConstantValues) error {
-	if err := msg.ValidateBasic(); err != nil {
-		ctx.Logger().Error(err.Error())
-		return errAddLiquidityFailValidation
-	}
-
-	ensureLiquidityNoLargerThanBond := constAccessor.GetBoolValue(constants.StrictBondLiquidityRatio)
-	// the following  only applicable for chaosnet
-	totalLiquidityRUNE, err := h.getTotalLiquidityRUNE(ctx)
-	if err != nil {
-		return ErrInternal(err, "fail to get total liquidity RUNE")
-	}
-
-	// total liquidity RUNE after current add liquidity
-	totalLiquidityRUNE = totalLiquidityRUNE.Add(msg.RuneAmount)
-	maximumLiquidityRune, err := h.keeper.GetMimir(ctx, constants.MaximumLiquidityRune.String())
-	if maximumLiquidityRune < 0 || err != nil {
-		maximumLiquidityRune = constAccessor.GetInt64Value(constants.MaximumLiquidityRune)
-	}
-	if maximumLiquidityRune > 0 {
-		if totalLiquidityRUNE.GT(cosmos.NewUint(uint64(maximumLiquidityRune))) {
-			return errAddLiquidityRUNEOverLimit
-		}
-	}
-
-	if !ensureLiquidityNoLargerThanBond {
-		return nil
-	}
-	totalBondRune, err := h.getTotalBond(ctx)
-	if err != nil {
-		return ErrInternal(err, "fail to get total bond RUNE")
-	}
-	if totalLiquidityRUNE.GT(totalBondRune) {
-		ctx.Logger().Info(fmt.Sprintf("total liquidity RUNE(%s) is more than total Bond(%s)", totalLiquidityRUNE, totalBondRune))
-		return errAddLiquidityRUNEMoreThanBond
-	}
-
-	return nil
+	return h.validateCurrent(ctx, msg, constAccessor)
 }
 
 func (h AddLiquidityHandler) validateCurrent(ctx cosmos.Context, msg MsgAddLiquidity, constAccessor constants.ConstantValues) error {
@@ -412,6 +374,7 @@ func (h AddLiquidityHandler) addLiquidityV1(ctx cosmos.Context,
 	pool.PendingInboundAsset = common.SafeSub(pool.PendingInboundAsset, su.PendingAsset)
 	su.PendingAsset = cosmos.ZeroUint()
 	su.PendingRune = cosmos.ZeroUint()
+	su.PendingTxID = ""
 
 	ctx.Logger().Info(fmt.Sprintf("Pre-Pool: %sRUNE %sAsset", pool.BalanceRune, pool.BalanceAsset))
 	ctx.Logger().Info(fmt.Sprintf("Adding Liquidity: %sRUNE %sAsset", addRuneAmount, addAssetAmount))
@@ -455,22 +418,6 @@ func (h AddLiquidityHandler) addLiquidityV1(ctx cosmos.Context,
 		return ErrInternal(err, "fail to emit add liquidity event")
 	}
 	return nil
-}
-
-// getTotalBond
-func (h AddLiquidityHandler) getTotalBond(ctx cosmos.Context) (cosmos.Uint, error) {
-	nodeAccounts, err := h.keeper.ListNodeAccountsWithBond(ctx)
-	if err != nil {
-		return cosmos.ZeroUint(), err
-	}
-	total := cosmos.ZeroUint()
-	for _, na := range nodeAccounts {
-		if na.Status == NodeDisabled {
-			continue
-		}
-		total = total.Add(na.Bond)
-	}
-	return total, nil
 }
 
 // getTotalActiveBond

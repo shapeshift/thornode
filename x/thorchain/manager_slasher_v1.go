@@ -14,12 +14,13 @@ import (
 
 // SlasherV1 is v1 implementation os slasher
 type SlasherV1 struct {
-	keeper keeper.Keeper
+	keeper   keeper.Keeper
+	eventMgr EventManager
 }
 
 // NewSlasherV1 create a new instance of Slasher
-func NewSlasherV1(keeper keeper.Keeper) *SlasherV1 {
-	return &SlasherV1{keeper: keeper}
+func NewSlasherV1(keeper keeper.Keeper, eventMgr EventManager) *SlasherV1 {
+	return &SlasherV1{keeper: keeper, eventMgr: eventMgr}
 }
 
 // BeginBlock called when a new block get proposed to detect whether there are duplicate vote
@@ -372,6 +373,13 @@ func (s *SlasherV1) SlashVault(ctx cosmos.Context, vaultPK common.PubKey, coins 
 					slashAmount = na.Bond
 				}
 				na.Bond = common.SafeSub(na.Bond, slashAmount)
+				tx := common.Tx{}
+				tx.ID = common.BlankTxID
+				tx.FromAddress = na.BondAddress
+				bondEvent := NewEventBond(slashAmount, BondCost, tx)
+				if err := s.eventMgr.EmitEvent(ctx, bondEvent); err != nil {
+					return fmt.Errorf("fail to emit bond event: %w", err)
+				}
 				totalBond = common.SafeSub(totalBond, slashAmount)
 				if err := s.keeper.SendFromModuleToModule(ctx, BondName, ReserveName, common.NewCoins(common.NewCoin(common.RuneAsset(), amountToReserve))); err != nil {
 					ctx.Logger().Error("fail to send slash funds to the reserve", "pk", member, "error", err)
@@ -401,6 +409,15 @@ func (s *SlasherV1) SlashVault(ctx cosmos.Context, vaultPK common.PubKey, coins 
 			pool.BalanceAsset = common.SafeSub(pool.BalanceAsset, slashAmount)
 			pool.BalanceRune = pool.BalanceRune.Add(runeValue)
 			na.Bond = common.SafeSub(na.Bond, runeValue)
+
+			tx := common.Tx{}
+			tx.ID = common.BlankTxID
+			tx.FromAddress = na.BondAddress
+			bondEvent := NewEventBond(runeValue, BondCost, tx)
+			if err := s.eventMgr.EmitEvent(ctx, bondEvent); err != nil {
+				return fmt.Errorf("fail to emit bond event: %w", err)
+			}
+
 			totalBond = common.SafeSub(totalBond, runeValue)
 			if err := s.keeper.SetPool(ctx, pool); err != nil {
 				ctx.Logger().Error("fail to save pool for slash", "asset", coin.Asset, "error", err)

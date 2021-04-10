@@ -81,62 +81,13 @@ func (h VersionHandler) validateCurrent(ctx cosmos.Context, msg MsgSetVersion, c
 
 func (h VersionHandler) handle(ctx cosmos.Context, msg MsgSetVersion, version semver.Version, constAccessor constants.ConstantValues) error {
 	ctx.Logger().Info("handleMsgSetVersion request", "Version:", msg.Version)
-	if version.GTE(semver.MustParse("0.41.0")) {
-		return h.handleV41(ctx, msg, constAccessor)
-	} else if version.GTE(semver.MustParse("0.1.0")) {
+	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.handleV1(ctx, msg, constAccessor)
 	}
 	return errBadVersion
 }
 
 func (h VersionHandler) handleV1(ctx cosmos.Context, msg MsgSetVersion, constAccessor constants.ConstantValues) error {
-	nodeAccount, err := h.keeper.GetNodeAccount(ctx, msg.Signer)
-	if err != nil {
-		return cosmos.ErrUnauthorized(fmt.Errorf("unable to find account(%s):%w", msg.Signer, err).Error())
-	}
-
-	version, err := msg.GetVersion()
-	if err != nil {
-		return fmt.Errorf("fail to save node account: %w", err)
-	}
-
-	if nodeAccount.GetVersion().LT(version) {
-		nodeAccount.Version = version.String()
-	}
-
-	c, err := h.keeper.GetMimir(ctx, constants.NativeTransactionFee.String())
-	if err != nil || c < 0 {
-		c = constAccessor.GetInt64Value(constants.NativeTransactionFee)
-	}
-	cost := cosmos.NewUint(uint64(c))
-	if cost.GT(nodeAccount.Bond) {
-		cost = nodeAccount.Bond
-	}
-
-	nodeAccount.Bond = common.SafeSub(nodeAccount.Bond, cost)
-	if err := h.keeper.SetNodeAccount(ctx, nodeAccount); err != nil {
-		return fmt.Errorf("fail to save node account: %w", err)
-	}
-
-	// add bond to reserve
-	coin := common.NewCoin(common.RuneNative, cost)
-	if !cost.IsZero() {
-		if err := h.keeper.SendFromAccountToModule(ctx, msg.Signer, ReserveName, common.NewCoins(coin)); err != nil {
-			ctx.Logger().Error("fail to transfer funds from bond to reserve", "error", err)
-			return err
-		}
-	}
-
-	ctx.EventManager().EmitEvent(
-		cosmos.NewEvent("set_version",
-			cosmos.NewAttribute("thor_address", msg.Signer.String()),
-			cosmos.NewAttribute("version", msg.Version)))
-
-	return nil
-
-}
-
-func (h VersionHandler) handleV41(ctx cosmos.Context, msg MsgSetVersion, constAccessor constants.ConstantValues) error {
 	return h.handleCurrent(ctx, msg, constAccessor)
 }
 
