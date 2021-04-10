@@ -44,6 +44,8 @@ const (
 	// Bond type
 	BondPaid     = types.BondType_bond_paid
 	BondReturned = types.BondType_bond_returned
+	BondCost     = types.BondType_bond_cost
+	BondReward   = types.BondType_bond_reward
 	AsgardKeygen = types.KeygenType_AsgardKeygen
 
 	// Memos
