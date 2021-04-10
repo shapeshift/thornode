@@ -561,6 +561,7 @@ func (s *HandlerSuite) TestSwitch(c *C) {
 func (s *HandlerSuite) TestExternalHandler(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	mgr := NewManagers(k)
+	mgr.BeginBlock(ctx)
 	handler := NewExternalHandler(k, mgr)
 	ctx = ctx.WithBlockHeight(1024)
 	msg := NewMsgNetworkFee(1024, common.BNBChain, 1, bnbSingleTxFee.Uint64(), GetRandomBech32Addr())

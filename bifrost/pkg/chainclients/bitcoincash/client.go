@@ -601,7 +601,9 @@ func (c *Client) sendNetworkFee(height int64) error {
 			feeRate++
 		}
 	}
-
+	if feeRate < 2 {
+		feeRate = 2
+	}
 	txid, err := c.bridge.PostNetworkFee(height, common.BCHChain, uint64(EstimateAverageTxSize), feeRate)
 	if err != nil {
 		return fmt.Errorf("fail to post network fee to thornode: %w", err)

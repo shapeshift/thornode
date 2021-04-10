@@ -130,6 +130,76 @@ func (s TxOutStoreV1Suite) TestAddOutTxItem(c *C) {
 	c.Check(msgs[2].VaultPubKey.String(), Equals, vault.PubKey.String())
 }
 
+func (s TxOutStoreV1Suite) TestAddOutTxItemNotEnoughForFee(c *C) {
+	w := getHandlerTestWrapper(c, 1, true, true)
+	vault := GetRandomVault()
+	vault.Coins = common.Coins{
+		common.NewCoin(common.RuneAsset(), cosmos.NewUint(10000*common.One)),
+		common.NewCoin(common.BNBAsset, cosmos.NewUint(10000*common.One)),
+	}
+	w.keeper.SetVault(w.ctx, vault)
+
+	acc1 := GetRandomNodeAccount(NodeActive)
+	acc2 := GetRandomNodeAccount(NodeActive)
+	acc3 := GetRandomNodeAccount(NodeActive)
+	c.Assert(w.keeper.SetNodeAccount(w.ctx, acc1), IsNil)
+	c.Assert(w.keeper.SetNodeAccount(w.ctx, acc2), IsNil)
+	c.Assert(w.keeper.SetNodeAccount(w.ctx, acc3), IsNil)
+
+	ygg := NewVault(common.BlockHeight(w.ctx), ActiveVault, YggdrasilVault, acc1.PubKeySet.Secp256k1, common.Chains{common.BNBChain}.Strings(), []ChainContract{})
+	ygg.AddFunds(
+		common.Coins{
+			common.NewCoin(common.BNBAsset, cosmos.NewUint(40*common.One)),
+		},
+	)
+	c.Assert(w.keeper.SetVault(w.ctx, ygg), IsNil)
+
+	ygg = NewVault(common.BlockHeight(w.ctx), ActiveVault, YggdrasilVault, acc2.PubKeySet.Secp256k1, common.Chains{common.BNBChain}.Strings(), []ChainContract{})
+	ygg.AddFunds(
+		common.Coins{
+			common.NewCoin(common.BNBAsset, cosmos.NewUint(50*common.One)),
+		},
+	)
+	c.Assert(w.keeper.SetVault(w.ctx, ygg), IsNil)
+
+	ygg = NewVault(common.BlockHeight(w.ctx), ActiveVault, YggdrasilVault, acc3.PubKeySet.Secp256k1, common.Chains{common.BNBChain}.Strings(), []ChainContract{})
+	ygg.AddFunds(
+		common.Coins{
+			common.NewCoin(common.BNBAsset, cosmos.NewUint(100*common.One)),
+		},
+	)
+	c.Assert(w.keeper.SetVault(w.ctx, ygg), IsNil)
+
+	// Create voter
+	inTxID := GetRandomTxHash()
+	voter := NewObservedTxVoter(inTxID, ObservedTxs{
+		ObservedTx{
+			Tx:             GetRandomTx(),
+			Status:         types.Status_incomplete,
+			BlockHeight:    1,
+			Signers:        []string{w.activeNodeAccount.NodeAddress.String(), acc1.NodeAddress.String(), acc2.NodeAddress.String()},
+			KeysignMs:      0,
+			FinaliseHeight: 1,
+		},
+	})
+	w.keeper.SetObservedTxInVoter(w.ctx, voter)
+
+	// Should get acc2. Acc3 hasn't signed and acc2 is the highest value
+	item := TxOutItem{
+		Chain:     common.BNBChain,
+		ToAddress: GetRandomBNBAddress(),
+		InHash:    inTxID,
+		Coin:      common.NewCoin(common.BNBAsset, cosmos.NewUint(5000030000)),
+	}
+	txOutStore := w.mgr.TxOutStore()
+	ok, err := txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item)
+	c.Assert(err, NotNil)
+	c.Assert(ok, Equals, false)
+	msgs, err := txOutStore.GetOutboundItems(w.ctx)
+	c.Assert(err, IsNil)
+	c.Assert(msgs, HasLen, 0)
+}
+
 func (s TxOutStoreV1Suite) TestAddOutTxItemWithoutBFT(c *C) {
 	w := getHandlerTestWrapper(c, 1, true, true)
 	vault := GetRandomVault()
