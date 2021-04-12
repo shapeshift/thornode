@@ -220,6 +220,7 @@ type KeeperMimir interface {
 	GetMimir(_ cosmos.Context, key string) (int64, error)
 	SetMimir(_ cosmos.Context, key string, value int64)
 	GetMimirIterator(ctx cosmos.Context) cosmos.Iterator
+	DeleteMimir(_ cosmos.Context, key string) error
 }
 
 type KeeperNetworkFee interface {
