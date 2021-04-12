@@ -53,6 +53,18 @@ func (smgr *StoreMgr) Iterator(ctx cosmos.Context) error {
 func (smgr *StoreMgr) migrate(ctx cosmos.Context, i uint64, constantAccessor constants.ConstantValues, version semver.Version) error {
 	ctx.Logger().Info("Migrating store to new version", "version", i)
 	// add the logic to migrate store here when it is needed
+
+	switch i {
+	case 42:
+		smgr.migrateStoreV42(ctx, version, constantAccessor)
+	}
+
 	smgr.keeper.SetStoreVersion(ctx, int64(i))
 	return nil
+}
+
+func (smgr *StoreMgr) migrateStoreV42(ctx cosmos.Context, version semver.Version, constantAccessor constants.ConstantValues) {
+	// housekeeping, deleting unused mimir settings
+	_ = smgr.keeper.DeleteMimir(ctx, "NEWPOOLCYCLE")
+	_ = smgr.keeper.DeleteMimir(ctx, "ROTATEPERBLOCKHEIGHT")
 }
