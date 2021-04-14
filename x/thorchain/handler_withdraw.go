@@ -223,6 +223,11 @@ func (h WithdrawLiquidityHandler) handleCurrent(ctx cosmos.Context, msg MsgWithd
 		// tx id is blank, must be triggered by the ragnarok protocol
 		memo = NewRagnarokMemo(common.BlockHeight(ctx)).String()
 	}
+
+	inboundAsset := msg.Tx.Coins.GetCoin(msg.Asset)
+	if !inboundAsset.IsEmpty() {
+		assetAmount = assetAmount.Add(inboundAsset.Amount)
+	}
 	if !assetAmount.IsZero() {
 		toi := TxOutItem{
 			Chain:     msg.Asset.GetChain(),
