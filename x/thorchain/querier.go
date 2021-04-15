@@ -27,6 +27,8 @@ func NewQuerier(mgr *Mgrs, kbs cosmos.KeybaseStore) cosmos.Querier {
 			return queryPools(ctx, req, mgr)
 		case q.QueryLiquidityProviders.Key:
 			return queryLiquidityProviders(ctx, path[1:], req, mgr)
+		case q.QueryLiquidityProvider.Key:
+			return queryLiquidityProvider(ctx, path[1:], req, mgr)
 		case q.QueryTxVoter.Key:
 			return queryTxVoters(ctx, path[1:], req, mgr)
 		case q.QueryTx.Key:
@@ -625,6 +627,34 @@ func queryLiquidityProviders(ctx cosmos.Context, path []string, req abci.Request
 	if err != nil {
 		ctx.Logger().Error("fail to marshal liquidity providers to json", "error", err)
 		return nil, fmt.Errorf("fail to marshal liquidity providers to json: %w", err)
+	}
+	return res, nil
+}
+
+// queryLiquidityProvider
+func queryLiquidityProvider(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mgrs) ([]byte, error) {
+	if len(path) < 2 {
+		return nil, errors.New("asset/lp not provided")
+	}
+	asset, err := common.NewAsset(path[0])
+	if err != nil {
+		ctx.Logger().Error("fail to get parse asset", "error", err)
+		return nil, fmt.Errorf("fail to parse asset: %w", err)
+	}
+	addr, err := common.NewAddress(path[1])
+	if err != nil {
+		ctx.Logger().Error("fail to get parse address", "error", err)
+		return nil, fmt.Errorf("fail to parse address: %w", err)
+	}
+	lp, err := mgr.Keeper.GetLiquidityProvider(ctx, asset, addr)
+	if err != nil {
+		ctx.Logger().Error("fail to get liquidity provider", "error", err)
+		return nil, fmt.Errorf("fail to liquidity provider: %w", err)
+	}
+	res, err := json.MarshalIndent(lp, "", "	")
+	if err != nil {
+		ctx.Logger().Error("fail to marshal liquidity provider to json", "error", err)
+		return nil, fmt.Errorf("fail to marshal liquidity provider to json: %w", err)
 	}
 	return res, nil
 }
