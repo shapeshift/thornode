@@ -36,3 +36,8 @@ func (k KVStore) SetMimir(ctx cosmos.Context, key string, value int64) {
 func (k KVStore) GetMimirIterator(ctx cosmos.Context) cosmos.Iterator {
 	return k.getIterator(ctx, prefixMimir)
 }
+
+func (k KVStore) DeleteMimir(ctx cosmos.Context, key string) error {
+	k.del(ctx, k.GetKey(ctx, prefixMimir, key))
+	return nil
+}
