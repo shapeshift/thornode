@@ -508,7 +508,7 @@ func (*HandlerErrataTxSuite) TestProcessErrortaOutboundTx(c *C) {
 	// fail to get observed tx out voter
 	txID := GetRandomTxHash()
 	msg := NewMsgErrataTx(txID, common.LTCChain, node1.NodeAddress)
-	result, err := handler.processErrataOutboundTx(ctx, *msg)
+	result, err := handler.processErrataOutboundTxV42(ctx, *msg)
 	c.Assert(err, NotNil)
 	c.Assert(result, IsNil)
 
@@ -528,7 +528,7 @@ func (*HandlerErrataTxSuite) TestProcessErrortaOutboundTx(c *C) {
 	txOutVoter := NewObservedTxVoter(txID, observedTx)
 	helper.Keeper.SetObservedTxOutVoter(ctx, txOutVoter)
 	// Tx is empty , it should fail
-	result, err = handler.processErrataOutboundTx(ctx, *msg)
+	result, err = handler.processErrataOutboundTxV42(ctx, *msg)
 	c.Assert(err, NotNil)
 	c.Assert(result, IsNil)
 	txOutVoter.Add(observedTx[0], node2.NodeAddress)
@@ -538,7 +538,7 @@ func (*HandlerErrataTxSuite) TestProcessErrortaOutboundTx(c *C) {
 	helper.Keeper.SetObservedTxOutVoter(ctx, txOutVoter)
 
 	// not outbound tx , it should fail
-	result, err = handler.processErrataOutboundTx(ctx, *msg)
+	result, err = handler.processErrataOutboundTxV42(ctx, *msg)
 	c.Assert(err, NotNil)
 	c.Assert(result, IsNil)
 
@@ -546,7 +546,7 @@ func (*HandlerErrataTxSuite) TestProcessErrortaOutboundTx(c *C) {
 	txInID := GetRandomTxHash()
 	txOutVoter.Tx.Tx.Memo = "OUT:" + txInID.String()
 	helper.Keeper.SetObservedTxOutVoter(ctx, txOutVoter)
-	result, err = handler.processErrataOutboundTx(ctx, *msg)
+	result, err = handler.processErrataOutboundTxV42(ctx, *msg)
 	c.Assert(err, NotNil)
 	c.Assert(result, IsNil)
 
@@ -557,16 +557,20 @@ func (*HandlerErrataTxSuite) TestProcessErrortaOutboundTx(c *C) {
 		common.BNBChain.String(),
 	}, []ChainContract{})
 	c.Assert(helper.Keeper.SetVault(ctx, asgardVault), IsNil)
-	result, err = handler.processErrataOutboundTx(ctx, *msg)
+	result, err = handler.processErrataOutboundTxV42(ctx, *msg)
 	c.Assert(err, IsNil)
 	c.Assert(result, NotNil)
 
 	// inactive vault , cause it to compensate asgard with reserve
 	asgardVault.UpdateStatus(types.VaultStatus_InactiveVault, 1024)
 	c.Assert(helper.Keeper.SetVault(ctx, asgardVault), IsNil)
-	result, err = handler.processErrataOutboundTx(ctx, *msg)
-	c.Assert(err, NotNil)
-	c.Assert(result, IsNil)
+	result, err = handler.processErrataOutboundTxV42(ctx, *msg)
+	c.Assert(err, IsNil)
+	c.Assert(result, NotNil)
+	// vault should be set back to retiring
+	v, err := helper.Keeper.GetVault(ctx, asgardVault.PubKey)
+	c.Assert(err, IsNil)
+	c.Assert(v.Status == types.VaultStatus_RetiringVault, Equals, true)
 
 	// With POOL , but no txin voter
 	pool := NewPool()
@@ -575,14 +579,14 @@ func (*HandlerErrataTxSuite) TestProcessErrortaOutboundTx(c *C) {
 	pool.BalanceRune = cosmos.NewUint(1024 * common.One)
 	pool.Status = PoolAvailable
 	c.Assert(helper.Keeper.SetPool(ctx, pool), IsNil)
-	result, err = handler.processErrataOutboundTx(ctx, *msg)
+	result, err = handler.processErrataOutboundTxV42(ctx, *msg)
 	c.Assert(err, IsNil)
 	c.Assert(result, NotNil)
 	// yggdrasil vault
 	asgardVault.Type = YggdrasilVault
 
 	c.Assert(helper.Keeper.SetVault(ctx, asgardVault), IsNil)
-	result, err = handler.processErrataOutboundTx(ctx, *msg)
+	result, err = handler.processErrataOutboundTxV42(ctx, *msg)
 	c.Assert(err, IsNil)
 	c.Assert(result, NotNil)
 
@@ -624,10 +628,107 @@ func (*HandlerErrataTxSuite) TestProcessErrortaOutboundTx(c *C) {
 		TransactionSize:    250,
 		TransactionFeeRate: 10,
 	})
-	result, err = handler.processErrataOutboundTx(ctx, *msg)
+	result, err = handler.processErrataOutboundTxV42(ctx, *msg)
 	c.Assert(err, IsNil)
 	c.Assert(result, NotNil)
 	txOut, err := helper.Keeper.GetTxOut(ctx, ctx.BlockHeight())
 	c.Assert(err, IsNil)
 	c.Assert(txOut.TxArray, HasLen, 1)
+}
+
+func (*HandlerErrataTxSuite) TestProcessErrortaOutboundTx_EnsureMigrateTxWillSetInactiveVaultBackToRetiring(c *C) {
+	ctx, k := setupKeeperForTest(c)
+	helper := NewErrataTxHandlerTestHelper(k)
+	mgr := NewManagers(helper)
+	mgr.BeginBlock(ctx)
+	handler := NewErrataTxHandler(helper, mgr)
+	node1 := GetRandomNodeAccount(NodeActive)
+	node2 := GetRandomNodeAccount(NodeActive)
+	node3 := GetRandomNodeAccount(NodeActive)
+	c.Assert(helper.Keeper.SetNodeAccount(ctx, node1), IsNil)
+	c.Assert(helper.Keeper.SetNodeAccount(ctx, node2), IsNil)
+	c.Assert(helper.Keeper.SetNodeAccount(ctx, node3), IsNil)
+
+	retiredPubKey := GetRandomPubKey()
+	activePubKey := GetRandomPubKey()
+	// inactive vault, TxInVoter not exist
+	inactiveVault := NewVault(1, types.VaultStatus_InactiveVault, AsgardVault, retiredPubKey, []string{
+		common.LTCChain.String(),
+		common.BTCChain.String(),
+		common.BNBChain.String(),
+	}, []ChainContract{})
+
+	activeVault := NewVault(1, types.VaultStatus_ActiveVault, AsgardVault, activePubKey, []string{
+		common.LTCChain.String(),
+		common.BTCChain.String(),
+		common.BNBChain.String(),
+	}, []ChainContract{})
+	c.Assert(helper.Keeper.SetVault(ctx, inactiveVault), IsNil)
+	c.Assert(helper.Keeper.SetVault(ctx, activeVault), IsNil)
+	// migration , internal tx , should cause the vault to be set back to retiring
+
+	txID1 := GetRandomTxHash()
+	internalMigrationTx := NewMsgErrataTx(txID1, common.LTCChain, node1.NodeAddress)
+
+	migrateTx := common.NewTx(txID1,
+		GetRandomLTCAddress(),
+		GetRandomLTCAddress(),
+		common.Coins{
+			common.NewCoin(common.LTCAsset, cosmos.NewUint(102400000)),
+		},
+		common.Gas{
+			common.NewCoin(common.LTCAsset, cosmos.NewUint(1000)),
+		}, "migrate:111")
+
+	// observed outbound tx in the retired vault
+	observedTx := []ObservedTx{
+		NewObservedTx(
+			migrateTx,
+			1024, retiredPubKey, 1024),
+	}
+	txOutVoter := NewObservedTxVoter(txID1, observedTx)
+	txOutVoter.Add(observedTx[0], node2.NodeAddress)
+	txOutVoter.Add(observedTx[0], node3.NodeAddress)
+	c.Assert(txOutVoter.GetTx(NodeAccounts{node1, node2, node3}), NotNil)
+	helper.Keeper.SetObservedTxOutVoter(ctx, txOutVoter)
+
+	// observed inbound tx in the active vault
+	observedInboundTx := []ObservedTx{
+		NewObservedTx(
+			migrateTx,
+			1024, retiredPubKey, 1024),
+	}
+	txInVoter := NewObservedTxVoter(txID1, observedTx)
+	txInVoter.Add(observedInboundTx[0], node2.NodeAddress)
+	txInVoter.Add(observedInboundTx[0], node3.NodeAddress)
+	c.Assert(txInVoter.GetTx(NodeAccounts{node1, node2, node3}), NotNil)
+	helper.Keeper.SetObservedTxInVoter(ctx, txInVoter)
+
+	result, err := handler.processErrataOutboundTxV42(ctx, *internalMigrationTx)
+	c.Assert(result, NotNil)
+	c.Assert(err, IsNil)
+	v, err := helper.Keeper.GetVault(ctx, retiredPubKey)
+	c.Assert(err, IsNil)
+	c.Assert(v.Status == types.VaultStatus_RetiringVault, Equals, true)
+	c.Assert(v.HasFunds(), Equals, true)
+	ltcCoin := v.GetCoin(common.LTCAsset)
+	c.Assert(ltcCoin.Equals(common.NewCoin(common.LTCAsset, cosmos.NewUint(102400000))), Equals, true)
+
+	// reset the inactive vault
+	c.Assert(helper.Keeper.SetVault(ctx, inactiveVault), IsNil)
+	errataVoter := NewErrataTxVoter(txID1, common.LTCChain)
+	errataVoter.Sign(node2.NodeAddress)
+	errataVoter.Sign(node3.NodeAddress)
+	helper.Keeper.SetErrataTxVoter(ctx, errataVoter)
+	currentVersion := GetCurrentVersion()
+	constantAccessor := constants.GetConstantValues(currentVersion)
+	result, err = handler.handleCurrent(ctx, *internalMigrationTx, GetCurrentVersion(), constantAccessor)
+	c.Assert(result, NotNil)
+	c.Assert(err, IsNil)
+	v, err = helper.Keeper.GetVault(ctx, retiredPubKey)
+	c.Assert(err, IsNil)
+	c.Assert(v.Status == types.VaultStatus_RetiringVault, Equals, true)
+	c.Assert(v.HasFunds(), Equals, true)
+	ltcCoin = v.GetCoin(common.LTCAsset)
+	c.Assert(ltcCoin.Equals(common.NewCoin(common.LTCAsset, cosmos.NewUint(102400000))), Equals, true)
 }

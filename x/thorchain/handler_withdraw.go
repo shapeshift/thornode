@@ -82,13 +82,15 @@ func (h WithdrawLiquidityHandler) validateCurrent(ctx cosmos.Context, msg MsgWit
 }
 
 func (h WithdrawLiquidityHandler) handle(ctx cosmos.Context, msg MsgWithdrawLiquidity, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
-	if version.GTE(semver.MustParse("0.1.0")) {
-		return h.handleCurrent(ctx, msg, version, constAccessor)
+	if version.GTE(semver.MustParse("0.42.0")) {
+		return h.handleV42(ctx, msg, version, constAccessor)
+	} else if version.GTE(semver.MustParse("0.1.0")) {
+		return h.handleV1(ctx, msg, version, constAccessor)
 	}
 	return nil, errBadVersion
 }
 
-func (h WithdrawLiquidityHandler) handleCurrent(ctx cosmos.Context, msg MsgWithdrawLiquidity, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+func (h WithdrawLiquidityHandler) handleV1(ctx cosmos.Context, msg MsgWithdrawLiquidity, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	lp, err := h.keeper.GetLiquidityProvider(ctx, msg.Asset, msg.WithdrawAddress)
 	if err != nil {
 		return nil, multierror.Append(errFailGetLiquidityProvider, err)
@@ -165,6 +167,116 @@ func (h WithdrawLiquidityHandler) handleCurrent(ctx cosmos.Context, msg MsgWithd
 				return nil, multierror.Append(errFailAddOutboundTx, err)
 			}
 			okRune = true
+		}
+
+		if !okRune {
+			return nil, errFailAddOutboundTx
+		}
+	}
+
+	withdrawEvt := NewEventWithdraw(
+		msg.Asset,
+		units,
+		int64(msg.BasisPoints.Uint64()),
+		cosmos.ZeroDec(),
+		msg.Tx,
+		assetAmount,
+		runeAmt,
+		impLossProtection,
+	)
+	if err := h.mgr.EventMgr().EmitEvent(ctx, withdrawEvt); err != nil {
+		return nil, multierror.Append(errFailSaveEvent, err)
+	}
+	// Get rune (if any) and donate it to the reserve
+	coin := msg.Tx.Coins.GetCoin(common.RuneAsset())
+	if !coin.IsEmpty() {
+		if err := h.keeper.AddFeeToReserve(ctx, coin.Amount); err != nil {
+			// Add to reserve
+			ctx.Logger().Error("fail to add fee to reserve", "error", err)
+		}
+	}
+
+	return &cosmos.Result{}, nil
+
+}
+
+func (h WithdrawLiquidityHandler) handleV42(ctx cosmos.Context, msg MsgWithdrawLiquidity, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+	return h.handleCurrent(ctx, msg, version, constAccessor)
+}
+
+func (h WithdrawLiquidityHandler) handleCurrent(ctx cosmos.Context, msg MsgWithdrawLiquidity, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+	lp, err := h.keeper.GetLiquidityProvider(ctx, msg.Asset, msg.WithdrawAddress)
+	if err != nil {
+		return nil, multierror.Append(errFailGetLiquidityProvider, err)
+	}
+	pool, err := h.keeper.GetPool(ctx, msg.Asset)
+	if err != nil {
+		return nil, ErrInternal(err, "fail to get pool")
+	}
+	runeAmt, assetAmount, impLossProtection, units, gasAsset, err := withdrawV1(ctx, version, h.keeper, msg, h.mgr)
+	if err != nil {
+		return nil, ErrInternal(err, "fail to process withdraw request")
+	}
+
+	memo := ""
+	if msg.Tx.ID.Equals(common.BlankTxID) {
+		// tx id is blank, must be triggered by the ragnarok protocol
+		memo = NewRagnarokMemo(common.BlockHeight(ctx)).String()
+	}
+
+	inboundAsset := msg.Tx.Coins.GetCoin(msg.Asset)
+	if !inboundAsset.IsEmpty() {
+		assetAmount = assetAmount.Add(inboundAsset.Amount)
+	}
+	if !assetAmount.IsZero() {
+		toi := TxOutItem{
+			Chain:     msg.Asset.GetChain(),
+			InHash:    msg.Tx.ID,
+			ToAddress: lp.AssetAddress,
+			Coin:      common.NewCoin(msg.Asset, assetAmount),
+			Memo:      memo,
+		}
+		if !gasAsset.IsZero() {
+			// TODO: chain specific logic should be in a single location
+			if msg.Asset.IsBNB() {
+				toi.MaxGas = common.Gas{
+					common.NewCoin(common.RuneAsset().GetChain().GetGasAsset(), gasAsset.QuoUint64(2)),
+				}
+			} else if msg.Asset.GetChain().GetGasAsset().Equals(msg.Asset) {
+				toi.MaxGas = common.Gas{
+					common.NewCoin(msg.Asset.GetChain().GetGasAsset(), gasAsset),
+				}
+			}
+			toi.GasRate = int64(h.mgr.GasMgr().GetGasRate(ctx, msg.Asset.GetChain()).Uint64())
+		}
+
+		okAsset, err := h.mgr.TxOutStore().TryAddTxOutItem(ctx, h.mgr, toi)
+		if err != nil {
+			// restore pool and liquidity provider
+			if err := h.keeper.SetPool(ctx, pool); err != nil {
+				return nil, ErrInternal(err, "fail to save pool")
+			}
+			h.keeper.SetLiquidityProvider(ctx, lp)
+			return nil, multierror.Append(errFailAddOutboundTx, err)
+		}
+		if !okAsset {
+			return nil, errFailAddOutboundTx
+		}
+	}
+
+	if !runeAmt.IsZero() {
+		toi := TxOutItem{
+			Chain:     common.RuneAsset().GetChain(),
+			InHash:    msg.Tx.ID,
+			ToAddress: lp.RuneAddress,
+			Coin:      common.NewCoin(common.RuneAsset(), runeAmt),
+			Memo:      memo,
+		}
+		// there is much much less chance thorchain doesn't have enough RUNE
+		okRune, err := h.mgr.TxOutStore().TryAddTxOutItem(ctx, h.mgr, toi)
+		if err != nil {
+			// emitted asset doesn't enough to cover fee, continue
+			return nil, multierror.Append(errFailAddOutboundTx, err)
 		}
 
 		if !okRune {

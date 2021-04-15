@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
+	"github.com/gogo/protobuf/jsonpb"
 )
 
 var (
@@ -173,6 +175,16 @@ func (a *Asset) UnmarshalJSON(data []byte) error {
 	}
 	*a, err = NewAsset(assetStr)
 	return err
+}
+
+// MarshalJSONPB implement jsonpb.Marshaler
+func (a Asset) MarshalJSONPB(*jsonpb.Marshaler) ([]byte, error) {
+	return a.MarshalJSON()
+}
+
+// UnmarshalJSONPB implement jsonpb.Unmarshaler
+func (a *Asset) UnmarshalJSONPB(unmarshal *jsonpb.Unmarshaler, content []byte) error {
+	return a.UnmarshalJSON(content)
 }
 
 // RuneAsset return RUNE Asset depends on different environment
