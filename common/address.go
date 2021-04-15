@@ -193,6 +193,106 @@ func (addr Address) GetChain() Chain {
 	return EmptyChain
 }
 
+func (addr Address) GetNetwork(chain Chain) ChainNetwork {
+	switch chain {
+	case ETHChain:
+		return GetCurrentChainNetwork()
+	case BNBChain:
+		prefix, _, _ := bech32.Decode(addr.String())
+		if strings.EqualFold(prefix, "bnb") {
+			return MainNet
+		}
+		if strings.EqualFold(prefix, "tbnb") {
+			return TestNet
+		}
+	case THORChain:
+		prefix, _, _ := bech32.Decode(addr.String())
+		if strings.EqualFold(prefix, "thor") {
+			return MainNet
+		}
+		if strings.EqualFold(prefix, "tthor") {
+			return TestNet
+		}
+	case BTCChain:
+		prefix, _, _ := bech32.Decode(addr.String())
+		switch prefix {
+		case "bc":
+			return MainNet
+		case "tb":
+			return TestNet
+		default:
+			_, err := btcutil.DecodeAddress(addr.String(), &chaincfg.MainNetParams)
+			if err == nil {
+				return MainNet
+			}
+			_, err = btcutil.DecodeAddress(addr.String(), &chaincfg.TestNet3Params)
+			if err == nil {
+				return TestNet
+			}
+			_, err = btcutil.DecodeAddress(addr.String(), &chaincfg.RegressionNetParams)
+			if err == nil {
+				return MockNet
+			}
+		}
+	case LTCChain:
+		prefix, _, _ := bech32.Decode(addr.String())
+		switch prefix {
+		case "ltc":
+			return MainNet
+		case "tltc":
+			return TestNet
+		case "rltc":
+			return MockNet
+		default:
+			_, err := ltcutil.DecodeAddress(addr.String(), &ltcchaincfg.MainNetParams)
+			if err == nil {
+				return MainNet
+			}
+			_, err = ltcutil.DecodeAddress(addr.String(), &ltcchaincfg.TestNet4Params)
+			if err == nil {
+				return TestNet
+			}
+			_, err = ltcutil.DecodeAddress(addr.String(), &ltcchaincfg.RegressionNetParams)
+			if err == nil {
+				return MockNet
+			}
+		}
+	case BCHChain:
+		// Check mainnet other formats
+		_, err := bchutil.DecodeAddress(addr.String(), &bchchaincfg.MainNetParams)
+		if err == nil {
+			return MainNet
+		}
+		// Check testnet other formats
+		_, err = bchutil.DecodeAddress(addr.String(), &bchchaincfg.TestNet3Params)
+		if err == nil {
+			return TestNet
+		}
+		// Check mocknet / regression other formats
+		_, err = bchutil.DecodeAddress(addr.String(), &bchchaincfg.RegressionNetParams)
+		if err == nil {
+			return MockNet
+		}
+	case DOGEChain:
+		// Check mainnet other formats
+		_, err := dogutil.DecodeAddress(addr.String(), &dogchaincfg.MainNetParams)
+		if err == nil {
+			return MainNet
+		}
+		// Check testnet other formats
+		_, err = dogutil.DecodeAddress(addr.String(), &dogchaincfg.TestNet3Params)
+		if err == nil {
+			return TestNet
+		}
+		// Check mocknet / regression other formats
+		_, err = dogutil.DecodeAddress(addr.String(), &dogchaincfg.RegressionNetParams)
+		if err == nil {
+			return MockNet
+		}
+	}
+	return MockNet
+}
+
 func (addr Address) AccAddress() (cosmos.AccAddress, error) {
 	return cosmos.AccAddressFromBech32(addr.String())
 }
