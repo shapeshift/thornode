@@ -163,15 +163,15 @@ func (s *HandlerSwapSuite) TestHandle(c *C) {
 	poolTCAN.BalanceAsset = cosmos.NewUint(334850000)
 	poolTCAN.BalanceRune = cosmos.NewUint(2349500000)
 	c.Assert(keeper.SetPool(ctx, poolTCAN), IsNil)
-
-	m, err := ParseMemo("swap:BNB.RUNE-B1A:bnb18jtza8j86hfyuj2f90zec0g5gvjh823e5psn2u:124958592")
+	bnbAddr := GetRandomBNBAddress()
+	m, err := ParseMemo("swap:BNB.RUNE-B1A:" + bnbAddr.String() + ":124958592")
 	txIn := NewObservedTx(
 		common.NewTx(GetRandomTxHash(), signerBNBAddr, GetRandomBNBAddress(),
 			common.Coins{
 				common.NewCoin(tCanAsset, cosmos.NewUint(20000000)),
 			},
 			BNBGasFeeSingleton,
-			"swap:BNB.RUNE-B1A:bnb18jtza8j86hfyuj2f90zec0g5gvjh823e5psn2u:124958592",
+			"swap:BNB.RUNE-B1A:"+signerBNBAddr.String()+":124958592",
 		),
 		1,
 		GetRandomPubKey(), 1,
@@ -227,14 +227,14 @@ func (s *HandlerSwapSuite) TestDoubleSwap(c *C) {
 	observerAddr := keeper.activeNodeAccount.NodeAddress
 
 	// double swap - happy path
-	m, err := ParseMemo("swap:BNB.BNB:bnb18jtza8j86hfyuj2f90zec0g5gvjh823e5psn2u")
+	m, err := ParseMemo("swap:BNB.BNB:" + signerBNBAddr.String())
 	txIn := NewObservedTx(
 		common.NewTx(GetRandomTxHash(), signerBNBAddr, GetRandomBNBAddress(),
 			common.Coins{
 				common.NewCoin(tCanAsset, cosmos.NewUint(20000000)),
 			},
 			BNBGasFeeSingleton,
-			"swap:BNB.BNB:bnb18jtza8j86hfyuj2f90zec0g5gvjh823e5psn2u",
+			"swap:BNB.BNB:"+signerBNBAddr.String(),
 		),
 		1,
 		GetRandomPubKey(), 1,
@@ -253,15 +253,15 @@ func (s *HandlerSwapSuite) TestDoubleSwap(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(items, HasLen, 1)
 	// double swap , RUNE not enough to pay for transaction fee
-
-	m1, err := ParseMemo("swap:BNB.BNB:bnb18jtza8j86hfyuj2f90zec0g5gvjh823e5psn2u")
+	testnetBNBAddr := GetRandomBNBAddress()
+	m1, err := ParseMemo("swap:BNB.BNB:" + testnetBNBAddr.String())
 	txIn1 := NewObservedTx(
 		common.NewTx(GetRandomTxHash(), signerBNBAddr, GetRandomBNBAddress(),
 			common.Coins{
 				common.NewCoin(tCanAsset, cosmos.NewUint(100000)),
 			},
 			BNBGasFeeSingleton,
-			"swap:BNB.BNB:bnb18jtza8j86hfyuj2f90zec0g5gvjh823e5psn2u",
+			"swap:BNB.BNB:"+testnetBNBAddr.String(),
 		),
 		1,
 		GetRandomPubKey(), 1,

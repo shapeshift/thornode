@@ -3,6 +3,7 @@ package thorchain
 import (
 	"errors"
 	"fmt"
+	"os"
 
 	"github.com/blang/semver"
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -114,6 +115,7 @@ func setupKeeperForTest(c *C) (cosmos.Context, keeper.Keeper) {
 		TransactionSize:    1,
 		TransactionFeeRate: 37500,
 	})
+	os.Setenv("NET", "mocknet")
 	return ctx, k
 }
 

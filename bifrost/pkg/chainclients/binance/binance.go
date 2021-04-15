@@ -270,7 +270,9 @@ func (b *Binance) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, er
 
 	toAddr, err := types.AccAddressFromBech32(tx.ToAddress.String())
 	if err != nil {
-		return nil, fmt.Errorf("fail to parse account address(%s) :%w", tx.ToAddress.String(), err)
+		b.logger.Error().Err(err).Msgf("fail to parse account address(%s)", tx.ToAddress.String())
+		// if we fail to parse the to address , then we log an error and move on
+		return nil, nil
 	}
 
 	var gasCoin common.Coins
