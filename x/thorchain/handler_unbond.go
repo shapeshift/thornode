@@ -133,7 +133,12 @@ func (h UnBondHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Vers
 		ctx.Logger().Error("msg unbond fail validation", "error", err)
 		return nil, err
 	}
-	if version.GTE(semver.MustParse("0.1.0")) {
+	if version.GTE(semver.MustParse("0.45.0")) {
+		if err := h.handleV45(ctx, *msg, version, constAccessor); err != nil {
+			ctx.Logger().Error("fail to process msg unbond", "error", err)
+			return nil, err
+		}
+	} else if version.GTE(semver.MustParse("0.1.0")) {
 		if err := h.handleV1(ctx, *msg, version, constAccessor); err != nil {
 			ctx.Logger().Error("fail to process msg unbond", "error", err)
 			return nil, err
@@ -144,10 +149,6 @@ func (h UnBondHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Vers
 }
 
 func (h UnBondHandler) handleV1(ctx cosmos.Context, msg MsgUnBond, version semver.Version, constAccessor constants.ConstantValues) error {
-	return h.handleCurrent(ctx, msg, version, constAccessor)
-}
-
-func (h UnBondHandler) handleCurrent(ctx cosmos.Context, msg MsgUnBond, version semver.Version, constAccessor constants.ConstantValues) error {
 	na, err := h.keeper.GetNodeAccount(ctx, msg.NodeAddress)
 	if err != nil {
 		return ErrInternal(err, fmt.Sprintf("fail to get node account(%s)", msg.NodeAddress))
@@ -175,6 +176,50 @@ func (h UnBondHandler) handleCurrent(ctx cosmos.Context, msg MsgUnBond, version 
 		return ErrInternal(err, "fail to unbond, still part of the retiring vault")
 	}
 	if err := refundBond(ctx, msg.TxIn, msg.Amount, &na, h.keeper, h.mgr); err != nil {
+		return ErrInternal(err, "fail to unbond")
+	}
+
+	coin := msg.TxIn.Coins.GetCoin(common.RuneAsset())
+	if !coin.IsEmpty() {
+		na.Bond = na.Bond.Add(coin.Amount)
+		if err := h.keeper.SetNodeAccount(ctx, na); err != nil {
+			return ErrInternal(err, "fail to save node account to key value store")
+		}
+	}
+
+	return nil
+}
+func (h UnBondHandler) handleV45(ctx cosmos.Context, msg MsgUnBond, version semver.Version, constAccessor constants.ConstantValues) error {
+	return h.handleCurrent(ctx, msg, version, constAccessor)
+}
+func (h UnBondHandler) handleCurrent(ctx cosmos.Context, msg MsgUnBond, version semver.Version, constAccessor constants.ConstantValues) error {
+	na, err := h.keeper.GetNodeAccount(ctx, msg.NodeAddress)
+	if err != nil {
+		return ErrInternal(err, fmt.Sprintf("fail to get node account(%s)", msg.NodeAddress))
+	}
+	bondLockPeriod, err := h.keeper.GetMimir(ctx, constants.BondLockupPeriod.String())
+	if err != nil || bondLockPeriod < 0 {
+		bondLockPeriod = constAccessor.GetInt64Value(constants.BondLockupPeriod)
+	}
+	if common.BlockHeight(ctx)-na.StatusSince < bondLockPeriod {
+		return fmt.Errorf("node can not unbond before %d", na.StatusSince+bondLockPeriod)
+	}
+	vaults, err := h.keeper.GetAsgardVaultsByStatus(ctx, RetiringVault)
+	if err != nil {
+		return ErrInternal(err, "fail to get retiring vault")
+	}
+	isMemberOfRetiringVault := false
+	for _, v := range vaults {
+		if v.GetMembership().Contains(na.PubKeySet.Secp256k1) {
+			isMemberOfRetiringVault = true
+			ctx.Logger().Info("node account is still part of the retiring vault,can't return bond yet")
+			break
+		}
+	}
+	if isMemberOfRetiringVault {
+		return ErrInternal(err, "fail to unbond, still part of the retiring vault")
+	}
+	if err := refundBondV45(ctx, msg.TxIn, msg.Amount, &na, h.keeper, h.mgr); err != nil {
 		return ErrInternal(err, "fail to unbond")
 	}
 
