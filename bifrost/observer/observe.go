@@ -282,14 +282,17 @@ func (o *Observer) filterObservations(chain common.Chain, items []types.TxInItem
 		// twice, which is expected. We want to make sure we generate both
 		// a inbound and outbound txn, if we both apply.
 
+		isInternal := false
 		// check if the from address is a valid pool
 		if ok, cpi := o.pubkeyMgr.IsValidPoolAddress(txInItem.Sender, chain); ok {
 			txInItem.ObservedVaultPubKey = cpi.PubKey
 			txs = append(txs, txInItem)
+			isInternal = true
 		}
 		// check if the to address is a valid pool address
-		// for inbound message , if it is still in mempool , let's ignore it
-		if ok, cpi := o.pubkeyMgr.IsValidPoolAddress(txInItem.To, chain); ok && !memPool {
+		// for inbound message , if it is still in mempool , it will be ignored unless it is internal transaction
+		// internal tx means both from & to addresses belongs to the network. for example migrate/yggdrasil+
+		if ok, cpi := o.pubkeyMgr.IsValidPoolAddress(txInItem.To, chain); ok && (!memPool || isInternal) {
 			txInItem.ObservedVaultPubKey = cpi.PubKey
 			txs = append(txs, txInItem)
 		}
