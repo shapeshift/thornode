@@ -127,7 +127,7 @@ func (h SwapHandler) handleV44(ctx cosmos.Context, msg MsgSwap, version semver.V
 
 func (h SwapHandler) handleCurrent(ctx cosmos.Context, msg MsgSwap, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	// test that the network we are running matches the destination network
-	if !common.GetCurrentChainNetwork().SoftEquals(msg.Destination.GetNetwork(msg.TargetAsset.GetChain())) {
+	if !common.GetCurrentChainNetwork().SoftEquals(msg.Destination.GetNetwork(msg.Destination.GetChain())) {
 		return nil, fmt.Errorf("address(%s) is not same network", msg.Destination)
 	}
 	transactionFee := h.mgr.GasMgr().GetFee(ctx, msg.Destination.GetChain(), common.RuneAsset())
