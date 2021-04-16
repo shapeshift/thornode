@@ -4,7 +4,7 @@ import boto3
 
 prefix = 'node_ip_'
 s3_resource = boto3.resource('s3')
-buckets = ['chaosnet-seed.thorchain.info']
+buckets = ['seed.thorchain.info']
 
 
 def get_rpc_url(ip_addr, path):
@@ -20,9 +20,9 @@ def get_new_ip_list(ip_addr):
     results = []
     try:
         r = requests.get(
-            get_api_url(ip_addr, "/thorchain/nodeaccounts"), timeout=3
+            get_api_url(ip_addr, "/thorchain/nodes"), timeout=3
         )
-        peers = [x['ip_address'] for x in r.json() if x['status'] == "active"]
+        peers = [x['ip_address'] for x in r.json() if x['status'] == "Active"]
         peers.append(ip_addr)
         peers = list(set(peers))  # uniqify
     except Exception as e:
