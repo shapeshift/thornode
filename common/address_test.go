@@ -298,6 +298,16 @@ func (s *AddressSuite) TestAddress(c *C) {
 	c.Check(addr.IsChain(BCHChain), Equals, false)
 	c.Check(addr.IsChain(DOGEChain), Equals, false)
 	c.Check(addr.GetNetwork(BTCChain), Equals, MainNet)
+	addr, err = NewAddress("bcrt1qqqnde7kqe5sf96j6zf8jpzwr44dh4gkd3ehaqh")
+	c.Check(err, IsNil)
+	c.Check(addr.IsChain(BTCChain), Equals, true)
+	c.Check(addr.IsChain(LTCChain), Equals, false)
+	c.Check(addr.IsChain(ETHChain), Equals, false)
+	c.Check(addr.IsChain(BNBChain), Equals, false)
+	c.Check(addr.IsChain(THORChain), Equals, false)
+	c.Check(addr.IsChain(BCHChain), Equals, false)
+	c.Check(addr.IsChain(DOGEChain), Equals, true)
+	c.Check(addr.GetNetwork(BTCChain), Equals, MockNet)
 
 	// segwit invalid hrp bech32 succeed but IsChain fails
 	addr, err = NewAddress("tc1qw508d6qejxtdg4y5r3zarvary0c5xw7kg3g4ty")
@@ -356,4 +366,5 @@ func (s *AddressSuite) TestAddress(c *C) {
 	c.Check(addr.IsChain(THORChain), Equals, false)
 	c.Check(addr.IsChain(DOGEChain), Equals, true)
 	c.Check(addr.GetNetwork(DOGEChain), Equals, MockNet)
+
 }

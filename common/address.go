@@ -220,6 +220,8 @@ func (addr Address) GetNetwork(chain Chain) ChainNetwork {
 			return MainNet
 		case "tb":
 			return TestNet
+		case "bcrt":
+			return MockNet
 		default:
 			_, err := btcutil.DecodeAddress(addr.String(), &chaincfg.MainNetParams)
 			if err == nil {
