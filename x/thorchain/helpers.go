@@ -413,7 +413,7 @@ func refundBondV45(ctx cosmos.Context, tx common.Tx, amt cosmos.Uint, nodeAcc *N
 	nodeAcc.Bond = common.SafeSub(nodeAcc.Bond, slashRune)
 
 	if !nodeAcc.Bond.IsZero() {
-		if amt.LT(nodeAcc.Bond) {
+		if amt.GT(nodeAcc.Bond) {
 			amt = nodeAcc.Bond
 		}
 		active, err := keeper.GetAsgardVaultsByStatus(ctx, ActiveVault)
