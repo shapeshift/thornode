@@ -35,8 +35,9 @@ const (
 	BlockCacheSize      = 144
 	MaximumConfirmation = 99999999
 	MaxAsgardAddresses  = 100
-	// EstimateAverageTxSize for THORChain the estimate tx size is hard code to 250 here , as most of time it will spend 1 input, have 3 output
-	EstimateAverageTxSize = 250
+	// EstimateAverageTxSize for THORChain the estimate tx size is hard code to 1000 here , as most of time it will spend 1 input, have 3 output
+	// which is average at 250 vbytes , however asgard will consolidate UTXOs , which will take up to 1000 vbytes
+	EstimateAverageTxSize = 1000
 	DefaultCoinbaseValue  = 6.25
 )
 
