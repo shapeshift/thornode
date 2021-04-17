@@ -382,8 +382,8 @@ func (h ErrataTxHandler) handleCurrent(ctx cosmos.Context, msg MsgErrataTx, vers
 	// set the observed Tx to reverted
 	observedVoter.SetReverted()
 	h.keeper.SetObservedTxInVoter(ctx, observedVoter)
-	if observedVoter.Tx.IsEmpty() || !observedVoter.Tx.IsFinal() {
-		ctx.Logger().Info("tx is not finalised, so nothing need to be done", "tx_id", msg.TxID)
+	if observedVoter.Tx.IsEmpty() {
+		ctx.Logger().Info("tx has not reach consensus yet, so nothing need to be done", "tx_id", msg.TxID)
 		return &cosmos.Result{}, nil
 	}
 
@@ -405,6 +405,11 @@ func (h ErrataTxHandler) handleCurrent(ctx cosmos.Context, msg MsgErrataTx, vers
 				return nil, fmt.Errorf("fail to save vault, err: %w", err)
 			}
 		}
+	}
+
+	if !observedVoter.Tx.IsFinal() {
+		ctx.Logger().Info("tx is not finalised, so nothing need to be done", "tx_id", msg.TxID)
+		return &cosmos.Result{}, nil
 	}
 
 	memo, _ := ParseMemo(tx.Memo)
