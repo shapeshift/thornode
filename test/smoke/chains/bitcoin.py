@@ -54,7 +54,7 @@ class MockBitcoin(HttpClient):
             try:
                 result = self.get_block_stats()
                 avg_fee_rate = result["avgfeerate"]
-                avg_tx_size = 250  # result["mediantxsize"]
+                avg_tx_size = 1000  # result["mediantxsize"]
                 if avg_fee_rate != 0:
                     min_relay_fee = 1000  # sats
                     if avg_fee_rate * avg_tx_size < min_relay_fee:
