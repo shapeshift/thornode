@@ -69,8 +69,8 @@ func (h LeaveHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Versi
 		ctx.Logger().Error("msg leave fail validation", "error", err)
 		return nil, err
 	}
-	if version.GTE(semver.MustParse("0.45.0")) {
-		if err := h.handleV45(ctx, *msg, version, constAccessor); err != nil {
+	if version.GTE(semver.MustParse("0.46.0")) {
+		if err := h.handleV46(ctx, *msg, version, constAccessor); err != nil {
 			ctx.Logger().Error("fail to process msg leave", "error", err)
 			return nil, err
 		}
@@ -177,7 +177,7 @@ func (h LeaveHandler) handleV1(ctx cosmos.Context, msg MsgLeave, version semver.
 
 	return nil
 }
-func (h LeaveHandler) handleV45(ctx cosmos.Context, msg MsgLeave, version semver.Version, constAccessor constants.ConstantValues) error {
+func (h LeaveHandler) handleV46(ctx cosmos.Context, msg MsgLeave, version semver.Version, constAccessor constants.ConstantValues) error {
 	return h.handleCurrent(ctx, msg, version, constAccessor)
 }
 
@@ -236,7 +236,7 @@ func (h LeaveHandler) handleCurrent(ctx cosmos.Context, msg MsgLeave, version se
 			// vault (it was destroyed when we successfully migrated funds from
 			// their address to a new TSS vault
 			if !h.keeper.VaultExists(ctx, nodeAcc.PubKeySet.Secp256k1) {
-				if err := refundBondV45(ctx, msg.Tx, cosmos.ZeroUint(), &nodeAcc, h.keeper, h.mgr); err != nil {
+				if err := refundBondV46(ctx, msg.Tx, cosmos.ZeroUint(), &nodeAcc, h.keeper, h.mgr); err != nil {
 					return ErrInternal(err, "fail to refund bond")
 				}
 				nodeAcc.UpdateStatus(NodeDisabled, common.BlockHeight(ctx))
@@ -250,7 +250,7 @@ func (h LeaveHandler) handleCurrent(ctx cosmos.Context, msg MsgLeave, version se
 				if vault.IsYggdrasil() {
 					if !vault.HasFunds() {
 						// node is not active , they are free to leave , refund them
-						if err := refundBondV45(ctx, msg.Tx, cosmos.ZeroUint(), &nodeAcc, h.keeper, h.mgr); err != nil {
+						if err := refundBondV46(ctx, msg.Tx, cosmos.ZeroUint(), &nodeAcc, h.keeper, h.mgr); err != nil {
 							return ErrInternal(err, "fail to refund bond")
 						}
 						nodeAcc.UpdateStatus(NodeDisabled, common.BlockHeight(ctx))
