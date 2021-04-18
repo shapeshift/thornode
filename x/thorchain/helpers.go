@@ -116,7 +116,7 @@ func getFee(input, output common.Coins, transactionFee cosmos.Uint) common.Fee {
 	fee.PoolDeduct = transactionFee.MulUint64(uint64(assetTxCount))
 	return fee
 }
-func subsidizePoolWithSlashBondV45(ctx cosmos.Context, keeper keeper.Keeper, ygg Vault, yggTotalStolen, slashRuneAmt cosmos.Uint, mgr Manager) error {
+func subsidizePoolWithSlashBondV46(ctx cosmos.Context, keeper keeper.Keeper, ygg Vault, yggTotalStolen, slashRuneAmt cosmos.Uint, mgr Manager) error {
 	// Thorchain did not slash the node account
 	if slashRuneAmt.IsZero() {
 		return nil
@@ -366,7 +366,7 @@ func refundBond(ctx cosmos.Context, tx common.Tx, amt cosmos.Uint, nodeAcc *Node
 	return nil
 }
 
-func refundBondV45(ctx cosmos.Context, tx common.Tx, amt cosmos.Uint, nodeAcc *NodeAccount, keeper keeper.Keeper, mgr Manager) error {
+func refundBondV46(ctx cosmos.Context, tx common.Tx, amt cosmos.Uint, nodeAcc *NodeAccount, keeper keeper.Keeper, mgr Manager) error {
 	if nodeAcc.Status == NodeActive {
 		ctx.Logger().Info("node still active, cannot refund bond", "node address", nodeAcc.NodeAddress, "node pub key", nodeAcc.PubKeySet.Secp256k1)
 		return nil
@@ -461,7 +461,7 @@ func refundBondV45(ctx cosmos.Context, tx common.Tx, amt cosmos.Uint, nodeAcc *N
 		ctx.Logger().Error(fmt.Sprintf("fail to save node account(%s)", nodeAcc), "error", err)
 		return err
 	}
-	if err := subsidizePoolWithSlashBondV45(ctx, keeper, ygg, yggRune, slashRune, mgr); err != nil {
+	if err := subsidizePoolWithSlashBondV46(ctx, keeper, ygg, yggRune, slashRune, mgr); err != nil {
 		ctx.Logger().Error("fail to subsidize pool with slashed bond", "error", err)
 		return err
 	}

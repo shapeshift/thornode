@@ -133,8 +133,8 @@ func (h UnBondHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Vers
 		ctx.Logger().Error("msg unbond fail validation", "error", err)
 		return nil, err
 	}
-	if version.GTE(semver.MustParse("0.45.0")) {
-		if err := h.handleV45(ctx, *msg, version, constAccessor); err != nil {
+	if version.GTE(semver.MustParse("0.46.0")) {
+		if err := h.handleV46(ctx, *msg, version, constAccessor); err != nil {
 			ctx.Logger().Error("fail to process msg unbond", "error", err)
 			return nil, err
 		}
@@ -189,7 +189,7 @@ func (h UnBondHandler) handleV1(ctx cosmos.Context, msg MsgUnBond, version semve
 
 	return nil
 }
-func (h UnBondHandler) handleV45(ctx cosmos.Context, msg MsgUnBond, version semver.Version, constAccessor constants.ConstantValues) error {
+func (h UnBondHandler) handleV46(ctx cosmos.Context, msg MsgUnBond, version semver.Version, constAccessor constants.ConstantValues) error {
 	return h.handleCurrent(ctx, msg, version, constAccessor)
 }
 func (h UnBondHandler) handleCurrent(ctx cosmos.Context, msg MsgUnBond, version semver.Version, constAccessor constants.ConstantValues) error {
@@ -219,7 +219,7 @@ func (h UnBondHandler) handleCurrent(ctx cosmos.Context, msg MsgUnBond, version 
 	if isMemberOfRetiringVault {
 		return ErrInternal(err, "fail to unbond, still part of the retiring vault")
 	}
-	if err := refundBondV45(ctx, msg.TxIn, msg.Amount, &na, h.keeper, h.mgr); err != nil {
+	if err := refundBondV46(ctx, msg.TxIn, msg.Amount, &na, h.keeper, h.mgr); err != nil {
 		return ErrInternal(err, "fail to unbond")
 	}
 
