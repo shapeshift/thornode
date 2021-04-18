@@ -109,7 +109,7 @@ func (vm *NetworkMgrV1) EndBlock(ctx cosmos.Context, mgr Manager, constAccessor 
 		}
 	}
 	for _, vault := range retiring {
-		if vault.LenPendingTxBlockHeights(common.BlockHeight(ctx), constAccessor) > 0 {
+		if vault.LenPendingTxBlockHeights(common.BlockHeight(ctx), constAccessor.GetInt64Value(constants.SigningTransactionPeriod)) > 0 {
 			ctx.Logger().Info("Skipping the migration of funds while transactions are still pending")
 			return nil
 		}

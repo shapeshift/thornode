@@ -271,10 +271,10 @@ func (m *Vault) RemovePendingTxBlockHeights(blockHeight int64) {
 
 // LenPendingTxBlockHeights count how many outstanding block heights in the vault
 // if the a block height is older than SigningTransactionPeriod , it will ignore
-func (m *Vault) LenPendingTxBlockHeights(currentBlockHeight int64, constAccessor constants.ConstantValues) int {
+func (m *Vault) LenPendingTxBlockHeights(currentBlockHeight, maxBlocks int64) int {
 	total := 0
 	for _, item := range m.PendingTxBlockHeights {
-		if (currentBlockHeight - item) <= constAccessor.GetInt64Value(constants.SigningTransactionPeriod) {
+		if (currentBlockHeight - item) <= maxBlocks {
 			total++
 		}
 	}
