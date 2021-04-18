@@ -45,6 +45,7 @@ const (
 	ObserveSlashPoints
 	ObservationDelayFlexibility
 	YggFundLimit
+	YggFundRetry
 	JailTimeKeygen
 	JailTimeKeysign
 	MinSwapsPerBlock
@@ -91,6 +92,7 @@ var nameToString = map[ConstantName]string{
 	ObserveSlashPoints:            "ObserveSlashPoints",
 	ObservationDelayFlexibility:   "ObservationDelayFlexibility",
 	YggFundLimit:                  "YggFundLimit",
+	YggFundRetry:                  "YggFundRetry",
 	JailTimeKeygen:                "JailTimeKeygen",
 	JailTimeKeysign:               "JailTimeKeysign",
 	MinSwapsPerBlock:              "MinSwapsPerBlock",

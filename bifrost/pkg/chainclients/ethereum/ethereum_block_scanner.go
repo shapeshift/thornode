@@ -47,23 +47,24 @@ const (
 
 // ETHScanner is a scanner that understand how to interact with ETH chain ,and scan block , parse smart contract etc
 type ETHScanner struct {
-	cfg                config.BlockScannerConfiguration
-	logger             zerolog.Logger
-	db                 blockscanner.ScannerStorage
-	m                  *metrics.Metrics
-	errCounter         *prometheus.CounterVec
-	gasPriceChanged    bool
-	gasPrice           *big.Int
-	client             *ethclient.Client
-	blockMetaAccessor  BlockMetaAccessor
-	globalErrataQueue  chan<- stypes.ErrataBlock
-	vaultABI           *abi.ABI
-	erc20ABI           *abi.ABI
-	tokens             *LevelDBTokenMeta
-	bridge             *thorclient.ThorchainBridge
-	pubkeyMgr          pubkeymanager.PubKeyValidator
-	eipSigner          etypes.EIP155Signer
-	currentBlockHeight int64
+	cfg                  config.BlockScannerConfiguration
+	logger               zerolog.Logger
+	db                   blockscanner.ScannerStorage
+	m                    *metrics.Metrics
+	errCounter           *prometheus.CounterVec
+	gasPriceChanged      bool
+	gasPrice             *big.Int
+	lastReportedGasPrice uint64
+	client               *ethclient.Client
+	blockMetaAccessor    BlockMetaAccessor
+	globalErrataQueue    chan<- stypes.ErrataBlock
+	vaultABI             *abi.ABI
+	erc20ABI             *abi.ABI
+	tokens               *LevelDBTokenMeta
+	bridge               *thorclient.ThorchainBridge
+	pubkeyMgr            pubkeymanager.PubKeyValidator
+	eipSigner            etypes.EIP155Signer
+	currentBlockHeight   int64
 }
 
 // NewETHScanner create a new instance of ETHScanner
@@ -103,21 +104,22 @@ func NewETHScanner(cfg config.BlockScannerConfiguration,
 		return nil, fmt.Errorf("fail to create contract abi: %w", err)
 	}
 	return &ETHScanner{
-		cfg:               cfg,
-		logger:            log.Logger.With().Str("module", "block_scanner").Str("chain", common.ETHChain.String()).Logger(),
-		errCounter:        m.GetCounterVec(metrics.BlockScanError(common.ETHChain)),
-		client:            client,
-		db:                storage,
-		m:                 m,
-		gasPrice:          big.NewInt(0),
-		gasPriceChanged:   false,
-		blockMetaAccessor: blockMetaAccessor,
-		tokens:            tokens,
-		bridge:            bridge,
-		vaultABI:          vaultABI,
-		erc20ABI:          erc20ABI,
-		eipSigner:         etypes.NewEIP155Signer(chainID),
-		pubkeyMgr:         pubkeyMgr,
+		cfg:                  cfg,
+		logger:               log.Logger.With().Str("module", "block_scanner").Str("chain", common.ETHChain.String()).Logger(),
+		errCounter:           m.GetCounterVec(metrics.BlockScanError(common.ETHChain)),
+		client:               client,
+		db:                   storage,
+		m:                    m,
+		gasPrice:             big.NewInt(0),
+		lastReportedGasPrice: 0,
+		gasPriceChanged:      false,
+		blockMetaAccessor:    blockMetaAccessor,
+		tokens:               tokens,
+		bridge:               bridge,
+		vaultABI:             vaultABI,
+		erc20ABI:             erc20ABI,
+		eipSigner:            etypes.NewEIP155Signer(chainID),
+		pubkeyMgr:            pubkeyMgr,
 	}, nil
 }
 
@@ -189,8 +191,12 @@ func (e *ETHScanner) FetchTxs(height int64) (stypes.TxIn, error) {
 		if gasValue == 0 {
 			gasValue = 1
 		}
-		if _, err := e.bridge.PostNetworkFee(height, common.ETHChain, MaxContractGas, gasValue); err != nil {
-			e.logger.Err(err).Msg("fail to post ETH chain single transfer fee to THORNode")
+		// only report the gas price when it actually get changed
+		if gasValue != e.lastReportedGasPrice {
+			e.lastReportedGasPrice = gasValue
+			if _, err := e.bridge.PostNetworkFee(height, common.ETHChain, MaxContractGas, gasValue); err != nil {
+				e.logger.Err(err).Msg("fail to post ETH chain single transfer fee to THORNode")
+			}
 		}
 	}
 	return txIn, nil
