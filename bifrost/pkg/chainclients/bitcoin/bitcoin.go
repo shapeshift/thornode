@@ -32,7 +32,7 @@ import (
 
 // BlockCacheSize the number of block meta that get store in storage.
 const (
-	BlockCacheSize      = 144
+	BlockCacheSize      = 500
 	MaximumConfirmation = 99999999
 	MaxAsgardAddresses  = 100
 	// EstimateAverageTxSize for THORChain the estimate tx size is hard code to 1000 here , as most of time it will spend 1 input, have 3 output
@@ -527,8 +527,9 @@ func (c *Client) FetchTxs(height int64) (types.TxIn, error) {
 	}
 	pruneHeight := height - BlockCacheSize
 	if pruneHeight > 0 {
+
 		defer func() {
-			if err := c.blockMetaAccessor.PruneBlockMeta(pruneHeight); err != nil {
+			if err := c.blockMetaAccessor.PruneBlockMeta(pruneHeight, c.canDeleteBlock); err != nil {
 				c.logger.Err(err).Msgf("fail to prune block meta, height(%d)", pruneHeight)
 			}
 		}()
@@ -549,6 +550,18 @@ func (c *Client) FetchTxs(height int64) (types.TxIn, error) {
 	return txIn, nil
 }
 
+func (c *Client) canDeleteBlock(blockMeta *BlockMeta) bool {
+	if blockMeta == nil {
+		return true
+	}
+	for _, tx := range blockMeta.SelfTransactions {
+		if result, err := c.client.GetMempoolEntry(tx); err == nil && result != nil {
+			c.logger.Info().Msgf("tx: %s still in mempool , block can't be deleted", tx)
+			return false
+		}
+	}
+	return true
+}
 func (c *Client) updateNetworkInfo() {
 	networkInfo, err := c.client.GetNetworkInfo()
 	if err != nil {
