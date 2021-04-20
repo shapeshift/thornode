@@ -60,12 +60,19 @@ func (smgr *StoreMgr) migrate(ctx cosmos.Context, i uint64, constantAccessor con
 		smgr.migrateStoreV42(ctx, version, constantAccessor)
 	case 43:
 		smgr.migrateStoreV43(ctx, version, constantAccessor)
+	case 46:
+		smgr.migrateStoreV46(ctx, version, constantAccessor)
 	}
 
 	smgr.keeper.SetStoreVersion(ctx, int64(i))
 	return nil
 }
+func (smgr *StoreMgr) migrateStoreV46(ctx cosmos.Context, version semver.Version, constantAccessor constants.ConstantValues) {
+	// housekeeping, deleting unused mimir settings
+	_ = smgr.keeper.DeleteMimir(ctx, "SIGNINGTRANSACTIONPERIOD")
+	_ = smgr.keeper.DeleteMimir(ctx, "MAXLIQUIDITYRUNE")
 
+}
 func (smgr *StoreMgr) migrateStoreV43(ctx cosmos.Context, version semver.Version, constantAccessor constants.ConstantValues) {
 	// housekeeping, deleting unused mimir settings
 	_ = smgr.keeper.DeleteMimir(ctx, "NEWPOOLCYCLE")
