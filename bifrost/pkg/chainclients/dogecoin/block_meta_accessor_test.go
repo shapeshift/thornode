@@ -48,18 +48,26 @@ func (s *DogecoinBlockMetaAccessorTestSuite) TestBlockMetaAccessor(c *C) {
 	nbm, err := blockMetaAccessor.GetBlockMeta(1024)
 	c.Assert(err, IsNil)
 	c.Assert(nbm, IsNil)
-
+	hash := thorchain.GetRandomTxHash()
 	for i := 0; i < 1024; i++ {
 		bm := NewBlockMeta(thorchain.GetRandomTxHash().String(), int64(i), thorchain.GetRandomTxHash().String())
+		if i == 0 {
+			bm.AddSelfTransaction(hash.String())
+		}
 		c.Assert(blockMetaAccessor.SaveBlockMeta(bm.Height, bm), IsNil)
 	}
 	blockMetas, err := blockMetaAccessor.GetBlockMetas()
 	c.Assert(err, IsNil)
 	c.Assert(blockMetas, HasLen, 1025)
-	c.Assert(blockMetaAccessor.PruneBlockMeta(1000, nil), IsNil)
+	c.Assert(blockMetaAccessor.PruneBlockMeta(1000, func(meta *BlockMeta) bool {
+		if meta.TransactionHashExist(hash.String()) {
+			return false
+		}
+		return true
+	}), IsNil)
 	allBlockMetas, err := blockMetaAccessor.GetBlockMetas()
 	c.Assert(err, IsNil)
-	c.Assert(allBlockMetas, HasLen, 25)
+	c.Assert(allBlockMetas, HasLen, 26)
 
 	fee, vSize, err := blockMetaAccessor.GetTransactionFee()
 	c.Assert(err, NotNil)
