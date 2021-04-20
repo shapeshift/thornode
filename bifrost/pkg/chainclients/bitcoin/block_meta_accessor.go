@@ -12,4 +12,6 @@ type BlockMetaAccessor interface {
 	GetTransactionFee() (float64, int32, error)
 	TryAddToMemPoolCache(hash string) (bool, error)
 	RemoveFromMemPoolCache(hash string) error
+	TryAddToObservedTxCache(hash string) (bool, error)
+	RemoveObservedTxCache(hash string) error
 }
