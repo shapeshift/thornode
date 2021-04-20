@@ -32,7 +32,7 @@ import (
 
 // BlockCacheSize the number of block meta that get store in storage.
 const (
-	BlockCacheSize      = 500
+	BlockCacheSize      = 144
 	MaximumConfirmation = 99999999
 	MaxAsgardAddresses  = 100
 	// EstimateAverageTxSize for THORChain the estimate tx size is hard code to 1000 here , as most of time it will spend 1 input, have 3 output
