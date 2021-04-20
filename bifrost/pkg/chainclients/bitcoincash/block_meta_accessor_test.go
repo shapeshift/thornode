@@ -56,7 +56,7 @@ func (s *BitcoinBlockMetaAccessorTestSuite) TestBlockMetaAccessor(c *C) {
 	blockMetas, err := blockMetaAccessor.GetBlockMetas()
 	c.Assert(err, IsNil)
 	c.Assert(blockMetas, HasLen, 1025)
-	c.Assert(blockMetaAccessor.PruneBlockMeta(1000), IsNil)
+	c.Assert(blockMetaAccessor.PruneBlockMeta(1000, nil), IsNil)
 	allBlockMetas, err := blockMetaAccessor.GetBlockMetas()
 	c.Assert(err, IsNil)
 	c.Assert(allBlockMetas, HasLen, 25)

@@ -530,7 +530,7 @@ func (c *Client) FetchTxs(height int64) (types.TxIn, error) {
 	pruneHeight := height - BlockCacheSize
 	if pruneHeight > 0 {
 		defer func() {
-			if err := c.blockMetaAccessor.PruneBlockMeta(pruneHeight); err != nil {
+			if err := c.blockMetaAccessor.PruneBlockMeta(pruneHeight, c.canDeleteBlock); err != nil {
 				c.logger.Err(err).Msgf("fail to prune block meta, height(%d)", pruneHeight)
 			}
 		}()
@@ -550,7 +550,18 @@ func (c *Client) FetchTxs(height int64) (types.TxIn, error) {
 	txIn.Count = strconv.Itoa(len(txIn.TxArray))
 	return txIn, nil
 }
-
+func (c *Client) canDeleteBlock(blockMeta *BlockMeta) bool {
+	if blockMeta == nil {
+		return true
+	}
+	for _, tx := range blockMeta.SelfTransactions {
+		if result, err := c.client.GetMempoolEntry(tx); err == nil && result != nil {
+			c.logger.Info().Msgf("tx: %s still in mempool , block can't be deleted", tx)
+			return false
+		}
+	}
+	return true
+}
 func (c *Client) updateNetworkInfo() {
 	networkInfo, err := c.client.GetNetworkInfo()
 	if err != nil {
