@@ -90,7 +90,7 @@ func (t *LevelDBBlockMetaAccessor) GetBlockMetas() ([]*BlockMeta, error) {
 
 // PruneBlockMeta remove all block meta that is older than the given block height
 // with exception, if there are unspent transaction output in it , then the block meta will not be removed
-func (t *LevelDBBlockMetaAccessor) PruneBlockMeta(height int64) error {
+func (t *LevelDBBlockMetaAccessor) PruneBlockMeta(height int64, callback PruneBlockMetaCallback) error {
 	iterator := t.db.NewIterator(util.BytesPrefix([]byte(PrefixBlockMeta)), nil)
 	defer iterator.Release()
 	targetToDelete := make([]string, 0)
@@ -105,6 +105,9 @@ func (t *LevelDBBlockMetaAccessor) PruneBlockMeta(height int64) error {
 		}
 
 		if blockMeta.Height < height {
+			if callback != nil && !callback(&blockMeta) {
+				continue
+			}
 			targetToDelete = append(targetToDelete, t.getBlockMetaKey(blockMeta.Height))
 		}
 	}
