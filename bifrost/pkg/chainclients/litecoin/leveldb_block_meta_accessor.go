@@ -13,6 +13,7 @@ const (
 	TransactionFeeKey = "transactionfee-"
 	PrefixBlockMeta   = `blockmeta-`
 	PrefixMempool     = "mempool-"
+	PrefixObservedTx  = "observed-"
 )
 
 // LevelDBBlockMetaAccessor struct
@@ -30,6 +31,9 @@ func (t *LevelDBBlockMetaAccessor) getBlockMetaKey(height int64) string {
 }
 func (t *LevelDBBlockMetaAccessor) getMemPoolHashKey(hash string) string {
 	return PrefixMempool + hash
+}
+func (t *LevelDBBlockMetaAccessor) getObservedTxHashKey(hash string) string {
+	return PrefixObservedTx + hash
 }
 
 // GetBlockMeta at given block height ,  when the requested block meta doesn't exist , it will return nil , thus caller need to double check it
@@ -156,5 +160,26 @@ func (t *LevelDBBlockMetaAccessor) TryAddToMemPoolCache(hash string) (bool, erro
 // RemoveFromMemPoolCache remove the hash from cache
 func (t *LevelDBBlockMetaAccessor) RemoveFromMemPoolCache(hash string) error {
 	key := t.getMemPoolHashKey(hash)
+	return t.db.Delete([]byte(key), nil)
+}
+
+// TryAddToObservedTxCache store the transaction hash into local key value store
+// so as bifrost will not report a tx twice, which will cause it to be slashed by thornode
+func (t *LevelDBBlockMetaAccessor) TryAddToObservedTxCache(hash string) (bool, error) {
+	key := t.getObservedTxHashKey(hash)
+	exist, err := t.db.Has([]byte(key), nil)
+	if err != nil {
+		return exist, err
+	}
+	if exist {
+		return false, nil
+	}
+	err = t.db.Put([]byte(key), []byte(hash), nil)
+	return true, err
+}
+
+// RemoveObservedTxCache remove the hash from cache
+func (t *LevelDBBlockMetaAccessor) RemoveObservedTxCache(hash string) error {
+	key := t.getObservedTxHashKey(hash)
 	return t.db.Delete([]byte(key), nil)
 }
