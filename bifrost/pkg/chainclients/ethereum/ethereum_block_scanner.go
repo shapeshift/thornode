@@ -8,7 +8,6 @@ import (
 	"math/big"
 	"strconv"
 	"strings"
-	"sync"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -44,7 +43,7 @@ const (
 	decimalMethod          = "decimals"
 	defaultDecimals        = 18 // on ETH , consolidate all decimals to 18, in Wei
 	tenGwei                = 10000000000
-	gasCacheBlocks         = 100
+	gasCacheBlocks         = 10
 )
 
 // ETHScanner is a scanner that understand how to interact with ETH chain ,and scan block , parse smart contract etc
@@ -67,8 +66,7 @@ type ETHScanner struct {
 	pubkeyMgr            pubkeymanager.PubKeyValidator
 	eipSigner            etypes.EIP155Signer
 	currentBlockHeight   int64
-	gasCache             map[int64]*big.Int
-	gasCacheLock         *sync.Mutex
+	gasCache             []*big.Int
 }
 
 // NewETHScanner create a new instance of ETHScanner
@@ -124,8 +122,7 @@ func NewETHScanner(cfg config.BlockScannerConfiguration,
 		erc20ABI:             erc20ABI,
 		eipSigner:            etypes.NewEIP155Signer(chainID),
 		pubkeyMgr:            pubkeyMgr,
-		gasCache:             make(map[int64]*big.Int),
-		gasCacheLock:         &sync.Mutex{},
+		gasCache:             make([]*big.Int, 0),
 	}, nil
 }
 
@@ -208,7 +205,7 @@ func (e *ETHScanner) FetchTxs(height int64) (stypes.TxIn, error) {
 	return txIn, nil
 }
 
-func (e *ETHScanner) updateGasPrice(blockHeight int64) {
+func (e *ETHScanner) updateGasPrice() {
 	ctx, cancel := e.getContext()
 	defer cancel()
 	gasPrice, err := e.client.SuggestGasPrice(ctx)
@@ -224,7 +221,10 @@ func (e *ETHScanner) updateGasPrice(blockHeight int64) {
 	if gasPrice.Cmp(big.NewInt(tenGwei)) < 0 {
 		gasPrice = big.NewInt(tenGwei)
 	}
-	e.updateGasPriceCache(blockHeight, gasPrice)
+	e.gasCache = append(e.gasCache, gasPrice)
+	if len(e.gasCache) > gasCacheBlocks {
+		e.gasCache = e.gasCache[(len(e.gasCache) - gasCacheBlocks):]
+	}
 	gasPrice = e.getHighestGasPrice()
 	if e.gasPrice.Cmp(gasPrice) == 0 {
 		e.gasPriceChanged = false
@@ -233,21 +233,9 @@ func (e *ETHScanner) updateGasPrice(blockHeight int64) {
 	e.gasPriceChanged = true
 	e.gasPrice = gasPrice
 }
-func (e *ETHScanner) updateGasPriceCache(blockHeight int64, gasPrice *big.Int) {
-	e.gasCacheLock.Lock()
-	defer e.gasCacheLock.Unlock()
-	e.gasCache[blockHeight] = gasPrice
-	for k, _ := range e.gasCache {
-		if blockHeight > k && (blockHeight-k) > gasCacheBlocks {
-			delete(e.gasCache, k)
-		}
-	}
-}
 
 // get the highest gas price in the last 50 blocks , make sure we can pay enough fee
 func (e *ETHScanner) getHighestGasPrice() *big.Int {
-	e.gasCacheLock.Lock()
-	defer e.gasCacheLock.Unlock()
 	gasPrice := big.NewInt(0)
 	for _, v := range e.gasCache {
 		if v.Cmp(gasPrice) > 0 {
@@ -357,7 +345,7 @@ func (e *ETHScanner) processBlock(block *etypes.Block) (stypes.TxIn, error) {
 		Finalised:       false,
 	}
 	// Update gas price
-	e.updateGasPrice(height)
+	e.updateGasPrice()
 	reorgedTxIns, err := e.processReorg(block.Header())
 	if err != nil {
 		e.logger.Error().Err(err).Msgf("fail to process reorg for block %d", height)
