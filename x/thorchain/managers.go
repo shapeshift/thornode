@@ -278,7 +278,9 @@ func GetSwapQueue(keeper keeper.Keeper, version semver.Version) (SwapQueue, erro
 
 // GetSlasher return an implementation of Slasher
 func GetSlasher(keeper keeper.Keeper, version semver.Version, eventMgr EventManager) (Slasher, error) {
-	if version.GTE(semver.MustParse("0.44.0")) {
+	if version.GTE(semver.MustParse("0.47.0")) {
+		return NewSlasherV47(keeper, eventMgr), nil
+	} else if version.GTE(semver.MustParse("0.44.0")) {
 		return NewSlasherV44(keeper, eventMgr), nil
 	} else if version.GTE(semver.MustParse("0.43.0")) {
 		return NewSlasherV43(keeper, eventMgr), nil
