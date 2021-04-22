@@ -77,7 +77,7 @@ func withdrawV47(ctx cosmos.Context, version semver.Version, keeper keeper.Keepe
 	// only when Pool is in Available status will apply impermanent loss protection
 	if fullProtectionLine > 0 && pool.Status == PoolAvailable { // if protection line is zero, no imp loss protection is given
 		protectionBasisPoints := calcImpLossProtectionAmtV1(ctx, lp.LastAddHeight, fullProtectionLine)
-		protectionRuneAmount = calcImpLossV1(lp, msg.BasisPoints, protectionBasisPoints, pool)
+		protectionRuneAmount = calcImpLossV47(lp, msg.BasisPoints, protectionBasisPoints, pool)
 		if !protectionRuneAmount.IsZero() {
 			newPoolUnits, extraUnits, err := calculatePoolUnitsV1(poolUnits, poolRune, poolAsset, protectionRuneAmount, cosmos.ZeroUint())
 			if err != nil {
@@ -171,4 +171,30 @@ func withdrawV47(ctx cosmos.Context, version semver.Version, keeper keeper.Keepe
 		}
 	}
 	return withdrawRune, withDrawAsset, protectionRuneAmount, common.SafeSub(fLiquidityProviderUnit, unitAfter), gasAsset, nil
+}
+
+// calculate if there needs to add some imp loss protection, in rune
+func calcImpLossV47(lp LiquidityProvider, withdrawBasisPoints cosmos.Uint, protectionBasisPoints int64, pool Pool) cosmos.Uint {
+	/*
+		A0 = assetDepositValue; R0 = runeDepositValue;
+
+		liquidityUnits = units the member wishes to redeem after applying withdrawBasisPoints
+		A1 = GetShare(liquidityUnits, poolUnits, assetDepth);
+		R1 = GetShare(liquidityUnits, poolUnits, runeDepth);
+		P1 = R1/A1
+		coverage = (R0 - R1) + (A0 - A1) * P1
+	*/
+	A0 := lp.AssetDepositValue
+	R0 := lp.RuneDepositValue
+	A1 := common.GetShare(lp.Units, pool.PoolUnits, pool.BalanceAsset)
+	R1 := common.GetShare(lp.Units, pool.PoolUnits, pool.BalanceRune)
+	P1 := R1.Quo(A1)
+	coverage := common.SafeSub(A0, A1).Mul(P1).Add(common.SafeSub(R0, R1))
+
+	// taking withdrawBasisPoints, calculate how much of the coverage the user should receives
+	coverage = common.GetShare(withdrawBasisPoints, cosmos.NewUint(10000), coverage)
+
+	// taking protection basis points, calculate how much of the coverage the user actually receives
+	result := coverage.MulUint64(uint64(protectionBasisPoints)).QuoUint64(10000)
+	return result
 }
