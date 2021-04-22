@@ -669,6 +669,11 @@ func (c *Client) getTotalTransactionValue(txIn stypes.TxIn, excludeFrom []common
 		if fromAsgard {
 			continue
 		}
+		// if from address is yggdrasil , exclude the value from confirmation counting
+		ok, _ := c.pubkeyMgr.IsValidPoolAddress(item.Sender, common.ETHChain)
+		if ok {
+			continue
+		}
 		for _, coin := range item.Coins {
 			if coin.IsEmpty() {
 				continue
