@@ -291,7 +291,9 @@ func (c *Client) OnObservedTxIn(txIn types.TxInItem, blockHeight int64) {
 	if blockMeta == nil {
 		blockMeta = NewBlockMeta("", blockHeight, "")
 	}
-
+	if _, err := c.blockMetaAccessor.TryAddToObservedTxCache(txIn.Tx); err != nil {
+		c.logger.Err(err).Msgf("fail to add hash (%s) to observed tx cache", txIn.Tx)
+	}
 	if c.isFromAsgard(txIn) {
 		c.logger.Debug().Msgf("add hash %s as self transaction,block height:%d", hash.String(), blockHeight)
 		blockMeta.AddSelfTransaction(hash.String())
@@ -527,7 +529,7 @@ func (c *Client) FetchTxs(height int64) (types.TxIn, error) {
 	pruneHeight := height - BlockCacheSize
 	if pruneHeight > 0 {
 		defer func() {
-			if err := c.blockMetaAccessor.PruneBlockMeta(pruneHeight); err != nil {
+			if err := c.blockMetaAccessor.PruneBlockMeta(pruneHeight, c.canDeleteBlock); err != nil {
 				c.logger.Err(err).Msgf("fail to prune block meta, height(%d)", pruneHeight)
 			}
 		}()
@@ -547,7 +549,18 @@ func (c *Client) FetchTxs(height int64) (types.TxIn, error) {
 	txIn.Count = strconv.Itoa(len(txIn.TxArray))
 	return txIn, nil
 }
-
+func (c *Client) canDeleteBlock(blockMeta *BlockMeta) bool {
+	if blockMeta == nil {
+		return true
+	}
+	for _, tx := range blockMeta.SelfTransactions {
+		if result, err := c.client.GetMempoolEntry(tx); err == nil && result != nil {
+			c.logger.Info().Msgf("tx: %s still in mempool , block can't be deleted", tx)
+			return false
+		}
+	}
+	return true
+}
 func (c *Client) updateNetworkInfo() {
 	networkInfo, err := c.client.GetNetworkInfo()
 	if err != nil {
@@ -661,6 +674,17 @@ func (c *Client) extractTxs(block *btcjson.GetBlockVerboseTxResult) (types.TxIn,
 			continue
 		}
 		if txInItem.Coins[0].Amount.LTE(cosmos.NewUint(minSpendableUTXOAmountSats)) {
+			continue
+		}
+		exist, err := c.blockMetaAccessor.TryAddToObservedTxCache(txInItem.Tx)
+		if err != nil {
+			c.logger.Err(err).Msgf("fail to determinate whether hash(%s) had been observed before", txInItem.Tx)
+		}
+		if !exist {
+			c.logger.Info().Msgf("tx: %s had been report before, ignore", txInItem.Tx)
+			if err := c.blockMetaAccessor.RemoveObservedTxCache(txInItem.Tx); err != nil {
+				c.logger.Err(err).Msgf("fail to remove observed tx from cache: %s", txInItem.Tx)
+			}
 			continue
 		}
 		txItems = append(txItems, txInItem)

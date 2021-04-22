@@ -578,3 +578,56 @@ func (s *HandlerSuite) TestExternalHandler(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(result, NotNil)
 }
+
+func (s *HandlerSuite) TestFuzzyMatching(c *C) {
+	ctx, k := setupKeeperForTest(c)
+	p1 := NewPool()
+	p1.Asset = common.BNBAsset
+	p1.BalanceRune = cosmos.NewUint(10 * common.One)
+	c.Assert(k.SetPool(ctx, p1), IsNil)
+
+	// real USDT
+	p2 := NewPool()
+	p2.Asset, _ = common.NewAsset("ETH.USDT-0XDAC17F958D2EE523A2206206994597C13D831EC7")
+	p2.BalanceRune = cosmos.NewUint(80 * common.One)
+	c.Assert(k.SetPool(ctx, p2), IsNil)
+
+	// fake USDT, attempt to clone end of contract address
+	p3 := NewPool()
+	p3.Asset, _ = common.NewAsset("ETH.USDT-0XD084B83C305DAFD76AE3E1B4E1F1FE213D831EC7")
+	p3.BalanceRune = cosmos.NewUint(20 * common.One)
+	c.Assert(k.SetPool(ctx, p3), IsNil)
+
+	// fake USDT, bad contract address
+	p4 := NewPool()
+	p4.Asset, _ = common.NewAsset("ETH.USDT-0XD084B83C305DAFD76AE3E1B4E1F1FE2ECCCB3988")
+	p4.BalanceRune = cosmos.NewUint(20 * common.One)
+	c.Assert(k.SetPool(ctx, p4), IsNil)
+
+	// fake USDT, on different chain
+	p5 := NewPool()
+	p5.Asset, _ = common.NewAsset("BSC.USDT-0XDAC17F958D2EE523A2206206994597C13D831EC7")
+	p5.BalanceRune = cosmos.NewUint(30 * common.One)
+	c.Assert(k.SetPool(ctx, p5), IsNil)
+
+	// fake USDT, right contract address, wrong ticker
+	p6 := NewPool()
+	p6.Asset, _ = common.NewAsset("ETH.UST-0XDAC17F958D2EE523A2206206994597C13D831EC7")
+	p6.BalanceRune = cosmos.NewUint(90 * common.One)
+	c.Assert(k.SetPool(ctx, p6), IsNil)
+
+	result := fuzzyAssetMatch(ctx, k, p1.Asset)
+	c.Check(result.Equals(p1.Asset), Equals, true)
+	result = fuzzyAssetMatch(ctx, k, p6.Asset)
+	c.Check(result.Equals(p6.Asset), Equals, true)
+
+	check, _ := common.NewAsset("ETH.USDT")
+	result = fuzzyAssetMatch(ctx, k, check)
+	c.Check(result.Equals(p2.Asset), Equals, true)
+	check, _ = common.NewAsset("ETH.USDT-")
+	result = fuzzyAssetMatch(ctx, k, check)
+	c.Check(result.Equals(p2.Asset), Equals, true)
+	check, _ = common.NewAsset("ETH.USDT-1EC7")
+	result = fuzzyAssetMatch(ctx, k, check)
+	c.Check(result.Equals(p2.Asset), Equals, true)
+}

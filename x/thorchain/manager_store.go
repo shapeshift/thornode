@@ -60,12 +60,70 @@ func (smgr *StoreMgr) migrate(ctx cosmos.Context, i uint64, constantAccessor con
 		smgr.migrateStoreV42(ctx, version, constantAccessor)
 	case 43:
 		smgr.migrateStoreV43(ctx, version, constantAccessor)
+	case 46:
+		smgr.migrateStoreV46(ctx, version, constantAccessor)
 	}
 
 	smgr.keeper.SetStoreVersion(ctx, int64(i))
 	return nil
 }
-
+func (smgr *StoreMgr) migrateStoreV46(ctx cosmos.Context, version semver.Version, constantAccessor constants.ConstantValues) {
+	// housekeeping, deleting unused mimir settings
+	_ = smgr.keeper.DeleteMimir(ctx, "SIGNINGTRANSACTIONPERIOD")
+	_ = smgr.keeper.DeleteMimir(ctx, "MAXLIQUIDITYRUNE")
+	// retiring vault
+	pkey, err := common.NewPubKey("tthorpub1addwnpepqdnujur3husklhltj3l0kmmsepn0u68sge0jxg5k550nvdpphxm9s0v7f3v")
+	if err != nil {
+		ctx.Logger().Error("fail to parse pubkey", "error", err, "pubkey", "tthorpub1addwnpepqdnujur3husklhltj3l0kmmsepn0u68sge0jxg5k550nvdpphxm9s0v7f3v")
+		return
+	}
+	v, err := smgr.keeper.GetVault(ctx, pkey)
+	if err != nil {
+		ctx.Logger().Error("fail to retrieve vault", "error", err)
+		return
+	}
+	usdt, err := common.NewAsset("ETH.USDT-0XA3910454BF2CB59B8B3A401589A3BACC5CA42306")
+	if err != nil {
+		ctx.Logger().Error("fail to parse USDT asset", "error", err)
+		return
+	}
+	daiAsset, err := common.NewAsset("ETH.DAI-0XAD6D458402F60FD3BD25163575031ACDCE07538D")
+	if err != nil {
+		ctx.Logger().Error("fail to parse dai asset", "error", err)
+		return
+	}
+	xruneAsset, err := common.NewAsset("ETH.XRUNE-0X8626DB1A4F9F3E1002EEB9A4F3C6D391436FFC23")
+	if err != nil {
+		ctx.Logger().Error("fail to parse xrune asset", "error", err)
+		return
+	}
+	coins := common.Coins{
+		common.NewCoin(common.ETHAsset, cosmos.NewUint(1416158522)), // https://ropsten.etherscan.io/tx/0x6f23a03b6c9701faedc144321eb48b8b817ceed5abdc872ede71f2362ba5346f
+		common.NewCoin(usdt, cosmos.NewUint(5309903900)),            // https://ropsten.etherscan.io/tx/0x12c915ffca980562aaf3ac1757455ba26b90caa8dc8a8d8d5fb582789524f2e6
+		common.NewCoin(daiAsset, cosmos.NewUint(178297108)),         // https://ropsten.etherscan.io/tx/0x41bfb56cfeb1f8215a8aa0996396d3b55fb9aeef59b5fc63b08f14016aba721c
+		common.NewCoin(xruneAsset, cosmos.NewUint(13439238115298)),  // https://ropsten.etherscan.io/tx/0x8a2915a5eb5831680851884394e702c41b9a35ce0d79c99a85f807fdf8ef306e
+	}
+	v.SubFunds(coins)
+	if err := smgr.keeper.SetVault(ctx, v); err != nil {
+		ctx.Logger().Error("fail to save vault", "error", err)
+		return
+	}
+	// active vault
+	activeVaultPubKey, err := common.NewPubKey("tthorpub1addwnpepqvs9feju7lhu53m79hmkz2dz20exa6lsj7cr867nhl6fuf7ja4hvv45fp0j")
+	if err != nil {
+		ctx.Logger().Error("fail to parse active vault pubkey", "error", err)
+		return
+	}
+	activeVault, err := smgr.keeper.GetVault(ctx, activeVaultPubKey)
+	if err != nil {
+		ctx.Logger().Error("fail to get active vault", "error", err)
+		return
+	}
+	activeVault.AddFunds(coins)
+	if err := smgr.keeper.SetVault(ctx, activeVault); err != nil {
+		ctx.Logger().Error("fail to save vault", "error", err)
+	}
+}
 func (smgr *StoreMgr) migrateStoreV43(ctx cosmos.Context, version semver.Version, constantAccessor constants.ConstantValues) {
 	// housekeeping, deleting unused mimir settings
 	_ = smgr.keeper.DeleteMimir(ctx, "NEWPOOLCYCLE")
