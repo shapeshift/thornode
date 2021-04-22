@@ -43,6 +43,7 @@ const (
 	decimalMethod          = "decimals"
 	defaultDecimals        = 18 // on ETH , consolidate all decimals to 18, in Wei
 	tenGwei                = 10000000000
+	gasCacheBlocks         = 10
 )
 
 // ETHScanner is a scanner that understand how to interact with ETH chain ,and scan block , parse smart contract etc
@@ -65,6 +66,7 @@ type ETHScanner struct {
 	pubkeyMgr            pubkeymanager.PubKeyValidator
 	eipSigner            etypes.EIP155Signer
 	currentBlockHeight   int64
+	gasCache             []*big.Int
 }
 
 // NewETHScanner create a new instance of ETHScanner
@@ -120,6 +122,7 @@ func NewETHScanner(cfg config.BlockScannerConfiguration,
 		erc20ABI:             erc20ABI,
 		eipSigner:            etypes.NewEIP155Signer(chainID),
 		pubkeyMgr:            pubkeyMgr,
+		gasCache:             make([]*big.Int, 0),
 	}, nil
 }
 
@@ -210,16 +213,36 @@ func (e *ETHScanner) updateGasPrice() {
 		e.logger.Err(err).Msg("fail to get suggest gas price")
 		return
 	}
+	if gasPrice.Uint64() == 0 {
+		e.logger.Info().Msg("gas price is zero , not valid")
+		return
+	}
 	// make sure the gas price is at least ten Gwei
 	if gasPrice.Cmp(big.NewInt(tenGwei)) < 0 {
 		gasPrice = big.NewInt(tenGwei)
 	}
+	e.gasCache = append(e.gasCache, gasPrice)
+	if len(e.gasCache) > gasCacheBlocks {
+		e.gasCache = e.gasCache[(len(e.gasCache) - gasCacheBlocks):]
+	}
+	gasPrice = e.getHighestGasPrice()
 	if e.gasPrice.Cmp(gasPrice) == 0 {
 		e.gasPriceChanged = false
 		return
 	}
 	e.gasPriceChanged = true
 	e.gasPrice = gasPrice
+}
+
+// get the highest gas price in the last 50 blocks , make sure we can pay enough fee
+func (e *ETHScanner) getHighestGasPrice() *big.Int {
+	gasPrice := big.NewInt(0)
+	for _, v := range e.gasCache {
+		if v.Cmp(gasPrice) > 0 {
+			gasPrice = v
+		}
+	}
+	return gasPrice
 }
 
 // vaultDepositEvent represent a vault deposit
