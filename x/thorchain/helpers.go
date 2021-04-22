@@ -13,7 +13,7 @@ import (
 )
 
 // nativeRuneModuleName will be empty if it is not NATIVE Rune
-func refundTx(ctx cosmos.Context, tx ObservedTx, mgr Manager, keeper keeper.Keeper, constAccessor constants.ConstantValues, refundCode uint32, refundReason, nativeRuneModuleName string) error {
+func refundTxV1(ctx cosmos.Context, tx ObservedTx, mgr Manager, keeper keeper.Keeper, constAccessor constants.ConstantValues, refundCode uint32, refundReason, nativeRuneModuleName string) error {
 	// If THORNode recognize one of the coins, and therefore able to refund
 	// withholding fees, refund all coins.
 
@@ -79,6 +79,82 @@ func refundTx(ctx cosmos.Context, tx ObservedTx, mgr Manager, keeper keeper.Keep
 		// Zombie coins are just dropped.
 	}
 	if !tx.Tx.Chain.Equals(common.THORChain) && !refundCoins.IsEmpty() {
+		if err := addEvent(refundCoins); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func refundTxV47(ctx cosmos.Context, tx ObservedTx, mgr Manager, keeper keeper.Keeper, constAccessor constants.ConstantValues, refundCode uint32, refundReason, nativeRuneModuleName string) error {
+	// If THORNode recognize one of the coins, and therefore able to refund
+	// withholding fees, refund all coins.
+
+	addEvent := func(refundCoins common.Coins) error {
+		eventRefund := NewEventRefund(refundCode, refundReason, tx.Tx, common.NewFee(common.Coins{}, cosmos.ZeroUint()))
+		if len(refundCoins) > 0 {
+			// create a new TX based on the coins thorchain refund , some of the coins thorchain doesn't refund
+			// coin thorchain doesn't have pool with , likely airdrop
+			newTx := common.NewTx(tx.Tx.ID, tx.Tx.FromAddress, tx.Tx.ToAddress, tx.Tx.Coins, tx.Tx.Gas, tx.Tx.Memo)
+
+			// all the coins in tx.Tx should belongs to the same chain
+			transactionFee := mgr.GasMgr().GetFee(ctx, tx.Tx.Chain, common.RuneAsset())
+			fee := getFee(tx.Tx.Coins, refundCoins, transactionFee)
+			eventRefund = NewEventRefund(refundCode, refundReason, newTx, fee)
+		}
+		if err := mgr.EventMgr().EmitEvent(ctx, eventRefund); err != nil {
+			return fmt.Errorf("fail to emit refund event: %w", err)
+		}
+		return nil
+	}
+
+	// for THORChain transactions, create the event before we txout. For other
+	// chains, do it after. The reason for this is we need to make sure the
+	// first event (refund) is created, before we create the outbound events
+	// (second). Because its THORChain, its safe to assume all the coins are
+	// safe to send back. Where as for external coins, we cannot make this
+	// assumption (ie coins we don't have pools for and therefore, don't know
+	// the value of it relative to rune)
+	if tx.Tx.Chain.Equals(common.THORChain) {
+		if err := addEvent(tx.Tx.Coins); err != nil {
+			return err
+		}
+	}
+	refundCoins := make(common.Coins, 0)
+	for _, coin := range tx.Tx.Coins {
+		if coin.Asset.IsRune() && coin.Asset.GetChain().Equals(common.ETHChain) {
+			continue
+		}
+		pool, err := keeper.GetPool(ctx, coin.Asset)
+		if err != nil {
+			return fmt.Errorf("fail to get pool: %w", err)
+		}
+
+		if coin.Asset.IsRune() || !pool.BalanceRune.IsZero() {
+			toi := TxOutItem{
+				Chain:       coin.Asset.GetChain(),
+				InHash:      tx.Tx.ID,
+				ToAddress:   tx.Tx.FromAddress,
+				VaultPubKey: tx.ObservedPubKey,
+				Coin:        coin,
+				Memo:        NewRefundMemo(tx.Tx.ID).String(),
+				ModuleName:  nativeRuneModuleName,
+			}
+
+			success, err := mgr.TxOutStore().TryAddTxOutItem(ctx, mgr, toi)
+			if err != nil {
+				ctx.Logger().Error("fail to prepare outbund tx", "error", err)
+				// concatenate the refund failure to refundReason
+				refundReason = fmt.Sprintf("%s; fail to refund (%s): %s", refundReason, toi.Coin.String(), err)
+			}
+			if success {
+				refundCoins = append(refundCoins, toi.Coin)
+			}
+		}
+		// Zombie coins are just dropped.
+	}
+	if !tx.Tx.Chain.Equals(common.THORChain) {
 		if err := addEvent(refundCoins); err != nil {
 			return err
 		}
