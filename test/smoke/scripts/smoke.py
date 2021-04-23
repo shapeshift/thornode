@@ -386,7 +386,7 @@ class Smoker:
 
         return outbounds
 
-    def sim_catch_up(self, txn, no_evt=False):
+    def sim_catch_up(self, txn):
         # At this point, we can assume that the transaction on real thorchain
         # has already occurred, and we can now play "catch up" in our simulated
         # thorchain state
@@ -424,7 +424,10 @@ class Smoker:
                     elif evt_t.type == "rewards":
                         self.thorchain_state.handle_rewards()
 
-                    elif evt_t.type == "outbound" and processed and pending_txs > 0:
+                    elif evt_t.type == "fee":
+                        continue  # skip
+
+                    elif evt_t.type == "outbound":
                         # figure out which outbound event is which tx
                         for out in outbounds:
                             if out.coins_str() == evt_t.get("coin"):
@@ -437,14 +440,8 @@ class Smoker:
                         outbounds = self.sim_trigger_tx(txn)
                         pending_txs = len(outbounds)
                         processed = True
-                continue
-
-            # we have same count of events but its a cross chain liquidity provision
-            if txn.is_cross_chain_provision() and no_evt and not processed:
-                outbounds = self.sim_trigger_tx(txn)
-                pending_txs = len(outbounds)
-                processed = True
-                time.sleep(6)  # need to wait for thorchain to handle it
+                        time.sleep(6)
+                        continue
                 continue
 
             if len(events) == len(sim_events) and pending_txs <= 0 and processed:
@@ -470,7 +467,6 @@ class Smoker:
             logging.info(f"{result} {outbound.short()}")
 
     def run(self):
-        first_cross_chain_provision = False
         for i, txn in enumerate(self.txns):
             txn = Transaction.from_dict(txn)
 
@@ -508,9 +504,7 @@ class Smoker:
             if txn.memo == "SEED":
                 continue
 
-            if txn.is_cross_chain_provision():
-                first_cross_chain_provision = not first_cross_chain_provision
-            outbounds = self.sim_catch_up(txn, first_cross_chain_provision)
+            outbounds = self.sim_catch_up(txn)
 
             # check if we are verifying the results
             if self.no_verify:

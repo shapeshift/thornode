@@ -1,5 +1,31 @@
 [
     {
+        "type": "pending_liquidity",
+        "attributes": [
+            {
+                "pool": "BNB.BNB"
+            },
+            {
+                "type": "add"
+            },
+            {
+                "rune_address": "PROVIDER-1"
+            },
+            {
+                "rune_amount": "50000000000"
+            },
+            {
+                "asset_amount": "0"
+            },
+            {
+                "asset_address": "PROVIDER-1"
+            },
+            {
+                "THOR_txid": "TODO"
+            }
+        ]
+    },
+    {
         "type": "pool",
         "attributes": [
             {
@@ -44,6 +70,32 @@
         "attributes": [
             {
                 "bond_reward": "0"
+            }
+        ]
+    },
+    {
+        "type": "pending_liquidity",
+        "attributes": [
+            {
+                "pool": "BTC.BTC"
+            },
+            {
+                "type": "add"
+            },
+            {
+                "rune_address": "PROVIDER-1"
+            },
+            {
+                "rune_amount": "50000000000"
+            },
+            {
+                "asset_amount": "0"
+            },
+            {
+                "asset_address": "PROVIDER-1"
+            },
+            {
+                "THOR_txid": "TODO"
             }
         ]
     },
@@ -104,6 +156,32 @@
         ]
     },
     {
+        "type": "pending_liquidity",
+        "attributes": [
+            {
+                "pool": "BCH.BCH"
+            },
+            {
+                "type": "add"
+            },
+            {
+                "rune_address": "PROVIDER-1"
+            },
+            {
+                "rune_amount": "50000000000"
+            },
+            {
+                "asset_amount": "0"
+            },
+            {
+                "asset_address": "PROVIDER-1"
+            },
+            {
+                "THOR_txid": "TODO"
+            }
+        ]
+    },
+    {
         "type": "rewards",
         "attributes": [
             {
@@ -156,6 +234,32 @@
         "attributes": [
             {
                 "bond_reward": "0"
+            }
+        ]
+    },
+    {
+        "type": "pending_liquidity",
+        "attributes": [
+            {
+                "pool": "LTC.LTC"
+            },
+            {
+                "type": "add"
+            },
+            {
+                "rune_address": "PROVIDER-1"
+            },
+            {
+                "rune_amount": "50000000000"
+            },
+            {
+                "asset_amount": "0"
+            },
+            {
+                "asset_address": "PROVIDER-1"
+            },
+            {
+                "THOR_txid": "TODO"
             }
         ]
     },
@@ -216,6 +320,32 @@
         ]
     },
     {
+        "type": "pending_liquidity",
+        "attributes": [
+            {
+                "pool": "ETH.ETH"
+            },
+            {
+                "type": "add"
+            },
+            {
+                "rune_address": "PROVIDER-1"
+            },
+            {
+                "rune_amount": "50000000000"
+            },
+            {
+                "asset_amount": "0"
+            },
+            {
+                "asset_address": "PROVIDER-1"
+            },
+            {
+                "THOR_txid": "TODO"
+            }
+        ]
+    },
+    {
         "type": "rewards",
         "attributes": [
             {
@@ -272,6 +402,32 @@
         ]
     },
     {
+        "type": "pending_liquidity",
+        "attributes": [
+            {
+                "pool": "ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A"
+            },
+            {
+                "type": "add"
+            },
+            {
+                "rune_address": "PROVIDER-1"
+            },
+            {
+                "rune_amount": "50000000000"
+            },
+            {
+                "asset_amount": "0"
+            },
+            {
+                "asset_address": "PROVIDER-1"
+            },
+            {
+                "THOR_txid": "TODO"
+            }
+        ]
+    },
+    {
         "type": "rewards",
         "attributes": [
             {
@@ -324,6 +480,32 @@
         "attributes": [
             {
                 "bond_reward": "0"
+            }
+        ]
+    },
+    {
+        "type": "pending_liquidity",
+        "attributes": [
+            {
+                "pool": "BNB.LOK-3C0"
+            },
+            {
+                "type": "add"
+            },
+            {
+                "rune_address": "PROVIDER-1"
+            },
+            {
+                "rune_amount": "0"
+            },
+            {
+                "asset_amount": "40000000000"
+            },
+            {
+                "asset_address": "PROVIDER-1"
+            },
+            {
+                "BNB_txid": "TODO"
             }
         ]
     },
@@ -673,10 +855,62 @@
         ]
     },
     {
+        "type": "pending_liquidity",
+        "attributes": [
+            {
+                "pool": "BNB.BNB"
+            },
+            {
+                "type": "add"
+            },
+            {
+                "rune_address": "PROVIDER-2"
+            },
+            {
+                "rune_amount": "0"
+            },
+            {
+                "asset_amount": "30000000"
+            },
+            {
+                "asset_address": "PROVIDER-2"
+            },
+            {
+                "BNB_txid": "TODO"
+            }
+        ]
+    },
+    {
         "type": "rewards",
         "attributes": [
             {
                 "bond_reward": "3"
+            }
+        ]
+    },
+    {
+        "type": "pending_liquidity",
+        "attributes": [
+            {
+                "pool": "BNB.BNB"
+            },
+            {
+                "type": "add"
+            },
+            {
+                "rune_address": "PROVIDER-2"
+            },
+            {
+                "rune_amount": "0"
+            },
+            {
+                "asset_amount": "90000000"
+            },
+            {
+                "asset_address": "PROVIDER-2"
+            },
+            {
+                "BNB_txid": "TODO"
             }
         ]
     },
@@ -1763,34 +1997,6 @@
         ]
     },
     {
-        "type": "fee",
-        "attributes": [
-            {
-                "tx_id": "TODO"
-            },
-            {
-                "coins": "195000 ETH.ETH"
-            },
-            {
-                "pool_deduct": "335020053"
-            }
-        ]
-    },
-    {
-        "type": "fee",
-        "attributes": [
-            {
-                "tx_id": "TODO"
-            },
-            {
-                "coins": "2000000 THOR.RUNE"
-            },
-            {
-                "pool_deduct": "0"
-            }
-        ]
-    },
-    {
         "type": "withdraw",
         "attributes": [
             {
@@ -1835,33 +2041,16 @@
         ]
     },
     {
-        "type": "gas",
-        "attributes": [
-            {
-                "asset": "ETH.ETH"
-            },
-            {
-                "asset_amt": "35664"
-            },
-            {
-                "rune_amt": "60686757"
-            },
-            {
-                "transaction_count": "1"
-            }
-        ]
-    },
-    {
         "type": "fee",
         "attributes": [
             {
                 "tx_id": "TODO"
             },
             {
-                "coins": "1103817 ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A"
+                "coins": "195000 ETH.ETH"
             },
             {
-                "pool_deduct": "332397633"
+                "pool_deduct": "335020053"
             }
         ]
     },
@@ -1876,6 +2065,23 @@
             },
             {
                 "pool_deduct": "0"
+            }
+        ]
+    },
+    {
+        "type": "gas",
+        "attributes": [
+            {
+                "asset": "ETH.ETH"
+            },
+            {
+                "asset_amt": "35664"
+            },
+            {
+                "rune_amt": "60686757"
+            },
+            {
+                "transaction_count": "1"
             }
         ]
     },
@@ -1920,6 +2126,34 @@
             },
             {
                 "memo": "WITHDRAW:ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A:1000"
+            }
+        ]
+    },
+    {
+        "type": "fee",
+        "attributes": [
+            {
+                "tx_id": "TODO"
+            },
+            {
+                "coins": "1103817 ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A"
+            },
+            {
+                "pool_deduct": "332397633"
+            }
+        ]
+    },
+    {
+        "type": "fee",
+        "attributes": [
+            {
+                "tx_id": "TODO"
+            },
+            {
+                "coins": "2000000 THOR.RUNE"
+            },
+            {
+                "pool_deduct": "0"
             }
         ]
     },
@@ -2217,34 +2451,6 @@
         ]
     },
     {
-        "type": "fee",
-        "attributes": [
-            {
-                "tx_id": "TODO"
-            },
-            {
-                "coins": "30000 BTC.BTC"
-            },
-            {
-                "pool_deduct": "15966458"
-            }
-        ]
-    },
-    {
-        "type": "fee",
-        "attributes": [
-            {
-                "tx_id": "TODO"
-            },
-            {
-                "coins": "2000000 THOR.RUNE"
-            },
-            {
-                "pool_deduct": "0"
-            }
-        ]
-    },
-    {
         "type": "withdraw",
         "attributes": [
             {
@@ -2289,33 +2495,16 @@
         ]
     },
     {
-        "type": "gas",
-        "attributes": [
-            {
-                "asset": "BTC.BTC"
-            },
-            {
-                "asset_amt": "15000"
-            },
-            {
-                "rune_amt": "7978921"
-            },
-            {
-                "transaction_count": "1"
-            }
-        ]
-    },
-    {
         "type": "fee",
         "attributes": [
             {
                 "tx_id": "TODO"
             },
             {
-                "coins": "30000 BCH.BCH"
+                "coins": "30000 BTC.BTC"
             },
             {
-                "pool_deduct": "16020192"
+                "pool_deduct": "15966458"
             }
         ]
     },
@@ -2330,6 +2519,23 @@
             },
             {
                 "pool_deduct": "0"
+            }
+        ]
+    },
+    {
+        "type": "gas",
+        "attributes": [
+            {
+                "asset": "BTC.BTC"
+            },
+            {
+                "asset_amt": "15000"
+            },
+            {
+                "rune_amt": "7978921"
+            },
+            {
+                "transaction_count": "1"
             }
         ]
     },
@@ -2378,33 +2584,16 @@
         ]
     },
     {
-        "type": "gas",
-        "attributes": [
-            {
-                "asset": "BCH.BCH"
-            },
-            {
-                "asset_amt": "15000"
-            },
-            {
-                "rune_amt": "8005769"
-            },
-            {
-                "transaction_count": "1"
-            }
-        ]
-    },
-    {
         "type": "fee",
         "attributes": [
             {
                 "tx_id": "TODO"
             },
             {
-                "coins": "30000 LTC.LTC"
+                "coins": "30000 BCH.BCH"
             },
             {
-                "pool_deduct": "13910689"
+                "pool_deduct": "16020192"
             }
         ]
     },
@@ -2419,6 +2608,23 @@
             },
             {
                 "pool_deduct": "0"
+            }
+        ]
+    },
+    {
+        "type": "gas",
+        "attributes": [
+            {
+                "asset": "BCH.BCH"
+            },
+            {
+                "asset_amt": "15000"
+            },
+            {
+                "rune_amt": "8005769"
+            },
+            {
+                "transaction_count": "1"
             }
         ]
     },
@@ -2463,6 +2669,34 @@
             },
             {
                 "memo": "WITHDRAW:LTC.LTC:1000"
+            }
+        ]
+    },
+    {
+        "type": "fee",
+        "attributes": [
+            {
+                "tx_id": "TODO"
+            },
+            {
+                "coins": "30000 LTC.LTC"
+            },
+            {
+                "pool_deduct": "13910689"
+            }
+        ]
+    },
+    {
+        "type": "fee",
+        "attributes": [
+            {
+                "tx_id": "TODO"
+            },
+            {
+                "coins": "2000000 THOR.RUNE"
+            },
+            {
+                "pool_deduct": "0"
             }
         ]
     },
@@ -3148,34 +3382,6 @@
         ]
     },
     {
-        "type": "fee",
-        "attributes": [
-            {
-                "tx_id": "TODO"
-            },
-            {
-                "coins": "112500 BNB.BNB"
-            },
-            {
-                "pool_deduct": "10429646"
-            }
-        ]
-    },
-    {
-        "type": "fee",
-        "attributes": [
-            {
-                "tx_id": "TODO"
-            },
-            {
-                "coins": "2000000 THOR.RUNE"
-            },
-            {
-                "pool_deduct": "0"
-            }
-        ]
-    },
-    {
         "type": "withdraw",
         "attributes": [
             {
@@ -3220,6 +3426,34 @@
         ]
     },
     {
+        "type": "fee",
+        "attributes": [
+            {
+                "tx_id": "TODO"
+            },
+            {
+                "coins": "112500 BNB.BNB"
+            },
+            {
+                "pool_deduct": "10429646"
+            }
+        ]
+    },
+    {
+        "type": "fee",
+        "attributes": [
+            {
+                "tx_id": "TODO"
+            },
+            {
+                "coins": "2000000 THOR.RUNE"
+            },
+            {
+                "pool_deduct": "0"
+            }
+        ]
+    },
+    {
         "type": "gas",
         "attributes": [
             {
@@ -3244,20 +3478,6 @@
             },
             {
                 "pool_status": "Staged"
-            }
-        ]
-    },
-    {
-        "type": "fee",
-        "attributes": [
-            {
-                "tx_id": "TODO"
-            },
-            {
-                "coins": "2000000 THOR.RUNE"
-            },
-            {
-                "pool_deduct": "0"
             }
         ]
     },
@@ -3306,6 +3526,20 @@
         ]
     },
     {
+        "type": "fee",
+        "attributes": [
+            {
+                "tx_id": "TODO"
+            },
+            {
+                "coins": "2000000 THOR.RUNE"
+            },
+            {
+                "pool_deduct": "0"
+            }
+        ]
+    },
+    {
         "type": "gas",
         "attributes": [
             {
@@ -3319,34 +3553,6 @@
             },
             {
                 "transaction_count": "1"
-            }
-        ]
-    },
-    {
-        "type": "fee",
-        "attributes": [
-            {
-                "tx_id": "TODO"
-            },
-            {
-                "coins": "112500 BNB.BNB"
-            },
-            {
-                "pool_deduct": "10428169"
-            }
-        ]
-    },
-    {
-        "type": "fee",
-        "attributes": [
-            {
-                "tx_id": "TODO"
-            },
-            {
-                "coins": "2000000 THOR.RUNE"
-            },
-            {
-                "pool_deduct": "0"
             }
         ]
     },
@@ -3395,6 +3601,34 @@
         ]
     },
     {
+        "type": "fee",
+        "attributes": [
+            {
+                "tx_id": "TODO"
+            },
+            {
+                "coins": "112500 BNB.BNB"
+            },
+            {
+                "pool_deduct": "10428169"
+            }
+        ]
+    },
+    {
+        "type": "fee",
+        "attributes": [
+            {
+                "tx_id": "TODO"
+            },
+            {
+                "coins": "2000000 THOR.RUNE"
+            },
+            {
+                "pool_deduct": "0"
+            }
+        ]
+    },
+    {
         "type": "gas",
         "attributes": [
             {
@@ -3419,20 +3653,6 @@
             },
             {
                 "pool_status": "Staged"
-            }
-        ]
-    },
-    {
-        "type": "fee",
-        "attributes": [
-            {
-                "tx_id": "TODO"
-            },
-            {
-                "coins": "2000000 THOR.RUNE"
-            },
-            {
-                "pool_deduct": "0"
             }
         ]
     },
@@ -3481,6 +3701,20 @@
         ]
     },
     {
+        "type": "fee",
+        "attributes": [
+            {
+                "tx_id": "TODO"
+            },
+            {
+                "coins": "2000000 THOR.RUNE"
+            },
+            {
+                "pool_deduct": "0"
+            }
+        ]
+    },
+    {
         "type": "gas",
         "attributes": [
             {
@@ -3505,20 +3739,6 @@
             },
             {
                 "pool_status": "Staged"
-            }
-        ]
-    },
-    {
-        "type": "fee",
-        "attributes": [
-            {
-                "tx_id": "TODO"
-            },
-            {
-                "coins": "2000000 THOR.RUNE"
-            },
-            {
-                "pool_deduct": "0"
             }
         ]
     },
@@ -3567,6 +3787,20 @@
         ]
     },
     {
+        "type": "fee",
+        "attributes": [
+            {
+                "tx_id": "TODO"
+            },
+            {
+                "coins": "2000000 THOR.RUNE"
+            },
+            {
+                "pool_deduct": "0"
+            }
+        ]
+    },
+    {
         "type": "gas",
         "attributes": [
             {
@@ -3591,20 +3825,6 @@
             },
             {
                 "pool_status": "Staged"
-            }
-        ]
-    },
-    {
-        "type": "fee",
-        "attributes": [
-            {
-                "tx_id": "TODO"
-            },
-            {
-                "coins": "2000000 THOR.RUNE"
-            },
-            {
-                "pool_deduct": "0"
             }
         ]
     },
@@ -3653,6 +3873,20 @@
         ]
     },
     {
+        "type": "fee",
+        "attributes": [
+            {
+                "tx_id": "TODO"
+            },
+            {
+                "coins": "2000000 THOR.RUNE"
+            },
+            {
+                "pool_deduct": "0"
+            }
+        ]
+    },
+    {
         "type": "gas",
         "attributes": [
             {
@@ -3677,20 +3911,6 @@
             },
             {
                 "pool_status": "Staged"
-            }
-        ]
-    },
-    {
-        "type": "fee",
-        "attributes": [
-            {
-                "tx_id": "TODO"
-            },
-            {
-                "coins": "2000000 THOR.RUNE"
-            },
-            {
-                "pool_deduct": "0"
             }
         ]
     },
@@ -3739,6 +3959,20 @@
         ]
     },
     {
+        "type": "fee",
+        "attributes": [
+            {
+                "tx_id": "TODO"
+            },
+            {
+                "coins": "2000000 THOR.RUNE"
+            },
+            {
+                "pool_deduct": "0"
+            }
+        ]
+    },
+    {
         "type": "gas",
         "attributes": [
             {
@@ -3763,20 +3997,6 @@
             },
             {
                 "pool_status": "Staged"
-            }
-        ]
-    },
-    {
-        "type": "fee",
-        "attributes": [
-            {
-                "tx_id": "TODO"
-            },
-            {
-                "coins": "2000000 THOR.RUNE"
-            },
-            {
-                "pool_deduct": "0"
             }
         ]
     },
@@ -3825,6 +4045,20 @@
         ]
     },
     {
+        "type": "fee",
+        "attributes": [
+            {
+                "tx_id": "TODO"
+            },
+            {
+                "coins": "2000000 THOR.RUNE"
+            },
+            {
+                "pool_deduct": "0"
+            }
+        ]
+    },
+    {
         "type": "gas",
         "attributes": [
             {
@@ -3849,20 +4083,6 @@
             },
             {
                 "pool_status": "Staged"
-            }
-        ]
-    },
-    {
-        "type": "fee",
-        "attributes": [
-            {
-                "tx_id": "TODO"
-            },
-            {
-                "coins": "2000000 THOR.RUNE"
-            },
-            {
-                "pool_deduct": "0"
             }
         ]
     },
@@ -3907,6 +4127,20 @@
             },
             {
                 "memo": "WITHDRAW:BNB.BNB"
+            }
+        ]
+    },
+    {
+        "type": "fee",
+        "attributes": [
+            {
+                "tx_id": "TODO"
+            },
+            {
+                "coins": "2000000 THOR.RUNE"
+            },
+            {
+                "pool_deduct": "0"
             }
         ]
     },
