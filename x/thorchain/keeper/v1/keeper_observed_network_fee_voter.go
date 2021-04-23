@@ -46,3 +46,13 @@ func (k KVStore) GetObservedNetworkFeeVoter(ctx cosmos.Context, height int64, ch
 	_, err := k.getObservedNetworkFeeVoter(ctx, k.GetKey(ctx, prefixNetworkFeeVoter, record.String()), &record)
 	return record, err
 }
+
+// GetObservedNetworkFeeVoterV47 - gets information of an observed network fee voter
+func (k KVStore) GetObservedNetworkFeeVoterV47(ctx cosmos.Context, height int64, chain common.Chain, rate int64) (ObservedNetworkFeeVoter, error) {
+	record := NewObservedNetworkFeeVoter(height, chain)
+	if rate > 0 {
+		record.FeeRate = rate
+	}
+	_, err := k.getObservedNetworkFeeVoter(ctx, k.GetKey(ctx, prefixNetworkFeeVoter, record.String()), &record)
+	return record, err
+}
