@@ -10,4 +10,8 @@ type BlockMetaAccessor interface {
 	GetBlockMeta(height int64) (*types.BlockMeta, error)
 	SaveBlockMeta(height int64, block *types.BlockMeta) error
 	PruneBlockMeta(height int64) error
+
+	AddSignedTxItem(item SignedTxItem) error
+	RemoveSignedTxItem(hash string) error
+	GetSignedTxItems() ([]SignedTxItem, error)
 }

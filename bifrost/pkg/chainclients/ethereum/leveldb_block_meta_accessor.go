@@ -12,7 +12,8 @@ import (
 
 // PrefixTxStorage declares prefix to use in leveldb to avoid conflicts
 const (
-	PrefixBlockMeta = `eth-blockmeta-`
+	PrefixBlockMeta    = `eth-blockmeta-`
+	PrefixSignedTxItem = `signed-txitem-`
 )
 
 // LevelDBBlockMetaAccessor struct
@@ -107,4 +108,42 @@ func (t *LevelDBBlockMetaAccessor) PruneBlockMeta(height int64) error {
 		}
 	}
 	return nil
+}
+func (t *LevelDBBlockMetaAccessor) getSignedTxItemKey(hash string) string {
+	return PrefixSignedTxItem + hash
+}
+
+// AddSignedTxItem add a signed tx item to key value store
+func (t *LevelDBBlockMetaAccessor) AddSignedTxItem(item SignedTxItem) error {
+	key := t.getSignedTxItemKey(item.Hash)
+	buf, err := json.Marshal(item)
+	if err != nil {
+		return fmt.Errorf("fail to marshal signed tx item to json: %w", err)
+	}
+	return t.db.Put([]byte(key), buf, nil)
+}
+
+// RemoveSignedTxItem remove a signed item from key value store
+func (t *LevelDBBlockMetaAccessor) RemoveSignedTxItem(hash string) error {
+	key := t.getSignedTxItemKey(hash)
+	return t.db.Delete([]byte(key), nil)
+}
+
+// GetSignedTxItems get all the signed tx items that in the key value store
+func (t *LevelDBBlockMetaAccessor) GetSignedTxItems() ([]SignedTxItem, error) {
+	txItems := make([]SignedTxItem, 0)
+	iterator := t.db.NewIterator(util.BytesPrefix([]byte(PrefixSignedTxItem)), nil)
+	defer iterator.Release()
+	for iterator.Next() {
+		buf := iterator.Value()
+		if len(buf) == 0 {
+			continue
+		}
+		var txItem SignedTxItem
+		if err := json.Unmarshal(buf, &txItem); err != nil {
+			return nil, fmt.Errorf("fail to unmarshal sign tx items: %w", err)
+		}
+		txItems = append(txItems, txItem)
+	}
+	return txItems, nil
 }
