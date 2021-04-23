@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/big"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/cosmos/cosmos-sdk/crypto/codec"
@@ -18,6 +19,7 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+
 	tssp "gitlab.com/thorchain/tss/go-tss/tss"
 
 	"gitlab.com/thorchain/thornode/bifrost/blockscanner"
@@ -55,6 +57,8 @@ type Client struct {
 	asgardAddresses []common.Address
 	lastAsgard      time.Time
 	tssKeySigner    *tss.KeySign
+	wg              *sync.WaitGroup
+	stopchan        chan struct{}
 }
 
 // NewClient create new instance of Ethereum client
@@ -129,6 +133,8 @@ func NewClient(thorKeys *thorclient.Keys,
 		pubkeyMgr:    pubkeyMgr,
 		poolMgr:      poolMgr,
 		tssKeySigner: tssKm,
+		wg:           &sync.WaitGroup{},
+		stopchan:     make(chan struct{}),
 	}
 
 	var path string // if not set later, will in memory storage
@@ -168,6 +174,8 @@ func (c *Client) Start(globalTxsQueue chan stypes.TxIn, globalErrataQueue chan s
 	c.tssKeySigner.Start()
 	c.blockScanner.Start(globalTxsQueue)
 	c.ethScanner.globalErrataQueue = globalErrataQueue
+	c.wg.Add(1)
+	go c.unstuck()
 }
 
 // Stop ETH client
@@ -175,6 +183,8 @@ func (c *Client) Stop() {
 	c.tssKeySigner.Stop()
 	c.blockScanner.Stop()
 	c.client.Close()
+	close(c.stopchan)
+	c.wg.Wait()
 }
 
 func (c *Client) IsBlockScannerHealthy() bool {
@@ -486,6 +496,7 @@ func (c *Client) SignTx(tx stypes.TxOutItem, height int64) ([]byte, error) {
 	if err != nil || len(rawTx) == 0 {
 		return nil, fmt.Errorf("fail to sign message: %w", err)
 	}
+
 	return rawTx, nil
 }
 
@@ -602,7 +613,7 @@ func (c *Client) GetAccountByAddress(address string) (common.Account, error) {
 }
 
 // BroadcastTx decodes tx using rlp and broadcasts too Ethereum chain
-func (c *Client) BroadcastTx(txOutItem stypes.TxOutItem, hexTx []byte) (string, error) {
+func (c *Client) BroadcastTx(txOutItem stypes.TxOutItem, hexTx []byte, height int64) (string, error) {
 	tx := &etypes.Transaction{}
 	if err := tx.UnmarshalJSON(hexTx); err != nil {
 		return "", err
@@ -612,8 +623,12 @@ func (c *Client) BroadcastTx(txOutItem stypes.TxOutItem, hexTx []byte) (string, 
 	if err := c.client.SendTransaction(ctx, tx); err != nil && err.Error() != ecore.ErrAlreadyKnown.Error() && err.Error() != ecore.ErrNonceTooLow.Error() {
 		return "", err
 	}
-	c.logger.Info().Msgf("broadcast tx with memo: %s to ETH chain , hash: %s", txOutItem.Memo, tx.Hash().String())
-	return tx.Hash().String(), nil
+	txID := tx.Hash().String()
+	c.logger.Info().Msgf("broadcast tx with memo: %s to ETH chain , hash: %s", txOutItem.Memo, txID)
+	if err := c.AddSignedTxItem(txID, height, txOutItem.VaultPubKey.String()); err != nil {
+		c.logger.Err(err).Msgf("fail to add signed tx item,hash:%s")
+	}
+	return txID, nil
 }
 
 // ConfirmationCountReady check whether the given txIn is ready to be send to THORChain
