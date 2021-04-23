@@ -426,6 +426,7 @@ func (h WithdrawLiquidityHandler) handleV45(ctx cosmos.Context, msg MsgWithdrawL
 func (h WithdrawLiquidityHandler) handleV47(ctx cosmos.Context, msg MsgWithdrawLiquidity, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	return h.handleCurrent(ctx, msg, version, constAccessor)
 }
+
 func (h WithdrawLiquidityHandler) handleCurrent(ctx cosmos.Context, msg MsgWithdrawLiquidity, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	lp, err := h.keeper.GetLiquidityProvider(ctx, msg.Asset, msg.WithdrawAddress)
 	if err != nil {
@@ -515,19 +516,44 @@ func (h WithdrawLiquidityHandler) handleCurrent(ctx cosmos.Context, msg MsgWithd
 		}
 	}
 
-	withdrawEvt := NewEventWithdraw(
-		msg.Asset,
-		units,
-		int64(msg.BasisPoints.Uint64()),
-		cosmos.ZeroDec(),
-		msg.Tx,
-		assetAmount,
-		runeAmt,
-		impLossProtection,
-	)
-	if err := h.mgr.EventMgr().EmitEvent(ctx, withdrawEvt); err != nil {
-		return nil, multierror.Append(errFailSaveEvent, err)
+	if units.IsZero() {
+		// withdraw pending liquidity event
+		runeHash := common.TxID("")
+		assetHash := common.TxID("")
+		if msg.Tx.Chain.Equals(common.THORChain) {
+			runeHash = msg.Tx.ID
+		} else {
+			assetHash = msg.Tx.ID
+		}
+		evt := NewEventPendingLiquidity(
+			msg.Asset,
+			WithdrawPendingLiquidity,
+			lp.RuneAddress,
+			runeAmt,
+			lp.AssetAddress,
+			assetAmount,
+			runeHash,
+			assetHash,
+		)
+		if err := h.mgr.EventMgr().EmitEvent(ctx, evt); err != nil {
+			return nil, multierror.Append(errFailSaveEvent, err)
+		}
+	} else {
+		withdrawEvt := NewEventWithdraw(
+			msg.Asset,
+			units,
+			int64(msg.BasisPoints.Uint64()),
+			cosmos.ZeroDec(),
+			msg.Tx,
+			assetAmount,
+			runeAmt,
+			impLossProtection,
+		)
+		if err := h.mgr.EventMgr().EmitEvent(ctx, withdrawEvt); err != nil {
+			return nil, multierror.Append(errFailSaveEvent, err)
+		}
 	}
+
 	// Get rune (if any) and donate it to the reserve
 	coin := msg.Tx.Coins.GetCoin(common.RuneAsset())
 	if !coin.IsEmpty() {
