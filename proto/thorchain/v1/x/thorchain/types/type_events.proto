@@ -50,6 +50,22 @@ message EventWithdraw {
   string imp_loss_protection = 8 [(gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Uint", (gogoproto.nullable) = false];
 }
 
+enum PendingLiquidityType {
+  add = 0;
+  withdraw = 1;
+}
+
+message EventPendingLiquidity {
+  common.Asset pool = 1 [(gogoproto.nullable) = false];
+  PendingLiquidityType pending_type = 2;
+  string rune_address = 3 [(gogoproto.casttype) = "gitlab.com/thorchain/thornode/common.Address"];
+  string rune_amount = 4 [(gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Uint", (gogoproto.nullable) = false];
+  string asset_address = 5 [(gogoproto.casttype) = "gitlab.com/thorchain/thornode/common.Address"];
+  string asset_amount = 6 [(gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Uint", (gogoproto.nullable) = false];
+  string rune_tx_id = 7 [(gogoproto.casttype) = "gitlab.com/thorchain/thornode/common.TxID", (gogoproto.customname) = "RuneTxID"];
+  string asset_tx_id = 8 [(gogoproto.casttype) = "gitlab.com/thorchain/thornode/common.TxID", (gogoproto.customname) = "AssetTxID"];
+}
+
 message EventDonate {
   common.Asset pool = 1 [(gogoproto.nullable) = false];
   common.Tx in_tx = 2 [(gogoproto.nullable) = false];
