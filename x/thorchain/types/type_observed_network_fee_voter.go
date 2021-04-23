@@ -68,5 +68,8 @@ func (m *ObservedNetworkFeeVoter) IsEmpty() bool {
 
 // String implement fmt.Stringer
 func (m *ObservedNetworkFeeVoter) String() string {
+	if m.FeeRate > 0 {
+		return fmt.Sprintf("%s-%d-%d", m.Chain.String(), m.ReportBlockHeight, m.FeeRate)
+	}
 	return fmt.Sprintf("%s-%d", m.Chain.String(), m.ReportBlockHeight)
 }
