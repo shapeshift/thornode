@@ -48,6 +48,10 @@ const (
 	BondReward   = types.BondType_bond_reward
 	AsgardKeygen = types.KeygenType_AsgardKeygen
 
+	// Bond type
+	AddPendingLiquidity      = types.PendingLiquidityType_add
+	WithdrawPendingLiquidity = types.PendingLiquidityType_withdraw
+
 	// Memos
 	TxSwap            = mem.TxSwap
 	TxAdd             = mem.TxAdd
@@ -104,6 +108,7 @@ var (
 	NewEventTssKeygenMetric        = types.NewEventTssKeygenMetric
 	NewEventTssKeysignMetric       = types.NewEventTssKeysignMetric
 	NewEventPoolBalanceChanged     = types.NewEventPoolBalanceChanged
+	NewEventPendingLiquidity       = types.NewEventPendingLiquidity
 	NewPoolMod                     = types.NewPoolMod
 	NewMsgRefundTx                 = types.NewMsgRefundTx
 	NewMsgOutboundTx               = types.NewMsgOutboundTx
