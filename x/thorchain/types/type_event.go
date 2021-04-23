@@ -13,6 +13,7 @@ const (
 	SwapEventType              = `swap`
 	AddLiquidityEventType      = `add_liquidity`
 	WithdrawEventType          = `withdraw`
+	PendingLiquidity           = `pending_liquidity`
 	DonateEventType            = `donate`
 	PoolEventType              = `pool`
 	RewardEventType            = `rewards`
@@ -553,4 +554,52 @@ func (m *EventSwitch) Events() (cosmos.Events, error) {
 		cosmos.NewAttribute("to", m.ToAddress.String()),
 		cosmos.NewAttribute("burn", m.Burn.String()))
 	return cosmos.Events{evt}, nil
+}
+
+// NewEventPendingLiquidity create a new add pending liquidity event
+func NewEventPendingLiquidity(pool common.Asset,
+	ptype PendingLiquidityType,
+	runeAddress common.Address,
+	runeAmount cosmos.Uint,
+	assetAddress common.Address,
+	assetAmount cosmos.Uint,
+	runeTxID,
+	assetTxID common.TxID) *EventPendingLiquidity {
+	return &EventPendingLiquidity{
+		Pool:         pool,
+		PendingType:  ptype,
+		RuneAddress:  runeAddress,
+		RuneAmount:   runeAmount,
+		AssetAddress: assetAddress,
+		AssetAmount:  assetAmount,
+		RuneTxID:     runeTxID,
+		AssetTxID:    assetTxID,
+	}
+}
+
+// Type return the event type
+func (m *EventPendingLiquidity) Type() string {
+	return PendingLiquidity
+}
+
+// Events return cosmos.Events which is cosmos.Attribute(key value pairs)
+func (m *EventPendingLiquidity) Events() (cosmos.Events, error) {
+	evt := cosmos.NewEvent(m.Type(),
+		cosmos.NewAttribute("pool", m.Pool.String()),
+		cosmos.NewAttribute("type", m.PendingType.String()),
+		cosmos.NewAttribute("rune_address", m.RuneAddress.String()),
+		cosmos.NewAttribute("rune_amount", m.RuneAmount.String()),
+		cosmos.NewAttribute("asset_amount", m.AssetAmount.String()),
+		cosmos.NewAttribute("asset_address", m.AssetAddress.String()),
+	)
+	if !m.RuneTxID.Equals(m.AssetTxID) && !m.RuneTxID.IsEmpty() {
+		evt = evt.AppendAttributes(cosmos.NewAttribute(fmt.Sprintf("%s_txid", common.RuneAsset().Chain), m.RuneTxID.String()))
+	}
+
+	if !m.AssetTxID.IsEmpty() {
+		evt = evt.AppendAttributes(cosmos.NewAttribute(fmt.Sprintf("%s_txid", m.Pool.Chain), m.AssetTxID.String()))
+	}
+	return cosmos.Events{
+		evt,
+	}, nil
 }
