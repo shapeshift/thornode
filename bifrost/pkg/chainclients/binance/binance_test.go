@@ -24,7 +24,7 @@ import (
 	"gitlab.com/thorchain/thornode/bifrost/thorclient/types"
 	"gitlab.com/thorchain/thornode/cmd"
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 
 	types2 "gitlab.com/thorchain/thornode/x/thorchain/types"
 )
@@ -287,10 +287,10 @@ func (s *BinancechainSuite) TestSignTx(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(r, NotNil)
 
-	_, err = b2.BroadcastTx(out, r)
+	_, err = b2.BroadcastTx(out, r, 1440)
 	c.Assert(err, IsNil)
 
-	_, err = b2.BroadcastTx(out, r)
+	_, err = b2.BroadcastTx(out, r, 1440)
 	c.Assert(err, IsNil)
 }
 
