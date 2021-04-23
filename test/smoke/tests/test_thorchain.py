@@ -1,5 +1,4 @@
 import unittest
-import logging
 
 from thorchain.thorchain import (
     ThorchainState,
@@ -1080,6 +1079,18 @@ class TestThorchainState(unittest.TestCase):
 
         # check event generated for successful liquidity provision
         expected_events = [
+            Event(
+                "pending_liquidity",
+                [
+                    {"pool": pool.asset},
+                    {"type": "add"},
+                    {"rune_address": tx.from_address},
+                    {"rune_amount": 50000000000},
+                    {"asset_amount": 0},
+                    {"asset_address": "PROVIDER-1"},
+                    {"THOR_txid": tx.id},
+                ],
+            ),
             Event("pool", [{"pool": pool.asset}, {"pool_status": "Available"}]),
             Event(
                 "add_liquidity",
@@ -1520,6 +1531,18 @@ class TestThorchainState(unittest.TestCase):
 
         # check event generated for successful provide liquidity
         expected_events = [
+            Event(
+                "pending_liquidity",
+                [
+                    {"pool": pool.asset},
+                    {"type": "add"},
+                    {"rune_address": tx.from_address},
+                    {"rune_amount": 50000000000},
+                    {"asset_amount": 0},
+                    {"asset_address": "PROVIDER-1"},
+                    {"THOR_txid": tx.id},
+                ],
+            ),
             Event("pool", [{"pool": pool.asset}, {"pool_status": "Available"}]),
             Event(
                 "add_liquidity",
@@ -1850,6 +1873,18 @@ class TestThorchainState(unittest.TestCase):
         self.assertEqual(pool.total_units, 50000000000)
 
         expected_events = [
+            Event(
+                "pending_liquidity",
+                [
+                    {"pool": pool.asset},
+                    {"type": "add"},
+                    {"rune_address": tx.from_address},
+                    {"rune_amount": 50000000000},
+                    {"asset_amount": 0},
+                    {"asset_address": "PROVIDER-1"},
+                    {"THOR_txid": tx.id},
+                ],
+            ),
             Event("pool", [{"pool": pool.asset}, {"pool_status": "Available"}]),
             Event(
                 "add_liquidity",
@@ -1874,7 +1909,6 @@ class TestThorchainState(unittest.TestCase):
             [Coin(RUNE, 1)],
             "WITHDRAW:BNB.BNB:100",
         )
-        logging.info("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
         outbounds = thorchain.handle(tx)
         self.assertEqual(len(outbounds), 2)
         self.assertEqual(outbounds[0].coins[0], Coin(RUNE, 548000000))
@@ -1889,6 +1923,19 @@ class TestThorchainState(unittest.TestCase):
         # check event generated for successful withdraw
         expected_events += [
             Event(
+                "withdraw",
+                [
+                    {"pool": "BNB.BNB"},
+                    {"liquidity_provider_units": "500000000"},
+                    {"basis_points": "100"},
+                    {"asymmetry": "0.000000000000000000"},
+                    {"emit_asset": "51500000"},
+                    {"emit_rune": "550000000"},
+                    {"imp_loss_protection": "0"},
+                    *tx.get_attributes(),
+                ],
+            ),
+            Event(
                 "fee",
                 [
                     {"tx_id": "TODO"},
@@ -1902,19 +1949,6 @@ class TestThorchainState(unittest.TestCase):
                     {"tx_id": "TODO"},
                     {"coins": "2000000 THOR.RUNE"},
                     {"pool_deduct": "0"},
-                ],
-            ),
-            Event(
-                "withdraw",
-                [
-                    {"pool": "BNB.BNB"},
-                    {"liquidity_provider_units": "500000000"},
-                    {"basis_points": "100"},
-                    {"asymmetry": "0.000000000000000000"},
-                    {"emit_asset": "51500000"},
-                    {"emit_rune": "550000000"},
-                    {"imp_loss_protection": "0"},
-                    *tx.get_attributes(),
                 ],
             ),
         ]
@@ -1987,14 +2021,6 @@ class TestThorchainState(unittest.TestCase):
         expected_events += [
             Event("pool", [{"pool": "BNB.BNB"}, {"pool_status": "Staged"}]),
             Event(
-                "fee",
-                [
-                    {"tx_id": "TODO"},
-                    {"coins": "2000000 THOR.RUNE"},
-                    {"pool_deduct": "0"},
-                ],
-            ),
-            Event(
                 "withdraw",
                 [
                     {"pool": "BNB.BNB"},
@@ -2005,6 +2031,14 @@ class TestThorchainState(unittest.TestCase):
                     {"emit_rune": "54448798544"},
                     {"imp_loss_protection": "0"},
                     *tx.get_attributes(),
+                ],
+            ),
+            Event(
+                "fee",
+                [
+                    {"tx_id": "TODO"},
+                    {"coins": "2000000 THOR.RUNE"},
+                    {"pool_deduct": "0"},
                 ],
             ),
         ]

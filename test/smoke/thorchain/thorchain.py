@@ -92,11 +92,21 @@ class ThorchainClient(HttpClient):
             self.process_events(result["end_block_events"])
 
     def process_events(self, events):
+        outbound = []
         for event in events:
             if event["type"] in ["message", "transfer"]:
                 continue
             self.decode_event(event)
             event = Event(event["type"], event["attributes"])
+            # save outbound types for last. Not sure why, but it appears the
+            # outbound of a swap appears first before the swap itself which
+            # causes issues. Making its hacky patch to get it working properly
+            if event.type == "outbound":
+                outbound.append(event)
+                continue
+            self.events.append(event)
+
+        for event in outbound:
             self.events.append(event)
 
     def decode_event(self, event):
@@ -755,13 +765,13 @@ class ThorchainState:
 
         pool = self.get_pool(asset)
 
-        rune_amt = 0
-        asset_amt = 0
+        orig_rune_amt = 0
+        orig_asset_amt = 0
         for coin in tx.coins:
             if coin.is_rune():
-                rune_amt = coin.amount
+                orig_rune_amt = coin.amount
             else:
-                asset_amt = coin.amount
+                orig_asset_amt = coin.amount
 
         # check address to provider to from memo
         if tx.chain == RUNE.get_chain():
@@ -777,14 +787,29 @@ class ThorchainState:
                 asset_address = parts[2]
 
         liquidity_units, rune_amt, asset_amt, pending_txid = pool.add_liquidity(
-            rune_address, asset_address, rune_amt, asset_amt, asset, tx.id
+            rune_address, asset_address, orig_rune_amt, orig_asset_amt, asset, tx.id
         )
         self.set_pool(pool)
 
         # liquidity provision cross chain so event will be dispatched on asset
         # liquidity provision
         if liquidity_units == 0:
+            # generate event for liquidity provision transaction
+            event = Event(
+                "pending_liquidity",
+                [
+                    {"pool": pool.asset},
+                    {"type": "add"},
+                    {"rune_address": rune_address or ""},
+                    {"rune_amount": orig_rune_amt},
+                    {"asset_amount": orig_asset_amt},
+                    {"asset_address": asset_address or ""},
+                    {f"{tx.chain}_txid": tx.id},
+                ],
+            )
+            self.events.append(event)
             return []
+
         if pool.total_units > 0 and len(pool.liquidity_providers) == 1:
             self.events.append(
                 Event("pool", [{"pool": pool.asset}, {"pool_status": "Available"}])
@@ -957,23 +982,38 @@ class ThorchainState:
             ),
         ]
 
-        # generate event for WITHDRAW transaction
-        withdraw_event = Event(
-            "withdraw",
-            [
-                {"pool": pool.asset},
-                {"liquidity_provider_units": withdraw_units},
-                {"basis_points": withdraw_basis_points},
-                {"asymmetry": "0.000000000000000000"},
-                {"emit_asset": asset_amt},
-                {"emit_rune": rune_amt},
-                {"imp_loss_protection": "0"},
-                *tx.get_attributes(),
-            ],
-        )
+        if withdraw_units > 0:
+            # generate event for WITHDRAW transaction
+            withdraw_event = Event(
+                "withdraw",
+                [
+                    {"pool": pool.asset},
+                    {"liquidity_provider_units": withdraw_units},
+                    {"basis_points": withdraw_basis_points},
+                    {"asymmetry": "0.000000000000000000"},
+                    {"emit_asset": asset_amt},
+                    {"emit_rune": rune_amt},
+                    {"imp_loss_protection": "0"},
+                    *tx.get_attributes(),
+                ],
+            )
+            self.events.append(withdraw_event)
+        else:
+            event = Event(
+                "pending_liquidity",
+                [
+                    {"pool": pool.asset},
+                    {"type": "withdraw"},
+                    {"rune_address": from_address or ""},
+                    {"rune_amount": rune_amt},
+                    {"asset_amount": asset_amt},
+                    {"asset_address": to_address or ""},
+                    {f"{tx.chain}_txid": tx.id},
+                ],
+            )
+            self.events.append(event)
 
         outbound = self.handle_fee(tx, out_txs)
-        self.events.append(withdraw_event)
         return outbound
 
     def handle_swap(self, tx):
