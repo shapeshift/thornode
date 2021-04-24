@@ -190,6 +190,11 @@ func (h CommonOutboundTxHandler) handleCurrent(ctx cosmos.Context, version semve
 	// get processed
 	for height := voter.FinalisedHeight; height <= common.BlockHeight(ctx); height += signingTransPeriod {
 
+		if height < common.BlockHeight(ctx)-signingTransPeriod {
+			ctx.Logger().Info("Expired outbound transaction, should slash")
+			continue
+		}
+
 		// update txOut record with our TxID that sent funds out of the pool
 		txOut, err := h.keeper.GetTxOut(ctx, height)
 		if err != nil {
