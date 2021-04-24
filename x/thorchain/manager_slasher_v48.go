@@ -453,7 +453,10 @@ func (s *SlasherV48) SlashVault(ctx cosmos.Context, vaultPK common.PubKey, coins
 		// Ban the node account. Ensure we don't ban more than 1/3rd of any
 		// given active or retiring vault
 		if vault.IsYggdrasil() {
-			toBan := true
+			// TODO: temporally disabling banning for the theft of funds. This
+			// is to give the code time to prove itself reliable before the it
+			// starts booting nodes out of the system
+			toBan := false // TODO flip this to true
 			for _, vaultPk := range na.GetSignerMembership() {
 				vault, err := s.keeper.GetVault(ctx, vaultPk)
 				if err != nil {
