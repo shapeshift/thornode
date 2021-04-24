@@ -91,6 +91,8 @@ func (s *EthereumSuite) SetUpTest(c *C) {
 			httpTestHandler(c, rw, "../../../../test/fixtures/endpoints/inbound_addresses/inbound_addresses.json")
 		case thorclient.AsgardVault:
 			httpTestHandler(c, rw, "../../../../test/fixtures/endpoints/vaults/asgard.json")
+		case thorclient.LastBlockEndpoint:
+			httpTestHandler(c, rw, "../../../../test/fixtures/endpoints/lastblock/root.json")
 		case thorclient.NodeAccountEndpoint:
 			httpTestHandler(c, rw, "../../../../test/fixtures/endpoints/nodeaccount/template.json")
 		default:
