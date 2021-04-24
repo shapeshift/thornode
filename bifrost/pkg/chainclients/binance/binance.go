@@ -459,7 +459,7 @@ func (b *Binance) GetAccountByAddress(address string) (common.Account, error) {
 }
 
 // BroadcastTx is to broadcast the tx to binance chain
-func (b *Binance) BroadcastTx(tx stypes.TxOutItem, hexTx []byte, height int64) (string, error) {
+func (b *Binance) BroadcastTx(tx stypes.TxOutItem, hexTx []byte) (string, error) {
 	u, err := url.Parse(b.cfg.RPCHost)
 	if err != nil {
 		log.Error().Msgf("Error parsing rpc (%s): %s", b.cfg.RPCHost, err)

@@ -397,7 +397,7 @@ func (c *Client) signUTXO(redeemTx *wire.MsgTx, tx stypes.TxOutItem, amount int6
 }
 
 // BroadcastTx will broadcast the given payload to BCH chain
-func (c *Client) BroadcastTx(txOut stypes.TxOutItem, payload []byte, height int64) (string, error) {
+func (c *Client) BroadcastTx(txOut stypes.TxOutItem, payload []byte) (string, error) {
 	redeemTx := wire.NewMsgTx(wire.TxVersion)
 	buf := bytes.NewBuffer(payload)
 	if err := redeemTx.Deserialize(buf); err != nil {

@@ -613,7 +613,7 @@ func (c *Client) GetAccountByAddress(address string) (common.Account, error) {
 }
 
 // BroadcastTx decodes tx using rlp and broadcasts too Ethereum chain
-func (c *Client) BroadcastTx(txOutItem stypes.TxOutItem, hexTx []byte, height int64) (string, error) {
+func (c *Client) BroadcastTx(txOutItem stypes.TxOutItem, hexTx []byte) (string, error) {
 	tx := &etypes.Transaction{}
 	if err := tx.UnmarshalJSON(hexTx); err != nil {
 		return "", err
@@ -625,7 +625,11 @@ func (c *Client) BroadcastTx(txOutItem stypes.TxOutItem, hexTx []byte, height in
 	}
 	txID := tx.Hash().String()
 	c.logger.Info().Msgf("broadcast tx with memo: %s to ETH chain , hash: %s", txOutItem.Memo, txID)
-	if err := c.AddSignedTxItem(txID, height, txOutItem.VaultPubKey.String()); err != nil {
+	blockHeight, err := c.bridge.GetBlockHeight()
+	if err != nil {
+		return "", err
+	}
+	if err := c.AddSignedTxItem(txID, blockHeight, txOutItem.VaultPubKey.String()); err != nil {
 		c.logger.Err(err).Msgf("fail to add signed tx item,hash:%s", txID)
 	}
 	return txID, nil

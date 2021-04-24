@@ -431,7 +431,7 @@ func (s *Signer) signAndBroadcast(item TxOutStoreItem) error {
 		s.logger.Warn().Msgf("signed transaction is empty")
 		return nil
 	}
-	hash, err := chain.BroadcastTx(tx, signedTx, blockHeight)
+	hash, err := chain.BroadcastTx(tx, signedTx)
 	if err != nil {
 		s.logger.Error().Err(err).Msg("fail to broadcast tx to chain")
 		return err

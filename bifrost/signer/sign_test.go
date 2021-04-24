@@ -211,7 +211,7 @@ func (b *MockChainClient) Churn(pubKey common.PubKey, height int64) error {
 	return nil
 }
 
-func (b *MockChainClient) BroadcastTx(_ stypes.TxOutItem, tx []byte, height int64) (string, error) {
+func (b *MockChainClient) BroadcastTx(_ stypes.TxOutItem, tx []byte) (string, error) {
 	return "", nil
 }
 
