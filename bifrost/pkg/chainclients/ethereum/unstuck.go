@@ -61,7 +61,7 @@ func (c *Client) unstuckAction() {
 		}
 
 		if (height - item.Height) < TxWaitBlocks {
-			// not time yet , contine to wait for this tx to commit
+			// not time yet , continue to wait for this tx to commit
 			continue
 		}
 		if err := c.unstuckTx(item.VaultPubKey, item.Hash); err != nil {
@@ -129,10 +129,9 @@ func (c *Client) unstuckTx(vaultPubKey string, hash string) error {
 
 // AddSignedTxItem add the transaction to key value store
 func (c *Client) AddSignedTxItem(hash string, height int64, vaultPubKey string) error {
-	c.ethScanner.blockMetaAccessor.AddSignedTxItem(SignedTxItem{
+	return c.ethScanner.blockMetaAccessor.AddSignedTxItem(SignedTxItem{
 		Hash:        hash,
 		Height:      height,
 		VaultPubKey: vaultPubKey,
 	})
-	return nil
 }
