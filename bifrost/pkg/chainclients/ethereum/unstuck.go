@@ -1,10 +1,12 @@
 package ethereum
 
 import (
+	"errors"
 	"fmt"
 	"math/big"
 	"time"
 
+	"github.com/ethereum/go-ethereum"
 	ecommon "github.com/ethereum/go-ethereum/common"
 	ecore "github.com/ethereum/go-ethereum/core"
 	etypes "github.com/ethereum/go-ethereum/core/types"
@@ -44,7 +46,7 @@ func (c *Client) unstuck() {
 func (c *Client) unstuckAction() {
 	height, err := c.bridge.GetBlockHeight()
 	if err != nil {
-		c.logger.Err(err).Msg("fail to get thorchain block height")
+		c.logger.Err(err).Msg("fail to get THORChain block height")
 		return
 	}
 	signedTxItems, err := c.ethScanner.blockMetaAccessor.GetSignedTxItems()
@@ -74,22 +76,28 @@ func (c *Client) unstuckAction() {
 }
 
 // unstuckTx is the method used to unstuck ETH address
+// when unstuckTx return an err , then the same hash should retry otherwise it can be removed
 func (c *Client) unstuckTx(vaultPubKey string, hash string) error {
 	ctx, cancel := c.getContext()
 	defer cancel()
 	tx, pending, err := c.client.TransactionByHash(ctx, ecommon.HexToHash(hash))
 	if err != nil {
+		if errors.Is(err, ethereum.NotFound) {
+			c.logger.Err(err).Msgf("Transaction with hash: %s doesn't exist on ETH chain anymore", hash)
+			return nil
+		}
 		return fmt.Errorf("fail to get transaction by hash:%s, error:: %w", hash, err)
 	}
 	// the transaction is not pending any more
 	if !pending {
+		c.logger.Info().Msgf("transaction with hash %s already committed on block , don't need to unstuck, remove it", hash)
 		return nil
 	}
 
 	pubKey, err := common.NewPubKey(vaultPubKey)
 	if err != nil {
 		c.logger.Err(err).Msgf("public key: %s is invalid", vaultPubKey)
-		// there is no point to try it again , just remove it
+		// this should not happen , and if it does , there is no point to try it again , just remove it
 		return nil
 	}
 	address, err := pubKey.GetAddress(common.ETHChain)
@@ -99,11 +107,12 @@ func (c *Client) unstuckTx(vaultPubKey string, hash string) error {
 	}
 
 	c.logger.Info().Msgf("cancel tx hash: %s, nonce: %d", hash, tx.Nonce())
+	// double the current suggest gas price
 	currentGasRate := big.NewInt(1).Mul(c.GetGasPrice(), big.NewInt(2))
 	canceltx := etypes.NewTransaction(tx.Nonce(), ecommon.HexToAddress(address.String()), big.NewInt(0), MaxContractGas, currentGasRate, nil)
 	rawBytes, err := c.kw.Sign(canceltx, pubKey)
 	if err != nil {
-		return fmt.Errorf("fail to sign tx for nonce: %d,err: %w", tx.Nonce(), err)
+		return fmt.Errorf("fail to sign tx for cancelling with nonce: %d,err: %w", tx.Nonce(), err)
 	}
 	broadcastTx := &etypes.Transaction{}
 	if err := tx.UnmarshalJSON(rawBytes); err != nil {
