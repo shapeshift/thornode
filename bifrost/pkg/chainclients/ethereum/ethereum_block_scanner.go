@@ -230,6 +230,11 @@ func (e *ETHScanner) updateGasPrice() {
 		e.gasPriceChanged = false
 		return
 	}
+	halfPrevious := big.NewInt(1).Div(e.gasPrice, big.NewInt(2))
+	if gasPrice.Cmp(halfPrevious) < 0 {
+		e.logger.Info().Msgf("new gas price: %s less than half of previous price: %s , ignore", gasPrice, e.gasPrice)
+		return
+	}
 	e.gasPriceChanged = true
 	e.gasPrice = gasPrice
 }
