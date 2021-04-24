@@ -91,6 +91,8 @@ func (s *EthereumSuite) SetUpTest(c *C) {
 			httpTestHandler(c, rw, "../../../../test/fixtures/endpoints/inbound_addresses/inbound_addresses.json")
 		case thorclient.AsgardVault:
 			httpTestHandler(c, rw, "../../../../test/fixtures/endpoints/vaults/asgard.json")
+		case thorclient.LastBlockEndpoint:
+			httpTestHandler(c, rw, "../../../../test/fixtures/endpoints/lastblock/root.json")
 		case thorclient.NodeAccountEndpoint:
 			httpTestHandler(c, rw, "../../../../test/fixtures/endpoints/nodeaccount/template.json")
 		default:
@@ -306,7 +308,7 @@ func (s *EthereumSuite) TestClient(c *C) {
 		"v":"0x25",
 		"r":"0x1b5e176d927f8e9ab405058b2d2457392da3e20f328b16ddabcebc33eaac5fea",
 		"s":"0x4ba69724e8f69de52f0125ad8b3c5c2cef33019bac3249e2c0a2192766d1721c"
-	}`), 1)
+	}`))
 	c.Assert(err, IsNil)
 	input := []byte(`{
     "height": 1,
@@ -343,7 +345,7 @@ func (s *EthereumSuite) TestClient(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(r, NotNil)
 
-	_, err = e2.BroadcastTx(out, r, 1)
+	_, err = e2.BroadcastTx(out, r)
 	c.Assert(err, IsNil)
 }
 
