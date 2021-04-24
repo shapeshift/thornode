@@ -627,7 +627,10 @@ func (c *Client) BroadcastTx(txOutItem stypes.TxOutItem, hexTx []byte) (string, 
 	c.logger.Info().Msgf("broadcast tx with memo: %s to ETH chain , hash: %s", txOutItem.Memo, txID)
 	blockHeight, err := c.bridge.GetBlockHeight()
 	if err != nil {
-		return "", err
+		c.logger.Err(err).Msgf("fail to get current THORChain block height")
+		// at this point , the tx already broadcast successfully , don't return an error
+		// otherwise will cause the same tx to retry
+		return txID, nil
 	}
 	if err := c.AddSignedTxItem(txID, blockHeight, txOutItem.VaultPubKey.String()); err != nil {
 		c.logger.Err(err).Msgf("fail to add signed tx item,hash:%s", txID)
