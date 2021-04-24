@@ -190,16 +190,16 @@ func (s *UnstuckTestSuite) TestUnstuckProcess(c *C) {
 	txID1 := types2.GetRandomTxHash().String()
 	txID2 := types2.GetRandomTxHash().String()
 	// add some thing here
-	e.ethScanner.blockMetaAccessor.AddSignedTxItem(SignedTxItem{
+	c.Assert(e.ethScanner.blockMetaAccessor.AddSignedTxItem(SignedTxItem{
 		Hash:        txID1,
 		Height:      1022,
 		VaultPubKey: pubkey,
-	})
-	e.ethScanner.blockMetaAccessor.AddSignedTxItem(SignedTxItem{
+	}), IsNil)
+	c.Assert(e.ethScanner.blockMetaAccessor.AddSignedTxItem(SignedTxItem{
 		Hash:        txID2,
 		Height:      1024,
 		VaultPubKey: pubkey,
-	})
+	}), IsNil)
 	// this should not do anything , because because all the tx has not been
 	e.unstuckAction()
 	items, err := e.ethScanner.blockMetaAccessor.GetSignedTxItems()
