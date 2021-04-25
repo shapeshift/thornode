@@ -43,7 +43,7 @@ const (
 	decimalMethod          = "decimals"
 	defaultDecimals        = 18 // on ETH , consolidate all decimals to 18, in Wei
 	tenGwei                = 10000000000
-	gasCacheBlocks         = 10
+	gasCacheBlocks         = 20
 )
 
 // ETHScanner is a scanner that understand how to interact with ETH chain ,and scan block , parse smart contract etc
@@ -230,6 +230,11 @@ func (e *ETHScanner) updateGasPrice() {
 		e.gasPriceChanged = false
 		return
 	}
+	halfPrevious := big.NewInt(1).Div(e.gasPrice, big.NewInt(2))
+	if gasPrice.Cmp(halfPrevious) < 0 {
+		e.logger.Info().Msgf("new gas price: %s less than half of previous price: %s , ignore", gasPrice, e.gasPrice)
+		return
+	}
 	e.gasPriceChanged = true
 	e.gasPrice = gasPrice
 }
@@ -385,7 +390,12 @@ func (e *ETHScanner) extractTxs(block *etypes.Block) (stypes.TxIn, error) {
 		if tx.To() == nil {
 			continue
 		}
-
+		// just try to remove the transaction hash from key value store
+		// it doesn't matter whether the transaction is ours or not , success or failure
+		// as long as the transaction id matches
+		if err := e.blockMetaAccessor.RemoveSignedTxItem(tx.Hash().String()); err != nil {
+			e.logger.Err(err).Msgf("fail to remove signed tx item, hash:%s", tx.Hash().String())
+		}
 		txInItem, err := e.fromTxToTxIn(tx)
 		if err != nil {
 			e.logger.Error().Err(err).Str("hash", tx.Hash().Hex()).Msg("fail to get one tx from server")
