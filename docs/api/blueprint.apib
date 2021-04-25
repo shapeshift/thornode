@@ -20,58 +20,158 @@ NOTE: This document is a **work in progress**.
 This section documents the pools API resources.
 
 ## Pool [/thorchain/pool/{asset}]
-
 A pool contains all the information of THORChain liquidity pool
 
 + Parameters
     + asset: `BNB.BNB` (required, string) - The asset of the pool
 
 + Attributes
-    + balance_rune (string) -  Amount of rune the pool has
-    + balance_asset (string) - Amount of asset the pool has
-    + asset (string) -  the asset of the non-rune asset
+    + balance_rune (string) -  amount of rune the pool has
+    + balance_asset (string) - amount of asset the pool has
+    + asset (string) -  pool asset
     + pool_units (string) -  total number of units within the pool
-    + status (string) -  the status of the pool
+    + status (string) -  status of the pool
+    + synth_units (string) -  total number of synth units within the pool
+    + pending_inbound_rune (string) -  amount of pending rune within the pool
+    + pending_inbound_asset (string) -  amount of pending asset within the pool
 
 ### Get a pool [GET]
 Retrieve a liquidity pool with the given asset
 
 + Response 200 (application/json)
-    + Attribute (Pool)
+    + Attributes (Pool)
+    + Body
+
+        {
+          "balance_rune": "13460619152985",
+          "balance_asset": "3197744873",
+          "asset": "BTC.BTC",
+          "pool_units": "14694928607473",
+          "status": "Available",
+          "synth_units": "0",
+          "pending_inbound_rune": "464993836",
+          "pending_inbound_asset": "101713319"
+        }
 
 ### Get all the liquidity pools [GET /thorchain/pools]
 Retrieve all the liquidity pools from THORChain
 
 + Response 200 (application/json)
     + Attributes (array[Pool])
+    + Body
 
-## LiquidityProvider [/thorchain/pool/{asset}/liquidity_providers]
+        [
+          {
+            "balance_rune": "990304018943",
+            "balance_asset": "14902274220",
+            "asset": "BCH.BCH",
+            "pool_units": "944477442283",
+            "status": "Available",
+            "synth_units": "0",
+            "pending_inbound_rune": "0",
+            "pending_inbound_asset": "257058484"
+          },
+          {
+            "balance_rune": "5227668587847",
+            "balance_asset": "117072844569",
+            "asset": "BNB.BNB",
+            "pool_units": "4919785756191",
+            "status": "Available",
+            "synth_units": "0",
+            "pending_inbound_rune": "0",
+            "pending_inbound_asset": "1589030575"
+          },
+          {
+            "balance_rune": "2906260051490",
+            "balance_asset": "643467346",
+            "asset": "BNB.BTCB-1DE",
+            "pool_units": "2816600000000",
+            "status": "Available",
+            "synth_units": "0",
+            "pending_inbound_rune": "0",
+            "pending_inbound_asset": "230000"
+          },
+          {
+            "balance_rune": "2414614240711",
+            "balance_asset": "26650266002988",
+            "asset": "BNB.BUSD-BD1",
+            "pool_units": "2348364113912",
+            "status": "Available",
+            "synth_units": "0",
+            "pending_inbound_rune": "0",
+            "pending_inbound_asset": "82718240853"
+          },
+          {
+            "balance_rune": "9019619987525",
+            "balance_asset": "45893334588",
+            "asset": "ETH.ETH",
+            "pool_units": "8549256862314",
+            "status": "Available",
+            "synth_units": "0",
+            "pending_inbound_rune": "14500000000",
+            "pending_inbound_asset": "64193305"
+          },
+          {
+            "balance_rune": "90000000000",
+            "balance_asset": "33000000000",
+            "asset": "ETH.LINK-0X514910771AF9CA656AF840DFF83E8264ECF986CA",
+            "pool_units": "101000000000",
+            "status": "Staged",
+            "synth_units": "0",
+            "pending_inbound_rune": "0",
+            "pending_inbound_asset": "0"
+          },
+            {
+            "balance_rune": "1028041431770",
+            "balance_asset": "52175862117",
+            "asset": "LTC.LTC",
+            "pool_units": "1076474234756",
+            "status": "Available",
+            "synth_units": "0",
+            "pending_inbound_rune": "6313867419",
+            "pending_inbound_asset": "3910921839"
+          }
+        ]
+
+### Get a liquidity provider of a pool [GET /thorchain/pool/{asset}/liquidity_provider/{address}]
 
 + Parameters
-    + asset: "BNB.BNB" (required, string) - The asset of the pool
+    + asset: `BNB.BNB` (required, string) - The asset of the pool
+    + address: `thorxxxxxxxxxxxxxxxxxxxxxxx` (required, string) - The address of the liquidity provider
 
-+ Attributes (object)
-    + asset (string) -  the asset of the non-rune asset
-    + rune_address (string) - the rune address of the liquidity provider
-    + asset_address (string) - the non-rune asset address of the liquidity provider
-    + last_add (string) - block height of the last add
-    + last_withdraw (string) - block height of the last withdraw
-    + units (string) - the total number of units of the pool
-    + pending_rune (string) - rune that has been provided, but not committed yet. Awaiting a provision of the non-rune asset
-    + pending_asset (string) - asset
-    + pending_tx_id (string) - pending tx id
++ Response 200 (application/json)
+    + Attributes (LiquidityProvider)
+    + Body
 
-### Get all liquidity providers of a pool [GET]
+          {
+            "asset": "BNB.BNB",
+            "rune_address": "thor1xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            "asset_address": "bnb1xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            "last_add_height": 82745,
+            "units": "0",
+            "pending_rune": "0",
+            "pending_asset": "242000000",
+            "pending_tx_Id": "C4C876802xxxxxxxxxxBC408829878446A37011EBBA0C5CAA3DD64A548879CB228",
+            "rune_deposit_value": "0",
+            "asset_deposit_value": "0"
+          }
+
+### Get all liquidity providers of a pool [GET /thorchain/pool/{asset}/liquidity_providers]
+
++ Parameters
+    + asset: `BNB.BNB` (required, string) - The asset of the pool
 
 + Response 200 (application/json)
     + Attributes (array[LiquidityProvider])
 
 # Group Tx
 This section document Tx API resource
+
 ## Tx [/thorchain/tx/{hash}]
 
 + Parameters
     + hash: `E17A0906E015F0C343691C18E475C8CB5F3F6C63F5BCDE0F3A341909763CC92B` (required, string) - Tx hash of an inbound transaction or outbound transaction
+
 + Attributes
     + tx (ObservedTx) -  observed tx information
     + status (enum)
@@ -115,10 +215,10 @@ Retrieve a tx with the given hash from THORChain
             "observed_pub_key": "tthorpub1addwnpepq27ck6u44zl8qqdnmzjjc8rg72amrxrsp42p9vd7kt6marhy6ww76z8shwe"
             }
 
-## txSigners [/thorchain/tx/{hash}/signers]
+## TxSigners [/thorchain/tx/{hash}/signers]
 
 + Parameters
-    + hash: "E17A0906E015F0C343691C18E475C8CB5F3F6C63F5BCDE0F3A341909763CC92B" (required, string) - Tx hash of an inbound transaction or outbound transaction
+    + hash: `E17A0906E015F0C343691C18E475C8CB5F3F6C63F5BCDE0F3A341909763CC92B` (required, string) - Tx hash of an inbound transaction or outbound transaction
 
 + Attributes
     + tx_id (string) - tx hash
@@ -198,13 +298,14 @@ Get tx signers that match the request hash
                 "actions": null,
                 "out_txs": null
             }
-# Group nodes
 
+# Group Nodes
 This section document all the API for Node resource
+
 ## Node [/thorchain/node/{node_address}]
 
 + Parameters
-    + node_address: "tthor1f3s7q037eancht7sg0aj995dht25rwrnu4ats5" (string,required) - node address
+    + node_address: `thor1f3s7q037eancht7sg0aj995dht25rwrnu4ats5` (string,required) - node address
 
 + Attributes
     + node_address (string) - node address
@@ -235,8 +336,8 @@ This section document all the API for Node resource
         + code (string) - error code
 
 ### Get a node [GET]
-
 Retrieve the node with given node address from THORChain
+
 + Response 200 (application/json)
     + Attributes (Node)
     + Body
@@ -290,11 +391,14 @@ Retrieve the node with given node address from THORChain
 
 ### Get all nodes [GET /thorchain/nodes]
 Retrieve all nodes that have bond
+
 + Response 200 (application/json)
     + Attributes (array[Node])
 
-# Group vaults
-## vault [/thorchain/vaults/asgard]
+# Group Vaults
+
+## AsgardVault [/thorchain/vaults/asgard]
+
 + Attributes
     + block_height (string) - block height when the vault get created
     + pub_key (string) - vault's public key
@@ -310,28 +414,11 @@ Retrieve all nodes that have bond
     + routers (array[ChainRouter]) - chain router
     + addresses (array[ChainAddress]) - chain addresses
 
-## yggdrasilvault [/thorchain/vaults/yggdrasil]
-+ Attributes
-    + block_height (string) - block height when the vault get created
-    + pub_key (string) - vault's public key
-    + coins (array[Coin]) - coins in this asgard vault
-    + type (string) - vault type , it could be asgard or yggdrasil
-    + status_since (string) - block height this vault get to current status
-    + membership (array[string]) - a list of node public key , represent which nodes created this vault
-    + chains (array[string]) - a list of chains this vault support
-    + inbound_tx_count (string) - number of inbound tx to this vault , across all chain
-    + outbound_tx_count (string) - number of outbound tx from this vault
-    + pending_tx_heights (array[string]) - pending txes for migration
-    + routers (array[ChainRouter]) - chain router
-    + status (string) - node status , it could be active , standby etc
-    + bond (string) - bond
-    + total_value (string) - total value in this yggdrasil vault
-    + addresses (array[ChainAddress]) - chain addresses
+### Get Asgard vaults [GET]
+Retrieve all current active Asgard vaults from thorchain
 
-### Get asgard vaults [GET]
-Retrieve all current active asgard vaults from thorchain
 + Response 200 (application/json)
-    + Attributes(array[vault])
+    + Attributes (array[AsgardVault])
     + Body
 
             [
@@ -425,10 +512,30 @@ Retrieve all current active asgard vaults from thorchain
                 }
             ]
 
-### get all yggdrasil vaults [GET /thorchain/vaults/yggdrasil]
-Retrieve all yggdrasil vaults from THORChain
+## YggdrasilVault [/thorchain/vaults/yggdrasil]
+
++ Attributes
+    + block_height (string) - block height when the vault get created
+    + pub_key (string) - vault's public key
+    + coins (array[Coin]) - coins in this asgard vault
+    + type (string) - vault type, it could be asgard or yggdrasil
+    + status_since (string) - block height this vault get to current status
+    + membership (array[string]) - a list of node public key, represent which nodes created this vault
+    + chains (array[string]) - a list of chains this vault support
+    + inbound_tx_count (string) - number of inbound tx to this vault, across all chain
+    + outbound_tx_count (string) - number of outbound tx from this vault
+    + pending_tx_heights (array[string]) - pending txes for migration
+    + routers (array[ChainRouter]) - chain router
+    + status (string) - node status, it could be active, standby etc
+    + bond (string) - bond
+    + total_value (string) - total value in this yggdrasil vault
+    + addresses (array[ChainAddress]) - chain addresses
+
+### Get Yggdrasil vaults [GET /thorchain/vaults/yggdrasil]
+Retrieve all Yggdrasil vaults from THORChain
+
 + Response 200 (application/json)
-    + Attributes (array[yggdrasilvault])
+    + Attributes (array[YggdrasilVault])
     + Body
 
             [
@@ -507,12 +614,13 @@ Retrieve all yggdrasil vaults from THORChain
                 }
             ]
 
-### get a vault by pubkey [GET /thorchain/vault/{pubkey}]
+### Get a vault by pubkey [GET /thorchain/vault/{pubkey}]
 
 + Parameters
-    + pubkey: "" (string,required) - pubkey of the vault
+    + pubkey (string,required) - pubkey of the vault
+
 + Response 200 (application/json)
-    + Attributes (vault)
+    + Attributes (AsgardVault)
     + Body
 
             {
@@ -604,12 +712,13 @@ Retrieve all yggdrasil vaults from THORChain
                 ]
             }
 
-### get vault pubkeys [GET /thorchain/vaults/pubkeys]
-Retrieve all vaults' public keys
+### Get vault pubkeys [GET /thorchain/vaults/pubkeys]
+Retrieve all vaults public keys
+
 + Response 200 (application/json)
     + Attributes
-        + asgard (array[string]) - all asgard vaults public key
-        + yggdrasil (array[string]) - all yggdrasil vaults publikc keys
+        + asgard (array[string]) - all Asgard vaults public key
+        + yggdrasil (array[string]) - all Yggdrasil vaults publikc keys
     + Body
 
             {
@@ -618,115 +727,167 @@ Retrieve all vaults' public keys
                 ],
                 "yggdrasil": []
             }
-# Group network
-This section document all api related to network
-## network [/thorchain/network]
+
+# Group Network
+This section document all API related to THORChain network
+
+## Network [/thorchain/network]
 
 + Attributes
     + bond_reward_rune (string) - total amount of awarded rune for node operators
     + total_bond_units (string) - total amount of bond units
     + total_reserve (string) - total amount of reserve in rune
+    + burned_bep_2_rune (string) - total amount of burned BEP2 rune to native rune
+    + burned_erc_20_rune (string) - total amount of burned ERC20 rune to native rune
+
 ### Get network data [GET]
 
 Retrieve network data from THORChain
 
 + Response 200 (applicaton/json)
-    + Attributes(network)
+    + Attributes (Network)
     + Body
 
             {
                 "bond_reward_rune": "857134475040",
                 "total_bond_units": "0",
-                "total_reserve": "21999180112172346"
+                "total_reserve": "21999180112172346",
+                "burned_bep_2_rune": "674699077345087",
+                "burned_erc_20_rune": "66369401654835"
             }
-## inbound_addresses [/thorchain/inbound_addresses]
-inbound addresses will return a list of address , one per chain.  the address might change frequently if THORChain has multiple asgards
+
+## InboundAddresses [/thorchain/inbound_addresses]
+Inbound addresses will return a list of addresses, one per chain. The address might change frequently if THORChain has multiple Asgards.
+
 + Attributes
     + chain (string) - chain
     + pub_key (string) - public key
     + address (string) - address
     + halted (boolean) - indicate whether this chain has halted
-    + gas_rate (string) - gas rate, for ETH , it is in Gwei , for BTC/BCH/LTC it is gas_rate per vbyte
+    + gas_rate (string) - gas rate, for ETH, it is in Gwei, for BTC/BCH/LTC it is gas_rate per vbyte
 
 ### Get inbound addresses [GET]
 Retrieve all the inbound addresses from THORChain
+
 + Response 200 (application/json)
-    + Attributes(array[inbound_addresses])
+    + Attributes (array[InboundAddresses])
     + Body
 
-            
                 [
-                    {
-                    "chain": "BTC",
-                    "pub_key": "tthorpub1addwnpepqd9nqqmgay6mju0yq72ptjucmk9atawtev4v4n6wkee5y26q80eccg0xk37",
-                    "address": "bcrt1q257g60tcxvu4dvflpszgkwq34d5vw6pg726gf3",
-                    "halted": false,
+                  {
+                    "chain": "BCH",
+                    "pub_key": "thorpub1addwnpepq2jqhv5rdqlkusfxy05stfzcgslhhz5qh8pxetw5ry2aa6awgdh3shq8s82",
+                    "address": "qzvhxqm3clrhewqllfmt2ekuaa7puhwpns3kl5nj7a",
                     "gas_rate": "6"
-                    },
-                    {
+                  },
+                  {
                     "chain": "BNB",
-                    "pub_key": "tthorpub1addwnpepqd9nqqmgay6mju0yq72ptjucmk9atawtev4v4n6wkee5y26q80eccg0xk37",
-                    "address": "tbnb1257g60tcxvu4dvflpszgkwq34d5vw6pgvws4qe",
-                    "halted": false,
-                    "gas_rate": "56250"
-                    },
-                    {
+                    "pub_key": "thorpub1addwnpepq2jqhv5rdqlkusfxy05stfzcgslhhz5qh8pxetw5ry2aa6awgdh3shq8s82",
+                    "address": "bnb1n9esxuw8ca7ts8l6w66kdh800s09msvul6vlse",
+                    "halted": true,
+                    "gas_rate": "11250"
+                  },
+                  {
+                    "chain": "BTC",
+                    "pub_key": "thorpub1addwnpepq2jqhv5rdqlkusfxy05stfzcgslhhz5qh8pxetw5ry2aa6awgdh3shq8s82",
+                    "address": "bc1qn9esxuw8ca7ts8l6w66kdh800s09msvutydc46",
+                    "gas_rate": "214"
+                  },
+                  {
                     "chain": "ETH",
-                    "pub_key": "tthorpub1addwnpepqd9nqqmgay6mju0yq72ptjucmk9atawtev4v4n6wkee5y26q80eccg0xk37",
-                    "address": "0xfd9a66fe5eef56951d7e353afb74563ee2df052d",
-                    "halted": false
-                    "gas_rate": "1",
-                    }
+                    "pub_key": "thorpub1addwnpepq2jqhv5rdqlkusfxy05stfzcgslhhz5qh8pxetw5ry2aa6awgdh3shq8s82",
+                    "address": "0x1091c4de6a3cf09cda00abdaed42c7c3b69c83ec",
+                    "router": "0x42A5Ed456650a09Dc10EBc6361A7480fDd61f27B",
+                    "gas_rate": "40"
+                  },
+                  {
+                    "chain": "LTC",
+                    "pub_key": "thorpub1addwnpepq2jqhv5rdqlkusfxy05stfzcgslhhz5qh8pxetw5ry2aa6awgdh3shq8s82",
+                    "address": "ltc1qn9esxuw8ca7ts8l6w66kdh800s09msvu0chud2",
+                    "gas_rate": "147"
+                  }
                 ]
-            
-## last_block_height [/thorchain/lastblock/{chain}]
-last block height
+
+## LastBlockHeight [/thorchain/lastblock/{chain}]
+Last block height per chain
+
 + Parameters
-    + chain: "BNB" (string,required) - chain
+    + chain: `BNB` (string,required) - chain
+
 + Attributes
     + chain (string) - chain
-    + last_observed_in (string) - last observed in block height
-    + last_sign_out (string) - last sign out block height
-    + thorchain (string) - current thorchain block height
+    + last_observed_in (number) - last observed in block height
+    + last_sign_out (number) - last sign out block height
+    + thorchain (number) - current thorchain block height
 
 ### Get last block height per chain [GET]
 Retrieve the last block height information about the request chain
+
 + Response 200 (application/json)
-    + Attributes(array[last_block_height])
+    + Attributes (array[LastBlockHeight])
     + Body
 
             [
-                {
-                    "chain": "BNB",
-                    "last_observed_in": "1590",
-                    "last_signed_out": "109",
-                    "thorchain": "1548"
-                }
+              {
+                "chain": "BNB",
+                "last_observed_in": 159097122,
+                "last_signed_out": 233726,
+                "thorchain": 233735
+              }
             ]
-### Get all last block height [/thorchain/lastblock]
+
+### Get all last block height [GET /thorchain/lastblock]
 Retrieve lastest block infomation across all chains
+
 + Response 200 (application/json)
-    + Attributes(array[last_block_height]
+    + Attributes (array[LastBlockHeight])
     + Body
 
         [
-                {
-                    "chain": "BNB",
-                    "last_observed_in": "1590",
-                    "last_signed_out": "109",
-                    "thorchain": "1548"
-                }
+          {
+            "chain": "BCH",
+            "last_observed_in": 684829,
+            "last_signed_out": 233674,
+            "thorchain": 233727
+          },
+          {
+            "chain": "BNB",
+            "last_observed_in": 159097122,
+            "last_signed_out": 233674,
+            "thorchain": 233727
+          },
+          {
+            "chain": "BTC",
+            "last_observed_in": 680532,
+            "last_signed_out": 233674,
+            "thorchain": 233727
+          },
+          {
+            "chain": "ETH",
+            "last_observed_in": 12308554,
+            "last_signed_out": 233674,
+            "thorchain": 233727
+          },
+          {
+            "chain": "LTC",
+            "last_observed_in": 2040853,
+            "last_signed_out": 233674,
+            "thorchain": 233727
+          }
         ]
-## version [/thorchain/version]
-Network version , it is using semantic version
+
+## Version [/thorchain/version]
+Network version using semantic version
 
 + Attributes
     + current (string) - current version
     + next (string) - next version
+
 ### Get current network version [GET]
 Retrieve current network version from THORChain
+
 + Response 200 (application/json)
-    + Attributes(version)
+    + Attributes (Version)
     + Body
 
             {
@@ -734,72 +895,87 @@ Retrieve current network version from THORChain
                 "next": "0.17.0"
             }
 
-## constants [/thorchain/constants]
-Constant values used by THORChain , some of the values can be overrided by mimir
+## Constants [/thorchain/constants]
+Constant values used by THORChain, some of the values can be overrided by mimir
 
 ### Get constant values from THORChain [GET]
 Retrieve constant values from THORChain
+
 + Response 200 (application/json)
     + Body
 
             {
-                "int_64_values": {
-                    "AsgardSize": 30,
-                    "BadValidatorRate": 60,
-                    "BlocksPerYear": 6311390,
-                    "ChurnInterval": 60,
-                    "ChurnRetryInterval": 30,
-                    "CliTxCost": 0,
-                    "DesiredValidatorSet": 12,
-                    "DoubleSignMaxAge": 24,
-                    "EmissionCurve": 6,
-                    "FailKeygenSlashPoints": 720,
-                    "FailKeysignSlashPoints": 2,
-                    "FundMigrationInterval": 60,
-                    "JailTimeKeygen": 10,
-                    "JailTimeKeysign": 10,
-                    "LackOfObservationPenalty": 2,
-                    "LiquidityLockUpBlocks": 0,
-                    "MinimumBondInRune": 100000000,
-                    "MinimumNodesForBFT": 4,
-                    "MinimumNodesForYggdrasil": 6,
-                    "NativeChainGasFee": 10000000,
-                    "NewPoolCycle": 51840,
-                    "ObservationDelayFlexibility": 5,
-                    "ObserveSlashPoints": 1,
-                    "OldValidatorRate": 60,
-                    "OutboundTransactionFee": 100000000,
-                    "SigningTransactionPeriod": 300,
-                    "YggFundLimit": 50
-                },
-                "bool_values": {
-                    "StrictBondLiquidityRatio": false
-                },
-                "string_values": {
-                    "DefaultPoolStatus": "Enabled"
-                }
+              "int_64_values": {
+                "AsgardSize": 40,
+                "BadValidatorRate": 43200,
+                "BadValidatorRedline": 3,
+                "BlocksPerYear": 5256000,
+                "ChurnInterval": 43200,
+                "ChurnRetryInterval": 720,
+                "DesiredValidatorSet": 100,
+                "DoubleSignMaxAge": 24,
+                "EmissionCurve": 6,
+                "FailKeygenSlashPoints": 720,
+                "FailKeysignSlashPoints": 2,
+                "FullImpLossProtectionBlocks": 1440000,
+                "FundMigrationInterval": 360,
+                "IncentiveCurve": 100,
+                "JailTimeKeygen": 4320,
+                "JailTimeKeysign": 60,
+                "LackOfObservationPenalty": 2,
+                "LiquidityLockUpBlocks": 0,
+                "MaxAvailablePools": 100,
+                "MaxSwapsPerBlock": 100,
+                "MinRunePoolDepth": 1000000000000,
+                "MinSlashPointsForBadValidator": 100,
+                "MinSwapsPerBlock": 10,
+                "MinimumBondInRune": 100000000000000,
+                "MinimumNodesForBFT": 4,
+                "MinimumNodesForYggdrasil": 6,
+                "NativeTransactionFee": 2000000,
+                "ObservationDelayFlexibility": 10,
+                "ObserveSlashPoints": 1,
+                "OldValidatorRate": 43200,
+                "OutboundTransactionFee": 2000000,
+                "PoolCycle": 43200,
+                "SigningTransactionPeriod": 300,
+                "StagedPoolCost": 1000000000,
+                "VirtualMultSynths": 2,
+                "YggFundLimit": 50,
+                "YggFundRetry": 1000
+              },
+              "bool_values": {
+                "StrictBondLiquidityRatio": true
+              },
+              "string_values": {
+                "DefaultPoolStatus": "Staged"
+              }
             }
-## ragnarok [/thorchain/ragnarok]
-This is just a true / false indicate whether THORChain is in ragnarok or not
 
-### Get ragnarok status [GET]
+## Ragnarok [/thorchain/ragnarok]
+This is just a true/false indicate whether THORChain is in Ragnarok or not
+
+### Get Ragnarok status [GET]
 + Response 200 (application/json)
-    + Attributes(boolean)
+    + Attributes (boolean)
     + Body
 
             false
 
-# Group queue
-## outbound queue [/thorchain/queue]
+# Group Queue
+
+## OutboundQueue [/thorchain/queue]
+
 + Attributes
     + swap (number) - number of swaps in the queue
     + outbound (number) - number of outbound tx in the queue for customer
     + internal (number) - number of internal tx in the queue. internal tx include migration,yggdrasil+
 
-### get outbound queue [GET]
+### Get outbound queue [GET]
 Retrieve the outbound queue information from THORChain
+
 + Response 200 (application/json)
-    + Attributes(outbound queue)
+    + Attributes (OutboundQueue)
     + Body
 
             {
@@ -808,12 +984,11 @@ Retrieve the outbound queue information from THORChain
                 "internal": 0
             }
 
-## outbound queue detail [/thorchain/queue/outbound]
+### Get outbound queue detail [GET /thorchain/queue/outbound]
+Get the list of tx out items in the queue
 
-### get outbound queue detail [GET]
-get the list of tx out item in the queue
 + Response 200 (application/json)
-    + Attributes(array[txoutitem])
+    + Attributes (array[TxOutItem])
     + Body
 
             [
@@ -836,21 +1011,26 @@ get the list of tx out item in the queue
                     "in_hash": "0000000000000000000000000000000000000000000000000000000000000000"
                 }
             ]
-# Group keygen/keysign
-## keygen [/thorchain/keygen/{height}/{pubkey}]
+
+# Group Keygen / Keysign
+
+## Keygen [/thorchain/keygen/{height}/{pubkey}]
+
 + Parameters
     + height: 1024 (int,required) - block height
-    + pubkey: "" (string,required) - node public key
+    + pubkey (string,required) - node public key
+
 + Attributes
     + keygen_block
         + height (string) - block height
         + keygens (array[string]) - a list node public keys , indicate who should be part of this keygen
     + signature (string) - base64 encoded signaure of the keygen block
-### get keygen [GET]
-Retrieve keygen block  from THORChain
+
+### Get Keygen [GET]
+Retrieve Keygen block from THORChain
 
 + Response 200 (application/json)
-    + Attributes(keygen)
+    + Attributes (Keygen)
     + Body
 
             {
@@ -861,20 +1041,23 @@ Retrieve keygen block  from THORChain
                 "signature": "NhKsZqRHNIMZ1Dw45/KQqFVcNBkl9B9/2MQrs5EinO4R5XlPSryW6SvRMe1f3//NLJ6yExqjmSBObR5+CClsqw=="
             }
 
-## keysign [/thorchain/keysign/{height}/{pubkey}]
+## Keysign [/thorchain/keysign/{height}/{pubkey}]
+
 + Parameters
     + height: 1024 (int,required) - block height
-    + pubkey: "" (string,required) - node public key
+    + pubkey (string,required) - node public key
+
 + Attributes
     + keysign
         + height (string) - block height
-        + tx_array (array[txoutitem]) - list of tx out items
+        + tx_array (array[TxOutItem]) - list of tx out items
     + signature (string) - base64 encoded signature of keysign
 
-### Get keysign [GET]
-Retrieve keysign information from THORChain
+### Get Keysign [GET]
+Retrieve Keysign information from THORChain
+
 + Response 200 (application/json)
-    + Attributes(keysign)
+    + Attributes (Keysign)
     + Body
 
             {
@@ -907,9 +1090,21 @@ Retrieve keysign information from THORChain
 
 # Data Structures
 
+## LiquidityProvider (object)
++ asset (string) -  the asset of the non-rune asset
++ rune_address (string) - the rune address of the liquidity provider
++ asset_address (string) - the non-rune asset address of the liquidity provider
++ last_add (string) - block height of the last add
++ last_withdraw (string) - block height of the last withdraw
++ units (string) - the total number of units of the pool
++ pending_rune (string) - rune that has been provided, but not committed yet. Awaiting a provision of the non-rune asset
++ pending_asset (string) - asset
++ pending_tx_id (string) - pending tx id
+
 ## Coin (object)
 + asset (string) - asset
 + amount (string) = amount
+
 ## ObservedTx (object)
 + id (string) - transaction hash
 + chain (string) - chain
@@ -918,7 +1113,8 @@ Retrieve keysign information from THORChain
 + coins (array[Coin]) - coins
 + gas  (array[Coin]) - amount of gas paid by the tx
 + memo (string) - memo
-## txoutitem (object)
+
+## TxOutItem (object)
 + chain (string) - chain
 + to (string) - to address
 + vault_pubkey (string) - vault public key
@@ -928,9 +1124,11 @@ Retrieve keysign information from THORChain
 + gas_rate (string) - gas rate , signer has to use this gas rate to sign an outbound tx
 + in_hash (string) - inbound tx hash
 + out_hash (string) - outbound tx hash , this will be available after the txout item had been signed and observed back by bifrost
+
 ## ChainRouter (object)
 + chain (string) - chain
 + router (string) - router address
+
 ## ChainAddress (object)
 + chain (string) - chain
 + address (string) - address
