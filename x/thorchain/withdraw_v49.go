@@ -67,6 +67,14 @@ func withdrawV49(ctx cosmos.Context, version semver.Version, keeper keeper.Keepe
 			assetToWithdraw = common.RuneAsset()
 		}
 	}
+	// this is to safe guard a scenario , if a user add liquidity asymmetrically , and also withdraw asymmetrically
+	// If user add only RUNE, they can't withdraw asset , as there is no asset address
+	// If user add asset only , they can't withdraw RUNE, as there is no RUNE address associated with their record
+	if assetToWithdraw == pool.Asset && lp.AssetAddress.IsEmpty() ||
+		assetToWithdraw == common.RuneAsset() && lp.RuneAddress.IsEmpty() {
+		ctx.Logger().Info("fail to withdraw asymmetrically")
+		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), errWithdrawFail
+	}
 
 	// calculate any impermament loss protection or not
 	protectionRuneAmount := cosmos.ZeroUint()
