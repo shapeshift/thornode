@@ -113,6 +113,7 @@ func NewClient(thorKeys *thorclient.Keys,
 	if err != nil {
 		return nil, err
 	}
+
 	keysignWrapper, err := newKeySignWrapper(ethPrivateKey, pk, tssKm, chainID)
 	if err != nil {
 		return nil, fmt.Errorf("fail to create ETH key sign wrapper: %w", err)
@@ -136,7 +137,10 @@ func NewClient(thorKeys *thorclient.Keys,
 		wg:           &sync.WaitGroup{},
 		stopchan:     make(chan struct{}),
 	}
-
+	c.logger.Info().Msgf("current chain id: %d", chainID.Uint64())
+	if chainID.Uint64() == 0 {
+		return nil, fmt.Errorf("chain id is: %d , invalid", chainID.Uint64())
+	}
 	var path string // if not set later, will in memory storage
 	if len(c.cfg.BlockScanner.DBPath) > 0 {
 		path = fmt.Sprintf("%s/%s", c.cfg.BlockScanner.DBPath, c.cfg.BlockScanner.ChainID)
