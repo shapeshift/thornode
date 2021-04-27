@@ -908,7 +908,7 @@ class ThorchainState:
                 gas = self.get_gas(asset.get_chain(), tx)
                 asset_amt -= int(dynamic_fee)
                 outbound_asset_amt -= dynamic_fee
-                pool.asset_balance += dynamic_fee
+                pool.asset_balance += gas.amount
             elif pool.asset.is_btc():
                 # the last withdraw tx , it need to spend everything
                 # usually it is only 1 UTXO left
