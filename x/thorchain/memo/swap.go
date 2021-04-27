@@ -58,7 +58,7 @@ func ParseSwapMemo(asset common.Asset, parts []string) (SwapMemo, error) {
 		slip = amount
 	}
 
-	if len(parts) >= 5 && len(parts[4]) > 0 && len(parts[5]) > 0 {
+	if len(parts) > 5 && len(parts[4]) > 0 && len(parts[5]) > 0 {
 		affAddr, err = common.NewAddress(parts[4])
 		if err != nil {
 			return SwapMemo{}, err

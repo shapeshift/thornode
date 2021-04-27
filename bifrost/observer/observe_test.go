@@ -4,7 +4,6 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -368,23 +367,4 @@ func (s *ObserverSuite) TestFilterMemoFlag(c *C) {
 		},
 	})
 	c.Assert(result, HasLen, 1)
-}
-
-func (s *ObserverSuite) TestGetAddressToCheck(c *C) {
-	txInItem := types.TxInItem{
-		BlockHeight: 1024,
-		Tx:          "tx1",
-		Memo:        "add:BTC.BTC:tbnb1yeuljgpkg2c2qvx3nlmgv7gvnyss6ye2u8rasf:xxxx",
-		Sender:      thorchain.GetRandomBNBAddress().String(),
-		To:          thorchain.GetRandomBNBAddress().String(),
-		Coins: common.Coins{
-			common.NewCoin(common.BNBAsset, cosmos.NewUint(1024)),
-		},
-		Gas:                 nil,
-		ObservedVaultPubKey: thorchain.GetRandomPubKey(),
-	}
-	addr, err := txInItem.GetAddressToCheck()
-	c.Assert(err, NotNil)
-	c.Assert(errors.Is(err, types.ErrPanicParseMemo), Equals, true)
-	c.Assert(addr.IsEmpty(), Equals, true)
 }
