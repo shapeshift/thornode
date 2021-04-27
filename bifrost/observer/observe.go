@@ -313,15 +313,7 @@ func (o *Observer) filterBinanceMemoFlag(chain common.Chain, items []types.TxInI
 	}
 	for _, txInItem := range items {
 		var addressesToCheck []string
-		addr, err := txInItem.GetAddressToCheck()
-		if err != nil {
-			o.logger.Error().Err(err).Msgf("fail to get address to check")
-			if errors.Is(err, types.ErrPanicParseMemo) {
-				// override the memo as it can't be parsed
-				// so THORNode can refund it
-				txInItem.Memo = "invalid memo"
-			}
-		}
+		addr := txInItem.GetAddressToCheck()
 		if !addr.IsEmpty() && addr.IsChain(common.BNBChain) {
 			addressesToCheck = append(addressesToCheck, addr.String())
 		}
