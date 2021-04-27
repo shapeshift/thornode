@@ -22,7 +22,7 @@ class MockEthereum:
     """
 
     default_gas = 80000
-    gas_price = 1
+    gas_price = 2
     passphrase = "the-passphrase"
     seed = "SEED"
     stake = "ADD"
@@ -238,7 +238,7 @@ class MockEthereum:
         txn.gas = [
             Coin(
                 "ETH.ETH",
-                (receipt.gasUsed + spent_gas) * self.gas_price,
+                (receipt.gasUsed + spent_gas) * 1,
             )
         ]
 
@@ -277,7 +277,7 @@ class Ethereum(GenericChain):
         ):
             gas = 53477
         elif txn.memo == "WITHDRAW:ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A":
-            gas = 26733
+            gas = 26739
         elif txn.memo == "WITHDRAW:ETH.ETH":
-            gas = 35676
-        return Coin(cls.coin, gas * MockEthereum.gas_price)
+            gas = 35652
+        return Coin(cls.coin, gas * 3)
