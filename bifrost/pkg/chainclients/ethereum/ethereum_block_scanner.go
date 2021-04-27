@@ -194,6 +194,10 @@ func (e *ETHScanner) FetchTxs(height int64) (stypes.TxIn, error) {
 		if gasValue == 0 {
 			gasValue = 1
 		}
+		// make it to round up
+		if big.NewInt(1).Mul(big.NewInt(int64(gasValue)), big.NewInt(common.One*100)).Cmp(gasPrice) < 0 {
+			gasValue++
+		}
 		// only report the gas price when it actually get changed
 		if gasValue != e.lastReportedGasPrice {
 			e.lastReportedGasPrice = gasValue
@@ -221,6 +225,9 @@ func (e *ETHScanner) updateGasPrice() {
 	if gasPrice.Cmp(big.NewInt(tenGwei)) < 0 {
 		gasPrice = big.NewInt(tenGwei)
 	}
+	// gasPrice = gasPrice * 1.5
+	gasPrice = big.NewInt(1).Mul(gasPrice, big.NewInt(3))
+	gasPrice = big.NewInt(1).Div(gasPrice, big.NewInt(2))
 	e.gasCache = append(e.gasCache, gasPrice)
 	if len(e.gasCache) > gasCacheBlocks {
 		e.gasCache = e.gasCache[(len(e.gasCache) - gasCacheBlocks):]
