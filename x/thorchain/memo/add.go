@@ -37,7 +37,7 @@ func ParseAddLiquidityMemo(asset common.Asset, parts []string) (AddLiquidityMemo
 		}
 	}
 
-	if len(parts) >= 4 && len(parts[3]) > 0 && len(parts[4]) > 0 {
+	if len(parts) > 4 && len(parts[3]) > 0 && len(parts[4]) > 0 {
 		affAddr, err = common.NewAddress(parts[3])
 		if err != nil {
 			return AddLiquidityMemo{}, err

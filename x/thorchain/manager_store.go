@@ -62,11 +62,33 @@ func (smgr *StoreMgr) migrate(ctx cosmos.Context, i uint64, constantAccessor con
 		smgr.migrateStoreV43(ctx, version, constantAccessor)
 	case 46:
 		smgr.migrateStoreV46(ctx, version, constantAccessor)
+	case 49:
+		smgr.migrateStoreV49(ctx, version, constantAccessor)
 	}
 
 	smgr.keeper.SetStoreVersion(ctx, int64(i))
 	return nil
 }
+
+func (smgr *StoreMgr) migrateStoreV49(ctx cosmos.Context, version semver.Version, constantAccessor constants.ConstantValues) {
+	// due to a withdrawal bug, this user lost their BTC. Recuperate a user's
+	// lost pending asset
+	lp := LiquidityProvider{
+		Asset:              common.BTCAsset,
+		RuneAddress:        common.Address("thor1anzpcqcanagcplxq7ppc7cveueg097d0594k9g"),
+		AssetAddress:       common.Address("bc1qqjr5twftctxf5u77wzvdks07p9gujql6dn97qz"),
+		LastAddHeight:      0,
+		LastWithdrawHeight: 0,
+		Units:              cosmos.ZeroUint(),
+		PendingRune:        cosmos.ZeroUint(),
+		PendingAsset:       cosmos.NewUint(40181088),
+		PendingTxID:        common.TxID("AE5F42C21F22CB36DDCCE8D0971C8F258783EE92244048BBE106845900C17136"),
+		RuneDepositValue:   cosmos.ZeroUint(),
+		AssetDepositValue:  cosmos.ZeroUint(),
+	}
+	smgr.keeper.SetLiquidityProvider(ctx, lp)
+}
+
 func (smgr *StoreMgr) migrateStoreV46(ctx cosmos.Context, version semver.Version, constantAccessor constants.ConstantValues) {
 	// housekeeping, deleting unused mimir settings
 	_ = smgr.keeper.DeleteMimir(ctx, "SIGNINGTRANSACTIONPERIOD")
@@ -124,6 +146,7 @@ func (smgr *StoreMgr) migrateStoreV46(ctx cosmos.Context, version semver.Version
 		ctx.Logger().Error("fail to save vault", "error", err)
 	}
 }
+
 func (smgr *StoreMgr) migrateStoreV43(ctx cosmos.Context, version semver.Version, constantAccessor constants.ConstantValues) {
 	// housekeeping, deleting unused mimir settings
 	_ = smgr.keeper.DeleteMimir(ctx, "NEWPOOLCYCLE")
