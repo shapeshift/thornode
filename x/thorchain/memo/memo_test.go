@@ -48,6 +48,9 @@ func (s *MemoSuite) TestParseWithAbbreviated(c *C) {
 	c.Check(memo.IsInternal(), Equals, false)
 	c.Check(memo.IsOutbound(), Equals, false)
 
+	memo, err = ParseMemo("add:BTC.BTC:tbnb1yeuljgpkg2c2qvx3nlmgv7gvnyss6ye2u8rasf:xxxx")
+	c.Assert(err, IsNil)
+
 	memo, err = ParseMemo(fmt.Sprintf("-:%s:25", common.RuneAsset().String()))
 	c.Assert(err, IsNil)
 	c.Check(memo.GetAsset().String(), Equals, common.RuneAsset().String())
