@@ -64,7 +64,6 @@ class MockLitecoin(HttpClient):
                         avg_fee_rate = 4  # min_relay_fee / avg_tx_size
                     self.feeRateCache.append(avg_fee_rate)
                     avg_fee_rate = max(self.feeRateCache[-1 * self.feeRateCacheBlock :])
-                    logging.info(f"fee rate:${avg_fee_rate}")
                     self.block_stats["tx_rate"] = avg_fee_rate
                     self.block_stats["tx_size"] = avg_tx_size
             except Exception:
