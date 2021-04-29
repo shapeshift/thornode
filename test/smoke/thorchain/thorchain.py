@@ -1,6 +1,8 @@
 import base64
 import logging
 import threading
+import time
+
 import websocket
 import json
 from copy import deepcopy
@@ -41,6 +43,8 @@ class ThorchainClient(HttpClient):
         super().__init__(api_url)
 
         self.wait_for_node()
+        # wait for bifrost to start up
+        time.sleep(40)
         self.rpc = HttpClient(self.get_rpc_url())
 
         if enable_websocket:
