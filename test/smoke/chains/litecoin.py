@@ -30,13 +30,12 @@ class MockLitecoin(HttpClient):
         "e810f1d7d6691b4a7a73476f3543bd87d601f9a53e7faf670eac2c5b517d83bf",
         "a96e62ed3955e65be32703f12d87b6b5cf26039ecfa948dc5107a495418e5330",
         "9294f4d108465fd293f7fe299e6923ef71a77f2cb1eb6d4394839c64ec25d5c0",
-        ]
+    ]
     default_gas = 100000
     block_stats = {
         "tx_rate": 0,
         "tx_size": 0,
-        }
-
+    }
     feeRateCache = []
     feeRateCacheBlock = 10
 
@@ -47,11 +46,11 @@ class MockLitecoin(HttpClient):
 
         for key in self.private_keys:
             seckey = CBitcoinRegtestKey.from_secret_bytes(
-                    codecs.decode(key, "hex_codec")
-                    )
+                codecs.decode(key, "hex_codec")
+            )
             self.call("importprivkey", str(seckey))
 
-        threading.Thread(target = self.scan_blocks, daemon = True).start()
+        threading.Thread(target=self.scan_blocks, daemon=True).start()
 
     def scan_blocks(self):
         while True:
@@ -60,7 +59,6 @@ class MockLitecoin(HttpClient):
                 avg_fee_rate = result["avgfeerate"]
                 avg_tx_size = 250  # result["mediantxsize"]
                 if avg_fee_rate != 0:
-
                     min_relay_fee = 1000  # sats
                     if avg_fee_rate * avg_tx_size < min_relay_fee:
                         avg_fee_rate = 4  # min_relay_fee / avg_tx_size
@@ -93,7 +91,7 @@ class MockLitecoin(HttpClient):
             "version": "1.1",
             "method": service,
             "params": args,
-            }
+        }
         result = self.post("/", payload)
         if result.get("error"):
             raise result["error"]
@@ -118,7 +116,7 @@ class MockLitecoin(HttpClient):
         """
         return self.call("getblockhash", int(block_height))
 
-    def get_block_stats(self, block_height = None):
+    def get_block_stats(self, block_height=None):
         """
         Get the block hash for a height
         """
@@ -150,7 +148,7 @@ class MockLitecoin(HttpClient):
         unspents = self.call("listunspent", 1, 9999999, [address])
         return int(sum(Decimal(u["amount"]) for u in unspents) * Coin.ONE)
 
-    @retry(stop = stop_after_delay(30), wait = wait_fixed(1))
+    @retry(stop=stop_after_delay(30), wait=wait_fixed(1))
     def wait_for_node(self):
         """
         Litecoin regtest node is started with directly mining 100 blocks
@@ -198,8 +196,8 @@ class MockLitecoin(HttpClient):
         address = txn.from_address
         min_amount = float(amount + (self.default_gas / Coin.ONE))  # add more for fee
         unspents = self.call(
-                "listunspent", 1, 9999, [str(address)], True, {"minimumAmount": min_amount}
-                )
+            "listunspent", 1, 9999, [str(address)], True, {"minimumAmount": min_amount}
+        )
         if len(unspents) == 0:
             raise Exception(f"Cannot transfer. No LTC UTXO available for {address}")
 
