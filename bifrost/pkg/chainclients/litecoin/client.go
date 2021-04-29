@@ -609,12 +609,12 @@ func (c *Client) sendNetworkFee(height int64) error {
 	}
 	feeRate = c.getHighestFeeRate()
 	if c.lastFeeRate != feeRate {
-		c.lastFeeRate = feeRate
 		txid, err := c.bridge.PostNetworkFee(height, common.LTCChain, uint64(EstimateAverageTxSize), feeRate)
 		if err != nil {
 			return fmt.Errorf("fail to post network fee to thornode: %w", err)
 		}
-		c.logger.Debug().Str("txid", txid.String()).Msg("send network fee to THORNode successfully")
+		c.logger.Info().Str("txid", txid.String()).Msgf("send network fee to THORNode successfully,fee rate: %d", feeRate)
+		c.lastFeeRate = feeRate
 	}
 	return nil
 }
