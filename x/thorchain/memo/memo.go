@@ -175,27 +175,31 @@ func (m MemoBase) IsInbound() bool                  { return m.TxType.IsInbound(
 func (m MemoBase) IsInternal() bool                 { return m.TxType.IsInternal() }
 func (m MemoBase) IsEmpty() bool                    { return m.TxType.IsEmpty() }
 
-func ParseMemo(memo string) (Memo, error) {
-	var err error
-	noMemo := MemoBase{TxType: TxUnknown}
+func ParseMemo(memo string) (mem Memo, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("panicked parsing memo(%s), err: %s", memo, r)
+		}
+	}()
+	mem = MemoBase{TxType: TxUnknown}
 	if len(memo) == 0 {
-		return noMemo, fmt.Errorf("memo can't be empty")
+		return mem, fmt.Errorf("memo can't be empty")
 	}
 	parts := strings.Split(memo, ":")
 	tx, err := StringToTxType(parts[0])
 	if err != nil {
-		return noMemo, err
+		return mem, err
 	}
 
 	var asset common.Asset
 	switch tx {
 	case TxDonate, TxAdd, TxSwap, TxWithdraw:
 		if len(parts) < 2 {
-			return noMemo, fmt.Errorf("cannot parse given memo: length %d", len(parts))
+			return mem, fmt.Errorf("cannot parse given memo: length %d", len(parts))
 		}
 		asset, err = common.NewAsset(parts[1])
 		if err != nil {
-			return noMemo, err
+			return mem, err
 		}
 	}
 
@@ -233,6 +237,6 @@ func ParseMemo(memo string) (Memo, error) {
 	case TxNoOp:
 		return ParseNoOpMemo(parts)
 	default:
-		return noMemo, fmt.Errorf("TxType not supported: %s", tx.String())
+		return mem, fmt.Errorf("TxType not supported: %s", tx.String())
 	}
 }
