@@ -1,7 +1,6 @@
 import base64
 import logging
 import threading
-import time
 
 import websocket
 import json
@@ -182,7 +181,7 @@ class ThorchainClient(HttpClient):
         return self.rpc.fetch(f"/block_results?height={block_height}")
 
     def get_bifrost_p2pid(self):
-        return self.bifrost.fetch(f"/p2pid")
+        return self.bifrost.fetch("/p2pid")
 
 
 class ThorchainState:
