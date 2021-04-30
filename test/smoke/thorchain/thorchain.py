@@ -181,10 +181,7 @@ class ThorchainClient(HttpClient):
         return self.rpc.fetch(f"/block_results?height={block_height}")
 
     def get_bifrost_p2pid(self):
-        url = self.get_url("/p2pid")
-        resp = requests_retry_session().get(url, params=args)
-        resp.raise_for_status()
-        return resp
+        return self.bifrost.fetch_plain("/p2pid")
 
 
 class ThorchainState:
