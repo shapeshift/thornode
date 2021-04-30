@@ -36,6 +36,8 @@ class MockLitecoin(HttpClient):
         "tx_rate": 0,
         "tx_size": 0,
     }
+    feeRateCache = []
+    feeRateCacheBlock = 10
 
     def __init__(self, base_url):
         super().__init__(base_url)
@@ -60,6 +62,8 @@ class MockLitecoin(HttpClient):
                     min_relay_fee = 1000  # sats
                     if avg_fee_rate * avg_tx_size < min_relay_fee:
                         avg_fee_rate = 4  # min_relay_fee / avg_tx_size
+                    self.feeRateCache.append(avg_fee_rate)
+                    avg_fee_rate = max(self.feeRateCache[-1 * self.feeRateCacheBlock :])
                     self.block_stats["tx_rate"] = avg_fee_rate
                     self.block_stats["tx_size"] = avg_tx_size
             except Exception:

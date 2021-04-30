@@ -82,6 +82,15 @@ class HttpClient:
         resp.raise_for_status()
         return resp.json()
 
+    def fetch_plain(self, path, args={}):
+        """
+        Make a get request , return the plain response
+        """
+        url = self.get_url(path)
+        resp = requests_retry_session().get(url, params=args)
+        resp.raise_for_status()
+        return resp.text
+
     def post(self, path, payload={}):
         """
         Make a post request
