@@ -25,6 +25,8 @@ services:
       PEER: ${PEER:-}
       SIGNER_PASSWD: ${SIGNER_PASSWD:-}
       SIGNER_SEED_PHRASE: ${SIGNER_SEED_PHRASE:-}
+    ports:
+      - "6040:6040"
     entrypoint:
       /docker/scripts/bifrost.sh
     volumes:

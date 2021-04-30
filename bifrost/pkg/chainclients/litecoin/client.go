@@ -38,6 +38,7 @@ const (
 	// EstimateAverageTxSize for THORChain the estimate tx size is hard code to 250 here , as most of time it will spend 1 input, have 3 output
 	EstimateAverageTxSize = 250
 	DefaultCoinbaseValue  = 12.5
+	gasCacheBlocks        = 10
 )
 
 // Client observes litecoin chain and allows to sign and broadcast tx
@@ -59,6 +60,8 @@ type Client struct {
 	lastAsgard         time.Time
 	minRelayFeeSats    uint64
 	tssKeySigner       *tss.KeySign
+	lastFeeRate        uint64
+	feeRateCache       []uint64
 }
 
 // NewClient generates a new Client
@@ -575,6 +578,15 @@ func (c *Client) updateNetworkInfo() {
 	c.minRelayFeeSats = uint64(amt.ToUnit(ltcutil.AmountSatoshi))
 }
 
+func (c *Client) getHighestFeeRate() uint64 {
+	var feeRate uint64
+	for _, item := range c.feeRateCache {
+		if item > feeRate {
+			feeRate = item
+		}
+	}
+	return feeRate
+}
 func (c *Client) sendNetworkFee(height int64) error {
 	result, err := c.client.GetBlockStats(height, nil)
 	if err != nil {
@@ -584,18 +596,26 @@ func (c *Client) sendNetworkFee(height int64) error {
 	if result.AverageFeeRate == 0 {
 		return nil
 	}
-	feeRate := result.AverageFeeRate
-	if EstimateAverageTxSize*uint64(feeRate) < c.minRelayFeeSats {
-		feeRate = int64(c.minRelayFeeSats) / EstimateAverageTxSize
-		if uint64(feeRate)*EstimateAverageTxSize < c.minRelayFeeSats {
+	feeRate := uint64(result.AverageFeeRate)
+	if EstimateAverageTxSize*feeRate < c.minRelayFeeSats {
+		feeRate = c.minRelayFeeSats / EstimateAverageTxSize
+		if feeRate*EstimateAverageTxSize < c.minRelayFeeSats {
 			feeRate++
 		}
 	}
-	txid, err := c.bridge.PostNetworkFee(height, common.LTCChain, uint64(EstimateAverageTxSize), uint64(feeRate))
-	if err != nil {
-		return fmt.Errorf("fail to post network fee to thornode: %w", err)
+	c.feeRateCache = append(c.feeRateCache, feeRate)
+	if len(c.feeRateCache) >= gasCacheBlocks {
+		c.feeRateCache = c.feeRateCache[len(c.feeRateCache)-gasCacheBlocks:]
 	}
-	c.logger.Debug().Str("txid", txid.String()).Msg("send network fee to THORNode successfully")
+	feeRate = c.getHighestFeeRate()
+	if c.lastFeeRate != feeRate {
+		txid, err := c.bridge.PostNetworkFee(height, common.LTCChain, uint64(EstimateAverageTxSize), feeRate)
+		if err != nil {
+			return fmt.Errorf("fail to post network fee to thornode: %w", err)
+		}
+		c.logger.Info().Str("txid", txid.String()).Msgf("send network fee to THORNode successfully,fee rate: %d", feeRate)
+		c.lastFeeRate = feeRate
+	}
 	return nil
 }
 
