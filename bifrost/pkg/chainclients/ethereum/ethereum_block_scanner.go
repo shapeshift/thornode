@@ -853,7 +853,7 @@ func (e *ETHScanner) getTxInFromSmartContract(tx *etypes.Transaction) (*stypes.T
 	ethValue := cosmos.NewUintFromBigInt(tx.Value())
 	if !ethValue.IsZero() {
 		ethValue = e.convertAmount(ethToken, tx.Value())
-		if txInItem.Coins.GetCoin(common.ETHAsset).IsEmpty() {
+		if txInItem.Coins.GetCoin(common.ETHAsset).IsEmpty() && !ethValue.IsZero() {
 			txInItem.Coins = append(txInItem.Coins, common.NewCoin(common.ETHAsset, ethValue))
 		}
 	}
