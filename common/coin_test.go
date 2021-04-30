@@ -52,3 +52,14 @@ func (s CoinSuite) TestAdds(c *C) {
 	c.Check(newCoins.GetCoin(BNBAsset).Amount.Uint64(), Equals, uint64(2000))
 	c.Check(newCoins.GetCoin(BTCAsset).Amount.Uint64(), Equals, uint64(1000))
 }
+
+func (s CoinSuite) TestNoneEmpty(c *C) {
+	coins := Coins{
+		NewCoin(BNBAsset, cosmos.NewUint(1000)),
+		NewCoin(ETHAsset, cosmos.ZeroUint()),
+	}
+	newCoins := coins.NoneEmpty()
+	c.Assert(newCoins, HasLen, 1)
+	ethCoin := newCoins.GetCoin(ETHAsset)
+	c.Assert(ethCoin.IsEmpty(), Equals, true)
+}
