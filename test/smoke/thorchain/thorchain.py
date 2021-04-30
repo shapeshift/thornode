@@ -43,8 +43,8 @@ class ThorchainClient(HttpClient):
         super().__init__(api_url)
 
         self.wait_for_node()
-        # wait for bifrost to start up
-        time.sleep(40)
+        self.bifrost = HttpClient(self.get_bifrost_url())
+        self.wait_for_bifrost()
         self.rpc = HttpClient(self.get_rpc_url())
 
         if enable_websocket:
@@ -66,11 +66,22 @@ class ThorchainClient(HttpClient):
         url = self.base_url.replace("1317", "26657")
         return url
 
+    def get_bifrost_url(self):
+        url = self.base_url.replace("1317", "6040")
+        return url
+
     @retry(stop=stop_after_delay(120), wait=wait_fixed(1))
     def wait_for_node(self):
         current_height = self.get_block_height()
         if current_height < 1:
             logging.warning("Thorchain starting, waiting")
+            raise Exception
+
+    @retry(stop=stop_after_delay(120), wait=wait_fixed(1))
+    def wait_for_bifrost(self):
+        p2pid = self.get_bifrost_p2pid()
+        if len(p2pid) <= 0:
+            logging.warning("Bifrost starting, waiting")
             raise Exception
 
     def ws_open(self):
@@ -169,6 +180,9 @@ class ThorchainClient(HttpClient):
 
     def get_events(self, block_height):
         return self.rpc.fetch(f"/block_results?height={block_height}")
+
+    def get_bifrost_p2pid(self):
+        return self.bifrost.fetch(f"/p2pid")
 
 
 class ThorchainState:
