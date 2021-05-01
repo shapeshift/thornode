@@ -40,6 +40,7 @@ const (
 	EstimateAverageTxSize  = 1500
 	EstimateAverageFeeRate = 610000 // DOGE/byte
 	DefaultCoinbaseValue   = 10000
+	gasCacheBlocks         = 10
 )
 
 // Client observes dogecoin chain and allows to sign and broadcast tx
@@ -61,6 +62,8 @@ type Client struct {
 	lastAsgard         time.Time
 	minRelayFeeSats    uint64
 	tssKeySigner       *tss.KeySign
+	lastFeeRate        uint64
+	feeRateCache       []uint64
 }
 
 // NewClient generates a new Client
@@ -575,10 +578,21 @@ func (c *Client) updateNetworkInfo() {
 	}
 	c.minRelayFeeSats = uint64(amt.ToUnit(dogutil.AmountSatoshi))
 }
-
+func (c *Client) getHighestFeeRate() uint64 {
+	var feeRate uint64
+	for _, item := range c.feeRateCache {
+		if item > feeRate {
+			feeRate = item
+		}
+	}
+	return feeRate
+}
 func (c *Client) sendNetworkFee(height int64) error {
 	feeRate := uint64(EstimateAverageFeeRate)
 	result, err := c.client.EstimateSmartFee(1, &btcjson.EstimateModeConservative)
+	if err != nil {
+		return fmt.Errorf("fail to estimate smart fee: %w", err)
+	}
 	if err == nil && *result.FeeRate != float64(-1) {
 		feeRate = uint64(*result.FeeRate * common.One)
 	}
@@ -588,11 +602,19 @@ func (c *Client) sendNetworkFee(height int64) error {
 			feeRate++
 		}
 	}
-	txid, err := c.bridge.PostNetworkFee(height, common.DOGEChain, uint64(EstimateAverageTxSize), feeRate)
-	if err != nil {
-		return fmt.Errorf("fail to post network fee to thornode: %w", err)
+	c.feeRateCache = append(c.feeRateCache, feeRate)
+	if len(c.feeRateCache) >= gasCacheBlocks {
+		c.feeRateCache = c.feeRateCache[len(c.feeRateCache)-gasCacheBlocks:]
 	}
-	c.logger.Debug().Str("txid", txid.String()).Msg("send network fee to THORNode successfully")
+	feeRate = c.getHighestFeeRate()
+	if c.lastFeeRate != feeRate {
+		txid, err := c.bridge.PostNetworkFee(height, common.DOGEChain, uint64(EstimateAverageTxSize), feeRate)
+		if err != nil {
+			return fmt.Errorf("fail to post network fee to thornode: %w", err)
+		}
+		c.logger.Debug().Str("txid", txid.String()).Msg("send network fee to THORNode successfully")
+		c.lastFeeRate = feeRate
+	}
 	return nil
 }
 
