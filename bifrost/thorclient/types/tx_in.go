@@ -1,7 +1,6 @@
 package types
 
 import (
-	"fmt"
 	"strings"
 
 	"gitlab.com/thorchain/thornode/common"
@@ -43,24 +42,12 @@ type TxInStatusItem struct {
 	Status TxInStatus `json:"status"`
 }
 
-var ErrPanicParseMemo = fmt.Errorf("panic while parse memo")
-
-func (t TxInItem) GetAddressToCheck() (addr common.Address, err error) {
-	defer func() {
-		if recoverErr := recover(); recoverErr != nil {
-			addr = common.NoAddress
-			err = fmt.Errorf("fail to parse memo(%s),err:%s,%w", t.Memo, recoverErr, ErrPanicParseMemo)
-		}
-	}()
-	addr = common.NoAddress
-	err = nil
-	m, parseErr := memo.ParseMemo(t.Memo)
-	if parseErr != nil {
-		err = parseErr
-		return
+func (t TxInItem) GetAddressToCheck() common.Address {
+	m, err := memo.ParseMemo(t.Memo)
+	if err != nil {
+		return common.NoAddress
 	}
-	addr = m.GetDestination()
-	return
+	return m.GetDestination()
 }
 
 // IsEmpty return true only when every field in TxInItem is empty

@@ -225,3 +225,16 @@ func (cs Coins) HasNoneNativeRune() bool {
 	}
 	return false
 }
+
+// NoneEmpty return a new Coins , which ignore the coin that is empty
+// either Coin asset is empty or amount is empty
+func (cs Coins) NoneEmpty() Coins {
+	newCoins := Coins{}
+	for _, item := range cs {
+		if item.IsEmpty() {
+			continue
+		}
+		newCoins = append(newCoins, item)
+	}
+	return newCoins
+}
