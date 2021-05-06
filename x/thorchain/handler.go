@@ -107,6 +107,7 @@ func getInternalHandlerMapping(keeper keeper.Keeper, mgr Manager) map[string]Msg
 	m[MsgRagnarok{}.Type()] = NewRagnarokHandler(keeper, mgr)
 	m[MsgSwitch{}.Type()] = NewSwitchHandler(keeper, mgr)
 	m[MsgNoOp{}.Type()] = NewNoOpHandler(keeper, mgr)
+	m[MsgConsolidate{}.Type()] = NewConsolidateHandler(keeper, mgr)
 	return m
 }
 
