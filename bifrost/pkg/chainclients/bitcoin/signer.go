@@ -495,7 +495,7 @@ func (c *Client) consolidateUTXOs() {
 			Coins: common.Coins{
 				common.NewCoin(common.BTCAsset, cosmos.NewUint(uint64(amt))),
 			},
-			Memo:    "consolidate",
+			Memo:    mem.NewConsolidateMemo().String(),
 			MaxGas:  nil,
 			GasRate: int64(feeRate),
 		}
