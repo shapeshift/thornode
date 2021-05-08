@@ -46,28 +46,29 @@ const (
 
 // Client observes dogecoin chain and allows to sign and broadcast tx
 type Client struct {
-	logger             zerolog.Logger
-	cfg                config.ChainConfiguration
-	client             *rpcclient.Client
-	chain              common.Chain
-	privateKey         *btcec.PrivateKey
-	blockScanner       *blockscanner.BlockScanner
-	blockMetaAccessor  BlockMetaAccessor
-	ksWrapper          *KeySignWrapper
-	bridge             *thorclient.ThorchainBridge
-	globalErrataQueue  chan<- types.ErrataBlock
-	nodePubKey         common.PubKey
-	lastMemPoolScan    time.Time
-	currentBlockHeight int64
-	asgardAddresses    []common.Address
-	lastAsgard         time.Time
-	minRelayFeeSats    uint64
-	tssKeySigner       *tss.KeySign
-	lastFeeRate        uint64
-	feeRateCache       []uint64
-	wg                 *sync.WaitGroup
-	signerLock         *sync.Mutex
-	vaultSignerLocks   map[string]*sync.Mutex
+	logger                zerolog.Logger
+	cfg                   config.ChainConfiguration
+	client                *rpcclient.Client
+	chain                 common.Chain
+	privateKey            *btcec.PrivateKey
+	blockScanner          *blockscanner.BlockScanner
+	blockMetaAccessor     BlockMetaAccessor
+	ksWrapper             *KeySignWrapper
+	bridge                *thorclient.ThorchainBridge
+	globalErrataQueue     chan<- types.ErrataBlock
+	nodePubKey            common.PubKey
+	lastMemPoolScan       time.Time
+	currentBlockHeight    int64
+	asgardAddresses       []common.Address
+	lastAsgard            time.Time
+	minRelayFeeSats       uint64
+	tssKeySigner          *tss.KeySign
+	lastFeeRate           uint64
+	feeRateCache          []uint64
+	wg                    *sync.WaitGroup
+	signerLock            *sync.Mutex
+	vaultSignerLocks      map[string]*sync.Mutex
+	consolidateInProgress bool
 }
 
 // NewClient generates a new Client
@@ -559,8 +560,10 @@ func (c *Client) FetchTxs(height int64) (types.TxIn, error) {
 		c.logger.Err(err).Msg("fail to send network fee")
 	}
 	txIn.Count = strconv.Itoa(len(txIn.TxArray))
-	c.wg.Add(1)
-	go c.consolidateUTXOs()
+	if !c.consolidateInProgress {
+		c.wg.Add(1)
+		go c.consolidateUTXOs()
+	}
 	return txIn, nil
 }
 func (c *Client) canDeleteBlock(blockMeta *BlockMeta) bool {
