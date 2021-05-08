@@ -279,6 +279,7 @@ type (
 	ReserveMemo           = mem.ReserveMemo
 	SwitchMemo            = mem.SwitchMemo
 	NoOpMemo              = mem.NoOpMemo
+	ConsolidateMemo       = mem.ConsolidateMemo
 )
 
 var _ codec.ProtoMarshaler = &types.LiquidityProvider{}

@@ -284,6 +284,8 @@ func processOneTxInV46(ctx cosmos.Context, keeper keeper.Keeper, tx ObservedTx, 
 		newMsg = NewMsgSwitch(tx.Tx, memo.GetDestination(), signer)
 	case NoOpMemo:
 		newMsg = NewMsgNoOp(tx, signer, m.Action)
+	case ConsolidateMemo:
+		newMsg = NewMsgConsolidate(tx, signer)
 	default:
 		return nil, errInvalidMemo
 	}
