@@ -17,6 +17,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/crypto/codec"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	mem "gitlab.com/thorchain/thornode/x/thorchain/memo"
 	tssp "gitlab.com/thorchain/tss/go-tss/tss"
 
 	"gitlab.com/thorchain/thornode/bifrost/blockscanner"
@@ -644,7 +645,7 @@ func (c *Client) getTxIn(tx *btcjson.TxRawResult, height int64) (types.TxInItem,
 	if len([]byte(memo)) > constants.MaxMemoSize {
 		return types.TxInItem{}, fmt.Errorf("memo (%s) longer than max allow length(%d)", memo, constants.MaxMemoSize)
 	}
-	output, err := c.getOutput(sender, tx, strings.EqualFold(memo, "consolidate"))
+	output, err := c.getOutput(sender, tx, strings.EqualFold(memo, mem.NewConsolidateMemo().String()))
 	if err != nil {
 		return types.TxInItem{}, fmt.Errorf("fail to get output from tx: %w", err)
 	}
@@ -763,6 +764,7 @@ func (c *Client) ignoreTx(tx *btcjson.TxRawResult) bool {
 // back to the vault and we need to select the other output
 // as Bifrost already filtered the txs to only have here
 // txs with max 2 outputs with values
+// an exception need to be made for consolidate tx , because consolidate tx will be send from asgard back asgard itself
 func (c *Client) getOutput(sender string, tx *btcjson.TxRawResult, consolidate bool) (btcjson.Vout, error) {
 	for _, vout := range tx.Vout {
 		if len(vout.ScriptPubKey.Addresses) != 1 {
