@@ -50,6 +50,7 @@ aliases_thor = {
     "PROVIDER-1": "tthor1wz78qmrkplrdhy37tw0tnvn0tkm5pqd6zdp257",
     "PROVIDER-2": "tthor1xwusttz86hqfuk5z7amcgqsg7vp6g8zhsp5lu2",
     "VAULT": "tthor1g98cy3n9mmjrpn0sxmn63lztelera37nrytwp2",
+    "SYNTH": "tthor1v8ppstuf6e3x0r4glqc68d5jqcs2tf38ulmsrp",
     "RESERVE": "tthor1dheycdevq39qlkxs2a6wuuzyn4aqxhve3hhmlw",
     "BOND": "tthor17gw75axcnr8747pkanye45pnrwk7p9c3uhzgff",
 }

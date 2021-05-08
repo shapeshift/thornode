@@ -109,10 +109,20 @@ class Jsonable:
 
 
 class Asset(str, Jsonable):
-    def __new__(cls, value, *args, **kwargs):
-        if len(value.split(".")) < 2:
-            value = f"THOR.{value}"  # default to thorchain
-        return super().__new__(cls, value)
+    def __init__(self, value):
+        if "/" in value:
+            self.is_synth = True
+            parts = value.split("/")
+        else:
+            self.is_synth = False
+            parts = value.split(".")
+
+        if len(parts) == 1:
+            self.chain = "THOR"
+            self.symbol = parts[0]
+        else:
+            self.chain = parts[0]
+            self.symbol = parts[1]
 
     def is_bnb(self):
         """
@@ -160,13 +170,50 @@ class Asset(str, Jsonable):
         """
         Return symbol part of the asset string
         """
-        return self.split(".")[1]
+        return self.symbol
 
     def get_chain(self):
         """
         Return chain part of the asset string
         """
-        return self.split(".")[0]
+        if self.is_synth:
+            return "THOR"
+        return self.chain
+
+    def get_synth_asset(self):
+        """
+        Return synth asset
+        """
+        if self.is_synth:
+            return self
+        return Asset(str(self).replace(".", "/"))
+
+    def get_layer1_asset(self):
+        """
+        Return layer1 asset
+        """
+        if not self.is_synth:
+            return self
+        return Asset(str(self).replace("/", "."))
+
+    def __eq__(self, other):
+        if isinstance(other, str):
+            other = Asset(other)
+        return self.chain == other.chain and self.symbol == other.symbol
+
+    def __str__(self):
+        div = "."
+        if self.is_synth:
+            div = "/"
+        return f"{self.chain}{div}{self.get_symbol()}"
+
+    def __hash__(self):
+        return hash(str(self))
+
+    def from_dict(cls, value):
+        if value["is_synth"]:
+            return cls(f"{value['chain']}/{value['symbol']}")
+        return cls(f"{value['chain']}.{value['symbol']}")
 
 
 class Coin(Jsonable):
@@ -177,7 +224,10 @@ class Coin(Jsonable):
     ONE = 100000000
 
     def __init__(self, asset, amount=0):
-        self.asset = Asset(asset)
+        if isinstance(asset, Asset):
+            self.asset = asset
+        else:
+            self.asset = Asset(asset)
         self.amount = int(amount)
 
     def is_rune(self):
@@ -229,7 +279,7 @@ class Coin(Jsonable):
 
     @classmethod
     def from_dict(cls, value):
-        return cls(value["asset"], value["amount"])
+        return cls(str(value["asset"]), value["amount"])
 
     def __repr__(self):
         return f"<Coin {self.amount:0,.0f}_{self.asset}>"
@@ -348,6 +398,12 @@ class Transaction(Jsonable):
         if not self.memo.startswith("ADD:"):
             return False
         if len(self.memo.split(":")) == 3:
+            return True
+        return False
+
+    def is_synth(self):
+        if "SYNTH" in self.memo:
+            self.memo = self.memo.replace("-SYNTH", "")
             return True
         return False
 
