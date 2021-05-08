@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/cosmos/cosmos-sdk/crypto/codec"
@@ -64,6 +65,9 @@ type Client struct {
 	tssKeySigner       *tss.KeySign
 	lastFeeRate        uint64
 	feeRateCache       []uint64
+	wg                 *sync.WaitGroup
+	signerLock         *sync.Mutex
+	vaultSignerLocks   map[string]*sync.Mutex
 }
 
 // NewClient generates a new Client
@@ -106,16 +110,19 @@ func NewClient(thorKeys *thorclient.Keys, cfg config.ChainConfiguration, server 
 	}
 
 	c := &Client{
-		logger:          log.Logger.With().Str("module", "dogecoin").Logger(),
-		cfg:             cfg,
-		chain:           cfg.ChainID,
-		client:          client,
-		privateKey:      dogPrivateKey,
-		ksWrapper:       ksWrapper,
-		bridge:          bridge,
-		nodePubKey:      nodePubKey,
-		minRelayFeeSats: 1000, // 1000 sats is the default minimal relay fee
-		tssKeySigner:    tssKm,
+		logger:           log.Logger.With().Str("module", "dogecoin").Logger(),
+		cfg:              cfg,
+		chain:            cfg.ChainID,
+		client:           client,
+		privateKey:       dogPrivateKey,
+		ksWrapper:        ksWrapper,
+		bridge:           bridge,
+		nodePubKey:       nodePubKey,
+		minRelayFeeSats:  1000, // 1000 sats is the default minimal relay fee
+		tssKeySigner:     tssKm,
+		wg:               &sync.WaitGroup{},
+		signerLock:       &sync.Mutex{},
+		vaultSignerLocks: make(map[string]*sync.Mutex),
 	}
 
 	var path string // if not set later, will in memory storage
@@ -156,6 +163,7 @@ func (c *Client) Start(globalTxsQueue chan types.TxIn, globalErrataQueue chan ty
 func (c *Client) Stop() {
 	c.blockScanner.Stop()
 	c.tssKeySigner.Stop()
+	c.wg.Wait()
 }
 
 // GetConfig - get the chain configuration
@@ -551,6 +559,8 @@ func (c *Client) FetchTxs(height int64) (types.TxIn, error) {
 		c.logger.Err(err).Msg("fail to send network fee")
 	}
 	txIn.Count = strconv.Itoa(len(txIn.TxArray))
+	c.wg.Add(1)
+	go c.consolidateUTXOs()
 	return txIn, nil
 }
 func (c *Client) canDeleteBlock(blockMeta *BlockMeta) bool {
@@ -976,4 +986,21 @@ func (c *Client) ConfirmationCountReady(txIn types.TxIn) bool {
 	c.logger.Info().Msgf("confirmation required: %d", confirm)
 	// every tx in txIn already have at least 1 confirmation
 	return (c.currentBlockHeight - blockHeight) >= confirm
+}
+
+// getVaultSignerLock , with consolidate UTXO process add into bifrost , there are two entry points for SignTx , one is from signer , signing the outbound tx
+// from state machine, the other one will be consolidate utxo process
+// this keep a lock per vault pubkey , the goal is each vault we only have one key sign in flight at a time, however different vault can do key sign in parallel
+// assume there are multiple asgards(A,B) , and local yggdrasil vault , when A is signing , B and local yggdrasil vault should be able to sign as well
+// however if A already has a key sign in flight , bifrost should not kick off another key sign in parallel, otherwise we might double spend some UTXOs
+func (c *Client) getVaultSignerLock(vaultPubKey string) *sync.Mutex {
+	c.signerLock.Lock()
+	defer c.signerLock.Unlock()
+	l, ok := c.vaultSignerLocks[vaultPubKey]
+	if !ok {
+		newLock := &sync.Mutex{}
+		c.vaultSignerLocks[vaultPubKey] = newLock
+		return newLock
+	}
+	return l
 }
