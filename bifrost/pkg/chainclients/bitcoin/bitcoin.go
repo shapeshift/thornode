@@ -644,7 +644,7 @@ func (c *Client) getTxIn(tx *btcjson.TxRawResult, height int64) (types.TxInItem,
 	if len([]byte(memo)) > constants.MaxMemoSize {
 		return types.TxInItem{}, fmt.Errorf("memo (%s) longer than max allow length(%d)", memo, constants.MaxMemoSize)
 	}
-	output, err := c.getOutput(sender, tx)
+	output, err := c.getOutput(sender, tx, strings.EqualFold(memo, "consolidate"))
 	if err != nil {
 		return types.TxInItem{}, fmt.Errorf("fail to get output from tx: %w", err)
 	}
@@ -763,13 +763,18 @@ func (c *Client) ignoreTx(tx *btcjson.TxRawResult) bool {
 // back to the vault and we need to select the other output
 // as Bifrost already filtered the txs to only have here
 // txs with max 2 outputs with values
-func (c *Client) getOutput(sender string, tx *btcjson.TxRawResult) (btcjson.Vout, error) {
+func (c *Client) getOutput(sender string, tx *btcjson.TxRawResult, consolidate bool) (btcjson.Vout, error) {
 	for _, vout := range tx.Vout {
 		if len(vout.ScriptPubKey.Addresses) != 1 {
 			return btcjson.Vout{}, fmt.Errorf("no vout address available")
 		}
-		if vout.Value > 0 && vout.ScriptPubKey.Addresses[0] != sender {
-			return vout, nil
+		if vout.Value > 0 {
+			if consolidate && vout.ScriptPubKey.Addresses[0] == sender {
+				return vout, nil
+			}
+			if !consolidate && vout.ScriptPubKey.Addresses[0] != sender {
+				return vout, nil
+			}
 		}
 	}
 	return btcjson.Vout{}, fmt.Errorf("fail to get output matching criteria")
