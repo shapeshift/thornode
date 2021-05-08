@@ -451,7 +451,10 @@ func (c *Client) BroadcastTx(txOut stypes.TxOutItem, payload []byte) (string, er
 
 // consolidateUTXOs only required when there is a new block
 func (c *Client) consolidateUTXOs() {
-	defer c.wg.Done()
+	defer func() {
+		c.wg.Done()
+		c.consolidateInProgress = false
+	}()
 	vaults, err := c.bridge.GetAsgards()
 	if err != nil {
 		c.logger.Err(err).Msg("fail to get current asgards")
