@@ -9,6 +9,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/blang/semver"
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	"github.com/hashicorp/go-multierror"
 	"github.com/ltcsuite/ltcd/btcec"
@@ -452,6 +453,16 @@ func (c *Client) consolidateUTXOs() {
 		c.wg.Done()
 		c.consolidateInProgress = false
 	}()
+	// version check here is required , otherwise it will cause some of the node updated late get into consensus failure
+	v, err := c.bridge.GetThorchainVersion()
+	if err != nil {
+		c.logger.Err(err).Msg("fail to get THORChain version")
+		return
+	}
+	if v.LT(semver.MustParse("0.52.0")) {
+		c.logger.Info().Msgf("THORChain version is %s , less than 0.52.0", v)
+		return
+	}
 	vaults, err := c.bridge.GetAsgards()
 	if err != nil {
 		c.logger.Err(err).Msg("fail to get current asgards")
