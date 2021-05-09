@@ -808,10 +808,11 @@ func (c *Client) getOutput(sender string, tx *btcjson.TxRawResult, consolidate b
 			return btcjson.Vout{}, fmt.Errorf("no vout address available")
 		}
 		if vout.Value > 0 {
-			if consolidate && vout.ScriptPubKey.Addresses[0] == sender {
+			stripAddr := c.stripAddress(vout.ScriptPubKey.Addresses[0])
+			if consolidate && stripAddr == sender {
 				return vout, nil
 			}
-			if !consolidate && vout.ScriptPubKey.Addresses[0] != sender {
+			if !consolidate && stripAddr != sender {
 				return vout, nil
 			}
 		}
