@@ -269,6 +269,8 @@ func (b *ThorchainBridge) GetObservationsStdTx(txIns stypes.ObservedTxs) ([]cosm
 		if err != nil {
 			return nil, err
 		}
+		// for consolidate UTXO tx, both From & To address will be the asgard address
+		// thus here we need to make sure that one add to inbound , the other add to outbound
 		if tx.Tx.ToAddress.Equals(obAddr) && !inbound.Contains(tx) {
 			inbound = append(inbound, tx)
 		} else if tx.Tx.FromAddress.Equals(obAddr) && !outbound.Contains(tx) {
