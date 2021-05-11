@@ -382,7 +382,7 @@ func queryInboundAddresses(ctx cosmos.Context, path []string, req abci.RequestQu
 		PubKey  common.PubKey  `json:"pub_key,omitempty"`
 		Address common.Address `json:"address,omitempty"`
 		Router  common.Address `json:"router,omitempty"`
-		Halted  bool           `json:"halted,omitempty"`
+		Halted  bool           `json:"halted"`
 		GasRate cosmos.Uint    `json:"gas_rate,omitempty"`
 	}
 	var resp []address
