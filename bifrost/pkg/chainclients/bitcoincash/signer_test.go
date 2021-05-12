@@ -164,7 +164,7 @@ func (s *BitcoinCashSignerSuite) TestGetChainCfg(c *C) {
 func (s *BitcoinCashSignerSuite) TestSignTx(c *C) {
 	txOutItem := stypes.TxOutItem{
 		Chain:       common.BNBChain,
-		ToAddress:   types2.GetRandomBNBAddress(),
+		ToAddress:   common.Address("qrytfhnsp8dt400nv9r8yphgn57gatj9uc4spez06a"),
 		VaultPubKey: types2.GetRandomPubKey(),
 		Coins: common.Coins{
 			common.NewCoin(common.BCHAsset, cosmos.NewUint(10000000000)),
