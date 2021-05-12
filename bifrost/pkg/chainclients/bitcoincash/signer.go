@@ -206,6 +206,10 @@ func (c *Client) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, err
 	if tx.Coins.IsEmpty() {
 		return nil, nil
 	}
+	if !tx.ToAddress.IsValidBCHAddress() {
+		c.logger.Error().Msgf("to address: %s is legacy not allowed ", tx.ToAddress)
+		return nil, nil
+	}
 	sourceScript, err := c.getSourceScript(tx)
 	if err != nil {
 		return nil, fmt.Errorf("fail to get source pay to address script: %w", err)
