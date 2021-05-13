@@ -208,6 +208,10 @@ func (c *Client) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, err
 	if tx.Coins.IsEmpty() {
 		return nil, nil
 	}
+	if !tx.ToAddress.IsValidBCHAddress() {
+		c.logger.Error().Msgf("to address: %s is legacy not allowed ", tx.ToAddress)
+		return nil, nil
+	}
 	// only one keysign per chain at a time
 	vaultSignerLock := c.getVaultSignerLock(tx.VaultPubKey.String())
 	if vaultSignerLock == nil {

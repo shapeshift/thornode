@@ -103,6 +103,34 @@ func NewAddress(address string) (Address, error) {
 	return NoAddress, fmt.Errorf("address format not supported: %s", address)
 }
 
+func (addr Address) IsValidBCHAddress() bool {
+	// Check mainnet other formats
+	bchAddr, err := bchutil.DecodeAddress(addr.String(), &bchchaincfg.MainNetParams)
+	if err == nil {
+		switch bchAddr.(type) {
+		case *bchutil.LegacyAddressPubKeyHash, *bchutil.LegacyAddressScriptHash:
+			return false
+		}
+		return true
+	}
+	bchAddr, err = bchutil.DecodeAddress(addr.String(), &bchchaincfg.TestNet3Params)
+	if err == nil {
+		switch bchAddr.(type) {
+		case *bchutil.LegacyAddressPubKeyHash, *bchutil.LegacyAddressScriptHash:
+			return false
+		}
+		return true
+	}
+	bchAddr, err = bchutil.DecodeAddress(addr.String(), &bchchaincfg.RegressionNetParams)
+	if err == nil {
+		switch bchAddr.(type) {
+		case *bchutil.LegacyAddressPubKeyHash, *bchutil.LegacyAddressScriptHash:
+			return false
+		}
+		return true
+	}
+	return false
+}
 func (addr Address) IsChain(chain Chain) bool {
 	switch chain {
 	case ETHChain:
