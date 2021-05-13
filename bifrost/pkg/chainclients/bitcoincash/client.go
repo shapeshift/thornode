@@ -674,6 +674,7 @@ func (c *Client) getTxIn(tx *btcjson.TxRawResult, height int64) (types.TxInItem,
 	if err != nil {
 		return types.TxInItem{}, fmt.Errorf("fail to get output from tx: %w", err)
 	}
+
 	amount, err := bchutil.NewAmount(output.Value)
 	if err != nil {
 		return types.TxInItem{}, fmt.Errorf("fail to parse float64: %w", err)
