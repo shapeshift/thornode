@@ -103,6 +103,7 @@ func NewAddress(address string) (Address, error) {
 	return NoAddress, fmt.Errorf("address format not supported: %s", address)
 }
 
+// IsValidBCHAddress determinate whether the address is a valid new BCH address format
 func (addr Address) IsValidBCHAddress() bool {
 	// Check mainnet other formats
 	bchAddr, err := bchutil.DecodeAddress(addr.String(), &bchchaincfg.MainNetParams)
@@ -131,6 +132,47 @@ func (addr Address) IsValidBCHAddress() bool {
 	}
 	return false
 }
+
+// ConvertToNewBCHAddressFormat convert the given BCH to new address format
+func ConvertToNewBCHAddressFormat(addr Address) (Address, error) {
+	if !addr.IsChain(BCHChain) {
+		return NoAddress, fmt.Errorf("address(%s) is not BCH chain", addr)
+	}
+	network := GetCurrentChainNetwork()
+	var param *bchchaincfg.Params
+	switch network {
+	case MockNet:
+		param = &bchchaincfg.RegressionNetParams
+	case TestNet:
+		param = &bchchaincfg.TestNet3Params
+	case MainNet:
+		param = &bchchaincfg.MainNetParams
+	}
+	bchAddr, err := bchutil.DecodeAddress(addr.String(), param)
+	if err != nil {
+		return NoAddress, fmt.Errorf("fail to decode address(%s), %w", addr, err)
+	}
+	return getBCHAddress(bchAddr, param)
+}
+
+func getBCHAddress(address bchutil.Address, cfg *bchchaincfg.Params) (Address, error) {
+	switch address.(type) {
+	case *bchutil.LegacyAddressPubKeyHash, *bchutil.AddressPubKeyHash:
+		h, err := bchutil.NewAddressPubKeyHash(address.ScriptAddress(), cfg)
+		if err != nil {
+			return NoAddress, fmt.Errorf("fail to convert to new pubkey hash address: %w", err)
+		}
+		return NewAddress(h.String())
+	case *bchutil.LegacyAddressScriptHash, *bchutil.AddressScriptHash:
+		h, err := bchutil.NewAddressScriptHash(address.ScriptAddress(), cfg)
+		if err != nil {
+			return NoAddress, fmt.Errorf("fail to convert to new address script hash address: %w", err)
+		}
+		return NewAddress(h.String())
+	}
+	return NoAddress, fmt.Errorf("invalid address type")
+}
+
 func (addr Address) IsChain(chain Chain) bool {
 	switch chain {
 	case ETHChain:

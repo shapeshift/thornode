@@ -368,3 +368,34 @@ func (s *AddressSuite) TestAddress(c *C) {
 	c.Check(addr.GetNetwork(DOGEChain), Equals, MockNet)
 
 }
+
+func (s *AddressSuite) TestConvertToNewBCHAddressFormat(c *C) {
+	addr1 := "1EFJFJm7Y9mTVsCBXA9PKuRuzjgrdBe4rR"
+	addr1Result, err := ConvertToNewBCHAddressFormat(Address(addr1))
+	c.Assert(err, IsNil)
+	c.Assert(addr1Result.IsEmpty(), Equals, false)
+	c.Assert(addr1Result.String(), Equals, "qzg5mkh7rkw3y8kw47l3rrnvhmenvctmd56xg38a70")
+
+	addr3 := "qzg5mkh7rkw3y8kw47l3rrnvhmenvctmd56xg38a70"
+	addr3Result, err := ConvertToNewBCHAddressFormat(Address(addr3))
+	c.Assert(err, IsNil)
+	c.Assert(addr3Result.IsEmpty(), Equals, false)
+	c.Assert(addr3Result.String(), Equals, "qzg5mkh7rkw3y8kw47l3rrnvhmenvctmd56xg38a70")
+
+	addr4 := "18P1smBRB8zgfHT2qU9mnrbkHuinL1VRQe"
+	addr4Result, err := ConvertToNewBCHAddressFormat(Address(addr4))
+	c.Assert(err, IsNil)
+	c.Assert(addr4Result.IsEmpty(), Equals, false)
+	c.Assert(addr4Result.String(), Equals, "qpg09septgjye6rw6lp3wep6s7j73je2tg5sea68x9")
+
+	addr5 := "qrwz8uegrdd08x57uxzapthc6lm4fxmnwv0apsganr"
+	addr5Result, err := ConvertToNewBCHAddressFormat(Address(addr5))
+	c.Assert(err, NotNil)
+	c.Assert(addr5Result.IsEmpty(), Equals, true)
+
+	addr6 := "whatever"
+	addr6Result, err := ConvertToNewBCHAddressFormat(Address(addr6))
+	c.Assert(err, NotNil)
+	c.Assert(addr6Result.IsEmpty(), Equals, true)
+
+}
