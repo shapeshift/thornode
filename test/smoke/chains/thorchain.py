@@ -94,7 +94,6 @@ class MockThorchain(HttpClient):
             if txn.to_address in get_aliases():
                 txn.to_address = get_alias_address(txn.chain, txn.to_address)
 
-
             # update memo with actual address (over alias name)
             is_synth = txn.is_synth()
             for alias in get_aliases():

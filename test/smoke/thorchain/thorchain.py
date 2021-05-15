@@ -419,7 +419,9 @@ class ThorchainState:
                         if coin.asset.is_synth:
                             if not tx.is_refund():
                                 pool.synth_balance -= asset_fee
-                            synth_units = get_share(asset_fee, pool.synth_balance, pool.synth_units)
+                            synth_units = get_share(
+                                asset_fee, pool.synth_balance, pool.synth_units
+                            )
                             pool.synth_units -= synth_units
                             pool.total_units -= synth_units
                             if tx.is_refund():
@@ -486,7 +488,9 @@ class ThorchainState:
                                 ],
                             )
                             if coin.asset.is_synth:
-                                event.attributes.append({"synth_units": str(synth_units)})
+                                event.attributes.append(
+                                    {"synth_units": str(synth_units)}
+                                )
                             self.events.append(event)
                     if coin.amount > 0:
                         tx.fee = Coin(coin.asset, asset_fee)
@@ -1112,7 +1116,9 @@ class ThorchainState:
 
             # if synth need to calculate synth units
             if source.is_synth:
-                synth_units = get_share(tx.coins[0].amount, pool.synth_balance, pool.synth_units)
+                synth_units = get_share(
+                    tx.coins[0].amount, pool.synth_balance, pool.synth_units
+                )
                 pool.total_units -= synth_units
                 pool.synth_units -= synth_units
 
@@ -1192,7 +1198,9 @@ class ThorchainState:
 
         # if synth need to calculate synth units
         if source.is_synth:
-            synth_units = get_share(in_coin.amount, pool.synth_balance, pool.synth_units)
+            synth_units = get_share(
+                in_coin.amount, pool.synth_balance, pool.synth_units
+            )
             pool.total_units -= synth_units
             pool.synth_units -= synth_units
         elif target.is_synth:
@@ -1231,7 +1239,6 @@ class ThorchainState:
                 from_address = get_alias_address(target.get_chain(), "SYNTH")
             else:
                 from_address = get_alias_address(target.get_chain(), from_alias)
-
 
         out_txs = [
             Transaction(
