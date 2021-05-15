@@ -4,7 +4,7 @@ services:
   bitcoin-cash-regtest:
     container_name: bitcoin-cash-regtest
     restart: unless-stopped
-    image: registry.gitlab.com/thorchain/devops/bitcoin-cash:22.2.0
+    image: registry.gitlab.com/thorchain/devops/bitcoin-cash:23.0.0
     environment:
       RPC_PORT: "28443"
       BLOCK_TIME: ${BLOCK_TIME:-1}
