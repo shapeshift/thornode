@@ -1101,7 +1101,6 @@ class ThorchainState:
         # check if we have enough to cover the fee
         rune_fee = self.get_rune_fee(target.get_chain())
         pool = self.get_pool(target)
-        asset_fee = pool.get_rune_in_asset(rune_fee)
         in_coin = in_tx.coins[0]
         if in_coin.is_rune() and in_coin.amount <= rune_fee:
             return self.refund(tx, 108, "fail swap, not enough fee")
