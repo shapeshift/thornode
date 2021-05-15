@@ -21,7 +21,7 @@ services:
   pg:
     container_name: timescale-db
     restart: unless-stopped
-    image: timescale/timescaledb:1.7.4-pg11
+    image: timescale/timescaledb:2.2.0-pg13
     expose:
       - 5432
     environment:
