@@ -407,6 +407,11 @@ class Transaction(Jsonable):
             return True
         return False
 
+    def is_refund(self):
+        if "REFUND" in self.memo:
+            return True
+        return False
+
     def custom_hash(self, pubkey):
         coins = (
             ", ".join([f"{c.amount} {c.asset}" for c in self.coins])

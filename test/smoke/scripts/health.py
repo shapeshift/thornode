@@ -176,6 +176,18 @@ class Health:
                     f" [DIFF] {str(round(diff, 5))}% ({sub:0,.0f})"
                 )
 
+            # Check pool synth units
+            mpool_units = int(mpool["synthUnits"])
+            tpool_units = int(tpool["synth_units"])
+            diff = get_diff(mpool_units, tpool_units)
+            if diff > self.margin_err:
+                sub = abs(tpool_units - mpool_units)
+                self.error(
+                    f"Midgard   [{asset:15}] SYNTH UNITS"
+                    f" [T]{tpool_units:0,.0f} != [M]{mpool_units:0,.0f}"
+                    f" [DIFF] {str(round(diff, 5))}% ({sub:0,.0f})"
+                )
+
             # Check price
             mpool_price = float(mpool["assetPrice"])
             tpool_price = int(tpool["balance_rune"]) / int(tpool["balance_asset"])

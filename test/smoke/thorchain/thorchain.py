@@ -417,7 +417,13 @@ class ThorchainState:
                         if pool.rune_balance >= rune_fee:
                             pool.sub(rune_fee, 0)
                         if coin.asset.is_synth:
-                            pool.synth_balance -= asset_fee
+                            if not tx.is_refund():
+                                pool.synth_balance -= asset_fee
+                            synth_units = get_share(asset_fee, pool.synth_balance, pool.synth_units)
+                            pool.synth_units -= synth_units
+                            pool.total_units -= synth_units
+                            if tx.is_refund():
+                                pool.synth_balance -= asset_fee
                         else:
                             pool.add(0, asset_fee)
                         self.set_pool(pool)
@@ -480,7 +486,6 @@ class ThorchainState:
                                 ],
                             )
                             if coin.asset.is_synth:
-                                synth_units = get_share(asset_fee, pool.synth_balance, pool.synth_units)
                                 event.attributes.append({"synth_units": str(synth_units)})
                             self.events.append(event)
                     if coin.amount > 0:
@@ -1076,15 +1081,15 @@ class ThorchainState:
         source = tx.coins[0].asset
         target = asset
 
-        # refund if we're trying to swap with the coin we given ie swapping bnb
-        # with bnb
-        if source == asset:
-            reason = "swap Source and Target cannot be the same.: unknown request"
-            return self.refund(tx, 105, reason)
-
         # check if synth tx
         if "thor" in address and not target.is_rune():
             target = target.get_synth_asset()
+
+        # refund if we're trying to swap with the coin we given ie swapping bnb
+        # with bnb
+        if source == target and source.is_synth == target.is_synth:
+            reason = "swap Source and Target cannot be the same.: unknown request"
+            return self.refund(tx, 105, reason)
 
         pools = []
         in_tx = tx
@@ -1100,10 +1105,16 @@ class ThorchainState:
         swap_events = []
 
         # check if its a double swap
-        if not tx.coins[0].is_rune() and not asset.is_rune():
+        if not source.is_rune() and not target.is_rune():
             pool = self.get_pool(source)
             if pool.is_zero():
                 return self.refund(tx, 108, "fail swap, invalid balance")
+
+            # if synth need to calculate synth units
+            if source.is_synth:
+                synth_units = get_share(tx.coins[0].amount, pool.synth_balance, pool.synth_units)
+                pool.total_units -= synth_units
+                pool.synth_units -= synth_units
 
             emit, liquidity_fee, liquidity_fee_in_rune, swap_slip, pool = self.swap(
                 tx.coins[0], RUNE
@@ -1135,29 +1146,30 @@ class ThorchainState:
             )
 
             # generate event for SWAP transaction
-            swap_events.append(
-                Event(
-                    "swap",
-                    [
-                        {"pool": pool.asset},
-                        {"swap_target": 0},
-                        {"swap_slip": swap_slip},
-                        {"liquidity_fee": liquidity_fee},
-                        {"liquidity_fee_in_rune": liquidity_fee_in_rune},
-                        {"emit_asset": f"{emit.amount} {emit.asset}"},
-                        *in_tx.get_attributes(),
-                    ],
-                )
+            event = Event(
+                "swap",
+                [
+                    {"pool": pool.asset},
+                    {"swap_target": 0},
+                    {"swap_slip": swap_slip},
+                    {"liquidity_fee": liquidity_fee},
+                    {"liquidity_fee_in_rune": liquidity_fee_in_rune},
+                    {"emit_asset": f"{emit.amount} {emit.asset}"},
+                    *in_tx.get_attributes(),
+                ],
             )
+            if source.is_synth:
+                event.attributes.append({"synth_units": str(synth_units)})
+
+            swap_events.append(event)
 
             # and we remove the gas on in_tx for the next event so we don't
             # have it twice
             in_tx.gas = None
 
-            pools.append(pool)
+            self.set_pool(pool)
             in_tx.coins[0] = emit
             source = RUNE
-            target = asset
 
         # set asset to non-rune asset
         asset = source
@@ -1179,11 +1191,15 @@ class ThorchainState:
             return self.refund(tx, 108, "fail swap, invalid balance")
 
         # if synth need to calculate synth units
-        if target.is_synth:
+        if source.is_synth:
+            synth_units = get_share(in_coin.amount, pool.synth_balance, pool.synth_units)
+            pool.total_units -= synth_units
+            pool.synth_units -= synth_units
+        elif target.is_synth:
             synth_units = pool._calc_liquidity_units(
                 pool.rune_balance,
                 pool.asset_balance,
-                in_tx.coins[0].amount,
+                in_coin.amount,
                 0,
             )
             pool.total_units += synth_units
@@ -1238,10 +1254,11 @@ class ThorchainState:
                 *in_tx.get_attributes(),
             ],
         )
-        if target.is_synth:
+        if target.is_synth or source.is_synth:
             event.attributes.append({"synth_units": str(synth_units)})
 
         swap_events.append(event)
+
         outbound = self.handle_fee(tx, out_txs)
         # emit the events
         for e in swap_events:
@@ -1302,7 +1319,10 @@ class ThorchainState:
                 newPool.sub(0, emit)
             emit = Coin(asset, emit)
         else:
-            newPool.add(0, x)
+            if asset.is_synth:
+                newPool.synth_balance -= x
+            else:
+                newPool.add(0, x)
             newPool.sub(emit, 0)
             emit = Coin(RUNE, emit)
 
@@ -1583,10 +1603,12 @@ class Pool(Jsonable):
         )
 
     def __str__(self):
-        return "Pool %s Rune: %d | Asset: %d" % (
+        return "Pool %s Rune: %d | Asset: %d | Units: %s | Synth Units: %s" % (
             self.asset,
             self.rune_balance,
             self.asset_balance,
+            self.total_units,
+            self.synth_units,
         )
 
 

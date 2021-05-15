@@ -51,7 +51,7 @@ health:
 	@docker run ${DOCKER_OPTS} ${IMAGE_NAME} python scripts/health.py
 
 health-mainnet:
-	@docker run ${DOCKER_OPTS} ${IMAGE_NAME} python scripts/health.py --binance-api=https://dex.binance.org --thorchain=http://18.158.11.151:1317 --midgard=http://18.158.11.151:8080 --margin-err=0.1
+	@docker run ${DOCKER_OPTS} ${IMAGE_NAME} python scripts/health.py --binance-api=https://dex.binance.org --thorchain=http://3.65.216.254:1317 --midgard=https://midgard.thorchain.info --margin-err=0.001
 
 health-testnet:
 	@docker run ${DOCKER_OPTS} ${IMAGE_NAME} python scripts/health.py --binance-api=https://testnet-dex.binance.org --thorchain=https://testnet.thornode.thorchain.info --midgard=https://testnet.midgard.thorchain.info --margin-err=0.001
