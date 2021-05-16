@@ -107,6 +107,7 @@ func getInternalHandlerMapping(keeper keeper.Keeper, mgr Manager) map[string]Msg
 	m[MsgRagnarok{}.Type()] = NewRagnarokHandler(keeper, mgr)
 	m[MsgSwitch{}.Type()] = NewSwitchHandler(keeper, mgr)
 	m[MsgNoOp{}.Type()] = NewNoOpHandler(keeper, mgr)
+	m[MsgConsolidate{}.Type()] = NewConsolidateHandler(keeper, mgr)
 	return m
 }
 
@@ -283,6 +284,8 @@ func processOneTxInV46(ctx cosmos.Context, keeper keeper.Keeper, tx ObservedTx, 
 		newMsg = NewMsgSwitch(tx.Tx, memo.GetDestination(), signer)
 	case NoOpMemo:
 		newMsg = NewMsgNoOp(tx, signer, m.Action)
+	case ConsolidateMemo:
+		newMsg = NewMsgConsolidate(tx, signer)
 	default:
 		return nil, errInvalidMemo
 	}

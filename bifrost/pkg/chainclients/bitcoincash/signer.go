@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"math"
 	"sort"
 	"strings"
 	"sync"
 
+	"github.com/blang/semver"
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	"github.com/gcash/bchd/bchec"
 	"github.com/gcash/bchd/btcjson"
@@ -210,6 +212,14 @@ func (c *Client) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, err
 		c.logger.Error().Msgf("to address: %s is legacy not allowed ", tx.ToAddress)
 		return nil, nil
 	}
+	// only one keysign per chain at a time
+	vaultSignerLock := c.getVaultSignerLock(tx.VaultPubKey.String())
+	if vaultSignerLock == nil {
+		c.logger.Error().Msgf("fail to get signer lock for vault pub key: %s", tx.VaultPubKey.String())
+		return nil, fmt.Errorf("fail to get signer lock")
+	}
+	vaultSignerLock.Lock()
+	defer vaultSignerLock.Unlock()
 	sourceScript, err := c.getSourceScript(tx)
 	if err != nil {
 		return nil, fmt.Errorf("fail to get source pay to address script: %w", err)
@@ -290,9 +300,9 @@ func (c *Client) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, err
 		if err != nil {
 			return nil, fmt.Errorf("fail to parse memo: %w", err)
 		}
-		if memo.GetType() == mem.TxYggdrasilReturn {
+		if memo.GetType() == mem.TxYggdrasilReturn || memo.GetType() == mem.TxConsolidate {
 			gap := gasAmtSats
-			c.logger.Info().Msgf("yggdrasil return asset , need gas: %d", gap)
+			c.logger.Info().Msgf("yggdrasil return asset or consolidate tx, need gas: %d", gap)
 			coinToCustomer.Amount = common.SafeSub(coinToCustomer.Amount, cosmos.NewUint(gap))
 		}
 	}
@@ -440,4 +450,84 @@ func (c *Client) BroadcastTx(txOut stypes.TxOutItem, payload []byte) (string, er
 	// save tx id to block meta in case we need to errata later
 	c.logger.Info().Str("hash", txHash.String()).Msg("broadcast to BCH chain successfully")
 	return txHash.String(), nil
+}
+
+// consolidateUTXOs only required when there is a new block
+func (c *Client) consolidateUTXOs() {
+	defer func() {
+		c.wg.Done()
+		c.consolidateInProgress = false
+	}()
+	// version check here is required , otherwise it will cause some of the node updated late get into consensus failure
+	// this can be removed in a later version , after this change has been roll out to chaosnet
+	v, err := c.bridge.GetThorchainVersion()
+	if err != nil {
+		c.logger.Err(err).Msg("fail to get THORChain version")
+		return
+	}
+	if v.LT(semver.MustParse("0.53.0")) {
+		c.logger.Info().Msgf("THORChain version is %s , less than 0.53.0", v)
+		return
+	}
+	vaults, err := c.bridge.GetAsgards()
+	if err != nil {
+		c.logger.Err(err).Msg("fail to get current asgards")
+		return
+	}
+	for _, vault := range vaults {
+		// the amount used here doesn't matter , just to see whether there are more than 15 UTXO available or not
+		utxos, err := c.getUtxoToSpend(vault.PubKey, 0.01)
+		if err != nil {
+			c.logger.Err(err).Msg("fail to get utxos to spend")
+			continue
+		}
+		// doesn't have enough UTXOs , don't need to consolidate
+		if len(utxos) < maxUTXOsToSpend {
+			continue
+		}
+		total := 0.0
+		for _, item := range utxos {
+			total += item.Amount
+		}
+		addr, err := vault.PubKey.GetAddress(common.BCHChain)
+		if err != nil {
+			c.logger.Err(err).Msgf("fail to get BCH address for pubkey:%s", vault.PubKey)
+			continue
+		}
+		// THORChain usually pay 1.5 of the last observed fee rate
+		feeRate := math.Ceil(float64(c.lastFeeRate) * 3 / 2)
+		amt, err := bchutil.NewAmount(total)
+		if err != nil {
+			c.logger.Err(err).Msgf("fail to convert to BTC amount: %f", total)
+			continue
+		}
+
+		txOutItem := stypes.TxOutItem{
+			Chain:       common.BCHChain,
+			ToAddress:   addr,
+			VaultPubKey: vault.PubKey,
+			Coins: common.Coins{
+				common.NewCoin(common.BCHAsset, cosmos.NewUint(uint64(amt))),
+			},
+			Memo:    "consolidate",
+			MaxGas:  nil,
+			GasRate: int64(feeRate),
+		}
+		height, err := c.bridge.GetBlockHeight()
+		if err != nil {
+			c.logger.Err(err).Msg("fail to get THORChain block height")
+			continue
+		}
+		rawTx, err := c.SignTx(txOutItem, height)
+		if err != nil {
+			c.logger.Err(err).Msg("fail to sign consolidate txout item")
+			continue
+		}
+		txID, err := c.BroadcastTx(txOutItem, rawTx)
+		if err != nil {
+			c.logger.Err(err).Msg("fail to broadcast consolidate tx")
+			continue
+		}
+		c.logger.Info().Msgf("broadcast consolidate tx successfully,hash:%s", txID)
+	}
 }
