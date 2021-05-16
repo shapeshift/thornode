@@ -672,11 +672,13 @@ func (e *ETHScanner) getSymbol(token string) (string, error) {
 	return sanitiseSymbol(symbol), nil
 }
 
-func (e *ETHScanner) isToSmartContract(toAddr *ecommon.Address) bool {
+func (e *ETHScanner) isToSmartContract(receipt *etypes.Receipt) bool {
 	contractAddresses := e.pubkeyMgr.GetContracts(common.ETHChain)
-	for _, item := range contractAddresses {
-		if strings.EqualFold(item.String(), toAddr.String()) {
-			return true
+	for _, l := range receipt.Logs {
+		for _, item := range contractAddresses {
+			if strings.EqualFold(item.String(), l.Address.String()) {
+				return true
+			}
 		}
 	}
 	return false
@@ -764,7 +766,7 @@ func (e *ETHScanner) getAssetFromTokenAddress(token string) (common.Asset, error
 }
 
 // getTxInFromSmartContract returns txInItem
-func (e *ETHScanner) getTxInFromSmartContract(tx *etypes.Transaction) (*stypes.TxInItem, error) {
+func (e *ETHScanner) getTxInFromSmartContract(tx *etypes.Transaction, receipt *etypes.Receipt) (*stypes.TxInItem, error) {
 	e.logger.Debug().Msg("parse tx from smart contract")
 	txInItem := &stypes.TxInItem{
 		Tx: tx.Hash().Hex()[2:],
@@ -774,10 +776,6 @@ func (e *ETHScanner) getTxInFromSmartContract(tx *etypes.Transaction) (*stypes.T
 		return nil, fmt.Errorf("fail to get sender: %w", err)
 	}
 	txInItem.Sender = strings.ToLower(sender.String())
-	receipt, err := e.getReceipt(tx.Hash().Hex())
-	if err != nil {
-		return nil, fmt.Errorf("fail to get transaction receipt: %w", err)
-	}
 	// 1 is Transaction success state
 	if receipt.Status != 1 {
 		e.logger.Info().Msgf("tx(%s) state: %d means failed , ignore", tx.Hash().String(), receipt.Status)
@@ -911,9 +909,13 @@ func (e *ETHScanner) fromTxToTxIn(tx *etypes.Transaction) (*stypes.TxInItem, err
 	if tx == nil || tx.To() == nil {
 		return nil, nil
 	}
-	smartContract := e.isToSmartContract(tx.To())
+	receipt, err := e.getReceipt(tx.Hash().Hex())
+	if err != nil {
+		return nil, fmt.Errorf("fail to get transaction receipt: %w", err)
+	}
+	smartContract := e.isToSmartContract(receipt)
 	if smartContract {
-		return e.getTxInFromSmartContract(tx)
+		return e.getTxInFromSmartContract(tx, receipt)
 	}
 	return e.getTxInFromTransaction(tx)
 }
