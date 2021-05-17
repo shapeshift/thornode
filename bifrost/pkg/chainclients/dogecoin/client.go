@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/cosmos/cosmos-sdk/crypto/codec"
@@ -17,6 +18,7 @@ import (
 	"github.com/eager7/dogutil"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	mem "gitlab.com/thorchain/thornode/x/thorchain/memo"
 	tssp "gitlab.com/thorchain/tss/go-tss/tss"
 
 	"gitlab.com/thorchain/thornode/bifrost/blockscanner"
@@ -45,25 +47,29 @@ const (
 
 // Client observes dogecoin chain and allows to sign and broadcast tx
 type Client struct {
-	logger             zerolog.Logger
-	cfg                config.ChainConfiguration
-	client             *rpcclient.Client
-	chain              common.Chain
-	privateKey         *btcec.PrivateKey
-	blockScanner       *blockscanner.BlockScanner
-	blockMetaAccessor  BlockMetaAccessor
-	ksWrapper          *KeySignWrapper
-	bridge             *thorclient.ThorchainBridge
-	globalErrataQueue  chan<- types.ErrataBlock
-	nodePubKey         common.PubKey
-	lastMemPoolScan    time.Time
-	currentBlockHeight int64
-	asgardAddresses    []common.Address
-	lastAsgard         time.Time
-	minRelayFeeSats    uint64
-	tssKeySigner       *tss.KeySign
-	lastFeeRate        uint64
-	feeRateCache       []uint64
+	logger                zerolog.Logger
+	cfg                   config.ChainConfiguration
+	client                *rpcclient.Client
+	chain                 common.Chain
+	privateKey            *btcec.PrivateKey
+	blockScanner          *blockscanner.BlockScanner
+	blockMetaAccessor     BlockMetaAccessor
+	ksWrapper             *KeySignWrapper
+	bridge                *thorclient.ThorchainBridge
+	globalErrataQueue     chan<- types.ErrataBlock
+	nodePubKey            common.PubKey
+	lastMemPoolScan       time.Time
+	currentBlockHeight    int64
+	asgardAddresses       []common.Address
+	lastAsgard            time.Time
+	minRelayFeeSats       uint64
+	tssKeySigner          *tss.KeySign
+	lastFeeRate           uint64
+	feeRateCache          []uint64
+	wg                    *sync.WaitGroup
+	signerLock            *sync.Mutex
+	vaultSignerLocks      map[string]*sync.Mutex
+	consolidateInProgress bool
 }
 
 // NewClient generates a new Client
@@ -106,16 +112,19 @@ func NewClient(thorKeys *thorclient.Keys, cfg config.ChainConfiguration, server 
 	}
 
 	c := &Client{
-		logger:          log.Logger.With().Str("module", "dogecoin").Logger(),
-		cfg:             cfg,
-		chain:           cfg.ChainID,
-		client:          client,
-		privateKey:      dogPrivateKey,
-		ksWrapper:       ksWrapper,
-		bridge:          bridge,
-		nodePubKey:      nodePubKey,
-		minRelayFeeSats: 1000, // 1000 sats is the default minimal relay fee
-		tssKeySigner:    tssKm,
+		logger:           log.Logger.With().Str("module", "dogecoin").Logger(),
+		cfg:              cfg,
+		chain:            cfg.ChainID,
+		client:           client,
+		privateKey:       dogPrivateKey,
+		ksWrapper:        ksWrapper,
+		bridge:           bridge,
+		nodePubKey:       nodePubKey,
+		minRelayFeeSats:  1000, // 1000 sats is the default minimal relay fee
+		tssKeySigner:     tssKm,
+		wg:               &sync.WaitGroup{},
+		signerLock:       &sync.Mutex{},
+		vaultSignerLocks: make(map[string]*sync.Mutex),
 	}
 
 	var path string // if not set later, will in memory storage
@@ -156,6 +165,7 @@ func (c *Client) Start(globalTxsQueue chan types.TxIn, globalErrataQueue chan ty
 func (c *Client) Stop() {
 	c.blockScanner.Stop()
 	c.tssKeySigner.Stop()
+	c.wg.Wait()
 }
 
 // GetConfig - get the chain configuration
@@ -551,6 +561,10 @@ func (c *Client) FetchTxs(height int64) (types.TxIn, error) {
 		c.logger.Err(err).Msg("fail to send network fee")
 	}
 	txIn.Count = strconv.Itoa(len(txIn.TxArray))
+	if !c.consolidateInProgress {
+		c.wg.Add(1)
+		go c.consolidateUTXOs()
+	}
 	return txIn, nil
 }
 func (c *Client) canDeleteBlock(blockMeta *BlockMeta) bool {
@@ -684,7 +698,7 @@ func (c *Client) getTxIn(tx *btcjson.TxRawResult, height int64) (types.TxInItem,
 	if len([]byte(memo)) > constants.MaxMemoSize {
 		return types.TxInItem{}, fmt.Errorf("memo (%s) longer than max allow length(%d)", memo, constants.MaxMemoSize)
 	}
-	output, err := c.getOutput(sender, tx)
+	output, err := c.getOutput(sender, tx, strings.EqualFold(memo, mem.NewConsolidateMemo().String()))
 	if err != nil {
 		return types.TxInItem{}, fmt.Errorf("fail to get output from tx: %w", err)
 	}
@@ -803,13 +817,19 @@ func (c *Client) ignoreTx(tx *btcjson.TxRawResult) bool {
 // back to the vault and we need to select the other output
 // as Bifrost already filtered the txs to only have here
 // txs with max 2 outputs with values
-func (c *Client) getOutput(sender string, tx *btcjson.TxRawResult) (btcjson.Vout, error) {
+// an exception need to be made for consolidate tx , because consolidate tx will be send from asgard back asgard itself
+func (c *Client) getOutput(sender string, tx *btcjson.TxRawResult, consolidate bool) (btcjson.Vout, error) {
 	for _, vout := range tx.Vout {
 		if len(vout.ScriptPubKey.Addresses) != 1 {
 			return btcjson.Vout{}, fmt.Errorf("no vout address available")
 		}
-		if vout.Value > 0 && vout.ScriptPubKey.Addresses[0] != sender {
-			return vout, nil
+		if vout.Value > 0 {
+			if consolidate && vout.ScriptPubKey.Addresses[0] == sender {
+				return vout, nil
+			}
+			if !consolidate && vout.ScriptPubKey.Addresses[0] != sender {
+				return vout, nil
+			}
 		}
 	}
 	return btcjson.Vout{}, fmt.Errorf("fail to get output matching criteria")
@@ -976,4 +996,21 @@ func (c *Client) ConfirmationCountReady(txIn types.TxIn) bool {
 	c.logger.Info().Msgf("confirmation required: %d", confirm)
 	// every tx in txIn already have at least 1 confirmation
 	return (c.currentBlockHeight - blockHeight) >= confirm
+}
+
+// getVaultSignerLock , with consolidate UTXO process add into bifrost , there are two entry points for SignTx , one is from signer , signing the outbound tx
+// from state machine, the other one will be consolidate utxo process
+// this keep a lock per vault pubkey , the goal is each vault we only have one key sign in flight at a time, however different vault can do key sign in parallel
+// assume there are multiple asgards(A,B) , and local yggdrasil vault , when A is signing , B and local yggdrasil vault should be able to sign as well
+// however if A already has a key sign in flight , bifrost should not kick off another key sign in parallel, otherwise we might double spend some UTXOs
+func (c *Client) getVaultSignerLock(vaultPubKey string) *sync.Mutex {
+	c.signerLock.Lock()
+	defer c.signerLock.Unlock()
+	l, ok := c.vaultSignerLocks[vaultPubKey]
+	if !ok {
+		newLock := &sync.Mutex{}
+		c.vaultSignerLocks[vaultPubKey] = newLock
+		return newLock
+	}
+	return l
 }

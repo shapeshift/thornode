@@ -30,31 +30,33 @@ const (
 	TxRagnarok
 	TxSwitch
 	TxNoOp
+	TxConsolidate
 )
 
 var stringToTxTypeMap = map[string]TxType{
-	"add":        TxAdd,
-	"+":          TxAdd,
-	"withdraw":   TxWithdraw,
-	"wd":         TxWithdraw,
-	"-":          TxWithdraw,
-	"swap":       TxSwap,
-	"s":          TxSwap,
-	"=":          TxSwap,
-	"out":        TxOutbound,
-	"donate":     TxDonate,
-	"d":          TxDonate,
-	"bond":       TxBond,
-	"unbond":     TxUnbond,
-	"leave":      TxLeave,
-	"yggdrasil+": TxYggdrasilFund,
-	"yggdrasil-": TxYggdrasilReturn,
-	"reserve":    TxReserve,
-	"refund":     TxRefund,
-	"migrate":    TxMigrate,
-	"ragnarok":   TxRagnarok,
-	"switch":     TxSwitch,
-	"noop":       TxNoOp,
+	"add":         TxAdd,
+	"+":           TxAdd,
+	"withdraw":    TxWithdraw,
+	"wd":          TxWithdraw,
+	"-":           TxWithdraw,
+	"swap":        TxSwap,
+	"s":           TxSwap,
+	"=":           TxSwap,
+	"out":         TxOutbound,
+	"donate":      TxDonate,
+	"d":           TxDonate,
+	"bond":        TxBond,
+	"unbond":      TxUnbond,
+	"leave":       TxLeave,
+	"yggdrasil+":  TxYggdrasilFund,
+	"yggdrasil-":  TxYggdrasilReturn,
+	"reserve":     TxReserve,
+	"refund":      TxRefund,
+	"migrate":     TxMigrate,
+	"ragnarok":    TxRagnarok,
+	"switch":      TxSwitch,
+	"noop":        TxNoOp,
+	"consolidate": TxConsolidate,
 }
 
 var txToStringMap = map[TxType]string{
@@ -74,6 +76,7 @@ var txToStringMap = map[TxType]string{
 	TxRagnarok:        "ragnarok",
 	TxSwitch:          "switch",
 	TxNoOp:            "noop",
+	TxConsolidate:     "consolidate",
 }
 
 // converts a string into a txType
@@ -106,7 +109,7 @@ func (tx TxType) IsOutbound() bool {
 
 func (tx TxType) IsInternal() bool {
 	switch tx {
-	case TxYggdrasilFund, TxYggdrasilReturn, TxMigrate:
+	case TxYggdrasilFund, TxYggdrasilReturn, TxMigrate, TxConsolidate:
 		return true
 	default:
 		return false
@@ -236,6 +239,8 @@ func ParseMemo(memo string) (mem Memo, err error) {
 		return ParseSwitchMemo(parts)
 	case TxNoOp:
 		return ParseNoOpMemo(parts)
+	case TxConsolidate:
+		return ParseConsolidateMemo(parts)
 	default:
 		return mem, fmt.Errorf("TxType not supported: %s", tx.String())
 	}
