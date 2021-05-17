@@ -4869,13 +4869,13 @@
                 "swap_slip": "858"
             },
             {
-                "liquidity_fee": "1525738734"
+                "liquidity_fee": "1525540392"
             },
             {
-                "liquidity_fee_in_rune": "1525738734"
+                "liquidity_fee_in_rune": "1525540392"
             },
             {
-                "emit_asset": "16250085633 THOR.RUNE"
+                "emit_asset": "16249128535 THOR.RUNE"
             },
             {
                 "id": "TODO"
@@ -4890,13 +4890,13 @@
                 "to": "VAULT"
             },
             {
-                "coin": "19520947 BTC/BTC"
+                "coin": "19519559 BTC/BTC"
             },
             {
                 "memo": "SWAP:THOR.RUNE:PROVIDER-1"
             },
             {
-                "synth_units": "3759309014"
+                "synth_units": "3759041715"
             }
         ]
     },
@@ -4916,10 +4916,10 @@
                 "asymmetry": "0.000000000000000000"
             },
             {
-                "emit_asset": "99627000"
+                "emit_asset": "99626432"
             },
             {
-                "emit_rune": "83664956096"
+                "emit_rune": "83665397066"
             },
             {
                 "imp_loss_protection": "0"
@@ -4954,7 +4954,7 @@
                 "coins": "30000 BTC.BTC"
             },
             {
-                "pool_deduct": "25193461"
+                "pool_deduct": "25193732"
             }
         ]
     },
@@ -4982,7 +4982,7 @@
                 "asset_amt": "15000"
             },
             {
-                "rune_amt": "12423311"
+                "rune_amt": "12423467"
             },
             {
                 "transaction_count": "1"
