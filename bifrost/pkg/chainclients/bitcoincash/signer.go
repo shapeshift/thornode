@@ -18,14 +18,13 @@ import (
 	"github.com/gcash/bchd/wire"
 	"github.com/gcash/bchutil"
 	"github.com/hashicorp/go-multierror"
-
 	txscript "gitlab.com/thorchain/bifrost/bchd-txscript"
-
 	stypes "gitlab.com/thorchain/thornode/bifrost/thorclient/types"
 	"gitlab.com/thorchain/thornode/bifrost/tss"
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	mem "gitlab.com/thorchain/thornode/x/thorchain/memo"
+	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
 const (
@@ -467,6 +466,15 @@ func (c *Client) consolidateUTXOs() {
 	}
 	if v.LT(semver.MustParse("0.53.0")) {
 		c.logger.Info().Msgf("THORChain version is %s , less than 0.53.0", v)
+		return
+	}
+	nodeStatus, err := c.bridge.FetchNodeStatus()
+	if err != nil {
+		c.logger.Err(err).Msg("fail to get node status")
+		return
+	}
+	if nodeStatus != types.NodeStatus_Active {
+		c.logger.Info().Msgf("node is not active , doesn't need to consolidate utxos")
 		return
 	}
 	vaults, err := c.bridge.GetAsgards()
