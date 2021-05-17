@@ -783,6 +783,10 @@ class ThorchainState:
         if asset.is_rune():
             return self.refund(tx, 105, "asset cannot be rune: unknown request")
 
+        # cant have synth asset
+        if asset.is_synth:
+            return self.refund(tx, 105, "asset cannot be synth: unknown request")
+
         # check that we have one rune and one asset
         if len(tx.coins) > 2:
             # FIXME real world message
@@ -795,6 +799,11 @@ class ThorchainState:
                     return self.refund(
                         tx, 105, "did not find both coins: unknown request"
                     )
+
+        # check for synth coin asset
+        for coin in tx.coins:
+            if coin.asset.is_synth:
+                return self.refund(tx, 105, "asset coins cannot be synth: unknown request")
 
         pool = self.get_pool(asset)
 
