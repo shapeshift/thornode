@@ -803,7 +803,9 @@ class ThorchainState:
         # check for synth coin asset
         for coin in tx.coins:
             if coin.asset.is_synth:
-                return self.refund(tx, 105, "asset coins cannot be synth: unknown request")
+                return self.refund(
+                    tx, 105, "asset coins cannot be synth: unknown request"
+                )
 
         pool = self.get_pool(asset)
 
