@@ -363,3 +363,11 @@ func (x *Status) UnmarshalJSON(b []byte) error {
 	}
 	return fmt.Errorf("%s is not a valid status", s)
 }
+func (txs ObservedTxs) Contains(tx ObservedTx) bool {
+	for _, item := range txs {
+		if item.Equals(tx) {
+			return true
+		}
+	}
+	return false
+}

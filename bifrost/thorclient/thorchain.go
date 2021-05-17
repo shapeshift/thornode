@@ -255,8 +255,8 @@ func (b *ThorchainBridge) GetObservationsStdTx(txIns stypes.ObservedTxs) ([]cosm
 	if len(txIns) == 0 {
 		return nil, nil
 	}
-	var inbound stypes.ObservedTxs
-	var outbound stypes.ObservedTxs
+	inbound := stypes.ObservedTxs{}
+	outbound := stypes.ObservedTxs{}
 
 	// spilt our txs into inbound vs outbound txs
 	for _, tx := range txIns {
@@ -269,9 +269,11 @@ func (b *ThorchainBridge) GetObservationsStdTx(txIns stypes.ObservedTxs) ([]cosm
 		if err != nil {
 			return nil, err
 		}
-		if tx.Tx.ToAddress.Equals(obAddr) {
+		// for consolidate UTXO tx, both From & To address will be the asgard address
+		// thus here we need to make sure that one add to inbound , the other add to outbound
+		if tx.Tx.ToAddress.Equals(obAddr) && !inbound.Contains(tx) {
 			inbound = append(inbound, tx)
-		} else if tx.Tx.FromAddress.Equals(obAddr) {
+		} else if tx.Tx.FromAddress.Equals(obAddr) && !outbound.Contains(tx) {
 			outbound = append(outbound, tx)
 		} else {
 			return nil, errors.New("could not determine if this tx as inbound or outbound")
