@@ -911,7 +911,14 @@ func (e *ETHScanner) fromTxToTxIn(tx *etypes.Transaction) (*stypes.TxInItem, err
 	}
 	receipt, err := e.getReceipt(tx.Hash().Hex())
 	if err != nil {
+		if errors.Is(err, ethereum.NotFound) {
+			return nil, nil
+		}
 		return nil, fmt.Errorf("fail to get transaction receipt: %w", err)
+	}
+	if receipt.Status != 1 {
+		e.logger.Info().Msgf("tx(%s) state: %d means failed , ignore", tx.Hash().String(), receipt.Status)
+		return nil, nil
 	}
 	smartContract := e.isToSmartContract(receipt)
 	if smartContract {
