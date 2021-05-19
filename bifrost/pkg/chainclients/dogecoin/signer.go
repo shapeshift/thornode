@@ -234,7 +234,7 @@ func (c *Client) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, err
 	}
 	redeemTx := wire.NewMsgTx(wire.TxVersion)
 	totalAmt := float64(0)
-	individualAmounts := make(map[chainhash.Hash]dogutil.Amount, len(txes))
+	individualAmounts := make(map[string]dogutil.Amount, len(txes))
 	for _, item := range txes {
 		txID, err := chainhash.NewHashFromStr(item.TxID)
 		if err != nil {
@@ -249,7 +249,7 @@ func (c *Client) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, err
 		if err != nil {
 			return nil, fmt.Errorf("fail to parse amount(%f): %w", item.Amount, err)
 		}
-		individualAmounts[*txID] = amt
+		individualAmounts[fmt.Sprintf("%s-%d", txID, item.Vout)] = amt
 	}
 
 	outputAddr, err := dogutil.DecodeAddress(tx.ToAddress.String(), c.getChainCfg())
@@ -346,7 +346,8 @@ func (c *Client) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, err
 	c.logger.Info().Msgf("UTXOs to sign: %d", len(redeemTx.TxIn))
 
 	for idx, txIn := range redeemTx.TxIn {
-		outputAmount := int64(individualAmounts[txIn.PreviousOutPoint.Hash])
+		key := fmt.Sprintf("%s-%d", txIn.PreviousOutPoint.Hash, txIn.PreviousOutPoint.Index)
+		outputAmount := int64(individualAmounts[key])
 		wg.Add(1)
 		go func(i int, amount int64) {
 			defer wg.Done()
