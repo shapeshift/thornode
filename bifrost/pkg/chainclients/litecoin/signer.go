@@ -111,6 +111,12 @@ func (c *Client) getUtxoToSpend(pubKey common.PubKey, total float64) ([]btcjson.
 	minUTXOAmt := ltcutil.Amount(minSpendableUTXOAmountSats).ToBTC()
 	for _, item := range utxos {
 		isSelfTx := c.isSelfTransaction(item.TxID)
+		if item.Confirmations == 0 {
+			// pending tx that is still  in mempool, only count yggdrasil send to itself or from asgard
+			if !c.isSelfTransaction(item.TxID) && !c.isFromActiveAsgard(item) {
+				continue
+			}
+		}
 		// when the utxo is signed yggdrasil / asgard , even amount is less than minSpendableUTXOAmountSats
 		// it is ok to spend it
 		if item.Amount <= minUTXOAmt && !isSelfTx && !isYggdrasil {
