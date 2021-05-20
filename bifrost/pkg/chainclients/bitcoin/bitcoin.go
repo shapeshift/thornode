@@ -222,6 +222,12 @@ func (c *Client) GetAccount(pkey common.PubKey) (common.Account, error) {
 	}
 	total := 0.0
 	for _, item := range utxos {
+		if item.Confirmations == 0 {
+			// pending tx that is still  in mempool, only count yggdrasil send to itself or from asgard
+			if !c.isSelfTransaction(item.TxID) && !c.isFromActiveAsgard(item) {
+				continue
+			}
+		}
 		total += item.Amount
 	}
 	totalAmt, err := btcutil.NewAmount(total)
