@@ -1,0 +1,38 @@
+version: '3'
+
+services:
+  thornode:
+    container_name: thornode
+    hostname: thornode
+    build:
+      context: ../../..
+      dockerfile: ./build/docker/Dockerfile
+      args:
+        TAG: ${TAG:-mainnet}
+    image: ${IMAGE:-registry.gitlab.com/thorchain/thornode}:${TAG:-latest}
+    restart: unless-stopped
+    environment:
+      NET: ${NET}
+      PEER: ${PEER}
+      SEEDS: ${SEEDS}
+      THORNODE_API_ENABLE: "true"
+      HARDFORK_BLOCK_HEIGHT: ${HARDFORK_BLOCK_HEIGHT:-}
+    ports:
+      - "26657:26657"
+      - "26656:26656"
+      - "1317:1317"
+    expose:
+      - "26656"
+      - "26657"
+    entrypoint:
+      /docker/scripts/fullnode.sh
+    volumes:
+      - "../../scripts:/docker/scripts"
+      - ${HOME}/.thornode/fullnode/.thornode:/root/.thornode
+      - ${HOME}/.thornode/fullnode/.bond:/root/.bond
+    command: ["thornode", "start", "--log_level", "info", "--log_format","json","--rpc.laddr", "tcp://0.0.0.0:26657"]
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "128m"
+        max-file: "3"
