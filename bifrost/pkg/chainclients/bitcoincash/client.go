@@ -953,7 +953,7 @@ func (c *Client) getBlockRequiredConfirmation(txIn types.TxIn, height int64) (in
 		}
 		totalFeeAndSubsidy = int64(cbValue)
 	}
-	confirm := totalTxValue.MulUint64(2).QuoUint64(uint64(totalFeeAndSubsidy)).Uint64()
+	confirm := totalTxValue.QuoUint64(uint64(totalFeeAndSubsidy)).Uint64()
 	c.logger.Info().Msgf("totalTxValue:%s,total fee and Subsidy:%d,confirmation:%d", totalTxValue, totalFeeAndSubsidy, confirm)
 	return int64(confirm), nil
 }
