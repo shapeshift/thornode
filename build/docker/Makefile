@@ -1,4 +1,6 @@
 include mocknet/Makefile
+include mccn/Makefile
+include mctn/Makefile
 .PHONY: build
 
 TAG ?= mocknet
@@ -22,10 +24,15 @@ clean:
 	@mkdir ~/.thornode/genesis_3
 	@mkdir ~/.thornode/genesis_4
 	@mkdir ~/.thornode/validator
+	@mkdir ~/.thornode/fullnode
 
 clean-validator:
 	@rm -rf ~/.thornode/validator
 	@mkdir -p ~/.thornode/validator
+
+clean-fullnode:
+	@rm -rf ~/.thornode/fullnode
+	@mkdir -p ~/.thornode/fullnode
 
 stop:
 	BUILD_FLAG="" docker-compose -p thornode -f ${path}../components/standalone.base.yml down --remove-orphans
@@ -34,6 +41,11 @@ run-validator:
 	docker-compose -f validator.yml --project-name validator up --force-recreate -d
 
 reset-validator: clean-validator run-validator
+
+run-fullnode:
+	docker-compose -f fullnode.yml --project-name validator up --force-recreate -d
+
+reset-fullnode: clean-fullnode run-fullnode
 
 run-mainnet-binance:
 	@mkdir -p ${HOME}/.bnbchaind && chown 1000:1000 ${HOME}/.bnbchaind
