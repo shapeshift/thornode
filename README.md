@@ -97,7 +97,7 @@ Emergency changes to the protocol may be difficult to coordinate, since there is
 ======================================
 
 ## Setup
-Ensure you have a recent version of go (ie `1.15`) and enabled go modules
+Ensure you have a recent version of go (ie `1.16`) and enabled go modules
 And have `GOBIN` in your `PATH`
 ```
 export GOBIN=$GOPATH/bin
@@ -110,18 +110,22 @@ Install via this `make` command.
 make install
 ```
 
-Once you've installed `thorcli` and `thord`, check that they are there.
+Once you've installed `thornode`, check that they are there.
 
 ```bash
-thorcli help
-thord help
+thornode help
 ```
 
 ### Start Standalone Full Stack
-For development and running a full chain locally (your own separate network),
-use the following `make` command.
+For development and running a full chain locally (your own separate network),use the following `make` command on the project root folder
+
+1) build docker images locally 
+```shell
+BUILDTAG=mocknet BRANCH=mocknet make docker-gitlab-build
+```
+2) Run mocknet locally 
 ```bash
-make -C build/docker reset-mocknet-standalone
+BLOCK_TIME=2m  make -C build/docker reset-mocknet-standalone
 ```
 
 ### Format code
@@ -138,8 +142,6 @@ make all
 Run tests
 ```bash
 make test
-# test with NATIVE RUNE
-NATIVE=true make test
 ```
 
 To run test live when you change a file, use...
@@ -151,11 +153,14 @@ make test-watch
 ### How to contribute
 
 * Create an issue or find an existing issue on https://gitlab.com/thorchain/thornode/-/issues
+* About to work on an issue? Start a conversation at #Thornode channel on [discord](https://discord.gg/kvZhpEtHAw)  
 * Assign the issue to yourself
 * Create a branch using the issue id, for example if the issue you are working on is 600, then create a branch call `600-issue` , this way , gitlab will link your PR with the issue
-* Raise a PR , and submit it for the team to review
+* Raise a PR , Once your PR is ready for review , post a message in #Thornode channel in discord , tag `thornode-team` for review
 * Make sure the pipeline is green
-* Once PR get approved, you can merge it to master
+* Once PR get approved, you can merge it
+
+Current active branch is `develop` , so when you open PR , make sure your target branch is `develop`
 
 ### the semantic version and release
 THORNode manage changelog entry the same way like gitlab, refer to (https://docs.gitlab.com/ee/development/changelog.html) for more detail. Once a merge request get merged into master branch,
@@ -292,5 +297,3 @@ merge_request:
 author:
 type: added
 ```
-
-
