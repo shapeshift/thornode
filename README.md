@@ -153,7 +153,7 @@ make test-watch
 ### How to contribute
 
 * Create an issue or find an existing issue on https://gitlab.com/thorchain/thornode/-/issues
-* Start a conversation about the issue you are about to work on #Thornode channel in [discord](https://discord.gg/kvZhpEtHAw)  
+* About to work on an issue? Start a conversation at #Thornode channel on [discord](https://discord.gg/kvZhpEtHAw)  
 * Assign the issue to yourself
 * Create a branch using the issue id, for example if the issue you are working on is 600, then create a branch call `600-issue` , this way , gitlab will link your PR with the issue
 * Raise a PR , Once your PR is ready for review , post a message in #Thornode channel in discord , tag `thornode-team` for review
