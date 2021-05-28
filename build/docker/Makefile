@@ -1,6 +1,4 @@
 include mocknet/Makefile
-include mccn/Makefile
-include mctn/Makefile
 .PHONY: build
 
 TAG ?= mocknet
