@@ -5,20 +5,17 @@ import (
 
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // ConsolidateHandler handles transactions the network sends to itself, to consolidate UTXOs
 type ConsolidateHandler struct {
-	keeper keeper.Keeper
-	mgr    Manager
+	mgr Manager
 }
 
 // NewConsolidateHandler create a new instance of the ConsolidateHandler
-func NewConsolidateHandler(k keeper.Keeper, mgr Manager) ConsolidateHandler {
+func NewConsolidateHandler(mgr Manager) ConsolidateHandler {
 	return ConsolidateHandler{
-		keeper: k,
-		mgr:    mgr,
+		mgr: mgr,
 	}
 }
 
@@ -80,7 +77,7 @@ func (h ConsolidateHandler) handleCurrent(ctx cosmos.Context, version semver.Ver
 		shouldSlash = true
 	}
 
-	vault, err := h.keeper.GetVault(ctx, msg.ObservedTx.ObservedPubKey)
+	vault, err := h.mgr.Keeper().GetVault(ctx, msg.ObservedTx.ObservedPubKey)
 	if err != nil {
 		ctx.Logger().Error("unable to get vault for consolidation", "error", err)
 	} else {

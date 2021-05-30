@@ -54,7 +54,7 @@ func (vm *SwapQv47) FetchQueue(ctx cosmos.Context) (swapItems, error) {
 
 // EndBlock trigger the real swap to be processed
 func (vm *SwapQv47) EndBlock(ctx cosmos.Context, mgr Manager, version semver.Version, constAccessor constants.ConstantValues) error {
-	handler := NewSwapHandler(vm.k, mgr)
+	handler := NewSwapHandler(mgr)
 
 	minSwapsPerBlock, err := vm.k.GetMimir(ctx, constants.MinSwapsPerBlock.String())
 	if minSwapsPerBlock < 0 || err != nil {
@@ -82,7 +82,7 @@ func (vm *SwapQv47) EndBlock(ctx cosmos.Context, mgr Manager, version semver.Ver
 		_, err := handler.handle(ctx, pick.msg, version, constAccessor)
 		if err != nil {
 			ctx.Logger().Error("fail to swap", "msg", pick.msg.Tx.String(), "error", err)
-			if newErr := refundTxV47(ctx, ObservedTx{Tx: pick.msg.Tx}, mgr, vm.k, constAccessor, CodeSwapFail, err.Error(), ""); nil != newErr {
+			if newErr := refundTxV47(ctx, ObservedTx{Tx: pick.msg.Tx}, mgr, constAccessor, CodeSwapFail, err.Error(), ""); nil != newErr {
 				ctx.Logger().Error("fail to refund swap", "error", err)
 			}
 		}

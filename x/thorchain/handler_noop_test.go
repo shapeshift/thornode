@@ -12,7 +12,7 @@ var _ = Suite(&HandlerNoOpSuite{})
 
 func (HandlerNoOpSuite) TestNoOp(c *C) {
 	w := getHandlerTestWrapper(c, 1, true, true)
-	h := NewNoOpHandler(w.keeper, w.mgr)
+	h := NewNoOpHandler(w.mgr)
 	m := NewMsgNoOp(GetRandomObservedTx(), w.activeNodeAccount.NodeAddress, "novault")
 	version := GetCurrentVersion()
 	constantAccessor := constants.GetConstantValues(version)

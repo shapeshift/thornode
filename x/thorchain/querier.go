@@ -90,7 +90,7 @@ func NewQuerier(mgr *Mgrs, kbs cosmos.KeybaseStore) cosmos.Querier {
 }
 
 func queryRagnarok(ctx cosmos.Context, mgr *Mgrs) ([]byte, error) {
-	ragnarokInProgress := mgr.Keeper.RagnarokInProgress(ctx)
+	ragnarokInProgress := mgr.Keeper().RagnarokInProgress(ctx)
 	res, err := json.MarshalIndent(ragnarokInProgress, "", "	")
 	if err != nil {
 		return nil, ErrInternal(err, "fail to marshal response to json")
@@ -104,8 +104,8 @@ func queryBalanceModule(ctx cosmos.Context, path []string, mgr *Mgrs) ([]byte, e
 		moduleName = AsgardName
 	}
 
-	modAddr := mgr.Keeper.GetModuleAccAddress(moduleName)
-	bal := mgr.Keeper.GetBalance(ctx, modAddr)
+	modAddr := mgr.Keeper().GetModuleAccAddress(moduleName)
+	bal := mgr.Keeper().GetBalance(ctx, modAddr)
 	balance := struct {
 		Name    string            `json:"name"`
 		Address cosmos.AccAddress `json:"address"`
@@ -130,7 +130,7 @@ func queryVault(ctx cosmos.Context, path []string, mgr *Mgrs) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%s is invalid pubkey", path[0])
 	}
-	v, err := mgr.Keeper.GetVault(ctx, pubkey)
+	v, err := mgr.Keeper().GetVault(ctx, pubkey)
 	if err != nil {
 		return nil, fmt.Errorf("fail to get vault with pubkey(%s),err:%w", pubkey, err)
 	}
@@ -163,7 +163,7 @@ func queryVault(ctx cosmos.Context, path []string, mgr *Mgrs) ([]byte, error) {
 }
 
 func queryAsgardVaults(ctx cosmos.Context, mgr *Mgrs) ([]byte, error) {
-	vaults, err := mgr.Keeper.GetAsgardVaults(ctx)
+	vaults, err := mgr.Keeper().GetAsgardVaults(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("fail to get asgard vaults: %w", err)
 	}
@@ -224,11 +224,11 @@ func getVaultChainAddress(ctx cosmos.Context, vault Vault) []QueryChainAddress {
 
 func queryYggdrasilVaults(ctx cosmos.Context, mgr *Mgrs) ([]byte, error) {
 	vaults := make(Vaults, 0)
-	iter := mgr.Keeper.GetVaultIterator(ctx)
+	iter := mgr.Keeper().GetVaultIterator(ctx)
 	defer iter.Close()
 	for ; iter.Valid(); iter.Next() {
 		var vault Vault
-		if err := mgr.Keeper.Cdc().UnmarshalBinaryBare(iter.Value(), &vault); err != nil {
+		if err := mgr.Keeper().Cdc().UnmarshalBinaryBare(iter.Value(), &vault); err != nil {
 			ctx.Logger().Error("fail to unmarshal yggdrasil", "error", err)
 			return nil, fmt.Errorf("fail to unmarshal yggdrasil: %w", err)
 		}
@@ -242,7 +242,7 @@ func queryYggdrasilVaults(ctx cosmos.Context, mgr *Mgrs) ([]byte, error) {
 		totalValue := cosmos.ZeroUint()
 
 		// find the bond of this node account
-		na, err := mgr.Keeper.GetNodeAccountByPubKey(ctx, vault.PubKey)
+		na, err := mgr.Keeper().GetNodeAccountByPubKey(ctx, vault.PubKey)
 		if err != nil {
 			ctx.Logger().Error("fail to get node account by pubkey", "error", err)
 			continue
@@ -253,7 +253,7 @@ func queryYggdrasilVaults(ctx cosmos.Context, mgr *Mgrs) ([]byte, error) {
 			if coin.Asset.IsRune() {
 				totalValue = totalValue.Add(coin.Amount)
 			} else {
-				pool, err := mgr.Keeper.GetPool(ctx, coin.Asset)
+				pool, err := mgr.Keeper().GetPool(ctx, coin.Asset)
 				if err != nil {
 					ctx.Logger().Error("fail to get pool", "error", err)
 					continue
@@ -294,17 +294,17 @@ func queryVaultsPubkeys(ctx cosmos.Context, mgr *Mgrs) ([]byte, error) {
 	var resp QueryVaultsPubKeys
 	resp.Asgard = make([]QueryVaultPubKeyContract, 0)
 	resp.Yggdrasil = make([]QueryVaultPubKeyContract, 0)
-	iter := mgr.Keeper.GetVaultIterator(ctx)
+	iter := mgr.Keeper().GetVaultIterator(ctx)
 
 	defer iter.Close()
 	for ; iter.Valid(); iter.Next() {
 		var vault Vault
-		if err := mgr.Keeper.Cdc().UnmarshalBinaryBare(iter.Value(), &vault); err != nil {
+		if err := mgr.Keeper().Cdc().UnmarshalBinaryBare(iter.Value(), &vault); err != nil {
 			ctx.Logger().Error("fail to unmarshal vault", "error", err)
 			return nil, fmt.Errorf("fail to unmarshal vault: %w", err)
 		}
 		if vault.IsYggdrasil() {
-			na, err := mgr.Keeper.GetNodeAccountByPubKey(ctx, vault.PubKey)
+			na, err := mgr.Keeper().GetNodeAccountByPubKey(ctx, vault.PubKey)
 			if err != nil {
 				ctx.Logger().Error("fail to unmarshal vault", "error", err)
 				return nil, fmt.Errorf("fail to unmarshal vault: %w", err)
@@ -333,7 +333,7 @@ func queryVaultsPubkeys(ctx cosmos.Context, mgr *Mgrs) ([]byte, error) {
 }
 
 func queryNetwork(ctx cosmos.Context, mgr *Mgrs) ([]byte, error) {
-	data, err := mgr.Keeper.GetNetwork(ctx)
+	data, err := mgr.Keeper().GetNetwork(ctx)
 	if err != nil {
 		ctx.Logger().Error("fail to get vault", "error", err)
 		return nil, fmt.Errorf("fail to get vault: %w", err)
@@ -348,7 +348,7 @@ func queryNetwork(ctx cosmos.Context, mgr *Mgrs) ([]byte, error) {
 	result := NetworkResp{
 		BondRewardRune:  data.BondRewardRune,
 		TotalBondUnits:  data.TotalBondUnits,
-		TotalReserve:    mgr.Keeper.GetRuneBalanceOfModule(ctx, ReserveName),
+		TotalReserve:    mgr.Keeper().GetRuneBalanceOfModule(ctx, ReserveName),
 		BurnedBep2Rune:  data.BurnedBep2Rune,
 		BurnedErc20Rune: data.BurnedErc20Rune,
 	}
@@ -362,13 +362,13 @@ func queryNetwork(ctx cosmos.Context, mgr *Mgrs) ([]byte, error) {
 }
 
 func queryInboundAddresses(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mgrs) ([]byte, error) {
-	haltTrading, err := mgr.Keeper.GetMimir(ctx, "HaltTrading")
+	haltTrading, err := mgr.Keeper().GetMimir(ctx, "HaltTrading")
 	if err != nil {
 		ctx.Logger().Error("fail to get HaltTrading mimir", "error", err)
 	}
 	// when trading is halt , do not return any pool addresses
-	halted := (haltTrading > 0 && haltTrading < common.BlockHeight(ctx) && err == nil) || mgr.Keeper.RagnarokInProgress(ctx)
-	active, err := mgr.Keeper.GetAsgardVaultsByStatus(ctx, ActiveVault)
+	halted := (haltTrading > 0 && haltTrading < common.BlockHeight(ctx) && err == nil) || mgr.Keeper().RagnarokInProgress(ctx)
+	active, err := mgr.Keeper().GetAsgardVaultsByStatus(ctx, ActiveVault)
 	if err != nil {
 		ctx.Logger().Error("fail to get active vaults", "error", err)
 		return nil, fmt.Errorf("fail to get active vaults: %w", err)
@@ -386,12 +386,12 @@ func queryInboundAddresses(ctx cosmos.Context, path []string, req abci.RequestQu
 		GasRate cosmos.Uint    `json:"gas_rate,omitempty"`
 	}
 	var resp []address
-	version := mgr.Keeper.GetLowestActiveVersion(ctx)
+	version := mgr.Keeper().GetLowestActiveVersion(ctx)
 	constAccessor := constants.GetConstantValues(version)
 	signingTransactionPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
 
 	// select vault that is most secure
-	vault := mgr.Keeper.GetMostSecure(ctx, active, signingTransactionPeriod)
+	vault := mgr.Keeper().GetMostSecure(ctx, active, signingTransactionPeriod)
 
 	chains := vault.GetChains()
 
@@ -451,16 +451,16 @@ func queryNode(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mg
 		return nil, cosmos.ErrUnknownRequest("invalid account address")
 	}
 
-	nodeAcc, err := mgr.Keeper.GetNodeAccount(ctx, addr)
+	nodeAcc, err := mgr.Keeper().GetNodeAccount(ctx, addr)
 	if err != nil {
 		return nil, fmt.Errorf("fail to get node accounts: %w", err)
 	}
 
-	slashPts, err := mgr.Keeper.GetNodeAccountSlashPoints(ctx, addr)
+	slashPts, err := mgr.Keeper().GetNodeAccountSlashPoints(ctx, addr)
 	if err != nil {
 		return nil, fmt.Errorf("fail to get node slash points: %w", err)
 	}
-	jail, err := mgr.Keeper.GetNodeAccountJail(ctx, nodeAcc.NodeAddress)
+	jail, err := mgr.Keeper().GetNodeAccountJail(ctx, nodeAcc.NodeAddress)
 	if err != nil {
 		return nil, fmt.Errorf("fail to get node jail: %w", err)
 	}
@@ -471,11 +471,11 @@ func queryNode(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mg
 	// CurrentAward is an estimation of reward for node in active status
 	// Node in other status should not have current reward
 	if nodeAcc.Status == NodeActive && !nodeAcc.Bond.IsZero() {
-		network, err := mgr.Keeper.GetNetwork(ctx)
+		network, err := mgr.Keeper().GetNetwork(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("fail to get network: %w", err)
 		}
-		vaults, err := mgr.Keeper.GetAsgardVaultsByStatus(ctx, ActiveVault)
+		vaults, err := mgr.Keeper().GetAsgardVaultsByStatus(ctx, ActiveVault)
 		if err != nil {
 			return nil, fmt.Errorf("fail to get active vaults: %w", err)
 		}
@@ -491,7 +491,7 @@ func queryNode(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mg
 		result.CurrentAward = network.CalcNodeRewards(cosmos.NewUint(uint64(earnedBlocks)))
 	}
 
-	chainHeights, err := mgr.Keeper.GetLastObserveHeight(ctx, addr)
+	chainHeights, err := mgr.Keeper().GetLastObserveHeight(ctx, addr)
 	if err != nil {
 		return nil, fmt.Errorf("fail to get last observe chain height: %w", err)
 	}
@@ -516,7 +516,7 @@ func queryNode(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mg
 }
 
 func getNodePreflightResult(ctx cosmos.Context, mgr *Mgrs, nodeAcc NodeAccount) (QueryNodeAccountPreflightCheck, error) {
-	version := mgr.Keeper.GetLowestActiveVersion(ctx)
+	version := mgr.Keeper().GetLowestActiveVersion(ctx)
 	constAccessor := constants.GetConstantValues(version)
 	if constAccessor == nil {
 		return QueryNodeAccountPreflightCheck{}, fmt.Errorf("constants for version(%s) is not available", version)
@@ -537,17 +537,17 @@ func getNodePreflightResult(ctx cosmos.Context, mgr *Mgrs, nodeAcc NodeAccount) 
 // queryNodes return all the nodes that has bond
 // /thorchain/nodes
 func queryNodes(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mgrs) ([]byte, error) {
-	nodeAccounts, err := mgr.Keeper.ListNodeAccountsWithBond(ctx)
+	nodeAccounts, err := mgr.Keeper().ListNodeAccountsWithBond(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("fail to get node accounts: %w", err)
 	}
 
-	network, err := mgr.Keeper.GetNetwork(ctx)
+	network, err := mgr.Keeper().GetNetwork(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("fail to get network: %w", err)
 	}
 
-	vaults, err := mgr.Keeper.GetAsgardVaultsByStatus(ctx, ActiveVault)
+	vaults, err := mgr.Keeper().GetAsgardVaultsByStatus(ctx, ActiveVault)
 	if err != nil {
 		return nil, fmt.Errorf("fail to get active vaults: %w", err)
 	}
@@ -557,7 +557,7 @@ func queryNodes(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *M
 	lastChurnHeight := vaults[0].BlockHeight
 	result := make([]QueryNodeAccount, len(nodeAccounts))
 	for i, na := range nodeAccounts {
-		slashPts, err := mgr.Keeper.GetNodeAccountSlashPoints(ctx, na.NodeAddress)
+		slashPts, err := mgr.Keeper().GetNodeAccountSlashPoints(ctx, na.NodeAddress)
 		if err != nil {
 			return nil, fmt.Errorf("fail to get node slash points: %w", err)
 		}
@@ -573,12 +573,12 @@ func queryNodes(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *M
 			result[i].CurrentAward = network.CalcNodeRewards(cosmos.NewUint(uint64(earnedBlocks)))
 		}
 
-		jail, err := mgr.Keeper.GetNodeAccountJail(ctx, na.NodeAddress)
+		jail, err := mgr.Keeper().GetNodeAccountJail(ctx, na.NodeAddress)
 		if err != nil {
 			return nil, fmt.Errorf("fail to get node jail: %w", err)
 		}
 		result[i].Jail = jail
-		chainHeights, err := mgr.Keeper.GetLastObserveHeight(ctx, na.NodeAddress)
+		chainHeights, err := mgr.Keeper().GetLastObserveHeight(ctx, na.NodeAddress)
 		if err != nil {
 			return nil, fmt.Errorf("fail to get last observe chain height: %w", err)
 		}
@@ -616,11 +616,11 @@ func queryLiquidityProviders(ctx cosmos.Context, path []string, req abci.Request
 		return nil, fmt.Errorf("fail to parse asset: %w", err)
 	}
 	var lps LiquidityProviders
-	iterator := mgr.Keeper.GetLiquidityProviderIterator(ctx, asset)
+	iterator := mgr.Keeper().GetLiquidityProviderIterator(ctx, asset)
 	defer iterator.Close()
 	for ; iterator.Valid(); iterator.Next() {
 		var lp LiquidityProvider
-		mgr.Keeper.Cdc().MustUnmarshalBinaryBare(iterator.Value(), &lp)
+		mgr.Keeper().Cdc().MustUnmarshalBinaryBare(iterator.Value(), &lp)
 		lps = append(lps, lp)
 	}
 	res, err := json.MarshalIndent(lps, "", "	")
@@ -646,7 +646,7 @@ func queryLiquidityProvider(ctx cosmos.Context, path []string, req abci.RequestQ
 		ctx.Logger().Error("fail to get parse address", "error", err)
 		return nil, fmt.Errorf("fail to parse address: %w", err)
 	}
-	lp, err := mgr.Keeper.GetLiquidityProvider(ctx, asset, addr)
+	lp, err := mgr.Keeper().GetLiquidityProvider(ctx, asset, addr)
 	if err != nil {
 		ctx.Logger().Error("fail to get liquidity provider", "error", err)
 		return nil, fmt.Errorf("fail to liquidity provider: %w", err)
@@ -670,7 +670,7 @@ func queryPool(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mg
 		return nil, fmt.Errorf("could not parse asset: %w", err)
 	}
 
-	pool, err := mgr.Keeper.GetPool(ctx, asset)
+	pool, err := mgr.Keeper().GetPool(ctx, asset)
 	if err != nil {
 		ctx.Logger().Error("fail to get pool", "error", err)
 		return nil, fmt.Errorf("could not get pool: %w", err)
@@ -688,10 +688,10 @@ func queryPool(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mg
 
 func queryPools(ctx cosmos.Context, req abci.RequestQuery, mgr *Mgrs) ([]byte, error) {
 	pools := Pools{}
-	iterator := mgr.Keeper.GetPoolIterator(ctx)
+	iterator := mgr.Keeper().GetPoolIterator(ctx)
 	for ; iterator.Valid(); iterator.Next() {
 		var pool Pool
-		if err := mgr.Keeper.Cdc().UnmarshalBinaryBare(iterator.Value(), &pool); err != nil {
+		if err := mgr.Keeper().Cdc().UnmarshalBinaryBare(iterator.Value(), &pool); err != nil {
 			return nil, fmt.Errorf("fail to unmarshal pool: %w", err)
 		}
 		// ignore pool if no liquidity provider units
@@ -716,14 +716,14 @@ func queryTxVoters(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr
 		ctx.Logger().Error("fail to parse tx id", "error", err)
 		return nil, fmt.Errorf("fail to parse tx id: %w", err)
 	}
-	voter, err := mgr.Keeper.GetObservedTxInVoter(ctx, hash)
+	voter, err := mgr.Keeper().GetObservedTxInVoter(ctx, hash)
 	if err != nil {
 		ctx.Logger().Error("fail to get observed tx voter", "error", err)
 		return nil, fmt.Errorf("fail to get observed tx voter: %w", err)
 	}
 	// when tx in voter doesn't exist , double check tx out voter
 	if len(voter.Txs) == 0 {
-		voter, err = mgr.Keeper.GetObservedTxOutVoter(ctx, hash)
+		voter, err = mgr.Keeper().GetObservedTxOutVoter(ctx, hash)
 		if err != nil {
 			return nil, fmt.Errorf("fail to get observed tx out voter: %w", err)
 		}
@@ -749,13 +749,13 @@ func queryTx(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mgrs
 		ctx.Logger().Error("fail to parse tx id", "error", err)
 		return nil, fmt.Errorf("fail to parse tx id: %w", err)
 	}
-	voter, err := mgr.Keeper.GetObservedTxInVoter(ctx, hash)
+	voter, err := mgr.Keeper().GetObservedTxInVoter(ctx, hash)
 	if err != nil {
 		ctx.Logger().Error("fail to get observed tx voter", "error", err)
 		return nil, fmt.Errorf("fail to get observed tx voter: %w", err)
 	}
 	if len(voter.Txs) == 0 {
-		voter, err = mgr.Keeper.GetObservedTxOutVoter(ctx, hash)
+		voter, err = mgr.Keeper().GetObservedTxOutVoter(ctx, hash)
 		if err != nil {
 			return nil, fmt.Errorf("fail to get observed tx out voter: %w", err)
 		}
@@ -764,11 +764,11 @@ func queryTx(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mgrs
 		}
 	}
 
-	nodeAccounts, err := mgr.Keeper.ListActiveNodeAccounts(ctx)
+	nodeAccounts, err := mgr.Keeper().ListActiveNodeAccounts(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("fail to get node accounts: %w", err)
 	}
-	keysignMetric, err := mgr.Keeper.GetTssKeysignMetric(ctx, hash)
+	keysignMetric, err := mgr.Keeper().GetTssKeysignMetric(ctx, hash)
 	if err != nil {
 		ctx.Logger().Error("fatil to get keysign metrics", "error", err)
 	}
@@ -802,7 +802,7 @@ func queryKeygen(ctx cosmos.Context, kbs cosmos.KeybaseStore, path []string, req
 		return nil, fmt.Errorf("block height not available yet")
 	}
 
-	keygenBlock, err := mgr.Keeper.GetKeygenBlock(ctx, height)
+	keygenBlock, err := mgr.Keeper().GetKeygenBlock(ctx, height)
 	if err != nil {
 		ctx.Logger().Error("fail to get keygen block", "error", err)
 		return nil, fmt.Errorf("fail to get keygen block: %w", err)
@@ -872,7 +872,7 @@ func queryKeysign(ctx cosmos.Context, kbs cosmos.KeybaseStore, path []string, re
 		}
 	}
 
-	txs, err := mgr.Keeper.GetTxOut(ctx, height)
+	txs, err := mgr.Keeper().GetTxOut(ctx, height)
 	if err != nil {
 		ctx.Logger().Error("fail to get tx out array from key value store", "error", err)
 		return nil, fmt.Errorf("fail to get tx out array from key value store: %w", err)
@@ -915,24 +915,24 @@ func queryKeysign(ctx cosmos.Context, kbs cosmos.KeybaseStore, path []string, re
 
 // queryOutQueue - iterates over txout, counting how many transactions are waiting to be sent
 func queryQueue(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mgrs) ([]byte, error) {
-	version := mgr.Keeper.GetLowestActiveVersion(ctx)
+	version := mgr.Keeper().GetLowestActiveVersion(ctx)
 	constAccessor := constants.GetConstantValues(version)
 	signingTransactionPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
 	startHeight := common.BlockHeight(ctx) - signingTransactionPeriod
 	query := QueryQueue{}
 
-	iterator := mgr.Keeper.GetSwapQueueIterator(ctx)
+	iterator := mgr.Keeper().GetSwapQueueIterator(ctx)
 	defer iterator.Close()
 	for ; iterator.Valid(); iterator.Next() {
 		var msg MsgSwap
-		if err := mgr.Keeper.Cdc().UnmarshalBinaryBare(iterator.Value(), &msg); err != nil {
+		if err := mgr.Keeper().Cdc().UnmarshalBinaryBare(iterator.Value(), &msg); err != nil {
 			continue
 		}
 		query.Swap++
 	}
 
 	for height := startHeight; height <= common.BlockHeight(ctx); height++ {
-		txs, err := mgr.Keeper.GetTxOut(ctx, height)
+		txs, err := mgr.Keeper().GetTxOut(ctx, height)
 		if err != nil {
 			ctx.Logger().Error("fail to get tx out array from key value store", "error", err)
 			return nil, fmt.Errorf("fail to get tx out array from key value store: %w", err)
@@ -968,7 +968,7 @@ func queryLastBlockHeights(ctx cosmos.Context, path []string, req abci.RequestQu
 		}
 		chains = append(chains, chain)
 	} else {
-		asgards, err := mgr.Keeper.GetAsgardVaultsByStatus(ctx, ActiveVault)
+		asgards, err := mgr.Keeper().GetAsgardVaultsByStatus(ctx, ActiveVault)
 		if err != nil {
 			return nil, fmt.Errorf("fail to get active asgard: %w", err)
 		}
@@ -982,12 +982,12 @@ func queryLastBlockHeights(ctx cosmos.Context, path []string, req abci.RequestQu
 		if c == common.THORChain {
 			continue
 		}
-		chainHeight, err := mgr.Keeper.GetLastChainHeight(ctx, c)
+		chainHeight, err := mgr.Keeper().GetLastChainHeight(ctx, c)
 		if err != nil {
 			return nil, fmt.Errorf("fail to get last chain height: %w", err)
 		}
 
-		signed, err := mgr.Keeper.GetLastSignedHeight(ctx)
+		signed, err := mgr.Keeper().GetLastSignedHeight(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("fail to get last sign height: %w", err)
 		}
@@ -1008,7 +1008,7 @@ func queryLastBlockHeights(ctx cosmos.Context, path []string, req abci.RequestQu
 }
 
 func queryConstantValues(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mgrs) ([]byte, error) {
-	ver := mgr.Keeper.GetLowestActiveVersion(ctx)
+	ver := mgr.Keeper().GetLowestActiveVersion(ctx)
 	constAccessor := constants.GetConstantValues(ver)
 	res, err := json.MarshalIndent(constAccessor, "", "	")
 	if err != nil {
@@ -1020,8 +1020,8 @@ func queryConstantValues(ctx cosmos.Context, path []string, req abci.RequestQuer
 
 func queryVersion(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mgrs) ([]byte, error) {
 	ver := QueryVersion{
-		Current: mgr.Keeper.GetLowestActiveVersion(ctx),
-		Next:    mgr.Keeper.GetMinJoinVersion(ctx),
+		Current: mgr.Keeper().GetLowestActiveVersion(ctx),
+		Next:    mgr.Keeper().GetMinJoinVersion(ctx),
 	}
 	res, err := json.MarshalIndent(ver, "", "	")
 	if err != nil {
@@ -1034,7 +1034,7 @@ func queryMimirWithKey(ctx cosmos.Context, path []string, req abci.RequestQuery,
 	if len(path) == 0 && len(path[0]) == 0 {
 		return nil, fmt.Errorf("no mimir key")
 	}
-	v, err := mgr.Keeper.GetMimir(ctx, path[0])
+	v, err := mgr.Keeper().GetMimir(ctx, path[0])
 	if err != nil {
 		return nil, fmt.Errorf("fail to get mimir with key:%s, err : %w", path[0], err)
 	}
@@ -1048,11 +1048,11 @@ func queryMimirWithKey(ctx cosmos.Context, path []string, req abci.RequestQuery,
 }
 func queryMimirValues(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mgrs) ([]byte, error) {
 	values := make(map[string]int64, 0)
-	iter := mgr.Keeper.GetMimirIterator(ctx)
+	iter := mgr.Keeper().GetMimirIterator(ctx)
 	defer iter.Close()
 	for ; iter.Valid(); iter.Next() {
 		value := types.ProtoInt64{}
-		if err := mgr.Keeper.Cdc().UnmarshalBinaryBare(iter.Value(), &value); err != nil {
+		if err := mgr.Keeper().Cdc().UnmarshalBinaryBare(iter.Value(), &value); err != nil {
 			ctx.Logger().Error("fail to unmarshal mimir value", "error", err)
 			return nil, fmt.Errorf("fail to unmarshal mimir value: %w", err)
 		}
@@ -1076,7 +1076,7 @@ func queryBan(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mgr
 		return nil, fmt.Errorf("invalid node address: %w", err)
 	}
 
-	ban, err := mgr.Keeper.GetBanVoter(ctx, addr)
+	ban, err := mgr.Keeper().GetBanVoter(ctx, addr)
 	if err != nil {
 		ctx.Logger().Error("fail to get ban voter", "error", err)
 		return nil, fmt.Errorf("fail to get ban voter: %w", err)
@@ -1091,13 +1091,13 @@ func queryBan(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mgr
 }
 
 func queryPendingOutbound(ctx cosmos.Context, mgr *Mgrs) ([]byte, error) {
-	version := mgr.Keeper.GetLowestActiveVersion(ctx)
+	version := mgr.Keeper().GetLowestActiveVersion(ctx)
 	constAccessor := constants.GetConstantValues(version)
 	signingTransactionPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
 	startHeight := common.BlockHeight(ctx) - signingTransactionPeriod
 	var result []TxOutItem
 	for height := startHeight; height <= common.BlockHeight(ctx); height++ {
-		txs, err := mgr.Keeper.GetTxOut(ctx, height)
+		txs, err := mgr.Keeper().GetTxOut(ctx, height)
 		if err != nil {
 			ctx.Logger().Error("fail to get tx out array from key value store", "error", err)
 			return nil, fmt.Errorf("fail to get tx out array from key value store: %w", err)
@@ -1128,7 +1128,7 @@ func queryTssKeygenMetric(ctx cosmos.Context, path []string, req abci.RequestQue
 	}
 	var result []*types.TssKeygenMetric
 	for _, pkey := range pubKeys {
-		m, err := mgr.Keeper.GetTssKeygenMetric(ctx, pkey)
+		m, err := mgr.Keeper().GetTssKeygenMetric(ctx, pkey)
 		if err != nil {
 			return nil, fmt.Errorf("fail to get tss keygen metric for pubkey(%s):%w", pkey, err)
 		}
@@ -1144,7 +1144,7 @@ func queryTssKeygenMetric(ctx cosmos.Context, path []string, req abci.RequestQue
 func queryTssMetric(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mgrs) ([]byte, error) {
 	var pubKeys common.PubKeys
 	// get all active asgard
-	vaults, err := mgr.Keeper.GetAsgardVaultsByStatus(ctx, ActiveVault)
+	vaults, err := mgr.Keeper().GetAsgardVaultsByStatus(ctx, ActiveVault)
 	if err != nil {
 		return nil, fmt.Errorf("fail to get active asgards:%w", err)
 	}
@@ -1153,7 +1153,7 @@ func queryTssMetric(ctx cosmos.Context, path []string, req abci.RequestQuery, mg
 	}
 	var keygenMetrics []*types.TssKeygenMetric
 	for _, pkey := range pubKeys {
-		m, err := mgr.Keeper.GetTssKeygenMetric(ctx, pkey)
+		m, err := mgr.Keeper().GetTssKeygenMetric(ctx, pkey)
 		if err != nil {
 			return nil, fmt.Errorf("fail to get tss keygen metric for pubkey(%s):%w", pkey, err)
 		}
@@ -1162,7 +1162,7 @@ func queryTssMetric(ctx cosmos.Context, path []string, req abci.RequestQuery, mg
 		}
 		keygenMetrics = append(keygenMetrics, m)
 	}
-	keysignMetric, err := mgr.Keeper.GetLatestTssKeysignMetric(ctx)
+	keysignMetric, err := mgr.Keeper().GetLatestTssKeysignMetric(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("fail to get keysign metric:%w", err)
 	}

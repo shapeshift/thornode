@@ -21,7 +21,7 @@ func (s *HandlerMimirSuite) TestValidate(c *C) {
 	ctx, keeper := setupKeeperForTest(c)
 
 	addr, _ := cosmos.AccAddressFromBech32(ADMINS[0])
-	handler := NewMimirHandler(keeper, NewDummyMgr())
+	handler := NewMimirHandler(NewDummyMgrWithKeeper(keeper))
 	// happy path
 	ver := GetCurrentVersion()
 	msg := NewMsgMimir("foo", 44, addr)
@@ -42,7 +42,7 @@ func (s *HandlerMimirSuite) TestHandle(c *C) {
 	ctx, keeper := setupKeeperForTest(c)
 	ver := GetCurrentVersion()
 
-	handler := NewMimirHandler(keeper, NewDummyMgr())
+	handler := NewMimirHandler(NewDummyMgrWithKeeper(keeper))
 
 	msg := NewMsgMimir("foo", 55, GetRandomBech32Addr())
 	sdkErr := handler.handle(ctx, *msg, ver)

@@ -434,7 +434,7 @@ func (tos *TxOutStorageV1) nativeTxOut(ctx cosmos.Context, mgr Manager, toi TxOu
 		return err
 	}
 
-	handler := NewInternalHandler(tos.keeper, mgr)
+	handler := NewInternalHandler(mgr)
 
 	_, err = handler(ctx, m)
 	if err != nil {

@@ -164,21 +164,23 @@ func (s *HelperSuite) TestRefundBondError(c *C) {
 	na := GetRandomNodeAccount(NodeActive)
 	na.PubKeySet.Secp256k1 = pk
 	na.Bond = cosmos.NewUint(100 * common.One)
-	mgr := NewDummyMgr()
 	tx := GetRandomTx()
 	keeper1 := &TestRefundBondKeeper{}
-	c.Assert(refundBond(ctx, tx, cosmos.ZeroUint(), &na, keeper1, mgr), IsNil)
+	mgr := NewDummyMgrWithKeeper(keeper1)
+	c.Assert(refundBond(ctx, tx, cosmos.ZeroUint(), &na, mgr), IsNil)
 
 	// fail to get vault should return an error
 	na.UpdateStatus(NodeStandby, common.BlockHeight(ctx))
 	keeper1.na = na
-	c.Assert(refundBond(ctx, tx, cosmos.ZeroUint(), &na, keeper1, mgr), NotNil)
+	mgr.K = keeper1
+	c.Assert(refundBond(ctx, tx, cosmos.ZeroUint(), &na, mgr), NotNil)
 
 	// if the vault is not a yggdrasil pool , it should return an error
 	ygg := NewVault(common.BlockHeight(ctx), ActiveVault, AsgardVault, pk, common.Chains{common.BNBChain}.Strings(), []ChainContract{})
 	ygg.Coins = common.Coins{}
 	keeper1.ygg = ygg
-	c.Assert(refundBond(ctx, tx, cosmos.ZeroUint(), &na, keeper1, mgr), NotNil)
+	mgr.K = keeper1
+	c.Assert(refundBond(ctx, tx, cosmos.ZeroUint(), &na, mgr), NotNil)
 
 	// fail to get pool should fail
 	ygg = NewVault(common.BlockHeight(ctx), ActiveVault, YggdrasilVault, pk, common.Chains{common.BNBChain}.Strings(), []ChainContract{})
@@ -187,7 +189,8 @@ func (s *HelperSuite) TestRefundBondError(c *C) {
 		common.NewCoin(common.BNBAsset, cosmos.NewUint(27*common.One)),
 	}
 	keeper1.ygg = ygg
-	c.Assert(refundBond(ctx, tx, cosmos.ZeroUint(), &na, keeper1, mgr), NotNil)
+	mgr.K = keeper1
+	c.Assert(refundBond(ctx, tx, cosmos.ZeroUint(), &na, mgr), NotNil)
 
 	// when ygg asset in RUNE is more then bond , thorchain should slash the node account with all their bond
 	keeper1.pool = Pool{
@@ -195,7 +198,8 @@ func (s *HelperSuite) TestRefundBondError(c *C) {
 		BalanceRune:  cosmos.NewUint(1024 * common.One),
 		BalanceAsset: cosmos.NewUint(167 * common.One),
 	}
-	c.Assert(refundBond(ctx, tx, cosmos.ZeroUint(), &na, keeper1, mgr), IsNil)
+	mgr.K = keeper1
+	c.Assert(refundBond(ctx, tx, cosmos.ZeroUint(), &na, mgr), IsNil)
 	// make sure no tx has been generated for refund
 	items, err := mgr.TxOutStore().GetOutboundItems(ctx)
 	c.Assert(err, IsNil)
@@ -206,7 +210,6 @@ func (s *HelperSuite) TestRefundBondHappyPath(c *C) {
 	ctx, _ := setupKeeperForTest(c)
 	na := GetRandomNodeAccount(NodeActive)
 	na.Bond = cosmos.NewUint(12098 * common.One)
-	mgr := NewDummyMgr()
 	pk := GetRandomPubKey()
 	na.PubKeySet.Secp256k1 = pk
 	ygg := NewVault(common.BlockHeight(ctx), ActiveVault, YggdrasilVault, pk, common.Chains{common.BNBChain}.Strings(), []ChainContract{})
@@ -225,10 +228,11 @@ func (s *HelperSuite) TestRefundBondHappyPath(c *C) {
 		vaults: Vaults{GetRandomVault()},
 	}
 	na.Status = NodeStandby
+	mgr := NewDummyMgrWithKeeper(keeper)
 	tx := GetRandomTx()
 	yggAssetInRune, err := getTotalYggValueInRune(ctx, keeper, ygg)
 	c.Assert(err, IsNil)
-	err = refundBond(ctx, tx, cosmos.ZeroUint(), &na, keeper, mgr)
+	err = refundBond(ctx, tx, cosmos.ZeroUint(), &na, mgr)
 	c.Assert(err, IsNil)
 	slashAmt := yggAssetInRune.MulUint64(3).QuoUint64(2)
 	items, err := mgr.TxOutStore().GetOutboundItems(ctx)
@@ -245,7 +249,7 @@ func (s *HelperSuite) TestRefundBondHappyPath(c *C) {
 func (s *HelperSuite) TestEnableNextPool(c *C) {
 	var err error
 	ctx, k := setupKeeperForTest(c)
-	eventMgr := NewDummyEventMgr()
+	mgr := NewDummyMgrWithKeeper(k)
 	c.Assert(err, IsNil)
 	pool := NewPool()
 	pool.Asset = common.BNBAsset
@@ -289,17 +293,17 @@ func (s *HelperSuite) TestEnableNextPool(c *C) {
 	pool.BalanceAsset = cosmos.NewUint(0 * common.One)
 	c.Assert(k.SetPool(ctx, pool), IsNil)
 	// should enable BTC
-	c.Assert(cyclePools(ctx, 100, 1, 0, k, eventMgr), IsNil)
+	c.Assert(cyclePools(ctx, 100, 1, 0, mgr), IsNil)
 	pool, err = k.GetPool(ctx, common.BTCAsset)
 	c.Check(pool.Status, Equals, PoolAvailable)
 
 	// should enable ETH
-	c.Assert(cyclePools(ctx, 100, 1, 0, k, eventMgr), IsNil)
+	c.Assert(cyclePools(ctx, 100, 1, 0, mgr), IsNil)
 	pool, err = k.GetPool(ctx, ethAsset)
 	c.Check(pool.Status, Equals, PoolAvailable)
 
 	// should NOT enable XMR, since it has no assets
-	c.Assert(cyclePools(ctx, 100, 1, 10*common.One, k, eventMgr), IsNil)
+	c.Assert(cyclePools(ctx, 100, 1, 10*common.One, mgr), IsNil)
 	pool, err = k.GetPool(ctx, xmrAsset)
 	c.Assert(pool.IsEmpty(), Equals, false)
 	c.Check(pool.Status, Equals, PoolStaged)
@@ -308,7 +312,7 @@ func (s *HelperSuite) TestEnableNextPool(c *C) {
 
 func (s *HelperSuite) TestAbandonPool(c *C) {
 	ctx, k := setupKeeperForTest(c)
-	eventMgr := NewDummyEventMgr()
+	mgr := NewDummyMgrWithKeeper(k)
 	usdAsset, err := common.NewAsset("BNB.TUSDB")
 	c.Assert(err, IsNil)
 	pool := NewPool()
@@ -338,7 +342,7 @@ func (s *HelperSuite) TestAbandonPool(c *C) {
 	k.SetLiquidityProvider(ctx, lp)
 
 	// cycle pools
-	c.Assert(cyclePools(ctx, 100, 1, 100*common.One, k, eventMgr), IsNil)
+	c.Assert(cyclePools(ctx, 100, 1, 100*common.One, mgr), IsNil)
 
 	// check pool was deleted
 	pool, err = k.GetPool(ctx, usdAsset)
@@ -405,40 +409,40 @@ func (h *addGasFeesKeeperHelper) GetPool(ctx cosmos.Context, asset common.Asset)
 }
 
 type addGasFeeTestHelper struct {
-	ctx        cosmos.Context
-	k          *addGasFeesKeeperHelper
-	na         NodeAccount
-	gasManager GasManager
+	ctx cosmos.Context
+	na  NodeAccount
+	mgr Manager
 }
 
 func newAddGasFeeTestHelper(c *C) addGasFeeTestHelper {
-	ctx, k := setupKeeperForTest(c)
-	keeper := newAddGasFeesKeeperHelper(k)
+	ctx, mgr := setupManagerForTest(c)
+	keeper := newAddGasFeesKeeperHelper(mgr.Keeper())
+	mgr.K = keeper
 	pool := NewPool()
 	pool.Asset = common.BNBAsset
 	pool.BalanceAsset = cosmos.NewUint(100 * common.One)
 	pool.BalanceRune = cosmos.NewUint(100 * common.One)
 	pool.Status = PoolAvailable
-	c.Assert(k.SetPool(ctx, pool), IsNil)
+	c.Assert(mgr.Keeper().SetPool(ctx, pool), IsNil)
 
 	poolBTC := NewPool()
 	poolBTC.Asset = common.BTCAsset
 	poolBTC.BalanceAsset = cosmos.NewUint(100 * common.One)
 	poolBTC.BalanceRune = cosmos.NewUint(100 * common.One)
 	poolBTC.Status = PoolAvailable
-	c.Assert(k.SetPool(ctx, poolBTC), IsNil)
+	c.Assert(mgr.Keeper().SetPool(ctx, poolBTC), IsNil)
 
 	na := GetRandomNodeAccount(NodeActive)
-	c.Assert(k.SetNodeAccount(ctx, na), IsNil)
+	c.Assert(mgr.Keeper().SetNodeAccount(ctx, na), IsNil)
 	yggVault := NewVault(common.BlockHeight(ctx), ActiveVault, YggdrasilVault, na.PubKeySet.Secp256k1, common.Chains{common.BNBChain}.Strings(), []ChainContract{})
-	c.Assert(k.SetVault(ctx, yggVault), IsNil)
+	c.Assert(mgr.Keeper().SetVault(ctx, yggVault), IsNil)
 	version := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(version)
+	mgr.gasMgr = NewGasMgrV1(constAccessor, keeper)
 	return addGasFeeTestHelper{
-		ctx:        ctx,
-		k:          keeper,
-		na:         na,
-		gasManager: NewGasMgrV1(constAccessor, keeper),
+		ctx: ctx,
+		mgr: mgr,
+		na:  na,
 	}
 }
 
@@ -485,13 +489,13 @@ func (s *HelperSuite) TestAddGasFees(c *C) {
 				return tx
 			},
 			runner: func(helper addGasFeeTestHelper, tx ObservedTx) error {
-				return AddGasFees(helper.ctx, helper.k, tx, helper.gasManager)
+				return AddGasFees(helper.ctx, helper.mgr, tx)
 			},
 			expectError: false,
 			validator: func(helper addGasFeeTestHelper, c *C) {
 				expected := common.NewCoin(common.BNBAsset, BNBGasFeeSingleton[0].Amount)
-				c.Assert(helper.gasManager.GetGas(), HasLen, 1)
-				c.Assert(helper.gasManager.GetGas()[0].Equals(expected), Equals, true)
+				c.Assert(helper.mgr.GasMgr().GetGas(), HasLen, 1)
+				c.Assert(helper.mgr.GasMgr().GetGas()[0].Equals(expected), Equals, true)
 			},
 		},
 		{
@@ -520,13 +524,13 @@ func (s *HelperSuite) TestAddGasFees(c *C) {
 				return tx
 			},
 			runner: func(helper addGasFeeTestHelper, tx ObservedTx) error {
-				return AddGasFees(helper.ctx, helper.k, tx, helper.gasManager)
+				return AddGasFees(helper.ctx, helper.mgr, tx)
 			},
 			expectError: false,
 			validator: func(helper addGasFeeTestHelper, c *C) {
 				expected := common.NewCoin(common.BTCAsset, cosmos.NewUint(2000))
-				c.Assert(helper.gasManager.GetGas(), HasLen, 1)
-				c.Assert(helper.gasManager.GetGas()[0].Equals(expected), Equals, true)
+				c.Assert(helper.mgr.GasMgr().GetGas(), HasLen, 1)
+				c.Assert(helper.mgr.GasMgr().GetGas()[0].Equals(expected), Equals, true)
 			},
 		},
 	}
@@ -535,7 +539,7 @@ func (s *HelperSuite) TestAddGasFees(c *C) {
 		tx := tc.txCreator(helper)
 		var err error
 		if tc.runner == nil {
-			err = AddGasFees(helper.ctx, helper.k, tx, helper.gasManager)
+			err = AddGasFees(helper.ctx, helper.mgr, tx)
 		} else {
 			err = tc.runner(helper, tx)
 		}
@@ -554,11 +558,11 @@ func (s *HelperSuite) TestAddGasFees(c *C) {
 		}
 	}
 }
+
 func (s *HelperSuite) TestEmitPoolStageCostEvent(c *C) {
-	ctx, k := setupKeeperForTest(c)
-	eventMgr := NewEventMgrV1()
+	ctx, mgr := setupManagerForTest(c)
 	emitPoolBalanceChangedEvent(ctx,
-		NewPoolMod(common.BTCAsset, cosmos.NewUint(1000), false, cosmos.ZeroUint(), false), "test", k, eventMgr)
+		NewPoolMod(common.BTCAsset, cosmos.NewUint(1000), false, cosmos.ZeroUint(), false), "test", mgr)
 	found := false
 	for _, e := range ctx.EventManager().Events() {
 		if strings.EqualFold(e.Type, types.PoolBalanceChangeEventType) {

@@ -14,15 +14,13 @@ import (
 
 // AddLiquidityHandler is to handle add liquidity
 type AddLiquidityHandler struct {
-	keeper keeper.Keeper
-	mgr    Manager
+	mgr Manager
 }
 
 // NewAddLiquidityHandler create a new instance of AddLiquidityHandler
-func NewAddLiquidityHandler(keeper keeper.Keeper, mgr Manager) AddLiquidityHandler {
+func NewAddLiquidityHandler(mgr Manager) AddLiquidityHandler {
 	return AddLiquidityHandler{
-		keeper: keeper,
-		mgr:    mgr,
+		mgr: mgr,
 	}
 }
 
@@ -52,7 +50,7 @@ func (h AddLiquidityHandler) validateCurrent(ctx cosmos.Context, msg MsgAddLiqui
 
 	// total liquidity RUNE after current add liquidity
 	totalLiquidityRUNE = totalLiquidityRUNE.Add(msg.RuneAmount)
-	maximumLiquidityRune, err := h.keeper.GetMimir(ctx, constants.MaximumLiquidityRune.String())
+	maximumLiquidityRune, err := h.mgr.Keeper().GetMimir(ctx, constants.MaximumLiquidityRune.String())
 	if maximumLiquidityRune < 0 || err != nil {
 		maximumLiquidityRune = constAccessor.GetInt64Value(constants.MaximumLiquidityRune)
 	}
@@ -109,7 +107,7 @@ func (h AddLiquidityHandler) handle(ctx cosmos.Context, msg MsgAddLiquidity, ver
 }
 
 func (h AddLiquidityHandler) handleV1(ctx cosmos.Context, msg MsgAddLiquidity, version semver.Version, constAccessor constants.ConstantValues) (errResult error) {
-	pool, err := h.keeper.GetPool(ctx, msg.Asset)
+	pool, err := h.mgr.Keeper().GetPool(ctx, msg.Asset)
 	if err != nil {
 		return ErrInternal(err, "fail to get pool")
 	}
@@ -117,7 +115,7 @@ func (h AddLiquidityHandler) handleV1(ctx cosmos.Context, msg MsgAddLiquidity, v
 	if pool.IsEmpty() {
 		ctx.Logger().Info("pool doesn't exist yet, creating a new one...", "symbol", msg.Asset.String(), "creator", msg.RuneAddress)
 		pool.Asset = msg.Asset
-		if err := h.keeper.SetPool(ctx, pool); err != nil {
+		if err := h.mgr.Keeper().SetPool(ctx, pool); err != nil {
 			return ErrInternal(err, "fail to save pool to key value store")
 		}
 	}
@@ -132,7 +130,7 @@ func (h AddLiquidityHandler) handleV1(ctx cosmos.Context, msg MsgAddLiquidity, v
 				pool.Decimals = coin.Decimals
 			}
 			ctx.Logger().Info("try update pool decimals", "asset", msg.Asset, "pool decimals", pool.Decimals)
-			if err := h.keeper.SetPool(ctx, pool); err != nil {
+			if err := h.mgr.Keeper().SetPool(ctx, pool); err != nil {
 				return ErrInternal(err, "fail to save pool to key value store")
 			}
 		}
@@ -216,7 +214,7 @@ func (h AddLiquidityHandler) handleV47(ctx cosmos.Context, msg MsgAddLiquidity, 
 }
 
 func (h AddLiquidityHandler) handleCurrent(ctx cosmos.Context, msg MsgAddLiquidity, version semver.Version, constAccessor constants.ConstantValues) (errResult error) {
-	pool, err := h.keeper.GetPool(ctx, msg.Asset)
+	pool, err := h.mgr.Keeper().GetPool(ctx, msg.Asset)
 	if err != nil {
 		return ErrInternal(err, "fail to get pool")
 	}
@@ -224,7 +222,7 @@ func (h AddLiquidityHandler) handleCurrent(ctx cosmos.Context, msg MsgAddLiquidi
 	if pool.IsEmpty() {
 		ctx.Logger().Info("pool doesn't exist yet, creating a new one...", "symbol", msg.Asset.String(), "creator", msg.RuneAddress)
 		pool.Asset = msg.Asset
-		if err := h.keeper.SetPool(ctx, pool); err != nil {
+		if err := h.mgr.Keeper().SetPool(ctx, pool); err != nil {
 			return ErrInternal(err, "fail to save pool to key value store")
 		}
 	}
@@ -239,7 +237,7 @@ func (h AddLiquidityHandler) handleCurrent(ctx cosmos.Context, msg MsgAddLiquidi
 				pool.Decimals = coin.Decimals
 			}
 			ctx.Logger().Info("try update pool decimals", "asset", msg.Asset, "pool decimals", pool.Decimals)
-			if err := h.keeper.SetPool(ctx, pool); err != nil {
+			if err := h.mgr.Keeper().SetPool(ctx, pool); err != nil {
 				return ErrInternal(err, "fail to save pool to key value store")
 			}
 		}
@@ -331,7 +329,7 @@ func (h AddLiquidityHandler) validateAddLiquidityMessage(ctx cosmos.Context, kee
 	if !keeper.PoolExist(ctx, asset) {
 		return fmt.Errorf("%s doesn't exist", asset)
 	}
-	pool, err := h.keeper.GetPool(ctx, asset)
+	pool, err := h.mgr.Keeper().GetPool(ctx, asset)
 	if err != nil {
 		return ErrInternal(err, fmt.Sprintf("fail to get pool(%s)", asset))
 	}
@@ -397,11 +395,11 @@ func (h AddLiquidityHandler) addLiquidityV1(ctx cosmos.Context,
 	stage bool,
 	constAccessor constants.ConstantValues) error {
 	ctx.Logger().Info(fmt.Sprintf("%s liquidity provision %s %s", asset, addRuneAmount, addAssetAmount))
-	if err := h.validateAddLiquidityMessage(ctx, h.keeper, asset, requestTxHash, runeAddr, assetAddr); err != nil {
+	if err := h.validateAddLiquidityMessage(ctx, h.mgr.Keeper(), asset, requestTxHash, runeAddr, assetAddr); err != nil {
 		return fmt.Errorf("add liquidity message fail validation: %w", err)
 	}
 
-	pool, err := h.keeper.GetPool(ctx, asset)
+	pool, err := h.mgr.Keeper().GetPool(ctx, asset)
 	if err != nil {
 		return ErrInternal(err, fmt.Sprintf("fail to get pool(%s)", asset))
 	}
@@ -420,7 +418,7 @@ func (h AddLiquidityHandler) addLiquidityV1(ctx cosmos.Context,
 	if fetchAddr.IsEmpty() {
 		fetchAddr = assetAddr
 	}
-	su, err := h.keeper.GetLiquidityProvider(ctx, asset, fetchAddr)
+	su, err := h.mgr.Keeper().GetLiquidityProvider(ctx, asset, fetchAddr)
 	if err != nil {
 		return ErrInternal(err, "fail to get liquidity provider")
 	}
@@ -456,8 +454,8 @@ func (h AddLiquidityHandler) addLiquidityV1(ctx cosmos.Context,
 		pool.PendingInboundRune = pool.PendingInboundRune.Add(common.SafeSub(addRuneAmount, su.PendingRune))
 		su.PendingRune = addRuneAmount
 		su.PendingTxID = requestTxHash
-		h.keeper.SetLiquidityProvider(ctx, su)
-		if err := h.keeper.SetPool(ctx, pool); err != nil {
+		h.mgr.Keeper().SetLiquidityProvider(ctx, su)
+		if err := h.mgr.Keeper().SetPool(ctx, pool); err != nil {
 			ctx.Logger().Error("fail to save pool pending inbound rune", "error", err)
 		}
 		return nil
@@ -468,8 +466,8 @@ func (h AddLiquidityHandler) addLiquidityV1(ctx cosmos.Context,
 		pool.PendingInboundAsset = pool.PendingInboundAsset.Add(common.SafeSub(addAssetAmount, su.PendingAsset))
 		su.PendingAsset = addAssetAmount
 		su.PendingTxID = requestTxHash
-		h.keeper.SetLiquidityProvider(ctx, su)
-		if err := h.keeper.SetPool(ctx, pool); err != nil {
+		h.mgr.Keeper().SetLiquidityProvider(ctx, su)
+		if err := h.mgr.Keeper().SetPool(ctx, pool); err != nil {
 			ctx.Logger().Error("fail to save pool pending inbound asset", "error", err)
 		}
 		return nil
@@ -503,7 +501,7 @@ func (h AddLiquidityHandler) addLiquidityV1(ctx cosmos.Context,
 	if pool.BalanceRune.IsZero() || pool.BalanceAsset.IsZero() {
 		return ErrInternal(err, "pool cannot have zero rune or asset balance")
 	}
-	if err := h.keeper.SetPool(ctx, pool); err != nil {
+	if err := h.mgr.Keeper().SetPool(ctx, pool); err != nil {
 		return ErrInternal(err, "fail to save pool")
 	}
 	if originalUnits.IsZero() && !pool.PoolUnits.IsZero() {
@@ -516,7 +514,7 @@ func (h AddLiquidityHandler) addLiquidityV1(ctx cosmos.Context,
 	su.Units = su.Units.Add(liquidityUnits)
 	su.RuneDepositValue = su.RuneDepositValue.Add(common.GetShare(liquidityUnits, pool.PoolUnits, pool.BalanceRune))
 	su.AssetDepositValue = su.AssetDepositValue.Add(common.GetShare(liquidityUnits, pool.PoolUnits, pool.BalanceAsset))
-	h.keeper.SetLiquidityProvider(ctx, su)
+	h.mgr.Keeper().SetLiquidityProvider(ctx, su)
 
 	evt := NewEventAddLiquidity(asset, liquidityUnits, runeAddr, addRuneAmount, addAssetAmount, runeTxID, assetTxID, assetAddr)
 	if err := h.mgr.EventMgr().EmitEvent(ctx, evt); err != nil {
@@ -533,11 +531,11 @@ func (h AddLiquidityHandler) addLiquidityV46(ctx cosmos.Context,
 	stage bool,
 	constAccessor constants.ConstantValues) error {
 	ctx.Logger().Info(fmt.Sprintf("%s liquidity provision %s %s", asset, addRuneAmount, addAssetAmount))
-	if err := h.validateAddLiquidityMessage(ctx, h.keeper, asset, requestTxHash, runeAddr, assetAddr); err != nil {
+	if err := h.validateAddLiquidityMessage(ctx, h.mgr.Keeper(), asset, requestTxHash, runeAddr, assetAddr); err != nil {
 		return fmt.Errorf("add liquidity message fail validation: %w", err)
 	}
 
-	pool, err := h.keeper.GetPool(ctx, asset)
+	pool, err := h.mgr.Keeper().GetPool(ctx, asset)
 	if err != nil {
 		return ErrInternal(err, fmt.Sprintf("fail to get pool(%s)", asset))
 	}
@@ -556,7 +554,7 @@ func (h AddLiquidityHandler) addLiquidityV46(ctx cosmos.Context,
 	if fetchAddr.IsEmpty() {
 		fetchAddr = assetAddr
 	}
-	su, err := h.keeper.GetLiquidityProvider(ctx, asset, fetchAddr)
+	su, err := h.mgr.Keeper().GetLiquidityProvider(ctx, asset, fetchAddr)
 	if err != nil {
 		return ErrInternal(err, "fail to get liquidity provider")
 	}
@@ -592,8 +590,8 @@ func (h AddLiquidityHandler) addLiquidityV46(ctx cosmos.Context,
 		pool.PendingInboundRune = pool.PendingInboundRune.Add(addRuneAmount)
 		su.PendingRune = pendingRuneAmt
 		su.PendingTxID = requestTxHash
-		h.keeper.SetLiquidityProvider(ctx, su)
-		if err := h.keeper.SetPool(ctx, pool); err != nil {
+		h.mgr.Keeper().SetLiquidityProvider(ctx, su)
+		if err := h.mgr.Keeper().SetPool(ctx, pool); err != nil {
 			ctx.Logger().Error("fail to save pool pending inbound rune", "error", err)
 		}
 
@@ -610,8 +608,8 @@ func (h AddLiquidityHandler) addLiquidityV46(ctx cosmos.Context,
 		pool.PendingInboundAsset = pool.PendingInboundAsset.Add(addAssetAmount)
 		su.PendingAsset = pendingAssetAmt
 		su.PendingTxID = requestTxHash
-		h.keeper.SetLiquidityProvider(ctx, su)
-		if err := h.keeper.SetPool(ctx, pool); err != nil {
+		h.mgr.Keeper().SetLiquidityProvider(ctx, su)
+		if err := h.mgr.Keeper().SetPool(ctx, pool); err != nil {
 			ctx.Logger().Error("fail to save pool pending inbound asset", "error", err)
 		}
 		evt := NewEventPendingLiquidity(pool.Asset, AddPendingLiquidity, su.RuneAddress, cosmos.ZeroUint(), su.AssetAddress, addAssetAmount, common.TxID(""), requestTxHash)
@@ -649,7 +647,7 @@ func (h AddLiquidityHandler) addLiquidityV46(ctx cosmos.Context,
 	if pool.BalanceRune.IsZero() || pool.BalanceAsset.IsZero() {
 		return ErrInternal(err, "pool cannot have zero rune or asset balance")
 	}
-	if err := h.keeper.SetPool(ctx, pool); err != nil {
+	if err := h.mgr.Keeper().SetPool(ctx, pool); err != nil {
 		return ErrInternal(err, "fail to save pool")
 	}
 	if originalUnits.IsZero() && !pool.PoolUnits.IsZero() {
@@ -662,7 +660,7 @@ func (h AddLiquidityHandler) addLiquidityV46(ctx cosmos.Context,
 	su.Units = su.Units.Add(liquidityUnits)
 	su.RuneDepositValue = su.RuneDepositValue.Add(common.GetShare(liquidityUnits, pool.PoolUnits, pool.BalanceRune))
 	su.AssetDepositValue = su.AssetDepositValue.Add(common.GetShare(liquidityUnits, pool.PoolUnits, pool.BalanceAsset))
-	h.keeper.SetLiquidityProvider(ctx, su)
+	h.mgr.Keeper().SetLiquidityProvider(ctx, su)
 
 	evt := NewEventAddLiquidity(asset, liquidityUnits, runeAddr, pendingRuneAmt, pendingAssetAmt, runeTxID, assetTxID, assetAddr)
 	if err := h.mgr.EventMgr().EmitEvent(ctx, evt); err != nil {
@@ -673,7 +671,7 @@ func (h AddLiquidityHandler) addLiquidityV46(ctx cosmos.Context,
 
 // getTotalActiveBond
 func (h AddLiquidityHandler) getTotalActiveBond(ctx cosmos.Context) (cosmos.Uint, error) {
-	nodeAccounts, err := h.keeper.ListNodeAccountsWithBond(ctx)
+	nodeAccounts, err := h.mgr.Keeper().ListNodeAccountsWithBond(ctx)
 	if err != nil {
 		return cosmos.ZeroUint(), err
 	}
@@ -689,7 +687,7 @@ func (h AddLiquidityHandler) getTotalActiveBond(ctx cosmos.Context) (cosmos.Uint
 
 // getTotalLiquidityRUNE we have in all pools
 func (h AddLiquidityHandler) getTotalLiquidityRUNE(ctx cosmos.Context) (cosmos.Uint, error) {
-	pools, err := h.keeper.GetPools(ctx)
+	pools, err := h.mgr.Keeper().GetPools(ctx)
 	if err != nil {
 		return cosmos.ZeroUint(), fmt.Errorf("fail to get pools from data store: %w", err)
 	}

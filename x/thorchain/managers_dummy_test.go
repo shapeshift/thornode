@@ -1,6 +1,9 @@
 package thorchain
 
+import "gitlab.com/thorchain/thornode/x/thorchain/keeper"
+
 type DummyMgr struct {
+	K            keeper.Keeper
 	gasMgr       GasManager
 	eventMgr     EventManager
 	txOutStore   TxOutStore
@@ -12,8 +15,9 @@ type DummyMgr struct {
 	yggManager   YggManager
 }
 
-func NewDummyMgr() *DummyMgr {
+func NewDummyMgrWithKeeper(k keeper.Keeper) *DummyMgr {
 	return &DummyMgr{
+		K:            k,
 		gasMgr:       NewDummyGasManager(),
 		eventMgr:     NewDummyEventMgr(),
 		txOutStore:   NewTxStoreDummy(),
@@ -26,6 +30,22 @@ func NewDummyMgr() *DummyMgr {
 	}
 }
 
+func NewDummyMgr() *DummyMgr {
+	return &DummyMgr{
+		K:            keeper.KVStoreDummy{},
+		gasMgr:       NewDummyGasManager(),
+		eventMgr:     NewDummyEventMgr(),
+		txOutStore:   NewTxStoreDummy(),
+		vaultMgr:     NewVaultMgrDummy(),
+		validatorMgr: NewValidatorDummyMgr(),
+		obMgr:        NewDummyObserverManager(),
+		slasher:      NewDummySlasher(),
+		yggManager:   NewDummyYggManger(),
+		// TODO add dummy swap queue
+	}
+}
+
+func (m DummyMgr) Keeper() keeper.Keeper          { return m.K }
 func (m DummyMgr) GasMgr() GasManager             { return m.gasMgr }
 func (m DummyMgr) EventMgr() EventManager         { return m.eventMgr }
 func (m DummyMgr) TxOutStore() TxOutStore         { return m.txOutStore }

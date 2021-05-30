@@ -111,7 +111,7 @@ func (HandlerWithdrawSuite) TestWithdrawHandler(c *C) {
 	constAccessor := constants.GetConstantValues(ver)
 	// Happy path , this is a round trip , first we provide liquidity, then we withdraw
 	runeAddr := GetRandomRUNEAddress()
-	addHandler := NewAddLiquidityHandler(k, NewDummyMgr())
+	addHandler := NewAddLiquidityHandler(NewDummyMgrWithKeeper(k))
 	err := addHandler.addLiquidityV1(ctx,
 		common.BNBAsset,
 		cosmos.NewUint(common.One*100),
@@ -123,7 +123,7 @@ func (HandlerWithdrawSuite) TestWithdrawHandler(c *C) {
 		constAccessor)
 	c.Assert(err, IsNil)
 	// let's just withdraw
-	withdrawHandler := NewWithdrawLiquidityHandler(k, NewDummyMgr())
+	withdrawHandler := NewWithdrawLiquidityHandler(NewDummyMgrWithKeeper(k))
 
 	msgWithdraw := NewMsgWithdrawLiquidity(GetRandomTx(), runeAddr, cosmos.NewUint(uint64(MaxWithdrawBasisPoints)), common.BNBAsset, common.EmptyAsset, activeNodeAccount.NodeAddress)
 	_, err = withdrawHandler.Run(ctx, msgWithdraw, ver, constAccessor)
@@ -150,7 +150,7 @@ func (HandlerWithdrawSuite) TestAsymmetricWithdraw(c *C) {
 	// Let's stake some BTC first
 	runeAddr := GetRandomRUNEAddress()
 	btcAddress := GetRandomBTCAddress()
-	addHandler := NewAddLiquidityHandler(keeper, NewDummyMgr())
+	addHandler := NewAddLiquidityHandler(NewDummyMgrWithKeeper(keeper))
 	// stake some RUNE first
 	err := addHandler.addLiquidityV1(ctx,
 		common.BTCAsset,
@@ -187,7 +187,7 @@ func (HandlerWithdrawSuite) TestAsymmetricWithdraw(c *C) {
 	c.Assert(lp.Units.IsZero(), Equals, false)
 
 	// let's withdraw the RUNE we just staked
-	withdrawHandler := NewWithdrawLiquidityHandler(keeper, NewDummyMgr())
+	withdrawHandler := NewWithdrawLiquidityHandler(NewDummyMgrWithKeeper(keeper))
 	msgWithdraw := NewMsgWithdrawLiquidity(GetRandomTx(), runeAddr1, cosmos.NewUint(uint64(MaxWithdrawBasisPoints)), common.BTCAsset, common.EmptyAsset, activeNodeAccount.NodeAddress)
 	_, err = withdrawHandler.Run(ctx, msgWithdraw, ver, constAccessor)
 	c.Assert(err, IsNil)
@@ -256,7 +256,7 @@ func (HandlerWithdrawSuite) TestWithdrawHandler_Validation(c *C) {
 	ver := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(ver)
 	for _, tc := range testCases {
-		withdrawHandler := NewWithdrawLiquidityHandler(k, NewDummyMgr())
+		withdrawHandler := NewWithdrawLiquidityHandler(NewDummyMgrWithKeeper(k))
 		_, err := withdrawHandler.Run(ctx, tc.msg, ver, constAccessor)
 		c.Assert(err.Error(), Equals, tc.expectedResult.Error(), Commentf(tc.name))
 	}
@@ -329,7 +329,7 @@ func (HandlerWithdrawSuite) TestWithdrawHandler_mockFailScenarios(c *C) {
 	constAccessor := constants.GetConstantValues(ver)
 
 	for _, tc := range testCases {
-		withdrawHandler := NewWithdrawLiquidityHandler(tc.k, NewDummyMgr())
+		withdrawHandler := NewWithdrawLiquidityHandler(NewDummyMgrWithKeeper(tc.k))
 		msgWithdraw := NewMsgWithdrawLiquidity(GetRandomTx(), GetRandomRUNEAddress(), cosmos.NewUint(uint64(MaxWithdrawBasisPoints)), common.BNBAsset, common.EmptyAsset, activeNodeAccount.NodeAddress)
 		_, err := withdrawHandler.Run(ctx, msgWithdraw, ver, constAccessor)
 		c.Assert(errors.Is(err, tc.expectedResult), Equals, true, Commentf(tc.name))

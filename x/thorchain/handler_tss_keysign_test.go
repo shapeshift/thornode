@@ -329,7 +329,7 @@ func (h HandlerTssKeysignSuite) testTssKeysignFailHandlerWithVersion(c *C, ver s
 	}
 	for _, tc := range testCases {
 		helper := newTssKeysignHandlerTestHelper(c, ver)
-		handler := NewTssKeysignHandler(helper.keeper, NewDummyMgr())
+		handler := NewTssKeysignHandler(NewDummyMgrWithKeeper(helper.keeper))
 		msg := tc.messageCreator(helper)
 
 		c.Logf(">Name: %s\n", tc.name)
@@ -349,7 +349,7 @@ func (h HandlerTssKeysignSuite) testTssKeysignFailHandlerWithVersion(c *C, ver s
 func (h HandlerTssKeysignSuite) TestTssKeysignFailHandler_accept_standby_node_messages(c *C) {
 	ver := GetCurrentVersion()
 	helper := newTssKeysignHandlerTestHelper(c, ver)
-	handler := NewTssKeysignHandler(helper.keeper, NewDummyMgr())
+	handler := NewTssKeysignHandler(NewDummyMgrWithKeeper(helper.keeper))
 	vault := NewVault(1024, RetiringVault, AsgardVault, GetRandomPubKey(), []string{
 		common.BNBChain.String(),
 	}, []ChainContract{})

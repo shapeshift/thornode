@@ -51,7 +51,7 @@ func (s *HandlerObservedTxInSuite) TestValidate(c *C) {
 		standbyAccount:    standbyAccount,
 	}
 
-	handler := NewObservedTxInHandler(keeper, NewDummyMgr())
+	handler := NewObservedTxInHandler(NewDummyMgrWithKeeper(keeper))
 
 	// happy path
 	ver := GetCurrentVersion()
@@ -98,12 +98,12 @@ func (s *HandlerObservedTxInSuite) TestFailure(c *C) {
 			BalanceAsset: cosmos.NewUint(300),
 		},
 	}
-	mgr := NewDummyMgr()
+	mgr := NewDummyMgrWithKeeper(keeper)
 
 	tx := NewObservedTx(GetRandomTx(), 12, GetRandomPubKey(), 12)
 	ver := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(ver)
-	err := refundTxV1(ctx, tx, mgr, keeper, constAccessor, CodeInvalidMemo, "Invalid memo", "")
+	err := refundTxV1(ctx, tx, mgr, constAccessor, CodeInvalidMemo, "Invalid memo", "")
 	c.Assert(err, IsNil)
 	items, err := mgr.TxOutStore().GetOutboundItems(ctx)
 	c.Assert(err, IsNil)
@@ -212,7 +212,7 @@ func (s *HandlerObservedTxInSuite) TestHandle(c *C) {
 
 func (s *HandlerObservedTxInSuite) testHandleWithConfirmation(c *C, ver semver.Version) {
 	var err error
-	ctx, _ := setupKeeperForTest(c)
+	ctx, mgr := setupManagerForTest(c)
 	constAccessor := constants.GetConstantValues(ver)
 	tx := GetRandomTx()
 	tx.Memo = "SWAP:BTC.BTC:" + GetRandomBTCAddress().String()
@@ -238,9 +238,8 @@ func (s *HandlerObservedTxInSuite) testHandleWithConfirmation(c *C, ver semver.V
 		},
 		yggExists: true,
 	}
-	mgr := NewManagers(keeper)
-	c.Assert(mgr.BeginBlock(ctx), IsNil)
-	handler := NewObservedTxInHandler(keeper, mgr)
+	mgr.K = keeper
+	handler := NewObservedTxInHandler(mgr)
 
 	// first not confirmed message
 	msg := NewMsgObservedTxIn(txs, keeper.nas[0].NodeAddress)
@@ -345,7 +344,7 @@ func (s *HandlerObservedTxInSuite) testHandleWithConfirmation(c *C, ver semver.V
 
 func (s *HandlerObservedTxInSuite) testHandleWithVersion(c *C, ver semver.Version) {
 	var err error
-	ctx, _ := setupKeeperForTest(c)
+	ctx, mgr := setupManagerForTest(c)
 	constAccessor := constants.GetConstantValues(ver)
 
 	tx := GetRandomTx()
@@ -369,9 +368,8 @@ func (s *HandlerObservedTxInSuite) testHandleWithVersion(c *C, ver semver.Versio
 		},
 		yggExists: true,
 	}
-	mgr := NewManagers(keeper)
-	c.Assert(mgr.BeginBlock(ctx), IsNil)
-	handler := NewObservedTxInHandler(keeper, mgr)
+	mgr.K = keeper
+	handler := NewObservedTxInHandler(mgr)
 
 	c.Assert(err, IsNil)
 	msg := NewMsgObservedTxIn(txs, keeper.nas[0].NodeAddress)
@@ -439,7 +437,7 @@ func (s *HandlerObservedTxInSuite) testMigrateMemoWithVersion(c *C, ver semver.V
 		txOut:     txout,
 	}
 
-	handler := NewObservedTxInHandler(keeper, NewDummyMgr())
+	handler := NewObservedTxInHandler(NewDummyMgrWithKeeper(keeper))
 
 	c.Assert(err, IsNil)
 	msg := NewMsgObservedTxIn(txs, keeper.nas[0].NodeAddress)
@@ -709,11 +707,10 @@ func (HandlerObservedTxInSuite) TestObservedTxHandler_validations(c *C) {
 	}
 	for _, tc := range testCases {
 		for _, ver := range versions {
-			ctx, k := setupKeeperForTest(c)
-			helper := NewObservedTxInHandlerTestHelper(k)
-			mgr := NewManagers(helper)
-			mgr.BeginBlock(ctx)
-			handler := NewObservedTxInHandler(helper, mgr)
+			ctx, mgr := setupManagerForTest(c)
+			helper := NewObservedTxInHandlerTestHelper(mgr.Keeper())
+			mgr.K = helper
+			handler := NewObservedTxInHandler(mgr)
 			msg := tc.messageProvider(c, ctx, helper)
 			constantAccessor := constants.GetConstantValues(ver)
 			result, err := handler.Run(ctx, msg, ver, constantAccessor)
@@ -723,12 +720,10 @@ func (HandlerObservedTxInSuite) TestObservedTxHandler_validations(c *C) {
 }
 
 func (s HandlerObservedTxInSuite) TestSwapWithAffiliate(c *C) {
-	ctx, k := setupKeeperForTest(c)
+	ctx, mgr := setupManagerForTest(c)
 
-	queue := NewSwapQv1(k)
-	mgr := NewManagers(k)
-	mgr.BeginBlock(ctx)
-	handler := NewObservedTxInHandler(k, mgr)
+	queue := NewSwapQv1(mgr.Keeper())
+	handler := NewObservedTxInHandler(mgr)
 	ver := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(ver)
 

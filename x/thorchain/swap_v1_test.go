@@ -156,7 +156,6 @@ func (k *TestSwapKeeper) MintToModule(ctx cosmos.Context, module string, coin co
 
 func (s *SwapSuite) TestSwap(c *C) {
 	poolStorage := &TestSwapKeeper{}
-	ctx, _ := setupKeeperForTest(c)
 	inputs := []struct {
 		name          string
 		requestTxHash common.TxID
@@ -365,8 +364,8 @@ func (s *SwapSuite) TestSwap(c *C) {
 			"",
 		)
 		tx.Chain = common.BNBChain
-		m := NewManagers(poolStorage)
-		m.BeginBlock(ctx)
+		ctx, m := setupManagerForTest(c)
+		m.K = poolStorage
 		m.txOutStore = NewTxStoreDummy()
 
 		amount, evts, err := NewSwapperV1().swap(ctx, poolStorage, tx, item.target, item.destination, item.tradeTarget, cosmos.NewUint(1000_000), 2, m)
@@ -406,8 +405,7 @@ func (s *SwapSuite) TestSynthSwap(c *C) {
 		"",
 	)
 	tx.Chain = common.BNBChain
-	m := NewManagers(k)
-	m.BeginBlock(ctx)
+	ctx, m := setupManagerForTest(c)
 	m.txOutStore = NewTxStoreDummy()
 
 	// swap rune --> synth

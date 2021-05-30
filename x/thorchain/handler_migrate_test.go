@@ -39,7 +39,7 @@ func (HandlerMigrateSuite) TestMigrate(c *C) {
 		vault:             GetRandomVault(),
 	}
 
-	handler := NewMigrateHandler(keeper, NewDummyMgr())
+	handler := NewMigrateHandler(NewDummyMgrWithKeeper(keeper))
 
 	addr, err := keeper.vault.PubKey.GetAddress(common.BNBChain)
 	c.Assert(err, IsNil)
@@ -146,7 +146,7 @@ func (HandlerMigrateSuite) TestMigrateHappyPath(c *C) {
 	}
 	addr, err := keeper.retireVault.PubKey.GetAddress(common.BNBChain)
 	c.Assert(err, IsNil)
-	handler := NewMigrateHandler(keeper, NewDummyMgr())
+	handler := NewMigrateHandler(NewDummyMgrWithKeeper(keeper))
 	tx := NewObservedTx(common.Tx{
 		ID:    GetRandomTxHash(),
 		Chain: common.BNBChain,
@@ -193,9 +193,9 @@ func (HandlerMigrateSuite) TestSlash(c *C) {
 	}
 	addr, err := keeper.retireVault.PubKey.GetAddress(common.BNBChain)
 	c.Assert(err, IsNil)
-	mgr := NewDummyMgr()
+	mgr := NewDummyMgrWithKeeper(keeper)
 	mgr.slasher = NewSlasherV1(keeper, NewDummyEventMgr())
-	handler := NewMigrateHandler(keeper, mgr)
+	handler := NewMigrateHandler(mgr)
 	tx := NewObservedTx(common.Tx{
 		ID:    GetRandomTxHash(),
 		Chain: common.BNBChain,
@@ -216,10 +216,8 @@ func (HandlerMigrateSuite) TestSlash(c *C) {
 
 func (HandlerMigrateSuite) TestHandlerMigrateValidation(c *C) {
 	// invalid message should return an error
-	ctx, k := setupKeeperForTest(c)
-	mgr := NewManagers(k)
-	mgr.BeginBlock(ctx)
-	h := NewMigrateHandler(k, mgr)
+	ctx, mgr := setupManagerForTest(c)
+	h := NewMigrateHandler(mgr)
 	constantAccessor := constants.GetConstantValues(GetCurrentVersion())
 	result, err := h.Run(ctx, NewMsgNetworkFee(ctx.BlockHeight(), common.BNBChain, 1, bnbSingleTxFee.Uint64(), GetRandomBech32Addr()), GetCurrentVersion(), constantAccessor)
 	c.Check(err, NotNil)

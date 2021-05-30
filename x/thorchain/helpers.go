@@ -13,7 +13,7 @@ import (
 )
 
 // nativeRuneModuleName will be empty if it is not NATIVE Rune
-func refundTxV1(ctx cosmos.Context, tx ObservedTx, mgr Manager, keeper keeper.Keeper, constAccessor constants.ConstantValues, refundCode uint32, refundReason, nativeRuneModuleName string) error {
+func refundTxV1(ctx cosmos.Context, tx ObservedTx, mgr Manager, constAccessor constants.ConstantValues, refundCode uint32, refundReason, nativeRuneModuleName string) error {
 	// If THORNode recognize one of the coins, and therefore able to refund
 	// withholding fees, refund all coins.
 
@@ -52,7 +52,7 @@ func refundTxV1(ctx cosmos.Context, tx ObservedTx, mgr Manager, keeper keeper.Ke
 		if coin.Asset.IsRune() && coin.Asset.GetChain().Equals(common.ETHChain) {
 			continue
 		}
-		pool, err := keeper.GetPool(ctx, coin.Asset)
+		pool, err := mgr.Keeper().GetPool(ctx, coin.Asset)
 		if err != nil {
 			return fmt.Errorf("fail to get pool: %w", err)
 		}
@@ -87,7 +87,7 @@ func refundTxV1(ctx cosmos.Context, tx ObservedTx, mgr Manager, keeper keeper.Ke
 	return nil
 }
 
-func refundTxV47(ctx cosmos.Context, tx ObservedTx, mgr Manager, keeper keeper.Keeper, constAccessor constants.ConstantValues, refundCode uint32, refundReason, nativeRuneModuleName string) error {
+func refundTxV47(ctx cosmos.Context, tx ObservedTx, mgr Manager, constAccessor constants.ConstantValues, refundCode uint32, refundReason, nativeRuneModuleName string) error {
 	// If THORNode recognize one of the coins, and therefore able to refund
 	// withholding fees, refund all coins.
 
@@ -126,7 +126,7 @@ func refundTxV47(ctx cosmos.Context, tx ObservedTx, mgr Manager, keeper keeper.K
 		if coin.Asset.IsRune() && coin.Asset.GetChain().Equals(common.ETHChain) {
 			continue
 		}
-		pool, err := keeper.GetPool(ctx, coin.Asset)
+		pool, err := mgr.Keeper().GetPool(ctx, coin.Asset)
 		if err != nil {
 			return fmt.Errorf("fail to get pool: %w", err)
 		}
@@ -192,7 +192,7 @@ func getFee(input, output common.Coins, transactionFee cosmos.Uint) common.Fee {
 	fee.PoolDeduct = transactionFee.MulUint64(uint64(assetTxCount))
 	return fee
 }
-func subsidizePoolWithSlashBondV46(ctx cosmos.Context, keeper keeper.Keeper, ygg Vault, yggTotalStolen, slashRuneAmt cosmos.Uint, mgr Manager) error {
+func subsidizePoolWithSlashBondV46(ctx cosmos.Context, ygg Vault, yggTotalStolen, slashRuneAmt cosmos.Uint, mgr Manager) error {
 	// Thorchain did not slash the node account
 	if slashRuneAmt.IsZero() {
 		return nil
@@ -222,7 +222,7 @@ func subsidizePoolWithSlashBondV46(ctx cosmos.Context, keeper keeper.Keeper, ygg
 			}
 		}
 
-		pool, err := keeper.GetPool(ctx, asset)
+		pool, err := mgr.Keeper().GetPool(ctx, asset)
 		if err != nil {
 			return err
 		}
@@ -236,14 +236,14 @@ func subsidizePoolWithSlashBondV46(ctx cosmos.Context, keeper keeper.Keeper, ygg
 	}
 
 	for asset, f := range subsidizeAmounts {
-		pool, err := keeper.GetPool(ctx, asset)
+		pool, err := mgr.Keeper().GetPool(ctx, asset)
 		if err != nil {
 			return err
 		}
 		pool.BalanceRune = pool.BalanceRune.Add(f.subsidiseRune)
 		pool.BalanceAsset = common.SafeSub(pool.BalanceAsset, f.stolenAsset)
 
-		if err := keeper.SetPool(ctx, pool); err != nil {
+		if err := mgr.Keeper().SetPool(ctx, pool); err != nil {
 			return fmt.Errorf("fail to save pool: %w", err)
 		}
 		poolSlashAmt := []PoolAmt{
@@ -263,6 +263,7 @@ func subsidizePoolWithSlashBondV46(ctx cosmos.Context, keeper keeper.Keeper, ygg
 	}
 	return nil
 }
+
 func subsidizePoolWithSlashBond(ctx cosmos.Context, keeper keeper.Keeper, ygg Vault, yggTotalStolen, slashRuneAmt cosmos.Uint) error {
 	// Thorchain did not slash the node account
 	if slashRuneAmt.IsZero() {
@@ -339,7 +340,7 @@ func getTotalYggValueInRune(ctx cosmos.Context, keeper keeper.Keeper, ygg Vault)
 	return yggRune, nil
 }
 
-func refundBond(ctx cosmos.Context, tx common.Tx, amt cosmos.Uint, nodeAcc *NodeAccount, keeper keeper.Keeper, mgr Manager) error {
+func refundBond(ctx cosmos.Context, tx common.Tx, amt cosmos.Uint, nodeAcc *NodeAccount, mgr Manager) error {
 	if nodeAcc.Status == NodeActive {
 		ctx.Logger().Info("node still active, cannot refund bond", "node address", nodeAcc.NodeAddress, "node pub key", nodeAcc.PubKeySet.Secp256k1)
 		return nil
@@ -357,9 +358,9 @@ func refundBond(ctx cosmos.Context, tx common.Tx, amt cosmos.Uint, nodeAcc *Node
 	}
 
 	ygg := Vault{}
-	if keeper.VaultExists(ctx, nodeAcc.PubKeySet.Secp256k1) {
+	if mgr.Keeper().VaultExists(ctx, nodeAcc.PubKeySet.Secp256k1) {
 		var err error
-		ygg, err = keeper.GetVault(ctx, nodeAcc.PubKeySet.Secp256k1)
+		ygg, err = mgr.Keeper().GetVault(ctx, nodeAcc.PubKeySet.Secp256k1)
 		if err != nil {
 			return err
 		}
@@ -369,7 +370,7 @@ func refundBond(ctx cosmos.Context, tx common.Tx, amt cosmos.Uint, nodeAcc *Node
 	}
 
 	// Calculate total value (in rune) the Yggdrasil pool has
-	yggRune, err := getTotalYggValueInRune(ctx, keeper, ygg)
+	yggRune, err := getTotalYggValueInRune(ctx, mgr.Keeper(), ygg)
 	if err != nil {
 		return fmt.Errorf("fail to get total ygg value in RUNE: %w", err)
 	}
@@ -386,16 +387,16 @@ func refundBond(ctx cosmos.Context, tx common.Tx, amt cosmos.Uint, nodeAcc *Node
 	nodeAcc.Bond = common.SafeSub(nodeAcc.Bond, slashRune)
 
 	if !nodeAcc.Bond.IsZero() {
-		active, err := keeper.GetAsgardVaultsByStatus(ctx, ActiveVault)
+		active, err := mgr.Keeper().GetAsgardVaultsByStatus(ctx, ActiveVault)
 		if err != nil {
 			ctx.Logger().Error("fail to get active vaults", "error", err)
 			return err
 		}
 
-		version := keeper.GetLowestActiveVersion(ctx)
+		version := mgr.Keeper().GetLowestActiveVersion(ctx)
 		constAccessor := constants.GetConstantValues(version)
 		signingTransactionPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
-		vault := keeper.GetLeastSecure(ctx, active, signingTransactionPeriod)
+		vault := mgr.Keeper().GetLeastSecure(ctx, active, signingTransactionPeriod)
 		if vault.IsEmpty() {
 			return fmt.Errorf("unable to determine asgard vault to send funds")
 		}
@@ -427,22 +428,22 @@ func refundBond(ctx cosmos.Context, tx common.Tx, amt cosmos.Uint, nodeAcc *Node
 	}
 
 	nodeAcc.Bond = common.SafeSub(nodeAcc.Bond, amt)
-	if err := keeper.SetNodeAccount(ctx, *nodeAcc); err != nil {
+	if err := mgr.Keeper().SetNodeAccount(ctx, *nodeAcc); err != nil {
 		ctx.Logger().Error(fmt.Sprintf("fail to save node account(%s)", nodeAcc), "error", err)
 		return err
 	}
-	if err := subsidizePoolWithSlashBond(ctx, keeper, ygg, yggRune, slashRune); err != nil {
+	if err := subsidizePoolWithSlashBond(ctx, mgr.Keeper(), ygg, yggRune, slashRune); err != nil {
 		ctx.Logger().Error("fail to subsidize pool with slashed bond", "error", err)
 		return err
 	}
 	// delete the ygg vault, there is nothing left in the ygg vault
 	if !ygg.HasFunds() {
-		return keeper.DeleteVault(ctx, ygg.PubKey)
+		return mgr.Keeper().DeleteVault(ctx, ygg.PubKey)
 	}
 	return nil
 }
 
-func refundBondV46(ctx cosmos.Context, tx common.Tx, amt cosmos.Uint, nodeAcc *NodeAccount, keeper keeper.Keeper, mgr Manager) error {
+func refundBondV46(ctx cosmos.Context, tx common.Tx, amt cosmos.Uint, nodeAcc *NodeAccount, mgr Manager) error {
 	if nodeAcc.Status == NodeActive {
 		ctx.Logger().Info("node still active, cannot refund bond", "node address", nodeAcc.NodeAddress, "node pub key", nodeAcc.PubKeySet.Secp256k1)
 		return nil
@@ -460,9 +461,9 @@ func refundBondV46(ctx cosmos.Context, tx common.Tx, amt cosmos.Uint, nodeAcc *N
 	}
 
 	ygg := Vault{}
-	if keeper.VaultExists(ctx, nodeAcc.PubKeySet.Secp256k1) {
+	if mgr.Keeper().VaultExists(ctx, nodeAcc.PubKeySet.Secp256k1) {
 		var err error
-		ygg, err = keeper.GetVault(ctx, nodeAcc.PubKeySet.Secp256k1)
+		ygg, err = mgr.Keeper().GetVault(ctx, nodeAcc.PubKeySet.Secp256k1)
 		if err != nil {
 			return err
 		}
@@ -472,7 +473,7 @@ func refundBondV46(ctx cosmos.Context, tx common.Tx, amt cosmos.Uint, nodeAcc *N
 	}
 
 	// Calculate total value (in rune) the Yggdrasil pool has
-	yggRune, err := getTotalYggValueInRune(ctx, keeper, ygg)
+	yggRune, err := getTotalYggValueInRune(ctx, mgr.Keeper(), ygg)
 	if err != nil {
 		return fmt.Errorf("fail to get total ygg value in RUNE: %w", err)
 	}
@@ -492,16 +493,16 @@ func refundBondV46(ctx cosmos.Context, tx common.Tx, amt cosmos.Uint, nodeAcc *N
 		if amt.GT(nodeAcc.Bond) {
 			amt = nodeAcc.Bond
 		}
-		active, err := keeper.GetAsgardVaultsByStatus(ctx, ActiveVault)
+		active, err := mgr.Keeper().GetAsgardVaultsByStatus(ctx, ActiveVault)
 		if err != nil {
 			ctx.Logger().Error("fail to get active vaults", "error", err)
 			return err
 		}
 
-		version := keeper.GetLowestActiveVersion(ctx)
+		version := mgr.Keeper().GetLowestActiveVersion(ctx)
 		constAccessor := constants.GetConstantValues(version)
 		signingTransactionPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
-		vault := keeper.GetLeastSecure(ctx, active, signingTransactionPeriod)
+		vault := mgr.Keeper().GetLeastSecure(ctx, active, signingTransactionPeriod)
 		if vault.IsEmpty() {
 			return fmt.Errorf("unable to determine asgard vault to send funds")
 		}
@@ -533,17 +534,17 @@ func refundBondV46(ctx cosmos.Context, tx common.Tx, amt cosmos.Uint, nodeAcc *N
 	}
 
 	nodeAcc.Bond = common.SafeSub(nodeAcc.Bond, amt)
-	if err := keeper.SetNodeAccount(ctx, *nodeAcc); err != nil {
+	if err := mgr.Keeper().SetNodeAccount(ctx, *nodeAcc); err != nil {
 		ctx.Logger().Error(fmt.Sprintf("fail to save node account(%s)", nodeAcc), "error", err)
 		return err
 	}
-	if err := subsidizePoolWithSlashBondV46(ctx, keeper, ygg, yggRune, slashRune, mgr); err != nil {
+	if err := subsidizePoolWithSlashBondV46(ctx, ygg, yggRune, slashRune, mgr); err != nil {
 		ctx.Logger().Error("fail to subsidize pool with slashed bond", "error", err)
 		return err
 	}
 	// delete the ygg vault, there is nothing left in the ygg vault
 	if !ygg.HasFunds() {
-		return keeper.DeleteVault(ctx, ygg.PubKey)
+		return mgr.Keeper().DeleteVault(ctx, ygg.PubKey)
 	}
 	return nil
 }
@@ -573,7 +574,7 @@ func isSignedByActiveNodeAccounts(ctx cosmos.Context, keeper keeper.Keeper, sign
 	return true
 }
 
-func cyclePools(ctx cosmos.Context, maxAvailablePools, minRunePoolDepth, stagedPoolCost int64, keeper keeper.Keeper, eventManager EventManager) error {
+func cyclePools(ctx cosmos.Context, maxAvailablePools, minRunePoolDepth, stagedPoolCost int64, mgr Manager) error {
 	var availblePoolCount int64
 	onDeck := NewPool()        // currently staged pool that could get promoted
 	choppingBlock := NewPool() // currently available pool that is on the chopping block to being demoted
@@ -590,7 +591,7 @@ func cyclePools(ctx cosmos.Context, maxAvailablePools, minRunePoolDepth, stagedP
 	// quick func to save a pool status and emit event
 	set_pool := func(pool Pool) error {
 		poolEvt := NewEventPool(pool.Asset, pool.Status)
-		if err := eventManager.EmitEvent(ctx, poolEvt); err != nil {
+		if err := mgr.EventMgr().EmitEvent(ctx, poolEvt); err != nil {
 			return fmt.Errorf("fail to emit pool event: %w", err)
 		}
 
@@ -600,14 +601,14 @@ func cyclePools(ctx cosmos.Context, maxAvailablePools, minRunePoolDepth, stagedP
 		case PoolStaged:
 			ctx.Logger().Info("Pool demoted to staged status", "pool", pool.Asset)
 		}
-		return keeper.SetPool(ctx, pool)
+		return mgr.Keeper().SetPool(ctx, pool)
 	}
 
-	iterator := keeper.GetPoolIterator(ctx)
+	iterator := mgr.Keeper().GetPoolIterator(ctx)
 	defer iterator.Close()
 	for ; iterator.Valid(); iterator.Next() {
 		var pool Pool
-		if err := keeper.Cdc().UnmarshalBinaryBare(iterator.Value(), &pool); err != nil {
+		if err := mgr.Keeper().Cdc().UnmarshalBinaryBare(iterator.Value(), &pool); err != nil {
 			return err
 		}
 
@@ -641,18 +642,18 @@ func cyclePools(ctx cosmos.Context, maxAvailablePools, minRunePoolDepth, stagedP
 			}
 			if !fee.IsZero() {
 				pool.BalanceRune = common.SafeSub(pool.BalanceRune, fee)
-				if err := keeper.SetPool(ctx, pool); err != nil {
+				if err := mgr.Keeper().SetPool(ctx, pool); err != nil {
 					ctx.Logger().Error("fail to save pool", "pool", pool.Asset, "err", err)
 				}
 
-				if err := keeper.AddFeeToReserve(ctx, fee); err != nil {
+				if err := mgr.Keeper().AddFeeToReserve(ctx, fee); err != nil {
 					ctx.Logger().Error("fail to add rune to reserve", "from pool", pool.Asset, "err", err)
 				}
 
 				emitPoolBalanceChangedEvent(ctx,
 					NewPoolMod(pool.Asset, fee, false, cosmos.ZeroUint(), false),
 					"pool stage cost",
-					keeper, eventManager)
+					mgr)
 			}
 			// check if the rune balance is zero, and asset balance IS NOT
 			// zero. This is because we don't want to abandon a pool that is in
@@ -667,11 +668,11 @@ func cyclePools(ctx cosmos.Context, maxAvailablePools, minRunePoolDepth, stagedP
 				ctx.Logger().Info("burning pool", "pool", pool.Asset)
 
 				// delete all liquidity provider records
-				iterator := keeper.GetLiquidityProviderIterator(ctx, pool.Asset)
+				iterator := mgr.Keeper().GetLiquidityProviderIterator(ctx, pool.Asset)
 				defer iterator.Close()
 				for ; iterator.Valid(); iterator.Next() {
 					var lp LiquidityProvider
-					keeper.Cdc().MustUnmarshalBinaryBare(iterator.Value(), &lp)
+					mgr.Keeper().Cdc().MustUnmarshalBinaryBare(iterator.Value(), &lp)
 
 					withdrawEvt := NewEventWithdraw(
 						pool.Asset,
@@ -683,33 +684,33 @@ func cyclePools(ctx cosmos.Context, maxAvailablePools, minRunePoolDepth, stagedP
 						cosmos.ZeroUint(),
 						cosmos.ZeroUint(),
 					)
-					if err := eventManager.EmitEvent(ctx, withdrawEvt); err != nil {
+					if err := mgr.EventMgr().EmitEvent(ctx, withdrawEvt); err != nil {
 						ctx.Logger().Error("fail to emit pool withdraw event", "error", err)
 					}
 
-					keeper.RemoveLiquidityProvider(ctx, lp)
+					mgr.Keeper().RemoveLiquidityProvider(ctx, lp)
 				}
 
 				// delete the pool
-				keeper.RemovePool(ctx, pool.Asset)
+				mgr.Keeper().RemovePool(ctx, pool.Asset)
 
 				poolEvent := NewEventPool(pool.Asset, PoolSuspended)
-				if err := eventManager.EmitEvent(ctx, poolEvent); err != nil {
+				if err := mgr.EventMgr().EmitEvent(ctx, poolEvent); err != nil {
 					ctx.Logger().Error("fail to emit pool event", "error", err)
 				}
 
 				// zero vaults with the pool asset
-				vaultIter := keeper.GetVaultIterator(ctx)
+				vaultIter := mgr.Keeper().GetVaultIterator(ctx)
 				defer vaultIter.Close()
 				for ; vaultIter.Valid(); vaultIter.Next() {
 					var vault Vault
-					keeper.Cdc().MustUnmarshalBinaryBare(vaultIter.Value(), &vault)
+					mgr.Keeper().Cdc().MustUnmarshalBinaryBare(vaultIter.Value(), &vault)
 
 					if vault.HasAsset(pool.Asset) {
 						for i, coin := range vault.Coins {
 							if pool.Asset.Equals(coin.Asset) {
 								vault.Coins[i].Amount = cosmos.ZeroUint()
-								if err := keeper.SetVault(ctx, vault); err != nil {
+								if err := mgr.Keeper().SetVault(ctx, vault); err != nil {
 									ctx.Logger().Error("fail to save vault", "error", err)
 								}
 								break
@@ -764,39 +765,39 @@ func wrapError(ctx cosmos.Context, err error, wrap string) error {
 }
 
 // AddGasFees to vault
-func AddGasFees(ctx cosmos.Context, keeper keeper.Keeper, tx ObservedTx, gasManager GasManager) error {
+func AddGasFees(ctx cosmos.Context, mgr Manager, tx ObservedTx) error {
 	if len(tx.Tx.Gas) == 0 {
 		return nil
 	}
-	if keeper.RagnarokInProgress(ctx) {
+	if mgr.Keeper().RagnarokInProgress(ctx) {
 		// when ragnarok is in progress, if the tx is for gas coin then doesn't subsidise the pool with reserve
 		// liquidity providers they need to pay their own gas
 		// if the outbound coin is not gas asset, then reserve will subsidise it , otherwise the gas asset pool will be in a loss
 		gasAsset := tx.Tx.Chain.GetGasAsset()
 		if tx.Tx.Coins.GetCoin(gasAsset).IsEmpty() {
-			gasManager.AddGasAsset(tx.Tx.Gas, true)
+			mgr.GasMgr().AddGasAsset(tx.Tx.Gas, true)
 		}
 	} else {
-		gasManager.AddGasAsset(tx.Tx.Gas, true)
+		mgr.GasMgr().AddGasAsset(tx.Tx.Gas, true)
 	}
 	// Subtract from the vault
-	if keeper.VaultExists(ctx, tx.ObservedPubKey) {
-		vault, err := keeper.GetVault(ctx, tx.ObservedPubKey)
+	if mgr.Keeper().VaultExists(ctx, tx.ObservedPubKey) {
+		vault, err := mgr.Keeper().GetVault(ctx, tx.ObservedPubKey)
 		if err != nil {
 			return err
 		}
 
 		vault.SubFunds(tx.Tx.Gas.ToCoins())
 
-		if err := keeper.SetVault(ctx, vault); err != nil {
+		if err := mgr.Keeper().SetVault(ctx, vault); err != nil {
 			return err
 		}
 	}
 	return nil
 }
-func emitPoolBalanceChangedEvent(ctx cosmos.Context, poolMod PoolMod, reason string, keeper keeper.Keeper, eventManager EventManager) {
+func emitPoolBalanceChangedEvent(ctx cosmos.Context, poolMod PoolMod, reason string, mgr Manager) {
 	evt := NewEventPoolBalanceChanged(poolMod, reason)
-	if err := eventManager.EmitEvent(ctx, evt); err != nil {
+	if err := mgr.EventMgr().EmitEvent(ctx, evt); err != nil {
 		ctx.Logger().Error("fail to emit pool balance changed event", "error", err)
 	}
 }

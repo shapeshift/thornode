@@ -6,24 +6,23 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // withdraw all the asset
 // it returns runeAmt,assetAmount,protectionRuneAmt,units, lastWithdraw,err
-func withdrawV49(ctx cosmos.Context, version semver.Version, keeper keeper.Keeper, msg MsgWithdrawLiquidity, manager Manager) (cosmos.Uint, cosmos.Uint, cosmos.Uint, cosmos.Uint, cosmos.Uint, error) {
-	if err := validateWithdrawV1(ctx, keeper, msg); err != nil {
+func withdrawV49(ctx cosmos.Context, version semver.Version, msg MsgWithdrawLiquidity, manager Manager) (cosmos.Uint, cosmos.Uint, cosmos.Uint, cosmos.Uint, cosmos.Uint, error) {
+	if err := validateWithdrawV1(ctx, manager.Keeper(), msg); err != nil {
 		ctx.Logger().Error("msg withdraw fail validation", "error", err)
 		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), err
 	}
 
-	pool, err := keeper.GetPool(ctx, msg.Asset)
+	pool, err := manager.Keeper().GetPool(ctx, msg.Asset)
 	if err != nil {
 		ctx.Logger().Error("fail to get pool", "error", err)
 		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), err
 	}
 
-	lp, err := keeper.GetLiquidityProvider(ctx, msg.Asset, msg.WithdrawAddress)
+	lp, err := manager.Keeper().GetLiquidityProvider(ctx, msg.Asset, msg.WithdrawAddress)
 	if err != nil {
 		ctx.Logger().Error("can't find liquidity provider", "error", err)
 		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), err
@@ -36,10 +35,10 @@ func withdrawV49(ctx cosmos.Context, version semver.Version, keeper keeper.Keepe
 	fLiquidityProviderUnit := lp.Units
 	if lp.Units.IsZero() {
 		if !lp.PendingRune.IsZero() || !lp.PendingAsset.IsZero() {
-			keeper.RemoveLiquidityProvider(ctx, lp)
+			manager.Keeper().RemoveLiquidityProvider(ctx, lp)
 			pool.PendingInboundRune = common.SafeSub(pool.PendingInboundRune, lp.PendingRune)
 			pool.PendingInboundAsset = common.SafeSub(pool.PendingInboundAsset, lp.PendingAsset)
-			if err := keeper.SetPool(ctx, pool); err != nil {
+			if err := manager.Keeper().SetPool(ctx, pool); err != nil {
 				ctx.Logger().Error("fail to save pool pending inbound funds", "error", err)
 			}
 			// remove lp
@@ -70,7 +69,7 @@ func withdrawV49(ctx cosmos.Context, version semver.Version, keeper keeper.Keepe
 
 	// calculate any impermament loss protection or not
 	protectionRuneAmount := cosmos.ZeroUint()
-	fullProtectionLine, err := keeper.GetMimir(ctx, constants.FullImpLossProtectionBlocks.String())
+	fullProtectionLine, err := manager.Keeper().GetMimir(ctx, constants.FullImpLossProtectionBlocks.String())
 	if fullProtectionLine < 0 || err != nil {
 		fullProtectionLine = cv.GetInt64Value(constants.FullImpLossProtectionBlocks)
 	}
@@ -148,21 +147,21 @@ func withdrawV49(ctx cosmos.Context, version semver.Version, keeper keeper.Keepe
 		pool.Status = PoolStaged
 	}
 
-	if err := keeper.SetPool(ctx, pool); err != nil {
+	if err := manager.Keeper().SetPool(ctx, pool); err != nil {
 		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), ErrInternal(err, "fail to save pool")
 	}
-	if keeper.RagnarokInProgress(ctx) {
-		keeper.SetLiquidityProvider(ctx, lp)
+	if manager.Keeper().RagnarokInProgress(ctx) {
+		manager.Keeper().SetLiquidityProvider(ctx, lp)
 	} else {
 		if !lp.Units.Add(lp.PendingAsset).Add(lp.PendingRune).IsZero() {
-			keeper.SetLiquidityProvider(ctx, lp)
+			manager.Keeper().SetLiquidityProvider(ctx, lp)
 		} else {
-			keeper.RemoveLiquidityProvider(ctx, lp)
+			manager.Keeper().RemoveLiquidityProvider(ctx, lp)
 		}
 	}
 	// add rune from the reserve to the asgard module, to cover imp loss protection
 	if !protectionRuneAmount.IsZero() {
-		err := keeper.SendFromModuleToModule(ctx, ReserveName, AsgardName, common.NewCoins(common.NewCoin(common.RuneAsset(), protectionRuneAmount)))
+		err := manager.Keeper().SendFromModuleToModule(ctx, ReserveName, AsgardName, common.NewCoins(common.NewCoin(common.RuneAsset(), protectionRuneAmount)))
 		if err != nil {
 			return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), ErrInternal(err, "fail to move imp loss protection rune from the reserve to asgard")
 		}

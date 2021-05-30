@@ -64,10 +64,9 @@ func (vts *ValidatorMgrV1TestSuite) TestSetupValidatorNodes(c *C) {
 }
 
 func (vts *ValidatorMgrV1TestSuite) TestRagnarokForChaosnet(c *C) {
-	ctx, k := setupKeeperForTest(c)
-	mgr := NewManagers(k)
+	ctx, mgr := setupManagerForTest(c)
 	c.Assert(mgr.BeginBlock(ctx), IsNil)
-	vMgr := newValidatorMgrV1(k, mgr.VaultMgr(), mgr.TxOutStore(), mgr.EventMgr())
+	vMgr := newValidatorMgrV1(mgr.Keeper(), mgr.VaultMgr(), mgr.TxOutStore(), mgr.EventMgr())
 
 	constAccessor := constants.NewDummyConstants(map[constants.ConstantName]int64{
 		constants.DesiredValidatorSet:           12,
@@ -83,10 +82,10 @@ func (vts *ValidatorMgrV1TestSuite) TestRagnarokForChaosnet(c *C) {
 	}, map[constants.ConstantName]string{})
 	for i := 0; i < 12; i++ {
 		node := GetRandomNodeAccount(NodeReady)
-		c.Assert(k.SetNodeAccount(ctx, node), IsNil)
+		c.Assert(mgr.Keeper().SetNodeAccount(ctx, node), IsNil)
 	}
 	c.Assert(vMgr.setupValidatorNodes(ctx, 1, constAccessor), IsNil)
-	nodeAccounts, err := k.ListNodeAccountsByStatus(ctx, NodeActive)
+	nodeAccounts, err := mgr.Keeper().ListNodeAccountsByStatus(ctx, NodeActive)
 	c.Assert(err, IsNil)
 	c.Assert(len(nodeAccounts), Equals, 12)
 
@@ -97,47 +96,43 @@ func (vts *ValidatorMgrV1TestSuite) TestRagnarokForChaosnet(c *C) {
 	for _, item := range nodeAccounts {
 		vault.Membership = append(vault.Membership, item.PubKeySet.Secp256k1.String())
 	}
-	c.Assert(k.SetVault(ctx, vault), IsNil)
+	c.Assert(mgr.Keeper().SetVault(ctx, vault), IsNil)
 	updates := vMgr.EndBlock(ctx, mgr, constAccessor)
 	// ragnarok , no one leaves
 	c.Assert(updates, IsNil)
-	ragnarokHeight, err := k.GetRagnarokBlockHeight(ctx)
+	ragnarokHeight, err := mgr.Keeper().GetRagnarokBlockHeight(ctx)
 	c.Assert(err, IsNil)
 	c.Assert(ragnarokHeight == 1024, Equals, true, Commentf("%d == %d", ragnarokHeight, 1024))
 }
 
 func (vts *ValidatorMgrV1TestSuite) TestLowerVersion(c *C) {
-	ctx, k := setupKeeperForTest(c)
+	ctx, mgr := setupManagerForTest(c)
 	ctx = ctx.WithBlockHeight(1440)
 
-	mgr := NewManagers(k)
-	c.Assert(mgr.BeginBlock(ctx), IsNil)
-	vMgr := newValidatorMgrV1(k, mgr.VaultMgr(), mgr.TxOutStore(), mgr.EventMgr())
+	vMgr := newValidatorMgrV1(mgr.Keeper(), mgr.VaultMgr(), mgr.TxOutStore(), mgr.EventMgr())
 	c.Assert(vMgr, NotNil)
 	c.Assert(vMgr.markLowerVersion(ctx, 360), IsNil)
 
 	for i := 0; i < 5; i++ {
 		activeNode := GetRandomNodeAccount(NodeActive)
 		activeNode.Version = "0.5.0"
-		c.Assert(k.SetNodeAccount(ctx, activeNode), IsNil)
+		c.Assert(mgr.Keeper().SetNodeAccount(ctx, activeNode), IsNil)
 	}
 	activeNode1 := GetRandomNodeAccount(NodeActive)
 	activeNode1.Version = "0.4.0"
-	c.Assert(k.SetNodeAccount(ctx, activeNode1), IsNil)
+	c.Assert(mgr.Keeper().SetNodeAccount(ctx, activeNode1), IsNil)
 
 	c.Assert(vMgr.markLowerVersion(ctx, 360), IsNil)
-	na, err := k.GetNodeAccount(ctx, activeNode1.NodeAddress)
+	na, err := mgr.Keeper().GetNodeAccount(ctx, activeNode1.NodeAddress)
 	c.Assert(err, IsNil)
 	c.Assert(na.LeaveScore, Equals, uint64(143900000000))
 }
 
 func (vts *ValidatorMgrV1TestSuite) TestBadActors(c *C) {
-	ctx, k := setupKeeperForTest(c)
+	ctx, mgr := setupManagerForTest(c)
 	ctx = ctx.WithBlockHeight(1000)
 
-	mgr := NewManagers(k)
-	c.Assert(mgr.BeginBlock(ctx), IsNil)
-	vMgr := newValidatorMgrV1(k, mgr.VaultMgr(), mgr.TxOutStore(), mgr.EventMgr())
+	vMgr := newValidatorMgrV1(mgr.Keeper(), mgr.VaultMgr(), mgr.TxOutStore(), mgr.EventMgr())
 	c.Assert(vMgr, NotNil)
 
 	// no bad actors with active node accounts
@@ -146,7 +141,7 @@ func (vts *ValidatorMgrV1TestSuite) TestBadActors(c *C) {
 	c.Assert(nas, HasLen, 0)
 
 	activeNode := GetRandomNodeAccount(NodeActive)
-	c.Assert(k.SetNodeAccount(ctx, activeNode), IsNil)
+	c.Assert(mgr.Keeper().SetNodeAccount(ctx, activeNode), IsNil)
 
 	// no bad actors with active node accounts with no slash points
 	nas, err = vMgr.findBadActors(ctx, 0, 3, 720)
@@ -154,11 +149,11 @@ func (vts *ValidatorMgrV1TestSuite) TestBadActors(c *C) {
 	c.Assert(nas, HasLen, 0)
 
 	activeNode = GetRandomNodeAccount(NodeActive)
-	k.SetNodeAccountSlashPoints(ctx, activeNode.NodeAddress, 250)
-	c.Assert(k.SetNodeAccount(ctx, activeNode), IsNil)
+	mgr.Keeper().SetNodeAccountSlashPoints(ctx, activeNode.NodeAddress, 250)
+	c.Assert(mgr.Keeper().SetNodeAccount(ctx, activeNode), IsNil)
 	activeNode = GetRandomNodeAccount(NodeActive)
-	k.SetNodeAccountSlashPoints(ctx, activeNode.NodeAddress, 500)
-	c.Assert(k.SetNodeAccount(ctx, activeNode), IsNil)
+	mgr.Keeper().SetNodeAccountSlashPoints(ctx, activeNode.NodeAddress, 500)
+	c.Assert(mgr.Keeper().SetNodeAccount(ctx, activeNode), IsNil)
 
 	// finds the worse actor
 	nas, err = vMgr.findBadActors(ctx, 0, 3, 720)
@@ -168,11 +163,11 @@ func (vts *ValidatorMgrV1TestSuite) TestBadActors(c *C) {
 
 	// create really bad actors (crossing the redline)
 	bad1 := GetRandomNodeAccount(NodeActive)
-	k.SetNodeAccountSlashPoints(ctx, bad1.NodeAddress, 5000)
-	c.Assert(k.SetNodeAccount(ctx, bad1), IsNil)
+	mgr.Keeper().SetNodeAccountSlashPoints(ctx, bad1.NodeAddress, 5000)
+	c.Assert(mgr.Keeper().SetNodeAccount(ctx, bad1), IsNil)
 	bad2 := GetRandomNodeAccount(NodeActive)
-	k.SetNodeAccountSlashPoints(ctx, bad2.NodeAddress, 5000)
-	c.Assert(k.SetNodeAccount(ctx, bad2), IsNil)
+	mgr.Keeper().SetNodeAccountSlashPoints(ctx, bad2.NodeAddress, 5000)
+	c.Assert(mgr.Keeper().SetNodeAccount(ctx, bad2), IsNil)
 
 	nas, err = vMgr.findBadActors(ctx, 0, 3, 720)
 	c.Assert(err, IsNil)
@@ -189,25 +184,23 @@ func (vts *ValidatorMgrV1TestSuite) TestBadActors(c *C) {
 }
 
 func (vts *ValidatorMgrV1TestSuite) TestFindBadActors(c *C) {
-	ctx, k := setupKeeperForTest(c)
+	ctx, mgr := setupManagerForTest(c)
 	ctx = ctx.WithBlockHeight(1000)
 
-	mgr := NewManagers(k)
-	c.Assert(mgr.BeginBlock(ctx), IsNil)
-	vMgr := newValidatorMgrV1(k, mgr.VaultMgr(), mgr.TxOutStore(), mgr.EventMgr())
+	vMgr := newValidatorMgrV1(mgr.Keeper(), mgr.VaultMgr(), mgr.TxOutStore(), mgr.EventMgr())
 	c.Assert(vMgr, NotNil)
 
 	activeNode := GetRandomNodeAccount(NodeActive)
-	c.Assert(k.SetNodeAccount(ctx, activeNode), IsNil)
-	k.SetNodeAccountSlashPoints(ctx, activeNode.NodeAddress, 50)
+	c.Assert(mgr.Keeper().SetNodeAccount(ctx, activeNode), IsNil)
+	mgr.Keeper().SetNodeAccountSlashPoints(ctx, activeNode.NodeAddress, 50)
 	nodeAccounts, err := vMgr.findBadActors(ctx, 100, 3, 500)
 	c.Assert(err, IsNil)
 	c.Assert(nodeAccounts, HasLen, 0)
 
 	activeNode1 := GetRandomNodeAccount(NodeActive)
 	activeNode1.StatusSince = 900
-	c.Assert(k.SetNodeAccount(ctx, activeNode1), IsNil)
-	k.SetNodeAccountSlashPoints(ctx, activeNode1.NodeAddress, 200)
+	c.Assert(mgr.Keeper().SetNodeAccount(ctx, activeNode1), IsNil)
+	mgr.Keeper().SetNodeAccountSlashPoints(ctx, activeNode1.NodeAddress, 200)
 
 	// not a full cycle yet, so even it has a lot slash points , doesn't mark as bad
 	nodeAccounts, err = vMgr.findBadActors(ctx, 100, 3, 500)
@@ -215,13 +208,13 @@ func (vts *ValidatorMgrV1TestSuite) TestFindBadActors(c *C) {
 	c.Assert(nodeAccounts, HasLen, 0)
 
 	activeNode2 := GetRandomNodeAccount(NodeActive)
-	c.Assert(k.SetNodeAccount(ctx, activeNode2), IsNil)
-	k.SetNodeAccountSlashPoints(ctx, activeNode2.NodeAddress, 2000)
+	c.Assert(mgr.Keeper().SetNodeAccount(ctx, activeNode2), IsNil)
+	mgr.Keeper().SetNodeAccountSlashPoints(ctx, activeNode2.NodeAddress, 2000)
 
 	activeNode3 := GetRandomNodeAccount(NodeActive)
 	activeNode3.StatusSince = 1000
-	c.Assert(k.SetNodeAccount(ctx, activeNode3), IsNil)
-	k.SetNodeAccountSlashPoints(ctx, activeNode3.NodeAddress, 2000)
+	c.Assert(mgr.Keeper().SetNodeAccount(ctx, activeNode3), IsNil)
+	mgr.Keeper().SetNodeAccountSlashPoints(ctx, activeNode3.NodeAddress, 2000)
 	ctx = ctx.WithBlockHeight(2000)
 	// node 3 is worse than node 2, so node 3 should be marked as bad
 	nodeAccounts, err = vMgr.findBadActors(ctx, 100, 3, 500)
@@ -235,7 +228,7 @@ func (vts *ValidatorMgrV1TestSuite) TestRagnarokBond(c *C) {
 	ctx = ctx.WithBlockHeight(1)
 	ver := GetCurrentVersion()
 
-	mgr := NewDummyMgr()
+	mgr := NewDummyMgrWithKeeper(k)
 	vMgr := newValidatorMgrV1(k, mgr.VaultMgr(), mgr.TxOutStore(), mgr.EventMgr())
 	c.Assert(vMgr, NotNil)
 
@@ -280,7 +273,7 @@ func (vts *ValidatorMgrV1TestSuite) TestGetChangedNodes(c *C) {
 	ctx = ctx.WithBlockHeight(1)
 	ver := GetCurrentVersion()
 
-	mgr := NewDummyMgr()
+	mgr := NewDummyMgrWithKeeper(k)
 	vMgr := newValidatorMgrV1(k, mgr.VaultMgr(), mgr.TxOutStore(), mgr.EventMgr())
 	c.Assert(vMgr, NotNil)
 
@@ -309,7 +302,7 @@ func (vts *ValidatorMgrV1TestSuite) TestGetChangedNodes(c *C) {
 
 func (vts *ValidatorMgrV1TestSuite) TestSplitNext(c *C) {
 	ctx, k := setupKeeperForTest(c)
-	mgr := NewDummyMgr()
+	mgr := NewDummyMgrWithKeeper(k)
 	vMgr := newValidatorMgrV1(k, mgr.VaultMgr(), mgr.TxOutStore(), mgr.EventMgr())
 	c.Assert(vMgr, NotNil)
 
@@ -420,7 +413,7 @@ func (vts *ValidatorMgrV1TestSuite) TestFindMaxAbleToLeave(c *C) {
 
 func (vts *ValidatorMgrV1TestSuite) TestFindNextVaultNodeAccounts(c *C) {
 	ctx, k := setupKeeperForTest(c)
-	mgr := NewDummyMgr()
+	mgr := NewDummyMgrWithKeeper(k)
 	vMgr := newValidatorMgrV1(k, mgr.VaultMgr(), mgr.TxOutStore(), mgr.EventMgr())
 	c.Assert(vMgr, NotNil)
 	ver := GetCurrentVersion()

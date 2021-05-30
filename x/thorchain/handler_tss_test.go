@@ -624,7 +624,7 @@ func (s *HandlerTssSuite) testTssHandlerWithVersion(c *C, ver semver.Version) {
 
 	for _, tc := range testCases {
 		helper := newTssHandlerTestHelper(c, ver)
-		handler := NewTssHandler(helper.keeper, NewDummyMgr())
+		handler := NewTssHandler(NewDummyMgrWithKeeper(helper.keeper))
 		msg := tc.messageCreator(helper)
 		result, err := tc.runner(handler, msg, helper)
 		if tc.expectedResult == nil {

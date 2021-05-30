@@ -56,7 +56,7 @@ func (s *HandlerSetNodeKeysSuite) TestValidate(c *C) {
 		ensure: nil,
 	}
 
-	handler := NewSetNodeKeysHandler(keeper, NewDummyMgr())
+	handler := NewSetNodeKeysHandler(NewDummyMgrWithKeeper(keeper))
 
 	// happy path
 	ver := GetCurrentVersion()
@@ -168,11 +168,10 @@ func (k *TestSetNodeKeysHandleKeeper) EnsureNodeKeysUnique(_ cosmos.Context, con
 }
 
 func (s *HandlerSetNodeKeysSuite) TestHandle(c *C) {
-	ctx, k := setupKeeperForTest(c)
-	helper := NewTestSetNodeKeysHandleKeeper(k)
-	mgr := NewManagers(helper)
-	mgr.BeginBlock(ctx)
-	handler := NewSetNodeKeysHandler(helper, mgr)
+	ctx, mgr := setupManagerForTest(c)
+	helper := NewTestSetNodeKeysHandleKeeper(mgr.Keeper())
+	mgr.K = helper
+	handler := NewSetNodeKeysHandler(mgr)
 	ver := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(ver)
 	ctx = ctx.WithBlockHeight(1)
@@ -278,11 +277,10 @@ func (s *HandlerSetNodeKeysSuite) TestHandle(c *C) {
 		if common.RuneAsset().Native() != "" && tc.skipForNativeRune {
 			continue
 		}
-		ctx, k := setupKeeperForTest(c)
-		helper := NewTestSetNodeKeysHandleKeeper(k)
-		mgr := NewManagers(helper)
-		mgr.BeginBlock(ctx)
-		handler := NewSetNodeKeysHandler(helper, mgr)
+		ctx, mgr := setupManagerForTest(c)
+		helper := NewTestSetNodeKeysHandleKeeper(mgr.Keeper())
+		mgr.K = helper
+		handler := NewSetNodeKeysHandler(mgr)
 		msg := tc.messageProvider(c, ctx, helper)
 		constantAccessor := constants.GetConstantValues(GetCurrentVersion())
 		result, err := handler.Run(ctx, msg, GetCurrentVersion(), constantAccessor)
