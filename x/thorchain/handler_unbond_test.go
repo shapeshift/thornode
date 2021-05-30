@@ -83,7 +83,7 @@ func (HandlerUnBondSuite) TestUnBondHandler_Run(c *C) {
 	}
 	c.Assert(k1.SetVault(ctx, vault), IsNil)
 
-	handler := NewUnBondHandler(k1, NewDummyMgr())
+	handler := NewUnBondHandler(NewDummyMgrWithKeeper(k1))
 	ver := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(ver)
 	txIn := common.NewTx(
@@ -122,7 +122,7 @@ func (HandlerUnBondSuite) TestUnBondHandler_Run(c *C) {
 		jailNodeAccount:     GetRandomNodeAccount(NodeStandby),
 	}
 	// invalid version
-	handler = NewUnBondHandler(k, NewDummyMgr())
+	handler = NewUnBondHandler(NewDummyMgrWithKeeper(k))
 	ver = semver.Version{}
 	_, err = handler.Run(ctx, msg, ver, constAccessor)
 	c.Assert(errors.Is(err, errBadVersion), Equals, true)
@@ -180,7 +180,7 @@ func (HandlerUnBondSuite) TestUnBondHandlerFailValidation(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	activeNodeAccount := GetRandomNodeAccount(NodeActive)
 	c.Assert(k.SetNodeAccount(ctx, activeNodeAccount), IsNil)
-	handler := NewUnBondHandler(k, NewDummyMgr())
+	handler := NewUnBondHandler(NewDummyMgrWithKeeper(k))
 	ver := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(ver)
 	txIn := common.NewTx(
@@ -271,7 +271,7 @@ func (HandlerUnBondSuite) TestUnBondHanlder_retiringvault(c *C) {
 		common.NewCoin(common.RuneAsset(), cosmos.NewUint(10000*common.One)),
 	}
 	c.Assert(k1.SetVault(ctx, retiringVault), IsNil)
-	handler := NewUnBondHandler(k1, NewDummyMgr())
+	handler := NewUnBondHandler(NewDummyMgrWithKeeper(k1))
 	ver := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(ver)
 	txIn := common.NewTx(

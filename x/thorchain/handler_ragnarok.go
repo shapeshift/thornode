@@ -8,20 +8,17 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // RagnarokHandler process MsgRagnarok
 type RagnarokHandler struct {
-	keeper keeper.Keeper
-	mgr    Manager
+	mgr Manager
 }
 
 // NewRagnarokHandler create a new instance of RagnarokHandler
-func NewRagnarokHandler(keeper keeper.Keeper, mgr Manager) RagnarokHandler {
+func NewRagnarokHandler(mgr Manager) RagnarokHandler {
 	return RagnarokHandler{
-		keeper: keeper,
-		mgr:    mgr,
+		mgr: mgr,
 	}
 }
 
@@ -83,7 +80,7 @@ func (h RagnarokHandler) handleCurrent(ctx cosmos.Context, version semver.Versio
 	signingTransPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
 	for height := msg.BlockHeight; height <= common.BlockHeight(ctx); height += signingTransPeriod {
 		// update txOut record with our TxID that sent funds out of the pool
-		txOut, err := h.keeper.GetTxOut(ctx, height)
+		txOut, err := h.mgr.Keeper().GetTxOut(ctx, height)
 		if err != nil {
 			return nil, ErrInternal(err, "unable to get txOut record")
 		}
@@ -122,15 +119,15 @@ func (h RagnarokHandler) handleCurrent(ctx cosmos.Context, version semver.Versio
 				}
 				txOut.TxArray[i].OutHash = msg.Tx.Tx.ID
 				shouldSlash = false
-				if err := h.keeper.SetTxOut(ctx, txOut); nil != err {
+				if err := h.mgr.Keeper().SetTxOut(ctx, txOut); nil != err {
 					return nil, ErrInternal(err, "fail to save tx out")
 				}
 
-				pending, err := h.keeper.GetRagnarokPending(ctx)
+				pending, err := h.mgr.Keeper().GetRagnarokPending(ctx)
 				if err != nil {
 					ctx.Logger().Error("fail to get ragnarok pending", "error", err)
 				} else {
-					h.keeper.SetRagnarokPending(ctx, pending-1)
+					h.mgr.Keeper().SetRagnarokPending(ctx, pending-1)
 					ctx.Logger().Info("remaining ragnarok transaction", "count", pending-1)
 				}
 				break
@@ -145,7 +142,7 @@ func (h RagnarokHandler) handleCurrent(ctx cosmos.Context, version semver.Versio
 		}
 	}
 
-	if err := h.keeper.SetLastSignedHeight(ctx, msg.BlockHeight); err != nil {
+	if err := h.mgr.Keeper().SetLastSignedHeight(ctx, msg.BlockHeight); err != nil {
 		ctx.Logger().Info("fail to update last signed height", "error", err)
 	}
 

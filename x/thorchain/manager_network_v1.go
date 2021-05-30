@@ -231,7 +231,7 @@ func (vm *NetworkMgrV1) EndBlock(ctx cosmos.Context, mgr Manager, constAccessor 
 						emitPoolBalanceChangedEvent(ctx,
 							NewPoolMod(p.Asset, runeAmt, true, coin.Amount, false),
 							"burn dust",
-							vm.k, vm.eventMgr)
+							mgr)
 						continue
 					}
 				}
@@ -547,7 +547,7 @@ func (vm *NetworkMgrV1) ragnarokChain(ctx cosmos.Context, chain common.Chain, nt
 	if err != nil {
 		return err
 	}
-	withdrawHandler := NewWithdrawLiquidityHandler(vm.k, mgr)
+	withdrawHandler := NewWithdrawLiquidityHandler(mgr)
 
 	active, err := vm.k.GetAsgardVaultsByStatus(ctx, ActiveVault)
 	if err != nil {

@@ -21,7 +21,7 @@ func (HandlerLeaveSuite) TestLeaveHandler_NotActiveNodeLeave(c *C) {
 	w := getHandlerTestWrapperWithVersion(c, 1, true, false, GetCurrentVersion())
 	vault := GetRandomVault()
 	w.keeper.SetVault(w.ctx, vault)
-	leaveHandler := NewLeaveHandler(w.keeper, NewDummyMgr())
+	leaveHandler := NewLeaveHandler(NewDummyMgrWithKeeper(w.keeper))
 	acc2 := GetRandomNodeAccount(NodeStandby)
 	acc2.Bond = cosmos.NewUint(100 * common.One)
 	c.Assert(w.keeper.SetNodeAccount(w.ctx, acc2), IsNil)
@@ -54,7 +54,7 @@ func (HandlerLeaveSuite) TestLeaveHandler_NotActiveNodeLeave(c *C) {
 func (HandlerLeaveSuite) TestLeaveHandler_ActiveNodeLeave(c *C) {
 	var err error
 	w := getHandlerTestWrapperWithVersion(c, 1, true, false, GetCurrentVersion())
-	leaveHandler := NewLeaveHandler(w.keeper, NewDummyMgr())
+	leaveHandler := NewLeaveHandler(NewDummyMgrWithKeeper(w.keeper))
 	acc2 := GetRandomNodeAccount(NodeActive)
 	acc2.Bond = cosmos.NewUint(100 * common.One)
 	c.Assert(w.keeper.SetNodeAccount(w.ctx, acc2), IsNil)
@@ -82,7 +82,7 @@ func (HandlerLeaveSuite) TestLeaveJail(c *C) {
 	w := getHandlerTestWrapperWithVersion(c, 1, true, false, GetCurrentVersion())
 	vault := GetRandomVault()
 	w.keeper.SetVault(w.ctx, vault)
-	leaveHandler := NewLeaveHandler(w.keeper, NewDummyMgr())
+	leaveHandler := NewLeaveHandler(NewDummyMgrWithKeeper(w.keeper))
 	acc2 := GetRandomNodeAccount(NodeStandby)
 	acc2.Bond = cosmos.NewUint(100 * common.One)
 	c.Assert(w.keeper.SetNodeAccount(w.ctx, acc2), IsNil)
@@ -190,7 +190,7 @@ func (HandlerLeaveSuite) TestLeaveValidation(c *C) {
 	}
 	for _, item := range testCases {
 		c.Log(item.name)
-		leaveHandler := NewLeaveHandler(w.keeper, NewDummyMgr())
+		leaveHandler := NewLeaveHandler(NewDummyMgrWithKeeper(w.keeper))
 		_, err := leaveHandler.Run(w.ctx, item.msgLeave, ver, constAccessor)
 		c.Check(errors.Is(err, item.expectedError), Equals, true, Commentf("name:%s, %s", item.name, err))
 	}
@@ -397,12 +397,11 @@ func (HandlerLeaveSuite) TestLeaveDifferentValidations(c *C) {
 	}
 
 	for _, tc := range testCases {
-		ctx, k := setupKeeperForTest(c)
-		FundModule(c, ctx, k, BondName, 1000)
-		helper := NewLeaveHandlerTestHelper(k)
-		mgr := NewManagers(helper)
-		mgr.BeginBlock(ctx)
-		handler := NewLeaveHandler(helper, mgr)
+		ctx, mgr := setupManagerForTest(c)
+		FundModule(c, ctx, mgr.Keeper(), BondName, 1000)
+		helper := NewLeaveHandlerTestHelper(mgr.Keeper())
+		mgr.K = helper
+		handler := NewLeaveHandler(mgr)
 		msg := tc.messageProvider(ctx, helper)
 		ver := GetCurrentVersion()
 		constantAccessor := constants.GetConstantValues(ver)

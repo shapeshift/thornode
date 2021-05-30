@@ -6,18 +6,18 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // NetworkFeeHandler a handler to process MsgNetworkFee messages
 type NetworkFeeHandler struct {
-	keeper keeper.Keeper
-	mgr    Manager
+	mgr Manager
 }
 
 // NewNetworkFeeHandler create a new instance of network fee handler
-func NewNetworkFeeHandler(keeper keeper.Keeper, mgr Manager) NetworkFeeHandler {
-	return NetworkFeeHandler{keeper: keeper, mgr: mgr}
+func NewNetworkFeeHandler(mgr Manager) NetworkFeeHandler {
+	return NetworkFeeHandler{
+		mgr: mgr,
+	}
 }
 
 // Run is the main entry point for network fee logic
@@ -52,7 +52,7 @@ func (h NetworkFeeHandler) validateCurrent(ctx cosmos.Context, msg MsgNetworkFee
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
-	if !isSignedByActiveNodeAccounts(ctx, h.keeper, msg.GetSigners()) {
+	if !isSignedByActiveNodeAccounts(ctx, h.mgr.Keeper(), msg.GetSigners()) {
 		return cosmos.ErrUnauthorized(notAuthorized.Error())
 	}
 	return nil
@@ -70,13 +70,13 @@ func (h NetworkFeeHandler) handle(ctx cosmos.Context, msg MsgNetworkFee, version
 
 // handleV1 process MsgNetworkFee
 func (h NetworkFeeHandler) handleV1(ctx cosmos.Context, msg MsgNetworkFee, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
-	active, err := h.keeper.ListActiveNodeAccounts(ctx)
+	active, err := h.mgr.Keeper().ListActiveNodeAccounts(ctx)
 	if err != nil {
 		err = wrapError(ctx, err, "fail to get list of active node accounts")
 		return nil, err
 	}
 
-	voter, err := h.keeper.GetObservedNetworkFeeVoter(ctx, msg.BlockHeight, msg.Chain)
+	voter, err := h.mgr.Keeper().GetObservedNetworkFeeVoter(ctx, msg.BlockHeight, msg.Chain)
 	if err != nil {
 		return nil, err
 	}
@@ -87,7 +87,7 @@ func (h NetworkFeeHandler) handleV1(ctx cosmos.Context, msg MsgNetworkFee, versi
 		ctx.Logger().Info("signer already signed MsgNetworkFee", "signer", msg.Signer.String(), "block height", msg.BlockHeight, "chain", msg.Chain.String())
 		return &cosmos.Result{}, nil
 	}
-	h.keeper.SetObservedNetworkFeeVoter(ctx, voter)
+	h.mgr.Keeper().SetObservedNetworkFeeVoter(ctx, voter)
 	// doesn't have consensus yet
 	if !voter.HasConsensus(active) {
 		return &cosmos.Result{}, nil
@@ -102,11 +102,11 @@ func (h NetworkFeeHandler) handleV1(ctx cosmos.Context, msg MsgNetworkFee, versi
 	}
 
 	voter.BlockHeight = common.BlockHeight(ctx)
-	h.keeper.SetObservedNetworkFeeVoter(ctx, voter)
+	h.mgr.Keeper().SetObservedNetworkFeeVoter(ctx, voter)
 	// decrease the slash points
 	h.mgr.Slasher().DecSlashPoints(ctx, observeSlashPoints, voter.GetSigners()...)
 	ctx.Logger().Info("update network fee", "chain", msg.Chain.String(), "transaction-size", msg.TransactionSize, "fee-rate", msg.TransactionFeeRate)
-	if err := h.keeper.SaveNetworkFee(ctx, msg.Chain, NetworkFee{
+	if err := h.mgr.Keeper().SaveNetworkFee(ctx, msg.Chain, NetworkFee{
 		Chain:              msg.Chain,
 		TransactionSize:    msg.TransactionSize,
 		TransactionFeeRate: msg.TransactionFeeRate,
@@ -122,13 +122,13 @@ func (h NetworkFeeHandler) handleV47(ctx cosmos.Context, msg MsgNetworkFee, vers
 }
 
 func (h NetworkFeeHandler) handleCurrent(ctx cosmos.Context, msg MsgNetworkFee, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
-	active, err := h.keeper.ListActiveNodeAccounts(ctx)
+	active, err := h.mgr.Keeper().ListActiveNodeAccounts(ctx)
 	if err != nil {
 		err = wrapError(ctx, err, "fail to get list of active node accounts")
 		return nil, err
 	}
 
-	voter, err := h.keeper.GetObservedNetworkFeeVoterV47(ctx, msg.BlockHeight, msg.Chain, int64(msg.TransactionFeeRate))
+	voter, err := h.mgr.Keeper().GetObservedNetworkFeeVoterV47(ctx, msg.BlockHeight, msg.Chain, int64(msg.TransactionFeeRate))
 	if err != nil {
 		return nil, err
 	}
@@ -139,7 +139,7 @@ func (h NetworkFeeHandler) handleCurrent(ctx cosmos.Context, msg MsgNetworkFee, 
 		ctx.Logger().Info("signer already signed MsgNetworkFee", "signer", msg.Signer.String(), "block height", msg.BlockHeight, "chain", msg.Chain.String())
 		return &cosmos.Result{}, nil
 	}
-	h.keeper.SetObservedNetworkFeeVoter(ctx, voter)
+	h.mgr.Keeper().SetObservedNetworkFeeVoter(ctx, voter)
 	// doesn't have consensus yet
 	if !voter.HasConsensus(active) {
 		return &cosmos.Result{}, nil
@@ -154,11 +154,11 @@ func (h NetworkFeeHandler) handleCurrent(ctx cosmos.Context, msg MsgNetworkFee, 
 	}
 
 	voter.BlockHeight = common.BlockHeight(ctx)
-	h.keeper.SetObservedNetworkFeeVoter(ctx, voter)
+	h.mgr.Keeper().SetObservedNetworkFeeVoter(ctx, voter)
 	// decrease the slash points
 	h.mgr.Slasher().DecSlashPoints(ctx, observeSlashPoints, voter.GetSigners()...)
 	ctx.Logger().Info("update network fee", "chain", msg.Chain.String(), "transaction-size", msg.TransactionSize, "fee-rate", msg.TransactionFeeRate)
-	if err := h.keeper.SaveNetworkFee(ctx, msg.Chain, NetworkFee{
+	if err := h.mgr.Keeper().SaveNetworkFee(ctx, msg.Chain, NetworkFee{
 		Chain:              msg.Chain,
 		TransactionSize:    msg.TransactionSize,
 		TransactionFeeRate: msg.TransactionFeeRate,

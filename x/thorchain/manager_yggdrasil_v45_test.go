@@ -220,34 +220,32 @@ func (s YggdrasilManagerV45Suite) TestNotAvailablePoolAssetWillNotFundYggdrasil(
 }
 
 func (s YggdrasilManagerV45Suite) TestAbandonYggdrasil(c *C) {
-	ctx, k := setupKeeperForTest(c)
+	ctx, mgr := setupManagerForTest(c)
 	vault := GetRandomVault()
 	vault.Membership = []string{vault.PubKey.String()}
 	vault.Coins = common.Coins{
 		common.NewCoin(common.RuneAsset(), cosmos.NewUint(10000*common.One)),
 		common.NewCoin(common.BNBAsset, cosmos.NewUint(10000*common.One)),
 	}
-	k.SetVault(ctx, vault)
-	mgr := NewManagers(k)
-	mgr.BeginBlock(ctx)
+	mgr.Keeper().SetVault(ctx, vault)
 	// add a queue , if we don't have pool , we don't know how to slash
 	bnbPool := NewPool()
 	bnbPool.Asset = common.BNBAsset
 	bnbPool.BalanceRune = cosmos.NewUint(1000 * common.One)
 	bnbPool.BalanceAsset = cosmos.NewUint(1000 * common.One)
-	c.Assert(k.SetPool(ctx, bnbPool), IsNil)
+	c.Assert(mgr.Keeper().SetPool(ctx, bnbPool), IsNil)
 	// setup 6 active nodes ,  so it will fund yggdrasil
 	for i := 0; i < 6; i++ {
 		na := GetRandomNodeAccount(NodeActive)
 		na.Bond = cosmos.NewUint(common.One * 1000000)
-		FundModule(c, ctx, k, BondName, na.Bond.Uint64())
-		c.Assert(k.SetNodeAccount(ctx, na), IsNil)
+		FundModule(c, ctx, mgr.Keeper(), BondName, na.Bond.Uint64())
+		c.Assert(mgr.Keeper().SetNodeAccount(ctx, na), IsNil)
 	}
 	naDisabled := GetRandomNodeAccount(NodeDisabled)
 	naDisabled.RequestedToLeave = true
 	naDisabled.Bond = cosmos.NewUint(common.One * 1000000)
-	FundModule(c, ctx, k, BondName, naDisabled.Bond.Uint64())
-	c.Assert(k.SetNodeAccount(ctx, naDisabled), IsNil)
+	FundModule(c, ctx, mgr.Keeper(), BondName, naDisabled.Bond.Uint64())
+	c.Assert(mgr.Keeper().SetNodeAccount(ctx, naDisabled), IsNil)
 
 	yggdrasilVault := GetRandomVault()
 	yggdrasilVault.PubKey = naDisabled.PubKeySet.Secp256k1
@@ -258,45 +256,43 @@ func (s YggdrasilManagerV45Suite) TestAbandonYggdrasil(c *C) {
 	}
 	yggdrasilVault.Type = YggdrasilVault
 	yggdrasilVault.Status = ActiveVault
-	c.Assert(k.SetVault(ctx, yggdrasilVault), IsNil)
+	c.Assert(mgr.Keeper().SetVault(ctx, yggdrasilVault), IsNil)
 	ver := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(ver)
-	ymgr := NewYggMgrV45(k)
+	ymgr := NewYggMgrV45(mgr.Keeper())
 	err := ymgr.Fund(ctx, mgr, constAccessor)
 	c.Assert(err, IsNil)
 	// make sure the yggdrasil vault had been removed
-	c.Assert(k.VaultExists(ctx, naDisabled.PubKeySet.Secp256k1), Equals, false)
+	c.Assert(mgr.Keeper().VaultExists(ctx, naDisabled.PubKeySet.Secp256k1), Equals, false)
 	// make sure the node account had been slashed with bond
-	naDisabled, err = k.GetNodeAccount(ctx, naDisabled.NodeAddress)
+	naDisabled, err = mgr.Keeper().GetNodeAccount(ctx, naDisabled.NodeAddress)
 	c.Assert(err, IsNil)
 	c.Assert(naDisabled.Bond.Equal(cosmos.NewUint(999325*common.One)), Equals, true, Commentf("%d != %d", naDisabled.Bond.Uint64(), 999325*common.One))
 }
 
 func (s YggdrasilManagerV45Suite) TestAbandonYggdrasilWithDifferentConditions(c *C) {
-	ctx, k := setupKeeperForTest(c)
+	ctx, mgr := setupManagerForTest(c)
 	vault := GetRandomVault()
 	vault.Coins = common.Coins{
 		common.NewCoin(common.RuneAsset(), cosmos.NewUint(10000*common.One)),
 		common.NewCoin(common.BNBAsset, cosmos.NewUint(10000*common.One)),
 	}
-	k.SetVault(ctx, vault)
-	mgr := NewManagers(k)
-	mgr.BeginBlock(ctx)
+	mgr.Keeper().SetVault(ctx, vault)
 	// add a queue , if we don't have pool , we don't know how to slash
 	bnbPool := NewPool()
 	bnbPool.Asset = common.BNBAsset
 	bnbPool.BalanceRune = cosmos.NewUint(1000 * common.One)
 	bnbPool.BalanceAsset = cosmos.NewUint(1000 * common.One)
-	c.Assert(k.SetPool(ctx, bnbPool), IsNil)
+	c.Assert(mgr.Keeper().SetPool(ctx, bnbPool), IsNil)
 	// setup 6 active nodes ,  so it will fund yggdrasil
 	for i := 0; i < 6; i++ {
 		na := GetRandomNodeAccount(NodeActive)
 		na.Bond = cosmos.NewUint(common.One * 1000000)
-		c.Assert(k.SetNodeAccount(ctx, na), IsNil)
+		c.Assert(mgr.Keeper().SetNodeAccount(ctx, na), IsNil)
 	}
 	naDisabled := GetRandomNodeAccount(NodeDisabled)
 	naDisabled.RequestedToLeave = true
-	c.Assert(k.SetNodeAccount(ctx, naDisabled), IsNil)
+	c.Assert(mgr.Keeper().SetNodeAccount(ctx, naDisabled), IsNil)
 
 	yggdrasilVault := GetRandomVault()
 	yggdrasilVault.PubKey = naDisabled.PubKeySet.Secp256k1
@@ -306,33 +302,33 @@ func (s YggdrasilManagerV45Suite) TestAbandonYggdrasilWithDifferentConditions(c 
 	}
 	yggdrasilVault.Type = YggdrasilVault
 	yggdrasilVault.Status = ActiveVault
-	c.Assert(k.SetVault(ctx, yggdrasilVault), IsNil)
+	c.Assert(mgr.Keeper().SetVault(ctx, yggdrasilVault), IsNil)
 
 	kh := &abandonYggdrasilTestHelper{
-		Keeper:                       k,
+		Keeper:                       mgr.Keeper(),
 		failToGetAsgardVaultByStatus: true,
 	}
 	ymgr := NewYggMgrV45(kh)
 	c.Assert(ymgr.abandonYggdrasilVaults(ctx, mgr), NotNil)
 
 	kh = &abandonYggdrasilTestHelper{
-		Keeper:               k,
+		Keeper:               mgr.Keeper(),
 		failToGetNodeAccount: true,
 	}
 	ymgr = NewYggMgrV45(kh)
 	c.Assert(ymgr.abandonYggdrasilVaults(ctx, mgr), IsNil)
-	c.Assert(k.VaultExists(ctx, naDisabled.PubKeySet.Secp256k1), Equals, true)
+	c.Assert(mgr.Keeper().VaultExists(ctx, naDisabled.PubKeySet.Secp256k1), Equals, true)
 
 	// when bond is zero , it shouldn't do anything
 	naDisabled.Bond = cosmos.ZeroUint()
-	c.Assert(k.SetNodeAccount(ctx, naDisabled), IsNil)
-	ymgr = NewYggMgrV45(k)
+	c.Assert(mgr.Keeper().SetNodeAccount(ctx, naDisabled), IsNil)
+	ymgr = NewYggMgrV45(mgr.Keeper())
 	c.Assert(ymgr.abandonYggdrasilVaults(ctx, mgr), IsNil)
-	c.Assert(k.VaultExists(ctx, naDisabled.PubKeySet.Secp256k1), Equals, true)
+	c.Assert(mgr.Keeper().VaultExists(ctx, naDisabled.PubKeySet.Secp256k1), Equals, true)
 
 	// when Node account belongs to one of the retiring vault should not slash yet
 	naDisabled.Bond = cosmos.NewUint(1000 * common.One)
-	c.Assert(k.SetNodeAccount(ctx, naDisabled), IsNil)
+	c.Assert(mgr.Keeper().SetNodeAccount(ctx, naDisabled), IsNil)
 	asgardVault := GetRandomVault()
 	asgardVault.Status = RetiringVault
 	asgardVault.Type = AsgardVault
@@ -340,9 +336,9 @@ func (s YggdrasilManagerV45Suite) TestAbandonYggdrasilWithDifferentConditions(c 
 		GetRandomPubKey(),
 		naDisabled.PubKeySet.Secp256k1,
 	}.Strings()
-	c.Assert(k.SetVault(ctx, asgardVault), IsNil)
+	c.Assert(mgr.Keeper().SetVault(ctx, asgardVault), IsNil)
 
-	ymgr = NewYggMgrV45(k)
+	ymgr = NewYggMgrV45(mgr.Keeper())
 	c.Assert(ymgr.abandonYggdrasilVaults(ctx, mgr), IsNil)
-	c.Assert(k.VaultExists(ctx, naDisabled.PubKeySet.Secp256k1), Equals, true)
+	c.Assert(mgr.Keeper().VaultExists(ctx, naDisabled.PubKeySet.Secp256k1), Equals, true)
 }

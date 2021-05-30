@@ -7,20 +7,17 @@ import (
 
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // DonateHandler is to handle donate message
 type DonateHandler struct {
-	keeper keeper.Keeper
-	mgr    Manager
+	mgr Manager
 }
 
 // NewDonateHandler create a new instance of DonateHandler
-func NewDonateHandler(keeper keeper.Keeper, mgr Manager) DonateHandler {
+func NewDonateHandler(mgr Manager) DonateHandler {
 	return DonateHandler{
-		keeper: keeper,
-		mgr:    mgr,
+		mgr: mgr,
 	}
 }
 
@@ -70,7 +67,7 @@ func (h DonateHandler) handleV1(ctx cosmos.Context, msg MsgDonate, version semve
 }
 
 func (h DonateHandler) handleCurrent(ctx cosmos.Context, msg MsgDonate, version semver.Version, constAccessor constants.ConstantValues) error {
-	pool, err := h.keeper.GetPool(ctx, msg.Asset)
+	pool, err := h.mgr.Keeper().GetPool(ctx, msg.Asset)
 	if err != nil {
 		return ErrInternal(err, fmt.Sprintf("fail to get pool for (%s)", msg.Asset))
 	}
@@ -80,7 +77,7 @@ func (h DonateHandler) handleCurrent(ctx cosmos.Context, msg MsgDonate, version 
 	pool.BalanceAsset = pool.BalanceAsset.Add(msg.AssetAmount)
 	pool.BalanceRune = pool.BalanceRune.Add(msg.RuneAmount)
 
-	if err := h.keeper.SetPool(ctx, pool); err != nil {
+	if err := h.mgr.Keeper().SetPool(ctx, pool); err != nil {
 		return ErrInternal(err, fmt.Sprintf("fail to set pool(%s)", pool))
 	}
 	// emit event

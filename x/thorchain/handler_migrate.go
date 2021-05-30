@@ -8,20 +8,17 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // MigrateHandler is a handler to process MsgMigrate
 type MigrateHandler struct {
-	keeper keeper.Keeper
-	mgr    Manager
+	mgr Manager
 }
 
 // NewMigrateHandler create a new instance of MigrateHandler
-func NewMigrateHandler(keeper keeper.Keeper, mgr Manager) MigrateHandler {
+func NewMigrateHandler(mgr Manager) MigrateHandler {
 	return MigrateHandler{
-		keeper: keeper,
-		mgr:    mgr,
+		mgr: mgr,
 	}
 }
 
@@ -74,7 +71,7 @@ func (h MigrateHandler) handleV1(ctx cosmos.Context, version semver.Version, msg
 
 func (h MigrateHandler) handleCurrent(ctx cosmos.Context, version semver.Version, msg MsgMigrate) (*cosmos.Result, error) {
 	// update txOut record with our TxID that sent funds out of the pool
-	txOut, err := h.keeper.GetTxOut(ctx, msg.BlockHeight)
+	txOut, err := h.mgr.Keeper().GetTxOut(ctx, msg.BlockHeight)
 	if err != nil {
 		ctx.Logger().Error("unable to get txOut record", "error", err)
 		return nil, cosmos.ErrUnknownRequest(err.Error())
@@ -115,7 +112,7 @@ func (h MigrateHandler) handleCurrent(ctx cosmos.Context, version semver.Version
 			txOut.TxArray[i].OutHash = msg.Tx.Tx.ID
 			shouldSlash = false
 
-			if err := h.keeper.SetTxOut(ctx, txOut); nil != err {
+			if err := h.mgr.Keeper().SetTxOut(ctx, txOut); nil != err {
 				return nil, ErrInternal(err, "fail to save tx out")
 			}
 			break
@@ -130,7 +127,7 @@ func (h MigrateHandler) handleCurrent(ctx cosmos.Context, version semver.Version
 		}
 	}
 
-	if err := h.keeper.SetLastSignedHeight(ctx, msg.BlockHeight); err != nil {
+	if err := h.mgr.Keeper().SetLastSignedHeight(ctx, msg.BlockHeight); err != nil {
 		ctx.Logger().Info("fail to update last signed height", "error", err)
 	}
 

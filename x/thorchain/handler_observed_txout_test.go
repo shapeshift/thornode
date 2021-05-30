@@ -43,7 +43,7 @@ func (s *HandlerObservedTxOutSuite) testValidateWithVersion(c *C, ver semver.Ver
 		activeNodeAccount: activeNodeAccount,
 	}
 
-	handler := NewObservedTxOutHandler(keeper, NewDummyMgr())
+	handler := NewObservedTxOutHandler(NewDummyMgrWithKeeper(keeper))
 
 	// happy path
 	pk := GetRandomPubKey()
@@ -169,7 +169,7 @@ func (s *HandlerObservedTxOutSuite) TestHandle(c *C) {
 
 func (s *HandlerObservedTxOutSuite) testHandleWithVersion(c *C, ver semver.Version) {
 	var err error
-	ctx, _ := setupKeeperForTest(c)
+	ctx, mgr := setupManagerForTest(c)
 
 	constAccessor := constants.GetConstantValues(ver)
 	tx := GetRandomTx()
@@ -198,9 +198,8 @@ func (s *HandlerObservedTxOutSuite) testHandleWithVersion(c *C, ver semver.Versi
 	txOutStore := NewTxStoreDummy()
 	keeper.txOutStore = txOutStore
 
-	mgr := NewManagers(keeper)
-	c.Assert(mgr.BeginBlock(ctx), IsNil)
-	handler := NewObservedTxOutHandler(keeper, mgr)
+	mgr.K = keeper
+	handler := NewObservedTxOutHandler(mgr)
 
 	c.Assert(err, IsNil)
 	msg := NewMsgObservedTxOut(txs, keeper.nas[0].NodeAddress)
@@ -261,9 +260,9 @@ func (s *HandlerObservedTxOutSuite) testHandleStolenFundsWithVersion(c *C, ver s
 	txOutStore := NewTxStoreDummy()
 	keeper.txOutStore = txOutStore
 
-	mgr := NewDummyMgr()
+	mgr := NewDummyMgrWithKeeper(keeper)
 	mgr.slasher = NewSlasherV1(keeper, NewDummyEventMgr())
-	handler := NewObservedTxOutHandler(keeper, mgr)
+	handler := NewObservedTxOutHandler(mgr)
 
 	c.Assert(err, IsNil)
 	msg := NewMsgObservedTxOut(txs, keeper.nas[0].NodeAddress)
@@ -490,11 +489,10 @@ func (HandlerObservedTxOutSuite) TestHandlerObservedTxOut_DifferentValidations(c
 	}
 	for _, tc := range testCases {
 		for _, ver := range versions {
-			ctx, k := setupKeeperForTest(c)
-			helper := NewHandlerObservedTxOutHelper(k)
-			mgr := NewManagers(helper)
-			mgr.BeginBlock(ctx)
-			handler := NewObservedTxOutHandler(helper, mgr)
+			ctx, mgr := setupManagerForTest(c)
+			helper := NewHandlerObservedTxOutHelper(mgr.Keeper())
+			mgr.K = helper
+			handler := NewObservedTxOutHandler(mgr)
 			msg := tc.messageProvider(c, ctx, helper)
 			constantAccessor := constants.GetConstantValues(ver)
 			result, err := handler.Run(ctx, msg, ver, constantAccessor)

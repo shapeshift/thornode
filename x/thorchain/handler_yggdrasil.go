@@ -9,7 +9,6 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 	kvTypes "gitlab.com/thorchain/thornode/x/thorchain/keeper/types"
 )
 
@@ -21,15 +20,13 @@ import (
 // 1. outbound tx from yggdrasil vault
 // 2. inbound tx to asgard vault
 type YggdrasilHandler struct {
-	keeper keeper.Keeper
-	mgr    Manager
+	mgr Manager
 }
 
 // NewYggdrasilHandler create a new Yggdrasil handler
-func NewYggdrasilHandler(keeper keeper.Keeper, mgr Manager) YggdrasilHandler {
+func NewYggdrasilHandler(mgr Manager) YggdrasilHandler {
 	return YggdrasilHandler{
-		keeper: keeper,
-		mgr:    mgr,
+		mgr: mgr,
 	}
 }
 
@@ -102,7 +99,7 @@ func (h YggdrasilHandler) slashV1(ctx cosmos.Context, version semver.Version, pk
 
 func (h YggdrasilHandler) handleV1(ctx cosmos.Context, msg MsgYggdrasil, version semver.Version) (*cosmos.Result, error) {
 	// update txOut record with our TxID that sent funds out of the pool
-	txOut, err := h.keeper.GetTxOut(ctx, msg.BlockHeight)
+	txOut, err := h.mgr.Keeper().GetTxOut(ctx, msg.BlockHeight)
 	if err != nil {
 		return nil, ErrInternal(err, "unable to get txOut record")
 	}
@@ -112,16 +109,16 @@ func (h YggdrasilHandler) handleV1(ctx cosmos.Context, msg MsgYggdrasil, version
 	// if ygg is returning funds, don't slash if they are sending to asgard vault
 	if !msg.AddFunds {
 		// check if the node account is active, it shouldn't be
-		na, err := h.keeper.GetNodeAccountByPubKey(ctx, msg.PubKey)
+		na, err := h.mgr.Keeper().GetNodeAccountByPubKey(ctx, msg.PubKey)
 		if err != nil {
 			ctx.Logger().Error("fail to get node account", "error", err)
 		}
 		if na.Status != NodeActive {
-			active, err := h.keeper.GetAsgardVaultsByStatus(ctx, ActiveVault)
+			active, err := h.mgr.Keeper().GetAsgardVaultsByStatus(ctx, ActiveVault)
 			if err != nil {
 				ctx.Logger().Error("fail to get vaults", "error", err)
 			}
-			retiring, err := h.keeper.GetAsgardVaultsByStatus(ctx, RetiringVault)
+			retiring, err := h.mgr.Keeper().GetAsgardVaultsByStatus(ctx, RetiringVault)
 			if err != nil {
 				ctx.Logger().Error("fail to get vaults", "error", err)
 			}
@@ -175,7 +172,7 @@ func (h YggdrasilHandler) handleV1(ctx cosmos.Context, msg MsgYggdrasil, version
 
 			txOut.TxArray[i].OutHash = msg.Tx.ID
 			shouldSlash = false
-			if err := h.keeper.SetTxOut(ctx, txOut); nil != err {
+			if err := h.mgr.Keeper().SetTxOut(ctx, txOut); nil != err {
 				ctx.Logger().Error("fail to save tx out", "error", err)
 			}
 			break
@@ -190,7 +187,7 @@ func (h YggdrasilHandler) handleV1(ctx cosmos.Context, msg MsgYggdrasil, version
 		}
 	}
 
-	vault, err := h.keeper.GetVault(ctx, msg.PubKey)
+	vault, err := h.mgr.Keeper().GetVault(ctx, msg.PubKey)
 	if err != nil && !errors.Is(err, kvTypes.ErrVaultNotFound) {
 		return nil, fmt.Errorf("fail to get yggdrasil: %w", err)
 	}
@@ -199,7 +196,7 @@ func (h YggdrasilHandler) handleV1(ctx cosmos.Context, msg MsgYggdrasil, version
 		vault.Type = YggdrasilVault
 	}
 
-	if err := h.keeper.SetLastSignedHeight(ctx, msg.BlockHeight); err != nil {
+	if err := h.mgr.Keeper().SetLastSignedHeight(ctx, msg.BlockHeight); err != nil {
 		ctx.Logger().Info("fail to update last signed height", "error", err)
 	}
 
@@ -217,7 +214,7 @@ func (h YggdrasilHandler) handleCurrent(ctx cosmos.Context, msg MsgYggdrasil, va
 	// observe an outbound tx from yggdrasil vault
 	switch vault.Type {
 	case YggdrasilVault:
-		asgardVaults, err := h.keeper.GetAsgardVaults(ctx)
+		asgardVaults, err := h.mgr.Keeper().GetAsgardVaults(ctx)
 		if err != nil {
 			return nil, ErrInternal(err, "unable to get asgard vaults")
 		}
@@ -275,7 +272,7 @@ func (h YggdrasilHandler) handleCurrent(ctx cosmos.Context, msg MsgYggdrasil, va
 				ctx.Logger().Info("only gas token left in the vault, continue to update contract", "gas token", contract.Chain.GetGasAsset().String(), "amount", noneZeroCoins[0].Amount.String())
 			}
 			vault.UpdateContract(contract)
-			if err := h.keeper.SetVault(ctx, vault); err != nil {
+			if err := h.mgr.Keeper().SetVault(ctx, vault); err != nil {
 				return nil, fmt.Errorf("fail to save vault: %w", err)
 			}
 		}
