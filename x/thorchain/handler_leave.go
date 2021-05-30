@@ -8,22 +8,19 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // LeaveHandler a handler to process leave request
 // if an operator of THORChain node would like to leave and get their bond back , they have to
 // send a Leave request through Binance Chain
 type LeaveHandler struct {
-	keeper keeper.Keeper
-	mgr    Manager
+	mgr Manager
 }
 
 // NewLeaveHandler create a new LeaveHandler
-func NewLeaveHandler(keeper keeper.Keeper, mgr Manager) LeaveHandler {
+func NewLeaveHandler(mgr Manager) LeaveHandler {
 	return LeaveHandler{
-		keeper: keeper,
-		mgr:    mgr,
+		mgr: mgr,
 	}
 }
 
@@ -43,7 +40,7 @@ func (h LeaveHandler) validateCurrent(ctx cosmos.Context, msg MsgLeave) error {
 		return err
 	}
 
-	jail, err := h.keeper.GetNodeAccountJail(ctx, msg.NodeAddress)
+	jail, err := h.mgr.Keeper().GetNodeAccountJail(ctx, msg.NodeAddress)
 	if err != nil {
 		// ignore this error and carry on. Don't want a jail bug causing node
 		// accounts to not be able to get their funds out
@@ -84,7 +81,7 @@ func (h LeaveHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Versi
 }
 
 func (h LeaveHandler) handleV1(ctx cosmos.Context, msg MsgLeave, version semver.Version, constAccessor constants.ConstantValues) error {
-	nodeAcc, err := h.keeper.GetNodeAccount(ctx, msg.NodeAddress)
+	nodeAcc, err := h.mgr.Keeper().GetNodeAccount(ctx, msg.NodeAddress)
 	if err != nil {
 		return ErrInternal(err, "fail to get node account by bond address")
 	}
@@ -105,7 +102,7 @@ func (h LeaveHandler) handleV1(ctx cosmos.Context, msg MsgLeave, version semver.
 		if nodeAcc.LeaveScore == 0 {
 			// get to the 8th decimal point, but keep numbers integers for safer math
 			age := cosmos.NewUint(uint64((common.BlockHeight(ctx) - nodeAcc.StatusSince) * common.One))
-			slashPts, err := h.keeper.GetNodeAccountSlashPoints(ctx, nodeAcc.NodeAddress)
+			slashPts, err := h.mgr.Keeper().GetNodeAccountSlashPoints(ctx, nodeAcc.NodeAddress)
 			if err != nil || slashPts == 0 {
 				ctx.Logger().Error("fail to get node account slash points", "error", err)
 				nodeAcc.LeaveScore = age.Uint64()
@@ -114,14 +111,14 @@ func (h LeaveHandler) handleV1(ctx cosmos.Context, msg MsgLeave, version semver.
 			}
 		}
 	} else {
-		bondLockPeriod, err := h.keeper.GetMimir(ctx, constants.BondLockupPeriod.String())
+		bondLockPeriod, err := h.mgr.Keeper().GetMimir(ctx, constants.BondLockupPeriod.String())
 		if err != nil || bondLockPeriod < 0 {
 			bondLockPeriod = constAccessor.GetInt64Value(constants.BondLockupPeriod)
 		}
 		if common.BlockHeight(ctx)-nodeAcc.StatusSince < bondLockPeriod {
 			return fmt.Errorf("node can not unbond before %d", nodeAcc.StatusSince+bondLockPeriod)
 		}
-		vaults, err := h.keeper.GetAsgardVaultsByStatus(ctx, RetiringVault)
+		vaults, err := h.mgr.Keeper().GetAsgardVaultsByStatus(ctx, RetiringVault)
 		if err != nil {
 			return ErrInternal(err, "fail to get retiring vault")
 		}
@@ -137,22 +134,22 @@ func (h LeaveHandler) handleV1(ctx cosmos.Context, msg MsgLeave, version semver.
 			// NOTE: there is an edge case, where the first node doesn't have a
 			// vault (it was destroyed when we successfully migrated funds from
 			// their address to a new TSS vault
-			if !h.keeper.VaultExists(ctx, nodeAcc.PubKeySet.Secp256k1) {
-				if err := refundBond(ctx, msg.Tx, cosmos.ZeroUint(), &nodeAcc, h.keeper, h.mgr); err != nil {
+			if !h.mgr.Keeper().VaultExists(ctx, nodeAcc.PubKeySet.Secp256k1) {
+				if err := refundBond(ctx, msg.Tx, cosmos.ZeroUint(), &nodeAcc, h.mgr); err != nil {
 					return ErrInternal(err, "fail to refund bond")
 				}
 				nodeAcc.UpdateStatus(NodeDisabled, common.BlockHeight(ctx))
 			} else {
 				// given the node is not active, they should not have Yggdrasil pool either
 				// but let's check it anyway just in case
-				vault, err := h.keeper.GetVault(ctx, nodeAcc.PubKeySet.Secp256k1)
+				vault, err := h.mgr.Keeper().GetVault(ctx, nodeAcc.PubKeySet.Secp256k1)
 				if err != nil {
 					return ErrInternal(err, "fail to get vault pool")
 				}
 				if vault.IsYggdrasil() {
 					if !vault.HasFunds() {
 						// node is not active , they are free to leave , refund them
-						if err := refundBond(ctx, msg.Tx, cosmos.ZeroUint(), &nodeAcc, h.keeper, h.mgr); err != nil {
+						if err := refundBond(ctx, msg.Tx, cosmos.ZeroUint(), &nodeAcc, h.mgr); err != nil {
 							return ErrInternal(err, "fail to refund bond")
 						}
 						nodeAcc.UpdateStatus(NodeDisabled, common.BlockHeight(ctx))
@@ -166,7 +163,7 @@ func (h LeaveHandler) handleV1(ctx cosmos.Context, msg MsgLeave, version semver.
 		}
 	}
 	nodeAcc.RequestedToLeave = true
-	if err := h.keeper.SetNodeAccount(ctx, nodeAcc); err != nil {
+	if err := h.mgr.Keeper().SetNodeAccount(ctx, nodeAcc); err != nil {
 		return ErrInternal(err, "fail to save node account to key value store")
 	}
 	ctx.EventManager().EmitEvent(
@@ -182,7 +179,7 @@ func (h LeaveHandler) handleV46(ctx cosmos.Context, msg MsgLeave, version semver
 }
 
 func (h LeaveHandler) handleCurrent(ctx cosmos.Context, msg MsgLeave, version semver.Version, constAccessor constants.ConstantValues) error {
-	nodeAcc, err := h.keeper.GetNodeAccount(ctx, msg.NodeAddress)
+	nodeAcc, err := h.mgr.Keeper().GetNodeAccount(ctx, msg.NodeAddress)
 	if err != nil {
 		return ErrInternal(err, "fail to get node account by bond address")
 	}
@@ -203,7 +200,7 @@ func (h LeaveHandler) handleCurrent(ctx cosmos.Context, msg MsgLeave, version se
 		if nodeAcc.LeaveScore == 0 {
 			// get to the 8th decimal point, but keep numbers integers for safer math
 			age := cosmos.NewUint(uint64((common.BlockHeight(ctx) - nodeAcc.StatusSince) * common.One))
-			slashPts, err := h.keeper.GetNodeAccountSlashPoints(ctx, nodeAcc.NodeAddress)
+			slashPts, err := h.mgr.Keeper().GetNodeAccountSlashPoints(ctx, nodeAcc.NodeAddress)
 			if err != nil || slashPts == 0 {
 				ctx.Logger().Error("fail to get node account slash points", "error", err)
 				nodeAcc.LeaveScore = age.Uint64()
@@ -212,14 +209,14 @@ func (h LeaveHandler) handleCurrent(ctx cosmos.Context, msg MsgLeave, version se
 			}
 		}
 	} else {
-		bondLockPeriod, err := h.keeper.GetMimir(ctx, constants.BondLockupPeriod.String())
+		bondLockPeriod, err := h.mgr.Keeper().GetMimir(ctx, constants.BondLockupPeriod.String())
 		if err != nil || bondLockPeriod < 0 {
 			bondLockPeriod = constAccessor.GetInt64Value(constants.BondLockupPeriod)
 		}
 		if common.BlockHeight(ctx)-nodeAcc.StatusSince < bondLockPeriod {
 			return fmt.Errorf("node can not unbond before %d", nodeAcc.StatusSince+bondLockPeriod)
 		}
-		vaults, err := h.keeper.GetAsgardVaultsByStatus(ctx, RetiringVault)
+		vaults, err := h.mgr.Keeper().GetAsgardVaultsByStatus(ctx, RetiringVault)
 		if err != nil {
 			return ErrInternal(err, "fail to get retiring vault")
 		}
@@ -235,22 +232,22 @@ func (h LeaveHandler) handleCurrent(ctx cosmos.Context, msg MsgLeave, version se
 			// NOTE: there is an edge case, where the first node doesn't have a
 			// vault (it was destroyed when we successfully migrated funds from
 			// their address to a new TSS vault
-			if !h.keeper.VaultExists(ctx, nodeAcc.PubKeySet.Secp256k1) {
-				if err := refundBondV46(ctx, msg.Tx, cosmos.ZeroUint(), &nodeAcc, h.keeper, h.mgr); err != nil {
+			if !h.mgr.Keeper().VaultExists(ctx, nodeAcc.PubKeySet.Secp256k1) {
+				if err := refundBondV46(ctx, msg.Tx, cosmos.ZeroUint(), &nodeAcc, h.mgr); err != nil {
 					return ErrInternal(err, "fail to refund bond")
 				}
 				nodeAcc.UpdateStatus(NodeDisabled, common.BlockHeight(ctx))
 			} else {
 				// given the node is not active, they should not have Yggdrasil pool either
 				// but let's check it anyway just in case
-				vault, err := h.keeper.GetVault(ctx, nodeAcc.PubKeySet.Secp256k1)
+				vault, err := h.mgr.Keeper().GetVault(ctx, nodeAcc.PubKeySet.Secp256k1)
 				if err != nil {
 					return ErrInternal(err, "fail to get vault pool")
 				}
 				if vault.IsYggdrasil() {
 					if !vault.HasFunds() {
 						// node is not active , they are free to leave , refund them
-						if err := refundBondV46(ctx, msg.Tx, cosmos.ZeroUint(), &nodeAcc, h.keeper, h.mgr); err != nil {
+						if err := refundBondV46(ctx, msg.Tx, cosmos.ZeroUint(), &nodeAcc, h.mgr); err != nil {
 							return ErrInternal(err, "fail to refund bond")
 						}
 						nodeAcc.UpdateStatus(NodeDisabled, common.BlockHeight(ctx))
@@ -264,7 +261,7 @@ func (h LeaveHandler) handleCurrent(ctx cosmos.Context, msg MsgLeave, version se
 		}
 	}
 	nodeAcc.RequestedToLeave = true
-	if err := h.keeper.SetNodeAccount(ctx, nodeAcc); err != nil {
+	if err := h.mgr.Keeper().SetNodeAccount(ctx, nodeAcc); err != nil {
 		return ErrInternal(err, "fail to save node account to key value store")
 	}
 	ctx.EventManager().EmitEvent(

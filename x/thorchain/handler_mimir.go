@@ -8,20 +8,17 @@ import (
 
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // MimirHandler is to handle admin messages
 type MimirHandler struct {
-	keeper keeper.Keeper
-	mgr    Manager
+	mgr Manager
 }
 
 // NewMimirHandler create new instance of MimirHandler
-func NewMimirHandler(keeper keeper.Keeper, mgr Manager) MimirHandler {
+func NewMimirHandler(mgr Manager) MimirHandler {
 	return MimirHandler{
-		keeper: keeper,
-		mgr:    mgr,
+		mgr: mgr,
 	}
 }
 
@@ -83,7 +80,7 @@ func (h MimirHandler) handleV1(ctx cosmos.Context, msg MsgMimir) error {
 }
 
 func (h MimirHandler) handleCurrent(ctx cosmos.Context, msg MsgMimir) error {
-	h.keeper.SetMimir(ctx, msg.Key, msg.Value)
+	h.mgr.Keeper().SetMimir(ctx, msg.Key, msg.Value)
 
 	ctx.EventManager().EmitEvent(
 		cosmos.NewEvent("set_mimir",

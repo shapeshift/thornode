@@ -29,7 +29,7 @@ func (s *HandlerSwitchSuite) TestValidate(c *C) {
 	}
 	destination := GetRandomBNBAddress()
 
-	handler := NewSwitchHandler(k, NewDummyMgr())
+	handler := NewSwitchHandler(NewDummyMgrWithKeeper(k))
 
 	constantAccessor := constants.GetConstantValues(GetCurrentVersion())
 	destination = GetRandomTHORAddress()
@@ -62,7 +62,7 @@ func (s *HandlerSwitchSuite) TestGettingNativeTokens(c *C) {
 	}
 	destination := GetRandomTHORAddress()
 
-	handler := NewSwitchHandler(k, NewDummyMgr())
+	handler := NewSwitchHandler(NewDummyMgrWithKeeper(k))
 
 	msg := NewMsgSwitch(tx, destination, na.NodeAddress)
 	constAccessor := constants.GetConstantValues(GetCurrentVersion())
@@ -151,11 +151,10 @@ func (s *HandlerSwitchSuite) TestSwitchHandlerDifferentValidations(c *C) {
 			continue
 		}
 
-		ctx, k := setupKeeperForTest(c)
-		helper := NewHandlerSwitchTestHelper(k)
-		mgr := NewManagers(helper)
-		mgr.BeginBlock(ctx)
-		handler := NewSwitchHandler(helper, mgr)
+		ctx, mgr := setupManagerForTest(c)
+		helper := NewHandlerSwitchTestHelper(mgr.Keeper())
+		mgr.K = helper
+		handler := NewSwitchHandler(mgr)
 		msg := tc.messageProvider(c, ctx, helper)
 		constantAccessor := constants.GetConstantValues(GetCurrentVersion())
 		result, err := handler.Run(ctx, msg, GetCurrentVersion(), constantAccessor)

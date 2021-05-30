@@ -14,15 +14,15 @@ type TxOutStoreV53Suite struct{}
 var _ = Suite(&TxOutStoreV53Suite{})
 
 func (s TxOutStoreV53Suite) TestAddGasFees(c *C) {
-	ctx, k := setupKeeperForTest(c)
+	ctx, mgr := setupManagerForTest(c)
 	tx := GetRandomObservedTx()
 
 	version := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(version)
-	gasMgr := NewGasMgrV1(constAccessor, k)
-	err := AddGasFees(ctx, k, tx, gasMgr)
+	mgr.gasMgr = NewGasMgrV1(constAccessor, mgr.Keeper())
+	err := AddGasFees(ctx, mgr, tx)
 	c.Assert(err, IsNil)
-	c.Assert(gasMgr.gas, HasLen, 1)
+	c.Assert(mgr.GasMgr().GetGas(), HasLen, 1)
 }
 
 func (s TxOutStoreV53Suite) TestAddOutTxItem(c *C) {
@@ -304,9 +304,9 @@ func (s TxOutStoreV53Suite) TestAddOutTxItemDeductMaxGasFromYggdrasil(c *C) {
 		Chain:     common.BNBChain,
 		ToAddress: GetRandomBNBAddress(),
 		InHash:    inTxID,
-		Coin:      common.NewCoin(common.BNBAsset, cosmos.NewUint(3900000000)),
+		Coin:      common.NewCoin(common.BNBAsset, cosmos.NewUint(39*common.One)),
 		MaxGas: common.Gas{
-			common.NewCoin(common.BNBAsset, cosmos.NewUint(100000000)),
+			common.NewCoin(common.BNBAsset, cosmos.NewUint(common.One)),
 		},
 	}
 	txOutStore := w.mgr.TxOutStore()
@@ -321,7 +321,7 @@ func (s TxOutStoreV53Suite) TestAddOutTxItemDeductMaxGasFromYggdrasil(c *C) {
 		Chain:     common.BNBChain,
 		ToAddress: GetRandomBNBAddress(),
 		InHash:    inTxID,
-		Coin:      common.NewCoin(common.BNBAsset, cosmos.NewUint(1000000000)),
+		Coin:      common.NewCoin(common.BNBAsset, cosmos.NewUint(10*common.One)),
 		MaxGas: common.Gas{
 			common.NewCoin(common.BNBAsset, cosmos.NewUint(7500)),
 		},

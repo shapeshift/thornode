@@ -62,7 +62,7 @@ func (*HandlerObserveNetworkFeeSuite) testHandlerObserveNetworkFeeWithVersion(c 
 	ctx, keeper := setupKeeperForTest(c)
 	activeNodeAccount := GetRandomNodeAccount(NodeActive)
 	c.Assert(keeper.SetNodeAccount(ctx, activeNodeAccount), IsNil)
-	handler := NewNetworkFeeHandler(keeper, NewDummyMgr())
+	handler := NewNetworkFeeHandler(NewDummyMgrWithKeeper(keeper))
 	msg := NewMsgNetworkFee(1024, common.BNBChain, 256, 100, activeNodeAccount.NodeAddress)
 	constantsAccessor := constants.GetConstantValues(ver)
 	result, err := handler.Run(ctx, msg, ver, constantsAccessor)
@@ -87,10 +87,11 @@ func (*HandlerObserveNetworkFeeSuite) testHandlerObserveNetworkFeeWithVersion(c 
 
 	// fail list active node account should fail
 	handler1 := NewNetworkFeeHandler(
-		KeeperObserveNetworkFeeTest{
+		NewDummyMgrWithKeeper(KeeperObserveNetworkFeeTest{
 			Keeper:                       keeper,
 			errFailListActiveNodeAccount: true,
-		}, NewDummyMgr())
+		}),
+	)
 	result, err = handler1.Run(ctx, msg, ver, constantsAccessor)
 	c.Assert(err, NotNil)
 	c.Assert(result, IsNil)
@@ -98,20 +99,22 @@ func (*HandlerObserveNetworkFeeSuite) testHandlerObserveNetworkFeeWithVersion(c 
 
 	// fail to get observed network fee voter should return an error
 	handler2 := NewNetworkFeeHandler(
-		KeeperObserveNetworkFeeTest{
+		NewDummyMgrWithKeeper(KeeperObserveNetworkFeeTest{
 			Keeper:                         keeper,
 			errFailGetObservedNetworkVoter: true,
-		}, NewDummyMgr())
+		}),
+	)
 	result, err = handler2.Run(ctx, msg, ver, constantsAccessor)
 	c.Assert(err, NotNil)
 	c.Assert(result, IsNil)
 
 	// fail to save network fee should result in an error
 	handler3 := NewNetworkFeeHandler(
-		KeeperObserveNetworkFeeTest{
+		NewDummyMgrWithKeeper(KeeperObserveNetworkFeeTest{
 			Keeper:                keeper,
 			errFailSaveNetworkFee: true,
-		}, NewDummyMgr())
+		}),
+	)
 	msg2 := NewMsgNetworkFee(2056, common.BNBChain, 200, 102, activeNodeAccount.NodeAddress)
 	result, err = handler3.Run(ctx, msg2, ver, constantsAccessor)
 	c.Assert(err, NotNil)

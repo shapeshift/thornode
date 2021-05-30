@@ -8,7 +8,6 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // CommonOutboundTxHandler is the place where those common logic can be shared
@@ -16,15 +15,13 @@ import (
 // at the moment, handler_refund, and handler_outbound_tx are largely the same
 // , only some small difference
 type CommonOutboundTxHandler struct {
-	keeper keeper.Keeper
-	mgr    Manager
+	mgr Manager
 }
 
 // NewCommonOutboundTxHandler create a new instance of the CommonOutboundTxHandler
-func NewCommonOutboundTxHandler(k keeper.Keeper, mgr Manager) CommonOutboundTxHandler {
+func NewCommonOutboundTxHandler(mgr Manager) CommonOutboundTxHandler {
 	return CommonOutboundTxHandler{
-		keeper: k,
-		mgr:    mgr,
+		mgr: mgr,
 	}
 }
 
@@ -46,12 +43,12 @@ func (h CommonOutboundTxHandler) handle(ctx cosmos.Context, version semver.Versi
 func (h CommonOutboundTxHandler) handleV1(ctx cosmos.Context, version semver.Version, tx ObservedTx, inTxID common.TxID, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	// note: Outbound tx usually it is related to an inbound tx except migration
 	// thus here try to get the ObservedTxInVoter,  and set the tx out hash accordingly
-	voter, err := h.keeper.GetObservedTxInVoter(ctx, inTxID)
+	voter, err := h.mgr.Keeper().GetObservedTxInVoter(ctx, inTxID)
 	if err != nil {
 		return nil, ErrInternal(err, "fail to get observed tx voter")
 	}
 	voter.AddOutTx(tx.Tx)
-	h.keeper.SetObservedTxInVoter(ctx, voter)
+	h.mgr.Keeper().SetObservedTxInVoter(ctx, voter)
 
 	// complete events
 	if voter.IsDone() {
@@ -77,7 +74,7 @@ func (h CommonOutboundTxHandler) handleV1(ctx cosmos.Context, version semver.Ver
 	for height := voter.FinalisedHeight; height <= common.BlockHeight(ctx); height += signingTransPeriod {
 
 		// update txOut record with our TxID that sent funds out of the pool
-		txOut, err := h.keeper.GetTxOut(ctx, height)
+		txOut, err := h.mgr.Keeper().GetTxOut(ctx, height)
 		if err != nil {
 			ctx.Logger().Error("unable to get txOut record", "error", err)
 			return nil, cosmos.ErrUnknownRequest(err.Error())
@@ -129,7 +126,7 @@ func (h CommonOutboundTxHandler) handleV1(ctx cosmos.Context, version semver.Ver
 				}
 				txOut.TxArray[i].OutHash = tx.Tx.ID
 				shouldSlash = false
-				if err := h.keeper.SetTxOut(ctx, txOut); err != nil {
+				if err := h.mgr.Keeper().SetTxOut(ctx, txOut); err != nil {
 					ctx.Logger().Error("fail to save tx out", "error", err)
 				}
 				break
@@ -145,7 +142,7 @@ func (h CommonOutboundTxHandler) handleV1(ctx cosmos.Context, version semver.Ver
 		}
 	}
 
-	if err := h.keeper.SetLastSignedHeight(ctx, voter.FinalisedHeight); err != nil {
+	if err := h.mgr.Keeper().SetLastSignedHeight(ctx, voter.FinalisedHeight); err != nil {
 		ctx.Logger().Info("fail to update last signed height", "error", err)
 	}
 
@@ -160,12 +157,12 @@ func (h CommonOutboundTxHandler) handleV48(ctx cosmos.Context, version semver.Ve
 func (h CommonOutboundTxHandler) handleCurrent(ctx cosmos.Context, version semver.Version, tx ObservedTx, inTxID common.TxID, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	// note: Outbound tx usually it is related to an inbound tx except migration
 	// thus here try to get the ObservedTxInVoter,  and set the tx out hash accordingly
-	voter, err := h.keeper.GetObservedTxInVoter(ctx, inTxID)
+	voter, err := h.mgr.Keeper().GetObservedTxInVoter(ctx, inTxID)
 	if err != nil {
 		return nil, ErrInternal(err, "fail to get observed tx voter")
 	}
 	voter.AddOutTx(tx.Tx)
-	h.keeper.SetObservedTxInVoter(ctx, voter)
+	h.mgr.Keeper().SetObservedTxInVoter(ctx, voter)
 
 	// complete events
 	if voter.IsDone() {
@@ -196,7 +193,7 @@ func (h CommonOutboundTxHandler) handleCurrent(ctx cosmos.Context, version semve
 		}
 
 		// update txOut record with our TxID that sent funds out of the pool
-		txOut, err := h.keeper.GetTxOut(ctx, height)
+		txOut, err := h.mgr.Keeper().GetTxOut(ctx, height)
 		if err != nil {
 			ctx.Logger().Error("unable to get txOut record", "error", err)
 			return nil, cosmos.ErrUnknownRequest(err.Error())
@@ -248,7 +245,7 @@ func (h CommonOutboundTxHandler) handleCurrent(ctx cosmos.Context, version semve
 				}
 				txOut.TxArray[i].OutHash = tx.Tx.ID
 				shouldSlash = false
-				if err := h.keeper.SetTxOut(ctx, txOut); err != nil {
+				if err := h.mgr.Keeper().SetTxOut(ctx, txOut); err != nil {
 					ctx.Logger().Error("fail to save tx out", "error", err)
 				}
 				break
@@ -264,7 +261,7 @@ func (h CommonOutboundTxHandler) handleCurrent(ctx cosmos.Context, version semve
 		}
 	}
 
-	if err := h.keeper.SetLastSignedHeight(ctx, voter.FinalisedHeight); err != nil {
+	if err := h.mgr.Keeper().SetLastSignedHeight(ctx, voter.FinalisedHeight); err != nil {
 		ctx.Logger().Info("fail to update last signed height", "error", err)
 	}
 

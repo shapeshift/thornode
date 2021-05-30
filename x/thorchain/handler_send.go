@@ -10,20 +10,17 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // SendHandler handle MsgSend
 type SendHandler struct {
-	keeper keeper.Keeper
-	mgr    Manager
+	mgr Manager
 }
 
 // NewSendHandler create a new instance of SendHandler
-func NewSendHandler(keeper keeper.Keeper, mgr Manager) SendHandler {
+func NewSendHandler(mgr Manager) SendHandler {
 	return SendHandler{
-		keeper: keeper,
-		mgr:    mgr,
+		mgr: mgr,
 	}
 }
 
@@ -61,7 +58,7 @@ func (h SendHandler) validateCurrent(ctx cosmos.Context, msg MsgSend) error {
 	}
 
 	// check if we're sending to asgard, bond modules. If we are, forward to the native tx handler
-	if msg.ToAddress.Equals(h.keeper.GetModuleAccAddress(AsgardName)) || msg.ToAddress.Equals(h.keeper.GetModuleAccAddress(BondName)) {
+	if msg.ToAddress.Equals(h.mgr.Keeper().GetModuleAccAddress(AsgardName)) || msg.ToAddress.Equals(h.mgr.Keeper().GetModuleAccAddress(BondName)) {
 		return errors.New("cannot use MsgSend for Asgard or Bond transactions, use MsgDeposit instead")
 	}
 
@@ -81,7 +78,7 @@ func (h SendHandler) handleV1(ctx cosmos.Context, msg MsgSend, version semver.Ve
 }
 
 func (h SendHandler) handleCurrent(ctx cosmos.Context, msg MsgSend, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
-	haltHeight, err := h.keeper.GetMimir(ctx, "HaltTHORChain")
+	haltHeight, err := h.mgr.Keeper().GetMimir(ctx, "HaltTHORChain")
 	if err != nil {
 		return nil, fmt.Errorf("failed to get mimir setting: %w", err)
 	}
@@ -89,7 +86,7 @@ func (h SendHandler) handleCurrent(ctx cosmos.Context, msg MsgSend, version semv
 		return nil, fmt.Errorf("mimir has halted THORChain transactions")
 	}
 
-	nativeTxFee, err := h.keeper.GetMimir(ctx, constants.NativeTransactionFee.String())
+	nativeTxFee, err := h.mgr.Keeper().GetMimir(ctx, constants.NativeTransactionFee.String())
 	if err != nil || nativeTxFee < 0 {
 		nativeTxFee = constAccessor.GetInt64Value(constants.NativeTransactionFee)
 	}
@@ -101,17 +98,17 @@ func (h SendHandler) handleCurrent(ctx cosmos.Context, msg MsgSend, version semv
 	}
 
 	totalCoins := cosmos.NewCoins(gasFee).Add(msg.Amount...)
-	if !h.keeper.HasCoins(ctx, msg.FromAddress, totalCoins) {
+	if !h.mgr.Keeper().HasCoins(ctx, msg.FromAddress, totalCoins) {
 		return nil, cosmos.ErrInsufficientCoins(err, "insufficient funds")
 	}
 
 	// send gas to reserve
-	sdkErr := h.keeper.SendFromAccountToModule(ctx, msg.FromAddress, ReserveName, common.NewCoins(gas))
+	sdkErr := h.mgr.Keeper().SendFromAccountToModule(ctx, msg.FromAddress, ReserveName, common.NewCoins(gas))
 	if sdkErr != nil {
 		return nil, fmt.Errorf("unable to send gas to reserve: %w", sdkErr)
 	}
 
-	sdkErr = h.keeper.SendCoins(ctx, msg.FromAddress, msg.ToAddress, msg.Amount)
+	sdkErr = h.mgr.Keeper().SendCoins(ctx, msg.FromAddress, msg.ToAddress, msg.Amount)
 	if sdkErr != nil {
 		return nil, sdkErr
 	}

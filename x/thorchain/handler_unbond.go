@@ -9,20 +9,17 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // UnBondHandler a handler to process unbond request
 type UnBondHandler struct {
-	keeper keeper.Keeper
-	mgr    Manager
+	mgr Manager
 }
 
 // NewUnBondHandler create new UnBondHandler
-func NewUnBondHandler(keeper keeper.Keeper, mgr Manager) UnBondHandler {
+func NewUnBondHandler(mgr Manager) UnBondHandler {
 	return UnBondHandler{
-		keeper: keeper,
-		mgr:    mgr,
+		mgr: mgr,
 	}
 }
 
@@ -42,7 +39,7 @@ func (h UnBondHandler) validateCurrent(ctx cosmos.Context, version semver.Versio
 		return err
 	}
 
-	na, err := h.keeper.GetNodeAccount(ctx, msg.NodeAddress)
+	na, err := h.mgr.Keeper().GetNodeAccount(ctx, msg.NodeAddress)
 	if err != nil {
 		return ErrInternal(err, fmt.Sprintf("fail to get node account(%s)", msg.NodeAddress))
 	}
@@ -55,9 +52,9 @@ func (h UnBondHandler) validateCurrent(ctx cosmos.Context, version semver.Versio
 	}
 
 	ygg := Vault{}
-	if h.keeper.VaultExists(ctx, na.PubKeySet.Secp256k1) {
+	if h.mgr.Keeper().VaultExists(ctx, na.PubKeySet.Secp256k1) {
 		var err error
-		ygg, err = h.keeper.GetVault(ctx, na.PubKeySet.Secp256k1)
+		ygg, err = h.mgr.Keeper().GetVault(ctx, na.PubKeySet.Secp256k1)
 		if err != nil {
 			return err
 		}
@@ -88,7 +85,7 @@ func (h UnBondHandler) validateCurrent(ctx cosmos.Context, version semver.Versio
 			if c.Amount.GT(maxGas.Amount) {
 				canUnbond = false
 			}
-			pool, err := h.keeper.GetPool(ctx, c.Asset)
+			pool, err := h.mgr.Keeper().GetPool(ctx, c.Asset)
 			if err != nil {
 				ctx.Logger().Error("fail to get pool", "asset", c.Asset, "error", err)
 				canUnbond = false
@@ -106,7 +103,7 @@ func (h UnBondHandler) validateCurrent(ctx cosmos.Context, version semver.Versio
 		}
 	}
 
-	jail, err := h.keeper.GetNodeAccountJail(ctx, msg.NodeAddress)
+	jail, err := h.mgr.Keeper().GetNodeAccountJail(ctx, msg.NodeAddress)
 	if err != nil {
 		// ignore this error and carry on. Don't want a jail bug causing node
 		// accounts to not be able to get their funds out
@@ -149,18 +146,18 @@ func (h UnBondHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Vers
 }
 
 func (h UnBondHandler) handleV1(ctx cosmos.Context, msg MsgUnBond, version semver.Version, constAccessor constants.ConstantValues) error {
-	na, err := h.keeper.GetNodeAccount(ctx, msg.NodeAddress)
+	na, err := h.mgr.Keeper().GetNodeAccount(ctx, msg.NodeAddress)
 	if err != nil {
 		return ErrInternal(err, fmt.Sprintf("fail to get node account(%s)", msg.NodeAddress))
 	}
-	bondLockPeriod, err := h.keeper.GetMimir(ctx, constants.BondLockupPeriod.String())
+	bondLockPeriod, err := h.mgr.Keeper().GetMimir(ctx, constants.BondLockupPeriod.String())
 	if err != nil || bondLockPeriod < 0 {
 		bondLockPeriod = constAccessor.GetInt64Value(constants.BondLockupPeriod)
 	}
 	if common.BlockHeight(ctx)-na.StatusSince < bondLockPeriod {
 		return fmt.Errorf("node can not unbond before %d", na.StatusSince+bondLockPeriod)
 	}
-	vaults, err := h.keeper.GetAsgardVaultsByStatus(ctx, RetiringVault)
+	vaults, err := h.mgr.Keeper().GetAsgardVaultsByStatus(ctx, RetiringVault)
 	if err != nil {
 		return ErrInternal(err, "fail to get retiring vault")
 	}
@@ -175,14 +172,14 @@ func (h UnBondHandler) handleV1(ctx cosmos.Context, msg MsgUnBond, version semve
 	if isMemberOfRetiringVault {
 		return ErrInternal(err, "fail to unbond, still part of the retiring vault")
 	}
-	if err := refundBond(ctx, msg.TxIn, msg.Amount, &na, h.keeper, h.mgr); err != nil {
+	if err := refundBond(ctx, msg.TxIn, msg.Amount, &na, h.mgr); err != nil {
 		return ErrInternal(err, "fail to unbond")
 	}
 
 	coin := msg.TxIn.Coins.GetCoin(common.RuneAsset())
 	if !coin.IsEmpty() {
 		na.Bond = na.Bond.Add(coin.Amount)
-		if err := h.keeper.SetNodeAccount(ctx, na); err != nil {
+		if err := h.mgr.Keeper().SetNodeAccount(ctx, na); err != nil {
 			return ErrInternal(err, "fail to save node account to key value store")
 		}
 	}
@@ -193,18 +190,18 @@ func (h UnBondHandler) handleV46(ctx cosmos.Context, msg MsgUnBond, version semv
 	return h.handleCurrent(ctx, msg, version, constAccessor)
 }
 func (h UnBondHandler) handleCurrent(ctx cosmos.Context, msg MsgUnBond, version semver.Version, constAccessor constants.ConstantValues) error {
-	na, err := h.keeper.GetNodeAccount(ctx, msg.NodeAddress)
+	na, err := h.mgr.Keeper().GetNodeAccount(ctx, msg.NodeAddress)
 	if err != nil {
 		return ErrInternal(err, fmt.Sprintf("fail to get node account(%s)", msg.NodeAddress))
 	}
-	bondLockPeriod, err := h.keeper.GetMimir(ctx, constants.BondLockupPeriod.String())
+	bondLockPeriod, err := h.mgr.Keeper().GetMimir(ctx, constants.BondLockupPeriod.String())
 	if err != nil || bondLockPeriod < 0 {
 		bondLockPeriod = constAccessor.GetInt64Value(constants.BondLockupPeriod)
 	}
 	if common.BlockHeight(ctx)-na.StatusSince < bondLockPeriod {
 		return fmt.Errorf("node can not unbond before %d", na.StatusSince+bondLockPeriod)
 	}
-	vaults, err := h.keeper.GetAsgardVaultsByStatus(ctx, RetiringVault)
+	vaults, err := h.mgr.Keeper().GetAsgardVaultsByStatus(ctx, RetiringVault)
 	if err != nil {
 		return ErrInternal(err, "fail to get retiring vault")
 	}
@@ -219,14 +216,14 @@ func (h UnBondHandler) handleCurrent(ctx cosmos.Context, msg MsgUnBond, version 
 	if isMemberOfRetiringVault {
 		return ErrInternal(err, "fail to unbond, still part of the retiring vault")
 	}
-	if err := refundBondV46(ctx, msg.TxIn, msg.Amount, &na, h.keeper, h.mgr); err != nil {
+	if err := refundBondV46(ctx, msg.TxIn, msg.Amount, &na, h.mgr); err != nil {
 		return ErrInternal(err, "fail to unbond")
 	}
 
 	coin := msg.TxIn.Coins.GetCoin(common.RuneAsset())
 	if !coin.IsEmpty() {
 		na.Bond = na.Bond.Add(coin.Amount)
-		if err := h.keeper.SetNodeAccount(ctx, na); err != nil {
+		if err := h.mgr.Keeper().SetNodeAccount(ctx, na); err != nil {
 			return ErrInternal(err, "fail to save node account to key value store")
 		}
 	}
