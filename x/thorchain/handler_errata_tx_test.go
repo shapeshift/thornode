@@ -75,7 +75,7 @@ func (s *HandlerErrataTxSuite) TestValidate(c *C) {
 		na: GetRandomNodeAccount(NodeActive),
 	}
 
-	handler := NewErrataTxHandler(keeper, NewDummyMgr())
+	handler := NewErrataTxHandler(NewDummyMgrWithKeeper(keeper))
 	// happy path
 	ver := GetCurrentVersion()
 	msg := NewMsgErrataTx(GetRandomTxHash(), common.BNBChain, keeper.na.NodeAddress)
@@ -93,7 +93,7 @@ func (s *HandlerErrataTxSuite) TestValidate(c *C) {
 }
 
 func (s *HandlerErrataTxSuite) TestErrataHandlerHappyPath(c *C) {
-	ctx, _ := setupKeeperForTest(c)
+	ctx, mgr := setupManagerForTest(c)
 	ver := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(ver)
 
@@ -140,10 +140,9 @@ func (s *HandlerErrataTxSuite) TestErrataHandlerHappyPath(c *C) {
 			},
 		},
 	}
+	mgr.K = keeper
 
-	mgr := NewManagers(keeper)
-	c.Assert(mgr.BeginBlock(ctx), IsNil)
-	handler := NewErrataTxHandler(keeper, mgr)
+	handler := NewErrataTxHandler(mgr)
 	msg := NewMsgErrataTx(txID, common.BNBChain, na.NodeAddress)
 	_, err := handler.handle(ctx, *msg, ver, constAccessor)
 	c.Assert(err, IsNil)
@@ -480,12 +479,11 @@ func (s *HandlerErrataTxSuite) TestErrataHandlerDifferentError(c *C) {
 	}
 
 	for _, tc := range testCases {
-		ctx, k := setupKeeperForTest(c)
-		helper := NewErrataTxHandlerTestHelper(k)
+		ctx, mgr := setupManagerForTest(c)
+		helper := NewErrataTxHandlerTestHelper(mgr.Keeper())
+		mgr.K = helper
 		msg := tc.messageProvider(ctx, helper)
-		mgr := NewManagers(helper)
-		mgr.BeginBlock(ctx)
-		handler := NewErrataTxHandler(helper, mgr)
+		handler := NewErrataTxHandler(mgr)
 		constAccessor := constants.GetConstantValues(GetCurrentVersion())
 		result, err := handler.Run(ctx, msg, GetCurrentVersion(), constAccessor)
 		tc.validator(c, ctx, result, err, helper, tc.name)
@@ -493,11 +491,9 @@ func (s *HandlerErrataTxSuite) TestErrataHandlerDifferentError(c *C) {
 }
 
 func (*HandlerErrataTxSuite) TestProcessErrortaOutboundTx(c *C) {
-	ctx, k := setupKeeperForTest(c)
-	helper := NewErrataTxHandlerTestHelper(k)
-	mgr := NewManagers(helper)
-	mgr.BeginBlock(ctx)
-	handler := NewErrataTxHandler(helper, mgr)
+	ctx, mgr := setupManagerForTest(c)
+	helper := NewErrataTxHandlerTestHelper(mgr.Keeper())
+	handler := NewErrataTxHandler(mgr)
 	node1 := GetRandomNodeAccount(NodeActive)
 	node2 := GetRandomNodeAccount(NodeActive)
 	node3 := GetRandomNodeAccount(NodeActive)
@@ -637,11 +633,10 @@ func (*HandlerErrataTxSuite) TestProcessErrortaOutboundTx(c *C) {
 }
 
 func (*HandlerErrataTxSuite) TestProcessErrortaOutboundTx_EnsureMigrateTxWillSetInactiveVaultBackToRetiring(c *C) {
-	ctx, k := setupKeeperForTest(c)
-	helper := NewErrataTxHandlerTestHelper(k)
-	mgr := NewManagers(helper)
-	mgr.BeginBlock(ctx)
-	handler := NewErrataTxHandler(helper, mgr)
+	ctx, mgr := setupManagerForTest(c)
+	helper := NewErrataTxHandlerTestHelper(mgr.Keeper())
+	mgr.K = helper
+	handler := NewErrataTxHandler(mgr)
 	node1 := GetRandomNodeAccount(NodeActive)
 	node2 := GetRandomNodeAccount(NodeActive)
 	node3 := GetRandomNodeAccount(NodeActive)

@@ -8,20 +8,17 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // VersionHandler is to handle Version message
 type VersionHandler struct {
-	keeper keeper.Keeper
-	mgr    Manager
+	mgr Manager
 }
 
 // NewVersionHandler create new instance of VersionHandler
-func NewVersionHandler(keeper keeper.Keeper, mgr Manager) VersionHandler {
+func NewVersionHandler(mgr Manager) VersionHandler {
 	return VersionHandler{
-		keeper: keeper,
-		mgr:    mgr,
+		mgr: mgr,
 	}
 }
 
@@ -60,7 +57,7 @@ func (h VersionHandler) validateCurrent(ctx cosmos.Context, msg MsgSetVersion, c
 		return err
 	}
 
-	nodeAccount, err := h.keeper.GetNodeAccount(ctx, msg.Signer)
+	nodeAccount, err := h.mgr.Keeper().GetNodeAccount(ctx, msg.Signer)
 	if err != nil {
 		return cosmos.ErrUnauthorized(fmt.Sprintf("%s is not authorizaed", msg.Signer))
 	}
@@ -68,7 +65,7 @@ func (h VersionHandler) validateCurrent(ctx cosmos.Context, msg MsgSetVersion, c
 		return cosmos.ErrUnauthorized(fmt.Sprintf("%s is not authorizaed", msg.Signer))
 	}
 
-	cost, err := h.keeper.GetMimir(ctx, constants.NativeTransactionFee.String())
+	cost, err := h.mgr.Keeper().GetMimir(ctx, constants.NativeTransactionFee.String())
 	if err != nil || cost < 0 {
 		cost = constAccessor.GetInt64Value(constants.NativeTransactionFee)
 	}
@@ -92,7 +89,7 @@ func (h VersionHandler) handleV1(ctx cosmos.Context, msg MsgSetVersion, constAcc
 }
 
 func (h VersionHandler) handleCurrent(ctx cosmos.Context, msg MsgSetVersion, constAccessor constants.ConstantValues) error {
-	nodeAccount, err := h.keeper.GetNodeAccount(ctx, msg.Signer)
+	nodeAccount, err := h.mgr.Keeper().GetNodeAccount(ctx, msg.Signer)
 	if err != nil {
 		return cosmos.ErrUnauthorized(fmt.Errorf("unable to find account(%s):%w", msg.Signer, err).Error())
 	}
@@ -106,7 +103,7 @@ func (h VersionHandler) handleCurrent(ctx cosmos.Context, msg MsgSetVersion, con
 		nodeAccount.Version = version.String()
 	}
 
-	c, err := h.keeper.GetMimir(ctx, constants.NativeTransactionFee.String())
+	c, err := h.mgr.Keeper().GetMimir(ctx, constants.NativeTransactionFee.String())
 	if err != nil || c < 0 {
 		c = constAccessor.GetInt64Value(constants.NativeTransactionFee)
 	}
@@ -116,14 +113,14 @@ func (h VersionHandler) handleCurrent(ctx cosmos.Context, msg MsgSetVersion, con
 	}
 
 	nodeAccount.Bond = common.SafeSub(nodeAccount.Bond, cost)
-	if err := h.keeper.SetNodeAccount(ctx, nodeAccount); err != nil {
+	if err := h.mgr.Keeper().SetNodeAccount(ctx, nodeAccount); err != nil {
 		return fmt.Errorf("fail to save node account: %w", err)
 	}
 
 	// add bond to reserve
 	coin := common.NewCoin(common.RuneNative, cost)
 	if !cost.IsZero() {
-		if err := h.keeper.SendFromAccountToModule(ctx, msg.Signer, ReserveName, common.NewCoins(coin)); err != nil {
+		if err := h.mgr.Keeper().SendFromAccountToModule(ctx, msg.Signer, ReserveName, common.NewCoins(coin)); err != nil {
 			ctx.Logger().Error("fail to transfer funds from bond to reserve", "error", err)
 			return err
 		}

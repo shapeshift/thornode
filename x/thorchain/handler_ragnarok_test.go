@@ -38,7 +38,7 @@ func (HandlerRagnarokSuite) TestRagnarok(c *C) {
 		vault:             GetRandomVault(),
 	}
 
-	handler := NewRagnarokHandler(keeper, NewDummyMgr())
+	handler := NewRagnarokHandler(NewDummyMgrWithKeeper(keeper))
 
 	// invalid message should result errors
 	msg := NewMsgNetworkFee(ctx.BlockHeight(), common.BNBChain, 1, bnbSingleTxFee.Uint64(), GetRandomBech32Addr())
@@ -159,7 +159,7 @@ func (HandlerRagnarokSuite) TestRagnarokHappyPath(c *C) {
 	}
 	addr, err := keeper.retireVault.PubKey.GetAddress(common.BNBChain)
 	c.Assert(err, IsNil)
-	handler := NewRagnarokHandler(keeper, NewDummyMgr())
+	handler := NewRagnarokHandler(NewDummyMgrWithKeeper(keeper))
 	tx := NewObservedTx(common.Tx{
 		ID:    GetRandomTxHash(),
 		Chain: common.BNBChain,
@@ -216,9 +216,9 @@ func (HandlerRagnarokSuite) TestSlash(c *C) {
 	addr, err := keeper.retireVault.PubKey.GetAddress(common.BNBChain)
 	c.Assert(err, IsNil)
 
-	mgr := NewDummyMgr()
+	mgr := NewDummyMgrWithKeeper(keeper)
 	mgr.slasher = NewSlasherV1(keeper, NewDummyEventMgr())
-	handler := NewRagnarokHandler(keeper, mgr)
+	handler := NewRagnarokHandler(mgr)
 
 	tx := NewObservedTx(common.Tx{
 		ID:    GetRandomTxHash(),

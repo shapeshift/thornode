@@ -72,7 +72,7 @@ func (s *HandlerVersionSuite) TestValidate(c *C) {
 		emptyNodeAccount: GetRandomNodeAccount(NodeStandby),
 	}
 
-	handler := NewVersionHandler(keeper, NewDummyMgr())
+	handler := NewVersionHandler(NewDummyMgrWithKeeper(keeper))
 	// happy path
 	ver := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(ver)
@@ -115,7 +115,7 @@ func (s *HandlerVersionSuite) TestHandle(c *C) {
 		na: GetRandomNodeAccount(NodeActive),
 	}
 
-	handler := NewVersionHandler(keeper, NewDummyMgr())
+	handler := NewVersionHandler(NewDummyMgrWithKeeper(keeper))
 
 	msg := NewMsgSetVersion("2.0.0", GetRandomBech32Addr())
 	err := handler.handle(ctx, *msg, ver, constAccessor)

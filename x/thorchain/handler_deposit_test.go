@@ -30,7 +30,7 @@ func (s *HandlerDepositSuite) TestValidate(c *C) {
 	}
 	msg := NewMsgDeposit(coins, fmt.Sprintf("ADD:BNB.BNB:%s", GetRandomRUNEAddress()), addr)
 
-	handler := NewDepositHandler(k, NewDummyMgr())
+	handler := NewDepositHandler(NewDummyMgrWithKeeper(k))
 	err := handler.validate(ctx, *msg, GetCurrentVersion())
 	c.Assert(err, IsNil)
 
@@ -51,9 +51,9 @@ func (s *HandlerDepositSuite) TestHandle(c *C) {
 	}, map[constants.ConstantName]bool{}, map[constants.ConstantName]string{})
 	activeNode := GetRandomNodeAccount(NodeActive)
 	k.SetNodeAccount(ctx, activeNode)
-	dummyMgr := NewDummyMgr()
+	dummyMgr := NewDummyMgrWithKeeper(k)
 	dummyMgr.gasMgr = NewGasMgrV1(constAccessor, k)
-	handler := NewDepositHandler(k, dummyMgr)
+	handler := NewDepositHandler(dummyMgr)
 
 	addr := GetRandomBech32Addr()
 
@@ -160,11 +160,10 @@ func (s *HandlerDepositSuite) TestDifferentValidation(c *C) {
 		},
 	}
 	for _, tc := range testCases {
-		ctx, k := setupKeeperForTest(c)
-		helper := NewHandlerDepositTestHelper(k)
-		mgr := NewManagers(helper)
-		mgr.BeginBlock(ctx)
-		handler := NewDepositHandler(helper, mgr)
+		ctx, mgr := setupManagerForTest(c)
+		helper := NewHandlerDepositTestHelper(mgr.Keeper())
+		mgr.K = helper
+		handler := NewDepositHandler(mgr)
 		msg := tc.messageProvider(c, ctx, helper)
 		constantAccessor := constants.GetConstantValues(GetCurrentVersion())
 		result, err := handler.Run(ctx, msg, GetCurrentVersion(), constantAccessor)

@@ -8,21 +8,18 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // TssKeysignHandler is design to process MsgTssKeysignFail
 type TssKeysignHandler struct {
-	keeper keeper.Keeper
-	mgr    Manager
+	mgr Manager
 }
 
 // NewTssKeysignHandler create a new instance of TssKeysignHandler
 // when a signer fail to join tss keysign , thorchain need to slash the node account
-func NewTssKeysignHandler(keeper keeper.Keeper, mgr Manager) TssKeysignHandler {
+func NewTssKeysignHandler(mgr Manager) TssKeysignHandler {
 	return TssKeysignHandler{
-		keeper: keeper,
-		mgr:    mgr,
+		mgr: mgr,
 	}
 }
 
@@ -60,15 +57,15 @@ func (h TssKeysignHandler) validateCurrent(ctx cosmos.Context, msg MsgTssKeysign
 		return err
 	}
 
-	if !isSignedByActiveNodeAccounts(ctx, h.keeper, msg.GetSigners()) {
+	if !isSignedByActiveNodeAccounts(ctx, h.mgr.Keeper(), msg.GetSigners()) {
 		shouldAccept := false
-		vaults, err := h.keeper.GetAsgardVaultsByStatus(ctx, RetiringVault)
+		vaults, err := h.mgr.Keeper().GetAsgardVaultsByStatus(ctx, RetiringVault)
 		if err != nil {
 			return ErrInternal(err, "fail to get retiring vaults")
 		}
 		if len(vaults) > 0 {
 			for _, signer := range msg.GetSigners() {
-				nodeAccount, err := h.keeper.GetNodeAccount(ctx, signer)
+				nodeAccount, err := h.mgr.Keeper().GetNodeAccount(ctx, signer)
 				if err != nil {
 					return ErrInternal(err, "fail to get node account")
 				}
@@ -90,7 +87,7 @@ func (h TssKeysignHandler) validateCurrent(ctx cosmos.Context, msg MsgTssKeysign
 		ctx.Logger().Info("keysign failure message from retiring vault member, should accept")
 	}
 
-	active, err := h.keeper.ListActiveNodeAccounts(ctx)
+	active, err := h.mgr.Keeper().ListActiveNodeAccounts(ctx)
 	if err != nil {
 		return wrapError(ctx, err, "fail to get list of active node accounts")
 	}
@@ -116,7 +113,7 @@ func (h TssKeysignHandler) handleV1(ctx cosmos.Context, msg MsgTssKeysignFail, v
 }
 
 func (h TssKeysignHandler) handleCurrent(ctx cosmos.Context, msg MsgTssKeysignFail, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
-	voter, err := h.keeper.GetTssKeysignFailVoter(ctx, msg.ID)
+	voter, err := h.mgr.Keeper().GetTssKeysignFailVoter(ctx, msg.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -126,8 +123,8 @@ func (h TssKeysignHandler) handleCurrent(ctx cosmos.Context, msg MsgTssKeysignFa
 		ctx.Logger().Info("signer already signed MsgTssKeysignFail", "signer", msg.Signer.String(), "txid", msg.ID)
 		return &cosmos.Result{}, nil
 	}
-	h.keeper.SetTssKeysignFailVoter(ctx, voter)
-	vault, err := h.keeper.GetVault(ctx, msg.PubKey)
+	h.mgr.Keeper().SetTssKeysignFailVoter(ctx, voter)
+	vault, err := h.mgr.Keeper().GetVault(ctx, msg.PubKey)
 	if err != nil {
 		return nil, wrapError(ctx, err, "fail to get vault")
 	}
@@ -140,7 +137,7 @@ func (h TssKeysignHandler) handleCurrent(ctx cosmos.Context, msg MsgTssKeysignFa
 		if err != nil {
 			return nil, wrapError(ctx, err, "fail to get thor address for "+item.String())
 		}
-		na, err := h.keeper.GetNodeAccount(ctx, addr)
+		na, err := h.mgr.Keeper().GetNodeAccount(ctx, addr)
 		if err != nil {
 			return nil, wrapError(ctx, err, "fail to get node account")
 		}
@@ -156,7 +153,7 @@ func (h TssKeysignHandler) handleCurrent(ctx cosmos.Context, msg MsgTssKeysignFa
 
 	h.mgr.Slasher().DecSlashPoints(ctx, observeSlashPoints, voter.GetSigners()...)
 	voter.Signers = nil
-	h.keeper.SetTssKeysignFailVoter(ctx, voter)
+	h.mgr.Keeper().SetTssKeysignFailVoter(ctx, voter)
 
 	slashPoints := constAccessor.GetInt64Value(constants.FailKeysignSlashPoints)
 	// fail to generate a new tss key let's slash the node account
@@ -166,11 +163,11 @@ func (h TssKeysignHandler) handleCurrent(ctx cosmos.Context, msg MsgTssKeysignFa
 		if err != nil {
 			return nil, ErrInternal(err, "fail to parse pubkey")
 		}
-		na, err := h.keeper.GetNodeAccountByPubKey(ctx, nodePubKey)
+		na, err := h.mgr.Keeper().GetNodeAccountByPubKey(ctx, nodePubKey)
 		if err != nil {
 			return nil, ErrInternal(err, fmt.Sprintf("fail to get node account,pub key: %s", nodePubKey.String()))
 		}
-		if err := h.keeper.IncNodeAccountSlashPoints(ctx, na.NodeAddress, slashPoints); err != nil {
+		if err := h.mgr.Keeper().IncNodeAccountSlashPoints(ctx, na.NodeAddress, slashPoints); err != nil {
 			ctx.Logger().Error("fail to inc slash points", "error", err)
 		}
 
@@ -182,7 +179,7 @@ func (h TssKeysignHandler) handleCurrent(ctx cosmos.Context, msg MsgTssKeysignFa
 		jailTime := constAccessor.GetInt64Value(constants.JailTimeKeysign)
 		releaseHeight := common.BlockHeight(ctx) + jailTime
 		reason := "failed to perform keysign"
-		if err := h.keeper.SetNodeAccountJail(ctx, na.NodeAddress, releaseHeight, reason); err != nil {
+		if err := h.mgr.Keeper().SetNodeAccountJail(ctx, na.NodeAddress, releaseHeight, reason); err != nil {
 			ctx.Logger().Error("fail to set node account jail", "node address", na.NodeAddress, "reason", reason, "error", err)
 		}
 	}

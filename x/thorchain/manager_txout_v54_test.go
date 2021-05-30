@@ -14,15 +14,15 @@ type TxOutStoreV54Suite struct{}
 var _ = Suite(&TxOutStoreV54Suite{})
 
 func (s TxOutStoreV54Suite) TestAddGasFees(c *C) {
-	ctx, k := setupKeeperForTest(c)
+	ctx, mgr := setupManagerForTest(c)
 	tx := GetRandomObservedTx()
 
 	version := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(version)
-	gasMgr := NewGasMgrV1(constAccessor, k)
-	err := AddGasFees(ctx, k, tx, gasMgr)
+	mgr.gasMgr = NewGasMgrV1(constAccessor, mgr.Keeper())
+	err := AddGasFees(ctx, mgr, tx)
 	c.Assert(err, IsNil)
-	c.Assert(gasMgr.gas, HasLen, 1)
+	c.Assert(mgr.GasMgr().GetGas(), HasLen, 1)
 }
 
 func (s TxOutStoreV54Suite) TestAddOutTxItem(c *C) {

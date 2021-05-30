@@ -11,6 +11,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
 	sdkRest "github.com/cosmos/cosmos-sdk/x/auth/client/rest"
+	authkeeper "github.com/cosmos/cosmos-sdk/x/auth/keeper"
 	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
 	"github.com/gorilla/mux"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
@@ -93,23 +94,19 @@ func (AppModuleBasic) GetTxCmd() *cobra.Command {
 // AppModule implements an application module for the thorchain module.
 type AppModule struct {
 	AppModuleBasic
-	keeper       keeper.Keeper
-	coinKeeper   bankkeeper.Keeper
 	mgr          *Mgrs
 	keybaseStore cosmos.KeybaseStore
 }
 
 // NewAppModule creates a new AppModule Object
-func NewAppModule(k keeper.Keeper, bankKeeper bankkeeper.Keeper) AppModule {
+func NewAppModule(k keeper.Keeper, cdc codec.BinaryMarshaler, coinKeeper bankkeeper.Keeper, accountKeeper authkeeper.AccountKeeper, storeKey cosmos.StoreKey) AppModule {
 	kb, err := cosmos.GetKeybase(os.Getenv("CHAIN_HOME_FOLDER"))
 	if err != nil {
 		panic(err)
 	}
 	return AppModule{
 		AppModuleBasic: AppModuleBasic{},
-		keeper:         k,
-		coinKeeper:     bankKeeper,
-		mgr:            NewManagers(k),
+		mgr:            NewManagers(k, cdc, coinKeeper, accountKeeper, storeKey),
 		keybaseStore:   kb,
 	}
 }
@@ -121,11 +118,11 @@ func (AppModule) Name() string {
 func (am AppModule) RegisterInvariants(ir sdk.InvariantRegistry) {}
 
 func (am AppModule) Route() cosmos.Route {
-	return cosmos.NewRoute(RouterKey, NewExternalHandler(am.keeper, am.mgr))
+	return cosmos.NewRoute(RouterKey, NewExternalHandler(am.mgr))
 }
 
 func (am AppModule) NewHandler() sdk.Handler {
-	return NewExternalHandler(am.keeper, am.mgr)
+	return NewExternalHandler(am.mgr)
 }
 
 func (am AppModule) QuerierRoute() string {
@@ -159,15 +156,15 @@ func (am AppModule) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
 	}
 
 	ctx.Logger().Debug("Begin Block", "height", req.Header.Height)
-	version := am.keeper.GetLowestActiveVersion(ctx)
+	version := am.mgr.Keeper().GetLowestActiveVersion(ctx)
 
 	// Does a kvstore migration
-	smgr := NewStoreMgr(am.keeper)
+	smgr := NewStoreMgr(am.mgr.Keeper())
 	if err := smgr.Iterator(ctx); err != nil {
 		os.Exit(10) // halt the chain if unsuccessful
 	}
 
-	am.keeper.ClearObservingAddresses(ctx)
+	am.mgr.Keeper().ClearObservingAddresses(ctx)
 	if err := am.mgr.BeginBlock(ctx); err != nil {
 		ctx.Logger().Error("fail to get managers", "error", err)
 	}
@@ -189,7 +186,7 @@ func (am AppModule) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
 // EndBlock called when a block get committed
 func (am AppModule) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.ValidatorUpdate {
 	ctx.Logger().Debug("End Block", "height", req.Height)
-	version := am.keeper.GetLowestActiveVersion(ctx)
+	version := am.mgr.Keeper().GetLowestActiveVersion(ctx)
 	constantValues := constants.GetConstantValues(version)
 	if constantValues == nil {
 		ctx.Logger().Error(fmt.Sprintf("constants for version(%s) is not available", version))
@@ -207,30 +204,30 @@ func (am AppModule) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.V
 		ctx.Logger().Error("Unable to slash for lack of signing:", "error", err)
 	}
 
-	poolCycle, err := am.keeper.GetMimir(ctx, constants.PoolCycle.String())
+	poolCycle, err := am.mgr.Keeper().GetMimir(ctx, constants.PoolCycle.String())
 	if poolCycle < 0 || err != nil {
 		poolCycle = constantValues.GetInt64Value(constants.PoolCycle)
 	}
 	// Enable a pool every poolCycle
-	if common.BlockHeight(ctx)%poolCycle == 0 && !am.keeper.RagnarokInProgress(ctx) {
-		maxAvailablePools, err := am.keeper.GetMimir(ctx, constants.MaxAvailablePools.String())
+	if common.BlockHeight(ctx)%poolCycle == 0 && !am.mgr.Keeper().RagnarokInProgress(ctx) {
+		maxAvailablePools, err := am.mgr.Keeper().GetMimir(ctx, constants.MaxAvailablePools.String())
 		if maxAvailablePools < 0 || err != nil {
 			maxAvailablePools = constantValues.GetInt64Value(constants.MaxAvailablePools)
 		}
-		minRunePoolDepth, err := am.keeper.GetMimir(ctx, constants.MinRunePoolDepth.String())
+		minRunePoolDepth, err := am.mgr.Keeper().GetMimir(ctx, constants.MinRunePoolDepth.String())
 		if minRunePoolDepth < 0 || err != nil {
 			minRunePoolDepth = constantValues.GetInt64Value(constants.MinRunePoolDepth)
 		}
-		stagedPoolCost, err := am.keeper.GetMimir(ctx, constants.StagedPoolCost.String())
+		stagedPoolCost, err := am.mgr.Keeper().GetMimir(ctx, constants.StagedPoolCost.String())
 		if stagedPoolCost < 0 || err != nil {
 			stagedPoolCost = constantValues.GetInt64Value(constants.StagedPoolCost)
 		}
-		if err := cyclePools(ctx, maxAvailablePools, minRunePoolDepth, stagedPoolCost, am.keeper, am.mgr.EventMgr()); err != nil {
+		if err := cyclePools(ctx, maxAvailablePools, minRunePoolDepth, stagedPoolCost, am.mgr); err != nil {
 			ctx.Logger().Error("Unable to enable a pool", "error", err)
 		}
 	}
 
-	am.mgr.ObMgr().EndBlock(ctx, am.keeper)
+	am.mgr.ObMgr().EndBlock(ctx, am.mgr.Keeper())
 
 	// update network data to account for block rewards and reward units
 	if err := am.mgr.VaultMgr().UpdateNetwork(ctx, constantValues, am.mgr.GasMgr(), am.mgr.EventMgr()); err != nil {
@@ -250,7 +247,7 @@ func (am AppModule) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.V
 		ctx.Logger().Error("unable to fund yggdrasil", "error", err)
 	}
 
-	am.mgr.GasMgr().EndBlock(ctx, am.keeper, am.mgr.EventMgr())
+	am.mgr.GasMgr().EndBlock(ctx, am.mgr.Keeper(), am.mgr.EventMgr())
 
 	return validators
 }
@@ -259,11 +256,11 @@ func (am AppModule) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.V
 func (am AppModule) InitGenesis(ctx sdk.Context, cdc codec.JSONMarshaler, data json.RawMessage) []abci.ValidatorUpdate {
 	var genState GenesisState
 	ModuleCdc.MustUnmarshalJSON(data, &genState)
-	return InitGenesis(ctx, am.keeper, genState)
+	return InitGenesis(ctx, am.mgr.Keeper(), genState)
 }
 
 // ExportGenesis export genesis
 func (am AppModule) ExportGenesis(ctx sdk.Context, cdc codec.JSONMarshaler) json.RawMessage {
-	gs := ExportGenesis(ctx, am.keeper)
+	gs := ExportGenesis(ctx, am.mgr.Keeper())
 	return ModuleCdc.MustMarshalJSON(&gs)
 }

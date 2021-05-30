@@ -8,20 +8,17 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // TssHandler handle MsgTssPool
 type TssHandler struct {
-	keeper keeper.Keeper
-	mgr    Manager
+	mgr Manager
 }
 
 // NewTssHandler create a new handler to process MsgTssPool
-func NewTssHandler(keeper keeper.Keeper, mgr Manager) TssHandler {
+func NewTssHandler(mgr Manager) TssHandler {
 	return TssHandler{
-		keeper: keeper,
-		mgr:    mgr,
+		mgr: mgr,
 	}
 }
 
@@ -60,7 +57,7 @@ func (h TssHandler) validateCurrent(ctx cosmos.Context, msg MsgTssPool) error {
 		return err
 	}
 
-	keygenBlock, err := h.keeper.GetKeygenBlock(ctx, msg.Height)
+	keygenBlock, err := h.mgr.Keeper().GetKeygenBlock(ctx, msg.Height)
 	if err != nil {
 		return fmt.Errorf("fail to get keygen block from data store: %w", err)
 	}
@@ -96,16 +93,16 @@ func (h TssHandler) handleCurrent(ctx cosmos.Context, msg MsgTssPool, version se
 	}
 	// only record TSS metric when keygen is success
 	if msg.IsSuccess() && !msg.PoolPubKey.IsEmpty() {
-		metric, err := h.keeper.GetTssKeygenMetric(ctx, msg.PoolPubKey)
+		metric, err := h.mgr.Keeper().GetTssKeygenMetric(ctx, msg.PoolPubKey)
 		if err != nil {
 			ctx.Logger().Error("fail to get keygen metric", "error", err)
 		} else {
 			ctx.Logger().Info("save keygen metric to db")
 			metric.AddNodeTssTime(msg.Signer, msg.KeygenTime)
-			h.keeper.SetTssKeygenMetric(ctx, metric)
+			h.mgr.Keeper().SetTssKeygenMetric(ctx, metric)
 		}
 	}
-	voter, err := h.keeper.GetTssVoter(ctx, msg.ID)
+	voter, err := h.mgr.Keeper().GetTssVoter(ctx, msg.ID)
 	if err != nil {
 		return nil, fmt.Errorf("fail to get tss voter: %w", err)
 	}
@@ -126,7 +123,7 @@ func (h TssHandler) handleCurrent(ctx cosmos.Context, msg MsgTssPool, version se
 		return &cosmos.Result{}, nil
 
 	}
-	h.keeper.SetTssVoter(ctx, voter)
+	h.mgr.Keeper().SetTssVoter(ctx, voter)
 	// doesn't have consensus yet
 	if !voter.HasConsensus() {
 		ctx.Logger().Info("not having consensus yet, return")
@@ -135,7 +132,7 @@ func (h TssHandler) handleCurrent(ctx cosmos.Context, msg MsgTssPool, version se
 
 	if voter.BlockHeight == 0 {
 		voter.BlockHeight = common.BlockHeight(ctx)
-		h.keeper.SetTssVoter(ctx, voter)
+		h.mgr.Keeper().SetTssVoter(ctx, voter)
 		h.mgr.Slasher().DecSlashPoints(ctx, observeSlashPoints, voter.GetSigners()...)
 		if msg.IsSuccess() {
 			vaultType := YggdrasilVault
@@ -143,24 +140,24 @@ func (h TssHandler) handleCurrent(ctx cosmos.Context, msg MsgTssPool, version se
 				vaultType = AsgardVault
 			}
 			chains := voter.ConsensusChains()
-			vault := NewVault(common.BlockHeight(ctx), InitVault, vaultType, voter.PoolPubKey, chains.Strings(), h.keeper.GetChainContracts(ctx, chains))
+			vault := NewVault(common.BlockHeight(ctx), InitVault, vaultType, voter.PoolPubKey, chains.Strings(), h.mgr.Keeper().GetChainContracts(ctx, chains))
 			vault.Membership = voter.PubKeys
 
-			if err := h.keeper.SetVault(ctx, vault); err != nil {
+			if err := h.mgr.Keeper().SetVault(ctx, vault); err != nil {
 				return nil, fmt.Errorf("fail to save vault: %w", err)
 			}
-			keygenBlock, err := h.keeper.GetKeygenBlock(ctx, msg.Height)
+			keygenBlock, err := h.mgr.Keeper().GetKeygenBlock(ctx, msg.Height)
 			if err != nil {
 				return nil, fmt.Errorf("fail to get keygen block, err: %w, height: %d", err, msg.Height)
 			}
-			initVaults, err := h.keeper.GetAsgardVaultsByStatus(ctx, InitVault)
+			initVaults, err := h.mgr.Keeper().GetAsgardVaultsByStatus(ctx, InitVault)
 			if err != nil {
 				return nil, fmt.Errorf("fail to get init vaults: %w", err)
 			}
 			if len(initVaults) == len(keygenBlock.Keygens) {
 				for _, v := range initVaults {
 					v.UpdateStatus(ActiveVault, common.BlockHeight(ctx))
-					if err := h.keeper.SetVault(ctx, v); err != nil {
+					if err := h.mgr.Keeper().SetVault(ctx, v); err != nil {
 						return nil, fmt.Errorf("fail to save vault: %w", err)
 					}
 					if err := h.mgr.VaultMgr().RotateVault(ctx, v); err != nil {
@@ -171,7 +168,7 @@ func (h TssHandler) handleCurrent(ctx cosmos.Context, msg MsgTssPool, version se
 				ctx.Logger().Info(fmt.Sprintf("expecting %d vaults, however only got %d so far, let's wait", len(keygenBlock.Keygens), len(initVaults)))
 			}
 
-			metric, err := h.keeper.GetTssKeygenMetric(ctx, msg.PoolPubKey)
+			metric, err := h.mgr.Keeper().GetTssKeygenMetric(ctx, msg.PoolPubKey)
 			if err != nil {
 				ctx.Logger().Error("fail to get keygen metric", "error", err)
 			} else {
@@ -195,12 +192,12 @@ func (h TssHandler) handleCurrent(ctx cosmos.Context, msg MsgTssPool, version se
 					return nil, ErrInternal(err, fmt.Sprintf("fail to parse pubkey(%s)", node.Pubkey))
 				}
 
-				na, err := h.keeper.GetNodeAccountByPubKey(ctx, nodePubKey)
+				na, err := h.mgr.Keeper().GetNodeAccountByPubKey(ctx, nodePubKey)
 				if err != nil {
 					return nil, fmt.Errorf("fail to get node from it's pub key: %w", err)
 				}
 				if na.Status == NodeActive {
-					if err := h.keeper.IncNodeAccountSlashPoints(ctx, na.NodeAddress, slashPoints); err != nil {
+					if err := h.mgr.Keeper().IncNodeAccountSlashPoints(ctx, na.NodeAddress, slashPoints); err != nil {
 						ctx.Logger().Error("fail to inc slash points", "error", err)
 					}
 
@@ -212,13 +209,13 @@ func (h TssHandler) handleCurrent(ctx cosmos.Context, msg MsgTssPool, version se
 					jailTime := constAccessor.GetInt64Value(constants.JailTimeKeygen)
 					releaseHeight := common.BlockHeight(ctx) + jailTime
 					reason := "failed to perform keygen"
-					if err := h.keeper.SetNodeAccountJail(ctx, na.NodeAddress, releaseHeight, reason); err != nil {
+					if err := h.mgr.Keeper().SetNodeAccountJail(ctx, na.NodeAddress, releaseHeight, reason); err != nil {
 						ctx.Logger().Error("fail to set node account jail", "node address", na.NodeAddress, "reason", reason, "error", err)
 					}
 
 					// take out bond from the node account and add it to vault bond reward RUNE
 					// thus good behaviour node will get reward
-					reserveVault, err := h.keeper.GetNetwork(ctx)
+					reserveVault, err := h.mgr.Keeper().GetNetwork(ctx)
 					if err != nil {
 						return nil, fmt.Errorf("fail to get reserve vault: %w", err)
 					}
@@ -232,12 +229,12 @@ func (h TssHandler) handleCurrent(ctx cosmos.Context, msg MsgTssPool, version se
 					totalSlash = totalSlash.Add(slashBond)
 					coin := common.NewCoin(common.RuneNative, slashBond)
 					if !coin.Amount.IsZero() {
-						if err := h.keeper.SendFromModuleToModule(ctx, BondName, ReserveName, common.NewCoins(coin)); err != nil {
+						if err := h.mgr.Keeper().SendFromModuleToModule(ctx, BondName, ReserveName, common.NewCoins(coin)); err != nil {
 							return nil, fmt.Errorf("fail to transfer funds from bond to reserve: %w", err)
 						}
 					}
 				}
-				if err := h.keeper.SetNodeAccount(ctx, na); err != nil {
+				if err := h.mgr.Keeper().SetNodeAccount(ctx, na); err != nil {
 					return nil, fmt.Errorf("fail to save node account: %w", err)
 				}
 

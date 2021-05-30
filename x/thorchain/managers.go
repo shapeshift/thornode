@@ -5,6 +5,9 @@ import (
 	"fmt"
 
 	"github.com/blang/semver"
+	"github.com/cosmos/cosmos-sdk/codec"
+	authkeeper "github.com/cosmos/cosmos-sdk/x/auth/keeper"
+	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto"
 
@@ -12,6 +15,7 @@ import (
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	kv1 "gitlab.com/thorchain/thornode/x/thorchain/keeper/v1"
 )
 
 const (
@@ -23,6 +27,7 @@ var ErrNotEnoughToPayFee = errors.New("not enough asset to pay for fees")
 
 // Manager is an interface to define all the required methods
 type Manager interface {
+	Keeper() keeper.Keeper
 	GasMgr() GasManager
 	EventMgr() EventManager
 	TxOutStore() TxOutStore
@@ -124,26 +129,40 @@ type Mgrs struct {
 	swapQ          SwapQueue
 	slasher        Slasher
 	yggManager     YggManager
-	Keeper         keeper.Keeper
+
+	K             keeper.Keeper
+	cdc           codec.BinaryMarshaler
+	coinKeeper    bankkeeper.Keeper
+	accountKeeper authkeeper.AccountKeeper
+	storeKey      cosmos.StoreKey
 }
 
 // NewManagers  create a new Manager
-func NewManagers(keeper keeper.Keeper) *Mgrs {
+func NewManagers(keeper keeper.Keeper, cdc codec.BinaryMarshaler, coinKeeper bankkeeper.Keeper, accountKeeper authkeeper.AccountKeeper, storeKey cosmos.StoreKey) *Mgrs {
 	return &Mgrs{
-		Keeper: keeper,
+		K:             keeper,
+		cdc:           cdc,
+		coinKeeper:    coinKeeper,
+		accountKeeper: accountKeeper,
+		storeKey:      storeKey,
 	}
 }
 
 // BeginBlock detect whether there are new version available, if it is available then create a new version of Mgr
 func (mgr *Mgrs) BeginBlock(ctx cosmos.Context) error {
-	v := mgr.Keeper.GetLowestActiveVersion(ctx)
+	v := mgr.K.GetLowestActiveVersion(ctx)
 	if v.Equals(mgr.CurrentVersion) {
 		return nil
 	}
 	// version is different , thus all the manager need to re-create
 	mgr.CurrentVersion = v
 	var err error
-	mgr.gasMgr, err = GetGasManager(v, mgr.Keeper)
+
+	mgr.K, err = GetKeeper(v, mgr.cdc, mgr.coinKeeper, mgr.accountKeeper, mgr.storeKey)
+	if err != nil {
+		return fmt.Errorf("fail to create keeper: %w", err)
+	}
+	mgr.gasMgr, err = GetGasManager(v, mgr.K)
 	if err != nil {
 		return fmt.Errorf("fail to create gas manager: %w", err)
 	}
@@ -151,17 +170,17 @@ func (mgr *Mgrs) BeginBlock(ctx cosmos.Context) error {
 	if err != nil {
 		return fmt.Errorf("fail to get event manager: %w", err)
 	}
-	mgr.txOutStore, err = GetTxOutStore(mgr.Keeper, v, mgr.eventMgr, mgr.gasMgr)
+	mgr.txOutStore, err = GetTxOutStore(mgr.K, v, mgr.eventMgr, mgr.gasMgr)
 	if err != nil {
 		return fmt.Errorf("fail to get tx out store: %w", err)
 	}
 
-	mgr.networkMgr, err = GetVaultManager(mgr.Keeper, v, mgr.txOutStore, mgr.eventMgr)
+	mgr.networkMgr, err = GetVaultManager(mgr.K, v, mgr.txOutStore, mgr.eventMgr)
 	if err != nil {
 		return fmt.Errorf("fail to get vault manager: %w", err)
 	}
 
-	mgr.validatorMgr, err = GetValidatorManager(mgr.Keeper, v, mgr.networkMgr, mgr.txOutStore, mgr.eventMgr)
+	mgr.validatorMgr, err = GetValidatorManager(mgr.K, v, mgr.networkMgr, mgr.txOutStore, mgr.eventMgr)
 	if err != nil {
 		return fmt.Errorf("fail to get validator manager: %w", err)
 	}
@@ -171,22 +190,25 @@ func (mgr *Mgrs) BeginBlock(ctx cosmos.Context) error {
 		return fmt.Errorf("fail to get observer manager: %w", err)
 	}
 
-	mgr.swapQ, err = GetSwapQueue(mgr.Keeper, v)
+	mgr.swapQ, err = GetSwapQueue(mgr.K, v)
 	if err != nil {
 		return fmt.Errorf("fail to create swap queue: %w", err)
 	}
 
-	mgr.slasher, err = GetSlasher(mgr.Keeper, v, mgr.eventMgr)
+	mgr.slasher, err = GetSlasher(mgr.K, v, mgr.eventMgr)
 	if err != nil {
 		return fmt.Errorf("fail to create swap queue: %w", err)
 	}
 
-	mgr.yggManager, err = GetYggManager(mgr.Keeper, v)
+	mgr.yggManager, err = GetYggManager(mgr.K, v)
 	if err != nil {
 		return fmt.Errorf("fail to create swap queue: %w", err)
 	}
 	return nil
 }
+
+// Keeper return Keeper
+func (mgr *Mgrs) Keeper() keeper.Keeper { return mgr.K }
 
 // GasMgr return GasManager
 func (mgr *Mgrs) GasMgr() GasManager { return mgr.gasMgr }
@@ -214,6 +236,14 @@ func (mgr *Mgrs) Slasher() Slasher { return mgr.slasher }
 
 // YggManager return an implementation of YggManager
 func (mgr *Mgrs) YggManager() YggManager { return mgr.yggManager }
+
+// GetKeeper return Keeper
+func GetKeeper(version semver.Version, cdc codec.BinaryMarshaler, coinKeeper bankkeeper.Keeper, accountKeeper authkeeper.AccountKeeper, storeKey cosmos.StoreKey) (keeper.Keeper, error) {
+	if version.GTE(semver.MustParse("0.1.0")) {
+		return kv1.NewKVStore(cdc, coinKeeper, accountKeeper, storeKey), nil
+	}
+	return nil, errInvalidVersion
+}
 
 // GetGasManager return GasManager
 func GetGasManager(version semver.Version, keeper keeper.Keeper) (GasManager, error) {
