@@ -109,6 +109,9 @@ func (s *BitcoinSignerSuite) SetUpTest(c *C) {
 				httpTestHandler(c, rw, "../../../../test/fixtures/btc/sendrawtransaction.json")
 			case "importaddress":
 				httpTestHandler(c, rw, "../../../../test/fixtures/btc/importaddress.json")
+			case "createwallet":
+				_, err := rw.Write([]byte(`{ "result": null, "error": null, "id": 1 }`))
+				c.Assert(err, IsNil)
 			case "listunspent":
 				body := string(buf)
 				if strings.Contains(body, "tb1qleqepvj0d9n7899qj3skd8tw7c7jvh3zlxul70") {
