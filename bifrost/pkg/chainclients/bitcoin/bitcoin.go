@@ -2,6 +2,7 @@ package bitcoin
 
 import (
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strconv"
@@ -868,8 +869,30 @@ func (c *Client) registerAddressInWalletAsWatch(pkey common.PubKey) error {
 	if err != nil {
 		return fmt.Errorf("fail to get BTC address from pubkey(%s): %w", pkey, err)
 	}
+	err = c.createWallet("")
+	if err != nil {
+		return err
+	}
 	c.logger.Info().Msgf("import address: %s", addr.String())
 	return c.client.ImportAddressRescan(addr.String(), "", false)
+}
+
+func (c *Client) createWallet(name string) error {
+	walletNameJSON, err := json.Marshal(name)
+	if err != nil {
+		return err
+	}
+	_, err = c.client.RawRequest("createwallet", []json.RawMessage{
+		walletNameJSON,
+	})
+	if err != nil {
+		// ignore code -4 which means wallet already exists
+		if strings.HasPrefix(err.Error(), "-4") {
+			return nil
+		}
+		return err
+	}
+	return nil
 }
 
 // RegisterPublicKey register the given pubkey to bitcoin wallet
