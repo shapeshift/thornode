@@ -1,15 +1,16 @@
 #!/bin/sh
+
 # https://docs.docker.com/compose/startup-order/
 
-set -xe
+set -e
 
-echo "Waiting for Thorchain Daemon..."
+echo "Waiting for THORChain RPC..."
 
-until curl -s "$1"; do
-  echo "Thorchain daemon is unavailable - sleeping ($1)"
+until curl -s "$1" >/dev/null; do
+  echo "THORChain RPC is unavailable - sleeping ($1)"
   sleep 3
 done
 
 sleep 5 # wait for first block to become available
 
-echo "Thorchain daemon is up!"
+echo "THORChain RPC ready"
