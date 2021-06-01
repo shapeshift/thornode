@@ -60,6 +60,30 @@ lint-code:
     - make lint-managers
     - golangci-lint run -v --skip-files ".*\\.pb\\.go$"
 
+shellcheck:
+  image: koalaman/shellcheck-alpine:latest
+  stage: test
+  tags:
+    - thorchain
+  except:
+    - schedules
+  before_script:
+    - shellcheck --version
+  script:
+    - find . -type f -name "*.*sh" | xargs shellcheck --exclude SC1091,SC3020,SC3040
+
+shfmt:
+  image: mvdan/shfmt:v3.3.0-alpine
+  stage: test
+  tags:
+    - thorchain
+  except:
+    - schedules
+  before_script:
+    - shfmt -version
+  script:
+    - find . -type f -name "*.*sh" | xargs shfmt -i 2 -ci -d
+
 build-thornode:
   stage: build
   image: docker:19.03.12

@@ -1,7 +1,8 @@
 #!/bin/sh
+
 # https://docs.docker.com/compose/startup-order/
 
-set -xe
+set -e
 
 echo "Waiting for TSS Keygen..."
 
