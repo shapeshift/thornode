@@ -1,4 +1,4 @@
-#!/bin/sh 
+#!/bin/sh
 
 # see pre-requests:
 # - https://grpc.io/docs/languages/go/quickstart/
@@ -21,13 +21,14 @@ protoc_gen_gocosmos
 protoc_gen_doc
 
 proto_dirs=$(find ./proto -path -prune -o -name '*.proto' -print0 | xargs -0 -n1 dirname | sort | uniq)
+
+# shellcheck disable=SC2046
 for dir in $proto_dirs; do
   protoc \
-  -I "proto" \
-  -I "third_party/proto" \
-  --gocosmos_out=plugins=interfacetype+grpc,\
-Mgoogle/protobuf/any.proto=github.com/cosmos/cosmos-sdk/codec/types:. \
-  $(find "${dir}" -maxdepth 1 -name '*.proto')
+    -I "proto" \
+    -I "third_party/proto" \
+    --gocosmos_out=plugins=interfacetype+grpc,Mgoogle/protobuf/any.proto=github.com/cosmos/cosmos-sdk/codec/types:. \
+    $(find "${dir}" -maxdepth 1 -name '*.proto')
 done
 
 # move proto files to the right places
