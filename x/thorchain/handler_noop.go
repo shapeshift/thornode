@@ -8,20 +8,17 @@ import (
 
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // NoOpHandler is to handle donate message
 type NoOpHandler struct {
-	keeper keeper.Keeper
-	mgr    Manager
+	mgr Manager
 }
 
 // NewNoOpHandler create a new instance of NoOpHandler
-func NewNoOpHandler(keeper keeper.Keeper, mgr Manager) NoOpHandler {
+func NewNoOpHandler(mgr Manager) NoOpHandler {
 	return NoOpHandler{
-		keeper: keeper,
-		mgr:    mgr,
+		mgr: mgr,
 	}
 }
 
@@ -78,14 +75,14 @@ func (h NoOpHandler) handleCurrent(ctx cosmos.Context, msg MsgNoOp, version semv
 	if !strings.EqualFold(action, "novault") {
 		return nil
 	}
-	vault, err := h.keeper.GetVault(ctx, msg.ObservedTx.ObservedPubKey)
+	vault, err := h.mgr.Keeper().GetVault(ctx, msg.ObservedTx.ObservedPubKey)
 	if err != nil {
 		ctx.Logger().Error("fail to get vault", "error", err, "pub_key", msg.ObservedTx.ObservedPubKey)
 		return nil
 	}
 	// subtract the coins from vault , as it has been added to
 	vault.SubFunds(msg.ObservedTx.Tx.Coins)
-	if err := h.keeper.SetVault(ctx, vault); err != nil {
+	if err := h.mgr.Keeper().SetVault(ctx, vault); err != nil {
 		ctx.Logger().Error("fail to save vault", "error", err)
 	}
 	return nil

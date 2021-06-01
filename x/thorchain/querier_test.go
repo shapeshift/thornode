@@ -50,11 +50,8 @@ func (s *QuerierSuite) SetUpTest(c *C) {
 		SignerPasswd: password,
 		Keybase:      kb,
 	}
-	ctx, k := setupKeeperForTest(c)
-	s.k = k
-	s.ctx = ctx
-	s.mgr = NewManagers(s.k)
-	c.Assert(s.mgr.BeginBlock(ctx), IsNil)
+	s.ctx, s.mgr = setupManagerForTest(c)
+	s.k = s.mgr.Keeper()
 	s.querier = NewQuerier(s.mgr, s.kb)
 }
 
@@ -77,7 +74,9 @@ func (s *QuerierSuite) TestQueryKeysign(c *C) {
 		txOut: txOut,
 	}
 
-	querier := NewQuerier(NewManagers(keeper), s.kb)
+	_, mgr := setupManagerForTest(c)
+	mgr.K = keeper
+	querier := NewQuerier(mgr, s.kb)
 
 	path := []string{
 		"keysign",
@@ -92,7 +91,8 @@ func (s *QuerierSuite) TestQueryKeysign(c *C) {
 func (s *QuerierSuite) TestQueryPool(c *C) {
 	ctx, keeper := setupKeeperForTest(c)
 
-	querier := NewQuerier(NewManagers(keeper), s.kb)
+	_, mgr := setupManagerForTest(c)
+	querier := NewQuerier(mgr, s.kb)
 	path := []string{"pools"}
 
 	pubKey := GetRandomPubKey()
@@ -141,7 +141,8 @@ func (s *QuerierSuite) TestQueryPool(c *C) {
 func (s *QuerierSuite) TestVaultss(c *C) {
 	ctx, keeper := setupKeeperForTest(c)
 
-	querier := NewQuerier(NewManagers(keeper), s.kb)
+	_, mgr := setupManagerForTest(c)
+	querier := NewQuerier(mgr, s.kb)
 	path := []string{"pools"}
 
 	pubKey := GetRandomPubKey()
@@ -189,7 +190,8 @@ func (s *QuerierSuite) TestVaultss(c *C) {
 func (s *QuerierSuite) TestQueryNodeAccounts(c *C) {
 	ctx, keeper := setupKeeperForTest(c)
 
-	querier := NewQuerier(NewManagers(keeper), s.kb)
+	_, mgr := setupManagerForTest(c)
+	querier := NewQuerier(mgr, s.kb)
 	path := []string{"nodes"}
 
 	signer := GetRandomBech32Addr()

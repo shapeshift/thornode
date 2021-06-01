@@ -25,7 +25,7 @@ func (s *HandlerSwapSuite) TestValidate(c *C) {
 		activeNodeAccount: GetRandomNodeAccount(NodeActive),
 	}
 
-	handler := NewSwapHandler(keeper, NewDummyMgr())
+	handler := NewSwapHandler(NewDummyMgrWithKeeper(keeper))
 
 	ver := GetCurrentVersion()
 	txID := GetRandomTxHash()
@@ -98,16 +98,14 @@ func (k *TestSwapHandleKeeper) AddToLiquidityFees(_ cosmos.Context, _ common.Ass
 }
 
 func (s *HandlerSwapSuite) TestHandle(c *C) {
-	ctx, _ := setupKeeperForTest(c)
+	ctx, mgr := setupManagerForTest(c)
 	keeper := &TestSwapHandleKeeper{
 		pools:             make(map[common.Asset]Pool),
 		activeNodeAccount: GetRandomNodeAccount(NodeActive),
 	}
-
-	mgr := NewManagers(keeper)
-	c.Assert(mgr.BeginBlock(ctx), IsNil)
+	mgr.K = keeper
 	mgr.txOutStore = NewTxStoreDummy()
-	handler := NewSwapHandler(keeper, mgr)
+	handler := NewSwapHandler(mgr)
 
 	ver := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(ver)
@@ -197,16 +195,15 @@ func (s *HandlerSwapSuite) TestHandle(c *C) {
 }
 
 func (s *HandlerSwapSuite) TestDoubleSwap(c *C) {
-	ctx, _ := setupKeeperForTest(c)
+	ctx, mgr := setupManagerForTest(c)
 	keeper := &TestSwapHandleKeeper{
 		pools:             make(map[common.Asset]Pool),
 		activeNodeAccount: GetRandomNodeAccount(NodeActive),
 	}
 	ver := GetCurrentVersion()
-	mgr := NewManagers(keeper)
-	c.Assert(mgr.BeginBlock(ctx), IsNil)
+	mgr.K = keeper
 	mgr.txOutStore = NewTxStoreDummy()
-	handler := NewSwapHandler(keeper, mgr)
+	handler := NewSwapHandler(mgr)
 	constAccessor := constants.GetConstantValues(ver)
 
 	pool := NewPool()

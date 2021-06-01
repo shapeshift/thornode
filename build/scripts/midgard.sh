@@ -1,5 +1,6 @@
 #!/bin/sh
-set -ex
+
+set -e
 
 PORT="${PORT:=8080}"
 
@@ -13,7 +14,7 @@ PG_USERNAME="${PG_USERNAME:=midgard}"
 PG_PASSWORD="${PG_PASSWORD:=password}"
 PG_DB="${PG_DB:=midgard}"
 
-$(dirname "$0")/wait-for-thorchain-api.sh $CHAIN_API
+"$(dirname "$0")/wait-for-thorchain-api.sh $CHAIN_API"
 
 mkdir -p /etc/midgard
 
@@ -43,6 +44,6 @@ echo "{
     \"sslmode\": \"disable\",
     \"migrationsDir\": \"./db/migrations/\"
   }
-}" > /etc/midgard/config.json
+}" >/etc/midgard/config.json
 
 exec "$@"

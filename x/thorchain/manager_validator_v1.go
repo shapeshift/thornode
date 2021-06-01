@@ -831,7 +831,7 @@ func (vm *validatorMgrV1) ragnarokPools(ctx cosmos.Context, nth int64, mgr Manag
 					na.NodeAddress,
 				)
 
-				withdrawHandler := NewWithdrawLiquidityHandler(vm.k, mgr)
+				withdrawHandler := NewWithdrawLiquidityHandler(mgr)
 				_, err = withdrawHandler.Run(ctx, withdrawMsg, version, constAccessor)
 				if err != nil {
 					ctx.Logger().Error("fail to withdraw", "liquidity provider", lp.RuneAddress, "error", err)

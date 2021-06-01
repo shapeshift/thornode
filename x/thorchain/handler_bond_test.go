@@ -50,7 +50,7 @@ func (HandlerBondSuite) TestBondHandler_Run(c *C) {
 	}
 	// happy path
 	c.Assert(k1.SetNodeAccount(ctx, activeNodeAccount), IsNil)
-	handler := NewBondHandler(k1, NewDummyMgr())
+	handler := NewBondHandler(NewDummyMgrWithKeeper(k1))
 	ver := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(ver)
 	minimumBondInRune := constAccessor.GetInt64Value(constants.MinimumBondInRune)
@@ -77,7 +77,7 @@ func (HandlerBondSuite) TestBondHandler_Run(c *C) {
 	c.Assert(na.Status.String(), Equals, NodeWhiteListed.String())
 	c.Assert(na.Bond.Equal(cosmos.NewUint(uint64(minimumBondInRune))), Equals, true)
 	// invalid version
-	handler = NewBondHandler(k, NewDummyMgr())
+	handler = NewBondHandler(NewDummyMgrWithKeeper(k))
 	ver = semver.Version{}
 	_, err = handler.Run(ctx, msg, ver, constAccessor)
 	c.Assert(errors.Is(err, errBadVersion), Equals, true)
@@ -98,7 +98,7 @@ func (HandlerBondSuite) TestBondHandlerFailValidation(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	activeNodeAccount := GetRandomNodeAccount(NodeActive)
 	c.Assert(k.SetNodeAccount(ctx, activeNodeAccount), IsNil)
-	handler := NewBondHandler(k, NewDummyMgr())
+	handler := NewBondHandler(NewDummyMgrWithKeeper(k))
 	ver := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(ver)
 	minimumBondInRune := constAccessor.GetInt64Value(constants.MinimumBondInRune)

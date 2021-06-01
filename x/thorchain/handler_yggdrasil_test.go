@@ -111,7 +111,7 @@ func newYggdrasilHandlerTestHelper(c *C) yggdrasilHandlerTestHelper {
 
 	constAccessor := constants.GetConstantValues(version)
 
-	mgr := NewDummyMgr()
+	mgr := NewDummyMgrWithKeeper(keeper)
 	mgr.validatorMgr = newValidatorMgrV1(k, mgr.VaultMgr(), mgr.TxOutStore(), mgr.EventMgr())
 	mgr.slasher = NewSlasherV1(keeper, NewDummyEventMgr())
 	c.Assert(mgr.ValidatorMgr().BeginBlock(ctx, constAccessor, nil), IsNil)
@@ -417,7 +417,7 @@ func (s *HandlerYggdrasilSuite) TestYggdrasilHandler(c *C) {
 	}
 	for _, tc := range testCases {
 		helper := newYggdrasilHandlerTestHelper(c)
-		handler := NewYggdrasilHandler(helper.keeper, helper.mgr)
+		handler := NewYggdrasilHandler(helper.mgr)
 		msg := tc.messageCreator(helper)
 		result, err := tc.runner(handler, msg, helper)
 		if tc.expectedResult == nil {

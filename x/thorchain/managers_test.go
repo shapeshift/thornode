@@ -12,12 +12,10 @@ type ManagersTestSuite struct{}
 var _ = Suite(&ManagersTestSuite{})
 
 func (ManagersTestSuite) TestManagers(c *C) {
-	ctx, k := setupKeeperForTest(c)
-	mgr := NewManagers(k)
-	mgr.BeginBlock(ctx)
+	_, mgr := setupManagerForTest(c)
 	ver := semver.MustParse("0.0.1")
 
-	gasMgr, err := GetGasManager(ver, k)
+	gasMgr, err := GetGasManager(ver, mgr.Keeper())
 	c.Assert(gasMgr, IsNil)
 	c.Assert(err, NotNil)
 	c.Assert(errors.Is(err, errInvalidVersion), Equals, true)
@@ -27,17 +25,17 @@ func (ManagersTestSuite) TestManagers(c *C) {
 	c.Assert(err, NotNil)
 	c.Assert(errors.Is(err, errInvalidVersion), Equals, true)
 
-	txOutStore, err := GetTxOutStore(k, ver, mgr.EventMgr(), gasMgr)
+	txOutStore, err := GetTxOutStore(mgr.Keeper(), ver, mgr.EventMgr(), gasMgr)
 	c.Assert(txOutStore, IsNil)
 	c.Assert(err, NotNil)
 	c.Assert(errors.Is(err, errInvalidVersion), Equals, true)
 
-	vaultMgr, err := GetVaultManager(k, ver, mgr.TxOutStore(), mgr.EventMgr())
+	vaultMgr, err := GetVaultManager(mgr.Keeper(), ver, mgr.TxOutStore(), mgr.EventMgr())
 	c.Assert(vaultMgr, IsNil)
 	c.Assert(err, NotNil)
 	c.Assert(errors.Is(err, errInvalidVersion), Equals, true)
 
-	validatorManager, err := GetValidatorManager(k, ver, mgr.VaultMgr(), mgr.TxOutStore(), mgr.EventMgr())
+	validatorManager, err := GetValidatorManager(mgr.Keeper(), ver, mgr.VaultMgr(), mgr.TxOutStore(), mgr.EventMgr())
 	c.Assert(validatorManager, IsNil)
 	c.Assert(err, NotNil)
 	c.Assert(errors.Is(err, errInvalidVersion), Equals, true)
@@ -47,17 +45,17 @@ func (ManagersTestSuite) TestManagers(c *C) {
 	c.Assert(err, NotNil)
 	c.Assert(errors.Is(err, errInvalidVersion), Equals, true)
 
-	swapQueue, err := GetSwapQueue(k, ver)
+	swapQueue, err := GetSwapQueue(mgr.Keeper(), ver)
 	c.Assert(swapQueue, IsNil)
 	c.Assert(err, NotNil)
 	c.Assert(errors.Is(err, errInvalidVersion), Equals, true)
 
-	slasher, err := GetSlasher(k, ver, mgr.EventMgr())
+	slasher, err := GetSlasher(mgr.Keeper(), ver, mgr.EventMgr())
 	c.Assert(slasher, IsNil)
 	c.Assert(err, NotNil)
 	c.Assert(errors.Is(err, errInvalidVersion), Equals, true)
 
-	yggMgr, err := GetYggManager(k, ver)
+	yggMgr, err := GetYggManager(mgr.Keeper(), ver)
 	c.Assert(yggMgr, IsNil)
 	c.Assert(err, NotNil)
 	c.Assert(errors.Is(err, errInvalidVersion), Equals, true)

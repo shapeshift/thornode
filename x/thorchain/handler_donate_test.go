@@ -48,8 +48,8 @@ func (HandlerDonateSuite) TestDonate(c *C) {
 	// happy path
 	prePool, err := w.keeper.GetPool(w.ctx, common.BNBAsset)
 	c.Assert(err, IsNil)
-	mgr := NewDummyMgr()
-	donateHandler := NewDonateHandler(w.keeper, mgr)
+	mgr := NewDummyMgrWithKeeper(w.keeper)
+	donateHandler := NewDonateHandler(mgr)
 	msg := NewMsgDonate(GetRandomTx(), common.BNBAsset, cosmos.NewUint(common.One*5), cosmos.NewUint(common.One*5), w.activeNodeAccount.NodeAddress)
 	ver := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(ver)
@@ -72,7 +72,7 @@ func (HandlerDonateSuite) TestDonate(c *C) {
 
 	testKeeper := NewHandlerDonateTestHelper(w.keeper)
 	testKeeper.failToGetPool = true
-	donateHandler1 := NewDonateHandler(testKeeper, mgr)
+	donateHandler1 := NewDonateHandler(NewDummyMgrWithKeeper(testKeeper))
 	result, err = donateHandler1.Run(w.ctx, msg, GetCurrentVersion(), constAccessor)
 	c.Check(err, NotNil)
 	c.Check(errors.Is(err, errInternal), Equals, true)
@@ -80,7 +80,7 @@ func (HandlerDonateSuite) TestDonate(c *C) {
 
 	testKeeper = NewHandlerDonateTestHelper(w.keeper)
 	testKeeper.failToSavePool = true
-	donateHandler2 := NewDonateHandler(testKeeper, mgr)
+	donateHandler2 := NewDonateHandler(NewDummyMgrWithKeeper(testKeeper))
 	result, err = donateHandler2.Run(w.ctx, msg, GetCurrentVersion(), constAccessor)
 	c.Check(err, NotNil)
 	c.Check(errors.Is(err, errInternal), Equals, true)
@@ -111,7 +111,7 @@ func (HandlerDonateSuite) TestHandleMsgDonateValidation(c *C) {
 		},
 	}
 
-	donateHandler := NewDonateHandler(w.keeper, NewDummyMgr())
+	donateHandler := NewDonateHandler(NewDummyMgrWithKeeper(w.keeper))
 	ver := GetCurrentVersion()
 	cosntAccessor := constants.GetConstantValues(ver)
 	for _, item := range testCases {

@@ -311,7 +311,8 @@ func (s *DogecoinSuite) TestIgnoreTx(c *C) {
 			},
 			{
 				ScriptPubKey: btcjson.ScriptPubKeyResult{
-					Asm: "OP_RETURN 74686f72636861696e3a636f6e736f6c6964617465",
+					Asm:  "OP_RETURN 74686f72636861696e3a636f6e736f6c6964617465",
+					Type: "nulldata",
 				},
 			},
 		},
@@ -336,7 +337,8 @@ func (s *DogecoinSuite) TestIgnoreTx(c *C) {
 			},
 			{
 				ScriptPubKey: btcjson.ScriptPubKeyResult{
-					Asm: "OP_RETURN 74686f72636861696e3a636f6e736f6c6964617465",
+					Asm:  "OP_RETURN 74686f72636861696e3a636f6e736f6c6964617465",
+					Type: "nulldata",
 				},
 			},
 		},
@@ -356,7 +358,8 @@ func (s *DogecoinSuite) TestIgnoreTx(c *C) {
 			},
 			{
 				ScriptPubKey: btcjson.ScriptPubKeyResult{
-					Asm: "OP_RETURN 74686f72636861696e3a636f6e736f6c6964617465",
+					Asm:  "OP_RETURN 74686f72636861696e3a636f6e736f6c6964617465",
+					Type: "nulldata",
 				},
 			},
 		},
@@ -384,7 +387,8 @@ func (s *DogecoinSuite) TestIgnoreTx(c *C) {
 			},
 			{
 				ScriptPubKey: btcjson.ScriptPubKeyResult{
-					Asm: "OP_RETURN 74686f72636861696e3a636f6e736f6c6964617465",
+					Asm:  "OP_RETURN 74686f72636861696e3a636f6e736f6c6964617465",
+					Type: "nulldata",
 				},
 			},
 		},
@@ -427,7 +431,8 @@ func (s *DogecoinSuite) TestIgnoreTx(c *C) {
 			},
 			{
 				ScriptPubKey: btcjson.ScriptPubKeyResult{
-					Asm: "OP_RETURN 74686f72636861696e3a636f6e736f6c6964617465",
+					Asm:  "OP_RETURN 74686f72636861696e3a636f6e736f6c6964617465",
+					Type: "nulldata",
 				},
 			},
 		},
@@ -462,7 +467,79 @@ func (s *DogecoinSuite) TestIgnoreTx(c *C) {
 			},
 			{
 				ScriptPubKey: btcjson.ScriptPubKeyResult{
-					Asm: "OP_RETURN 74686f72636861696e3a636f6e736f6c6964617465",
+					Asm:  "OP_RETURN 74686f72636861696e3a636f6e736f6c6964617465",
+					Type: "nulldata",
+				},
+			},
+		},
+	}
+	ignored = s.client.ignoreTx(&tx)
+	c.Assert(ignored, Equals, false)
+	// memo at first output should not ignore
+	tx = btcjson.TxRawResult{
+		Vin: []btcjson.Vin{
+			{
+				Txid: "24ed2d26fd5d4e0e8fa86633e40faf1bdfc8d1903b1cd02855286312d48818a2",
+				Vout: 0,
+			},
+		},
+		Vout: []btcjson.Vout{
+			{
+				ScriptPubKey: btcjson.ScriptPubKeyResult{
+					Asm:  "OP_RETURN 74686f72636861696e3a636f6e736f6c6964617465",
+					Type: "nulldata",
+				},
+			},
+			{
+				Value: 0.1234565,
+				ScriptPubKey: btcjson.ScriptPubKeyResult{
+					Addresses: []string{
+						"bc1q0s4mg25tu6termrk8egltfyme4q7sg3h0e56p3",
+					},
+				},
+			},
+			{
+				Value: 0.1234565,
+				ScriptPubKey: btcjson.ScriptPubKeyResult{
+					Addresses: []string{
+						"tb1qkq7weysjn6ljc2ywmjmwp8ttcckg8yyxjdz5k6",
+					},
+				},
+			},
+		},
+	}
+	ignored = s.client.ignoreTx(&tx)
+	c.Assert(ignored, Equals, false)
+
+	// memo in the middle , should not ignore
+	tx = btcjson.TxRawResult{
+		Vin: []btcjson.Vin{
+			{
+				Txid: "24ed2d26fd5d4e0e8fa86633e40faf1bdfc8d1903b1cd02855286312d48818a2",
+				Vout: 0,
+			},
+		},
+		Vout: []btcjson.Vout{
+			{
+				Value: 0.1234565,
+				ScriptPubKey: btcjson.ScriptPubKeyResult{
+					Addresses: []string{
+						"bc1q0s4mg25tu6termrk8egltfyme4q7sg3h0e56p3",
+					},
+				},
+			},
+			{
+				ScriptPubKey: btcjson.ScriptPubKeyResult{
+					Asm:  "OP_RETURN 74686f72636861696e3a636f6e736f6c6964617465",
+					Type: "nulldata",
+				},
+			},
+			{
+				Value: 0.1234565,
+				ScriptPubKey: btcjson.ScriptPubKeyResult{
+					Addresses: []string{
+						"tb1qkq7weysjn6ljc2ywmjmwp8ttcckg8yyxjdz5k6",
+					},
 				},
 			},
 		},
@@ -868,4 +945,171 @@ func (s *DogecoinSuite) TestGetConfirmationCount(c *C) {
 		MemPool:              false,
 		ConfirmationRequired: 0,
 	}), Equals, int64(5))
+}
+
+func (s *DogecoinSuite) TestGetOutput(c *C) {
+	tx := btcjson.TxRawResult{
+		Vin: []btcjson.Vin{
+			{
+				Txid: "5b0876dcc027d2f0c671fc250460ee388df39697c3ff082007b6ddd9cb9a7513",
+				Vout: 1,
+			},
+		},
+		Vout: []btcjson.Vout{
+			{
+				Value: 0.00195384,
+				ScriptPubKey: btcjson.ScriptPubKeyResult{
+					Addresses: []string{"tb1qkq7weysjn6ljc2ywmjmwp8ttcckg8yyxjdz5k6"},
+				},
+			},
+			{
+				Value: 1.49655603,
+				ScriptPubKey: btcjson.ScriptPubKeyResult{
+					Addresses: []string{"tb1qj08ys4ct2hzzc2hcz6h2hgrvlmsjynaw43s835"},
+				},
+			},
+			{
+				ScriptPubKey: btcjson.ScriptPubKeyResult{
+					Asm:  "OP_RETURN 74686f72636861696e3a636f6e736f6c6964617465",
+					Type: "nulldata",
+				},
+			},
+		},
+	}
+	out, err := s.client.getOutput("tb1qkq7weysjn6ljc2ywmjmwp8ttcckg8yyxjdz5k6", &tx, false)
+	c.Assert(err, IsNil)
+	c.Assert(out.ScriptPubKey.Addresses[0], Equals, "tb1qj08ys4ct2hzzc2hcz6h2hgrvlmsjynaw43s835")
+	c.Assert(out.Value, Equals, 1.49655603)
+
+	tx = btcjson.TxRawResult{
+		Vin: []btcjson.Vin{
+			{
+				Txid: "5b0876dcc027d2f0c671fc250460ee388df39697c3ff082007b6ddd9cb9a7513",
+				Vout: 1,
+			},
+		},
+		Vout: []btcjson.Vout{
+			{
+				ScriptPubKey: btcjson.ScriptPubKeyResult{
+					Asm:  "OP_RETURN 74686f72636861696e3a636f6e736f6c6964617465",
+					Type: "nulldata",
+				},
+			},
+			{
+				Value: 0.00195384,
+				ScriptPubKey: btcjson.ScriptPubKeyResult{
+					Addresses: []string{"tb1qkq7weysjn6ljc2ywmjmwp8ttcckg8yyxjdz5k6"},
+				},
+			},
+			{
+				Value: 1.49655603,
+				ScriptPubKey: btcjson.ScriptPubKeyResult{
+					Addresses: []string{"tb1qj08ys4ct2hzzc2hcz6h2hgrvlmsjynaw43s835"},
+				},
+			},
+		},
+	}
+	out, err = s.client.getOutput("tb1qkq7weysjn6ljc2ywmjmwp8ttcckg8yyxjdz5k6", &tx, false)
+	c.Assert(err, IsNil)
+	c.Assert(out.ScriptPubKey.Addresses[0], Equals, "tb1qj08ys4ct2hzzc2hcz6h2hgrvlmsjynaw43s835")
+	c.Assert(out.Value, Equals, 1.49655603)
+
+	tx = btcjson.TxRawResult{
+		Vin: []btcjson.Vin{
+			{
+				Txid: "5b0876dcc027d2f0c671fc250460ee388df39697c3ff082007b6ddd9cb9a7513",
+				Vout: 1,
+			},
+		},
+		Vout: []btcjson.Vout{
+			{
+				Value: 0.00195384,
+				ScriptPubKey: btcjson.ScriptPubKeyResult{
+					Addresses: []string{"tb1qkq7weysjn6ljc2ywmjmwp8ttcckg8yyxjdz5k6"},
+				},
+			},
+			{
+				ScriptPubKey: btcjson.ScriptPubKeyResult{
+					Asm:  "OP_RETURN 74686f72636861696e3a636f6e736f6c6964617465",
+					Type: "nulldata",
+				},
+			},
+			{
+				Value: 1.49655603,
+				ScriptPubKey: btcjson.ScriptPubKeyResult{
+					Addresses: []string{"tb1qj08ys4ct2hzzc2hcz6h2hgrvlmsjynaw43s835"},
+				},
+			},
+		},
+	}
+	out, err = s.client.getOutput("tb1qkq7weysjn6ljc2ywmjmwp8ttcckg8yyxjdz5k6", &tx, false)
+	c.Assert(err, IsNil)
+	c.Assert(out.ScriptPubKey.Addresses[0], Equals, "tb1qj08ys4ct2hzzc2hcz6h2hgrvlmsjynaw43s835")
+	c.Assert(out.Value, Equals, 1.49655603)
+
+	tx = btcjson.TxRawResult{
+		Vin: []btcjson.Vin{
+			{
+				Txid: "5b0876dcc027d2f0c671fc250460ee388df39697c3ff082007b6ddd9cb9a7513",
+				Vout: 1,
+			},
+		},
+		Vout: []btcjson.Vout{
+			{
+				Value: 1.49655603,
+				ScriptPubKey: btcjson.ScriptPubKeyResult{
+					Addresses: []string{"tb1qj08ys4ct2hzzc2hcz6h2hgrvlmsjynaw43s835"},
+				},
+			},
+			{
+				Value: 0.00195384,
+				ScriptPubKey: btcjson.ScriptPubKeyResult{
+					Addresses: []string{"tb1qkq7weysjn6ljc2ywmjmwp8ttcckg8yyxjdz5k6"},
+				},
+			},
+			{
+				ScriptPubKey: btcjson.ScriptPubKeyResult{
+					Asm:  "OP_RETURN 74686f72636861696e3a636f6e736f6c6964617465",
+					Type: "nulldata",
+				},
+			},
+		},
+	}
+	out, err = s.client.getOutput("tb1qkq7weysjn6ljc2ywmjmwp8ttcckg8yyxjdz5k6", &tx, false)
+	c.Assert(err, IsNil)
+	c.Assert(out.ScriptPubKey.Addresses[0], Equals, "tb1qj08ys4ct2hzzc2hcz6h2hgrvlmsjynaw43s835")
+	c.Assert(out.Value, Equals, 1.49655603)
+
+	tx = btcjson.TxRawResult{
+		Vin: []btcjson.Vin{
+			{
+				Txid: "5b0876dcc027d2f0c671fc250460ee388df39697c3ff082007b6ddd9cb9a7513",
+				Vout: 1,
+			},
+		},
+		Vout: []btcjson.Vout{
+			{
+				Value: 1.49655603,
+				ScriptPubKey: btcjson.ScriptPubKeyResult{
+					Addresses: []string{"tb1qkq7weysjn6ljc2ywmjmwp8ttcckg8yyxjdz5k6"},
+				},
+			},
+			{
+				Value: 0.00195384,
+				ScriptPubKey: btcjson.ScriptPubKeyResult{
+					Addresses: []string{"tb1qkq7weysjn6ljc2ywmjmwp8ttcckg8yyxjdz5k6"},
+				},
+			},
+			{
+				ScriptPubKey: btcjson.ScriptPubKeyResult{
+					Asm:  "OP_RETURN 74686f72636861696e3a636f6e736f6c6964617465",
+					Type: "nulldata",
+				},
+			},
+		},
+	}
+	out, err = s.client.getOutput("tb1qkq7weysjn6ljc2ywmjmwp8ttcckg8yyxjdz5k6", &tx, true)
+	c.Assert(err, IsNil)
+	c.Assert(out.ScriptPubKey.Addresses[0], Equals, "tb1qkq7weysjn6ljc2ywmjmwp8ttcckg8yyxjdz5k6")
+	c.Assert(out.Value, Equals, 1.49655603)
 }

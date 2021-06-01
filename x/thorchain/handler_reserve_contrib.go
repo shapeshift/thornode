@@ -7,20 +7,17 @@ import (
 
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // ReserveContributorHandler is handler to process MsgReserveContributor
 type ReserveContributorHandler struct {
-	keeper keeper.Keeper
-	mgr    Manager
+	mgr Manager
 }
 
 // NewReserveContributorHandler create a new instance of ReserveContributorHandler
-func NewReserveContributorHandler(keeper keeper.Keeper, mgr Manager) ReserveContributorHandler {
+func NewReserveContributorHandler(mgr Manager) ReserveContributorHandler {
 	return ReserveContributorHandler{
-		keeper: keeper,
-		mgr:    mgr,
+		mgr: mgr,
 	}
 }
 

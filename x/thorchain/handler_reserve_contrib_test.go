@@ -171,10 +171,10 @@ func (h HandlerReserveContributorSuite) TestReserveContributorHandler(c *C) {
 		},
 	}
 	for _, tc := range testCases {
+		_, mgr := setupManagerForTest(c)
 		helper := newReserveContributorHandlerHelper(c)
-		mgr := NewManagers(helper.keeper)
-		c.Assert(mgr.BeginBlock(helper.ctx), IsNil)
-		handler := NewReserveContributorHandler(helper.keeper, mgr)
+		mgr.K = helper.keeper
+		handler := NewReserveContributorHandler(mgr)
 		msg := tc.messageCreator(helper)
 		result, err := tc.runner(handler, helper, msg)
 		if tc.expectedResult == nil {
