@@ -49,7 +49,7 @@ func (s *HandlerIPAddressSuite) TestValidate(c *C) {
 		na: GetRandomNodeAccount(NodeActive),
 	}
 
-	handler := NewIPAddressHandler(keeper, NewDummyMgr())
+	handler := NewIPAddressHandler(NewDummyMgrWithKeeper(keeper))
 	// happy path
 	ver := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(ver)
@@ -76,7 +76,7 @@ func (s *HandlerIPAddressSuite) TestHandle(c *C) {
 		na: GetRandomNodeAccount(NodeActive),
 	}
 
-	handler := NewIPAddressHandler(keeper, NewDummyMgr())
+	handler := NewIPAddressHandler(NewDummyMgrWithKeeper(keeper))
 
 	msg := NewMsgSetIPAddress("192.168.0.1", GetRandomBech32Addr())
 	err := handler.handle(ctx, *msg, ver, constAccessor)
@@ -191,12 +191,11 @@ func (s *HandlerIPAddressSuite) TestHandlerSetIPAddress_validation(c *C) {
 		},
 	}
 	for _, tc := range testCases {
-		ctx, k := setupKeeperForTest(c)
+		ctx, mgr := setupManagerForTest(c)
 		c.Logf("Name: %s", tc.name)
-		helper := NewHandlerIPAddressTestHelper(k)
-		mgr := NewManagers(helper)
-		mgr.BeginBlock(ctx)
-		handler := NewIPAddressHandler(helper, mgr)
+		helper := NewHandlerIPAddressTestHelper(mgr.Keeper())
+		mgr.K = helper
+		handler := NewIPAddressHandler(mgr)
 		msg := tc.messageProvider(ctx, helper)
 		constantAccessor := constants.GetConstantValues(GetCurrentVersion())
 		result, err := handler.Run(ctx, msg, GetCurrentVersion(), constantAccessor)

@@ -8,20 +8,17 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // SwapHandler is the handler to process swap request
 type SwapHandler struct {
-	keeper keeper.Keeper
-	mgr    Manager
+	mgr Manager
 }
 
 // NewSwapHandler create a new instance of swap handler
-func NewSwapHandler(keeper keeper.Keeper, mgr Manager) SwapHandler {
+func NewSwapHandler(mgr Manager) SwapHandler {
 	return SwapHandler{
-		keeper: keeper,
-		mgr:    mgr,
+		mgr: mgr,
 	}
 }
 
@@ -72,14 +69,14 @@ func (h SwapHandler) handle(ctx cosmos.Context, msg MsgSwap, version semver.Vers
 
 func (h SwapHandler) handleV1(ctx cosmos.Context, msg MsgSwap, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
 	transactionFee := h.mgr.GasMgr().GetFee(ctx, msg.Destination.GetChain(), common.RuneAsset())
-	synthVirtualDepthMult, err := h.keeper.GetMimir(ctx, constants.VirtualMultSynths.String())
+	synthVirtualDepthMult, err := h.mgr.Keeper().GetMimir(ctx, constants.VirtualMultSynths.String())
 	if synthVirtualDepthMult < 1 || err != nil {
 		synthVirtualDepthMult = constAccessor.GetInt64Value(constants.VirtualMultSynths)
 	}
 	swapper := NewSwapperV1()
 	_, _, swapErr := swapper.swap(
 		ctx,
-		h.keeper,
+		h.mgr.Keeper(),
 		msg.Tx,
 		msg.TargetAsset,
 		msg.Destination,
@@ -99,14 +96,14 @@ func (h SwapHandler) handleV43(ctx cosmos.Context, msg MsgSwap, version semver.V
 		return nil, fmt.Errorf("address(%s) is not valid for chain(%s)", msg.Destination, targetChain)
 	}
 	transactionFee := h.mgr.GasMgr().GetFee(ctx, msg.Destination.GetChain(), common.RuneAsset())
-	synthVirtualDepthMult, err := h.keeper.GetMimir(ctx, constants.VirtualMultSynths.String())
+	synthVirtualDepthMult, err := h.mgr.Keeper().GetMimir(ctx, constants.VirtualMultSynths.String())
 	if synthVirtualDepthMult < 1 || err != nil {
 		synthVirtualDepthMult = constAccessor.GetInt64Value(constants.VirtualMultSynths)
 	}
 	swapper := NewSwapperV1()
 	_, _, swapErr := swapper.swap(
 		ctx,
-		h.keeper,
+		h.mgr.Keeper(),
 		msg.Tx,
 		msg.TargetAsset,
 		msg.Destination,
@@ -131,14 +128,14 @@ func (h SwapHandler) handleCurrent(ctx cosmos.Context, msg MsgSwap, version semv
 		return nil, fmt.Errorf("address(%s) is not same network", msg.Destination)
 	}
 	transactionFee := h.mgr.GasMgr().GetFee(ctx, msg.Destination.GetChain(), common.RuneAsset())
-	synthVirtualDepthMult, err := h.keeper.GetMimir(ctx, constants.VirtualMultSynths.String())
+	synthVirtualDepthMult, err := h.mgr.Keeper().GetMimir(ctx, constants.VirtualMultSynths.String())
 	if synthVirtualDepthMult < 1 || err != nil {
 		synthVirtualDepthMult = constAccessor.GetInt64Value(constants.VirtualMultSynths)
 	}
 	swapper := NewSwapperV1()
 	_, _, swapErr := swapper.swap(
 		ctx,
-		h.keeper,
+		h.mgr.Keeper(),
 		msg.Tx,
 		msg.TargetAsset,
 		msg.Destination,

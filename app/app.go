@@ -248,7 +248,7 @@ func New(
 		ibc.NewAppModule(app.IBCKeeper),
 		params.NewAppModule(app.ParamsKeeper),
 		transferModule,
-		thorchain.NewAppModule(app.thorchainKeeper, app.BankKeeper),
+		thorchain.NewAppModule(app.thorchainKeeper, appCodec, app.BankKeeper, app.AccountKeeper, keys[thorchaintypes.StoreKey]),
 	)
 
 	// During begin block slashing happens after distr.BeginBlocker so that

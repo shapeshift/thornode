@@ -745,8 +745,6 @@ func (c *Client) extractTxs(block *btcjson.GetBlockVerboseTxResult) (types.TxIn,
 // vout:3 is OP_RETURN (next 80 bytes)
 //
 // Rules to ignore a tx are:
-// - vout:0 doesn't have coins (value)
-// - vout:0 doesn't have address
 // - count vouts > 4
 // - count vouts with coins (value) > 2
 //
@@ -754,13 +752,10 @@ func (c *Client) ignoreTx(tx *btcjson.TxRawResult) bool {
 	if len(tx.Vin) == 0 || len(tx.Vout) == 0 || len(tx.Vout) > 4 {
 		return true
 	}
-	if tx.Vout[0].Value == 0 || tx.Vin[0].Txid == "" {
+	if tx.Vin[0].Txid == "" {
 		return true
 	}
-	// TODO check what we do if get multiple addresses
-	if len(tx.Vout[0].ScriptPubKey.Addresses) != 1 {
-		return true
-	}
+
 	countWithOutput := 0
 	for idx, vout := range tx.Vout {
 		if vout.Value > 0 {
@@ -773,6 +768,11 @@ func (c *Client) ignoreTx(tx *btcjson.TxRawResult) bool {
 		}
 	}
 
+	// none of the output has any value
+	if countWithOutput == 0 {
+		return true
+	}
+	// there are more than two output with value in it, not THORChain format
 	if countWithOutput > 2 {
 		return true
 	}
@@ -788,6 +788,9 @@ func (c *Client) ignoreTx(tx *btcjson.TxRawResult) bool {
 // an exception need to be made for consolidate tx , because consolidate tx will be send from asgard back asgard itself
 func (c *Client) getOutput(sender string, tx *btcjson.TxRawResult, consolidate bool) (btcjson.Vout, error) {
 	for _, vout := range tx.Vout {
+		if strings.EqualFold(vout.ScriptPubKey.Type, "nulldata") {
+			continue
+		}
 		if len(vout.ScriptPubKey.Addresses) != 1 {
 			return btcjson.Vout{}, fmt.Errorf("no vout address available")
 		}

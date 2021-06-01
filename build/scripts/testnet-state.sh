@@ -1,5 +1,7 @@
+#!/bin/sh
+
 add_exiting_accounts() {
-    jq '.app_state.auth.accounts += [
+  jq '.app_state.auth.accounts += [
         {
           "@type": "/cosmos.auth.v1beta1.BaseAccount",
           "account_number": "0",
@@ -1997,9 +1999,9 @@ add_exiting_accounts() {
         }
       ]' <~/.thornode/config/genesis.json >/tmp/genesis.json
 
-      mv /tmp/genesis.json ~/.thornode/config/genesis.json
+  mv /tmp/genesis.json ~/.thornode/config/genesis.json
 
-    jq '.app_state.auth.accounts += [
+  jq '.app_state.auth.accounts += [
     {
           "@type": "/cosmos.auth.v1beta1.BaseAccount",
           "account_number": "0",
@@ -4445,9 +4447,9 @@ add_exiting_accounts() {
         }
     ]' <~/.thornode/config/genesis.json >/tmp/genesis.json
 
-    mv /tmp/genesis.json ~/.thornode/config/genesis.json
+  mv /tmp/genesis.json ~/.thornode/config/genesis.json
 
-    jq '.app_state.bank.balances += [
+  jq '.app_state.bank.balances += [
         {
           "address": "tthor1qpgxwq6ga88u0zugwnwe9h3kzuhjq3jnftce9m",
           "coins": [
@@ -6397,8 +6399,8 @@ add_exiting_accounts() {
         }
       ]' <~/.thornode/config/genesis.json >/tmp/genesis.json
 
-    mv /tmp/genesis.json ~/.thornode/config/genesis.json
-    jq '.app_state.bank.balances += [
+  mv /tmp/genesis.json ~/.thornode/config/genesis.json
+  jq '.app_state.bank.balances += [
     {
           "address": "tthor1d83hp5rzdt8pyulr3ehu54u89qwwulnxk8s56x",
           "coins": [
@@ -8605,5 +8607,5 @@ add_exiting_accounts() {
           ]
         }
     ]' <~/.thornode/config/genesis.json >/tmp/genesis.json
-    mv /tmp/genesis.json ~/.thornode/config/genesis.json
+  mv /tmp/genesis.json ~/.thornode/config/genesis.json
 }

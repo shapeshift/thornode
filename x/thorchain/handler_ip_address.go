@@ -8,20 +8,17 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // IPAddressHandler is to handle ip address message
 type IPAddressHandler struct {
-	keeper keeper.Keeper
-	mgr    Manager
+	mgr Manager
 }
 
 // NewIPAddressHandler create new instance of IPAddressHandler
-func NewIPAddressHandler(keeper keeper.Keeper, mgr Manager) IPAddressHandler {
+func NewIPAddressHandler(mgr Manager) IPAddressHandler {
 	return IPAddressHandler{
-		keeper: keeper,
-		mgr:    mgr,
+		mgr: mgr,
 	}
 }
 
@@ -60,7 +57,7 @@ func (h IPAddressHandler) validateCurrent(ctx cosmos.Context, msg MsgSetIPAddres
 		return err
 	}
 
-	nodeAccount, err := h.keeper.GetNodeAccount(ctx, msg.Signer)
+	nodeAccount, err := h.mgr.Keeper().GetNodeAccount(ctx, msg.Signer)
 	if err != nil {
 		ctx.Logger().Error("fail to get node account", "error", err, "address", msg.Signer.String())
 		return cosmos.ErrUnauthorized(fmt.Sprintf("%s is not authorizaed", msg.Signer))
@@ -70,7 +67,7 @@ func (h IPAddressHandler) validateCurrent(ctx cosmos.Context, msg MsgSetIPAddres
 		return cosmos.ErrUnauthorized(fmt.Sprintf("%s is not authorizaed", msg.Signer))
 	}
 
-	cost, err := h.keeper.GetMimir(ctx, constants.NativeTransactionFee.String())
+	cost, err := h.mgr.Keeper().GetMimir(ctx, constants.NativeTransactionFee.String())
 	if err != nil || cost < 0 {
 		cost = constAccessor.GetInt64Value(constants.NativeTransactionFee)
 	}
@@ -95,13 +92,13 @@ func (h IPAddressHandler) handleV1(ctx cosmos.Context, msg MsgSetIPAddress, cons
 }
 
 func (h IPAddressHandler) handleCurrent(ctx cosmos.Context, msg MsgSetIPAddress, constAccessor constants.ConstantValues) error {
-	nodeAccount, err := h.keeper.GetNodeAccount(ctx, msg.Signer)
+	nodeAccount, err := h.mgr.Keeper().GetNodeAccount(ctx, msg.Signer)
 	if err != nil {
 		ctx.Logger().Error("fail to get node account", "error", err, "address", msg.Signer.String())
 		return cosmos.ErrUnauthorized(fmt.Sprintf("unable to find account: %s", msg.Signer))
 	}
 
-	c, err := h.keeper.GetMimir(ctx, constants.NativeTransactionFee.String())
+	c, err := h.mgr.Keeper().GetMimir(ctx, constants.NativeTransactionFee.String())
 	if err != nil || c < 0 {
 		c = constAccessor.GetInt64Value(constants.NativeTransactionFee)
 	}
@@ -111,14 +108,14 @@ func (h IPAddressHandler) handleCurrent(ctx cosmos.Context, msg MsgSetIPAddress,
 	}
 	nodeAccount.IPAddress = msg.IPAddress
 	nodeAccount.Bond = common.SafeSub(nodeAccount.Bond, cost) // take bond
-	if err := h.keeper.SetNodeAccount(ctx, nodeAccount); err != nil {
+	if err := h.mgr.Keeper().SetNodeAccount(ctx, nodeAccount); err != nil {
 		return fmt.Errorf("fail to save node account: %w", err)
 	}
 
 	// add cost to reserve
 	coin := common.NewCoin(common.RuneNative, cost)
 	if !cost.IsZero() {
-		if err := h.keeper.SendFromAccountToModule(ctx, msg.Signer, ReserveName, common.NewCoins(coin)); err != nil {
+		if err := h.mgr.Keeper().SendFromAccountToModule(ctx, msg.Signer, ReserveName, common.NewCoins(coin)); err != nil {
 			ctx.Logger().Error("fail to transfer funds from bond to reserve", "error", err)
 			return err
 		}

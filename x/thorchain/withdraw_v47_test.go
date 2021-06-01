@@ -242,11 +242,11 @@ func (s WithdrawSuiteV47) TestCalculateUnsake(c *C) {
 }
 
 func (WithdrawSuiteV47) TestWithdraw(c *C) {
-	ctx, k := setupKeeperForTest(c)
+	ctx, mgr := setupManagerForTest(c)
 	accountAddr := GetRandomNodeAccount(NodeWhiteListed).NodeAddress
 	runeAddress := GetRandomRUNEAddress()
-	ps := NewWithdrawTestKeeper(k)
-	ps2 := getWithdrawTestKeeper(c, ctx, k, runeAddress)
+	ps := NewWithdrawTestKeeper(mgr.Keeper())
+	ps2 := getWithdrawTestKeeper(c, ctx, mgr.Keeper(), runeAddress)
 
 	remainGas := uint64(37500)
 	testCases := []struct {
@@ -387,14 +387,13 @@ func (WithdrawSuiteV47) TestWithdraw(c *C) {
 	for _, tc := range testCases {
 		c.Logf("name:%s", tc.name)
 		version := GetCurrentVersion()
-		mgr := NewManagers(tc.ps)
-		mgr.BeginBlock(ctx)
+		mgr.K = tc.ps
 		tc.ps.SaveNetworkFee(ctx, common.BNBChain, NetworkFee{
 			Chain:              common.BNBChain,
 			TransactionSize:    1,
 			TransactionFeeRate: bnbSingleTxFee.Uint64(),
 		})
-		r, asset, _, _, _, err := withdrawV47(ctx, version, tc.ps, tc.msg, mgr)
+		r, asset, _, _, _, err := withdrawV47(ctx, version, tc.msg, mgr)
 		if tc.expectedError != nil {
 			c.Assert(err, NotNil)
 			c.Check(err.Error(), Equals, tc.expectedError.Error())
@@ -451,16 +450,15 @@ func (WithdrawSuiteV47) TestWithdrawAsym(c *C) {
 	for _, tc := range testCases {
 		c.Logf("name:%s", tc.name)
 		version := GetCurrentVersion()
-		ctx, k := setupKeeperForTest(c)
-		ps := getWithdrawTestKeeper2(c, ctx, k, runeAddress)
-		mgr := NewManagers(ps)
-		mgr.BeginBlock(ctx)
+		ctx, mgr := setupManagerForTest(c)
+		ps := getWithdrawTestKeeper2(c, ctx, mgr.Keeper(), runeAddress)
+		mgr.K = ps
 		ps.SaveNetworkFee(ctx, common.BNBChain, NetworkFee{
 			Chain:              common.BNBChain,
 			TransactionSize:    1,
 			TransactionFeeRate: bnbSingleTxFee.Uint64(),
 		})
-		r, asset, _, _, _, err := withdrawV47(ctx, version, ps, tc.msg, mgr)
+		r, asset, _, _, _, err := withdrawV47(ctx, version, tc.msg, mgr)
 		if tc.expectedError != nil {
 			c.Assert(err, NotNil)
 			c.Check(err.Error(), Equals, tc.expectedError.Error())
@@ -477,9 +475,7 @@ func (WithdrawSuiteV47) TestWithdrawAsym(c *C) {
 func (WithdrawSuiteV47) TestWithdrawPendingRuneOrAsset(c *C) {
 	version := GetCurrentVersion()
 	accountAddr := GetRandomNodeAccount(NodeActive).NodeAddress
-	ctx, k := setupKeeperForTest(c)
-	mgr := NewManagers(k)
-	mgr.BeginBlock(ctx)
+	ctx, mgr := setupManagerForTest(c)
 	pool := Pool{
 		BalanceRune:  cosmos.NewUint(100 * common.One),
 		BalanceAsset: cosmos.NewUint(100 * common.One),
@@ -487,7 +483,7 @@ func (WithdrawSuiteV47) TestWithdrawPendingRuneOrAsset(c *C) {
 		PoolUnits:    cosmos.NewUint(200 * common.One),
 		Status:       PoolAvailable,
 	}
-	c.Assert(k.SetPool(ctx, pool), IsNil)
+	c.Assert(mgr.Keeper().SetPool(ctx, pool), IsNil)
 	lp := LiquidityProvider{
 		Asset:              common.BNBAsset,
 		RuneAddress:        GetRandomRUNEAddress(),
@@ -499,7 +495,7 @@ func (WithdrawSuiteV47) TestWithdrawPendingRuneOrAsset(c *C) {
 		PendingAsset:       cosmos.NewUint(0),
 		PendingTxID:        GetRandomTxHash(),
 	}
-	k.SetLiquidityProvider(ctx, lp)
+	mgr.Keeper().SetLiquidityProvider(ctx, lp)
 	msg := MsgWithdrawLiquidity{
 		WithdrawAddress: lp.RuneAddress,
 		BasisPoints:     cosmos.NewUint(10000),
@@ -508,7 +504,7 @@ func (WithdrawSuiteV47) TestWithdrawPendingRuneOrAsset(c *C) {
 		WithdrawalAsset: common.BNBAsset,
 		Signer:          accountAddr,
 	}
-	runeAmt, assetAmt, _, unitsLeft, gas, err := withdrawV47(ctx, version, k, msg, mgr)
+	runeAmt, assetAmt, _, unitsLeft, gas, err := withdrawV47(ctx, version, msg, mgr)
 	c.Assert(err, IsNil)
 	c.Assert(runeAmt.Equal(cosmos.NewUint(1024)), Equals, true)
 	c.Assert(assetAmt.IsZero(), Equals, true)
@@ -526,7 +522,7 @@ func (WithdrawSuiteV47) TestWithdrawPendingRuneOrAsset(c *C) {
 		PendingAsset:       cosmos.NewUint(1024),
 		PendingTxID:        GetRandomTxHash(),
 	}
-	k.SetLiquidityProvider(ctx, lp1)
+	mgr.Keeper().SetLiquidityProvider(ctx, lp1)
 	msg1 := MsgWithdrawLiquidity{
 		WithdrawAddress: lp1.RuneAddress,
 		BasisPoints:     cosmos.NewUint(10000),
@@ -535,7 +531,7 @@ func (WithdrawSuiteV47) TestWithdrawPendingRuneOrAsset(c *C) {
 		WithdrawalAsset: common.BNBAsset,
 		Signer:          accountAddr,
 	}
-	runeAmt, assetAmt, _, unitsLeft, gas, err = withdrawV47(ctx, version, k, msg1, mgr)
+	runeAmt, assetAmt, _, unitsLeft, gas, err = withdrawV47(ctx, version, msg1, mgr)
 	c.Assert(err, IsNil)
 	c.Assert(assetAmt.Equal(cosmos.NewUint(1024)), Equals, true)
 	c.Assert(runeAmt.IsZero(), Equals, true)

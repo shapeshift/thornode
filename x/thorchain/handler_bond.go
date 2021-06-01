@@ -8,20 +8,17 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // BondHandler a handler to process bond
 type BondHandler struct {
-	keeper keeper.Keeper
-	mgr    Manager
+	mgr Manager
 }
 
 // NewBondHandler create new BondHandler
-func NewBondHandler(keeper keeper.Keeper, mgr Manager) BondHandler {
+func NewBondHandler(mgr Manager) BondHandler {
 	return BondHandler{
-		keeper: keeper,
-		mgr:    mgr,
+		mgr: mgr,
 	}
 }
 
@@ -43,14 +40,14 @@ func (h BondHandler) validateCurrent(ctx cosmos.Context, version semver.Version,
 	// When RUNE is on thorchain , pay bond doesn't need to be active node
 	// in fact , usually the node will not be active at the time it bond
 
-	nodeAccount, err := h.keeper.GetNodeAccount(ctx, msg.NodeAddress)
+	nodeAccount, err := h.mgr.Keeper().GetNodeAccount(ctx, msg.NodeAddress)
 	if err != nil {
 		return ErrInternal(err, fmt.Sprintf("fail to get node account(%s)", msg.NodeAddress))
 	}
 
 	bond := msg.Bond.Add(nodeAccount.Bond)
 
-	maxBond, err := h.keeper.GetMimir(ctx, "MaximumBondInRune")
+	maxBond, err := h.mgr.Keeper().GetMimir(ctx, "MaximumBondInRune")
 	if maxBond > 0 && err == nil {
 		maxValidatorBond := cosmos.NewUint(uint64(maxBond))
 		if bond.GT(maxValidatorBond) {
@@ -107,7 +104,7 @@ func (h BondHandler) handleV1(ctx cosmos.Context, msg MsgBond, version semver.Ve
 		Ed25519:   common.EmptyPubKey,
 	}
 
-	nodeAccount, err := h.keeper.GetNodeAccount(ctx, msg.NodeAddress)
+	nodeAccount, err := h.mgr.Keeper().GetNodeAccount(ctx, msg.NodeAddress)
 	if err != nil {
 		return ErrInternal(err, fmt.Sprintf("fail to get node account(%s)", msg.NodeAddress))
 	}
@@ -122,19 +119,19 @@ func (h BondHandler) handleV1(ctx cosmos.Context, msg MsgBond, version semver.Ve
 	}
 	nodeAccount.Bond = nodeAccount.Bond.Add(msg.Bond)
 
-	acct := h.keeper.GetAccount(ctx, msg.NodeAddress)
+	acct := h.mgr.Keeper().GetAccount(ctx, msg.NodeAddress)
 
 	// when node bond for the first time , send 1 RUNE to node address
 	// so as the node address will be created on THORChain otherwise node account won't be able to send tx
 	if acct == nil && nodeAccount.Bond.GTE(cosmos.NewUint(common.One)) {
 		coin := common.NewCoin(common.RuneNative, cosmos.NewUint(common.One))
-		if err := h.keeper.SendFromModuleToAccount(ctx, BondName, msg.NodeAddress, common.NewCoins(coin)); err != nil {
+		if err := h.mgr.Keeper().SendFromModuleToAccount(ctx, BondName, msg.NodeAddress, common.NewCoins(coin)); err != nil {
 			ctx.Logger().Error("fail to send one RUNE to node address", "error", err)
 		}
 		nodeAccount.Bond = common.SafeSub(nodeAccount.Bond, cosmos.NewUint(common.One))
 	}
 
-	if err := h.keeper.SetNodeAccount(ctx, nodeAccount); err != nil {
+	if err := h.mgr.Keeper().SetNodeAccount(ctx, nodeAccount); err != nil {
 		return ErrInternal(err, fmt.Sprintf("fail to save node account(%s)", nodeAccount.String()))
 	}
 
@@ -158,7 +155,7 @@ func (h BondHandler) handleCurrent(ctx cosmos.Context, msg MsgBond, version semv
 		Ed25519:   common.EmptyPubKey,
 	}
 
-	nodeAccount, err := h.keeper.GetNodeAccount(ctx, msg.NodeAddress)
+	nodeAccount, err := h.mgr.Keeper().GetNodeAccount(ctx, msg.NodeAddress)
 	if err != nil {
 		return ErrInternal(err, fmt.Sprintf("fail to get node account(%s)", msg.NodeAddress))
 	}
@@ -173,20 +170,20 @@ func (h BondHandler) handleCurrent(ctx cosmos.Context, msg MsgBond, version semv
 	}
 	nodeAccount.Bond = nodeAccount.Bond.Add(msg.Bond)
 
-	acct := h.keeper.GetAccount(ctx, msg.NodeAddress)
+	acct := h.mgr.Keeper().GetAccount(ctx, msg.NodeAddress)
 
 	// when node bond for the first time , send 1 RUNE to node address
 	// so as the node address will be created on THORChain otherwise node account won't be able to send tx
 	if acct == nil && nodeAccount.Bond.GTE(cosmos.NewUint(common.One)) {
 		coin := common.NewCoin(common.RuneNative, cosmos.NewUint(common.One))
-		if err := h.keeper.SendFromModuleToAccount(ctx, BondName, msg.NodeAddress, common.NewCoins(coin)); err != nil {
+		if err := h.mgr.Keeper().SendFromModuleToAccount(ctx, BondName, msg.NodeAddress, common.NewCoins(coin)); err != nil {
 			ctx.Logger().Error("fail to send one RUNE to node address", "error", err)
 		}
 		nodeAccount.Bond = common.SafeSub(nodeAccount.Bond, cosmos.NewUint(common.One))
 		msg.Bond = common.SafeSub(msg.Bond, cosmos.NewUint(common.One))
 	}
 
-	if err := h.keeper.SetNodeAccount(ctx, nodeAccount); err != nil {
+	if err := h.mgr.Keeper().SetNodeAccount(ctx, nodeAccount); err != nil {
 		return ErrInternal(err, fmt.Sprintf("fail to save node account(%s)", nodeAccount.String()))
 	}
 

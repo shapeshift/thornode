@@ -8,20 +8,17 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // ObservedTxOutHandler process MsgObservedTxOut messages
 type ObservedTxOutHandler struct {
-	keeper keeper.Keeper
-	mgr    Manager
+	mgr Manager
 }
 
 // NewObservedTxOutHandler create a new instance of ObservedTxOutHandler
-func NewObservedTxOutHandler(keeper keeper.Keeper, mgr Manager) ObservedTxOutHandler {
+func NewObservedTxOutHandler(mgr Manager) ObservedTxOutHandler {
 	return ObservedTxOutHandler{
-		keeper: keeper,
-		mgr:    mgr,
+		mgr: mgr,
 	}
 }
 
@@ -58,7 +55,7 @@ func (h ObservedTxOutHandler) validateCurrent(ctx cosmos.Context, msg MsgObserve
 		return err
 	}
 
-	if !isSignedByActiveNodeAccounts(ctx, h.keeper, msg.GetSigners()) {
+	if !isSignedByActiveNodeAccounts(ctx, h.mgr.Keeper(), msg.GetSigners()) {
 		return cosmos.ErrUnauthorized(fmt.Sprintf("%+v are not authorized", msg.GetSigners()))
 	}
 
@@ -79,7 +76,7 @@ func (h ObservedTxOutHandler) preflightV1(ctx cosmos.Context, voter ObservedTxVo
 	observeFlex := constAccessor.GetInt64Value(constants.ObservationDelayFlexibility)
 	ok := false
 	h.mgr.Slasher().IncSlashPoints(ctx, observeSlashPoints, signer)
-	if err := h.keeper.SetLastObserveHeight(ctx, tx.Tx.Chain, signer, tx.BlockHeight); err != nil {
+	if err := h.mgr.Keeper().SetLastObserveHeight(ctx, tx.Tx.Chain, signer, tx.BlockHeight); err != nil {
 		ctx.Logger().Error("fail to save last observe height", "error", err, "signer", signer, "chain", tx.Tx.Chain)
 	}
 	if !voter.Add(tx, signer) {
@@ -101,7 +98,7 @@ func (h ObservedTxOutHandler) preflightV1(ctx cosmos.Context, voter ObservedTxVo
 			}
 		}
 	}
-	h.keeper.SetObservedTxOutVoter(ctx, voter)
+	h.mgr.Keeper().SetObservedTxOutVoter(ctx, voter)
 
 	// Check to see if we have enough identical observations to process the transaction
 	return voter, ok
@@ -109,29 +106,29 @@ func (h ObservedTxOutHandler) preflightV1(ctx cosmos.Context, voter ObservedTxVo
 
 // Handle a message to observe outbound tx
 func (h ObservedTxOutHandler) handleV1(ctx cosmos.Context, version semver.Version, msg MsgObservedTxOut, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
-	activeNodeAccounts, err := h.keeper.ListActiveNodeAccounts(ctx)
+	activeNodeAccounts, err := h.mgr.Keeper().ListActiveNodeAccounts(ctx)
 	if err != nil {
 		return nil, wrapError(ctx, err, "fail to get list of active node accounts")
 	}
 
-	handler := NewInternalHandler(h.keeper, h.mgr)
+	handler := NewInternalHandler(h.mgr)
 
 	for _, tx := range msg.Txs {
 		// check we are sending from a valid vault
-		if !h.keeper.VaultExists(ctx, tx.ObservedPubKey) {
+		if !h.mgr.Keeper().VaultExists(ctx, tx.ObservedPubKey) {
 			ctx.Logger().Info("Not valid Observed Pubkey", tx.ObservedPubKey)
 			continue
 		}
 		if tx.KeysignMs > 0 {
-			keysignMetric, err := h.keeper.GetTssKeysignMetric(ctx, tx.Tx.ID)
+			keysignMetric, err := h.mgr.Keeper().GetTssKeysignMetric(ctx, tx.Tx.ID)
 			if err != nil {
 				ctx.Logger().Error("fail to get keysing metric", "error", err)
 			} else {
 				keysignMetric.AddNodeTssTime(msg.Signer, tx.KeysignMs)
-				h.keeper.SetTssKeysignMetric(ctx, keysignMetric)
+				h.mgr.Keeper().SetTssKeysignMetric(ctx, keysignMetric)
 			}
 		}
-		voter, err := h.keeper.GetObservedTxOutVoter(ctx, tx.Tx.ID)
+		voter, err := h.mgr.Keeper().GetObservedTxOutVoter(ctx, tx.Tx.ID)
 		if err != nil {
 			ctx.Logger().Error("fail to get tx out voter", "error", err)
 			continue
@@ -153,7 +150,7 @@ func (h ObservedTxOutHandler) handleV1(ctx cosmos.Context, version semver.Versio
 		// from a yggdrasil vault, slash the node
 		memo, _ := ParseMemo(tx.Tx.Memo)
 		if memo.IsEmpty() || memo.IsInbound() {
-			vault, err := h.keeper.GetVault(ctx, tx.ObservedPubKey)
+			vault, err := h.mgr.Keeper().GetVault(ctx, tx.ObservedPubKey)
 			if err != nil {
 				ctx.Logger().Error("fail to get vault", "error", err)
 				continue
@@ -163,7 +160,7 @@ func (h ObservedTxOutHandler) handleV1(ctx cosmos.Context, version semver.Versio
 				ctx.Logger().Error("fail to slash account for sending extra fund", "error", err)
 			}
 			vault.SubFunds(toSlash)
-			if err := h.keeper.SetVault(ctx, vault); err != nil {
+			if err := h.mgr.Keeper().SetVault(ctx, vault); err != nil {
 				ctx.Logger().Error("fail to save vault", "error", err)
 			}
 
@@ -172,7 +169,7 @@ func (h ObservedTxOutHandler) handleV1(ctx cosmos.Context, version semver.Versio
 
 		txOut := voter.GetTx(activeNodeAccounts) // get consensus tx, in case our for loop is incorrect
 		txOut.Tx.Memo = tx.Tx.Memo
-		m, err := processOneTxIn(ctx, h.keeper, txOut, msg.Signer)
+		m, err := processOneTxIn(ctx, h.mgr.Keeper(), txOut, msg.Signer)
 		if err != nil || tx.Tx.Chain.IsEmpty() {
 			ctx.Logger().Error("fail to process txOut",
 				"error", err,
@@ -181,13 +178,13 @@ func (h ObservedTxOutHandler) handleV1(ctx cosmos.Context, version semver.Versio
 		}
 
 		// Apply Gas fees
-		if err := AddGasFees(ctx, h.keeper, tx, h.mgr.GasMgr()); err != nil {
+		if err := AddGasFees(ctx, h.mgr, tx); err != nil {
 			ctx.Logger().Error("fail to add gas fee", "error", err)
 			continue
 		}
 
 		// If sending from one of our vaults, decrement coins
-		vault, err := h.keeper.GetVault(ctx, tx.ObservedPubKey)
+		vault, err := h.mgr.Keeper().GetVault(ctx, tx.ObservedPubKey)
 		if err != nil {
 			ctx.Logger().Error("fail to get vault", "error", err)
 			continue
@@ -204,7 +201,7 @@ func (h ObservedTxOutHandler) handleV1(ctx cosmos.Context, version semver.Versio
 			// mark it as inactive
 			vault.Status = InactiveVault
 		}
-		if err := h.keeper.SetVault(ctx, vault); err != nil {
+		if err := h.mgr.Keeper().SetVault(ctx, vault); err != nil {
 			ctx.Logger().Error("fail to save vault", "error", err)
 			continue
 		}
@@ -215,7 +212,7 @@ func (h ObservedTxOutHandler) handleV1(ctx cosmos.Context, version semver.Versio
 
 		// emit tss keysign metrics
 		if tx.KeysignMs > 0 {
-			keysignMetric, err := h.keeper.GetTssKeysignMetric(ctx, tx.Tx.ID)
+			keysignMetric, err := h.mgr.Keeper().GetTssKeysignMetric(ctx, tx.Tx.ID)
 			if err != nil {
 				ctx.Logger().Error("fail to get tss keysign metric", "error", err, "hash", tx.Tx.ID)
 			} else {
@@ -231,7 +228,7 @@ func (h ObservedTxOutHandler) handleV1(ctx cosmos.Context, version semver.Versio
 			continue
 		}
 		voter.SetDone()
-		h.keeper.SetObservedTxOutVoter(ctx, voter)
+		h.mgr.Keeper().SetObservedTxOutVoter(ctx, voter)
 	}
 	return &cosmos.Result{}, nil
 
@@ -244,29 +241,29 @@ func (h ObservedTxOutHandler) handleV46(ctx cosmos.Context, version semver.Versi
 
 // Handle a message to observe outbound tx
 func (h ObservedTxOutHandler) handleCurrent(ctx cosmos.Context, version semver.Version, msg MsgObservedTxOut, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
-	activeNodeAccounts, err := h.keeper.ListActiveNodeAccounts(ctx)
+	activeNodeAccounts, err := h.mgr.Keeper().ListActiveNodeAccounts(ctx)
 	if err != nil {
 		return nil, wrapError(ctx, err, "fail to get list of active node accounts")
 	}
 
-	handler := NewInternalHandler(h.keeper, h.mgr)
+	handler := NewInternalHandler(h.mgr)
 
 	for _, tx := range msg.Txs {
 		// check we are sending from a valid vault
-		if !h.keeper.VaultExists(ctx, tx.ObservedPubKey) {
+		if !h.mgr.Keeper().VaultExists(ctx, tx.ObservedPubKey) {
 			ctx.Logger().Info("Not valid Observed Pubkey", tx.ObservedPubKey)
 			continue
 		}
 		if tx.KeysignMs > 0 {
-			keysignMetric, err := h.keeper.GetTssKeysignMetric(ctx, tx.Tx.ID)
+			keysignMetric, err := h.mgr.Keeper().GetTssKeysignMetric(ctx, tx.Tx.ID)
 			if err != nil {
 				ctx.Logger().Error("fail to get keysing metric", "error", err)
 			} else {
 				keysignMetric.AddNodeTssTime(msg.Signer, tx.KeysignMs)
-				h.keeper.SetTssKeysignMetric(ctx, keysignMetric)
+				h.mgr.Keeper().SetTssKeysignMetric(ctx, keysignMetric)
 			}
 		}
-		voter, err := h.keeper.GetObservedTxOutVoter(ctx, tx.Tx.ID)
+		voter, err := h.mgr.Keeper().GetObservedTxOutVoter(ctx, tx.Tx.ID)
 		if err != nil {
 			ctx.Logger().Error("fail to get tx out voter", "error", err)
 			continue
@@ -288,7 +285,7 @@ func (h ObservedTxOutHandler) handleCurrent(ctx cosmos.Context, version semver.V
 		// from a yggdrasil vault, slash the node
 		memo, _ := ParseMemo(tx.Tx.Memo)
 		if memo.IsEmpty() || memo.IsInbound() {
-			vault, err := h.keeper.GetVault(ctx, tx.ObservedPubKey)
+			vault, err := h.mgr.Keeper().GetVault(ctx, tx.ObservedPubKey)
 			if err != nil {
 				ctx.Logger().Error("fail to get vault", "error", err)
 				continue
@@ -298,7 +295,7 @@ func (h ObservedTxOutHandler) handleCurrent(ctx cosmos.Context, version semver.V
 				ctx.Logger().Error("fail to slash account for sending extra fund", "error", err)
 			}
 			vault.SubFunds(toSlash)
-			if err := h.keeper.SetVault(ctx, vault); err != nil {
+			if err := h.mgr.Keeper().SetVault(ctx, vault); err != nil {
 				ctx.Logger().Error("fail to save vault", "error", err)
 			}
 
@@ -307,7 +304,7 @@ func (h ObservedTxOutHandler) handleCurrent(ctx cosmos.Context, version semver.V
 
 		txOut := voter.GetTx(activeNodeAccounts) // get consensus tx, in case our for loop is incorrect
 		txOut.Tx.Memo = tx.Tx.Memo
-		m, err := processOneTxInV46(ctx, h.keeper, txOut, msg.Signer)
+		m, err := processOneTxInV46(ctx, h.mgr.Keeper(), txOut, msg.Signer)
 		if err != nil || tx.Tx.Chain.IsEmpty() {
 			ctx.Logger().Error("fail to process txOut",
 				"error", err,
@@ -316,13 +313,13 @@ func (h ObservedTxOutHandler) handleCurrent(ctx cosmos.Context, version semver.V
 		}
 
 		// Apply Gas fees
-		if err := AddGasFees(ctx, h.keeper, tx, h.mgr.GasMgr()); err != nil {
+		if err := AddGasFees(ctx, h.mgr, tx); err != nil {
 			ctx.Logger().Error("fail to add gas fee", "error", err)
 			continue
 		}
 
 		// If sending from one of our vaults, decrement coins
-		vault, err := h.keeper.GetVault(ctx, tx.ObservedPubKey)
+		vault, err := h.mgr.Keeper().GetVault(ctx, tx.ObservedPubKey)
 		if err != nil {
 			ctx.Logger().Error("fail to get vault", "error", err)
 			continue
@@ -339,7 +336,7 @@ func (h ObservedTxOutHandler) handleCurrent(ctx cosmos.Context, version semver.V
 			// mark it as inactive
 			vault.Status = InactiveVault
 		}
-		if err := h.keeper.SetVault(ctx, vault); err != nil {
+		if err := h.mgr.Keeper().SetVault(ctx, vault); err != nil {
 			ctx.Logger().Error("fail to save vault", "error", err)
 			continue
 		}
@@ -350,7 +347,7 @@ func (h ObservedTxOutHandler) handleCurrent(ctx cosmos.Context, version semver.V
 
 		// emit tss keysign metrics
 		if tx.KeysignMs > 0 {
-			keysignMetric, err := h.keeper.GetTssKeysignMetric(ctx, tx.Tx.ID)
+			keysignMetric, err := h.mgr.Keeper().GetTssKeysignMetric(ctx, tx.Tx.ID)
 			if err != nil {
 				ctx.Logger().Error("fail to get tss keysign metric", "error", err, "hash", tx.Tx.ID)
 			} else {
@@ -366,7 +363,7 @@ func (h ObservedTxOutHandler) handleCurrent(ctx cosmos.Context, version semver.V
 			continue
 		}
 		voter.SetDone()
-		h.keeper.SetObservedTxOutVoter(ctx, voter)
+		h.mgr.Keeper().SetObservedTxOutVoter(ctx, voter)
 	}
 	return &cosmos.Result{}, nil
 }

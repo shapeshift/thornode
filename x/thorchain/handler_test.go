@@ -70,6 +70,58 @@ var (
 	keyThorchain = cosmos.NewKVStoreKey(StoreKey)
 )
 
+func setupManagerForTest(c *C) (cosmos.Context, *Mgrs) {
+	cosmostypes.SetCoinDenomRegex(func() string {
+		return cmd.DenomRegex
+	})
+	keyAcc := cosmos.NewKVStoreKey(authtypes.StoreKey)
+	keyBank := cosmos.NewKVStoreKey(banktypes.StoreKey)
+	keyParams := cosmos.NewKVStoreKey(paramstypes.StoreKey)
+	tkeyParams := cosmos.NewTransientStoreKey(paramstypes.TStoreKey)
+
+	db := dbm.NewMemDB()
+	ms := store.NewCommitMultiStore(db)
+	ms.MountStoreWithDB(keyAcc, cosmos.StoreTypeIAVL, db)
+	ms.MountStoreWithDB(keyParams, cosmos.StoreTypeIAVL, db)
+	ms.MountStoreWithDB(keyThorchain, cosmos.StoreTypeIAVL, db)
+	ms.MountStoreWithDB(keyBank, cosmos.StoreTypeIAVL, db)
+	ms.MountStoreWithDB(tkeyParams, cosmos.StoreTypeTransient, db)
+	err := ms.LoadLatestVersion()
+	c.Assert(err, IsNil)
+
+	ctx := cosmos.NewContext(ms, tmproto.Header{ChainID: "thorchain"}, false, log.NewNopLogger())
+	ctx = ctx.WithBlockHeight(18)
+	legacyCodec := makeTestCodec()
+	marshaler := simapp.MakeTestEncodingConfig().Marshaler
+
+	pk := paramskeeper.NewKeeper(marshaler, legacyCodec, keyParams, tkeyParams)
+	ak := authkeeper.NewAccountKeeper(marshaler, keyAcc, pk.Subspace(authtypes.ModuleName), authtypes.ProtoBaseAccount, map[string][]string{
+		ModuleName:  {authtypes.Minter, authtypes.Burner},
+		AsgardName:  {},
+		BondName:    {},
+		ReserveName: {},
+	})
+
+	bk := bankkeeper.NewBaseKeeper(marshaler, keyBank, ak, pk.Subspace(banktypes.ModuleName), nil)
+	bk.SetSupply(ctx, banktypes.NewSupply(cosmos.Coins{
+		cosmos.NewCoin(common.RuneAsset().Native(), cosmos.NewInt(200_000_000_00000000)),
+	}))
+	k := keeper.NewKeeper(marshaler, bk, ak, keyThorchain)
+	FundModule(c, ctx, k, ModuleName, 1000000*common.One)
+	FundModule(c, ctx, k, AsgardName, common.One)
+	FundModule(c, ctx, k, ReserveName, 10000*common.One)
+	k.SaveNetworkFee(ctx, common.BNBChain, NetworkFee{
+		Chain:              common.BNBChain,
+		TransactionSize:    1,
+		TransactionFeeRate: 37500,
+	})
+	os.Setenv("NET", "mocknet")
+	mgr := NewManagers(k, marshaler, bk, ak, keyThorchain)
+	constants.SWVersion = GetCurrentVersion()
+	mgr.BeginBlock(ctx)
+	return ctx, mgr
+}
+
 func setupKeeperForTest(c *C) (cosmos.Context, keeper.Keeper) {
 	cosmostypes.SetCoinDenomRegex(func() string {
 		return cmd.DenomRegex
@@ -132,34 +184,32 @@ func getHandlerTestWrapper(c *C, height int64, withActiveNode, withActieBNBPool 
 }
 
 func getHandlerTestWrapperWithVersion(c *C, height int64, withActiveNode, withActieBNBPool bool, version semver.Version) handlerTestWrapper {
-	ctx, k := setupKeeperForTest(c)
+	ctx, mgr := setupManagerForTest(c)
 	ctx = ctx.WithBlockHeight(height)
 	acc1 := GetRandomNodeAccount(NodeActive)
 	acc1.Version = version.String()
 	if withActiveNode {
-		c.Assert(k.SetNodeAccount(ctx, acc1), IsNil)
+		c.Assert(mgr.Keeper().SetNodeAccount(ctx, acc1), IsNil)
 	}
 	if withActieBNBPool {
-		p, err := k.GetPool(ctx, common.BNBAsset)
+		p, err := mgr.Keeper().GetPool(ctx, common.BNBAsset)
 		c.Assert(err, IsNil)
 		p.Asset = common.BNBAsset
 		p.Status = PoolAvailable
 		p.BalanceRune = cosmos.NewUint(100 * common.One)
 		p.BalanceAsset = cosmos.NewUint(100 * common.One)
 		p.PoolUnits = cosmos.NewUint(100 * common.One)
-		c.Assert(k.SetPool(ctx, p), IsNil)
+		c.Assert(mgr.Keeper().SetPool(ctx, p), IsNil)
 	}
 	constAccessor := constants.GetConstantValues(version)
-	mgr := NewManagers(k)
-	c.Assert(mgr.BeginBlock(ctx), IsNil)
 
-	FundModule(c, ctx, k, AsgardName, 100000000)
+	FundModule(c, ctx, mgr.Keeper(), AsgardName, 100000000)
 
 	c.Assert(mgr.ValidatorMgr().BeginBlock(ctx, constAccessor, nil), IsNil)
 
 	return handlerTestWrapper{
 		ctx:                  ctx,
-		keeper:               k,
+		keeper:               mgr.Keeper(),
 		mgr:                  mgr,
 		activeNodeAccount:    acc1,
 		notActiveNodeAccount: GetRandomNodeAccount(NodeDisabled),
@@ -167,13 +217,13 @@ func getHandlerTestWrapperWithVersion(c *C, height int64, withActiveNode, withAc
 }
 
 func (HandlerSuite) TestIsSignedByActiveNodeAccounts(c *C) {
-	ctx, k := setupKeeperForTest(c)
+	ctx, mgr := setupManagerForTest(c)
 	nodeAddr := GetRandomBech32Addr()
-	c.Check(isSignedByActiveNodeAccounts(ctx, k, []cosmos.AccAddress{}), Equals, false)
-	c.Check(isSignedByActiveNodeAccounts(ctx, k, []cosmos.AccAddress{nodeAddr}), Equals, false)
+	c.Check(isSignedByActiveNodeAccounts(ctx, mgr.Keeper(), []cosmos.AccAddress{}), Equals, false)
+	c.Check(isSignedByActiveNodeAccounts(ctx, mgr.Keeper(), []cosmos.AccAddress{nodeAddr}), Equals, false)
 	nodeAccount1 := GetRandomNodeAccount(NodeWhiteListed)
-	c.Assert(k.SetNodeAccount(ctx, nodeAccount1), IsNil)
-	c.Check(isSignedByActiveNodeAccounts(ctx, k, []cosmos.AccAddress{nodeAccount1.NodeAddress}), Equals, false)
+	c.Assert(mgr.Keeper().SetNodeAccount(ctx, nodeAccount1), IsNil)
+	c.Check(isSignedByActiveNodeAccounts(ctx, mgr.Keeper(), []cosmos.AccAddress{nodeAccount1.NodeAddress}), Equals, false)
 }
 
 func (HandlerSuite) TestHandleTxInWithdrawLiquidityMemo(c *C) {
@@ -219,7 +269,7 @@ func (HandlerSuite) TestHandleTxInWithdrawLiquidityMemo(c *C) {
 	msg := NewMsgWithdrawLiquidity(tx, lp.RuneAddress, cosmos.NewUint(uint64(MaxWithdrawBasisPoints)), common.BNBAsset, common.EmptyAsset, w.activeNodeAccount.NodeAddress)
 	c.Assert(err, IsNil)
 
-	handler := NewInternalHandler(w.keeper, w.mgr)
+	handler := NewInternalHandler(w.mgr)
 
 	FundModule(c, w.ctx, w.keeper, AsgardName, 500)
 	w.keeper.SaveNetworkFee(w.ctx, common.BNBChain, NetworkFee{
@@ -271,7 +321,7 @@ func (HandlerSuite) TestRefund(c *C) {
 	ver := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(ver)
 	txOutStore := w.mgr.TxOutStore()
-	c.Assert(refundTxV1(w.ctx, txin, w.mgr, w.keeper, constAccessor, 0, "refund", ""), IsNil)
+	c.Assert(refundTxV1(w.ctx, txin, w.mgr, constAccessor, 0, "refund", ""), IsNil)
 	items, err := txOutStore.GetOutboundItems(w.ctx)
 	c.Assert(err, IsNil)
 	c.Assert(items, HasLen, 1)
@@ -283,7 +333,7 @@ func (HandlerSuite) TestRefund(c *C) {
 		common.NewCoin(lokiAsset, cosmos.NewUint(100*common.One)),
 	}
 
-	c.Assert(refundTxV1(w.ctx, txin, w.mgr, w.keeper, constAccessor, 0, "refund", ""), IsNil)
+	c.Assert(refundTxV1(w.ctx, txin, w.mgr, constAccessor, 0, "refund", ""), IsNil)
 	items, err = txOutStore.GetOutboundItems(w.ctx)
 	c.Assert(err, IsNil)
 	c.Assert(items, HasLen, 1)
@@ -294,7 +344,7 @@ func (HandlerSuite) TestRefund(c *C) {
 	c.Assert(pool.BalanceAsset.Equal(cosmos.ZeroUint()), Equals, true, Commentf("%d", pool.BalanceAsset.Uint64()))
 
 	// doing it a second time should keep it at zero
-	c.Assert(refundTxV1(w.ctx, txin, w.mgr, w.keeper, constAccessor, 0, "refund", ""), IsNil)
+	c.Assert(refundTxV1(w.ctx, txin, w.mgr, constAccessor, 0, "refund", ""), IsNil)
 	items, err = txOutStore.GetOutboundItems(w.ctx)
 	c.Assert(err, IsNil)
 	c.Assert(items, HasLen, 1)
@@ -561,10 +611,8 @@ func (s *HandlerSuite) TestSwitch(c *C) {
 }
 
 func (s *HandlerSuite) TestExternalHandler(c *C) {
-	ctx, k := setupKeeperForTest(c)
-	mgr := NewManagers(k)
-	mgr.BeginBlock(ctx)
-	handler := NewExternalHandler(k, mgr)
+	ctx, mgr := setupManagerForTest(c)
+	handler := NewExternalHandler(mgr)
 	ctx = ctx.WithBlockHeight(1024)
 	msg := NewMsgNetworkFee(1024, common.BNBChain, 1, bnbSingleTxFee.Uint64(), GetRandomBech32Addr())
 	result, err := handler(ctx, msg)
@@ -572,8 +620,8 @@ func (s *HandlerSuite) TestExternalHandler(c *C) {
 	c.Check(errors.Is(err, se.ErrUnauthorized), Equals, true)
 	c.Check(result, IsNil)
 	na := GetRandomNodeAccount(NodeActive)
-	k.SetNodeAccount(ctx, na)
-	FundAccount(c, ctx, k, na.NodeAddress, 10*common.One)
+	mgr.Keeper().SetNodeAccount(ctx, na)
+	FundAccount(c, ctx, mgr.Keeper(), na.NodeAddress, 10*common.One)
 	result, err = handler(ctx, NewMsgSetVersion("0.1.0", na.NodeAddress))
 	c.Assert(err, IsNil)
 	c.Assert(result, NotNil)

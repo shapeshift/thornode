@@ -8,21 +8,18 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // SetNodeKeysHandler process MsgSetNodeKeys
 // MsgSetNodeKeys is used by operators after the node account had been white list , to update the consensus pubkey and node account pubkey
 type SetNodeKeysHandler struct {
-	keeper keeper.Keeper
-	mgr    Manager
+	mgr Manager
 }
 
 // NewSetNodeKeysHandler create a new instance of SetNodeKeysHandler
-func NewSetNodeKeysHandler(keeper keeper.Keeper, mgr Manager) SetNodeKeysHandler {
+func NewSetNodeKeysHandler(mgr Manager) SetNodeKeysHandler {
 	return SetNodeKeysHandler{
-		keeper: keeper,
-		mgr:    mgr,
+		mgr: mgr,
 	}
 }
 
@@ -59,7 +56,7 @@ func (h SetNodeKeysHandler) validateCurrent(ctx cosmos.Context, msg MsgSetNodeKe
 		return err
 	}
 
-	nodeAccount, err := h.keeper.GetNodeAccount(ctx, msg.Signer)
+	nodeAccount, err := h.mgr.Keeper().GetNodeAccount(ctx, msg.Signer)
 	if err != nil {
 		return cosmos.ErrUnauthorized(fmt.Sprintf("fail to get node account(%s):%s", msg.Signer.String(), err)) // notAuthorized
 	}
@@ -67,7 +64,7 @@ func (h SetNodeKeysHandler) validateCurrent(ctx cosmos.Context, msg MsgSetNodeKe
 		return cosmos.ErrUnauthorized(fmt.Sprintf("unauthorized account(%s)", msg.Signer))
 	}
 
-	cost, err := h.keeper.GetMimir(ctx, constants.NativeTransactionFee.String())
+	cost, err := h.mgr.Keeper().GetMimir(ctx, constants.NativeTransactionFee.String())
 	if err != nil || cost < 0 {
 		cost = constAccessor.GetInt64Value(constants.NativeTransactionFee)
 	}
@@ -83,7 +80,7 @@ func (h SetNodeKeysHandler) validateCurrent(ctx cosmos.Context, msg MsgSetNodeKe
 	if nodeAccount.Status == NodeDisabled {
 		return fmt.Errorf("node %s is disabled, so it can't update itself", nodeAccount.NodeAddress)
 	}
-	if err := h.keeper.EnsureNodeKeysUnique(ctx, msg.ValidatorConsPubKey, msg.PubKeySetSet); err != nil {
+	if err := h.mgr.Keeper().EnsureNodeKeysUnique(ctx, msg.ValidatorConsPubKey, msg.PubKeySetSet); err != nil {
 		return err
 	}
 
@@ -104,13 +101,13 @@ func (h SetNodeKeysHandler) handleV1(ctx cosmos.Context, msg MsgSetNodeKeys, ver
 }
 
 func (h SetNodeKeysHandler) handleCurrent(ctx cosmos.Context, msg MsgSetNodeKeys, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
-	nodeAccount, err := h.keeper.GetNodeAccount(ctx, msg.Signer)
+	nodeAccount, err := h.mgr.Keeper().GetNodeAccount(ctx, msg.Signer)
 	if err != nil {
 		ctx.Logger().Error("fail to get node account", "error", err, "address", msg.Signer.String())
 		return nil, cosmos.ErrUnauthorized(fmt.Sprintf("%s is not authorized", msg.Signer))
 	}
 
-	c, err := h.keeper.GetMimir(ctx, constants.NativeTransactionFee.String())
+	c, err := h.mgr.Keeper().GetMimir(ctx, constants.NativeTransactionFee.String())
 	if err != nil || c < 0 {
 		c = constAccessor.GetInt64Value(constants.NativeTransactionFee)
 	}
@@ -123,14 +120,14 @@ func (h SetNodeKeysHandler) handleCurrent(ctx cosmos.Context, msg MsgSetNodeKeys
 	nodeAccount.PubKeySet = msg.PubKeySetSet
 	nodeAccount.Bond = common.SafeSub(nodeAccount.Bond, cost)
 	nodeAccount.ValidatorConsPubKey = msg.ValidatorConsPubKey
-	if err := h.keeper.SetNodeAccount(ctx, nodeAccount); err != nil {
+	if err := h.mgr.Keeper().SetNodeAccount(ctx, nodeAccount); err != nil {
 		return nil, fmt.Errorf("fail to save node account: %w", err)
 	}
 
 	// add 10 bond to reserve
 	coin := common.NewCoin(common.RuneNative, cost)
 	if !cost.IsZero() {
-		if err := h.keeper.SendFromAccountToModule(ctx, msg.Signer, ReserveName, common.NewCoins(coin)); err != nil {
+		if err := h.mgr.Keeper().SendFromAccountToModule(ctx, msg.Signer, ReserveName, common.NewCoins(coin)); err != nil {
 			ctx.Logger().Error("fail to transfer funds from bond to reserve", "error", err)
 			return nil, err
 		}

@@ -18,15 +18,15 @@ type MsgHandler interface {
 }
 
 // NewExternalHandler returns a handler for "thorchain" type messages.
-func NewExternalHandler(keeper keeper.Keeper, mgr Manager) cosmos.Handler {
+func NewExternalHandler(mgr Manager) cosmos.Handler {
 	return func(ctx cosmos.Context, msg cosmos.Msg) (*cosmos.Result, error) {
 		ctx = ctx.WithEventManager(cosmos.NewEventManager())
-		version := keeper.GetLowestActiveVersion(ctx)
+		version := mgr.Keeper().GetLowestActiveVersion(ctx)
 		constantValues := constants.GetConstantValues(version)
 		if constantValues == nil {
 			return nil, errConstNotAvailable
 		}
-		handlerMap := getHandlerMapping(keeper, mgr)
+		handlerMap := getHandlerMapping(mgr)
 		h, ok := handlerMap[msg.Type()]
 		if !ok {
 			errMsg := fmt.Sprintf("Unrecognized thorchain Msg type: %v", msg.Type())
@@ -46,40 +46,40 @@ func NewExternalHandler(keeper keeper.Keeper, mgr Manager) cosmos.Handler {
 	}
 }
 
-func getHandlerMapping(keeper keeper.Keeper, mgr Manager) map[string]MsgHandler {
+func getHandlerMapping(mgr Manager) map[string]MsgHandler {
 	// New arch handlers
 	m := make(map[string]MsgHandler)
 
 	// consensus handlers
-	m[MsgTssPool{}.Type()] = NewTssHandler(keeper, mgr)
-	m[MsgObservedTxIn{}.Type()] = NewObservedTxInHandler(keeper, mgr)
-	m[MsgObservedTxOut{}.Type()] = NewObservedTxOutHandler(keeper, mgr)
-	m[MsgTssKeysignFail{}.Type()] = NewTssKeysignHandler(keeper, mgr)
-	m[MsgErrataTx{}.Type()] = NewErrataTxHandler(keeper, mgr)
-	m[MsgMimir{}.Type()] = NewMimirHandler(keeper, mgr)
-	m[MsgBan{}.Type()] = NewBanHandler(keeper, mgr)
-	m[MsgNetworkFee{}.Type()] = NewNetworkFeeHandler(keeper, mgr)
+	m[MsgTssPool{}.Type()] = NewTssHandler(mgr)
+	m[MsgObservedTxIn{}.Type()] = NewObservedTxInHandler(mgr)
+	m[MsgObservedTxOut{}.Type()] = NewObservedTxOutHandler(mgr)
+	m[MsgTssKeysignFail{}.Type()] = NewTssKeysignHandler(mgr)
+	m[MsgErrataTx{}.Type()] = NewErrataTxHandler(mgr)
+	m[MsgMimir{}.Type()] = NewMimirHandler(mgr)
+	m[MsgBan{}.Type()] = NewBanHandler(mgr)
+	m[MsgNetworkFee{}.Type()] = NewNetworkFeeHandler(mgr)
 
 	// cli handlers (non-consensus)
-	m[MsgSetNodeKeys{}.Type()] = NewSetNodeKeysHandler(keeper, mgr)
-	m[MsgSetVersion{}.Type()] = NewVersionHandler(keeper, mgr)
-	m[MsgSetIPAddress{}.Type()] = NewIPAddressHandler(keeper, mgr)
+	m[MsgSetNodeKeys{}.Type()] = NewSetNodeKeysHandler(mgr)
+	m[MsgSetVersion{}.Type()] = NewVersionHandler(mgr)
+	m[MsgSetIPAddress{}.Type()] = NewIPAddressHandler(mgr)
 
 	// native handlers (non-consensus)
-	m[MsgSend{}.Type()] = NewSendHandler(keeper, mgr)
-	m[MsgDeposit{}.Type()] = NewDepositHandler(keeper, mgr)
+	m[MsgSend{}.Type()] = NewSendHandler(mgr)
+	m[MsgDeposit{}.Type()] = NewDepositHandler(mgr)
 	return m
 }
 
 // NewInternalHandler returns a handler for "thorchain" internal type messages.
-func NewInternalHandler(keeper keeper.Keeper, mgr Manager) cosmos.Handler {
+func NewInternalHandler(mgr Manager) cosmos.Handler {
 	return func(ctx cosmos.Context, msg cosmos.Msg) (*cosmos.Result, error) {
-		version := keeper.GetLowestActiveVersion(ctx)
+		version := mgr.Keeper().GetLowestActiveVersion(ctx)
 		constantValues := constants.GetConstantValues(version)
 		if constantValues == nil {
 			return nil, errConstNotAvailable
 		}
-		handlerMap := getInternalHandlerMapping(keeper, mgr)
+		handlerMap := getInternalHandlerMapping(mgr)
 		h, ok := handlerMap[msg.Type()]
 		if !ok {
 			errMsg := fmt.Sprintf("Unrecognized thorchain Msg type: %v", msg.Type())
@@ -89,25 +89,25 @@ func NewInternalHandler(keeper keeper.Keeper, mgr Manager) cosmos.Handler {
 	}
 }
 
-func getInternalHandlerMapping(keeper keeper.Keeper, mgr Manager) map[string]MsgHandler {
+func getInternalHandlerMapping(mgr Manager) map[string]MsgHandler {
 	// New arch handlers
 	m := make(map[string]MsgHandler)
-	m[MsgOutboundTx{}.Type()] = NewOutboundTxHandler(keeper, mgr)
-	m[MsgYggdrasil{}.Type()] = NewYggdrasilHandler(keeper, mgr)
-	m[MsgSwap{}.Type()] = NewSwapHandler(keeper, mgr)
-	m[MsgReserveContributor{}.Type()] = NewReserveContributorHandler(keeper, mgr)
-	m[MsgBond{}.Type()] = NewBondHandler(keeper, mgr)
-	m[MsgUnBond{}.Type()] = NewUnBondHandler(keeper, mgr)
-	m[MsgLeave{}.Type()] = NewLeaveHandler(keeper, mgr)
-	m[MsgDonate{}.Type()] = NewDonateHandler(keeper, mgr)
-	m[MsgWithdrawLiquidity{}.Type()] = NewWithdrawLiquidityHandler(keeper, mgr)
-	m[MsgAddLiquidity{}.Type()] = NewAddLiquidityHandler(keeper, mgr)
-	m[MsgRefundTx{}.Type()] = NewRefundHandler(keeper, mgr)
-	m[MsgMigrate{}.Type()] = NewMigrateHandler(keeper, mgr)
-	m[MsgRagnarok{}.Type()] = NewRagnarokHandler(keeper, mgr)
-	m[MsgSwitch{}.Type()] = NewSwitchHandler(keeper, mgr)
-	m[MsgNoOp{}.Type()] = NewNoOpHandler(keeper, mgr)
-	m[MsgConsolidate{}.Type()] = NewConsolidateHandler(keeper, mgr)
+	m[MsgOutboundTx{}.Type()] = NewOutboundTxHandler(mgr)
+	m[MsgYggdrasil{}.Type()] = NewYggdrasilHandler(mgr)
+	m[MsgSwap{}.Type()] = NewSwapHandler(mgr)
+	m[MsgReserveContributor{}.Type()] = NewReserveContributorHandler(mgr)
+	m[MsgBond{}.Type()] = NewBondHandler(mgr)
+	m[MsgUnBond{}.Type()] = NewUnBondHandler(mgr)
+	m[MsgLeave{}.Type()] = NewLeaveHandler(mgr)
+	m[MsgDonate{}.Type()] = NewDonateHandler(mgr)
+	m[MsgWithdrawLiquidity{}.Type()] = NewWithdrawLiquidityHandler(mgr)
+	m[MsgAddLiquidity{}.Type()] = NewAddLiquidityHandler(mgr)
+	m[MsgRefundTx{}.Type()] = NewRefundHandler(mgr)
+	m[MsgMigrate{}.Type()] = NewMigrateHandler(mgr)
+	m[MsgRagnarok{}.Type()] = NewRagnarokHandler(mgr)
+	m[MsgSwitch{}.Type()] = NewSwitchHandler(mgr)
+	m[MsgNoOp{}.Type()] = NewNoOpHandler(mgr)
+	m[MsgConsolidate{}.Type()] = NewConsolidateHandler(mgr)
 	return m
 }
 

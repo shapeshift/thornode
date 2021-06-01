@@ -8,21 +8,18 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // SwitchHandler is to handle Switch message
 // MsgSwitch is used to switch from bep2 RUNE to native RUNE
 type SwitchHandler struct {
-	keeper keeper.Keeper
-	mgr    Manager
+	mgr Manager
 }
 
 // NewSwitchHandler create new instance of SwitchHandler
-func NewSwitchHandler(keeper keeper.Keeper, mgr Manager) SwitchHandler {
+func NewSwitchHandler(mgr Manager) SwitchHandler {
 	return SwitchHandler{
-		keeper: keeper,
-		mgr:    mgr,
+		mgr: mgr,
 	}
 }
 
@@ -63,7 +60,7 @@ func (h SwitchHandler) validateCurrent(ctx cosmos.Context, msg MsgSwitch) error 
 	// if we are getting a non-native asset, ensure its signed by an active
 	// node account
 	if !msg.Tx.Coins[0].IsNative() {
-		if !isSignedByActiveNodeAccounts(ctx, h.keeper, msg.GetSigners()) {
+		if !isSignedByActiveNodeAccounts(ctx, h.mgr.Keeper(), msg.GetSigners()) {
 			return cosmos.ErrUnauthorized(notAuthorized.Error())
 		}
 	}
@@ -84,7 +81,7 @@ func (h SwitchHandler) handleV1(ctx cosmos.Context, msg MsgSwitch, version semve
 }
 
 func (h SwitchHandler) handleCurrent(ctx cosmos.Context, msg MsgSwitch, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
-	haltHeight, err := h.keeper.GetMimir(ctx, "HaltTHORChain")
+	haltHeight, err := h.mgr.Keeper().GetMimir(ctx, "HaltTHORChain")
 	if err != nil {
 		return nil, fmt.Errorf("failed to get mimir setting: %w", err)
 	}
@@ -106,12 +103,12 @@ func (h SwitchHandler) toNative(ctx cosmos.Context, msg MsgSwitch) (*cosmos.Resu
 	if err != nil {
 		return nil, ErrInternal(err, "fail to parse thor address")
 	}
-	if err := h.keeper.MintAndSendToAccount(ctx, addr, coin); err != nil {
+	if err := h.mgr.Keeper().MintAndSendToAccount(ctx, addr, coin); err != nil {
 		return nil, ErrInternal(err, "fail to mint native rune coins")
 	}
 
 	// update network data
-	network, err := h.keeper.GetNetwork(ctx)
+	network, err := h.mgr.Keeper().GetNetwork(ctx)
 	if err != nil {
 		// do not cause the transaction to fail
 		ctx.Logger().Error("failed to get network", "error", err)
@@ -123,7 +120,7 @@ func (h SwitchHandler) toNative(ctx cosmos.Context, msg MsgSwitch) (*cosmos.Resu
 	case common.ETHChain:
 		network.BurnedErc20Rune = network.BurnedErc20Rune.Add(coin.Amount)
 	}
-	if err := h.keeper.SetNetwork(ctx, network); err != nil {
+	if err := h.mgr.Keeper().SetNetwork(ctx, network); err != nil {
 		ctx.Logger().Error("failed to set network", "error", err)
 	}
 
