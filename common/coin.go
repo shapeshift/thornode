@@ -226,6 +226,16 @@ func (cs Coins) HasNoneNativeRune() bool {
 	return false
 }
 
+// HasSynthetic check whether the coins contains synth coin
+func (cs Coins) HasSynthetic() bool {
+	for _, c := range cs {
+		if c.Asset.IsSyntheticAsset() {
+			return true
+		}
+	}
+	return false
+}
+
 // NoneEmpty return a new Coins , which ignore the coin that is empty
 // either Coin asset is empty or amount is empty
 func (cs Coins) NoneEmpty() Coins {

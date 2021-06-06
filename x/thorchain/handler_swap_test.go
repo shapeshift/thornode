@@ -20,6 +20,8 @@ var _ = Suite(&HandlerSwapSuite{})
 
 func (s *HandlerSwapSuite) TestValidate(c *C) {
 	ctx, _ := setupKeeperForTest(c)
+	ver := GetCurrentVersion()
+	constAccessor := constants.GetConstantValues(ver)
 
 	keeper := &TestSwapHandleKeeper{
 		activeNodeAccount: GetRandomNodeAccount(NodeActive),
@@ -27,7 +29,6 @@ func (s *HandlerSwapSuite) TestValidate(c *C) {
 
 	handler := NewSwapHandler(NewDummyMgrWithKeeper(keeper))
 
-	ver := GetCurrentVersion()
 	txID := GetRandomTxHash()
 	signerBNBAddr := GetRandomBNBAddress()
 	observerAddr := keeper.activeNodeAccount.NodeAddress
@@ -42,16 +43,16 @@ func (s *HandlerSwapSuite) TestValidate(c *C) {
 		"",
 	)
 	msg := NewMsgSwap(tx, common.BNBAsset, signerBNBAddr, cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(), observerAddr)
-	err := handler.validate(ctx, *msg, ver)
+	err := handler.validate(ctx, *msg, ver, constAccessor)
 	c.Assert(err, IsNil)
 
 	// invalid version
-	err = handler.validate(ctx, *msg, semver.Version{})
+	err = handler.validate(ctx, *msg, semver.Version{}, constAccessor)
 	c.Assert(err, Equals, errInvalidVersion)
 
 	// invalid msg
 	msg = &MsgSwap{}
-	err = handler.validate(ctx, *msg, ver)
+	err = handler.validate(ctx, *msg, ver, constAccessor)
 	c.Assert(err, NotNil)
 }
 

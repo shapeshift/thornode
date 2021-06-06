@@ -480,7 +480,7 @@ func (WithdrawSuiteV49) TestWithdrawPendingRuneOrAsset(c *C) {
 		BalanceRune:  cosmos.NewUint(100 * common.One),
 		BalanceAsset: cosmos.NewUint(100 * common.One),
 		Asset:        common.BNBAsset,
-		PoolUnits:    cosmos.NewUint(200 * common.One),
+		LPUnits:      cosmos.NewUint(200 * common.One),
 		Status:       PoolAvailable,
 	}
 	c.Assert(mgr.Keeper().SetPool(ctx, pool), IsNil)

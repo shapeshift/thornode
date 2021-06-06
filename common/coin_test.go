@@ -63,3 +63,17 @@ func (s CoinSuite) TestNoneEmpty(c *C) {
 	ethCoin := newCoins.GetCoin(ETHAsset)
 	c.Assert(ethCoin.IsEmpty(), Equals, true)
 }
+
+func (s CoinSuite) TestHasSynthetic(c *C) {
+	bnbSynthAsset, _ := NewAsset("BNB/BNB")
+	coins := Coins{
+		NewCoin(bnbSynthAsset, cosmos.NewUint(1000)),
+		NewCoin(ETHAsset, cosmos.ZeroUint()),
+	}
+	c.Assert(coins.HasSynthetic(), Equals, true)
+	coins = Coins{
+		NewCoin(BNBAsset, cosmos.NewUint(1000)),
+		NewCoin(ETHAsset, cosmos.ZeroUint()),
+	}
+	c.Assert(coins.HasSynthetic(), Equals, false)
+}

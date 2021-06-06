@@ -121,7 +121,7 @@ func (s *HandlerErrataTxSuite) TestErrataHandlerHappyPath(c *C) {
 		},
 		pool: Pool{
 			Asset:        common.BNBAsset,
-			PoolUnits:    totalUnits,
+			LPUnits:      totalUnits,
 			BalanceRune:  cosmos.NewUint(100 * common.One),
 			BalanceAsset: cosmos.NewUint(100 * common.One),
 		},
