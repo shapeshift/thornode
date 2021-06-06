@@ -89,28 +89,26 @@ func (s *QuerierSuite) TestQueryKeysign(c *C) {
 }
 
 func (s *QuerierSuite) TestQueryPool(c *C) {
-	ctx, keeper := setupKeeperForTest(c)
-
-	_, mgr := setupManagerForTest(c)
+	ctx, mgr := setupManagerForTest(c)
 	querier := NewQuerier(mgr, s.kb)
 	path := []string{"pools"}
 
 	pubKey := GetRandomPubKey()
 	asgard := NewVault(common.BlockHeight(ctx), ActiveVault, AsgardVault, pubKey, common.Chains{common.BNBChain}.Strings(), []ChainContract{})
-	c.Assert(keeper.SetVault(ctx, asgard), IsNil)
+	c.Assert(mgr.Keeper().SetVault(ctx, asgard), IsNil)
 
 	poolBNB := NewPool()
 	poolBNB.Asset = common.BNBAsset
-	poolBNB.PoolUnits = cosmos.NewUint(100)
+	poolBNB.LPUnits = cosmos.NewUint(100)
 
 	poolBTC := NewPool()
 	poolBTC.Asset = common.BTCAsset
-	poolBTC.PoolUnits = cosmos.NewUint(0)
+	poolBTC.LPUnits = cosmos.NewUint(0)
 
-	err := keeper.SetPool(ctx, poolBNB)
+	err := mgr.Keeper().SetPool(ctx, poolBNB)
 	c.Assert(err, IsNil)
 
-	err = keeper.SetPool(ctx, poolBTC)
+	err = mgr.Keeper().SetPool(ctx, poolBTC)
 	c.Assert(err, IsNil)
 
 	res, err := querier(ctx, path, abci.RequestQuery{})
@@ -122,8 +120,8 @@ func (s *QuerierSuite) TestQueryPool(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(len(out), Equals, 1)
 
-	poolBTC.PoolUnits = cosmos.NewUint(100)
-	err = keeper.SetPool(ctx, poolBTC)
+	poolBTC.LPUnits = cosmos.NewUint(100)
+	err = mgr.Keeper().SetPool(ctx, poolBTC)
 	c.Assert(err, IsNil)
 
 	res, err = querier(ctx, path, abci.RequestQuery{})
@@ -139,28 +137,26 @@ func (s *QuerierSuite) TestQueryPool(c *C) {
 }
 
 func (s *QuerierSuite) TestVaultss(c *C) {
-	ctx, keeper := setupKeeperForTest(c)
-
-	_, mgr := setupManagerForTest(c)
+	ctx, mgr := setupManagerForTest(c)
 	querier := NewQuerier(mgr, s.kb)
 	path := []string{"pools"}
 
 	pubKey := GetRandomPubKey()
 	asgard := NewVault(common.BlockHeight(ctx), ActiveVault, AsgardVault, pubKey, common.Chains{common.BNBChain}.Strings(), nil)
-	c.Assert(keeper.SetVault(ctx, asgard), IsNil)
+	c.Assert(mgr.Keeper().SetVault(ctx, asgard), IsNil)
 
 	poolBNB := NewPool()
 	poolBNB.Asset = common.BNBAsset
-	poolBNB.PoolUnits = cosmos.NewUint(100)
+	poolBNB.LPUnits = cosmos.NewUint(100)
 
 	poolBTC := NewPool()
 	poolBTC.Asset = common.BTCAsset
-	poolBTC.PoolUnits = cosmos.NewUint(0)
+	poolBTC.LPUnits = cosmos.NewUint(0)
 
-	err := keeper.SetPool(ctx, poolBNB)
+	err := mgr.Keeper().SetPool(ctx, poolBNB)
 	c.Assert(err, IsNil)
 
-	err = keeper.SetPool(ctx, poolBTC)
+	err = mgr.Keeper().SetPool(ctx, poolBTC)
 	c.Assert(err, IsNil)
 
 	res, err := querier(ctx, path, abci.RequestQuery{})
@@ -171,8 +167,8 @@ func (s *QuerierSuite) TestVaultss(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(len(out), Equals, 1)
 
-	poolBTC.PoolUnits = cosmos.NewUint(100)
-	err = keeper.SetPool(ctx, poolBTC)
+	poolBTC.LPUnits = cosmos.NewUint(100)
+	err = mgr.Keeper().SetPool(ctx, poolBTC)
 	c.Assert(err, IsNil)
 
 	res, err = querier(ctx, path, abci.RequestQuery{})

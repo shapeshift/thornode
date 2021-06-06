@@ -270,7 +270,7 @@ func (tos *TxOutStorageV52) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem) 
 				}
 
 				// if pool units is zero, no asset fee is taken
-				if !pool.PoolUnits.IsZero() {
+				if !pool.LPUnits.IsZero() {
 					assetFee := transactionFeeAsset
 					if outputs[i].Coin.Amount.LTE(assetFee) {
 						assetFee = outputs[i].Coin.Amount // Fee is the full amount
@@ -287,7 +287,7 @@ func (tos *TxOutStorageV52) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem) 
 						}
 						minusSynthUnits := common.GetShare(assetFee, totalSynthSupply, pool.SynthUnits)
 						pool.SynthUnits = common.SafeSub(pool.SynthUnits, minusSynthUnits)
-						pool.PoolUnits = common.SafeSub(pool.PoolUnits, minusSynthUnits)
+						pool.LPUnits = common.SafeSub(pool.LPUnits, minusSynthUnits)
 						synthUnits = minusSynthUnits
 						ctx.Logger().Info("minus synth unit", "units", synthUnits.String())
 						// burn the synth asset which used to pay for fee, that's only required when the synth is sending from asgard

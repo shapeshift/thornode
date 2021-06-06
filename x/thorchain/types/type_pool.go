@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/blang/semver"
+
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 )
@@ -50,8 +52,8 @@ func NewPool() Pool {
 	return Pool{
 		BalanceRune:         cosmos.ZeroUint(),
 		BalanceAsset:        cosmos.ZeroUint(),
-		PoolUnits:           cosmos.ZeroUint(),
 		SynthUnits:          cosmos.ZeroUint(),
+		LPUnits:             cosmos.ZeroUint(),
 		PendingInboundRune:  cosmos.ZeroUint(),
 		PendingInboundAsset: cosmos.ZeroUint(),
 		Status:              PoolStatus_Available,
@@ -64,6 +66,31 @@ func (m Pool) Valid() error {
 		return errors.New("pool asset cannot be empty")
 	}
 	return nil
+}
+
+func (m *Pool) GetPoolUnits() cosmos.Uint {
+	return m.LPUnits.Add(m.SynthUnits)
+}
+
+func (m *Pool) CalcUnits(version semver.Version, S cosmos.Uint) cosmos.Uint {
+	// Calculate synth units
+	if version.GTE(semver.MustParse("0.1.0")) {
+		// (L*S)/(2*A-S)
+		// S := k.GetTotalSupply(ctx, p.Asset.GetSyntheticAsset())
+		if m.BalanceAsset.IsZero() {
+			m.SynthUnits = cosmos.ZeroUint()
+		} else {
+			numerator := m.LPUnits.Mul(S)
+			denominator := common.SafeSub(m.BalanceAsset.MulUint64(2), S)
+			if denominator.IsZero() {
+				m.SynthUnits = cosmos.ZeroUint()
+			} else {
+				m.SynthUnits = numerator.Quo(denominator)
+			}
+		}
+	}
+
+	return m.GetPoolUnits()
 }
 
 // IsAvailable check whether the pool is in Available status
@@ -82,8 +109,8 @@ func (m Pool) String() string {
 	sb.WriteString(fmt.Sprintln("rune-balance: " + m.BalanceRune.String()))
 	sb.WriteString(fmt.Sprintln("asset-balance: " + m.BalanceAsset.String()))
 	sb.WriteString(fmt.Sprintln("asset: " + m.Asset.String()))
-	sb.WriteString(fmt.Sprintln("pool-units: " + m.PoolUnits.String()))
 	sb.WriteString(fmt.Sprintln("synth-units: " + m.SynthUnits.String()))
+	sb.WriteString(fmt.Sprintln("lp-units: " + m.LPUnits.String()))
 	sb.WriteString(fmt.Sprintln("pending-inbound-rune: " + m.PendingInboundRune.String()))
 	sb.WriteString(fmt.Sprintln("pending-inbound-asset: " + m.PendingInboundAsset.String()))
 	sb.WriteString(fmt.Sprintln("status: " + m.Status.String()))
