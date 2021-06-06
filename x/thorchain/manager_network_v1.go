@@ -560,7 +560,7 @@ func (vm *NetworkMgrV1) ragnarokChain(ctx cosmos.Context, chain common.Chain, nt
 
 	// rangarok this chain
 	for _, pool := range pools {
-		if !pool.Asset.GetChain().Equals(chain) || pool.PoolUnits.IsZero() {
+		if !pool.Asset.GetChain().Equals(chain) || pool.LPUnits.IsZero() {
 			continue
 		}
 		iterator := vm.k.GetLiquidityProviderIterator(ctx, pool.Asset)

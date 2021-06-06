@@ -191,7 +191,7 @@ func newOutboundTxHandlerTestHelper(c *C) outboundTxHandlerTestHelper {
 	pool.Asset = common.BNBAsset
 	pool.BalanceAsset = cosmos.NewUint(100 * common.One)
 	pool.BalanceRune = cosmos.NewUint(100 * common.One)
-	pool.PoolUnits = pool.BalanceRune
+	pool.LPUnits = pool.BalanceRune
 
 	version := GetCurrentVersion()
 	asgardVault := GetRandomVault()

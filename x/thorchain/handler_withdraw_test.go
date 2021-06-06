@@ -42,7 +42,7 @@ func (mfp *MockWithdrawKeeper) GetPool(_ cosmos.Context, _ common.Asset) (Pool, 
 			BalanceRune:  cosmos.ZeroUint(),
 			BalanceAsset: cosmos.ZeroUint(),
 			Asset:        common.BNBAsset,
-			PoolUnits:    cosmos.ZeroUint(),
+			LPUnits:      cosmos.ZeroUint(),
 			Status:       PoolSuspended,
 		}, nil
 	}
@@ -94,7 +94,8 @@ func (HandlerWithdrawSuite) TestWithdrawHandler(c *C) {
 			BalanceRune:         cosmos.ZeroUint(),
 			BalanceAsset:        cosmos.ZeroUint(),
 			Asset:               common.BNBAsset,
-			PoolUnits:           cosmos.ZeroUint(),
+			LPUnits:             cosmos.ZeroUint(),
+			SynthUnits:          cosmos.ZeroUint(),
 			PendingInboundRune:  cosmos.ZeroUint(),
 			PendingInboundAsset: cosmos.ZeroUint(),
 			Status:              PoolAvailable,
@@ -269,7 +270,7 @@ func (HandlerWithdrawSuite) TestWithdrawHandler_mockFailScenarios(c *C) {
 		BalanceRune:  cosmos.ZeroUint(),
 		BalanceAsset: cosmos.ZeroUint(),
 		Asset:        common.BNBAsset,
-		PoolUnits:    cosmos.ZeroUint(),
+		LPUnits:      cosmos.ZeroUint(),
 		Status:       PoolAvailable,
 	}
 	lp := LiquidityProvider{
