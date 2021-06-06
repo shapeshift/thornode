@@ -678,8 +678,35 @@ func queryPool(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mg
 	if pool.IsEmpty() {
 		return nil, fmt.Errorf("pool: %s doesn't exist", path[0])
 	}
+	ver := mgr.Keeper().GetLowestActiveVersion(ctx)
+	synthSupply := mgr.Keeper().GetTotalSupply(ctx, pool.Asset.GetSyntheticAsset())
+	pool.CalcUnits(ver, synthSupply)
 
-	res, err := json.MarshalIndent(pool, "", "	")
+	p := struct {
+		BalanceRune         cosmos.Uint  `json:"balance_rune"`
+		BalanceAsset        cosmos.Uint  `json:"balance_asset"`
+		Asset               common.Asset `json:"asset"`
+		LPUnits             cosmos.Uint  `json:"LP_units"`
+		PoolUnits           cosmos.Uint  `json:"pool_units"`
+		Status              PoolStatus   `json:"status,omitempty"`
+		Decimals            int64        `json:"decimals,omitempty"`
+		SynthUnits          cosmos.Uint  `json:"synth_units"`
+		PendingInboundRune  cosmos.Uint  `json:"pending_inbound_rune"`
+		PendingInboundAsset cosmos.Uint  `json:"pending_inbound_asset"`
+	}{
+		BalanceRune:         pool.BalanceRune,
+		BalanceAsset:        pool.BalanceAsset,
+		Asset:               pool.Asset,
+		LPUnits:             pool.LPUnits,
+		PoolUnits:           pool.GetPoolUnits(),
+		Status:              pool.Status,
+		Decimals:            pool.Decimals,
+		SynthUnits:          pool.SynthUnits,
+		PendingInboundRune:  pool.PendingInboundRune,
+		PendingInboundAsset: pool.PendingInboundAsset,
+	}
+
+	res, err := json.MarshalIndent(p, "", "	")
 	if err != nil {
 		return nil, fmt.Errorf("could not marshal result to JSON: %w", err)
 	}
@@ -687,7 +714,20 @@ func queryPool(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mg
 }
 
 func queryPools(ctx cosmos.Context, req abci.RequestQuery, mgr *Mgrs) ([]byte, error) {
-	pools := Pools{}
+	type pp struct {
+		BalanceRune         cosmos.Uint  `json:"balance_rune"`
+		BalanceAsset        cosmos.Uint  `json:"balance_asset"`
+		Asset               common.Asset `json:"asset"`
+		LPUnits             cosmos.Uint  `json:"LP_units"`
+		PoolUnits           cosmos.Uint  `json:"pool_units"`
+		Status              PoolStatus   `json:"status,omitempty"`
+		Decimals            int64        `json:"decimals,omitempty"`
+		SynthUnits          cosmos.Uint  `json:"synth_units"`
+		PendingInboundRune  cosmos.Uint  `json:"pending_inbound_rune"`
+		PendingInboundAsset cosmos.Uint  `json:"pending_inbound_asset"`
+	}
+
+	pools := make([]pp, 0)
 	iterator := mgr.Keeper().GetPoolIterator(ctx)
 	for ; iterator.Valid(); iterator.Next() {
 		var pool Pool
@@ -695,10 +735,27 @@ func queryPools(ctx cosmos.Context, req abci.RequestQuery, mgr *Mgrs) ([]byte, e
 			return nil, fmt.Errorf("fail to unmarshal pool: %w", err)
 		}
 		// ignore pool if no liquidity provider units
-		if pool.PoolUnits.IsZero() {
+		if pool.LPUnits.IsZero() {
 			continue
 		}
-		pools = append(pools, pool)
+
+		ver := mgr.Keeper().GetLowestActiveVersion(ctx)
+		synthSupply := mgr.Keeper().GetTotalSupply(ctx, pool.Asset.GetSyntheticAsset())
+		pool.CalcUnits(ver, synthSupply)
+
+		p := pp{
+			BalanceRune:         pool.BalanceRune,
+			BalanceAsset:        pool.BalanceAsset,
+			Asset:               pool.Asset,
+			LPUnits:             pool.LPUnits,
+			PoolUnits:           pool.GetPoolUnits(),
+			Status:              pool.Status,
+			Decimals:            pool.Decimals,
+			SynthUnits:          pool.SynthUnits,
+			PendingInboundRune:  pool.PendingInboundRune,
+			PendingInboundAsset: pool.PendingInboundAsset,
+		}
+		pools = append(pools, p)
 	}
 	res, err := json.MarshalIndent(pools, "", "	")
 	if err != nil {

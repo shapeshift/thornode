@@ -82,7 +82,7 @@ func (s *ThorchainSuite) TestLiquidityProvision(c *C) {
 	c.Check(pool.BalanceRune.IsZero(), Equals, true)
 	remainGas := uint64(37500)
 	c.Check(pool.BalanceAsset.Uint64(), Equals, remainGas) // leave a little behind for gas
-	c.Check(pool.PoolUnits.IsZero(), Equals, true)
+	c.Check(pool.LPUnits.IsZero(), Equals, true)
 
 	// liquidity provider for user1, again
 	err = addHandler.addLiquidityV1(ctx, common.BNBAsset, cosmos.NewUint(100*common.One), cosmos.NewUint(100*common.One), user1rune, user1asset, txID, false, constAccessor)
@@ -98,7 +98,7 @@ func (s *ThorchainSuite) TestLiquidityProvision(c *C) {
 	c.Assert(err, IsNil)
 	c.Check(pool.BalanceRune.Equal(cosmos.NewUint(200*common.One)), Equals, true)
 	c.Check(pool.BalanceAsset.Equal(cosmos.NewUint(20000000000+remainGas)), Equals, true, Commentf("%d", pool.BalanceAsset.Uint64()))
-	c.Check(pool.PoolUnits.IsZero(), Equals, false)
+	c.Check(pool.LPUnits.IsZero(), Equals, false)
 }
 
 func (s *ThorchainSuite) TestChurn(c *C) {
@@ -120,7 +120,7 @@ func (s *ThorchainSuite) TestChurn(c *C) {
 		BalanceRune:  cosmos.NewUint(common.One),
 		BalanceAsset: cosmos.NewUint(common.One),
 		Asset:        common.BNBAsset,
-		PoolUnits:    cosmos.NewUint(common.One),
+		LPUnits:      cosmos.NewUint(common.One),
 		Status:       PoolAvailable,
 	}), IsNil)
 	addresses := make([]cosmos.AccAddress, 4)
