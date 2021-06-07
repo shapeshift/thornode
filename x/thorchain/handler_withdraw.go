@@ -938,7 +938,7 @@ func (h WithdrawLiquidityHandler) handleCurrent(ctx cosmos.Context, msg MsgWithd
 		}
 	}
 
-	if units.IsZero() {
+	if units.IsZero() && impLossProtection.IsZero() {
 		// withdraw pending liquidity event
 		runeHash := common.TxID("")
 		assetHash := common.TxID("")
