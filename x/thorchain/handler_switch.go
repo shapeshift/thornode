@@ -60,7 +60,7 @@ func (h SwitchHandler) validateCurrent(ctx cosmos.Context, msg MsgSwitch) error 
 	// if we are getting a non-native asset, ensure its signed by an active
 	// node account
 	if !msg.Tx.Coins[0].IsNative() {
-		if !isSignedByActiveNodeAccounts(ctx, h.mgr.Keeper(), msg.GetSigners()) {
+		if !isSignedByActiveNodeAccounts(ctx, h.mgr, msg.GetSigners()) {
 			return cosmos.ErrUnauthorized(notAuthorized.Error())
 		}
 	}

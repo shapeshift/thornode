@@ -71,15 +71,15 @@ func (k *TestRefundBondKeeper) DeleteVault(_ cosmos.Context, key common.PubKey) 
 }
 
 func (s *HelperSuite) TestSubsidizePoolWithSlashBond(c *C) {
-	ctx, k := setupKeeperForTest(c)
+	ctx, mgr := setupManagerForTest(c)
 	ygg := GetRandomVault()
-	c.Assert(subsidizePoolWithSlashBond(ctx, k, ygg, cosmos.NewUint(100*common.One), cosmos.ZeroUint()), IsNil)
+	c.Assert(subsidizePoolWithSlashBond(ctx, ygg, cosmos.NewUint(100*common.One), cosmos.ZeroUint(), mgr), IsNil)
 	poolBNB := NewPool()
 	poolBNB.Asset = common.BNBAsset
 	poolBNB.BalanceRune = cosmos.NewUint(100 * common.One)
 	poolBNB.BalanceAsset = cosmos.NewUint(100 * common.One)
 	poolBNB.Status = PoolAvailable
-	c.Assert(k.SetPool(ctx, poolBNB), IsNil)
+	c.Assert(mgr.Keeper().SetPool(ctx, poolBNB), IsNil)
 
 	poolTCAN := NewPool()
 	tCanAsset, err := common.NewAsset("BNB.TCAN-014")
@@ -88,14 +88,14 @@ func (s *HelperSuite) TestSubsidizePoolWithSlashBond(c *C) {
 	poolTCAN.BalanceRune = cosmos.NewUint(200 * common.One)
 	poolTCAN.BalanceAsset = cosmos.NewUint(200 * common.One)
 	poolTCAN.Status = PoolAvailable
-	c.Assert(k.SetPool(ctx, poolTCAN), IsNil)
+	c.Assert(mgr.Keeper().SetPool(ctx, poolTCAN), IsNil)
 
 	poolBTC := NewPool()
 	poolBTC.Asset = common.BTCAsset
 	poolBTC.BalanceAsset = cosmos.NewUint(300 * common.One)
 	poolBTC.BalanceRune = cosmos.NewUint(300 * common.One)
 	poolBTC.Status = PoolAvailable
-	c.Assert(k.SetPool(ctx, poolBTC), IsNil)
+	c.Assert(mgr.Keeper().SetPool(ctx, poolBTC), IsNil)
 	ygg.Type = YggdrasilVault
 	ygg.Coins = common.Coins{
 		common.NewCoin(common.RuneAsset(), cosmos.NewUint(1*common.One)),
@@ -103,12 +103,12 @@ func (s *HelperSuite) TestSubsidizePoolWithSlashBond(c *C) {
 		common.NewCoin(tCanAsset, cosmos.NewUint(common.One).QuoUint64(2)),       // 0.5 TCAN
 		common.NewCoin(common.BTCAsset, cosmos.NewUint(common.One).QuoUint64(4)), // 0.25 BTC
 	}
-	totalRuneLeft, err := getTotalYggValueInRune(ctx, k, ygg)
+	totalRuneLeft, err := getTotalYggValueInRune(ctx, mgr.Keeper(), ygg)
 	c.Assert(err, IsNil)
 
 	totalRuneStolen := ygg.GetCoin(common.RuneAsset()).Amount
 	slashAmt := totalRuneLeft.MulUint64(3).QuoUint64(2)
-	c.Assert(subsidizePoolWithSlashBond(ctx, k, ygg, totalRuneLeft, slashAmt), IsNil)
+	c.Assert(subsidizePoolWithSlashBond(ctx, ygg, totalRuneLeft, slashAmt, mgr), IsNil)
 
 	slashAmt = common.SafeSub(slashAmt, totalRuneStolen)
 	totalRuneLeft = common.SafeSub(totalRuneLeft, totalRuneStolen)
@@ -116,21 +116,21 @@ func (s *HelperSuite) TestSubsidizePoolWithSlashBond(c *C) {
 	amountBNBForBNBPool := slashAmt.Mul(poolBNB.AssetValueInRune(cosmos.NewUint(common.One))).Quo(totalRuneLeft)
 	runeBNB := poolBNB.BalanceRune.Add(amountBNBForBNBPool)
 	bnbPoolAsset := poolBNB.BalanceAsset.Sub(cosmos.NewUint(common.One))
-	poolBNB, err = k.GetPool(ctx, common.BNBAsset)
+	poolBNB, err = mgr.Keeper().GetPool(ctx, common.BNBAsset)
 	c.Assert(err, IsNil)
 	c.Assert(poolBNB.BalanceRune.Equal(runeBNB), Equals, true)
 	c.Assert(poolBNB.BalanceAsset.Equal(bnbPoolAsset), Equals, true)
 	amountRuneForTCANPool := slashAmt.Mul(poolTCAN.AssetValueInRune(cosmos.NewUint(common.One).QuoUint64(2))).Quo(totalRuneLeft)
 	runeTCAN := poolTCAN.BalanceRune.Add(amountRuneForTCANPool)
 	tcanPoolAsset := poolTCAN.BalanceAsset.Sub(cosmos.NewUint(common.One).QuoUint64(2))
-	poolTCAN, err = k.GetPool(ctx, tCanAsset)
+	poolTCAN, err = mgr.Keeper().GetPool(ctx, tCanAsset)
 	c.Assert(err, IsNil)
 	c.Assert(poolTCAN.BalanceRune.Equal(runeTCAN), Equals, true)
 	c.Assert(poolTCAN.BalanceAsset.Equal(tcanPoolAsset), Equals, true)
 	amountRuneForBTCPool := slashAmt.Mul(poolBTC.AssetValueInRune(cosmos.NewUint(common.One).QuoUint64(4))).Quo(totalRuneLeft)
 	runeBTC := poolBTC.BalanceRune.Add(amountRuneForBTCPool)
 	btcPoolAsset := poolBTC.BalanceAsset.Sub(cosmos.NewUint(common.One).QuoUint64(4))
-	poolBTC, err = k.GetPool(ctx, common.BTCAsset)
+	poolBTC, err = mgr.Keeper().GetPool(ctx, common.BTCAsset)
 	c.Assert(err, IsNil)
 	c.Assert(poolBTC.BalanceRune.Equal(runeBTC), Equals, true)
 	c.Assert(poolBTC.BalanceAsset.Equal(btcPoolAsset), Equals, true)
@@ -141,18 +141,18 @@ func (s *HelperSuite) TestSubsidizePoolWithSlashBond(c *C) {
 		common.NewCoin(tCanAsset, cosmos.NewUint(common.One*2)),       // 2 TCAN
 		common.NewCoin(common.BTCAsset, cosmos.NewUint(common.One*4)), // 4 BTC
 	}
-	totalRuneLeft, err = getTotalYggValueInRune(ctx, k, ygg1)
+	totalRuneLeft, err = getTotalYggValueInRune(ctx, mgr.Keeper(), ygg1)
 	c.Assert(err, IsNil)
 	slashAmt = cosmos.NewUint(100 * common.One)
-	c.Assert(subsidizePoolWithSlashBond(ctx, k, ygg1, totalRuneLeft, slashAmt), IsNil)
+	c.Assert(subsidizePoolWithSlashBond(ctx, ygg1, totalRuneLeft, slashAmt, mgr), IsNil)
 	amountRuneForTCANPool = slashAmt.Mul(poolTCAN.AssetValueInRune(cosmos.NewUint(common.One * 2))).Quo(totalRuneLeft)
 	runeTCAN = poolTCAN.BalanceRune.Add(amountRuneForTCANPool)
-	poolTCAN, err = k.GetPool(ctx, tCanAsset)
+	poolTCAN, err = mgr.Keeper().GetPool(ctx, tCanAsset)
 	c.Assert(err, IsNil)
 	c.Assert(poolTCAN.BalanceRune.Equal(runeTCAN), Equals, true)
 	amountRuneForBTCPool = slashAmt.Mul(poolBTC.AssetValueInRune(cosmos.NewUint(common.One * 4))).Quo(totalRuneLeft)
 	runeBTC = poolBTC.BalanceRune.Add(amountRuneForBTCPool)
-	poolBTC, err = k.GetPool(ctx, common.BTCAsset)
+	poolBTC, err = mgr.Keeper().GetPool(ctx, common.BTCAsset)
 	c.Assert(err, IsNil)
 	c.Assert(poolBTC.BalanceRune.Equal(runeBTC), Equals, true)
 }
@@ -489,7 +489,7 @@ func (s *HelperSuite) TestAddGasFees(c *C) {
 				return tx
 			},
 			runner: func(helper addGasFeeTestHelper, tx ObservedTx) error {
-				return AddGasFees(helper.ctx, helper.mgr, tx)
+				return addGasFees(helper.ctx, helper.mgr, tx)
 			},
 			expectError: false,
 			validator: func(helper addGasFeeTestHelper, c *C) {
@@ -524,7 +524,7 @@ func (s *HelperSuite) TestAddGasFees(c *C) {
 				return tx
 			},
 			runner: func(helper addGasFeeTestHelper, tx ObservedTx) error {
-				return AddGasFees(helper.ctx, helper.mgr, tx)
+				return addGasFees(helper.ctx, helper.mgr, tx)
 			},
 			expectError: false,
 			validator: func(helper addGasFeeTestHelper, c *C) {
@@ -539,7 +539,7 @@ func (s *HelperSuite) TestAddGasFees(c *C) {
 		tx := tc.txCreator(helper)
 		var err error
 		if tc.runner == nil {
-			err = AddGasFees(helper.ctx, helper.mgr, tx)
+			err = addGasFees(helper.ctx, helper.mgr, tx)
 		} else {
 			err = tc.runner(helper, tx)
 		}
