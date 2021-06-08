@@ -27,6 +27,7 @@ var ErrNotEnoughToPayFee = errors.New("not enough asset to pay for fees")
 
 // Manager is an interface to define all the required methods
 type Manager interface {
+	GetVersion() semver.Version
 	Keeper() keeper.Keeper
 	GasMgr() GasManager
 	EventMgr() EventManager
@@ -148,6 +149,10 @@ func NewManagers(keeper keeper.Keeper, cdc codec.BinaryMarshaler, coinKeeper ban
 	}
 }
 
+func (mgr *Mgrs) GetVersion() semver.Version {
+	return mgr.CurrentVersion
+}
+
 // BeginBlock detect whether there are new version available, if it is available then create a new version of Mgr
 func (mgr *Mgrs) BeginBlock(ctx cosmos.Context) error {
 	v := mgr.K.GetLowestActiveVersion(ctx)
@@ -265,7 +270,9 @@ func GetEventManager(version semver.Version) (EventManager, error) {
 // GetTxOutStore will return an implementation of the txout store that
 func GetTxOutStore(keeper keeper.Keeper, version semver.Version, eventMgr EventManager, gasManager GasManager) (TxOutStore, error) {
 	constAcessor := constants.GetConstantValues(version)
-	if version.GTE(semver.MustParse("0.54.0")) {
+	if version.GTE(semver.MustParse("0.55.0")) {
+		return NewTxOutStorageV55(keeper, constAcessor, eventMgr, gasManager), nil
+	} else if version.GTE(semver.MustParse("0.54.0")) {
 		return NewTxOutStorageV54(keeper, constAcessor, eventMgr, gasManager), nil
 	} else if version.GTE(semver.MustParse("0.53.0")) {
 		return NewTxOutStorageV53(keeper, constAcessor, eventMgr, gasManager), nil

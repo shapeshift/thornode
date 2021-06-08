@@ -191,13 +191,13 @@ func (s *NetworkManagerV1TestSuite) TestRagnarokChain(c *C) {
 	btcPool.Asset = common.BTCAsset
 	btcPool.BalanceRune = cosmos.NewUint(1000 * common.One)
 	btcPool.BalanceAsset = cosmos.NewUint(10 * common.One)
-	btcPool.PoolUnits = cosmos.NewUint(1600)
+	btcPool.LPUnits = cosmos.NewUint(1600)
 
 	bnbPool := NewPool()
 	bnbPool.Asset = common.BNBAsset
 	bnbPool.BalanceRune = cosmos.NewUint(1000 * common.One)
 	bnbPool.BalanceAsset = cosmos.NewUint(10 * common.One)
-	bnbPool.PoolUnits = cosmos.NewUint(1600)
+	bnbPool.LPUnits = cosmos.NewUint(1600)
 
 	addr := GetRandomRUNEAddress()
 	lps := LiquidityProviders{
@@ -205,7 +205,7 @@ func (s *NetworkManagerV1TestSuite) TestRagnarokChain(c *C) {
 			RuneAddress:       addr,
 			AssetAddress:      GetRandomBTCAddress(),
 			LastAddHeight:     5,
-			Units:             btcPool.PoolUnits.QuoUint64(2),
+			Units:             btcPool.LPUnits.QuoUint64(2),
 			PendingRune:       cosmos.ZeroUint(),
 			PendingAsset:      cosmos.ZeroUint(),
 			AssetDepositValue: cosmos.ZeroUint(),
@@ -215,7 +215,7 @@ func (s *NetworkManagerV1TestSuite) TestRagnarokChain(c *C) {
 			RuneAddress:       GetRandomRUNEAddress(),
 			AssetAddress:      GetRandomBTCAddress(),
 			LastAddHeight:     10,
-			Units:             btcPool.PoolUnits.QuoUint64(2),
+			Units:             btcPool.LPUnits.QuoUint64(2),
 			PendingRune:       cosmos.ZeroUint(),
 			PendingAsset:      cosmos.ZeroUint(),
 			AssetDepositValue: cosmos.ZeroUint(),
@@ -239,8 +239,8 @@ func (s *NetworkManagerV1TestSuite) TestRagnarokChain(c *C) {
 	err := vaultMgr.manageChains(ctx, mgr, constAccessor)
 	c.Assert(err, IsNil)
 	c.Check(keeper.pools[1].Asset.Equals(common.BTCAsset), Equals, true)
-	c.Check(keeper.pools[1].PoolUnits.IsZero(), Equals, true, Commentf("%d\n", keeper.pools[1].PoolUnits.Uint64()))
-	c.Check(keeper.pools[0].PoolUnits.Equal(cosmos.NewUint(1600)), Equals, true)
+	c.Check(keeper.pools[1].LPUnits.IsZero(), Equals, true, Commentf("%d\n", keeper.pools[1].LPUnits.Uint64()))
+	c.Check(keeper.pools[0].LPUnits.Equal(cosmos.NewUint(1600)), Equals, true)
 	for _, skr := range keeper.lps {
 		c.Check(skr.Units.IsZero(), Equals, true)
 	}

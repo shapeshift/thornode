@@ -198,7 +198,7 @@ func getHandlerTestWrapperWithVersion(c *C, height int64, withActiveNode, withAc
 		p.Status = PoolAvailable
 		p.BalanceRune = cosmos.NewUint(100 * common.One)
 		p.BalanceAsset = cosmos.NewUint(100 * common.One)
-		p.PoolUnits = cosmos.NewUint(100 * common.One)
+		p.LPUnits = cosmos.NewUint(100 * common.One)
 		c.Assert(mgr.Keeper().SetPool(ctx, p), IsNil)
 	}
 	constAccessor := constants.GetConstantValues(version)
@@ -219,11 +219,11 @@ func getHandlerTestWrapperWithVersion(c *C, height int64, withActiveNode, withAc
 func (HandlerSuite) TestIsSignedByActiveNodeAccounts(c *C) {
 	ctx, mgr := setupManagerForTest(c)
 	nodeAddr := GetRandomBech32Addr()
-	c.Check(isSignedByActiveNodeAccounts(ctx, mgr.Keeper(), []cosmos.AccAddress{}), Equals, false)
-	c.Check(isSignedByActiveNodeAccounts(ctx, mgr.Keeper(), []cosmos.AccAddress{nodeAddr}), Equals, false)
+	c.Check(isSignedByActiveNodeAccounts(ctx, mgr, []cosmos.AccAddress{}), Equals, false)
+	c.Check(isSignedByActiveNodeAccounts(ctx, mgr, []cosmos.AccAddress{nodeAddr}), Equals, false)
 	nodeAccount1 := GetRandomNodeAccount(NodeWhiteListed)
 	c.Assert(mgr.Keeper().SetNodeAccount(ctx, nodeAccount1), IsNil)
-	c.Check(isSignedByActiveNodeAccounts(ctx, mgr.Keeper(), []cosmos.AccAddress{nodeAccount1.NodeAddress}), Equals, false)
+	c.Check(isSignedByActiveNodeAccounts(ctx, mgr, []cosmos.AccAddress{nodeAccount1.NodeAddress}), Equals, false)
 }
 
 func (HandlerSuite) TestHandleTxInWithdrawLiquidityMemo(c *C) {
@@ -241,7 +241,7 @@ func (HandlerSuite) TestHandleTxInWithdrawLiquidityMemo(c *C) {
 	pool.Asset = common.BNBAsset
 	pool.BalanceAsset = cosmos.NewUint(100 * common.One)
 	pool.BalanceRune = cosmos.NewUint(100 * common.One)
-	pool.PoolUnits = cosmos.NewUint(100)
+	pool.LPUnits = cosmos.NewUint(100)
 	c.Assert(w.keeper.SetPool(w.ctx, pool), IsNil)
 
 	runeAddr := GetRandomRUNEAddress()
@@ -284,7 +284,7 @@ func (HandlerSuite) TestHandleTxInWithdrawLiquidityMemo(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(pool.IsEmpty(), Equals, false)
 	c.Check(pool.Status, Equals, PoolStaged)
-	c.Check(pool.PoolUnits.Uint64(), Equals, uint64(0), Commentf("%d", pool.PoolUnits.Uint64()))
+	c.Check(pool.LPUnits.Uint64(), Equals, uint64(0), Commentf("%d", pool.LPUnits.Uint64()))
 	c.Check(pool.BalanceRune.Uint64(), Equals, uint64(0), Commentf("%d", pool.BalanceRune.Uint64()))
 	remainGas := uint64(37500)
 	c.Check(pool.BalanceAsset.Uint64(), Equals, remainGas, Commentf("%d", pool.BalanceAsset.Uint64())) // leave a little behind for gas
@@ -321,7 +321,7 @@ func (HandlerSuite) TestRefund(c *C) {
 	ver := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(ver)
 	txOutStore := w.mgr.TxOutStore()
-	c.Assert(refundTxV1(w.ctx, txin, w.mgr, constAccessor, 0, "refund", ""), IsNil)
+	c.Assert(refundTx(w.ctx, txin, w.mgr, constAccessor, 0, "refund", ""), IsNil)
 	items, err := txOutStore.GetOutboundItems(w.ctx)
 	c.Assert(err, IsNil)
 	c.Assert(items, HasLen, 1)
@@ -333,7 +333,7 @@ func (HandlerSuite) TestRefund(c *C) {
 		common.NewCoin(lokiAsset, cosmos.NewUint(100*common.One)),
 	}
 
-	c.Assert(refundTxV1(w.ctx, txin, w.mgr, constAccessor, 0, "refund", ""), IsNil)
+	c.Assert(refundTx(w.ctx, txin, w.mgr, constAccessor, 0, "refund", ""), IsNil)
 	items, err = txOutStore.GetOutboundItems(w.ctx)
 	c.Assert(err, IsNil)
 	c.Assert(items, HasLen, 1)
@@ -344,7 +344,7 @@ func (HandlerSuite) TestRefund(c *C) {
 	c.Assert(pool.BalanceAsset.Equal(cosmos.ZeroUint()), Equals, true, Commentf("%d", pool.BalanceAsset.Uint64()))
 
 	// doing it a second time should keep it at zero
-	c.Assert(refundTxV1(w.ctx, txin, w.mgr, constAccessor, 0, "refund", ""), IsNil)
+	c.Assert(refundTx(w.ctx, txin, w.mgr, constAccessor, 0, "refund", ""), IsNil)
 	items, err = txOutStore.GetOutboundItems(w.ctx)
 	c.Assert(err, IsNil)
 	c.Assert(items, HasLen, 1)

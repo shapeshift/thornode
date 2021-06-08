@@ -20,7 +20,7 @@ func (s TxOutStoreV1Suite) TestAddGasFees(c *C) {
 	version := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(version)
 	mgr.gasMgr = NewGasMgrV1(constAccessor, mgr.Keeper())
-	err := AddGasFees(ctx, mgr, tx)
+	err := addGasFees(ctx, mgr, tx)
 	c.Assert(err, IsNil)
 	c.Assert(mgr.GasMgr().GetGas(), HasLen, 1)
 }
