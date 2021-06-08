@@ -27,6 +27,7 @@ var ErrNotEnoughToPayFee = errors.New("not enough asset to pay for fees")
 
 // Manager is an interface to define all the required methods
 type Manager interface {
+	GetVersion() semver.Version
 	Keeper() keeper.Keeper
 	GasMgr() GasManager
 	EventMgr() EventManager
@@ -146,6 +147,10 @@ func NewManagers(keeper keeper.Keeper, cdc codec.BinaryMarshaler, coinKeeper ban
 		accountKeeper: accountKeeper,
 		storeKey:      storeKey,
 	}
+}
+
+func (mgr *Mgrs) GetVersion() semver.Version {
+	return mgr.CurrentVersion
 }
 
 // BeginBlock detect whether there are new version available, if it is available then create a new version of Mgr
