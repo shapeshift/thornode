@@ -52,7 +52,7 @@ func (h BanHandler) validateCurrent(ctx cosmos.Context, msg MsgBan) error {
 		return err
 	}
 
-	if !isSignedByActiveNodeAccounts(ctx, h.mgr.Keeper(), msg.GetSigners()) {
+	if !isSignedByActiveNodeAccounts(ctx, h.mgr, msg.GetSigners()) {
 		return cosmos.ErrUnauthorized(notAuthorized.Error())
 	}
 

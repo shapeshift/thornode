@@ -58,7 +58,7 @@ func (h ObservedTxInHandler) validateCurrent(ctx cosmos.Context, msg MsgObserved
 		return err
 	}
 
-	if !isSignedByActiveNodeAccounts(ctx, h.mgr.Keeper(), msg.GetSigners()) {
+	if !isSignedByActiveNodeAccounts(ctx, h.mgr, msg.GetSigners()) {
 		return cosmos.ErrUnauthorized(fmt.Sprintf("%+v are not authorized", msg.GetSigners()))
 	}
 
@@ -236,7 +236,7 @@ func (h ObservedTxInHandler) handleV1(ctx cosmos.Context, version semver.Version
 		m, txErr := processOneTxIn(ctx, h.mgr.Keeper(), txIn, msg.Signer)
 		if txErr != nil {
 			ctx.Logger().Error("fail to process inbound tx", "error", txErr.Error(), "tx hash", tx.Tx.ID.String())
-			if newErr := refundTxV1(ctx, tx, h.mgr, constAccessor, CodeInvalidMemo, txErr.Error(), ""); nil != newErr {
+			if newErr := refundTx(ctx, tx, h.mgr, constAccessor, CodeInvalidMemo, txErr.Error(), ""); nil != newErr {
 				ctx.Logger().Error("fail to refund", "error", err)
 			}
 			continue
@@ -249,7 +249,7 @@ func (h ObservedTxInHandler) handleV1(ctx cosmos.Context, version semver.Version
 		if isSwap || isAddLiquidity {
 			if (haltTrading > 0 && haltTrading < common.BlockHeight(ctx) && err == nil) || h.mgr.Keeper().RagnarokInProgress(ctx) {
 				ctx.Logger().Info("trading is halted!!")
-				if newErr := refundTxV1(ctx, tx, h.mgr, constAccessor, se.ErrUnauthorized.ABCICode(), "trading halted", ""); nil != newErr {
+				if newErr := refundTx(ctx, tx, h.mgr, constAccessor, se.ErrUnauthorized.ABCICode(), "trading halted", ""); nil != newErr {
 					ctx.Logger().Error("fail to refund for halted trading", "error", err)
 				}
 				continue
@@ -264,7 +264,7 @@ func (h ObservedTxInHandler) handleV1(ctx cosmos.Context, version semver.Version
 
 		_, err = handler(ctx, m)
 		if err != nil {
-			if err := refundTxV1(ctx, tx, h.mgr, constAccessor, CodeTxFail, err.Error(), ""); err != nil {
+			if err := refundTx(ctx, tx, h.mgr, constAccessor, CodeTxFail, err.Error(), ""); err != nil {
 				ctx.Logger().Error("fail to refund", "error", err)
 			}
 		}
@@ -379,7 +379,7 @@ func (h ObservedTxInHandler) handleV36(ctx cosmos.Context, version semver.Versio
 		m, txErr := processOneTxIn(ctx, h.mgr.Keeper(), txIn, msg.Signer)
 		if txErr != nil {
 			ctx.Logger().Error("fail to process inbound tx", "error", txErr.Error(), "tx hash", tx.Tx.ID.String())
-			if newErr := refundTxV1(ctx, tx, h.mgr, constAccessor, CodeInvalidMemo, txErr.Error(), ""); nil != newErr {
+			if newErr := refundTx(ctx, tx, h.mgr, constAccessor, CodeInvalidMemo, txErr.Error(), ""); nil != newErr {
 				ctx.Logger().Error("fail to refund", "error", err)
 			}
 			continue
@@ -392,7 +392,7 @@ func (h ObservedTxInHandler) handleV36(ctx cosmos.Context, version semver.Versio
 		if isSwap || isAddLiquidity {
 			if (haltTrading > 0 && haltTrading < common.BlockHeight(ctx) && err == nil) || h.mgr.Keeper().RagnarokInProgress(ctx) {
 				ctx.Logger().Info("trading is halted!!")
-				if newErr := refundTxV1(ctx, tx, h.mgr, constAccessor, se.ErrUnauthorized.ABCICode(), "trading halted", ""); nil != newErr {
+				if newErr := refundTx(ctx, tx, h.mgr, constAccessor, se.ErrUnauthorized.ABCICode(), "trading halted", ""); nil != newErr {
 					ctx.Logger().Error("fail to refund for halted trading", "error", err)
 				}
 				continue
@@ -407,7 +407,7 @@ func (h ObservedTxInHandler) handleV36(ctx cosmos.Context, version semver.Versio
 
 		_, err = handler(ctx, m)
 		if err != nil {
-			if err := refundTxV1(ctx, tx, h.mgr, constAccessor, CodeTxFail, err.Error(), ""); err != nil {
+			if err := refundTx(ctx, tx, h.mgr, constAccessor, CodeTxFail, err.Error(), ""); err != nil {
 				ctx.Logger().Error("fail to refund", "error", err)
 			}
 		}
@@ -523,7 +523,7 @@ func (h ObservedTxInHandler) handleV46(ctx cosmos.Context, version semver.Versio
 		m, txErr := processOneTxInV46(ctx, h.mgr.Keeper(), txIn, msg.Signer)
 		if txErr != nil {
 			ctx.Logger().Error("fail to process inbound tx", "error", txErr.Error(), "tx hash", tx.Tx.ID.String())
-			if newErr := refundTxV1(ctx, tx, h.mgr, constAccessor, CodeInvalidMemo, txErr.Error(), ""); nil != newErr {
+			if newErr := refundTx(ctx, tx, h.mgr, constAccessor, CodeInvalidMemo, txErr.Error(), ""); nil != newErr {
 				ctx.Logger().Error("fail to refund", "error", err)
 			}
 			continue
@@ -536,7 +536,7 @@ func (h ObservedTxInHandler) handleV46(ctx cosmos.Context, version semver.Versio
 		if isSwap || isAddLiquidity {
 			if (haltTrading > 0 && haltTrading < common.BlockHeight(ctx) && err == nil) || h.mgr.Keeper().RagnarokInProgress(ctx) {
 				ctx.Logger().Info("trading is halted!!")
-				if newErr := refundTxV1(ctx, tx, h.mgr, constAccessor, se.ErrUnauthorized.ABCICode(), "trading halted", ""); nil != newErr {
+				if newErr := refundTx(ctx, tx, h.mgr, constAccessor, se.ErrUnauthorized.ABCICode(), "trading halted", ""); nil != newErr {
 					ctx.Logger().Error("fail to refund for halted trading", "error", err)
 				}
 				continue
@@ -551,7 +551,7 @@ func (h ObservedTxInHandler) handleV46(ctx cosmos.Context, version semver.Versio
 
 		_, err = handler(ctx, m)
 		if err != nil {
-			if err := refundTxV1(ctx, tx, h.mgr, constAccessor, CodeTxFail, err.Error(), ""); err != nil {
+			if err := refundTx(ctx, tx, h.mgr, constAccessor, CodeTxFail, err.Error(), ""); err != nil {
 				ctx.Logger().Error("fail to refund", "error", err)
 			}
 		}
@@ -671,7 +671,7 @@ func (h ObservedTxInHandler) handleCurrent(ctx cosmos.Context, version semver.Ve
 		m, txErr := processOneTxInV46(ctx, h.mgr.Keeper(), txIn, msg.Signer)
 		if txErr != nil {
 			ctx.Logger().Error("fail to process inbound tx", "error", txErr.Error(), "tx hash", tx.Tx.ID.String())
-			if newErr := refundTxV47(ctx, tx, h.mgr, constAccessor, CodeInvalidMemo, txErr.Error(), ""); nil != newErr {
+			if newErr := refundTx(ctx, tx, h.mgr, constAccessor, CodeInvalidMemo, txErr.Error(), ""); nil != newErr {
 				ctx.Logger().Error("fail to refund", "error", err)
 			}
 			continue
@@ -684,7 +684,7 @@ func (h ObservedTxInHandler) handleCurrent(ctx cosmos.Context, version semver.Ve
 		if isSwap || isAddLiquidity {
 			if (haltTrading > 0 && haltTrading < common.BlockHeight(ctx) && err == nil) || h.mgr.Keeper().RagnarokInProgress(ctx) {
 				ctx.Logger().Info("trading is halted!!")
-				if newErr := refundTxV47(ctx, tx, h.mgr, constAccessor, se.ErrUnauthorized.ABCICode(), "trading halted", ""); nil != newErr {
+				if newErr := refundTx(ctx, tx, h.mgr, constAccessor, se.ErrUnauthorized.ABCICode(), "trading halted", ""); nil != newErr {
 					ctx.Logger().Error("fail to refund for halted trading", "error", err)
 				}
 				continue
@@ -699,7 +699,7 @@ func (h ObservedTxInHandler) handleCurrent(ctx cosmos.Context, version semver.Ve
 
 		_, err = handler(ctx, m)
 		if err != nil {
-			if err := refundTxV47(ctx, tx, h.mgr, constAccessor, CodeTxFail, err.Error(), ""); err != nil {
+			if err := refundTx(ctx, tx, h.mgr, constAccessor, CodeTxFail, err.Error(), ""); err != nil {
 				ctx.Logger().Error("fail to refund", "error", err)
 			}
 		}

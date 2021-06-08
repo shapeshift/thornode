@@ -103,7 +103,7 @@ func (s *HandlerObservedTxInSuite) TestFailure(c *C) {
 	tx := NewObservedTx(GetRandomTx(), 12, GetRandomPubKey(), 12)
 	ver := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(ver)
-	err := refundTxV1(ctx, tx, mgr, constAccessor, CodeInvalidMemo, "Invalid memo", "")
+	err := refundTx(ctx, tx, mgr, constAccessor, CodeInvalidMemo, "Invalid memo", "")
 	c.Assert(err, IsNil)
 	items, err := mgr.TxOutStore().GetOutboundItems(ctx)
 	c.Assert(err, IsNil)

@@ -55,7 +55,7 @@ func (h ObservedTxOutHandler) validateCurrent(ctx cosmos.Context, msg MsgObserve
 		return err
 	}
 
-	if !isSignedByActiveNodeAccounts(ctx, h.mgr.Keeper(), msg.GetSigners()) {
+	if !isSignedByActiveNodeAccounts(ctx, h.mgr, msg.GetSigners()) {
 		return cosmos.ErrUnauthorized(fmt.Sprintf("%+v are not authorized", msg.GetSigners()))
 	}
 
@@ -178,7 +178,7 @@ func (h ObservedTxOutHandler) handleV1(ctx cosmos.Context, version semver.Versio
 		}
 
 		// Apply Gas fees
-		if err := AddGasFees(ctx, h.mgr, tx); err != nil {
+		if err := addGasFees(ctx, h.mgr, tx); err != nil {
 			ctx.Logger().Error("fail to add gas fee", "error", err)
 			continue
 		}
@@ -313,7 +313,7 @@ func (h ObservedTxOutHandler) handleCurrent(ctx cosmos.Context, version semver.V
 		}
 
 		// Apply Gas fees
-		if err := AddGasFees(ctx, h.mgr, tx); err != nil {
+		if err := addGasFees(ctx, h.mgr, tx); err != nil {
 			ctx.Logger().Error("fail to add gas fee", "error", err)
 			continue
 		}
