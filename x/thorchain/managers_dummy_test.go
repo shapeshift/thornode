@@ -1,6 +1,9 @@
 package thorchain
 
-import "gitlab.com/thorchain/thornode/x/thorchain/keeper"
+import (
+	"github.com/blang/semver"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
+)
 
 type DummyMgr struct {
 	K            keeper.Keeper
@@ -45,6 +48,7 @@ func NewDummyMgr() *DummyMgr {
 	}
 }
 
+func (m DummyMgr) GetVersion() semver.Version     { return GetCurrentVersion() }
 func (m DummyMgr) Keeper() keeper.Keeper          { return m.K }
 func (m DummyMgr) GasMgr() GasManager             { return m.gasMgr }
 func (m DummyMgr) EventMgr() EventManager         { return m.eventMgr }
