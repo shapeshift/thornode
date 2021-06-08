@@ -57,7 +57,7 @@ func (h TssKeysignHandler) validateCurrent(ctx cosmos.Context, msg MsgTssKeysign
 		return err
 	}
 
-	if !isSignedByActiveNodeAccounts(ctx, h.mgr.Keeper(), msg.GetSigners()) {
+	if !isSignedByActiveNodeAccounts(ctx, h.mgr, msg.GetSigners()) {
 		shouldAccept := false
 		vaults, err := h.mgr.Keeper().GetAsgardVaultsByStatus(ctx, RetiringVault)
 		if err != nil {

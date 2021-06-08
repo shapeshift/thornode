@@ -52,7 +52,7 @@ func (h ErrataTxHandler) validateCurrent(ctx cosmos.Context, msg MsgErrataTx) er
 		return err
 	}
 
-	if !isSignedByActiveNodeAccounts(ctx, h.mgr.Keeper(), msg.GetSigners()) {
+	if !isSignedByActiveNodeAccounts(ctx, h.mgr, msg.GetSigners()) {
 		return cosmos.ErrUnauthorized(notAuthorized.Error())
 	}
 
@@ -174,7 +174,7 @@ func (h ErrataTxHandler) handleV1(ctx cosmos.Context, msg MsgErrataTx, version s
 		}
 
 		// since this address is being malicious, zero their liquidity provider units
-		pool.PoolUnits = common.SafeSub(pool.PoolUnits, lp.Units)
+		pool.LPUnits = common.SafeSub(pool.LPUnits, lp.Units)
 		lp.Units = cosmos.ZeroUint()
 		lp.LastAddHeight = common.BlockHeight(ctx)
 
@@ -304,7 +304,7 @@ func (h ErrataTxHandler) handleV42(ctx cosmos.Context, msg MsgErrataTx, version 
 		}
 
 		// since this address is being malicious, zero their liquidity provider units
-		pool.PoolUnits = common.SafeSub(pool.PoolUnits, lp.Units)
+		pool.LPUnits = common.SafeSub(pool.LPUnits, lp.Units)
 		lp.Units = cosmos.ZeroUint()
 		lp.LastAddHeight = common.BlockHeight(ctx)
 
@@ -453,7 +453,7 @@ func (h ErrataTxHandler) handleCurrent(ctx cosmos.Context, msg MsgErrataTx, vers
 		}
 
 		// since this address is being malicious, zero their liquidity provider units
-		pool.PoolUnits = common.SafeSub(pool.PoolUnits, lp.Units)
+		pool.LPUnits = common.SafeSub(pool.LPUnits, lp.Units)
 		lp.Units = cosmos.ZeroUint()
 		lp.LastAddHeight = common.BlockHeight(ctx)
 

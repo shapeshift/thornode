@@ -5,7 +5,6 @@ import (
 
 	"github.com/blang/semver"
 	"gitlab.com/thorchain/thornode/common"
-
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
@@ -64,12 +63,30 @@ func (smgr *StoreMgr) migrate(ctx cosmos.Context, i uint64, constantAccessor con
 		smgr.migrateStoreV46(ctx, version, constantAccessor)
 	case 49:
 		smgr.migrateStoreV49(ctx, version, constantAccessor)
+	case 55:
+		smgr.migrateStoreV55(ctx, version, constantAccessor)
 	}
 
 	smgr.keeper.SetStoreVersion(ctx, int64(i))
 	return nil
 }
+func (smgr *StoreMgr) migrateStoreV55(ctx cosmos.Context, version semver.Version, constantAccessor constants.ConstantValues) {
+	assetToAdjust, err := common.NewAsset("BNB.USDT-6D8")
+	if err != nil {
+		ctx.Logger().Error("fail to parse asset", "error", err)
+		return
+	}
+	pool, err := smgr.keeper.GetPool(ctx, assetToAdjust)
+	if err != nil {
+		ctx.Logger().Error("fail to get pool", "error", err)
+		return
+	}
+	pool.BalanceAsset = pool.BalanceAsset.Add(cosmos.NewUint(900000000))
+	if err := smgr.keeper.SetPool(ctx, pool); err != nil {
+		ctx.Logger().Error("fail to save pool", "error", err)
+	}
 
+}
 func (smgr *StoreMgr) migrateStoreV49(ctx cosmos.Context, version semver.Version, constantAccessor constants.ConstantValues) {
 	// due to a withdrawal bug, this user lost their BTC. Recuperate a user's
 	// lost pending asset
