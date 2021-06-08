@@ -715,29 +715,8 @@ func cyclePoolsV1(ctx cosmos.Context, maxAvailablePools, minRunePoolDepth, stage
 				// tokens)
 				ctx.Logger().Info("burning pool", "pool", pool.Asset)
 
-				// delete all liquidity provider records
-				iterator := mgr.Keeper().GetLiquidityProviderIterator(ctx, pool.Asset)
-				defer iterator.Close()
-				for ; iterator.Valid(); iterator.Next() {
-					var lp LiquidityProvider
-					mgr.Keeper().Cdc().MustUnmarshalBinaryBare(iterator.Value(), &lp)
-
-					withdrawEvt := NewEventWithdraw(
-						pool.Asset,
-						lp.Units,
-						int64(0),
-						cosmos.ZeroDec(),
-						common.Tx{},
-						cosmos.ZeroUint(),
-						cosmos.ZeroUint(),
-						cosmos.ZeroUint(),
-					)
-					if err := mgr.EventMgr().EmitEvent(ctx, withdrawEvt); err != nil {
-						ctx.Logger().Error("fail to emit pool withdraw event", "error", err)
-					}
-
-					mgr.Keeper().RemoveLiquidityProvider(ctx, lp)
-				}
+				// remove LPs
+				removeLiquidityProviders(ctx, pool.Asset, mgr)
 
 				// delete the pool
 				mgr.Keeper().RemovePool(ctx, pool.Asset)
@@ -746,26 +725,8 @@ func cyclePoolsV1(ctx cosmos.Context, maxAvailablePools, minRunePoolDepth, stage
 				if err := mgr.EventMgr().EmitEvent(ctx, poolEvent); err != nil {
 					ctx.Logger().Error("fail to emit pool event", "error", err)
 				}
-
-				// zero vaults with the pool asset
-				vaultIter := mgr.Keeper().GetVaultIterator(ctx)
-				defer vaultIter.Close()
-				for ; vaultIter.Valid(); vaultIter.Next() {
-					var vault Vault
-					mgr.Keeper().Cdc().MustUnmarshalBinaryBare(vaultIter.Value(), &vault)
-
-					if vault.HasAsset(pool.Asset) {
-						for i, coin := range vault.Coins {
-							if pool.Asset.Equals(coin.Asset) {
-								vault.Coins[i].Amount = cosmos.ZeroUint()
-								if err := mgr.Keeper().SetVault(ctx, vault); err != nil {
-									ctx.Logger().Error("fail to save vault", "error", err)
-								}
-								break
-							}
-						}
-					}
-				}
+				// remove asset from Vault
+				removeAssetFromVault(ctx, pool.Asset, mgr)
 
 			} else {
 				if valid_pool(pool) && onDeck.BalanceRune.LT(pool.BalanceRune) {
@@ -804,6 +765,54 @@ func cyclePoolsV1(ctx cosmos.Context, maxAvailablePools, minRunePoolDepth, stage
 	}
 
 	return nil
+}
+func removeAssetFromVault(ctx cosmos.Context, asset common.Asset, mgr Manager) {
+	// zero vaults with the pool asset
+	vaultIter := mgr.Keeper().GetVaultIterator(ctx)
+	defer vaultIter.Close()
+	for ; vaultIter.Valid(); vaultIter.Next() {
+		var vault Vault
+		if err := mgr.Keeper().Cdc().UnmarshalBinaryBare(vaultIter.Value(), &vault); err != nil {
+			ctx.Logger().Error("fail to unmarshal vault", "error", err)
+			continue
+		}
+		if vault.HasAsset(asset) {
+			for i, coin := range vault.Coins {
+				if asset.Equals(coin.Asset) {
+					vault.Coins[i].Amount = cosmos.ZeroUint()
+					if err := mgr.Keeper().SetVault(ctx, vault); err != nil {
+						ctx.Logger().Error("fail to save vault", "error", err)
+					}
+					break
+				}
+			}
+		}
+	}
+}
+func removeLiquidityProviders(ctx cosmos.Context, asset common.Asset, mgr Manager) {
+	iterator := mgr.Keeper().GetLiquidityProviderIterator(ctx, asset)
+	defer iterator.Close()
+	for ; iterator.Valid(); iterator.Next() {
+		var lp LiquidityProvider
+		if err := mgr.Keeper().Cdc().UnmarshalBinaryBare(iterator.Value(), &lp); err != nil {
+			ctx.Logger().Error("fail to unmarshal liquidity provider", "error", err)
+			continue
+		}
+		withdrawEvt := NewEventWithdraw(
+			asset,
+			lp.Units,
+			int64(0),
+			cosmos.ZeroDec(),
+			common.Tx{},
+			cosmos.ZeroUint(),
+			cosmos.ZeroUint(),
+			cosmos.ZeroUint(),
+		)
+		if err := mgr.EventMgr().EmitEvent(ctx, withdrawEvt); err != nil {
+			ctx.Logger().Error("fail to emit pool withdraw event", "error", err)
+		}
+		mgr.Keeper().RemoveLiquidityProvider(ctx, lp)
+	}
 }
 
 func wrapError(ctx cosmos.Context, err error, wrap string) error {
