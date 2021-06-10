@@ -79,7 +79,7 @@ func (vm *SwapQv47) EndBlock(ctx cosmos.Context, mgr Manager, version semver.Ver
 
 	for i := int64(0); i < vm.getTodoNum(int64(len(swaps)), minSwapsPerBlock, maxSwapsPerBlock); i++ {
 		pick := swaps[i]
-		_, err := handler.handle(ctx, pick.msg, version, constAccessor)
+		_, err := handler.handle(ctx, pick.msg)
 		if err != nil {
 			ctx.Logger().Error("fail to swap", "msg", pick.msg.Tx.String(), "error", err)
 			if newErr := refundTx(ctx, ObservedTx{Tx: pick.msg.Tx}, mgr, constAccessor, CodeSwapFail, err.Error(), ""); nil != newErr {

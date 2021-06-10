@@ -24,25 +24,26 @@ func NewObservedTxInHandler(mgr Manager) ObservedTxInHandler {
 }
 
 // Run is the main entry point of ObservedTxInHandler
-func (h ObservedTxInHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+func (h ObservedTxInHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Result, error) {
 	msg, ok := m.(*MsgObservedTxIn)
 	if !ok {
 		return nil, errInvalidMessage
 	}
-	err := h.validate(ctx, *msg, version)
+	err := h.validate(ctx, *msg)
 	if err != nil {
 		ctx.Logger().Error("MsgObservedTxIn failed validation", "error", err)
 		return nil, err
 	}
 
-	result, err := h.handle(ctx, *msg, version, constAccessor)
+	result, err := h.handle(ctx, *msg)
 	if err != nil {
 		ctx.Logger().Error("fail to handle MsgObservedTxIn message", "error", err)
 	}
 	return result, err
 }
 
-func (h ObservedTxInHandler) validate(ctx cosmos.Context, msg MsgObservedTxIn, version semver.Version) error {
+func (h ObservedTxInHandler) validate(ctx cosmos.Context, msg MsgObservedTxIn) error {
+	version := h.mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, msg)
 	}
@@ -65,22 +66,23 @@ func (h ObservedTxInHandler) validateCurrent(ctx cosmos.Context, msg MsgObserved
 	return nil
 }
 
-func (h ObservedTxInHandler) handle(ctx cosmos.Context, msg MsgObservedTxIn, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+func (h ObservedTxInHandler) handle(ctx cosmos.Context, msg MsgObservedTxIn) (*cosmos.Result, error) {
+	version := h.mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.47.0")) {
-		return h.handleV47(ctx, version, msg, constAccessor)
+		return h.handleV47(ctx, msg)
 	} else if version.GTE(semver.MustParse("0.46.0")) {
-		return h.handleV46(ctx, version, msg, constAccessor)
+		return h.handleV46(ctx, msg)
 	} else if version.GTE(semver.MustParse("0.36.0")) {
-		return h.handleV36(ctx, version, msg, constAccessor)
+		return h.handleV36(ctx, msg)
 	} else if version.GTE(semver.MustParse("0.1.0")) {
-		return h.handleV1(ctx, version, msg, constAccessor)
+		return h.handleV1(ctx, msg)
 	}
 	return nil, errBadVersion
 }
 
-func (h ObservedTxInHandler) preflightV1(ctx cosmos.Context, voter ObservedTxVoter, nas NodeAccounts, tx ObservedTx, signer cosmos.AccAddress, version semver.Version, constAccessor constants.ConstantValues) (ObservedTxVoter, bool) {
-	observeSlashPoints := constAccessor.GetInt64Value(constants.ObserveSlashPoints)
-	observeFlex := constAccessor.GetInt64Value(constants.ObservationDelayFlexibility)
+func (h ObservedTxInHandler) preflightV1(ctx cosmos.Context, voter ObservedTxVoter, nas NodeAccounts, tx ObservedTx, signer cosmos.AccAddress) (ObservedTxVoter, bool) {
+	observeSlashPoints := h.mgr.GetConstants().GetInt64Value(constants.ObserveSlashPoints)
+	observeFlex := h.mgr.GetConstants().GetInt64Value(constants.ObservationDelayFlexibility)
 	h.mgr.Slasher().IncSlashPoints(ctx, observeSlashPoints, signer)
 	ok := false
 	if err := h.mgr.Keeper().SetLastObserveHeight(ctx, tx.Tx.Chain, signer, tx.BlockHeight); err != nil {
@@ -129,7 +131,7 @@ func (h ObservedTxInHandler) preflightV1(ctx cosmos.Context, voter ObservedTxVot
 }
 
 // Handle a message to observe inbound tx
-func (h ObservedTxInHandler) handleV1(ctx cosmos.Context, version semver.Version, msg MsgObservedTxIn, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+func (h ObservedTxInHandler) handleV1(ctx cosmos.Context, msg MsgObservedTxIn) (*cosmos.Result, error) {
 	activeNodeAccounts, err := h.mgr.Keeper().ListActiveNodeAccounts(ctx)
 	if err != nil {
 		return nil, wrapError(ctx, err, "fail to get list of active node accounts")
@@ -148,7 +150,7 @@ func (h ObservedTxInHandler) handleV1(ctx cosmos.Context, version semver.Version
 			continue
 		}
 
-		voter, ok := h.preflightV1(ctx, voter, activeNodeAccounts, tx, msg.Signer, version, constAccessor)
+		voter, ok := h.preflightV1(ctx, voter, activeNodeAccounts, tx, msg.Signer)
 		if !ok {
 			if voter.Height == common.BlockHeight(ctx) || voter.FinalisedHeight == common.BlockHeight(ctx) {
 				// we've already process the transaction, but we should still
@@ -236,7 +238,7 @@ func (h ObservedTxInHandler) handleV1(ctx cosmos.Context, version semver.Version
 		m, txErr := processOneTxIn(ctx, h.mgr.Keeper(), txIn, msg.Signer)
 		if txErr != nil {
 			ctx.Logger().Error("fail to process inbound tx", "error", txErr.Error(), "tx hash", tx.Tx.ID.String())
-			if newErr := refundTx(ctx, tx, h.mgr, constAccessor, CodeInvalidMemo, txErr.Error(), ""); nil != newErr {
+			if newErr := refundTx(ctx, tx, h.mgr, h.mgr.GetConstants(), CodeInvalidMemo, txErr.Error(), ""); nil != newErr {
 				ctx.Logger().Error("fail to refund", "error", err)
 			}
 			continue
@@ -249,7 +251,7 @@ func (h ObservedTxInHandler) handleV1(ctx cosmos.Context, version semver.Version
 		if isSwap || isAddLiquidity {
 			if (haltTrading > 0 && haltTrading < common.BlockHeight(ctx) && err == nil) || h.mgr.Keeper().RagnarokInProgress(ctx) {
 				ctx.Logger().Info("trading is halted!!")
-				if newErr := refundTx(ctx, tx, h.mgr, constAccessor, se.ErrUnauthorized.ABCICode(), "trading halted", ""); nil != newErr {
+				if newErr := refundTx(ctx, tx, h.mgr, h.mgr.GetConstants(), se.ErrUnauthorized.ABCICode(), "trading halted", ""); nil != newErr {
 					ctx.Logger().Error("fail to refund for halted trading", "error", err)
 				}
 				continue
@@ -258,13 +260,13 @@ func (h ObservedTxInHandler) handleV1(ctx cosmos.Context, version semver.Version
 
 		// if its a swap, send it to our queue for processing later
 		if isSwap {
-			h.addSwapV1(ctx, *swapMsg, constAccessor)
+			h.addSwapV1(ctx, *swapMsg)
 			continue
 		}
 
 		_, err = handler(ctx, m)
 		if err != nil {
-			if err := refundTx(ctx, tx, h.mgr, constAccessor, CodeTxFail, err.Error(), ""); err != nil {
+			if err := refundTx(ctx, tx, h.mgr, h.mgr.GetConstants(), CodeTxFail, err.Error(), ""); err != nil {
 				ctx.Logger().Error("fail to refund", "error", err)
 			}
 		}
@@ -277,7 +279,7 @@ func (h ObservedTxInHandler) handleV1(ctx cosmos.Context, version semver.Version
 	return &cosmos.Result{}, nil
 }
 
-func (h ObservedTxInHandler) handleV36(ctx cosmos.Context, version semver.Version, msg MsgObservedTxIn, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+func (h ObservedTxInHandler) handleV36(ctx cosmos.Context, msg MsgObservedTxIn) (*cosmos.Result, error) {
 	activeNodeAccounts, err := h.mgr.Keeper().ListActiveNodeAccounts(ctx)
 	if err != nil {
 		return nil, wrapError(ctx, err, "fail to get list of active node accounts")
@@ -296,7 +298,7 @@ func (h ObservedTxInHandler) handleV36(ctx cosmos.Context, version semver.Versio
 			continue
 		}
 
-		voter, ok := h.preflightV1(ctx, voter, activeNodeAccounts, tx, msg.Signer, version, constAccessor)
+		voter, ok := h.preflightV1(ctx, voter, activeNodeAccounts, tx, msg.Signer)
 		if !ok {
 			if voter.Height == common.BlockHeight(ctx) || voter.FinalisedHeight == common.BlockHeight(ctx) {
 				// we've already process the transaction, but we should still
@@ -379,7 +381,7 @@ func (h ObservedTxInHandler) handleV36(ctx cosmos.Context, version semver.Versio
 		m, txErr := processOneTxIn(ctx, h.mgr.Keeper(), txIn, msg.Signer)
 		if txErr != nil {
 			ctx.Logger().Error("fail to process inbound tx", "error", txErr.Error(), "tx hash", tx.Tx.ID.String())
-			if newErr := refundTx(ctx, tx, h.mgr, constAccessor, CodeInvalidMemo, txErr.Error(), ""); nil != newErr {
+			if newErr := refundTx(ctx, tx, h.mgr, h.mgr.GetConstants(), CodeInvalidMemo, txErr.Error(), ""); nil != newErr {
 				ctx.Logger().Error("fail to refund", "error", err)
 			}
 			continue
@@ -392,7 +394,7 @@ func (h ObservedTxInHandler) handleV36(ctx cosmos.Context, version semver.Versio
 		if isSwap || isAddLiquidity {
 			if (haltTrading > 0 && haltTrading < common.BlockHeight(ctx) && err == nil) || h.mgr.Keeper().RagnarokInProgress(ctx) {
 				ctx.Logger().Info("trading is halted!!")
-				if newErr := refundTx(ctx, tx, h.mgr, constAccessor, se.ErrUnauthorized.ABCICode(), "trading halted", ""); nil != newErr {
+				if newErr := refundTx(ctx, tx, h.mgr, h.mgr.GetConstants(), se.ErrUnauthorized.ABCICode(), "trading halted", ""); nil != newErr {
 					ctx.Logger().Error("fail to refund for halted trading", "error", err)
 				}
 				continue
@@ -401,13 +403,13 @@ func (h ObservedTxInHandler) handleV36(ctx cosmos.Context, version semver.Versio
 
 		// if its a swap, send it to our queue for processing later
 		if isSwap {
-			h.addSwapV1(ctx, *swapMsg, constAccessor)
+			h.addSwapV1(ctx, *swapMsg)
 			continue
 		}
 
 		_, err = handler(ctx, m)
 		if err != nil {
-			if err := refundTx(ctx, tx, h.mgr, constAccessor, CodeTxFail, err.Error(), ""); err != nil {
+			if err := refundTx(ctx, tx, h.mgr, h.mgr.GetConstants(), CodeTxFail, err.Error(), ""); err != nil {
 				ctx.Logger().Error("fail to refund", "error", err)
 			}
 		}
@@ -421,7 +423,7 @@ func (h ObservedTxInHandler) handleV36(ctx cosmos.Context, version semver.Versio
 
 }
 
-func (h ObservedTxInHandler) handleV46(ctx cosmos.Context, version semver.Version, msg MsgObservedTxIn, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+func (h ObservedTxInHandler) handleV46(ctx cosmos.Context, msg MsgObservedTxIn) (*cosmos.Result, error) {
 	activeNodeAccounts, err := h.mgr.Keeper().ListActiveNodeAccounts(ctx)
 	if err != nil {
 		return nil, wrapError(ctx, err, "fail to get list of active node accounts")
@@ -440,7 +442,7 @@ func (h ObservedTxInHandler) handleV46(ctx cosmos.Context, version semver.Versio
 			continue
 		}
 
-		voter, ok := h.preflightV1(ctx, voter, activeNodeAccounts, tx, msg.Signer, version, constAccessor)
+		voter, ok := h.preflightV1(ctx, voter, activeNodeAccounts, tx, msg.Signer)
 		if !ok {
 			if voter.Height == common.BlockHeight(ctx) || voter.FinalisedHeight == common.BlockHeight(ctx) {
 				// we've already process the transaction, but we should still
@@ -523,7 +525,7 @@ func (h ObservedTxInHandler) handleV46(ctx cosmos.Context, version semver.Versio
 		m, txErr := processOneTxInV46(ctx, h.mgr.Keeper(), txIn, msg.Signer)
 		if txErr != nil {
 			ctx.Logger().Error("fail to process inbound tx", "error", txErr.Error(), "tx hash", tx.Tx.ID.String())
-			if newErr := refundTx(ctx, tx, h.mgr, constAccessor, CodeInvalidMemo, txErr.Error(), ""); nil != newErr {
+			if newErr := refundTx(ctx, tx, h.mgr, h.mgr.GetConstants(), CodeInvalidMemo, txErr.Error(), ""); nil != newErr {
 				ctx.Logger().Error("fail to refund", "error", err)
 			}
 			continue
@@ -536,7 +538,7 @@ func (h ObservedTxInHandler) handleV46(ctx cosmos.Context, version semver.Versio
 		if isSwap || isAddLiquidity {
 			if (haltTrading > 0 && haltTrading < common.BlockHeight(ctx) && err == nil) || h.mgr.Keeper().RagnarokInProgress(ctx) {
 				ctx.Logger().Info("trading is halted!!")
-				if newErr := refundTx(ctx, tx, h.mgr, constAccessor, se.ErrUnauthorized.ABCICode(), "trading halted", ""); nil != newErr {
+				if newErr := refundTx(ctx, tx, h.mgr, h.mgr.GetConstants(), se.ErrUnauthorized.ABCICode(), "trading halted", ""); nil != newErr {
 					ctx.Logger().Error("fail to refund for halted trading", "error", err)
 				}
 				continue
@@ -545,13 +547,13 @@ func (h ObservedTxInHandler) handleV46(ctx cosmos.Context, version semver.Versio
 
 		// if its a swap, send it to our queue for processing later
 		if isSwap {
-			h.addSwapV1(ctx, *swapMsg, constAccessor)
+			h.addSwapV1(ctx, *swapMsg)
 			continue
 		}
 
 		_, err = handler(ctx, m)
 		if err != nil {
-			if err := refundTx(ctx, tx, h.mgr, constAccessor, CodeTxFail, err.Error(), ""); err != nil {
+			if err := refundTx(ctx, tx, h.mgr, h.mgr.GetConstants(), CodeTxFail, err.Error(), ""); err != nil {
 				ctx.Logger().Error("fail to refund", "error", err)
 			}
 		}
@@ -565,11 +567,11 @@ func (h ObservedTxInHandler) handleV46(ctx cosmos.Context, version semver.Versio
 
 }
 
-func (h ObservedTxInHandler) handleV47(ctx cosmos.Context, version semver.Version, msg MsgObservedTxIn, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
-	return h.handleCurrent(ctx, version, msg, constAccessor)
+func (h ObservedTxInHandler) handleV47(ctx cosmos.Context, msg MsgObservedTxIn) (*cosmos.Result, error) {
+	return h.handleCurrent(ctx, msg)
 }
 
-func (h ObservedTxInHandler) handleCurrent(ctx cosmos.Context, version semver.Version, msg MsgObservedTxIn, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+func (h ObservedTxInHandler) handleCurrent(ctx cosmos.Context, msg MsgObservedTxIn) (*cosmos.Result, error) {
 	activeNodeAccounts, err := h.mgr.Keeper().ListActiveNodeAccounts(ctx)
 	if err != nil {
 		return nil, wrapError(ctx, err, "fail to get list of active node accounts")
@@ -588,7 +590,7 @@ func (h ObservedTxInHandler) handleCurrent(ctx cosmos.Context, version semver.Ve
 			continue
 		}
 
-		voter, ok := h.preflightV1(ctx, voter, activeNodeAccounts, tx, msg.Signer, version, constAccessor)
+		voter, ok := h.preflightV1(ctx, voter, activeNodeAccounts, tx, msg.Signer)
 		if !ok {
 			if voter.Height == common.BlockHeight(ctx) || voter.FinalisedHeight == common.BlockHeight(ctx) {
 				// we've already process the transaction, but we should still
@@ -671,7 +673,7 @@ func (h ObservedTxInHandler) handleCurrent(ctx cosmos.Context, version semver.Ve
 		m, txErr := processOneTxInV46(ctx, h.mgr.Keeper(), txIn, msg.Signer)
 		if txErr != nil {
 			ctx.Logger().Error("fail to process inbound tx", "error", txErr.Error(), "tx hash", tx.Tx.ID.String())
-			if newErr := refundTx(ctx, tx, h.mgr, constAccessor, CodeInvalidMemo, txErr.Error(), ""); nil != newErr {
+			if newErr := refundTx(ctx, tx, h.mgr, h.mgr.GetConstants(), CodeInvalidMemo, txErr.Error(), ""); nil != newErr {
 				ctx.Logger().Error("fail to refund", "error", err)
 			}
 			continue
@@ -684,7 +686,7 @@ func (h ObservedTxInHandler) handleCurrent(ctx cosmos.Context, version semver.Ve
 		if isSwap || isAddLiquidity {
 			if (haltTrading > 0 && haltTrading < common.BlockHeight(ctx) && err == nil) || h.mgr.Keeper().RagnarokInProgress(ctx) {
 				ctx.Logger().Info("trading is halted!!")
-				if newErr := refundTx(ctx, tx, h.mgr, constAccessor, se.ErrUnauthorized.ABCICode(), "trading halted", ""); nil != newErr {
+				if newErr := refundTx(ctx, tx, h.mgr, h.mgr.GetConstants(), se.ErrUnauthorized.ABCICode(), "trading halted", ""); nil != newErr {
 					ctx.Logger().Error("fail to refund for halted trading", "error", err)
 				}
 				continue
@@ -693,13 +695,13 @@ func (h ObservedTxInHandler) handleCurrent(ctx cosmos.Context, version semver.Ve
 
 		// if its a swap, send it to our queue for processing later
 		if isSwap {
-			h.addSwapV1(ctx, *swapMsg, constAccessor)
+			h.addSwapV1(ctx, *swapMsg)
 			continue
 		}
 
 		_, err = handler(ctx, m)
 		if err != nil {
-			if err := refundTx(ctx, tx, h.mgr, constAccessor, CodeTxFail, err.Error(), ""); err != nil {
+			if err := refundTx(ctx, tx, h.mgr, h.mgr.GetConstants(), CodeTxFail, err.Error(), ""); err != nil {
 				ctx.Logger().Error("fail to refund", "error", err)
 			}
 		}
@@ -712,7 +714,7 @@ func (h ObservedTxInHandler) handleCurrent(ctx cosmos.Context, version semver.Ve
 	return &cosmos.Result{}, nil
 }
 
-func (h ObservedTxInHandler) addSwapV1(ctx cosmos.Context, msg MsgSwap, constAccessor constants.ConstantValues) {
+func (h ObservedTxInHandler) addSwapV1(ctx cosmos.Context, msg MsgSwap) {
 	amt := cosmos.ZeroUint()
 	if !msg.AffiliateBasisPoints.IsZero() && msg.AffiliateAddress.IsChain(common.THORChain) {
 		amt = common.GetShare(

@@ -3,13 +3,11 @@ package thorchain
 import (
 	"errors"
 
-	"github.com/blang/semver"
 	se "github.com/cosmos/cosmos-sdk/types/errors"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
-	"gitlab.com/thorchain/thornode/constants"
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
@@ -65,6 +63,7 @@ var _ = Suite(&HandlerVersionSuite{})
 
 func (s *HandlerVersionSuite) TestValidate(c *C) {
 	ctx, _ := setupKeeperForTest(c)
+	ver := GetCurrentVersion()
 
 	keeper := &TestVersionlKeeper{
 		na:               GetRandomNodeAccount(NodeActive),
@@ -74,33 +73,26 @@ func (s *HandlerVersionSuite) TestValidate(c *C) {
 
 	handler := NewVersionHandler(NewDummyMgrWithKeeper(keeper))
 	// happy path
-	ver := GetCurrentVersion()
-	constAccessor := constants.GetConstantValues(ver)
 	msg := NewMsgSetVersion(ver.String(), keeper.na.NodeAddress)
-	result, err := handler.Run(ctx, msg, ver, constAccessor)
+	result, err := handler.Run(ctx, msg)
 	c.Assert(err, IsNil)
 	c.Assert(result, NotNil)
 
-	// invalid version
-	result, err = handler.Run(ctx, msg, semver.Version{}, constAccessor)
-	c.Assert(err, Equals, errBadVersion)
-	c.Assert(result, IsNil)
-
 	// invalid msg
 	msg = &MsgSetVersion{}
-	result, err = handler.Run(ctx, msg, ver, constAccessor)
+	result, err = handler.Run(ctx, msg)
 	c.Assert(result, IsNil)
 	c.Assert(err, NotNil)
 
 	// fail to get node account should fail
 	msg1 := NewMsgSetVersion(ver.String(), keeper.failNodeAccount.NodeAddress)
-	result, err = handler.Run(ctx, msg1, ver, constAccessor)
+	result, err = handler.Run(ctx, msg1)
 	c.Assert(err, NotNil)
 	c.Assert(result, IsNil)
 
 	// node account empty should fail
 	msg2 := NewMsgSetVersion(ver.String(), keeper.emptyNodeAccount.NodeAddress)
-	result, err = handler.Run(ctx, msg2, ver, constAccessor)
+	result, err = handler.Run(ctx, msg2)
 	c.Assert(err, NotNil)
 	c.Assert(result, IsNil)
 	c.Assert(errors.Is(err, se.ErrUnauthorized), Equals, true)
@@ -108,8 +100,6 @@ func (s *HandlerVersionSuite) TestValidate(c *C) {
 
 func (s *HandlerVersionSuite) TestHandle(c *C) {
 	ctx, _ := setupKeeperForTest(c)
-	ver := GetCurrentVersion()
-	constAccessor := constants.GetConstantValues(ver)
 
 	keeper := &TestVersionlKeeper{
 		na: GetRandomNodeAccount(NodeActive),
@@ -118,13 +108,13 @@ func (s *HandlerVersionSuite) TestHandle(c *C) {
 	handler := NewVersionHandler(NewDummyMgrWithKeeper(keeper))
 
 	msg := NewMsgSetVersion("2.0.0", GetRandomBech32Addr())
-	err := handler.handle(ctx, *msg, ver, constAccessor)
+	err := handler.handle(ctx, *msg)
 	c.Assert(err, IsNil)
 	c.Check(keeper.na.Version, Equals, "2.0.0")
 
 	// fail to set node account should return an error
 	keeper.failSaveNodeAccount = true
-	result, err := handler.Run(ctx, msg, ver, constAccessor)
+	result, err := handler.Run(ctx, msg)
 	c.Assert(err, NotNil)
 	c.Assert(result, IsNil)
 	keeper.failSaveNodeAccount = false
@@ -132,12 +122,12 @@ func (s *HandlerVersionSuite) TestHandle(c *C) {
 	if !common.RuneAsset().Equals(common.RuneNative) {
 		// BEP2 RUNE
 		keeper.failGetNetwork = true
-		result, err = handler.Run(ctx, msg, ver, constAccessor)
+		result, err = handler.Run(ctx, msg)
 		c.Assert(err, NotNil)
 		c.Assert(result, IsNil)
 		keeper.failGetNetwork = false
 		keeper.failSetNetwork = true
-		result, err = handler.Run(ctx, msg, ver, constAccessor)
+		result, err = handler.Run(ctx, msg)
 		c.Assert(err, NotNil)
 		c.Assert(result, IsNil)
 		keeper.failSetNetwork = false

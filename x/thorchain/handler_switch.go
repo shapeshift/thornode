@@ -7,7 +7,6 @@ import (
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
-	"gitlab.com/thorchain/thornode/constants"
 )
 
 // SwitchHandler is to handle Switch message
@@ -24,16 +23,16 @@ func NewSwitchHandler(mgr Manager) SwitchHandler {
 }
 
 // Run it the main entry point to execute Switch logic
-func (h SwitchHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+func (h SwitchHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Result, error) {
 	msg, ok := m.(*MsgSwitch)
 	if !ok {
 		return nil, errInvalidMessage
 	}
-	if err := h.validate(ctx, *msg, version); err != nil {
+	if err := h.validate(ctx, *msg); err != nil {
 		ctx.Logger().Error("msg switch failed validation", "error", err)
 		return nil, err
 	}
-	result, err := h.handle(ctx, *msg, version, constAccessor)
+	result, err := h.handle(ctx, *msg)
 	if err != nil {
 		ctx.Logger().Error("failed to process msg switch", "error", err)
 		return nil, err
@@ -41,7 +40,8 @@ func (h SwitchHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Vers
 	return result, err
 }
 
-func (h SwitchHandler) validate(ctx cosmos.Context, msg MsgSwitch, version semver.Version) error {
+func (h SwitchHandler) validate(ctx cosmos.Context, msg MsgSwitch) error {
+	version := h.mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, msg)
 	}
@@ -68,19 +68,20 @@ func (h SwitchHandler) validateCurrent(ctx cosmos.Context, msg MsgSwitch) error 
 	return nil
 }
 
-func (h SwitchHandler) handle(ctx cosmos.Context, msg MsgSwitch, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+func (h SwitchHandler) handle(ctx cosmos.Context, msg MsgSwitch) (*cosmos.Result, error) {
 	ctx.Logger().Info("handleMsgSwitch request", "destination address", msg.Destination.String())
+	version := h.mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.1.0")) {
-		return h.handleV1(ctx, msg, version, constAccessor)
+		return h.handleV1(ctx, msg)
 	}
 	return nil, errBadVersion
 }
 
-func (h SwitchHandler) handleV1(ctx cosmos.Context, msg MsgSwitch, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
-	return h.handleCurrent(ctx, msg, version, constAccessor)
+func (h SwitchHandler) handleV1(ctx cosmos.Context, msg MsgSwitch) (*cosmos.Result, error) {
+	return h.handleCurrent(ctx, msg)
 }
 
-func (h SwitchHandler) handleCurrent(ctx cosmos.Context, msg MsgSwitch, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+func (h SwitchHandler) handleCurrent(ctx cosmos.Context, msg MsgSwitch) (*cosmos.Result, error) {
 	haltHeight, err := h.mgr.Keeper().GetMimir(ctx, "HaltTHORChain")
 	if err != nil {
 		return nil, fmt.Errorf("failed to get mimir setting: %w", err)

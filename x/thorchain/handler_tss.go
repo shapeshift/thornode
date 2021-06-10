@@ -23,17 +23,17 @@ func NewTssHandler(mgr Manager) TssHandler {
 }
 
 // Run is the main entry for TssHandler
-func (h TssHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+func (h TssHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Result, error) {
 	msg, ok := m.(*MsgTssPool)
 	if !ok {
 		return nil, errInvalidMessage
 	}
-	err := h.validate(ctx, *msg, version)
+	err := h.validate(ctx, *msg)
 	if err != nil {
 		ctx.Logger().Error("msg_tss_pool failed validation", "error", err)
 		return nil, err
 	}
-	result, err := h.handle(ctx, *msg, version, constAccessor)
+	result, err := h.handle(ctx, *msg)
 	if err != nil {
 		ctx.Logger().Error("failed to process MsgTssPool", "error", err)
 		return nil, err
@@ -41,7 +41,8 @@ func (h TssHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version
 	return result, err
 }
 
-func (h TssHandler) validate(ctx cosmos.Context, msg MsgTssPool, version semver.Version) error {
+func (h TssHandler) validate(ctx cosmos.Context, msg MsgTssPool) error {
+	version := h.mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, msg)
 	}
@@ -74,20 +75,21 @@ func (h TssHandler) validateCurrent(ctx cosmos.Context, msg MsgTssPool) error {
 	return cosmos.ErrUnauthorized("not authorized")
 }
 
-func (h TssHandler) handle(ctx cosmos.Context, msg MsgTssPool, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+func (h TssHandler) handle(ctx cosmos.Context, msg MsgTssPool) (*cosmos.Result, error) {
 	ctx.Logger().Info("handleMsgTssPool request", "ID:", msg.ID)
+	version := h.mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.1.0")) {
-		return h.handleV1(ctx, msg, version, constAccessor)
+		return h.handleV1(ctx, msg)
 	}
 	return nil, errBadVersion
 }
 
-func (h TssHandler) handleV1(ctx cosmos.Context, msg MsgTssPool, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
-	return h.handleCurrent(ctx, msg, version, constAccessor)
+func (h TssHandler) handleV1(ctx cosmos.Context, msg MsgTssPool) (*cosmos.Result, error) {
+	return h.handleCurrent(ctx, msg)
 }
 
-func (h TssHandler) handleCurrent(ctx cosmos.Context, msg MsgTssPool, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
-	ctx.Logger().Info(fmt.Sprintf("current version: %s", version.String()))
+func (h TssHandler) handleCurrent(ctx cosmos.Context, msg MsgTssPool) (*cosmos.Result, error) {
+	ctx.Logger().Info(fmt.Sprintf("current version: %s", h.mgr.GetVersion().String()))
 	if !msg.Blame.IsEmpty() {
 		ctx.Logger().Error(msg.Blame.String())
 	}
@@ -115,8 +117,8 @@ func (h TssHandler) handleCurrent(ctx cosmos.Context, msg MsgTssPool, version se
 		voter.PoolPubKey = msg.PoolPubKey
 		voter.PubKeys = msg.PubKeys
 	}
-	observeSlashPoints := constAccessor.GetInt64Value(constants.ObserveSlashPoints)
-	observeFlex := constAccessor.GetInt64Value(constants.ObservationDelayFlexibility)
+	observeSlashPoints := h.mgr.GetConstants().GetInt64Value(constants.ObserveSlashPoints)
+	observeFlex := h.mgr.GetConstants().GetInt64Value(constants.ObservationDelayFlexibility)
 	h.mgr.Slasher().IncSlashPoints(ctx, observeSlashPoints, msg.Signer)
 	if !voter.Sign(msg.Signer, msg.Chains) {
 		ctx.Logger().Info("signer already signed MsgTssPool", "signer", msg.Signer.String(), "txid", msg.ID)
@@ -184,7 +186,7 @@ func (h TssHandler) handleCurrent(ctx cosmos.Context, msg MsgTssPool, version se
 		} else {
 			// if a node fail to join the keygen, thus hold off the network
 			// from churning then it will be slashed accordingly
-			slashPoints := constAccessor.GetInt64Value(constants.FailKeygenSlashPoints)
+			slashPoints := h.mgr.GetConstants().GetInt64Value(constants.FailKeygenSlashPoints)
 			totalSlash := cosmos.ZeroUint()
 			for _, node := range msg.Blame.BlameNodes {
 				nodePubKey, err := common.NewPubKey(node.Pubkey)
@@ -206,7 +208,7 @@ func (h TssHandler) handleCurrent(ctx cosmos.Context, msg MsgTssPool, version se
 					}
 				} else {
 					// go to jail
-					jailTime := constAccessor.GetInt64Value(constants.JailTimeKeygen)
+					jailTime := h.mgr.GetConstants().GetInt64Value(constants.JailTimeKeygen)
 					releaseHeight := common.BlockHeight(ctx) + jailTime
 					reason := "failed to perform keygen"
 					if err := h.mgr.Keeper().SetNodeAccountJail(ctx, na.NodeAddress, releaseHeight, reason); err != nil {

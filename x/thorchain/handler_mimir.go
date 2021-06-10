@@ -7,7 +7,6 @@ import (
 	"github.com/blang/semver"
 
 	"gitlab.com/thorchain/thornode/common/cosmos"
-	"gitlab.com/thorchain/thornode/constants"
 )
 
 // MimirHandler is to handle admin messages
@@ -23,17 +22,17 @@ func NewMimirHandler(mgr Manager) MimirHandler {
 }
 
 // Run is the main entry point to execute mimir logic
-func (h MimirHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, _ constants.ConstantValues) (*cosmos.Result, error) {
+func (h MimirHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Result, error) {
 	msg, ok := m.(*MsgMimir)
 	if !ok {
 		return nil, errInvalidMessage
 	}
 	ctx.Logger().Info("receive mimir", "key", msg.Key, "value", msg.Value)
-	if err := h.validate(ctx, *msg, version); err != nil {
+	if err := h.validate(ctx, *msg); err != nil {
 		ctx.Logger().Error("msg mimir failed validation", "error", err)
 		return nil, err
 	}
-	if err := h.handle(ctx, *msg, version); err != nil {
+	if err := h.handle(ctx, *msg); err != nil {
 		ctx.Logger().Error("fail to process msg set mimir", "error", err)
 		return nil, err
 	}
@@ -41,7 +40,8 @@ func (h MimirHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Versi
 	return &cosmos.Result{}, nil
 }
 
-func (h MimirHandler) validate(ctx cosmos.Context, msg MsgMimir, version semver.Version) error {
+func (h MimirHandler) validate(ctx cosmos.Context, msg MsgMimir) error {
+	version := h.mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, msg)
 	}
@@ -66,8 +66,9 @@ func (h MimirHandler) validateCurrent(ctx cosmos.Context, msg MsgMimir) error {
 	return cosmos.ErrUnauthorized(fmt.Sprintf("%s is not authorizaed", msg.Signer))
 }
 
-func (h MimirHandler) handle(ctx cosmos.Context, msg MsgMimir, version semver.Version) error {
+func (h MimirHandler) handle(ctx cosmos.Context, msg MsgMimir) error {
 	ctx.Logger().Info("handleMsgMimir request", "key", msg.Key, "value", msg.Value)
+	version := h.mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.handleV1(ctx, msg)
 	}

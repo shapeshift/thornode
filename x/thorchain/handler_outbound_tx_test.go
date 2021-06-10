@@ -50,8 +50,6 @@ func (s *HandlerOutboundTxSuite) TestValidate(c *C) {
 	addr, err := keeper.vault.PubKey.GetAddress(common.BNBChain)
 	c.Assert(err, IsNil)
 
-	ver := GetCurrentVersion()
-
 	tx := NewObservedTx(common.Tx{
 		ID:          GetRandomTxHash(),
 		Chain:       common.BNBChain,
@@ -63,20 +61,16 @@ func (s *HandlerOutboundTxSuite) TestValidate(c *C) {
 	}, 12, GetRandomPubKey(), 12)
 
 	msgOutboundTx := NewMsgOutboundTx(tx, tx.Tx.ID, keeper.activeNodeAccount.NodeAddress)
-	sErr := handler.validate(ctx, *msgOutboundTx, ver)
+	sErr := handler.validate(ctx, *msgOutboundTx)
 	c.Assert(sErr, IsNil)
 
-	// invalid version
-	sErr = handler.validate(ctx, *msgOutboundTx, semver.Version{})
-	c.Assert(sErr, Equals, errBadVersion)
-
-	result, err := handler.handle(ctx, *msgOutboundTx, semver.Version{}, constants.GetConstantValues(GetCurrentVersion()))
+	result, err := handler.handle(ctx, *msgOutboundTx)
 	c.Check(result, IsNil)
 	c.Check(err, NotNil)
 
 	// invalid msg
 	msgOutboundTx = &MsgOutboundTx{}
-	sErr = handler.validate(ctx, *msgOutboundTx, ver)
+	sErr = handler.validate(ctx, *msgOutboundTx)
 	c.Assert(sErr, NotNil)
 }
 
@@ -274,19 +268,9 @@ func (s *HandlerOutboundTxSuite) TestOutboundTxHandlerShouldUpdateTxOut(c *C) {
 				return NewMsgNoOp(GetRandomObservedTx(), helper.nodeAccount.NodeAddress, "")
 			},
 			runner: func(handler OutboundTxHandler, helper outboundTxHandlerTestHelper, msg cosmos.Msg) (*cosmos.Result, error) {
-				return handler.Run(helper.ctx, msg, helper.version, helper.constAccessor)
+				return handler.Run(helper.ctx, msg)
 			},
 			expectedResult: errInvalidMessage,
-		},
-		{
-			name: "if the version is lower than expected, it should return an error",
-			messageCreator: func(helper outboundTxHandlerTestHelper, tx ObservedTx) cosmos.Msg {
-				return NewMsgOutboundTx(tx, tx.Tx.ID, helper.nodeAccount.NodeAddress)
-			},
-			runner: func(handler OutboundTxHandler, helper outboundTxHandlerTestHelper, msg cosmos.Msg) (*cosmos.Result, error) {
-				return handler.Run(helper.ctx, msg, semver.MustParse("0.0.1"), helper.constAccessor)
-			},
-			expectedResult: errBadVersion,
 		},
 		{
 			name: "fail to get observed TxVoter should result in an error",
@@ -294,7 +278,7 @@ func (s *HandlerOutboundTxSuite) TestOutboundTxHandlerShouldUpdateTxOut(c *C) {
 				return NewMsgOutboundTx(tx, helper.keeper.observeTxVoterErrHash, helper.nodeAccount.NodeAddress)
 			},
 			runner: func(handler OutboundTxHandler, helper outboundTxHandlerTestHelper, msg cosmos.Msg) (*cosmos.Result, error) {
-				return handler.Run(helper.ctx, msg, GetCurrentVersion(), helper.constAccessor)
+				return handler.Run(helper.ctx, msg)
 			},
 			expectedResult: errInternal,
 		},
@@ -305,7 +289,7 @@ func (s *HandlerOutboundTxSuite) TestOutboundTxHandlerShouldUpdateTxOut(c *C) {
 			},
 			runner: func(handler OutboundTxHandler, helper outboundTxHandlerTestHelper, msg cosmos.Msg) (*cosmos.Result, error) {
 				helper.keeper.errGetTxOut = true
-				return handler.Run(helper.ctx, msg, GetCurrentVersion(), helper.constAccessor)
+				return handler.Run(helper.ctx, msg)
 			},
 			expectedResult: se.ErrUnknownRequest,
 		},
@@ -315,7 +299,7 @@ func (s *HandlerOutboundTxSuite) TestOutboundTxHandlerShouldUpdateTxOut(c *C) {
 				return NewMsgOutboundTx(tx, helper.inboundTx.Tx.ID, helper.nodeAccount.NodeAddress)
 			},
 			runner: func(handler OutboundTxHandler, helper outboundTxHandlerTestHelper, msg cosmos.Msg) (*cosmos.Result, error) {
-				return handler.Run(helper.ctx, msg, GetCurrentVersion(), helper.constAccessor)
+				return handler.Run(helper.ctx, msg)
 			},
 			expectedResult: nil,
 		},
@@ -366,7 +350,7 @@ func (s *HandlerOutboundTxSuite) TestOutboundTxNormalCase(c *C) {
 	}, common.BlockHeight(helper.ctx), helper.yggVault.PubKey, common.BlockHeight(helper.ctx))
 	// valid outbound message, with event, with txout
 	outMsg := NewMsgOutboundTx(tx, helper.inboundTx.Tx.ID, helper.nodeAccount.NodeAddress)
-	_, err = handler.Run(helper.ctx, outMsg, GetCurrentVersion(), helper.constAccessor)
+	_, err = handler.Run(helper.ctx, outMsg)
 	c.Assert(err, IsNil)
 	// txout should had been complete
 
@@ -397,7 +381,7 @@ func (s *HandlerOutboundTxSuite) TestOuboundTxHandlerSendExtraFundShouldBeSlashe
 	expectedVaultTotalReserve := reserve.Add(cosmos.NewUint(common.One * 2).QuoUint64(2))
 	// valid outbound message, with event, with txout
 	outMsg := NewMsgOutboundTx(tx, helper.inboundTx.Tx.ID, helper.nodeAccount.NodeAddress)
-	_, err = handler.Run(helper.ctx, outMsg, GetCurrentVersion(), helper.constAccessor)
+	_, err = handler.Run(helper.ctx, outMsg)
 	c.Assert(err, IsNil)
 	na, err := helper.keeper.GetNodeAccount(helper.ctx, helper.nodeAccount.NodeAddress)
 	c.Assert(na.Bond.Equal(expectedBond), Equals, true, Commentf("expected bond:%s, real bond: %s", expectedBond, na.Bond))
@@ -426,7 +410,7 @@ func (s *HandlerOutboundTxSuite) TestOutboundTxHandlerSendAdditionalCoinsShouldB
 	expectedBond := cosmos.NewUint(9699947127)
 	// slash one BNB, and one rune
 	outMsg := NewMsgOutboundTx(tx, helper.inboundTx.Tx.ID, helper.nodeAccount.NodeAddress)
-	_, err = handler.Run(helper.ctx, outMsg, GetCurrentVersion(), helper.constAccessor)
+	_, err = handler.Run(helper.ctx, outMsg)
 	c.Assert(err, IsNil)
 	na, err := helper.keeper.GetNodeAccount(helper.ctx, helper.nodeAccount.NodeAddress)
 	c.Assert(na.Bond.Equal(expectedBond), Equals, true, Commentf("%d/%d", na.Bond.Uint64(), expectedBond.Uint64()))
@@ -463,7 +447,7 @@ func (s *HandlerOutboundTxSuite) TestOutboundTxHandlerInvalidObservedTxVoterShou
 	// thus it should be slashed with 1.5 * the full amount of assets
 	outMsg := NewMsgOutboundTx(tx, tx.Tx.ID, helper.nodeAccount.NodeAddress)
 	na, _ := helper.keeper.GetNodeAccount(helper.ctx, helper.nodeAccount.NodeAddress)
-	_, err = handler.Run(helper.ctx, outMsg, GetCurrentVersion(), helper.constAccessor)
+	_, err = handler.Run(helper.ctx, outMsg)
 	c.Assert(err, IsNil)
 	na, err = helper.keeper.GetNodeAccount(helper.ctx, helper.nodeAccount.NodeAddress)
 	c.Assert(na.Bond.Equal(expectedBond), Equals, true, Commentf("%d/%d", na.Bond.Uint64(), expectedBond.Uint64()))
