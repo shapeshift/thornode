@@ -23,23 +23,24 @@ func NewRagnarokHandler(mgr Manager) RagnarokHandler {
 }
 
 // Run is the main entry point of ragnarok handler
-func (h RagnarokHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+func (h RagnarokHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Result, error) {
 	msg, ok := m.(*MsgRagnarok)
 	if !ok {
 		return nil, errInvalidMessage
 	}
-	if err := h.validate(ctx, *msg, version); err != nil {
+	if err := h.validate(ctx, *msg); err != nil {
 		ctx.Logger().Error("MsgRagnarok failed validation", "error", err)
 		return nil, err
 	}
-	result, err := h.handle(ctx, version, *msg, constAccessor)
+	result, err := h.handle(ctx, *msg)
 	if err != nil {
 		ctx.Logger().Error("fail to process MsgRagnarok", "error", err)
 	}
 	return result, err
 }
 
-func (h RagnarokHandler) validate(ctx cosmos.Context, msg MsgRagnarok, version semver.Version) error {
+func (h RagnarokHandler) validate(ctx cosmos.Context, msg MsgRagnarok) error {
+	version := h.mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, msg)
 	}
@@ -54,30 +55,31 @@ func (h RagnarokHandler) validateCurrent(ctx cosmos.Context, msg MsgRagnarok) er
 	return msg.ValidateBasic()
 }
 
-func (h RagnarokHandler) handle(ctx cosmos.Context, version semver.Version, msg MsgRagnarok, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+func (h RagnarokHandler) handle(ctx cosmos.Context, msg MsgRagnarok) (*cosmos.Result, error) {
 	ctx.Logger().Info("receive MsgRagnarok", "request tx hash", msg.Tx.Tx.ID)
+	version := h.mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.1.0")) {
-		return h.handleV1(ctx, version, msg, constAccessor)
+		return h.handleV1(ctx, msg)
 	}
 	return nil, errBadVersion
 }
 
-func (h RagnarokHandler) slashV1(ctx cosmos.Context, version semver.Version, tx ObservedTx) error {
+func (h RagnarokHandler) slashV1(ctx cosmos.Context, tx ObservedTx) error {
 	toSlash := tx.Tx.Coins.Adds(tx.Tx.Gas.ToCoins())
 	return h.mgr.Slasher().SlashVault(ctx, tx.ObservedPubKey, toSlash, h.mgr)
 }
 
-func (h RagnarokHandler) handleV1(ctx cosmos.Context, version semver.Version, msg MsgRagnarok, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
-	return h.handleCurrent(ctx, version, msg, constAccessor)
+func (h RagnarokHandler) handleV1(ctx cosmos.Context, msg MsgRagnarok) (*cosmos.Result, error) {
+	return h.handleCurrent(ctx, msg)
 }
 
-func (h RagnarokHandler) handleCurrent(ctx cosmos.Context, version semver.Version, msg MsgRagnarok, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+func (h RagnarokHandler) handleCurrent(ctx cosmos.Context, msg MsgRagnarok) (*cosmos.Result, error) {
 	// for ragnarok on thorchain ,
 	if msg.Tx.Tx.Chain.Equals(common.THORChain) {
 		return &cosmos.Result{}, nil
 	}
 	shouldSlash := true
-	signingTransPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
+	signingTransPeriod := h.mgr.GetConstants().GetInt64Value(constants.SigningTransactionPeriod)
 	for height := msg.BlockHeight; height <= common.BlockHeight(ctx); height += signingTransPeriod {
 		// update txOut record with our TxID that sent funds out of the pool
 		txOut, err := h.mgr.Keeper().GetTxOut(ctx, height)
@@ -137,7 +139,7 @@ func (h RagnarokHandler) handleCurrent(ctx cosmos.Context, version semver.Versio
 	}
 
 	if shouldSlash {
-		if err := h.slashV1(ctx, version, msg.Tx); err != nil {
+		if err := h.slashV1(ctx, msg.Tx); err != nil {
 			return nil, ErrInternal(err, "fail to slash account")
 		}
 	}

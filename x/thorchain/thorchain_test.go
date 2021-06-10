@@ -192,7 +192,7 @@ func (s *ThorchainSuite) TestChurn(c *C) {
 	voter.Signers = signers // ensure we have consensus, so handler is properly executed
 	mgr.Keeper().SetTssVoter(ctx, voter)
 
-	_, err = tssHandler.Run(ctx, msg, ver, consts)
+	_, err = tssHandler.Run(ctx, msg)
 	c.Assert(err, IsNil)
 
 	// check that we've rotated our vaults
@@ -516,7 +516,7 @@ func (s *ThorchainSuite) TestRagnarokNoOneLeave(c *C) {
 			common.NewCoin(common.RuneAsset(), res.Amount),
 		})
 		msg := NewMsgReserveContributor(GetRandomTx(), res, bonders[0].NodeAddress)
-		_, err := resHandler.handle(ctx, *msg, ver)
+		_, err := resHandler.handle(ctx, *msg)
 		_ = err
 		// c.Assert(err, IsNil)
 	}

@@ -3,7 +3,6 @@ package thorchain
 import (
 	"errors"
 
-	"github.com/blang/semver"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
@@ -127,11 +126,11 @@ func (HandlerWithdrawSuite) TestWithdrawHandler(c *C) {
 	withdrawHandler := NewWithdrawLiquidityHandler(NewDummyMgrWithKeeper(k))
 
 	msgWithdraw := NewMsgWithdrawLiquidity(GetRandomTx(), runeAddr, cosmos.NewUint(uint64(MaxWithdrawBasisPoints)), common.BNBAsset, common.EmptyAsset, activeNodeAccount.NodeAddress)
-	_, err = withdrawHandler.Run(ctx, msgWithdraw, ver, constAccessor)
+	_, err = withdrawHandler.Run(ctx, msgWithdraw)
 	c.Assert(err, IsNil)
 
 	// Bad version should fail
-	_, err = withdrawHandler.Run(ctx, msgWithdraw, semver.Version{}, constAccessor)
+	_, err = withdrawHandler.Run(ctx, msgWithdraw)
 	c.Assert(err, NotNil)
 }
 
@@ -190,7 +189,7 @@ func (HandlerWithdrawSuite) TestAsymmetricWithdraw(c *C) {
 	// let's withdraw the RUNE we just staked
 	withdrawHandler := NewWithdrawLiquidityHandler(NewDummyMgrWithKeeper(keeper))
 	msgWithdraw := NewMsgWithdrawLiquidity(GetRandomTx(), runeAddr1, cosmos.NewUint(uint64(MaxWithdrawBasisPoints)), common.BTCAsset, common.EmptyAsset, activeNodeAccount.NodeAddress)
-	_, err = withdrawHandler.Run(ctx, msgWithdraw, ver, constAccessor)
+	_, err = withdrawHandler.Run(ctx, msgWithdraw)
 	c.Assert(err, IsNil)
 	lp, err = keeper.GetLiquidityProvider(ctx, common.BTCAsset, runeAddr1)
 	c.Assert(err, IsNil)
@@ -210,14 +209,14 @@ func (HandlerWithdrawSuite) TestAsymmetricWithdraw(c *C) {
 
 	// let's withdraw the BTC we just staked
 	msgWithdraw = NewMsgWithdrawLiquidity(GetRandomTx(), btcAddress1, cosmos.NewUint(uint64(MaxWithdrawBasisPoints)), common.BTCAsset, common.EmptyAsset, activeNodeAccount.NodeAddress)
-	_, err = withdrawHandler.Run(ctx, msgWithdraw, ver, constAccessor)
+	_, err = withdrawHandler.Run(ctx, msgWithdraw)
 	c.Assert(err, IsNil)
 	lp, err = keeper.GetLiquidityProvider(ctx, common.BTCAsset, btcAddress1)
 	c.Assert(err, IsNil)
 	c.Assert(lp.Valid(), NotNil)
 
 	// Bad version should fail
-	_, err = withdrawHandler.Run(ctx, msgWithdraw, semver.Version{}, constAccessor)
+	_, err = withdrawHandler.Run(ctx, msgWithdraw)
 	c.Assert(err, NotNil)
 }
 
@@ -254,11 +253,9 @@ func (HandlerWithdrawSuite) TestWithdrawHandler_Validation(c *C) {
 			expectedResult: errWithdrawFailValidation,
 		},
 	}
-	ver := GetCurrentVersion()
-	constAccessor := constants.GetConstantValues(ver)
 	for _, tc := range testCases {
 		withdrawHandler := NewWithdrawLiquidityHandler(NewDummyMgrWithKeeper(k))
-		_, err := withdrawHandler.Run(ctx, tc.msg, ver, constAccessor)
+		_, err := withdrawHandler.Run(ctx, tc.msg)
 		c.Assert(err.Error(), Equals, tc.expectedResult.Error(), Commentf(tc.name))
 	}
 }
@@ -326,13 +323,11 @@ func (HandlerWithdrawSuite) TestWithdrawHandler_mockFailScenarios(c *C) {
 			expectedResult: errInternal,
 		},
 	}
-	ver := GetCurrentVersion()
-	constAccessor := constants.GetConstantValues(ver)
 
 	for _, tc := range testCases {
 		withdrawHandler := NewWithdrawLiquidityHandler(NewDummyMgrWithKeeper(tc.k))
 		msgWithdraw := NewMsgWithdrawLiquidity(GetRandomTx(), GetRandomRUNEAddress(), cosmos.NewUint(uint64(MaxWithdrawBasisPoints)), common.BNBAsset, common.EmptyAsset, activeNodeAccount.NodeAddress)
-		_, err := withdrawHandler.Run(ctx, msgWithdraw, ver, constAccessor)
+		_, err := withdrawHandler.Run(ctx, msgWithdraw)
 		c.Assert(errors.Is(err, tc.expectedResult), Equals, true, Commentf(tc.name))
 	}
 }

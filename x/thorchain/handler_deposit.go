@@ -26,16 +26,16 @@ func NewDepositHandler(mgr Manager) DepositHandler {
 }
 
 // Run is the main entry of DepositHandler
-func (h DepositHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+func (h DepositHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Result, error) {
 	msg, ok := m.(*MsgDeposit)
 	if !ok {
 		return nil, errInvalidMessage
 	}
-	if err := h.validate(ctx, *msg, version); err != nil {
+	if err := h.validate(ctx, *msg); err != nil {
 		ctx.Logger().Error("MsgDeposit failed validation", "error", err)
 		return nil, err
 	}
-	result, err := h.handle(ctx, *msg, version, constAccessor)
+	result, err := h.handle(ctx, *msg)
 	if err != nil {
 		ctx.Logger().Error("fail to process MsgDeposit", "error", err)
 		return nil, err
@@ -43,7 +43,8 @@ func (h DepositHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Ver
 	return result, nil
 }
 
-func (h DepositHandler) validate(ctx cosmos.Context, msg MsgDeposit, version semver.Version) error {
+func (h DepositHandler) validate(ctx cosmos.Context, msg MsgDeposit) error {
+	version := h.mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, msg)
 	}
@@ -54,22 +55,23 @@ func (h DepositHandler) validateV1(ctx cosmos.Context, msg MsgDeposit) error {
 	return msg.ValidateBasic()
 }
 
-func (h DepositHandler) handle(ctx cosmos.Context, msg MsgDeposit, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+func (h DepositHandler) handle(ctx cosmos.Context, msg MsgDeposit) (*cosmos.Result, error) {
 	ctx.Logger().Info("receive MsgDeposit", "from", msg.GetSigners()[0], "coins", msg.Coins, "memo", msg.Memo)
+	version := h.mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.47.0")) {
-		return h.handleV47(ctx, msg, version, constAccessor)
+		return h.handleV47(ctx, msg)
 	} else if version.GTE(semver.MustParse("0.46.0")) {
-		return h.handleV46(ctx, msg, version, constAccessor)
+		return h.handleV46(ctx, msg)
 	} else if version.GTE(semver.MustParse("0.1.0")) {
-		return h.handleV1(ctx, msg, version, constAccessor)
+		return h.handleV1(ctx, msg)
 	}
 	return nil, errInvalidVersion
 }
 
-func (h DepositHandler) handleV1(ctx cosmos.Context, msg MsgDeposit, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+func (h DepositHandler) handleV1(ctx cosmos.Context, msg MsgDeposit) (*cosmos.Result, error) {
 	nativeTxFee, err := h.mgr.Keeper().GetMimir(ctx, constants.NativeTransactionFee.String())
 	if err != nil || nativeTxFee < 0 {
-		nativeTxFee = constAccessor.GetInt64Value(constants.NativeTransactionFee)
+		nativeTxFee = h.mgr.GetConstants().GetInt64Value(constants.NativeTransactionFee)
 	}
 	gas := common.NewCoin(common.RuneNative, cosmos.NewUint(uint64(nativeTxFee)))
 	gasFee, err := gas.Native()
@@ -150,7 +152,7 @@ func (h DepositHandler) handleV1(ctx cosmos.Context, msg MsgDeposit, version sem
 		if txIn.Tx.Coins.IsEmpty() {
 			return &cosmos.Result{}, nil
 		}
-		if newErr := refundTx(ctx, txIn, h.mgr, constAccessor, CodeInvalidMemo, txErr.Error(), targetModule); nil != newErr {
+		if newErr := refundTx(ctx, txIn, h.mgr, h.mgr.GetConstants(), CodeInvalidMemo, txErr.Error(), targetModule); nil != newErr {
 			return nil, newErr
 		}
 
@@ -167,7 +169,7 @@ func (h DepositHandler) handleV1(ctx cosmos.Context, msg MsgDeposit, version sem
 			if txIn.Tx.Coins.IsEmpty() {
 				return &cosmos.Result{}, nil
 			}
-			if newErr := refundTx(ctx, txIn, h.mgr, constAccessor, se.ErrUnauthorized.ABCICode(), "trading halted", targetModule); nil != newErr {
+			if newErr := refundTx(ctx, txIn, h.mgr, h.mgr.GetConstants(), se.ErrUnauthorized.ABCICode(), "trading halted", targetModule); nil != newErr {
 				return nil, ErrInternal(newErr, "trading is halted, fail to refund")
 			}
 			return &cosmos.Result{}, nil
@@ -177,7 +179,7 @@ func (h DepositHandler) handleV1(ctx cosmos.Context, msg MsgDeposit, version sem
 	// if its a swap, send it to our queue for processing later
 	if isSwap {
 		msg := m.(*MsgSwap)
-		h.addSwapV1(ctx, *msg, constAccessor)
+		h.addSwapV1(ctx, *msg)
 		return &cosmos.Result{}, nil
 	}
 
@@ -191,7 +193,7 @@ func (h DepositHandler) handleV1(ctx cosmos.Context, msg MsgDeposit, version sem
 		if txIn.Tx.Coins.IsEmpty() {
 			return &cosmos.Result{}, nil
 		}
-		if err := refundTx(ctx, txIn, h.mgr, constAccessor, code, err.Error(), targetModule); err != nil {
+		if err := refundTx(ctx, txIn, h.mgr, h.mgr.GetConstants(), code, err.Error(), targetModule); err != nil {
 			return nil, fmt.Errorf("fail to refund tx: %w", err)
 		}
 	}
@@ -204,10 +206,10 @@ func (h DepositHandler) handleV1(ctx cosmos.Context, msg MsgDeposit, version sem
 
 }
 
-func (h DepositHandler) handleV46(ctx cosmos.Context, msg MsgDeposit, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+func (h DepositHandler) handleV46(ctx cosmos.Context, msg MsgDeposit) (*cosmos.Result, error) {
 	nativeTxFee, err := h.mgr.Keeper().GetMimir(ctx, constants.NativeTransactionFee.String())
 	if err != nil || nativeTxFee < 0 {
-		nativeTxFee = constAccessor.GetInt64Value(constants.NativeTransactionFee)
+		nativeTxFee = h.mgr.GetConstants().GetInt64Value(constants.NativeTransactionFee)
 	}
 	gas := common.NewCoin(common.RuneNative, cosmos.NewUint(uint64(nativeTxFee)))
 	gasFee, err := gas.Native()
@@ -288,7 +290,7 @@ func (h DepositHandler) handleV46(ctx cosmos.Context, msg MsgDeposit, version se
 		if txIn.Tx.Coins.IsEmpty() {
 			return &cosmos.Result{}, nil
 		}
-		if newErr := refundTx(ctx, txIn, h.mgr, constAccessor, CodeInvalidMemo, txErr.Error(), targetModule); nil != newErr {
+		if newErr := refundTx(ctx, txIn, h.mgr, h.mgr.GetConstants(), CodeInvalidMemo, txErr.Error(), targetModule); nil != newErr {
 			return nil, newErr
 		}
 
@@ -305,7 +307,7 @@ func (h DepositHandler) handleV46(ctx cosmos.Context, msg MsgDeposit, version se
 			if txIn.Tx.Coins.IsEmpty() {
 				return &cosmos.Result{}, nil
 			}
-			if newErr := refundTx(ctx, txIn, h.mgr, constAccessor, se.ErrUnauthorized.ABCICode(), "trading halted", targetModule); nil != newErr {
+			if newErr := refundTx(ctx, txIn, h.mgr, h.mgr.GetConstants(), se.ErrUnauthorized.ABCICode(), "trading halted", targetModule); nil != newErr {
 				return nil, ErrInternal(newErr, "trading is halted, fail to refund")
 			}
 			return &cosmos.Result{}, nil
@@ -315,7 +317,7 @@ func (h DepositHandler) handleV46(ctx cosmos.Context, msg MsgDeposit, version se
 	// if its a swap, send it to our queue for processing later
 	if isSwap {
 		msg := m.(*MsgSwap)
-		h.addSwapV1(ctx, *msg, constAccessor)
+		h.addSwapV1(ctx, *msg)
 		return &cosmos.Result{}, nil
 	}
 
@@ -329,7 +331,7 @@ func (h DepositHandler) handleV46(ctx cosmos.Context, msg MsgDeposit, version se
 		if txIn.Tx.Coins.IsEmpty() {
 			return &cosmos.Result{}, nil
 		}
-		if err := refundTx(ctx, txIn, h.mgr, constAccessor, code, err.Error(), targetModule); err != nil {
+		if err := refundTx(ctx, txIn, h.mgr, h.mgr.GetConstants(), code, err.Error(), targetModule); err != nil {
 			return nil, fmt.Errorf("fail to refund tx: %w", err)
 		}
 	}
@@ -342,14 +344,14 @@ func (h DepositHandler) handleV46(ctx cosmos.Context, msg MsgDeposit, version se
 
 }
 
-func (h DepositHandler) handleV47(ctx cosmos.Context, msg MsgDeposit, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
-	return h.handleCurrent(ctx, msg, version, constAccessor)
+func (h DepositHandler) handleV47(ctx cosmos.Context, msg MsgDeposit) (*cosmos.Result, error) {
+	return h.handleCurrent(ctx, msg)
 }
 
-func (h DepositHandler) handleCurrent(ctx cosmos.Context, msg MsgDeposit, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+func (h DepositHandler) handleCurrent(ctx cosmos.Context, msg MsgDeposit) (*cosmos.Result, error) {
 	nativeTxFee, err := h.mgr.Keeper().GetMimir(ctx, constants.NativeTransactionFee.String())
 	if err != nil || nativeTxFee < 0 {
-		nativeTxFee = constAccessor.GetInt64Value(constants.NativeTransactionFee)
+		nativeTxFee = h.mgr.GetConstants().GetInt64Value(constants.NativeTransactionFee)
 	}
 	gas := common.NewCoin(common.RuneNative, cosmos.NewUint(uint64(nativeTxFee)))
 	gasFee, err := gas.Native()
@@ -430,7 +432,7 @@ func (h DepositHandler) handleCurrent(ctx cosmos.Context, msg MsgDeposit, versio
 		if txIn.Tx.Coins.IsEmpty() {
 			return &cosmos.Result{}, nil
 		}
-		if newErr := refundTx(ctx, txIn, h.mgr, constAccessor, CodeInvalidMemo, txErr.Error(), targetModule); nil != newErr {
+		if newErr := refundTx(ctx, txIn, h.mgr, h.mgr.GetConstants(), CodeInvalidMemo, txErr.Error(), targetModule); nil != newErr {
 			return nil, newErr
 		}
 
@@ -447,7 +449,7 @@ func (h DepositHandler) handleCurrent(ctx cosmos.Context, msg MsgDeposit, versio
 			if txIn.Tx.Coins.IsEmpty() {
 				return &cosmos.Result{}, nil
 			}
-			if newErr := refundTx(ctx, txIn, h.mgr, constAccessor, se.ErrUnauthorized.ABCICode(), "trading halted", targetModule); nil != newErr {
+			if newErr := refundTx(ctx, txIn, h.mgr, h.mgr.GetConstants(), se.ErrUnauthorized.ABCICode(), "trading halted", targetModule); nil != newErr {
 				return nil, ErrInternal(newErr, "trading is halted, fail to refund")
 			}
 			return &cosmos.Result{}, nil
@@ -457,7 +459,7 @@ func (h DepositHandler) handleCurrent(ctx cosmos.Context, msg MsgDeposit, versio
 	// if its a swap, send it to our queue for processing later
 	if isSwap {
 		msg := m.(*MsgSwap)
-		h.addSwapV1(ctx, *msg, constAccessor)
+		h.addSwapV1(ctx, *msg)
 		return &cosmos.Result{}, nil
 	}
 
@@ -471,7 +473,7 @@ func (h DepositHandler) handleCurrent(ctx cosmos.Context, msg MsgDeposit, versio
 		if txIn.Tx.Coins.IsEmpty() {
 			return &cosmos.Result{}, nil
 		}
-		if err := refundTx(ctx, txIn, h.mgr, constAccessor, code, err.Error(), targetModule); err != nil {
+		if err := refundTx(ctx, txIn, h.mgr, h.mgr.GetConstants(), code, err.Error(), targetModule); err != nil {
 			return nil, fmt.Errorf("fail to refund tx: %w", err)
 		}
 	}
@@ -483,7 +485,7 @@ func (h DepositHandler) handleCurrent(ctx cosmos.Context, msg MsgDeposit, versio
 	return result, nil
 }
 
-func (h DepositHandler) addSwapV1(ctx cosmos.Context, msg MsgSwap, constAccessor constants.ConstantValues) {
+func (h DepositHandler) addSwapV1(ctx cosmos.Context, msg MsgSwap) {
 	amt := cosmos.ZeroUint()
 	if !msg.AffiliateBasisPoints.IsZero() && msg.AffiliateAddress.IsChain(common.THORChain) {
 		amt = common.GetShare(
@@ -505,7 +507,7 @@ func (h DepositHandler) addSwapV1(ctx cosmos.Context, msg MsgSwap, constAccessor
 		} else {
 			nativeTxFee, err := h.mgr.Keeper().GetMimir(ctx, constants.NativeTransactionFee.String())
 			if err != nil || nativeTxFee < 0 {
-				nativeTxFee = constAccessor.GetInt64Value(constants.NativeTransactionFee)
+				nativeTxFee = h.mgr.GetConstants().GetInt64Value(constants.NativeTransactionFee)
 			}
 			amt = common.SafeSub(amt, cosmos.NewUint(uint64(nativeTxFee)))
 

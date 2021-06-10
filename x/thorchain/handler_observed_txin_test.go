@@ -54,27 +54,22 @@ func (s *HandlerObservedTxInSuite) TestValidate(c *C) {
 	handler := NewObservedTxInHandler(NewDummyMgrWithKeeper(keeper))
 
 	// happy path
-	ver := GetCurrentVersion()
 	pk := GetRandomPubKey()
 	txs := ObservedTxs{NewObservedTx(GetRandomTx(), 12, pk, 12)}
 	txs[0].Tx.ToAddress, err = pk.GetAddress(txs[0].Tx.Coins[0].Asset.Chain)
 	c.Assert(err, IsNil)
 	msg := NewMsgObservedTxIn(txs, activeNodeAccount.NodeAddress)
-	err = handler.validate(ctx, *msg, ver)
+	err = handler.validate(ctx, *msg)
 	c.Assert(err, IsNil)
-
-	// invalid version
-	err = handler.validate(ctx, *msg, semver.Version{})
-	c.Assert(err, Equals, errInvalidVersion)
 
 	// inactive node account
 	msg = NewMsgObservedTxIn(txs, GetRandomBech32Addr())
-	err = handler.validate(ctx, *msg, ver)
+	err = handler.validate(ctx, *msg)
 	c.Assert(errors.Is(err, se.ErrUnauthorized), Equals, true)
 
 	// invalid msg
 	msg = &MsgObservedTxIn{}
-	err = handler.validate(ctx, *msg, ver)
+	err = handler.validate(ctx, *msg)
 	c.Assert(err, NotNil)
 }
 
@@ -206,14 +201,13 @@ func (k *TestObservedTxInHandleKeeper) SetLastObserveHeight(ctx cosmos.Context, 
 }
 
 func (s *HandlerObservedTxInSuite) TestHandle(c *C) {
-	s.testHandleWithVersion(c, GetCurrentVersion())
-	s.testHandleWithConfirmation(c, GetCurrentVersion())
+	s.testHandleWithVersion(c)
+	s.testHandleWithConfirmation(c)
 }
 
-func (s *HandlerObservedTxInSuite) testHandleWithConfirmation(c *C, ver semver.Version) {
+func (s *HandlerObservedTxInSuite) testHandleWithConfirmation(c *C) {
 	var err error
 	ctx, mgr := setupManagerForTest(c)
-	constAccessor := constants.GetConstantValues(ver)
 	tx := GetRandomTx()
 	tx.Memo = "SWAP:BTC.BTC:" + GetRandomBTCAddress().String()
 	obTx := NewObservedTx(tx, 12, GetRandomPubKey(), 15)
@@ -243,7 +237,7 @@ func (s *HandlerObservedTxInSuite) testHandleWithConfirmation(c *C, ver semver.V
 
 	// first not confirmed message
 	msg := NewMsgObservedTxIn(txs, keeper.nas[0].NodeAddress)
-	_, err = handler.handle(ctx, *msg, ver, constAccessor)
+	_, err = handler.handle(ctx, *msg)
 	c.Assert(err, IsNil)
 	voter, err := keeper.GetObservedTxInVoter(ctx, tx.ID)
 	c.Assert(err, IsNil)
@@ -257,7 +251,7 @@ func (s *HandlerObservedTxInSuite) testHandleWithConfirmation(c *C, ver semver.V
 
 	// second not confirmed message
 	msg1 := NewMsgObservedTxIn(txs, keeper.nas[1].NodeAddress)
-	_, err = handler.handle(ctx, *msg1, ver, constAccessor)
+	_, err = handler.handle(ctx, *msg1)
 	c.Assert(err, IsNil)
 	voter, err = keeper.GetObservedTxInVoter(ctx, tx.ID)
 	c.Assert(err, IsNil)
@@ -269,7 +263,7 @@ func (s *HandlerObservedTxInSuite) testHandleWithConfirmation(c *C, ver semver.V
 
 	// third not confirmed message
 	msg2 := NewMsgObservedTxIn(txs, keeper.nas[2].NodeAddress)
-	_, err = handler.handle(ctx, *msg2, ver, constAccessor)
+	_, err = handler.handle(ctx, *msg2)
 	c.Assert(err, IsNil)
 	voter, err = keeper.GetObservedTxInVoter(ctx, tx.ID)
 	c.Assert(err, IsNil)
@@ -285,7 +279,7 @@ func (s *HandlerObservedTxInSuite) testHandleWithConfirmation(c *C, ver semver.V
 
 	// fourth not confirmed message
 	msg3 := NewMsgObservedTxIn(txs, keeper.nas[3].NodeAddress)
-	_, err = handler.handle(ctx, *msg3, ver, constAccessor)
+	_, err = handler.handle(ctx, *msg3)
 	c.Assert(err, IsNil)
 	voter, err = keeper.GetObservedTxInVoter(ctx, tx.ID)
 	c.Assert(err, IsNil)
@@ -301,7 +295,7 @@ func (s *HandlerObservedTxInSuite) testHandleWithConfirmation(c *C, ver semver.V
 	//  first finalised message
 	txs[0].BlockHeight = 15
 	fMsg := NewMsgObservedTxIn(txs, keeper.nas[0].NodeAddress)
-	_, err = handler.handle(ctx, *fMsg, ver, constAccessor)
+	_, err = handler.handle(ctx, *fMsg)
 	c.Assert(err, IsNil)
 	voter, err = keeper.GetObservedTxInVoter(ctx, tx.ID)
 	c.Assert(err, IsNil)
@@ -315,7 +309,7 @@ func (s *HandlerObservedTxInSuite) testHandleWithConfirmation(c *C, ver semver.V
 
 	// second finalised message
 	fMsg1 := NewMsgObservedTxIn(txs, keeper.nas[1].NodeAddress)
-	_, err = handler.handle(ctx, *fMsg1, ver, constAccessor)
+	_, err = handler.handle(ctx, *fMsg1)
 	c.Assert(err, IsNil)
 	voter, err = keeper.GetObservedTxInVoter(ctx, tx.ID)
 	c.Assert(err, IsNil)
@@ -329,7 +323,7 @@ func (s *HandlerObservedTxInSuite) testHandleWithConfirmation(c *C, ver semver.V
 
 	// third finalised message
 	fMsg2 := NewMsgObservedTxIn(txs, keeper.nas[2].NodeAddress)
-	_, err = handler.handle(ctx, *fMsg2, ver, constAccessor)
+	_, err = handler.handle(ctx, *fMsg2)
 	c.Assert(err, IsNil)
 	voter, err = keeper.GetObservedTxInVoter(ctx, tx.ID)
 	c.Assert(err, IsNil)
@@ -342,10 +336,9 @@ func (s *HandlerObservedTxInSuite) testHandleWithConfirmation(c *C, ver semver.V
 	c.Check(keeper.msg.Tx.ID.Equals(tx.ID), Equals, true)
 }
 
-func (s *HandlerObservedTxInSuite) testHandleWithVersion(c *C, ver semver.Version) {
+func (s *HandlerObservedTxInSuite) testHandleWithVersion(c *C) {
 	var err error
 	ctx, mgr := setupManagerForTest(c)
-	constAccessor := constants.GetConstantValues(ver)
 
 	tx := GetRandomTx()
 	tx.Memo = "SWAP:BTC.BTC:" + GetRandomBTCAddress().String()
@@ -373,7 +366,7 @@ func (s *HandlerObservedTxInSuite) testHandleWithVersion(c *C, ver semver.Versio
 
 	c.Assert(err, IsNil)
 	msg := NewMsgObservedTxIn(txs, keeper.nas[0].NodeAddress)
-	_, err = handler.handle(ctx, *msg, ver, constAccessor)
+	_, err = handler.handle(ctx, *msg)
 	c.Assert(err, IsNil)
 	mgr.ObMgr().EndBlock(ctx, keeper)
 	c.Check(keeper.msg.Tx.ID.Equals(tx.ID), Equals, true)
@@ -385,15 +378,8 @@ func (s *HandlerObservedTxInSuite) testHandleWithVersion(c *C, ver semver.Versio
 
 // Test migrate memo
 func (s *HandlerObservedTxInSuite) TestMigrateMemo(c *C) {
-	s.testMigrateMemoWithVersion(c, GetCurrentVersion())
-}
-
-// Test migrate memo
-func (s *HandlerObservedTxInSuite) testMigrateMemoWithVersion(c *C, ver semver.Version) {
 	var err error
 	ctx, _ := setupKeeperForTest(c)
-
-	constAccessor := constants.GetConstantValues(ver)
 
 	vault := GetRandomVault()
 	addr, err := vault.PubKey.GetAddress(common.BNBChain)
@@ -441,7 +427,7 @@ func (s *HandlerObservedTxInSuite) testMigrateMemoWithVersion(c *C, ver semver.V
 
 	c.Assert(err, IsNil)
 	msg := NewMsgObservedTxIn(txs, keeper.nas[0].NodeAddress)
-	_, err = handler.handle(ctx, *msg, ver, constAccessor)
+	_, err = handler.handle(ctx, *msg)
 	c.Assert(err, IsNil)
 }
 
@@ -710,10 +696,10 @@ func (HandlerObservedTxInSuite) TestObservedTxHandler_validations(c *C) {
 			ctx, mgr := setupManagerForTest(c)
 			helper := NewObservedTxInHandlerTestHelper(mgr.Keeper())
 			mgr.K = helper
+			mgr.CurrentVersion = ver
 			handler := NewObservedTxInHandler(mgr)
 			msg := tc.messageProvider(c, ctx, helper)
-			constantAccessor := constants.GetConstantValues(ver)
-			result, err := handler.Run(ctx, msg, ver, constantAccessor)
+			result, err := handler.Run(ctx, msg)
 			tc.validator(c, ctx, result, err, helper, tc.name)
 		}
 	}
@@ -724,8 +710,6 @@ func (s HandlerObservedTxInSuite) TestSwapWithAffiliate(c *C) {
 
 	queue := NewSwapQv1(mgr.Keeper())
 	handler := NewObservedTxInHandler(mgr)
-	ver := GetCurrentVersion()
-	constAccessor := constants.GetConstantValues(ver)
 
 	msg := NewMsgSwap(common.Tx{
 		ID:          common.TxID("5E1DF027321F1FE37CA19B9ECB11C2B4ABEC0D8322199D335D9CE4C39F85F115"),
@@ -737,7 +721,7 @@ func (s HandlerObservedTxInSuite) TestSwapWithAffiliate(c *C) {
 	}, common.BNBAsset, GetRandomBNBAddress(), cosmos.ZeroUint(), GetRandomTHORAddress(), cosmos.NewUint(1000),
 		GetRandomBech32Addr(),
 	)
-	handler.addSwapV1(ctx, *msg, constAccessor)
+	handler.addSwapV1(ctx, *msg)
 	swaps, err := queue.FetchQueue(ctx)
 	c.Assert(err, IsNil)
 	c.Assert(swaps, HasLen, 2, Commentf("%d", len(swaps)))

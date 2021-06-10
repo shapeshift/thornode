@@ -769,7 +769,9 @@ func (vm *validatorMgrV1) ragnarokPools(ctx cosmos.Context, nth int64, mgr Manag
 		}
 	}
 
-	version := vm.k.GetLowestActiveVersion(ctx)
+	// the following line is pointless, granted. But in this case, removing it
+	// would cause a consensus failure
+	_ = vm.k.GetLowestActiveVersion(ctx)
 
 	nextPool := false
 	maxWithdrawsPerBlock := 20
@@ -832,7 +834,7 @@ func (vm *validatorMgrV1) ragnarokPools(ctx cosmos.Context, nth int64, mgr Manag
 				)
 
 				withdrawHandler := NewWithdrawLiquidityHandler(mgr)
-				_, err = withdrawHandler.Run(ctx, withdrawMsg, version, constAccessor)
+				_, err = withdrawHandler.Run(ctx, withdrawMsg)
 				if err != nil {
 					ctx.Logger().Error("fail to withdraw", "liquidity provider", lp.RuneAddress, "error", err)
 				} else {

@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/blang/semver"
 	se "github.com/cosmos/cosmos-sdk/types/errors"
 	tmtypes "github.com/tendermint/tendermint/types"
 	. "gopkg.in/check.v1"
@@ -31,16 +30,12 @@ func (s *HandlerDepositSuite) TestValidate(c *C) {
 	msg := NewMsgDeposit(coins, fmt.Sprintf("ADD:BNB.BNB:%s", GetRandomRUNEAddress()), addr)
 
 	handler := NewDepositHandler(NewDummyMgrWithKeeper(k))
-	err := handler.validate(ctx, *msg, GetCurrentVersion())
+	err := handler.validate(ctx, *msg)
 	c.Assert(err, IsNil)
-
-	// invalid version
-	err = handler.validate(ctx, *msg, semver.Version{})
-	c.Assert(err, Equals, errInvalidVersion)
 
 	// invalid msg
 	msg = &MsgDeposit{}
-	err = handler.validate(ctx, *msg, GetCurrentVersion())
+	err = handler.validate(ctx, *msg)
 	c.Assert(err, NotNil)
 }
 
@@ -73,7 +68,7 @@ func (s *HandlerDepositSuite) TestHandle(c *C) {
 	c.Assert(k.SetPool(ctx, pool), IsNil)
 	msg := NewMsgDeposit(coins, "ADD:BNB.BNB", addr)
 
-	_, err = handler.handle(ctx, *msg, GetCurrentVersion(), constAccessor)
+	_, err = handler.handle(ctx, *msg)
 	c.Assert(err, IsNil)
 	// ensure observe tx had been saved
 	hash := tmtypes.Tx(ctx.TxBytes()).Hash()
@@ -165,8 +160,7 @@ func (s *HandlerDepositSuite) TestDifferentValidation(c *C) {
 		mgr.K = helper
 		handler := NewDepositHandler(mgr)
 		msg := tc.messageProvider(c, ctx, helper)
-		constantAccessor := constants.GetConstantValues(GetCurrentVersion())
-		result, err := handler.Run(ctx, msg, GetCurrentVersion(), constantAccessor)
+		result, err := handler.Run(ctx, msg)
 		tc.validator(c, ctx, result, err, helper, tc.name)
 	}
 }

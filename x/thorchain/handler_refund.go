@@ -4,7 +4,6 @@ import (
 	"github.com/blang/semver"
 
 	"gitlab.com/thorchain/thornode/common/cosmos"
-	"gitlab.com/thorchain/thornode/constants"
 )
 
 // RefundHandler a handle to process tx that had refund memo
@@ -23,39 +22,40 @@ func NewRefundHandler(mgr Manager) RefundHandler {
 }
 
 // Run is the main entry point to process refund outbound message
-func (h RefundHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+func (h RefundHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Result, error) {
 	msg, ok := m.(*MsgRefundTx)
 	if !ok {
 		return nil, errInvalidMessage
 	}
 	ctx.Logger().Info("receive MsgRefund", "tx ID", msg.InTxID.String())
-	if err := h.validate(ctx, *msg, version, constAccessor); err != nil {
+	if err := h.validate(ctx, *msg); err != nil {
 		ctx.Logger().Error("MsgRefund fail validation", "error", err)
 		return nil, err
 	}
 
-	result, err := h.handle(ctx, *msg, version, constAccessor)
+	result, err := h.handle(ctx, *msg)
 	if err != nil {
 		ctx.Logger().Error("fail to process MsgRefund", "error", err)
 	}
 	return result, err
 }
 
-func (h RefundHandler) validate(ctx cosmos.Context, msg MsgRefundTx, version semver.Version, constAccessor constants.ConstantValues) error {
+func (h RefundHandler) validate(ctx cosmos.Context, msg MsgRefundTx) error {
+	version := h.mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.1.0")) {
-		return h.validateV1(ctx, version, msg, constAccessor)
+		return h.validateV1(ctx, msg)
 	}
 	return errBadVersion
 }
 
-func (h RefundHandler) validateV1(ctx cosmos.Context, version semver.Version, msg MsgRefundTx, constAccessor constants.ConstantValues) error {
-	return h.validateCurrent(ctx, version, msg, constAccessor)
+func (h RefundHandler) validateV1(ctx cosmos.Context, msg MsgRefundTx) error {
+	return h.validateCurrent(ctx, msg)
 }
 
-func (h RefundHandler) validateCurrent(ctx cosmos.Context, version semver.Version, msg MsgRefundTx, constAccessor constants.ConstantValues) error {
+func (h RefundHandler) validateCurrent(ctx cosmos.Context, msg MsgRefundTx) error {
 	return msg.ValidateBasic()
 }
 
-func (h RefundHandler) handle(ctx cosmos.Context, msg MsgRefundTx, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
-	return h.ch.handle(ctx, version, msg.Tx, msg.InTxID, constAccessor)
+func (h RefundHandler) handle(ctx cosmos.Context, msg MsgRefundTx) (*cosmos.Result, error) {
+	return h.ch.handle(ctx, msg.Tx, msg.InTxID)
 }

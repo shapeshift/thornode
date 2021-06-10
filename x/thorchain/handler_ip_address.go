@@ -23,17 +23,17 @@ func NewIPAddressHandler(mgr Manager) IPAddressHandler {
 }
 
 // Run it the main entry point to execute ip address logic
-func (h IPAddressHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+func (h IPAddressHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Result, error) {
 	msg, ok := m.(*MsgSetIPAddress)
 	if !ok {
 		return nil, errInvalidMessage
 	}
 	ctx.Logger().Info("receive ip address", "address", msg.IPAddress)
-	if err := h.validate(ctx, *msg, version, constAccessor); err != nil {
+	if err := h.validate(ctx, *msg); err != nil {
 		ctx.Logger().Error("msg set version failed validation", "error", err)
 		return nil, err
 	}
-	if err := h.handle(ctx, *msg, version, constAccessor); err != nil {
+	if err := h.handle(ctx, *msg); err != nil {
 		ctx.Logger().Error("fail to process msg set version", "error", err)
 		return nil, err
 	}
@@ -41,18 +41,19 @@ func (h IPAddressHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.V
 	return &cosmos.Result{}, nil
 }
 
-func (h IPAddressHandler) validate(ctx cosmos.Context, msg MsgSetIPAddress, version semver.Version, constAccessor constants.ConstantValues) error {
+func (h IPAddressHandler) validate(ctx cosmos.Context, msg MsgSetIPAddress) error {
+	version := h.mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.1.0")) {
-		return h.validateV1(ctx, msg, constAccessor)
+		return h.validateV1(ctx, msg)
 	}
 	return errBadVersion
 }
 
-func (h IPAddressHandler) validateV1(ctx cosmos.Context, msg MsgSetIPAddress, constAccessor constants.ConstantValues) error {
-	return h.validateCurrent(ctx, msg, constAccessor)
+func (h IPAddressHandler) validateV1(ctx cosmos.Context, msg MsgSetIPAddress) error {
+	return h.validateCurrent(ctx, msg)
 }
 
-func (h IPAddressHandler) validateCurrent(ctx cosmos.Context, msg MsgSetIPAddress, constAccessor constants.ConstantValues) error {
+func (h IPAddressHandler) validateCurrent(ctx cosmos.Context, msg MsgSetIPAddress) error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
@@ -69,7 +70,7 @@ func (h IPAddressHandler) validateCurrent(ctx cosmos.Context, msg MsgSetIPAddres
 
 	cost, err := h.mgr.Keeper().GetMimir(ctx, constants.NativeTransactionFee.String())
 	if err != nil || cost < 0 {
-		cost = constAccessor.GetInt64Value(constants.NativeTransactionFee)
+		cost = h.mgr.GetConstants().GetInt64Value(constants.NativeTransactionFee)
 	}
 	if nodeAccount.Bond.LT(cosmos.NewUint(uint64(cost))) {
 		return cosmos.ErrUnauthorized("not enough bond")
@@ -78,20 +79,21 @@ func (h IPAddressHandler) validateCurrent(ctx cosmos.Context, msg MsgSetIPAddres
 	return nil
 }
 
-func (h IPAddressHandler) handle(ctx cosmos.Context, msg MsgSetIPAddress, version semver.Version, constAccessor constants.ConstantValues) error {
+func (h IPAddressHandler) handle(ctx cosmos.Context, msg MsgSetIPAddress) error {
 	ctx.Logger().Info("handleMsgSetIPAddress request", "ip address", msg.IPAddress)
+	version := h.mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.1.0")) {
-		return h.handleV1(ctx, msg, constAccessor)
+		return h.handleV1(ctx, msg)
 	}
 	ctx.Logger().Error(errInvalidVersion.Error())
 	return errBadVersion
 }
 
-func (h IPAddressHandler) handleV1(ctx cosmos.Context, msg MsgSetIPAddress, constAccessor constants.ConstantValues) error {
-	return h.handleCurrent(ctx, msg, constAccessor)
+func (h IPAddressHandler) handleV1(ctx cosmos.Context, msg MsgSetIPAddress) error {
+	return h.handleCurrent(ctx, msg)
 }
 
-func (h IPAddressHandler) handleCurrent(ctx cosmos.Context, msg MsgSetIPAddress, constAccessor constants.ConstantValues) error {
+func (h IPAddressHandler) handleCurrent(ctx cosmos.Context, msg MsgSetIPAddress) error {
 	nodeAccount, err := h.mgr.Keeper().GetNodeAccount(ctx, msg.Signer)
 	if err != nil {
 		ctx.Logger().Error("fail to get node account", "error", err, "address", msg.Signer.String())
@@ -100,7 +102,7 @@ func (h IPAddressHandler) handleCurrent(ctx cosmos.Context, msg MsgSetIPAddress,
 
 	c, err := h.mgr.Keeper().GetMimir(ctx, constants.NativeTransactionFee.String())
 	if err != nil || c < 0 {
-		c = constAccessor.GetInt64Value(constants.NativeTransactionFee)
+		c = h.mgr.GetConstants().GetInt64Value(constants.NativeTransactionFee)
 	}
 	cost := cosmos.NewUint(uint64(c))
 	if cost.GT(nodeAccount.Bond) {

@@ -1,12 +1,10 @@
 package thorchain
 
 import (
-	"github.com/blang/semver"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
-	"gitlab.com/thorchain/thornode/constants"
 )
 
 type HandlerMimirSuite struct{}
@@ -23,50 +21,41 @@ func (s *HandlerMimirSuite) TestValidate(c *C) {
 	addr, _ := cosmos.AccAddressFromBech32(ADMINS[0])
 	handler := NewMimirHandler(NewDummyMgrWithKeeper(keeper))
 	// happy path
-	ver := GetCurrentVersion()
 	msg := NewMsgMimir("foo", 44, addr)
-	err := handler.validate(ctx, *msg, ver)
+	err := handler.validate(ctx, *msg)
 	c.Assert(err, IsNil)
-
-	// invalid version
-	err = handler.validate(ctx, *msg, semver.Version{})
-	c.Assert(err, Equals, errBadVersion)
 
 	// invalid msg
 	msg = &MsgMimir{}
-	err = handler.validate(ctx, *msg, ver)
+	err = handler.validate(ctx, *msg)
 	c.Assert(err, NotNil)
 }
 
 func (s *HandlerMimirSuite) TestHandle(c *C) {
 	ctx, keeper := setupKeeperForTest(c)
-	ver := GetCurrentVersion()
 
 	handler := NewMimirHandler(NewDummyMgrWithKeeper(keeper))
 
 	msg := NewMsgMimir("foo", 55, GetRandomBech32Addr())
-	sdkErr := handler.handle(ctx, *msg, ver)
+	sdkErr := handler.handle(ctx, *msg)
 	c.Assert(sdkErr, IsNil)
 	val, err := keeper.GetMimir(ctx, "foo")
 	c.Assert(err, IsNil)
 	c.Check(val, Equals, int64(55))
 
 	invalidMsg := NewMsgNetworkFee(ctx.BlockHeight(), common.BNBChain, 1, bnbSingleTxFee.Uint64(), GetRandomBech32Addr())
-	result, err := handler.Run(ctx, invalidMsg, GetCurrentVersion(), constants.GetConstantValues(GetCurrentVersion()))
+	result, err := handler.Run(ctx, invalidMsg)
 	c.Check(err, NotNil)
 	c.Check(result, IsNil)
 
-	result, err = handler.Run(ctx, msg, GetCurrentVersion(), constants.GetConstantValues(GetCurrentVersion()))
+	result, err = handler.Run(ctx, msg)
 	c.Assert(err, NotNil)
 	c.Assert(result, IsNil)
 
 	addr, err := cosmos.AccAddressFromBech32(ADMINS[0])
 	c.Check(err, IsNil)
 	msg1 := NewMsgMimir("hello", 1, addr)
-	result, err = handler.Run(ctx, msg1, GetCurrentVersion(), constants.GetConstantValues(GetCurrentVersion()))
+	result, err = handler.Run(ctx, msg1)
 	c.Check(err, IsNil)
 	c.Check(result, NotNil)
-
-	// invalid version should result an error
-	c.Check(handler.handle(ctx, *msg, semver.MustParse("0.0.1")), NotNil)
 }

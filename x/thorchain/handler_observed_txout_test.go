@@ -10,7 +10,6 @@ import (
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
-	"gitlab.com/thorchain/thornode/constants"
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
@@ -31,10 +30,6 @@ func (k *TestObservedTxOutValidateKeeper) GetNodeAccount(ctx cosmos.Context, sig
 var _ = Suite(&HandlerObservedTxOutSuite{})
 
 func (s *HandlerObservedTxOutSuite) TestValidate(c *C) {
-	s.testValidateWithVersion(c, GetCurrentVersion())
-}
-
-func (s *HandlerObservedTxOutSuite) testValidateWithVersion(c *C, ver semver.Version) {
 	var err error
 	ctx, _ := setupKeeperForTest(c)
 	activeNodeAccount := GetRandomNodeAccount(NodeActive)
@@ -51,21 +46,17 @@ func (s *HandlerObservedTxOutSuite) testValidateWithVersion(c *C, ver semver.Ver
 	txs[0].Tx.FromAddress, err = pk.GetAddress(txs[0].Tx.Coins[0].Asset.Chain)
 	c.Assert(err, IsNil)
 	msg := NewMsgObservedTxOut(txs, activeNodeAccount.NodeAddress)
-	err = handler.validate(ctx, *msg, ver)
+	err = handler.validate(ctx, *msg)
 	c.Assert(err, IsNil)
-
-	// invalid version
-	err = handler.validate(ctx, *msg, semver.Version{})
-	c.Assert(err, Equals, errInvalidVersion)
 
 	// inactive node account
 	msg = NewMsgObservedTxOut(txs, GetRandomBech32Addr())
-	err = handler.validate(ctx, *msg, ver)
+	err = handler.validate(ctx, *msg)
 	c.Assert(errors.Is(err, se.ErrUnauthorized), Equals, true)
 
 	// invalid msg
 	msg = &MsgObservedTxOut{}
-	err = handler.validate(ctx, *msg, ver)
+	err = handler.validate(ctx, *msg)
 	c.Assert(err, NotNil)
 }
 
@@ -164,14 +155,9 @@ func (k *TestObservedTxOutHandleKeeper) SetPool(ctx cosmos.Context, pool Pool) e
 }
 
 func (s *HandlerObservedTxOutSuite) TestHandle(c *C) {
-	s.testHandleWithVersion(c, GetCurrentVersion())
-}
-
-func (s *HandlerObservedTxOutSuite) testHandleWithVersion(c *C, ver semver.Version) {
 	var err error
 	ctx, mgr := setupManagerForTest(c)
 
-	constAccessor := constants.GetConstantValues(ver)
 	tx := GetRandomTx()
 	tx.Memo = fmt.Sprintf("OUT:%s", tx.ID)
 	obTx := NewObservedTx(tx, 12, GetRandomPubKey(), 12)
@@ -203,7 +189,7 @@ func (s *HandlerObservedTxOutSuite) testHandleWithVersion(c *C, ver semver.Versi
 
 	c.Assert(err, IsNil)
 	msg := NewMsgObservedTxOut(txs, keeper.nas[0].NodeAddress)
-	_, err = handler.handle(ctx, *msg, ver, constAccessor)
+	_, err = handler.handle(ctx, *msg)
 	c.Assert(err, IsNil)
 	c.Assert(err, IsNil)
 	mgr.ObMgr().EndBlock(ctx, keeper)
@@ -217,14 +203,9 @@ func (s *HandlerObservedTxOutSuite) testHandleWithVersion(c *C, ver semver.Versi
 }
 
 func (s *HandlerObservedTxOutSuite) TestHandleStolenFunds(c *C) {
-	s.testHandleStolenFundsWithVersion(c, GetCurrentVersion())
-}
-
-func (s *HandlerObservedTxOutSuite) testHandleStolenFundsWithVersion(c *C, ver semver.Version) {
 	var err error
 	ctx, _ := setupKeeperForTest(c)
 
-	constAccessor := constants.GetConstantValues(ver)
 	tx := GetRandomTx()
 	tx.Memo = "I AM A THIEF!" // bad memo
 	obTx := NewObservedTx(tx, 12, GetRandomPubKey(), 12)
@@ -266,7 +247,7 @@ func (s *HandlerObservedTxOutSuite) testHandleStolenFundsWithVersion(c *C, ver s
 
 	c.Assert(err, IsNil)
 	msg := NewMsgObservedTxOut(txs, keeper.nas[0].NodeAddress)
-	_, err = handler.handle(ctx, *msg, ver, constAccessor)
+	_, err = handler.handle(ctx, *msg)
 	c.Assert(err, IsNil)
 	// make sure the coin has been subtract from the vault
 	c.Check(ygg.Coins.GetCoin(common.BNBAsset).Amount.Equal(cosmos.NewUint(9999962500)), Equals, true, Commentf("%d", ygg.Coins.GetCoin(common.BNBAsset).Amount.Uint64()))
@@ -492,10 +473,10 @@ func (HandlerObservedTxOutSuite) TestHandlerObservedTxOut_DifferentValidations(c
 			ctx, mgr := setupManagerForTest(c)
 			helper := NewHandlerObservedTxOutHelper(mgr.Keeper())
 			mgr.K = helper
+			mgr.CurrentVersion = ver
 			handler := NewObservedTxOutHandler(mgr)
 			msg := tc.messageProvider(c, ctx, helper)
-			constantAccessor := constants.GetConstantValues(ver)
-			result, err := handler.Run(ctx, msg, ver, constantAccessor)
+			result, err := handler.Run(ctx, msg)
 			tc.validator(c, ctx, result, err, helper, tc.name)
 		}
 	}

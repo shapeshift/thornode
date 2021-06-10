@@ -8,7 +8,6 @@ import (
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
-	"gitlab.com/thorchain/thornode/constants"
 	kvTypes "gitlab.com/thorchain/thornode/x/thorchain/keeper/types"
 )
 
@@ -31,16 +30,16 @@ func NewYggdrasilHandler(mgr Manager) YggdrasilHandler {
 }
 
 // Run execute the logic in Yggdrasil Handler
-func (h YggdrasilHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+func (h YggdrasilHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Result, error) {
 	msg, ok := m.(*MsgYggdrasil)
 	if !ok {
 		return nil, errInvalidMessage
 	}
-	if err := h.validate(ctx, *msg, version); err != nil {
+	if err := h.validate(ctx, *msg); err != nil {
 		ctx.Logger().Error("MsgYggdrasil failed validation", "error", err)
 		return nil, err
 	}
-	result, err := h.handle(ctx, *msg, version, constAccessor)
+	result, err := h.handle(ctx, *msg)
 	if err != nil {
 		ctx.Logger().Error("failed to process MsgYggdrasil", "error", err)
 		return nil, err
@@ -48,7 +47,8 @@ func (h YggdrasilHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.V
 	return result, nil
 }
 
-func (h YggdrasilHandler) validate(ctx cosmos.Context, msg MsgYggdrasil, version semver.Version) error {
+func (h YggdrasilHandler) validate(ctx cosmos.Context, msg MsgYggdrasil) error {
+	version := h.mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, msg)
 	}
@@ -63,10 +63,11 @@ func (h YggdrasilHandler) validateCurrent(ctx cosmos.Context, msg MsgYggdrasil) 
 	return msg.ValidateBasic()
 }
 
-func (h YggdrasilHandler) handle(ctx cosmos.Context, msg MsgYggdrasil, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+func (h YggdrasilHandler) handle(ctx cosmos.Context, msg MsgYggdrasil) (*cosmos.Result, error) {
 	ctx.Logger().Info("receive MsgYggdrasil", "pubkey", msg.PubKey.String(), "add_funds", msg.AddFunds, "coins", msg.Coins)
+	version := h.mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.1.0")) {
-		return h.handleV1(ctx, msg, version)
+		return h.handleV1(ctx, msg)
 	}
 	return nil, errBadVersion
 }
@@ -93,11 +94,11 @@ func (h YggdrasilHandler) handleYggdrasilFundV1(ctx cosmos.Context, msg MsgYggdr
 	return &cosmos.Result{}, nil
 }
 
-func (h YggdrasilHandler) slashV1(ctx cosmos.Context, version semver.Version, pk common.PubKey, coins common.Coins) error {
+func (h YggdrasilHandler) slashV1(ctx cosmos.Context, pk common.PubKey, coins common.Coins) error {
 	return h.mgr.Slasher().SlashVault(ctx, pk, coins, h.mgr)
 }
 
-func (h YggdrasilHandler) handleV1(ctx cosmos.Context, msg MsgYggdrasil, version semver.Version) (*cosmos.Result, error) {
+func (h YggdrasilHandler) handleV1(ctx cosmos.Context, msg MsgYggdrasil) (*cosmos.Result, error) {
 	// update txOut record with our TxID that sent funds out of the pool
 	txOut, err := h.mgr.Keeper().GetTxOut(ctx, msg.BlockHeight)
 	if err != nil {
@@ -182,7 +183,7 @@ func (h YggdrasilHandler) handleV1(ctx cosmos.Context, msg MsgYggdrasil, version
 	if shouldSlash {
 		ctx.Logger().Info("slash node account, no matched tx out item", "outbound tx", msg.Tx)
 		toSlash := msg.Tx.Coins.Adds(msg.Tx.Gas.ToCoins())
-		if err := h.slashV1(ctx, version, msg.PubKey, toSlash); err != nil {
+		if err := h.slashV1(ctx, msg.PubKey, toSlash); err != nil {
 			return nil, ErrInternal(err, "fail to slash account")
 		}
 	}
@@ -203,14 +204,14 @@ func (h YggdrasilHandler) handleV1(ctx cosmos.Context, msg MsgYggdrasil, version
 	if msg.AddFunds {
 		return h.handleYggdrasilFundV1(ctx, msg, vault)
 	}
-	return h.handleYggdrasilReturnV1(ctx, msg, vault, version)
+	return h.handleYggdrasilReturnV1(ctx, msg, vault)
 }
 
-func (h YggdrasilHandler) handleYggdrasilReturnV1(ctx cosmos.Context, msg MsgYggdrasil, vault Vault, version semver.Version) (*cosmos.Result, error) {
-	return h.handleCurrent(ctx, msg, vault, version)
+func (h YggdrasilHandler) handleYggdrasilReturnV1(ctx cosmos.Context, msg MsgYggdrasil, vault Vault) (*cosmos.Result, error) {
+	return h.handleCurrent(ctx, msg, vault)
 }
 
-func (h YggdrasilHandler) handleCurrent(ctx cosmos.Context, msg MsgYggdrasil, vault Vault, version semver.Version) (*cosmos.Result, error) {
+func (h YggdrasilHandler) handleCurrent(ctx cosmos.Context, msg MsgYggdrasil, vault Vault) (*cosmos.Result, error) {
 	// observe an outbound tx from yggdrasil vault
 	switch vault.Type {
 	case YggdrasilVault:
@@ -238,7 +239,7 @@ func (h YggdrasilHandler) handleCurrent(ctx cosmos.Context, msg MsgYggdrasil, va
 		if !isAsgardReceipient {
 			ctx.Logger().Info("yggdrasil send fund to none asgard address")
 			// not sending to asgard , slash the node account
-			if err := h.slashV1(ctx, version, msg.PubKey, msg.Tx.Coins); err != nil {
+			if err := h.slashV1(ctx, msg.PubKey, msg.Tx.Coins); err != nil {
 				return nil, ErrInternal(err, "fail to slash account for sending fund to a none asgard vault using yggdrasil-")
 			}
 		}

@@ -4,7 +4,6 @@ import (
 	"github.com/blang/semver"
 
 	"gitlab.com/thorchain/thornode/common/cosmos"
-	"gitlab.com/thorchain/thornode/constants"
 )
 
 type OutboundTxHandler struct {
@@ -19,23 +18,24 @@ func NewOutboundTxHandler(mgr Manager) OutboundTxHandler {
 	}
 }
 
-func (h OutboundTxHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+func (h OutboundTxHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Result, error) {
 	msg, ok := m.(*MsgOutboundTx)
 	if !ok {
 		return nil, errInvalidMessage
 	}
-	if err := h.validate(ctx, *msg, version); err != nil {
+	if err := h.validate(ctx, *msg); err != nil {
 		ctx.Logger().Error("MsgOutboundTx failed validation", "error", err)
 		return nil, err
 	}
-	result, err := h.handle(ctx, *msg, version, constAccessor)
+	result, err := h.handle(ctx, *msg)
 	if err != nil {
 		ctx.Logger().Error("fail to handle MsgOutboundTx", "error", err)
 	}
 	return result, err
 }
 
-func (h OutboundTxHandler) validate(ctx cosmos.Context, msg MsgOutboundTx, version semver.Version) error {
+func (h OutboundTxHandler) validate(ctx cosmos.Context, msg MsgOutboundTx) error {
+	version := h.mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, msg)
 	}
@@ -50,18 +50,19 @@ func (h OutboundTxHandler) validateCurrent(ctx cosmos.Context, msg MsgOutboundTx
 	return msg.ValidateBasic()
 }
 
-func (h OutboundTxHandler) handle(ctx cosmos.Context, msg MsgOutboundTx, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+func (h OutboundTxHandler) handle(ctx cosmos.Context, msg MsgOutboundTx) (*cosmos.Result, error) {
 	ctx.Logger().Info("receive MsgOutboundTx", "request outbound tx hash", msg.Tx.Tx.ID)
+	version := h.mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.1.0")) {
-		return h.handleV1(ctx, version, msg, constAccessor)
+		return h.handleV1(ctx, msg)
 	}
 	return nil, errBadVersion
 }
 
-func (h OutboundTxHandler) handleV1(ctx cosmos.Context, version semver.Version, msg MsgOutboundTx, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
-	return h.handleCurrent(ctx, version, msg, constAccessor)
+func (h OutboundTxHandler) handleV1(ctx cosmos.Context, msg MsgOutboundTx) (*cosmos.Result, error) {
+	return h.handleCurrent(ctx, msg)
 }
 
-func (h OutboundTxHandler) handleCurrent(ctx cosmos.Context, version semver.Version, msg MsgOutboundTx, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
-	return h.ch.handle(ctx, version, msg.Tx, msg.InTxID, constAccessor)
+func (h OutboundTxHandler) handleCurrent(ctx cosmos.Context, msg MsgOutboundTx) (*cosmos.Result, error) {
+	return h.ch.handle(ctx, msg.Tx, msg.InTxID)
 }
