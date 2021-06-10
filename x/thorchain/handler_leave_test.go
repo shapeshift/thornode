@@ -3,13 +3,11 @@ package thorchain
 import (
 	"errors"
 
-	"github.com/blang/semver"
 	se "github.com/cosmos/cosmos-sdk/types/errors"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
-	"gitlab.com/thorchain/thornode/constants"
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
@@ -18,7 +16,7 @@ type HandlerLeaveSuite struct{}
 var _ = Suite(&HandlerLeaveSuite{})
 
 func (HandlerLeaveSuite) TestLeaveHandler_NotActiveNodeLeave(c *C) {
-	w := getHandlerTestWrapperWithVersion(c, 1, true, false, GetCurrentVersion())
+	w := getHandlerTestWrapper(c, 1, true, false)
 	vault := GetRandomVault()
 	w.keeper.SetVault(w.ctx, vault)
 	leaveHandler := NewLeaveHandler(NewDummyMgrWithKeeper(w.keeper))
@@ -40,20 +38,16 @@ func (HandlerLeaveSuite) TestLeaveHandler_NotActiveNodeLeave(c *C) {
 		"LEAVE",
 	)
 	msgLeave := NewMsgLeave(tx, acc2.NodeAddress, w.activeNodeAccount.NodeAddress)
-	ver := GetCurrentVersion()
-	constAccessor := constants.GetConstantValues(ver)
-	_, err := leaveHandler.Run(w.ctx, msgLeave, ver, constAccessor)
+	_, err := leaveHandler.Run(w.ctx, msgLeave)
 	c.Assert(err, IsNil)
 	accAfterLeave, err := w.keeper.GetNodeAccount(w.ctx, acc2.NodeAddress)
 	c.Assert(err, IsNil)
 	c.Assert(accAfterLeave.Status, Equals, NodeDisabled)
-	_, err = leaveHandler.Run(w.ctx, msgLeave, semver.Version{}, constAccessor)
-	c.Assert(err, NotNil)
 }
 
 func (HandlerLeaveSuite) TestLeaveHandler_ActiveNodeLeave(c *C) {
 	var err error
-	w := getHandlerTestWrapperWithVersion(c, 1, true, false, GetCurrentVersion())
+	w := getHandlerTestWrapper(c, 1, true, false)
 	leaveHandler := NewLeaveHandler(NewDummyMgrWithKeeper(w.keeper))
 	acc2 := GetRandomNodeAccount(NodeActive)
 	acc2.Bond = cosmos.NewUint(100 * common.One)
@@ -68,9 +62,7 @@ func (HandlerLeaveSuite) TestLeaveHandler_ActiveNodeLeave(c *C) {
 		"",
 	)
 	msgLeave := NewMsgLeave(tx, acc2.NodeAddress, w.activeNodeAccount.NodeAddress)
-	ver := GetCurrentVersion()
-	constAccessor := constants.GetConstantValues(ver)
-	_, err = leaveHandler.Run(w.ctx, msgLeave, ver, constAccessor)
+	_, err = leaveHandler.Run(w.ctx, msgLeave)
 	c.Assert(err, IsNil)
 
 	acc2, err = w.keeper.GetNodeAccount(w.ctx, acc2.NodeAddress)
@@ -79,7 +71,7 @@ func (HandlerLeaveSuite) TestLeaveHandler_ActiveNodeLeave(c *C) {
 }
 
 func (HandlerLeaveSuite) TestLeaveJail(c *C) {
-	w := getHandlerTestWrapperWithVersion(c, 1, true, false, GetCurrentVersion())
+	w := getHandlerTestWrapper(c, 1, true, false)
 	vault := GetRandomVault()
 	w.keeper.SetVault(w.ctx, vault)
 	leaveHandler := NewLeaveHandler(NewDummyMgrWithKeeper(w.keeper))
@@ -104,16 +96,12 @@ func (HandlerLeaveSuite) TestLeaveJail(c *C) {
 		"LEAVE",
 	)
 	msgLeave := NewMsgLeave(tx, acc2.NodeAddress, w.activeNodeAccount.NodeAddress)
-	ver := GetCurrentVersion()
-	constAccessor := constants.GetConstantValues(ver)
-	_, err := leaveHandler.Run(w.ctx, msgLeave, ver, constAccessor)
+	_, err := leaveHandler.Run(w.ctx, msgLeave)
 	c.Assert(err, NotNil)
 }
 
 func (HandlerLeaveSuite) TestLeaveValidation(c *C) {
-	w := getHandlerTestWrapperWithVersion(c, 1, true, false, GetCurrentVersion())
-	ver := GetCurrentVersion()
-	constAccessor := constants.GetConstantValues(ver)
+	w := getHandlerTestWrapper(c, 1, true, false)
 	testCases := []struct {
 		name          string
 		msgLeave      *MsgLeave
@@ -191,7 +179,7 @@ func (HandlerLeaveSuite) TestLeaveValidation(c *C) {
 	for _, item := range testCases {
 		c.Log(item.name)
 		leaveHandler := NewLeaveHandler(NewDummyMgrWithKeeper(w.keeper))
-		_, err := leaveHandler.Run(w.ctx, item.msgLeave, ver, constAccessor)
+		_, err := leaveHandler.Run(w.ctx, item.msgLeave)
 		c.Check(errors.Is(err, item.expectedError), Equals, true, Commentf("name:%s, %s", item.name, err))
 	}
 }
@@ -403,9 +391,7 @@ func (HandlerLeaveSuite) TestLeaveDifferentValidations(c *C) {
 		mgr.K = helper
 		handler := NewLeaveHandler(mgr)
 		msg := tc.messageProvider(ctx, helper)
-		ver := GetCurrentVersion()
-		constantAccessor := constants.GetConstantValues(ver)
-		result, err := handler.Run(ctx, msg, ver, constantAccessor)
+		result, err := handler.Run(ctx, msg)
 		tc.validator(c, ctx, result, err, helper, tc.name, msg)
 	}
 }

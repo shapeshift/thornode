@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/blang/semver"
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/simapp"
 	"github.com/cosmos/cosmos-sdk/store"
@@ -180,14 +179,10 @@ type handlerTestWrapper struct {
 }
 
 func getHandlerTestWrapper(c *C, height int64, withActiveNode, withActieBNBPool bool) handlerTestWrapper {
-	return getHandlerTestWrapperWithVersion(c, height, withActiveNode, withActieBNBPool, GetCurrentVersion())
-}
-
-func getHandlerTestWrapperWithVersion(c *C, height int64, withActiveNode, withActieBNBPool bool, version semver.Version) handlerTestWrapper {
 	ctx, mgr := setupManagerForTest(c)
 	ctx = ctx.WithBlockHeight(height)
 	acc1 := GetRandomNodeAccount(NodeActive)
-	acc1.Version = version.String()
+	acc1.Version = mgr.GetVersion().String()
 	if withActiveNode {
 		c.Assert(mgr.Keeper().SetNodeAccount(ctx, acc1), IsNil)
 	}
@@ -201,7 +196,7 @@ func getHandlerTestWrapperWithVersion(c *C, height int64, withActiveNode, withAc
 		p.LPUnits = cosmos.NewUint(100 * common.One)
 		c.Assert(mgr.Keeper().SetPool(ctx, p), IsNil)
 	}
-	constAccessor := constants.GetConstantValues(version)
+	constAccessor := mgr.GetConstants()
 
 	FundModule(c, ctx, mgr.Keeper(), AsgardName, 100000000)
 

@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/blang/semver"
 	se "github.com/cosmos/cosmos-sdk/types/errors"
 	. "gopkg.in/check.v1"
 
@@ -66,7 +65,7 @@ func (HandlerBondSuite) TestBondHandler_Run(c *C) {
 	)
 	FundModule(c, ctx, k1, BondName, uint64(minimumBondInRune))
 	msg := NewMsgBond(txIn, GetRandomNodeAccount(NodeStandby).NodeAddress, cosmos.NewUint(uint64(minimumBondInRune)+common.One), GetRandomBNBAddress(), activeNodeAccount.NodeAddress)
-	_, err := handler.Run(ctx, msg, ver, constAccessor)
+	_, err := handler.Run(ctx, msg)
 	c.Assert(err, IsNil)
 	coin := common.NewCoin(common.RuneNative, cosmos.NewUint(common.One))
 	nativeRuneCoin, err := coin.Native()
@@ -76,21 +75,17 @@ func (HandlerBondSuite) TestBondHandler_Run(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(na.Status.String(), Equals, NodeWhiteListed.String())
 	c.Assert(na.Bond.Equal(cosmos.NewUint(uint64(minimumBondInRune))), Equals, true)
-	// invalid version
-	handler = NewBondHandler(NewDummyMgrWithKeeper(k))
-	ver = semver.Version{}
-	_, err = handler.Run(ctx, msg, ver, constAccessor)
-	c.Assert(errors.Is(err, errBadVersion), Equals, true)
 
 	// simulate fail to get node account
+	handler = NewBondHandler(NewDummyMgrWithKeeper(k))
 	ver = GetCurrentVersion()
 	msg = NewMsgBond(txIn, k.failGetNodeAccount.NodeAddress, cosmos.NewUint(uint64(minimumBondInRune)), GetRandomBNBAddress(), activeNodeAccount.NodeAddress)
-	_, err = handler.Run(ctx, msg, ver, constAccessor)
+	_, err = handler.Run(ctx, msg)
 	c.Assert(errors.Is(err, errInternal), Equals, true)
 
 	// When node account is active , it is ok to bond
 	msg = NewMsgBond(txIn, k.notEmptyNodeAccount.NodeAddress, cosmos.NewUint(uint64(minimumBondInRune)), GetRandomBNBAddress(), activeNodeAccount.NodeAddress)
-	_, err = handler.Run(ctx, msg, ver, constAccessor)
+	_, err = handler.Run(ctx, msg)
 	c.Assert(err, IsNil)
 }
 
@@ -147,7 +142,7 @@ func (HandlerBondSuite) TestBondHandlerFailValidation(c *C) {
 	}
 	for _, item := range testCases {
 		c.Log(item.name)
-		_, err := handler.Run(ctx, item.msg, ver, constAccessor)
+		_, err := handler.Run(ctx, item.msg)
 		c.Check(errors.Is(err, item.expectedErr), Equals, true, Commentf("name: %s, %s != %s", item.name, item.expectedErr, err))
 	}
 }

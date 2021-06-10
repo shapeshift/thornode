@@ -24,19 +24,20 @@ func NewBanHandler(mgr Manager) BanHandler {
 }
 
 // Run is the main entry point to execute Ban logic
-func (h BanHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+func (h BanHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Result, error) {
 	msg, ok := m.(*MsgBan)
 	if !ok {
 		return nil, errInvalidMessage
 	}
-	if err := h.validate(ctx, *msg, version); err != nil {
+	if err := h.validate(ctx, *msg); err != nil {
 		ctx.Logger().Error("msg ban failed validation", "error", err)
 		return nil, err
 	}
-	return h.handle(ctx, *msg, version, constAccessor)
+	return h.handle(ctx, *msg)
 }
 
-func (h BanHandler) validate(ctx cosmos.Context, msg MsgBan, version semver.Version) error {
+func (h BanHandler) validate(ctx cosmos.Context, msg MsgBan) error {
+	version := h.mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, msg)
 	}
@@ -59,20 +60,21 @@ func (h BanHandler) validateCurrent(ctx cosmos.Context, msg MsgBan) error {
 	return nil
 }
 
-func (h BanHandler) handle(ctx cosmos.Context, msg MsgBan, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+func (h BanHandler) handle(ctx cosmos.Context, msg MsgBan) (*cosmos.Result, error) {
 	ctx.Logger().Info("handleMsgBan request", "node address", msg.NodeAddress.String())
+	version := h.mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.1.0")) {
-		return h.handleV1(ctx, msg, constAccessor)
+		return h.handleV1(ctx, msg)
 	}
 	ctx.Logger().Error(errInvalidVersion.Error())
 	return nil, errBadVersion
 }
 
-func (h BanHandler) handleV1(ctx cosmos.Context, msg MsgBan, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
-	return h.handleCurrent(ctx, msg, constAccessor)
+func (h BanHandler) handleV1(ctx cosmos.Context, msg MsgBan) (*cosmos.Result, error) {
+	return h.handleCurrent(ctx, msg)
 }
 
-func (h BanHandler) handleCurrent(ctx cosmos.Context, msg MsgBan, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+func (h BanHandler) handleCurrent(ctx cosmos.Context, msg MsgBan) (*cosmos.Result, error) {
 	toBan, err := h.mgr.Keeper().GetNodeAccount(ctx, msg.NodeAddress)
 	if err != nil {
 		err = wrapError(ctx, err, "fail to get to ban node account")
@@ -117,7 +119,7 @@ func (h BanHandler) handleCurrent(ctx cosmos.Context, msg MsgBan, constAccessor 
 		// take 0.1% of the minimum bond, and put it into the reserve
 		minBond, err := h.mgr.Keeper().GetMimir(ctx, constants.MinimumBondInRune.String())
 		if minBond < 0 || err != nil {
-			minBond = constAccessor.GetInt64Value(constants.MinimumBondInRune)
+			minBond = h.mgr.GetConstants().GetInt64Value(constants.MinimumBondInRune)
 		}
 		slashAmount := cosmos.NewUint(uint64(minBond)).QuoUint64(1000)
 		if slashAmount.GT(banner.Bond) {

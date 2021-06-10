@@ -24,7 +24,7 @@ func NewUnBondHandler(mgr Manager) UnBondHandler {
 }
 
 // Run execute the handler
-func (h UnBondHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+func (h UnBondHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Result, error) {
 	msg, ok := m.(*MsgUnBond)
 	if !ok {
 		return nil, errInvalidMessage
@@ -33,11 +33,11 @@ func (h UnBondHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Vers
 		"node address", msg.NodeAddress,
 		"request hash", msg.TxIn.ID,
 		"amount", msg.Amount)
-	if err := h.validate(ctx, *msg, version, constAccessor); err != nil {
+	if err := h.validate(ctx, *msg); err != nil {
 		ctx.Logger().Error("msg unbond fail validation", "error", err)
 		return nil, err
 	}
-	if err := h.handle(ctx, *msg, version, constAccessor); err != nil {
+	if err := h.handle(ctx, *msg); err != nil {
 		ctx.Logger().Error("msg unbond fail handler", "error", err)
 		return nil, err
 	}
@@ -45,16 +45,17 @@ func (h UnBondHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Vers
 	return &cosmos.Result{}, nil
 }
 
-func (h UnBondHandler) validate(ctx cosmos.Context, msg MsgUnBond, version semver.Version, constAccessor constants.ConstantValues) error {
+func (h UnBondHandler) validate(ctx cosmos.Context, msg MsgUnBond) error {
+	version := h.mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.55.0")) {
-		return h.validateV55(ctx, version, msg, constAccessor)
+		return h.validateV55(ctx, msg)
 	} else if version.GTE(semver.MustParse("0.1.0")) {
-		return h.validateV1(ctx, version, msg, constAccessor)
+		return h.validateV1(ctx, msg)
 	}
 	return errBadVersion
 }
 
-func (h UnBondHandler) validateV1(ctx cosmos.Context, version semver.Version, msg MsgUnBond, constAccessor constants.ConstantValues) error {
+func (h UnBondHandler) validateV1(ctx cosmos.Context, msg MsgUnBond) error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
@@ -137,11 +138,11 @@ func (h UnBondHandler) validateV1(ctx cosmos.Context, version semver.Version, ms
 
 }
 
-func (h UnBondHandler) validateV55(ctx cosmos.Context, version semver.Version, msg MsgUnBond, constAccessor constants.ConstantValues) error {
-	return h.validateCurrent(ctx, version, msg, constAccessor)
+func (h UnBondHandler) validateV55(ctx cosmos.Context, msg MsgUnBond) error {
+	return h.validateCurrent(ctx, msg)
 }
 
-func (h UnBondHandler) validateCurrent(ctx cosmos.Context, version semver.Version, msg MsgUnBond, constAccessor constants.ConstantValues) error {
+func (h UnBondHandler) validateCurrent(ctx cosmos.Context, msg MsgUnBond) error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
@@ -183,25 +184,26 @@ func (h UnBondHandler) validateCurrent(ctx cosmos.Context, version semver.Versio
 	return nil
 }
 
-func (h UnBondHandler) handle(ctx cosmos.Context, msg MsgUnBond, version semver.Version, constAccessor constants.ConstantValues) error {
+func (h UnBondHandler) handle(ctx cosmos.Context, msg MsgUnBond) error {
+	version := h.mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.55.0")) {
-		return h.handleV55(ctx, msg, version, constAccessor)
+		return h.handleV55(ctx, msg)
 	} else if version.GTE(semver.MustParse("0.46.0")) {
-		return h.handleV46(ctx, msg, version, constAccessor)
+		return h.handleV46(ctx, msg)
 	} else if version.GTE(semver.MustParse("0.1.0")) {
-		return h.handleV1(ctx, msg, version, constAccessor)
+		return h.handleV1(ctx, msg)
 	}
 	return errBadVersion
 }
 
-func (h UnBondHandler) handleV1(ctx cosmos.Context, msg MsgUnBond, version semver.Version, constAccessor constants.ConstantValues) error {
+func (h UnBondHandler) handleV1(ctx cosmos.Context, msg MsgUnBond) error {
 	na, err := h.mgr.Keeper().GetNodeAccount(ctx, msg.NodeAddress)
 	if err != nil {
 		return ErrInternal(err, fmt.Sprintf("fail to get node account(%s)", msg.NodeAddress))
 	}
 	bondLockPeriod, err := h.mgr.Keeper().GetMimir(ctx, constants.BondLockupPeriod.String())
 	if err != nil || bondLockPeriod < 0 {
-		bondLockPeriod = constAccessor.GetInt64Value(constants.BondLockupPeriod)
+		bondLockPeriod = h.mgr.GetConstants().GetInt64Value(constants.BondLockupPeriod)
 	}
 	if common.BlockHeight(ctx)-na.StatusSince < bondLockPeriod {
 		return fmt.Errorf("node can not unbond before %d", na.StatusSince+bondLockPeriod)
@@ -236,14 +238,14 @@ func (h UnBondHandler) handleV1(ctx cosmos.Context, msg MsgUnBond, version semve
 	return nil
 }
 
-func (h UnBondHandler) handleV46(ctx cosmos.Context, msg MsgUnBond, version semver.Version, constAccessor constants.ConstantValues) error {
+func (h UnBondHandler) handleV46(ctx cosmos.Context, msg MsgUnBond) error {
 	na, err := h.mgr.Keeper().GetNodeAccount(ctx, msg.NodeAddress)
 	if err != nil {
 		return ErrInternal(err, fmt.Sprintf("fail to get node account(%s)", msg.NodeAddress))
 	}
 	bondLockPeriod, err := h.mgr.Keeper().GetMimir(ctx, constants.BondLockupPeriod.String())
 	if err != nil || bondLockPeriod < 0 {
-		bondLockPeriod = constAccessor.GetInt64Value(constants.BondLockupPeriod)
+		bondLockPeriod = h.mgr.GetConstants().GetInt64Value(constants.BondLockupPeriod)
 	}
 	if common.BlockHeight(ctx)-na.StatusSince < bondLockPeriod {
 		return fmt.Errorf("node can not unbond before %d", na.StatusSince+bondLockPeriod)
@@ -279,11 +281,11 @@ func (h UnBondHandler) handleV46(ctx cosmos.Context, msg MsgUnBond, version semv
 
 }
 
-func (h UnBondHandler) handleV55(ctx cosmos.Context, msg MsgUnBond, version semver.Version, constAccessor constants.ConstantValues) error {
-	return h.handleCurrent(ctx, msg, version, constAccessor)
+func (h UnBondHandler) handleV55(ctx cosmos.Context, msg MsgUnBond) error {
+	return h.handleCurrent(ctx, msg)
 }
 
-func (h UnBondHandler) handleCurrent(ctx cosmos.Context, msg MsgUnBond, version semver.Version, constAccessor constants.ConstantValues) error {
+func (h UnBondHandler) handleCurrent(ctx cosmos.Context, msg MsgUnBond) error {
 	na, err := h.mgr.Keeper().GetNodeAccount(ctx, msg.NodeAddress)
 	if err != nil {
 		return ErrInternal(err, fmt.Sprintf("fail to get node account(%s)", msg.NodeAddress))
@@ -333,7 +335,7 @@ func (h UnBondHandler) handleCurrent(ctx cosmos.Context, msg MsgUnBond, version 
 		}
 		if !canUnbond {
 			ctx.Logger().Error("cannot unbond while yggdrasil vault still has funds")
-			if err := h.mgr.ValidatorMgr().RequestYggReturn(ctx, na, h.mgr, constAccessor); err != nil {
+			if err := h.mgr.ValidatorMgr().RequestYggReturn(ctx, na, h.mgr, h.mgr.GetConstants()); err != nil {
 				return ErrInternal(err, "fail to request yggdrasil return fund")
 			}
 			return nil
@@ -347,7 +349,7 @@ func (h UnBondHandler) handleCurrent(ctx cosmos.Context, msg MsgUnBond, version 
 
 	bondLockPeriod, err := h.mgr.Keeper().GetMimir(ctx, constants.BondLockupPeriod.String())
 	if err != nil || bondLockPeriod < 0 {
-		bondLockPeriod = constAccessor.GetInt64Value(constants.BondLockupPeriod)
+		bondLockPeriod = h.mgr.GetConstants().GetInt64Value(constants.BondLockupPeriod)
 	}
 	if common.BlockHeight(ctx)-na.StatusSince < bondLockPeriod {
 		return fmt.Errorf("node can not unbond before %d", na.StatusSince+bondLockPeriod)
@@ -367,7 +369,7 @@ func (h UnBondHandler) handleCurrent(ctx cosmos.Context, msg MsgUnBond, version 
 	if isMemberOfRetiringVault {
 		return ErrInternal(err, "fail to unbond, still part of the retiring vault")
 	}
-	if err := refundBondV46(ctx, msg.TxIn, msg.Amount, &na, h.mgr); err != nil {
+	if err := refundBond(ctx, msg.TxIn, msg.Amount, &na, h.mgr); err != nil {
 		return ErrInternal(err, "fail to unbond")
 	}
 

@@ -1,11 +1,8 @@
 package thorchain
 
 import (
-	"github.com/blang/semver"
-
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
-	"gitlab.com/thorchain/thornode/constants"
 
 	. "gopkg.in/check.v1"
 )
@@ -26,22 +23,17 @@ func (s *HandlerSendSuite) TestValidate(c *C) {
 		Amount:      cosmos.NewCoins(cosmos.NewCoin("dummy", cosmos.NewInt(12))),
 	}
 	handler := NewSendHandler(NewDummyMgrWithKeeper(k))
-	err := handler.validate(ctx, msg, GetCurrentVersion())
+	err := handler.validate(ctx, msg)
 	c.Assert(err, IsNil)
-
-	// invalid version
-	err = handler.validate(ctx, msg, semver.Version{})
-	c.Assert(err, Equals, errInvalidVersion)
 
 	// invalid msg
 	msg = MsgSend{}
-	err = handler.validate(ctx, msg, GetCurrentVersion())
+	err = handler.validate(ctx, msg)
 	c.Assert(err, NotNil)
 }
 
 func (s *HandlerSendSuite) TestHandle(c *C) {
 	ctx, k := setupKeeperForTest(c)
-	constAccessor := constants.GetConstantValues(GetCurrentVersion())
 
 	addr1 := GetRandomBech32Addr()
 	addr2 := GetRandomBech32Addr()
@@ -60,11 +52,11 @@ func (s *HandlerSendSuite) TestHandle(c *C) {
 	}
 
 	handler := NewSendHandler(NewDummyMgrWithKeeper(k))
-	_, err = handler.handle(ctx, msg, GetCurrentVersion(), constAccessor)
+	_, err = handler.handle(ctx, msg)
 	c.Assert(err, IsNil)
 
 	// invalid msg should result in a error
-	result, err := handler.Run(ctx, NewMsgNetworkFee(ctx.BlockHeight(), common.BNBChain, 1, bnbSingleTxFee.Uint64(), GetRandomBech32Addr()), GetCurrentVersion(), constAccessor)
+	result, err := handler.Run(ctx, NewMsgNetworkFee(ctx.BlockHeight(), common.BNBChain, 1, bnbSingleTxFee.Uint64(), GetRandomBech32Addr()))
 	c.Assert(err, NotNil)
 	c.Assert(result, IsNil)
 	// insufficient funds
@@ -75,6 +67,6 @@ func (s *HandlerSendSuite) TestHandle(c *C) {
 		ToAddress:   addr2,
 		Amount:      cosmos.NewCoins(coin),
 	}
-	_, err = handler.handle(ctx, msg, GetCurrentVersion(), constAccessor)
+	_, err = handler.handle(ctx, msg)
 	c.Assert(err, NotNil)
 }

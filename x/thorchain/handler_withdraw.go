@@ -9,7 +9,6 @@ import (
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
-	"gitlab.com/thorchain/thornode/constants"
 )
 
 // WithdrawLiqudityHandler to process withdraw requests
@@ -25,19 +24,19 @@ func NewWithdrawLiquidityHandler(mgr Manager) WithdrawLiquidityHandler {
 }
 
 // Run is the main entry point of withdraw
-func (h WithdrawLiquidityHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+func (h WithdrawLiquidityHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Result, error) {
 	msg, ok := m.(*MsgWithdrawLiquidity)
 	if !ok {
 		return nil, errInvalidMessage
 	}
 	ctx.Logger().Info(fmt.Sprintf("receive MsgWithdrawLiquidity from : %s(%s) withdraw (%s)", *msg, msg.WithdrawAddress, msg.BasisPoints))
 
-	if err := h.validate(ctx, *msg, version); err != nil {
+	if err := h.validate(ctx, *msg); err != nil {
 		ctx.Logger().Error("MsgWithdrawLiquidity failed validation", "error", err)
 		return nil, err
 	}
 
-	result, err := h.handle(ctx, *msg, version, constAccessor)
+	result, err := h.handle(ctx, *msg)
 	if err != nil {
 		ctx.Logger().Error("fail to process msg withdraw", "error", err)
 		return nil, err
@@ -45,7 +44,8 @@ func (h WithdrawLiquidityHandler) Run(ctx cosmos.Context, m cosmos.Msg, version 
 	return result, err
 }
 
-func (h WithdrawLiquidityHandler) validate(ctx cosmos.Context, msg MsgWithdrawLiquidity, version semver.Version) error {
+func (h WithdrawLiquidityHandler) validate(ctx cosmos.Context, msg MsgWithdrawLiquidity) error {
+	version := h.mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, msg)
 	}
@@ -78,26 +78,27 @@ func (h WithdrawLiquidityHandler) validateCurrent(ctx cosmos.Context, msg MsgWit
 	return nil
 }
 
-func (h WithdrawLiquidityHandler) handle(ctx cosmos.Context, msg MsgWithdrawLiquidity, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+func (h WithdrawLiquidityHandler) handle(ctx cosmos.Context, msg MsgWithdrawLiquidity) (*cosmos.Result, error) {
+	version := h.mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.55.0")) {
-		return h.handleV55(ctx, msg, version, constAccessor)
+		return h.handleV55(ctx, msg)
 	} else if version.GTE(semver.MustParse("0.50.0")) {
-		return h.handleV50(ctx, msg, version, constAccessor)
+		return h.handleV50(ctx, msg)
 	} else if version.GTE(semver.MustParse("0.49.0")) {
-		return h.handleV49(ctx, msg, version, constAccessor)
+		return h.handleV49(ctx, msg)
 	} else if version.GTE(semver.MustParse("0.47.0")) {
-		return h.handleV47(ctx, msg, version, constAccessor)
+		return h.handleV47(ctx, msg)
 	} else if version.GTE(semver.MustParse("0.45.0")) {
-		return h.handleV45(ctx, msg, version, constAccessor)
+		return h.handleV45(ctx, msg)
 	} else if version.GTE(semver.MustParse("0.42.0")) {
-		return h.handleV42(ctx, msg, version, constAccessor)
+		return h.handleV42(ctx, msg)
 	} else if version.GTE(semver.MustParse("0.1.0")) {
-		return h.handleV1(ctx, msg, version, constAccessor)
+		return h.handleV1(ctx, msg)
 	}
 	return nil, errBadVersion
 }
 
-func (h WithdrawLiquidityHandler) handleV1(ctx cosmos.Context, msg MsgWithdrawLiquidity, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+func (h WithdrawLiquidityHandler) handleV1(ctx cosmos.Context, msg MsgWithdrawLiquidity) (*cosmos.Result, error) {
 	lp, err := h.mgr.Keeper().GetLiquidityProvider(ctx, msg.Asset, msg.WithdrawAddress)
 	if err != nil {
 		return nil, multierror.Append(errFailGetLiquidityProvider, err)
@@ -106,7 +107,7 @@ func (h WithdrawLiquidityHandler) handleV1(ctx cosmos.Context, msg MsgWithdrawLi
 	if err != nil {
 		return nil, ErrInternal(err, "fail to get pool")
 	}
-	runeAmt, assetAmount, impLossProtection, units, gasAsset, err := withdrawV1(ctx, version, msg, h.mgr)
+	runeAmt, assetAmount, impLossProtection, units, gasAsset, err := withdrawV1(ctx, h.mgr.GetVersion(), msg, h.mgr)
 	if err != nil {
 		return nil, ErrInternal(err, "fail to process withdraw request")
 	}
@@ -207,7 +208,7 @@ func (h WithdrawLiquidityHandler) handleV1(ctx cosmos.Context, msg MsgWithdrawLi
 
 }
 
-func (h WithdrawLiquidityHandler) handleV42(ctx cosmos.Context, msg MsgWithdrawLiquidity, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+func (h WithdrawLiquidityHandler) handleV42(ctx cosmos.Context, msg MsgWithdrawLiquidity) (*cosmos.Result, error) {
 	lp, err := h.mgr.Keeper().GetLiquidityProvider(ctx, msg.Asset, msg.WithdrawAddress)
 	if err != nil {
 		return nil, multierror.Append(errFailGetLiquidityProvider, err)
@@ -216,7 +217,7 @@ func (h WithdrawLiquidityHandler) handleV42(ctx cosmos.Context, msg MsgWithdrawL
 	if err != nil {
 		return nil, ErrInternal(err, "fail to get pool")
 	}
-	runeAmt, assetAmount, impLossProtection, units, gasAsset, err := withdrawV1(ctx, version, msg, h.mgr)
+	runeAmt, assetAmount, impLossProtection, units, gasAsset, err := withdrawV1(ctx, h.mgr.GetVersion(), msg, h.mgr)
 	if err != nil {
 		return nil, ErrInternal(err, "fail to process withdraw request")
 	}
@@ -312,7 +313,7 @@ func (h WithdrawLiquidityHandler) handleV42(ctx cosmos.Context, msg MsgWithdrawL
 	return &cosmos.Result{}, nil
 }
 
-func (h WithdrawLiquidityHandler) handleV45(ctx cosmos.Context, msg MsgWithdrawLiquidity, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+func (h WithdrawLiquidityHandler) handleV45(ctx cosmos.Context, msg MsgWithdrawLiquidity) (*cosmos.Result, error) {
 	lp, err := h.mgr.Keeper().GetLiquidityProvider(ctx, msg.Asset, msg.WithdrawAddress)
 	if err != nil {
 		return nil, multierror.Append(errFailGetLiquidityProvider, err)
@@ -321,7 +322,7 @@ func (h WithdrawLiquidityHandler) handleV45(ctx cosmos.Context, msg MsgWithdrawL
 	if err != nil {
 		return nil, ErrInternal(err, "fail to get pool")
 	}
-	runeAmt, assetAmount, impLossProtection, units, gasAsset, err := withdrawV1(ctx, version, msg, h.mgr)
+	runeAmt, assetAmount, impLossProtection, units, gasAsset, err := withdrawV1(ctx, h.mgr.GetVersion(), msg, h.mgr)
 	if err != nil {
 		return nil, ErrInternal(err, "fail to process withdraw request")
 	}
@@ -426,7 +427,7 @@ func (h WithdrawLiquidityHandler) handleV45(ctx cosmos.Context, msg MsgWithdrawL
 	return &cosmos.Result{}, nil
 }
 
-func (h WithdrawLiquidityHandler) handleV47(ctx cosmos.Context, msg MsgWithdrawLiquidity, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+func (h WithdrawLiquidityHandler) handleV47(ctx cosmos.Context, msg MsgWithdrawLiquidity) (*cosmos.Result, error) {
 	lp, err := h.mgr.Keeper().GetLiquidityProvider(ctx, msg.Asset, msg.WithdrawAddress)
 	if err != nil {
 		return nil, multierror.Append(errFailGetLiquidityProvider, err)
@@ -435,7 +436,7 @@ func (h WithdrawLiquidityHandler) handleV47(ctx cosmos.Context, msg MsgWithdrawL
 	if err != nil {
 		return nil, ErrInternal(err, "fail to get pool")
 	}
-	runeAmt, assetAmount, impLossProtection, units, gasAsset, err := withdrawV47(ctx, version, msg, h.mgr)
+	runeAmt, assetAmount, impLossProtection, units, gasAsset, err := withdrawV47(ctx, h.mgr.GetVersion(), msg, h.mgr)
 	if err != nil {
 		return nil, ErrInternal(err, "fail to process withdraw request")
 	}
@@ -566,7 +567,7 @@ func (h WithdrawLiquidityHandler) handleV47(ctx cosmos.Context, msg MsgWithdrawL
 
 }
 
-func (h WithdrawLiquidityHandler) handleV49(ctx cosmos.Context, msg MsgWithdrawLiquidity, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+func (h WithdrawLiquidityHandler) handleV49(ctx cosmos.Context, msg MsgWithdrawLiquidity) (*cosmos.Result, error) {
 	lp, err := h.mgr.Keeper().GetLiquidityProvider(ctx, msg.Asset, msg.WithdrawAddress)
 	if err != nil {
 		return nil, multierror.Append(errFailGetLiquidityProvider, err)
@@ -575,7 +576,7 @@ func (h WithdrawLiquidityHandler) handleV49(ctx cosmos.Context, msg MsgWithdrawL
 	if err != nil {
 		return nil, ErrInternal(err, "fail to get pool")
 	}
-	runeAmt, assetAmount, impLossProtection, units, gasAsset, err := withdrawV49(ctx, version, msg, h.mgr)
+	runeAmt, assetAmount, impLossProtection, units, gasAsset, err := withdrawV49(ctx, h.mgr.GetVersion(), msg, h.mgr)
 	if err != nil {
 		return nil, ErrInternal(err, "fail to process withdraw request")
 	}
@@ -705,7 +706,7 @@ func (h WithdrawLiquidityHandler) handleV49(ctx cosmos.Context, msg MsgWithdrawL
 	return &cosmos.Result{}, nil
 }
 
-func (h WithdrawLiquidityHandler) handleV50(ctx cosmos.Context, msg MsgWithdrawLiquidity, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+func (h WithdrawLiquidityHandler) handleV50(ctx cosmos.Context, msg MsgWithdrawLiquidity) (*cosmos.Result, error) {
 	lp, err := h.mgr.Keeper().GetLiquidityProvider(ctx, msg.Asset, msg.WithdrawAddress)
 	if err != nil {
 		return nil, multierror.Append(errFailGetLiquidityProvider, err)
@@ -714,7 +715,7 @@ func (h WithdrawLiquidityHandler) handleV50(ctx cosmos.Context, msg MsgWithdrawL
 	if err != nil {
 		return nil, ErrInternal(err, "fail to get pool")
 	}
-	runeAmt, assetAmount, impLossProtection, units, gasAsset, err := withdrawV50(ctx, version, msg, h.mgr)
+	runeAmt, assetAmount, impLossProtection, units, gasAsset, err := withdrawV50(ctx, h.mgr.GetVersion(), msg, h.mgr)
 	if err != nil {
 		return nil, ErrInternal(err, "fail to process withdraw request")
 	}
@@ -845,11 +846,11 @@ func (h WithdrawLiquidityHandler) handleV50(ctx cosmos.Context, msg MsgWithdrawL
 
 }
 
-func (h WithdrawLiquidityHandler) handleV55(ctx cosmos.Context, msg MsgWithdrawLiquidity, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
-	return h.handleCurrent(ctx, msg, version, constAccessor)
+func (h WithdrawLiquidityHandler) handleV55(ctx cosmos.Context, msg MsgWithdrawLiquidity) (*cosmos.Result, error) {
+	return h.handleCurrent(ctx, msg)
 }
 
-func (h WithdrawLiquidityHandler) handleCurrent(ctx cosmos.Context, msg MsgWithdrawLiquidity, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+func (h WithdrawLiquidityHandler) handleCurrent(ctx cosmos.Context, msg MsgWithdrawLiquidity) (*cosmos.Result, error) {
 	lp, err := h.mgr.Keeper().GetLiquidityProvider(ctx, msg.Asset, msg.WithdrawAddress)
 	if err != nil {
 		return nil, multierror.Append(errFailGetLiquidityProvider, err)
@@ -858,7 +859,7 @@ func (h WithdrawLiquidityHandler) handleCurrent(ctx cosmos.Context, msg MsgWithd
 	if err != nil {
 		return nil, ErrInternal(err, "fail to get pool")
 	}
-	runeAmt, assetAmount, impLossProtection, units, gasAsset, err := withdrawV55(ctx, version, msg, h.mgr)
+	runeAmt, assetAmount, impLossProtection, units, gasAsset, err := withdrawV55(ctx, h.mgr.GetVersion(), msg, h.mgr)
 	if err != nil {
 		return nil, ErrInternal(err, "fail to process withdraw request")
 	}

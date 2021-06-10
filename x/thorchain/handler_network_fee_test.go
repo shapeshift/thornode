@@ -3,12 +3,10 @@ package thorchain
 import (
 	"errors"
 
-	"github.com/blang/semver"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
-	"gitlab.com/thorchain/thornode/constants"
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
@@ -55,33 +53,27 @@ func (k KeeperObserveNetworkFeeTest) SaveNetworkFee(ctx cosmos.Context, chain co
 }
 
 func (h *HandlerObserveNetworkFeeSuite) TestHandlerObserveNetworkFee(c *C) {
-	h.testHandlerObserveNetworkFeeWithVersion(c, GetCurrentVersion())
+	h.testHandlerObserveNetworkFeeWithVersion(c)
 }
 
-func (*HandlerObserveNetworkFeeSuite) testHandlerObserveNetworkFeeWithVersion(c *C, ver semver.Version) {
+func (*HandlerObserveNetworkFeeSuite) testHandlerObserveNetworkFeeWithVersion(c *C) {
 	ctx, keeper := setupKeeperForTest(c)
 	activeNodeAccount := GetRandomNodeAccount(NodeActive)
 	c.Assert(keeper.SetNodeAccount(ctx, activeNodeAccount), IsNil)
 	handler := NewNetworkFeeHandler(NewDummyMgrWithKeeper(keeper))
 	msg := NewMsgNetworkFee(1024, common.BNBChain, 256, 100, activeNodeAccount.NodeAddress)
-	constantsAccessor := constants.GetConstantValues(ver)
-	result, err := handler.Run(ctx, msg, ver, constantsAccessor)
+	result, err := handler.Run(ctx, msg)
 	c.Assert(err, IsNil)
 	c.Assert(result, NotNil)
 
 	// already signed not cause error
-	result, err = handler.Run(ctx, msg, ver, constantsAccessor)
+	result, err = handler.Run(ctx, msg)
 	c.Assert(err, IsNil)
 	c.Assert(result, NotNil)
 
-	// invalid version should return bad version
-	result, err = handler.Run(ctx, msg, semver.MustParse("0.0.1"), constantsAccessor)
-	c.Assert(result, IsNil)
-	c.Assert(errors.Is(err, errBadVersion), Equals, true)
-
 	// already processed
 	msg1 := NewMsgNetworkFee(1024, common.BNBChain, 256, 100, activeNodeAccount.NodeAddress)
-	result, err = handler.Run(ctx, msg1, ver, constantsAccessor)
+	result, err = handler.Run(ctx, msg1)
 	c.Assert(err, IsNil)
 	c.Assert(result, NotNil)
 
@@ -92,7 +84,7 @@ func (*HandlerObserveNetworkFeeSuite) testHandlerObserveNetworkFeeWithVersion(c 
 			errFailListActiveNodeAccount: true,
 		}),
 	)
-	result, err = handler1.Run(ctx, msg, ver, constantsAccessor)
+	result, err = handler1.Run(ctx, msg)
 	c.Assert(err, NotNil)
 	c.Assert(result, IsNil)
 	c.Assert(errors.Is(err, errInternal), Equals, true)
@@ -104,7 +96,7 @@ func (*HandlerObserveNetworkFeeSuite) testHandlerObserveNetworkFeeWithVersion(c 
 			errFailGetObservedNetworkVoter: true,
 		}),
 	)
-	result, err = handler2.Run(ctx, msg, ver, constantsAccessor)
+	result, err = handler2.Run(ctx, msg)
 	c.Assert(err, NotNil)
 	c.Assert(result, IsNil)
 
@@ -116,13 +108,13 @@ func (*HandlerObserveNetworkFeeSuite) testHandlerObserveNetworkFeeWithVersion(c 
 		}),
 	)
 	msg2 := NewMsgNetworkFee(2056, common.BNBChain, 200, 102, activeNodeAccount.NodeAddress)
-	result, err = handler3.Run(ctx, msg2, ver, constantsAccessor)
+	result, err = handler3.Run(ctx, msg2)
 	c.Assert(err, NotNil)
 	c.Assert(result, IsNil)
 
 	// invalid message should return an error
 	msg3 := NewMsgReserveContributor(GetRandomTx(), ReserveContributor{}, GetRandomBech32Addr())
-	result, err = handler3.Run(ctx, msg3, ver, constantsAccessor)
+	result, err = handler3.Run(ctx, msg3)
 	c.Check(result, IsNil)
 	c.Check(err, NotNil)
 	c.Check(errors.Is(err, errInvalidMessage), Equals, true)
