@@ -419,11 +419,6 @@ class ThorchainState:
                         if coin.asset.is_synth:
                             if not tx.is_refund():
                                 pool.synth_balance -= asset_fee
-                            synth_units = get_share(
-                                asset_fee, pool.synth_balance, pool.synth_units
-                            )
-                            pool.synth_units -= synth_units
-                            pool.total_units -= synth_units
                             if tx.is_refund():
                                 pool.synth_balance -= asset_fee
                         else:
@@ -487,10 +482,6 @@ class ThorchainState:
                                     {"pool_deduct": pool_deduct},
                                 ],
                             )
-                            if coin.asset.is_synth:
-                                event.attributes.append(
-                                    {"synth_units": str(synth_units)}
-                                )
                             self.events.append(event)
                     if coin.amount > 0:
                         tx.fee = Coin(coin.asset, asset_fee)
@@ -785,7 +776,7 @@ class ThorchainState:
 
         # cant have synth asset
         if asset.is_synth:
-            return self.refund(tx, 105, "asset cannot be synth: unknown request")
+            return self.refund(tx, 1, "fail to validate add liquidity")
 
         # check that we have one rune and one asset
         if len(tx.coins) > 2:
@@ -804,7 +795,9 @@ class ThorchainState:
         for coin in tx.coins:
             if coin.asset.is_synth:
                 return self.refund(
-                    tx, 105, "asset coins cannot be synth: unknown request"
+                    tx,
+                    105,
+                    "rune and asset amounts cannot both be empty: unknown request",
                 )
 
         pool = self.get_pool(asset)
@@ -854,7 +847,7 @@ class ThorchainState:
             self.events.append(event)
             return []
 
-        if pool.total_units > 0 and len(pool.liquidity_providers) == 1:
+        if pool.lp_units > 0 and len(pool.liquidity_providers) == 1:
             self.events.append(
                 Event("pool", [{"pool": pool.asset}, {"pool_status": "Available"}])
             )
@@ -939,7 +932,7 @@ class ThorchainState:
         self.btc_estimate_size = 255
         self.bch_estimate_size = 417
         self.ltc_estimate_size = 255
-        if pool.total_units == 0:
+        if pool.lp_units == 0:
             if pool.asset.is_bnb():
                 gas_amt = gas.amount
                 if RUNE.get_chain() == "BNB":
@@ -1096,15 +1089,20 @@ class ThorchainState:
         source = tx.coins[0].asset
         target = asset
 
-        # check if synth tx
-        if "thor" in address and not target.is_rune():
-            target = target.get_synth_asset()
-
         # refund if we're trying to swap with the coin we given ie swapping bnb
         # with bnb
         if source == target and source.is_synth == target.is_synth:
             reason = "swap Source and Target cannot be the same.: unknown request"
             return self.refund(tx, 105, reason)
+
+        # check if synth tx
+        if ("thor" in address or "SYNTH" in address) and not target.is_rune():
+            target = target.get_synth_asset()
+            # refund if we're trying to swap with the coin we given ie swapping bnb
+            # with bnb
+            if source == target and source.is_synth == target.is_synth:
+                reason = f"cannot swap from {source} --> {target}, assets match"
+                return self.refund(tx, 108, reason)
 
         pools = []
         in_tx = tx
@@ -1123,14 +1121,6 @@ class ThorchainState:
             pool = self.get_pool(source)
             if pool.is_zero():
                 return self.refund(tx, 108, "fail swap, invalid balance")
-
-            # if synth need to calculate synth units
-            if source.is_synth:
-                synth_units = get_share(
-                    tx.coins[0].amount, pool.synth_balance, pool.synth_units
-                )
-                pool.total_units -= synth_units
-                pool.synth_units -= synth_units
 
             emit, liquidity_fee, liquidity_fee_in_rune, swap_slip, pool = self.swap(
                 tx.coins[0], RUNE
@@ -1174,9 +1164,6 @@ class ThorchainState:
                     *in_tx.get_attributes(),
                 ],
             )
-            if source.is_synth:
-                event.attributes.append({"synth_units": str(synth_units)})
-
             swap_events.append(event)
 
             # and we remove the gas on in_tx for the next event so we don't
@@ -1205,23 +1192,6 @@ class ThorchainState:
 
         if pool.is_zero():
             return self.refund(tx, 108, "fail swap, invalid balance")
-
-        # if synth need to calculate synth units
-        if source.is_synth:
-            synth_units = get_share(
-                in_coin.amount, pool.synth_balance, pool.synth_units
-            )
-            pool.total_units -= synth_units
-            pool.synth_units -= synth_units
-        elif target.is_synth:
-            synth_units = pool._calc_liquidity_units(
-                pool.rune_balance,
-                pool.asset_balance,
-                in_coin.amount,
-                0,
-            )
-            pool.total_units += synth_units
-            pool.synth_units += synth_units
 
         emit, liquidity_fee, liquidity_fee_in_rune, swap_slip, pool = self.swap(
             in_tx.coins[0], target
@@ -1271,9 +1241,6 @@ class ThorchainState:
                 *in_tx.get_attributes(),
             ],
         )
-        if target.is_synth or source.is_synth:
-            event.attributes.append({"synth_units": str(synth_units)})
-
         swap_events.append(event)
 
         outbound = self.handle_fee(tx, out_txs)
@@ -1438,8 +1405,7 @@ class Pool(Jsonable):
         self.rune_balance = rune_amt
         self.asset_balance = asset_amt
         self.synth_balance = 0
-        self.total_units = 0
-        self.synth_units = 0
+        self.lp_units = 0
         self.liquidity_providers = []
         self.status = status
 
@@ -1493,6 +1459,31 @@ class Pool(Jsonable):
         Check if pool has zero balance
         """
         return self.rune_balance == 0 and self.asset_balance == 0
+
+    def synth_units(self):
+        """
+        Calculate dynamic synth units
+        (L*S)/(2*A-S)
+        L = LP units
+        S = synth balance
+        A = asset balance
+        """
+        if self.asset_balance == 0:
+            return 0
+        numerator = self.lp_units * self.synth_balance
+        denominator = 2 * self.asset_balance - self.synth_balance
+        if denominator == 0:
+            return 0
+        return int(numerator / denominator)
+
+    def pool_units(self):
+        """
+        Calculate total pool units
+        (L+S)
+        L = LP units
+        S = synth balance
+        """
+        return self.synth_units() + self.lp_units
 
     def get_liquidity_provider(self, address):
         """
@@ -1551,10 +1542,10 @@ class Pool(Jsonable):
         )
 
         self.add(rune_amt, asset_amt)
-        self.total_units += units
+        self.lp_units += units
         lp.units += units
-        lp.rune_deposit_value += get_share(units, self.total_units, self.rune_balance)
-        lp.asset_deposit_value += get_share(units, self.total_units, self.asset_balance)
+        lp.rune_deposit_value += get_share(units, self.lp_units, self.rune_balance)
+        lp.asset_deposit_value += get_share(units, self.lp_units, self.asset_balance)
         self.set_liquidity_provider(lp)
         return units, rune_amt, asset_amt, lp.pending_tx
 
@@ -1570,10 +1561,10 @@ class Pool(Jsonable):
             lp.units, withdraw_basis_points
         )
         lp.units -= units
-        lp.rune_deposit_value -= get_share(units, self.total_units, self.rune_balance)
-        lp.asset_deposit_value -= get_share(units, self.total_units, self.asset_balance)
+        lp.rune_deposit_value -= get_share(units, self.lp_units, self.rune_balance)
+        lp.asset_deposit_value -= get_share(units, self.lp_units, self.asset_balance)
         self.set_liquidity_provider(lp)
-        self.total_units -= units
+        self.lp_units -= units
         self.sub(rune_amt, asset_amt)
         return units, rune_amt, asset_amt
 
@@ -1587,7 +1578,7 @@ class Pool(Jsonable):
         r = provided rune
         a = provided asset
         """
-        P = self.total_units
+        P = self.pool_units()
         R = float(R)
         A = float(A)
         r = float(r)
@@ -1604,8 +1595,10 @@ class Pool(Jsonable):
         Returns liquidity provider units, rune amount, asset amount
         """
         units_to_claim = get_share(withdraw_basis_points, 10000, lp_units)
-        withdraw_rune = get_share(units_to_claim, self.total_units, self.rune_balance)
-        withdraw_asset = get_share(units_to_claim, self.total_units, self.asset_balance)
+        withdraw_rune = get_share(units_to_claim, self.pool_units(), self.rune_balance)
+        withdraw_asset = get_share(
+            units_to_claim, self.pool_units(), self.asset_balance
+        )
         units_after = lp_units - units_to_claim
         if units_after < 0:
             logging.error(f"Overdrawn liquidity provider units: {self}")
@@ -1620,12 +1613,16 @@ class Pool(Jsonable):
         )
 
     def __str__(self):
-        return "Pool %s Rune: %d | Asset: %d | Units: %s | Synth Units: %s" % (
-            self.asset,
-            self.rune_balance,
-            self.asset_balance,
-            self.total_units,
-            self.synth_units,
+        return (
+            "Pool %s Rune: %d | Asset: %d | Units: %s | Synth Units: %s | Synth: %s"
+            % (
+                self.asset,
+                self.rune_balance,
+                self.asset_balance,
+                self.lp_units,
+                self.synth_units(),
+                self.synth_balance,
+            )
         )
 
 
