@@ -7,7 +7,6 @@ import (
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
-	"gitlab.com/thorchain/thornode/constants"
 )
 
 // MigrateHandler is a handler to process MsgMigrate
@@ -23,18 +22,19 @@ func NewMigrateHandler(mgr Manager) MigrateHandler {
 }
 
 // Run is the main entry point of Migrate handler
-func (h MigrateHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, _ constants.ConstantValues) (*cosmos.Result, error) {
+func (h MigrateHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Result, error) {
 	msg, ok := m.(*MsgMigrate)
 	if !ok {
 		return nil, errInvalidMessage
 	}
-	if err := h.validate(ctx, *msg, version); err != nil {
+	if err := h.validate(ctx, *msg); err != nil {
 		return nil, err
 	}
-	return h.handle(ctx, *msg, version)
+	return h.handle(ctx, *msg)
 }
 
-func (h MigrateHandler) validate(ctx cosmos.Context, msg MsgMigrate, version semver.Version) error {
+func (h MigrateHandler) validate(ctx cosmos.Context, msg MsgMigrate) error {
+	version := h.mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, msg)
 	}
@@ -52,24 +52,25 @@ func (h MigrateHandler) validateCurrent(ctx cosmos.Context, msg MsgMigrate) erro
 	return nil
 }
 
-func (h MigrateHandler) handle(ctx cosmos.Context, msg MsgMigrate, version semver.Version) (*cosmos.Result, error) {
+func (h MigrateHandler) handle(ctx cosmos.Context, msg MsgMigrate) (*cosmos.Result, error) {
 	ctx.Logger().Info("receive MsgMigrate", "request tx hash", msg.Tx.Tx.ID)
+	version := h.mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.1.0")) {
-		return h.handleV1(ctx, version, msg)
+		return h.handleV1(ctx, msg)
 	}
 	return nil, errBadVersion
 }
 
-func (h MigrateHandler) slashV1(ctx cosmos.Context, version semver.Version, tx ObservedTx) error {
+func (h MigrateHandler) slashV1(ctx cosmos.Context, tx ObservedTx) error {
 	toSlash := tx.Tx.Coins.Adds(tx.Tx.Gas.ToCoins())
 	return h.mgr.Slasher().SlashVault(ctx, tx.ObservedPubKey, toSlash, h.mgr)
 }
 
-func (h MigrateHandler) handleV1(ctx cosmos.Context, version semver.Version, msg MsgMigrate) (*cosmos.Result, error) {
-	return h.handleCurrent(ctx, version, msg)
+func (h MigrateHandler) handleV1(ctx cosmos.Context, msg MsgMigrate) (*cosmos.Result, error) {
+	return h.handleCurrent(ctx, msg)
 }
 
-func (h MigrateHandler) handleCurrent(ctx cosmos.Context, version semver.Version, msg MsgMigrate) (*cosmos.Result, error) {
+func (h MigrateHandler) handleCurrent(ctx cosmos.Context, msg MsgMigrate) (*cosmos.Result, error) {
 	// update txOut record with our TxID that sent funds out of the pool
 	txOut, err := h.mgr.Keeper().GetTxOut(ctx, msg.BlockHeight)
 	if err != nil {
@@ -122,7 +123,7 @@ func (h MigrateHandler) handleCurrent(ctx cosmos.Context, version semver.Version
 
 	if shouldSlash {
 		ctx.Logger().Info("slash node account,migration has no matched txout", "outbound tx", msg.Tx.Tx)
-		if err := h.slashV1(ctx, version, msg.Tx); err != nil {
+		if err := h.slashV1(ctx, msg.Tx); err != nil {
 			return nil, ErrInternal(err, "fail to slash account")
 		}
 	}

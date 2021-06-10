@@ -25,22 +25,23 @@ func NewCommonOutboundTxHandler(mgr Manager) CommonOutboundTxHandler {
 	}
 }
 
-func (h CommonOutboundTxHandler) slash(ctx cosmos.Context, version semver.Version, tx ObservedTx) error {
+func (h CommonOutboundTxHandler) slash(ctx cosmos.Context, tx ObservedTx) error {
 	toSlash := tx.Tx.Coins.Adds(tx.Tx.Gas.ToCoins())
 	return h.mgr.Slasher().SlashVault(ctx, tx.ObservedPubKey, toSlash, h.mgr)
 }
 
-func (h CommonOutboundTxHandler) handle(ctx cosmos.Context, version semver.Version, tx ObservedTx, inTxID common.TxID, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+func (h CommonOutboundTxHandler) handle(ctx cosmos.Context, tx ObservedTx, inTxID common.TxID) (*cosmos.Result, error) {
+	version := h.mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.48.0")) {
-		return h.handleV48(ctx, version, tx, inTxID, constAccessor)
+		return h.handleV48(ctx, tx, inTxID)
 	} else if version.GTE(semver.MustParse("0.1.0")) {
-		return h.handleV1(ctx, version, tx, inTxID, constAccessor)
+		return h.handleV1(ctx, tx, inTxID)
 	}
 	return nil, errBadVersion
 
 }
 
-func (h CommonOutboundTxHandler) handleV1(ctx cosmos.Context, version semver.Version, tx ObservedTx, inTxID common.TxID, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+func (h CommonOutboundTxHandler) handleV1(ctx cosmos.Context, tx ObservedTx, inTxID common.TxID) (*cosmos.Result, error) {
 	// note: Outbound tx usually it is related to an inbound tx except migration
 	// thus here try to get the ObservedTxInVoter,  and set the tx out hash accordingly
 	voter, err := h.mgr.Keeper().GetObservedTxInVoter(ctx, inTxID)
@@ -64,7 +65,7 @@ func (h CommonOutboundTxHandler) handleV1(ctx cosmos.Context, version semver.Ver
 	}
 
 	shouldSlash := true
-	signingTransPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
+	signingTransPeriod := h.mgr.GetConstants().GetInt64Value(constants.SigningTransactionPeriod)
 	// every Signing Transaction Period , THORNode will check whether a
 	// TxOutItem had been sent by signer or not
 	// if a txout item that is older than SigningTransactionPeriod, but has not
@@ -137,7 +138,7 @@ func (h CommonOutboundTxHandler) handleV1(ctx cosmos.Context, version semver.Ver
 
 	if shouldSlash {
 		ctx.Logger().Info("slash node account, no matched tx out item", "inbound txid", inTxID, "outbound tx", tx.Tx)
-		if err := h.slash(ctx, version, tx); err != nil {
+		if err := h.slash(ctx, tx); err != nil {
 			return nil, ErrInternal(err, "fail to slash account")
 		}
 	}
@@ -150,11 +151,11 @@ func (h CommonOutboundTxHandler) handleV1(ctx cosmos.Context, version semver.Ver
 
 }
 
-func (h CommonOutboundTxHandler) handleV48(ctx cosmos.Context, version semver.Version, tx ObservedTx, inTxID common.TxID, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
-	return h.handleCurrent(ctx, version, tx, inTxID, constAccessor)
+func (h CommonOutboundTxHandler) handleV48(ctx cosmos.Context, tx ObservedTx, inTxID common.TxID) (*cosmos.Result, error) {
+	return h.handleCurrent(ctx, tx, inTxID)
 }
 
-func (h CommonOutboundTxHandler) handleCurrent(ctx cosmos.Context, version semver.Version, tx ObservedTx, inTxID common.TxID, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+func (h CommonOutboundTxHandler) handleCurrent(ctx cosmos.Context, tx ObservedTx, inTxID common.TxID) (*cosmos.Result, error) {
 	// note: Outbound tx usually it is related to an inbound tx except migration
 	// thus here try to get the ObservedTxInVoter,  and set the tx out hash accordingly
 	voter, err := h.mgr.Keeper().GetObservedTxInVoter(ctx, inTxID)
@@ -178,7 +179,7 @@ func (h CommonOutboundTxHandler) handleCurrent(ctx cosmos.Context, version semve
 	}
 
 	shouldSlash := true
-	signingTransPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
+	signingTransPeriod := h.mgr.GetConstants().GetInt64Value(constants.SigningTransactionPeriod)
 	// every Signing Transaction Period , THORNode will check whether a
 	// TxOutItem had been sent by signer or not
 	// if a txout item that is older than SigningTransactionPeriod, but has not
@@ -256,7 +257,7 @@ func (h CommonOutboundTxHandler) handleCurrent(ctx cosmos.Context, version semve
 
 	if shouldSlash {
 		ctx.Logger().Info("slash node account, no matched tx out item", "inbound txid", inTxID, "outbound tx", tx.Tx)
-		if err := h.slash(ctx, version, tx); err != nil {
+		if err := h.slash(ctx, tx); err != nil {
 			return nil, ErrInternal(err, "fail to slash account")
 		}
 	}

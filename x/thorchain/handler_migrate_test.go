@@ -4,12 +4,10 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/blang/semver"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
-	"gitlab.com/thorchain/thornode/constants"
 	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
@@ -44,8 +42,6 @@ func (HandlerMigrateSuite) TestMigrate(c *C) {
 	addr, err := keeper.vault.PubKey.GetAddress(common.BNBChain)
 	c.Assert(err, IsNil)
 
-	ver := GetCurrentVersion()
-
 	tx := NewObservedTx(common.Tx{
 		ID:          GetRandomTxHash(),
 		Chain:       common.BNBChain,
@@ -57,16 +53,12 @@ func (HandlerMigrateSuite) TestMigrate(c *C) {
 	}, 12, GetRandomPubKey(), 12)
 
 	msgMigrate := NewMsgMigrate(tx, 1, keeper.activeNodeAccount.NodeAddress)
-	err = handler.validate(ctx, *msgMigrate, ver)
+	err = handler.validate(ctx, *msgMigrate)
 	c.Assert(err, IsNil)
-
-	// invalid version
-	err = handler.validate(ctx, *msgMigrate, semver.Version{})
-	c.Assert(err, Equals, errInvalidVersion)
 
 	// invalid msg
 	msgMigrate = &MsgMigrate{}
-	err = handler.validate(ctx, *msgMigrate, ver)
+	err = handler.validate(ctx, *msgMigrate)
 	c.Assert(err, NotNil)
 }
 
@@ -160,8 +152,7 @@ func (HandlerMigrateSuite) TestMigrateHappyPath(c *C) {
 	}, 1, retireVault.PubKey, 1)
 
 	msgMigrate := NewMsgMigrate(tx, 1, keeper.activeNodeAccount.NodeAddress)
-	constantAccessor := constants.GetConstantValues(GetCurrentVersion())
-	_, err = handler.Run(ctx, msgMigrate, GetCurrentVersion(), constantAccessor)
+	_, err = handler.Run(ctx, msgMigrate)
 	c.Assert(err, IsNil)
 	c.Assert(keeper.txout.TxArray[0].OutHash.Equals(tx.Tx.ID), Equals, true)
 }
@@ -209,7 +200,7 @@ func (HandlerMigrateSuite) TestSlash(c *C) {
 	}, 1, retireVault.PubKey, 1)
 
 	msgMigrate := NewMsgMigrate(tx, 1, keeper.activeNodeAccount.NodeAddress)
-	_, err = handler.handleV1(ctx, GetCurrentVersion(), *msgMigrate)
+	_, err = handler.handleV1(ctx, *msgMigrate)
 	c.Assert(err, IsNil)
 	c.Assert(keeper.activeNodeAccount.Bond.Equal(cosmos.NewUint(9999942214)), Equals, true, Commentf("%d", keeper.activeNodeAccount.Bond.Uint64()))
 }
@@ -218,8 +209,7 @@ func (HandlerMigrateSuite) TestHandlerMigrateValidation(c *C) {
 	// invalid message should return an error
 	ctx, mgr := setupManagerForTest(c)
 	h := NewMigrateHandler(mgr)
-	constantAccessor := constants.GetConstantValues(GetCurrentVersion())
-	result, err := h.Run(ctx, NewMsgNetworkFee(ctx.BlockHeight(), common.BNBChain, 1, bnbSingleTxFee.Uint64(), GetRandomBech32Addr()), GetCurrentVersion(), constantAccessor)
+	result, err := h.Run(ctx, NewMsgNetworkFee(ctx.BlockHeight(), common.BNBChain, 1, bnbSingleTxFee.Uint64(), GetRandomBech32Addr()))
 	c.Check(err, NotNil)
 	c.Check(result, IsNil)
 	c.Check(errors.Is(err, errInvalidMessage), Equals, true)

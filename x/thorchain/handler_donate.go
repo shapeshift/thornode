@@ -6,7 +6,6 @@ import (
 	"github.com/blang/semver"
 
 	"gitlab.com/thorchain/thornode/common/cosmos"
-	"gitlab.com/thorchain/thornode/constants"
 )
 
 // DonateHandler is to handle donate message
@@ -22,20 +21,21 @@ func NewDonateHandler(mgr Manager) DonateHandler {
 }
 
 // Run is the main entry point to execute donate logic
-func (h DonateHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+func (h DonateHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Result, error) {
 	msg, ok := m.(*MsgDonate)
 	if !ok {
 		return nil, errInvalidMessage
 	}
 	ctx.Logger().Info(fmt.Sprintf("receive msg donate %s", msg.Tx.ID))
-	if err := h.validate(ctx, *msg, version); err != nil {
+	if err := h.validate(ctx, *msg); err != nil {
 		ctx.Logger().Error("msg donate failed validation", "error", err)
 		return nil, err
 	}
-	return h.handle(ctx, *msg, version, constAccessor)
+	return h.handle(ctx, *msg)
 }
 
-func (h DonateHandler) validate(ctx cosmos.Context, msg MsgDonate, version semver.Version) error {
+func (h DonateHandler) validate(ctx cosmos.Context, msg MsgDonate) error {
+	version := h.mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, msg)
 	}
@@ -52,9 +52,10 @@ func (h DonateHandler) validateCurrent(ctx cosmos.Context, msg MsgDonate) error 
 
 // handle process MsgDonate, MsgDonate add asset and RUNE to the asset pool
 // it simply increase the pool asset/RUNE balance but without taking any of the pool units
-func (h DonateHandler) handle(ctx cosmos.Context, msg MsgDonate, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+func (h DonateHandler) handle(ctx cosmos.Context, msg MsgDonate) (*cosmos.Result, error) {
+	version := h.mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.1.0")) {
-		if err := h.handleV1(ctx, msg, version, constAccessor); err != nil {
+		if err := h.handleV1(ctx, msg); err != nil {
 			ctx.Logger().Error("fail to process msg donate", "error", err)
 			return nil, err
 		}
@@ -62,11 +63,11 @@ func (h DonateHandler) handle(ctx cosmos.Context, msg MsgDonate, version semver.
 	return &cosmos.Result{}, nil
 }
 
-func (h DonateHandler) handleV1(ctx cosmos.Context, msg MsgDonate, version semver.Version, constAccessor constants.ConstantValues) error {
-	return h.handleCurrent(ctx, msg, version, constAccessor)
+func (h DonateHandler) handleV1(ctx cosmos.Context, msg MsgDonate) error {
+	return h.handleCurrent(ctx, msg)
 }
 
-func (h DonateHandler) handleCurrent(ctx cosmos.Context, msg MsgDonate, version semver.Version, constAccessor constants.ConstantValues) error {
+func (h DonateHandler) handleCurrent(ctx cosmos.Context, msg MsgDonate) error {
 	pool, err := h.mgr.Keeper().GetPool(ctx, msg.Asset)
 	if err != nil {
 		return ErrInternal(err, fmt.Sprintf("fail to get pool for (%s)", msg.Asset))

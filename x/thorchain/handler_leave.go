@@ -24,7 +24,8 @@ func NewLeaveHandler(mgr Manager) LeaveHandler {
 	}
 }
 
-func (h LeaveHandler) validate(ctx cosmos.Context, msg MsgLeave, version semver.Version) error {
+func (h LeaveHandler) validate(ctx cosmos.Context, msg MsgLeave) error {
+	version := h.mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, msg)
 	}
@@ -54,7 +55,7 @@ func (h LeaveHandler) validateCurrent(ctx cosmos.Context, msg MsgLeave) error {
 }
 
 // Run execute the handler
-func (h LeaveHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+func (h LeaveHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Result, error) {
 	msg, ok := m.(*MsgLeave)
 	if !ok {
 		return nil, errInvalidMessage
@@ -62,17 +63,18 @@ func (h LeaveHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Versi
 	ctx.Logger().Info("receive MsgLeave",
 		"sender", msg.Tx.FromAddress.String(),
 		"request tx hash", msg.Tx.ID)
-	if err := h.validate(ctx, *msg, version); err != nil {
+	if err := h.validate(ctx, *msg); err != nil {
 		ctx.Logger().Error("msg leave fail validation", "error", err)
 		return nil, err
 	}
+	version := h.mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.46.0")) {
-		if err := h.handleV46(ctx, *msg, version, constAccessor); err != nil {
+		if err := h.handleV46(ctx, *msg); err != nil {
 			ctx.Logger().Error("fail to process msg leave", "error", err)
 			return nil, err
 		}
 	} else if version.GTE(semver.MustParse("0.1.0")) {
-		if err := h.handleV1(ctx, *msg, version, constAccessor); err != nil {
+		if err := h.handleV1(ctx, *msg); err != nil {
 			ctx.Logger().Error("fail to process msg leave", "error", err)
 			return nil, err
 		}
@@ -80,7 +82,7 @@ func (h LeaveHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Versi
 	return &cosmos.Result{}, nil
 }
 
-func (h LeaveHandler) handleV1(ctx cosmos.Context, msg MsgLeave, version semver.Version, constAccessor constants.ConstantValues) error {
+func (h LeaveHandler) handleV1(ctx cosmos.Context, msg MsgLeave) error {
 	nodeAcc, err := h.mgr.Keeper().GetNodeAccount(ctx, msg.NodeAddress)
 	if err != nil {
 		return ErrInternal(err, "fail to get node account by bond address")
@@ -113,7 +115,7 @@ func (h LeaveHandler) handleV1(ctx cosmos.Context, msg MsgLeave, version semver.
 	} else {
 		bondLockPeriod, err := h.mgr.Keeper().GetMimir(ctx, constants.BondLockupPeriod.String())
 		if err != nil || bondLockPeriod < 0 {
-			bondLockPeriod = constAccessor.GetInt64Value(constants.BondLockupPeriod)
+			bondLockPeriod = h.mgr.GetConstants().GetInt64Value(constants.BondLockupPeriod)
 		}
 		if common.BlockHeight(ctx)-nodeAcc.StatusSince < bondLockPeriod {
 			return fmt.Errorf("node can not unbond before %d", nodeAcc.StatusSince+bondLockPeriod)
@@ -154,7 +156,7 @@ func (h LeaveHandler) handleV1(ctx cosmos.Context, msg MsgLeave, version semver.
 						}
 						nodeAcc.UpdateStatus(NodeDisabled, common.BlockHeight(ctx))
 					} else {
-						if err := h.mgr.ValidatorMgr().RequestYggReturn(ctx, nodeAcc, h.mgr, constAccessor); err != nil {
+						if err := h.mgr.ValidatorMgr().RequestYggReturn(ctx, nodeAcc, h.mgr, h.mgr.GetConstants()); err != nil {
 							return ErrInternal(err, "fail to request yggdrasil return fund")
 						}
 					}
@@ -174,11 +176,11 @@ func (h LeaveHandler) handleV1(ctx cosmos.Context, msg MsgLeave, version semver.
 
 	return nil
 }
-func (h LeaveHandler) handleV46(ctx cosmos.Context, msg MsgLeave, version semver.Version, constAccessor constants.ConstantValues) error {
-	return h.handleCurrent(ctx, msg, version, constAccessor)
+func (h LeaveHandler) handleV46(ctx cosmos.Context, msg MsgLeave) error {
+	return h.handleCurrent(ctx, msg)
 }
 
-func (h LeaveHandler) handleCurrent(ctx cosmos.Context, msg MsgLeave, version semver.Version, constAccessor constants.ConstantValues) error {
+func (h LeaveHandler) handleCurrent(ctx cosmos.Context, msg MsgLeave) error {
 	nodeAcc, err := h.mgr.Keeper().GetNodeAccount(ctx, msg.NodeAddress)
 	if err != nil {
 		return ErrInternal(err, "fail to get node account by bond address")
@@ -211,7 +213,7 @@ func (h LeaveHandler) handleCurrent(ctx cosmos.Context, msg MsgLeave, version se
 	} else {
 		bondLockPeriod, err := h.mgr.Keeper().GetMimir(ctx, constants.BondLockupPeriod.String())
 		if err != nil || bondLockPeriod < 0 {
-			bondLockPeriod = constAccessor.GetInt64Value(constants.BondLockupPeriod)
+			bondLockPeriod = h.mgr.GetConstants().GetInt64Value(constants.BondLockupPeriod)
 		}
 		if common.BlockHeight(ctx)-nodeAcc.StatusSince < bondLockPeriod {
 			return fmt.Errorf("node can not unbond before %d", nodeAcc.StatusSince+bondLockPeriod)
@@ -252,7 +254,7 @@ func (h LeaveHandler) handleCurrent(ctx cosmos.Context, msg MsgLeave, version se
 						}
 						nodeAcc.UpdateStatus(NodeDisabled, common.BlockHeight(ctx))
 					} else {
-						if err := h.mgr.ValidatorMgr().RequestYggReturn(ctx, nodeAcc, h.mgr, constAccessor); err != nil {
+						if err := h.mgr.ValidatorMgr().RequestYggReturn(ctx, nodeAcc, h.mgr, h.mgr.GetConstants()); err != nil {
 							return ErrInternal(err, "fail to request yggdrasil return fund")
 						}
 					}

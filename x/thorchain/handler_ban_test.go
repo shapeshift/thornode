@@ -100,16 +100,12 @@ func (s *HandlerBanSuite) TestValidate(c *C) {
 	handler := NewBanHandler(NewDummyMgrWithKeeper(keeper))
 	// happy path
 	msg := NewMsgBan(toBan.NodeAddress, banner1.NodeAddress)
-	err := handler.validate(ctx, *msg, GetCurrentVersion())
+	err := handler.validate(ctx, *msg)
 	c.Assert(err, IsNil)
-
-	// invalid version
-	err = handler.validate(ctx, *msg, semver.Version{})
-	c.Assert(err, Equals, errBadVersion)
 
 	// invalid msg
 	msg = &MsgBan{}
-	err = handler.validate(ctx, *msg, GetCurrentVersion())
+	err = handler.validate(ctx, *msg)
 	c.Assert(err, NotNil)
 }
 
@@ -138,7 +134,7 @@ func (s *HandlerBanSuite) TestHandle(c *C) {
 
 	// ban with banner 1
 	msg := NewMsgBan(toBan.NodeAddress, banner1.NodeAddress)
-	_, err := handler.handle(ctx, *msg, GetCurrentVersion(), constAccessor)
+	_, err := handler.handle(ctx, *msg)
 	c.Assert(err, IsNil)
 	c.Check(int64(keeper.banner1.Bond.Uint64()), Equals, int64(99900000))
 	c.Check(keeper.modules[ReserveName], Equals, int64(100000))
@@ -146,7 +142,7 @@ func (s *HandlerBanSuite) TestHandle(c *C) {
 	c.Check(keeper.ban.Signers, HasLen, 1)
 
 	// ensure banner 1 can't ban twice
-	_, err = handler.handle(ctx, *msg, GetCurrentVersion(), constAccessor)
+	_, err = handler.handle(ctx, *msg)
 	c.Assert(err, IsNil)
 	c.Check(int64(keeper.banner1.Bond.Uint64()), Equals, int64(99900000))
 	c.Check(keeper.modules[ReserveName], Equals, int64(100000))
@@ -155,7 +151,7 @@ func (s *HandlerBanSuite) TestHandle(c *C) {
 
 	// ban with banner 2, which should actually ban the node account
 	msg = NewMsgBan(toBan.NodeAddress, banner2.NodeAddress)
-	_, err = handler.handle(ctx, *msg, GetCurrentVersion(), constAccessor)
+	_, err = handler.handle(ctx, *msg)
 	c.Assert(err, IsNil)
 	c.Check(int64(keeper.banner2.Bond.Uint64()), Equals, int64(99900000))
 	c.Check(keeper.modules[ReserveName], Equals, int64(200000))
@@ -458,9 +454,10 @@ func (s *HandlerBanSuite) TestBanHandlerValidation(c *C) {
 			helper.toBanNodeAddr = toBanAddr
 			helper.bannerNodeAddr = bannerNodeAddr
 			mgr.K = helper
+			mgr.CurrentVersion = ver
+			mgr.ConstAccessor = constants.GetConstantValues(ver)
 			handler := NewBanHandler(mgr)
-			constAccessor := constants.GetConstantValues(ver)
-			result, err := handler.Run(ctx, tc.messageProvider(ctx, helper), ver, constAccessor)
+			result, err := handler.Run(ctx, tc.messageProvider(ctx, helper))
 			tc.validator(c, result, err, helper, tc.name)
 		}
 	}

@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/blang/semver"
-
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
@@ -14,7 +12,7 @@ import (
 
 // MsgHandler is an interface expect all handler to implement
 type MsgHandler interface {
-	Run(ctx cosmos.Context, msg cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error)
+	Run(ctx cosmos.Context, msg cosmos.Msg) (*cosmos.Result, error)
 }
 
 // NewExternalHandler returns a handler for "thorchain" type messages.
@@ -32,7 +30,7 @@ func NewExternalHandler(mgr Manager) cosmos.Handler {
 			errMsg := fmt.Sprintf("Unrecognized thorchain Msg type: %v", msg.Type())
 			return nil, cosmos.ErrUnknownRequest(errMsg)
 		}
-		result, err := h.Run(ctx, msg, version, constantValues)
+		result, err := h.Run(ctx, msg)
 		if err != nil {
 			return nil, err
 		}
@@ -85,7 +83,7 @@ func NewInternalHandler(mgr Manager) cosmos.Handler {
 			errMsg := fmt.Sprintf("Unrecognized thorchain Msg type: %v", msg.Type())
 			return nil, cosmos.ErrUnknownRequest(errMsg)
 		}
-		return h.Run(ctx, msg, version, constantValues)
+		return h.Run(ctx, msg)
 	}
 }
 

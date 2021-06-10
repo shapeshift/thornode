@@ -3,11 +3,8 @@ package thorchain
 import (
 	"errors"
 
-	"github.com/blang/semver"
-
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
-	"gitlab.com/thorchain/thornode/constants"
 
 	. "gopkg.in/check.v1"
 
@@ -20,8 +17,6 @@ var _ = Suite(&HandlerSwapSuite{})
 
 func (s *HandlerSwapSuite) TestValidate(c *C) {
 	ctx, _ := setupKeeperForTest(c)
-	ver := GetCurrentVersion()
-	constAccessor := constants.GetConstantValues(ver)
 
 	keeper := &TestSwapHandleKeeper{
 		activeNodeAccount: GetRandomNodeAccount(NodeActive),
@@ -43,16 +38,12 @@ func (s *HandlerSwapSuite) TestValidate(c *C) {
 		"",
 	)
 	msg := NewMsgSwap(tx, common.BNBAsset, signerBNBAddr, cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(), observerAddr)
-	err := handler.validate(ctx, *msg, ver, constAccessor)
+	err := handler.validate(ctx, *msg)
 	c.Assert(err, IsNil)
-
-	// invalid version
-	err = handler.validate(ctx, *msg, semver.Version{}, constAccessor)
-	c.Assert(err, Equals, errInvalidVersion)
 
 	// invalid msg
 	msg = &MsgSwap{}
-	err = handler.validate(ctx, *msg, ver, constAccessor)
+	err = handler.validate(ctx, *msg)
 	c.Assert(err, NotNil)
 }
 
@@ -108,10 +99,7 @@ func (s *HandlerSwapSuite) TestHandle(c *C) {
 	mgr.txOutStore = NewTxStoreDummy()
 	handler := NewSwapHandler(mgr)
 
-	ver := GetCurrentVersion()
-	constAccessor := constants.GetConstantValues(ver)
-
-	result, err := handler.Run(ctx, NewMsgMimir("what", 1, GetRandomBech32Addr()), ver, constAccessor)
+	result, err := handler.Run(ctx, NewMsgMimir("what", 1, GetRandomBech32Addr()))
 	c.Check(err, NotNil)
 	c.Check(result, IsNil)
 	c.Check(errors.Is(err, errInvalidMessage), Equals, true)
@@ -131,7 +119,7 @@ func (s *HandlerSwapSuite) TestHandle(c *C) {
 		"",
 	)
 	msg := NewMsgSwap(tx, common.BNBAsset, signerBNBAddr, cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(), observerAddr)
-	result, err = handler.Run(ctx, msg, ver, constAccessor)
+	result, err = handler.Run(ctx, msg)
 	c.Assert(err.Error(), Equals, errors.New("BNB.BNB pool doesn't exist").Error())
 	c.Assert(result, IsNil)
 	pool := NewPool()
@@ -140,7 +128,7 @@ func (s *HandlerSwapSuite) TestHandle(c *C) {
 	pool.BalanceRune = cosmos.NewUint(100 * common.One)
 	c.Assert(keeper.SetPool(ctx, pool), IsNil)
 	// fund is not enough to pay for transaction fee
-	_, err = handler.handle(ctx, *msg, ver, constAccessor)
+	_, err = handler.handle(ctx, *msg)
 	c.Assert(err, NotNil)
 
 	tx = common.NewTx(txID, signerBNBAddr, signerBNBAddr,
@@ -151,7 +139,7 @@ func (s *HandlerSwapSuite) TestHandle(c *C) {
 		"",
 	)
 	msgSwapPriceProtection := NewMsgSwap(tx, common.BNBAsset, signerBNBAddr, cosmos.NewUint(2*common.One), common.NoAddress, cosmos.ZeroUint(), observerAddr)
-	result, err = handler.Run(ctx, msgSwapPriceProtection, ver, constAccessor)
+	result, err = handler.Run(ctx, msgSwapPriceProtection)
 	c.Assert(err.Error(), Equals, errors.New("emit asset 192233756 less than price limit 200000000").Error())
 	c.Assert(result, IsNil)
 
@@ -180,17 +168,16 @@ func (s *HandlerSwapSuite) TestHandle(c *C) {
 	items, err := mgr.TxOutStore().GetOutboundItems(ctx)
 	c.Assert(err, IsNil)
 	c.Assert(items, HasLen, 0)
-	_, err = handler.Run(ctx, msgSwapFromTxIn.(*MsgSwap), ver, constAccessor)
+	_, err = handler.Run(ctx, msgSwapFromTxIn.(*MsgSwap))
 	c.Assert(err, IsNil)
 	items, err = mgr.TxOutStore().GetOutboundItems(ctx)
 	c.Assert(err, IsNil)
 	c.Assert(items, HasLen, 1)
-	result, err = handler.Run(ctx, msgSwapFromTxIn, semver.Version{}, constAccessor)
+	result, err = handler.Run(ctx, msgSwapFromTxIn)
 	c.Assert(err, NotNil)
 	c.Assert(result, IsNil)
-	c.Check(errors.Is(err, errInvalidVersion), Equals, true, Commentf("%+v", err))
 	msgSwap := NewMsgSwap(GetRandomTx(), common.EmptyAsset, GetRandomBNBAddress(), cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(), GetRandomBech32Addr())
-	result, err = handler.Run(ctx, msgSwap, ver, constAccessor)
+	result, err = handler.Run(ctx, msgSwap)
 	c.Assert(err, NotNil)
 	c.Assert(result, IsNil)
 }
@@ -201,11 +188,9 @@ func (s *HandlerSwapSuite) TestDoubleSwap(c *C) {
 		pools:             make(map[common.Asset]Pool),
 		activeNodeAccount: GetRandomNodeAccount(NodeActive),
 	}
-	ver := GetCurrentVersion()
 	mgr.K = keeper
 	mgr.txOutStore = NewTxStoreDummy()
 	handler := NewSwapHandler(mgr)
-	constAccessor := constants.GetConstantValues(ver)
 
 	pool := NewPool()
 	pool.Asset = common.BNBAsset
@@ -244,7 +229,7 @@ func (s *HandlerSwapSuite) TestDoubleSwap(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(items, HasLen, 0)
 
-	_, err = handler.Run(ctx, msgSwapFromTxIn, ver, constAccessor)
+	_, err = handler.Run(ctx, msgSwapFromTxIn)
 	c.Assert(err, IsNil)
 
 	items, err = mgr.TxOutStore().GetOutboundItems(ctx)
@@ -267,7 +252,7 @@ func (s *HandlerSwapSuite) TestDoubleSwap(c *C) {
 	msgSwapFromTxIn1, err := getMsgSwapFromMemo(m1.(SwapMemo), txIn1, observerAddr)
 	c.Assert(err, IsNil)
 	mgr.TxOutStore().ClearOutboundItems(ctx)
-	_, err = handler.Run(ctx, msgSwapFromTxIn1, ver, constAccessor)
+	_, err = handler.Run(ctx, msgSwapFromTxIn1)
 	c.Assert(err, Equals, errSwapFailNotEnoughFee)
 
 	items, err = mgr.TxOutStore().GetOutboundItems(ctx)
