@@ -54,6 +54,7 @@ const (
 	MinSlashPointsForBadValidator
 	FullImpLossProtectionBlocks
 	BondLockupPeriod
+	NumberOfNewNodesPerChurn
 )
 
 var nameToString = map[ConstantName]string{
@@ -101,6 +102,7 @@ var nameToString = map[ConstantName]string{
 	MinSlashPointsForBadValidator: "MinSlashPointsForBadValidator",
 	FullImpLossProtectionBlocks:   "FullImpLossProtectionBlocks",
 	BondLockupPeriod:              "BondLockupPeriod",
+	NumberOfNewNodesPerChurn:      "NumberOfNewNodesPerChurn",
 }
 
 // String implement fmt.stringer
