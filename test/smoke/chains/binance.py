@@ -110,11 +110,14 @@ class MockBinance(HttpClient):
                 txn.from_address = get_alias_address(txn.chain, txn.from_address)
 
             # update memo with actual address (over alias name)
+            is_synth = txn.is_synth()
             for alias in get_aliases():
                 chain = txn.chain
                 asset = txn.get_asset_from_memo()
                 if asset:
                     chain = asset.get_chain()
+                if is_synth:
+                    chain = RUNE.get_chain()
                 if txn.memo.startswith("ADD"):
                     if asset and txn.chain == asset.get_chain():
                         chain = RUNE.get_chain()

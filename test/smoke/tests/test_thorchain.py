@@ -964,7 +964,7 @@ class TestThorchainState(unittest.TestCase):
         self.assertEqual(pool.rune_balance, 50000000000)
         self.assertEqual(pool.asset_balance, 150000000)
         self.assertEqual(pool.get_liquidity_provider("PROVIDER-1").units, 50000000000)
-        self.assertEqual(pool.total_units, 50000000000)
+        self.assertEqual(pool.lp_units, 50000000000)
 
         # check event generated for successful liquidity provision
         expected_events = [
@@ -973,7 +973,7 @@ class TestThorchainState(unittest.TestCase):
                 "add_liquidity",
                 [
                     {"pool": pool.asset},
-                    {"liquidity_provider_units": pool.total_units},
+                    {"liquidity_provider_units": pool.lp_units},
                     {"rune_address": tx.from_address},
                     {"rune_amount": "50000000000"},
                     {"asset_amount": "150000000"},
@@ -1075,7 +1075,7 @@ class TestThorchainState(unittest.TestCase):
         self.assertEqual(pool.rune_balance, 50000000000)
         self.assertEqual(pool.asset_balance, 150000000)
         self.assertEqual(pool.get_liquidity_provider("PROVIDER-1").units, 50000000000)
-        self.assertEqual(pool.total_units, 50000000000)
+        self.assertEqual(pool.lp_units, 50000000000)
 
         # check event generated for successful liquidity provision
         expected_events = [
@@ -1096,7 +1096,7 @@ class TestThorchainState(unittest.TestCase):
                 "add_liquidity",
                 [
                     {"pool": pool.asset},
-                    {"liquidity_provider_units": pool.total_units},
+                    {"liquidity_provider_units": pool.lp_units},
                     {"rune_address": tx.from_address},
                     {"rune_amount": "50000000000"},
                     {"asset_amount": "150000000"},
@@ -1189,7 +1189,7 @@ class TestThorchainState(unittest.TestCase):
         self.assertEqual(pool.rune_balance, 50000000000)
         self.assertEqual(pool.asset_balance, 150000000)
         self.assertEqual(pool.get_liquidity_provider("PROVIDER-1").units, 50000000000)
-        self.assertEqual(pool.total_units, 50000000000)
+        self.assertEqual(pool.lp_units, 50000000000)
 
         # check event generated for successful liquidity provision
         expected_events = [
@@ -1198,7 +1198,7 @@ class TestThorchainState(unittest.TestCase):
                 "add_liquidity",
                 [
                     {"pool": pool.asset},
-                    {"liquidity_provider_units": pool.total_units},
+                    {"liquidity_provider_units": pool.lp_units},
                     {"rune_address": tx.from_address},
                     {"rune_amount": "50000000000"},
                     {"asset_amount": "150000000"},
@@ -1420,7 +1420,7 @@ class TestThorchainState(unittest.TestCase):
         outbound = thorchain.handle(tx)
         self.assertEqual(len(outbound), 0)
         self.assertEqual(pool.get_liquidity_provider("PROVIDER-2").units, 4153686396)
-        self.assertEqual(pool.total_units, 54153686396)
+        self.assertEqual(pool.lp_units, 54153686396)
 
         # check event generated for successful provide liquidity
         expected_events += [
@@ -1527,7 +1527,7 @@ class TestThorchainState(unittest.TestCase):
         self.assertEqual(pool.rune_balance, 50000000000)
         self.assertEqual(pool.asset_balance, 150000000)
         self.assertEqual(pool.get_liquidity_provider("PROVIDER-1").units, 50000000000)
-        self.assertEqual(pool.total_units, 50000000000)
+        self.assertEqual(pool.lp_units, 50000000000)
 
         # check event generated for successful provide liquidity
         expected_events = [
@@ -1548,7 +1548,7 @@ class TestThorchainState(unittest.TestCase):
                 "add_liquidity",
                 [
                     {"pool": pool.asset},
-                    {"liquidity_provider_units": pool.total_units},
+                    {"liquidity_provider_units": pool.lp_units},
                     {"rune_address": tx.from_address},
                     {"rune_amount": "50000000000"},
                     {"asset_amount": "150000000"},
@@ -1647,7 +1647,7 @@ class TestThorchainState(unittest.TestCase):
         self.assertEqual(pool.rune_balance, 55000000000)
         self.assertEqual(pool.asset_balance, 5150000000)
         self.assertEqual(pool.get_liquidity_provider("PROVIDER-1").units, 50000000000)
-        self.assertEqual(pool.total_units, 50000000000)
+        self.assertEqual(pool.lp_units, 50000000000)
 
         expected_events = [
             Event("pool", [{"pool": "BNB.BNB"}, {"pool_status": "Available"}]),
@@ -1682,7 +1682,7 @@ class TestThorchainState(unittest.TestCase):
         self.assertEqual(pool.rune_balance, 54448798544)
         self.assertEqual(pool.asset_balance, 5098612500)
         self.assertEqual(pool.get_liquidity_provider("PROVIDER-1").units, 49500000000)
-        self.assertEqual(pool.total_units, 49500000000)
+        self.assertEqual(pool.lp_units, 49500000000)
 
         # check event generated for successful withdraw
         expected_events += [
@@ -1779,7 +1779,7 @@ class TestThorchainState(unittest.TestCase):
         self.assertEqual(pool.rune_balance, 0)
         self.assertEqual(pool.asset_balance, 75000)
         self.assertEqual(pool.get_liquidity_provider("PROVIDER-1").units, 0)
-        self.assertEqual(pool.total_units, 0)
+        self.assertEqual(pool.lp_units, 0)
 
         # check event generated for successful withdraw
         expected_events += [
@@ -1822,7 +1822,7 @@ class TestThorchainState(unittest.TestCase):
         pool = thorchain.get_pool("BNB.BNB")
         self.assertEqual(pool.rune_balance, 0)
         self.assertEqual(pool.get_liquidity_provider("PROVIDER-1").units, 0)
-        self.assertEqual(pool.total_units, 0)
+        self.assertEqual(pool.lp_units, 0)
         self.assertEqual(pool.asset_balance, 75000)
 
         # check refund event not generated for withdraw with 0 units left
@@ -1870,7 +1870,7 @@ class TestThorchainState(unittest.TestCase):
         self.assertEqual(pool.rune_balance, 55000000000)
         self.assertEqual(pool.asset_balance, 5150000000)
         self.assertEqual(pool.get_liquidity_provider("PROVIDER-1").units, 50000000000)
-        self.assertEqual(pool.total_units, 50000000000)
+        self.assertEqual(pool.lp_units, 50000000000)
 
         expected_events = [
             Event(
@@ -1918,7 +1918,7 @@ class TestThorchainState(unittest.TestCase):
         self.assertEqual(pool.rune_balance, 54448798544)
         self.assertEqual(pool.asset_balance, 5098612500)
         self.assertEqual(pool.get_liquidity_provider("PROVIDER-1").units, 49500000000)
-        self.assertEqual(pool.total_units, 49500000000)
+        self.assertEqual(pool.lp_units, 49500000000)
 
         # check event generated for successful withdraw
         expected_events += [
@@ -2014,7 +2014,7 @@ class TestThorchainState(unittest.TestCase):
         pool = thorchain.get_pool("BNB.BNB")
         self.assertEqual(pool.rune_balance, 0)
         self.assertEqual(pool.get_liquidity_provider("PROVIDER-1").units, 0)
-        self.assertEqual(pool.total_units, 0)
+        self.assertEqual(pool.lp_units, 0)
         self.assertEqual(pool.asset_balance, 37500)
 
         # check event generated for successful withdraw
@@ -2058,7 +2058,7 @@ class TestThorchainState(unittest.TestCase):
         pool = thorchain.get_pool("BNB.BNB")
         self.assertEqual(pool.rune_balance, 0)
         self.assertEqual(pool.get_liquidity_provider("PROVIDER-1").units, 0)
-        self.assertEqual(pool.total_units, 0)
+        self.assertEqual(pool.lp_units, 0)
         self.assertEqual(pool.asset_balance, 37500)
 
         # check refund event not generated for withdraw with 0 units left
@@ -2076,7 +2076,7 @@ class TestThorchainState(unittest.TestCase):
 
     def test_withdraw_calc(self):
         pool = Pool("BNB.BNB", 112928660551, 257196272)
-        pool.total_units = 44611997190
+        pool.lp_units = 44611997190
         after, withdraw_rune, withdraw_asset = pool._calc_withdraw_units(
             25075000000, 5000
         )
@@ -2090,7 +2090,7 @@ class TestThorchainState(unittest.TestCase):
             0, 0, 34500000000, 23400000000
         )
         self.assertEqual(liquidity_provider_units, 34500000000)
-        pool.total_units = 34500000000
+        pool.lp_units = 34500000000
         liquidity_provider_units = pool._calc_liquidity_units(
             50000000000, 40000000000, 50000000000, 40000000000
         )

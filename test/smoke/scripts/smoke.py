@@ -212,11 +212,26 @@ class Smoker:
                     f"Bad Pool-{rpool['asset']} balance: RUNE "
                     f"{spool.rune_balance} != {rpool['balance_rune']}"
                 )
-                if int(spool.asset_balance) != int(rpool["balance_asset"]):
-                    self.error(
-                        f"Bad Pool-{rpool['asset']} balance: ASSET "
-                        f"{spool.asset_balance} != {rpool['balance_asset']}"
-                    )
+            if int(spool.asset_balance) != int(rpool["balance_asset"]):
+                self.error(
+                    f"Bad Pool-{rpool['asset']} balance: ASSET "
+                    f"{spool.asset_balance} != {rpool['balance_asset']}"
+                )
+            if int(spool.lp_units) != int(rpool["LP_units"]):
+                self.error(
+                    f"Bad Pool-{rpool['asset']} balance: LP UNITS "
+                    f"{spool.lp_units} != {rpool['LP_units']}"
+                )
+            if int(spool.synth_units()) != int(rpool["synth_units"]):
+                self.error(
+                    f"Bad Pool-{rpool['asset']} balance: SYNTH UNITS "
+                    f"{spool.synth_units()} != {rpool['synth_units']}"
+                )
+            if int(spool.pool_units()) != int(rpool["pool_units"]):
+                self.error(
+                    f"Bad Pool-{rpool['asset']} balance: UNITS "
+                    f"{spool.pool_units()} != {rpool['pool_units']}"
+                )
 
     def check_binance(self):
         # compare simulation binance vs mock binance
