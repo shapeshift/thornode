@@ -389,7 +389,7 @@ class TestThorchainState(unittest.TestCase):
                 "refund",
                 [
                     {"code": "108"},
-                    {"reason": "fail swap, invalid balance"},
+                    {"reason": "BNB.BNB pool doesn't exist"},
                     *tx.get_attributes(),
                 ],
             ),
