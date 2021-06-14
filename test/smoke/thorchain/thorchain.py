@@ -1095,21 +1095,20 @@ class ThorchainState:
             reason = "swap Source and Target cannot be the same.: unknown request"
             return self.refund(tx, 105, reason)
 
+        pool = self.get_pool(target)
+        if pool.is_zero():
+            return self.refund(tx, 108, f"{asset} pool doesn't exist")
+
         # check if synth tx
-        if ("thor" in address or "SYNTH" in address) and not target.is_rune():
-            target = target.get_synth_asset()
-            # refund if we're trying to swap with the coin we given ie swapping bnb
-            # with bnb
-            if source == target and source.is_synth == target.is_synth:
-                reason = f"cannot swap from {source} --> {target}, assets match"
-                return self.refund(tx, 108, reason)
+        if ("thor" in address or "SYNTH" in address) and not target.is_synth:
+            reason = f"destination address is not a valid {target.chain} address"
+            return self.refund(tx, 108, reason)
 
         pools = []
         in_tx = tx
 
         # check if we have enough to cover the fee
         rune_fee = self.get_rune_fee(target.get_chain())
-        pool = self.get_pool(target)
         in_coin = in_tx.coins[0]
         if in_coin.is_rune() and in_coin.amount <= rune_fee:
             return self.refund(tx, 108, "fail swap, not enough fee")
