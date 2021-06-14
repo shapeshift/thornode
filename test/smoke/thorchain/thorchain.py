@@ -1096,15 +1096,14 @@ class ThorchainState:
             return self.refund(tx, 105, reason)
 
         pool = self.get_pool(target)
+        if target.is_rune():
+            pool = self.get_pool(source.get_layer1_asset())
+
         if pool.is_zero():
             return self.refund(tx, 108, f"{asset} pool doesn't exist")
 
         # check if synth tx
-        if (
-            ("thor" in address or "SYNTH" in address)
-            and not target.is_synth
-            and not target.is_rune()
-        ):
+        if ("thor" in address or "SYNTH" in address) and not target.is_synth:
             reason = f"destination address is not a valid {target.chain} address"
             return self.refund(tx, 108, reason)
 
