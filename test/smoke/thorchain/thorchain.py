@@ -1095,7 +1095,7 @@ class ThorchainState:
             reason = "swap Source and Target cannot be the same.: unknown request"
             return self.refund(tx, 105, reason)
 
-        pool = self.get_pool(target)
+        pool = self.get_pool(target.get_layer1_asset())
         if target.is_rune():
             pool = self.get_pool(source.get_layer1_asset())
 
@@ -1124,7 +1124,7 @@ class ThorchainState:
 
         # check if its a double swap
         if not source.is_rune() and not target.is_rune():
-            pool = self.get_pool(source)
+            pool = self.get_pool(source.get_layer1_asset())
             if pool.is_zero():
                 return self.refund(tx, 108, "fail swap, invalid balance")
 
@@ -1191,7 +1191,7 @@ class ThorchainState:
         if in_coin.is_rune() and in_coin.amount <= rune_fee:
             return self.refund(tx, 108, "fail swap, not enough fee")
 
-        pool = self.get_pool(asset)
+        pool = self.get_pool(asset.get_layer1_asset())
 
         if target.is_synth and pool.is_zero():
             return self.refund(tx, 108, f"{asset} pool doesn't exist")
