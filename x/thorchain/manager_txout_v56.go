@@ -120,6 +120,11 @@ func (tos *TxOutStorageV56) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem) 
 		return outputs, fmt.Errorf("to address(%s), is not of chain(%s)", toi.ToAddress, toi.Chain)
 	}
 
+	// Ensure output is NOT a non-native rune
+	if toi.Coin.Asset.IsRune() && !toi.Coin.Asset.IsNativeRune() {
+		return outputs, fmt.Errorf("cannot send non-native rune")
+	}
+
 	// BCH chain will convert legacy address to new format automatically , thus when observe it back can't be associated with the original inbound
 	// so here convert the legacy address to new format
 	if toi.Chain.Equals(common.BCHChain) {
