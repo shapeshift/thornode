@@ -3,12 +3,10 @@ package thorchain
 import (
 	"fmt"
 
-	"github.com/blang/semver"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
-	"gitlab.com/thorchain/thornode/constants"
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
@@ -77,25 +75,18 @@ func (s *HandlerErrataTxSuite) TestValidate(c *C) {
 
 	handler := NewErrataTxHandler(NewDummyMgrWithKeeper(keeper))
 	// happy path
-	ver := GetCurrentVersion()
 	msg := NewMsgErrataTx(GetRandomTxHash(), common.BNBChain, keeper.na.NodeAddress)
-	err := handler.validate(ctx, *msg, ver)
+	err := handler.validate(ctx, *msg)
 	c.Assert(err, IsNil)
-
-	// invalid version
-	err = handler.validate(ctx, *msg, semver.Version{})
-	c.Assert(err, Equals, errBadVersion)
 
 	// invalid msg
 	msg = &MsgErrataTx{}
-	err = handler.validate(ctx, *msg, ver)
+	err = handler.validate(ctx, *msg)
 	c.Assert(err, NotNil)
 }
 
 func (s *HandlerErrataTxSuite) TestErrataHandlerHappyPath(c *C) {
 	ctx, mgr := setupManagerForTest(c)
-	ver := GetCurrentVersion()
-	constAccessor := constants.GetConstantValues(ver)
 
 	txID := GetRandomTxHash()
 	na := GetRandomNodeAccount(NodeActive)
@@ -144,7 +135,7 @@ func (s *HandlerErrataTxSuite) TestErrataHandlerHappyPath(c *C) {
 
 	handler := NewErrataTxHandler(mgr)
 	msg := NewMsgErrataTx(txID, common.BNBChain, na.NodeAddress)
-	_, err := handler.handle(ctx, *msg, ver, constAccessor)
+	_, err := handler.handle(ctx, *msg)
 	c.Assert(err, IsNil)
 	c.Check(keeper.pool.BalanceRune.Equal(cosmos.NewUint(70*common.One)), Equals, true)
 	c.Check(keeper.pool.BalanceAsset.Equal(cosmos.NewUint(100*common.One)), Equals, true)
@@ -484,8 +475,7 @@ func (s *HandlerErrataTxSuite) TestErrataHandlerDifferentError(c *C) {
 		mgr.K = helper
 		msg := tc.messageProvider(ctx, helper)
 		handler := NewErrataTxHandler(mgr)
-		constAccessor := constants.GetConstantValues(GetCurrentVersion())
-		result, err := handler.Run(ctx, msg, GetCurrentVersion(), constAccessor)
+		result, err := handler.Run(ctx, msg)
 		tc.validator(c, ctx, result, err, helper, tc.name)
 	}
 }
@@ -715,9 +705,7 @@ func (*HandlerErrataTxSuite) TestProcessErrortaOutboundTx_EnsureMigrateTxWillSet
 	errataVoter.Sign(node2.NodeAddress)
 	errataVoter.Sign(node3.NodeAddress)
 	helper.Keeper.SetErrataTxVoter(ctx, errataVoter)
-	currentVersion := GetCurrentVersion()
-	constantAccessor := constants.GetConstantValues(currentVersion)
-	result, err = handler.handleCurrent(ctx, *internalMigrationTx, GetCurrentVersion(), constantAccessor)
+	result, err = handler.handleCurrent(ctx, *internalMigrationTx)
 	c.Assert(result, NotNil)
 	c.Assert(err, IsNil)
 	v, err = helper.Keeper.GetVault(ctx, retiredPubKey)

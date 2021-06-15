@@ -24,22 +24,23 @@ func NewAddLiquidityHandler(mgr Manager) AddLiquidityHandler {
 	}
 }
 
-func (h AddLiquidityHandler) validate(ctx cosmos.Context, msg MsgAddLiquidity, version semver.Version, constAccessor constants.ConstantValues) error {
+func (h AddLiquidityHandler) validate(ctx cosmos.Context, msg MsgAddLiquidity) error {
+	version := h.mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.55.0")) {
-		return h.validateV55(ctx, msg, constAccessor)
+		return h.validateV55(ctx, msg)
 	} else if version.GTE(semver.MustParse("0.1.0")) {
-		return h.validateV1(ctx, msg, constAccessor)
+		return h.validateV1(ctx, msg)
 	}
 	return errBadVersion
 }
 
-func (h AddLiquidityHandler) validateV1(ctx cosmos.Context, msg MsgAddLiquidity, constAccessor constants.ConstantValues) error {
+func (h AddLiquidityHandler) validateV1(ctx cosmos.Context, msg MsgAddLiquidity) error {
 	if err := msg.ValidateBasic(); err != nil {
 		ctx.Logger().Error(err.Error())
 		return errAddLiquidityFailValidation
 	}
 
-	ensureLiquidityNoLargerThanBond := constAccessor.GetBoolValue(constants.StrictBondLiquidityRatio)
+	ensureLiquidityNoLargerThanBond := h.mgr.GetConstants().GetBoolValue(constants.StrictBondLiquidityRatio)
 	// the following  only applicable for chaosnet
 	totalLiquidityRUNE, err := h.getTotalLiquidityRUNE(ctx)
 	if err != nil {
@@ -50,7 +51,7 @@ func (h AddLiquidityHandler) validateV1(ctx cosmos.Context, msg MsgAddLiquidity,
 	totalLiquidityRUNE = totalLiquidityRUNE.Add(msg.RuneAmount)
 	maximumLiquidityRune, err := h.mgr.Keeper().GetMimir(ctx, constants.MaximumLiquidityRune.String())
 	if maximumLiquidityRune < 0 || err != nil {
-		maximumLiquidityRune = constAccessor.GetInt64Value(constants.MaximumLiquidityRune)
+		maximumLiquidityRune = h.mgr.GetConstants().GetInt64Value(constants.MaximumLiquidityRune)
 	}
 	if maximumLiquidityRune > 0 {
 		if totalLiquidityRUNE.GT(cosmos.NewUint(uint64(maximumLiquidityRune))) {
@@ -74,11 +75,11 @@ func (h AddLiquidityHandler) validateV1(ctx cosmos.Context, msg MsgAddLiquidity,
 
 }
 
-func (h AddLiquidityHandler) validateV55(ctx cosmos.Context, msg MsgAddLiquidity, constAccessor constants.ConstantValues) error {
-	return h.validateCurrent(ctx, msg, constAccessor)
+func (h AddLiquidityHandler) validateV55(ctx cosmos.Context, msg MsgAddLiquidity) error {
+	return h.validateCurrent(ctx, msg)
 }
 
-func (h AddLiquidityHandler) validateCurrent(ctx cosmos.Context, msg MsgAddLiquidity, constAccessor constants.ConstantValues) error {
+func (h AddLiquidityHandler) validateCurrent(ctx cosmos.Context, msg MsgAddLiquidity) error {
 	if err := msg.ValidateBasic(); err != nil {
 		ctx.Logger().Error(err.Error())
 		return errAddLiquidityFailValidation
@@ -95,7 +96,7 @@ func (h AddLiquidityHandler) validateCurrent(ctx cosmos.Context, msg MsgAddLiqui
 		return errAddLiquidityFailValidation
 	}
 
-	ensureLiquidityNoLargerThanBond := constAccessor.GetBoolValue(constants.StrictBondLiquidityRatio)
+	ensureLiquidityNoLargerThanBond := h.mgr.GetConstants().GetBoolValue(constants.StrictBondLiquidityRatio)
 	// the following  only applicable for chaosnet
 	totalLiquidityRUNE, err := h.getTotalLiquidityRUNE(ctx)
 	if err != nil {
@@ -106,7 +107,7 @@ func (h AddLiquidityHandler) validateCurrent(ctx cosmos.Context, msg MsgAddLiqui
 	totalLiquidityRUNE = totalLiquidityRUNE.Add(msg.RuneAmount)
 	maximumLiquidityRune, err := h.mgr.Keeper().GetMimir(ctx, constants.MaximumLiquidityRune.String())
 	if maximumLiquidityRune < 0 || err != nil {
-		maximumLiquidityRune = constAccessor.GetInt64Value(constants.MaximumLiquidityRune)
+		maximumLiquidityRune = h.mgr.GetConstants().GetInt64Value(constants.MaximumLiquidityRune)
 	}
 	if maximumLiquidityRune > 0 {
 		if totalLiquidityRUNE.GT(cosmos.NewUint(uint64(maximumLiquidityRune))) {
@@ -130,7 +131,7 @@ func (h AddLiquidityHandler) validateCurrent(ctx cosmos.Context, msg MsgAddLiqui
 }
 
 // Run execute the handler
-func (h AddLiquidityHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+func (h AddLiquidityHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Result, error) {
 	msg, ok := m.(*MsgAddLiquidity)
 	if !ok {
 		return nil, errInvalidMessage
@@ -138,12 +139,12 @@ func (h AddLiquidityHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semve
 	ctx.Logger().Info("received add liquidity request",
 		"asset", msg.Asset.String(),
 		"tx", msg.Tx)
-	if err := h.validate(ctx, *msg, version, constAccessor); err != nil {
+	if err := h.validate(ctx, *msg); err != nil {
 		ctx.Logger().Error("msg add liquidity fail validation", "error", err)
 		return nil, err
 	}
 
-	if err := h.handle(ctx, *msg, version, constAccessor); err != nil {
+	if err := h.handle(ctx, *msg); err != nil {
 		ctx.Logger().Error("fail to process msg add liquidity", "error", err)
 		return nil, err
 	}
@@ -151,18 +152,19 @@ func (h AddLiquidityHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semve
 	return &cosmos.Result{}, nil
 }
 
-func (h AddLiquidityHandler) handle(ctx cosmos.Context, msg MsgAddLiquidity, version semver.Version, constAccessor constants.ConstantValues) error {
+func (h AddLiquidityHandler) handle(ctx cosmos.Context, msg MsgAddLiquidity) error {
+	version := h.mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.55.0")) {
-		return h.handleV55(ctx, msg, version, constAccessor)
+		return h.handleV55(ctx, msg)
 	} else if version.GTE(semver.MustParse("0.47.0")) {
-		return h.handleV47(ctx, msg, version, constAccessor)
+		return h.handleV47(ctx, msg)
 	} else if version.GTE(semver.MustParse("0.1.0")) {
-		return h.handleV1(ctx, msg, version, constAccessor)
+		return h.handleV1(ctx, msg)
 	}
 	return errBadVersion
 }
 
-func (h AddLiquidityHandler) handleV1(ctx cosmos.Context, msg MsgAddLiquidity, version semver.Version, constAccessor constants.ConstantValues) (errResult error) {
+func (h AddLiquidityHandler) handleV1(ctx cosmos.Context, msg MsgAddLiquidity) (errResult error) {
 	pool, err := h.mgr.Keeper().GetPool(ctx, msg.Asset)
 	if err != nil {
 		return ErrInternal(err, "fail to get pool")
@@ -218,7 +220,7 @@ func (h AddLiquidityHandler) handleV1(ctx cosmos.Context, msg MsgAddLiquidity, v
 			msg.AssetAddress,
 			msg.Tx.ID,
 			stage,
-			constAccessor)
+			h.mgr.GetConstants())
 	}
 
 	// add liquidity has an affiliate fee, add liquidity for both the user and their affiliate
@@ -236,7 +238,7 @@ func (h AddLiquidityHandler) handleV1(ctx cosmos.Context, msg MsgAddLiquidity, v
 		msg.AssetAddress,
 		msg.Tx.ID,
 		stage,
-		constAccessor,
+		h.mgr.GetConstants(),
 	)
 	if err != nil {
 		return err
@@ -251,7 +253,7 @@ func (h AddLiquidityHandler) handleV1(ctx cosmos.Context, msg MsgAddLiquidity, v
 		common.NoAddress,
 		msg.Tx.ID,
 		stage,
-		constAccessor,
+		h.mgr.GetConstants(),
 	)
 	if err != nil {
 		// we swallow this error so we don't trigger a refund, when we've
@@ -265,7 +267,7 @@ func (h AddLiquidityHandler) handleV1(ctx cosmos.Context, msg MsgAddLiquidity, v
 
 }
 
-func (h AddLiquidityHandler) handleV47(ctx cosmos.Context, msg MsgAddLiquidity, version semver.Version, constAccessor constants.ConstantValues) (errResult error) {
+func (h AddLiquidityHandler) handleV47(ctx cosmos.Context, msg MsgAddLiquidity) (errResult error) {
 	pool, err := h.mgr.Keeper().GetPool(ctx, msg.Asset)
 	if err != nil {
 		return ErrInternal(err, "fail to get pool")
@@ -321,7 +323,7 @@ func (h AddLiquidityHandler) handleV47(ctx cosmos.Context, msg MsgAddLiquidity, 
 			msg.AssetAddress,
 			msg.Tx.ID,
 			stage,
-			constAccessor)
+			h.mgr.GetConstants())
 	}
 
 	// add liquidity has an affiliate fee, add liquidity for both the user and their affiliate
@@ -339,7 +341,7 @@ func (h AddLiquidityHandler) handleV47(ctx cosmos.Context, msg MsgAddLiquidity, 
 		msg.AssetAddress,
 		msg.Tx.ID,
 		stage,
-		constAccessor,
+		h.mgr.GetConstants(),
 	)
 	if err != nil {
 		return err
@@ -354,7 +356,7 @@ func (h AddLiquidityHandler) handleV47(ctx cosmos.Context, msg MsgAddLiquidity, 
 		common.NoAddress,
 		msg.Tx.ID,
 		stage,
-		constAccessor,
+		h.mgr.GetConstants(),
 	)
 	if err != nil {
 		// we swallow this error so we don't trigger a refund, when we've
@@ -368,11 +370,11 @@ func (h AddLiquidityHandler) handleV47(ctx cosmos.Context, msg MsgAddLiquidity, 
 
 }
 
-func (h AddLiquidityHandler) handleV55(ctx cosmos.Context, msg MsgAddLiquidity, version semver.Version, constAccessor constants.ConstantValues) (errResult error) {
-	return h.handleCurrent(ctx, msg, version, constAccessor)
+func (h AddLiquidityHandler) handleV55(ctx cosmos.Context, msg MsgAddLiquidity) (errResult error) {
+	return h.handleCurrent(ctx, msg)
 }
 
-func (h AddLiquidityHandler) handleCurrent(ctx cosmos.Context, msg MsgAddLiquidity, version semver.Version, constAccessor constants.ConstantValues) (errResult error) {
+func (h AddLiquidityHandler) handleCurrent(ctx cosmos.Context, msg MsgAddLiquidity) (errResult error) {
 	pool, err := h.mgr.Keeper().GetPool(ctx, msg.Asset)
 	if err != nil {
 		return ErrInternal(err, "fail to get pool")
@@ -428,7 +430,7 @@ func (h AddLiquidityHandler) handleCurrent(ctx cosmos.Context, msg MsgAddLiquidi
 			msg.AssetAddress,
 			msg.Tx.ID,
 			stage,
-			constAccessor)
+			h.mgr.GetConstants())
 	}
 
 	// add liquidity has an affiliate fee, add liquidity for both the user and their affiliate
@@ -446,7 +448,7 @@ func (h AddLiquidityHandler) handleCurrent(ctx cosmos.Context, msg MsgAddLiquidi
 		msg.AssetAddress,
 		msg.Tx.ID,
 		stage,
-		constAccessor,
+		h.mgr.GetConstants(),
 	)
 	if err != nil {
 		return err
@@ -461,7 +463,7 @@ func (h AddLiquidityHandler) handleCurrent(ctx cosmos.Context, msg MsgAddLiquidi
 		common.NoAddress,
 		msg.Tx.ID,
 		stage,
-		constAccessor,
+		h.mgr.GetConstants(),
 	)
 	if err != nil {
 		// we swallow this error so we don't trigger a refund, when we've

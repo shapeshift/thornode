@@ -1,12 +1,10 @@
 package thorchain
 
 import (
-	"github.com/blang/semver"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
-	"gitlab.com/thorchain/thornode/constants"
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
@@ -31,22 +29,16 @@ func (s *HandlerSwitchSuite) TestValidate(c *C) {
 
 	handler := NewSwitchHandler(NewDummyMgrWithKeeper(k))
 
-	constantAccessor := constants.GetConstantValues(GetCurrentVersion())
 	destination = GetRandomTHORAddress()
 	// happy path
 	msg := NewMsgSwitch(tx, destination, na.NodeAddress)
-	result, err := handler.Run(ctx, msg, GetCurrentVersion(), constantAccessor)
+	result, err := handler.Run(ctx, msg)
 	c.Assert(err, IsNil)
 	c.Assert(result, NotNil)
 
-	// invalid version
-	result, err = handler.Run(ctx, msg, semver.Version{}, constantAccessor)
-	c.Assert(err, Equals, errBadVersion)
-	c.Assert(result, IsNil)
-
 	// invalid msg
 	msg = &MsgSwitch{}
-	result, err = handler.Run(ctx, msg, GetCurrentVersion(), constantAccessor)
+	result, err = handler.Run(ctx, msg)
 	c.Assert(err, NotNil)
 	c.Assert(result, IsNil)
 }
@@ -65,8 +57,7 @@ func (s *HandlerSwitchSuite) TestGettingNativeTokens(c *C) {
 	handler := NewSwitchHandler(NewDummyMgrWithKeeper(k))
 
 	msg := NewMsgSwitch(tx, destination, na.NodeAddress)
-	constAccessor := constants.GetConstantValues(GetCurrentVersion())
-	_, err := handler.handle(ctx, *msg, GetCurrentVersion(), constAccessor)
+	_, err := handler.handle(ctx, *msg)
 	c.Assert(err, IsNil)
 	coin, err := common.NewCoin(common.RuneNative, cosmos.NewUint(100*common.One)).Native()
 	c.Assert(err, IsNil)
@@ -75,7 +66,7 @@ func (s *HandlerSwitchSuite) TestGettingNativeTokens(c *C) {
 	c.Check(k.HasCoins(ctx, addr, cosmos.NewCoins(coin)), Equals, true, Commentf("%s", k.GetBalance(ctx, addr)))
 
 	// check that we can add more an account
-	_, err = handler.handle(ctx, *msg, GetCurrentVersion(), constAccessor)
+	_, err = handler.handle(ctx, *msg)
 	c.Assert(err, IsNil)
 	coin, err = common.NewCoin(common.RuneNative, cosmos.NewUint(200*common.One)).Native()
 	c.Assert(err, IsNil)
@@ -156,8 +147,7 @@ func (s *HandlerSwitchSuite) TestSwitchHandlerDifferentValidations(c *C) {
 		mgr.K = helper
 		handler := NewSwitchHandler(mgr)
 		msg := tc.messageProvider(c, ctx, helper)
-		constantAccessor := constants.GetConstantValues(GetCurrentVersion())
-		result, err := handler.Run(ctx, msg, GetCurrentVersion(), constantAccessor)
+		result, err := handler.Run(ctx, msg)
 		tc.validator(c, ctx, result, err, helper, tc.name)
 	}
 }

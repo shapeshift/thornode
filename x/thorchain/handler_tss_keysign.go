@@ -24,24 +24,25 @@ func NewTssKeysignHandler(mgr Manager) TssKeysignHandler {
 }
 
 // Run is the main entry to process MsgTssKeysignFail
-func (h TssKeysignHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+func (h TssKeysignHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Result, error) {
 	msg, ok := m.(*MsgTssKeysignFail)
 	if !ok {
 		return nil, errInvalidMessage
 	}
-	err := h.validate(ctx, *msg, version)
+	err := h.validate(ctx, *msg)
 	if err != nil {
 		ctx.Logger().Error("MsgTssKeysignFail failed validation", "error", err)
 		return nil, err
 	}
-	result, err := h.handle(ctx, *msg, version, constAccessor)
+	result, err := h.handle(ctx, *msg)
 	if err != nil {
 		ctx.Logger().Error("failed to process MsgTssKeysignFail", "error", err)
 	}
 	return result, err
 }
 
-func (h TssKeysignHandler) validate(ctx cosmos.Context, msg MsgTssKeysignFail, version semver.Version) error {
+func (h TssKeysignHandler) validate(ctx cosmos.Context, msg MsgTssKeysignFail) error {
+	version := h.mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, msg)
 	}
@@ -100,24 +101,25 @@ func (h TssKeysignHandler) validateCurrent(ctx cosmos.Context, msg MsgTssKeysign
 	return nil
 }
 
-func (h TssKeysignHandler) handle(ctx cosmos.Context, msg MsgTssKeysignFail, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+func (h TssKeysignHandler) handle(ctx cosmos.Context, msg MsgTssKeysignFail) (*cosmos.Result, error) {
 	ctx.Logger().Info("handle MsgTssKeysignFail request", "ID", msg.ID, "signer", msg.Signer, "pubkey", msg.PubKey, "blame", msg.Blame.String())
+	version := h.mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.1.0")) {
-		return h.handleV1(ctx, msg, version, constAccessor)
+		return h.handleV1(ctx, msg)
 	}
 	return nil, errBadVersion
 }
 
-func (h TssKeysignHandler) handleV1(ctx cosmos.Context, msg MsgTssKeysignFail, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
-	return h.handleCurrent(ctx, msg, version, constAccessor)
+func (h TssKeysignHandler) handleV1(ctx cosmos.Context, msg MsgTssKeysignFail) (*cosmos.Result, error) {
+	return h.handleCurrent(ctx, msg)
 }
 
-func (h TssKeysignHandler) handleCurrent(ctx cosmos.Context, msg MsgTssKeysignFail, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+func (h TssKeysignHandler) handleCurrent(ctx cosmos.Context, msg MsgTssKeysignFail) (*cosmos.Result, error) {
 	voter, err := h.mgr.Keeper().GetTssKeysignFailVoter(ctx, msg.ID)
 	if err != nil {
 		return nil, err
 	}
-	observeSlashPoints := constAccessor.GetInt64Value(constants.ObserveSlashPoints)
+	observeSlashPoints := h.mgr.GetConstants().GetInt64Value(constants.ObserveSlashPoints)
 	h.mgr.Slasher().IncSlashPoints(ctx, observeSlashPoints, msg.Signer)
 	if !voter.Sign(msg.Signer) {
 		ctx.Logger().Info("signer already signed MsgTssKeysignFail", "signer", msg.Signer.String(), "txid", msg.ID)
@@ -155,7 +157,7 @@ func (h TssKeysignHandler) handleCurrent(ctx cosmos.Context, msg MsgTssKeysignFa
 	voter.Signers = nil
 	h.mgr.Keeper().SetTssKeysignFailVoter(ctx, voter)
 
-	slashPoints := constAccessor.GetInt64Value(constants.FailKeysignSlashPoints)
+	slashPoints := h.mgr.GetConstants().GetInt64Value(constants.FailKeysignSlashPoints)
 	// fail to generate a new tss key let's slash the node account
 
 	for _, node := range msg.Blame.BlameNodes {
@@ -176,7 +178,7 @@ func (h TssKeysignHandler) handleCurrent(ctx cosmos.Context, msg MsgTssKeysignFa
 		}
 		// go to jail
 		ctx.Logger().Info("jailing node", "pubkey", na.PubKeySet.Secp256k1)
-		jailTime := constAccessor.GetInt64Value(constants.JailTimeKeysign)
+		jailTime := h.mgr.GetConstants().GetInt64Value(constants.JailTimeKeysign)
 		releaseHeight := common.BlockHeight(ctx) + jailTime
 		reason := "failed to perform keysign"
 		if err := h.mgr.Keeper().SetNodeAccountJail(ctx, na.NodeAddress, releaseHeight, reason); err != nil {
