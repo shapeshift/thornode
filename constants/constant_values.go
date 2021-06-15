@@ -50,6 +50,7 @@ const (
 	JailTimeKeysign
 	MinSwapsPerBlock
 	MaxSwapsPerBlock
+	MaxSynthPerAssetDepth
 	VirtualMultSynths
 	MinSlashPointsForBadValidator
 	FullImpLossProtectionBlocks
@@ -99,6 +100,7 @@ var nameToString = map[ConstantName]string{
 	MinSwapsPerBlock:              "MinSwapsPerBlock",
 	MaxSwapsPerBlock:              "MaxSwapsPerBlock",
 	VirtualMultSynths:             "VirtualMultSynths",
+	MaxSynthPerAssetDepth:         "MaxSynthPerAssetDepth",
 	MinSlashPointsForBadValidator: "MinSlashPointsForBadValidator",
 	FullImpLossProtectionBlocks:   "FullImpLossProtectionBlocks",
 	BondLockupPeriod:              "BondLockupPeriod",
