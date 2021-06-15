@@ -6,7 +6,7 @@
                 "code": "108"
             },
             {
-                "reason": "BNB/BNB pool doesn't exist"
+                "reason": "BNB.BNB pool doesn't exist"
             },
             {
                 "id": "TODO"
@@ -117,6 +117,57 @@
         ]
     },
     {
+        "type": "refund",
+        "attributes": [
+            {
+                "code": "108"
+            },
+            {
+                "reason": "destination address is not a valid BNB address"
+            },
+            {
+                "id": "TODO"
+            },
+            {
+                "chain": "THOR"
+            },
+            {
+                "from": "PROVIDER-1"
+            },
+            {
+                "to": "VAULT"
+            },
+            {
+                "coin": "100000000000 THOR.RUNE"
+            },
+            {
+                "memo": "SWAP:BNB.BNB:PROVIDER-1-SYNTH"
+            }
+        ]
+    },
+    {
+        "type": "fee",
+        "attributes": [
+            {
+                "tx_id": "TODO"
+            },
+            {
+                "coins": "2000000 THOR.RUNE"
+            },
+            {
+                "pool_deduct": "0"
+            }
+        ]
+    },
+    {
+        "type": "rewards",
+        "attributes": [
+            {
+                "bond_reward": "0"
+            }
+        ]
+    },
+    {
         "type": "fee",
         "attributes": [
             {
@@ -167,7 +218,7 @@
                 "coin": "100000000000 THOR.RUNE"
             },
             {
-                "memo": "SWAP:BNB.BNB:PROVIDER-1-SYNTH"
+                "memo": "SWAP:BNB/BNB:PROVIDER-1-SYNTH"
             }
         ]
     },
@@ -1192,7 +1243,7 @@
                 "code": "108"
             },
             {
-                "reason": "cannot swap from BTC/BTC --> BTC/BTC, assets match"
+                "reason": "destination address is not a valid BTC address"
             },
             {
                 "id": "TODO"

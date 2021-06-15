@@ -291,6 +291,19 @@
         "chain": "THOR",
         "from_address": "PROVIDER-1",
         "to_address": "VAULT",
+        "memo": "SWAP:BNB/BNB:PROVIDER-1-SYNTH",
+        "coins": [
+            {
+                "asset": "THOR.RUNE",
+                "amount": 100000000000
+            }
+        ],
+        "gas": null
+    },
+    {
+        "chain": "THOR",
+        "from_address": "PROVIDER-1",
+        "to_address": "VAULT",
         "memo": "ADD:BNB/BNB:PROVIDER-1",
         "coins": [
             {
