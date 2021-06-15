@@ -137,6 +137,18 @@ func (MsgSwapSuite) TestMsgSwap(c *C) {
 		)
 
 		m := NewMsgSwap(tx, item.target, item.destination, item.targetPrice, common.NoAddress, cosmos.ZeroUint(), item.signer)
-		c.Assert(m.ValidateBasic(), NotNil)
+		c.Assert(m.ValidateBasicV56(), NotNil)
 	}
+
+	// happy path
+	m = NewMsgSwap(tx, common.BNBAsset, GetRandomBNBAddress(), cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(), addr)
+	c.Assert(m.ValidateBasicV56(), IsNil)
+
+	// test address and synth swapping fails when appropriate
+	m = NewMsgSwap(tx, common.BNBAsset, GetRandomTHORAddress(), cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(), addr)
+	c.Assert(m.ValidateBasicV56(), NotNil)
+	m = NewMsgSwap(tx, common.BNBAsset.GetSyntheticAsset(), GetRandomTHORAddress(), cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(), addr)
+	c.Assert(m.ValidateBasicV56(), IsNil)
+	m = NewMsgSwap(tx, common.BNBAsset.GetSyntheticAsset(), GetRandomBNBAddress(), cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(), addr)
+	c.Assert(m.ValidateBasicV56(), NotNil)
 }

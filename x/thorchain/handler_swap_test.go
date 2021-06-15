@@ -52,14 +52,17 @@ type TestSwapHandleKeeper struct {
 	pools             map[common.Asset]Pool
 	activeNodeAccount NodeAccount
 	hasEvent          bool
+	synthSupply       cosmos.Uint
 }
 
 func (k *TestSwapHandleKeeper) PoolExist(_ cosmos.Context, asset common.Asset) bool {
+	asset = asset.GetLayer1Asset()
 	_, ok := k.pools[asset]
 	return ok
 }
 
 func (k *TestSwapHandleKeeper) GetPool(_ cosmos.Context, asset common.Asset) (Pool, error) {
+	asset = asset.GetLayer1Asset()
 	if pool, ok := k.pools[asset]; ok {
 		return pool, nil
 	}
@@ -68,8 +71,16 @@ func (k *TestSwapHandleKeeper) GetPool(_ cosmos.Context, asset common.Asset) (Po
 	return pool, nil
 }
 
+func (k *TestSwapHandleKeeper) GetPools(_ cosmos.Context) (pools Pools, err error) {
+	for _, v := range k.pools {
+		pools = append(pools, v)
+	}
+	return
+}
+
 func (k *TestSwapHandleKeeper) SetPool(_ cosmos.Context, pool Pool) error {
-	k.pools[pool.Asset] = pool
+	asset := pool.Asset.GetLayer1Asset()
+	k.pools[asset] = pool
 	return nil
 }
 
@@ -89,11 +100,58 @@ func (k *TestSwapHandleKeeper) AddToLiquidityFees(_ cosmos.Context, _ common.Ass
 	return nil
 }
 
+func (k *TestSwapHandleKeeper) GetTotalSupply(_ cosmos.Context, _ common.Asset) cosmos.Uint {
+	return k.synthSupply
+}
+
+func (s *HandlerSwapSuite) TestValidation(c *C) {
+	ctx, mgr := setupManagerForTest(c)
+	pool := NewPool()
+	pool.Asset = common.BNBAsset
+	pool.BalanceAsset = cosmos.NewUint(100 * common.One)
+	pool.BalanceRune = cosmos.NewUint(100 * common.One)
+	pools := make(map[common.Asset]Pool, 0)
+	pools[pool.Asset] = pool
+	keeper := &TestSwapHandleKeeper{
+		pools:             pools,
+		activeNodeAccount: GetRandomNodeAccount(NodeActive),
+		synthSupply:       cosmos.ZeroUint(),
+	}
+	mgr.K = keeper
+	mgr.txOutStore = NewTxStoreDummy()
+
+	handler := NewSwapHandler(mgr)
+
+	txID := GetRandomTxHash()
+	signerBNBAddr := GetRandomBNBAddress()
+	observerAddr := keeper.activeNodeAccount.NodeAddress
+	tx := common.NewTx(
+		txID,
+		signerBNBAddr,
+		signerBNBAddr,
+		common.Coins{
+			common.NewCoin(common.RuneAsset(), cosmos.NewUint(common.One*100)),
+		},
+		BNBGasFeeSingleton,
+		"",
+	)
+	msg := NewMsgSwap(tx, common.BNBAsset.GetSyntheticAsset(), GetRandomTHORAddress(), cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(), observerAddr)
+	err := handler.validate(ctx, *msg)
+	c.Assert(err, IsNil)
+
+	// check that minting synths halts after hitting pool limit
+	keeper.synthSupply = cosmos.NewUint(common.One * 200)
+	mgr.K = keeper
+	err = handler.validate(ctx, *msg)
+	c.Assert(err, NotNil)
+}
+
 func (s *HandlerSwapSuite) TestHandle(c *C) {
 	ctx, mgr := setupManagerForTest(c)
 	keeper := &TestSwapHandleKeeper{
 		pools:             make(map[common.Asset]Pool),
 		activeNodeAccount: GetRandomNodeAccount(NodeActive),
+		synthSupply:       cosmos.ZeroUint(),
 	}
 	mgr.K = keeper
 	mgr.txOutStore = NewTxStoreDummy()
@@ -187,6 +245,7 @@ func (s *HandlerSwapSuite) TestDoubleSwap(c *C) {
 	keeper := &TestSwapHandleKeeper{
 		pools:             make(map[common.Asset]Pool),
 		activeNodeAccount: GetRandomNodeAccount(NodeActive),
+		synthSupply:       cosmos.ZeroUint(),
 	}
 	mgr.K = keeper
 	mgr.txOutStore = NewTxStoreDummy()
