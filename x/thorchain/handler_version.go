@@ -23,17 +23,17 @@ func NewVersionHandler(mgr Manager) VersionHandler {
 }
 
 // Run it the main entry point to execute Version logic
-func (h VersionHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+func (h VersionHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Result, error) {
 	msg, ok := m.(*MsgSetVersion)
 	if !ok {
 		return nil, errInvalidMessage
 	}
 	ctx.Logger().Info("receive version number", "version", msg.Version)
-	if err := h.validate(ctx, *msg, version, constAccessor); err != nil {
+	if err := h.validate(ctx, *msg); err != nil {
 		ctx.Logger().Error("msg set version failed validation", "error", err)
 		return nil, err
 	}
-	if err := h.handle(ctx, *msg, version, constAccessor); err != nil {
+	if err := h.handle(ctx, *msg); err != nil {
 		ctx.Logger().Error("fail to process msg set version", "error", err)
 		return nil, err
 	}
@@ -41,18 +41,19 @@ func (h VersionHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Ver
 	return &cosmos.Result{}, nil
 }
 
-func (h VersionHandler) validate(ctx cosmos.Context, msg MsgSetVersion, version semver.Version, constAccessor constants.ConstantValues) error {
+func (h VersionHandler) validate(ctx cosmos.Context, msg MsgSetVersion) error {
+	version := h.mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.1.0")) {
-		return h.validateV1(ctx, msg, constAccessor)
+		return h.validateV1(ctx, msg)
 	}
 	return errBadVersion
 }
 
-func (h VersionHandler) validateV1(ctx cosmos.Context, msg MsgSetVersion, constAccessor constants.ConstantValues) error {
-	return h.validateCurrent(ctx, msg, constAccessor)
+func (h VersionHandler) validateV1(ctx cosmos.Context, msg MsgSetVersion) error {
+	return h.validateCurrent(ctx, msg)
 }
 
-func (h VersionHandler) validateCurrent(ctx cosmos.Context, msg MsgSetVersion, constAccessor constants.ConstantValues) error {
+func (h VersionHandler) validateCurrent(ctx cosmos.Context, msg MsgSetVersion) error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
@@ -67,7 +68,7 @@ func (h VersionHandler) validateCurrent(ctx cosmos.Context, msg MsgSetVersion, c
 
 	cost, err := h.mgr.Keeper().GetMimir(ctx, constants.NativeTransactionFee.String())
 	if err != nil || cost < 0 {
-		cost = constAccessor.GetInt64Value(constants.NativeTransactionFee)
+		cost = h.mgr.GetConstants().GetInt64Value(constants.NativeTransactionFee)
 	}
 	if nodeAccount.Bond.LT(cosmos.NewUint(uint64(cost))) {
 		return cosmos.ErrUnauthorized("not enough bond")
@@ -76,19 +77,20 @@ func (h VersionHandler) validateCurrent(ctx cosmos.Context, msg MsgSetVersion, c
 	return nil
 }
 
-func (h VersionHandler) handle(ctx cosmos.Context, msg MsgSetVersion, version semver.Version, constAccessor constants.ConstantValues) error {
+func (h VersionHandler) handle(ctx cosmos.Context, msg MsgSetVersion) error {
 	ctx.Logger().Info("handleMsgSetVersion request", "Version:", msg.Version)
+	version := h.mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.1.0")) {
-		return h.handleV1(ctx, msg, constAccessor)
+		return h.handleV1(ctx, msg)
 	}
 	return errBadVersion
 }
 
-func (h VersionHandler) handleV1(ctx cosmos.Context, msg MsgSetVersion, constAccessor constants.ConstantValues) error {
-	return h.handleCurrent(ctx, msg, constAccessor)
+func (h VersionHandler) handleV1(ctx cosmos.Context, msg MsgSetVersion) error {
+	return h.handleCurrent(ctx, msg)
 }
 
-func (h VersionHandler) handleCurrent(ctx cosmos.Context, msg MsgSetVersion, constAccessor constants.ConstantValues) error {
+func (h VersionHandler) handleCurrent(ctx cosmos.Context, msg MsgSetVersion) error {
 	nodeAccount, err := h.mgr.Keeper().GetNodeAccount(ctx, msg.Signer)
 	if err != nil {
 		return cosmos.ErrUnauthorized(fmt.Errorf("unable to find account(%s):%w", msg.Signer, err).Error())
@@ -105,7 +107,7 @@ func (h VersionHandler) handleCurrent(ctx cosmos.Context, msg MsgSetVersion, con
 
 	c, err := h.mgr.Keeper().GetMimir(ctx, constants.NativeTransactionFee.String())
 	if err != nil || c < 0 {
-		c = constAccessor.GetInt64Value(constants.NativeTransactionFee)
+		c = h.mgr.GetConstants().GetInt64Value(constants.NativeTransactionFee)
 	}
 	cost := cosmos.NewUint(uint64(c))
 	if cost.GT(nodeAccount.Bond) {

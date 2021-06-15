@@ -65,11 +65,61 @@ func (smgr *StoreMgr) migrate(ctx cosmos.Context, i uint64, constantAccessor con
 		smgr.migrateStoreV49(ctx, version, constantAccessor)
 	case 55:
 		smgr.migrateStoreV55(ctx, version, constantAccessor)
+	case 56:
+		smgr.migrateStoreV56(ctx, version, constantAccessor)
 	}
 
 	smgr.keeper.SetStoreVersion(ctx, int64(i))
 	return nil
 }
+
+func (smgr *StoreMgr) migrateStoreV56(ctx cosmos.Context, version semver.Version, constantAccessor constants.ConstantValues) {
+	pools, err := smgr.keeper.GetPools(ctx)
+	if err != nil {
+		ctx.Logger().Error("fail to get pools during migration", "error", err)
+		return
+	}
+	runePool := cosmos.ZeroUint()
+	for _, p := range pools {
+		runePool = runePool.Add(p.BalanceRune)
+	}
+
+	runeMod := smgr.keeper.GetRuneBalanceOfModule(ctx, AsgardName)
+
+	// sanity checks, ensure we don't have any zeroes. If we did, something
+	// ain't right. Exit immediately and retry later
+	if runePool.IsZero() || runeMod.IsZero() {
+		ctx.Logger().Error("cannot migrate with a zero amount", "rune in pools", runePool.Uint64(), "rune in module", runeMod.Uint64())
+		return
+	}
+	ctx.Logger().Info("Rune totals", "pool", runePool.Uint64(), "rune in module", runeMod.Uint64())
+
+	if runeMod.GT(runePool) {
+		toBurn := common.NewCoin(
+			common.RuneAsset(),
+			common.SafeSub(runeMod, runePool),
+		)
+		ctx.Logger().Info("Burning native rune for migration", "total", toBurn)
+
+		// sanity check, ensure we are not burning more rune than the pools have
+		if common.SafeSub(runeMod, toBurn.Amount).LT(runePool) {
+			ctx.Logger().Error("an attempt to burn too much rune from the pool")
+			return
+		}
+
+		// move rune to thorchain module, so it can be burned there (asgard
+		// module cannot burn funds)
+		if err := smgr.keeper.SendFromModuleToModule(ctx, AsgardName, ModuleName, common.NewCoins(toBurn)); err != nil {
+			ctx.Logger().Error("fail to move funds to module during migration", "error", err)
+			return
+		}
+		if err := smgr.keeper.BurnFromModule(ctx, ModuleName, toBurn); err != nil {
+			ctx.Logger().Error("fail to burn funds during migration", "error", err)
+			return
+		}
+	}
+}
+
 func (smgr *StoreMgr) migrateStoreV55(ctx cosmos.Context, version semver.Version, constantAccessor constants.ConstantValues) {
 	assetToAdjust, err := common.NewAsset("BNB.USDT-6D8")
 	if err != nil {

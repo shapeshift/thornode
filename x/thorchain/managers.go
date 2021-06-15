@@ -27,6 +27,7 @@ var ErrNotEnoughToPayFee = errors.New("not enough asset to pay for fees")
 
 // Manager is an interface to define all the required methods
 type Manager interface {
+	GetConstants() constants.ConstantValues
 	GetVersion() semver.Version
 	Keeper() keeper.Keeper
 	GasMgr() GasManager
@@ -130,6 +131,7 @@ type Mgrs struct {
 	swapQ          SwapQueue
 	slasher        Slasher
 	yggManager     YggManager
+	ConstAccessor  constants.ConstantValues
 
 	K             keeper.Keeper
 	cdc           codec.BinaryMarshaler
@@ -153,6 +155,10 @@ func (mgr *Mgrs) GetVersion() semver.Version {
 	return mgr.CurrentVersion
 }
 
+func (mgr *Mgrs) GetConstants() constants.ConstantValues {
+	return mgr.ConstAccessor
+}
+
 // BeginBlock detect whether there are new version available, if it is available then create a new version of Mgr
 func (mgr *Mgrs) BeginBlock(ctx cosmos.Context) error {
 	v := mgr.K.GetLowestActiveVersion(ctx)
@@ -161,6 +167,7 @@ func (mgr *Mgrs) BeginBlock(ctx cosmos.Context) error {
 	}
 	// version is different , thus all the manager need to re-create
 	mgr.CurrentVersion = v
+	mgr.ConstAccessor = constants.GetConstantValues(v)
 	var err error
 
 	mgr.K, err = GetKeeper(v, mgr.cdc, mgr.coinKeeper, mgr.accountKeeper, mgr.storeKey)
@@ -270,7 +277,9 @@ func GetEventManager(version semver.Version) (EventManager, error) {
 // GetTxOutStore will return an implementation of the txout store that
 func GetTxOutStore(keeper keeper.Keeper, version semver.Version, eventMgr EventManager, gasManager GasManager) (TxOutStore, error) {
 	constAcessor := constants.GetConstantValues(version)
-	if version.GTE(semver.MustParse("0.55.0")) {
+	if version.GTE(semver.MustParse("0.56.0")) {
+		return NewTxOutStorageV56(keeper, constAcessor, eventMgr, gasManager), nil
+	} else if version.GTE(semver.MustParse("0.55.0")) {
 		return NewTxOutStorageV55(keeper, constAcessor, eventMgr, gasManager), nil
 	} else if version.GTE(semver.MustParse("0.54.0")) {
 		return NewTxOutStorageV54(keeper, constAcessor, eventMgr, gasManager), nil
@@ -298,7 +307,9 @@ func GetVaultManager(keeper keeper.Keeper, version semver.Version, txOutStore Tx
 
 // GetValidatorManager create a new instance of Validator Manager
 func GetValidatorManager(keeper keeper.Keeper, version semver.Version, vaultMgr NetworkManager, txOutStore TxOutStore, eventMgr EventManager) (ValidatorManager, error) {
-	if version.GTE(semver.MustParse("0.51.0")) {
+	if version.GTE(semver.MustParse("0.56.0")) {
+		return newValidatorMgrV56(keeper, vaultMgr, txOutStore, eventMgr), nil
+	} else if version.GTE(semver.MustParse("0.51.0")) {
 		return newValidatorMgrV51(keeper, vaultMgr, txOutStore, eventMgr), nil
 	} else if version.GTE(semver.MustParse("0.1.0")) {
 		return newValidatorMgrV1(keeper, vaultMgr, txOutStore, eventMgr), nil

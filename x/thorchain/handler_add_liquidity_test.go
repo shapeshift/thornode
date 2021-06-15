@@ -3,7 +3,6 @@ package thorchain
 import (
 	"errors"
 
-	"github.com/blang/semver"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
@@ -112,8 +111,6 @@ func (s *HandlerAddLiquiditySuite) TestAddLiquidityHandler(c *C) {
 		BNBGasFeeSingleton,
 		"add:BNB",
 	)
-	ver := GetCurrentVersion()
-	constAccessor := constants.GetConstantValues(ver)
 	msg := NewMsgAddLiquidity(
 		tx,
 		common.BNBAsset,
@@ -123,7 +120,7 @@ func (s *HandlerAddLiquiditySuite) TestAddLiquidityHandler(c *C) {
 		bnbAddr,
 		common.NoAddress, cosmos.ZeroUint(),
 		activeNodeAccount.NodeAddress)
-	_, err = addHandler.Run(ctx, msg, ver, constAccessor)
+	_, err = addHandler.Run(ctx, msg)
 	c.Assert(err, IsNil)
 
 	midLiquidityPool, err := mgr.Keeper().GetPool(ctx, common.BNBAsset)
@@ -132,7 +129,7 @@ func (s *HandlerAddLiquiditySuite) TestAddLiquidityHandler(c *C) {
 
 	msg.RuneAmount = cosmos.ZeroUint()
 	msg.AssetAmount = cosmos.NewUint(100 * common.One)
-	_, err = addHandler.Run(ctx, msg, ver, constAccessor)
+	_, err = addHandler.Run(ctx, msg)
 	c.Assert(err, IsNil)
 
 	postLiquidityPool, err := mgr.Keeper().GetPool(ctx, common.BNBAsset)
@@ -180,8 +177,7 @@ func (s *HandlerAddLiquiditySuite) TestAddLiquidityHandler_NoPool_ShouldCreateNe
 		BNBGasFeeSingleton,
 		"add:BNB",
 	)
-	ver := GetCurrentVersion()
-	constAccessor := constants.NewDummyConstants(map[constants.ConstantName]int64{
+	mgr.ConstAccessor = constants.NewDummyConstants(map[constants.ConstantName]int64{
 		constants.MaximumLiquidityRune: 600_000_00000000,
 	}, map[constants.ConstantName]bool{
 		constants.StrictBondLiquidityRatio: true,
@@ -196,16 +192,12 @@ func (s *HandlerAddLiquiditySuite) TestAddLiquidityHandler_NoPool_ShouldCreateNe
 		bnbAddr,
 		common.NoAddress, cosmos.ZeroUint(),
 		activeNodeAccount.NodeAddress)
-	_, err = addHandler.Run(ctx, msg, ver, constAccessor)
+	_, err = addHandler.Run(ctx, msg)
 	c.Assert(err, IsNil)
 	postLiquidityPool, err := k.GetPool(ctx, common.BNBAsset)
 	c.Assert(err, IsNil)
 	c.Assert(postLiquidityPool.BalanceAsset.String(), Equals, preLiquidityPool.BalanceAsset.Add(msg.AssetAmount).String())
 	c.Assert(postLiquidityPool.BalanceRune.String(), Equals, preLiquidityPool.BalanceRune.Add(msg.RuneAmount).String())
-
-	// bad version
-	_, err = addHandler.Run(ctx, msg, semver.Version{}, constAccessor)
-	c.Assert(err, NotNil)
 }
 
 func (s *HandlerAddLiquiditySuite) TestAddLiquidityHandlerValidation(c *C) {
@@ -281,7 +273,6 @@ func (s *HandlerAddLiquiditySuite) TestAddLiquidityHandlerValidation(c *C) {
 			expectedResult: errAddLiquidityRUNEMoreThanBond,
 		},
 	}
-	ver := GetCurrentVersion()
 	constAccessor := constants.NewDummyConstants(map[constants.ConstantName]int64{
 		constants.MaximumLiquidityRune: 600_000_00000000,
 	}, map[constants.ConstantName]bool{
@@ -289,8 +280,10 @@ func (s *HandlerAddLiquiditySuite) TestAddLiquidityHandlerValidation(c *C) {
 	}, map[constants.ConstantName]string{})
 
 	for _, item := range testCases {
-		addHandler := NewAddLiquidityHandler(NewDummyMgrWithKeeper(k))
-		_, err := addHandler.Run(ctx, item.msg, ver, constAccessor)
+		mgr := NewDummyMgrWithKeeper(k)
+		mgr.constAccessor = constAccessor
+		addHandler := NewAddLiquidityHandler(mgr)
+		_, err := addHandler.Run(ctx, item.msg)
 		c.Assert(errors.Is(err, item.expectedResult), Equals, true, Commentf("name:%s, %w", item.name, err))
 	}
 }
@@ -346,8 +339,6 @@ func (s *HandlerAddLiquiditySuite) TestHandlerAddLiquidityFailScenario(c *C) {
 			BNBGasFeeSingleton,
 			"add:BNB",
 		)
-		ver := GetCurrentVersion()
-		constAccessor := constants.GetConstantValues(ver)
 		msg := NewMsgAddLiquidity(
 			tx,
 			common.BNBAsset,
@@ -360,7 +351,7 @@ func (s *HandlerAddLiquiditySuite) TestHandlerAddLiquidityFailScenario(c *C) {
 		ctx, mgr := setupManagerForTest(c)
 		mgr.K = tc.k
 		addHandler := NewAddLiquidityHandler(mgr)
-		_, err := addHandler.Run(ctx, msg, ver, constAccessor)
+		_, err := addHandler.Run(ctx, msg)
 		c.Assert(errors.Is(err, tc.expectedResult), Equals, true, Commentf(tc.name))
 	}
 }

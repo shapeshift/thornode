@@ -7,7 +7,6 @@ import (
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
-	"gitlab.com/thorchain/thornode/constants"
 )
 
 // BondHandler a handler to process bond
@@ -22,18 +21,19 @@ func NewBondHandler(mgr Manager) BondHandler {
 	}
 }
 
-func (h BondHandler) validate(ctx cosmos.Context, msg MsgBond, version semver.Version, constAccessor constants.ConstantValues) error {
+func (h BondHandler) validate(ctx cosmos.Context, msg MsgBond) error {
+	version := h.mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.1.0")) {
-		return h.validateV1(ctx, version, msg, constAccessor)
+		return h.validateV1(ctx, msg)
 	}
 	return errBadVersion
 }
 
-func (h BondHandler) validateV1(ctx cosmos.Context, version semver.Version, msg MsgBond, constAccessor constants.ConstantValues) error {
-	return h.validateCurrent(ctx, version, msg, constAccessor)
+func (h BondHandler) validateV1(ctx cosmos.Context, msg MsgBond) error {
+	return h.validateCurrent(ctx, msg)
 }
 
-func (h BondHandler) validateCurrent(ctx cosmos.Context, version semver.Version, msg MsgBond, constAccessor constants.ConstantValues) error {
+func (h BondHandler) validateCurrent(ctx cosmos.Context, msg MsgBond) error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
@@ -59,7 +59,7 @@ func (h BondHandler) validateCurrent(ctx cosmos.Context, version semver.Version,
 }
 
 // Run execute the handler
-func (h BondHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+func (h BondHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Result, error) {
 	msg, ok := m.(*MsgBond)
 	if !ok {
 		return nil, errInvalidMessage
@@ -68,12 +68,12 @@ func (h BondHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Versio
 		"node address", msg.NodeAddress,
 		"request hash", msg.TxIn.ID,
 		"bond", msg.Bond)
-	if err := h.validate(ctx, *msg, version, constAccessor); err != nil {
+	if err := h.validate(ctx, *msg); err != nil {
 		ctx.Logger().Error("msg bond fail validation", "error", err)
 		return nil, err
 	}
 
-	result, err := h.handle(ctx, *msg, version, constAccessor)
+	result, err := h.handle(ctx, *msg)
 	if err != nil {
 		ctx.Logger().Error("fail to process msg bond", "error", err)
 		return nil, err
@@ -82,14 +82,15 @@ func (h BondHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Versio
 	return result, nil
 }
 
-func (h BondHandler) handle(ctx cosmos.Context, msg MsgBond, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+func (h BondHandler) handle(ctx cosmos.Context, msg MsgBond) (*cosmos.Result, error) {
+	version := h.mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.47.0")) {
-		if err := h.handleV47(ctx, msg, version, constAccessor); err != nil {
+		if err := h.handleV47(ctx, msg); err != nil {
 			ctx.Logger().Error("fail to process msg bond", "error", err)
 			return nil, err
 		}
 	} else if version.GTE(semver.MustParse("0.1.0")) {
-		if err := h.handleV1(ctx, msg, version, constAccessor); err != nil {
+		if err := h.handleV1(ctx, msg); err != nil {
 			ctx.Logger().Error("fail to process msg bond", "error", err)
 			return nil, err
 		}
@@ -97,7 +98,7 @@ func (h BondHandler) handle(ctx cosmos.Context, msg MsgBond, version semver.Vers
 	return &cosmos.Result{}, nil
 }
 
-func (h BondHandler) handleV1(ctx cosmos.Context, msg MsgBond, version semver.Version, constAccessor constants.ConstantValues) error {
+func (h BondHandler) handleV1(ctx cosmos.Context, msg MsgBond) error {
 	// THORNode will not have pub keys at the moment, so have to leave it empty
 	emptyPubKeySet := common.PubKeySet{
 		Secp256k1: common.EmptyPubKey,
@@ -144,11 +145,11 @@ func (h BondHandler) handleV1(ctx cosmos.Context, msg MsgBond, version semver.Ve
 
 }
 
-func (h BondHandler) handleV47(ctx cosmos.Context, msg MsgBond, version semver.Version, constAccessor constants.ConstantValues) error {
-	return h.handleCurrent(ctx, msg, version, constAccessor)
+func (h BondHandler) handleV47(ctx cosmos.Context, msg MsgBond) error {
+	return h.handleCurrent(ctx, msg)
 }
 
-func (h BondHandler) handleCurrent(ctx cosmos.Context, msg MsgBond, version semver.Version, constAccessor constants.ConstantValues) error {
+func (h BondHandler) handleCurrent(ctx cosmos.Context, msg MsgBond) error {
 	// THORNode will not have pub keys at the moment, so have to leave it empty
 	emptyPubKeySet := common.PubKeySet{
 		Secp256k1: common.EmptyPubKey,

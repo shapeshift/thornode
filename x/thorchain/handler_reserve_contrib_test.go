@@ -95,19 +95,9 @@ func (h HandlerReserveContributorSuite) TestReserveContributorHandler(c *C) {
 				return NewMsgNoOp(GetRandomObservedTx(), helper.nodeAccount.NodeAddress, "")
 			},
 			runner: func(handler ReserveContributorHandler, helper reserveContributorHandlerHelper, msg cosmos.Msg) (*cosmos.Result, error) {
-				return handler.Run(helper.ctx, msg, helper.version, helper.constAccessor)
+				return handler.Run(helper.ctx, msg)
 			},
 			expectedResult: errInvalidMessage,
-		},
-		{
-			name: "bad version should return an error",
-			messageCreator: func(helper reserveContributorHandlerHelper) cosmos.Msg {
-				return NewMsgReserveContributor(GetRandomTx(), helper.reserveContributor, helper.nodeAccount.NodeAddress)
-			},
-			runner: func(handler ReserveContributorHandler, helper reserveContributorHandlerHelper, msg cosmos.Msg) (*cosmos.Result, error) {
-				return handler.Run(helper.ctx, msg, semver.MustParse("0.0.1"), helper.constAccessor)
-			},
-			expectedResult: errBadVersion,
 		},
 		{
 			name: "empty signer should return an error",
@@ -115,7 +105,7 @@ func (h HandlerReserveContributorSuite) TestReserveContributorHandler(c *C) {
 				return NewMsgReserveContributor(GetRandomTx(), helper.reserveContributor, cosmos.AccAddress{})
 			},
 			runner: func(handler ReserveContributorHandler, helper reserveContributorHandlerHelper, msg cosmos.Msg) (*cosmos.Result, error) {
-				return handler.Run(helper.ctx, msg, GetCurrentVersion(), helper.constAccessor)
+				return handler.Run(helper.ctx, msg)
 			},
 			expectedResult: se.ErrInvalidAddress,
 		},
@@ -128,7 +118,7 @@ func (h HandlerReserveContributorSuite) TestReserveContributorHandler(c *C) {
 				}, helper.nodeAccount.NodeAddress)
 			},
 			runner: func(handler ReserveContributorHandler, helper reserveContributorHandlerHelper, msg cosmos.Msg) (*cosmos.Result, error) {
-				return handler.Run(helper.ctx, msg, GetCurrentVersion(), helper.constAccessor)
+				return handler.Run(helper.ctx, msg)
 			},
 			expectedResult: se.ErrUnknownRequest,
 		},
@@ -141,7 +131,7 @@ func (h HandlerReserveContributorSuite) TestReserveContributorHandler(c *C) {
 				}, helper.nodeAccount.NodeAddress)
 			},
 			runner: func(handler ReserveContributorHandler, helper reserveContributorHandlerHelper, msg cosmos.Msg) (*cosmos.Result, error) {
-				return handler.Run(helper.ctx, msg, GetCurrentVersion(), helper.constAccessor)
+				return handler.Run(helper.ctx, msg)
 			},
 			expectedResult: se.ErrUnknownRequest,
 		},
@@ -153,7 +143,7 @@ func (h HandlerReserveContributorSuite) TestReserveContributorHandler(c *C) {
 				return NewMsgReserveContributor(tx, helper.reserveContributor, helper.nodeAccount.NodeAddress)
 			},
 			runner: func(handler ReserveContributorHandler, helper reserveContributorHandlerHelper, msg cosmos.Msg) (*cosmos.Result, error) {
-				return handler.Run(helper.ctx, msg, GetCurrentVersion(), helper.constAccessor)
+				return handler.Run(helper.ctx, msg)
 			},
 			expectedResult: se.ErrUnknownRequest,
 		},
@@ -165,7 +155,7 @@ func (h HandlerReserveContributorSuite) TestReserveContributorHandler(c *C) {
 				return NewMsgReserveContributor(tx, helper.reserveContributor, helper.nodeAccount.NodeAddress)
 			},
 			runner: func(handler ReserveContributorHandler, helper reserveContributorHandlerHelper, msg cosmos.Msg) (*cosmos.Result, error) {
-				return handler.Run(helper.ctx, msg, GetCurrentVersion(), helper.constAccessor)
+				return handler.Run(helper.ctx, msg)
 			},
 			expectedResult: nil,
 		},

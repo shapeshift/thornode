@@ -23,16 +23,16 @@ func NewSwapHandler(mgr Manager) SwapHandler {
 }
 
 // Run is the main entry point of swap message
-func (h SwapHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+func (h SwapHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Result, error) {
 	msg, ok := m.(*MsgSwap)
 	if !ok {
 		return nil, errInvalidMessage
 	}
-	if err := h.validate(ctx, *msg, version, constAccessor); err != nil {
+	if err := h.validate(ctx, *msg); err != nil {
 		ctx.Logger().Error("MsgSwap failed validation", "error", err)
 		return nil, err
 	}
-	result, err := h.handle(ctx, *msg, version, constAccessor)
+	result, err := h.handle(ctx, *msg)
 	if err != nil {
 		ctx.Logger().Error("fail to handle MsgSwap", "error", err)
 		return nil, err
@@ -40,24 +40,23 @@ func (h SwapHandler) Run(ctx cosmos.Context, m cosmos.Msg, version semver.Versio
 	return result, err
 }
 
-func (h SwapHandler) validate(ctx cosmos.Context, msg MsgSwap, version semver.Version, constAccessor constants.ConstantValues) error {
-	if version.GTE(semver.MustParse("0.55.0")) {
-		return h.validateV55(ctx, msg, constAccessor)
+func (h SwapHandler) validate(ctx cosmos.Context, msg MsgSwap) error {
+	version := h.mgr.GetVersion()
+	if version.GTE(semver.MustParse("0.56.0")) {
+		return h.validateV56(ctx, msg)
+	} else if version.GTE(semver.MustParse("0.55.0")) {
+		return h.validateV55(ctx, msg)
 	} else if version.GTE(semver.MustParse("0.1.0")) {
-		return h.validateV1(ctx, msg, constAccessor)
+		return h.validateV1(ctx, msg)
 	}
 	return errInvalidVersion
 }
 
-func (h SwapHandler) validateV1(ctx cosmos.Context, msg MsgSwap, constAccessor constants.ConstantValues) error {
+func (h SwapHandler) validateV1(ctx cosmos.Context, msg MsgSwap) error {
 	return msg.ValidateBasic()
 }
 
-func (h SwapHandler) validateV55(ctx cosmos.Context, msg MsgSwap, constAccessor constants.ConstantValues) error {
-	return h.validateCurrent(ctx, msg, constAccessor)
-}
-
-func (h SwapHandler) validateCurrent(ctx cosmos.Context, msg MsgSwap, constAccessor constants.ConstantValues) error {
+func (h SwapHandler) validateV55(ctx cosmos.Context, msg MsgSwap) error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
@@ -74,7 +73,7 @@ func (h SwapHandler) validateCurrent(ctx cosmos.Context, msg MsgSwap, constAcces
 
 	if target.IsSyntheticAsset() {
 
-		ensureLiquidityNoLargerThanBond := constAccessor.GetBoolValue(constants.StrictBondLiquidityRatio)
+		ensureLiquidityNoLargerThanBond := h.mgr.GetConstants().GetBoolValue(constants.StrictBondLiquidityRatio)
 		// the following  only applicable for chaosnet
 		totalLiquidityRUNE, err := h.getTotalLiquidityRUNE(ctx)
 		if err != nil {
@@ -97,7 +96,7 @@ func (h SwapHandler) validateCurrent(ctx cosmos.Context, msg MsgSwap, constAcces
 		}
 		maximumLiquidityRune, err := h.mgr.Keeper().GetMimir(ctx, constants.MaximumLiquidityRune.String())
 		if maximumLiquidityRune < 0 || err != nil {
-			maximumLiquidityRune = constAccessor.GetInt64Value(constants.MaximumLiquidityRune)
+			maximumLiquidityRune = h.mgr.GetConstants().GetInt64Value(constants.MaximumLiquidityRune)
 		}
 		if maximumLiquidityRune > 0 {
 			if totalLiquidityRUNE.GT(cosmos.NewUint(uint64(maximumLiquidityRune))) {
@@ -120,25 +119,101 @@ func (h SwapHandler) validateCurrent(ctx cosmos.Context, msg MsgSwap, constAcces
 	return nil
 }
 
-func (h SwapHandler) handle(ctx cosmos.Context, msg MsgSwap, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+func (h SwapHandler) validateV56(ctx cosmos.Context, msg MsgSwap) error {
+	return h.validateCurrent(ctx, msg)
+}
+
+func (h SwapHandler) validateCurrent(ctx cosmos.Context, msg MsgSwap) error {
+	if err := msg.ValidateBasicV56(); err != nil {
+		return err
+	}
+
+	target := msg.TargetAsset
+	if target.IsSyntheticAsset() {
+
+		// the following  only applicable for chaosnet
+		totalLiquidityRUNE, err := h.getTotalLiquidityRUNE(ctx)
+		if err != nil {
+			return ErrInternal(err, "fail to get total liquidity RUNE")
+		}
+
+		// total liquidity RUNE after current add liquidity
+		if len(msg.Tx.Coins) > 0 {
+			// calculate rune value on incoming swap, and add to total liquidity.
+			coin := msg.Tx.Coins[0]
+			runeVal := coin.Amount
+			if !coin.Asset.IsRune() {
+				pool, err := h.mgr.Keeper().GetPool(ctx, coin.Asset)
+				if err != nil {
+					return ErrInternal(err, "fail to get pool")
+				}
+				runeVal = pool.AssetValueInRune(coin.Amount)
+			}
+			totalLiquidityRUNE = totalLiquidityRUNE.Add(runeVal)
+		}
+		maximumLiquidityRune, err := h.mgr.Keeper().GetMimir(ctx, constants.MaximumLiquidityRune.String())
+		if maximumLiquidityRune < 0 || err != nil {
+			maximumLiquidityRune = h.mgr.GetConstants().GetInt64Value(constants.MaximumLiquidityRune)
+		}
+		if maximumLiquidityRune > 0 {
+			if totalLiquidityRUNE.GT(cosmos.NewUint(uint64(maximumLiquidityRune))) {
+				return errAddLiquidityRUNEOverLimit
+			}
+		}
+
+		// fail validation if synth supply is already too high, relative to pool depth
+		maxSynths, err := h.mgr.Keeper().GetMimir(ctx, constants.MaxSynthPerAssetDepth.String())
+		if maxSynths < 0 || err != nil {
+			maxSynths = h.mgr.GetConstants().GetInt64Value(constants.MaxSynthPerAssetDepth)
+		}
+		synthSupply := h.mgr.Keeper().GetTotalSupply(ctx, target.GetSyntheticAsset())
+		pool, err := h.mgr.Keeper().GetPool(ctx, target)
+		if err != nil {
+			return ErrInternal(err, "fail to get pool")
+		}
+		coverage := int64(synthSupply.Quo(pool.BalanceAsset).MulUint64(MaxWithdrawBasisPoints).Uint64())
+		if coverage > maxSynths {
+			return fmt.Errorf("Synth quantity is too high relative to asset depth of related pool (%d/%d)", coverage, maxSynths)
+		}
+
+		ensureLiquidityNoLargerThanBond := h.mgr.GetConstants().GetBoolValue(constants.StrictBondLiquidityRatio)
+		if !ensureLiquidityNoLargerThanBond {
+			return nil
+		}
+		totalBondRune, err := h.getTotalActiveBond(ctx)
+		if err != nil {
+			return ErrInternal(err, "fail to get total bond RUNE")
+		}
+		if totalLiquidityRUNE.GT(totalBondRune) {
+			ctx.Logger().Info(fmt.Sprintf("total liquidity RUNE(%s) is more than total Bond(%s)", totalLiquidityRUNE, totalBondRune))
+			return errAddLiquidityRUNEMoreThanBond
+		}
+	}
+	return nil
+}
+
+func (h SwapHandler) handle(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result, error) {
 	ctx.Logger().Info("receive MsgSwap", "request tx hash", msg.Tx.ID, "source asset", msg.Tx.Coins[0].Asset, "target asset", msg.TargetAsset, "signer", msg.Signer.String())
-	if version.GTE(semver.MustParse("0.55.0")) {
-		return h.handleV55(ctx, msg, version, constAccessor)
+	version := h.mgr.GetVersion()
+	if version.GTE(semver.MustParse("0.56.0")) {
+		return h.handleV56(ctx, msg)
+	} else if version.GTE(semver.MustParse("0.55.0")) {
+		return h.handleV55(ctx, msg)
 	} else if version.GTE(semver.MustParse("0.44.0")) {
-		return h.handleV44(ctx, msg, version, constAccessor)
+		return h.handleV44(ctx, msg)
 	} else if version.GTE(semver.MustParse("0.43.0")) {
-		return h.handleV43(ctx, msg, version, constAccessor)
+		return h.handleV43(ctx, msg)
 	} else if version.GTE(semver.MustParse("0.1.0")) {
-		return h.handleV1(ctx, msg, version, constAccessor)
+		return h.handleV1(ctx, msg)
 	}
 	return nil, errBadVersion
 }
 
-func (h SwapHandler) handleV1(ctx cosmos.Context, msg MsgSwap, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+func (h SwapHandler) handleV1(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result, error) {
 	transactionFee := h.mgr.GasMgr().GetFee(ctx, msg.Destination.GetChain(), common.RuneAsset())
 	synthVirtualDepthMult, err := h.mgr.Keeper().GetMimir(ctx, constants.VirtualMultSynths.String())
 	if synthVirtualDepthMult < 1 || err != nil {
-		synthVirtualDepthMult = constAccessor.GetInt64Value(constants.VirtualMultSynths)
+		synthVirtualDepthMult = h.mgr.GetConstants().GetInt64Value(constants.VirtualMultSynths)
 	}
 	swapper := NewSwapperV1()
 	_, _, swapErr := swapper.swap(
@@ -157,7 +232,7 @@ func (h SwapHandler) handleV1(ctx cosmos.Context, msg MsgSwap, version semver.Ve
 	return &cosmos.Result{}, nil
 }
 
-func (h SwapHandler) handleV43(ctx cosmos.Context, msg MsgSwap, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+func (h SwapHandler) handleV43(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result, error) {
 	targetChain := msg.Destination.GetChain()
 	if !targetChain.IsValidAddress(msg.Destination) {
 		return nil, fmt.Errorf("address(%s) is not valid for chain(%s)", msg.Destination, targetChain)
@@ -165,7 +240,7 @@ func (h SwapHandler) handleV43(ctx cosmos.Context, msg MsgSwap, version semver.V
 	transactionFee := h.mgr.GasMgr().GetFee(ctx, msg.Destination.GetChain(), common.RuneAsset())
 	synthVirtualDepthMult, err := h.mgr.Keeper().GetMimir(ctx, constants.VirtualMultSynths.String())
 	if synthVirtualDepthMult < 1 || err != nil {
-		synthVirtualDepthMult = constAccessor.GetInt64Value(constants.VirtualMultSynths)
+		synthVirtualDepthMult = h.mgr.GetConstants().GetInt64Value(constants.VirtualMultSynths)
 	}
 	swapper := NewSwapperV1()
 	_, _, swapErr := swapper.swap(
@@ -185,7 +260,7 @@ func (h SwapHandler) handleV43(ctx cosmos.Context, msg MsgSwap, version semver.V
 
 }
 
-func (h SwapHandler) handleV44(ctx cosmos.Context, msg MsgSwap, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+func (h SwapHandler) handleV44(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result, error) {
 	// test that the network we are running matches the destination network
 	if !common.GetCurrentChainNetwork().SoftEquals(msg.Destination.GetNetwork(msg.Destination.GetChain())) {
 		return nil, fmt.Errorf("address(%s) is not same network", msg.Destination)
@@ -193,7 +268,7 @@ func (h SwapHandler) handleV44(ctx cosmos.Context, msg MsgSwap, version semver.V
 	transactionFee := h.mgr.GasMgr().GetFee(ctx, msg.Destination.GetChain(), common.RuneAsset())
 	synthVirtualDepthMult, err := h.mgr.Keeper().GetMimir(ctx, constants.VirtualMultSynths.String())
 	if synthVirtualDepthMult < 1 || err != nil {
-		synthVirtualDepthMult = constAccessor.GetInt64Value(constants.VirtualMultSynths)
+		synthVirtualDepthMult = h.mgr.GetConstants().GetInt64Value(constants.VirtualMultSynths)
 	}
 	swapper := NewSwapperV1()
 	_, _, swapErr := swapper.swap(
@@ -213,11 +288,7 @@ func (h SwapHandler) handleV44(ctx cosmos.Context, msg MsgSwap, version semver.V
 
 }
 
-func (h SwapHandler) handleV55(ctx cosmos.Context, msg MsgSwap, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
-	return h.handleCurrent(ctx, msg, version, constAccessor)
-}
-
-func (h SwapHandler) handleCurrent(ctx cosmos.Context, msg MsgSwap, version semver.Version, constAccessor constants.ConstantValues) (*cosmos.Result, error) {
+func (h SwapHandler) handleV55(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result, error) {
 	// test that the network we are running matches the destination network
 	if !common.GetCurrentChainNetwork().SoftEquals(msg.Destination.GetNetwork(msg.Destination.GetChain())) {
 		return nil, fmt.Errorf("address(%s) is not same network", msg.Destination)
@@ -225,9 +296,41 @@ func (h SwapHandler) handleCurrent(ctx cosmos.Context, msg MsgSwap, version semv
 	transactionFee := h.mgr.GasMgr().GetFee(ctx, msg.Destination.GetChain(), common.RuneAsset())
 	synthVirtualDepthMult, err := h.mgr.Keeper().GetMimir(ctx, constants.VirtualMultSynths.String())
 	if synthVirtualDepthMult < 1 || err != nil {
-		synthVirtualDepthMult = constAccessor.GetInt64Value(constants.VirtualMultSynths)
+		synthVirtualDepthMult = h.mgr.GetConstants().GetInt64Value(constants.VirtualMultSynths)
 	}
 	swapper := NewSwapperV55()
+	_, _, swapErr := swapper.swap(
+		ctx,
+		h.mgr.Keeper(),
+		msg.Tx,
+		msg.TargetAsset,
+		msg.Destination,
+		msg.TradeTarget,
+		transactionFee,
+		synthVirtualDepthMult,
+		h.mgr)
+	if swapErr != nil {
+		return nil, swapErr
+	}
+	return &cosmos.Result{}, nil
+
+}
+
+func (h SwapHandler) handleV56(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result, error) {
+	return h.handleCurrent(ctx, msg)
+}
+
+func (h SwapHandler) handleCurrent(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result, error) {
+	// test that the network we are running matches the destination network
+	if !common.GetCurrentChainNetwork().SoftEquals(msg.Destination.GetNetwork(msg.Destination.GetChain())) {
+		return nil, fmt.Errorf("address(%s) is not same network", msg.Destination)
+	}
+	transactionFee := h.mgr.GasMgr().GetFee(ctx, msg.Destination.GetChain(), common.RuneAsset())
+	synthVirtualDepthMult, err := h.mgr.Keeper().GetMimir(ctx, constants.VirtualMultSynths.String())
+	if synthVirtualDepthMult < 1 || err != nil {
+		synthVirtualDepthMult = h.mgr.GetConstants().GetInt64Value(constants.VirtualMultSynths)
+	}
+	swapper := NewSwapperV56()
 	_, _, swapErr := swapper.swap(
 		ctx,
 		h.mgr.Keeper(),

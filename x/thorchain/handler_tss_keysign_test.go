@@ -82,7 +82,7 @@ func signVoter(ctx cosmos.Context, keeper keeper.Keeper, except cosmos.AccAddres
 	return
 }
 
-func newTssKeysignHandlerTestHelper(c *C, ver semver.Version) tssKeysignFailHandlerTestHelper {
+func newTssKeysignHandlerTestHelper(c *C) tssKeysignFailHandlerTestHelper {
 	ctx, k := setupKeeperForTest(c)
 	ctx = ctx.WithBlockHeight(1023)
 	keeper := newTssKeysignFailKeeperHelper(k)
@@ -90,7 +90,7 @@ func newTssKeysignHandlerTestHelper(c *C, ver semver.Version) tssKeysignFailHand
 	nodeAccount := GetRandomNodeAccount(NodeActive)
 	nodeAccount.Bond = cosmos.NewUint(100 * common.One)
 	c.Assert(keeper.SetNodeAccount(ctx, nodeAccount), IsNil)
-	constAccessor := constants.GetConstantValues(ver)
+	constAccessor := constants.GetConstantValues(GetCurrentVersion())
 	mgr := NewDummyMgr()
 
 	var members []Node
@@ -112,7 +112,7 @@ func newTssKeysignHandlerTestHelper(c *C, ver semver.Version) tssKeysignFailHand
 	c.Assert(keeper.SetVault(ctx, retiringVault), IsNil)
 	return tssKeysignFailHandlerTestHelper{
 		ctx:           ctx,
-		version:       ver,
+		version:       GetCurrentVersion(),
 		keeper:        keeper,
 		constAccessor: constAccessor,
 		nodeAccount:   nodeAccount,
@@ -123,10 +123,6 @@ func newTssKeysignHandlerTestHelper(c *C, ver semver.Version) tssKeysignFailHand
 }
 
 func (h HandlerTssKeysignSuite) TestTssKeysignFailHandler(c *C) {
-	h.testTssKeysignFailHandlerWithVersion(c, GetCurrentVersion())
-}
-
-func (h HandlerTssKeysignSuite) testTssKeysignFailHandlerWithVersion(c *C, ver semver.Version) {
 	testCases := []struct {
 		name           string
 		messageCreator func(helper tssKeysignFailHandlerTestHelper) cosmos.Msg
@@ -140,21 +136,9 @@ func (h HandlerTssKeysignSuite) testTssKeysignFailHandlerWithVersion(c *C, ver s
 				return NewMsgNoOp(GetRandomObservedTx(), helper.nodeAccount.NodeAddress, "")
 			},
 			runner: func(handler TssKeysignHandler, msg cosmos.Msg, helper tssKeysignFailHandlerTestHelper) (*cosmos.Result, error) {
-				return handler.Run(helper.ctx, msg, helper.version, helper.constAccessor)
+				return handler.Run(helper.ctx, msg)
 			},
 			expectedResult: errInvalidMessage,
-		},
-		{
-			name: "bad version should return an error",
-			messageCreator: func(helper tssKeysignFailHandlerTestHelper) cosmos.Msg {
-				msg, err := NewMsgTssKeysignFail(common.BlockHeight(helper.ctx), helper.blame, "hello", common.Coins{common.NewCoin(common.BNBAsset, cosmos.NewUint(100))}, helper.nodeAccount.NodeAddress, GetRandomPubKey())
-				c.Assert(err, IsNil)
-				return msg
-			},
-			runner: func(handler TssKeysignHandler, msg cosmos.Msg, helper tssKeysignFailHandlerTestHelper) (*cosmos.Result, error) {
-				return handler.Run(helper.ctx, msg, semver.MustParse("0.0.1"), helper.constAccessor)
-			},
-			expectedResult: errBadVersion,
 		},
 		{
 			name: "Not signed by an active account should return an error",
@@ -164,7 +148,7 @@ func (h HandlerTssKeysignSuite) testTssKeysignFailHandlerWithVersion(c *C, ver s
 				return msg
 			},
 			runner: func(handler TssKeysignHandler, msg cosmos.Msg, helper tssKeysignFailHandlerTestHelper) (*cosmos.Result, error) {
-				return handler.Run(helper.ctx, msg, ver, helper.constAccessor)
+				return handler.Run(helper.ctx, msg)
 			},
 			expectedResult: se.ErrUnauthorized,
 		},
@@ -176,7 +160,7 @@ func (h HandlerTssKeysignSuite) testTssKeysignFailHandlerWithVersion(c *C, ver s
 				return msg
 			},
 			runner: func(handler TssKeysignHandler, msg cosmos.Msg, helper tssKeysignFailHandlerTestHelper) (*cosmos.Result, error) {
-				return handler.Run(helper.ctx, msg, ver, helper.constAccessor)
+				return handler.Run(helper.ctx, msg)
 			},
 			expectedResult: se.ErrInvalidAddress,
 		},
@@ -189,7 +173,7 @@ func (h HandlerTssKeysignSuite) testTssKeysignFailHandlerWithVersion(c *C, ver s
 				return tssMsg
 			},
 			runner: func(handler TssKeysignHandler, msg cosmos.Msg, helper tssKeysignFailHandlerTestHelper) (*cosmos.Result, error) {
-				return handler.Run(helper.ctx, msg, ver, helper.constAccessor)
+				return handler.Run(helper.ctx, msg)
 			},
 			expectedResult: se.ErrUnknownRequest,
 		},
@@ -204,7 +188,7 @@ func (h HandlerTssKeysignSuite) testTssKeysignFailHandlerWithVersion(c *C, ver s
 				return msg
 			},
 			runner: func(handler TssKeysignHandler, msg cosmos.Msg, helper tssKeysignFailHandlerTestHelper) (*cosmos.Result, error) {
-				return handler.Run(helper.ctx, msg, ver, helper.constAccessor)
+				return handler.Run(helper.ctx, msg)
 			},
 			expectedResult: se.ErrUnknownRequest,
 		},
@@ -216,7 +200,7 @@ func (h HandlerTssKeysignSuite) testTssKeysignFailHandlerWithVersion(c *C, ver s
 				return msg
 			},
 			runner: func(handler TssKeysignHandler, msg cosmos.Msg, helper tssKeysignFailHandlerTestHelper) (*cosmos.Result, error) {
-				return handler.Run(helper.ctx, msg, ver, helper.constAccessor)
+				return handler.Run(helper.ctx, msg)
 			},
 			expectedResult: nil,
 		},
@@ -231,7 +215,7 @@ func (h HandlerTssKeysignSuite) testTssKeysignFailHandlerWithVersion(c *C, ver s
 				return msg
 			},
 			runner: func(handler TssKeysignHandler, msg cosmos.Msg, helper tssKeysignFailHandlerTestHelper) (*cosmos.Result, error) {
-				return handler.Run(helper.ctx, msg, ver, helper.constAccessor)
+				return handler.Run(helper.ctx, msg)
 			},
 			expectedResult: nil,
 		},
@@ -244,7 +228,7 @@ func (h HandlerTssKeysignSuite) testTssKeysignFailHandlerWithVersion(c *C, ver s
 			},
 			runner: func(handler TssKeysignHandler, msg cosmos.Msg, helper tssKeysignFailHandlerTestHelper) (*cosmos.Result, error) {
 				helper.keeper.errListActiveAccounts = true
-				return handler.Run(helper.ctx, msg, ver, helper.constAccessor)
+				return handler.Run(helper.ctx, msg)
 			},
 			expectedResult: kaboom,
 		},
@@ -257,7 +241,7 @@ func (h HandlerTssKeysignSuite) testTssKeysignFailHandlerWithVersion(c *C, ver s
 			},
 			runner: func(handler TssKeysignHandler, msg cosmos.Msg, helper tssKeysignFailHandlerTestHelper) (*cosmos.Result, error) {
 				helper.keeper.errGetTssVoter = true
-				return handler.Run(helper.ctx, msg, ver, helper.constAccessor)
+				return handler.Run(helper.ctx, msg)
 			},
 			expectedResult: kaboom,
 		},
@@ -279,7 +263,7 @@ func (h HandlerTssKeysignSuite) testTssKeysignFailHandlerWithVersion(c *C, ver s
 				}
 				helper.keeper.SetTssKeysignFailVoter(helper.ctx, voter)
 				helper.keeper.errFailToGetNodeAccountByPubKey = true
-				return handler.Run(helper.ctx, msg, ver, helper.constAccessor)
+				return handler.Run(helper.ctx, msg)
 			},
 			expectedResult: errInternal,
 		},
@@ -297,7 +281,7 @@ func (h HandlerTssKeysignSuite) testTssKeysignFailHandlerWithVersion(c *C, ver s
 						return nil, ErrInternal(err, "fail to set node account")
 					}
 				}
-				return handler.Run(helper.ctx, msg, ver, helper.constAccessor)
+				return handler.Run(helper.ctx, msg)
 			},
 			expectedResult: nil,
 		},
@@ -316,19 +300,19 @@ func (h HandlerTssKeysignSuite) testTssKeysignFailHandlerWithVersion(c *C, ver s
 						return nil, ErrInternal(err, "fail to set node account")
 					}
 				}
-				_, err := handler.Run(helper.ctx, msg, ver, helper.constAccessor)
+				_, err := handler.Run(helper.ctx, msg)
 				if err != nil {
 					return nil, err
 				}
 				msg, err = NewMsgTssKeysignFail(common.BlockHeight(helper.ctx), helper.blame, "hello", common.Coins{common.NewCoin(common.BNBAsset, cosmos.NewUint(100))}, na.NodeAddress, helper.retiringVault.PubKey)
 				c.Assert(err, IsNil)
-				return handler.Run(helper.ctx, msg, ver, helper.constAccessor)
+				return handler.Run(helper.ctx, msg)
 			},
 			expectedResult: nil,
 		},
 	}
 	for _, tc := range testCases {
-		helper := newTssKeysignHandlerTestHelper(c, ver)
+		helper := newTssKeysignHandlerTestHelper(c)
 		handler := NewTssKeysignHandler(NewDummyMgrWithKeeper(helper.keeper))
 		msg := tc.messageCreator(helper)
 
@@ -347,8 +331,7 @@ func (h HandlerTssKeysignSuite) testTssKeysignFailHandlerWithVersion(c *C, ver s
 }
 
 func (h HandlerTssKeysignSuite) TestTssKeysignFailHandler_accept_standby_node_messages(c *C) {
-	ver := GetCurrentVersion()
-	helper := newTssKeysignHandlerTestHelper(c, ver)
+	helper := newTssKeysignHandlerTestHelper(c)
 	handler := NewTssKeysignHandler(NewDummyMgrWithKeeper(helper.keeper))
 	vault := NewVault(1024, RetiringVault, AsgardVault, GetRandomPubKey(), []string{
 		common.BNBChain.String(),
@@ -370,13 +353,13 @@ func (h HandlerTssKeysignSuite) TestTssKeysignFailHandler_accept_standby_node_me
 		}
 		msg, err := NewMsgTssKeysignFail(common.BlockHeight(helper.ctx), helper.blame, "hello", common.Coins{common.NewCoin(common.BNBAsset, cosmos.NewUint(100))}, item.NodeAddress, vault.PubKey)
 		c.Assert(err, IsNil)
-		result, err := handler.Run(helper.ctx, msg, ver, constants.GetConstantValues(ver))
+		result, err := handler.Run(helper.ctx, msg)
 		c.Assert(result, NotNil)
 		c.Assert(err, IsNil)
 	}
 	msg, err := NewMsgTssKeysignFail(common.BlockHeight(helper.ctx), helper.blame, "hello", common.Coins{common.NewCoin(common.BNBAsset, cosmos.NewUint(100))}, naStandby.NodeAddress, vault.PubKey)
 	c.Assert(err, IsNil)
-	result, err := handler.Run(helper.ctx, msg, ver, constants.GetConstantValues(ver))
+	result, err := handler.Run(helper.ctx, msg)
 	c.Assert(result, NotNil)
 	c.Assert(err, IsNil)
 }

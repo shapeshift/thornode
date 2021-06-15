@@ -50,10 +50,12 @@ const (
 	JailTimeKeysign
 	MinSwapsPerBlock
 	MaxSwapsPerBlock
+	MaxSynthPerAssetDepth
 	VirtualMultSynths
 	MinSlashPointsForBadValidator
 	FullImpLossProtectionBlocks
 	BondLockupPeriod
+	NumberOfNewNodesPerChurn
 )
 
 var nameToString = map[ConstantName]string{
@@ -98,9 +100,11 @@ var nameToString = map[ConstantName]string{
 	MinSwapsPerBlock:              "MinSwapsPerBlock",
 	MaxSwapsPerBlock:              "MaxSwapsPerBlock",
 	VirtualMultSynths:             "VirtualMultSynths",
+	MaxSynthPerAssetDepth:         "MaxSynthPerAssetDepth",
 	MinSlashPointsForBadValidator: "MinSlashPointsForBadValidator",
 	FullImpLossProtectionBlocks:   "FullImpLossProtectionBlocks",
 	BondLockupPeriod:              "BondLockupPeriod",
+	NumberOfNewNodesPerChurn:      "NumberOfNewNodesPerChurn",
 }
 
 // String implement fmt.stringer
