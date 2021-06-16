@@ -10,6 +10,7 @@ services:
       MIDGARD_THORCHAIN_THOR_NODE_URL: http://thornode:1317/thorchain
       MIDGARD_THORCHAIN_TENDERMINT_URL: http://thornode:26657/websocket
       MIDGARD_TIMESCALE_HOST: pg
+      MIDGARD_THORCHAIN_LAST_CHAIN_BACKOFF: ${BLOCK_TIME:-5s}
     ports:
       - 8080:8080
     logging:
