@@ -132,10 +132,9 @@ class Health:
     def check_pools(self):
         """Check pools state between Midgard and Thorchain APIs."""
         self.thorchain_pools = self.thorchain_client.get_pools()
-        for p in self.thorchain_pools:
-            asset = p["asset"]
+        for tpool in self.thorchain_pools:
+            asset = tpool["asset"]
             mpool = self.midgard_client.get_pool(asset)
-            tpool = self.thorchain_client.get_pool(asset)
 
             # Thorchain Coins
             trune = Coin(RUNE, tpool["balance_rune"])

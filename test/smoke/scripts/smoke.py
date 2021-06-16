@@ -4,7 +4,6 @@ import logging
 import os
 import sys
 import json
-import itertools
 from copy import deepcopy
 from tenacity import retry, stop_after_delay, wait_fixed
 
@@ -293,9 +292,9 @@ class Smoker:
                 if sim_coin != mock_coin:
                     self.error(f"Bad ETH balance: {name} {mock_coin} != {sim_coin}")
 
-    def check_vaults(self):
+    def check_vaults(self, block_height):
         # check vault data
-        vdata = self.thorchain_client.get_vault_data()
+        vdata = self.thorchain_client.get_vault_data(block_height)
         if int(vdata["total_reserve"]) != self.thorchain_state.reserve:
             sim = self.thorchain_state.reserve
             real = vdata["total_reserve"]
@@ -305,21 +304,17 @@ class Smoker:
             real = vdata["bond_reward_rune"]
             self.error(f"Mismatching bond reward: {sim} != {real}")
 
-    def check_events(self):
-        events = self.thorchain_client.events
-        sim_events = self.thorchain_state.events
-        events.sort()
-        sim_events.sort()
-        for (evt_t, evt_s) in zip(events, sim_events):
-            if evt_t != evt_s:
-                for (evt_t2, evt_s2) in zip(events, sim_events):
-                    logging.info(f"\tTHORChain Evt: {evt_t2}")
-                    logging.info(f"\tSimulator Evt: {evt_s2}")
-                logging.error(f"THORChain Event {evt_t}")
-                logging.error(f"Simulator Event {evt_s}")
-                self.error("Events mismatch")
+    def check_events(self, events, sim_events):
+        events = set(events)
+        sim_events = set(sim_events)
+        if events != sim_events:
+            for (evt_t, evt_s) in zip(events, sim_events):
+                if evt_t != evt_s:
+                    logging.error(f"Evt THO  {evt_t}")
+                    logging.error(f"Evt SIM  {evt_s}")
+            self.error("Events mismatch")
 
-    @retry(stop=stop_after_delay(30), wait=wait_fixed(1), reraise=True)
+    @retry(stop=stop_after_delay(30), wait=wait_fixed(0.3), reraise=True)
     def run_health(self):
         self.health.run()
 
@@ -406,68 +401,74 @@ class Smoker:
         # has already occurred, and we can now play "catch up" in our simulated
         # thorchain state
 
-        # used to track if we have already processed this txn
         outbounds = []
         processed = False
+        processed_events = False
         pending_txs = 0
+        block_height = None
+        old_events = self.thorchain_state.events
 
-        for x in range(0, 60):  # 60 attempts
-            events = self.thorchain_client.events[:]
-            sim_events = self.thorchain_state.events[:]
+        for x in range(0, 100):  # 100 attempts
+            events = deepcopy(self.thorchain_client.events)
+            sim_events = self.thorchain_state.events
+            count_events = len(events) - len(old_events)
 
-            for (evt_t, evt_s) in itertools.zip_longest(events, sim_events):
-                if evt_s is None:
-                    # we have more real events than sim, fill in the gaps
-                    if evt_t.type == "gas":
-                        todo = []
-                        # with the given gas pool event data, figure out
-                        # which outbound txns are for this gas pool, vs
-                        # another later on
-                        count = 0
-                        for out in outbounds:
-                            # a gas pool matches a txn if their from
-                            # the same blockchain
-                            event_chain = Asset(evt_t.get("asset")).get_chain()
-                            out_chain = out.coins[0].asset.get_chain()
-                            if event_chain == out_chain:
-                                todo.append(out)
-                                count += 1
-                                if count >= int(evt_t.get("transaction_count")):
-                                    break
-                        self.thorchain_state.handle_gas(todo)
+            if count_events >= 0 and processed:
+                processed_events = True
 
-                    elif evt_t.type == "rewards":
-                        self.thorchain_state.handle_rewards()
+            new_events = events[-count_events:] if count_events > 0 else []
+            for evt_t in new_events:
 
-                    elif evt_t.type == "fee":
-                        continue  # skip
+                # we have more real events than sim, fill in the gaps
+                if evt_t.type == "gas":
+                    todo = []
+                    # with the given gas pool event data, figure out
+                    # which outbound txns are for this gas pool, vs
+                    # another later on
+                    count = 0
+                    for out in outbounds:
+                        # a gas pool matches a txn if their from
+                        # the same blockchain
+                        event_chain = Asset(evt_t.get("asset")).get_chain()
+                        out_chain = out.coins[0].asset.get_chain()
+                        if event_chain == out_chain:
+                            todo.append(out)
+                            count += 1
+                            if count >= int(evt_t.get("transaction_count")):
+                                break
+                    self.thorchain_state.handle_gas(todo)
 
-                    elif evt_t.type == "outbound":
-                        # figure out which outbound event is which tx
-                        for out in outbounds:
-                            if out.coins_str() == evt_t.get("coin"):
-                                self.thorchain_state.generate_outbound_events(
-                                    txn, [out]
-                                )
-                                pending_txs -= 1
+                elif evt_t.type == "rewards":
+                    self.thorchain_state.handle_rewards()
+                    block_height = evt_t.height
 
-                    elif not processed:
-                        outbounds = self.sim_trigger_tx(txn)
-                        pending_txs = len(outbounds)
-                        processed = True
-                        time.sleep(6)
-                        continue
-                continue
+                elif evt_t.type == "outbound" and pending_txs > 0:
+                    # figure out which outbound event is which tx
+                    for out in outbounds:
+                        coin_o = out.coins_str()
+                        coin_e = evt_t.get("coin")
+                        if coin_o == coin_e:
+                            self.thorchain_state.generate_outbound_events(txn, [out])
+                            pending_txs -= 1
+                        elif out.coins[0].asset in coin_e:
+                            msg = f"out coins not matching {coin_o} != {coin_e}"
+                            logging.error(msg)
+                            break
+                elif not processed:
+                    outbounds = self.sim_trigger_tx(txn)
+                    pending_txs = len(outbounds)
+                    processed = True
+                    continue
 
-            if len(events) == len(sim_events) and pending_txs <= 0 and processed:
+            old_events = events
+            if len(events) == len(sim_events) and pending_txs <= 0 and processed_events:
                 break
-
-            time.sleep(1)
-
+            time.sleep(0.3)
         if pending_txs > 0:
+            self.check_events(events, sim_events)
             msg = f"failed to send all outbound transactions {pending_txs}"
             self.error(msg)
-        return outbounds
+        return outbounds, block_height, events, sim_events
 
     def log_result(self, tx, outbounds):
         """
@@ -519,14 +520,13 @@ class Smoker:
             if txn.memo == "SEED":
                 continue
 
-            outbounds = self.sim_catch_up(txn)
+            outbounds, block_height, events, sim_events = self.sim_catch_up(txn)
 
             # check if we are verifying the results
             if self.no_verify:
                 continue
 
-            self.check_events()
-            self.check_vaults()
+            self.check_events(events, sim_events)
             self.check_pools()
 
             self.check_binance()
