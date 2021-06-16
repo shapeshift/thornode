@@ -52,6 +52,8 @@ smoke:
     MIDGARD_IMAGE: registry.gitlab.com/thorchain/midgard:develop
     THORNODE_REPO: https://gitlab.com/thorchain/thornode.git
     THORNODE_IMAGE: registry.gitlab.com/thorchain/thornode:develop
+    BLOCK_TIME: 0.8s
+    ETH_BLOCK_TIME: "0"
   before_script:
     - apk -U add git make protoc
     - docker pull $HEIMDALL_IMAGE || true

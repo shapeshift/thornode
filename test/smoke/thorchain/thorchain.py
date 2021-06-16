@@ -101,26 +101,16 @@ class ThorchainClient(HttpClient):
         result = self.get_events(block_height)["result"]
         if result["txs_results"]:
             for tx in result["txs_results"]:
-                self.process_events(tx["events"])
+                self.process_events(tx["events"], block_height)
         if result["end_block_events"]:
-            self.process_events(result["end_block_events"])
+            self.process_events(result["end_block_events"], block_height)
 
-    def process_events(self, events):
-        outbound = []
+    def process_events(self, events, block_height):
         for event in events:
             if event["type"] in ["message", "transfer"]:
                 continue
             self.decode_event(event)
-            event = Event(event["type"], event["attributes"])
-            # save outbound types for last. Not sure why, but it appears the
-            # outbound of a swap appears first before the swap itself which
-            # causes issues. Making its hacky patch to get it working properly
-            if event.type == "outbound":
-                outbound.append(event)
-                continue
-            self.events.append(event)
-
-        for event in outbound:
+            event = Event(event["type"], event["attributes"], block_height)
             self.events.append(event)
 
     def decode_event(self, event):
@@ -143,7 +133,7 @@ class ThorchainClient(HttpClient):
 
     def get_block_height(self):
         """
-        Get the current block height of mock binance
+        Get the current block height of thorchain
         """
         data = self.fetch("/thorchain/lastblock")
         return int(data[0]["thorchain"])
@@ -159,8 +149,11 @@ class ThorchainClient(HttpClient):
         data = self.fetch("/thorchain/inbound_addresses")
         return data[0]["pub_key"]
 
-    def get_vault_data(self):
-        return self.fetch("/thorchain/network")
+    def get_vault_data(self, height=None):
+        url = "/thorchain/network"
+        if height:
+            url = f"/thorchain/network?height={height}"
+        return self.fetch(url)
 
     def get_asgard_vaults(self):
         return self.fetch("/thorchain/vaults/asgard")
@@ -243,6 +236,7 @@ class ThorchainState:
         """
         Fetch a specific pool by asset
         """
+        asset = Asset(asset).get_layer1_asset()
         for pool in self.pools:
             if pool.asset == asset:
                 return pool
@@ -1097,7 +1091,7 @@ class ThorchainState:
 
         pool = self.get_pool(target)
         if target.is_rune():
-            pool = self.get_pool(source.get_layer1_asset())
+            pool = self.get_pool(source)
 
         if pool.is_zero():
             return self.refund(tx, 108, f"{asset} pool doesn't exist")
@@ -1365,12 +1359,13 @@ class Event(Jsonable):
     using tendermint sdk events
     """
 
-    def __init__(self, event_type, attributes):
+    def __init__(self, event_type, attributes, height=None):
         self.type = event_type
         for attr in attributes:
             for key, value in attr.items():
                 attr[key] = str(value)
         self.attributes = attributes
+        self.height = height
 
     def __str__(self):
         attrs = " ".join(map(str, self.attributes))

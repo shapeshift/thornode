@@ -60,7 +60,7 @@ class MockBinance(HttpClient):
         """
         start_block = self.get_block_height()
         for x in range(0, 30):
-            time.sleep(1)
+            time.sleep(0.3)
             block = self.get_block_height()
             if block - start_block >= count:
                 return
