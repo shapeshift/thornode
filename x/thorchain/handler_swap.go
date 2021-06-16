@@ -330,6 +330,11 @@ func (h SwapHandler) handleCurrent(ctx cosmos.Context, msg MsgSwap) (*cosmos.Res
 	if synthVirtualDepthMult < 1 || err != nil {
 		synthVirtualDepthMult = h.mgr.GetConstants().GetInt64Value(constants.VirtualMultSynths)
 	}
+
+	if msg.TargetAsset.IsRune() && !msg.TargetAsset.IsNativeRune() {
+		return nil, fmt.Errorf("target asset can't be %s", msg.TargetAsset.String())
+	}
+
 	swapper := NewSwapperV56()
 	_, _, swapErr := swapper.swap(
 		ctx,
