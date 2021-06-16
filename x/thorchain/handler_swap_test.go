@@ -2,6 +2,7 @@ package thorchain
 
 import (
 	"errors"
+	"fmt"
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
@@ -209,14 +210,14 @@ func (s *HandlerSwapSuite) TestHandle(c *C) {
 	poolTCAN.BalanceRune = cosmos.NewUint(2349500000)
 	c.Assert(keeper.SetPool(ctx, poolTCAN), IsNil)
 	bnbAddr := GetRandomBNBAddress()
-	m, err := ParseMemo("swap:BNB.RUNE-B1A:" + bnbAddr.String() + ":124958592")
+	m, err := ParseMemo("swap:BNB.BNB:" + bnbAddr.String() + ":121893238")
 	txIn := NewObservedTx(
 		common.NewTx(GetRandomTxHash(), signerBNBAddr, GetRandomBNBAddress(),
 			common.Coins{
 				common.NewCoin(tCanAsset, cosmos.NewUint(20000000)),
 			},
 			BNBGasFeeSingleton,
-			"swap:BNB.RUNE-B1A:"+signerBNBAddr.String()+":124958592",
+			"swap:BNB.BNB:"+signerBNBAddr.String()+":121893238",
 		),
 		1,
 		GetRandomPubKey(), 1,
@@ -238,6 +239,18 @@ func (s *HandlerSwapSuite) TestHandle(c *C) {
 	result, err = handler.Run(ctx, msgSwap)
 	c.Assert(err, NotNil)
 	c.Assert(result, IsNil)
+
+	msgSwap1 := NewMsgSwap(GetRandomTx(), common.RuneB1AAsset, GetRandomBNBAddress(), cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(), GetRandomBech32Addr())
+	result, err = handler.Run(ctx, msgSwap1)
+	c.Assert(err, NotNil)
+	c.Assert(err.Error(), Equals, fmt.Sprintf("target asset can't be %s", msgSwap1.TargetAsset.String()))
+	c.Assert(result, IsNil)
+	msgSwap2 := NewMsgSwap(GetRandomTx(), common.Rune67CAsset, GetRandomBNBAddress(), cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(), GetRandomBech32Addr())
+	result, err = handler.Run(ctx, msgSwap2)
+	c.Assert(err, NotNil)
+	c.Assert(err.Error(), Equals, fmt.Sprintf("target asset can't be %s", msgSwap2.TargetAsset.String()))
+	c.Assert(result, IsNil)
+
 }
 
 func (s *HandlerSwapSuite) TestDoubleSwap(c *C) {
