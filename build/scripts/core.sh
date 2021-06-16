@@ -113,6 +113,10 @@ peer_list() {
   sed -i -e "s/$PEERSISTENT_PEER_TARGET/persistent_peers = \"$PEERUSER\"/g" ~/.thornode/config/config.toml
 }
 
+block_time() {
+  sed -i -e "s/timeout_commit = \"5s\"/timeout_commit = \"$1\"/g" ~/.thornode/config/config.toml
+}
+
 seeds_list() {
   SEEDS=$1
   OLD_IFS=$IFS
@@ -174,7 +178,7 @@ deploy_eth_contract() {
   echo "Deploying eth contracts"
   until curl -s "$1" &>/dev/null; do
     echo "Waiting for ETH node to be available ($1)"
-    sleep 3
+    sleep 1
   done
   python3 scripts/eth/eth-tool.py --ethereum "$1" deploy --from_address 0x3fd2d4ce97b082d4bce3f9fee2a3d60668d2f473 >/tmp/contract.log 2>&1
   cat /tmp/contract.log
