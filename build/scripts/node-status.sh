@@ -10,13 +10,24 @@ format_int() {
   printf "%.0f\n" "$1" 2>/dev/null | sed ':a;s/\B[0-9]\{3\}\>/,&/;ta'
 }
 
+calc_progress() {
+  if [ "$1" = "$2" ]; then
+    echo "100.000%"
+  elif [ -n "$3" ]; then
+    printf "%.3f%%" "$(echo "$3 * 100" | bc)" 2>/dev/null || echo "Error"
+  else
+    printf "%.3f%%" "$(echo "$1/$2 * 100" | bc)" 2>/dev/null || echo "Error"
+  fi
+}
+
 API=http://thornode:1317
-THORNODE_SERVICE_PORT_RPC="${THORNODE_SERVICE_PORT_RPC:=26657}"
-BINANCE_DAEMON_SERVICE_PORT_RPC="${BINANCE_DAEMON_SERVICE_PORT_RPC:=26657}"
-BITCOIN_DAEMON_SERVICE_PORT_RPC="${BITCOIN_DAEMON_SERVICE_PORT_RPC:=18443}"
-LITECOIN_DAEMON_SERVICE_PORT_RPC="${LITECOIN_DAEMON_SERVICE_PORT_RPC:=18443}"
-BITCOIN_CASH_DAEMON_SERVICE_PORT_RPC="${BITCOIN_CASH_DAEMON_SERVICE_PORT_RPC:=18443}"
-ETHEREUM_DAEMON_SERVICE_PORT_RPC="${ETHEREUM_DAEMON_SERVICE_PORT_RPC:=8545}"
+THORNODE_PORT="${THORNODE_SERVICE_PORT_RPC:-27147}"
+BINANCE_PORT="${BINANCE_DAEMON_SERVICE_PORT_RPC:-26657}"
+BITCOIN_PORT="${BITCOIN_DAEMON_SERVICE_PORT_RPC:-8332}"
+LITECOIN_PORT="${LITECOIN_DAEMON_SERVICE_PORT_RPC:-9332}"
+BITCOIN_CASH_PORT="${BITCOIN_CASH_DAEMON_SERVICE_PORT_RPC:-8332}"
+DOGECOIN_PORT="${DOGECOIN_DAEMON_SERVICE_PORT_RPC:-22555}"
+ETHEREUM_PORT="${ETHEREUM_DAEMON_SERVICE_PORT_RPC:-8545}"
 
 ADDRESS=$(echo "$SIGNER_PASSWD" | thornode keys show "$SIGNER_NAME" -a --keyring-backend file)
 JSON=$(curl -sL --fail -m 10 "$API/thorchain/node/$ADDRESS")
@@ -34,53 +45,61 @@ if [ "$VALIDATOR" = "true" ]; then
   # calculate BNB chain sync progress
   [ "$NET" = "mainnet" ] && BNB_PEER=dataseed1.binance.org || BNB_PEER=data-seed-pre-0-s1.binance.org
   BNB_HEIGHT=$(curl -sL --fail -m 10 $BNB_PEER/status | jq -r ".result.sync_info.latest_block_height")
-  BNB_SYNC_HEIGHT=$(curl -sL --fail -m 10 binance-daemon:$BINANCE_DAEMON_SERVICE_PORT_RPC/status | jq -r ".result.sync_info.index_height")
-  BNB_PROGRESS=$(printf "%.3f%%" "$(jq -n "$BNB_SYNC_HEIGHT"/"$BNB_HEIGHT"*100 2>/dev/null)" 2>/dev/null) || BNB_PROGRESS=Error
+  BNB_SYNC_HEIGHT=$(curl -sL --fail -m 10 binance-daemon:$BINANCE_PORT/status | jq -r ".result.sync_info.index_height")
+  BNB_PROGRESS=$(calc_progress "$BNB_SYNC_HEIGHT" "$BNB_HEIGHT")
 
   # calculate BTC chain sync progress
-  BTC_RESULT=$(curl -sL --fail -m 10 --data-binary '{"jsonrpc": "1.0", "id": "node-status", "method": "getblockchaininfo", "params": []}' -H 'content-type: text/plain;' http://thorchain:password@bitcoin-daemon:$BITCOIN_DAEMON_SERVICE_PORT_RPC)
+  BTC_RESULT=$(curl -sL --fail -m 10 --data-binary '{"jsonrpc": "1.0", "id": "node-status", "method": "getblockchaininfo", "params": []}' -H 'content-type: text/plain;' http://thorchain:password@bitcoin-daemon:$BITCOIN_PORT)
   BTC_HEIGHT=$(echo "$BTC_RESULT" | jq -r ".result.headers")
   BTC_SYNC_HEIGHT=$(echo "$BTC_RESULT" | jq -r ".result.blocks")
   BTC_PROGRESS=$(echo "$BTC_RESULT" | jq -r ".result.verificationprogress")
-  BTC_PROGRESS=$(printf "%.3f%%" "$(jq -n "$BTC_PROGRESS"*100 2>/dev/null)" 2>/dev/null) || BTC_PROGRESS=Error
+  BTC_PROGRESS=$(calc_progress "$BTC_SYNC_HEIGHT" "$BTC_HEIGHT" "$BTC_PROGRESS")
 
   # calculate LTC chain sync progress
-  LTC_RESULT=$(curl -sL --fail -m 10 --data-binary '{"jsonrpc": "1.0", "id": "node-status", "method": "getblockchaininfo", "params": []}' -H 'content-type: text/plain;' http://thorchain:password@litecoin-daemon:$LITECOIN_DAEMON_SERVICE_PORT_RPC)
+  LTC_RESULT=$(curl -sL --fail -m 10 --data-binary '{"jsonrpc": "1.0", "id": "node-status", "method": "getblockchaininfo", "params": []}' -H 'content-type: text/plain;' http://thorchain:password@litecoin-daemon:$LITECOIN_PORT)
   LTC_HEIGHT=$(echo "$LTC_RESULT" | jq -r ".result.headers")
   LTC_SYNC_HEIGHT=$(echo "$LTC_RESULT" | jq -r ".result.blocks")
   LTC_PROGRESS=$(echo "$LTC_RESULT" | jq -r ".result.verificationprogress")
-  LTC_PROGRESS=$(printf "%.3f%%" "$(jq -n "$LTC_PROGRESS"*100 2>/dev/null)" 2>/dev/null) || LTC_PROGRESS=Error
+  LTC_PROGRESS=$(calc_progress "$LTC_SYNC_HEIGHT" "$LTC_HEIGHT" "$LTC_PROGRESS")
 
   # calculate ETH chain sync progress
-  ETH_RESULT=$(curl -X POST -sL --fail -m 10 --data '{"jsonrpc":"2.0","method":"eth_syncing","params":[],"id":1}' -H 'content-type: application/json' http://ethereum-daemon:$ETHEREUM_DAEMON_SERVICE_PORT_RPC)
+  ETH_RESULT=$(curl -X POST -sL --fail -m 10 --data '{"jsonrpc":"2.0","method":"eth_syncing","params":[],"id":1}' -H 'content-type: application/json' http://ethereum-daemon:$ETHEREUM_PORT)
   if [ "$ETH_RESULT" = '{"jsonrpc":"2.0","id":1,"result":false}' ]; then
-    ETH_RESULT=$(curl -X POST -sL --fail -m 10 --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' -H 'content-type: application/json' http://ethereum-daemon:$ETHEREUM_DAEMON_SERVICE_PORT_RPC)
+    ETH_RESULT=$(curl -X POST -sL --fail -m 10 --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' -H 'content-type: application/json' http://ethereum-daemon:$ETHEREUM_PORT)
     ETH_HEIGHT=$(printf "%.0f" "$(echo "$ETH_RESULT" | jq -r ".result")")
-    ETH_SYNC_HEIGHT=$(printf "%.0f" "$(echo "$ETH_RESULT" | jq -r ".result")")
-    ETH_PROGRESS=$(printf "%.3f%%" "$(jq -n "$ETH_SYNC_HEIGHT"/"$ETH_HEIGHT"*100 2>/dev/null)" 2>/dev/null) || ETH_PROGRESS=Error
+    ETH_SYNC_HEIGHT=$ETH_HEIGHT
   else
     ETH_HEIGHT=$(printf "%.0f" "$(echo "$ETH_RESULT" | jq -r ".result.highestBlock")")
     ETH_SYNC_HEIGHT=$(printf "%.0f" "$(echo "$ETH_RESULT" | jq -r ".result.currentBlock")")
-    ETH_PROGRESS=$(printf "%.3f%%" "$(jq -n "$ETH_SYNC_HEIGHT"/"$ETH_HEIGHT"*100 2>/dev/null)" 2>/dev/null) || ETH_PROGRESS=Error
   fi
+  ETH_PROGRESS=$(calc_progress "$ETH_SYNC_HEIGHT" "$ETH_HEIGHT")
 
   # calculate BCH chain sync progress
-  BCH_RESULT=$(curl -sL --fail -m 10 --data-binary '{"jsonrpc": "1.0", "id": "node-status", "method": "getblockchaininfo", "params": []}' -H 'content-type: text/plain;' http://thorchain:password@bitcoin-cash-daemon:$BITCOIN_CASH_DAEMON_SERVICE_PORT_RPC)
+  BCH_RESULT=$(curl -sL --fail -m 10 --data-binary '{"jsonrpc": "1.0", "id": "node-status", "method": "getblockchaininfo", "params": []}' -H 'content-type: text/plain;' http://thorchain:password@bitcoin-cash-daemon:$BITCOIN_CASH_PORT)
   BCH_HEIGHT=$(echo "$BCH_RESULT" | jq -r ".result.headers")
   BCH_SYNC_HEIGHT=$(echo "$BCH_RESULT" | jq -r ".result.blocks")
   BCH_PROGRESS=$(echo "$BCH_RESULT" | jq -r ".result.verificationprogress")
-  BCH_PROGRESS=$(printf "%.3f%%" "$(jq -n "$BCH_PROGRESS"*100 2>/dev/null)" 2>/dev/null) || BCH_PROGRESS=Error
+  BCH_PROGRESS=$(calc_progress "$BCH_SYNC_HEIGHT" "$BCH_HEIGHT" "$BCH_PROGRESS")
+
+  # calculate DOGE chain sync progress
+  if [ -n "$DOGECOIN_DAEMON_SERVICE_PORT_RPC" ]; then
+    DOGE_RESULT=$(curl -sL --fail -m 10 --data-binary '{"jsonrpc": "1.0", "id": "node-status", "method": "getblockchaininfo", "params": []}' -H 'content-type: text/plain;' http://thorchain:password@dogecoin-daemon:$DOGECOIN_PORT)
+    DOGE_HEIGHT=$(echo "$DOGE_RESULT" | jq -r ".result.headers")
+    DOGE_SYNC_HEIGHT=$(echo "$DOGE_RESULT" | jq -r ".result.blocks")
+    DOGE_PROGRESS=$(echo "$DOGE_RESULT" | jq -r ".result.verificationprogress")
+    DOGE_PROGRESS=$(calc_progress "$DOGE_SYNC_HEIGHT" "$DOGE_HEIGHT" "$DOGE_PROGRESS")
+  fi
 fi
 
 # calculate THOR chain sync progress
-THOR_SYNC_HEIGHT=$(curl -sL --fail -m 10 localhost:$THORNODE_SERVICE_PORT_RPC/status | jq -r ".result.sync_info.latest_block_height")
+THOR_SYNC_HEIGHT=$(curl -sL --fail -m 10 localhost:$THORNODE_PORT/status | jq -r ".result.sync_info.latest_block_height")
 if [ "$PEER" != "" ]; then
-  THOR_HEIGHT=$(curl -sL --fail -m 10 "$PEER:$THORNODE_SERVICE_PORT_RPC/status" | jq -r ".result.sync_info.latest_block_height")
+  THOR_HEIGHT=$(curl -sL --fail -m 10 "$PEER:$THORNODE_PORT/status" | jq -r ".result.sync_info.latest_block_height")
 elif [ "$SEEDS" != "" ]; then
   OLD_IFS=$IFS
   IFS=","
   for PEER in $SEEDS; do
-    THOR_HEIGHT=$(curl -sL --fail -m 10 "$PEER:$THORNODE_SERVICE_PORT_RPC/status" | jq -r ".result.sync_info.latest_block_height") || continue
+    THOR_HEIGHT=$(curl -sL --fail -m 10 "$PEER:$THORNODE_PORT/status" | jq -r ".result.sync_info.latest_block_height") || continue
     break
   done
   IFS=$OLD_IFS
@@ -110,7 +129,7 @@ fi
 
 echo
 echo "API         http://$IP:1317/thorchain/doc/"
-echo "RPC         http://$IP:$THORNODE_SERVICE_PORT_RPC"
+echo "RPC         http://$IP:$THORNODE_PORT"
 echo "MIDGARD     http://$IP:8080/v2/doc"
 
 echo
@@ -121,4 +140,7 @@ printf "%-11s %-10s %-10s\n" THOR "$THOR_PROGRESS" "$(format_int "$THOR_SYNC_HEI
 [ "$VALIDATOR" = "true" ] && printf "%-11s %-10s %-10s\n" ETH "$ETH_PROGRESS" "$(format_int "$ETH_SYNC_HEIGHT")/$(format_int "$ETH_HEIGHT")"
 [ "$VALIDATOR" = "true" ] && printf "%-11s %-10s %-10s\n" LTC "$LTC_PROGRESS" "$(format_int "$LTC_SYNC_HEIGHT")/$(format_int "$LTC_HEIGHT")"
 [ "$VALIDATOR" = "true" ] && printf "%-11s %-10s %-10s\n" BCH "$BCH_PROGRESS" "$(format_int "$BCH_SYNC_HEIGHT")/$(format_int "$BCH_HEIGHT")"
+if [ "$VALIDATOR" = "true" ] && [ -n "$DOGECOIN_DAEMON_SERVICE_PORT_RPC" ]; then
+  printf "%-11s %-10s %-10s\n" DOGE "$DOGE_PROGRESS" "$(format_int "$DOGE_SYNC_HEIGHT")/$(format_int "$DOGE_HEIGHT")"
+fi
 exit 0
