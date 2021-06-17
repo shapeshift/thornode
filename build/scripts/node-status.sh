@@ -12,11 +12,11 @@ format_int() {
 
 calc_progress() {
   if [ "$1" = "$2" ]; then
-    echo "100.000%"
+    [ "$1" = "0" ] && echo "0.000%" || echo "100.000%"
   elif [ -n "$3" ]; then
-    printf "%.3f%%" "$(echo "$3 * 100" | bc)" 2>/dev/null || echo "Error"
+    printf "%.3f%%" "$(echo "scale=6; $3 * 100" | bc 2>/dev/null)" 2>/dev/null || echo "Error"
   else
-    printf "%.3f%%" "$(echo "$1/$2 * 100" | bc)" 2>/dev/null || echo "Error"
+    printf "%.3f%%" "$(echo "scale=6; $1/$2 * 100" | bc 2>/dev/null)" 2>/dev/null || echo "Error"
   fi
 }
 
@@ -68,11 +68,14 @@ if [ "$VALIDATOR" = "true" ]; then
     ETH_RESULT=$(curl -X POST -sL --fail -m 10 --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' -H 'content-type: application/json' http://ethereum-daemon:"$ETHEREUM_PORT")
     ETH_HEIGHT=$(printf "%.0f" "$(echo "$ETH_RESULT" | jq -r ".result")")
     ETH_SYNC_HEIGHT=$ETH_HEIGHT
-  else
+    ETH_PROGRESS=$(calc_progress "$ETH_SYNC_HEIGHT" "$ETH_HEIGHT")
+  elif [ -n "$ETH_RESULT" ]; then
     ETH_HEIGHT=$(printf "%.0f" "$(echo "$ETH_RESULT" | jq -r ".result.highestBlock")")
     ETH_SYNC_HEIGHT=$(printf "%.0f" "$(echo "$ETH_RESULT" | jq -r ".result.currentBlock")")
+    ETH_PROGRESS=$(calc_progress "$ETH_SYNC_HEIGHT" "$ETH_HEIGHT")
+  else
+    ETH_PROGRESS=Error
   fi
-  ETH_PROGRESS=$(calc_progress "$ETH_SYNC_HEIGHT" "$ETH_HEIGHT")
 
   # calculate BCH chain sync progress
   BCH_RESULT=$(curl -sL --fail -m 10 --data-binary '{"jsonrpc": "1.0", "id": "node-status", "method": "getblockchaininfo", "params": []}' -H 'content-type: text/plain;' http://thorchain:password@bitcoin-cash-daemon:"$BITCOIN_CASH_PORT")
