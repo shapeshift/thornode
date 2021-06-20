@@ -4,9 +4,9 @@ services:
   thornode:
     environment:
       NATIVE: ${NATIVE:-none}
-      BLOCK_TIME: ${BLOCK_TIME:-5s}
+      THOR_BLOCK_TIME: ${THOR_BLOCK_TIME:-5s}
   bifrost:
     environment:
       BLOCK_TIME: ${BLOCK_TIME:-5s}
       BINANCE_HOST: http://binance-mock:26660
-    command: [ "bifrost", "-c", "/etc/bifrost/config.json", "-t","/etc/bifrost/preparam.data", "-l", "debug"]
+    command: [ "bifrost", "-c", "/etc/bifrost/config.json", "-t","/etc/bifrost/preparam.data", "-l", "info"]

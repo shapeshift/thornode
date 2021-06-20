@@ -10,7 +10,7 @@ SIGNER_PASSWD="${SIGNER_PASSWD:=password}"
 NODES="${NODES:=1}"
 SEED="${SEED:=thornode}" # the hostname of the master node
 ETH_HOST="${ETH_HOST:=http://ethereum-localnet:8545}"
-BLOCK_TIME="${BLOCK_TIME:=5s}"
+THOR_BLOCK_TIME="${THOR_BLOCK_TIME:=5s}"
 
 # this is required as it need to run thornode init , otherwise tendermint related commant doesn't work
 if [ "$SEED" = "$(hostname)" ]; then
@@ -89,7 +89,7 @@ if [ "$SEED" = "$(hostname)" ]; then
       deploy_eth_contract $ETH_HOST
 
       # override block time for faster smoke tests
-      block_time "$BLOCK_TIME"
+      block_time "$THOR_BLOCK_TIME"
     else
       echo "ETH Contract Address: $CONTRACT"
       set_eth_contract "$CONTRACT"
