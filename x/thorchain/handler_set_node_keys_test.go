@@ -44,6 +44,10 @@ func (k *TestSetNodeKeysKeeper) SetNodeAccount(ctx cosmos.Context, na NodeAccoun
 	return nil
 }
 
+func (k *TestSetNodeKeysKeeper) SendFromModuleToModule(ctx cosmos.Context, from, to string, coins common.Coins) error {
+	return nil
+}
+
 var _ = Suite(&HandlerSetNodeKeysSuite{})
 
 func (s *HandlerSetNodeKeysSuite) TestValidate(c *C) {
@@ -178,7 +182,7 @@ func (s *HandlerSetNodeKeysSuite) TestHandle(c *C) {
 
 	nodeAccount = NewNodeAccount(signer, NodeWhiteListed, emptyPubKeySet, "", bond, bondAddr, common.BlockHeight(ctx))
 	c.Assert(helper.Keeper.SetNodeAccount(ctx, nodeAccount), IsNil)
-
+	FundModule(c, ctx, helper, BondName, common.One*100)
 	// happy path
 	_, err := handler.handle(ctx, *msgNodeKeys)
 	c.Assert(err, IsNil)
