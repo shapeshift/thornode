@@ -657,7 +657,7 @@ func (c *Client) getTxIn(tx *btcjson.TxRawResult, height int64) (types.TxInItem,
 		if errors.Is(err, btypes.FailOutputMatchCriteria) {
 			c.logger.Debug().Int64("height", height).Str("tx", tx.Hash).Msg("ignore tx not matching format")
 			return types.TxInItem{}, nil
-
+		}
 		return types.TxInItem{}, fmt.Errorf("fail to get output from tx: %w", err)
 	}
 	amount, err := btcutil.NewAmount(output.Value)
