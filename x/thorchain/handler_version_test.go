@@ -58,6 +58,9 @@ func (k *TestVersionlKeeper) SetNetwork(ctx cosmos.Context, data Network) error 
 	}
 	return nil
 }
+func (k *TestVersionlKeeper) SendFromModuleToModule(ctx cosmos.Context, from, to string, coins common.Coins) error {
+	return nil
+}
 
 var _ = Suite(&HandlerVersionSuite{})
 

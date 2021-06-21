@@ -616,7 +616,7 @@ func (s *HandlerSuite) TestExternalHandler(c *C) {
 	c.Check(result, IsNil)
 	na := GetRandomNodeAccount(NodeActive)
 	mgr.Keeper().SetNodeAccount(ctx, na)
-	FundAccount(c, ctx, mgr.Keeper(), na.NodeAddress, 10*common.One)
+	FundModule(c, ctx, mgr.Keeper(), BondName, 10*common.One)
 	result, err = handler(ctx, NewMsgSetVersion("0.1.0", na.NodeAddress))
 	c.Assert(err, IsNil)
 	c.Assert(result, NotNil)
