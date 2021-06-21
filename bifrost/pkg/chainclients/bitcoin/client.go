@@ -654,10 +654,10 @@ func (c *Client) getTxIn(tx *btcjson.TxRawResult, height int64) (types.TxInItem,
 	}
 	output, err := c.getOutput(sender, tx, strings.EqualFold(memo, mem.NewConsolidateMemo().String()))
 	if err != nil {
-		if err.Error() == "fail to get output matching criteria" {
+		if errors.Is(err, btypes.FailOutputMatchCriteria) {
 			c.logger.Debug().Int64("height", height).Str("tx", tx.Hash).Msg("ignore tx not matching format")
 			return types.TxInItem{}, nil
-		}
+
 		return types.TxInItem{}, fmt.Errorf("fail to get output from tx: %w", err)
 	}
 	amount, err := btcutil.NewAmount(output.Value)
@@ -792,7 +792,7 @@ func (c *Client) getOutput(sender string, tx *btcjson.TxRawResult, consolidate b
 			}
 		}
 	}
-	return btcjson.Vout{}, fmt.Errorf("fail to get output matching criteria")
+	return btcjson.Vout{}, btypes.FailOutputMatchCriteria
 }
 
 // getSender returns sender address for a btc tx, using vin:0
