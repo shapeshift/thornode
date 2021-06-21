@@ -651,7 +651,7 @@ func (c *Client) getBlock(height int64) (*btcjson.GetBlockVerboseTxResult, error
 
 func (c *Client) getTxIn(tx *btcjson.TxRawResult, height int64) (types.TxInItem, error) {
 	if c.ignoreTx(tx) {
-		c.logger.Debug().Msgf("ignore (%s) , not correct format", tx.Hash)
+		c.logger.Debug().Int64("height", height).Str("tx", tx.Hash).Msg("ignore tx not matching format")
 		return types.TxInItem{}, nil
 	}
 
@@ -668,6 +668,10 @@ func (c *Client) getTxIn(tx *btcjson.TxRawResult, height int64) (types.TxInItem,
 	}
 	output, err := c.getOutput(sender, tx, strings.EqualFold(memo, mem.NewConsolidateMemo().String()))
 	if err != nil {
+		if err.Error() == "fail to get output matching criteria" {
+			c.logger.Debug().Int64("height", height).Str("tx", tx.Hash).Msg("ignore tx not matching format")
+			return types.TxInItem{}, nil
+		}
 		return types.TxInItem{}, fmt.Errorf("fail to get output from tx: %w", err)
 	}
 	amount, err := ltcutil.NewAmount(output.Value)
