@@ -1,6 +1,7 @@
 package bitcoin
 
 import (
+	"context"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -20,6 +21,8 @@ import (
 	"github.com/rs/zerolog/log"
 	mem "gitlab.com/thorchain/thornode/x/thorchain/memo"
 	tssp "gitlab.com/thorchain/tss/go-tss/tss"
+	"golang.org/x/sync/errgroup"
+	"golang.org/x/sync/semaphore"
 
 	"gitlab.com/thorchain/thornode/bifrost/blockscanner"
 	btypes "gitlab.com/thorchain/thornode/bifrost/blockscanner/types"
@@ -42,6 +45,7 @@ const (
 	// which is average at 250 vbytes , however asgard will consolidate UTXOs , which will take up to 1000 vbytes
 	EstimateAverageTxSize = 1000
 	DefaultCoinbaseValue  = 6.25
+	MaxMempoolScanPerTry  = 500
 )
 
 // Client observes bitcoin chain and allows to sign and broadcast tx
@@ -57,7 +61,6 @@ type Client struct {
 	bridge                *thorclient.ThorchainBridge
 	globalErrataQueue     chan<- types.ErrataBlock
 	nodePubKey            common.PubKey
-	lastMemPoolScan       time.Time
 	currentBlockHeight    int64
 	asgardAddresses       []common.Address
 	lastAsgard            time.Time
@@ -463,27 +466,61 @@ func (c *Client) getMemPool(height int64) (types.TxIn, error) {
 		Chain:   c.GetChain(),
 		MemPool: true,
 	}
+	maxWorker := c.cfg.ParallelMempoolScan
+	if maxWorker == 0 {
+		// set default worker to 5
+		maxWorker = 5
+	}
+	sem := semaphore.NewWeighted(int64(maxWorker))
+	g, _ := errgroup.WithContext(context.Background())
+	total := 0
+	lock := &sync.Mutex{}
 	for _, h := range hashes {
 		// this hash had been processed before , ignore it
 		if !c.tryAddToMemPoolCache(h.String()) {
 			c.logger.Debug().Msgf("%s had been processed , ignore", h.String())
 			continue
 		}
-
-		c.logger.Debug().Msgf("process hash %s", h.String())
-		result, err := c.client.GetRawTransactionVerbose(h)
-		if err != nil {
-			return types.TxIn{}, fmt.Errorf("fail to get raw transaction verbose with hash(%s): %w", h.String(), err)
+		// closure
+		txHash := h
+		g.Go(func() error {
+			ctx := context.TODO()
+			if err := sem.Acquire(ctx, 1); err != nil {
+				return fmt.Errorf("fail to acquire semaphore: %w", err)
+			}
+			defer sem.Release(1)
+			defer func(startTime time.Time) {
+				c.logger.Debug().Msgf("time to scan one tx in mempool: %s", time.Since(startTime).String())
+			}(time.Now())
+			c.logger.Debug().Msgf("process hash %s", txHash.String())
+			result, err := c.client.GetRawTransactionVerbose(txHash)
+			if err != nil {
+				// if the client fail to get the transaction , it could be the transaction removed , of the local node fail to
+				// respond with the transaction, it is safe to ignore it , and continue with the rest
+				c.logger.Err(err).Msgf("fail to get raw transaction verbose with hash(%s)", txHash.String())
+				return nil
+			}
+			txInItem, err := c.getTxIn(result, height)
+			if err != nil {
+				c.logger.Error().Err(err).Msg("fail to get TxInItem")
+				return nil
+			}
+			if txInItem.IsEmpty() {
+				return nil
+			}
+			lock.Lock()
+			defer lock.Unlock()
+			txIn.TxArray = append(txIn.TxArray, txInItem)
+			return nil
+		})
+		total++
+		// even it didn't finish scan all the mempool tx, but still yield here , so as block scanner can continue to scan a committed block
+		if total >= MaxMempoolScanPerTry {
+			break
 		}
-		txInItem, err := c.getTxIn(result, height)
-		if err != nil {
-			c.logger.Error().Err(err).Msg("fail to get TxInItem")
-			continue
-		}
-		if txInItem.IsEmpty() {
-			continue
-		}
-		txIn.TxArray = append(txIn.TxArray, txInItem)
+	}
+	if err := g.Wait(); err != nil {
+		c.logger.Err(err).Msgf("fail to scan mempool")
 	}
 	txIn.Count = strconv.Itoa(len(txIn.TxArray))
 	return txIn, nil
@@ -491,12 +528,6 @@ func (c *Client) getMemPool(height int64) (types.TxIn, error) {
 
 // FetchMemPool retrieves txs from mempool
 func (c *Client) FetchMemPool(height int64) (types.TxIn, error) {
-	// make sure client doesn't scan mempool too much
-	diff := time.Now().Sub(c.lastMemPoolScan)
-	if diff < constants.ThorchainBlockTime {
-		return types.TxIn{}, nil
-	}
-	c.lastMemPoolScan = time.Now()
 	return c.getMemPool(height)
 }
 
