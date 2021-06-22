@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -96,8 +97,47 @@ func (b *BlockScanner) GetMessages() <-chan int64 {
 // Start block scanner
 func (b *BlockScanner) Start(globalTxsQueue chan types.TxIn) {
 	b.globalTxsQueue = globalTxsQueue
-	b.wg.Add(1)
+	currentPos, err := b.scannerStorage.GetScanPos()
+	if err != nil {
+		b.logger.Error().Err(err).Msgf("fail to get current block scan pos, %s will start from %d", b.cfg.ChainID, b.previousBlock)
+	} else if currentPos > b.previousBlock {
+		b.previousBlock = currentPos
+	}
+	b.wg.Add(2)
 	go b.scanBlocks()
+	go b.scanMempool()
+}
+
+func (b *BlockScanner) scanMempool() {
+	b.logger.Debug().Msg("start to scan mempool")
+	defer b.logger.Debug().Msg("stop scan mempool")
+	defer b.wg.Done()
+	for {
+		select {
+		case <-b.stopChan:
+			return
+		default:
+			// mempool scan will continue even the chain get halted , thus the network can still aware of outbound transaction
+			// during chain halt
+			preBlockHeight := atomic.LoadInt64(&b.previousBlock)
+			currentBlock := preBlockHeight + 1
+			txInMemPool, err := b.chainScanner.FetchMemPool(currentBlock)
+			if err != nil {
+				b.logger.Error().Err(err).Msg("fail to fetch MemPool")
+			}
+			if len(txInMemPool.TxArray) > 0 {
+				select {
+				case <-b.stopChan:
+					return
+				case b.globalTxsQueue <- txInMemPool:
+				}
+			} else {
+				// nothing in the mempool or for some chain like BNB & ETH, which doesn't need to scan
+				// mempool , back off here
+				time.Sleep(constants.ThorchainBlockTime)
+			}
+		}
+	}
 }
 
 // scanBlocks
@@ -105,15 +145,10 @@ func (b *BlockScanner) scanBlocks() {
 	b.logger.Debug().Msg("start to scan blocks")
 	defer b.logger.Debug().Msg("stop scan blocks")
 	defer b.wg.Done()
-	currentPos, err := b.scannerStorage.GetScanPos()
-	if err != nil {
-		b.logger.Error().Err(err).Msgf("fail to get current block scan pos, %s will start from %d", b.cfg.ChainID, b.previousBlock)
-	} else if currentPos > b.previousBlock {
-		b.previousBlock = currentPos
-	}
 
 	lastMimirCheck := time.Now().Add(-constants.ThorchainBlockTime)
 	haltHeight := int64(0)
+	var err error
 
 	// start up to grab those blocks
 	for {
@@ -121,8 +156,8 @@ func (b *BlockScanner) scanBlocks() {
 		case <-b.stopChan:
 			return
 		default:
-			currentBlock := b.previousBlock + 1
-
+			preBlockHeight := atomic.LoadInt64(&b.previousBlock)
+			currentBlock := preBlockHeight + 1
 			// check if mimir has disabled this chain
 			if time.Now().Sub(lastMimirCheck).Nanoseconds() >= constants.ThorchainBlockTime.Nanoseconds() {
 				haltHeight, err = b.thorchainBridge.GetMimir(fmt.Sprintf("Halt%sChain", b.cfg.ChainID))
@@ -134,17 +169,6 @@ func (b *BlockScanner) scanBlocks() {
 			if haltHeight > 0 && currentBlock > haltHeight {
 				time.Sleep(constants.ThorchainBlockTime)
 				continue
-			}
-			txInMemPool, err := b.chainScanner.FetchMemPool(currentBlock)
-			if err != nil {
-				b.logger.Error().Err(err).Msg("fail to fetch MemPool")
-			}
-			if len(txInMemPool.TxArray) > 0 {
-				select {
-				case <-b.stopChan:
-					return
-				case b.globalTxsQueue <- txInMemPool:
-				}
 			}
 			b.logger.Debug().Int64("block height", currentBlock).Msg("fetch txs")
 			txIn, err := b.chainScanner.FetchTxs(currentBlock)
@@ -162,7 +186,7 @@ func (b *BlockScanner) scanBlocks() {
 			if currentBlock%100 == 0 {
 				b.logger.Info().Int64("block height", currentBlock).Int("txs", len(txIn.TxArray))
 			}
-			b.previousBlock++
+			atomic.AddInt64(&b.previousBlock, 1)
 			b.healthy = true
 			b.metrics.GetCounter(metrics.TotalBlockScanned).Inc()
 			if len(txIn.TxArray) > 0 {
