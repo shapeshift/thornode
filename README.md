@@ -297,3 +297,9 @@ merge_request:
 author:
 type: added
 ```
+
+## New Chain Integration
+The process to integrate a new chain into THORChain is multifaceted. As it requires changes to multiple repos in multiple languages (`golang`, `python`, and `javascript`).
+
+To learn more about how to add a new chain, follow [this doc](docs/newchain.md)
+To learn more about creating your own private chain as a testing and development environment, follow [this doc](docs/private_mock_chain.d)
