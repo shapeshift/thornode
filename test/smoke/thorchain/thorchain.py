@@ -19,9 +19,11 @@ from utils.common import (
 from chains.aliases import get_alias, get_alias_address, get_aliases
 from chains.bitcoin import Bitcoin
 from chains.litecoin import Litecoin
+from chains.dogecoin import Dogecoin
 from chains.bitcoin_cash import BitcoinCash
 from chains.ethereum import Ethereum
 from chains.binance import Binance
+from chains.thorchain import Thorchain
 from tenacity import retry, stop_after_delay, wait_fixed
 
 RUNE = get_rune_asset()
@@ -197,9 +199,11 @@ class ThorchainState:
         self.btc_estimate_size = 188
         self.bch_estimate_size = 269
         self.ltc_estimate_size = 188
+        self.doge_estimate_size = 269
         self.btc_tx_rate = 0
         self.bch_tx_rate = 0
         self.ltc_tx_rate = 0
+        self.doge_tx_rate = 0
 
     def set_btc_tx_rate(self, tx_rate):
         """
@@ -218,6 +222,12 @@ class ThorchainState:
         Set median LTC tx rate , used to calculate gas
         """
         self.ltc_tx_rate = tx_rate
+
+    def set_doge_tx_rate(self, tx_rate):
+        """
+        Set median DOGE tx rate , used to calculate gas
+        """
+        self.doge_tx_rate = tx_rate
 
     def set_vault_pubkey(self, pubkey):
         """
@@ -282,6 +292,7 @@ class ThorchainState:
                 tx.gas[0].asset.is_btc()
                 or tx.gas[0].asset.is_bch()
                 or tx.gas[0].asset.is_ltc()
+                or tx.gas[0].asset.is_doge()
             ):
                 gases = tx.max_gas
 
@@ -317,6 +328,8 @@ class ThorchainState:
             self.events.append(event)
 
     def get_gas_asset(self, chain):
+        if chain == "THOR":
+            return Thorchain.coin
         if chain == "BNB":
             return Binance.coin
         if chain == "BTC":
@@ -325,6 +338,8 @@ class ThorchainState:
             return BitcoinCash.coin
         if chain == "LTC":
             return Litecoin.coin
+        if chain == "DOGE":
+            return Dogecoin.coin
         if chain == "ETH":
             return Ethereum.coin
         return None
@@ -346,6 +361,8 @@ class ThorchainState:
             amount = int(self.bch_tx_rate * 3 / 2) * self.bch_estimate_size
         if chain == "LTC":
             amount = int(self.ltc_tx_rate * 3 / 2) * self.ltc_estimate_size
+        if chain == "DOGE":
+            amount = int(self.doge_tx_rate * 3 / 2) * self.doge_estimate_size
         if chain == "BNB":
             amount = pool.get_rune_in_asset(int(rune_fee / 3))
         return Coin(gas_asset, amount)
@@ -361,6 +378,13 @@ class ThorchainState:
         if pool.asset_balance == 0 or pool.rune_balance == 0:
             return self.rune_fee
         return pool.get_asset_in_rune(chain_fee * 3)
+
+    def get_asset_fee(self, chain):
+        if chain in self.network_fees:
+            return self.network_fees[chain] * 3
+        gas_asset = self.get_gas_asset(chain)
+        pool = self.get_pool(gas_asset)
+        return pool.get_rune_in_asset(self.rune_fee)
 
     def handle_fee(self, in_tx, txs):
         """
@@ -403,7 +427,10 @@ class ThorchainState:
                     if pool.status == "Staged":
                         rune_fee = 0
                     else:
-                        asset_fee = pool.get_rune_in_asset(rune_fee)
+                        if coin.asset == self.get_gas_asset(tx.chain):
+                            asset_fee = self.get_asset_fee(tx.chain)
+                        else:
+                            asset_fee = pool.get_rune_in_asset(rune_fee)
                         if coin.amount <= asset_fee:
                             asset_fee = coin.amount
                             rune_fee = pool.get_asset_in_rune(asset_fee)
@@ -450,14 +477,23 @@ class ThorchainState:
                             else:
                                 tx.gas = tx.max_gas
 
+                        if coin.asset.is_doge() and not asset_fee == 0:
+                            tx.max_gas = [Coin(coin.asset, int(asset_fee / 2))]
+                            gap = int(asset_fee / 2) - self.doge_estimate_size * int(
+                                self.doge_tx_rate * 3 / 2
+                            )
+                            if gap > 0:
+                                coin.amount += gap
+                            else:
+                                tx.gas = tx.max_gas
+
                         if coin.asset.get_chain() == "ETH" and not asset_fee == 0:
                             if coin.asset.is_eth():
                                 tx.max_gas = [Coin(coin.asset, int(asset_fee / 2))]
 
                             elif coin.asset.is_erc():
+                                fee_in_gas_asset = self.get_asset_fee(tx.chain)
                                 gas_asset = self.get_gas_asset("ETH")
-                                pool_gas = self.get_pool(gas_asset)
-                                fee_in_gas_asset = pool_gas.get_rune_in_asset(rune_fee)
                                 tx.max_gas = [
                                     Coin(gas_asset, int(fee_in_gas_asset / 2))
                                 ]
@@ -926,12 +962,18 @@ class ThorchainState:
             # FIXME real world message
             return self.refund(tx, 105, "refund reason message")
 
+        chain = asset.get_chain()
         # calculate gas prior to update pool in case we empty the pool
         # and need to subtract
-        gas = self.get_gas(asset.get_chain(), tx)
+        gas = self.get_gas(chain, tx)
         # get the fee that are supposed to be charged, this will only be
         # used if it is the last withdraw
-        dynamic_fee = pool.get_rune_in_asset(self.get_rune_fee(asset.get_chain())) / 2
+        if asset == self.get_gas_asset(chain):
+            dynamic_fee = int(round(self.get_asset_fee(chain) / 2))
+        else:
+            dynamic_fee = int(
+                round(pool.get_rune_in_asset(self.get_rune_fee(chain)) / 2)
+            )
         tx_rune_gas = self.get_gas(RUNE.get_chain(), tx)
         withdraw_units, rune_amt, asset_amt = pool.withdraw(
             tx.from_address, withdraw_basis_points
@@ -944,6 +986,7 @@ class ThorchainState:
         self.btc_estimate_size = 255
         self.bch_estimate_size = 417
         self.ltc_estimate_size = 255
+        self.doge_estimate_size = 417
         if pool.lp_units == 0:
             if pool.asset.is_bnb():
                 gas_amt = gas.amount
@@ -955,7 +998,7 @@ class ThorchainState:
                 asset_amt -= gas_amt
             elif pool.asset.is_eth():
                 gas = self.get_gas(asset.get_chain(), tx)
-                asset_amt -= int(dynamic_fee)
+                asset_amt -= dynamic_fee
                 outbound_asset_amt -= dynamic_fee
                 pool.asset_balance += gas.amount
             elif pool.asset.is_btc():
@@ -963,40 +1006,53 @@ class ThorchainState:
                 # usually it is only 1 UTXO left
                 self.btc_estimate_size = 188
                 # left enough gas asset otherwise it will get into negative
-                emit_asset -= int(dynamic_fee)
+                emit_asset -= dynamic_fee
                 estimate_gas_asset = (
                     int(self.btc_tx_rate * 3 / 2) * self.btc_estimate_size
                 )
                 gas = Coin(gas.asset, estimate_gas_asset)
                 outbound_asset_amt -= int(estimate_gas_asset)
                 pool.asset_balance += dynamic_fee
-                asset_amt -= int(dynamic_fee)
+                asset_amt -= dynamic_fee
             elif pool.asset.is_bch():
                 # the last withdraw tx , it need to spend everything
                 # usually it is only 1 UTXO left
                 self.bch_estimate_size = 269
                 # left enough gas asset otherwise it will get into negative
-                emit_asset -= int(dynamic_fee)
+                emit_asset -= dynamic_fee
                 estimate_gas_asset = (
                     int(self.bch_tx_rate * 3 / 2) * self.bch_estimate_size
                 )
                 gas = Coin(gas.asset, estimate_gas_asset)
                 outbound_asset_amt -= int(estimate_gas_asset)
                 pool.asset_balance += dynamic_fee
-                asset_amt -= int(dynamic_fee)
+                asset_amt -= dynamic_fee
             elif pool.asset.is_ltc():
                 # the last withdraw tx , it need to spend everything
                 # usually it is only 1 UTXO left
                 self.ltc_estimate_size = 188
                 # left enough gas asset otherwise it will get into negative
-                emit_asset -= int(dynamic_fee)
+                emit_asset -= dynamic_fee
                 estimate_gas_asset = (
                     int(self.ltc_tx_rate * 3 / 2) * self.ltc_estimate_size
                 )
                 gas = Coin(gas.asset, estimate_gas_asset)
                 outbound_asset_amt -= int(estimate_gas_asset)
                 pool.asset_balance += dynamic_fee
-                asset_amt -= int(dynamic_fee)
+                asset_amt -= dynamic_fee
+            elif pool.asset.is_doge():
+                # the last withdraw tx , it need to spend everything
+                # usually it is only 1 UTXO left
+                self.doge_estimate_size = 269
+                # left enough gas asset otherwise it will get into negative
+                emit_asset -= dynamic_fee
+                estimate_gas_asset = (
+                    int(self.doge_tx_rate * 3 / 2) * self.doge_estimate_size
+                )
+                gas = Coin(gas.asset, estimate_gas_asset)
+                outbound_asset_amt -= int(estimate_gas_asset)
+                pool.asset_balance += dynamic_fee
+                asset_amt -= dynamic_fee
         self.set_pool(pool)
 
         # get from address VAULT cross chain

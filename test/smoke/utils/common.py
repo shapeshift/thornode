@@ -148,6 +148,12 @@ class Asset(str, Jsonable):
         """
         return self.get_symbol().startswith("LTC")
 
+    def is_doge(self):
+        """
+        Is this asset doge?
+        """
+        return self.get_symbol().startswith("DOGE")
+
     def is_eth(self):
         """
         Is this asset eth?

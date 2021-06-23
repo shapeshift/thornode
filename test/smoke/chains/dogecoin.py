@@ -1,13 +1,13 @@
 import time
 import codecs
 import logging
-import threading
 
-from bitcoincash import SelectParams
-from bitcoincash.wallet import CBitcoinSecret, P2PKHBitcoinAddress
+from bitcointx import select_chain_params
+from bitcointx.wallet import CBitcoinRegtestKey
+from dogecointx.wallet import P2PKHDogecoinRegtestAddress
 from utils.common import Coin, HttpClient, get_rune_asset, Asset
 from decimal import Decimal, getcontext
-from chains.aliases import aliases_bch, get_aliases, get_alias_address
+from chains.aliases import aliases_doge, get_aliases, get_alias_address
 from chains.chain import GenericChain
 from tenacity import retry, stop_after_delay, wait_fixed
 
@@ -16,9 +16,9 @@ getcontext().prec = 8
 RUNE = get_rune_asset()
 
 
-class MockBitcoinCash(HttpClient):
+class MockDogecoin(HttpClient):
     """
-    An client implementation for a regtest bitcoin cash server
+    An client implementation for a regtest dogecoin server
     """
 
     private_keys = [
@@ -30,52 +30,34 @@ class MockBitcoinCash(HttpClient):
     ]
     default_gas = 100000
     block_stats = {
-        "tx_rate": 0,
-        "tx_size": 0,
+        "tx_rate": 610000,
+        "tx_size": 1500,
     }
 
     def __init__(self, base_url):
         super().__init__(base_url)
 
-        SelectParams("regtest")
+        select_chain_params("dogecoin/regtest")
 
         for key in self.private_keys:
-            seckey = CBitcoinSecret.from_secret_bytes(codecs.decode(key, "hex_codec"))
+            seckey = CBitcoinRegtestKey.from_secret_bytes(
+                codecs.decode(key, "hex_codec")
+            )
             self.call("importprivkey", str(seckey))
-
-        threading.Thread(target=self.scan_blocks, daemon=True).start()
-
-    def scan_blocks(self):
-        while True:
-            try:
-                result = self.get_block_stats()
-                avg_fee_rate = int(result["avgfeerate"] * Coin.ONE)
-                avg_tx_size = 1500  # result["mediantxsize"]
-                if avg_fee_rate != 0:
-                    min_relay_fee = 1000  # sats
-                    if avg_fee_rate * avg_tx_size < min_relay_fee:
-                        avg_fee_rate = 4  # min_relay_fee / avg_tx_size
-                    self.block_stats["tx_rate"] = avg_fee_rate
-                    self.block_stats["tx_size"] = avg_tx_size
-            except Exception:
-                continue
-            finally:
-                time.sleep(0.3)
 
     @classmethod
     def get_address_from_pubkey(cls, pubkey):
         """
-        Get bitcoin cash address for a specific hrp (human readable part)
-        bech32 encoded from a public key(secp256k1).
+        Get dogecoin address
 
         :param string pubkey: public key
-        :returns: string bech32 encoded address
+        :returns: string encoded address
         """
-        return str(P2PKHBitcoinAddress.from_pubkey(pubkey)).split(":")[1]
+        return str(P2PKHDogecoinRegtestAddress.from_pubkey(pubkey))
 
     def call(self, service, *args):
         payload = {
-            "version": "1.1",
+            "version": "1.0",
             "method": service,
             "params": args,
         }
@@ -88,12 +70,12 @@ class MockBitcoinCash(HttpClient):
         """
         Set the vault bnb address
         """
-        aliases_bch["VAULT"] = addr
+        aliases_doge["VAULT"] = addr
         self.call("importaddress", addr)
 
     def get_block_height(self):
         """
-        Get the current block height of bitcoin regtest
+        Get the current block height of dogecoin regtest
         """
         return self.call("getblockcount")
 
@@ -103,13 +85,17 @@ class MockBitcoinCash(HttpClient):
         """
         return self.call("getblockhash", int(block_height))
 
-    def get_block_stats(self, block_height=None):
+    def estimate_smart_fee(self, nblocks=1):
         """
-        Get the block hash for a height
+        Get the estimate smart fee for getting in n blocks
         """
-        if not block_height:
-            block_height = self.get_block_height()
-        return self.call("getblockstats", int(block_height))
+        return self.call("estimatesmartfee", nblocks)
+
+    def estimate_fee(self, nblocks=2):
+        """
+        Get the estimate smart fee for getting in n blocks
+        """
+        return self.call("estimatefee", nblocks)
 
     def wait_for_blocks(self, count):
         """
@@ -117,7 +103,7 @@ class MockBitcoinCash(HttpClient):
         """
         start_block = self.get_block_height()
         for x in range(0, 30):
-            time.sleep(0.3)
+            time.sleep(1)
             block = self.get_block_height()
             if block - start_block >= count:
                 return
@@ -130,7 +116,7 @@ class MockBitcoinCash(HttpClient):
 
     def get_balance(self, address):
         """
-        Get BCH balance for an address
+        Get DOGE balance for an address
         """
         unspents = self.call("listunspent", 1, 9999999, [address])
         return int(sum(Decimal(u["amount"]) for u in unspents) * Coin.ONE)
@@ -138,18 +124,18 @@ class MockBitcoinCash(HttpClient):
     @retry(stop=stop_after_delay(30), wait=wait_fixed(1))
     def wait_for_node(self):
         """
-        Bitcoin regtest node is started with directly mining 100 blocks
+        Dogecoin regtest node is started with directly mining 100 blocks
         to be able to start handling transactions.
         It can take a while depending on the machine specs so we retry.
         """
         current_height = self.get_block_height()
         if current_height < 100:
-            logging.warning("Bitcoin regtest starting, waiting")
+            logging.warning("Dogecoin regtest starting, waiting")
             raise Exception
 
     def transfer(self, txn):
         """
-        Make a transaction/transfer on regtest bitcoin
+        Make a transaction/transfer on regtest dogecoin
         """
         self.wait_for_node()
 
@@ -163,36 +149,35 @@ class MockBitcoinCash(HttpClient):
             txn.from_address = get_alias_address(txn.chain, txn.from_address)
 
         # update memo with actual address (over alias name)
-        is_synth = txn.is_synth()
         for alias in get_aliases():
             chain = txn.chain
             asset = txn.get_asset_from_memo()
             if asset:
                 chain = asset.get_chain()
             # we use RUNE BNB address to identify a cross chain liqudity provision
-            if txn.memo.startswith("ADD") or is_synth:
+            if txn.memo.startswith("ADD"):
                 chain = RUNE.get_chain()
             addr = get_alias_address(chain, alias)
             txn.memo = txn.memo.replace(alias, addr)
 
         # create transaction
         amount = float(txn.coins[0].amount / Coin.ONE)
-        tx_out_dest = {txn.to_address: amount}
-        tx_out_op_return = {"data": txn.memo.encode().hex()}
+        tx_out = {txn.to_address: amount}
 
         # get unspents UTXOs
         address = txn.from_address
         min_amount = float(amount + (self.default_gas / Coin.ONE))  # add more for fee
-        unspents = self.call(
-            "listunspent", 1, 9999, [str(address)], True, {"minimumAmount": min_amount}
-        )
+        unspents = self.call("listunspent", 1, 9999, [str(address)])
         if len(unspents) == 0:
-            raise Exception(f"Cannot transfer. No BCH UTXO available for {address}")
+            raise Exception(f"Cannot transfer. No DOGE UTXO available for {address}")
 
-        # choose the first UTXO
-        unspent = unspents[0]
+        # choose the first UTXO with enough amount
+        unspent = {}
+        for utxo in unspents:
+            if float(utxo["amount"]) > min_amount:
+                unspent = utxo
+
         tx_in = [{"txid": unspent["txid"], "vout": unspent["vout"]}]
-        tx_out = [tx_out_dest]
 
         # create change output if needed
         amount_utxo = float(unspent["amount"])
@@ -200,34 +185,34 @@ class MockBitcoinCash(HttpClient):
         if amount_change > 0:
             if "SEED" in txn.memo:
                 amount_change -= Decimal(self.default_gas / Coin.ONE)
-            tx_out.append({txn.from_address: round(float(amount_change), 8)})
+            tx_out[txn.from_address] = round(float(amount_change), 8)
 
-        tx_out.append(tx_out_op_return)
+        tx_out["data"] = txn.memo.encode().hex()
 
         tx = self.call("createrawtransaction", tx_in, tx_out)
-        tx = self.call("signrawtransactionwithwallet", tx)
+        tx = self.call("signrawtransaction", tx)
         txn.id = self.call("sendrawtransaction", tx["hex"]).upper()
-        txn.gas = [Coin("BCH.BCH", self.default_gas)]
+        txn.gas = [Coin("DOGE.DOGE", self.default_gas)]
 
 
-class BitcoinCash(GenericChain):
+class Dogecoin(GenericChain):
     """
-    A local simple implementation of bitcoin cash chain
+    A local simple implementation of dogecoin chain
     """
 
-    name = "Bitcoin-Cash"
-    chain = "BCH"
-    coin = Asset("BCH.BCH")
+    name = "Dogecoin"
+    chain = "DOGE"
+    coin = Asset("DOGE.DOGE")
     rune_fee = 2000000
 
     @classmethod
     def _calculate_gas(cls, pool, txn):
         """
         Calculate gas according to RUNE thorchain fee
-        1 RUNE / 2 in BCH value
+        1 RUNE / 2 in DOGE value
         """
         if pool is None:
-            return Coin(cls.coin, MockBitcoinCash.default_gas)
+            return Coin(cls.coin, MockDogecoin.default_gas)
 
-        bch_amount = pool.get_rune_in_asset(int(cls.rune_fee / 2))
-        return Coin(cls.coin, bch_amount)
+        doge_amount = pool.get_rune_in_asset(int(cls.rune_fee / 2))
+        return Coin(cls.coin, doge_amount)

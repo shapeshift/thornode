@@ -5,8 +5,6 @@ import threading
 
 from bitcointx import select_chain_params
 from bitcointx.wallet import CBitcoinRegtestKey, P2WPKHBitcoinRegtestAddress
-from bitcointx.core import Hash160
-from bitcointx.core.script import CScript, OP_0
 from utils.common import Coin, HttpClient, get_rune_asset, Asset
 from decimal import Decimal, getcontext
 from chains.aliases import aliases_btc, get_aliases, get_alias_address
@@ -80,8 +78,7 @@ class MockBitcoin(HttpClient):
         :param string pubkey: public key
         :returns: string bech32 encoded address
         """
-        script_pubkey = CScript([OP_0, Hash160(pubkey)])
-        return str(P2WPKHBitcoinRegtestAddress.from_scriptPubKey(script_pubkey))
+        return str(P2WPKHBitcoinRegtestAddress.from_pubkey(pubkey))
 
     def call(self, service, *args):
         payload = {
