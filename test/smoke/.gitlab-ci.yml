@@ -54,6 +54,7 @@ smoke:
     THORNODE_IMAGE: registry.gitlab.com/thorchain/thornode:develop
     THOR_BLOCK_TIME: 0.8s
     BLOCK_TIME: 0.8s
+    BLOCK_SCANNER_BACKOFF: 0.8s
     ETH_BLOCK_TIME: "0"
   before_script:
     - apk -U add git make protoc
