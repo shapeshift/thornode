@@ -574,6 +574,8 @@ class ThorchainState:
             for key, value in self.liquidity.items():
                 share = get_share(lp_deficit, self._total_liquidity(), value)
                 pool = self.get_pool(key)
+                if share == 0:
+                    continue
                 pool.rune_balance -= share
                 self.bond_reward += share
                 self.set_pool(pool)
