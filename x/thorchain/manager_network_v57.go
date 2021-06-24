@@ -663,7 +663,6 @@ func (vm *NetworkMgrV57) UpdateNetwork(ctx cosmos.Context, constAccessor constan
 	var evtPools []PoolAmt
 
 	if !totalPoolRewards.IsZero() { // If Pool Rewards to hand out
-
 		var rewardAmts []cosmos.Uint
 		var rewardPools []Pool
 		// Pool Rewards are based on Fee Share
@@ -705,6 +704,10 @@ func (vm *NetworkMgrV57) UpdateNetwork(ctx cosmos.Context, constAccessor constan
 				continue
 			}
 			poolDeficit := vm.calcPoolDeficit(lpDeficit, totalLiquidityFees, poolFees)
+			// when pool deficit is zero , the pool doesn't pay deficit
+			if poolDeficit.IsZero() {
+				continue
+			}
 			coin := common.NewCoin(common.RuneNative, poolDeficit)
 			if err := vm.k.SendFromModuleToModule(ctx, AsgardName, BondName, common.NewCoins(coin)); err != nil {
 				ctx.Logger().Error("fail to transfer funds from asgard to bond", "error", err)
