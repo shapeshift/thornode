@@ -235,7 +235,6 @@ class MockEthereum:
                 ).transact()
 
         receipt = self.web3.eth.waitForTransactionReceipt(tx_hash)
-        logging.info(f"receipt:{receipt}")
         txn.id = receipt.transactionHash.hex()[2:].upper()
         txn.gas = [
             Coin(
