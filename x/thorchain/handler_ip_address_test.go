@@ -35,6 +35,9 @@ func (k *TestIPAddresslKeeper) GetNetwork(ctx cosmos.Context) (Network, error) {
 func (k *TestIPAddresslKeeper) SetNetwork(ctx cosmos.Context, data Network) error {
 	return nil
 }
+func (k *TestIPAddresslKeeper) SendFromModuleToModule(ctx cosmos.Context, from, to string, coins common.Coins) error {
+	return nil
+}
 
 var _ = Suite(&HandlerIPAddressSuite{})
 
@@ -162,6 +165,7 @@ func (s *HandlerIPAddressSuite) TestHandlerSetIPAddress_validation(c *C) {
 			name: "all good - happy path",
 			messageProvider: func(ctx cosmos.Context, helper *HandlerIPAddressTestHelper) cosmos.Msg {
 				nodeAccount := GetRandomNodeAccount(NodeWhiteListed)
+				FundModule(c, ctx, helper, BondName, common.One*100)
 				helper.SendFromModuleToAccount(ctx, ModuleName, nodeAccount.NodeAddress, common.Coins{
 					common.NewCoin(common.RuneAsset(), cosmos.NewUint(1000*common.One)),
 				})
