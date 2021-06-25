@@ -115,7 +115,7 @@ func (h IPAddressHandler) handleV1(ctx cosmos.Context, msg MsgSetIPAddress) erro
 	// add cost to reserve
 	coin := common.NewCoin(common.RuneNative, cost)
 	if !cost.IsZero() {
-		if err := h.mgr.Keeper().SendFromModuleToModule(ctx, BondName, ReserveName, common.NewCoins(coin)); err != nil {
+		if err := h.mgr.Keeper().SendFromAccountToModule(ctx, msg.Signer, ReserveName, common.NewCoins(coin)); err != nil {
 			ctx.Logger().Error("fail to transfer funds from bond to reserve", "error", err)
 			return err
 		}
@@ -164,7 +164,7 @@ func (h IPAddressHandler) handleCurrent(ctx cosmos.Context, msg MsgSetIPAddress)
 	// add cost to reserve
 	coin := common.NewCoin(common.RuneNative, cost)
 	if !cost.IsZero() {
-		if err := h.mgr.Keeper().SendFromAccountToModule(ctx, msg.Signer, ReserveName, common.NewCoins(coin)); err != nil {
+		if err := h.mgr.Keeper().SendFromModuleToModule(ctx, BondName, ReserveName, common.NewCoins(coin)); err != nil {
 			ctx.Logger().Error("fail to transfer funds from bond to reserve", "error", err)
 			return err
 		}
