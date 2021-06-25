@@ -8,7 +8,7 @@ import (
 	"gitlab.com/thorchain/thornode/constants"
 )
 
-// ConstantProvider which will query thorchain to get the constants value per request
+// ConstantsProvider which will query thorchain to get the constants value per request
 // it will also cache the constant values internally
 type ConstantsProvider struct {
 	requestHeight int64 // the block height last request to thorchain to retrieve constant values

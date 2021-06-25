@@ -27,6 +27,12 @@ func (tx TxOutItem) Hash() string {
 	return fmt.Sprintf("%X", sha256.Sum256([]byte(str)))
 }
 
+// CacheHash return a hash that doesn't include VaultPubKey , thus this one can be used as cache key for txOutItem across different vaults
+func (tx TxOutItem) CacheHash() string {
+	str := fmt.Sprintf("%s|%s|%s|%s|%s", tx.Chain, tx.ToAddress, tx.Coins, tx.Memo, tx.InHash)
+	return fmt.Sprintf("%X", sha256.Sum256([]byte(str)))
+}
+
 // Equals compare two TxOutItem , return true when they are the same , otherwise false
 func (tx TxOutItem) Equals(tx2 TxOutItem) bool {
 	if !tx.Chain.Equals(tx2.Chain) {
