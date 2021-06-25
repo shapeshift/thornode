@@ -664,11 +664,14 @@ func (e *ETHScanner) getSymbol(token string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("fail to call to smart contract and get symbol: %w", err)
 	}
+	var symbol string
 	output, err := e.erc20ABI.Unpack(symbolMethod, res)
 	if err != nil {
-		return "", fmt.Errorf("fail to unpack symbol method call: %w", err)
+		symbol = string(res)
+		e.logger.Err(err).Msgf("fail to unpack symbol method call,token address: %s , symbol: %s", token, symbol)
+		return sanitiseSymbol(symbol), nil
 	}
-	symbol := *abi.ConvertType(output[0], new(string)).(*string)
+	symbol = *abi.ConvertType(output[0], new(string)).(*string)
 	return sanitiseSymbol(symbol), nil
 }
 
