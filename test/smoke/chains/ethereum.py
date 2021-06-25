@@ -226,7 +226,7 @@ class MockEthereum:
                 )
                 token_address = self.tokens[symbol].address
                 receipt = self.web3.eth.waitForTransactionReceipt(tx_hash)
-                spent_gas = receipt.cumulativeGasUsed
+                spent_gas = receipt.gasUsed * int(receipt.effectiveGasPrice, 0)
                 tx_hash = self.vault.functions.deposit(
                     Web3.toChecksumAddress(txn.to_address),
                     token_address,
@@ -239,7 +239,7 @@ class MockEthereum:
         txn.gas = [
             Coin(
                 "ETH.ETH",
-                (receipt.gasUsed + spent_gas) * 1,
+                (receipt.gasUsed * int(receipt.effectiveGasPrice, 0) + spent_gas) * 1,
             )
         ]
 
@@ -278,7 +278,7 @@ class Ethereum(GenericChain):
         ):
             gas = 50877
         elif txn.memo == "WITHDRAW:ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A":
-            gas = 25439
+            gas = 41277
         elif txn.memo == "WITHDRAW:ETH.ETH":
             gas = 37576
         return Coin(cls.coin, gas * 3)
