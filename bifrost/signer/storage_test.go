@@ -3,6 +3,7 @@ package signer
 import (
 	"fmt"
 
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/bifrost/thorclient/types"
@@ -79,4 +80,13 @@ func (s *StorageSuite) TestKey(c *C) {
 
 	item1.Status = TxSpent
 	c.Check(item1.Key(), Equals, item2.Key())
+}
+func (s *StorageSuite) TestSetSigned(c *C) {
+	store, err := NewSignerStore("", "my secret passphrase")
+	c.Assert(err, IsNil)
+	hash := keeper.GetRandomTxHash().String()
+	c.Assert(store.SetSigned(hash), IsNil)
+	c.Assert(store.HasSigned(hash), Equals, true)
+	newHash := keeper.GetRandomTxHash().String()
+	c.Assert(store.HasSigned(newHash), Equals, false)
 }
