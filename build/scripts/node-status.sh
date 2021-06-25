@@ -1,7 +1,6 @@
 #!/bin/sh
 
 set -o pipefail
-
 format_1e8() {
   printf "%.2f\n" "$(jq -n "$1"/100000000 2>/dev/null)" 2>/dev/null | sed ':a;s/\B[0-9]\{3\}\>/,&/;ta'
 }
