@@ -180,15 +180,6 @@ func main() {
 		log.Fatal().Msg("fail to load any chains")
 	}
 	tssKeysignMetricMgr := metrics.NewTssKeysignMetricMgr()
-	// start observer
-	obs, err := observer.NewObserver(pubkeyMgr, chains, thorchainBridge, m, cfg.Chains[0].BlockScanner.DBPath, tssKeysignMetricMgr)
-	if err != nil {
-		log.Fatal().Err(err).Msg("fail to create observer")
-	}
-	if err = obs.Start(); err != nil {
-		log.Fatal().Err(err).Msg("fail to start observer")
-	}
-
 	// start signer
 	sign, err := signer.NewSigner(cfg.Signer, thorchainBridge, k, pubkeyMgr, tssIns, chains, m, tssKeysignMetricMgr)
 	if err != nil {
@@ -196,6 +187,15 @@ func main() {
 	}
 	if err := sign.Start(); err != nil {
 		log.Fatal().Err(err).Msg("fail to start signer")
+	}
+
+	// start observer
+	obs, err := observer.NewObserver(pubkeyMgr, chains, thorchainBridge, m, cfg.Chains[0].BlockScanner.DBPath, tssKeysignMetricMgr, sign.UpdateSignerCache)
+	if err != nil {
+		log.Fatal().Err(err).Msg("fail to create observer")
+	}
+	if err = obs.Start(); err != nil {
+		log.Fatal().Err(err).Msg("fail to start observer")
 	}
 
 	// wait....

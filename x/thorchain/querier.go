@@ -691,6 +691,7 @@ func queryPool(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mg
 		Status              PoolStatus   `json:"status,omitempty"`
 		Decimals            int64        `json:"decimals,omitempty"`
 		SynthUnits          cosmos.Uint  `json:"synth_units"`
+		SynthSupply         cosmos.Uint  `json:"synth_supply"`
 		PendingInboundRune  cosmos.Uint  `json:"pending_inbound_rune"`
 		PendingInboundAsset cosmos.Uint  `json:"pending_inbound_asset"`
 	}{
@@ -702,6 +703,7 @@ func queryPool(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mg
 		Status:              pool.Status,
 		Decimals:            pool.Decimals,
 		SynthUnits:          pool.SynthUnits,
+		SynthSupply:         synthSupply,
 		PendingInboundRune:  pool.PendingInboundRune,
 		PendingInboundAsset: pool.PendingInboundAsset,
 	}
@@ -723,6 +725,7 @@ func queryPools(ctx cosmos.Context, req abci.RequestQuery, mgr *Mgrs) ([]byte, e
 		Status              PoolStatus   `json:"status,omitempty"`
 		Decimals            int64        `json:"decimals,omitempty"`
 		SynthUnits          cosmos.Uint  `json:"synth_units"`
+		SynthSupply         cosmos.Uint  `json:"synth_supply"`
 		PendingInboundRune  cosmos.Uint  `json:"pending_inbound_rune"`
 		PendingInboundAsset cosmos.Uint  `json:"pending_inbound_asset"`
 	}
@@ -752,6 +755,7 @@ func queryPools(ctx cosmos.Context, req abci.RequestQuery, mgr *Mgrs) ([]byte, e
 			Status:              pool.Status,
 			Decimals:            pool.Decimals,
 			SynthUnits:          pool.SynthUnits,
+			SynthSupply:         synthSupply,
 			PendingInboundRune:  pool.PendingInboundRune,
 			PendingInboundAsset: pool.PendingInboundAsset,
 		}

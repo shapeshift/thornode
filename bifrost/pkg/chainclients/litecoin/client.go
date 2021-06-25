@@ -1,6 +1,7 @@
 package litecoin
 
 import (
+	"context"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -19,6 +20,8 @@ import (
 	"github.com/rs/zerolog/log"
 	mem "gitlab.com/thorchain/thornode/x/thorchain/memo"
 	tssp "gitlab.com/thorchain/tss/go-tss/tss"
+	"golang.org/x/sync/errgroup"
+	"golang.org/x/sync/semaphore"
 
 	"gitlab.com/thorchain/thornode/bifrost/blockscanner"
 	btypes "gitlab.com/thorchain/thornode/bifrost/blockscanner/types"
@@ -41,6 +44,7 @@ const (
 	EstimateAverageTxSize = 250
 	DefaultCoinbaseValue  = 12.5
 	gasCacheBlocks        = 10
+	MaxMempoolScanPerTry  = 500
 )
 
 // Client observes litecoin chain and allows to sign and broadcast tx
@@ -56,7 +60,6 @@ type Client struct {
 	bridge                *thorclient.ThorchainBridge
 	globalErrataQueue     chan<- types.ErrataBlock
 	nodePubKey            common.PubKey
-	lastMemPoolScan       time.Time
 	currentBlockHeight    int64
 	asgardAddresses       []common.Address
 	lastAsgard            time.Time
@@ -461,27 +464,58 @@ func (c *Client) getMemPool(height int64) (types.TxIn, error) {
 		Chain:   c.GetChain(),
 		MemPool: true,
 	}
+	maxWorker := c.cfg.ParallelMempoolScan
+	if maxWorker == 0 {
+		// set default worker to 5
+		maxWorker = 5
+	}
+	sem := semaphore.NewWeighted(int64(maxWorker))
+	g, _ := errgroup.WithContext(context.Background())
+	total := 0
+	lock := &sync.Mutex{}
 	for _, h := range hashes {
 		// this hash had been processed before , ignore it
 		if !c.tryAddToMemPoolCache(h.String()) {
 			c.logger.Debug().Msgf("%s had been processed , ignore", h.String())
 			continue
 		}
-
-		c.logger.Debug().Msgf("process hash %s", h.String())
-		result, err := c.client.GetRawTransactionVerbose(h)
-		if err != nil {
-			return types.TxIn{}, fmt.Errorf("fail to get raw transaction verbose with hash(%s): %w", h.String(), err)
+		// closure
+		txHash := h
+		g.Go(func() error {
+			ctx := context.TODO()
+			if err := sem.Acquire(ctx, 1); err != nil {
+				return fmt.Errorf("fail to acquire semaphore: %w", err)
+			}
+			defer sem.Release(1)
+			c.logger.Debug().Msgf("process hash %s", txHash.String())
+			result, err := c.client.GetRawTransactionVerbose(txHash)
+			if err != nil {
+				// if the client fail to get the transaction , it could be the transaction removed , of the local node fail to
+				// respond with the transaction, it is safe to ignore it , and continue with the rest
+				c.logger.Err(err).Msgf("fail to get raw transaction verbose with hash(%s)", txHash.String())
+				return nil
+			}
+			txInItem, err := c.getTxIn(result, height)
+			if err != nil {
+				c.logger.Error().Err(err).Msg("fail to get TxInItem")
+				return nil
+			}
+			if txInItem.IsEmpty() {
+				return nil
+			}
+			lock.Lock()
+			defer lock.Unlock()
+			txIn.TxArray = append(txIn.TxArray, txInItem)
+			return nil
+		})
+		total++
+		// even it didn't finish scan all the mempool tx, but still yield here , so as block scanner can continue to scan a committed block
+		if total >= MaxMempoolScanPerTry {
+			break
 		}
-		txInItem, err := c.getTxIn(result, height)
-		if err != nil {
-			c.logger.Error().Err(err).Msg("fail to get TxInItem")
-			continue
-		}
-		if txInItem.IsEmpty() {
-			continue
-		}
-		txIn.TxArray = append(txIn.TxArray, txInItem)
+	}
+	if err := g.Wait(); err != nil {
+		c.logger.Err(err).Msgf("fail to scan mempool")
 	}
 	txIn.Count = strconv.Itoa(len(txIn.TxArray))
 	return txIn, nil
@@ -489,12 +523,6 @@ func (c *Client) getMemPool(height int64) (types.TxIn, error) {
 
 // FetchMemPool retrieves txs from mempool
 func (c *Client) FetchMemPool(height int64) (types.TxIn, error) {
-	// make sure client doesn't scan mempool too much
-	diff := time.Now().Sub(c.lastMemPoolScan)
-	if diff < constants.ThorchainBlockTime {
-		return types.TxIn{}, nil
-	}
-	c.lastMemPoolScan = time.Now()
 	return c.getMemPool(height)
 }
 
@@ -651,7 +679,7 @@ func (c *Client) getBlock(height int64) (*btcjson.GetBlockVerboseTxResult, error
 
 func (c *Client) getTxIn(tx *btcjson.TxRawResult, height int64) (types.TxInItem, error) {
 	if c.ignoreTx(tx) {
-		c.logger.Debug().Msgf("ignore (%s) , not correct format", tx.Hash)
+		c.logger.Debug().Int64("height", height).Str("tx", tx.Hash).Msg("ignore tx not matching format")
 		return types.TxInItem{}, nil
 	}
 
@@ -668,6 +696,10 @@ func (c *Client) getTxIn(tx *btcjson.TxRawResult, height int64) (types.TxInItem,
 	}
 	output, err := c.getOutput(sender, tx, strings.EqualFold(memo, mem.NewConsolidateMemo().String()))
 	if err != nil {
+		if errors.Is(err, btypes.FailOutputMatchCriteria) {
+			c.logger.Debug().Int64("height", height).Str("tx", tx.Hash).Msg("ignore tx not matching format")
+			return types.TxInItem{}, nil
+		}
 		return types.TxInItem{}, fmt.Errorf("fail to get output from tx: %w", err)
 	}
 	amount, err := ltcutil.NewAmount(output.Value)
@@ -803,7 +835,7 @@ func (c *Client) getOutput(sender string, tx *btcjson.TxRawResult, consolidate b
 			}
 		}
 	}
-	return btcjson.Vout{}, fmt.Errorf("fail to get output matching criteria")
+	return btcjson.Vout{}, btypes.FailOutputMatchCriteria
 }
 
 // getSender returns sender address for a ltc tx, using vin:0
