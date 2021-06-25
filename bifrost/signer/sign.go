@@ -223,9 +223,12 @@ func (s *Signer) processTransactions() {
 						return
 					}
 					cancel()
+					// add an item to key value store indicate this tx out item has been signed
+					if err := s.storage.SetSigned(item.TxOutItem.CacheHash()); err != nil {
+						s.logger.Error().Err(err).Msg("fail to update local signer cache")
+					}
 					// We have a successful broadcast! Remove the item from our store
-					item.Status = TxSpent
-					if err := s.storage.Set(item); err != nil {
+					if err := s.storage.Remove(item); err != nil {
 						s.logger.Error().Err(err).Msg("fail to update tx out store item")
 					}
 				}
@@ -235,7 +238,7 @@ func (s *Signer) processTransactions() {
 	wg.Wait()
 }
 
-// processTxnOut processes inbound TxOuts and save them to storage
+// processTxnOut processes outbound TxOuts and save them to storage
 func (s *Signer) processTxnOut(ch <-chan types.TxOut, idx int) {
 	s.logger.Info().Int("idx", idx).Msg("start to process tx out")
 	defer s.logger.Info().Int("idx", idx).Msg("stop to process tx out")
@@ -249,9 +252,17 @@ func (s *Signer) processTxnOut(ch <-chan types.TxOut, idx int) {
 				return
 			}
 			s.logger.Info().Msgf("Received a TxOut Array of %v from the Thorchain", txOut)
-			items := make([]TxOutStoreItem, len(txOut.TxArray))
+			items := make([]TxOutStoreItem, 0, len(txOut.TxArray))
+
 			for i, tx := range txOut.TxArray {
-				items[i] = NewTxOutStoreItem(txOut.Height, tx.TxOutItem(), int64(i))
+				// check whether there is an identical txout item in the last signing transaction period
+				// and if there is , and it has been signed , then skip this one
+				hash := tx.TxOutItem().CacheHash()
+				if s.storage.HasSigned(hash) {
+					s.logger.Info().Msgf("tx out item: %+v , it has been signed out , skip", tx)
+					continue
+				}
+				items = append(items, NewTxOutStoreItem(txOut.Height, tx.TxOutItem(), int64(i)))
 			}
 			if err := s.storage.Batch(items); err != nil {
 				s.logger.Error().Err(err).Msg("fail to save tx out items to storage")
@@ -379,7 +390,7 @@ func (s *Signer) signAndBroadcast(item TxOutStoreItem) error {
 	// scenario, the network could broadcast a transaction several times,
 	// bleeding funds.
 	if !chain.IsBlockScannerHealthy() {
-		return fmt.Errorf("The block scanner for chain %s is unhealthy, not signing transactions due to it", chain.GetChain())
+		return fmt.Errorf("the block scanner for chain %s is unhealthy, not signing transactions due to it", chain.GetChain())
 	}
 
 	// Check if we're sending all funds back , given we don't have memo in txoutitem anymore, so it rely on the coins field to be empty
@@ -439,6 +450,7 @@ func (s *Signer) signAndBroadcast(item TxOutStoreItem) error {
 	if s.isTssKeysign(tx.VaultPubKey) {
 		s.tssKeysignMetricMgr.SetTssKeysignMetric(hash, elapse.Milliseconds())
 	}
+
 	return nil
 }
 
@@ -475,7 +487,9 @@ func (s *Signer) handleYggReturn(height int64, tx types.TxOutItem) (types.TxOutI
 
 	return tx, nil
 }
-
+func (s *Signer) UpdateSignerCache(hash string) error {
+	return s.storage.SetSigned(hash)
+}
 func (s *Signer) isTssKeysign(pubKey common.PubKey) bool {
 	return !s.localPubKey.Equals(pubKey)
 }
