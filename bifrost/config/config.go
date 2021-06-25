@@ -40,17 +40,18 @@ type BackOff struct {
 
 // ChainConfiguration configuration
 type ChainConfiguration struct {
-	ChainID      common.Chain              `json:"chain_id" mapstructure:"chain_id"`
-	ChainHost    string                    `json:"chain_host" mapstructure:"chain_host"`
-	ChainNetwork string                    `json:"chain_network" mapstructure:"chain_network"`
-	UserName     string                    `json:"username" mapstructure:"username"`
-	Password     string                    `json:"password" mapstructure:"password"`
-	RPCHost      string                    `json:"rpc_host" mapstructure:"rpc_host"`
-	HTTPostMode  bool                      `json:"http_post_mode" mapstructure:"http_post_mode"` // Bitcoin core only supports HTTP POST mode
-	DisableTLS   bool                      `json:"disable_tls" mapstructure:"disable_tls"`       // Bitcoin core does not provide TLS by default
-	BlockScanner BlockScannerConfiguration `json:"block_scanner" mapstructure:"block_scanner"`
-	BackOff      BackOff
-	OptToRetire  bool `json:"opt_to_retire" mapstructure:"opt_to_retire"` // don't emit support for this chain during keygen process
+	ChainID             common.Chain              `json:"chain_id" mapstructure:"chain_id"`
+	ChainHost           string                    `json:"chain_host" mapstructure:"chain_host"`
+	ChainNetwork        string                    `json:"chain_network" mapstructure:"chain_network"`
+	UserName            string                    `json:"username" mapstructure:"username"`
+	Password            string                    `json:"password" mapstructure:"password"`
+	RPCHost             string                    `json:"rpc_host" mapstructure:"rpc_host"`
+	HTTPostMode         bool                      `json:"http_post_mode" mapstructure:"http_post_mode"` // Bitcoin core only supports HTTP POST mode
+	DisableTLS          bool                      `json:"disable_tls" mapstructure:"disable_tls"`       // Bitcoin core does not provide TLS by default
+	BlockScanner        BlockScannerConfiguration `json:"block_scanner" mapstructure:"block_scanner"`
+	BackOff             BackOff
+	OptToRetire         bool `json:"opt_to_retire" mapstructure:"opt_to_retire"` // don't emit support for this chain during keygen process
+	ParallelMempoolScan int  `json:"parallel_mempool_scan" mapstructure:"parallel_mempool_scan"`
 }
 
 // TSSConfiguration

@@ -1,6 +1,8 @@
 package types
 
 import (
+	"crypto/sha256"
+	"fmt"
 	"strings"
 
 	"gitlab.com/thorchain/thornode/common"
@@ -63,6 +65,12 @@ func (t TxInItem) IsEmpty() bool {
 		return true
 	}
 	return false
+}
+
+// CacheHash calculate the has used for signer cache
+func (t TxInItem) CacheHash(chain common.Chain, inboundHash string) string {
+	str := fmt.Sprintf("%s|%s|%s|%s|%s", chain, t.To, t.Coins, t.Memo, inboundHash)
+	return fmt.Sprintf("%X", sha256.Sum256([]byte(str)))
 }
 
 // GetTotalTransactionValue return the total value of the requested asset

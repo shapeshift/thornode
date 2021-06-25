@@ -64,7 +64,7 @@ type ETHScanner struct {
 	tokens               *LevelDBTokenMeta
 	bridge               *thorclient.ThorchainBridge
 	pubkeyMgr            pubkeymanager.PubKeyValidator
-	eipSigner            etypes.EIP155Signer
+	eipSigner            etypes.Signer
 	currentBlockHeight   int64
 	gasCache             []*big.Int
 }
@@ -120,7 +120,7 @@ func NewETHScanner(cfg config.BlockScannerConfiguration,
 		bridge:               bridge,
 		vaultABI:             vaultABI,
 		erc20ABI:             erc20ABI,
-		eipSigner:            etypes.NewEIP155Signer(chainID),
+		eipSigner:            etypes.NewLondonSigner(chainID),
 		pubkeyMgr:            pubkeyMgr,
 		gasCache:             make([]*big.Int, 0),
 	}, nil

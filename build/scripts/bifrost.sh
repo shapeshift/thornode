@@ -38,6 +38,8 @@ CONTRACT="${CONTRACT:=0x8c2A90D36Ec9F745C9B28B588Cba5e2A978A1656}"
 RPC_USER="${RPC_USER:=thorchain}"
 RPC_PASSWD="${RPC_PASSWD:=password}"
 
+THOR_BLOCK_TIME="${THOR_BLOCK_TIME:=5s}"
+BLOCK_SCANNER_BACKOFF="${BLOCK_SCANNER_BACKOFF:=5s}"
 . "$(dirname "$0")/core.sh"
 "$(dirname "$0")/wait-for-thorchain-api.sh" $CHAIN_API
 
@@ -110,7 +112,7 @@ echo "{
           \"rpc_host\": \"$BTC_HOST\",
           \"enforce_block_height\": false,
           \"block_scan_processors\": 1,
-          \"block_height_discover_back_off\": \"5s\",
+          \"block_height_discover_back_off\": \"$BLOCK_SCANNER_BACKOFF\",
           \"block_retry_interval\": \"10s\",
           \"chain_id\": \"BTC\",
           \"http_request_timeout\": \"30s\",
@@ -132,7 +134,7 @@ echo "{
           \"rpc_host\": \"$DOGE_HOST\",
           \"enforce_block_height\": false,
           \"block_scan_processors\": 1,
-          \"block_height_discover_back_off\": \"5s\",
+          \"block_height_discover_back_off\": \"$BLOCK_SCANNER_BACKOFF\",
           \"block_retry_interval\": \"10s\",
           \"chain_id\": \"DOGE\",
           \"http_request_timeout\": \"30s\",
@@ -154,7 +156,7 @@ echo "{
           \"rpc_host\": \"$LTC_HOST\",
           \"enforce_block_height\": false,
           \"block_scan_processors\": 1,
-          \"block_height_discover_back_off\": \"5s\",
+          \"block_height_discover_back_off\": \"$BLOCK_SCANNER_BACKOFF\",
           \"block_retry_interval\": \"10s\",
           \"chain_id\": \"LTC\",
           \"http_request_timeout\": \"30s\",
@@ -176,7 +178,7 @@ echo "{
           \"rpc_host\": \"$BCH_HOST\",
           \"enforce_block_height\": false,
           \"block_scan_processors\": 1,
-          \"block_height_discover_back_off\": \"5s\",
+          \"block_height_discover_back_off\": \"$BLOCK_SCANNER_BACKOFF\",
           \"block_retry_interval\": \"10s\",
           \"chain_id\": \"BCH\",
           \"http_request_timeout\": \"30s\",
@@ -199,7 +201,7 @@ echo "{
           \"rpc_host\": \"$ETH_HOST\",
           \"enforce_block_height\": false,
           \"block_scan_processors\": 1,
-          \"block_height_discover_back_off\": \"3s\",
+          \"block_height_discover_back_off\": \"$BLOCK_SCANNER_BACKOFF\",
           \"block_retry_interval\": \"10s\",
           \"chain_id\": \"ETH\",
           \"http_request_timeout\": \"30s\",
@@ -225,7 +227,7 @@ echo "{
         \"start_block_height\": $START_BLOCK_HEIGHT,
         \"enforce_block_height\": false,
         \"block_scan_processors\": 1,
-        \"block_height_discover_back_off\": \"5s\",
+        \"block_height_discover_back_off\": \"$THOR_BLOCK_TIME\",
         \"block_retry_interval\": \"10s\",
         \"start_block_height\": 0,
         \"db_path\": \"$SIGNER_PATH\",
