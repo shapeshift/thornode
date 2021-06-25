@@ -406,15 +406,7 @@ func (e *ETHScanner) extractTxs(block *etypes.Block) (stypes.TxIn, error) {
 		txInItem, err := e.fromTxToTxIn(tx)
 		if err != nil {
 			e.logger.Error().Err(err).Str("hash", tx.Hash().Hex()).Msg("fail to get one tx from server")
-			// when the err is InvalidChainID which means the transaction is not mean to be on this chain
-			// so it is safe for bifrost to ignore the transaction
-			if errors.Is(err, etypes.ErrInvalidChainId) {
-				continue
-			}
-			e.errCounter.WithLabelValues("fail_get_tx", "").Inc()
-			// if THORNode fail to get one tx hash from server, then THORNode should bail, because THORNode might miss tx
-			// if THORNode bail here, then THORNode should retry later
-			return stypes.TxIn{}, fmt.Errorf("fail to get one tx from server: %w", err)
+			continue
 		}
 		if txInItem == nil {
 			continue
