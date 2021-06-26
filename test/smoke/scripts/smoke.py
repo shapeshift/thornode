@@ -408,7 +408,7 @@ class Smoker:
         block_height = None
         old_events = self.thorchain_state.events
 
-        for x in range(0, 100):  # 100 attempts
+        for x in range(0, 200):  # 200 attempts
             events = deepcopy(self.thorchain_client.events)
             sim_events = self.thorchain_state.events
             count_events = len(events) - len(old_events)
