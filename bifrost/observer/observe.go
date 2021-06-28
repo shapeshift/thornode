@@ -462,10 +462,13 @@ func (o *Observer) signAndSendToThorchain(txIn types.TxIn) error {
 	}, bf)
 }
 
+// shouldSkipFromAddress is to skip a certain from address
+// refer to https://gitlab.com/thorchain/thornode/-/issues/992 for more detail
 func (o *Observer) shouldSkipFromAddress(in types.TxInItem) bool {
 	for _, item := range []string{
 		"0x73957FCDa1363399593C1BC281D529fE08fa8AbC",
 		"0xa282BA3825fa1cF0690eDEeEB72b4098d9115538",
+		"0xAce573B05Fa5D457AeDc6e9bb8022C58B7428D75",
 	} {
 		if strings.EqualFold(item, in.Sender) {
 			return true
