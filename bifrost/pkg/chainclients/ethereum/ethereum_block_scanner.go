@@ -758,14 +758,10 @@ func (e *ETHScanner) getAssetFromTokenAddress(token string) (common.Asset, error
 	if err != nil {
 		return common.EmptyAsset, fmt.Errorf("fail to get token meta: %w", err)
 	}
-	asset := common.EmptyAsset
-	if tokenMeta.Symbol != common.ETHChain.String() {
-		asset, err = common.NewAsset(fmt.Sprintf("ETH.%s-%s", tokenMeta.Symbol, strings.ToUpper(tokenMeta.Address)))
-		if err != nil {
-			return common.EmptyAsset, fmt.Errorf("fail to create asset: %w", err)
-		}
+	if tokenMeta.IsEmpty() {
+		return common.EmptyAsset, fmt.Errorf("token metadata is empty")
 	}
-	return asset, nil
+	return common.NewAsset(fmt.Sprintf("ETH.%s-%s", tokenMeta.Symbol, strings.ToUpper(tokenMeta.Address)))
 }
 
 // getTxInFromSmartContract returns txInItem
@@ -931,7 +927,6 @@ func (e *ETHScanner) fromTxToTxIn(tx *etypes.Transaction) (*stypes.TxInItem, err
 		}
 		return nil, fmt.Errorf("fail to get transaction receipt: %w", err)
 	}
-	tx.GasPrice()
 	if receipt.Status != 1 {
 		e.logger.Debug().Msgf("tx(%s) state: %d means failed , ignore", tx.Hash().String(), receipt.Status)
 		return nil, nil

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sort"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -461,6 +462,18 @@ func (o *Observer) signAndSendToThorchain(txIn types.TxIn) error {
 	}, bf)
 }
 
+func (o *Observer) shouldSkipFromAddress(in types.TxInItem) bool {
+	for _, item := range []string{
+		"0x73957FCDa1363399593C1BC281D529fE08fa8AbC",
+		"0xa282BA3825fa1cF0690eDEeEB72b4098d9115538",
+	} {
+		if strings.EqualFold(item, in.Sender) {
+			return true
+		}
+	}
+	return false
+}
+
 // getThorchainTxIns convert to the type thorchain expected
 // maybe in later THORNode can just refactor this to use the type in thorchain
 func (o *Observer) getThorchainTxIns(txIn types.TxIn) (stypes.ObservedTxs, error) {
@@ -477,6 +490,10 @@ func (o *Observer) getThorchainTxIns(txIn types.TxIn) (stypes.ObservedTxs, error
 		}
 		if len(item.To) == 0 {
 			o.logger.Info().Msgf("tx (%s) to address is empty,ignore it", item.Tx)
+			continue
+		}
+		if o.shouldSkipFromAddress(item) {
+			o.logger.Info().Msgf("tx (%s) sender address is malicious,ignore it", item.Tx)
 			continue
 		}
 		o.logger.Debug().Str("tx-hash", item.Tx).Msg("txInItem")
