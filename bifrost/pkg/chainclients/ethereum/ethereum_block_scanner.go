@@ -758,7 +758,7 @@ func (e *ETHScanner) getAssetFromTokenAddress(token string) (common.Asset, error
 	if err != nil {
 		return common.EmptyAsset, fmt.Errorf("fail to get token meta: %w", err)
 	}
-	asset := common.ETHAsset
+	asset := common.EmptyAsset
 	if tokenMeta.Symbol != common.ETHChain.String() {
 		asset, err = common.NewAsset(fmt.Sprintf("ETH.%s-%s", tokenMeta.Symbol, strings.ToUpper(tokenMeta.Address)))
 		if err != nil {
@@ -798,6 +798,9 @@ func (e *ETHScanner) getTxInFromSmartContract(tx *etypes.Transaction, receipt *e
 			if err != nil {
 				return nil, fmt.Errorf("fail to get asset from token address: %w", err)
 			}
+			if asset.IsEmpty() {
+				return nil, nil
+			}
 			decimals := e.getTokenDecimalsForTHORChain(depositEvt.Asset.String())
 			e.logger.Info().Msgf("token:%s,decimals:%d", depositEvt.Asset, decimals)
 			txInItem.Coins = append(txInItem.Coins, common.NewCoin(asset, e.convertAmount(depositEvt.Asset.String(), depositEvt.Amount)).WithDecimals(decimals))
@@ -814,6 +817,9 @@ func (e *ETHScanner) getTxInFromSmartContract(tx *etypes.Transaction, receipt *e
 			if err != nil {
 				return nil, fmt.Errorf("fail to get asset from token address: %w", err)
 			}
+			if asset.IsEmpty() {
+				return nil, nil
+			}
 			decimals := e.getTokenDecimalsForTHORChain(transferOutEvt.Asset.String())
 			txInItem.Coins = append(txInItem.Coins, common.NewCoin(asset, e.convertAmount(transferOutEvt.Asset.String(), transferOutEvt.Amount)).WithDecimals(decimals))
 		case transferAllowanceEvent:
@@ -828,6 +834,9 @@ func (e *ETHScanner) getTxInFromSmartContract(tx *etypes.Transaction, receipt *e
 			asset, err := e.getAssetFromTokenAddress(transferAllowanceEvt.Asset.String())
 			if err != nil {
 				return nil, fmt.Errorf("fail to get asset from token address: %w", err)
+			}
+			if asset.IsEmpty() {
+				return nil, nil
 			}
 			decimals := e.getTokenDecimalsForTHORChain(transferAllowanceEvt.Asset.String())
 			txInItem.Coins = append(txInItem.Coins, common.NewCoin(asset, e.convertAmount(transferAllowanceEvt.Asset.String(), transferAllowanceEvt.Amount)).WithDecimals(decimals))
@@ -844,6 +853,9 @@ func (e *ETHScanner) getTxInFromSmartContract(tx *etypes.Transaction, receipt *e
 				asset, err := e.getAssetFromTokenAddress(item.Asset.String())
 				if err != nil {
 					return nil, fmt.Errorf("fail to get asset from token address: %w", err)
+				}
+				if asset.IsEmpty() {
+					return nil, nil
 				}
 				decimals := e.getTokenDecimalsForTHORChain(item.Asset.String())
 				txInItem.Coins = append(txInItem.Coins, common.NewCoin(asset, e.convertAmount(item.Asset.String(), item.Amount)).WithDecimals(decimals))
@@ -919,6 +931,7 @@ func (e *ETHScanner) fromTxToTxIn(tx *etypes.Transaction) (*stypes.TxInItem, err
 		}
 		return nil, fmt.Errorf("fail to get transaction receipt: %w", err)
 	}
+	tx.GasPrice()
 	if receipt.Status != 1 {
 		e.logger.Debug().Msgf("tx(%s) state: %d means failed , ignore", tx.Hash().String(), receipt.Status)
 		return nil, nil
