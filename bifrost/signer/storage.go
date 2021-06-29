@@ -22,7 +22,7 @@ import (
 const (
 	DefaultSignerLevelDBFolder = "signer_data"
 	txOutPrefix                = "txout-v1-"
-	signedCachePrefix          = "signed-v1-"
+	signedCachePrefix          = "signed-v2-"
 )
 
 type TxStatus int
