@@ -223,10 +223,7 @@ func (s *Signer) processTransactions() {
 						return
 					}
 					cancel()
-					// add an item to key value store indicate this tx out item has been signed
-					if err := s.storage.SetSigned(item.TxOutItem.CacheHash()); err != nil {
-						s.logger.Error().Err(err).Msg("fail to update local signer cache")
-					}
+
 					// We have a successful broadcast! Remove the item from our store
 					if err := s.storage.Remove(item); err != nil {
 						s.logger.Error().Err(err).Msg("fail to update tx out store item")
@@ -449,6 +446,10 @@ func (s *Signer) signAndBroadcast(item TxOutStoreItem) error {
 	}
 	if s.isTssKeysign(tx.VaultPubKey) {
 		s.tssKeysignMetricMgr.SetTssKeysignMetric(hash, elapse.Milliseconds())
+	}
+	// add an item to key value store indicate this tx out item has been signed
+	if err := s.storage.SetSigned(item.TxOutItem.CacheHash()); err != nil {
+		s.logger.Error().Err(err).Msg("fail to update local signer cache")
 	}
 
 	return nil
