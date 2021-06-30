@@ -139,10 +139,12 @@ class Health:
             # Thorchain Coins
             trune = Coin(RUNE, tpool["balance_rune"])
             tasset = Coin(asset, tpool["balance_asset"])
+            tsynth = Coin(asset, tpool["synth_supply"])
 
             # Midgard Coins
             mrune = Coin(RUNE, mpool["runeDepth"])
             masset = Coin(asset, mpool["assetDepth"])
+            msynth = Coin(asset, mpool["synthSupply"])
 
             # Check balances
             diff = get_diff(trune.amount, mrune.amount)
@@ -160,6 +162,15 @@ class Health:
                 self.error(
                     f"Midgard   [{asset:15}] ASSET"
                     f" [T]{tasset.str_amt()} != [M]{masset.str_amt()}"
+                    f" [DIFF] {str(round(diff, 5))}% ({sub:0,.0f})"
+                )
+
+            diff = get_diff(tsynth.amount, msynth.amount)
+            if diff > self.margin_err:
+                sub = abs(tsynth - msynth)
+                self.error(
+                    f"Midgard   [{asset:15}] SYNTH SUPPLY"
+                    f" [T]{tsynth.str_amt()} != [M]{msynth.str_amt()}"
                     f" [DIFF] {str(round(diff, 5))}% ({sub:0,.0f})"
                 )
 
