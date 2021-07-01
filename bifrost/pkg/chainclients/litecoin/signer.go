@@ -148,7 +148,7 @@ func (c *Client) isSelfTransaction(txID string) bool {
 	for _, item := range bms {
 		for _, tx := range item.SelfTransactions {
 			if strings.EqualFold(tx, txID) {
-				c.logger.Info().Msgf("%s is self transaction", txID)
+				c.logger.Debug().Msgf("%s is self transaction", txID)
 				return true
 			}
 		}
