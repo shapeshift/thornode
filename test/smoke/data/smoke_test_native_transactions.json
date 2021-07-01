@@ -87,7 +87,7 @@
         "coins": [
             {
                 "asset": "BTC.BTC",
-                "amount": 200000000
+                "amount": 500000000
             }
         ],
         "gas": null
@@ -100,7 +100,7 @@
         "coins": [
             {
                 "asset": "BTC.BTC",
-                "amount": 200000000
+                "amount": 500000000
             }
         ],
         "gas": null
@@ -256,7 +256,7 @@
         "coins": [
             {
                 "asset": "THOR.RUNE",
-                "amount": 50000000000
+                "amount": 100000000000
             }
         ],
         "gas": null
@@ -269,7 +269,7 @@
         "coins": [
             {
                 "asset": "BNB.BNB",
-                "amount": 150000000
+                "amount": 250000000
             }
         ],
         "gas": null
@@ -295,7 +295,7 @@
         "coins": [
             {
                 "asset": "THOR.RUNE",
-                "amount": 100000000000
+                "amount": 50000000000
             }
         ],
         "gas": null
@@ -399,7 +399,7 @@
         "coins": [
             {
                 "asset": "THOR.RUNE",
-                "amount": 50000000000
+                "amount": 100000000000
             }
         ],
         "gas": null
@@ -412,7 +412,7 @@
         "coins": [
             {
                 "asset": "BTC.BTC",
-                "amount": 150000000
+                "amount": 250000000
             }
         ],
         "gas": null
@@ -1222,7 +1222,7 @@
         "coins": [
             {
                 "asset": "BTC/BTC",
-                "amount": 19502949
+                "amount": 22061425
             }
         ],
         "gas": null
@@ -1262,6 +1262,19 @@
             {
                 "asset": "THOR.RUNE",
                 "amount": 1
+            }
+        ],
+        "gas": null
+    },
+    {
+        "chain": "THOR",
+        "from_address": "PROVIDER-1",
+        "to_address": "VAULT",
+        "memo": "SWAP:THOR.RUNE:PROVIDER-1",
+        "coins": [
+            {
+                "asset": "BNB/BNB",
+                "amount": 16610630
             }
         ],
         "gas": null

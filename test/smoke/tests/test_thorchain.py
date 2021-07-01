@@ -54,6 +54,7 @@ class TestThorchainState(unittest.TestCase):
         thorchain = ThorchainState()
         thorchain.network_fees = {"BNB": 37500}
         thorchain.pools = [Pool("BNB.BNB", 100 * Coin.ONE, 10 * Coin.ONE)]
+        thorchain.pools[0].lp_units = 10 * Coin.ONE
         tx = Transaction(
             Binance.chain,
             "PROVIDER-1",
@@ -409,6 +410,8 @@ class TestThorchainState(unittest.TestCase):
             Pool("BNB.BNB", 50 * Coin.ONE, 50 * Coin.ONE),
             Pool("BNB.LOK-3C0", 50 * Coin.ONE, 50 * Coin.ONE),
         ]
+        thorchain.pools[0].lp_units = 50 * Coin.ONE
+        thorchain.pools[1].lp_units = 50 * Coin.ONE
 
         # do a regular swap
         outbound = thorchain.handle(tx)
@@ -607,7 +610,8 @@ class TestThorchainState(unittest.TestCase):
             Pool("BNB.BNB", 50 * Coin.ONE, 50 * Coin.ONE),
             Pool("BNB.LOK-3C0", 50 * Coin.ONE, 50 * Coin.ONE),
         ]
-
+        thorchain.pools[0].lp_units = 50 * Coin.ONE
+        thorchain.pools[1].lp_units = 50 * Coin.ONE
         tx.chain = "BNB"
         tx.coins = [Coin("BNB.BNB", 1000000000)]
         tx.memo = "SWAP:BNB.LOK-3C0"
