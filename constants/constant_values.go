@@ -30,6 +30,7 @@ const (
 	BadValidatorRedline
 	BadValidatorRate
 	OldValidatorRate
+	LowBondValidatorRate
 	LackOfObservationPenalty
 	SigningTransactionPeriod
 	DoubleSignMaxAge
@@ -79,6 +80,7 @@ var nameToString = map[ConstantName]string{
 	BadValidatorRedline:           "BadValidatorRedline",
 	BadValidatorRate:              "BadValidatorRate",
 	OldValidatorRate:              "OldValidatorRate",
+	LowBondValidatorRate:          "LowBondValidatorRate",
 	LackOfObservationPenalty:      "LackOfObservationPenalty",
 	SigningTransactionPeriod:      "SigningTransactionPeriod",
 	DoubleSignMaxAge:              "DoubleSignMaxAge",
