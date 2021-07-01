@@ -42,7 +42,9 @@ func (h SwapHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Result, erro
 
 func (h SwapHandler) validate(ctx cosmos.Context, msg MsgSwap) error {
 	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.56.0")) {
+	if version.GTE(semver.MustParse("0.58.0")) {
+		return h.validateV58(ctx, msg)
+	} else if version.GTE(semver.MustParse("0.56.0")) {
 		return h.validateV56(ctx, msg)
 	} else if version.GTE(semver.MustParse("0.55.0")) {
 		return h.validateV55(ctx, msg)
@@ -120,6 +122,74 @@ func (h SwapHandler) validateV55(ctx cosmos.Context, msg MsgSwap) error {
 }
 
 func (h SwapHandler) validateV56(ctx cosmos.Context, msg MsgSwap) error {
+	if err := msg.ValidateBasicV56(); err != nil {
+		return err
+	}
+
+	target := msg.TargetAsset
+	if target.IsSyntheticAsset() {
+
+		// the following  only applicable for chaosnet
+		totalLiquidityRUNE, err := h.getTotalLiquidityRUNE(ctx)
+		if err != nil {
+			return ErrInternal(err, "fail to get total liquidity RUNE")
+		}
+
+		// total liquidity RUNE after current add liquidity
+		if len(msg.Tx.Coins) > 0 {
+			// calculate rune value on incoming swap, and add to total liquidity.
+			coin := msg.Tx.Coins[0]
+			runeVal := coin.Amount
+			if !coin.Asset.IsRune() {
+				pool, err := h.mgr.Keeper().GetPool(ctx, coin.Asset)
+				if err != nil {
+					return ErrInternal(err, "fail to get pool")
+				}
+				runeVal = pool.AssetValueInRune(coin.Amount)
+			}
+			totalLiquidityRUNE = totalLiquidityRUNE.Add(runeVal)
+		}
+		maximumLiquidityRune, err := h.mgr.Keeper().GetMimir(ctx, constants.MaximumLiquidityRune.String())
+		if maximumLiquidityRune < 0 || err != nil {
+			maximumLiquidityRune = h.mgr.GetConstants().GetInt64Value(constants.MaximumLiquidityRune)
+		}
+		if maximumLiquidityRune > 0 {
+			if totalLiquidityRUNE.GT(cosmos.NewUint(uint64(maximumLiquidityRune))) {
+				return errAddLiquidityRUNEOverLimit
+			}
+		}
+
+		// fail validation if synth supply is already too high, relative to pool depth
+		maxSynths, err := h.mgr.Keeper().GetMimir(ctx, constants.MaxSynthPerAssetDepth.String())
+		if maxSynths < 0 || err != nil {
+			maxSynths = h.mgr.GetConstants().GetInt64Value(constants.MaxSynthPerAssetDepth)
+		}
+		synthSupply := h.mgr.Keeper().GetTotalSupply(ctx, target.GetSyntheticAsset())
+		pool, err := h.mgr.Keeper().GetPool(ctx, target)
+		if err != nil {
+			return ErrInternal(err, "fail to get pool")
+		}
+		coverage := int64(synthSupply.Quo(pool.BalanceAsset).MulUint64(MaxWithdrawBasisPoints).Uint64())
+		if coverage > maxSynths {
+			return fmt.Errorf("Synth quantity is too high relative to asset depth of related pool (%d/%d)", coverage, maxSynths)
+		}
+
+		ensureLiquidityNoLargerThanBond := h.mgr.GetConstants().GetBoolValue(constants.StrictBondLiquidityRatio)
+		if !ensureLiquidityNoLargerThanBond {
+			return nil
+		}
+		totalBondRune, err := h.getTotalActiveBond(ctx)
+		if err != nil {
+			return ErrInternal(err, "fail to get total bond RUNE")
+		}
+		if totalLiquidityRUNE.GT(totalBondRune) {
+			ctx.Logger().Info(fmt.Sprintf("total liquidity RUNE(%s) is more than total Bond(%s)", totalLiquidityRUNE, totalBondRune))
+			return errAddLiquidityRUNEMoreThanBond
+		}
+	}
+	return nil
+}
+func (h SwapHandler) validateV58(ctx cosmos.Context, msg MsgSwap) error {
 	return h.validateCurrent(ctx, msg)
 }
 
@@ -171,7 +241,7 @@ func (h SwapHandler) validateCurrent(ctx cosmos.Context, msg MsgSwap) error {
 		if err != nil {
 			return ErrInternal(err, "fail to get pool")
 		}
-		coverage := int64(synthSupply.Quo(pool.BalanceAsset).MulUint64(MaxWithdrawBasisPoints).Uint64())
+		coverage := int64(synthSupply.MulUint64(MaxWithdrawBasisPoints).Quo(pool.BalanceAsset).Uint64())
 		if coverage > maxSynths {
 			return fmt.Errorf("Synth quantity is too high relative to asset depth of related pool (%d/%d)", coverage, maxSynths)
 		}
