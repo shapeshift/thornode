@@ -1085,27 +1085,28 @@ class ThorchainState:
         source = tx.coins[0].asset
         target = asset
 
-        # refund if we're trying to swap with the coin we given ie swapping bnb
-        # with bnb
+        # refund if we're trying to swap with the coin we given ie
+        # swapping bnb with bnb
         if source == target and source.is_synth == target.is_synth:
             reason = "swap Source and Target cannot be the same.: unknown request"
             return self.refund(tx, 105, reason)
 
+        if (
+            ("thor" in address or "SYNTH" in address)
+            and not target.is_synth
+            and not target.is_rune()
+        ):
+            reason = (
+                "swap destination address is not the same chain as "
+                "the target asset: unknown request"
+            )
+            return self.refund(tx, 108, reason)
         pool = self.get_pool(target)
         if target.is_rune():
             pool = self.get_pool(source)
 
         if pool.is_zero():
             return self.refund(tx, 108, f"{asset} pool doesn't exist")
-
-        # check if synth tx
-        if (
-            ("thor" in address or "SYNTH" in address)
-            and not target.is_synth
-            and not target.is_rune()
-        ):
-            reason = f"destination address is not a valid {target.chain} address"
-            return self.refund(tx, 108, reason)
 
         pools = []
         in_tx = tx
