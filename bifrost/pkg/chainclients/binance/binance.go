@@ -264,6 +264,14 @@ func (b *Binance) getGasFee(count uint64) common.Gas {
 	return common.CalcBinanceGasPrice(common.Tx{Coins: coins}, common.BNBAsset, gasInfo)
 }
 
+func (b *Binance) checkAccountMemoFlag(addr string) (bool, error) {
+	acct, err := b.GetAccountByAddress(addr)
+	if err != nil {
+		return false, fmt.Errorf("fail to get account, err: %w", err)
+	}
+	return acct.HasMemoFlag, nil
+}
+
 // SignTx sign the the given TxArrayItem
 func (b *Binance) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, error) {
 	var payload []msg.Transfer
@@ -274,7 +282,14 @@ func (b *Binance) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, er
 		// if we fail to parse the to address , then we log an error and move on
 		return nil, nil
 	}
-
+	hasMemoFlag, err := b.checkAccountMemoFlag(toAddr.String())
+	if err != nil {
+		return nil, fmt.Errorf("fail to check account memo flag, err: %w", err)
+	}
+	if hasMemoFlag {
+		b.logger.Info().Msgf("address: %s has memo flag set , ignore tx", tx.ToAddress)
+		return nil, nil
+	}
 	var gasCoin common.Coins
 
 	// for yggdrasil, need to left some coin to pay for fee, this logic is per chain, given different chain charge fees differently
@@ -502,10 +517,6 @@ func (b *Binance) BroadcastTx(tx stypes.TxOutItem, hexTx []byte) (string, error)
 	checkTx := commit.Result.CheckTx
 	if checkTx.Code > 0 && checkTx.Code != cosmos.CodeUnauthorized {
 		err := errors.New(checkTx.Log)
-		if b.IsMemoCheckFailure(checkTx.Log) {
-			b.logger.Info().Msgf("The broadcast error (%s) is caused by memo flag, skip", checkTx.Log)
-			return commit.Result.Hash.String(), nil
-		}
 		b.logger.Info().Str("body", string(body)).Msg("broadcast response from Binance Chain")
 		b.logger.Error().Err(err).Msg("fail to broadcast")
 		return "", fmt.Errorf("fail to broadcast: %w", err)
@@ -522,29 +533,6 @@ func (b *Binance) BroadcastTx(tx stypes.TxOutItem, hexTx []byte) (string, error)
 	b.accts.SeqInc(tx.VaultPubKey)
 
 	return commit.Result.Hash.String(), nil
-}
-
-// IsMemoCheckFailure check whether the error is caused by memo flag on binance chain
-func (b *Binance) IsMemoCheckFailure(log string) bool {
-	if len(log) == 0 {
-		return false
-	}
-	// "log": "{\"codespace\":1,\"code\":16,\"abci_code\":65552,\"message\":\"The receiver requires the memo contains only digits.\"}",
-	type logItem struct {
-		Codespace int64  `json:"codespace"`
-		Code      int64  `json:"code"`
-		AbiCode   int64  `json:"abi_code"`
-		Message   string `json:"message"`
-	}
-	var result logItem
-	if err := json.Unmarshal([]byte(log), &result); err != nil {
-		b.logger.Err(err).Msg("fail to parse log")
-		return false
-	}
-	if result.Code == 16 {
-		return true
-	}
-	return false
 }
 
 // ConfirmationCountReady binance chain has almost instant finality , so doesn't need to wait for confirmation
