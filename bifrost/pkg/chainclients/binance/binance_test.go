@@ -334,63 +334,7 @@ func (s *BinancechainSuite) TestGetGasFee(c *C) {
 	gas = b2.getGasFee(2)
 	c.Check(gas[0].Amount.Equal(cosmos.NewUint(60000)), Equals, true)
 }
-func (s *BinancechainSuite) TestBinanceMemoCheckError(c *C) {
-	input := `{
-    "jsonrpc": "2.0",
-    "id": "",
-    "result": {
-        "check_tx": {
-            "code": 65552,
-            "log": "{\"codespace\":1,\"code\":16,\"abci_code\":65552,\"message\":\"The receiver requires the memo contains only digits.\"}",
-            "events": [
-                {
-                    "attributes": [
-                        {
-                            "key": "YWN0aW9u",
-                            "value": "c2VuZA=="
-                        }
-                    ]
-                }
-            ]
-        },
-        "deliver_tx": {},
-        "hash": "7047ED63FC01ED675DEE225A0CF5B010937CB8716DF7DFE97A784CC026D829AF",
-        "height": "0"
-    }
-}`
-	server := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		c.Logf("requestUri:%s", req.RequestURI)
-		if req.RequestURI == "/status" {
-			_, err := rw.Write([]byte(status))
-			c.Assert(err, IsNil)
-		}
-	}))
 
-	b, err := thorclient.NewThorchainBridge(config.ClientConfiguration{
-		ChainID:         "thorchain",
-		ChainHost:       server.Listener.Addr().String(),
-		SignerName:      "bob",
-		SignerPasswd:    "password",
-		ChainHomeFolder: s.thordir,
-	}, s.m, s.thorKeys)
-	c.Assert(err, IsNil)
-	b2, err2 := NewBinance(s.thorKeys, config.ChainConfiguration{
-		RPCHost: server.URL,
-		BlockScanner: config.BlockScannerConfiguration{
-			RPCHost:          server.URL,
-			StartBlockHeight: 1, // avoids querying thorchain for block height
-		},
-	}, nil, b, s.m)
-	c.Assert(err2, IsNil)
-	c.Assert(b2, NotNil)
-
-	var commit types.BroadcastResult
-	err = b2.cdc.UnmarshalJSON([]byte(input), &commit)
-	c.Assert(err, IsNil)
-	checkTx := commit.Result.CheckTx
-	c.Check(b2.IsMemoCheckFailure(checkTx.Log), Equals, true)
-
-}
 func getTxOutFromJsonInput(input string, c *C) types.TxOut {
 	var txOut types.TxOut
 	err := json.Unmarshal([]byte(input), &txOut)
