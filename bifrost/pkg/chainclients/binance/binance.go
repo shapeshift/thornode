@@ -264,6 +264,14 @@ func (b *Binance) getGasFee(count uint64) common.Gas {
 	return common.CalcBinanceGasPrice(common.Tx{Coins: coins}, common.BNBAsset, gasInfo)
 }
 
+func (b *Binance) checkAccountMemoFlag(addr string) (bool, error) {
+	acct, err := b.GetAccountByAddress(addr)
+	if err != nil {
+		return false, fmt.Errorf("fail to get account, err: %w", err)
+	}
+	return acct.HasMemoFlag, nil
+}
+
 // SignTx sign the the given TxArrayItem
 func (b *Binance) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, error) {
 	var payload []msg.Transfer
@@ -274,7 +282,14 @@ func (b *Binance) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, er
 		// if we fail to parse the to address , then we log an error and move on
 		return nil, nil
 	}
-
+	hasMemoFlag, err := b.checkAccountMemoFlag(toAddr.String())
+	if err != nil {
+		return nil, fmt.Errorf("fail to check account memo flag, err: %w", err)
+	}
+	if hasMemoFlag {
+		b.logger.Info().Msgf("address: %s has memo flag set , ignore tx", tx.ToAddress)
+		return nil, nil
+	}
 	var gasCoin common.Coins
 
 	// for yggdrasil, need to left some coin to pay for fee, this logic is per chain, given different chain charge fees differently
