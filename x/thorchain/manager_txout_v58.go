@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/blang/semver"
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
@@ -12,17 +11,17 @@ import (
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
-// TxOutStorageV1 is going to manage all the outgoing tx
-type TxOutStorageV1 struct {
+// TxOutStorageV58 is going to manage all the outgoing tx
+type TxOutStorageV58 struct {
 	keeper        keeper.Keeper
 	constAccessor constants.ConstantValues
 	eventMgr      EventManager
 	gasManager    GasManager
 }
 
-// NewTxOutStorageV1 will create a new instance of TxOutStore.
-func NewTxOutStorageV1(keeper keeper.Keeper, constAccessor constants.ConstantValues, eventMgr EventManager, gasManager GasManager) *TxOutStorageV1 {
-	return &TxOutStorageV1{
+// NewTxOutStorageV58 will create a new instance of TxOutStore.
+func NewTxOutStorageV58(keeper keeper.Keeper, constAccessor constants.ConstantValues, eventMgr EventManager, gasManager GasManager) *TxOutStorageV58 {
+	return &TxOutStorageV58{
 		keeper:        keeper,
 		eventMgr:      eventMgr,
 		constAccessor: constAccessor,
@@ -31,12 +30,12 @@ func NewTxOutStorageV1(keeper keeper.Keeper, constAccessor constants.ConstantVal
 }
 
 // GetBlockOut read the TxOut from kv store
-func (tos *TxOutStorageV1) GetBlockOut(ctx cosmos.Context) (*TxOut, error) {
+func (tos *TxOutStorageV58) GetBlockOut(ctx cosmos.Context) (*TxOut, error) {
 	return tos.keeper.GetTxOut(ctx, common.BlockHeight(ctx))
 }
 
 // GetOutboundItems read all the outbound item from kv store
-func (tos *TxOutStorageV1) GetOutboundItems(ctx cosmos.Context) ([]TxOutItem, error) {
+func (tos *TxOutStorageV58) GetOutboundItems(ctx cosmos.Context) ([]TxOutItem, error) {
 	block, err := tos.keeper.GetTxOut(ctx, common.BlockHeight(ctx))
 	if block == nil {
 		return nil, nil
@@ -45,7 +44,7 @@ func (tos *TxOutStorageV1) GetOutboundItems(ctx cosmos.Context) ([]TxOutItem, er
 }
 
 // GetOutboundItemByToAddress read all the outbound items filter by the given to address
-func (tos *TxOutStorageV1) GetOutboundItemByToAddress(ctx cosmos.Context, to common.Address) []TxOutItem {
+func (tos *TxOutStorageV58) GetOutboundItemByToAddress(ctx cosmos.Context, to common.Address) []TxOutItem {
 	filterItems := make([]TxOutItem, 0)
 	items, _ := tos.GetOutboundItems(ctx)
 	for _, item := range items {
@@ -57,14 +56,14 @@ func (tos *TxOutStorageV1) GetOutboundItemByToAddress(ctx cosmos.Context, to com
 }
 
 // ClearOutboundItems remove all the tx out items , mostly used for test
-func (tos *TxOutStorageV1) ClearOutboundItems(ctx cosmos.Context) {
+func (tos *TxOutStorageV58) ClearOutboundItems(ctx cosmos.Context) {
 	_ = tos.keeper.ClearTxOut(ctx, common.BlockHeight(ctx))
 }
 
 // TryAddTxOutItem add an outbound tx to block
 // return bool indicate whether the transaction had been added successful or not
 // return error indicate error
-func (tos *TxOutStorageV1) TryAddTxOutItem(ctx cosmos.Context, mgr Manager, toi TxOutItem) (bool, error) {
+func (tos *TxOutStorageV58) TryAddTxOutItem(ctx cosmos.Context, mgr Manager, toi TxOutItem) (bool, error) {
 	outputs, err := tos.prepareTxOutItem(ctx, toi)
 	if err != nil {
 		return false, fmt.Errorf("fail to prepare outbound tx: %w", err)
@@ -83,7 +82,19 @@ func (tos *TxOutStorageV1) TryAddTxOutItem(ctx cosmos.Context, mgr Manager, toi 
 
 // UnSafeAddTxOutItem - blindly adds a tx out, skipping vault selection, transaction
 // fee deduction, etc
-func (tos *TxOutStorageV1) UnSafeAddTxOutItem(ctx cosmos.Context, mgr Manager, toi TxOutItem) error {
+func (tos *TxOutStorageV58) UnSafeAddTxOutItem(ctx cosmos.Context, mgr Manager, toi TxOutItem) error {
+	// BCH chain will convert legacy address to new format automatically , thus when observe it back can't be associated with the original inbound
+	// so here convert the legacy address to new format
+	if toi.Chain.Equals(common.BCHChain) {
+		newBCHAddress, err := common.ConvertToNewBCHAddressFormat(toi.ToAddress)
+		if err != nil {
+			return fmt.Errorf("fail to convert BCH address to new format: %w", err)
+		}
+		if newBCHAddress.IsEmpty() {
+			return fmt.Errorf("empty to address , can't send out")
+		}
+		toi.ToAddress = newBCHAddress
+	}
 	return tos.addToBlockOut(ctx, mgr, toi)
 }
 
@@ -92,7 +103,9 @@ func (tos *TxOutStorageV1) UnSafeAddTxOutItem(ctx cosmos.Context, mgr Manager, t
 // 2. choose an appropriate vault(s) to send from (ygg first, active asgard, then retiring asgard)
 // 3. deduct transaction fee, keep in mind, only take transaction fee when active nodes are  more then minimumBFT
 // return list of outbound transactions
-func (tos *TxOutStorageV1) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem) ([]TxOutItem, error) {
+func (tos *TxOutStorageV58) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem) ([]TxOutItem, error) {
+	var outputs []TxOutItem
+
 	// Default the memo to the standard outbound memo
 	if toi.Memo == "" {
 		toi.Memo = NewOutboundMemo(toi.InHash).String()
@@ -101,8 +114,25 @@ func (tos *TxOutStorageV1) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem) (
 	if toi.InHash.IsEmpty() {
 		toi.InHash = common.BlankTxID
 	}
+	if toi.ToAddress.IsEmpty() {
+		return outputs, fmt.Errorf("empty to address, can't send out")
+	}
+	if !toi.ToAddress.IsChain(toi.Chain) {
+		return outputs, fmt.Errorf("to address(%s), is not of chain(%s)", toi.ToAddress, toi.Chain)
+	}
 
-	var outputs []TxOutItem
+	// BCH chain will convert legacy address to new format automatically , thus when observe it back can't be associated with the original inbound
+	// so here convert the legacy address to new format
+	if toi.Chain.Equals(common.BCHChain) {
+		newBCHAddress, err := common.ConvertToNewBCHAddressFormat(toi.ToAddress)
+		if err != nil {
+			return outputs, fmt.Errorf("fail to convert BCH address to new format: %w", err)
+		}
+		if newBCHAddress.IsEmpty() {
+			return outputs, fmt.Errorf("empty to address , can't send out")
+		}
+		toi.ToAddress = newBCHAddress
+	}
 	signingTransactionPeriod := tos.constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
 	transactionFeeRune := tos.gasManager.GetFee(ctx, toi.Chain, common.RuneAsset())
 	transactionFeeAsset := tos.gasManager.GetFee(ctx, toi.Chain, toi.Coin.Asset)
@@ -242,7 +272,7 @@ func (tos *TxOutStorageV1) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem) (
 		runeFee := transactionFeeRune // Fee is the prescribed fee
 
 		// Deduct OutboundTransactionFee from TOI and add to Reserve
-		memo, err := ParseMemo(outputs[i].Memo) // ignore err
+		memo, err := ParseMemoWithTHORNames(ctx, tos.keeper, outputs[i].Memo) // ignore err
 		if err == nil && !memo.IsType(TxYggdrasilFund) && !memo.IsType(TxYggdrasilReturn) && !memo.IsType(TxMigrate) && !memo.IsType(TxRagnarok) {
 			if outputs[i].Coin.Asset.IsRune() {
 				if outputs[i].Coin.Amount.LTE(transactionFeeRune) {
@@ -263,26 +293,14 @@ func (tos *TxOutStorageV1) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem) (
 				}
 
 				// if pool units is zero, no asset fee is taken
-				if !pool.LPUnits.IsZero() {
+				if !pool.GetPoolUnits().IsZero() {
 					assetFee := transactionFeeAsset
 					if outputs[i].Coin.Amount.LTE(assetFee) {
 						assetFee = outputs[i].Coin.Amount // Fee is the full amount
 					}
 
-					synthUnits := cosmos.ZeroUint()
 					outputs[i].Coin.Amount = common.SafeSub(outputs[i].Coin.Amount, assetFee) // Deduct Asset fee
 					if outputs[i].Coin.Asset.IsSyntheticAsset() {
-						totalSynthSupply := tos.keeper.GetTotalSupply(ctx, outputs[i].Coin.Asset)
-						// at this point ,the pool synth unit had been update to the new amount , however the synth has not been minted yet,
-						// thus the total supply didn't change yet , need to add the output asset amount
-						if outputs[i].ModuleName == ModuleName {
-							totalSynthSupply = totalSynthSupply.Add(outputs[i].Coin.Amount)
-						}
-						minusSynthUnits := common.GetShare(assetFee, totalSynthSupply, pool.SynthUnits)
-						pool.SynthUnits = common.SafeSub(pool.SynthUnits, minusSynthUnits)
-						pool.LPUnits = common.SafeSub(pool.LPUnits, minusSynthUnits)
-						synthUnits = minusSynthUnits
-						ctx.Logger().Info("minus synth unit", "units", synthUnits.String())
 						// burn the synth asset which used to pay for fee, that's only required when the synth is sending from asgard
 						if outputs[i].ModuleName == "" || outputs[i].ModuleName == AsgardName {
 							if err := tos.keeper.SendFromModuleToModule(ctx,
@@ -309,7 +327,7 @@ func (tos *TxOutStorageV1) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem) (
 					finalRuneFee = finalRuneFee.Add(runeFee)
 					pool.BalanceRune = common.SafeSub(pool.BalanceRune, runeFee) // Deduct Rune from Pool
 					fee := common.NewFee(common.Coins{common.NewCoin(outputs[i].Coin.Asset, assetFee)}, poolDeduct)
-					feeEvents = append(feeEvents, NewEventFee(outputs[i].InHash, fee, synthUnits))
+					feeEvents = append(feeEvents, NewEventFee(outputs[i].InHash, fee, cosmos.ZeroUint()))
 				}
 			}
 		}
@@ -366,7 +384,7 @@ func (tos *TxOutStorageV1) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem) (
 	return finalOutput, nil
 }
 
-func (tos *TxOutStorageV1) addToBlockOut(ctx cosmos.Context, mgr Manager, toi TxOutItem) error {
+func (tos *TxOutStorageV58) addToBlockOut(ctx cosmos.Context, mgr Manager, toi TxOutItem) error {
 	// THORChain , native RUNE will not need to forward the txout to bifrost
 	if toi.Chain.Equals(common.THORChain) {
 		return tos.nativeTxOut(ctx, mgr, toi)
@@ -375,7 +393,7 @@ func (tos *TxOutStorageV1) addToBlockOut(ctx cosmos.Context, mgr Manager, toi Tx
 	return tos.keeper.AppendTxOut(ctx, common.BlockHeight(ctx), toi)
 }
 
-func (tos *TxOutStorageV1) nativeTxOut(ctx cosmos.Context, mgr Manager, toi TxOutItem) error {
+func (tos *TxOutStorageV58) nativeTxOut(ctx cosmos.Context, mgr Manager, toi TxOutItem) error {
 	addr, err := cosmos.AccAddressFromBech32(toi.ToAddress.String())
 	if err != nil {
 		return err
@@ -429,7 +447,7 @@ func (tos *TxOutStorageV1) nativeTxOut(ctx cosmos.Context, mgr Manager, toi TxOu
 		Tx:             tx,
 		FinaliseHeight: common.BlockHeight(ctx),
 	}
-	m, err := processOneTxIn(ctx, semver.MustParse("0.1.0"), tos.keeper, observedTx, tos.keeper.GetModuleAccAddress(AsgardName))
+	m, err := processOneTxIn(ctx, mgr.GetVersion(), tos.keeper, observedTx, tos.keeper.GetModuleAccAddress(AsgardName))
 	if err != nil {
 		ctx.Logger().Error("fail to process txOut", "error", err, "tx", tx.String())
 		return err
@@ -447,7 +465,7 @@ func (tos *TxOutStorageV1) nativeTxOut(ctx cosmos.Context, mgr Manager, toi TxOu
 }
 
 // collectYggdrasilPools is to get all the yggdrasil vaults , that THORChain can used to send out fund
-func (tos *TxOutStorageV1) collectYggdrasilPools(ctx cosmos.Context, tx ObservedTx, gasAsset common.Asset) (Vaults, error) {
+func (tos *TxOutStorageV58) collectYggdrasilPools(ctx cosmos.Context, tx ObservedTx, gasAsset common.Asset) (Vaults, error) {
 	// collect yggdrasil pools
 	var vaults Vaults
 	iterator := tos.keeper.GetVaultIterator(ctx)
@@ -500,7 +518,7 @@ func (tos *TxOutStorageV1) collectYggdrasilPools(ctx cosmos.Context, tx Observed
 	return vaults, nil
 }
 
-func (tos *TxOutStorageV1) deductVaultPendingOutboundBalance(ctx cosmos.Context, vault Vault) (Vault, error) {
+func (tos *TxOutStorageV58) deductVaultPendingOutboundBalance(ctx cosmos.Context, vault Vault) (Vault, error) {
 	block, err := tos.GetBlockOut(ctx)
 	if err != nil {
 		return types.Vault{}, fmt.Errorf("fail to get block:%w", err)
@@ -529,7 +547,7 @@ func (tos *TxOutStorageV1) deductVaultPendingOutboundBalance(ctx cosmos.Context,
 	return vault, nil
 }
 
-func (tos *TxOutStorageV1) deductVaultBlockPendingOutbound(vault Vault, block *TxOut) Vault {
+func (tos *TxOutStorageV58) deductVaultBlockPendingOutbound(vault Vault, block *TxOut) Vault {
 	for _, txOutItem := range block.TxArray {
 		if !txOutItem.VaultPubKey.Equals(vault.PubKey) {
 			continue
@@ -538,11 +556,18 @@ func (tos *TxOutStorageV1) deductVaultBlockPendingOutbound(vault Vault, block *T
 		if !txOutItem.OutHash.IsEmpty() {
 			continue
 		}
+		// deduct the gas asset from the vault as well
+		var gasCoin common.Coin
+		if !txOutItem.MaxGas.IsEmpty() {
+			gasCoin = txOutItem.MaxGas.ToCoins().GetCoin(txOutItem.Chain.GetGasAsset())
+		}
 		for i, yggCoin := range vault.Coins {
-			if !yggCoin.Asset.Equals(txOutItem.Coin.Asset) {
-				continue
+			if yggCoin.Asset.Equals(txOutItem.Coin.Asset) {
+				vault.Coins[i].Amount = common.SafeSub(vault.Coins[i].Amount, txOutItem.Coin.Amount)
 			}
-			vault.Coins[i].Amount = common.SafeSub(vault.Coins[i].Amount, txOutItem.Coin.Amount)
+			if yggCoin.Asset.Equals(gasCoin.Asset) {
+				vault.Coins[i].Amount = common.SafeSub(vault.Coins[i].Amount, gasCoin.Amount)
+			}
 		}
 	}
 	return vault

@@ -81,6 +81,8 @@ func NewQuerier(mgr *Mgrs, kbs cosmos.KeybaseStore) cosmos.Querier {
 			return queryTssKeygenMetric(ctx, path[1:], req, mgr)
 		case q.QueryTssMetrics.Key:
 			return queryTssMetric(ctx, path[1:], req, mgr)
+		case q.QueryTHORName.Key:
+			return queryTHORName(ctx, path[1:], req, mgr)
 		default:
 			return nil, cosmos.ErrUnknownRequest(
 				fmt.Sprintf("unknown thorchain query endpoint: %s", path[0]),
@@ -116,6 +118,19 @@ func queryBalanceModule(ctx cosmos.Context, path []string, mgr *Mgrs) ([]byte, e
 		Coins:   bal,
 	}
 	res, err := json.MarshalIndent(balance, "", "	")
+	if err != nil {
+		return nil, ErrInternal(err, "fail to marshal response to json")
+	}
+	return res, nil
+}
+
+func queryTHORName(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mgrs) ([]byte, error) {
+	name, err := mgr.Keeper().GetTHORName(ctx, path[0])
+	if err != nil {
+		return nil, ErrInternal(err, "fail to fetch THORName")
+	}
+
+	res, err := json.MarshalIndent(name, "", "	")
 	if err != nil {
 		return nil, ErrInternal(err, "fail to marshal response to json")
 	}
@@ -1000,7 +1015,7 @@ func queryQueue(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *M
 		}
 		for _, tx := range txs.TxArray {
 			if tx.OutHash.IsEmpty() {
-				memo, _ := ParseMemo(tx.Memo)
+				memo, _ := ParseMemoWithTHORNames(ctx, mgr.Keeper(), tx.Memo)
 				if memo.IsInternal() {
 					query.Internal++
 				} else if memo.IsOutbound() {

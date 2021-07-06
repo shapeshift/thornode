@@ -20,6 +20,7 @@ import "thorchain/v1/x/thorchain/types/type_tx_out.proto";
 import "thorchain/v1/x/thorchain/types/type_node_account.proto";
 import "thorchain/v1/x/thorchain/types/type_observed_tx.proto";
 import "thorchain/v1/x/thorchain/types/type_liquidity_provider.proto";
+import "thorchain/v1/x/thorchain/types/type_thorname.proto";
 import "gogoproto/gogo.proto";
 
 message GenesisState {
@@ -44,4 +45,5 @@ message GenesisState {
   repeated types.NetworkFee network_fees = 20 [(gogoproto.nullable) = false];
   repeated types.ObservedNetworkFeeVoter network_fee_voters = 21 [(gogoproto.nullable) = false];
   repeated types.ChainContract chain_contracts = 22 [(gogoproto.nullable) = false];
+  repeated types.THORName THORNames = 23 [(gogoproto.nullable) = false];
 }

@@ -6,6 +6,7 @@ import (
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // TXTYPE:STATE1:STATE2:STATE3:FINALMEMO
@@ -31,6 +32,7 @@ const (
 	TxSwitch
 	TxNoOp
 	TxConsolidate
+	TxTHORName
 )
 
 var stringToTxTypeMap = map[string]TxType{
@@ -57,6 +59,9 @@ var stringToTxTypeMap = map[string]TxType{
 	"switch":      TxSwitch,
 	"noop":        TxNoOp,
 	"consolidate": TxConsolidate,
+	"name":        TxTHORName,
+	"n":           TxTHORName,
+	"~":           TxTHORName,
 }
 
 var txToStringMap = map[TxType]string{
@@ -77,6 +82,7 @@ var txToStringMap = map[TxType]string{
 	TxSwitch:          "switch",
 	TxNoOp:            "noop",
 	TxConsolidate:     "consolidate",
+	TxTHORName:        "thorname",
 }
 
 // converts a string into a txType
@@ -91,7 +97,7 @@ func StringToTxType(s string) (TxType, error) {
 
 func (tx TxType) IsInbound() bool {
 	switch tx {
-	case TxAdd, TxWithdraw, TxSwap, TxDonate, TxBond, TxUnbond, TxLeave, TxSwitch, TxReserve, TxNoOp:
+	case TxAdd, TxWithdraw, TxSwap, TxDonate, TxBond, TxUnbond, TxLeave, TxSwitch, TxReserve, TxNoOp, TxTHORName:
 		return true
 	default:
 		return false
@@ -212,11 +218,11 @@ func ParseMemo(memo string) (mem Memo, err error) {
 	case TxDonate:
 		return NewDonateMemo(asset), nil
 	case TxAdd:
-		return ParseAddLiquidityMemo(asset, parts)
+		return ParseAddLiquidityMemo(cosmos.Context{}, nil, asset, parts)
 	case TxWithdraw:
 		return ParseWithdrawLiquidityMemo(asset, parts)
 	case TxSwap:
-		return ParseSwapMemo(asset, parts)
+		return ParseSwapMemo(cosmos.Context{}, nil, asset, parts)
 	case TxOutbound:
 		return ParseOutboundMemo(parts)
 	case TxRefund:
@@ -236,7 +242,7 @@ func ParseMemo(memo string) (mem Memo, err error) {
 	case TxRagnarok:
 		return ParseRagnarokMemo(parts)
 	case TxSwitch:
-		return ParseSwitchMemo(parts)
+		return ParseSwitchMemo(cosmos.Context{}, nil, parts)
 	case TxNoOp:
 		return ParseNoOpMemo(parts)
 	case TxConsolidate:
@@ -244,4 +250,100 @@ func ParseMemo(memo string) (mem Memo, err error) {
 	default:
 		return mem, fmt.Errorf("TxType not supported: %s", tx.String())
 	}
+}
+
+func ParseMemoWithTHORNames(ctx cosmos.Context, keeper keeper.Keeper, memo string) (mem Memo, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("panicked parsing memo(%s), err: %s", memo, r)
+		}
+	}()
+	mem = MemoBase{TxType: TxUnknown}
+	if len(memo) == 0 {
+		return mem, fmt.Errorf("memo can't be empty")
+	}
+	parts := strings.Split(memo, ":")
+	tx, err := StringToTxType(parts[0])
+	if err != nil {
+		return mem, err
+	}
+
+	var asset common.Asset
+	switch tx {
+	case TxDonate, TxAdd, TxSwap, TxWithdraw:
+		if len(parts) < 2 {
+			return mem, fmt.Errorf("cannot parse given memo: length %d", len(parts))
+		}
+		asset, err = common.NewAsset(parts[1])
+		if err != nil {
+			return mem, err
+		}
+	}
+
+	switch tx {
+	case TxLeave:
+		return ParseLeaveMemo(parts)
+	case TxDonate:
+		return NewDonateMemo(asset), nil
+	case TxAdd:
+		return ParseAddLiquidityMemo(ctx, keeper, asset, parts)
+	case TxWithdraw:
+		return ParseWithdrawLiquidityMemo(asset, parts)
+	case TxSwap:
+		return ParseSwapMemo(ctx, keeper, asset, parts)
+	case TxOutbound:
+		return ParseOutboundMemo(parts)
+	case TxRefund:
+		return ParseRefundMemo(parts)
+	case TxBond:
+		return ParseBondMemo(parts)
+	case TxUnbond:
+		return ParseUnbondMemo(parts)
+	case TxYggdrasilFund:
+		return ParseYggdrasilFundMemo(parts)
+	case TxYggdrasilReturn:
+		return ParseYggdrasilReturnMemo(parts)
+	case TxReserve:
+		return NewReserveMemo(), nil
+	case TxMigrate:
+		return ParseMigrateMemo(parts)
+	case TxRagnarok:
+		return ParseRagnarokMemo(parts)
+	case TxSwitch:
+		return ParseSwitchMemo(ctx, keeper, parts)
+	case TxNoOp:
+		return ParseNoOpMemo(parts)
+	case TxConsolidate:
+		return ParseConsolidateMemo(parts)
+	case TxTHORName:
+		return ParseManageTHORNameMemo(parts)
+	default:
+		return mem, fmt.Errorf("TxType not supported: %s", tx.String())
+	}
+}
+
+func FetchAddress(ctx cosmos.Context, keeper keeper.Keeper, name string, chain common.Chain) (common.Address, error) {
+	// if name is an address, return as is
+	addr, err := common.NewAddress(name)
+	if err == nil {
+		return addr, nil
+	}
+
+	parts := strings.SplitN(name, ".", 2)
+	if len(parts) > 1 {
+		chain, err = common.NewChain(parts[1])
+		if err != nil {
+			return common.NoAddress, err
+		}
+	}
+
+	if keeper.THORNameExists(ctx, parts[0]) {
+		thorname, err := keeper.GetTHORName(ctx, parts[0])
+		if err != nil {
+			return common.NoAddress, err
+		}
+		return thorname.GetAlias(chain), nil
+	}
+
+	return common.NoAddress, fmt.Errorf("%s is not recognizable", name)
 }

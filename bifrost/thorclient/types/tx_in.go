@@ -7,7 +7,7 @@ import (
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
-	memo "gitlab.com/thorchain/thornode/x/thorchain/memo"
+	mem "gitlab.com/thorchain/thornode/x/thorchain/memo"
 )
 
 type TxIn struct {
@@ -42,14 +42,6 @@ const (
 type TxInStatusItem struct {
 	TxIn   TxIn       `json:"tx_in"`
 	Status TxInStatus `json:"status"`
-}
-
-func (t TxInItem) GetAddressToCheck() common.Address {
-	m, err := memo.ParseMemo(t.Memo)
-	if err != nil {
-		return common.NoAddress
-	}
-	return m.GetDestination()
 }
 
 // IsEmpty return true only when every field in TxInItem is empty
@@ -90,7 +82,7 @@ func (t TxIn) GetTotalTransactionValue(asset common.Asset, excludeFrom []common.
 			continue
 		}
 		// skip confirmation counting if it is internal tx
-		m, err := memo.ParseMemo(item.Memo)
+		m, err := mem.ParseMemo(item.Memo)
 		if err == nil && m.IsInternal() {
 			continue
 		}

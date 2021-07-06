@@ -61,4 +61,5 @@ type (
 	ObservedNetworkFeeVoter  = types.ObservedNetworkFeeVoter
 	RagnarokWithdrawPosition = types.RagnarokWithdrawPosition
 	ChainContract            = types.ChainContract
+	THORName                 = types.THORName
 )
