@@ -4092,7 +4092,7 @@
                 "code": "105"
             },
             {
-                "reason": "address format not supported: bnbPROVIDER-1"
+                "reason": "bnbPROVIDER-1 is not recognizable"
             },
             {
                 "id": "TODO"

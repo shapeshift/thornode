@@ -1067,7 +1067,7 @@ class ThorchainState:
             address = parts[2]
             # checking if address is for mainnet, not testnet
             if address.lower().startswith("bnb"):
-                reason = f"address format not supported: {address}"
+                reason = f"{address} is not recognizable"
                 return self.refund(tx, 105, reason)
 
         # get trade target, if exists
