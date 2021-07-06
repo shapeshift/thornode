@@ -289,7 +289,7 @@ class TestThorchainState(unittest.TestCase):
                 "refund",
                 [
                     {"code": "105"},
-                    {"reason": "address format not supported: BNBNOMNOM"},
+                    {"reason": "BNBNOMNOM is not recognizable"},
                     *tx.get_attributes(),
                 ],
             ),
@@ -590,7 +590,7 @@ class TestThorchainState(unittest.TestCase):
                 "refund",
                 [
                     {"code": "105"},
-                    {"reason": "address format not supported: BNBNOMNOM"},
+                    {"reason": "BNBNOMNOM is not recognizable"},
                     *tx.get_attributes(),
                 ],
             ),
