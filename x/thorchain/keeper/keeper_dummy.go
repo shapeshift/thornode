@@ -391,6 +391,14 @@ func (k KVStoreDummy) GetChainContracts(ctx cosmos.Context, chains common.Chains
 	return nil
 }
 
+func (k KVStoreDummy) THORNameExists(ctx cosmos.Context, _ string) bool { return false }
+func (k KVStoreDummy) GetTHORName(ctx cosmos.Context, _ string) (THORName, error) {
+	return THORName{}, kaboom
+}
+func (k KVStoreDummy) SetTHORName(ctx cosmos.Context, name THORName)          {}
+func (k KVStoreDummy) GetTHORNameIterator(ctx cosmos.Context) cosmos.Iterator { return nil }
+func (k KVStoreDummy) DeleteTHORName(ctx cosmos.Context, _ string) error      { return kaboom }
+
 // a mock cosmos.Iterator implementation for testing purposes
 type DummyIterator struct {
 	cosmos.Iterator

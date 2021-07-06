@@ -1088,6 +1088,30 @@ Retrieve Keysign information from THORChain
                 "signature": "0cJZ7kFoe6h3VA9yC/D+joTtfq7pJibxTK6GsjpHayNjapNCig20cqqSUerscKTwRPxB2D9DJaYVJ1C41wM9Bw=="
             }
 
+# Group THORNames
+
+## THORName [/thorchain/thorname/{name}]
+
++ Parameters
+    + name (string,required) - THORName name
+
+### Get Keygen [GET]
+Retrieve THORName from THORChain
+
++ Response 200 (application/json)
+    + Attributes (array[THORName])
+    + Body
+
+            [
+                {
+                    "name": "my-thorname",
+                    "chain": "THOR",
+                    "address": "thor1xxxxx",
+                    "expire_block_height": 4000
+                }
+            ]
+
+
 # Data Structures
 
 ## LiquidityProvider (object)

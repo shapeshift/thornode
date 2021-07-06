@@ -6,6 +6,7 @@ import (
 
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 type SwapMemo struct {
@@ -31,7 +32,7 @@ func NewSwapMemo(asset common.Asset, dest common.Address, slip cosmos.Uint, affA
 	}
 }
 
-func ParseSwapMemo(asset common.Asset, parts []string) (SwapMemo, error) {
+func ParseSwapMemo(ctx cosmos.Context, keeper keeper.Keeper, asset common.Asset, parts []string) (SwapMemo, error) {
 	var err error
 	if len(parts) < 2 {
 		return SwapMemo{}, fmt.Errorf("not enough parameters")
@@ -42,7 +43,11 @@ func ParseSwapMemo(asset common.Asset, parts []string) (SwapMemo, error) {
 	affPts := cosmos.ZeroUint()
 	if len(parts) > 2 {
 		if len(parts[2]) > 0 {
-			destination, err = common.NewAddress(parts[2])
+			if keeper == nil {
+				destination, err = common.NewAddress(parts[2])
+			} else {
+				destination, err = FetchAddress(ctx, keeper, parts[2], asset.Chain)
+			}
 			if err != nil {
 				return SwapMemo{}, err
 			}
@@ -59,7 +64,11 @@ func ParseSwapMemo(asset common.Asset, parts []string) (SwapMemo, error) {
 	}
 
 	if len(parts) > 5 && len(parts[4]) > 0 && len(parts[5]) > 0 {
-		affAddr, err = common.NewAddress(parts[4])
+		if keeper == nil {
+			affAddr, err = common.NewAddress(parts[4])
+		} else {
+			affAddr, err = FetchAddress(ctx, keeper, parts[4], common.THORChain)
+		}
 		if err != nil {
 			return SwapMemo{}, err
 		}

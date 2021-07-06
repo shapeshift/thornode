@@ -1762,6 +1762,48 @@
                     "application/json"
                 ]
             }
+        },
+        "/thorchain/thorname/{name}": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "headers": {},
+                        "examples": {
+                            "application/json": [
+                                {
+                                    "name": "my-thorname",
+                                    "chain": "THOR",
+                                    "address": "thor1xxxxx",
+                                    "expire_block_height": 4000
+                                }
+                            ]
+                        },
+                        "schema": {
+                            "type": "array",
+                            "items": {}
+                        }
+                    }
+                },
+                "summary": "Get Keygen",
+                "operationId": "Get Keygen",
+                "description": "Retrieve THORName from THORChain",
+                "tags": [
+                    "THORNames"
+                ],
+                "parameters": [
+                    {
+                        "name": "name",
+                        "in": "path",
+                        "description": "THORName name",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ]
+            }
         }
     },
     "definitions": {
@@ -2263,6 +2305,7 @@
                 }
             }
         },
+        "THORName": {},
         "LiquidityProvider": {
             "type": "object",
             "properties": {
@@ -2448,6 +2491,9 @@
         },
         {
             "name": "Keygen / Keysign"
+        },
+        {
+            "name": "THORNames"
         }
     ]
 }

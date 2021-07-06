@@ -43,12 +43,14 @@ var (
 	NewNodeAccount             = types.NewNodeAccount
 	NewVault                   = types.NewVault
 	NewReserveContributor      = types.NewReserveContributor
+	NewTHORName                = types.NewTHORName
 	GetRandomTx                = types.GetRandomTx
 	GetRandomNodeAccount       = types.GetRandomNodeAccount
 	GetRandomBNBAddress        = types.GetRandomBNBAddress
 	GetRandomBTCAddress        = types.GetRandomBTCAddress
 	GetRandomBCHAddress        = types.GetRandomBCHAddress
 	GetRandomRUNEAddress       = types.GetRandomRUNEAddress
+	GetRandomTHORAddress       = types.GetRandomTHORAddress
 	GetRandomTxHash            = types.GetRandomTxHash
 	GetRandomBech32Addr        = types.GetRandomBech32Addr
 	GetRandomPubKey            = types.GetRandomPubKey
@@ -89,6 +91,8 @@ type (
 	TssKeygenMetric          = types.TssKeygenMetric
 	TssKeysignMetric         = types.TssKeysignMetric
 	ChainContract            = types.ChainContract
+	THORName                 = types.THORName
+	THORNameAlias            = types.THORNameAlias
 
 	ProtoInt64        = types.ProtoInt64
 	ProtoUint64       = types.ProtoUint64
