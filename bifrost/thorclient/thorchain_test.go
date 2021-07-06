@@ -67,7 +67,8 @@ func (s *ThorchainSuite) SetUpSuite(c *C) {
 			httpTestHandler(c, rw, "../../test/fixtures/endpoints/mimir/mimir.json")
 		case strings.HasPrefix(req.RequestURI, InboundAddressesEndpoint):
 			httpTestHandler(c, rw, "../../test/fixtures/endpoints/inbound_addresses/inbound_addresses.json")
-
+		case strings.HasPrefix(req.RequestURI, "/thorchain/thorname/"):
+			httpTestHandler(c, rw, "../../test/fixtures/endpoints/thorname/thorname.json")
 		}
 	}))
 	s.cfg.ChainHost = s.server.Listener.Addr().String()
@@ -276,4 +277,14 @@ func (s *ThorchainSuite) TestGetContractAddress(c *C) {
 	result, err := s.bridge.GetContractAddress()
 	c.Assert(err, IsNil)
 	c.Assert(result[0].Contracts[common.ETHChain].String(), Equals, "0xE65e9d372F8cAcc7b6dfcd4af6507851Ed31bb44")
+}
+
+func (s *ThorchainSuite) TestTHORName(c *C) {
+	result, err := s.bridge.GetTHORName("test1")
+	c.Assert(err, IsNil)
+	c.Assert(result.Name, Equals, "test1")
+	c.Assert(result.ExpireBlockHeight, Equals, int64(10000))
+	c.Assert(result.Aliases, HasLen, 1)
+	c.Assert(result.Aliases[0].Chain, Equals, common.THORChain)
+	c.Assert(result.Aliases[0].Address, Equals, common.Address("tthor1tdfqy34uptx207scymqsy4k5uzfmry5sf7z3dw"))
 }

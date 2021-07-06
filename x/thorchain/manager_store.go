@@ -7,7 +7,6 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // StoreManager define the method as the entry point for store upgrade
@@ -17,23 +16,25 @@ type StoreManager interface {
 
 // StoreMgr implement StoreManager interface
 type StoreMgr struct {
-	keeper keeper.Keeper
+	mgr *Mgrs
 }
 
 // NewStoreMgr create a new instance of StoreMgr
-func NewStoreMgr(keeper keeper.Keeper) *StoreMgr {
-	return &StoreMgr{keeper: keeper}
+func NewStoreMgr(mgr *Mgrs) *StoreMgr {
+	return &StoreMgr{
+		mgr: mgr,
+	}
 }
 
 // Iterator implement StoreManager interface decide whether it need to upgrade store
 func (smgr *StoreMgr) Iterator(ctx cosmos.Context) error {
-	version := smgr.keeper.GetLowestActiveVersion(ctx)
+	version := smgr.mgr.Keeper().GetLowestActiveVersion(ctx)
 
 	if version.Major > constants.SWVersion.Major || version.Minor > constants.SWVersion.Minor {
 		return fmt.Errorf("out of date software: have %s, network running %s", constants.SWVersion, version)
 	}
 
-	storeVer := smgr.keeper.GetStoreVersion(ctx)
+	storeVer := smgr.mgr.Keeper().GetStoreVersion(ctx)
 	if storeVer < 0 {
 		return fmt.Errorf("unable to get store version: %d", storeVer)
 	}
@@ -67,14 +68,17 @@ func (smgr *StoreMgr) migrate(ctx cosmos.Context, i uint64, constantAccessor con
 		smgr.migrateStoreV55(ctx, version, constantAccessor)
 	case 56:
 		smgr.migrateStoreV56(ctx, version, constantAccessor)
+	case 58:
+		smgr.migrateStoreV58(ctx, version, constantAccessor)
+		smgr.migrateStoreV58Refund(ctx, version, constantAccessor)
 	}
 
-	smgr.keeper.SetStoreVersion(ctx, int64(i))
+	smgr.mgr.Keeper().SetStoreVersion(ctx, int64(i))
 	return nil
 }
 
 func (smgr *StoreMgr) migrateStoreV56(ctx cosmos.Context, version semver.Version, constantAccessor constants.ConstantValues) {
-	pools, err := smgr.keeper.GetPools(ctx)
+	pools, err := smgr.mgr.Keeper().GetPools(ctx)
 	if err != nil {
 		ctx.Logger().Error("fail to get pools during migration", "error", err)
 		return
@@ -84,7 +88,7 @@ func (smgr *StoreMgr) migrateStoreV56(ctx cosmos.Context, version semver.Version
 		runePool = runePool.Add(p.BalanceRune)
 	}
 
-	runeMod := smgr.keeper.GetRuneBalanceOfModule(ctx, AsgardName)
+	runeMod := smgr.mgr.Keeper().GetRuneBalanceOfModule(ctx, AsgardName)
 
 	// sanity checks, ensure we don't have any zeroes. If we did, something
 	// ain't right. Exit immediately and retry later
@@ -109,30 +113,29 @@ func (smgr *StoreMgr) migrateStoreV56(ctx cosmos.Context, version semver.Version
 
 		// move rune to thorchain module, so it can be burned there (asgard
 		// module cannot burn funds)
-		if err := smgr.keeper.SendFromModuleToModule(ctx, AsgardName, ModuleName, common.NewCoins(toBurn)); err != nil {
+		if err := smgr.mgr.Keeper().SendFromModuleToModule(ctx, AsgardName, ModuleName, common.NewCoins(toBurn)); err != nil {
 			ctx.Logger().Error("fail to move funds to module during migration", "error", err)
 			return
 		}
-		if err := smgr.keeper.BurnFromModule(ctx, ModuleName, toBurn); err != nil {
+		if err := smgr.mgr.Keeper().BurnFromModule(ctx, ModuleName, toBurn); err != nil {
 			ctx.Logger().Error("fail to burn funds during migration", "error", err)
 			return
 		}
 	}
 }
-
 func (smgr *StoreMgr) migrateStoreV55(ctx cosmos.Context, version semver.Version, constantAccessor constants.ConstantValues) {
 	assetToAdjust, err := common.NewAsset("BNB.USDT-6D8")
 	if err != nil {
 		ctx.Logger().Error("fail to parse asset", "error", err)
 		return
 	}
-	pool, err := smgr.keeper.GetPool(ctx, assetToAdjust)
+	pool, err := smgr.mgr.Keeper().GetPool(ctx, assetToAdjust)
 	if err != nil {
 		ctx.Logger().Error("fail to get pool", "error", err)
 		return
 	}
 	pool.BalanceAsset = pool.BalanceAsset.Add(cosmos.NewUint(900000000))
-	if err := smgr.keeper.SetPool(ctx, pool); err != nil {
+	if err := smgr.mgr.Keeper().SetPool(ctx, pool); err != nil {
 		ctx.Logger().Error("fail to save pool", "error", err)
 	}
 
@@ -153,20 +156,19 @@ func (smgr *StoreMgr) migrateStoreV49(ctx cosmos.Context, version semver.Version
 		RuneDepositValue:   cosmos.ZeroUint(),
 		AssetDepositValue:  cosmos.ZeroUint(),
 	}
-	smgr.keeper.SetLiquidityProvider(ctx, lp)
+	smgr.mgr.Keeper().SetLiquidityProvider(ctx, lp)
 }
-
 func (smgr *StoreMgr) migrateStoreV46(ctx cosmos.Context, version semver.Version, constantAccessor constants.ConstantValues) {
 	// housekeeping, deleting unused mimir settings
-	_ = smgr.keeper.DeleteMimir(ctx, "SIGNINGTRANSACTIONPERIOD")
-	_ = smgr.keeper.DeleteMimir(ctx, "MAXLIQUIDITYRUNE")
+	_ = smgr.mgr.Keeper().DeleteMimir(ctx, "SIGNINGTRANSACTIONPERIOD")
+	_ = smgr.mgr.Keeper().DeleteMimir(ctx, "MAXLIQUIDITYRUNE")
 	// retiring vault
 	pkey, err := common.NewPubKey("tthorpub1addwnpepqdnujur3husklhltj3l0kmmsepn0u68sge0jxg5k550nvdpphxm9s0v7f3v")
 	if err != nil {
 		ctx.Logger().Error("fail to parse pubkey", "error", err, "pubkey", "tthorpub1addwnpepqdnujur3husklhltj3l0kmmsepn0u68sge0jxg5k550nvdpphxm9s0v7f3v")
 		return
 	}
-	v, err := smgr.keeper.GetVault(ctx, pkey)
+	v, err := smgr.mgr.Keeper().GetVault(ctx, pkey)
 	if err != nil {
 		ctx.Logger().Error("fail to retrieve vault", "error", err)
 		return
@@ -193,7 +195,7 @@ func (smgr *StoreMgr) migrateStoreV46(ctx cosmos.Context, version semver.Version
 		common.NewCoin(xruneAsset, cosmos.NewUint(13439238115298)),  // https://ropsten.etherscan.io/tx/0x8a2915a5eb5831680851884394e702c41b9a35ce0d79c99a85f807fdf8ef306e
 	}
 	v.SubFunds(coins)
-	if err := smgr.keeper.SetVault(ctx, v); err != nil {
+	if err := smgr.mgr.Keeper().SetVault(ctx, v); err != nil {
 		ctx.Logger().Error("fail to save vault", "error", err)
 		return
 	}
@@ -203,24 +205,22 @@ func (smgr *StoreMgr) migrateStoreV46(ctx cosmos.Context, version semver.Version
 		ctx.Logger().Error("fail to parse active vault pubkey", "error", err)
 		return
 	}
-	activeVault, err := smgr.keeper.GetVault(ctx, activeVaultPubKey)
+	activeVault, err := smgr.mgr.Keeper().GetVault(ctx, activeVaultPubKey)
 	if err != nil {
 		ctx.Logger().Error("fail to get active vault", "error", err)
 		return
 	}
 	activeVault.AddFunds(coins)
-	if err := smgr.keeper.SetVault(ctx, activeVault); err != nil {
+	if err := smgr.mgr.Keeper().SetVault(ctx, activeVault); err != nil {
 		ctx.Logger().Error("fail to save vault", "error", err)
 	}
 }
-
 func (smgr *StoreMgr) migrateStoreV43(ctx cosmos.Context, version semver.Version, constantAccessor constants.ConstantValues) {
 	// housekeeping, deleting unused mimir settings
-	_ = smgr.keeper.DeleteMimir(ctx, "NEWPOOLCYCLE")
-	_ = smgr.keeper.DeleteMimir(ctx, "ROTATEPERBLOCKHEIGHT")
+	_ = smgr.mgr.Keeper().DeleteMimir(ctx, "NEWPOOLCYCLE")
+	_ = smgr.mgr.Keeper().DeleteMimir(ctx, "ROTATEPERBLOCKHEIGHT")
 
 }
-
 func (smgr *StoreMgr) migrateStoreV42(ctx cosmos.Context, version semver.Version, constantAccessor constants.ConstantValues) {
 	vaultsToRetire := []struct {
 		PubKey     string
@@ -248,7 +248,7 @@ func (smgr *StoreMgr) migrateStoreV42(ctx cosmos.Context, version semver.Version
 			ctx.Logger().Error("fail to parse pubkey", "error", err, "pubkey", item.PubKey)
 			continue
 		}
-		v, err := smgr.keeper.GetVault(ctx, pkey)
+		v, err := smgr.mgr.Keeper().GetVault(ctx, pkey)
 		if err != nil {
 			ctx.Logger().Error("fail to retrieve vault", "error", err)
 			continue
@@ -273,9 +273,197 @@ func (smgr *StoreMgr) migrateStoreV42(ctx cosmos.Context, version semver.Version
 		if v.Status == InactiveVault {
 			v.UpdateStatus(RetiringVault, ctx.BlockHeight())
 		}
-		if err := smgr.keeper.SetVault(ctx, v); err != nil {
+		if err := smgr.mgr.Keeper().SetVault(ctx, v); err != nil {
 			ctx.Logger().Error("fail to save vault", "error", err)
 		}
 	}
+}
 
+func (smgr *StoreMgr) migrateStoreV58Refund(ctx cosmos.Context, version semver.Version, constantAccessor constants.ConstantValues) {
+	if err := smgr.mgr.BeginBlock(ctx); err != nil {
+		ctx.Logger().Error("fail to initialise block", "error", err)
+		return
+	}
+	txOutStore := smgr.mgr.TxOutStore()
+	mkrAddr, err := common.NewAddress("0x340b94e5369cEDe551a117960c75547eA84eAEdE")
+	if err != nil {
+		ctx.Logger().Error("fail to parse address", "error", err)
+		return
+	}
+	mkrToken, err := common.NewAsset("ETH.MKR-0X9F8F72AA9304C8B593D555F12EF6589CC3A579A2")
+	if err != nil {
+		ctx.Logger().Error("fail to parse MKR asset", "error", err)
+		return
+	}
+	refundMKRTxID, err := common.NewTxID("f8165c9d888c1abd51edddf8b3da9c8bcf6cde4cacdca15f3df2d176332dcdd7")
+	if err != nil {
+		ctx.Logger().Error("fail to parse MKR transaction id", "error", err)
+		return
+	}
+
+	refundMkr := TxOutItem{
+		Chain:     common.ETHChain,
+		ToAddress: mkrAddr,
+		Coin: common.Coin{
+			Asset:  mkrToken,
+			Amount: cosmos.NewUint(60000000),
+		},
+		Memo:   NewRefundMemo(refundMKRTxID).String(),
+		InHash: refundMKRTxID,
+	}
+	_, err = txOutStore.TryAddTxOutItem(ctx, smgr.mgr, refundMkr)
+	if err != nil {
+		ctx.Logger().Error("fail to schedule refund MKR transaction", "error", err)
+		return
+	}
+
+	// refund LINK
+	linkAddr, err := common.NewAddress("0x0749405611B77f94311576C6e80FAe69CfcCa41A")
+	if err != nil {
+		ctx.Logger().Error("fail to parse address", "error", err)
+		return
+	}
+	linkToken, err := common.NewAsset("ETH.LINK-0X514910771AF9CA656AF840DFF83E8264ECF986CA")
+	if err != nil {
+		ctx.Logger().Error("fail to parse LINK asset", "error", err)
+		return
+	}
+	refundLINKTxID, err := common.NewTxID("b8489f8a5bdfd39c899cc1987eb32e81490580f2fb6426cd4bc710e45c20b721")
+	if err != nil {
+		ctx.Logger().Error("fail to parse LINK transaction id", "error", err)
+		return
+	}
+
+	refundLINK := TxOutItem{
+		Chain:     common.ETHChain,
+		ToAddress: linkAddr,
+		Coin: common.Coin{
+			Asset:  linkToken,
+			Amount: cosmos.NewUint(140112242412),
+		},
+		Memo:   NewRefundMemo(refundLINKTxID).String(),
+		InHash: refundLINKTxID,
+	}
+	_, err = txOutStore.TryAddTxOutItem(ctx, smgr.mgr, refundLINK)
+	if err != nil {
+		ctx.Logger().Error("fail to schedule refund LINK transaction", "error", err)
+		return
+	}
+
+	// inTxID 6232075D4C63A69CDC8B65157A1737CBC4C1DA979BAA7E6F8B6B9F20A38388CA
+	// inTxID 05A7C2FD035FEC62BB957465BC80970177EBD80605138B7C4709333F118E7338
+	for _, txID := range []string{
+		"6232075D4C63A69CDC8B65157A1737CBC4C1DA979BAA7E6F8B6B9F20A38388CA",
+		"05A7C2FD035FEC62BB957465BC80970177EBD80605138B7C4709333F118E7338",
+	} {
+		inTxID, err := common.NewTxID(txID)
+		if err != nil {
+			ctx.Logger().Error("fail to parse tx id", "error", err, "tx_id", inTxID)
+			continue
+		}
+		voter, err := smgr.mgr.Keeper().GetObservedTxInVoter(ctx, inTxID)
+		if err != nil {
+			ctx.Logger().Error("fail to get observed tx voter", "error", err)
+			continue
+		}
+		if !voter.Tx.IsEmpty() {
+			voter.Tx.SetDone(common.BlankTxID, len(voter.Actions))
+		}
+		// set the tx outbound with a blank txid will mark it as down , and will be skipped in the reschedule logic
+		for idx := range voter.Txs {
+			voter.Txs[idx].SetDone(common.BlankTxID, len(voter.Actions))
+		}
+		smgr.mgr.Keeper().SetObservedTxInVoter(ctx, voter)
+	}
+}
+
+// migrateStoreV58 this method will update
+func (smgr *StoreMgr) migrateStoreV58(ctx cosmos.Context, version semver.Version, constantAccessor constants.ConstantValues) {
+	// retired vault
+	pubKey, err := common.NewPubKey("tthorpub1addwnpepqg65km6vfflrlymsjhrnmn4w58d2d36h977pcu3aqp6dxee2yf88yg0z3v4")
+	if err != nil {
+		ctx.Logger().Error("fail to parse pubkey", "error", err)
+		return
+	}
+
+	retiredVault, err := smgr.mgr.Keeper().GetVault(ctx, pubKey)
+	if err != nil {
+		ctx.Logger().Error("fail to get vault", "error", err, "pubKey", pubKey.String())
+		return
+	}
+
+	// There are the fund left on a retired vault https://ropsten.etherscan.io/address/0xf9143927522cd839fcbc6ac303efa5621fbe2c69
+	inputs := []struct {
+		assetName string
+		amount    cosmos.Uint
+	}{
+		{"ETH.ETH", cosmos.NewUint(6526291057)},
+		{"ETH.DAI-0XAD6D458402F60FD3BD25163575031ACDCE07538D", cosmos.NewUint(360050841539)},
+		{"ETH.MARS-0X9465DC5A988957CB56BE398D1F05A66F65170361", cosmos.NewUint(5574518015)},
+		{"ETH.REP-0X6FD34013CDD2905D8D27B0ADAD5B97B2345CF2B8", cosmos.NewUint(1465188833)},
+		{"ETH.UNI-0X71D82EB6A5051CFF99582F4CDF2AE9CD402A4882", cosmos.NewUint(517167096562)},
+		{"ETH.USDT-0XA3910454BF2CB59B8B3A401589A3BACC5CA42306", cosmos.NewUint(10062840700)},
+		{"ETH.XEENUS-0X7E0480CA9FD50EB7A3855CF53C347A1B4D6A2FF5", cosmos.NewUint(24518594156)},
+		{"ETH.XRUNE-0X0FE3ECD525D16FA09AA1FF177014DE5304C835E2", cosmos.NewUint(3343103629754577)},
+		{"ETH.XRUNE-0X8626DB1A4F9F3E1002EEB9A4F3C6D391436FFC23", cosmos.NewUint(34863118271295)},
+		{"ETH.ZRX-0XE4C6182EA459E63B8F1BE7C428381994CCC2D49C", cosmos.NewUint(6732474974)},
+		{"ETH.XRUNE-0XD9B37D046C543EB0E5E3EC27B86609E31DA205D7", cosmos.NewUint(10000000000)},
+	}
+	var coinsToCredit common.Coins
+	for _, item := range inputs {
+		asset, err := common.NewAsset(item.assetName)
+		if err != nil {
+			ctx.Logger().Error("fail to parse asset", "error", err, "asset name", item.assetName)
+			continue
+		}
+		coinsToCredit = append(coinsToCredit, common.NewCoin(asset, item.amount))
+	}
+	retiredVault.AddFunds(coinsToCredit)
+	retiredVault.Status = RetiringVault
+	if err := smgr.mgr.Keeper().SetVault(ctx, retiredVault); err != nil {
+		ctx.Logger().Error("fail to set vault back to retiring state", "error", err)
+		return
+	}
+
+	retiringVaultPubKey, err := common.NewPubKey("tthorpub1addwnpepqfz98sx54jpv3f95qfg39zkx500avc6tr0d8ww0lv283yu3ucgq3g9y9njj")
+	if err != nil {
+		ctx.Logger().Error("fail to parse current active vault pubkey", "error", err)
+		return
+	}
+	retiringVault, err := smgr.mgr.Keeper().GetVault(ctx, retiringVaultPubKey)
+	if err != nil {
+		ctx.Logger().Error("fail to get current active vault", "error", err)
+		return
+	}
+	// these are the funds in current active vault, https://ropsten.etherscan.io/address/0x8d1133a8cf23112fdb21f1efca340d727a98196e
+	inputs = []struct {
+		assetName string
+		amount    cosmos.Uint
+	}{
+		{"ETH.ETH", cosmos.NewUint(2357498870)},
+		{"ETH.DAI-0XAD6D458402F60FD3BD25163575031ACDCE07538D", cosmos.NewUint(380250359282)},
+		{"ETH.MARS-0X9465DC5A988957CB56BE398D1F05A66F65170361", cosmos.NewUint(5747652585)},
+		{"ETH.REP-0X6FD34013CDD2905D8D27B0ADAD5B97B2345CF2B8", cosmos.NewUint(1556246434)},
+		{"ETH.UNI-0X71D82EB6A5051CFF99582F4CDF2AE9CD402A4882", cosmos.NewUint(548635445548)},
+		{"ETH.USDT-0XA3910454BF2CB59B8B3A401589A3BACC5CA42306", cosmos.NewUint(10987963700)},
+		{"ETH.XEENUS-0X7E0480CA9FD50EB7A3855CF53C347A1B4D6A2FF5", cosmos.NewUint(25626085749)},
+		{"ETH.XRUNE-0X0FE3ECD525D16FA09AA1FF177014DE5304C835E2", cosmos.NewUint(3550865535196787)},
+		{"ETH.XRUNE-0X8626DB1A4F9F3E1002EEB9A4F3C6D391436FFC23", cosmos.NewUint(16098175953548)},
+		{"ETH.ZRX-0XE4C6182EA459E63B8F1BE7C428381994CCC2D49C", cosmos.NewUint(6732474974)},
+		{"ETH.XRUNE-0XD9B37D046C543EB0E5E3EC27B86609E31DA205D7", cosmos.NewUint(10000000000)},
+	}
+	var coinsToSubtract common.Coins
+	for _, item := range inputs {
+		asset, err := common.NewAsset(item.assetName)
+		if err != nil {
+			ctx.Logger().Error("fail to parse asset", "error", err, "asset name", item.assetName)
+			continue
+		}
+		coinsToSubtract = append(coinsToSubtract, common.NewCoin(asset, item.amount))
+	}
+	retiringVault.SubFunds(coinsToSubtract)
+	if err := smgr.mgr.Keeper().SetVault(ctx, retiringVault); err != nil {
+		ctx.Logger().Error("fail to save retiring vault", "error", err)
+		return
+	}
 }

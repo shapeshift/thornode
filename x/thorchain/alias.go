@@ -64,6 +64,7 @@ const (
 	TxOutbound        = mem.TxOutbound
 	TxUnBond          = mem.TxUnbond
 	TxLeave           = mem.TxLeave
+	TxTHORName        = mem.TxTHORName
 )
 
 var (
@@ -89,6 +90,7 @@ var (
 	NewKeygen                      = types.NewKeygen
 	NewKeygenBlock                 = types.NewKeygenBlock
 	NewMsgSetNodeKeys              = types.NewMsgSetNodeKeys
+	NewMsgManageTHORName           = types.NewMsgManageTHORName
 	NewTxOut                       = types.NewTxOut
 	NewEventRewards                = types.NewEventRewards
 	NewEventPool                   = types.NewEventPool
@@ -111,6 +113,7 @@ var (
 	NewEventTssKeysignMetric       = types.NewEventTssKeysignMetric
 	NewEventPoolBalanceChanged     = types.NewEventPoolBalanceChanged
 	NewEventPendingLiquidity       = types.NewEventPendingLiquidity
+	NewEventTHORName               = types.NewEventTHORName
 	NewPoolMod                     = types.NewPoolMod
 	NewMsgRefundTx                 = types.NewMsgRefundTx
 	NewMsgOutboundTx               = types.NewMsgOutboundTx
@@ -136,6 +139,7 @@ var (
 	NewMsgSetIPAddress             = types.NewMsgSetIPAddress
 	NewMsgNetworkFee               = types.NewMsgNetworkFee
 	NewNetworkFee                  = types.NewNetworkFee
+	NewTHORName                    = types.NewTHORName
 	GetPoolStatus                  = types.GetPoolStatus
 	GetRandomVault                 = types.GetRandomVault
 	GetRandomTx                    = types.GetRandomTx
@@ -161,13 +165,15 @@ var (
 	DefaultGenesis                 = types.DefaultGenesis
 
 	// Memo
-	ParseMemo          = mem.ParseMemo
-	NewRefundMemo      = mem.NewRefundMemo
-	NewOutboundMemo    = mem.NewOutboundMemo
-	NewRagnarokMemo    = mem.NewRagnarokMemo
-	NewYggdrasilReturn = mem.NewYggdrasilReturn
-	NewYggdrasilFund   = mem.NewYggdrasilFund
-	NewMigrateMemo     = mem.NewMigrateMemo
+	ParseMemo              = mem.ParseMemo
+	ParseMemoWithTHORNames = mem.ParseMemoWithTHORNames
+	FetchAddress           = mem.FetchAddress
+	NewRefundMemo          = mem.NewRefundMemo
+	NewOutboundMemo        = mem.NewOutboundMemo
+	NewRagnarokMemo        = mem.NewRagnarokMemo
+	NewYggdrasilReturn     = mem.NewYggdrasilReturn
+	NewYggdrasilFund       = mem.NewYggdrasilFund
+	NewMigrateMemo         = mem.NewMigrateMemo
 )
 
 type (
@@ -200,6 +206,7 @@ type (
 	MsgTssPool                     = types.MsgTssPool
 	MsgTssKeysignFail              = types.MsgTssKeysignFail
 	MsgNetworkFee                  = types.MsgNetworkFee
+	MsgManageTHORName              = types.MsgManageTHORName
 	QueryVersion                   = types.QueryVersion
 	QueryQueue                     = types.QueryQueue
 	QueryNodeAccountPreflightCheck = types.QueryNodeAccountPreflightCheck
@@ -262,6 +269,8 @@ type (
 	ChainContract                  = types.ChainContract
 	Blame                          = types.Blame
 	Node                           = types.Node
+	THORName                       = types.THORName
+	THORNameAlias                  = types.THORNameAlias
 
 	// Memo
 	SwapMemo              = mem.SwapMemo
@@ -281,6 +290,7 @@ type (
 	SwitchMemo            = mem.SwitchMemo
 	NoOpMemo              = mem.NoOpMemo
 	ConsolidateMemo       = mem.ConsolidateMemo
+	ManageTHORNameMemo    = mem.ManageTHORNameMemo
 )
 
 var _ codec.ProtoMarshaler = &types.LiquidityProvider{}

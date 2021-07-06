@@ -277,7 +277,9 @@ func GetEventManager(version semver.Version) (EventManager, error) {
 // GetTxOutStore will return an implementation of the txout store that
 func GetTxOutStore(keeper keeper.Keeper, version semver.Version, eventMgr EventManager, gasManager GasManager) (TxOutStore, error) {
 	constAcessor := constants.GetConstantValues(version)
-	if version.GTE(semver.MustParse("0.55.0")) {
+	if version.GTE(semver.MustParse("0.58.0")) {
+		return NewTxOutStorageV58(keeper, constAcessor, eventMgr, gasManager), nil
+	} else if version.GTE(semver.MustParse("0.55.0")) {
 		return NewTxOutStorageV55(keeper, constAcessor, eventMgr, gasManager), nil
 	} else if version.GTE(semver.MustParse("0.54.0")) {
 		return NewTxOutStorageV54(keeper, constAcessor, eventMgr, gasManager), nil
@@ -307,7 +309,9 @@ func GetVaultManager(keeper keeper.Keeper, version semver.Version, txOutStore Tx
 
 // GetValidatorManager create a new instance of Validator Manager
 func GetValidatorManager(keeper keeper.Keeper, version semver.Version, vaultMgr NetworkManager, txOutStore TxOutStore, eventMgr EventManager) (ValidatorManager, error) {
-	if version.GTE(semver.MustParse("0.56.0")) {
+	if version.GTE(semver.MustParse("0.58.0")) {
+		return newValidatorMgrV58(keeper, vaultMgr, txOutStore, eventMgr), nil
+	} else if version.GTE(semver.MustParse("0.56.0")) {
 		return newValidatorMgrV56(keeper, vaultMgr, txOutStore, eventMgr), nil
 	} else if version.GTE(semver.MustParse("0.51.0")) {
 		return newValidatorMgrV51(keeper, vaultMgr, txOutStore, eventMgr), nil
@@ -328,7 +332,9 @@ func GetObserverManager(version semver.Version) (ObserverManager, error) {
 
 // GetSwapQueue retrieve a SwapQueue that is compatible with the given version
 func GetSwapQueue(keeper keeper.Keeper, version semver.Version) (SwapQueue, error) {
-	if version.GTE(semver.MustParse("0.47.0")) {
+	if version.GTE(semver.MustParse("0.58.0")) {
+		return NewSwapQv58(keeper), nil
+	} else if version.GTE(semver.MustParse("0.47.0")) {
 		return NewSwapQv47(keeper), nil
 	} else if version.GTE(semver.MustParse("0.1.0")) {
 		return NewSwapQv1(keeper), nil
@@ -338,7 +344,9 @@ func GetSwapQueue(keeper keeper.Keeper, version semver.Version) (SwapQueue, erro
 
 // GetSlasher return an implementation of Slasher
 func GetSlasher(keeper keeper.Keeper, version semver.Version, eventMgr EventManager) (Slasher, error) {
-	if version.GTE(semver.MustParse("0.54.0")) {
+	if version.GTE(semver.MustParse("0.58.0")) {
+		return NewSlasherV58(keeper, eventMgr), nil
+	} else if version.GTE(semver.MustParse("0.54.0")) {
 		return NewSlasherV54(keeper, eventMgr), nil
 	} else if version.GTE(semver.MustParse("0.48.0")) {
 		return NewSlasherV48(keeper, eventMgr), nil
