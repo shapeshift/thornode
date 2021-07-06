@@ -4,6 +4,8 @@ import (
 	"errors"
 
 	"gitlab.com/thorchain/thornode/common"
+	"gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 type SwitchMemo struct {
@@ -22,11 +24,17 @@ func NewSwitchMemo(addr common.Address) SwitchMemo {
 	}
 }
 
-func ParseSwitchMemo(parts []string) (SwitchMemo, error) {
+func ParseSwitchMemo(ctx cosmos.Context, keeper keeper.Keeper, parts []string) (SwitchMemo, error) {
 	if len(parts) < 2 {
 		return SwitchMemo{}, errors.New("not enough parameters")
 	}
-	destination, err := common.NewAddress(parts[1])
+	destination := common.NoAddress
+	var err error
+	if keeper == nil {
+		destination, err = common.NewAddress(parts[1])
+	} else {
+		destination, err = FetchAddress(ctx, keeper, parts[1], common.THORChain)
+	}
 	if err != nil {
 		return SwitchMemo{}, err
 	}

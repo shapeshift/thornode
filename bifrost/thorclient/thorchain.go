@@ -54,6 +54,7 @@ const (
 	ChainVersionEndpoint     = "/thorchain/version"
 	InboundAddressesEndpoint = "/thorchain/inbound_addresses"
 	PoolsEndpoint            = "/thorchain/pools"
+	THORNameEndpoint         = "/thorchain/thorname/%s"
 )
 
 // ThorchainBridge will be used to send tx to THORChain
@@ -582,4 +583,21 @@ func (b *ThorchainBridge) GetPools() (stypes.Pools, error) {
 		return nil, fmt.Errorf("fail to unmarshal pools from json: %w", err)
 	}
 	return pools, nil
+}
+
+// GetTHORName get THORName from THORChain
+func (b *ThorchainBridge) GetTHORName(name string) (stypes.THORName, error) {
+	p := fmt.Sprintf(THORNameEndpoint, name)
+	buf, s, err := b.getWithPath(p)
+	if err != nil {
+		return stypes.THORName{}, fmt.Errorf("fail to get THORName: %w", err)
+	}
+	if s != http.StatusOK {
+		return stypes.THORName{}, fmt.Errorf("unexpected status code: %d", s)
+	}
+	var tn stypes.THORName
+	if err := json.Unmarshal(buf, &tn); err != nil {
+		return stypes.THORName{}, fmt.Errorf("fail to unmarshal THORNames from json: %w", err)
+	}
+	return tn, nil
 }
