@@ -30,6 +30,7 @@ const (
 	SlashPointEventType        = `slash_points`
 	PoolBalanceChangeEventType = "pool_balance_change"
 	SwitchEventType            = "switch"
+	THORNameEventType          = "thorname"
 )
 
 // PoolMods a list of pool modifications
@@ -627,4 +628,35 @@ func (m *EventPendingLiquidity) Events() (cosmos.Events, error) {
 	return cosmos.Events{
 		evt,
 	}, nil
+}
+
+// NewEventTHORName create a new instance of EventTHORName
+func NewEventTHORName(name string, chain common.Chain, addr common.Address, reg_fee, fund_amt cosmos.Uint, expire int64, owner cosmos.AccAddress) *EventTHORName {
+	return &EventTHORName{
+		Name:            name,
+		Chain:           chain,
+		Address:         addr,
+		RegistrationFee: reg_fee,
+		FundAmt:         fund_amt,
+		Expire:          expire,
+		Owner:           owner,
+	}
+}
+
+// Type return a string which represent the type of this event
+func (m *EventTHORName) Type() string {
+	return THORNameEventType
+}
+
+// Events return cosmos sdk events
+func (m *EventTHORName) Events() (cosmos.Events, error) {
+	evt := cosmos.NewEvent(m.Type(),
+		cosmos.NewAttribute("name", m.Name),
+		cosmos.NewAttribute("chain", m.Chain.String()),
+		cosmos.NewAttribute("address", m.Address.String()),
+		cosmos.NewAttribute("registration_fee", m.RegistrationFee.String()),
+		cosmos.NewAttribute("fund_amount", m.FundAmt.String()),
+		cosmos.NewAttribute("expire", fmt.Sprintf("%d", m.Expire)),
+		cosmos.NewAttribute("owner", m.Owner.String()))
+	return cosmos.Events{evt}, nil
 }
