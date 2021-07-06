@@ -92,6 +92,15 @@ func ValidateGenesis(data GenesisState) error {
 		}
 	}
 
+	for _, n := range data.THORNames {
+		if len(n.Name) > 30 {
+			return errors.New("THORName cannot exceed 30 characters")
+		}
+		if !IsValidTHORNameV1(n.Name) {
+			return errors.New("invalid THORName")
+		}
+	}
+
 	return nil
 }
 
@@ -117,6 +126,7 @@ func DefaultGenesisState() GenesisState {
 		NetworkFees:          make([]NetworkFee, 0),
 		NetworkFeeVoters:     make([]ObservedNetworkFeeVoter, 0),
 		ChainContracts:       make([]ChainContract, 0),
+		THORNames:            make([]THORName, 0),
 	}
 }
 
@@ -238,6 +248,10 @@ func InitGenesis(ctx cosmos.Context, keeper keeper.Keeper, data GenesisState) []
 
 	for _, cc := range data.ChainContracts {
 		keeper.SetChainContract(ctx, cc)
+	}
+
+	for _, n := range data.THORNames {
+		keeper.SetTHORName(ctx, n)
 	}
 
 	// Mint coins into the reserve
@@ -447,6 +461,15 @@ func ExportGenesis(ctx cosmos.Context, k keeper.Keeper) GenesisState {
 		chainContracts = append(chainContracts, cc)
 	}
 
+	names := make([]THORName, 0)
+	iterNames := k.GetTHORNameIterator(ctx)
+	defer iterNames.Close()
+	for ; iterNames.Valid(); iterNames.Next() {
+		var n THORName
+		k.Cdc().MustUnmarshalBinaryBare(iterNames.Value(), &n)
+		names = append(names, n)
+	}
+
 	return GenesisState{
 		Pools:                pools,
 		LiquidityProviders:   liquidity_providers,
@@ -467,5 +490,6 @@ func ExportGenesis(ctx cosmos.Context, k keeper.Keeper) GenesisState {
 		NetworkFees:          networkFees,
 		NetworkFeeVoters:     networkFeeVoters,
 		ChainContracts:       chainContracts,
+		THORNames:            names,
 	}
 }

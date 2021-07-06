@@ -23,6 +23,7 @@ func NewConstantValue010() *ConstantVals {
 			BadValidatorRedline:           3,                  // redline multiplier to find a multitude of bad actors
 			BadValidatorRate:              43200,              // rate to mark a validator to be rotated out for bad behavior
 			OldValidatorRate:              43200,              // rate to mark a validator to be rotated out for age
+			LowBondValidatorRate:          43200,              // rate to mark a validator to be rotated out for low bond
 			LackOfObservationPenalty:      2,                  // add two slash point for each block where a node does not observe
 			SigningTransactionPeriod:      300,                // how many blocks before a request to sign a tx by yggdrasil pool, is counted as delinquent.
 			DoubleSignMaxAge:              24,                 // number of blocks to limit double signing a block
@@ -42,6 +43,9 @@ func NewConstantValue010() *ConstantVals {
 			MaxSynthPerAssetDepth:         3300,               // percentage (in basis points) of how many synths are allowed relative to asset depth of the related pool
 			MinSlashPointsForBadValidator: 100,                // The minimum slash point
 			FullImpLossProtectionBlocks:   1440000,            // number of blocks before a liquidity provider gets 100% impermanent loss protection
+			TNSRegisterFee:                10_00000000,        // registration fee for new THORName
+			TNSFeeOnSale:                  1000,               // fee for TNS sale in basis points
+			TNSFeePerBlock:                20,                 // per block cost for TNS, in rune
 		},
 		boolValues: map[ConstantName]bool{
 			StrictBondLiquidityRatio: true,

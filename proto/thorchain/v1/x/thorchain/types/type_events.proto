@@ -176,3 +176,13 @@ message EventSwitchV56 {
   common.Coin burn = 3 [(gogoproto.nullable) = false];
   string tx_id = 4 [(gogoproto.casttype) = "gitlab.com/thorchain/thornode/common.TxID", (gogoproto.customname) = "TxID"];
 }
+
+message EventTHORName {
+  string name = 1;
+  string chain = 2 [(gogoproto.casttype) = "gitlab.com/thorchain/thornode/common.Chain"];
+  string address = 3 [(gogoproto.casttype) = "gitlab.com/thorchain/thornode/common.Address"];
+  string registration_fee = 4 [(gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Uint", (gogoproto.nullable) = false];
+  string fund_amt = 5 [(gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Uint", (gogoproto.nullable) = false];
+  int64 expire = 6;
+  bytes owner = 7 [(gogoproto.casttype) = "github.com/cosmos/cosmos-sdk/types.AccAddress"];
+}

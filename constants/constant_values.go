@@ -30,6 +30,7 @@ const (
 	BadValidatorRedline
 	BadValidatorRate
 	OldValidatorRate
+	LowBondValidatorRate
 	LackOfObservationPenalty
 	SigningTransactionPeriod
 	DoubleSignMaxAge
@@ -56,6 +57,9 @@ const (
 	FullImpLossProtectionBlocks
 	BondLockupPeriod
 	NumberOfNewNodesPerChurn
+	TNSRegisterFee
+	TNSFeeOnSale
+	TNSFeePerBlock
 )
 
 var nameToString = map[ConstantName]string{
@@ -79,6 +83,7 @@ var nameToString = map[ConstantName]string{
 	BadValidatorRedline:           "BadValidatorRedline",
 	BadValidatorRate:              "BadValidatorRate",
 	OldValidatorRate:              "OldValidatorRate",
+	LowBondValidatorRate:          "LowBondValidatorRate",
 	LackOfObservationPenalty:      "LackOfObservationPenalty",
 	SigningTransactionPeriod:      "SigningTransactionPeriod",
 	DoubleSignMaxAge:              "DoubleSignMaxAge",
@@ -105,6 +110,9 @@ var nameToString = map[ConstantName]string{
 	FullImpLossProtectionBlocks:   "FullImpLossProtectionBlocks",
 	BondLockupPeriod:              "BondLockupPeriod",
 	NumberOfNewNodesPerChurn:      "NumberOfNewNodesPerChurn",
+	TNSRegisterFee:                "TNSRegisterFee",
+	TNSFeeOnSale:                  "TNSFeeOnSale",
+	TNSFeePerBlock:                "TNSFeePerBlock",
 }
 
 // String implement fmt.stringer

@@ -159,7 +159,7 @@ func (am AppModule) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
 	version := am.mgr.Keeper().GetLowestActiveVersion(ctx)
 
 	// Does a kvstore migration
-	smgr := NewStoreMgr(am.mgr.Keeper())
+	smgr := NewStoreMgr(am.mgr)
 	if err := smgr.Iterator(ctx); err != nil {
 		os.Exit(10) // halt the chain if unsuccessful
 	}
