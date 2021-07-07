@@ -305,13 +305,12 @@ class Smoker:
             self.error(f"Mismatching bond reward: {sim} != {real}")
 
     def check_events(self, events, sim_events):
-        events = set(events)
-        sim_events = set(sim_events)
+        events.sort()
+        sim_events.sort()
         if events != sim_events:
             for (evt_t, evt_s) in zip(events, sim_events):
-                if evt_t != evt_s:
-                    logging.error(f"Evt THO  {evt_t}")
-                    logging.error(f"Evt SIM  {evt_s}")
+                logging.error(f"Evt THO  {evt_t}")
+                logging.error(f"Evt SIM  {evt_s}")
             self.error("Events mismatch")
 
     @retry(stop=stop_after_delay(30), wait=wait_fixed(0.3), reraise=True)

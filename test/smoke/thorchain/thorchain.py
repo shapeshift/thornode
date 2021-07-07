@@ -630,8 +630,6 @@ class ThorchainState:
         if tx.chain == "THOR":
             self.events.append(event)
             out_txs = self.handle_fee(tx, out_txs)
-            if len(out_txs) == 0:
-                del self.events[-1]
         else:
             out_txs = self.handle_fee(tx, out_txs)
             if len(out_txs):
@@ -1200,6 +1198,14 @@ class ThorchainState:
             in_tx.coins[0], target
         )
         pools.append(pool)
+
+        # check if we have enough to cover the fee
+        if emit.is_rune() and emit.amount <= rune_fee:
+            return self.refund(
+                tx,
+                108,
+                f"output RUNE ({emit.amount}) is not enough to pay transaction fee",
+            )
 
         # check emit is non-zero and is not less than the target trade
         if emit.is_zero() or (emit.amount < target_trade):

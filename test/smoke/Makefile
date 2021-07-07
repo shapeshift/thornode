@@ -54,7 +54,7 @@ health-mainnet:
 	@docker run ${DOCKER_OPTS} ${IMAGE_NAME} python scripts/health.py --binance-api=https://dex.binance.org --thorchain=http://3.65.216.254:1317 --midgard=https://midgard.thorchain.info --margin-err=0.001
 
 health-testnet:
-	@docker run ${DOCKER_OPTS} ${IMAGE_NAME} python scripts/health.py --binance-api=https://testnet-dex.binance.org --thorchain=http://18.193.176.70:1317 --midgard=https://testnet.midgard.thorchain.info --margin-err=0.001
+	@docker run ${DOCKER_OPTS} ${IMAGE_NAME} python scripts/health.py --binance-api=https://testnet-dex.binance.org --thorchain=http://18.193.176.70:1317 --midgard=https://testnet.midgard.thorchain.info --margin-err=0
 
 bitcoin-reorg:
 	@docker run ${DOCKER_OPTS} ${IMAGE_NAME} python scripts/smoke.py --fast-fail=True --bitcoin-reorg=True
