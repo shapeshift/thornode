@@ -128,9 +128,9 @@ func main() {
 		app.DefaultNodeHome(""),
 		common.TssConfig{
 			EnableMonitor:   true,
-			KeyGenTimeout:   240 * time.Second, // must be shorter than cosntants.JailTimeKeygen
-			KeySignTimeout:  40 * time.Second,  // must be shorter than constants.JailTimeKeysign
-			PartyTimeout:    30 * time.Second,
+			KeyGenTimeout:   300 * time.Second, // must be shorter than constants.JailTimeKeygen
+			KeySignTimeout:  60 * time.Second,  // must be shorter than constants.JailTimeKeysign
+			PartyTimeout:    45 * time.Second,
 			PreParamTimeout: 5 * time.Minute,
 		},
 		getLocalPreParam(*tssPreParam),
