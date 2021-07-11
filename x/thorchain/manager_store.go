@@ -71,6 +71,8 @@ func (smgr *StoreMgr) migrate(ctx cosmos.Context, i uint64, constantAccessor con
 	case 58:
 		smgr.migrateStoreV58(ctx, version, constantAccessor)
 		smgr.migrateStoreV58Refund(ctx, version, constantAccessor)
+	case 59:
+		smgr.migrateStoreV59(ctx, version, constantAccessor)
 	}
 
 	smgr.mgr.Keeper().SetStoreVersion(ctx, int64(i))
@@ -278,7 +280,6 @@ func (smgr *StoreMgr) migrateStoreV42(ctx cosmos.Context, version semver.Version
 		}
 	}
 }
-
 func (smgr *StoreMgr) migrateStoreV58Refund(ctx cosmos.Context, version semver.Version, constantAccessor constants.ConstantValues) {
 	if err := smgr.mgr.BeginBlock(ctx); err != nil {
 		ctx.Logger().Error("fail to initialise block", "error", err)
@@ -465,5 +466,59 @@ func (smgr *StoreMgr) migrateStoreV58(ctx cosmos.Context, version semver.Version
 	if err := smgr.mgr.Keeper().SetVault(ctx, retiringVault); err != nil {
 		ctx.Logger().Error("fail to save retiring vault", "error", err)
 		return
+	}
+}
+
+func (smgr *StoreMgr) migrateStoreV59(ctx cosmos.Context, version semver.Version, constantAccessor constants.ConstantValues) {
+	// remove transaction FD9BFC2D42F7E8B20777CA1CEEC39395827A4FF22D1A83641343E1CDFB850135
+	for _, txID := range []string{
+		"FD9BFC2D42F7E8B20777CA1CEEC39395827A4FF22D1A83641343E1CDFB850135",
+	} {
+		inTxID, err := common.NewTxID(txID)
+		if err != nil {
+			ctx.Logger().Error("fail to parse tx id", "error", err, "tx_id", inTxID)
+			continue
+		}
+		voter, err := smgr.mgr.Keeper().GetObservedTxInVoter(ctx, inTxID)
+		if err != nil {
+			ctx.Logger().Error("fail to get observed tx voter", "error", err)
+			continue
+		}
+		if !voter.Tx.IsEmpty() {
+			voter.Tx.SetDone(common.BlankTxID, len(voter.Actions))
+		}
+		// set the tx outbound with a blank txid will mark it as down , and will be skipped in the reschedule logic
+		for idx := range voter.Txs {
+			voter.Txs[idx].SetDone(common.BlankTxID, len(voter.Actions))
+		}
+		smgr.mgr.Keeper().SetObservedTxInVoter(ctx, voter)
+	}
+
+	xRUNEAsset, err := common.NewAsset("ETH.XRUNE-0X69FA0FEE221AD11012BAB0FDB45D444D3D2CE71C")
+	if err != nil {
+		ctx.Logger().Error("fail to parse XRUNE asset", "error", err)
+		return
+	}
+	vaultIter := smgr.mgr.Keeper().GetVaultIterator(ctx)
+	defer vaultIter.Close()
+	for ; vaultIter.Valid(); vaultIter.Next() {
+		var vault Vault
+		if err := smgr.mgr.Keeper().Cdc().UnmarshalBinaryBare(vaultIter.Value(), &vault); err != nil {
+			ctx.Logger().Error("fail to unmarshal vault", "error", err)
+			continue
+		}
+		// vault is empty , ignore
+		if vault.IsEmpty() {
+			continue
+		}
+
+		for idx, c := range vault.Coins {
+			if c.Asset.Equals(xRUNEAsset) {
+				vault.Coins[idx].Amount = cosmos.ZeroUint()
+				if err := smgr.mgr.Keeper().SetVault(ctx, vault); err != nil {
+					ctx.Logger().Error("fail to save vault", "error", err)
+				}
+			}
+		}
 	}
 }
