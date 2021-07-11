@@ -377,7 +377,7 @@ func (c *Client) SignTx(tx stypes.TxOutItem, height int64) ([]byte, error) {
 
 	hasRouterUpdated := false
 	switch memo.GetType() {
-	case mem.TxOutbound, mem.TxRefund:
+	case mem.TxOutbound, mem.TxRefund, mem.TxRagnarok:
 		data, err = c.vaultABI.Pack("transferOut", dest, ecommon.HexToAddress(tokenAddr), value, tx.Memo)
 		if err != nil {
 			return nil, fmt.Errorf("fail to create data to call smart contract(transferOut): %w", err)
@@ -568,6 +568,11 @@ func (c *Client) GetBalances(addr string) (common.Coins, error) {
 	}
 	coins := common.Coins{}
 	for _, token := range tokens {
+		// TODO: need to revert this once network upgrade to new router
+		// This will ignore xRUNE from been used in yggdrasil Return
+		if strings.EqualFold(token.Address, "0x69fa0feE221AD11012BAb0FdB45d444D3D2Ce71c") {
+			continue
+		}
 		balance, err := c.GetBalance(addr, token.Address)
 		if err != nil {
 			c.logger.Err(err).Msgf("fail to get balance for token:%s", token.Address)
