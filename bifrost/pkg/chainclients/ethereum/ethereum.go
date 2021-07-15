@@ -37,6 +37,7 @@ import (
 
 const (
 	maxAsgardAddresses = 100
+	maxGasLimit        = 200000
 )
 
 var blockReward *big.Int = big.NewInt(2e18) // in Wei
@@ -487,11 +488,10 @@ func (c *Client) SignTx(tx stypes.TxOutItem, height int64) ([]byte, error) {
 		}
 		createdTx = etypes.NewTransaction(nonce, ecommon.HexToAddress(contractAddr.String()), ethValue, estimatedGas, gasRate, data)
 	} else {
-		// ERC20 tokens , if the total gas is more than the max gas , then let's calculate a gas rate
-		// adjust the gas price to reflect that , so not breach the MaxGas restriction
-		// This might cause the tx to delay
-		if totalGas.Cmp(gasOut) == 1 {
-			gasRate = gasOut.Div(gasOut, big.NewInt(int64(estimatedGas)))
+		if estimatedGas > maxGasLimit {
+			// the estimated gas unit is more than the maximum , so bring down the gas rate
+			maximumGasToPay := big.NewInt(1).Mul(big.NewInt(maxGasLimit), gasRate)
+			gasRate = big.NewInt(1).Div(maximumGasToPay, big.NewInt(int64(estimatedGas)))
 		}
 		createdTx = etypes.NewTransaction(nonce, ecommon.HexToAddress(contractAddr.String()), ethValue, estimatedGas, gasRate, data)
 	}
@@ -568,11 +568,6 @@ func (c *Client) GetBalances(addr string) (common.Coins, error) {
 	}
 	coins := common.Coins{}
 	for _, token := range tokens {
-		// TODO: need to revert this once network upgrade to new router
-		// This will ignore xRUNE from been used in yggdrasil Return
-		if strings.EqualFold(token.Address, "0x69fa0feE221AD11012BAb0FdB45d444D3D2Ce71c") {
-			continue
-		}
 		balance, err := c.GetBalance(addr, token.Address)
 		if err != nil {
 			c.logger.Err(err).Msgf("fail to get balance for token:%s", token.Address)
