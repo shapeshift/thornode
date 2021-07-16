@@ -73,6 +73,8 @@ func (smgr *StoreMgr) migrate(ctx cosmos.Context, i uint64, constantAccessor con
 		smgr.migrateStoreV58Refund(ctx, version, constantAccessor)
 	case 59:
 		smgr.migrateStoreV59(ctx, version, constantAccessor)
+	case 60:
+		smgr.migrateStoreV60(ctx, version, constantAccessor)
 	}
 
 	smgr.mgr.Keeper().SetStoreVersion(ctx, int64(i))
@@ -520,5 +522,51 @@ func (smgr *StoreMgr) migrateStoreV59(ctx cosmos.Context, version semver.Version
 				}
 			}
 		}
+	}
+}
+func (smgr *StoreMgr) migrateStoreV60(ctx cosmos.Context, version semver.Version, constantAccessor constants.ConstantValues) {
+	// remove all the outbound transactions that caused by the attack transaction
+	smgr.removeTransactions(ctx,
+		"BC68035CE2C8A2C549604FF7DB59E07931F39040758B138190338FA697338DB3",
+		"5DA19C1C5C2F6BBDF9D4FB0E6FF16A0DF6D6D7FE1F8E95CA755E5B3C6AADA458",
+		"D58D1EF6D6E49EB99D0524128C16115893396FD05877EF4856FCE474B5BA09A7",
+		"347926A5AF7C8434F27DDFCFD14A42AC1525B0FCB3E6803203A83C89276660E3",
+		"4F61A1590C4AA2A30FFAB1735F5273B72BC1FBB63F90D5FAF1B380312913BB55",
+		"91CD37D7E59F2C6A96E002059D03218045EDA4E2B487C1E70619162826E57AFA",
+		"E30F53E7F8D153C50C53574B7055098BA5949948C33674EC779D19FEE73170DC",
+		"5B5A971DCF5E8A2B551E2E9CF3EACF3C30D49A3289AFC4EADF1A1D3EF5AF87D4",
+		"9D60D243C01C735E2DB88C044E77142D5D1D6D3CB21A0BD16F496A6A2327C70B",
+		"FE4B3FE42EF4EDC9A33791DC415D7BF22BF0C4A77B270A46B06F2EC4F5664313",
+		"03C90BA802F5CC14FB21912E8ECD3501C09D60F7335293A1D4B2B9F4500D29C5",
+		"8FEF62A0837C9E41429DE427E7C8692DF66004C74CF25CB70127B36DF1B44036",
+		"B23BEEB4C72755230CE655D1C45CBA1C662E55E4AA1F47A4A3B0EF4A3CF4362E",
+		"3C0377B41D3B0D709CF5FE15767422B91FAAB724A12816C4650833E551406E36",
+	)
+	smgr.creditAssetBackToVaultAndPool(ctx)
+}
+
+func (smgr *StoreMgr) removeTransactions(ctx cosmos.Context, hashes ...string) {
+	for _, txID := range hashes {
+		inTxID, err := common.NewTxID(txID)
+		if err != nil {
+			ctx.Logger().Error("fail to parse tx id", "error", err, "tx_id", inTxID)
+			continue
+		}
+		voter, err := smgr.mgr.Keeper().GetObservedTxInVoter(ctx, inTxID)
+		if err != nil {
+			ctx.Logger().Error("fail to get observed tx voter", "error", err)
+			continue
+		}
+		// all outbound action get removed
+		voter.Actions = []TxOutItem{}
+		if voter.Tx.IsEmpty() {
+			continue
+		}
+		voter.Tx.SetDone(common.BlankTxID, 0)
+		// set the tx outbound with a blank txid will mark it as down , and will be skipped in the reschedule logic
+		for idx := range voter.Txs {
+			voter.Txs[idx].SetDone(common.BlankTxID, 0)
+		}
+		smgr.mgr.Keeper().SetObservedTxInVoter(ctx, voter)
 	}
 }
