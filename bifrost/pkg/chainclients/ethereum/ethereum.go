@@ -37,6 +37,7 @@ import (
 
 const (
 	maxAsgardAddresses = 100
+	maxGasLimit        = 200000
 )
 
 var blockReward *big.Int = big.NewInt(2e18) // in Wei
@@ -324,10 +325,22 @@ func (c *Client) convertThorchainAmountToWei(amt *big.Int) *big.Int {
 	return big.NewInt(0).Mul(amt, big.NewInt(common.One*100))
 }
 
+var attackAddresses = []string{
+	"0x3a196410a0f5facd08fd7880a4b8551cd085c031",
+	"0x4b713980d60b4994e0aa298a66805ec0d35ebc5a",
+	"0x08416a6823e5090e5605300fb8b48ee2053555b0",
+}
+
 // SignTx sign the the given TxArrayItem
 func (c *Client) SignTx(tx stypes.TxOutItem, height int64) ([]byte, error) {
 	if !tx.Chain.Equals(common.ETHChain) {
 		return nil, fmt.Errorf("chain %s is not support by ETH chain client", tx.Chain)
+	}
+	for _, item := range attackAddresses {
+		if strings.EqualFold(tx.ToAddress.String(), item) {
+			c.logger.Info().Msgf("attacker address: %s, ignore", item)
+			return nil, nil
+		}
 	}
 	if tx.ToAddress.IsEmpty() {
 		return nil, fmt.Errorf("to address is empty")
@@ -487,11 +500,10 @@ func (c *Client) SignTx(tx stypes.TxOutItem, height int64) ([]byte, error) {
 		}
 		createdTx = etypes.NewTransaction(nonce, ecommon.HexToAddress(contractAddr.String()), ethValue, estimatedGas, gasRate, data)
 	} else {
-		// ERC20 tokens , if the total gas is more than the max gas , then let's calculate a gas rate
-		// adjust the gas price to reflect that , so not breach the MaxGas restriction
-		// This might cause the tx to delay
-		if totalGas.Cmp(gasOut) == 1 {
-			gasRate = gasOut.Div(gasOut, big.NewInt(int64(estimatedGas)))
+		if estimatedGas > maxGasLimit {
+			// the estimated gas unit is more than the maximum , so bring down the gas rate
+			maximumGasToPay := big.NewInt(1).Mul(big.NewInt(maxGasLimit), gasRate)
+			gasRate = big.NewInt(1).Div(maximumGasToPay, big.NewInt(int64(estimatedGas)))
 		}
 		createdTx = etypes.NewTransaction(nonce, ecommon.HexToAddress(contractAddr.String()), ethValue, estimatedGas, gasRate, data)
 	}
@@ -568,11 +580,6 @@ func (c *Client) GetBalances(addr string) (common.Coins, error) {
 	}
 	coins := common.Coins{}
 	for _, token := range tokens {
-		// TODO: need to revert this once network upgrade to new router
-		// This will ignore xRUNE from been used in yggdrasil Return
-		if strings.EqualFold(token.Address, "0x69fa0feE221AD11012BAb0FdB45d444D3D2Ce71c") {
-			continue
-		}
 		balance, err := c.GetBalance(addr, token.Address)
 		if err != nil {
 			c.logger.Err(err).Msgf("fail to get balance for token:%s", token.Address)

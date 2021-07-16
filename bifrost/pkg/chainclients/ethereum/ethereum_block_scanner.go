@@ -162,7 +162,6 @@ func (e *ETHScanner) FetchTxs(height int64) (stypes.TxIn, error) {
 	if err != nil {
 		return stypes.TxIn{}, err
 	}
-
 	txIn, err := e.processBlock(block)
 	if err != nil {
 		e.logger.Error().Err(err).Int64("height", height).Msg("fail to search tx in block")
@@ -772,6 +771,7 @@ func (e *ETHScanner) getTxInFromSmartContract(tx *etypes.Transaction, receipt *e
 		e.logger.Info().Msgf("tx(%s) state: %d means failed , ignore", tx.Hash().String(), receipt.Status)
 		return nil, nil
 	}
+	isVaultTransfer := false
 	for _, item := range receipt.Logs {
 		switch item.Topics[0].String() {
 		case depositEvent:
@@ -848,14 +848,28 @@ func (e *ETHScanner) getTxInFromSmartContract(tx *etypes.Transaction, receipt *e
 				decimals := e.getTokenDecimalsForTHORChain(item.Asset.String())
 				txInItem.Coins = append(txInItem.Coins, common.NewCoin(asset, e.convertAmount(item.Asset.String(), item.Amount)).WithDecimals(decimals))
 			}
+			isVaultTransfer = true
 		}
 	}
-	// it is important to keep this part outside the above loop, as when we do router upgrade , which might generate multiple deposit event , along with tx that has eth value in it
-	ethValue := cosmos.NewUintFromBigInt(tx.Value())
-	if !ethValue.IsZero() {
-		ethValue = e.convertAmount(ethToken, tx.Value())
-		if txInItem.Coins.GetCoin(common.ETHAsset).IsEmpty() && !ethValue.IsZero() {
-			txInItem.Coins = append(txInItem.Coins, common.NewCoin(common.ETHAsset, ethValue))
+
+	if isVaultTransfer {
+		contractAddresses := e.pubkeyMgr.GetContracts(common.ETHChain)
+		isDirectlyToRouter := false
+		for _, item := range contractAddresses {
+			if strings.EqualFold(item.String(), tx.To().String()) {
+				isDirectlyToRouter = true
+				break
+			}
+		}
+		if isDirectlyToRouter {
+			// it is important to keep this part outside the above loop, as when we do router upgrade , which might generate multiple deposit event , along with tx that has eth value in it
+			ethValue := cosmos.NewUintFromBigInt(tx.Value())
+			if !ethValue.IsZero() {
+				ethValue = e.convertAmount(ethToken, tx.Value())
+				if txInItem.Coins.GetCoin(common.ETHAsset).IsEmpty() && !ethValue.IsZero() {
+					txInItem.Coins = append(txInItem.Coins, common.NewCoin(common.ETHAsset, ethValue))
+				}
+			}
 		}
 	}
 	e.logger.Info().Msgf("tx: %s, gas price: %s, gas used: %d,receipt status:%d", txInItem.Tx, tx.GasPrice().String(), receipt.GasUsed, receipt.Status)
