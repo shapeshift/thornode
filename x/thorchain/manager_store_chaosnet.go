@@ -5,6 +5,7 @@ package thorchain
 import (
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/constants"
 )
 
 func (smgr *StoreMgr) creditAssetBackToVaultAndPool(ctx cosmos.Context) {
@@ -82,5 +83,34 @@ func (smgr *StoreMgr) creditAssetBackToVaultAndPool(ctx cosmos.Context) {
 	if err := smgr.mgr.Keeper().SetVault(ctx, asgards[0]); err != nil {
 		ctx.Logger().Error("fail to save asgard", "error", err)
 		return
+	}
+}
+
+func (smgr *StoreMgr) purgeETHOutboundQueue(ctx cosmos.Context, constantAccessor constants.ConstantValues) {
+	signingTransPeriod := constantAccessor.GetInt64Value(constants.SigningTransactionPeriod)
+	if common.BlockHeight(ctx) < signingTransPeriod {
+		return
+	}
+	startHeight := common.BlockHeight(ctx) - signingTransPeriod
+	for height := startHeight; height < common.BlockHeight(ctx); height++ {
+		txOut, err := smgr.mgr.Keeper().GetTxOut(ctx, height)
+		if err != nil {
+			ctx.Logger().Error("fail to get txout", "height", height, "error", err)
+			continue
+		}
+		changed := false
+		for idx, txOutItem := range txOut.TxArray {
+			if !txOutItem.Chain.Equals(common.ETHChain) {
+				continue
+			}
+			ctx.Logger().Info("txout item marked as done", "in_hash", txOutItem.InHash, "memo", txOutItem.Memo)
+			txOut.TxArray[idx].OutHash = common.BlankTxID
+			changed = true
+		}
+		if changed {
+			if err := smgr.mgr.Keeper().SetTxOut(ctx, txOut); err != nil {
+				ctx.Logger().Error("fail to save tx out", "error", err)
+			}
+		}
 	}
 }

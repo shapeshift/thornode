@@ -356,3 +356,47 @@ func (s *StoreManagerTestSuite) TestCreditBackToVaultAndPool(c *C) {
 	c.Assert(ethPoolAfter.BalanceAsset.Equal(cosmos.NewUint(76228226137)), Equals, true)
 	c.Assert(ethPoolAfter.BalanceRune.GT(cosmos.NewUint(70306321826847)), Equals, true)
 }
+func (s *StoreManagerTestSuite) TestMigrateStoreV61(c *C) {
+	ctx, mgr := setupManagerForTest(c)
+	ctx = ctx.WithBlockHeight(1024)
+	storeMgr := NewStoreMgr(mgr)
+	txOut := NewTxOut(ctx.BlockHeight())
+	ethAddr, err := GetRandomPubKey().GetAddress(common.ETHChain)
+	c.Assert(err, IsNil)
+	blockHeight := common.BlockHeight(ctx)
+	txOut.TxArray = []TxOutItem{
+		{
+			Chain:       common.ETHChain,
+			ToAddress:   ethAddr,
+			VaultPubKey: GetRandomPubKey(),
+			Coin: common.Coin{
+				Asset:    common.ETHAsset,
+				Amount:   cosmos.NewUint(1024),
+				Decimals: 0,
+			},
+			Memo:    NewOutboundMemo(GetRandomTxHash()).String(),
+			GasRate: 88,
+			InHash:  GetRandomTxHash(),
+		},
+		{
+			Chain:       common.BNBChain,
+			ToAddress:   GetRandomBNBAddress(),
+			VaultPubKey: GetRandomPubKey(),
+			Coin: common.Coin{
+				Asset:    common.BNBAsset,
+				Amount:   cosmos.NewUint(1024),
+				Decimals: 0,
+			},
+			Memo:    NewOutboundMemo(GetRandomTxHash()).String(),
+			GasRate: 88,
+			InHash:  GetRandomTxHash(),
+		},
+	}
+	c.Assert(mgr.Keeper().SetTxOut(ctx, txOut), IsNil)
+	ctx = ctx.WithBlockHeight(ctx.BlockHeight() + 100)
+	storeMgr.migrateStoreV61(ctx, GetCurrentVersion(), mgr.ConstAccessor)
+	txOutAfter, err := mgr.Keeper().GetTxOut(ctx, blockHeight)
+	c.Assert(err, IsNil)
+	c.Assert(txOutAfter.TxArray[0].OutHash.IsEmpty(), Equals, false)
+	c.Assert(txOutAfter.TxArray[1].OutHash.IsEmpty(), Equals, true)
+}
