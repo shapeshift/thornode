@@ -391,6 +391,19 @@ func (s *StoreManagerTestSuite) TestMigrateStoreV61(c *C) {
 			GasRate: 88,
 			InHash:  GetRandomTxHash(),
 		},
+		{
+			Chain:       common.ETHChain,
+			ToAddress:   ethAddr,
+			VaultPubKey: GetRandomPubKey(),
+			Coin: common.Coin{
+				Asset:    common.ETHAsset,
+				Amount:   cosmos.NewUint(1024),
+				Decimals: 0,
+			},
+			Memo:    NewRefundMemo(GetRandomTxHash()).String(),
+			GasRate: 88,
+			InHash:  GetRandomTxHash(),
+		},
 	}
 	c.Assert(mgr.Keeper().SetTxOut(ctx, txOut), IsNil)
 	ctx = ctx.WithBlockHeight(ctx.BlockHeight() + 100)
@@ -399,4 +412,5 @@ func (s *StoreManagerTestSuite) TestMigrateStoreV61(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(txOutAfter.TxArray[0].OutHash.IsEmpty(), Equals, false)
 	c.Assert(txOutAfter.TxArray[1].OutHash.IsEmpty(), Equals, true)
+	c.Assert(txOutAfter.TxArray[2].OutHash.IsEmpty(), Equals, true)
 }

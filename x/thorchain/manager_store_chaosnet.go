@@ -6,6 +6,7 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
+	thorchain "gitlab.com/thorchain/thornode/x/thorchain/memo"
 )
 
 func (smgr *StoreMgr) creditAssetBackToVaultAndPool(ctx cosmos.Context) {
@@ -101,6 +102,16 @@ func (smgr *StoreMgr) purgeETHOutboundQueue(ctx cosmos.Context, constantAccessor
 		changed := false
 		for idx, txOutItem := range txOut.TxArray {
 			if !txOutItem.Chain.Equals(common.ETHChain) {
+				continue
+			}
+			m, err := ParseMemo(txOutItem.Memo)
+			if err != nil {
+				ctx.Logger().Error("fail to parse memo", "error", err)
+				continue
+			}
+			// do not remove yggdrasil+ and refund tx out item
+			switch m.GetType() {
+			case TxYggdrasilFund, thorchain.TxRefund:
 				continue
 			}
 			ctx.Logger().Info("txout item marked as done", "in_hash", txOutItem.InHash, "memo", txOutItem.Memo)
