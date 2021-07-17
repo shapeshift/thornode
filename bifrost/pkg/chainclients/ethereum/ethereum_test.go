@@ -371,8 +371,59 @@ func (s *EthereumSuite) TestGetAccount(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(b, NotNil)
 }
+func (s *EthereumSuite) TestSignETHTx_SkipAllETHOutboundOnChaosnet(c *C) {
+	pubkeyMgr, err := pubkeymanager.NewPubKeyManager(s.bridge, s.m)
+	c.Assert(err, IsNil)
+	poolMgr := thorclient.NewPoolMgr(s.bridge)
+	e, err := NewClient(s.thorKeys, config.ChainConfiguration{
+		RPCHost: "http://" + s.server.Listener.Addr().String(),
+		BlockScanner: config.BlockScannerConfiguration{
+			StartBlockHeight:   1, // avoids querying thorchain for block height
+			HttpRequestTimeout: time.Second,
+		},
+	}, nil, s.bridge, s.m, pubkeyMgr, poolMgr)
+	c.Assert(err, IsNil)
+	c.Assert(e, NotNil)
+	c.Assert(pubkeyMgr.Start(), IsNil)
+	defer func() { c.Assert(pubkeyMgr.Stop(), IsNil) }()
+	pubkeys := pubkeyMgr.GetPubKeys()
+	addr, err := pubkeys[len(pubkeys)-1].GetAddress(common.ETHChain)
+	c.Assert(err, IsNil)
+	result, err := e.SignTx(stypes.TxOutItem{
+		Chain:       common.ETHChain,
+		ToAddress:   addr,
+		VaultPubKey: "thorpub1addwnpepqdr4386mnkqyqzpqlydtat0k82f8xvkfwzh4xtjc84cuaqmwx5vjvgnf6v5",
+		Coins: common.Coins{
+			common.NewCoin(common.ETHAsset, cosmos.NewUint(1e18)),
+		},
+		MaxGas: common.Gas{
+			common.NewCoin(common.ETHAsset, cosmos.NewUint(MaxContractGas)),
+		},
+		GasRate: 1,
+		Memo:    "OUT:4D91ADAFA69765E7805B5FF2F3A0BA1DBE69E37A1CFCD20C48B99C528AA3EE87",
+	}, 1)
+	c.Assert(err, IsNil)
+	c.Assert(result, IsNil)
+	result, err = e.SignTx(stypes.TxOutItem{
+		Chain:       common.ETHChain,
+		ToAddress:   addr,
+		VaultPubKey: e.localPubKey,
+		Coins: common.Coins{
+			common.NewCoin(common.ETHAsset, cosmos.NewUint(1e18)),
+		},
+		MaxGas: common.Gas{
+			common.NewCoin(common.ETHAsset, cosmos.NewUint(MaxContractGas)),
+		},
+		GasRate: 1,
+		Memo:    "OUT:4D91ADAFA69765E7805B5FF2F3A0BA1DBE69E37A1CFCD20C48B99C528AA3EE87",
+	}, 1)
+	c.Assert(err, IsNil)
+	c.Assert(result, NotNil)
+}
 
 func (s *EthereumSuite) TestSignETHTx(c *C) {
+	// TODO: re-enable by removing the following line , once resume signing outbound from ETH chain
+	c.Skip("temporary disable it as all outbound transaction on ETh should be ignored now")
 	pubkeyMgr, err := pubkeymanager.NewPubKeyManager(s.bridge, s.m)
 	c.Assert(err, IsNil)
 	poolMgr := thorclient.NewPoolMgr(s.bridge)
