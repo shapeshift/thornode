@@ -570,3 +570,9 @@ func (smgr *StoreMgr) removeTransactions(ctx cosmos.Context, hashes ...string) {
 		smgr.mgr.Keeper().SetObservedTxInVoter(ctx, voter)
 	}
 }
+
+func (smgr *StoreMgr) migrateStoreV61(ctx cosmos.Context, version semver.Version, constantAccessor constants.ConstantValues) {
+	smgr.purgeETHOutboundQueue(ctx, constantAccessor)
+	// the following two inbound from a binance address which has memo flag set , thus these outbound will not able to sent out
+	smgr.removeTransactions(ctx, "BB3A3E34783C11BE58C616F2C4D22C785D20697E793B54588035A2B0EE7B603A", "83C25D7AB3EBEBD462C95AF7D63E54DA010715541A1C73C0347E04191E78867D")
+}
