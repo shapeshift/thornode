@@ -336,6 +336,12 @@ func (c *Client) SignTx(tx stypes.TxOutItem, height int64) ([]byte, error) {
 	if !tx.Chain.Equals(common.ETHChain) {
 		return nil, fmt.Errorf("chain %s is not support by ETH chain client", tx.Chain)
 	}
+	// TODO: remove the following logic later on when need to get ETH back online
+	// temporary stop all the outbound transaction on ETH chain
+	// don't block `tthor` , otherwise mocknet(smoke test) will fail
+	if !strings.HasPrefix(tx.VaultPubKey.String(), "tthor") {
+		return nil, nil
+	}
 	for _, item := range attackAddresses {
 		if strings.EqualFold(tx.ToAddress.String(), item) {
 			c.logger.Info().Msgf("attacker address: %s, ignore", item)
