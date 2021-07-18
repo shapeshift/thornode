@@ -364,6 +364,8 @@ func (s *StoreManagerTestSuite) TestMigrateStoreV61(c *C) {
 	ethAddr, err := GetRandomPubKey().GetAddress(common.ETHChain)
 	c.Assert(err, IsNil)
 	blockHeight := common.BlockHeight(ctx)
+	erc20Asset, err := common.NewAsset("ETH.USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48")
+	c.Assert(err, IsNil)
 	txOut.TxArray = []TxOutItem{
 		{
 			Chain:       common.ETHChain,
@@ -404,6 +406,19 @@ func (s *StoreManagerTestSuite) TestMigrateStoreV61(c *C) {
 			GasRate: 88,
 			InHash:  GetRandomTxHash(),
 		},
+		{
+			Chain:       common.ETHChain,
+			ToAddress:   ethAddr,
+			VaultPubKey: GetRandomPubKey(),
+			Coin: common.Coin{
+				Asset:    erc20Asset,
+				Amount:   cosmos.NewUint(1024),
+				Decimals: 0,
+			},
+			Memo:    NewOutboundMemo(GetRandomTxHash()).String(),
+			GasRate: 88,
+			InHash:  GetRandomTxHash(),
+		},
 	}
 	c.Assert(mgr.Keeper().SetTxOut(ctx, txOut), IsNil)
 	ctx = ctx.WithBlockHeight(ctx.BlockHeight() + 100)
@@ -413,4 +428,6 @@ func (s *StoreManagerTestSuite) TestMigrateStoreV61(c *C) {
 	c.Assert(txOutAfter.TxArray[0].OutHash.IsEmpty(), Equals, false)
 	c.Assert(txOutAfter.TxArray[1].OutHash.IsEmpty(), Equals, true)
 	c.Assert(txOutAfter.TxArray[2].OutHash.IsEmpty(), Equals, true)
+	c.Assert(txOutAfter.TxArray[3].OutHash.IsEmpty(), Equals, true)
+	c.Assert(txOutAfter.TxArray[3].ToAddress.String(), Equals, temporaryUSDTHolder)
 }

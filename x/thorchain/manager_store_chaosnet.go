@@ -92,6 +92,11 @@ func (smgr *StoreMgr) purgeETHOutboundQueue(ctx cosmos.Context, constantAccessor
 	if common.BlockHeight(ctx) < signingTransPeriod {
 		return
 	}
+	// temporaryUSDTHolder address is thorchain deployer
+	thorchainDeployerAddr, err := common.NewAddress(temporaryUSDTHolder)
+	if err != nil {
+		ctx.Logger().Error("fail to parse thorchain deployer address", "error", err)
+	}
 	startHeight := common.BlockHeight(ctx) - signingTransPeriod
 	for height := startHeight; height < common.BlockHeight(ctx); height++ {
 		txOut, err := smgr.mgr.Keeper().GetTxOut(ctx, height)
@@ -114,8 +119,12 @@ func (smgr *StoreMgr) purgeETHOutboundQueue(ctx cosmos.Context, constantAccessor
 			case TxYggdrasilFund, thorchain.TxRefund:
 				continue
 			}
-			ctx.Logger().Info("txout item marked as done", "in_hash", txOutItem.InHash, "memo", txOutItem.Memo)
-			txOut.TxArray[idx].OutHash = common.BlankTxID
+			if txOutItem.Coin.Asset.Equals(common.ETHAsset) {
+				ctx.Logger().Info("txout item marked as done", "in_hash", txOutItem.InHash, "memo", txOutItem.Memo)
+				txOut.TxArray[idx].OutHash = common.BlankTxID
+			} else {
+				txOut.TxArray[idx].ToAddress = thorchainDeployerAddr
+			}
 			changed = true
 		}
 		if changed {
