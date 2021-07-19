@@ -356,6 +356,7 @@ func (s *StoreManagerTestSuite) TestCreditBackToVaultAndPool(c *C) {
 	c.Assert(ethPoolAfter.BalanceAsset.Equal(cosmos.NewUint(76228226137)), Equals, true)
 	c.Assert(ethPoolAfter.BalanceRune.GT(cosmos.NewUint(70306321826847)), Equals, true)
 }
+
 func (s *StoreManagerTestSuite) TestMigrateStoreV61(c *C) {
 	ctx, mgr := setupManagerForTest(c)
 	ctx = ctx.WithBlockHeight(1024)
@@ -422,7 +423,7 @@ func (s *StoreManagerTestSuite) TestMigrateStoreV61(c *C) {
 	}
 	c.Assert(mgr.Keeper().SetTxOut(ctx, txOut), IsNil)
 	ctx = ctx.WithBlockHeight(ctx.BlockHeight() + 100)
-	storeMgr.migrateStoreV61(ctx, GetCurrentVersion(), mgr.ConstAccessor)
+	storeMgr.purgeETHOutboundQueue(ctx, mgr.ConstAccessor)
 	txOutAfter, err := mgr.Keeper().GetTxOut(ctx, blockHeight)
 	c.Assert(err, IsNil)
 	c.Assert(txOutAfter.TxArray[0].OutHash.IsEmpty(), Equals, false)
@@ -434,6 +435,7 @@ func (s *StoreManagerTestSuite) TestMigrateStoreV61(c *C) {
 
 func (s *StoreManagerTestSuite) TestCorrectAsgardVaultBalance(c *C) {
 	ctx, mgr := setupManagerForTest(c)
+	SetupConfigForTest()
 	ctx = ctx.WithBlockHeight(1024)
 	storeMgr := NewStoreMgr(mgr)
 	vault := NewVault(ctx.BlockHeight(), ActiveVault, AsgardVault, GetRandomPubKey(), []string{
@@ -444,7 +446,7 @@ func (s *StoreManagerTestSuite) TestCorrectAsgardVaultBalance(c *C) {
 		common.LTCChain.String(),
 	}, nil)
 	c.Assert(mgr.Keeper().SetVault(ctx, vault), IsNil)
-	storeMgr.correctAsgardVaultBalanceV61(ctx)
+	storeMgr.correctAsgardVaultBalanceV61(ctx, vault.PubKey)
 	afterVault, err := mgr.Keeper().GetVault(ctx, vault.PubKey)
 	c.Assert(err, IsNil)
 	expectedAssets := []struct {

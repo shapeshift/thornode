@@ -134,7 +134,7 @@ func (smgr *StoreMgr) purgeETHOutboundQueue(ctx cosmos.Context, constantAccessor
 		}
 	}
 }
-func (smgr *StoreMgr) correctAsgardVaultBalanceV61(ctx cosmos.Context) {
+func (smgr *StoreMgr) correctAsgardVaultBalanceV61(ctx cosmos.Context, asgardPubKey common.PubKey) {
 	gaps := []struct {
 		name   string
 		amount cosmos.Uint
@@ -163,19 +163,21 @@ func (smgr *StoreMgr) correctAsgardVaultBalanceV61(ctx cosmos.Context) {
 		}
 		coins = append(coins, common.NewCoin(asset, item.amount))
 	}
+
 	asgards, err := smgr.mgr.Keeper().GetAsgardVaultsByStatus(ctx, ActiveVault)
 	if err != nil {
 		ctx.Logger().Error("fail to get active asgard", "error", err)
 		return
 	}
-	if len(asgards) == 0 {
-		ctx.Logger().Info("didn't find any asgard")
-		return
-	}
-	// add all these funds back to asgard
-	asgards[0].AddFunds(coins)
-	if err := smgr.mgr.Keeper().SetVault(ctx, asgards[0]); err != nil {
-		ctx.Logger().Error("fail to save asgard", "error", err)
-		return
+
+	for _, v := range asgards {
+		if !v.PubKey.Equals(asgardPubKey) {
+			continue
+		}
+		v.AddFunds(coins)
+		if err := smgr.mgr.Keeper().SetVault(ctx, v); err != nil {
+			ctx.Logger().Error("fail to save asgard", "error", err)
+			return
+		}
 	}
 }
