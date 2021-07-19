@@ -134,7 +134,7 @@ func (smgr *StoreMgr) purgeETHOutboundQueue(ctx cosmos.Context, constantAccessor
 		}
 	}
 }
-func (smgr *StoreMgr) correctAsgardVaultBalance(ctx cosmos.Context) {
+func (smgr *StoreMgr) correctAsgardVaultBalanceV61(ctx cosmos.Context) {
 	gaps := []struct {
 		name   string
 		amount cosmos.Uint
