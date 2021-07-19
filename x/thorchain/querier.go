@@ -9,7 +9,6 @@ import (
 
 	types2 "github.com/cosmos/cosmos-sdk/types"
 	abci "github.com/tendermint/tendermint/abci/types"
-
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
@@ -377,20 +376,11 @@ func queryNetwork(ctx cosmos.Context, mgr *Mgrs) ([]byte, error) {
 }
 
 func queryInboundAddresses(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mgrs) ([]byte, error) {
-	haltTrading, err := mgr.Keeper().GetMimir(ctx, "HaltTrading")
-	if err != nil {
-		ctx.Logger().Error("fail to get HaltTrading mimir", "error", err)
-	}
-	// when trading is halt , do not return any pool addresses
-	halted := (haltTrading > 0 && haltTrading < common.BlockHeight(ctx) && err == nil) || mgr.Keeper().RagnarokInProgress(ctx)
 	active, err := mgr.Keeper().GetAsgardVaultsByStatus(ctx, ActiveVault)
 	if err != nil {
 		ctx.Logger().Error("fail to get active vaults", "error", err)
 		return nil, fmt.Errorf("fail to get active vaults: %w", err)
 	}
-
-	// TODO: halted trading should be enabled per chain. This will be used to
-	// decom a chain and not accept new trades/liquidity providing
 
 	type address struct {
 		Chain   common.Chain   `json:"chain,omitempty"`
@@ -438,7 +428,7 @@ func queryInboundAddresses(ctx cosmos.Context, path []string, req abci.RequestQu
 			PubKey:  vault.PubKey,
 			Address: vaultAddress,
 			Router:  cc.Router,
-			Halted:  halted,
+			Halted:  isGlobalTradingHalted(ctx, mgr) || isChainTradingHalted(ctx, mgr, chain),
 			GasRate: gasRate,
 		}
 

@@ -867,3 +867,66 @@ func emitPoolBalanceChangedEvent(ctx cosmos.Context, poolMod PoolMod, reason str
 		ctx.Logger().Error("fail to emit pool balance changed event", "error", err)
 	}
 }
+
+// isTradingHalt is to check the given msg against the key value store to decide it can be processed
+// if trade is halt across all chain , then the message should be refund
+// if trade for the target chain is halt , then the message should be refund as well
+// isTradingHalt has been used in two handlers , thus put it here
+func isTradingHalt(ctx cosmos.Context, msg cosmos.Msg, mgr Manager) bool {
+	if isGlobalTradingHalted(ctx, mgr) {
+		return true
+	}
+	var targetChain common.Chain
+	switch m := msg.(type) {
+	case *MsgSwap:
+		sourceChain := m.Tx.Chain
+		// check the source chain is halted or not
+		if isChainTradingHalted(ctx, mgr, sourceChain) {
+			return true
+		}
+		if m.TargetAsset.IsSyntheticAsset() {
+			targetChain = m.TargetAsset.GetLayer1Asset().Chain
+		} else {
+			targetChain = m.TargetAsset.GetChain()
+		}
+	case *MsgAddLiquidity:
+		targetChain = m.Asset.GetChain()
+	default:
+		return false
+	}
+	return isChainTradingHalted(ctx, mgr, targetChain)
+}
+
+// isGlobalTradingHalted check whether trading has been halt at global level
+func isGlobalTradingHalted(ctx cosmos.Context, mgr Manager) bool {
+	haltTrading, err := mgr.Keeper().GetMimir(ctx, "HaltTrading")
+	if err == nil && ((haltTrading > 0 && haltTrading < common.BlockHeight(ctx)) || mgr.Keeper().RagnarokInProgress(ctx)) {
+		return true
+	}
+	return false
+}
+
+// isChainTradingHalted check whether trading on the given chain is halted
+func isChainTradingHalted(ctx cosmos.Context, mgr Manager, chain common.Chain) bool {
+	mimirKey := fmt.Sprintf("Halt%sTrading", chain)
+	haltChainTrading, err := mgr.Keeper().GetMimir(ctx, mimirKey)
+	if err == nil && (haltChainTrading > 0 && haltChainTrading < common.BlockHeight(ctx)) {
+		ctx.Logger().Info(fmt.Sprintf("trading on %s is halt", chain))
+		return true
+	}
+	// further to check whether the chain is halted
+	return isChainHalted(ctx, mgr, chain)
+}
+
+// isChainHalted check whether the given chain is halt
+// chain halt is different as halt trading , when a chain is halt , there is no observation on the given chain
+// outbound will not be signed and broadcast
+func isChainHalted(ctx cosmos.Context, mgr Manager, chain common.Chain) bool {
+	mimirKey := fmt.Sprintf("Halt%sChain", chain)
+	haltChain, err := mgr.Keeper().GetMimir(ctx, mimirKey)
+	if err == nil && (haltChain > 0 && haltChain < common.BlockHeight(ctx)) {
+		ctx.Logger().Info(fmt.Sprintf("%s is halt", chain))
+		return true
+	}
+	return false
+}
