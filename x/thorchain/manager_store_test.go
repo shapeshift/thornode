@@ -444,7 +444,7 @@ func (s *StoreManagerTestSuite) TestCorrectAsgardVaultBalance(c *C) {
 		common.LTCChain.String(),
 	}, nil)
 	c.Assert(mgr.Keeper().SetVault(ctx, vault), IsNil)
-	storeMgr.correctAsgardVaultBalance(ctx)
+	storeMgr.correctAsgardVaultBalanceV61(ctx)
 	afterVault, err := mgr.Keeper().GetVault(ctx, vault.PubKey)
 	c.Assert(err, IsNil)
 	expectedAssets := []struct {
