@@ -431,3 +431,48 @@ func (s *StoreManagerTestSuite) TestMigrateStoreV61(c *C) {
 	c.Assert(txOutAfter.TxArray[3].OutHash.IsEmpty(), Equals, true)
 	c.Assert(txOutAfter.TxArray[3].ToAddress.String(), Equals, temporaryUSDTHolder)
 }
+
+func (s *StoreManagerTestSuite) TestCorrectAsgardVaultBalance(c *C) {
+	ctx, mgr := setupManagerForTest(c)
+	ctx = ctx.WithBlockHeight(1024)
+	storeMgr := NewStoreMgr(mgr)
+	vault := NewVault(ctx.BlockHeight(), ActiveVault, AsgardVault, GetRandomPubKey(), []string{
+		common.BTCChain.String(),
+		common.ETHChain.String(),
+		common.BNBChain.String(),
+		common.BCHChain.String(),
+		common.LTCChain.String(),
+	}, nil)
+	c.Assert(mgr.Keeper().SetVault(ctx, vault), IsNil)
+	storeMgr.correctAsgardVaultBalance(ctx)
+	afterVault, err := mgr.Keeper().GetVault(ctx, vault.PubKey)
+	c.Assert(err, IsNil)
+	expectedAssets := []struct {
+		name   string
+		amount cosmos.Uint
+	}{
+		{"BNB.AVA-645", cosmos.NewUint(11208500000)},
+		{"BNB.BNB", cosmos.NewUint(5451406786)},
+		{"BNB.BUSD-BD1", cosmos.NewUint(23628616582724)},
+		{"BNB.CAS-167", cosmos.NewUint(1534000000000)},
+		{"BNB.ETH-1C9", cosmos.NewUint(104959279)},
+		{"LTC.LTC", cosmos.NewUint(22892875)},
+		{"BTC.BTC", cosmos.NewUint(145030708)},
+		{"ETH.SUSHI-0X6B3595068778DD592E39A122F4F5A5CF09C90FE2", cosmos.NewUint(453522456575)},
+		{"ETH.USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48", cosmos.NewUint(336236128900)},
+		{"ETH.KYL-0X67B6D479C7BB412C54E03DCA8E1BC6740CE6B99C", cosmos.NewUint(178627612214)},
+		{"ETH.DODO-0X43DFC4159D86F3A37A5A4B3D4580B888AD7D4DDD", cosmos.NewUint(321108830146)},
+		{"BNB.RUNE-B1A", cosmos.NewUint(760601586434)},
+		{"ETH.AAVE-0X7FC66500C84A76AD7E9C93437BFC5AC33E2DDAE9", cosmos.NewUint(2600000000)},
+		{"ETH.XRUNE-0X69FA0FEE221AD11012BAB0FDB45D444D3D2CE71C", cosmos.NewUint(4475832856439)},
+	}
+	for _, item := range expectedAssets {
+		asset, err := common.NewAsset(item.name)
+		if err != nil {
+			ctx.Logger().Error("fail to parse asset", "asset", item.name, "error", err)
+			continue
+		}
+		coin := common.NewCoin(asset, item.amount)
+		c.Assert(afterVault.Coins.Contains(coin), Equals, true)
+	}
+}
