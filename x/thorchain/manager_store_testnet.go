@@ -13,3 +13,6 @@ func (smgr *StoreMgr) creditAssetBackToVaultAndPool(ctx cosmos.Context) {
 func (smgr *StoreMgr) purgeETHOutboundQueue(ctx cosmos.Context, constantAccessor constants.ConstantValues) {
 
 }
+func (smgr *StoreMgr) correctAsgardVaultBalance(ctx cosmos.Context) {
+
+}
