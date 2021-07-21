@@ -59,7 +59,6 @@ lint-code:
     - apt install -y protobuf-compiler
     - make protob
   script:
-    - make lint-managers
     - golangci-lint run -v --skip-files ".*\\.pb\\.go$"
 
 shellcheck:

@@ -17,8 +17,8 @@ type SwapQv47 struct {
 	k keeper.Keeper
 }
 
-// NewSwapQv47 create a new vault manager
-func NewSwapQv47(k keeper.Keeper) *SwapQv47 {
+// newSwapQv47 create a new vault manager
+func newSwapQv47(k keeper.Keeper) *SwapQv47 {
 	return &SwapQv47{k: k}
 }
 

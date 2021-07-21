@@ -73,13 +73,10 @@ lint-pre: protob
 	@go mod verify
 
 
-lint-managers:
-	@./scripts/lint-managers.bash
-
-lint: lint-pre lint-managers
+lint: lint-pre
 	@golangci-lint run --skip-files ".*\\.pb\\.go$$"
 
-lint-verbose: lint-pre lint-managers
+lint-verbose: lint-pre
 	golangci-lint run -v --skip-files ".*\\.pb\\.go$$"
 
 start-daemon:

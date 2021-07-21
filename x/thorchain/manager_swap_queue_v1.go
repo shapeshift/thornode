@@ -26,8 +26,8 @@ type swapItem struct {
 }
 type swapItems []swapItem
 
-// NewSwapQv1 create a new vault manager
-func NewSwapQv1(k keeper.Keeper) *SwapQv1 {
+// newSwapQv1 create a new vault manager
+func newSwapQv1(k keeper.Keeper) *SwapQv1 {
 	return &SwapQv1{k: k}
 }
 

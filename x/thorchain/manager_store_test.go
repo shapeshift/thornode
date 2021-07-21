@@ -14,7 +14,7 @@ var _ = Suite(&StoreManagerTestSuite{})
 
 func (s *StoreManagerTestSuite) TestMigrateStoreV55(c *C) {
 	ctx, mgr := setupManagerForTest(c)
-	storeMgr := NewStoreMgr(mgr)
+	storeMgr := newStoreMgr(mgr)
 	keeper := storeMgr.mgr.Keeper()
 	version := GetCurrentVersion()
 	constantAccessor := constants.GetConstantValues(version)
@@ -31,7 +31,7 @@ func (s *StoreManagerTestSuite) TestMigrateStoreV55(c *C) {
 func (s *StoreManagerTestSuite) TestMigrateStoreV58(c *C) {
 	SetupConfigForTest()
 	ctx, mgr := setupManagerForTest(c)
-	storeMgr := NewStoreMgr(mgr)
+	storeMgr := newStoreMgr(mgr)
 	version := GetCurrentVersion()
 	constantAccessor := constants.GetConstantValues(version)
 	pubKey, err := common.NewPubKey("tthorpub1addwnpepqg65km6vfflrlymsjhrnmn4w58d2d36h977pcu3aqp6dxee2yf88yg0z3v4")
@@ -94,7 +94,7 @@ func (s *StoreManagerTestSuite) TestMigrateStoreV58(c *C) {
 
 func (s *StoreManagerTestSuite) TestMigrateStoreV58Refund(c *C) {
 	ctx, mgr := setupManagerForTest(c)
-	storeMgr := NewStoreMgr(mgr)
+	storeMgr := newStoreMgr(mgr)
 	vault := NewVault(1024, ActiveVault, AsgardVault, GetRandomPubKey(), []string{
 		common.ETHChain.String(),
 	}, nil)
@@ -196,7 +196,7 @@ func (s *StoreManagerTestSuite) TestMigrateStoreV58Refund(c *C) {
 
 func (s *StoreManagerTestSuite) TestRemoveTransactions(c *C) {
 	ctx, mgr := setupManagerForTest(c)
-	storeMgr := NewStoreMgr(mgr)
+	storeMgr := newStoreMgr(mgr)
 	vault := NewVault(1024, ActiveVault, AsgardVault, GetRandomPubKey(), []string{
 		common.ETHChain.String(),
 	}, nil)
@@ -313,7 +313,7 @@ func (s *StoreManagerTestSuite) TestRemoveTransactions(c *C) {
 }
 func (s *StoreManagerTestSuite) TestCreditBackToVaultAndPool(c *C) {
 	ctx, mgr := setupManagerForTest(c)
-	storeMgr := NewStoreMgr(mgr)
+	storeMgr := newStoreMgr(mgr)
 	vault := NewVault(1024, ActiveVault, AsgardVault, GetRandomPubKey(), []string{
 		common.ETHChain.String(),
 	}, nil)
@@ -360,7 +360,7 @@ func (s *StoreManagerTestSuite) TestCreditBackToVaultAndPool(c *C) {
 func (s *StoreManagerTestSuite) TestMigrateStoreV61(c *C) {
 	ctx, mgr := setupManagerForTest(c)
 	ctx = ctx.WithBlockHeight(1024)
-	storeMgr := NewStoreMgr(mgr)
+	storeMgr := newStoreMgr(mgr)
 	txOut := NewTxOut(ctx.BlockHeight())
 	ethAddr, err := GetRandomPubKey().GetAddress(common.ETHChain)
 	c.Assert(err, IsNil)
@@ -437,7 +437,7 @@ func (s *StoreManagerTestSuite) TestCorrectAsgardVaultBalance(c *C) {
 	ctx, mgr := setupManagerForTest(c)
 	SetupConfigForTest()
 	ctx = ctx.WithBlockHeight(1024)
-	storeMgr := NewStoreMgr(mgr)
+	storeMgr := newStoreMgr(mgr)
 	vault := NewVault(ctx.BlockHeight(), ActiveVault, AsgardVault, GetRandomPubKey(), []string{
 		common.BTCChain.String(),
 		common.ETHChain.String(),

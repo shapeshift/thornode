@@ -47,7 +47,7 @@ func (s *HandlerDepositSuite) TestHandle(c *C) {
 	activeNode := GetRandomNodeAccount(NodeActive)
 	k.SetNodeAccount(ctx, activeNode)
 	dummyMgr := NewDummyMgrWithKeeper(k)
-	dummyMgr.gasMgr = NewGasMgrV1(constAccessor, k)
+	dummyMgr.gasMgr = newGasMgrV1(constAccessor, k)
 	handler := NewDepositHandler(dummyMgr)
 
 	addr := GetRandomBech32Addr()

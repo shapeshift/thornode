@@ -19,8 +19,8 @@ type GasMgrV1 struct {
 	keeper            keeper.Keeper
 }
 
-// NewGasMgrV1 create a new instance of GasMgrV1
-func NewGasMgrV1(constantsAccessor constants.ConstantValues, k keeper.Keeper) *GasMgrV1 {
+// newGasMgrV1 create a new instance of GasMgrV1
+func newGasMgrV1(constantsAccessor constants.ConstantValues, k keeper.Keeper) *GasMgrV1 {
 	return &GasMgrV1{
 		gasEvent:          NewEventGas(),
 		gas:               common.Gas{},

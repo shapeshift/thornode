@@ -261,7 +261,7 @@ func GetKeeper(version semver.Version, cdc codec.BinaryMarshaler, coinKeeper ban
 func GetGasManager(version semver.Version, keeper keeper.Keeper) (GasManager, error) {
 	constAcessor := constants.GetConstantValues(version)
 	if version.GTE(semver.MustParse("0.1.0")) {
-		return NewGasMgrV1(constAcessor, keeper), nil
+		return newGasMgrV1(constAcessor, keeper), nil
 	}
 	return nil, errInvalidVersion
 }
@@ -269,7 +269,7 @@ func GetGasManager(version semver.Version, keeper keeper.Keeper) (GasManager, er
 // GetEventManager will return an implementation of EventManager
 func GetEventManager(version semver.Version) (EventManager, error) {
 	if version.GTE(semver.MustParse("0.1.0")) {
-		return NewEventMgrV1(), nil
+		return newEventMgrV1(), nil
 	}
 	return nil, errInvalidVersion
 }
@@ -306,9 +306,9 @@ func GetVaultManager(keeper keeper.Keeper, version semver.Version, txOutStore Tx
 	} else if version.GTE(semver.MustParse("0.59.0")) {
 		return NewNetworkMgrV59(keeper, txOutStore, eventMgr), nil
 	} else if version.GTE(semver.MustParse("0.57.0")) {
-		return NewNetworkMgrV57(keeper, txOutStore, eventMgr), nil
+		return newNetworkMgrV57(keeper, txOutStore, eventMgr), nil
 	} else if version.GTE(semver.MustParse("0.1.0")) {
-		return NewNetworkMgrV1(keeper, txOutStore, eventMgr), nil
+		return newNetworkMgrV1(keeper, txOutStore, eventMgr), nil
 	}
 	return nil, errInvalidVersion
 }
@@ -331,7 +331,7 @@ func GetValidatorManager(keeper keeper.Keeper, version semver.Version, vaultMgr 
 // when there is no version can match the given semver , it will return nil
 func GetObserverManager(version semver.Version) (ObserverManager, error) {
 	if version.GTE(semver.MustParse("0.1.0")) {
-		return NewObserverMgrV1(), nil
+		return newObserverMgrV1(), nil
 	}
 	return nil, errInvalidVersion
 }
@@ -339,11 +339,11 @@ func GetObserverManager(version semver.Version) (ObserverManager, error) {
 // GetSwapQueue retrieve a SwapQueue that is compatible with the given version
 func GetSwapQueue(keeper keeper.Keeper, version semver.Version) (SwapQueue, error) {
 	if version.GTE(semver.MustParse("0.58.0")) {
-		return NewSwapQv58(keeper), nil
+		return newSwapQv58(keeper), nil
 	} else if version.GTE(semver.MustParse("0.47.0")) {
-		return NewSwapQv47(keeper), nil
+		return newSwapQv47(keeper), nil
 	} else if version.GTE(semver.MustParse("0.1.0")) {
-		return NewSwapQv1(keeper), nil
+		return newSwapQv1(keeper), nil
 	}
 	return nil, errInvalidVersion
 }
@@ -357,17 +357,17 @@ func GetSlasher(keeper keeper.Keeper, version semver.Version, eventMgr EventMana
 	} else if version.GTE(semver.MustParse("0.58.0")) {
 		return NewSlasherV58(keeper, eventMgr), nil
 	} else if version.GTE(semver.MustParse("0.54.0")) {
-		return NewSlasherV54(keeper, eventMgr), nil
+		return newSlasherV54(keeper, eventMgr), nil
 	} else if version.GTE(semver.MustParse("0.48.0")) {
-		return NewSlasherV48(keeper, eventMgr), nil
+		return newSlasherV48(keeper, eventMgr), nil
 	} else if version.GTE(semver.MustParse("0.47.0")) {
-		return NewSlasherV47(keeper, eventMgr), nil
+		return newSlasherV47(keeper, eventMgr), nil
 	} else if version.GTE(semver.MustParse("0.44.0")) {
-		return NewSlasherV44(keeper, eventMgr), nil
+		return newSlasherV44(keeper, eventMgr), nil
 	} else if version.GTE(semver.MustParse("0.43.0")) {
-		return NewSlasherV43(keeper, eventMgr), nil
+		return newSlasherV43(keeper, eventMgr), nil
 	} else if version.GTE(semver.MustParse("0.1.0")) {
-		return NewSlasherV1(keeper, eventMgr), nil
+		return newSlasherV1(keeper, eventMgr), nil
 	}
 	return nil, errInvalidVersion
 }
@@ -381,9 +381,9 @@ func GetYggManager(keeper keeper.Keeper, version semver.Version) (YggManager, er
 	} else if version.GTE(semver.MustParse("0.59.0")) {
 		return NewYggMgrV59(keeper), nil
 	} else if version.GTE(semver.MustParse("0.45.0")) {
-		return NewYggMgrV45(keeper), nil
+		return newYggMgrV45(keeper), nil
 	} else if version.GTE(semver.MustParse("0.1.0")) {
-		return NewYggMgrV1(keeper), nil
+		return newYggMgrV1(keeper), nil
 	}
 	return nil, errInvalidVersion
 }
