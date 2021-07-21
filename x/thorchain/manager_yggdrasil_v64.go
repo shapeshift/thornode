@@ -11,20 +11,24 @@ import (
 	kvTypes "gitlab.com/thorchain/thornode/x/thorchain/keeper/types"
 )
 
-// YggMgrV59 is an implementation of YggManager
-type YggMgrV59 struct {
+var (
+	mimirStopFundYggdrasil = `StopFundYggdrasil`
+)
+
+// YggMgrV64 is an implementation of YggManager
+type YggMgrV64 struct {
 	keeper keeper.Keeper
 }
 
-// NewYggMgrV59 create a new instance of YggMgrV59 which implement YggManager interface
-func NewYggMgrV59(keeper keeper.Keeper) *YggMgrV59 {
-	return &YggMgrV59{
+// NewYggMgrV64 create a new instance of YggMgrV64 which implement YggManager interface
+func NewYggMgrV64(keeper keeper.Keeper) *YggMgrV64 {
+	return &YggMgrV64{
 		keeper: keeper,
 	}
 }
 
 // Fund is a method to fund yggdrasil pool
-func (ymgr YggMgrV59) Fund(ctx cosmos.Context, mgr Manager, constAccessor constants.ConstantValues) error {
+func (ymgr YggMgrV64) Fund(ctx cosmos.Context, mgr Manager, constAccessor constants.ConstantValues) error {
 	// Check if we have triggered the ragnarok protocol
 	ragnarokHeight, err := ymgr.keeper.GetRagnarokBlockHeight(ctx)
 	if err != nil {
@@ -184,7 +188,7 @@ func (ymgr YggMgrV59) Fund(ctx cosmos.Context, mgr Manager, constAccessor consta
 
 // sendCoinsToYggdrasil - adds outbound txs to send the given coins to a
 // yggdrasil pool
-func (ymgr YggMgrV59) sendCoinsToYggdrasil(ctx cosmos.Context, coins common.Coins, ygg Vault, mgr Manager, constAccessor constants.ConstantValues) (int, error) {
+func (ymgr YggMgrV64) sendCoinsToYggdrasil(ctx cosmos.Context, coins common.Coins, ygg Vault, mgr Manager, constAccessor constants.ConstantValues) (int, error) {
 	var count int
 
 	active, err := ymgr.keeper.GetAsgardVaultsByStatus(ctx, ActiveVault)
@@ -284,7 +288,7 @@ func (ymgr YggMgrV59) sendCoinsToYggdrasil(ctx cosmos.Context, coins common.Coin
 // new contract , once that happen and detected by THORChain, yggdrasil vault's smart contract will be updated to the new address
 // if there are different , means yggdrasil didn't transfer their fund from old control to new one
 // thus asgard should not send yggdrasil fund for the chain
-func (ymgr YggMgrV59) shouldFundYggdrasil(ctx cosmos.Context, asgard, ygg Vault, chain common.Chain) bool {
+func (ymgr YggMgrV64) shouldFundYggdrasil(ctx cosmos.Context, asgard, ygg Vault, chain common.Chain) bool {
 	asgardContract := asgard.GetContract(chain)
 	if asgardContract.IsEmpty() {
 		// the request chain doesn't support contract
@@ -300,7 +304,7 @@ func (ymgr YggMgrV59) shouldFundYggdrasil(ctx cosmos.Context, asgard, ygg Vault,
 // calcTargetYggCoins - calculate the amount of coins of each pool a yggdrasil
 // pool should have, relative to how much they have bonded (which should be
 // target == bond * yggFundLimit / 100).
-func (ymgr YggMgrV59) calcTargetYggCoins(pools []Pool, ygg Vault, yggBond, totalBond, yggFundLimit cosmos.Uint) (common.Coins, error) {
+func (ymgr YggMgrV64) calcTargetYggCoins(pools []Pool, ygg Vault, yggBond, totalBond, yggFundLimit cosmos.Uint) (common.Coins, error) {
 	var coins common.Coins
 
 	// calculate total liquidity provided rune in our pools
@@ -358,7 +362,7 @@ func (ymgr YggMgrV59) calcTargetYggCoins(pools []Pool, ygg Vault, yggBond, total
 }
 
 // abandonYggdrasilVaults is going to find out those yggdrasil pool
-func (ymgr YggMgrV59) abandonYggdrasilVaults(ctx cosmos.Context, mgr Manager) error {
+func (ymgr YggMgrV64) abandonYggdrasilVaults(ctx cosmos.Context, mgr Manager) error {
 	activeVaults, err := ymgr.keeper.GetAsgardVaultsByStatus(ctx, ActiveVault)
 	if err != nil {
 		return fmt.Errorf("fail to get active asgard vaults: %w", err)
@@ -423,7 +427,7 @@ func (ymgr YggMgrV59) abandonYggdrasilVaults(ctx cosmos.Context, mgr Manager) er
 	return nil
 }
 
-func (ymgr YggMgrV59) slash(ctx cosmos.Context, slasher Slasher, mgr Manager, pk common.PubKey, ygg Vault) error {
+func (ymgr YggMgrV64) slash(ctx cosmos.Context, slasher Slasher, mgr Manager, pk common.PubKey, ygg Vault) error {
 	ctx.Logger().Info(fmt.Sprintf("slash, node account %s churned out , but fail to return yggdrasil fund", pk.String()), "coins", ygg.Coins.String())
 	err := slasher.SlashVault(ctx, pk, ygg.Coins, mgr)
 	ygg.SubFunds(ygg.Coins)
