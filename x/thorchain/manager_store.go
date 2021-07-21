@@ -19,8 +19,8 @@ type StoreMgr struct {
 	mgr *Mgrs
 }
 
-// NewStoreMgr create a new instance of StoreMgr
-func NewStoreMgr(mgr *Mgrs) *StoreMgr {
+// newStoreMgr create a new instance of StoreMgr
+func newStoreMgr(mgr *Mgrs) *StoreMgr {
 	return &StoreMgr{
 		mgr: mgr,
 	}
