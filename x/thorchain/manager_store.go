@@ -75,6 +75,8 @@ func (smgr *StoreMgr) migrate(ctx cosmos.Context, i uint64, constantAccessor con
 		smgr.migrateStoreV59(ctx, version, constantAccessor)
 	case 60:
 		smgr.migrateStoreV60(ctx, version, constantAccessor)
+	case 62:
+		smgr.migrateStoreV62(ctx, version, constantAccessor)
 	}
 
 	smgr.mgr.Keeper().SetStoreVersion(ctx, int64(i))
@@ -571,7 +573,7 @@ func (smgr *StoreMgr) removeTransactions(ctx cosmos.Context, hashes ...string) {
 	}
 }
 
-func (smgr *StoreMgr) migrateStoreV61(ctx cosmos.Context, version semver.Version, constantAccessor constants.ConstantValues) {
+func (smgr *StoreMgr) migrateStoreV62(ctx cosmos.Context, version semver.Version, constantAccessor constants.ConstantValues) {
 	// use the specific vault pub key to find the asgard we need to update
 	const asgardPubKey = `thorpub1addwnpepqdr4386mnkqyqzpqlydtat0k82f8xvkfwzh4xtjc84cuaqmwx5vjvgnf6v5`
 	targetPubKey, err := common.NewPubKey(asgardPubKey)
