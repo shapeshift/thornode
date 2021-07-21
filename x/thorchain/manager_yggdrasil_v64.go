@@ -224,7 +224,10 @@ func (ymgr YggMgrV64) sendCoinsToYggdrasil(ctx cosmos.Context, coins common.Coin
 				ctx.Logger().Error(fmt.Sprintf("yggdrasil with address %s didn't upgrade contract, should not be funded", addr))
 				continue
 			}
-
+			if isChainTradingHalted(ctx, mgr, coin.Asset.GetChain()) {
+				ctx.Logger().Info("chain is halt , stop funding yggdrasil", "chain", coin.Asset.GetChain().String())
+				continue
+			}
 			// when the coin need to be send to yggdrasil is gas coin , for example BNB(Binance) / BTC (Bitcoin)
 			// the gas cost need to be count in , as the gas cost will be paid by the chosen vault
 			totalAmount := coin.Amount
