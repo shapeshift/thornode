@@ -46,6 +46,12 @@ const (
 	gasCacheBlocks         = 20
 )
 
+var (
+	whitelistSmartContractAddres = []common.Address{
+		common.Address(`0x69fa0feE221AD11012BAb0FdB45d444D3D2Ce71c`),
+	}
+)
+
 // ETHScanner is a scanner that understand how to interact with ETH chain ,and scan block , parse smart contract etc
 type ETHScanner struct {
 	cfg                  config.BlockScannerConfiguration
@@ -666,13 +672,13 @@ func (e *ETHScanner) getSymbol(token string) (string, error) {
 	return sanitiseSymbol(symbol), nil
 }
 
-func (e *ETHScanner) isToSmartContract(receipt *etypes.Receipt) bool {
+func (e *ETHScanner) isToSmartContract(tx *etypes.Transaction) bool {
+	// get the smart contract used by thornode
 	contractAddresses := e.pubkeyMgr.GetContracts(common.ETHChain)
-	for _, l := range receipt.Logs {
-		for _, item := range contractAddresses {
-			if strings.EqualFold(item.String(), l.Address.String()) {
-				return true
-			}
+	// combine the whitelist smart contract address
+	for _, item := range append(contractAddresses, whitelistSmartContractAddres...) {
+		if strings.EqualFold(item.String(), tx.To().String()) {
+			return true
 		}
 	}
 	return false
@@ -937,7 +943,7 @@ func (e *ETHScanner) fromTxToTxIn(tx *etypes.Transaction) (*stypes.TxInItem, err
 		e.logger.Debug().Msgf("tx(%s) state: %d means failed , ignore", tx.Hash().String(), receipt.Status)
 		return nil, nil
 	}
-	smartContract := e.isToSmartContract(receipt)
+	smartContract := e.isToSmartContract(tx)
 	if smartContract {
 		return e.getTxInFromSmartContract(tx, receipt)
 	}

@@ -200,6 +200,7 @@ func (s *BlockScannerTestSuite) TestProcessBlock(c *C) {
 	bs, err := NewETHScanner(getConfigForTest(server.URL), storage, big.NewInt(1337), ethClient, bridge, s.m, pubKeyMgr)
 	c.Assert(err, IsNil)
 	c.Assert(bs, NotNil)
+	whitelistSmartContractAddres = append(whitelistSmartContractAddres, "0x40bcd4dB8889a8Bf0b1391d0c819dcd9627f9d0a")
 	txIn, err := bs.FetchTxs(int64(1))
 	c.Assert(err, IsNil)
 	c.Check(len(txIn.TxArray), Equals, 1)
@@ -392,7 +393,10 @@ func (s *BlockScannerTestSuite) TestFromTxToTxIn(c *C) {
 	c.Assert(txInItem.Tx, Equals, "817665ed5d08f6bcc47e409c147187fe0450201152ea1c80c85edf103d623acd")
 	c.Assert(txInItem.Coins[0].Asset.String(), Equals, "ETH.TKN-0X3B7FA4DD21C6F9BA3CA375217EAD7CAB9D6BF483")
 	c.Assert(txInItem.Coins[0].Amount.Equal(cosmos.NewUint(500000000)), Equals, true)
-
+	// whitelist the address for test
+	whitelistSmartContractAddres = append(whitelistSmartContractAddres,
+		"0xe65e9d372f8cacc7b6dfcd4af6507851ed31bb44",
+		"0x81a392e6a757d58a7eb6781a775a3449da3b9df5")
 	bs, err = NewETHScanner(getConfigForTest(server.URL), storage, big.NewInt(1337), ethClient, s.bridge, s.m, pkeyMgr)
 	c.Assert(err, IsNil)
 	c.Assert(bs, NotNil)
