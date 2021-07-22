@@ -58,7 +58,9 @@ func (h DepositHandler) validateV1(ctx cosmos.Context, msg MsgDeposit) error {
 func (h DepositHandler) handle(ctx cosmos.Context, msg MsgDeposit) (*cosmos.Result, error) {
 	ctx.Logger().Info("receive MsgDeposit", "from", msg.GetSigners()[0], "coins", msg.Coins, "memo", msg.Memo)
 	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.61.0")) {
+	if version.GTE(semver.MustParse("0.63.0")) {
+		return h.handleV63(ctx, msg)
+	} else if version.GTE(semver.MustParse("0.61.0")) {
 		return h.handleV61(ctx, msg)
 	} else if version.GTE(semver.MustParse("0.58.0")) {
 		return h.handleV58(ctx, msg)
@@ -759,7 +761,7 @@ func (h DepositHandler) handleV61(ctx cosmos.Context, msg MsgDeposit) (*cosmos.R
 
 }
 
-func (h DepositHandler) handleV62(ctx cosmos.Context, msg MsgDeposit) (*cosmos.Result, error) {
+func (h DepositHandler) handleV63(ctx cosmos.Context, msg MsgDeposit) (*cosmos.Result, error) {
 	return h.handleCurrent(ctx, msg)
 }
 
@@ -870,7 +872,7 @@ func (h DepositHandler) handleCurrent(ctx cosmos.Context, msg MsgDeposit) (*cosm
 	}
 	withdrawMsg, isWithdrawLiquidity := m.(*MsgWithdrawLiquidity)
 	if isWithdrawLiquidity && isChainHalted(ctx, h.mgr, withdrawMsg.Asset.Chain) {
-		return nil, fmt.Erroff("unable to withdraw liquidity while chain is halted")
+		return nil, fmt.Errorf("unable to withdraw liquidity while chain is halted")
 	}
 
 	// if its a swap, send it to our queue for processing later
