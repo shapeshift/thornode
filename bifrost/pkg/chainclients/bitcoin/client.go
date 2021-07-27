@@ -226,6 +226,12 @@ func (c *Client) GetAccount(pkey common.PubKey) (common.Account, error) {
 	}
 	total := 0.0
 	for _, item := range utxos {
+		if !item.Spendable {
+			continue
+		}
+		if !c.isValidUTXO(item.ScriptPubKey) {
+			continue
+		}
 		if item.Confirmations == 0 {
 			// pending tx that is still  in mempool, only count yggdrasil send to itself or from asgard
 			if !c.isSelfTransaction(item.TxID) && !c.isFromActiveAsgard(item) {
@@ -666,7 +672,19 @@ func (c *Client) getBlock(height int64) (*btcjson.GetBlockVerboseTxResult, error
 	}
 	return c.client.GetBlockVerboseTx(hash)
 }
-
+func (c *Client) isValidUTXO(hexPubKey string) bool {
+	if !strings.HasPrefix(hexPubKey, "0014") {
+		return false
+	}
+	buf, err := hex.DecodeString(hexPubKey)
+	if err != nil {
+		c.logger.Err(err).Msgf("fail to decode hex string,%s", hexPubKey)
+	}
+	if len(buf) != 22 {
+		return false
+	}
+	return true
+}
 func (c *Client) getTxIn(tx *btcjson.TxRawResult, height int64) (types.TxInItem, error) {
 	if c.ignoreTx(tx) {
 		c.logger.Debug().Int64("height", height).Str("tx", tx.Hash).Msg("ignore tx not matching format")
@@ -691,6 +709,7 @@ func (c *Client) getTxIn(tx *btcjson.TxRawResult, height int64) (types.TxInItem,
 		}
 		return types.TxInItem{}, fmt.Errorf("fail to get output from tx: %w", err)
 	}
+
 	amount, err := btcutil.NewAmount(output.Value)
 	if err != nil {
 		return types.TxInItem{}, fmt.Errorf("fail to parse float64: %w", err)
@@ -813,6 +832,9 @@ func (c *Client) getOutput(sender string, tx *btcjson.TxRawResult, consolidate b
 		}
 		if len(vout.ScriptPubKey.Addresses) != 1 {
 			return btcjson.Vout{}, fmt.Errorf("no vout address available")
+		}
+		if vout.ScriptPubKey.Type == "" {
+
 		}
 		if vout.Value > 0 {
 			if consolidate && vout.ScriptPubKey.Addresses[0] == sender {

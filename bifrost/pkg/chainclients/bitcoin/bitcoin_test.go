@@ -1117,3 +1117,12 @@ func (s *BitcoinSuite) TestGetOutput(c *C) {
 	c.Assert(out.ScriptPubKey.Addresses[0], Equals, "tb1qkq7weysjn6ljc2ywmjmwp8ttcckg8yyxjdz5k6")
 	c.Assert(out.Value, Equals, 1.49655603)
 }
+
+func (s *BitcoinSuite) TestIsValidUTXO(c *C) {
+	// normal pay to pubkey hash segwit
+	c.Assert(s.client.isValidUTXO("00140653096f54ae1ae2d73291d15854aef08ebcfa8c"), Equals, true)
+	// pubkey hash , bitcoin client doesn't use it
+	c.Assert(s.client.isValidUTXO("76a91415fb126815935f6ae83a206d7d82f1065bc63e2588ac"), Equals, false)
+
+	c.Assert(s.client.isValidUTXO("a914e51a3dd98ded55718ad2cf2ce7c8ff056394445787"), Equals, false)
+}
