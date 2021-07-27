@@ -803,7 +803,13 @@ func (e *ETHScanner) getTxInFromSmartContract(tx *etypes.Transaction, receipt *e
 				return nil, fmt.Errorf("fail to parse deposit event: %w", err)
 			}
 			e.logger.Info().Msgf("deposit:%+v", depositEvt)
+			if len(txInItem.To) > 0 && !strings.EqualFold(txInItem.To, depositEvt.To.String()) {
+				return nil, fmt.Errorf("multiple events in the same transaction, have different to addresses , ignore")
+			}
 			txInItem.To = depositEvt.To.String()
+			if len(txInItem.Memo) > 0 && !strings.EqualFold(txInItem.Memo, depositEvt.Memo) {
+				return nil, fmt.Errorf("multiple events in the same transaction , have different memo , ignore")
+			}
 			txInItem.Memo = depositEvt.Memo
 			asset, err := e.getAssetFromTokenAddress(depositEvt.Asset.String())
 			if err != nil {
@@ -821,8 +827,17 @@ func (e *ETHScanner) getTxInFromSmartContract(tx *etypes.Transaction, receipt *e
 				return nil, fmt.Errorf("fail to parse transfer out event: %w", err)
 			}
 			e.logger.Info().Msgf("transfer out: %+v", transferOutEvt)
+			if len(txInItem.Sender) > 0 && !strings.EqualFold(txInItem.Sender, transferOutEvt.Vault.String()) {
+				return nil, fmt.Errorf("transfer out event , vault address is not the same as sender, ignore")
+			}
 			txInItem.Sender = transferOutEvt.Vault.String()
+			if len(txInItem.To) > 0 && !strings.EqualFold(txInItem.To, transferOutEvt.To.String()) {
+				return nil, fmt.Errorf("multiple events in the same transaction , have different to addresses , ignore")
+			}
 			txInItem.To = transferOutEvt.To.String()
+			if len(txInItem.Memo) > 0 && !strings.EqualFold(txInItem.Memo, transferOutEvt.Memo) {
+				return nil, fmt.Errorf("multiple events in the same transaction , have different memo , ignore")
+			}
 			txInItem.Memo = transferOutEvt.Memo
 			asset, err := e.getAssetFromTokenAddress(transferOutEvt.Asset.String())
 			if err != nil {
@@ -839,8 +854,17 @@ func (e *ETHScanner) getTxInFromSmartContract(tx *etypes.Transaction, receipt *e
 				return nil, fmt.Errorf("fail to parse transfer allowance event: %w", err)
 			}
 			e.logger.Info().Msgf("transfer allowance: %+v", transferAllowanceEvt)
+			if len(txInItem.Sender) > 0 && !strings.EqualFold(txInItem.Sender, transferAllowanceEvt.OldVault.String()) {
+				return nil, fmt.Errorf("transfer allowance event , vault address is not the same as sender, ignore")
+			}
 			txInItem.Sender = transferAllowanceEvt.OldVault.String()
+			if len(txInItem.To) > 0 && !strings.EqualFold(txInItem.To, transferAllowanceEvt.NewVault.String()) {
+				return nil, fmt.Errorf("multiple deposit events , have different to addresses , ignore")
+			}
 			txInItem.To = transferAllowanceEvt.NewVault.String()
+			if len(txInItem.Memo) > 0 && !strings.EqualFold(txInItem.Memo, transferAllowanceEvt.Memo) {
+				return nil, fmt.Errorf("multiple events in the same transaction , have different memo , ignore")
+			}
 			txInItem.Memo = transferAllowanceEvt.Memo
 			asset, err := e.getAssetFromTokenAddress(transferAllowanceEvt.Asset.String())
 			if err != nil {
@@ -857,8 +881,17 @@ func (e *ETHScanner) getTxInFromSmartContract(tx *etypes.Transaction, receipt *e
 				return nil, fmt.Errorf("fail to parse vault transfer event: %w", err)
 			}
 			e.logger.Info().Msgf("vault transfer: %+v", transferEvent)
+			if len(txInItem.Sender) > 0 && !strings.EqualFold(txInItem.Sender, transferEvent.OldVault.String()) {
+				return nil, fmt.Errorf("vault transfer event , vault address is not the same as sender, ignore")
+			}
 			txInItem.Sender = transferEvent.OldVault.String()
+			if len(txInItem.To) > 0 && !strings.EqualFold(txInItem.To, transferEvent.NewVault.String()) {
+				return nil, fmt.Errorf("multiple deposit events , have different to addresses , ignore")
+			}
 			txInItem.To = transferEvent.NewVault.String()
+			if len(txInItem.Memo) > 0 && !strings.EqualFold(txInItem.Memo, transferEvent.Memo) {
+				return nil, fmt.Errorf("multiple events in the same transaction , have different memo , ignore")
+			}
 			txInItem.Memo = transferEvent.Memo
 			for _, item := range transferEvent.Coins {
 				asset, err := e.getAssetFromTokenAddress(item.Asset.String())
