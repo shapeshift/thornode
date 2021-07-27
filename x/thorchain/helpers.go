@@ -873,6 +873,16 @@ func emitPoolBalanceChangedEvent(ctx cosmos.Context, poolMod PoolMod, reason str
 // if trade for the target chain is halt , then the message should be refund as well
 // isTradingHalt has been used in two handlers , thus put it here
 func isTradingHalt(ctx cosmos.Context, msg cosmos.Msg, mgr Manager) bool {
+	version := mgr.GetVersion()
+	if version.GTE(semver.MustParse("0.63.0")) {
+		return isTradingHaltV63(ctx, msg, mgr)
+	} else if version.GTE(semver.MustParse("0.1.0")) {
+		return isTradingHaltV1(ctx, msg, mgr)
+	}
+	return false
+}
+
+func isTradingHaltV1(ctx cosmos.Context, msg cosmos.Msg, mgr Manager) bool {
 	if isGlobalTradingHalted(ctx, mgr) {
 		return true
 	}
@@ -895,6 +905,26 @@ func isTradingHalt(ctx cosmos.Context, msg cosmos.Msg, mgr Manager) bool {
 		return false
 	}
 	return isChainTradingHalted(ctx, mgr, targetChain)
+
+}
+
+func isTradingHaltV63(ctx cosmos.Context, msg cosmos.Msg, mgr Manager) bool {
+	if isGlobalTradingHalted(ctx, mgr) {
+		return true
+	}
+	switch m := msg.(type) {
+	case *MsgSwap:
+		source := common.EmptyChain
+		if len(m.Tx.Coins) > 0 {
+			source = m.Tx.Coins[0].Asset.GetLayer1Asset().Chain
+		}
+		target := m.TargetAsset.GetLayer1Asset().Chain
+		return isChainTradingHalted(ctx, mgr, source) || isChainTradingHalted(ctx, mgr, target)
+	case *MsgAddLiquidity:
+		return isChainTradingHalted(ctx, mgr, m.Asset.Chain)
+	default:
+		return false
+	}
 }
 
 // isGlobalTradingHalted check whether trading has been halt at global level
