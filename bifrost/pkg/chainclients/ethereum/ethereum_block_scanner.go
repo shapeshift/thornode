@@ -672,12 +672,25 @@ func (e *ETHScanner) getSymbol(token string) (string, error) {
 	return sanitiseSymbol(symbol), nil
 }
 
-func (e *ETHScanner) isToSmartContract(tx *etypes.Transaction) bool {
+// isTHORChainRouterAddress this will check whether the given address is THORChain router address
+func (e *ETHScanner) isTHORChainRouterAddress(addr ecommon.Address) bool {
+	// get the smart contract used by thornode
+	contractAddresses := e.pubkeyMgr.GetContracts(common.ETHChain)
+	for _, item := range contractAddresses {
+		if strings.EqualFold(item.String(), addr.String()) {
+			return true
+		}
+	}
+	return false
+}
+
+// isToValidContractAddress this method make sure the transaction to address is to THORChain router or a whitelist address
+func (e *ETHScanner) isToValidContractAddress(addr *ecommon.Address) bool {
 	// get the smart contract used by thornode
 	contractAddresses := e.pubkeyMgr.GetContracts(common.ETHChain)
 	// combine the whitelist smart contract address
 	for _, item := range append(contractAddresses, whitelistSmartContractAddres...) {
-		if strings.EqualFold(item.String(), tx.To().String()) {
+		if strings.EqualFold(item.String(), addr.String()) {
 			return true
 		}
 	}
@@ -779,6 +792,10 @@ func (e *ETHScanner) getTxInFromSmartContract(tx *etypes.Transaction, receipt *e
 	}
 	isVaultTransfer := false
 	for _, item := range receipt.Logs {
+		// only events produced by THORChain router is processed
+		if !e.isTHORChainRouterAddress(item.Address) {
+			continue
+		}
 		switch item.Topics[0].String() {
 		case depositEvent:
 			depositEvt, err := e.parseDeposit(*item)
@@ -943,8 +960,8 @@ func (e *ETHScanner) fromTxToTxIn(tx *etypes.Transaction) (*stypes.TxInItem, err
 		e.logger.Debug().Msgf("tx(%s) state: %d means failed , ignore", tx.Hash().String(), receipt.Status)
 		return nil, nil
 	}
-	smartContract := e.isToSmartContract(tx)
-	if smartContract {
+
+	if e.isToValidContractAddress(tx.To()) {
 		return e.getTxInFromSmartContract(tx, receipt)
 	}
 	return e.getTxInFromTransaction(tx)
