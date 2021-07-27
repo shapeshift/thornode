@@ -1100,7 +1100,7 @@ class ThorchainState:
                 "swap destination address is not the same chain as "
                 "the target asset: unknown request"
             )
-            return self.refund(tx, 108, reason)
+            return self.refund(tx, 105, reason)
         pool = self.get_pool(target)
         if target.is_rune():
             pool = self.get_pool(source)
