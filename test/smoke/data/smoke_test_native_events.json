@@ -3,7 +3,7 @@
         "type": "refund",
         "attributes": [
             {
-                "code": "108"
+                "code": "105"
             },
             {
                 "reason": "swap destination address is not the same chain as the target asset: unknown request"
@@ -126,7 +126,7 @@
         "type": "refund",
         "attributes": [
             {
-                "code": "108"
+                "code": "105"
             },
             {
                 "reason": "swap destination address is not the same chain as the target asset: unknown request"
@@ -1290,7 +1290,7 @@
         "type": "refund",
         "attributes": [
             {
-                "code": "108"
+                "code": "105"
             },
             {
                 "reason": "swap destination address is not the same chain as the target asset: unknown request"
