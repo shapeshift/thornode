@@ -180,7 +180,7 @@ func derivePrivateKeyForPath(privKeyBytes, chainCode [32]byte, path string) ([32
 		if harden {
 			part = part[:len(part)-1]
 		}
-		idx, err := strconv.Atoi(part)
+		idx, err := strconv.ParseInt(part,10,64)
 		if err != nil {
 			return [32]byte{}, fmt.Errorf("invalid BIP 32 path: %s", err)
 		}
