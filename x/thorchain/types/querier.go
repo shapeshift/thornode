@@ -26,9 +26,10 @@ func (h QueryResLastBlockHeights) String() string {
 
 // QueryQueue a struct store the total outstanding out items
 type QueryQueue struct {
-	Swap     int64 `json:"swap"`
-	Outbound int64 `json:"outbound"`
-	Internal int64 `json:"internal"`
+	Swap                   int64       `json:"swap"`
+	Outbound               int64       `json:"outbound"`
+	Internal               int64       `json:"internal"`
+	ScheduledOutboundValue cosmos.Uint `json:"scheduled_outbound_value"`
 }
 
 // String implement fmt.Stringer

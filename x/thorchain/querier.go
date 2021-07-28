@@ -985,7 +985,9 @@ func queryQueue(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *M
 	constAccessor := constants.GetConstantValues(version)
 	signingTransactionPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
 	startHeight := common.BlockHeight(ctx) - signingTransactionPeriod
-	query := QueryQueue{}
+	query := QueryQueue{
+		ScheduledOutboundValue: cosmos.ZeroUint(),
+	}
 
 	iterator := mgr.Keeper().GetSwapQueueIterator(ctx)
 	defer iterator.Close()
@@ -1013,6 +1015,25 @@ func queryQueue(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *M
 				}
 			}
 		}
+	}
+
+	// sum outbound value
+	maxTxOutOffset, err := mgr.Keeper().GetMimir(ctx, constants.MaxTxOutOffset.String())
+	if maxTxOutOffset < 0 || err != nil {
+		maxTxOutOffset = constAccessor.GetInt64Value(constants.MaxTxOutOffset)
+	}
+	for height := common.BlockHeight(ctx) + 1; height <= common.BlockHeight(ctx)+17280; height++ {
+		value, err := mgr.Keeper().GetTxOutValue(ctx, height)
+		if err != nil {
+			ctx.Logger().Error("fail to get tx out array from key value store", "error", err)
+			continue
+		}
+		if height > common.BlockHeight(ctx)+maxTxOutOffset && value.IsZero() {
+			// we've hit our max offset, and an empty block, we can assume the
+			// rest will be empty as well
+			break
+		}
+		query.ScheduledOutboundValue = query.ScheduledOutboundValue.Add(value)
 	}
 
 	res, err := json.MarshalIndent(query, "", "	")
