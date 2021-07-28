@@ -2,7 +2,7 @@
 
 ## Overview
 
-This bug bounty document is to verify that [Thorchain](https://www.thorchain.com/) hosts a bug bounty on Immunefi at the address [https://immunefi.com/bounty/thorchain/](https://immunefi.com/bounty/thorchain/).
+This bug bounty document is to verify that [THORChain](https://www.thorchain.com/) hosts a bug bounty on Immunefi at the address [https://immunefi.com/bounty/thorchain/](https://immunefi.com/bounty/thorchain/).
 
 If you have found a vulnerability in our project, it must be submitted through [Immunefi's platform](https://immunefi.com/). Immunefi will handle bug bounty communications.
 
