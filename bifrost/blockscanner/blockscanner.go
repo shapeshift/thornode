@@ -195,6 +195,17 @@ func (b *BlockScanner) scanBlocks() {
 				continue
 			}
 			// b.logger.Debug().Int64("block height", currentBlock).Msg("fetch txs")
+			// check currentBlock height exists in chain
+			chainHeight, err := b.chainScanner.GetHeight()
+			if err != nil {
+				b.logger.Error().Err(err).Msg("fail to get chain block height")
+				time.Sleep(b.cfg.BlockHeightDiscoverBackoff)
+				continue
+			}
+			if chainHeight < currentBlock {
+				time.Sleep(b.cfg.BlockHeightDiscoverBackoff)
+				continue
+			}
 			txIn, err := b.chainScanner.FetchTxs(currentBlock)
 			if err != nil {
 				// don't log an error if its because the block doesn't exist yet
