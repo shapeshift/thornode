@@ -766,6 +766,14 @@ func (h DepositHandler) handleV63(ctx cosmos.Context, msg MsgDeposit) (*cosmos.R
 }
 
 func (h DepositHandler) handleCurrent(ctx cosmos.Context, msg MsgDeposit) (*cosmos.Result, error) {
+	haltHeight, err := h.mgr.Keeper().GetMimir(ctx, "HaltTHORChain")
+	if err != nil {
+		return nil, fmt.Errorf("failed to get mimir setting: %w", err)
+	}
+	if haltHeight > 0 && common.BlockHeight(ctx) > haltHeight {
+		return nil, fmt.Errorf("mimir has halted THORChain transactions")
+	}
+
 	nativeTxFee, err := h.mgr.Keeper().GetMimir(ctx, constants.NativeTransactionFee.String())
 	if err != nil || nativeTxFee < 0 {
 		nativeTxFee = h.mgr.GetConstants().GetInt64Value(constants.NativeTransactionFee)
