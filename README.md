@@ -162,6 +162,10 @@ make test-watch
 
 Current active branch is `develop` , so when you open PR , make sure your target branch is `develop`
 
+### Vulnerabilities and Bug Bounties
+
+If you find a vulnerability in THORNode, please submit it for a bounty according to these [guidelines](bugbounty.md).
+
 ### the semantic version and release
 THORNode manage changelog entry the same way like gitlab, refer to (https://docs.gitlab.com/ee/development/changelog.html) for more detail. Once a merge request get merged into master branch,
 if the merge request upgrade the [version](https://gitlab.com/thorchain/thornode/-/blob/master/version), then a new release will be created automatically, and the repository will be tagged with
