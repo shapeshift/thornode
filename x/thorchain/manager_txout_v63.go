@@ -390,7 +390,69 @@ func (tos *TxOutStorageV63) addToBlockOut(ctx cosmos.Context, mgr Manager, toi T
 		return tos.nativeTxOut(ctx, mgr, toi)
 	}
 
-	return tos.keeper.AppendTxOut(ctx, common.BlockHeight(ctx), toi)
+	targetHeight, err := tos.calcTxOutHeight(ctx, toi)
+	if err != nil {
+		ctx.Logger().Error("failed to calc target block height for txout item", "error", err)
+	}
+
+	return tos.keeper.AppendTxOut(ctx, targetHeight, toi)
+}
+
+func (tos *TxOutStorageV63) calcTxOutHeight(ctx cosmos.Context, toi TxOutItem) (int64, error) {
+	// non-outbound transactions are skipped. This is so this code does not
+	// affect internal transactions (ie consolidation and migrate txs)
+	memo, _ := ParseMemo(toi.Memo) // ignore err
+	if !memo.IsOutbound() && !memo.IsType(TxRagnarok) {
+		return common.BlockHeight(ctx), nil
+	}
+
+	maxTxOutVolume, err := tos.keeper.GetMimir(ctx, constants.MaxTxOutVolume.String())
+	if maxTxOutVolume < 0 || err != nil {
+		maxTxOutVolume = tos.constAccessor.GetInt64Value(constants.MaxTxOutVolume)
+	}
+	maxTxOutOffset, err := tos.keeper.GetMimir(ctx, constants.MaxTxOutOffset.String())
+	if maxTxOutOffset < 0 || err != nil {
+		maxTxOutOffset = tos.constAccessor.GetInt64Value(constants.MaxTxOutOffset)
+	}
+
+	// get txout item value in rune
+	pool, err := tos.keeper.GetPool(ctx, toi.Coin.Asset)
+	if err != nil {
+		ctx.Logger().Error("fail to get pool for appending txout item", "error", err)
+		return common.BlockHeight(ctx) + maxTxOutOffset, err
+	}
+	runeValue := pool.AssetValueInRune(toi.Coin.Amount)
+
+	// calculate the minimum number of blocks in the future the txn has to be
+	minBlocks := int64(runeValue.Uint64()) / maxTxOutVolume
+	// min shouldn't be anything longer than the max txout offset
+	if minBlocks > maxTxOutOffset {
+		minBlocks = maxTxOutOffset
+	}
+	targetBlock := common.BlockHeight(ctx) + minBlocks
+
+	// find targetBlock that has space for new txout item.
+	count := 0
+	maxVolume := cosmos.NewUint(uint64(maxTxOutVolume))
+	for count < 17280 { // max set 1 day into the future
+		txOutValue, err := tos.keeper.GetTxOutValue(ctx, targetBlock)
+		if err != nil {
+			ctx.Logger().Error("fail to get txOutValue for block height", "error", err)
+			break
+		}
+		if txOutValue.IsZero() {
+			// the txout has no outbound txns, let's use this one
+			break
+		}
+		if txOutValue.Add(runeValue).LTE(maxVolume) {
+			// the txout + this txout item has enough space to fit, lets use this one
+			break
+		}
+		targetBlock += 1
+		count += 1
+	}
+
+	return targetBlock, nil
 }
 
 func (tos *TxOutStorageV63) nativeTxOut(ctx cosmos.Context, mgr Manager, toi TxOutItem) error {
