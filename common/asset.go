@@ -148,7 +148,7 @@ func (a Asset) IsGasAsset() bool {
 
 // IsRune is a helper function ,return true only when the asset represent RUNE
 func (a Asset) IsRune() bool {
-	return a.Equals(Rune67CAsset) || a.Equals(RuneB1AAsset) || a.Equals(RuneNative) || a.Equals(RuneERC20Asset) || a.Equals(RuneERC20TestnetAsset)
+	return a.Equals(BEP2RuneAsset()) || a.Equals(RuneNative) || a.Equals(ERC20RuneAsset())
 }
 
 // IsNativeRune is a helper function, return true only when the asset represent NATIVE RUNE
@@ -198,4 +198,12 @@ func BEP2RuneAsset() Asset {
 		return Rune67CAsset
 	}
 	return RuneB1AAsset
+}
+
+// ERC20RuneAsset is RUNE on ETH
+func ERC20RuneAsset() Asset {
+	if strings.EqualFold(os.Getenv("NET"), "testnet") || strings.EqualFold(os.Getenv("NET"), "mocknet") {
+		return RuneERC20TestnetAsset
+	}
+	return RuneERC20Asset
 }
