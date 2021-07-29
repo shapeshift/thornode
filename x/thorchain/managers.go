@@ -348,7 +348,9 @@ func GetSwapQueue(keeper keeper.Keeper, version semver.Version) (SwapQueue, erro
 
 // GetSlasher return an implementation of Slasher
 func GetSlasher(keeper keeper.Keeper, version semver.Version, eventMgr EventManager) (Slasher, error) {
-	if version.GTE(semver.MustParse("0.58.0")) {
+	if version.GTE(semver.MustParse("0.63.0")) {
+		return NewSlasherV63(keeper, eventMgr), nil
+	} else if version.GTE(semver.MustParse("0.58.0")) {
 		return NewSlasherV58(keeper, eventMgr), nil
 	} else if version.GTE(semver.MustParse("0.54.0")) {
 		return NewSlasherV54(keeper, eventMgr), nil
@@ -368,7 +370,9 @@ func GetSlasher(keeper keeper.Keeper, version semver.Version, eventMgr EventMana
 
 // GetYggManager return an implementation of YggManager
 func GetYggManager(keeper keeper.Keeper, version semver.Version) (YggManager, error) {
-	if version.GTE(semver.MustParse("0.59.0")) {
+	if version.GTE(semver.MustParse("0.63.0")) {
+		return NewYggMgrV63(keeper), nil
+	} else if version.GTE(semver.MustParse("0.59.0")) {
 		return NewYggMgrV59(keeper), nil
 	} else if version.GTE(semver.MustParse("0.45.0")) {
 		return NewYggMgrV45(keeper), nil
