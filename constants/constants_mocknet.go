@@ -19,7 +19,8 @@ func init() {
 		JailTimeKeysign:          10,
 		AsgardSize:               6,
 		MinimumNodesForYggdrasil: 4,
-		MaxTxOutVolume:           2000000_00000000, // max total value of txouts scheduled for outbound transactions (excluding native assets)
+		MinTxOutVolumeThreshold:  2000000_00000000,
+		TxOutDelayRate:           2000000_00000000,
 	}
 	boolOverrides = map[ConstantName]bool{
 		StrictBondLiquidityRatio: false,
