@@ -809,14 +809,14 @@ func (h DepositHandler) handleCurrent(ctx cosmos.Context, msg MsgDeposit) (*cosm
 	if err != nil {
 		return nil, fmt.Errorf("fail to get from address: %w", err)
 	}
-	to, err := h.mgr.Keeper().GetModuleAddress(AsgardName)
-	if err != nil {
-		return nil, fmt.Errorf("fail to get to address: %w", err)
-	}
 
 	handler := NewInternalHandler(h.mgr)
 
 	memo, _ := ParseMemoWithTHORNames(ctx, h.mgr.Keeper(), msg.Memo) // ignore err
+	if memo.IsOutbound() || memo.IsInternal() {
+		return nil, fmt.Errorf("cannot send inbound an outbound or internal transacion")
+	}
+
 	var targetModule string
 	switch memo.GetType() {
 	case TxBond:
@@ -833,6 +833,11 @@ func (h DepositHandler) handleCurrent(ctx cosmos.Context, msg MsgDeposit) (*cosm
 		if sdkErr != nil {
 			return nil, sdkErr
 		}
+	}
+
+	to, err := h.mgr.Keeper().GetModuleAddress(targetModule)
+	if err != nil {
+		return nil, fmt.Errorf("fail to get to address: %w", err)
 	}
 
 	tx := common.NewTx(txID, from, to, coinsInMsg, common.Gas{gas}, msg.Memo)
