@@ -678,14 +678,14 @@ func (vm *NetworkMgrV63) UpdateNetwork(ctx cosmos.Context, constAccessor constan
 			}
 			amt := cosmos.ZeroUint()
 			if totalLiquidityFees.IsZero() {
-				amt = common.GetShare(pool.BalanceRune, totalProvidedLiquidity, totalPoolRewards)
+				amt = common.GetSafeShare(pool.BalanceRune, totalProvidedLiquidity, totalPoolRewards)
 			} else {
 				fees, err := vm.k.GetPoolLiquidityFees(ctx, currentHeight, pool.Asset)
 				if err != nil {
 					ctx.Logger().Error("fail to get fees", "error", err)
 					continue
 				}
-				amt = common.GetShare(fees, totalLiquidityFees, totalPoolRewards)
+				amt = common.GetSafeShare(fees, totalLiquidityFees, totalPoolRewards)
 			}
 			rewardAmts = append(rewardAmts, amt)
 			evtPools = append(evtPools, PoolAmt{Asset: pool.Asset, Amount: int64(amt.Uint64())})
@@ -802,7 +802,7 @@ func (vm *NetworkMgrV63) payPoolRewards(ctx cosmos.Context, poolRewards []cosmos
 
 // Calculate pool deficit based on the pool's accrued fees compared with total fees.
 func (vm *NetworkMgrV63) calcPoolDeficit(lpDeficit, totalFees, poolFees cosmos.Uint) cosmos.Uint {
-	return common.GetShare(poolFees, totalFees, lpDeficit)
+	return common.GetSafeShare(poolFees, totalFees, lpDeficit)
 }
 
 // Calculate the block rewards that bonders and liquidity providers should receive
@@ -864,5 +864,5 @@ func (vm *NetworkMgrV63) getPoolShare(incentiveCurve int64, totalProvidedLiquidi
 		total = cosmos.NewUint(uint64((divi).RoundInt64())).Add(totalBonded)
 	}
 	part := common.SafeSub(totalBonded, totalProvidedLiquidity)
-	return common.GetShare(part, total, totalRewards)
+	return common.GetSafeShare(part, total, totalRewards)
 }
