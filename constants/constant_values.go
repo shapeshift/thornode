@@ -58,7 +58,8 @@ const (
 	FullImpLossProtectionBlocks
 	BondLockupPeriod
 	NumberOfNewNodesPerChurn
-	MaxTxOutVolume
+	MinTxOutVolumeThreshold
+	TxOutDelayRate
 	MaxTxOutOffset
 	TNSRegisterFee
 	TNSFeeOnSale
@@ -115,7 +116,8 @@ var nameToString = map[ConstantName]string{
 	FullImpLossProtectionBlocks:   "FullImpLossProtectionBlocks",
 	BondLockupPeriod:              "BondLockupPeriod",
 	NumberOfNewNodesPerChurn:      "NumberOfNewNodesPerChurn",
-	MaxTxOutVolume:                "MaxTxOutVolume",
+	MinTxOutVolumeThreshold:       "MinTxOutVolumeThreshold",
+	TxOutDelayRate:                "TxOutDelayRate",
 	MaxTxOutOffset:                "MaxTxOutOffset",
 	TNSRegisterFee:                "TNSRegisterFee",
 	TNSFeeOnSale:                  "TNSFeeOnSale",

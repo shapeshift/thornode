@@ -406,9 +406,14 @@ func (tos *TxOutStorageV63) calcTxOutHeight(ctx cosmos.Context, toi TxOutItem) (
 		return common.BlockHeight(ctx), nil
 	}
 
-	maxTxOutVolume, err := tos.keeper.GetMimir(ctx, constants.MaxTxOutVolume.String())
-	if maxTxOutVolume < 0 || err != nil {
-		maxTxOutVolume = tos.constAccessor.GetInt64Value(constants.MaxTxOutVolume)
+	minTxOutVolumeThreshold, err := tos.keeper.GetMimir(ctx, constants.MinTxOutVolumeThreshold.String())
+	if minTxOutVolumeThreshold < 0 || err != nil {
+		minTxOutVolumeThreshold = tos.constAccessor.GetInt64Value(constants.MinTxOutVolumeThreshold)
+	}
+	minVolumeThreshold := cosmos.NewUint(uint64(minTxOutVolumeThreshold))
+	txOutDelayRate, err := tos.keeper.GetMimir(ctx, constants.TxOutDelayRate.String())
+	if txOutDelayRate < 0 || err != nil {
+		txOutDelayRate = tos.constAccessor.GetInt64Value(constants.TxOutDelayRate)
 	}
 	maxTxOutOffset, err := tos.keeper.GetMimir(ctx, constants.MaxTxOutOffset.String())
 	if maxTxOutOffset < 0 || err != nil {
@@ -423,8 +428,34 @@ func (tos *TxOutStorageV63) calcTxOutHeight(ctx cosmos.Context, toi TxOutItem) (
 	}
 	runeValue := pool.AssetValueInRune(toi.Coin.Amount)
 
+	// sum value of scheduled txns (including this one)
+	sumValue := int64(runeValue.Uint64())
+	for height := common.BlockHeight(ctx) + 1; height <= common.BlockHeight(ctx)+17280; height++ {
+		value, err := tos.keeper.GetTxOutValue(ctx, height)
+		if err != nil {
+			ctx.Logger().Error("fail to get tx out array from key value store", "error", err)
+			continue
+		}
+		if height > common.BlockHeight(ctx)+maxTxOutOffset && value.IsZero() {
+			// we've hit our max offset, and an empty block, we can assume the
+			// rest will be empty as well
+			break
+		}
+		sumValue += int64(value.Uint64())
+	}
+	// reduce delay rate relative to the total scheduled value. In high volume
+	// scenarios, this causes the network to send outbound transactions slower,
+	// giving the community & NOs time to anaylze and react. In an attack
+	// scenario, the attacker is likely going to move as much value as possible
+	// (as we've seen in the past). The act of doing this will slow down their
+	// own transaction(s), reducing the attack's effectiveness.
+	txOutDelayRate -= sumValue / minTxOutVolumeThreshold
+	if txOutDelayRate < 1 {
+		txOutDelayRate = 1
+	}
+
 	// calculate the minimum number of blocks in the future the txn has to be
-	minBlocks := int64(runeValue.Uint64()) / maxTxOutVolume
+	minBlocks := int64(runeValue.Uint64()) / txOutDelayRate
 	// min shouldn't be anything longer than the max txout offset
 	if minBlocks > maxTxOutOffset {
 		minBlocks = maxTxOutOffset
@@ -433,7 +464,6 @@ func (tos *TxOutStorageV63) calcTxOutHeight(ctx cosmos.Context, toi TxOutItem) (
 
 	// find targetBlock that has space for new txout item.
 	count := 0
-	maxVolume := cosmos.NewUint(uint64(maxTxOutVolume))
 	for count < 17280 { // max set 1 day into the future
 		txOutValue, err := tos.keeper.GetTxOutValue(ctx, targetBlock)
 		if err != nil {
@@ -444,7 +474,7 @@ func (tos *TxOutStorageV63) calcTxOutHeight(ctx cosmos.Context, toi TxOutItem) (
 			// the txout has no outbound txns, let's use this one
 			break
 		}
-		if txOutValue.Add(runeValue).LTE(maxVolume) {
+		if txOutValue.Add(runeValue).LTE(minVolumeThreshold) {
 			// the txout + this txout item has enough space to fit, lets use this one
 			break
 		}
