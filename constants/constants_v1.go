@@ -46,6 +46,7 @@ func NewConstantValue010() *ConstantVals {
 			TNSRegisterFee:                10_00000000,        // registration fee for new THORName
 			TNSFeeOnSale:                  1000,               // fee for TNS sale in basis points
 			TNSFeePerBlock:                20,                 // per block cost for TNS, in rune
+			PermittedSolvencyGap:          100,                // the setting is in basis points
 		},
 		boolValues: map[ConstantName]bool{
 			StrictBondLiquidityRatio: true,

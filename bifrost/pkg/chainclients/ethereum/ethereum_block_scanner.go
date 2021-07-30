@@ -17,7 +17,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-
 	"gitlab.com/thorchain/thornode/bifrost/blockscanner"
 	btypes "gitlab.com/thorchain/thornode/bifrost/blockscanner/types"
 	"gitlab.com/thorchain/thornode/bifrost/config"
@@ -30,6 +29,9 @@ import (
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 )
+
+// SolvencyReporter is to report solvency info to THORNode
+type SolvencyReporter func(int64) error
 
 const (
 	BlockCacheSize         = 6000
@@ -73,6 +75,7 @@ type ETHScanner struct {
 	eipSigner            etypes.Signer
 	currentBlockHeight   int64
 	gasCache             []*big.Int
+	solvencyReporter     SolvencyReporter
 }
 
 // NewETHScanner create a new instance of ETHScanner
@@ -82,7 +85,8 @@ func NewETHScanner(cfg config.BlockScannerConfiguration,
 	client *ethclient.Client,
 	bridge *thorclient.ThorchainBridge,
 	m *metrics.Metrics,
-	pubkeyMgr pubkeymanager.PubKeyValidator) (*ETHScanner, error) {
+	pubkeyMgr pubkeymanager.PubKeyValidator,
+	solvencyReporter SolvencyReporter) (*ETHScanner, error) {
 	if storage == nil {
 		return nil, errors.New("storage is nil")
 	}
@@ -129,6 +133,7 @@ func NewETHScanner(cfg config.BlockScannerConfiguration,
 		eipSigner:            etypes.NewLondonSigner(chainID),
 		pubkeyMgr:            pubkeyMgr,
 		gasCache:             make([]*big.Int, 0),
+		solvencyReporter:     solvencyReporter,
 	}, nil
 }
 
@@ -209,6 +214,11 @@ func (e *ETHScanner) FetchTxs(height int64) (stypes.TxIn, error) {
 			if _, err := e.bridge.PostNetworkFee(height, common.ETHChain, MaxContractGas, gasValue); err != nil {
 				e.logger.Err(err).Msg("fail to post ETH chain single transfer fee to THORNode")
 			}
+		}
+	}
+	if e.solvencyReporter != nil {
+		if err := e.solvencyReporter(height); err != nil {
+			e.logger.Err(err).Msg("fail to report Solvency info to THORNode")
 		}
 	}
 	return txIn, nil

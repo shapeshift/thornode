@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	cryptocodec "github.com/cosmos/cosmos-sdk/crypto/codec"
@@ -21,6 +22,7 @@ import (
 	ttypes "gitlab.com/thorchain/binance-sdk/types"
 	"gitlab.com/thorchain/binance-sdk/types/msg"
 	btx "gitlab.com/thorchain/binance-sdk/types/tx"
+	"gitlab.com/thorchain/thornode/constants"
 	tssp "gitlab.com/thorchain/tss/go-tss/tss"
 
 	"gitlab.com/thorchain/thornode/bifrost/blockscanner"
@@ -36,19 +38,20 @@ import (
 
 // Binance is a structure to sign and broadcast tx to binance chain used by signer mostly
 type Binance struct {
-	logger          zerolog.Logger
-	cfg             config.ChainConfiguration
-	cdc             *codec.LegacyAmino
-	chainID         string
-	isTestNet       bool
-	client          *http.Client
-	accts           *BinanceMetaDataStore
-	tssKeyManager   *tss.KeySign
-	localKeyManager *keyManager
-	thorchainBridge *thorclient.ThorchainBridge
-	storage         *blockscanner.BlockScannerStorage
-	blockScanner    *blockscanner.BlockScanner
-	bnbScanner      *BinanceBlockScanner
+	logger              zerolog.Logger
+	cfg                 config.ChainConfiguration
+	cdc                 *codec.LegacyAmino
+	chainID             string
+	isTestNet           bool
+	client              *http.Client
+	accts               *BinanceMetaDataStore
+	tssKeyManager       *tss.KeySign
+	localKeyManager     *keyManager
+	thorchainBridge     *thorclient.ThorchainBridge
+	storage             *blockscanner.BlockScannerStorage
+	blockScanner        *blockscanner.BlockScanner
+	bnbScanner          *BinanceBlockScanner
+	globalSolvencyQueue chan stypes.Solvency
 }
 
 // NewBinance create new instance of binance client
@@ -105,7 +108,7 @@ func NewBinance(thorKeys *thorclient.Keys, cfg config.ChainConfiguration, server
 		return nil, fmt.Errorf("fail to create scan storage: %w", err)
 	}
 
-	b.bnbScanner, err = NewBinanceBlockScanner(b.cfg.BlockScanner, b.storage, b.isTestNet, b.thorchainBridge, m)
+	b.bnbScanner, err = NewBinanceBlockScanner(b.cfg.BlockScanner, b.storage, b.isTestNet, b.thorchainBridge, m, b.reportSolvency)
 	if err != nil {
 		return nil, fmt.Errorf("fail to create block scanner: %w", err)
 	}
@@ -119,7 +122,8 @@ func NewBinance(thorKeys *thorclient.Keys, cfg config.ChainConfiguration, server
 }
 
 // Start Binance chain client
-func (b *Binance) Start(globalTxsQueue chan stypes.TxIn, globalErrataQueue chan stypes.ErrataBlock) {
+func (b *Binance) Start(globalTxsQueue chan stypes.TxIn, globalErrataQueue chan stypes.ErrataBlock, globalSolvencyQueue chan stypes.Solvency) {
+	b.globalSolvencyQueue = globalSolvencyQueue
 	b.tssKeyManager.Start()
 	b.blockScanner.Start(globalTxsQueue)
 }
@@ -534,6 +538,33 @@ func (b *Binance) ConfirmationCountReady(txIn stypes.TxIn) bool {
 }
 
 // GetConfirmationCount determinate how many confirmation it required
-func (c *Binance) GetConfirmationCount(txIn stypes.TxIn) int64 {
+func (b *Binance) GetConfirmationCount(txIn stypes.TxIn) int64 {
 	return 0
+}
+func (b *Binance) reportSolvency(bnbBlockHeight int64) error {
+	if bnbBlockHeight%900 > 0 {
+		return nil
+	}
+	asgardVaults, err := b.thorchainBridge.GetAsgards()
+	if err != nil {
+		return fmt.Errorf("fail to get asgards,err: %w", err)
+	}
+	for _, asgard := range asgardVaults {
+		acct, err := b.GetAccount(asgard.PubKey)
+		if err != nil {
+			b.logger.Err(err).Msgf("fail to get account balance")
+			continue
+		}
+		select {
+		case b.globalSolvencyQueue <- stypes.Solvency{
+			Height: bnbBlockHeight,
+			Chain:  common.BNBChain,
+			PubKey: asgard.PubKey,
+			Coins:  acct.Coins,
+		}:
+		case <-time.After(constants.ThorchainBlockTime):
+			b.logger.Info().Msgf("fail to send solvency info to THORChain, timeout")
+		}
+	}
+	return nil
 }
