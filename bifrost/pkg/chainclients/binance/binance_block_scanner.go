@@ -33,17 +33,21 @@ import (
 	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
+// SolvencyReporter is to report solvency info to THORNode
+type SolvencyReporter func(int64) error
+
 // BinanceBlockScanner is to scan the blocks
 type BinanceBlockScanner struct {
-	cfg        config.BlockScannerConfiguration
-	logger     zerolog.Logger
-	db         blockscanner.ScannerStorage
-	m          *metrics.Metrics
-	errCounter *prometheus.CounterVec
-	http       *http.Client
-	singleFee  uint64
-	multiFee   uint64
-	bridge     *thorclient.ThorchainBridge
+	cfg              config.BlockScannerConfiguration
+	logger           zerolog.Logger
+	db               blockscanner.ScannerStorage
+	m                *metrics.Metrics
+	errCounter       *prometheus.CounterVec
+	http             *http.Client
+	singleFee        uint64
+	multiFee         uint64
+	bridge           *thorclient.ThorchainBridge
+	solvencyReporter SolvencyReporter
 }
 
 // NewBinanceBlockScanner create a new instance of BlockScan
@@ -51,7 +55,7 @@ func NewBinanceBlockScanner(cfg config.BlockScannerConfiguration,
 	scanStorage blockscanner.ScannerStorage,
 	isTestNet bool,
 	bridge *thorclient.ThorchainBridge,
-	m *metrics.Metrics) (*BinanceBlockScanner, error) {
+	m *metrics.Metrics, solvencyReporter SolvencyReporter) (*BinanceBlockScanner, error) {
 	if scanStorage == nil {
 		return nil, errors.New("scanStorage is nil")
 	}
@@ -69,12 +73,13 @@ func NewBinanceBlockScanner(cfg config.BlockScannerConfiguration,
 	}
 
 	return &BinanceBlockScanner{
-		cfg:        cfg,
-		logger:     log.Logger.With().Str("module", "blockscanner").Str("chain", "BNB").Logger(),
-		db:         scanStorage,
-		errCounter: m.GetCounterVec(metrics.BlockScanError(common.BNBChain)),
-		http:       netClient,
-		bridge:     bridge,
+		cfg:              cfg,
+		logger:           log.Logger.With().Str("module", "blockscanner").Str("chain", "BNB").Logger(),
+		db:               scanStorage,
+		errCounter:       m.GetCounterVec(metrics.BlockScanError(common.BNBChain)),
+		http:             netClient,
+		bridge:           bridge,
+		solvencyReporter: solvencyReporter,
 	}, nil
 }
 
@@ -359,6 +364,11 @@ func (b *BinanceBlockScanner) FetchTxs(height int64) (stypes.TxIn, error) {
 	// set a block as success
 	if err := b.db.RemoveBlockStatus(block.Height); err != nil {
 		b.logger.Error().Err(err).Int64("block", block.Height).Msg("fail to remove block status from data store, thus block will be re processed")
+	}
+	if b.solvencyReporter != nil {
+		if err := b.solvencyReporter(height); err != nil {
+			b.logger.Err(err).Msg("fail to report solvency to THORChain")
+		}
 	}
 	return txIn, nil
 }
