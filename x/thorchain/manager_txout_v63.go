@@ -445,7 +445,7 @@ func (tos *TxOutStorageV63) calcTxOutHeight(ctx cosmos.Context, toi TxOutItem) (
 	}
 	// reduce delay rate relative to the total scheduled value. In high volume
 	// scenarios, this causes the network to send outbound transactions slower,
-	// giving the community & NOs time to anaylze and react. In an attack
+	// giving the community & NOs time to analyze and react. In an attack
 	// scenario, the attacker is likely going to move as much value as possible
 	// (as we've seen in the past). The act of doing this will slow down their
 	// own transaction(s), reducing the attack's effectiveness.
