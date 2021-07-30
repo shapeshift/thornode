@@ -172,7 +172,7 @@ func (b *BlockScanner) scanBlocks() {
 				time.Sleep(constants.ThorchainBlockTime)
 				continue
 			}
-			b.logger.Debug().Int64("block height", currentBlock).Msg("fetch txs")
+			//b.logger.Debug().Int64("block height", currentBlock).Msg("fetch txs")
 			txIn, err := b.chainScanner.FetchTxs(currentBlock)
 			if err != nil {
 				// don't log an error if its because the block doesn't exist yet

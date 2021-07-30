@@ -58,6 +58,7 @@ type Keeper interface {
 	KeeperNetworkFee
 	KeeperObservedNetworkFeeVoter
 	KeeperChainContract
+	KeeperSolvencyVoter
 	KeeperTHORName
 }
 
@@ -243,7 +244,12 @@ type KeeperChainContract interface {
 	GetChainContracts(ctx cosmos.Context, chains common.Chains) []ChainContract
 	GetChainContractIterator(ctx cosmos.Context) cosmos.Iterator
 }
+type KeeperSolvencyVoter interface {
+	SetSolvencyVoter(_ cosmos.Context, _ SolvencyVoter)
+	GetSolvencyVoter(_ cosmos.Context, _ common.TxID, _ common.Chain) (SolvencyVoter, error)
+}
 
+// NewKeeper creates new instances of the thorchain Keeper
 type KeeperTHORName interface {
 	THORNameExists(ctx cosmos.Context, _ string) bool
 	GetTHORName(ctx cosmos.Context, _ string) (THORName, error)

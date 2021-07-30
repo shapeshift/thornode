@@ -47,6 +47,34 @@ func NewExternalHandler(mgr Manager) cosmos.Handler {
 }
 
 func getHandlerMapping(mgr Manager) map[string]MsgHandler {
+	if mgr.GetVersion().GTE(semver.MustParse("0.63.0")) {
+		return getHandlerMappingV63(mgr)
+	}
+	return getHandlerMappingV1(mgr)
+}
+func getHandlerMappingV1(mgr Manager) map[string]MsgHandler {
+	m := make(map[string]MsgHandler)
+	// consensus handlers
+	m[MsgTssPool{}.Type()] = NewTssHandler(mgr)
+	m[MsgObservedTxIn{}.Type()] = NewObservedTxInHandler(mgr)
+	m[MsgObservedTxOut{}.Type()] = NewObservedTxOutHandler(mgr)
+	m[MsgTssKeysignFail{}.Type()] = NewTssKeysignHandler(mgr)
+	m[MsgErrataTx{}.Type()] = NewErrataTxHandler(mgr)
+	m[MsgMimir{}.Type()] = NewMimirHandler(mgr)
+	m[MsgBan{}.Type()] = NewBanHandler(mgr)
+	m[MsgNetworkFee{}.Type()] = NewNetworkFeeHandler(mgr)
+
+	// cli handlers (non-consensus)
+	m[MsgSetNodeKeys{}.Type()] = NewSetNodeKeysHandler(mgr)
+	m[MsgSetVersion{}.Type()] = NewVersionHandler(mgr)
+	m[MsgSetIPAddress{}.Type()] = NewIPAddressHandler(mgr)
+
+	// native handlers (non-consensus)
+	m[MsgSend{}.Type()] = NewSendHandler(mgr)
+	m[MsgDeposit{}.Type()] = NewDepositHandler(mgr)
+	return m
+}
+func getHandlerMappingV63(mgr Manager) map[string]MsgHandler {
 	// New arch handlers
 	m := make(map[string]MsgHandler)
 
@@ -68,6 +96,7 @@ func getHandlerMapping(mgr Manager) map[string]MsgHandler {
 	// native handlers (non-consensus)
 	m[MsgSend{}.Type()] = NewSendHandler(mgr)
 	m[MsgDeposit{}.Type()] = NewDepositHandler(mgr)
+	m[MsgSolvency{}.Type()] = NewSolvencyHandler(mgr)
 	// TODO: uncomment this line once THORNames is deployed (post version
 	// 0.57.0). If this is done, gas is paid with deposit handler, so we'll
 	// need to charge for gas, but not twice

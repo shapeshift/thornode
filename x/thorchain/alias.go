@@ -163,6 +163,8 @@ var (
 	HasSuperMajority               = types.HasSuperMajority
 	NewTssKeysignMetric            = types.NewTssKeysignMetric
 	DefaultGenesis                 = types.DefaultGenesis
+	NewSolvencyVoter               = types.NewSolvencyVoter
+	NewMsgSolvency                 = types.NewMsgSolvency
 
 	// Memo
 	ParseMemo              = mem.ParseMemo
@@ -207,6 +209,7 @@ type (
 	MsgTssKeysignFail              = types.MsgTssKeysignFail
 	MsgNetworkFee                  = types.MsgNetworkFee
 	MsgManageTHORName              = types.MsgManageTHORName
+	MsgSolvency                    = types.MsgSolvency
 	QueryVersion                   = types.QueryVersion
 	QueryQueue                     = types.QueryQueue
 	QueryNodeAccountPreflightCheck = types.QueryNodeAccountPreflightCheck
