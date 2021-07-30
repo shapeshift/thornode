@@ -407,16 +407,16 @@ func (tos *TxOutStorageV63) calcTxOutHeight(ctx cosmos.Context, toi TxOutItem) (
 	}
 
 	minTxOutVolumeThreshold, err := tos.keeper.GetMimir(ctx, constants.MinTxOutVolumeThreshold.String())
-	if minTxOutVolumeThreshold < 0 || err != nil {
+	if minTxOutVolumeThreshold <= 0 || err != nil {
 		minTxOutVolumeThreshold = tos.constAccessor.GetInt64Value(constants.MinTxOutVolumeThreshold)
 	}
 	minVolumeThreshold := cosmos.NewUint(uint64(minTxOutVolumeThreshold))
 	txOutDelayRate, err := tos.keeper.GetMimir(ctx, constants.TxOutDelayRate.String())
-	if txOutDelayRate < 0 || err != nil {
+	if txOutDelayRate <= 0 || err != nil {
 		txOutDelayRate = tos.constAccessor.GetInt64Value(constants.TxOutDelayRate)
 	}
 	maxTxOutOffset, err := tos.keeper.GetMimir(ctx, constants.MaxTxOutOffset.String())
-	if maxTxOutOffset < 0 || err != nil {
+	if maxTxOutOffset <= 0 || err != nil {
 		maxTxOutOffset = tos.constAccessor.GetInt64Value(constants.MaxTxOutOffset)
 	}
 
