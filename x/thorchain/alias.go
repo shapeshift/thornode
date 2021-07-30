@@ -121,6 +121,7 @@ var (
 	NewMsgMigrate                  = types.NewMsgMigrate
 	NewMsgRagnarok                 = types.NewMsgRagnarok
 	NewQueryNodeAccount            = types.NewQueryNodeAccount
+	NewQueryTxOutItem              = types.NewQueryTxOutItem
 	GetThreshold                   = types.GetThreshold
 	ModuleCdc                      = types.ModuleCdc
 	RegisterCodec                  = types.RegisterCodec
@@ -222,6 +223,7 @@ type (
 	QueryVaultsPubKeys             = types.QueryVaultsPubKeys
 	QueryVaultPubKeyContract       = types.QueryVaultPubKeyContract
 	QueryNodeAccount               = types.QueryNodeAccount
+	QueryTxOutItem                 = types.QueryTxOutItem
 	QueryChainAddress              = types.QueryChainAddress
 	PoolStatus                     = types.PoolStatus
 	Pool                           = types.Pool

@@ -76,6 +76,8 @@ func NewQuerier(mgr *Mgrs, kbs cosmos.KeybaseStore) cosmos.Querier {
 			return queryRagnarok(ctx, mgr)
 		case q.QueryPendingOutbound.Key:
 			return queryPendingOutbound(ctx, mgr)
+		case q.QueryScheduledOutbound.Key:
+			return queryScheduledOutbound(ctx, mgr)
 		case q.QueryTssKeygenMetrics.Key:
 			return queryTssKeygenMetric(ctx, path[1:], req, mgr)
 		case q.QueryTssMetrics.Key:
@@ -1173,6 +1175,38 @@ func queryBan(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mgr
 	if err != nil {
 		ctx.Logger().Error("fail to marshal ban voter to json", "error", err)
 		return nil, fmt.Errorf("fail to ban voter to json: %w", err)
+	}
+	return res, nil
+}
+
+func queryScheduledOutbound(ctx cosmos.Context, mgr *Mgrs) ([]byte, error) {
+	result := make([]QueryTxOutItem, 0)
+	version := mgr.Keeper().GetLowestActiveVersion(ctx)
+	constAccessor := constants.GetConstantValues(version)
+	maxTxOutOffset, err := mgr.Keeper().GetMimir(ctx, constants.MaxTxOutOffset.String())
+	if maxTxOutOffset < 0 || err != nil {
+		maxTxOutOffset = constAccessor.GetInt64Value(constants.MaxTxOutOffset)
+	}
+	for height := common.BlockHeight(ctx) + 1; height <= common.BlockHeight(ctx)+17280; height++ {
+		txOut, err := mgr.Keeper().GetTxOut(ctx, height)
+		if err != nil {
+			ctx.Logger().Error("fail to get tx out array from key value store", "error", err)
+			continue
+		}
+		if height > common.BlockHeight(ctx)+maxTxOutOffset && len(txOut.TxArray) == 0 {
+			// we've hit our max offset, and an empty block, we can assume the
+			// rest will be empty as well
+			break
+		}
+		for _, toi := range txOut.TxArray {
+			result = append(result, NewQueryTxOutItem(toi, height))
+		}
+	}
+
+	res, err := json.MarshalIndent(result, "", "	")
+	if err != nil {
+		ctx.Logger().Error("fail to marshal scheduled outbound tx to json", "error", err)
+		return nil, fmt.Errorf("fail to marshal scheduled outbound tx to json: %w", err)
 	}
 	return res, nil
 }
