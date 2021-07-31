@@ -985,7 +985,7 @@ func (h ObservedTxInHandler) handleCurrent(ctx cosmos.Context, msg MsgObservedTx
 
 		// if its a swap, send it to our queue for processing later
 		if isSwap {
-			h.addSwapV1(ctx, *swapMsg)
+			h.addSwap(ctx, *swapMsg)
 			continue
 		}
 
@@ -1002,6 +1002,15 @@ func (h ObservedTxInHandler) handleCurrent(ctx cosmos.Context, msg MsgObservedTx
 		}
 	}
 	return &cosmos.Result{}, nil
+}
+
+func (h ObservedTxInHandler) addSwap(ctx cosmos.Context, msg MsgSwap) {
+	version := h.mgr.GetVersion()
+	if version.GTE(semver.MustParse("0.63.0")) {
+		h.addSwapV63(ctx, msg)
+	} else {
+		h.addSwapV1(ctx, msg)
+	}
 }
 
 func (h ObservedTxInHandler) addSwapV1(ctx cosmos.Context, msg MsgSwap) {
@@ -1030,6 +1039,40 @@ func (h ObservedTxInHandler) addSwapV1(ctx cosmos.Context, msg MsgSwap) {
 			msg.Signer,
 		)
 		affiliateSwap.Tx.Coins[0].Amount = amt
+
+		if err := h.mgr.Keeper().SetSwapQueueItem(ctx, *affiliateSwap, 1); err != nil {
+			ctx.Logger().Error("fail to add swap to queue", "error", err)
+		}
+	}
+}
+func (h ObservedTxInHandler) addSwapV63(ctx cosmos.Context, msg MsgSwap) {
+	amt := cosmos.ZeroUint()
+	if !msg.AffiliateBasisPoints.IsZero() && msg.AffiliateAddress.IsChain(common.THORChain) {
+		amt = common.GetSafeShare(
+			msg.AffiliateBasisPoints,
+			cosmos.NewUint(10000),
+			msg.Tx.Coins[0].Amount,
+		)
+		msg.Tx.Coins[0].Amount = common.SafeSub(msg.Tx.Coins[0].Amount, amt)
+	}
+
+	if err := h.mgr.Keeper().SetSwapQueueItem(ctx, msg, 0); err != nil {
+		ctx.Logger().Error("fail to add swap to queue", "error", err)
+	}
+
+	if !amt.IsZero() {
+		affiliateSwap := NewMsgSwap(
+			msg.Tx,
+			common.RuneAsset(),
+			msg.AffiliateAddress,
+			cosmos.ZeroUint(),
+			common.NoAddress,
+			cosmos.ZeroUint(),
+			msg.Signer,
+		)
+		if affiliateSwap.Tx.Coins[0].Amount.GTE(amt) {
+			affiliateSwap.Tx.Coins[0].Amount = amt
+		}
 
 		if err := h.mgr.Keeper().SetSwapQueueItem(ctx, *affiliateSwap, 1); err != nil {
 			ctx.Logger().Error("fail to add swap to queue", "error", err)

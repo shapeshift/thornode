@@ -299,7 +299,9 @@ func GetTxOutStore(keeper keeper.Keeper, version semver.Version, eventMgr EventM
 
 // GetVaultManager retrieve a NetworkManager that is compatible with the given version
 func GetVaultManager(keeper keeper.Keeper, version semver.Version, txOutStore TxOutStore, eventMgr EventManager) (NetworkManager, error) {
-	if version.GTE(semver.MustParse("0.59.0")) {
+	if version.GTE(semver.MustParse("0.63.0")) {
+		return NewNetworkMgrV63(keeper, txOutStore, eventMgr), nil
+	} else if version.GTE(semver.MustParse("0.59.0")) {
 		return NewNetworkMgrV59(keeper, txOutStore, eventMgr), nil
 	} else if version.GTE(semver.MustParse("0.57.0")) {
 		return NewNetworkMgrV57(keeper, txOutStore, eventMgr), nil
@@ -346,7 +348,9 @@ func GetSwapQueue(keeper keeper.Keeper, version semver.Version) (SwapQueue, erro
 
 // GetSlasher return an implementation of Slasher
 func GetSlasher(keeper keeper.Keeper, version semver.Version, eventMgr EventManager) (Slasher, error) {
-	if version.GTE(semver.MustParse("0.58.0")) {
+	if version.GTE(semver.MustParse("0.63.0")) {
+		return NewSlasherV63(keeper, eventMgr), nil
+	} else if version.GTE(semver.MustParse("0.58.0")) {
 		return NewSlasherV58(keeper, eventMgr), nil
 	} else if version.GTE(semver.MustParse("0.54.0")) {
 		return NewSlasherV54(keeper, eventMgr), nil
@@ -366,7 +370,9 @@ func GetSlasher(keeper keeper.Keeper, version semver.Version, eventMgr EventMana
 
 // GetYggManager return an implementation of YggManager
 func GetYggManager(keeper keeper.Keeper, version semver.Version) (YggManager, error) {
-	if version.GTE(semver.MustParse("0.59.0")) {
+	if version.GTE(semver.MustParse("0.63.0")) {
+		return NewYggMgrV63(keeper), nil
+	} else if version.GTE(semver.MustParse("0.59.0")) {
 		return NewYggMgrV59(keeper), nil
 	} else if version.GTE(semver.MustParse("0.45.0")) {
 		return NewYggMgrV45(keeper), nil

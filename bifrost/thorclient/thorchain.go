@@ -241,9 +241,19 @@ func (b *ThorchainBridge) PostKeysignFailure(blame stypes.Blame, height int64, m
 	return b.Broadcast(msg)
 }
 
-// GetErrataStdTx get errata tx from params
+// GetErrataMsg get errata tx from params
 func (b *ThorchainBridge) GetErrataMsg(txID common.TxID, chain common.Chain) sdk.Msg {
 	return stypes.NewMsgErrataTx(txID, chain, b.keys.GetSignerInfo().GetAddress())
+}
+
+// GetSolvencyMsg create MsgSolvency from the given parameters
+func (b *ThorchainBridge) GetSolvencyMsg(height int64, chain common.Chain, pubKey common.PubKey, coins common.Coins) sdk.Msg {
+	msg, err := stypes.NewMsgSolvency(chain, pubKey, coins, height, b.keys.GetSignerInfo().GetAddress())
+	if err != nil {
+		b.logger.Err(err).Msg("fail to create MsgSolvency")
+		return nil
+	}
+	return msg
 }
 
 // GetKeygenStdTx get keygen tx from params

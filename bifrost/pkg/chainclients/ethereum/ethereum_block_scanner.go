@@ -17,7 +17,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-
 	"gitlab.com/thorchain/thornode/bifrost/blockscanner"
 	btypes "gitlab.com/thorchain/thornode/bifrost/blockscanner/types"
 	"gitlab.com/thorchain/thornode/bifrost/config"
@@ -30,6 +29,9 @@ import (
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 )
+
+// SolvencyReporter is to report solvency info to THORNode
+type SolvencyReporter func(int64) error
 
 const (
 	BlockCacheSize         = 6000
@@ -73,6 +75,7 @@ type ETHScanner struct {
 	eipSigner            etypes.Signer
 	currentBlockHeight   int64
 	gasCache             []*big.Int
+	solvencyReporter     SolvencyReporter
 }
 
 // NewETHScanner create a new instance of ETHScanner
@@ -82,7 +85,8 @@ func NewETHScanner(cfg config.BlockScannerConfiguration,
 	client *ethclient.Client,
 	bridge *thorclient.ThorchainBridge,
 	m *metrics.Metrics,
-	pubkeyMgr pubkeymanager.PubKeyValidator) (*ETHScanner, error) {
+	pubkeyMgr pubkeymanager.PubKeyValidator,
+	solvencyReporter SolvencyReporter) (*ETHScanner, error) {
 	if storage == nil {
 		return nil, errors.New("storage is nil")
 	}
@@ -129,6 +133,7 @@ func NewETHScanner(cfg config.BlockScannerConfiguration,
 		eipSigner:            etypes.NewLondonSigner(chainID),
 		pubkeyMgr:            pubkeyMgr,
 		gasCache:             make([]*big.Int, 0),
+		solvencyReporter:     solvencyReporter,
 	}, nil
 }
 
@@ -209,6 +214,11 @@ func (e *ETHScanner) FetchTxs(height int64) (stypes.TxIn, error) {
 			if _, err := e.bridge.PostNetworkFee(height, common.ETHChain, MaxContractGas, gasValue); err != nil {
 				e.logger.Err(err).Msg("fail to post ETH chain single transfer fee to THORNode")
 			}
+		}
+	}
+	if e.solvencyReporter != nil {
+		if err := e.solvencyReporter(height); err != nil {
+			e.logger.Err(err).Msg("fail to report Solvency info to THORNode")
 		}
 	}
 	return txIn, nil
@@ -672,12 +682,25 @@ func (e *ETHScanner) getSymbol(token string) (string, error) {
 	return sanitiseSymbol(symbol), nil
 }
 
-func (e *ETHScanner) isToSmartContract(tx *etypes.Transaction) bool {
+// isTHORChainRouterAddress this will check whether the given address is THORChain router address
+func (e *ETHScanner) isTHORChainRouterAddress(addr ecommon.Address) bool {
+	// get the smart contract used by thornode
+	contractAddresses := e.pubkeyMgr.GetContracts(common.ETHChain)
+	for _, item := range contractAddresses {
+		if strings.EqualFold(item.String(), addr.String()) {
+			return true
+		}
+	}
+	return false
+}
+
+// isToValidContractAddress this method make sure the transaction to address is to THORChain router or a whitelist address
+func (e *ETHScanner) isToValidContractAddress(addr *ecommon.Address) bool {
 	// get the smart contract used by thornode
 	contractAddresses := e.pubkeyMgr.GetContracts(common.ETHChain)
 	// combine the whitelist smart contract address
 	for _, item := range append(contractAddresses, whitelistSmartContractAddres...) {
-		if strings.EqualFold(item.String(), tx.To().String()) {
+		if strings.EqualFold(item.String(), addr.String()) {
 			return true
 		}
 	}
@@ -779,6 +802,10 @@ func (e *ETHScanner) getTxInFromSmartContract(tx *etypes.Transaction, receipt *e
 	}
 	isVaultTransfer := false
 	for _, item := range receipt.Logs {
+		// only events produced by THORChain router is processed
+		if !e.isTHORChainRouterAddress(item.Address) {
+			continue
+		}
 		switch item.Topics[0].String() {
 		case depositEvent:
 			depositEvt, err := e.parseDeposit(*item)
@@ -786,7 +813,13 @@ func (e *ETHScanner) getTxInFromSmartContract(tx *etypes.Transaction, receipt *e
 				return nil, fmt.Errorf("fail to parse deposit event: %w", err)
 			}
 			e.logger.Info().Msgf("deposit:%+v", depositEvt)
+			if len(txInItem.To) > 0 && !strings.EqualFold(txInItem.To, depositEvt.To.String()) {
+				return nil, fmt.Errorf("multiple events in the same transaction, have different to addresses , ignore")
+			}
 			txInItem.To = depositEvt.To.String()
+			if len(txInItem.Memo) > 0 && !strings.EqualFold(txInItem.Memo, depositEvt.Memo) {
+				return nil, fmt.Errorf("multiple events in the same transaction , have different memo , ignore")
+			}
 			txInItem.Memo = depositEvt.Memo
 			asset, err := e.getAssetFromTokenAddress(depositEvt.Asset.String())
 			if err != nil {
@@ -804,8 +837,17 @@ func (e *ETHScanner) getTxInFromSmartContract(tx *etypes.Transaction, receipt *e
 				return nil, fmt.Errorf("fail to parse transfer out event: %w", err)
 			}
 			e.logger.Info().Msgf("transfer out: %+v", transferOutEvt)
+			if len(txInItem.Sender) > 0 && !strings.EqualFold(txInItem.Sender, transferOutEvt.Vault.String()) {
+				return nil, fmt.Errorf("transfer out event , vault address is not the same as sender, ignore")
+			}
 			txInItem.Sender = transferOutEvt.Vault.String()
+			if len(txInItem.To) > 0 && !strings.EqualFold(txInItem.To, transferOutEvt.To.String()) {
+				return nil, fmt.Errorf("multiple events in the same transaction , have different to addresses , ignore")
+			}
 			txInItem.To = transferOutEvt.To.String()
+			if len(txInItem.Memo) > 0 && !strings.EqualFold(txInItem.Memo, transferOutEvt.Memo) {
+				return nil, fmt.Errorf("multiple events in the same transaction , have different memo , ignore")
+			}
 			txInItem.Memo = transferOutEvt.Memo
 			asset, err := e.getAssetFromTokenAddress(transferOutEvt.Asset.String())
 			if err != nil {
@@ -822,8 +864,17 @@ func (e *ETHScanner) getTxInFromSmartContract(tx *etypes.Transaction, receipt *e
 				return nil, fmt.Errorf("fail to parse transfer allowance event: %w", err)
 			}
 			e.logger.Info().Msgf("transfer allowance: %+v", transferAllowanceEvt)
+			if len(txInItem.Sender) > 0 && !strings.EqualFold(txInItem.Sender, transferAllowanceEvt.OldVault.String()) {
+				return nil, fmt.Errorf("transfer allowance event , vault address is not the same as sender, ignore")
+			}
 			txInItem.Sender = transferAllowanceEvt.OldVault.String()
+			if len(txInItem.To) > 0 && !strings.EqualFold(txInItem.To, transferAllowanceEvt.NewVault.String()) {
+				return nil, fmt.Errorf("multiple deposit events , have different to addresses , ignore")
+			}
 			txInItem.To = transferAllowanceEvt.NewVault.String()
+			if len(txInItem.Memo) > 0 && !strings.EqualFold(txInItem.Memo, transferAllowanceEvt.Memo) {
+				return nil, fmt.Errorf("multiple events in the same transaction , have different memo , ignore")
+			}
 			txInItem.Memo = transferAllowanceEvt.Memo
 			asset, err := e.getAssetFromTokenAddress(transferAllowanceEvt.Asset.String())
 			if err != nil {
@@ -840,8 +891,17 @@ func (e *ETHScanner) getTxInFromSmartContract(tx *etypes.Transaction, receipt *e
 				return nil, fmt.Errorf("fail to parse vault transfer event: %w", err)
 			}
 			e.logger.Info().Msgf("vault transfer: %+v", transferEvent)
+			if len(txInItem.Sender) > 0 && !strings.EqualFold(txInItem.Sender, transferEvent.OldVault.String()) {
+				return nil, fmt.Errorf("vault transfer event , vault address is not the same as sender, ignore")
+			}
 			txInItem.Sender = transferEvent.OldVault.String()
+			if len(txInItem.To) > 0 && !strings.EqualFold(txInItem.To, transferEvent.NewVault.String()) {
+				return nil, fmt.Errorf("multiple deposit events , have different to addresses , ignore")
+			}
 			txInItem.To = transferEvent.NewVault.String()
+			if len(txInItem.Memo) > 0 && !strings.EqualFold(txInItem.Memo, transferEvent.Memo) {
+				return nil, fmt.Errorf("multiple events in the same transaction , have different memo , ignore")
+			}
 			txInItem.Memo = transferEvent.Memo
 			for _, item := range transferEvent.Coins {
 				asset, err := e.getAssetFromTokenAddress(item.Asset.String())
@@ -943,8 +1003,8 @@ func (e *ETHScanner) fromTxToTxIn(tx *etypes.Transaction) (*stypes.TxInItem, err
 		e.logger.Debug().Msgf("tx(%s) state: %d means failed , ignore", tx.Hash().String(), receipt.Status)
 		return nil, nil
 	}
-	smartContract := e.isToSmartContract(tx)
-	if smartContract {
+
+	if e.isToValidContractAddress(tx.To()) {
 		return e.getTxInFromSmartContract(tx, receipt)
 	}
 	return e.getTxInFromTransaction(tx)

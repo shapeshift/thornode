@@ -150,6 +150,8 @@ external_address() {
 
 enable_telemetry() {
   sed -i -e "s/prometheus = false/prometheus = true/g" ~/.thornode/config/config.toml
+  sed -i -e "s/enabled = false/enabled = true/g" ~/.thornode/config/app.toml
+  sed -i -e "s/prometheus-retention-time = 0/prometheus-retention-time = 600/g" ~/.thornode/config/app.toml
 }
 
 gen_bnb_address() {

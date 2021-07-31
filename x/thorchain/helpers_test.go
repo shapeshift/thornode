@@ -625,7 +625,7 @@ func (s *HelperSuite) TestIsTradingHalt(c *C) {
 	txSynth := common.NewTx(txID, GetRandomTHORAddress(), GetRandomTHORAddress(),
 		common.NewCoins(common.NewCoin(common.BNBAsset.GetSyntheticAsset(), cosmos.NewUint(100))),
 		common.Gas{common.NewCoin(common.BNBAsset, cosmos.NewUint(100))},
-		"swap:BNB/BNB:"+GetRandomTHORAddress().String())
+		"swap:ETH.ETH:"+GetRandomTHORAddress().String())
 	memoRedeemSynth, err := ParseMemoWithTHORNames(ctx, mgr.Keeper(), txSynth.Memo)
 	c.Assert(err, IsNil)
 	mRedeemSynth, err := getMsgSwapFromMemo(memoRedeemSynth.(SwapMemo), NewObservedTx(txSynth, common.BlockHeight(ctx), GetRandomPubKey(), common.BlockHeight(ctx)), GetRandomBech32Addr())
