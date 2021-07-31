@@ -44,6 +44,22 @@ func HasSimpleMajority(signers, total int) bool {
 	return signers >= min
 }
 
+// HasMinority return true when it has more than 1/3
+func HasMinority(signers, total int) bool {
+	if signers > total {
+		return false // if THORNode have more signers than node accounts. This shouldn't be possible
+	}
+	if signers <= 0 {
+		return false // edge case
+	}
+	min := total / SuperMajorityFactor
+	if total%SuperMajorityFactor > 0 {
+		min += 1
+	}
+
+	return signers >= min
+}
+
 // GetThreshold calculate threshold
 func GetThreshold(value int) (int, error) {
 	if value < 0 {

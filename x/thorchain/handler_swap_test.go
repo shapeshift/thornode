@@ -240,11 +240,6 @@ func (s *HandlerSwapSuite) TestHandle(c *C) {
 	c.Assert(err, NotNil)
 	c.Assert(result, IsNil)
 
-	msgSwap1 := NewMsgSwap(GetRandomTx(), common.RuneB1AAsset, GetRandomBNBAddress(), cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(), GetRandomBech32Addr())
-	result, err = handler.Run(ctx, msgSwap1)
-	c.Assert(err, NotNil)
-	c.Assert(err.Error(), Equals, fmt.Sprintf("target asset can't be %s", msgSwap1.TargetAsset.String()))
-	c.Assert(result, IsNil)
 	msgSwap2 := NewMsgSwap(GetRandomTx(), common.Rune67CAsset, GetRandomBNBAddress(), cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(), GetRandomBech32Addr())
 	result, err = handler.Run(ctx, msgSwap2)
 	c.Assert(err, NotNil)
