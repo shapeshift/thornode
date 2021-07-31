@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/blang/semver"
+	"github.com/cosmos/cosmos-sdk/telemetry"
 	"github.com/hashicorp/go-multierror"
 
 	"gitlab.com/thorchain/thornode/common"
@@ -1118,6 +1119,8 @@ func (h WithdrawLiquidityHandler) handleCurrent(ctx cosmos.Context, msg MsgWithd
 			ctx.Logger().Error("fail to add fee to reserve", "error", err)
 		}
 	}
+
+	telemetry.IncrCounter(telem(impLossProtection), "thornode", "withdraw", "implossprotection", msg.Asset.String())
 
 	return &cosmos.Result{}, nil
 }

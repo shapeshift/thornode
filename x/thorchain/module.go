@@ -249,6 +249,11 @@ func (am AppModule) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.V
 
 	am.mgr.GasMgr().EndBlock(ctx, am.mgr.Keeper(), am.mgr.EventMgr())
 
+	// telemetry
+	if err := emitEndBlockTelemetry(ctx, am.mgr); err != nil {
+		ctx.Logger().Error("unable to emit end block telemetry", "error", err)
+	}
+
 	return validators
 }
 
