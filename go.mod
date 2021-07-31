@@ -4,6 +4,7 @@ go 1.15
 
 require (
 	github.com/99designs/keyring v1.1.6
+	github.com/armon/go-metrics v0.3.9
 	github.com/binance-chain/ledger-cosmos-go v0.9.9 // indirect
 	github.com/binance-chain/tss-lib v1.3.2
 	github.com/blang/semver v3.5.1+incompatible
