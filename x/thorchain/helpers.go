@@ -1033,12 +1033,14 @@ func emitEndBlockTelemetry(ctx cosmos.Context, mgr Manager) error {
 		)
 
 		age := cosmos.NewUint(uint64((common.BlockHeight(ctx) - node.StatusSince) * common.One))
-		leaveScore := age.QuoUint64(uint64(pts))
-		telemetry.SetGaugeWithLabels(
-			[]string{"thornode", "node", "leave_score"},
-			float32(leaveScore.Uint64()),
-			[]metrics.Label{telemetry.NewLabel("node_address", node.NodeAddress.String())},
-		)
+		if pts > 0 {
+			leaveScore := age.QuoUint64(uint64(pts))
+			telemetry.SetGaugeWithLabels(
+				[]string{"thornode", "node", "leave_score"},
+				float32(leaveScore.Uint64()),
+				[]metrics.Label{telemetry.NewLabel("node_address", node.NodeAddress.String())},
+			)
+		}
 	}
 
 	// get rune price
@@ -1047,8 +1049,11 @@ func emitEndBlockTelemetry(ctx cosmos.Context, mgr Manager) error {
 	if err != nil {
 		return err
 	}
-	runeUSDPrice := telem(pool.BalanceAsset) / telem(pool.BalanceRune)
-	telemetry.SetGauge(runeUSDPrice, "thornode", "price", "usd", "thor", "rune")
+	runeUSDPrice := float32(0)
+	if !pool.IsEmpty() && !pool.BalanceRune.IsZero() {
+		runeUSDPrice = telem(pool.BalanceAsset) / telem(pool.BalanceRune)
+		telemetry.SetGauge(runeUSDPrice, "thornode", "price", "usd", "thor", "rune")
+	}
 
 	// emit pool metrics
 	pools, err := mgr.Keeper().GetPools(ctx)
@@ -1069,7 +1074,10 @@ func emitEndBlockTelemetry(ctx cosmos.Context, mgr Manager) error {
 		telemetry.SetGaugeWithLabels([]string{"thornode", "pool", "units", "synth"}, telem(pool.SynthUnits), labels)
 
 		// pricing
-		price := runeUSDPrice * telem(pool.BalanceRune) / telem(pool.BalanceAsset)
+		price := float32(0)
+		if !pool.BalanceAsset.IsZero() {
+			price = runeUSDPrice * telem(pool.BalanceRune) / telem(pool.BalanceAsset)
+		}
 		telemetry.SetGauge(price, "thornode", "price", "usd", strings.ToLower(pool.Asset.Chain.String()), strings.ToLower(pool.Asset.Symbol.String()))
 	}
 
