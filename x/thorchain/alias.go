@@ -76,6 +76,7 @@ var (
 	NewErrataTxVoter               = types.NewErrataTxVoter
 	NewObservedTxVoter             = types.NewObservedTxVoter
 	NewMsgMimir                    = types.NewMsgMimir
+	NewMsgNodePauseChain           = types.NewMsgNodePauseChain
 	NewMsgDeposit                  = types.NewMsgDeposit
 	NewMsgTssPool                  = types.NewMsgTssPool
 	NewMsgTssKeysignFail           = types.NewMsgTssKeysignFail
@@ -191,6 +192,7 @@ type (
 	MsgAddLiquidity                = types.MsgAddLiquidity
 	MsgOutboundTx                  = types.MsgOutboundTx
 	MsgMimir                       = types.MsgMimir
+	MsgNodePauseChain              = types.MsgNodePauseChain
 	MsgMigrate                     = types.MsgMigrate
 	MsgRagnarok                    = types.MsgRagnarok
 	MsgRefundTx                    = types.MsgRefundTx
