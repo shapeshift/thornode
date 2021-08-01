@@ -961,8 +961,14 @@ func isChainHalted(ctx cosmos.Context, mgr Manager, chain common.Chain) bool {
 		return true
 	}
 
+	haltChain, err = mgr.Keeper().GetMimir(ctx, "NodeHaltChainGlobal")
+	if err == nil && haltChain > common.BlockHeight(ctx) {
+		ctx.Logger().Info("node global is halt")
+		return true
+	}
+
 	mimirKey := fmt.Sprintf("Halt%sChain", chain)
-	haltChain, err := mgr.Keeper().GetMimir(ctx, mimirKey)
+	haltChain, err = mgr.Keeper().GetMimir(ctx, mimirKey)
 	if err == nil && (haltChain > 0 && haltChain < common.BlockHeight(ctx)) {
 		ctx.Logger().Info("chain is halt", "chain", chain)
 		return true
