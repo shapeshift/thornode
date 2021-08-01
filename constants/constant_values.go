@@ -49,6 +49,7 @@ const (
 	YggFundRetry
 	JailTimeKeygen
 	JailTimeKeysign
+	NodePauseChainBlocks
 	MinSwapsPerBlock
 	MaxSwapsPerBlock
 	MaxSynthPerAssetDepth
@@ -103,6 +104,7 @@ var nameToString = map[ConstantName]string{
 	YggFundRetry:                  "YggFundRetry",
 	JailTimeKeygen:                "JailTimeKeygen",
 	JailTimeKeysign:               "JailTimeKeysign",
+	NodePauseChainBlocks:          "NodePauseChainBlocks",
 	MinSwapsPerBlock:              "MinSwapsPerBlock",
 	MaxSwapsPerBlock:              "MaxSwapsPerBlock",
 	VirtualMultSynths:             "VirtualMultSynths",

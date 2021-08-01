@@ -327,6 +327,11 @@ func (k KVStoreDummy) GetMimir(_ cosmos.Context, key string) (int64, error) { re
 func (k KVStoreDummy) SetMimir(_ cosmos.Context, key string, value int64)   {}
 func (k KVStoreDummy) DeleteMimir(_ cosmos.Context, key string) error       { return kaboom }
 func (k KVStoreDummy) GetMimirIterator(ctx cosmos.Context) cosmos.Iterator  { return nil }
+func (k KVStoreDummy) GetNodePauseChain(ctx cosmos.Context, acc cosmos.AccAddress) int64 {
+	return int64(-1)
+}
+func (k KVStoreDummy) SetNodePauseChain(ctx cosmos.Context, acc cosmos.AccAddress) { return }
+
 func (k KVStoreDummy) GetNetworkFee(ctx cosmos.Context, chain common.Chain) (NetworkFee, error) {
 	return NetworkFee{}, kaboom
 }

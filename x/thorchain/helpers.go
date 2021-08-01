@@ -961,7 +961,7 @@ func isChainHalted(ctx cosmos.Context, mgr Manager, chain common.Chain) bool {
 		return true
 	}
 
-	haltChain, err = mgr.Keeper().GetMimir(ctx, "NodeHaltChainGlobal")
+	haltChain, err = mgr.Keeper().GetMimir(ctx, "NodePauseChainGlobal")
 	if err == nil && haltChain > common.BlockHeight(ctx) {
 		ctx.Logger().Info("node global is halt")
 		return true
