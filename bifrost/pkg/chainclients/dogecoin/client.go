@@ -61,6 +61,7 @@ type Client struct {
 	ksWrapper             *KeySignWrapper
 	bridge                *thorclient.ThorchainBridge
 	globalErrataQueue     chan<- types.ErrataBlock
+	globalSolvencyQueue   chan<- types.Solvency
 	nodePubKey            common.PubKey
 	currentBlockHeight    int64
 	asgardAddresses       []common.Address
@@ -158,10 +159,11 @@ func NewClient(thorKeys *thorclient.Keys, cfg config.ChainConfiguration, server 
 }
 
 // Start starts the block scanner
-func (c *Client) Start(globalTxsQueue chan types.TxIn, globalErrataQueue chan types.ErrataBlock) {
+func (c *Client) Start(globalTxsQueue chan types.TxIn, globalErrataQueue chan types.ErrataBlock, globalSolvencyQueue chan<- types.Solvency) {
+	c.globalErrataQueue = globalErrataQueue
+	c.globalSolvencyQueue = globalSolvencyQueue
 	c.tssKeySigner.Start()
 	c.blockScanner.Start(globalTxsQueue)
-	c.globalErrataQueue = globalErrataQueue
 }
 
 // Stop stops the block scanner
@@ -593,6 +595,11 @@ func (c *Client) FetchTxs(height int64) (types.TxIn, error) {
 	c.updateNetworkInfo()
 	if err := c.sendNetworkFee(height); err != nil {
 		c.logger.Err(err).Msg("fail to send network fee")
+	}
+	if height%10 == 0 {
+		if err := c.reportSolvency(height); err != nil {
+			c.logger.Err(err).Msg("fail to report solvency info")
+		}
 	}
 	txIn.Count = strconv.Itoa(len(txIn.TxArray))
 	if !c.consolidateInProgress {
@@ -1068,4 +1075,28 @@ func (c *Client) isFromActiveAsgard(result btcjson.ListUnspentResult) bool {
 		}
 	}
 	return false
+}
+func (c *Client) reportSolvency(dogeBlockHeight int64) error {
+	asgardVaults, err := c.bridge.GetAsgards()
+	if err != nil {
+		return fmt.Errorf("fail to get asgards,err: %w", err)
+	}
+	for _, asgard := range asgardVaults {
+		acct, err := c.GetAccount(asgard.PubKey)
+		if err != nil {
+			c.logger.Err(err).Msgf("fail to get account balance")
+			continue
+		}
+		select {
+		case c.globalSolvencyQueue <- types.Solvency{
+			Height: dogeBlockHeight,
+			Chain:  common.DOGEChain,
+			PubKey: asgard.PubKey,
+			Coins:  acct.Coins,
+		}:
+		case <-time.After(constants.ThorchainBlockTime):
+			c.logger.Info().Msgf("fail to send solvency info to THORChain, timeout")
+		}
+	}
+	return nil
 }

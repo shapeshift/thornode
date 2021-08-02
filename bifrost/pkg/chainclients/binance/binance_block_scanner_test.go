@@ -108,10 +108,10 @@ func getMultiSendStdTx(f, t string, coins []types.Coin, memo string) (tx.StdTx, 
 }
 
 func (s *BlockScannerTestSuite) TestNewBlockScanner(c *C) {
-	bs, err := NewBinanceBlockScanner(getConfigForTest("127.0.0.1"), nil, true, s.bridge, s.m)
+	bs, err := NewBinanceBlockScanner(getConfigForTest("127.0.0.1"), nil, true, s.bridge, s.m, nil)
 	c.Assert(err, NotNil)
 	c.Assert(bs, IsNil)
-	bs, err = NewBinanceBlockScanner(getConfigForTest("127.0.0.1"), blockscanner.NewMockScannerStorage(), true, s.bridge, s.m)
+	bs, err = NewBinanceBlockScanner(getConfigForTest("127.0.0.1"), blockscanner.NewMockScannerStorage(), true, s.bridge, s.m, nil)
 	c.Assert(err, IsNil)
 	c.Assert(bs, NotNil)
 }
@@ -256,7 +256,7 @@ func (s *BlockScannerTestSuite) TestSearchTxInABlockFromServer(c *C) {
 	})
 	server := httptest.NewTLSServer(h)
 	defer server.Close()
-	bs, err := NewBinanceBlockScanner(getConfigForTest(server.URL), blockscanner.NewMockScannerStorage(), true, s.bridge, s.m)
+	bs, err := NewBinanceBlockScanner(getConfigForTest(server.URL), blockscanner.NewMockScannerStorage(), true, s.bridge, s.m, nil)
 	c.Assert(err, IsNil)
 	c.Assert(bs, NotNil)
 }
@@ -276,7 +276,7 @@ func (s *BlockScannerTestSuite) TestFromTxToTxIn(c *C) {
 		err := json.Unmarshal([]byte(input), &query)
 		c.Check(err, IsNil)
 		c.Check(query.Result.Txs, NotNil)
-		bs, err := NewBinanceBlockScanner(getConfigForTest("127.0.0.1"), blockscanner.NewMockScannerStorage(), true, s.bridge, s.m)
+		bs, err := NewBinanceBlockScanner(getConfigForTest("127.0.0.1"), blockscanner.NewMockScannerStorage(), true, s.bridge, s.m, nil)
 		c.Assert(err, IsNil)
 		c.Assert(bs, NotNil)
 		// c.Log(input)
@@ -325,7 +325,7 @@ func (s *BlockScannerTestSuite) TestFromStdTx(c *C) {
 		blockscanner.NewMockScannerStorage(),
 		true,
 		s.bridge,
-		s.m,
+		s.m, nil,
 	)
 	c.Assert(err, IsNil)
 

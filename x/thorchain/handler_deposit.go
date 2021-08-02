@@ -766,6 +766,14 @@ func (h DepositHandler) handleV63(ctx cosmos.Context, msg MsgDeposit) (*cosmos.R
 }
 
 func (h DepositHandler) handleCurrent(ctx cosmos.Context, msg MsgDeposit) (*cosmos.Result, error) {
+	haltHeight, err := h.mgr.Keeper().GetMimir(ctx, "HaltTHORChain")
+	if err != nil {
+		return nil, fmt.Errorf("failed to get mimir setting: %w", err)
+	}
+	if haltHeight > 0 && common.BlockHeight(ctx) > haltHeight {
+		return nil, fmt.Errorf("mimir has halted THORChain transactions")
+	}
+
 	nativeTxFee, err := h.mgr.Keeper().GetMimir(ctx, constants.NativeTransactionFee.String())
 	if err != nil || nativeTxFee < 0 {
 		nativeTxFee = h.mgr.GetConstants().GetInt64Value(constants.NativeTransactionFee)
@@ -801,14 +809,14 @@ func (h DepositHandler) handleCurrent(ctx cosmos.Context, msg MsgDeposit) (*cosm
 	if err != nil {
 		return nil, fmt.Errorf("fail to get from address: %w", err)
 	}
-	to, err := h.mgr.Keeper().GetModuleAddress(AsgardName)
-	if err != nil {
-		return nil, fmt.Errorf("fail to get to address: %w", err)
-	}
 
 	handler := NewInternalHandler(h.mgr)
 
 	memo, _ := ParseMemoWithTHORNames(ctx, h.mgr.Keeper(), msg.Memo) // ignore err
+	if memo.IsOutbound() || memo.IsInternal() {
+		return nil, fmt.Errorf("cannot send inbound an outbound or internal transacion")
+	}
+
 	var targetModule string
 	switch memo.GetType() {
 	case TxBond:
@@ -825,6 +833,11 @@ func (h DepositHandler) handleCurrent(ctx cosmos.Context, msg MsgDeposit) (*cosm
 		if sdkErr != nil {
 			return nil, sdkErr
 		}
+	}
+
+	to, err := h.mgr.Keeper().GetModuleAddress(targetModule)
+	if err != nil {
+		return nil, fmt.Errorf("fail to get to address: %w", err)
 	}
 
 	tx := common.NewTx(txID, from, to, coinsInMsg, common.Gas{gas}, msg.Memo)
@@ -878,7 +891,7 @@ func (h DepositHandler) handleCurrent(ctx cosmos.Context, msg MsgDeposit) (*cosm
 	// if its a swap, send it to our queue for processing later
 	if isSwap {
 		msg := m.(*MsgSwap)
-		h.addSwapV1(ctx, *msg)
+		h.addSwap(ctx, *msg)
 		return &cosmos.Result{}, nil
 	}
 
@@ -903,11 +916,52 @@ func (h DepositHandler) handleCurrent(ctx cosmos.Context, msg MsgDeposit) (*cosm
 	}
 	return result, nil
 }
-
+func (h DepositHandler) addSwap(ctx cosmos.Context, msg MsgSwap) {
+	version := h.mgr.GetVersion()
+	if version.GTE(semver.MustParse("0.63.0")) {
+		h.addSwapV63(ctx, msg)
+	} else {
+		h.addSwapV1(ctx, msg)
+	}
+}
 func (h DepositHandler) addSwapV1(ctx cosmos.Context, msg MsgSwap) {
 	amt := cosmos.ZeroUint()
 	if !msg.AffiliateBasisPoints.IsZero() && msg.AffiliateAddress.IsChain(common.THORChain) {
 		amt = common.GetShare(
+			msg.AffiliateBasisPoints,
+			cosmos.NewUint(10000),
+			msg.Tx.Coins[0].Amount,
+		)
+		msg.Tx.Coins[0].Amount = common.SafeSub(msg.Tx.Coins[0].Amount, amt)
+	}
+
+	if err := h.mgr.Keeper().SetSwapQueueItem(ctx, msg, 0); err != nil {
+		ctx.Logger().Error("fail to add swap to queue", "error", err)
+	}
+
+	if !amt.IsZero() {
+		to_address, err := msg.AffiliateAddress.AccAddress()
+		if err != nil {
+			ctx.Logger().Error("fail to convert address into AccAddress", "msg", msg.AffiliateAddress, "error", err)
+		} else {
+			nativeTxFee, err := h.mgr.Keeper().GetMimir(ctx, constants.NativeTransactionFee.String())
+			if err != nil || nativeTxFee < 0 {
+				nativeTxFee = h.mgr.GetConstants().GetInt64Value(constants.NativeTransactionFee)
+			}
+			amt = common.SafeSub(amt, cosmos.NewUint(uint64(nativeTxFee)))
+
+			coin := common.NewCoin(common.RuneNative, amt)
+			sdkErr := h.mgr.Keeper().SendFromModuleToAccount(ctx, AsgardName, to_address, common.NewCoins(coin))
+			if sdkErr != nil {
+				ctx.Logger().Error("fail to send native rune to affiliate", "msg", msg.AffiliateAddress, "error", err)
+			}
+		}
+	}
+}
+func (h DepositHandler) addSwapV63(ctx cosmos.Context, msg MsgSwap) {
+	amt := cosmos.ZeroUint()
+	if !msg.AffiliateBasisPoints.IsZero() && msg.AffiliateAddress.IsChain(common.THORChain) {
+		amt = common.GetSafeShare(
 			msg.AffiliateBasisPoints,
 			cosmos.NewUint(10000),
 			msg.Tx.Coins[0].Amount,

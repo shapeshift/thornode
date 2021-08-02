@@ -97,7 +97,7 @@ const (
 func (s *BlockScannerTestSuite) TestBlockScanner(c *C) {
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
-		case r.RequestURI == thorclient.MimirEndpoint:
+		case strings.HasPrefix(r.RequestURI, thorclient.MimirEndpoint):
 			buf, err := ioutil.ReadFile("../../test/fixtures/endpoints/mimir/mimir.json")
 			c.Assert(err, IsNil)
 			_, err = w.Write(buf)
@@ -120,6 +120,7 @@ func (s *BlockScannerTestSuite) TestBlockScanner(c *C) {
 		ChainHomeFolder: ".",
 	}, s.m, s.keys)
 	c.Assert(err, IsNil)
+
 	cbs, err := NewBlockScanner(config.BlockScannerConfiguration{
 		RPCHost:                    server.URL,
 		StartBlockHeight:           1, // avoids querying thorchain for block height
@@ -152,7 +153,7 @@ func (s *BlockScannerTestSuite) TestBadBlock(c *C) {
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		c.Logf("================>:%s", r.RequestURI)
 		switch {
-		case r.RequestURI == thorclient.MimirEndpoint:
+		case strings.HasPrefix(r.RequestURI, thorclient.MimirEndpoint):
 			buf, err := ioutil.ReadFile("../../test/fixtures/endpoints/mimir/mimir.json")
 			c.Assert(err, IsNil)
 			_, err = w.Write(buf)
@@ -194,7 +195,28 @@ func (s *BlockScannerTestSuite) TestBadBlock(c *C) {
 }
 
 func (s *BlockScannerTestSuite) TestBadConnection(c *C) {
+	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case strings.HasPrefix(r.RequestURI, thorclient.MimirEndpoint):
+			buf, err := ioutil.ReadFile("../../test/fixtures/endpoints/mimir/mimir.json")
+			c.Assert(err, IsNil)
+			_, err = w.Write(buf)
+			c.Assert(err, IsNil)
+		}
+	})
 	mss := NewMockScannerStorage()
+	server := httptest.NewServer(h)
+	defer server.Close()
+	bridge, err := thorclient.NewThorchainBridge(config.ClientConfiguration{
+		ChainID:         "thorchain",
+		ChainHost:       server.Listener.Addr().String(),
+		ChainRPC:        server.Listener.Addr().String(),
+		SignerName:      "bob",
+		SignerPasswd:    "password",
+		ChainHomeFolder: ".",
+	}, s.m, s.keys)
+	c.Assert(err, IsNil)
+
 	cbs, err := NewBlockScanner(config.BlockScannerConfiguration{
 		RPCHost:                    "localhost:23450",
 		StartBlockHeight:           1, // avoids querying thorchain for block height
@@ -206,7 +228,7 @@ func (s *BlockScannerTestSuite) TestBadConnection(c *C) {
 		BlockHeightDiscoverBackoff: time.Second,
 		BlockRetryInterval:         time.Second,
 		ChainID:                    common.BNBChain,
-	}, mss, m, s.bridge, DummyFetcher{})
+	}, mss, m, bridge, DummyFetcher{})
 	c.Check(cbs, NotNil)
 	c.Check(err, IsNil)
 	cbs.Start(make(chan types.TxIn))

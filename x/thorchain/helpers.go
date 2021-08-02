@@ -3,8 +3,11 @@ package thorchain
 import (
 	"errors"
 	"fmt"
+	"strings"
 
+	"github.com/armon/go-metrics"
 	"github.com/blang/semver"
+	"github.com/cosmos/cosmos-sdk/telemetry"
 	"github.com/hashicorp/go-multierror"
 
 	"gitlab.com/thorchain/thornode/common"
@@ -959,4 +962,188 @@ func isChainHalted(ctx cosmos.Context, mgr Manager, chain common.Chain) bool {
 		return true
 	}
 	return false
+}
+
+func telem(input cosmos.Uint) float32 {
+	i := input.Uint64()
+	return float32(i / 100000000)
+}
+
+func emitEndBlockTelemetry(ctx cosmos.Context, mgr Manager) error {
+	// capture panics
+	defer func() {
+		if err := recover(); err != nil {
+			ctx.Logger().Error("panic while emitting end block telemetry", "error", err)
+		}
+	}()
+
+	// emit network data
+	network, err := mgr.Keeper().GetNetwork(ctx)
+	if err != nil {
+		return err
+	}
+
+	telemetry.SetGauge(telem(network.BondRewardRune), "thornode", "network", "bond_reward_rune")
+	telemetry.SetGauge(float32(network.TotalBondUnits.Uint64()), "thornode", "network", "total_bond_units")
+	telemetry.SetGauge(telem(network.BurnedBep2Rune), "thornode", "network", "rune", "burned", "bep2")
+	telemetry.SetGauge(telem(network.BurnedErc20Rune), "thornode", "network", "rune", "burned", "erc20")
+
+	// emit module balances
+	for _, name := range []string{ReserveName, AsgardName, BondName} {
+		modAddr := mgr.Keeper().GetModuleAccAddress(name)
+		bal := mgr.Keeper().GetBalance(ctx, modAddr)
+		for _, coin := range bal {
+			modLabel := telemetry.NewLabel("module", name)
+			denom := telemetry.NewLabel("denom", coin.Denom)
+			telemetry.SetGaugeWithLabels(
+				[]string{"thornode", "module", "balance"},
+				telem(cosmos.NewUint(coin.Amount.Uint64())),
+				[]metrics.Label{modLabel, denom},
+			)
+		}
+	}
+
+	// emit node metrics
+	yggs := make(Vaults, 0)
+	nodes, err := mgr.Keeper().ListNodeAccountsWithBond(ctx)
+	if err != nil {
+		return err
+	}
+	for _, node := range nodes {
+		if node.Status == NodeActive {
+			ygg, err := mgr.Keeper().GetVault(ctx, node.PubKeySet.Secp256k1)
+			if err != nil {
+				continue
+			}
+			yggs = append(yggs, ygg)
+		}
+		telemetry.SetGaugeWithLabels(
+			[]string{"thornode", "node", "bond"},
+			telem(cosmos.NewUint(node.Bond.Uint64())),
+			[]metrics.Label{telemetry.NewLabel("node_address", node.NodeAddress.String()), telemetry.NewLabel("status", node.Status.String())},
+		)
+		pts, err := mgr.Keeper().GetNodeAccountSlashPoints(ctx, node.NodeAddress)
+		if err != nil {
+			continue
+		}
+		telemetry.SetGaugeWithLabels(
+			[]string{"thornode", "node", "slash_points"},
+			float32(pts),
+			[]metrics.Label{telemetry.NewLabel("node_address", node.NodeAddress.String())},
+		)
+
+		age := cosmos.NewUint(uint64((common.BlockHeight(ctx) - node.StatusSince) * common.One))
+		if pts > 0 {
+			leaveScore := age.QuoUint64(uint64(pts))
+			telemetry.SetGaugeWithLabels(
+				[]string{"thornode", "node", "leave_score"},
+				float32(leaveScore.Uint64()),
+				[]metrics.Label{telemetry.NewLabel("node_address", node.NodeAddress.String())},
+			)
+		}
+	}
+
+	// get rune price
+	busd, _ := common.NewAsset("BNB.BUSD-BD1")
+	pool, err := mgr.Keeper().GetPool(ctx, busd)
+	if err != nil {
+		return err
+	}
+	runeUSDPrice := float32(0)
+	if !pool.IsEmpty() && !pool.BalanceRune.IsZero() {
+		runeUSDPrice = telem(pool.BalanceAsset) / telem(pool.BalanceRune)
+		telemetry.SetGauge(runeUSDPrice, "thornode", "price", "usd", "thor", "rune")
+	}
+
+	// emit pool metrics
+	pools, err := mgr.Keeper().GetPools(ctx)
+	if err != nil {
+		return err
+	}
+	for _, pool := range pools {
+		synthSupply := mgr.Keeper().GetTotalSupply(ctx, pool.Asset.GetSyntheticAsset())
+		labels := []metrics.Label{telemetry.NewLabel("pool", pool.Asset.String())}
+		telemetry.SetGaugeWithLabels([]string{"thornode", "pool", "balance", "synth"}, telem(synthSupply), labels)
+		telemetry.SetGaugeWithLabels([]string{"thornode", "pool", "balance", "rune"}, telem(pool.BalanceRune), labels)
+		telemetry.SetGaugeWithLabels([]string{"thornode", "pool", "balance", "asset"}, telem(pool.BalanceAsset), labels)
+		telemetry.SetGaugeWithLabels([]string{"thornode", "pool", "pending", "rune"}, telem(pool.PendingInboundRune), labels)
+		telemetry.SetGaugeWithLabels([]string{"thornode", "pool", "pending", "asset"}, telem(pool.PendingInboundAsset), labels)
+
+		telemetry.SetGaugeWithLabels([]string{"thornode", "pool", "units", "pool"}, telem(pool.CalcUnits(mgr.GetVersion(), synthSupply)), labels)
+		telemetry.SetGaugeWithLabels([]string{"thornode", "pool", "units", "lp"}, telem(pool.LPUnits), labels)
+		telemetry.SetGaugeWithLabels([]string{"thornode", "pool", "units", "synth"}, telem(pool.SynthUnits), labels)
+
+		// pricing
+		price := float32(0)
+		if !pool.BalanceAsset.IsZero() {
+			price = runeUSDPrice * telem(pool.BalanceRune) / telem(pool.BalanceAsset)
+		}
+		telemetry.SetGauge(price, "thornode", "price", "usd", strings.ToLower(pool.Asset.Chain.String()), strings.ToLower(pool.Asset.Symbol.String()))
+	}
+
+	// emit vault metrics
+	asgards, err := mgr.Keeper().GetAsgardVaults(ctx)
+	if err != nil {
+
+	}
+	for _, vault := range append(asgards, yggs...) {
+		if vault.Status != ActiveVault && vault.Status != RetiringVault {
+			continue
+		}
+
+		// calculate the total value of this yggdrasil vault
+		totalValue := cosmos.ZeroUint()
+		for _, coin := range vault.Coins {
+			if coin.Asset.IsRune() {
+				totalValue = totalValue.Add(coin.Amount)
+			} else {
+				pool, err := mgr.Keeper().GetPool(ctx, coin.Asset)
+				if err != nil {
+					continue
+				}
+				totalValue = totalValue.Add(pool.AssetValueInRune(coin.Amount))
+			}
+		}
+		labels := []metrics.Label{telemetry.NewLabel("vault_type", vault.Type.String()), telemetry.NewLabel("pubkey", vault.PubKey.String())}
+		telemetry.SetGaugeWithLabels([]string{"thornode", "vault", "total_value"}, telem(totalValue), labels)
+
+		for _, coin := range vault.Coins {
+			telemetry.SetGaugeWithLabels([]string{"thornode", "vault", "balance", coin.Asset.String()}, telem(coin.Amount), labels)
+		}
+	}
+
+	// emit queue metrics
+	signingTransactionPeriod := mgr.GetConstants().GetInt64Value(constants.SigningTransactionPeriod)
+	startHeight := common.BlockHeight(ctx) - signingTransactionPeriod
+	query := QueryQueue{}
+	iterator := mgr.Keeper().GetSwapQueueIterator(ctx)
+	defer iterator.Close()
+	for ; iterator.Valid(); iterator.Next() {
+		var msg MsgSwap
+		if err := mgr.Keeper().Cdc().UnmarshalBinaryBare(iterator.Value(), &msg); err != nil {
+			continue
+		}
+		query.Swap++
+	}
+	for height := startHeight; height <= common.BlockHeight(ctx); height++ {
+		txs, err := mgr.Keeper().GetTxOut(ctx, height)
+		if err != nil {
+			continue
+		}
+		for _, tx := range txs.TxArray {
+			if tx.OutHash.IsEmpty() {
+				memo, _ := ParseMemo(tx.Memo)
+				if memo.IsInternal() {
+					query.Internal++
+				} else if memo.IsOutbound() {
+					query.Outbound++
+				}
+			}
+		}
+	}
+	telemetry.SetGauge(float32(query.Internal), "thornode", "queue", "internal")
+	telemetry.SetGauge(float32(query.Outbound), "thornode", "queue", "outbound")
+	telemetry.SetGauge(float32(query.Swap), "thornode", "queue", "swap")
+
+	return nil
 }
