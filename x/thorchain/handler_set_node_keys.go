@@ -121,12 +121,12 @@ func (h SetNodeKeysHandler) validateCurrent(ctx cosmos.Context, msg MsgSetNodeKe
 		return fmt.Errorf("node %s is disabled, so it can't update itself", nodeAccount.NodeAddress)
 	}
 
-	if !nodeAccount.PubKeySetSet.IsEmpty() {
-		return fmt.Errorf("node %s already has pubkey set assigned", nodeAccount.NodeAddress)
-	}
-
 	if err := h.mgr.Keeper().EnsureNodeKeysUnique(ctx, msg.ValidatorConsPubKey, msg.PubKeySetSet); err != nil {
 		return err
+	}
+
+	if !nodeAccount.PubKeySet.IsEmpty() {
+		return fmt.Errorf("node %s already has pubkey set assigned", nodeAccount.NodeAddress)
 	}
 
 	return nil
