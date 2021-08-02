@@ -109,6 +109,9 @@ func (c *Client) getUtxoToSpend(pubKey common.PubKey, total float64) ([]btcjson.
 	var toSpend float64
 	minUTXOAmt := btcutil.Amount(minSpendableUTXOAmountSats).ToBTC()
 	for _, item := range utxos {
+		if !item.Spendable {
+			continue
+		}
 		if !c.isValidUTXO(item.ScriptPubKey) {
 			continue
 		}
