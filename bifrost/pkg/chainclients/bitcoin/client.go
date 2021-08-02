@@ -715,6 +715,7 @@ func (c *Client) getTxIn(tx *btcjson.TxRawResult, height int64) (types.TxInItem,
 		}
 		return types.TxInItem{}, fmt.Errorf("fail to get output from tx: %w", err)
 	}
+
 	if !c.isValidUTXO(output.ScriptPubKey.Hex) {
 		return types.TxInItem{}, fmt.Errorf("invalid utxo")
 	}
@@ -798,6 +799,9 @@ func (c *Client) extractTxs(block *btcjson.GetBlockVerboseTxResult) (types.TxIn,
 //
 func (c *Client) ignoreTx(tx *btcjson.TxRawResult) bool {
 	if len(tx.Vin) == 0 || len(tx.Vout) == 0 || len(tx.Vout) > 4 {
+		return true
+	}
+	if tx.LockTime > 0 {
 		return true
 	}
 	if tx.Vin[0].Txid == "" {
