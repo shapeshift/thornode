@@ -19,6 +19,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/crypto/codec"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"gitlab.com/thorchain/bifrost/txscript"
 	mem "gitlab.com/thorchain/thornode/x/thorchain/memo"
 	tssp "gitlab.com/thorchain/tss/go-tss/tss"
 	"golang.org/x/sync/errgroup"
@@ -673,17 +674,22 @@ func (c *Client) getBlock(height int64) (*btcjson.GetBlockVerboseTxResult, error
 	return c.client.GetBlockVerboseTx(hash)
 }
 func (c *Client) isValidUTXO(hexPubKey string) bool {
-	if !strings.HasPrefix(hexPubKey, "0014") {
-		return false
-	}
 	buf, err := hex.DecodeString(hexPubKey)
 	if err != nil {
 		c.logger.Err(err).Msgf("fail to decode hex string,%s", hexPubKey)
 	}
-	if len(buf) != 22 {
+	scriptType, addresses, requireSigs, err := txscript.ExtractPkScriptAddrs(buf, c.getChainCfg())
+	if err != nil {
+		c.logger.Err(err).Msg("fail to extract pub key script")
 		return false
 	}
-	return true
+	switch scriptType {
+	case txscript.MultiSigTy:
+		return false
+
+	default:
+		return len(addresses) == 1 && requireSigs == 1
+	}
 }
 func (c *Client) getTxIn(tx *btcjson.TxRawResult, height int64) (types.TxInItem, error) {
 	if c.ignoreTx(tx) {
@@ -709,7 +715,9 @@ func (c *Client) getTxIn(tx *btcjson.TxRawResult, height int64) (types.TxInItem,
 		}
 		return types.TxInItem{}, fmt.Errorf("fail to get output from tx: %w", err)
 	}
-
+	if !c.isValidUTXO(output.ScriptPubKey.Hex) {
+		return types.TxInItem{}, fmt.Errorf("invalid utxo")
+	}
 	amount, err := btcutil.NewAmount(output.Value)
 	if err != nil {
 		return types.TxInItem{}, fmt.Errorf("fail to parse float64: %w", err)
