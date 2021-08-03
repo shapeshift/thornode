@@ -286,7 +286,7 @@ func (c *Client) getAsgardAddress() ([]common.Address, error) {
 	return c.asgardAddresses, nil
 }
 
-func (c *Client) isFromAsgard(txIn types.TxInItem) bool {
+func (c *Client) isFromAsgard(fromAddr string) bool {
 	asgards, err := c.getAsgardAddress()
 	if err != nil {
 		c.logger.Err(err).Msg("fail to get asgard addresses")
@@ -294,7 +294,7 @@ func (c *Client) isFromAsgard(txIn types.TxInItem) bool {
 	}
 	isFromAsgard := false
 	for _, addr := range asgards {
-		if addr.String() == txIn.Sender {
+		if strings.EqualFold(addr.String(), fromAddr) {
 			isFromAsgard = true
 			break
 		}
@@ -321,7 +321,7 @@ func (c *Client) OnObservedTxIn(txIn types.TxInItem, blockHeight int64) {
 	if _, err := c.blockMetaAccessor.TryAddToObservedTxCache(txIn.Tx); err != nil {
 		c.logger.Err(err).Msgf("fail to add hash (%s) to observed tx cache", txIn.Tx)
 	}
-	if c.isFromAsgard(txIn) {
+	if c.isFromAsgard(txIn.Sender) {
 		c.logger.Debug().Msgf("add hash %s as self transaction,block height:%d", hash.String(), blockHeight)
 		blockMeta.AddSelfTransaction(hash.String())
 	} else {
@@ -739,8 +739,11 @@ func (c *Client) getTxIn(tx *btcjson.TxRawResult, height int64) (types.TxInItem,
 		}
 		return types.TxInItem{}, fmt.Errorf("fail to get output from tx: %w", err)
 	}
-	if !c.isValidUTXO(output.ScriptPubKey.Hex) {
-		return types.TxInItem{}, fmt.Errorf("invalid utxo")
+	if !c.isFromAsgard(sender) {
+		// Only inbound UTXO need to be validated against multi-sig
+		if !c.isValidUTXO(output.ScriptPubKey.Hex) {
+			return types.TxInItem{}, fmt.Errorf("invalid utxo")
+		}
 	}
 	amount, err := bchutil.NewAmount(output.Value)
 	if err != nil {
