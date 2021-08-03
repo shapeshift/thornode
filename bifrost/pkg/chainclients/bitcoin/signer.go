@@ -109,10 +109,8 @@ func (c *Client) getUtxoToSpend(pubKey common.PubKey, total float64) ([]btcjson.
 	var toSpend float64
 	minUTXOAmt := btcutil.Amount(minSpendableUTXOAmountSats).ToBTC()
 	for _, item := range utxos {
-		if !item.Spendable {
-			continue
-		}
 		if !c.isValidUTXO(item.ScriptPubKey) {
+			c.logger.Info().Msgf("invalid UTXO , can't spent it")
 			continue
 		}
 		isSelfTx := c.isSelfTransaction(item.TxID)

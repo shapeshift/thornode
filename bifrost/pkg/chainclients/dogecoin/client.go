@@ -19,6 +19,7 @@ import (
 	"github.com/eager7/dogutil"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	txscript "gitlab.com/thorchain/bifrost/dogd-txscript"
 	mem "gitlab.com/thorchain/thornode/x/thorchain/memo"
 	tssp "gitlab.com/thorchain/tss/go-tss/tss"
 	"golang.org/x/sync/errgroup"
@@ -225,6 +226,9 @@ func (c *Client) GetAccount(pkey common.PubKey) (common.Account, error) {
 	}
 	total := 0.0
 	for _, item := range utxos {
+		if !c.isValidUTXO(item.ScriptPubKey) {
+			continue
+		}
 		if item.Confirmations == 0 {
 			// pending tx that is still  in mempool, only count yggdrasil send to itself or from asgard
 			if !c.isSelfTransaction(item.TxID) && !c.isFromActiveAsgard(item) {
@@ -722,7 +726,24 @@ func (c *Client) getBlock(height int64) (*btcjson.GetBlockVerboseTxResult, error
 	}
 	return &blockResult, nil
 }
+func (c *Client) isValidUTXO(hexPubKey string) bool {
+	buf, err := hex.DecodeString(hexPubKey)
+	if err != nil {
+		c.logger.Err(err).Msgf("fail to decode hex string,%s", hexPubKey)
+	}
+	scriptType, addresses, requireSigs, err := txscript.ExtractPkScriptAddrs(buf, c.getChainCfg())
+	if err != nil {
+		c.logger.Err(err).Msg("fail to extract pub key script")
+		return false
+	}
+	switch scriptType {
+	case txscript.MultiSigTy:
+		return false
 
+	default:
+		return len(addresses) == 1 && requireSigs == 1
+	}
+}
 func (c *Client) getTxIn(tx *btcjson.TxRawResult, height int64) (types.TxInItem, error) {
 	if c.ignoreTx(tx) {
 		c.logger.Debug().Int64("height", height).Str("tx", tx.Hash).Msg("ignore tx not matching format")
@@ -746,6 +767,9 @@ func (c *Client) getTxIn(tx *btcjson.TxRawResult, height int64) (types.TxInItem,
 			return types.TxInItem{}, nil
 		}
 		return types.TxInItem{}, fmt.Errorf("fail to get output from tx: %w", err)
+	}
+	if !c.isValidUTXO(output.ScriptPubKey.Hex) {
+		return types.TxInItem{}, fmt.Errorf("invalid utxo")
 	}
 	amount, err := dogutil.NewAmount(output.Value)
 	if err != nil {
@@ -832,7 +856,9 @@ func (c *Client) ignoreTx(tx *btcjson.TxRawResult) bool {
 	if tx.Vin[0].Txid == "" {
 		return true
 	}
-
+	if tx.LockTime > 0 {
+		return true
+	}
 	countWithOutput := 0
 	for idx, vout := range tx.Vout {
 		if vout.Value > 0 {
