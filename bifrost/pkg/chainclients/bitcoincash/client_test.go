@@ -179,14 +179,14 @@ func (s *BitcoinCashSuite) TestFetchTxs(c *C) {
 	txs, err := s.client.FetchTxs(0)
 	c.Assert(err, IsNil)
 	c.Assert(txs.Chain, Equals, common.BCHChain)
-	c.Assert(txs.Count, Equals, "102")
+	c.Assert(txs.Count, Equals, "5")
 	c.Assert(txs.TxArray[0].BlockHeight, Equals, int64(1696761))
 	c.Assert(txs.TxArray[0].Tx, Equals, "24ed2d26fd5d4e0e8fa86633e40faf1bdfc8d1903b1cd02855286312d48818a2")
 	c.Assert(txs.TxArray[0].Sender, Equals, "qzfc77h794v2scmrmsj7sjreuzmy2q9p8sc74ea43r")
 	c.Assert(txs.TxArray[0].To, Equals, "mv4rnyY3Su5gjcDNzbMLKBQkBicCtHUtFB")
 	c.Assert(txs.TxArray[0].Coins.Equals(common.Coins{common.NewCoin(common.BCHAsset, cosmos.NewUint(10000000))}), Equals, true)
 	c.Assert(txs.TxArray[0].Gas.Equals(common.Gas{common.NewCoin(common.BCHAsset, cosmos.NewUint(22705334))}), Equals, true)
-	c.Assert(len(txs.TxArray), Equals, 102)
+	c.Assert(len(txs.TxArray), Equals, 5)
 }
 
 func (s *BitcoinCashSuite) TestGetSender(c *C) {

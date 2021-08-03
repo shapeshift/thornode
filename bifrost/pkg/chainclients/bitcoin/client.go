@@ -229,9 +229,6 @@ func (c *Client) GetAccount(pkey common.PubKey) (common.Account, error) {
 	}
 	total := 0.0
 	for _, item := range utxos {
-		if !item.Spendable {
-			continue
-		}
 		if !c.isValidUTXO(item.ScriptPubKey) {
 			continue
 		}
@@ -874,9 +871,6 @@ func (c *Client) getOutput(sender string, tx *btcjson.TxRawResult, consolidate b
 		}
 		if len(vout.ScriptPubKey.Addresses) != 1 {
 			return btcjson.Vout{}, fmt.Errorf("no vout address available")
-		}
-		if vout.ScriptPubKey.Type == "" {
-
 		}
 		if vout.Value > 0 {
 			if consolidate && vout.ScriptPubKey.Addresses[0] == sender {

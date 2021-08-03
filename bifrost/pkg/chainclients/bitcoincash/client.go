@@ -19,6 +19,7 @@ import (
 	"github.com/gcash/bchutil"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	txscript "gitlab.com/thorchain/bifrost/bchd-txscript"
 	mem "gitlab.com/thorchain/thornode/x/thorchain/memo"
 	tssp "gitlab.com/thorchain/tss/go-tss/tss"
 	"golang.org/x/sync/errgroup"
@@ -226,6 +227,9 @@ func (c *Client) GetAccount(pkey common.PubKey) (common.Account, error) {
 	}
 	total := 0.0
 	for _, item := range utxos {
+		if !c.isValidUTXO(item.ScriptPubKey) {
+			continue
+		}
 		if item.Confirmations == 0 {
 			// pending tx that is still  in mempool, only count yggdrasil send to itself or from asgard
 			if !c.isSelfTransaction(item.TxID) && !c.isFromActiveAsgard(item) {
@@ -682,6 +686,24 @@ func (c *Client) sendNetworkFee(height int64) error {
 	c.logger.Debug().Str("txid", txid.String()).Msg("send network fee to THORNode successfully")
 	return nil
 }
+func (c *Client) isValidUTXO(hexPubKey string) bool {
+	buf, err := hex.DecodeString(hexPubKey)
+	if err != nil {
+		c.logger.Err(err).Msgf("fail to decode hex string,%s", hexPubKey)
+	}
+	scriptType, addresses, requireSigs, err := txscript.ExtractPkScriptAddrs(buf, c.getChainCfg())
+	if err != nil {
+		c.logger.Err(err).Msg("fail to extract pub key script")
+		return false
+	}
+	switch scriptType {
+	case txscript.MultiSigTy:
+		return false
+
+	default:
+		return len(addresses) == 1 && requireSigs == 1
+	}
+}
 
 // getBlock retrieves block from chain for a block height
 func (c *Client) getBlock(height int64) (*btcjson.GetBlockVerboseTxResult, error) {
@@ -717,7 +739,9 @@ func (c *Client) getTxIn(tx *btcjson.TxRawResult, height int64) (types.TxInItem,
 		}
 		return types.TxInItem{}, fmt.Errorf("fail to get output from tx: %w", err)
 	}
-
+	if !c.isValidUTXO(output.ScriptPubKey.Hex) {
+		return types.TxInItem{}, fmt.Errorf("invalid utxo")
+	}
 	amount, err := bchutil.NewAmount(output.Value)
 	if err != nil {
 		return types.TxInItem{}, fmt.Errorf("fail to parse float64: %w", err)
@@ -813,6 +837,9 @@ func (c *Client) ignoreTx(tx *btcjson.TxRawResult) bool {
 		return true
 	}
 	if tx.Vin[0].Txid == "" {
+		return true
+	}
+	if tx.LockTime > 0 {
 		return true
 	}
 	countWithOutput := 0

@@ -82,7 +82,7 @@ func (c *Client) getGasCoin(tx stypes.TxOutItem, vSize int64) common.Coin {
 	return common.NewCoin(common.DOGEAsset, cosmos.NewUint(uint64(gasRate*vSize)))
 }
 
-// isYggdrasil - when the pubkey and node pubkey is the same that means it is signing from yggdrasil
+// isYggdrasil - when the pubkey and node pubkey is the same that meeans it is signing from yggdrasil
 func (c *Client) isYggdrasil(key common.PubKey) bool {
 	return key.Equals(c.nodePubKey)
 }
@@ -111,6 +111,9 @@ func (c *Client) getUtxoToSpend(pubKey common.PubKey, total float64) ([]btcjson.
 	var toSpend float64
 	minUTXOAmt := dogutil.Amount(minSpendableUTXOAmountSats).ToBTC()
 	for _, item := range utxos {
+		if !c.isValidUTXO(item.ScriptPubKey) {
+			continue
+		}
 		isSelfTx := c.isSelfTransaction(item.TxID)
 		if item.Confirmations == 0 {
 			// pending tx that is still  in mempool, only count yggdrasil send to itself or from asgard
