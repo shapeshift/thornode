@@ -8,7 +8,6 @@ import (
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
-	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
 // TxOutStorageV64 is going to manage all the outgoing tx
@@ -616,28 +615,31 @@ func (tos *TxOutStorageV64) collectYggdrasilPools(ctx cosmos.Context, tx Observe
 }
 
 func (tos *TxOutStorageV64) deductVaultPendingOutboundBalance(ctx cosmos.Context, vault Vault) (Vault, error) {
-	block, err := tos.GetBlockOut(ctx)
-	if err != nil {
-		return types.Vault{}, fmt.Errorf("fail to get block:%w", err)
-	}
-
-	// comments for future reference, this part of logic confuse me quite a few times
-	// This method read the vault from key value store, and trying to find out all the ygg candidate that can be used to send out fund
-	// given the fact, there might have multiple TxOutItem get created with in one block, and the fund has not been deducted from vault and save back to key values store,
-	// thus every previously processed TxOut need to be deducted from the ygg vault to make sure THORNode has a correct view of the ygg funds
-	vault = tos.deductVaultBlockPendingOutbound(vault, block)
-
-	// go back SigningTransactionPeriod blocks to see whether there are outstanding tx, the vault need to send out
-	// if there is , deduct it from their balance
+	// go back SigningTransactionPeriod blocks to see whether there are
+	// outstanding tx, the vault need to send out if there is , deduct it from
+	// their balance
 	signingPeriod := tos.constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
-	startHeight := block.Height - signingPeriod
+	startHeight := common.BlockHeight(ctx) - signingPeriod
 	if startHeight < 1 {
 		startHeight = 1
 	}
-	for i := startHeight; i < block.Height; i++ {
-		blockOut, err := tos.keeper.GetTxOut(ctx, i)
+	txOutDelayMax, err := tos.keeper.GetMimir(ctx, constants.TxOutDelayMax.String())
+	if txOutDelayMax <= 0 || err != nil {
+		txOutDelayMax = tos.constAccessor.GetInt64Value(constants.TxOutDelayMax)
+	}
+	maxTxOutOffset, err := tos.keeper.GetMimir(ctx, constants.MaxTxOutOffset.String())
+	if maxTxOutOffset <= 0 || err != nil {
+		maxTxOutOffset = tos.constAccessor.GetInt64Value(constants.MaxTxOutOffset)
+	}
+	for height := startHeight; height <= common.BlockHeight(ctx)+txOutDelayMax; height++ {
+		blockOut, err := tos.keeper.GetTxOut(ctx, height)
 		if err != nil {
 			ctx.Logger().Error("fail to get block tx out", "error", err)
+		}
+		if height > common.BlockHeight(ctx)+maxTxOutOffset && len(blockOut.TxArray) == 0 {
+			// we've hit our max offset, and an empty block, we can assume the
+			// rest will be empty as well
+			break
 		}
 		vault = tos.deductVaultBlockPendingOutbound(vault, blockOut)
 	}
