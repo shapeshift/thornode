@@ -18,6 +18,23 @@ type deposit struct {
 	Memo    string       `json:"memo"`
 }
 
+func hasNilAmountInBaseRequestValid(req rest.BaseReq) bool {
+	if len(req.Fees) > 0 {
+		for _, c := range req.Fees {
+			if c.Amount.IsNil() {
+				return true
+			}
+		}
+	}
+	if len(req.GasPrices) > 0 {
+		for _, c := range req.GasPrices {
+			if c.Amount.IsNil() {
+				return true
+			}
+		}
+	}
+	return false
+}
 func newDepositHandler(cliCtx client.Context) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req deposit
@@ -28,6 +45,10 @@ func newDepositHandler(cliCtx client.Context) http.HandlerFunc {
 		}
 
 		baseReq := req.BaseReq.Sanitize()
+		if hasNilAmountInBaseRequestValid(baseReq) {
+			rest.WriteErrorResponse(w, http.StatusBadRequest, "invalid coin amount")
+			return
+		}
 		if !baseReq.ValidateBasic(w) {
 			return
 		}
@@ -66,6 +87,10 @@ func newErrataTxHandler(cliCtx client.Context) http.HandlerFunc {
 		}
 
 		baseReq := req.BaseReq.Sanitize()
+		if hasNilAmountInBaseRequestValid(baseReq) {
+			rest.WriteErrorResponse(w, http.StatusBadRequest, "invalid coin amount")
+			return
+		}
 		if !baseReq.ValidateBasic(w) {
 			return
 		}
@@ -107,6 +132,10 @@ func newTssPoolHandler(cliCtx client.Context) http.HandlerFunc {
 		}
 
 		baseReq := req.BaseReq.Sanitize()
+		if hasNilAmountInBaseRequestValid(baseReq) {
+			rest.WriteErrorResponse(w, http.StatusBadRequest, "invalid coin amount")
+			return
+		}
 		if !baseReq.ValidateBasic(w) {
 			return
 		}
@@ -146,6 +175,10 @@ func postTxsHandler(cliCtx client.Context) http.HandlerFunc {
 		}
 
 		baseReq := req.BaseReq.Sanitize()
+		if hasNilAmountInBaseRequestValid(baseReq) {
+			rest.WriteErrorResponse(w, http.StatusBadRequest, "invalid coin amount")
+			return
+		}
 		if !baseReq.ValidateBasic(w) {
 			return
 		}
