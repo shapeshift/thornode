@@ -391,7 +391,103 @@ func (tos *TxOutStorageV64) addToBlockOut(ctx cosmos.Context, mgr Manager, toi T
 		return tos.nativeTxOut(ctx, mgr, toi)
 	}
 
-	return tos.keeper.AppendTxOut(ctx, common.BlockHeight(ctx), toi)
+	targetHeight, err := tos.calcTxOutHeight(ctx, toi)
+	if err != nil {
+		ctx.Logger().Error("failed to calc target block height for txout item", "error", err)
+	}
+
+	return tos.keeper.AppendTxOut(ctx, targetHeight, toi)
+}
+
+func (tos *TxOutStorageV64) calcTxOutHeight(ctx cosmos.Context, toi TxOutItem) (int64, error) {
+	// non-outbound transactions are skipped. This is so this code does not
+	// affect internal transactions (ie consolidation and migrate txs)
+	memo, _ := ParseMemo(toi.Memo) // ignore err
+	if !memo.IsType(TxRefund) && !memo.IsType(TxOutbound) {
+		return common.BlockHeight(ctx), nil
+	}
+
+	minTxOutVolumeThreshold, err := tos.keeper.GetMimir(ctx, constants.MinTxOutVolumeThreshold.String())
+	if minTxOutVolumeThreshold <= 0 || err != nil {
+		minTxOutVolumeThreshold = tos.constAccessor.GetInt64Value(constants.MinTxOutVolumeThreshold)
+	}
+	minVolumeThreshold := cosmos.NewUint(uint64(minTxOutVolumeThreshold))
+	txOutDelayRate, err := tos.keeper.GetMimir(ctx, constants.TxOutDelayRate.String())
+	if txOutDelayRate <= 0 || err != nil {
+		txOutDelayRate = tos.constAccessor.GetInt64Value(constants.TxOutDelayRate)
+	}
+	txOutDelayMax, err := tos.keeper.GetMimir(ctx, constants.TxOutDelayMax.String())
+	if txOutDelayMax <= 0 || err != nil {
+		txOutDelayMax = tos.constAccessor.GetInt64Value(constants.TxOutDelayMax)
+	}
+	maxTxOutOffset, err := tos.keeper.GetMimir(ctx, constants.MaxTxOutOffset.String())
+	if maxTxOutOffset <= 0 || err != nil {
+		maxTxOutOffset = tos.constAccessor.GetInt64Value(constants.MaxTxOutOffset)
+	}
+
+	// get txout item value in rune
+	pool, err := tos.keeper.GetPool(ctx, toi.Coin.Asset)
+	if err != nil {
+		ctx.Logger().Error("fail to get pool for appending txout item", "error", err)
+		return common.BlockHeight(ctx) + maxTxOutOffset, err
+	}
+	runeValue := pool.AssetValueInRune(toi.Coin.Amount)
+
+	// sum value of scheduled txns (including this one)
+	sumValue := int64(runeValue.Uint64())
+	for height := common.BlockHeight(ctx) + 1; height <= common.BlockHeight(ctx)+txOutDelayMax; height++ {
+		value, err := tos.keeper.GetTxOutValue(ctx, height)
+		if err != nil {
+			ctx.Logger().Error("fail to get tx out array from key value store", "error", err)
+			continue
+		}
+		if height > common.BlockHeight(ctx)+maxTxOutOffset && value.IsZero() {
+			// we've hit our max offset, and an empty block, we can assume the
+			// rest will be empty as well
+			break
+		}
+		sumValue += int64(value.Uint64())
+	}
+	// reduce delay rate relative to the total scheduled value. In high volume
+	// scenarios, this causes the network to send outbound transactions slower,
+	// giving the community & NOs time to analyze and react. In an attack
+	// scenario, the attacker is likely going to move as much value as possible
+	// (as we've seen in the past). The act of doing this will slow down their
+	// own transaction(s), reducing the attack's effectiveness.
+	txOutDelayRate -= sumValue / minTxOutVolumeThreshold
+	if txOutDelayRate < 1 {
+		txOutDelayRate = 1
+	}
+
+	// calculate the minimum number of blocks in the future the txn has to be
+	minBlocks := int64(runeValue.Uint64()) / txOutDelayRate
+	// min shouldn't be anything longer than the max txout offset
+	if minBlocks > maxTxOutOffset {
+		minBlocks = maxTxOutOffset
+	}
+	targetBlock := common.BlockHeight(ctx) + minBlocks
+
+	// find targetBlock that has space for new txout item.
+	count := int64(0)
+	for count < txOutDelayMax { // max set 1 day into the future
+		txOutValue, err := tos.keeper.GetTxOutValue(ctx, targetBlock)
+		if err != nil {
+			ctx.Logger().Error("fail to get txOutValue for block height", "error", err)
+			break
+		}
+		if txOutValue.IsZero() {
+			// the txout has no outbound txns, let's use this one
+			break
+		}
+		if txOutValue.Add(runeValue).LTE(minVolumeThreshold) {
+			// the txout + this txout item has enough space to fit, lets use this one
+			break
+		}
+		targetBlock += 1
+		count += 1
+	}
+
+	return targetBlock, nil
 }
 
 func (tos *TxOutStorageV64) nativeTxOut(ctx cosmos.Context, mgr Manager, toi TxOutItem) error {

@@ -1181,8 +1181,7 @@ func queryBan(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mgr
 
 func queryScheduledOutbound(ctx cosmos.Context, mgr *Mgrs) ([]byte, error) {
 	result := make([]QueryTxOutItem, 0)
-	version := mgr.Keeper().GetLowestActiveVersion(ctx)
-	constAccessor := constants.GetConstantValues(version)
+	constAccessor := mgr.GetConstants()
 	maxTxOutOffset, err := mgr.Keeper().GetMimir(ctx, constants.MaxTxOutOffset.String())
 	if maxTxOutOffset < 0 || err != nil {
 		maxTxOutOffset = constAccessor.GetInt64Value(constants.MaxTxOutOffset)

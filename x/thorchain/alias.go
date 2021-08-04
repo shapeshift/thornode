@@ -62,6 +62,7 @@ const (
 	TxRagnarok        = mem.TxRagnarok
 	TxReserve         = mem.TxReserve
 	TxOutbound        = mem.TxOutbound
+	TxRefund          = mem.TxRefund
 	TxUnBond          = mem.TxUnbond
 	TxLeave           = mem.TxLeave
 	TxTHORName        = mem.TxTHORName
