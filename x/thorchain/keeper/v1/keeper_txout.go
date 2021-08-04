@@ -3,7 +3,6 @@ package keeperv1
 import (
 	"fmt"
 	"strconv"
-	"strings"
 
 	"gitlab.com/thorchain/thornode/common/cosmos"
 )
@@ -76,11 +75,6 @@ func (k KVStore) GetTxOutValue(ctx cosmos.Context, height int64) (cosmos.Uint, e
 
 	runeValue := cosmos.ZeroUint()
 	for _, item := range txout.TxArray {
-		// unfortuneately, can't use `ParseMemo` here, as that causes a
-		// circular import, so using a "make shift" solution for now
-		if !strings.HasPrefix(strings.ToUpper(item.Memo), "OUT:") && !strings.HasPrefix(strings.ToUpper(item.Memo), "REFUND:") {
-			continue
-		}
 		if item.Coin.Asset.IsRune() {
 			runeValue = runeValue.Add(item.Coin.Amount)
 		} else {
