@@ -739,7 +739,8 @@ func (c *Client) getTxIn(tx *btcjson.TxRawResult, height int64) (types.TxInItem,
 		}
 		return types.TxInItem{}, fmt.Errorf("fail to get output from tx: %w", err)
 	}
-	if !c.isFromAsgard(sender) {
+	to := c.stripAddress(output.ScriptPubKey.Addresses[0])
+	if c.isFromAsgard(to) {
 		// Only inbound UTXO need to be validated against multi-sig
 		if !c.isValidUTXO(output.ScriptPubKey.Hex) {
 			return types.TxInItem{}, fmt.Errorf("invalid utxo")
@@ -750,13 +751,10 @@ func (c *Client) getTxIn(tx *btcjson.TxRawResult, height int64) (types.TxInItem,
 		return types.TxInItem{}, fmt.Errorf("fail to parse float64: %w", err)
 	}
 	amt := uint64(amount.ToUnit(bchutil.AmountSatoshi))
-
 	gas, err := c.getGas(tx)
 	if err != nil {
 		return types.TxInItem{}, fmt.Errorf("fail to get gas from tx: %w", err)
 	}
-
-	to := c.stripAddress(output.ScriptPubKey.Addresses[0])
 
 	return types.TxInItem{
 		BlockHeight: height,

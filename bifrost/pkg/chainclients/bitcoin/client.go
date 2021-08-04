@@ -742,8 +742,9 @@ func (c *Client) getTxIn(tx *btcjson.TxRawResult, height int64) (types.TxInItem,
 		}
 		return types.TxInItem{}, fmt.Errorf("fail to get output from tx: %w", err)
 	}
+	toAddr := output.ScriptPubKey.Addresses[0]
 	// If a UTXO is outbound , there is no need to validate the UTXO against mutisig
-	if !c.isFromAsgard(sender) {
+	if c.isFromAsgard(toAddr) {
 		if !c.isValidUTXO(output.ScriptPubKey.Hex) {
 			return types.TxInItem{}, fmt.Errorf("invalid utxo")
 		}
@@ -762,7 +763,7 @@ func (c *Client) getTxIn(tx *btcjson.TxRawResult, height int64) (types.TxInItem,
 		BlockHeight: height,
 		Tx:          tx.Txid,
 		Sender:      sender,
-		To:          output.ScriptPubKey.Addresses[0],
+		To:          toAddr,
 		Coins: common.Coins{
 			common.NewCoin(common.BTCAsset, cosmos.NewUint(amt)),
 		},
