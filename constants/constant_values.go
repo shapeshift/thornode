@@ -60,6 +60,7 @@ const (
 	NumberOfNewNodesPerChurn
 	MinTxOutVolumeThreshold
 	TxOutDelayRate
+	TxOutDelayMax
 	MaxTxOutOffset
 	TNSRegisterFee
 	TNSFeeOnSale
@@ -118,6 +119,7 @@ var nameToString = map[ConstantName]string{
 	NumberOfNewNodesPerChurn:      "NumberOfNewNodesPerChurn",
 	MinTxOutVolumeThreshold:       "MinTxOutVolumeThreshold",
 	TxOutDelayRate:                "TxOutDelayRate",
+	TxOutDelayMax:                 "TxOutDelayMax",
 	MaxTxOutOffset:                "MaxTxOutOffset",
 	TNSRegisterFee:                "TNSRegisterFee",
 	TNSFeeOnSale:                  "TNSFeeOnSale",
