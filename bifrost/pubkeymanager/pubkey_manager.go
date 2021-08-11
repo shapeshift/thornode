@@ -38,7 +38,7 @@ type PubKeyValidator interface {
 // pubKeyInfo is a struct to store pubkey information  in memory
 type pubKeyInfo struct {
 	PubKey      common.PubKey
-	Contacts    map[common.Chain]common.Address
+	Contracts   map[common.Chain]common.Address
 	Signer      bool
 	NodeAccount bool
 }
@@ -99,7 +99,7 @@ func (pkm *PubKeyManager) updateContractAddresses(pairs []thorclient.PubKeyContr
 	for _, pair := range pairs {
 		for idx, item := range pkm.pubkeys {
 			if item.PubKey == pair.PubKey {
-				pkm.pubkeys[idx].Contacts = pair.Contracts
+				pkm.pubkeys[idx].Contracts = pair.Contracts
 			}
 		}
 	}
@@ -178,7 +178,7 @@ func (pkm *PubKeyManager) AddPubKey(pk common.PubKey, signer bool) {
 			PubKey:      pk,
 			Signer:      signer,
 			NodeAccount: false,
-			Contacts:    map[common.Chain]common.Address{},
+			Contracts:   map[common.Chain]common.Address{},
 		})
 		pkm.fireCallback(pk)
 	}
@@ -202,7 +202,7 @@ func (pkm *PubKeyManager) AddNodePubKey(pk common.PubKey) {
 			PubKey:      pk,
 			Signer:      true,
 			NodeAccount: true,
-			Contacts:    map[common.Chain]common.Address{},
+			Contracts:   map[common.Chain]common.Address{},
 		})
 		// a new pubkey get added , fire callback
 		pkm.fireCallback(pk)
@@ -330,10 +330,10 @@ func (pkm *PubKeyManager) GetContracts(chain common.Chain) []common.Address {
 	defer pkm.rwMutex.RUnlock()
 	var result []common.Address
 	for _, pk := range pkm.pubkeys {
-		if pk.Contacts == nil {
+		if pk.Contracts == nil {
 			continue
 		}
-		if addr, ok := pk.Contacts[chain]; ok {
+		if addr, ok := pk.Contracts[chain]; ok {
 			result = append(result, addr)
 		}
 	}
@@ -349,10 +349,10 @@ func (pkm *PubKeyManager) GetContract(chain common.Chain, pubKey common.PubKey) 
 		if !pk.PubKey.Equals(pubKey) {
 			continue
 		}
-		if pk.Contacts == nil {
+		if pk.Contracts == nil {
 			continue
 		}
-		result = pk.Contacts[chain]
+		result = pk.Contracts[chain]
 	}
 	return result
 }
