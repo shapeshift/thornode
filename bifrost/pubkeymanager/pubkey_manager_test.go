@@ -116,7 +116,7 @@ func (s *PubKeyMgrSuite) TestFetchKeys(c *C) {
 		PubKey:      pk3,
 		Signer:      true,
 		NodeAccount: true,
-		Contacts:    map[common.Chain]common.Address{},
+		Contracts:   map[common.Chain]common.Address{},
 	})
 	c.Check(len(pubkeyMgr.GetPubKeys()), Equals, 2)
 	err = pubkeyMgr.Start()
