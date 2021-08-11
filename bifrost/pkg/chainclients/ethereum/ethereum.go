@@ -774,7 +774,7 @@ func (c *Client) GetConfirmationCount(txIn stypes.TxIn) int64 {
 }
 
 func (c *Client) getAsgardAddress() ([]common.Address, error) {
-	if time.Now().Sub(c.lastAsgard) < constants.ThorchainBlockTime && c.asgardAddresses != nil {
+	if time.Since(c.lastAsgard) < constants.ThorchainBlockTime && c.asgardAddresses != nil {
 		return c.asgardAddresses, nil
 	}
 	vaults, err := c.bridge.GetAsgards()
