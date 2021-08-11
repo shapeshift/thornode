@@ -251,14 +251,6 @@ func (o *Observer) processTxIns() {
 	}
 }
 
-func (o *Observer) isOutboundMsg(chain common.Chain, fromAddr string) bool {
-	matchOutbound, _ := o.pubkeyMgr.IsValidPoolAddress(fromAddr, chain)
-	if matchOutbound {
-		return true
-	}
-	return false
-}
-
 // chunkify  breaks the observations into 100 transactions per observation
 func (o *Observer) chunkify(txIn types.TxIn) (result []types.TxIn) {
 	// sort it by block height
