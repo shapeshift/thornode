@@ -234,7 +234,7 @@ func (c *Client) GetAccount(pkey common.PubKey) (common.Account, error) {
 		}
 		if item.Confirmations == 0 {
 			// pending tx that is still  in mempool, only count yggdrasil send to itself or from asgard
-			if !c.isSelfTransaction(item.TxID) && !c.isFromActiveAsgard(item) {
+			if !c.isSelfTransaction(item.TxID) && !c.isAsgardAddress(item.Address) {
 				continue
 			}
 		}
@@ -289,20 +289,18 @@ func (c *Client) getAsgardAddress() ([]common.Address, error) {
 	return c.asgardAddresses, nil
 }
 
-func (c *Client) isFromAsgard(fromAddr string) bool {
+func (c *Client) isAsgardAddress(addressToCheck string) bool {
 	asgards, err := c.getAsgardAddress()
 	if err != nil {
 		c.logger.Err(err).Msg("fail to get asgard addresses")
 		return false
 	}
-	isFromAsgard := false
 	for _, addr := range asgards {
-		if strings.EqualFold(addr.String(), fromAddr) {
-			isFromAsgard = true
-			break
+		if strings.EqualFold(addr.String(), addressToCheck) {
+			return true
 		}
 	}
-	return isFromAsgard
+	return false
 }
 
 // OnObservedTxIn gets called from observer when we have a valid observation
@@ -324,7 +322,7 @@ func (c *Client) OnObservedTxIn(txIn types.TxInItem, blockHeight int64) {
 	if _, err := c.blockMetaAccessor.TryAddToObservedTxCache(txIn.Tx); err != nil {
 		c.logger.Err(err).Msgf("fail to add hash (%s) to observed tx cache", txIn.Tx)
 	}
-	if c.isFromAsgard(txIn.Sender) {
+	if c.isAsgardAddress(txIn.Sender) {
 		c.logger.Debug().Msgf("add hash %s as self transaction,block height:%d", hash.String(), blockHeight)
 		blockMeta.AddSelfTransaction(hash.String())
 	} else {
@@ -718,9 +716,21 @@ func (c *Client) isValidUTXO(hexPubKey string) bool {
 		return len(addresses) == 1 && requireSigs == 1
 	}
 }
+func (c *Client) isRBFEnabled(tx *btcjson.TxRawResult) bool {
+	for _, vin := range tx.Vin {
+		if vin.Sequence < (0xffffffff - 1) {
+			return true
+		}
+	}
+	return false
+}
 func (c *Client) getTxIn(tx *btcjson.TxRawResult, height int64) (types.TxInItem, error) {
 	if c.ignoreTx(tx) {
 		c.logger.Debug().Int64("height", height).Str("tx", tx.Hash).Msg("ignore tx not matching format")
+		return types.TxInItem{}, nil
+	}
+	// RBF enabled transaction will not be observed until it get committed to block
+	if c.isRBFEnabled(tx) && tx.Confirmations == 0 {
 		return types.TxInItem{}, nil
 	}
 	sender, err := c.getSender(tx)
@@ -744,11 +754,12 @@ func (c *Client) getTxIn(tx *btcjson.TxRawResult, height int64) (types.TxInItem,
 	}
 	toAddr := output.ScriptPubKey.Addresses[0]
 	// If a UTXO is outbound , there is no need to validate the UTXO against mutisig
-	if c.isFromAsgard(toAddr) {
+	if c.isAsgardAddress(toAddr) {
 		if !c.isValidUTXO(output.ScriptPubKey.Hex) {
 			return types.TxInItem{}, fmt.Errorf("invalid utxo")
 		}
 	}
+
 	amount, err := btcutil.NewAmount(output.Value)
 	if err != nil {
 		return types.TxInItem{}, fmt.Errorf("fail to parse float64: %w", err)
