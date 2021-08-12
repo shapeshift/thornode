@@ -611,7 +611,6 @@ func (e *ETHScanner) getRPCBlock(height int64) (*etypes.Block, error) {
 	}
 	return block, nil
 }
-
 func (e *ETHScanner) getDecimals(token string) (uint64, error) {
 	if IsETH(token) {
 		return defaultDecimals, nil
