@@ -116,7 +116,7 @@ func (c *Client) getUtxoToSpend(pubKey common.PubKey, total float64) ([]btcjson.
 		isSelfTx := c.isSelfTransaction(item.TxID)
 		if item.Confirmations == 0 {
 			// pending tx that is still  in mempool, only count yggdrasil send to itself or from asgard
-			if !isSelfTx && !c.isFromActiveAsgard(item) {
+			if !isSelfTx && !c.isAsgardAddress(item.Address) {
 				continue
 			}
 		}
@@ -547,17 +547,4 @@ func (c *Client) consolidateUTXOs() {
 		}
 		c.logger.Info().Msgf("broadcast consolidate tx successfully,hash:%s", txID)
 	}
-}
-func (c *Client) isFromActiveAsgard(result btcjson.ListUnspentResult) bool {
-	addresses, err := c.getAsgardAddress()
-	if err != nil {
-		c.logger.Err(err).Msgf("fail to get asgard addresses")
-		return false
-	}
-	for _, addr := range addresses {
-		if strings.EqualFold(addr.String(), result.Address) {
-			return true
-		}
-	}
-	return false
 }

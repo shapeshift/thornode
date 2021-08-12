@@ -117,7 +117,7 @@ func (c *Client) getUtxoToSpend(pubKey common.PubKey, total float64) ([]btcjson.
 		isSelfTx := c.isSelfTransaction(item.TxID)
 		if item.Confirmations == 0 {
 			// pending tx that is still  in mempool, only count yggdrasil send to itself or from asgard
-			if !c.isSelfTransaction(item.TxID) && !c.isFromActiveAsgard(item) {
+			if !c.isSelfTransaction(item.TxID) && !c.isAsgardAddress(item.Address) {
 				continue
 			}
 		}
