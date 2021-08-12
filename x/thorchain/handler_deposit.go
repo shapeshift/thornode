@@ -630,6 +630,16 @@ func (h DepositHandler) handleV61(ctx cosmos.Context, msg MsgDeposit) (*cosmos.R
 	if err != nil || nativeTxFee < 0 {
 		nativeTxFee = h.mgr.GetConstants().GetInt64Value(constants.NativeTransactionFee)
 	}
+
+	// NOTE: this is ad-hoc added to the code to deal with an issue where a
+	// user could extract value via a one sided withdrawal to rune. The
+	// opportunity came as part of a large scale attack on the network causing
+	// pools to be off balances. This code change is not added to the following
+	// versions of this handler
+	if common.BlockHeight(ctx) > int64(1568815) {
+		return nil, fmt.Errorf("handler deposit disabled temporarily")
+	}
+
 	gas := common.NewCoin(common.RuneNative, cosmos.NewUint(uint64(nativeTxFee)))
 	gasFee, err := gas.Native()
 	if err != nil {
