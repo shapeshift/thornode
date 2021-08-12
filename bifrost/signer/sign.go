@@ -178,7 +178,7 @@ func (s *Signer) signTransactions() {
 }
 
 func (s *Signer) runWithContext(ctx context.Context, fn func() error) error {
-	ch := make(chan error)
+	ch := make(chan error, 1)
 	go func() {
 		ch <- fn()
 	}()
