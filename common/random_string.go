@@ -12,6 +12,7 @@ const (
 func RandStringBytesMask(n int) string {
 	b := make([]byte, n)
 	for i := 0; i < n; {
+		// #nosec G404 this is a method only used for test purpose
 		if idx := int(rand.Int63() & letterIdxMask); idx < len(letterBytes) {
 			b[i] = letterBytes[idx]
 			i++

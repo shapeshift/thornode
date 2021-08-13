@@ -90,7 +90,9 @@ func (app *THORChainApp) prepForZeroHeightGenesis(ctx sdk.Context, jailAllowedAd
 		counter++
 	}
 
-	iter.Close()
+	if err := iter.Close(); err != nil {
+		ctx.Logger().Error("fail to close iterator", "error", err)
+	}
 
 	_, err := app.StakingKeeper.ApplyAndReturnValidatorSetUpdates(ctx)
 	if err != nil {
