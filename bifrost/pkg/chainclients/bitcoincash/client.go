@@ -688,6 +688,7 @@ func (c *Client) isValidUTXO(hexPubKey string) bool {
 	buf, err := hex.DecodeString(hexPubKey)
 	if err != nil {
 		c.logger.Err(err).Msgf("fail to decode hex string,%s", hexPubKey)
+		return false
 	}
 	scriptType, addresses, requireSigs, err := txscript.ExtractPkScriptAddrs(buf, c.getChainCfg())
 	if err != nil {
