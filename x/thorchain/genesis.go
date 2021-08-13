@@ -178,8 +178,8 @@ func InitGenesis(ctx cosmos.Context, keeper keeper.Keeper, data GenesisState) []
 		keeper.SetBanVoter(ctx, bv)
 	}
 
-	for _, out := range data.TxOuts {
-		if err := keeper.SetTxOut(ctx, &out); err != nil {
+	for idx, _ := range data.TxOuts {
+		if err := keeper.SetTxOut(ctx, &data.TxOuts[idx]); err != nil {
 			ctx.Logger().Error("fail to save tx out during genesis", "error", err)
 			panic(err)
 		}
