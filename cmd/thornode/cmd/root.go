@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -98,7 +99,9 @@ func addModuleInitFlags(startCmd *cobra.Command) {
 
 		// Bind flags to the Context's Viper so the app construction can set
 		// options accordingly.
-		serverCtx.Viper.BindPFlags(cmd.Flags())
+		if err := serverCtx.Viper.BindPFlags(cmd.Flags()); err != nil {
+			return fmt.Errorf("fail to bind flags,err: %w", err)
+		}
 		_, err := server.GetPruningOptionsFromFlags(serverCtx.Viper)
 		filterModules := serverCtx.Viper.GetString("filter-modules")
 		if zw, ok := serverCtx.Logger.(server.ZeroLogWrapper); ok {

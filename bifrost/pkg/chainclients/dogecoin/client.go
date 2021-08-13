@@ -777,10 +777,10 @@ func (c *Client) extractTxs(block *btcjson.GetBlockVerboseTxResult) (types.TxIn,
 		MemPool: false,
 	}
 	var txItems []types.TxInItem
-	for _, tx := range block.Tx {
+	for idx, tx := range block.Tx {
 		// mempool transaction get committed to block , thus remove it from mempool cache
 		c.removeFromMemPoolCache(tx.Hash)
-		txInItem, err := c.getTxIn(&tx, block.Height)
+		txInItem, err := c.getTxIn(&block.Tx[idx], block.Height)
 		if err != nil {
 			c.logger.Err(err).Msg("fail to get TxInItem")
 			continue

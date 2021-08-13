@@ -16,6 +16,8 @@ variables:
   DOCKER_TLS_CERTDIR: "/certs"
   DOCKER_TLS_VERIFY: 1
   DOCKER_CERT_PATH: "$DOCKER_TLS_CERTDIR/client"
+  SAST_EXCLUDED_ANALYZERS: "eslint,bandit,semgrep"
+  SAST_EXCLUDED_PATHS: "spec, test, tests, tmp,.cache"
 
 before_script:
   - mkdir -p .cache
@@ -168,3 +170,26 @@ release:
     - schedules
   script:
     - release-tool changelog
+
+gosec-sast:
+  stage: test
+  tags:
+    - thorchain
+  rules:
+    - if: $CI_COMMIT_TAG
+    - if: $CI_COMMIT_BRANCH
+    - if: $CI_MERGE_REQUEST_ID
+
+secret_detection:
+  stage: test
+  tags:
+    - thorchain
+  rules:
+    - if: $CI_COMMIT_TAG
+    - if: $CI_COMMIT_BRANCH
+    - if: $CI_MERGE_REQUEST_ID
+include:
+  - template: Security/SAST.gitlab-ci.yml
+  - template: Security/Secret-Detection.gitlab-ci.yml
+
+
