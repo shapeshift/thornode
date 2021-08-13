@@ -867,7 +867,9 @@ func (vm *validatorMgrV58) ragnarokPools(ctx cosmos.Context, nth int64, mgr Mana
 				}
 			}
 		}
-		iterator.Close()
+		if err := iterator.Close(); err != nil {
+			ctx.Logger().Error("fail to close iterator", "error", err)
+		}
 		if count >= maxWithdrawsPerBlock {
 			break
 		}
