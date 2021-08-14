@@ -483,6 +483,9 @@ func (s *SlasherV64) SlashVault(ctx cosmos.Context, vaultPK common.PubKey, coins
 					break
 				}
 			}
+			if na.Bond.IsZero() {
+				toBan = true
+			}
 			if toBan {
 				na.ForcedToLeave = true
 				na.LeaveScore = 1 // Set Leave Score to 1, which means the nodes is bad
