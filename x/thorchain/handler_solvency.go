@@ -137,7 +137,7 @@ func (h SolvencyHandler) handleV1(ctx cosmos.Context, msg MsgSolvency) (*cosmos.
 		return &cosmos.Result{}, nil
 	}
 	h.mgr.Keeper().SetMimir(ctx, haltChainKey, common.BlockHeight(ctx))
-	ctx.Logger().Info(fmt.Sprintf("%s is insolvent, halt chain until it is resolved", voter.Chain))
+	ctx.Logger().Info("chain is insolvent, halt until it is resolved", "chain", voter.Chain)
 	return &cosmos.Result{}, nil
 }
 

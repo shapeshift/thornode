@@ -1,8 +1,6 @@
 package thorchain
 
 import (
-	"fmt"
-
 	"github.com/blang/semver"
 
 	"gitlab.com/thorchain/thornode/common"
@@ -107,7 +105,7 @@ func (h CommonOutboundTxHandler) handleV1(ctx cosmos.Context, tx ObservedTx, inT
 						matchCoin = true
 						maxGasAmt := txOutItem.MaxGas.ToCoins().GetCoin(asset).Amount
 						realGasAmt := tx.Tx.Gas.ToCoins().GetCoin(asset).Amount
-						ctx.Logger().Info(fmt.Sprintf("intend to spend: %s, actual spend: %s are the same , override match coin, max_gas: %s , actual gas: %s ", intendToSpend, actualSpend, maxGasAmt, realGasAmt))
+						ctx.Logger().Info("override match coin", "intend to spend", intendToSpend, "actual spend", actualSpend, "max_gas", maxGasAmt, "actual gas", realGasAmt)
 						if maxGasAmt.GT(realGasAmt) {
 							// the outbound spend less than MaxGas
 							diffGas := maxGasAmt.Sub(realGasAmt)
@@ -116,7 +114,7 @@ func (h CommonOutboundTxHandler) handleV1(ctx cosmos.Context, tx ObservedTx, inT
 							}, false)
 						} else if maxGasAmt.LT(realGasAmt) {
 							// signer spend more than the maximum gas prescribed by THORChain , slash it
-							ctx.Logger().Info(fmt.Sprintf("max gas: %s, real gas spend: %s ,gap %s , slash node", maxGasAmt.String(), realGasAmt.String(), common.SafeSub(realGasAmt, maxGasAmt).String()))
+							ctx.Logger().Info("slash node", "max gas", maxGasAmt, "real gas spend", realGasAmt, "gap", common.SafeSub(realGasAmt, maxGasAmt).String())
 							matchCoin = false
 						}
 					}
@@ -226,7 +224,7 @@ func (h CommonOutboundTxHandler) handleCurrent(ctx cosmos.Context, tx ObservedTx
 						matchCoin = true
 						maxGasAmt := txOutItem.MaxGas.ToCoins().GetCoin(asset).Amount
 						realGasAmt := tx.Tx.Gas.ToCoins().GetCoin(asset).Amount
-						ctx.Logger().Info(fmt.Sprintf("intend to spend: %s, actual spend: %s are the same , override match coin, max_gas: %s , actual gas: %s ", intendToSpend, actualSpend, maxGasAmt, realGasAmt))
+						ctx.Logger().Info("override match coin", "intend to spend", intendToSpend, "actual spend", actualSpend, "max_gas", maxGasAmt, "actual gas", realGasAmt)
 						if maxGasAmt.GT(realGasAmt) {
 							// the outbound spend less than MaxGas
 							diffGas := maxGasAmt.Sub(realGasAmt)
@@ -235,7 +233,7 @@ func (h CommonOutboundTxHandler) handleCurrent(ctx cosmos.Context, tx ObservedTx
 							}, false)
 						} else if maxGasAmt.LT(realGasAmt) {
 							// signer spend more than the maximum gas prescribed by THORChain , slash it
-							ctx.Logger().Info(fmt.Sprintf("max gas: %s, real gas spend: %s ,gap %s , slash node", maxGasAmt.String(), realGasAmt.String(), common.SafeSub(realGasAmt, maxGasAmt).String()))
+							ctx.Logger().Info("slash node", "max gas", maxGasAmt, "real gas spend", realGasAmt, "gap", common.SafeSub(realGasAmt, maxGasAmt).String())
 							matchCoin = false
 						}
 					}
