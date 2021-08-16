@@ -35,7 +35,7 @@ func (s *SlasherV54) BeginBlock(ctx cosmos.Context, req abci.RequestBeginBlock, 
 				ctx.Logger().Error("fail to slash for double signing a block", "error", err)
 			}
 		default:
-			ctx.Logger().Error(fmt.Sprintf("ignored unknown evidence type: %s", evidence.Type))
+			ctx.Logger().Error("ignored unknown evidence type", "type", evidence.Type)
 		}
 	}
 }

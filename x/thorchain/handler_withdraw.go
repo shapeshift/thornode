@@ -30,8 +30,7 @@ func (h WithdrawLiquidityHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos
 	if !ok {
 		return nil, errInvalidMessage
 	}
-	ctx.Logger().Info(fmt.Sprintf("receive MsgWithdrawLiquidity from : %s(%s) withdraw (%s)", *msg, msg.WithdrawAddress, msg.BasisPoints))
-
+	ctx.Logger().Info("receive MsgWithdrawLiquidity", "withdraw address", msg.WithdrawAddress, "withdraw basis points", msg.BasisPoints)
 	if err := h.validate(ctx, *msg); err != nil {
 		ctx.Logger().Error("MsgWithdrawLiquidity failed validation", "error", err)
 		return nil, err

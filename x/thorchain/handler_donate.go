@@ -26,7 +26,7 @@ func (h DonateHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Result, er
 	if !ok {
 		return nil, errInvalidMessage
 	}
-	ctx.Logger().Info(fmt.Sprintf("receive msg donate %s", msg.Tx.ID))
+	ctx.Logger().Info("receive msg donate", "tx_id", msg.Tx.ID)
 	if err := h.validate(ctx, *msg); err != nil {
 		ctx.Logger().Error("msg donate failed validation", "error", err)
 		return nil, err

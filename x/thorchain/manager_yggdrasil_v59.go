@@ -217,7 +217,7 @@ func (ymgr YggMgrV59) sendCoinsToYggdrasil(ctx cosmos.Context, coins common.Coin
 
 			if !ymgr.shouldFundYggdrasil(ctx, active[0], ygg, coin.Asset.GetChain()) {
 				addr, _ := ygg.PubKey.GetThorAddress()
-				ctx.Logger().Error(fmt.Sprintf("yggdrasil with address %s didn't upgrade contract, should not be funded", addr))
+				ctx.Logger().Error("yggdrasil didn't upgrade contract, should not be funded", "address", addr)
 				continue
 			}
 

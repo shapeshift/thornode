@@ -203,7 +203,7 @@ func (vm *NetworkMgrV59) EndBlock(ctx cosmos.Context, mgr Manager, constAccessor
 					// the left amount is not enough to pay for gas, likely only dust left, the network can't migrate it across
 					// and this will only happen after 5th round
 					if amt.IsZero() && nth > 5 {
-						ctx.Logger().Info(fmt.Sprintf("%s is not enough to pay for gas %s, thus burn it", coin, gasAmount))
+						ctx.Logger().Info("left coin is not enough to pay for gas, thus burn it", "coin", coin, "gas", gasAmount)
 						vault.SubFunds(common.Coins{
 							coin,
 						})

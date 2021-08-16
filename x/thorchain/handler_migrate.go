@@ -1,8 +1,6 @@
 package thorchain
 
 import (
-	"fmt"
-
 	"github.com/blang/semver"
 
 	"gitlab.com/thorchain/thornode/common"
@@ -100,7 +98,7 @@ func (h MigrateHandler) handleCurrent(ctx cosmos.Context, msg MsgMigrate) (*cosm
 					maxGasAmt := tx.MaxGas.ToCoins().GetCoin(asset).Amount
 					realGasAmt := msg.Tx.Tx.Gas.ToCoins().GetCoin(asset).Amount
 					if maxGasAmt.GTE(realGasAmt) {
-						ctx.Logger().Info(fmt.Sprintf("intend to spend: %s, actual spend: %s are the same , override match coin", intendToSpend, actualSpend))
+						ctx.Logger().Info("override match coin", "intend to spend", intendToSpend, "actual spend", actualSpend)
 						matchCoin = true
 					}
 					// although here might detect there some some discrepancy between MaxGas , and actual gas

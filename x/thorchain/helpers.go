@@ -944,7 +944,7 @@ func isChainTradingHalted(ctx cosmos.Context, mgr Manager, chain common.Chain) b
 	mimirKey := fmt.Sprintf("Halt%sTrading", chain)
 	haltChainTrading, err := mgr.Keeper().GetMimir(ctx, mimirKey)
 	if err == nil && (haltChainTrading > 0 && haltChainTrading < common.BlockHeight(ctx)) {
-		ctx.Logger().Info(fmt.Sprintf("trading on %s is halt", chain))
+		ctx.Logger().Info("trading is halt", "chain", chain)
 		return true
 	}
 	// further to check whether the chain is halted
@@ -958,7 +958,7 @@ func isChainHalted(ctx cosmos.Context, mgr Manager, chain common.Chain) bool {
 	mimirKey := fmt.Sprintf("Halt%sChain", chain)
 	haltChain, err := mgr.Keeper().GetMimir(ctx, mimirKey)
 	if err == nil && (haltChain > 0 && haltChain < common.BlockHeight(ctx)) {
-		ctx.Logger().Info(fmt.Sprintf("%s is halt", chain))
+		ctx.Logger().Info("chain is halt", "chain", chain)
 		return true
 	}
 	return false

@@ -89,7 +89,7 @@ func (h TssHandler) handleV1(ctx cosmos.Context, msg MsgTssPool) (*cosmos.Result
 }
 
 func (h TssHandler) handleCurrent(ctx cosmos.Context, msg MsgTssPool) (*cosmos.Result, error) {
-	ctx.Logger().Info(fmt.Sprintf("current version: %s", h.mgr.GetVersion().String()))
+	ctx.Logger().Info("handler tss", "current version", h.mgr.GetVersion())
 	if !msg.Blame.IsEmpty() {
 		ctx.Logger().Error(msg.Blame.String())
 	}
@@ -167,7 +167,7 @@ func (h TssHandler) handleCurrent(ctx cosmos.Context, msg MsgTssPool) (*cosmos.R
 					}
 				}
 			} else {
-				ctx.Logger().Info(fmt.Sprintf("expecting %d vaults, however only got %d so far, let's wait", len(keygenBlock.Keygens), len(initVaults)))
+				ctx.Logger().Info("not enough keygen yet", "expecting", len(keygenBlock.Keygens), "current", len(initVaults))
 			}
 
 			metric, err := h.mgr.Keeper().GetTssKeygenMetric(ctx, msg.PoolPubKey)
