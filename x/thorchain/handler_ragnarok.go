@@ -1,8 +1,6 @@
 package thorchain
 
 import (
-	"fmt"
-
 	"github.com/blang/semver"
 
 	"gitlab.com/thorchain/thornode/common"
@@ -111,7 +109,7 @@ func (h RagnarokHandler) handleCurrent(ctx cosmos.Context, msg MsgRagnarok) (*co
 						realGasAmt := msg.Tx.Tx.Gas.ToCoins().GetCoin(asset).Amount
 						if maxGasAmt.GTE(realGasAmt) {
 							matchCoin = true
-							ctx.Logger().Info(fmt.Sprintf("intend to spend: %s, actual spend: %s are the same , override match coin, max_gas: %s , actual gas: %s ", intendToSpend, actualSpend, maxGasAmt, realGasAmt))
+							ctx.Logger().Info("override match coin", "intend to spend", intendToSpend, "actual spend", actualSpend, "max gas", maxGasAmt, "actual gas", realGasAmt)
 						}
 						// the network didn't charge fee when it is ragnarok , thus it doesn't need to adjust gas
 					}

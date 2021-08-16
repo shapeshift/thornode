@@ -1,7 +1,6 @@
 package thorchain
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/blang/semver"
@@ -27,7 +26,7 @@ func (h NoOpHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Result, erro
 	if !ok {
 		return nil, errInvalidMessage
 	}
-	ctx.Logger().Info(fmt.Sprintf("receive msg no op %s", msg.ObservedTx.Tx.ID))
+	ctx.Logger().Info("receive msg no op", "tx_id", msg.ObservedTx.Tx.ID)
 	if err := h.validate(ctx, *msg); err != nil {
 		ctx.Logger().Error("msg no op failed validation", "error", err)
 		return nil, err

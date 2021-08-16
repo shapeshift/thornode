@@ -15,7 +15,7 @@ func (k KVStore) SetLastSignedHeight(ctx cosmos.Context, height int64) error {
 	if lastHeight > height {
 		// it is very possible we try to update last sign height to a smaller value , asgard outbound takes time , however yggdrasil tx will be much faster
 		// simply ignore it
-		ctx.Logger().Info(fmt.Sprintf("last signed height %d is larger than %d, block height can't go backward ", lastHeight, height))
+		ctx.Logger().Info("block height can't go backward ", "last height", lastHeight, "current height", height)
 		return nil
 	}
 	k.setInt64(ctx, k.GetKey(ctx, prefixLastSignedHeight, ""), height)

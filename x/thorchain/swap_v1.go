@@ -202,8 +202,7 @@ func (s *SwapperV1) swapOne(ctx cosmos.Context,
 	source := tx.Coins[0].Asset
 	amount := tx.Coins[0].Amount
 
-	ctx.Logger().Info(fmt.Sprintf("%s Swapping %s(%s) -> %s to %s (Fee %s)", tx.FromAddress, source, tx.Coins[0].Amount, target, destination, transactionFee))
-
+	ctx.Logger().Info("swap", "from address", tx.FromAddress, "source", source, "amount", tx.Coins[0].Amount, "target", target, "destination", destination, "fee", transactionFee)
 	var X, x, Y, liquidityFee, emitAssets cosmos.Uint
 	var swapSlip cosmos.Uint
 	var pool Pool
@@ -295,7 +294,7 @@ func (s *SwapperV1) swapOne(ctx cosmos.Context,
 		return cosmos.ZeroUint(), evt, errSwapFailNotEnoughBalance
 	}
 
-	ctx.Logger().Info(fmt.Sprintf("Pre-Pool: %sRune %sAsset", pool.BalanceRune, pool.BalanceAsset))
+	ctx.Logger().Info("Pre-Pool", "rune balance", pool.BalanceRune, "asset balance", pool.BalanceAsset)
 
 	if source.IsSyntheticAsset() || target.IsSyntheticAsset() {
 		// we're doing a synth swap
@@ -331,7 +330,7 @@ func (s *SwapperV1) swapOne(ctx cosmos.Context,
 			pool.BalanceRune = common.SafeSub(Y, emitAssets)
 		}
 	}
-	ctx.Logger().Info(fmt.Sprintf("Post-swap: %sRune %sAsset , user get:%s ", pool.BalanceRune, pool.BalanceAsset, emitAssets))
+	ctx.Logger().Info("post-swap", "rune balance", pool.BalanceRune, "asset balance", pool.BalanceAsset, "user get", emitAssets)
 
 	// add the new pool to the cache
 	s.pools[pool.Asset] = pool
