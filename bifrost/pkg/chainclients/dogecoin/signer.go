@@ -81,7 +81,7 @@ func (c *Client) getGasCoin(tx stypes.TxOutItem, vSize int64) common.Coin {
 	return common.NewCoin(common.DOGEAsset, cosmos.NewUint(uint64(gasRate*vSize)))
 }
 
-// isYggdrasil - when the pubkey and node pubkey is the same that meeans it is signing from yggdrasil
+// isYggdrasil - when the pubkey and node pubkey is the same that means it is signing from yggdrasil
 func (c *Client) isYggdrasil(key common.PubKey) bool {
 	return key.Equals(c.nodePubKey)
 }
