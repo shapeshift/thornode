@@ -674,7 +674,7 @@ func (vm *validatorMgrV51) ragnarokBond(ctx cosmos.Context, nth int64, mgr Manag
 				return err
 			}
 			if ygg.HasFunds() {
-				ctx.Logger().Info(fmt.Sprintf("skip bond refund due to remaining funds: %s", na.NodeAddress))
+				ctx.Logger().Info("skip bond refund due to remaining funds", "node address", na.NodeAddress)
 				continue
 			}
 		}
@@ -921,7 +921,7 @@ func (vm *validatorMgrV51) RequestYggReturn(ctx cosmos.Context, node NodeAccount
 			continue
 		}
 		if !ygg.HasFundsForChain(chain) {
-			ctx.Logger().Info(fmt.Sprintf("there is not fund for %s chain, no need for yggdrasil return", chain))
+			ctx.Logger().Info("there is not fund for chain, no need for yggdrasil return", "chain", chain)
 			continue
 		}
 		toAddr, err := vault.PubKey.GetAddress(chain)
@@ -1148,7 +1148,7 @@ func (vm *validatorMgrV51) findOldActor(ctx cosmos.Context) (NodeAccount, error)
 // Mark an old to be churned out
 func (vm *validatorMgrV51) markActor(ctx cosmos.Context, na NodeAccount, reason string) error {
 	if !na.IsEmpty() && na.LeaveScore == 0 {
-		ctx.Logger().Info(fmt.Sprintf("Marked Validator to be churned out %s: %s", na.NodeAddress, reason))
+		ctx.Logger().Info("marked Validator to be churned out", "node address", na.NodeAddress, "reason", reason)
 		slashPts, err := vm.k.GetNodeAccountSlashPoints(ctx, na.NodeAddress)
 		if err != nil {
 			return fmt.Errorf("fail to get node account(%s) slash points: %w", na.NodeAddress, err)
