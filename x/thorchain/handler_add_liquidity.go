@@ -69,7 +69,7 @@ func (h AddLiquidityHandler) validateV1(ctx cosmos.Context, msg MsgAddLiquidity)
 		return ErrInternal(err, "fail to get total bond RUNE")
 	}
 	if totalLiquidityRUNE.GT(totalBondRune) {
-		ctx.Logger().Info(fmt.Sprintf("total liquidity RUNE(%s) is more than total Bond(%s)", totalLiquidityRUNE, totalBondRune))
+		ctx.Logger().Info("total liquidity RUNE is more than total Bond", "rune", totalLiquidityRUNE.String(), "bond", totalBondRune.String())
 		return errAddLiquidityRUNEMoreThanBond
 	}
 
@@ -121,7 +121,7 @@ func (h AddLiquidityHandler) validateV55(ctx cosmos.Context, msg MsgAddLiquidity
 		return ErrInternal(err, "fail to get total bond RUNE")
 	}
 	if totalLiquidityRUNE.GT(totalBondRune) {
-		ctx.Logger().Info(fmt.Sprintf("total liquidity RUNE(%s) is more than total Bond(%s)", totalLiquidityRUNE, totalBondRune))
+		ctx.Logger().Info("total liquidity RUNE is more than total Bond", "rune", totalLiquidityRUNE.String(), "bond", totalBondRune.String())
 		return errAddLiquidityRUNEMoreThanBond
 	}
 
@@ -175,7 +175,7 @@ func (h AddLiquidityHandler) validateCurrent(ctx cosmos.Context, msg MsgAddLiqui
 		return ErrInternal(err, "fail to get total bond RUNE")
 	}
 	if totalLiquidityRUNE.GT(totalBondRune) {
-		ctx.Logger().Info(fmt.Sprintf("total liquidity RUNE(%s) is more than total Bond(%s)", totalLiquidityRUNE, totalBondRune))
+		ctx.Logger().Info("total liquidity RUNE is more than total Bond", "rune", totalLiquidityRUNE.String(), "bond", totalBondRune.String())
 		return errAddLiquidityRUNEMoreThanBond
 	}
 
@@ -710,7 +710,7 @@ func (h AddLiquidityHandler) addLiquidityV1(ctx cosmos.Context,
 	requestTxHash common.TxID,
 	stage bool,
 	constAccessor constants.ConstantValues) error {
-	ctx.Logger().Info(fmt.Sprintf("%s liquidity provision %s %s", asset, addRuneAmount, addAssetAmount))
+	ctx.Logger().Info("liquidity provision", "asset", asset, "rune amount", addRuneAmount, "asset amount", addAssetAmount)
 	if err := h.validateAddLiquidityMessage(ctx, h.mgr.Keeper(), asset, requestTxHash, runeAddr, assetAddr); err != nil {
 		return fmt.Errorf("add liquidity message fail validation: %w", err)
 	}
@@ -795,8 +795,8 @@ func (h AddLiquidityHandler) addLiquidityV1(ctx cosmos.Context,
 	su.PendingRune = cosmos.ZeroUint()
 	su.PendingTxID = ""
 
-	ctx.Logger().Info(fmt.Sprintf("Pre-Pool: %sRUNE %sAsset", pool.BalanceRune, pool.BalanceAsset))
-	ctx.Logger().Info(fmt.Sprintf("Adding Liquidity: %sRUNE %sAsset", addRuneAmount, addAssetAmount))
+	ctx.Logger().Info("Pre-Pool ", "rune balance", pool.BalanceRune, "asset balance", pool.BalanceAsset)
+	ctx.Logger().Info("Adding Liquidity ", "rune amount", addRuneAmount, "asset amount", addAssetAmount)
 
 	balanceRune := pool.BalanceRune
 	balanceAsset := pool.BalanceAsset
@@ -807,13 +807,13 @@ func (h AddLiquidityHandler) addLiquidityV1(ctx cosmos.Context,
 		return ErrInternal(err, "fail to calculate pool unit")
 	}
 
-	ctx.Logger().Info(fmt.Sprintf("current pool units : %s ,liquidity units : %s", newPoolUnits, liquidityUnits))
+	ctx.Logger().Info("before add", "pool units", newPoolUnits, "liquidity units", liquidityUnits)
 	poolRune := balanceRune.Add(addRuneAmount)
 	poolAsset := balanceAsset.Add(addAssetAmount)
 	pool.LPUnits = newPoolUnits
 	pool.BalanceRune = poolRune
 	pool.BalanceAsset = poolAsset
-	ctx.Logger().Info(fmt.Sprintf("Post-Pool: %sRUNE %sAsset", pool.BalanceRune, pool.BalanceAsset))
+	ctx.Logger().Info("Post-Pool", "rune balance", pool.BalanceRune, "asset balance", pool.BalanceAsset)
 	if pool.BalanceRune.IsZero() || pool.BalanceAsset.IsZero() {
 		return ErrInternal(err, "pool cannot have zero rune or asset balance")
 	}
@@ -846,7 +846,7 @@ func (h AddLiquidityHandler) addLiquidityV46(ctx cosmos.Context,
 	requestTxHash common.TxID,
 	stage bool,
 	constAccessor constants.ConstantValues) error {
-	ctx.Logger().Info(fmt.Sprintf("%s liquidity provision %s %s", asset, addRuneAmount, addAssetAmount))
+	ctx.Logger().Info("liquidity provision", "asset", asset, "rune amount", addRuneAmount, "asset amount", addAssetAmount)
 	if err := h.validateAddLiquidityMessage(ctx, h.mgr.Keeper(), asset, requestTxHash, runeAddr, assetAddr); err != nil {
 		return fmt.Errorf("add liquidity message fail validation: %w", err)
 	}
@@ -941,8 +941,8 @@ func (h AddLiquidityHandler) addLiquidityV46(ctx cosmos.Context,
 	su.PendingRune = cosmos.ZeroUint()
 	su.PendingTxID = ""
 
-	ctx.Logger().Info(fmt.Sprintf("Pre-Pool: %sRUNE %sAsset", pool.BalanceRune, pool.BalanceAsset))
-	ctx.Logger().Info(fmt.Sprintf("Adding Liquidity: %sRUNE %sAsset", pendingRuneAmt, pendingAssetAmt))
+	ctx.Logger().Info("Pre-Pool", "rune balance", pool.BalanceRune, "asset balance", pool.BalanceAsset)
+	ctx.Logger().Info("Adding Liquidity", "rune amount", pendingRuneAmt, "asset amount", pendingAssetAmt)
 
 	balanceRune := pool.BalanceRune
 	balanceAsset := pool.BalanceAsset
@@ -953,13 +953,13 @@ func (h AddLiquidityHandler) addLiquidityV46(ctx cosmos.Context,
 		return ErrInternal(err, "fail to calculate pool unit")
 	}
 
-	ctx.Logger().Info(fmt.Sprintf("current pool units : %s ,liquidity units : %s", newPoolUnits, liquidityUnits))
+	ctx.Logger().Info("current pool", "pool units", newPoolUnits, "liquidity units", liquidityUnits)
 	poolRune := balanceRune.Add(pendingRuneAmt)
 	poolAsset := balanceAsset.Add(pendingAssetAmt)
 	pool.LPUnits = newPoolUnits
 	pool.BalanceRune = poolRune
 	pool.BalanceAsset = poolAsset
-	ctx.Logger().Info(fmt.Sprintf("Post-Pool: %sRUNE %sAsset", pool.BalanceRune, pool.BalanceAsset))
+	ctx.Logger().Info("Post-Pool", "rune balance", pool.BalanceRune, "asset balance", pool.BalanceAsset)
 	if pool.BalanceRune.IsZero() || pool.BalanceAsset.IsZero() {
 		return ErrInternal(err, "pool cannot have zero rune or asset balance")
 	}
@@ -992,7 +992,7 @@ func (h AddLiquidityHandler) addLiquidityV55(ctx cosmos.Context,
 	requestTxHash common.TxID,
 	stage bool,
 	constAccessor constants.ConstantValues) error {
-	ctx.Logger().Info(fmt.Sprintf("%s liquidity provision %s %s", asset, addRuneAmount, addAssetAmount))
+	ctx.Logger().Info("liquidity provision", "asset", asset, "rune amount", addRuneAmount, "asset amount", addAssetAmount)
 	if err := h.validateAddLiquidityMessage(ctx, h.mgr.Keeper(), asset, requestTxHash, runeAddr, assetAddr); err != nil {
 		return fmt.Errorf("add liquidity message fail validation: %w", err)
 	}
@@ -1102,7 +1102,7 @@ func (h AddLiquidityHandler) addLiquidityV55(ctx cosmos.Context,
 		return ErrInternal(err, "fail to calculate pool unit")
 	}
 
-	ctx.Logger().Info(fmt.Sprintf("current pool units : %s ,liquidity units : %s", newPoolUnits, liquidityUnits))
+	ctx.Logger().Info("current pool status", "pool units", newPoolUnits, "liquidity units", liquidityUnits)
 	poolRune := balanceRune.Add(pendingRuneAmt)
 	poolAsset := balanceAsset.Add(pendingAssetAmt)
 	pool.LPUnits = pool.LPUnits.Add(liquidityUnits)
@@ -1140,7 +1140,7 @@ func (h AddLiquidityHandler) addLiquidityV63(ctx cosmos.Context,
 	requestTxHash common.TxID,
 	stage bool,
 	constAccessor constants.ConstantValues) error {
-	ctx.Logger().Info(fmt.Sprintf("%s liquidity provision %s %s", asset, addRuneAmount, addAssetAmount))
+	ctx.Logger().Info("liquidity provision", "asset", asset, "rune amount", addRuneAmount, "asset amount", addAssetAmount)
 	if err := h.validateAddLiquidityMessage(ctx, h.mgr.Keeper(), asset, requestTxHash, runeAddr, assetAddr); err != nil {
 		return fmt.Errorf("add liquidity message fail validation: %w", err)
 	}
@@ -1249,8 +1249,7 @@ func (h AddLiquidityHandler) addLiquidityV63(ctx cosmos.Context,
 	if err != nil {
 		return ErrInternal(err, "fail to calculate pool unit")
 	}
-
-	ctx.Logger().Info(fmt.Sprintf("current pool units : %s ,liquidity units : %s", newPoolUnits, liquidityUnits))
+	ctx.Logger().Info("current pool status", "pool units", newPoolUnits, "liquidity units", liquidityUnits)
 	poolRune := balanceRune.Add(pendingRuneAmt)
 	poolAsset := balanceAsset.Add(pendingAssetAmt)
 	pool.LPUnits = pool.LPUnits.Add(liquidityUnits)
