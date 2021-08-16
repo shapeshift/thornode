@@ -158,7 +158,7 @@ func (b *BlockScanner) scanBlocks() {
 			preBlockHeight := atomic.LoadInt64(&b.previousBlock)
 			currentBlock := preBlockHeight + 1
 			// check if mimir has disabled this chain
-			if time.Now().Sub(lastMimirCheck).Nanoseconds() >= constants.ThorchainBlockTime.Nanoseconds() {
+			if time.Since(lastMimirCheck) >= constants.ThorchainBlockTime {
 				haltHeight, err = b.thorchainBridge.GetMimir(fmt.Sprintf("Halt%sChain", b.cfg.ChainID))
 				if err != nil {
 					b.logger.Error().Err(err).Msg("fail to get mimir setting")
