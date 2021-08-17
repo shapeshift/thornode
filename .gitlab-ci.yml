@@ -73,7 +73,7 @@ shellcheck:
   before_script:
     - shellcheck --version
   script:
-    - find . -type f -name "*.*sh" | xargs shellcheck --exclude SC1091,SC3020,SC3040,SC2086
+    - find . -type f -name "*.*sh" | xargs shellcheck --exclude SC1091,SC3020,SC3040
 
 shfmt:
   image: mvdan/shfmt:v3.3.0-alpine
