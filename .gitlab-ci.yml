@@ -64,6 +64,7 @@ lint-code:
 
 shellcheck:
   image: koalaman/shellcheck-alpine:latest
+  cache: {}
   stage: test
   tags:
     - thorchain
@@ -76,6 +77,7 @@ shellcheck:
 
 shfmt:
   image: mvdan/shfmt:v3.3.0-alpine
+  cache: {}
   stage: test
   tags:
     - thorchain
@@ -118,6 +120,7 @@ build-thornode:
 
 smoke-test:
   stage: smoke-test
+  cache: {}
   image: docker/compose:alpine-1.27.4
   tags:
     - thorchain

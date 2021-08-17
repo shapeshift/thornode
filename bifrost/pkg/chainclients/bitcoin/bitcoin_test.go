@@ -181,14 +181,14 @@ func (s *BitcoinSuite) TestFetchTxs(c *C) {
 	txs, err := s.client.FetchTxs(0)
 	c.Assert(err, IsNil)
 	c.Assert(txs.Chain, Equals, common.BTCChain)
-	c.Assert(txs.Count, Equals, "102")
+	c.Assert(txs.Count, Equals, "13")
 	c.Assert(txs.TxArray[0].BlockHeight, Equals, int64(1696761))
 	c.Assert(txs.TxArray[0].Tx, Equals, "24ed2d26fd5d4e0e8fa86633e40faf1bdfc8d1903b1cd02855286312d48818a2")
 	c.Assert(txs.TxArray[0].Sender, Equals, "tb1qdxxlx4r4jk63cve3rjpj428m26xcukjn5yegff")
 	c.Assert(txs.TxArray[0].To, Equals, "mv4rnyY3Su5gjcDNzbMLKBQkBicCtHUtFB")
 	c.Assert(txs.TxArray[0].Coins.Equals(common.Coins{common.NewCoin(common.BTCAsset, cosmos.NewUint(10000000))}), Equals, true)
 	c.Assert(txs.TxArray[0].Gas.Equals(common.Gas{common.NewCoin(common.BTCAsset, cosmos.NewUint(22705334))}), Equals, true)
-	c.Assert(len(txs.TxArray), Equals, 102)
+	c.Assert(len(txs.TxArray), Equals, 13)
 }
 
 func (s *BitcoinSuite) TestGetSender(c *C) {
@@ -1116,4 +1116,22 @@ func (s *BitcoinSuite) TestGetOutput(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(out.ScriptPubKey.Addresses[0], Equals, "tb1qkq7weysjn6ljc2ywmjmwp8ttcckg8yyxjdz5k6")
 	c.Assert(out.Value, Equals, 1.49655603)
+}
+
+func (s *BitcoinSuite) TestIsValidUTXO(c *C) {
+	netValue := os.Getenv("NET")
+	defer func() {
+		os.Setenv("NET", netValue)
+	}()
+	os.Unsetenv("NET")
+	// normal pay to pubkey hash segwit
+	c.Assert(s.client.isValidUTXO("00140653096f54ae1ae2d73291d15854aef08ebcfa8c"), Equals, true)
+	// pubkey hash , bitcoin client doesn't use it
+	c.Assert(s.client.isValidUTXO("76a91415fb126815935f6ae83a206d7d82f1065bc63e2588ac"), Equals, true)
+
+	c.Assert(s.client.isValidUTXO("a914e51a3dd98ded55718ad2cf2ce7c8ff056394445787"), Equals, true)
+	c.Assert(s.client.isValidUTXO("00483045022100995187373cabc9ef02e5dd2770519704054bff6e3b42f8eeeb1f08a40db527b50220380d4d1f471087c35ebdde4251a0c8fa38db688600020a189d2b19343d079c100147304402205c8a886fece4c40c96c47ee51cf8e32ff75251375a47c4ec0cec9193a8a747620220703045742cdec7a19e16aa071a4fe4333a6c1b587783b864d0a64ef87783b13a014c695221039b3fa7e3dd5f9caab777f0dd15a03f1011063a2bf205f96ad2b01540506109432103e7e00ea57b70cfd9493f1d7e482a2bfe4c785d8e9bef25eb1fd3a528bc452e072103f01a388aecf967af2d21a8578635e745a3990afdfde8099ac44bab3ecd9c042153ae"), Equals, false)
+	c.Assert(s.client.isValidUTXO("51210281feb90c058c3436f8bc361930ae99fcfb530a699cdad141d7244bfcad521a1f51ae"), Equals, false)
+	c.Assert(s.client.isValidUTXO("5121037953dbf08030f67352134992643d033417eaa6fcfb770c038f364ff40d7615882100bd2fda4cf456d64386a0756f580101a607c25bd8d6814693bdf16e2a7ba3e45c52ae"), Equals, false)
+	c.Assert(s.client.isValidUTXO("524104d81fd577272bbe73308c93009eec5dc9fc319fc1ee2e7066e17220a5d47a18314578be2faea34b9f1f8ca078f8621acd4bc22897b03daa422b9bf56646b342a24104ec3afff0b2b66e8152e9018fe3be3fc92b30bf886b3487a525997d00fd9da2d012dce5d5275854adc3106572a5d1e12d4211b228429f5a7b2f7ba92eb0475bb14104b49b496684b02855bc32f5daefa2e2e406db4418f3b86bca5195600951c7d918cdbe5e6d3736ec2abf2dd7610995c3086976b2c0c7b4e459d10b34a316d5a5e753ae"), Equals, false)
 }
