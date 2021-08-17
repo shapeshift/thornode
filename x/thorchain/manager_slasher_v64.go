@@ -462,6 +462,9 @@ func (s *SlasherV64) SlashVault(ctx cosmos.Context, vaultPK common.PubKey, coins
 			// is to give the code time to prove itself reliable before the it
 			// starts booting nodes out of the system
 			toBan := false // TODO flip this to true
+			if na.Bond.IsZero() {
+				toBan = true
+			}
 			for _, vaultPk := range na.GetSignerMembership() {
 				vault, err := s.keeper.GetVault(ctx, vaultPk)
 				if err != nil {
@@ -482,9 +485,6 @@ func (s *SlasherV64) SlashVault(ctx cosmos.Context, vaultPK common.PubKey, coins
 					toBan = false
 					break
 				}
-			}
-			if na.Bond.IsZero() {
-				toBan = true
 			}
 			if toBan {
 				na.ForcedToLeave = true
