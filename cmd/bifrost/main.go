@@ -260,6 +260,7 @@ func getLocalPreParam(file string) *btsskeygen.LocalPreParams {
 	if len(file) == 0 {
 		return nil
 	}
+	// #nosec G304 this is to read a file provided by a start up parameter , it will not be any random user input
 	buf, err := ioutil.ReadFile(file)
 	if err != nil {
 		log.Fatal().Msgf("fail to read file:%s", file)

@@ -13,6 +13,7 @@ import (
 
 const (
 	// prefixTokenMeta declares prefix to use in leveldb to avoid conflicts
+	// #nosec G101 this is just a prefix
 	prefixTokenMeta = `eth-tokenmeta-`
 )
 
