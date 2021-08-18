@@ -366,6 +366,19 @@
         "gas": null
     },
     {
+        "chain": "THOR",
+        "from_address": "PROVIDER-1",
+        "to_address": "VAULT",
+        "memo": "SWAP:THOR.RUNE:PROVIDER-1",
+        "coins": [
+            {
+                "asset": "BNB/BNB",
+                "amount": 10
+            }
+        ],
+        "gas": null
+    },
+    {
         "chain": "BNB",
         "from_address": "PROVIDER-1",
         "to_address": "VAULT",
@@ -1209,7 +1222,7 @@
         "coins": [
             {
                 "asset": "BNB/BNB",
-                "amount": 23882844
+                "amount": 40493464
             }
         ],
         "gas": null
@@ -1222,7 +1235,7 @@
         "coins": [
             {
                 "asset": "BTC/BTC",
-                "amount": 22061425
+                "amount": 22061423
             }
         ],
         "gas": null
@@ -1262,19 +1275,6 @@
             {
                 "asset": "THOR.RUNE",
                 "amount": 1
-            }
-        ],
-        "gas": null
-    },
-    {
-        "chain": "THOR",
-        "from_address": "PROVIDER-1",
-        "to_address": "VAULT",
-        "memo": "SWAP:THOR.RUNE:PROVIDER-1",
-        "coins": [
-            {
-                "asset": "BNB/BNB",
-                "amount": 16610630
             }
         ],
         "gas": null

@@ -495,6 +495,14 @@ class TestThorchainState(unittest.TestCase):
                     *tx.get_attributes(),
                 ],
             ),
+            Event(
+                "fee",
+                [
+                    {"tx_id": "TODO"},
+                    {"coins": f"1 {RUNE}"},
+                    {"pool_deduct": "0"},
+                ],
+            ),
         ]
         self.assertEqual(events, expected_events)
 
@@ -512,6 +520,14 @@ class TestThorchainState(unittest.TestCase):
                     {"code": "108"},
                     {"reason": "fail swap, not enough fee"},
                     *tx.get_attributes(),
+                ],
+            ),
+            Event(
+                "fee",
+                [
+                    {"tx_id": "TODO"},
+                    {"coins": f"1 {RUNE}"},
+                    {"pool_deduct": "0"},
                 ],
             ),
         ]
@@ -1971,6 +1987,14 @@ class TestThorchainState(unittest.TestCase):
                 "refund",
                 [{"code": "105"}, {"reason": "Invalid symbol"}, *tx.get_attributes()],
             ),
+            Event(
+                "fee",
+                [
+                    {"tx_id": "TODO"},
+                    {"coins": f"1 {RUNE}"},
+                    {"pool_deduct": "0"},
+                ],
+            ),
         ]
         self.assertEqual(thorchain.events, expected_events)
 
@@ -1986,6 +2010,14 @@ class TestThorchainState(unittest.TestCase):
                 "refund",
                 [{"code": "105"}, {"reason": "Invalid symbol"}, *tx.get_attributes()],
             ),
+            Event(
+                "fee",
+                [
+                    {"tx_id": "TODO"},
+                    {"coins": f"1 {RUNE}"},
+                    {"pool_deduct": "0"},
+                ],
+            ),
         ]
         self.assertEqual(thorchain.events, expected_events)
 
@@ -1998,6 +2030,14 @@ class TestThorchainState(unittest.TestCase):
             Event(
                 "refund",
                 [{"code": "105"}, {"reason": "Invalid symbol"}, *tx.get_attributes()],
+            ),
+            Event(
+                "fee",
+                [
+                    {"tx_id": "TODO"},
+                    {"coins": f"1 {RUNE}"},
+                    {"pool_deduct": "0"},
+                ],
             ),
         ]
         self.assertEqual(thorchain.events, expected_events)
@@ -2073,6 +2113,14 @@ class TestThorchainState(unittest.TestCase):
                     {"code": "105"},
                     {"reason": "refund reason message"},
                     *tx.get_attributes(),
+                ],
+            ),
+            Event(
+                "fee",
+                [
+                    {"tx_id": "TODO"},
+                    {"coins": f"1 {RUNE}"},
+                    {"pool_deduct": "0"},
                 ],
             ),
         ]
