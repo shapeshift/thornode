@@ -1100,7 +1100,7 @@ func (h ErrataTxHandler) processErrataOutboundTxV65(ctx cosmos.Context, msg MsgE
 		}
 	}
 
-	if !m.IsInternal() && !m.GetTxID().Equals(common.BlankTxID) {
+	if !m.IsInternal() && (!m.GetTxID().IsEmpty() && !m.GetTxID().Equals(common.BlankTxID)) {
 		txInVoter, err := h.mgr.Keeper().GetObservedTxInVoter(ctx, m.GetTxID())
 		if err != nil {
 			return nil, fmt.Errorf("fail to get tx in voter for tx (%s): %w", m.GetTxID(), err)
