@@ -251,14 +251,6 @@ func (o *Observer) processTxIns() {
 	}
 }
 
-func (o *Observer) isOutboundMsg(chain common.Chain, fromAddr string) bool {
-	matchOutbound, _ := o.pubkeyMgr.IsValidPoolAddress(fromAddr, chain)
-	if matchOutbound {
-		return true
-	}
-	return false
-}
-
 // chunkify  breaks the observations into 100 transactions per observation
 func (o *Observer) chunkify(txIn types.TxIn) (result []types.TxIn) {
 	// sort it by block height
@@ -439,8 +431,8 @@ func (o *Observer) sendErrataTxToThorchain(height int64, txID common.TxID, chain
 }
 
 func (o *Observer) sendSolvencyToThorchain(height int64, chain common.Chain, pubKey common.PubKey, coins common.Coins) error {
-	// TODO: the following version check can be removed once the network has been upgrade to 0.61.0 and beyond
-	// before the network get to 0.61.0 , it won't understand  how to process solvency messages
+	// TODO: the following version check can be removed once the network has been upgrade to 0.63.0 and beyond
+	// before the network get to 0.63.0 , it won't understand  how to process solvency messages
 	v, err := o.thorchainBridge.GetThorchainVersion()
 	if err != nil {
 		o.logger.Err(err).Msg("fail to get THORChain version")

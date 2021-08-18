@@ -160,7 +160,7 @@ func (h YggdrasilHandler) handleV1(ctx cosmos.Context, msg MsgYggdrasil) (*cosmo
 					maxGasAmt := tx.MaxGas.ToCoins().GetCoin(asset).Amount
 					realGasAmt := msg.Tx.Gas.ToCoins().GetCoin(asset).Amount
 					if maxGasAmt.GTE(realGasAmt) {
-						ctx.Logger().Info(fmt.Sprintf("intend to spend: %s, actual spend: %s are the same , override match coin", intendToSpend, actualSpend))
+						ctx.Logger().Info("override match coin", "intend to spend", intendToSpend, "actual spend", actualSpend)
 						matchCoin = true
 					}
 				}

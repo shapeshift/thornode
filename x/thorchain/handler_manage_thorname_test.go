@@ -1,8 +1,6 @@
 package thorchain
 
 import (
-	"fmt"
-
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
@@ -83,7 +81,6 @@ func (s *HandlerManageTHORNameSuite) TestHandler(c *C) {
 	_, err := handler.handle(ctx, *msg)
 	c.Assert(err, IsNil)
 	name, err := mgr.Keeper().GetTHORName(ctx, tnName)
-	fmt.Printf("NAAA: %+v\n", name)
 	c.Assert(err, IsNil)
 	c.Check(name.Owner.Empty(), Equals, false)
 	c.Check(name.ExpireBlockHeight, Equals, common.BlockHeight(ctx)+blocksPerYear+(int64(coin.Amount.Uint64())-registrationFee)/feePerBlock)

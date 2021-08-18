@@ -57,6 +57,7 @@ func (s *HandlerSetNodeKeysSuite) TestValidate(c *C) {
 		na:     GetRandomNodeAccount(NodeStandby),
 		ensure: nil,
 	}
+	keeper.na.PubKeySet = common.PubKeySet{}
 
 	handler := NewSetNodeKeysHandler(NewDummyMgrWithKeeper(keeper))
 
@@ -72,6 +73,11 @@ func (s *HandlerSetNodeKeysSuite) TestValidate(c *C) {
 	result, err := handler.Run(ctx, msg)
 	c.Assert(err, IsNil)
 	c.Assert(result, NotNil)
+
+	// cannot set keys again
+	keeper.na.PubKeySet = pubKeys
+	err = handler.validate(ctx, *msg)
+	c.Assert(err, NotNil)
 
 	// cannot set node keys for active account
 	keeper.na.Status = NodeActive
@@ -92,10 +98,6 @@ func (s *HandlerSetNodeKeysSuite) TestValidate(c *C) {
 	err = handler.validate(ctx, *msg)
 	c.Assert(err, ErrorMatches, "duplicate keys")
 	keeper.ensure = nil
-
-	// new version GT
-	err = handler.validate(ctx, *msg)
-	c.Assert(err, IsNil)
 
 	// invalid msg
 	msg = &MsgSetNodeKeys{}

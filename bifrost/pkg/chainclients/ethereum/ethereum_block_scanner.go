@@ -611,7 +611,6 @@ func (e *ETHScanner) getRPCBlock(height int64) (*etypes.Block, error) {
 	}
 	return block, nil
 }
-
 func (e *ETHScanner) getDecimals(token string) (uint64, error) {
 	if IsETH(token) {
 		return defaultDecimals, nil
@@ -682,24 +681,15 @@ func (e *ETHScanner) getSymbol(token string) (string, error) {
 	return sanitiseSymbol(symbol), nil
 }
 
-// isTHORChainRouterAddress this will check whether the given address is THORChain router address
-func (e *ETHScanner) isTHORChainRouterAddress(addr ecommon.Address) bool {
-	// get the smart contract used by thornode
-	contractAddresses := e.pubkeyMgr.GetContracts(common.ETHChain)
-	for _, item := range contractAddresses {
-		if strings.EqualFold(item.String(), addr.String()) {
-			return true
-		}
-	}
-	return false
-}
-
 // isToValidContractAddress this method make sure the transaction to address is to THORChain router or a whitelist address
-func (e *ETHScanner) isToValidContractAddress(addr *ecommon.Address) bool {
+func (e *ETHScanner) isToValidContractAddress(addr *ecommon.Address, includeWhiteList bool) bool {
 	// get the smart contract used by thornode
 	contractAddresses := e.pubkeyMgr.GetContracts(common.ETHChain)
+	if includeWhiteList {
+		contractAddresses = append(contractAddresses, whitelistSmartContractAddres...)
+	}
 	// combine the whitelist smart contract address
-	for _, item := range append(contractAddresses, whitelistSmartContractAddres...) {
+	for _, item := range contractAddresses {
 		if strings.EqualFold(item.String(), addr.String()) {
 			return true
 		}
@@ -803,7 +793,7 @@ func (e *ETHScanner) getTxInFromSmartContract(tx *etypes.Transaction, receipt *e
 	isVaultTransfer := false
 	for _, item := range receipt.Logs {
 		// only events produced by THORChain router is processed
-		if !e.isTHORChainRouterAddress(item.Address) {
+		if !e.isToValidContractAddress(&item.Address, false) {
 			continue
 		}
 		switch item.Topics[0].String() {
@@ -1004,7 +994,7 @@ func (e *ETHScanner) fromTxToTxIn(tx *etypes.Transaction) (*stypes.TxInItem, err
 		return nil, nil
 	}
 
-	if e.isToValidContractAddress(tx.To()) {
+	if e.isToValidContractAddress(tx.To(), true) {
 		return e.getTxInFromSmartContract(tx, receipt)
 	}
 	return e.getTxInFromTransaction(tx)

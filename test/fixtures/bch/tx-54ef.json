@@ -29,7 +29,7 @@
         "n": 0,
         "scriptPubKey": {
           "asm": "0 a6eac1efcd03d067bdba35845830450901eaafd1",
-          "hex": "0014a6eac1efcd03d067bdba35845830450901eaafd1",
+          "hex": "76a914f3b40cad194d48398755b45036421b1a645bbdcc88ac",
           "reqSigs": 1,
           "type": "witness_v0_keyhash",
           "addresses": [
@@ -42,7 +42,7 @@
         "n": 1,
         "scriptPubKey": {
           "asm": "0 d9dabd8962571ab8cf5086e79b588b6d5381b8fe",
-          "hex": "0014d9dabd8962571ab8cf5086e79b588b6d5381b8fe",
+          "hex": "76a914f3b40cad194d48398755b45036421b1a645bbdcc88ac",
           "reqSigs": 1,
           "type": "witness_v0_keyhash",
           "addresses": [
