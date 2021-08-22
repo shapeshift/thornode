@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/blang/semver"
 	"github.com/cenkalti/backoff"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog"
@@ -40,6 +41,7 @@ type Observer struct {
 	lock                *sync.Mutex
 	globalTxsQueue      chan types.TxIn
 	globalErrataQueue   chan types.ErrataBlock
+	globalSolvencyQueue chan types.Solvency
 	m                   *metrics.Metrics
 	errCounter          *prometheus.CounterVec
 	thorchainBridge     *thorclient.ThorchainBridge
@@ -72,6 +74,7 @@ func NewObserver(pubkeyMgr *pubkeymanager.PubKeyManager,
 		lock:                &sync.Mutex{},
 		globalTxsQueue:      make(chan types.TxIn),
 		globalErrataQueue:   make(chan types.ErrataBlock),
+		globalSolvencyQueue: make(chan types.Solvency),
 		errCounter:          m.GetCounterVec(metrics.ObserverError),
 		thorchainBridge:     thorchainBridge,
 		storage:             storage,
@@ -92,10 +95,11 @@ func (o *Observer) getChain(chainID common.Chain) (chainclients.ChainClient, err
 func (o *Observer) Start() error {
 	o.restoreDeck()
 	for _, chain := range o.chains {
-		chain.Start(o.globalTxsQueue, o.globalErrataQueue)
+		chain.Start(o.globalTxsQueue, o.globalErrataQueue, o.globalSolvencyQueue)
 	}
 	go o.processTxIns()
 	go o.processErrataTx()
+	go o.processSolvencyQueue()
 	go o.deck()
 	return nil
 }
@@ -245,14 +249,6 @@ func (o *Observer) processTxIns() {
 			o.lock.Unlock()
 		}
 	}
-}
-
-func (o *Observer) isOutboundMsg(chain common.Chain, fromAddr string) bool {
-	matchOutbound, _ := o.pubkeyMgr.IsValidPoolAddress(fromAddr, chain)
-	if matchOutbound {
-		return true
-	}
-	return false
 }
 
 // chunkify  breaks the observations into 100 transactions per observation
@@ -433,6 +429,44 @@ func (o *Observer) sendErrataTxToThorchain(height int64, txID common.TxID, chain
 	o.logger.Info().Int64("block", height).Str("thorchain hash", txID.String()).Msg("sign and send to thorchain successfully")
 	return nil
 }
+
+func (o *Observer) sendSolvencyToThorchain(height int64, chain common.Chain, pubKey common.PubKey, coins common.Coins) error {
+	// TODO: the following version check can be removed once the network has been upgrade to 0.63.0 and beyond
+	// before the network get to 0.63.0 , it won't understand  how to process solvency messages
+	v, err := o.thorchainBridge.GetThorchainVersion()
+	if err != nil {
+		o.logger.Err(err).Msg("fail to get THORChain version")
+		return nil
+	}
+	if v.LT(semver.MustParse("0.63.0")) {
+		o.logger.Info().Msgf("THORChain version is %s , less than 0.63.0", v)
+		return nil
+	}
+	nodeStatus, err := o.thorchainBridge.FetchNodeStatus()
+	if err != nil {
+		return fmt.Errorf("failed to get node status: %w", err)
+	}
+
+	if nodeStatus != stypes.NodeStatus_Active {
+		return nil
+	}
+
+	msg := o.thorchainBridge.GetSolvencyMsg(height, chain, pubKey, coins)
+	if msg == nil {
+		return fmt.Errorf("fail to create solvency message")
+	}
+	if err := msg.ValidateBasic(); err != nil {
+		return err
+	}
+	txID, err := o.thorchainBridge.Broadcast(msg)
+	if err != nil {
+		strHeight := strconv.FormatInt(height, 10)
+		o.errCounter.WithLabelValues("fail_to_send_to_thorchain", strHeight).Inc()
+		return fmt.Errorf("fail to send the MsgSolvency to thorchain: %w", err)
+	}
+	o.logger.Info().Int64("block", height).Str("chain", chain.String()).Str("thorchain hash", txID.String()).Msg("sign and send MsgSolvency to thorchain successfully")
+	return nil
+}
 func (o *Observer) updateSignerCache(txIn types.TxIn) error {
 	if o.signerCacheUpdater == nil {
 		return nil
@@ -548,6 +582,27 @@ func (o *Observer) getThorchainTxIns(txIn types.TxIn) (stypes.ObservedTxs, error
 		txs = append(txs, tx)
 	}
 	return txs, nil
+}
+
+func (o *Observer) processSolvencyQueue() {
+	for {
+		select {
+		case <-o.stopChan:
+			return
+		case solvencyItem, more := <-o.globalSolvencyQueue:
+			if !more {
+				return
+			}
+			if solvencyItem.Chain.IsEmpty() || solvencyItem.Coins.IsEmpty() || solvencyItem.PubKey.IsEmpty() {
+				continue
+			}
+			o.logger.Debug().Msgf("solvency:%+v", solvencyItem)
+			if err := o.sendSolvencyToThorchain(solvencyItem.Height, solvencyItem.Chain, solvencyItem.PubKey, solvencyItem.Coins); err != nil {
+				o.errCounter.WithLabelValues("fail_to_broadcast_solvency", "").Inc()
+				o.logger.Error().Err(err).Msg("fail to broadcast solvency tx")
+			}
+		}
+	}
 }
 
 // Stop the observer

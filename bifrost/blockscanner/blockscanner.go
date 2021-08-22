@@ -107,7 +107,6 @@ func (b *BlockScanner) Start(globalTxsQueue chan types.TxIn) {
 	go b.scanBlocks()
 	go b.scanMempool()
 }
-
 func (b *BlockScanner) scanMempool() {
 	b.logger.Debug().Msg("start to scan mempool")
 	defer b.logger.Debug().Msg("stop scan mempool")
@@ -159,7 +158,7 @@ func (b *BlockScanner) scanBlocks() {
 			preBlockHeight := atomic.LoadInt64(&b.previousBlock)
 			currentBlock := preBlockHeight + 1
 			// check if mimir has disabled this chain
-			if time.Now().Sub(lastMimirCheck).Nanoseconds() >= constants.ThorchainBlockTime.Nanoseconds() {
+			if time.Since(lastMimirCheck) >= constants.ThorchainBlockTime {
 				haltHeight, err = b.thorchainBridge.GetMimir(fmt.Sprintf("Halt%sChain", b.cfg.ChainID))
 				if err != nil {
 					b.logger.Error().Err(err).Msg("fail to get mimir setting")
@@ -172,7 +171,7 @@ func (b *BlockScanner) scanBlocks() {
 				time.Sleep(constants.ThorchainBlockTime)
 				continue
 			}
-			b.logger.Debug().Int64("block height", currentBlock).Msg("fetch txs")
+			// b.logger.Debug().Int64("block height", currentBlock).Msg("fetch txs")
 			txIn, err := b.chainScanner.FetchTxs(currentBlock)
 			if err != nil {
 				// don't log an error if its because the block doesn't exist yet

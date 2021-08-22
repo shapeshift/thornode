@@ -104,24 +104,26 @@ func (s *BlockScannerTestSuite) TestNewBlockScanner(c *C) {
 	c.Assert(err, IsNil)
 	pubKeyManager, err := pubkeymanager.NewPubKeyManager(s.bridge, s.m)
 	c.Assert(err, IsNil)
-
-	bs, err := NewETHScanner(getConfigForTest(""), nil, big.NewInt(int64(types.Mainnet)), ethClient, s.bridge, s.m, pubKeyManager)
+	solvencyReporter := func(height int64) error {
+		return nil
+	}
+	bs, err := NewETHScanner(getConfigForTest(""), nil, big.NewInt(int64(types.Mainnet)), ethClient, s.bridge, s.m, pubKeyManager, solvencyReporter)
 	c.Assert(err, NotNil)
 	c.Assert(bs, IsNil)
 
-	bs, err = NewETHScanner(getConfigForTest("127.0.0.1"), storage, big.NewInt(int64(types.Mainnet)), ethClient, s.bridge, nil, pubKeyManager)
+	bs, err = NewETHScanner(getConfigForTest("127.0.0.1"), storage, big.NewInt(int64(types.Mainnet)), ethClient, s.bridge, nil, pubKeyManager, solvencyReporter)
 	c.Assert(err, NotNil)
 	c.Assert(bs, IsNil)
 
-	bs, err = NewETHScanner(getConfigForTest("127.0.0.1"), storage, big.NewInt(int64(types.Mainnet)), nil, s.bridge, s.m, pubKeyManager)
+	bs, err = NewETHScanner(getConfigForTest("127.0.0.1"), storage, big.NewInt(int64(types.Mainnet)), nil, s.bridge, s.m, pubKeyManager, solvencyReporter)
 	c.Assert(err, NotNil)
 	c.Assert(bs, IsNil)
 
-	bs, err = NewETHScanner(getConfigForTest("127.0.0.1"), storage, big.NewInt(int64(types.Mainnet)), ethClient, s.bridge, s.m, nil)
+	bs, err = NewETHScanner(getConfigForTest("127.0.0.1"), storage, big.NewInt(int64(types.Mainnet)), ethClient, s.bridge, s.m, nil, solvencyReporter)
 	c.Assert(err, NotNil)
 	c.Assert(bs, IsNil)
 
-	bs, err = NewETHScanner(getConfigForTest("127.0.0.1"), storage, big.NewInt(int64(types.Mainnet)), ethClient, s.bridge, s.m, pubKeyManager)
+	bs, err = NewETHScanner(getConfigForTest("127.0.0.1"), storage, big.NewInt(int64(types.Mainnet)), ethClient, s.bridge, s.m, pubKeyManager, solvencyReporter)
 	c.Assert(err, IsNil)
 	c.Assert(bs, NotNil)
 }
@@ -197,9 +199,13 @@ func (s *BlockScannerTestSuite) TestProcessBlock(c *C) {
 	c.Assert(err, IsNil)
 	pubKeyMgr.Start()
 	defer pubKeyMgr.Stop()
-	bs, err := NewETHScanner(getConfigForTest(server.URL), storage, big.NewInt(1337), ethClient, bridge, s.m, pubKeyMgr)
+
+	bs, err := NewETHScanner(getConfigForTest(server.URL), storage, big.NewInt(1337), ethClient, bridge, s.m, pubKeyMgr, func(height int64) error {
+		return nil
+	})
 	c.Assert(err, IsNil)
 	c.Assert(bs, NotNil)
+	whitelistSmartContractAddres = append(whitelistSmartContractAddres, "0x40bcd4dB8889a8Bf0b1391d0c819dcd9627f9d0a")
 	txIn, err := bs.FetchTxs(int64(1))
 	c.Assert(err, IsNil)
 	c.Check(len(txIn.TxArray), Equals, 1)
@@ -332,7 +338,9 @@ func (s *BlockScannerTestSuite) TestFromTxToTxIn(c *C) {
 	pkeyMgr.Start()
 	defer pkeyMgr.Stop()
 	c.Assert(err, IsNil)
-	bs, err := NewETHScanner(getConfigForTest(server.URL), storage, big.NewInt(int64(types.Mainnet)), ethClient, s.bridge, s.m, pkeyMgr)
+	bs, err := NewETHScanner(getConfigForTest(server.URL), storage, big.NewInt(int64(types.Mainnet)), ethClient, s.bridge, s.m, pkeyMgr, func(height int64) error {
+		return nil
+	})
 	c.Assert(err, IsNil)
 	c.Assert(bs, NotNil)
 
@@ -376,7 +384,9 @@ func (s *BlockScannerTestSuite) TestFromTxToTxIn(c *C) {
 		true,
 	)
 
-	bs, err = NewETHScanner(getConfigForTest(server.URL), storage, big.NewInt(1337), ethClient, s.bridge, s.m, pkeyMgr)
+	bs, err = NewETHScanner(getConfigForTest(server.URL), storage, big.NewInt(1337), ethClient, s.bridge, s.m, pkeyMgr, func(height int64) error {
+		return nil
+	})
 	c.Assert(err, IsNil)
 	c.Assert(bs, NotNil)
 	// smart contract - deposit
@@ -393,7 +403,13 @@ func (s *BlockScannerTestSuite) TestFromTxToTxIn(c *C) {
 	c.Assert(txInItem.Coins[0].Asset.String(), Equals, "ETH.TKN-0X3B7FA4DD21C6F9BA3CA375217EAD7CAB9D6BF483")
 	c.Assert(txInItem.Coins[0].Amount.Equal(cosmos.NewUint(500000000)), Equals, true)
 
-	bs, err = NewETHScanner(getConfigForTest(server.URL), storage, big.NewInt(1337), ethClient, s.bridge, s.m, pkeyMgr)
+	bs, err = NewETHScanner(getConfigForTest(server.URL), storage, big.NewInt(1337), ethClient, s.bridge, s.m, pkeyMgr, func(height int64) error {
+		return nil
+	})
+	// whitelist the address for test
+	whitelistSmartContractAddres = append(whitelistSmartContractAddres,
+		"0xe65e9d372f8cacc7b6dfcd4af6507851ed31bb44",
+		"0x81a392e6a757d58a7eb6781a775a3449da3b9df5")
 	c.Assert(err, IsNil)
 	c.Assert(bs, NotNil)
 	// smart contract - deposit via smart contract (transaction to != router)
@@ -551,7 +567,9 @@ func (s *BlockScannerTestSuite) TestProcessReOrg(c *C) {
 	pkeyMgr, err := pubkeymanager.NewPubKeyManager(bridge, s.m)
 	pkeyMgr.Start()
 	defer pkeyMgr.Stop()
-	bs, err := NewETHScanner(getConfigForTest(server.URL), storage, big.NewInt(int64(types.Mainnet)), ethClient, s.bridge, s.m, pkeyMgr)
+	bs, err := NewETHScanner(getConfigForTest(server.URL), storage, big.NewInt(int64(types.Mainnet)), ethClient, s.bridge, s.m, pkeyMgr, func(height int64) error {
+		return nil
+	})
 	c.Assert(err, IsNil)
 	c.Assert(bs, NotNil)
 	block, err := CreateBlock(0)

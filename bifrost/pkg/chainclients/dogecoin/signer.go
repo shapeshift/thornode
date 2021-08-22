@@ -10,7 +10,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/blang/semver"
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	"github.com/eager7/dogd/btcec"
 	"github.com/eager7/dogd/btcjson"
@@ -111,10 +110,13 @@ func (c *Client) getUtxoToSpend(pubKey common.PubKey, total float64) ([]btcjson.
 	var toSpend float64
 	minUTXOAmt := dogutil.Amount(minSpendableUTXOAmountSats).ToBTC()
 	for _, item := range utxos {
+		if !c.isValidUTXO(item.ScriptPubKey) {
+			continue
+		}
 		isSelfTx := c.isSelfTransaction(item.TxID)
 		if item.Confirmations == 0 {
 			// pending tx that is still  in mempool, only count yggdrasil send to itself or from asgard
-			if !c.isSelfTransaction(item.TxID) && !c.isFromActiveAsgard(item) {
+			if !c.isSelfTransaction(item.TxID) && !c.isAsgardAddress(item.Address) {
 				continue
 			}
 		}
@@ -468,17 +470,7 @@ func (c *Client) consolidateUTXOs() {
 		c.wg.Done()
 		c.consolidateInProgress = false
 	}()
-	// version check here is required , otherwise it will cause some of the node updated late get into consensus failure
-	// this can be removed in a later version , after this change has been roll out to chaosnet
-	v, err := c.bridge.GetThorchainVersion()
-	if err != nil {
-		c.logger.Err(err).Msg("fail to get THORChain version")
-		return
-	}
-	if v.LT(semver.MustParse("0.53.0")) {
-		c.logger.Info().Msgf("THORChain version is %s , less than 0.53.0", v)
-		return
-	}
+
 	nodeStatus, err := c.bridge.FetchNodeStatus()
 	if err != nil {
 		c.logger.Err(err).Msg("fail to get node status")
