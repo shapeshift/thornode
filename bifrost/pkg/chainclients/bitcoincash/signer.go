@@ -108,10 +108,14 @@ func (c *Client) getUtxoToSpend(pubKey common.PubKey, total float64) ([]btcjson.
 	var toSpend float64
 	minUTXOAmt := bchutil.Amount(minSpendableUTXOAmountSats).ToBCH()
 	for _, item := range utxos {
+		if !c.isValidUTXO(item.ScriptPubKey) {
+			c.logger.Info().Msgf("invalid UTXO , can't spent it")
+			continue
+		}
 		isSelfTx := c.isSelfTransaction(item.TxID)
 		if item.Confirmations == 0 {
 			// pending tx that is still  in mempool, only count yggdrasil send to itself or from asgard
-			if !c.isSelfTransaction(item.TxID) && !c.isFromActiveAsgard(item) {
+			if !c.isSelfTransaction(item.TxID) && !c.isAsgardAddress(item.Address) {
 				continue
 			}
 		}
