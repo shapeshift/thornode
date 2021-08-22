@@ -9,11 +9,11 @@ import (
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
-type TxOutStoreV51Suite struct{}
+type TxOutStoreV64Suite struct{}
 
-var _ = Suite(&TxOutStoreV51Suite{})
+var _ = Suite(&TxOutStoreV64Suite{})
 
-func (s TxOutStoreV51Suite) TestAddGasFees(c *C) {
+func (s TxOutStoreV64Suite) TestAddGasFees(c *C) {
 	ctx, mgr := setupManagerForTest(c)
 	tx := GetRandomObservedTx()
 
@@ -25,7 +25,7 @@ func (s TxOutStoreV51Suite) TestAddGasFees(c *C) {
 	c.Assert(mgr.GasMgr().GetGas(), HasLen, 1)
 }
 
-func (s TxOutStoreV51Suite) TestAddOutTxItem(c *C) {
+func (s TxOutStoreV64Suite) TestAddOutTxItem(c *C) {
 	w := getHandlerTestWrapper(c, 1, true, true)
 	vault := GetRandomVault()
 	vault.Coins = common.Coins{
@@ -45,6 +45,7 @@ func (s TxOutStoreV51Suite) TestAddOutTxItem(c *C) {
 	ygg.AddFunds(
 		common.Coins{
 			common.NewCoin(common.BNBAsset, cosmos.NewUint(40*common.One)),
+			common.NewCoin(common.BCHAsset, cosmos.NewUint(40*common.One)),
 		},
 	)
 	c.Assert(w.keeper.SetVault(w.ctx, ygg), IsNil)
@@ -53,6 +54,7 @@ func (s TxOutStoreV51Suite) TestAddOutTxItem(c *C) {
 	ygg.AddFunds(
 		common.Coins{
 			common.NewCoin(common.BNBAsset, cosmos.NewUint(50*common.One)),
+			common.NewCoin(common.BCHAsset, cosmos.NewUint(40*common.One)),
 		},
 	)
 	c.Assert(w.keeper.SetVault(w.ctx, ygg), IsNil)
@@ -61,6 +63,7 @@ func (s TxOutStoreV51Suite) TestAddOutTxItem(c *C) {
 	ygg.AddFunds(
 		common.Coins{
 			common.NewCoin(common.BNBAsset, cosmos.NewUint(100*common.One)),
+			common.NewCoin(common.BCHAsset, cosmos.NewUint(40*common.One)),
 		},
 	)
 	c.Assert(w.keeper.SetVault(w.ctx, ygg), IsNil)
@@ -86,7 +89,7 @@ func (s TxOutStoreV51Suite) TestAddOutTxItem(c *C) {
 		InHash:    inTxID,
 		Coin:      common.NewCoin(common.BNBAsset, cosmos.NewUint(20*common.One)),
 	}
-	txOutStore := NewTxOutStorageV51(w.keeper, w.mgr.GetConstants(), w.mgr.EventMgr(), w.mgr.GasMgr())
+	txOutStore := NewTxOutStorageV64(w.keeper, w.mgr.GetConstants(), w.mgr.EventMgr(), w.mgr.GasMgr())
 	ok, err := txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item)
 	c.Assert(err, IsNil)
 	c.Assert(ok, Equals, true)
@@ -128,9 +131,26 @@ func (s TxOutStoreV51Suite) TestAddOutTxItem(c *C) {
 	c.Check(msgs[0].VaultPubKey.String(), Equals, acc2.PubKeySet.Secp256k1.String())
 	c.Check(msgs[1].VaultPubKey.String(), Equals, acc1.PubKeySet.Secp256k1.String())
 	c.Check(msgs[2].VaultPubKey.String(), Equals, vault.PubKey.String())
+
+	item = TxOutItem{
+		Chain:     common.BCHChain,
+		ToAddress: "1EFJFJm7Y9mTVsCBXA9PKuRuzjgrdBe4rR",
+		InHash:    inTxID,
+		Coin:      common.NewCoin(common.BCHAsset, cosmos.NewUint(20*common.One)),
+		MaxGas: common.Gas{
+			common.NewCoin(common.BCHAsset, cosmos.NewUint(10000)),
+		},
+	}
+	txOutStore.ClearOutboundItems(w.ctx)
+	result, err := txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item)
+	c.Assert(result, Equals, true)
+	c.Assert(err, IsNil)
+	msgs, err = txOutStore.GetOutboundItems(w.ctx)
+	// this should be a mocknet address
+	c.Assert(msgs[0].ToAddress.String(), Equals, "qzg5mkh7rkw3y8kw47l3rrnvhmenvctmd5yg6hxe64")
 }
 
-func (s TxOutStoreV51Suite) TestAddOutTxItemNotEnoughForFee(c *C) {
+func (s TxOutStoreV64Suite) TestAddOutTxItemNotEnoughForFee(c *C) {
 	w := getHandlerTestWrapper(c, 1, true, true)
 	vault := GetRandomVault()
 	vault.Coins = common.Coins{
@@ -184,23 +204,23 @@ func (s TxOutStoreV51Suite) TestAddOutTxItemNotEnoughForFee(c *C) {
 	})
 	w.keeper.SetObservedTxInVoter(w.ctx, voter)
 
-	// Should get acc2. Acc3 hasn't signed and acc2 is the highest value
 	item := TxOutItem{
 		Chain:     common.BNBChain,
 		ToAddress: GetRandomBNBAddress(),
 		InHash:    inTxID,
-		Coin:      common.NewCoin(common.BNBAsset, cosmos.NewUint(5000030000)),
+		Coin:      common.NewCoin(common.BNBAsset, cosmos.NewUint(30000)),
 	}
-	txOutStore := NewTxOutStorageV51(w.keeper, w.mgr.GetConstants(), w.mgr.EventMgr(), w.mgr.GasMgr())
+	txOutStore := NewTxOutStorageV64(w.keeper, w.mgr.GetConstants(), w.mgr.EventMgr(), w.mgr.GasMgr())
 	ok, err := txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item)
 	c.Assert(err, NotNil)
+	c.Assert(err, Equals, ErrNotEnoughToPayFee)
 	c.Assert(ok, Equals, false)
 	msgs, err := txOutStore.GetOutboundItems(w.ctx)
 	c.Assert(err, IsNil)
 	c.Assert(msgs, HasLen, 0)
 }
 
-func (s TxOutStoreV51Suite) TestAddOutTxItemWithoutBFT(c *C) {
+func (s TxOutStoreV64Suite) TestAddOutTxItemWithoutBFT(c *C) {
 	w := getHandlerTestWrapper(c, 1, true, true)
 	vault := GetRandomVault()
 	vault.Coins = common.Coins{
@@ -215,7 +235,7 @@ func (s TxOutStoreV51Suite) TestAddOutTxItemWithoutBFT(c *C) {
 		InHash:    inTxID,
 		Coin:      common.NewCoin(common.BNBAsset, cosmos.NewUint(20*common.One)),
 	}
-	txOutStore := NewTxOutStorageV51(w.keeper, w.mgr.GetConstants(), w.mgr.EventMgr(), w.mgr.GasMgr())
+	txOutStore := NewTxOutStorageV64(w.keeper, w.mgr.GetConstants(), w.mgr.EventMgr(), w.mgr.GasMgr())
 	success, err := txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item)
 	c.Assert(err, IsNil)
 	c.Assert(success, Equals, true)
@@ -225,7 +245,7 @@ func (s TxOutStoreV51Suite) TestAddOutTxItemWithoutBFT(c *C) {
 	c.Assert(msgs[0].Coin.Amount.Equal(cosmos.NewUint(1999887500)), Equals, true, Commentf("%d", msgs[0].Coin.Amount.Uint64()))
 }
 
-func (s TxOutStoreV51Suite) TestAddOutTxItemDeductMaxGasFromYggdrasil(c *C) {
+func (s TxOutStoreV64Suite) TestAddOutTxItemDeductMaxGasFromYggdrasil(c *C) {
 	w := getHandlerTestWrapper(c, 1, true, true)
 	vault := GetRandomVault()
 	vault.Coins = common.Coins{
@@ -289,7 +309,7 @@ func (s TxOutStoreV51Suite) TestAddOutTxItemDeductMaxGasFromYggdrasil(c *C) {
 			common.NewCoin(common.BNBAsset, cosmos.NewUint(100000000)),
 		},
 	}
-	txOutStore := NewTxOutStorageV51(w.keeper, w.mgr.GetConstants(), w.mgr.EventMgr(), w.mgr.GasMgr())
+	txOutStore := NewTxOutStorageV64(w.keeper, w.mgr.GetConstants(), w.mgr.EventMgr(), w.mgr.GasMgr())
 	ok, err := txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item)
 	c.Assert(err, IsNil)
 	c.Assert(ok, Equals, true)
