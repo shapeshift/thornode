@@ -26,7 +26,7 @@ type ChainClient interface {
 	GetAccount(poolPubKey common.PubKey) (common.Account, error)
 	GetAccountByAddress(address string) (common.Account, error)
 	GetChain() common.Chain
-	Start(globalTxsQueue chan stypes.TxIn, globalErrataQueue chan stypes.ErrataBlock)
+	Start(globalTxsQueue chan stypes.TxIn, globalErrataQueue chan stypes.ErrataBlock, globalSolvencyQueue chan stypes.Solvency)
 	GetConfig() config.ChainConfiguration
 	GetConfirmationCount(txIn stypes.TxIn) int64
 	ConfirmationCountReady(txIn stypes.TxIn) bool

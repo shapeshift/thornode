@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/cosmos/cosmos-sdk/telemetry"
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
@@ -175,6 +176,9 @@ func (s *SwapperV56) swap(ctx cosmos.Context,
 		if err := keeper.AddToLiquidityFees(ctx, evt.Pool, evt.LiquidityFeeInRune); err != nil {
 			return assetAmount, swapEvents, fmt.Errorf("fail to add to liquidity fees: %w", err)
 		}
+		telemetry.IncrCounter(float32(1), "thornode", "swap", "count", evt.Pool.String())
+		telemetry.IncrCounter(telem(evt.SwapSlip), "thornode", "swap", "slip", evt.Pool.String())
+		telemetry.IncrCounter(telem(evt.LiquidityFeeInRune), "thornode", "swap", "liquidity_fee", evt.Pool.String())
 	}
 
 	if !s.coinsToBurn.IsEmpty() {

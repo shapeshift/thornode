@@ -19,6 +19,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/crypto/codec"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"gitlab.com/thorchain/bifrost/txscript"
 	mem "gitlab.com/thorchain/thornode/x/thorchain/memo"
 	tssp "gitlab.com/thorchain/tss/go-tss/tss"
 	"golang.org/x/sync/errgroup"
@@ -60,6 +61,7 @@ type Client struct {
 	ksWrapper             *KeySignWrapper
 	bridge                *thorclient.ThorchainBridge
 	globalErrataQueue     chan<- types.ErrataBlock
+	globalSolvencyQueue   chan<- types.Solvency
 	nodePubKey            common.PubKey
 	currentBlockHeight    int64
 	asgardAddresses       []common.Address
@@ -156,10 +158,11 @@ func NewClient(thorKeys *thorclient.Keys, cfg config.ChainConfiguration, server 
 }
 
 // Start starts the block scanner
-func (c *Client) Start(globalTxsQueue chan types.TxIn, globalErrataQueue chan types.ErrataBlock) {
+func (c *Client) Start(globalTxsQueue chan types.TxIn, globalErrataQueue chan types.ErrataBlock, globalSolvencyQueue chan types.Solvency) {
+	c.globalErrataQueue = globalErrataQueue
+	c.globalSolvencyQueue = globalSolvencyQueue
 	c.tssKeySigner.Start()
 	c.blockScanner.Start(globalTxsQueue)
-	c.globalErrataQueue = globalErrataQueue
 }
 
 // Stop stops the block scanner
@@ -226,9 +229,12 @@ func (c *Client) GetAccount(pkey common.PubKey) (common.Account, error) {
 	}
 	total := 0.0
 	for _, item := range utxos {
+		if !c.isValidUTXO(item.ScriptPubKey) {
+			continue
+		}
 		if item.Confirmations == 0 {
 			// pending tx that is still  in mempool, only count yggdrasil send to itself or from asgard
-			if !c.isSelfTransaction(item.TxID) && !c.isFromActiveAsgard(item) {
+			if !c.isSelfTransaction(item.TxID) && !c.isAsgardAddress(item.Address) {
 				continue
 			}
 		}
@@ -249,7 +255,7 @@ func (c *Client) GetAccountByAddress(string) (common.Account, error) {
 }
 
 func (c *Client) getAsgardAddress() ([]common.Address, error) {
-	if time.Now().Sub(c.lastAsgard) < constants.ThorchainBlockTime && c.asgardAddresses != nil {
+	if time.Since(c.lastAsgard) < constants.ThorchainBlockTime && c.asgardAddresses != nil {
 		return c.asgardAddresses, nil
 	}
 	vaults, err := c.bridge.GetAsgards()
@@ -283,20 +289,18 @@ func (c *Client) getAsgardAddress() ([]common.Address, error) {
 	return c.asgardAddresses, nil
 }
 
-func (c *Client) isFromAsgard(txIn types.TxInItem) bool {
+func (c *Client) isAsgardAddress(addressToCheck string) bool {
 	asgards, err := c.getAsgardAddress()
 	if err != nil {
 		c.logger.Err(err).Msg("fail to get asgard addresses")
 		return false
 	}
-	isFromAsgard := false
 	for _, addr := range asgards {
-		if addr.String() == txIn.Sender {
-			isFromAsgard = true
-			break
+		if strings.EqualFold(addr.String(), addressToCheck) {
+			return true
 		}
 	}
-	return isFromAsgard
+	return false
 }
 
 // OnObservedTxIn gets called from observer when we have a valid observation
@@ -318,7 +322,7 @@ func (c *Client) OnObservedTxIn(txIn types.TxInItem, blockHeight int64) {
 	if _, err := c.blockMetaAccessor.TryAddToObservedTxCache(txIn.Tx); err != nil {
 		c.logger.Err(err).Msgf("fail to add hash (%s) to observed tx cache", txIn.Tx)
 	}
-	if c.isFromAsgard(txIn) {
+	if c.isAsgardAddress(txIn.Sender) {
 		c.logger.Debug().Msgf("add hash %s as self transaction,block height:%d", hash.String(), blockHeight)
 		blockMeta.AddSelfTransaction(hash.String())
 	} else {
@@ -598,6 +602,9 @@ func (c *Client) FetchTxs(height int64) (types.TxIn, error) {
 	if err := c.sendNetworkFee(height); err != nil {
 		c.logger.Err(err).Msg("fail to send network fee")
 	}
+	if err := c.reportSolvency(height); err != nil {
+		c.logger.Err(err).Msgf("fail to send solvency info to THORChain")
+	}
 	txIn.Count = strconv.Itoa(len(txIn.TxArray))
 	if !c.consolidateInProgress {
 		// try to consolidate UTXOs
@@ -605,6 +612,31 @@ func (c *Client) FetchTxs(height int64) (types.TxIn, error) {
 		go c.consolidateUTXOs()
 	}
 	return txIn, nil
+}
+
+func (c *Client) reportSolvency(bitcoinBlockHeight int64) error {
+	asgardVaults, err := c.bridge.GetAsgards()
+	if err != nil {
+		return fmt.Errorf("fail to get asgards,err: %w", err)
+	}
+	for _, asgard := range asgardVaults {
+		acct, err := c.GetAccount(asgard.PubKey)
+		if err != nil {
+			c.logger.Err(err).Msgf("fail to get account balance")
+			continue
+		}
+		select {
+		case c.globalSolvencyQueue <- types.Solvency{
+			Height: bitcoinBlockHeight,
+			Chain:  common.BTCChain,
+			PubKey: asgard.PubKey,
+			Coins:  acct.Coins,
+		}:
+		case <-time.After(constants.ThorchainBlockTime):
+			c.logger.Info().Msgf("fail to send solvency info to THORChain, timeout")
+		}
+	}
+	return nil
 }
 
 func (c *Client) canDeleteBlock(blockMeta *BlockMeta) bool {
@@ -666,10 +698,40 @@ func (c *Client) getBlock(height int64) (*btcjson.GetBlockVerboseTxResult, error
 	}
 	return c.client.GetBlockVerboseTx(hash)
 }
+func (c *Client) isValidUTXO(hexPubKey string) bool {
+	buf, err := hex.DecodeString(hexPubKey)
+	if err != nil {
+		c.logger.Err(err).Msgf("fail to decode hex string,%s", hexPubKey)
+		return false
+	}
+	scriptType, addresses, requireSigs, err := txscript.ExtractPkScriptAddrs(buf, c.getChainCfg())
+	if err != nil {
+		c.logger.Err(err).Msg("fail to extract pub key script")
+		return false
+	}
+	switch scriptType {
+	case txscript.MultiSigTy:
+		return false
 
+	default:
+		return len(addresses) == 1 && requireSigs == 1
+	}
+}
+func (c *Client) isRBFEnabled(tx *btcjson.TxRawResult) bool {
+	for _, vin := range tx.Vin {
+		if vin.Sequence < (0xffffffff - 1) {
+			return true
+		}
+	}
+	return false
+}
 func (c *Client) getTxIn(tx *btcjson.TxRawResult, height int64) (types.TxInItem, error) {
 	if c.ignoreTx(tx) {
 		c.logger.Debug().Int64("height", height).Str("tx", tx.Hash).Msg("ignore tx not matching format")
+		return types.TxInItem{}, nil
+	}
+	// RBF enabled transaction will not be observed until it get committed to block
+	if c.isRBFEnabled(tx) && tx.Confirmations == 0 {
 		return types.TxInItem{}, nil
 	}
 	sender, err := c.getSender(tx)
@@ -691,6 +753,14 @@ func (c *Client) getTxIn(tx *btcjson.TxRawResult, height int64) (types.TxInItem,
 		}
 		return types.TxInItem{}, fmt.Errorf("fail to get output from tx: %w", err)
 	}
+	toAddr := output.ScriptPubKey.Addresses[0]
+	// If a UTXO is outbound , there is no need to validate the UTXO against mutisig
+	if c.isAsgardAddress(toAddr) {
+		if !c.isValidUTXO(output.ScriptPubKey.Hex) {
+			return types.TxInItem{}, fmt.Errorf("invalid utxo")
+		}
+	}
+
 	amount, err := btcutil.NewAmount(output.Value)
 	if err != nil {
 		return types.TxInItem{}, fmt.Errorf("fail to parse float64: %w", err)
@@ -705,7 +775,7 @@ func (c *Client) getTxIn(tx *btcjson.TxRawResult, height int64) (types.TxInItem,
 		BlockHeight: height,
 		Tx:          tx.Txid,
 		Sender:      sender,
-		To:          output.ScriptPubKey.Addresses[0],
+		To:          toAddr,
 		Coins: common.Coins{
 			common.NewCoin(common.BTCAsset, cosmos.NewUint(amt)),
 		},
@@ -721,10 +791,10 @@ func (c *Client) extractTxs(block *btcjson.GetBlockVerboseTxResult) (types.TxIn,
 		MemPool: false,
 	}
 	var txItems []types.TxInItem
-	for _, tx := range block.Tx {
+	for idx, tx := range block.Tx {
 		// mempool transaction get committed to block , thus remove it from mempool cache
 		c.removeFromMemPoolCache(tx.Hash)
-		txInItem, err := c.getTxIn(&tx, block.Height)
+		txInItem, err := c.getTxIn(&block.Tx[idx], block.Height)
 		if err != nil {
 			c.logger.Err(err).Msg("fail to get TxInItem")
 			continue
@@ -771,6 +841,9 @@ func (c *Client) extractTxs(block *btcjson.GetBlockVerboseTxResult) (types.TxIn,
 //
 func (c *Client) ignoreTx(tx *btcjson.TxRawResult) bool {
 	if len(tx.Vin) == 0 || len(tx.Vout) == 0 || len(tx.Vout) > 4 {
+		return true
+	}
+	if tx.LockTime > 0 {
 		return true
 	}
 	if tx.Vin[0].Txid == "" {

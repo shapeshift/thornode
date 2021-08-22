@@ -2,7 +2,6 @@ package thorchain
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 
 	"github.com/cosmos/cosmos-sdk/client"
@@ -172,7 +171,7 @@ func (am AppModule) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
 
 	constantValues := constants.GetConstantValues(version)
 	if constantValues == nil {
-		ctx.Logger().Error(fmt.Sprintf("constants for version(%s) is not available", version))
+		ctx.Logger().Error("constants is not available", "version", version)
 		return
 	}
 
@@ -189,7 +188,7 @@ func (am AppModule) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.V
 	version := am.mgr.Keeper().GetLowestActiveVersion(ctx)
 	constantValues := constants.GetConstantValues(version)
 	if constantValues == nil {
-		ctx.Logger().Error(fmt.Sprintf("constants for version(%s) is not available", version))
+		ctx.Logger().Error("constants is not available", "version", version)
 		return nil
 	}
 	if err := am.mgr.SwapQ().EndBlock(ctx, am.mgr, version, constantValues); err != nil {
@@ -248,6 +247,11 @@ func (am AppModule) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.V
 	}
 
 	am.mgr.GasMgr().EndBlock(ctx, am.mgr.Keeper(), am.mgr.EventMgr())
+
+	// telemetry
+	if err := emitEndBlockTelemetry(ctx, am.mgr); err != nil {
+		ctx.Logger().Error("unable to emit end block telemetry", "error", err)
+	}
 
 	return validators
 }

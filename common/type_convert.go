@@ -14,6 +14,14 @@ import (
 // One is useful type so THORNode doesn't need to manage 8 zeroes all the time
 const One = 100000000
 
+// GetSafeShare does the same as GetShare , but GetSafeShare will guarantee the result will not more than total
+func GetSafeShare(part, total, allocation cosmos.Uint) cosmos.Uint {
+	if part.GTE(total) {
+		part = total
+	}
+	return GetShare(part, total, allocation)
+}
+
 // GetShare this method will panic if any of the input parameter can't be convert to cosmos.Dec
 // which shouldn't happen
 func GetShare(part, total, allocation cosmos.Uint) cosmos.Uint {

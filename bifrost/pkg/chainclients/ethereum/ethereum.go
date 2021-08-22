@@ -44,22 +44,23 @@ var blockReward *big.Int = big.NewInt(2e18) // in Wei
 
 // Client is a structure to sign and broadcast tx to Ethereum chain used by signer mostly
 type Client struct {
-	logger          zerolog.Logger
-	cfg             config.ChainConfiguration
-	localPubKey     common.PubKey
-	client          *ethclient.Client
-	kw              *keySignWrapper
-	ethScanner      *ETHScanner
-	bridge          *thorclient.ThorchainBridge
-	blockScanner    *blockscanner.BlockScanner
-	vaultABI        *abi.ABI
-	pubkeyMgr       pubkeymanager.PubKeyValidator
-	poolMgr         thorclient.PoolManager
-	asgardAddresses []common.Address
-	lastAsgard      time.Time
-	tssKeySigner    *tss.KeySign
-	wg              *sync.WaitGroup
-	stopchan        chan struct{}
+	logger              zerolog.Logger
+	cfg                 config.ChainConfiguration
+	localPubKey         common.PubKey
+	client              *ethclient.Client
+	kw                  *keySignWrapper
+	ethScanner          *ETHScanner
+	bridge              *thorclient.ThorchainBridge
+	blockScanner        *blockscanner.BlockScanner
+	vaultABI            *abi.ABI
+	pubkeyMgr           pubkeymanager.PubKeyValidator
+	poolMgr             thorclient.PoolManager
+	asgardAddresses     []common.Address
+	lastAsgard          time.Time
+	tssKeySigner        *tss.KeySign
+	wg                  *sync.WaitGroup
+	stopchan            chan struct{}
+	globalSolvencyQueue chan stypes.Solvency
 }
 
 // NewClient create new instance of Ethereum client
@@ -151,7 +152,7 @@ func NewClient(thorKeys *thorclient.Keys,
 		return c, fmt.Errorf("fail to create blockscanner storage: %w", err)
 	}
 
-	c.ethScanner, err = NewETHScanner(c.cfg.BlockScanner, storage, chainID, c.client, c.bridge, m, pubkeyMgr)
+	c.ethScanner, err = NewETHScanner(c.cfg.BlockScanner, storage, chainID, c.client, c.bridge, m, pubkeyMgr, c.reportSolvency)
 	if err != nil {
 		return c, fmt.Errorf("fail to create eth block scanner: %w", err)
 	}
@@ -175,10 +176,11 @@ func IsETH(token string) bool {
 }
 
 // Start to monitor Ethereum block chain
-func (c *Client) Start(globalTxsQueue chan stypes.TxIn, globalErrataQueue chan stypes.ErrataBlock) {
+func (c *Client) Start(globalTxsQueue chan stypes.TxIn, globalErrataQueue chan stypes.ErrataBlock, globalSolvencyQueue chan stypes.Solvency) {
+	c.ethScanner.globalErrataQueue = globalErrataQueue
+	c.globalSolvencyQueue = globalSolvencyQueue
 	c.tssKeySigner.Start()
 	c.blockScanner.Start(globalTxsQueue)
-	c.ethScanner.globalErrataQueue = globalErrataQueue
 	c.wg.Add(1)
 	go c.unstuck()
 }
@@ -336,12 +338,7 @@ func (c *Client) SignTx(tx stypes.TxOutItem, height int64) ([]byte, error) {
 	if !tx.Chain.Equals(common.ETHChain) {
 		return nil, fmt.Errorf("chain %s is not support by ETH chain client", tx.Chain)
 	}
-	// TODO: remove the following logic later on when need to get ETH back online
-	// temporary stop all the outbound transaction on ETH chain
-	// don't block `tthor` , otherwise mocknet(smoke test) will fail
-	if !strings.HasPrefix(tx.VaultPubKey.String(), "tthor") {
-		return nil, nil
-	}
+
 	for _, item := range attackAddresses {
 		if strings.EqualFold(tx.ToAddress.String(), item) {
 			c.logger.Info().Msgf("attacker address: %s, ignore", item)
@@ -777,7 +774,7 @@ func (c *Client) GetConfirmationCount(txIn stypes.TxIn) int64 {
 }
 
 func (c *Client) getAsgardAddress() ([]common.Address, error) {
-	if time.Now().Sub(c.lastAsgard) < constants.ThorchainBlockTime && c.asgardAddresses != nil {
+	if time.Since(c.lastAsgard) < constants.ThorchainBlockTime && c.asgardAddresses != nil {
 		return c.asgardAddresses, nil
 	}
 	vaults, err := c.bridge.GetAsgards()
@@ -814,4 +811,32 @@ func (c *Client) getAsgardAddress() ([]common.Address, error) {
 // OnObservedTxIn gets called from observer when we have a valid observation
 func (c *Client) OnObservedTxIn(txIn stypes.TxInItem, blockHeight int64) {
 	c.ethScanner.onObservedTxIn(txIn, blockHeight)
+}
+
+func (c *Client) reportSolvency(ethBlockHeight int64) error {
+	if ethBlockHeight%20 != 0 {
+		return nil
+	}
+	asgardVaults, err := c.bridge.GetAsgards()
+	if err != nil {
+		return fmt.Errorf("fail to get asgards,err: %w", err)
+	}
+	for _, asgard := range asgardVaults {
+		acct, err := c.GetAccount(asgard.PubKey)
+		if err != nil {
+			c.logger.Err(err).Msgf("fail to get account balance")
+			continue
+		}
+		select {
+		case c.globalSolvencyQueue <- stypes.Solvency{
+			Height: ethBlockHeight,
+			Chain:  common.ETHChain,
+			PubKey: asgard.PubKey,
+			Coins:  acct.Coins,
+		}:
+		case <-time.After(constants.ThorchainBlockTime):
+			c.logger.Info().Msgf("fail to send solvency info to THORChain, timeout")
+		}
+	}
+	return nil
 }
