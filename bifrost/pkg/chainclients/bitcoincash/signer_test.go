@@ -96,25 +96,25 @@ func (s *BitcoinCashSignerSuite) SetUpTest(c *C) {
 			}()
 			switch r.Method {
 			case "getnetworkinfo":
-				httpTestHandler(c, rw, "../../../../test/fixtures/btc/getnetworkinfo.json")
+				httpTestHandler(c, rw, "../../../../test/fixtures/bch/getnetworkinfo.json")
 			case "getbestblockhash":
-				httpTestHandler(c, rw, "../../../../test/fixtures/btc/getbestblockhash.json")
+				httpTestHandler(c, rw, "../../../../test/fixtures/bch/getbestblockhash.json")
 			case "getblock":
-				httpTestHandler(c, rw, "../../../../test/fixtures/btc/block.json")
+				httpTestHandler(c, rw, "../../../../test/fixtures/bch/block.json")
 			case "getrawtransaction":
-				httpTestHandler(c, rw, "../../../../test/fixtures/btc/tx.json")
+				httpTestHandler(c, rw, "../../../../test/fixtures/bch/tx.json")
 			case "getinfo":
-				httpTestHandler(c, rw, "../../../../test/fixtures/btc/getinfo.json")
+				httpTestHandler(c, rw, "../../../../test/fixtures/bch/getinfo.json")
 			case "sendrawtransaction":
-				httpTestHandler(c, rw, "../../../../test/fixtures/btc/sendrawtransaction.json")
+				httpTestHandler(c, rw, "../../../../test/fixtures/bch/sendrawtransaction.json")
 			case "importaddress":
-				httpTestHandler(c, rw, "../../../../test/fixtures/btc/importaddress.json")
+				httpTestHandler(c, rw, "../../../../test/fixtures/bch/importaddress.json")
 			case "listunspent":
 				body := string(buf)
 				if strings.Contains(body, "qrlyry9jfa5k0cu55z2xze5admmr6fj7ygz7fu3jj8") {
-					httpTestHandler(c, rw, "../../../../test/fixtures/btc/listunspent-tss.json")
+					httpTestHandler(c, rw, "../../../../test/fixtures/bch/listunspent-tss.json")
 				} else {
-					httpTestHandler(c, rw, "../../../../test/fixtures/btc/listunspent.json")
+					httpTestHandler(c, rw, "../../../../test/fixtures/bch/listunspent.json")
 				}
 			}
 		}
