@@ -1083,8 +1083,8 @@ func (h DepositHandler) handleCurrent(ctx cosmos.Context, msg MsgDeposit) (*cosm
 }
 func (h DepositHandler) addSwap(ctx cosmos.Context, msg MsgSwap) {
 	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.64.0")) {
-		h.addSwapV64(ctx, msg)
+	if version.GTE(semver.MustParse("0.65.0")) {
+		h.addSwapV65(ctx, msg)
 	} else if version.GTE(semver.MustParse("0.63.0")) {
 		h.addSwapV63(ctx, msg)
 	} else {
@@ -1159,7 +1159,7 @@ func (h DepositHandler) addSwapV63(ctx cosmos.Context, msg MsgSwap) {
 		}
 	}
 }
-func (h DepositHandler) addSwapV64(ctx cosmos.Context, msg MsgSwap) {
+func (h DepositHandler) addSwapV65(ctx cosmos.Context, msg MsgSwap) {
 	amt := cosmos.ZeroUint()
 	swapSourceAsset := msg.Tx.Coins[0].Asset
 	if !msg.AffiliateBasisPoints.IsZero() && msg.AffiliateAddress.IsChain(common.THORChain) {

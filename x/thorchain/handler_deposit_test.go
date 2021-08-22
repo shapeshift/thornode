@@ -182,14 +182,14 @@ func (s *HandlerDepositSuite) TestAddSwapV64(c *C) {
 	)
 	// no affiliate fee
 	msg := NewMsgSwap(tx, common.BTCAsset, GetRandomBTCAddress(), cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(), GetRandomBech32Addr())
-	handler.addSwapV64(ctx, *msg)
+	handler.addSwapV65(ctx, *msg)
 	swap, err := mgr.Keeper().GetSwapQueueItem(ctx, tx.ID, 0)
 	c.Assert(err, IsNil)
 	c.Assert(swap.String(), Equals, msg.String())
 
 	// affiliate fee, with more than 10K as basis points
 	msg1 := NewMsgSwap(tx, common.BTCAsset, GetRandomBTCAddress(), cosmos.ZeroUint(), GetRandomTHORAddress(), cosmos.NewUint(20000), GetRandomBech32Addr())
-	handler.addSwapV64(ctx, *msg1)
+	handler.addSwapV65(ctx, *msg1)
 	swap, err = mgr.Keeper().GetSwapQueueItem(ctx, tx.ID, 0)
 	c.Assert(err, IsNil)
 	c.Assert(swap.Tx.Coins[0].Amount.IsZero(), Equals, true)
@@ -201,7 +201,7 @@ func (s *HandlerDepositSuite) TestAddSwapV64(c *C) {
 	// normal affiliate fee
 	tx.Coins[0].Amount = cosmos.NewUint(common.One)
 	msg2 := NewMsgSwap(tx, common.BTCAsset, GetRandomBTCAddress(), cosmos.ZeroUint(), GetRandomTHORAddress(), cosmos.NewUint(1000), GetRandomBech32Addr())
-	handler.addSwapV64(ctx, *msg2)
+	handler.addSwapV65(ctx, *msg2)
 	swap, err = mgr.Keeper().GetSwapQueueItem(ctx, tx.ID, 0)
 	c.Assert(err, IsNil)
 	c.Assert(swap.Tx.Coins[0].Amount.IsZero(), Equals, false)
@@ -229,7 +229,7 @@ func (s *HandlerDepositSuite) TestAddSwapV64(c *C) {
 	mgr.Keeper().MintToModule(ctx, ModuleName, tx1.Coins[0])
 	mgr.Keeper().SendFromModuleToModule(ctx, ModuleName, AsgardName, tx1.Coins)
 	msg3 := NewMsgSwap(tx1, common.BTCAsset, GetRandomBTCAddress(), cosmos.ZeroUint(), GetRandomTHORAddress(), cosmos.NewUint(1000), GetRandomBech32Addr())
-	handler.addSwapV64(ctx, *msg3)
+	handler.addSwapV65(ctx, *msg3)
 	swap, err = mgr.Keeper().GetSwapQueueItem(ctx, tx1.ID, 0)
 	c.Assert(err, IsNil)
 	c.Assert(swap.Tx.Coins[0].Amount.IsZero(), Equals, false)
