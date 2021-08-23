@@ -584,7 +584,7 @@ func (vm *NetworkMgrV63) withdrawLiquidity(ctx cosmos.Context, pool Pool, na Nod
 		withdrawMsg := NewMsgWithdrawLiquidity(
 			common.GetRagnarokTx(pool.Asset.GetChain(), withdrawAddr, withdrawAddr),
 			withdrawAddr,
-			cosmos.NewUint(uint64(MaxWithdrawBasisPoints/100*(nth*10))),
+			cosmos.NewUint(uint64(MaxWithdrawBasisPoints)),
 			pool.Asset,
 			withdrawAsset,
 			na.NodeAddress,
