@@ -96,7 +96,7 @@ func (h MimirHandler) handleV65(ctx cosmos.Context, msg MsgMimir) error {
 
 func (h MimirHandler) handleCurrent(ctx cosmos.Context, msg MsgMimir) error {
 	if msg.Value < 0 {
-		h.mgr.Keeper().DeleteMimir(ctx, msg.Key)
+		_ = h.mgr.Keeper().DeleteMimir(ctx, msg.Key)
 	} else {
 		h.mgr.Keeper().SetMimir(ctx, msg.Key, msg.Value)
 	}
