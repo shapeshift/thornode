@@ -111,6 +111,7 @@ func (b *BlockScanner) scanMempool() {
 	b.logger.Debug().Msg("start to scan mempool")
 	defer b.logger.Debug().Msg("stop scan mempool")
 	defer b.wg.Done()
+
 	for {
 		select {
 		case <-b.stopChan:
