@@ -69,8 +69,8 @@ func (h MimirHandler) validateCurrent(ctx cosmos.Context, msg MsgMimir) error {
 func (h MimirHandler) handle(ctx cosmos.Context, msg MsgMimir) error {
 	ctx.Logger().Info("handleMsgMimir request", "key", msg.Key, "value", msg.Value)
 	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.64.0")) {
-		return h.handleV64(ctx, msg)
+	if version.GTE(semver.MustParse("0.65.0")) {
+		return h.handleV65(ctx, msg)
 	} else if version.GTE(semver.MustParse("0.1.0")) {
 		return h.handleV1(ctx, msg)
 	}
@@ -90,7 +90,7 @@ func (h MimirHandler) handleV1(ctx cosmos.Context, msg MsgMimir) error {
 
 }
 
-func (h MimirHandler) handleV64(ctx cosmos.Context, msg MsgMimir) error {
+func (h MimirHandler) handleV65(ctx cosmos.Context, msg MsgMimir) error {
 	return h.handleCurrent(ctx, msg)
 }
 

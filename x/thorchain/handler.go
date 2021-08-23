@@ -48,8 +48,8 @@ func NewExternalHandler(mgr Manager) cosmos.Handler {
 
 func getHandlerMapping(mgr Manager) map[string]MsgHandler {
 	version := mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.64.0")) {
-		return getHandlerMappingV63(mgr)
+	if version.GTE(semver.MustParse("0.65.0")) {
+		return getHandlerMappingV65(mgr)
 	} else if version.GTE(semver.MustParse("0.63.0")) {
 		return getHandlerMappingV63(mgr)
 	}
@@ -108,7 +108,7 @@ func getHandlerMappingV63(mgr Manager) map[string]MsgHandler {
 	return m
 }
 
-func getHandlerMappingV64(mgr Manager) map[string]MsgHandler {
+func getHandlerMappingV65(mgr Manager) map[string]MsgHandler {
 	// New arch handlers
 	m := make(map[string]MsgHandler)
 
