@@ -6,7 +6,6 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
@@ -334,76 +333,4 @@ func (s TxOutStoreV64Suite) TestAddOutTxItemDeductMaxGasFromYggdrasil(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(msgs, HasLen, 2)
 	c.Assert(msgs[1].VaultPubKey.Equals(acc1.PubKeySet.Secp256k1), Equals, true)
-}
-
-type TestCalcKeeper struct {
-	keeper.KVStoreDummy
-	value map[int64]cosmos.Uint
-	mimir map[string]int64
-}
-
-func (k *TestCalcKeeper) GetPool(ctx cosmos.Context, asset common.Asset) (types.Pool, error) {
-	pool := NewPool()
-	pool.Asset = asset
-	pool.BalanceRune = cosmos.NewUint(90527581399649)
-	pool.BalanceAsset = cosmos.NewUint(1402011488988)
-	return pool, nil
-}
-
-func (k *TestCalcKeeper) GetMimir(ctx cosmos.Context, key string) (int64, error) {
-	return k.mimir[key], nil
-}
-
-func (k *TestCalcKeeper) GetTxOutValue(ctx cosmos.Context, height int64) (cosmos.Uint, error) {
-	val, ok := k.value[height]
-	if !ok {
-		return cosmos.ZeroUint(), nil
-	}
-	return val, nil
-}
-
-func (s TxOutStoreV64Suite) TestcalcTxOutHeight(c *C) {
-	keeper := &TestCalcKeeper{
-		value: make(map[int64]cosmos.Uint, 0),
-		mimir: make(map[string]int64, 0),
-	}
-
-	keeper.mimir["MinTxOutVolumeThreshold"] = 25_00000000
-	keeper.mimir["TxOutDelayRate"] = 25_00000000
-	keeper.mimir["MaxTxOutOffset"] = 720
-	keeper.mimir["TxOutDelayMax"] = 17280
-
-	addValue := func(h int64, v cosmos.Uint) {
-		if _, ok := keeper.value[h]; !ok {
-			keeper.value[h] = cosmos.ZeroUint()
-		}
-		keeper.value[h] = keeper.value[h].Add(v)
-	}
-
-	ctx, _ := setupManagerForTest(c)
-
-	txout := TxOutStorageV64{keeper: keeper}
-
-	toi := TxOutItem{
-		Coin: common.NewCoin(common.BNBAsset, cosmos.NewUint(50*common.One)),
-		Memo: "OUT:nomnomnom",
-	}
-	pool, _ := keeper.GetPool(ctx, common.BNBAsset)
-	value := pool.AssetValueInRune(toi.Coin.Amount)
-
-	targetBlock, err := txout.calcTxOutHeight(ctx, toi)
-	c.Assert(err, IsNil)
-	c.Check(targetBlock, Equals, int64(147))
-	addValue(targetBlock, value)
-
-	targetBlock, err = txout.calcTxOutHeight(ctx, toi)
-	c.Assert(err, IsNil)
-	c.Check(targetBlock, Equals, int64(148))
-	addValue(targetBlock, value)
-
-	toi.Coin.Amount = cosmos.NewUint(50000 * common.One)
-	targetBlock, err = txout.calcTxOutHeight(ctx, toi)
-	c.Assert(err, IsNil)
-	c.Check(targetBlock, Equals, int64(738))
-	addValue(targetBlock, value)
 }
