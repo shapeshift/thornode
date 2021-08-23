@@ -12,19 +12,19 @@ import (
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
-// SlasherV64 is v54 implementation of slasher
-type SlasherV64 struct {
+// SlasherV65 is v54 implementation of slasher
+type SlasherV65 struct {
 	keeper   keeper.Keeper
 	eventMgr EventManager
 }
 
-// NewSlasherV64 create a new instance of Slasher
-func NewSlasherV64(keeper keeper.Keeper, eventMgr EventManager) *SlasherV64 {
-	return &SlasherV64{keeper: keeper, eventMgr: eventMgr}
+// NewSlasherV65 create a new instance of Slasher
+func NewSlasherV65(keeper keeper.Keeper, eventMgr EventManager) *SlasherV65 {
+	return &SlasherV65{keeper: keeper, eventMgr: eventMgr}
 }
 
 // BeginBlock called when a new block get proposed to detect whether there are duplicate vote
-func (s *SlasherV64) BeginBlock(ctx cosmos.Context, req abci.RequestBeginBlock, constAccessor constants.ConstantValues) {
+func (s *SlasherV65) BeginBlock(ctx cosmos.Context, req abci.RequestBeginBlock, constAccessor constants.ConstantValues) {
 	// Iterate through any newly discovered evidence of infraction
 	// Slash any validators (and since-unbonded liquidity within the unbonding period)
 	// who contributed to valid infractions
@@ -43,7 +43,7 @@ func (s *SlasherV64) BeginBlock(ctx cosmos.Context, req abci.RequestBeginBlock, 
 // HandleDoubleSign - slashes a validator for signing two blocks at the same
 // block height
 // https://blog.cosmos.network/consensus-compare-casper-vs-tendermint-6df154ad56ae
-func (s *SlasherV64) HandleDoubleSign(ctx cosmos.Context, addr crypto.Address, infractionHeight int64, constAccessor constants.ConstantValues) error {
+func (s *SlasherV65) HandleDoubleSign(ctx cosmos.Context, addr crypto.Address, infractionHeight int64, constAccessor constants.ConstantValues) error {
 	// check if we're recent enough to slash for this behavior
 	maxAge := constAccessor.GetInt64Value(constants.DoubleSignMaxAge)
 	if (common.BlockHeight(ctx) - infractionHeight) > maxAge {
@@ -90,7 +90,7 @@ func (s *SlasherV64) HandleDoubleSign(ctx cosmos.Context, addr crypto.Address, i
 }
 
 // LackObserving Slash node accounts that didn't observe a single inbound txn
-func (s *SlasherV64) LackObserving(ctx cosmos.Context, constAccessor constants.ConstantValues) error {
+func (s *SlasherV65) LackObserving(ctx cosmos.Context, constAccessor constants.ConstantValues) error {
 	signingTransPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
 	height := common.BlockHeight(ctx)
 	if height < signingTransPeriod {
@@ -120,7 +120,7 @@ func (s *SlasherV64) LackObserving(ctx cosmos.Context, constAccessor constants.C
 	return nil
 }
 
-func (s *SlasherV64) slashNotObserving(ctx cosmos.Context, txHash common.TxID, constAccessor constants.ConstantValues) error {
+func (s *SlasherV65) slashNotObserving(ctx cosmos.Context, txHash common.TxID, constAccessor constants.ConstantValues) error {
 	voter, err := s.keeper.GetObservedTxInVoter(ctx, txHash)
 	if err != nil {
 		return fmt.Errorf("fail to get observe txin voter (%s): %w", txHash.String(), err)
@@ -152,7 +152,7 @@ func (s *SlasherV64) slashNotObserving(ctx cosmos.Context, txHash common.TxID, c
 	return nil
 }
 
-func (s *SlasherV64) checkSignerAndSlash(ctx cosmos.Context, nodes NodeAccounts, blockHeight int64, signers []cosmos.AccAddress, constAccessor constants.ConstantValues) {
+func (s *SlasherV65) checkSignerAndSlash(ctx cosmos.Context, nodes NodeAccounts, blockHeight int64, signers []cosmos.AccAddress, constAccessor constants.ConstantValues) {
 	for _, na := range nodes {
 		// the node is active after the tx finalised
 		if na.ActiveBlockHeight > blockHeight {
@@ -176,7 +176,7 @@ func (s *SlasherV64) checkSignerAndSlash(ctx cosmos.Context, nodes NodeAccounts,
 }
 
 // LackSigning slash account that fail to sign tx
-func (s *SlasherV64) LackSigning(ctx cosmos.Context, constAccessor constants.ConstantValues, mgr Manager) error {
+func (s *SlasherV65) LackSigning(ctx cosmos.Context, constAccessor constants.ConstantValues, mgr Manager) error {
 	var resultErr error
 	signingTransPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
 	if common.BlockHeight(ctx) < signingTransPeriod {
@@ -338,7 +338,7 @@ func (s *SlasherV64) LackSigning(ctx cosmos.Context, constAccessor constants.Con
 // discover signer send out fund more than the amount specified in TxOutItem,
 // it will slash the node account who does that by taking 1.5 * extra fund from
 // node account's bond and subsidise the pool that actually lost it.
-func (s *SlasherV64) SlashVault(ctx cosmos.Context, vaultPK common.PubKey, coins common.Coins, mgr Manager) error {
+func (s *SlasherV65) SlashVault(ctx cosmos.Context, vaultPK common.PubKey, coins common.Coins, mgr Manager) error {
 	if coins.IsEmpty() {
 		return nil
 	}
@@ -501,7 +501,7 @@ func (s *SlasherV64) SlashVault(ctx cosmos.Context, vaultPK common.PubKey, coins
 }
 
 // IncSlashPoints will increase the given account's slash points
-func (s *SlasherV64) IncSlashPoints(ctx cosmos.Context, point int64, addresses ...cosmos.AccAddress) {
+func (s *SlasherV65) IncSlashPoints(ctx cosmos.Context, point int64, addresses ...cosmos.AccAddress) {
 	for _, addr := range addresses {
 		if err := s.keeper.IncNodeAccountSlashPoints(ctx, addr, point); err != nil {
 			ctx.Logger().Error("fail to increase node account slash point", "error", err, "address", addr.String())
@@ -510,7 +510,7 @@ func (s *SlasherV64) IncSlashPoints(ctx cosmos.Context, point int64, addresses .
 }
 
 // DecSlashPoints will decrease the given account's slash points
-func (s *SlasherV64) DecSlashPoints(ctx cosmos.Context, point int64, addresses ...cosmos.AccAddress) {
+func (s *SlasherV65) DecSlashPoints(ctx cosmos.Context, point int64, addresses ...cosmos.AccAddress) {
 	for _, addr := range addresses {
 		if err := s.keeper.DecNodeAccountSlashPoints(ctx, addr, point); err != nil {
 			ctx.Logger().Error("fail to decrease node account slash point", "error", err, "address", addr.String())
