@@ -20,8 +20,8 @@ type YggMgrV63 struct {
 	keeper keeper.Keeper
 }
 
-// NewYggMgrV63 create a new instance of YggMgrV63 which implement YggManager interface
-func NewYggMgrV63(keeper keeper.Keeper) *YggMgrV63 {
+// newYggMgrV63 create a new instance of YggMgrV63 which implement YggManager interface
+func newYggMgrV63(keeper keeper.Keeper) *YggMgrV63 {
 	return &YggMgrV63{
 		keeper: keeper,
 	}
