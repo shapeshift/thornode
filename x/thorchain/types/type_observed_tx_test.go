@@ -522,3 +522,78 @@ func (TypeObservedTxSuite) TestObservedTxGetConsensus(c *C) {
 	c.Assert(tx.IsEmpty(), Equals, false)
 	c.Assert(tx.Equals(obTx1), Equals, true)
 }
+func (TypeObservedTxSuite) TestNewGetConsensusTx(c *C) {
+	txID := GetRandomTxHash()
+	acc1 := GetRandomBech32Addr()
+	acc2 := GetRandomBech32Addr()
+	acc3 := GetRandomBech32Addr()
+	acc4 := GetRandomBech32Addr()
+
+	accConsPub1 := GetRandomBech32ConsensusPubKey()
+	accConsPub2 := GetRandomBech32ConsensusPubKey()
+	accConsPub3 := GetRandomBech32ConsensusPubKey()
+	accConsPub4 := GetRandomBech32ConsensusPubKey()
+
+	accPubKeySet1 := GetRandomPubKeySet()
+	accPubKeySet2 := GetRandomPubKeySet()
+	accPubKeySet3 := GetRandomPubKeySet()
+	accPubKeySet4 := GetRandomPubKeySet()
+
+	trusts4 := NodeAccounts{
+		NodeAccount{
+			NodeAddress:         acc1,
+			Status:              NodeStatus_Active,
+			PubKeySet:           accPubKeySet1,
+			ValidatorConsPubKey: accConsPub1,
+		},
+		NodeAccount{
+			NodeAddress:         acc2,
+			Status:              NodeStatus_Active,
+			PubKeySet:           accPubKeySet2,
+			ValidatorConsPubKey: accConsPub2,
+		},
+		NodeAccount{
+			NodeAddress:         acc3,
+			Status:              NodeStatus_Active,
+			PubKeySet:           accPubKeySet3,
+			ValidatorConsPubKey: accConsPub3,
+		},
+		NodeAccount{
+			NodeAddress:         acc4,
+			Status:              NodeStatus_Active,
+			PubKeySet:           accPubKeySet4,
+			ValidatorConsPubKey: accConsPub4,
+		},
+	}
+	tx1 := GetRandomTx()
+	tx1.Memo = "hello"
+	tx1.ID = txID
+	observePoolAddr := GetRandomPubKey()
+	voter := NewObservedTxVoter(txID, nil)
+
+	txForged := GetRandomTx()
+	txForged.ID = txID
+	obTx1 := NewObservedTx(txForged, 1, observePoolAddr, 1)
+	obTx2 := NewObservedTx(tx1, 1, observePoolAddr, 2)
+
+	obTx3 := NewObservedTx(tx1, 2, observePoolAddr, 2)
+
+	c.Assert(voter.Add(obTx1, acc1), Equals, true)
+	c.Assert(voter.Add(obTx2, acc2), Equals, true)
+	c.Assert(voter.Add(obTx2, acc3), Equals, true)
+	c.Assert(voter.Add(obTx2, acc4), Equals, true)
+	c.Assert(voter.HasFinalised(trusts4), Equals, false)
+	c.Assert(voter.HasConsensus(trusts4), Equals, true)
+	tx := voter.GetTx(trusts4)
+
+	c.Assert(tx.Tx.Equals(tx1), Equals, true)
+	c.Assert(voter.Add(obTx3, acc2), Equals, true)
+	c.Assert(voter.Add(obTx3, acc3), Equals, true)
+	c.Assert(voter.Add(obTx3, acc4), Equals, true)
+
+	c.Assert(voter.HasFinalised(trusts4), Equals, true)
+	txGood := voter.GetTx(trusts4)
+	c.Assert(txGood.IsEmpty(), Equals, false)
+	c.Assert(txGood.Equals(obTx3), Equals, true)
+
+}
