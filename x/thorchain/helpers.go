@@ -276,6 +276,12 @@ func subsidizePoolWithSlashBondV1(ctx cosmos.Context, ygg Vault, yggTotalStolen,
 }
 
 func subsidizePoolWithSlashBondV46(ctx cosmos.Context, ygg Vault, yggTotalStolen, slashRuneAmt cosmos.Uint, mgr Manager) error {
+	defer func() {
+		if err := recover(); err != nil {
+			ctx.Logger().Error("fail to subsidize pool", "error", err)
+		}
+	}()
+
 	// Thorchain did not slash the node account
 	if slashRuneAmt.IsZero() {
 		return nil
