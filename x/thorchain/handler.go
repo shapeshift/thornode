@@ -476,7 +476,6 @@ func processOneTxInV63(ctx cosmos.Context, keeper keeper.Keeper, tx ObservedTx, 
 	}
 	return newMsg, newMsg.ValidateBasic()
 }
-
 func fuzzyAssetMatch(ctx cosmos.Context, keeper keeper.Keeper, asset common.Asset) common.Asset {
 	// if its already an exact match, return it immediately
 	if keeper.PoolExist(ctx, asset) {
