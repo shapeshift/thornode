@@ -33,7 +33,6 @@ func (ymgr YggMgrV65) Fund(ctx cosmos.Context, mgr Manager, constAccessor consta
 	if ragnarokHeight > 0 {
 		return nil
 	}
-
 	stopFundYggdrasil, err := mgr.Keeper().GetMimir(ctx, mimirStopFundYggdrasil)
 	if err == nil && stopFundYggdrasil > 0 {
 		ctx.Logger().Info("mimir stop fund yggdrasil")
