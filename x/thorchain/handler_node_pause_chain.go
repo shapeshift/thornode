@@ -68,13 +68,13 @@ func (h NodePauseChainHandler) validateCurrent(ctx cosmos.Context, msg MsgNodePa
 func (h NodePauseChainHandler) handle(ctx cosmos.Context, msg MsgNodePauseChain) error {
 	ctx.Logger().Info("handleMsgNodePauseChain request", "node", msg.Signer, "value", msg.Value)
 	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.64.0")) {
-		return h.handleV64(ctx, msg)
+	if version.GTE(semver.MustParse("0.1.0")) {
+		return h.handleV1(ctx, msg)
 	}
 	return nil
 }
 
-func (h NodePauseChainHandler) handleV64(ctx cosmos.Context, msg MsgNodePauseChain) error {
+func (h NodePauseChainHandler) handleV1(ctx cosmos.Context, msg MsgNodePauseChain) error {
 	return h.handleCurrent(ctx, msg)
 }
 
