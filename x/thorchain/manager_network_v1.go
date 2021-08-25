@@ -590,7 +590,7 @@ func (vm *NetworkMgrV1) ragnarokChain(ctx cosmos.Context, chain common.Chain, nt
 			withdrawMsg := NewMsgWithdrawLiquidity(
 				common.GetRagnarokTx(pool.Asset.GetChain(), withdrawAddr, withdrawAddr),
 				withdrawAddr,
-				cosmos.NewUint(uint64(MaxWithdrawBasisPoints/100*(nth*10))),
+				cosmos.NewUint(uint64(MaxWithdrawBasisPoints)),
 				pool.Asset,
 				withdrawAsset,
 				na.NodeAddress,
