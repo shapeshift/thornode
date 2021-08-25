@@ -1,10 +1,13 @@
 package cli
 
 import (
+	"log"
+
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/spf13/cobra"
 
+	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/constants"
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
@@ -29,6 +32,7 @@ func GetQueryCmd() *cobra.Command {
 	}
 
 	cmd.AddCommand(GetCmdGetVersion())
+	cmd.AddCommand(GetCmdGetNORelay())
 	return cmd
 }
 
@@ -50,6 +54,37 @@ func GetCmdGetVersion() *cobra.Command {
 				BuildTime: constants.BuildTime,
 			}
 			return clientCtx.PrintObjectLegacy(out)
+		},
+	}
+
+	flags.AddQueryFlagsToCmd(cmd)
+
+	return cmd
+}
+
+func GetCmdGetNORelay() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "discord-relay",
+		Short: "Relays a message from a node operator to discord",
+		Args:  cobra.ExactArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			clientCtx, err := client.GetClientQueryContext(cmd)
+			if err != nil {
+				return err
+			}
+
+			msg := common.NewNodeRelay(args[0], args[1])
+
+			if err := msg.Prepare(); err != nil {
+				log.Fatalln(err)
+			}
+
+			result, err := msg.Broadcast()
+			if err != nil {
+				log.Fatalln(err)
+			}
+
+			return clientCtx.PrintObjectLegacy(result)
 		},
 	}
 
