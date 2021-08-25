@@ -111,6 +111,7 @@ func (b *BlockScanner) scanMempool() {
 	b.logger.Debug().Msg("start to scan mempool")
 	defer b.logger.Debug().Msg("stop scan mempool")
 	defer b.wg.Done()
+
 	for {
 		select {
 		case <-b.stopChan:
@@ -171,6 +172,16 @@ func (b *BlockScanner) scanBlocks() {
 				time.Sleep(constants.ThorchainBlockTime)
 				continue
 			}
+			chainHeight, err := b.chainScanner.GetHeight()
+			if err != nil {
+				b.logger.Error().Err(err).Msg("fail to get chain block height")
+				time.Sleep(b.cfg.BlockHeightDiscoverBackoff)
+				continue
+			}
+			if chainHeight < currentBlock {
+				time.Sleep(b.cfg.BlockHeightDiscoverBackoff)
+				continue
+			}
 			// b.logger.Debug().Int64("block height", currentBlock).Msg("fetch txs")
 			txIn, err := b.chainScanner.FetchTxs(currentBlock)
 			if err != nil {
@@ -188,7 +199,12 @@ func (b *BlockScanner) scanBlocks() {
 				b.logger.Info().Int64("block height", currentBlock).Int("txs", len(txIn.TxArray))
 			}
 			atomic.AddInt64(&b.previousBlock, 1)
-			b.healthy = true
+			// if current block height is less than 50 blocks behind the tip , then it should catch up soon, should be safe to mark block scanner as healthy
+			// if the block scanner is too far away from tip , should not mark the block scanner as healthy , otherwise it might cause , reschedule and double send
+			if chainHeight-currentBlock <= 50 {
+				b.healthy = true
+			}
+
 			b.metrics.GetCounter(metrics.TotalBlockScanned).Inc()
 			if len(txIn.TxArray) > 0 {
 				select {
