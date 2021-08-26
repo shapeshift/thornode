@@ -118,20 +118,20 @@ func getHandlerMappingV65(mgr Manager) map[string]MsgHandler {
 	m[MsgObservedTxOut{}.Type()] = NewObservedTxOutHandler(mgr)
 	m[MsgTssKeysignFail{}.Type()] = NewTssKeysignHandler(mgr)
 	m[MsgErrataTx{}.Type()] = NewErrataTxHandler(mgr)
-	m[MsgMimir{}.Type()] = NewMimirHandler(mgr)
 	m[MsgBan{}.Type()] = NewBanHandler(mgr)
 	m[MsgNetworkFee{}.Type()] = NewNetworkFeeHandler(mgr)
+	m[MsgSolvency{}.Type()] = NewSolvencyHandler(mgr)
 
 	// cli handlers (non-consensus)
+	m[MsgMimir{}.Type()] = NewMimirHandler(mgr)
 	m[MsgSetNodeKeys{}.Type()] = NewSetNodeKeysHandler(mgr)
 	m[MsgSetVersion{}.Type()] = NewVersionHandler(mgr)
 	m[MsgSetIPAddress{}.Type()] = NewIPAddressHandler(mgr)
+	m[MsgNodePauseChain{}.Type()] = NewNodePauseChainHandler(mgr)
 
 	// native handlers (non-consensus)
 	m[MsgSend{}.Type()] = NewSendHandler(mgr)
 	m[MsgDeposit{}.Type()] = NewDepositHandler(mgr)
-	m[MsgSolvency{}.Type()] = NewSolvencyHandler(mgr)
-	m[MsgNodePauseChain{}.Type()] = NewNodePauseChainHandler(mgr)
 	return m
 }
 
