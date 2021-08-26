@@ -164,7 +164,7 @@ func (b *BlockScanner) scanBlocks() {
 				if err != nil {
 					b.logger.Error().Err(err).Msg("fail to get mimir setting")
 				}
-				nodeHaltHeight, err = b.thorchainBridge.GetMimir("NodePauseChainGlobal")
+				nodeHaltHeight, err := b.thorchainBridge.GetMimir("NodePauseChainGlobal")
 				if err != nil {
 					b.logger.Error().Err(err).Msg("fail to get mimir setting")
 				}
