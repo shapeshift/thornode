@@ -168,7 +168,8 @@ func (b *BlockScanner) scanBlocks() {
 				if err != nil {
 					b.logger.Error().Err(err).Msg("fail to get mimir setting")
 				}
-				if haltHeight == 0 || (nodeHaltHeight > 0 && nodeHaltHeight < haltHeight) {
+				thorHeight, err := b.thorchainBridge.GetHeight()
+				if err == nil && nodeHaltHeight > 0 && thorHeight > nodeHaltHeight {
 					haltHeight = nodeHaltHeight
 				}
 				lastMimirCheck = time.Now()
