@@ -50,7 +50,6 @@ func (s *SlasherV65) HandleDoubleSign(ctx cosmos.Context, addr crypto.Address, i
 		ctx.Logger().Info("double sign detected but too old to be slashed", "infraction height", fmt.Sprintf("%d", infractionHeight), "address", addr.String())
 		return nil
 	}
-
 	nas, err := s.keeper.ListActiveNodeAccounts(ctx)
 	if err != nil {
 		return err
