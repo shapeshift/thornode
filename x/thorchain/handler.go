@@ -84,19 +84,19 @@ func getHandlerMappingV63(mgr Manager) map[string]MsgHandler {
 	m[MsgObservedTxOut{}.Type()] = NewObservedTxOutHandler(mgr)
 	m[MsgTssKeysignFail{}.Type()] = NewTssKeysignHandler(mgr)
 	m[MsgErrataTx{}.Type()] = NewErrataTxHandler(mgr)
-	m[MsgMimir{}.Type()] = NewMimirHandler(mgr)
 	m[MsgBan{}.Type()] = NewBanHandler(mgr)
 	m[MsgNetworkFee{}.Type()] = NewNetworkFeeHandler(mgr)
+	m[MsgSolvency{}.Type()] = NewSolvencyHandler(mgr)
 
 	// cli handlers (non-consensus)
 	m[MsgSetNodeKeys{}.Type()] = NewSetNodeKeysHandler(mgr)
 	m[MsgSetVersion{}.Type()] = NewVersionHandler(mgr)
 	m[MsgSetIPAddress{}.Type()] = NewIPAddressHandler(mgr)
+	m[MsgMimir{}.Type()] = NewMimirHandler(mgr)
 
 	// native handlers (non-consensus)
 	m[MsgSend{}.Type()] = NewSendHandler(mgr)
 	m[MsgDeposit{}.Type()] = NewDepositHandler(mgr)
-	m[MsgSolvency{}.Type()] = NewSolvencyHandler(mgr)
 	// TODO: uncomment this line once THORNames is deployed (post version
 	// 0.57.0). If this is done, gas is paid with deposit handler, so we'll
 	// need to charge for gas, but not twice
@@ -476,7 +476,6 @@ func processOneTxInV63(ctx cosmos.Context, keeper keeper.Keeper, tx ObservedTx, 
 	}
 	return newMsg, newMsg.ValidateBasic()
 }
-
 func fuzzyAssetMatch(ctx cosmos.Context, keeper keeper.Keeper, asset common.Asset) common.Asset {
 	// if its already an exact match, return it immediately
 	if keeper.PoolExist(ctx, asset) {

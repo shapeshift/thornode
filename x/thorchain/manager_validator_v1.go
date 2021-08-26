@@ -736,18 +736,7 @@ func (vm *validatorMgrV1) ragnarokPools(ctx cosmos.Context, nth int64, mgr Manag
 		return fmt.Errorf("fail to get ragnarok position: %w", err)
 	}
 
-	// each round of refund, we increase the percentage by 10%. This ensures
-	// that we slowly refund each person, while not sending out too much too
-	// fast. Also, we won't be running into any gas related issues until the
-	// very last round, which, by my calculations, if someone provided 100 coins,
-	// the last tx will send them 0.036288. So if we don't have enough gas to
-	// send them, its only a very small portion that is not refunded.
-	var basisPoints int64
-	if nth > 20 || (nth%10) == 0 {
-		basisPoints = MaxWithdrawBasisPoints
-	} else {
-		basisPoints = (nth % 10) * (MaxWithdrawBasisPoints / 10)
-	}
+	basisPoints := MaxWithdrawBasisPoints
 
 	// go through all the pools
 	pools, err := vm.k.GetPools(ctx)

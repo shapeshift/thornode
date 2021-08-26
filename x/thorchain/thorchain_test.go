@@ -396,28 +396,23 @@ func (s *ThorchainSuite) TestRagnarok(c *C) {
 	}
 	mgr.TxOutStore().ClearOutboundItems(ctx) // clear out txs
 
-	// run stage 2 of ragnarok protocol, nth = 1
-	for i := 1; i <= 20; i++ { // simulate each round of ragnarok (max of ten)
+	for i := 1; i <= 11; i++ { // simulate each round of ragnarok (max of ten)
 		c.Assert(mgr.ValidatorMgr().processRagnarok(ctx, mgr, consts), IsNil)
 		items, err := mgr.TxOutStore().GetOutboundItems(ctx)
 		c.Assert(err, IsNil)
-
-		if i <= 10 {
-			c.Assert(items, HasLen, 2, Commentf("%d", len(items)))
-		}
-
 		// validate liquidity providers get their returns
 		for j, lp := range lpsAssets {
 			items := mgr.TxOutStore().GetOutboundItemByToAddress(ctx, lp)
-			// TODO: check item amounts
-			if i <= 10 {
+			if i == 1 {
 				if j >= len(lps)-1 {
 					c.Assert(items, HasLen, 0, Commentf("%d", len(items)))
 				} else {
 					c.Assert(items, HasLen, 1, Commentf("%d", len(items)))
 				}
-			} else {
+			} else if i > 10 {
 				c.Assert(items, HasLen, 1, Commentf("%d", len(items)))
+			} else {
+				c.Assert(items, HasLen, 0)
 			}
 		}
 		mgr.TxOutStore().ClearOutboundItems(ctx) // clear out txs
