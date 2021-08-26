@@ -276,12 +276,6 @@ func subsidizePoolWithSlashBondV1(ctx cosmos.Context, ygg Vault, yggTotalStolen,
 }
 
 func subsidizePoolWithSlashBondV46(ctx cosmos.Context, ygg Vault, yggTotalStolen, slashRuneAmt cosmos.Uint, mgr Manager) error {
-	defer func() {
-		if err := recover(); err != nil {
-			ctx.Logger().Error("fail to subsidize pool", "error", err)
-		}
-	}()
-
 	// Thorchain did not slash the node account
 	if slashRuneAmt.IsZero() {
 		return nil
@@ -289,6 +283,12 @@ func subsidizePoolWithSlashBondV46(ctx cosmos.Context, ygg Vault, yggTotalStolen
 	stolenRUNE := ygg.GetCoin(common.RuneAsset()).Amount
 	slashRuneAmt = common.SafeSub(slashRuneAmt, stolenRUNE)
 	yggTotalStolen = common.SafeSub(yggTotalStolen, stolenRUNE)
+
+	// Should never happen, but this prevents a divide-by-zero panic in case it does
+	if yggTotalStolen.IsZero() {
+		return nil
+	}
+
 	type fund struct {
 		stolenAsset   cosmos.Uint
 		subsidiseRune cosmos.Uint
