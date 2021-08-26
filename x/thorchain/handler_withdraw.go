@@ -80,7 +80,9 @@ func (h WithdrawLiquidityHandler) validateCurrent(ctx cosmos.Context, msg MsgWit
 
 func (h WithdrawLiquidityHandler) handle(ctx cosmos.Context, msg MsgWithdrawLiquidity) (*cosmos.Result, error) {
 	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.55.0")) {
+	if version.GTE(semver.MustParse("0.65.0")) {
+		return h.handleV65(ctx, msg)
+	} else if version.GTE(semver.MustParse("0.55.0")) {
 		return h.handleV55(ctx, msg)
 	} else if version.GTE(semver.MustParse("0.50.0")) {
 		return h.handleV50(ctx, msg)
@@ -984,7 +986,7 @@ func (h WithdrawLiquidityHandler) handleV55(ctx cosmos.Context, msg MsgWithdrawL
 
 	return &cosmos.Result{}, nil
 }
-func (h WithdrawLiquidityHandler) handleV63(ctx cosmos.Context, msg MsgWithdrawLiquidity) (*cosmos.Result, error) {
+func (h WithdrawLiquidityHandler) handleV65(ctx cosmos.Context, msg MsgWithdrawLiquidity) (*cosmos.Result, error) {
 	return h.handleCurrent(ctx, msg)
 }
 

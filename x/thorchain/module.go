@@ -93,20 +93,22 @@ func (AppModuleBasic) GetTxCmd() *cobra.Command {
 // AppModule implements an application module for the thorchain module.
 type AppModule struct {
 	AppModuleBasic
-	mgr          *Mgrs
-	keybaseStore cosmos.KeybaseStore
+	mgr              *Mgrs
+	keybaseStore     cosmos.KeybaseStore
+	telemetryEnabled bool
 }
 
 // NewAppModule creates a new AppModule Object
-func NewAppModule(k keeper.Keeper, cdc codec.BinaryMarshaler, coinKeeper bankkeeper.Keeper, accountKeeper authkeeper.AccountKeeper, storeKey cosmos.StoreKey) AppModule {
+func NewAppModule(k keeper.Keeper, cdc codec.BinaryMarshaler, coinKeeper bankkeeper.Keeper, accountKeeper authkeeper.AccountKeeper, storeKey cosmos.StoreKey, telemetryEnabled bool) AppModule {
 	kb, err := cosmos.GetKeybase(os.Getenv("CHAIN_HOME_FOLDER"))
 	if err != nil {
 		panic(err)
 	}
 	return AppModule{
-		AppModuleBasic: AppModuleBasic{},
-		mgr:            NewManagers(k, cdc, coinKeeper, accountKeeper, storeKey),
-		keybaseStore:   kb,
+		AppModuleBasic:   AppModuleBasic{},
+		mgr:              NewManagers(k, cdc, coinKeeper, accountKeeper, storeKey),
+		keybaseStore:     kb,
+		telemetryEnabled: telemetryEnabled,
 	}
 }
 
@@ -249,8 +251,10 @@ func (am AppModule) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.V
 	am.mgr.GasMgr().EndBlock(ctx, am.mgr.Keeper(), am.mgr.EventMgr())
 
 	// telemetry
-	if err := emitEndBlockTelemetry(ctx, am.mgr); err != nil {
-		ctx.Logger().Error("unable to emit end block telemetry", "error", err)
+	if am.telemetryEnabled {
+		if err := emitEndBlockTelemetry(ctx, am.mgr); err != nil {
+			ctx.Logger().Error("unable to emit end block telemetry", "error", err)
+		}
 	}
 
 	return validators
