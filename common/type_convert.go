@@ -24,11 +24,15 @@ func GetSafeShare(part, total, allocation cosmos.Uint) cosmos.Uint {
 
 // GetShare this method will panic if any of the input parameter can't be convert to cosmos.Dec
 // which shouldn't happen
-func GetShare(part, total, allocation cosmos.Uint) cosmos.Uint {
+func GetShare(part, total, allocation cosmos.Uint) (share cosmos.Uint) {
 	if part.IsZero() || total.IsZero() {
 		return cosmos.ZeroUint()
 	}
-
+	defer func() {
+		if err := recover(); err != nil {
+			share = cosmos.ZeroUint()
+		}
+	}()
 	// use string to convert cosmos.Uint to cosmos.Dec is the only way I can find out without being constrain to uint64
 	// cosmos.Uint can hold values way larger than uint64 , because it is using big.Int internally
 	aD, err := cosmos.NewDecFromStr(allocation.String())
@@ -46,7 +50,8 @@ func GetShare(part, total, allocation cosmos.Uint) cosmos.Uint {
 	}
 	// A / (Total / part) == A * (part/Total) but safer when part < Totals
 	result := aD.Quo(tD.Quo(pD))
-	return cosmos.NewUintFromBigInt(result.RoundInt().BigInt())
+	share = cosmos.NewUintFromBigInt(result.RoundInt().BigInt())
+	return
 }
 
 // SafeSub subtract input2 from input1, given cosmos.Uint can't be negative , otherwise it will panic
