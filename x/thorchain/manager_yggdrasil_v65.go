@@ -33,7 +33,6 @@ func (ymgr YggMgrV65) Fund(ctx cosmos.Context, mgr Manager, constAccessor consta
 	if ragnarokHeight > 0 {
 		return nil
 	}
-
 	stopFundYggdrasil, err := mgr.Keeper().GetMimir(ctx, mimirStopFundYggdrasil)
 	if err == nil && stopFundYggdrasil > 0 {
 		ctx.Logger().Info("mimir stop fund yggdrasil")
@@ -324,7 +323,7 @@ func (ymgr YggMgrV65) calcTargetYggCoins(pools []Pool, ygg Vault, yggBond, total
 	}
 	// figure out what percentage of the bond this yggdrasil pool has. They
 	// should get half of that value.
-	targetRune := common.GetShare(yggBond, bondVal, totalLiquidityRune)
+	targetRune := common.GetSafeShare(yggBond, bondVal, totalLiquidityRune)
 	// check if more rune would be allocated to this pool than their bond allows
 	if targetRune.GT(yggBond.Mul(yggFundLimit).QuoUint64(100)) {
 		targetRune = yggBond.Mul(yggFundLimit).QuoUint64(100)
@@ -338,8 +337,8 @@ func (ymgr YggMgrV65) calcTargetYggCoins(pools []Pool, ygg Vault, yggBond, total
 		if !pool.IsAvailable() {
 			continue
 		}
-		runeAmt := common.GetShare(targetRune, totalLiquidityRune, pool.BalanceRune)
-		assetAmt := common.GetShare(targetRune, totalLiquidityRune, pool.BalanceAsset)
+		runeAmt := common.GetSafeShare(targetRune, totalLiquidityRune, pool.BalanceRune)
+		assetAmt := common.GetSafeShare(targetRune, totalLiquidityRune, pool.BalanceAsset)
 		// add rune amt (not asset since the two are considered to be equal)
 		// in a single pool X, the value of 1% asset X in RUNE ,equals the 1% RUNE in the same pool
 		yggCoin := ygg.GetCoin(pool.Asset)
