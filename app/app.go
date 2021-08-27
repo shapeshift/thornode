@@ -144,7 +144,7 @@ type THORChainApp struct {
 // NewSimApp returns a reference to an initialized SimApp.
 func New(
 	appName string, logger log.Logger, db dbm.DB, traceStore io.Writer, loadLatest bool, skipUpgradeHeights map[int64]bool,
-	homePath string, invCheckPeriod uint, encodingConfig appparams.EncodingConfig, baseAppOptions ...func(*baseapp.BaseApp),
+	homePath string, invCheckPeriod uint, encodingConfig appparams.EncodingConfig, telemetryEnabled bool, baseAppOptions ...func(*baseapp.BaseApp),
 ) *THORChainApp {
 	appCodec := encodingConfig.Marshaler
 	cdc := encodingConfig.Amino
@@ -248,7 +248,7 @@ func New(
 		ibc.NewAppModule(app.IBCKeeper),
 		params.NewAppModule(app.ParamsKeeper),
 		transferModule,
-		thorchain.NewAppModule(app.thorchainKeeper, appCodec, app.BankKeeper, app.AccountKeeper, keys[thorchaintypes.StoreKey]),
+		thorchain.NewAppModule(app.thorchainKeeper, appCodec, app.BankKeeper, app.AccountKeeper, keys[thorchaintypes.StoreKey], telemetryEnabled),
 	)
 
 	// During begin block slashing happens after distr.BeginBlocker so that
