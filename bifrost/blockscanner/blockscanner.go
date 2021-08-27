@@ -174,7 +174,7 @@ func (b *BlockScanner) scanBlocks() {
 				}
 				lastMimirCheck = time.Now()
 			}
-			if haltHeight > 0 && currentBlock > haltHeight {
+			if haltHeight > 0 && thorHeight > haltHeight {
 				// since current chain has been halted , so mark it as not healthy
 				b.healthy = false
 				time.Sleep(constants.ThorchainBlockTime)
