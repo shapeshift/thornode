@@ -43,7 +43,7 @@ func (s *HandlerOutboundTxSuite) TestValidate(c *C) {
 	}
 
 	mgr.K = keeper
-	mgr.slasher = NewSlasherV1(keeper, NewDummyEventMgr())
+	mgr.slasher = newSlasherV1(keeper, NewDummyEventMgr())
 
 	handler := NewOutboundTxHandler(mgr)
 
@@ -225,7 +225,7 @@ func newOutboundTxHandlerTestHelper(c *C) outboundTxHandlerTestHelper {
 	keeper.SetObservedTxOutVoter(ctx, voter)
 
 	constAccessor := constants.GetConstantValues(version)
-	txOutStorage := NewTxOutStorageV1(keeper, constAccessor, NewDummyEventMgr(), NewGasMgrV1(constAccessor, keeper))
+	txOutStorage := newTxOutStorageV1(keeper, constAccessor, NewDummyEventMgr(), newGasMgrV1(constAccessor, keeper))
 	toi := TxOutItem{
 		Chain:       common.BNBChain,
 		ToAddress:   tx.Tx.FromAddress,
@@ -235,7 +235,7 @@ func newOutboundTxHandlerTestHelper(c *C) outboundTxHandlerTestHelper {
 		InHash:      tx.Tx.ID,
 	}
 	mgr.K = keeper
-	mgr.slasher = NewSlasherV1(keeper, NewDummyEventMgr())
+	mgr.slasher = newSlasherV1(keeper, NewDummyEventMgr())
 	result, err := txOutStorage.TryAddTxOutItem(ctx, mgr, toi)
 	c.Assert(err, IsNil)
 	c.Check(result, Equals, true)

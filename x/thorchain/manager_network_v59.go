@@ -17,8 +17,8 @@ type NetworkMgrV59 struct {
 	eventMgr   EventManager
 }
 
-// NewNetworkMgrV59 create a new vault manager
-func NewNetworkMgrV59(k keeper.Keeper, txOutStore TxOutStore, eventMgr EventManager) *NetworkMgrV59 {
+// newNetworkMgrV59 create a new vault manager
+func newNetworkMgrV59(k keeper.Keeper, txOutStore TxOutStore, eventMgr EventManager) *NetworkMgrV59 {
 	return &NetworkMgrV59{
 		k:          k,
 		txOutStore: txOutStore,

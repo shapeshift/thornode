@@ -73,29 +73,23 @@ func (h BondHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Result, erro
 		return nil, err
 	}
 
-	result, err := h.handle(ctx, *msg)
+	err := h.handle(ctx, *msg)
 	if err != nil {
 		ctx.Logger().Error("fail to process msg bond", "error", err)
 		return nil, err
 	}
 
-	return result, nil
+	return &cosmos.Result{}, nil
 }
 
-func (h BondHandler) handle(ctx cosmos.Context, msg MsgBond) (*cosmos.Result, error) {
+func (h BondHandler) handle(ctx cosmos.Context, msg MsgBond) error {
 	version := h.mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.47.0")) {
-		if err := h.handleV47(ctx, msg); err != nil {
-			ctx.Logger().Error("fail to process msg bond", "error", err)
-			return nil, err
-		}
+		return h.handleV47(ctx, msg)
 	} else if version.GTE(semver.MustParse("0.1.0")) {
-		if err := h.handleV1(ctx, msg); err != nil {
-			ctx.Logger().Error("fail to process msg bond", "error", err)
-			return nil, err
-		}
+		return h.handleV1(ctx, msg)
 	}
-	return &cosmos.Result{}, nil
+	return errBadVersion
 }
 
 func (h BondHandler) handleV1(ctx cosmos.Context, msg MsgBond) error {

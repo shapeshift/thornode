@@ -16,7 +16,7 @@ var _ = Suite(&GasManagerTestSuite{})
 func (GasManagerTestSuite) TestGasManagerV1(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	constAccessor := constants.GetConstantValues(GetCurrentVersion())
-	gasMgr := NewGasMgrV1(constAccessor, k)
+	gasMgr := newGasMgrV1(constAccessor, k)
 	gasEvent := gasMgr.gasEvent
 	c.Assert(gasMgr, NotNil)
 	gasMgr.BeginBlock()
@@ -42,14 +42,14 @@ func (GasManagerTestSuite) TestGasManagerV1(c *C) {
 		common.NewCoin(common.ETHAsset, cosmos.NewUint(38500)),
 	}, true)
 	c.Assert(gasMgr.GetGas(), HasLen, 3)
-	eventMgr := NewEventMgrV1()
+	eventMgr := newEventMgrV1()
 	gasMgr.EndBlock(ctx, k, eventMgr)
 }
 
 func (GasManagerTestSuite) TestGetFee(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	constAccessor := constants.GetConstantValues(GetCurrentVersion())
-	gasMgr := NewGasMgrV1(constAccessor, k)
+	gasMgr := newGasMgrV1(constAccessor, k)
 	fee := gasMgr.GetFee(ctx, common.BNBChain, common.RuneAsset())
 	defaultTxFee := uint64(constAccessor.GetInt64Value(constants.OutboundTransactionFee))
 	// when there is no network fee available, it should just get from the constants
@@ -133,10 +133,10 @@ func (g *gasManagerTestHelper) SetPool(ctx cosmos.Context, p Pool) error {
 func (GasManagerTestSuite) TestDifferentValidations(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	constAccessor := constants.GetConstantValues(GetCurrentVersion())
-	gasMgr := NewGasMgrV1(constAccessor, k)
+	gasMgr := newGasMgrV1(constAccessor, k)
 	gasMgr.BeginBlock()
 	helper := newGasManagerTestHelper(k)
-	eventMgr := NewEventMgrV1()
+	eventMgr := newEventMgrV1()
 	gasMgr.EndBlock(ctx, helper, eventMgr)
 
 	helper.failGetNetwork = true
