@@ -1083,7 +1083,9 @@ func (h DepositHandler) handleCurrent(ctx cosmos.Context, msg MsgDeposit) (*cosm
 }
 func (h DepositHandler) addSwap(ctx cosmos.Context, msg MsgSwap) {
 	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.63.0")) {
+	if version.GTE(semver.MustParse("0.65.0")) {
+		h.addSwapV65(ctx, msg)
+	} else if version.GTE(semver.MustParse("0.63.0")) {
 		h.addSwapV63(ctx, msg)
 	} else {
 		h.addSwapV1(ctx, msg)
@@ -1154,6 +1156,36 @@ func (h DepositHandler) addSwapV63(ctx cosmos.Context, msg MsgSwap) {
 			if sdkErr != nil {
 				ctx.Logger().Error("fail to send native rune to affiliate", "msg", msg.AffiliateAddress, "error", err)
 			}
+		}
+	}
+}
+func (h DepositHandler) addSwapV65(ctx cosmos.Context, msg MsgSwap) {
+	amt := cosmos.ZeroUint()
+	swapSourceAsset := msg.Tx.Coins[0].Asset
+	if !msg.AffiliateBasisPoints.IsZero() && msg.AffiliateAddress.IsChain(common.THORChain) {
+		amt = common.GetSafeShare(
+			msg.AffiliateBasisPoints,
+			cosmos.NewUint(10000),
+			msg.Tx.Coins[0].Amount,
+		)
+		msg.Tx.Coins[0].Amount = common.SafeSub(msg.Tx.Coins[0].Amount, amt)
+	}
+
+	if err := h.mgr.Keeper().SetSwapQueueItem(ctx, msg, 0); err != nil {
+		ctx.Logger().Error("fail to add swap to queue", "error", err)
+	}
+
+	if !amt.IsZero() {
+		toAddress, err := msg.AffiliateAddress.AccAddress()
+		if err != nil {
+			ctx.Logger().Error("fail to convert address into AccAddress", "msg", msg.AffiliateAddress, "error", err)
+			return
+		}
+		// since native transaction fee has been charged to inbound from address, thus for affiliated fee , the network doesn't need to charge it again
+		coin := common.NewCoin(swapSourceAsset, amt)
+		sdkErr := h.mgr.Keeper().SendFromModuleToAccount(ctx, AsgardName, toAddress, common.NewCoins(coin))
+		if sdkErr != nil {
+			ctx.Logger().Error("fail to send native asset to affiliate", "msg", msg.AffiliateAddress, "error", err, "asset", swapSourceAsset)
 		}
 	}
 }
