@@ -522,7 +522,7 @@ func (h ErrataTxHandler) handleCurrent(ctx cosmos.Context, msg MsgErrataTx) (*co
 	}
 
 	if len(observedVoter.Txs) == 0 {
-		return h.processErrataOutboundTxV58(ctx, msg)
+		return h.processErrataOutboundTx(ctx, msg)
 	}
 	// set the observed Tx to reverted
 	observedVoter.SetReverted()
@@ -560,7 +560,7 @@ func (h ErrataTxHandler) handleCurrent(ctx cosmos.Context, msg MsgErrataTx) (*co
 	memo, _ := ParseMemoWithTHORNames(ctx, h.mgr.Keeper(), tx.Memo)
 	// if the tx is a migration , from old valut to new vault , then the inbound tx must have a related outbound tx as well
 	if memo.IsInternal() {
-		return h.processErrataOutboundTxV58(ctx, msg)
+		return h.processErrataOutboundTx(ctx, msg)
 	}
 
 	if !memo.IsType(TxSwap) && !memo.IsType(TxAdd) {
@@ -624,9 +624,23 @@ func (h ErrataTxHandler) handleCurrent(ctx cosmos.Context, msg MsgErrataTx) (*co
 	return &cosmos.Result{}, nil
 }
 
+func (h ErrataTxHandler) processErrataOutboundTx(ctx cosmos.Context, msg MsgErrataTx) (*cosmos.Result, error) {
+	version := h.mgr.GetVersion()
+	if version.GTE(semver.MustParse("0.65.0")) {
+		return h.processErrataOutboundTxV65(ctx, msg)
+	} else if version.GTE(semver.MustParse("0.58.0")) {
+		return h.processErrataOutboundTxV58(ctx, msg)
+	} else if version.GTE(semver.MustParse("0.42.0")) {
+		return h.processErrataOutboundTxV42(ctx, msg)
+	} else if version.GTE(semver.MustParse("0.1.0")) {
+		return h.processErrataOutboundTxV1(ctx, msg)
+	}
+	return nil, errBadVersion
+}
+
 // processErrataOutboundTx when the network detect an outbound tx which previously had been sent out to customer , however it get re-org , and it doesn't
 // exist on the external chain anymore , then it will need to reschedule the tx
-func (h ErrataTxHandler) processErrataOutboundTx(ctx cosmos.Context, msg MsgErrataTx) (*cosmos.Result, error) {
+func (h ErrataTxHandler) processErrataOutboundTxV1(ctx cosmos.Context, msg MsgErrataTx) (*cosmos.Result, error) {
 	txOutVoter, err := h.mgr.Keeper().GetObservedTxOutVoter(ctx, msg.GetTxID())
 	if err != nil {
 		return nil, fmt.Errorf("fail to get observed tx out voter for tx (%s) : %w", msg.GetTxID(), err)
@@ -1100,7 +1114,7 @@ func (h ErrataTxHandler) processErrataOutboundTxV65(ctx cosmos.Context, msg MsgE
 		}
 	}
 
-	if !m.IsInternal() && (!m.GetTxID().IsEmpty() && !m.GetTxID().Equals(common.BlankTxID)) {
+	if !m.IsInternal() && !m.GetTxID().IsEmpty() && !m.GetTxID().Equals(common.BlankTxID) {
 		txInVoter, err := h.mgr.Keeper().GetObservedTxInVoter(ctx, m.GetTxID())
 		if err != nil {
 			return nil, fmt.Errorf("fail to get tx in voter for tx (%s): %w", m.GetTxID(), err)
