@@ -18,8 +18,8 @@ type SlasherV1 struct {
 	eventMgr EventManager
 }
 
-// NewSlasherV1 create a new instance of Slasher
-func NewSlasherV1(keeper keeper.Keeper, eventMgr EventManager) *SlasherV1 {
+// newSlasherV1 create a new instance of Slasher
+func newSlasherV1(keeper keeper.Keeper, eventMgr EventManager) *SlasherV1 {
 	return &SlasherV1{keeper: keeper, eventMgr: eventMgr}
 }
 

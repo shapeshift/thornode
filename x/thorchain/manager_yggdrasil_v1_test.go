@@ -32,7 +32,7 @@ func (s YggdrasilManagerV1Suite) TestCalcTargetAmounts(c *C) {
 
 	totalBond := cosmos.NewUint(8000 * common.One)
 	bond := cosmos.NewUint(200 * common.One)
-	ymgr := NewYggMgrV1(keeper.KVStoreDummy{})
+	ymgr := newYggMgrV1(keeper.KVStoreDummy{})
 	yggFundLimit := cosmos.NewUint(50)
 	coins, err := ymgr.calcTargetYggCoins(pools, ygg, bond, totalBond, yggFundLimit)
 	c.Assert(err, IsNil)
@@ -58,7 +58,7 @@ func (s YggdrasilManagerV1Suite) TestCalcTargetAmounts2(c *C) {
 
 	totalBond := cosmos.NewUint(3000000 * common.One)
 	bond := cosmos.NewUint(1000000 * common.One)
-	ymgr := NewYggMgrV1(keeper.KVStoreDummy{})
+	ymgr := newYggMgrV1(keeper.KVStoreDummy{})
 	yggFundLimit := cosmos.NewUint(50)
 	coins, err := ymgr.calcTargetYggCoins(pools, ygg, bond, totalBond, yggFundLimit)
 	c.Assert(err, IsNil)
@@ -93,7 +93,7 @@ func (s YggdrasilManagerV1Suite) TestCalcTargetAmounts3(c *C) {
 
 	totalBond := cosmos.NewUint(8000 * common.One)
 	bond := cosmos.NewUint(200 * common.One)
-	ymgr := NewYggMgrV1(keeper.KVStoreDummy{})
+	ymgr := newYggMgrV1(keeper.KVStoreDummy{})
 	yggFundLimit := cosmos.NewUint(50)
 	coins, err := ymgr.calcTargetYggCoins(pools, ygg, bond, totalBond, yggFundLimit)
 	c.Assert(err, IsNil)
@@ -127,7 +127,7 @@ func (s YggdrasilManagerV1Suite) TestCalcTargetAmounts4(c *C) {
 
 	totalBond := cosmos.NewUint(2000 * common.One)
 	bond := cosmos.NewUint(200 * common.One)
-	ymgr := NewYggMgrV1(keeper.KVStoreDummy{})
+	ymgr := newYggMgrV1(keeper.KVStoreDummy{})
 	yggFundLimit := cosmos.NewUint(50)
 	coins, err := ymgr.calcTargetYggCoins(pools, ygg, bond, totalBond, yggFundLimit)
 	c.Assert(err, IsNil)
@@ -154,7 +154,7 @@ func (s YggdrasilManagerV1Suite) TestFund(c *C) {
 	}
 	ver := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(ver)
-	ymgr := NewYggMgrV1(k)
+	ymgr := newYggMgrV1(k)
 	err := ymgr.Fund(ctx, mgr, constAccessor)
 	c.Assert(err, IsNil)
 	na1 := GetRandomNodeAccount(NodeActive)
@@ -193,7 +193,7 @@ func (s YggdrasilManagerV1Suite) TestNotAvailablePoolAssetWillNotFundYggdrasil(c
 	}
 	ver := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(ver)
-	ymgr := NewYggMgrV1(k)
+	ymgr := newYggMgrV1(k)
 	err = ymgr.Fund(ctx, mgr, constAccessor)
 	c.Assert(err, IsNil)
 	na1 := GetRandomNodeAccount(NodeActive)
@@ -259,7 +259,7 @@ func (s YggdrasilManagerV1Suite) TestAbandonYggdrasil(c *C) {
 	c.Assert(mgr.Keeper().SetVault(ctx, yggdrasilVault), IsNil)
 	ver := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(ver)
-	ymgr := NewYggMgrV1(mgr.Keeper())
+	ymgr := newYggMgrV1(mgr.Keeper())
 	err := ymgr.Fund(ctx, mgr, constAccessor)
 	c.Assert(err, IsNil)
 	// make sure the yggdrasil vault had been removed
@@ -328,21 +328,21 @@ func (s YggdrasilManagerV1Suite) TestAbandonYggdrasilWithDifferentConditions(c *
 		Keeper:                       mgr.Keeper(),
 		failToGetAsgardVaultByStatus: true,
 	}
-	ymgr := NewYggMgrV1(kh)
+	ymgr := newYggMgrV1(kh)
 	c.Assert(ymgr.abandonYggdrasilVaults(ctx, mgr), NotNil)
 
 	kh = &abandonYggdrasilTestHelper{
 		Keeper:               mgr.Keeper(),
 		failToGetNodeAccount: true,
 	}
-	ymgr = NewYggMgrV1(kh)
+	ymgr = newYggMgrV1(kh)
 	c.Assert(ymgr.abandonYggdrasilVaults(ctx, mgr), IsNil)
 	c.Assert(mgr.Keeper().VaultExists(ctx, naDisabled.PubKeySet.Secp256k1), Equals, true)
 
 	// when bond is zero , it shouldn't do anything
 	naDisabled.Bond = cosmos.ZeroUint()
 	c.Assert(mgr.Keeper().SetNodeAccount(ctx, naDisabled), IsNil)
-	ymgr = NewYggMgrV1(mgr.Keeper())
+	ymgr = newYggMgrV1(mgr.Keeper())
 	c.Assert(ymgr.abandonYggdrasilVaults(ctx, mgr), IsNil)
 	c.Assert(mgr.Keeper().VaultExists(ctx, naDisabled.PubKeySet.Secp256k1), Equals, true)
 
@@ -358,7 +358,7 @@ func (s YggdrasilManagerV1Suite) TestAbandonYggdrasilWithDifferentConditions(c *
 	}.Strings()
 	c.Assert(mgr.Keeper().SetVault(ctx, asgardVault), IsNil)
 
-	ymgr = NewYggMgrV1(mgr.Keeper())
+	ymgr = newYggMgrV1(mgr.Keeper())
 	c.Assert(ymgr.abandonYggdrasilVaults(ctx, mgr), IsNil)
 	c.Assert(mgr.Keeper().VaultExists(ctx, naDisabled.PubKeySet.Secp256k1), Equals, true)
 }

@@ -19,8 +19,8 @@ type TxOutStorageV46 struct {
 	gasManager    GasManager
 }
 
-// NewTxOutStorageV46 will create a new instance of TxOutStore.
-func NewTxOutStorageV46(keeper keeper.Keeper, constAccessor constants.ConstantValues, eventMgr EventManager, gasManager GasManager) *TxOutStorageV46 {
+// newTxOutStorageV46 will create a new instance of TxOutStore.
+func newTxOutStorageV46(keeper keeper.Keeper, constAccessor constants.ConstantValues, eventMgr EventManager, gasManager GasManager) *TxOutStorageV46 {
 	return &TxOutStorageV46{
 		keeper:        keeper,
 		eventMgr:      eventMgr,
