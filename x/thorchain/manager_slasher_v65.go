@@ -50,7 +50,6 @@ func (s *SlasherV65) HandleDoubleSign(ctx cosmos.Context, addr crypto.Address, i
 		ctx.Logger().Info("double sign detected but too old to be slashed", "infraction height", fmt.Sprintf("%d", infractionHeight), "address", addr.String())
 		return nil
 	}
-
 	nas, err := s.keeper.ListActiveNodeAccounts(ctx)
 	if err != nil {
 		return err
@@ -221,11 +220,20 @@ func (s *SlasherV65) LackSigning(ctx cosmos.Context, constAccessor constants.Con
 				}
 			}
 
-			voter, err := s.keeper.GetObservedTxInVoter(ctx, tx.InHash)
-			if err != nil {
-				ctx.Logger().Error("fail to get observed tx voter", "error", err)
-				resultErr = fmt.Errorf("failed to get observed tx voter: %w", err)
+			memo, _ := ParseMemoWithTHORNames(ctx, s.keeper, tx.Memo) // ignore err
+			if memo.IsInternal() {
+				// there is a different mechanism for rescheduling outbound
+				// transactions for migration transactions
 				continue
+			}
+			var voter ObservedTxVoter
+			if !memo.IsType(TxRagnarok) {
+				voter, err = s.keeper.GetObservedTxInVoter(ctx, tx.InHash)
+				if err != nil {
+					ctx.Logger().Error("fail to get observed tx voter", "error", err)
+					resultErr = fmt.Errorf("failed to get observed tx voter: %w", err)
+					continue
+				}
 			}
 
 			active, err := s.keeper.GetAsgardVaultsByStatus(ctx, ActiveVault)
@@ -272,32 +280,25 @@ func (s *SlasherV65) LackSigning(ctx cosmos.Context, constAccessor constants.Con
 				}
 				vault = available[rep%len(available)]
 			}
-
-			// update original tx action in observed tx
-			// check observedTx has done status. Skip if it does already.
-			voterTx := voter.GetTx(NodeAccounts{})
-			if voterTx.IsDone(len(voter.Actions)) {
-				if len(voterTx.OutHashes) > 0 && len(voterTx.GetOutHashes()) > 0 {
-					txs.TxArray[i].OutHash = voterTx.GetOutHashes()[0]
+			if !memo.IsType(TxRagnarok) {
+				// update original tx action in observed tx
+				// check observedTx has done status. Skip if it does already.
+				voterTx := voter.GetTx(NodeAccounts{})
+				if voterTx.IsDone(len(voter.Actions)) {
+					if len(voterTx.OutHashes) > 0 && len(voterTx.GetOutHashes()) > 0 {
+						txs.TxArray[i].OutHash = voterTx.GetOutHashes()[0]
+					}
+					continue
 				}
-				continue
-			}
 
-			// update the actions in the voter with the new vault pubkey
-			for i, action := range voter.Actions {
-				if action.Equals(tx) {
-					voter.Actions[i].VaultPubKey = vault.PubKey
+				// update the actions in the voter with the new vault pubkey
+				for i, action := range voter.Actions {
+					if action.Equals(tx) {
+						voter.Actions[i].VaultPubKey = vault.PubKey
+					}
 				}
+				s.keeper.SetObservedTxInVoter(ctx, voter)
 			}
-			s.keeper.SetObservedTxInVoter(ctx, voter)
-
-			memo, _ := ParseMemoWithTHORNames(ctx, s.keeper, tx.Memo) // ignore err
-			if memo.IsInternal() {
-				// there is a different mechanism for rescheduling outbound
-				// transactions for migration transactions
-				continue
-			}
-
 			// Save the tx to as a new tx, select Asgard to send it this time.
 			tx.VaultPubKey = vault.PubKey
 
