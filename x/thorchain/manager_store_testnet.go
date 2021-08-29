@@ -6,15 +6,14 @@ package thorchain
 import (
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
-	"gitlab.com/thorchain/thornode/constants"
 )
 
-func (smgr *StoreMgr) creditAssetBackToVaultAndPool(ctx cosmos.Context) {
+func creditAssetBackToVaultAndPool(ctx cosmos.Context, mgr Manager) {
 
 }
-func (smgr *StoreMgr) purgeETHOutboundQueue(ctx cosmos.Context, constantAccessor constants.ConstantValues) {
+func purgeETHOutboundQueue(ctx cosmos.Context, mgr Manager) {
 
 }
-func (smgr *StoreMgr) correctAsgardVaultBalanceV61(ctx cosmos.Context, asgardPubKey common.PubKey) {
+func correctAsgardVaultBalanceV61(ctx cosmos.Context, mgr Manager, asgardPubKey common.PubKey) {
 
 }
