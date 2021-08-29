@@ -660,11 +660,7 @@ func (vm *NetworkMgrV1) UpdateNetwork(ctx cosmos.Context, constAccessor constant
 	// given bondReward and toolPoolRewards are both calculated base on totalReserve, thus it should always have enough to pay the bond reward
 
 	// Move Rune from the Reserve to the Bond and Pool Rewards
-	totalRewards := bondReward.Add(totalPoolRewards)
-	if totalRewards.GT(totalReserve) {
-		totalRewards = totalReserve
-	}
-	totalReserve = common.SafeSub(totalReserve, totalRewards)
+
 	coin := common.NewCoin(common.RuneNative, bondReward)
 	if err := vm.k.SendFromModuleToModule(ctx, ReserveName, BondName, common.NewCoins(coin)); err != nil {
 		ctx.Logger().Error("fail to transfer funds from reserve to bond", "error", err)
