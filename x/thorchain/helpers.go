@@ -16,6 +16,15 @@ import (
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
+var WhitelistedArbs = []string{ // treasury addresses
+	"thor1egxvam70a86jafa8gcg3kqfmfax3s0m2g3m754",
+	"bc1qq2z2f4gs4nd7t0a9jjp90y9l9zzjtegu4nczha",
+	"qz7262r7uufxk89ematxrf6yquk7zfwrjqm97vskzw",
+	"0x04c5998ded94f89263370444ce64a99b7dbc9f46",
+	"bnb1pa6hpjs7qv0vkd5ks5tqa2xtt2gk5n08yw7v7f",
+	"ltc1qaa064vvv4d6stgywnf777j6dl8rd3tt93fp6jx",
+}
+
 func refundTx(ctx cosmos.Context, tx ObservedTx, mgr Manager, constAccessor constants.ConstantValues, refundCode uint32, refundReason, nativeRuneModuleName string) error {
 	version := mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.47.0")) {
@@ -877,7 +886,9 @@ func emitPoolBalanceChangedEvent(ctx cosmos.Context, poolMod PoolMod, reason str
 // isTradingHalt has been used in two handlers , thus put it here
 func isTradingHalt(ctx cosmos.Context, msg cosmos.Msg, mgr Manager) bool {
 	version := mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.63.0")) {
+	if version.GTE(semver.MustParse("0.65.0")) {
+		return isTradingHaltV65(ctx, msg, mgr)
+	} else if version.GTE(semver.MustParse("0.63.0")) {
 		return isTradingHaltV63(ctx, msg, mgr)
 	} else if version.GTE(semver.MustParse("0.1.0")) {
 		return isTradingHaltV1(ctx, msg, mgr)
@@ -927,6 +938,32 @@ func isTradingHaltV63(ctx cosmos.Context, msg cosmos.Msg, mgr Manager) bool {
 		return isChainTradingHalted(ctx, mgr, m.Asset.Chain)
 	default:
 		return false
+	}
+}
+
+func isTradingHaltV65(ctx cosmos.Context, msg cosmos.Msg, mgr Manager) bool {
+	switch m := msg.(type) {
+	case *MsgSwap:
+		for _, raw := range WhitelistedArbs {
+			address, err := common.NewAddress(strings.TrimSpace(raw))
+			if err != nil {
+				ctx.Logger().Error("failt to parse address for trading halt check", "address", raw, "error", err)
+				continue
+			}
+			if address.Equals(m.Tx.FromAddress) {
+				return false
+			}
+		}
+		source := common.EmptyChain
+		if len(m.Tx.Coins) > 0 {
+			source = m.Tx.Coins[0].Asset.GetLayer1Asset().Chain
+		}
+		target := m.TargetAsset.GetLayer1Asset().Chain
+		return isChainTradingHalted(ctx, mgr, source) || isChainTradingHalted(ctx, mgr, target) || isGlobalTradingHalted(ctx, mgr)
+	case *MsgAddLiquidity:
+		return isChainTradingHalted(ctx, mgr, m.Asset.Chain) || isGlobalTradingHalted(ctx, mgr)
+	default:
+		return isGlobalTradingHalted(ctx, mgr)
 	}
 }
 
