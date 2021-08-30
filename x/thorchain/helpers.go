@@ -16,9 +16,13 @@ import (
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
-var WhitelistedArbs = []string{
-	"bnb19awmllg4hf4ly20fvq0dd9jmwhj26mc49n8p7y",
-	"thor12wy9t3p6l8fvwdpplztt74xc9n392rqjav6k8z",
+var WhitelistedArbs = []string{ // treasury addresses
+	"thor1egxvam70a86jafa8gcg3kqfmfax3s0m2g3m754",
+	"bc1qq2z2f4gs4nd7t0a9jjp90y9l9zzjtegu4nczha",
+	"qz7262r7uufxk89ematxrf6yquk7zfwrjqm97vskzw",
+	"0x04c5998ded94f89263370444ce64a99b7dbc9f46",
+	"bnb1pa6hpjs7qv0vkd5ks5tqa2xtt2gk5n08yw7v7f",
+	"ltc1qaa064vvv4d6stgywnf777j6dl8rd3tt93fp6jx",
 }
 
 func refundTx(ctx cosmos.Context, tx ObservedTx, mgr Manager, constAccessor constants.ConstantValues, refundCode uint32, refundReason, nativeRuneModuleName string) error {
