@@ -395,6 +395,16 @@ func (tos *TxOutStorageV65) addToBlockOut(ctx cosmos.Context, mgr Manager, toi T
 		ctx.Logger().Error("failed to calc target block height for txout item", "error", err)
 	}
 
+	if targetHeight > common.BlockHeight(ctx) {
+		voter, err := tos.keeper.GetObservedTxInVoter(ctx, toi.InHash)
+		if err != nil {
+			ctx.Logger().Error("fail to get observe tx in voter", "error", err)
+			return fmt.Errorf("fail to get observe tx in voter,err:%w", err)
+		}
+		voter.FinalisedHeight = targetHeight
+		tos.keeper.SetObservedTxInVoter(ctx, voter)
+	}
+
 	return tos.keeper.AppendTxOut(ctx, targetHeight, toi)
 }
 
@@ -425,15 +435,18 @@ func (tos *TxOutStorageV65) calcTxOutHeight(ctx cosmos.Context, toi TxOutItem) (
 	}
 
 	// get txout item value in rune
-	pool, err := tos.keeper.GetPool(ctx, toi.Coin.Asset)
-	if err != nil {
-		ctx.Logger().Error("fail to get pool for appending txout item", "error", err)
-		return common.BlockHeight(ctx) + maxTxOutOffset, err
+	runeValue := toi.Coin.Amount
+	if !toi.Coin.Asset.IsRune() {
+		pool, err := tos.keeper.GetPool(ctx, toi.Coin.Asset)
+		if err != nil {
+			ctx.Logger().Error("fail to get pool for appending txout item", "error", err)
+			return common.BlockHeight(ctx) + maxTxOutOffset, err
+		}
+		runeValue = pool.AssetValueInRune(toi.Coin.Amount)
 	}
-	runeValue := pool.AssetValueInRune(toi.Coin.Amount)
 
 	// sum value of scheduled txns (including this one)
-	sumValue := int64(runeValue.Uint64())
+	sumValue := runeValue
 	for height := common.BlockHeight(ctx) + 1; height <= common.BlockHeight(ctx)+txOutDelayMax; height++ {
 		value, err := tos.keeper.GetTxOutValue(ctx, height)
 		if err != nil {
@@ -445,7 +458,7 @@ func (tos *TxOutStorageV65) calcTxOutHeight(ctx cosmos.Context, toi TxOutItem) (
 			// rest will be empty as well
 			break
 		}
-		sumValue += int64(value.Uint64())
+		sumValue = sumValue.Add(value)
 	}
 	// reduce delay rate relative to the total scheduled value. In high volume
 	// scenarios, this causes the network to send outbound transactions slower,
@@ -453,7 +466,7 @@ func (tos *TxOutStorageV65) calcTxOutHeight(ctx cosmos.Context, toi TxOutItem) (
 	// scenario, the attacker is likely going to move as much value as possible
 	// (as we've seen in the past). The act of doing this will slow down their
 	// own transaction(s), reducing the attack's effectiveness.
-	txOutDelayRate -= sumValue / minTxOutVolumeThreshold
+	txOutDelayRate -= int64(sumValue.Uint64()) / minTxOutVolumeThreshold
 	if txOutDelayRate < 1 {
 		txOutDelayRate = 1
 	}
