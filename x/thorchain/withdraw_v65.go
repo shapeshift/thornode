@@ -78,17 +78,16 @@ func withdrawV65(ctx cosmos.Context, version semver.Version, msg MsgWithdrawLiqu
 	// only when Pool is in Available status will apply impermanent loss protection
 	if fullProtectionLine > 0 && pool.Status == PoolAvailable { // if protection line is zero, no imp loss protection is given
 		protectionBasisPoints := calcImpLossProtectionAmtV1(ctx, lp.LastAddHeight, fullProtectionLine)
-		depositValue := cosmos.ZeroUint()
-		redeemValue := cosmos.ZeroUint()
-		protectionRuneAmount, depositValue, redeemValue = calcImpLossV63(lp, msg.BasisPoints, protectionBasisPoints, pool)
-		ctx.Logger().Info("imp loss calculation", "deposit value", depositValue, "redeem value", redeemValue, "protection", protectionRuneAmount)
-		if !protectionRuneAmount.IsZero() {
-			_, extraUnits, err := calculatePoolUnitsV1(pool.GetPoolUnits(), poolRune, poolAsset, protectionRuneAmount, cosmos.ZeroUint())
+		implProtectionRuneAmount, depositValue, redeemValue := calcImpLossV63(lp, msg.BasisPoints, protectionBasisPoints, pool)
+		ctx.Logger().Info("imp loss calculation", "deposit value", depositValue, "redeem value", redeemValue, "protection", implProtectionRuneAmount)
+		if !implProtectionRuneAmount.IsZero() {
+			protectionRuneAmount = implProtectionRuneAmount
+			_, extraUnits, err := calculatePoolUnitsV1(pool.GetPoolUnits(), poolRune, poolAsset, implProtectionRuneAmount, cosmos.ZeroUint())
 			if err != nil {
 				return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), err
 			}
-			ctx.Logger().Info("liquidity provider granted imp loss protection", "extra provider units", extraUnits, "extra rune", protectionRuneAmount)
-			poolRune = poolRune.Add(protectionRuneAmount)
+			ctx.Logger().Info("liquidity provider granted imp loss protection", "extra provider units", extraUnits, "extra rune", implProtectionRuneAmount)
+			poolRune = poolRune.Add(implProtectionRuneAmount)
 			fLiquidityProviderUnit = fLiquidityProviderUnit.Add(extraUnits)
 			pool.LPUnits = pool.LPUnits.Add(extraUnits)
 		}
