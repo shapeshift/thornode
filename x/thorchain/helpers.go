@@ -947,6 +947,7 @@ func isTradingHaltV65(ctx cosmos.Context, msg cosmos.Msg, mgr Manager) bool {
 		for _, raw := range WhitelistedArbs {
 			address, err := common.NewAddress(strings.TrimSpace(raw))
 			if err != nil {
+				ctx.Logger().Error("failt to parse address for trading halt check", "address", raw, "error", err)
 				continue
 			}
 			if address.Equals(m.Tx.FromAddress) {
