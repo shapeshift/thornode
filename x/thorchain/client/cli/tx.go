@@ -29,6 +29,8 @@ func GetTxCmd() *cobra.Command {
 	cmd.AddCommand(GetCmdSetIPAddress())
 	cmd.AddCommand(GetCmdBan())
 	cmd.AddCommand(GetCmdMimir())
+	cmd.AddCommand(GetCmdNodePauseChain())
+	cmd.AddCommand(GetCmdNodeResumeChain())
 	cmd.AddCommand(GetCmdDeposit())
 	cmd.AddCommand(GetCmdSend())
 	for _, subCmd := range cmd.Commands() {
@@ -119,6 +121,48 @@ func GetCmdMimir() *cobra.Command {
 			}
 
 			msg := types.NewMsgMimir(args[0], val, clientCtx.GetFromAddress())
+			if err := msg.ValidateBasic(); err != nil {
+				return err
+			}
+			return tx.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), msg)
+		},
+	}
+}
+
+// GetCmdNodePauseChain command to change node pause chain
+func GetCmdNodePauseChain() *cobra.Command {
+	return &cobra.Command{
+		Use:   "pause-chain",
+		Short: "globally pause chain (NOs only)",
+		Args:  cobra.ExactArgs(0),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			clientCtx, err := client.GetClientTxContext(cmd)
+			if err != nil {
+				return err
+			}
+
+			msg := types.NewMsgNodePauseChain(int64(1), clientCtx.GetFromAddress())
+			if err := msg.ValidateBasic(); err != nil {
+				return err
+			}
+			return tx.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), msg)
+		},
+	}
+}
+
+// GetCmdNodeResumeChain command to change node resume chain
+func GetCmdNodeResumeChain() *cobra.Command {
+	return &cobra.Command{
+		Use:   "resume-chain",
+		Short: "globally resume chain (NOs only)",
+		Args:  cobra.ExactArgs(0),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			clientCtx, err := client.GetClientTxContext(cmd)
+			if err != nil {
+				return err
+			}
+
+			msg := types.NewMsgNodePauseChain(int64(-1), clientCtx.GetFromAddress())
 			if err := msg.ValidateBasic(); err != nil {
 				return err
 			}
