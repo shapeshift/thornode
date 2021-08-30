@@ -955,8 +955,20 @@ func isChainTradingHalted(ctx cosmos.Context, mgr Manager, chain common.Chain) b
 // chain halt is different as halt trading , when a chain is halt , there is no observation on the given chain
 // outbound will not be signed and broadcast
 func isChainHalted(ctx cosmos.Context, mgr Manager, chain common.Chain) bool {
+	haltChain, err := mgr.Keeper().GetMimir(ctx, "HaltChainGlobal")
+	if err == nil && (haltChain > 0 && haltChain < common.BlockHeight(ctx)) {
+		ctx.Logger().Info("global is halt")
+		return true
+	}
+
+	haltChain, err = mgr.Keeper().GetMimir(ctx, "NodePauseChainGlobal")
+	if err == nil && haltChain > common.BlockHeight(ctx) {
+		ctx.Logger().Info("node global is halt")
+		return true
+	}
+
 	mimirKey := fmt.Sprintf("Halt%sChain", chain)
-	haltChain, err := mgr.Keeper().GetMimir(ctx, mimirKey)
+	haltChain, err = mgr.Keeper().GetMimir(ctx, mimirKey)
 	if err == nil && (haltChain > 0 && haltChain < common.BlockHeight(ctx)) {
 		ctx.Logger().Info("chain is halt", "chain", chain)
 		return true

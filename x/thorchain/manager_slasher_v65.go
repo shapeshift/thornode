@@ -200,8 +200,8 @@ func (s *SlasherV65) LackSigning(ctx cosmos.Context, constAccessor constants.Con
 				// log the error, and continue
 				ctx.Logger().Error("Unable to get vault", "error", err, "vault pub key", tx.VaultPubKey.String())
 			}
-			// slash if its a yggdrasil vault
-			if vault.IsYggdrasil() {
+			// slash if its a yggdrasil vault, and the chain isn't halted
+			if vault.IsYggdrasil() && !isChainHalted(ctx, mgr, tx.Chain) {
 				na, err := s.keeper.GetNodeAccountByPubKey(ctx, tx.VaultPubKey)
 				if err != nil {
 					ctx.Logger().Error("Unable to get node account", "error", err, "vault pub key", tx.VaultPubKey.String())
