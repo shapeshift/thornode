@@ -1013,6 +1013,29 @@ func isChainHalted(ctx cosmos.Context, mgr Manager, chain common.Chain) bool {
 	return false
 }
 
+func isLPPaused(ctx cosmos.Context, chain common.Chain, mgr Manager) bool {
+	version := mgr.GetVersion()
+	if version.GTE(semver.MustParse("0.1.0")) {
+		return isLPPausedV1(ctx, chain, mgr)
+	}
+	return false
+}
+
+func isLPPausedV1(ctx cosmos.Context, chain common.Chain, mgr Manager) bool {
+	// check if global LP is paused
+	pauseLPGlobal, err := mgr.Keeper().GetMimir(ctx, "PauseLP")
+	if err == nil && ((pauseLPGlobal > 0 && pauseLPGlobal < common.BlockHeight(ctx)) || mgr.Keeper().RagnarokInProgress(ctx)) {
+		return true
+	}
+
+	pauseLP, err := mgr.Keeper().GetMimir(ctx, fmt.Sprintf("PauseLP%s", chain))
+	if err == nil && (pauseLP > 0 && pauseLP < common.BlockHeight(ctx) || mgr.Keeper().RagnarokInProgress(ctx)) {
+		ctx.Logger().Info("chain has paused LP actions", "chain", chain)
+		return true
+	}
+	return false
+}
+
 func telem(input cosmos.Uint) float32 {
 	i := input.Uint64()
 	return float32(i / 100000000)
