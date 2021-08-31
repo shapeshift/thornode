@@ -601,7 +601,7 @@ func (o *Observer) processSolvencyQueue() {
 			if !ok {
 				continue
 			}
-			if targetChain.IsBlockScannerHealthy() {
+			if !targetChain.IsBlockScannerHealthy() {
 				continue
 			}
 			if err := o.sendSolvencyToThorchain(solvencyItem.Height, solvencyItem.Chain, solvencyItem.PubKey, solvencyItem.Coins); err != nil {
