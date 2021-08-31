@@ -77,7 +77,7 @@ func NewBlockScanner(cfg config.BlockScannerConfiguration, scannerStorage Scanne
 		errorCounter:    m.GetCounterVec(metrics.CommonBlockScannerError),
 		thorchainBridge: thorchainBridge,
 		chainScanner:    chainScanner,
-		healthy:         true,
+		healthy:         false,
 	}
 
 	scanner.previousBlock, err = scanner.FetchLastHeight()
