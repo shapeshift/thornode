@@ -39,13 +39,26 @@ func (tos *TxOutStorageV65) EndBlock(ctx cosmos.Context, mgr Manager) error {
 		return err
 	}
 
+	maxGasCache := make(map[common.Chain]common.Coin, 0)
+	gasRateCache := make(map[common.Chain]int64, 0)
+
 	for i, tx := range txOut.TxArray {
 		// update max gas, take the larger of the current gas, or the last gas used
-		maxGas, _ := mgr.GasMgr().GetMaxGas(ctx, tx.Chain)
+
+		// update cache if needed
+		if _, ok := maxGasCache[tx.Chain]; !ok {
+			maxGasCache[tx.Chain], _ = mgr.GasMgr().GetMaxGas(ctx, tx.Chain)
+		}
+		if _, ok := gasRateCache[tx.Chain]; !ok {
+			gasRateCache[tx.Chain] = int64(mgr.GasMgr().GetGasRate(ctx, tx.Chain).Uint64())
+		}
+
+		maxGas := maxGasCache[tx.Chain]
+		gasRate := gasRateCache[tx.Chain]
 		if len(tx.MaxGas) == 0 || maxGas.Amount.GT(tx.MaxGas[0].Amount) {
 			txOut.TxArray[i].MaxGas = common.Gas{maxGas}
 		}
-		txOut.TxArray[i].GasRate = int64(mgr.GasMgr().GetGasRate(ctx, tx.Chain).Uint64())
+		txOut.TxArray[i].GasRate = gasRate
 	}
 
 	if err := tos.keeper.SetTxOut(ctx, txOut); err != nil {
