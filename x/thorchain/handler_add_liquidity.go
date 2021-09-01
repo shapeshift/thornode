@@ -203,6 +203,10 @@ func (h AddLiquidityHandler) validateCurrent(ctx cosmos.Context, msg MsgAddLiqui
 		return errAddLiquidityFailValidation
 	}
 
+	if isChainHalted(ctx, h.mgr, msg.Asset.Chain) || isLPPaused(ctx, msg.Asset.Chain, h.mgr) {
+		return fmt.Errorf("unable to add liquidity while chain has paused LP actions")
+	}
+
 	ensureLiquidityNoLargerThanBond := h.mgr.GetConstants().GetBoolValue(constants.StrictBondLiquidityRatio)
 	// the following  only applicable for chaosnet
 	totalLiquidityRUNE, err := h.getTotalLiquidityRUNE(ctx)
@@ -232,10 +236,6 @@ func (h AddLiquidityHandler) validateCurrent(ctx cosmos.Context, msg MsgAddLiqui
 	if totalLiquidityRUNE.GT(totalBondRune) {
 		ctx.Logger().Info("total liquidity RUNE is more than total Bond", "rune", totalLiquidityRUNE.String(), "bond", totalBondRune.String())
 		return errAddLiquidityRUNEMoreThanBond
-	}
-
-	if isChainHalted(ctx, h.mgr, msg.Asset.Chain) || isLPPaused(ctx, msg.Asset.Chain, h.mgr) {
-		return fmt.Errorf("unable to add liquidity while chain has paused LP actions")
 	}
 
 	return nil
