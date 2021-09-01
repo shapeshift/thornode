@@ -1191,8 +1191,7 @@ func (h DepositHandler) handleCurrent(ctx cosmos.Context, msg MsgDeposit) (*cosm
 
 	// check if we've halted trading
 	_, isSwap := m.(*MsgSwap)
-	addMsg, isAddLiquidity := m.(*MsgAddLiquidity)
-	withdrawMsg, isWithdrawLiquidity := m.(*MsgWithdrawLiquidity)
+	_, isAddLiquidity := m.(*MsgAddLiquidity)
 	if isSwap || isAddLiquidity {
 		if isTradingHalt(ctx, m, h.mgr) || h.mgr.Keeper().RagnarokInProgress(ctx) {
 			if txIn.Tx.Coins.IsEmpty() {
@@ -1203,13 +1202,6 @@ func (h DepositHandler) handleCurrent(ctx cosmos.Context, msg MsgDeposit) (*cosm
 			}
 			return &cosmos.Result{}, nil
 		}
-	}
-
-	if isWithdrawLiquidity && (isChainHalted(ctx, h.mgr, withdrawMsg.Asset.Chain) || isLPPaused(ctx, withdrawMsg.Asset.Chain, h.mgr)) {
-		return nil, fmt.Errorf("unable to withdraw liquidity while chain is halted or paused LP actions")
-	}
-	if isAddLiquidity && isLPPaused(ctx, addMsg.Asset.Chain, h.mgr) {
-		return nil, fmt.Errorf("unable to add liquidity while chain has paused LP actions")
 	}
 
 	// if its a swap, send it to our queue for processing later
