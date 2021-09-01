@@ -597,6 +597,13 @@ func (o *Observer) processSolvencyQueue() {
 				continue
 			}
 			o.logger.Debug().Msgf("solvency:%+v", solvencyItem)
+			targetChain, ok := o.chains[solvencyItem.Chain]
+			if !ok {
+				continue
+			}
+			if !targetChain.IsBlockScannerHealthy() {
+				continue
+			}
 			if err := o.sendSolvencyToThorchain(solvencyItem.Height, solvencyItem.Chain, solvencyItem.PubKey, solvencyItem.Coins); err != nil {
 				o.errCounter.WithLabelValues("fail_to_broadcast_solvency", "").Inc()
 				o.logger.Error().Err(err).Msg("fail to broadcast solvency tx")
