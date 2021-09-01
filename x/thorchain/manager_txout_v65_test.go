@@ -26,6 +26,30 @@ func (s TxOutStoreV65Suite) TestAddGasFees(c *C) {
 	c.Assert(mgr.GasMgr().GetGas(), HasLen, 1)
 }
 
+func (s TxOutStoreV65Suite) TestEndBlock(c *C) {
+	w := getHandlerTestWrapper(c, 1, true, true)
+	txOutStore := newTxOutStorageV65(w.keeper, w.mgr.GetConstants(), w.mgr.EventMgr(), w.mgr.GasMgr())
+
+	item := TxOutItem{
+		Chain:     common.BNBChain,
+		ToAddress: GetRandomBNBAddress(),
+		InHash:    GetRandomTxHash(),
+		Coin:      common.NewCoin(common.BNBAsset, cosmos.NewUint(20*common.One)),
+	}
+	err := txOutStore.UnSafeAddTxOutItem(w.ctx, w.mgr, item)
+	c.Assert(err, IsNil)
+
+	c.Assert(txOutStore.EndBlock(w.ctx, w.mgr), IsNil)
+
+	items, err := txOutStore.GetOutboundItems(w.ctx)
+	c.Assert(err, IsNil)
+	c.Assert(items, HasLen, 1)
+	c.Check(items[0].GasRate, Equals, int64(56250))
+	c.Assert(items[0].MaxGas, HasLen, 1)
+	c.Check(items[0].MaxGas[0].Asset.Equals(common.BNBAsset), Equals, true)
+	c.Check(items[0].MaxGas[0].Amount.Uint64(), Equals, uint64(37500))
+}
+
 func (s TxOutStoreV65Suite) TestAddOutTxItem(c *C) {
 	w := getHandlerTestWrapper(c, 1, true, true)
 	vault := GetRandomVault()
