@@ -1024,7 +1024,6 @@ func isLPPaused(ctx cosmos.Context, chain common.Chain, mgr Manager) bool {
 func isLPPausedV1(ctx cosmos.Context, chain common.Chain, mgr Manager) bool {
 	// check if global LP is paused
 	pauseLPGlobal, err := mgr.Keeper().GetMimir(ctx, "PauseLP")
-	fmt.Printf("PauseLP: %d\n", pauseLPGlobal)
 	if err == nil && pauseLPGlobal > 0 && pauseLPGlobal < common.BlockHeight(ctx) {
 		return true
 	}
