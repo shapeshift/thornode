@@ -64,6 +64,7 @@ type EventManager interface {
 
 // TxOutStore define the method required for TxOutStore
 type TxOutStore interface {
+	EndBlock(ctx cosmos.Context, mgr Manager) error
 	GetBlockOut(ctx cosmos.Context) (*TxOut, error)
 	ClearOutboundItems(ctx cosmos.Context)
 	GetOutboundItems(ctx cosmos.Context) ([]TxOutItem, error)

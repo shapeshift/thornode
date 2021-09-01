@@ -28,6 +28,32 @@ func newTxOutStorageV65(keeper keeper.Keeper, constAccessor constants.ConstantVa
 	}
 }
 
+func (tos *TxOutStorageV65) EndBlock(ctx cosmos.Context, mgr Manager) error {
+	// update the max gas for all outbounds in this block. This can be useful
+	// if an outbound transaction was scheduled into the future, and the gas
+	// for that blockchain changes in that time span. This avoids the need to
+	// reschedule the transaction to Asgard, as well as avoids slash point
+	// accural on ygg nodes.
+	txOut, err := tos.GetBlockOut(ctx)
+	if err != nil {
+		return err
+	}
+
+	for i, tx := range txOut.TxArray {
+		// update max gas, take the larger of the current gas, or the last gas used
+		maxGas, _ := mgr.GasMgr().GetMaxGas(ctx, tx.Chain)
+		if len(tx.MaxGas) == 0 || maxGas.Amount.GT(tx.MaxGas[0].Amount) {
+			txOut.TxArray[i].MaxGas = common.Gas{maxGas}
+		}
+		txOut.TxArray[i].GasRate = int64(mgr.GasMgr().GetGasRate(ctx, tx.Chain).Uint64())
+	}
+
+	if err := tos.keeper.SetTxOut(ctx, txOut); err != nil {
+		return fmt.Errorf("fail to save tx out : %w", err)
+	}
+	return nil
+}
+
 // GetBlockOut read the TxOut from kv store
 func (tos *TxOutStorageV65) GetBlockOut(ctx cosmos.Context) (*TxOut, error) {
 	return tos.keeper.GetTxOut(ctx, common.BlockHeight(ctx))

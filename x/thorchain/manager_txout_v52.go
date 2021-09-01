@@ -29,6 +29,8 @@ func newTxOutStorageV52(keeper keeper.Keeper, constAccessor constants.ConstantVa
 	}
 }
 
+func (tos *TxOutStorageV52) EndBlock(ctx cosmos.Context, mgr Manager) error { return nil }
+
 // GetBlockOut read the TxOut from kv store
 func (tos *TxOutStorageV52) GetBlockOut(ctx cosmos.Context) (*TxOut, error) {
 	return tos.keeper.GetTxOut(ctx, common.BlockHeight(ctx))
