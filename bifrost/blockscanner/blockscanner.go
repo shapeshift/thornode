@@ -77,7 +77,7 @@ func NewBlockScanner(cfg config.BlockScannerConfiguration, scannerStorage Scanne
 		errorCounter:    m.GetCounterVec(metrics.CommonBlockScannerError),
 		thorchainBridge: thorchainBridge,
 		chainScanner:    chainScanner,
-		healthy:         true,
+		healthy:         false,
 	}
 
 	scanner.previousBlock, err = scanner.FetchLastHeight()
@@ -214,7 +214,10 @@ func (b *BlockScanner) scanBlocks() {
 			// if current block height is less than 50 blocks behind the tip , then it should catch up soon, should be safe to mark block scanner as healthy
 			// if the block scanner is too far away from tip , should not mark the block scanner as healthy , otherwise it might cause , reschedule and double send
 			if chainHeight-currentBlock <= 50 {
+				b.logger.Debug().Msgf("the gap is %d , set it to healthy", chainHeight-currentBlock)
 				b.healthy = true
+			} else {
+				b.logger.Debug().Msgf("the gap is %d , healthy: %+v", chainHeight-currentBlock, b.healthy)
 			}
 
 			b.metrics.GetCounter(metrics.TotalBlockScanned).Inc()
