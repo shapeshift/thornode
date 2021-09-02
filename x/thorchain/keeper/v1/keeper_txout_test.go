@@ -23,6 +23,13 @@ func (KeeperTxOutSuite) TestKeeperTxOut(c *C) {
 	}
 	txOut.TxArray = append(txOut.TxArray, txOutItem)
 	c.Assert(k.SetTxOut(ctx, txOut), IsNil)
+
+	pool := NewPool()
+	pool.Asset = common.BNBAsset
+	pool.BalanceRune = cosmos.NewUint(92419747020392)
+	pool.BalanceAsset = cosmos.NewUint(1402011488988)
+	k.SetPool(ctx, pool)
+
 	txOut1, err := k.GetTxOut(ctx, 1)
 	c.Assert(err, IsNil)
 	c.Assert(txOut1, NotNil)
@@ -41,4 +48,8 @@ func (KeeperTxOutSuite) TestKeeperTxOut(c *C) {
 
 	txOut3 := NewTxOut(1024)
 	c.Check(k.SetTxOut(ctx, txOut3), IsNil)
+
+	value, err := k.GetTxOutValue(ctx, 1)
+	c.Assert(err, IsNil)
+	c.Check(value.Uint64(), Equals, uint64(659193934902), Commentf("%d", value.Uint64()))
 }

@@ -243,9 +243,12 @@ func (k KVStoreDummy) GetTssVoter(_ cosmos.Context, _ string) (TssVoter, error) 
 func (k KVStoreDummy) GetKeygenBlock(_ cosmos.Context, _ int64) (KeygenBlock, error) {
 	return KeygenBlock{}, kaboom
 }
-func (k KVStoreDummy) SetKeygenBlock(_ cosmos.Context, _ KeygenBlock)           { return }
-func (k KVStoreDummy) GetKeygenBlockIterator(_ cosmos.Context) cosmos.Iterator  { return nil }
-func (k KVStoreDummy) GetTxOut(_ cosmos.Context, _ int64) (*TxOut, error)       { return nil, kaboom }
+func (k KVStoreDummy) SetKeygenBlock(_ cosmos.Context, _ KeygenBlock)          { return }
+func (k KVStoreDummy) GetKeygenBlockIterator(_ cosmos.Context) cosmos.Iterator { return nil }
+func (k KVStoreDummy) GetTxOut(_ cosmos.Context, _ int64) (*TxOut, error)      { return nil, kaboom }
+func (k KVStoreDummy) GetTxOutValue(_ cosmos.Context, _ int64) (cosmos.Uint, error) {
+	return cosmos.ZeroUint(), kaboom
+}
 func (k KVStoreDummy) SetTxOut(_ cosmos.Context, _ *TxOut) error                { return kaboom }
 func (k KVStoreDummy) AppendTxOut(_ cosmos.Context, _ int64, _ TxOutItem) error { return kaboom }
 func (k KVStoreDummy) ClearTxOut(_ cosmos.Context, _ int64) error               { return kaboom }

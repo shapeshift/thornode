@@ -8,20 +8,19 @@ import (
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
-	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
-// TxOutStorageV64 is going to manage all the outgoing tx
-type TxOutStorageV64 struct {
+// TxOutStorageV65 is going to manage all the outgoing tx
+type TxOutStorageV65 struct {
 	keeper        keeper.Keeper
 	constAccessor constants.ConstantValues
 	eventMgr      EventManager
 	gasManager    GasManager
 }
 
-// newTxOutStorageV64 will create a new instance of TxOutStore.
-func newTxOutStorageV64(keeper keeper.Keeper, constAccessor constants.ConstantValues, eventMgr EventManager, gasManager GasManager) *TxOutStorageV64 {
-	return &TxOutStorageV64{
+// newTxOutStorageV65 will create a new instance of TxOutStore.
+func newTxOutStorageV65(keeper keeper.Keeper, constAccessor constants.ConstantValues, eventMgr EventManager, gasManager GasManager) *TxOutStorageV65 {
+	return &TxOutStorageV65{
 		keeper:        keeper,
 		eventMgr:      eventMgr,
 		constAccessor: constAccessor,
@@ -29,15 +28,52 @@ func newTxOutStorageV64(keeper keeper.Keeper, constAccessor constants.ConstantVa
 	}
 }
 
-func (tos *TxOutStorageV64) EndBlock(ctx cosmos.Context, mgr Manager) error { return nil }
+func (tos *TxOutStorageV65) EndBlock(ctx cosmos.Context, mgr Manager) error {
+	// update the max gas for all outbounds in this block. This can be useful
+	// if an outbound transaction was scheduled into the future, and the gas
+	// for that blockchain changes in that time span. This avoids the need to
+	// reschedule the transaction to Asgard, as well as avoids slash point
+	// accural on ygg nodes.
+	txOut, err := tos.GetBlockOut(ctx)
+	if err != nil {
+		return err
+	}
+
+	maxGasCache := make(map[common.Chain]common.Coin, 0)
+	gasRateCache := make(map[common.Chain]int64, 0)
+
+	for i, tx := range txOut.TxArray {
+		// update max gas, take the larger of the current gas, or the last gas used
+
+		// update cache if needed
+		if _, ok := maxGasCache[tx.Chain]; !ok {
+			maxGasCache[tx.Chain], _ = mgr.GasMgr().GetMaxGas(ctx, tx.Chain)
+		}
+		if _, ok := gasRateCache[tx.Chain]; !ok {
+			gasRateCache[tx.Chain] = int64(mgr.GasMgr().GetGasRate(ctx, tx.Chain).Uint64())
+		}
+
+		maxGas := maxGasCache[tx.Chain]
+		gasRate := gasRateCache[tx.Chain]
+		if len(tx.MaxGas) == 0 || maxGas.Amount.GT(tx.MaxGas[0].Amount) {
+			txOut.TxArray[i].MaxGas = common.Gas{maxGas}
+		}
+		txOut.TxArray[i].GasRate = gasRate
+	}
+
+	if err := tos.keeper.SetTxOut(ctx, txOut); err != nil {
+		return fmt.Errorf("fail to save tx out : %w", err)
+	}
+	return nil
+}
 
 // GetBlockOut read the TxOut from kv store
-func (tos *TxOutStorageV64) GetBlockOut(ctx cosmos.Context) (*TxOut, error) {
+func (tos *TxOutStorageV65) GetBlockOut(ctx cosmos.Context) (*TxOut, error) {
 	return tos.keeper.GetTxOut(ctx, common.BlockHeight(ctx))
 }
 
 // GetOutboundItems read all the outbound item from kv store
-func (tos *TxOutStorageV64) GetOutboundItems(ctx cosmos.Context) ([]TxOutItem, error) {
+func (tos *TxOutStorageV65) GetOutboundItems(ctx cosmos.Context) ([]TxOutItem, error) {
 	block, err := tos.keeper.GetTxOut(ctx, common.BlockHeight(ctx))
 	if block == nil {
 		return nil, nil
@@ -46,7 +82,7 @@ func (tos *TxOutStorageV64) GetOutboundItems(ctx cosmos.Context) ([]TxOutItem, e
 }
 
 // GetOutboundItemByToAddress read all the outbound items filter by the given to address
-func (tos *TxOutStorageV64) GetOutboundItemByToAddress(ctx cosmos.Context, to common.Address) []TxOutItem {
+func (tos *TxOutStorageV65) GetOutboundItemByToAddress(ctx cosmos.Context, to common.Address) []TxOutItem {
 	filterItems := make([]TxOutItem, 0)
 	items, _ := tos.GetOutboundItems(ctx)
 	for _, item := range items {
@@ -58,14 +94,14 @@ func (tos *TxOutStorageV64) GetOutboundItemByToAddress(ctx cosmos.Context, to co
 }
 
 // ClearOutboundItems remove all the tx out items , mostly used for test
-func (tos *TxOutStorageV64) ClearOutboundItems(ctx cosmos.Context) {
+func (tos *TxOutStorageV65) ClearOutboundItems(ctx cosmos.Context) {
 	_ = tos.keeper.ClearTxOut(ctx, common.BlockHeight(ctx))
 }
 
 // TryAddTxOutItem add an outbound tx to block
 // return bool indicate whether the transaction had been added successful or not
 // return error indicate error
-func (tos *TxOutStorageV64) TryAddTxOutItem(ctx cosmos.Context, mgr Manager, toi TxOutItem) (bool, error) {
+func (tos *TxOutStorageV65) TryAddTxOutItem(ctx cosmos.Context, mgr Manager, toi TxOutItem) (bool, error) {
 	outputs, err := tos.prepareTxOutItem(ctx, toi)
 	if err != nil {
 		return false, fmt.Errorf("fail to prepare outbound tx: %w", err)
@@ -84,7 +120,7 @@ func (tos *TxOutStorageV64) TryAddTxOutItem(ctx cosmos.Context, mgr Manager, toi
 
 // UnSafeAddTxOutItem - blindly adds a tx out, skipping vault selection, transaction
 // fee deduction, etc
-func (tos *TxOutStorageV64) UnSafeAddTxOutItem(ctx cosmos.Context, mgr Manager, toi TxOutItem) error {
+func (tos *TxOutStorageV65) UnSafeAddTxOutItem(ctx cosmos.Context, mgr Manager, toi TxOutItem) error {
 	// BCH chain will convert legacy address to new format automatically , thus when observe it back can't be associated with the original inbound
 	// so here convert the legacy address to new format
 	if toi.Chain.Equals(common.BCHChain) {
@@ -105,7 +141,7 @@ func (tos *TxOutStorageV64) UnSafeAddTxOutItem(ctx cosmos.Context, mgr Manager, 
 // 2. choose an appropriate vault(s) to send from (ygg first, active asgard, then retiring asgard)
 // 3. deduct transaction fee, keep in mind, only take transaction fee when active nodes are  more then minimumBFT
 // return list of outbound transactions
-func (tos *TxOutStorageV64) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem) ([]TxOutItem, error) {
+func (tos *TxOutStorageV65) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem) ([]TxOutItem, error) {
 	var outputs []TxOutItem
 
 	// Default the memo to the standard outbound memo
@@ -387,16 +423,125 @@ func (tos *TxOutStorageV64) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem) 
 	return finalOutput, nil
 }
 
-func (tos *TxOutStorageV64) addToBlockOut(ctx cosmos.Context, mgr Manager, toi TxOutItem) error {
+func (tos *TxOutStorageV65) addToBlockOut(ctx cosmos.Context, mgr Manager, toi TxOutItem) error {
 	// THORChain , native RUNE will not need to forward the txout to bifrost
 	if toi.Chain.Equals(common.THORChain) {
 		return tos.nativeTxOut(ctx, mgr, toi)
 	}
 
-	return tos.keeper.AppendTxOut(ctx, common.BlockHeight(ctx), toi)
+	targetHeight, err := tos.calcTxOutHeight(ctx, toi)
+	if err != nil {
+		ctx.Logger().Error("failed to calc target block height for txout item", "error", err)
+	}
+
+	if targetHeight > common.BlockHeight(ctx) {
+		voter, err := tos.keeper.GetObservedTxInVoter(ctx, toi.InHash)
+		if err != nil {
+			ctx.Logger().Error("fail to get observe tx in voter", "error", err)
+			return fmt.Errorf("fail to get observe tx in voter,err:%w", err)
+		}
+		voter.FinalisedHeight = targetHeight
+		tos.keeper.SetObservedTxInVoter(ctx, voter)
+	}
+
+	return tos.keeper.AppendTxOut(ctx, targetHeight, toi)
 }
 
-func (tos *TxOutStorageV64) nativeTxOut(ctx cosmos.Context, mgr Manager, toi TxOutItem) error {
+func (tos *TxOutStorageV65) calcTxOutHeight(ctx cosmos.Context, toi TxOutItem) (int64, error) {
+	// non-outbound transactions are skipped. This is so this code does not
+	// affect internal transactions (ie consolidation and migrate txs)
+	memo, _ := ParseMemo(toi.Memo) // ignore err
+	if !memo.IsType(TxRefund) && !memo.IsType(TxOutbound) {
+		return common.BlockHeight(ctx), nil
+	}
+
+	minTxOutVolumeThreshold, err := tos.keeper.GetMimir(ctx, constants.MinTxOutVolumeThreshold.String())
+	if minTxOutVolumeThreshold <= 0 || err != nil {
+		minTxOutVolumeThreshold = tos.constAccessor.GetInt64Value(constants.MinTxOutVolumeThreshold)
+	}
+	minVolumeThreshold := cosmos.NewUint(uint64(minTxOutVolumeThreshold))
+	txOutDelayRate, err := tos.keeper.GetMimir(ctx, constants.TxOutDelayRate.String())
+	if txOutDelayRate <= 0 || err != nil {
+		txOutDelayRate = tos.constAccessor.GetInt64Value(constants.TxOutDelayRate)
+	}
+	txOutDelayMax, err := tos.keeper.GetMimir(ctx, constants.TxOutDelayMax.String())
+	if txOutDelayMax <= 0 || err != nil {
+		txOutDelayMax = tos.constAccessor.GetInt64Value(constants.TxOutDelayMax)
+	}
+	maxTxOutOffset, err := tos.keeper.GetMimir(ctx, constants.MaxTxOutOffset.String())
+	if maxTxOutOffset <= 0 || err != nil {
+		maxTxOutOffset = tos.constAccessor.GetInt64Value(constants.MaxTxOutOffset)
+	}
+
+	// get txout item value in rune
+	runeValue := toi.Coin.Amount
+	if !toi.Coin.Asset.IsRune() {
+		pool, err := tos.keeper.GetPool(ctx, toi.Coin.Asset)
+		if err != nil {
+			ctx.Logger().Error("fail to get pool for appending txout item", "error", err)
+			return common.BlockHeight(ctx) + maxTxOutOffset, err
+		}
+		runeValue = pool.AssetValueInRune(toi.Coin.Amount)
+	}
+
+	// sum value of scheduled txns (including this one)
+	sumValue := runeValue
+	for height := common.BlockHeight(ctx) + 1; height <= common.BlockHeight(ctx)+txOutDelayMax; height++ {
+		value, err := tos.keeper.GetTxOutValue(ctx, height)
+		if err != nil {
+			ctx.Logger().Error("fail to get tx out array from key value store", "error", err)
+			continue
+		}
+		if height > common.BlockHeight(ctx)+maxTxOutOffset && value.IsZero() {
+			// we've hit our max offset, and an empty block, we can assume the
+			// rest will be empty as well
+			break
+		}
+		sumValue = sumValue.Add(value)
+	}
+	// reduce delay rate relative to the total scheduled value. In high volume
+	// scenarios, this causes the network to send outbound transactions slower,
+	// giving the community & NOs time to analyze and react. In an attack
+	// scenario, the attacker is likely going to move as much value as possible
+	// (as we've seen in the past). The act of doing this will slow down their
+	// own transaction(s), reducing the attack's effectiveness.
+	txOutDelayRate -= int64(sumValue.Uint64()) / minTxOutVolumeThreshold
+	if txOutDelayRate < 1 {
+		txOutDelayRate = 1
+	}
+
+	// calculate the minimum number of blocks in the future the txn has to be
+	minBlocks := int64(runeValue.Uint64()) / txOutDelayRate
+	// min shouldn't be anything longer than the max txout offset
+	if minBlocks > maxTxOutOffset {
+		minBlocks = maxTxOutOffset
+	}
+	targetBlock := common.BlockHeight(ctx) + minBlocks
+
+	// find targetBlock that has space for new txout item.
+	count := int64(0)
+	for count < txOutDelayMax { // max set 1 day into the future
+		txOutValue, err := tos.keeper.GetTxOutValue(ctx, targetBlock)
+		if err != nil {
+			ctx.Logger().Error("fail to get txOutValue for block height", "error", err)
+			break
+		}
+		if txOutValue.IsZero() {
+			// the txout has no outbound txns, let's use this one
+			break
+		}
+		if txOutValue.Add(runeValue).LTE(minVolumeThreshold) {
+			// the txout + this txout item has enough space to fit, lets use this one
+			break
+		}
+		targetBlock += 1
+		count += 1
+	}
+
+	return targetBlock, nil
+}
+
+func (tos *TxOutStorageV65) nativeTxOut(ctx cosmos.Context, mgr Manager, toi TxOutItem) error {
 	addr, err := cosmos.AccAddressFromBech32(toi.ToAddress.String())
 	if err != nil {
 		return err
@@ -468,7 +613,7 @@ func (tos *TxOutStorageV64) nativeTxOut(ctx cosmos.Context, mgr Manager, toi TxO
 }
 
 // collectYggdrasilPools is to get all the yggdrasil vaults , that THORChain can used to send out fund
-func (tos *TxOutStorageV64) collectYggdrasilPools(ctx cosmos.Context, tx ObservedTx, gasAsset common.Asset) (Vaults, error) {
+func (tos *TxOutStorageV65) collectYggdrasilPools(ctx cosmos.Context, tx ObservedTx, gasAsset common.Asset) (Vaults, error) {
 	// collect yggdrasil pools
 	var vaults Vaults
 	iterator := tos.keeper.GetVaultIterator(ctx)
@@ -521,36 +666,39 @@ func (tos *TxOutStorageV64) collectYggdrasilPools(ctx cosmos.Context, tx Observe
 	return vaults, nil
 }
 
-func (tos *TxOutStorageV64) deductVaultPendingOutboundBalance(ctx cosmos.Context, vault Vault) (Vault, error) {
-	block, err := tos.GetBlockOut(ctx)
-	if err != nil {
-		return types.Vault{}, fmt.Errorf("fail to get block:%w", err)
-	}
-
-	// comments for future reference, this part of logic confuse me quite a few times
-	// This method read the vault from key value store, and trying to find out all the ygg candidate that can be used to send out fund
-	// given the fact, there might have multiple TxOutItem get created with in one block, and the fund has not been deducted from vault and save back to key values store,
-	// thus every previously processed TxOut need to be deducted from the ygg vault to make sure THORNode has a correct view of the ygg funds
-	vault = tos.deductVaultBlockPendingOutbound(vault, block)
-
-	// go back SigningTransactionPeriod blocks to see whether there are outstanding tx, the vault need to send out
-	// if there is , deduct it from their balance
+func (tos *TxOutStorageV65) deductVaultPendingOutboundBalance(ctx cosmos.Context, vault Vault) (Vault, error) {
+	// go back SigningTransactionPeriod blocks to see whether there are
+	// outstanding tx, the vault need to send out if there is , deduct it from
+	// their balance
 	signingPeriod := tos.constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
-	startHeight := block.Height - signingPeriod
+	startHeight := common.BlockHeight(ctx) - signingPeriod
 	if startHeight < 1 {
 		startHeight = 1
 	}
-	for i := startHeight; i < block.Height; i++ {
-		blockOut, err := tos.keeper.GetTxOut(ctx, i)
+	txOutDelayMax, err := tos.keeper.GetMimir(ctx, constants.TxOutDelayMax.String())
+	if txOutDelayMax <= 0 || err != nil {
+		txOutDelayMax = tos.constAccessor.GetInt64Value(constants.TxOutDelayMax)
+	}
+	maxTxOutOffset, err := tos.keeper.GetMimir(ctx, constants.MaxTxOutOffset.String())
+	if maxTxOutOffset <= 0 || err != nil {
+		maxTxOutOffset = tos.constAccessor.GetInt64Value(constants.MaxTxOutOffset)
+	}
+	for height := startHeight; height <= common.BlockHeight(ctx)+txOutDelayMax; height++ {
+		blockOut, err := tos.keeper.GetTxOut(ctx, height)
 		if err != nil {
 			ctx.Logger().Error("fail to get block tx out", "error", err)
+		}
+		if height > common.BlockHeight(ctx)+maxTxOutOffset && len(blockOut.TxArray) == 0 {
+			// we've hit our max offset, and an empty block, we can assume the
+			// rest will be empty as well
+			break
 		}
 		vault = tos.deductVaultBlockPendingOutbound(vault, blockOut)
 	}
 	return vault, nil
 }
 
-func (tos *TxOutStorageV64) deductVaultBlockPendingOutbound(vault Vault, block *TxOut) Vault {
+func (tos *TxOutStorageV65) deductVaultBlockPendingOutbound(vault Vault, block *TxOut) Vault {
 	for _, txOutItem := range block.TxArray {
 		if !txOutItem.VaultPubKey.Equals(vault.PubKey) {
 			continue

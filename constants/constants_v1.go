@@ -44,6 +44,10 @@ func NewConstantValue010() *ConstantVals {
 			MaxSynthPerAssetDepth:         3300,               // percentage (in basis points) of how many synths are allowed relative to asset depth of the related pool
 			MinSlashPointsForBadValidator: 100,                // The minimum slash point
 			FullImpLossProtectionBlocks:   1440000,            // number of blocks before a liquidity provider gets 100% impermanent loss protection
+			MinTxOutVolumeThreshold:       1000_00000000,      // total txout volume (in rune) a block needs to have to slow outbound transactions
+			TxOutDelayRate:                25_00000000,        // outbound rune per block rate for scheduled transactions (excluding native assets)
+			TxOutDelayMax:                 17280,              // max number of blocks a transaction can be delayed
+			MaxTxOutOffset:                720,                // max blocks to offset a txout into a future block
 			TNSRegisterFee:                10_00000000,        // registration fee for new THORName
 			TNSFeeOnSale:                  1000,               // fee for TNS sale in basis points
 			TNSFeePerBlock:                20,                 // per block cost for TNS, in rune
