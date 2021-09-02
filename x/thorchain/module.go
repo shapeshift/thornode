@@ -248,6 +248,10 @@ func (am AppModule) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.V
 		ctx.Logger().Error("unable to fund yggdrasil", "error", err)
 	}
 
+	if err := am.mgr.TxOutStore().EndBlock(ctx, am.mgr); err != nil {
+		ctx.Logger().Error("fail to process txout endblock", "error", err)
+	}
+
 	am.mgr.GasMgr().EndBlock(ctx, am.mgr.Keeper(), am.mgr.EventMgr())
 
 	// telemetry

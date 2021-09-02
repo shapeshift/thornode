@@ -64,6 +64,7 @@ type EventManager interface {
 
 // TxOutStore define the method required for TxOutStore
 type TxOutStore interface {
+	EndBlock(ctx cosmos.Context, mgr Manager) error
 	GetBlockOut(ctx cosmos.Context) (*TxOut, error)
 	ClearOutboundItems(ctx cosmos.Context)
 	GetOutboundItems(ctx cosmos.Context) ([]TxOutItem, error)
@@ -277,7 +278,9 @@ func GetEventManager(version semver.Version) (EventManager, error) {
 // GetTxOutStore will return an implementation of the txout store that
 func GetTxOutStore(keeper keeper.Keeper, version semver.Version, eventMgr EventManager, gasManager GasManager) (TxOutStore, error) {
 	constAccessor := constants.GetConstantValues(version)
-	if version.GTE(semver.MustParse("0.64.0")) {
+	if version.GTE(semver.MustParse("0.65.0")) {
+		return newTxOutStorageV65(keeper, constAccessor, eventMgr, gasManager), nil
+	} else if version.GTE(semver.MustParse("0.64.0")) {
 		return newTxOutStorageV64(keeper, constAccessor, eventMgr, gasManager), nil
 	} else if version.GTE(semver.MustParse("0.58.0")) {
 		return newTxOutStorageV58(keeper, constAccessor, eventMgr, gasManager), nil

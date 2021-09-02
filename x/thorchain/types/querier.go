@@ -26,9 +26,10 @@ func (h QueryResLastBlockHeights) String() string {
 
 // QueryQueue a struct store the total outstanding out items
 type QueryQueue struct {
-	Swap     int64 `json:"swap"`
-	Outbound int64 `json:"outbound"`
-	Internal int64 `json:"internal"`
+	Swap                   int64       `json:"swap"`
+	Outbound               int64       `json:"outbound"`
+	Internal               int64       `json:"internal"`
+	ScheduledOutboundValue cosmos.Uint `json:"scheduled_outbound_value"`
 }
 
 // String implement fmt.Stringer
@@ -161,6 +162,35 @@ func NewQueryNodeAccount(na NodeAccount) QueryNodeAccount {
 		LeaveScore:          na.LeaveScore,
 		IPAddress:           na.IPAddress,
 		Version:             na.GetVersion(),
+	}
+}
+
+type QueryTxOutItem struct {
+	Chain       common.Chain   `json:"chain"`
+	ToAddress   common.Address `json:"to_address"`
+	VaultPubKey common.PubKey  `json:"vault_pub_key,omitempty"`
+	Coin        common.Coin    `json:"coin"`
+	Memo        string         `json:"memo,omitempty"`
+	MaxGas      common.Gas     `json:"max_gas"`
+	GasRate     int64          `json:"gas_rate,omitempty"`
+	InHash      common.TxID    `json:"in_hash,omitempty"`
+	OutHash     common.TxID    `json:"out_hash,omitempty"`
+	Height      int64          `json:"height"`
+}
+
+// NewQueryTxOutItem create a new QueryTxOutItem based on the given txout item parameter
+func NewQueryTxOutItem(toi TxOutItem, height int64) QueryTxOutItem {
+	return QueryTxOutItem{
+		Chain:       toi.Chain,
+		ToAddress:   toi.ToAddress,
+		VaultPubKey: toi.VaultPubKey,
+		Coin:        toi.Coin,
+		Memo:        toi.Memo,
+		MaxGas:      toi.MaxGas,
+		GasRate:     toi.GasRate,
+		InHash:      toi.InHash,
+		OutHash:     toi.OutHash,
+		Height:      height,
 	}
 }
 

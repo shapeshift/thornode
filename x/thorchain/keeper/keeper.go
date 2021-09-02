@@ -132,6 +132,7 @@ type KeeperTxOut interface {
 	ClearTxOut(ctx cosmos.Context, height int64) error
 	GetTxOutIterator(ctx cosmos.Context) cosmos.Iterator
 	GetTxOut(ctx cosmos.Context, height int64) (*TxOut, error)
+	GetTxOutValue(ctx cosmos.Context, height int64) (cosmos.Uint, error)
 }
 
 type KeeperLiquidityFees interface {

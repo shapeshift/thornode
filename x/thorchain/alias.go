@@ -62,6 +62,7 @@ const (
 	TxRagnarok        = mem.TxRagnarok
 	TxReserve         = mem.TxReserve
 	TxOutbound        = mem.TxOutbound
+	TxRefund          = mem.TxRefund
 	TxUnBond          = mem.TxUnbond
 	TxLeave           = mem.TxLeave
 	TxTHORName        = mem.TxTHORName
@@ -121,6 +122,7 @@ var (
 	NewMsgMigrate                  = types.NewMsgMigrate
 	NewMsgRagnarok                 = types.NewMsgRagnarok
 	NewQueryNodeAccount            = types.NewQueryNodeAccount
+	NewQueryTxOutItem              = types.NewQueryTxOutItem
 	GetThreshold                   = types.GetThreshold
 	ModuleCdc                      = types.ModuleCdc
 	RegisterCodec                  = types.RegisterCodec
@@ -222,6 +224,7 @@ type (
 	QueryVaultsPubKeys             = types.QueryVaultsPubKeys
 	QueryVaultPubKeyContract       = types.QueryVaultPubKeyContract
 	QueryNodeAccount               = types.QueryNodeAccount
+	QueryTxOutItem                 = types.QueryTxOutItem
 	QueryChainAddress              = types.QueryChainAddress
 	PoolStatus                     = types.PoolStatus
 	Pool                           = types.Pool
