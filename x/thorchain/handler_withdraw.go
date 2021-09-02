@@ -46,13 +46,38 @@ func (h WithdrawLiquidityHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos
 
 func (h WithdrawLiquidityHandler) validate(ctx cosmos.Context, msg MsgWithdrawLiquidity) error {
 	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.1.0")) {
+	if version.GTE(semver.MustParse("0.65.0")) {
+		return h.validateV65(ctx, msg)
+	} else if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, msg)
 	}
 	return errBadVersion
 }
 
 func (h WithdrawLiquidityHandler) validateV1(ctx cosmos.Context, msg MsgWithdrawLiquidity) error {
+	if err := msg.ValidateBasic(); err != nil {
+		return errWithdrawFailValidation
+	}
+	pool, err := h.mgr.Keeper().GetPool(ctx, msg.Asset)
+	if err != nil {
+		errMsg := fmt.Sprintf("fail to get pool(%s)", msg.Asset)
+		return ErrInternal(err, errMsg)
+	}
+
+	if err := pool.EnsureValidPoolStatus(&msg); err != nil {
+		return multierror.Append(errInvalidPoolStatus, err)
+	}
+
+	// when ragnarok kicks off,  all pool will be set PoolStaged , the ragnarok tx's hash will be common.BlankTxID
+	if pool.Status != PoolAvailable && !msg.WithdrawalAsset.IsEmpty() && !msg.Tx.ID.Equals(common.BlankTxID) {
+		return fmt.Errorf("cannot specify a withdrawal asset while the pool is not available")
+	}
+
+	return nil
+
+}
+
+func (h WithdrawLiquidityHandler) validateV65(ctx cosmos.Context, msg MsgWithdrawLiquidity) error {
 	return h.validateCurrent(ctx, msg)
 }
 
@@ -73,6 +98,10 @@ func (h WithdrawLiquidityHandler) validateCurrent(ctx cosmos.Context, msg MsgWit
 	// when ragnarok kicks off,  all pool will be set PoolStaged , the ragnarok tx's hash will be common.BlankTxID
 	if pool.Status != PoolAvailable && !msg.WithdrawalAsset.IsEmpty() && !msg.Tx.ID.Equals(common.BlankTxID) {
 		return fmt.Errorf("cannot specify a withdrawal asset while the pool is not available")
+	}
+
+	if isChainHalted(ctx, h.mgr, msg.Asset.Chain) || isLPPaused(ctx, msg.Asset.Chain, h.mgr) {
+		return fmt.Errorf("unable to withdraw liquidity while chain is halted or paused LP actions")
 	}
 
 	return nil
