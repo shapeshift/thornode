@@ -132,6 +132,7 @@ type KeeperTxOut interface {
 	ClearTxOut(ctx cosmos.Context, height int64) error
 	GetTxOutIterator(ctx cosmos.Context) cosmos.Iterator
 	GetTxOut(ctx cosmos.Context, height int64) (*TxOut, error)
+	GetTxOutValue(ctx cosmos.Context, height int64) (cosmos.Uint, error)
 }
 
 type KeeperLiquidityFees interface {
@@ -223,6 +224,8 @@ type KeeperMimir interface {
 	SetMimir(_ cosmos.Context, key string, value int64)
 	GetMimirIterator(ctx cosmos.Context) cosmos.Iterator
 	DeleteMimir(_ cosmos.Context, key string) error
+	GetNodePauseChain(ctx cosmos.Context, acc cosmos.AccAddress) int64
+	SetNodePauseChain(ctx cosmos.Context, acc cosmos.AccAddress)
 }
 
 type KeeperNetworkFee interface {

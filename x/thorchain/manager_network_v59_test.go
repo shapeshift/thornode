@@ -84,7 +84,7 @@ func (s *NetworkManagerV59TestSuite) TestRagnarokChain(c *C) {
 
 	mgr := NewDummyMgrWithKeeper(keeper)
 
-	vaultMgr := NewNetworkMgrV59(keeper, mgr.TxOutStore(), mgr.EventMgr())
+	vaultMgr := newNetworkMgrV59(keeper, mgr.TxOutStore(), mgr.EventMgr())
 
 	// the first round should just recall yggdrasil fund
 	err := vaultMgr.manageChains(ctx, mgr, constAccessor)
@@ -120,7 +120,7 @@ func (s *NetworkManagerV59TestSuite) TestRagnarokChain(c *C) {
 	ctx, mgr1 := setupManagerForTest(c)
 	helper := NewVaultGenesisSetupTestHelper(mgr1.Keeper())
 	mgr.K = helper
-	vaultMgr1 := NewNetworkMgrV59(helper, mgr1.TxOutStore(), mgr1.EventMgr())
+	vaultMgr1 := newNetworkMgrV59(helper, mgr1.TxOutStore(), mgr1.EventMgr())
 	// fail to get active nodes should error out
 	helper.failToListActiveAccounts = true
 	c.Assert(vaultMgr1.ragnarokChain(ctx, common.BNBChain, 1, mgr, constAccessor), NotNil)
@@ -143,7 +143,7 @@ func (s *NetworkManagerV59TestSuite) TestUpdateNetwork(c *C) {
 	constAccessor := constants.GetConstantValues(ver)
 	helper := NewVaultGenesisSetupTestHelper(mgr.Keeper())
 	mgr.K = helper
-	vaultMgr := NewNetworkMgrV59(helper, mgr.TxOutStore(), mgr.EventMgr())
+	vaultMgr := newNetworkMgrV59(helper, mgr.TxOutStore(), mgr.EventMgr())
 
 	// fail to get Network should return error
 	helper.failGetNetwork = true
@@ -190,7 +190,7 @@ func (s *NetworkManagerV59TestSuite) TestUpdateNetwork(c *C) {
 
 func (s *NetworkManagerV59TestSuite) TestCalcBlockRewards(c *C) {
 	mgr := NewDummyMgr()
-	vaultMgr := NewNetworkMgrV59(keeper.KVStoreDummy{}, mgr.TxOutStore(), mgr.EventMgr())
+	vaultMgr := newNetworkMgrV59(keeper.KVStoreDummy{}, mgr.TxOutStore(), mgr.EventMgr())
 
 	ver := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(ver)
@@ -235,7 +235,7 @@ func (s *NetworkManagerV59TestSuite) TestCalcPoolDeficit(c *C) {
 	totalFees := cosmos.NewUint(4000)
 
 	mgr := NewDummyMgr()
-	vaultMgr := NewNetworkMgrV59(keeper.KVStoreDummy{}, mgr.TxOutStore(), mgr.EventMgr())
+	vaultMgr := newNetworkMgrV59(keeper.KVStoreDummy{}, mgr.TxOutStore(), mgr.EventMgr())
 
 	lpDeficit := cosmos.NewUint(1120)
 	amt1 := vaultMgr.calcPoolDeficit(lpDeficit, totalFees, pool1Fees)
@@ -252,7 +252,7 @@ func (*NetworkManagerV59TestSuite) TestProcessGenesisSetup(c *C) {
 	helper := NewVaultGenesisSetupTestHelper(mgr.Keeper())
 	ctx = ctx.WithBlockHeight(1)
 	mgr.K = helper
-	vaultMgr := NewNetworkMgrV59(helper, mgr.TxOutStore(), mgr.EventMgr())
+	vaultMgr := newNetworkMgrV59(helper, mgr.TxOutStore(), mgr.EventMgr())
 	// no active account
 	c.Assert(vaultMgr.EndBlock(ctx, mgr, constAccessor), NotNil)
 
@@ -276,7 +276,7 @@ func (*NetworkManagerV59TestSuite) TestProcessGenesisSetup(c *C) {
 	helper = NewVaultGenesisSetupTestHelper(mgr.Keeper())
 	ctx = ctx.WithBlockHeight(1)
 	mgr.K = helper
-	vaultMgr = NewNetworkMgrV59(helper, mgr.TxOutStore(), mgr.EventMgr())
+	vaultMgr = newNetworkMgrV59(helper, mgr.TxOutStore(), mgr.EventMgr())
 	helper.failToListActiveAccounts = true
 	c.Assert(vaultMgr.EndBlock(ctx, mgr, constAccessor), NotNil)
 	helper.failToListActiveAccounts = false
@@ -299,7 +299,7 @@ func (*NetworkManagerV59TestSuite) TestGetTotalActiveBond(c *C) {
 	ctx, mgr := setupManagerForTest(c)
 	helper := NewVaultGenesisSetupTestHelper(mgr.Keeper())
 	mgr.K = helper
-	vaultMgr := NewNetworkMgrV59(helper, mgr.TxOutStore(), mgr.EventMgr())
+	vaultMgr := newNetworkMgrV59(helper, mgr.TxOutStore(), mgr.EventMgr())
 	helper.failToListActiveAccounts = true
 	bond, err := vaultMgr.getTotalActiveBond(ctx)
 	c.Assert(err, NotNil)
@@ -315,7 +315,7 @@ func (*NetworkManagerV59TestSuite) TestGetTotalLiquidityRune(c *C) {
 	ctx, mgr := setupManagerForTest(c)
 	helper := NewVaultGenesisSetupTestHelper(mgr.Keeper())
 	mgr.K = helper
-	vaultMgr := NewNetworkMgrV59(helper, mgr.TxOutStore(), mgr.EventMgr())
+	vaultMgr := newNetworkMgrV59(helper, mgr.TxOutStore(), mgr.EventMgr())
 	p := NewPool()
 	p.Asset = common.BNBAsset
 	p.BalanceRune = cosmos.NewUint(common.One * 100)
@@ -332,7 +332,7 @@ func (*NetworkManagerV59TestSuite) TestPayPoolRewards(c *C) {
 	ctx, mgr := setupManagerForTest(c)
 	helper := NewVaultGenesisSetupTestHelper(mgr.Keeper())
 	mgr.K = helper
-	vaultMgr := NewNetworkMgrV59(helper, mgr.TxOutStore(), mgr.EventMgr())
+	vaultMgr := newNetworkMgrV59(helper, mgr.TxOutStore(), mgr.EventMgr())
 	p := NewPool()
 	p.Asset = common.BNBAsset
 	p.BalanceRune = cosmos.NewUint(common.One * 100)
@@ -348,7 +348,7 @@ func (*NetworkManagerV59TestSuite) TestFindChainsToRetire(c *C) {
 	ctx, mgr := setupManagerForTest(c)
 	helper := NewVaultGenesisSetupTestHelper(mgr.Keeper())
 	mgr.K = helper
-	vaultMgr := NewNetworkMgrV59(helper, mgr.TxOutStore(), mgr.EventMgr())
+	vaultMgr := newNetworkMgrV59(helper, mgr.TxOutStore(), mgr.EventMgr())
 	// fail to get active asgard vault
 	helper.failGetActiveAsgardVault = true
 	chains, err := vaultMgr.findChainsToRetire(ctx)
@@ -368,7 +368,7 @@ func (*NetworkManagerV59TestSuite) TestRecallChainFunds(c *C) {
 	ctx, mgr := setupManagerForTest(c)
 	helper := NewVaultGenesisSetupTestHelper(mgr.Keeper())
 	mgr.K = helper
-	vaultMgr := NewNetworkMgrV59(helper, mgr.TxOutStore(), mgr.EventMgr())
+	vaultMgr := newNetworkMgrV59(helper, mgr.TxOutStore(), mgr.EventMgr())
 	helper.failToListActiveAccounts = true
 	c.Assert(vaultMgr.RecallChainFunds(ctx, common.BNBChain, mgr, common.PubKeys{}), NotNil)
 	helper.failToListActiveAccounts = false

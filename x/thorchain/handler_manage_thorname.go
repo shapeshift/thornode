@@ -111,7 +111,7 @@ func (h ManageTHORNameHandler) handle(ctx cosmos.Context, msg MsgManageTHORName)
 	return nil, errBadVersion
 }
 
-// handleV1 process MsgManageTHORName
+// handle process MsgManageTHORName
 func (h ManageTHORNameHandler) handleV1(ctx cosmos.Context, msg MsgManageTHORName) (*cosmos.Result, error) {
 	return h.handleCurrent(ctx, msg)
 }

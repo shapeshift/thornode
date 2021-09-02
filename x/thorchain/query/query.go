@@ -61,6 +61,7 @@ var (
 	QueryBan                = Query{Key: "ban", EndpointTemplate: "/%s/ban/{%s}"}
 	QueryRagnarok           = Query{Key: "ragnarok", EndpointTemplate: "/%s/ragnarok"}
 	QueryPendingOutbound    = Query{Key: "pendingoutbound", EndpointTemplate: "/%s/queue/outbound"}
+	QueryScheduledOutbound  = Query{Key: "scheduledoutbound", EndpointTemplate: "/%s/queue/scheduled"}
 	QueryTssKeygenMetrics   = Query{Key: "tss_keygen_metric", EndpointTemplate: "/%s/metric/keygen/{%s}"}
 	QueryTssMetrics         = Query{Key: "tss_metric", EndpointTemplate: "/%s/metrics"}
 	QueryTHORName           = Query{Key: "thorname", EndpointTemplate: "/%s/thorname/{%s}"}
@@ -96,6 +97,7 @@ var Queries = []Query{
 	QueryBan,
 	QueryRagnarok,
 	QueryPendingOutbound,
+	QueryScheduledOutbound,
 	QueryTssMetrics,
 	QueryTssKeygenMetrics,
 	QueryTHORName,

@@ -16,8 +16,8 @@ type YggMgrV45 struct {
 	keeper keeper.Keeper
 }
 
-// NewYggMgrV45 create a new instance of YggMgrV45 which implement YggManager interface
-func NewYggMgrV45(keeper keeper.Keeper) *YggMgrV45 {
+// newYggMgrV45 create a new instance of YggMgrV45 which implement YggManager interface
+func newYggMgrV45(keeper keeper.Keeper) *YggMgrV45 {
 	return &YggMgrV45{
 		keeper: keeper,
 	}

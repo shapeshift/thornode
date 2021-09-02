@@ -14,8 +14,8 @@ type ObserverMgrV1 struct {
 	chains map[common.Chain][]cosmos.AccAddress
 }
 
-// NewObserverMgrV1 create a new instance of ObserverManager
-func NewObserverMgrV1() *ObserverMgrV1 {
+// newObserverMgrV1 create a new instance of ObserverManager
+func newObserverMgrV1() *ObserverMgrV1 {
 	return &ObserverMgrV1{
 		chains: make(map[common.Chain][]cosmos.AccAddress, 0),
 	}

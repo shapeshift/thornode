@@ -17,8 +17,8 @@ type NetworkMgrV59 struct {
 	eventMgr   EventManager
 }
 
-// NewNetworkMgrV59 create a new vault manager
-func NewNetworkMgrV59(k keeper.Keeper, txOutStore TxOutStore, eventMgr EventManager) *NetworkMgrV59 {
+// newNetworkMgrV59 create a new vault manager
+func newNetworkMgrV59(k keeper.Keeper, txOutStore TxOutStore, eventMgr EventManager) *NetworkMgrV59 {
 	return &NetworkMgrV59{
 		k:          k,
 		txOutStore: txOutStore,
@@ -584,7 +584,7 @@ func (vm *NetworkMgrV59) withdrawLiquidity(ctx cosmos.Context, pool Pool, na Nod
 		withdrawMsg := NewMsgWithdrawLiquidity(
 			common.GetRagnarokTx(pool.Asset.GetChain(), withdrawAddr, withdrawAddr),
 			withdrawAddr,
-			cosmos.NewUint(uint64(MaxWithdrawBasisPoints/100*(nth*10))),
+			cosmos.NewUint(uint64(MaxWithdrawBasisPoints)),
 			pool.Asset,
 			withdrawAsset,
 			na.NodeAddress,
@@ -650,13 +650,7 @@ func (vm *NetworkMgrV59) UpdateNetwork(ctx cosmos.Context, constAccessor constan
 	bondReward, totalPoolRewards, lpDeficit := vm.calcBlockRewards(totalProvidedLiquidity, totalBonded, totalReserve, totalLiquidityFees, emissionCurve, incentiveCurve, blocksOerYear)
 
 	// given bondReward and toolPoolRewards are both calculated base on totalReserve, thus it should always have enough to pay the bond reward
-
 	// Move Rune from the Reserve to the Bond and Pool Rewards
-	totalRewards := bondReward.Add(totalPoolRewards)
-	if totalRewards.GT(totalReserve) {
-		totalRewards = totalReserve
-	}
-	totalReserve = common.SafeSub(totalReserve, totalRewards)
 	coin := common.NewCoin(common.RuneNative, bondReward)
 	if !bondReward.IsZero() {
 		if err := vm.k.SendFromModuleToModule(ctx, ReserveName, BondName, common.NewCoins(coin)); err != nil {

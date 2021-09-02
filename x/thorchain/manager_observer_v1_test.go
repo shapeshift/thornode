@@ -16,7 +16,7 @@ var _ = Suite(&ObserverManagerTestSuite{})
 func (ObserverManagerTestSuite) TestObserverManager(c *C) {
 	var err error
 	ctx, k := setupKeeperForTest(c)
-	mgr := NewObserverMgrV1()
+	mgr := newObserverMgrV1()
 	c.Assert(mgr, NotNil)
 	mgr.BeginBlock()
 	c.Check(mgr.List(), HasLen, 0)

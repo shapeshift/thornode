@@ -110,6 +110,11 @@ func (cs Coins) Valid() error {
 }
 
 // Equals Check if two lists of coins are equal to each other. Order does not matter
+// This method has side effect because it uses sort.Slice on the input parameter
+// which will potentially change the order of cs1 & cs2
+// Note: quite a few places already using this method , which can't be changed, otherwise it will cause consensus failure
+// on CHAOSNET
+// Deprecated
 func (cs1 Coins) Equals(cs2 Coins) bool {
 	if len(cs1) != len(cs2) {
 		return false
@@ -125,6 +130,31 @@ func (cs1 Coins) Equals(cs2 Coins) bool {
 
 	for i := range cs1 {
 		if !cs1[i].Equals(cs2[i]) {
+			return false
+		}
+	}
+
+	return true
+}
+
+// EqualsEx Check if two lists of coins are equal to each other.
+// This method will make a copy of cs1 & cs2 , thus the original coins order will not be changed
+func (cs1 Coins) EqualsEx(cs2 Coins) bool {
+	if len(cs1) != len(cs2) {
+		return false
+	}
+
+	source := append(cs1[:0:0], cs1...)
+	dest := append(cs2[:0:0], cs2...)
+	// sort both lists
+	sort.Slice(source[:], func(i, j int) bool {
+		return source[i].Asset.String() < source[j].Asset.String()
+	})
+	sort.Slice(dest[:], func(i, j int) bool {
+		return dest[i].Asset.String() < dest[j].Asset.String()
+	})
+	for i := range source {
+		if !source[i].Equals(dest[i]) {
 			return false
 		}
 	}
