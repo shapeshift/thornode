@@ -19,6 +19,8 @@ func NewTxStoreDummy() *TxOutStoreDummy {
 	}
 }
 
+func (tos *TxOutStoreDummy) EndBlock(_ cosmos.Context, _ Manager) error { return nil }
+
 func (tos *TxOutStoreDummy) GetBlockOut(_ cosmos.Context) (*TxOut, error) {
 	return tos.blockOut, nil
 }
@@ -73,6 +75,8 @@ func NewTxStoreFailDummy() *TxOutStoreFailDummy {
 		asgard:   GetRandomPubKey(),
 	}
 }
+
+func (tos *TxOutStoreFailDummy) EndBlock(_ cosmos.Context, _ Manager) error { return nil }
 
 func (tos *TxOutStoreFailDummy) GetBlockOut(_ cosmos.Context) (*TxOut, error) {
 	return tos.blockOut, kaboom

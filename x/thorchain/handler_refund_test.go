@@ -149,7 +149,7 @@ func newRefundTxHandlerTestHelper(c *C) refundTxHandlerTestHelper {
 	keeperTestHelper.vault = yggVault
 
 	mgr := NewDummyMgrWithKeeper(keeperTestHelper)
-	mgr.slasher = NewSlasherV1(keeperTestHelper, NewDummyEventMgr())
+	mgr.slasher = newSlasherV1(keeperTestHelper, NewDummyEventMgr())
 
 	nodeAccount := GetRandomNodeAccount(NodeActive)
 	nodeAccount.NodeAddress, err = yggVault.PubKey.GetThorAddress()
@@ -168,7 +168,7 @@ func newRefundTxHandlerTestHelper(c *C) refundTxHandlerTestHelper {
 	keeperTestHelper.SetObservedTxOutVoter(ctx, voter)
 
 	constAccessor := constants.GetConstantValues(version)
-	txOutStorage := NewTxOutStorageV1(keeperTestHelper, constAccessor, NewDummyEventMgr(), NewGasMgrV1(constAccessor, keeperTestHelper))
+	txOutStorage := newTxOutStorageV1(keeperTestHelper, constAccessor, NewDummyEventMgr(), newGasMgrV1(constAccessor, keeperTestHelper))
 	toi := TxOutItem{
 		Chain:       common.BNBChain,
 		ToAddress:   tx.Tx.FromAddress,

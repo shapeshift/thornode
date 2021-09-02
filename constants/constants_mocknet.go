@@ -1,3 +1,4 @@
+//go:build mocknet
 // +build mocknet
 
 // For internal testing and mockneting
@@ -18,6 +19,8 @@ func init() {
 		JailTimeKeysign:          10,
 		AsgardSize:               6,
 		MinimumNodesForYggdrasil: 4,
+		MinTxOutVolumeThreshold:  2000000_00000000,
+		TxOutDelayRate:           2000000_00000000,
 	}
 	boolOverrides = map[ConstantName]bool{
 		StrictBondLiquidityRatio: false,

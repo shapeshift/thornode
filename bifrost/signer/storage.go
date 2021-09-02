@@ -21,7 +21,7 @@ import (
 
 const (
 	DefaultSignerLevelDBFolder = "signer_data"
-	txOutPrefix                = "txout-v1-"
+	txOutPrefix                = "txout-v2-"
 	signedCachePrefix          = "signed-v2-"
 )
 

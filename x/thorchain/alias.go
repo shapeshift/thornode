@@ -62,6 +62,7 @@ const (
 	TxRagnarok        = mem.TxRagnarok
 	TxReserve         = mem.TxReserve
 	TxOutbound        = mem.TxOutbound
+	TxRefund          = mem.TxRefund
 	TxUnBond          = mem.TxUnbond
 	TxLeave           = mem.TxLeave
 	TxTHORName        = mem.TxTHORName
@@ -76,6 +77,7 @@ var (
 	NewErrataTxVoter               = types.NewErrataTxVoter
 	NewObservedTxVoter             = types.NewObservedTxVoter
 	NewMsgMimir                    = types.NewMsgMimir
+	NewMsgNodePauseChain           = types.NewMsgNodePauseChain
 	NewMsgDeposit                  = types.NewMsgDeposit
 	NewMsgTssPool                  = types.NewMsgTssPool
 	NewMsgTssKeysignFail           = types.NewMsgTssKeysignFail
@@ -120,6 +122,7 @@ var (
 	NewMsgMigrate                  = types.NewMsgMigrate
 	NewMsgRagnarok                 = types.NewMsgRagnarok
 	NewQueryNodeAccount            = types.NewQueryNodeAccount
+	NewQueryTxOutItem              = types.NewQueryTxOutItem
 	GetThreshold                   = types.GetThreshold
 	ModuleCdc                      = types.ModuleCdc
 	RegisterCodec                  = types.RegisterCodec
@@ -191,6 +194,7 @@ type (
 	MsgAddLiquidity                = types.MsgAddLiquidity
 	MsgOutboundTx                  = types.MsgOutboundTx
 	MsgMimir                       = types.MsgMimir
+	MsgNodePauseChain              = types.MsgNodePauseChain
 	MsgMigrate                     = types.MsgMigrate
 	MsgRagnarok                    = types.MsgRagnarok
 	MsgRefundTx                    = types.MsgRefundTx
@@ -220,6 +224,7 @@ type (
 	QueryVaultsPubKeys             = types.QueryVaultsPubKeys
 	QueryVaultPubKeyContract       = types.QueryVaultPubKeyContract
 	QueryNodeAccount               = types.QueryNodeAccount
+	QueryTxOutItem                 = types.QueryTxOutItem
 	QueryChainAddress              = types.QueryChainAddress
 	PoolStatus                     = types.PoolStatus
 	Pool                           = types.Pool

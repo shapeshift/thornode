@@ -58,4 +58,17 @@ func (s *HandlerMimirSuite) TestHandle(c *C) {
 	result, err = handler.Run(ctx, msg1)
 	c.Check(err, IsNil)
 	c.Check(result, NotNil)
+
+	val, err = keeper.GetMimir(ctx, "hello")
+	c.Assert(err, IsNil)
+	c.Assert(val, Equals, int64(1))
+
+	// delete mimir
+	msg1 = NewMsgMimir("hello", -3, addr)
+	result, err = handler.Run(ctx, msg1)
+	c.Check(err, IsNil)
+	c.Check(result, NotNil)
+	val, err = keeper.GetMimir(ctx, "hello")
+	c.Assert(err, IsNil)
+	c.Assert(val, Equals, int64(-1))
 }

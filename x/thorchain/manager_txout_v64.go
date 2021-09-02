@@ -19,8 +19,8 @@ type TxOutStorageV64 struct {
 	gasManager    GasManager
 }
 
-// NewTxOutStorageV64 will create a new instance of TxOutStore.
-func NewTxOutStorageV64(keeper keeper.Keeper, constAccessor constants.ConstantValues, eventMgr EventManager, gasManager GasManager) *TxOutStorageV64 {
+// newTxOutStorageV64 will create a new instance of TxOutStore.
+func newTxOutStorageV64(keeper keeper.Keeper, constAccessor constants.ConstantValues, eventMgr EventManager, gasManager GasManager) *TxOutStorageV64 {
 	return &TxOutStorageV64{
 		keeper:        keeper,
 		eventMgr:      eventMgr,
@@ -28,6 +28,8 @@ func NewTxOutStorageV64(keeper keeper.Keeper, constAccessor constants.ConstantVa
 		gasManager:    gasManager,
 	}
 }
+
+func (tos *TxOutStorageV64) EndBlock(ctx cosmos.Context, mgr Manager) error { return nil }
 
 // GetBlockOut read the TxOut from kv store
 func (tos *TxOutStorageV64) GetBlockOut(ctx cosmos.Context) (*TxOut, error) {

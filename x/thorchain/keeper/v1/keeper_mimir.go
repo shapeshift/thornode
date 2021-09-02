@@ -1,6 +1,9 @@
 package keeperv1
 
-import "gitlab.com/thorchain/thornode/common/cosmos"
+import (
+	"gitlab.com/thorchain/thornode/common"
+	"gitlab.com/thorchain/thornode/common/cosmos"
+)
 
 const KRAKEN string = "ReleaseTheKraken"
 
@@ -40,4 +43,14 @@ func (k KVStore) GetMimirIterator(ctx cosmos.Context) cosmos.Iterator {
 func (k KVStore) DeleteMimir(ctx cosmos.Context, key string) error {
 	k.del(ctx, k.GetKey(ctx, prefixMimir, key))
 	return nil
+}
+
+func (k KVStore) GetNodePauseChain(ctx cosmos.Context, acc cosmos.AccAddress) int64 {
+	record := int64(-1)
+	_, _ = k.getInt64(ctx, k.GetKey(ctx, prefixNodePauseChain, acc.String()), &record)
+	return record
+}
+
+func (k KVStore) SetNodePauseChain(ctx cosmos.Context, acc cosmos.AccAddress) {
+	k.setInt64(ctx, k.GetKey(ctx, prefixNodePauseChain, acc.String()), common.BlockHeight(ctx))
 }

@@ -52,6 +52,7 @@ const (
 	prefixNodeJail               kvTypes.DbPrefix = "jail/"
 	prefixSwapQueueItem          kvTypes.DbPrefix = "swapitem/"
 	prefixMimir                  kvTypes.DbPrefix = "mimir/"
+	prefixNodePauseChain         kvTypes.DbPrefix = "node_pause_chain/"
 	prefixNetworkFee             kvTypes.DbPrefix = "network_fee/"
 	prefixNetworkFeeVoter        kvTypes.DbPrefix = "network_fee_voter/"
 	prefixTssKeygenMetric        kvTypes.DbPrefix = "tss_keygen_metric/"

@@ -157,6 +157,19 @@ func (s *HelperSuite) TestSubsidizePoolWithSlashBond(c *C) {
 	c.Assert(poolBTC.BalanceRune.Equal(runeBTC), Equals, true)
 }
 
+func (s *HelperSuite) TestPausedLP(c *C) {
+	ctx, mgr := setupManagerForTest(c)
+
+	c.Check(isLPPaused(ctx, common.BNBChain, mgr), Equals, false)
+	c.Check(isLPPaused(ctx, common.BTCChain, mgr), Equals, false)
+
+	mgr.Keeper().SetMimir(ctx, "PauseLPBTC", 1)
+	c.Check(isLPPaused(ctx, common.BTCChain, mgr), Equals, true)
+
+	mgr.Keeper().SetMimir(ctx, "PauseLP", 1)
+	c.Check(isLPPaused(ctx, common.BNBChain, mgr), Equals, true)
+}
+
 func (s *HelperSuite) TestRefundBondError(c *C) {
 	ctx, _ := setupKeeperForTest(c)
 	// active node should not refund bond
@@ -438,7 +451,7 @@ func newAddGasFeeTestHelper(c *C) addGasFeeTestHelper {
 	c.Assert(mgr.Keeper().SetVault(ctx, yggVault), IsNil)
 	version := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(version)
-	mgr.gasMgr = NewGasMgrV1(constAccessor, keeper)
+	mgr.gasMgr = newGasMgrV1(constAccessor, keeper)
 	return addGasFeeTestHelper{
 		ctx: ctx,
 		mgr: mgr,
