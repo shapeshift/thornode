@@ -292,6 +292,12 @@ func subsidizePoolWithSlashBondV46(ctx cosmos.Context, ygg Vault, yggTotalStolen
 	stolenRUNE := ygg.GetCoin(common.RuneAsset()).Amount
 	slashRuneAmt = common.SafeSub(slashRuneAmt, stolenRUNE)
 	yggTotalStolen = common.SafeSub(yggTotalStolen, stolenRUNE)
+
+	// Should never happen, but this prevents a divide-by-zero panic in case it does
+	if yggTotalStolen.IsZero() {
+		return nil
+	}
+
 	type fund struct {
 		stolenAsset   cosmos.Uint
 		subsidiseRune cosmos.Uint

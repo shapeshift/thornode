@@ -155,6 +155,16 @@ func (s *HelperSuite) TestSubsidizePoolWithSlashBond(c *C) {
 	poolBTC, err = mgr.Keeper().GetPool(ctx, common.BTCAsset)
 	c.Assert(err, IsNil)
 	c.Assert(poolBTC.BalanceRune.Equal(runeBTC), Equals, true)
+
+	ygg2 := GetRandomVault()
+	ygg2.Type = YggdrasilVault
+	ygg2.Coins = common.Coins{
+		common.NewCoin(common.RuneAsset(), cosmos.NewUint(2*common.One)),
+		common.NewCoin(tCanAsset, cosmos.NewUint(0)),
+	}
+	totalRuneLeft, err = getTotalYggValueInRune(ctx, mgr.Keeper(), ygg2)
+	slashAmt = cosmos.NewUint(2 * common.One)
+	c.Assert(subsidizePoolWithSlashBond(ctx, ygg2, totalRuneLeft, slashAmt, mgr), IsNil)
 }
 
 func (s *HelperSuite) TestPausedLP(c *C) {
