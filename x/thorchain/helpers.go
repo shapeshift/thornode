@@ -1168,7 +1168,7 @@ func emitEndBlockTelemetry(ctx cosmos.Context, mgr Manager) error {
 		if !pool.BalanceAsset.IsZero() {
 			price = runeUSDPrice * telem(pool.BalanceRune) / telem(pool.BalanceAsset)
 		}
-		telemetry.SetGauge(price, "thornode", "price", "usd", strings.ToLower(pool.Asset.Chain.String()), strings.ToLower(pool.Asset.Symbol.String()))
+		telemetry.SetGaugeWithLabels([]string{"thornode", "pool", "price", "usd"}, price, labels)
 	}
 
 	// emit vault metrics
@@ -1198,7 +1198,12 @@ func emitEndBlockTelemetry(ctx cosmos.Context, mgr Manager) error {
 		telemetry.SetGaugeWithLabels([]string{"thornode", "vault", "total_value"}, telem(totalValue), labels)
 
 		for _, coin := range vault.Coins {
-			telemetry.SetGaugeWithLabels([]string{"thornode", "vault", "balance", coin.Asset.String()}, telem(coin.Amount), labels)
+			labels := []metrics.Label{
+				telemetry.NewLabel("vault_type", vault.Type.String()),
+				telemetry.NewLabel("pubkey", vault.PubKey.String()),
+				telemetry.NewLabel("asset", coin.Asset.String()),
+			}
+			telemetry.SetGaugeWithLabels([]string{"thornode", "vault", "balance"}, telem(coin.Amount), labels)
 		}
 	}
 
