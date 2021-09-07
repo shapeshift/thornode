@@ -3,6 +3,7 @@ package thorchain
 import (
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/armon/go-metrics"
@@ -292,6 +293,12 @@ func subsidizePoolWithSlashBondV46(ctx cosmos.Context, ygg Vault, yggTotalStolen
 	stolenRUNE := ygg.GetCoin(common.RuneAsset()).Amount
 	slashRuneAmt = common.SafeSub(slashRuneAmt, stolenRUNE)
 	yggTotalStolen = common.SafeSub(yggTotalStolen, stolenRUNE)
+
+	// Should never happen, but this prevents a divide-by-zero panic in case it does
+	if yggTotalStolen.IsZero() {
+		return nil
+	}
+
 	type fund struct {
 		stolenAsset   cosmos.Uint
 		subsidiseRune cosmos.Uint
@@ -1054,6 +1061,62 @@ func isLPPausedV1(ctx cosmos.Context, chain common.Chain, mgr Manager) bool {
 	return false
 }
 
+// gets the amount of rune that is equal to 1 USD
+func DollarInRune(ctx cosmos.Context, mgr Manager) cosmos.Uint {
+	// check for mimir override
+	dollarInRune, err := mgr.Keeper().GetMimir(ctx, "DollarInRune")
+	if err == nil && dollarInRune > 0 {
+		return cosmos.NewUint(uint64(dollarInRune))
+	}
+
+	busd, _ := common.NewAsset("BNB.BUSD-BD1")
+	usdc, _ := common.NewAsset("ETH.USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48")
+	usdt, _ := common.NewAsset("ETH.USDT-0XDAC17F958D2EE523A2206206994597C13D831EC7")
+	usdAssets := []common.Asset{busd, usdc, usdt}
+
+	usd := make([]cosmos.Uint, 0)
+	for _, asset := range usdAssets {
+		if isGlobalTradingHalted(ctx, mgr) || isChainTradingHalted(ctx, mgr, asset.Chain) {
+			continue
+		}
+		pool, err := mgr.Keeper().GetPool(ctx, asset)
+		if err != nil {
+			ctx.Logger().Error("fail to get usd pool", "asset", asset.String(), "error", err)
+			continue
+		}
+		if pool.Status != PoolAvailable {
+			continue
+		}
+		value := pool.AssetValueInRune(cosmos.NewUint(common.One))
+		if !value.IsZero() {
+			usd = append(usd, value)
+		}
+	}
+
+	if len(usd) == 0 {
+		return cosmos.ZeroUint()
+	}
+
+	sort.SliceStable(usd, func(i, j int) bool {
+		return usd[i].Uint64() < usd[j].Uint64()
+	})
+
+	// calculate median of our USD figures
+	var median cosmos.Uint
+	if len(usd)%2 > 0 {
+		// odd number of figures in our slice. Take the middle figure. Since
+		// slices start with an index of zero, just need to length divide by two.
+		medianSpot := len(usd) / 2
+		median = usd[medianSpot]
+	} else {
+		// even number of figures in our slice. Average the middle two figures.
+		pt1 := usd[len(usd)/2-1]
+		pt2 := usd[len(usd)/2]
+		median = pt1.Add(pt2).QuoUint64(2)
+	}
+	return median
+}
+
 func telem(input cosmos.Uint) float32 {
 	i := input.Uint64()
 	return float32(i / 100000000)
@@ -1134,16 +1197,8 @@ func emitEndBlockTelemetry(ctx cosmos.Context, mgr Manager) error {
 	}
 
 	// get rune price
-	busd, _ := common.NewAsset("BNB.BUSD-BD1")
-	pool, err := mgr.Keeper().GetPool(ctx, busd)
-	if err != nil {
-		return err
-	}
-	runeUSDPrice := float32(0)
-	if !pool.IsEmpty() && !pool.BalanceRune.IsZero() {
-		runeUSDPrice = telem(pool.BalanceAsset) / telem(pool.BalanceRune)
-		telemetry.SetGauge(runeUSDPrice, "thornode", "price", "usd", "thor", "rune")
-	}
+	runeUSDPrice := telem(DollarInRune(ctx, mgr))
+	telemetry.SetGauge(runeUSDPrice, "thornode", "price", "usd", "thor", "rune")
 
 	// emit pool metrics
 	pools, err := mgr.Keeper().GetPools(ctx)
@@ -1168,7 +1223,7 @@ func emitEndBlockTelemetry(ctx cosmos.Context, mgr Manager) error {
 		if !pool.BalanceAsset.IsZero() {
 			price = runeUSDPrice * telem(pool.BalanceRune) / telem(pool.BalanceAsset)
 		}
-		telemetry.SetGauge(price, "thornode", "price", "usd", strings.ToLower(pool.Asset.Chain.String()), strings.ToLower(pool.Asset.Symbol.String()))
+		telemetry.SetGaugeWithLabels([]string{"thornode", "pool", "price", "usd"}, price, labels)
 	}
 
 	// emit vault metrics
@@ -1198,14 +1253,29 @@ func emitEndBlockTelemetry(ctx cosmos.Context, mgr Manager) error {
 		telemetry.SetGaugeWithLabels([]string{"thornode", "vault", "total_value"}, telem(totalValue), labels)
 
 		for _, coin := range vault.Coins {
-			telemetry.SetGaugeWithLabels([]string{"thornode", "vault", "balance", coin.Asset.String()}, telem(coin.Amount), labels)
+			labels := []metrics.Label{
+				telemetry.NewLabel("vault_type", vault.Type.String()),
+				telemetry.NewLabel("pubkey", vault.PubKey.String()),
+				telemetry.NewLabel("asset", coin.Asset.String()),
+			}
+			telemetry.SetGaugeWithLabels([]string{"thornode", "vault", "balance"}, telem(coin.Amount), labels)
 		}
 	}
 
 	// emit queue metrics
 	signingTransactionPeriod := mgr.GetConstants().GetInt64Value(constants.SigningTransactionPeriod)
 	startHeight := common.BlockHeight(ctx) - signingTransactionPeriod
-	query := QueryQueue{}
+	txOutDelayMax, err := mgr.Keeper().GetMimir(ctx, constants.TxOutDelayMax.String())
+	if txOutDelayMax <= 0 || err != nil {
+		txOutDelayMax = mgr.GetConstants().GetInt64Value(constants.TxOutDelayMax)
+	}
+	maxTxOutOffset, err := mgr.Keeper().GetMimir(ctx, constants.MaxTxOutOffset.String())
+	if maxTxOutOffset <= 0 || err != nil {
+		maxTxOutOffset = mgr.GetConstants().GetInt64Value(constants.MaxTxOutOffset)
+	}
+	query := QueryQueue{
+		ScheduledOutboundValue: cosmos.ZeroUint(),
+	}
 	iterator := mgr.Keeper().GetSwapQueueIterator(ctx)
 	defer iterator.Close()
 	for ; iterator.Valid(); iterator.Next() {
@@ -1231,9 +1301,24 @@ func emitEndBlockTelemetry(ctx cosmos.Context, mgr Manager) error {
 			}
 		}
 	}
+	for height := common.BlockHeight(ctx) + 1; height <= common.BlockHeight(ctx)+txOutDelayMax; height++ {
+		value, err := mgr.Keeper().GetTxOutValue(ctx, height)
+		if err != nil {
+			ctx.Logger().Error("fail to get tx out array from key value store", "error", err)
+			continue
+		}
+		if height > common.BlockHeight(ctx)+maxTxOutOffset && value.IsZero() {
+			// we've hit our max offset, and an empty block, we can assume the
+			// rest will be empty as well
+			break
+		}
+		query.ScheduledOutboundValue = query.ScheduledOutboundValue.Add(value)
+	}
 	telemetry.SetGauge(float32(query.Internal), "thornode", "queue", "internal")
 	telemetry.SetGauge(float32(query.Outbound), "thornode", "queue", "outbound")
 	telemetry.SetGauge(float32(query.Swap), "thornode", "queue", "swap")
+	telemetry.SetGauge(telem(query.ScheduledOutboundValue), "thornode", "queue", "scheduled", "value", "rune")
+	telemetry.SetGauge(telem(query.ScheduledOutboundValue)*runeUSDPrice, "thornode", "queue", "scheduled", "value", "USD")
 
 	return nil
 }
