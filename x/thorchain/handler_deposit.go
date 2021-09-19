@@ -148,7 +148,7 @@ func (h DepositHandler) handleV1(ctx cosmos.Context, msg MsgDeposit) (*cosmos.Re
 	// construct msg from memo
 	txIn := ObservedTx{Tx: tx}
 	txInVoter := NewObservedTxVoter(txIn.Tx.ID, []ObservedTx{txIn})
-	activeNodes, err := h.mgr.Keeper().ListActiveNodeAccounts(ctx)
+	activeNodes, err := h.mgr.Keeper().ListActiveValidators(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("fail to get all active nodes: %w", err)
 	}
@@ -286,7 +286,7 @@ func (h DepositHandler) handleV46(ctx cosmos.Context, msg MsgDeposit) (*cosmos.R
 	// construct msg from memo
 	txIn := ObservedTx{Tx: tx}
 	txInVoter := NewObservedTxVoter(txIn.Tx.ID, []ObservedTx{txIn})
-	activeNodes, err := h.mgr.Keeper().ListActiveNodeAccounts(ctx)
+	activeNodes, err := h.mgr.Keeper().ListActiveValidators(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("fail to get all active nodes: %w", err)
 	}
@@ -424,7 +424,7 @@ func (h DepositHandler) handleV47(ctx cosmos.Context, msg MsgDeposit) (*cosmos.R
 	// construct msg from memo
 	txIn := ObservedTx{Tx: tx}
 	txInVoter := NewObservedTxVoter(txIn.Tx.ID, []ObservedTx{txIn})
-	activeNodes, err := h.mgr.Keeper().ListActiveNodeAccounts(ctx)
+	activeNodes, err := h.mgr.Keeper().ListActiveValidators(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("fail to get all active nodes: %w", err)
 	}
@@ -562,7 +562,7 @@ func (h DepositHandler) handleV58(ctx cosmos.Context, msg MsgDeposit) (*cosmos.R
 	// construct msg from memo
 	txIn := ObservedTx{Tx: tx}
 	txInVoter := NewObservedTxVoter(txIn.Tx.ID, []ObservedTx{txIn})
-	activeNodes, err := h.mgr.Keeper().ListActiveNodeAccounts(ctx)
+	activeNodes, err := h.mgr.Keeper().ListActiveValidators(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("fail to get all active nodes: %w", err)
 	}
@@ -709,7 +709,7 @@ func (h DepositHandler) handleV61(ctx cosmos.Context, msg MsgDeposit) (*cosmos.R
 	// construct msg from memo
 	txIn := ObservedTx{Tx: tx}
 	txInVoter := NewObservedTxVoter(txIn.Tx.ID, []ObservedTx{txIn})
-	activeNodes, err := h.mgr.Keeper().ListActiveNodeAccounts(ctx)
+	activeNodes, err := h.mgr.Keeper().ListActiveValidators(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("fail to get all active nodes: %w", err)
 	}
@@ -858,7 +858,7 @@ func (h DepositHandler) handleV63(ctx cosmos.Context, msg MsgDeposit) (*cosmos.R
 	// construct msg from memo
 	txIn := ObservedTx{Tx: tx}
 	txInVoter := NewObservedTxVoter(txIn.Tx.ID, []ObservedTx{txIn})
-	activeNodes, err := h.mgr.Keeper().ListActiveNodeAccounts(ctx)
+	activeNodes, err := h.mgr.Keeper().ListActiveValidators(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("fail to get all active nodes: %w", err)
 	}
@@ -1011,7 +1011,7 @@ func (h DepositHandler) handleV64(ctx cosmos.Context, msg MsgDeposit) (*cosmos.R
 	// construct msg from memo
 	txIn := ObservedTx{Tx: tx}
 	txInVoter := NewObservedTxVoter(txIn.Tx.ID, []ObservedTx{txIn})
-	activeNodes, err := h.mgr.Keeper().ListActiveNodeAccounts(ctx)
+	activeNodes, err := h.mgr.Keeper().ListActiveValidators(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("fail to get all active nodes: %w", err)
 	}
@@ -1164,7 +1164,7 @@ func (h DepositHandler) handleV65(ctx cosmos.Context, msg MsgDeposit) (*cosmos.R
 	// construct msg from memo
 	txIn := ObservedTx{Tx: tx}
 	txInVoter := NewObservedTxVoter(txIn.Tx.ID, []ObservedTx{txIn})
-	activeNodes, err := h.mgr.Keeper().ListActiveNodeAccounts(ctx)
+	activeNodes, err := h.mgr.Keeper().ListActiveValidators(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("fail to get all active nodes: %w", err)
 	}
@@ -1315,7 +1315,7 @@ func (h DepositHandler) handleCurrent(ctx cosmos.Context, msg MsgDeposit) (*cosm
 	// construct msg from memo
 	txIn := ObservedTx{Tx: tx}
 	txInVoter := NewObservedTxVoter(txIn.Tx.ID, []ObservedTx{txIn})
-	activeNodes, err := h.mgr.Keeper().ListActiveNodeAccounts(ctx)
+	activeNodes, err := h.mgr.Keeper().ListActiveValidators(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("fail to get all active nodes: %w", err)
 	}

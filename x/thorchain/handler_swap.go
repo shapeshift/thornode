@@ -494,7 +494,7 @@ func (h SwapHandler) handleCurrent(ctx cosmos.Context, msg MsgSwap) (*cosmos.Res
 
 // getTotalActiveBond
 func (h SwapHandler) getTotalActiveBond(ctx cosmos.Context) (cosmos.Uint, error) {
-	nodeAccounts, err := h.mgr.Keeper().ListNodeAccountsWithBond(ctx)
+	nodeAccounts, err := h.mgr.Keeper().ListValidatorsWithBond(ctx)
 	if err != nil {
 		return cosmos.ZeroUint(), err
 	}

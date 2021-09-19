@@ -24,7 +24,7 @@ type TestErrataTxKeeper struct {
 	err        error
 }
 
-func (k *TestErrataTxKeeper) ListActiveNodeAccounts(_ cosmos.Context) (NodeAccounts, error) {
+func (k *TestErrataTxKeeper) ListActiveValidators(_ cosmos.Context) (NodeAccounts, error) {
 	return NodeAccounts{k.na}, k.err
 }
 
@@ -70,7 +70,7 @@ func (s *HandlerErrataTxSuite) TestValidate(c *C) {
 	ctx, _ := setupKeeperForTest(c)
 
 	keeper := &TestErrataTxKeeper{
-		na: GetRandomNodeAccount(NodeActive),
+		na: GetRandomValidatorNode(NodeActive),
 	}
 
 	handler := NewErrataTxHandler(NewDummyMgrWithKeeper(keeper))
@@ -89,7 +89,7 @@ func (s *HandlerErrataTxSuite) TestErrataHandlerHappyPath(c *C) {
 	ctx, mgr := setupManagerForTest(c)
 
 	txID := GetRandomTxHash()
-	na := GetRandomNodeAccount(NodeActive)
+	na := GetRandomValidatorNode(NodeActive)
 	addr := GetRandomBNBAddress()
 	totalUnits := cosmos.NewUint(1600)
 	observedTx := ObservedTx{
@@ -159,11 +159,11 @@ func NewErrataTxHandlerTestHelper(k keeper.Keeper) *ErrataTxHandlerTestHelper {
 	}
 }
 
-func (k *ErrataTxHandlerTestHelper) ListActiveNodeAccounts(ctx cosmos.Context) (NodeAccounts, error) {
+func (k *ErrataTxHandlerTestHelper) ListActiveValidators(ctx cosmos.Context) (NodeAccounts, error) {
 	if k.failListActiveNodeAccount {
 		return NodeAccounts{}, kaboom
 	}
-	return k.Keeper.ListActiveNodeAccounts(ctx)
+	return k.Keeper.ListActiveValidators(ctx)
 }
 
 func (k *ErrataTxHandlerTestHelper) GetErrataTxVoter(ctx cosmos.Context, txID common.TxID, chain common.Chain) (ErrataTxVoter, error) {
@@ -231,7 +231,7 @@ func (s *HandlerErrataTxSuite) TestErrataHandlerDifferentError(c *C) {
 			name: "fail to list active account should return an error",
 			messageProvider: func(ctx cosmos.Context, helper *ErrataTxHandlerTestHelper) cosmos.Msg {
 				// add an active node account
-				nodeAccount := GetRandomNodeAccount(NodeActive)
+				nodeAccount := GetRandomValidatorNode(NodeActive)
 				helper.SetNodeAccount(ctx, nodeAccount)
 				helper.failListActiveNodeAccount = true
 				return NewMsgErrataTx(GetRandomTxHash(), common.BTCChain, nodeAccount.NodeAddress)
@@ -245,7 +245,7 @@ func (s *HandlerErrataTxSuite) TestErrataHandlerDifferentError(c *C) {
 			name: "fail to get errata tx voter should return an error",
 			messageProvider: func(ctx cosmos.Context, helper *ErrataTxHandlerTestHelper) cosmos.Msg {
 				// add an active node account
-				nodeAccount := GetRandomNodeAccount(NodeActive)
+				nodeAccount := GetRandomValidatorNode(NodeActive)
 				helper.SetNodeAccount(ctx, nodeAccount)
 				helper.failGetErrataTxVoter = true
 				return NewMsgErrataTx(GetRandomTxHash(), common.BTCChain, nodeAccount.NodeAddress)
@@ -259,7 +259,7 @@ func (s *HandlerErrataTxSuite) TestErrataHandlerDifferentError(c *C) {
 			name: "if voter already sign the errata tx voter it should not do anything",
 			messageProvider: func(ctx cosmos.Context, helper *ErrataTxHandlerTestHelper) cosmos.Msg {
 				// add an active node account
-				nodeAccount := GetRandomNodeAccount(NodeActive)
+				nodeAccount := GetRandomValidatorNode(NodeActive)
 				helper.SetNodeAccount(ctx, nodeAccount)
 				txID := GetRandomTxHash()
 				voter, _ := helper.Keeper.GetErrataTxVoter(ctx, txID, common.BTCChain)
@@ -276,10 +276,10 @@ func (s *HandlerErrataTxSuite) TestErrataHandlerDifferentError(c *C) {
 			name: "if voter doesn't have consensus it should not do anything",
 			messageProvider: func(ctx cosmos.Context, helper *ErrataTxHandlerTestHelper) cosmos.Msg {
 				// add an active node account
-				nodeAccount := GetRandomNodeAccount(NodeActive)
+				nodeAccount := GetRandomValidatorNode(NodeActive)
 				helper.SetNodeAccount(ctx, nodeAccount)
 				txID := GetRandomTxHash()
-				nodeAcct1 := GetRandomNodeAccount(NodeActive)
+				nodeAcct1 := GetRandomValidatorNode(NodeActive)
 				helper.SetNodeAccount(ctx, nodeAcct1)
 				return NewMsgErrataTx(txID, common.BTCChain, nodeAccount.NodeAddress)
 			},
@@ -292,7 +292,7 @@ func (s *HandlerErrataTxSuite) TestErrataHandlerDifferentError(c *C) {
 			name: "if voter had been processed it should not do anything",
 			messageProvider: func(ctx cosmos.Context, helper *ErrataTxHandlerTestHelper) cosmos.Msg {
 				// add an active node account
-				nodeAccount := GetRandomNodeAccount(NodeActive)
+				nodeAccount := GetRandomValidatorNode(NodeActive)
 				helper.SetNodeAccount(ctx, nodeAccount)
 				txID := GetRandomTxHash()
 				voter, _ := helper.Keeper.GetErrataTxVoter(ctx, txID, common.BTCChain)
@@ -309,7 +309,7 @@ func (s *HandlerErrataTxSuite) TestErrataHandlerDifferentError(c *C) {
 			name: "if fail to get observed tx in it should return err",
 			messageProvider: func(ctx cosmos.Context, helper *ErrataTxHandlerTestHelper) cosmos.Msg {
 				// add an active node account
-				nodeAccount := GetRandomNodeAccount(NodeActive)
+				nodeAccount := GetRandomValidatorNode(NodeActive)
 				helper.SetNodeAccount(ctx, nodeAccount)
 				helper.failGetObserveTxVoter = true
 				return NewMsgErrataTx(GetRandomTxHash(), common.BTCChain, nodeAccount.NodeAddress)
@@ -323,7 +323,7 @@ func (s *HandlerErrataTxSuite) TestErrataHandlerDifferentError(c *C) {
 			name: "if observed tx is empty it should return err",
 			messageProvider: func(ctx cosmos.Context, helper *ErrataTxHandlerTestHelper) cosmos.Msg {
 				// add an active node account
-				nodeAccount := GetRandomNodeAccount(NodeActive)
+				nodeAccount := GetRandomValidatorNode(NodeActive)
 				helper.SetNodeAccount(ctx, nodeAccount)
 				return NewMsgErrataTx(GetRandomTxHash(), common.BTCChain, nodeAccount.NodeAddress)
 			},
@@ -336,7 +336,7 @@ func (s *HandlerErrataTxSuite) TestErrataHandlerDifferentError(c *C) {
 			name: "if chain doesn't match it should not do anything",
 			messageProvider: func(ctx cosmos.Context, helper *ErrataTxHandlerTestHelper) cosmos.Msg {
 				// add an active node account
-				nodeAccount := GetRandomNodeAccount(NodeActive)
+				nodeAccount := GetRandomValidatorNode(NodeActive)
 				helper.SetNodeAccount(ctx, nodeAccount)
 				observedTx := GetRandomObservedTx()
 				voter := ObservedTxVoter{
@@ -357,7 +357,7 @@ func (s *HandlerErrataTxSuite) TestErrataHandlerDifferentError(c *C) {
 			name: "if the tx is not swap nor provide liquidity, it should not do anything",
 			messageProvider: func(ctx cosmos.Context, helper *ErrataTxHandlerTestHelper) cosmos.Msg {
 				// add an active node account
-				nodeAccount := GetRandomNodeAccount(NodeActive)
+				nodeAccount := GetRandomValidatorNode(NodeActive)
 				helper.SetNodeAccount(ctx, nodeAccount)
 				observedTx := GetRandomObservedTx()
 				observedTx.Tx.Chain = common.BTCChain
@@ -380,7 +380,7 @@ func (s *HandlerErrataTxSuite) TestErrataHandlerDifferentError(c *C) {
 			name: "if it fail to get pool it should return an error",
 			messageProvider: func(ctx cosmos.Context, helper *ErrataTxHandlerTestHelper) cosmos.Msg {
 				// add an active node account
-				nodeAccount := GetRandomNodeAccount(NodeActive)
+				nodeAccount := GetRandomValidatorNode(NodeActive)
 				helper.SetNodeAccount(ctx, nodeAccount)
 				observedTx := GetRandomObservedTx()
 				observedTx.Tx.Chain = common.BTCChain
@@ -404,7 +404,7 @@ func (s *HandlerErrataTxSuite) TestErrataHandlerDifferentError(c *C) {
 			name: "if fail to get liquidity provider it should return an error",
 			messageProvider: func(ctx cosmos.Context, helper *ErrataTxHandlerTestHelper) cosmos.Msg {
 				// add an active node account
-				nodeAccount := GetRandomNodeAccount(NodeActive)
+				nodeAccount := GetRandomValidatorNode(NodeActive)
 				helper.SetNodeAccount(ctx, nodeAccount)
 				observedTx := GetRandomObservedTx()
 				observedTx.Tx.Chain = common.BTCChain
@@ -441,7 +441,7 @@ func (s *HandlerErrataTxSuite) TestErrataHandlerDifferentError(c *C) {
 			name: " fail to save pool should not error out",
 			messageProvider: func(ctx cosmos.Context, helper *ErrataTxHandlerTestHelper) cosmos.Msg {
 				// add an active node account
-				nodeAccount := GetRandomNodeAccount(NodeActive)
+				nodeAccount := GetRandomValidatorNode(NodeActive)
 				helper.SetNodeAccount(ctx, nodeAccount)
 				observedTx := GetRandomObservedTx()
 				observedTx.Tx.Chain = common.BTCChain
@@ -484,9 +484,9 @@ func (*HandlerErrataTxSuite) TestProcessErrortaOutboundTx(c *C) {
 	ctx, mgr := setupManagerForTest(c)
 	helper := NewErrataTxHandlerTestHelper(mgr.Keeper())
 	handler := NewErrataTxHandler(mgr)
-	node1 := GetRandomNodeAccount(NodeActive)
-	node2 := GetRandomNodeAccount(NodeActive)
-	node3 := GetRandomNodeAccount(NodeActive)
+	node1 := GetRandomValidatorNode(NodeActive)
+	node2 := GetRandomValidatorNode(NodeActive)
+	node3 := GetRandomValidatorNode(NodeActive)
 	c.Assert(helper.Keeper.SetNodeAccount(ctx, node1), IsNil)
 	c.Assert(helper.Keeper.SetNodeAccount(ctx, node2), IsNil)
 	c.Assert(helper.Keeper.SetNodeAccount(ctx, node3), IsNil)
@@ -627,9 +627,9 @@ func (*HandlerErrataTxSuite) TestProcessErrortaOutboundTx_EnsureMigrateTxWillSet
 	helper := NewErrataTxHandlerTestHelper(mgr.Keeper())
 	mgr.K = helper
 	handler := NewErrataTxHandler(mgr)
-	node1 := GetRandomNodeAccount(NodeActive)
-	node2 := GetRandomNodeAccount(NodeActive)
-	node3 := GetRandomNodeAccount(NodeActive)
+	node1 := GetRandomValidatorNode(NodeActive)
+	node2 := GetRandomValidatorNode(NodeActive)
+	node3 := GetRandomValidatorNode(NodeActive)
 	c.Assert(helper.Keeper.SetNodeAccount(ctx, node1), IsNil)
 	c.Assert(helper.Keeper.SetNodeAccount(ctx, node2), IsNil)
 	c.Assert(helper.Keeper.SetNodeAccount(ctx, node3), IsNil)

@@ -20,7 +20,7 @@ func (s *HandlerSwapSuite) TestValidate(c *C) {
 	ctx, _ := setupKeeperForTest(c)
 
 	keeper := &TestSwapHandleKeeper{
-		activeNodeAccount: GetRandomNodeAccount(NodeActive),
+		activeNodeAccount: GetRandomValidatorNode(NodeActive),
 	}
 
 	handler := NewSwapHandler(NewDummyMgrWithKeeper(keeper))
@@ -115,7 +115,7 @@ func (s *HandlerSwapSuite) TestValidation(c *C) {
 	pools[pool.Asset] = pool
 	keeper := &TestSwapHandleKeeper{
 		pools:             pools,
-		activeNodeAccount: GetRandomNodeAccount(NodeActive),
+		activeNodeAccount: GetRandomValidatorNode(NodeActive),
 		synthSupply:       cosmos.ZeroUint(),
 	}
 	mgr.K = keeper
@@ -151,7 +151,7 @@ func (s *HandlerSwapSuite) TestHandle(c *C) {
 	ctx, mgr := setupManagerForTest(c)
 	keeper := &TestSwapHandleKeeper{
 		pools:             make(map[common.Asset]Pool),
-		activeNodeAccount: GetRandomNodeAccount(NodeActive),
+		activeNodeAccount: GetRandomValidatorNode(NodeActive),
 		synthSupply:       cosmos.ZeroUint(),
 	}
 	mgr.K = keeper
@@ -252,7 +252,7 @@ func (s *HandlerSwapSuite) TestDoubleSwap(c *C) {
 	ctx, mgr := setupManagerForTest(c)
 	keeper := &TestSwapHandleKeeper{
 		pools:             make(map[common.Asset]Pool),
-		activeNodeAccount: GetRandomNodeAccount(NodeActive),
+		activeNodeAccount: GetRandomValidatorNode(NodeActive),
 		synthSupply:       cosmos.ZeroUint(),
 	}
 	mgr.K = keeper

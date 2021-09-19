@@ -1342,7 +1342,7 @@ func (h AddLiquidityHandler) addLiquidityV63(ctx cosmos.Context,
 
 // getTotalActiveBond
 func (h AddLiquidityHandler) getTotalActiveBond(ctx cosmos.Context) (cosmos.Uint, error) {
-	nodeAccounts, err := h.mgr.Keeper().ListNodeAccountsWithBond(ctx)
+	nodeAccounts, err := h.mgr.Keeper().ListValidatorsWithBond(ctx)
 	if err != nil {
 		return cosmos.ZeroUint(), err
 	}

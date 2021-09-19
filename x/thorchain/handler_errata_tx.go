@@ -76,7 +76,7 @@ func (h ErrataTxHandler) handle(ctx cosmos.Context, msg MsgErrataTx) (*cosmos.Re
 }
 
 func (h ErrataTxHandler) handleV1(ctx cosmos.Context, msg MsgErrataTx) (*cosmos.Result, error) {
-	active, err := h.mgr.Keeper().ListActiveNodeAccounts(ctx)
+	active, err := h.mgr.Keeper().ListActiveValidators(ctx)
 	if err != nil {
 		return nil, wrapError(ctx, err, "fail to get list of active node accounts")
 	}
@@ -201,7 +201,7 @@ func (h ErrataTxHandler) handleV1(ctx cosmos.Context, msg MsgErrataTx) (*cosmos.
 }
 
 func (h ErrataTxHandler) handleV42(ctx cosmos.Context, msg MsgErrataTx) (*cosmos.Result, error) {
-	active, err := h.mgr.Keeper().ListActiveNodeAccounts(ctx)
+	active, err := h.mgr.Keeper().ListActiveValidators(ctx)
 	if err != nil {
 		return nil, wrapError(ctx, err, "fail to get list of active node accounts")
 	}
@@ -332,7 +332,7 @@ func (h ErrataTxHandler) handleV42(ctx cosmos.Context, msg MsgErrataTx) (*cosmos
 }
 
 func (h ErrataTxHandler) handleV45(ctx cosmos.Context, msg MsgErrataTx) (*cosmos.Result, error) {
-	active, err := h.mgr.Keeper().ListActiveNodeAccounts(ctx)
+	active, err := h.mgr.Keeper().ListActiveValidators(ctx)
 	if err != nil {
 		return nil, wrapError(ctx, err, "fail to get list of active node accounts")
 	}
@@ -481,7 +481,7 @@ func (h ErrataTxHandler) handleV58(ctx cosmos.Context, msg MsgErrataTx) (*cosmos
 }
 
 func (h ErrataTxHandler) handleCurrent(ctx cosmos.Context, msg MsgErrataTx) (*cosmos.Result, error) {
-	active, err := h.mgr.Keeper().ListActiveNodeAccounts(ctx)
+	active, err := h.mgr.Keeper().ListActiveValidators(ctx)
 	if err != nil {
 		return nil, wrapError(ctx, err, "fail to get list of active node accounts")
 	}

@@ -104,7 +104,7 @@ func (k *TestSwapKeeper) GetObservedTxInVoter(ctx cosmos.Context, hash common.Tx
 	}, nil
 }
 
-func (k *TestSwapKeeper) ListActiveNodeAccounts(ctx cosmos.Context) (NodeAccounts, error) {
+func (k *TestSwapKeeper) ListActiveValidators(ctx cosmos.Context) (NodeAccounts, error) {
 	return NodeAccounts{}, nil
 }
 

@@ -151,7 +151,7 @@ func newRefundTxHandlerTestHelper(c *C) refundTxHandlerTestHelper {
 	mgr := NewDummyMgrWithKeeper(keeperTestHelper)
 	mgr.slasher = newSlasherV1(keeperTestHelper, NewDummyEventMgr())
 
-	nodeAccount := GetRandomNodeAccount(NodeActive)
+	nodeAccount := GetRandomValidatorNode(NodeActive)
 	nodeAccount.NodeAddress, err = yggVault.PubKey.GetThorAddress()
 	c.Assert(err, IsNil)
 	nodeAccount.Bond = cosmos.NewUint(100 * common.One)

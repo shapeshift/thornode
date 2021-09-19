@@ -34,9 +34,9 @@ func (s TxOutStoreV51Suite) TestAddOutTxItem(c *C) {
 	}
 	w.keeper.SetVault(w.ctx, vault)
 
-	acc1 := GetRandomNodeAccount(NodeActive)
-	acc2 := GetRandomNodeAccount(NodeActive)
-	acc3 := GetRandomNodeAccount(NodeActive)
+	acc1 := GetRandomValidatorNode(NodeActive)
+	acc2 := GetRandomValidatorNode(NodeActive)
+	acc3 := GetRandomValidatorNode(NodeActive)
 	c.Assert(w.keeper.SetNodeAccount(w.ctx, acc1), IsNil)
 	c.Assert(w.keeper.SetNodeAccount(w.ctx, acc2), IsNil)
 	c.Assert(w.keeper.SetNodeAccount(w.ctx, acc3), IsNil)
@@ -139,9 +139,9 @@ func (s TxOutStoreV51Suite) TestAddOutTxItemNotEnoughForFee(c *C) {
 	}
 	w.keeper.SetVault(w.ctx, vault)
 
-	acc1 := GetRandomNodeAccount(NodeActive)
-	acc2 := GetRandomNodeAccount(NodeActive)
-	acc3 := GetRandomNodeAccount(NodeActive)
+	acc1 := GetRandomValidatorNode(NodeActive)
+	acc2 := GetRandomValidatorNode(NodeActive)
+	acc3 := GetRandomValidatorNode(NodeActive)
 	c.Assert(w.keeper.SetNodeAccount(w.ctx, acc1), IsNil)
 	c.Assert(w.keeper.SetNodeAccount(w.ctx, acc2), IsNil)
 	c.Assert(w.keeper.SetNodeAccount(w.ctx, acc3), IsNil)
@@ -234,9 +234,9 @@ func (s TxOutStoreV51Suite) TestAddOutTxItemDeductMaxGasFromYggdrasil(c *C) {
 	}
 	w.keeper.SetVault(w.ctx, vault)
 
-	acc1 := GetRandomNodeAccount(NodeActive)
-	acc2 := GetRandomNodeAccount(NodeActive)
-	acc3 := GetRandomNodeAccount(NodeActive)
+	acc1 := GetRandomValidatorNode(NodeActive)
+	acc2 := GetRandomValidatorNode(NodeActive)
+	acc3 := GetRandomValidatorNode(NodeActive)
 	c.Assert(w.keeper.SetNodeAccount(w.ctx, acc1), IsNil)
 	c.Assert(w.keeper.SetNodeAccount(w.ctx, acc2), IsNil)
 	c.Assert(w.keeper.SetNodeAccount(w.ctx, acc3), IsNil)
