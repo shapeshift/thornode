@@ -130,7 +130,7 @@ func (tos *TxOutStorageV1) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem) (
 			// only consider Yggdrasils where their observed saw the "correct"
 			// tx.
 
-			activeNodeAccounts, err := tos.keeper.ListActiveNodeAccounts(ctx)
+			activeNodeAccounts, err := tos.keeper.ListActiveValidators(ctx)
 			if err != nil {
 				ctx.Logger().Error("fail to get all active node accounts", "error", err)
 			}

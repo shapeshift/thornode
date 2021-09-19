@@ -41,6 +41,10 @@ const (
 	NodeStandby     = types.NodeStatus_Standby
 	NodeUnknown     = types.NodeStatus_Unknown
 
+	// Node type
+	NodeValidator = types.NodeType_Validator
+	NodeLite      = types.NodeType_Lite
+
 	// Bond type
 	BondPaid     = types.BondType_bond_paid
 	BondReturned = types.BondType_bond_returned
@@ -147,7 +151,8 @@ var (
 	GetRandomVault                 = types.GetRandomVault
 	GetRandomTx                    = types.GetRandomTx
 	GetRandomObservedTx            = types.GetRandomObservedTx
-	GetRandomNodeAccount           = types.GetRandomNodeAccount
+	GetRandomValidatorNode         = types.GetRandomValidatorNode
+	GetRandomLiteNode              = types.GetRandomLiteNode
 	GetRandomTHORAddress           = types.GetRandomTHORAddress
 	GetRandomRUNEAddress           = types.GetRandomRUNEAddress
 	GetRandomBNBAddress            = types.GetRandomBNBAddress

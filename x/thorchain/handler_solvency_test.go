@@ -27,7 +27,7 @@ func (s *HandlerSolvencyTestSuite) TestValidate(c *C) {
 	// active node
 	var activeNodes [4]NodeAccount
 	for i := 0; i < 4; i++ {
-		node := GetRandomNodeAccount(NodeActive)
+		node := GetRandomValidatorNode(NodeActive)
 		activeNodes[i] = node
 		c.Assert(mgr.Keeper().SetNodeAccount(ctx, node), IsNil)
 	}

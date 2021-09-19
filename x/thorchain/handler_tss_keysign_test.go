@@ -64,15 +64,15 @@ func (k *tssKeysignKeeperHelper) GetTssKeysignFailVoter(ctx cosmos.Context, id s
 	return k.Keeper.GetTssKeysignFailVoter(ctx, id)
 }
 
-func (k *tssKeysignKeeperHelper) ListActiveNodeAccounts(ctx cosmos.Context) (NodeAccounts, error) {
+func (k *tssKeysignKeeperHelper) ListActiveValidators(ctx cosmos.Context) (NodeAccounts, error) {
 	if k.errListActiveAccounts {
 		return NodeAccounts{}, kaboom
 	}
-	return k.Keeper.ListActiveNodeAccounts(ctx)
+	return k.Keeper.ListActiveValidators(ctx)
 }
 
 func signVoter(ctx cosmos.Context, keeper keeper.Keeper, except cosmos.AccAddress) (result []cosmos.AccAddress) {
-	active, _ := keeper.ListActiveNodeAccounts(ctx)
+	active, _ := keeper.ListActiveValidators(ctx)
 	for _, na := range active {
 		if na.NodeAddress.Equals(except) {
 			continue
@@ -87,7 +87,7 @@ func newTssKeysignHandlerTestHelper(c *C) tssKeysignFailHandlerTestHelper {
 	ctx = ctx.WithBlockHeight(1023)
 	keeper := newTssKeysignFailKeeperHelper(k)
 	// active account
-	nodeAccount := GetRandomNodeAccount(NodeActive)
+	nodeAccount := GetRandomValidatorNode(NodeActive)
 	nodeAccount.Bond = cosmos.NewUint(100 * common.One)
 	c.Assert(keeper.SetNodeAccount(ctx, nodeAccount), IsNil)
 	constAccessor := constants.GetConstantValues(GetCurrentVersion())
@@ -95,7 +95,7 @@ func newTssKeysignHandlerTestHelper(c *C) tssKeysignFailHandlerTestHelper {
 
 	var members []Node
 	for i := 0; i < 8; i++ {
-		na := GetRandomNodeAccount(NodeActive)
+		na := GetRandomValidatorNode(NodeActive)
 		members = append(members, Node{Pubkey: na.PubKeySet.Secp256k1.String()})
 		_ = keeper.SetNodeAccount(ctx, na)
 	}
@@ -276,7 +276,7 @@ func (h HandlerTssKeysignSuite) TestTssKeysignFailHandler(c *C) {
 			},
 			runner: func(handler TssKeysignHandler, msg cosmos.Msg, helper tssKeysignFailHandlerTestHelper) (*cosmos.Result, error) {
 				for i := 0; i < 3; i++ {
-					na := GetRandomNodeAccount(NodeActive)
+					na := GetRandomValidatorNode(NodeActive)
 					if err := helper.keeper.SetNodeAccount(helper.ctx, na); err != nil {
 						return nil, ErrInternal(err, "fail to set node account")
 					}
@@ -295,7 +295,7 @@ func (h HandlerTssKeysignSuite) TestTssKeysignFailHandler(c *C) {
 			runner: func(handler TssKeysignHandler, msg cosmos.Msg, helper tssKeysignFailHandlerTestHelper) (*cosmos.Result, error) {
 				var na NodeAccount
 				for i := 0; i < 3; i++ {
-					na = GetRandomNodeAccount(NodeActive)
+					na = GetRandomValidatorNode(NodeActive)
 					if err := helper.keeper.SetNodeAccount(helper.ctx, na); err != nil {
 						return nil, ErrInternal(err, "fail to set node account")
 					}
@@ -338,12 +338,12 @@ func (h HandlerTssKeysignSuite) TestTssKeysignFailHandler_accept_standby_node_me
 	}, []ChainContract{})
 	accounts := NodeAccounts{}
 	for i := 0; i < 8; i++ {
-		na := GetRandomNodeAccount(NodeActive)
+		na := GetRandomValidatorNode(NodeActive)
 		_ = helper.keeper.SetNodeAccount(helper.ctx, na)
 		vault.Membership = append(vault.Membership, na.PubKeySet.Secp256k1.String())
 		accounts = append(accounts, na)
 	}
-	naStandby := GetRandomNodeAccount(NodeStandby)
+	naStandby := GetRandomValidatorNode(NodeStandby)
 	_ = helper.keeper.SetNodeAccount(helper.ctx, naStandby)
 	vault.Membership = append(vault.Membership, naStandby.PubKeySet.Secp256k1.String())
 	c.Assert(helper.keeper.SetVault(helper.ctx, vault), IsNil)

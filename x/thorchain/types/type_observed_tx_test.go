@@ -217,10 +217,10 @@ func (s TypeObservedTxSuite) TestVoter(c *C) {
 
 func (TypeObservedTxSuite) TestSetTxToComplete(c *C) {
 	activeNodes := NodeAccounts{
-		GetRandomNodeAccount(NodeStatus_Active),
-		GetRandomNodeAccount(NodeStatus_Active),
-		GetRandomNodeAccount(NodeStatus_Active),
-		GetRandomNodeAccount(NodeStatus_Active),
+		GetRandomValidatorNode(NodeStatus_Active),
+		GetRandomValidatorNode(NodeStatus_Active),
+		GetRandomValidatorNode(NodeStatus_Active),
+		GetRandomValidatorNode(NodeStatus_Active),
 	}
 	tx1 := GetRandomTx()
 	tx1.Memo = "whatever"
@@ -271,10 +271,10 @@ func (TypeObservedTxSuite) TestSetTxToComplete(c *C) {
 
 func (TypeObservedTxSuite) TestAddOutTx(c *C) {
 	activeNodes := NodeAccounts{
-		GetRandomNodeAccount(NodeStatus_Active),
-		GetRandomNodeAccount(NodeStatus_Active),
-		GetRandomNodeAccount(NodeStatus_Active),
-		GetRandomNodeAccount(NodeStatus_Active),
+		GetRandomValidatorNode(NodeStatus_Active),
+		GetRandomValidatorNode(NodeStatus_Active),
+		GetRandomValidatorNode(NodeStatus_Active),
+		GetRandomValidatorNode(NodeStatus_Active),
 	}
 	tx1 := GetRandomTx()
 	tx1.Memo = "whatever"

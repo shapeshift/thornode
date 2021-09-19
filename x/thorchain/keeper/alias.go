@@ -19,16 +19,16 @@ const (
 )
 
 var (
-	NewPool              = types.NewPool
-	NewJail              = types.NewJail
-	ModuleCdc            = types.ModuleCdc
-	RegisterCodec        = types.RegisterCodec
-	GetRandomVault       = types.GetRandomVault
-	GetRandomNodeAccount = types.GetRandomNodeAccount
-	GetRandomBNBAddress  = types.GetRandomBNBAddress
-	GetRandomTxHash      = types.GetRandomTxHash
-	GetRandomBech32Addr  = types.GetRandomBech32Addr
-	GetRandomPubKey      = types.GetRandomPubKey
+	NewPool                = types.NewPool
+	NewJail                = types.NewJail
+	ModuleCdc              = types.ModuleCdc
+	RegisterCodec          = types.RegisterCodec
+	GetRandomVault         = types.GetRandomVault
+	GetRandomValidatorNode = types.GetRandomValidatorNode
+	GetRandomBNBAddress    = types.GetRandomBNBAddress
+	GetRandomTxHash        = types.GetRandomTxHash
+	GetRandomBech32Addr    = types.GetRandomBech32Addr
+	GetRandomPubKey        = types.GetRandomPubKey
 )
 
 type (

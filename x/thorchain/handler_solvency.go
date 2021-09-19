@@ -87,7 +87,7 @@ func (h SolvencyHandler) handleV1(ctx cosmos.Context, msg MsgSolvency) (*cosmos.
 		}
 	}
 	h.mgr.Keeper().SetSolvencyVoter(ctx, voter)
-	active, err := h.mgr.Keeper().ListActiveNodeAccounts(ctx)
+	active, err := h.mgr.Keeper().ListActiveValidators(ctx)
 	if err != nil {
 		return nil, wrapError(ctx, err, "fail to get list of active node accounts")
 	}

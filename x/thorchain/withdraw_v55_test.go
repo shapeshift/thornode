@@ -96,7 +96,7 @@ func (s *WithdrawSuiteV55) SetUpSuite(c *C) {
 
 // TestValidateWithdraw is to test validateWithdraw function
 func (s WithdrawSuiteV55) TestValidateWithdraw(c *C) {
-	accountAddr := GetRandomNodeAccount(NodeWhiteListed).NodeAddress
+	accountAddr := GetRandomValidatorNode(NodeWhiteListed).NodeAddress
 	runeAddress, err := common.NewAddress("bnb1g0xakzh03tpa54khxyvheeu92hwzypkdce77rm")
 	if err != nil {
 		c.Error("fail to create new BNB Address")
@@ -318,7 +318,7 @@ func (s WithdrawSuiteV55) TestCalculateUnsake(c *C) {
 
 func (WithdrawSuiteV55) TestWithdraw(c *C) {
 	ctx, mgr := setupManagerForTest(c)
-	accountAddr := GetRandomNodeAccount(NodeWhiteListed).NodeAddress
+	accountAddr := GetRandomValidatorNode(NodeWhiteListed).NodeAddress
 	runeAddress := GetRandomRUNEAddress()
 	ps := NewWithdrawTestKeeperV55(mgr.Keeper())
 	ps2 := getWithdrawTestKeeperV55(c, ctx, mgr.Keeper(), runeAddress)
@@ -483,7 +483,7 @@ func (WithdrawSuiteV55) TestWithdraw(c *C) {
 }
 
 func (WithdrawSuiteV55) TestWithdrawAsym(c *C) {
-	accountAddr := GetRandomNodeAccount(NodeWhiteListed).NodeAddress
+	accountAddr := GetRandomValidatorNode(NodeWhiteListed).NodeAddress
 	runeAddress := GetRandomRUNEAddress()
 
 	testCases := []struct {
@@ -549,7 +549,7 @@ func (WithdrawSuiteV55) TestWithdrawAsym(c *C) {
 
 func (WithdrawSuiteV55) TestWithdrawPendingRuneOrAsset(c *C) {
 	version := GetCurrentVersion()
-	accountAddr := GetRandomNodeAccount(NodeActive).NodeAddress
+	accountAddr := GetRandomValidatorNode(NodeActive).NodeAddress
 	ctx, mgr := setupManagerForTest(c)
 	pool := Pool{
 		BalanceRune:  cosmos.NewUint(100 * common.One),
@@ -615,7 +615,7 @@ func (WithdrawSuiteV55) TestWithdrawPendingRuneOrAsset(c *C) {
 }
 
 func (s *WithdrawSuiteV55) TestWithdrawWithImpermanentLossProtection(c *C) {
-	accountAddr := GetRandomNodeAccount(NodeActive).NodeAddress
+	accountAddr := GetRandomValidatorNode(NodeActive).NodeAddress
 	ctx, mgr := setupManagerForTest(c)
 	pool := Pool{
 		BalanceRune:  cosmos.NewUint(100 * common.One),
