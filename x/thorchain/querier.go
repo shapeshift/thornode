@@ -544,7 +544,7 @@ func getNodePreflightResult(ctx cosmos.Context, mgr *Mgrs, nodeAcc NodeAccount) 
 // queryNodes return all the nodes that has bond
 // /thorchain/nodes
 func queryNodes(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mgrs) ([]byte, error) {
-	nodeAccounts, err := mgr.Keeper().ListNodeAccountsWithBond(ctx)
+	nodeAccounts, err := mgr.Keeper().ListValidatorsWithBond(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("fail to get node accounts: %w", err)
 	}
@@ -832,7 +832,7 @@ func queryTx(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mgrs
 		}
 	}
 
-	nodeAccounts, err := mgr.Keeper().ListActiveNodeAccounts(ctx)
+	nodeAccounts, err := mgr.Keeper().ListActiveValidators(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("fail to get node accounts: %w", err)
 	}

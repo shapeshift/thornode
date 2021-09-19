@@ -19,7 +19,7 @@ func (s *HandlerSwitchSuite) SetUpSuite(c *C) {
 func (s *HandlerSwitchSuite) TestValidate(c *C) {
 	ctx, k := setupKeeperForTest(c)
 
-	na := GetRandomNodeAccount(NodeActive)
+	na := GetRandomValidatorNode(NodeActive)
 	c.Assert(k.SetNodeAccount(ctx, na), IsNil)
 	tx := GetRandomTx()
 	tx.Coins = common.Coins{
@@ -46,7 +46,7 @@ func (s *HandlerSwitchSuite) TestValidate(c *C) {
 func (s *HandlerSwitchSuite) TestGettingNativeTokens(c *C) {
 	ctx, k := setupKeeperForTest(c)
 
-	na := GetRandomNodeAccount(NodeActive)
+	na := GetRandomValidatorNode(NodeActive)
 	c.Assert(k.SetNodeAccount(ctx, na), IsNil)
 	tx := GetRandomTx()
 	tx.Coins = common.Coins{
@@ -84,7 +84,7 @@ func NewHandlerSwitchTestHelper(k keeper.Keeper) *HandlerSwitchTestHelper {
 }
 
 func (s *HandlerSwitchSuite) getAValidSwitchMsg(ctx cosmos.Context, helper *HandlerSwitchTestHelper) *MsgSwitch {
-	na := GetRandomNodeAccount(NodeActive)
+	na := GetRandomValidatorNode(NodeActive)
 	from := GetRandomBNBAddress()
 	tx := GetRandomTx()
 	tx.FromAddress = common.Address(from.String())

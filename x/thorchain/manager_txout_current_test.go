@@ -58,9 +58,9 @@ func (s TxOutStoreV67Suite) TestAddOutTxItem(c *C) {
 	}
 	c.Assert(w.keeper.SetVault(w.ctx, vault), IsNil)
 
-	acc1 := GetRandomNodeAccount(NodeActive)
-	acc2 := GetRandomNodeAccount(NodeActive)
-	acc3 := GetRandomNodeAccount(NodeActive)
+	acc1 := GetRandomValidatorNode(NodeActive)
+	acc2 := GetRandomValidatorNode(NodeActive)
+	acc3 := GetRandomValidatorNode(NodeActive)
 	c.Assert(w.keeper.SetNodeAccount(w.ctx, acc1), IsNil)
 	c.Assert(w.keeper.SetNodeAccount(w.ctx, acc2), IsNil)
 	c.Assert(w.keeper.SetNodeAccount(w.ctx, acc3), IsNil)
@@ -184,9 +184,9 @@ func (s TxOutStoreV67Suite) TestAddOutTxItem_OutboundHeightDoesNotGetOverride(c 
 	}
 	c.Assert(w.keeper.SetVault(w.ctx, vault), IsNil)
 
-	acc1 := GetRandomNodeAccount(NodeActive)
-	acc2 := GetRandomNodeAccount(NodeActive)
-	acc3 := GetRandomNodeAccount(NodeActive)
+	acc1 := GetRandomValidatorNode(NodeActive)
+	acc2 := GetRandomValidatorNode(NodeActive)
+	acc3 := GetRandomValidatorNode(NodeActive)
 	c.Assert(w.keeper.SetNodeAccount(w.ctx, acc1), IsNil)
 	c.Assert(w.keeper.SetNodeAccount(w.ctx, acc2), IsNil)
 	c.Assert(w.keeper.SetNodeAccount(w.ctx, acc3), IsNil)
@@ -285,9 +285,9 @@ func (s TxOutStoreV67Suite) TestAddOutTxItemNotEnoughForFee(c *C) {
 	}
 	c.Assert(w.keeper.SetVault(w.ctx, vault), IsNil)
 
-	acc1 := GetRandomNodeAccount(NodeActive)
-	acc2 := GetRandomNodeAccount(NodeActive)
-	acc3 := GetRandomNodeAccount(NodeActive)
+	acc1 := GetRandomValidatorNode(NodeActive)
+	acc2 := GetRandomValidatorNode(NodeActive)
+	acc3 := GetRandomValidatorNode(NodeActive)
 	c.Assert(w.keeper.SetNodeAccount(w.ctx, acc1), IsNil)
 	c.Assert(w.keeper.SetNodeAccount(w.ctx, acc2), IsNil)
 	c.Assert(w.keeper.SetNodeAccount(w.ctx, acc3), IsNil)
@@ -380,9 +380,9 @@ func (s TxOutStoreV67Suite) TestAddOutTxItemDeductMaxGasFromYggdrasil(c *C) {
 	}
 	c.Assert(w.keeper.SetVault(w.ctx, vault), IsNil)
 
-	acc1 := GetRandomNodeAccount(NodeActive)
-	acc2 := GetRandomNodeAccount(NodeActive)
-	acc3 := GetRandomNodeAccount(NodeActive)
+	acc1 := GetRandomValidatorNode(NodeActive)
+	acc2 := GetRandomValidatorNode(NodeActive)
+	acc3 := GetRandomValidatorNode(NodeActive)
 	c.Assert(w.keeper.SetNodeAccount(w.ctx, acc1), IsNil)
 	c.Assert(w.keeper.SetNodeAccount(w.ctx, acc2), IsNil)
 	c.Assert(w.keeper.SetNodeAccount(w.ctx, acc3), IsNil)

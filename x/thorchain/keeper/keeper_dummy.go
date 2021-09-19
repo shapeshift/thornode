@@ -159,16 +159,16 @@ func (k KVStoreDummy) GetTotalSupply(ctx cosmos.Context, asset common.Asset) cos
 	return cosmos.ZeroUint()
 }
 
-func (k KVStoreDummy) TotalActiveNodeAccount(_ cosmos.Context) (int, error) { return 0, kaboom }
-func (k KVStoreDummy) ListNodeAccountsWithBond(_ cosmos.Context) (NodeAccounts, error) {
+func (k KVStoreDummy) TotalActiveValidators(_ cosmos.Context) (int, error) { return 0, kaboom }
+func (k KVStoreDummy) ListValidatorsWithBond(_ cosmos.Context) (NodeAccounts, error) {
 	return nil, kaboom
 }
 
-func (k KVStoreDummy) ListNodeAccountsByStatus(_ cosmos.Context, _ NodeStatus) (NodeAccounts, error) {
+func (k KVStoreDummy) ListValidatorsByStatus(_ cosmos.Context, _ NodeStatus) (NodeAccounts, error) {
 	return nil, kaboom
 }
 
-func (k KVStoreDummy) ListActiveNodeAccounts(_ cosmos.Context) (NodeAccounts, error) {
+func (k KVStoreDummy) ListActiveValidators(_ cosmos.Context) (NodeAccounts, error) {
 	return nil, kaboom
 }
 

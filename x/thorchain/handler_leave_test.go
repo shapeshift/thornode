@@ -20,7 +20,7 @@ func (HandlerLeaveSuite) TestLeaveHandler_NotActiveNodeLeave(c *C) {
 	vault := GetRandomVault()
 	w.keeper.SetVault(w.ctx, vault)
 	leaveHandler := NewLeaveHandler(NewDummyMgrWithKeeper(w.keeper))
-	acc2 := GetRandomNodeAccount(NodeStandby)
+	acc2 := GetRandomValidatorNode(NodeStandby)
 	acc2.Bond = cosmos.NewUint(100 * common.One)
 	c.Assert(w.keeper.SetNodeAccount(w.ctx, acc2), IsNil)
 	ygg := NewVault(common.BlockHeight(w.ctx), ActiveVault, YggdrasilVault, acc2.PubKeySet.Secp256k1, common.Chains{common.RuneAsset().Chain}.Strings(), []ChainContract{})
@@ -49,7 +49,7 @@ func (HandlerLeaveSuite) TestLeaveHandler_ActiveNodeLeave(c *C) {
 	var err error
 	w := getHandlerTestWrapper(c, 1, true, false)
 	leaveHandler := NewLeaveHandler(NewDummyMgrWithKeeper(w.keeper))
-	acc2 := GetRandomNodeAccount(NodeActive)
+	acc2 := GetRandomValidatorNode(NodeActive)
 	acc2.Bond = cosmos.NewUint(100 * common.One)
 	c.Assert(w.keeper.SetNodeAccount(w.ctx, acc2), IsNil)
 	txID := GetRandomTxHash()
@@ -75,7 +75,7 @@ func (HandlerLeaveSuite) TestLeaveJail(c *C) {
 	vault := GetRandomVault()
 	w.keeper.SetVault(w.ctx, vault)
 	leaveHandler := NewLeaveHandler(NewDummyMgrWithKeeper(w.keeper))
-	acc2 := GetRandomNodeAccount(NodeStandby)
+	acc2 := GetRandomValidatorNode(NodeStandby)
 	acc2.Bond = cosmos.NewUint(100 * common.One)
 	c.Assert(w.keeper.SetNodeAccount(w.ctx, acc2), IsNil)
 
@@ -258,8 +258,8 @@ func (HandlerLeaveSuite) TestLeaveDifferentValidations(c *C) {
 		{
 			name: "fail to refund bond should return an error",
 			messageProvider: func(ctx cosmos.Context, helper *LeaveHandlerTestHelper) cosmos.Msg {
-				nodeAccount := GetRandomNodeAccount(NodeStandby)
-				activeNodeAccount := GetRandomNodeAccount(NodeActive)
+				nodeAccount := GetRandomValidatorNode(NodeStandby)
+				activeNodeAccount := GetRandomValidatorNode(NodeActive)
 				helper.Keeper.SetNodeAccount(ctx, activeNodeAccount)
 				helper.Keeper.SetNodeAccount(ctx, nodeAccount)
 				tx := GetRandomTx()
@@ -275,8 +275,8 @@ func (HandlerLeaveSuite) TestLeaveDifferentValidations(c *C) {
 		{
 			name: "vault not exist should refund bond",
 			messageProvider: func(ctx cosmos.Context, helper *LeaveHandlerTestHelper) cosmos.Msg {
-				nodeAccount := GetRandomNodeAccount(NodeStandby)
-				activeNodeAccount := GetRandomNodeAccount(NodeActive)
+				nodeAccount := GetRandomValidatorNode(NodeStandby)
+				activeNodeAccount := GetRandomValidatorNode(NodeActive)
 				helper.Keeper.SetNodeAccount(ctx, activeNodeAccount)
 				helper.Keeper.SetNodeAccount(ctx, nodeAccount)
 				tx := GetRandomTx()
@@ -294,8 +294,8 @@ func (HandlerLeaveSuite) TestLeaveDifferentValidations(c *C) {
 		{
 			name: "fail to get vault should return an error",
 			messageProvider: func(ctx cosmos.Context, helper *LeaveHandlerTestHelper) cosmos.Msg {
-				nodeAccount := GetRandomNodeAccount(NodeStandby)
-				activeNodeAccount := GetRandomNodeAccount(NodeActive)
+				nodeAccount := GetRandomValidatorNode(NodeStandby)
+				activeNodeAccount := GetRandomValidatorNode(NodeActive)
 				helper.Keeper.SetNodeAccount(ctx, activeNodeAccount)
 				helper.Keeper.SetNodeAccount(ctx, nodeAccount)
 				tx := GetRandomTx()
@@ -313,8 +313,8 @@ func (HandlerLeaveSuite) TestLeaveDifferentValidations(c *C) {
 		{
 			name: "when vault still has fund , it should request yggdrasil return",
 			messageProvider: func(ctx cosmos.Context, helper *LeaveHandlerTestHelper) cosmos.Msg {
-				nodeAccount := GetRandomNodeAccount(NodeStandby)
-				activeNodeAccount := GetRandomNodeAccount(NodeActive)
+				nodeAccount := GetRandomValidatorNode(NodeStandby)
+				activeNodeAccount := GetRandomValidatorNode(NodeActive)
 				helper.Keeper.SetNodeAccount(ctx, activeNodeAccount)
 				helper.Keeper.SetNodeAccount(ctx, nodeAccount)
 				tx := GetRandomTx()
@@ -336,8 +336,8 @@ func (HandlerLeaveSuite) TestLeaveDifferentValidations(c *C) {
 		{
 			name: "fail to save node account should return an error",
 			messageProvider: func(ctx cosmos.Context, helper *LeaveHandlerTestHelper) cosmos.Msg {
-				nodeAccount := GetRandomNodeAccount(NodeStandby)
-				activeNodeAccount := GetRandomNodeAccount(NodeActive)
+				nodeAccount := GetRandomValidatorNode(NodeStandby)
+				activeNodeAccount := GetRandomValidatorNode(NodeActive)
 				helper.Keeper.SetNodeAccount(ctx, activeNodeAccount)
 				helper.Keeper.SetNodeAccount(ctx, nodeAccount)
 				tx := GetRandomTx()
@@ -355,9 +355,9 @@ func (HandlerLeaveSuite) TestLeaveDifferentValidations(c *C) {
 		{
 			name: "when node account is still belongs to a retiring vault , don't return bond",
 			messageProvider: func(ctx cosmos.Context, helper *LeaveHandlerTestHelper) cosmos.Msg {
-				nodeAccount := GetRandomNodeAccount(NodeDisabled)
+				nodeAccount := GetRandomValidatorNode(NodeDisabled)
 				nodeAccount.Bond = cosmos.NewUint(100)
-				activeNodeAccount := GetRandomNodeAccount(NodeActive)
+				activeNodeAccount := GetRandomValidatorNode(NodeActive)
 				helper.Keeper.SetNodeAccount(ctx, activeNodeAccount)
 				helper.Keeper.SetNodeAccount(ctx, nodeAccount)
 				tx := GetRandomTx()

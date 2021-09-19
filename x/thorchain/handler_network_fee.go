@@ -72,7 +72,7 @@ func (h NetworkFeeHandler) handle(ctx cosmos.Context, msg MsgNetworkFee) (*cosmo
 
 // handleV1 process MsgNetworkFee
 func (h NetworkFeeHandler) handleV1(ctx cosmos.Context, msg MsgNetworkFee) (*cosmos.Result, error) {
-	active, err := h.mgr.Keeper().ListActiveNodeAccounts(ctx)
+	active, err := h.mgr.Keeper().ListActiveValidators(ctx)
 	if err != nil {
 		err = wrapError(ctx, err, "fail to get list of active node accounts")
 		return nil, err
@@ -124,7 +124,7 @@ func (h NetworkFeeHandler) handleV47(ctx cosmos.Context, msg MsgNetworkFee) (*co
 }
 
 func (h NetworkFeeHandler) handleCurrent(ctx cosmos.Context, msg MsgNetworkFee) (*cosmos.Result, error) {
-	active, err := h.mgr.Keeper().ListActiveNodeAccounts(ctx)
+	active, err := h.mgr.Keeper().ListActiveValidators(ctx)
 	if err != nil {
 		err = wrapError(ctx, err, "fail to get list of active node accounts")
 		return nil, err

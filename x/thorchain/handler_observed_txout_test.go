@@ -32,7 +32,7 @@ var _ = Suite(&HandlerObservedTxOutSuite{})
 func (s *HandlerObservedTxOutSuite) TestValidate(c *C) {
 	var err error
 	ctx, _ := setupKeeperForTest(c)
-	activeNodeAccount := GetRandomNodeAccount(NodeActive)
+	activeNodeAccount := GetRandomValidatorNode(NodeActive)
 
 	keeper := &TestObservedTxOutValidateKeeper{
 		activeNodeAccount: activeNodeAccount,
@@ -77,7 +77,7 @@ type TestObservedTxOutHandleKeeper struct {
 	observing  []cosmos.AccAddress
 }
 
-func (k *TestObservedTxOutHandleKeeper) ListActiveNodeAccounts(_ cosmos.Context) (NodeAccounts, error) {
+func (k *TestObservedTxOutHandleKeeper) ListActiveValidators(_ cosmos.Context) (NodeAccounts, error) {
 	return k.nas, nil
 }
 
@@ -171,7 +171,7 @@ func (s *HandlerObservedTxOutSuite) TestHandle(c *C) {
 		common.NewCoin(common.BNBAsset, cosmos.NewUint(200*common.One)),
 	}
 	keeper := &TestObservedTxOutHandleKeeper{
-		nas:   NodeAccounts{GetRandomNodeAccount(NodeActive)},
+		nas:   NodeAccounts{GetRandomValidatorNode(NodeActive)},
 		voter: NewObservedTxVoter(tx.ID, make(ObservedTxs, 0)),
 		pool: Pool{
 			Asset:        common.BNBAsset,
@@ -217,7 +217,7 @@ func (s *HandlerObservedTxOutSuite) TestHandleStolenFunds(c *C) {
 	pk := GetRandomPubKey()
 	c.Assert(err, IsNil)
 
-	na := GetRandomNodeAccount(NodeActive)
+	na := GetRandomValidatorNode(NodeActive)
 	na.Bond = cosmos.NewUint(1000000 * common.One)
 	na.PubKeySet.Secp256k1 = pk
 
@@ -256,11 +256,11 @@ func (s *HandlerObservedTxOutSuite) TestHandleStolenFunds(c *C) {
 
 type HandlerObservedTxOutTestHelper struct {
 	keeper.Keeper
-	failListActiveNodeAccounts bool
-	failVaultExist             bool
-	failGetObservedTxOutVote   bool
-	failGetVault               bool
-	failSetVault               bool
+	failListActiveValidators bool
+	failVaultExist           bool
+	failGetObservedTxOutVote bool
+	failGetVault             bool
+	failSetVault             bool
 }
 
 func NewHandlerObservedTxOutHelper(k keeper.Keeper) *HandlerObservedTxOutTestHelper {
@@ -269,11 +269,11 @@ func NewHandlerObservedTxOutHelper(k keeper.Keeper) *HandlerObservedTxOutTestHel
 	}
 }
 
-func (h *HandlerObservedTxOutTestHelper) ListActiveNodeAccounts(ctx cosmos.Context) (NodeAccounts, error) {
-	if h.failListActiveNodeAccounts {
+func (h *HandlerObservedTxOutTestHelper) ListActiveValidators(ctx cosmos.Context) (NodeAccounts, error) {
+	if h.failListActiveValidators {
 		return NodeAccounts{}, kaboom
 	}
-	return h.Keeper.ListActiveNodeAccounts(ctx)
+	return h.Keeper.ListActiveValidators(ctx)
 }
 
 func (h *HandlerObservedTxOutTestHelper) VaultExists(ctx cosmos.Context, pk common.PubKey) bool {
@@ -305,7 +305,7 @@ func (h *HandlerObservedTxOutTestHelper) SetVault(ctx cosmos.Context, vault Vaul
 }
 
 func setupAnObservedTxOut(ctx cosmos.Context, helper *HandlerObservedTxOutTestHelper, c *C) *MsgObservedTxOut {
-	activeNodeAccount := GetRandomNodeAccount(NodeActive)
+	activeNodeAccount := GetRandomValidatorNode(NodeActive)
 	pk := GetRandomPubKey()
 	tx := GetRandomTx()
 	tx.Coins = common.Coins{
@@ -381,7 +381,7 @@ func (HandlerObservedTxOutSuite) TestHandlerObservedTxOut_DifferentValidations(c
 			name: "fail to list active node accounts should result in an error",
 			messageProvider: func(c *C, ctx cosmos.Context, helper *HandlerObservedTxOutTestHelper) cosmos.Msg {
 				m := setupAnObservedTxOut(ctx, helper, c)
-				helper.failListActiveNodeAccounts = true
+				helper.failListActiveValidators = true
 				return m
 			},
 			validator: func(c *C, ctx cosmos.Context, result *cosmos.Result, err error, helper *HandlerObservedTxOutTestHelper, name string) {

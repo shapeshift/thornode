@@ -90,10 +90,10 @@ type KeeperLiquidityProvider interface {
 }
 
 type KeeperNodeAccount interface {
-	TotalActiveNodeAccount(ctx cosmos.Context) (int, error)
-	ListNodeAccountsWithBond(ctx cosmos.Context) (NodeAccounts, error)
-	ListNodeAccountsByStatus(ctx cosmos.Context, status NodeStatus) (NodeAccounts, error)
-	ListActiveNodeAccounts(ctx cosmos.Context) (NodeAccounts, error)
+	TotalActiveValidators(ctx cosmos.Context) (int, error)
+	ListValidatorsWithBond(ctx cosmos.Context) (NodeAccounts, error)
+	ListValidatorsByStatus(ctx cosmos.Context, status NodeStatus) (NodeAccounts, error)
+	ListActiveValidators(ctx cosmos.Context) (NodeAccounts, error)
 	GetLowestActiveVersion(ctx cosmos.Context) semver.Version
 	GetMinJoinVersion(ctx cosmos.Context) semver.Version
 	GetMinJoinVersionV1(ctx cosmos.Context) semver.Version

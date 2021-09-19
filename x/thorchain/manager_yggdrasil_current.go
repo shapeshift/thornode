@@ -52,7 +52,7 @@ func (ymgr YggMgrV65) Fund(ctx cosmos.Context, mgr Manager, constAccessor consta
 
 	// find total bonded
 	totalBond := cosmos.ZeroUint()
-	nodeAccs, err := ymgr.keeper.ListActiveNodeAccounts(ctx)
+	nodeAccs, err := ymgr.keeper.ListActiveValidators(ctx)
 	if err != nil {
 		return err
 	}

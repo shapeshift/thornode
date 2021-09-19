@@ -309,7 +309,7 @@ func (s *QuerierSuite) TestQueryTx(c *C) {
 	result, err := s.querier(s.ctx, []string{query.QueryTx.Key, tx.ID.String()}, req)
 	c.Assert(result, IsNil)
 	c.Assert(err, NotNil)
-	nodeAccount := GetRandomNodeAccount(NodeActive)
+	nodeAccount := GetRandomValidatorNode(NodeActive)
 	s.k.SetNodeAccount(s.ctx, nodeAccount)
 	voter, err := s.k.GetObservedTxInVoter(s.ctx, tx.ID)
 	c.Assert(err, IsNil)
@@ -464,7 +464,7 @@ func (s *QuerierSuite) TestQueryNodeAccount(c *C) {
 	c.Assert(result, IsNil)
 	c.Assert(err, NotNil)
 
-	na := GetRandomNodeAccount(NodeActive)
+	na := GetRandomValidatorNode(NodeActive)
 	s.k.SetNodeAccount(s.ctx, na)
 	vault := GetRandomVault()
 	vault.Status = ActiveVault
@@ -481,7 +481,7 @@ func (s *QuerierSuite) TestQueryNodeAccount(c *C) {
 }
 
 func (s *QuerierSuite) TestQueryPoolAddresses(c *C) {
-	na := GetRandomNodeAccount(NodeActive)
+	na := GetRandomValidatorNode(NodeActive)
 	s.k.SetNodeAccount(s.ctx, na)
 	result, err := s.querier(s.ctx, []string{
 		query.QueryInboundAddresses.Key,
@@ -502,7 +502,7 @@ func (s *QuerierSuite) TestQueryPoolAddresses(c *C) {
 }
 
 func (s *QuerierSuite) TestQueryKeysignArrayPubKey(c *C) {
-	na := GetRandomNodeAccount(NodeActive)
+	na := GetRandomValidatorNode(NodeActive)
 	s.k.SetNodeAccount(s.ctx, na)
 	result, err := s.querier(s.ctx, []string{
 		query.QueryKeysignArrayPubkey.Key,
@@ -565,7 +565,7 @@ func (s *QuerierSuite) TestQueryYggdrasilVault(c *C) {
 }
 
 func (s *QuerierSuite) TestQueryVaultPubKeys(c *C) {
-	node := GetRandomNodeAccount(NodeActive)
+	node := GetRandomValidatorNode(NodeActive)
 	c.Assert(s.k.SetNodeAccount(s.ctx, node), IsNil)
 	vault := GetRandomVault()
 	vault.PubKey = node.PubKeySet.Secp256k1
