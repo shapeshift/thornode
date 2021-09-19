@@ -48,7 +48,7 @@ func (vm *validatorMgrV1) BeginBlock(ctx cosmos.Context, constAccessor constants
 		return nil
 	}
 	minimumNodesForBFT := constAccessor.GetInt64Value(constants.MinimumNodesForBFT)
-	totalActiveNodes, err := vm.k.TotalActiveNodeAccount(ctx)
+	totalActiveNodes, err := vm.k.TotalActiveValidators(ctx)
 	if err != nil {
 		return err
 	}
@@ -113,7 +113,7 @@ func (vm *validatorMgrV1) BeginBlock(ctx cosmos.Context, constAccessor constants
 
 	// calculate if we need to retry a churn because we are overdue for a
 	// successful one
-	nas, err := vm.k.ListActiveNodeAccounts(ctx)
+	nas, err := vm.k.ListActiveValidators(ctx)
 	if err != nil {
 		return err
 	}
@@ -214,7 +214,7 @@ func (vm *validatorMgrV1) splitNext(ctx cosmos.Context, nas NodeAccounts, asgard
 // EndBlock when block commit
 func (vm *validatorMgrV1) EndBlock(ctx cosmos.Context, mgr Manager, constAccessor constants.ConstantValues) []abci.ValidatorUpdate {
 	height := common.BlockHeight(ctx)
-	activeNodes, err := vm.k.ListActiveNodeAccounts(ctx)
+	activeNodes, err := vm.k.ListActiveValidators(ctx)
 	if err != nil {
 		ctx.Logger().Error("fail to get all active nodes", "error", err)
 		return nil
@@ -337,7 +337,7 @@ func (vm *validatorMgrV1) EndBlock(ctx cosmos.Context, mgr Manager, constAccesso
 		ctx.Logger().Error("fail to check contract upgrade", "error", err)
 	}
 	// reset all nodes in ready status back to standby status
-	ready, err := vm.k.ListNodeAccountsByStatus(ctx, NodeReady)
+	ready, err := vm.k.ListValidatorsByStatus(ctx, NodeReady)
 	if err != nil {
 		ctx.Logger().Error("fail to get list of ready node accounts", "error", err)
 	}
@@ -624,7 +624,7 @@ func (vm *validatorMgrV1) ragnarokProtocolStage2(ctx cosmos.Context, nth int64, 
 
 func (vm *validatorMgrV1) ragnarokBondReward(ctx cosmos.Context, mgr Manager) error {
 	var resultErr error
-	active, err := vm.k.ListActiveNodeAccounts(ctx)
+	active, err := vm.k.ListActiveValidators(ctx)
 	if err != nil {
 		return fmt.Errorf("fail to get all active node account: %w", err)
 	}
@@ -651,7 +651,7 @@ func (vm *validatorMgrV1) ragnarokBond(ctx cosmos.Context, nth int64, mgr Manage
 		return nil
 	}
 
-	nas, err := vm.k.ListNodeAccountsWithBond(ctx)
+	nas, err := vm.k.ListValidatorsWithBond(ctx)
 	if err != nil {
 		ctx.Logger().Error("can't get nodes", "error", err)
 		return err
@@ -722,7 +722,7 @@ func (vm *validatorMgrV1) ragnarokBond(ctx cosmos.Context, nth int64, mgr Manage
 }
 
 func (vm *validatorMgrV1) ragnarokPools(ctx cosmos.Context, nth int64, mgr Manager, constAccessor constants.ConstantValues) error {
-	nas, err := vm.k.ListActiveNodeAccounts(ctx)
+	nas, err := vm.k.ListActiveValidators(ctx)
 	if err != nil {
 		return fmt.Errorf("fail to get active nodes: %w", err)
 	}
@@ -1028,7 +1028,7 @@ func (vm *validatorMgrV1) getScore(ctx cosmos.Context, na NodeAccount, slashPts 
 // Iterate over active node accounts, finding bad actors with high slash points
 func (vm *validatorMgrV1) findBadActors(ctx cosmos.Context, minSlashPointsForBadValidator, badValidatorRedline, badValidatorRate int64) (NodeAccounts, error) {
 	badActors := make(NodeAccounts, 0)
-	nas, err := vm.k.ListActiveNodeAccounts(ctx)
+	nas, err := vm.k.ListActiveValidators(ctx)
 	if err != nil {
 		return badActors, err
 	}
@@ -1112,7 +1112,7 @@ func (vm *validatorMgrV1) findBadActors(ctx cosmos.Context, minSlashPointsForBad
 // Iterate over active node accounts, finding the one that has been active longest
 func (vm *validatorMgrV1) findOldActor(ctx cosmos.Context) (NodeAccount, error) {
 	na := NodeAccount{}
-	nas, err := vm.k.ListActiveNodeAccounts(ctx)
+	nas, err := vm.k.ListActiveValidators(ctx)
 	if err != nil {
 		return na, err
 	}
@@ -1190,7 +1190,7 @@ func (vm *validatorMgrV1) markLowerVersion(ctx cosmos.Context, rate int64) error
 // that is lower than the minimum join version
 func (vm *validatorMgrV1) findLowerVersionActor(ctx cosmos.Context) (NodeAccount, error) {
 	minimumVersion := vm.k.GetMinJoinVersionV1(ctx)
-	activeNodes, err := vm.k.ListNodeAccountsByStatus(ctx, NodeActive)
+	activeNodes, err := vm.k.ListValidatorsByStatus(ctx, NodeActive)
 	if err != nil {
 		return NodeAccount{}, err
 	}
@@ -1204,11 +1204,11 @@ func (vm *validatorMgrV1) findLowerVersionActor(ctx cosmos.Context) (NodeAccount
 
 // find any actor that are ready to become "ready" status
 func (vm *validatorMgrV1) markReadyActors(ctx cosmos.Context, constAccessor constants.ConstantValues) error {
-	standby, err := vm.k.ListNodeAccountsByStatus(ctx, NodeStandby)
+	standby, err := vm.k.ListValidatorsByStatus(ctx, NodeStandby)
 	if err != nil {
 		return err
 	}
-	ready, err := vm.k.ListNodeAccountsByStatus(ctx, NodeReady)
+	ready, err := vm.k.ListValidatorsByStatus(ctx, NodeReady)
 	if err != nil {
 		return err
 	}
@@ -1288,7 +1288,7 @@ func (vm *validatorMgrV1) nextVaultNodeAccounts(ctx cosmos.Context, targetCount 
 		return nil, false, err
 	}
 
-	ready, err := vm.k.ListNodeAccountsByStatus(ctx, NodeReady)
+	ready, err := vm.k.ListValidatorsByStatus(ctx, NodeReady)
 	if err != nil {
 		return nil, false, err
 	}
@@ -1298,7 +1298,7 @@ func (vm *validatorMgrV1) nextVaultNodeAccounts(ctx cosmos.Context, targetCount 
 		return ready[i].Bond.GT(ready[j].Bond)
 	})
 
-	active, err := vm.k.ListActiveNodeAccounts(ctx)
+	active, err := vm.k.ListActiveValidators(ctx)
 	if err != nil {
 		return nil, false, err
 	}

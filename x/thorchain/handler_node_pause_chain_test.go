@@ -11,7 +11,7 @@ type HandlerNodePauseChainSuite struct{}
 func (s *HandlerNodePauseChainSuite) TestValidate(c *C) {
 	ctx, k := setupKeeperForTest(c)
 
-	node := GetRandomNodeAccount(NodeActive)
+	node := GetRandomValidatorNode(NodeActive)
 	k.SetNodeAccount(ctx, node)
 
 	handler := NewNodePauseChainHandler(NewDummyMgrWithKeeper(k))
@@ -29,9 +29,9 @@ func (s *HandlerNodePauseChainSuite) TestValidate(c *C) {
 func (s *HandlerNodePauseChainSuite) TestHandle(c *C) {
 	ctx, k := setupKeeperForTest(c)
 
-	node := GetRandomNodeAccount(NodeActive)
-	node2 := GetRandomNodeAccount(NodeActive)
-	node3 := GetRandomNodeAccount(NodeActive)
+	node := GetRandomValidatorNode(NodeActive)
+	node2 := GetRandomValidatorNode(NodeActive)
+	node3 := GetRandomValidatorNode(NodeActive)
 	k.SetNodeAccount(ctx, node)
 	k.SetNodeAccount(ctx, node2)
 	k.SetNodeAccount(ctx, node3)

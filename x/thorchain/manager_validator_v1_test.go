@@ -31,13 +31,13 @@ func (vts *ValidatorMgrV1TestSuite) TestSetupValidatorNodes(c *C) {
 	err = vMgr.setupValidatorNodes(ctx, 1, constAccessor)
 	c.Assert(err, NotNil)
 
-	activeNode := GetRandomNodeAccount(NodeActive)
+	activeNode := GetRandomValidatorNode(NodeActive)
 	c.Assert(k.SetNodeAccount(ctx, activeNode), IsNil)
 
 	err = vMgr.setupValidatorNodes(ctx, 1, constAccessor)
 	c.Assert(err, IsNil)
 
-	readyNode := GetRandomNodeAccount(NodeReady)
+	readyNode := GetRandomValidatorNode(NodeReady)
 	c.Assert(k.SetNodeAccount(ctx, readyNode), IsNil)
 
 	// one active node and one ready node on start up
@@ -45,12 +45,12 @@ func (vts *ValidatorMgrV1TestSuite) TestSetupValidatorNodes(c *C) {
 	vMgr1 := newValidatorMgrV1(k, mgr.VaultMgr(), mgr.TxOutStore(), mgr.EventMgr())
 
 	c.Assert(vMgr1.BeginBlock(ctx, constAccessor, nil), IsNil)
-	activeNodes, err := k.ListActiveNodeAccounts(ctx)
+	activeNodes, err := k.ListActiveValidators(ctx)
 	c.Assert(err, IsNil)
 	c.Assert(len(activeNodes) == 2, Equals, true)
 
-	activeNode1 := GetRandomNodeAccount(NodeActive)
-	activeNode2 := GetRandomNodeAccount(NodeActive)
+	activeNode1 := GetRandomValidatorNode(NodeActive)
+	activeNode2 := GetRandomValidatorNode(NodeActive)
 	c.Assert(k.SetNodeAccount(ctx, activeNode1), IsNil)
 	c.Assert(k.SetNodeAccount(ctx, activeNode2), IsNil)
 
@@ -58,7 +58,7 @@ func (vts *ValidatorMgrV1TestSuite) TestSetupValidatorNodes(c *C) {
 	vMgr2 := newValidatorMgrV1(k, mgr.VaultMgr(), mgr.TxOutStore(), mgr.EventMgr())
 	c.Assert(vMgr2.BeginBlock(ctx, constAccessor, nil), IsNil)
 
-	activeNodes1, err := k.ListActiveNodeAccounts(ctx)
+	activeNodes1, err := k.ListActiveValidators(ctx)
 	c.Assert(err, IsNil)
 	c.Assert(len(activeNodes1) == 4, Equals, true)
 }
@@ -81,11 +81,11 @@ func (vts *ValidatorMgrV1TestSuite) TestRagnarokForChaosnet(c *C) {
 		constants.StrictBondLiquidityRatio: false,
 	}, map[constants.ConstantName]string{})
 	for i := 0; i < 12; i++ {
-		node := GetRandomNodeAccount(NodeReady)
+		node := GetRandomValidatorNode(NodeReady)
 		c.Assert(mgr.Keeper().SetNodeAccount(ctx, node), IsNil)
 	}
 	c.Assert(vMgr.setupValidatorNodes(ctx, 1, constAccessor), IsNil)
-	nodeAccounts, err := mgr.Keeper().ListNodeAccountsByStatus(ctx, NodeActive)
+	nodeAccounts, err := mgr.Keeper().ListValidatorsByStatus(ctx, NodeActive)
 	c.Assert(err, IsNil)
 	c.Assert(len(nodeAccounts), Equals, 12)
 
@@ -114,11 +114,11 @@ func (vts *ValidatorMgrV1TestSuite) TestLowerVersion(c *C) {
 	c.Assert(vMgr.markLowerVersion(ctx, 360), IsNil)
 
 	for i := 0; i < 5; i++ {
-		activeNode := GetRandomNodeAccount(NodeActive)
+		activeNode := GetRandomValidatorNode(NodeActive)
 		activeNode.Version = "0.5.0"
 		c.Assert(mgr.Keeper().SetNodeAccount(ctx, activeNode), IsNil)
 	}
-	activeNode1 := GetRandomNodeAccount(NodeActive)
+	activeNode1 := GetRandomValidatorNode(NodeActive)
 	activeNode1.Version = "0.4.0"
 	c.Assert(mgr.Keeper().SetNodeAccount(ctx, activeNode1), IsNil)
 
@@ -140,7 +140,7 @@ func (vts *ValidatorMgrV1TestSuite) TestBadActors(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(nas, HasLen, 0)
 
-	activeNode := GetRandomNodeAccount(NodeActive)
+	activeNode := GetRandomValidatorNode(NodeActive)
 	c.Assert(mgr.Keeper().SetNodeAccount(ctx, activeNode), IsNil)
 
 	// no bad actors with active node accounts with no slash points
@@ -148,10 +148,10 @@ func (vts *ValidatorMgrV1TestSuite) TestBadActors(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(nas, HasLen, 0)
 
-	activeNode = GetRandomNodeAccount(NodeActive)
+	activeNode = GetRandomValidatorNode(NodeActive)
 	mgr.Keeper().SetNodeAccountSlashPoints(ctx, activeNode.NodeAddress, 250)
 	c.Assert(mgr.Keeper().SetNodeAccount(ctx, activeNode), IsNil)
-	activeNode = GetRandomNodeAccount(NodeActive)
+	activeNode = GetRandomValidatorNode(NodeActive)
 	mgr.Keeper().SetNodeAccountSlashPoints(ctx, activeNode.NodeAddress, 500)
 	c.Assert(mgr.Keeper().SetNodeAccount(ctx, activeNode), IsNil)
 
@@ -162,10 +162,10 @@ func (vts *ValidatorMgrV1TestSuite) TestBadActors(c *C) {
 	c.Check(nas[0].NodeAddress.Equals(activeNode.NodeAddress), Equals, true)
 
 	// create really bad actors (crossing the redline)
-	bad1 := GetRandomNodeAccount(NodeActive)
+	bad1 := GetRandomValidatorNode(NodeActive)
 	mgr.Keeper().SetNodeAccountSlashPoints(ctx, bad1.NodeAddress, 5000)
 	c.Assert(mgr.Keeper().SetNodeAccount(ctx, bad1), IsNil)
-	bad2 := GetRandomNodeAccount(NodeActive)
+	bad2 := GetRandomValidatorNode(NodeActive)
 	mgr.Keeper().SetNodeAccountSlashPoints(ctx, bad2.NodeAddress, 5000)
 	c.Assert(mgr.Keeper().SetNodeAccount(ctx, bad2), IsNil)
 
@@ -190,14 +190,14 @@ func (vts *ValidatorMgrV1TestSuite) TestFindBadActors(c *C) {
 	vMgr := newValidatorMgrV1(mgr.Keeper(), mgr.VaultMgr(), mgr.TxOutStore(), mgr.EventMgr())
 	c.Assert(vMgr, NotNil)
 
-	activeNode := GetRandomNodeAccount(NodeActive)
+	activeNode := GetRandomValidatorNode(NodeActive)
 	c.Assert(mgr.Keeper().SetNodeAccount(ctx, activeNode), IsNil)
 	mgr.Keeper().SetNodeAccountSlashPoints(ctx, activeNode.NodeAddress, 50)
 	nodeAccounts, err := vMgr.findBadActors(ctx, 100, 3, 500)
 	c.Assert(err, IsNil)
 	c.Assert(nodeAccounts, HasLen, 0)
 
-	activeNode1 := GetRandomNodeAccount(NodeActive)
+	activeNode1 := GetRandomValidatorNode(NodeActive)
 	activeNode1.StatusSince = 900
 	c.Assert(mgr.Keeper().SetNodeAccount(ctx, activeNode1), IsNil)
 	mgr.Keeper().SetNodeAccountSlashPoints(ctx, activeNode1.NodeAddress, 200)
@@ -207,11 +207,11 @@ func (vts *ValidatorMgrV1TestSuite) TestFindBadActors(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(nodeAccounts, HasLen, 0)
 
-	activeNode2 := GetRandomNodeAccount(NodeActive)
+	activeNode2 := GetRandomValidatorNode(NodeActive)
 	c.Assert(mgr.Keeper().SetNodeAccount(ctx, activeNode2), IsNil)
 	mgr.Keeper().SetNodeAccountSlashPoints(ctx, activeNode2.NodeAddress, 2000)
 
-	activeNode3 := GetRandomNodeAccount(NodeActive)
+	activeNode3 := GetRandomValidatorNode(NodeActive)
 	activeNode3.StatusSince = 1000
 	c.Assert(mgr.Keeper().SetNodeAccount(ctx, activeNode3), IsNil)
 	mgr.Keeper().SetNodeAccountSlashPoints(ctx, activeNode3.NodeAddress, 2000)
@@ -236,11 +236,11 @@ func (vts *ValidatorMgrV1TestSuite) TestRagnarokBond(c *C) {
 	err := vMgr.setupValidatorNodes(ctx, 0, constAccessor)
 	c.Assert(err, IsNil)
 
-	activeNode := GetRandomNodeAccount(NodeActive)
+	activeNode := GetRandomValidatorNode(NodeActive)
 	activeNode.Bond = cosmos.NewUint(100)
 	c.Assert(k.SetNodeAccount(ctx, activeNode), IsNil)
 
-	disabledNode := GetRandomNodeAccount(NodeDisabled)
+	disabledNode := GetRandomValidatorNode(NodeDisabled)
 	disabledNode.Bond = cosmos.ZeroUint()
 	c.Assert(k.SetNodeAccount(ctx, disabledNode), IsNil)
 
@@ -281,12 +281,12 @@ func (vts *ValidatorMgrV1TestSuite) TestGetChangedNodes(c *C) {
 	err := vMgr.setupValidatorNodes(ctx, 0, constAccessor)
 	c.Assert(err, IsNil)
 
-	activeNode := GetRandomNodeAccount(NodeActive)
+	activeNode := GetRandomValidatorNode(NodeActive)
 	activeNode.Bond = cosmos.NewUint(100)
 	activeNode.ForcedToLeave = true
 	c.Assert(k.SetNodeAccount(ctx, activeNode), IsNil)
 
-	disabledNode := GetRandomNodeAccount(NodeDisabled)
+	disabledNode := GetRandomValidatorNode(NodeDisabled)
 	disabledNode.Bond = cosmos.ZeroUint()
 	c.Assert(k.SetNodeAccount(ctx, disabledNode), IsNil)
 
@@ -308,7 +308,7 @@ func (vts *ValidatorMgrV1TestSuite) TestSplitNext(c *C) {
 
 	nas := make(NodeAccounts, 0)
 	for i := 0; i < 90; i++ {
-		na := GetRandomNodeAccount(NodeActive)
+		na := GetRandomValidatorNode(NodeActive)
 		na.Bond = cosmos.NewUint(uint64(i))
 		nas = append(nas, na)
 	}
@@ -320,7 +320,7 @@ func (vts *ValidatorMgrV1TestSuite) TestSplitNext(c *C) {
 
 	nas = make(NodeAccounts, 0)
 	for i := 0; i < 100; i++ {
-		na := GetRandomNodeAccount(NodeActive)
+		na := GetRandomValidatorNode(NodeActive)
 		na.Bond = cosmos.NewUint(uint64(i))
 		nas = append(nas, na)
 	}
@@ -333,7 +333,7 @@ func (vts *ValidatorMgrV1TestSuite) TestSplitNext(c *C) {
 
 	nas = make(NodeAccounts, 0)
 	for i := 0; i < 3; i++ {
-		na := GetRandomNodeAccount(NodeActive)
+		na := GetRandomValidatorNode(NodeActive)
 		na.Bond = cosmos.NewUint(uint64(i))
 		nas = append(nas, na)
 	}
@@ -420,7 +420,7 @@ func (vts *ValidatorMgrV1TestSuite) TestFindNextVaultNodeAccounts(c *C) {
 	constAccessor := constants.GetConstantValues(ver)
 	nas := NodeAccounts{}
 	for i := 0; i < 12; i++ {
-		na := GetRandomNodeAccount(NodeActive)
+		na := GetRandomValidatorNode(NodeActive)
 		nas = append(nas, na)
 	}
 	nas[0].LeaveScore = 1024

@@ -31,11 +31,11 @@ type TestRagnarokChainKeeper struct {
 	err         error
 }
 
-func (k *TestRagnarokChainKeeper) ListNodeAccountsWithBond(_ cosmos.Context) (NodeAccounts, error) {
+func (k *TestRagnarokChainKeeper) ListValidatorsWithBond(_ cosmos.Context) (NodeAccounts, error) {
 	return NodeAccounts{k.na}, k.err
 }
 
-func (k *TestRagnarokChainKeeper) ListActiveNodeAccounts(_ cosmos.Context) (NodeAccounts, error) {
+func (k *TestRagnarokChainKeeper) ListActiveValidators(_ cosmos.Context) (NodeAccounts, error) {
 	return NodeAccounts{k.na}, k.err
 }
 
@@ -224,7 +224,7 @@ func (s *NetworkManagerV1TestSuite) TestRagnarokChain(c *C) {
 	}
 
 	keeper := &TestRagnarokChainKeeper{
-		na:          GetRandomNodeAccount(NodeActive),
+		na:          GetRandomValidatorNode(NodeActive),
 		activeVault: activeVault,
 		retireVault: retireVault,
 		yggVault:    yggVault,
@@ -267,8 +267,8 @@ func (s *NetworkManagerV1TestSuite) TestRagnarokChain(c *C) {
 
 	// no active nodes , should error
 	c.Assert(vaultMgr1.ragnarokChain(ctx, common.BNBChain, 1, mgr, constAccessor), NotNil)
-	helper.Keeper.SetNodeAccount(ctx, GetRandomNodeAccount(NodeActive))
-	helper.Keeper.SetNodeAccount(ctx, GetRandomNodeAccount(NodeActive))
+	helper.Keeper.SetNodeAccount(ctx, GetRandomValidatorNode(NodeActive))
+	helper.Keeper.SetNodeAccount(ctx, GetRandomValidatorNode(NodeActive))
 
 	// fail to get pools should error out
 	helper.failGetPools = true
@@ -316,8 +316,8 @@ func (s *NetworkManagerV1TestSuite) TestUpdateNetwork(c *C) {
 
 	c.Assert(vaultMgr.UpdateNetwork(ctx, constAccessor, mgr.GasMgr(), mgr.EventMgr()), IsNil)
 	// add bond
-	helper.Keeper.SetNodeAccount(ctx, GetRandomNodeAccount(NodeActive))
-	helper.Keeper.SetNodeAccount(ctx, GetRandomNodeAccount(NodeActive))
+	helper.Keeper.SetNodeAccount(ctx, GetRandomValidatorNode(NodeActive))
+	helper.Keeper.SetNodeAccount(ctx, GetRandomValidatorNode(NodeActive))
 	c.Assert(vaultMgr.UpdateNetwork(ctx, constAccessor, mgr.GasMgr(), mgr.EventMgr()), IsNil)
 
 	// fail to get total liquidity fee should result an error
@@ -422,11 +422,11 @@ func (h *VaultManagerTestHelpKeeper) GetAsgardVaults(ctx cosmos.Context) (Vaults
 	return h.Keeper.GetAsgardVaults(ctx)
 }
 
-func (h *VaultManagerTestHelpKeeper) ListActiveNodeAccounts(ctx cosmos.Context) (NodeAccounts, error) {
+func (h *VaultManagerTestHelpKeeper) ListActiveValidators(ctx cosmos.Context) (NodeAccounts, error) {
 	if h.failToListActiveAccounts {
 		return NodeAccounts{}, kaboom
 	}
-	return h.Keeper.ListActiveNodeAccounts(ctx)
+	return h.Keeper.ListActiveValidators(ctx)
 }
 
 func (h *VaultManagerTestHelpKeeper) SetVault(ctx cosmos.Context, v Vault) error {
@@ -478,7 +478,7 @@ func (*NetworkManagerV1TestSuite) TestProcessGenesisSetup(c *C) {
 	// no active account
 	c.Assert(vaultMgr.EndBlock(ctx, mgr, constAccessor), NotNil)
 
-	nodeAccount := GetRandomNodeAccount(NodeActive)
+	nodeAccount := GetRandomValidatorNode(NodeActive)
 	mgr.Keeper().SetNodeAccount(ctx, nodeAccount)
 	c.Assert(vaultMgr.EndBlock(ctx, mgr, constAccessor), IsNil)
 	// make sure asgard vault get created
@@ -527,7 +527,7 @@ func (*NetworkManagerV1TestSuite) TestGetTotalActiveBond(c *C) {
 	c.Assert(err, NotNil)
 	c.Assert(bond.Equal(cosmos.ZeroUint()), Equals, true)
 	helper.failToListActiveAccounts = false
-	helper.Keeper.SetNodeAccount(ctx, GetRandomNodeAccount(NodeActive))
+	helper.Keeper.SetNodeAccount(ctx, GetRandomValidatorNode(NodeActive))
 	bond, err = vaultMgr.getTotalActiveBond(ctx)
 	c.Assert(err, IsNil)
 	c.Assert(bond.Uint64() > 0, Equals, true)

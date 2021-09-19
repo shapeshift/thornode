@@ -60,10 +60,16 @@ func (h VersionHandler) validateCurrent(ctx cosmos.Context, msg MsgSetVersion) e
 
 	nodeAccount, err := h.mgr.Keeper().GetNodeAccount(ctx, msg.Signer)
 	if err != nil {
+		ctx.Logger().Error("fail to get node account", "error", err, "address", msg.Signer.String())
 		return cosmos.ErrUnauthorized(fmt.Sprintf("%s is not authorizaed", msg.Signer))
 	}
 	if nodeAccount.IsEmpty() {
+		ctx.Logger().Error("unauthorized account", "address", msg.Signer.String())
 		return cosmos.ErrUnauthorized(fmt.Sprintf("%s is not authorizaed", msg.Signer))
+	}
+	if nodeAccount.Type != NodeValidator {
+		ctx.Logger().Error("unauthorized account, node account must be a validator", "address", msg.Signer.String(), "type", nodeAccount.Type)
+		return cosmos.ErrUnauthorized(fmt.Sprintf("%s is not authorized", msg.Signer))
 	}
 
 	cost, err := h.mgr.Keeper().GetMimir(ctx, constants.NativeTransactionFee.String())

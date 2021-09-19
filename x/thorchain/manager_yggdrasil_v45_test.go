@@ -148,7 +148,7 @@ func (s YggdrasilManagerV45Suite) TestFund(c *C) {
 
 	// setup 6 active nodes
 	for i := 0; i < 6; i++ {
-		na := GetRandomNodeAccount(NodeActive)
+		na := GetRandomValidatorNode(NodeActive)
 		na.Bond = cosmos.NewUint(common.One * 1000000)
 		c.Assert(k.SetNodeAccount(ctx, na), IsNil)
 	}
@@ -157,7 +157,7 @@ func (s YggdrasilManagerV45Suite) TestFund(c *C) {
 	ymgr := newYggMgrV45(k)
 	err := ymgr.Fund(ctx, mgr, constAccessor)
 	c.Assert(err, IsNil)
-	na1 := GetRandomNodeAccount(NodeActive)
+	na1 := GetRandomValidatorNode(NodeActive)
 	na1.Bond = cosmos.NewUint(1000000 * common.One)
 	c.Assert(k.SetNodeAccount(ctx, na1), IsNil)
 	bnbPool := NewPool()
@@ -187,7 +187,7 @@ func (s YggdrasilManagerV45Suite) TestNotAvailablePoolAssetWillNotFundYggdrasil(
 
 	// setup 6 active nodes
 	for i := 0; i < 6; i++ {
-		na := GetRandomNodeAccount(NodeActive)
+		na := GetRandomValidatorNode(NodeActive)
 		na.Bond = cosmos.NewUint(common.One * 1000000)
 		c.Assert(k.SetNodeAccount(ctx, na), IsNil)
 	}
@@ -196,7 +196,7 @@ func (s YggdrasilManagerV45Suite) TestNotAvailablePoolAssetWillNotFundYggdrasil(
 	ymgr := newYggMgrV45(k)
 	err = ymgr.Fund(ctx, mgr, constAccessor)
 	c.Assert(err, IsNil)
-	na1 := GetRandomNodeAccount(NodeActive)
+	na1 := GetRandomValidatorNode(NodeActive)
 	na1.Bond = cosmos.NewUint(1000000 * common.One)
 	c.Assert(k.SetNodeAccount(ctx, na1), IsNil)
 	bnbPool := NewPool()
@@ -236,12 +236,12 @@ func (s YggdrasilManagerV45Suite) TestAbandonYggdrasil(c *C) {
 	c.Assert(mgr.Keeper().SetPool(ctx, bnbPool), IsNil)
 	// setup 6 active nodes ,  so it will fund yggdrasil
 	for i := 0; i < 6; i++ {
-		na := GetRandomNodeAccount(NodeActive)
+		na := GetRandomValidatorNode(NodeActive)
 		na.Bond = cosmos.NewUint(common.One * 1000000)
 		FundModule(c, ctx, mgr.Keeper(), BondName, na.Bond.Uint64())
 		c.Assert(mgr.Keeper().SetNodeAccount(ctx, na), IsNil)
 	}
-	naDisabled := GetRandomNodeAccount(NodeDisabled)
+	naDisabled := GetRandomValidatorNode(NodeDisabled)
 	naDisabled.RequestedToLeave = true
 	naDisabled.Bond = cosmos.NewUint(common.One * 1000000)
 	FundModule(c, ctx, mgr.Keeper(), BondName, naDisabled.Bond.Uint64())
@@ -286,11 +286,11 @@ func (s YggdrasilManagerV45Suite) TestAbandonYggdrasilWithDifferentConditions(c 
 	c.Assert(mgr.Keeper().SetPool(ctx, bnbPool), IsNil)
 	// setup 6 active nodes ,  so it will fund yggdrasil
 	for i := 0; i < 6; i++ {
-		na := GetRandomNodeAccount(NodeActive)
+		na := GetRandomValidatorNode(NodeActive)
 		na.Bond = cosmos.NewUint(common.One * 1000000)
 		c.Assert(mgr.Keeper().SetNodeAccount(ctx, na), IsNil)
 	}
-	naDisabled := GetRandomNodeAccount(NodeDisabled)
+	naDisabled := GetRandomValidatorNode(NodeDisabled)
 	naDisabled.RequestedToLeave = true
 	c.Assert(mgr.Keeper().SetNodeAccount(ctx, naDisabled), IsNil)
 

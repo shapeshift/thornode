@@ -184,7 +184,7 @@ func (s *HelperSuite) TestRefundBondError(c *C) {
 	ctx, _ := setupKeeperForTest(c)
 	// active node should not refund bond
 	pk := GetRandomPubKey()
-	na := GetRandomNodeAccount(NodeActive)
+	na := GetRandomValidatorNode(NodeActive)
 	na.PubKeySet.Secp256k1 = pk
 	na.Bond = cosmos.NewUint(100 * common.One)
 	tx := GetRandomTx()
@@ -231,7 +231,7 @@ func (s *HelperSuite) TestRefundBondError(c *C) {
 
 func (s *HelperSuite) TestRefundBondHappyPath(c *C) {
 	ctx, _ := setupKeeperForTest(c)
-	na := GetRandomNodeAccount(NodeActive)
+	na := GetRandomValidatorNode(NodeActive)
 	na.Bond = cosmos.NewUint(12098 * common.One)
 	pk := GetRandomPubKey()
 	na.PubKeySet.Secp256k1 = pk
@@ -455,7 +455,7 @@ func newAddGasFeeTestHelper(c *C) addGasFeeTestHelper {
 	poolBTC.Status = PoolAvailable
 	c.Assert(mgr.Keeper().SetPool(ctx, poolBTC), IsNil)
 
-	na := GetRandomNodeAccount(NodeActive)
+	na := GetRandomValidatorNode(NodeActive)
 	c.Assert(mgr.Keeper().SetNodeAccount(ctx, na), IsNil)
 	yggVault := NewVault(common.BlockHeight(ctx), ActiveVault, YggdrasilVault, na.PubKeySet.Secp256k1, common.Chains{common.BNBChain}.Strings(), []ChainContract{})
 	c.Assert(mgr.Keeper().SetVault(ctx, yggVault), IsNil)
