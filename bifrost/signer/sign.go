@@ -485,7 +485,8 @@ func (s *Signer) handleYggReturn(height int64, tx types.TxOutItem) (types.TxOutI
 			tx.Coins = append(tx.Coins, common.NewCoin(asset, amount))
 		}
 	}
-
+	// Yggdrasil return should pay whatever gas is necessary
+	tx.MaxGas = common.Gas{}
 	return tx, nil
 }
 func (s *Signer) UpdateSignerCache(hash string) error {

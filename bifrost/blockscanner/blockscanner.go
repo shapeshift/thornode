@@ -215,7 +215,7 @@ func (b *BlockScanner) scanBlocks() {
 
 			// enable this one , so we could see how far it is behind
 			if currentBlock%100 == 0 {
-				b.logger.Info().Int64("block height", currentBlock).Int("txs", len(txIn.TxArray))
+				b.logger.Info().Int64("block height", currentBlock).Int("txs", len(txIn.TxArray)).Msg("scan block")
 			}
 			atomic.AddInt64(&b.previousBlock, 1)
 			// if current block height is less than 50 blocks behind the tip , then it should catch up soon, should be safe to mark block scanner as healthy
