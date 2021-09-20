@@ -44,7 +44,7 @@ func (vm *NetworkMgrV1) processGenesisSetup(ctx cosmos.Context) error {
 		ctx.Logger().Info("already have vault, no need to generate at genesis")
 		return nil
 	}
-	active, err := vm.k.ListActiveNodeAccounts(ctx)
+	active, err := vm.k.ListActiveValidators(ctx)
 	if err != nil {
 		return fmt.Errorf("fail to get all active node accounts")
 	}
@@ -463,7 +463,7 @@ func (vm *NetworkMgrV1) findChainsToRetire(ctx cosmos.Context) (common.Chains, e
 // RecallChainFunds - sends a message to bifrost nodes to send back all funds
 // associated with given chain
 func (vm *NetworkMgrV1) RecallChainFunds(ctx cosmos.Context, chain common.Chain, mgr Manager, excludeNodes common.PubKeys) error {
-	allNodes, err := vm.k.ListNodeAccountsWithBond(ctx)
+	allNodes, err := vm.k.ListValidatorsWithBond(ctx)
 	if err != nil {
 		return fmt.Errorf("fail to list all node accounts: %w", err)
 	}
@@ -535,7 +535,7 @@ func (vm *NetworkMgrV1) ragnarokChain(ctx cosmos.Context, chain common.Chain, nt
 	// the following line is pointless, granted. But in this case, removing it
 	// would cause a consensus failure
 	_ = vm.k.GetLowestActiveVersion(ctx)
-	nas, err := vm.k.ListActiveNodeAccounts(ctx)
+	nas, err := vm.k.ListActiveValidators(ctx)
 	if err != nil {
 		ctx.Logger().Error("can't get active nodes", "error", err)
 		return err
@@ -767,7 +767,7 @@ func (vm *NetworkMgrV1) getTotalProvidedLiquidityRune(ctx cosmos.Context) (Pools
 
 func (vm *NetworkMgrV1) getTotalActiveBond(ctx cosmos.Context) (cosmos.Uint, error) {
 	totalBonded := cosmos.ZeroUint()
-	nodes, err := vm.k.ListActiveNodeAccounts(ctx)
+	nodes, err := vm.k.ListActiveValidators(ctx)
 	if err != nil {
 		return cosmos.ZeroUint(), fmt.Errorf("fail to get all active accounts: %w", err)
 	}
@@ -863,7 +863,7 @@ func (vm *NetworkMgrV1) getPoolShare(incentiveCurve int64, totalProvidedLiquidit
 }
 
 func getTotalActiveNodeWithBond(ctx cosmos.Context, k keeper.Keeper) (int64, error) {
-	nas, err := k.ListActiveNodeAccounts(ctx)
+	nas, err := k.ListActiveValidators(ctx)
 	if err != nil {
 		return 0, fmt.Errorf("fail to get active node accounts: %w", err)
 	}

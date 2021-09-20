@@ -104,7 +104,7 @@ func (h BanHandler) handleCurrent(ctx cosmos.Context, msg MsgBan) (*cosmos.Resul
 		return nil, err
 	}
 
-	active, err := h.mgr.Keeper().ListActiveNodeAccounts(ctx)
+	active, err := h.mgr.Keeper().ListActiveValidators(ctx)
 	if err != nil {
 		err = wrapError(ctx, err, "fail to get list of active node accounts")
 		return nil, err

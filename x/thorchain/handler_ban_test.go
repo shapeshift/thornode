@@ -34,7 +34,7 @@ func (k *TestBanKeeper) SendFromModuleToModule(_ cosmos.Context, from, to string
 	return nil
 }
 
-func (k *TestBanKeeper) ListActiveNodeAccounts(_ cosmos.Context) (NodeAccounts, error) {
+func (k *TestBanKeeper) ListActiveValidators(_ cosmos.Context) (NodeAccounts, error) {
 	return NodeAccounts{k.toBan, k.banner1, k.banner2}, k.err
 }
 
@@ -87,9 +87,9 @@ func (k *TestBanKeeper) SetBanVoter(_ cosmos.Context, ban BanVoter) {
 func (s *HandlerBanSuite) TestValidate(c *C) {
 	ctx, _ := setupKeeperForTest(c)
 
-	toBan := GetRandomNodeAccount(NodeActive)
-	banner1 := GetRandomNodeAccount(NodeActive)
-	banner2 := GetRandomNodeAccount(NodeActive)
+	toBan := GetRandomValidatorNode(NodeActive)
+	banner1 := GetRandomValidatorNode(NodeActive)
+	banner2 := GetRandomValidatorNode(NodeActive)
 
 	keeper := &TestBanKeeper{
 		toBan:   toBan,
@@ -114,11 +114,11 @@ func (s *HandlerBanSuite) TestHandle(c *C) {
 	constAccessor := constants.GetConstantValues(GetCurrentVersion())
 	minBond := constAccessor.GetInt64Value(constants.MinimumBondInRune)
 
-	toBan := GetRandomNodeAccount(NodeActive)
+	toBan := GetRandomValidatorNode(NodeActive)
 	toBan.Bond = cosmos.NewUint(uint64(minBond))
-	banner1 := GetRandomNodeAccount(NodeActive)
+	banner1 := GetRandomValidatorNode(NodeActive)
 	banner1.Bond = cosmos.NewUint(uint64(minBond))
-	banner2 := GetRandomNodeAccount(NodeActive)
+	banner2 := GetRandomValidatorNode(NodeActive)
 	banner2.Bond = cosmos.NewUint(uint64(minBond))
 
 	keeper := &TestBanKeeper{
@@ -163,16 +163,16 @@ func (s *HandlerBanSuite) TestHandle(c *C) {
 
 type TestBanKeeperHelper struct {
 	keeper.Keeper
-	toBanNodeAddr                cosmos.AccAddress
-	bannerNodeAddr               cosmos.AccAddress
-	failToGetToBanAddr           bool
-	failToGetBannerNodeAccount   bool
-	failToListActiveNodeAccounts bool
-	failToGetBanVoter            bool
-	failToGetNetwork             bool
-	failToSetNetwork             bool
-	failToSaveBanner             bool
-	failToSaveToBan              bool
+	toBanNodeAddr              cosmos.AccAddress
+	bannerNodeAddr             cosmos.AccAddress
+	failToGetToBanAddr         bool
+	failToGetBannerNodeAccount bool
+	failToListActiveValidators bool
+	failToGetBanVoter          bool
+	failToGetNetwork           bool
+	failToSetNetwork           bool
+	failToSaveBanner           bool
+	failToSaveToBan            bool
 }
 
 func NewTestBanKeeperHelper(k keeper.Keeper) *TestBanKeeperHelper {
@@ -191,11 +191,11 @@ func (k *TestBanKeeperHelper) GetNodeAccount(ctx cosmos.Context, addr cosmos.Acc
 	return k.Keeper.GetNodeAccount(ctx, addr)
 }
 
-func (k *TestBanKeeperHelper) ListActiveNodeAccounts(ctx cosmos.Context) (NodeAccounts, error) {
-	if k.failToListActiveNodeAccounts {
+func (k *TestBanKeeperHelper) ListActiveValidators(ctx cosmos.Context) (NodeAccounts, error) {
+	if k.failToListActiveValidators {
 		return NodeAccounts{}, kaboom
 	}
-	return k.Keeper.ListActiveNodeAccounts(ctx)
+	return k.Keeper.ListActiveValidators(ctx)
 }
 
 func (k *TestBanKeeperHelper) GetBanVoter(ctx cosmos.Context, addr cosmos.AccAddress) (BanVoter, error) {
@@ -231,7 +231,7 @@ func (k *TestBanKeeperHelper) SetNodeAccount(ctx cosmos.Context, na NodeAccount)
 
 func (s *HandlerBanSuite) TestBanHandlerValidation(c *C) {
 	toBanAddr := GetRandomBech32Addr()
-	banner := GetRandomNodeAccount(NodeActive)
+	banner := GetRandomValidatorNode(NodeActive)
 	bannerNodeAddr := banner.NodeAddress
 	testCases := []struct {
 		name              string
@@ -297,7 +297,7 @@ func (s *HandlerBanSuite) TestBanHandlerValidation(c *C) {
 		{
 			name: "to ban node account has been banned already should not do any thing",
 			messageProvider: func(ctx cosmos.Context, helper *TestBanKeeperHelper) cosmos.Msg {
-				na := GetRandomNodeAccount(NodeActive)
+				na := GetRandomValidatorNode(NodeActive)
 				na.ForcedToLeave = true
 				helper.SetNodeAccount(ctx, na)
 				return NewMsgBan(na.NodeAddress, bannerNodeAddr)
@@ -310,7 +310,7 @@ func (s *HandlerBanSuite) TestBanHandlerValidation(c *C) {
 		{
 			name: "ban an not active account should return an error",
 			messageProvider: func(ctx cosmos.Context, helper *TestBanKeeperHelper) cosmos.Msg {
-				na := GetRandomNodeAccount(NodeStandby)
+				na := GetRandomValidatorNode(NodeStandby)
 				helper.SetNodeAccount(ctx, na)
 				return NewMsgBan(na.NodeAddress, bannerNodeAddr)
 			},
@@ -322,7 +322,7 @@ func (s *HandlerBanSuite) TestBanHandlerValidation(c *C) {
 		{
 			name: "banner is invalid return an error",
 			messageProvider: func(ctx cosmos.Context, helper *TestBanKeeperHelper) cosmos.Msg {
-				toBanAcct := GetRandomNodeAccount(NodeActive)
+				toBanAcct := GetRandomValidatorNode(NodeActive)
 				helper.SetNodeAccount(ctx, toBanAcct)
 				newBanner := banner
 				newBanner.BondAddress = common.NoAddress
@@ -337,9 +337,9 @@ func (s *HandlerBanSuite) TestBanHandlerValidation(c *C) {
 		{
 			name: "fail to list active node account should return an error",
 			messageProvider: func(ctx cosmos.Context, helper *TestBanKeeperHelper) cosmos.Msg {
-				toBanAcct := GetRandomNodeAccount(NodeActive)
+				toBanAcct := GetRandomValidatorNode(NodeActive)
 				helper.SetNodeAccount(ctx, toBanAcct)
-				helper.failToListActiveNodeAccounts = true
+				helper.failToListActiveValidators = true
 				return NewMsgBan(toBanAcct.NodeAddress, bannerNodeAddr)
 			},
 			validator: func(c *C, result *cosmos.Result, err error, helper *TestBanKeeperHelper, name string) {
@@ -350,7 +350,7 @@ func (s *HandlerBanSuite) TestBanHandlerValidation(c *C) {
 		{
 			name: "fail to get ban voter should return an error",
 			messageProvider: func(ctx cosmos.Context, helper *TestBanKeeperHelper) cosmos.Msg {
-				toBanAcct := GetRandomNodeAccount(NodeActive)
+				toBanAcct := GetRandomValidatorNode(NodeActive)
 				helper.SetNodeAccount(ctx, toBanAcct)
 				helper.failToGetBanVoter = true
 				return NewMsgBan(toBanAcct.NodeAddress, bannerNodeAddr)
@@ -363,7 +363,7 @@ func (s *HandlerBanSuite) TestBanHandlerValidation(c *C) {
 		{
 			name: "fail to get network data should return an error",
 			messageProvider: func(ctx cosmos.Context, helper *TestBanKeeperHelper) cosmos.Msg {
-				toBanAcct := GetRandomNodeAccount(NodeActive)
+				toBanAcct := GetRandomValidatorNode(NodeActive)
 				helper.SetNodeAccount(ctx, toBanAcct)
 				helper.failToGetNetwork = true
 				return NewMsgBan(toBanAcct.NodeAddress, bannerNodeAddr)
@@ -377,7 +377,7 @@ func (s *HandlerBanSuite) TestBanHandlerValidation(c *C) {
 		{
 			name: "fail to set network data should return an error",
 			messageProvider: func(ctx cosmos.Context, helper *TestBanKeeperHelper) cosmos.Msg {
-				toBanAcct := GetRandomNodeAccount(NodeActive)
+				toBanAcct := GetRandomValidatorNode(NodeActive)
 				helper.SetNodeAccount(ctx, toBanAcct)
 				helper.failToSetNetwork = true
 				return NewMsgBan(toBanAcct.NodeAddress, bannerNodeAddr)
@@ -391,7 +391,7 @@ func (s *HandlerBanSuite) TestBanHandlerValidation(c *C) {
 		{
 			name: "fail to save banner should return an error",
 			messageProvider: func(ctx cosmos.Context, helper *TestBanKeeperHelper) cosmos.Msg {
-				toBanAcct := GetRandomNodeAccount(NodeActive)
+				toBanAcct := GetRandomValidatorNode(NodeActive)
 				helper.SetNodeAccount(ctx, toBanAcct)
 				helper.failToSaveBanner = true
 				return NewMsgBan(toBanAcct.NodeAddress, bannerNodeAddr)
@@ -405,10 +405,10 @@ func (s *HandlerBanSuite) TestBanHandlerValidation(c *C) {
 		{
 			name: "when voter had been processed , it should not error",
 			messageProvider: func(ctx cosmos.Context, helper *TestBanKeeperHelper) cosmos.Msg {
-				toBanAcct := GetRandomNodeAccount(NodeActive)
+				toBanAcct := GetRandomValidatorNode(NodeActive)
 				helper.SetNodeAccount(ctx, toBanAcct)
 				voter, _ := helper.GetBanVoter(ctx, toBanAcct.NodeAddress)
-				activeNode := GetRandomNodeAccount(NodeActive)
+				activeNode := GetRandomValidatorNode(NodeActive)
 				helper.SetNodeAccount(ctx, activeNode)
 				voter.Sign(activeNode.NodeAddress)
 				voter.BlockHeight = ctx.BlockHeight()
@@ -423,10 +423,10 @@ func (s *HandlerBanSuite) TestBanHandlerValidation(c *C) {
 		{
 			name: "fail to save to ban account, it should return an error",
 			messageProvider: func(ctx cosmos.Context, helper *TestBanKeeperHelper) cosmos.Msg {
-				toBanAcct := GetRandomNodeAccount(NodeActive)
+				toBanAcct := GetRandomValidatorNode(NodeActive)
 				helper.SetNodeAccount(ctx, toBanAcct)
 				voter, _ := helper.GetBanVoter(ctx, toBanAcct.NodeAddress)
-				activeNode := GetRandomNodeAccount(NodeActive)
+				activeNode := GetRandomValidatorNode(NodeActive)
 				helper.SetNodeAccount(ctx, activeNode)
 				voter.Sign(activeNode.NodeAddress)
 				helper.SetBanVoter(ctx, voter)

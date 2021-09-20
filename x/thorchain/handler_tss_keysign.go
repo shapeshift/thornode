@@ -88,7 +88,7 @@ func (h TssKeysignHandler) validateCurrent(ctx cosmos.Context, msg MsgTssKeysign
 		ctx.Logger().Info("keysign failure message from retiring vault member, should accept")
 	}
 
-	active, err := h.mgr.Keeper().ListActiveNodeAccounts(ctx)
+	active, err := h.mgr.Keeper().ListActiveValidators(ctx)
 	if err != nil {
 		return wrapError(ctx, err, "fail to get list of active node accounts")
 	}

@@ -629,6 +629,10 @@ func isSignedByActiveNodeAccountsV1(ctx cosmos.Context, mgr Manager, signers []c
 			ctx.Logger().Error("unauthorized account, node account not active", "address", signer.String(), "status", nodeAccount.Status)
 			return false
 		}
+		if nodeAccount.Type != NodeValidator {
+			ctx.Logger().Error("unauthorized account, node account must be a validator", "address", signer.String(), "type", nodeAccount.Type)
+			return false
+		}
 	}
 	return true
 }
@@ -1158,7 +1162,7 @@ func emitEndBlockTelemetry(ctx cosmos.Context, mgr Manager) error {
 
 	// emit node metrics
 	yggs := make(Vaults, 0)
-	nodes, err := mgr.Keeper().ListNodeAccountsWithBond(ctx)
+	nodes, err := mgr.Keeper().ListValidatorsWithBond(ctx)
 	if err != nil {
 		return err
 	}

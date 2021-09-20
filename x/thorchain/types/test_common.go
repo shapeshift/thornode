@@ -23,8 +23,8 @@ import (
 	"gitlab.com/thorchain/thornode/constants"
 )
 
-// GetRandomNodeAccount create a random generated node account , used for test purpose
-func GetRandomNodeAccount(status NodeStatus) NodeAccount {
+// GetRandomValidatorNode creates a random validator node account, used for testing
+func GetRandomValidatorNode(status NodeStatus) NodeAccount {
 	s := rand.NewSource(time.Now().UnixNano())
 	r := rand.New(s) // #nosec G404 this is a method only used for test purpose
 	accts := simtypes.RandomAccounts(r, 1)
@@ -43,6 +43,32 @@ func GetRandomNodeAccount(status NodeStatus) NodeAccount {
 		na.Bond = cosmos.NewUint(1000 * common.One)
 	}
 	na.IPAddress = "192.168.0.1"
+	na.Type = NodeType_Validator
+
+	return na
+}
+
+// GetRandomLiteNode creates a random lite node account, used for testing
+func GetRandomLiteNode(status NodeStatus) NodeAccount {
+	s := rand.NewSource(time.Now().UnixNano())
+	r := rand.New(s) // #nosec G404 this is a method only used for test purpose
+	accts := simtypes.RandomAccounts(r, 1)
+
+	k, _ := cosmos.Bech32ifyPubKey(cosmos.Bech32PubKeyTypeConsPub, accts[0].PubKey)
+	pubKeys := common.PubKeySet{
+		Secp256k1: GetRandomPubKey(),
+		Ed25519:   GetRandomPubKey(),
+	}
+	addr, _ := pubKeys.Secp256k1.GetThorAddress()
+	bondAddr := common.Address(addr.String())
+	na := NewNodeAccount(addr, status, pubKeys, k, cosmos.NewUint(100*common.One), bondAddr, 1)
+	na.Version = constants.SWVersion.String()
+	if na.Status == NodeStatus_Active {
+		na.ActiveBlockHeight = 10
+		na.Bond = cosmos.NewUint(1000 * common.One)
+	}
+	na.IPAddress = "192.168.0.1"
+	na.Type = NodeType_Lite
 
 	return na
 }

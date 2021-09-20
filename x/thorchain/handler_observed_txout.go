@@ -110,7 +110,7 @@ func (h ObservedTxOutHandler) preflightV1(ctx cosmos.Context, voter ObservedTxVo
 
 // Handle a message to observe outbound tx
 func (h ObservedTxOutHandler) handleV1(ctx cosmos.Context, msg MsgObservedTxOut) (*cosmos.Result, error) {
-	activeNodeAccounts, err := h.mgr.Keeper().ListActiveNodeAccounts(ctx)
+	activeNodeAccounts, err := h.mgr.Keeper().ListActiveValidators(ctx)
 	if err != nil {
 		return nil, wrapError(ctx, err, "fail to get list of active node accounts")
 	}
@@ -240,7 +240,7 @@ func (h ObservedTxOutHandler) handleV1(ctx cosmos.Context, msg MsgObservedTxOut)
 
 // Handle a message to observe outbound tx
 func (h ObservedTxOutHandler) handleV46(ctx cosmos.Context, msg MsgObservedTxOut) (*cosmos.Result, error) {
-	activeNodeAccounts, err := h.mgr.Keeper().ListActiveNodeAccounts(ctx)
+	activeNodeAccounts, err := h.mgr.Keeper().ListActiveValidators(ctx)
 	if err != nil {
 		return nil, wrapError(ctx, err, "fail to get list of active node accounts")
 	}
@@ -375,7 +375,7 @@ func (h ObservedTxOutHandler) handleV58(ctx cosmos.Context, msg MsgObservedTxOut
 
 // Handle a message to observe outbound tx
 func (h ObservedTxOutHandler) handleCurrent(ctx cosmos.Context, msg MsgObservedTxOut) (*cosmos.Result, error) {
-	activeNodeAccounts, err := h.mgr.Keeper().ListActiveNodeAccounts(ctx)
+	activeNodeAccounts, err := h.mgr.Keeper().ListActiveValidators(ctx)
 	if err != nil {
 		return nil, wrapError(ctx, err, "fail to get list of active node accounts")
 	}

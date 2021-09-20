@@ -79,7 +79,7 @@ func (s *VaultSuite) TestGetTssSigners(c *C) {
 	nodeAccounts := NodeAccounts{}
 	memberShip := make([]string, 0)
 	for i := 0; i < 10; i++ {
-		na := GetRandomNodeAccount(NodeStatus_Active)
+		na := GetRandomValidatorNode(NodeStatus_Active)
 		nodeAccounts = append(nodeAccounts, na)
 		memberShip = append(memberShip, na.PubKeySet.Secp256k1.String())
 	}

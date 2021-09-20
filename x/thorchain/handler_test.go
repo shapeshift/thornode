@@ -181,7 +181,7 @@ type handlerTestWrapper struct {
 func getHandlerTestWrapper(c *C, height int64, withActiveNode, withActieBNBPool bool) handlerTestWrapper {
 	ctx, mgr := setupManagerForTest(c)
 	ctx = ctx.WithBlockHeight(height)
-	acc1 := GetRandomNodeAccount(NodeActive)
+	acc1 := GetRandomValidatorNode(NodeActive)
 	acc1.Version = mgr.GetVersion().String()
 	if withActiveNode {
 		c.Assert(mgr.Keeper().SetNodeAccount(ctx, acc1), IsNil)
@@ -207,7 +207,7 @@ func getHandlerTestWrapper(c *C, height int64, withActiveNode, withActieBNBPool 
 		keeper:               mgr.Keeper(),
 		mgr:                  mgr,
 		activeNodeAccount:    acc1,
-		notActiveNodeAccount: GetRandomNodeAccount(NodeDisabled),
+		notActiveNodeAccount: GetRandomValidatorNode(NodeDisabled),
 	}
 }
 
@@ -216,7 +216,17 @@ func (HandlerSuite) TestIsSignedByActiveNodeAccounts(c *C) {
 	nodeAddr := GetRandomBech32Addr()
 	c.Check(isSignedByActiveNodeAccounts(ctx, mgr, []cosmos.AccAddress{}), Equals, false)
 	c.Check(isSignedByActiveNodeAccounts(ctx, mgr, []cosmos.AccAddress{nodeAddr}), Equals, false)
-	nodeAccount1 := GetRandomNodeAccount(NodeWhiteListed)
+	nodeAccount1 := GetRandomValidatorNode(NodeWhiteListed)
+	c.Assert(mgr.Keeper().SetNodeAccount(ctx, nodeAccount1), IsNil)
+	c.Check(isSignedByActiveNodeAccounts(ctx, mgr, []cosmos.AccAddress{nodeAccount1.NodeAddress}), Equals, false)
+
+	// Update node to be active, check should succeed
+	nodeAccount1.Status = NodeActive
+	c.Assert(mgr.Keeper().SetNodeAccount(ctx, nodeAccount1), IsNil)
+	c.Check(isSignedByActiveNodeAccounts(ctx, mgr, []cosmos.AccAddress{nodeAccount1.NodeAddress}), Equals, true)
+
+	// Update node to be a lite node, check should fail
+	nodeAccount1.Type = NodeLite
 	c.Assert(mgr.Keeper().SetNodeAccount(ctx, nodeAccount1), IsNil)
 	c.Check(isSignedByActiveNodeAccounts(ctx, mgr, []cosmos.AccAddress{nodeAccount1.NodeAddress}), Equals, false)
 }
@@ -614,7 +624,7 @@ func (s *HandlerSuite) TestExternalHandler(c *C) {
 	c.Check(err, NotNil)
 	c.Check(errors.Is(err, se.ErrUnauthorized), Equals, true)
 	c.Check(result, IsNil)
-	na := GetRandomNodeAccount(NodeActive)
+	na := GetRandomValidatorNode(NodeActive)
 	mgr.Keeper().SetNodeAccount(ctx, na)
 	FundModule(c, ctx, mgr.Keeper(), BondName, 10*common.One)
 	result, err = handler(ctx, NewMsgSetVersion("0.1.0", na.NodeAddress))

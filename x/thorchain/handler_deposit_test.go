@@ -45,7 +45,7 @@ func (s *HandlerDepositSuite) TestHandle(c *C) {
 	constAccessor := constants.NewDummyConstants(map[constants.ConstantName]int64{
 		constants.NativeTransactionFee: 1000_000,
 	}, map[constants.ConstantName]bool{}, map[constants.ConstantName]string{})
-	activeNode := GetRandomNodeAccount(NodeActive)
+	activeNode := GetRandomValidatorNode(NodeActive)
 	k.SetNodeAccount(ctx, activeNode)
 	dummyMgr := NewDummyMgrWithKeeper(k)
 	dummyMgr.gasMgr = newGasMgrV1(constAccessor, k)
