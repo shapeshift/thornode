@@ -69,7 +69,7 @@ const (
 	TxRefund          = mem.TxRefund
 	TxUnBond          = mem.TxUnbond
 	TxLeave           = mem.TxLeave
-	TxTHORName        = mem.TxTHORName
+	TxWithdraw        = mem.TxWithdraw
 )
 
 var (
@@ -127,7 +127,6 @@ var (
 	NewMsgRagnarok                 = types.NewMsgRagnarok
 	NewQueryNodeAccount            = types.NewQueryNodeAccount
 	NewQueryTxOutItem              = types.NewQueryTxOutItem
-	GetThreshold                   = types.GetThreshold
 	ModuleCdc                      = types.ModuleCdc
 	RegisterCodec                  = types.RegisterCodec
 	RegisterInterfaces             = types.RegisterInterfaces
@@ -158,8 +157,6 @@ var (
 	GetRandomBNBAddress            = types.GetRandomBNBAddress
 	GetRandomBTCAddress            = types.GetRandomBTCAddress
 	GetRandomLTCAddress            = types.GetRandomLTCAddress
-	GetRandomBCHAddress            = types.GetRandomBCHAddress
-	GetRandomDOGEAddress           = types.GetRandomDOGEAddress
 	GetRandomTxHash                = types.GetRandomTxHash
 	GetRandomBech32Addr            = types.GetRandomBech32Addr
 	GetRandomBech32ConsensusPubKey = types.GetRandomBech32ConsensusPubKey
@@ -169,7 +166,6 @@ var (
 	SetupConfigForTest             = types.SetupConfigForTest
 	HasSimpleMajority              = types.HasSimpleMajority
 	HasSuperMajority               = types.HasSuperMajority
-	NewTssKeysignMetric            = types.NewTssKeysignMetric
 	DefaultGenesis                 = types.DefaultGenesis
 	NewSolvencyVoter               = types.NewSolvencyVoter
 	NewMsgSolvency                 = types.NewMsgSolvency
