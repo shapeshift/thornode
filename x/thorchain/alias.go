@@ -41,6 +41,10 @@ const (
 	NodeStandby     = types.NodeStatus_Standby
 	NodeUnknown     = types.NodeStatus_Unknown
 
+	// Node type
+	NodeValidator = types.NodeType_Validator
+	NodeLite      = types.NodeType_Lite
+
 	// Bond type
 	BondPaid     = types.BondType_bond_paid
 	BondReturned = types.BondType_bond_returned
@@ -65,7 +69,7 @@ const (
 	TxRefund          = mem.TxRefund
 	TxUnBond          = mem.TxUnbond
 	TxLeave           = mem.TxLeave
-	TxTHORName        = mem.TxTHORName
+	TxWithdraw        = mem.TxWithdraw
 )
 
 var (
@@ -123,7 +127,6 @@ var (
 	NewMsgRagnarok                 = types.NewMsgRagnarok
 	NewQueryNodeAccount            = types.NewQueryNodeAccount
 	NewQueryTxOutItem              = types.NewQueryTxOutItem
-	GetThreshold                   = types.GetThreshold
 	ModuleCdc                      = types.ModuleCdc
 	RegisterCodec                  = types.RegisterCodec
 	RegisterInterfaces             = types.RegisterInterfaces
@@ -147,14 +150,13 @@ var (
 	GetRandomVault                 = types.GetRandomVault
 	GetRandomTx                    = types.GetRandomTx
 	GetRandomObservedTx            = types.GetRandomObservedTx
-	GetRandomNodeAccount           = types.GetRandomNodeAccount
+	GetRandomValidatorNode         = types.GetRandomValidatorNode
+	GetRandomLiteNode              = types.GetRandomLiteNode
 	GetRandomTHORAddress           = types.GetRandomTHORAddress
 	GetRandomRUNEAddress           = types.GetRandomRUNEAddress
 	GetRandomBNBAddress            = types.GetRandomBNBAddress
 	GetRandomBTCAddress            = types.GetRandomBTCAddress
 	GetRandomLTCAddress            = types.GetRandomLTCAddress
-	GetRandomBCHAddress            = types.GetRandomBCHAddress
-	GetRandomDOGEAddress           = types.GetRandomDOGEAddress
 	GetRandomTxHash                = types.GetRandomTxHash
 	GetRandomBech32Addr            = types.GetRandomBech32Addr
 	GetRandomBech32ConsensusPubKey = types.GetRandomBech32ConsensusPubKey
@@ -164,7 +166,6 @@ var (
 	SetupConfigForTest             = types.SetupConfigForTest
 	HasSimpleMajority              = types.HasSimpleMajority
 	HasSuperMajority               = types.HasSuperMajority
-	NewTssKeysignMetric            = types.NewTssKeysignMetric
 	DefaultGenesis                 = types.DefaultGenesis
 	NewSolvencyVoter               = types.NewSolvencyVoter
 	NewMsgSolvency                 = types.NewMsgSolvency

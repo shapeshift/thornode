@@ -51,7 +51,7 @@ func (s *SlasherV1) HandleDoubleSign(ctx cosmos.Context, addr crypto.Address, in
 		return nil
 	}
 
-	nas, err := s.keeper.ListActiveNodeAccounts(ctx)
+	nas, err := s.keeper.ListActiveValidators(ctx)
 	if err != nil {
 		return err
 	}
@@ -130,7 +130,7 @@ func (s *SlasherV1) slashNotObserving(ctx cosmos.Context, txHash common.TxID, co
 		return nil
 	}
 
-	nodes, err := s.keeper.ListActiveNodeAccounts(ctx)
+	nodes, err := s.keeper.ListActiveValidators(ctx)
 	if err != nil {
 		return fmt.Errorf("unable to get list of active accounts: %w", err)
 	}

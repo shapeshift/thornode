@@ -18,7 +18,8 @@ func (s *MsgTssPoolSuite) TestMsgTssPool(c *C) {
 	pks := []string{
 		GetRandomPubKey().String(), GetRandomPubKey().String(), GetRandomPubKey().String(),
 	}
-	addr := GetRandomBech32Addr()
+	addr, err := common.PubKey(pks[0]).GetThorAddress()
+	c.Assert(err, IsNil)
 	keygenTime := int64(1024)
 	msg, err := NewMsgTssPool(pks, pk, KeygenType_AsgardKeygen, 1, Blame{}, []string{common.RuneAsset().Chain.String()}, addr, keygenTime)
 	c.Assert(err, IsNil)

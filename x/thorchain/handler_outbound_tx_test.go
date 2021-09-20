@@ -38,7 +38,7 @@ func (s *HandlerOutboundTxSuite) TestValidate(c *C) {
 	ctx, mgr := setupManagerForTest(c)
 
 	keeper := &TestOutboundTxKeeper{
-		activeNodeAccount: GetRandomNodeAccount(NodeActive),
+		activeNodeAccount: GetRandomValidatorNode(NodeActive),
 		vault:             GetRandomVault(),
 	}
 
@@ -209,7 +209,7 @@ func newOutboundTxHandlerTestHelper(c *C) outboundTxHandlerTestHelper {
 	keeper := newOutboundTxHandlerKeeperHelper(mgr.Keeper())
 	keeper.vault = yggVault
 
-	nodeAccount := GetRandomNodeAccount(NodeActive)
+	nodeAccount := GetRandomValidatorNode(NodeActive)
 	nodeAccount.NodeAddress, err = yggVault.PubKey.GetThorAddress()
 	c.Assert(err, IsNil)
 	nodeAccount.Bond = cosmos.NewUint(100 * common.One)

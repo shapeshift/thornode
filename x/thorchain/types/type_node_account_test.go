@@ -58,7 +58,7 @@ func (NodeAccountSuite) TestNodeAccount(c *C) {
 func (NodeAccountSuite) TestNodeAccountsSort(c *C) {
 	var accounts NodeAccounts
 	for {
-		na := GetRandomNodeAccount(NodeStatus_Active)
+		na := GetRandomValidatorNode(NodeStatus_Active)
 		dup := false
 		for _, node := range accounts {
 			if na.NodeAddress.Equals(node.NodeAddress) {
@@ -94,7 +94,7 @@ func (NodeAccountSuite) TestNodeAccountsSort(c *C) {
 func (NodeAccountSuite) TestNodeAccountUpdateStatusAndSort(c *C) {
 	var accounts NodeAccounts
 	for i := 0; i < 10; i++ {
-		na := GetRandomNodeAccount(NodeStatus_Active)
+		na := GetRandomValidatorNode(NodeStatus_Active)
 		accounts = append(accounts, na)
 	}
 	isSorted := sort.SliceIsSorted(accounts, func(i, j int) bool {

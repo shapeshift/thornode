@@ -151,7 +151,7 @@ func (s *LitecoinSuite) SetUpTest(c *C) {
 	c.Assert(s.client, NotNil)
 }
 
-func (s *LitecoinSuite) TearDownTest(c *C) {
+func (s *LitecoinSuite) TearDownTest(_ *C) {
 	s.server.Close()
 }
 
@@ -183,7 +183,7 @@ func (s *LitecoinSuite) TestFetchTxs(c *C) {
 	c.Assert(txs.TxArray[0].Tx, Equals, "24ed2d26fd5d4e0e8fa86633e40faf1bdfc8d1903b1cd02855286312d48818a2")
 	c.Assert(txs.TxArray[0].Sender, Equals, "tltc1qjw8h4l3dtz5xxc7uyh5ys70qkezspgfus9tapm")
 	c.Assert(txs.TxArray[0].To, Equals, "mv4rnyY3Su5gjcDNzbMLKBQkBicCtHUtFB")
-	c.Assert(txs.TxArray[0].Coins.Equals(common.Coins{common.NewCoin(common.LTCAsset, cosmos.NewUint(10000000))}), Equals, true)
+	c.Assert(txs.TxArray[0].Coins.EqualsEx(common.Coins{common.NewCoin(common.LTCAsset, cosmos.NewUint(10000000))}), Equals, true)
 	c.Assert(txs.TxArray[0].Gas.Equals(common.Gas{common.NewCoin(common.LTCAsset, cosmos.NewUint(22705334))}), Equals, true)
 	c.Assert(len(txs.TxArray), Equals, 13)
 }
@@ -213,7 +213,7 @@ func (s *LitecoinSuite) TestGetMemo(c *C) {
 			{
 				ScriptPubKey: btcjson.ScriptPubKeyResult{
 					Asm:       "OP_RETURN 74686f72636861696e3a636f6e736f6c6964617465",
-					Hex:       "",
+					Hex:       "6a1574686f72636861696e3a636f6e736f6c6964617465",
 					ReqSigs:   0,
 					Type:      "nulldata",
 					Addresses: nil,
@@ -231,12 +231,14 @@ func (s *LitecoinSuite) TestGetMemo(c *C) {
 				ScriptPubKey: btcjson.ScriptPubKeyResult{
 					Asm:  "OP_RETURN 737761703a6574682e3078633534633135313236393646334541373935366264396144343130383138654563414443466666663a30786335346331353132363936463345413739353662643961443431",
 					Type: "nulldata",
+					Hex:  "6a4c50737761703a6574682e3078633534633135313236393646334541373935366264396144343130383138654563414443466666663a30786335346331353132363936463345413739353662643961443431",
 				},
 			},
 			{
 				ScriptPubKey: btcjson.ScriptPubKeyResult{
 					Asm:  "OP_RETURN 30383138654563414443466666663a3130303030303030303030",
 					Type: "nulldata",
+					Hex:  "6a1a30383138654563414443466666663a3130303030303030303030",
 				},
 			},
 		},
@@ -613,7 +615,7 @@ func (s *LitecoinSuite) TestGetChain(c *C) {
 }
 
 func (s *LitecoinSuite) TestGetAddress(c *C) {
-	os.Setenv("NET", "mainnet")
+	c.Assert(os.Setenv("NET", "mainnet"), IsNil)
 	pubkey := common.PubKey("tthorpub1addwnpepqt7qug8vk9r3saw8n4r803ydj2g3dqwx0mvq5akhnze86fc536xcycgtrnv")
 	addr := s.client.GetAddress(pubkey)
 	c.Assert(addr, Equals, "ltc1q2gjc0rnhy4nrxvuklk6ptwkcs9kcr59mursyaz")

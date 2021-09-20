@@ -85,7 +85,7 @@ func (HandlerWithdrawSuite) TestWithdrawHandler(c *C) {
 	// w := getHandlerTestWrapper(c, 1, true, true)
 	SetupConfigForTest()
 	ctx, keeper := setupKeeperForTest(c)
-	activeNodeAccount := GetRandomNodeAccount(NodeActive)
+	activeNodeAccount := GetRandomValidatorNode(NodeActive)
 	k := &MockWithdrawKeeper{
 		keeper:            keeper,
 		activeNodeAccount: activeNodeAccount,
@@ -137,7 +137,7 @@ func (HandlerWithdrawSuite) TestWithdrawHandler(c *C) {
 func (HandlerWithdrawSuite) TestAsymmetricWithdraw(c *C) {
 	SetupConfigForTest()
 	ctx, keeper := setupKeeperForTest(c)
-	activeNodeAccount := GetRandomNodeAccount(NodeActive)
+	activeNodeAccount := GetRandomValidatorNode(NodeActive)
 	ver := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(ver)
 	pool := NewPool()
@@ -234,22 +234,22 @@ func (HandlerWithdrawSuite) TestWithdrawHandler_Validation(c *C) {
 		},
 		{
 			name:           "empty asset should fail",
-			msg:            NewMsgWithdrawLiquidity(GetRandomTx(), GetRandomRUNEAddress(), cosmos.NewUint(uint64(MaxWithdrawBasisPoints)), common.Asset{}, common.EmptyAsset, GetRandomNodeAccount(NodeActive).NodeAddress),
+			msg:            NewMsgWithdrawLiquidity(GetRandomTx(), GetRandomRUNEAddress(), cosmos.NewUint(uint64(MaxWithdrawBasisPoints)), common.Asset{}, common.EmptyAsset, GetRandomValidatorNode(NodeActive).NodeAddress),
 			expectedResult: errWithdrawFailValidation,
 		},
 		{
 			name:           "empty RUNE address should fail",
-			msg:            NewMsgWithdrawLiquidity(GetRandomTx(), common.NoAddress, cosmos.NewUint(uint64(MaxWithdrawBasisPoints)), common.BNBAsset, common.EmptyAsset, GetRandomNodeAccount(NodeActive).NodeAddress),
+			msg:            NewMsgWithdrawLiquidity(GetRandomTx(), common.NoAddress, cosmos.NewUint(uint64(MaxWithdrawBasisPoints)), common.BNBAsset, common.EmptyAsset, GetRandomValidatorNode(NodeActive).NodeAddress),
 			expectedResult: errWithdrawFailValidation,
 		},
 		{
 			name:           "withdraw basis point is 0 should fail",
-			msg:            NewMsgWithdrawLiquidity(GetRandomTx(), GetRandomRUNEAddress(), cosmos.ZeroUint(), common.BNBAsset, common.EmptyAsset, GetRandomNodeAccount(NodeActive).NodeAddress),
+			msg:            NewMsgWithdrawLiquidity(GetRandomTx(), GetRandomRUNEAddress(), cosmos.ZeroUint(), common.BNBAsset, common.EmptyAsset, GetRandomValidatorNode(NodeActive).NodeAddress),
 			expectedResult: errWithdrawFailValidation,
 		},
 		{
 			name:           "withdraw basis point is larger than 10000 should fail",
-			msg:            NewMsgWithdrawLiquidity(GetRandomTx(), GetRandomRUNEAddress(), cosmos.NewUint(uint64(MaxWithdrawBasisPoints+100)), common.BNBAsset, common.EmptyAsset, GetRandomNodeAccount(NodeActive).NodeAddress),
+			msg:            NewMsgWithdrawLiquidity(GetRandomTx(), GetRandomRUNEAddress(), cosmos.NewUint(uint64(MaxWithdrawBasisPoints+100)), common.BNBAsset, common.EmptyAsset, GetRandomValidatorNode(NodeActive).NodeAddress),
 			expectedResult: errWithdrawFailValidation,
 		},
 	}
@@ -261,7 +261,7 @@ func (HandlerWithdrawSuite) TestWithdrawHandler_Validation(c *C) {
 }
 
 func (HandlerWithdrawSuite) TestWithdrawHandler_mockFailScenarios(c *C) {
-	activeNodeAccount := GetRandomNodeAccount(NodeActive)
+	activeNodeAccount := GetRandomValidatorNode(NodeActive)
 	ctx, k := setupKeeperForTest(c)
 	currentPool := Pool{
 		BalanceRune:  cosmos.ZeroUint(),
