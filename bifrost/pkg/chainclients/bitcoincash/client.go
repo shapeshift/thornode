@@ -925,20 +925,32 @@ func (c *Client) getSender(tx *btcjson.TxRawResult) (string, error) {
 
 // getMemo returns memo for a btc tx, using vout OP_RETURN
 func (c *Client) getMemo(tx *btcjson.TxRawResult) (string, error) {
-	var opreturns string
-	for _, vout := range tx.Vout {
-		if strings.EqualFold(vout.ScriptPubKey.Type, "nulldata") {
-			opreturn := strings.Fields(vout.ScriptPubKey.Asm)
-			if len(opreturn) == 2 {
-				opreturns += opreturn[1]
+	var opReturns string
+	for _, vOut := range tx.Vout {
+		if !strings.EqualFold(vOut.ScriptPubKey.Type, "nulldata") {
+			continue
+		}
+		buf, err := hex.DecodeString(vOut.ScriptPubKey.Hex)
+		if err != nil {
+			c.logger.Err(err).Msg("fail to hex decode scriptPubKey")
+			continue
+		}
+		asm, err := txscript.DisasmString(buf)
+		if err != nil {
+			c.logger.Err(err).Msg("fail to disasm script pubkey")
+			continue
+		}
+		opReturnFields := strings.Fields(asm)
+		if len(opReturnFields) == 2 {
+			decoded, err := hex.DecodeString(opReturnFields[1])
+			if err != nil {
+				c.logger.Err(err).Msgf("fail to decode OP_RETURN string: %s", opReturnFields[1])
+				continue
 			}
+			opReturns += string(decoded)
 		}
 	}
-	decoded, err := hex.DecodeString(opreturns)
-	if err != nil {
-		return "", fmt.Errorf("fail to decode OP_RETURN string: %s", opreturns)
-	}
-	return string(decoded), nil
+	return opReturns, nil
 }
 
 // getGas returns gas for a btc tx (sum vin - sum vout)
