@@ -154,7 +154,7 @@ func (s *BitcoinSuite) SetUpTest(c *C) {
 	c.Assert(s.client, NotNil)
 }
 
-func (s *BitcoinSuite) TearDownTest(c *C) {
+func (s *BitcoinSuite) TearDownTest(_ *C) {
 	s.server.Close()
 }
 
@@ -186,7 +186,7 @@ func (s *BitcoinSuite) TestFetchTxs(c *C) {
 	c.Assert(txs.TxArray[0].Tx, Equals, "24ed2d26fd5d4e0e8fa86633e40faf1bdfc8d1903b1cd02855286312d48818a2")
 	c.Assert(txs.TxArray[0].Sender, Equals, "tb1qdxxlx4r4jk63cve3rjpj428m26xcukjn5yegff")
 	c.Assert(txs.TxArray[0].To, Equals, "mv4rnyY3Su5gjcDNzbMLKBQkBicCtHUtFB")
-	c.Assert(txs.TxArray[0].Coins.Equals(common.Coins{common.NewCoin(common.BTCAsset, cosmos.NewUint(10000000))}), Equals, true)
+	c.Assert(txs.TxArray[0].Coins.EqualsEx(common.Coins{common.NewCoin(common.BTCAsset, cosmos.NewUint(10000000))}), Equals, true)
 	c.Assert(txs.TxArray[0].Gas.Equals(common.Gas{common.NewCoin(common.BTCAsset, cosmos.NewUint(22705334))}), Equals, true)
 	c.Assert(len(txs.TxArray), Equals, 13)
 }
@@ -209,6 +209,30 @@ func (s *BitcoinSuite) TestGetSender(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(sender, Equals, "tb1qdxxlx4r4jk63cve3rjpj428m26xcukjn5yegff")
 }
+func (s *BitcoinSuite) TestGetAddressesFromScriptPubKeyResult(c *C) {
+
+	addresses := s.client.getAddressesFromScriptPubKey(btcjson.ScriptPubKeyResult{
+		Asm:     "0 de4f4fce2642935d2b9fc7b28bcc9de20ebf2864",
+		Hex:     "0014de4f4fce2642935d2b9fc7b28bcc9de20ebf2864",
+		ReqSigs: 1,
+		Type:    "witness_v0_keyhash",
+		Addresses: []string{
+			"tb1qme85ln3xg2f462ulc7eghnyaug8t72ryhwzs8f",
+		},
+	})
+	c.Assert(addresses, HasLen, 1)
+	c.Assert(addresses[0], Equals, "tb1qme85ln3xg2f462ulc7eghnyaug8t72ryhwzs8f")
+
+	addresses = s.client.getAddressesFromScriptPubKey(btcjson.ScriptPubKeyResult{
+		Asm:       "0 de4f4fce2642935d2b9fc7b28bcc9de20ebf2864",
+		Hex:       "0014de4f4fce2642935d2b9fc7b28bcc9de20ebf2864",
+		ReqSigs:   1,
+		Type:      "witness_v0_keyhash",
+		Addresses: nil,
+	})
+	c.Assert(addresses, HasLen, 1)
+	c.Assert(addresses[0], Equals, "tb1qme85ln3xg2f462ulc7eghnyaug8t72ryhwzs8f")
+}
 
 func (s *BitcoinSuite) TestGetMemo(c *C) {
 	tx := btcjson.TxRawResult{
@@ -216,7 +240,7 @@ func (s *BitcoinSuite) TestGetMemo(c *C) {
 			{
 				ScriptPubKey: btcjson.ScriptPubKeyResult{
 					Asm:       "OP_RETURN 74686f72636861696e3a636f6e736f6c6964617465",
-					Hex:       "",
+					Hex:       "6a1574686f72636861696e3a636f6e736f6c6964617465",
 					ReqSigs:   0,
 					Type:      "nulldata",
 					Addresses: nil,
@@ -234,12 +258,14 @@ func (s *BitcoinSuite) TestGetMemo(c *C) {
 				ScriptPubKey: btcjson.ScriptPubKeyResult{
 					Asm:  "OP_RETURN 737761703a6574682e3078633534633135313236393646334541373935366264396144343130383138654563414443466666663a30786335346331353132363936463345413739353662643961443431",
 					Type: "nulldata",
+					Hex:  "6a4c50737761703a6574682e3078633534633135313236393646334541373935366264396144343130383138654563414443466666663a30786335346331353132363936463345413739353662643961443431",
 				},
 			},
 			{
 				ScriptPubKey: btcjson.ScriptPubKeyResult{
 					Asm:  "OP_RETURN 30383138654563414443466666663a3130303030303030303030",
 					Type: "nulldata",
+					Hex:  "6a1a30383138654563414443466666663a3130303030303030303030",
 				},
 			},
 		},
@@ -617,7 +643,7 @@ func (s *BitcoinSuite) TestGetChain(c *C) {
 }
 
 func (s *BitcoinSuite) TestGetAddress(c *C) {
-	os.Setenv("NET", "mainnet")
+	c.Assert(os.Setenv("NET", "mainnet"), IsNil)
 	pubkey := common.PubKey("tthorpub1addwnpepqt7qug8vk9r3saw8n4r803ydj2g3dqwx0mvq5akhnze86fc536xcycgtrnv")
 	addr := s.client.GetAddress(pubkey)
 	c.Assert(addr, Equals, "bc1q2gjc0rnhy4nrxvuklk6ptwkcs9kcr59mcl2q9j")
@@ -1121,9 +1147,9 @@ func (s *BitcoinSuite) TestGetOutput(c *C) {
 func (s *BitcoinSuite) TestIsValidUTXO(c *C) {
 	netValue := os.Getenv("NET")
 	defer func() {
-		os.Setenv("NET", netValue)
+		c.Assert(os.Setenv("NET", netValue), IsNil)
 	}()
-	os.Unsetenv("NET")
+	c.Assert(os.Unsetenv("NET"), IsNil)
 	// normal pay to pubkey hash segwit
 	c.Assert(s.client.isValidUTXO("00140653096f54ae1ae2d73291d15854aef08ebcfa8c"), Equals, true)
 	// pubkey hash , bitcoin client doesn't use it
