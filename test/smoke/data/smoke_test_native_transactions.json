@@ -1278,18 +1278,5 @@
             }
         ],
         "gas": null
-    },
-    {
-        "chain": "THOR",
-        "from_address": "PROVIDER-2",
-        "to_address": "VAULT",
-        "memo": "WITHDRAW:BNB.BNB",
-        "coins": [
-            {
-                "asset": "THOR.RUNE",
-                "amount": 1
-            }
-        ],
-        "gas": null
     }
 ]

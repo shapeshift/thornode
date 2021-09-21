@@ -817,6 +817,24 @@ class ThorchainState:
             else:
                 asset_address = parts[2]
 
+        fetch_address = asset_address
+        if rune_address != "":
+            fetch_address = rune_address
+        lp = pool.get_liquidity_provider(fetch_address)
+        if lp.units == 0 and lp.pending_tx is None:
+            if lp.rune_address is None:
+                lp.rune_address = rune_address
+            if lp.asset_address is None:
+                lp.asset_address = asset_address
+            pool.set_liquidity_provider(lp)
+
+        if asset_address is not None and not lp.asset_address == asset_address:
+            return self.refund(
+                tx,
+                100,
+                "mismatch of asset address",
+            )
+
         liquidity_units, rune_amt, asset_amt, pending_txid = pool.add_liquidity(
             rune_address, asset_address, orig_rune_amt, orig_asset_amt, asset, tx.id
         )
@@ -1645,6 +1663,8 @@ class LiquidityProvider(Jsonable):
         self.pending_tx = None
         self.rune_deposit_value = 0
         self.asset_deposit_value = 0
+        self.rune_address = None
+        self.asset_address = None
 
     def add(self, units):
         """
