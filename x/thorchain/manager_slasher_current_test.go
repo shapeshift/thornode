@@ -1,6 +1,10 @@
 package thorchain
 
 import (
+	"errors"
+
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper/types"
+	types2 "gitlab.com/thorchain/thornode/x/thorchain/types"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
@@ -12,7 +16,7 @@ type SlashingV69Suite struct{}
 
 var _ = Suite(&SlashingV69Suite{})
 
-func (s *SlashingV69Suite) SetUpSuite(c *C) {
+func (s *SlashingV69Suite) SetUpSuite(_ *C) {
 	SetupConfigForTest()
 }
 
@@ -51,7 +55,7 @@ func (s *SlashingV69Suite) TestObservingSlashing(c *C) {
 		Memo:        "whatever",
 	})
 
-	k.SetTxOut(ctx, txOut)
+	c.Assert(k.SetTxOut(ctx, txOut), IsNil)
 
 	ctx = ctx.WithBlockHeight(height + 300)
 	ver := GetCurrentVersion()
@@ -332,4 +336,94 @@ func (s *SlashingV69Suite) TestIncreaseDecreaseSlashPoints(c *C) {
 	slasher.IncSlashPoints(ctx, 1, addr)
 	slasher.DecSlashPoints(ctx, 1, addr)
 	c.Assert(keeper.slashPoints[addr.String()], Equals, int64(0))
+}
+
+func (s *SlashingV69Suite) TestSlashVault(c *C) {
+	ctx, mgr := setupManagerForTest(c)
+	slasher := mgr.Slasher()
+	// when coins are empty , it should return nil
+	c.Assert(slasher.SlashVault(ctx, GetRandomPubKey(), common.NewCoins(), mgr), IsNil)
+
+	// when vault is not available , it should return an error
+	err := slasher.SlashVault(ctx, GetRandomPubKey(), common.NewCoins(common.NewCoin(common.BTCAsset, cosmos.NewUint(common.One))), mgr)
+	c.Assert(err, NotNil)
+	c.Assert(errors.Is(err, types.ErrVaultNotFound), Equals, true)
+
+	// create a node
+	node := GetRandomValidatorNode(NodeActive)
+	c.Assert(mgr.Keeper().SetNodeAccount(ctx, node), IsNil)
+	FundModule(c, ctx, mgr.Keeper(), BondName, node.Bond.Uint64())
+	vault := GetRandomVault()
+	vault.Type = YggdrasilVault
+	vault.Status = types2.VaultStatus_ActiveVault
+	vault.PubKey = node.PubKeySet.Secp256k1
+	vault.Membership = []string{
+		node.PubKeySet.Secp256k1.String(),
+	}
+	c.Assert(mgr.Keeper().SetVault(ctx, vault), IsNil)
+	// when pool doesn't exist , node can't be slashed , because no price
+	err = slasher.SlashVault(ctx, vault.PubKey, common.NewCoins(common.NewCoin(common.BTCAsset, cosmos.NewUint(common.One))), mgr)
+	c.Assert(err, IsNil)
+	nodeTemp, err := mgr.Keeper().GetNodeAccountByPubKey(ctx, vault.PubKey)
+	c.Assert(err, IsNil)
+	c.Assert(nodeTemp.Bond.Equal(cosmos.NewUint(1000*common.One)), Equals, true)
+
+	pool := NewPool()
+	pool.Asset = common.BTCAsset
+	pool.BalanceRune = cosmos.NewUint(100 * common.One)
+	pool.BalanceAsset = cosmos.NewUint(100 * common.One)
+	pool.Status = PoolAvailable
+
+	c.Assert(mgr.Keeper().SetPool(ctx, pool), IsNil)
+
+	asgardBeforeSlash := mgr.Keeper().GetRuneBalanceOfModule(ctx, AsgardName)
+	bondBeforeSlash := mgr.Keeper().GetRuneBalanceOfModule(ctx, BondName)
+	reserveBeforeSlash := mgr.Keeper().GetRuneBalanceOfModule(ctx, ReserveName)
+
+	err = slasher.SlashVault(ctx, vault.PubKey, common.NewCoins(common.NewCoin(common.BTCAsset, cosmos.NewUint(common.One))), mgr)
+	nodeTemp, err = mgr.Keeper().GetNodeAccountByPubKey(ctx, vault.PubKey)
+	c.Assert(err, IsNil)
+	expectedBond := node.Bond.Sub(cosmos.NewUint(common.One * 3 / 2))
+	c.Assert(nodeTemp.Bond.Equal(expectedBond), Equals, true)
+
+	asgardAfterSlash := mgr.Keeper().GetRuneBalanceOfModule(ctx, AsgardName)
+	bondAfterSlash := mgr.Keeper().GetRuneBalanceOfModule(ctx, BondName)
+	reserveAfterSlash := mgr.Keeper().GetRuneBalanceOfModule(ctx, ReserveName)
+
+	c.Assert(asgardAfterSlash.Sub(asgardBeforeSlash).Uint64(), Equals, uint64(100000000))
+	c.Assert(bondBeforeSlash.Sub(bondAfterSlash).Uint64(), Equals, uint64(150000000))
+	c.Assert(reserveAfterSlash.Sub(reserveBeforeSlash).Uint64(), Equals, uint64(50000000))
+
+	// add one more node , slash asgard
+	node1 := GetRandomValidatorNode(NodeActive)
+	c.Assert(mgr.Keeper().SetNodeAccount(ctx, node1), IsNil)
+	FundModule(c, ctx, mgr.Keeper(), BondName, node1.Bond.Uint64())
+
+	vault1 := GetRandomVault()
+	vault1.Type = AsgardVault
+	vault1.Status = types2.VaultStatus_ActiveVault
+	vault1.PubKey = GetRandomPubKey()
+	vault1.Membership = []string{
+		node.PubKeySet.Secp256k1.String(),
+		node1.PubKeySet.Secp256k1.String(),
+	}
+	c.Assert(mgr.Keeper().SetVault(ctx, vault1), IsNil)
+	nodeBeforeSlash, err := mgr.Keeper().GetNodeAccount(ctx, node.NodeAddress)
+	c.Assert(err, IsNil)
+	nodeBondBeforeSlash := nodeBeforeSlash.Bond
+	node1BondBeforeSlash := node1.Bond
+	err = slasher.SlashVault(ctx, vault1.PubKey, common.NewCoins(common.NewCoin(common.BTCAsset, cosmos.NewUint(common.One))), mgr)
+
+	nodeAfterSlash, err := mgr.Keeper().GetNodeAccount(ctx, node.NodeAddress)
+	c.Assert(err, IsNil)
+	node1AfterSlash, err := mgr.Keeper().GetNodeAccount(ctx, node1.NodeAddress)
+	c.Assert(err, IsNil)
+	nodeBondAfterSlash := nodeAfterSlash.Bond
+	node1BondAfterSlash := node1AfterSlash.Bond
+
+	c.Logf("bond diff: %d", nodeBondBeforeSlash.Sub(nodeBondAfterSlash).Uint64())
+	c.Logf("bond1 diff: %d", node1BondBeforeSlash.Sub(node1BondAfterSlash).Uint64())
+	c.Assert(nodeBondBeforeSlash.Sub(nodeBondAfterSlash).Uint64(), Equals, uint64(76457722))
+	c.Assert(node1BondBeforeSlash.Sub(node1BondAfterSlash).Uint64(), Equals, uint64(76572581))
+
 }

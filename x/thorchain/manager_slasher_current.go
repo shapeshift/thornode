@@ -360,90 +360,40 @@ func (s *SlasherV69) SlashVault(ctx cosmos.Context, vaultPK common.PubKey, coins
 		totalBond = totalBond.Add(na.Bond)
 	}
 
-	for _, member := range membership {
-		na, err := s.keeper.GetNodeAccountByPubKey(ctx, member)
-		if err != nil {
-			ctx.Logger().Error("fail to get node account for slash", "pk", member, "error", err)
+	for _, coin := range coins {
+		if coin.IsEmpty() {
 			continue
 		}
-
-		for _, coin := range coins {
-			if coin.IsEmpty() {
-				continue
-			}
-			slashAmount := common.GetSafeShare(na.Bond, totalBond, coin.Amount)
-			ctx.Logger().Info("slash node account", "node address", na.NodeAddress.String(), "asset", coin.Asset.String(), "amount", slashAmount.String())
-
-			// This check for rune actually isn't required, maybe should be
-			// even removed entirely. Since a vault should never hold rune (as
-			// its a native asset to THORChain and is NOT managed by threshold
-			// signatures)
-			if coin.Asset.IsRune() {
-				// If rune, we take 1.5x the amount, and take it from their bond. We
-				// put 1/3rd of it into the reserve, and 2/3rds into the pools (but
-				// keeping the rune pool balances unchanged)
-				amountToReserve := slashAmount.QuoUint64(2)
-				// if the diff asset is RUNE , just took 1.5 * diff from their bond
-				slashAmount = slashAmount.MulUint64(3).QuoUint64(2)
-				if slashAmount.GT(na.Bond) {
-					slashAmount = na.Bond
-				}
-				na.Bond = common.SafeSub(na.Bond, slashAmount)
-				tx := common.Tx{}
-				tx.ID = common.BlankTxID
-				tx.FromAddress = na.BondAddress
-				bondEvent := NewEventBond(slashAmount, BondCost, tx)
-				if err := s.eventMgr.EmitEvent(ctx, bondEvent); err != nil {
-					return fmt.Errorf("fail to emit bond event: %w", err)
-				}
-				totalBond = common.SafeSub(totalBond, slashAmount)
-				if err := s.keeper.SendFromModuleToModule(ctx, BondName, ReserveName, common.NewCoins(common.NewCoin(common.RuneAsset(), amountToReserve))); err != nil {
-					ctx.Logger().Error("fail to send slash funds to the reserve", "pk", member, "error", err)
-					continue
-				}
-
-				continue
-			}
-
+		totalSlashAmountInRune := cosmos.ZeroUint()
+		if coin.Asset.IsRune() {
+			totalSlashAmountInRune = coin.Amount.MulUint64(3).QuoUint64(2)
+		} else {
 			pool, err := s.keeper.GetPool(ctx, coin.Asset)
 			if err != nil {
 				ctx.Logger().Error("fail to get pool for slash", "asset", coin.Asset, "error", err)
 				continue
 			}
-			// thorchain doesn't even have a pool for the asset
+			// THORChain doesn't even have a pool for the asset
 			if pool.IsEmpty() {
 				ctx.Logger().Error("cannot slash for an empty pool", "asset", coin.Asset)
 				continue
 			}
-			if slashAmount.GT(pool.BalanceAsset) {
-				slashAmount = pool.BalanceAsset
+			coinAmount := coin.Amount
+			if coinAmount.GT(pool.BalanceAsset) {
+				coinAmount = pool.BalanceAsset
 			}
-			runeValue := pool.AssetValueInRune(slashAmount).MulUint64(3).QuoUint64(2)
-			if runeValue.GT(na.Bond) {
-				runeValue = na.Bond
-			}
-			pool.BalanceAsset = common.SafeSub(pool.BalanceAsset, slashAmount)
+			runeValue := pool.AssetValueInRune(coinAmount)
+			totalSlashAmountInRune = runeValue.MulUint64(3).QuoUint64(2)
+			pool.BalanceAsset = common.SafeSub(pool.BalanceAsset, coinAmount)
 			pool.BalanceRune = pool.BalanceRune.Add(runeValue)
-			na.Bond = common.SafeSub(na.Bond, runeValue)
-
-			tx := common.Tx{}
-			tx.ID = common.BlankTxID
-			tx.FromAddress = na.BondAddress
-			bondEvent := NewEventBond(runeValue, BondCost, tx)
-			if err := s.eventMgr.EmitEvent(ctx, bondEvent); err != nil {
-				return fmt.Errorf("fail to emit bond event: %w", err)
-			}
-
-			totalBond = common.SafeSub(totalBond, runeValue)
 			if err := s.keeper.SetPool(ctx, pool); err != nil {
 				ctx.Logger().Error("fail to save pool for slash", "asset", coin.Asset, "error", err)
 				continue
 			}
-
 			poolSlashAmt := []PoolAmt{
 				{
 					Asset:  pool.Asset,
-					Amount: 0 - int64(slashAmount.Uint64()),
+					Amount: 0 - int64(coinAmount.Uint64()),
 				},
 				{
 					Asset:  common.RuneAsset(),
@@ -456,48 +406,90 @@ func (s *SlasherV69) SlashVault(ctx cosmos.Context, vaultPK common.PubKey, coins
 			}
 		}
 
-		// Ban the node account. Ensure we don't ban more than 1/3rd of any
-		// given active or retiring vault
-		if vault.IsYggdrasil() {
-			// TODO: temporally disabling banning for the theft of funds. This
-			// is to give the code time to prove itself reliable before the it
-			// starts booting nodes out of the system
-			toBan := false // TODO flip this to true
-			if na.Bond.IsZero() {
-				toBan = true
+		for _, member := range membership {
+			na, err := s.keeper.GetNodeAccountByPubKey(ctx, member)
+			if err != nil {
+				ctx.Logger().Error("fail to get node account for slash", "pk", member, "error", err)
+				continue
 			}
-			for _, vaultPk := range na.GetSignerMembership() {
-				vault, err := s.keeper.GetVault(ctx, vaultPk)
-				if err != nil {
-					ctx.Logger().Error("fail to get vault", "error", err)
-					continue
+			if na.Bond.IsZero() {
+				continue
+			}
+			slashAmountRune := common.GetSafeShare(na.Bond, totalBond, totalSlashAmountInRune)
+			ctx.Logger().Info("slash node account", "node address", na.NodeAddress.String(), "amount", slashAmountRune.String())
+			if slashAmountRune.GT(na.Bond) {
+				slashAmountRune = na.Bond
+			}
+			na.Bond = common.SafeSub(na.Bond, slashAmountRune)
+			tx := common.Tx{}
+			tx.ID = common.BlankTxID
+			tx.FromAddress = na.BondAddress
+			bondEvent := NewEventBond(slashAmountRune, BondCost, tx)
+			if err := s.eventMgr.EmitEvent(ctx, bondEvent); err != nil {
+				return fmt.Errorf("fail to emit bond event: %w", err)
+			}
+
+			// Ban the node account. Ensure we don't ban more than 1/3rd of any
+			// given active or retiring vault
+			if vault.IsYggdrasil() {
+				// TODO: temporally disabling banning for the theft of funds. This
+				// is to give the code time to prove itself reliable before the it
+				// starts booting nodes out of the system
+				toBan := false // TODO flip this to true
+				if na.Bond.IsZero() {
+					toBan = true
 				}
-				if !(vault.Status == ActiveVault || vault.Status == RetiringVault) {
-					continue
-				}
-				activeMembers := 0
-				for _, pk := range vault.GetMembership() {
-					member, _ := s.keeper.GetNodeAccountByPubKey(ctx, pk)
-					if member.Status == NodeActive {
-						activeMembers += 1
+				for _, vaultPk := range na.GetSignerMembership() {
+					vault, err := s.keeper.GetVault(ctx, vaultPk)
+					if err != nil {
+						ctx.Logger().Error("fail to get vault", "error", err)
+						continue
+					}
+					if !(vault.Status == ActiveVault || vault.Status == RetiringVault) {
+						continue
+					}
+					activeMembers := 0
+					for _, pk := range vault.GetMembership() {
+						member, _ := s.keeper.GetNodeAccountByPubKey(ctx, pk)
+						if member.Status == NodeActive {
+							activeMembers += 1
+						}
+					}
+					if !HasSuperMajority(activeMembers, len(vault.GetMembership())) {
+						toBan = false
+						break
 					}
 				}
-				if !HasSuperMajority(activeMembers, len(vault.GetMembership())) {
-					toBan = false
-					break
+				if toBan {
+					na.ForcedToLeave = true
+					na.LeaveScore = 1 // Set Leave Score to 1, which means the nodes is bad
 				}
 			}
-			if toBan {
-				na.ForcedToLeave = true
-				na.LeaveScore = 1 // Set Leave Score to 1, which means the nodes is bad
+
+			if err := s.keeper.SetNodeAccount(ctx, na); err != nil {
+				ctx.Logger().Error("fail to save node account for slash", "error", err)
 			}
 		}
 
-		err = s.keeper.SetNodeAccount(ctx, na)
-		if err != nil {
-			ctx.Logger().Error("fail to save node account for slash", "error", err)
+		//  2/3 of the RUNE value to asgard
+		//  1/3 of the RUNE value to reserve
+		runeToAsgard := totalSlashAmountInRune.MulUint64(2).QuoUint64(3)
+		runeToReserve := common.SafeSub(totalSlashAmountInRune, runeToAsgard)
+
+		if !runeToReserve.IsZero() {
+			if err := s.keeper.SendFromModuleToModule(ctx, BondName, ReserveName, common.NewCoins(common.NewCoin(common.RuneAsset(), runeToReserve))); err != nil {
+				ctx.Logger().Error("fail to send slash funds to reserve module", "pk", vaultPK, "error", err)
+			}
+
 		}
+		if !runeToAsgard.IsZero() {
+			if err := s.keeper.SendFromModuleToModule(ctx, BondName, AsgardName, common.NewCoins(common.NewCoin(common.RuneAsset(), runeToAsgard))); err != nil {
+				ctx.Logger().Error("fail to send slash fund to asgard module", "pk", vaultPK, "error", err)
+			}
+		}
+
 	}
+
 	return nil
 }
 
