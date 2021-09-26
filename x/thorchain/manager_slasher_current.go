@@ -416,10 +416,11 @@ func (s *SlasherV69) SlashVault(ctx cosmos.Context, vaultPK common.PubKey, coins
 				continue
 			}
 			slashAmountRune := common.GetSafeShare(na.Bond, totalBond, totalSlashAmountInRune)
-			ctx.Logger().Info("slash node account", "node address", na.NodeAddress.String(), "amount", slashAmountRune.String())
 			if slashAmountRune.GT(na.Bond) {
+				ctx.Logger().Info("slash amount is larger than bond", "slash amount", slashAmountRune, "bond", na.Bond)
 				slashAmountRune = na.Bond
 			}
+			ctx.Logger().Info("slash node account", "node address", na.NodeAddress.String(), "amount", slashAmountRune.String(), "total slash amount", totalSlashAmountInRune)
 			na.Bond = common.SafeSub(na.Bond, slashAmountRune)
 			tx := common.Tx{}
 			tx.ID = common.BlankTxID
