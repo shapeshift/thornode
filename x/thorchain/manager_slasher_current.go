@@ -413,6 +413,7 @@ func (s *SlasherV69) SlashVault(ctx cosmos.Context, vaultPK common.PubKey, coins
 				continue
 			}
 			if na.Bond.IsZero() {
+				ctx.Logger().Info("validator's bond is zero, can't be slashed", "node address", na.NodeAddress.String())
 				continue
 			}
 			slashAmountRune := common.GetSafeShare(na.Bond, totalBond, totalSlashAmountInRune)
