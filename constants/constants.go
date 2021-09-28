@@ -23,13 +23,16 @@ var (
 // The version of this software
 var SWVersion, _ = semver.Make(Version)
 
-// Block time of THORChain
+// ThorchainBlockTime Block time of THORChain
 var ThorchainBlockTime = 5 * time.Second
 
-// Memo Size
-var MaxMemoSize = 250
+// MaxMemoSize Maximum Memo Size
+const MaxMemoSize = 250
 
-// ConstantValues implement ConstantValues interface
+// MaxETHGas define the maximum gas for a single transaction on ETH
+const MaxETHGas = 50000000
+
+// ConstantVals implement ConstantValues interface
 type ConstantVals struct {
 	int64values  map[ConstantName]int64
 	boolValues   map[ConstantName]bool
