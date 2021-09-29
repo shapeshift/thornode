@@ -1,78 +1,19 @@
 package thorchain
 
 import (
-	"github.com/blang/semver"
-
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 )
 
-// RagnarokHandler process MsgRagnarok
-type RagnarokHandler struct {
-	mgr Manager
-}
-
-// NewRagnarokHandler create a new instance of RagnarokHandler
-func NewRagnarokHandler(mgr Manager) RagnarokHandler {
-	return RagnarokHandler{
-		mgr: mgr,
-	}
-}
-
-// Run is the main entry point of ragnarok handler
-func (h RagnarokHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Result, error) {
-	msg, ok := m.(*MsgRagnarok)
-	if !ok {
-		return nil, errInvalidMessage
-	}
-	if err := h.validate(ctx, *msg); err != nil {
-		ctx.Logger().Error("MsgRagnarok failed validation", "error", err)
-		return nil, err
-	}
-	result, err := h.handle(ctx, *msg)
-	if err != nil {
-		ctx.Logger().Error("fail to process MsgRagnarok", "error", err)
-	}
-	return result, err
-}
-
-func (h RagnarokHandler) validate(ctx cosmos.Context, msg MsgRagnarok) error {
-	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.1.0")) {
-		return h.validateV1(ctx, msg)
-	}
-	return errInvalidVersion
-}
-
-func (h RagnarokHandler) validateV1(ctx cosmos.Context, msg MsgRagnarok) error {
-	return msg.ValidateBasic()
-}
-
-func (h RagnarokHandler) handle(ctx cosmos.Context, msg MsgRagnarok) (*cosmos.Result, error) {
-	ctx.Logger().Info("receive MsgRagnarok", "request tx hash", msg.Tx.Tx.ID)
-	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.65.0")) {
-		return h.handleV65(ctx, msg)
-	} else if version.GTE(semver.MustParse("0.1.0")) {
-		return h.handleV1(ctx, msg)
-	}
-	return nil, errBadVersion
-}
-
-func (h RagnarokHandler) slashV1(ctx cosmos.Context, tx ObservedTx) error {
-	toSlash := tx.Tx.Coins.Adds(tx.Tx.Gas.ToCoins())
-	return h.mgr.Slasher().SlashVault(ctx, tx.ObservedPubKey, toSlash, h.mgr)
-}
-
-func (h RagnarokHandler) handleV65(ctx cosmos.Context, msg MsgRagnarok) (*cosmos.Result, error) {
+func (h RagnarokHandler) handleV1(ctx cosmos.Context, msg MsgRagnarok) (*cosmos.Result, error) {
 	// for ragnarok on thorchain ,
 	if msg.Tx.Tx.Chain.Equals(common.THORChain) {
 		return &cosmos.Result{}, nil
 	}
 	shouldSlash := true
 	signingTransPeriod := h.mgr.GetConstants().GetInt64Value(constants.SigningTransactionPeriod)
-	decrementedPendingRagnarok := false
+
 	for height := msg.BlockHeight; height <= common.BlockHeight(ctx); height += signingTransPeriod {
 		// update txOut record with our TxID that sent funds out of the pool
 		txOut, err := h.mgr.Keeper().GetTxOut(ctx, height)
@@ -117,15 +58,13 @@ func (h RagnarokHandler) handleV65(ctx cosmos.Context, msg MsgRagnarok) (*cosmos
 				if err := h.mgr.Keeper().SetTxOut(ctx, txOut); nil != err {
 					return nil, ErrInternal(err, "fail to save tx out")
 				}
-				if !decrementedPendingRagnarok {
-					pending, err := h.mgr.Keeper().GetRagnarokPending(ctx)
-					if err != nil {
-						ctx.Logger().Error("fail to get ragnarok pending", "error", err)
-					} else {
-						h.mgr.Keeper().SetRagnarokPending(ctx, pending-1)
-						ctx.Logger().Info("remaining ragnarok transaction", "count", pending-1)
-					}
-					decrementedPendingRagnarok = true
+
+				pending, err := h.mgr.Keeper().GetRagnarokPending(ctx)
+				if err != nil {
+					ctx.Logger().Error("fail to get ragnarok pending", "error", err)
+				} else {
+					h.mgr.Keeper().SetRagnarokPending(ctx, pending-1)
+					ctx.Logger().Info("remaining ragnarok transaction", "count", pending-1)
 				}
 				break
 

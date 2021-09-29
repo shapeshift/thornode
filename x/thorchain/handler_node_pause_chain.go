@@ -50,10 +50,6 @@ func (h NodePauseChainHandler) validate(ctx cosmos.Context, msg MsgNodePauseChai
 }
 
 func (h NodePauseChainHandler) validateV1(ctx cosmos.Context, msg MsgNodePauseChain) error {
-	return h.validateCurrent(ctx, msg)
-}
-
-func (h NodePauseChainHandler) validateCurrent(ctx cosmos.Context, msg MsgNodePauseChain) error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
@@ -75,10 +71,6 @@ func (h NodePauseChainHandler) handle(ctx cosmos.Context, msg MsgNodePauseChain)
 }
 
 func (h NodePauseChainHandler) handleV1(ctx cosmos.Context, msg MsgNodePauseChain) error {
-	return h.handleCurrent(ctx, msg)
-}
-
-func (h NodePauseChainHandler) handleCurrent(ctx cosmos.Context, msg MsgNodePauseChain) error {
 	// get block height of last churn
 	active, err := h.mgr.Keeper().GetAsgardVaultsByStatus(ctx, ActiveVault)
 	if err != nil {
