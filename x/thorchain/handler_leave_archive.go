@@ -3,85 +3,12 @@ package thorchain
 import (
 	"fmt"
 
-	"github.com/blang/semver"
-
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 )
 
-// LeaveHandler a handler to process leave request
-// if an operator of THORChain node would like to leave and get their bond back , they have to
-// send a Leave request through Binance Chain
-type LeaveHandler struct {
-	mgr Manager
-}
-
-// NewLeaveHandler create a new LeaveHandler
-func NewLeaveHandler(mgr Manager) LeaveHandler {
-	return LeaveHandler{
-		mgr: mgr,
-	}
-}
-
-// Run execute the handler
-func (h LeaveHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Result, error) {
-	msg, ok := m.(*MsgLeave)
-	if !ok {
-		return nil, errInvalidMessage
-	}
-	ctx.Logger().Info("receive MsgLeave",
-		"sender", msg.Tx.FromAddress.String(),
-		"request tx hash", msg.Tx.ID)
-	if err := h.validate(ctx, *msg); err != nil {
-		ctx.Logger().Error("msg leave fail validation", "error", err)
-		return nil, err
-	}
-
-	if err := h.handle(ctx, *msg); err != nil {
-		ctx.Logger().Error("fail to process msg leave", "error", err)
-		return nil, err
-	}
-	return &cosmos.Result{}, nil
-}
-
-func (h LeaveHandler) validate(ctx cosmos.Context, msg MsgLeave) error {
-	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.1.0")) {
-		return h.validateV1(ctx, msg)
-	}
-	return errBadVersion
-}
-
-func (h LeaveHandler) validateV1(ctx cosmos.Context, msg MsgLeave) error {
-	if err := msg.ValidateBasic(); err != nil {
-		return err
-	}
-
-	jail, err := h.mgr.Keeper().GetNodeAccountJail(ctx, msg.NodeAddress)
-	if err != nil {
-		// ignore this error and carry on. Don't want a jail bug causing node
-		// accounts to not be able to get their funds out
-		ctx.Logger().Error("fail to get node account jail", "error", err)
-	}
-	if jail.IsJailed(ctx) {
-		return fmt.Errorf("failed to leave due to jail status: (release height %d) %s", jail.ReleaseHeight, jail.Reason)
-	}
-
-	return nil
-}
-
-func (h LeaveHandler) handle(ctx cosmos.Context, msg MsgLeave) error {
-	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.46.0")) {
-		return h.handleV46(ctx, msg)
-	} else if version.GTE(semver.MustParse("0.1.0")) {
-		return h.handleV1(ctx, msg)
-	}
-	return errBadVersion
-}
-
-func (h LeaveHandler) handleV46(ctx cosmos.Context, msg MsgLeave) error {
+func (h LeaveHandler) handleV1(ctx cosmos.Context, msg MsgLeave) error {
 	nodeAcc, err := h.mgr.Keeper().GetNodeAccount(ctx, msg.NodeAddress)
 	if err != nil {
 		return ErrInternal(err, "fail to get node account by bond address")

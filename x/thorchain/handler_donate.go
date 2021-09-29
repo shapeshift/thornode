@@ -47,10 +47,6 @@ func (h DonateHandler) validate(ctx cosmos.Context, msg MsgDonate) error {
 }
 
 func (h DonateHandler) validateV1(ctx cosmos.Context, msg MsgDonate) error {
-	return h.validateCurrent(ctx, msg)
-}
-
-func (h DonateHandler) validateCurrent(ctx cosmos.Context, msg MsgDonate) error {
 	return msg.ValidateBasic()
 }
 
@@ -65,10 +61,6 @@ func (h DonateHandler) handle(ctx cosmos.Context, msg MsgDonate) error {
 }
 
 func (h DonateHandler) handleV1(ctx cosmos.Context, msg MsgDonate) error {
-	return h.handleCurrent(ctx, msg)
-}
-
-func (h DonateHandler) handleCurrent(ctx cosmos.Context, msg MsgDonate) error {
 	pool, err := h.mgr.Keeper().GetPool(ctx, msg.Asset)
 	if err != nil {
 		return ErrInternal(err, fmt.Sprintf("fail to get pool for (%s)", msg.Asset))

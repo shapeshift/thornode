@@ -44,10 +44,6 @@ func (h ConsolidateHandler) validate(ctx cosmos.Context, msg MsgConsolidate) err
 }
 
 func (h ConsolidateHandler) validateV1(ctx cosmos.Context, msg MsgConsolidate) error {
-	return h.validateCurrent(ctx, msg)
-}
-
-func (h ConsolidateHandler) validateCurrent(ctx cosmos.Context, msg MsgConsolidate) error {
 	return msg.ValidateBasic()
 }
 
@@ -66,10 +62,6 @@ func (h ConsolidateHandler) handle(ctx cosmos.Context, msg MsgConsolidate) (*cos
 }
 
 func (h ConsolidateHandler) handleV1(ctx cosmos.Context, msg MsgConsolidate) (*cosmos.Result, error) {
-	return h.handleCurrent(ctx, msg)
-}
-
-func (h ConsolidateHandler) handleCurrent(ctx cosmos.Context, msg MsgConsolidate) (*cosmos.Result, error) {
 
 	shouldSlash := false
 

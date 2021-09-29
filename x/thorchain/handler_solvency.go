@@ -35,6 +35,7 @@ func (h SolvencyHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Result, 
 	}
 	return h.handle(ctx, *msg)
 }
+
 func (h SolvencyHandler) validate(ctx cosmos.Context, msg MsgSolvency) error {
 	version := h.mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.70.0")) {
@@ -44,19 +45,8 @@ func (h SolvencyHandler) validate(ctx cosmos.Context, msg MsgSolvency) error {
 	}
 	return errBadVersion
 }
-func (h SolvencyHandler) validateV1(ctx cosmos.Context, msg MsgSolvency) error {
-	if err := msg.ValidateBasic(); err != nil {
-		return err
-	}
-	if !isSignedByActiveNodeAccounts(ctx, h.mgr, msg.GetSigners()) {
-		return cosmos.ErrUnauthorized(fmt.Sprintf("%+v are not authorized", msg.GetSigners()))
-	}
-	return nil
-}
+
 func (h SolvencyHandler) validateV70(ctx cosmos.Context, msg MsgSolvency) error {
-	return h.validateCurrent(ctx, msg)
-}
-func (h SolvencyHandler) validateCurrent(ctx cosmos.Context, msg MsgSolvency) error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
@@ -73,6 +63,7 @@ func (h SolvencyHandler) validateCurrent(ctx cosmos.Context, msg MsgSolvency) er
 	}
 	return nil
 }
+
 func (h SolvencyHandler) handle(ctx cosmos.Context, msg MsgSolvency) (*cosmos.Result, error) {
 	ctx.Logger().Info("handle Solvency request", "id", msg.Id.String(), "signer", msg.Signer.String())
 	version := h.mgr.GetVersion()
@@ -162,17 +153,13 @@ func (h SolvencyHandler) handleV1(ctx cosmos.Context, msg MsgSolvency) (*cosmos.
 	return &cosmos.Result{}, nil
 }
 
-func (h SolvencyHandler) handleV70(ctx cosmos.Context, msg MsgSolvency) (*cosmos.Result, error) {
-	return h.handleCurrent(ctx, msg)
-}
-
 // handleCurrent is the logic to process MsgSolvency, the feature works like this
 // 1. Bifrost report MsgSolvency to thornode , which is the balance of asgard wallet on each individual chain
 // 2. once MsgSolvency reach consensus , then the network compare the wallet balance against wallet
 //    if wallet has less fund than asgard vault , and the gap is more than 1% , then the chain
 //    that is insolvent will be halt
 // 3. When chain is halt , bifrost will not observe inbound , and will not sign outbound txs until the issue has been investigated , and enabled it again using mimir
-func (h SolvencyHandler) handleCurrent(ctx cosmos.Context, msg MsgSolvency) (*cosmos.Result, error) {
+func (h SolvencyHandler) handleV70(ctx cosmos.Context, msg MsgSolvency) (*cosmos.Result, error) {
 	voter, err := h.mgr.Keeper().GetSolvencyVoter(ctx, msg.Id, msg.Chain)
 	if err != nil {
 		return &cosmos.Result{}, fmt.Errorf("fail to get solvency voter, err: %w", err)
@@ -302,6 +289,7 @@ func (h SolvencyHandler) insolvencyCheck(ctx cosmos.Context, vault Vault, coins 
 	}
 	return false
 }
+
 func (h SolvencyHandler) excludePendingOutboundFromVault(ctx cosmos.Context, vault Vault) (Vault, error) {
 	// go back SigningTransactionPeriod blocks to see whether there are outstanding tx, the vault need to send out
 	// if there is , deduct it from their balance
@@ -320,6 +308,7 @@ func (h SolvencyHandler) excludePendingOutboundFromVault(ctx cosmos.Context, vau
 	}
 	return vault, nil
 }
+
 func (h SolvencyHandler) deductVaultBlockPendingOutbound(vault Vault, block *TxOut) Vault {
 	for _, txOutItem := range block.TxArray {
 		if !txOutItem.VaultPubKey.Equals(vault.PubKey) {
