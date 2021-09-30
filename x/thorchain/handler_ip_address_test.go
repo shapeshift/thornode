@@ -22,7 +22,7 @@ func (k *TestIPAddresslKeeper) SendFromAccountToModule(ctx cosmos.Context, from 
 
 func (k *TestIPAddresslKeeper) GetNodeAccount(_ cosmos.Context, addr cosmos.AccAddress) (NodeAccount, error) {
 	if k.liteNode.NodeAddress.Equals(addr) {
-		return NodeAccount{Type: NodeLite}, nil
+		return NodeAccount{Type: NodeTypeLite}, nil
 	}
 	return k.na, nil
 }

@@ -629,7 +629,7 @@ func isSignedByActiveNodeAccountsV1(ctx cosmos.Context, mgr Manager, signers []c
 			ctx.Logger().Error("unauthorized account, node account not active", "address", signer.String(), "status", nodeAccount.Status)
 			return false
 		}
-		if nodeAccount.Type != NodeValidator {
+		if nodeAccount.Type != NodeTypeValidator {
 			ctx.Logger().Error("unauthorized account, node account must be a validator", "address", signer.String(), "type", nodeAccount.Type)
 			return false
 		}
