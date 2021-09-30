@@ -226,7 +226,7 @@ func (HandlerSuite) TestIsSignedByActiveNodeAccounts(c *C) {
 	c.Check(isSignedByActiveNodeAccounts(ctx, mgr, []cosmos.AccAddress{nodeAccount1.NodeAddress}), Equals, true)
 
 	// Update node to be a lite node, check should fail
-	nodeAccount1.Type = NodeLite
+	nodeAccount1.Type = NodeTypeLite
 	c.Assert(mgr.Keeper().SetNodeAccount(ctx, nodeAccount1), IsNil)
 	c.Check(isSignedByActiveNodeAccounts(ctx, mgr, []cosmos.AccAddress{nodeAccount1.NodeAddress}), Equals, false)
 }

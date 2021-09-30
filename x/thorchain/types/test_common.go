@@ -43,7 +43,7 @@ func GetRandomValidatorNode(status NodeStatus) NodeAccount {
 		na.Bond = cosmos.NewUint(1000 * common.One)
 	}
 	na.IPAddress = "192.168.0.1"
-	na.Type = NodeType_Validator
+	na.Type = NodeType_TypeValidator
 
 	return na
 }
@@ -68,7 +68,7 @@ func GetRandomLiteNode(status NodeStatus) NodeAccount {
 		na.Bond = cosmos.NewUint(1000 * common.One)
 	}
 	na.IPAddress = "192.168.0.1"
-	na.Type = NodeType_Lite
+	na.Type = NodeType_TypeLite
 
 	return na
 }
