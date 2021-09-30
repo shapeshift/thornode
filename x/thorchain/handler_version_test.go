@@ -36,7 +36,7 @@ func (k *TestVersionlKeeper) GetNodeAccount(_ cosmos.Context, addr cosmos.AccAdd
 		return NodeAccount{}, nil
 	}
 	if k.liteNodeAccount.NodeAddress.Equals(addr) {
-		return NodeAccount{Type: NodeLite}, nil
+		return NodeAccount{Type: NodeTypeLite}, nil
 	}
 	return k.na, nil
 }
