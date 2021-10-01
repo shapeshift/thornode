@@ -13,7 +13,7 @@ import (
 
 var (
 	EmptyChain = Chain("")
-	ATOMChain  = Chain("ATOM")
+	GAIAChain  = Chain("GAIA")
 	BNBChain   = Chain("BNB")
 	ETHChain   = Chain("ETH")
 	BTCChain   = Chain("BTC")
@@ -111,6 +111,8 @@ func (c Chain) GetGasAsset() Asset {
 		return DOGEAsset
 	case ETHChain:
 		return ETHAsset
+	case GAIAChain:
+		return ATOMAsset
 	default:
 		return EmptyAsset
 	}
