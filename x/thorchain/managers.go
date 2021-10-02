@@ -188,7 +188,7 @@ func (mgr *Mgrs) BeginBlock(ctx cosmos.Context) error {
 		return fmt.Errorf("fail to get tx out store: %w", err)
 	}
 
-	mgr.networkMgr, err = GetVaultManager(mgr.K, v, mgr.txOutStore, mgr.eventMgr)
+	mgr.networkMgr, err = GetNetworkManager(mgr.K, v, mgr.txOutStore, mgr.eventMgr)
 	if err != nil {
 		return fmt.Errorf("fail to get vault manager: %w", err)
 	}
@@ -308,9 +308,11 @@ func GetTxOutStore(keeper keeper.Keeper, version semver.Version, eventMgr EventM
 	return nil, errInvalidVersion
 }
 
-// GetVaultManager retrieve a NetworkManager that is compatible with the given version
-func GetVaultManager(keeper keeper.Keeper, version semver.Version, txOutStore TxOutStore, eventMgr EventManager) (NetworkManager, error) {
-	if version.GTE(semver.MustParse("0.63.0")) {
+// GetNetworkManager  retrieve a NetworkManager that is compatible with the given version
+func GetNetworkManager(keeper keeper.Keeper, version semver.Version, txOutStore TxOutStore, eventMgr EventManager) (NetworkManager, error) {
+	if version.GTE(semver.MustParse("0.69.0")) {
+		return newNetworkMgrV69(keeper, txOutStore, eventMgr), nil
+	} else if version.GTE(semver.MustParse("0.63.0")) {
 		return newNetworkMgrV63(keeper, txOutStore, eventMgr), nil
 	} else if version.GTE(semver.MustParse("0.59.0")) {
 		return newNetworkMgrV59(keeper, txOutStore, eventMgr), nil
