@@ -3,6 +3,7 @@ package ethereum
 import (
 	"context"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -76,6 +77,7 @@ type ETHScanner struct {
 	currentBlockHeight   int64
 	gasCache             []*big.Int
 	solvencyReporter     SolvencyReporter
+	whitelistTokens      []ERC20Token
 }
 
 // NewETHScanner create a new instance of ETHScanner
@@ -115,6 +117,12 @@ func NewETHScanner(cfg config.BlockScannerConfiguration,
 	if err != nil {
 		return nil, fmt.Errorf("fail to create contract abi: %w", err)
 	}
+	// load token list
+	var whitelistTokens TokenList
+	if err := json.Unmarshal(tokenList, &whitelistTokens); err != nil {
+		return nil, fmt.Errorf("fail to load token list,err: %w", err)
+	}
+
 	return &ETHScanner{
 		cfg:                  cfg,
 		logger:               log.Logger.With().Str("module", "block_scanner").Str("chain", common.ETHChain.String()).Logger(),
@@ -134,6 +142,7 @@ func NewETHScanner(cfg config.BlockScannerConfiguration,
 		pubkeyMgr:            pubkeyMgr,
 		gasCache:             make([]*big.Int, 0),
 		solvencyReporter:     solvencyReporter,
+		whitelistTokens:      whitelistTokens.Tokens,
 	}, nil
 }
 
@@ -158,7 +167,7 @@ func (e *ETHScanner) GetHeight() (int64, error) {
 }
 
 // FetchMemPool get tx from mempool
-func (e *ETHScanner) FetchMemPool(height int64) (stypes.TxIn, error) {
+func (e *ETHScanner) FetchMemPool(_ int64) (stypes.TxIn, error) {
 	return stypes.TxIn{}, nil
 }
 
@@ -615,6 +624,16 @@ func (e *ETHScanner) getTokenMeta(token string) (types.TokenMeta, error) {
 		return types.TokenMeta{}, fmt.Errorf("fail to get token meta: %w", err)
 	}
 	if tokenMeta.IsEmpty() {
+		isWhiteListToken := false
+		for _, item := range e.whitelistTokens {
+			if strings.EqualFold(item.Address, token) {
+				isWhiteListToken = true
+				break
+			}
+		}
+		if !isWhiteListToken {
+			return types.TokenMeta{}, fmt.Errorf("token: %s is not whitelisted", token)
+		}
 		symbol, err := e.getSymbol(token)
 		if err != nil {
 			return types.TokenMeta{}, fmt.Errorf("fail to get symbol: %w", err)

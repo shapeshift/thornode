@@ -1,0 +1,145 @@
+{
+  "name": "MyCrypto Token List",
+  "logoURI": "https://raw.githubusercontent.com/MyCryptoHQ/MyCrypto/master/src/assets/images/favicon.png",
+  "timestamp": "2021-05-25T12:50:27-07:00",
+  "tokens": [
+    {
+      "chainId": 1,
+      "address": "0x0bc529c00C6401aEF6D220BE8C6Ea1667F6Ad93e",
+      "symbol": "YFI",
+      "name": "yearnfinance",
+      "decimals": 18
+    },
+    {
+      "chainId": 1,
+      "address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+      "symbol": "USDC",
+      "name": "USD Coin",
+      "decimals": 6
+    },
+    {
+      "chainId": 1,
+      "address": "0x2ba592F78dB6436527729929AAf6c908497cB200",
+      "symbol": "CREAM",
+      "name": "Cream",
+      "decimals": 6
+    },
+    {
+      "chainId": 1,
+      "address": "0xa1faa113cbE53436Df28FF0aEe54275c13B40975",
+      "symbol": "ALPHA",
+      "name": "AlphaToken",
+      "decimals": 18
+    },
+    {
+      "chainId": 1,
+      "address": "0xef6344de1fcfC5F48c30234C16c1389e8CdC572C",
+      "symbol": "DNA",
+      "name": "DNA",
+      "decimals": 18
+    },
+    {
+      "chainId": 1,
+      "address": "0xbC396689893D065F41bc2C6EcbeE5e0085233447",
+      "symbol": "PERP",
+      "name": "Perpetual",
+      "decimals": 18
+    },
+    {
+      "chainId": 1,
+      "address": "0x519475b31653E46D20cD09F9FdcF3B12BDAcB4f5",
+      "symbol": "VIU",
+      "name": "Viuly",
+      "decimals": 18
+    },
+    {
+      "chainId": 1,
+      "address": "0x6B3595068778DD592e39A122f4f5a5cF09C90fE2",
+      "symbol": "SUSHI",
+      "name": "SushiToken",
+      "decimals": 18
+    },
+    {
+      "chainId": 1,
+      "address": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+      "symbol": "USDT",
+      "name": "USDTethererc20",
+      "decimals": 6
+    },
+    {
+      "chainId": 1,
+      "address": "0x5eaa69b29f99c84fe5de8200340b4e9b4ab38eac",
+      "symbol": "RAZE",
+      "name": "Raze Network",
+      "decimals": 18
+    },
+    {
+      "chainId": 1,
+      "address": "0x67b6d479c7bb412c54e03dca8e1bc6740ce6b99c",
+      "symbol": "KYL",
+      "name": "Kylin Network",
+      "decimals": 18
+    },
+    {
+      "chainId": 1,
+      "address": "0x69fa0fee221ad11012bab0fdb45d444d3d2ce71c",
+      "symbol": "XRUNE",
+      "name": "XRUNE Token",
+      "decimals": 18
+    },
+    {
+      "chainId": 1,
+      "address": "0x3155ba85d5f96b2d030a4966af206230e46849cb",
+      "symbol": "RUNE",
+      "name": "RUNE Token",
+      "decimals": 18
+    },
+    {
+      "chainId": 1,
+      "address": "0x43dfc4159d86f3a37a5a4b3d4580b888ad7d4ddd",
+      "symbol": "DODO",
+      "name": "DODO bird",
+      "decimals": 18
+    },
+    {
+      "chainId": 1,
+      "address": "0x584bc13c7d411c00c01a62e8019472de68768430",
+      "symbol": "HEGIC",
+      "name": "Hegic",
+      "decimals": 18
+    },
+    {
+      "chainId": 1,
+      "address": "0x6c6ee5e31d828de241282b9606c8e98ea48526e2",
+      "symbol": "HOT",
+      "name": "HoloToken",
+      "decimals": 18
+    },
+    {
+      "chainId": 1,
+      "address": "0xdbdb4d16eda451d0503b854cf79d55697f90c8df",
+      "symbol": "ALCX",
+      "name": "Alchemix",
+      "decimals": 18
+    },
+    {
+      "chainId": 1,
+      "address": "0xC011a73ee8576Fb46F5E1c5751cA3B9Fe0af2a6F",
+      "symbol": "SNX",
+      "name": "Synthetix Network Token",
+      "decimals": 18
+    },
+    {
+      "chainId": 1,
+      "address": "0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9",
+      "symbol": "AAVE",
+      "name": "Aave Token",
+      "decimals": 18
+    }
+  ],
+  "version": {
+    "major": 1,
+    "minor": 4,
+    "patch": 0
+  }
+}
