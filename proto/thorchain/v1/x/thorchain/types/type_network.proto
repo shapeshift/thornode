@@ -10,4 +10,6 @@ message Network {
   string total_bond_units = 2 [(gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Uint", (gogoproto.nullable) = false];
   string burned_bep2_rune = 3 [(gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Uint", (gogoproto.nullable) = false];
   string burned_erc20_rune = 4 [(gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Uint", (gogoproto.nullable) = false];
+  int64 LPIncomeSplit = 5;
+  int64 NodeIncomeSplit = 6;
 }
