@@ -30,7 +30,7 @@ func (ManagersTestSuite) TestManagers(c *C) {
 	c.Assert(err, NotNil)
 	c.Assert(errors.Is(err, errInvalidVersion), Equals, true)
 
-	vaultMgr, err := GetVaultManager(mgr.Keeper(), ver, mgr.TxOutStore(), mgr.EventMgr())
+	vaultMgr, err := GetNetworkManager(mgr.Keeper(), ver, mgr.TxOutStore(), mgr.EventMgr())
 	c.Assert(vaultMgr, IsNil)
 	c.Assert(err, NotNil)
 	c.Assert(errors.Is(err, errInvalidVersion), Equals, true)
