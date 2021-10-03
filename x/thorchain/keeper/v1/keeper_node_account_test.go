@@ -74,27 +74,27 @@ func (s *KeeperNodeAccountSuite) TestGetMinJoinVersion(c *C) {
 			nodeInfoes: []nodeInfo{
 				{
 					status:   NodeActive,
-					nodeType: NodeValidator,
+					nodeType: NodeTypeValidator,
 					version:  semver.MustParse("0.2.0"),
 				},
 				{
 					status:   NodeActive,
-					nodeType: NodeValidator,
+					nodeType: NodeTypeValidator,
 					version:  semver.MustParse("0.3.0"),
 				},
 				{
 					status:   NodeActive,
-					nodeType: NodeValidator,
+					nodeType: NodeTypeValidator,
 					version:  semver.MustParse("0.3.0"),
 				},
 				{
 					status:   NodeStandby,
-					nodeType: NodeValidator,
+					nodeType: NodeTypeValidator,
 					version:  semver.MustParse("0.2.0"),
 				},
 				{
 					status:   NodeStandby,
-					nodeType: NodeValidator,
+					nodeType: NodeTypeValidator,
 					version:  semver.MustParse("0.2.0"),
 				},
 			},
@@ -105,27 +105,27 @@ func (s *KeeperNodeAccountSuite) TestGetMinJoinVersion(c *C) {
 			nodeInfoes: []nodeInfo{
 				{
 					status:   NodeActive,
-					nodeType: NodeValidator,
+					nodeType: NodeTypeValidator,
 					version:  semver.MustParse("0.2.0"),
 				},
 				{
 					status:   NodeActive,
-					nodeType: NodeValidator,
+					nodeType: NodeTypeValidator,
 					version:  semver.MustParse("1.3.0"),
 				},
 				{
 					status:   NodeActive,
-					nodeType: NodeValidator,
+					nodeType: NodeTypeValidator,
 					version:  semver.MustParse("0.3.0"),
 				},
 				{
 					status:   NodeStandby,
-					nodeType: NodeValidator,
+					nodeType: NodeTypeValidator,
 					version:  semver.MustParse("0.2.0"),
 				},
 				{
 					status:   NodeStandby,
-					nodeType: NodeValidator,
+					nodeType: NodeTypeValidator,
 					version:  semver.MustParse("0.2.0"),
 				},
 			},
@@ -136,27 +136,27 @@ func (s *KeeperNodeAccountSuite) TestGetMinJoinVersion(c *C) {
 			nodeInfoes: []nodeInfo{
 				{
 					status:   NodeActive,
-					nodeType: NodeValidator,
+					nodeType: NodeTypeValidator,
 					version:  semver.MustParse("0.2.0"),
 				},
 				{
 					status:   NodeActive,
-					nodeType: NodeValidator,
+					nodeType: NodeTypeValidator,
 					version:  semver.MustParse("1.3.0"),
 				},
 				{
 					status:   NodeActive,
-					nodeType: NodeValidator,
+					nodeType: NodeTypeValidator,
 					version:  semver.MustParse("0.3.0"),
 				},
 				{
 					status:   NodeActive,
-					nodeType: NodeValidator,
+					nodeType: NodeTypeValidator,
 					version:  semver.MustParse("0.2.0"),
 				},
 				{
 					status:   NodeActive,
-					nodeType: NodeValidator,
+					nodeType: NodeTypeValidator,
 					version:  semver.MustParse("0.2.0"),
 				},
 			},

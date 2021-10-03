@@ -2,6 +2,7 @@ package ethereum
 
 import (
 	"context"
+	_ "embed"
 	"errors"
 	"fmt"
 	"math/big"
@@ -139,6 +140,7 @@ func NewClient(thorKeys *thorclient.Keys,
 		wg:           &sync.WaitGroup{},
 		stopchan:     make(chan struct{}),
 	}
+
 	c.logger.Info().Msgf("current chain id: %d", chainID.Uint64())
 	if chainID.Uint64() == 0 {
 		return nil, fmt.Errorf("chain id is: %d , invalid", chainID.Uint64())

@@ -190,11 +190,7 @@ func (s *QuerierSuite) TestQueryNodeAccounts(c *C) {
 	querier := NewQuerier(mgr, s.kb)
 	path := []string{"nodes"}
 
-	signer := GetRandomBech32Addr()
-	bondAddr := GetRandomBNBAddress()
-	emptyPubKeySet := common.PubKeySet{}
-	bond := cosmos.NewUint(common.One * 100)
-	nodeAccount := NewNodeAccount(signer, NodeActive, emptyPubKeySet, "", bond, bondAddr, common.BlockHeight(ctx))
+	nodeAccount := GetRandomValidatorNode(NodeActive)
 	c.Assert(keeper.SetNodeAccount(ctx, nodeAccount), IsNil)
 	vault := GetRandomVault()
 	vault.Status = ActiveVault
@@ -208,11 +204,7 @@ func (s *QuerierSuite) TestQueryNodeAccounts(c *C) {
 	c.Assert(err1, IsNil)
 	c.Assert(len(out), Equals, 1)
 
-	signer = GetRandomBech32Addr()
-	bondAddr = GetRandomBNBAddress()
-	emptyPubKeySet = common.PubKeySet{}
-	bond = cosmos.NewUint(common.One * 200)
-	nodeAccount2 := NewNodeAccount(signer, NodeActive, emptyPubKeySet, "", bond, bondAddr, common.BlockHeight(ctx))
+	nodeAccount2 := GetRandomValidatorNode(NodeActive)
 	c.Assert(keeper.SetNodeAccount(ctx, nodeAccount2), IsNil)
 
 	res, err = querier(ctx, path, abci.RequestQuery{})
