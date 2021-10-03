@@ -30,24 +30,24 @@ func (k *TestOutboundTxKeeper) GetNodeAccount(_ cosmos.Context, addr cosmos.AccA
 
 var _ = Suite(&HandlerOutboundTxSuite{})
 
-func (s *HandlerOutboundTxSuite) SetUpSuite(c *C) {
+func (s *HandlerOutboundTxSuite) SetUpSuite(_ *C) {
 	SetupConfigForTest()
 }
 
 func (s *HandlerOutboundTxSuite) TestValidate(c *C) {
 	ctx, mgr := setupManagerForTest(c)
 
-	keeper := &TestOutboundTxKeeper{
+	k := &TestOutboundTxKeeper{
 		activeNodeAccount: GetRandomValidatorNode(NodeActive),
 		vault:             GetRandomVault(),
 	}
 
-	mgr.K = keeper
-	mgr.slasher = newSlasherV1(keeper, NewDummyEventMgr())
+	mgr.K = k
+	mgr.slasher = newSlasherV1(k, NewDummyEventMgr())
 
 	handler := NewOutboundTxHandler(mgr)
 
-	addr, err := keeper.vault.PubKey.GetAddress(common.BNBChain)
+	addr, err := k.vault.PubKey.GetAddress(common.BNBChain)
 	c.Assert(err, IsNil)
 
 	tx := NewObservedTx(common.Tx{
@@ -60,7 +60,7 @@ func (s *HandlerOutboundTxSuite) TestValidate(c *C) {
 		Gas:         BNBGasFeeSingleton,
 	}, 12, GetRandomPubKey(), 12)
 
-	msgOutboundTx := NewMsgOutboundTx(tx, tx.Tx.ID, keeper.activeNodeAccount.NodeAddress)
+	msgOutboundTx := NewMsgOutboundTx(tx, tx.Tx.ID, k.activeNodeAccount.NodeAddress)
 	sErr := handler.validate(ctx, *msgOutboundTx)
 	c.Assert(sErr, IsNil)
 
@@ -154,11 +154,11 @@ func (k *outboundTxHandlerKeeperHelper) GetAsgardVaultsByStatus(ctx cosmos.Conte
 	return k.Keeper.GetAsgardVaultsByStatus(ctx, status)
 }
 
-func (k *outboundTxHandlerKeeperHelper) GetVault(ctx cosmos.Context, _ common.PubKey) (Vault, error) {
+func (k *outboundTxHandlerKeeperHelper) GetVault(_ cosmos.Context, _ common.PubKey) (Vault, error) {
 	return k.vault, nil
 }
 
-func (k *outboundTxHandlerKeeperHelper) SetVault(ctx cosmos.Context, v Vault) error {
+func (k *outboundTxHandlerKeeperHelper) SetVault(_ cosmos.Context, v Vault) error {
 	k.vault = v
 	return nil
 }
@@ -206,8 +206,8 @@ func newOutboundTxHandlerTestHelper(c *C) outboundTxHandlerTestHelper {
 		Gas:         BNBGasFeeSingleton,
 	}, 12, GetRandomPubKey(), 12)
 
-	keeper := newOutboundTxHandlerKeeperHelper(mgr.Keeper())
-	keeper.vault = yggVault
+	keeperHelper := newOutboundTxHandlerKeeperHelper(mgr.Keeper())
+	keeperHelper.vault = yggVault
 
 	nodeAccount := GetRandomValidatorNode(NodeActive)
 	nodeAccount.NodeAddress, err = yggVault.PubKey.GetThorAddress()
@@ -215,17 +215,17 @@ func newOutboundTxHandlerTestHelper(c *C) outboundTxHandlerTestHelper {
 	nodeAccount.Bond = cosmos.NewUint(100 * common.One)
 	FundModule(c, ctx, mgr.Keeper(), BondName, nodeAccount.Bond.Uint64())
 	nodeAccount.PubKeySet = common.NewPubKeySet(yggVault.PubKey, yggVault.PubKey)
-	c.Assert(keeper.SetNodeAccount(ctx, nodeAccount), IsNil)
+	c.Assert(keeperHelper.SetNodeAccount(ctx, nodeAccount), IsNil)
 
-	c.Assert(keeper.SetPool(ctx, pool), IsNil)
+	c.Assert(keeperHelper.SetPool(ctx, pool), IsNil)
 	voter := NewObservedTxVoter(tx.Tx.ID, make(ObservedTxs, 0))
 	voter.Add(tx, nodeAccount.NodeAddress)
 	voter.FinalisedHeight = common.BlockHeight(ctx)
 	voter.Tx = voter.GetTx(NodeAccounts{nodeAccount})
-	keeper.SetObservedTxOutVoter(ctx, voter)
+	keeperHelper.SetObservedTxOutVoter(ctx, voter)
 
 	constAccessor := constants.GetConstantValues(version)
-	txOutStorage := newTxOutStorageV1(keeper, constAccessor, NewDummyEventMgr(), newGasMgrV1(constAccessor, keeper))
+	txOutStorage := newTxOutStorageV1(keeperHelper, constAccessor, NewDummyEventMgr(), newGasMgrV1(constAccessor, keeperHelper))
 	toi := TxOutItem{
 		Chain:       common.BNBChain,
 		ToAddress:   tx.Tx.FromAddress,
@@ -234,8 +234,8 @@ func newOutboundTxHandlerTestHelper(c *C) outboundTxHandlerTestHelper {
 		Memo:        NewOutboundMemo(tx.Tx.ID).String(),
 		InHash:      tx.Tx.ID,
 	}
-	mgr.K = keeper
-	mgr.slasher = newSlasherV1(keeper, NewDummyEventMgr())
+	mgr.K = keeperHelper
+	mgr.slasher = newSlasherV1(keeperHelper, NewDummyEventMgr())
 	result, err := txOutStorage.TryAddTxOutItem(ctx, mgr, toi)
 	c.Assert(err, IsNil)
 	c.Check(result, Equals, true)
@@ -244,7 +244,7 @@ func newOutboundTxHandlerTestHelper(c *C) outboundTxHandlerTestHelper {
 		ctx:           ctx,
 		pool:          pool,
 		version:       version,
-		keeper:        keeper,
+		keeper:        keeperHelper,
 		asgardVault:   asgardVault,
 		yggVault:      yggVault,
 		nodeAccount:   nodeAccount,
@@ -458,4 +458,53 @@ func (s *HandlerOutboundTxSuite) TestOutboundTxHandlerInvalidObservedTxVoterShou
 	c.Assert(err, IsNil)
 	c.Assert(pool.BalanceRune.Equal(cosmos.NewUint(10149940373)), Equals, true, Commentf("%d/%s", pool.BalanceRune.Uint64(), cosmos.NewUint(10149884125)))
 	c.Assert(pool.BalanceAsset.Equal(poolBNB), Equals, true, Commentf("%d/%d", pool.BalanceAsset.Uint64(), poolBNB.Uint64()))
+}
+
+func (s *HandlerOutboundTxSuite) TestOutboundTxHandlerETHChainSpendTooMuchGasShouldSlash(c *C) {
+	helper := newOutboundTxHandlerTestHelper(c)
+	handler := NewOutboundTxHandler(helper.mgr)
+	pool := NewPool()
+	pool.Asset = common.ETHAsset
+	pool.BalanceAsset = cosmos.NewUint(100 * common.One)
+	pool.BalanceRune = cosmos.NewUint(100 * common.One)
+	pool.LPUnits = pool.BalanceRune
+	c.Assert(helper.keeper.SetPool(helper.ctx, pool), IsNil)
+	fromAddr, err := helper.yggVault.PubKey.GetAddress(common.ETHChain)
+	c.Assert(err, IsNil)
+	usdtAsset, err := common.NewAsset("ETH.USDT-0XA3910454BF2CB59B8B3A401589A3BACC5CA42306")
+	c.Assert(err, IsNil)
+
+	txOutStorage := newTxOutStorageV1(helper.keeper, helper.constAccessor, NewDummyEventMgr(), newGasMgrV1(helper.constAccessor, helper.keeper))
+	pubKey := GetRandomPubKey()
+	toAddr, err := pubKey.GetAddress(common.ETHChain)
+	c.Assert(err, IsNil)
+	toi := TxOutItem{
+		Chain:       common.ETHChain,
+		ToAddress:   toAddr,
+		VaultPubKey: helper.yggVault.PubKey,
+		Coin:        common.NewCoin(usdtAsset, cosmos.NewUint(2*common.One)),
+		Memo:        NewOutboundMemo(helper.inboundTx.Tx.ID).String(),
+		InHash:      helper.inboundTx.Tx.ID,
+	}
+	c.Assert(txOutStorage.UnSafeAddTxOutItem(helper.ctx, helper.mgr, toi), IsNil)
+	tx := NewObservedTx(common.Tx{
+		ID:    GetRandomTxHash(),
+		Chain: common.ETHChain,
+		Coins: common.Coins{
+			common.NewCoin(usdtAsset, cosmos.NewUint(2*common.One)),
+		},
+		Memo:        NewOutboundMemo(helper.inboundTx.Tx.ID).String(),
+		FromAddress: fromAddr,
+		ToAddress:   toAddr,
+		Gas: common.Gas{
+			common.NewCoin(common.ETHAsset, cosmos.NewUint(1*common.One)),
+		},
+	}, common.BlockHeight(helper.ctx), helper.nodeAccount.PubKeySet.Secp256k1, common.BlockHeight(helper.ctx))
+	expectedBond := cosmos.NewUint(9850000000)
+
+	outMsg := NewMsgOutboundTx(tx, helper.inboundTx.Tx.ID, helper.nodeAccount.NodeAddress)
+	_, err = handler.Run(helper.ctx, outMsg)
+	c.Assert(err, IsNil)
+	na, err := helper.keeper.GetNodeAccount(helper.ctx, helper.nodeAccount.NodeAddress)
+	c.Assert(na.Bond.Equal(expectedBond), Equals, true, Commentf("%d/%d", na.Bond.Uint64(), expectedBond.Uint64()))
 }

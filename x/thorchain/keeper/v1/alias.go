@@ -23,8 +23,9 @@ const (
 	NodeUnknown = types.NodeStatus_Unknown
 
 	// Node type
-	NodeValidator = types.NodeType_Validator
-	NodeLite      = types.NodeType_Lite
+	NodeTypeUnknown   = types.NodeType_TypeUnknown
+	NodeTypeValidator = types.NodeType_TypeValidator
+	NodeTypeLite      = types.NodeType_TypeLite
 
 	// Bond type
 	AsgardKeygen = types.KeygenType_AsgardKeygen

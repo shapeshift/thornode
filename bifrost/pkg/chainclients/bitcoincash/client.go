@@ -740,7 +740,11 @@ func (c *Client) getTxIn(tx *btcjson.TxRawResult, height int64) (types.TxInItem,
 	if len([]byte(memo)) > constants.MaxMemoSize {
 		return types.TxInItem{}, fmt.Errorf("memo (%s) longer than max allow length(%d)", memo, constants.MaxMemoSize)
 	}
-	output, err := c.getOutput(sender, tx, strings.EqualFold(memo, mem.NewConsolidateMemo().String()))
+	m, err := mem.ParseMemo(memo)
+	if err != nil {
+		c.logger.Err(err).Msgf("fail to parse memo: %s", memo)
+	}
+	output, err := c.getOutput(sender, tx, m.IsType(mem.TxConsolidate))
 	if err != nil {
 		if errors.Is(err, btypes.FailOutputMatchCriteria) {
 			c.logger.Debug().Int64("height", height).Str("tx", tx.Hash).Msg("ignore tx not matching format")

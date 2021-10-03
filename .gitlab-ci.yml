@@ -47,7 +47,7 @@ unit-tests:
     - go tool cover -html=coverage.out -o coverage.html
 
 lint-code:
-  image: golangci/golangci-lint:v1.32.0
+  image: golangci/golangci-lint:v1.42.1
   stage: test
   tags:
     - thorchain

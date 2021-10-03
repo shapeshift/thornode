@@ -53,7 +53,7 @@ func (k KVStore) ListValidatorsWithBond(ctx cosmos.Context) (NodeAccounts, error
 		if err := k.cdc.UnmarshalBinaryBare(naIterator.Value(), &na); err != nil {
 			return nodeAccounts, dbError(ctx, "Unmarshal: node account", err)
 		}
-		if na.Type == NodeValidator && !na.Bond.IsZero() {
+		if na.Type == NodeTypeValidator && !na.Bond.IsZero() {
 			nodeAccounts = append(nodeAccounts, na)
 		}
 	}
@@ -70,7 +70,7 @@ func (k KVStore) ListValidatorsByStatus(ctx cosmos.Context, status NodeStatus) (
 		if err := k.cdc.UnmarshalBinaryBare(naIterator.Value(), &na); err != nil {
 			return nodeAccounts, dbError(ctx, "Unmarshal: node account", err)
 		}
-		if na.Type == NodeValidator && na.Status == status {
+		if na.Type == NodeTypeValidator && na.Status == status {
 			nodeAccounts = append(nodeAccounts, na)
 		}
 	}
