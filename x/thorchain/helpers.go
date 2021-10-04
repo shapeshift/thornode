@@ -1210,6 +1210,9 @@ func emitEndBlockTelemetry(ctx cosmos.Context, mgr Manager) error {
 		return err
 	}
 	for _, pool := range pools {
+		if pool.LPUnits.Equal(cosmos.NewUint(0)) {
+			continue
+		}
 		synthSupply := mgr.Keeper().GetTotalSupply(ctx, pool.Asset.GetSyntheticAsset())
 		labels := []metrics.Label{telemetry.NewLabel("pool", pool.Asset.String())}
 		telemetry.SetGaugeWithLabels([]string{"thornode", "pool", "balance", "synth"}, telem(synthSupply), labels)
