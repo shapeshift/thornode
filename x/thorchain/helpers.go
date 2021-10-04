@@ -1200,8 +1200,8 @@ func emitEndBlockTelemetry(ctx cosmos.Context, mgr Manager) error {
 		}
 	}
 
-	// get rune price
-	runeUSDPrice := telem(DollarInRune(ctx, mgr))
+	// get 1 RUNE price in USD
+	runeUSDPrice := 1 / telem(DollarInRune(ctx, mgr))
 	telemetry.SetGauge(runeUSDPrice, "thornode", "price", "usd", "thor", "rune")
 
 	// emit pool metrics
