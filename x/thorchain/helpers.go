@@ -1123,7 +1123,7 @@ func DollarInRune(ctx cosmos.Context, mgr Manager) cosmos.Uint {
 
 func telem(input cosmos.Uint) float32 {
 	i := input.Uint64()
-	return float32(i / 100000000)
+	return float32(i) / 100000000
 }
 
 func emitEndBlockTelemetry(ctx cosmos.Context, mgr Manager) error {
