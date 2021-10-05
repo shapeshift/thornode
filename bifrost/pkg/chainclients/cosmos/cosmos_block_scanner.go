@@ -2,8 +2,6 @@ package cosmos
 
 import (
 	"bytes"
-	"crypto/sha256"
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -17,10 +15,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	"github.com/tendermint/go-amino"
-	"gitlab.com/thorchain/binance-sdk/common/types"
-	bmsg "gitlab.com/thorchain/binance-sdk/types/msg"
-	"gitlab.com/thorchain/binance-sdk/types/tx"
 
 	"gitlab.com/thorchain/thornode/bifrost/blockscanner"
 	bltypes "gitlab.com/thorchain/thornode/bifrost/blockscanner/types"
@@ -30,7 +24,6 @@ import (
 	"gitlab.com/thorchain/thornode/bifrost/thorclient"
 	stypes "gitlab.com/thorchain/thornode/bifrost/thorclient/types"
 	"gitlab.com/thorchain/thornode/common"
-	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 // SolvencyReporter is to report solvency info to THORNode
@@ -64,11 +57,6 @@ func NewCosmosBlockScanner(cfg config.BlockScannerConfiguration,
 	if m == nil {
 		return nil, errors.New("metrics is nil")
 	}
-	if isTestNet {
-		types.Network = types.TestNetwork
-	} else {
-		types.Network = types.ProdNetwork
-	}
 
 	netClient := &http.Client{
 		Timeout: cfg.HttpRequestTimeout,
@@ -76,9 +64,9 @@ func NewCosmosBlockScanner(cfg config.BlockScannerConfiguration,
 
 	return &CosmosBlockScanner{
 		cfg:              cfg,
-		logger:           log.Logger.With().Str("module", "blockscanner").Str("chain", "BNB").Logger(),
+		logger:           log.Logger.With().Str("module", "blockscanner").Str("chain", "GAIA").Logger(),
 		db:               scanStorage,
-		errCounter:       m.GetCounterVec(metrics.BlockScanError(common.BNBChain)),
+		errCounter:       m.GetCounterVec(metrics.BlockScanError(common.GAIAChain)),
 		http:             netClient,
 		bridge:           bridge,
 		solvencyReporter: solvencyReporter,
@@ -87,14 +75,14 @@ func NewCosmosBlockScanner(cfg config.BlockScannerConfiguration,
 
 // getTxHash return hex formatted value of tx hash
 // raw tx base 64 encoded -> base64 decode -> sha256sum = tx hash
-func (b *CosmosBlockScanner) getTxHash(encodedTx string) (string, error) {
-	decodedTx, err := base64.StdEncoding.DecodeString(encodedTx)
-	if err != nil {
-		b.errCounter.WithLabelValues("fail_decode_tx", encodedTx).Inc()
-		return "", fmt.Errorf("fail to decode tx: %w", err)
-	}
-	return fmt.Sprintf("%X", sha256.Sum256(decodedTx)), nil
-}
+// func (b *CosmosBlockScanner) getTxHash(encodedTx string) (string, error) {
+// 	decodedTx, err := base64.StdEncoding.DecodeString(encodedTx)
+// 	if err != nil {
+// 		b.errCounter.WithLabelValues("fail_decode_tx", encodedTx).Inc()
+// 		return "", fmt.Errorf("fail to decode tx: %w", err)
+// 	}
+// 	return fmt.Sprintf("%X", sha256.Sum256(decodedTx)), nil
+// }
 
 func (b *CosmosBlockScanner) GetHeight() (int64, error) {
 	u, err := url.Parse(b.cfg.RPCHost)
@@ -136,67 +124,6 @@ func (b *CosmosBlockScanner) GetHeight() (int64, error) {
 	return strconv.ParseInt(abci.Result.Response.BlockHeight, 10, 64)
 }
 
-func (b *CosmosBlockScanner) updateFees(height int64) error {
-	url := fmt.Sprintf("%s/abci_query?path=\"/param/fees\"&height=%d", b.cfg.RPCHost, height)
-	resp, err := b.http.Get(url)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		return fmt.Errorf("failed to get current gas fees: non 200 error (%d)", resp.StatusCode)
-	}
-
-	bz, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
-	var result btypes.QueryResult
-	if err := json.Unmarshal(bz, &result); err != nil {
-		return err
-	}
-
-	val, err := base64.StdEncoding.DecodeString(result.Result.Response.Value)
-	if err != nil {
-		return err
-	}
-
-	var fees []types.FeeParam
-	cdc := amino.NewCodec()
-	types.RegisterWire(cdc)
-	err = cdc.UnmarshalBinaryLengthPrefixed(val, &fees)
-	if err != nil {
-		return err
-	}
-	changed := false
-	for _, fee := range fees {
-		if fee.GetParamType() == types.TransferFeeType {
-			if err := fee.Check(); err != nil {
-				return err
-			}
-
-			transferFee := fee.(*types.TransferFeeParam)
-			if transferFee.FixedFeeParams.Fee > 0 {
-				if b.singleFee != uint64(transferFee.FixedFeeParams.Fee) {
-					changed = true
-				}
-				b.singleFee = uint64(transferFee.FixedFeeParams.Fee)
-			}
-			if transferFee.MultiTransferFee > 0 {
-				b.multiFee = uint64(transferFee.MultiTransferFee)
-			}
-		}
-	}
-	if changed {
-		if _, err := b.bridge.PostNetworkFee(height, common.BNBChain, 1, b.singleFee); err != nil {
-			b.logger.Err(err).Msg("fail to post Binance chain single transfer fee to THORNode")
-		}
-	}
-
-	return nil
-}
-
 func (b *CosmosBlockScanner) processBlock(block blockscanner.Block) (stypes.TxIn, error) {
 	var txIn stypes.TxIn
 	if err := b.db.SetBlockScanStatus(block, blockscanner.Processing); err != nil {
@@ -211,41 +138,44 @@ func (b *CosmosBlockScanner) processBlock(block blockscanner.Block) (stypes.TxIn
 	}
 
 	// update our gas fees from binance RPC node
-	if err := b.updateFees(block.Height); err != nil {
-		b.logger.Error().Err(err).Msg("fail to update Binance gas fees")
-	}
+	// if err := b.updateFees(block.Height); err != nil {
+	// 	b.logger.Error().Err(err).Msg("fail to update Binance gas fees")
+	// }
 
 	// TODO implement pagination appropriately
 	for _, txn := range block.Txs {
-		hash, err := b.getTxHash(txn)
-		if err != nil {
-			b.logger.Error().Err(err).Str("tx", txn).Msg("fail to get tx hash from raw data")
-			return txIn, fmt.Errorf("fail to get tx hash from tx raw data: %w", err)
-		}
+		b.logger.Info().Str("transaction", txn).Msg("blockscanner: new cosmos transaction")
 
-		txItemIns, err := b.fromTxToTxIn(hash, txn, block.Height)
-		if err != nil {
-			b.logger.Error().Err(err).Str("hash", hash).Msg("fail to get one tx from server")
-			// if THORNode fail to get one tx hash from server, then THORNode should bail, because THORNode might miss tx
-			// if THORNode bail here, then THORNode should retry later
-			return txIn, fmt.Errorf("fail to get one tx from server: %w", err)
-		}
-		if len(txItemIns) > 0 {
-			txIn.TxArray = append(txIn.TxArray, txItemIns...)
-			b.m.GetCounter(metrics.BlockWithTxIn("BNB")).Inc()
-			b.logger.Debug().Str("hash", hash).Msgf("%s got %d tx", b.cfg.ChainID, len(txItemIns))
-		}
-	}
-	if len(txIn.TxArray) == 0 {
-		b.m.GetCounter(metrics.BlockNoTxIn("BNB")).Inc()
-		b.logger.Debug().Int64("block", block.Height).Msg("no tx need to be processed in this block")
-		return txIn, nil
+		// hash, err := b.getTxHash(txn)
+		// if err != nil {
+		// 	b.logger.Error().Err(err).Str("tx", txn).Msg("fail to get tx hash from raw data")
+		// 	return txIn, fmt.Errorf("fail to get tx hash from tx raw data: %w", err)
+		// }
+
+		// txItemIns, err := b.fromTxToTxIn(hash, txn, block.Height)
+		// if err != nil {
+		// 	b.logger.Error().Err(err).Str("hash", hash).Msg("fail to get one tx from server")
+		// 	// if THORNode fail to get one tx hash from server, then THORNode should bail, because THORNode might miss tx
+		// 	// if THORNode bail here, then THORNode should retry later
+		// 	return txIn, fmt.Errorf("fail to get one tx from server: %w", err)
+		// }
+		// if len(txItemIns) > 0 {
+		// 	txIn.TxArray = append(txIn.TxArray, txItemIns...)
+		// 	b.m.GetCounter(metrics.BlockWithTxIn("BNB")).Inc()
+		// 	b.logger.Debug().Str("hash", hash).Msgf("%s got %d tx", b.cfg.ChainID, len(txItemIns))
+		// }
 	}
 
-	txIn.Count = strconv.Itoa(len(txIn.TxArray))
-	txIn.Chain = common.BNBChain
-	txIn.MemPool = false
-	txIn.Filtered = false
+	// if len(txIn.TxArray) == 0 {
+	// 	b.m.GetCounter(metrics.BlockNoTxIn("BNB")).Inc()
+	// 	b.logger.Debug().Int64("block", block.Height).Msg("no tx need to be processed in this block")
+	// 	return txIn, nil
+	// }
+
+	// txIn.Count = strconv.Itoa(len(txIn.TxArray))
+	// txIn.Chain = common.BNBChain
+	// txIn.MemPool = false
+	// txIn.Filtered = false
 	return txIn, nil
 }
 
@@ -375,83 +305,84 @@ func (b *CosmosBlockScanner) FetchTxs(height int64) (stypes.TxIn, error) {
 	return txIn, nil
 }
 
-func (b *CosmosBlockScanner) getCoinsForTxIn(outputs []bmsg.Output, receiver string) (common.Coins, error) {
-	cc := common.Coins{}
-	for _, output := range outputs {
-		if receiver != output.Address.String() {
-			continue
-		}
-		for _, c := range output.Coins {
-			asset, err := common.NewAsset(fmt.Sprintf("BNB.%s", c.Denom))
-			if err != nil {
-				return nil, fmt.Errorf("fail to create asset, %s is not valid: %w", c.Denom, err)
-			}
+// func (b *CosmosBlockScanner) getCoinsForTxIn(outputs []bmsg.Output, receiver string) (common.Coins, error) {
+// 	cc := common.Coins{}
+// 	for _, output := range outputs {
+// 		if receiver != output.Address.String() {
+// 			continue
+// 		}
+// 		for _, c := range output.Coins {
+// 			asset, err := common.NewAsset(fmt.Sprintf("BNB.%s", c.Denom))
+// 			if err != nil {
+// 				return nil, fmt.Errorf("fail to create asset, %s is not valid: %w", c.Denom, err)
+// 			}
 
-			// skip mini tokens
-			if asset.Symbol.IsMiniToken() {
-				continue
-			}
-			amt := cosmos.NewUint(uint64(c.Amount))
-			cc = append(cc, common.NewCoin(asset, amt))
-		}
-	}
-	return cc, nil
-}
+// 			// skip mini tokens
+// 			if asset.Symbol.IsMiniToken() {
+// 				continue
+// 			}
+// 			amt := cosmos.NewUint(uint64(c.Amount))
+// 			cc = append(cc, common.NewCoin(asset, amt))
+// 		}
+// 	}
+// 	return cc, nil
+// }
 
-func (b *CosmosBlockScanner) fromTxToTxIn(hash, encodedTx string, blockHeight int64) ([]stypes.TxInItem, error) {
-	if len(encodedTx) == 0 {
-		return nil, errors.New("tx is empty")
-	}
-	buf, err := base64.StdEncoding.DecodeString(encodedTx)
-	if err != nil {
-		return nil, fmt.Errorf("fail to decode tx: %w", err)
-	}
-	var t tx.StdTx
-	if err := tx.Cdc.UnmarshalBinaryLengthPrefixed(buf, &t); err != nil {
-		// not returning an error here because it may cause binance to get
-		// stuck if someone has issued a mini token.
-		return nil, nil
-	}
-	return b.fromStdTx(hash, t, blockHeight)
-}
+// func (b *CosmosBlockScanner) fromTxToTxIn(hash, encodedTx string, blockHeight int64) ([]stypes.TxInItem, error) {
+// 	if len(encodedTx) == 0 {
+// 		return nil, errors.New("tx is empty")
+// 	}
+// 	buf, err := base64.StdEncoding.DecodeString(encodedTx)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("fail to decode tx: %w", err)
+// 	}
+
+// 	var t tx.StdTx
+// 	if err := tx.Cdc.UnmarshalBinaryLengthPrefixed(buf, &t); err != nil {
+// 		// not returning an error here because it may cause binance to get
+// 		// stuck if someone has issued a mini token.
+// 		return nil, nil
+// 	}
+// 	return b.fromStdTx(hash, t, blockHeight)
+// }
 
 // fromStdTx - process a stdTx
-func (b *CosmosBlockScanner) fromStdTx(hash string, stdTx tx.StdTx, blockHeight int64) ([]stypes.TxInItem, error) {
-	var err error
-	var txs []stypes.TxInItem
+// func (b *CosmosBlockScanner) fromStdTx(hash string, stdTx tx.StdTx, blockHeight int64) ([]stypes.TxInItem, error) {
+// 	var err error
+// 	var txs []stypes.TxInItem
 
-	// TODO: It is also possible to have multiple inputs/outputs within a
-	// single stdTx, which THORNode are not yet accounting for.
-	for _, msg := range stdTx.Msgs {
-		switch sendMsg := msg.(type) {
-		case bmsg.SendMsg:
-			txInItem := stypes.TxInItem{
-				Tx:          hash,
-				BlockHeight: blockHeight,
-			}
-			txInItem.Memo = stdTx.Memo
-			// THORNode take the first Input as sender, first Output as receiver
-			// so if THORNode send to multiple different receiver within one tx, this won't be able to process it.
-			sender := sendMsg.Inputs[0]
-			receiver := sendMsg.Outputs[0]
-			txInItem.Sender = sender.Address.String()
-			txInItem.To = receiver.Address.String()
-			txInItem.Coins, err = b.getCoinsForTxIn(sendMsg.Outputs, txInItem.To)
-			if err != nil {
-				b.logger.Err(err).Msgf("fail to convert coins: %+v", sendMsg.Outputs)
-				continue
-			}
-			// no valid coin in the tx , thus ignore the tx
-			if txInItem.Coins.IsEmpty() {
-				continue
-			}
-			// Calculate gas for this tx
-			txInItem.Gas = common.CalcBinanceGasPrice(common.Tx{Coins: txInItem.Coins}, common.BNBAsset, []cosmos.Uint{cosmos.NewUint(b.singleFee), cosmos.NewUint(b.multiFee)})
+// 	// TODO: It is also possible to have multiple inputs/outputs within a
+// 	// single stdTx, which THORNode are not yet accounting for.
+// 	for _, msg := range stdTx.Msgs {
+// 		switch sendMsg := msg.(type) {
+// 		case bmsg.SendMsg:
+// 			txInItem := stypes.TxInItem{
+// 				Tx:          hash,
+// 				BlockHeight: blockHeight,
+// 			}
+// 			txInItem.Memo = stdTx.Memo
+// 			// THORNode take the first Input as sender, first Output as receiver
+// 			// so if THORNode send to multiple different receiver within one tx, this won't be able to process it.
+// 			sender := sendMsg.Inputs[0]
+// 			receiver := sendMsg.Outputs[0]
+// 			txInItem.Sender = sender.Address.String()
+// 			txInItem.To = receiver.Address.String()
+// 			txInItem.Coins, err = b.getCoinsForTxIn(sendMsg.Outputs, txInItem.To)
+// 			if err != nil {
+// 				b.logger.Err(err).Msgf("fail to convert coins: %+v", sendMsg.Outputs)
+// 				continue
+// 			}
+// 			// no valid coin in the tx , thus ignore the tx
+// 			if txInItem.Coins.IsEmpty() {
+// 				continue
+// 			}
+// 			// Calculate gas for this tx
+// 			txInItem.Gas = common.CalcBinanceGasPrice(common.Tx{Coins: txInItem.Coins}, common.BNBAsset, []cosmos.Uint{cosmos.NewUint(b.singleFee), cosmos.NewUint(b.multiFee)})
 
-			txs = append(txs, txInItem)
-		default:
-			continue
-		}
-	}
-	return txs, nil
-}
+// 			txs = append(txs, txInItem)
+// 		default:
+// 			continue
+// 		}
+// 	}
+// 	return txs, nil
+// }

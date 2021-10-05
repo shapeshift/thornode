@@ -105,7 +105,7 @@ func (s *BinancechainSuite) TestNewBinance(c *C) {
 		}
 	}))
 
-	b2, err2 := NewCosmos(s.thorKeys, config.ChainConfiguration{
+	b2, err2 := NewClient(s.thorKeys, config.ChainConfiguration{
 		RPCHost: server.URL,
 		BlockScanner: config.BlockScannerConfiguration{
 			StartBlockHeight: 1, // avoids querying thorchain for block height
@@ -207,7 +207,7 @@ func (s *BinancechainSuite) TestGetHeight(c *C) {
 		}
 	}))
 
-	b, err := NewCosmos(s.thorKeys, config.ChainConfiguration{
+	b, err := NewClient(s.thorKeys, config.ChainConfiguration{
 		RPCHost: server.URL,
 		BlockScanner: config.BlockScannerConfiguration{
 			RPCHost:          server.URL,
@@ -266,7 +266,7 @@ func (s *BinancechainSuite) TestSignTx(c *C) {
 		ChainHomeFolder: s.thordir,
 	}, s.m, s.thorKeys)
 	c.Assert(err, IsNil)
-	b2, err2 := NewCosmos(s.thorKeys, config.ChainConfiguration{
+	b2, err2 := NewClient(s.thorKeys, config.ChainConfiguration{
 		RPCHost: server.URL,
 		BlockScanner: config.BlockScannerConfiguration{
 			RPCHost:          server.URL,
@@ -310,7 +310,7 @@ func (s *BinancechainSuite) TestGetGasFee(c *C) {
 		ChainHomeFolder: s.thordir,
 	}, s.m, s.thorKeys)
 	c.Assert(err, IsNil)
-	b2, err2 := NewCosmos(s.thorKeys, config.ChainConfiguration{
+	b2, err2 := NewClient(s.thorKeys, config.ChainConfiguration{
 		RPCHost: server.URL,
 		BlockScanner: config.BlockScannerConfiguration{
 			RPCHost:          server.URL,
