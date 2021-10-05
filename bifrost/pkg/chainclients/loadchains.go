@@ -9,6 +9,7 @@ import (
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/binance"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/bitcoin"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/bitcoincash"
+	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/cosmos"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/ethereum"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/litecoin"
 	"gitlab.com/thorchain/thornode/bifrost/pubkeymanager"
@@ -25,7 +26,7 @@ func LoadChains(thorKeys *thorclient.Keys,
 	pubKeyValidator pubkeymanager.PubKeyValidator,
 	poolMgr thorclient.PoolManager) map[common.Chain]ChainClient {
 	logger := log.Logger.With().Str("module", "bifrost").Logger()
-	chains := make(map[common.Chain]ChainClient, 0)
+	chains := make(map[common.Chain]ChainClient)
 
 	for _, chain := range cfg {
 		switch chain.ChainID {
@@ -67,6 +68,13 @@ func LoadChains(thorKeys *thorclient.Keys,
 			}
 			pubKeyValidator.RegisterCallback(ltc.RegisterPublicKey)
 			chains[common.LTCChain] = ltc
+		case common.GAIAChain:
+			gaia, err := cosmos.NewClient(thorKeys, chain, server, thorchainBridge, m)
+			if err != nil {
+				logger.Fatal().Err(err).Str("chain_id", chain.ChainID.String()).Msg("fail to load chain")
+				continue
+			}
+			chains[common.GAIAChain] = gaia
 		default:
 			continue
 		}

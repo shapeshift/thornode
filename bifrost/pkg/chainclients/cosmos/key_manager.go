@@ -7,17 +7,16 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	"github.com/binance-chain/go-sdk/keys"
-	"github.com/binance-chain/go-sdk/types/tx"
-	"github.com/cosmos/cosmos-sdk/crypto/codec"
-	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
+	ctypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	"github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/auth/legacy/legacytx"
 
 	"gitlab.com/thorchain/thornode/common"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 type keyManager struct {
-	privKey  cryptotypes.PrivKey
+	privKey  ctypes.PrivKey
 	addr     types.AccAddress
 	pubkey   common.PubKey
 	mnemonic string
@@ -38,33 +37,31 @@ func (m *keyManager) ExportAsPrivateKey() (string, error) {
 	return hex.EncodeToString(m.privKey.Bytes()), nil
 }
 
-func (m *keyManager) ExportAsKeyStore(password string) (*keys.EncryptedKeyJSON, error) {
-	// Do nothing
-	return nil, nil
+func (m *keyManager) Sign(msg legacytx.StdSignMsg) ([]byte, error) {
+
+	// sig, err := m.makeSignature(msg)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// newTx := legacytx.NewStdTx(msg.Msgs, []legacytx.StdSignature{sig}, msg.Memo, msg.Source)
+
+	// bz, err := legacytx.Cdc.MarshalBinaryLengthPrefixed(&newTx)
+	// if err != nil {
+	// 	return nil, err
+	// }
+
+	return []byte(""), nil
 }
 
-func (m *keyManager) Sign(msg tx.StdSignMsg) ([]byte, error) {
-	sig, err := m.makeSignature(msg)
-	if err != nil {
-		return nil, err
-	}
-	newTx := tx.NewStdTx(msg.Msgs, []tx.StdSignature{sig}, msg.Memo, msg.Source, msg.Data)
-	bz, err := tx.Cdc.MarshalBinaryLengthPrefixed(&newTx)
-	if err != nil {
-		return nil, err
-	}
-	return bz, nil
-}
-
-func (m *keyManager) GetPrivKey() cryptotypes.PrivKey {
+func (m *keyManager) GetPrivKey() ctypes.PrivKey {
 	return m.privKey
 }
 
-func (m *keyManager) GetAddr() ctypes.AccAddress {
+func (m *keyManager) GetAddr() cosmos.AccAddress {
 	return m.addr
 }
 
-func (m *keyManager) makeSignature(msg tx.StdSignMsg) (sig tx.StdSignature, err error) {
+func (m *keyManager) makeSignature(msg legacytx.StdSignMsg) (sig legacytx.StdSignature, err error) {
 	if err != nil {
 		return
 	}
@@ -75,14 +72,9 @@ func (m *keyManager) makeSignature(msg tx.StdSignMsg) (sig tx.StdSignature, err 
 	// this return the pubkey type which is extend protob.message
 	pubKey := m.privKey.PubKey()
 	// this convert the protobuf based pubkey back to the old version tendermint pubkey
-	tmPubKey, err := codec.ToTmPubKeyInterface(pubKey)
-	if err != nil {
-		return
-	}
-	return tx.StdSignature{
-		AccountNumber: msg.AccountNumber,
-		Sequence:      msg.Sequence,
-		PubKey:        tmPubKey,
-		Signature:     sigBytes,
+
+	return legacytx.StdSignature{
+		PubKey:    pubKey,
+		Signature: sigBytes,
 	}, nil
 }

@@ -1,8 +1,6 @@
 package cosmos
 
 import (
-	"encoding/base64"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -15,7 +13,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	cryptocodec "github.com/cosmos/cosmos-sdk/crypto/codec"
 	"github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/auth/legacy/legacytx"
+
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"gitlab.com/thorchain/thornode/constants"
@@ -50,8 +48,8 @@ type Cosmos struct {
 	globalSolvencyQueue chan stypes.Solvency
 }
 
-// NewCosmos create new instance of atom client
-func NewCosmos(
+// NewClient create new instance of atom client
+func NewClient(
 	thorKeys *thorclient.Keys,
 	cfg config.ChainConfiguration,
 	server *tssp.TssServer,
@@ -219,7 +217,7 @@ func (b *Cosmos) GetHeight() (int64, error) {
 
 // GetAddress return current signer address, it will be bech32 encoded address
 func (b *Cosmos) GetAddress(poolPubKey common.PubKey) string {
-	addr, err := poolPubKey.GetAddress(common.ATOMChain)
+	addr, err := poolPubKey.GetAddress(common.GAIAChain)
 	if err != nil {
 		b.logger.Error().Err(err).Str("pool_pub_key", poolPubKey.String()).Msg("fail to get pool address")
 		return ""
@@ -277,12 +275,8 @@ func (b *Cosmos) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, err
 		})
 	}
 
-	fromAddr := b.GetAddress(tx.VaultPubKey)
-
-	sendMsg := b.parseTx(fromAddr, coins)
-	if err := sendMsg.ValidateBasic(); err != nil {
-		return nil, fmt.Errorf("invalid send msg: %w", err)
-	}
+	// fromAddr := b.GetAddress(tx.VaultPubKey)
+	// msg := bank.NewMsgSend()
 
 	currentHeight, err := b.atomScanner.GetHeight()
 	if err != nil {
@@ -303,33 +297,28 @@ func (b *Cosmos) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, err
 		b.accts.Set(tx.VaultPubKey, meta)
 	}
 	b.logger.Info().Int64("account_number", meta.AccountNumber).Int64("sequence_number", meta.SeqNumber).Int64("block height", meta.BlockHeight).Msg("account info")
-	signMsg := legacytx.StdSignMsg{
-		ChainID:       b.chainID,
-		Memo:          tx.Memo,
-		Msgs:          []legacytx.LegacyMsg{sendMsg},
-		Sequence:      meta.SeqNumber,
-		AccountNumber: meta.AccountNumber,
-	}
-	rawBz, err := b.signMsg(signMsg, fromAddr.String(), tx.VaultPubKey, thorchainHeight, tx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to sign message: %w", err)
-	}
 
-	if len(rawBz) == 0 {
-		gc.logger.Warn().Msg("empty signed message bytes")
-		return nil, nil
-	}
+	// rawBz, err := b.signMsg(signMsg, fromAddr.String(), tx.VaultPubKey, thorchainHeight, tx)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("failed to sign message: %w", err)
+	// }
 
-	hexTx := []byte(hex.EncodeToString(rawBz))
-	return hexTx, nil
+	// if len(rawBz) == 0 {
+	// 	gc.logger.Warn().Msg("empty signed message bytes")
+	// 	return nil, nil
+	// }
+
+	// hexTx := []byte(hex.EncodeToString(rawBz))
+	// return hexTx, nil
+	return []byte(""), nil
 }
 
-func (b *Cosmos) sign(signMsg legacytx.StdSignMsg, poolPubKey common.PubKey) ([]byte, error) {
-	if b.localKeyManager.Pubkey().Equals(poolPubKey) {
-		return b.localKeyManager.Sign(signMsg)
-	}
-	return b.tssKeyManager.SignWithPool(signMsg, poolPubKey)
-}
+// func (b *Cosmos) sign(signMsg legacytx.StdSignMsg, poolPubKey common.PubKey) ([]byte, error) {
+// 	if b.localKeyManager.Pubkey().Equals(poolPubKey) {
+// 		return b.localKeyManager.Sign(signMsg)
+// 	}
+// 	return b.tssKeyManager.SignWithPool(signMsg, poolPubKey)
+// }
 
 // // signMsg is design to sign a given message until it success or the same message had been send out by other signer
 // func (b *Cosmos) signMsg(signMsg btx.StdSignMsg, from string, poolPubKey common.PubKey, thorchainHeight int64, txOutItem stypes.TxOutItem) ([]byte, error) {
@@ -409,23 +398,24 @@ func (b *Cosmos) GetAccountByAddress(address string) (common.Account, error) {
 		return common.Account{}, err
 	}
 
-	data, err := base64.StdEncoding.DecodeString(result.Result.Response.Value)
-	if err != nil {
-		return common.Account{}, err
-	}
+	// data, err := base64.StdEncoding.DecodeString(result.Result.Response.Value)
+	// if err != nil {
+	// 	return common.Account{}, err
+	// }
 
-	cdc := ttypes.NewCodec()
-	var acc types.AppAccount
-	err = cdc.UnmarshalBinaryBare(data, &acc)
-	if err != nil {
-		return common.Account{}, err
-	}
-	coins, err := common.GetCoins(common.BNBChain, acc.BaseAccount.Coins)
-	if err != nil {
-		return common.Account{}, err
-	}
-	account := common.NewAccount(acc.BaseAccount.Sequence, acc.BaseAccount.AccountNumber, coins, acc.Flags > 0)
-	return account, nil
+	// cdc := ttypes.NewCodec()
+	// var acc types.AppAccount
+	// err = cdc.UnmarshalBinaryBare(data, &acc)
+	// if err != nil {
+	// 	return common.Account{}, err
+	// }
+	// coins, err := common.GetCoins(common.ATOMChain, acc.BaseAccount.Coins)
+	// if err != nil {
+	// 	return common.Account{}, err
+	// }
+
+	// account := common.NewAccount(acc.BaseAccount.Sequence, acc.BaseAccount.AccountNumber, coins, acc.Flags > 0)
+	return common.Account{}, nil
 }
 
 // BroadcastTx is to broadcast the tx to binance chain
