@@ -1210,7 +1210,7 @@ func emitEndBlockTelemetry(ctx cosmos.Context, mgr Manager) error {
 		return err
 	}
 	for _, pool := range pools {
-		if pool.LPUnits.Equal(cosmos.NewUint(0)) {
+		if pool.LPUnits.IsZero() {
 			continue
 		}
 		synthSupply := mgr.Keeper().GetTotalSupply(ctx, pool.Asset.GetSyntheticAsset())
