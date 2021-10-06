@@ -37,17 +37,36 @@ func (h SolvencyHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Result, 
 }
 func (h SolvencyHandler) validate(ctx cosmos.Context, msg MsgSolvency) error {
 	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.1.0")) {
+	if version.GTE(semver.MustParse("0.70.0")) {
+		return h.validateV70(ctx, msg)
+	} else if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, msg)
 	}
 	return errBadVersion
 }
 func (h SolvencyHandler) validateV1(ctx cosmos.Context, msg MsgSolvency) error {
+	if err := msg.ValidateBasic(); err != nil {
+		return err
+	}
+	if !isSignedByActiveNodeAccounts(ctx, h.mgr, msg.GetSigners()) {
+		return cosmos.ErrUnauthorized(fmt.Sprintf("%+v are not authorized", msg.GetSigners()))
+	}
+	return nil
+}
+func (h SolvencyHandler) validateV70(ctx cosmos.Context, msg MsgSolvency) error {
 	return h.validateCurrent(ctx, msg)
 }
 func (h SolvencyHandler) validateCurrent(ctx cosmos.Context, msg MsgSolvency) error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
+	}
+	m, err := NewMsgSolvency(msg.Chain, msg.PubKey, msg.Coins, msg.Height, msg.Signer)
+	if err != nil {
+		ctx.Logger().Error("fail to reconstruct msg solvency", "error", err)
+		return err
+	}
+	if !m.Id.Equals(msg.Id) {
+		return cosmos.ErrUnknownRequest("invalid solvency message")
 	}
 	if !isSignedByActiveNodeAccounts(ctx, h.mgr, msg.GetSigners()) {
 		return cosmos.ErrUnauthorized(fmt.Sprintf("%+v are not authorized", msg.GetSigners()))
