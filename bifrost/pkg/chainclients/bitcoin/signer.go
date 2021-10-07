@@ -86,8 +86,8 @@ func (c *Client) isYggdrasil(key common.PubKey) bool {
 }
 
 func (c *Client) getMaximumUtxosToSpend() int64 {
-	const mirmirMaxUTXOsToSpend = `MaxUTXOsToSpend`
-	utxosToSpend, err := c.bridge.GetMimir(mirmirMaxUTXOsToSpend)
+	const mimirMaxUTXOsToSpend = `MaxUTXOsToSpend`
+	utxosToSpend, err := c.bridge.GetMimir(mimirMaxUTXOsToSpend)
 	if err != nil {
 		c.logger.Err(err).Msg("fail to get MaxUTXOsToSpend")
 	}
