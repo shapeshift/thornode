@@ -42,8 +42,16 @@ PREFLIGHT=$(echo "$JSON" | jq -r ".preflight_status")
 
 if [ "$VALIDATOR" = "true" ]; then
   # calculate BNB chain sync progress
-  [ "$NET" = "mainnet" ] && BNB_PEER=dataseed1.binance.org || BNB_PEER=data-seed-pre-0-s1.binance.org
-  BNB_HEIGHT=$(curl -sL --fail -m 10 $BNB_PEER/status | jq -r ".result.sync_info.latest_block_height")
+  if [ "$NET" = "mainnet" ]; then # Seeds from https://docs.binance.org/smart-chain/developer/rpc.html
+    BNB_PEERS='https://dataseed1.binance.org https://dataseed2.binance.org https://dataseed3.binance.org https://dataseed4.binance.org'
+  else
+    BNB_PEERS='http://data-seed-pre-0-s1.binance.org http://data-seed-pre-1-s1.binance.org http://data-seed-pre-2-s1.binance.org http://data-seed-pre-0-s3.binance.org http://data-seed-pre-1-s3.binance.org'
+  fi
+  for BNB_PEER in ${BNB_PEERS}; do
+    BNB_HEIGHT=$(curl -sL --fail -m 10 "$BNB_PEER"/status | jq -e -r ".result.sync_info.latest_block_height") || continue
+    if [ -z "$BNB_HEIGHT" ]; then continue; fi # Continue if empty height (malformed/bad json reply?)
+    break
+  done
   BNB_SYNC_HEIGHT=$(curl -sL --fail -m 10 binance-daemon:"$BINANCE_PORT"/status | jq -r ".result.sync_info.index_height")
   BNB_PROGRESS=$(calc_progress "$BNB_SYNC_HEIGHT" "$BNB_HEIGHT")
 
