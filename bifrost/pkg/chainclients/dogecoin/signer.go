@@ -91,7 +91,8 @@ func (c *Client) getMaximumUtxosToSpend() int64 {
 	if err != nil {
 		c.logger.Err(err).Msg("fail to get MaxUTXOsToSpend")
 	}
-	if utxosToSpend == 0 {
+	c.logger.Info().Msgf("mimir MaxUTXOsToSpend: %d", utxosToSpend)
+	if utxosToSpend <= 0 {
 		utxosToSpend = maxUTXOsToSpend
 	}
 	return utxosToSpend
