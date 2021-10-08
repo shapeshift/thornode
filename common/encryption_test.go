@@ -1,6 +1,9 @@
 package common
 
 import (
+	"fmt"
+	"testing"
+
 	. "gopkg.in/check.v1"
 )
 
@@ -19,4 +22,21 @@ func (s *EncryptionSuite) TestEncryption(c *C) {
 	c.Assert(err, IsNil)
 
 	c.Check(body, DeepEquals, decryp)
+}
+func BenchmarkEncrypt(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		body := fmt.Sprintf("hello world! %d", i)
+		passphrase := fmt.Sprintf("my super secret password! %d", i)
+		result, err := Encrypt([]byte(body), passphrase)
+		if err != nil {
+			fmt.Println(err)
+			b.FailNow()
+		}
+		decryptResult, err := Decrypt(result, passphrase)
+		if err != nil {
+			fmt.Println(err)
+			b.FailNow()
+		}
+		_ = decryptResult
+	}
 }

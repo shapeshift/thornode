@@ -51,7 +51,6 @@ func (s *StorageSuite) TestStorage(c *C) {
 	}
 
 	c.Assert(store.Batch(items), IsNil)
-
 	items = store.List()
 	c.Assert(items, HasLen, 4)
 	c.Check(items[0].TxOutItem.Memo, Equals, "boo")
