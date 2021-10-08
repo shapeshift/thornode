@@ -129,7 +129,7 @@ func main() {
 		common.TssConfig{
 			EnableMonitor:   true,
 			KeyGenTimeout:   300 * time.Second, // must be shorter than constants.JailTimeKeygen
-			KeySignTimeout:  90 * time.Second,  // must be shorter than constants.JailTimeKeysign
+			KeySignTimeout:  60 * time.Second,  // must be shorter than constants.JailTimeKeysign
 			PartyTimeout:    45 * time.Second,
 			PreParamTimeout: 5 * time.Minute,
 		},
