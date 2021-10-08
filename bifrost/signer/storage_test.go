@@ -2,7 +2,6 @@ package signer
 
 import (
 	"fmt"
-	"time"
 
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 	. "gopkg.in/check.v1"
@@ -52,21 +51,7 @@ func (s *StorageSuite) TestStorage(c *C) {
 	}
 
 	c.Assert(store.Batch(items), IsNil)
-	allChains := []common.Chain{
-		common.BNBChain,
-		common.BTCChain,
-		common.ETHChain,
-		common.BCHChain,
-		common.LTCChain,
-	}
-	allItems := make([]TxOutStoreItem, 0)
-	for i := 0; i < 20; i++ {
-		allItems = append(allItems, NewTxOutStoreItem(int64(i), types.TxOutItem{Chain: allChains[i%5], VaultPubKey: pk, Memo: "foo"}, int64(i)))
-	}
-	c.Assert(store.Batch(allItems), IsNil)
-	start := time.Now()
 	items = store.List()
-	fmt.Println("time takes:", time.Since(start))
 	c.Assert(items, HasLen, 4)
 	c.Check(items[0].TxOutItem.Memo, Equals, "boo")
 	c.Check(items[1].TxOutItem.Memo, Equals, "bar", Commentf("%s", items[1].TxOutItem.Memo))
