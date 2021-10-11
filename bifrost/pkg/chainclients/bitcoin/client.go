@@ -747,7 +747,7 @@ func (c *Client) getTxIn(tx *btcjson.TxRawResult, height int64) (types.TxInItem,
 	}
 	m, err := mem.ParseMemo(memo)
 	if err != nil {
-		c.logger.Err(err).Msgf("fail to parse memo: %s", memo)
+		c.logger.Debug().Msgf("fail to parse memo: %s,err : %s", memo, err)
 	}
 	output, err := c.getOutput(sender, tx, m.IsType(mem.TxConsolidate))
 	if err != nil {
