@@ -28,7 +28,7 @@ func (m *keyManager) Pubkey() common.PubKey {
 
 func (m *keyManager) ExportAsMnemonic() (string, error) {
 	if m.mnemonic == "" {
-		return "", fmt.Errorf("This key manager is not recover from mnemonic or anto generated ")
+		return "", fmt.Errorf("this key manager is not recover from mnemonic or auto generated ")
 	}
 	return m.mnemonic, nil
 }
@@ -38,18 +38,6 @@ func (m *keyManager) ExportAsPrivateKey() (string, error) {
 }
 
 func (m *keyManager) Sign(msg legacytx.StdSignMsg) ([]byte, error) {
-
-	// sig, err := m.makeSignature(msg)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// newTx := legacytx.NewStdTx(msg.Msgs, []legacytx.StdSignature{sig}, msg.Memo, msg.Source)
-
-	// bz, err := legacytx.Cdc.MarshalBinaryLengthPrefixed(&newTx)
-	// if err != nil {
-	// 	return nil, err
-	// }
-
 	return []byte(""), nil
 }
 
@@ -59,22 +47,4 @@ func (m *keyManager) GetPrivKey() ctypes.PrivKey {
 
 func (m *keyManager) GetAddr() cosmos.AccAddress {
 	return m.addr
-}
-
-func (m *keyManager) makeSignature(msg legacytx.StdSignMsg) (sig legacytx.StdSignature, err error) {
-	if err != nil {
-		return
-	}
-	sigBytes, err := m.privKey.Sign(msg.Bytes())
-	if err != nil {
-		return
-	}
-	// this return the pubkey type which is extend protob.message
-	pubKey := m.privKey.PubKey()
-	// this convert the protobuf based pubkey back to the old version tendermint pubkey
-
-	return legacytx.StdSignature{
-		PubKey:    pubKey,
-		Signature: sigBytes,
-	}, nil
 }

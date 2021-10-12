@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"strings"
 	"time"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -27,7 +26,6 @@ import (
 	"gitlab.com/thorchain/thornode/bifrost/tss"
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
-	"gitlab.com/thorchain/thornode/x/thorchain"
 )
 
 // Cosmos is a structure to sign and broadcast tx to atom chain used by signer mostly
@@ -44,17 +42,18 @@ type Cosmos struct {
 	thorchainBridge     *thorclient.ThorchainBridge
 	storage             *blockscanner.BlockScannerStorage
 	blockScanner        *blockscanner.BlockScanner
-	atomScanner         *CosmosBlockScanner
+	cosmosScanner       *CosmosBlockScanner
 	globalSolvencyQueue chan stypes.Solvency
 }
 
 // NewClient create new instance of atom client
-func NewClient(
+func NewCosmos(
 	thorKeys *thorclient.Keys,
 	cfg config.ChainConfiguration,
 	server *tssp.TssServer,
 	thorchainBridge *thorclient.ThorchainBridge,
 	m *metrics.Metrics,
+
 ) (*Cosmos, error) {
 	tssKm, err := tss.NewKeySign(server, thorchainBridge)
 	if err != nil {
@@ -87,17 +86,17 @@ func NewClient(
 		logger:          log.With().Str("module", "binance").Logger(),
 		cfg:             cfg,
 		cdc:             thorclient.MakeLegacyCodec(),
-		accts:           NewBinanceMetaDataStore(),
+		accts:           NewCosmosMetaDataStore(),
 		client:          &http.Client{},
 		tssKeyManager:   tssKm,
 		localKeyManager: localKm,
 		thorchainBridge: thorchainBridge,
 	}
 
-	if err := b.checkIsTestNet(); err != nil {
-		b.logger.Error().Err(err).Msg("fail to check if is testnet")
-		return b, err
-	}
+	// if err := b.checkIsTestNet(); err != nil {
+	// 	b.logger.Error().Err(err).Msg("fail to check if is testnet")
+	// 	return b, err
+	// }
 
 	var path string // if not set later, will in memory storage
 	if len(b.cfg.BlockScanner.DBPath) > 0 {
@@ -108,7 +107,7 @@ func NewClient(
 		return nil, fmt.Errorf("fail to create scan storage: %w", err)
 	}
 
-	b.atomScanner, err = NewCosmosBlockScanner(
+	b.cosmosScanner, err = NewCosmosBlockScanner(
 		b.cfg.BlockScanner,
 		b.storage,
 		b.isTestNet,
@@ -117,12 +116,12 @@ func NewClient(
 		b.reportSolvency,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("fail to create block scanner: %w", err)
+		return nil, fmt.Errorf("failed to create cosmos scanner: %w", err)
 	}
 
-	b.blockScanner, err = blockscanner.NewBlockScanner(b.cfg.BlockScanner, b.storage, m, b.thorchainBridge, b.atomScanner)
+	b.blockScanner, err = blockscanner.NewBlockScanner(b.cfg.BlockScanner, b.storage, m, b.thorchainBridge, b.cosmosScanner)
 	if err != nil {
-		return nil, fmt.Errorf("fail to create block scanner: %w", err)
+		return nil, fmt.Errorf("failed to create block scanner: %w", err)
 	}
 
 	return b, nil
@@ -150,69 +149,12 @@ func (b *Cosmos) IsBlockScannerHealthy() bool {
 	return b.blockScanner.IsHealthy()
 }
 
-// checkIsTestNet determinate whether we are running on test net by checking the status
-func (b *Cosmos) checkIsTestNet() error {
-	// Cached data after first call
-	if b.isTestNet {
-		return nil
-	}
-
-	u, err := url.Parse(b.cfg.RPCHost)
-	if err != nil {
-		return fmt.Errorf("unable to parse rpc host: %s: %w", b.cfg.RPCHost, err)
-	}
-
-	u.Path = "/status"
-
-	resp, err := b.client.Get(u.String())
-	if err != nil {
-		return err
-	}
-
-	defer func() {
-		if err := resp.Body.Close(); err != nil {
-			b.logger.Error().Err(err).Msg("fail to close resp body")
-		}
-	}()
-
-	data, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatal().Err(err).Msg("fail to read body")
-	}
-
-	type Status struct {
-		Jsonrpc string `json:"jsonrpc"`
-		ID      string `json:"id"`
-		Result  struct {
-			NodeInfo struct {
-				Network string `json:"network"`
-			} `json:"node_info"`
-		} `json:"result"`
-	}
-
-	var status Status
-	if err := json.Unmarshal(data, &status); err != nil {
-		return fmt.Errorf("fail to unmarshal body: %w", err)
-	}
-
-	b.chainID = status.Result.NodeInfo.Network
-	b.isTestNet = b.chainID == "Binance-Chain-Ganges"
-
-	// if b.isTestNet {
-	// 	types.Network = types.TestNetwork
-	// } else {
-	// 	types.Network = types.ProdNetwork
-	// }
-
-	return nil
-}
-
 func (b *Cosmos) GetChain() common.Chain {
-	return common.BNBChain
+	return common.GAIAChain
 }
 
 func (b *Cosmos) GetHeight() (int64, error) {
-	return b.atomScanner.GetHeight()
+	return b.blockScanner.FetchLastHeight()
 }
 
 // GetAddress return current signer address, it will be bech32 encoded address
@@ -223,15 +165,6 @@ func (b *Cosmos) GetAddress(poolPubKey common.PubKey) string {
 		return ""
 	}
 	return addr.String()
-}
-
-func (b *Cosmos) getGasFee(count uint64) common.Gas {
-	coins := make(common.Coins, count)
-	gasInfo := []cosmos.Uint{
-		cosmos.NewUint(b.atomScanner.singleFee),
-		cosmos.NewUint(b.atomScanner.multiFee),
-	}
-	return common.CalcBinanceGasPrice(common.Tx{Coins: coins}, common.BNBAsset, gasInfo)
 }
 
 func (b *Cosmos) checkAccountMemoFlag(addr string) bool {
@@ -255,10 +188,10 @@ func (b *Cosmos) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, err
 	var gasCoin common.Coins
 
 	// for yggdrasil, need to left some coin to pay for fee, this logic is per chain, given different chain charge fees differently
-	if strings.EqualFold(tx.Memo, thorchain.NewYggdrasilReturn(thorchainHeight).String()) {
-		gas := b.getGasFee(uint64(len(tx.Coins)))
-		gasCoin = gas.ToCoins()
-	}
+	// if strings.EqualFold(tx.Memo, thorchain.NewYggdrasilReturn(thorchainHeight).String()) {
+	// 	gas := b.getGasFee(uint64(len(tx.Coins)))
+	// 	gasCoin = gas.ToCoins()
+	// }
 	var coins types.Coins
 
 	for _, coin := range tx.Coins {
@@ -275,10 +208,7 @@ func (b *Cosmos) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, err
 		})
 	}
 
-	// fromAddr := b.GetAddress(tx.VaultPubKey)
-	// msg := bank.NewMsgSend()
-
-	currentHeight, err := b.atomScanner.GetHeight()
+	currentHeight, err := b.cosmosScanner.GetHeight()
 	if err != nil {
 		b.logger.Error().Err(err).Msg("fail to get current binance block height")
 		return nil, err
@@ -297,19 +227,6 @@ func (b *Cosmos) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, err
 		b.accts.Set(tx.VaultPubKey, meta)
 	}
 	b.logger.Info().Int64("account_number", meta.AccountNumber).Int64("sequence_number", meta.SeqNumber).Int64("block height", meta.BlockHeight).Msg("account info")
-
-	// rawBz, err := b.signMsg(signMsg, fromAddr.String(), tx.VaultPubKey, thorchainHeight, tx)
-	// if err != nil {
-	// 	return nil, fmt.Errorf("failed to sign message: %w", err)
-	// }
-
-	// if len(rawBz) == 0 {
-	// 	gc.logger.Warn().Msg("empty signed message bytes")
-	// 	return nil, nil
-	// }
-
-	// hexTx := []byte(hex.EncodeToString(rawBz))
-	// return hexTx, nil
 	return []byte(""), nil
 }
 

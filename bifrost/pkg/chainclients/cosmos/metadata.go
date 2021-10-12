@@ -17,10 +17,10 @@ type CosmosMetaDataStore struct {
 	accts map[common.PubKey]CosmosMetadata
 }
 
-func NewBinanceMetaDataStore() *CosmosMetaDataStore {
+func NewCosmosMetaDataStore() *CosmosMetaDataStore {
 	return &CosmosMetaDataStore{
 		lock:  &sync.Mutex{},
-		accts: make(map[common.PubKey]CosmosMetadata, 0),
+		accts: make(map[common.PubKey]CosmosMetadata),
 	}
 }
 
