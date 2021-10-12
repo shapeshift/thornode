@@ -69,7 +69,7 @@ func LoadChains(thorKeys *thorclient.Keys,
 			pubKeyValidator.RegisterCallback(ltc.RegisterPublicKey)
 			chains[common.LTCChain] = ltc
 		case common.GAIAChain:
-			gaia, err := cosmos.NewClient(thorKeys, chain, server, thorchainBridge, m)
+			gaia, err := cosmos.NewCosmos(thorKeys, chain, server, thorchainBridge, m)
 			if err != nil {
 				logger.Fatal().Err(err).Str("chain_id", chain.ChainID.String()).Msg("fail to load chain")
 				continue
