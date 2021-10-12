@@ -76,7 +76,9 @@ func (h SolvencyHandler) validateCurrent(ctx cosmos.Context, msg MsgSolvency) er
 func (h SolvencyHandler) handle(ctx cosmos.Context, msg MsgSolvency) (*cosmos.Result, error) {
 	ctx.Logger().Info("handle Solvency request", "id", msg.Id.String(), "signer", msg.Signer.String())
 	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.1.0")) {
+	if version.GTE(semver.MustParse("0.70.0")) {
+		return h.handleV70(ctx, msg)
+	} else if version.GTE(semver.MustParse("0.1.0")) {
 		return h.handleV1(ctx, msg)
 	}
 	ctx.Logger().Error(errInvalidVersion.Error())
@@ -140,6 +142,96 @@ func (h SolvencyHandler) handleV1(ctx cosmos.Context, msg MsgSolvency) (*cosmos.
 		return &cosmos.Result{}, nil
 	}
 
+	if !h.insolvencyCheck(ctx, vault, voter.Coins, voter.Chain) {
+		// here doesn't override HaltChain when the vault is solvent
+		// in some case even the vault is solvent , the network might need to halt
+		// Use mimir to enable it again
+		return &cosmos.Result{}, nil
+	}
+	haltChainKey := fmt.Sprintf(`Halt%sChain`, voter.Chain)
+	haltChain, err := h.mgr.Keeper().GetMimir(ctx, haltChainKey)
+	if err != nil {
+		ctx.Logger().Error("fail to get mimir", "error", err)
+	}
+	if haltChain > 0 && haltChain < common.BlockHeight(ctx) {
+		// Trading already halt
+		return &cosmos.Result{}, nil
+	}
+	h.mgr.Keeper().SetMimir(ctx, haltChainKey, common.BlockHeight(ctx))
+	ctx.Logger().Info("chain is insolvent, halt until it is resolved", "chain", voter.Chain)
+	return &cosmos.Result{}, nil
+}
+
+func (h SolvencyHandler) handleV70(ctx cosmos.Context, msg MsgSolvency) (*cosmos.Result, error) {
+	return h.handleCurrent(ctx, msg)
+}
+
+// handleCurrent is the logic to process MsgSolvency, the feature works like this
+// 1. Bifrost report MsgSolvency to thornode , which is the balance of asgard wallet on each individual chain
+// 2. once MsgSolvency reach consensus , then the network compare the wallet balance against wallet
+//    if wallet has less fund than asgard vault , and the gap is more than 1% , then the chain
+//    that is insolvent will be halt
+// 3. When chain is halt , bifrost will not observe inbound , and will not sign outbound txs until the issue has been investigated , and enabled it again using mimir
+func (h SolvencyHandler) handleCurrent(ctx cosmos.Context, msg MsgSolvency) (*cosmos.Result, error) {
+	voter, err := h.mgr.Keeper().GetSolvencyVoter(ctx, msg.Id, msg.Chain)
+	if err != nil {
+		return &cosmos.Result{}, fmt.Errorf("fail to get solvency voter, err: %w", err)
+	}
+	observeSlashPoints := h.mgr.GetConstants().GetInt64Value(constants.ObserveSlashPoints)
+	observeFlex := h.mgr.GetConstants().GetInt64Value(constants.ObservationDelayFlexibility)
+	h.mgr.Slasher().IncSlashPoints(ctx, observeSlashPoints, msg.Signer)
+	if voter.Empty() {
+		voter = NewSolvencyVoter(msg.Id, msg.Chain, msg.PubKey, msg.Coins, msg.Height, msg.Signer)
+	} else {
+		if !voter.Sign(msg.Signer) {
+			ctx.Logger().Info("signer already signed MsgSolvency", "signer", msg.Signer.String(), "id", msg.Id)
+			return &cosmos.Result{}, nil
+		}
+	}
+	h.mgr.Keeper().SetSolvencyVoter(ctx, voter)
+	active, err := h.mgr.Keeper().ListActiveValidators(ctx)
+	if err != nil {
+		return nil, wrapError(ctx, err, "fail to get list of active node accounts")
+	}
+	if !voter.HasConsensus(active) {
+		return &cosmos.Result{}, nil
+	}
+
+	// from this point , solvency reach consensus
+	if voter.ConsensusBlockHeight > 0 {
+		if (voter.ConsensusBlockHeight + observeFlex) >= common.BlockHeight(ctx) {
+			h.mgr.Slasher().DecSlashPoints(ctx, observeSlashPoints, msg.Signer)
+		}
+		// solvency tx already processed
+		return &cosmos.Result{}, nil
+	}
+	voter.ConsensusBlockHeight = common.BlockHeight(ctx)
+	h.mgr.Keeper().SetSolvencyVoter(ctx, voter)
+	// decrease the slash points
+	h.mgr.Slasher().DecSlashPoints(ctx, observeSlashPoints, voter.GetSigners()...)
+	vault, err := h.mgr.Keeper().GetVault(ctx, voter.PubKey)
+	if err != nil {
+		ctx.Logger().Error("fail to get vault", "error", err)
+		return &cosmos.Result{}, fmt.Errorf("fail to get vault: %w", err)
+	}
+	const StopSolvencyCheckKey = `StopSolvencyCheck`
+	stopSolvencyCheck, err := h.mgr.Keeper().GetMimir(ctx, StopSolvencyCheckKey)
+	if err != nil {
+		ctx.Logger().Error("fail to get mimir", "key", StopSolvencyCheckKey, "error", err)
+	}
+	if stopSolvencyCheck > 0 && stopSolvencyCheck < common.BlockHeight(ctx) {
+		return &cosmos.Result{}, nil
+	}
+	// stop solvency checker per chain
+	// this allows the network to stop solvency checker for ETH chain for example , while other chains like BNB/BTC chains
+	// their solvency checker are still active
+	stopSolvencyCheckChain, err := h.mgr.Keeper().GetMimir(ctx, fmt.Sprintf(StopSolvencyCheckKey+voter.Chain.String()))
+	if err != nil {
+		ctx.Logger().Error("fail to get mimir", "key", StopSolvencyCheckKey+voter.Chain.String(), "error", err)
+	}
+	if stopSolvencyCheckChain > 0 && stopSolvencyCheckChain < common.BlockHeight(ctx) {
+		return &cosmos.Result{}, nil
+	}
 	if !h.insolvencyCheck(ctx, vault, voter.Coins, voter.Chain) {
 		// here doesn't override HaltChain when the vault is solvent
 		// in some case even the vault is solvent , the network might need to halt
