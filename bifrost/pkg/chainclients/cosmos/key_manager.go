@@ -1,8 +1,5 @@
 package cosmos
 
-// This file is largely a copy from https://github.com/binance-chain/go-sdk/blob/515ede99ef1b6c7b5eaf27c67fa7984d98be58e3/keys/keys.go.
-// Needed a manual way to set `privKey` which the original source doesn't give a means to do so
-
 import (
 	"encoding/hex"
 	"fmt"

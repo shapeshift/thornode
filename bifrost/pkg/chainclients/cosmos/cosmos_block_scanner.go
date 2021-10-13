@@ -7,6 +7,8 @@ import (
 	"strconv"
 
 	"github.com/cosmos/cosmos-sdk/client/grpc/tmservice"
+	"github.com/cosmos/cosmos-sdk/codec"
+	stypes "github.com/cosmos/cosmos-sdk/types"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -31,10 +33,10 @@ var (
 
 // CosmosBlockScanner is to scan the blocks
 type CosmosBlockScanner struct {
-	cfg    config.BlockScannerConfiguration
-	logger zerolog.Logger
-	db     blockscanner.ScannerStorage
-	// m                *metrics.Metrics
+	cfg              config.BlockScannerConfiguration
+	logger           zerolog.Logger
+	db               blockscanner.ScannerStorage
+	m                *metrics.Metrics
 	errCounter       *prometheus.CounterVec
 	tmService        tmservice.ServiceClient
 	bridge           *thorclient.ThorchainBridge
@@ -54,6 +56,7 @@ func NewCosmosBlockScanner(cfg config.BlockScannerConfiguration,
 	if m == nil {
 		return nil, errors.New("metrics is nil")
 	}
+	fmt.Printf("interface registry:\n%+v", bridge.GetContext().InterfaceRegistry.ListAllInterfaces())
 
 	clientCtx := bridge.GetContext()
 	tmService := tmservice.NewServiceClient(clientCtx)
@@ -104,34 +107,25 @@ func (b *CosmosBlockScanner) GetBlock(height int64) (*tmtypes.Block, error) {
 }
 
 func (b *CosmosBlockScanner) FetchTxs(height int64) (types.TxIn, error) {
+	log.Info().Int64("height", height).Msg("FetchTxs")
+
 	block, err := b.GetBlock(height)
 	if err != nil {
 		return types.TxIn{}, err
 	}
 
-	rawTxs := make([]string, len(block.Data.Txs))
+	codec := codec.NewProtoCodec(b.bridge.GetContext().InterfaceRegistry)
+
+	// rawTxs := make([]string, len(block.Data.Txs))
 	for _, tx := range block.Data.Txs {
-		fmt.Println(string(tx))
+		fmt.Printf("raw tx:\n%s", string(tx))
+		var msg stypes.Msg
+		err = codec.UnmarshalInterface(tx, &msg)
+		if err != nil {
+			log.Fatal().Err(err).Msg("failed to unpack any")
+		}
+		log.Info().Interface("msg", msg).Msg("stypes.Msg")
 	}
-
-	_ = blockscanner.Block{Height: block.Header.Height, Txs: rawTxs}
-
-	// txIn, err := b.GetTxInFromBlock(scanBlock, block.Block.Data.Txs)
-	// if err != nil {
-	// 	if errStatus := b.db.SetBlockScanStatus(scanBlock, blockscanner.Failed); errStatus != nil {
-	// 		b.errCounter.WithLabelValues("fail_set_block_status", "").Inc()
-	// 		b.logger.Error().Err(err).Int64("height", scanBlock.Height).Msg("failed to set block to fail status")
-	// 	}
-
-	// 	b.logger.Error().Err(err).Int64("height", scanBlock.Height).Msg("failed convert block txs")
-	// 	return txIn, err
-	// }
-
-	// // mark the block as successful
-	// if err := b.db.RemoveBlockStatus(scanBlock.Height); err != nil {
-	// 	b.errCounter.WithLabelValues("fail_remove_block_status", "").Inc()
-	// 	b.logger.Error().Err(err).Int64("block", scanBlock.Height).Msg("failed to remove block status from data store")
-	// }
 
 	return types.TxIn{}, nil
 }

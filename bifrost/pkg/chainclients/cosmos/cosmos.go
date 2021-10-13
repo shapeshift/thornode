@@ -83,7 +83,7 @@ func NewCosmos(
 	}
 
 	b := &Cosmos{
-		logger:          log.With().Str("module", "binance").Logger(),
+		logger:          log.With().Str("module", "cosmos").Logger(),
 		cfg:             cfg,
 		cdc:             thorclient.MakeLegacyCodec(),
 		accts:           NewCosmosMetaDataStore(),
@@ -127,20 +127,20 @@ func NewCosmos(
 	return b, nil
 }
 
-// Start Binance chain client
+// Start Cosmos chain client
 func (b *Cosmos) Start(globalTxsQueue chan stypes.TxIn, globalErrataQueue chan stypes.ErrataBlock, globalSolvencyQueue chan stypes.Solvency) {
 	b.globalSolvencyQueue = globalSolvencyQueue
 	b.tssKeyManager.Start()
 	b.blockScanner.Start(globalTxsQueue)
 }
 
-// Stop Binance chain client
+// Stop Cosmos chain client
 func (b *Cosmos) Stop() {
 	b.tssKeyManager.Stop()
 	b.blockScanner.Stop()
 }
 
-// GetConfig return the configuration used by Binance chain client
+// GetConfig return the configuration used by Cosmos chain client
 func (b *Cosmos) GetConfig() config.ChainConfiguration {
 	return b.cfg
 }
@@ -210,7 +210,7 @@ func (b *Cosmos) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, err
 
 	currentHeight, err := b.cosmosScanner.GetHeight()
 	if err != nil {
-		b.logger.Error().Err(err).Msg("fail to get current binance block height")
+		b.logger.Error().Err(err).Msg("fail to get current cosmos block height")
 		return nil, err
 	}
 	meta := b.accts.Get(tx.VaultPubKey)
@@ -335,7 +335,7 @@ func (b *Cosmos) GetAccountByAddress(address string) (common.Account, error) {
 	return common.Account{}, nil
 }
 
-// BroadcastTx is to broadcast the tx to binance chain
+// BroadcastTx is to broadcast the tx to cosmos chain
 func (b *Cosmos) BroadcastTx(tx stypes.TxOutItem, hexTx []byte) (string, error) {
 	u, err := url.Parse(b.cfg.RPCHost)
 	if err != nil {
@@ -348,7 +348,7 @@ func (b *Cosmos) BroadcastTx(tx stypes.TxOutItem, hexTx []byte) (string, error) 
 	u.RawQuery = values.Encode()
 	resp, err := http.Post(u.String(), "", nil)
 	if err != nil {
-		return "", fmt.Errorf("fail to broadcast tx to binance chain: %w", err)
+		return "", fmt.Errorf("fail to broadcast tx to cosmos chain: %w", err)
 	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
@@ -362,7 +362,7 @@ func (b *Cosmos) BroadcastTx(tx stypes.TxOutItem, hexTx []byte) (string, error) 
 	// Sample 2: { "height": "0", "txhash": "6A9AA734374D567D1FFA794134A66D3BF614C4EE5DDF334F21A52A47C188A6A2", "code": 4, "raw_log": "{\"codespace\":\"sdk\",\"code\":4,\"message\":\"signature verification failed; verify correct account sequence and chain-id\"}" }
 	// Sample 3: {\"jsonrpc\": \"2.0\",\"id\": \"\",\"result\": {  \"check_tx\": {    \"code\": 65541,    \"log\": \"{\\\"codespace\\\":1,\\\"code\\\":5,\\\"abci_code\\\":65541,\\\"message\\\":\\\"insufficient fund. you got 29602BNB,351873676FSN-F1B,1094620960FTM-585,10119750400LOK-3C0,191723639522RUNE-67C,13629773TATIC-E9C,4169469575TCAN-014,10648250188TOMOB-1E1,1155074377TUSDB-000, but 37500BNB fee needed.\\\"}\",    \"events\": [      {}    ]  },  \"deliver_tx\": {},  \"hash\": \"406A3F68B17544F359DF8C94D4E28A626D249BC9C4118B51F7B4CE16D45AF616\",  \"height\": \"0\"}\n}
 
-	b.logger.Info().Str("body", string(body)).Msgf("broadcast response from Binance Chain,memo:%s", tx.Memo)
+	b.logger.Info().Str("body", string(body)).Msgf("broadcast response from Cosmos Chain,memo:%s", tx.Memo)
 	var commit stypes.BroadcastResult
 	err = b.cdc.UnmarshalJSON(body, &commit)
 	if err != nil {
@@ -379,7 +379,7 @@ func (b *Cosmos) BroadcastTx(tx stypes.TxOutItem, hexTx []byte) (string, error) 
 	checkTx := commit.Result.CheckTx
 	if checkTx.Code > 0 && checkTx.Code != cosmos.CodeUnauthorized {
 		err := errors.New(checkTx.Log)
-		b.logger.Info().Str("body", string(body)).Msg("broadcast response from Binance Chain")
+		b.logger.Info().Str("body", string(body)).Msg("broadcast response from cosmos chain")
 		b.logger.Error().Err(err).Msg("fail to broadcast")
 		return "", fmt.Errorf("fail to broadcast: %w", err)
 	}
@@ -397,7 +397,7 @@ func (b *Cosmos) BroadcastTx(tx stypes.TxOutItem, hexTx []byte) (string, error) 
 	return commit.Result.Hash.String(), nil
 }
 
-// ConfirmationCountReady binance chain has almost instant finality , so doesn't need to wait for confirmation
+// ConfirmationCountReady cosmos chain has almost instant finality , so doesn't need to wait for confirmation
 func (b *Cosmos) ConfirmationCountReady(txIn stypes.TxIn) bool {
 	return true
 }
