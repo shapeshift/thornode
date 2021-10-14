@@ -1123,7 +1123,7 @@ func DollarInRune(ctx cosmos.Context, mgr Manager) cosmos.Uint {
 
 func telem(input cosmos.Uint) float32 {
 	i := input.Uint64()
-	return float32(i / 100000000)
+	return float32(i) / 100000000
 }
 
 func emitEndBlockTelemetry(ctx cosmos.Context, mgr Manager) error {
@@ -1200,8 +1200,8 @@ func emitEndBlockTelemetry(ctx cosmos.Context, mgr Manager) error {
 		}
 	}
 
-	// get rune price
-	runeUSDPrice := telem(DollarInRune(ctx, mgr))
+	// get 1 RUNE price in USD
+	runeUSDPrice := 1 / telem(DollarInRune(ctx, mgr))
 	telemetry.SetGauge(runeUSDPrice, "thornode", "price", "usd", "thor", "rune")
 
 	// emit pool metrics
@@ -1210,6 +1210,9 @@ func emitEndBlockTelemetry(ctx cosmos.Context, mgr Manager) error {
 		return err
 	}
 	for _, pool := range pools {
+		if pool.LPUnits.IsZero() {
+			continue
+		}
 		synthSupply := mgr.Keeper().GetTotalSupply(ctx, pool.Asset.GetSyntheticAsset())
 		labels := []metrics.Label{telemetry.NewLabel("pool", pool.Asset.String())}
 		telemetry.SetGaugeWithLabels([]string{"thornode", "pool", "balance", "synth"}, telem(synthSupply), labels)
@@ -1322,7 +1325,7 @@ func emitEndBlockTelemetry(ctx cosmos.Context, mgr Manager) error {
 	telemetry.SetGauge(float32(query.Outbound), "thornode", "queue", "outbound")
 	telemetry.SetGauge(float32(query.Swap), "thornode", "queue", "swap")
 	telemetry.SetGauge(telem(query.ScheduledOutboundValue), "thornode", "queue", "scheduled", "value", "rune")
-	telemetry.SetGauge(telem(query.ScheduledOutboundValue)*runeUSDPrice, "thornode", "queue", "scheduled", "value", "USD")
+	telemetry.SetGauge(telem(query.ScheduledOutboundValue)*runeUSDPrice, "thornode", "queue", "scheduled", "value", "usd")
 
 	return nil
 }
