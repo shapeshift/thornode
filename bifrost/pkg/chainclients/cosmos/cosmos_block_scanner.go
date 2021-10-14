@@ -5,14 +5,19 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/cosmos/cosmos-sdk/client/grpc/tmservice"
 	"github.com/cosmos/cosmos-sdk/codec"
-	stypes "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/auth/tx"
+
+	ctypes "github.com/cosmos/cosmos-sdk/types"
+	btypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	tmtypes "github.com/tendermint/tendermint/proto/tendermint/types"
+	grpc "google.golang.org/grpc"
 
 	"gitlab.com/thorchain/thornode/bifrost/blockscanner"
 	"gitlab.com/thorchain/thornode/bifrost/config"
@@ -26,6 +31,7 @@ import (
 type SolvencyReporter func(int64) error
 
 var (
+	FeeAssetDenom         = "uatom"
 	ErrInvalidScanStorage = errors.New("scan storage is empty or nil")
 	ErrInvalidMetrics     = errors.New("metrics is empty or nil")
 	ErrEmptyTx            = errors.New("empty tx")
@@ -36,6 +42,7 @@ type CosmosBlockScanner struct {
 	cfg              config.BlockScannerConfiguration
 	logger           zerolog.Logger
 	db               blockscanner.ScannerStorage
+	cdc              *codec.ProtoCodec
 	m                *metrics.Metrics
 	errCounter       *prometheus.CounterVec
 	tmService        tmservice.ServiceClient
@@ -56,15 +63,27 @@ func NewCosmosBlockScanner(cfg config.BlockScannerConfiguration,
 	if m == nil {
 		return nil, errors.New("metrics is nil")
 	}
-	fmt.Printf("interface registry:\n%+v", bridge.GetContext().InterfaceRegistry.ListAllInterfaces())
 
-	clientCtx := bridge.GetContext()
-	tmService := tmservice.NewServiceClient(clientCtx)
+	registry := bridge.GetContext().InterfaceRegistry
+	btypes.RegisterInterfaces(registry)
+
+	host := strings.Replace(cfg.RPCHost, "http://", "", -1)
+	conn, err := grpc.Dial(host, grpc.WithInsecure())
+	if err != nil {
+		log.Fatal().Err(err).Msg("fail to dial")
+	}
+
+	tmService := tmservice.NewServiceClient(conn)
+	cdc := codec.NewProtoCodec(registry)
+
+	log.Info().Interface("interfaces", registry.ListAllInterfaces()).Msg("")
+	log.Info().Interface("implementations", registry.ListImplementations("cosmos.base.v1beta1.Msg")).Msg("")
 
 	return &CosmosBlockScanner{
 		cfg:              cfg,
 		logger:           log.Logger.With().Str("module", "blockscanner").Str("chain", "GAIA").Logger(),
 		db:               scanStorage,
+		cdc:              cdc,
 		errCounter:       m.GetCounterVec(metrics.BlockScanError(common.GAIAChain)),
 		tmService:        tmService,
 		bridge:           bridge,
@@ -106,6 +125,57 @@ func (b *CosmosBlockScanner) GetBlock(height int64) (*tmtypes.Block, error) {
 	return resultBlock.Block, nil
 }
 
+func (b *CosmosBlockScanner) updateAverageGasFees(height int64, txs []types.TxInItem) error {
+	numTxs := int64(len(txs))
+	if numTxs == 0 {
+		return nil
+	}
+
+	feeAsset, err := common.NewAsset(FeeAssetDenom)
+	if err != nil {
+		return fmt.Errorf("failed to create asset (%s): %w", FeeAssetDenom, err)
+	}
+
+	// sum all the gas fees for the FeeAsset only
+	totalGasFees := ctypes.NewUint(0)
+	for _, tx := range txs {
+		fee := tx.Gas.ToCoins().GetCoin(feeAsset)
+		if err := fee.Valid(); err != nil {
+			return fmt.Errorf("invalid fee (%s): %w", fee, err)
+		}
+
+		totalGasFees = totalGasFees.Add(fee.Amount)
+	}
+
+	// compute the average (total / numTxs)
+	avgGasFeesAmt := (ctypes.NewDecFromBigInt(totalGasFees.BigInt()).QuoInt64(numTxs)).TruncateInt()
+	if avgGasFeesAmt.IsZero() {
+		return nil
+	}
+
+	if !avgGasFeesAmt.IsUint64() {
+		return fmt.Errorf("average gas fee exceeds uint64: %s", avgGasFeesAmt)
+	}
+
+	log.Info().Int64("height", height).Int64("gasFeeAmt", avgGasFeesAmt.Int64())
+	// if _, err := b.bridge.PostNetworkFee(height, common.GAIAChain, 1, avgGasFeesAmt.Uint64()); err != nil {
+	// 	b.logger.Err(err).Int64("height", height).Msg("failed to post average network fee")
+	// 	// TODO: Should we return an error here?
+	// 	return nil
+	// }
+
+	return nil
+}
+
+func sdkCoinToCommonCoin(c ctypes.Coin) (common.Coin, error) {
+	asset, err := common.NewAsset(c.Denom)
+	if err != nil {
+		return common.Coin{}, fmt.Errorf("failed to create asset (%s): %w", c.Denom, err)
+	}
+
+	return common.NewCoin(asset, ctypes.NewUintFromBigInt(c.Amount.BigInt())), nil
+}
+
 func (b *CosmosBlockScanner) FetchTxs(height int64) (types.TxIn, error) {
 	log.Info().Int64("height", height).Msg("FetchTxs")
 
@@ -114,18 +184,69 @@ func (b *CosmosBlockScanner) FetchTxs(height int64) (types.TxIn, error) {
 		return types.TxIn{}, err
 	}
 
-	codec := codec.NewProtoCodec(b.bridge.GetContext().InterfaceRegistry)
+	decoder := tx.DefaultTxDecoder(b.cdc)
+	var txs []types.TxInItem
 
-	// rawTxs := make([]string, len(block.Data.Txs))
-	for _, tx := range block.Data.Txs {
-		fmt.Printf("raw tx:\n%s", string(tx))
-		var msg stypes.Msg
-		err = codec.UnmarshalInterface(tx, &msg)
+	for _, rawTx := range block.Data.Txs {
+		tx, err := decoder(rawTx)
 		if err != nil {
-			log.Fatal().Err(err).Msg("failed to unpack any")
+			log.Error().Str("tx", string(rawTx)).Err(err).Msg("unable to decode msg")
+			continue
 		}
-		log.Info().Interface("msg", msg).Msg("stypes.Msg")
+		for _, msg := range tx.GetMsgs() {
+			switch msg := msg.(type) {
+			case *btypes.MsgSend:
+				coins := common.Coins{}
+				for _, c := range msg.Amount {
+					cCoin, err := sdkCoinToCommonCoin(c)
+					if err != nil {
+						return types.TxIn{}, fmt.Errorf("failed to create asset; %s is not valid: %w", c, err)
+					}
+
+					coins = append(coins, cCoin)
+				}
+
+				// ignore the tx when no coins exist
+				if coins.IsEmpty() {
+					continue
+				}
+
+				gasFees := common.Gas{}
+				// for _, fee := range tx.GetFee() {
+				// 	cCoin, err := sdkCoinToCommonCoin(fee)
+				// 	if err != nil {
+				// 		gbs.errCounter.WithLabelValues("fail_create_asset", fee.String()).Inc()
+				// 		return nil, fmt.Errorf("failed to create fee asset; %s is not valid: %w", fee, err)
+				// 	}
+
+				// 	gasFees = append(gasFees, cCoin)
+				// }
+
+				txs = append(txs, types.TxInItem{
+					Tx:          "",
+					BlockHeight: height,
+					Memo:        "",
+					Sender:      msg.FromAddress,
+					To:          msg.ToAddress,
+					Coins:       coins,
+					Gas:         gasFees,
+				})
+
+			default:
+				continue
+			}
+		}
 	}
 
-	return types.TxIn{}, nil
+	txIn := types.TxIn{
+		Count:    strconv.Itoa(int(len(txs))),
+		Chain:    common.GAIAChain,
+		TxArray:  txs,
+		Filtered: false,
+		MemPool:  false,
+	}
+
+	log.Info().Interface("txIn", txIn).Msg("processed txIn")
+	b.updateAverageGasFees(block.Header.Height, txIn.TxArray)
+	return txIn, nil
 }
