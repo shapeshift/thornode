@@ -69,6 +69,9 @@ type ThorchainBridge struct {
 	seqNumber     uint64
 	httpClient    *retryablehttp.Client
 	broadcastLock *sync.RWMutex
+
+	lastBlockHeightCheck     time.Time
+	lastThorchainBlockHeight int64
 }
 
 // NewThorchainBridge create a new instance of ThorchainBridge
