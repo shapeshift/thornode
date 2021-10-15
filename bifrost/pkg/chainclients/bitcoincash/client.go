@@ -498,7 +498,7 @@ func (c *Client) getMemPool(height int64) (types.TxIn, error) {
 				c.logger.Err(err).Msgf("fail to get raw transaction verbose with hash(%s)", txHash.String())
 				return nil
 			}
-			txInItem, err := c.getTxIn(result, height)
+			txInItem, err := c.getTxIn(result, height, true)
 			if err != nil {
 				c.logger.Error().Err(err).Msg("fail to get TxInItem")
 				return nil
@@ -720,13 +720,13 @@ func (c *Client) isRBFEnabled(tx *btcjson.TxRawResult) bool {
 	}
 	return false
 }
-func (c *Client) getTxIn(tx *btcjson.TxRawResult, height int64) (types.TxInItem, error) {
+func (c *Client) getTxIn(tx *btcjson.TxRawResult, height int64, isMemPool bool) (types.TxInItem, error) {
 	if c.ignoreTx(tx) {
 		c.logger.Debug().Int64("height", height).Str("tx", tx.Hash).Msg("ignore tx not matching format")
 		return types.TxInItem{}, nil
 	}
 	// RBF enabled transaction will not be observed until it get committed to block
-	if c.isRBFEnabled(tx) && tx.Confirmations == 0 {
+	if c.isRBFEnabled(tx) && isMemPool {
 		return types.TxInItem{}, nil
 	}
 	sender, err := c.getSender(tx)
@@ -801,7 +801,7 @@ func (c *Client) extractTxs(block *btcjson.GetBlockVerboseTxResult) (types.TxIn,
 	for idx, tx := range block.Tx {
 		// mempool transaction get committed to block , thus remove it from mempool cache
 		c.removeFromMemPoolCache(tx.Hash)
-		txInItem, err := c.getTxIn(&block.Tx[idx], block.Height)
+		txInItem, err := c.getTxIn(&block.Tx[idx], block.Height, false)
 		if err != nil {
 			c.logger.Err(err).Msg("fail to get TxInItem")
 			continue
