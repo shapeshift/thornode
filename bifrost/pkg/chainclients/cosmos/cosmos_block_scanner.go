@@ -193,6 +193,10 @@ func (b *CosmosBlockScanner) FetchTxs(height int64) (types.TxIn, error) {
 			log.Error().Str("tx", string(rawTx)).Err(err).Msg("unable to decode msg")
 			continue
 		}
+
+		memo := tx.(ctypes.TxWithMemo).GetMemo()
+		fees := tx.(ctypes.FeeTx).GetFee()
+
 		for _, msg := range tx.GetMsgs() {
 			switch msg := msg.(type) {
 			case *btypes.MsgSend:
@@ -212,20 +216,19 @@ func (b *CosmosBlockScanner) FetchTxs(height int64) (types.TxIn, error) {
 				}
 
 				gasFees := common.Gas{}
-				// for _, fee := range tx.GetFee() {
-				// 	cCoin, err := sdkCoinToCommonCoin(fee)
-				// 	if err != nil {
-				// 		gbs.errCounter.WithLabelValues("fail_create_asset", fee.String()).Inc()
-				// 		return nil, fmt.Errorf("failed to create fee asset; %s is not valid: %w", fee, err)
-				// 	}
+				for _, fee := range fees {
+					cCoin, err := sdkCoinToCommonCoin(fee)
+					if err != nil {
+						return types.TxIn{}, fmt.Errorf("failed to create fee asset; %s is not valid: %w", fee, err)
+					}
 
-				// 	gasFees = append(gasFees, cCoin)
-				// }
+					gasFees = append(gasFees, cCoin)
+				}
 
 				txs = append(txs, types.TxInItem{
 					Tx:          "",
 					BlockHeight: height,
-					Memo:        "",
+					Memo:        memo,
 					Sender:      msg.FromAddress,
 					To:          msg.ToAddress,
 					Coins:       coins,
