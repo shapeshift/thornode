@@ -2,6 +2,7 @@ package thorchain
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 
 	"gitlab.com/thorchain/thornode/common"
@@ -646,7 +647,6 @@ func (s *StoreManagerTestSuite) TestRefundBinanceTx(c *C) {
 		{"2EF95165FDAABBF72CA4EE10DBAEF825EE06C280B8B2098AB55A89B922105C57", "bnb1uresxjchzzffvdvjgkf2su7kcupx5uycc58ygs", 34.166, "BNB.RUNE-B1A"},
 		{"1D8DE0EC576D7C9A485ECA74401560CBA65870F9E07DF814257B24C0EC8165FC", "bnb1kcay57v22f6gn5kf5vsnstxv8dfnaz2gecckeg", 47.477, "BNB.RUNE-B1A"},
 		{"EA6627C95264B150DB729D2BFBD9C52B91300A5118C404F519244C07E9A0A4C1", "bnb1zxtn3xt5prfd7w3st53jjnkeuexkyn7uh8a24c", 126.10821, "BNB.RUNE-B1A"},
-		{"402DF369568560B79F90B6B0800C75802858800814AA196B911039E524357EC6", "bnb1t68m836ztz7jvcp77uf2djsl4mhfqxa8h5jdl0", 0.002, "BNB.BNB"},
 		{"6FFFF126170C6B4A144121DD5E5E9A195B9355F083C5494C4C9BF2DA855B9739", "bnb1kcay57v22f6gn5kf5vsnstxv8dfnaz2gecckeg", 251.082, "BNB.RUNE-B1A"},
 		{"37E64B6DF40541E9C77107C29BBE3A03BD051EA072ED8CBDC2CC51CF3AD2BF59", "bnb1rvzk2wkn6f8k447s63tf6yuk52tef4m0t79vn0", 50.84107, "BNB.RUNE-B1A"},
 		{"B1D6CC11BC34E680362E26CDE8628444222D5AEA30520EF1A38BF3B1BB63C246", "bnb1km5j6s27w5zr9677p3nydv7gq8xemh53g6keeq", 100, "BNB.RUNE-B1A"},
@@ -675,7 +675,6 @@ func (s *StoreManagerTestSuite) TestRefundBinanceTx(c *C) {
 		{"0F8157A253B9231C860DFB4F71EEE0D3553C7A2DFA4D4C9D89AC5F33EE78B65C", "bnb1n8v8grqlq22h70s87g2rc9dhp3mddughpx8c6j", 514.2599, "BNB.RUNE-B1A"},
 		{"952976E7AF4F9017CEBC2FC0C37F2F815A85CE5B67D1E485405D89197EA4F760", "bnb14a3sppfhumq64fvfveatfd5gqfg6ggpjr9q9xm", 0.108, "BNB.BNB"},
 		{"0779BD5785C0E27EA0FBC39965C21182A57697F5091CC14E50E6FA3FF418E5FC", "bnb1524d9an2cm8zhts5zrs9auty8dnke4cnc2x72s", 14.266, "BNB.RUNE-B1A"},
-		{"A0C98DE72DE296257E0384AF5A166AFF830C8A020649991CD40E350F48D57F0F", "bnb1zn8c782lncq527zflyghh3jf3anqgf8rwmwtv4", 43300, "BNB.CAS-167"},
 		{"138493B9E8240C134C3FBE4FE2C2DB3334990E88145B7BEC7E91B8887011F750", "bnb12d0p6s47l5tr7xs0qedu7v300dc0glc3vcstx7", 3.9490056, "BNB.RUNE-B1A"},
 		{"4A4C867E21F8041B920BE0B8C18F3A7981EE4C4B5813936A3831E4FFA0DD25AE", "bnb1chv7uxr79hs7nuj48s2dfh3eeyvw9gnp7qpqdv", 80, "BNB.RUNE-B1A"},
 		{"57F4E20E2A0AA6548DB10988B2EA68EBFD4384B7D3EC99F9A17E2B20E666598F", "bnb1en9lzcakhnudhdqpk5t7dqh3atncfu36mj4g7z", 100.03134, "BNB.RUNE-B1A"},
@@ -704,7 +703,6 @@ func (s *StoreManagerTestSuite) TestRefundBinanceTx(c *C) {
 		{"D2EA3A93323546ACC71632393DF6AC986119752B52FFE422207060FC001BB226", "bnb1a8vapazge7g6z3fgh7f6m384n7p3ak6snln9kh", 0.83965422, "BNB.ETH-1C9"},
 		{"032DB75290EDEE1B96EFCEADB3C32F9C0E97E059123782DD6AF98CDBA9F2C7BC", "bnb1yvj0p2j994u7qet9qd2fzgv0smr8098m6e5f0w", 40.665, "BNB.AVA-645"},
 		{"B5BA7BE324095F4B079313175D10AD7822885CE3EBF4D81C883B214B2DD01E2B", "bnb164jc0pxcyu8gnkd2u022z3mtst2e5cxfpt76sm", 14, "BNB.RUNE-B1A"},
-		{"EA593992C9E54DAD028B3E9F8799C506454B9DFCE69356829219C4C2B6E834F5", "bnb1zn8c782lncq527zflyghh3jf3anqgf8rwmwtv4", 15340, "BNB.CAS-167"},
 		{"F536F680C72BFCFD339FC43442F2F23445BA9C2201CB9B1A176BF006E02C8B5D", "bnb1xehlqphf90r7cca8s28kmnzvfkl4vsq2aeg4h7", 61.499, "BNB.RUNE-B1A"},
 		{"BC7FC7CD884A2A4E46A8064D98213D348598504C637FA65D109072D1884CC572", "bnb1weh8yy8ywrhuc9nf9h2dymr5h059wlua2a97vy", 0.20983857, "BNB.ETH-1C9"},
 		{"A906A663E7357CF0250845117D0665D1F1E2239071C92CA215B2D2907DD00573", "bnb1p9zneqlme5tmatkyzxg3tczer4rxwxhgqnyhmf", 14.249292, "BNB.RUNE-B1A"},
@@ -735,6 +733,17 @@ func (s *StoreManagerTestSuite) TestRefundBinanceTx(c *C) {
 		{"E71642CAC325B733A3581F31F1DA64A52AA5AC590980E5630EF80BE1D906AECF", "bnb137xvx6ceqpxe34xr46y3ax350fr2q4zymw5l94", 2500, "BNB.BUSD-BD1"},
 		{"A4F17152DDB1473AE3341311F256171A532558711B70467AB606040E570A6F46", "bnb1rv89nkw2x5ksvhf6jtqwqpke4qhh7jmudpvqmj", 30376.57296, "BNB.BUSD-BD1"},
 	}
+	// setup pools
+	for _, item := range []string{"BNB.BNB", "BNB.BUSD-BD1", "BNB.ETH-1C9", "BNB.AVA-645"} {
+		asset, err := common.NewAsset(item)
+		c.Assert(err, IsNil)
+		p := NewPool()
+		p.Asset = asset
+		p.Status = PoolAvailable
+		p.BalanceAsset = cosmos.NewUint(common.One)
+		p.BalanceRune = cosmos.NewUint(common.One)
+		c.Assert(mgr.Keeper().SetPool(ctx, p), IsNil)
+	}
 	// create all tx voter
 	for _, item := range refunds {
 		hash, err := common.NewTxID(item.hash)
@@ -757,10 +766,12 @@ func (s *StoreManagerTestSuite) TestRefundBinanceTx(c *C) {
 	refundBNBTransactionsV71(ctx, mgr)
 	txOut, err := mgr.Keeper().GetTxOut(ctx, common.BlockHeight(ctx))
 	c.Assert(err, IsNil)
-	c.Assert(txOut.TxArray, HasLen, 92)
+	c.Assert(txOut.TxArray, HasLen, 89)
 	refundHandler := NewRefundHandler(mgr)
+	count := 0
 	for idx, item := range refunds {
 		if idx%2 == 0 {
+			count++
 			continue
 		}
 		hash, err := common.NewTxID(item.hash)
@@ -789,5 +800,6 @@ func (s *StoreManagerTestSuite) TestRefundBinanceTx(c *C) {
 	c.Assert(mgr.Slasher().LackSigning(ctx, mgr.ConstAccessor, mgr), IsNil)
 	txOut, err = mgr.Keeper().GetTxOut(ctx, common.BlockHeight(ctx))
 	c.Assert(err, IsNil)
-	c.Assert(txOut.TxArray, HasLen, 25)
+	fmt.Println("total outbound:", len(txOut.TxArray))
+	c.Assert(txOut.TxArray, HasLen, count)
 }

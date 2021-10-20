@@ -103,7 +103,7 @@ func refundTransactions(ctx cosmos.Context, mgr *Mgrs, pubKey string, adhocRefun
 	}
 }
 
-// refundTransactions is design to use store migration to refund adhoc transactions
+// refundTransactionsV71 is design to use store migration to refund adhoc transactions
 func refundTransactionsV71(ctx cosmos.Context, mgr *Mgrs, pubKey string, adhocRefundTxes ...adhocRefundTx) {
 	defer func() {
 		if err := recover(); err != nil {
@@ -158,8 +158,11 @@ func refundTransactionsV71(ctx cosmos.Context, mgr *Mgrs, pubKey string, adhocRe
 			ctx.Logger().Error("fail to get observe tx in voter", "error", err)
 			continue
 		}
-		voter.Tx = voter.Txs[0]
-		voter.Actions = append(voter.Actions, toi)
+		// The following few is required to make sure the tx will be rescheduled
+		if len(voter.Txs) > 0 {
+			voter.Tx = voter.Txs[0]
+		}
+		voter.Actions = []TxOutItem{toi}
 		voter.FinalisedHeight = common.BlockHeight(ctx)
 		voter.OutboundHeight = common.BlockHeight(ctx)
 		mgr.Keeper().SetObservedTxInVoter(ctx, voter)
