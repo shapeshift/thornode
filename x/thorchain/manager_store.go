@@ -83,6 +83,7 @@ func (smgr *StoreMgr) migrate(ctx cosmos.Context, i uint64) error {
 		cancelOutboundTxs(ctx, smgr.mgr)
 	case 71:
 		migrateStoreV71Pools(ctx, smgr.mgr)
+		refundBNBTransactionsV71(ctx, smgr.mgr)
 	}
 
 	smgr.mgr.Keeper().SetStoreVersion(ctx, int64(i))
