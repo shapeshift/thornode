@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/armon/go-metrics"
 	"github.com/blang/semver"
 	"github.com/cosmos/cosmos-sdk/telemetry"
 	"github.com/hashicorp/go-multierror"
@@ -1150,7 +1151,11 @@ func (h WithdrawLiquidityHandler) handleCurrent(ctx cosmos.Context, msg MsgWithd
 		}
 	}
 
-	telemetry.IncrCounter(telem(impLossProtection), "thornode", "withdraw", "implossprotection", msg.Asset.String())
+	telemetry.IncrCounterWithLabels(
+		[]string{"thornode", "withdraw", "implossprotection"},
+		telem(impLossProtection),
+		[]metrics.Label{telemetry.NewLabel("asset", msg.Asset.String())},
+	)
 
 	return &cosmos.Result{}, nil
 }
