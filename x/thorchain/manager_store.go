@@ -81,6 +81,8 @@ func (smgr *StoreMgr) migrate(ctx cosmos.Context, i uint64) error {
 		migrateStoreV70Pools(ctx, smgr.mgr)
 		refundBNBTransactions(ctx, smgr.mgr)
 		cancelOutboundTxs(ctx, smgr.mgr)
+	case 71:
+		migrateStoreV71Pools(ctx, smgr.mgr)
 	}
 
 	smgr.mgr.Keeper().SetStoreVersion(ctx, int64(i))
@@ -1084,4 +1086,37 @@ func cancelOutboundTxs(ctx cosmos.Context, mgr *Mgrs) {
 		"78BDB611B68FDD8F2B36A5D0663C6D0E69EAB49E72B193E80ECDE6508ABBE566",
 		"47A7C4D813C194D43299EF8C127C2E4790CBDEC049E2D3314752A72611CF2BF8",
 		"CFB7748A64A5854BAF40003312FEC8DA0C02AA724EDDC5FB3812475C958BDAE3")
+}
+
+func migrateStoreV71Pools(ctx cosmos.Context, mgr Manager) {
+	defer func() {
+		if err := recover(); err != nil {
+			ctx.Logger().Error("fail to migrate store to v70", "error", err)
+		}
+	}()
+	inputs := []struct {
+		asset          string
+		subtractAmount cosmos.Uint
+	}{
+		{"ETH.USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48", cosmos.NewUint(161845558262800)},
+	}
+	for _, item := range inputs {
+		asset, err := common.NewAsset(item.asset)
+		if err != nil {
+			ctx.Logger().Error("fail to parse asset", "asset", item.asset, "error", err)
+			continue
+		}
+		p, err := mgr.Keeper().GetPool(ctx, asset)
+		if err != nil {
+			ctx.Logger().Error("fail to get pool", "error", err, "asset", item.asset)
+			continue
+		}
+		if p.IsEmpty() {
+			continue
+		}
+		p.BalanceAsset = common.SafeSub(p.BalanceAsset, item.subtractAmount)
+		if err := mgr.Keeper().SetPool(ctx, p); err != nil {
+			ctx.Logger().Error("fail to save pool", "error", err, "asset", item.asset)
+		}
+	}
 }
