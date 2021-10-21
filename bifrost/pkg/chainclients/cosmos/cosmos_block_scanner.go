@@ -31,7 +31,10 @@ import (
 type SolvencyReporter func(int64) error
 
 var (
-	FeeAssetDenom         = "uatom"
+	FeeAssetMap = map[string]string{
+		"testnet": "umuon",
+		"mainnet": "uatom",
+	}
 	ErrInvalidScanStorage = errors.New("scan storage is empty or nil")
 	ErrInvalidMetrics     = errors.New("metrics is empty or nil")
 	ErrEmptyTx            = errors.New("empty tx")
@@ -41,9 +44,10 @@ var (
 type CosmosBlockScanner struct {
 	cfg              config.BlockScannerConfiguration
 	logger           zerolog.Logger
+	feeAsset         common.Asset
+	avgGasFee        common.Coin
 	db               blockscanner.ScannerStorage
 	cdc              *codec.ProtoCodec
-	m                *metrics.Metrics
 	errCounter       *prometheus.CounterVec
 	tmService        tmservice.ServiceClient
 	bridge           *thorclient.ThorchainBridge
@@ -62,6 +66,18 @@ func NewCosmosBlockScanner(cfg config.BlockScannerConfiguration,
 	}
 	if m == nil {
 		return nil, errors.New("metrics is nil")
+	}
+
+	var feeAssetStr string
+	if isTestNet {
+		feeAssetStr = FeeAssetMap["testnet"]
+	} else {
+		feeAssetStr = FeeAssetMap["mainnet"]
+	}
+
+	feeAsset, err := common.NewAsset(feeAssetStr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create asset (%s): %w", feeAssetStr, err)
 	}
 
 	registry := bridge.GetContext().InterfaceRegistry
@@ -83,6 +99,8 @@ func NewCosmosBlockScanner(cfg config.BlockScannerConfiguration,
 		cfg:              cfg,
 		logger:           log.Logger.With().Str("module", "blockscanner").Str("chain", "GAIA").Logger(),
 		db:               scanStorage,
+		feeAsset:         feeAsset,
+		avgGasFee:        common.NewCoin(feeAsset, ctypes.NewUint(0)),
 		cdc:              cdc,
 		errCounter:       m.GetCounterVec(metrics.BlockScanError(common.GAIAChain)),
 		tmService:        tmService,
@@ -131,15 +149,10 @@ func (b *CosmosBlockScanner) updateAverageGasFees(height int64, txs []types.TxIn
 		return nil
 	}
 
-	feeAsset, err := common.NewAsset(FeeAssetDenom)
-	if err != nil {
-		return fmt.Errorf("failed to create asset (%s): %w", FeeAssetDenom, err)
-	}
-
 	// sum all the gas fees for the FeeAsset only
 	totalGasFees := ctypes.NewUint(0)
 	for _, tx := range txs {
-		fee := tx.Gas.ToCoins().GetCoin(feeAsset)
+		fee := tx.Gas.ToCoins().GetCoin(b.feeAsset)
 		if err := fee.Valid(); err != nil {
 			return fmt.Errorf("invalid fee (%s): %w", fee, err)
 		}
@@ -158,11 +171,10 @@ func (b *CosmosBlockScanner) updateAverageGasFees(height int64, txs []types.TxIn
 	}
 
 	log.Info().Int64("height", height).Int64("gasFeeAmt", avgGasFeesAmt.Int64())
-	// if _, err := b.bridge.PostNetworkFee(height, common.GAIAChain, 1, avgGasFeesAmt.Uint64()); err != nil {
-	// 	b.logger.Err(err).Int64("height", height).Msg("failed to post average network fee")
-	// 	// TODO: Should we return an error here?
-	// 	return nil
-	// }
+	if _, err := b.bridge.PostNetworkFee(height, common.GAIAChain, 1, avgGasFeesAmt.Uint64()); err != nil {
+		b.logger.Err(err).Int64("height", height).Msg("failed to post average network fee")
+		return err
+	}
 
 	return nil
 }
