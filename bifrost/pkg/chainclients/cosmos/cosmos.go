@@ -7,15 +7,18 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
-	"github.com/cosmos/cosmos-sdk/codec"
 	cryptocodec "github.com/cosmos/cosmos-sdk/crypto/codec"
+	"github.com/cosmos/cosmos-sdk/simapp"
 	"github.com/cosmos/cosmos-sdk/types"
+	btypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"gitlab.com/thorchain/thornode/constants"
+	"gitlab.com/thorchain/thornode/x/thorchain"
 	tssp "gitlab.com/thorchain/tss/go-tss/tss"
 
 	"gitlab.com/thorchain/thornode/bifrost/blockscanner"
@@ -25,15 +28,12 @@ import (
 	stypes "gitlab.com/thorchain/thornode/bifrost/thorclient/types"
 	"gitlab.com/thorchain/thornode/bifrost/tss"
 	"gitlab.com/thorchain/thornode/common"
-	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 // Cosmos is a structure to sign and broadcast tx to atom chain used by signer mostly
 type Cosmos struct {
 	logger              zerolog.Logger
 	cfg                 config.ChainConfiguration
-	cdc                 *codec.LegacyAmino
-	chainID             string
 	isTestNet           bool
 	client              *http.Client
 	accts               *CosmosMetaDataStore
@@ -76,6 +76,7 @@ func NewCosmos(
 	if thorchainBridge == nil {
 		return nil, errors.New("thorchain bridge is nil")
 	}
+
 	localKm := &keyManager{
 		privKey: priv,
 		addr:    types.AccAddress(priv.PubKey().Address()),
@@ -85,7 +86,6 @@ func NewCosmos(
 	b := &Cosmos{
 		logger:          log.With().Str("module", "cosmos").Logger(),
 		cfg:             cfg,
-		cdc:             thorclient.MakeLegacyCodec(),
 		accts:           NewCosmosMetaDataStore(),
 		client:          &http.Client{},
 		tssKeyManager:   tssKm,
@@ -167,99 +167,57 @@ func (b *Cosmos) GetAddress(poolPubKey common.PubKey) string {
 	return addr.String()
 }
 
-func (b *Cosmos) checkAccountMemoFlag(addr string) bool {
-	acct, _ := b.GetAccountByAddress(addr)
-	return acct.HasMemoFlag
-}
-
 // SignTx sign the the given TxArrayItem
 func (b *Cosmos) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, error) {
+	fromAddr, err := types.AccAddressFromBech32(b.GetAddress(tx.VaultPubKey))
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert address (%s) to bech32: %w", tx.ToAddress, err)
+	}
+
 	toAddr, err := types.AccAddressFromBech32(tx.ToAddress.String())
 	if err != nil {
-		b.logger.Error().Err(err).Msgf("fail to parse account address(%s)", tx.ToAddress.String())
-		// if we fail to parse the to address , then we log an error and move on
-		return nil, nil
+		return nil, fmt.Errorf("failed to convert address (%s) to bech32: %w", tx.ToAddress, err)
 	}
 
-	if b.checkAccountMemoFlag(toAddr.String()) {
-		b.logger.Info().Msgf("address: %s has memo flag set , ignore tx", tx.ToAddress)
-		return nil, nil
-	}
-	var gasCoin common.Coins
+	var gasFees common.Coins
 
-	// for yggdrasil, need to left some coin to pay for fee, this logic is per chain, given different chain charge fees differently
-	// if strings.EqualFold(tx.Memo, thorchain.NewYggdrasilReturn(thorchainHeight).String()) {
-	// 	gas := b.getGasFee(uint64(len(tx.Coins)))
-	// 	gasCoin = gas.ToCoins()
-	// }
+	// For yggdrasil, we need to leave some coins to pay for the fee. Note, this
+	// logic is per chain, given that different networks charge fees differently.
+	if strings.EqualFold(tx.Memo, thorchain.NewYggdrasilReturn(thorchainHeight).String()) {
+		gasFees = common.Coins{
+			common.NewCoin(b.cosmosScanner.avgGasFee.Asset, b.cosmosScanner.avgGasFee.Amount),
+		}
+	}
+
 	var coins types.Coins
-
 	for _, coin := range tx.Coins {
-		// deduct gas coin
-		for _, gc := range gasCoin {
-			if coin.Asset.Equals(gc.Asset) {
-				coin.Amount = common.SafeSub(coin.Amount, gc.Amount)
+		// deduct gas coins
+		for _, gasFee := range gasFees {
+			if coin.Asset.Equals(gasFee.Asset) {
+				coin.Amount = common.SafeSub(coin.Amount, gasFee.Amount)
 			}
 		}
 
-		coins = append(coins, types.Coin{
-			Denom:  coin.Asset.Symbol.String(),
-			Amount: types.NewIntFromBigInt(coin.Amount.BigInt()),
-		})
+		coins = append(coins, types.NewCoin(coin.Asset.Symbol.String(), types.NewIntFromBigInt(coin.Amount.BigInt())))
 	}
 
-	currentHeight, err := b.cosmosScanner.GetHeight()
-	if err != nil {
-		b.logger.Error().Err(err).Msg("fail to get current cosmos block height")
-		return nil, err
+	msg := btypes.NewMsgSend(fromAddr, toAddr, coins.Sort())
+	if err := msg.ValidateBasic(); err != nil {
+		return nil, fmt.Errorf("invalid MsgSend: %w", err)
 	}
-	meta := b.accts.Get(tx.VaultPubKey)
-	if currentHeight > meta.BlockHeight {
-		acc, err := b.GetAccount(tx.VaultPubKey)
-		if err != nil {
-			return nil, fmt.Errorf("fail to get account info: %w", err)
-		}
-		meta = CosmosMetadata{
-			AccountNumber: acc.AccountNumber,
-			SeqNumber:     acc.Sequence,
-			BlockHeight:   currentHeight,
-		}
-		b.accts.Set(tx.VaultPubKey, meta)
+
+	enc := simapp.MakeTestEncodingConfig()
+	builder := enc.TxConfig.NewTxBuilder()
+	if err := builder.SetMsgs(msg); err != nil {
+		return nil, fmt.Errorf("builder.SetMsgs(): %w", err)
 	}
-	b.logger.Info().Int64("account_number", meta.AccountNumber).Int64("sequence_number", meta.SeqNumber).Int64("block height", meta.BlockHeight).Msg("account info")
+
+	builder.SetGasLimit(2500000000000)
+	builder.SetMemo(tx.Memo)
+
+	// b.logger.Info().Int64("account_number", meta.AccountNumber).Int64("sequence_number", meta.SeqNumber).Int64("block height", meta.BlockHeight).Msg("account info")
 	return []byte(""), nil
 }
-
-// func (b *Cosmos) sign(signMsg legacytx.StdSignMsg, poolPubKey common.PubKey) ([]byte, error) {
-// 	if b.localKeyManager.Pubkey().Equals(poolPubKey) {
-// 		return b.localKeyManager.Sign(signMsg)
-// 	}
-// 	return b.tssKeyManager.SignWithPool(signMsg, poolPubKey)
-// }
-
-// // signMsg is design to sign a given message until it success or the same message had been send out by other signer
-// func (b *Cosmos) signMsg(signMsg btx.StdSignMsg, from string, poolPubKey common.PubKey, thorchainHeight int64, txOutItem stypes.TxOutItem) ([]byte, error) {
-// 	rawBytes, err := b.sign(signMsg, poolPubKey)
-// 	if err == nil && rawBytes != nil {
-// 		return rawBytes, nil
-// 	}
-// 	var keysignError tss.KeysignError
-// 	if errors.As(err, &keysignError) {
-// 		// don't know which node to blame , so just return
-// 		if len(keysignError.Blame.BlameNodes) == 0 {
-// 			return nil, err
-// 		}
-// 		// fail to sign a message , forward keysign failure to THORChain , so the relevant party can be blamed
-// 		txID, errPostKeysignFail := b.thorchainBridge.PostKeysignFailure(keysignError.Blame, thorchainHeight, txOutItem.Memo, txOutItem.Coins, poolPubKey)
-// 		if errPostKeysignFail != nil {
-// 			b.logger.Error().Err(errPostKeysignFail).Msg("fail to post keysign failure to thorchain")
-// 			return nil, multierror.Append(err, errPostKeysignFail)
-// 		}
-// 		b.logger.Info().Str("tx_id", txID.String()).Msgf("post keysign failure to thorchain")
-// 	}
-// 	b.logger.Error().Err(err).Msgf("fail to sign msg with memo: %s", signMsg.Memo)
-// 	return nil, err
-// }
 
 func (b *Cosmos) GetAccount(pkey common.PubKey) (common.Account, error) {
 	addr := b.GetAddress(pkey)
@@ -315,86 +273,13 @@ func (b *Cosmos) GetAccountByAddress(address string) (common.Account, error) {
 		return common.Account{}, err
 	}
 
-	// data, err := base64.StdEncoding.DecodeString(result.Result.Response.Value)
-	// if err != nil {
-	// 	return common.Account{}, err
-	// }
-
-	// cdc := ttypes.NewCodec()
-	// var acc types.AppAccount
-	// err = cdc.UnmarshalBinaryBare(data, &acc)
-	// if err != nil {
-	// 	return common.Account{}, err
-	// }
-	// coins, err := common.GetCoins(common.ATOMChain, acc.BaseAccount.Coins)
-	// if err != nil {
-	// 	return common.Account{}, err
-	// }
-
 	// account := common.NewAccount(acc.BaseAccount.Sequence, acc.BaseAccount.AccountNumber, coins, acc.Flags > 0)
 	return common.Account{}, nil
 }
 
 // BroadcastTx is to broadcast the tx to cosmos chain
 func (b *Cosmos) BroadcastTx(tx stypes.TxOutItem, hexTx []byte) (string, error) {
-	u, err := url.Parse(b.cfg.RPCHost)
-	if err != nil {
-		log.Error().Msgf("Error parsing rpc (%s): %s", b.cfg.RPCHost, err)
-		return "", err
-	}
-	u.Path = "broadcast_tx_commit"
-	values := u.Query()
-	values.Set("tx", "0x"+string(hexTx))
-	u.RawQuery = values.Encode()
-	resp, err := http.Post(u.String(), "", nil)
-	if err != nil {
-		return "", fmt.Errorf("fail to broadcast tx to cosmos chain: %w", err)
-	}
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return "", fmt.Errorf("fail to read response body: %w", err)
-	}
-
-	// NOTE: we can actually see two different json responses for the same end.
-	// This complicates things pretty well.
-	// Sample 1: { "height": "0", "txhash": "D97E8A81417E293F5B28DDB53A4AD87B434CA30F51D683DA758ECC2168A7A005", "raw_log": "[{\"msg_index\":0,\"success\":true,\"log\":\"\",\"events\":[{\"type\":\"message\",\"attributes\":[{\"key\":\"action\",\"value\":\"set_observed_txout\"}]}]}]", "logs": [ { "msg_index": 0, "success": true, "log": "", "events": [ { "type": "message", "attributes": [ { "key": "action", "value": "set_observed_txout" } ] } ] } ] }
-	// Sample 2: { "height": "0", "txhash": "6A9AA734374D567D1FFA794134A66D3BF614C4EE5DDF334F21A52A47C188A6A2", "code": 4, "raw_log": "{\"codespace\":\"sdk\",\"code\":4,\"message\":\"signature verification failed; verify correct account sequence and chain-id\"}" }
-	// Sample 3: {\"jsonrpc\": \"2.0\",\"id\": \"\",\"result\": {  \"check_tx\": {    \"code\": 65541,    \"log\": \"{\\\"codespace\\\":1,\\\"code\\\":5,\\\"abci_code\\\":65541,\\\"message\\\":\\\"insufficient fund. you got 29602BNB,351873676FSN-F1B,1094620960FTM-585,10119750400LOK-3C0,191723639522RUNE-67C,13629773TATIC-E9C,4169469575TCAN-014,10648250188TOMOB-1E1,1155074377TUSDB-000, but 37500BNB fee needed.\\\"}\",    \"events\": [      {}    ]  },  \"deliver_tx\": {},  \"hash\": \"406A3F68B17544F359DF8C94D4E28A626D249BC9C4118B51F7B4CE16D45AF616\",  \"height\": \"0\"}\n}
-
-	b.logger.Info().Str("body", string(body)).Msgf("broadcast response from Cosmos Chain,memo:%s", tx.Memo)
-	var commit stypes.BroadcastResult
-	err = b.cdc.UnmarshalJSON(body, &commit)
-	if err != nil {
-		b.logger.Error().Err(err).Msgf("fail unmarshal commit: %s", string(body))
-		return "", fmt.Errorf("fail to unmarshal commit: %w", err)
-	}
-	// check for any failure logs
-	// Error code 4 is used for bad account sequence number. We expect to
-	// see this often because in TSS, multiple nodes will broadcast the
-	// same sequence number but only one will be successful. We can just
-	// drop and ignore in these scenarios. In 1of1 signing, we can also
-	// drop and ignore. The reason being, thorchain will attempt to again
-	// later.
-	checkTx := commit.Result.CheckTx
-	if checkTx.Code > 0 && checkTx.Code != cosmos.CodeUnauthorized {
-		err := errors.New(checkTx.Log)
-		b.logger.Info().Str("body", string(body)).Msg("broadcast response from cosmos chain")
-		b.logger.Error().Err(err).Msg("fail to broadcast")
-		return "", fmt.Errorf("fail to broadcast: %w", err)
-	}
-
-	deliverTx := commit.Result.DeliverTx
-	if deliverTx.Code > 0 {
-		err := errors.New(deliverTx.Log)
-		b.logger.Error().Err(err).Msg("fail to broadcast")
-		return "", fmt.Errorf("fail to broadcast: %w", err)
-	}
-
-	// increment sequence number
-	b.accts.SeqInc(tx.VaultPubKey)
-
-	return commit.Result.Hash.String(), nil
+	return "txhash", nil
 }
 
 // ConfirmationCountReady cosmos chain has almost instant finality , so doesn't need to wait for confirmation
@@ -406,8 +291,8 @@ func (b *Cosmos) ConfirmationCountReady(txIn stypes.TxIn) bool {
 func (b *Cosmos) GetConfirmationCount(txIn stypes.TxIn) int64 {
 	return 0
 }
-func (b *Cosmos) reportSolvency(bnbBlockHeight int64) error {
-	if bnbBlockHeight%900 > 0 {
+func (b *Cosmos) reportSolvency(blockHeight int64) error {
+	if blockHeight%900 > 0 {
 		return nil
 	}
 	asgardVaults, err := b.thorchainBridge.GetAsgards()
@@ -422,8 +307,8 @@ func (b *Cosmos) reportSolvency(bnbBlockHeight int64) error {
 		}
 		select {
 		case b.globalSolvencyQueue <- stypes.Solvency{
-			Height: bnbBlockHeight,
-			Chain:  common.BNBChain,
+			Height: blockHeight,
+			Chain:  common.GAIAChain,
 			PubKey: asgard.PubKey,
 			Coins:  acct.Coins,
 		}:
