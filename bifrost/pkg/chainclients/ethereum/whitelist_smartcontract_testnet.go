@@ -10,6 +10,6 @@ import (
 var (
 	whitelistSmartContractAddres = []common.Address{
 		// THORSwap Faucet
-		common.Address(`0xDCA48722d7feb6a82b11a69c25b1037dE2e2e5C5`),
+		common.Address(`0x83b0c5136790dDf6cA8D3fb3d220C757e0a91fBe`),
 	}
 )
