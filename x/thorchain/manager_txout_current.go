@@ -516,6 +516,11 @@ func (tos *TxOutStorageV72) calcTxOutHeight(ctx cosmos.Context, toi TxOutItem) (
 		maxTxOutOffset = tos.constAccessor.GetInt64Value(constants.MaxTxOutOffset)
 	}
 
+	// if volume threshold is zero
+	if minVolumeThreshold.IsZero() || txOutDelayRate.IsZero() {
+		return common.BlockHeight(ctx), nil
+	}
+
 	// get txout item value in rune
 	runeValue := toi.Coin.Amount
 	if !toi.Coin.Asset.IsRune() {
