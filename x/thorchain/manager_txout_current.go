@@ -21,7 +21,7 @@ type TxOutStorageV72 struct {
 }
 
 // newTxOutStorageV72 will create a new instance of TxOutStore.
-func newTxOutStorageV72(keeper keeper.Keeper, constAccessor constants.ConstantValues, eventMgr EventManager, gasManager GasManager) *TxOutStorageV68 {
+func newTxOutStorageV72(keeper keeper.Keeper, constAccessor constants.ConstantValues, eventMgr EventManager, gasManager GasManager) *TxOutStorageV72 {
 	return &TxOutStorageV72{
 		keeper:        keeper,
 		eventMgr:      eventMgr,
@@ -517,7 +517,7 @@ func (tos *TxOutStorageV72) calcTxOutHeight(ctx cosmos.Context, toi TxOutItem) (
 	}
 
 	// if volume threshold is zero
-	if minVolumeThreshold.IsZero() || txOutDelayRate.IsZero() {
+	if minVolumeThreshold.IsZero() || txOutDelayRate == 0 {
 		return common.BlockHeight(ctx), nil
 	}
 
