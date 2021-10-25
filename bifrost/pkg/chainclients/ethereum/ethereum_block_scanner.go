@@ -49,12 +49,6 @@ const (
 	gasCacheBlocks         = 20
 )
 
-var (
-	whitelistSmartContractAddres = []common.Address{
-		common.Address(`0x69fa0feE221AD11012BAb0FdB45d444D3D2Ce71c`),
-	}
-)
-
 // ETHScanner is a scanner that understand how to interact with ETH chain ,and scan block , parse smart contract etc
 type ETHScanner struct {
 	cfg                  config.BlockScannerConfiguration

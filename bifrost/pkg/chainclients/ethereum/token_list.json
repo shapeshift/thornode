@@ -135,6 +135,13 @@
       "symbol": "AAVE",
       "name": "Aave Token",
       "decimals": 18
+    },
+    {
+      "chainId": 1,
+      "address": "0xa5f2211B9b8170F694421f2046281775E8468044",
+      "symbol": "THOR",
+      "name": "THORSwap Token",
+      "decimals": 18
     }
   ],
   "version": {

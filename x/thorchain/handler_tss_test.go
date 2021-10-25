@@ -118,7 +118,10 @@ func newTssHandlerTestHelper(c *C) tssHandlerTestHelper {
 	})
 	signer, err := members[0].GetThorAddress()
 	c.Assert(err, IsNil)
-
+	nodeReady := GetRandomValidatorNode(NodeReady)
+	nodeReady.NodeAddress = signer
+	nodeReady.Bond = cosmos.NewUint(1000000 * common.One)
+	keeperHelper.SetNodeAccount(ctx, nodeReady)
 	keygenBlock := NewKeygenBlock(common.BlockHeight(ctx))
 	keygenBlock.Keygens = []Keygen{
 		{Members: members.Strings()},
