@@ -136,6 +136,10 @@ func (h TssHandler) validateCurrent(ctx cosmos.Context, msg MsgTssPool) error {
 		if !msg.GetPubKeys().Equals(keyGenMembers) {
 			continue
 		}
+		// Make sure the keygen type are consistent
+		if msg.KeygenType != keygen.Type {
+			continue
+		}
 		for _, member := range keygen.GetMembers() {
 			addr, err := member.GetThorAddress()
 			if err == nil && addr.Equals(msg.Signer) {
@@ -154,7 +158,7 @@ func (h TssHandler) validateSigner(ctx cosmos.Context, signer cosmos.AccAddress)
 	if nodeSigner.IsEmpty() {
 		return fmt.Errorf("invalid signer")
 	}
-	if nodeSigner.Status == NodeDisabled || nodeSigner.Status == NodeUnknown || nodeSigner.Status == NodeWhiteListed {
+	if nodeSigner.Status != NodeActive && nodeSigner.Status != NodeReady {
 		return fmt.Errorf("invalid signer status(%s)", nodeSigner.Status)
 	}
 	// ensure we have enough rune
