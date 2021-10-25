@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/armon/go-metrics"
+	"github.com/cosmos/cosmos-sdk/telemetry"
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
@@ -472,6 +474,18 @@ func (tos *TxOutStorageV72) addToBlockOut(ctx cosmos.Context, mgr Manager, item 
 	if item.Chain.IsTHORChain() {
 		return tos.nativeTxOut(ctx, mgr, item)
 	}
+
+	vault, err := tos.keeper.GetVault(ctx, item.VaultPubKey)
+	if err != nil {
+		ctx.Logger().Error("fail to get vault", "error", err)
+	}
+	memo, _ := ParseMemo(item.Memo) // ignore err
+	labels := []metrics.Label{
+		telemetry.NewLabel("vault_type", vault.Type.String()),
+		telemetry.NewLabel("pubkey", item.VaultPubKey.String()),
+		telemetry.NewLabel("memo_type", memo.GetType().String()),
+	}
+	telemetry.SetGaugeWithLabels([]string{"thornode", "vault", "out_txn"}, float32(1), labels)
 
 	return tos.keeper.AppendTxOut(ctx, outboundHeight, item)
 }
