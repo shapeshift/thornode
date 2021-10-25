@@ -83,6 +83,7 @@ func (smgr *StoreMgr) migrate(ctx cosmos.Context, i uint64) error {
 		cancelOutboundTxs(ctx, smgr.mgr)
 	case 71:
 		refundBNBTransactionsV71(ctx, smgr.mgr)
+		correctBurnedBEP2Rune(ctx, smgr.mgr)
 	}
 
 	smgr.mgr.Keeper().SetStoreVersion(ctx, int64(i))
@@ -1183,4 +1184,17 @@ func refundBNBTransactionsV71(ctx cosmos.Context, mgr *Mgrs) {
 	}
 	const asgardPk = `thorpub1addwnpepqdr4386mnkqyqzpqlydtat0k82f8xvkfwzh4xtjc84cuaqmwx5vjvgnf6v5`
 	refundTransactionsV71(ctx, mgr, asgardPk, transactionToRefund...)
+}
+
+func correctBurnedBEP2Rune(ctx cosmos.Context, mgr Manager) {
+	network, err := mgr.Keeper().GetNetwork(ctx)
+	if err != nil {
+		ctx.Logger().Error("failed to get network", "error", err)
+		return
+	}
+
+	network.BurnedBep2Rune = common.SafeSub(network.BurnedBep2Rune, cosmos.NewUint(19450465409520))
+	if err := mgr.Keeper().SetNetwork(ctx, network); err != nil {
+		ctx.Logger().Error("failed to set network", "error", err)
+	}
 }
