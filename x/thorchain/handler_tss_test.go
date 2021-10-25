@@ -124,7 +124,10 @@ func newTssHandlerTestHelper(c *C) tssHandlerTestHelper {
 	keeperHelper.SetNodeAccount(ctx, nodeReady)
 	keygenBlock := NewKeygenBlock(common.BlockHeight(ctx))
 	keygenBlock.Keygens = []Keygen{
-		{Members: members.Strings()},
+		{
+			Type:    AsgardKeygen,
+			Members: members.Strings(),
+		},
 	}
 	keeperHelper.SetKeygenBlock(ctx, keygenBlock)
 	keygenTime := int64(1024)
