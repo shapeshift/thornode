@@ -4809,14 +4809,7 @@
         "type": "outbound",
         "attributes": [
             {
-<<<<<<< HEAD
-                "code": "105"
-            },
-            {
-                "reason": "bnbPROVIDER-1 is not recognizable"
-=======
                 "in_tx_id": "TODO"
->>>>>>> Add DOGE chain
             },
             {
                 "id": "0000000000000000000000000000000000000000000000000000000000000000"
