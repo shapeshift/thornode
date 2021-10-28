@@ -111,6 +111,10 @@ func (tx Tx) IsEmpty() bool {
 }
 
 // Equals compare two Tx to see whether they represent the same Tx
+// Note:
+// 1) this method has a side effect , it is using coins.Equals to compare coins , which potentially will  change the order of coins in tx & tx2
+// 2) for the places that are already using Equals , it can't be changed, continue to use Equals otherwise it will cause consensus failure on CHAOSNET
+// Deprecated
 func (tx Tx) Equals(tx2 Tx) bool {
 	if !tx.ID.Equals(tx2.ID) {
 		return false
@@ -125,6 +129,33 @@ func (tx Tx) Equals(tx2 Tx) bool {
 		return false
 	}
 	if !tx.Coins.Equals(tx2.Coins) {
+		return false
+	}
+	if !tx.Gas.Equals(tx2.Gas) {
+		return false
+	}
+	if !strings.EqualFold(tx.Memo, tx2.Memo) {
+		return false
+	}
+	return true
+}
+
+// EqualsEx compare two Tx to see whether they represent the same Tx
+// This method will not change the original tx & tx2
+func (tx Tx) EqualsEx(tx2 Tx) bool {
+	if !tx.ID.Equals(tx2.ID) {
+		return false
+	}
+	if !tx.Chain.Equals(tx2.Chain) {
+		return false
+	}
+	if !tx.FromAddress.Equals(tx2.FromAddress) {
+		return false
+	}
+	if !tx.ToAddress.Equals(tx2.ToAddress) {
+		return false
+	}
+	if !tx.Coins.EqualsEx(tx2.Coins) {
 		return false
 	}
 	if !tx.Gas.Equals(tx2.Gas) {

@@ -49,6 +49,7 @@ const (
 	YggFundRetry
 	JailTimeKeygen
 	JailTimeKeysign
+	NodePauseChainBlocks
 	MinSwapsPerBlock
 	MaxSwapsPerBlock
 	MaxSynthPerAssetDepth
@@ -57,6 +58,10 @@ const (
 	FullImpLossProtectionBlocks
 	BondLockupPeriod
 	NumberOfNewNodesPerChurn
+	MinTxOutVolumeThreshold
+	TxOutDelayRate
+	TxOutDelayMax
+	MaxTxOutOffset
 	TNSRegisterFee
 	TNSFeeOnSale
 	TNSFeePerBlock
@@ -103,6 +108,7 @@ var nameToString = map[ConstantName]string{
 	YggFundRetry:                  "YggFundRetry",
 	JailTimeKeygen:                "JailTimeKeygen",
 	JailTimeKeysign:               "JailTimeKeysign",
+	NodePauseChainBlocks:          "NodePauseChainBlocks",
 	MinSwapsPerBlock:              "MinSwapsPerBlock",
 	MaxSwapsPerBlock:              "MaxSwapsPerBlock",
 	VirtualMultSynths:             "VirtualMultSynths",
@@ -111,6 +117,10 @@ var nameToString = map[ConstantName]string{
 	FullImpLossProtectionBlocks:   "FullImpLossProtectionBlocks",
 	BondLockupPeriod:              "BondLockupPeriod",
 	NumberOfNewNodesPerChurn:      "NumberOfNewNodesPerChurn",
+	MinTxOutVolumeThreshold:       "MinTxOutVolumeThreshold",
+	TxOutDelayRate:                "TxOutDelayRate",
+	TxOutDelayMax:                 "TxOutDelayMax",
+	MaxTxOutOffset:                "MaxTxOutOffset",
 	TNSRegisterFee:                "TNSRegisterFee",
 	TNSFeeOnSale:                  "TNSFeeOnSale",
 	TNSFeePerBlock:                "TNSFeePerBlock",

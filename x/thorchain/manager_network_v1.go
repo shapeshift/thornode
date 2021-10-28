@@ -23,8 +23,8 @@ type NetworkMgrV1 struct {
 	eventMgr   EventManager
 }
 
-// NewNetworkMgrV1 create a new vault manager
-func NewNetworkMgrV1(k keeper.Keeper, txOutStore TxOutStore, eventMgr EventManager) *NetworkMgrV1 {
+// newNetworkMgrV1 create a new vault manager
+func newNetworkMgrV1(k keeper.Keeper, txOutStore TxOutStore, eventMgr EventManager) *NetworkMgrV1 {
 	return &NetworkMgrV1{
 		k:          k,
 		txOutStore: txOutStore,
@@ -44,7 +44,7 @@ func (vm *NetworkMgrV1) processGenesisSetup(ctx cosmos.Context) error {
 		ctx.Logger().Info("already have vault, no need to generate at genesis")
 		return nil
 	}
-	active, err := vm.k.ListActiveNodeAccounts(ctx)
+	active, err := vm.k.ListActiveValidators(ctx)
 	if err != nil {
 		return fmt.Errorf("fail to get all active node accounts")
 	}
@@ -463,7 +463,7 @@ func (vm *NetworkMgrV1) findChainsToRetire(ctx cosmos.Context) (common.Chains, e
 // RecallChainFunds - sends a message to bifrost nodes to send back all funds
 // associated with given chain
 func (vm *NetworkMgrV1) RecallChainFunds(ctx cosmos.Context, chain common.Chain, mgr Manager, excludeNodes common.PubKeys) error {
-	allNodes, err := vm.k.ListNodeAccountsWithBond(ctx)
+	allNodes, err := vm.k.ListValidatorsWithBond(ctx)
 	if err != nil {
 		return fmt.Errorf("fail to list all node accounts: %w", err)
 	}
@@ -535,7 +535,7 @@ func (vm *NetworkMgrV1) ragnarokChain(ctx cosmos.Context, chain common.Chain, nt
 	// the following line is pointless, granted. But in this case, removing it
 	// would cause a consensus failure
 	_ = vm.k.GetLowestActiveVersion(ctx)
-	nas, err := vm.k.ListActiveNodeAccounts(ctx)
+	nas, err := vm.k.ListActiveValidators(ctx)
 	if err != nil {
 		ctx.Logger().Error("can't get active nodes", "error", err)
 		return err
@@ -590,7 +590,7 @@ func (vm *NetworkMgrV1) ragnarokChain(ctx cosmos.Context, chain common.Chain, nt
 			withdrawMsg := NewMsgWithdrawLiquidity(
 				common.GetRagnarokTx(pool.Asset.GetChain(), withdrawAddr, withdrawAddr),
 				withdrawAddr,
-				cosmos.NewUint(uint64(MaxWithdrawBasisPoints/100*(nth*10))),
+				cosmos.NewUint(uint64(MaxWithdrawBasisPoints)),
 				pool.Asset,
 				withdrawAsset,
 				na.NodeAddress,
@@ -613,8 +613,7 @@ func (vm *NetworkMgrV1) UpdateNetwork(ctx cosmos.Context, constAccessor constant
 		return fmt.Errorf("fail to get existing network data: %w", err)
 	}
 
-	totalReserve := cosmos.ZeroUint()
-	totalReserve = vm.k.GetRuneBalanceOfModule(ctx, ReserveName)
+	totalReserve := vm.k.GetRuneBalanceOfModule(ctx, ReserveName)
 
 	// when total reserve is zero , can't pay reward
 	if totalReserve.IsZero() {
@@ -660,11 +659,7 @@ func (vm *NetworkMgrV1) UpdateNetwork(ctx cosmos.Context, constAccessor constant
 	// given bondReward and toolPoolRewards are both calculated base on totalReserve, thus it should always have enough to pay the bond reward
 
 	// Move Rune from the Reserve to the Bond and Pool Rewards
-	totalRewards := bondReward.Add(totalPoolRewards)
-	if totalRewards.GT(totalReserve) {
-		totalRewards = totalReserve
-	}
-	totalReserve = common.SafeSub(totalReserve, totalRewards)
+
 	coin := common.NewCoin(common.RuneNative, bondReward)
 	if err := vm.k.SendFromModuleToModule(ctx, ReserveName, BondName, common.NewCoins(coin)); err != nil {
 		ctx.Logger().Error("fail to transfer funds from reserve to bond", "error", err)
@@ -771,7 +766,7 @@ func (vm *NetworkMgrV1) getTotalProvidedLiquidityRune(ctx cosmos.Context) (Pools
 
 func (vm *NetworkMgrV1) getTotalActiveBond(ctx cosmos.Context) (cosmos.Uint, error) {
 	totalBonded := cosmos.ZeroUint()
-	nodes, err := vm.k.ListActiveNodeAccounts(ctx)
+	nodes, err := vm.k.ListActiveValidators(ctx)
 	if err != nil {
 		return cosmos.ZeroUint(), fmt.Errorf("fail to get all active accounts: %w", err)
 	}
@@ -867,7 +862,7 @@ func (vm *NetworkMgrV1) getPoolShare(incentiveCurve int64, totalProvidedLiquidit
 }
 
 func getTotalActiveNodeWithBond(ctx cosmos.Context, k keeper.Keeper) (int64, error) {
-	nas, err := k.ListActiveNodeAccounts(ctx)
+	nas, err := k.ListActiveValidators(ctx)
 	if err != nil {
 		return 0, fmt.Errorf("fail to get active node accounts: %w", err)
 	}

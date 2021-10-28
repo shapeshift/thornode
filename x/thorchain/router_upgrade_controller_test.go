@@ -28,7 +28,7 @@ func (s *RouterUpgradeControllerTestSuite) TestUpgradeProcess(c *C) {
 	})
 	activeNodes := make(NodeAccounts, 4)
 	for i := 0; i < 4; i++ {
-		activeNodes[i] = GetRandomNodeAccount(NodeActive)
+		activeNodes[i] = GetRandomValidatorNode(NodeActive)
 		c.Assert(mgr.Keeper().SetNodeAccount(ctx, activeNodes[i]), IsNil)
 	}
 	oldContractAddr, err := common.NewAddress(ethOldRouter)

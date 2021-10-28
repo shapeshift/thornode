@@ -1,9 +1,11 @@
 package common
 
 import (
+	"math/big"
+
 	. "gopkg.in/check.v1"
 
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 type TypeConvertTestSuite struct{}
@@ -47,4 +49,19 @@ func (TypeConvertTestSuite) TestSafeDivision(c *C) {
 
 	result6 := GetShare(cosmos.NewUint(1014), cosmos.NewUint(3), cosmos.NewUint(1000_000*One))
 	c.Check(result6.Equal(cosmos.NewUint(33799999999999997)), Equals, true, Commentf("%s", result6.String()))
+}
+func (TypeConvertTestSuite) TestGetShare(c *C) {
+	x := cosmos.NewUint(0)
+	data := []byte{
+		0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30,
+		0x30, 0x30,
+		0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30,
+		0x30, 0x30,
+	}
+	z2 := new(big.Int)
+	z2.SetBytes(data)
+	c.Log(z2.String())
+	y := cosmos.NewUintFromBigInt(z2)
+	share := GetShare(y, cosmos.NewUint(10000), x)
+	c.Assert(share.IsZero(), Equals, true)
 }

@@ -16,8 +16,8 @@ type YggMgrV59 struct {
 	keeper keeper.Keeper
 }
 
-// NewYggMgrV59 create a new instance of YggMgrV59 which implement YggManager interface
-func NewYggMgrV59(keeper keeper.Keeper) *YggMgrV59 {
+// newYggMgrV59 create a new instance of YggMgrV59 which implement YggManager interface
+func newYggMgrV59(keeper keeper.Keeper) *YggMgrV59 {
 	return &YggMgrV59{
 		keeper: keeper,
 	}
@@ -53,7 +53,7 @@ func (ymgr YggMgrV59) Fund(ctx cosmos.Context, mgr Manager, constAccessor consta
 
 	// find total bonded
 	totalBond := cosmos.ZeroUint()
-	nodeAccs, err := ymgr.keeper.ListActiveNodeAccounts(ctx)
+	nodeAccs, err := ymgr.keeper.ListActiveValidators(ctx)
 	if err != nil {
 		return err
 	}

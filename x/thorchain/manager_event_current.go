@@ -14,8 +14,8 @@ type EmitEventItem interface {
 // EventMgrV1 implement EventManager interface
 type EventMgrV1 struct{}
 
-// NewEventMgrV1 create a new instance of EventMgrV1
-func NewEventMgrV1() *EventMgrV1 {
+// newEventMgrV1 create a new instance of EventMgrV1
+func newEventMgrV1() *EventMgrV1 {
 	return &EventMgrV1{}
 }
 

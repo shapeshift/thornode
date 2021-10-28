@@ -90,10 +90,10 @@ type KeeperLiquidityProvider interface {
 }
 
 type KeeperNodeAccount interface {
-	TotalActiveNodeAccount(ctx cosmos.Context) (int, error)
-	ListNodeAccountsWithBond(ctx cosmos.Context) (NodeAccounts, error)
-	ListNodeAccountsByStatus(ctx cosmos.Context, status NodeStatus) (NodeAccounts, error)
-	ListActiveNodeAccounts(ctx cosmos.Context) (NodeAccounts, error)
+	TotalActiveValidators(ctx cosmos.Context) (int, error)
+	ListValidatorsWithBond(ctx cosmos.Context) (NodeAccounts, error)
+	ListValidatorsByStatus(ctx cosmos.Context, status NodeStatus) (NodeAccounts, error)
+	ListActiveValidators(ctx cosmos.Context) (NodeAccounts, error)
 	GetLowestActiveVersion(ctx cosmos.Context) semver.Version
 	GetMinJoinVersion(ctx cosmos.Context) semver.Version
 	GetMinJoinVersionV1(ctx cosmos.Context) semver.Version
@@ -132,6 +132,7 @@ type KeeperTxOut interface {
 	ClearTxOut(ctx cosmos.Context, height int64) error
 	GetTxOutIterator(ctx cosmos.Context) cosmos.Iterator
 	GetTxOut(ctx cosmos.Context, height int64) (*TxOut, error)
+	GetTxOutValue(ctx cosmos.Context, height int64) (cosmos.Uint, error)
 }
 
 type KeeperLiquidityFees interface {
@@ -223,6 +224,8 @@ type KeeperMimir interface {
 	SetMimir(_ cosmos.Context, key string, value int64)
 	GetMimirIterator(ctx cosmos.Context) cosmos.Iterator
 	DeleteMimir(_ cosmos.Context, key string) error
+	GetNodePauseChain(ctx cosmos.Context, acc cosmos.AccAddress) int64
+	SetNodePauseChain(ctx cosmos.Context, acc cosmos.AccAddress)
 }
 
 type KeeperNetworkFee interface {

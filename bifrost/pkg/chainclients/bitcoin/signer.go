@@ -33,7 +33,7 @@ const (
 	// MinUTXOConfirmation UTXO that has less confirmation then this will not be spent , unless it is yggdrasil
 	MinUTXOConfirmation        = 1
 	defaultMaxBTCFeeRate       = btcutil.SatoshiPerBitcoin / 10
-	maxUTXOsToSpend            = 15
+	maxUTXOsToSpend            = 10
 	minSpendableUTXOAmountSats = 10000 // If UTXO is less than this , it will not observed , and will not spend it either
 )
 
@@ -85,12 +85,24 @@ func (c *Client) isYggdrasil(key common.PubKey) bool {
 	return key.Equals(c.nodePubKey)
 }
 
+func (c *Client) getMaximumUtxosToSpend() int64 {
+	const mimirMaxUTXOsToSpend = `MaxUTXOsToSpend`
+	utxosToSpend, err := c.bridge.GetMimir(mimirMaxUTXOsToSpend)
+	if err != nil {
+		c.logger.Err(err).Msg("fail to get MaxUTXOsToSpend")
+	}
+	if utxosToSpend <= 0 {
+		utxosToSpend = maxUTXOsToSpend
+	}
+	return utxosToSpend
+}
+
 // getAllUtxos go through all the block meta in the local storage, it will spend all UTXOs in  block that might be evicted from local storage soon
 // it also try to spend enough UTXOs that can add up to more than the given total
 func (c *Client) getUtxoToSpend(pubKey common.PubKey, total float64) ([]btcjson.ListUnspentResult, error) {
 	var result []btcjson.ListUnspentResult
 	minConfirmation := 0
-
+	utxosToSpend := c.getMaximumUtxosToSpend()
 	isYggdrasil := c.isYggdrasil(pubKey)
 	utxos, err := c.getUTXOs(minConfirmation, MaximumConfirmation, pubKey)
 	if err != nil {
@@ -131,7 +143,7 @@ func (c *Client) getUtxoToSpend(pubKey common.PubKey, total float64) ([]btcjson.
 		// in the scenario that there are too many unspent utxos available, make sure it doesn't spend too much
 		// as too much UTXO will cause huge pressure on TSS, also make sure it will spend at least maxUTXOsToSpend
 		// so the UTXOs will be consolidated
-		if len(result) >= maxUTXOsToSpend && toSpend >= total {
+		if int64(len(result)) >= utxosToSpend && toSpend >= total {
 			break
 		}
 	}
@@ -479,6 +491,7 @@ func (c *Client) consolidateUTXOs() {
 		c.logger.Err(err).Msg("fail to get current asgards")
 		return
 	}
+	utxosToSpend := c.getMaximumUtxosToSpend()
 	for _, vault := range vaults {
 		// the amount used here doesn't matter , just to see whether there are more than 15 UTXO available or not
 		utxos, err := c.getUtxoToSpend(vault.PubKey, 0.01)
@@ -487,7 +500,7 @@ func (c *Client) consolidateUTXOs() {
 			continue
 		}
 		// doesn't have enough UTXOs , don't need to consolidate
-		if len(utxos) < maxUTXOsToSpend {
+		if int64(len(utxos)) < utxosToSpend {
 			continue
 		}
 		total := 0.0

@@ -19,12 +19,12 @@ func (s *SlashingV43Suite) SetUpSuite(c *C) {
 func (s *SlashingV43Suite) TestObservingSlashing(c *C) {
 	var err error
 	ctx, k := setupKeeperForTest(c)
-	naActiveAfterTx := GetRandomNodeAccount(NodeActive)
+	naActiveAfterTx := GetRandomValidatorNode(NodeActive)
 	naActiveAfterTx.ActiveBlockHeight = 1030
 	nas := NodeAccounts{
-		GetRandomNodeAccount(NodeActive),
-		GetRandomNodeAccount(NodeActive),
-		GetRandomNodeAccount(NodeStandby),
+		GetRandomValidatorNode(NodeActive),
+		GetRandomValidatorNode(NodeActive),
+		GetRandomValidatorNode(NodeStandby),
 		naActiveAfterTx,
 	}
 	for _, item := range nas {
@@ -57,7 +57,7 @@ func (s *SlashingV43Suite) TestObservingSlashing(c *C) {
 	ver := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(ver)
 
-	slasher := NewSlasherV43(k, NewDummyEventMgr())
+	slasher := newSlasherV43(k, NewDummyEventMgr())
 	// should slash na2 only
 	lackOfObservationPenalty := constAccessor.GetInt64Value(constants.LackOfObservationPenalty)
 	err = slasher.LackObserving(ctx, constAccessor)
@@ -97,8 +97,8 @@ func (s *SlashingV43Suite) TestLackObservingErrors(c *C) {
 	ctx, _ := setupKeeperForTest(c)
 
 	nas := NodeAccounts{
-		GetRandomNodeAccount(NodeActive),
-		GetRandomNodeAccount(NodeActive),
+		GetRandomValidatorNode(NodeActive),
+		GetRandomValidatorNode(NodeActive),
 	}
 	keeper := &TestSlashObservingKeeper{
 		nas:      nas,
@@ -107,7 +107,7 @@ func (s *SlashingV43Suite) TestLackObservingErrors(c *C) {
 	}
 	ver := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(ver)
-	slasher := NewSlasherV43(keeper, NewDummyEventMgr())
+	slasher := newSlasherV43(keeper, NewDummyEventMgr())
 	err := slasher.LackObserving(ctx, constAccessor)
 	c.Assert(err, IsNil)
 }
@@ -167,7 +167,7 @@ func (s *SlashingV43Suite) TestNodeSignSlashErrors(c *C) {
 		ctx = ctx.WithBlockHeight(201) // set blockheight
 		ver := GetCurrentVersion()
 		constAccessor := constants.GetConstantValues(ver)
-		na := GetRandomNodeAccount(NodeActive)
+		na := GetRandomValidatorNode(NodeActive)
 		inTx := common.NewTx(
 			GetRandomTxHash(),
 			GetRandomBNBAddress(),
@@ -205,7 +205,7 @@ func (s *SlashingV43Suite) TestNodeSignSlashErrors(c *C) {
 		}
 		signingTransactionPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
 		ctx = ctx.WithBlockHeight(3 + signingTransactionPeriod)
-		slasher := NewSlasherV43(keeper, NewDummyEventMgr())
+		slasher := newSlasherV43(keeper, NewDummyEventMgr())
 		item.condition(keeper)
 		if item.shouldError {
 			c.Assert(slasher.LackSigning(ctx, constAccessor, NewDummyMgr()), NotNil)
@@ -221,7 +221,7 @@ func (s *SlashingV43Suite) TestNotSigningSlash(c *C) {
 	txOutStore := NewTxStoreDummy()
 	ver := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(ver)
-	na := GetRandomNodeAccount(NodeActive)
+	na := GetRandomValidatorNode(NodeActive)
 	inTx := common.NewTx(
 		GetRandomTxHash(),
 		GetRandomBNBAddress(),
@@ -264,7 +264,7 @@ func (s *SlashingV43Suite) TestNotSigningSlash(c *C) {
 	ctx = ctx.WithBlockHeight(3 + signingTransactionPeriod)
 	mgr := NewDummyMgr()
 	mgr.txOutStore = txOutStore
-	slasher := NewSlasherV43(keeper, NewDummyEventMgr())
+	slasher := newSlasherV43(keeper, NewDummyEventMgr())
 	c.Assert(slasher.LackSigning(ctx, constAccessor, mgr), IsNil)
 
 	c.Check(keeper.slashPts[na.NodeAddress.String()], Equals, int64(600), Commentf("%+v\n", na))
@@ -281,15 +281,15 @@ func (s *SlashingV43Suite) TestNotSigningSlash(c *C) {
 
 func (s *SlashingV43Suite) TestNewSlasher(c *C) {
 	nas := NodeAccounts{
-		GetRandomNodeAccount(NodeActive),
-		GetRandomNodeAccount(NodeActive),
+		GetRandomValidatorNode(NodeActive),
+		GetRandomValidatorNode(NodeActive),
 	}
 	keeper := &TestSlashObservingKeeper{
 		nas:      nas,
 		addrs:    []cosmos.AccAddress{nas[0].NodeAddress},
 		slashPts: make(map[string]int64, 0),
 	}
-	slasher := NewSlasherV43(keeper, NewDummyEventMgr())
+	slasher := newSlasherV43(keeper, NewDummyEventMgr())
 	c.Assert(slasher, NotNil)
 }
 
@@ -297,7 +297,7 @@ func (s *SlashingV43Suite) TestDoubleSign(c *C) {
 	ctx, _ := setupKeeperForTest(c)
 	constAccessor := constants.GetConstantValues(GetCurrentVersion())
 
-	na := GetRandomNodeAccount(NodeActive)
+	na := GetRandomValidatorNode(NodeActive)
 	na.Bond = cosmos.NewUint(100 * common.One)
 
 	keeper := &TestDoubleSlashKeeper{
@@ -305,7 +305,7 @@ func (s *SlashingV43Suite) TestDoubleSign(c *C) {
 		network: NewNetwork(),
 		modules: make(map[string]int64, 0),
 	}
-	slasher := NewSlasherV43(keeper, NewDummyEventMgr())
+	slasher := newSlasherV43(keeper, NewDummyEventMgr())
 
 	pk, err := cosmos.GetPubKeyFromBech32(cosmos.Bech32PubKeyTypeConsPub, na.ValidatorConsPubKey)
 	c.Assert(err, IsNil)
@@ -319,7 +319,7 @@ func (s *SlashingV43Suite) TestDoubleSign(c *C) {
 func (s *SlashingV43Suite) TestIncreaseDecreaseSlashPoints(c *C) {
 	ctx, _ := setupKeeperForTest(c)
 
-	na := GetRandomNodeAccount(NodeActive)
+	na := GetRandomValidatorNode(NodeActive)
 	na.Bond = cosmos.NewUint(100 * common.One)
 
 	keeper := &TestDoubleSlashKeeper{
@@ -327,7 +327,7 @@ func (s *SlashingV43Suite) TestIncreaseDecreaseSlashPoints(c *C) {
 		network:     NewNetwork(),
 		slashPoints: make(map[string]int64),
 	}
-	slasher := NewSlasherV43(keeper, NewDummyEventMgr())
+	slasher := newSlasherV43(keeper, NewDummyEventMgr())
 	addr := GetRandomBech32Addr()
 	slasher.IncSlashPoints(ctx, 1, addr)
 	slasher.DecSlashPoints(ctx, 1, addr)

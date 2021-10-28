@@ -64,15 +64,15 @@ func (k *tssKeysignKeeperHelper) GetTssKeysignFailVoter(ctx cosmos.Context, id s
 	return k.Keeper.GetTssKeysignFailVoter(ctx, id)
 }
 
-func (k *tssKeysignKeeperHelper) ListActiveNodeAccounts(ctx cosmos.Context) (NodeAccounts, error) {
+func (k *tssKeysignKeeperHelper) ListActiveValidators(ctx cosmos.Context) (NodeAccounts, error) {
 	if k.errListActiveAccounts {
 		return NodeAccounts{}, kaboom
 	}
-	return k.Keeper.ListActiveNodeAccounts(ctx)
+	return k.Keeper.ListActiveValidators(ctx)
 }
 
 func signVoter(ctx cosmos.Context, keeper keeper.Keeper, except cosmos.AccAddress) (result []cosmos.AccAddress) {
-	active, _ := keeper.ListActiveNodeAccounts(ctx)
+	active, _ := keeper.ListActiveValidators(ctx)
 	for _, na := range active {
 		if na.NodeAddress.Equals(except) {
 			continue
@@ -85,35 +85,35 @@ func signVoter(ctx cosmos.Context, keeper keeper.Keeper, except cosmos.AccAddres
 func newTssKeysignHandlerTestHelper(c *C) tssKeysignFailHandlerTestHelper {
 	ctx, k := setupKeeperForTest(c)
 	ctx = ctx.WithBlockHeight(1023)
-	keeper := newTssKeysignFailKeeperHelper(k)
+	keeperHelper := newTssKeysignFailKeeperHelper(k)
 	// active account
-	nodeAccount := GetRandomNodeAccount(NodeActive)
+	nodeAccount := GetRandomValidatorNode(NodeActive)
 	nodeAccount.Bond = cosmos.NewUint(100 * common.One)
-	c.Assert(keeper.SetNodeAccount(ctx, nodeAccount), IsNil)
+	c.Assert(keeperHelper.SetNodeAccount(ctx, nodeAccount), IsNil)
 	constAccessor := constants.GetConstantValues(GetCurrentVersion())
 	mgr := NewDummyMgr()
 
 	var members []Node
 	for i := 0; i < 8; i++ {
-		na := GetRandomNodeAccount(NodeActive)
+		na := GetRandomValidatorNode(NodeActive)
 		members = append(members, Node{Pubkey: na.PubKeySet.Secp256k1.String()})
-		_ = keeper.SetNodeAccount(ctx, na)
+		_ = keeperHelper.SetNodeAccount(ctx, na)
 	}
 	blame := Blame{
 		FailReason: "whatever",
 		BlameNodes: []Node{members[0], members[1]},
 	}
 	asgardVault := NewVault(common.BlockHeight(ctx), ActiveVault, AsgardVault, GetRandomPubKey(), common.Chains{common.BNBChain}.Strings(), []ChainContract{})
-	c.Assert(keeper.SetVault(ctx, asgardVault), IsNil)
+	c.Assert(keeperHelper.SetVault(ctx, asgardVault), IsNil)
 	retiringVault := NewVault(common.BlockHeight(ctx), RetiringVault, AsgardVault, GetRandomPubKey(), common.Chains{common.BNBChain}.Strings(), []ChainContract{})
 	for _, item := range members {
 		retiringVault.Membership = append(retiringVault.Membership, item.Pubkey)
 	}
-	c.Assert(keeper.SetVault(ctx, retiringVault), IsNil)
+	c.Assert(keeperHelper.SetVault(ctx, retiringVault), IsNil)
 	return tssKeysignFailHandlerTestHelper{
 		ctx:           ctx,
 		version:       GetCurrentVersion(),
-		keeper:        keeper,
+		keeper:        keeperHelper,
 		constAccessor: constAccessor,
 		nodeAccount:   nodeAccount,
 		mgr:           mgr,
@@ -276,7 +276,7 @@ func (h HandlerTssKeysignSuite) TestTssKeysignFailHandler(c *C) {
 			},
 			runner: func(handler TssKeysignHandler, msg cosmos.Msg, helper tssKeysignFailHandlerTestHelper) (*cosmos.Result, error) {
 				for i := 0; i < 3; i++ {
-					na := GetRandomNodeAccount(NodeActive)
+					na := GetRandomValidatorNode(NodeActive)
 					if err := helper.keeper.SetNodeAccount(helper.ctx, na); err != nil {
 						return nil, ErrInternal(err, "fail to set node account")
 					}
@@ -295,7 +295,7 @@ func (h HandlerTssKeysignSuite) TestTssKeysignFailHandler(c *C) {
 			runner: func(handler TssKeysignHandler, msg cosmos.Msg, helper tssKeysignFailHandlerTestHelper) (*cosmos.Result, error) {
 				var na NodeAccount
 				for i := 0; i < 3; i++ {
-					na = GetRandomNodeAccount(NodeActive)
+					na = GetRandomValidatorNode(NodeActive)
 					if err := helper.keeper.SetNodeAccount(helper.ctx, na); err != nil {
 						return nil, ErrInternal(err, "fail to set node account")
 					}
@@ -338,12 +338,12 @@ func (h HandlerTssKeysignSuite) TestTssKeysignFailHandler_accept_standby_node_me
 	}, []ChainContract{})
 	accounts := NodeAccounts{}
 	for i := 0; i < 8; i++ {
-		na := GetRandomNodeAccount(NodeActive)
+		na := GetRandomValidatorNode(NodeActive)
 		_ = helper.keeper.SetNodeAccount(helper.ctx, na)
 		vault.Membership = append(vault.Membership, na.PubKeySet.Secp256k1.String())
 		accounts = append(accounts, na)
 	}
-	naStandby := GetRandomNodeAccount(NodeStandby)
+	naStandby := GetRandomValidatorNode(NodeStandby)
 	_ = helper.keeper.SetNodeAccount(helper.ctx, naStandby)
 	vault.Membership = append(vault.Membership, naStandby.PubKeySet.Secp256k1.String())
 	c.Assert(helper.keeper.SetVault(helper.ctx, vault), IsNil)
@@ -362,4 +362,12 @@ func (h HandlerTssKeysignSuite) TestTssKeysignFailHandler_accept_standby_node_me
 	result, err := handler.Run(helper.ctx, msg)
 	c.Assert(result, NotNil)
 	c.Assert(err, IsNil)
+
+	msg1, err := NewMsgTssKeysignFail(common.BlockHeight(helper.ctx), helper.blame, "hello", common.Coins{common.NewCoin(common.BNBAsset, cosmos.NewUint(100))}, naStandby.NodeAddress, vault.PubKey)
+	msg1.Blame.BlameNodes = []Node{}
+	c.Assert(err, IsNil)
+	result, err = handler.Run(helper.ctx, msg1)
+	c.Assert(result, IsNil)
+	c.Assert(err, NotNil)
+	c.Assert(errors.Is(err, se.ErrUnknownRequest), Equals, true)
 }

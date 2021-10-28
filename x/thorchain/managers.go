@@ -64,6 +64,7 @@ type EventManager interface {
 
 // TxOutStore define the method required for TxOutStore
 type TxOutStore interface {
+	EndBlock(ctx cosmos.Context, mgr Manager) error
 	GetBlockOut(ctx cosmos.Context) (*TxOut, error)
 	ClearOutboundItems(ctx cosmos.Context)
 	GetOutboundItems(ctx cosmos.Context) ([]TxOutItem, error)
@@ -187,7 +188,7 @@ func (mgr *Mgrs) BeginBlock(ctx cosmos.Context) error {
 		return fmt.Errorf("fail to get tx out store: %w", err)
 	}
 
-	mgr.networkMgr, err = GetVaultManager(mgr.K, v, mgr.txOutStore, mgr.eventMgr)
+	mgr.networkMgr, err = GetNetworkManager(mgr.K, v, mgr.txOutStore, mgr.eventMgr)
 	if err != nil {
 		return fmt.Errorf("fail to get vault manager: %w", err)
 	}
@@ -261,7 +262,7 @@ func GetKeeper(version semver.Version, cdc codec.BinaryMarshaler, coinKeeper ban
 func GetGasManager(version semver.Version, keeper keeper.Keeper) (GasManager, error) {
 	constAcessor := constants.GetConstantValues(version)
 	if version.GTE(semver.MustParse("0.1.0")) {
-		return NewGasMgrV1(constAcessor, keeper), nil
+		return newGasMgrV1(constAcessor, keeper), nil
 	}
 	return nil, errInvalidVersion
 }
@@ -269,7 +270,7 @@ func GetGasManager(version semver.Version, keeper keeper.Keeper) (GasManager, er
 // GetEventManager will return an implementation of EventManager
 func GetEventManager(version semver.Version) (EventManager, error) {
 	if version.GTE(semver.MustParse("0.1.0")) {
-		return NewEventMgrV1(), nil
+		return newEventMgrV1(), nil
 	}
 	return nil, errInvalidVersion
 }
@@ -277,38 +278,48 @@ func GetEventManager(version semver.Version) (EventManager, error) {
 // GetTxOutStore will return an implementation of the txout store that
 func GetTxOutStore(keeper keeper.Keeper, version semver.Version, eventMgr EventManager, gasManager GasManager) (TxOutStore, error) {
 	constAccessor := constants.GetConstantValues(version)
-	if version.GTE(semver.MustParse("0.64.0")) {
-		return NewTxOutStorageV64(keeper, constAccessor, eventMgr, gasManager), nil
+	if version.GTE(semver.MustParse("0.68.0")) {
+		return newTxOutStorageV68(keeper, constAccessor, eventMgr, gasManager), nil
+	} else if version.GTE(semver.MustParse("0.67.0")) {
+		return newTxOutStorageV67(keeper, constAccessor, eventMgr, gasManager), nil
+	} else if version.GTE(semver.MustParse("0.66.0")) {
+		return newTxOutStorageV66(keeper, constAccessor, eventMgr, gasManager), nil
+	} else if version.GTE(semver.MustParse("0.65.0")) {
+		return newTxOutStorageV65(keeper, constAccessor, eventMgr, gasManager), nil
+	} else if version.GTE(semver.MustParse("0.64.0")) {
+		return newTxOutStorageV64(keeper, constAccessor, eventMgr, gasManager), nil
 	} else if version.GTE(semver.MustParse("0.58.0")) {
-		return NewTxOutStorageV58(keeper, constAccessor, eventMgr, gasManager), nil
+		return newTxOutStorageV58(keeper, constAccessor, eventMgr, gasManager), nil
 	} else if version.GTE(semver.MustParse("0.55.0")) {
-		return NewTxOutStorageV55(keeper, constAccessor, eventMgr, gasManager), nil
+		return newTxOutStorageV55(keeper, constAccessor, eventMgr, gasManager), nil
 	} else if version.GTE(semver.MustParse("0.54.0")) {
-		return NewTxOutStorageV54(keeper, constAccessor, eventMgr, gasManager), nil
+		return newTxOutStorageV54(keeper, constAccessor, eventMgr, gasManager), nil
 	} else if version.GTE(semver.MustParse("0.53.0")) {
-		return NewTxOutStorageV53(keeper, constAccessor, eventMgr, gasManager), nil
+		return newTxOutStorageV53(keeper, constAccessor, eventMgr, gasManager), nil
 	} else if version.GTE(semver.MustParse("0.52.0")) {
-		return NewTxOutStorageV52(keeper, constAccessor, eventMgr, gasManager), nil
+		return newTxOutStorageV52(keeper, constAccessor, eventMgr, gasManager), nil
 	} else if version.GTE(semver.MustParse("0.51.0")) {
-		return NewTxOutStorageV51(keeper, constAccessor, eventMgr, gasManager), nil
+		return newTxOutStorageV51(keeper, constAccessor, eventMgr, gasManager), nil
 	} else if version.GTE(semver.MustParse("0.46.0")) {
-		return NewTxOutStorageV46(keeper, constAccessor, eventMgr, gasManager), nil
+		return newTxOutStorageV46(keeper, constAccessor, eventMgr, gasManager), nil
 	} else if version.GTE(semver.MustParse("0.1.0")) {
-		return NewTxOutStorageV1(keeper, constAccessor, eventMgr, gasManager), nil
+		return newTxOutStorageV1(keeper, constAccessor, eventMgr, gasManager), nil
 	}
 	return nil, errInvalidVersion
 }
 
-// GetVaultManager retrieve a NetworkManager that is compatible with the given version
-func GetVaultManager(keeper keeper.Keeper, version semver.Version, txOutStore TxOutStore, eventMgr EventManager) (NetworkManager, error) {
-	if version.GTE(semver.MustParse("0.63.0")) {
-		return NewNetworkMgrV63(keeper, txOutStore, eventMgr), nil
+// GetNetworkManager  retrieve a NetworkManager that is compatible with the given version
+func GetNetworkManager(keeper keeper.Keeper, version semver.Version, txOutStore TxOutStore, eventMgr EventManager) (NetworkManager, error) {
+	if version.GTE(semver.MustParse("0.69.0")) {
+		return newNetworkMgrV69(keeper, txOutStore, eventMgr), nil
+	} else if version.GTE(semver.MustParse("0.63.0")) {
+		return newNetworkMgrV63(keeper, txOutStore, eventMgr), nil
 	} else if version.GTE(semver.MustParse("0.59.0")) {
-		return NewNetworkMgrV59(keeper, txOutStore, eventMgr), nil
+		return newNetworkMgrV59(keeper, txOutStore, eventMgr), nil
 	} else if version.GTE(semver.MustParse("0.57.0")) {
-		return NewNetworkMgrV57(keeper, txOutStore, eventMgr), nil
+		return newNetworkMgrV57(keeper, txOutStore, eventMgr), nil
 	} else if version.GTE(semver.MustParse("0.1.0")) {
-		return NewNetworkMgrV1(keeper, txOutStore, eventMgr), nil
+		return newNetworkMgrV1(keeper, txOutStore, eventMgr), nil
 	}
 	return nil, errInvalidVersion
 }
@@ -331,7 +342,7 @@ func GetValidatorManager(keeper keeper.Keeper, version semver.Version, vaultMgr 
 // when there is no version can match the given semver , it will return nil
 func GetObserverManager(version semver.Version) (ObserverManager, error) {
 	if version.GTE(semver.MustParse("0.1.0")) {
-		return NewObserverMgrV1(), nil
+		return newObserverMgrV1(), nil
 	}
 	return nil, errInvalidVersion
 }
@@ -339,47 +350,53 @@ func GetObserverManager(version semver.Version) (ObserverManager, error) {
 // GetSwapQueue retrieve a SwapQueue that is compatible with the given version
 func GetSwapQueue(keeper keeper.Keeper, version semver.Version) (SwapQueue, error) {
 	if version.GTE(semver.MustParse("0.58.0")) {
-		return NewSwapQv58(keeper), nil
+		return newSwapQv58(keeper), nil
 	} else if version.GTE(semver.MustParse("0.47.0")) {
-		return NewSwapQv47(keeper), nil
+		return newSwapQv47(keeper), nil
 	} else if version.GTE(semver.MustParse("0.1.0")) {
-		return NewSwapQv1(keeper), nil
+		return newSwapQv1(keeper), nil
 	}
 	return nil, errInvalidVersion
 }
 
 // GetSlasher return an implementation of Slasher
 func GetSlasher(keeper keeper.Keeper, version semver.Version, eventMgr EventManager) (Slasher, error) {
-	if version.GTE(semver.MustParse("0.63.0")) {
-		return NewSlasherV63(keeper, eventMgr), nil
+	if version.GTE(semver.MustParse("0.69.0")) {
+		return newSlasherV69(keeper, eventMgr), nil
+	} else if version.GTE(semver.MustParse("0.65.0")) {
+		return newSlasherV65(keeper, eventMgr), nil
+	} else if version.GTE(semver.MustParse("0.63.0")) {
+		return newSlasherV63(keeper, eventMgr), nil
 	} else if version.GTE(semver.MustParse("0.58.0")) {
-		return NewSlasherV58(keeper, eventMgr), nil
+		return newSlasherV58(keeper, eventMgr), nil
 	} else if version.GTE(semver.MustParse("0.54.0")) {
-		return NewSlasherV54(keeper, eventMgr), nil
+		return newSlasherV54(keeper, eventMgr), nil
 	} else if version.GTE(semver.MustParse("0.48.0")) {
-		return NewSlasherV48(keeper, eventMgr), nil
+		return newSlasherV48(keeper, eventMgr), nil
 	} else if version.GTE(semver.MustParse("0.47.0")) {
-		return NewSlasherV47(keeper, eventMgr), nil
+		return newSlasherV47(keeper, eventMgr), nil
 	} else if version.GTE(semver.MustParse("0.44.0")) {
-		return NewSlasherV44(keeper, eventMgr), nil
+		return newSlasherV44(keeper, eventMgr), nil
 	} else if version.GTE(semver.MustParse("0.43.0")) {
-		return NewSlasherV43(keeper, eventMgr), nil
+		return newSlasherV43(keeper, eventMgr), nil
 	} else if version.GTE(semver.MustParse("0.1.0")) {
-		return NewSlasherV1(keeper, eventMgr), nil
+		return newSlasherV1(keeper, eventMgr), nil
 	}
 	return nil, errInvalidVersion
 }
 
 // GetYggManager return an implementation of YggManager
 func GetYggManager(keeper keeper.Keeper, version semver.Version) (YggManager, error) {
-	if version.GTE(semver.MustParse("0.63.0")) {
-		return NewYggMgrV63(keeper), nil
+	if version.GTE(semver.MustParse("0.65.0")) {
+		return newYggMgrV65(keeper), nil
+	} else if version.GTE(semver.MustParse("0.63.0")) {
+		return newYggMgrV63(keeper), nil
 	} else if version.GTE(semver.MustParse("0.59.0")) {
-		return NewYggMgrV59(keeper), nil
+		return newYggMgrV59(keeper), nil
 	} else if version.GTE(semver.MustParse("0.45.0")) {
-		return NewYggMgrV45(keeper), nil
+		return newYggMgrV45(keeper), nil
 	} else if version.GTE(semver.MustParse("0.1.0")) {
-		return NewYggMgrV1(keeper), nil
+		return newYggMgrV1(keeper), nil
 	}
 	return nil, errInvalidVersion
 }

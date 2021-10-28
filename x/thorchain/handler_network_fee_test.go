@@ -25,11 +25,11 @@ func NewKeeperObserveNetworkFeeTest(k keeper.Keeper) KeeperObserveNetworkFeeTest
 	return KeeperObserveNetworkFeeTest{Keeper: k}
 }
 
-func (k KeeperObserveNetworkFeeTest) ListActiveNodeAccounts(ctx cosmos.Context) (NodeAccounts, error) {
+func (k KeeperObserveNetworkFeeTest) ListActiveValidators(ctx cosmos.Context) (NodeAccounts, error) {
 	if k.errFailListActiveNodeAccount {
 		return NodeAccounts{}, kaboom
 	}
-	return k.Keeper.ListActiveNodeAccounts(ctx)
+	return k.Keeper.ListActiveValidators(ctx)
 }
 
 func (k KeeperObserveNetworkFeeTest) GetObservedNetworkFeeVoter(ctx cosmos.Context, height int64, chain common.Chain) (ObservedNetworkFeeVoter, error) {
@@ -58,7 +58,7 @@ func (h *HandlerObserveNetworkFeeSuite) TestHandlerObserveNetworkFee(c *C) {
 
 func (*HandlerObserveNetworkFeeSuite) testHandlerObserveNetworkFeeWithVersion(c *C) {
 	ctx, keeper := setupKeeperForTest(c)
-	activeNodeAccount := GetRandomNodeAccount(NodeActive)
+	activeNodeAccount := GetRandomValidatorNode(NodeActive)
 	c.Assert(keeper.SetNodeAccount(ctx, activeNodeAccount), IsNil)
 	handler := NewNetworkFeeHandler(NewDummyMgrWithKeeper(keeper))
 	msg := NewMsgNetworkFee(1024, common.BNBChain, 256, 100, activeNodeAccount.NodeAddress)

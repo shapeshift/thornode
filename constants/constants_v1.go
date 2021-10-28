@@ -37,12 +37,17 @@ func NewConstantValue010() *ConstantVals {
 			YggFundRetry:                  1000,               // number of blocks before retrying to fund a yggdrasil vault
 			JailTimeKeygen:                720 * 6,            // blocks a node account is jailed for failing to keygen. DO NOT drop below tss timeout
 			JailTimeKeysign:               60,                 // blocks a node account is jailed for failing to keysign. DO NOT drop below tss timeout
+			NodePauseChainBlocks:          720,                // number of blocks that a node can pause/resume a global chain halt
 			MinSwapsPerBlock:              10,                 // process all swaps if queue is less than this number
 			MaxSwapsPerBlock:              100,                // max swaps to process per block
 			VirtualMultSynths:             2,                  // pool depth multiplier for synthetic swaps
 			MaxSynthPerAssetDepth:         3300,               // percentage (in basis points) of how many synths are allowed relative to asset depth of the related pool
 			MinSlashPointsForBadValidator: 100,                // The minimum slash point
 			FullImpLossProtectionBlocks:   1440000,            // number of blocks before a liquidity provider gets 100% impermanent loss protection
+			MinTxOutVolumeThreshold:       1000_00000000,      // total txout volume (in rune) a block needs to have to slow outbound transactions
+			TxOutDelayRate:                25_00000000,        // outbound rune per block rate for scheduled transactions (excluding native assets)
+			TxOutDelayMax:                 17280,              // max number of blocks a transaction can be delayed
+			MaxTxOutOffset:                720,                // max blocks to offset a txout into a future block
 			TNSRegisterFee:                10_00000000,        // registration fee for new THORName
 			TNSFeeOnSale:                  1000,               // fee for TNS sale in basis points
 			TNSFeePerBlock:                20,                 // per block cost for TNS, in rune

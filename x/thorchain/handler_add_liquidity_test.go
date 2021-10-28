@@ -44,7 +44,7 @@ func (m *MockAddLiquidityKeeper) SetPool(_ cosmos.Context, pool Pool) error {
 	return nil
 }
 
-func (m *MockAddLiquidityKeeper) ListNodeAccountsWithBond(_ cosmos.Context) (NodeAccounts, error) {
+func (m *MockAddLiquidityKeeper) ListValidatorsWithBond(_ cosmos.Context) (NodeAccounts, error) {
 	return NodeAccounts{m.activeNodeAccount}, nil
 }
 
@@ -79,7 +79,7 @@ func (s *HandlerAddLiquiditySuite) SetUpSuite(c *C) {
 func (s *HandlerAddLiquiditySuite) TestAddLiquidityHandler(c *C) {
 	var err error
 	ctx, mgr := setupManagerForTest(c)
-	activeNodeAccount := GetRandomNodeAccount(NodeActive)
+	activeNodeAccount := GetRandomValidatorNode(NodeActive)
 	runeAddr := GetRandomRUNEAddress()
 	bnbAddr := GetRandomBNBAddress()
 	pool := NewPool()
@@ -141,7 +141,7 @@ func (s *HandlerAddLiquiditySuite) TestAddLiquidityHandler(c *C) {
 }
 
 func (s *HandlerAddLiquiditySuite) TestAddLiquidityHandler_NoPool_ShouldCreateNewPool(c *C) {
-	activeNodeAccount := GetRandomNodeAccount(NodeActive)
+	activeNodeAccount := GetRandomValidatorNode(NodeActive)
 	activeNodeAccount.Bond = cosmos.NewUint(1000000 * common.One)
 	runeAddr := GetRandomRUNEAddress()
 	bnbAddr := GetRandomBNBAddress()
@@ -202,7 +202,7 @@ func (s *HandlerAddLiquiditySuite) TestAddLiquidityHandler_NoPool_ShouldCreateNe
 
 func (s *HandlerAddLiquiditySuite) TestAddLiquidityHandlerValidation(c *C) {
 	ctx, _ := setupKeeperForTest(c)
-	activeNodeAccount := GetRandomNodeAccount(NodeActive)
+	activeNodeAccount := GetRandomValidatorNode(NodeActive)
 	runeAddr := GetRandomRUNEAddress()
 	bnbAddr := GetRandomBNBAddress()
 	bnbSynthAsset, _ := common.NewAsset("BNB/BNB")
@@ -249,22 +249,22 @@ func (s *HandlerAddLiquiditySuite) TestAddLiquidityHandlerValidation(c *C) {
 		},
 		{
 			name:           "empty asset should fail",
-			msg:            NewMsgAddLiquidity(GetRandomTx(), common.Asset{}, cosmos.NewUint(common.One*5), cosmos.NewUint(common.One*5), GetRandomBNBAddress(), GetRandomBNBAddress(), common.NoAddress, cosmos.ZeroUint(), GetRandomNodeAccount(NodeActive).NodeAddress),
+			msg:            NewMsgAddLiquidity(GetRandomTx(), common.Asset{}, cosmos.NewUint(common.One*5), cosmos.NewUint(common.One*5), GetRandomBNBAddress(), GetRandomBNBAddress(), common.NoAddress, cosmos.ZeroUint(), GetRandomValidatorNode(NodeActive).NodeAddress),
 			expectedResult: errAddLiquidityFailValidation,
 		},
 		{
 			name:           "synth asset from memo should fail",
-			msg:            NewMsgAddLiquidity(GetRandomTx(), bnbSynthAsset, cosmos.NewUint(common.One*5), cosmos.NewUint(common.One*5), GetRandomBNBAddress(), GetRandomBNBAddress(), common.NoAddress, cosmos.ZeroUint(), GetRandomNodeAccount(NodeActive).NodeAddress),
+			msg:            NewMsgAddLiquidity(GetRandomTx(), bnbSynthAsset, cosmos.NewUint(common.One*5), cosmos.NewUint(common.One*5), GetRandomBNBAddress(), GetRandomBNBAddress(), common.NoAddress, cosmos.ZeroUint(), GetRandomValidatorNode(NodeActive).NodeAddress),
 			expectedResult: errAddLiquidityFailValidation,
 		},
 		{
 			name:           "synth asset from coins should fail",
-			msg:            NewMsgAddLiquidity(tx, common.BNBAsset, cosmos.NewUint(common.One*5), cosmos.NewUint(common.One*5), GetRandomBNBAddress(), GetRandomBNBAddress(), common.NoAddress, cosmos.ZeroUint(), GetRandomNodeAccount(NodeActive).NodeAddress),
+			msg:            NewMsgAddLiquidity(tx, common.BNBAsset, cosmos.NewUint(common.One*5), cosmos.NewUint(common.One*5), GetRandomBNBAddress(), GetRandomBNBAddress(), common.NoAddress, cosmos.ZeroUint(), GetRandomValidatorNode(NodeActive).NodeAddress),
 			expectedResult: errAddLiquidityFailValidation,
 		},
 		{
 			name:           "empty addresses should fail",
-			msg:            NewMsgAddLiquidity(GetRandomTx(), common.BTCAsset, cosmos.NewUint(common.One*5), cosmos.NewUint(common.One*5), common.NoAddress, common.NoAddress, common.NoAddress, cosmos.ZeroUint(), GetRandomNodeAccount(NodeActive).NodeAddress),
+			msg:            NewMsgAddLiquidity(GetRandomTx(), common.BTCAsset, cosmos.NewUint(common.One*5), cosmos.NewUint(common.One*5), common.NoAddress, common.NoAddress, common.NoAddress, cosmos.ZeroUint(), GetRandomValidatorNode(NodeActive).NodeAddress),
 			expectedResult: errAddLiquidityFailValidation,
 		},
 		{
@@ -289,7 +289,7 @@ func (s *HandlerAddLiquiditySuite) TestAddLiquidityHandlerValidation(c *C) {
 }
 
 func (s *HandlerAddLiquiditySuite) TestHandlerAddLiquidityFailScenario(c *C) {
-	activeNodeAccount := GetRandomNodeAccount(NodeActive)
+	activeNodeAccount := GetRandomValidatorNode(NodeActive)
 	emptyPool := Pool{
 		BalanceRune:  cosmos.ZeroUint(),
 		BalanceAsset: cosmos.ZeroUint(),

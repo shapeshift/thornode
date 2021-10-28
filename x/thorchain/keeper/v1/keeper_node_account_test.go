@@ -15,14 +15,17 @@ func (s *KeeperNodeAccountSuite) TestNodeAccount(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	ctx = ctx.WithBlockHeight(10)
 
-	na1 := GetRandomNodeAccount(NodeActive)
-	na2 := GetRandomNodeAccount(NodeStandby)
+	na1 := GetRandomValidatorNode(NodeActive)
+	na2 := GetRandomValidatorNode(NodeStandby)
+	na3 := GetRandomLiteNode(NodeActive)
+
 	c.Assert(k.SetNodeAccount(ctx, na1), IsNil)
 	c.Assert(k.SetNodeAccount(ctx, na2), IsNil)
+	c.Assert(k.SetNodeAccount(ctx, na3), IsNil)
 	c.Check(na1.ActiveBlockHeight, Equals, int64(10))
 	c.Check(na2.ActiveBlockHeight, Equals, int64(0))
 
-	count, err := k.TotalActiveNodeAccount(ctx)
+	count, err := k.TotalActiveValidators(ctx)
 	c.Assert(err, IsNil)
 	c.Check(count, Equals, 1)
 
@@ -51,15 +54,16 @@ func (s *KeeperNodeAccountSuite) TestNodeAccount(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(na.Status, Equals, NodeUnknown)
 	c.Assert(na.ValidatorConsPubKey, Equals, "")
-	nodeAccounts, err := k.ListNodeAccountsWithBond(ctx)
+	nodeAccounts, err := k.ListValidatorsWithBond(ctx)
 	c.Check(err, IsNil)
-	c.Check(nodeAccounts.Len() > 0, Equals, true)
+	c.Check(nodeAccounts.Len() > 0 && nodeAccounts.Len() < 3, Equals, true)
 }
 
 func (s *KeeperNodeAccountSuite) TestGetMinJoinVersion(c *C) {
 	type nodeInfo struct {
-		status  NodeStatus
-		version semver.Version
+		status   NodeStatus
+		nodeType NodeType
+		version  semver.Version
 	}
 	inputs := []struct {
 		nodeInfoes            []nodeInfo
@@ -69,50 +73,29 @@ func (s *KeeperNodeAccountSuite) TestGetMinJoinVersion(c *C) {
 		{
 			nodeInfoes: []nodeInfo{
 				{
-					status:  NodeActive,
-					version: semver.MustParse("0.2.0"),
+					status:   NodeActive,
+					nodeType: NodeTypeValidator,
+					version:  semver.MustParse("0.2.0"),
 				},
 				{
-					status:  NodeActive,
-					version: semver.MustParse("0.3.0"),
+					status:   NodeActive,
+					nodeType: NodeTypeValidator,
+					version:  semver.MustParse("0.3.0"),
 				},
 				{
-					status:  NodeActive,
-					version: semver.MustParse("0.3.0"),
+					status:   NodeActive,
+					nodeType: NodeTypeValidator,
+					version:  semver.MustParse("0.3.0"),
 				},
 				{
-					status:  NodeStandby,
-					version: semver.MustParse("0.2.0"),
+					status:   NodeStandby,
+					nodeType: NodeTypeValidator,
+					version:  semver.MustParse("0.2.0"),
 				},
 				{
-					status:  NodeStandby,
-					version: semver.MustParse("0.2.0"),
-				},
-			},
-			expectedVersion:       semver.MustParse("0.3.0"),
-			expectedActiveVersion: semver.MustParse("0.2.0"),
-		},
-		{
-			nodeInfoes: []nodeInfo{
-				{
-					status:  NodeActive,
-					version: semver.MustParse("0.2.0"),
-				},
-				{
-					status:  NodeActive,
-					version: semver.MustParse("1.3.0"),
-				},
-				{
-					status:  NodeActive,
-					version: semver.MustParse("0.3.0"),
-				},
-				{
-					status:  NodeStandby,
-					version: semver.MustParse("0.2.0"),
-				},
-				{
-					status:  NodeStandby,
-					version: semver.MustParse("0.2.0"),
+					status:   NodeStandby,
+					nodeType: NodeTypeValidator,
+					version:  semver.MustParse("0.2.0"),
 				},
 			},
 			expectedVersion:       semver.MustParse("0.3.0"),
@@ -121,24 +104,60 @@ func (s *KeeperNodeAccountSuite) TestGetMinJoinVersion(c *C) {
 		{
 			nodeInfoes: []nodeInfo{
 				{
-					status:  NodeActive,
-					version: semver.MustParse("0.2.0"),
+					status:   NodeActive,
+					nodeType: NodeTypeValidator,
+					version:  semver.MustParse("0.2.0"),
 				},
 				{
-					status:  NodeActive,
-					version: semver.MustParse("1.3.0"),
+					status:   NodeActive,
+					nodeType: NodeTypeValidator,
+					version:  semver.MustParse("1.3.0"),
 				},
 				{
-					status:  NodeActive,
-					version: semver.MustParse("0.3.0"),
+					status:   NodeActive,
+					nodeType: NodeTypeValidator,
+					version:  semver.MustParse("0.3.0"),
 				},
 				{
-					status:  NodeActive,
-					version: semver.MustParse("0.2.0"),
+					status:   NodeStandby,
+					nodeType: NodeTypeValidator,
+					version:  semver.MustParse("0.2.0"),
 				},
 				{
-					status:  NodeActive,
-					version: semver.MustParse("0.2.0"),
+					status:   NodeStandby,
+					nodeType: NodeTypeValidator,
+					version:  semver.MustParse("0.2.0"),
+				},
+			},
+			expectedVersion:       semver.MustParse("0.3.0"),
+			expectedActiveVersion: semver.MustParse("0.2.0"),
+		},
+		{
+			nodeInfoes: []nodeInfo{
+				{
+					status:   NodeActive,
+					nodeType: NodeTypeValidator,
+					version:  semver.MustParse("0.2.0"),
+				},
+				{
+					status:   NodeActive,
+					nodeType: NodeTypeValidator,
+					version:  semver.MustParse("1.3.0"),
+				},
+				{
+					status:   NodeActive,
+					nodeType: NodeTypeValidator,
+					version:  semver.MustParse("0.3.0"),
+				},
+				{
+					status:   NodeActive,
+					nodeType: NodeTypeValidator,
+					version:  semver.MustParse("0.2.0"),
+				},
+				{
+					status:   NodeActive,
+					nodeType: NodeTypeValidator,
+					version:  semver.MustParse("0.2.0"),
 				},
 			},
 			expectedVersion:       semver.MustParse("0.2.0"),
@@ -149,7 +168,7 @@ func (s *KeeperNodeAccountSuite) TestGetMinJoinVersion(c *C) {
 	for _, item := range inputs {
 		ctx, k := setupKeeperForTest(c)
 		for _, ni := range item.nodeInfoes {
-			na1 := GetRandomNodeAccount(ni.status)
+			na1 := GetRandomValidatorNode(ni.status)
 			na1.Version = ni.version.String()
 			c.Assert(k.SetNodeAccount(ctx, na1), IsNil)
 		}

@@ -504,7 +504,7 @@ func (c *Client) getMemPool(height int64) (types.TxIn, error) {
 				c.logger.Err(err).Msgf("fail to get raw transaction verbose with hash(%s)", txHash.String())
 				return nil
 			}
-			txInItem, err := c.getTxIn(result, height)
+			txInItem, err := c.getTxIn(result, height, true)
 			if err != nil {
 				c.logger.Error().Err(err).Msg("fail to get TxInItem")
 				return nil
@@ -725,13 +725,13 @@ func (c *Client) isRBFEnabled(tx *btcjson.TxRawResult) bool {
 	}
 	return false
 }
-func (c *Client) getTxIn(tx *btcjson.TxRawResult, height int64) (types.TxInItem, error) {
+func (c *Client) getTxIn(tx *btcjson.TxRawResult, height int64, isMemPool bool) (types.TxInItem, error) {
 	if c.ignoreTx(tx) {
 		c.logger.Debug().Int64("height", height).Str("tx", tx.Hash).Msg("ignore tx not matching format")
 		return types.TxInItem{}, nil
 	}
 	// RBF enabled transaction will not be observed until it get committed to block
-	if c.isRBFEnabled(tx) && tx.Confirmations == 0 {
+	if c.isRBFEnabled(tx) && isMemPool {
 		return types.TxInItem{}, nil
 	}
 	sender, err := c.getSender(tx)
@@ -745,7 +745,11 @@ func (c *Client) getTxIn(tx *btcjson.TxRawResult, height int64) (types.TxInItem,
 	if len([]byte(memo)) > constants.MaxMemoSize {
 		return types.TxInItem{}, fmt.Errorf("memo (%s) longer than max allow length(%d)", memo, constants.MaxMemoSize)
 	}
-	output, err := c.getOutput(sender, tx, strings.EqualFold(memo, mem.NewConsolidateMemo().String()))
+	m, err := mem.ParseMemo(memo)
+	if err != nil {
+		c.logger.Debug().Msgf("fail to parse memo: %s,err : %s", memo, err)
+	}
+	output, err := c.getOutput(sender, tx, m.IsType(mem.TxConsolidate))
 	if err != nil {
 		if errors.Is(err, btypes.FailOutputMatchCriteria) {
 			c.logger.Debug().Int64("height", height).Str("tx", tx.Hash).Msg("ignore tx not matching format")
@@ -753,7 +757,11 @@ func (c *Client) getTxIn(tx *btcjson.TxRawResult, height int64) (types.TxInItem,
 		}
 		return types.TxInItem{}, fmt.Errorf("fail to get output from tx: %w", err)
 	}
-	toAddr := output.ScriptPubKey.Addresses[0]
+	addresses := c.getAddressesFromScriptPubKey(output.ScriptPubKey)
+	if len(addresses) == 0 {
+		return types.TxInItem{}, fmt.Errorf("fail to get addresses from script pub key")
+	}
+	toAddr := addresses[0]
 	// If a UTXO is outbound , there is no need to validate the UTXO against mutisig
 	if c.isAsgardAddress(toAddr) {
 		if !c.isValidUTXO(output.ScriptPubKey.Hex) {
@@ -794,7 +802,7 @@ func (c *Client) extractTxs(block *btcjson.GetBlockVerboseTxResult) (types.TxIn,
 	for idx, tx := range block.Tx {
 		// mempool transaction get committed to block , thus remove it from mempool cache
 		c.removeFromMemPoolCache(tx.Hash)
-		txInItem, err := c.getTxIn(&block.Tx[idx], block.Height)
+		txInItem, err := c.getTxIn(&block.Tx[idx], block.Height, false)
 		if err != nil {
 			c.logger.Err(err).Msg("fail to get TxInItem")
 			continue
@@ -855,9 +863,10 @@ func (c *Client) ignoreTx(tx *btcjson.TxRawResult) bool {
 		if vout.Value > 0 {
 			countWithOutput++
 		}
+		addresses := c.getAddressesFromScriptPubKey(vout.ScriptPubKey)
 		// check we have one address on the first 2 outputs
 		// TODO check what we do if get multiple addresses
-		if idx < 2 && vout.ScriptPubKey.Type != "nulldata" && len(vout.ScriptPubKey.Addresses) != 1 {
+		if idx < 2 && vout.ScriptPubKey.Type != "nulldata" && len(addresses) != 1 {
 			return true
 		}
 	}
@@ -870,6 +879,30 @@ func (c *Client) ignoreTx(tx *btcjson.TxRawResult) bool {
 		return true
 	}
 	return false
+}
+func (c *Client) getAddressesFromScriptPubKey(scriptPubKey btcjson.ScriptPubKeyResult) []string {
+	addresses := scriptPubKey.Addresses
+	if len(addresses) > 0 {
+		return addresses
+	}
+
+	if len(scriptPubKey.Hex) == 0 {
+		return nil
+	}
+	buf, err := hex.DecodeString(scriptPubKey.Hex)
+	if err != nil {
+		c.logger.Err(err).Msg("fail to hex decode script pub key")
+		return nil
+	}
+	_, extractedAddresses, _, err := txscript.ExtractPkScriptAddrs(buf, c.getChainCfg())
+	if err != nil {
+		c.logger.Err(err).Msg("fail to extract addresses from script pub key")
+		return nil
+	}
+	for _, item := range extractedAddresses {
+		addresses = append(addresses, item.String())
+	}
+	return addresses
 }
 
 // getOutput retrieve the correct output for both inbound
@@ -884,14 +917,15 @@ func (c *Client) getOutput(sender string, tx *btcjson.TxRawResult, consolidate b
 		if strings.EqualFold(vout.ScriptPubKey.Type, "nulldata") {
 			continue
 		}
-		if len(vout.ScriptPubKey.Addresses) != 1 {
+		addresses := c.getAddressesFromScriptPubKey(vout.ScriptPubKey)
+		if len(addresses) != 1 {
 			return btcjson.Vout{}, fmt.Errorf("no vout address available")
 		}
 		if vout.Value > 0 {
-			if consolidate && vout.ScriptPubKey.Addresses[0] == sender {
+			if consolidate && addresses[0] == sender {
 				return vout, nil
 			}
-			if !consolidate && vout.ScriptPubKey.Addresses[0] != sender {
+			if !consolidate && addresses[0] != sender {
 				return vout, nil
 			}
 		}
@@ -906,35 +940,48 @@ func (c *Client) getSender(tx *btcjson.TxRawResult) (string, error) {
 	}
 	txHash, err := chainhash.NewHashFromStr(tx.Vin[0].Txid)
 	if err != nil {
-		return "", fmt.Errorf("fail to get tx hash from tx id string")
+		return "", fmt.Errorf("fail to get tx hash from tx id string,err: %w", err)
 	}
 	vinTx, err := c.client.GetRawTransactionVerbose(txHash)
 	if err != nil {
-		return "", fmt.Errorf("fail to query raw tx from btcd")
+		return "", fmt.Errorf("fail to query raw tx from btcd,err: %w", err)
 	}
 	vout := vinTx.Vout[tx.Vin[0].Vout]
-	if len(vout.ScriptPubKey.Addresses) == 0 {
+	addresses := c.getAddressesFromScriptPubKey(vout.ScriptPubKey)
+	if len(addresses) == 0 {
 		return "", fmt.Errorf("no address available in vout")
 	}
-	return vout.ScriptPubKey.Addresses[0], nil
+	return addresses[0], nil
 }
 
 // getMemo returns memo for a btc tx, using vout OP_RETURN
 func (c *Client) getMemo(tx *btcjson.TxRawResult) (string, error) {
-	var opreturns string
-	for _, vout := range tx.Vout {
-		if strings.EqualFold(vout.ScriptPubKey.Type, "nulldata") {
-			opreturn := strings.Fields(vout.ScriptPubKey.Asm)
-			if len(opreturn) == 2 {
-				opreturns += opreturn[1]
+	var opReturns string
+	for _, vOut := range tx.Vout {
+		if !strings.EqualFold(vOut.ScriptPubKey.Type, "nulldata") {
+			continue
+		}
+		buf, err := hex.DecodeString(vOut.ScriptPubKey.Hex)
+		if err != nil {
+			c.logger.Err(err).Msg("fail to hex decode scriptPubKey")
+			continue
+		}
+		asm, err := txscript.DisasmString(buf)
+		if err != nil {
+			c.logger.Err(err).Msg("fail to disasm script pubkey")
+			continue
+		}
+		opReturnFields := strings.Fields(asm)
+		if len(opReturnFields) == 2 {
+			decoded, err := hex.DecodeString(opReturnFields[1])
+			if err != nil {
+				c.logger.Err(err).Msgf("fail to decode OP_RETURN string: %s", opReturnFields[1])
+				continue
 			}
+			opReturns += string(decoded)
 		}
 	}
-	decoded, err := hex.DecodeString(opreturns)
-	if err != nil {
-		return "", fmt.Errorf("fail to decode OP_RETURN string: %s", opreturns)
-	}
-	return string(decoded), nil
+	return opReturns, nil
 }
 
 // getGas returns gas for a btc tx (sum vin - sum vout)

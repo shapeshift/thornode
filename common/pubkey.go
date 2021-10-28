@@ -3,6 +3,7 @@ package common
 import (
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strings"
 
 	secp256k1 "github.com/btcsuite/btcd/btcec"
@@ -21,7 +22,7 @@ import (
 	eth "github.com/ethereum/go-ethereum/crypto"
 	"github.com/tendermint/tendermint/crypto"
 
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 // PubKey used in thorchain, it should be bech32 encoded string
@@ -247,6 +248,28 @@ func (pks PubKeys) Contains(pk PubKey) bool {
 	return false
 }
 
+// Equals check whether two pub keys are identical
+func (pks PubKeys) Equals(newPks PubKeys) bool {
+	if len(pks) != len(newPks) {
+		return false
+	}
+	source := append(pks[:0:0], pks...)
+	dest := append(newPks[:0:0], newPks...)
+	// sort both lists
+	sort.Slice(source[:], func(i, j int) bool {
+		return source[i].String() < source[j].String()
+	})
+	sort.Slice(dest[:], func(i, j int) bool {
+		return dest[i].String() < dest[j].String()
+	})
+	for i := range source {
+		if !source[i].Equals(dest[i]) {
+			return false
+		}
+	}
+	return true
+}
+
 // String implement stringer interface
 func (pks PubKeys) String() string {
 	strs := make([]string, len(pks))
@@ -257,11 +280,11 @@ func (pks PubKeys) String() string {
 }
 
 func (pks PubKeys) Strings() []string {
-	strings := make([]string, len(pks))
+	allStrings := make([]string, len(pks))
 	for i, pk := range pks {
-		strings[i] = pk.String()
+		allStrings[i] = pk.String()
 	}
-	return strings
+	return allStrings
 }
 
 // ConvertAndEncode converts from a base64 encoded byte string to hex or base32 encoded byte string and then to bech32

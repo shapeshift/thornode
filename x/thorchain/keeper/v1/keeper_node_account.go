@@ -36,15 +36,15 @@ func (k KVStore) getNodeAccount(ctx cosmos.Context, key string, record *NodeAcco
 	return true, nil
 }
 
-// TotalActiveNodeAccount count the number of active node account
-func (k KVStore) TotalActiveNodeAccount(ctx cosmos.Context) (int, error) {
-	activeNodes, err := k.ListActiveNodeAccounts(ctx)
+// TotalActiveValidators count the number of active node account
+func (k KVStore) TotalActiveValidators(ctx cosmos.Context) (int, error) {
+	activeNodes, err := k.ListActiveValidators(ctx)
 	return len(activeNodes), err
 }
 
-// ListNodeAccountsWithBond - gets a list of all node accounts that have bond
+// ListValidatorsWithBond - gets a list of all validator node accounts that have bond
 // Note: the order of node account in the result is not defined
-func (k KVStore) ListNodeAccountsWithBond(ctx cosmos.Context) (NodeAccounts, error) {
+func (k KVStore) ListValidatorsWithBond(ctx cosmos.Context) (NodeAccounts, error) {
 	nodeAccounts := make(NodeAccounts, 0)
 	naIterator := k.GetNodeAccountIterator(ctx)
 	defer naIterator.Close()
@@ -53,15 +53,15 @@ func (k KVStore) ListNodeAccountsWithBond(ctx cosmos.Context) (NodeAccounts, err
 		if err := k.cdc.UnmarshalBinaryBare(naIterator.Value(), &na); err != nil {
 			return nodeAccounts, dbError(ctx, "Unmarshal: node account", err)
 		}
-		if !na.Bond.IsZero() {
+		if na.Type == NodeTypeValidator && !na.Bond.IsZero() {
 			nodeAccounts = append(nodeAccounts, na)
 		}
 	}
 	return nodeAccounts, nil
 }
 
-// ListNodeAccountsByStatus - get a list of node accounts with the given status
-func (k KVStore) ListNodeAccountsByStatus(ctx cosmos.Context, status NodeStatus) (NodeAccounts, error) {
+// ListValidatorsByStatus - get a list of validator node accounts with the given status
+func (k KVStore) ListValidatorsByStatus(ctx cosmos.Context, status NodeStatus) (NodeAccounts, error) {
 	nodeAccounts := make(NodeAccounts, 0)
 	naIterator := k.GetNodeAccountIterator(ctx)
 	defer naIterator.Close()
@@ -70,16 +70,16 @@ func (k KVStore) ListNodeAccountsByStatus(ctx cosmos.Context, status NodeStatus)
 		if err := k.cdc.UnmarshalBinaryBare(naIterator.Value(), &na); err != nil {
 			return nodeAccounts, dbError(ctx, "Unmarshal: node account", err)
 		}
-		if na.Status == status {
+		if na.Type == NodeTypeValidator && na.Status == status {
 			nodeAccounts = append(nodeAccounts, na)
 		}
 	}
 	return nodeAccounts, nil
 }
 
-// ListActiveNodeAccounts - get a list of active node accounts
-func (k KVStore) ListActiveNodeAccounts(ctx cosmos.Context) (NodeAccounts, error) {
-	return k.ListNodeAccountsByStatus(ctx, NodeActive)
+// ListActiveValidators - get a list of active validator node accounts
+func (k KVStore) ListActiveValidators(ctx cosmos.Context) (NodeAccounts, error) {
+	return k.ListValidatorsByStatus(ctx, NodeActive)
 }
 
 // GetMinJoinVersion - get min version to join. Min version is the most popular version
@@ -89,7 +89,7 @@ func (k KVStore) GetMinJoinVersion(ctx cosmos.Context) semver.Version {
 		count   int
 	}
 	vCount := make(map[string]tmpVersionInfo, 0)
-	nodes, err := k.ListActiveNodeAccounts(ctx)
+	nodes, err := k.ListActiveValidators(ctx)
 	if err != nil {
 		_ = dbError(ctx, "Unable to list active node accounts", err)
 		return semver.Version{}
@@ -139,7 +139,7 @@ func (k KVStore) GetMinJoinVersionV1(ctx cosmos.Context) semver.Version {
 		count   int
 	}
 	vCount := make(map[string]tmpVersionInfo, 0)
-	nodes, err := k.ListActiveNodeAccounts(ctx)
+	nodes, err := k.ListActiveValidators(ctx)
 	if err != nil {
 		_ = dbError(ctx, "Unable to list active node accounts", err)
 		return semver.Version{}
@@ -184,7 +184,7 @@ func (k KVStore) GetMinJoinVersionV1(ctx cosmos.Context) semver.Version {
 
 // GetLowestActiveVersion - get version number of lowest active node
 func (k KVStore) GetLowestActiveVersion(ctx cosmos.Context) semver.Version {
-	nodes, err := k.ListActiveNodeAccounts(ctx)
+	nodes, err := k.ListActiveValidators(ctx)
 	if err != nil {
 		_ = dbError(ctx, "Unable to list active node accounts", err)
 		return constants.SWVersion

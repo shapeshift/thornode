@@ -30,11 +30,11 @@ func (h ReserveContributorHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmo
 		ctx.Logger().Error("MsgReserveContributor failed validation", "error", err)
 		return nil, err
 	}
-	result, err := h.handle(ctx, *msg)
+	err := h.handle(ctx, *msg)
 	if err != nil {
 		ctx.Logger().Error("fail to process MsgReserveContributor", "error", err)
 	}
-	return result, err
+	return &cosmos.Result{}, err
 }
 
 func (h ReserveContributorHandler) validate(ctx cosmos.Context, msg MsgReserveContributor) error {
@@ -53,19 +53,15 @@ func (h ReserveContributorHandler) validateCurrent(ctx cosmos.Context, msg MsgRe
 	return msg.ValidateBasic()
 }
 
-func (h ReserveContributorHandler) handle(ctx cosmos.Context, msg MsgReserveContributor) (*cosmos.Result, error) {
+func (h ReserveContributorHandler) handle(ctx cosmos.Context, msg MsgReserveContributor) error {
 	version := h.mgr.GetVersion()
-	ctx.Logger().Info("handleMsgReserveContributor request")
 	if version.GTE(semver.MustParse("0.1.0")) {
-		if err := h.handleV1(ctx, msg); err != nil {
-			return nil, ErrInternal(err, "fail to process reserve contributor")
-		}
-		return &cosmos.Result{}, nil
+		return h.handleV1(ctx, msg)
 	}
-	return nil, errBadVersion
+	return errBadVersion
 }
 
-// handleV1  process MsgReserveContributor
+// handle process MsgReserveContributor
 func (h ReserveContributorHandler) handleV1(ctx cosmos.Context, msg MsgReserveContributor) error {
 	return h.handleCurrent(ctx, msg)
 }

@@ -67,19 +67,22 @@ func (h LeaveHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Result, err
 		ctx.Logger().Error("msg leave fail validation", "error", err)
 		return nil, err
 	}
-	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.46.0")) {
-		if err := h.handleV46(ctx, *msg); err != nil {
-			ctx.Logger().Error("fail to process msg leave", "error", err)
-			return nil, err
-		}
-	} else if version.GTE(semver.MustParse("0.1.0")) {
-		if err := h.handleV1(ctx, *msg); err != nil {
-			ctx.Logger().Error("fail to process msg leave", "error", err)
-			return nil, err
-		}
+
+	if err := h.handle(ctx, *msg); err != nil {
+		ctx.Logger().Error("fail to process msg leave", "error", err)
+		return nil, err
 	}
 	return &cosmos.Result{}, nil
+}
+
+func (h LeaveHandler) handle(ctx cosmos.Context, msg MsgLeave) error {
+	version := h.mgr.GetVersion()
+	if version.GTE(semver.MustParse("0.46.0")) {
+		return h.handleV46(ctx, msg)
+	} else if version.GTE(semver.MustParse("0.1.0")) {
+		return h.handleV1(ctx, msg)
+	}
+	return errBadVersion
 }
 
 func (h LeaveHandler) handleV1(ctx cosmos.Context, msg MsgLeave) error {

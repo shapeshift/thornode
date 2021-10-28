@@ -17,8 +17,8 @@ type NetworkMgrV59 struct {
 	eventMgr   EventManager
 }
 
-// NewNetworkMgrV59 create a new vault manager
-func NewNetworkMgrV59(k keeper.Keeper, txOutStore TxOutStore, eventMgr EventManager) *NetworkMgrV59 {
+// newNetworkMgrV59 create a new vault manager
+func newNetworkMgrV59(k keeper.Keeper, txOutStore TxOutStore, eventMgr EventManager) *NetworkMgrV59 {
 	return &NetworkMgrV59{
 		k:          k,
 		txOutStore: txOutStore,
@@ -38,7 +38,7 @@ func (vm *NetworkMgrV59) processGenesisSetup(ctx cosmos.Context) error {
 		ctx.Logger().Info("already have vault, no need to generate at genesis")
 		return nil
 	}
-	active, err := vm.k.ListActiveNodeAccounts(ctx)
+	active, err := vm.k.ListActiveValidators(ctx)
 	if err != nil {
 		return fmt.Errorf("fail to get all active node accounts")
 	}
@@ -458,7 +458,7 @@ func (vm *NetworkMgrV59) findChainsToRetire(ctx cosmos.Context) (common.Chains, 
 // RecallChainFunds - sends a message to bifrost nodes to send back all funds
 // associated with given chain
 func (vm *NetworkMgrV59) RecallChainFunds(ctx cosmos.Context, chain common.Chain, mgr Manager, excludeNodes common.PubKeys) error {
-	allNodes, err := vm.k.ListNodeAccountsWithBond(ctx)
+	allNodes, err := vm.k.ListValidatorsWithBond(ctx)
 	if err != nil {
 		return fmt.Errorf("fail to list all node accounts: %w", err)
 	}
@@ -527,7 +527,7 @@ func (vm *NetworkMgrV59) RecallChainFunds(ctx cosmos.Context, chain common.Chain
 // ragnarokChain - ends a chain by withdrawing all liquidity providers of any pool that's
 // asset is on the given chain
 func (vm *NetworkMgrV59) ragnarokChain(ctx cosmos.Context, chain common.Chain, nth int64, mgr Manager, constAccessor constants.ConstantValues) error {
-	nas, err := vm.k.ListActiveNodeAccounts(ctx)
+	nas, err := vm.k.ListActiveValidators(ctx)
 	if err != nil {
 		ctx.Logger().Error("can't get active nodes", "error", err)
 		return err
@@ -584,7 +584,7 @@ func (vm *NetworkMgrV59) withdrawLiquidity(ctx cosmos.Context, pool Pool, na Nod
 		withdrawMsg := NewMsgWithdrawLiquidity(
 			common.GetRagnarokTx(pool.Asset.GetChain(), withdrawAddr, withdrawAddr),
 			withdrawAddr,
-			cosmos.NewUint(uint64(MaxWithdrawBasisPoints/100*(nth*10))),
+			cosmos.NewUint(uint64(MaxWithdrawBasisPoints)),
 			pool.Asset,
 			withdrawAsset,
 			na.NodeAddress,
@@ -605,8 +605,7 @@ func (vm *NetworkMgrV59) UpdateNetwork(ctx cosmos.Context, constAccessor constan
 		return fmt.Errorf("fail to get existing network data: %w", err)
 	}
 
-	totalReserve := cosmos.ZeroUint()
-	totalReserve = vm.k.GetRuneBalanceOfModule(ctx, ReserveName)
+	totalReserve := vm.k.GetRuneBalanceOfModule(ctx, ReserveName)
 
 	// when total reserve is zero , can't pay reward
 	if totalReserve.IsZero() {
@@ -650,13 +649,7 @@ func (vm *NetworkMgrV59) UpdateNetwork(ctx cosmos.Context, constAccessor constan
 	bondReward, totalPoolRewards, lpDeficit := vm.calcBlockRewards(totalProvidedLiquidity, totalBonded, totalReserve, totalLiquidityFees, emissionCurve, incentiveCurve, blocksOerYear)
 
 	// given bondReward and toolPoolRewards are both calculated base on totalReserve, thus it should always have enough to pay the bond reward
-
 	// Move Rune from the Reserve to the Bond and Pool Rewards
-	totalRewards := bondReward.Add(totalPoolRewards)
-	if totalRewards.GT(totalReserve) {
-		totalRewards = totalReserve
-	}
-	totalReserve = common.SafeSub(totalReserve, totalRewards)
 	coin := common.NewCoin(common.RuneNative, bondReward)
 	if !bondReward.IsZero() {
 		if err := vm.k.SendFromModuleToModule(ctx, ReserveName, BondName, common.NewCoins(coin)); err != nil {
@@ -770,7 +763,7 @@ func (vm *NetworkMgrV59) getTotalProvidedLiquidityRune(ctx cosmos.Context) (Pool
 
 func (vm *NetworkMgrV59) getTotalActiveBond(ctx cosmos.Context) (cosmos.Uint, error) {
 	totalBonded := cosmos.ZeroUint()
-	nodes, err := vm.k.ListActiveNodeAccounts(ctx)
+	nodes, err := vm.k.ListActiveValidators(ctx)
 	if err != nil {
 		return cosmos.ZeroUint(), fmt.Errorf("fail to get all active accounts: %w", err)
 	}

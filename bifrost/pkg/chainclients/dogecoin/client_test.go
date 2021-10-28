@@ -151,7 +151,7 @@ func (s *DogecoinSuite) SetUpTest(c *C) {
 	c.Assert(s.client, NotNil)
 }
 
-func (s *DogecoinSuite) TearDownTest(c *C) {
+func (s *DogecoinSuite) TearDownTest(_ *C) {
 	s.server.Close()
 }
 
@@ -183,7 +183,7 @@ func (s *DogecoinSuite) TestFetchTxs(c *C) {
 	c.Assert(txs.TxArray[0].Tx, Equals, "54ef2f4679fb90af42e8d963a5d85645d0fd86e5fe8ea4e69dbf2d444cb26528")
 	c.Assert(txs.TxArray[0].Sender, Equals, "nfWiQeddE4zsYsDuYhvpgVC7y4gjr5RyqK")
 	c.Assert(txs.TxArray[0].To, Equals, "mv4rnyY3Su5gjcDNzbMLKBQkBicCtHUtFB")
-	c.Assert(txs.TxArray[0].Coins.Equals(common.Coins{common.NewCoin(common.DOGEAsset, cosmos.NewUint(4072503))}), Equals, true)
+	c.Assert(txs.TxArray[0].Coins.EqualsEx(common.Coins{common.NewCoin(common.DOGEAsset, cosmos.NewUint(4072503))}), Equals, true)
 	c.Assert(txs.TxArray[0].Gas.Equals(common.Gas{common.NewCoin(common.DOGEAsset, cosmos.NewUint(11083355))}), Equals, true)
 	c.Assert(len(txs.TxArray), Equals, 1)
 }
@@ -213,7 +213,7 @@ func (s *DogecoinSuite) TestGetMemo(c *C) {
 			{
 				ScriptPubKey: btcjson.ScriptPubKeyResult{
 					Asm:       "OP_RETURN 74686f72636861696e3a636f6e736f6c6964617465",
-					Hex:       "",
+					Hex:       "6a1574686f72636861696e3a636f6e736f6c6964617465",
 					ReqSigs:   0,
 					Type:      "nulldata",
 					Addresses: nil,
@@ -231,12 +231,14 @@ func (s *DogecoinSuite) TestGetMemo(c *C) {
 				ScriptPubKey: btcjson.ScriptPubKeyResult{
 					Asm:  "OP_RETURN 737761703a6574682e3078633534633135313236393646334541373935366264396144343130383138654563414443466666663a30786335346331353132363936463345413739353662643961443431",
 					Type: "nulldata",
+					Hex:  "6a4c50737761703a6574682e3078633534633135313236393646334541373935366264396144343130383138654563414443466666663a30786335346331353132363936463345413739353662643961443431",
 				},
 			},
 			{
 				ScriptPubKey: btcjson.ScriptPubKeyResult{
 					Asm:  "OP_RETURN 30383138654563414443466666663a3130303030303030303030",
 					Type: "nulldata",
+					Hex:  "6a1a30383138654563414443466666663a3130303030303030303030",
 				},
 			},
 		},
@@ -613,7 +615,7 @@ func (s *DogecoinSuite) TestGetChain(c *C) {
 }
 
 func (s *DogecoinSuite) TestGetAddress(c *C) {
-	os.Setenv("NET", "mainnet")
+	c.Assert(os.Setenv("NET", "mainnet"), IsNil)
 	pubkey := common.PubKey("tthorpub1addwnpepqt7qug8vk9r3saw8n4r803ydj2g3dqwx0mvq5akhnze86fc536xcycgtrnv")
 	addr := s.client.GetAddress(pubkey)
 	c.Assert(addr, Equals, "DCdSuatdjCqdWJFB6LEeFweabLiypVxLsz")

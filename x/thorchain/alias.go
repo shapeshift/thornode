@@ -41,6 +41,11 @@ const (
 	NodeStandby     = types.NodeStatus_Standby
 	NodeUnknown     = types.NodeStatus_Unknown
 
+	// Node type
+	NodeTypeUnknown   = types.NodeType_TypeUnknown
+	NodeTypeValidator = types.NodeType_TypeValidator
+	NodeTypeLite      = types.NodeType_TypeLite
+
 	// Bond type
 	BondPaid     = types.BondType_bond_paid
 	BondReturned = types.BondType_bond_returned
@@ -62,9 +67,10 @@ const (
 	TxRagnarok        = mem.TxRagnarok
 	TxReserve         = mem.TxReserve
 	TxOutbound        = mem.TxOutbound
+	TxRefund          = mem.TxRefund
 	TxUnBond          = mem.TxUnbond
 	TxLeave           = mem.TxLeave
-	TxTHORName        = mem.TxTHORName
+	TxWithdraw        = mem.TxWithdraw
 )
 
 var (
@@ -76,6 +82,7 @@ var (
 	NewErrataTxVoter               = types.NewErrataTxVoter
 	NewObservedTxVoter             = types.NewObservedTxVoter
 	NewMsgMimir                    = types.NewMsgMimir
+	NewMsgNodePauseChain           = types.NewMsgNodePauseChain
 	NewMsgDeposit                  = types.NewMsgDeposit
 	NewMsgTssPool                  = types.NewMsgTssPool
 	NewMsgTssKeysignFail           = types.NewMsgTssKeysignFail
@@ -120,7 +127,7 @@ var (
 	NewMsgMigrate                  = types.NewMsgMigrate
 	NewMsgRagnarok                 = types.NewMsgRagnarok
 	NewQueryNodeAccount            = types.NewQueryNodeAccount
-	GetThreshold                   = types.GetThreshold
+	NewQueryTxOutItem              = types.NewQueryTxOutItem
 	ModuleCdc                      = types.ModuleCdc
 	RegisterCodec                  = types.RegisterCodec
 	RegisterInterfaces             = types.RegisterInterfaces
@@ -144,14 +151,13 @@ var (
 	GetRandomVault                 = types.GetRandomVault
 	GetRandomTx                    = types.GetRandomTx
 	GetRandomObservedTx            = types.GetRandomObservedTx
-	GetRandomNodeAccount           = types.GetRandomNodeAccount
+	GetRandomValidatorNode         = types.GetRandomValidatorNode
+	GetRandomLiteNode              = types.GetRandomLiteNode
 	GetRandomTHORAddress           = types.GetRandomTHORAddress
 	GetRandomRUNEAddress           = types.GetRandomRUNEAddress
 	GetRandomBNBAddress            = types.GetRandomBNBAddress
 	GetRandomBTCAddress            = types.GetRandomBTCAddress
 	GetRandomLTCAddress            = types.GetRandomLTCAddress
-	GetRandomBCHAddress            = types.GetRandomBCHAddress
-	GetRandomDOGEAddress           = types.GetRandomDOGEAddress
 	GetRandomTxHash                = types.GetRandomTxHash
 	GetRandomBech32Addr            = types.GetRandomBech32Addr
 	GetRandomBech32ConsensusPubKey = types.GetRandomBech32ConsensusPubKey
@@ -161,7 +167,6 @@ var (
 	SetupConfigForTest             = types.SetupConfigForTest
 	HasSimpleMajority              = types.HasSimpleMajority
 	HasSuperMajority               = types.HasSuperMajority
-	NewTssKeysignMetric            = types.NewTssKeysignMetric
 	DefaultGenesis                 = types.DefaultGenesis
 	NewSolvencyVoter               = types.NewSolvencyVoter
 	NewMsgSolvency                 = types.NewMsgSolvency
@@ -191,6 +196,7 @@ type (
 	MsgAddLiquidity                = types.MsgAddLiquidity
 	MsgOutboundTx                  = types.MsgOutboundTx
 	MsgMimir                       = types.MsgMimir
+	MsgNodePauseChain              = types.MsgNodePauseChain
 	MsgMigrate                     = types.MsgMigrate
 	MsgRagnarok                    = types.MsgRagnarok
 	MsgRefundTx                    = types.MsgRefundTx
@@ -220,6 +226,7 @@ type (
 	QueryVaultsPubKeys             = types.QueryVaultsPubKeys
 	QueryVaultPubKeyContract       = types.QueryVaultPubKeyContract
 	QueryNodeAccount               = types.QueryNodeAccount
+	QueryTxOutItem                 = types.QueryTxOutItem
 	QueryChainAddress              = types.QueryChainAddress
 	PoolStatus                     = types.PoolStatus
 	Pool                           = types.Pool

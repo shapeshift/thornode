@@ -42,7 +42,9 @@ func (h SwapHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Result, erro
 
 func (h SwapHandler) validate(ctx cosmos.Context, msg MsgSwap) error {
 	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.58.0")) {
+	if version.GTE(semver.MustParse("0.65.0")) {
+		return h.validateV65(ctx, msg)
+	} else if version.GTE(semver.MustParse("0.58.0")) {
 		return h.validateV58(ctx, msg)
 	} else if version.GTE(semver.MustParse("0.56.0")) {
 		return h.validateV56(ctx, msg)
@@ -257,7 +259,7 @@ func (h SwapHandler) validateV58(ctx cosmos.Context, msg MsgSwap) error {
 	}
 	return nil
 }
-func (h SwapHandler) validateV63(ctx cosmos.Context, msg MsgSwap) error {
+func (h SwapHandler) validateV65(ctx cosmos.Context, msg MsgSwap) error {
 	return h.validateCurrent(ctx, msg)
 }
 
@@ -492,7 +494,7 @@ func (h SwapHandler) handleCurrent(ctx cosmos.Context, msg MsgSwap) (*cosmos.Res
 
 // getTotalActiveBond
 func (h SwapHandler) getTotalActiveBond(ctx cosmos.Context) (cosmos.Uint, error) {
-	nodeAccounts, err := h.mgr.Keeper().ListNodeAccountsWithBond(ctx)
+	nodeAccounts, err := h.mgr.Keeper().ListValidatorsWithBond(ctx)
 	if err != nil {
 		return cosmos.ZeroUint(), err
 	}
