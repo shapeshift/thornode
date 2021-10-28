@@ -15,7 +15,7 @@ func (GenesisTestSuite) TestGenesis(c *C) {
 	genesisState := DefaultGenesisState()
 	c.Assert(ValidateGenesis(genesisState), IsNil)
 	ctx, mgr := setupManagerForTest(c)
-	gs := ExportGenesis(ctx, mgr.Keeper(), mgr)
+	gs := ExportGenesis(ctx, mgr.Keeper())
 	c.Assert(ValidateGenesis(gs), IsNil)
 	content, err := ioutil.ReadFile("../../test/fixtures/genesis/genesis.json")
 	c.Assert(err, IsNil)
@@ -25,6 +25,6 @@ func (GenesisTestSuite) TestGenesis(c *C) {
 	c.Assert(ModuleCdc.UnmarshalJSON(content, &state), IsNil)
 	result := InitGenesis(ctx, mgr.Keeper(), state)
 	c.Assert(result, NotNil)
-	gs1 := ExportGenesis(ctx, mgr.Keeper(), mgr)
+	gs1 := ExportGenesis(ctx, mgr.Keeper())
 	c.Assert(len(gs1.Pools) > 0, Equals, true)
 }
