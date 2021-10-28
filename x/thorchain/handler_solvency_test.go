@@ -1,6 +1,9 @@
 package thorchain
 
 import (
+	"errors"
+
+	se "github.com/cosmos/cosmos-sdk/types/errors"
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	. "gopkg.in/check.v1"
@@ -27,7 +30,7 @@ func (s *HandlerSolvencyTestSuite) TestValidate(c *C) {
 	// active node
 	var activeNodes [4]NodeAccount
 	for i := 0; i < 4; i++ {
-		node := GetRandomNodeAccount(NodeActive)
+		node := GetRandomValidatorNode(NodeActive)
 		activeNodes[i] = node
 		c.Assert(mgr.Keeper().SetNodeAccount(ctx, node), IsNil)
 	}
@@ -90,7 +93,7 @@ func (s *HandlerSolvencyTestSuite) TestValidate(c *C) {
 	halt, err := mgr.Keeper().GetMimir(ctx, "HaltETHChain")
 	c.Assert(err, IsNil)
 	c.Assert(halt, Equals, ctx.BlockHeight())
-	mgr.Keeper().DeleteMimir(ctx, "HaltETHChain")
+	c.Assert(mgr.Keeper().DeleteMimir(ctx, "HaltETHChain"), IsNil)
 
 	// vault suppose to have 1024 ETH, however only 1000 left , but there are 20 ETH in the pending outbound queue
 	// chain should not stopped
@@ -127,4 +130,13 @@ func (s *HandlerSolvencyTestSuite) TestValidate(c *C) {
 	halt, err = mgr.Keeper().GetMimir(ctx, "HaltETHChain")
 	c.Assert(err, IsNil)
 	c.Assert(halt, Equals, int64(-1))
+
+	// tampered MsgSolvency should be rejected
+	msgSolvency2.Coins = common.NewCoins(
+		common.NewCoin(common.ETHAsset, cosmos.NewUint(1024*common.One)),
+	)
+	result, err = handler.Run(ctx, msgSolvency2)
+	c.Assert(err, NotNil)
+	c.Assert(errors.Is(err, se.ErrUnknownRequest), Equals, true)
+	c.Assert(result, IsNil)
 }

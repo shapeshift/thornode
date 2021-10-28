@@ -44,8 +44,8 @@ var _ = Suite(&HandlerObservedTxInSuite{})
 func (s *HandlerObservedTxInSuite) TestValidate(c *C) {
 	var err error
 	ctx, _ := setupKeeperForTest(c)
-	activeNodeAccount := GetRandomNodeAccount(NodeActive)
-	standbyAccount := GetRandomNodeAccount(NodeStandby)
+	activeNodeAccount := GetRandomValidatorNode(NodeActive)
+	standbyAccount := GetRandomValidatorNode(NodeStandby)
 	keeper := &TestObservedTxInValidateKeeper{
 		activeNodeAccount: activeNodeAccount,
 		standbyAccount:    standbyAccount,
@@ -124,7 +124,7 @@ func (k *TestObservedTxInHandleKeeper) SetSwapQueueItem(_ cosmos.Context, msg Ms
 	return nil
 }
 
-func (k *TestObservedTxInHandleKeeper) ListActiveNodeAccounts(_ cosmos.Context) (NodeAccounts, error) {
+func (k *TestObservedTxInHandleKeeper) ListActiveValidators(_ cosmos.Context) (NodeAccounts, error) {
 	return k.nas, nil
 }
 
@@ -219,10 +219,10 @@ func (s *HandlerObservedTxInSuite) testHandleWithConfirmation(c *C) {
 
 	keeper := &TestObservedTxInHandleKeeper{
 		nas: NodeAccounts{
-			GetRandomNodeAccount(NodeActive),
-			GetRandomNodeAccount(NodeActive),
-			GetRandomNodeAccount(NodeActive),
-			GetRandomNodeAccount(NodeActive),
+			GetRandomValidatorNode(NodeActive),
+			GetRandomValidatorNode(NodeActive),
+			GetRandomValidatorNode(NodeActive),
+			GetRandomValidatorNode(NodeActive),
 		},
 		vault: vault,
 		pool: Pool{
@@ -351,7 +351,7 @@ func (s *HandlerObservedTxInSuite) testHandleWithVersion(c *C) {
 	vault.PubKey = obTx.ObservedPubKey
 
 	keeper := &TestObservedTxInHandleKeeper{
-		nas:   NodeAccounts{GetRandomNodeAccount(NodeActive)},
+		nas:   NodeAccounts{GetRandomValidatorNode(NodeActive)},
 		voter: NewObservedTxVoter(tx.ID, make(ObservedTxs, 0)),
 		vault: vault,
 		pool: Pool{
@@ -411,7 +411,7 @@ func (s *HandlerObservedTxInSuite) TestMigrateMemo(c *C) {
 
 	txs := ObservedTxs{tx}
 	keeper := &TestObservedTxInHandleKeeper{
-		nas:   NodeAccounts{GetRandomNodeAccount(NodeActive)},
+		nas:   NodeAccounts{GetRandomValidatorNode(NodeActive)},
 		voter: NewObservedTxVoter(tx.Tx.ID, make(ObservedTxs, 0)),
 		vault: vault,
 		pool: Pool{
@@ -433,11 +433,11 @@ func (s *HandlerObservedTxInSuite) TestMigrateMemo(c *C) {
 
 type ObservedTxInHandlerTestHelper struct {
 	keeper.Keeper
-	failListActiveNodeAccounts bool
-	failVaultExist             bool
-	failGetObservedTxInVote    bool
-	failGetVault               bool
-	failSetVault               bool
+	failListActiveValidators bool
+	failVaultExist           bool
+	failGetObservedTxInVote  bool
+	failGetVault             bool
+	failSetVault             bool
 }
 
 func NewObservedTxInHandlerTestHelper(k keeper.Keeper) *ObservedTxInHandlerTestHelper {
@@ -446,11 +446,11 @@ func NewObservedTxInHandlerTestHelper(k keeper.Keeper) *ObservedTxInHandlerTestH
 	}
 }
 
-func (h *ObservedTxInHandlerTestHelper) ListActiveNodeAccounts(ctx cosmos.Context) (NodeAccounts, error) {
-	if h.failListActiveNodeAccounts {
+func (h *ObservedTxInHandlerTestHelper) ListActiveValidators(ctx cosmos.Context) (NodeAccounts, error) {
+	if h.failListActiveValidators {
 		return NodeAccounts{}, kaboom
 	}
-	return h.Keeper.ListActiveNodeAccounts(ctx)
+	return h.Keeper.ListActiveValidators(ctx)
 }
 
 func (h *ObservedTxInHandlerTestHelper) VaultExists(ctx cosmos.Context, pk common.PubKey) bool {
@@ -482,7 +482,7 @@ func (h *ObservedTxInHandlerTestHelper) SetVault(ctx cosmos.Context, vault Vault
 }
 
 func setupAnLegitObservedTx(ctx cosmos.Context, helper *ObservedTxInHandlerTestHelper, c *C) *MsgObservedTxIn {
-	activeNodeAccount := GetRandomNodeAccount(NodeActive)
+	activeNodeAccount := GetRandomValidatorNode(NodeActive)
 	pk := GetRandomPubKey()
 	tx := GetRandomTx()
 	tx.Coins = common.Coins{
@@ -559,7 +559,7 @@ func (HandlerObservedTxInSuite) TestObservedTxHandler_validations(c *C) {
 			name: "fail to list active node accounts should result in an error",
 			messageProvider: func(c *C, ctx cosmos.Context, helper *ObservedTxInHandlerTestHelper) cosmos.Msg {
 				m := setupAnLegitObservedTx(ctx, helper, c)
-				helper.failListActiveNodeAccounts = true
+				helper.failListActiveValidators = true
 				return m
 			},
 			validator: func(c *C, ctx cosmos.Context, result *cosmos.Result, err error, helper *ObservedTxInHandlerTestHelper, name string) {
@@ -708,7 +708,7 @@ func (HandlerObservedTxInSuite) TestObservedTxHandler_validations(c *C) {
 func (s HandlerObservedTxInSuite) TestSwapWithAffiliate(c *C) {
 	ctx, mgr := setupManagerForTest(c)
 
-	queue := NewSwapQv1(mgr.Keeper())
+	queue := newSwapQv1(mgr.Keeper())
 	handler := NewObservedTxInHandler(mgr)
 
 	msg := NewMsgSwap(common.Tx{

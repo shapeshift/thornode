@@ -76,6 +76,8 @@ func NewQuerier(mgr *Mgrs, kbs cosmos.KeybaseStore) cosmos.Querier {
 			return queryRagnarok(ctx, mgr)
 		case q.QueryPendingOutbound.Key:
 			return queryPendingOutbound(ctx, mgr)
+		case q.QueryScheduledOutbound.Key:
+			return queryScheduledOutbound(ctx, mgr)
 		case q.QueryTssKeygenMetrics.Key:
 			return queryTssKeygenMetric(ctx, path[1:], req, mgr)
 		case q.QueryTssMetrics.Key:
@@ -542,7 +544,7 @@ func getNodePreflightResult(ctx cosmos.Context, mgr *Mgrs, nodeAcc NodeAccount) 
 // queryNodes return all the nodes that has bond
 // /thorchain/nodes
 func queryNodes(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mgrs) ([]byte, error) {
-	nodeAccounts, err := mgr.Keeper().ListNodeAccountsWithBond(ctx)
+	nodeAccounts, err := mgr.Keeper().ListValidatorsWithBond(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("fail to get node accounts: %w", err)
 	}
@@ -830,7 +832,7 @@ func queryTx(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mgrs
 		}
 	}
 
-	nodeAccounts, err := mgr.Keeper().ListActiveNodeAccounts(ctx)
+	nodeAccounts, err := mgr.Keeper().ListActiveValidators(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("fail to get node accounts: %w", err)
 	}
@@ -985,7 +987,9 @@ func queryQueue(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *M
 	constAccessor := constants.GetConstantValues(version)
 	signingTransactionPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
 	startHeight := common.BlockHeight(ctx) - signingTransactionPeriod
-	query := QueryQueue{}
+	query := QueryQueue{
+		ScheduledOutboundValue: cosmos.ZeroUint(),
+	}
 
 	iterator := mgr.Keeper().GetSwapQueueIterator(ctx)
 	defer iterator.Close()
@@ -1013,6 +1017,30 @@ func queryQueue(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *M
 				}
 			}
 		}
+	}
+
+	// sum outbound value
+	maxTxOutOffset, err := mgr.Keeper().GetMimir(ctx, constants.MaxTxOutOffset.String())
+	if maxTxOutOffset < 0 || err != nil {
+		maxTxOutOffset = constAccessor.GetInt64Value(constants.MaxTxOutOffset)
+	}
+	txOutDelayMax, err := mgr.Keeper().GetMimir(ctx, constants.TxOutDelayMax.String())
+	if txOutDelayMax <= 0 || err != nil {
+		txOutDelayMax = constAccessor.GetInt64Value(constants.TxOutDelayMax)
+	}
+
+	for height := common.BlockHeight(ctx) + 1; height <= common.BlockHeight(ctx)+txOutDelayMax; height++ {
+		value, err := mgr.Keeper().GetTxOutValue(ctx, height)
+		if err != nil {
+			ctx.Logger().Error("fail to get tx out array from key value store", "error", err)
+			continue
+		}
+		if height > common.BlockHeight(ctx)+maxTxOutOffset && value.IsZero() {
+			// we've hit our max offset, and an empty block, we can assume the
+			// rest will be empty as well
+			break
+		}
+		query.ScheduledOutboundValue = query.ScheduledOutboundValue.Add(value)
 	}
 
 	res, err := json.MarshalIndent(query, "", "	")
@@ -1152,6 +1180,37 @@ func queryBan(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mgr
 	if err != nil {
 		ctx.Logger().Error("fail to marshal ban voter to json", "error", err)
 		return nil, fmt.Errorf("fail to ban voter to json: %w", err)
+	}
+	return res, nil
+}
+
+func queryScheduledOutbound(ctx cosmos.Context, mgr *Mgrs) ([]byte, error) {
+	result := make([]QueryTxOutItem, 0)
+	constAccessor := mgr.GetConstants()
+	maxTxOutOffset, err := mgr.Keeper().GetMimir(ctx, constants.MaxTxOutOffset.String())
+	if maxTxOutOffset < 0 || err != nil {
+		maxTxOutOffset = constAccessor.GetInt64Value(constants.MaxTxOutOffset)
+	}
+	for height := common.BlockHeight(ctx) + 1; height <= common.BlockHeight(ctx)+17280; height++ {
+		txOut, err := mgr.Keeper().GetTxOut(ctx, height)
+		if err != nil {
+			ctx.Logger().Error("fail to get tx out array from key value store", "error", err)
+			continue
+		}
+		if height > common.BlockHeight(ctx)+maxTxOutOffset && len(txOut.TxArray) == 0 {
+			// we've hit our max offset, and an empty block, we can assume the
+			// rest will be empty as well
+			break
+		}
+		for _, toi := range txOut.TxArray {
+			result = append(result, NewQueryTxOutItem(toi, height))
+		}
+	}
+
+	res, err := json.MarshalIndent(result, "", "	")
+	if err != nil {
+		ctx.Logger().Error("fail to marshal scheduled outbound tx to json", "error", err)
+		return nil, fmt.Errorf("fail to marshal scheduled outbound tx to json: %w", err)
 	}
 	return res, nil
 }

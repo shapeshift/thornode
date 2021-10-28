@@ -126,7 +126,7 @@ func (s *ThorchainSuite) TestChurn(c *C) {
 	addresses := make([]cosmos.AccAddress, 4)
 	var existingValidators []string
 	for i := 0; i <= 3; i++ {
-		na := GetRandomNodeAccount(NodeActive)
+		na := GetRandomValidatorNode(NodeActive)
 		addresses[i] = na.NodeAddress
 		na.SignerMembership = common.PubKeys{vault.PubKey}.Strings()
 		if i == 0 { // give the first node account slash points
@@ -145,7 +145,7 @@ func (s *ThorchainSuite) TestChurn(c *C) {
 	c.Assert(mgr.Keeper().SetVault(ctx, vault), IsNil)
 
 	// create new node account to rotate in
-	na := GetRandomNodeAccount(NodeReady)
+	na := GetRandomValidatorNode(NodeReady)
 	c.Assert(mgr.Keeper().SetNodeAccount(ctx, na), IsNil)
 
 	// trigger marking bad actors as well as a keygen
@@ -206,7 +206,7 @@ func (s *ThorchainSuite) TestChurn(c *C) {
 
 	// check our validators get rotated appropriately
 	validators := valMgr.EndBlock(ctx, mgr, consts)
-	nas, err := mgr.Keeper().ListActiveNodeAccounts(ctx)
+	nas, err := mgr.Keeper().ListActiveValidators(ctx)
 	c.Assert(err, IsNil)
 	c.Assert(nas, HasLen, 4)
 	c.Assert(validators, HasLen, 2)
@@ -329,7 +329,7 @@ func (s *ThorchainSuite) TestRagnarok(c *C) {
 	bonderCount := 3
 	bonders := make(NodeAccounts, bonderCount)
 	for i := 1; i <= bonderCount; i++ {
-		na := GetRandomNodeAccount(NodeActive)
+		na := GetRandomValidatorNode(NodeActive)
 		na.Bond = cosmos.NewUint(1_000_000 * uint64(i) * common.One)
 		FundModule(c, ctx, mgr.Keeper(), BondName, na.Bond.Uint64())
 		c.Assert(mgr.Keeper().SetNodeAccount(ctx, na), IsNil)
@@ -365,7 +365,7 @@ func (s *ThorchainSuite) TestRagnarok(c *C) {
 	c.Assert(mgr.Keeper().SetNetwork(ctx, network), IsNil)
 	ctx = ctx.WithBlockHeight(1024)
 
-	active, err := mgr.Keeper().ListActiveNodeAccounts(ctx)
+	active, err := mgr.Keeper().ListActiveValidators(ctx)
 	c.Assert(err, IsNil)
 	// this should trigger stage 1 of the ragnarok protocol. We should see a tx
 	// out per node account
@@ -396,28 +396,23 @@ func (s *ThorchainSuite) TestRagnarok(c *C) {
 	}
 	mgr.TxOutStore().ClearOutboundItems(ctx) // clear out txs
 
-	// run stage 2 of ragnarok protocol, nth = 1
-	for i := 1; i <= 20; i++ { // simulate each round of ragnarok (max of ten)
+	for i := 1; i <= 11; i++ { // simulate each round of ragnarok (max of ten)
 		c.Assert(mgr.ValidatorMgr().processRagnarok(ctx, mgr, consts), IsNil)
 		items, err := mgr.TxOutStore().GetOutboundItems(ctx)
 		c.Assert(err, IsNil)
-
-		if i <= 10 {
-			c.Assert(items, HasLen, 2, Commentf("%d", len(items)))
-		}
-
 		// validate liquidity providers get their returns
 		for j, lp := range lpsAssets {
 			items := mgr.TxOutStore().GetOutboundItemByToAddress(ctx, lp)
-			// TODO: check item amounts
-			if i <= 10 {
+			if i == 1 {
 				if j >= len(lps)-1 {
 					c.Assert(items, HasLen, 0, Commentf("%d", len(items)))
 				} else {
 					c.Assert(items, HasLen, 1, Commentf("%d", len(items)))
 				}
-			} else {
+			} else if i > 10 {
 				c.Assert(items, HasLen, 1, Commentf("%d", len(items)))
+			} else {
+				c.Assert(items, HasLen, 0)
 			}
 		}
 		mgr.TxOutStore().ClearOutboundItems(ctx) // clear out txs
@@ -477,7 +472,7 @@ func (s *ThorchainSuite) TestRagnarokNoOneLeave(c *C) {
 	bonderCount := 4
 	bonders := make(NodeAccounts, bonderCount)
 	for i := 1; i <= bonderCount; i++ {
-		na := GetRandomNodeAccount(NodeActive)
+		na := GetRandomValidatorNode(NodeActive)
 		na.Bond = cosmos.NewUint(1_000_000 * uint64(i) * common.One)
 		c.Assert(mgr.Keeper().SetNodeAccount(ctx, na), IsNil)
 		bonders[i-1] = na
@@ -516,7 +511,7 @@ func (s *ThorchainSuite) TestRagnarokNoOneLeave(c *C) {
 			common.NewCoin(common.RuneAsset(), res.Amount),
 		})
 		msg := NewMsgReserveContributor(GetRandomTx(), res, bonders[0].NodeAddress)
-		_, err := resHandler.handle(ctx, *msg)
+		err := resHandler.handle(ctx, *msg)
 		_ = err
 		// c.Assert(err, IsNil)
 	}

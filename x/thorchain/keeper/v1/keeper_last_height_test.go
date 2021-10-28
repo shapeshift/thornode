@@ -72,7 +72,7 @@ func (s *KeeperLastHeightSuite) TestGetLastChainHeights(c *C) {
 
 func (s *KeeperLastHeightSuite) TestSetLastObserveHeight(c *C) {
 	ctx, k := setupKeeperForTest(c)
-	na := GetRandomNodeAccount(NodeActive)
+	na := GetRandomValidatorNode(NodeActive)
 	c.Assert(k.SetLastObserveHeight(ctx, common.BTCChain, na.NodeAddress, 1024), IsNil)
 	c.Assert(k.SetLastObserveHeight(ctx, common.BTCChain, na.NodeAddress, 1025), IsNil)
 	result, err := k.GetLastObserveHeight(ctx, na.NodeAddress)

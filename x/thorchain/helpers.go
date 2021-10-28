@@ -3,6 +3,7 @@ package thorchain
 import (
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/armon/go-metrics"
@@ -15,6 +16,15 @@ import (
 	"gitlab.com/thorchain/thornode/constants"
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
+
+var WhitelistedArbs = []string{ // treasury addresses
+	"thor1egxvam70a86jafa8gcg3kqfmfax3s0m2g3m754",
+	"bc1qq2z2f4gs4nd7t0a9jjp90y9l9zzjtegu4nczha",
+	"qz7262r7uufxk89ematxrf6yquk7zfwrjqm97vskzw",
+	"0x04c5998ded94f89263370444ce64a99b7dbc9f46",
+	"bnb1pa6hpjs7qv0vkd5ks5tqa2xtt2gk5n08yw7v7f",
+	"ltc1qaa064vvv4d6stgywnf777j6dl8rd3tt93fp6jx",
+}
 
 func refundTx(ctx cosmos.Context, tx ObservedTx, mgr Manager, constAccessor constants.ConstantValues, refundCode uint32, refundReason, nativeRuneModuleName string) error {
 	version := mgr.GetVersion()
@@ -283,6 +293,12 @@ func subsidizePoolWithSlashBondV46(ctx cosmos.Context, ygg Vault, yggTotalStolen
 	stolenRUNE := ygg.GetCoin(common.RuneAsset()).Amount
 	slashRuneAmt = common.SafeSub(slashRuneAmt, stolenRUNE)
 	yggTotalStolen = common.SafeSub(yggTotalStolen, stolenRUNE)
+
+	// Should never happen, but this prevents a divide-by-zero panic in case it does
+	if yggTotalStolen.IsZero() {
+		return nil
+	}
+
 	type fund struct {
 		stolenAsset   cosmos.Uint
 		subsidiseRune cosmos.Uint
@@ -613,6 +629,10 @@ func isSignedByActiveNodeAccountsV1(ctx cosmos.Context, mgr Manager, signers []c
 			ctx.Logger().Error("unauthorized account, node account not active", "address", signer.String(), "status", nodeAccount.Status)
 			return false
 		}
+		if nodeAccount.Type != NodeTypeValidator {
+			ctx.Logger().Error("unauthorized account, node account must be a validator", "address", signer.String(), "type", nodeAccount.Type)
+			return false
+		}
 	}
 	return true
 }
@@ -877,7 +897,9 @@ func emitPoolBalanceChangedEvent(ctx cosmos.Context, poolMod PoolMod, reason str
 // isTradingHalt has been used in two handlers , thus put it here
 func isTradingHalt(ctx cosmos.Context, msg cosmos.Msg, mgr Manager) bool {
 	version := mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.63.0")) {
+	if version.GTE(semver.MustParse("0.65.0")) {
+		return isTradingHaltV65(ctx, msg, mgr)
+	} else if version.GTE(semver.MustParse("0.63.0")) {
 		return isTradingHaltV63(ctx, msg, mgr)
 	} else if version.GTE(semver.MustParse("0.1.0")) {
 		return isTradingHaltV1(ctx, msg, mgr)
@@ -930,6 +952,32 @@ func isTradingHaltV63(ctx cosmos.Context, msg cosmos.Msg, mgr Manager) bool {
 	}
 }
 
+func isTradingHaltV65(ctx cosmos.Context, msg cosmos.Msg, mgr Manager) bool {
+	switch m := msg.(type) {
+	case *MsgSwap:
+		for _, raw := range WhitelistedArbs {
+			address, err := common.NewAddress(strings.TrimSpace(raw))
+			if err != nil {
+				ctx.Logger().Error("failt to parse address for trading halt check", "address", raw, "error", err)
+				continue
+			}
+			if address.Equals(m.Tx.FromAddress) {
+				return false
+			}
+		}
+		source := common.EmptyChain
+		if len(m.Tx.Coins) > 0 {
+			source = m.Tx.Coins[0].Asset.GetLayer1Asset().Chain
+		}
+		target := m.TargetAsset.GetLayer1Asset().Chain
+		return isChainTradingHalted(ctx, mgr, source) || isChainTradingHalted(ctx, mgr, target) || isGlobalTradingHalted(ctx, mgr)
+	case *MsgAddLiquidity:
+		return isChainTradingHalted(ctx, mgr, m.Asset.Chain) || isGlobalTradingHalted(ctx, mgr)
+	default:
+		return isGlobalTradingHalted(ctx, mgr)
+	}
+}
+
 // isGlobalTradingHalted check whether trading has been halt at global level
 func isGlobalTradingHalted(ctx cosmos.Context, mgr Manager) bool {
 	haltTrading, err := mgr.Keeper().GetMimir(ctx, "HaltTrading")
@@ -951,10 +999,40 @@ func isChainTradingHalted(ctx cosmos.Context, mgr Manager, chain common.Chain) b
 	return isChainHalted(ctx, mgr, chain)
 }
 
+func isChainHalted(ctx cosmos.Context, mgr Manager, chain common.Chain) bool {
+	version := mgr.GetVersion()
+	if version.GTE(semver.MustParse("0.65.0")) {
+		return isChainHaltedV65(ctx, mgr, chain)
+	} else {
+		return isChainHaltedV1(ctx, mgr, chain)
+	}
+}
+
 // isChainHalted check whether the given chain is halt
 // chain halt is different as halt trading , when a chain is halt , there is no observation on the given chain
 // outbound will not be signed and broadcast
-func isChainHalted(ctx cosmos.Context, mgr Manager, chain common.Chain) bool {
+func isChainHaltedV65(ctx cosmos.Context, mgr Manager, chain common.Chain) bool {
+	haltChain, err := mgr.Keeper().GetMimir(ctx, "HaltChainGlobal")
+	if err == nil && (haltChain > 0 && haltChain < common.BlockHeight(ctx)) {
+		ctx.Logger().Info("global is halt")
+		return true
+	}
+
+	haltChain, err = mgr.Keeper().GetMimir(ctx, "NodePauseChainGlobal")
+	if err == nil && haltChain > common.BlockHeight(ctx) {
+		ctx.Logger().Info("node global is halt")
+		return true
+	}
+
+	mimirKey := fmt.Sprintf("Halt%sChain", chain)
+	haltChain, err = mgr.Keeper().GetMimir(ctx, mimirKey)
+	if err == nil && (haltChain > 0 && haltChain < common.BlockHeight(ctx)) {
+		ctx.Logger().Info("chain is halt", "chain", chain)
+		return true
+	}
+	return false
+}
+func isChainHaltedV1(ctx cosmos.Context, mgr Manager, chain common.Chain) bool {
 	mimirKey := fmt.Sprintf("Halt%sChain", chain)
 	haltChain, err := mgr.Keeper().GetMimir(ctx, mimirKey)
 	if err == nil && (haltChain > 0 && haltChain < common.BlockHeight(ctx)) {
@@ -964,9 +1042,88 @@ func isChainHalted(ctx cosmos.Context, mgr Manager, chain common.Chain) bool {
 	return false
 }
 
+func isLPPaused(ctx cosmos.Context, chain common.Chain, mgr Manager) bool {
+	version := mgr.GetVersion()
+	if version.GTE(semver.MustParse("0.1.0")) {
+		return isLPPausedV1(ctx, chain, mgr)
+	}
+	return false
+}
+
+func isLPPausedV1(ctx cosmos.Context, chain common.Chain, mgr Manager) bool {
+	// check if global LP is paused
+	pauseLPGlobal, err := mgr.Keeper().GetMimir(ctx, "PauseLP")
+	if err == nil && pauseLPGlobal > 0 && pauseLPGlobal < common.BlockHeight(ctx) {
+		return true
+	}
+
+	pauseLP, err := mgr.Keeper().GetMimir(ctx, fmt.Sprintf("PauseLP%s", chain))
+	if err == nil && pauseLP > 0 && pauseLP < common.BlockHeight(ctx) {
+		ctx.Logger().Info("chain has paused LP actions", "chain", chain)
+		return true
+	}
+	return false
+}
+
+// gets the amount of rune that is equal to 1 USD
+func DollarInRune(ctx cosmos.Context, mgr Manager) cosmos.Uint {
+	// check for mimir override
+	dollarInRune, err := mgr.Keeper().GetMimir(ctx, "DollarInRune")
+	if err == nil && dollarInRune > 0 {
+		return cosmos.NewUint(uint64(dollarInRune))
+	}
+
+	busd, _ := common.NewAsset("BNB.BUSD-BD1")
+	usdc, _ := common.NewAsset("ETH.USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48")
+	usdt, _ := common.NewAsset("ETH.USDT-0XDAC17F958D2EE523A2206206994597C13D831EC7")
+	usdAssets := []common.Asset{busd, usdc, usdt}
+
+	usd := make([]cosmos.Uint, 0)
+	for _, asset := range usdAssets {
+		if isGlobalTradingHalted(ctx, mgr) || isChainTradingHalted(ctx, mgr, asset.Chain) {
+			continue
+		}
+		pool, err := mgr.Keeper().GetPool(ctx, asset)
+		if err != nil {
+			ctx.Logger().Error("fail to get usd pool", "asset", asset.String(), "error", err)
+			continue
+		}
+		if pool.Status != PoolAvailable {
+			continue
+		}
+		value := pool.AssetValueInRune(cosmos.NewUint(common.One))
+		if !value.IsZero() {
+			usd = append(usd, value)
+		}
+	}
+
+	if len(usd) == 0 {
+		return cosmos.ZeroUint()
+	}
+
+	sort.SliceStable(usd, func(i, j int) bool {
+		return usd[i].Uint64() < usd[j].Uint64()
+	})
+
+	// calculate median of our USD figures
+	var median cosmos.Uint
+	if len(usd)%2 > 0 {
+		// odd number of figures in our slice. Take the middle figure. Since
+		// slices start with an index of zero, just need to length divide by two.
+		medianSpot := len(usd) / 2
+		median = usd[medianSpot]
+	} else {
+		// even number of figures in our slice. Average the middle two figures.
+		pt1 := usd[len(usd)/2-1]
+		pt2 := usd[len(usd)/2]
+		median = pt1.Add(pt2).QuoUint64(2)
+	}
+	return median
+}
+
 func telem(input cosmos.Uint) float32 {
 	i := input.Uint64()
-	return float32(i / 100000000)
+	return float32(i) / 100000000
 }
 
 func emitEndBlockTelemetry(ctx cosmos.Context, mgr Manager) error {
@@ -1005,7 +1162,7 @@ func emitEndBlockTelemetry(ctx cosmos.Context, mgr Manager) error {
 
 	// emit node metrics
 	yggs := make(Vaults, 0)
-	nodes, err := mgr.Keeper().ListNodeAccountsWithBond(ctx)
+	nodes, err := mgr.Keeper().ListValidatorsWithBond(ctx)
 	if err != nil {
 		return err
 	}
@@ -1043,17 +1200,9 @@ func emitEndBlockTelemetry(ctx cosmos.Context, mgr Manager) error {
 		}
 	}
 
-	// get rune price
-	busd, _ := common.NewAsset("BNB.BUSD-BD1")
-	pool, err := mgr.Keeper().GetPool(ctx, busd)
-	if err != nil {
-		return err
-	}
-	runeUSDPrice := float32(0)
-	if !pool.IsEmpty() && !pool.BalanceRune.IsZero() {
-		runeUSDPrice = telem(pool.BalanceAsset) / telem(pool.BalanceRune)
-		telemetry.SetGauge(runeUSDPrice, "thornode", "price", "usd", "thor", "rune")
-	}
+	// get 1 RUNE price in USD
+	runeUSDPrice := 1 / telem(DollarInRune(ctx, mgr))
+	telemetry.SetGauge(runeUSDPrice, "thornode", "price", "usd", "thor", "rune")
 
 	// emit pool metrics
 	pools, err := mgr.Keeper().GetPools(ctx)
@@ -1061,6 +1210,9 @@ func emitEndBlockTelemetry(ctx cosmos.Context, mgr Manager) error {
 		return err
 	}
 	for _, pool := range pools {
+		if pool.LPUnits.IsZero() {
+			continue
+		}
 		synthSupply := mgr.Keeper().GetTotalSupply(ctx, pool.Asset.GetSyntheticAsset())
 		labels := []metrics.Label{telemetry.NewLabel("pool", pool.Asset.String())}
 		telemetry.SetGaugeWithLabels([]string{"thornode", "pool", "balance", "synth"}, telem(synthSupply), labels)
@@ -1078,7 +1230,7 @@ func emitEndBlockTelemetry(ctx cosmos.Context, mgr Manager) error {
 		if !pool.BalanceAsset.IsZero() {
 			price = runeUSDPrice * telem(pool.BalanceRune) / telem(pool.BalanceAsset)
 		}
-		telemetry.SetGauge(price, "thornode", "price", "usd", strings.ToLower(pool.Asset.Chain.String()), strings.ToLower(pool.Asset.Symbol.String()))
+		telemetry.SetGaugeWithLabels([]string{"thornode", "pool", "price", "usd"}, price, labels)
 	}
 
 	// emit vault metrics
@@ -1108,14 +1260,29 @@ func emitEndBlockTelemetry(ctx cosmos.Context, mgr Manager) error {
 		telemetry.SetGaugeWithLabels([]string{"thornode", "vault", "total_value"}, telem(totalValue), labels)
 
 		for _, coin := range vault.Coins {
-			telemetry.SetGaugeWithLabels([]string{"thornode", "vault", "balance", coin.Asset.String()}, telem(coin.Amount), labels)
+			labels := []metrics.Label{
+				telemetry.NewLabel("vault_type", vault.Type.String()),
+				telemetry.NewLabel("pubkey", vault.PubKey.String()),
+				telemetry.NewLabel("asset", coin.Asset.String()),
+			}
+			telemetry.SetGaugeWithLabels([]string{"thornode", "vault", "balance"}, telem(coin.Amount), labels)
 		}
 	}
 
 	// emit queue metrics
 	signingTransactionPeriod := mgr.GetConstants().GetInt64Value(constants.SigningTransactionPeriod)
 	startHeight := common.BlockHeight(ctx) - signingTransactionPeriod
-	query := QueryQueue{}
+	txOutDelayMax, err := mgr.Keeper().GetMimir(ctx, constants.TxOutDelayMax.String())
+	if txOutDelayMax <= 0 || err != nil {
+		txOutDelayMax = mgr.GetConstants().GetInt64Value(constants.TxOutDelayMax)
+	}
+	maxTxOutOffset, err := mgr.Keeper().GetMimir(ctx, constants.MaxTxOutOffset.String())
+	if maxTxOutOffset <= 0 || err != nil {
+		maxTxOutOffset = mgr.GetConstants().GetInt64Value(constants.MaxTxOutOffset)
+	}
+	query := QueryQueue{
+		ScheduledOutboundValue: cosmos.ZeroUint(),
+	}
 	iterator := mgr.Keeper().GetSwapQueueIterator(ctx)
 	defer iterator.Close()
 	for ; iterator.Valid(); iterator.Next() {
@@ -1141,9 +1308,24 @@ func emitEndBlockTelemetry(ctx cosmos.Context, mgr Manager) error {
 			}
 		}
 	}
+	for height := common.BlockHeight(ctx) + 1; height <= common.BlockHeight(ctx)+txOutDelayMax; height++ {
+		value, err := mgr.Keeper().GetTxOutValue(ctx, height)
+		if err != nil {
+			ctx.Logger().Error("fail to get tx out array from key value store", "error", err)
+			continue
+		}
+		if height > common.BlockHeight(ctx)+maxTxOutOffset && value.IsZero() {
+			// we've hit our max offset, and an empty block, we can assume the
+			// rest will be empty as well
+			break
+		}
+		query.ScheduledOutboundValue = query.ScheduledOutboundValue.Add(value)
+	}
 	telemetry.SetGauge(float32(query.Internal), "thornode", "queue", "internal")
 	telemetry.SetGauge(float32(query.Outbound), "thornode", "queue", "outbound")
 	telemetry.SetGauge(float32(query.Swap), "thornode", "queue", "swap")
+	telemetry.SetGauge(telem(query.ScheduledOutboundValue), "thornode", "queue", "scheduled", "value", "rune")
+	telemetry.SetGauge(telem(query.ScheduledOutboundValue)*runeUSDPrice, "thornode", "queue", "scheduled", "value", "usd")
 
 	return nil
 }

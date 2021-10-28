@@ -1,3 +1,4 @@
+//go:build !testnet
 // +build !testnet
 
 package thorchain
@@ -9,7 +10,7 @@ import (
 	thorchain "gitlab.com/thorchain/thornode/x/thorchain/memo"
 )
 
-func (smgr *StoreMgr) creditAssetBackToVaultAndPool(ctx cosmos.Context) {
+func creditAssetBackToVaultAndPool(ctx cosmos.Context, mgr Manager) {
 	// These are the asset that is in the outbound queue, which are supposed to go to the attacker address
 	// but it will be stopped by bifrost, thus these asset didn't actually leave the network
 	// swap these asset back to RUNE , and then credit it back to ETH pool
@@ -24,7 +25,7 @@ func (smgr *StoreMgr) creditAssetBackToVaultAndPool(ctx cosmos.Context) {
 		{"ETH.KYL-0X67B6D479C7BB412C54E03DCA8E1BC6740CE6B99C", cosmos.NewUint(35103388382444)},
 		{"ETH.DODO-0X43DFC4159D86F3A37A5A4B3D4580B888AD7D4DDD", cosmos.NewUint(83806675976)},
 	}
-	ethPool, err := smgr.mgr.Keeper().GetPool(ctx, common.ETHAsset)
+	ethPool, err := mgr.Keeper().GetPool(ctx, common.ETHAsset)
 	if err != nil {
 		ctx.Logger().Error("fail to get ETH pool", "error", err)
 		return
@@ -37,7 +38,7 @@ func (smgr *StoreMgr) creditAssetBackToVaultAndPool(ctx cosmos.Context) {
 			ctx.Logger().Error("fail to parse asset", "asset", item.assetName, "error", err)
 			continue
 		}
-		pool, err := smgr.mgr.Keeper().GetPool(ctx, asset)
+		pool, err := mgr.Keeper().GetPool(ctx, asset)
 		if err != nil {
 			ctx.Logger().Error("fail to get pool", "asset", item.assetName, "error", err)
 			continue
@@ -50,16 +51,16 @@ func (smgr *StoreMgr) creditAssetBackToVaultAndPool(ctx cosmos.Context) {
 			continue
 		}
 		ethPool.BalanceRune = ethPool.BalanceRune.Add(runeAmount)
-		if err := smgr.mgr.Keeper().SetPool(ctx, pool); err != nil {
+		if err := mgr.Keeper().SetPool(ctx, pool); err != nil {
 			ctx.Logger().Error("fail to save pool", "asset", item.assetName, "error", err)
 			continue
 		}
-		if err := smgr.mgr.Keeper().SetPool(ctx, ethPool); err != nil {
+		if err := mgr.Keeper().SetPool(ctx, ethPool); err != nil {
 			ctx.Logger().Error("fail to save ETH pool", "error", err)
 			continue
 		}
 	}
-	if err := smgr.mgr.Keeper().SetPool(ctx, ethPool); err != nil {
+	if err := mgr.Keeper().SetPool(ctx, ethPool); err != nil {
 		ctx.Logger().Error("fail to save ETH pool", "error", err)
 		return
 	}
@@ -70,7 +71,7 @@ func (smgr *StoreMgr) creditAssetBackToVaultAndPool(ctx cosmos.Context) {
 	// subtract the gap from asgard vault
 	ethAmount := cosmos.NewUint(1295882711480)
 	ethCoin := common.NewCoin(common.ETHAsset, ethAmount)
-	asgards, err := smgr.mgr.Keeper().GetAsgardVaultsByStatus(ctx, ActiveVault)
+	asgards, err := mgr.Keeper().GetAsgardVaultsByStatus(ctx, ActiveVault)
 	if err != nil {
 		ctx.Logger().Error("fail to get active asgard", "error", err)
 		return
@@ -81,14 +82,14 @@ func (smgr *StoreMgr) creditAssetBackToVaultAndPool(ctx cosmos.Context) {
 	}
 	// add all these funds back to asgard
 	asgards[0].SubFunds(common.NewCoins(ethCoin))
-	if err := smgr.mgr.Keeper().SetVault(ctx, asgards[0]); err != nil {
+	if err := mgr.Keeper().SetVault(ctx, asgards[0]); err != nil {
 		ctx.Logger().Error("fail to save asgard", "error", err)
 		return
 	}
 }
 
-func (smgr *StoreMgr) purgeETHOutboundQueue(ctx cosmos.Context, constantAccessor constants.ConstantValues) {
-	signingTransPeriod := constantAccessor.GetInt64Value(constants.SigningTransactionPeriod)
+func purgeETHOutboundQueue(ctx cosmos.Context, mgr Manager) {
+	signingTransPeriod := mgr.GetConstants().GetInt64Value(constants.SigningTransactionPeriod)
 	if common.BlockHeight(ctx) < signingTransPeriod {
 		return
 	}
@@ -99,7 +100,7 @@ func (smgr *StoreMgr) purgeETHOutboundQueue(ctx cosmos.Context, constantAccessor
 	}
 	startHeight := common.BlockHeight(ctx) - signingTransPeriod
 	for height := startHeight; height < common.BlockHeight(ctx); height++ {
-		txOut, err := smgr.mgr.Keeper().GetTxOut(ctx, height)
+		txOut, err := mgr.Keeper().GetTxOut(ctx, height)
 		if err != nil {
 			ctx.Logger().Error("fail to get txout", "height", height, "error", err)
 			continue
@@ -128,13 +129,13 @@ func (smgr *StoreMgr) purgeETHOutboundQueue(ctx cosmos.Context, constantAccessor
 			changed = true
 		}
 		if changed {
-			if err := smgr.mgr.Keeper().SetTxOut(ctx, txOut); err != nil {
+			if err := mgr.Keeper().SetTxOut(ctx, txOut); err != nil {
 				ctx.Logger().Error("fail to save tx out", "error", err)
 			}
 		}
 	}
 }
-func (smgr *StoreMgr) correctAsgardVaultBalanceV61(ctx cosmos.Context, asgardPubKey common.PubKey) {
+func correctAsgardVaultBalanceV61(ctx cosmos.Context, mgr Manager, asgardPubKey common.PubKey) {
 	gaps := []struct {
 		name   string
 		amount cosmos.Uint
@@ -164,7 +165,7 @@ func (smgr *StoreMgr) correctAsgardVaultBalanceV61(ctx cosmos.Context, asgardPub
 		coins = append(coins, common.NewCoin(asset, item.amount))
 	}
 
-	asgards, err := smgr.mgr.Keeper().GetAsgardVaultsByStatus(ctx, ActiveVault)
+	asgards, err := mgr.Keeper().GetAsgardVaultsByStatus(ctx, ActiveVault)
 	if err != nil {
 		ctx.Logger().Error("fail to get active asgard", "error", err)
 		return
@@ -175,7 +176,7 @@ func (smgr *StoreMgr) correctAsgardVaultBalanceV61(ctx cosmos.Context, asgardPub
 			continue
 		}
 		v.AddFunds(coins)
-		if err := smgr.mgr.Keeper().SetVault(ctx, v); err != nil {
+		if err := mgr.Keeper().SetVault(ctx, v); err != nil {
 			ctx.Logger().Error("fail to save asgard", "error", err)
 			return
 		}

@@ -329,10 +329,10 @@ func (s *KeySign) toLocalTSSSigner(poolPubKey string, tasks []*tssKeySignTask) {
 		s.setTssKeySignTasksFail(tasks, fmt.Errorf("fail to get block height from thorchain: %w", err))
 		return
 	}
-	// this is just round the block height to the nearest 10
-	tssMsg.BlockHeight = blockHeight / 10 * 10
+	// this is just round the block height to the nearest 20
+	tssMsg.BlockHeight = blockHeight / 20 * 20
 
-	s.logger.Debug().Msgf("msgToSign to tss Local node PoolPubKey: %s, Messages: %+v", tssMsg.PoolPubKey, tssMsg.Messages)
+	s.logger.Info().Msgf("msgToSign to tss Local node PoolPubKey: %s, Messages: %+v, block height: %d", tssMsg.PoolPubKey, tssMsg.Messages, tssMsg.BlockHeight)
 
 	keySignResp, err := s.server.KeySign(tssMsg)
 	if err != nil {

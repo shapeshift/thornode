@@ -34,4 +34,9 @@ func (s *KeeperMimirSuite) TestMimir(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(val, Equals, int64(-1))
 	c.Check(k.GetMimirIterator(ctx), NotNil)
+
+	addr := GetRandomBech32Addr()
+	k.SetNodePauseChain(ctx, addr)
+	pause := k.GetNodePauseChain(ctx, addr)
+	c.Assert(pause, Equals, int64(18))
 }

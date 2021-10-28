@@ -18,8 +18,8 @@ type SlasherV44 struct {
 	eventMgr EventManager
 }
 
-// NewSlasherV44 create a new instance of Slasher
-func NewSlasherV44(keeper keeper.Keeper, eventMgr EventManager) *SlasherV44 {
+// newSlasherV44 create a new instance of Slasher
+func newSlasherV44(keeper keeper.Keeper, eventMgr EventManager) *SlasherV44 {
 	return &SlasherV44{keeper: keeper, eventMgr: eventMgr}
 }
 
@@ -51,7 +51,7 @@ func (s *SlasherV44) HandleDoubleSign(ctx cosmos.Context, addr crypto.Address, i
 		return nil
 	}
 
-	nas, err := s.keeper.ListActiveNodeAccounts(ctx)
+	nas, err := s.keeper.ListActiveValidators(ctx)
 	if err != nil {
 		return err
 	}
@@ -130,7 +130,7 @@ func (s *SlasherV44) slashNotObserving(ctx cosmos.Context, txHash common.TxID, c
 		return nil
 	}
 
-	nodes, err := s.keeper.ListActiveNodeAccounts(ctx)
+	nodes, err := s.keeper.ListActiveValidators(ctx)
 	if err != nil {
 		return fmt.Errorf("unable to get list of active accounts: %w", err)
 	}

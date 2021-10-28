@@ -33,7 +33,7 @@ func (HandlerMigrateSuite) TestMigrate(c *C) {
 	ctx, _ := setupKeeperForTest(c)
 
 	keeper := &TestMigrateKeeper{
-		activeNodeAccount: GetRandomNodeAccount(NodeActive),
+		activeNodeAccount: GetRandomValidatorNode(NodeActive),
 		vault:             GetRandomVault(),
 	}
 
@@ -131,7 +131,7 @@ func (HandlerMigrateSuite) TestMigrateHappyPath(c *C) {
 		Memo:        NewMigrateMemo(1).String(),
 	})
 	keeper := &TestMigrateKeeperHappyPath{
-		activeNodeAccount: GetRandomNodeAccount(NodeActive),
+		activeNodeAccount: GetRandomValidatorNode(NodeActive),
 		newVault:          newVault,
 		retireVault:       retireVault,
 		txout:             txout,
@@ -170,7 +170,7 @@ func (HandlerMigrateSuite) TestSlash(c *C) {
 	pool.Asset = common.BNBAsset
 	pool.BalanceAsset = cosmos.NewUint(100 * common.One)
 	pool.BalanceRune = cosmos.NewUint(100 * common.One)
-	na := GetRandomNodeAccount(NodeActive)
+	na := GetRandomValidatorNode(NodeActive)
 	na.Bond = cosmos.NewUint(100 * common.One)
 	retireVault.Membership = []string{
 		na.PubKeySet.Secp256k1.String(),
@@ -185,7 +185,7 @@ func (HandlerMigrateSuite) TestSlash(c *C) {
 	addr, err := keeper.retireVault.PubKey.GetAddress(common.BNBChain)
 	c.Assert(err, IsNil)
 	mgr := NewDummyMgrWithKeeper(keeper)
-	mgr.slasher = NewSlasherV1(keeper, NewDummyEventMgr())
+	mgr.slasher = newSlasherV1(keeper, NewDummyEventMgr())
 	handler := NewMigrateHandler(mgr)
 	tx := NewObservedTx(common.Tx{
 		ID:    GetRandomTxHash(),

@@ -19,8 +19,8 @@ type TxOutStorageV52 struct {
 	gasManager    GasManager
 }
 
-// NewTxOutStorageV52 will create a new instance of TxOutStore.
-func NewTxOutStorageV52(keeper keeper.Keeper, constAccessor constants.ConstantValues, eventMgr EventManager, gasManager GasManager) *TxOutStorageV52 {
+// newTxOutStorageV52 will create a new instance of TxOutStore.
+func newTxOutStorageV52(keeper keeper.Keeper, constAccessor constants.ConstantValues, eventMgr EventManager, gasManager GasManager) *TxOutStorageV52 {
 	return &TxOutStorageV52{
 		keeper:        keeper,
 		eventMgr:      eventMgr,
@@ -28,6 +28,8 @@ func NewTxOutStorageV52(keeper keeper.Keeper, constAccessor constants.ConstantVa
 		gasManager:    gasManager,
 	}
 }
+
+func (tos *TxOutStorageV52) EndBlock(ctx cosmos.Context, mgr Manager) error { return nil }
 
 // GetBlockOut read the TxOut from kv store
 func (tos *TxOutStorageV52) GetBlockOut(ctx cosmos.Context) (*TxOut, error) {
@@ -135,7 +137,7 @@ func (tos *TxOutStorageV52) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem) 
 			// only consider Yggdrasils where their observed saw the "correct"
 			// tx.
 
-			activeNodeAccounts, err := tos.keeper.ListActiveNodeAccounts(ctx)
+			activeNodeAccounts, err := tos.keeper.ListActiveValidators(ctx)
 			if err != nil {
 				ctx.Logger().Error("fail to get all active node accounts", "error", err)
 			}

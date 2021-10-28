@@ -38,7 +38,7 @@ type PubKeyTestSuite struct {
 
 var _ = Suite(&PubKeyTestSuite{})
 
-func (s *PubKeyTestSuite) SetUpSuite(c *C) {
+func (s *PubKeyTestSuite) SetUpSuite(_ *C) {
 	s.keyData = []KeyData{
 		{
 			priv: "ef235aacf90d9f4aadd8c92e4b2562e1d9eb97f0df9ba3b508258739cb013db2",
@@ -257,7 +257,7 @@ func (s *PubKeyTestSuite) TestPubKeySet(c *C) {
 func (s *PubKeyTestSuite) TestPubKeyGetAddress(c *C) {
 	original := os.Getenv("NET")
 	defer func() {
-		os.Setenv("NET", original)
+		c.Assert(os.Setenv("NET", original), IsNil)
 	}()
 
 	for _, d := range s.keyData {
@@ -278,7 +278,7 @@ func (s *PubKeyTestSuite) TestPubKeyGetAddress(c *C) {
 		pk, err := NewPubKey(pubBech32)
 		c.Assert(err, IsNil)
 
-		os.Setenv("NET", "mainnet")
+		c.Assert(os.Setenv("NET", "mainnet"), IsNil)
 		addrETH, err := pk.GetAddress(ETHChain)
 		c.Assert(err, IsNil)
 		c.Assert(addrETH.String(), Equals, d.addrETH.mainnet)
@@ -303,7 +303,7 @@ func (s *PubKeyTestSuite) TestPubKeyGetAddress(c *C) {
 		c.Assert(err, IsNil)
 		c.Assert(addrDOGE.String(), Equals, d.addrDOGE.mainnet)
 
-		os.Setenv("NET", "testnet")
+		c.Assert(os.Setenv("NET", "testnet"), IsNil)
 		addrETH, err = pk.GetAddress(ETHChain)
 		c.Assert(err, IsNil)
 		c.Assert(addrETH.String(), Equals, d.addrETH.testnet)
@@ -328,7 +328,7 @@ func (s *PubKeyTestSuite) TestPubKeyGetAddress(c *C) {
 		c.Assert(err, IsNil)
 		c.Assert(addrDOGE.String(), Equals, d.addrDOGE.testnet)
 
-		os.Setenv("NET", "mocknet")
+		c.Assert(os.Setenv("NET", "mocknet"), IsNil)
 		addrETH, err = pk.GetAddress(ETHChain)
 		c.Assert(err, IsNil)
 		c.Assert(addrETH.String(), Equals, d.addrETH.mocknet)
@@ -353,4 +353,49 @@ func (s *PubKeyTestSuite) TestPubKeyGetAddress(c *C) {
 		c.Assert(err, IsNil)
 		c.Assert(addrDOGE.String(), Equals, d.addrDOGE.mocknet)
 	}
+}
+
+func (s *PubKeyTestSuite) TestEquals(c *C) {
+	var pk1, pk2, pk3, pk4 PubKey
+	_, pubKey1, _ := testdata.KeyTestPubAddr()
+	tpk1, err1 := cosmos.Bech32ifyPubKey(cosmos.Bech32PubKeyTypeAccPub, pubKey1)
+	c.Assert(err1, IsNil)
+	pk1 = PubKey(tpk1)
+
+	_, pubKey2, _ := testdata.KeyTestPubAddr()
+	tpk2, err2 := cosmos.Bech32ifyPubKey(cosmos.Bech32PubKeyTypeAccPub, pubKey2)
+	c.Assert(err2, IsNil)
+	pk2 = PubKey(tpk2)
+
+	_, pubKey3, _ := testdata.KeyTestPubAddr()
+	tpk3, err3 := cosmos.Bech32ifyPubKey(cosmos.Bech32PubKeyTypeAccPub, pubKey3)
+	c.Assert(err3, IsNil)
+	pk3 = PubKey(tpk3)
+
+	_, pubKey4, _ := testdata.KeyTestPubAddr()
+	tpk4, err4 := cosmos.Bech32ifyPubKey(cosmos.Bech32PubKeyTypeAccPub, pubKey4)
+	c.Assert(err4, IsNil)
+	pk4 = PubKey(tpk4)
+
+	c.Assert(PubKeys{
+		pk1, pk2,
+	}.Equals(nil), Equals, false)
+
+	c.Assert(PubKeys{
+		pk1, pk2, pk3,
+	}.Equals(PubKeys{
+		pk1, pk2,
+	}), Equals, false)
+
+	c.Assert(PubKeys{
+		pk1, pk2, pk3, pk4,
+	}.Equals(PubKeys{
+		pk4, pk3, pk2, pk1,
+	}), Equals, true)
+
+	c.Assert(PubKeys{
+		pk1, pk2, pk3, pk4,
+	}.Equals(PubKeys{
+		pk1, pk2, pk3, pk4,
+	}), Equals, true)
 }

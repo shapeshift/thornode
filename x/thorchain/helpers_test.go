@@ -155,13 +155,36 @@ func (s *HelperSuite) TestSubsidizePoolWithSlashBond(c *C) {
 	poolBTC, err = mgr.Keeper().GetPool(ctx, common.BTCAsset)
 	c.Assert(err, IsNil)
 	c.Assert(poolBTC.BalanceRune.Equal(runeBTC), Equals, true)
+
+	ygg2 := GetRandomVault()
+	ygg2.Type = YggdrasilVault
+	ygg2.Coins = common.Coins{
+		common.NewCoin(common.RuneAsset(), cosmos.NewUint(2*common.One)),
+		common.NewCoin(tCanAsset, cosmos.NewUint(0)),
+	}
+	totalRuneLeft, err = getTotalYggValueInRune(ctx, mgr.Keeper(), ygg2)
+	slashAmt = cosmos.NewUint(2 * common.One)
+	c.Assert(subsidizePoolWithSlashBond(ctx, ygg2, totalRuneLeft, slashAmt, mgr), IsNil)
+}
+
+func (s *HelperSuite) TestPausedLP(c *C) {
+	ctx, mgr := setupManagerForTest(c)
+
+	c.Check(isLPPaused(ctx, common.BNBChain, mgr), Equals, false)
+	c.Check(isLPPaused(ctx, common.BTCChain, mgr), Equals, false)
+
+	mgr.Keeper().SetMimir(ctx, "PauseLPBTC", 1)
+	c.Check(isLPPaused(ctx, common.BTCChain, mgr), Equals, true)
+
+	mgr.Keeper().SetMimir(ctx, "PauseLP", 1)
+	c.Check(isLPPaused(ctx, common.BNBChain, mgr), Equals, true)
 }
 
 func (s *HelperSuite) TestRefundBondError(c *C) {
 	ctx, _ := setupKeeperForTest(c)
 	// active node should not refund bond
 	pk := GetRandomPubKey()
-	na := GetRandomNodeAccount(NodeActive)
+	na := GetRandomValidatorNode(NodeActive)
 	na.PubKeySet.Secp256k1 = pk
 	na.Bond = cosmos.NewUint(100 * common.One)
 	tx := GetRandomTx()
@@ -208,7 +231,7 @@ func (s *HelperSuite) TestRefundBondError(c *C) {
 
 func (s *HelperSuite) TestRefundBondHappyPath(c *C) {
 	ctx, _ := setupKeeperForTest(c)
-	na := GetRandomNodeAccount(NodeActive)
+	na := GetRandomValidatorNode(NodeActive)
 	na.Bond = cosmos.NewUint(12098 * common.One)
 	pk := GetRandomPubKey()
 	na.PubKeySet.Secp256k1 = pk
@@ -365,6 +388,28 @@ func (s *HelperSuite) TestAbandonPool(c *C) {
 	c.Assert(count, Equals, 0)
 }
 
+func (s *HelperSuite) TestDollarInRune(c *C) {
+	ctx, k := setupKeeperForTest(c)
+	mgr := NewDummyMgrWithKeeper(k)
+	busd, err := common.NewAsset("BNB.BUSD-BD1")
+	c.Assert(err, IsNil)
+	pool := NewPool()
+	pool.Asset = busd
+	pool.Status = PoolAvailable
+	pool.BalanceRune = cosmos.NewUint(85515078103667)
+	pool.BalanceAsset = cosmos.NewUint(709802235538353)
+	c.Assert(k.SetPool(ctx, pool), IsNil)
+
+	runeUSDPrice := telem(DollarInRune(ctx, mgr))
+	c.Assert(runeUSDPrice, Equals, float32(0.12047733))
+}
+
+func (s *HelperSuite) TestTelem(c *C) {
+	value := cosmos.NewUint(12047733)
+	c.Assert(value.Uint64(), Equals, uint64(12047733))
+	c.Assert(telem(value), Equals, float32(0.12047733))
+}
+
 type addGasFeesKeeperHelper struct {
 	keeper.Keeper
 	errGetNetwork bool
@@ -432,13 +477,13 @@ func newAddGasFeeTestHelper(c *C) addGasFeeTestHelper {
 	poolBTC.Status = PoolAvailable
 	c.Assert(mgr.Keeper().SetPool(ctx, poolBTC), IsNil)
 
-	na := GetRandomNodeAccount(NodeActive)
+	na := GetRandomValidatorNode(NodeActive)
 	c.Assert(mgr.Keeper().SetNodeAccount(ctx, na), IsNil)
 	yggVault := NewVault(common.BlockHeight(ctx), ActiveVault, YggdrasilVault, na.PubKeySet.Secp256k1, common.Chains{common.BNBChain}.Strings(), []ChainContract{})
 	c.Assert(mgr.Keeper().SetVault(ctx, yggVault), IsNil)
 	version := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(version)
-	mgr.gasMgr = NewGasMgrV1(constAccessor, keeper)
+	mgr.gasMgr = newGasMgrV1(constAccessor, keeper)
 	return addGasFeeTestHelper{
 		ctx: ctx,
 		mgr: mgr,

@@ -54,7 +54,7 @@ func (s *HandlerSetNodeKeysSuite) TestValidate(c *C) {
 	ctx, _ := setupKeeperForTest(c)
 
 	keeper := &TestSetNodeKeysKeeper{
-		na:     GetRandomNodeAccount(NodeStandby),
+		na:     GetRandomValidatorNode(NodeStandby),
 		ensure: nil,
 	}
 	keeper.na.PubKeySet = common.PubKeySet{}
@@ -227,7 +227,7 @@ func (s *HandlerSetNodeKeysSuite) TestHandle(c *C) {
 		{
 			name: "fail to save node account should return an error",
 			messageProvider: func(c *C, ctx cosmos.Context, helper *TestSetNodeKeysHandleKeeper) cosmos.Msg {
-				nodeAcct := GetRandomNodeAccount(NodeWhiteListed)
+				nodeAcct := GetRandomValidatorNode(NodeWhiteListed)
 				c.Assert(helper.Keeper.SetNodeAccount(ctx, nodeAcct), IsNil)
 				helper.failSetNodeAccount = true
 				return NewMsgSetNodeKeys(nodeAcct.PubKeySet, nodeAcct.ValidatorConsPubKey, nodeAcct.NodeAddress)
@@ -240,7 +240,7 @@ func (s *HandlerSetNodeKeysSuite) TestHandle(c *C) {
 		{
 			name: "fail to get network data should return an error",
 			messageProvider: func(c *C, ctx cosmos.Context, helper *TestSetNodeKeysHandleKeeper) cosmos.Msg {
-				nodeAcct := GetRandomNodeAccount(NodeWhiteListed)
+				nodeAcct := GetRandomValidatorNode(NodeWhiteListed)
 				c.Assert(helper.Keeper.SetNodeAccount(ctx, nodeAcct), IsNil)
 				helper.failGetNetwork = true
 				return NewMsgSetNodeKeys(nodeAcct.PubKeySet, nodeAcct.ValidatorConsPubKey, nodeAcct.NodeAddress)
@@ -254,7 +254,7 @@ func (s *HandlerSetNodeKeysSuite) TestHandle(c *C) {
 		{
 			name: "fail to set network data should return an error",
 			messageProvider: func(c *C, ctx cosmos.Context, helper *TestSetNodeKeysHandleKeeper) cosmos.Msg {
-				nodeAcct := GetRandomNodeAccount(NodeWhiteListed)
+				nodeAcct := GetRandomValidatorNode(NodeWhiteListed)
 				c.Assert(helper.Keeper.SetNodeAccount(ctx, nodeAcct), IsNil)
 				helper.failSetNetwork = true
 				return NewMsgSetNodeKeys(nodeAcct.PubKeySet, nodeAcct.ValidatorConsPubKey, nodeAcct.NodeAddress)

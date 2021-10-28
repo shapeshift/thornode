@@ -19,6 +19,13 @@ enum NodeStatus {
   Disabled = 5;
 }
 
+enum NodeType {
+  option (gogoproto.goproto_enum_stringer) = true;
+  TypeValidator = 0;
+  TypeLite =  1;
+  TypeUnknown = 2;
+}
+
 message NodeAccount {
   option (gogoproto.stringer) = false;
   bytes node_address = 1 [(gogoproto.casttype) = "github.com/cosmos/cosmos-sdk/types.AccAddress"];
@@ -35,4 +42,5 @@ message NodeAccount {
   uint64 leave_score = 12;
   string ip_address = 13 [(gogoproto.customname) = "IPAddress"];
   string version = 14;
+  NodeType type = 15;
 }

@@ -104,7 +104,7 @@ func newYggdrasilHandlerTestHelper(c *C) yggdrasilHandlerTestHelper {
 	c.Assert(keeper.SetPool(ctx, pool), IsNil)
 
 	// active account
-	nodeAccount := GetRandomNodeAccount(NodeActive)
+	nodeAccount := GetRandomValidatorNode(NodeActive)
 	nodeAccount.Bond = cosmos.NewUint(100 * common.One)
 	FundModule(c, ctx, k, BondName, nodeAccount.Bond.Uint64())
 	c.Assert(keeper.SetNodeAccount(ctx, nodeAccount), IsNil)
@@ -113,7 +113,7 @@ func newYggdrasilHandlerTestHelper(c *C) yggdrasilHandlerTestHelper {
 
 	mgr := NewDummyMgrWithKeeper(keeper)
 	mgr.validatorMgr = newValidatorMgrV1(k, mgr.VaultMgr(), mgr.TxOutStore(), mgr.EventMgr())
-	mgr.slasher = NewSlasherV1(keeper, NewDummyEventMgr())
+	mgr.slasher = newSlasherV1(keeper, NewDummyEventMgr())
 	c.Assert(mgr.ValidatorMgr().BeginBlock(ctx, constAccessor, nil), IsNil)
 	asgardVault := GetRandomVault()
 	asgardVault.Type = AsgardVault

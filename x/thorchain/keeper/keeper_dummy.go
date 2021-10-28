@@ -159,16 +159,16 @@ func (k KVStoreDummy) GetTotalSupply(ctx cosmos.Context, asset common.Asset) cos
 	return cosmos.ZeroUint()
 }
 
-func (k KVStoreDummy) TotalActiveNodeAccount(_ cosmos.Context) (int, error) { return 0, kaboom }
-func (k KVStoreDummy) ListNodeAccountsWithBond(_ cosmos.Context) (NodeAccounts, error) {
+func (k KVStoreDummy) TotalActiveValidators(_ cosmos.Context) (int, error) { return 0, kaboom }
+func (k KVStoreDummy) ListValidatorsWithBond(_ cosmos.Context) (NodeAccounts, error) {
 	return nil, kaboom
 }
 
-func (k KVStoreDummy) ListNodeAccountsByStatus(_ cosmos.Context, _ NodeStatus) (NodeAccounts, error) {
+func (k KVStoreDummy) ListValidatorsByStatus(_ cosmos.Context, _ NodeStatus) (NodeAccounts, error) {
 	return nil, kaboom
 }
 
-func (k KVStoreDummy) ListActiveNodeAccounts(_ cosmos.Context) (NodeAccounts, error) {
+func (k KVStoreDummy) ListActiveValidators(_ cosmos.Context) (NodeAccounts, error) {
 	return nil, kaboom
 }
 
@@ -243,9 +243,12 @@ func (k KVStoreDummy) GetTssVoter(_ cosmos.Context, _ string) (TssVoter, error) 
 func (k KVStoreDummy) GetKeygenBlock(_ cosmos.Context, _ int64) (KeygenBlock, error) {
 	return KeygenBlock{}, kaboom
 }
-func (k KVStoreDummy) SetKeygenBlock(_ cosmos.Context, _ KeygenBlock)           { return }
-func (k KVStoreDummy) GetKeygenBlockIterator(_ cosmos.Context) cosmos.Iterator  { return nil }
-func (k KVStoreDummy) GetTxOut(_ cosmos.Context, _ int64) (*TxOut, error)       { return nil, kaboom }
+func (k KVStoreDummy) SetKeygenBlock(_ cosmos.Context, _ KeygenBlock)          { return }
+func (k KVStoreDummy) GetKeygenBlockIterator(_ cosmos.Context) cosmos.Iterator { return nil }
+func (k KVStoreDummy) GetTxOut(_ cosmos.Context, _ int64) (*TxOut, error)      { return nil, kaboom }
+func (k KVStoreDummy) GetTxOutValue(_ cosmos.Context, _ int64) (cosmos.Uint, error) {
+	return cosmos.ZeroUint(), kaboom
+}
 func (k KVStoreDummy) SetTxOut(_ cosmos.Context, _ *TxOut) error                { return kaboom }
 func (k KVStoreDummy) AppendTxOut(_ cosmos.Context, _ int64, _ TxOutItem) error { return kaboom }
 func (k KVStoreDummy) ClearTxOut(_ cosmos.Context, _ int64) error               { return kaboom }
@@ -327,6 +330,11 @@ func (k KVStoreDummy) GetMimir(_ cosmos.Context, key string) (int64, error) { re
 func (k KVStoreDummy) SetMimir(_ cosmos.Context, key string, value int64)   {}
 func (k KVStoreDummy) DeleteMimir(_ cosmos.Context, key string) error       { return kaboom }
 func (k KVStoreDummy) GetMimirIterator(ctx cosmos.Context) cosmos.Iterator  { return nil }
+func (k KVStoreDummy) GetNodePauseChain(ctx cosmos.Context, acc cosmos.AccAddress) int64 {
+	return int64(-1)
+}
+func (k KVStoreDummy) SetNodePauseChain(ctx cosmos.Context, acc cosmos.AccAddress) { return }
+
 func (k KVStoreDummy) GetNetworkFee(ctx cosmos.Context, chain common.Chain) (NetworkFee, error) {
 	return NetworkFee{}, kaboom
 }

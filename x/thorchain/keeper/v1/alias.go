@@ -22,6 +22,11 @@ const (
 	NodeStandby = types.NodeStatus_Standby
 	NodeUnknown = types.NodeStatus_Unknown
 
+	// Node type
+	NodeTypeUnknown   = types.NodeType_TypeUnknown
+	NodeTypeValidator = types.NodeType_TypeValidator
+	NodeTypeLite      = types.NodeType_TypeLite
+
 	// Bond type
 	AsgardKeygen = types.KeygenType_AsgardKeygen
 )
@@ -45,7 +50,8 @@ var (
 	NewReserveContributor      = types.NewReserveContributor
 	NewTHORName                = types.NewTHORName
 	GetRandomTx                = types.GetRandomTx
-	GetRandomNodeAccount       = types.GetRandomNodeAccount
+	GetRandomValidatorNode     = types.GetRandomValidatorNode
+	GetRandomLiteNode          = types.GetRandomLiteNode
 	GetRandomBNBAddress        = types.GetRandomBNBAddress
 	GetRandomBTCAddress        = types.GetRandomBTCAddress
 	GetRandomBCHAddress        = types.GetRandomBCHAddress
@@ -83,6 +89,7 @@ type (
 	NodeAccount              = types.NodeAccount
 	NodeAccounts             = types.NodeAccounts
 	NodeStatus               = types.NodeStatus
+	NodeType                 = types.NodeType
 	Network                  = types.Network
 	VaultStatus              = types.VaultStatus
 	NetworkFee               = types.NetworkFee

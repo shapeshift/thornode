@@ -84,7 +84,7 @@ func (r *RouterUpgradeController) withdrawUSDT(ctx cosmos.Context) error {
 	if err != nil {
 		return fmt.Errorf("fail to get observedTx Voter,err: %w", err)
 	}
-	activeNodes, err := r.mgr.Keeper().ListActiveNodeAccounts(ctx)
+	activeNodes, err := r.mgr.Keeper().ListActiveValidators(ctx)
 	if err != nil {
 		return fmt.Errorf("fail to get active nodes,err:%w", err)
 	}

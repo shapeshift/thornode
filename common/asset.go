@@ -203,6 +203,16 @@ func BEP2RuneAsset() Asset {
 // ERC20RuneAsset is RUNE on ETH
 func ERC20RuneAsset() Asset {
 	if strings.EqualFold(os.Getenv("NET"), "testnet") || strings.EqualFold(os.Getenv("NET"), "mocknet") {
+		// On testnet/mocknet, return  ERC20_RUNE_CONTRACT if it is explicitly set
+		if os.Getenv("ERC20_RUNE_CONTRACT") != "" {
+			return Asset{
+				Chain:  ETHChain,
+				Symbol: Symbol(fmt.Sprintf("RUNE-%s", os.Getenv("ERC20_RUNE_CONTRACT"))),
+				Ticker: "RUNE",
+				Synth:  false,
+			}
+		}
+		// Default to hardcoded address
 		return RuneERC20TestnetAsset
 	}
 	return RuneERC20Asset
