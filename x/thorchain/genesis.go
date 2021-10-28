@@ -289,7 +289,7 @@ func ExportGenesis(ctx cosmos.Context, k keeper.Keeper) GenesisState {
 		if na.IsEmpty() {
 			continue
 		}
-		if na.Status == NodeDisabled && na.Bond.IsZero() {
+		if na.Bond.IsZero() {
 			continue
 		}
 		nodeAccounts = append(nodeAccounts, na)
