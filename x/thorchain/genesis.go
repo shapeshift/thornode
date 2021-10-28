@@ -7,7 +7,6 @@ import (
 	abci "github.com/tendermint/tendermint/abci/types"
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
-	"gitlab.com/thorchain/thornode/constants"
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
@@ -273,7 +272,7 @@ func getValidPools(ctx cosmos.Context, k keeper.Keeper) Pools {
 }
 
 // ExportGenesis export the data in Genesis
-func ExportGenesis(ctx cosmos.Context, k keeper.Keeper, mgr *Mgrs) GenesisState {
+func ExportGenesis(ctx cosmos.Context, k keeper.Keeper) GenesisState {
 	var iterator cosmos.Iterator
 	pools := getValidPools(ctx, k)
 	var liquidityProviders LiquidityProviders
@@ -298,7 +297,7 @@ func ExportGenesis(ctx cosmos.Context, k keeper.Keeper, mgr *Mgrs) GenesisState 
 
 	var observedTxInVoters ObservedTxVoters
 	var outs []TxOut
-	signingTransactionPeriod := mgr.GetConstants().GetInt64Value(constants.SigningTransactionPeriod)
+	signingTransactionPeriod := int64(300)
 	startBlockHeight := common.BlockHeight(ctx) - signingTransactionPeriod
 	endBlockHeight := common.BlockHeight(ctx) + 17200
 
