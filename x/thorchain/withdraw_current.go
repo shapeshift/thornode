@@ -1,6 +1,9 @@
 package thorchain
 
 import (
+	"errors"
+	"fmt"
+
 	"github.com/blang/semver"
 
 	"gitlab.com/thorchain/thornode/common"
@@ -71,6 +74,7 @@ func withdrawV72(ctx cosmos.Context, version semver.Version, msg MsgWithdrawLiqu
 
 	// calculate any impermament loss protection or not
 	protectionRuneAmount := cosmos.ZeroUint()
+	extraUnits := cosmos.ZeroUint()
 	fullProtectionLine, err := manager.Keeper().GetMimir(ctx, constants.FullImpLossProtectionBlocks.String())
 	if fullProtectionLine < 0 || err != nil {
 		fullProtectionLine = cv.GetInt64Value(constants.FullImpLossProtectionBlocks)
@@ -82,7 +86,7 @@ func withdrawV72(ctx cosmos.Context, version semver.Version, msg MsgWithdrawLiqu
 		ctx.Logger().Info("imp loss calculation", "deposit value", depositValue, "redeem value", redeemValue, "protection", implProtectionRuneAmount)
 		if !implProtectionRuneAmount.IsZero() {
 			protectionRuneAmount = implProtectionRuneAmount
-			_, extraUnits, err := calculatePoolUnitsV1(pool.GetPoolUnits(), poolRune, poolAsset, implProtectionRuneAmount, cosmos.ZeroUint())
+			_, extraUnits, err = calculatePoolUnitsV1(pool.GetPoolUnits(), poolRune, poolAsset, implProtectionRuneAmount, cosmos.ZeroUint())
 			if err != nil {
 				return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), err
 			}
@@ -93,7 +97,7 @@ func withdrawV72(ctx cosmos.Context, version semver.Version, msg MsgWithdrawLiqu
 		}
 	}
 
-	withdrawRune, withDrawAsset, unitAfter, err := calculateWithdrawV1(pool.GetPoolUnits(), poolRune, poolAsset, fLiquidityProviderUnit, msg.BasisPoints, assetToWithdraw)
+	withdrawRune, withDrawAsset, unitAfter, err := calculateWithdrawV72(pool.GetPoolUnits(), poolRune, poolAsset, originalLiquidityProviderUnits, extraUnits, msg.BasisPoints, assetToWithdraw)
 	if err != nil {
 		ctx.Logger().Error("fail to withdraw", "error", err)
 		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), errWithdrawFail
@@ -177,4 +181,35 @@ func withdrawV72(ctx cosmos.Context, version semver.Version, msg MsgWithdrawLiqu
 		}
 	}
 	return withdrawRune, withDrawAsset, protectionRuneAmount, common.SafeSub(originalLiquidityProviderUnits, unitAfter), gasAsset, nil
+}
+
+func calculateWithdrawV72(poolUnits, poolRune, poolAsset, lpUnits, extraUnits, withdrawBasisPoints cosmos.Uint, withdrawalAsset common.Asset) (cosmos.Uint, cosmos.Uint, cosmos.Uint, error) {
+	if poolUnits.IsZero() {
+		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), errors.New("poolUnits can't be zero")
+	}
+	if poolRune.IsZero() {
+		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), errors.New("pool rune balance can't be zero")
+	}
+	if poolAsset.IsZero() {
+		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), errors.New("pool asset balance can't be zero")
+	}
+	if lpUnits.IsZero() {
+		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), errors.New("liquidity provider unit can't be zero")
+	}
+	if withdrawBasisPoints.GT(cosmos.NewUint(MaxWithdrawBasisPoints)) {
+		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), fmt.Errorf("withdraw basis point %s is not valid", withdrawBasisPoints.String())
+	}
+
+	unitsToClaim := common.GetShare(withdrawBasisPoints, cosmos.NewUint(10000), lpUnits)
+	unitAfter := common.SafeSub(lpUnits, unitsToClaim)
+	unitsToClaim = unitsToClaim.Add(extraUnits)
+	if withdrawalAsset.IsEmpty() {
+		withdrawRune := common.GetShare(unitsToClaim, poolUnits, poolRune)
+		withdrawAsset := common.GetShare(unitsToClaim, poolUnits, poolAsset)
+		return withdrawRune, withdrawAsset, unitAfter, nil
+	}
+	if withdrawalAsset.IsRune() {
+		return calcAsymWithdrawalV1(unitsToClaim, poolUnits, poolRune), cosmos.ZeroUint(), unitAfter, nil
+	}
+	return cosmos.ZeroUint(), calcAsymWithdrawalV1(unitsToClaim, poolUnits, poolAsset), unitAfter, nil
 }
