@@ -148,8 +148,8 @@ func withdrawV72(ctx cosmos.Context, version semver.Version, msg MsgWithdrawLiqu
 	lp.Units = unitAfter
 
 	// sanity check, we don't increase LP units
-	if unitAfter.GTE(lp.Units) {
-		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), ErrInternal(err, "sanity check: LP units cannot increase during a withdrawal")
+	if unitAfter.GTE(originalLiquidityProviderUnits) {
+		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), ErrInternal(err, fmt.Sprintf("sanity check: LP units cannot increase during a withdrawal: %d --> %d", originalLiquidityProviderUnits.Uint64(), unitAfter.Uint64()))
 	}
 
 	// Create a pool event if THORNode have no rune or assets
