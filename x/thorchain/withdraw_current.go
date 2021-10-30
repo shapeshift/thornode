@@ -148,7 +148,7 @@ func withdrawV72(ctx cosmos.Context, version semver.Version, msg MsgWithdrawLiqu
 	lp.Units = unitAfter
 
 	// sanity check, we don't increase LP units
-	if fLiquidityProviderUnit.LT(unitAfter) {
+	if unitAfter.GTE(lp.Units) {
 		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), ErrInternal(err, "sanity check: LP units cannot increase during a withdrawal")
 	}
 
