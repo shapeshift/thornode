@@ -56,10 +56,6 @@ func (h UnBondHandler) validate(ctx cosmos.Context, msg MsgUnBond) error {
 }
 
 func (h UnBondHandler) validateV55(ctx cosmos.Context, msg MsgUnBond) error {
-	return h.validateCurrent(ctx, msg)
-}
-
-func (h UnBondHandler) validateCurrent(ctx cosmos.Context, msg MsgUnBond) error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
