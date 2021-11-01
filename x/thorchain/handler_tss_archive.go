@@ -3,57 +3,34 @@ package thorchain
 import (
 	"fmt"
 
-	"github.com/blang/semver"
-
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 )
 
-// TssHandler handle MsgTssPool
-type TssHandler struct {
-	mgr Manager
-}
-
-// NewTssHandler create a new handler to process MsgTssPool
-func NewTssHandler(mgr Manager) TssHandler {
-	return TssHandler{
-		mgr: mgr,
+func (h TssHandler) validateV1(ctx cosmos.Context, msg MsgTssPool) error {
+	if err := msg.ValidateBasic(); err != nil {
+		return err
 	}
-}
 
-// Run is the main entry for TssHandler
-func (h TssHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Result, error) {
-	msg, ok := m.(*MsgTssPool)
-	if !ok {
-		return nil, errInvalidMessage
-	}
-	err := h.validate(ctx, *msg)
+	keygenBlock, err := h.mgr.Keeper().GetKeygenBlock(ctx, msg.Height)
 	if err != nil {
-		ctx.Logger().Error("msg_tss_pool failed validation", "error", err)
-		return nil, err
+		return fmt.Errorf("fail to get keygen block from data store: %w", err)
 	}
-	result, err := h.handle(ctx, *msg)
-	if err != nil {
-		ctx.Logger().Error("failed to process MsgTssPool", "error", err)
-		return nil, err
+
+	for _, keygen := range keygenBlock.Keygens {
+		for _, member := range keygen.GetMembers() {
+			addr, err := member.GetThorAddress()
+			if err == nil && addr.Equals(msg.Signer) {
+				return nil
+			}
+		}
 	}
-	return result, err
+
+	return cosmos.ErrUnauthorized("not authorized")
 }
 
-func (h TssHandler) validate(ctx cosmos.Context, msg MsgTssPool) error {
-	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.71.0")) {
-		return h.validateV71(ctx, msg)
-	} else if version.GTE(semver.MustParse("0.68.0")) {
-		return h.validateV68(ctx, msg)
-	} else if version.GTE(semver.MustParse("0.1.0")) {
-		return h.validateV1(ctx, msg)
-	}
-	return errBadVersion
-}
-
-func (h TssHandler) validateV71(ctx cosmos.Context, msg MsgTssPool) error {
+func (h TssHandler) validateV68(ctx cosmos.Context, msg MsgTssPool) error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
@@ -64,12 +41,6 @@ func (h TssHandler) validateV71(ctx cosmos.Context, msg MsgTssPool) error {
 	if msg.ID != newMsg.ID {
 		return cosmos.ErrUnknownRequest("invalid tss message")
 	}
-
-	churnRetryBlocks := h.mgr.GetConstants().GetInt64Value(constants.ChurnRetryInterval)
-	if msg.Height <= common.BlockHeight(ctx)-churnRetryBlocks {
-		return cosmos.ErrUnknownRequest("invalid keygen block")
-	}
-
 	keygenBlock, err := h.mgr.Keeper().GetKeygenBlock(ctx, msg.Height)
 	if err != nil {
 		return fmt.Errorf("fail to get keygen block from data store: %w", err)
@@ -80,53 +51,18 @@ func (h TssHandler) validateV71(ctx cosmos.Context, msg MsgTssPool) error {
 		if !msg.GetPubKeys().Equals(keyGenMembers) {
 			continue
 		}
-		// Make sure the keygen type are consistent
-		if msg.KeygenType != keygen.Type {
-			continue
-		}
 		for _, member := range keygen.GetMembers() {
 			addr, err := member.GetThorAddress()
 			if err == nil && addr.Equals(msg.Signer) {
-				return h.validateSigner(ctx, msg.Signer)
+				return nil
 			}
 		}
 	}
 
 	return cosmos.ErrUnauthorized("not authorized")
 }
-func (h TssHandler) validateSigner(ctx cosmos.Context, signer cosmos.AccAddress) error {
-	nodeSigner, err := h.mgr.Keeper().GetNodeAccount(ctx, signer)
-	if err != nil {
-		return fmt.Errorf("invalid signer")
-	}
-	if nodeSigner.IsEmpty() {
-		return fmt.Errorf("invalid signer")
-	}
-	if nodeSigner.Status != NodeActive && nodeSigner.Status != NodeReady {
-		return fmt.Errorf("invalid signer status(%s)", nodeSigner.Status)
-	}
-	// ensure we have enough rune
-	minBond, err := h.mgr.Keeper().GetMimir(ctx, constants.MinimumBondInRune.String())
-	if minBond < 0 || err != nil {
-		minBond = h.mgr.GetConstants().GetInt64Value(constants.MinimumBondInRune)
-	}
-	if nodeSigner.Bond.LT(cosmos.NewUint(uint64(minBond))) {
-		return fmt.Errorf("signer doesn't have enough rune")
-	}
-	return nil
-}
-func (h TssHandler) handle(ctx cosmos.Context, msg MsgTssPool) (*cosmos.Result, error) {
-	ctx.Logger().Info("handleMsgTssPool request", "ID:", msg.ID)
-	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.68.0")) {
-		return h.handleV68(ctx, msg)
-	} else if version.GTE(semver.MustParse("0.1.0")) {
-		return h.handleV1(ctx, msg)
-	}
-	return nil, errBadVersion
-}
 
-func (h TssHandler) handleV68(ctx cosmos.Context, msg MsgTssPool) (*cosmos.Result, error) {
+func (h TssHandler) handleV1(ctx cosmos.Context, msg MsgTssPool) (*cosmos.Result, error) {
 	ctx.Logger().Info("handler tss", "current version", h.mgr.GetVersion())
 	if !msg.Blame.IsEmpty() {
 		ctx.Logger().Error(msg.Blame.String())
@@ -154,10 +90,6 @@ func (h TssHandler) handleV68(ctx cosmos.Context, msg MsgTssPool) (*cosmos.Resul
 	if voter.PoolPubKey.IsEmpty() {
 		voter.PoolPubKey = msg.PoolPubKey
 		voter.PubKeys = msg.PubKeys
-	}
-	// voter's pool pubkey is the same as the one in messasge
-	if !voter.PoolPubKey.Equals(msg.PoolPubKey) {
-		return nil, fmt.Errorf("invalid pool pubkey")
 	}
 	observeSlashPoints := h.mgr.GetConstants().GetInt64Value(constants.ObserveSlashPoints)
 	observeFlex := h.mgr.GetConstants().GetInt64Value(constants.ObservationDelayFlexibility)

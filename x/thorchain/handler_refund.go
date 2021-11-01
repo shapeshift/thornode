@@ -49,10 +49,6 @@ func (h RefundHandler) validate(ctx cosmos.Context, msg MsgRefundTx) error {
 }
 
 func (h RefundHandler) validateV1(ctx cosmos.Context, msg MsgRefundTx) error {
-	return h.validateCurrent(ctx, msg)
-}
-
-func (h RefundHandler) validateCurrent(ctx cosmos.Context, msg MsgRefundTx) error {
 	return msg.ValidateBasic()
 }
 

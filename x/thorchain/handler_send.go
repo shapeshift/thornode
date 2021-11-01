@@ -50,10 +50,6 @@ func (h SendHandler) validate(ctx cosmos.Context, msg MsgSend) error {
 }
 
 func (h SendHandler) validateV1(ctx cosmos.Context, msg MsgSend) error {
-	return h.validateCurrent(ctx, msg)
-}
-
-func (h SendHandler) validateCurrent(ctx cosmos.Context, msg MsgSend) error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
@@ -76,10 +72,6 @@ func (h SendHandler) handle(ctx cosmos.Context, msg MsgSend) (*cosmos.Result, er
 }
 
 func (h SendHandler) handleV1(ctx cosmos.Context, msg MsgSend) (*cosmos.Result, error) {
-	return h.handleCurrent(ctx, msg)
-}
-
-func (h SendHandler) handleCurrent(ctx cosmos.Context, msg MsgSend) (*cosmos.Result, error) {
 	haltHeight, err := h.mgr.Keeper().GetMimir(ctx, "HaltTHORChain")
 	if err != nil {
 		return nil, fmt.Errorf("failed to get mimir setting: %w", err)
