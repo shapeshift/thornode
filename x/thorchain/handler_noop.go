@@ -48,10 +48,6 @@ func (h NoOpHandler) validate(ctx cosmos.Context, msg MsgNoOp) error {
 }
 
 func (h NoOpHandler) validateV1(ctx cosmos.Context, msg MsgNoOp) error {
-	return h.validateCurrent(ctx, msg)
-}
-
-func (h NoOpHandler) validateCurrent(ctx cosmos.Context, msg MsgNoOp) error {
 	return msg.ValidateBasic()
 }
 
@@ -66,10 +62,6 @@ func (h NoOpHandler) handle(ctx cosmos.Context, msg MsgNoOp) error {
 }
 
 func (h NoOpHandler) handleV1(ctx cosmos.Context, msg MsgNoOp) error {
-	return h.handleCurrent(ctx, msg)
-}
-
-func (h NoOpHandler) handleCurrent(ctx cosmos.Context, msg MsgNoOp) error {
 	action := msg.GetAction()
 	if len(action) == 0 {
 		return nil

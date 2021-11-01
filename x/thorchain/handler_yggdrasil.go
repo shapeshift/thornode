@@ -56,10 +56,6 @@ func (h YggdrasilHandler) validate(ctx cosmos.Context, msg MsgYggdrasil) error {
 }
 
 func (h YggdrasilHandler) validateV1(ctx cosmos.Context, msg MsgYggdrasil) error {
-	return h.validateCurrent(ctx, msg)
-}
-
-func (h YggdrasilHandler) validateCurrent(ctx cosmos.Context, msg MsgYggdrasil) error {
 	return msg.ValidateBasic()
 }
 
@@ -208,10 +204,6 @@ func (h YggdrasilHandler) handleV1(ctx cosmos.Context, msg MsgYggdrasil) (*cosmo
 }
 
 func (h YggdrasilHandler) handleYggdrasilReturnV1(ctx cosmos.Context, msg MsgYggdrasil, vault Vault) (*cosmos.Result, error) {
-	return h.handleCurrent(ctx, msg, vault)
-}
-
-func (h YggdrasilHandler) handleCurrent(ctx cosmos.Context, msg MsgYggdrasil, vault Vault) (*cosmos.Result, error) {
 	// observe an outbound tx from yggdrasil vault
 	switch vault.Type {
 	case YggdrasilVault:
