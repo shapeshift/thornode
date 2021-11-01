@@ -8,6 +8,7 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
 // NewGenesisState create a new instance of GenesisState
@@ -53,12 +54,6 @@ func ValidateGenesis(data GenesisState) error {
 		}
 	}
 
-	for _, bv := range data.BanVoters {
-		if err := bv.Valid(); err != nil {
-			return fmt.Errorf("invalid ban voter: %w", err)
-		}
-	}
-
 	if data.LastSignedHeight < 0 {
 		return errors.New("last signed height cannot be negative")
 	}
@@ -68,13 +63,6 @@ func ValidateGenesis(data GenesisState) error {
 		}
 	}
 
-	for _, b := range data.KeygenBlocks {
-		for _, kb := range b.Keygens {
-			if err := kb.Valid(); err != nil {
-				return fmt.Errorf("invalid keygen: %w", err)
-			}
-		}
-	}
 	for _, item := range data.MsgSwaps {
 		if err := item.ValidateBasic(); err != nil {
 			return fmt.Errorf("invalid swap msg: %w", err)
@@ -107,26 +95,20 @@ func ValidateGenesis(data GenesisState) error {
 // DefaultGenesisState the default values THORNode put in the Genesis
 func DefaultGenesisState() GenesisState {
 	return GenesisState{
-		Pools:                make([]Pool, 0),
-		NodeAccounts:         NodeAccounts{},
-		TxOuts:               make([]TxOut, 0),
-		LiquidityProviders:   make(LiquidityProviders, 0),
-		Vaults:               make(Vaults, 0),
-		ObservedTxInVoters:   make(ObservedTxVoters, 0),
-		ObservedTxOutVoters:  make(ObservedTxVoters, 0),
-		BanVoters:            make([]BanVoter, 0),
-		LastSignedHeight:     0,
-		LastChainHeights:     make(map[string]int64),
-		Network:              NewNetwork(),
-		TssVoters:            make([]TssVoter, 0),
-		TssKeysignFailVoters: make([]TssKeysignFailVoter, 0),
-		KeygenBlocks:         make([]KeygenBlock, 0),
-		ErrataTxVoters:       make([]ErrataTxVoter, 0),
-		MsgSwaps:             make([]MsgSwap, 0),
-		NetworkFees:          make([]NetworkFee, 0),
-		NetworkFeeVoters:     make([]ObservedNetworkFeeVoter, 0),
-		ChainContracts:       make([]ChainContract, 0),
-		THORNames:            make([]THORName, 0),
+		Pools:               make([]Pool, 0),
+		NodeAccounts:        NodeAccounts{},
+		TxOuts:              make([]TxOut, 0),
+		LiquidityProviders:  make(LiquidityProviders, 0),
+		Vaults:              make(Vaults, 0),
+		ObservedTxInVoters:  make(ObservedTxVoters, 0),
+		ObservedTxOutVoters: make(ObservedTxVoters, 0),
+		LastSignedHeight:    0,
+		LastChainHeights:    make(map[string]int64),
+		Network:             NewNetwork(),
+		MsgSwaps:            make([]MsgSwap, 0),
+		NetworkFees:         make([]NetworkFee, 0),
+		ChainContracts:      make([]ChainContract, 0),
+		THORNames:           make([]THORName, 0),
 	}
 }
 
@@ -174,10 +156,6 @@ func InitGenesis(ctx cosmos.Context, keeper keeper.Keeper, data GenesisState) []
 		keeper.SetObservedTxOutVoter(ctx, voter)
 	}
 
-	for _, bv := range data.BanVoters {
-		keeper.SetBanVoter(ctx, bv)
-	}
-
 	for idx, _ := range data.TxOuts {
 		if err := keeper.SetTxOut(ctx, &data.TxOuts[idx]); err != nil {
 			ctx.Logger().Error("fail to save tx out during genesis", "error", err)
@@ -204,33 +182,6 @@ func InitGenesis(ctx cosmos.Context, keeper keeper.Keeper, data GenesisState) []
 		panic(err)
 	}
 
-	for _, tv := range data.TssVoters {
-		if tv.IsEmpty() {
-			continue
-		}
-		keeper.SetTssVoter(ctx, tv)
-	}
-	for _, item := range data.TssKeysignFailVoters {
-		if item.Empty() {
-			continue
-		}
-		keeper.SetTssKeysignFailVoter(ctx, item)
-	}
-
-	for _, item := range data.KeygenBlocks {
-		if item.IsEmpty() {
-			continue
-		}
-		keeper.SetKeygenBlock(ctx, item)
-	}
-
-	for _, item := range data.ErrataTxVoters {
-		if item.Empty() {
-			continue
-		}
-		keeper.SetErrataTxVoter(ctx, item)
-	}
-
 	for i, item := range data.MsgSwaps {
 		if err := keeper.SetSwapQueueItem(ctx, item, i); err != nil {
 			panic(err)
@@ -240,10 +191,6 @@ func InitGenesis(ctx cosmos.Context, keeper keeper.Keeper, data GenesisState) []
 		if err := keeper.SaveNetworkFee(ctx, nf.Chain, nf); err != nil {
 			panic(err)
 		}
-	}
-
-	for _, nf := range data.NetworkFeeVoters {
-		keeper.SetObservedNetworkFeeVoter(ctx, nf)
 	}
 
 	for _, cc := range data.ChainContracts {
@@ -293,29 +240,44 @@ func InitGenesis(ctx cosmos.Context, keeper keeper.Keeper, data GenesisState) []
 }
 
 func getLiquidityProviders(ctx cosmos.Context, k keeper.Keeper, asset common.Asset) LiquidityProviders {
-	liquidity_providers := make(LiquidityProviders, 0)
+	liquidityProviders := make(LiquidityProviders, 0)
 	iterator := k.GetLiquidityProviderIterator(ctx, asset)
 	defer iterator.Close()
 	for ; iterator.Valid(); iterator.Next() {
 		var lp LiquidityProvider
 		k.Cdc().MustUnmarshalBinaryBare(iterator.Value(), &lp)
-		liquidity_providers = append(liquidity_providers, lp)
+		if lp.Units.IsZero() && lp.PendingRune.IsZero() && lp.PendingAsset.IsZero() {
+			continue
+		}
+		liquidityProviders = append(liquidityProviders, lp)
 	}
-	return liquidity_providers
+	return liquidityProviders
+}
+func getValidPools(ctx cosmos.Context, k keeper.Keeper) Pools {
+	var pools Pools
+	iterator := k.GetPoolIterator(ctx)
+	defer iterator.Close()
+	for ; iterator.Valid(); iterator.Next() {
+		var pool Pool
+		k.Cdc().MustUnmarshalBinaryBare(iterator.Value(), &pool)
+		if pool.IsEmpty() {
+			continue
+		}
+		if pool.Status == PoolSuspended {
+			continue
+		}
+		pools = append(pools, pool)
+	}
+	return pools
 }
 
 // ExportGenesis export the data in Genesis
 func ExportGenesis(ctx cosmos.Context, k keeper.Keeper) GenesisState {
 	var iterator cosmos.Iterator
-
-	pools, err := k.GetPools(ctx)
-	if err != nil {
-		panic(err)
-	}
-
-	var liquidity_providers LiquidityProviders
+	pools := getValidPools(ctx, k)
+	var liquidityProviders LiquidityProviders
 	for _, pool := range pools {
-		liquidity_providers = append(liquidity_providers, getLiquidityProviders(ctx, k, pool.Asset)...)
+		liquidityProviders = append(liquidityProviders, getLiquidityProviders(ctx, k, pool.Asset)...)
 	}
 
 	var nodeAccounts NodeAccounts
@@ -324,43 +286,48 @@ func ExportGenesis(ctx cosmos.Context, k keeper.Keeper) GenesisState {
 	for ; iterator.Valid(); iterator.Next() {
 		var na NodeAccount
 		k.Cdc().MustUnmarshalBinaryBare(iterator.Value(), &na)
+		if na.IsEmpty() {
+			continue
+		}
+		if na.Bond.IsZero() {
+			continue
+		}
 		nodeAccounts = append(nodeAccounts, na)
 	}
 
 	var observedTxInVoters ObservedTxVoters
-	iterator = k.GetObservedTxInVoterIterator(ctx)
-	defer iterator.Close()
-	for ; iterator.Valid(); iterator.Next() {
-		var vote ObservedTxVoter
-		k.Cdc().MustUnmarshalBinaryBare(iterator.Value(), &vote)
-		observedTxInVoters = append(observedTxInVoters, vote)
-	}
-
-	var observedTxOutVoters ObservedTxVoters
-	iterator = k.GetObservedTxOutVoterIterator(ctx)
-	defer iterator.Close()
-	for ; iterator.Valid(); iterator.Next() {
-		var vote ObservedTxVoter
-		k.Cdc().MustUnmarshalBinaryBare(iterator.Value(), &vote)
-		observedTxOutVoters = append(observedTxOutVoters, vote)
-	}
-
 	var outs []TxOut
-	iterator = k.GetTxOutIterator(ctx)
-	defer iterator.Close()
-	for ; iterator.Valid(); iterator.Next() {
-		var out TxOut
-		k.Cdc().MustUnmarshalBinaryBare(iterator.Value(), &out)
-		outs = append(outs, out)
-	}
+	signingTransactionPeriod := int64(300)
+	startBlockHeight := common.BlockHeight(ctx) - signingTransactionPeriod
+	endBlockHeight := common.BlockHeight(ctx) + 17200
 
-	banVoters := make([]BanVoter, 0)
-	iteratorBanVoters := k.GetBanVoterIterator(ctx)
-	defer iteratorBanVoters.Close()
-	for ; iteratorBanVoters.Valid(); iteratorBanVoters.Next() {
-		var bv BanVoter
-		k.Cdc().MustUnmarshalBinaryBare(iteratorBanVoters.Value(), &bv)
-		banVoters = append(banVoters, bv)
+	for height := startBlockHeight; height < endBlockHeight; height++ {
+		txOut, err := k.GetTxOut(ctx, height)
+		if err != nil {
+			ctx.Logger().Error("fail to get tx out", "error", err, "height", height)
+			continue
+		}
+		if txOut.IsEmpty() {
+			continue
+		}
+		includeTxOut := false
+		for _, item := range txOut.TxArray {
+			if item.OutHash.IsEmpty() {
+				includeTxOut = true
+			}
+			if item.InHash.IsEmpty() || item.InHash.Equals(common.BlankTxID) {
+				continue
+			}
+			txInVoter, err := k.GetObservedTxInVoter(ctx, item.InHash)
+			if err != nil {
+				ctx.Logger().Error("fail to get observed tx in", "error", err, "hash", item.InHash.String())
+				continue
+			}
+			observedTxInVoters = append(observedTxInVoters, txInVoter)
+		}
+		if includeTxOut {
+			outs = append(outs, *txOut)
+		}
 	}
 
 	lastSignedHeight, err := k.GetLastSignedHeight(ctx)
@@ -388,42 +355,10 @@ func ExportGenesis(ctx cosmos.Context, k keeper.Keeper) GenesisState {
 	for ; iterVault.Valid(); iterVault.Next() {
 		var vault Vault
 		k.Cdc().MustUnmarshalBinaryBare(iterVault.Value(), &vault)
+		if vault.Status == types.VaultStatus_InactiveVault || vault.Status == types.VaultStatus_InitVault {
+			continue
+		}
 		vaults = append(vaults, vault)
-	}
-
-	tssVoters := make([]TssVoter, 0)
-	iterTssVoter := k.GetTssVoterIterator(ctx)
-	defer iterTssVoter.Close()
-	for ; iterTssVoter.Valid(); iterTssVoter.Next() {
-		var tv TssVoter
-		k.Cdc().MustUnmarshalBinaryBare(iterTssVoter.Value(), &tv)
-		tssVoters = append(tssVoters, tv)
-	}
-
-	tssKeySignFailVoters := make([]TssKeysignFailVoter, 0)
-	iterTssKeysignFailVoter := k.GetTssKeysignFailVoterIterator(ctx)
-	defer iterTssKeysignFailVoter.Close()
-	for ; iterTssKeysignFailVoter.Valid(); iterTssKeysignFailVoter.Next() {
-		var t TssKeysignFailVoter
-		k.Cdc().MustUnmarshalBinaryBare(iterTssKeysignFailVoter.Value(), &t)
-		tssKeySignFailVoters = append(tssKeySignFailVoters, t)
-	}
-
-	keygenBlocks := make([]KeygenBlock, 0)
-	iterKeygenBlocks := k.GetKeygenBlockIterator(ctx)
-	for ; iterKeygenBlocks.Valid(); iterKeygenBlocks.Next() {
-		var kb KeygenBlock
-		k.Cdc().MustUnmarshalBinaryBare(iterKeygenBlocks.Value(), &kb)
-		keygenBlocks = append(keygenBlocks, kb)
-	}
-
-	errataVoters := make([]ErrataTxVoter, 0)
-	iterErrata := k.GetErrataTxVoterIterator(ctx)
-	defer iterErrata.Close()
-	for ; iterErrata.Valid(); iterErrata.Next() {
-		var et ErrataTxVoter
-		k.Cdc().MustUnmarshalBinaryBare(iterErrata.Value(), &et)
-		errataVoters = append(errataVoters, et)
 	}
 
 	swapMsgs := make([]MsgSwap, 0)
@@ -444,14 +379,6 @@ func ExportGenesis(ctx cosmos.Context, k keeper.Keeper) GenesisState {
 		networkFees = append(networkFees, nf)
 	}
 
-	networkFeeVoters := make([]ObservedNetworkFeeVoter, 0)
-	iterNetworkFeeVoter := k.GetObservedNetworkFeeVoterIterator(ctx)
-	defer iterNetworkFeeVoter.Close()
-	for ; iterNetworkFeeVoter.Valid(); iterNetworkFeeVoter.Next() {
-		var nf ObservedNetworkFeeVoter
-		k.Cdc().MustUnmarshalBinaryBare(iterNetworkFeeVoter.Value(), &nf)
-		networkFeeVoters = append(networkFeeVoters, nf)
-	}
 	chainContracts := make([]ChainContract, 0)
 	iter := k.GetChainContractIterator(ctx)
 	defer iter.Close()
@@ -471,25 +398,18 @@ func ExportGenesis(ctx cosmos.Context, k keeper.Keeper) GenesisState {
 	}
 
 	return GenesisState{
-		Pools:                pools,
-		LiquidityProviders:   liquidity_providers,
-		ObservedTxInVoters:   observedTxInVoters,
-		ObservedTxOutVoters:  observedTxOutVoters,
-		TxOuts:               outs,
-		NodeAccounts:         nodeAccounts,
-		Vaults:               vaults,
-		BanVoters:            banVoters,
-		LastSignedHeight:     lastSignedHeight,
-		LastChainHeights:     lastChainHeights,
-		Network:              network,
-		TssVoters:            tssVoters,
-		TssKeysignFailVoters: tssKeySignFailVoters,
-		KeygenBlocks:         keygenBlocks,
-		ErrataTxVoters:       errataVoters,
-		MsgSwaps:             swapMsgs,
-		NetworkFees:          networkFees,
-		NetworkFeeVoters:     networkFeeVoters,
-		ChainContracts:       chainContracts,
-		THORNames:            names,
+		Pools:              pools,
+		LiquidityProviders: liquidityProviders,
+		ObservedTxInVoters: observedTxInVoters,
+		TxOuts:             outs,
+		NodeAccounts:       nodeAccounts,
+		Vaults:             vaults,
+		LastSignedHeight:   lastSignedHeight,
+		LastChainHeights:   lastChainHeights,
+		Network:            network,
+		MsgSwaps:           swapMsgs,
+		NetworkFees:        networkFees,
+		ChainContracts:     chainContracts,
+		THORNames:          names,
 	}
 }
