@@ -49,10 +49,6 @@ func (h ManageTHORNameHandler) validate(ctx cosmos.Context, msg MsgManageTHORNam
 	return errBadVersion
 }
 
-func (h ManageTHORNameHandler) validateV1(ctx cosmos.Context, msg MsgManageTHORName) error {
-	return h.validateCurrent(ctx, msg)
-}
-
 func (h ManageTHORNameHandler) validateNameV1(n string) error {
 	// validate THORName
 	if len(n) > 30 {
@@ -64,7 +60,7 @@ func (h ManageTHORNameHandler) validateNameV1(n string) error {
 	return nil
 }
 
-func (h ManageTHORNameHandler) validateCurrent(ctx cosmos.Context, msg MsgManageTHORName) error {
+func (h ManageTHORNameHandler) validateV1(ctx cosmos.Context, msg MsgManageTHORName) error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
@@ -113,10 +109,6 @@ func (h ManageTHORNameHandler) handle(ctx cosmos.Context, msg MsgManageTHORName)
 
 // handle process MsgManageTHORName
 func (h ManageTHORNameHandler) handleV1(ctx cosmos.Context, msg MsgManageTHORName) (*cosmos.Result, error) {
-	return h.handleCurrent(ctx, msg)
-}
-
-func (h ManageTHORNameHandler) handleCurrent(ctx cosmos.Context, msg MsgManageTHORName) (*cosmos.Result, error) {
 	var err error
 
 	enable, _ := h.mgr.Keeper().GetMimir(ctx, "THORNames")
