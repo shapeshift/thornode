@@ -108,7 +108,6 @@ func newTssHandlerTestHelper(c *C) tssHandlerTestHelper {
 	c.Assert(keeperHelper.SetNodeAccount(ctx, nodeAccount), IsNil)
 
 	mgr := NewDummyMgr()
-
 	var members common.PubKeys
 	for i := 0; i < 8; i++ {
 		members = append(members, GetRandomPubKey())
@@ -139,12 +138,13 @@ func newTssHandlerTestHelper(c *C) tssHandlerTestHelper {
 
 	asgardVault := NewVault(common.BlockHeight(ctx), ActiveVault, AsgardVault, GetRandomPubKey(), common.Chains{common.RuneAsset().Chain}.Strings(), []ChainContract{})
 	c.Assert(keeperHelper.SetVault(ctx, asgardVault), IsNil)
+
 	return tssHandlerTestHelper{
 		ctx:           ctx,
 		version:       mgr.GetVersion(),
 		keeper:        keeperHelper,
 		poolPk:        poolPk,
-		constAccessor: mgr.GetConstants(),
+		constAccessor: constants.GetConstantValues(GetCurrentVersion()),
 		nodeAccount:   nodeAccount,
 		mgr:           mgr,
 		members:       members,
@@ -654,5 +654,42 @@ func (s *HandlerTssSuite) TestTssHandler(c *C) {
 		if tc.validator != nil {
 			tc.validator(helper, msg, result, c)
 		}
+	}
+}
+
+func (s *HandlerTssSuite) TestKeygenSuccessHandler(c *C) {
+	helper := newTssHandlerTestHelper(c)
+	handler := NewTssHandler(NewDummyMgrWithKeeper(helper.keeper))
+	slasher := handler.mgr.Slasher()
+	dummySlasher := slasher.(*DummySlasher)
+	keygenTime := int64(1024)
+	poolPubKey := GetRandomPubKey()
+	failKeyGenSlashPoints := helper.constAccessor.GetInt64Value(constants.FailKeygenSlashPoints)
+	for idx, item := range helper.members {
+		thorAddr, err := item.GetThorAddress()
+		c.Assert(err, IsNil)
+		tssMsg, err := NewMsgTssPool(helper.members.Strings(), poolPubKey, AsgardKeygen, common.BlockHeight(helper.ctx), Blame{}, common.Chains{common.RuneAsset().Chain}.Strings(), thorAddr, keygenTime)
+		c.Assert(err, IsNil)
+		result, err := handler.handle(helper.ctx, *tssMsg)
+		c.Assert(err, IsNil)
+		c.Assert(result, NotNil)
+		if HasSuperMajority(idx+1, len(helper.members)) {
+			// ensure the late vote members get slashed
+			for _, m := range helper.members[idx+1:] {
+				slashThorAddr, err := m.GetThorAddress()
+				c.Assert(err, IsNil)
+				points, ok := dummySlasher.pts[slashThorAddr.String()]
+				c.Assert(ok, Equals, true)
+				c.Assert(points == failKeyGenSlashPoints, Equals, true)
+			}
+		}
+	}
+	// no one should be slashed
+	for _, item := range helper.members {
+		thorAddr, err := item.GetThorAddress()
+		c.Assert(err, IsNil)
+		points, ok := dummySlasher.pts[thorAddr.String()]
+		c.Assert(ok, Equals, true)
+		c.Assert(points == 0, Equals, true)
 	}
 }
