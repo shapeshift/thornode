@@ -169,10 +169,18 @@ func (h TssHandler) handleV72(ctx cosmos.Context, msg MsgTssPool) (*cosmos.Resul
 
 	}
 	h.mgr.Keeper().SetTssVoter(ctx, voter)
-	// doesn't have consensus yet
-	if !voter.HasCompleteConsensus() {
-		ctx.Logger().Info("not having consensus yet, return")
+
+	// doesn't have 2/3 majority consensus yet
+	if !voter.HasConsensus() {
 		return &cosmos.Result{}, nil
+	}
+
+	// when keygen success
+	if msg.IsSuccess() {
+		h.judgeLateSigner(ctx, msg, voter)
+		if !voter.HasCompleteConsensus() {
+			return &cosmos.Result{}, nil
+		}
 	}
 
 	if voter.BlockHeight == 0 {
@@ -302,4 +310,35 @@ func (h TssHandler) handleV72(ctx cosmos.Context, msg MsgTssPool) (*cosmos.Resul
 	}
 
 	return &cosmos.Result{}, nil
+}
+func (h TssHandler) judgeLateSigner(ctx cosmos.Context, msg MsgTssPool, voter TssVoter) {
+	// if the voter doesn't reach 2/3 majority consensus , this method should not take any actions
+	if !voter.HasConsensus() || !msg.IsSuccess() {
+		return
+	}
+	slashPoints := h.mgr.GetConstants().GetInt64Value(constants.FailKeygenSlashPoints)
+	// when voter already has 2/3 majority signers , restore current message signer's slash points
+	if voter.MajorityConsensusBlockHeight > 0 {
+		h.mgr.Slasher().DecSlashPoints(ctx, slashPoints, msg.Signer)
+		return
+	}
+
+	voter.MajorityConsensusBlockHeight = common.BlockHeight(ctx)
+	h.mgr.Keeper().SetTssVoter(ctx, voter)
+	for _, member := range msg.PubKeys {
+		pkey, err := common.NewPubKey(member)
+		if err != nil {
+			ctx.Logger().Error("fail to get pub key", "error", err)
+			continue
+		}
+		thorAddr, err := pkey.GetThorAddress()
+		if err != nil {
+			ctx.Logger().Error("fail to get thor address", "error", err)
+			continue
+		}
+		// whoever is in the keygen list , but didn't broadcast MsgTssPool
+		if !voter.HasSigned(thorAddr) {
+			h.mgr.Slasher().IncSlashPoints(ctx, slashPoints, thorAddr)
+		}
+	}
 }
