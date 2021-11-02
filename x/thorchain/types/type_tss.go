@@ -78,13 +78,8 @@ func (m *TssVoter) Sign(signer cosmos.AccAddress, chains []string) bool {
 	return false
 }
 
-type ConsensusFunc func(signers, total int) bool
-
 // ConsensusChains - get a list of chains that have 2/3rds majority
-func (m *TssVoter) ConsensusChains(cf ConsensusFunc) common.Chains {
-	if cf == nil {
-		cf = HasSuperMajority
-	}
+func (m *TssVoter) ConsensusChains() common.Chains {
 	chainCount := make(map[common.Chain]int, 0)
 	for _, chain := range m.GetChains() {
 		if _, ok := chainCount[chain]; !ok {
@@ -95,7 +90,7 @@ func (m *TssVoter) ConsensusChains(cf ConsensusFunc) common.Chains {
 
 	chains := make(common.Chains, 0)
 	for chain, count := range chainCount {
-		if cf(count, len(m.PubKeys)) {
+		if HasSuperMajority(count, len(m.PubKeys)) {
 			chains = append(chains, chain)
 		}
 	}
@@ -106,6 +101,11 @@ func (m *TssVoter) ConsensusChains(cf ConsensusFunc) common.Chains {
 	})
 
 	return chains
+}
+
+// HasCompleteConsensus return true only when all signers vote
+func (m *TssVoter) HasCompleteConsensus() bool {
+	return len(m.Signers) == len(m.PubKeys)
 }
 
 // HasConsensus determine if this tss pool has enough signers

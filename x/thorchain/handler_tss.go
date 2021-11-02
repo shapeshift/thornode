@@ -4,8 +4,6 @@ import (
 	"fmt"
 
 	"github.com/blang/semver"
-	"gitlab.com/thorchain/thornode/x/thorchain/types"
-
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
@@ -172,7 +170,7 @@ func (h TssHandler) handleV72(ctx cosmos.Context, msg MsgTssPool) (*cosmos.Resul
 	}
 	h.mgr.Keeper().SetTssVoter(ctx, voter)
 	// doesn't have consensus yet
-	if !voter.HasConsensus() {
+	if !voter.HasCompleteConsensus() {
 		ctx.Logger().Info("not having consensus yet, return")
 		return &cosmos.Result{}, nil
 	}
@@ -186,7 +184,7 @@ func (h TssHandler) handleV72(ctx cosmos.Context, msg MsgTssPool) (*cosmos.Resul
 			if msg.KeygenType == AsgardKeygen {
 				vaultType = AsgardVault
 			}
-			chains := voter.ConsensusChains(types.HasMinority)
+			chains := voter.ConsensusChains()
 			vault := NewVault(common.BlockHeight(ctx), InitVault, vaultType, voter.PoolPubKey, chains.Strings(), h.mgr.Keeper().GetChainContracts(ctx, chains))
 			vault.Membership = voter.PubKeys
 

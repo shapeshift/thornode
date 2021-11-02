@@ -115,7 +115,7 @@ func (h TssHandler) handleV1(ctx cosmos.Context, msg MsgTssPool) (*cosmos.Result
 			if msg.KeygenType == AsgardKeygen {
 				vaultType = AsgardVault
 			}
-			chains := voter.ConsensusChains(HasSuperMajority)
+			chains := voter.ConsensusChains()
 			vault := NewVault(common.BlockHeight(ctx), InitVault, vaultType, voter.PoolPubKey, chains.Strings(), h.mgr.Keeper().GetChainContracts(ctx, chains))
 			vault.Membership = voter.PubKeys
 
@@ -291,7 +291,7 @@ func (h TssHandler) handleV68(ctx cosmos.Context, msg MsgTssPool) (*cosmos.Resul
 			if msg.KeygenType == AsgardKeygen {
 				vaultType = AsgardVault
 			}
-			chains := voter.ConsensusChains(HasSuperMajority)
+			chains := voter.ConsensusChains()
 			vault := NewVault(common.BlockHeight(ctx), InitVault, vaultType, voter.PoolPubKey, chains.Strings(), h.mgr.Keeper().GetChainContracts(ctx, chains))
 			vault.Membership = voter.PubKeys
 
