@@ -118,7 +118,9 @@ func (h TssHandler) validateSigner(ctx cosmos.Context, signer cosmos.AccAddress)
 func (h TssHandler) handle(ctx cosmos.Context, msg MsgTssPool) (*cosmos.Result, error) {
 	ctx.Logger().Info("handleMsgTssPool request", "ID:", msg.ID)
 	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.68.0")) {
+	if version.GTE(semver.MustParse("0.72.0")) {
+		return h.handleV72(ctx, msg)
+	} else if version.GTE(semver.MustParse("0.68.0")) {
 		return h.handleV68(ctx, msg)
 	} else if version.GTE(semver.MustParse("0.1.0")) {
 		return h.handleV1(ctx, msg)
@@ -126,7 +128,7 @@ func (h TssHandler) handle(ctx cosmos.Context, msg MsgTssPool) (*cosmos.Result, 
 	return nil, errBadVersion
 }
 
-func (h TssHandler) handleV68(ctx cosmos.Context, msg MsgTssPool) (*cosmos.Result, error) {
+func (h TssHandler) handleV72(ctx cosmos.Context, msg MsgTssPool) (*cosmos.Result, error) {
 	ctx.Logger().Info("handler tss", "current version", h.mgr.GetVersion())
 	if !msg.Blame.IsEmpty() {
 		ctx.Logger().Error(msg.Blame.String())
@@ -183,7 +185,7 @@ func (h TssHandler) handleV68(ctx cosmos.Context, msg MsgTssPool) (*cosmos.Resul
 			if msg.KeygenType == AsgardKeygen {
 				vaultType = AsgardVault
 			}
-			chains := voter.ConsensusChains()
+			chains := voter.ConsensusChains(HasSimpleMajority)
 			vault := NewVault(common.BlockHeight(ctx), InitVault, vaultType, voter.PoolPubKey, chains.Strings(), h.mgr.Keeper().GetChainContracts(ctx, chains))
 			vault.Membership = voter.PubKeys
 
