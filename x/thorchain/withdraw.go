@@ -6,7 +6,9 @@ import (
 )
 
 func withdraw(ctx cosmos.Context, version semver.Version, msg MsgWithdrawLiquidity, manager Manager) (cosmos.Uint, cosmos.Uint, cosmos.Uint, cosmos.Uint, cosmos.Uint, error) {
-	if version.GTE(semver.MustParse("0.72.0")) {
+	if version.GTE(semver.MustParse("0.73.0")) {
+		return withdrawV73(ctx, version, msg, manager)
+	} else if version.GTE(semver.MustParse("0.72.0")) {
 		return withdrawV72(ctx, version, msg, manager)
 	} else if version.GTE(semver.MustParse("0.65.0")) {
 		return withdrawV65(ctx, version, msg, manager)
