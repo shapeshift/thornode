@@ -117,8 +117,8 @@ func (h TssHandler) validateSigner(ctx cosmos.Context, signer cosmos.AccAddress)
 func (h TssHandler) handle(ctx cosmos.Context, msg MsgTssPool) (*cosmos.Result, error) {
 	ctx.Logger().Info("handleMsgTssPool request", "ID:", msg.ID)
 	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.72.0")) {
-		return h.handleV72(ctx, msg)
+	if version.GTE(semver.MustParse("0.73.0")) {
+		return h.handleV73(ctx, msg)
 	} else if version.GTE(semver.MustParse("0.68.0")) {
 		return h.handleV68(ctx, msg)
 	} else if version.GTE(semver.MustParse("0.1.0")) {
@@ -127,7 +127,7 @@ func (h TssHandler) handle(ctx cosmos.Context, msg MsgTssPool) (*cosmos.Result, 
 	return nil, errBadVersion
 }
 
-func (h TssHandler) handleV72(ctx cosmos.Context, msg MsgTssPool) (*cosmos.Result, error) {
+func (h TssHandler) handleV73(ctx cosmos.Context, msg MsgTssPool) (*cosmos.Result, error) {
 	ctx.Logger().Info("handler tss", "current version", h.mgr.GetVersion())
 	if !msg.Blame.IsEmpty() {
 		ctx.Logger().Error(msg.Blame.String())
