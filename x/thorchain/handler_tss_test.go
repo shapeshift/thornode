@@ -120,7 +120,7 @@ func newTssHandlerTestHelper(c *C) tssHandlerTestHelper {
 	nodeReady := GetRandomValidatorNode(NodeReady)
 	nodeReady.NodeAddress = signer
 	nodeReady.Bond = cosmos.NewUint(1000000 * common.One)
-	keeperHelper.SetNodeAccount(ctx, nodeReady)
+	c.Assert(keeperHelper.SetNodeAccount(ctx, nodeReady), IsNil)
 	keygenBlock := NewKeygenBlock(common.BlockHeight(ctx))
 	keygenBlock.Keygens = []Keygen{
 		{
@@ -681,6 +681,9 @@ func (s *HandlerTssSuite) TestKeygenSuccessHandler(c *C) {
 				points, ok := dummySlasher.pts[slashThorAddr.String()]
 				c.Assert(ok, Equals, true)
 				c.Assert(points == failKeyGenSlashPoints, Equals, true)
+				j, err := helper.keeper.GetNodeAccountJail(helper.ctx, slashThorAddr)
+				c.Assert(err, IsNil)
+				c.Assert(j.ReleaseHeight > helper.ctx.BlockHeight(), Equals, true)
 			}
 		}
 	}
@@ -691,5 +694,8 @@ func (s *HandlerTssSuite) TestKeygenSuccessHandler(c *C) {
 		points, ok := dummySlasher.pts[thorAddr.String()]
 		c.Assert(ok, Equals, true)
 		c.Assert(points == 0, Equals, true)
+		j, err := helper.keeper.GetNodeAccountJail(helper.ctx, thorAddr)
+		c.Assert(err, IsNil)
+		c.Assert(j.ReleaseHeight <= helper.ctx.BlockHeight(), Equals, true)
 	}
 }
