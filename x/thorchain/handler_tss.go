@@ -320,6 +320,9 @@ func (h TssHandler) judgeLateSigner(ctx cosmos.Context, msg MsgTssPool, voter Ts
 	// when voter already has 2/3 majority signers , restore current message signer's slash points
 	if voter.MajorityConsensusBlockHeight > 0 {
 		h.mgr.Slasher().DecSlashPoints(ctx, slashPoints, msg.Signer)
+		if err := h.mgr.Keeper().ReleaseNodeAccountFromJail(ctx, msg.Signer); err != nil {
+			ctx.Logger().Error("fail to release node account from jail", "node address", msg.Signer, "error", err)
+		}
 		return
 	}
 
@@ -339,6 +342,13 @@ func (h TssHandler) judgeLateSigner(ctx cosmos.Context, msg MsgTssPool, voter Ts
 		// whoever is in the keygen list , but didn't broadcast MsgTssPool
 		if !voter.HasSigned(thorAddr) {
 			h.mgr.Slasher().IncSlashPoints(ctx, slashPoints, thorAddr)
+			// go to jail
+			jailTime := h.mgr.GetConstants().GetInt64Value(constants.JailTimeKeygen)
+			releaseHeight := common.BlockHeight(ctx) + jailTime
+			reason := "failed to vote keygen in time"
+			if err := h.mgr.Keeper().SetNodeAccountJail(ctx, thorAddr, releaseHeight, reason); err != nil {
+				ctx.Logger().Error("fail to set node account jail", "node address", thorAddr, "reason", reason, "error", err)
+			}
 		}
 	}
 }
