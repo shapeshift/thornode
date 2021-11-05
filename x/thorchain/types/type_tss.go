@@ -103,6 +103,11 @@ func (m *TssVoter) ConsensusChains() common.Chains {
 	return chains
 }
 
+// HasCompleteConsensus return true only when all signers vote
+func (m *TssVoter) HasCompleteConsensus() bool {
+	return len(m.Signers) == len(m.PubKeys)
+}
+
 // HasConsensus determine if this tss pool has enough signers
 func (m *TssVoter) HasConsensus() bool {
 	return HasSuperMajority(len(m.Signers), len(m.PubKeys))
