@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/blang/semver"
-
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
@@ -118,7 +117,9 @@ func (h TssHandler) validateSigner(ctx cosmos.Context, signer cosmos.AccAddress)
 func (h TssHandler) handle(ctx cosmos.Context, msg MsgTssPool) (*cosmos.Result, error) {
 	ctx.Logger().Info("handleMsgTssPool request", "ID:", msg.ID)
 	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.68.0")) {
+	if version.GTE(semver.MustParse("0.73.0")) {
+		return h.handleV73(ctx, msg)
+	} else if version.GTE(semver.MustParse("0.68.0")) {
 		return h.handleV68(ctx, msg)
 	} else if version.GTE(semver.MustParse("0.1.0")) {
 		return h.handleV1(ctx, msg)
@@ -126,7 +127,7 @@ func (h TssHandler) handle(ctx cosmos.Context, msg MsgTssPool) (*cosmos.Result, 
 	return nil, errBadVersion
 }
 
-func (h TssHandler) handleV68(ctx cosmos.Context, msg MsgTssPool) (*cosmos.Result, error) {
+func (h TssHandler) handleV73(ctx cosmos.Context, msg MsgTssPool) (*cosmos.Result, error) {
 	ctx.Logger().Info("handler tss", "current version", h.mgr.GetVersion())
 	if !msg.Blame.IsEmpty() {
 		ctx.Logger().Error(msg.Blame.String())
@@ -168,10 +169,18 @@ func (h TssHandler) handleV68(ctx cosmos.Context, msg MsgTssPool) (*cosmos.Resul
 
 	}
 	h.mgr.Keeper().SetTssVoter(ctx, voter)
-	// doesn't have consensus yet
+
+	// doesn't have 2/3 majority consensus yet
 	if !voter.HasConsensus() {
-		ctx.Logger().Info("not having consensus yet, return")
 		return &cosmos.Result{}, nil
+	}
+
+	// when keygen success
+	if msg.IsSuccess() {
+		h.judgeLateSigner(ctx, msg, voter)
+		if !voter.HasCompleteConsensus() {
+			return &cosmos.Result{}, nil
+		}
 	}
 
 	if voter.BlockHeight == 0 {
@@ -301,4 +310,45 @@ func (h TssHandler) handleV68(ctx cosmos.Context, msg MsgTssPool) (*cosmos.Resul
 	}
 
 	return &cosmos.Result{}, nil
+}
+func (h TssHandler) judgeLateSigner(ctx cosmos.Context, msg MsgTssPool, voter TssVoter) {
+	// if the voter doesn't reach 2/3 majority consensus , this method should not take any actions
+	if !voter.HasConsensus() || !msg.IsSuccess() {
+		return
+	}
+	slashPoints := h.mgr.GetConstants().GetInt64Value(constants.FailKeygenSlashPoints)
+	// when voter already has 2/3 majority signers , restore current message signer's slash points
+	if voter.MajorityConsensusBlockHeight > 0 {
+		h.mgr.Slasher().DecSlashPoints(ctx, slashPoints, msg.Signer)
+		if err := h.mgr.Keeper().ReleaseNodeAccountFromJail(ctx, msg.Signer); err != nil {
+			ctx.Logger().Error("fail to release node account from jail", "node address", msg.Signer, "error", err)
+		}
+		return
+	}
+
+	voter.MajorityConsensusBlockHeight = common.BlockHeight(ctx)
+	h.mgr.Keeper().SetTssVoter(ctx, voter)
+	for _, member := range msg.PubKeys {
+		pkey, err := common.NewPubKey(member)
+		if err != nil {
+			ctx.Logger().Error("fail to get pub key", "error", err)
+			continue
+		}
+		thorAddr, err := pkey.GetThorAddress()
+		if err != nil {
+			ctx.Logger().Error("fail to get thor address", "error", err)
+			continue
+		}
+		// whoever is in the keygen list , but didn't broadcast MsgTssPool
+		if !voter.HasSigned(thorAddr) {
+			h.mgr.Slasher().IncSlashPoints(ctx, slashPoints, thorAddr)
+			// go to jail
+			jailTime := h.mgr.GetConstants().GetInt64Value(constants.JailTimeKeygen)
+			releaseHeight := common.BlockHeight(ctx) + jailTime
+			reason := "failed to vote keygen in time"
+			if err := h.mgr.Keeper().SetNodeAccountJail(ctx, thorAddr, releaseHeight, reason); err != nil {
+				ctx.Logger().Error("fail to set node account jail", "node address", thorAddr, "reason", reason, "error", err)
+			}
+		}
+	}
 }
