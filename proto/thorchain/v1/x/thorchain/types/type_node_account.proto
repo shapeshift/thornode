@@ -22,7 +22,7 @@ enum NodeStatus {
 enum NodeType {
   option (gogoproto.goproto_enum_stringer) = true;
   TypeValidator = 0;
-  TypeLite =  1;
+  TypeVault =  1;
   TypeUnknown = 2;
 }
 
