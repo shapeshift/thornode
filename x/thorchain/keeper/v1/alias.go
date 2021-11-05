@@ -25,7 +25,7 @@ const (
 	// Node type
 	NodeTypeUnknown   = types.NodeType_TypeUnknown
 	NodeTypeValidator = types.NodeType_TypeValidator
-	NodeTypeLite      = types.NodeType_TypeLite
+	NodeTypeVault     = types.NodeType_TypeVault
 
 	// Bond type
 	AsgardKeygen = types.KeygenType_AsgardKeygen
@@ -51,7 +51,7 @@ var (
 	NewTHORName                = types.NewTHORName
 	GetRandomTx                = types.GetRandomTx
 	GetRandomValidatorNode     = types.GetRandomValidatorNode
-	GetRandomLiteNode          = types.GetRandomLiteNode
+	GetRandomVaultNode         = types.GetRandomVaultNode
 	GetRandomBNBAddress        = types.GetRandomBNBAddress
 	GetRandomBTCAddress        = types.GetRandomBTCAddress
 	GetRandomBCHAddress        = types.GetRandomBCHAddress

@@ -44,7 +44,7 @@ const (
 	// Node type
 	NodeTypeUnknown   = types.NodeType_TypeUnknown
 	NodeTypeValidator = types.NodeType_TypeValidator
-	NodeTypeLite      = types.NodeType_TypeLite
+	NodeTypeVault     = types.NodeType_TypeVault
 
 	// Bond type
 	BondPaid     = types.BondType_bond_paid
@@ -152,7 +152,7 @@ var (
 	GetRandomTx                    = types.GetRandomTx
 	GetRandomObservedTx            = types.GetRandomObservedTx
 	GetRandomValidatorNode         = types.GetRandomValidatorNode
-	GetRandomLiteNode              = types.GetRandomLiteNode
+	GetRandomVaultNode             = types.GetRandomVaultNode
 	GetRandomTHORAddress           = types.GetRandomTHORAddress
 	GetRandomRUNEAddress           = types.GetRandomRUNEAddress
 	GetRandomBNBAddress            = types.GetRandomBNBAddress
