@@ -14,8 +14,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	memo "gitlab.com/thorchain/thornode/x/thorchain/memo"
-
 	"gitlab.com/thorchain/thornode/bifrost/metrics"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients"
 	"gitlab.com/thorchain/thornode/bifrost/pubkeymanager"
@@ -47,7 +45,6 @@ type Observer struct {
 	thorchainBridge     *thorclient.ThorchainBridge
 	storage             *ObserverStorage
 	tssKeysignMetricMgr *metrics.TssKeysignMetricMgr
-	signerCacheUpdater  SignerCacheUpdater
 }
 
 // NewObserver create a new instance of Observer for chain
@@ -55,8 +52,7 @@ func NewObserver(pubkeyMgr *pubkeymanager.PubKeyManager,
 	chains map[common.Chain]chainclients.ChainClient,
 	thorchainBridge *thorclient.ThorchainBridge,
 	m *metrics.Metrics, dataPath string,
-	tssKeysignMetricMgr *metrics.TssKeysignMetricMgr,
-	updater SignerCacheUpdater) (*Observer, error) {
+	tssKeysignMetricMgr *metrics.TssKeysignMetricMgr) (*Observer, error) {
 	logger := log.Logger.With().Str("module", "observer").Logger()
 	storage, err := NewObserverStorage(dataPath)
 	if err != nil {
@@ -79,7 +75,6 @@ func NewObserver(pubkeyMgr *pubkeymanager.PubKeyManager,
 		thorchainBridge:     thorchainBridge,
 		storage:             storage,
 		tssKeysignMetricMgr: tssKeysignMetricMgr,
-		signerCacheUpdater:  updater,
 	}, nil
 }
 
@@ -467,40 +462,14 @@ func (o *Observer) sendSolvencyToThorchain(height int64, chain common.Chain, pub
 	o.logger.Info().Int64("block", height).Str("chain", chain.String()).Str("thorchain hash", txID.String()).Msg("sign and send MsgSolvency to thorchain successfully")
 	return nil
 }
-func (o *Observer) updateSignerCache(txIn types.TxIn) error {
-	if o.signerCacheUpdater == nil {
-		return nil
-	}
-	for _, item := range txIn.TxArray {
-		m, err := memo.ParseMemo(item.Memo)
-		if err != nil {
-			o.logger.Err(err).Msgf("fail to parse memo: %s", item.Memo)
-			continue
-		}
-		if !m.IsOutbound() {
-			continue
-		}
-		if m.GetTxID().IsEmpty() {
-			continue
-		}
-		if err := o.signerCacheUpdater(item.CacheHash(txIn.Chain, m.GetTxID().String())); err != nil {
-			o.logger.Err(err).Msg("fail to update signer cache")
-		}
-	}
-	return nil
-}
+
 func (o *Observer) signAndSendToThorchain(txIn types.TxIn) error {
 	nodeStatus, err := o.thorchainBridge.FetchNodeStatus()
 	if err != nil {
 		return fmt.Errorf("failed to get node status: %w", err)
 	}
-
 	if nodeStatus != stypes.NodeStatus_Active {
 		return nil
-	}
-	// make sure signer knows the given transaction has been observed
-	if err := o.updateSignerCache(txIn); err != nil {
-		o.logger.Err(err).Msgf("fail to update signer cache")
 	}
 	txs, err := o.getThorchainTxIns(txIn)
 	if err != nil {

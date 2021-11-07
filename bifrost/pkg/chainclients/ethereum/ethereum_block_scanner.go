@@ -808,6 +808,11 @@ func (e *ETHScanner) fromTxToTxIn(tx *etypes.Transaction) (*stypes.TxInItem, err
 		return nil, fmt.Errorf("fail to get transaction receipt: %w", err)
 	}
 	if receipt.Status != 1 {
+		// a transaction that is failed
+		// remove the Signer cache , so the tx out item can be retried
+		if err := e.blockMetaAccessor.RemoveSignedTxItem(tx.Hash().String()); err != nil {
+			e.logger.Err(err).Msgf("fail to remove signed transaction hash: %s", tx.Hash().String())
+		}
 		e.logger.Debug().Msgf("tx(%s) state: %d means failed , ignore", tx.Hash().String(), receipt.Status)
 		return nil, nil
 	}

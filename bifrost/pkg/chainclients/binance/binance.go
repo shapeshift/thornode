@@ -22,7 +22,9 @@ import (
 	ttypes "gitlab.com/thorchain/binance-sdk/types"
 	"gitlab.com/thorchain/binance-sdk/types/msg"
 	btx "gitlab.com/thorchain/binance-sdk/types/tx"
+	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/signercache"
 	"gitlab.com/thorchain/thornode/constants"
+	memo "gitlab.com/thorchain/thornode/x/thorchain/memo"
 	tssp "gitlab.com/thorchain/tss/go-tss/tss"
 
 	"gitlab.com/thorchain/thornode/bifrost/blockscanner"
@@ -52,6 +54,7 @@ type Binance struct {
 	blockScanner        *blockscanner.BlockScanner
 	bnbScanner          *BinanceBlockScanner
 	globalSolvencyQueue chan stypes.Solvency
+	signerCacheManager  *signercache.CacheManager
 }
 
 // NewBinance create new instance of binance client
@@ -117,7 +120,15 @@ func NewBinance(thorKeys *thorclient.Keys, cfg config.ChainConfiguration, server
 	if err != nil {
 		return nil, fmt.Errorf("fail to create block scanner: %w", err)
 	}
-
+	signerStore, err := NewSignerCacheStore(b.storage.GetInternalDb())
+	if err != nil {
+		return nil, fmt.Errorf("fail to create signer cache store")
+	}
+	signerCacheManager, err := signercache.NewSignerCacheManager(signerStore)
+	if err != nil {
+		return nil, fmt.Errorf("fail to create signer cache manager")
+	}
+	b.signerCacheManager = signerCacheManager
 	return b, nil
 }
 
@@ -276,7 +287,10 @@ func (b *Binance) checkAccountMemoFlag(addr string) bool {
 // SignTx sign the the given TxArrayItem
 func (b *Binance) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, error) {
 	var payload []msg.Transfer
-
+	if b.signerCacheManager.HasSigned(tx.CacheHash()) {
+		b.logger.Info().Msgf("transaction(%+v), signed before , ignore", tx)
+		return nil, nil
+	}
 	toAddr, err := types.AccAddressFromBech32(tx.ToAddress.String())
 	if err != nil {
 		b.logger.Error().Err(err).Msgf("fail to parse account address(%s)", tx.ToAddress.String())
@@ -528,7 +542,9 @@ func (b *Binance) BroadcastTx(tx stypes.TxOutItem, hexTx []byte) (string, error)
 
 	// increment sequence number
 	b.accts.SeqInc(tx.VaultPubKey)
-
+	if err := b.signerCacheManager.SetSigned(tx.CacheHash(), commit.Result.Hash.String()); err != nil {
+		b.logger.Err(err).Msg("fail to set signer cache")
+	}
 	return commit.Result.Hash.String(), nil
 }
 
@@ -567,4 +583,20 @@ func (b *Binance) reportSolvency(bnbBlockHeight int64) error {
 		}
 	}
 	return nil
+}
+func (b *Binance) OnObservedTxIn(txIn stypes.TxInItem, blockHeight int64) {
+	m, err := memo.ParseMemo(txIn.Memo)
+	if err != nil {
+		b.logger.Err(err).Msgf("fail to parse memo: %s", txIn.Memo)
+		return
+	}
+	if !m.IsOutbound() {
+		return
+	}
+	if m.GetTxID().IsEmpty() {
+		return
+	}
+	if err := b.signerCacheManager.SetSigned(txIn.CacheHash(b.GetChain(), m.GetTxID().String()), txIn.Tx); err != nil {
+		b.logger.Err(err).Msg("fail to update signer cache")
+	}
 }
