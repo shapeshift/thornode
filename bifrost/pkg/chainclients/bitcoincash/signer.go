@@ -232,6 +232,10 @@ func (c *Client) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, err
 		c.logger.Error().Msgf("to address: %s is legacy not allowed ", tx.ToAddress)
 		return nil, nil
 	}
+	if c.signerCacheManager.HasSigned(tx.CacheHash()) {
+		c.logger.Info().Msgf("transaction(%+v), signed before , ignore", tx)
+		return nil, nil
+	}
 	// only one keysign per chain at a time
 	vaultSignerLock := c.getVaultSignerLock(tx.VaultPubKey.String())
 	if vaultSignerLock == nil {
@@ -470,6 +474,9 @@ func (c *Client) BroadcastTx(txOut stypes.TxOutItem, payload []byte) (string, er
 	}
 	// save tx id to block meta in case we need to errata later
 	c.logger.Info().Str("hash", txHash.String()).Msg("broadcast to BCH chain successfully")
+	if err := c.signerCacheManager.SetSigned(txOut.CacheHash(), txHash.String()); err != nil {
+		c.logger.Err(err).Msgf("fail to mark tx out item (%+v) as signed", txOut)
+	}
 	return txHash.String(), nil
 }
 

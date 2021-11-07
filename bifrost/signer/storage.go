@@ -22,7 +22,6 @@ import (
 const (
 	DefaultSignerLevelDBFolder = "signer_data"
 	txOutPrefix                = "txout-v3-"
-	signedCachePrefix          = "signed-v2-"
 )
 
 type TxStatus int
@@ -72,8 +71,6 @@ type SignerStorage interface {
 	Remove(item TxOutStoreItem) error
 	List() []TxOutStoreItem
 	OrderedLists() map[string][]TxOutStoreItem
-	SetSigned(hash string) error
-	HasSigned(hash string) bool
 	Close() error
 }
 
@@ -242,24 +239,6 @@ func (s *SignerStore) OrderedLists() map[string][]TxOutStoreItem {
 		lists[key] = append(lists[key], item)
 	}
 	return lists
-}
-
-// SetSigned update key value store to set the given height and hash as signed
-func (s *SignerStore) SetSigned(hash string) error {
-	key := s.getSignedKey(hash)
-	s.logger.Debug().Msgf("key:%s set to signed", key)
-	return s.db.Put([]byte(key), []byte{1}, nil)
-}
-func (s *SignerStore) getSignedKey(hash string) string {
-	return fmt.Sprintf("%s%s", signedCachePrefix, hash)
-}
-
-// HasSigned check whether the given height and hash has been signed before or not
-func (s *SignerStore) HasSigned(hash string) bool {
-	key := s.getSignedKey(hash)
-	exist, _ := s.db.Has([]byte(key), nil)
-	s.logger.Debug().Msgf("key:%s has signed: %t", key, exist)
-	return exist
 }
 
 // Close underlying db
