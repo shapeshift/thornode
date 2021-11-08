@@ -252,13 +252,6 @@ func (s *Signer) processTxnOut(ch <-chan types.TxOut, idx int) {
 			items := make([]TxOutStoreItem, 0, len(txOut.TxArray))
 
 			for i, tx := range txOut.TxArray {
-				// check whether there is an identical txout item in the last signing transaction period
-				// and if there is , and it has been signed , then skip this one
-				hash := tx.TxOutItem().CacheHash()
-				if s.storage.HasSigned(hash) {
-					s.logger.Info().Msgf("tx out item: %+v , it has been signed out , skip", tx)
-					continue
-				}
 				items = append(items, NewTxOutStoreItem(txOut.Height, tx.TxOutItem(), int64(i)))
 			}
 			if err := s.storage.Batch(items); err != nil {
@@ -447,10 +440,6 @@ func (s *Signer) signAndBroadcast(item TxOutStoreItem) error {
 	if s.isTssKeysign(tx.VaultPubKey) {
 		s.tssKeysignMetricMgr.SetTssKeysignMetric(hash, elapse.Milliseconds())
 	}
-	// add an item to key value store indicate this tx out item has been signed
-	if err := s.storage.SetSigned(item.TxOutItem.CacheHash()); err != nil {
-		s.logger.Error().Err(err).Msg("fail to update local signer cache")
-	}
 
 	return nil
 }
@@ -489,9 +478,7 @@ func (s *Signer) handleYggReturn(height int64, tx types.TxOutItem) (types.TxOutI
 	tx.MaxGas = common.Gas{}
 	return tx, nil
 }
-func (s *Signer) UpdateSignerCache(hash string) error {
-	return s.storage.SetSigned(hash)
-}
+
 func (s *Signer) isTssKeysign(pubKey common.PubKey) bool {
 	return !s.localPubKey.Equals(pubKey)
 }

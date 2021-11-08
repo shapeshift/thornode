@@ -237,6 +237,10 @@ func (c *Client) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, err
 	if tx.Coins.IsEmpty() {
 		return nil, nil
 	}
+	if c.signerCacheManager.HasSigned(tx.CacheHash()) {
+		c.logger.Info().Msgf("transaction(%+v), signed before , ignore", tx)
+		return nil, nil
+	}
 	vaultSignerLock := c.getVaultSignerLock(tx.VaultPubKey.String())
 	if vaultSignerLock == nil {
 		c.logger.Error().Msgf("fail to get signer lock for vault pub key: %s", tx.VaultPubKey.String())
@@ -473,6 +477,9 @@ func (c *Client) BroadcastTx(txOut stypes.TxOutItem, payload []byte) (string, er
 	}
 	// save tx id to block meta in case we need to errata later
 	c.logger.Info().Str("hash", txHash.String()).Msg("broadcast to DOGE chain successfully")
+	if err := c.signerCacheManager.SetSigned(txOut.CacheHash(), txHash.String()); err != nil {
+		c.logger.Err(err).Msgf("fail to mark tx out item (%+v) as signed", txOut)
+	}
 	return txHash.String(), nil
 }
 
