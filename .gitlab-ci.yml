@@ -60,6 +60,7 @@ lint-code:
     - make protob
   script:
     - make lint-handlers
+    - make lint-erc20-token-list
     - golangci-lint run -v --skip-files ".*\\.pb\\.go$"
     - go run tools/analyze/main.go ./common/... ./constants/... ./x/...
 
