@@ -5,6 +5,7 @@ import (
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"github.com/syndtr/goleveldb/leveldb"
 )
 
 // StorageAccessor define the necessary methods to access the key value store
@@ -22,13 +23,14 @@ type CacheManager struct {
 }
 
 // NewSignerCacheManager create a new instance of CacheManager
-func NewSignerCacheManager(accessor StorageAccessor) (*CacheManager, error) {
-	if accessor == nil {
-		return nil, fmt.Errorf("storage accessor is nil")
+func NewSignerCacheManager(db *leveldb.DB) (*CacheManager, error) {
+	if db == nil {
+		return nil, fmt.Errorf("db parameter is nil")
 	}
+	cacheStore := NewCacheStore(db)
 	return &CacheManager{
 		logger:          log.With().Str("module", "SignerCacheManager").Logger(),
-		storageAccessor: accessor,
+		storageAccessor: cacheStore,
 	}, nil
 }
 

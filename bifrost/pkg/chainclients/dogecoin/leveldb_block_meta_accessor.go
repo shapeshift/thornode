@@ -2,7 +2,6 @@ package dogecoin
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 
 	"github.com/syndtr/goleveldb/leveldb"
@@ -15,8 +14,6 @@ const (
 	PrefixBlockMeta   = `blockmeta-`
 	PrefixMempool     = "mempool-"
 	PrefixObservedTx  = "observed-"
-	signedCachePrefix = "signed-v3-"
-	txMapPrefix       = "tx-map-"
 )
 
 // LevelDBBlockMetaAccessor struct
@@ -188,46 +185,4 @@ func (t *LevelDBBlockMetaAccessor) TryAddToObservedTxCache(hash string) (bool, e
 func (t *LevelDBBlockMetaAccessor) RemoveObservedTxCache(hash string) error {
 	key := t.getObservedTxHashKey(hash)
 	return t.db.Delete([]byte(key), nil)
-}
-
-// SetSigned update key value store to set the given height and hash as signed
-func (t *LevelDBBlockMetaAccessor) SetSigned(hash string) error {
-	key := t.getSignedKey(hash)
-	return t.db.Put([]byte(key), []byte{1}, nil)
-}
-func (t *LevelDBBlockMetaAccessor) getSignedKey(hash string) string {
-	return fmt.Sprintf("%s%s", signedCachePrefix, hash)
-}
-func (t *LevelDBBlockMetaAccessor) getMapKey(txHash string) string {
-	return fmt.Sprintf("%s%s", txMapPrefix, txHash)
-}
-
-// HasSigned check whether the given height and hash has been signed before or not
-func (t *LevelDBBlockMetaAccessor) HasSigned(hash string) bool {
-	key := t.getSignedKey(hash)
-	exist, _ := t.db.Has([]byte(key), nil)
-	return exist
-}
-
-// RemoveSigned delete a hash from the signed cache
-func (t *LevelDBBlockMetaAccessor) RemoveSigned(transactionHash string) error {
-	mapKey := t.getMapKey(transactionHash)
-	value, err := t.db.Get([]byte(mapKey), nil)
-	if err != nil {
-		if !errors.Is(err, leveldb.ErrNotFound) {
-			return nil
-		}
-		return err
-	}
-	key := t.getSignedKey(string(value))
-	if err := t.db.Delete([]byte(key), nil); err != nil {
-		return fmt.Errorf("fail to remove signed cache, err: %w", err)
-	}
-	return nil
-}
-
-// SetTransactionHashMap map a transaction hash to a tx out item hash
-func (t *LevelDBBlockMetaAccessor) SetTransactionHashMap(txOutItemHash, transactionHash string) error {
-	key := t.getMapKey(transactionHash)
-	return t.db.Put([]byte(key), []byte(txOutItemHash), nil)
 }
