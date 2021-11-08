@@ -190,7 +190,7 @@ func main() {
 	}
 
 	// start observer
-	obs, err := observer.NewObserver(pubkeyMgr, chains, thorchainBridge, m, cfg.Chains[0].BlockScanner.DBPath, tssKeysignMetricMgr, sign.UpdateSignerCache)
+	obs, err := observer.NewObserver(pubkeyMgr, chains, thorchainBridge, m, cfg.Chains[0].BlockScanner.DBPath, tssKeysignMetricMgr)
 	if err != nil {
 		log.Fatal().Err(err).Msg("fail to create observer")
 	}

@@ -20,6 +20,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	txscript "gitlab.com/thorchain/bifrost/bchd-txscript"
+	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/signercache"
 	mem "gitlab.com/thorchain/thornode/x/thorchain/memo"
 	tssp "gitlab.com/thorchain/tss/go-tss/tss"
 	"golang.org/x/sync/errgroup"
@@ -72,6 +73,7 @@ type Client struct {
 	signerLock            *sync.Mutex
 	vaultSignerLocks      map[string]*sync.Mutex
 	consolidateInProgress bool
+	signerCacheManager    *signercache.CacheManager
 }
 
 // NewClient generates a new Client
@@ -152,6 +154,11 @@ func NewClient(thorKeys *thorclient.Keys, cfg config.ChainConfiguration, server 
 	if err := c.registerAddressInWalletAsWatch(c.nodePubKey); err != nil {
 		return nil, fmt.Errorf("fail to register (%s): %w", c.nodePubKey, err)
 	}
+	signerCacheManager, err := signercache.NewSignerCacheManager(storage.GetInternalDb())
+	if err != nil {
+		return nil, fmt.Errorf("fail to create signer cache manager,err: %w", err)
+	}
+	c.signerCacheManager = signerCacheManager
 	c.updateNetworkInfo()
 	return c, nil
 }
@@ -328,6 +335,21 @@ func (c *Client) OnObservedTxIn(txIn types.TxInItem, blockHeight int64) {
 	}
 	if err := c.blockMetaAccessor.SaveBlockMeta(blockHeight, blockMeta); err != nil {
 		c.logger.Err(err).Msgf("fail to save block meta to storage,block height(%d)", blockHeight)
+	}
+	// update the signer cache
+	m, err := mem.ParseMemo(txIn.Memo)
+	if err != nil {
+		c.logger.Err(err).Msgf("fail to parse memo: %s", txIn.Memo)
+		return
+	}
+	if !m.IsOutbound() {
+		return
+	}
+	if m.GetTxID().IsEmpty() {
+		return
+	}
+	if err := c.signerCacheManager.SetSigned(txIn.CacheHash(c.GetChain(), m.GetTxID().String()), txIn.Tx); err != nil {
+		c.logger.Err(err).Msg("fail to update signer cache")
 	}
 }
 
