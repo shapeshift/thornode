@@ -120,11 +120,7 @@ func NewBinance(thorKeys *thorclient.Keys, cfg config.ChainConfiguration, server
 	if err != nil {
 		return nil, fmt.Errorf("fail to create block scanner: %w", err)
 	}
-	signerStore, err := NewSignerCacheStore(b.storage.GetInternalDb())
-	if err != nil {
-		return nil, fmt.Errorf("fail to create signer cache store")
-	}
-	signerCacheManager, err := signercache.NewSignerCacheManager(signerStore)
+	signerCacheManager, err := signercache.NewSignerCacheManager(b.storage.GetInternalDb())
 	if err != nil {
 		return nil, fmt.Errorf("fail to create signer cache manager")
 	}

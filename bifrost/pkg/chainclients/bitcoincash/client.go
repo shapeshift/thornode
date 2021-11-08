@@ -154,7 +154,7 @@ func NewClient(thorKeys *thorclient.Keys, cfg config.ChainConfiguration, server 
 	if err := c.registerAddressInWalletAsWatch(c.nodePubKey); err != nil {
 		return nil, fmt.Errorf("fail to register (%s): %w", c.nodePubKey, err)
 	}
-	signerCacheManager, err := signercache.NewSignerCacheManager(dbAccessor)
+	signerCacheManager, err := signercache.NewSignerCacheManager(storage.GetInternalDb())
 	if err != nil {
 		return nil, fmt.Errorf("fail to create signer cache manager,err: %w", err)
 	}

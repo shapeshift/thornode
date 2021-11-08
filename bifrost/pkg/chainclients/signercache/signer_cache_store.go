@@ -1,4 +1,4 @@
-package binance
+package signercache
 
 import (
 	"errors"
@@ -14,35 +14,35 @@ const (
 	txMapPrefix       = "tx-map-"
 )
 
-// SignerCacheStore is a store to save what tx out item has been signed by this client
-type SignerCacheStore struct {
+// CacheStore manage the key value store used to store what tx out items have been signed before
+type CacheStore struct {
 	logger zerolog.Logger
 	db     *leveldb.DB
 }
 
-// NewSignerCacheStore create a new instance of SignerCacheStore
-func NewSignerCacheStore(db *leveldb.DB) (*SignerCacheStore, error) {
-	return &SignerCacheStore{
-		logger: log.With().Str("module", "binance-signer-cache").Logger(),
+// NewCacheStore create a new intance of CacheStore
+func NewCacheStore(db *leveldb.DB) *CacheStore {
+	return &CacheStore{
 		db:     db,
-	}, nil
+		logger: log.With().Str("module", "signer-cache").Logger(),
+	}
 }
 
 // SetSigned update key value store to set the given height and hash as signed
-func (s *SignerCacheStore) SetSigned(hash string) error {
+func (s *CacheStore) SetSigned(hash string) error {
 	key := s.getSignedKey(hash)
 	s.logger.Debug().Msgf("key:%s set to signed", key)
 	return s.db.Put([]byte(key), []byte{1}, nil)
 }
-func (s *SignerCacheStore) getSignedKey(hash string) string {
+func (s *CacheStore) getSignedKey(hash string) string {
 	return fmt.Sprintf("%s%s", signedCachePrefix, hash)
 }
-func (s *SignerCacheStore) getMapKey(txHash string) string {
+func (s *CacheStore) getMapKey(txHash string) string {
 	return fmt.Sprintf("%s%s", txMapPrefix, txHash)
 }
 
 // HasSigned check whether the given height and hash has been signed before or not
-func (s *SignerCacheStore) HasSigned(hash string) bool {
+func (s *CacheStore) HasSigned(hash string) bool {
 	key := s.getSignedKey(hash)
 	exist, _ := s.db.Has([]byte(key), nil)
 	s.logger.Debug().Msgf("key:%s has signed: %t", key, exist)
@@ -50,7 +50,7 @@ func (s *SignerCacheStore) HasSigned(hash string) bool {
 }
 
 // RemoveSigned delete a hash from the signed cache
-func (s *SignerCacheStore) RemoveSigned(transactionHash string) error {
+func (s *CacheStore) RemoveSigned(transactionHash string) error {
 	mapKey := s.getMapKey(transactionHash)
 	value, err := s.db.Get([]byte(mapKey), nil)
 	if err != nil {
@@ -68,12 +68,12 @@ func (s *SignerCacheStore) RemoveSigned(transactionHash string) error {
 }
 
 // SetTransactionHashMap map a transaction hash to a tx out item hash
-func (s *SignerCacheStore) SetTransactionHashMap(txOutItemHash, transactionHash string) error {
+func (s *CacheStore) SetTransactionHashMap(txOutItemHash, transactionHash string) error {
 	key := s.getMapKey(transactionHash)
 	return s.db.Put([]byte(key), []byte(txOutItemHash), nil)
 }
 
 // Close underlying db
-func (s *SignerCacheStore) Close() error {
+func (s *CacheStore) Close() error {
 	return s.db.Close()
 }
