@@ -81,7 +81,11 @@ func withdrawV73(ctx cosmos.Context, version semver.Version, msg MsgWithdrawLiqu
 	}
 	// only when Pool is in Available status will apply impermanent loss protection
 	if fullProtectionLine > 0 && pool.Status == PoolAvailable { // if protection line is zero, no imp loss protection is given
-		protectionBasisPoints := calcImpLossProtectionAmtV1(ctx, lp.LastAddHeight, fullProtectionLine)
+		lastAddHeight := lp.LastAddHeight
+		if lastAddHeight < pool.StatusSince {
+			lastAddHeight = pool.StatusSince
+		}
+		protectionBasisPoints := calcImpLossProtectionAmtV1(ctx, lastAddHeight, fullProtectionLine)
 		implProtectionRuneAmount, depositValue, redeemValue := calcImpLossV73(lp, msg.BasisPoints, protectionBasisPoints, pool)
 		ctx.Logger().Info("imp loss calculation", "deposit value", depositValue, "redeem value", redeemValue, "protection", implProtectionRuneAmount)
 		if !implProtectionRuneAmount.IsZero() {
