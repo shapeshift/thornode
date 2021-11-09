@@ -15,4 +15,5 @@ message TssVoter {
   int64 block_height = 4;
   repeated string chains = 5;
   repeated string signers = 6;
+  int64 majority_consensus_block_height = 7;
 }

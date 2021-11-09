@@ -17,12 +17,13 @@
     },
     {
       "chainId": 4,
-      "address": "0xe9e7741a3040f8d38d737e04f7374e1d5979b28b",
+      "address": "0xd601c6A3a36721320573885A8d8420746dA3d7A0",
       "symbol": "RUNE",
       "name": "Test RUNE token",
       "decimals": 18,
       "tags": []
-    },{
+    },
+    {
       "chainId": 4,
       "address": "0x4d704dda8099305ee9803f02343129bf6ba55ff1",
       "symbol": "RUNE",

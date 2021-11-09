@@ -109,6 +109,7 @@ type KeeperNodeAccount interface {
 	ResetNodeAccountSlashPoints(_ cosmos.Context, _ cosmos.AccAddress)
 	GetNodeAccountJail(ctx cosmos.Context, addr cosmos.AccAddress) (Jail, error)
 	SetNodeAccountJail(ctx cosmos.Context, addr cosmos.AccAddress, height int64, reason string) error
+	ReleaseNodeAccountFromJail(ctx cosmos.Context, addr cosmos.AccAddress) error
 }
 
 type KeeperObserver interface {

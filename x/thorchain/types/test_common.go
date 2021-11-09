@@ -48,8 +48,8 @@ func GetRandomValidatorNode(status NodeStatus) NodeAccount {
 	return na
 }
 
-// GetRandomLiteNode creates a random lite node account, used for testing
-func GetRandomLiteNode(status NodeStatus) NodeAccount {
+// GetRandomVaultNode creates a random vault node account, used for testing
+func GetRandomVaultNode(status NodeStatus) NodeAccount {
 	s := rand.NewSource(time.Now().UnixNano())
 	r := rand.New(s) // #nosec G404 this is a method only used for test purpose
 	accts := simtypes.RandomAccounts(r, 1)
@@ -68,7 +68,7 @@ func GetRandomLiteNode(status NodeStatus) NodeAccount {
 		na.Bond = cosmos.NewUint(1000 * common.One)
 	}
 	na.IPAddress = "192.168.0.1"
-	na.Type = NodeType_TypeLite
+	na.Type = NodeType_TypeVault
 
 	return na
 }

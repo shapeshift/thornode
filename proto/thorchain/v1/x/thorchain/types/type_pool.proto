@@ -27,6 +27,7 @@ message Pool {
   common.Asset asset = 3 [(gogoproto.nullable) = false];
   string LP_units = 4 [(gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Uint", (gogoproto.nullable) = false];
   PoolStatus status = 5;
+  int64 status_since = 10;
   int64 decimals = 6;
   string synth_units = 7 [(gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Uint", (gogoproto.nullable) = false];
   string pending_inbound_rune = 8 [(gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Uint", (gogoproto.nullable) = false];
