@@ -242,7 +242,7 @@ func (s *ObserverSuite) TearDownSuite(c *C) {
 func (s *ObserverSuite) TestProcess(c *C) {
 	pubkeyMgr, err := pubkeymanager.NewPubKeyManager(s.bridge, s.m)
 	c.Assert(err, IsNil)
-	obs, err := NewObserver(pubkeyMgr, map[common.Chain]chainclients.ChainClient{common.BNBChain: s.b}, s.bridge, s.m, "", metrics.NewTssKeysignMetricMgr(), nil)
+	obs, err := NewObserver(pubkeyMgr, map[common.Chain]chainclients.ChainClient{common.BNBChain: s.b}, s.bridge, s.m, "", metrics.NewTssKeysignMetricMgr())
 	c.Assert(obs, NotNil)
 	c.Assert(err, IsNil)
 	err = obs.Start()
@@ -266,7 +266,7 @@ func getTxOutFromJSONInput(input string, c *C) types.TxOut {
 func (s *ObserverSuite) TestErrataTx(c *C) {
 	pubkeyMgr, err := pubkeymanager.NewPubKeyManager(s.bridge, s.m)
 	c.Assert(err, IsNil)
-	obs, err := NewObserver(pubkeyMgr, nil, s.bridge, s.m, "", metrics.NewTssKeysignMetricMgr(), nil)
+	obs, err := NewObserver(pubkeyMgr, nil, s.bridge, s.m, "", metrics.NewTssKeysignMetricMgr())
 	c.Assert(obs, NotNil)
 	c.Assert(err, IsNil)
 	c.Assert(obs.sendErrataTxToThorchain(25, thorchain.GetRandomTxHash(), common.BNBChain), IsNil)
@@ -277,7 +277,7 @@ func (s *ObserverSuite) TestFilterMemoFlag(c *C) {
 	c.Assert(err, IsNil)
 	obs, err := NewObserver(pubkeyMgr, map[common.Chain]chainclients.ChainClient{
 		common.BNBChain: s.b,
-	}, s.bridge, s.m, "", metrics.NewTssKeysignMetricMgr(), nil)
+	}, s.bridge, s.m, "", metrics.NewTssKeysignMetricMgr())
 	c.Assert(obs, NotNil)
 	c.Assert(err, IsNil)
 	// swap destination
@@ -349,7 +349,7 @@ func (s *ObserverSuite) TestFilterMemoFlag(c *C) {
 	c.Assert(result, HasLen, 1)
 
 	// when there is no binance client , the check will be ignored
-	obs, err = NewObserver(pubkeyMgr, nil, s.bridge, s.m, "", metrics.NewTssKeysignMetricMgr(), nil)
+	obs, err = NewObserver(pubkeyMgr, nil, s.bridge, s.m, "", metrics.NewTssKeysignMetricMgr())
 	c.Assert(obs, NotNil)
 	c.Assert(err, IsNil)
 	result = obs.filterBinanceMemoFlag(common.BNBChain, []types.TxInItem{

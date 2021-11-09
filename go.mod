@@ -52,7 +52,7 @@ require (
 	gitlab.com/thorchain/binance-sdk v1.2.3-0.20210117202539-d569b6b9ba5d
 	gitlab.com/thorchain/tss/go-tss v1.4.0
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	google.golang.org/genproto v0.0.0-20211021150943-2b146023228c // indirect
+	google.golang.org/genproto v0.0.0-20211104193956-4c6863e31247 // indirect
 	gopkg.in/check.v1 v1.0.0-20200902074654-038fdea0a05b
 	gopkg.in/ini.v1 v1.52.0 // indirect
 )

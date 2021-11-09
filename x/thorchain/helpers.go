@@ -639,13 +639,15 @@ func isSignedByActiveNodeAccountsV1(ctx cosmos.Context, mgr Manager, signers []c
 
 func cyclePools(ctx cosmos.Context, maxAvailablePools, minRunePoolDepth, stagedPoolCost int64, mgr Manager) error {
 	version := mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.1.0")) {
+	if version.GTE(semver.MustParse("0.73.0")) {
+		return cyclePoolsV73(ctx, maxAvailablePools, minRunePoolDepth, stagedPoolCost, mgr)
+	} else if version.GTE(semver.MustParse("0.1.0")) {
 		return cyclePoolsV1(ctx, maxAvailablePools, minRunePoolDepth, stagedPoolCost, mgr)
 	}
 	return errBadVersion
 }
 
-func cyclePoolsV1(ctx cosmos.Context, maxAvailablePools, minRunePoolDepth, stagedPoolCost int64, mgr Manager) error {
+func cyclePoolsV73(ctx cosmos.Context, maxAvailablePools, minRunePoolDepth, stagedPoolCost int64, mgr Manager) error {
 	var availblePoolCount int64
 	onDeck := NewPool()        // currently staged pool that could get promoted
 	choppingBlock := NewPool() // currently available pool that is on the chopping block to being demoted
@@ -672,6 +674,7 @@ func cyclePoolsV1(ctx cosmos.Context, maxAvailablePools, minRunePoolDepth, stage
 		case PoolStaged:
 			ctx.Logger().Info("Pool demoted to staged status", "pool", pool.Asset)
 		}
+		pool.StatusSince = common.BlockHeight(ctx)
 		return mgr.Keeper().SetPool(ctx, pool)
 	}
 
@@ -789,6 +792,7 @@ func cyclePoolsV1(ctx cosmos.Context, maxAvailablePools, minRunePoolDepth, stage
 
 	return nil
 }
+
 func removeAssetFromVault(ctx cosmos.Context, asset common.Asset, mgr Manager) {
 	// zero vaults with the pool asset
 	vaultIter := mgr.Keeper().GetVaultIterator(ctx)
@@ -812,6 +816,7 @@ func removeAssetFromVault(ctx cosmos.Context, asset common.Asset, mgr Manager) {
 		}
 	}
 }
+
 func removeLiquidityProviders(ctx cosmos.Context, asset common.Asset, mgr Manager) {
 	iterator := mgr.Keeper().GetLiquidityProviderIterator(ctx, asset)
 	defer iterator.Close()

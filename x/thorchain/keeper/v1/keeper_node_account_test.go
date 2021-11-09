@@ -17,7 +17,7 @@ func (s *KeeperNodeAccountSuite) TestNodeAccount(c *C) {
 
 	na1 := GetRandomValidatorNode(NodeActive)
 	na2 := GetRandomValidatorNode(NodeStandby)
-	na3 := GetRandomLiteNode(NodeActive)
+	na3 := GetRandomVaultNode(NodeActive)
 
 	c.Assert(k.SetNodeAccount(ctx, na1), IsNil)
 	c.Assert(k.SetNodeAccount(ctx, na2), IsNil)

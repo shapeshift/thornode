@@ -365,3 +365,15 @@ func (k KVStore) SetNodeAccountJail(ctx cosmos.Context, addr cosmos.AccAddress, 
 	k.setJail(ctx, k.GetKey(ctx, prefixNodeJail, addr.String()), jail)
 	return nil
 }
+
+// ReleaseNodeAccountFromJail - update the jail details of a node account
+func (k KVStore) ReleaseNodeAccountFromJail(ctx cosmos.Context, addr cosmos.AccAddress) error {
+	jail, err := k.GetNodeAccountJail(ctx, addr)
+	if err != nil {
+		return err
+	}
+	jail.ReleaseHeight = ctx.BlockHeight()
+	jail.Reason = ""
+	k.setJail(ctx, k.GetKey(ctx, prefixNodeJail, addr.String()), jail)
+	return nil
+}
