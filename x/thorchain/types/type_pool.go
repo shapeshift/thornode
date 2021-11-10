@@ -189,8 +189,8 @@ func (m Pools) Set(pool Pool) Pools {
 	return m
 }
 
-// RuneValueInAssetWithSlip returns the equivalent amount of rune for a given
-// amount of asset, taking slip into account.
+// RuneValueInAssetWithSlip returns the equivalent amount of asset for a given
+// amount of rune, taking slip into account.
 func (m Pool) RuneValueInAssetWithSlip(amt cosmos.Uint) cosmos.Uint {
 	if m.BalanceRune.IsZero() || m.BalanceAsset.IsZero() {
 		return cosmos.ZeroUint()
