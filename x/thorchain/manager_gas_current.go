@@ -226,7 +226,7 @@ func (gm *GasMgrV74) ProcessGas(ctx cosmos.Context, keeper keeper.Keeper) {
 			ctx.Logger().Error("invalid pool", "pool", gas.Asset, "error", err)
 			continue
 		}
-		runeGas := pool.AssetValueInRune(gas.Amount) // Convert to Rune (gas will never be RUNE)
+		runeGas := pool.AssetValueInRuneWithSlip(gas.Amount) // Convert to Rune (gas will never be RUNE)
 		if runeGas.IsZero() {
 			continue
 		}

@@ -212,7 +212,7 @@ func (vm *NetworkMgrV74) EndBlock(ctx cosmos.Context, mgr Manager, constAccessor
 						if err != nil {
 							return fmt.Errorf("fail to get pool for asset %s, err:%w", coin.Asset, err)
 						}
-						runeAmt := p.AssetValueInRune(coin.Amount)
+						runeAmt := p.AssetValueInRuneWithSlip(coin.Amount)
 						if !runeAmt.IsZero() {
 							if err := vm.k.SendFromModuleToModule(ctx, ReserveName, AsgardName, common.NewCoins(common.NewCoin(common.RuneAsset(), runeAmt))); err != nil {
 								return fmt.Errorf("fail to transfer RUNE from reserve to asgard,err:%w", err)
