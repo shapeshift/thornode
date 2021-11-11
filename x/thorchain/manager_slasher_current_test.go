@@ -422,7 +422,6 @@ func (s *SlashingV75Suite) TestSlashVault(c *C) {
 	nodeBondAfterSlash := nodeAfterSlash.Bond
 	node1BondAfterSlash := node1AfterSlash.Bond
 
-	c.Assert(nodeBondBeforeSlash.Sub(nodeBondAfterSlash).Uint64(), Equals, uint64(76457722))
-	c.Assert(node1BondBeforeSlash.Sub(node1BondAfterSlash).Uint64(), Equals, uint64(76572581))
-
+	c.Assert(nodeBondBeforeSlash.Sub(nodeBondAfterSlash).Uint64(), Equals, uint64(74943708))
+	c.Assert(node1BondBeforeSlash.Sub(node1BondAfterSlash).Uint64(), Equals, uint64(75056292))
 }

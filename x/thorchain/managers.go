@@ -280,7 +280,9 @@ func GetEventManager(version semver.Version) (EventManager, error) {
 // GetTxOutStore will return an implementation of the txout store that
 func GetTxOutStore(keeper keeper.Keeper, version semver.Version, eventMgr EventManager, gasManager GasManager) (TxOutStore, error) {
 	constAccessor := constants.GetConstantValues(version)
-	if version.GTE(semver.MustParse("0.72.0")) {
+	if version.GTE(semver.MustParse("0.74.0")) {
+		return newTxOutStorageV74(keeper, constAccessor, eventMgr, gasManager), nil
+	} else if version.GTE(semver.MustParse("0.72.0")) {
 		return newTxOutStorageV72(keeper, constAccessor, eventMgr, gasManager), nil
 	} else if version.GTE(semver.MustParse("0.68.0")) {
 		return newTxOutStorageV68(keeper, constAccessor, eventMgr, gasManager), nil
@@ -314,7 +316,9 @@ func GetTxOutStore(keeper keeper.Keeper, version semver.Version, eventMgr EventM
 
 // GetNetworkManager  retrieve a NetworkManager that is compatible with the given version
 func GetNetworkManager(keeper keeper.Keeper, version semver.Version, txOutStore TxOutStore, eventMgr EventManager) (NetworkManager, error) {
-	if version.GTE(semver.MustParse("0.69.0")) {
+	if version.GTE(semver.MustParse("0.74.0")) {
+		return newNetworkMgrV74(keeper, txOutStore, eventMgr), nil
+	} else if version.GTE(semver.MustParse("0.69.0")) {
 		return newNetworkMgrV69(keeper, txOutStore, eventMgr), nil
 	} else if version.GTE(semver.MustParse("0.63.0")) {
 		return newNetworkMgrV63(keeper, txOutStore, eventMgr), nil
