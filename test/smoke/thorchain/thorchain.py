@@ -278,12 +278,14 @@ class ThorchainState:
             if not tx.gas:
                 continue
             gases = tx.gas
+            logging.info(f"Handle Gas: {tx.gas}")
             if (
                 tx.gas[0].asset.is_btc()
                 or tx.gas[0].asset.is_bch()
                 or tx.gas[0].asset.is_ltc()
             ):
                 gases = tx.max_gas
+                logging.info(f"From Max Gas: {tx.max_gas}")
 
             for gas in gases:
                 if gas.asset not in gas_coins:
@@ -372,6 +374,7 @@ class ThorchainState:
             txs = [txs]
 
         for tx in txs:
+            logging.info(f"Handle Fee: {tx}")
             # fee amount in rune value
             rune_fee = self.get_rune_fee(tx.chain)
             if not tx.gas:
@@ -406,7 +409,7 @@ class ThorchainState:
                         asset_fee = pool.get_rune_in_asset(rune_fee)
                         if coin.amount <= asset_fee:
                             asset_fee = coin.amount
-                            rune_fee = pool.get_asset_in_rune_with_slip(asset_fee)
+                            rune_fee = pool.get_asset_in_rune(asset_fee)
 
                         if pool.rune_balance >= rune_fee:
                             pool.sub(rune_fee, 0)
@@ -450,17 +453,21 @@ class ThorchainState:
                             else:
                                 tx.gas = tx.max_gas
 
+                        logging.info(f"Calc Gas: {coin.asset.get_chain()}, {asset_fee}")
                         if coin.asset.get_chain() == "ETH" and not asset_fee == 0:
                             if coin.asset.is_eth():
+                                logging.info(f"Is Eth: {int(asset_fee / 2)}")
                                 tx.max_gas = [Coin(coin.asset, int(asset_fee / 2))]
 
                             elif coin.asset.is_erc():
                                 gas_asset = self.get_gas_asset("ETH")
                                 pool_gas = self.get_pool(gas_asset)
                                 fee_in_gas_asset = pool_gas.get_rune_in_asset(rune_fee)
+                                logging.info(f"NonSlip: {int(pool_gas.get_rune_in_asset(rune_fee) / 2 )}, Slip {int(fee_in_gas_asset / 2)}")
                                 tx.max_gas = [
                                     Coin(gas_asset, int(fee_in_gas_asset / 2))
                                 ]
+                                logging.info(f"Is ERC2: {int(fee_in_gas_asset / 2)}")
 
                         pool_deduct = rune_fee
                         if rune_fee > pool.rune_balance:
@@ -1464,6 +1471,15 @@ class Pool(Jsonable):
             return 0
 
         return get_share(self.asset_balance, self.rune_balance, val)
+
+    def get_rune_in_asset_with_slip(self, val):
+        """
+        Get an equal amount of given value in asset
+        """
+        if self.is_zero():
+            return 0
+
+        return get_share(self.asset_balance, self.rune_balance-val, val)
 
     def get_asset_fee(self):
         """
