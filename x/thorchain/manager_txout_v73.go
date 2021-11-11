@@ -1,508 +1,777 @@
 package thorchain
 
 import (
-	. "gopkg.in/check.v1"
+	"errors"
+	"fmt"
 
+	"github.com/armon/go-metrics"
+	"github.com/cosmos/cosmos-sdk/telemetry"
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	"gitlab.com/thorchain/thornode/x/thorchain/types"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
-type TxOutStoreV68Suite struct{}
-
-var _ = Suite(&TxOutStoreV68Suite{})
-
-func (s TxOutStoreV68Suite) TestAddGasFees(c *C) {
-	ctx, mgr := setupManagerForTest(c)
-	tx := GetRandomObservedTx()
-
-	version := GetCurrentVersion()
-	constAccessor := constants.GetConstantValues(version)
-	mgr.gasMgr = newGasMgrV1(constAccessor, mgr.Keeper())
-	err := addGasFees(ctx, mgr, tx)
-	c.Assert(err, IsNil)
-	c.Assert(mgr.GasMgr().GetGas(), HasLen, 1)
+// TxOutStorageV73 is going to manage all the outgoing tx
+type TxOutStorageV73 struct {
+	keeper        keeper.Keeper
+	constAccessor constants.ConstantValues
+	eventMgr      EventManager
+	gasManager    GasManager
 }
 
-func (s TxOutStoreV68Suite) TestEndBlock(c *C) {
-	w := getHandlerTestWrapper(c, 1, true, true)
-	txOutStore := newTxOutStorageV68(w.keeper, w.mgr.GetConstants(), w.mgr.EventMgr(), w.mgr.GasMgr())
-
-	item := TxOutItem{
-		Chain:     common.BNBChain,
-		ToAddress: GetRandomBNBAddress(),
-		InHash:    GetRandomTxHash(),
-		Coin:      common.NewCoin(common.BNBAsset, cosmos.NewUint(20*common.One)),
+// newTxOutStorageV73 will create a new instance of TxOutStore.
+func newTxOutStorageV73(keeper keeper.Keeper, constAccessor constants.ConstantValues, eventMgr EventManager, gasManager GasManager) *TxOutStorageV73 {
+	return &TxOutStorageV73{
+		keeper:        keeper,
+		eventMgr:      eventMgr,
+		constAccessor: constAccessor,
+		gasManager:    gasManager,
 	}
-	err := txOutStore.UnSafeAddTxOutItem(w.ctx, w.mgr, item)
-	c.Assert(err, IsNil)
-
-	c.Assert(txOutStore.EndBlock(w.ctx, w.mgr), IsNil)
-
-	items, err := txOutStore.GetOutboundItems(w.ctx)
-	c.Assert(err, IsNil)
-	c.Assert(items, HasLen, 1)
-	c.Check(items[0].GasRate, Equals, int64(56250))
-	c.Assert(items[0].MaxGas, HasLen, 1)
-	c.Check(items[0].MaxGas[0].Asset.Equals(common.BNBAsset), Equals, true)
-	c.Check(items[0].MaxGas[0].Amount.Uint64(), Equals, uint64(37500))
 }
 
-func (s TxOutStoreV68Suite) TestAddOutTxItem(c *C) {
-	w := getHandlerTestWrapper(c, 1, true, true)
-	vault := GetRandomVault()
-	vault.Coins = common.Coins{
-		common.NewCoin(common.RuneAsset(), cosmos.NewUint(10000*common.One)),
-		common.NewCoin(common.BNBAsset, cosmos.NewUint(10000*common.One)),
-	}
-	c.Assert(w.keeper.SetVault(w.ctx, vault), IsNil)
-
-	acc1 := GetRandomValidatorNode(NodeActive)
-	acc2 := GetRandomValidatorNode(NodeActive)
-	acc3 := GetRandomValidatorNode(NodeActive)
-	c.Assert(w.keeper.SetNodeAccount(w.ctx, acc1), IsNil)
-	c.Assert(w.keeper.SetNodeAccount(w.ctx, acc2), IsNil)
-	c.Assert(w.keeper.SetNodeAccount(w.ctx, acc3), IsNil)
-
-	ygg := NewVault(common.BlockHeight(w.ctx), ActiveVault, YggdrasilVault, acc1.PubKeySet.Secp256k1, common.Chains{common.BNBChain}.Strings(), []ChainContract{})
-	ygg.AddFunds(
-		common.Coins{
-			common.NewCoin(common.BNBAsset, cosmos.NewUint(40*common.One)),
-			common.NewCoin(common.BCHAsset, cosmos.NewUint(40*common.One)),
-		},
-	)
-	c.Assert(w.keeper.SetVault(w.ctx, ygg), IsNil)
-
-	ygg = NewVault(common.BlockHeight(w.ctx), ActiveVault, YggdrasilVault, acc2.PubKeySet.Secp256k1, common.Chains{common.BNBChain}.Strings(), []ChainContract{})
-	ygg.AddFunds(
-		common.Coins{
-			common.NewCoin(common.BNBAsset, cosmos.NewUint(50*common.One)),
-			common.NewCoin(common.BCHAsset, cosmos.NewUint(40*common.One)),
-		},
-	)
-	c.Assert(w.keeper.SetVault(w.ctx, ygg), IsNil)
-
-	ygg = NewVault(common.BlockHeight(w.ctx), ActiveVault, YggdrasilVault, acc3.PubKeySet.Secp256k1, common.Chains{common.BNBChain}.Strings(), []ChainContract{})
-	ygg.AddFunds(
-		common.Coins{
-			common.NewCoin(common.BNBAsset, cosmos.NewUint(100*common.One)),
-			common.NewCoin(common.BCHAsset, cosmos.NewUint(40*common.One)),
-		},
-	)
-	c.Assert(w.keeper.SetVault(w.ctx, ygg), IsNil)
-
-	// Create voter
-	inTxID := GetRandomTxHash()
-	voter := NewObservedTxVoter(inTxID, ObservedTxs{
-		ObservedTx{
-			Tx:             GetRandomTx(),
-			Status:         types.Status_incomplete,
-			BlockHeight:    1,
-			Signers:        []string{w.activeNodeAccount.NodeAddress.String(), acc1.NodeAddress.String(), acc2.NodeAddress.String()},
-			KeysignMs:      0,
-			FinaliseHeight: 1,
-		},
-	})
-	w.keeper.SetObservedTxInVoter(w.ctx, voter)
-
-	// Should get acc2. Acc3 hasn't signed and acc2 is the highest value
-	item := TxOutItem{
-		Chain:     common.BNBChain,
-		ToAddress: GetRandomBNBAddress(),
-		InHash:    inTxID,
-		Coin:      common.NewCoin(common.BNBAsset, cosmos.NewUint(20*common.One)),
-	}
-	txOutStore := newTxOutStorageV68(w.keeper, w.mgr.GetConstants(), w.mgr.EventMgr(), w.mgr.GasMgr())
-	ok, err := txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item)
-	c.Assert(err, IsNil)
-	c.Assert(ok, Equals, true)
-	msgs, err := txOutStore.GetOutboundItems(w.ctx)
-	c.Assert(err, IsNil)
-	c.Assert(msgs, HasLen, 1)
-	c.Assert(msgs[0].VaultPubKey.String(), Equals, acc2.PubKeySet.Secp256k1.String())
-	c.Assert(msgs[0].Coin.Amount.Equal(cosmos.NewUint(1999887500)), Equals, true, Commentf("%d", msgs[0].Coin.Amount.Uint64()))
-	// Should get acc1. Acc3 hasn't signed and acc1 now has the highest amount
-	// of coin.
-	item = TxOutItem{
-		Chain:     common.BNBChain,
-		ToAddress: GetRandomBNBAddress(),
-		InHash:    inTxID,
-		Coin:      common.NewCoin(common.BNBAsset, cosmos.NewUint(20*common.One)),
-	}
-	txOutStore.ClearOutboundItems(w.ctx)
-	success, err := txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item)
-	c.Assert(success, Equals, true)
-	c.Assert(err, IsNil)
-	msgs, err = txOutStore.GetOutboundItems(w.ctx)
-	c.Assert(err, IsNil)
-	c.Assert(msgs, HasLen, 1)
-	c.Assert(msgs[0].VaultPubKey.String(), Equals, acc2.PubKeySet.Secp256k1.String())
-
-	item = TxOutItem{
-		Chain:     common.BNBChain,
-		ToAddress: GetRandomBNBAddress(),
-		InHash:    inTxID,
-		Coin:      common.NewCoin(common.BNBAsset, cosmos.NewUint(1000*common.One)),
-	}
-	txOutStore.ClearOutboundItems(w.ctx)
-	success, err = txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item)
-	c.Assert(err, IsNil)
-	c.Assert(success, Equals, true)
-	msgs, err = txOutStore.GetOutboundItems(w.ctx)
-	c.Assert(err, IsNil)
-	c.Assert(msgs, HasLen, 3)
-	c.Check(msgs[0].VaultPubKey.String(), Equals, acc2.PubKeySet.Secp256k1.String())
-	c.Check(msgs[1].VaultPubKey.String(), Equals, acc1.PubKeySet.Secp256k1.String())
-	c.Check(msgs[2].VaultPubKey.String(), Equals, vault.PubKey.String())
-
-	item = TxOutItem{
-		Chain:     common.BCHChain,
-		ToAddress: "1EFJFJm7Y9mTVsCBXA9PKuRuzjgrdBe4rR",
-		InHash:    inTxID,
-		Coin:      common.NewCoin(common.BCHAsset, cosmos.NewUint(20*common.One)),
-		MaxGas: common.Gas{
-			common.NewCoin(common.BCHAsset, cosmos.NewUint(10000)),
-		},
-	}
-	txOutStore.ClearOutboundItems(w.ctx)
-	result, err := txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item)
-	c.Assert(result, Equals, true)
-	c.Assert(err, IsNil)
-	msgs, err = txOutStore.GetOutboundItems(w.ctx)
-	// this should be a mocknet address
-	c.Assert(msgs[0].ToAddress.String(), Equals, "qzg5mkh7rkw3y8kw47l3rrnvhmenvctmd5yg6hxe64")
-}
-
-func (s TxOutStoreV68Suite) TestAddOutTxItem_OutboundHeightDoesNotGetOverride(c *C) {
-	SetupConfigForTest()
-	w := getHandlerTestWrapper(c, 1, true, true)
-	vault := GetRandomVault()
-	vault.Coins = common.Coins{
-		common.NewCoin(common.RuneAsset(), cosmos.NewUint(10000*common.One)),
-		common.NewCoin(common.BNBAsset, cosmos.NewUint(10000*common.One)),
-	}
-	c.Assert(w.keeper.SetVault(w.ctx, vault), IsNil)
-
-	acc1 := GetRandomValidatorNode(NodeActive)
-	acc2 := GetRandomValidatorNode(NodeActive)
-	acc3 := GetRandomValidatorNode(NodeActive)
-	c.Assert(w.keeper.SetNodeAccount(w.ctx, acc1), IsNil)
-	c.Assert(w.keeper.SetNodeAccount(w.ctx, acc2), IsNil)
-	c.Assert(w.keeper.SetNodeAccount(w.ctx, acc3), IsNil)
-
-	ygg := NewVault(common.BlockHeight(w.ctx), ActiveVault, YggdrasilVault, acc1.PubKeySet.Secp256k1, common.Chains{common.BNBChain}.Strings(), []ChainContract{})
-	ygg.AddFunds(
-		common.Coins{
-			common.NewCoin(common.BNBAsset, cosmos.NewUint(40*common.One)),
-			common.NewCoin(common.BCHAsset, cosmos.NewUint(40*common.One)),
-		},
-	)
-	c.Assert(w.keeper.SetVault(w.ctx, ygg), IsNil)
-
-	ygg = NewVault(common.BlockHeight(w.ctx), ActiveVault, YggdrasilVault, acc2.PubKeySet.Secp256k1, common.Chains{common.BNBChain}.Strings(), []ChainContract{})
-	ygg.AddFunds(
-		common.Coins{
-			common.NewCoin(common.BNBAsset, cosmos.NewUint(50*common.One)),
-			common.NewCoin(common.BCHAsset, cosmos.NewUint(40*common.One)),
-		},
-	)
-	c.Assert(w.keeper.SetVault(w.ctx, ygg), IsNil)
-
-	ygg = NewVault(common.BlockHeight(w.ctx), ActiveVault, YggdrasilVault, acc3.PubKeySet.Secp256k1, common.Chains{common.BNBChain}.Strings(), []ChainContract{})
-	ygg.AddFunds(
-		common.Coins{
-			common.NewCoin(common.BNBAsset, cosmos.NewUint(100*common.One)),
-			common.NewCoin(common.BCHAsset, cosmos.NewUint(40*common.One)),
-		},
-	)
-	c.Assert(w.keeper.SetVault(w.ctx, ygg), IsNil)
-	w.keeper.SetMimir(w.ctx, constants.MinTxOutVolumeThreshold.String(), 100000000000)
-	w.keeper.SetMimir(w.ctx, constants.TxOutDelayRate.String(), 2500000000)
-	w.keeper.SetMimir(w.ctx, constants.MaxTxOutOffset.String(), 720)
-	// Create voter
-	inTxID := GetRandomTxHash()
-	voter := NewObservedTxVoter(inTxID, ObservedTxs{
-		ObservedTx{
-			Tx:             GetRandomTx(),
-			Status:         types.Status_incomplete,
-			BlockHeight:    1,
-			Signers:        []string{w.activeNodeAccount.NodeAddress.String(), acc1.NodeAddress.String(), acc2.NodeAddress.String()},
-			KeysignMs:      0,
-			FinaliseHeight: 1,
-		},
-	})
-	w.keeper.SetObservedTxInVoter(w.ctx, voter)
-
-	// this should be split into two outbounds
-	item := TxOutItem{
-		Chain:     common.BNBChain,
-		ToAddress: GetRandomBNBAddress(),
-		InHash:    inTxID,
-		Coin:      common.NewCoin(common.BNBAsset, cosmos.NewUint(80*common.One)),
-	}
-	txOutStore := newTxOutStorageV68(w.keeper, w.mgr.GetConstants(), w.mgr.EventMgr(), w.mgr.GasMgr())
-	ok, err := txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item)
-	c.Assert(err, IsNil)
-	c.Assert(ok, Equals, true)
-
-	msgs, err := txOutStore.GetOutboundItems(w.ctx)
-	c.Assert(err, IsNil)
-	c.Assert(msgs, HasLen, 0)
-	//  the outbound has been delayed
-	newCtx := w.ctx.WithBlockHeight(4)
-	msgs, err = txOutStore.GetOutboundItems(newCtx)
-	c.Assert(msgs, HasLen, 2)
-	c.Assert(msgs[0].VaultPubKey.String(), Equals, acc2.PubKeySet.Secp256k1.String())
-	c.Assert(msgs[0].Coin.Amount.Equal(cosmos.NewUint(4999887500)), Equals, true, Commentf("%d", msgs[0].Coin.Amount.Uint64()))
-	c.Assert(msgs[1].VaultPubKey.String(), Equals, acc1.PubKeySet.Secp256k1.String())
-	c.Assert(msgs[1].Coin.Amount.Equal(cosmos.NewUint(2999887500)), Equals, true, Commentf("%d", msgs[0].Coin.Amount.Uint64()))
-
-	// make sure outbound_height has been set correctly
-	afterVoter, err := w.keeper.GetObservedTxInVoter(w.ctx, inTxID)
-	c.Assert(err, IsNil)
-	c.Assert(afterVoter.OutboundHeight, Equals, int64(4))
-
-	item.Chain = common.THORChain
-	item.Coin = common.NewCoin(common.RuneNative, cosmos.NewUint(100*common.One))
-	item.ToAddress = GetRandomTHORAddress()
-	ok, err = txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item)
-	c.Assert(err, IsNil)
-	c.Assert(ok, Equals, true)
-
-	// make sure outbound_height has not been overwritten
-	afterVoter1, err := w.keeper.GetObservedTxInVoter(w.ctx, inTxID)
-	c.Assert(err, IsNil)
-	c.Assert(afterVoter1.OutboundHeight, Equals, int64(4))
-}
-
-func (s TxOutStoreV68Suite) TestAddOutTxItemNotEnoughForFee(c *C) {
-	w := getHandlerTestWrapper(c, 1, true, true)
-	vault := GetRandomVault()
-	vault.Coins = common.Coins{
-		common.NewCoin(common.RuneAsset(), cosmos.NewUint(10000*common.One)),
-		common.NewCoin(common.BNBAsset, cosmos.NewUint(10000*common.One)),
-	}
-	c.Assert(w.keeper.SetVault(w.ctx, vault), IsNil)
-
-	acc1 := GetRandomValidatorNode(NodeActive)
-	acc2 := GetRandomValidatorNode(NodeActive)
-	acc3 := GetRandomValidatorNode(NodeActive)
-	c.Assert(w.keeper.SetNodeAccount(w.ctx, acc1), IsNil)
-	c.Assert(w.keeper.SetNodeAccount(w.ctx, acc2), IsNil)
-	c.Assert(w.keeper.SetNodeAccount(w.ctx, acc3), IsNil)
-
-	ygg := NewVault(common.BlockHeight(w.ctx), ActiveVault, YggdrasilVault, acc1.PubKeySet.Secp256k1, common.Chains{common.BNBChain}.Strings(), []ChainContract{})
-	ygg.AddFunds(
-		common.Coins{
-			common.NewCoin(common.BNBAsset, cosmos.NewUint(40*common.One)),
-		},
-	)
-	c.Assert(w.keeper.SetVault(w.ctx, ygg), IsNil)
-
-	ygg = NewVault(common.BlockHeight(w.ctx), ActiveVault, YggdrasilVault, acc2.PubKeySet.Secp256k1, common.Chains{common.BNBChain}.Strings(), []ChainContract{})
-	ygg.AddFunds(
-		common.Coins{
-			common.NewCoin(common.BNBAsset, cosmos.NewUint(50*common.One)),
-		},
-	)
-	c.Assert(w.keeper.SetVault(w.ctx, ygg), IsNil)
-
-	ygg = NewVault(common.BlockHeight(w.ctx), ActiveVault, YggdrasilVault, acc3.PubKeySet.Secp256k1, common.Chains{common.BNBChain}.Strings(), []ChainContract{})
-	ygg.AddFunds(
-		common.Coins{
-			common.NewCoin(common.BNBAsset, cosmos.NewUint(100*common.One)),
-		},
-	)
-	c.Assert(w.keeper.SetVault(w.ctx, ygg), IsNil)
-
-	// Create voter
-	inTxID := GetRandomTxHash()
-	voter := NewObservedTxVoter(inTxID, ObservedTxs{
-		ObservedTx{
-			Tx:             GetRandomTx(),
-			Status:         types.Status_incomplete,
-			BlockHeight:    1,
-			Signers:        []string{w.activeNodeAccount.NodeAddress.String(), acc1.NodeAddress.String(), acc2.NodeAddress.String()},
-			KeysignMs:      0,
-			FinaliseHeight: 1,
-		},
-	})
-	w.keeper.SetObservedTxInVoter(w.ctx, voter)
-
-	item := TxOutItem{
-		Chain:     common.BNBChain,
-		ToAddress: GetRandomBNBAddress(),
-		InHash:    inTxID,
-		Coin:      common.NewCoin(common.BNBAsset, cosmos.NewUint(30000)),
-	}
-	txOutStore := newTxOutStorageV68(w.keeper, w.mgr.GetConstants(), w.mgr.EventMgr(), w.mgr.GasMgr())
-	ok, err := txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item)
-	c.Assert(err, NotNil)
-	c.Assert(err, Equals, ErrNotEnoughToPayFee)
-	c.Assert(ok, Equals, false)
-	msgs, err := txOutStore.GetOutboundItems(w.ctx)
-	c.Assert(err, IsNil)
-	c.Assert(msgs, HasLen, 0)
-}
-
-func (s TxOutStoreV68Suite) TestAddOutTxItemWithoutBFT(c *C) {
-	w := getHandlerTestWrapper(c, 1, true, true)
-	vault := GetRandomVault()
-	vault.Coins = common.Coins{
-		common.NewCoin(common.BNBAsset, cosmos.NewUint(100*common.One)),
-	}
-	c.Assert(w.keeper.SetVault(w.ctx, vault), IsNil)
-
-	inTxID := GetRandomTxHash()
-	item := TxOutItem{
-		Chain:     common.BNBChain,
-		ToAddress: GetRandomBNBAddress(),
-		InHash:    inTxID,
-		Coin:      common.NewCoin(common.BNBAsset, cosmos.NewUint(20*common.One)),
-	}
-	txOutStore := newTxOutStorageV68(w.keeper, w.mgr.GetConstants(), w.mgr.EventMgr(), w.mgr.GasMgr())
-	success, err := txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item)
-	c.Assert(err, IsNil)
-	c.Assert(success, Equals, true)
-	msgs, err := txOutStore.GetOutboundItems(w.ctx)
-	c.Assert(err, IsNil)
-	c.Assert(msgs, HasLen, 1)
-	c.Assert(msgs[0].Coin.Amount.Equal(cosmos.NewUint(1999887500)), Equals, true, Commentf("%d", msgs[0].Coin.Amount.Uint64()))
-}
-
-func (s TxOutStoreV68Suite) TestAddOutTxItemDeductMaxGasFromYggdrasil(c *C) {
-	w := getHandlerTestWrapper(c, 1, true, true)
-	vault := GetRandomVault()
-	vault.Coins = common.Coins{
-		common.NewCoin(common.RuneAsset(), cosmos.NewUint(10000*common.One)),
-		common.NewCoin(common.BNBAsset, cosmos.NewUint(10000*common.One)),
-	}
-	c.Assert(w.keeper.SetVault(w.ctx, vault), IsNil)
-
-	acc1 := GetRandomValidatorNode(NodeActive)
-	acc2 := GetRandomValidatorNode(NodeActive)
-	acc3 := GetRandomValidatorNode(NodeActive)
-	c.Assert(w.keeper.SetNodeAccount(w.ctx, acc1), IsNil)
-	c.Assert(w.keeper.SetNodeAccount(w.ctx, acc2), IsNil)
-	c.Assert(w.keeper.SetNodeAccount(w.ctx, acc3), IsNil)
-
-	ygg := NewVault(common.BlockHeight(w.ctx), ActiveVault, YggdrasilVault, acc1.PubKeySet.Secp256k1, common.Chains{common.BNBChain}.Strings(), []ChainContract{})
-	ygg.AddFunds(
-		common.Coins{
-			common.NewCoin(common.BNBAsset, cosmos.NewUint(11*common.One)),
-		},
-	)
-	c.Assert(w.keeper.SetVault(w.ctx, ygg), IsNil)
-
-	ygg = NewVault(common.BlockHeight(w.ctx), ActiveVault, YggdrasilVault, acc2.PubKeySet.Secp256k1, common.Chains{common.BNBChain}.Strings(), []ChainContract{})
-	ygg.AddFunds(
-		common.Coins{
-			common.NewCoin(common.BNBAsset, cosmos.NewUint(50*common.One)),
-		},
-	)
-	c.Assert(w.keeper.SetVault(w.ctx, ygg), IsNil)
-
-	ygg = NewVault(common.BlockHeight(w.ctx), ActiveVault, YggdrasilVault, acc3.PubKeySet.Secp256k1, common.Chains{common.BNBChain}.Strings(), []ChainContract{})
-	ygg.AddFunds(
-		common.Coins{
-			common.NewCoin(common.BNBAsset, cosmos.NewUint(100*common.One)),
-		},
-	)
-	c.Assert(w.keeper.SetVault(w.ctx, ygg), IsNil)
-
-	// Create voter
-	inTxID := GetRandomTxHash()
-	voter := NewObservedTxVoter(inTxID, ObservedTxs{
-		ObservedTx{
-			Tx:             GetRandomTx(),
-			Status:         types.Status_incomplete,
-			BlockHeight:    1,
-			Signers:        []string{w.activeNodeAccount.NodeAddress.String(), acc1.NodeAddress.String(), acc2.NodeAddress.String()},
-			KeysignMs:      0,
-			FinaliseHeight: 1,
-		},
-	})
-	w.keeper.SetObservedTxInVoter(w.ctx, voter)
-
-	// Should get acc2. Acc3 hasn't signed and acc2 is the highest value
-	item := TxOutItem{
-		Chain:     common.BNBChain,
-		ToAddress: GetRandomBNBAddress(),
-		InHash:    inTxID,
-		Coin:      common.NewCoin(common.BNBAsset, cosmos.NewUint(3900000000)),
-		MaxGas: common.Gas{
-			common.NewCoin(common.BNBAsset, cosmos.NewUint(100000000)),
-		},
-	}
-	txOutStore := newTxOutStorageV68(w.keeper, w.mgr.GetConstants(), w.mgr.EventMgr(), w.mgr.GasMgr())
-	ok, err := txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item)
-	c.Assert(err, IsNil)
-	c.Assert(ok, Equals, true)
-	msgs, err := txOutStore.GetOutboundItems(w.ctx)
-	c.Assert(err, IsNil)
-	c.Assert(msgs, HasLen, 1)
-
-	item1 := TxOutItem{
-		Chain:     common.BNBChain,
-		ToAddress: GetRandomBNBAddress(),
-		InHash:    inTxID,
-		Coin:      common.NewCoin(common.BNBAsset, cosmos.NewUint(1000000000)),
-		MaxGas: common.Gas{
-			common.NewCoin(common.BNBAsset, cosmos.NewUint(7500)),
-		},
-	}
-	ok, err = txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item1)
-	c.Assert(err, IsNil)
-	c.Assert(ok, Equals, true)
-	msgs, err = txOutStore.GetOutboundItems(w.ctx)
-	c.Assert(err, IsNil)
-	c.Assert(msgs, HasLen, 2)
-	c.Assert(msgs[1].VaultPubKey.Equals(acc1.PubKeySet.Secp256k1), Equals, true)
-}
-
-func (s TxOutStoreV68Suite) TestcalcTxOutHeight(c *C) {
-	keeper := &TestCalcKeeper{
-		value: make(map[int64]cosmos.Uint, 0),
-		mimir: make(map[string]int64, 0),
+func (tos *TxOutStorageV73) EndBlock(ctx cosmos.Context, mgr Manager) error {
+	// update the max gas for all outbounds in this block. This can be useful
+	// if an outbound transaction was scheduled into the future, and the gas
+	// for that blockchain changes in that time span. This avoids the need to
+	// reschedule the transaction to Asgard, as well as avoids slash point
+	// accural on ygg nodes.
+	txOut, err := tos.GetBlockOut(ctx)
+	if err != nil {
+		return err
 	}
 
-	keeper.mimir["MinTxOutVolumeThreshold"] = 25_00000000
-	keeper.mimir["TxOutDelayRate"] = 25_00000000
-	keeper.mimir["MaxTxOutOffset"] = 720
-	keeper.mimir["TxOutDelayMax"] = 17280
+	maxGasCache := make(map[common.Chain]common.Coin, 0)
+	gasRateCache := make(map[common.Chain]int64, 0)
 
-	addValue := func(h int64, v cosmos.Uint) {
-		if _, ok := keeper.value[h]; !ok {
-			keeper.value[h] = cosmos.ZeroUint()
+	for i, tx := range txOut.TxArray {
+		// update max gas, take the larger of the current gas, or the last gas used
+
+		// update cache if needed
+		if _, ok := maxGasCache[tx.Chain]; !ok {
+			maxGasCache[tx.Chain], _ = mgr.GasMgr().GetMaxGas(ctx, tx.Chain)
 		}
-		keeper.value[h] = keeper.value[h].Add(v)
+		if _, ok := gasRateCache[tx.Chain]; !ok {
+			gasRateCache[tx.Chain] = int64(mgr.GasMgr().GetGasRate(ctx, tx.Chain).Uint64())
+		}
+
+		maxGas := maxGasCache[tx.Chain]
+		gasRate := gasRateCache[tx.Chain]
+		if len(tx.MaxGas) == 0 || maxGas.Amount.GT(tx.MaxGas[0].Amount) {
+			txOut.TxArray[i].MaxGas = common.Gas{maxGas}
+		}
+		txOut.TxArray[i].GasRate = gasRate
 	}
 
-	ctx, _ := setupManagerForTest(c)
-
-	txout := TxOutStorageV66{keeper: keeper}
-
-	toi := TxOutItem{
-		Coin: common.NewCoin(common.BNBAsset, cosmos.NewUint(50*common.One)),
-		Memo: "OUT:nomnomnom",
+	if err := tos.keeper.SetTxOut(ctx, txOut); err != nil {
+		return fmt.Errorf("fail to save tx out : %w", err)
 	}
-	pool, _ := keeper.GetPool(ctx, common.BNBAsset)
-	value := pool.AssetValueInRune(toi.Coin.Amount)
+	return nil
+}
 
-	targetBlock, err := txout.calcTxOutHeight(ctx, toi)
-	c.Assert(err, IsNil)
-	c.Check(targetBlock, Equals, int64(147))
-	addValue(targetBlock, value)
+// GetBlockOut read the TxOut from kv store
+func (tos *TxOutStorageV73) GetBlockOut(ctx cosmos.Context) (*TxOut, error) {
+	return tos.keeper.GetTxOut(ctx, common.BlockHeight(ctx))
+}
 
-	targetBlock, err = txout.calcTxOutHeight(ctx, toi)
-	c.Assert(err, IsNil)
-	c.Check(targetBlock, Equals, int64(148))
-	addValue(targetBlock, value)
+// GetOutboundItems read all the outbound item from kv store
+func (tos *TxOutStorageV73) GetOutboundItems(ctx cosmos.Context) ([]TxOutItem, error) {
+	block, err := tos.keeper.GetTxOut(ctx, common.BlockHeight(ctx))
+	if block == nil {
+		return nil, nil
+	}
+	return block.TxArray, err
+}
 
-	toi.Coin.Amount = cosmos.NewUint(50000 * common.One)
-	targetBlock, err = txout.calcTxOutHeight(ctx, toi)
-	c.Assert(err, IsNil)
-	c.Check(targetBlock, Equals, int64(738))
-	addValue(targetBlock, value)
+// GetOutboundItemByToAddress read all the outbound items filter by the given to address
+func (tos *TxOutStorageV73) GetOutboundItemByToAddress(ctx cosmos.Context, to common.Address) []TxOutItem {
+	filterItems := make([]TxOutItem, 0)
+	items, _ := tos.GetOutboundItems(ctx)
+	for _, item := range items {
+		if item.ToAddress.Equals(to) {
+			filterItems = append(filterItems, item)
+		}
+	}
+	return filterItems
+}
+
+// ClearOutboundItems remove all the tx out items , mostly used for test
+func (tos *TxOutStorageV73) ClearOutboundItems(ctx cosmos.Context) {
+	_ = tos.keeper.ClearTxOut(ctx, common.BlockHeight(ctx))
+}
+
+// TryAddTxOutItem add an outbound tx to block
+// return bool indicate whether the transaction had been added successful or not
+// return error indicate error
+func (tos *TxOutStorageV73) TryAddTxOutItem(ctx cosmos.Context, mgr Manager, toi TxOutItem) (bool, error) {
+	outputs, err := tos.prepareTxOutItem(ctx, toi)
+	if err != nil {
+		return false, fmt.Errorf("fail to prepare outbound tx: %w", err)
+	}
+	if len(outputs) == 0 {
+		return false, ErrNotEnoughToPayFee
+	}
+
+	// calculate the single block height to send all of these txout items,
+	// using the summed amount
+	outboundHeight := common.BlockHeight(ctx)
+	if !toi.Chain.IsTHORChain() && !toi.InHash.IsEmpty() && !toi.InHash.Equals(common.BlankTxID) {
+		toi.Memo = outputs[0].Memo
+		targetHeight, err := tos.calcTxOutHeight(ctx, toi)
+		if err != nil {
+			ctx.Logger().Error("failed to calc target block height for txout item", "error", err)
+		}
+		if targetHeight > outboundHeight {
+			outboundHeight = targetHeight
+		}
+		voter, err := tos.keeper.GetObservedTxInVoter(ctx, toi.InHash)
+		if err != nil {
+			ctx.Logger().Error("fail to get observe tx in voter", "error", err)
+			return false, fmt.Errorf("fail to get observe tx in voter,err:%w", err)
+		}
+		voter.OutboundHeight = outboundHeight
+		tos.keeper.SetObservedTxInVoter(ctx, voter)
+	}
+
+	// add tx to block out
+	for _, output := range outputs {
+		if err := tos.addToBlockOut(ctx, mgr, output, outboundHeight); err != nil {
+			return false, err
+		}
+	}
+	return true, nil
+}
+
+// UnSafeAddTxOutItem - blindly adds a tx out, skipping vault selection, transaction
+// fee deduction, etc
+func (tos *TxOutStorageV73) UnSafeAddTxOutItem(ctx cosmos.Context, mgr Manager, toi TxOutItem) error {
+	// BCH chain will convert legacy address to new format automatically , thus when observe it back can't be associated with the original inbound
+	// so here convert the legacy address to new format
+	if toi.Chain.Equals(common.BCHChain) {
+		newBCHAddress, err := common.ConvertToNewBCHAddressFormat(toi.ToAddress)
+		if err != nil {
+			return fmt.Errorf("fail to convert BCH address to new format: %w", err)
+		}
+		if newBCHAddress.IsEmpty() {
+			return fmt.Errorf("empty to address , can't send out")
+		}
+		toi.ToAddress = newBCHAddress
+	}
+	return tos.addToBlockOut(ctx, mgr, toi, common.BlockHeight(ctx))
+}
+
+// prepareTxOutItem will do some data validation which include the following
+// 1. Make sure it has a legitimate memo
+// 2. choose an appropriate vault(s) to send from (ygg first, active asgard, then retiring asgard)
+// 3. deduct transaction fee, keep in mind, only take transaction fee when active nodes are  more then minimumBFT
+// return list of outbound transactions
+func (tos *TxOutStorageV73) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem) ([]TxOutItem, error) {
+	var outputs []TxOutItem
+
+	// Default the memo to the standard outbound memo
+	if toi.Memo == "" {
+		toi.Memo = NewOutboundMemo(toi.InHash).String()
+	}
+	// Ensure the InHash is set
+	if toi.InHash.IsEmpty() {
+		toi.InHash = common.BlankTxID
+	}
+	if toi.ToAddress.IsEmpty() {
+		return outputs, fmt.Errorf("empty to address, can't send out")
+	}
+	if !toi.ToAddress.IsChain(toi.Chain) {
+		return outputs, fmt.Errorf("to address(%s), is not of chain(%s)", toi.ToAddress, toi.Chain)
+	}
+
+	// BCH chain will convert legacy address to new format automatically , thus when observe it back can't be associated with the original inbound
+	// so here convert the legacy address to new format
+	if toi.Chain.Equals(common.BCHChain) {
+		newBCHAddress, err := common.ConvertToNewBCHAddressFormat(toi.ToAddress)
+		if err != nil {
+			return outputs, fmt.Errorf("fail to convert BCH address to new format: %w", err)
+		}
+		if newBCHAddress.IsEmpty() {
+			return outputs, fmt.Errorf("empty to address , can't send out")
+		}
+		toi.ToAddress = newBCHAddress
+	}
+	signingTransactionPeriod := tos.constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
+	transactionFeeRune := tos.gasManager.GetFee(ctx, toi.Chain, common.RuneAsset())
+	transactionFeeAsset := tos.gasManager.GetFee(ctx, toi.Chain, toi.Coin.Asset)
+
+	if toi.Chain.Equals(common.THORChain) {
+		outputs = append(outputs, toi)
+	} else {
+		if !toi.VaultPubKey.IsEmpty() {
+			// a vault is already manually selected, blindly go forth with that
+			outputs = append(outputs, toi)
+		} else {
+			maxGasAsset, err := tos.gasManager.GetMaxGas(ctx, toi.Chain)
+			if err != nil {
+				ctx.Logger().Error("fail to get max gas asset", "error", err)
+			}
+			// THORNode don't have a vault already selected to send from, discover one.
+			vaults := make(Vaults, 0) // a sorted list of vaults to send funds from
+
+			// ///////////// COLLECT YGGDRASIL VAULTS ///////////////////////////
+			// When deciding which Yggdrasil pool will send out our tx out, we
+			// should consider which ones observed the inbound request tx, as
+			// yggdrasil pools can go offline. Here THORNode get the voter record and
+			// only consider Yggdrasils where their observed saw the "correct"
+			// tx.
+
+			activeNodeAccounts, err := tos.keeper.ListActiveValidators(ctx)
+			if err != nil {
+				ctx.Logger().Error("fail to get all active node accounts", "error", err)
+			}
+			if len(activeNodeAccounts) > 0 {
+				voter, err := tos.keeper.GetObservedTxInVoter(ctx, toi.InHash)
+				if err != nil {
+					return nil, fmt.Errorf("fail to get observed tx voter: %w", err)
+				}
+				tx := voter.GetTx(activeNodeAccounts)
+
+				// collect yggdrasil pools is going to get a list of yggdrasil
+				// vault that THORChain can used to send out fund
+				yggs, err := tos.collectYggdrasilPools(ctx, tx, toi.Chain.GetGasAsset())
+				if err != nil {
+					return nil, fmt.Errorf("fail to collect yggdrasil pool: %w", err)
+				}
+
+				// add yggdrasil vaults first
+				vaults = append(vaults, yggs.SortBy(toi.Coin.Asset)...)
+			}
+			// //////////////////////////////////////////////////////////////
+
+			// ///////////// COLLECT ACTIVE ASGARD VAULTS ///////////////////
+			active, err := tos.keeper.GetAsgardVaultsByStatus(ctx, ActiveVault)
+			if err != nil {
+				ctx.Logger().Error("fail to get active vaults", "error", err)
+			}
+
+			for i := range active {
+				active[i], err = tos.deductVaultPendingOutboundBalance(ctx, active[i])
+				if err != nil {
+					ctx.Logger().Error("fail to deduct outstanding outbound balance from asgard vault", "error", err)
+					continue
+				}
+			}
+			vaults = append(vaults, tos.keeper.SortBySecurity(ctx, active, signingTransactionPeriod)...)
+			// //////////////////////////////////////////////////////////////
+
+			// ///////////// COLLECT RETIRING ASGARD VAULTS /////////////////
+			retiring, err := tos.keeper.GetAsgardVaultsByStatus(ctx, RetiringVault)
+			if err != nil {
+				ctx.Logger().Error("fail to get retiring vaults", "error", err)
+			}
+			for i := range retiring {
+				retiring[i], err = tos.deductVaultPendingOutboundBalance(ctx, retiring[i])
+				if err != nil {
+					ctx.Logger().Error("fail to deduct outstanding outbound balance from asgard vault", "error", err)
+					continue
+				}
+			}
+			vaults = append(vaults, tos.keeper.SortBySecurity(ctx, retiring, signingTransactionPeriod)...)
+			// //////////////////////////////////////////////////////////////
+
+			// iterate over discovered vaults and find vaults to send funds from
+			for _, vault := range vaults {
+				// Ensure THORNode are not sending from and to the same address
+				fromAddr, err := vault.PubKey.GetAddress(toi.Chain)
+				if err != nil || fromAddr.IsEmpty() || toi.ToAddress.Equals(fromAddr) {
+					continue
+				}
+				// if the asset in the vault is not enough to pay for the fee , then skip it
+				if vault.GetCoin(toi.Coin.Asset).Amount.LTE(transactionFeeAsset) {
+					continue
+				}
+				// if the vault doesn't have gas asset in it , or it doesn't have enough to pay for gas
+				gasAsset := vault.GetCoin(toi.Chain.GetGasAsset())
+				if gasAsset.IsEmpty() || gasAsset.Amount.LT(maxGasAsset.Amount) {
+					continue
+				}
+
+				toi.VaultPubKey = vault.PubKey
+				if toi.Coin.Amount.LTE(vault.GetCoin(toi.Coin.Asset).Amount) {
+					outputs = append(outputs, toi)
+					toi.Coin.Amount = cosmos.ZeroUint()
+					break
+				} else {
+					toi.VaultPubKey = vault.PubKey
+					remainingAmount := common.SafeSub(toi.Coin.Amount, vault.GetCoin(toi.Coin.Asset).Amount)
+					toi.Coin.Amount = common.SafeSub(toi.Coin.Amount, remainingAmount)
+					outputs = append(outputs, toi)
+					toi.Coin.Amount = remainingAmount
+				}
+			}
+
+			// Check we found enough funds to satisfy the request, error if we didn't
+			if !toi.Coin.Amount.IsZero() {
+				return nil, fmt.Errorf("insufficient funds for outbound request: %s %s remaining", toi.ToAddress.String(), toi.Coin.String())
+			}
+		}
+	}
+	var finalOutput []TxOutItem
+	var pool Pool
+	var feeEvents []*EventFee
+	finalRuneFee := cosmos.ZeroUint()
+	for i := range outputs {
+		if outputs[i].MaxGas.IsEmpty() {
+			maxGasCoin, err := tos.gasManager.GetMaxGas(ctx, outputs[i].Chain)
+			if err != nil {
+				return nil, fmt.Errorf("fail to get max gas coin: %w", err)
+			}
+			outputs[i].MaxGas = common.Gas{
+				maxGasCoin,
+			}
+			// THOR Chain doesn't need to have max gas
+			if outputs[i].MaxGas.IsEmpty() && !outputs[i].Chain.Equals(common.THORChain) {
+				return nil, fmt.Errorf("max gas cannot be empty: %s", outputs[i].MaxGas)
+			}
+			outputs[i].GasRate = int64(tos.gasManager.GetGasRate(ctx, outputs[i].Chain).Uint64())
+		}
+
+		runeFee := transactionFeeRune // Fee is the prescribed fee
+
+		// Deduct OutboundTransactionFee from TOI and add to Reserve
+		memo, err := ParseMemoWithTHORNames(ctx, tos.keeper, outputs[i].Memo) // ignore err
+		if err == nil && !memo.IsType(TxYggdrasilFund) && !memo.IsType(TxYggdrasilReturn) && !memo.IsType(TxMigrate) && !memo.IsType(TxRagnarok) {
+			if outputs[i].Coin.Asset.IsRune() {
+				if outputs[i].Coin.Amount.LTE(transactionFeeRune) {
+					runeFee = outputs[i].Coin.Amount // Fee is the full amount
+				}
+				finalRuneFee = finalRuneFee.Add(runeFee)
+				outputs[i].Coin.Amount = common.SafeSub(outputs[i].Coin.Amount, runeFee)
+				fee := common.NewFee(common.Coins{common.NewCoin(outputs[i].Coin.Asset, runeFee)}, cosmos.ZeroUint())
+				feeEvents = append(feeEvents, NewEventFee(outputs[i].InHash, fee, cosmos.ZeroUint()))
+			} else {
+				if pool.IsEmpty() {
+					var err error
+					pool, err = tos.keeper.GetPool(ctx, toi.Coin.Asset) // Get pool
+					if err != nil {
+						// the error is already logged within kvstore
+						return nil, fmt.Errorf("fail to get pool: %w", err)
+					}
+				}
+
+				// if pool units is zero, no asset fee is taken
+				if !pool.GetPoolUnits().IsZero() {
+					assetFee := transactionFeeAsset
+					if outputs[i].Coin.Amount.LTE(assetFee) {
+						assetFee = outputs[i].Coin.Amount // Fee is the full amount
+						runeFee = pool.AssetValueInRune(assetFee)
+					}
+
+					outputs[i].Coin.Amount = common.SafeSub(outputs[i].Coin.Amount, assetFee) // Deduct Asset fee
+					if outputs[i].Coin.Asset.IsSyntheticAsset() {
+						// burn the synth asset which used to pay for fee, that's only required when the synth is sending from asgard
+						if outputs[i].ModuleName == "" || outputs[i].ModuleName == AsgardName {
+							if err := tos.keeper.SendFromModuleToModule(ctx,
+								AsgardName,
+								ModuleName,
+								common.NewCoins(common.NewCoin(outputs[i].Coin.Asset, assetFee))); err != nil {
+								ctx.Logger().Error("fail to move synth asset fee from asgard to Module", "error", err)
+							} else {
+								if err := tos.keeper.BurnFromModule(ctx, ModuleName, common.NewCoin(outputs[i].Coin.Asset, assetFee)); err != nil {
+									ctx.Logger().Error("fail to burn synth asset", "error", err)
+								}
+							}
+						}
+
+					} else {
+						pool.BalanceAsset = pool.BalanceAsset.Add(assetFee) // Add Asset fee to Pool
+					}
+					var poolDeduct cosmos.Uint
+					if runeFee.GT(pool.BalanceRune) {
+						poolDeduct = pool.BalanceRune
+					} else {
+						poolDeduct = runeFee
+					}
+					finalRuneFee = finalRuneFee.Add(runeFee)
+					pool.BalanceRune = common.SafeSub(pool.BalanceRune, runeFee) // Deduct Rune from Pool
+					fee := common.NewFee(common.Coins{common.NewCoin(outputs[i].Coin.Asset, assetFee)}, poolDeduct)
+					feeEvents = append(feeEvents, NewEventFee(outputs[i].InHash, fee, cosmos.ZeroUint()))
+				}
+			}
+		}
+
+		// when it is ragnarok , the network doesn't charge fee , however if the output asset is gas asset,
+		// then the amount of max gas need to be taken away from the customer , otherwise the vault will be insolvent and doesn't
+		// have enough to fulfill outbound
+		// Also the MaxGas has not put back to pool ,so there is no need to subside pool when ragnarok is in progress
+		if memo.IsType(TxRagnarok) && outputs[i].Coin.Asset.IsGasAsset() {
+			gasAmt := outputs[i].MaxGas.ToCoins().GetCoin(outputs[i].Coin.Asset).Amount
+			outputs[i].Coin.Amount = common.SafeSub(outputs[i].Coin.Amount, gasAmt)
+		}
+		// When we request Yggdrasil pool to return the fund, the coin field is actually empty
+		// Signer when it sees an tx out item with memo "yggdrasil-" it will query the account on relevant chain
+		// and coin field will be filled there, thus we have to let this one go
+		if outputs[i].Coin.IsEmpty() && !memo.IsType(TxYggdrasilReturn) {
+			ctx.Logger().Info("tx out item has zero coin", "tx_out", outputs[i].String())
+
+			// Need to determinate whether the outbound is triggered by a withdrawal request
+			// if the outbound is trigger by withdrawal request, and emit asset is not enough to pay for the fee
+			// this need to return with an error , thus handler_withdraw can restore LP's LPUnits
+			// and also the fee event will not be emitted
+			if !outputs[i].InHash.IsEmpty() && !outputs[i].InHash.Equals(common.BlankTxID) {
+				inboundVoter, err := tos.keeper.GetObservedTxInVoter(ctx, outputs[i].InHash)
+				if err != nil {
+					ctx.Logger().Error("fail to get observed txin voter", "error", err)
+					continue
+				}
+				if inboundVoter.Tx.IsEmpty() {
+					continue
+				}
+				inboundMemo, err := ParseMemoWithTHORNames(ctx, tos.keeper, inboundVoter.Tx.Tx.Memo)
+				if err != nil {
+					ctx.Logger().Error("fail to parse inbound transaction memo", "error", err)
+					continue
+				}
+				if inboundMemo.IsType(TxWithdraw) {
+					return nil, errors.New("tx out item has zero coin")
+				}
+			}
+			continue
+		}
+
+		if !outputs[i].InHash.Equals(common.BlankTxID) {
+			// increment out number of out tx for this in tx
+			voter, err := tos.keeper.GetObservedTxInVoter(ctx, outputs[i].InHash)
+			if err != nil {
+				return nil, fmt.Errorf("fail to get observed tx voter: %w", err)
+			}
+			voter.FinalisedHeight = common.BlockHeight(ctx)
+			voter.Actions = append(voter.Actions, outputs[i])
+			tos.keeper.SetObservedTxInVoter(ctx, voter)
+		}
+
+		finalOutput = append(finalOutput, outputs[i])
+	}
+
+	if !pool.IsEmpty() {
+		if err := tos.keeper.SetPool(ctx, pool); err != nil { // Set Pool
+			return nil, fmt.Errorf("fail to save pool: %w", err)
+		}
+	}
+	for _, feeEvent := range feeEvents {
+		if err := tos.eventMgr.EmitFeeEvent(ctx, feeEvent); err != nil {
+			ctx.Logger().Error("fail to emit fee event", "error", err)
+		}
+
+	}
+	if !finalRuneFee.IsZero() {
+		if err := tos.keeper.AddFeeToReserve(ctx, finalRuneFee); err != nil {
+			// Add to reserve
+			ctx.Logger().Error("fail to add fee to reserve", "error", err)
+		}
+	}
+
+	return finalOutput, nil
+}
+
+func (tos *TxOutStorageV73) addToBlockOut(ctx cosmos.Context, mgr Manager, item TxOutItem, outboundHeight int64) error {
+	// if we're sending native assets, transfer them now and return
+	if item.Chain.IsTHORChain() {
+		return tos.nativeTxOut(ctx, mgr, item)
+	}
+
+	vault, err := tos.keeper.GetVault(ctx, item.VaultPubKey)
+	if err != nil {
+		ctx.Logger().Error("fail to get vault", "error", err)
+	}
+	memo, _ := ParseMemo(item.Memo) // ignore err
+	labels := []metrics.Label{
+		telemetry.NewLabel("vault_type", vault.Type.String()),
+		telemetry.NewLabel("pubkey", item.VaultPubKey.String()),
+		telemetry.NewLabel("memo_type", memo.GetType().String()),
+	}
+	telemetry.SetGaugeWithLabels([]string{"thornode", "vault", "out_txn"}, float32(1), labels)
+
+	return tos.keeper.AppendTxOut(ctx, outboundHeight, item)
+}
+
+func (tos *TxOutStorageV73) calcTxOutHeight(ctx cosmos.Context, toi TxOutItem) (int64, error) {
+	// non-outbound transactions are skipped. This is so this code does not
+	// affect internal transactions (ie consolidation and migrate txs)
+	memo, _ := ParseMemo(toi.Memo) // ignore err
+	if !memo.IsType(TxRefund) && !memo.IsType(TxOutbound) {
+		return common.BlockHeight(ctx), nil
+	}
+
+	minTxOutVolumeThreshold, err := tos.keeper.GetMimir(ctx, constants.MinTxOutVolumeThreshold.String())
+	if minTxOutVolumeThreshold <= 0 || err != nil {
+		minTxOutVolumeThreshold = tos.constAccessor.GetInt64Value(constants.MinTxOutVolumeThreshold)
+	}
+	minVolumeThreshold := cosmos.NewUint(uint64(minTxOutVolumeThreshold))
+	txOutDelayRate, err := tos.keeper.GetMimir(ctx, constants.TxOutDelayRate.String())
+	if txOutDelayRate <= 0 || err != nil {
+		txOutDelayRate = tos.constAccessor.GetInt64Value(constants.TxOutDelayRate)
+	}
+	txOutDelayMax, err := tos.keeper.GetMimir(ctx, constants.TxOutDelayMax.String())
+	if txOutDelayMax <= 0 || err != nil {
+		txOutDelayMax = tos.constAccessor.GetInt64Value(constants.TxOutDelayMax)
+	}
+	maxTxOutOffset, err := tos.keeper.GetMimir(ctx, constants.MaxTxOutOffset.String())
+	if maxTxOutOffset <= 0 || err != nil {
+		maxTxOutOffset = tos.constAccessor.GetInt64Value(constants.MaxTxOutOffset)
+	}
+
+	// if volume threshold is zero
+	if minVolumeThreshold.IsZero() || txOutDelayRate == 0 {
+		return common.BlockHeight(ctx), nil
+	}
+
+	// get txout item value in rune
+	runeValue := toi.Coin.Amount
+	if !toi.Coin.Asset.IsRune() {
+		pool, err := tos.keeper.GetPool(ctx, toi.Coin.Asset)
+		if err != nil {
+			ctx.Logger().Error("fail to get pool for appending txout item", "error", err)
+			return common.BlockHeight(ctx) + maxTxOutOffset, err
+		}
+		runeValue = pool.AssetValueInRune(toi.Coin.Amount)
+	}
+
+	// sum value of scheduled txns (including this one)
+	sumValue := runeValue
+	for height := common.BlockHeight(ctx) + 1; height <= common.BlockHeight(ctx)+txOutDelayMax; height++ {
+		value, err := tos.keeper.GetTxOutValue(ctx, height)
+		if err != nil {
+			ctx.Logger().Error("fail to get tx out array from key value store", "error", err)
+			continue
+		}
+		if height > common.BlockHeight(ctx)+maxTxOutOffset && value.IsZero() {
+			// we've hit our max offset, and an empty block, we can assume the
+			// rest will be empty as well
+			break
+		}
+		sumValue = sumValue.Add(value)
+	}
+	// reduce delay rate relative to the total scheduled value. In high volume
+	// scenarios, this causes the network to send outbound transactions slower,
+	// giving the community & NOs time to analyze and react. In an attack
+	// scenario, the attacker is likely going to move as much value as possible
+	// (as we've seen in the past). The act of doing this will slow down their
+	// own transaction(s), reducing the attack's effectiveness.
+	txOutDelayRate -= int64(sumValue.Uint64()) / minTxOutVolumeThreshold
+	if txOutDelayRate < 1 {
+		txOutDelayRate = 1
+	}
+
+	// calculate the minimum number of blocks in the future the txn has to be
+	minBlocks := int64(runeValue.Uint64()) / txOutDelayRate
+	// min shouldn't be anything longer than the max txout offset
+	if minBlocks > maxTxOutOffset {
+		minBlocks = maxTxOutOffset
+	}
+	targetBlock := common.BlockHeight(ctx) + minBlocks
+
+	// find targetBlock that has space for new txout item.
+	count := int64(0)
+	for count < txOutDelayMax { // max set 1 day into the future
+		txOutValue, err := tos.keeper.GetTxOutValue(ctx, targetBlock)
+		if err != nil {
+			ctx.Logger().Error("fail to get txOutValue for block height", "error", err)
+			break
+		}
+		if txOutValue.IsZero() {
+			// the txout has no outbound txns, let's use this one
+			break
+		}
+		if txOutValue.Add(runeValue).LTE(minVolumeThreshold) {
+			// the txout + this txout item has enough space to fit, lets use this one
+			break
+		}
+		targetBlock += 1
+		count += 1
+	}
+
+	return targetBlock, nil
+}
+
+func (tos *TxOutStorageV73) nativeTxOut(ctx cosmos.Context, mgr Manager, toi TxOutItem) error {
+	addr, err := cosmos.AccAddressFromBech32(toi.ToAddress.String())
+	if err != nil {
+		return err
+	}
+
+	if toi.ModuleName == "" {
+		toi.ModuleName = AsgardName
+	}
+
+	// mint if we're sending from THORChain module
+	if toi.ModuleName == ModuleName {
+		if err := tos.keeper.MintToModule(ctx, toi.ModuleName, toi.Coin); err != nil {
+			return fmt.Errorf("fail to mint coins during txout: %w", err)
+		}
+	}
+
+	// send funds from module
+	sdkErr := tos.keeper.SendFromModuleToAccount(ctx, toi.ModuleName, addr, common.NewCoins(toi.Coin))
+	if sdkErr != nil {
+		return errors.New(sdkErr.Error())
+	}
+
+	from, err := tos.keeper.GetModuleAddress(toi.ModuleName)
+	if err != nil {
+		ctx.Logger().Error("fail to get from address", "err", err)
+		return err
+	}
+	outboundTxFee, err := tos.keeper.GetMimir(ctx, constants.OutboundTransactionFee.String())
+	if outboundTxFee < 0 || err != nil {
+		outboundTxFee = tos.constAccessor.GetInt64Value(constants.OutboundTransactionFee)
+	}
+
+	tx := common.NewTx(
+		common.BlankTxID,
+		from,
+		toi.ToAddress,
+		common.Coins{toi.Coin},
+		common.Gas{common.NewCoin(common.RuneAsset(), cosmos.NewUint(uint64(outboundTxFee)))},
+		toi.Memo,
+	)
+
+	active, err := tos.keeper.GetAsgardVaultsByStatus(ctx, ActiveVault)
+	if err != nil {
+		ctx.Logger().Error("fail to get active vaults", "err", err)
+		return err
+	}
+
+	observedTx := ObservedTx{
+		ObservedPubKey: active[0].PubKey,
+		BlockHeight:    common.BlockHeight(ctx),
+		Tx:             tx,
+		FinaliseHeight: common.BlockHeight(ctx),
+	}
+	m, err := processOneTxIn(ctx, mgr.GetVersion(), tos.keeper, observedTx, tos.keeper.GetModuleAccAddress(AsgardName))
+	if err != nil {
+		ctx.Logger().Error("fail to process txOut", "error", err, "tx", tx.String())
+		return err
+	}
+
+	handler := NewInternalHandler(mgr)
+
+	_, err = handler(ctx, m)
+	if err != nil {
+		ctx.Logger().Error("TxOut Handler failed:", "error", err)
+		return err
+	}
+
+	return nil
+}
+
+// collectYggdrasilPools is to get all the yggdrasil vaults , that THORChain can used to send out fund
+func (tos *TxOutStorageV73) collectYggdrasilPools(ctx cosmos.Context, tx ObservedTx, gasAsset common.Asset) (Vaults, error) {
+	// collect yggdrasil pools
+	var vaults Vaults
+	iterator := tos.keeper.GetVaultIterator(ctx)
+	defer func() {
+		if err := iterator.Close(); err != nil {
+			ctx.Logger().Error("fail to close vault iterator", "error", err)
+		}
+	}()
+	for ; iterator.Valid(); iterator.Next() {
+		var vault Vault
+		if err := tos.keeper.Cdc().UnmarshalBinaryBare(iterator.Value(), &vault); err != nil {
+			return nil, fmt.Errorf("fail to unmarshal vault: %w", err)
+		}
+		if !vault.IsYggdrasil() {
+			continue
+		}
+		// When trying to choose a ygg pool candidate to send out fund , let's
+		// make sure the ygg pool has gasAsset , for example, if it is
+		// on Binance chain , make sure ygg pool has BNB asset in it ,
+		// otherwise it won't be able to pay the transaction fee
+		if !vault.HasAsset(gasAsset) {
+			continue
+		}
+
+		// if THORNode are already sending assets from this ygg pool, deduct them.
+		addr, err := vault.PubKey.GetThorAddress()
+		if err != nil {
+			return nil, fmt.Errorf("fail to get thor address from pub key(%s):%w", vault.PubKey, err)
+		}
+
+		// if the ygg pool didn't observe the TxIn, and didn't sign the TxIn,
+		// THORNode is not going to choose them to send out fund , because they
+		// might offline
+		if !tx.HasSigned(addr) {
+			continue
+		}
+
+		jail, err := tos.keeper.GetNodeAccountJail(ctx, addr)
+		if err != nil {
+			return nil, fmt.Errorf("fail to get ygg jail:%w", err)
+		}
+		if jail.IsJailed(ctx) {
+			continue
+		}
+
+		v, err := tos.deductVaultPendingOutboundBalance(ctx, vault)
+		if err != nil {
+			ctx.Logger().Error("fail to deduct vault outstanding outbound balance", "error", err)
+			continue
+		}
+		vaults = append(vaults, v)
+	}
+
+	return vaults, nil
+}
+
+func (tos *TxOutStorageV73) deductVaultPendingOutboundBalance(ctx cosmos.Context, vault Vault) (Vault, error) {
+	// go back SigningTransactionPeriod blocks to see whether there are
+	// outstanding tx, the vault need to send out if there is , deduct it from
+	// their balance
+	signingPeriod := tos.constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
+	startHeight := common.BlockHeight(ctx) - signingPeriod
+	if startHeight < 1 {
+		startHeight = 1
+	}
+	txOutDelayMax, err := tos.keeper.GetMimir(ctx, constants.TxOutDelayMax.String())
+	if txOutDelayMax <= 0 || err != nil {
+		txOutDelayMax = tos.constAccessor.GetInt64Value(constants.TxOutDelayMax)
+	}
+	maxTxOutOffset, err := tos.keeper.GetMimir(ctx, constants.MaxTxOutOffset.String())
+	if maxTxOutOffset <= 0 || err != nil {
+		maxTxOutOffset = tos.constAccessor.GetInt64Value(constants.MaxTxOutOffset)
+	}
+	for height := startHeight; height <= common.BlockHeight(ctx)+txOutDelayMax; height++ {
+		blockOut, err := tos.keeper.GetTxOut(ctx, height)
+		if err != nil {
+			ctx.Logger().Error("fail to get block tx out", "error", err)
+		}
+		if height > common.BlockHeight(ctx)+maxTxOutOffset && len(blockOut.TxArray) == 0 {
+			// we've hit our max offset, and an empty block, we can assume the
+			// rest will be empty as well
+			break
+		}
+		vault = tos.deductVaultBlockPendingOutbound(vault, blockOut)
+	}
+	return vault, nil
+}
+
+func (tos *TxOutStorageV73) deductVaultBlockPendingOutbound(vault Vault, block *TxOut) Vault {
+	for _, txOutItem := range block.TxArray {
+		if !txOutItem.VaultPubKey.Equals(vault.PubKey) {
+			continue
+		}
+		// only still outstanding txout will be considered
+		if !txOutItem.OutHash.IsEmpty() {
+			continue
+		}
+		// deduct the gas asset from the vault as well
+		var gasCoin common.Coin
+		if !txOutItem.MaxGas.IsEmpty() {
+			gasCoin = txOutItem.MaxGas.ToCoins().GetCoin(txOutItem.Chain.GetGasAsset())
+		}
+		for i, yggCoin := range vault.Coins {
+			if yggCoin.Asset.Equals(txOutItem.Coin.Asset) {
+				vault.Coins[i].Amount = common.SafeSub(vault.Coins[i].Amount, txOutItem.Coin.Amount)
+			}
+			if yggCoin.Asset.Equals(gasCoin.Asset) {
+				vault.Coins[i].Amount = common.SafeSub(vault.Coins[i].Amount, gasCoin.Amount)
+			}
+		}
+	}
+	return vault
 }
