@@ -309,6 +309,8 @@ class Smoker:
         sim_events.sort()
         if events != sim_events:
             for (evt_t, evt_s) in zip(events, sim_events):
+                if evt_t != evt_s:
+                    logging.error(f">>>>>>>>>>>>>>> MISMATCH!")
                 logging.error(f"Evt THO  {evt_t}")
                 logging.error(f"Evt SIM  {evt_s}")
             self.error("Events mismatch")

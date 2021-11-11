@@ -298,7 +298,7 @@ class ThorchainState:
         for asset, gas in gas_coins.items():
             pool = self.get_pool(gas.asset)
             # figure out how much rune is an equal amount to gas.amount
-            rune_amt = pool.get_asset_in_rune(gas.amount)
+            rune_amt = pool.get_asset_in_rune_with_slip(gas.amount)
             self.reserve -= rune_amt  # take rune from the reserve
 
             pool.add(rune_amt, 0)  # replenish gas costs with rune
@@ -406,7 +406,7 @@ class ThorchainState:
                         asset_fee = pool.get_rune_in_asset(rune_fee)
                         if coin.amount <= asset_fee:
                             asset_fee = coin.amount
-                            rune_fee = pool.get_asset_in_rune(asset_fee)
+                            rune_fee = pool.get_asset_in_rune_with_slip(asset_fee)
 
                         if pool.rune_balance >= rune_fee:
                             pool.sub(rune_fee, 0)
@@ -1445,6 +1445,16 @@ class Pool(Jsonable):
             return 0
 
         return get_share(self.rune_balance, self.asset_balance, val)
+
+    def get_asset_in_rune_with_slip(self, val):
+        """
+        Get an equal amount of given value in rune
+        """
+        if self.is_zero():
+            return 0
+
+        return get_share(self.rune_balance, self.asset_balance-val, val)
+
 
     def get_rune_in_asset(self, val):
         """
