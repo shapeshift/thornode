@@ -3,7 +3,9 @@ package thorchain
 import (
 	"errors"
 	"fmt"
+	"testing"
 
+	"github.com/magiconair/properties/assert"
 	"gitlab.com/thorchain/thornode/constants"
 	. "gopkg.in/check.v1"
 
@@ -667,11 +669,11 @@ func (s *WithdrawSuiteV74) TestWithdrawWithImpermanentLossProtection(c *C) {
 	c.Assert(mgr.Keeper().SetPool(ctx, p), IsNil)
 	runeAmt, assetAmt, protectoinRuneAmt, unitsClaimed, gas, err := withdrawV74(newctx, v, msg2, mgr)
 	c.Assert(err, IsNil)
-	c.Assert(assetAmt.Equal(cosmos.NewUint(50362047)), Equals, true, Commentf("%d", assetAmt.Uint64()))
+	c.Assert(assetAmt.Equal(cosmos.NewUint(50356727)), Equals, true, Commentf("%d", assetAmt.Uint64()))
 	c.Assert(runeAmt.IsZero(), Equals, true)
 	c.Assert(unitsClaimed.Equal(cosmos.NewUint(50000000)), Equals, true, Commentf("%d", unitsClaimed.Uint64()))
 	c.Assert(gas.IsZero(), Equals, true)
-	c.Assert(protectoinRuneAmt.Equal(cosmos.NewUint(26785)), Equals, true, Commentf("%d", protectoinRuneAmt.Uint64()))
+	c.Assert(protectoinRuneAmt.Equal(cosmos.NewUint(21713)), Equals, true, Commentf("%d", protectoinRuneAmt.Uint64()))
 }
 
 func getWithdrawTestKeeperV74(c *C, ctx cosmos.Context, k keeper.Keeper, runeAddress common.Address) keeper.Keeper {
@@ -700,4 +702,107 @@ func getWithdrawTestKeeperV74(c *C, ctx cosmos.Context, k keeper.Keeper, runeAdd
 	}
 	store.SetLiquidityProvider(ctx, lp)
 	return store
+}
+
+func TestCalcImpLossV74(t *testing.T) {
+	testCases := []struct {
+		name                  string
+		pool                  Pool
+		lp                    types.LiquidityProvider
+		withdrawBasisPoint    int64
+		protectionBasisPoints int64
+		expectedILP           cosmos.Uint
+		expectedDepositValue  cosmos.Uint
+		expectedRedeemValue   cosmos.Uint
+	}{
+		{
+			name: "little-asset-large-rune",
+			pool: Pool{
+				Asset:        common.BTCAsset,
+				BalanceAsset: cosmos.NewUint(100 * common.One),
+				BalanceRune:  cosmos.NewUint(100 * common.One),
+				LPUnits:      cosmos.NewUint(100 * common.One),
+				SynthUnits:   cosmos.ZeroUint(),
+			},
+			lp: types.LiquidityProvider{
+				Units:             cosmos.NewUint(12345678),
+				AssetDepositValue: cosmos.NewUint(common.One),
+				RuneDepositValue:  cosmos.NewUint(common.One * 50),
+			},
+			withdrawBasisPoint:    10000,
+			protectionBasisPoints: 10000,
+			expectedILP:           cosmos.NewUint(5075308644),
+			expectedDepositValue:  cosmos.NewUint(5100000000),
+			expectedRedeemValue:   cosmos.NewUint(24691356),
+		},
+		{
+			name: "symmetrical-add",
+			pool: Pool{
+				Asset:        common.BTCAsset,
+				BalanceAsset: cosmos.NewUint(100 * common.One),
+				BalanceRune:  cosmos.NewUint(100 * common.One),
+				LPUnits:      cosmos.NewUint(100 * common.One),
+				SynthUnits:   cosmos.ZeroUint(),
+			},
+			lp: types.LiquidityProvider{
+				Units:             cosmos.NewUint(common.One * 50),
+				AssetDepositValue: cosmos.NewUint(common.One * 50),
+				RuneDepositValue:  cosmos.NewUint(common.One * 50),
+			},
+			withdrawBasisPoint:    10000,
+			protectionBasisPoints: 10000,
+			expectedILP:           cosmos.NewUint(0),
+			expectedDepositValue:  cosmos.NewUint(10000000000),
+			expectedRedeemValue:   cosmos.NewUint(10000000000),
+		},
+		{
+			name: "price-less-than-one",
+			pool: Pool{
+				Asset:        common.BTCAsset,
+				BalanceAsset: cosmos.NewUint(100 * common.One),
+				BalanceRune:  cosmos.NewUint(10 * common.One),
+				LPUnits:      cosmos.NewUint(100 * common.One),
+				SynthUnits:   cosmos.ZeroUint(),
+			},
+			lp: types.LiquidityProvider{
+				Units:             cosmos.NewUint(common.One * 10),
+				AssetDepositValue: cosmos.NewUint(common.One * 50),
+				RuneDepositValue:  cosmos.NewUint(common.One),
+			},
+			withdrawBasisPoint:    10000,
+			protectionBasisPoints: 10000,
+			expectedILP:           cosmos.NewUint(400000000),
+			expectedDepositValue:  cosmos.NewUint(600000000),
+			expectedRedeemValue:   cosmos.NewUint(200000000),
+		},
+		{
+			name: "half-coverage",
+			pool: Pool{
+				Asset:        common.BTCAsset,
+				BalanceAsset: cosmos.NewUint(100 * common.One),
+				BalanceRune:  cosmos.NewUint(100 * common.One),
+				LPUnits:      cosmos.NewUint(100 * common.One),
+				SynthUnits:   cosmos.ZeroUint(),
+			},
+			lp: types.LiquidityProvider{
+				Units:             cosmos.NewUint(12345678),
+				AssetDepositValue: cosmos.NewUint(common.One),
+				RuneDepositValue:  cosmos.NewUint(common.One * 50),
+			},
+			withdrawBasisPoint:    10000,
+			protectionBasisPoints: 5000,
+			expectedILP:           cosmos.NewUint(2537654322),
+			expectedDepositValue:  cosmos.NewUint(5100000000),
+			expectedRedeemValue:   cosmos.NewUint(24691356),
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t1 *testing.T) {
+			ilpRune, depositValue, redeemValue := calcImpLossV74(tc.lp, cosmos.NewUint(uint64(tc.withdrawBasisPoint)), tc.protectionBasisPoints, tc.pool)
+			assert.Equal(t1, ilpRune.String(), tc.expectedILP.String())
+			assert.Equal(t1, depositValue.String(), tc.expectedDepositValue.String())
+			assert.Equal(t1, redeemValue.String(), tc.expectedRedeemValue.String())
+		})
+	}
+
 }
