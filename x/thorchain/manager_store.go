@@ -84,6 +84,8 @@ func (smgr *StoreMgr) migrate(ctx cosmos.Context, i uint64) error {
 	case 71:
 		refundBNBTransactionsV71(ctx, smgr.mgr)
 		correctBurnedBEP2Rune(ctx, smgr.mgr)
+	case 74:
+		migrateStoreV74(ctx, smgr.mgr)
 	}
 
 	smgr.mgr.Keeper().SetStoreVersion(ctx, int64(i))
@@ -1197,4 +1199,62 @@ func correctBurnedBEP2Rune(ctx cosmos.Context, mgr Manager) {
 	if err := mgr.Keeper().SetNetwork(ctx, network); err != nil {
 		ctx.Logger().Error("failed to set network", "error", err)
 	}
+}
+
+func migrateStoreV74(ctx cosmos.Context, mgr Manager) {
+	defer func() {
+		if err := recover(); err != nil {
+			ctx.Logger().Error("fail to migrate store to v74", "error", err)
+		}
+	}()
+	inputs := []struct {
+		asset             string
+		address           string
+		depositAssetValue cosmos.Uint
+		depositRuneValue  cosmos.Uint
+	}{
+		{
+			asset:             "ETH.THOR-0XA5F2211B9B8170F694421F2046281775E8468044",
+			address:           "thor1kgdmqje08dk8f8x3v880jnhggejmf8f03tjd6x",
+			depositAssetValue: cosmos.NewUint(440896413157093),
+			depositRuneValue:  cosmos.NewUint(81219749756642),
+		},
+		{
+			asset:             "ETH.XRUNE-0X69FA0FEE221AD11012BAB0FDB45D444D3D2CE71C",
+			address:           "thor1e38n9c9l3h56gwfwazu6xds32u9ajdapukv65w",
+			depositAssetValue: cosmos.NewUint(1123947590415172),
+			depositRuneValue:  cosmos.NewUint(36941596233762),
+		},
+	}
+	for _, item := range inputs {
+		asset, err := common.NewAsset(item.asset)
+		if err != nil {
+			ctx.Logger().Error("fail to parse THOR asset", "error", err)
+			continue
+		}
+		addr, err := common.NewAddress(item.address)
+		if err != nil {
+			ctx.Logger().Error("fail to parse address", "error", err)
+			continue
+		}
+		lp, err := mgr.Keeper().GetLiquidityProvider(ctx, asset, addr)
+		if err != nil {
+			ctx.Logger().Error("fail to get liquidity provider", "error", err)
+			continue
+		}
+		lp.AssetDepositValue = item.depositAssetValue
+		lp.RuneDepositValue = item.depositRuneValue
+		mgr.Keeper().SetLiquidityProvider(ctx, lp)
+	}
+	// the following transaction is swap to a binance exchange address, which has memo flag set,
+	// thus the network won't be able to send tx to the address , cancel it
+	removeTransactions(ctx, mgr,
+		"AC0826366836EE2F6337BBC0B16B25A6B2269A490E6E7B92C4E9328663F6B3CE",
+		"8C79D2F64F46AAA2658E08D78F7AAFAA5E4366A04EC167BEC2C527D5D1E434BC",
+		"89D9EC3BD2E2E7372D793D58BBBE2E063367BFB663E5173EF50B5371DEF0B182",
+		"0F2EE2CFA8AB695C7A789C93C3D91596A29EE7793CFF8FEFDF8784949A6F05E0",
+		"55FE00CE035B89258C532D87BBAAFCA69155057897105A0C7346F8C347EEB731",
+		"0BF8054DE2271FEC9C983AE73D1F7103B645723856C8C4715E150B92A073E0D2",
+		"EC24A6F6597683F402298C5EA9AFD6CFAF65E1860F8B0DFE911CC17C9525B376",
+	)
 }
