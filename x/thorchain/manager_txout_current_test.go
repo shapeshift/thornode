@@ -151,10 +151,8 @@ func (s TxOutStoreV75Suite) TestAddOutTxItem(c *C) {
 	c.Assert(success, Equals, true)
 	msgs, err = txOutStore.GetOutboundItems(w.ctx)
 	c.Assert(err, IsNil)
-	c.Assert(msgs, HasLen, 3)
-	c.Check(msgs[0].VaultPubKey.String(), Equals, acc2.PubKeySet.Secp256k1.String())
-	c.Check(msgs[1].VaultPubKey.String(), Equals, acc1.PubKeySet.Secp256k1.String())
-	c.Check(msgs[2].VaultPubKey.String(), Equals, vault.PubKey.String())
+	c.Assert(msgs, HasLen, 1)
+	c.Check(msgs[0].VaultPubKey.String(), Equals, vault.PubKey.String())
 
 	item = TxOutItem{
 		Chain:     common.BCHChain,
@@ -234,7 +232,7 @@ func (s TxOutStoreV75Suite) TestAddOutTxItem_OutboundHeightDoesNotGetOverride(c 
 	})
 	w.keeper.SetObservedTxInVoter(w.ctx, voter)
 
-	// this should be split into two outbounds
+	// this should be sent via asgard
 	item := TxOutItem{
 		Chain:     common.BNBChain,
 		ToAddress: GetRandomBNBAddress(),
@@ -252,11 +250,9 @@ func (s TxOutStoreV75Suite) TestAddOutTxItem_OutboundHeightDoesNotGetOverride(c 
 	//  the outbound has been delayed
 	newCtx := w.ctx.WithBlockHeight(4)
 	msgs, err = txOutStore.GetOutboundItems(newCtx)
-	c.Assert(msgs, HasLen, 2)
-	c.Assert(msgs[0].VaultPubKey.String(), Equals, acc2.PubKeySet.Secp256k1.String())
-	c.Assert(msgs[0].Coin.Amount.Equal(cosmos.NewUint(4999887500)), Equals, true, Commentf("%d", msgs[0].Coin.Amount.Uint64()))
-	c.Assert(msgs[1].VaultPubKey.String(), Equals, acc1.PubKeySet.Secp256k1.String())
-	c.Assert(msgs[1].Coin.Amount.Equal(cosmos.NewUint(2999887500)), Equals, true, Commentf("%d", msgs[0].Coin.Amount.Uint64()))
+	c.Assert(msgs, HasLen, 1)
+	c.Assert(msgs[0].VaultPubKey.String(), Equals, vault.PubKey.String())
+	c.Assert(msgs[0].Coin.Amount.Equal(cosmos.NewUint(7999887500)), Equals, true, Commentf("%d", msgs[0].Coin.Amount.Uint64()))
 
 	// make sure outbound_height has been set correctly
 	afterVoter, err := w.keeper.GetObservedTxInVoter(w.ctx, inTxID)
