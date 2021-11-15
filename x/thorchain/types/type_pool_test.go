@@ -88,3 +88,32 @@ func (PoolTestSuite) TestPoolStatus(c *C) {
 	c.Check(err, IsNil)
 	c.Check(buf, NotNil)
 }
+
+func (PoolTestSuite) TestPools(c *C) {
+	pools := make(Pools, 0)
+	bnb := NewPool()
+	bnb.Asset = common.BNBAsset
+	btc := NewPool()
+	btc.Asset = common.BTCAsset
+	btc.BalanceRune = cosmos.NewUint(10)
+
+	pools = pools.Set(bnb)
+	pools = pools.Set(btc)
+	c.Assert(pools, HasLen, 2)
+
+	pool, ok := pools.Get(common.BNBAsset)
+	c.Check(ok, Equals, true)
+	c.Check(pool.Asset.Equals(common.BNBAsset), Equals, true)
+
+	pool, ok = pools.Get(common.BTCAsset)
+	c.Check(ok, Equals, true)
+	c.Check(pool.Asset.Equals(common.BTCAsset), Equals, true)
+	c.Check(pool.BalanceRune.Uint64(), Equals, uint64(10))
+
+	pool.BalanceRune = cosmos.NewUint(20)
+	pools = pools.Set(pool)
+	pool, ok = pools.Get(common.BTCAsset)
+	c.Check(ok, Equals, true)
+	c.Check(pool.Asset.Equals(common.BTCAsset), Equals, true)
+	c.Check(pool.BalanceRune.Uint64(), Equals, uint64(20))
+}
