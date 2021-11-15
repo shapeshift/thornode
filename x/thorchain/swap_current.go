@@ -12,15 +12,15 @@ import (
 )
 
 type SwapperV75 struct {
-	pools       map[common.Asset]Pool // caches pool state changes
-	poolsOrig   map[common.Asset]Pool // retains original pool state
+	pools       Pools // caches pool state changes
+	poolsOrig   Pools // retains original pool state
 	coinsToBurn common.Coins
 }
 
 func NewSwapperV75() *SwapperV75 {
 	return &SwapperV75{
-		pools:     make(map[common.Asset]Pool),
-		poolsOrig: make(map[common.Asset]Pool),
+		pools:     make(Pools, 0),
+		poolsOrig: make(Pools, 0),
 	}
 }
 
@@ -254,7 +254,7 @@ func (s *SwapperV75) swapOne(ctx cosmos.Context,
 		return cosmos.ZeroUint(), evt, err
 	}
 
-	if p, ok := s.pools[asset]; ok {
+	if p, ok := s.pools.Get(asset); ok {
 		// Get our pool from the cache
 		pool = p
 	} else {
@@ -266,7 +266,7 @@ func (s *SwapperV75) swapOne(ctx cosmos.Context,
 		ver := keeper.GetLowestActiveVersion(ctx)
 		synthSupply := keeper.GetTotalSupply(ctx, pool.Asset.GetSyntheticAsset())
 		pool.CalcUnits(ver, synthSupply)
-		s.poolsOrig[asset] = pool
+		s.poolsOrig = s.poolsOrig.Set(pool)
 	}
 
 	// Get our X, x, Y values
@@ -337,7 +337,7 @@ func (s *SwapperV75) swapOne(ctx cosmos.Context,
 	ctx.Logger().Info("post swap", "pool", pool.Asset, "rune", pool.BalanceRune, "asset", pool.BalanceAsset, "lp units", pool.LPUnits, "synth units", pool.SynthUnits, "emit asset", emitAssets)
 
 	// add the new pool to the cache
-	s.pools[pool.Asset] = pool
+	s.pools = s.pools.Set(pool)
 
 	return emitAssets, swapEvt, nil
 }
