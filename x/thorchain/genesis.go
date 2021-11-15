@@ -57,8 +57,8 @@ func ValidateGenesis(data GenesisState) error {
 	if data.LastSignedHeight < 0 {
 		return errors.New("last signed height cannot be negative")
 	}
-	for c, h := range data.LastChainHeights {
-		if h < 0 {
+	for _, c := range data.LastChainHeights {
+		if c.Height < 0 {
 			return fmt.Errorf("invalid chain(%s) height", c)
 		}
 	}
@@ -103,7 +103,7 @@ func DefaultGenesisState() GenesisState {
 		ObservedTxInVoters:  make(ObservedTxVoters, 0),
 		ObservedTxOutVoters: make(ObservedTxVoters, 0),
 		LastSignedHeight:    0,
-		LastChainHeights:    make(map[string]int64),
+		LastChainHeights:    make([]*LastChainHeight, 0),
 		Network:             NewNetwork(),
 		MsgSwaps:            make([]MsgSwap, 0),
 		NetworkFees:         make([]NetworkFee, 0),
@@ -169,12 +169,12 @@ func InitGenesis(ctx cosmos.Context, keeper keeper.Keeper, data GenesisState) []
 		}
 	}
 
-	for c, h := range data.LastChainHeights {
-		chain, err := common.NewChain(c)
+	for _, c := range data.LastChainHeights {
+		chain, err := common.NewChain(c.Chain)
 		if err != nil {
 			panic(err)
 		}
-		if err := keeper.SetLastChainHeight(ctx, chain, h); err != nil {
+		if err := keeper.SetLastChainHeight(ctx, chain, c.Height); err != nil {
 			panic(err)
 		}
 	}
@@ -339,9 +339,12 @@ func ExportGenesis(ctx cosmos.Context, k keeper.Keeper) GenesisState {
 	if err != nil {
 		panic(err)
 	}
-	lastChainHeights := make(map[string]int64, 0)
+	lastChainHeights := make([]*LastChainHeight, 0)
 	for k, v := range chainHeights {
-		lastChainHeights[k.String()] = v
+		lastChainHeights = append(lastChainHeights, &LastChainHeight{
+			Chain:  k.String(),
+			Height: v,
+		})
 	}
 
 	network, err := k.GetNetwork(ctx)
