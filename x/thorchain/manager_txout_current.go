@@ -160,6 +160,39 @@ func (tos *TxOutStorageV75) UnSafeAddTxOutItem(ctx cosmos.Context, mgr Manager, 
 	return tos.addToBlockOut(ctx, mgr, toi, common.BlockHeight(ctx))
 }
 
+func (tos *TxOutStorageV75) discoverOutbounds(ctx cosmos.Context, transactionFeeAsset cosmos.Uint, maxGasAsset common.Coin, toi TxOutItem, vaults Vaults) ([]TxOutItem, cosmos.Uint) {
+	var outputs []TxOutItem
+	for _, vault := range vaults {
+		// Ensure THORNode are not sending from and to the same address
+		fromAddr, err := vault.PubKey.GetAddress(toi.Chain)
+		if err != nil || fromAddr.IsEmpty() || toi.ToAddress.Equals(fromAddr) {
+			continue
+		}
+		// if the asset in the vault is not enough to pay for the fee , then skip it
+		if vault.GetCoin(toi.Coin.Asset).Amount.LTE(transactionFeeAsset) {
+			continue
+		}
+		// if the vault doesn't have gas asset in it , or it doesn't have enough to pay for gas
+		gasAsset := vault.GetCoin(toi.Chain.GetGasAsset())
+		if gasAsset.IsEmpty() || gasAsset.Amount.LT(maxGasAsset.Amount) {
+			continue
+		}
+
+		toi.VaultPubKey = vault.PubKey
+		if toi.Coin.Amount.LTE(vault.GetCoin(toi.Coin.Asset).Amount) {
+			outputs = append(outputs, toi)
+			toi.Coin.Amount = cosmos.ZeroUint()
+			break
+		} else {
+			remainingAmount := common.SafeSub(toi.Coin.Amount, vault.GetCoin(toi.Coin.Asset).Amount)
+			toi.Coin.Amount = common.SafeSub(toi.Coin.Amount, remainingAmount)
+			outputs = append(outputs, toi)
+			toi.Coin.Amount = remainingAmount
+		}
+	}
+	return outputs, toi.Coin.Amount
+}
+
 // prepareTxOutItem will do some data validation which include the following
 // 1. Make sure it has a legitimate memo
 // 2. choose an appropriate vault(s) to send from (ygg first, active asgard, then retiring asgard)
@@ -167,6 +200,7 @@ func (tos *TxOutStorageV75) UnSafeAddTxOutItem(ctx cosmos.Context, mgr Manager, 
 // return list of outbound transactions
 func (tos *TxOutStorageV75) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem) ([]TxOutItem, error) {
 	var outputs []TxOutItem
+	remaining := cosmos.ZeroUint()
 
 	// Default the memo to the standard outbound memo
 	if toi.Memo == "" {
@@ -198,7 +232,10 @@ func (tos *TxOutStorageV75) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem) 
 	signingTransactionPeriod := tos.constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
 	transactionFeeRune := tos.gasManager.GetFee(ctx, toi.Chain, common.RuneAsset())
 	transactionFeeAsset := tos.gasManager.GetFee(ctx, toi.Chain, toi.Coin.Asset)
-
+	maxGasAsset, err := tos.gasManager.GetMaxGas(ctx, toi.Chain)
+	if err != nil {
+		ctx.Logger().Error("fail to get max gas asset", "error", err)
+	}
 	if toi.Chain.Equals(common.THORChain) {
 		outputs = append(outputs, toi)
 	} else {
@@ -206,12 +243,7 @@ func (tos *TxOutStorageV75) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem) 
 			// a vault is already manually selected, blindly go forth with that
 			outputs = append(outputs, toi)
 		} else {
-			maxGasAsset, err := tos.gasManager.GetMaxGas(ctx, toi.Chain)
-			if err != nil {
-				ctx.Logger().Error("fail to get max gas asset", "error", err)
-			}
 			// THORNode don't have a vault already selected to send from, discover one.
-			vaults := make(Vaults, 0) // a sorted list of vaults to send funds from
 
 			// ///////////// COLLECT YGGDRASIL VAULTS ///////////////////////////
 			// When deciding which Yggdrasil pool will send out our tx out, we
@@ -224,6 +256,7 @@ func (tos *TxOutStorageV75) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem) 
 			if err != nil {
 				ctx.Logger().Error("fail to get all active node accounts", "error", err)
 			}
+			yggs := make(Vaults, 0)
 			if len(activeNodeAccounts) > 0 {
 				voter, err := tos.keeper.GetObservedTxInVoter(ctx, toi.InHash)
 				if err != nil {
@@ -233,17 +266,16 @@ func (tos *TxOutStorageV75) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem) 
 
 				// collect yggdrasil pools is going to get a list of yggdrasil
 				// vault that THORChain can used to send out fund
-				yggs, err := tos.collectYggdrasilPools(ctx, tx, toi.Chain.GetGasAsset())
+				yggs, err = tos.collectYggdrasilPools(ctx, tx, toi.Chain.GetGasAsset())
 				if err != nil {
 					return nil, fmt.Errorf("fail to collect yggdrasil pool: %w", err)
 				}
-
-				// add yggdrasil vaults first
-				vaults = append(vaults, yggs.SortBy(toi.Coin.Asset)...)
+				yggs = yggs.SortBy(toi.Coin.Asset)
 			}
 			// //////////////////////////////////////////////////////////////
 
 			// ///////////// COLLECT ACTIVE ASGARD VAULTS ///////////////////
+			asgards := make(Vaults, 0)
 			active, err := tos.keeper.GetAsgardVaultsByStatus(ctx, ActiveVault)
 			if err != nil {
 				ctx.Logger().Error("fail to get active vaults", "error", err)
@@ -256,7 +288,7 @@ func (tos *TxOutStorageV75) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem) 
 					continue
 				}
 			}
-			vaults = append(vaults, tos.keeper.SortBySecurity(ctx, active, signingTransactionPeriod)...)
+			asgards = append(asgards, tos.keeper.SortBySecurity(ctx, active, signingTransactionPeriod)...)
 			// //////////////////////////////////////////////////////////////
 
 			// ///////////// COLLECT RETIRING ASGARD VAULTS /////////////////
@@ -271,43 +303,25 @@ func (tos *TxOutStorageV75) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem) 
 					continue
 				}
 			}
-			vaults = append(vaults, tos.keeper.SortBySecurity(ctx, retiring, signingTransactionPeriod)...)
+			asgards = append(asgards, tos.keeper.SortBySecurity(ctx, retiring, signingTransactionPeriod)...)
 			// //////////////////////////////////////////////////////////////
 
 			// iterate over discovered vaults and find vaults to send funds from
-			for _, vault := range vaults {
-				// Ensure THORNode are not sending from and to the same address
-				fromAddr, err := vault.PubKey.GetAddress(toi.Chain)
-				if err != nil || fromAddr.IsEmpty() || toi.ToAddress.Equals(fromAddr) {
-					continue
-				}
-				// if the asset in the vault is not enough to pay for the fee , then skip it
-				if vault.GetCoin(toi.Coin.Asset).Amount.LTE(transactionFeeAsset) {
-					continue
-				}
-				// if the vault doesn't have gas asset in it , or it doesn't have enough to pay for gas
-				gasAsset := vault.GetCoin(toi.Chain.GetGasAsset())
-				if gasAsset.IsEmpty() || gasAsset.Amount.LT(maxGasAsset.Amount) {
-					continue
-				}
 
-				toi.VaultPubKey = vault.PubKey
-				if toi.Coin.Amount.LTE(vault.GetCoin(toi.Coin.Asset).Amount) {
-					outputs = append(outputs, toi)
-					toi.Coin.Amount = cosmos.ZeroUint()
-					break
-				} else {
-					toi.VaultPubKey = vault.PubKey
-					remainingAmount := common.SafeSub(toi.Coin.Amount, vault.GetCoin(toi.Coin.Asset).Amount)
-					toi.Coin.Amount = common.SafeSub(toi.Coin.Amount, remainingAmount)
-					outputs = append(outputs, toi)
-					toi.Coin.Amount = remainingAmount
-				}
+			// evaluate the outputs if we process yggs first
+			outputs, remaining = tos.discoverOutbounds(ctx, transactionFeeAsset, maxGasAsset, toi, append(yggs, asgards...))
+			// evaluate the outputs if we process asgards first
+			outputsB, remainingB := tos.discoverOutbounds(ctx, transactionFeeAsset, maxGasAsset, toi, append(asgards, yggs...))
+
+			// pick the output plan that has less outbound transactions to reduce on gas fees to the user
+			if len(outputs) > len(outputsB) && remaining.GTE(remainingB) {
+				outputs = outputsB
+				remaining = remainingB
 			}
 
 			// Check we found enough funds to satisfy the request, error if we didn't
-			if !toi.Coin.Amount.IsZero() {
-				return nil, fmt.Errorf("insufficient funds for outbound request: %s %s remaining", toi.ToAddress.String(), toi.Coin.String())
+			if !remaining.IsZero() {
+				return nil, fmt.Errorf("insufficient funds for outbound request: %s %s remaining", toi.ToAddress.String(), remaining.String())
 			}
 		}
 	}
