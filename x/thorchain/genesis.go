@@ -3,6 +3,8 @@ package thorchain
 import (
 	"errors"
 	"fmt"
+	"sort"
+	"strings"
 
 	abci "github.com/tendermint/tendermint/abci/types"
 	"gitlab.com/thorchain/thornode/common"
@@ -59,7 +61,7 @@ func ValidateGenesis(data GenesisState) error {
 	}
 	for _, c := range data.LastChainHeights {
 		if c.Height < 0 {
-			return fmt.Errorf("invalid chain(%s) height", c)
+			return fmt.Errorf("invalid chain(%s) height", c.Chain)
 		}
 	}
 
@@ -103,7 +105,7 @@ func DefaultGenesisState() GenesisState {
 		ObservedTxInVoters:  make(ObservedTxVoters, 0),
 		ObservedTxOutVoters: make(ObservedTxVoters, 0),
 		LastSignedHeight:    0,
-		LastChainHeights:    make([]*LastChainHeight, 0),
+		LastChainHeights:    make([]LastChainHeight, 0),
 		Network:             NewNetwork(),
 		MsgSwaps:            make([]MsgSwap, 0),
 		NetworkFees:         make([]NetworkFee, 0),
@@ -228,7 +230,12 @@ func InitGenesis(ctx cosmos.Context, keeper keeper.Keeper, data GenesisState) []
 			panic(err)
 		}
 	}
-
+	for _, item := range data.Mimirs {
+		if len(item.Key) == 0 {
+			continue
+		}
+		keeper.SetMimir(ctx, item.Key, item.Value)
+	}
 	reserveAddr, _ := keeper.GetModuleAddress(ReserveName)
 	ctx.Logger().Info("Reserve Module", "address", reserveAddr.String())
 	bondAddr, _ := keeper.GetModuleAddress(BondName)
@@ -339,14 +346,17 @@ func ExportGenesis(ctx cosmos.Context, k keeper.Keeper) GenesisState {
 	if err != nil {
 		panic(err)
 	}
-	lastChainHeights := make([]*LastChainHeight, 0)
+	lastChainHeights := make([]LastChainHeight, 0)
 	for k, v := range chainHeights {
-		lastChainHeights = append(lastChainHeights, &LastChainHeight{
+		lastChainHeights = append(lastChainHeights, LastChainHeight{
 			Chain:  k.String(),
 			Height: v,
 		})
 	}
-
+	// Let's sort it , so it is deterministic
+	sort.Slice(lastChainHeights, func(i, j int) bool {
+		return lastChainHeights[i].Chain < lastChainHeights[j].Chain
+	})
 	network, err := k.GetNetwork(ctx)
 	if err != nil {
 		panic(err)
@@ -399,6 +409,20 @@ func ExportGenesis(ctx cosmos.Context, k keeper.Keeper) GenesisState {
 		k.Cdc().MustUnmarshalBinaryBare(iterNames.Value(), &n)
 		names = append(names, n)
 	}
+	mimirs := make([]Mimir, 0)
+	mimirIter := k.GetMimirIterator(ctx)
+	defer mimirIter.Close()
+	for ; mimirIter.Valid(); mimirIter.Next() {
+		value := types.ProtoInt64{}
+		if err := k.Cdc().UnmarshalBinaryBare(iter.Value(), &value); err != nil {
+			ctx.Logger().Error("fail to unmarshal mimir value", "error", err)
+			continue
+		}
+		mimirs = append(mimirs, Mimir{
+			Key:   strings.ReplaceAll(string(iter.Key()), "mimir//", ""),
+			Value: value.GetValue(),
+		})
+	}
 
 	return GenesisState{
 		Pools:              pools,
@@ -414,5 +438,6 @@ func ExportGenesis(ctx cosmos.Context, k keeper.Keeper) GenesisState {
 		NetworkFees:        networkFees,
 		ChainContracts:     chainContracts,
 		THORNames:          names,
+		Mimirs:             mimirs,
 	}
 }
