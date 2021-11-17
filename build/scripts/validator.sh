@@ -76,8 +76,8 @@ if [ ! -f ~/.thornode/config/genesis.json ]; then
       sleep 5
     done
 
-   # use external IP if available
-   [ -n "$EXTERNAL_IP" ] && external_address "$EXTERNAL_IP" "$NET"
+    # use external IP if available
+    [ -n "$EXTERNAL_IP" ] && external_address "$EXTERNAL_IP" "$NET"
 
     sleep 10 # wait for thorchain to commit a block
     # set node version
