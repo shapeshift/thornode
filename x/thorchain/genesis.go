@@ -414,12 +414,12 @@ func ExportGenesis(ctx cosmos.Context, k keeper.Keeper) GenesisState {
 	defer mimirIter.Close()
 	for ; mimirIter.Valid(); mimirIter.Next() {
 		value := types.ProtoInt64{}
-		if err := k.Cdc().UnmarshalBinaryBare(iter.Value(), &value); err != nil {
+		if err := k.Cdc().UnmarshalBinaryBare(mimirIter.Value(), &value); err != nil {
 			ctx.Logger().Error("fail to unmarshal mimir value", "error", err)
 			continue
 		}
 		mimirs = append(mimirs, Mimir{
-			Key:   strings.ReplaceAll(string(iter.Key()), "mimir//", ""),
+			Key:   strings.ReplaceAll(string(mimirIter.Key()), "mimir//", ""),
 			Value: value.GetValue(),
 		})
 	}
