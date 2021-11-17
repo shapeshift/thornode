@@ -304,8 +304,7 @@ func ExportGenesis(ctx cosmos.Context, k keeper.Keeper) GenesisState {
 
 	var observedTxInVoters ObservedTxVoters
 	var outs []TxOut
-	signingTransactionPeriod := int64(300)
-	startBlockHeight := common.BlockHeight(ctx) - signingTransactionPeriod
+	startBlockHeight := common.BlockHeight(ctx)
 	endBlockHeight := common.BlockHeight(ctx) + 17200
 
 	for height := startBlockHeight; height < endBlockHeight; height++ {
