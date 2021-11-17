@@ -23,6 +23,7 @@ services:
       BCH_HOST: ${BCH_HOST:-bitcoin-cash-regtest:28443}
       LTC_HOST: ${LTC_HOST:-litecoin-regtest:38443}
       ETH_HOST: ${ETH_HOST:-http://ethereum-localnet:8545}
+      CHAIN_ID: ${CHAIN_ID:-thorchain}
     entrypoint:
       /docker/scripts/bifrost.sh
     volumes:
@@ -54,6 +55,7 @@ services:
       SIGNER_PASSWD: ${SIGNER_PASSWD}
       THORNODE_API_ENABLE: "true"
       HARDFORK_BLOCK_HEIGHT: ${HARDFORK_BLOCK_HEIGHT:-}
+      NETWORK: ${NETWORK:-}
     ports:
       - "26657:26657"
       - "26656:26656"
