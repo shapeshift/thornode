@@ -47,4 +47,5 @@ message GenesisState {
   repeated types.ChainContract chain_contracts = 22 [(gogoproto.nullable) = false];
   repeated types.THORName THORNames = 23 [(gogoproto.nullable) = false];
   repeated mimir mimirs = 24 [(gogoproto.nullable) = false];
+  int64 store_version = 25;
 }
