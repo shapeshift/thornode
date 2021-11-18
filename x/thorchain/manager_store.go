@@ -84,8 +84,8 @@ func (smgr *StoreMgr) migrate(ctx cosmos.Context, i uint64) error {
 	case 71:
 		refundBNBTransactionsV71(ctx, smgr.mgr)
 		correctBurnedBEP2Rune(ctx, smgr.mgr)
-	case 74:
-		migrateStoreV74(ctx, smgr.mgr)
+	case 75:
+		migrateStoreV75(ctx, smgr.mgr)
 	}
 
 	smgr.mgr.Keeper().SetStoreVersion(ctx, int64(i))
@@ -1201,7 +1201,7 @@ func correctBurnedBEP2Rune(ctx cosmos.Context, mgr Manager) {
 	}
 }
 
-func migrateStoreV74(ctx cosmos.Context, mgr Manager) {
+func migrateStoreV75(ctx cosmos.Context, mgr Manager) {
 	defer func() {
 		if err := recover(); err != nil {
 			ctx.Logger().Error("fail to migrate store to v74", "error", err)
