@@ -61,7 +61,7 @@ services:
       CONTRACT: ${CONTRACT:-}
       THORNODE_API_ENABLE: "true"
       HARDFORK_BLOCK_HEIGHT: ${HARDFORK_BLOCK_HEIGHT:-}
-      NETWORK: ${NETWORK:-}
+      CHAIN_ID: ${CHAIN_ID:-}
     ports:
       - "26657:26657"
       - "26656:26656"
