@@ -158,7 +158,7 @@ func (m Pool) AssetValueInRuneWithSlip(amt cosmos.Uint) cosmos.Uint {
 		// case.
 		return cosmos.ZeroUint()
 	}
-	return common.GetSafeShare(m.BalanceRune, denom, amt)
+	return common.GetShare(m.BalanceRune, denom, amt)
 }
 
 // RuneValueInAsset convert a specific amount of rune amt into its asset value
@@ -202,6 +202,6 @@ func (m Pool) RuneValueInAssetWithSlip(amt cosmos.Uint) cosmos.Uint {
 		// case.
 		return cosmos.ZeroUint()
 	}
-	assetAmt := common.GetSafeShare(m.BalanceAsset, denom, amt)
+	assetAmt := common.GetShare(m.BalanceAsset, denom, amt)
 	return cosmos.RoundToDecimal(assetAmt, m.Decimals)
 }
