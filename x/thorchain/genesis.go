@@ -111,6 +111,7 @@ func DefaultGenesisState() GenesisState {
 		NetworkFees:         make([]NetworkFee, 0),
 		ChainContracts:      make([]ChainContract, 0),
 		THORNames:           make([]THORName, 0),
+		StoreVersion:        38, // refer to func `GetStoreVersion` , let's keep it consistent
 	}
 }
 
@@ -236,6 +237,7 @@ func InitGenesis(ctx cosmos.Context, keeper keeper.Keeper, data GenesisState) []
 		}
 		keeper.SetMimir(ctx, item.Key, item.Value)
 	}
+	keeper.SetStoreVersion(ctx, data.StoreVersion)
 	reserveAddr, _ := keeper.GetModuleAddress(ReserveName)
 	ctx.Logger().Info("Reserve Module", "address", reserveAddr.String())
 	bondAddr, _ := keeper.GetModuleAddress(BondName)
@@ -422,7 +424,7 @@ func ExportGenesis(ctx cosmos.Context, k keeper.Keeper) GenesisState {
 			Value: value.GetValue(),
 		})
 	}
-
+	storeVersion := k.GetStoreVersion(ctx)
 	return GenesisState{
 		Pools:              pools,
 		LiquidityProviders: liquidityProviders,
@@ -438,5 +440,6 @@ func ExportGenesis(ctx cosmos.Context, k keeper.Keeper) GenesisState {
 		ChainContracts:     chainContracts,
 		THORNames:          names,
 		Mimirs:             mimirs,
+		StoreVersion:       storeVersion,
 	}
 }
