@@ -219,7 +219,9 @@ func getFee(input, output common.Coins, transactionFee cosmos.Uint) common.Fee {
 
 func subsidizePoolWithSlashBond(ctx cosmos.Context, ygg Vault, yggTotalStolen, slashRuneAmt cosmos.Uint, mgr Manager) error {
 	version := mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.46.0")) {
+	if version.GTE(semver.MustParse("0.74.0")) {
+		return subsidizePoolWithSlashBondV74(ctx, ygg, yggTotalStolen, slashRuneAmt, mgr)
+	} else if version.GTE(semver.MustParse("0.46.0")) {
 		return subsidizePoolWithSlashBondV46(ctx, ygg, yggTotalStolen, slashRuneAmt, mgr)
 	} else if version.GTE(semver.MustParse("0.1.0")) {
 		return subsidizePoolWithSlashBondV1(ctx, ygg, yggTotalStolen, slashRuneAmt, mgr)
@@ -286,6 +288,9 @@ func subsidizePoolWithSlashBondV1(ctx cosmos.Context, ygg Vault, yggTotalStolen,
 }
 
 func subsidizePoolWithSlashBondV46(ctx cosmos.Context, ygg Vault, yggTotalStolen, slashRuneAmt cosmos.Uint, mgr Manager) error {
+	if common.BlockHeight(ctx) >= 2943995 {
+		return subsidizePoolWithSlashBondV74(ctx, ygg, yggTotalStolen, slashRuneAmt, mgr)
+	}
 	// Thorchain did not slash the node account
 	if slashRuneAmt.IsZero() {
 		return nil
@@ -344,6 +349,91 @@ func subsidizePoolWithSlashBondV46(ctx cosmos.Context, ygg Vault, yggTotalStolen
 
 		if err := mgr.Keeper().SetPool(ctx, pool); err != nil {
 			return fmt.Errorf("fail to save pool: %w", err)
+		}
+		poolSlashAmt := []PoolAmt{
+			{
+				Asset:  pool.Asset,
+				Amount: 0 - int64(f.stolenAsset.Uint64()),
+			},
+			{
+				Asset:  common.RuneAsset(),
+				Amount: int64(f.subsidiseRune.Uint64()),
+			},
+		}
+		eventSlash := NewEventSlash(pool.Asset, poolSlashAmt)
+		if err := mgr.EventMgr().EmitEvent(ctx, eventSlash); err != nil {
+			ctx.Logger().Error("fail to emit slash event", "error", err)
+		}
+	}
+	return nil
+}
+
+func subsidizePoolWithSlashBondV74(ctx cosmos.Context, ygg Vault, yggTotalStolen, slashRuneAmt cosmos.Uint, mgr Manager) error {
+	// Thorchain did not slash the node account
+	if slashRuneAmt.IsZero() {
+		return nil
+	}
+	stolenRUNE := ygg.GetCoin(common.RuneAsset()).Amount
+	slashRuneAmt = common.SafeSub(slashRuneAmt, stolenRUNE)
+	yggTotalStolen = common.SafeSub(yggTotalStolen, stolenRUNE)
+
+	// Should never happen, but this prevents a divide-by-zero panic in case it does
+	if yggTotalStolen.IsZero() {
+		return nil
+	}
+
+	type fund struct {
+		asset         common.Asset
+		stolenAsset   cosmos.Uint
+		subsidiseRune cosmos.Uint
+	}
+	// here need to use a map to hold on to the amount of RUNE need to be subsidized to each pool
+	// reason being , if ygg pool has both RUNE and BNB coin left, these two coin share the same pool
+	// which is BNB pool , if add the RUNE directly back to pool , it will affect BNB price , which will affect the result
+	subsidize := make([]fund, 0)
+	for _, coin := range ygg.Coins {
+		if coin.IsEmpty() {
+			continue
+		}
+		if coin.Asset.IsRune() {
+			// when the asset is RUNE, thorchain don't need to update the RUNE balance on pool
+			continue
+		}
+		f := fund{
+			asset:         coin.Asset,
+			stolenAsset:   cosmos.ZeroUint(),
+			subsidiseRune: cosmos.ZeroUint(),
+		}
+
+		pool, err := mgr.Keeper().GetPool(ctx, coin.Asset)
+		if err != nil {
+			return err
+		}
+		f.stolenAsset = f.stolenAsset.Add(coin.Amount)
+		runeValue := pool.AssetValueInRune(coin.Amount)
+		// the amount of RUNE thorchain used to subsidize the pool is calculate by ratio
+		// slashRune * (stealAssetRuneValue /totalStealAssetRuneValue)
+		subsidizeAmt := slashRuneAmt.Mul(runeValue).Quo(yggTotalStolen)
+		f.subsidiseRune = f.subsidiseRune.Add(subsidizeAmt)
+		subsidize = append(subsidize, f)
+	}
+
+	for _, f := range subsidize {
+		pool, err := mgr.Keeper().GetPool(ctx, f.asset)
+		if err != nil {
+			ctx.Logger().Error("fail to get pool", "asset", f.asset, "error", err)
+			continue
+		}
+		if pool.IsEmpty() {
+			continue
+		}
+
+		pool.BalanceRune = pool.BalanceRune.Add(f.subsidiseRune)
+		pool.BalanceAsset = common.SafeSub(pool.BalanceAsset, f.stolenAsset)
+
+		if err := mgr.Keeper().SetPool(ctx, pool); err != nil {
+			ctx.Logger().Error("fail to save pool", "asset", pool.Asset, "error", err)
+			continue
 		}
 		poolSlashAmt := []PoolAmt{
 			{
