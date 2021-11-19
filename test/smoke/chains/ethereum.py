@@ -278,7 +278,7 @@ class Ethereum(GenericChain):
         ):
             gas = 53008
         elif txn.memo == "WITHDRAW:ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A":
-            gas = 44647
+            gas = 44637
         elif txn.memo == "WITHDRAW:ETH.ETH":
             gas = 39861
         return Coin(cls.coin, gas * 3)
