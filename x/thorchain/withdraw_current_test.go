@@ -15,9 +15,9 @@ import (
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
-type WithdrawSuiteV74 struct{}
+type WithdrawSuiteV75 struct{}
 
-var _ = Suite(&WithdrawSuiteV74{})
+var _ = Suite(&WithdrawSuiteV75{})
 
 type WithdrawTestKeeperV74 struct {
 	keeper.KVStoreDummy
@@ -92,12 +92,12 @@ func (k *WithdrawTestKeeperV74) SetLiquidityProvider(ctx cosmos.Context, lp Liqu
 	k.keeper.SetLiquidityProvider(ctx, lp)
 }
 
-func (s *WithdrawSuiteV74) SetUpSuite(c *C) {
+func (s *WithdrawSuiteV75) SetUpSuite(c *C) {
 	SetupConfigForTest()
 }
 
 // TestValidateWithdraw is to test validateWithdraw function
-func (s WithdrawSuiteV74) TestValidateWithdraw(c *C) {
+func (s WithdrawSuiteV75) TestValidateWithdraw(c *C) {
 	accountAddr := GetRandomValidatorNode(NodeWhiteListed).NodeAddress
 	runeAddress, err := common.NewAddress("bnb1g0xakzh03tpa54khxyvheeu92hwzypkdce77rm")
 	if err != nil {
@@ -201,7 +201,7 @@ func (s WithdrawSuiteV74) TestValidateWithdraw(c *C) {
 	}
 }
 
-func (s WithdrawSuiteV74) TestCalculateUnsake(c *C) {
+func (s WithdrawSuiteV75) TestCalculateUnsake(c *C) {
 	inputs := []struct {
 		name                  string
 		poolUnit              cosmos.Uint
@@ -318,7 +318,7 @@ func (s WithdrawSuiteV74) TestCalculateUnsake(c *C) {
 	}
 }
 
-func (WithdrawSuiteV74) TestWithdraw(c *C) {
+func (WithdrawSuiteV75) TestWithdraw(c *C) {
 	ctx, mgr := setupManagerForTest(c)
 	accountAddr := GetRandomValidatorNode(NodeWhiteListed).NodeAddress
 	runeAddress := GetRandomRUNEAddress()
@@ -484,7 +484,7 @@ func (WithdrawSuiteV74) TestWithdraw(c *C) {
 	}
 }
 
-func (WithdrawSuiteV74) TestWithdrawAsym(c *C) {
+func (WithdrawSuiteV75) TestWithdrawAsym(c *C) {
 	accountAddr := GetRandomValidatorNode(NodeWhiteListed).NodeAddress
 	runeAddress := GetRandomRUNEAddress()
 
@@ -549,7 +549,7 @@ func (WithdrawSuiteV74) TestWithdrawAsym(c *C) {
 	}
 }
 
-func (WithdrawSuiteV74) TestWithdrawPendingRuneOrAsset(c *C) {
+func (WithdrawSuiteV75) TestWithdrawPendingRuneOrAsset(c *C) {
 	version := GetCurrentVersion()
 	accountAddr := GetRandomValidatorNode(NodeActive).NodeAddress
 	ctx, mgr := setupManagerForTest(c)
@@ -616,7 +616,7 @@ func (WithdrawSuiteV74) TestWithdrawPendingRuneOrAsset(c *C) {
 	c.Assert(gas.IsZero(), Equals, true)
 }
 
-func (s *WithdrawSuiteV74) TestWithdrawWithImpermanentLossProtection(c *C) {
+func (s *WithdrawSuiteV75) TestWithdrawWithImpermanentLossProtection(c *C) {
 	accountAddr := GetRandomValidatorNode(NodeActive).NodeAddress
 	ctx, mgr := setupManagerForTest(c)
 	pool := Pool{
@@ -798,7 +798,7 @@ func TestCalcImpLossV74(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t1 *testing.T) {
-			ilpRune, depositValue, redeemValue := calcImpLossV74(tc.lp, cosmos.NewUint(uint64(tc.withdrawBasisPoint)), tc.protectionBasisPoints, tc.pool)
+			ilpRune, depositValue, redeemValue := calcImpLossV75(tc.lp, cosmos.NewUint(uint64(tc.withdrawBasisPoint)), tc.protectionBasisPoints, tc.pool)
 			assert.Equal(t1, ilpRune.String(), tc.expectedILP.String())
 			assert.Equal(t1, depositValue.String(), tc.expectedDepositValue.String())
 			assert.Equal(t1, redeemValue.String(), tc.expectedRedeemValue.String())

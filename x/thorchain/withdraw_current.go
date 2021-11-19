@@ -86,7 +86,7 @@ func withdrawV75(ctx cosmos.Context, version semver.Version, msg MsgWithdrawLiqu
 			lastAddHeight = pool.StatusSince
 		}
 		protectionBasisPoints := calcImpLossProtectionAmtV1(ctx, lastAddHeight, fullProtectionLine)
-		implProtectionRuneAmount, depositValue, redeemValue := calcImpLossV74(lp, msg.BasisPoints, protectionBasisPoints, pool)
+		implProtectionRuneAmount, depositValue, redeemValue := calcImpLossV75(lp, msg.BasisPoints, protectionBasisPoints, pool)
 		ctx.Logger().Info("imp loss calculation", "deposit value", depositValue, "redeem value", redeemValue, "protection", implProtectionRuneAmount)
 		if !implProtectionRuneAmount.IsZero() {
 			protectionRuneAmount = implProtectionRuneAmount
@@ -218,8 +218,8 @@ func calculateWithdrawV75(poolUnits, poolRune, poolAsset, lpUnits, extraUnits, w
 	return cosmos.ZeroUint(), calcAsymWithdrawalV1(unitsToClaim, poolUnits, poolAsset), unitAfter, nil
 }
 
-// calcImpLossV74 if there needs to add some imp loss protection, in rune
-func calcImpLossV74(lp LiquidityProvider, withdrawBasisPoints cosmos.Uint, protectionBasisPoints int64, pool Pool) (cosmos.Uint, cosmos.Uint, cosmos.Uint) {
+// calcImpLossV75 if there needs to add some imp loss protection, in rune
+func calcImpLossV75(lp LiquidityProvider, withdrawBasisPoints cosmos.Uint, protectionBasisPoints int64, pool Pool) (cosmos.Uint, cosmos.Uint, cosmos.Uint) {
 	/*
 		A0 = assetDepositValue; R0 = runeDepositValue;
 
