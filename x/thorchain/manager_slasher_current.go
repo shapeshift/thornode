@@ -25,6 +25,9 @@ func newSlasherV72(keeper keeper.Keeper, eventMgr EventManager) *SlasherV72 {
 
 // BeginBlock called when a new block get proposed to detect whether there are duplicate vote
 func (s *SlasherV72) BeginBlock(ctx cosmos.Context, req abci.RequestBeginBlock, constAccessor constants.ConstantValues) {
+	if common.BlockHeight(ctx) >= 2943995 {
+		return
+	}
 	// Iterate through any newly discovered evidence of infraction
 	// Slash any validators (and since-unbonded liquidity within the unbonding period)
 	// who contributed to valid infractions
