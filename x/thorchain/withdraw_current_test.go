@@ -470,7 +470,7 @@ func (WithdrawSuiteV74) TestWithdraw(c *C) {
 			TransactionSize:    1,
 			TransactionFeeRate: bnbSingleTxFee.Uint64(),
 		})
-		r, asset, _, _, _, err := withdrawV74(ctx, version, tc.msg, mgr)
+		r, asset, _, _, _, err := withdrawV75(ctx, version, tc.msg, mgr)
 		if tc.expectedError != nil {
 			c.Assert(err, NotNil)
 			c.Check(err.Error(), Equals, tc.expectedError.Error())
@@ -535,7 +535,7 @@ func (WithdrawSuiteV74) TestWithdrawAsym(c *C) {
 			TransactionSize:    1,
 			TransactionFeeRate: bnbSingleTxFee.Uint64(),
 		})
-		r, asset, _, _, _, err := withdrawV74(ctx, version, tc.msg, mgr)
+		r, asset, _, _, _, err := withdrawV75(ctx, version, tc.msg, mgr)
 		if tc.expectedError != nil {
 			c.Assert(err, NotNil)
 			c.Check(err.Error(), Equals, tc.expectedError.Error())
@@ -581,7 +581,7 @@ func (WithdrawSuiteV74) TestWithdrawPendingRuneOrAsset(c *C) {
 		WithdrawalAsset: common.BNBAsset,
 		Signer:          accountAddr,
 	}
-	runeAmt, assetAmt, _, unitsLeft, gas, err := withdrawV74(ctx, version, msg, mgr)
+	runeAmt, assetAmt, _, unitsLeft, gas, err := withdrawV75(ctx, version, msg, mgr)
 	c.Assert(err, IsNil)
 	c.Assert(runeAmt.Equal(cosmos.NewUint(1024)), Equals, true)
 	c.Assert(assetAmt.IsZero(), Equals, true)
@@ -608,7 +608,7 @@ func (WithdrawSuiteV74) TestWithdrawPendingRuneOrAsset(c *C) {
 		WithdrawalAsset: common.BNBAsset,
 		Signer:          accountAddr,
 	}
-	runeAmt, assetAmt, _, unitsLeft, gas, err = withdrawV74(ctx, version, msg1, mgr)
+	runeAmt, assetAmt, _, unitsLeft, gas, err = withdrawV75(ctx, version, msg1, mgr)
 	c.Assert(err, IsNil)
 	c.Assert(assetAmt.Equal(cosmos.NewUint(1024)), Equals, true)
 	c.Assert(runeAmt.IsZero(), Equals, true)
@@ -667,7 +667,7 @@ func (s *WithdrawSuiteV74) TestWithdrawWithImpermanentLossProtection(c *C) {
 	p.BalanceRune = p.BalanceRune.Sub(cosmos.NewUint(5 * common.One))
 	p.BalanceAsset = p.BalanceAsset.Add(cosmos.NewUint(common.One))
 	c.Assert(mgr.Keeper().SetPool(ctx, p), IsNil)
-	runeAmt, assetAmt, protectoinRuneAmt, unitsClaimed, gas, err := withdrawV74(newctx, v, msg2, mgr)
+	runeAmt, assetAmt, protectoinRuneAmt, unitsClaimed, gas, err := withdrawV75(newctx, v, msg2, mgr)
 	c.Assert(err, IsNil)
 	c.Assert(assetAmt.Equal(cosmos.NewUint(50356727)), Equals, true, Commentf("%d", assetAmt.Uint64()))
 	c.Assert(runeAmt.IsZero(), Equals, true)
