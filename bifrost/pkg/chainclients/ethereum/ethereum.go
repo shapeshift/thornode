@@ -155,8 +155,13 @@ func NewClient(thorKeys *thorclient.Keys,
 	if err != nil {
 		return c, fmt.Errorf("fail to create blockscanner storage: %w", err)
 	}
+	signerCacheManager, err := signercache.NewSignerCacheManager(storage.GetInternalDb())
+	if err != nil {
+		return nil, fmt.Errorf("fail to create signer cache manager")
+	}
 
-	c.ethScanner, err = NewETHScanner(c.cfg.BlockScanner, storage, chainID, c.client, c.bridge, m, pubkeyMgr, c.reportSolvency)
+	c.signerCacheManager = signerCacheManager
+	c.ethScanner, err = NewETHScanner(c.cfg.BlockScanner, storage, chainID, c.client, c.bridge, m, pubkeyMgr, c.reportSolvency, signerCacheManager)
 	if err != nil {
 		return c, fmt.Errorf("fail to create eth block scanner: %w", err)
 	}
@@ -170,12 +175,7 @@ func NewClient(thorKeys *thorclient.Keys,
 		c.logger.Err(err).Msg("fail to get local node's ETH address")
 	}
 	c.logger.Info().Msgf("local node ETH address %s", localNodeETHAddress)
-	signerCacheManager, err := signercache.NewSignerCacheManager(storage.GetInternalDb())
-	if err != nil {
-		return nil, fmt.Errorf("fail to create signer cache manager")
-	}
 
-	c.signerCacheManager = signerCacheManager
 	return c, nil
 }
 

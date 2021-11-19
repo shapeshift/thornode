@@ -23,6 +23,7 @@ import (
 	"gitlab.com/thorchain/thornode/bifrost/config"
 	"gitlab.com/thorchain/thornode/bifrost/metrics"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/ethereum/types"
+	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/signercache"
 	"gitlab.com/thorchain/thornode/bifrost/pubkeymanager"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient"
 	stypes "gitlab.com/thorchain/thornode/bifrost/thorclient/types"
@@ -72,6 +73,7 @@ type ETHScanner struct {
 	gasCache             []*big.Int
 	solvencyReporter     SolvencyReporter
 	whitelistTokens      []ERC20Token
+	signerCacheManager   *signercache.CacheManager
 }
 
 // NewETHScanner create a new instance of ETHScanner
@@ -82,7 +84,8 @@ func NewETHScanner(cfg config.BlockScannerConfiguration,
 	bridge *thorclient.ThorchainBridge,
 	m *metrics.Metrics,
 	pubkeyMgr pubkeymanager.PubKeyValidator,
-	solvencyReporter SolvencyReporter) (*ETHScanner, error) {
+	solvencyReporter SolvencyReporter,
+	signerCacheManager *signercache.CacheManager) (*ETHScanner, error) {
 	if storage == nil {
 		return nil, errors.New("storage is nil")
 	}
@@ -137,6 +140,7 @@ func NewETHScanner(cfg config.BlockScannerConfiguration,
 		gasCache:             make([]*big.Int, 0),
 		solvencyReporter:     solvencyReporter,
 		whitelistTokens:      whitelistTokens.Tokens,
+		signerCacheManager:   signerCacheManager,
 	}, nil
 }
 
@@ -810,8 +814,8 @@ func (e *ETHScanner) fromTxToTxIn(tx *etypes.Transaction) (*stypes.TxInItem, err
 	if receipt.Status != 1 {
 		// a transaction that is failed
 		// remove the Signer cache , so the tx out item can be retried
-		if err := e.blockMetaAccessor.RemoveSignedTxItem(tx.Hash().String()); err != nil {
-			e.logger.Err(err).Msgf("fail to remove signed transaction hash: %s", tx.Hash().String())
+		if e.signerCacheManager != nil {
+			e.signerCacheManager.RemoveSigned(tx.Hash().String())
 		}
 		e.logger.Debug().Msgf("tx(%s) state: %d means failed , ignore", tx.Hash().String(), receipt.Status)
 		return nil, nil
