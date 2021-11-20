@@ -21,7 +21,7 @@ func (PoolTestSuite) TestPool(c *C) {
 	p.BalanceRune = cosmos.NewUint(100 * common.One)
 	p.BalanceAsset = cosmos.NewUint(50 * common.One)
 	c.Check(p.AssetValueInRune(cosmos.NewUint(25*common.One)).Equal(cosmos.NewUint(50*common.One)), Equals, true)
-	c.Check(p.AssetValueInRuneWithSlip(cosmos.NewUint(25*common.One)).Equal(cosmos.NewUint(25*common.One)), Equals, true)
+	c.Check(p.AssetValueInRuneWithSlip(cosmos.NewUint(25*common.One)).Equal(cosmos.NewUint(10000000000)), Equals, true, Commentf("%d", p.AssetValueInRuneWithSlip(cosmos.NewUint(25*common.One)).Uint64()))
 	c.Check(p.RuneValueInAsset(cosmos.NewUint(50*common.One)).Equal(cosmos.NewUint(25*common.One)), Equals, true)
 	c.Check(p.RuneValueInAssetWithSlip(cosmos.NewUint(50*common.One)).Equal(cosmos.NewUint(50*common.One)), Equals, true)
 
