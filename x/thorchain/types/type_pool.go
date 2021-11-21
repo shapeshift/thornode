@@ -153,3 +153,22 @@ func (m Pool) RuneValueInAsset(amt cosmos.Uint) cosmos.Uint {
 	assetAmt := common.GetShare(m.BalanceAsset, m.BalanceRune, amt)
 	return cosmos.RoundToDecimal(assetAmt, m.Decimals)
 }
+
+func (m Pools) Get(asset common.Asset) (Pool, bool) {
+	for _, p := range m {
+		if p.Asset.Equals(asset) {
+			return p, true
+		}
+	}
+	return NewPool(), false
+}
+
+func (m Pools) Set(pool Pool) Pools {
+	for i, p := range m {
+		if p.Asset.Equals(pool.Asset) {
+			m[i] = pool
+		}
+	}
+	m = append(m, pool)
+	return m
+}

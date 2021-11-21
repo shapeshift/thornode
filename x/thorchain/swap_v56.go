@@ -11,21 +11,21 @@ import (
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
-type SwapperV75 struct {
-	pools       Pools // caches pool state changes
-	poolsOrig   Pools // retains original pool state
+type SwapperV56 struct {
+	pools       map[common.Asset]Pool // caches pool state changes
+	poolsOrig   map[common.Asset]Pool // retains original pool state
 	coinsToBurn common.Coins
 }
 
-func NewSwapperV75() *SwapperV75 {
-	return &SwapperV75{
-		pools:     make(Pools, 0),
-		poolsOrig: make(Pools, 0),
+func NewSwapperV56() *SwapperV56 {
+	return &SwapperV56{
+		pools:     make(map[common.Asset]Pool),
+		poolsOrig: make(map[common.Asset]Pool),
 	}
 }
 
 // validate if pools exist
-func (s *SwapperV75) validatePools(ctx cosmos.Context, keeper keeper.Keeper, assets ...common.Asset) error {
+func (s *SwapperV56) validatePools(ctx cosmos.Context, keeper keeper.Keeper, assets ...common.Asset) error {
 	for _, asset := range assets {
 		if !asset.IsRune() {
 			if !keeper.PoolExist(ctx, asset) {
@@ -45,7 +45,7 @@ func (s *SwapperV75) validatePools(ctx cosmos.Context, keeper keeper.Keeper, ass
 }
 
 // validateMessage is trying to validate the legitimacy of the incoming message and decide whether THORNode can handle it
-func (s *SwapperV75) validateMessage(tx common.Tx, target common.Asset, destination common.Address) error {
+func (s *SwapperV56) validateMessage(tx common.Tx, target common.Asset, destination common.Address) error {
 	if err := tx.Valid(); err != nil {
 		return err
 	}
@@ -59,7 +59,7 @@ func (s *SwapperV75) validateMessage(tx common.Tx, target common.Asset, destinat
 	return nil
 }
 
-func (s *SwapperV75) swap(ctx cosmos.Context,
+func (s *SwapperV56) swap(ctx cosmos.Context,
 	keeper keeper.Keeper,
 	tx common.Tx,
 	target common.Asset,
@@ -207,7 +207,7 @@ func (s *SwapperV75) swap(ctx cosmos.Context,
 	return assetAmount, swapEvents, nil
 }
 
-func (s *SwapperV75) swapOne(ctx cosmos.Context,
+func (s *SwapperV56) swapOne(ctx cosmos.Context,
 	keeper keeper.Keeper, tx common.Tx,
 	target common.Asset,
 	destination common.Address,
@@ -254,7 +254,7 @@ func (s *SwapperV75) swapOne(ctx cosmos.Context,
 		return cosmos.ZeroUint(), evt, err
 	}
 
-	if p, ok := s.pools.Get(asset); ok {
+	if p, ok := s.pools[asset]; ok {
 		// Get our pool from the cache
 		pool = p
 	} else {
@@ -266,7 +266,7 @@ func (s *SwapperV75) swapOne(ctx cosmos.Context,
 		ver := keeper.GetLowestActiveVersion(ctx)
 		synthSupply := keeper.GetTotalSupply(ctx, pool.Asset.GetSyntheticAsset())
 		pool.CalcUnits(ver, synthSupply)
-		s.poolsOrig = s.poolsOrig.Set(pool)
+		s.poolsOrig[asset] = pool
 	}
 
 	// Get our X, x, Y values
@@ -337,13 +337,13 @@ func (s *SwapperV75) swapOne(ctx cosmos.Context,
 	ctx.Logger().Info("post swap", "pool", pool.Asset, "rune", pool.BalanceRune, "asset", pool.BalanceAsset, "lp units", pool.LPUnits, "synth units", pool.SynthUnits, "emit asset", emitAssets)
 
 	// add the new pool to the cache
-	s.pools = s.pools.Set(pool)
+	s.pools[pool.Asset] = pool
 
 	return emitAssets, swapEvt, nil
 }
 
 // calculate the number of assets sent to the address (includes liquidity fee)
-func (s *SwapperV75) calcAssetEmission(X, x, Y cosmos.Uint) cosmos.Uint {
+func (s *SwapperV56) calcAssetEmission(X, x, Y cosmos.Uint) cosmos.Uint {
 	// ( x * X * Y ) / ( x + X )^2
 	numerator := x.Mul(X).Mul(Y)
 	denominator := x.Add(X).Mul(x.Add(X))
@@ -354,7 +354,7 @@ func (s *SwapperV75) calcAssetEmission(X, x, Y cosmos.Uint) cosmos.Uint {
 }
 
 // calculateFee the fee of the swap
-func (s *SwapperV75) calcLiquidityFee(X, x, Y cosmos.Uint) cosmos.Uint {
+func (s *SwapperV56) calcLiquidityFee(X, x, Y cosmos.Uint) cosmos.Uint {
 	// ( x^2 *  Y ) / ( x + X )^2
 	numerator := x.Mul(x).Mul(Y)
 	denominator := x.Add(X).Mul(x.Add(X))
@@ -365,7 +365,7 @@ func (s *SwapperV75) calcLiquidityFee(X, x, Y cosmos.Uint) cosmos.Uint {
 }
 
 // calcSwapSlip - calculate the swap slip, expressed in basis points (10000)
-func (s *SwapperV75) calcSwapSlip(Xi, xi cosmos.Uint) cosmos.Uint {
+func (s *SwapperV56) calcSwapSlip(Xi, xi cosmos.Uint) cosmos.Uint {
 	// Cast to DECs
 	xD := cosmos.NewDecFromBigInt(xi.BigInt())
 	XD := cosmos.NewDecFromBigInt(Xi.BigInt())
