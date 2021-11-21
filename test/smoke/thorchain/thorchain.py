@@ -1455,7 +1455,6 @@ class Pool(Jsonable):
 
         return get_share(self.rune_balance, self.asset_balance-val, val)
 
-
     def get_rune_in_asset(self, val):
         """
         Get an equal amount of given value in asset
