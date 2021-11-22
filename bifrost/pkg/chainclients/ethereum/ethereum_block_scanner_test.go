@@ -104,23 +104,23 @@ func (s *BlockScannerTestSuite) TestNewBlockScanner(c *C) {
 	solvencyReporter := func(height int64) error {
 		return nil
 	}
-	bs, err := NewETHScanner(getConfigForTest(""), nil, big.NewInt(int64(types.Mainnet)), ethClient, s.bridge, s.m, pubKeyManager, solvencyReporter)
+	bs, err := NewETHScanner(getConfigForTest(""), nil, big.NewInt(int64(types.Mainnet)), ethClient, s.bridge, s.m, pubKeyManager, solvencyReporter, nil)
 	c.Assert(err, NotNil)
 	c.Assert(bs, IsNil)
 
-	bs, err = NewETHScanner(getConfigForTest("127.0.0.1"), storage, big.NewInt(int64(types.Mainnet)), ethClient, s.bridge, nil, pubKeyManager, solvencyReporter)
+	bs, err = NewETHScanner(getConfigForTest("127.0.0.1"), storage, big.NewInt(int64(types.Mainnet)), ethClient, s.bridge, nil, pubKeyManager, solvencyReporter, nil)
 	c.Assert(err, NotNil)
 	c.Assert(bs, IsNil)
 
-	bs, err = NewETHScanner(getConfigForTest("127.0.0.1"), storage, big.NewInt(int64(types.Mainnet)), nil, s.bridge, s.m, pubKeyManager, solvencyReporter)
+	bs, err = NewETHScanner(getConfigForTest("127.0.0.1"), storage, big.NewInt(int64(types.Mainnet)), nil, s.bridge, s.m, pubKeyManager, solvencyReporter, nil)
 	c.Assert(err, NotNil)
 	c.Assert(bs, IsNil)
 
-	bs, err = NewETHScanner(getConfigForTest("127.0.0.1"), storage, big.NewInt(int64(types.Mainnet)), ethClient, s.bridge, s.m, nil, solvencyReporter)
+	bs, err = NewETHScanner(getConfigForTest("127.0.0.1"), storage, big.NewInt(int64(types.Mainnet)), ethClient, s.bridge, s.m, nil, solvencyReporter, nil)
 	c.Assert(err, NotNil)
 	c.Assert(bs, IsNil)
 
-	bs, err = NewETHScanner(getConfigForTest("127.0.0.1"), storage, big.NewInt(int64(types.Mainnet)), ethClient, s.bridge, s.m, pubKeyManager, solvencyReporter)
+	bs, err = NewETHScanner(getConfigForTest("127.0.0.1"), storage, big.NewInt(int64(types.Mainnet)), ethClient, s.bridge, s.m, pubKeyManager, solvencyReporter, nil)
 	c.Assert(err, IsNil)
 	c.Assert(bs, NotNil)
 }
@@ -203,7 +203,7 @@ func (s *BlockScannerTestSuite) TestProcessBlock(c *C) {
 
 	bs, err := NewETHScanner(getConfigForTest(server.URL), storage, big.NewInt(1337), ethClient, bridge, s.m, pubKeyMgr, func(height int64) error {
 		return nil
-	})
+	}, nil)
 	c.Assert(err, IsNil)
 	c.Assert(bs, NotNil)
 	whitelistSmartContractAddres = append(whitelistSmartContractAddres, "0x40bcd4dB8889a8Bf0b1391d0c819dcd9627f9d0a")
@@ -343,7 +343,7 @@ func (s *BlockScannerTestSuite) TestFromTxToTxIn(c *C) {
 	c.Assert(err, IsNil)
 	bs, err := NewETHScanner(getConfigForTest(server.URL), storage, big.NewInt(int64(types.Mainnet)), ethClient, s.bridge, s.m, pkeyMgr, func(height int64) error {
 		return nil
-	})
+	}, nil)
 	c.Assert(err, IsNil)
 	c.Assert(bs, NotNil)
 
@@ -389,7 +389,7 @@ func (s *BlockScannerTestSuite) TestFromTxToTxIn(c *C) {
 
 	bs, err = NewETHScanner(getConfigForTest(server.URL), storage, big.NewInt(1337), ethClient, s.bridge, s.m, pkeyMgr, func(height int64) error {
 		return nil
-	})
+	}, nil)
 	c.Assert(err, IsNil)
 	c.Assert(bs, NotNil)
 	// smart contract - deposit
@@ -408,7 +408,7 @@ func (s *BlockScannerTestSuite) TestFromTxToTxIn(c *C) {
 
 	bs, err = NewETHScanner(getConfigForTest(server.URL), storage, big.NewInt(1337), ethClient, s.bridge, s.m, pkeyMgr, func(height int64) error {
 		return nil
-	})
+	}, nil)
 	// whitelist the address for test
 	whitelistSmartContractAddres = append(whitelistSmartContractAddres,
 		"0xe65e9d372f8cacc7b6dfcd4af6507851ed31bb44",
@@ -574,7 +574,7 @@ func (s *BlockScannerTestSuite) TestProcessReOrg(c *C) {
 	}()
 	bs, err := NewETHScanner(getConfigForTest(server.URL), storage, big.NewInt(int64(types.Mainnet)), ethClient, s.bridge, s.m, pkeyMgr, func(height int64) error {
 		return nil
-	})
+	}, nil)
 	c.Assert(err, IsNil)
 	c.Assert(bs, NotNil)
 	block, err := CreateBlock(0)
