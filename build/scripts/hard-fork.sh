@@ -15,5 +15,7 @@ thornode export --height "$HARDFORK_BLOCK_HEIGHT" >thorchain_genesis_export."$DA
 # reset the database
 thornode unsafe-reset-all
 
+# update chain id
+jq '.chain_id="thorchain-v1"' thorchain_genesis_export."$DATE".json >temp.json
 # copied exported genesis file to the config directory
-cp thorchain_genesis_export."$DATE".json ~/.thornode/config/genesis.json
+cp temp.json ~/.thornode/config/genesis.json
