@@ -121,7 +121,7 @@ func MakeLegacyCodec() *codec.LegacyAmino {
 func (b *ThorchainBridge) GetContext() client.Context {
 	ctx := client.Context{}
 	ctx = ctx.WithKeyring(b.keys.GetKeybase())
-	ctx = ctx.WithChainID("thorchain")
+	ctx = ctx.WithChainID(string(b.cfg.ChainID))
 	ctx = ctx.WithHomeDir(b.cfg.ChainHomeFolder)
 	ctx = ctx.WithFromName(b.cfg.SignerName)
 	ctx = ctx.WithFromAddress(b.keys.GetSignerInfo().GetAddress())
