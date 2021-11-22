@@ -82,7 +82,9 @@ func (h WithdrawLiquidityHandler) validateV65(ctx cosmos.Context, msg MsgWithdra
 
 func (h WithdrawLiquidityHandler) handle(ctx cosmos.Context, msg MsgWithdrawLiquidity) (*cosmos.Result, error) {
 	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.65.0")) {
+	if version.GTE(semver.MustParse("0.75.0")) {
+		return h.handleV75(ctx, msg)
+	} else if version.GTE(semver.MustParse("0.65.0")) {
 		return h.handleV65(ctx, msg)
 	} else if version.GTE(semver.MustParse("0.55.0")) {
 		return h.handleV55(ctx, msg)
@@ -102,7 +104,7 @@ func (h WithdrawLiquidityHandler) handle(ctx cosmos.Context, msg MsgWithdrawLiqu
 	return nil, errBadVersion
 }
 
-func (h WithdrawLiquidityHandler) handleV65(ctx cosmos.Context, msg MsgWithdrawLiquidity) (*cosmos.Result, error) {
+func (h WithdrawLiquidityHandler) handleV75(ctx cosmos.Context, msg MsgWithdrawLiquidity) (*cosmos.Result, error) {
 	lp, err := h.mgr.Keeper().GetLiquidityProvider(ctx, msg.Asset, msg.WithdrawAddress)
 	if err != nil {
 		return nil, multierror.Append(errFailGetLiquidityProvider, err)
@@ -121,6 +123,9 @@ func (h WithdrawLiquidityHandler) handleV65(ctx cosmos.Context, msg MsgWithdrawL
 		// tx id is blank, must be triggered by the ragnarok protocol
 		memo = NewRagnarokMemo(common.BlockHeight(ctx)).String()
 	}
+
+	// any extra rune in the transaction will be donated to reserve
+	reserveCoin := msg.Tx.Coins.GetCoin(common.RuneAsset())
 
 	if !assetAmount.IsZero() {
 		toi := TxOutItem{
@@ -166,23 +171,24 @@ func (h WithdrawLiquidityHandler) handleV65(ctx cosmos.Context, msg MsgWithdrawL
 			Coin:      common.NewCoin(common.RuneAsset(), runeAmt),
 			Memo:      memo,
 		}
-		// there is much much less chance thorchain doesn't have enough RUNE
-		okRune, err := h.mgr.TxOutStore().TryAddTxOutItem(ctx, h.mgr, toi)
-		if err != nil {
+		okRune, txOutErr := h.mgr.TxOutStore().TryAddTxOutItem(ctx, h.mgr, toi)
+		if txOutErr != nil || !okRune {
 			// when assetAmount is zero , the network didn't try to send asset to customer
 			// thus if it failed to send RUNE , it should restore pool here
 			// this might happen when the emit RUNE from the withdraw is less than `NativeTransactionFee`
 			if assetAmount.IsZero() {
-				if err := h.mgr.Keeper().SetPool(ctx, pool); err != nil {
-					return nil, ErrInternal(err, "fail to save pool")
+				if poolErr := h.mgr.Keeper().SetPool(ctx, pool); poolErr != nil {
+					return nil, ErrInternal(poolErr, "fail to save pool")
 				}
+				h.mgr.Keeper().SetLiquidityProvider(ctx, lp)
+				if txOutErr != nil {
+					return nil, multierror.Append(errFailAddOutboundTx, txOutErr)
+				}
+				return nil, errFailAddOutboundTx
 			}
-			// emitted asset doesn't enough to cover fee, continue
-			return nil, multierror.Append(errFailAddOutboundTx, err)
-		}
-
-		if !okRune {
-			return nil, errFailAddOutboundTx
+			// asset success/rune failed: send rune to reserve and emit events
+			reserveCoin.Amount = reserveCoin.Amount.Add(toi.Coin.Amount)
+			ctx.Logger().Error("rune side failed, add to reserve", "error", txOutErr, "coin", toi.Coin)
 		}
 	}
 
@@ -225,9 +231,8 @@ func (h WithdrawLiquidityHandler) handleV65(ctx cosmos.Context, msg MsgWithdrawL
 	}
 
 	// Get rune (if any) and donate it to the reserve
-	coin := msg.Tx.Coins.GetCoin(common.RuneAsset())
-	if !coin.IsEmpty() {
-		if err := h.mgr.Keeper().AddFeeToReserve(ctx, coin.Amount); err != nil {
+	if !reserveCoin.IsEmpty() {
+		if err := h.mgr.Keeper().AddFeeToReserve(ctx, reserveCoin.Amount); err != nil {
 			// Add to reserve
 			ctx.Logger().Error("fail to add fee to reserve", "error", err)
 		}
