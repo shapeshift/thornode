@@ -152,7 +152,7 @@ func (HandlerWithdrawSuite) TestAsymmetricWithdraw(c *C) {
 	btcAddress := GetRandomBTCAddress()
 	addHandler := NewAddLiquidityHandler(NewDummyMgrWithKeeper(keeper))
 	// stake some RUNE first
-	err := addHandler.addLiquidityV1(ctx,
+	err := addHandler.addLiquidity(ctx,
 		common.BTCAsset,
 		cosmos.NewUint(common.One*100),
 		cosmos.ZeroUint(),
@@ -167,7 +167,7 @@ func (HandlerWithdrawSuite) TestAsymmetricWithdraw(c *C) {
 	c.Assert(lp.Valid(), IsNil)
 	c.Assert(lp.PendingRune.Equal(cosmos.NewUint(common.One*100)), Equals, true)
 	// Stake some BTC , make sure stake finished
-	err = addHandler.addLiquidityV1(ctx, common.BTCAsset, cosmos.ZeroUint(), cosmos.NewUint(100*common.One), runeAddr, btcAddress, GetRandomTxHash(), false, constAccessor)
+	err = addHandler.addLiquidity(ctx, common.BTCAsset, cosmos.ZeroUint(), cosmos.NewUint(100*common.One), runeAddr, btcAddress, GetRandomTxHash(), false, constAccessor)
 	c.Assert(err, IsNil)
 	lp, err = keeper.GetLiquidityProvider(ctx, common.BTCAsset, runeAddr)
 	c.Assert(err, IsNil)
@@ -330,4 +330,119 @@ func (HandlerWithdrawSuite) TestWithdrawHandler_mockFailScenarios(c *C) {
 		_, err := withdrawHandler.Run(ctx, msgWithdraw)
 		c.Assert(errors.Is(err, tc.expectedResult), Equals, true, Commentf(tc.name))
 	}
+}
+
+type MockWithdrawTxOutStore struct {
+	TxOutStore
+	errAsset error
+	errRune  error
+}
+
+func (store *MockWithdrawTxOutStore) TryAddTxOutItem(ctx cosmos.Context, mgr Manager, toi TxOutItem) (bool, error) {
+	if toi.Coin.Asset.IsNativeRune() && store.errRune != nil {
+		return false, store.errRune
+	}
+	if !toi.Coin.Asset.IsNativeRune() && store.errAsset != nil {
+		return false, store.errAsset
+	}
+	return true, nil
+}
+
+type MockWithdrawEventMgr struct{
+	EventManager
+	count int
+}
+
+func (m *MockWithdrawEventMgr) EmitEvent(ctx cosmos.Context, evt EmitEventItem) error {
+	m.count += 1
+	return nil
+}
+
+func (HandlerWithdrawSuite) TestWithdrawHandler_outboundFailures(c *C) {
+	SetupConfigForTest()
+	ctx, keeper := setupKeeperForTest(c)
+	na := GetRandomValidatorNode(NodeActive)
+	asset := common.BTCAsset
+
+	pool := Pool {
+		Asset:        asset,
+		BalanceAsset: cosmos.NewUint(10000),
+		BalanceRune:  cosmos.NewUint(10000),
+		LPUnits:      cosmos.NewUint(1000),
+		SynthUnits:   cosmos.ZeroUint(),
+		PendingInboundRune:  cosmos.ZeroUint(),
+		PendingInboundAsset: cosmos.ZeroUint(),
+		Status:       PoolAvailable,
+	}
+	c.Assert(pool.Valid(), IsNil)
+	_ = keeper.SetPool(ctx, pool)
+
+	runeAddr := GetRandomRUNEAddress()
+	lp := LiquidityProvider {
+		Asset:              asset,
+		LastAddHeight:		common.BlockHeight(ctx),
+	    RuneAddress:        runeAddr,
+	    AssetAddress:       GetRandomBTCAddress(),
+		Units:              cosmos.NewUint(100),
+		LastWithdrawHeight: common.BlockHeight(ctx),
+	}
+	c.Assert(lp.Valid(), IsNil)
+	keeper.SetLiquidityProvider(ctx, lp)
+
+	msg := NewMsgWithdrawLiquidity(
+		GetRandomTx(),
+		lp.RuneAddress,
+		cosmos.NewUint(1000),
+		asset,
+		common.RuneAsset(),
+		na.NodeAddress)
+
+	c.Assert(msg.ValidateBasic(), IsNil)
+
+	mgr := NewDummyMgrWithKeeper(keeper)
+
+	// runs the handler and checks pool/lp state for changes
+	handleCase := func(msg *MsgWithdrawLiquidity, errRune, errAsset error, name string, shouldFail bool) {
+		_ = keeper.SetPool(ctx, pool)
+		keeper.SetLiquidityProvider(ctx, lp)
+		mgr.txOutStore = &MockWithdrawTxOutStore {
+			TxOutStore: mgr.txOutStore,
+			errRune: errRune,
+			errAsset: errAsset,
+		}
+		eventMgr := &MockWithdrawEventMgr {
+			EventManager: mgr.eventMgr,
+			count:        0,
+		}
+		mgr.eventMgr = eventMgr
+		handler := NewWithdrawLiquidityHandler(mgr)
+		_, err := handler.Run(ctx, msg)
+		lpAfter, _ := keeper.GetLiquidityProvider(ctx, asset, runeAddr)
+		poolAfter, _ := keeper.GetPool(ctx, asset)
+		if shouldFail {
+			// should error and leave pool/lp unmodified
+			c.Assert(err, NotNil, Commentf(name))
+			c.Assert(lpAfter.String(), Equals, lp.String(), Commentf(name))
+			c.Assert(poolAfter.String(), Equals, pool.String(), Commentf(name))
+			c.Assert(eventMgr.count, Equals, 0, Commentf(name))
+		} else {
+			// should not error and pool/lp  should be modified
+			c.Assert(err, IsNil, Commentf(name))
+			c.Assert(lpAfter.String(), Not(Equals), lp.String(), Commentf(name))
+			c.Assert(poolAfter.String(), Not(Equals), pool.String(), Commentf(name))
+			c.Assert(eventMgr.count, Equals, 1, Commentf(name))
+		}
+	}
+
+	msg.WithdrawalAsset = common.RuneAsset()
+	handleCase(msg, errInternal, nil, "asym rune fail", true)
+
+	msg.WithdrawalAsset = common.BTCAsset
+	handleCase(msg, nil, errInternal, "asym asset fail", true)
+
+	msg.WithdrawalAsset = common.EmptyAsset
+	handleCase(msg, errInternal, nil, "sym rune fail/asset success", false)
+	handleCase(msg, nil, errInternal, "sym rune success/asset fail", true)
+	handleCase(msg, errInternal, errInternal, "sym rune/asset fail", true)
+	handleCase(msg, nil, nil, "sym rune/asset success", false)
 }
