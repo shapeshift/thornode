@@ -317,7 +317,9 @@ func (h AddLiquidityHandler) addLiquidity(ctx cosmos.Context,
 	stage bool,
 	constAccessor constants.ConstantValues) error {
 	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.68.0")) {
+	if version.GTE(semver.MustParse("0.76.0")) {
+		return h.addLiquidityV76(ctx, asset, addRuneAmount, addAssetAmount, runeAddr, assetAddr, requestTxHash, stage, constAccessor)
+	} else if version.GTE(semver.MustParse("0.68.0")) {
 		return h.addLiquidityV68(ctx, asset, addRuneAmount, addAssetAmount, runeAddr, assetAddr, requestTxHash, stage, constAccessor)
 	} else if version.GTE(semver.MustParse("0.63.0")) {
 		return h.addLiquidityV63(ctx, asset, addRuneAmount, addAssetAmount, runeAddr, assetAddr, requestTxHash, stage, constAccessor)
@@ -331,7 +333,7 @@ func (h AddLiquidityHandler) addLiquidity(ctx cosmos.Context,
 	return errBadVersion
 }
 
-func (h AddLiquidityHandler) addLiquidityV68(ctx cosmos.Context,
+func (h AddLiquidityHandler) addLiquidityV76(ctx cosmos.Context,
 	asset common.Asset,
 	addRuneAmount, addAssetAmount cosmos.Uint,
 	runeAddr, assetAddr common.Address,
@@ -470,8 +472,10 @@ func (h AddLiquidityHandler) addLiquidityV68(ctx cosmos.Context,
 	}
 
 	su.Units = su.Units.Add(liquidityUnits)
-	su.RuneDepositValue = su.RuneDepositValue.Add(common.GetSafeShare(liquidityUnits, pool.GetPoolUnits(), pool.BalanceRune))
-	su.AssetDepositValue = su.AssetDepositValue.Add(common.GetSafeShare(liquidityUnits, pool.GetPoolUnits(), pool.BalanceAsset))
+	if pool.Status == PoolAvailable {
+		su.RuneDepositValue = su.RuneDepositValue.Add(common.GetSafeShare(su.Units, pool.GetPoolUnits(), pool.BalanceRune))
+		su.AssetDepositValue = su.AssetDepositValue.Add(common.GetSafeShare(su.Units, pool.GetPoolUnits(), pool.BalanceAsset))
+	}
 	h.mgr.Keeper().SetLiquidityProvider(ctx, su)
 
 	evt := NewEventAddLiquidity(asset, liquidityUnits, runeAddr, pendingRuneAmt, pendingAssetAmt, runeTxID, assetTxID, assetAddr)
