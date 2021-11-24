@@ -9,31 +9,7 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
-
-func validateWithdrawV1(ctx cosmos.Context, keeper keeper.Keeper, msg MsgWithdrawLiquidity) error {
-	if msg.WithdrawAddress.IsEmpty() {
-		return errors.New("empty withdraw address")
-	}
-	if msg.Tx.ID.IsEmpty() {
-		return errors.New("request tx hash is empty")
-	}
-	if msg.Asset.IsEmpty() {
-		return errors.New("empty asset")
-	}
-	withdrawBasisPoints := msg.BasisPoints
-	// when BasisPoints is zero, it will be override in parse memo, so if a message can get here
-	// the witdrawBasisPoints must between 1~MaxWithdrawBasisPoints
-	if !withdrawBasisPoints.GT(cosmos.ZeroUint()) || withdrawBasisPoints.GT(cosmos.NewUint(MaxWithdrawBasisPoints)) {
-		return fmt.Errorf("withdraw basis points %s is invalid", msg.BasisPoints)
-	}
-	if !keeper.PoolExist(ctx, msg.Asset) {
-		// pool doesn't exist
-		return fmt.Errorf("pool-%s doesn't exist", msg.Asset)
-	}
-	return nil
-}
 
 // withdraw all the asset
 // it returns runeAmt,assetAmount,protectionRuneAmt,units, lastWithdraw,err
