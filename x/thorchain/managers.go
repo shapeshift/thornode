@@ -261,7 +261,9 @@ func GetKeeper(version semver.Version, cdc codec.BinaryMarshaler, coinKeeper ban
 // GetGasManager return GasManager
 func GetGasManager(version semver.Version, keeper keeper.Keeper) (GasManager, error) {
 	constAcessor := constants.GetConstantValues(version)
-	if version.GTE(semver.MustParse("0.1.0")) {
+	if version.GTE(semver.MustParse("0.75.0")) {
+		return newGasMgrV75(constAcessor, keeper), nil
+	} else if version.GTE(semver.MustParse("0.1.0")) {
 		return newGasMgrV1(constAcessor, keeper), nil
 	}
 	return nil, errInvalidVersion
@@ -314,7 +316,9 @@ func GetTxOutStore(keeper keeper.Keeper, version semver.Version, eventMgr EventM
 
 // GetNetworkManager  retrieve a NetworkManager that is compatible with the given version
 func GetNetworkManager(keeper keeper.Keeper, version semver.Version, txOutStore TxOutStore, eventMgr EventManager) (NetworkManager, error) {
-	if version.GTE(semver.MustParse("0.69.0")) {
+	if version.GTE(semver.MustParse("0.75.0")) {
+		return newNetworkMgrV75(keeper, txOutStore, eventMgr), nil
+	} else if version.GTE(semver.MustParse("0.69.0")) {
 		return newNetworkMgrV69(keeper, txOutStore, eventMgr), nil
 	} else if version.GTE(semver.MustParse("0.63.0")) {
 		return newNetworkMgrV63(keeper, txOutStore, eventMgr), nil
