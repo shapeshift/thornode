@@ -1180,7 +1180,7 @@ class TestThorchainState(unittest.TestCase):
                 [
                     {"asset": "BNB.BNB"},
                     {"asset_amt": "75000"},
-                    {"rune_amt": "24962528"},
+                    {"rune_amt": "24975006"},
                     {"transaction_count": "2"},
                 ],
             ),
