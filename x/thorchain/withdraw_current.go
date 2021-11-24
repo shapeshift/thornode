@@ -5,11 +5,35 @@ import (
 	"fmt"
 
 	"github.com/blang/semver"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 )
+
+func validateWithdrawV1(ctx cosmos.Context, keeper keeper.Keeper, msg MsgWithdrawLiquidity) error {
+	if msg.WithdrawAddress.IsEmpty() {
+		return errors.New("empty withdraw address")
+	}
+	if msg.Tx.ID.IsEmpty() {
+		return errors.New("request tx hash is empty")
+	}
+	if msg.Asset.IsEmpty() {
+		return errors.New("empty asset")
+	}
+	withdrawBasisPoints := msg.BasisPoints
+	// when BasisPoints is zero, it will be override in parse memo, so if a message can get here
+	// the witdrawBasisPoints must between 1~MaxWithdrawBasisPoints
+	if !withdrawBasisPoints.GT(cosmos.ZeroUint()) || withdrawBasisPoints.GT(cosmos.NewUint(MaxWithdrawBasisPoints)) {
+		return fmt.Errorf("withdraw basis points %s is invalid", msg.BasisPoints)
+	}
+	if !keeper.PoolExist(ctx, msg.Asset) {
+		// pool doesn't exist
+		return fmt.Errorf("pool-%s doesn't exist", msg.Asset)
+	}
+	return nil
+}
 
 // withdrawV76 all the asset
 // it returns runeAmt,assetAmount,protectionRuneAmt,units, lastWithdraw,err
@@ -70,6 +94,11 @@ func withdrawV76(ctx cosmos.Context, version semver.Version, msg MsgWithdrawLiqu
 		if lp.AssetAddress.IsEmpty() {
 			assetToWithdraw = common.RuneAsset()
 		}
+	}
+
+	if pool.Status == PoolAvailable && lp.RuneDepositValue.IsZero() && lp.AssetDepositValue.IsZero() {
+		lp.RuneDepositValue = lp.RuneDepositValue.Add(common.GetSafeShare(lp.Units, pool.GetPoolUnits(), pool.BalanceRune))
+		lp.AssetDepositValue = lp.AssetDepositValue.Add(common.GetSafeShare(lp.Units, pool.GetPoolUnits(), pool.BalanceAsset))
 	}
 
 	// calculate any impermament loss protection or not

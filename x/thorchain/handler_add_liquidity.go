@@ -473,8 +473,13 @@ func (h AddLiquidityHandler) addLiquidityV76(ctx cosmos.Context,
 
 	su.Units = su.Units.Add(liquidityUnits)
 	if pool.Status == PoolAvailable {
-		su.RuneDepositValue = su.RuneDepositValue.Add(common.GetSafeShare(su.Units, pool.GetPoolUnits(), pool.BalanceRune))
-		su.AssetDepositValue = su.AssetDepositValue.Add(common.GetSafeShare(su.Units, pool.GetPoolUnits(), pool.BalanceAsset))
+		if su.AssetDepositValue.IsZero() && su.RuneDepositValue.IsZero() {
+			su.RuneDepositValue = su.RuneDepositValue.Add(common.GetSafeShare(su.Units, pool.GetPoolUnits(), pool.BalanceRune))
+			su.AssetDepositValue = su.AssetDepositValue.Add(common.GetSafeShare(su.Units, pool.GetPoolUnits(), pool.BalanceAsset))
+		} else {
+			su.RuneDepositValue = su.RuneDepositValue.Add(common.GetSafeShare(liquidityUnits, pool.GetPoolUnits(), pool.BalanceRune))
+			su.AssetDepositValue = su.AssetDepositValue.Add(common.GetSafeShare(liquidityUnits, pool.GetPoolUnits(), pool.BalanceAsset))
+		}
 	}
 	h.mgr.Keeper().SetLiquidityProvider(ctx, su)
 
