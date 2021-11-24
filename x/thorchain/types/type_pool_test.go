@@ -21,8 +21,9 @@ func (PoolTestSuite) TestPool(c *C) {
 	p.BalanceRune = cosmos.NewUint(100 * common.One)
 	p.BalanceAsset = cosmos.NewUint(50 * common.One)
 	c.Check(p.AssetValueInRune(cosmos.NewUint(25*common.One)).Equal(cosmos.NewUint(50*common.One)), Equals, true)
+	c.Check(p.AssetValueInRuneWithSlip(cosmos.NewUint(25*common.One)).Equal(cosmos.NewUint(10000000000)), Equals, true, Commentf("%d", p.AssetValueInRuneWithSlip(cosmos.NewUint(25*common.One)).Uint64()))
 	c.Check(p.RuneValueInAsset(cosmos.NewUint(50*common.One)).Equal(cosmos.NewUint(25*common.One)), Equals, true)
-	c.Log(p.String())
+	c.Check(p.RuneValueInAssetWithSlip(cosmos.NewUint(50*common.One)).Equal(cosmos.NewUint(50*common.One)), Equals, true)
 
 	signer := GetRandomBech32Addr()
 	bnbAddress := GetRandomBNBAddress()
@@ -54,7 +55,9 @@ func (PoolTestSuite) TestPool(c *C) {
 	c.Check(p1.Valid(), NotNil)
 	p1.Asset = common.BNBAsset
 	c.Check(p1.AssetValueInRune(cosmos.NewUint(100)).Uint64(), Equals, cosmos.ZeroUint().Uint64())
+	c.Check(p1.AssetValueInRuneWithSlip(cosmos.NewUint(100)).Uint64(), Equals, cosmos.ZeroUint().Uint64())
 	c.Check(p1.RuneValueInAsset(cosmos.NewUint(100)).Uint64(), Equals, cosmos.ZeroUint().Uint64())
+	c.Check(p1.RuneValueInAssetWithSlip(cosmos.NewUint(100)).Uint64(), Equals, cosmos.ZeroUint().Uint64())
 	p1.BalanceRune = cosmos.NewUint(100 * common.One)
 	p1.BalanceAsset = cosmos.NewUint(50 * common.One)
 	c.Check(p1.Valid(), IsNil)

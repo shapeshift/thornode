@@ -373,7 +373,7 @@ func (tos *TxOutStorageV75) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem) 
 					assetFee := transactionFeeAsset
 					if outputs[i].Coin.Amount.LTE(assetFee) {
 						assetFee = outputs[i].Coin.Amount // Fee is the full amount
-						runeFee = pool.AssetValueInRune(assetFee)
+						runeFee = pool.AssetValueInRuneWithSlip(assetFee)
 					}
 
 					outputs[i].Coin.Amount = common.SafeSub(outputs[i].Coin.Amount, assetFee) // Deduct Asset fee
