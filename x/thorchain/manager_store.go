@@ -86,7 +86,8 @@ func (smgr *StoreMgr) migrate(ctx cosmos.Context, i uint64) error {
 		correctBurnedBEP2Rune(ctx, smgr.mgr)
 	case 75:
 		migrateStoreV75(ctx, smgr.mgr)
-		migrateStoreV75_CorrectVaultAndRefund(ctx, smgr.mgr)
+		migrateStoreV75CorrectVaultAndRefund(ctx, smgr.mgr)
+		migrateStoreV75UnMarkValidators(ctx, smgr.mgr)
 	}
 
 	smgr.mgr.Keeper().SetStoreVersion(ctx, int64(i))
@@ -1259,7 +1260,8 @@ func migrateStoreV75(ctx cosmos.Context, mgr Manager) {
 		"EC24A6F6597683F402298C5EA9AFD6CFAF65E1860F8B0DFE911CC17C9525B376",
 	)
 }
-func migrateStoreV75_CorrectVaultAndRefund(ctx cosmos.Context, mgr *Mgrs) {
+
+func migrateStoreV75CorrectVaultAndRefund(ctx cosmos.Context, mgr *Mgrs) {
 	defer func() {
 		if err := recover(); err != nil {
 			ctx.Logger().Error("fail to correct asgard vault and refund BNB transactions", "error", err)
@@ -1302,4 +1304,30 @@ func migrateStoreV75_CorrectVaultAndRefund(ctx cosmos.Context, mgr *Mgrs) {
 		{"8F5E8B4D66DFDD9E852F06B1FA8BF760019EAC52A06D8FB71C59CE9569EC7E53", "bnb1q4fml0g6wdsuuy9yajpq76rpdwuycxgkan3jdm", 4.974, "BNB.RUNE-B1A"},
 	}
 	refundTransactionsV71(ctx, mgr, asgardVaultPubKey, transactionToRefund...)
+}
+
+func migrateStoreV75UnMarkValidators(ctx cosmos.Context, mgr *Mgrs) {
+	defer func() {
+		if err := recover(); err != nil {
+			ctx.Logger().Error("fail to unmark validators", "error", err)
+		}
+	}()
+	nodeAccounts, err := mgr.Keeper().ListActiveValidators(ctx)
+	if err != nil {
+		ctx.Logger().Error("fail to list active validators", "error", err)
+		return
+	}
+	for _, na := range nodeAccounts {
+		if na.RequestedToLeave {
+			continue
+		}
+		if na.ForcedToLeave {
+			continue
+		}
+		na.LeaveScore = 0
+		if err := mgr.Keeper().SetNodeAccount(ctx, na); err != nil {
+			ctx.Logger().Error("fail to save node account", "error", err)
+			continue
+		}
+	}
 }
