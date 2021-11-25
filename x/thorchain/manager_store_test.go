@@ -2,7 +2,6 @@ package thorchain
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 
 	"gitlab.com/thorchain/thornode/common"
@@ -800,6 +799,5 @@ func (s *StoreManagerTestSuite) TestRefundBinanceTx(c *C) {
 	c.Assert(mgr.Slasher().LackSigning(ctx, mgr.ConstAccessor, mgr), IsNil)
 	txOut, err = mgr.Keeper().GetTxOut(ctx, common.BlockHeight(ctx))
 	c.Assert(err, IsNil)
-	fmt.Println("total outbound:", len(txOut.TxArray))
 	c.Assert(txOut.TxArray, HasLen, count)
 }

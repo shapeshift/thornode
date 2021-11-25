@@ -10,6 +10,7 @@ PEER_API="${PEER_API:=$PEER}" # the hostname of a seed node API if different
 SIGNER_NAME="${SIGNER_NAME:=thorchain}"
 SIGNER_PASSWD="${SIGNER_PASSWD:=password}"
 BINANCE=${BINANCE:=$PEER:26660}
+CHAIN_ID=${CHAIN_ID:=thorchain}
 
 if [ ! -f ~/.thornode/config/genesis.json ]; then
   echo "Setting THORNode as Validator node"
@@ -25,17 +26,13 @@ if [ ! -f ~/.thornode/config/genesis.json ]; then
 
   if [ "$PEER" != "none" ]; then
     fetch_genesis $PEER
-
-    # add persistent peer tendermint config
-    NODE_ID=$(fetch_node_id $PEER)
-    peer_list "$NODE_ID" "$PEER"
   fi
 
   if [ "$SEEDS" != "none" ]; then
     fetch_genesis_from_seeds $SEEDS
 
     # add seeds tendermint config
-    seeds_list $SEEDS
+    seeds_list $SEEDS $CHAIN_ID
   fi
 
   # enable telemetry through prometheus metrics endpoint
@@ -57,7 +54,7 @@ if [ ! -f ~/.thornode/config/genesis.json ]; then
 
     sleep 30 # wait for thorchain to register the new node account
 
-    printf "%s\n" "$SIGNER_PASSWD" | thornode tx thorchain deposit 100000000000000 RUNE "bond:$NODE_ADDRESS" --node tcp://$PEER:26657 --from "$SIGNER_NAME" --keyring-backend=file --chain-id thorchain --yes
+    printf "%s\n" "$SIGNER_PASSWD" | thornode tx thorchain deposit 100000000000000 RUNE "bond:$NODE_ADDRESS" --node tcp://$PEER:26657 --from "$SIGNER_NAME" --keyring-backend=file --chain-id $CHAIN_ID --yes
 
     # send bond
 
@@ -67,7 +64,7 @@ if [ ! -f ~/.thornode/config/genesis.json ]; then
     VALIDATOR=$(thornode tendermint show-validator)
 
     # set node keys
-    until printf "%s\n" "$SIGNER_PASSWD" | thornode tx thorchain set-node-keys "$NODE_PUB_KEY" "$NODE_PUB_KEY_ED25519" "$VALIDATOR" --node tcp://$PEER:26657 --from "$SIGNER_NAME" --keyring-backend=file --chain-id thorchain --yes; do
+    until printf "%s\n" "$SIGNER_PASSWD" | thornode tx thorchain set-node-keys "$NODE_PUB_KEY" "$NODE_PUB_KEY_ED25519" "$VALIDATOR" --node tcp://$PEER:26657 --from "$SIGNER_NAME" --keyring-backend=file --chain-id $CHAIN_ID --yes; do
       sleep 5
     done
 
@@ -75,13 +72,16 @@ if [ ! -f ~/.thornode/config/genesis.json ]; then
     sleep 10 # wait for thorchain to commit a block
 
     NODE_IP_ADDRESS=${EXTERNAL_IP:=$(curl -s http://whatismyip.akamai.com)}
-    until printf "%s\n" "$SIGNER_PASSWD" | thornode tx thorchain set-ip-address "$NODE_IP_ADDRESS" --node tcp://$PEER:26657 --from "$SIGNER_NAME" --keyring-backend=file --chain-id thorchain --yes; do
+    until printf "%s\n" "$SIGNER_PASSWD" | thornode tx thorchain set-ip-address "$NODE_IP_ADDRESS" --node tcp://$PEER:26657 --from "$SIGNER_NAME" --keyring-backend=file --chain-id $CHAIN_ID --yes; do
       sleep 5
     done
 
+    # use external IP if available
+    [ -n "$EXTERNAL_IP" ] && external_address "$EXTERNAL_IP" "$NET"
+
     sleep 10 # wait for thorchain to commit a block
     # set node version
-    until printf "%s\n" "$SIGNER_PASSWD" | thornode tx thorchain set-version --node tcp://$PEER:26657 --from "$SIGNER_NAME" --keyring-backend=file --chain-id thorchain --yes; do
+    until printf "%s\n" "$SIGNER_PASSWD" | thornode tx thorchain set-version --node tcp://$PEER:26657 --from "$SIGNER_NAME" --keyring-backend=file --chain-id $CHAIN_ID --yes; do
       sleep 5
     done
 
@@ -95,16 +95,10 @@ if [ ! -f ~/.thornode/config/genesis.json ]; then
   fi
 
 else
-  # update seeds tendermint config if available
-  if [ "$PEER" != "none" ]; then
-    # add persistent peer tendermint config
-    NODE_ID=$(fetch_node_id $PEER)
-    peer_list "$NODE_ID" "$PEER"
-  fi
 
   if [ "$SEEDS" != "none" ]; then
     # add seeds tendermint config
-    seeds_list $SEEDS
+    seeds_list $SEEDS $CHAIN_ID
   fi
 fi
 

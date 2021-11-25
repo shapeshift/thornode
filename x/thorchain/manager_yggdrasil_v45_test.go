@@ -267,7 +267,7 @@ func (s YggdrasilManagerV45Suite) TestAbandonYggdrasil(c *C) {
 	// make sure the node account had been slashed with bond
 	naDisabled, err = mgr.Keeper().GetNodeAccount(ctx, naDisabled.NodeAddress)
 	c.Assert(err, IsNil)
-	c.Assert(naDisabled.Bond.Equal(cosmos.NewUint(99932511250000)), Equals, true, Commentf("%d != %d", naDisabled.Bond.Uint64(), 99932511250000))
+	c.Assert(naDisabled.Bond.Equal(cosmos.NewUint(99925014062500)), Equals, true, Commentf("%d != %d", naDisabled.Bond.Uint64(), 99925014062500))
 }
 
 func (s YggdrasilManagerV45Suite) TestAbandonYggdrasilWithDifferentConditions(c *C) {

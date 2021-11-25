@@ -86,6 +86,14 @@
       "name": "THORSwap token",
       "decimals": 18,
       "tags": []
+    },
+    {
+      "chainId": 4,
+      "address": "0x73d6e26896981798526b6ead48d0fab76e205974",
+      "symbol": "TGT",
+      "name": "THORWallet Governance Token",
+      "decimals": 18,
+      "tags": []
     }
   ],
   "version": {

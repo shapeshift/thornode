@@ -119,16 +119,21 @@ block_time() {
 
 seeds_list() {
   SEEDS=$1
+  EXPECTED_NETWORK=$2
   OLD_IFS=$IFS
   IFS=","
   SEED_LIST=""
   for SEED in $SEEDS; do
     NODE_ID=$(curl -sL --fail -m 10 "$SEED:$PORT_RPC/status" | jq -r .result.node_info.id) || continue
-    SEED="$NODE_ID@$SEED:$PORT_P2P"
-    if [ -z "$SEED_LIST" ]; then
-      SEED_LIST=$SEED
-    else
-      SEED_LIST="$SEED_LIST,$SEED"
+    NETWORK=$(curl -sL --fail -m 10 "$SEED:$PORT_RPC/status" | jq -r .result.node_info.network) || continue
+    # make sure the seeds are on the same network
+    if [ "$NETWORK" = "$EXPECTED_NETWORK" ]; then
+      SEED="$NODE_ID@$SEED:$PORT_P2P"
+      if [ -z "$SEED_LIST" ]; then
+        SEED_LIST=$SEED
+      else
+        SEED_LIST="$SEED_LIST,$SEED"
+      fi
     fi
   done
   IFS=$OLD_IFS
