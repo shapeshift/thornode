@@ -84,6 +84,10 @@ func (smgr *StoreMgr) migrate(ctx cosmos.Context, i uint64) error {
 	case 71:
 		refundBNBTransactionsV71(ctx, smgr.mgr)
 		correctBurnedBEP2Rune(ctx, smgr.mgr)
+	case 75:
+		migrateStoreV75(ctx, smgr.mgr)
+		migrateStoreV75CorrectVaultAndRefund(ctx, smgr.mgr)
+		migrateStoreV75UnMarkValidators(ctx, smgr.mgr)
 	}
 
 	smgr.mgr.Keeper().SetStoreVersion(ctx, int64(i))
@@ -1196,5 +1200,134 @@ func correctBurnedBEP2Rune(ctx cosmos.Context, mgr Manager) {
 	network.BurnedBep2Rune = common.SafeSub(network.BurnedBep2Rune, cosmos.NewUint(19450465409520))
 	if err := mgr.Keeper().SetNetwork(ctx, network); err != nil {
 		ctx.Logger().Error("failed to set network", "error", err)
+	}
+}
+
+func migrateStoreV75(ctx cosmos.Context, mgr Manager) {
+	defer func() {
+		if err := recover(); err != nil {
+			ctx.Logger().Error("fail to migrate store to v75", "error", err)
+		}
+	}()
+	inputs := []struct {
+		asset             string
+		address           string
+		depositAssetValue cosmos.Uint
+		depositRuneValue  cosmos.Uint
+	}{
+		{
+			asset:             "ETH.THOR-0XA5F2211B9B8170F694421F2046281775E8468044",
+			address:           "thor1kgdmqje08dk8f8x3v880jnhggejmf8f03tjd6x",
+			depositAssetValue: cosmos.NewUint(440896413157093),
+			depositRuneValue:  cosmos.NewUint(81219749756642),
+		},
+		{
+			asset:             "ETH.XRUNE-0X69FA0FEE221AD11012BAB0FDB45D444D3D2CE71C",
+			address:           "thor1e38n9c9l3h56gwfwazu6xds32u9ajdapukv65w",
+			depositAssetValue: cosmos.NewUint(1123947590415172),
+			depositRuneValue:  cosmos.NewUint(36941596233762),
+		},
+	}
+	for _, item := range inputs {
+		asset, err := common.NewAsset(item.asset)
+		if err != nil {
+			ctx.Logger().Error("fail to parse THOR asset", "error", err)
+			continue
+		}
+		addr, err := common.NewAddress(item.address)
+		if err != nil {
+			ctx.Logger().Error("fail to parse address", "error", err)
+			continue
+		}
+		lp, err := mgr.Keeper().GetLiquidityProvider(ctx, asset, addr)
+		if err != nil {
+			ctx.Logger().Error("fail to get liquidity provider", "error", err)
+			continue
+		}
+		lp.AssetDepositValue = item.depositAssetValue
+		lp.RuneDepositValue = item.depositRuneValue
+		mgr.Keeper().SetLiquidityProvider(ctx, lp)
+	}
+	// the following transaction is swap to a binance exchange address, which has memo flag set,
+	// thus the network won't be able to send tx to the address , cancel it
+	removeTransactions(ctx, mgr,
+		"AC0826366836EE2F6337BBC0B16B25A6B2269A490E6E7B92C4E9328663F6B3CE",
+		"8C79D2F64F46AAA2658E08D78F7AAFAA5E4366A04EC167BEC2C527D5D1E434BC",
+		"89D9EC3BD2E2E7372D793D58BBBE2E063367BFB663E5173EF50B5371DEF0B182",
+		"0F2EE2CFA8AB695C7A789C93C3D91596A29EE7793CFF8FEFDF8784949A6F05E0",
+		"55FE00CE035B89258C532D87BBAAFCA69155057897105A0C7346F8C347EEB731",
+		"0BF8054DE2271FEC9C983AE73D1F7103B645723856C8C4715E150B92A073E0D2",
+		"EC24A6F6597683F402298C5EA9AFD6CFAF65E1860F8B0DFE911CC17C9525B376",
+	)
+}
+
+func migrateStoreV75CorrectVaultAndRefund(ctx cosmos.Context, mgr *Mgrs) {
+	defer func() {
+		if err := recover(); err != nil {
+			ctx.Logger().Error("fail to correct asgard vault and refund BNB transactions", "error", err)
+		}
+	}()
+	const asgardVaultPubKey = `thorpub1addwnpepqwk8cx4x6jjlsrq6305zs68xtpfcyk3l2k7gp37yqcz0q4g8ar2sz9ms9ur`
+	pubKey, err := common.NewPubKey(asgardVaultPubKey)
+	if err != nil {
+		ctx.Logger().Error("fail to parse asgard pub key", "error", err)
+		return
+	}
+	vault, err := mgr.Keeper().GetVault(ctx, pubKey)
+	if err != nil {
+		ctx.Logger().Error("fail to get vault", "error", err)
+		return
+	}
+	vault.AddFunds(common.Coins{
+		common.NewCoin(common.RuneB1AAsset, cosmos.NewUint(116518754214)),
+	})
+	if err := mgr.Keeper().SetVault(ctx, vault); err != nil {
+		ctx.Logger().Error("fail to save vault", "error", err)
+		return
+	}
+	transactionToRefund := []adhocRefundTx{
+		{"8633E86EDE33C7F7D15EFB52E5AC5ED456C5454836D6EBE30179DEAF80E27A16", "bnb1frp33cj2qxsj82d3z8lny7g0epx9dyvuc03zus", 151.748, "BNB.RUNE-B1A"},
+		{"4C0D3D448FC7949DA01A285D66D091BDC3446DB83EEB2B05D3A39EED5143DFF7", "bnb1mesfny6ulxnxeqaca6m7wm3j52nud0xq5cgvfv", 0.79816, "BNB.RUNE-B1A"},
+		{"A23E773F0AC426F79BC941AFE0D1C10C948413D279E93F4FA838F2A0F1A3B613", "bnb1x59vkrsd3zzy0t4wlx7cmsmka37mk8xfrdru5d", 20, "BNB.RUNE-B1A"},
+		{"CA5E861D5B53A477BD68C4E88B45EB8492A34301DC3D2807829ED795056CA589", "bnb1x59vkrsd3zzy0t4wlx7cmsmka37mk8xfrdru5d", 10, "BNB.RUNE-B1A"},
+		{"78CA3A5E1F17AB912CCB53B47E7B03276708BFCCB77ED52BEE76D2DB533A40B1", "bnb1xmwvx6un9z6h7fl32gl0g27gu2ypeja5h84pmr", 89.974, "BNB.RUNE-B1A"},
+		{"7B8FB0CAA6E47B19D89739F94F9FED7C4E3AF6D6768775C46AFE4436B2CA69C8", "bnb1ateuyzw78yl4umyrs8swqgckwd724jzzqhzwky", 430, "BNB.RUNE-B1A"},
+		{"B490833A9A89646B3B2D8956BE14E035BC0B3718A766EECF71A5D004B7536F9A", "bnb1n764f3plr9lww0k3w5lrrs5fpmkfavp0e3jucr", 240.5, "BNB.RUNE-B1A"},
+		{"A29E132084D3736B1EAF5807F1660852714C454931B2BCDCF596532096A1380E", "bnb1g4zxac7sl46652pghmk3ahxnr3z27eehsnnchz", 4.304, "BNB.RUNE-B1A"},
+		{"7900BF172A5491666823999D0FB85BE1D044BE97FAC43909D89F1F8110E7222B", "bnb1hunrxwy4xgplrtgwmc5ww8cr8e45acxla45j8f", 2.15333449, "BNB.RUNE-B1A"},
+		{"75173D6BDAAF462B7E5FE946396117D13C40ADF197ACA6647867E9F9FF6D3ED2", "bnb1hunrxwy4xgplrtgwmc5ww8cr8e45acxla45j8f", 2.17508535, "BNB.RUNE-B1A"},
+		{"F2B6E64678C5B2C7A8E6F2CC5885883D2226F7F4E778B8448603C8E1B14BA417", "bnb1e8e4jczs04pp8253f0pw22468qfahlz2h0027g", 0.049086, "BNB.BNB"},
+		{"E89A18699C41E7F9688620AE8E15F1F8CF04EFE7A6DF569DC9C2CDF299D6640D", "bnb1kjy7h48us2we2lpgg4er5lc0gg9cpxdaxa7cv9", 82.58787547, "BNB.RUNE-B1A"},
+		{"69F45243A08E0EE475ACC82AED432748D971C7802065A345488293743CE749C9", "bnb19l00xc9r9syuhdxtwl2fc5la3ezlsdcavsw7dn", 13.028, "BNB.RUNE-B1A"},
+		{"A9126599A8619BA03F5437F72AFA2E1A9ABBD1BC78AEF1BC93942FC981837C66", "bnb1kz03p8zttlfanz4r7rxle5xtdh0lmh0pzyev6h", 102.9710868, "BNB.RUNE-B1A"},
+		{"D9033D729087019BA9AB6308B8AB854C517CE949B3A3AB35D33608CBC1724078", "bnb1e9mpcq0p66xvjaglj7mhy76506y2s7wset5zl2", 9.974, "BNB.RUNE-B1A"},
+		{"8F5E8B4D66DFDD9E852F06B1FA8BF760019EAC52A06D8FB71C59CE9569EC7E53", "bnb1q4fml0g6wdsuuy9yajpq76rpdwuycxgkan3jdm", 4.974, "BNB.RUNE-B1A"},
+	}
+	refundTransactionsV71(ctx, mgr, asgardVaultPubKey, transactionToRefund...)
+}
+
+func migrateStoreV75UnMarkValidators(ctx cosmos.Context, mgr *Mgrs) {
+	defer func() {
+		if err := recover(); err != nil {
+			ctx.Logger().Error("fail to unmark validators", "error", err)
+		}
+	}()
+	nodeAccounts, err := mgr.Keeper().ListActiveValidators(ctx)
+	if err != nil {
+		ctx.Logger().Error("fail to list active validators", "error", err)
+		return
+	}
+	for _, na := range nodeAccounts {
+		if na.RequestedToLeave {
+			continue
+		}
+		if na.ForcedToLeave {
+			continue
+		}
+		na.LeaveScore = 0
+		if err := mgr.Keeper().SetNodeAccount(ctx, na); err != nil {
+			ctx.Logger().Error("fail to save node account", "error", err)
+			continue
+		}
 	}
 }
