@@ -79,7 +79,7 @@ func withdrawV76(ctx cosmos.Context, version semver.Version, msg MsgWithdrawLiqu
 	if fullProtectionLine < 0 || err != nil {
 		fullProtectionLine = cv.GetInt64Value(constants.FullImpLossProtectionBlocks)
 	}
-	ilpPoolMimirKey := fmt.Sprintf("ilp-%s", pool.Asset)
+	ilpPoolMimirKey := fmt.Sprintf("ILP-%s", pool.Asset)
 	ilpEnabled, err := manager.Keeper().GetMimir(ctx, ilpPoolMimirKey)
 	if err != nil {
 		ctx.Logger().Error("fail to get ILP mimir", "error", err, "key", ilpPoolMimirKey)
