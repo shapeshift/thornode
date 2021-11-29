@@ -384,16 +384,16 @@ func (s *SlashingV75Suite) TestSlashVault(c *C) {
 	err = slasher.SlashVault(ctx, vault.PubKey, common.NewCoins(common.NewCoin(common.BTCAsset, cosmos.NewUint(common.One))), mgr)
 	nodeTemp, err = mgr.Keeper().GetNodeAccountByPubKey(ctx, vault.PubKey)
 	c.Assert(err, IsNil)
-	expectedBond := node.Bond.Sub(cosmos.NewUint(common.One * 3 / 2))
-	c.Assert(nodeTemp.Bond.Equal(expectedBond), Equals, true)
+	expectedBond := cosmos.NewUint(99848484849)
+	c.Assert(nodeTemp.Bond.Equal(expectedBond), Equals, true, Commentf("%d", nodeTemp.Bond.Uint64()))
 
 	asgardAfterSlash := mgr.Keeper().GetRuneBalanceOfModule(ctx, AsgardName)
 	bondAfterSlash := mgr.Keeper().GetRuneBalanceOfModule(ctx, BondName)
 	reserveAfterSlash := mgr.Keeper().GetRuneBalanceOfModule(ctx, ReserveName)
 
-	c.Assert(asgardAfterSlash.Sub(asgardBeforeSlash).Uint64(), Equals, uint64(100000000))
-	c.Assert(bondBeforeSlash.Sub(bondAfterSlash).Uint64(), Equals, uint64(150000000))
-	c.Assert(reserveAfterSlash.Sub(reserveBeforeSlash).Uint64(), Equals, uint64(50000000))
+	c.Assert(asgardAfterSlash.Sub(asgardBeforeSlash).Uint64(), Equals, uint64(101010100), Commentf("%d", asgardAfterSlash.Sub(asgardBeforeSlash).Uint64()))
+	c.Assert(bondBeforeSlash.Sub(bondAfterSlash).Uint64(), Equals, uint64(151515151), Commentf("%d", bondBeforeSlash.Sub(bondAfterSlash).Uint64()))
+	c.Assert(reserveAfterSlash.Sub(reserveBeforeSlash).Uint64(), Equals, uint64(50505051), Commentf("%d", reserveAfterSlash.Sub(reserveBeforeSlash).Uint64()))
 
 	// add one more node , slash asgard
 	node1 := GetRandomValidatorNode(NodeActive)
@@ -422,7 +422,6 @@ func (s *SlashingV75Suite) TestSlashVault(c *C) {
 	nodeBondAfterSlash := nodeAfterSlash.Bond
 	node1BondAfterSlash := node1AfterSlash.Bond
 
-	c.Assert(nodeBondBeforeSlash.Sub(nodeBondAfterSlash).Uint64(), Equals, uint64(76457722))
-	c.Assert(node1BondBeforeSlash.Sub(node1BondAfterSlash).Uint64(), Equals, uint64(76572581))
-
+	c.Assert(nodeBondBeforeSlash.Sub(nodeBondAfterSlash).Uint64(), Equals, uint64(77245041), Commentf("%d", nodeBondBeforeSlash.Sub(nodeBondAfterSlash).Uint64()))
+	c.Assert(node1BondBeforeSlash.Sub(node1BondAfterSlash).Uint64(), Equals, uint64(77362257), Commentf("%d", node1BondBeforeSlash.Sub(node1BondAfterSlash).Uint64()))
 }
