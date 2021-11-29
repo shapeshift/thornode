@@ -245,6 +245,7 @@ require (
 replace (
 	github.com/agl/ed25519 => github.com/binance-chain/edwards25519 v0.0.0-20200305024217-f36fc4b53d43
 	github.com/binance-chain/tss-lib => gitlab.com/thorchain/tss/tss-lib v0.0.0-20201118045712-70b2cb4bf916
+	github.com/cosmos/ledger-cosmos-go => github.com/thorchain/ledger-thorchain-go v0.12.1
 	github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.2-alpha.regen.4
 	github.com/tendermint/go-amino => github.com/binance-chain/bnc-go-amino v0.14.1-binance.1
 	github.com/zondax/ledger-go => github.com/binance-chain/ledger-go v0.9.1
