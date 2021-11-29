@@ -108,13 +108,14 @@ func withdrawV76(ctx cosmos.Context, version semver.Version, msg MsgWithdrawLiqu
 	if fullProtectionLine < 0 || err != nil {
 		fullProtectionLine = cv.GetInt64Value(constants.FullImpLossProtectionBlocks)
 	}
-	ilpPoolMimirKey := fmt.Sprintf("ILP-%s", pool.Asset)
-	ilpEnabled, err := manager.Keeper().GetMimir(ctx, ilpPoolMimirKey)
+	ilpPoolMimirKey := fmt.Sprintf("ILP-DISABLED-%s", pool.Asset)
+	ilpDisabled, err := manager.Keeper().GetMimir(ctx, ilpPoolMimirKey)
 	if err != nil {
-		ctx.Logger().Error("fail to get ILP mimir", "error", err, "key", ilpPoolMimirKey)
+		ctx.Logger().Error("fail to get ILP-DISABLED mimir", "error", err, "key", ilpPoolMimirKey)
+		ilpDisabled = 0
 	}
 	// only when Pool is in Available status will apply impermanent loss protection
-	if fullProtectionLine > 0 && pool.Status == PoolAvailable && ilpEnabled > 0 { // if protection line is zero, no imp loss protection is given
+	if fullProtectionLine > 0 && pool.Status == PoolAvailable && !(ilpDisabled > 0) { // if protection line is zero, no imp loss protection is given
 		lastAddHeight := lp.LastAddHeight
 		if lastAddHeight < pool.StatusSince {
 			lastAddHeight = pool.StatusSince
