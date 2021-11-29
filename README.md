@@ -150,6 +150,13 @@ go get -u github.com/mitranim/gow
 make test-watch
 ```
 
+Ledger cli support:
+```
+cd cmd/thornode
+go build -tags cgo,ledger
+./thornode keys add ledger1 --ledger
+```
+
 ### How to contribute
 
 * Create an issue or find an existing issue on https://gitlab.com/thorchain/thornode/-/issues
