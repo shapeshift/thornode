@@ -474,8 +474,8 @@ func (h AddLiquidityHandler) addLiquidityV76(ctx cosmos.Context,
 	su.Units = su.Units.Add(liquidityUnits)
 	if pool.Status == PoolAvailable {
 		if su.AssetDepositValue.IsZero() && su.RuneDepositValue.IsZero() {
-			su.RuneDepositValue = su.RuneDepositValue.Add(common.GetSafeShare(su.Units, pool.GetPoolUnits(), pool.BalanceRune))
-			su.AssetDepositValue = su.AssetDepositValue.Add(common.GetSafeShare(su.Units, pool.GetPoolUnits(), pool.BalanceAsset))
+			su.RuneDepositValue = common.GetSafeShare(su.Units, pool.GetPoolUnits(), pool.BalanceRune)
+			su.AssetDepositValue = common.GetSafeShare(su.Units, pool.GetPoolUnits(), pool.BalanceAsset)
 		} else {
 			su.RuneDepositValue = su.RuneDepositValue.Add(common.GetSafeShare(liquidityUnits, pool.GetPoolUnits(), pool.BalanceRune))
 			su.AssetDepositValue = su.AssetDepositValue.Add(common.GetSafeShare(liquidityUnits, pool.GetPoolUnits(), pool.BalanceAsset))
