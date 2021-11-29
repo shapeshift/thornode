@@ -386,7 +386,7 @@ func (s *SlasherV75) SlashVault(ctx cosmos.Context, vaultPK common.PubKey, coins
 			if coinAmount.GT(pool.BalanceAsset) {
 				coinAmount = pool.BalanceAsset
 			}
-			runeValue := pool.AssetValueInRune(coinAmount)
+			runeValue := pool.AssetValueInRuneWithSlip(coinAmount)
 			totalSlashAmountInRune = runeValue.MulUint64(3).QuoUint64(2)
 			pool.BalanceAsset = common.SafeSub(pool.BalanceAsset, coinAmount)
 			pool.BalanceRune = pool.BalanceRune.Add(runeValue)

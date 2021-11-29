@@ -340,7 +340,7 @@ func (s *SlashingV69Suite) TestIncreaseDecreaseSlashPoints(c *C) {
 
 func (s *SlashingV69Suite) TestSlashVault(c *C) {
 	ctx, mgr := setupManagerForTest(c)
-	slasher := mgr.Slasher()
+	slasher := newSlasherV69(mgr.Keeper(), mgr.EventMgr())
 	// when coins are empty , it should return nil
 	c.Assert(slasher.SlashVault(ctx, GetRandomPubKey(), common.NewCoins(), mgr), IsNil)
 
