@@ -269,8 +269,18 @@ func (s *HandlerAddLiquiditySuite) TestAddLiquidityHandlerValidation(c *C) {
 		},
 		{
 			name:           "total liquidity provider is more than total bond should fail",
-			msg:            NewMsgAddLiquidity(GetRandomTx(), common.BNBAsset, cosmos.NewUint(common.One*5000), cosmos.NewUint(common.One*5000), GetRandomBNBAddress(), GetRandomBNBAddress(), common.NoAddress, cosmos.ZeroUint(), activeNodeAccount.NodeAddress),
+			msg:            NewMsgAddLiquidity(GetRandomTx(), common.BNBAsset, cosmos.NewUint(common.One*5000), cosmos.NewUint(common.One*5000), GetRandomRUNEAddress(), GetRandomBNBAddress(), common.NoAddress, cosmos.ZeroUint(), activeNodeAccount.NodeAddress),
 			expectedResult: errAddLiquidityRUNEMoreThanBond,
+		},
+		{
+			name:           "asset address with wrong chain should fail",
+			msg:            NewMsgAddLiquidity(GetRandomTx(), common.BNBAsset, cosmos.NewUint(common.One*5), cosmos.NewUint(common.One*5), GetRandomRUNEAddress(), GetRandomRUNEAddress(), common.NoAddress, cosmos.ZeroUint(), GetRandomValidatorNode(NodeActive).NodeAddress),
+			expectedResult: errAddLiquidityFailValidation,
+		},
+		{
+			name:           "rune address with wrong chain should fail",
+			msg:            NewMsgAddLiquidity(GetRandomTx(), common.BNBAsset, cosmos.NewUint(common.One*5), cosmos.NewUint(common.One*5), GetRandomBNBAddress(), GetRandomRUNEAddress(), common.NoAddress, cosmos.ZeroUint(), GetRandomValidatorNode(NodeActive).NodeAddress),
+			expectedResult: errAddLiquidityFailValidation,
 		},
 	}
 	constAccessor := constants.NewDummyConstants(map[constants.ConstantName]int64{
