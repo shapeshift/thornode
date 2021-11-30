@@ -208,6 +208,66 @@ func (h AddLiquidityHandler) validateV65(ctx cosmos.Context, msg MsgAddLiquidity
 
 }
 
+func (h AddLiquidityHandler) validateV68(ctx cosmos.Context, msg MsgAddLiquidity) error {
+    if err := msg.ValidateBasicV63(); err != nil {
+        ctx.Logger().Error(err.Error())
+        return errAddLiquidityFailValidation
+    }
+
+    if msg.Asset.IsSyntheticAsset() {
+        ctx.Logger().Error("asset cannot be synth", "error", errAddLiquidityFailValidation)
+        return errAddLiquidityFailValidation
+    }
+
+    // Synths coins are not compatible with add liquidity
+    if msg.Tx.Coins.HasSynthetic() {
+        ctx.Logger().Error("asset coins cannot be synth", "error", errAddLiquidityFailValidation)
+        return errAddLiquidityFailValidation
+    }
+
+    if isChainHalted(ctx, h.mgr, msg.Asset.Chain) || isLPPaused(ctx, msg.Asset.Chain, h.mgr) {
+        return fmt.Errorf("unable to add liquidity while chain has paused LP actions")
+    }
+
+    ensureLiquidityNoLargerThanBond := h.mgr.GetConstants().GetBoolValue(constants.StrictBondLiquidityRatio)
+    // the following  only applicable for chaosnet
+    totalLiquidityRUNE, err := h.getTotalLiquidityRUNE(ctx)
+    if err != nil {
+        return ErrInternal(err, "fail to get total liquidity RUNE")
+    }
+
+    // total liquidity RUNE after current add liquidity
+    pool, err := h.mgr.Keeper().GetPool(ctx, msg.Asset)
+    if err != nil {
+        return ErrInternal(err, "fail to get pool")
+    }
+    totalLiquidityRUNE = totalLiquidityRUNE.Add(msg.RuneAmount)
+    totalLiquidityRUNE = totalLiquidityRUNE.Add(pool.AssetValueInRune(msg.AssetAmount))
+    maximumLiquidityRune, err := h.mgr.Keeper().GetMimir(ctx, constants.MaximumLiquidityRune.String())
+    if maximumLiquidityRune < 0 || err != nil {
+        maximumLiquidityRune = h.mgr.GetConstants().GetInt64Value(constants.MaximumLiquidityRune)
+    }
+    if maximumLiquidityRune > 0 {
+        if totalLiquidityRUNE.GT(cosmos.NewUint(uint64(maximumLiquidityRune))) {
+            return errAddLiquidityRUNEOverLimit
+        }
+    }
+
+    if !ensureLiquidityNoLargerThanBond {
+        return nil
+    }
+    totalBondRune, err := h.getTotalActiveBond(ctx)
+    if err != nil {
+        return ErrInternal(err, "fail to get total bond RUNE")
+    }
+    if totalLiquidityRUNE.GT(totalBondRune) {
+        ctx.Logger().Info("total liquidity RUNE is more than total Bond", "rune", totalLiquidityRUNE.String(), "bond", totalBondRune.String())
+        return errAddLiquidityRUNEMoreThanBond
+    }
+
+    return nil
+}
+
 func (h AddLiquidityHandler) handleV1(ctx cosmos.Context, msg MsgAddLiquidity) (errResult error) {
 	pool, err := h.mgr.Keeper().GetPool(ctx, msg.Asset)
 	if err != nil {
