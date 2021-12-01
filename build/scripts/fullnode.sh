@@ -5,6 +5,8 @@ set -o pipefail
 . "$(dirname "$0")/core.sh"
 
 SEEDS="${SEEDS:=none}" # the hostname of multiple seeds set as tendermint seeds
+CHAIN_ID=${CHAIN_ID:=thorchain}
+
 if [ ! -f ~/.thornode/config/genesis.json ]; then
   if [ "$PEER" = "none" ] && [ "$SEEDS" = "none" ]; then
     echo "Missing PEER / SEEDS"
@@ -17,7 +19,7 @@ if [ ! -f ~/.thornode/config/genesis.json ]; then
     fetch_genesis_from_seeds $SEEDS
 
     # add seeds tendermint config
-    seeds_list $SEEDS
+    seeds_list $SEEDS $CHAIN_ID
   fi
 
   # enable telemetry through prometheus metrics endpoint
@@ -32,7 +34,7 @@ if [ ! -f ~/.thornode/config/genesis.json ]; then
 else
   if [ "$SEEDS" != "none" ]; then
     # add seeds tendermint config
-    seeds_list $SEEDS
+    seeds_list $SEEDS $CHAIN_ID
   fi
 fi
 
