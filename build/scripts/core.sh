@@ -118,12 +118,11 @@ block_time() {
 }
 
 seeds_list() {
-  SEEDS=$1
-  EXPECTED_NETWORK=$2
+  EXPECTED_NETWORK=$(echo "$@" | awk '{print $NF}')
   OLD_IFS=$IFS
   IFS=","
   SEED_LIST=""
-  for SEED in $SEEDS; do
+  for SEED in "$@"; do
     NODE_ID=$(curl -sL --fail -m 10 "$SEED:$PORT_RPC/status" | jq -r .result.node_info.id) || continue
     NETWORK=$(curl -sL --fail -m 10 "$SEED:$PORT_RPC/status" | jq -r .result.node_info.network) || continue
     # make sure the seeds are on the same network
@@ -211,11 +210,10 @@ fetch_genesis() {
 }
 
 fetch_genesis_from_seeds() {
-  SEEDS=$1
   OLD_IFS=$IFS
   IFS=","
   SEED_LIST=""
-  for SEED in $SEEDS; do
+  for SEED in $1; do
     echo "Fetching genesis from seed $SEED"
     curl -sL --fail -m 10 "$SEED:$PORT_RPC/genesis" | jq .result.genesis >~/.thornode/config/genesis.json || continue
     thornode validate-genesis
