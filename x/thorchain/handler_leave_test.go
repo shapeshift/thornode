@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	se "github.com/cosmos/cosmos-sdk/types/errors"
+	kvTypes "gitlab.com/thorchain/thornode/x/thorchain/keeper/types"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
@@ -394,4 +395,84 @@ func (HandlerLeaveSuite) TestLeaveDifferentValidations(c *C) {
 		result, err := handler.Run(ctx, msg)
 		tc.validator(c, ctx, result, err, helper, tc.name, msg)
 	}
+}
+
+func (HandlerLeaveSuite) TestLeaveHandler_AbandonYggdrasilVault(c *C) {
+	SetupConfigForTest()
+	ctx, mgr := setupManagerForTest(c)
+	pool := NewPool()
+	pool.Asset = common.ETHAsset
+	pool.BalanceAsset = cosmos.NewUint(100 * common.One)
+	pool.BalanceRune = cosmos.NewUint(1000 * common.One)
+	pool.Status = PoolAvailable
+	c.Assert(mgr.Keeper().SetPool(ctx, pool), IsNil)
+	FundModule(c, ctx, mgr.Keeper(), BondName, 1000)
+
+	mgr.Keeper().SaveNetworkFee(ctx, common.ETHChain, NetworkFee{
+		Chain:              common.ETHChain,
+		TransactionSize:    80000,
+		TransactionFeeRate: 300,
+	})
+	nodeAccount := GetRandomValidatorNode(NodeStandby)
+	activeNodeAccount := GetRandomValidatorNode(NodeActive)
+	mgr.Keeper().SetNodeAccount(ctx, activeNodeAccount)
+	mgr.Keeper().SetNodeAccount(ctx, nodeAccount)
+	tx := GetRandomTx()
+	tx.FromAddress = nodeAccount.BondAddress
+	vault := NewVault(1024, ActiveVault, YggdrasilVault, nodeAccount.PubKeySet.Secp256k1, common.Chains{common.BNBChain, common.BTCChain, common.ETHChain}.Strings(), []ChainContract{})
+	vault.AddFunds(common.Coins{
+		common.NewCoin(common.ETHAsset, cosmos.NewUint(12000000)),
+	})
+	mgr.Keeper().SetVault(ctx, vault)
+	asgardVault := NewVault(1024, ActiveVault, AsgardVault, GetRandomPubKey(), common.Chains{common.BNBChain, common.BTCChain, common.ETHChain}.Strings(), []ChainContract{})
+	mgr.Keeper().SetVault(ctx, asgardVault)
+	msgLeave := NewMsgLeave(tx, nodeAccount.NodeAddress, GetRandomBech32Addr())
+	handler := NewLeaveHandler(mgr)
+	result, err := handler.Run(ctx, msgLeave)
+	c.Assert(err, IsNil)
+	c.Assert(result, NotNil)
+	// make sure the yggdrasil vault still there
+	v, err := mgr.Keeper().GetVault(ctx, nodeAccount.PubKeySet.Secp256k1)
+	c.Assert(err, NotNil)
+	c.Assert(errors.Is(err, kvTypes.ErrVaultNotFound), Equals, true)
+	c.Assert(v.HasFunds(), Equals, false)
+}
+
+func (HandlerLeaveSuite) TestLeaveHandler_WhenTooMuchGasAssetLeft_LeaveShouldNotAbandonYggdrasil(c *C) {
+	SetupConfigForTest()
+	ctx, mgr := setupManagerForTest(c)
+	pool := NewPool()
+	pool.Asset = common.ETHAsset
+	pool.BalanceAsset = cosmos.NewUint(100 * common.One)
+	pool.BalanceRune = cosmos.NewUint(1000 * common.One)
+	pool.Status = PoolAvailable
+	c.Assert(mgr.Keeper().SetPool(ctx, pool), IsNil)
+	FundModule(c, ctx, mgr.Keeper(), BondName, 1000)
+	mgr.Keeper().SaveNetworkFee(ctx, common.ETHChain, NetworkFee{
+		Chain:              common.ETHChain,
+		TransactionSize:    80000,
+		TransactionFeeRate: 300,
+	})
+	nodeAccount := GetRandomValidatorNode(NodeStandby)
+	activeNodeAccount := GetRandomValidatorNode(NodeActive)
+	mgr.Keeper().SetNodeAccount(ctx, activeNodeAccount)
+	mgr.Keeper().SetNodeAccount(ctx, nodeAccount)
+	tx := GetRandomTx()
+	tx.FromAddress = nodeAccount.BondAddress
+	vault := NewVault(1024, ActiveVault, YggdrasilVault, nodeAccount.PubKeySet.Secp256k1, common.Chains{common.BNBChain, common.BTCChain, common.ETHChain}.Strings(), []ChainContract{})
+	vault.AddFunds(common.Coins{
+		common.NewCoin(common.ETHAsset, cosmos.NewUint(500000000)),
+	})
+	mgr.Keeper().SetVault(ctx, vault)
+	asgardVault := NewVault(1024, ActiveVault, AsgardVault, GetRandomPubKey(), common.Chains{common.BNBChain, common.BTCChain, common.ETHChain}.Strings(), []ChainContract{})
+	mgr.Keeper().SetVault(ctx, asgardVault)
+	msgLeave := NewMsgLeave(tx, nodeAccount.NodeAddress, GetRandomBech32Addr())
+	handler := NewLeaveHandler(mgr)
+	result, err := handler.Run(ctx, msgLeave)
+	c.Assert(err, IsNil)
+	c.Assert(result, NotNil)
+	// make sure the yggdrasil vault still there
+	v, err := mgr.Keeper().GetVault(ctx, nodeAccount.PubKeySet.Secp256k1)
+	c.Assert(err, IsNil)
+	c.Assert(v.HasFunds(), Equals, true)
 }
