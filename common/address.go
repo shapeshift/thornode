@@ -266,13 +266,20 @@ func (addr Address) GetChain() Chain {
 }
 
 func (addr Address) GetNetwork(chain Chain) ChainNetwork {
+	currentNetwork := GetCurrentChainNetwork()
+	mainNetPredicate := func() ChainNetwork {
+		if currentNetwork == StageNet {
+			return StageNet
+		}
+		return MainNet
+	}
 	switch chain {
 	case ETHChain:
-		return GetCurrentChainNetwork()
+		return currentNetwork
 	case BNBChain:
 		prefix, _, _ := bech32.Decode(addr.String())
 		if strings.EqualFold(prefix, "bnb") {
-			return MainNet
+			return mainNetPredicate()
 		}
 		if strings.EqualFold(prefix, "tbnb") {
 			return TestNet
@@ -280,7 +287,7 @@ func (addr Address) GetNetwork(chain Chain) ChainNetwork {
 	case THORChain:
 		prefix, _, _ := bech32.Decode(addr.String())
 		if strings.EqualFold(prefix, "thor") {
-			return MainNet
+			return mainNetPredicate()
 		}
 		if strings.EqualFold(prefix, "tthor") {
 			return TestNet
@@ -292,7 +299,7 @@ func (addr Address) GetNetwork(chain Chain) ChainNetwork {
 		prefix, _, _ := bech32.Decode(addr.String())
 		switch prefix {
 		case "bc":
-			return MainNet
+			return mainNetPredicate()
 		case "tb":
 			return TestNet
 		case "bcrt":
@@ -300,7 +307,7 @@ func (addr Address) GetNetwork(chain Chain) ChainNetwork {
 		default:
 			_, err := btcutil.DecodeAddress(addr.String(), &chaincfg.MainNetParams)
 			if err == nil {
-				return MainNet
+				return mainNetPredicate()
 			}
 			_, err = btcutil.DecodeAddress(addr.String(), &chaincfg.TestNet3Params)
 			if err == nil {
@@ -315,7 +322,7 @@ func (addr Address) GetNetwork(chain Chain) ChainNetwork {
 		prefix, _, _ := bech32.Decode(addr.String())
 		switch prefix {
 		case "ltc":
-			return MainNet
+			return mainNetPredicate()
 		case "tltc":
 			return TestNet
 		case "rltc":
@@ -323,7 +330,7 @@ func (addr Address) GetNetwork(chain Chain) ChainNetwork {
 		default:
 			_, err := ltcutil.DecodeAddress(addr.String(), &ltcchaincfg.MainNetParams)
 			if err == nil {
-				return MainNet
+				return mainNetPredicate()
 			}
 			_, err = ltcutil.DecodeAddress(addr.String(), &ltcchaincfg.TestNet4Params)
 			if err == nil {
@@ -338,7 +345,7 @@ func (addr Address) GetNetwork(chain Chain) ChainNetwork {
 		// Check mainnet other formats
 		_, err := bchutil.DecodeAddress(addr.String(), &bchchaincfg.MainNetParams)
 		if err == nil {
-			return MainNet
+			return mainNetPredicate()
 		}
 		// Check testnet other formats
 		_, err = bchutil.DecodeAddress(addr.String(), &bchchaincfg.TestNet3Params)
@@ -354,7 +361,7 @@ func (addr Address) GetNetwork(chain Chain) ChainNetwork {
 		// Check mainnet other formats
 		_, err := dogutil.DecodeAddress(addr.String(), &dogchaincfg.MainNetParams)
 		if err == nil {
-			return MainNet
+			return mainNetPredicate()
 		}
 		// Check testnet other formats
 		_, err = dogutil.DecodeAddress(addr.String(), &dogchaincfg.TestNet3Params)
