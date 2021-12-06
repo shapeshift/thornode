@@ -147,6 +147,8 @@ func ConvertToNewBCHAddressFormat(addr Address) (Address, error) {
 		param = &bchchaincfg.TestNet3Params
 	case MainNet:
 		param = &bchchaincfg.MainNetParams
+	case StageNet:
+		param = &bchchaincfg.MainNetParams
 	}
 	bchAddr, err := bchutil.DecodeAddress(addr.String(), param)
 	if err != nil {
@@ -182,7 +184,7 @@ func (addr Address) IsChain(chain Chain) bool {
 		return prefix == "bnb" || prefix == "tbnb"
 	case THORChain:
 		prefix, _, _ := bech32.Decode(addr.String())
-		return prefix == "thor" || prefix == "tthor"
+		return prefix == "thor" || prefix == "tthor" || prefix == "sthor"
 	case BTCChain:
 		prefix, _, err := bech32.Decode(addr.String())
 		if err == nil && (prefix == "bc" || prefix == "tb") {
@@ -282,6 +284,9 @@ func (addr Address) GetNetwork(chain Chain) ChainNetwork {
 		}
 		if strings.EqualFold(prefix, "tthor") {
 			return TestNet
+		}
+		if strings.EqualFold(prefix, "sthor") {
+			return StageNet
 		}
 	case BTCChain:
 		prefix, _, _ := bech32.Decode(addr.String())
