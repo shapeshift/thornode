@@ -58,43 +58,6 @@ func (vm *validatorMgrV76) BeginBlock(ctx cosmos.Context, constAccessor constant
 		churnInterval = constAccessor.GetInt64Value(constants.ChurnInterval)
 	}
 
-	// when total active nodes is more than MinimumNodesForBFT + 2, start to churn node in and out
-	if minimumNodesForBFT+2 < int64(totalActiveNodes) {
-		badValidatorRate, err := vm.k.GetMimir(ctx, constants.BadValidatorRate.String())
-		if badValidatorRate < 0 || err != nil {
-			badValidatorRate = constAccessor.GetInt64Value(constants.BadValidatorRate)
-		}
-		redline, err := vm.k.GetMimir(ctx, constants.BadValidatorRedline.String())
-		if err != nil || redline < 0 {
-			redline = constAccessor.GetInt64Value(constants.BadValidatorRedline)
-		}
-		minSlashPointsForBadValidator, err := vm.k.GetMimir(ctx, constants.MinSlashPointsForBadValidator.String())
-		if err != nil || minSlashPointsForBadValidator < 0 {
-			minSlashPointsForBadValidator = constAccessor.GetInt64Value(constants.MinSlashPointsForBadValidator)
-		}
-		if err := vm.markBadActor(ctx, minSlashPointsForBadValidator, redline, badValidatorRate); err != nil {
-			return err
-		}
-		oldValidatorRate, err := vm.k.GetMimir(ctx, constants.OldValidatorRate.String())
-		if oldValidatorRate < 0 || err != nil {
-			oldValidatorRate = constAccessor.GetInt64Value(constants.OldValidatorRate)
-		}
-		if err := vm.markOldActor(ctx, oldValidatorRate); err != nil {
-			return err
-		}
-		lowBondValidatorRate, err := vm.k.GetMimir(ctx, constants.LowBondValidatorRate.String())
-		if lowBondValidatorRate < 0 || err != nil {
-			lowBondValidatorRate = constAccessor.GetInt64Value(constants.LowBondValidatorRate)
-		}
-		if err := vm.markLowBondActor(ctx, lowBondValidatorRate); err != nil {
-			return err
-		}
-		// when the active nodes didn't upgrade , boot them out one at a time
-		if err := vm.markLowerVersion(ctx, churnInterval); err != nil {
-			return err
-		}
-	}
-
 	vaults, err := vm.k.GetAsgardVaultsByStatus(ctx, ActiveVault)
 	if err != nil {
 		ctx.Logger().Error("Failed to get Asgard vaults", "error", err)
@@ -150,6 +113,31 @@ func (vm *validatorMgrV76) BeginBlock(ctx cosmos.Context, constAccessor constant
 			if vault.HasFunds() {
 				ctx.Logger().Info("Skipping rotation due to retiring vaults still have funds.")
 				return nil
+			}
+		}
+
+		// Mark bad, old, low, and old version validators
+		if minimumNodesForBFT+2 < int64(totalActiveNodes) {
+			redline, err := vm.k.GetMimir(ctx, constants.BadValidatorRedline.String())
+			if err != nil || redline < 0 {
+				redline = constAccessor.GetInt64Value(constants.BadValidatorRedline)
+			}
+			minSlashPointsForBadValidator, err := vm.k.GetMimir(ctx, constants.MinSlashPointsForBadValidator.String())
+			if err != nil || minSlashPointsForBadValidator < 0 {
+				minSlashPointsForBadValidator = constAccessor.GetInt64Value(constants.MinSlashPointsForBadValidator)
+			}
+			if err := vm.markBadActor(ctx, minSlashPointsForBadValidator, redline); err != nil {
+				return err
+			}
+			if err := vm.markOldActor(ctx); err != nil {
+				return err
+			}
+			if err := vm.markLowBondActor(ctx); err != nil {
+				return err
+			}
+			// when the active nodes didn't upgrade , boot them out one at a time
+			if err := vm.markLowerVersion(ctx); err != nil {
+				return err
 			}
 		}
 
@@ -1056,7 +1044,7 @@ func (vm *validatorMgrV76) getScore(ctx cosmos.Context, na NodeAccount, slashPts
 }
 
 // Iterate over active node accounts, finding bad actors with high slash points
-func (vm *validatorMgrV76) findBadActors(ctx cosmos.Context, minSlashPointsForBadValidator, badValidatorRedline, badValidatorRate int64) (NodeAccounts, error) {
+func (vm *validatorMgrV76) findBadActors(ctx cosmos.Context, minSlashPointsForBadValidator int64, badValidatorRedline int64) (NodeAccounts, error) {
 	badActors := make(NodeAccounts, 0)
 	nas, err := vm.k.ListActiveValidators(ctx)
 	if err != nil {
@@ -1086,11 +1074,6 @@ func (vm *validatorMgrV76) findBadActors(ctx cosmos.Context, minSlashPointsForBa
 		}
 
 		if slashPts <= minSlashPointsForBadValidator {
-			continue
-		}
-
-		if common.BlockHeight(ctx)-na.StatusSince < badValidatorRate {
-			// give the node a graceful period before consider it is bad
 			continue
 		}
 
@@ -1194,59 +1177,52 @@ func (vm *validatorMgrV76) markActor(ctx cosmos.Context, na NodeAccount, reason 
 }
 
 // Mark an old actor to be churned out
-func (vm *validatorMgrV76) markOldActor(ctx cosmos.Context, rate int64) error {
-	if common.BlockHeight(ctx)%rate == 0 {
-		na, err := vm.findOldActor(ctx)
-		if err != nil {
-			return err
-		}
-		if err := vm.markActor(ctx, na, "for age"); err != nil {
-			return err
-		}
+func (vm *validatorMgrV76) markOldActor(ctx cosmos.Context) error {
+	na, err := vm.findOldActor(ctx)
+	if err != nil {
+		return err
+	}
+	if err := vm.markActor(ctx, na, "for age"); err != nil {
+		return err
 	}
 	return nil
 }
 
 // Mark an low bond actor to be churned out
-func (vm *validatorMgrV76) markLowBondActor(ctx cosmos.Context, rate int64) error {
-	if common.BlockHeight(ctx)%rate == 0 {
-		na, err := vm.findLowBondActor(ctx)
-		if err != nil {
-			return err
-		}
-		if err := vm.markActor(ctx, na, "for low bond"); err != nil {
-			return err
-		}
+func (vm *validatorMgrV76) markLowBondActor(ctx cosmos.Context) error {
+	na, err := vm.findLowBondActor(ctx)
+	if err != nil {
+		return err
+	}
+	if err := vm.markActor(ctx, na, "for low bond"); err != nil {
+		return err
 	}
 	return nil
 }
 
 // Mark a bad actor to be churned out
-func (vm *validatorMgrV76) markBadActor(ctx cosmos.Context, minSlashPointsForBadValidator, redline, rate int64) error {
-	if common.BlockHeight(ctx)%rate == 0 {
-		nas, err := vm.findBadActors(ctx, minSlashPointsForBadValidator, redline, rate)
-		if err != nil {
+func (vm *validatorMgrV76) markBadActor(ctx cosmos.Context, minSlashPointsForBadValidator int64, redline int64) error {
+	nas, err := vm.findBadActors(ctx, minSlashPointsForBadValidator, redline)
+	if err != nil {
+		return err
+	}
+	for _, na := range nas {
+		if err := vm.markActor(ctx, na, "for bad behavior"); err != nil {
 			return err
-		}
-		for _, na := range nas {
-			if err := vm.markActor(ctx, na, "for bad behavior"); err != nil {
-				return err
-			}
 		}
 	}
 	return nil
 }
 
-func (vm *validatorMgrV76) markLowerVersion(ctx cosmos.Context, rate int64) error {
-	if common.BlockHeight(ctx)%rate == 0 {
-		na, err := vm.findLowerVersionActor(ctx)
-		if err != nil {
+// Mark an old version actor to be churned out
+func (vm *validatorMgrV76) markLowerVersion(ctx cosmos.Context) error {
+	na, err := vm.findLowerVersionActor(ctx)
+	if err != nil {
+		return err
+	}
+	if !na.IsEmpty() {
+		if err := vm.markActor(ctx, na, "for version lower than minimum join version"); err != nil {
 			return err
-		}
-		if !na.IsEmpty() {
-			if err := vm.markActor(ctx, na, "for version lower than minimum join version"); err != nil {
-				return err
-			}
 		}
 	}
 	return nil
