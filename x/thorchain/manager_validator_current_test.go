@@ -126,7 +126,7 @@ func (vts *ValidatorMgrV76TestSuite) TestLowerVersion(c *C) {
 	c.Assert(vMgr.markLowerVersion(ctx, 360), IsNil)
 	na, err := mgr.Keeper().GetNodeAccount(ctx, activeNode1.NodeAddress)
 	c.Assert(err, IsNil)
-	c.Assert(na.LeaveScore, Equals, uint64(143900000000))
+	c.Assert(na.LeaveScore, Equals, uint64(144000000000))
 }
 
 func (vts *ValidatorMgrV76TestSuite) TestBadActors(c *C) {
@@ -217,10 +217,12 @@ func (vts *ValidatorMgrV76TestSuite) TestFindBadActors(c *C) {
 	c.Assert(mgr.Keeper().SetNodeAccount(ctx, activeNode3), IsNil)
 	mgr.Keeper().SetNodeAccountSlashPoints(ctx, activeNode3.NodeAddress, 2000)
 	ctx = ctx.WithBlockHeight(2000)
-	// node 3 is worse than node 2, so node 3 should be marked as bad
+	// node 3 and node 2 should both be marked even though node 3 is newer
+	// (this is because we're not favoring older nodes anymore) 
 	nodeAccounts, err = vMgr.findBadActors(ctx, 100, 3, 500)
 	c.Assert(err, IsNil)
-	c.Assert(nodeAccounts, HasLen, 1)
+	c.Assert(nodeAccounts, HasLen, 2)
+	c.Assert(nodeAccounts.Contains(activeNode2), Equals, true)
 	c.Assert(nodeAccounts.Contains(activeNode3), Equals, true)
 }
 

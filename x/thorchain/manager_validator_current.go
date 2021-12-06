@@ -1029,8 +1029,24 @@ func (vm *validatorMgrV76) setupValidatorNodes(ctx cosmos.Context, height int64,
 }
 
 func (vm *validatorMgrV76) getScore(ctx cosmos.Context, na NodeAccount, slashPts int64) cosmos.Uint {
+	// TODO: Copy/pasted from beginBlock, leaving for now since we plan to eventually just
+	// move to using slash directly and no longer use score concept
+	// Get last churn height
+	vaults, err := vm.k.GetAsgardVaultsByStatus(ctx, ActiveVault)
+	if err != nil {
+		// Changed this for return type
+		return cosmos.ZeroUint()
+	}
+	// calculate last churn block height
+	var lastHeight int64 // the last block height we had a successful churn
+	for _, vault := range vaults {
+		if vault.BlockHeight > lastHeight {
+			lastHeight = vault.BlockHeight
+		}
+	}
+
 	// get to the 8th decimal point, but keep numbers integers for safer math
-	age := cosmos.NewUint(uint64((common.BlockHeight(ctx) - na.StatusSince) * common.One))
+	age := cosmos.NewUint(uint64((common.BlockHeight(ctx) - lastHeight) * common.One))
 	if slashPts == 0 {
 		return age
 	}
