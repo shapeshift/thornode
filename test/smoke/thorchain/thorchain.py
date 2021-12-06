@@ -1453,7 +1453,7 @@ class Pool(Jsonable):
         if self.is_zero():
             return 0
 
-        return get_share(self.rune_balance, self.asset_balance-val, val)
+        return get_share(self.rune_balance, self.asset_balance - val, val)
 
     def get_rune_in_asset(self, val):
         """
@@ -1471,7 +1471,7 @@ class Pool(Jsonable):
         if self.is_zero():
             return 0
 
-        return get_share(self.asset_balance, self.rune_balance-val, val)
+        return get_share(self.asset_balance, self.rune_balance - val, val)
 
     def get_asset_fee(self):
         """

@@ -472,7 +472,12 @@ class Smoker:
             msg = f"failed to send all outbound transactions {pending_txs}"
             self.error(msg)
         count_events = len(events) - old_event_count
-        return outbounds, block_height, events[-count_events:], sim_events[-count_events:]
+        return (
+            outbounds,
+            block_height,
+            events[-count_events:],
+            sim_events[-count_events:],
+        )
 
     def log_result(self, tx, outbounds):
         """
