@@ -97,6 +97,7 @@ func (vm *validatorMgrV76) BeginBlock(ctx cosmos.Context, constAccessor constant
 
 	vaults, err := vm.k.GetAsgardVaultsByStatus(ctx, ActiveVault)
 	if err != nil {
+		ctx.Logger().Error("Failed to get Asgard vaults", "error", err)
 		return err
 	}
 	// calculate last churn block height
@@ -1035,6 +1036,7 @@ func (vm *validatorMgrV76) getScore(ctx cosmos.Context, na NodeAccount, slashPts
 	vaults, err := vm.k.GetAsgardVaultsByStatus(ctx, ActiveVault)
 	if err != nil {
 		// Changed this for return type
+		ctx.Logger().Error("Failed to get Asgard vaults", "error", err)
 		return cosmos.ZeroUint()
 	}
 	// calculate last churn block height
