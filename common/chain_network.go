@@ -41,5 +41,10 @@ func (net ChainNetwork) SoftEquals(net2 ChainNetwork) bool {
 	if net != MainNet && net2 != MainNet {
 		return true
 	}
+	// when it reach this line , means either net or net2 is `MainNet`
+	// allow StageNet to equals MainNet
+	if net == StageNet || net2 == StageNet {
+		return true
+	}
 	return false
 }
