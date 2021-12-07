@@ -453,7 +453,7 @@ func (vm *validatorMgrV76) getChangedNodes(ctx cosmos.Context, activeNodes NodeA
 }
 
 // payNodeAccountBondAward pay
-func (vm *validatorMgrV76) payNodeAccountBondAward(ctx cosmos.Context, lastChurnHeight int64, na NodeAccount, mgr Manager) error {
+func (vm *validatorMgrV76) payNodeAccountBondAward(ctx cosmos.Context, lastChurnHeight int64, na NodeAccount, totalEffectiveBond cosmos.Uint, effectiveNodeBond cosmos.Uint, mgr Manager) error {
 	if na.ActiveBlockHeight == 0 || na.Bond.IsZero() {
 		return nil
 	}
@@ -479,8 +479,14 @@ func (vm *validatorMgrV76) payNodeAccountBondAward(ctx cosmos.Context, lastChurn
 		earnedBlocks = 0
 	}
 
-	// calc number of rune they are awarded
-	reward := network.CalcNodeRewards(cosmos.NewUint(uint64(earnedBlocks)))
+	// earnedBlockRatio is the percentage of healthy blocks for this node since last churn
+	earnedBlockRatio := cosmos.NewUint(uint64(earnedBlocks)).Quo(cosmos.NewUint(uint64(totalActiveBlocks)))
+
+	// reward = the node's share of bond * total node rewards * earnedBlockRatio
+	reward := common.GetShare(effectiveNodeBond, totalEffectiveBond, network.BondRewardRune).Mul(earnedBlockRatio)
+
+	// // calc number of rune they are awarded
+	// reward := network.CalcNodeRewards(cosmos.NewUint(uint64(earnedBlocks)))
 
 	// Add to their bond the amount rewarded
 	na.Bond = na.Bond.Add(reward)
@@ -638,8 +644,24 @@ func (vm *validatorMgrV76) ragnarokBondReward(ctx cosmos.Context, mgr Manager) e
 			lastChurnHeight = node.ActiveBlockHeight
 		}
 	}
+
+	effectiveNodeBond := map[string]cosmos.Uint{}
+	totalEffectiveBond := cosmos.ZeroUint()
+
+	bondHardCap := cosmos.NewUint(3).Mul(cosmos.NewUint(300_000))
+
 	for _, item := range active {
-		if err := vm.payNodeAccountBondAward(ctx, lastChurnHeight, item, mgr); err != nil {
+		bond := item.Bond
+		if bond.GT(bondHardCap) {
+			bond = bondHardCap
+		}
+
+		effectiveNodeBond[item.NodeAddress.String()] = bond
+		totalEffectiveBond = totalEffectiveBond.Add(bond)
+	}
+
+	for _, item := range active {
+		if err := vm.payNodeAccountBondAward(ctx, lastChurnHeight, item, totalEffectiveBond, effectiveNodeBond[item.NodeAddress], mgr); err != nil {
 			resultErr = err
 			ctx.Logger().Error("fail to pay node account bond award", "node address", item.NodeAddress.String(), "error", err)
 		}
