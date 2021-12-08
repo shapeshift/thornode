@@ -99,7 +99,9 @@ func (h UnBondHandler) validateV55(ctx cosmos.Context, msg MsgUnBond) error {
 
 func (h UnBondHandler) handle(ctx cosmos.Context, msg MsgUnBond) error {
 	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.55.0")) {
+	if version.GTE(semver.MustParse("0.76.0")) {
+		return h.handleV76(ctx, msg)
+	} else if version.GTE(semver.MustParse("0.55.0")) {
 		return h.handleV55(ctx, msg)
 	} else if version.GTE(semver.MustParse("0.46.0")) {
 		return h.handleV46(ctx, msg)
@@ -109,7 +111,7 @@ func (h UnBondHandler) handle(ctx cosmos.Context, msg MsgUnBond) error {
 	return errBadVersion
 }
 
-func (h UnBondHandler) handleV55(ctx cosmos.Context, msg MsgUnBond) error {
+func (h UnBondHandler) handleV76(ctx cosmos.Context, msg MsgUnBond) error {
 	na, err := h.mgr.Keeper().GetNodeAccount(ctx, msg.NodeAddress)
 	if err != nil {
 		return ErrInternal(err, fmt.Sprintf("fail to get node account(%s)", msg.NodeAddress))
@@ -146,7 +148,8 @@ func (h UnBondHandler) handleV55(ctx cosmos.Context, msg MsgUnBond) error {
 				canUnbond = false
 				break
 			}
-			if c.Amount.GT(maxGas.Amount) {
+			// 10x the maxGas , if the amount of gas asset left in the yggdrasil vault is larger than 10x of the MaxGas , then we don't allow node to unbond
+			if c.Amount.GT(maxGas.Amount.MulUint64(10)) {
 				canUnbond = false
 			}
 			pool, err := h.mgr.Keeper().GetPool(ctx, c.Asset)

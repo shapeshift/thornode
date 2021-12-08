@@ -69,6 +69,12 @@ func (k *TestRefundBondKeeper) DeleteVault(_ cosmos.Context, key common.PubKey) 
 	}
 	return nil
 }
+func (k *TestRefundBondKeeper) SetVault(ctx cosmos.Context, vault Vault) error {
+	if k.ygg.PubKey.Equals(vault.PubKey) {
+		k.ygg = vault
+	}
+	return nil
+}
 
 func (s *HelperSuite) TestSubsidizePoolWithSlashBond(c *C) {
 	ctx, mgr := setupManagerForTest(c)

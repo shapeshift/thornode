@@ -3,7 +3,7 @@ package thorchain
 import (
 	"fmt"
 
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 type UnbondMemo struct {
