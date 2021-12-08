@@ -54,9 +54,11 @@ func (s *CacheStore) RemoveSigned(transactionHash string) error {
 	mapKey := s.getMapKey(transactionHash)
 	value, err := s.db.Get([]byte(mapKey), nil)
 	if err != nil {
-		if !errors.Is(err, leveldb.ErrNotFound) {
-			s.logger.Err(err).Msg("fail to check map key exist")
+		// bifrost didn't sign this tx , so it is fine
+		if errors.Is(err, leveldb.ErrNotFound) {
+			return nil
 		}
+		s.logger.Err(err).Msg("fail to check map key exist")
 		return err
 	}
 	key := s.getSignedKey(string(value))

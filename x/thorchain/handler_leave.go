@@ -73,7 +73,9 @@ func (h LeaveHandler) validateV1(ctx cosmos.Context, msg MsgLeave) error {
 
 func (h LeaveHandler) handle(ctx cosmos.Context, msg MsgLeave) error {
 	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.46.0")) {
+	if version.GTE(semver.MustParse("0.76.0")) {
+		return h.handleV76(ctx, msg)
+	} else if version.GTE(semver.MustParse("0.46.0")) {
 		return h.handleV46(ctx, msg)
 	} else if version.GTE(semver.MustParse("0.1.0")) {
 		return h.handleV1(ctx, msg)
@@ -81,7 +83,7 @@ func (h LeaveHandler) handle(ctx cosmos.Context, msg MsgLeave) error {
 	return errBadVersion
 }
 
-func (h LeaveHandler) handleV46(ctx cosmos.Context, msg MsgLeave) error {
+func (h LeaveHandler) handleV76(ctx cosmos.Context, msg MsgLeave) error {
 	nodeAcc, err := h.mgr.Keeper().GetNodeAccount(ctx, msg.NodeAddress)
 	if err != nil {
 		return ErrInternal(err, "fail to get node account by bond address")
@@ -155,8 +157,14 @@ func (h LeaveHandler) handleV46(ctx cosmos.Context, msg MsgLeave) error {
 						}
 						nodeAcc.UpdateStatus(NodeDisabled, common.BlockHeight(ctx))
 					} else {
-						if err := h.mgr.ValidatorMgr().RequestYggReturn(ctx, nodeAcc, h.mgr, h.mgr.GetConstants()); err != nil {
-							return ErrInternal(err, "fail to request yggdrasil return fund")
+						if h.canAbandonVault(ctx, vault, nodeAcc) {
+							if err := refundBond(ctx, msg.Tx, cosmos.ZeroUint(), &nodeAcc, h.mgr); err != nil {
+								return ErrInternal(err, "fail to refund bond")
+							}
+						} else {
+							if err := h.mgr.ValidatorMgr().RequestYggReturn(ctx, nodeAcc, h.mgr, h.mgr.GetConstants()); err != nil {
+								return ErrInternal(err, "fail to request yggdrasil return fund")
+							}
 						}
 					}
 				}
@@ -174,4 +182,51 @@ func (h LeaveHandler) handleV46(ctx cosmos.Context, msg MsgLeave) error {
 			cosmos.NewAttribute("tx", msg.Tx.ID.String())))
 
 	return nil
+}
+
+// canAbandonVault do some sanity check & validation to make sure the vault can be abandoned
+//  the vault will be abandoned only when it meet the following conditions
+// 1. Only Gas asset left in vault. for Binance chain , it should not have any BEP2 left , for ETH it should not have any ERC20 left
+// 2. The Gas asset is less than 10x MaxGas
+// 3. The total value in RUNE left in the yggdrasil vault should be less than 100 RUNE
+// Note: This method doesn't actually slash the vault / node account , if this method return true , then the logic will continue to
+// call refundBond , which will then slash node accordingly
+func (h LeaveHandler) canAbandonVault(ctx cosmos.Context, vault Vault, account NodeAccount) bool {
+	totalRuneValue := cosmos.ZeroUint()
+	for _, c := range vault.Coins {
+		if c.Amount.IsZero() {
+			continue
+		}
+		if !c.Asset.IsGasAsset() {
+			// None gas asset has not been sent back to asgard in full
+			ctx.Logger().Info("yggdrasil vault contains none gas asset", "asset", c.Asset.String(), "amount", c.Amount.String())
+			return false
+		}
+		chain := c.Asset.GetChain()
+		maxGas, err := h.mgr.GasMgr().GetMaxGas(ctx, chain)
+		if err != nil {
+			ctx.Logger().Error("fail to get max gas", "chain", chain, "error", err)
+			return false
+		}
+		// 10x the maxGas , if the amount of gas asset left in the yggdrasil vault is larger than 10x of the MaxGas , then we don't allow node to unbond
+		if c.Amount.GT(maxGas.Amount.MulUint64(10)) {
+			ctx.Logger().Info("Amount left in yggdrasil vault is more than 10x of max gas", "asset", c.Asset.String(), "amount", c.Amount.String())
+			return false
+		}
+		pool, err := h.mgr.Keeper().GetPool(ctx, c.Asset)
+		if err != nil {
+			ctx.Logger().Error("fail to get pool", "asset", c.Asset, "error", err)
+			return false
+		}
+		totalRuneValue = totalRuneValue.Add(pool.AssetValueInRune(c.Amount))
+	}
+	// make sure the total value left in yggdrasil vault is less than 100 RUNE
+	if totalRuneValue.GT(cosmos.NewUint(100 * common.One)) {
+		ctx.Logger().Error("total rune value left in yggdrasil is larger than 100 RUNE, can't abandon vault", "total rune value", totalRuneValue.String())
+		return false
+	}
+	ctx.Logger().Info("node leave , abandon yggdrasil vault",
+		"node address", account.NodeAddress.String(),
+		"coins", vault.Coins.String())
+	return true
 }

@@ -3,7 +3,7 @@ package thorchain
 import (
 	"fmt"
 
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 type LeaveMemo struct {
@@ -28,5 +28,6 @@ func ParseLeaveMemo(parts []string) (LeaveMemo, error) {
 	if err != nil {
 		return LeaveMemo{}, fmt.Errorf("%s is an invalid thorchain address: %w", parts[1], err)
 	}
+
 	return NewLeaveMemo(addr), nil
 }
