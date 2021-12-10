@@ -101,6 +101,8 @@ type (
 	THORName                 = types.THORName
 	THORNameAlias            = types.THORNameAlias
 	SolvencyVoter            = types.SolvencyVoter
+	NodeMimir                = types.NodeMimir
+	NodeMimirs               = types.NodeMimirs
 
 	ProtoInt64        = types.ProtoInt64
 	ProtoUint64       = types.ProtoUint64

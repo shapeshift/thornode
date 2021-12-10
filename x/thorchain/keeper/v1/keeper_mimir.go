@@ -1,8 +1,12 @@
 package keeperv1
 
 import (
+	"fmt"
+
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
+
+	"github.com/blang/semver"
 )
 
 const KRAKEN string = "ReleaseTheKraken"
@@ -12,6 +16,25 @@ func (k KVStore) GetMimir(ctx cosmos.Context, key string) (int64, error) {
 	// if we have the kraken, mimir is no more, ignore him
 	if k.haveKraken(ctx) {
 		return -1, nil
+	}
+
+	// TODO: sync with chaosnet and see if this still causes a consensus failure or not
+	// ensure we don't cause a consensus failure and execute the following code
+	// in previous versions
+	ver := k.GetLowestActiveVersion(ctx)
+	if ver.GTE(semver.MustParse("0.77.0")) {
+		nodeMimirs, err := k.GetNodeMimirs(ctx, key)
+		if err != nil {
+			return -1, err
+		}
+
+		activeNodes, err := k.ListActiveValidators(ctx)
+		if err != nil {
+			return -1, err
+		}
+		if i, ok := nodeMimirs.HasSuperMajority(key, activeNodes.GetNodeAddresses()); ok {
+			return i, nil
+		}
 	}
 
 	record := int64(-1)
@@ -33,6 +56,47 @@ func (k KVStore) SetMimir(ctx cosmos.Context, key string, value int64) {
 		return
 	}
 	k.setInt64(ctx, k.GetKey(ctx, prefixMimir, key), value)
+}
+
+// GetNodeMimirs get node mimirs value from key value store
+func (k KVStore) GetNodeMimirs(ctx cosmos.Context, key string) (NodeMimirs, error) {
+	// if we have the kraken, mimir is no more, ignore him
+	if k.haveKraken(ctx) {
+		return NodeMimirs{}, nil
+	}
+
+	record := NodeMimirs{}
+	store := ctx.KVStore(k.storeKey)
+	if store.Has([]byte(k.GetKey(ctx, prefixNodeMimir, key))) {
+		bz := store.Get([]byte(k.GetKey(ctx, prefixNodeMimir, key)))
+		if err := k.cdc.UnmarshalBinaryBare(bz, &record); err != nil {
+			return NodeMimirs{}, dbError(ctx, fmt.Sprintf("Unmarshal kvstore: (%T) %s", record, key), err)
+		}
+	}
+	return record, nil
+}
+
+// SetNodeMimir save a mimir value to key value store for a specific node
+func (k KVStore) SetNodeMimir(ctx cosmos.Context, key string, value int64, acc cosmos.AccAddress) error {
+	// if we have the kraken, mimir is no more, ignore him
+	if k.haveKraken(ctx) {
+		return nil
+	}
+
+	kvkey := k.GetKey(ctx, prefixNodeMimir, key)
+	record, err := k.GetNodeMimirs(ctx, key)
+	if err != nil {
+		return err
+	}
+	record.Set(acc, key, value)
+	store := ctx.KVStore(k.storeKey)
+	buf := k.cdc.MustMarshalBinaryBare(&record)
+	if buf == nil || len(record.Mimirs) == 0 {
+		store.Delete([]byte(kvkey))
+	} else {
+		store.Set([]byte(kvkey), buf)
+	}
+	return err
 }
 
 // GetMimirIterator iterate gas units
