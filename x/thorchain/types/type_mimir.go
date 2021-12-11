@@ -4,7 +4,7 @@ import (
 	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
-func (m NodeMimirs) Has(acc cosmos.AccAddress) bool {
+func (m NodeMimirs) Has(key string, acc cosmos.AccAddress) bool {
 	for _, mim := range m.Mimirs {
 		if mim.Signer.Equals(acc) {
 			return true
@@ -13,16 +13,16 @@ func (m NodeMimirs) Has(acc cosmos.AccAddress) bool {
 	return false
 }
 
-func (m NodeMimirs) Get(acc cosmos.AccAddress) (int64, bool) {
+func (m NodeMimirs) Get(key string, acc cosmos.AccAddress) (int64, bool) {
 	for _, mim := range m.Mimirs {
-		if mim.Signer.Equals(acc) {
+		if mim.Signer.Equals(acc) && mim.Key == key {
 			return mim.Value, true
 		}
 	}
 	return 0, false
 }
 
-func (m *NodeMimirs) Set(acc cosmos.AccAddress, key string, val int64) {
+func (m *NodeMimirs) Set(key string, val int64, acc cosmos.AccAddress) {
 	for i, mim := range m.Mimirs {
 		if mim.Key == key && mim.Signer.Equals(acc) {
 			m.Mimirs[i].Value = val
@@ -36,7 +36,7 @@ func (m *NodeMimirs) Set(acc cosmos.AccAddress, key string, val int64) {
 	})
 }
 
-func (m *NodeMimirs) Delete(acc cosmos.AccAddress, key string) {
+func (m *NodeMimirs) Delete(key string, acc cosmos.AccAddress) {
 	for i, mim := range m.Mimirs {
 		if mim.Signer.Equals(acc) {
 			m.Mimirs = append(m.Mimirs[:i], m.Mimirs[i+1:]...)

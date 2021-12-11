@@ -19,15 +19,15 @@ func (MimirTestSuite) TestNodeMimir(c *C) {
 	key2 := "bar"
 	key3 := "baz"
 
-	m.Set(acc1, key1, 1)
-	m.Set(acc2, key1, 1)
-	m.Set(acc3, key1, 1)
-	m.Set(acc1, key2, 1)
-	m.Set(acc2, key2, 2)
-	m.Set(acc3, key2, 3)
-	m.Set(acc1, key3, 4)
-	m.Set(acc2, key3, 5)
-	m.Set(acc3, key3, 5)
+	m.Set(key1, 1, acc1)
+	m.Set(key1, 1, acc2)
+	m.Set(key1, 1, acc3)
+	m.Set(key2, 1, acc1)
+	m.Set(key2, 2, acc2)
+	m.Set(key1, 3, acc3)
+	m.Set(key3, 4, acc1)
+	m.Set(key3, 5, acc2)
+	m.Set(key3, 5, acc3)
 
 	// test key1
 	val, ok := m.HasSuperMajority(key1, active)
