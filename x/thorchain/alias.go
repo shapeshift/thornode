@@ -281,6 +281,8 @@ type (
 	Node                           = types.Node
 	THORName                       = types.THORName
 	THORNameAlias                  = types.THORNameAlias
+	NodeMimir                      = types.NodeMimir
+	NodeMimirs                     = types.NodeMimirs
 
 	// Memo
 	SwapMemo              = mem.SwapMemo

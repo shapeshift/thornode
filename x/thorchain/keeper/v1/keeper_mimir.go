@@ -88,7 +88,7 @@ func (k KVStore) SetNodeMimir(ctx cosmos.Context, key string, value int64, acc c
 	if err != nil {
 		return err
 	}
-	record.Set(acc, key, value)
+	record.Set(key, value, acc)
 	store := ctx.KVStore(k.storeKey)
 	buf := k.cdc.MustMarshalBinaryBare(&record)
 	if buf == nil || len(record.Mimirs) == 0 {
@@ -102,6 +102,11 @@ func (k KVStore) SetNodeMimir(ctx cosmos.Context, key string, value int64, acc c
 // GetMimirIterator iterate gas units
 func (k KVStore) GetMimirIterator(ctx cosmos.Context) cosmos.Iterator {
 	return k.getIterator(ctx, prefixMimir)
+}
+
+// GetNodeMimirIterator iterate gas units
+func (k KVStore) GetNodeMimirIterator(ctx cosmos.Context) cosmos.Iterator {
+	return k.getIterator(ctx, prefixNodeMimir)
 }
 
 func (k KVStore) DeleteMimir(ctx cosmos.Context, key string) error {

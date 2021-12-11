@@ -225,6 +225,7 @@ type KeeperMimir interface {
 	SetMimir(_ cosmos.Context, key string, value int64)
 	SetNodeMimir(_ cosmos.Context, key string, value int64, acc cosmos.AccAddress) error
 	GetMimirIterator(ctx cosmos.Context) cosmos.Iterator
+	GetNodeMimirIterator(ctx cosmos.Context) cosmos.Iterator
 	DeleteMimir(_ cosmos.Context, key string) error
 	GetNodePauseChain(ctx cosmos.Context, acc cosmos.AccAddress) int64
 	SetNodePauseChain(ctx cosmos.Context, acc cosmos.AccAddress)
