@@ -63,13 +63,8 @@ func (vm *validatorMgrV76) BeginBlock(ctx cosmos.Context, constAccessor constant
 		ctx.Logger().Error("Failed to get Asgard vaults", "error", err)
 		return err
 	}
-	// calculate last churn block height
-	var lastHeight int64 // the last block height we had a successful churn
-	for _, vault := range vaults {
-		if vault.BlockHeight > lastHeight {
-			lastHeight = vault.BlockHeight
-		}
-	}
+
+	lastChurnHeight := vm.getLastChurnHeight(ctx)
 
 	// get constants
 	desiredValidatorSet, err := vm.k.GetMimir(ctx, constants.DesiredValidatorSet.String())
@@ -93,11 +88,11 @@ func (vm *validatorMgrV76) BeginBlock(ctx cosmos.Context, constAccessor constant
 		expected_active_vaults += 1
 	}
 	incompleteChurnCheck := int64(len(vaults)) != expected_active_vaults
-	oldVaultCheck := common.BlockHeight(ctx)-lastHeight > churnInterval
-	onChurnTick := (common.BlockHeight(ctx)-lastHeight-churnInterval)%churnRetryInterval == 0
+	oldVaultCheck := common.BlockHeight(ctx)-lastChurnHeight > churnInterval
+	onChurnTick := (common.BlockHeight(ctx)-lastChurnHeight-churnInterval)%churnRetryInterval == 0
 	retryChurn := (oldVaultCheck || incompleteChurnCheck) && onChurnTick
 
-	if lastHeight+churnInterval == common.BlockHeight(ctx) || retryChurn {
+	if lastChurnHeight+churnInterval == common.BlockHeight(ctx) || retryChurn {
 		if retryChurn {
 			ctx.Logger().Info("Checking for node account rotation... (retry)")
 		} else {
@@ -129,11 +124,21 @@ func (vm *validatorMgrV76) BeginBlock(ctx cosmos.Context, constAccessor constant
 			if err := vm.markBadActor(ctx, minSlashPointsForBadValidator, redline); err != nil {
 				return err
 			}
+<<<<<<< HEAD
 			if err := vm.markOldActor(ctx); err != nil {
 				return err
 			}
 			if err := vm.markLowBondActor(ctx); err != nil {
 				return err
+=======
+			if !retryChurn { // Only mark old/low actors on initial churn
+				if err := vm.markOldActor(ctx); err != nil {
+					return err
+				}
+				if err := vm.markLowBondActor(ctx); err != nil {
+					return err
+				}
+>>>>>>> 69b4186dd490f6373fe16462ba04c40e3c555698
 			}
 			// when the active nodes didn't upgrade , boot them out one at a time
 			if err := vm.markLowerVersion(ctx); err != nil {
@@ -1039,30 +1044,29 @@ func (vm *validatorMgrV76) setupValidatorNodes(ctx cosmos.Context, height int64,
 	return nil
 }
 
-func (vm *validatorMgrV76) getScore(ctx cosmos.Context, na NodeAccount, slashPts int64) cosmos.Uint {
-	// TODO: Copy/pasted from beginBlock, leaving for now since we plan to eventually just
-	// move to using slash directly and no longer use score concept
-	// Get last churn height
+func (vm *validatorMgrV76) getLastChurnHeight(ctx cosmos.Context) int64 {
 	vaults, err := vm.k.GetAsgardVaultsByStatus(ctx, ActiveVault)
 	if err != nil {
-		// Changed this for return type
 		ctx.Logger().Error("Failed to get Asgard vaults", "error", err)
-		return cosmos.ZeroUint()
+		return common.BlockHeight(ctx)
 	}
 	// calculate last churn block height
-	var lastHeight int64 // the last block height we had a successful churn
+	var lastChurnHeight int64 // the last block height we had a successful churn
 	for _, vault := range vaults {
-		if vault.BlockHeight > lastHeight {
-			lastHeight = vault.BlockHeight
+		if vault.BlockHeight > lastChurnHeight {
+			lastChurnHeight = vault.BlockHeight
 		}
 	}
+	return lastChurnHeight
+}
 
+func (vm *validatorMgrV76) getScore(ctx cosmos.Context, slashPts int64, lastChurnHeight int64) cosmos.Uint {
 	// get to the 8th decimal point, but keep numbers integers for safer math
-	age := cosmos.NewUint(uint64((common.BlockHeight(ctx) - lastHeight) * common.One))
+	score := cosmos.NewUint(uint64((common.BlockHeight(ctx) - lastChurnHeight) * common.One))
 	if slashPts == 0 {
-		return age
+		return score
 	}
-	return age.QuoUint64(uint64(slashPts))
+	return score.QuoUint64(uint64(slashPts))
 }
 
 // Iterate over active node accounts, finding bad actors with high slash points
@@ -1089,6 +1093,7 @@ func (vm *validatorMgrV76) findBadActors(ctx cosmos.Context, minSlashPointsForBa
 	totalScore := cosmos.ZeroUint()
 
 	// Find bad actor relative to age / slashpoints
+	lastChurnHeight := vm.getLastChurnHeight(ctx)
 	for _, na := range nas {
 		slashPts, err := vm.k.GetNodeAccountSlashPoints(ctx, na.NodeAddress)
 		if err != nil {
@@ -1099,7 +1104,7 @@ func (vm *validatorMgrV76) findBadActors(ctx cosmos.Context, minSlashPointsForBa
 			continue
 		}
 
-		score := vm.getScore(ctx, na, slashPts)
+		score := vm.getScore(ctx, slashPts, lastChurnHeight)
 		totalScore = totalScore.Add(score)
 
 		tracker = append(tracker, badTracker{
@@ -1192,7 +1197,7 @@ func (vm *validatorMgrV76) markActor(ctx cosmos.Context, na NodeAccount, reason 
 		if err != nil {
 			return fmt.Errorf("fail to get node account(%s) slash points: %w", na.NodeAddress, err)
 		}
-		na.LeaveScore = vm.getScore(ctx, na, slashPts).Uint64()
+		na.LeaveScore = vm.getScore(ctx, slashPts, vm.getLastChurnHeight(ctx)).Uint64()
 		return vm.k.SetNodeAccount(ctx, na)
 	}
 	return nil
@@ -1370,6 +1375,7 @@ func (vm *validatorMgrV76) nextVaultNodeAccounts(ctx cosmos.Context, targetCount
 	// find out all the nodes that had been marked to leave , and update their score again , because even after a node has been marked
 	// to be churn out , they can continue to accumulate slash points, in the scenario that an active node go offline , and consistently fail
 	// keygen / keysign for a while , we would like to churn it out first
+	lastChurnHeight := vm.getLastChurnHeight(ctx)
 	for _, item := range active {
 		if item.LeaveScore == 0 {
 			continue
@@ -1379,7 +1385,7 @@ func (vm *validatorMgrV76) nextVaultNodeAccounts(ctx cosmos.Context, targetCount
 			ctx.Logger().Error("fail to get node account slash points", "error", err, "node address", item.NodeAddress.String())
 			continue
 		}
-		newScore := vm.getScore(ctx, item, slashPts)
+		newScore := vm.getScore(ctx, slashPts, lastChurnHeight)
 		if !newScore.IsZero() {
 			item.LeaveScore = newScore.Uint64()
 		}
