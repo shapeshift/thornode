@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"regexp"
 	"strconv"
+	"strings"
 
 	"github.com/blang/semver"
 
@@ -130,7 +131,7 @@ func (h MimirHandler) handleV77(ctx cosmos.Context, msg MsgMimir) error {
 
 		ctx.EventManager().EmitEvent(
 			cosmos.NewEvent("set_node_mimir",
-				cosmos.NewAttribute("key", msg.Key),
+				cosmos.NewAttribute("key", strings.ToUpper(msg.Key)),
 				cosmos.NewAttribute("value", strconv.FormatInt(msg.Value, 10)),
 				cosmos.NewAttribute("address", msg.Signer.String())))
 	}

@@ -2,6 +2,7 @@ package keeperv1
 
 import (
 	"fmt"
+	"strings"
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
@@ -64,14 +65,16 @@ func (k KVStore) GetNodeMimirs(ctx cosmos.Context, key string) (NodeMimirs, erro
 	if k.haveKraken(ctx) {
 		return NodeMimirs{}, nil
 	}
+	key = strings.ToUpper(key)
 
 	record := NodeMimirs{}
 	store := ctx.KVStore(k.storeKey)
-	if store.Has([]byte(k.GetKey(ctx, prefixNodeMimir, key))) {
-		bz := store.Get([]byte(k.GetKey(ctx, prefixNodeMimir, key)))
-		if err := k.cdc.UnmarshalBinaryBare(bz, &record); err != nil {
-			return NodeMimirs{}, dbError(ctx, fmt.Sprintf("Unmarshal kvstore: (%T) %s", record, key), err)
-		}
+	if !store.Has([]byte(k.GetKey(ctx, prefixNodeMimir, key))) {
+		return record, nil
+	}
+	bz := store.Get([]byte(k.GetKey(ctx, prefixNodeMimir, key)))
+	if err := k.cdc.UnmarshalBinaryBare(bz, &record); err != nil {
+		return NodeMimirs{}, dbError(ctx, fmt.Sprintf("Unmarshal kvstore: (%T) %s", record, key), err)
 	}
 	return record, nil
 }
@@ -82,6 +85,7 @@ func (k KVStore) SetNodeMimir(ctx cosmos.Context, key string, value int64, acc c
 	if k.haveKraken(ctx) {
 		return nil
 	}
+	key = strings.ToUpper(key)
 
 	kvkey := k.GetKey(ctx, prefixNodeMimir, key)
 	record, err := k.GetNodeMimirs(ctx, key)
