@@ -1,12 +1,14 @@
 package types
 
 import (
+	"strings"
+
 	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 func (m NodeMimirs) Has(key string, acc cosmos.AccAddress) bool {
 	for _, mim := range m.Mimirs {
-		if mim.Signer.Equals(acc) {
+		if mim.Signer.Equals(acc) && strings.EqualFold(mim.Key, key) {
 			return true
 		}
 	}
@@ -15,7 +17,7 @@ func (m NodeMimirs) Has(key string, acc cosmos.AccAddress) bool {
 
 func (m NodeMimirs) Get(key string, acc cosmos.AccAddress) (int64, bool) {
 	for _, mim := range m.Mimirs {
-		if mim.Signer.Equals(acc) && mim.Key == key {
+		if mim.Signer.Equals(acc) && strings.EqualFold(mim.Key, key) {
 			return mim.Value, true
 		}
 	}
@@ -24,7 +26,7 @@ func (m NodeMimirs) Get(key string, acc cosmos.AccAddress) (int64, bool) {
 
 func (m *NodeMimirs) Set(key string, val int64, acc cosmos.AccAddress) {
 	for i, mim := range m.Mimirs {
-		if mim.Key == key && mim.Signer.Equals(acc) {
+		if mim.Signer.Equals(acc) && strings.EqualFold(mim.Key, key) {
 			m.Mimirs[i].Value = val
 			return
 		}
@@ -38,7 +40,7 @@ func (m *NodeMimirs) Set(key string, val int64, acc cosmos.AccAddress) {
 
 func (m *NodeMimirs) Delete(key string, acc cosmos.AccAddress) {
 	for i, mim := range m.Mimirs {
-		if mim.Signer.Equals(acc) {
+		if mim.Signer.Equals(acc) && strings.EqualFold(mim.Key, key) {
 			m.Mimirs = append(m.Mimirs[:i], m.Mimirs[i+1:]...)
 			return
 		}
@@ -50,7 +52,7 @@ func (m NodeMimirs) countActive(key string, active []cosmos.AccAddress, maj func
 	voted := make(map[string]bool, 0) // track signers that have already voted
 	for _, mimir := range m.Mimirs {
 		// skip mismatching keys
-		if key != mimir.Key {
+		if !strings.EqualFold(mimir.Key, key) {
 			continue
 		}
 
