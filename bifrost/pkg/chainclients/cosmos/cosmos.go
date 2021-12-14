@@ -1,6 +1,7 @@
 package cosmos
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,8 +12,8 @@ import (
 	"time"
 
 	cryptocodec "github.com/cosmos/cosmos-sdk/crypto/codec"
-	"github.com/cosmos/cosmos-sdk/simapp"
 	"github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/auth/legacy/legacytx"
 	btypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 
 	"github.com/rs/zerolog"
@@ -24,6 +25,7 @@ import (
 	"gitlab.com/thorchain/thornode/bifrost/blockscanner"
 	"gitlab.com/thorchain/thornode/bifrost/config"
 	"gitlab.com/thorchain/thornode/bifrost/metrics"
+
 	"gitlab.com/thorchain/thornode/bifrost/thorclient"
 	stypes "gitlab.com/thorchain/thornode/bifrost/thorclient/types"
 	"gitlab.com/thorchain/thornode/bifrost/tss"
@@ -34,6 +36,7 @@ import (
 type Cosmos struct {
 	logger              zerolog.Logger
 	cfg                 config.ChainConfiguration
+	chainID             string
 	isTestNet           bool
 	client              *http.Client
 	accts               *CosmosMetaDataStore
@@ -206,17 +209,43 @@ func (b *Cosmos) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, err
 		return nil, fmt.Errorf("invalid MsgSend: %w", err)
 	}
 
-	enc := simapp.MakeTestEncodingConfig()
-	builder := enc.TxConfig.NewTxBuilder()
-	if err := builder.SetMsgs(msg); err != nil {
-		return nil, fmt.Errorf("builder.SetMsgs(): %w", err)
+	currentHeight, err := b.cosmosScanner.GetHeight()
+	if err != nil {
+		b.logger.Error().Err(err).Msg("fail to get current binance block height")
+		return nil, err
+	}
+	meta := b.accts.Get(tx.VaultPubKey)
+	if currentHeight > meta.BlockHeight {
+		acc, err := b.GetAccount(tx.VaultPubKey)
+		if err != nil {
+			return nil, fmt.Errorf("fail to get account info: %w", err)
+		}
+		meta = CosmosMetadata{
+			AccountNumber: acc.AccountNumber,
+			SeqNumber:     acc.Sequence,
+			BlockHeight:   currentHeight,
+		}
+		b.accts.Set(tx.VaultPubKey, meta)
 	}
 
-	builder.SetGasLimit(2500000000000)
-	builder.SetMemo(tx.Memo)
+	b.logger.Info().Int64("account_number", meta.AccountNumber).Int64("sequence_number", meta.SeqNumber).Int64("block height", meta.BlockHeight).Msg("account info")
+	signMsg := legacytx.StdSignMsg{
+		ChainID:       b.chainID,
+		Memo:          tx.Memo,
+		Msgs:          []types.Msg{msg},
+		Sequence:      uint64(meta.SeqNumber),
+		AccountNumber: uint64(meta.AccountNumber),
+	}
 
-	// b.logger.Info().Int64("account_number", meta.AccountNumber).Int64("sequence_number", meta.SeqNumber).Int64("block height", meta.BlockHeight).Msg("account info")
-	return []byte(""), nil
+	rawBz, err := b.localKeyManager.Sign(signMsg)
+	if err != nil {
+		return nil, fmt.Errorf("unable to sign tx: %w", err)
+	}
+
+	hexTx := []byte(hex.EncodeToString(rawBz))
+	b.logger.Info().Str("hexTx", string(hexTx))
+	b.logger.Info().Int64("account_number", meta.AccountNumber).Int64("sequence_number", meta.SeqNumber).Int64("block height", meta.BlockHeight).Msg("account info")
+	return hexTx, nil
 }
 
 func (b *Cosmos) GetAccount(pkey common.PubKey) (common.Account, error) {
