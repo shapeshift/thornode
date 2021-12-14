@@ -801,3 +801,38 @@ func (s *StoreManagerTestSuite) TestRefundBinanceTx(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(txOut.TxArray, HasLen, count)
 }
+
+func (s *StoreManagerTestSuite) TestMigrateStoreV77(c *C) {
+	ctx, mgr := setupManagerForTest(c)
+	storeMgr := newStoreMgr(mgr)
+
+	activeNa1 := GetRandomValidatorNode(NodeActive)
+	activeNa2 := GetRandomValidatorNode(NodeActive)
+	activeNa3 := GetRandomValidatorNode(NodeActive)
+
+	activeNa1.Bond = cosmos.NewUint(1_000_000_00000000)
+	storeMgr.mgr.Keeper().SetNodeAccount(ctx, activeNa1)
+
+	activeNa2.Bond = cosmos.NewUint(2_000_000_00000000)
+	storeMgr.mgr.Keeper().SetNodeAccount(ctx, activeNa2)
+
+	activeNa3.Bond = cosmos.NewUint(400_000_00000000)
+	storeMgr.mgr.Keeper().SetNodeAccount(ctx, activeNa3)
+
+	standbyNa1 := GetRandomValidatorNode(NodeStandby)
+	storeMgr.mgr.Keeper().SetNodeAccount(ctx, standbyNa1)
+	readyNa1 := GetRandomValidatorNode(NodeReady)
+	storeMgr.mgr.Keeper().SetNodeAccount(ctx, readyNa1)
+
+	migrateStoreV77(ctx, mgr)
+
+	activeNa1, _ = storeMgr.mgr.Keeper().GetNodeAccount(ctx, activeNa1.NodeAddress)
+	c.Assert(activeNa1.EffectiveBond.Uint64(), Equals, uint64(90000000000000))
+
+	activeNa2, _ = storeMgr.mgr.Keeper().GetNodeAccount(ctx, activeNa2.NodeAddress)
+	c.Assert(activeNa2.EffectiveBond.Uint64(), Equals, uint64(90000000000000))
+
+	activeNa3, _ = storeMgr.mgr.Keeper().GetNodeAccount(ctx, activeNa3.NodeAddress)
+	c.Assert(activeNa3.EffectiveBond.Uint64(), Equals, uint64(40000000000000))
+
+}
