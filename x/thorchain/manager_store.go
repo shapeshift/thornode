@@ -88,6 +88,8 @@ func (smgr *StoreMgr) migrate(ctx cosmos.Context, i uint64) error {
 		migrateStoreV75(ctx, smgr.mgr)
 		migrateStoreV75CorrectVaultAndRefund(ctx, smgr.mgr)
 		migrateStoreV75UnMarkValidators(ctx, smgr.mgr)
+	case 77:
+		migrateStoreV77(ctx, smgr.mgr)
 	}
 
 	smgr.mgr.Keeper().SetStoreVersion(ctx, int64(i))
@@ -1325,6 +1327,45 @@ func migrateStoreV75UnMarkValidators(ctx cosmos.Context, mgr *Mgrs) {
 			continue
 		}
 		na.LeaveScore = 0
+		if err := mgr.Keeper().SetNodeAccount(ctx, na); err != nil {
+			ctx.Logger().Error("fail to save node account", "error", err)
+			continue
+		}
+	}
+}
+
+func migrateStoreV77(ctx cosmos.Context, mgr *Mgrs) {
+	defer func() {
+		if err := recover(); err != nil {
+			ctx.Logger().Error("fail to set validator effective bond", "error", err)
+		}
+	}()
+
+	// Set the "EffectiveBond" of each active validator. "EffectiveBond" is what is used to calculate bond-weighted rewards,
+	// and is capped at a "bondHardCap" as seen below. Moving forward "EffectiveBond" will be set 1. when a node churns in,
+	// 2. when a node is paid rewards during a churn, and 3. when a node churns out. This migration is required one-off to
+	// set the already-active validators
+
+	// Mimir-set value at time of migration
+	minBondInRune := cosmos.NewUint(30000000000000)
+
+	// Constants-set value at time of migration
+	validatorMaxRewardRatio := cosmos.NewUint(3)
+
+	bondHardCap := minBondInRune.Mul(validatorMaxRewardRatio)
+
+	nodeAccounts, err := mgr.Keeper().ListActiveValidators(ctx)
+	if err != nil {
+		ctx.Logger().Error("fail to list active validators", "error", err)
+		return
+	}
+	for _, na := range nodeAccounts {
+
+		na.EffectiveBond = na.Bond
+		if na.Bond.GT(bondHardCap) {
+			na.EffectiveBond = bondHardCap
+		}
+
 		if err := mgr.Keeper().SetNodeAccount(ctx, na); err != nil {
 			ctx.Logger().Error("fail to save node account", "error", err)
 			continue
