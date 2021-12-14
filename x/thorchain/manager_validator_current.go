@@ -124,13 +124,6 @@ func (vm *validatorMgrV76) BeginBlock(ctx cosmos.Context, constAccessor constant
 			if err := vm.markBadActor(ctx, minSlashPointsForBadValidator, redline); err != nil {
 				return err
 			}
-<<<<<<< HEAD
-			if err := vm.markOldActor(ctx); err != nil {
-				return err
-			}
-			if err := vm.markLowBondActor(ctx); err != nil {
-				return err
-=======
 			if !retryChurn { // Only mark old/low actors on initial churn
 				if err := vm.markOldActor(ctx); err != nil {
 					return err
@@ -138,7 +131,6 @@ func (vm *validatorMgrV76) BeginBlock(ctx cosmos.Context, constAccessor constant
 				if err := vm.markLowBondActor(ctx); err != nil {
 					return err
 				}
->>>>>>> 69b4186dd490f6373fe16462ba04c40e3c555698
 			}
 			// when the active nodes didn't upgrade , boot them out one at a time
 			if err := vm.markLowerVersion(ctx); err != nil {
@@ -268,7 +260,7 @@ func (vm *validatorMgrV76) EndBlock(ctx cosmos.Context, mgr Manager, constAccess
 	}
 
 	// payout all active node accounts their rewards
-	if err := vm.ragnarokBondReward(ctx, mgr); err != nil {
+	if err := vm.ragnarokBondReward(ctx, mgr, constAccessor); err != nil {
 		ctx.Logger().Error("fail to pay node bond rewards", "error", err)
 	}
 
@@ -458,7 +450,7 @@ func (vm *validatorMgrV76) getChangedNodes(ctx cosmos.Context, activeNodes NodeA
 }
 
 // payNodeAccountBondAward pay
-func (vm *validatorMgrV76) payNodeAccountBondAward(ctx cosmos.Context, lastChurnHeight int64, na NodeAccount, totalEffectiveBond cosmos.Uint, effectiveNodeBond cosmos.Uint, mgr Manager) error {
+func (vm *validatorMgrV76) payNodeAccountBondAward(ctx cosmos.Context, lastChurnHeight int64, na NodeAccount, totalEffectiveBond, effectiveNodeBond cosmos.Uint, mgr Manager) error {
 	if na.ActiveBlockHeight == 0 || na.Bond.IsZero() {
 		return nil
 	}
@@ -485,7 +477,7 @@ func (vm *validatorMgrV76) payNodeAccountBondAward(ctx cosmos.Context, lastChurn
 	}
 
 	// earnedBlockRatio is the percentage of healthy blocks for this node since last churn
-	earnedBlockRatio := cosmos.NewUint(uint64(earnedBlocks)).Quo(cosmos.NewUint(uint64(totalActiveBlocks)))
+	earnedBlockRatio := cosmos.NewUint(uint64(earnedBlocks)).QuoUint64(uint64(totalActiveBlocks))
 
 	// reward = the node's share of bond * total node rewards * earnedBlockRatio
 	reward := common.GetShare(effectiveNodeBond, totalEffectiveBond, network.BondRewardRune).Mul(earnedBlockRatio)
@@ -539,7 +531,7 @@ func (vm *validatorMgrV76) processRagnarok(ctx cosmos.Context, mgr Manager, cons
 		if err := vm.ragnarokProtocolStage1(ctx, mgr, constAccessor); err != nil {
 			return fmt.Errorf("fail to execute ragnarok protocol step 1: %w", err)
 		}
-		if err := vm.ragnarokBondReward(ctx, mgr); err != nil {
+		if err := vm.ragnarokBondReward(ctx, mgr, constAccessor); err != nil {
 			return fmt.Errorf("when ragnarok triggered ,fail to give all active node bond reward %w", err)
 		}
 		return nil
@@ -636,7 +628,7 @@ func (vm *validatorMgrV76) ragnarokProtocolStage2(ctx cosmos.Context, nth int64,
 	return nil
 }
 
-func (vm *validatorMgrV76) ragnarokBondReward(ctx cosmos.Context, mgr Manager) error {
+func (vm *validatorMgrV76) ragnarokBondReward(ctx cosmos.Context, mgr Manager, constAccessor constants.ConstantValues) error {
 	var resultErr error
 	active, err := vm.k.ListActiveValidators(ctx)
 	if err != nil {
@@ -650,10 +642,20 @@ func (vm *validatorMgrV76) ragnarokBondReward(ctx cosmos.Context, mgr Manager) e
 		}
 	}
 
+	minBondInRune, err := vm.k.GetMimir(ctx, constants.MinimumBondInRune.String())
+	if minBondInRune < 0 || err != nil {
+		minBondInRune = constAccessor.GetInt64Value(constants.MinimumBondInRune)
+	}
+
+	validatorMaxRewardRatio, err := vm.k.GetMimir(ctx, constants.ValidatorMaxRewardRatio.String())
+	if validatorMaxRewardRatio < 0 || err != nil {
+		validatorMaxRewardRatio = constAccessor.GetInt64Value(constants.ValidatorMaxRewardRatio)
+	}
+
 	effectiveNodeBond := map[string]cosmos.Uint{}
 	totalEffectiveBond := cosmos.ZeroUint()
 
-	bondHardCap := cosmos.NewUint(3).Mul(cosmos.NewUint(300_000))
+	bondHardCap := cosmos.NewUint(uint64(validatorMaxRewardRatio)).MulUint64(uint64(minBondInRune))
 
 	for _, item := range active {
 		bond := item.Bond
@@ -666,7 +668,7 @@ func (vm *validatorMgrV76) ragnarokBondReward(ctx cosmos.Context, mgr Manager) e
 	}
 
 	for _, item := range active {
-		if err := vm.payNodeAccountBondAward(ctx, lastChurnHeight, item, totalEffectiveBond, effectiveNodeBond[item.NodeAddress], mgr); err != nil {
+		if err := vm.payNodeAccountBondAward(ctx, lastChurnHeight, item, totalEffectiveBond, effectiveNodeBond[item.NodeAddress.String()], mgr); err != nil {
 			resultErr = err
 			ctx.Logger().Error("fail to pay node account bond award", "node address", item.NodeAddress.String(), "error", err)
 		}
