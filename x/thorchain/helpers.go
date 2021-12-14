@@ -607,7 +607,7 @@ func removeLiquidityProviders(ctx cosmos.Context, asset common.Asset, mgr Manage
 			lp.Units,
 			int64(0),
 			cosmos.ZeroDec(),
-			common.Tx{},
+			common.Tx{ FromAddress: lp.GetAddress() },
 			cosmos.ZeroUint(),
 			cosmos.ZeroUint(),
 			cosmos.ZeroUint(),

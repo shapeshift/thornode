@@ -52,7 +52,6 @@ func (h MimirHandler) validateV1(ctx cosmos.Context, msg MsgMimir) error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
-
 	for _, admin := range ADMINS {
 		addr, err := cosmos.AccAddressFromBech32(admin)
 		if msg.Signer.Equals(addr) && err == nil {
