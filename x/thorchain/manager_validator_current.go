@@ -264,6 +264,18 @@ func (vm *validatorMgrV76) EndBlock(ctx cosmos.Context, mgr Manager, constAccess
 		ctx.Logger().Error("fail to pay node bond rewards", "error", err)
 	}
 
+	minBondInRune, err := vm.k.GetMimir(ctx, constants.MinimumBondInRune.String())
+	if minBondInRune < 0 || err != nil {
+		minBondInRune = constAccessor.GetInt64Value(constants.MinimumBondInRune)
+	}
+
+	validatorMaxRewardRatio, err := vm.k.GetMimir(ctx, constants.ValidatorMaxRewardRatio.String())
+	if validatorMaxRewardRatio < 0 || err != nil {
+		validatorMaxRewardRatio = constAccessor.GetInt64Value(constants.ValidatorMaxRewardRatio)
+	}
+
+	bondHardCap := cosmos.NewUint(uint64(validatorMaxRewardRatio)).MulUint64(uint64(minBondInRune))
+
 	validators := make([]abci.ValidatorUpdate, 0, len(newNodes)+len(removedNodes))
 	for _, na := range newNodes {
 		ctx.EventManager().EmitEvent(
@@ -274,6 +286,12 @@ func (vm *validatorMgrV76) EndBlock(ctx cosmos.Context, mgr Manager, constAccess
 		na.UpdateStatus(NodeActive, height)
 		na.LeaveScore = 0
 		na.RequestedToLeave = false
+		na.EffectiveBond = na.Bond
+
+		if na.Bond.GT(bondHardCap) {
+			na.EffectiveBond = bondHardCap
+		}
+
 		vm.k.ResetNodeAccountSlashPoints(ctx, na.NodeAddress)
 		if err := vm.k.SetNodeAccount(ctx, na); err != nil {
 			ctx.Logger().Error("fail to save node account", "error", err)
@@ -298,6 +316,7 @@ func (vm *validatorMgrV76) EndBlock(ctx cosmos.Context, mgr Manager, constAccess
 		if nodeRemove.ForcedToLeave {
 			status = NodeDisabled
 		}
+		na.EffectiveBond = cosmos.ZeroUint()
 		ctx.EventManager().EmitEvent(
 			cosmos.NewEvent("UpdateNodeAccountStatus",
 				cosmos.NewAttribute("Address", nodeRemove.NodeAddress.String()),
@@ -450,7 +469,7 @@ func (vm *validatorMgrV76) getChangedNodes(ctx cosmos.Context, activeNodes NodeA
 }
 
 // payNodeAccountBondAward pay
-func (vm *validatorMgrV76) payNodeAccountBondAward(ctx cosmos.Context, lastChurnHeight int64, na NodeAccount, totalEffectiveBond, effectiveNodeBond cosmos.Uint, mgr Manager) error {
+func (vm *validatorMgrV76) payNodeAccountBondAward(ctx cosmos.Context, lastChurnHeight int64, na NodeAccount, totalEffectiveBond, bondHardCap cosmos.Uint, mgr Manager) error {
 	if na.ActiveBlockHeight == 0 || na.Bond.IsZero() {
 		return nil
 	}
@@ -470,7 +489,6 @@ func (vm *validatorMgrV76) payNodeAccountBondAward(ctx cosmos.Context, lastChurn
 	totalActiveBlocks := common.BlockHeight(ctx) - lastChurnHeight
 
 	// find number of blocks they were well behaved (ie active - slash points)
-	// earnedBlocks := na.CalcBondUnits(common.BlockHeight(ctx), slashPts)
 	earnedBlocks := totalActiveBlocks - slashPts
 	if earnedBlocks < 0 {
 		earnedBlocks = 0
@@ -479,14 +497,20 @@ func (vm *validatorMgrV76) payNodeAccountBondAward(ctx cosmos.Context, lastChurn
 	// earnedBlockRatio is the percentage of healthy blocks for this node since last churn
 	earnedBlockRatio := cosmos.NewUint(uint64(earnedBlocks)).QuoUint64(uint64(totalActiveBlocks))
 
-	// reward = the node's share of bond * total node rewards * earnedBlockRatio
-	reward := common.GetShare(effectiveNodeBond, totalEffectiveBond, network.BondRewardRune).Mul(earnedBlockRatio)
+	ctx.Logger().Debug("earnedBlockRatio", earnedBlockRatio)
 
-	// // calc number of rune they are awarded
-	// reward := network.CalcNodeRewards(cosmos.NewUint(uint64(earnedBlocks)))
+	// reward = the node's share of bond * total node rewards * earnedBlockRatio
+	reward := common.GetShare(na.EffectiveBond, totalEffectiveBond, network.BondRewardRune).Mul(earnedBlockRatio)
 
 	// Add to their bond the amount rewarded
 	na.Bond = na.Bond.Add(reward)
+
+	// Reset effective Bond
+	na.EffectiveBond = na.Bond
+
+	if na.EffectiveBond.GT(bondHardCap) {
+		na.EffectiveBond = bondHardCap
+	}
 
 	// Minus the number of rune THORNode have awarded them
 	network.BondRewardRune = common.SafeSub(network.BondRewardRune, reward)
@@ -652,23 +676,15 @@ func (vm *validatorMgrV76) ragnarokBondReward(ctx cosmos.Context, mgr Manager, c
 		validatorMaxRewardRatio = constAccessor.GetInt64Value(constants.ValidatorMaxRewardRatio)
 	}
 
-	effectiveNodeBond := map[string]cosmos.Uint{}
-	totalEffectiveBond := cosmos.ZeroUint()
-
 	bondHardCap := cosmos.NewUint(uint64(validatorMaxRewardRatio)).MulUint64(uint64(minBondInRune))
 
+	totalEffectiveBond := cosmos.ZeroUint()
 	for _, item := range active {
-		bond := item.Bond
-		if bond.GT(bondHardCap) {
-			bond = bondHardCap
-		}
-
-		effectiveNodeBond[item.NodeAddress.String()] = bond
-		totalEffectiveBond = totalEffectiveBond.Add(bond)
+		totalEffectiveBond = totalEffectiveBond.Add(item.EffectiveBond)
 	}
 
 	for _, item := range active {
-		if err := vm.payNodeAccountBondAward(ctx, lastChurnHeight, item, totalEffectiveBond, effectiveNodeBond[item.NodeAddress.String()], mgr); err != nil {
+		if err := vm.payNodeAccountBondAward(ctx, lastChurnHeight, item, totalEffectiveBond, bondHardCap, mgr); err != nil {
 			resultErr = err
 			ctx.Logger().Error("fail to pay node account bond award", "node address", item.NodeAddress.String(), "error", err)
 		}
@@ -1379,6 +1395,7 @@ func (vm *validatorMgrV76) nextVaultNodeAccounts(ctx cosmos.Context, targetCount
 	// keygen / keysign for a while , we would like to churn it out first
 	lastChurnHeight := vm.getLastChurnHeight(ctx)
 	for _, item := range active {
+
 		if item.LeaveScore == 0 {
 			continue
 		}
