@@ -92,9 +92,6 @@ func NewCosmosBlockScanner(cfg config.BlockScannerConfiguration,
 	tmService := tmservice.NewServiceClient(conn)
 	cdc := codec.NewProtoCodec(registry)
 
-	log.Info().Interface("interfaces", registry.ListAllInterfaces()).Msg("")
-	log.Info().Interface("implementations", registry.ListImplementations("cosmos.base.v1beta1.Msg")).Msg("")
-
 	return &CosmosBlockScanner{
 		cfg:              cfg,
 		logger:           log.Logger.With().Str("module", "blockscanner").Str("chain", "GAIA").Logger(),
@@ -170,11 +167,11 @@ func (b *CosmosBlockScanner) updateAverageGasFees(height int64, txs []types.TxIn
 		return fmt.Errorf("average gas fee exceeds uint64: %s", avgGasFeesAmt)
 	}
 
-	log.Info().Int64("height", height).Int64("gasFeeAmt", avgGasFeesAmt.Int64())
-	if _, err := b.bridge.PostNetworkFee(height, common.GAIAChain, 1, avgGasFeesAmt.Uint64()); err != nil {
-		b.logger.Err(err).Int64("height", height).Msg("failed to post average network fee")
-		return err
-	}
+	log.Info().Int64("height", height).Int64("gasFeeAmt", avgGasFeesAmt.Int64()).Msg("calculate gas fee")
+	// if _, err := b.bridge.PostNetworkFee(height, common.GAIAChain, 1, avgGasFeesAmt.Uint64()); err != nil {
+	// 	b.logger.Err(err).Int64("height", height).Msg("failed to post average network fee")
+	// 	return err
+	// }
 
 	return nil
 }
@@ -189,8 +186,6 @@ func sdkCoinToCommonCoin(c ctypes.Coin) (common.Coin, error) {
 }
 
 func (b *CosmosBlockScanner) FetchTxs(height int64) (types.TxIn, error) {
-	log.Info().Int64("height", height).Msg("FetchTxs")
-
 	block, err := b.GetBlock(height)
 	if err != nil {
 		return types.TxIn{}, err
@@ -201,7 +196,18 @@ func (b *CosmosBlockScanner) FetchTxs(height int64) (types.TxIn, error) {
 
 	for _, rawTx := range block.Data.Txs {
 		tx, err := decoder(rawTx)
+
 		if err != nil {
+			if strings.Contains(err.Error(), "unable to resolve type URL") {
+				// couldn't find msg type in the interface registry, probably not relevant
+				if !strings.Contains(err.Error(), "MsgSend") {
+					// double check to make sure MsgSend isn't mentioned
+					// if it's not, we can safely ignore
+					log.Debug().Str("tx", string(rawTx)).Err(err).Msg("could not decode msg not existing in interface registry")
+					continue
+				}
+			}
+			// else we should log this as an error and continue
 			log.Error().Str("tx", string(rawTx)).Err(err).Msg("unable to decode msg")
 			continue
 		}
@@ -261,7 +267,10 @@ func (b *CosmosBlockScanner) FetchTxs(height int64) (types.TxIn, error) {
 		MemPool:  false,
 	}
 
-	log.Info().Interface("txIn", txIn).Msg("processed txIn")
+	if len(txs) > 0 {
+		log.Info().Interface("txIn", txIn).Msg("processed txIn")
+	}
+
 	b.updateAverageGasFees(block.Header.Height, txIn.TxArray)
 	return txIn, nil
 }

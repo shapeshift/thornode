@@ -35,7 +35,7 @@ func (m *keyManager) ExportAsPrivateKey() (string, error) {
 }
 
 func (m *keyManager) Sign(msg legacytx.StdSignMsg) ([]byte, error) {
-	return []byte(""), nil
+	return m.privKey.Sign(msg.Bytes())
 }
 
 func (m *keyManager) GetPrivKey() ctypes.PrivKey {
