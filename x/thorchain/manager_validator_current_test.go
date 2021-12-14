@@ -482,26 +482,31 @@ func (vts *ValidatorMgrV77TestSuite) TestWeightedBondReward(c *C) {
 	c.Assert(vMgr, NotNil)
 
 	constAccessor := constants.GetConstantValues(ver)
-	err := vMgr.setupValidatorNodes(ctx, 0, constAccessor)
-	c.Assert(err, IsNil)
+	// err := vMgr.setupValidatorNodes(ctx, 0, constAccessor)
+	// c.Assert(err, IsNil)
+
+	// minBondInRune := constAccessor.GetInt64Value(constants.MinimumBondInRune)
+	// c.Check(minBondInRune, Equals, 1)
+	// validatorMaxRewardRatio := constAccessor.GetInt64Value(constants.ValidatorMaxRewardRatio)
+	// c.Check(validatorMaxRewardRatio, Equals, 1)
 
 	na1 := GetRandomValidatorNode(NodeActive)
-	na1.Bond = cosmos.NewUint(100)
-	na1.EffectiveBond = cosmos.NewUint(100)
+	na1.Bond = cosmos.NewUint(4_000_000_00000000)
+	na1.EffectiveBond = cosmos.NewUint(3_000_000_00000000)
 	c.Assert(mgr.Keeper().SetNodeAccount(ctx, na1), IsNil)
 
 	na2 := GetRandomValidatorNode(NodeActive)
-	na2.Bond = cosmos.NewUint(400)
-	na2.EffectiveBond = cosmos.NewUint(400)
+	na2.Bond = cosmos.NewUint(5_000_000_00000000)
+	na2.EffectiveBond = cosmos.NewUint(3_000_000_00000000)
 	c.Assert(mgr.Keeper().SetNodeAccount(ctx, na2), IsNil)
 
 	na3 := GetRandomValidatorNode(NodeActive)
-	na3.Bond = cosmos.NewUint(500)
-	na3.EffectiveBond = cosmos.NewUint(500)
+	na3.Bond = cosmos.NewUint(2_000_000_00000000)
+	na3.EffectiveBond = cosmos.NewUint(2_000_000_00000000)
 	c.Assert(mgr.Keeper().SetNodeAccount(ctx, na3), IsNil)
 
-	network, err := vMgr.k.GetNetwork(ctx)
-	network.BondRewardRune = cosmos.NewUint(1000)
+	network, _ := vMgr.k.GetNetwork(ctx)
+	network.BondRewardRune = cosmos.NewUint(1000_00000000)
 	c.Assert(mgr.Keeper().SetNetwork(ctx, network), IsNil)
 
 	// pay out bond rewards
@@ -510,7 +515,7 @@ func (vts *ValidatorMgrV77TestSuite) TestWeightedBondReward(c *C) {
 	na1, _ = mgr.Keeper().GetNodeAccount(ctx, na1.NodeAddress)
 	na2, _ = mgr.Keeper().GetNodeAccount(ctx, na2.NodeAddress)
 	na3, _ = mgr.Keeper().GetNodeAccount(ctx, na3.NodeAddress)
-	c.Check(na1.Bond, Equals, cosmos.NewUint(200))
-	c.Check(na2.Bond, Equals, cosmos.NewUint(800))
-	c.Check(na3.Bond, Equals, cosmos.NewUint(1000))
+	c.Check(na1.Bond.Uint64(), Equals, uint64(4_000_375_00000000))
+	c.Check(na2.Bond.Uint64(), Equals, uint64(5_000_375_00000000))
+	c.Check(na3.Bond.Uint64(), Equals, uint64(2_000_250_00000000))
 }

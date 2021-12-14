@@ -469,7 +469,7 @@ func (vm *validatorMgrV77) getChangedNodes(ctx cosmos.Context, activeNodes NodeA
 }
 
 // payNodeAccountBondAward pay
-func (vm *validatorMgrV77) payNodeAccountBondAward(ctx cosmos.Context, lastChurnHeight int64, na NodeAccount, totalEffectiveBond, bondHardCap cosmos.Uint, mgr Manager) error {
+func (vm *validatorMgrV77) payNodeAccountBondAward(ctx cosmos.Context, lastChurnHeight int64, na NodeAccount, totalBondReward, totalEffectiveBond, bondHardCap cosmos.Uint, mgr Manager) error {
 	if na.ActiveBlockHeight == 0 || na.Bond.IsZero() {
 		return nil
 	}
@@ -497,10 +497,8 @@ func (vm *validatorMgrV77) payNodeAccountBondAward(ctx cosmos.Context, lastChurn
 	// earnedBlockRatio is the percentage of healthy blocks for this node since last churn
 	earnedBlockRatio := cosmos.NewUint(uint64(earnedBlocks)).QuoUint64(uint64(totalActiveBlocks))
 
-	ctx.Logger().Debug("earnedBlockRatio", earnedBlockRatio)
-
 	// reward = the node's share of bond * total node rewards * earnedBlockRatio
-	reward := common.GetShare(na.EffectiveBond, totalEffectiveBond, network.BondRewardRune).Mul(earnedBlockRatio)
+	reward := common.GetShare(na.EffectiveBond, totalEffectiveBond, totalBondReward).Mul(earnedBlockRatio)
 
 	// Add to their bond the amount rewarded
 	na.Bond = na.Bond.Add(reward)
@@ -683,8 +681,13 @@ func (vm *validatorMgrV77) ragnarokBondReward(ctx cosmos.Context, mgr Manager, c
 		totalEffectiveBond = totalEffectiveBond.Add(item.EffectiveBond)
 	}
 
+	network, err := vm.k.GetNetwork(ctx)
+	if err != nil {
+		return fmt.Errorf("fail to get network: %w", err)
+	}
+
 	for _, item := range active {
-		if err := vm.payNodeAccountBondAward(ctx, lastChurnHeight, item, totalEffectiveBond, bondHardCap, mgr); err != nil {
+		if err := vm.payNodeAccountBondAward(ctx, lastChurnHeight, item, network.BondRewardRune, totalEffectiveBond, bondHardCap, mgr); err != nil {
 			resultErr = err
 			ctx.Logger().Error("fail to pay node account bond award", "node address", item.NodeAddress.String(), "error", err)
 		}
