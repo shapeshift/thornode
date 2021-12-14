@@ -217,7 +217,7 @@ func (vts *ValidatorMgrV76TestSuite) TestFindBadActors(c *C) {
 	mgr.Keeper().SetNodeAccountSlashPoints(ctx, activeNode3.NodeAddress, 2000)
 	ctx = ctx.WithBlockHeight(2000)
 	// node 3 and node 2 should both be marked even though node 3 is newer
-	// (this is because we're not favoring older nodes anymore) 
+	// (this is because we're not favoring older nodes anymore)
 	nodeAccounts, err = vMgr.findBadActors(ctx, 100, 3)
 	c.Assert(err, IsNil)
 	c.Assert(nodeAccounts, HasLen, 2)
@@ -470,4 +470,48 @@ func (vts *ValidatorMgrV76TestSuite) TestFindNextVaultNodeAccounts(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(rotate, Equals, true)
 	c.Assert(nasAfter, HasLen, 10)
+}
+
+func (vts *ValidatorMgrV76TestSuite) TestWeightedBondReward(c *C) {
+	ctx, k := setupKeeperForTest(c)
+	ctx = ctx.WithBlockHeight(20)
+	ver := GetCurrentVersion()
+
+	mgr := NewDummyMgrWithKeeper(k)
+	vMgr := newValidatorMgrV76(k, mgr.VaultMgr(), mgr.TxOutStore(), mgr.EventMgr())
+	c.Assert(vMgr, NotNil)
+
+	constAccessor := constants.GetConstantValues(ver)
+	err := vMgr.setupValidatorNodes(ctx, 0, constAccessor)
+	c.Assert(err, IsNil)
+
+	na1 := GetRandomValidatorNode(NodeActive)
+	na1.Bond = cosmos.NewUint(100)
+	na1.EffectiveBond = cosmos.NewUint(100)
+	c.Assert(mgr.Keeper().SetNodeAccount(ctx, na1), IsNil)
+
+	na2 := GetRandomValidatorNode(NodeActive)
+	na2.Bond = cosmos.NewUint(400)
+	na2.EffectiveBond = cosmos.NewUint(400)
+	c.Assert(mgr.Keeper().SetNodeAccount(ctx, na2), IsNil)
+
+	na3 := GetRandomValidatorNode(NodeActive)
+	na3.Bond = cosmos.NewUint(500)
+	na3.EffectiveBond = cosmos.NewUint(500)
+	c.Assert(mgr.Keeper().SetNodeAccount(ctx, na3), IsNil)
+
+	network, err := vMgr.k.GetNetwork(ctx)
+	network.BondRewardRune = cosmos.NewUint(1000)
+	c.Assert(mgr.Keeper().SetNetwork(ctx, network), IsNil)
+
+	// pay out bond rewards
+	c.Assert(vMgr.ragnarokBondReward(ctx, mgr, constAccessor), IsNil)
+
+	na1, _ = mgr.Keeper().GetNodeAccount(ctx, na1.NodeAddress)
+	na2, _ = mgr.Keeper().GetNodeAccount(ctx, na2.NodeAddress)
+	na3, _ = mgr.Keeper().GetNodeAccount(ctx, na3.NodeAddress)
+	c.Check(na1.Bond, Equals, cosmos.NewUint(200))
+	c.Check(na2.Bond, Equals, cosmos.NewUint(800))
+	c.Check(na3.Bond, Equals, cosmos.NewUint(1000))
+
 }
