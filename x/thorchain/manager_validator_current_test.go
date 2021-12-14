@@ -482,13 +482,6 @@ func (vts *ValidatorMgrV77TestSuite) TestWeightedBondReward(c *C) {
 	c.Assert(vMgr, NotNil)
 
 	constAccessor := constants.GetConstantValues(ver)
-	// err := vMgr.setupValidatorNodes(ctx, 0, constAccessor)
-	// c.Assert(err, IsNil)
-
-	// minBondInRune := constAccessor.GetInt64Value(constants.MinimumBondInRune)
-	// c.Check(minBondInRune, Equals, 1)
-	// validatorMaxRewardRatio := constAccessor.GetInt64Value(constants.ValidatorMaxRewardRatio)
-	// c.Check(validatorMaxRewardRatio, Equals, 1)
 
 	na1 := GetRandomValidatorNode(NodeActive)
 	na1.Bond = cosmos.NewUint(4_000_000_00000000)

@@ -1342,7 +1342,7 @@ func migrateStoreV77(ctx cosmos.Context, mgr *Mgrs) {
 	}()
 
 	// Set the "EffectiveBond" of each active validator. "EffectiveBond" is what is used to calculate bond-weighted rewards,
-	// and is capped at a "bondHardCap" as seen below. Moving forward "EffectiveBond" will be set 1. when a node churns in,
+	// and is capped at a "bondHardCap" as seen below. Moving forward "EffectiveBond" will be set in these cases: 1. when a node churns in,
 	// 2. when a node is paid rewards during a churn, and 3. when a node churns out. This migration is required one-off to
 	// set the already-active validators
 
