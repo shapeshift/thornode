@@ -25,6 +25,15 @@ aliases_ltc = {
     "VAULT": "",
 }
 
+aliases_doge = {
+    "MASTER": "mtzUk1zTJzTdyC8Pz6PPPyCHTEL5RLVyDJ",
+    "CONTRIB": "mhcdvpCBUL3RRNW2y8LuksADWfecEmkzju",
+    "USER-1": "mfXkrKKDupWZt2YC3YKKZDjrbAwrBFwj8W",
+    "PROVIDER-1": "mrqWSS33oi57uzwjVsGBiEeYi4ArRRWHV4",
+    "PROVIDER-2": "mtyBWSzMZaCxJ1xy9apJBZzXz648BZrpJg",
+    "VAULT": "",
+}
+
 aliases_bnb = {
     "MASTER": "tbnb1ht7v08hv2lhtmk8y7szl2hjexqryc3hcldlztl",
     "CONTRIB": "tbnb1lltanv67yztkpt5czw4ajsmg94dlqnnhrq7zqm",
@@ -83,6 +92,8 @@ def get_alias_address(chain, alias):
         return aliases_bch[alias]
     if chain == "LTC":
         return aliases_ltc[alias]
+    if chain == "DOGE":
+        return aliases_doge[alias]
     if chain == "ETH":
         return aliases_eth[alias]
     if chain == "THOR":
@@ -99,6 +110,8 @@ def get_alias(chain, addr):
         aliases = aliases_ltc
     if chain == "BCH":
         aliases = aliases_bch
+    if chain == "DOGE":
+        aliases = aliases_doge
     if chain == "ETH":
         aliases = aliases_eth
     if chain == "THOR":

@@ -9,6 +9,7 @@ from copy import deepcopy
 from chains.binance import Binance
 from chains.bitcoin import Bitcoin
 from chains.litecoin import Litecoin
+from chains.dogecoin import Dogecoin
 from chains.bitcoin_cash import BitcoinCash
 from chains.ethereum import Ethereum
 from thorchain.thorchain import ThorchainState, Event
@@ -28,8 +29,6 @@ def get_balance(idx):
     Retrieve expected balance with given id
     """
     file = "data/smoke_test_balances.json"
-    if RUNE.get_chain() == "THOR":
-        file = "data/smoke_test_native_balances.json"
     with open(file) as f:
         contents = f.read()
         contents = contents.replace(DEFAULT_RUNE_ASSET, RUNE)
@@ -44,8 +43,6 @@ def get_events():
     Retrieve expected events
     """
     file = "data/smoke_test_events.json"
-    if RUNE.get_chain() == "THOR":
-        file = "data/smoke_test_native_events.json"
     with open(file) as f:
         contents = f.read()
         contents = contents.replace(DEFAULT_RUNE_ASSET, RUNE)
@@ -71,6 +68,7 @@ class TestSmoke(unittest.TestCase):
         bnb = Binance()  # init local binance chain
         btc = Bitcoin()  # init local bitcoin chain
         ltc = Litecoin()  # init local litecoin chain
+        doge = Dogecoin()  # init local dogecoin chain
         bch = BitcoinCash()  # init local bitcoin cash chain
         eth = Ethereum()  # init local ethereum chain
         thorchain = ThorchainState()  # init local thorchain
@@ -79,10 +77,11 @@ class TestSmoke(unittest.TestCase):
             "BTC": 10000,
             "LTC": 10000,
             "BCH": 10000,
+            "DOGE": 10000,
             "ETH": 65000,
         }
 
-        file = "data/smoke_test_native_transactions.json"
+        file = "data/smoke_test_transactions.json"
 
         with open(file, "r") as f:
             contents = f.read()
@@ -98,6 +97,8 @@ class TestSmoke(unittest.TestCase):
                 btc.transfer(txn)  # send transfer on bitcoin chain
             if txn.chain == Litecoin.chain:
                 ltc.transfer(txn)  # send transfer on litecoin chain
+            if txn.chain == Dogecoin.chain:
+                doge.transfer(txn)  # send transfer on dogecoin chain
             if txn.chain == BitcoinCash.chain:
                 bch.transfer(txn)  # send transfer on bitcoin cash chain
             if txn.chain == Ethereum.chain:
@@ -119,6 +120,8 @@ class TestSmoke(unittest.TestCase):
                     btc.transfer(txn)  # send outbound txns back to Bitcoin
                 if txn.chain == Litecoin.chain:
                     ltc.transfer(txn)  # send outbound txns back to Litecoin
+                if txn.chain == Dogecoin.chain:
+                    doge.transfer(txn)  # send outbound txns back to Dogecoin
                 if txn.chain == BitcoinCash.chain:
                     bch.transfer(txn)  # send outbound txns back to Bitcoin Cash
                 if txn.chain == Ethereum.chain:
@@ -144,6 +147,10 @@ class TestSmoke(unittest.TestCase):
             for out in outbounds:
                 if out.coins[0].asset.get_chain() == "LTC":
                     ltcOut.append(out)
+            dogeOut = []
+            for out in outbounds:
+                if out.coins[0].asset.get_chain() == "DOGE":
+                    dogeOut.append(out)
             bchOut = []
             for out in outbounds:
                 if out.coins[0].asset.get_chain() == "BCH":
@@ -155,6 +162,7 @@ class TestSmoke(unittest.TestCase):
             thorchain.handle_gas(bnbOut)  # subtract gas from pool(s)
             thorchain.handle_gas(btcOut)  # subtract gas from pool(s)
             thorchain.handle_gas(ltcOut)  # subtract gas from pool(s)
+            thorchain.handle_gas(dogeOut)  # subtract gas from pool(s)
             thorchain.handle_gas(bchOut)  # subtract gas from pool(s)
             thorchain.handle_gas(ethOut)  # subtract gas from pool(s)
 
