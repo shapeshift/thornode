@@ -321,6 +321,8 @@ class Smoker:
         sim_events.sort()
         if events != sim_events:
             for (evt_t, evt_s) in zip(events, sim_events):
+                if evt_t != evt_s:
+                    logging.error(">>>>>>>>>>>>>>> MISMATCH!")
                 logging.error(f"Evt THO  {evt_t}")
                 logging.error(f"Evt SIM  {evt_s}")
             self.error("Events mismatch")
@@ -425,6 +427,7 @@ class Smoker:
         pending_txs = 0
         block_height = None
         old_events = self.thorchain_state.events
+        old_event_count = len(old_events)
 
         for x in range(0, 200):  # 200 attempts
             events = deepcopy(self.thorchain_client.events)
@@ -483,10 +486,17 @@ class Smoker:
                 break
             time.sleep(0.3)
         if pending_txs > 0:
-            self.check_events(events, sim_events)
+            count_events = len(events) - old_event_count
+            self.check_events(events[-count_events:], sim_events[-count_events:])
             msg = f"failed to send all outbound transactions {pending_txs}"
             self.error(msg)
-        return outbounds, block_height, events, sim_events
+        count_events = len(events) - old_event_count
+        return (
+            outbounds,
+            block_height,
+            events[-count_events:],
+            sim_events[-count_events:],
+        )
 
     def log_result(self, tx, outbounds):
         """
