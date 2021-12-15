@@ -804,35 +804,42 @@ func (s *StoreManagerTestSuite) TestRefundBinanceTx(c *C) {
 
 func (s *StoreManagerTestSuite) TestMigrateStoreV77(c *C) {
 	ctx, mgr := setupManagerForTest(c)
-	storeMgr := newStoreMgr(mgr)
+
+	// MinimumBondInRune in mocknet = 100_000_000
+	// So bondHardCap will be 300_000_000
 
 	activeNa1 := GetRandomValidatorNode(NodeActive)
 	activeNa2 := GetRandomValidatorNode(NodeActive)
 	activeNa3 := GetRandomValidatorNode(NodeActive)
 
-	activeNa1.Bond = cosmos.NewUint(1_000_000_00000000)
-	storeMgr.mgr.Keeper().SetNodeAccount(ctx, activeNa1)
+	activeNa1.Bond = cosmos.NewUint(300_000_000)
+	c.Assert(mgr.Keeper().SetNodeAccount(ctx, activeNa1), IsNil)
 
-	activeNa2.Bond = cosmos.NewUint(2_000_000_00000000)
-	storeMgr.mgr.Keeper().SetNodeAccount(ctx, activeNa2)
+	activeNa2.Bond = cosmos.NewUint(500_000_000)
+	c.Assert(mgr.Keeper().SetNodeAccount(ctx, activeNa2), IsNil)
 
-	activeNa3.Bond = cosmos.NewUint(400_000_00000000)
-	storeMgr.mgr.Keeper().SetNodeAccount(ctx, activeNa3)
+	activeNa3.Bond = cosmos.NewUint(100_000_000)
+	c.Assert(mgr.Keeper().SetNodeAccount(ctx, activeNa3), IsNil)
 
 	standbyNa1 := GetRandomValidatorNode(NodeStandby)
-	storeMgr.mgr.Keeper().SetNodeAccount(ctx, standbyNa1)
+	c.Assert(mgr.Keeper().SetNodeAccount(ctx, standbyNa1), IsNil)
 	readyNa1 := GetRandomValidatorNode(NodeReady)
-	storeMgr.mgr.Keeper().SetNodeAccount(ctx, readyNa1)
+	c.Assert(mgr.Keeper().SetNodeAccount(ctx, readyNa1), IsNil)
 
 	migrateStoreV77(ctx, mgr)
 
-	activeNa1, _ = storeMgr.mgr.Keeper().GetNodeAccount(ctx, activeNa1.NodeAddress)
-	c.Assert(activeNa1.EffectiveBond.Uint64(), Equals, uint64(90000000000000))
+	activeNa1, _ = mgr.Keeper().GetNodeAccount(ctx, activeNa1.NodeAddress)
+	c.Assert(activeNa1.EffectiveBond.Uint64(), Equals, uint64(300_000_000))
 
-	activeNa2, _ = storeMgr.mgr.Keeper().GetNodeAccount(ctx, activeNa2.NodeAddress)
-	c.Assert(activeNa2.EffectiveBond.Uint64(), Equals, uint64(90000000000000))
+	activeNa2, _ = mgr.Keeper().GetNodeAccount(ctx, activeNa2.NodeAddress)
+	c.Assert(activeNa2.EffectiveBond.Uint64(), Equals, uint64(300_000_000))
 
-	activeNa3, _ = storeMgr.mgr.Keeper().GetNodeAccount(ctx, activeNa3.NodeAddress)
-	c.Assert(activeNa3.EffectiveBond.Uint64(), Equals, uint64(40000000000000))
+	activeNa3, _ = mgr.Keeper().GetNodeAccount(ctx, activeNa3.NodeAddress)
+	c.Assert(activeNa3.EffectiveBond.Uint64(), Equals, uint64(100_000_000))
+
+	standbyNa1, _ = mgr.Keeper().GetNodeAccount(ctx, standbyNa1.NodeAddress)
+	c.Assert(standbyNa1.EffectiveBond.Uint64(), Equals, uint64(0))
+	readyNa1, _ = mgr.Keeper().GetNodeAccount(ctx, readyNa1.NodeAddress)
+	c.Assert(readyNa1.EffectiveBond.Uint64(), Equals, uint64(0))
 
 }
