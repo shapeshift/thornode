@@ -11,6 +11,7 @@ NODES="${NODES:=1}"
 SEED="${SEED:=thornode}" # the hostname of the master node
 ETH_HOST="${ETH_HOST:=http://ethereum-localnet:8545}"
 THOR_BLOCK_TIME="${THOR_BLOCK_TIME:=5s}"
+CHAIN_ID=${CHAIN_ID:=thorchain}
 
 # this is required as it need to run thornode init , otherwise tendermint related commant doesn't work
 if [ "$SEED" = "$(hostname)" ]; then
