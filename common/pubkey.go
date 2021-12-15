@@ -132,9 +132,7 @@ func (pubKey PubKey) GetAddress(chain Chain) (Address, error) {
 			net = &chaincfg.RegressionNetParams
 		case TestNet:
 			net = &chaincfg.TestNet3Params
-		case MainNet:
-			net = &chaincfg.MainNetParams
-		case StageNet:
+		case MainNet, StageNet:
 			net = &chaincfg.MainNetParams
 		}
 		addr, err := btcutil.NewAddressWitnessPubKeyHash(pk.Address().Bytes(), net)
@@ -153,9 +151,7 @@ func (pubKey PubKey) GetAddress(chain Chain) (Address, error) {
 			net = &ltcchaincfg.RegressionNetParams
 		case TestNet:
 			net = &ltcchaincfg.TestNet4Params
-		case MainNet:
-			net = &ltcchaincfg.MainNetParams
-		case StageNet:
+		case MainNet, StageNet:
 			net = &ltcchaincfg.MainNetParams
 		}
 		addr, err := ltcutil.NewAddressWitnessPubKeyHash(pk.Address().Bytes(), net)
@@ -174,9 +170,7 @@ func (pubKey PubKey) GetAddress(chain Chain) (Address, error) {
 			net = &dogchaincfg.RegressionNetParams
 		case TestNet:
 			net = &dogchaincfg.TestNet3Params
-		case MainNet:
-			net = &dogchaincfg.MainNetParams
-		case StageNet:
+		case MainNet, StageNet:
 			net = &dogchaincfg.MainNetParams
 		}
 		addr, err := dogutil.NewAddressPubKeyHash(pk.Address().Bytes(), net)
@@ -195,9 +189,7 @@ func (pubKey PubKey) GetAddress(chain Chain) (Address, error) {
 			net = &bchchaincfg.RegressionNetParams
 		case TestNet:
 			net = &bchchaincfg.TestNet3Params
-		case MainNet:
-			net = &bchchaincfg.MainNetParams
-		case StageNet:
+		case MainNet, StageNet:
 			net = &bchchaincfg.MainNetParams
 		}
 		addr, err := bchutil.NewAddressPubKeyHash(pk.Address().Bytes(), net)
