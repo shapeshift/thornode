@@ -94,7 +94,7 @@ init_chain() {
   export IFS=","
 
   echo "Init chain"
-  thornode init local --chain-id $CHAIN_ID
+  thornode init local --chain-id "$CHAIN_ID"
   echo "$SIGNER_PASSWD" | thornode keys list --keyring-backend file
 
   for user in "$@"; do # iterate over our list of comma separated users "alice,jack"
