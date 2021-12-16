@@ -46,6 +46,7 @@ var (
 	HasSuperMajority           = types.HasSuperMajority
 	RegisterCodec              = types.RegisterCodec
 	NewNodeAccount             = types.NewNodeAccount
+	NewBondProviders           = types.NewBondProviders
 	NewVault                   = types.NewVault
 	NewReserveContributor      = types.NewReserveContributor
 	NewTHORName                = types.NewTHORName
@@ -87,6 +88,8 @@ type (
 	Vault                    = types.Vault
 	Vaults                   = types.Vaults
 	Jail                     = types.Jail
+	BondProvider             = types.BondProvider
+	BondProviders            = types.BondProviders
 	NodeAccount              = types.NodeAccount
 	NodeAccounts             = types.NodeAccounts
 	NodeStatus               = types.NodeStatus

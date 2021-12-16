@@ -483,9 +483,16 @@ func queryNode(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mg
 		return nil, fmt.Errorf("fail to get node jail: %w", err)
 	}
 
+	bp, err := mgr.Keeper().GetBondProviders(ctx, nodeAcc.NodeAddress)
+	if err != nil {
+		return nil, fmt.Errorf("fail to get bond providers: %w", err)
+	}
+	bp.Adjust(nodeAcc.Bond)
+
 	result := NewQueryNodeAccount(nodeAcc)
 	result.SlashPoints = slashPts
 	result.Jail = jail
+	result.BondProviders = bp
 	// CurrentAward is an estimation of reward for node in active status
 	// Node in other status should not have current reward
 	if nodeAcc.Status == NodeActive && !nodeAcc.Bond.IsZero() {
@@ -622,6 +629,11 @@ func queryNodes(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *M
 		} else {
 			result[i].PreflightStatus = preflightCheckResult
 		}
+		result[i].BondProviders, err = mgr.Keeper().GetBondProviders(ctx, result[i].NodeAddress)
+		if err != nil {
+			ctx.Logger().Error("fail to get bond providers", "error", err)
+		}
+		result[i].BondProviders.Adjust(result[i].Bond)
 	}
 
 	res, err := json.MarshalIndent(result, "", "	")

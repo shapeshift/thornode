@@ -134,7 +134,7 @@ func (HandlerUnBondSuite) TestUnBondHandler_Run(c *C) {
 		BNBGasFeeSingleton,
 		"unbond me please",
 	)
-	msg := NewMsgUnBond(txIn, standbyNodeAccount.NodeAddress, cosmos.NewUint(uint64(5*common.One)), standbyNodeAccount.BondAddress, activeNodeAccount.NodeAddress)
+	msg := NewMsgUnBond(txIn, standbyNodeAccount.NodeAddress, cosmos.NewUint(uint64(5*common.One)), standbyNodeAccount.BondAddress, nil, activeNodeAccount.NodeAddress)
 	_, err := handler.Run(ctx, msg)
 	c.Assert(err, IsNil)
 	na, err := k1.GetNodeAccount(ctx, standbyNodeAccount.NodeAddress)
@@ -145,7 +145,7 @@ func (HandlerUnBondSuite) TestUnBondHandler_Run(c *C) {
 	mgrBad := NewDummyMgr()
 	mgrBad.txOutStore = NewTxStoreFailDummy()
 	handler.mgr = mgrBad
-	msg = NewMsgUnBond(txIn, standbyNodeAccount.NodeAddress, cosmos.NewUint(uint64(1*common.One)), standbyNodeAccount.BondAddress, activeNodeAccount.NodeAddress)
+	msg = NewMsgUnBond(txIn, standbyNodeAccount.NodeAddress, cosmos.NewUint(uint64(1*common.One)), standbyNodeAccount.BondAddress, nil, activeNodeAccount.NodeAddress)
 	_, err = handler.Run(ctx, msg)
 	c.Assert(err, NotNil)
 	na, err = k1.GetNodeAccount(ctx, standbyNodeAccount.NodeAddress)
@@ -164,7 +164,7 @@ func (HandlerUnBondSuite) TestUnBondHandler_Run(c *C) {
 	handler = NewUnBondHandler(mgr)
 
 	// simulate fail to get node account
-	msg = NewMsgUnBond(txIn, k.failGetNodeAccount.NodeAddress, cosmos.NewUint(uint64(1)), GetRandomBNBAddress(), activeNodeAccount.NodeAddress)
+	msg = NewMsgUnBond(txIn, k.failGetNodeAccount.NodeAddress, cosmos.NewUint(uint64(1)), GetRandomBNBAddress(), nil, activeNodeAccount.NodeAddress)
 	_, err = handler.Run(ctx, msg)
 	c.Assert(errors.Is(err, errInternal), Equals, true)
 
@@ -176,13 +176,13 @@ func (HandlerUnBondSuite) TestUnBondHandler_Run(c *C) {
 		},
 		PubKey: standbyNodeAccount.PubKeySet.Secp256k1,
 	}
-	msg = NewMsgUnBond(txIn, standbyNodeAccount.NodeAddress, cosmos.NewUint(uint64(1)), GetRandomBNBAddress(), standbyNodeAccount.NodeAddress)
+	msg = NewMsgUnBond(txIn, standbyNodeAccount.NodeAddress, cosmos.NewUint(uint64(1)), GetRandomBNBAddress(), nil, standbyNodeAccount.NodeAddress)
 	_, err = handler.Run(ctx, msg)
 	c.Assert(errors.Is(err, returnYggErr), Equals, true)
 
 	// simulate fail to get vault
 	k.vault = GetRandomVault()
-	msg = NewMsgUnBond(txIn, activeNodeAccount.NodeAddress, cosmos.NewUint(uint64(1)), GetRandomBNBAddress(), activeNodeAccount.NodeAddress)
+	msg = NewMsgUnBond(txIn, activeNodeAccount.NodeAddress, cosmos.NewUint(uint64(1)), GetRandomBNBAddress(), nil, activeNodeAccount.NodeAddress)
 	result, err := handler.Run(ctx, msg)
 	c.Assert(err, NotNil)
 	c.Assert(result, IsNil)
@@ -194,13 +194,13 @@ func (HandlerUnBondSuite) TestUnBondHandler_Run(c *C) {
 		PubKey: standbyNodeAccount.PubKeySet.Secp256k1,
 	}
 
-	msg = NewMsgUnBond(txIn, standbyNodeAccount.NodeAddress, cosmos.NewUint(uint64(1)), GetRandomBNBAddress(), standbyNodeAccount.NodeAddress)
+	msg = NewMsgUnBond(txIn, standbyNodeAccount.NodeAddress, cosmos.NewUint(uint64(1)), GetRandomBNBAddress(), nil, standbyNodeAccount.NodeAddress)
 	result, err = handler.Run(ctx, msg)
 	c.Assert(err, NotNil)
 	c.Assert(result, IsNil)
 
 	// simulate jail nodeAccount can't unbound
-	msg = NewMsgUnBond(txIn, k.jailNodeAccount.NodeAddress, cosmos.NewUint(uint64(1)), GetRandomBNBAddress(), k.jailNodeAccount.NodeAddress)
+	msg = NewMsgUnBond(txIn, k.jailNodeAccount.NodeAddress, cosmos.NewUint(uint64(1)), GetRandomBNBAddress(), nil, k.jailNodeAccount.NodeAddress)
 	result, err = handler.Run(ctx, msg)
 	c.Assert(err, NotNil)
 	c.Assert(result, IsNil)
@@ -235,37 +235,37 @@ func (HandlerUnBondSuite) TestUnBondHandlerFailValidation(c *C) {
 	}{
 		{
 			name:        "empty node address",
-			msg:         NewMsgUnBond(txIn, cosmos.AccAddress{}, cosmos.NewUint(uint64(1)), activeNodeAccount.BondAddress, activeNodeAccount.NodeAddress),
+			msg:         NewMsgUnBond(txIn, cosmos.AccAddress{}, cosmos.NewUint(uint64(1)), activeNodeAccount.BondAddress, nil, activeNodeAccount.NodeAddress),
 			expectedErr: se.ErrInvalidAddress,
 		},
 		{
 			name:        "zero bond",
-			msg:         NewMsgUnBond(txIn, GetRandomValidatorNode(NodeStandby).NodeAddress, cosmos.ZeroUint(), activeNodeAccount.BondAddress, activeNodeAccount.NodeAddress),
+			msg:         NewMsgUnBond(txIn, GetRandomValidatorNode(NodeStandby).NodeAddress, cosmos.ZeroUint(), activeNodeAccount.BondAddress, nil, activeNodeAccount.NodeAddress),
 			expectedErr: se.ErrUnknownRequest,
 		},
 		{
 			name:        "empty bond address",
-			msg:         NewMsgUnBond(txIn, GetRandomValidatorNode(NodeStandby).NodeAddress, cosmos.NewUint(uint64(1)), common.Address(""), activeNodeAccount.NodeAddress),
+			msg:         NewMsgUnBond(txIn, GetRandomValidatorNode(NodeStandby).NodeAddress, cosmos.NewUint(uint64(1)), common.Address(""), nil, activeNodeAccount.NodeAddress),
 			expectedErr: se.ErrInvalidAddress,
 		},
 		{
 			name:        "empty request hash",
-			msg:         NewMsgUnBond(txInNoTxID, GetRandomValidatorNode(NodeStandby).NodeAddress, cosmos.NewUint(uint64(1)), activeNodeAccount.BondAddress, activeNodeAccount.NodeAddress),
+			msg:         NewMsgUnBond(txInNoTxID, GetRandomValidatorNode(NodeStandby).NodeAddress, cosmos.NewUint(uint64(1)), activeNodeAccount.BondAddress, nil, activeNodeAccount.NodeAddress),
 			expectedErr: se.ErrUnknownRequest,
 		},
 		{
 			name:        "empty signer",
-			msg:         NewMsgUnBond(txIn, GetRandomValidatorNode(NodeStandby).NodeAddress, cosmos.NewUint(uint64(1)), activeNodeAccount.BondAddress, cosmos.AccAddress{}),
+			msg:         NewMsgUnBond(txIn, GetRandomValidatorNode(NodeStandby).NodeAddress, cosmos.NewUint(uint64(1)), activeNodeAccount.BondAddress, nil, cosmos.AccAddress{}),
 			expectedErr: se.ErrInvalidAddress,
 		},
 		{
 			name:        "account shouldn't be active",
-			msg:         NewMsgUnBond(txIn, activeNodeAccount.NodeAddress, cosmos.NewUint(uint64(1)), activeNodeAccount.BondAddress, activeNodeAccount.NodeAddress),
+			msg:         NewMsgUnBond(txIn, activeNodeAccount.NodeAddress, cosmos.NewUint(uint64(1)), activeNodeAccount.BondAddress, nil, activeNodeAccount.NodeAddress),
 			expectedErr: se.ErrUnknownRequest,
 		},
 		{
 			name:        "request not from original bond address should not be accepted",
-			msg:         NewMsgUnBond(GetRandomTx(), activeNodeAccount.NodeAddress, cosmos.NewUint(uint64(1)), activeNodeAccount.BondAddress, activeNodeAccount.NodeAddress),
+			msg:         NewMsgUnBond(GetRandomTx(), activeNodeAccount.NodeAddress, cosmos.NewUint(uint64(1)), activeNodeAccount.BondAddress, nil, activeNodeAccount.NodeAddress),
 			expectedErr: se.ErrUnauthorized,
 		},
 	}
@@ -315,7 +315,7 @@ func (HandlerUnBondSuite) TestUnBondHanlder_retiringvault(c *C) {
 		BNBGasFeeSingleton,
 		"unbond me please",
 	)
-	msg := NewMsgUnBond(txIn, standbyNodeAccount.NodeAddress, cosmos.NewUint(uint64(5*common.One)), standbyNodeAccount.BondAddress, activeNodeAccount.NodeAddress)
+	msg := NewMsgUnBond(txIn, standbyNodeAccount.NodeAddress, cosmos.NewUint(uint64(5*common.One)), standbyNodeAccount.BondAddress, nil, activeNodeAccount.NodeAddress)
 	_, err := handler.Run(ctx, msg)
 	c.Assert(err, NotNil)
 }

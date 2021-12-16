@@ -47,7 +47,9 @@ func (h UnBondHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Result, er
 
 func (h UnBondHandler) validate(ctx cosmos.Context, msg MsgUnBond) error {
 	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.55.0")) {
+	if version.GTE(semver.MustParse("0.77.0")) {
+		return h.validateV55(ctx, msg)
+	} else if version.GTE(semver.MustParse("0.55.0")) {
 		return h.validateV55(ctx, msg)
 	} else if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, msg)
@@ -55,7 +57,7 @@ func (h UnBondHandler) validate(ctx cosmos.Context, msg MsgUnBond) error {
 	return errBadVersion
 }
 
-func (h UnBondHandler) validateV55(ctx cosmos.Context, msg MsgUnBond) error {
+func (h UnBondHandler) validateV77(ctx cosmos.Context, msg MsgUnBond) error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
@@ -65,10 +67,7 @@ func (h UnBondHandler) validateV55(ctx cosmos.Context, msg MsgUnBond) error {
 		return ErrInternal(err, fmt.Sprintf("fail to get node account(%s)", msg.NodeAddress))
 	}
 
-	if !na.BondAddress.Equals(msg.TxIn.FromAddress) {
-		return cosmos.ErrUnauthorized(fmt.Sprintf("%s are not authorized to manage %s", msg.TxIn.FromAddress, msg.NodeAddress))
-	}
-	if na.Status == NodeActive {
+	if na.Status == NodeActive || na.Status == NodeReady {
 		return cosmos.ErrUnknownRequest("cannot unbond while node is in active status")
 	}
 
@@ -94,12 +93,26 @@ func (h UnBondHandler) validateV55(ctx cosmos.Context, msg MsgUnBond) error {
 		return fmt.Errorf("failed to unbond due to jail status: (release height %d) %s", jail.ReleaseHeight, jail.Reason)
 	}
 
+	bp, err := h.mgr.Keeper().GetBondProviders(ctx, msg.NodeAddress)
+	if err != nil {
+		return ErrInternal(err, fmt.Sprintf("fail to get bond providers(%s)", msg.NodeAddress))
+	}
+	from, err := msg.BondAddress.AccAddress()
+	if err != nil {
+		return ErrInternal(err, fmt.Sprintf("fail to parse bond address(%s)", msg.BondAddress))
+	}
+	if !bp.Has(from) && !na.BondAddress.Equals(msg.TxIn.FromAddress) {
+		return cosmos.ErrUnauthorized(fmt.Sprintf("%s are not authorized to manage %s", msg.BondAddress, msg.NodeAddress))
+	}
+
 	return nil
 }
 
 func (h UnBondHandler) handle(ctx cosmos.Context, msg MsgUnBond) error {
 	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.76.0")) {
+	if version.GTE(semver.MustParse("0.77.0")) {
+		return h.handleV77(ctx, msg)
+	} else if version.GTE(semver.MustParse("0.76.0")) {
 		return h.handleV76(ctx, msg)
 	} else if version.GTE(semver.MustParse("0.55.0")) {
 		return h.handleV55(ctx, msg)
@@ -111,7 +124,7 @@ func (h UnBondHandler) handle(ctx cosmos.Context, msg MsgUnBond) error {
 	return errBadVersion
 }
 
-func (h UnBondHandler) handleV76(ctx cosmos.Context, msg MsgUnBond) error {
+func (h UnBondHandler) handleV77(ctx cosmos.Context, msg MsgUnBond) error {
 	na, err := h.mgr.Keeper().GetNodeAccount(ctx, msg.NodeAddress)
 	if err != nil {
 		return ErrInternal(err, fmt.Sprintf("fail to get node account(%s)", msg.NodeAddress))
@@ -202,6 +215,7 @@ func (h UnBondHandler) handleV76(ctx cosmos.Context, msg MsgUnBond) error {
 
 	coin := msg.TxIn.Coins.GetCoin(common.RuneAsset())
 	if !coin.IsEmpty() {
+
 		na.Bond = na.Bond.Add(coin.Amount)
 		if err := h.mgr.Keeper().SetNodeAccount(ctx, na); err != nil {
 			return ErrInternal(err, "fail to save node account to key value store")
