@@ -423,3 +423,39 @@ func (k KVStore) ReleaseNodeAccountFromJail(ctx cosmos.Context, addr cosmos.AccA
 	k.setJail(ctx, k.GetKey(ctx, prefixNodeJail, addr.String()), jail)
 	return nil
 }
+
+func (k KVStore) setBondProviders(ctx cosmos.Context, key string, record BondProviders) {
+	store := ctx.KVStore(k.storeKey)
+	buf := k.cdc.MustMarshalBinaryBare(&record)
+	if buf == nil {
+		store.Delete([]byte(key))
+	} else {
+		store.Set([]byte(key), buf)
+	}
+}
+
+func (k KVStore) getBondProviders(ctx cosmos.Context, key string, record *BondProviders) (bool, error) {
+	store := ctx.KVStore(k.storeKey)
+	if !store.Has([]byte(key)) {
+		return false, nil
+	}
+
+	bz := store.Get([]byte(key))
+	if err := k.cdc.UnmarshalBinaryBare(bz, record); err != nil {
+		return true, dbError(ctx, fmt.Sprintf("Unmarshal kvstore: (%T) %s", record, key), err)
+	}
+	return true, nil
+}
+
+// GetBondProviders - gets bond providers for a node account
+func (k KVStore) GetBondProviders(ctx cosmos.Context, addr cosmos.AccAddress) (BondProviders, error) {
+	record := NewBondProviders(addr)
+	_, err := k.getBondProviders(ctx, k.GetKey(ctx, prefixNodeJail, addr.String()), &record)
+	return record, err
+}
+
+// SetBondProviders - update the bond providers of a node account
+func (k KVStore) SetBondProviders(ctx cosmos.Context, record BondProviders) error {
+	k.setBondProviders(ctx, k.GetKey(ctx, prefixBondProviders, record.NodeAddress.String()), record)
+	return nil
+}

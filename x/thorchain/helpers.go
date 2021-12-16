@@ -302,6 +302,27 @@ func refundBondV81(ctx cosmos.Context, tx common.Tx, amt cosmos.Uint, nodeAcc *N
 		}
 	}
 
+	bp, err := mgr.Keeper().GetBondProviders(ctx, nodeAcc.NodeAddress)
+	if err != nil {
+		return ErrInternal(err, fmt.Sprintf("fail to get bond providers(%s)", nodeAcc.NodeAddress))
+	}
+	fromAddress, err := tx.FromAddress.AccAddress()
+	if err != nil {
+		return ErrInternal(err, fmt.Sprintf("fail to parse bond address(%s)", tx.FromAddress))
+	}
+
+	// backfil bond provider information (passive migration code)
+	if len(bp.Providers) == 0 {
+		// no providers yet, add node operator bond address to the bond provider list
+		bondAddress, err := nodeAcc.BondAddress.AccAddress()
+		if err != nil {
+			return ErrInternal(err, fmt.Sprintf("fail to parse bond address(%s)", nodeAcc.BondAddress))
+		}
+		p := NewBondProvider(bondAddress)
+		p.Bond = nodeAcc.Bond
+		bp.Providers = append(bp.Providers, p)
+	}
+
 	// Calculate total value (in rune) the Yggdrasil pool has
 	yggRune, err := getTotalYggValueInRune(ctx, mgr.Keeper(), ygg)
 	if err != nil {
@@ -318,23 +339,12 @@ func refundBondV81(ctx cosmos.Context, tx common.Tx, amt cosmos.Uint, nodeAcc *N
 	}
 	bondBeforeSlash := nodeAcc.Bond
 	nodeAcc.Bond = common.SafeSub(nodeAcc.Bond, slashRune)
+	bp.Adjust(nodeAcc.Bond) // redistribute node bond amoungst bond providers
+	provider := bp.Get(fromAddress)
 
-	if !nodeAcc.Bond.IsZero() {
-		if amt.GT(nodeAcc.Bond) {
-			amt = nodeAcc.Bond
-		}
-		active, err := mgr.Keeper().GetAsgardVaultsByStatus(ctx, ActiveVault)
-		if err != nil {
-			ctx.Logger().Error("fail to get active vaults", "error", err)
-			return err
-		}
-
-		version := mgr.Keeper().GetLowestActiveVersion(ctx)
-		constAccessor := constants.GetConstantValues(version)
-		signingTransactionPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
-		vault := mgr.Keeper().GetLeastSecure(ctx, active, signingTransactionPeriod)
-		if vault.IsEmpty() {
-			return fmt.Errorf("unable to determine asgard vault to send funds")
+	if !provider.Bond.IsZero() {
+		if amt.GT(provider.Bond) {
+			amt = provider.Bond
 		}
 
 		bondEvent := NewEventBond(amt, BondReturned, tx)
@@ -342,16 +352,16 @@ func refundBondV81(ctx cosmos.Context, tx common.Tx, amt cosmos.Uint, nodeAcc *N
 			ctx.Logger().Error("fail to emit bond event", "error", err)
 		}
 
-		refundAddress := common.Address(nodeAcc.BondAddress.String())
+		bp.Unbond(amt, provider.BondAddress)
+		nodeAcc.Bond = common.SafeSub(nodeAcc.Bond, amt)
 
 		// refund bond
 		txOutItem := TxOutItem{
-			Chain:       common.RuneAsset().Chain,
-			ToAddress:   refundAddress,
-			VaultPubKey: vault.PubKey,
-			InHash:      tx.ID,
-			Coin:        common.NewCoin(common.RuneAsset(), amt),
-			ModuleName:  BondName,
+			Chain:      common.RuneAsset().Chain,
+			ToAddress:  tx.FromAddress,
+			InHash:     tx.ID,
+			Coin:       common.NewCoin(common.RuneAsset(), amt),
+			ModuleName: BondName,
 		}
 		_, err = mgr.TxOutStore().TryAddTxOutItem(ctx, mgr, txOutItem)
 		if err != nil {
@@ -372,6 +382,9 @@ func refundBondV81(ctx cosmos.Context, tx common.Tx, amt cosmos.Uint, nodeAcc *N
 	if err := mgr.Keeper().SetNodeAccount(ctx, *nodeAcc); err != nil {
 		ctx.Logger().Error(fmt.Sprintf("fail to save node account(%s)", nodeAcc), "error", err)
 		return err
+	}
+	if err := mgr.Keeper().SetBondProviders(ctx, bp); err != nil {
+		return ErrInternal(err, fmt.Sprintf("fail to save bond providers(%s)", bp.NodeAddress.String()))
 	}
 
 	if err := subsidizePoolWithSlashBond(ctx, ygg, yggRune, slashRune, mgr); err != nil {

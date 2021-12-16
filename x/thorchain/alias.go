@@ -131,6 +131,8 @@ var (
 	ModuleCdc                      = types.ModuleCdc
 	RegisterCodec                  = types.RegisterCodec
 	RegisterInterfaces             = types.RegisterInterfaces
+	NewBondProviders               = types.NewBondProviders
+	NewBondProvider                = types.NewBondProvider
 	NewNodeAccount                 = types.NewNodeAccount
 	NewVault                       = types.NewVault
 	NewReserveContributor          = types.NewReserveContributor

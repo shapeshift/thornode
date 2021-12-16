@@ -45,6 +45,20 @@ func getNodeStatus(ps string) NodeStatus {
 	return NodeStatus_Unknown
 }
 
+func NewBondProviders(acc cosmos.AccAddress) BondProviders {
+	return BondProviders{
+		NodeAddress: acc,
+		Providers:   make([]BondProvider, 0),
+	}
+}
+
+func NewBondProvider(acc cosmos.AccAddress) BondProvider {
+	return BondProvider{
+		BondAddress: acc,
+		Bond:        cosmos.ZeroUint(),
+	}
+}
+
 // NewNodeAccount create new instance of NodeAccount
 func NewNodeAccount(nodeAddress cosmos.AccAddress, status NodeStatus, nodePubKeySet common.PubKeySet, validatorConsPubKey string, bond cosmos.Uint, bondAddress common.Address, height int64) NodeAccount {
 	na := NodeAccount{
@@ -234,4 +248,58 @@ func (nas NodeAccounts) GetNodeAddresses() []cosmos.AccAddress {
 		addrs[i] = na.NodeAddress
 	}
 	return addrs
+}
+
+func (p *BondProvider) IsEmpty() bool {
+	return p.BondAddress.Empty()
+}
+
+func (bp *BondProviders) Has(acc cosmos.AccAddress) bool {
+	provider := bp.Get(acc)
+	return provider.IsEmpty()
+}
+
+func (bp *BondProviders) Get(acc cosmos.AccAddress) BondProvider {
+	for _, provider := range bp.Providers {
+		if provider.BondAddress.Equals(acc) {
+			return provider
+		}
+	}
+	return BondProvider{}
+}
+
+func (bp *BondProviders) Bond(bond cosmos.Uint, acc cosmos.AccAddress) {
+	for i, provider := range bp.Providers {
+		if provider.BondAddress.Equals(acc) {
+			bp.Providers[i].Bond = bp.Providers[i].Bond.Add(bond)
+			return
+		}
+	}
+}
+
+func (bp *BondProviders) Unbond(bond cosmos.Uint, acc cosmos.AccAddress) {
+	for i, provider := range bp.Providers {
+		if provider.BondAddress.Equals(acc) {
+			bp.Providers[i].Bond = common.SafeSub(bp.Providers[i].Bond, bond)
+			return
+		}
+	}
+}
+
+// realigns the bond providers relative to the node bond
+func (bp *BondProviders) Adjust(nodeBond cosmos.Uint) {
+	totalBond := cosmos.ZeroUint()
+	for _, provider := range bp.Providers {
+		totalBond = totalBond.Add(provider.Bond)
+	}
+
+	if totalBond.Equal(nodeBond) {
+		// no adjustment needed
+		return
+	}
+
+	for i, _ := range bp.Providers {
+		bond := bp.Providers[i].Bond
+		bp.Providers[i].Bond = common.GetSafeShare(bond, totalBond, nodeBond)
+	}
 }
