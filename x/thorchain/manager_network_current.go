@@ -645,8 +645,8 @@ func (vm *NetworkMgrV76) UpdateNetwork(ctx cosmos.Context, constAccessor constan
 	if incentiveCurve < 0 || err != nil {
 		incentiveCurve = constAccessor.GetInt64Value(constants.IncentiveCurve)
 	}
-	blocksOerYear := constAccessor.GetInt64Value(constants.BlocksPerYear)
-	bondReward, totalPoolRewards, lpDeficit, lpShare := vm.calcBlockRewards(totalProvidedLiquidity, totalBonded, totalReserve, totalLiquidityFees, emissionCurve, incentiveCurve, blocksOerYear)
+	blocksPerYear := constAccessor.GetInt64Value(constants.BlocksPerYear)
+	bondReward, totalPoolRewards, lpDeficit, lpShare := vm.calcBlockRewards(totalProvidedLiquidity, totalBonded, totalReserve, totalLiquidityFees, emissionCurve, incentiveCurve, blocksPerYear)
 
 	network.LPIncomeSplit = int64(lpShare.Uint64())
 	network.NodeIncomeSplit = int64(10_000) - network.LPIncomeSplit
