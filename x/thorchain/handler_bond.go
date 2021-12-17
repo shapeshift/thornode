@@ -208,6 +208,9 @@ func (h BondHandler) handleV81(ctx cosmos.Context, msg MsgBond) error {
 
 	// if bonder is node operator, add additional bonding address
 	if msg.BondAddress.Equals(nodeAccount.BondAddress) && !msg.BondProviderAddress.Empty() {
+		if len(bp.Providers) >= 4 {
+			return fmt.Errorf("additional bond providers are not allowed, maximum reached")
+		}
 		bp.Bond(cosmos.ZeroUint(), msg.BondProviderAddress)
 	}
 
