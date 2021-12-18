@@ -313,7 +313,8 @@ func (bp *BondProviders) Adjust(nodeBond cosmos.Uint) {
 	// deduct node operator fee from income
 	fee := cosmos.ZeroUint()
 	if totalBond.LT(nodeBond) {
-		fee = common.SafeSub(nodeBond, totalBond).Mul(bp.NodeOperatorFee).QuoUint64(10000)
+		surplus := common.SafeSub(nodeBond, totalBond)
+		fee = common.GetSafeShare(bp.NodeOperatorFee, cosmos.NewUint(10000), surplus)
 	}
 	nodeBond = common.SafeSub(nodeBond, fee)
 
