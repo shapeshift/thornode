@@ -77,6 +77,14 @@ func (k *TestRefundBondKeeper) SetVault(ctx cosmos.Context, vault Vault) error {
 	return nil
 }
 
+func (k *TestRefundBondKeeper) SetBondProviders(ctx cosmos.Context, _ BondProviders) error {
+	return nil
+}
+
+func (k *TestRefundBondKeeper) GetBondProviders(ctx cosmos.Context, add cosmos.AccAddress) (BondProviders, error) {
+	return BondProviders{}, nil
+}
+
 func (s *HelperSuite) TestSubsidizePoolWithSlashBond(c *C) {
 	ctx, mgr := setupManagerForTest(c)
 	ygg := GetRandomVault()
@@ -195,6 +203,7 @@ func (s *HelperSuite) TestRefundBondError(c *C) {
 	na.PubKeySet.Secp256k1 = pk
 	na.Bond = cosmos.NewUint(100 * common.One)
 	tx := GetRandomTx()
+	tx.FromAddress = GetRandomTHORAddress()
 	keeper1 := &TestRefundBondKeeper{}
 	mgr := NewDummyMgrWithKeeper(keeper1)
 	c.Assert(refundBond(ctx, tx, cosmos.ZeroUint(), &na, mgr), IsNil)
@@ -260,6 +269,7 @@ func (s *HelperSuite) TestRefundBondHappyPath(c *C) {
 	na.Status = NodeStandby
 	mgr := NewDummyMgrWithKeeper(keeper)
 	tx := GetRandomTx()
+	tx.FromAddress, _ = common.NewAddress(na.BondAddress.String())
 	yggAssetInRune, err := getTotalYggValueInRune(ctx, keeper, ygg)
 	c.Assert(err, IsNil)
 	err = refundBond(ctx, tx, cosmos.ZeroUint(), &na, mgr)
