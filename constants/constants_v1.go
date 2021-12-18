@@ -39,7 +39,7 @@ func NewConstantValue010() *ConstantVals {
 			JailTimeKeygen:                720 * 6,            // blocks a node account is jailed for failing to keygen. DO NOT drop below tss timeout
 			JailTimeKeysign:               60,                 // blocks a node account is jailed for failing to keysign. DO NOT drop below tss timeout
 			NodePauseChainBlocks:          720,                // number of blocks that a node can pause/resume a global chain halt
-			NodeOperatorFee:               300,                // Node operator fee
+			NodeOperatorFee:               500,                // Node operator fee
 			MinSwapsPerBlock:              10,                 // process all swaps if queue is less than this number
 			MaxSwapsPerBlock:              100,                // max swaps to process per block
 			VirtualMultSynths:             2,                  // pool depth multiplier for synthetic swaps

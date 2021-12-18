@@ -68,7 +68,7 @@ func (h UnBondHandler) validateV77(ctx cosmos.Context, msg MsgUnBond) error {
 	}
 
 	if na.Status == NodeActive || na.Status == NodeReady {
-		return cosmos.ErrUnknownRequest("cannot unbond while node is in active status")
+		return cosmos.ErrUnknownRequest("cannot unbond while node is in active or ready status")
 	}
 
 	ygg := Vault{}
@@ -101,7 +101,7 @@ func (h UnBondHandler) validateV77(ctx cosmos.Context, msg MsgUnBond) error {
 	if err != nil {
 		return ErrInternal(err, fmt.Sprintf("fail to parse bond address(%s)", msg.BondAddress))
 	}
-	if !bp.Has(from) && !na.BondAddress.Equals(msg.TxIn.FromAddress) {
+	if !bp.Has(from) && !na.BondAddress.Equals(msg.BondAddress) {
 		return cosmos.ErrUnauthorized(fmt.Sprintf("%s are not authorized to manage %s", msg.BondAddress, msg.NodeAddress))
 	}
 
