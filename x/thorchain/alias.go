@@ -264,6 +264,8 @@ type (
 	NodeAccount                    = types.NodeAccount
 	NodeAccounts                   = types.NodeAccounts
 	NodeStatus                     = types.NodeStatus
+	BondProviders                  = types.BondProviders
+	BondProvider                   = types.BondProvider
 	Network                        = types.Network
 	VaultStatus                    = types.VaultStatus
 	GasPool                        = types.GasPool
