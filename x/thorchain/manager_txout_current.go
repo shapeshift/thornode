@@ -674,17 +674,19 @@ func (tos *TxOutStorageV81) nativeTxOut(ctx cosmos.Context, mgr Manager, toi TxO
 	}
 
 	if len(active) == 0 {
-		ctx.Logger().Error("no active asgard vaults")
-		return fmt.Errorf("no active asgard vaults")
+		return fmt.Errorf("dev error: no pubkey for native txn")
 	}
 
 	observedTx := ObservedTx{
+		ObservedPubKey: active[0].PubKey,
 		BlockHeight:    common.BlockHeight(ctx),
 		Tx:             tx,
 		FinaliseHeight: common.BlockHeight(ctx),
 	}
 	if len(active) > 0 {
 		observedTx.ObservedPubKey = active[0].PubKey
+	} else {
+		return fmt.Errorf("dev error: no pubkey for native txn")
 	}
 	m, err := processOneTxIn(ctx, mgr.GetVersion(), tos.keeper, observedTx, tos.keeper.GetModuleAccAddress(AsgardName))
 	if err != nil {
