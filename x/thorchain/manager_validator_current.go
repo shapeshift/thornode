@@ -1287,6 +1287,23 @@ func (vm *validatorMgrV76) NodeAccountPreflightCheck(ctx cosmos.Context, na Node
 		return NodeWhiteListed, fmt.Errorf("node account has registered their pubkey set")
 	}
 
+	// check if node account is whitelisted. This is used for testnet/stagenet environments
+	if len(VALIDATORS) > 0 {
+		found := false
+		for _, val := range VALIDATORS {
+			acc, err := cosmos.AccAddressFromBech32(val)
+			if err != nil {
+				continue
+			}
+			if acc.Equals(na.NodeAddress) {
+				found = true
+			}
+		}
+		if !found {
+			return NodeStandby, fmt.Errorf("node account is not a whitelisted validator")
+		}
+	}
+
 	// ensure we have enough rune
 	minBond, err := vm.k.GetMimir(ctx, constants.MinimumBondInRune.String())
 	if minBond < 0 || err != nil {
