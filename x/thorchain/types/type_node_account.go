@@ -47,8 +47,9 @@ func getNodeStatus(ps string) NodeStatus {
 
 func NewBondProviders(acc cosmos.AccAddress) BondProviders {
 	return BondProviders{
-		NodeAddress: acc,
-		Providers:   make([]BondProvider, 0),
+		NodeAddress:     acc,
+		NodeOperatorFee: cosmos.ZeroUint(),
+		Providers:       make([]BondProvider, 0),
 	}
 }
 
@@ -309,8 +310,18 @@ func (bp *BondProviders) Adjust(nodeBond cosmos.Uint) {
 		return
 	}
 
+	// deduct node operator fee from income
+	fee := cosmos.ZeroUint()
+	if totalBond.LT(nodeBond) {
+		fee = common.SafeSub(nodeBond, totalBond).Mul(bp.NodeOperatorFee).QuoUint64(10000)
+	}
+	nodeBond = common.SafeSub(nodeBond, fee)
+
 	for i, _ := range bp.Providers {
 		bond := bp.Providers[i].Bond
 		bp.Providers[i].Bond = common.GetSafeShare(bond, totalBond, nodeBond)
+		if bp.Providers[i].BondAddress.Equals(bp.NodeAddress) {
+			bp.Providers[i].Bond = bp.Providers[i].Bond.Add(fee)
+		}
 	}
 }

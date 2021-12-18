@@ -54,5 +54,6 @@ message BondProvider {
 message BondProviders {
   option (gogoproto.stringer) = true;
   bytes node_address = 1 [(gogoproto.casttype) = "github.com/cosmos/cosmos-sdk/types.AccAddress"];
-  repeated BondProvider providers = 2 [(gogoproto.nullable) = false];
+  string node_operator_fee = 2 [(gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Uint", (gogoproto.nullable) = false];
+  repeated BondProvider providers = 3 [(gogoproto.nullable) = false];
 }

@@ -307,6 +307,12 @@ func refundBondV81(ctx cosmos.Context, tx common.Tx, amt cosmos.Uint, nodeAcc *N
 		return ErrInternal(err, fmt.Sprintf("fail to get bond providers(%s)", nodeAcc.NodeAddress))
 	}
 
+	defaultNodeOperatorFee, err := mgr.Keeper().GetMimir(ctx, constants.NodeOperatorFee.String())
+	if defaultNodeOperatorFee <= 0 || err != nil {
+		defaultNodeOperatorFee = mgr.GetConstants().GetInt64Value(constants.NodeOperatorFee)
+	}
+	bp.NodeOperatorFee = cosmos.NewUint(uint64(defaultNodeOperatorFee))
+
 	// backfil bond provider information (passive migration code)
 	if len(bp.Providers) == 0 {
 		// no providers yet, add node operator bond address to the bond provider list

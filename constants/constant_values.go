@@ -67,6 +67,7 @@ const (
 	TNSFeeOnSale
 	TNSFeePerBlock
 	PermittedSolvencyGap
+	NodeOperatorFee
 	ValidatorMaxRewardRatio
 	PoolDepthForYggFundingMin
 )
@@ -130,6 +131,7 @@ var nameToString = map[ConstantName]string{
 	TNSFeePerBlock:                "TNSFeePerBlock",
 	PermittedSolvencyGap:          "PermittedSolvencyGap",
 	ValidatorMaxRewardRatio:       "ValidatorMaxRewardRatio",
+	NodeOperatorFee:               "NodeOperatorFee",
 	PoolDepthForYggFundingMin:     "PoolDepthForYggFundingMin",
 }
 
