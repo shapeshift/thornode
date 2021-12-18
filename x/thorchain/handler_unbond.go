@@ -209,8 +209,38 @@ func (h UnBondHandler) handleV77(ctx cosmos.Context, msg MsgUnBond) error {
 	if isMemberOfRetiringVault {
 		return ErrInternal(err, "fail to unbond, still part of the retiring vault")
 	}
-	if err := refundBond(ctx, msg.TxIn, msg.Amount, &na, h.mgr); err != nil {
-		return ErrInternal(err, "fail to unbond")
+
+	from, err := cosmos.AccAddressFromBech32(msg.BondAddress.String())
+	if err != nil {
+		return ErrInternal(err, "fail to parse from address")
+	}
+
+	// remove/unbonding bond provider
+	// check that 1) requester is node operator, 2) references
+	if msg.BondAddress.Equals(na.BondAddress) && !msg.BondProviderAddress.Empty() {
+		if err := refundBond(ctx, msg.TxIn, msg.BondProviderAddress, msg.Amount, &na, h.mgr); err != nil {
+			return ErrInternal(err, "fail to unbond")
+		}
+
+		// remove bond provider (if bond is now zero)
+		if !na.NodeAddress.Equals(msg.BondProviderAddress) {
+			bp, err := h.mgr.Keeper().GetBondProviders(ctx, na.NodeAddress)
+			if err != nil {
+				return ErrInternal(err, fmt.Sprintf("fail to get bond providers(%s)", na.NodeAddress))
+			}
+			provider := bp.Get(msg.BondProviderAddress)
+			if !provider.IsEmpty() && !provider.Bond.IsZero() {
+				if ok := bp.Remove(msg.BondProviderAddress); ok {
+					if err := h.mgr.Keeper().SetBondProviders(ctx, bp); err != nil {
+						return ErrInternal(err, fmt.Sprintf("fail to save bond providers(%s)", bp.NodeAddress.String()))
+					}
+				}
+			}
+		}
+	} else {
+		if err := refundBond(ctx, msg.TxIn, from, msg.Amount, &na, h.mgr); err != nil {
+			return ErrInternal(err, "fail to unbond")
+		}
 	}
 
 	coin := msg.TxIn.Coins.GetCoin(common.RuneAsset())

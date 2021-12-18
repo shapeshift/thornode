@@ -257,7 +257,7 @@ func getTotalYggValueInRune(ctx cosmos.Context, keeper keeper.Keeper, ygg Vault)
 	return yggRune, nil
 }
 
-func refundBond(ctx cosmos.Context, tx common.Tx, amt cosmos.Uint, nodeAcc *NodeAccount, mgr Manager) error {
+func refundBond(ctx cosmos.Context, tx common.Tx, acc cosmos.AccAddress, amt cosmos.Uint, nodeAcc *NodeAccount, mgr Manager) error {
 	version := mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.81.0")) {
 		return refundBondV81(ctx, tx, amt, nodeAcc, mgr)
@@ -306,10 +306,6 @@ func refundBondV81(ctx cosmos.Context, tx common.Tx, amt cosmos.Uint, nodeAcc *N
 	if err != nil {
 		return ErrInternal(err, fmt.Sprintf("fail to get bond providers(%s)", nodeAcc.NodeAddress))
 	}
-	fromAddress, err := tx.FromAddress.AccAddress()
-	if err != nil {
-		return ErrInternal(err, fmt.Sprintf("fail to parse bond address(%s)", tx.FromAddress))
-	}
 
 	// backfil bond provider information (passive migration code)
 	if len(bp.Providers) == 0 {
@@ -340,7 +336,7 @@ func refundBondV81(ctx cosmos.Context, tx common.Tx, amt cosmos.Uint, nodeAcc *N
 	bondBeforeSlash := nodeAcc.Bond
 	nodeAcc.Bond = common.SafeSub(nodeAcc.Bond, slashRune)
 	bp.Adjust(nodeAcc.Bond) // redistribute node bond amoungst bond providers
-	provider := bp.Get(fromAddress)
+	provider := bp.Get(acc)
 
 	if !provider.IsEmpty() && !provider.Bond.IsZero() {
 		if amt.GT(provider.Bond) {

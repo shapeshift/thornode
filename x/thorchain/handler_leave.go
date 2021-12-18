@@ -138,7 +138,7 @@ func (h LeaveHandler) handleV76(ctx cosmos.Context, msg MsgLeave) error {
 			// vault (it was destroyed when we successfully migrated funds from
 			// their address to a new TSS vault
 			if !h.mgr.Keeper().VaultExists(ctx, nodeAcc.PubKeySet.Secp256k1) {
-				if err := refundBond(ctx, msg.Tx, cosmos.ZeroUint(), &nodeAcc, h.mgr); err != nil {
+				if err := refundBond(ctx, msg.Tx, nodeAcc.NodeAddress, cosmos.ZeroUint(), &nodeAcc, h.mgr); err != nil {
 					return ErrInternal(err, "fail to refund bond")
 				}
 				nodeAcc.UpdateStatus(NodeDisabled, common.BlockHeight(ctx))
@@ -152,13 +152,13 @@ func (h LeaveHandler) handleV76(ctx cosmos.Context, msg MsgLeave) error {
 				if vault.IsYggdrasil() {
 					if !vault.HasFunds() {
 						// node is not active , they are free to leave , refund them
-						if err := refundBond(ctx, msg.Tx, cosmos.ZeroUint(), &nodeAcc, h.mgr); err != nil {
+						if err := refundBond(ctx, msg.Tx, nodeAcc.NodeAddress, cosmos.ZeroUint(), &nodeAcc, h.mgr); err != nil {
 							return ErrInternal(err, "fail to refund bond")
 						}
 						nodeAcc.UpdateStatus(NodeDisabled, common.BlockHeight(ctx))
 					} else {
 						if h.canAbandonVault(ctx, vault, nodeAcc) {
-							if err := refundBond(ctx, msg.Tx, cosmos.ZeroUint(), &nodeAcc, h.mgr); err != nil {
+							if err := refundBond(ctx, msg.Tx, nodeAcc.NodeAddress, cosmos.ZeroUint(), &nodeAcc, h.mgr); err != nil {
 								return ErrInternal(err, "fail to refund bond")
 							}
 						} else {

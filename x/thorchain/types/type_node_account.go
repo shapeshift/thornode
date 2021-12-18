@@ -286,6 +286,17 @@ func (bp *BondProviders) Unbond(bond cosmos.Uint, acc cosmos.AccAddress) {
 	}
 }
 
+// remove provider (only if bond is zero)
+func (bp *BondProviders) Remove(acc cosmos.AccAddress) bool {
+	for i, provider := range bp.Providers {
+		if provider.BondAddress.Equals(acc) && provider.Bond.IsZero() {
+			bp.Providers = append(bp.Providers[:i], bp.Providers[i+1:]...)
+			return true
+		}
+	}
+	return false
+}
+
 // realigns the bond providers relative to the node bond
 func (bp *BondProviders) Adjust(nodeBond cosmos.Uint) {
 	totalBond := cosmos.ZeroUint()
