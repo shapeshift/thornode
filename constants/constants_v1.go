@@ -28,6 +28,7 @@ func NewConstantValue010() *ConstantVals {
 			SigningTransactionPeriod:      300,                // how many blocks before a request to sign a tx by yggdrasil pool, is counted as delinquent.
 			DoubleSignMaxAge:              24,                 // number of blocks to limit double signing a block
 			MinimumBondInRune:             1_000_000_00000000, // 1 million rune
+			MaxBondProviders:              6,                  // maximum number of bond providers
 			FailKeygenSlashPoints:         720,                // slash for 720 blocks , which equals 1 hour
 			FailKeysignSlashPoints:        2,                  // slash for 2 blocks
 			LiquidityLockUpBlocks:         0,                  // the number of blocks LP can withdraw after their liquidity

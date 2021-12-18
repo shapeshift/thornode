@@ -57,6 +57,7 @@ const (
 	MinSlashPointsForBadValidator
 	FullImpLossProtectionBlocks
 	BondLockupPeriod
+	MaxBondProviders
 	NumberOfNewNodesPerChurn
 	MinTxOutVolumeThreshold
 	TxOutDelayRate
@@ -96,6 +97,7 @@ var nameToString = map[ConstantName]string{
 	SigningTransactionPeriod:      "SigningTransactionPeriod",
 	DoubleSignMaxAge:              "DoubleSignMaxAge",
 	MinimumBondInRune:             "MinimumBondInRune",
+	MaxBondProviders:              "MaxBondProviders",
 	FundMigrationInterval:         "FundMigrationInterval",
 	ArtificialRagnarokBlockHeight: "ArtificialRagnarokBlockHeight",
 	MaximumLiquidityRune:          "MaximumLiquidityRune",
