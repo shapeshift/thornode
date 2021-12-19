@@ -47,6 +47,7 @@ var (
 	RegisterCodec              = types.RegisterCodec
 	NewNodeAccount             = types.NewNodeAccount
 	NewBondProviders           = types.NewBondProviders
+	NewBondProvider            = types.NewBondProvider
 	NewVault                   = types.NewVault
 	NewReserveContributor      = types.NewReserveContributor
 	NewTHORName                = types.NewTHORName

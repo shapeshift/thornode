@@ -2,6 +2,7 @@ package types
 
 import (
 	"encoding/json"
+	"fmt"
 	"sort"
 
 	. "gopkg.in/check.v1"
@@ -154,4 +155,31 @@ func (s *NodeAccountSuite) TestCalcNodeRewards(c *C) {
 	}
 	blocks = na.CalcBondUnits(50, 0)
 	c.Check(blocks.Uint64(), Equals, uint64(0), Commentf("%d", blocks.Uint64()))
+}
+
+func (s *NodeAccountSuite) TestBondProvider(c *C) {
+	provider := BondProvider{}
+	c.Assert(provider.IsEmpty(), Equals, true)
+	provider = NewBondProvider(GetRandomBech32Addr())
+	c.Assert(provider.IsEmpty(), Equals, false)
+}
+
+func (s *NodeAccountSuite) TestBondProviders(c *C) {
+	acc1 := GetRandomBech32Addr()
+	acc2 := GetRandomBech32Addr()
+	acc3 := GetRandomBech32Addr()
+	p1 := NewBondProvider(acc1)
+	p2 := NewBondProvider(acc2)
+	p3 := NewBondProvider(acc3)
+
+	bp := NewBondProviders(acc1)
+	bp.NodeOperatorFee = cosmos.NewUint(2000)
+	bp.Providers = []BondProvider{p1, p2, p3}
+	bp.Bond(cosmos.NewUint(300000), acc1)
+	bp.Bond(cosmos.NewUint(100000), acc2)
+	bp.Bond(cosmos.NewUint(50000), acc3)
+	fmt.Printf("%+v\n", bp)
+
+	c.Assert(bp.Has(acc1), Equals, true)
+	c.Assert(bp.Get(acc1).Bond.Uint64(), Equals, uint64(300000))
 }
