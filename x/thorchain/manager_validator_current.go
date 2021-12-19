@@ -1297,6 +1297,7 @@ func (vm *validatorMgrV76) NodeAccountPreflightCheck(ctx cosmos.Context, na Node
 			}
 			if acc.Equals(na.NodeAddress) {
 				found = true
+				break
 			}
 		}
 		if !found {
