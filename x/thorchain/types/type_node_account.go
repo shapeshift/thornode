@@ -257,7 +257,7 @@ func (p *BondProvider) IsEmpty() bool {
 
 func (bp *BondProviders) Has(acc cosmos.AccAddress) bool {
 	provider := bp.Get(acc)
-	return provider.IsEmpty()
+	return !provider.IsEmpty()
 }
 
 func (bp *BondProviders) Get(acc cosmos.AccAddress) BondProvider {

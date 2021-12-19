@@ -39,7 +39,7 @@ func ParseUnbondMemo(parts []string) (UnbondMemo, error) {
 		return UnbondMemo{}, fmt.Errorf("fail to parse amount (%s): %w", parts[2], err)
 	}
 	if len(parts) >= 4 {
-		additional, err = cosmos.AccAddressFromBech32(parts[2])
+		additional, err = cosmos.AccAddressFromBech32(parts[3])
 		if err != nil {
 			return UnbondMemo{}, fmt.Errorf("%s is an invalid thorchain address: %w", parts[1], err)
 		}
