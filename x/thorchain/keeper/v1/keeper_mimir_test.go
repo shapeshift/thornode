@@ -44,7 +44,7 @@ func (s *KeeperMimirSuite) TestMimir(c *C) {
 func (s *KeeperMimirSuite) TestNodeMimir(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	key := "foo"
-	ver := "0.77.0"
+	ver := "0.78.0"
 
 	na1 := GetRandomValidatorNode(NodeActive)
 	na1.Version = ver

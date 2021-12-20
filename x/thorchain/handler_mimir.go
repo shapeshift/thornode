@@ -48,8 +48,8 @@ func (h MimirHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Result, err
 
 func (h MimirHandler) validate(ctx cosmos.Context, msg MsgMimir) error {
 	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.77.0")) {
-		return h.validateV77(ctx, msg)
+	if version.GTE(semver.MustParse("0.78.0")) {
+		return h.validateV78(ctx, msg)
 	} else if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, msg)
 	}
@@ -66,7 +66,7 @@ func (h MimirHandler) isAdmin(acc cosmos.AccAddress) bool {
 	return false
 }
 
-func (h MimirHandler) validateV77(ctx cosmos.Context, msg MsgMimir) error {
+func (h MimirHandler) validateV78(ctx cosmos.Context, msg MsgMimir) error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
@@ -82,8 +82,8 @@ func (h MimirHandler) validateV77(ctx cosmos.Context, msg MsgMimir) error {
 func (h MimirHandler) handle(ctx cosmos.Context, msg MsgMimir) error {
 	ctx.Logger().Info("handleMsgMimir request", "key", msg.Key, "value", msg.Value)
 	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.77.0")) {
-		return h.handleV77(ctx, msg)
+	if version.GTE(semver.MustParse("0.78.0")) {
+		return h.handleV78(ctx, msg)
 	} else if version.GTE(semver.MustParse("0.65.0")) {
 		return h.handleV65(ctx, msg)
 	} else if version.GTE(semver.MustParse("0.1.0")) {
@@ -93,7 +93,7 @@ func (h MimirHandler) handle(ctx cosmos.Context, msg MsgMimir) error {
 	return errBadVersion
 }
 
-func (h MimirHandler) handleV77(ctx cosmos.Context, msg MsgMimir) error {
+func (h MimirHandler) handleV78(ctx cosmos.Context, msg MsgMimir) error {
 	if h.isAdmin(msg.Signer) {
 		if msg.Value < 0 {
 			_ = h.mgr.Keeper().DeleteMimir(ctx, msg.Key)
