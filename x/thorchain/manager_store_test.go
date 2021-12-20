@@ -28,6 +28,7 @@ func (s *StoreManagerTestSuite) TestMigrateStoreV55(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(newPool.BalanceAsset.Equal(cosmos.NewUint(900000000)), Equals, true)
 }
+
 func (s *StoreManagerTestSuite) TestMigrateStoreV58(c *C) {
 	SetupConfigForTest()
 	ctx, mgr := setupManagerForTest(c)
@@ -803,6 +804,225 @@ func (s *StoreManagerTestSuite) TestRefundBinanceTx(c *C) {
 }
 
 func (s *StoreManagerTestSuite) TestMigrateStoreV77(c *C) {
+	c.Assert(os.Setenv("NET", "mainnet"), IsNil)
+	ctx, mgr := setupManagerForTest(c)
+	SetupConfigForTest()
+	config := cosmos.GetConfig()
+	config.SetBech32PrefixForAccount("thor", "thorpub")
+	ctx = ctx.WithBlockHeight(1024)
+	pubKey, err := common.NewPubKey(`thorpub1addwnpepqvqlfxkp65g8q9tyzhjhkanllwldmz3yknsc4edy6e7xhwhqte8wue7ptd2`)
+	c.Assert(err, IsNil)
+	vault := NewVault(ctx.BlockHeight(), ActiveVault, AsgardVault, pubKey, []string{
+		common.BTCChain.String(),
+		common.ETHChain.String(),
+		common.BNBChain.String(),
+		common.BCHChain.String(),
+		common.LTCChain.String(),
+	}, nil)
+	currentAsgardCoins := `[
+            {
+                "asset": "BNB.AVA-645",
+                "amount": "2995505849358"
+            },
+            {
+                "asset": "BNB.BNB",
+                "amount": "446168460458"
+            },
+            {
+                "asset": "BNB.BTCB-1DE",
+                "amount": "3344094234"
+            },
+            {
+                "asset": "BNB.BUSD-BD1",
+                "amount": "549442431405611"
+            },
+            {
+                "asset": "BNB.ETH-1C9",
+                "amount": "31517072382"
+            },
+            {
+                "asset": "BNB.TWT-8C2",
+                "amount": "32445423761396"
+            },
+            {
+                "asset": "BCH.BCH",
+                "amount": "10533997912"
+            },
+            {
+                "asset": "LTC.LTC",
+                "amount": "122091616350"
+            },
+            {
+                "asset": "BTC.BTC",
+                "amount": "8024004386"
+            },
+            {
+                "asset": "ETH.AAVE-0X7FC66500C84A76AD7E9C93437BFC5AC33E2DDAE9",
+                "amount": "101784699275"
+            },
+            {
+                "asset": "ETH.ALCX-0XDBDB4D16EDA451D0503B854CF79D55697F90C8DF",
+                "amount": "220288455892"
+            },
+            {
+                "asset": "ETH.ALPHA-0XA1FAA113CBE53436DF28FF0AEE54275C13B40975",
+                "amount": "8876436709598"
+            },
+            {
+                "asset": "ETH.CREAM-0X2BA592F78DB6436527729929AAF6C908497CB200",
+                "amount": "127403642055"
+            },
+            {
+                "asset": "ETH.DODO-0X43DFC4159D86F3A37A5A4B3D4580B888AD7D4DDD",
+                "amount": "45791169720467"
+            },
+            {
+                "asset": "ETH.ETH",
+                "amount": "173222928384"
+            },
+            {
+                "asset": "ETH.FOX-0XC770EEFAD204B5180DF6A14EE197D99D808EE52D",
+                "amount": "133464519904774"
+            },
+            {
+                "asset": "ETH.HEGIC-0X584BC13C7D411C00C01A62E8019472DE68768430",
+                "amount": "37053912256444"
+            },
+            {
+                "asset": "ETH.HOT-0X6C6EE5E31D828DE241282B9606C8E98EA48526E2",
+                "amount": "2363210550686297"
+            },
+            {
+                "asset": "ETH.KYL-0X67B6D479C7BB412C54E03DCA8E1BC6740CE6B99C",
+                "amount": "226762492196091"
+            },
+            {
+                "asset": "ETH.PERP-0XBC396689893D065F41BC2C6ECBEE5E0085233447",
+                "amount": "1984309486311"
+            },
+            {
+                "asset": "ETH.RAZE-0X5EAA69B29F99C84FE5DE8200340B4E9B4AB38EAC",
+                "amount": "70873303136020"
+            },
+            {
+                "asset": "ETH.SNX-0XC011A73EE8576FB46F5E1C5751CA3B9FE0AF2A6F",
+                "amount": "1614417707351"
+            },
+            {
+                "asset": "ETH.SUSHI-0X6B3595068778DD592E39A122F4F5A5CF09C90FE2",
+                "amount": "6577015859010"
+            },
+            {
+                "asset": "ETH.THOR-0XA5F2211B9B8170F694421F2046281775E8468044",
+                "amount": "621970955052727"
+            },
+            {
+                "asset": "ETH.USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48",
+                "amount": "120319012267800",
+                "decimals": 6
+            },
+            {
+                "asset": "ETH.USDT-0XDAC17F958D2EE523A2206206994597C13D831EC7",
+                "amount": "50141176666100",
+                "decimals": 6
+            },
+            {
+                "asset": "ETH.XRUNE-0X69FA0FEE221AD11012BAB0FDB45D444D3D2CE71C",
+                "amount": "1818497213416249"
+            },
+            {
+                "asset": "ETH.YFI-0X0BC529C00C6401AEF6D220BE8C6EA1667F6AD93E",
+                "amount": "553045668"
+            },
+            {
+                "asset": "BNB.BAT-07A",
+                "amount": "42339777240"
+            },
+            {
+                "asset": "BNB.FRM-DE7",
+                "amount": "1934787663777"
+            },
+            {
+                "asset": "BNB.ADA-9F4",
+                "amount": "406635606461"
+            },
+            {
+                "asset": "BNB.USDT-6D8",
+                "amount": "15727577814"
+            },
+            {
+                "asset": "BNB.FTM-A64",
+                "amount": "9955579837"
+            },
+            {
+                "asset": "ETH.VIU-0X519475B31653E46D20CD09F9FDCF3B12BDACB4F5",
+                "amount": "2052271"
+            },
+            {
+                "asset": "ETH.RUNE-0X3155BA85D5F96B2D030A4966AF206230E46849CB",
+                "amount": "967714581654"
+            },
+            {
+                "asset": "BNB.RUNE-B1A",
+                "amount": "4552442470536"
+            }
+        ]`
+	var coins common.Coins
+	if err := json.Unmarshal([]byte(currentAsgardCoins), &coins); err != nil {
+		panic(err)
+	}
+	vault.AddFunds(coins)
+	c.Assert(mgr.Keeper().SetVault(ctx, vault), IsNil)
+	changesToVaultAndPools := []struct {
+		asset  string
+		amount cosmos.Uint
+	}{
+		{asset: "ETH.YFI-0X0BC529C00C6401AEF6D220BE8C6EA1667F6AD93E", amount: cosmos.NewUint(10015767)},
+		{asset: "ETH.USDT-0XDAC17F958D2EE523A2206206994597C13D831EC7", amount: cosmos.NewUint(555652034700)},
+		{asset: "ETH.XRUNE-0X69FA0FEE221AD11012BAB0FDB45D444D3D2CE71C", amount: cosmos.NewUint(43906122817485)},
+		{asset: "ETH.USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48", amount: cosmos.NewUint(2456761120600)},
+		{asset: "ETH.ALCX-0XDBDB4D16EDA451D0503B854CF79D55697F90C8DF", amount: cosmos.NewUint(3290908800)},
+		{asset: "ETH.CREAM-0X2BA592F78DB6436527729929AAF6C908497CB200", amount: cosmos.NewUint(1238645952)},
+		{asset: "ETH.SNX-0XC011A73EE8576FB46F5E1C5751CA3B9FE0AF2A6F", amount: cosmos.NewUint(21225979435)},
+		{asset: "ETH.DODO-0X43DFC4159D86F3A37A5A4B3D4580B888AD7D4DDD", amount: cosmos.NewUint(201067634531)},
+		{asset: "ETH.PERP-0XBC396689893D065F41BC2C6ECBEE5E0085233447", amount: cosmos.NewUint(43419172120)},
+		{asset: "ETH.SUSHI-0X6B3595068778DD592E39A122F4F5A5CF09C90FE2", amount: cosmos.NewUint(74548758317)},
+		{asset: "ETH.RAZE-0X5EAA69B29F99C84FE5DE8200340B4E9B4AB38EAC", amount: cosmos.NewUint(722328715369)},
+		{asset: "ETH.KYL-0X67B6D479C7BB412C54E03DCA8E1BC6740CE6B99C", amount: cosmos.NewUint(4450083484193)},
+		{asset: "ETH.ALPHA-0XA1FAA113CBE53436DF28FF0AEE54275C13B40975", amount: cosmos.NewUint(318113978753)},
+		{asset: "ETH.HOT-0X6C6EE5E31D828DE241282B9606C8E98EA48526E2", amount: cosmos.NewUint(60699215576820)},
+		{asset: "ETH.HEGIC-0X584BC13C7D411C00C01A62E8019472DE68768430", amount: cosmos.NewUint(1694523495579)},
+		{asset: "ETH.AAVE-0X7FC66500C84A76AD7E9C93437BFC5AC33E2DDAE9", amount: cosmos.NewUint(1073207831)},
+	}
+	// setup pools
+	for _, item := range changesToVaultAndPools {
+		asset, err := common.NewAsset(item.asset)
+		c.Assert(err, IsNil)
+		p := NewPool()
+		p.Asset = asset
+		p.Status = PoolAvailable
+		p.BalanceAsset = cosmos.NewUint(common.One)
+		p.BalanceRune = cosmos.NewUint(common.One)
+		c.Assert(mgr.Keeper().SetPool(ctx, p), IsNil)
+	}
+	migrateStoreV77(ctx, mgr)
+
+	vaultAfter, err := mgr.Keeper().GetVault(ctx, pubKey)
+	c.Assert(err, IsNil)
+	vaultAfter.SubFunds(vault.Coins)
+	vaultAfterCoins := vaultAfter.Coins
+
+	for _, item := range changesToVaultAndPools {
+		asset, err := common.NewAsset(item.asset)
+		c.Assert(err, IsNil)
+		c.Assert(vaultAfterCoins.Contains(common.NewCoin(asset, item.amount)), Equals, true)
+		p, err := mgr.Keeper().GetPool(ctx, asset)
+		c.Assert(err, IsNil)
+		c.Assert(p.BalanceAsset.Sub(cosmos.NewUint(common.One)).Equal(item.amount), Equals, true)
+	}
+}
+
+func (s *StoreManagerTestSuite) TestMigrateStoreV78(c *C) {
 	ctx, mgr := setupManagerForTest(c)
 
 	// MinimumBondInRune in mocknet = 100_000_000
@@ -826,7 +1046,7 @@ func (s *StoreManagerTestSuite) TestMigrateStoreV77(c *C) {
 	readyNa1 := GetRandomValidatorNode(NodeReady)
 	c.Assert(mgr.Keeper().SetNodeAccount(ctx, readyNa1), IsNil)
 
-	migrateStoreV77(ctx, mgr)
+	migrateStoreV78(ctx, mgr)
 
 	activeNa1, _ = mgr.Keeper().GetNodeAccount(ctx, activeNa1.NodeAddress)
 	c.Assert(activeNa1.EffectiveBond.Uint64(), Equals, uint64(300_000_000))
@@ -841,5 +1061,4 @@ func (s *StoreManagerTestSuite) TestMigrateStoreV77(c *C) {
 	c.Assert(standbyNa1.EffectiveBond.Uint64(), Equals, uint64(0))
 	readyNa1, _ = mgr.Keeper().GetNodeAccount(ctx, readyNa1.NodeAddress)
 	c.Assert(readyNa1.EffectiveBond.Uint64(), Equals, uint64(0))
-
 }
