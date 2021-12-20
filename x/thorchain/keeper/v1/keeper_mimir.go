@@ -14,11 +14,6 @@ const KRAKEN string = "ReleaseTheKraken"
 
 // GetMimir get a mimir value from key value store
 func (k KVStore) GetMimir(ctx cosmos.Context, key string) (int64, error) {
-	// if we have the kraken, mimir is no more, ignore him
-	if k.haveKraken(ctx) {
-		return -1, nil
-	}
-
 	// TODO: sync with chaosnet and see if this still causes a consensus failure or not
 	// ensure we don't cause a consensus failure and execute the following code
 	// in previous versions
@@ -36,6 +31,11 @@ func (k KVStore) GetMimir(ctx cosmos.Context, key string) (int64, error) {
 		if i, ok := nodeMimirs.HasSuperMajority(key, activeNodes.GetNodeAddresses()); ok {
 			return i, nil
 		}
+	}
+
+	// if we have the kraken, mimir is no more, ignore him
+	if k.haveKraken(ctx) {
+		return -1, nil
 	}
 
 	record := int64(-1)
@@ -61,10 +61,6 @@ func (k KVStore) SetMimir(ctx cosmos.Context, key string, value int64) {
 
 // GetNodeMimirs get node mimirs value from key value store
 func (k KVStore) GetNodeMimirs(ctx cosmos.Context, key string) (NodeMimirs, error) {
-	// if we have the kraken, mimir is no more, ignore him
-	if k.haveKraken(ctx) {
-		return NodeMimirs{}, nil
-	}
 	key = strings.ToUpper(key)
 
 	record := NodeMimirs{}
@@ -81,10 +77,6 @@ func (k KVStore) GetNodeMimirs(ctx cosmos.Context, key string) (NodeMimirs, erro
 
 // SetNodeMimir save a mimir value to key value store for a specific node
 func (k KVStore) SetNodeMimir(ctx cosmos.Context, key string, value int64, acc cosmos.AccAddress) error {
-	// if we have the kraken, mimir is no more, ignore him
-	if k.haveKraken(ctx) {
-		return nil
-	}
 	key = strings.ToUpper(key)
 
 	kvkey := k.GetKey(ctx, prefixNodeMimir, key)

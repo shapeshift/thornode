@@ -1170,7 +1170,7 @@ func queryMimirValues(ctx cosmos.Context, path []string, req abci.RequestQuery, 
 	iterNode := mgr.Keeper().GetNodeMimirIterator(ctx)
 	defer iterNode.Close()
 	for ; iterNode.Valid(); iterNode.Next() {
-		k := strings.TrimLeft(string(iter.Key()), "nodemimir//")
+		k := strings.TrimLeft(string(iterNode.Key()), "nodemimir//")
 		values[k] = 0
 	}
 
