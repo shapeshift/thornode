@@ -92,6 +92,10 @@ func (k *TestUnBondKeeper) GetNodeAccountJail(ctx cosmos.Context, addr cosmos.Ac
 	return Jail{}, nil
 }
 
+func (k *TestUnBondKeeper) GetBondProviders(_ cosmos.Context, acc cosmos.AccAddress) (BondProviders, error) {
+	return NewBondProviders(acc), nil
+}
+
 func (k *TestUnBondKeeper) GetAsgardVaultsByStatus(_ cosmos.Context, status VaultStatus) (Vaults, error) {
 	if status == k.vault.Status {
 		return Vaults{k.vault}, nil
@@ -176,7 +180,7 @@ func (HandlerUnBondSuite) TestUnBondHandler_Run(c *C) {
 		},
 		PubKey: standbyNodeAccount.PubKeySet.Secp256k1,
 	}
-	msg = NewMsgUnBond(txIn, standbyNodeAccount.NodeAddress, cosmos.NewUint(uint64(1)), GetRandomBNBAddress(), nil, standbyNodeAccount.NodeAddress)
+	msg = NewMsgUnBond(txIn, standbyNodeAccount.NodeAddress, cosmos.NewUint(uint64(1)), common.Address(standbyNodeAccount.NodeAddress.String()), nil, standbyNodeAccount.NodeAddress)
 	_, err = handler.Run(ctx, msg)
 	c.Assert(errors.Is(err, returnYggErr), Equals, true)
 
@@ -265,7 +269,7 @@ func (HandlerUnBondSuite) TestUnBondHandlerFailValidation(c *C) {
 		},
 		{
 			name:        "request not from original bond address should not be accepted",
-			msg:         NewMsgUnBond(GetRandomTx(), activeNodeAccount.NodeAddress, cosmos.NewUint(uint64(1)), activeNodeAccount.BondAddress, nil, activeNodeAccount.NodeAddress),
+			msg:         NewMsgUnBond(GetRandomTx(), GetRandomBech32Addr(), cosmos.NewUint(uint64(1)), activeNodeAccount.BondAddress, nil, activeNodeAccount.NodeAddress),
 			expectedErr: se.ErrUnauthorized,
 		},
 	}
