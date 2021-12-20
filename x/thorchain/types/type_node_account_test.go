@@ -2,7 +2,6 @@ package types
 
 import (
 	"encoding/json"
-	"fmt"
 	"sort"
 
 	. "gopkg.in/check.v1"
@@ -178,8 +177,34 @@ func (s *NodeAccountSuite) TestBondProviders(c *C) {
 	bp.Bond(cosmos.NewUint(300000), acc1)
 	bp.Bond(cosmos.NewUint(100000), acc2)
 	bp.Bond(cosmos.NewUint(50000), acc3)
-	fmt.Printf("%+v\n", bp)
 
 	c.Assert(bp.Has(acc1), Equals, true)
 	c.Assert(bp.Get(acc1).Bond.Uint64(), Equals, uint64(300000))
+	bp.Unbond(cosmos.NewUint(100000), acc1)
+	c.Assert(bp.Get(acc1).Bond.Uint64(), Equals, uint64(200000))
+	bp.Remove(acc3) // unsuccessful remove, due to bond still being there
+	c.Assert(bp.Get(acc3).Bond.Uint64(), Equals, uint64(50000))
+	bp.Unbond(cosmos.NewUint(100000), acc3)
+	bp.Remove(acc3) // unsuccessful remove, due to bond still being there
+	c.Assert(bp.Has(acc3), Equals, false)
+
+	// testing adjust
+	acc1 = GetRandomBech32Addr()
+	acc2 = GetRandomBech32Addr()
+	acc3 = GetRandomBech32Addr()
+	p1 = NewBondProvider(acc1)
+	p2 = NewBondProvider(acc2)
+	p3 = NewBondProvider(acc3)
+
+	bp = NewBondProviders(acc1)
+	bp.NodeOperatorFee = cosmos.NewUint(2000)
+	bp.Providers = []BondProvider{p1, p2, p3}
+	bp.Bond(cosmos.NewUint(300000), acc1)
+	bp.Bond(cosmos.NewUint(100000), acc2)
+	bp.Bond(cosmos.NewUint(50000), acc3)
+
+	bp.Adjust(cosmos.NewUint(500000))
+	c.Check(bp.Get(acc1).Bond.Uint64(), Equals, uint64(336667))
+	c.Check(bp.Get(acc2).Bond.Uint64(), Equals, uint64(108889))
+	c.Check(bp.Get(acc3).Bond.Uint64(), Equals, uint64(54444))
 }

@@ -120,7 +120,7 @@ func (h BondHandler) validate80(ctx cosmos.Context, msg MsgBond) error {
 	if err != nil {
 		return ErrInternal(err, fmt.Sprintf("fail to parse bond address(%s)", msg.BondAddress))
 	}
-	if !bp.Has(from) {
+	if !bp.Has(from) && !from.Equals(msg.NodeAddress) {
 		return cosmos.ErrUnknownRequest("bond address is not valid for node account")
 	}
 
@@ -131,6 +131,8 @@ func (h BondHandler) handle(ctx cosmos.Context, msg MsgBond) error {
 	version := h.mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.81.0")) {
 		return h.handleV81(ctx, msg)
+	if version.GTE(semver.MustParse("0.78.0")) {
+		return h.handleV78(ctx, msg)
 	} else if version.GTE(semver.MustParse("0.68.0")) {
 		return h.handleV68(ctx, msg)
 	} else if version.GTE(semver.MustParse("0.47.0")) {
