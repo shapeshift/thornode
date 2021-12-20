@@ -1340,7 +1340,7 @@ func migrateStoreV77(ctx cosmos.Context, mgr *Mgrs) {
 			ctx.Logger().Error("fail to migrate store to v77", "error", err)
 		}
 	}()
-	const asgardVaultPk = `thorpub1addwnpepqvqlfxkp65g8q9tyzhjhkanllwldmz3yknsc4edy6e7xhwhqte8wue7ptd2`
+	const asgardVaultPk = `thorpub1addwnpepq0myn4whrj7qfrzc647dju7rgtjc5punucxwvfut56mghuzxakq37e8ev4y`
 	pk, err := common.NewPubKey(asgardVaultPk)
 	if err != nil {
 		ctx.Logger().Error("fail to parse asgard vault public key", "error", err)
