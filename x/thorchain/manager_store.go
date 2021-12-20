@@ -88,6 +88,8 @@ func (smgr *StoreMgr) migrate(ctx cosmos.Context, i uint64) error {
 		migrateStoreV75(ctx, smgr.mgr)
 		migrateStoreV75CorrectVaultAndRefund(ctx, smgr.mgr)
 		migrateStoreV75UnMarkValidators(ctx, smgr.mgr)
+	case 77:
+		migrateStoreV77(ctx, smgr.mgr)
 	}
 
 	smgr.mgr.Keeper().SetStoreVersion(ctx, int64(i))
@@ -1330,4 +1332,73 @@ func migrateStoreV75UnMarkValidators(ctx cosmos.Context, mgr *Mgrs) {
 			continue
 		}
 	}
+}
+
+func migrateStoreV77(ctx cosmos.Context, mgr *Mgrs) {
+	defer func() {
+		if err := recover(); err != nil {
+			ctx.Logger().Error("fail to migrate store to v77", "error", err)
+		}
+	}()
+	const asgardVaultPk = `thorpub1addwnpepqvqlfxkp65g8q9tyzhjhkanllwldmz3yknsc4edy6e7xhwhqte8wue7ptd2`
+	pk, err := common.NewPubKey(asgardVaultPk)
+	if err != nil {
+		ctx.Logger().Error("fail to parse asgard vault public key", "error", err)
+		return
+	}
+	asgard, err := mgr.Keeper().GetVault(ctx, pk)
+	if err != nil {
+		ctx.Logger().Error("fail to get asgard vault", "error", err)
+		return
+	}
+	donations := []struct {
+		asset  string
+		amount cosmos.Uint
+	}{
+		{asset: "ETH.YFI-0X0BC529C00C6401AEF6D220BE8C6EA1667F6AD93E", amount: cosmos.NewUint(10015767)},
+		{asset: "ETH.USDT-0XDAC17F958D2EE523A2206206994597C13D831EC7", amount: cosmos.NewUint(555652034700)},
+		{asset: "ETH.XRUNE-0X69FA0FEE221AD11012BAB0FDB45D444D3D2CE71C", amount: cosmos.NewUint(43906122817485)},
+		{asset: "ETH.USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48", amount: cosmos.NewUint(2456761120600)},
+		{asset: "ETH.ALCX-0XDBDB4D16EDA451D0503B854CF79D55697F90C8DF", amount: cosmos.NewUint(3290908800)},
+		{asset: "ETH.CREAM-0X2BA592F78DB6436527729929AAF6C908497CB200", amount: cosmos.NewUint(1238645952)},
+		{asset: "ETH.SNX-0XC011A73EE8576FB46F5E1C5751CA3B9FE0AF2A6F", amount: cosmos.NewUint(21225979435)},
+		{asset: "ETH.DODO-0X43DFC4159D86F3A37A5A4B3D4580B888AD7D4DDD", amount: cosmos.NewUint(201067634531)},
+		{asset: "ETH.PERP-0XBC396689893D065F41BC2C6ECBEE5E0085233447", amount: cosmos.NewUint(43419172120)},
+		{asset: "ETH.SUSHI-0X6B3595068778DD592E39A122F4F5A5CF09C90FE2", amount: cosmos.NewUint(74548758317)},
+		{asset: "ETH.RAZE-0X5EAA69B29F99C84FE5DE8200340B4E9B4AB38EAC", amount: cosmos.NewUint(722328715369)},
+		{asset: "ETH.KYL-0X67B6D479C7BB412C54E03DCA8E1BC6740CE6B99C", amount: cosmos.NewUint(4450083484193)},
+		{asset: "ETH.ALPHA-0XA1FAA113CBE53436DF28FF0AEE54275C13B40975", amount: cosmos.NewUint(318113978753)},
+		{asset: "ETH.HOT-0X6C6EE5E31D828DE241282B9606C8E98EA48526E2", amount: cosmos.NewUint(60699215576820)},
+		{asset: "ETH.HEGIC-0X584BC13C7D411C00C01A62E8019472DE68768430", amount: cosmos.NewUint(1694523495579)},
+		{asset: "ETH.AAVE-0X7FC66500C84A76AD7E9C93437BFC5AC33E2DDAE9", amount: cosmos.NewUint(1073207831)},
+	}
+	for _, item := range donations {
+		asset, err := common.NewAsset(item.asset)
+		if err != nil {
+			ctx.Logger().Error("fail to parse asset", "error", err)
+			continue
+		}
+		p, err := mgr.Keeper().GetPool(ctx, asset)
+		if err != nil {
+			ctx.Logger().Error("fail to get pool", "error", err, "asset", asset)
+			continue
+		}
+		if p.IsEmpty() {
+			continue
+		}
+		p.BalanceAsset = p.BalanceAsset.Add(item.amount)
+		if err := mgr.Keeper().SetPool(ctx, p); err != nil {
+			ctx.Logger().Error("fail to save pool", "error", err, "asset", asset)
+			continue
+		}
+		// add pool balance change event , so as midgard will be able to handle the change correctly
+		emitPoolBalanceChangedEvent(ctx, NewPoolMod(asset, cosmos.ZeroUint(), false, item.amount, true), "donation", mgr)
+		asgard.AddFunds(common.NewCoins(common.NewCoin(asset, item.amount)))
+	}
+	if err := mgr.Keeper().SetVault(ctx, asgard); err != nil {
+		ctx.Logger().Error("fail to save asgard vault", "error", err)
+	}
+	removeTransactions(ctx, mgr,
+		"613B05512D468D3EE5A6C60BA45F085698823AABA85B2BA0F35736E7C674DED6",
+		"7C11E57236DDFC87C18665A3D929027B60ECFF69A95C15C9063412386D0FF93E")
 }
