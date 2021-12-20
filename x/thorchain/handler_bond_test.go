@@ -118,7 +118,7 @@ func (HandlerBondSuite) TestBondHandler_Run(c *C) {
 	c.Assert(errors.Is(err, errInternal), Equals, true)
 
 	// When node account is active , it is ok to bond
-	msg = NewMsgBond(txIn, k.notEmptyNodeAccount.NodeAddress, cosmos.NewUint(uint64(minimumBondInRune)), GetRandomTHORAddress(), nil, activeNodeAccount.NodeAddress)
+	msg = NewMsgBond(txIn, k.notEmptyNodeAccount.NodeAddress, cosmos.NewUint(uint64(minimumBondInRune)), common.Address(k.notEmptyNodeAccount.NodeAddress.String()), nil, activeNodeAccount.NodeAddress)
 	_, err = handler.Run(ctx, msg)
 	c.Assert(err, IsNil)
 }

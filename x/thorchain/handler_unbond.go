@@ -47,8 +47,8 @@ func (h UnBondHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Result, er
 
 func (h UnBondHandler) validate(ctx cosmos.Context, msg MsgUnBond) error {
 	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.77.0")) {
-		return h.validateV55(ctx, msg)
+	if version.GTE(semver.MustParse("0.78.0")) {
+		return h.validateV78(ctx, msg)
 	} else if version.GTE(semver.MustParse("0.55.0")) {
 		return h.validateV55(ctx, msg)
 	} else if version.GTE(semver.MustParse("0.1.0")) {
@@ -57,7 +57,7 @@ func (h UnBondHandler) validate(ctx cosmos.Context, msg MsgUnBond) error {
 	return errBadVersion
 }
 
-func (h UnBondHandler) validateV77(ctx cosmos.Context, msg MsgUnBond) error {
+func (h UnBondHandler) validateV78(ctx cosmos.Context, msg MsgUnBond) error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
@@ -110,8 +110,8 @@ func (h UnBondHandler) validateV77(ctx cosmos.Context, msg MsgUnBond) error {
 
 func (h UnBondHandler) handle(ctx cosmos.Context, msg MsgUnBond) error {
 	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.77.0")) {
-		return h.handleV77(ctx, msg)
+	if version.GTE(semver.MustParse("0.78.0")) {
+		return h.handleV78(ctx, msg)
 	} else if version.GTE(semver.MustParse("0.76.0")) {
 		return h.handleV76(ctx, msg)
 	} else if version.GTE(semver.MustParse("0.55.0")) {
@@ -124,7 +124,7 @@ func (h UnBondHandler) handle(ctx cosmos.Context, msg MsgUnBond) error {
 	return errBadVersion
 }
 
-func (h UnBondHandler) handleV77(ctx cosmos.Context, msg MsgUnBond) error {
+func (h UnBondHandler) handleV78(ctx cosmos.Context, msg MsgUnBond) error {
 	na, err := h.mgr.Keeper().GetNodeAccount(ctx, msg.NodeAddress)
 	if err != nil {
 		return ErrInternal(err, fmt.Sprintf("fail to get node account(%s)", msg.NodeAddress))
