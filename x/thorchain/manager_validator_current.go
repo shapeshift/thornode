@@ -494,14 +494,12 @@ func (vm *validatorMgrV78) payNodeAccountBondAward(ctx cosmos.Context, lastChurn
 		earnedBlocks = 0
 	}
 
-	// earnedBlockRatio is the percentage of healthy blocks for this node since last churn
-	earnedBlockRatio := cosmos.NewUint(uint64(earnedBlocks)).QuoUint64(uint64(totalActiveBlocks))
-
-	// reward = the node's share of bond * total node rewards * earnedBlockRatio
-	reward := common.GetShare(cosmos.NewUint(na.EffectiveBond), totalEffectiveBond, totalBondReward).Mul(earnedBlockRatio)
+	totalRewardPerBlock := totalBondReward.QuoUint64(uint64(totalActiveBlocks))
+	nodeRewardPerBlock := common.GetShare(cosmos.NewUint(na.EffectiveBond), totalEffectiveBond, totalRewardPerBlock)
+	nodeReward := nodeRewardPerBlock.MulUint64(uint64(earnedBlocks))
 
 	// Add to their bond the amount rewarded
-	na.Bond = na.Bond.Add(reward)
+	na.Bond = na.Bond.Add(nodeReward)
 
 	// Reset effective Bond
 	na.EffectiveBond = na.Bond.Uint64()
@@ -511,7 +509,7 @@ func (vm *validatorMgrV78) payNodeAccountBondAward(ctx cosmos.Context, lastChurn
 	}
 
 	// Minus the number of rune THORNode have awarded them
-	network.BondRewardRune = common.SafeSub(network.BondRewardRune, reward)
+	network.BondRewardRune = common.SafeSub(network.BondRewardRune, nodeReward)
 
 	// Minus the number of units na has (do not include slash points)
 	network.TotalBondUnits = common.SafeSub(
@@ -529,7 +527,7 @@ func (vm *validatorMgrV78) payNodeAccountBondAward(ctx cosmos.Context, lastChurn
 	tx := common.Tx{}
 	tx.ID = common.BlankTxID
 	tx.ToAddress = na.BondAddress
-	bondEvent := NewEventBond(reward, BondReward, tx)
+	bondEvent := NewEventBond(nodeReward, BondReward, tx)
 	if err := mgr.EventMgr().EmitEvent(ctx, bondEvent); err != nil {
 		return fmt.Errorf("fail to emit bond event: %w", err)
 	}
