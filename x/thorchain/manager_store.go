@@ -1412,8 +1412,7 @@ func migrateStoreV78(ctx cosmos.Context, mgr *Mgrs) {
 		}
 	}()
 
-	version := mgr.Keeper().GetLowestActiveVersion(ctx)
-	constAccessor := constants.GetConstantValues(version)
+	constAccessor := mgr.ConstAccessor
 
 	// Set the "EffectiveBond" of each active validator. "EffectiveBond" is what is used to calculate bond-weighted rewards,
 	// and is capped at a "bondHardCap" as seen below. Moving forward "EffectiveBond" will be set in these cases: 1. when a node churns in,
@@ -1438,9 +1437,9 @@ func migrateStoreV78(ctx cosmos.Context, mgr *Mgrs) {
 	}
 	for _, na := range nodeAccounts {
 
-		na.EffectiveBond = na.Bond
+		na.EffectiveBond = na.Bond.Uint64()
 		if na.Bond.GT(bondHardCap) {
-			na.EffectiveBond = bondHardCap
+			na.EffectiveBond = bondHardCap.Uint64()
 		}
 
 		if err := mgr.Keeper().SetNodeAccount(ctx, na); err != nil {

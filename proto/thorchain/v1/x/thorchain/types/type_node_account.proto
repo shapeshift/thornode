@@ -43,5 +43,5 @@ message NodeAccount {
   string ip_address = 13 [(gogoproto.customname) = "IPAddress"];
   string version = 14;
   NodeType type = 15;
-  string effective_bond = 16 [(gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Uint", (gogoproto.nullable) = false];
+  uint64 effective_bond = 16;
 }
