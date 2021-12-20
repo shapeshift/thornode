@@ -1049,16 +1049,16 @@ func (s *StoreManagerTestSuite) TestMigrateStoreV78(c *C) {
 	migrateStoreV78(ctx, mgr)
 
 	activeNa1, _ = mgr.Keeper().GetNodeAccount(ctx, activeNa1.NodeAddress)
-	c.Assert(activeNa1.EffectiveBond.Uint64(), Equals, uint64(300_000_000))
+	c.Assert(activeNa1.EffectiveBond, Equals, uint64(300_000_000))
 
 	activeNa2, _ = mgr.Keeper().GetNodeAccount(ctx, activeNa2.NodeAddress)
-	c.Assert(activeNa2.EffectiveBond.Uint64(), Equals, uint64(300_000_000))
+	c.Assert(activeNa2.EffectiveBond, Equals, uint64(300_000_000))
 
 	activeNa3, _ = mgr.Keeper().GetNodeAccount(ctx, activeNa3.NodeAddress)
-	c.Assert(activeNa3.EffectiveBond.Uint64(), Equals, uint64(100_000_000))
+	c.Assert(activeNa3.EffectiveBond, Equals, uint64(100_000_000))
 
 	standbyNa1, _ = mgr.Keeper().GetNodeAccount(ctx, standbyNa1.NodeAddress)
-	c.Assert(standbyNa1.EffectiveBond.Uint64(), Equals, uint64(0))
+	c.Assert(standbyNa1.EffectiveBond, Equals, uint64(0))
 	readyNa1, _ = mgr.Keeper().GetNodeAccount(ctx, readyNa1.NodeAddress)
-	c.Assert(readyNa1.EffectiveBond.Uint64(), Equals, uint64(0))
+	c.Assert(readyNa1.EffectiveBond, Equals, uint64(0))
 }
