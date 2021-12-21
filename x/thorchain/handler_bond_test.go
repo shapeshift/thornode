@@ -3,6 +3,7 @@ package thorchain
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	se "github.com/cosmos/cosmos-sdk/types/errors"
 	. "gopkg.in/check.v1"
@@ -17,14 +18,14 @@ type HandlerBondSuite struct{}
 
 type TestBondKeeper struct {
 	keeper.Keeper
-	activeNodeAccount   NodeAccount
+	standbyNodeAccount  NodeAccount
 	failGetNodeAccount  NodeAccount
 	notEmptyNodeAccount NodeAccount
 }
 
 func (k *TestBondKeeper) GetNodeAccount(_ cosmos.Context, addr cosmos.AccAddress) (NodeAccount, error) {
-	if k.activeNodeAccount.NodeAddress.Equals(addr) {
-		return k.activeNodeAccount, nil
+	if k.standbyNodeAccount.NodeAddress.Equals(addr) {
+		return k.standbyNodeAccount, nil
 	}
 	if k.failGetNodeAccount.NodeAddress.Equals(addr) {
 		return NodeAccount{}, fmt.Errorf("you asked for this error")
@@ -74,15 +75,15 @@ func (HandlerBondSuite) TestBondHandler_ValidateActive(c *C) {
 func (HandlerBondSuite) TestBondHandler_Run(c *C) {
 	ctx, k1 := setupKeeperForTest(c)
 
-	activeNodeAccount := GetRandomValidatorNode(NodeActive)
+	standbyNodeAccount := GetRandomValidatorNode(NodeStandby)
 	k := &TestBondKeeper{
 		Keeper:              k1,
-		activeNodeAccount:   activeNodeAccount,
-		failGetNodeAccount:  GetRandomValidatorNode(NodeActive),
+		standbyNodeAccount:  standbyNodeAccount,
+		failGetNodeAccount:  GetRandomValidatorNode(NodeStandby),
 		notEmptyNodeAccount: GetRandomValidatorNode(NodeStandby),
 	}
 	// happy path
-	c.Assert(k1.SetNodeAccount(ctx, activeNodeAccount), IsNil)
+	c.Assert(k1.SetNodeAccount(ctx, standbyNodeAccount), IsNil)
 	handler := NewBondHandler(NewDummyMgrWithKeeper(k1))
 	ver := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(ver)
@@ -98,7 +99,7 @@ func (HandlerBondSuite) TestBondHandler_Run(c *C) {
 		"bond",
 	)
 	FundModule(c, ctx, k1, BondName, uint64(minimumBondInRune))
-	msg := NewMsgBond(txIn, GetRandomValidatorNode(NodeStandby).NodeAddress, cosmos.NewUint(uint64(minimumBondInRune)+common.One), GetRandomTHORAddress(), nil, activeNodeAccount.NodeAddress)
+	msg := NewMsgBond(txIn, GetRandomValidatorNode(NodeStandby).NodeAddress, cosmos.NewUint(uint64(minimumBondInRune)+common.One), GetRandomTHORAddress(), nil, standbyNodeAccount.NodeAddress)
 	_, err := handler.Run(ctx, msg)
 	c.Assert(err, IsNil)
 	coin := common.NewCoin(common.RuneNative, cosmos.NewUint(common.One))
@@ -113,12 +114,12 @@ func (HandlerBondSuite) TestBondHandler_Run(c *C) {
 	// simulate fail to get node account
 	handler = NewBondHandler(NewDummyMgrWithKeeper(k))
 	ver = GetCurrentVersion()
-	msg = NewMsgBond(txIn, k.failGetNodeAccount.NodeAddress, cosmos.NewUint(uint64(minimumBondInRune)), GetRandomTHORAddress(), nil, activeNodeAccount.NodeAddress)
+	msg = NewMsgBond(txIn, k.failGetNodeAccount.NodeAddress, cosmos.NewUint(uint64(minimumBondInRune)), GetRandomTHORAddress(), nil, standbyNodeAccount.NodeAddress)
 	_, err = handler.Run(ctx, msg)
 	c.Assert(errors.Is(err, errInternal), Equals, true)
 
-	// When node account is active , it is ok to bond
-	msg = NewMsgBond(txIn, k.notEmptyNodeAccount.NodeAddress, cosmos.NewUint(uint64(minimumBondInRune)), common.Address(k.notEmptyNodeAccount.NodeAddress.String()), nil, activeNodeAccount.NodeAddress)
+	// When node account is standby , it is ok to bond
+	msg = NewMsgBond(txIn, k.notEmptyNodeAccount.NodeAddress, cosmos.NewUint(uint64(minimumBondInRune)), common.Address(k.notEmptyNodeAccount.NodeAddress.String()), nil, standbyNodeAccount.NodeAddress)
 	_, err = handler.Run(ctx, msg)
 	c.Assert(err, IsNil)
 }
@@ -184,4 +185,93 @@ func (HandlerBondSuite) TestBondHandlerFailValidation(c *C) {
 		_, err := handler.Run(ctx, item.msg)
 		c.Check(errors.Is(err, item.expectedErr), Equals, true, Commentf("name: %s, %s != %s", item.name, item.expectedErr, err))
 	}
+}
+
+func (HandlerBondSuite) TestBondProvider_Validate(c *C) {
+	ctx, k := setupKeeperForTest(c)
+	activeNodeAccount := GetRandomValidatorNode(NodeActive)
+	c.Assert(k.SetNodeAccount(ctx, activeNodeAccount), IsNil)
+	standbyNodeAccount := GetRandomValidatorNode(NodeStandby)
+	c.Assert(k.SetNodeAccount(ctx, standbyNodeAccount), IsNil)
+	handler := NewBondHandler(NewDummyMgrWithKeeper(k))
+	txIn := GetRandomTx()
+	amt := cosmos.NewUint(100 * common.One)
+	txIn.Coins = common.NewCoins(common.NewCoin(common.RuneAsset(), amt))
+	activeNA := activeNodeAccount.NodeAddress
+	activeNAAddress := common.Address(activeNA.String())
+	standbyNA := standbyNodeAccount.NodeAddress
+	standbyNAAddress := common.Address(standbyNA.String())
+	additionalBondAddress := GetRandomBech32Addr()
+
+	errCheck := func(c *C, err error, str string) {
+		c.Check(strings.Contains(err.Error(), str), Equals, true, Commentf("%w", err))
+	}
+
+	// TEST VALIDATION //
+	// happy path
+	msg := NewMsgBond(txIn, standbyNA, amt, standbyNAAddress, additionalBondAddress, activeNA)
+	err := handler.validate(ctx, *msg)
+	c.Assert(err, IsNil)
+
+	// try to bond while node account is active
+	msg = NewMsgBond(txIn, activeNA, amt, activeNAAddress, nil, activeNA)
+	err = handler.validate(ctx, *msg)
+	errCheck(c, err, "node account is active or ready status")
+
+	// try to bond with a bnb address
+	msg = NewMsgBond(txIn, standbyNA, amt, GetRandomBNBAddress(), nil, activeNA)
+	err = handler.validate(ctx, *msg)
+	errCheck(c, err, "bonding address is NOT a THORChain address")
+
+	// try to bond with a valid additional bond provider
+	bp := NewBondProviders(standbyNA)
+	bp.Providers = []BondProvider{NewBondProvider(additionalBondAddress)}
+	c.Assert(k.SetBondProviders(ctx, bp), IsNil)
+	msg = NewMsgBond(txIn, standbyNA, amt, common.Address(additionalBondAddress.String()), nil, activeNA)
+	err = handler.validate(ctx, *msg)
+	c.Assert(err, IsNil)
+
+	// try to bond with an invalid additional bond provider
+	msg = NewMsgBond(txIn, standbyNA, amt, GetRandomTHORAddress(), nil, activeNA)
+	err = handler.validate(ctx, *msg)
+	errCheck(c, err, "bond address is not valid for node account")
+
+}
+
+func (HandlerBondSuite) TestBondProvider_Handler(c *C) {
+	fmt.Println("*******************************************")
+	defer fmt.Println("*******************************************")
+	ctx, k := setupKeeperForTest(c)
+	activeNodeAccount := GetRandomValidatorNode(NodeActive)
+	c.Assert(k.SetNodeAccount(ctx, activeNodeAccount), IsNil)
+	standbyNodeAccount := GetRandomValidatorNode(NodeStandby)
+	c.Assert(k.SetNodeAccount(ctx, standbyNodeAccount), IsNil)
+	handler := NewBondHandler(NewDummyMgrWithKeeper(k))
+	txIn := GetRandomTx()
+	amt := cosmos.NewUint(105 * common.One)
+	txIn.Coins = common.NewCoins(common.NewCoin(common.RuneAsset(), amt))
+	activeNA := activeNodeAccount.NodeAddress
+	// activeNAAddress := common.Address(activeNA.String())
+	standbyNA := standbyNodeAccount.NodeAddress
+	standbyNAAddress := common.Address(standbyNA.String())
+	additionalBondAddress := GetRandomBech32Addr()
+
+	/*
+		errCheck := func(c *C, err error, str string) {
+			c.Check(strings.Contains(err.Error(), str), Equals, true, Commentf("%w", err))
+		}
+	*/
+
+	// TEST HANDLER //
+	// happy path, and add a whitelisted address
+	msg := NewMsgBond(txIn, standbyNA, amt, standbyNAAddress, additionalBondAddress, activeNA)
+	err := handler.handle(ctx, *msg)
+	c.Assert(err, IsNil)
+	na, _ := k.GetNodeAccount(ctx, standbyNA)
+	c.Check(na.Bond.Uint64(), Equals, amt.Uint64(), Commentf("%d", na.Bond.Uint64()))
+	bp, _ := k.GetBondProviders(ctx, standbyNA)
+	c.Assert(bp.Providers, HasLen, 1)
+	fmt.Printf("%+v\n", bp)
+	c.Assert(bp.Has(additionalBondAddress), Equals, true)
+	c.Assert(bp.Get(additionalBondAddress).Bond.Uint64(), Equals, uint64(0), Commentf("%d", bp.Get(additionalBondAddress).Bond.Uint64()))
 }
