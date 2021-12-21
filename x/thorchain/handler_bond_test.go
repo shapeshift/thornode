@@ -235,12 +235,9 @@ func (HandlerBondSuite) TestBondProvider_Validate(c *C) {
 	msg = NewMsgBond(txIn, standbyNA, amt, GetRandomTHORAddress(), nil, activeNA)
 	err = handler.validate(ctx, *msg)
 	errCheck(c, err, "bond address is not valid for node account")
-
 }
 
 func (HandlerBondSuite) TestBondProvider_Handler(c *C) {
-	fmt.Println("*******************************************")
-	defer fmt.Println("*******************************************")
 	ctx, k := setupKeeperForTest(c)
 	activeNodeAccount := GetRandomValidatorNode(NodeActive)
 	c.Assert(k.SetNodeAccount(ctx, activeNodeAccount), IsNil)
@@ -255,23 +252,34 @@ func (HandlerBondSuite) TestBondProvider_Handler(c *C) {
 	standbyNA := standbyNodeAccount.NodeAddress
 	standbyNAAddress := common.Address(standbyNA.String())
 	additionalBondAddress := GetRandomBech32Addr()
-
-	/*
-		errCheck := func(c *C, err error, str string) {
-			c.Check(strings.Contains(err.Error(), str), Equals, true, Commentf("%w", err))
-		}
-	*/
+	FundAccount(c, ctx, k, standbyNA, amt.Uint64())
+	FundAccount(c, ctx, k, activeNA, amt.Uint64())
 
 	// TEST HANDLER //
 	// happy path, and add a whitelisted address
 	msg := NewMsgBond(txIn, standbyNA, amt, standbyNAAddress, additionalBondAddress, activeNA)
 	err := handler.handle(ctx, *msg)
 	c.Assert(err, IsNil)
-	na, _ := k.GetNodeAccount(ctx, standbyNA)
-	c.Check(na.Bond.Uint64(), Equals, amt.Uint64(), Commentf("%d", na.Bond.Uint64()))
+	na, _ := handler.mgr.Keeper().GetNodeAccount(ctx, standbyNA)
+	c.Check(na.Bond.Uint64(), Equals, amt.Uint64()+(100*common.One), Commentf("%d", na.Bond.Uint64()))
 	bp, _ := k.GetBondProviders(ctx, standbyNA)
-	c.Assert(bp.Providers, HasLen, 1)
-	fmt.Printf("%+v\n", bp)
+	c.Assert(bp.Providers, HasLen, 2)
 	c.Assert(bp.Has(additionalBondAddress), Equals, true)
 	c.Assert(bp.Get(additionalBondAddress).Bond.Uint64(), Equals, uint64(0), Commentf("%d", bp.Get(additionalBondAddress).Bond.Uint64()))
+
+	// bond with additional bonder
+	msg = NewMsgBond(txIn, standbyNA, amt, common.Address(additionalBondAddress.String()), nil, activeNA)
+	err = handler.handle(ctx, *msg)
+	c.Assert(err, IsNil)
+	bp, _ = k.GetBondProviders(ctx, standbyNA)
+	c.Assert(bp.Providers, HasLen, 2)
+	c.Assert(bp.Has(additionalBondAddress), Equals, true)
+	c.Assert(bp.Get(additionalBondAddress).Bond.Uint64(), Equals, amt.Uint64(), Commentf("%d", bp.Get(additionalBondAddress).Bond.Uint64()))
+
+	// bond with random bonder (doesnt' add new provider, still 2)
+	msg = NewMsgBond(txIn, standbyNA, amt, GetRandomTHORAddress(), nil, activeNA)
+	err = handler.handle(ctx, *msg)
+	c.Assert(err, IsNil)
+	bp, _ = k.GetBondProviders(ctx, standbyNA)
+	c.Assert(bp.Providers, HasLen, 2)
 }

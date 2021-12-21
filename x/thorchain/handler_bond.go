@@ -157,7 +157,6 @@ func (h BondHandler) handleV81(ctx cosmos.Context, msg MsgBond) error {
 	if err != nil {
 		return ErrInternal(err, fmt.Sprintf("fail to get node account(%s)", msg.NodeAddress))
 	}
-	fmt.Printf("MSG: %+v\n", msg)
 
 	if nodeAccount.Status == NodeUnknown {
 		// THORNode will not have pub keys at the moment, so have to leave it empty
@@ -174,7 +173,6 @@ func (h BondHandler) handleV81(ctx cosmos.Context, msg MsgBond) error {
 	}
 	originalBond := nodeAccount.Bond
 	nodeAccount.Bond = nodeAccount.Bond.Add(msg.Bond)
-	fmt.Printf("Bond: %d --> %d\n", originalBond.Uint64(), nodeAccount.Bond.Uint64())
 
 	acct := h.mgr.Keeper().GetAccount(ctx, msg.NodeAddress)
 
@@ -227,7 +225,9 @@ func (h BondHandler) handleV81(ctx cosmos.Context, msg MsgBond) error {
 		if int64(len(bp.Providers)) >= max {
 			return fmt.Errorf("additional bond providers are not allowed, maximum reached")
 		}
-		bp.Bond(cosmos.ZeroUint(), msg.BondProviderAddress)
+		if !bp.Has(msg.BondProviderAddress) {
+			bp.Providers = append(bp.Providers, NewBondProvider(msg.BondProviderAddress))
+		}
 	}
 
 	from, err := msg.BondAddress.AccAddress()
@@ -247,5 +247,6 @@ func (h BondHandler) handleV81(ctx cosmos.Context, msg MsgBond) error {
 		ctx.Logger().Error("fail to emit bond event", "error", err)
 	}
 
+	fmt.Println("done.")
 	return nil
 }
