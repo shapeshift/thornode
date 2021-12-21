@@ -82,6 +82,7 @@ func (cv *ConstantVals) GetStringValue(name ConstantName) string {
 
 func (cv *ConstantVals) String() string {
 	sb := strings.Builder{}
+	// analyze-ignore(map-iteration)
 	for k, v := range cv.int64values {
 		if overrideValue, ok := int64Overrides[k]; ok {
 			sb.WriteString(fmt.Sprintf("%s:%d\n", k, overrideValue))
@@ -89,6 +90,7 @@ func (cv *ConstantVals) String() string {
 		}
 		sb.WriteString(fmt.Sprintf("%s:%d\n", k, v))
 	}
+	// analyze-ignore(map-iteration)
 	for k, v := range cv.boolValues {
 		if overrideValue, ok := boolOverrides[k]; ok {
 			sb.WriteString(fmt.Sprintf("%s:%v\n", k, overrideValue))
@@ -109,21 +111,27 @@ func (cv ConstantVals) MarshalJSON() ([]byte, error) {
 	result.Int64Values = make(map[string]int64)
 	result.BoolValues = make(map[string]bool)
 	result.StringValues = make(map[string]string)
+	// analyze-ignore(map-iteration)
 	for k, v := range cv.int64values {
 		result.Int64Values[k.String()] = v
 	}
+	// analyze-ignore(map-iteration)
 	for k, v := range int64Overrides {
 		result.Int64Values[k.String()] = v
 	}
+	// analyze-ignore(map-iteration)
 	for k, v := range cv.boolValues {
 		result.BoolValues[k.String()] = v
 	}
+	// analyze-ignore(map-iteration)
 	for k, v := range boolOverrides {
 		result.BoolValues[k.String()] = v
 	}
+	// analyze-ignore(map-iteration)
 	for k, v := range cv.stringValues {
 		result.StringValues[k.String()] = v
 	}
+	// analyze-ignore(map-iteration)
 	for k, v := range stringOverrides {
 		result.StringValues[k.String()] = v
 	}
