@@ -32,6 +32,8 @@ const MaxMemoSize = 250
 // MaxETHGas define the maximum gas for a single transaction on ETH
 const MaxETHGas = 50000000
 
+const CtxMetricLabels = "metricLabels"
+
 // ConstantVals implement ConstantValues interface
 type ConstantVals struct {
 	int64values  map[ConstantName]int64
