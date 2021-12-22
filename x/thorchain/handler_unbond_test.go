@@ -388,7 +388,23 @@ func (HandlerUnBondSuite) TestBondProviders_Handler(c *C) {
 	na, _ = handler.mgr.Keeper().GetNodeAccount(ctx, standbyNodeAccount.NodeAddress)
 	c.Check(na.Bond.Uint64(), Equals, uint64(95*common.One), Commentf("%d", na.Bond.Uint64()))
 	bp, _ = handler.mgr.Keeper().GetBondProviders(ctx, standbyNodeAccount.NodeAddress)
-	fmt.Printf("BP: %+v\n", bp)
 	c.Check(bp.Has(p.BondAddress), Equals, false)
+
+	// bond provider unbond themselves
+	p = NewBondProvider(GetRandomBech32Addr())
+	p.Bond = cosmos.NewUint(50 * common.One)
+	bp.Providers = append(bp.Providers, p)
+	na.Bond = na.Bond.Add(p.Bond)
+	c.Assert(k.SetBondProviders(ctx, bp), IsNil)
+	c.Assert(k.SetNodeAccount(ctx, na), IsNil)
+
+	msg = NewMsgUnBond(txIn, standbyNodeAccount.NodeAddress, cosmos.NewUint(10*common.One), common.Address(p.BondAddress.String()), nil, activeNodeAccount.NodeAddress)
+	err = handler.handle(ctx, *msg)
+	c.Assert(err, IsNil)
+	na, _ = handler.mgr.Keeper().GetNodeAccount(ctx, standbyNodeAccount.NodeAddress)
+	c.Check(na.Bond.Uint64(), Equals, uint64(135*common.One), Commentf("%d", na.Bond.Uint64()))
+	bp, _ = handler.mgr.Keeper().GetBondProviders(ctx, standbyNodeAccount.NodeAddress)
+	c.Check(bp.Has(p.BondAddress), Equals, true)
+	c.Check(bp.Get(p.BondAddress).Bond.Uint64(), Equals, uint64(40*common.One))
 
 }
