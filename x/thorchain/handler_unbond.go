@@ -229,7 +229,7 @@ func (h UnBondHandler) handleV78(ctx cosmos.Context, msg MsgUnBond) error {
 				return ErrInternal(err, fmt.Sprintf("fail to get bond providers(%s)", na.NodeAddress))
 			}
 			provider := bp.Get(msg.BondProviderAddress)
-			if !provider.IsEmpty() && !provider.Bond.IsZero() {
+			if !provider.IsEmpty() && provider.Bond.IsZero() {
 				if ok := bp.Remove(msg.BondProviderAddress); ok {
 					if err := h.mgr.Keeper().SetBondProviders(ctx, bp); err != nil {
 						return ErrInternal(err, fmt.Sprintf("fail to save bond providers(%s)", bp.NodeAddress.String()))
@@ -245,7 +245,6 @@ func (h UnBondHandler) handleV78(ctx cosmos.Context, msg MsgUnBond) error {
 
 	coin := msg.TxIn.Coins.GetCoin(common.RuneAsset())
 	if !coin.IsEmpty() {
-
 		na.Bond = na.Bond.Add(coin.Amount)
 		if err := h.mgr.Keeper().SetNodeAccount(ctx, na); err != nil {
 			return ErrInternal(err, "fail to save node account to key value store")
