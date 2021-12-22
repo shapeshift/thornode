@@ -323,3 +323,72 @@ func (HandlerUnBondSuite) TestUnBondHanlder_retiringvault(c *C) {
 	_, err := handler.Run(ctx, msg)
 	c.Assert(err, NotNil)
 }
+
+func (HandlerUnBondSuite) TestBondProviders_Validate(c *C) {
+	ctx, k := setupKeeperForTest(c)
+	activeNodeAccount := GetRandomValidatorNode(NodeActive)
+	standbyNodeAccount := GetRandomValidatorNode(NodeStandby)
+	c.Assert(k.SetNodeAccount(ctx, activeNodeAccount), IsNil)
+	c.Assert(k.SetNodeAccount(ctx, standbyNodeAccount), IsNil)
+	txIn := GetRandomTx()
+	txIn.Coins = common.NewCoins(common.NewCoin(common.RuneAsset(), cosmos.NewUint(100*common.One)))
+	handler := NewUnBondHandler(NewDummyMgrWithKeeper(k))
+
+	// happy path
+	msg := NewMsgUnBond(txIn, standbyNodeAccount.NodeAddress, cosmos.NewUint(5*common.One), standbyNodeAccount.BondAddress, nil, activeNodeAccount.NodeAddress)
+	err := handler.validate(ctx, *msg)
+	c.Assert(err, IsNil)
+
+	// cannot unbond an active node
+	msg = NewMsgUnBond(txIn, activeNodeAccount.NodeAddress, cosmos.NewUint(5*common.One), activeNodeAccount.BondAddress, nil, activeNodeAccount.NodeAddress)
+	err = handler.validate(ctx, *msg)
+	c.Assert(err, NotNil)
+
+	// test unbonding a bond provider
+	bp := NewBondProviders(standbyNodeAccount.NodeAddress)
+	p := NewBondProvider(GetRandomBech32Addr())
+	bp.Providers = []BondProvider{p}
+	c.Assert(k.SetBondProviders(ctx, bp), IsNil)
+
+	msg = NewMsgUnBond(txIn, standbyNodeAccount.NodeAddress, cosmos.NewUint(5*common.One), common.Address(p.BondAddress.String()), nil, activeNodeAccount.NodeAddress)
+	err = handler.validate(ctx, *msg)
+	c.Assert(err, IsNil)
+}
+
+func (HandlerUnBondSuite) TestBondProviders_Handler(c *C) {
+	ctx, k := setupKeeperForTest(c)
+	activeNodeAccount := GetRandomValidatorNode(NodeActive)
+	standbyNodeAccount := GetRandomValidatorNode(NodeStandby)
+	c.Assert(k.SetNodeAccount(ctx, activeNodeAccount), IsNil)
+	c.Assert(k.SetNodeAccount(ctx, standbyNodeAccount), IsNil)
+	txIn := GetRandomTx()
+	txIn.Coins = common.NewCoins(common.NewCoin(common.RuneAsset(), cosmos.NewUint(0)))
+	handler := NewUnBondHandler(NewDummyMgrWithKeeper(k))
+
+	// happy path
+	msg := NewMsgUnBond(txIn, standbyNodeAccount.NodeAddress, cosmos.NewUint(5*common.One), standbyNodeAccount.BondAddress, nil, activeNodeAccount.NodeAddress)
+	err := handler.handle(ctx, *msg)
+	c.Assert(err, IsNil)
+	na, _ := handler.mgr.Keeper().GetNodeAccount(ctx, standbyNodeAccount.NodeAddress)
+	c.Check(na.Bond.Uint64(), Equals, uint64(95*common.One), Commentf("%d", na.Bond.Uint64()))
+	bp, _ := handler.mgr.Keeper().GetBondProviders(ctx, standbyNodeAccount.NodeAddress)
+	c.Check(bp.Get(standbyNodeAccount.NodeAddress).Bond.Uint64(), Equals, na.Bond.Uint64())
+
+	// node operator unbonds/removes bond provider
+	p := NewBondProvider(GetRandomBech32Addr())
+	p.Bond = cosmos.NewUint(50 * common.One)
+	bp.Providers = append(bp.Providers, p)
+	na.Bond = na.Bond.Add(p.Bond)
+	c.Assert(k.SetBondProviders(ctx, bp), IsNil)
+	c.Assert(k.SetNodeAccount(ctx, na), IsNil)
+
+	msg = NewMsgUnBond(txIn, standbyNodeAccount.NodeAddress, cosmos.ZeroUint(), standbyNodeAccount.BondAddress, p.BondAddress, activeNodeAccount.NodeAddress)
+	err = handler.handle(ctx, *msg)
+	c.Assert(err, IsNil)
+	na, _ = handler.mgr.Keeper().GetNodeAccount(ctx, standbyNodeAccount.NodeAddress)
+	c.Check(na.Bond.Uint64(), Equals, uint64(95*common.One), Commentf("%d", na.Bond.Uint64()))
+	bp, _ = handler.mgr.Keeper().GetBondProviders(ctx, standbyNodeAccount.NodeAddress)
+	fmt.Printf("BP: %+v\n", bp)
+	c.Check(bp.Has(p.BondAddress), Equals, false)
+
+}

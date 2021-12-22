@@ -247,6 +247,5 @@ func (h BondHandler) handleV81(ctx cosmos.Context, msg MsgBond) error {
 		ctx.Logger().Error("fail to emit bond event", "error", err)
 	}
 
-	fmt.Println("done.")
 	return nil
 }
