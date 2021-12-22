@@ -455,7 +455,6 @@ func (k KVStore) GetBondProviders(ctx cosmos.Context, addr cosmos.AccAddress) (B
 
 // SetBondProviders - update the bond providers of a node account
 func (k KVStore) SetBondProviders(ctx cosmos.Context, record BondProviders) error {
-	record.LastUpdate = common.BlockHeight(ctx)
 	k.setBondProviders(ctx, k.GetKey(ctx, prefixBondProviders, record.NodeAddress.String()), record)
 	return nil
 }
