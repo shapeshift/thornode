@@ -117,9 +117,6 @@ func (h MimirHandler) handleV78(ctx cosmos.Context, msg MsgMimir) error {
 			c = h.mgr.GetConstants().GetInt64Value(constants.NativeTransactionFee)
 		}
 		cost := cosmos.NewUint(uint64(c))
-		if cost.GT(nodeAccount.Bond) {
-			cost = nodeAccount.Bond
-		}
 		nodeAccount.Bond = common.SafeSub(nodeAccount.Bond, cost)
 		if err := h.mgr.Keeper().SetNodeAccount(ctx, nodeAccount); err != nil {
 			return fmt.Errorf("fail to save node account: %w", err)
