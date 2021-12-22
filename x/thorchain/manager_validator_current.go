@@ -264,18 +264,6 @@ func (vm *validatorMgrV78) EndBlock(ctx cosmos.Context, mgr Manager, constAccess
 		ctx.Logger().Error("fail to pay node bond rewards", "error", err)
 	}
 
-	minBondInRune, err := vm.k.GetMimir(ctx, constants.MinimumBondInRune.String())
-	if minBondInRune < 0 || err != nil {
-		minBondInRune = constAccessor.GetInt64Value(constants.MinimumBondInRune)
-	}
-
-	validatorMaxRewardRatio, err := vm.k.GetMimir(ctx, constants.ValidatorMaxRewardRatio.String())
-	if validatorMaxRewardRatio < 0 || err != nil {
-		validatorMaxRewardRatio = constAccessor.GetInt64Value(constants.ValidatorMaxRewardRatio)
-	}
-
-	bondHardCap := cosmos.NewUint(uint64(validatorMaxRewardRatio)).MulUint64(uint64(minBondInRune))
-
 	validators := make([]abci.ValidatorUpdate, 0, len(newNodes)+len(removedNodes))
 	for _, na := range newNodes {
 		ctx.EventManager().EmitEvent(
@@ -286,11 +274,6 @@ func (vm *validatorMgrV78) EndBlock(ctx cosmos.Context, mgr Manager, constAccess
 		na.UpdateStatus(NodeActive, height)
 		na.LeaveScore = 0
 		na.RequestedToLeave = false
-		na.EffectiveBond = na.Bond.Uint64()
-
-		if na.Bond.GT(bondHardCap) {
-			na.EffectiveBond = bondHardCap.Uint64()
-		}
 
 		vm.k.ResetNodeAccountSlashPoints(ctx, na.NodeAddress)
 		if err := vm.k.SetNodeAccount(ctx, na); err != nil {
@@ -316,7 +299,6 @@ func (vm *validatorMgrV78) EndBlock(ctx cosmos.Context, mgr Manager, constAccess
 		if nodeRemove.ForcedToLeave {
 			status = NodeDisabled
 		}
-		na.EffectiveBond = cosmos.ZeroUint().Uint64()
 		ctx.EventManager().EmitEvent(
 			cosmos.NewEvent("UpdateNodeAccountStatus",
 				cosmos.NewAttribute("Address", nodeRemove.NodeAddress.String()),
@@ -494,22 +476,19 @@ func (vm *validatorMgrV78) payNodeAccountBondAward(ctx cosmos.Context, lastChurn
 		earnedBlocks = 0
 	}
 
-	totalRewardPerBlock := totalBondReward.QuoUint64(uint64(totalActiveBlocks))
-	nodeRewardPerBlock := common.GetShare(cosmos.NewUint(na.EffectiveBond), totalEffectiveBond, totalRewardPerBlock)
-	nodeReward := nodeRewardPerBlock.MulUint64(uint64(earnedBlocks))
-
-	// Add to their bond the amount rewarded
-	na.Bond = na.Bond.Add(nodeReward)
-
-	// Reset effective Bond
-	na.EffectiveBond = na.Bond.Uint64()
-
-	if na.EffectiveBond > bondHardCap.Uint64() {
-		na.EffectiveBond = bondHardCap.Uint64()
+	naBond := na.Bond
+	if naBond.GT(bondHardCap) {
+		naBond = bondHardCap
 	}
 
+	reward := common.GetShare(naBond, totalEffectiveBond, totalBondReward)
+	reward = common.GetShare(cosmos.NewUint(uint64(earnedBlocks)), cosmos.NewUint(uint64(totalActiveBlocks)), reward)
+
+	// Add to their bond the amount rewarded
+	na.Bond = na.Bond.Add(reward)
+
 	// Minus the number of rune THORNode have awarded them
-	network.BondRewardRune = common.SafeSub(network.BondRewardRune, nodeReward)
+	network.BondRewardRune = common.SafeSub(network.BondRewardRune, reward)
 
 	// Minus the number of units na has (do not include slash points)
 	network.TotalBondUnits = common.SafeSub(
@@ -527,7 +506,7 @@ func (vm *validatorMgrV78) payNodeAccountBondAward(ctx cosmos.Context, lastChurn
 	tx := common.Tx{}
 	tx.ID = common.BlankTxID
 	tx.ToAddress = na.BondAddress
-	bondEvent := NewEventBond(nodeReward, BondReward, tx)
+	bondEvent := NewEventBond(reward, BondReward, tx)
 	if err := mgr.EventMgr().EmitEvent(ctx, bondEvent); err != nil {
 		return fmt.Errorf("fail to emit bond event: %w", err)
 	}
@@ -676,7 +655,11 @@ func (vm *validatorMgrV78) ragnarokBondReward(ctx cosmos.Context, mgr Manager, c
 
 	totalEffectiveBond := cosmos.ZeroUint()
 	for _, item := range active {
-		totalEffectiveBond = totalEffectiveBond.Add(cosmos.NewUint(item.EffectiveBond))
+		if item.Bond.GT(bondHardCap) {
+			item.Bond = bondHardCap
+		}
+
+		totalEffectiveBond = totalEffectiveBond.Add(item.Bond)
 	}
 
 	network, err := vm.k.GetNetwork(ctx)

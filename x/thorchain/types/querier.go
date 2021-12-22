@@ -129,7 +129,6 @@ type QueryNodeAccount struct {
 	PubKeySet           common.PubKeySet               `json:"pub_key_set"`
 	ValidatorConsPubKey string                         `json:"validator_cons_pub_key"`
 	Bond                cosmos.Uint                    `json:"bond"`
-	EffectiveBond       uint64                         `json:"effective_bond"`
 	ActiveBlockHeight   int64                          `json:"active_block_height"`
 	BondAddress         common.Address                 `json:"bond_address"`
 	StatusSince         int64                          `json:"status_since"`
@@ -154,7 +153,6 @@ func NewQueryNodeAccount(na NodeAccount) QueryNodeAccount {
 		PubKeySet:           na.PubKeySet,
 		ValidatorConsPubKey: na.ValidatorConsPubKey,
 		Bond:                na.Bond,
-		EffectiveBond:       na.EffectiveBond,
 		ActiveBlockHeight:   na.ActiveBlockHeight,
 		BondAddress:         na.BondAddress,
 		StatusSince:         na.StatusSince,

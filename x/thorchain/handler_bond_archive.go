@@ -7,6 +7,31 @@ import (
 	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
+func (h BondHandler) validateV1(ctx cosmos.Context, msg MsgBond) error {
+	if err := msg.ValidateBasic(); err != nil {
+		return err
+	}
+	// When RUNE is on thorchain , pay bond doesn't need to be active node
+	// in fact , usually the node will not be active at the time it bond
+
+	nodeAccount, err := h.mgr.Keeper().GetNodeAccount(ctx, msg.NodeAddress)
+	if err != nil {
+		return ErrInternal(err, fmt.Sprintf("fail to get node account(%s)", msg.NodeAddress))
+	}
+
+	bond := msg.Bond.Add(nodeAccount.Bond)
+
+	maxBond, err := h.mgr.Keeper().GetMimir(ctx, "MaximumBondInRune")
+	if maxBond > 0 && err == nil {
+		maxValidatorBond := cosmos.NewUint(uint64(maxBond))
+		if bond.GT(maxValidatorBond) {
+			return cosmos.ErrUnknownRequest(fmt.Sprintf("too much bond, max validator bond (%s), bond(%s)", maxValidatorBond.String(), bond))
+		}
+	}
+
+	return nil
+}
+
 func (h BondHandler) handleV1(ctx cosmos.Context, msg MsgBond) error {
 	// THORNode will not have pub keys at the moment, so have to leave it empty
 	emptyPubKeySet := common.PubKeySet{
