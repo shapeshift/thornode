@@ -475,13 +475,10 @@ func (vts *ValidatorMgrV78TestSuite) TestFindNextVaultNodeAccounts(c *C) {
 func (vts *ValidatorMgrV78TestSuite) TestWeightedBondReward(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	ctx = ctx.WithBlockHeight(20)
-	ver := GetCurrentVersion()
 
 	mgr := NewDummyMgrWithKeeper(k)
 	vMgr := newValidatorMgrV78(k, mgr.VaultMgr(), mgr.TxOutStore(), mgr.EventMgr())
 	c.Assert(vMgr, NotNil)
-
-	constAccessor := constants.GetConstantValues(ver)
 
 	na1 := GetRandomValidatorNode(NodeActive)
 	na1.Bond = cosmos.NewUint(4_00000000)
@@ -500,7 +497,7 @@ func (vts *ValidatorMgrV78TestSuite) TestWeightedBondReward(c *C) {
 	c.Assert(mgr.Keeper().SetNetwork(ctx, network), IsNil)
 
 	// pay out bond rewards
-	c.Assert(vMgr.ragnarokBondReward(ctx, mgr, constAccessor), IsNil)
+	c.Assert(vMgr.ragnarokBondReward(ctx, mgr), IsNil)
 
 	na1, _ = mgr.Keeper().GetNodeAccount(ctx, na1.NodeAddress)
 	na2, _ = mgr.Keeper().GetNodeAccount(ctx, na2.NodeAddress)
