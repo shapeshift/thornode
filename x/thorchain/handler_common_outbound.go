@@ -1,7 +1,11 @@
 package thorchain
 
 import (
+	"context"
+
+	"github.com/armon/go-metrics"
 	"github.com/blang/semver"
+	"github.com/cosmos/cosmos-sdk/telemetry"
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
@@ -25,6 +29,12 @@ func NewCommonOutboundTxHandler(mgr Manager) CommonOutboundTxHandler {
 
 func (h CommonOutboundTxHandler) slash(ctx cosmos.Context, tx ObservedTx) error {
 	toSlash := tx.Tx.Coins.Adds(tx.Tx.Gas.ToCoins())
+
+	ctx = ctx.WithContext(context.WithValue(ctx.Context(), constants.CtxMetricLabels, []metrics.Label{
+		telemetry.NewLabel("reason", "failed_outbound"),
+		telemetry.NewLabel("chain", string(tx.Tx.Chain)),
+	}))
+
 	return h.mgr.Slasher().SlashVault(ctx, tx.ObservedPubKey, toSlash, h.mgr)
 }
 
