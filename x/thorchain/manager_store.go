@@ -90,8 +90,6 @@ func (smgr *StoreMgr) migrate(ctx cosmos.Context, i uint64) error {
 		migrateStoreV75UnMarkValidators(ctx, smgr.mgr)
 	case 77:
 		migrateStoreV77(ctx, smgr.mgr)
-	case 78:
-		migrateStoreV78(ctx, smgr.mgr)
 	}
 
 	smgr.mgr.Keeper().SetStoreVersion(ctx, int64(i))
@@ -1403,48 +1401,4 @@ func migrateStoreV77(ctx cosmos.Context, mgr *Mgrs) {
 	removeTransactions(ctx, mgr,
 		"613B05512D468D3EE5A6C60BA45F085698823AABA85B2BA0F35736E7C674DED6",
 		"7C11E57236DDFC87C18665A3D929027B60ECFF69A95C15C9063412386D0FF93E")
-}
-
-func migrateStoreV78(ctx cosmos.Context, mgr *Mgrs) {
-	defer func() {
-		if err := recover(); err != nil {
-			ctx.Logger().Error("fail to set validator effective bond", "error", err)
-		}
-	}()
-
-	constAccessor := mgr.ConstAccessor
-
-	// Set the "EffectiveBond" of each active validator. "EffectiveBond" is what is used to calculate bond-weighted rewards,
-	// and is capped at a "bondHardCap" as seen below. Moving forward "EffectiveBond" will be set in these cases: 1. when a node churns in,
-	// 2. when a node is paid rewards during a churn, and 3. when a node churns out. This migration is required one-off to
-	// set the already-active validators
-
-	minBondInRune, err := mgr.Keeper().GetMimir(ctx, constants.MinimumBondInRune.String())
-	if minBondInRune < 0 || err != nil {
-		minBondInRune = constAccessor.GetInt64Value(constants.MinimumBondInRune)
-	}
-
-	validatorMaxRewardRatio, err := mgr.Keeper().GetMimir(ctx, constants.ValidatorMaxRewardRatio.String())
-	if validatorMaxRewardRatio < 0 || err != nil {
-		validatorMaxRewardRatio = constAccessor.GetInt64Value(constants.ValidatorMaxRewardRatio)
-	}
-
-	bondHardCap := cosmos.NewUint(uint64(validatorMaxRewardRatio)).MulUint64(uint64(minBondInRune))
-	nodeAccounts, err := mgr.Keeper().ListActiveValidators(ctx)
-	if err != nil {
-		ctx.Logger().Error("fail to list active validators", "error", err)
-		return
-	}
-	for _, na := range nodeAccounts {
-
-		na.EffectiveBond = na.Bond.Uint64()
-		if na.Bond.GT(bondHardCap) {
-			na.EffectiveBond = bondHardCap.Uint64()
-		}
-
-		if err := mgr.Keeper().SetNodeAccount(ctx, na); err != nil {
-			ctx.Logger().Error("fail to save node account", "error", err)
-			continue
-		}
-	}
 }

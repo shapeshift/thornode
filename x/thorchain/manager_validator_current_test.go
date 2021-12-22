@@ -484,22 +484,19 @@ func (vts *ValidatorMgrV78TestSuite) TestWeightedBondReward(c *C) {
 	constAccessor := constants.GetConstantValues(ver)
 
 	na1 := GetRandomValidatorNode(NodeActive)
-	na1.Bond = cosmos.NewUint(4_000_000_00000000)
-	na1.EffectiveBond = 3_000_000_00000000
+	na1.Bond = cosmos.NewUint(4_00000000)
 	c.Assert(mgr.Keeper().SetNodeAccount(ctx, na1), IsNil)
 
 	na2 := GetRandomValidatorNode(NodeActive)
-	na2.Bond = cosmos.NewUint(5_000_000_00000000)
-	na2.EffectiveBond = 3_000_000_00000000
+	na2.Bond = cosmos.NewUint(3_00000000)
 	c.Assert(mgr.Keeper().SetNodeAccount(ctx, na2), IsNil)
 
 	na3 := GetRandomValidatorNode(NodeActive)
-	na3.Bond = cosmos.NewUint(2_000_000_00000000)
-	na3.EffectiveBond = 2_000_000_00000000
+	na3.Bond = cosmos.NewUint(2_00000000)
 	c.Assert(mgr.Keeper().SetNodeAccount(ctx, na3), IsNil)
 
 	network, _ := vMgr.k.GetNetwork(ctx)
-	network.BondRewardRune = cosmos.NewUint(1000_00000000)
+	network.BondRewardRune = cosmos.NewUint(1_00000000)
 	c.Assert(mgr.Keeper().SetNetwork(ctx, network), IsNil)
 
 	// pay out bond rewards
@@ -508,7 +505,7 @@ func (vts *ValidatorMgrV78TestSuite) TestWeightedBondReward(c *C) {
 	na1, _ = mgr.Keeper().GetNodeAccount(ctx, na1.NodeAddress)
 	na2, _ = mgr.Keeper().GetNodeAccount(ctx, na2.NodeAddress)
 	na3, _ = mgr.Keeper().GetNodeAccount(ctx, na3.NodeAddress)
-	c.Check(na1.Bond.Uint64(), Equals, uint64(4_000_375_00000000))
-	c.Check(na2.Bond.Uint64(), Equals, uint64(5_000_375_00000000))
-	c.Check(na3.Bond.Uint64(), Equals, uint64(2_000_250_00000000))
+	c.Check(na1.Bond.Uint64(), Equals, uint64(4_37500000))
+	c.Check(na2.Bond.Uint64(), Equals, uint64(3_37500000))
+	c.Check(na3.Bond.Uint64(), Equals, uint64(2_25000000))
 }

@@ -43,5 +43,4 @@ message NodeAccount {
   string ip_address = 13 [(gogoproto.customname) = "IPAddress"];
   string version = 14;
   NodeType type = 15;
-  uint64 effective_bond = 16;
 }
