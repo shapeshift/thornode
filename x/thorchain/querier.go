@@ -1174,6 +1174,7 @@ func queryMimirValues(ctx cosmos.Context, path []string, req abci.RequestQuery, 
 		values[k] = 0
 	}
 
+	// analyze-ignore(map-iteration)
 	for k, _ := range values {
 		v, err := mgr.Keeper().GetMimir(ctx, k)
 		if err != nil {

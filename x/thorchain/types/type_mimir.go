@@ -75,6 +75,7 @@ func (m NodeMimirs) countActive(key string, active []cosmos.AccAddress, maj func
 		}
 	}
 
+	// analyze-ignore(map-iteration)
 	for val, count := range counter {
 		if maj(count, len(active)) {
 			return val, true
