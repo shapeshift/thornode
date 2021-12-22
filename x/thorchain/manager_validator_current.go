@@ -260,7 +260,7 @@ func (vm *validatorMgrV78) EndBlock(ctx cosmos.Context, mgr Manager, constAccess
 	}
 
 	// payout all active node accounts their rewards
-	if err := vm.ragnarokBondReward(ctx, mgr, constAccessor); err != nil {
+	if err := vm.ragnarokBondReward(ctx, mgr); err != nil {
 		ctx.Logger().Error("fail to pay node bond rewards", "error", err)
 	}
 
@@ -530,7 +530,7 @@ func (vm *validatorMgrV78) processRagnarok(ctx cosmos.Context, mgr Manager, cons
 		if err := vm.ragnarokProtocolStage1(ctx, mgr, constAccessor); err != nil {
 			return fmt.Errorf("fail to execute ragnarok protocol step 1: %w", err)
 		}
-		if err := vm.ragnarokBondReward(ctx, mgr, constAccessor); err != nil {
+		if err := vm.ragnarokBondReward(ctx, mgr); err != nil {
 			return fmt.Errorf("when ragnarok triggered ,fail to give all active node bond reward %w", err)
 		}
 		return nil
@@ -627,7 +627,7 @@ func (vm *validatorMgrV78) ragnarokProtocolStage2(ctx cosmos.Context, nth int64,
 	return nil
 }
 
-func (vm *validatorMgrV78) ragnarokBondReward(ctx cosmos.Context, mgr Manager, constAccessor constants.ConstantValues) error {
+func (vm *validatorMgrV78) ragnarokBondReward(ctx cosmos.Context, mgr Manager) error {
 	var resultErr error
 	active, err := vm.k.ListActiveValidators(ctx)
 	if err != nil {
@@ -640,6 +640,8 @@ func (vm *validatorMgrV78) ragnarokBondReward(ctx cosmos.Context, mgr Manager, c
 			lastChurnHeight = node.ActiveBlockHeight
 		}
 	}
+
+	constAccessor := mgr.GetConstants()
 
 	minBondInRune, err := vm.k.GetMimir(ctx, constants.MinimumBondInRune.String())
 	if minBondInRune < 0 || err != nil {
