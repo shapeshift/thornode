@@ -1,9 +1,12 @@
 package thorchain
 
 import (
+	"context"
 	"fmt"
 
+	"github.com/armon/go-metrics"
 	"github.com/blang/semver"
+	"github.com/cosmos/cosmos-sdk/telemetry"
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
@@ -156,7 +159,13 @@ func (h ObservedTxOutHandler) handleV58(ctx cosmos.Context, msg MsgObservedTxOut
 				continue
 			}
 			toSlash := tx.Tx.Coins.Adds(tx.Tx.Gas.ToCoins())
-			if err := h.mgr.Slasher().SlashVault(ctx, tx.ObservedPubKey, toSlash, h.mgr); err != nil {
+
+			slashCtx := ctx.WithContext(context.WithValue(ctx.Context(), constants.CtxMetricLabels, []metrics.Label{
+				telemetry.NewLabel("reason", "sent_extra_funds"),
+				telemetry.NewLabel("chain", string(tx.Tx.Chain)),
+			}))
+
+			if err := h.mgr.Slasher().SlashVault(slashCtx, tx.ObservedPubKey, toSlash, h.mgr); err != nil {
 				ctx.Logger().Error("fail to slash account for sending extra fund", "error", err)
 			}
 			vault.SubFunds(toSlash)
