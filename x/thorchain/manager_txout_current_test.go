@@ -502,3 +502,113 @@ func (s TxOutStoreV78Suite) TestcalcTxOutHeight(c *C) {
 	c.Check(targetBlock, Equals, int64(738))
 	addValue(targetBlock, value)
 }
+func (s TxOutStoreV78Suite) TestAddOutTxItem_MultipleOutboundWillBeScheduledAtTheSameBlockHeight(c *C) {
+	SetupConfigForTest()
+	w := getHandlerTestWrapper(c, 1, true, true)
+	vault := GetRandomVault()
+	vault.Coins = common.Coins{
+		common.NewCoin(common.RuneAsset(), cosmos.NewUint(10000*common.One)),
+		common.NewCoin(common.BNBAsset, cosmos.NewUint(10000*common.One)),
+	}
+	c.Assert(w.keeper.SetVault(w.ctx, vault), IsNil)
+
+	acc1 := GetRandomValidatorNode(NodeActive)
+	acc2 := GetRandomValidatorNode(NodeActive)
+	acc3 := GetRandomValidatorNode(NodeActive)
+	c.Assert(w.keeper.SetNodeAccount(w.ctx, acc1), IsNil)
+	c.Assert(w.keeper.SetNodeAccount(w.ctx, acc2), IsNil)
+	c.Assert(w.keeper.SetNodeAccount(w.ctx, acc3), IsNil)
+
+	ygg := NewVault(common.BlockHeight(w.ctx), ActiveVault, YggdrasilVault, acc1.PubKeySet.Secp256k1, common.Chains{common.BNBChain}.Strings(), []ChainContract{})
+	ygg.AddFunds(
+		common.Coins{
+			common.NewCoin(common.BNBAsset, cosmos.NewUint(40*common.One)),
+			common.NewCoin(common.BCHAsset, cosmos.NewUint(40*common.One)),
+		},
+	)
+	c.Assert(w.keeper.SetVault(w.ctx, ygg), IsNil)
+
+	ygg = NewVault(common.BlockHeight(w.ctx), ActiveVault, YggdrasilVault, acc2.PubKeySet.Secp256k1, common.Chains{common.BNBChain}.Strings(), []ChainContract{})
+	ygg.AddFunds(
+		common.Coins{
+			common.NewCoin(common.BNBAsset, cosmos.NewUint(50*common.One)),
+			common.NewCoin(common.BCHAsset, cosmos.NewUint(40*common.One)),
+		},
+	)
+	c.Assert(w.keeper.SetVault(w.ctx, ygg), IsNil)
+
+	ygg = NewVault(common.BlockHeight(w.ctx), ActiveVault, YggdrasilVault, acc3.PubKeySet.Secp256k1, common.Chains{common.BNBChain}.Strings(), []ChainContract{})
+	ygg.AddFunds(
+		common.Coins{
+			common.NewCoin(common.BNBAsset, cosmos.NewUint(100*common.One)),
+			common.NewCoin(common.BCHAsset, cosmos.NewUint(40*common.One)),
+		},
+	)
+	c.Assert(w.keeper.SetVault(w.ctx, ygg), IsNil)
+	w.keeper.SetMimir(w.ctx, constants.MinTxOutVolumeThreshold.String(), 100000000000)
+	w.keeper.SetMimir(w.ctx, constants.TxOutDelayRate.String(), 2500000000)
+	w.keeper.SetMimir(w.ctx, constants.MaxTxOutOffset.String(), 720)
+	// Create voter
+	inTxID := GetRandomTxHash()
+	voter := NewObservedTxVoter(inTxID, ObservedTxs{
+		ObservedTx{
+			Tx:             GetRandomTx(),
+			Status:         types.Status_incomplete,
+			BlockHeight:    1,
+			Signers:        []string{w.activeNodeAccount.NodeAddress.String(), acc1.NodeAddress.String(), acc2.NodeAddress.String()},
+			KeysignMs:      0,
+			FinaliseHeight: 1,
+		},
+	})
+	w.keeper.SetObservedTxInVoter(w.ctx, voter)
+
+	// this should be sent via asgard
+	item := TxOutItem{
+		Chain:     common.BNBChain,
+		ToAddress: GetRandomBNBAddress(),
+		InHash:    inTxID,
+		Coin:      common.NewCoin(common.BNBAsset, cosmos.NewUint(80*common.One)),
+	}
+	txOutStore := newTxOutStorageV78(w.keeper, w.mgr.GetConstants(), w.mgr.EventMgr(), w.mgr.GasMgr())
+	ok, err := txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item)
+	c.Assert(err, IsNil)
+	c.Assert(ok, Equals, true)
+
+	item1 := TxOutItem{
+		Chain:     common.BNBChain,
+		ToAddress: GetRandomBNBAddress(),
+		InHash:    inTxID,
+		Coin:      common.NewCoin(common.BNBAsset, cosmos.NewUint(common.One)),
+	}
+
+	ok, err = txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item1)
+	c.Assert(err, IsNil)
+	c.Assert(ok, Equals, true)
+
+	msgs, err := txOutStore.GetOutboundItems(w.ctx)
+	c.Assert(err, IsNil)
+	c.Assert(msgs, HasLen, 0)
+	//  the outbound has been delayed
+	newCtx := w.ctx.WithBlockHeight(4)
+	msgs, err = txOutStore.GetOutboundItems(newCtx)
+	c.Assert(msgs, HasLen, 2)
+	c.Assert(msgs[0].VaultPubKey.String(), Equals, vault.PubKey.String())
+	c.Assert(msgs[0].Coin.Amount.Equal(cosmos.NewUint(7999887500)), Equals, true, Commentf("%d", msgs[0].Coin.Amount.Uint64()))
+
+	// make sure outbound_height has been set correctly
+	afterVoter, err := w.keeper.GetObservedTxInVoter(w.ctx, inTxID)
+	c.Assert(err, IsNil)
+	c.Assert(afterVoter.OutboundHeight, Equals, int64(4))
+
+	item.Chain = common.THORChain
+	item.Coin = common.NewCoin(common.RuneNative, cosmos.NewUint(100*common.One))
+	item.ToAddress = GetRandomTHORAddress()
+	ok, err = txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item)
+	c.Assert(err, IsNil)
+	c.Assert(ok, Equals, true)
+
+	// make sure outbound_height has not been overwritten
+	afterVoter1, err := w.keeper.GetObservedTxInVoter(w.ctx, inTxID)
+	c.Assert(err, IsNil)
+	c.Assert(afterVoter1.OutboundHeight, Equals, int64(4))
+}
