@@ -56,7 +56,7 @@ lint-code:
   before_script:
     - go get mvdan.cc/gofumpt
     - apt update
-    - apt install -y protobuf-compiler
+    - apt install -y protobuf-compiler jq
     - make protob
   script:
     - make lint-handlers
