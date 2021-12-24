@@ -141,8 +141,14 @@ func (tos *TxOutStorageV78) TryAddTxOutItem(ctx cosmos.Context, mgr Manager, toi
 			ctx.Logger().Error("fail to get observe tx in voter", "error", err)
 			return false, fmt.Errorf("fail to get observe tx in voter,err:%w", err)
 		}
-		voter.OutboundHeight = outboundHeight
-		tos.keeper.SetObservedTxInVoter(ctx, voter)
+
+		// When the inbound transaction already has an outbound , the make sure the outbound will be scheduled on the same block
+		if voter.OutboundHeight > 0 {
+			outboundHeight = voter.OutboundHeight
+		} else {
+			voter.OutboundHeight = outboundHeight
+			tos.keeper.SetObservedTxInVoter(ctx, voter)
+		}
 	}
 
 	// add tx to block out
