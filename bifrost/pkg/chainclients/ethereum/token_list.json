@@ -1,6 +1,6 @@
 {
   "name": "1inch",
-  "timestamp": "2021-11-01T14:13:01+00:00",
+  "timestamp": "2021-12-15T14:01:52+00:00",
   "version": {
     "major": 145,
     "minor": 0,
@@ -3981,12 +3981,12 @@
       "logoURI": "https://tokens.1inch.io/0x73968b9a57c6e53d41345fd57a6e6ae27d6cdb2f.png"
     },
     {
-      "address": "0x5Af2Be193a6ABCa9c8817001F45744777Db30756",
+      "address": "0x3C4B6E6e1eA3D4863700D7F76b36B7f3D3f13E3d",
       "chainId": 1,
-      "name": "Voyager",
+      "name": "VoyagerToken",
       "symbol": "VGX",
       "decimals": 8,
-      "logoURI": "https://tokens.1inch.io/0x5af2be193a6abca9c8817001f45744777db30756.png"
+      "logoURI": "https://tokens.1inch.io/0x3c4b6e6e1ea3d4863700d7f76b36b7f3d3f13e3d.png"
     },
     {
       "address": "0x9248c485b0B80f76DA451f167A8db30F33C70907",
@@ -4811,14 +4811,6 @@
       "symbol": "HGET",
       "decimals": 6,
       "logoURI": "https://tokens.1inch.io/0x7968bc6a03017ea2de509aaa816f163db0f35148.png"
-    },
-    {
-      "address": "0xAd4f86a25bbc20FfB751f2FAC312A0B4d8F88c64",
-      "chainId": 1,
-      "name": "OptionRoomToken",
-      "symbol": "ROOM",
-      "decimals": 18,
-      "logoURI": "https://tokens.1inch.io/0xad4f86a25bbc20ffb751f2fac312a0b4d8f88c64.png"
     },
     {
       "address": "0xa0afAA285Ce85974c3C881256cB7F225e3A1178a",
@@ -6517,14 +6509,6 @@
       "logoURI": "https://tokens.1inch.io/0x1cbb83ebcd552d5ebf8131ef8c9cd9d9bab342bc.png"
     },
     {
-      "address": "0xAec7e1f531Bb09115103C53ba76829910Ec48966",
-      "chainId": 1,
-      "name": "BlankToken",
-      "symbol": "BLANK",
-      "decimals": 18,
-      "logoURI": "https://tokens.1inch.io/0xaec7e1f531bb09115103c53ba76829910ec48966.png"
-    },
-    {
       "address": "0x2216e873ea4282EbEf7A02aC5aeA220bE6391A7C",
       "chainId": 1,
       "name": "smol",
@@ -7861,14 +7845,6 @@
       "logoURI": "https://tokens.1inch.io/0x677ddbd918637e5f2c79e164d402454de7da8619.png"
     },
     {
-      "address": "0xC40AF1E4fEcFA05Ce6BAb79DcD8B373d2E436c4E",
-      "chainId": 1,
-      "name": "HokkaiduInu",
-      "symbol": "HOKK",
-      "decimals": 9,
-      "logoURI": "https://tokens.1inch.io/0xc40af1e4fecfa05ce6bab79dcd8b373d2e436c4e.png"
-    },
-    {
       "address": "0x3c9d6c1C73b31c837832c72E04D3152f051fc1A9",
       "chainId": 1,
       "name": "BoringDAO",
@@ -8708,25 +8684,257 @@
       "decimals": 18,
       "logoURI": "https://tokens.1inch.io/0xd71ecff9342a5ced620049e616c5035f1db98620.png"
     },
-        {
+    {
+      "address": "0x514cdb9cd8A2fb2BdCf7A3b8DDd098CaF466E548",
       "chainId": 1,
-      "address": "0x519475b31653E46D20cD09F9FdcF3B12BDAcB4f5",
-      "symbol": "VIU",
-      "name": "Viuly",
-      "decimals": 18
+      "name": "RedPanda",
+      "symbol": "REDPANDA",
+      "decimals": 9,
+      "logoURI": "https://tokens.1inch.io/0x514cdb9cd8a2fb2bdcf7a3b8ddd098caf466e548.png"
     },
-        {
+    {
+      "address": "0xc50EF449171a51FbeAFd7c562b064B6471C36caA",
+      "chainId": 1,
+      "name": "ZombieInu",
+      "symbol": "ZINU",
+      "decimals": 9,
+      "logoURI": "https://tokens.1inch.io/0xc50ef449171a51fbeafd7c562b064b6471c36caa.png"
+    },
+    {
+      "address": "0x0c3685559Af6F3d20C501b1076A8056A0A14426a",
+      "chainId": 1,
+      "name": "miniSAITAMA",
+      "symbol": "miniSAITAMA",
+      "decimals": 9,
+      "logoURI": "https://tokens.1inch.io/0x0c3685559af6f3d20c501b1076a8056a0a14426a.png"
+    },
+    {
+      "address": "0x24E89bDf2f65326b94E36978A7EDeAc63623DAFA",
+      "chainId": 1,
+      "name": "TigerKing",
+      "symbol": "TKING",
+      "decimals": 18,
+      "logoURI": "https://tokens.1inch.io/0x24e89bdf2f65326b94e36978a7edeac63623dafa.png"
+    },
+    {
+      "address": "0xC1bfcCd4c29813eDe019D00D2179Eea838a67703",
+      "chainId": 1,
+      "name": "LuffyInu",
+      "symbol": "LUFFY",
+      "decimals": 9,
+      "logoURI": "https://tokens.1inch.io/0xc1bfccd4c29813ede019d00d2179eea838a67703.png"
+    },
+    {
+      "address": "0xAaAAAA20D9E0e2461697782ef11675f668207961",
+      "chainId": 1,
+      "name": "Aurora",
+      "symbol": "AURORA",
+      "decimals": 18,
+      "logoURI": "https://tokens.1inch.io/0xaaaaaa20d9e0e2461697782ef11675f668207961.png"
+    },
+    {
+      "address": "0xed0889F7E1c7C7267407222Be277e1f1Ef4d4892",
+      "chainId": 1,
+      "name": "Melalie",
+      "symbol": "MEL",
+      "decimals": 18,
+      "logoURI": "https://tokens.1inch.io/0xed0889f7e1c7c7267407222be277e1f1ef4d4892.png"
+    },
+    {
+      "address": "0xC18360217D8F7Ab5e7c516566761Ea12Ce7F9D72",
+      "chainId": 1,
+      "name": "EthereumNameService",
+      "symbol": "ENS",
+      "decimals": 18,
+      "logoURI": "https://tokens.1inch.io/0xc18360217d8f7ab5e7c516566761ea12ce7f9d72.png"
+    },
+    {
+      "address": "0xf14b9ADF84812bA463799357f4dc716b4384010B",
+      "chainId": 1,
+      "name": "PensionPlan",
+      "symbol": "PP",
+      "decimals": 8,
+      "logoURI": "https://tokens.1inch.io/0xf14b9adf84812ba463799357f4dc716b4384010b.png"
+    },
+    {
+      "address": "0xfb40e79E56cc7D406707B66C4Fd175E07EB2Ae3C",
+      "chainId": 1,
+      "name": "ROTTSCHILD.com",
+      "symbol": "ROTTS",
+      "decimals": 9,
+      "logoURI": "https://tokens.1inch.io/0xfb40e79e56cc7d406707b66c4fd175e07eb2ae3c.png"
+    },
+    {
+      "address": "0x28c5805B64d163588A909012a628b5a03c1041f9",
+      "chainId": 1,
+      "name": "CHOPPERINU",
+      "symbol": "CHOPPER",
+      "decimals": 9,
+      "logoURI": "https://tokens.1inch.io/0x28c5805b64d163588a909012a628b5a03c1041f9.png"
+    },
+    {
+      "address": "0x37fE0f067FA808fFBDd12891C0858532CFE7361d",
+      "chainId": 1,
+      "name": "Civilization",
+      "symbol": "CIV",
+      "decimals": 18,
+      "logoURI": "https://tokens.1inch.io/0x37fe0f067fa808ffbdd12891c0858532cfe7361d.png"
+    },
+    {
+      "address": "0xF32aa187d5Bc16A2C02A6aFb7Df1459d0D107574",
+      "chainId": 1,
+      "name": "HachikoInu",
+      "symbol": "Inu",
+      "decimals": 18,
+      "logoURI": "https://tokens.1inch.io/0xf32aa187d5bc16a2c02a6afb7df1459d0d107574.png"
+    },
+    {
+      "address": "0xC08512927D12348F6620a698105e1BAac6EcD911",
+      "chainId": 1,
+      "name": "GMOJPY",
+      "symbol": "GYEN",
+      "decimals": 6,
+      "logoURI": "https://tokens.1inch.io/0xc08512927d12348f6620a698105e1baac6ecd911.png"
+    },
+    {
+      "address": "0xcAfE001067cDEF266AfB7Eb5A286dCFD277f3dE5",
+      "chainId": 1,
+      "name": "ParaSwap",
+      "symbol": "PSP",
+      "decimals": 18,
+      "logoURI": "https://tokens.1inch.io/0xcafe001067cdef266afb7eb5a286dcfd277f3de5.png"
+    },
+    {
+      "address": "0xbb1EE07d6c7BAeB702949904080eb61f5D5e7732",
+      "chainId": 1,
+      "name": "Dogey-Inu",
+      "symbol": "DINU",
+      "decimals": 18,
+      "logoURI": "https://tokens.1inch.io/0xbb1ee07d6c7baeb702949904080eb61f5d5e7732.png"
+    },
+    {
+      "address": "0x582d872A1B094FC48F5DE31D3B73F2D9bE47def1",
+      "chainId": 1,
+      "name": "WrappedTONCoin",
+      "symbol": "TONCOIN",
+      "decimals": 9,
+      "logoURI": "https://tokens.1inch.io/0x582d872a1b094fc48f5de31d3b73f2d9be47def1.png"
+    },
+    {
+      "address": "0x95A1796437BAd6502d1c1cce165Cd76E522409a9",
+      "chainId": 1,
+      "name": "OfficialCryptoCowboyToken",
+      "symbol": "OCCT",
+      "decimals": 18,
+      "logoURI": "https://tokens.1inch.io/0x95a1796437bad6502d1c1cce165cd76e522409a9.png"
+    },
+    {
+      "address": "0xe87e15B9c7d989474Cb6d8c56b3DB4eFAD5b21E8",
+      "chainId": 1,
+      "name": "HokkaidoInu",
+      "symbol": "HOKK",
+      "decimals": 18,
+      "logoURI": "https://tokens.1inch.io/0xe87e15b9c7d989474cb6d8c56b3db4efad5b21e8.png"
+    },
+    {
+      "address": "0x4104b135DBC9609Fc1A9490E61369036497660c8",
+      "chainId": 1,
+      "name": "APWineToken",
+      "symbol": "APW",
+      "decimals": 18,
+      "logoURI": "https://tokens.1inch.io/0x4104b135dbc9609fc1a9490e61369036497660c8.png"
+    },
+    {
+      "address": "0xae78736Cd615f374D3085123A210448E74Fc6393",
+      "chainId": 1,
+      "name": "RocketPoolETH",
+      "symbol": "rETH",
+      "decimals": 18,
+      "logoURI": "https://tokens.1inch.io/0xae78736cd615f374d3085123a210448e74fc6393.png"
+    },
+    {
+      "address": "0xAFbF03181833aB4E8DEc24D708a2a24c2bAaa4a4",
+      "chainId": 1,
+      "name": "MandoX",
+      "symbol": "MANDOX",
+      "decimals": 9,
+      "logoURI": "https://tokens.1inch.io/0xafbf03181833ab4e8dec24d708a2a24c2baaa4a4.png"
+    },
+    {
+      "address": "0x1FbD3dF007eB8A7477A1Eab2c63483dCc24EfFD6",
+      "chainId": 1,
+      "name": "ScaleSwapToken",
+      "symbol": "SCA",
+      "decimals": 18,
+      "logoURI": "https://tokens.1inch.io/0x1fbd3df007eb8a7477a1eab2c63483dcc24effd6.png"
+    },
+    {
+      "address": "0xB1A88c33091490218965787919fcc9862C1798eE",
+      "chainId": 1,
+      "name": "StudioShibli",
+      "symbol": "SHIBLI",
+      "decimals": 9,
+      "logoURI": "https://tokens.1inch.io/0xb1a88c33091490218965787919fcc9862c1798ee.png"
+    },
+    {
+      "address": "0x8037b1B69d6fA63a9cc053c25f7e168e6e6d857A",
+      "chainId": 1,
+      "name": "PartsofFourCoin",
+      "symbol": "P4C",
+      "decimals": 18,
+      "logoURI": "https://tokens.1inch.io/0x8037b1b69d6fa63a9cc053c25f7e168e6e6d857a.png"
+    },
+    {
+      "address": "0xCFEAead4947f0705A14ec42aC3D44129E1Ef3eD5",
+      "chainId": 1,
+      "name": "Notional",
+      "symbol": "NOTE",
+      "decimals": 8,
+      "logoURI": "https://tokens.1inch.io/0xcfeaead4947f0705a14ec42ac3d44129e1ef3ed5.png"
+    },
+    {
+      "address": "0x41A3Dba3D677E573636BA691a70ff2D606c29666",
+      "chainId": 1,
+      "name": "GoBlankToken",
+      "symbol": "BLANK",
+      "decimals": 18,
+      "logoURI": "https://tokens.1inch.io/0x41a3dba3d677e573636ba691a70ff2d606c29666.png"
+    },
+    {
+      "address": "0xC48b4814fAEd1CCc885DD6fDe62A6474AeCbb19a",
+      "chainId": 1,
+      "name": "CoinMerge",
+      "symbol": "CMERGE",
+      "decimals": 9,
+      "logoURI": "https://tokens.1inch.io/0xc48b4814faed1ccc885dd6fde62a6474aecbb19a.png"
+    },
+    {
+      "address": "0x8254e26e453EB5aBd29B3c37AC9E8Da32E5d3299",
+      "chainId": 1,
+      "name": "RBX",
+      "symbol": "RBX",
+      "decimals": 18,
+      "logoURI": "https://tokens.1inch.io/0x8254e26e453eb5abd29b3c37ac9e8da32e5d3299.png"
+    },
+    {
       "chainId": 1,
       "address": "0xef6344de1fcfC5F48c30234C16c1389e8CdC572C",
       "symbol": "DNA",
       "name": "DNA",
       "decimals": 18
     },
-        {
+    {
       "chainId": 1,
-      "address": "0x69fa0fee221ad11012bab0fdb45d444d3d2ce71c",
-      "symbol": "XRUNE",
-      "name": "XRUNE Token",
+      "address": "0x519475b31653E46D20cD09F9FdcF3B12BDAcB4f5",
+      "symbol": "VIU",
+      "name": "Viuly",
+      "decimals": 18
+    },
+    {
+      "chainId": 1,
+      "address": "0x6B3595068778DD592e39A122f4f5a5cF09C90fE2",
+      "symbol": "SUSHI",
+      "name": "SushiToken",
       "decimals": 18
     },
     {
@@ -8738,9 +8946,9 @@
     },
     {
       "chainId": 1,
-      "address": "0x23396cf899ca06c4472205fc903bdb4de249d6fc",
-      "symbol": "WUST",
-      "name": "Wrapped UST",
+      "address": "0xc770eefad204b5180df6a14ee197d99d808ee52d",
+      "symbol": "FOX",
+      "name": "ShapeShift FOX Token",
       "decimals": 18
     },
     {
@@ -8748,6 +8956,13 @@
       "address": "0x108a850856db3f85d0269a2693d896b394c80325",
       "symbol": "TGT",
       "name": "THORWallet Governance Token",
+      "decimals": 18
+    },
+    {
+      "chainId": 1,
+      "address": "0x69fa0fee221ad11012bab0fdb45d444d3d2ce71c",
+      "symbol": "XRUNE",
+      "name": "XRUNE Token",
       "decimals": 18
     }
   ],
