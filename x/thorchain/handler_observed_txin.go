@@ -64,7 +64,9 @@ func (h ObservedTxInHandler) validateV1(ctx cosmos.Context, msg MsgObservedTxIn)
 
 func (h ObservedTxInHandler) handle(ctx cosmos.Context, msg MsgObservedTxIn) (*cosmos.Result, error) {
 	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.67.0")) {
+	if version.GTE(semver.MustParse("0.78.0")) {
+		return h.handleV78(ctx, msg)
+	} else if version.GTE(semver.MustParse("0.67.0")) {
 		return h.handleV67(ctx, msg)
 	} else if version.GTE(semver.MustParse("0.61.0")) {
 		return h.handleV61(ctx, msg)
@@ -132,7 +134,7 @@ func (h ObservedTxInHandler) preflightV1(ctx cosmos.Context, voter ObservedTxVot
 	return voter, ok
 }
 
-func (h ObservedTxInHandler) handleV67(ctx cosmos.Context, msg MsgObservedTxIn) (*cosmos.Result, error) {
+func (h ObservedTxInHandler) handleV78(ctx cosmos.Context, msg MsgObservedTxIn) (*cosmos.Result, error) {
 	activeNodeAccounts, err := h.mgr.Keeper().ListActiveValidators(ctx)
 	if err != nil {
 		return nil, wrapError(ctx, err, "fail to get list of active node accounts")
@@ -147,7 +149,7 @@ func (h ObservedTxInHandler) handleV67(ctx cosmos.Context, msg MsgObservedTxIn) 
 
 		voter, err := h.mgr.Keeper().GetObservedTxInVoter(ctx, tx.Tx.ID)
 		if err != nil {
-			ctx.Logger().Error("fail to get tx out voter", "error", err)
+			ctx.Logger().Error("fail to get tx in voter", "error", err)
 			continue
 		}
 
@@ -177,6 +179,12 @@ func (h ObservedTxInHandler) handleV67(ctx cosmos.Context, msg MsgObservedTxIn) 
 		vault, err := h.mgr.Keeper().GetVault(ctx, tx.ObservedPubKey)
 		if err != nil {
 			ctx.Logger().Error("fail to get vault", "error", err)
+			continue
+		}
+		// do not observe inactive vaults unless it's the confirmation for a txn
+		// that reached consensus/updated the vault when the vault was still active
+		if vault.Status == InactiveVault && !voter.UpdatedVault {
+			ctx.Logger().Error("observed tx on inactive vault", "tx", tx.String())
 			continue
 		}
 		if vault.IsAsgard() {
