@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/blang/semver"
 	"github.com/cosmos/cosmos-sdk/codec"
 	authkeeper "github.com/cosmos/cosmos-sdk/x/auth/keeper"
 	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
@@ -22,7 +23,6 @@ import (
 // Also, use underscores between words and use lowercase characters only
 
 const (
-	version                      int64            = 1
 	prefixStoreVersion           kvTypes.DbPrefix = "_ver/"
 	prefixObservedTxIn           kvTypes.DbPrefix = "observed_tx_in/"
 	prefixObservedTxOut          kvTypes.DbPrefix = "observed_tx_out/"
@@ -76,11 +76,11 @@ type KVStore struct {
 	coinKeeper    bankkeeper.Keeper
 	accountKeeper authkeeper.AccountKeeper
 	storeKey      cosmos.StoreKey // Unexposed key to access store from cosmos.Context
-	version       int64
+	version       semver.Version
 }
 
 // NewKVStore creates new instances of the thorchain Keeper
-func NewKVStore(cdc codec.BinaryMarshaler, coinKeeper bankkeeper.Keeper, accountKeeper authkeeper.AccountKeeper, storeKey cosmos.StoreKey) KVStore {
+func NewKVStore(cdc codec.BinaryMarshaler, coinKeeper bankkeeper.Keeper, accountKeeper authkeeper.AccountKeeper, storeKey cosmos.StoreKey, version semver.Version) KVStore {
 	return KVStore{
 		coinKeeper:    coinKeeper,
 		accountKeeper: accountKeeper,
@@ -96,7 +96,7 @@ func (k KVStore) Cdc() codec.BinaryMarshaler {
 }
 
 // Version return the current version
-func (k KVStore) Version() int64 {
+func (k KVStore) Version() semver.Version {
 	return k.version
 }
 

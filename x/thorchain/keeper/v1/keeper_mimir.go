@@ -17,8 +17,7 @@ func (k KVStore) GetMimir(ctx cosmos.Context, key string) (int64, error) {
 	// TODO: sync with chaosnet and see if this still causes a consensus failure or not
 	// ensure we don't cause a consensus failure and execute the following code
 	// in previous versions
-	ver := k.GetLowestActiveVersion(ctx)
-	if ver.GTE(semver.MustParse("0.78.0")) {
+	if k.version.GTE(semver.MustParse("0.78.0")) {
 		nodeMimirs, err := k.GetNodeMimirs(ctx, key)
 		if err != nil {
 			return -1, err
