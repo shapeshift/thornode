@@ -2,7 +2,10 @@ package thorchain
 
 import (
 	"fmt"
+	"math/big"
 
+	"github.com/armon/go-metrics"
+	"github.com/cosmos/cosmos-sdk/telemetry"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto"
 
@@ -74,6 +77,17 @@ func (s *SlasherV75) HandleDoubleSign(ctx cosmos.Context, addr crypto.Address, i
 			if slashAmount.GT(na.Bond) {
 				slashAmount = na.Bond
 			}
+
+			slashFloat, _ := new(big.Float).SetInt(slashAmount.BigInt()).Float32()
+			telemetry.IncrCounterWithLabels(
+				[]string{"thornode", "bond_slash"},
+				slashFloat,
+				[]metrics.Label{
+					telemetry.NewLabel("address", addr.String()),
+					telemetry.NewLabel("reason", "double_sign"),
+				},
+			)
+
 			na.Bond = common.SafeSub(na.Bond, slashAmount)
 			coin := common.NewCoin(common.RuneNative, slashAmount)
 			if err := s.keeper.SendFromModuleToModule(ctx, BondName, ReserveName, common.NewCoins(coin)); err != nil {
@@ -169,6 +183,15 @@ func (s *SlasherV75) checkSignerAndSlash(ctx cosmos.Context, nodes NodeAccounts,
 			lackOfObservationPenalty := constAccessor.GetInt64Value(constants.LackOfObservationPenalty)
 			if err := s.keeper.IncNodeAccountSlashPoints(ctx, na.NodeAddress, lackOfObservationPenalty); err != nil {
 				ctx.Logger().Error("fail to inc slash points", "error", err)
+			} else {
+				telemetry.IncrCounterWithLabels(
+					[]string{"thornode", "point_slash"},
+					float32(lackOfObservationPenalty),
+					[]metrics.Label{
+						telemetry.NewLabel("address", na.NodeAddress.String()),
+						telemetry.NewLabel("reason", "not_observing"),
+					},
+				)
 			}
 		}
 	}
@@ -207,10 +230,20 @@ func (s *SlasherV75) LackSigning(ctx cosmos.Context, constAccessor constants.Con
 					ctx.Logger().Error("Unable to get node account", "error", err, "vault pub key", tx.VaultPubKey.String())
 					continue
 				}
-				if err := s.keeper.IncNodeAccountSlashPoints(ctx, na.NodeAddress, signingTransPeriod*2); err != nil {
+				slashPoints := signingTransPeriod * 2
+				if err := s.keeper.IncNodeAccountSlashPoints(ctx, na.NodeAddress, slashPoints); err != nil {
 					ctx.Logger().Error("fail to inc slash points", "error", err, "node addr", na.NodeAddress.String())
+				} else {
+					telemetry.IncrCounterWithLabels(
+						[]string{"thornode", "point_slash"},
+						float32(slashPoints),
+						[]metrics.Label{
+							telemetry.NewLabel("address", na.NodeAddress.String()),
+							telemetry.NewLabel("reason", "not_signing"),
+						},
+					)
 				}
-				if err := mgr.EventMgr().EmitEvent(ctx, NewEventSlashPoint(na.NodeAddress, signingTransPeriod*2, fmt.Sprintf("fail to sign out tx after %d blocks", signingTransPeriod))); err != nil {
+				if err := mgr.EventMgr().EmitEvent(ctx, NewEventSlashPoint(na.NodeAddress, slashPoints, fmt.Sprintf("fail to sign out tx after %d blocks", signingTransPeriod))); err != nil {
 					ctx.Logger().Error("fail to emit slash point event")
 				}
 				releaseHeight := common.BlockHeight(ctx) + (signingTransPeriod * 2)
@@ -364,6 +397,8 @@ func (s *SlasherV75) SlashVault(ctx cosmos.Context, vaultPK common.PubKey, coins
 		totalBond = totalBond.Add(na.Bond)
 	}
 
+	metricLabels, _ := ctx.Context().Value(constants.CtxMetricLabels).([]metrics.Label)
+
 	for _, coin := range coins {
 		if coin.IsEmpty() {
 			continue
@@ -427,6 +462,7 @@ func (s *SlasherV75) SlashVault(ctx cosmos.Context, vaultPK common.PubKey, coins
 			}
 			ctx.Logger().Info("slash node account", "node address", na.NodeAddress.String(), "amount", slashAmountRune.String(), "total slash amount", totalSlashAmountInRune)
 			na.Bond = common.SafeSub(na.Bond, slashAmountRune)
+
 			tx := common.Tx{}
 			tx.ID = common.BlankTxID
 			tx.FromAddress = na.BondAddress
@@ -434,6 +470,20 @@ func (s *SlasherV75) SlashVault(ctx cosmos.Context, vaultPK common.PubKey, coins
 			if err := s.eventMgr.EmitEvent(ctx, bondEvent); err != nil {
 				return fmt.Errorf("fail to emit bond event: %w", err)
 			}
+
+			slashAmountRuneFloat, _ := new(big.Float).SetInt(slashAmountRune.BigInt()).Float32()
+			telemetry.IncrCounterWithLabels(
+				[]string{"thornode", "bond_slash"},
+				slashAmountRuneFloat,
+				append(
+					metricLabels,
+					telemetry.NewLabel("address", na.NodeAddress.String()),
+					telemetry.NewLabel("coin_symbol", coin.Asset.Symbol.String()),
+					telemetry.NewLabel("coin_chain", string(coin.Asset.Chain)),
+					telemetry.NewLabel("vault_type", vault.Type.String()),
+					telemetry.NewLabel("vault_status", vault.Status.String()),
+				),
+			)
 
 			// Ban the node account. Ensure we don't ban more than 1/3rd of any
 			// given active or retiring vault
