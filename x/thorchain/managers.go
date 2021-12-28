@@ -253,7 +253,7 @@ func (mgr *Mgrs) YggManager() YggManager { return mgr.yggManager }
 // GetKeeper return Keeper
 func GetKeeper(version semver.Version, cdc codec.BinaryMarshaler, coinKeeper bankkeeper.Keeper, accountKeeper authkeeper.AccountKeeper, storeKey cosmos.StoreKey) (keeper.Keeper, error) {
 	if version.GTE(semver.MustParse("0.1.0")) {
-		return kv1.NewKVStore(cdc, coinKeeper, accountKeeper, storeKey), nil
+		return kv1.NewKVStore(cdc, coinKeeper, accountKeeper, storeKey, version), nil
 	}
 	return nil, errInvalidVersion
 }

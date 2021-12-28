@@ -61,6 +61,7 @@ var (
 	GetRandomBech32Addr        = types.GetRandomBech32Addr
 	GetRandomPubKey            = types.GetRandomPubKey
 	GetRandomPubKeySet         = types.GetRandomPubKeySet
+	GetCurrentVersion          = types.GetCurrentVersion
 	NewObservedNetworkFeeVoter = types.NewObservedNetworkFeeVoter
 	NewNetworkFee              = types.NewNetworkFee
 	NewTssKeysignFailVoter     = types.NewTssKeysignFailVoter
