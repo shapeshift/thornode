@@ -502,12 +502,15 @@ func queryNode(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mg
 	if err != nil {
 		return nil, fmt.Errorf("fail to get last observe chain height: %w", err)
 	}
+
+	// analyze-ignore(map-iteration)
 	for c, h := range chainHeights {
 		result.ObserveChains = append(result.ObserveChains, types.QueryChainHeight{
 			Chain:  c,
 			Height: h,
 		})
 	}
+
 	preflightCheckResult, err := getNodePreflightResult(ctx, mgr, nodeAcc)
 	if err != nil {
 		ctx.Logger().Error("fail to get node preflight result", "error", err)
@@ -589,12 +592,15 @@ func queryNodes(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *M
 		if err != nil {
 			return nil, fmt.Errorf("fail to get last observe chain height: %w", err)
 		}
+
+		// analyze-ignore(map-iteration)
 		for c, h := range chainHeights {
 			result[i].ObserveChains = append(result[i].ObserveChains, types.QueryChainHeight{
 				Chain:  c,
 				Height: h,
 			})
 		}
+
 		preflightCheckResult, err := getNodePreflightResult(ctx, mgr, na)
 		if err != nil {
 			ctx.Logger().Error("fail to get node preflight result", "error", err)
