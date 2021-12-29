@@ -143,6 +143,7 @@ func (s *SwapperV55) swap(ctx cosmos.Context,
 	// persistent pools to the key value store as the next step will be trying to add TxOutItem
 	// during AddTxOutItem , it will try to take some asset from the emitted asset, and add it back to pool
 	// thus it put some asset back to compensate gas
+	// analyze-ignore(map-iteration): fixed in later versions
 	for _, pool := range s.pools {
 		if err := keeper.SetPool(ctx, pool); err != nil {
 			return cosmos.ZeroUint(), swapEvents, errSwapFail
@@ -164,6 +165,7 @@ func (s *SwapperV55) swap(ctx cosmos.Context,
 	if err != nil {
 		// when it fail to send out the txout item , thus let's restore the pool balance here , thus nothing happen to the pool
 		// given the previous pool status is already in memory, so here just apply it again
+		// analyze-ignore(map-iteration): fixed in later versions
 		for _, pool := range s.poolsOrig {
 			if err := keeper.SetPool(ctx, pool); err != nil {
 				return cosmos.ZeroUint(), swapEvents, errSwapFail

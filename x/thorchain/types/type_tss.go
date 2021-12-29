@@ -89,6 +89,7 @@ func (m *TssVoter) ConsensusChains() common.Chains {
 	}
 
 	chains := make(common.Chains, 0)
+	// analyze-ignore(map-iteration)
 	for chain, count := range chainCount {
 		if HasSuperMajority(count, len(m.PubKeys)) {
 			chains = append(chains, chain)

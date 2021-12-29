@@ -61,6 +61,7 @@ lint-code:
   script:
     - make lint-handlers
     - golangci-lint run -v --skip-files ".*\\.pb\\.go$"
+    - go run tools/analyze/main.go ./common/... ./constants/... ./x/...
 
 shellcheck:
   image: koalaman/shellcheck-alpine:latest
@@ -99,6 +100,7 @@ build-thornode:
     - testnet
     - chaosnet
     - mainnet
+    - stagenet
     - testnet-multichain
     - chaosnet-multichain
   services:
