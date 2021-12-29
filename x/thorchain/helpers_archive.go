@@ -478,6 +478,7 @@ func subsidizePoolWithSlashBondV1(ctx cosmos.Context, ygg Vault, yggTotalStolen,
 		subsidizeAmounts[asset] = f
 	}
 
+	// analyze-ignore(map-iteration): fixed in later versions
 	for asset, f := range subsidizeAmounts {
 		pool, err := mgr.Keeper().GetPool(ctx, asset)
 		if err != nil {
@@ -545,6 +546,7 @@ func subsidizePoolWithSlashBondV46(ctx cosmos.Context, ygg Vault, yggTotalStolen
 		subsidizeAmounts[asset] = f
 	}
 
+	// analyze-ignore(map-iteration): fixed in later versions
 	for asset, f := range subsidizeAmounts {
 		pool, err := mgr.Keeper().GetPool(ctx, asset)
 		if err != nil {

@@ -52,6 +52,8 @@ func (om *ObserverMgrV1) AppendObserver(chain common.Chain, addrs []cosmos.AccAd
 func (om *ObserverMgrV1) List() []cosmos.AccAddress {
 	result := make([]cosmos.AccAddress, 0)
 	tracker := make(map[string]int, 0)
+
+	// analyze-ignore(map-iteration)
 	for _, addrs := range om.chains {
 		for _, addr := range addrs {
 			// check if we need to init this key for the tracker
@@ -62,6 +64,7 @@ func (om *ObserverMgrV1) List() []cosmos.AccAddress {
 		}
 	}
 
+	// analyze-ignore(map-iteration)
 	for key, count := range tracker {
 		if count >= len(om.chains) {
 			addr, _ := cosmos.AccAddressFromBech32(key)

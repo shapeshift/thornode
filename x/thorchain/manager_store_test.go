@@ -810,7 +810,7 @@ func (s *StoreManagerTestSuite) TestMigrateStoreV77(c *C) {
 	config := cosmos.GetConfig()
 	config.SetBech32PrefixForAccount("thor", "thorpub")
 	ctx = ctx.WithBlockHeight(1024)
-	pubKey, err := common.NewPubKey(`thorpub1addwnpepqvqlfxkp65g8q9tyzhjhkanllwldmz3yknsc4edy6e7xhwhqte8wue7ptd2`)
+	pubKey, err := common.NewPubKey(`thorpub1addwnpepq0myn4whrj7qfrzc647dju7rgtjc5punucxwvfut56mghuzxakq37e8ev4y`)
 	c.Assert(err, IsNil)
 	vault := NewVault(ctx.BlockHeight(), ActiveVault, AsgardVault, pubKey, []string{
 		common.BTCChain.String(),
