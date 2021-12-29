@@ -42,7 +42,7 @@ PREFLIGHT=$(echo "$JSON" | jq -r ".preflight_status")
 
 if [ "$VALIDATOR" = "true" ]; then
   # calculate BNB chain sync progress
-  if [ "$NET" = "mainnet" ]; then # Seeds from https://docs.binance.org/smart-chain/developer/rpc.html
+  if [ "$NET" = "mainnet" ] || [ "$NET" = "stagenet" ]; then # Seeds from https://docs.binance.org/smart-chain/developer/rpc.html
     BNB_PEERS='https://dataseed1.binance.org https://dataseed2.binance.org https://dataseed3.binance.org https://dataseed4.binance.org'
   else
     BNB_PEERS='http://data-seed-pre-0-s1.binance.org http://data-seed-pre-1-s1.binance.org http://data-seed-pre-2-s1.binance.org http://data-seed-pre-0-s3.binance.org http://data-seed-pre-1-s3.binance.org'
