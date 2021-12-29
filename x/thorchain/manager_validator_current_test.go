@@ -505,6 +505,7 @@ func (vts *ValidatorMgrV78TestSuite) TestWeightedBondReward(c *C) {
 	// The bond hard cap in the test environment is 3 * common.One, both na1 and na2 should have the same reward
 	c.Check(na1.Bond.Uint64(), Equals, uint64(4_37500000))
 	c.Check(na2.Bond.Uint64(), Equals, uint64(3_37500000))
+
 	// na3.Bond is below the hard cap, it should have a smaller reward accordingly
 	c.Check(na3.Bond.Uint64(), Equals, uint64(2_25000000))
 }
