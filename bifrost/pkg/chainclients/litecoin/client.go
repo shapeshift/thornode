@@ -53,6 +53,7 @@ const (
 type Client struct {
 	logger                zerolog.Logger
 	cfg                   config.ChainConfiguration
+	m                     *metrics.Metrics
 	client                *rpcclient.Client
 	chain                 common.Chain
 	privateKey            *btcec.PrivateKey
@@ -118,6 +119,7 @@ func NewClient(thorKeys *thorclient.Keys, cfg config.ChainConfiguration, server 
 	c := &Client{
 		logger:           log.Logger.With().Str("module", "litecoin").Logger(),
 		cfg:              cfg,
+		m:                m,
 		chain:            cfg.ChainID,
 		client:           client,
 		privateKey:       ltcPrivateKey,
@@ -685,12 +687,18 @@ func (c *Client) sendNetworkFee(height int64) error {
 			feeRate++
 		}
 	}
+	c.m.GetGauge(metrics.GasPriceSuggested(common.LTCChain)).Set(float64(feeRate))
 	c.feeRateCache = append(c.feeRateCache, feeRate)
 	if len(c.feeRateCache) >= gasCacheBlocks {
 		c.feeRateCache = c.feeRateCache[len(c.feeRateCache)-gasCacheBlocks:]
 	}
+
 	feeRate = c.getHighestFeeRate()
+	c.m.GetGauge(metrics.GasPrice(common.LTCChain)).Set(float64(feeRate))
+
 	if c.lastFeeRate != feeRate {
+		c.m.GetCounter(metrics.GasPriceChange(common.LTCChain)).Inc()
+
 		txid, err := c.bridge.PostNetworkFee(height, common.LTCChain, uint64(EstimateAverageTxSize), feeRate)
 		if err != nil {
 			return fmt.Errorf("fail to post network fee to thornode: %w", err)
