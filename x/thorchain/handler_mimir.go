@@ -122,6 +122,15 @@ func (h MimirHandler) handleV78(ctx cosmos.Context, msg MsgMimir) error {
 			return fmt.Errorf("fail to save node account: %w", err)
 		}
 
+		// add 10 bond to reserve
+		coin := common.NewCoin(common.RuneNative, cost)
+		if !cost.IsZero() {
+			if err := h.mgr.Keeper().SendFromModuleToModule(ctx, BondName, ReserveName, common.NewCoins(coin)); err != nil {
+				ctx.Logger().Error("fail to transfer funds from bond to reserve", "error", err)
+				return err
+			}
+		}
+
 		if err := h.mgr.Keeper().SetNodeMimir(ctx, msg.Key, msg.Value, msg.Signer); err != nil {
 			return err
 		}
