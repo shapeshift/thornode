@@ -55,6 +55,7 @@ const (
 type Client struct {
 	logger                zerolog.Logger
 	cfg                   config.ChainConfiguration
+	m                     *metrics.Metrics
 	client                *rpcclient.Client
 	chain                 common.Chain
 	privateKey            *btcec.PrivateKey
@@ -121,6 +122,7 @@ func NewClient(thorKeys *thorclient.Keys, cfg config.ChainConfiguration, server 
 	c := &Client{
 		logger:           log.Logger.With().Str("module", "dogecoin").Logger(),
 		cfg:              cfg,
+		m:                m,
 		chain:            cfg.ChainID,
 		client:           client,
 		privateKey:       dogPrivateKey,
@@ -675,6 +677,9 @@ func (c *Client) sendNetworkFee(height int64) error {
 	if err == nil && *result.FeeRate != float64(-1) {
 		feeRate = uint64(*result.FeeRate * common.One)
 	}
+
+	c.m.GetGauge(metrics.GasPriceSuggested(common.DOGEChain)).Set(float64(feeRate))
+
 	if EstimateAverageTxSize*feeRate < c.minRelayFeeSats {
 		feeRate = c.minRelayFeeSats / EstimateAverageTxSize
 		if feeRate*EstimateAverageTxSize < c.minRelayFeeSats {
@@ -685,8 +690,13 @@ func (c *Client) sendNetworkFee(height int64) error {
 	if len(c.feeRateCache) >= gasCacheBlocks {
 		c.feeRateCache = c.feeRateCache[len(c.feeRateCache)-gasCacheBlocks:]
 	}
+
 	feeRate = c.getHighestFeeRate()
+	c.m.GetGauge(metrics.GasPrice(common.DOGEChain)).Set(float64(feeRate))
+
 	if c.lastFeeRate != feeRate {
+		c.m.GetCounter(metrics.GasPriceChange(common.DOGEChain)).Inc()
+
 		txid, err := c.bridge.PostNetworkFee(height, common.DOGEChain, uint64(EstimateAverageTxSize), feeRate)
 		if err != nil {
 			return fmt.Errorf("fail to post network fee to thornode: %w", err)
