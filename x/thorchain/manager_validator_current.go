@@ -657,11 +657,12 @@ func (vm *validatorMgrV78) ragnarokBondReward(ctx cosmos.Context, mgr Manager) e
 
 	totalEffectiveBond := cosmos.ZeroUint()
 	for _, item := range active {
+		b := item.Bond
 		if item.Bond.GT(bondHardCap) {
-			item.Bond = bondHardCap
+			b = bondHardCap
 		}
 
-		totalEffectiveBond = totalEffectiveBond.Add(item.Bond)
+		totalEffectiveBond = totalEffectiveBond.Add(b)
 	}
 
 	network, err := vm.k.GetNetwork(ctx)
