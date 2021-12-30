@@ -122,7 +122,7 @@ seeds_list() {
   OLD_IFS=$IFS
   IFS=","
   SEED_LIST=""
-  for SEED in "$@"; do
+  for SEED in $1; do
     NODE_ID=$(curl -sL --fail -m 10 "$SEED:$PORT_RPC/status" | jq -r .result.node_info.id) || continue
     NETWORK=$(curl -sL --fail -m 10 "$SEED:$PORT_RPC/status" | jq -r .result.node_info.network) || continue
     # make sure the seeds are on the same network
