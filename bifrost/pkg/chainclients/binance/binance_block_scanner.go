@@ -186,7 +186,9 @@ func (b *BinanceBlockScanner) updateFees(height int64) error {
 			}
 		}
 	}
+	b.m.GetGauge(metrics.GasPrice(common.BNBChain)).Set(float64(b.singleFee))
 	if changed {
+		b.m.GetCounter(metrics.GasPriceChange(common.BNBChain)).Inc()
 		if _, err := b.bridge.PostNetworkFee(height, common.BNBChain, 1, b.singleFee); err != nil {
 			b.logger.Err(err).Msg("fail to post Binance chain single transfer fee to THORNode")
 		}
