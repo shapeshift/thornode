@@ -493,12 +493,19 @@ func (b *Binance) BroadcastTx(tx stypes.TxOutItem, hexTx []byte) (string, error)
 	u.RawQuery = values.Encode()
 	resp, err := http.Post(u.String(), "", nil)
 	if err != nil {
-		return "", fmt.Errorf("fail to broadcast tx to binance chain: %w", err)
+		// Binance daemon sometimes get into trouble and restart , if bifrost happens to broadcast a tx at the time , it will return an err
+		// which cause bifrost to retry the same tx , thus double spend.
+		// log the error , and then move on , this might cause the node to accumulate some slash points , but at least not double spend and cause bond to be slashed.
+		// 300 blocks later, if the tx has not been sent , it will be rescheduled by the network
+		b.logger.Err(err).Msg("fail to broadcast tx to binance chain")
+		return "", nil
 	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return "", fmt.Errorf("fail to read response body: %w", err)
+		// the same reason mentioned above
+		b.logger.Err(err).Msg("fail to read response body")
+		return "", nil
 	}
 
 	// NOTE: we can actually see two different json responses for the same end.
