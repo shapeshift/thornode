@@ -607,7 +607,7 @@ func removeLiquidityProviders(ctx cosmos.Context, asset common.Asset, mgr Manage
 			lp.Units,
 			int64(0),
 			cosmos.ZeroDec(),
-			common.Tx{ FromAddress: lp.GetAddress() },
+			common.Tx{FromAddress: lp.GetAddress()},
 			cosmos.ZeroUint(),
 			cosmos.ZeroUint(),
 			cosmos.ZeroUint(),
@@ -995,7 +995,7 @@ func emitEndBlockTelemetry(ctx cosmos.Context, mgr Manager) error {
 			continue
 		}
 		synthSupply := mgr.Keeper().GetTotalSupply(ctx, pool.Asset.GetSyntheticAsset())
-		labels := []metrics.Label{telemetry.NewLabel("pool", pool.Asset.String())}
+		labels := []metrics.Label{telemetry.NewLabel("pool", pool.Asset.String()), telemetry.NewLabel("status", pool.Status.String())}
 		telemetry.SetGaugeWithLabels([]string{"thornode", "pool", "balance", "synth"}, telem(synthSupply), labels)
 		telemetry.SetGaugeWithLabels([]string{"thornode", "pool", "balance", "rune"}, telem(pool.BalanceRune), labels)
 		telemetry.SetGaugeWithLabels([]string{"thornode", "pool", "balance", "asset"}, telem(pool.BalanceAsset), labels)
