@@ -502,6 +502,7 @@ func (vts *ValidatorMgrV78TestSuite) TestWeightedBondReward(c *C) {
 	na1, _ = mgr.Keeper().GetNodeAccount(ctx, na1.NodeAddress)
 	na2, _ = mgr.Keeper().GetNodeAccount(ctx, na2.NodeAddress)
 	na3, _ = mgr.Keeper().GetNodeAccount(ctx, na3.NodeAddress)
+
 	// The bond hard cap in the test environment is 3 * common.One, both na1 and na2 should have the same reward
 	c.Check(na1.Bond.Uint64(), Equals, uint64(4_37500000))
 	c.Check(na2.Bond.Uint64(), Equals, uint64(3_37500000))
