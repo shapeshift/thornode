@@ -56,10 +56,11 @@ lint-code:
   before_script:
     - go get mvdan.cc/gofumpt
     - apt update
-    - apt install -y protobuf-compiler
+    - apt install -y protobuf-compiler jq
     - make protob
   script:
     - make lint-handlers
+    - make lint-erc20-token-list
     - golangci-lint run -v --skip-files ".*\\.pb\\.go$"
     - go run tools/analyze/main.go ./common/... ./constants/... ./x/...
 

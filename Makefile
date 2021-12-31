@@ -75,6 +75,9 @@ lint-pre: protob
 lint-handlers:
 	@./scripts/lint-handlers.bash
 
+lint-erc20-token-list:
+	@./scripts/lint-erc20s.bash
+
 lint: lint-pre lint-managers
 	@golangci-lint run --skip-files ".*\\.pb\\.go$$"
 
