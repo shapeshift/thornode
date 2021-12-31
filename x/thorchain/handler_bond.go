@@ -204,7 +204,7 @@ func (h BondHandler) handleV81(ctx cosmos.Context, msg MsgBond) error {
 		return ErrInternal(err, fmt.Sprintf("fail to get bond providers(%s)", msg.NodeAddress))
 	}
 
-	// backfil bond provider information (passive migration code)
+	// backfill bond provider information (passive migration code)
 	if len(bp.Providers) == 0 {
 		// no providers yet, add node operator bond address to the bond provider list
 		bondAddress, err := nodeAccount.BondAddress.AccAddress()
