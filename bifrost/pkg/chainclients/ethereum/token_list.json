@@ -2541,7 +2541,7 @@
       "logoURI": "https://tokens.1inch.io/0x4fe5851c9af07df9e5ad8217afae1ea72737ebda.png"
     },
     {
-      "address": "0x6B3595068778DD592e39A122f4f5a5cF09C90fE2",
+      "address": "0x6b3595068778dd592e39a122f4f5a5cf09c90fe2",
       "chainId": 1,
       "name": "SushiToken",
       "symbol": "SUSHI",
@@ -8932,23 +8932,9 @@
     },
     {
       "chainId": 1,
-      "address": "0x6B3595068778DD592e39A122f4f5a5cF09C90fE2",
-      "symbol": "SUSHI",
-      "name": "SushiToken",
-      "decimals": 18
-    },
-    {
-      "chainId": 1,
       "address": "0xa5f2211B9b8170F694421f2046281775E8468044",
       "symbol": "THOR",
       "name": "THORSwap Token",
-      "decimals": 18
-    },
-    {
-      "chainId": 1,
-      "address": "0xc770eefad204b5180df6a14ee197d99d808ee52d",
-      "symbol": "FOX",
-      "name": "ShapeShift FOX Token",
       "decimals": 18
     },
     {
