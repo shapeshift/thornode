@@ -473,6 +473,7 @@ func (s *ThorchainSuite) TestRagnarokNoOneLeave(c *C) {
 	bonders := make(NodeAccounts, bonderCount)
 	for i := 1; i <= bonderCount; i++ {
 		na := GetRandomValidatorNode(NodeActive)
+		na.ActiveBlockHeight = 5
 		na.Bond = cosmos.NewUint(1_000_000 * uint64(i) * common.One)
 		c.Assert(mgr.Keeper().SetNodeAccount(ctx, na), IsNil)
 		bonders[i-1] = na
