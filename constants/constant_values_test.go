@@ -27,6 +27,7 @@ func (ConstantsTestSuite) TestConstantName_String(c *C) {
 		SigningTransactionPeriod,
 		DoubleSignMaxAge,
 		MinimumBondInRune,
+		ValidatorMaxRewardRatio,
 	}
 	for _, item := range constantNames {
 		c.Assert(item.String(), Not(Equals), "NA")
