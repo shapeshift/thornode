@@ -227,3 +227,11 @@ func (nas NodeAccounts) Contains(na NodeAccount) bool {
 	}
 	return false
 }
+
+func (nas NodeAccounts) GetNodeAddresses() []cosmos.AccAddress {
+	addrs := make([]cosmos.AccAddress, len(nas))
+	for i, na := range nas {
+		addrs[i] = na.NodeAddress
+	}
+	return addrs
+}

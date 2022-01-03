@@ -107,7 +107,7 @@ func setupKeeperForTest(c *C) (cosmos.Context, KVStore) {
 	supply := banktypes.NewSupply(nil)
 	bk.SetSupply(ctx, supply)
 
-	k := NewKVStore(marshaler, bk, ak, keyThorchain)
+	k := NewKVStore(marshaler, bk, ak, keyThorchain, GetCurrentVersion())
 
 	FundModule(c, ctx, k, AsgardName, common.One)
 
@@ -121,7 +121,6 @@ var _ = Suite(&KeeperTestSuit{})
 func (KeeperTestSuit) TestKeeperVersion(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	c.Check(k.GetStoreVersion(ctx), Equals, int64(38))
-	c.Check(k.Version(), Equals, version)
 
 	k.SetStoreVersion(ctx, 2)
 	c.Check(k.GetStoreVersion(ctx), Equals, int64(2))

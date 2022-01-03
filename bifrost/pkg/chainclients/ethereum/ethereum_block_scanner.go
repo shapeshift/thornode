@@ -235,6 +235,10 @@ func (e *ETHScanner) updateGasPrice() {
 	ctx, cancel := e.getContext()
 	defer cancel()
 	gasPrice, err := e.client.SuggestGasPrice(ctx)
+
+	gasPriceFloat, _ := new(big.Float).SetInt(gasPrice).Float64()
+	e.m.GetGauge(metrics.GasPriceSuggested(common.ETHChain)).Set(gasPriceFloat)
+
 	if err != nil {
 		e.logger.Err(err).Msg("fail to get suggest gas price")
 		return
@@ -261,11 +265,15 @@ func (e *ETHScanner) updateGasPrice() {
 	}
 	halfPrevious := big.NewInt(1).Div(e.gasPrice, big.NewInt(2))
 	if gasPrice.Cmp(halfPrevious) < 0 {
-		e.logger.Info().Msgf("new gas price: %s less than half of previous price: %s , ignore", gasPrice, e.gasPrice)
-		return
+		e.logger.Info().Msgf("new gas price: %s less than half of previous price: %s , only half it", gasPrice, e.gasPrice)
+		e.gasPrice = halfPrevious
 	}
 	e.gasPriceChanged = true
 	e.gasPrice = gasPrice
+
+	gasPriceFloat, _ = new(big.Float).SetInt(gasPrice).Float64()
+	e.m.GetGauge(metrics.GasPrice(common.ETHChain)).Set(gasPriceFloat)
+	e.m.GetCounter(metrics.GasPriceChange(common.ETHChain)).Inc()
 }
 
 // get the highest gas price in the last 50 blocks , make sure we can pay enough fee

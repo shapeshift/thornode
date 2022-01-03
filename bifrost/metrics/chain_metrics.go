@@ -46,7 +46,19 @@ func SearchTxDuration(chain common.Chain) MetricName {
 	return MetricName(chain + "_search_tx_duration")
 }
 
-func AddChainMetrics(chain common.Chain, counters map[MetricName]prometheus.Counter, counterVecs map[MetricName]*prometheus.CounterVec, histograms map[MetricName]prometheus.Histogram) {
+func GasPrice(chain common.Chain) MetricName {
+	return MetricName(chain + "_gas_price")
+}
+
+func GasPriceChange(chain common.Chain) MetricName {
+	return MetricName(chain + "_gas_price_change")
+}
+
+func GasPriceSuggested(chain common.Chain) MetricName {
+	return MetricName(chain + "_gas_price_suggested")
+}
+
+func AddChainMetrics(chain common.Chain, counters map[MetricName]prometheus.Counter, counterVecs map[MetricName]*prometheus.CounterVec, gauges map[MetricName]prometheus.Gauge, histograms map[MetricName]prometheus.Histogram) {
 	counters[BlockWithoutTx(chain)] = prometheus.NewCounter(prometheus.CounterOpts{
 		Namespace: "block_scanner",
 		Subsystem: chain.String() + "_block_scanner",
@@ -70,6 +82,12 @@ func AddChainMetrics(chain common.Chain, counters map[MetricName]prometheus.Coun
 		Subsystem: chain.String() + "_block_scanner",
 		Name:      chain.String() + "_block_no_tx_out",
 		Help:      "block doesn't have any tx out",
+	})
+	counters[GasPriceChange(chain)] = prometheus.NewCounter(prometheus.CounterOpts{
+		Namespace: "block_scanner",
+		Subsystem: chain.String(),
+		Name:      "gas_price_change",
+		Help:      "gas price change",
 	})
 	counters[TxSignedBroadcast(chain)] = prometheus.NewCounter(prometheus.CounterOpts{
 		Namespace: "signer",
@@ -104,5 +122,18 @@ func AddChainMetrics(chain common.Chain, counters map[MetricName]prometheus.Coun
 		Subsystem: chain.String(),
 		Name:      chain.String() + "_sign_and_broadcast_duration",
 		Help:      "how long it takes to sign and broadcast to " + chain.String(),
+	})
+
+	gauges[GasPrice(chain)] = prometheus.NewGauge(prometheus.GaugeOpts{
+		Namespace: "block_scanner",
+		Subsystem: chain.String(),
+		Name:      "gas_price",
+		Help:      "gas price",
+	})
+	gauges[GasPriceSuggested(chain)] = prometheus.NewGauge(prometheus.GaugeOpts{
+		Namespace: "block_scanner",
+		Subsystem: chain.String(),
+		Name:      "gas_price_suggested",
+		Help:      "suggested gas price from client library or last block as heuristic",
 	})
 }

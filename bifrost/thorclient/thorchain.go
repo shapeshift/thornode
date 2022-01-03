@@ -520,7 +520,7 @@ func (b *ThorchainBridge) GetThorchainVersion() (semver.Version, error) {
 
 // GetMimir - get mimir settings
 func (b *ThorchainBridge) GetMimir(key string) (int64, error) {
-	buf, s, err := b.getWithPath(MimirEndpoint + "/" + key)
+	buf, s, err := b.getWithPath(MimirEndpoint + "/key/" + key)
 	if err != nil {
 		return 0, fmt.Errorf("fail to get mimir: %w", err)
 	}

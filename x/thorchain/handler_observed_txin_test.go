@@ -728,3 +728,73 @@ func (s HandlerObservedTxInSuite) TestSwapWithAffiliate(c *C) {
 	c.Check(swaps[0].msg.Tx.Coins[0].Amount.Uint64(), Equals, uint64(180000000))
 	c.Check(swaps[1].msg.Tx.Coins[0].Amount.Uint64(), Equals, uint64(20000000))
 }
+
+func (s *HandlerObservedTxInSuite) TestVaultStatus(c *C) {
+	testCases := []struct {
+		name                 string
+		statusAtConsensus    VaultStatus
+		statusAtFinalisation VaultStatus
+	}{
+		{
+			name:                 "should observe if active on consensus and finalisation",
+			statusAtConsensus:    ActiveVault,
+			statusAtFinalisation: ActiveVault,
+		}, {
+			name:                 "should observe if active on consensus, inactive on finalisation",
+			statusAtConsensus:    ActiveVault,
+			statusAtFinalisation: InactiveVault,
+		}, {
+			name:                 "should not observe if inactive on consensus",
+			statusAtConsensus:    InactiveVault,
+			statusAtFinalisation: InactiveVault,
+		},
+	}
+	for _, tc := range testCases {
+		var err error
+		ctx, mgr := setupManagerForTest(c)
+		tx := GetRandomTx()
+		tx.Memo = "SWAP:BTC.BTC:" + GetRandomBTCAddress().String()
+		obTx := NewObservedTx(tx, 12, GetRandomPubKey(), 15)
+		txs := ObservedTxs{obTx}
+		vault := GetRandomVault()
+		vault.PubKey = obTx.ObservedPubKey
+		keeper := &TestObservedTxInHandleKeeper{
+			nas:       NodeAccounts{GetRandomValidatorNode(NodeActive)},
+			voter:     NewObservedTxVoter(tx.ID, make(ObservedTxs, 0)),
+			vault:     vault,
+			yggExists: true,
+		}
+		mgr.K = keeper
+		handler := NewObservedTxInHandler(mgr)
+
+		keeper.vault.Status = tc.statusAtConsensus
+		msg := NewMsgObservedTxIn(txs, keeper.nas[0].NodeAddress)
+		_, err = handler.handle(ctx, *msg)
+		c.Assert(err, IsNil, Commentf(tc.name))
+		c.Check(keeper.voter.Height, Equals, int64(18), Commentf(tc.name))
+
+		if tc.statusAtConsensus == InactiveVault {
+			c.Check(keeper.voter.UpdatedVault, Equals, false, Commentf(tc.name))
+			c.Check(keeper.vault.InboundTxCount, Equals, int64(0), Commentf(tc.name))
+		} else {
+			c.Check(keeper.voter.UpdatedVault, Equals, true, Commentf(tc.name))
+			c.Check(keeper.vault.InboundTxCount, Equals, int64(0), Commentf(tc.name))
+		}
+
+		keeper.vault.Status = tc.statusAtFinalisation
+		txs[0].BlockHeight = 15
+		msg = NewMsgObservedTxIn(txs, keeper.nas[0].NodeAddress)
+		ctx = ctx.WithBlockHeight(30)
+		_, err = handler.handle(ctx, *msg)
+		c.Assert(err, IsNil, Commentf(tc.name))
+		c.Check(keeper.voter.FinalisedHeight, Equals, int64(30), Commentf(tc.name))
+
+		if tc.statusAtConsensus == InactiveVault {
+			c.Check(keeper.voter.UpdatedVault, Equals, false, Commentf(tc.name))
+			c.Check(keeper.vault.InboundTxCount, Equals, int64(0), Commentf(tc.name))
+		} else {
+			c.Check(keeper.voter.UpdatedVault, Equals, true, Commentf(tc.name))
+			c.Check(keeper.vault.InboundTxCount, Equals, int64(1), Commentf(tc.name))
+		}
+	}
+}
