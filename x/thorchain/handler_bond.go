@@ -147,12 +147,6 @@ func (h BondHandler) handle(ctx cosmos.Context, msg MsgBond) error {
 }
 
 func (h BondHandler) handleV81(ctx cosmos.Context, msg MsgBond) error {
-	// THORNode will not have pub keys at the moment, so have to leave it empty
-	emptyPubKeySet := common.PubKeySet{
-		Secp256k1: common.EmptyPubKey,
-		Ed25519:   common.EmptyPubKey,
-	}
-
 	nodeAccount, err := h.mgr.Keeper().GetNodeAccount(ctx, msg.NodeAddress)
 	if err != nil {
 		return ErrInternal(err, fmt.Sprintf("fail to get node account(%s)", msg.NodeAddress))
