@@ -61,6 +61,7 @@ var (
 	GetRandomBech32Addr        = types.GetRandomBech32Addr
 	GetRandomPubKey            = types.GetRandomPubKey
 	GetRandomPubKeySet         = types.GetRandomPubKeySet
+	GetCurrentVersion          = types.GetCurrentVersion
 	NewObservedNetworkFeeVoter = types.NewObservedNetworkFeeVoter
 	NewNetworkFee              = types.NewNetworkFee
 	NewTssKeysignFailVoter     = types.NewTssKeysignFailVoter
@@ -101,6 +102,8 @@ type (
 	THORName                 = types.THORName
 	THORNameAlias            = types.THORNameAlias
 	SolvencyVoter            = types.SolvencyVoter
+	NodeMimir                = types.NodeMimir
+	NodeMimirs               = types.NodeMimirs
 
 	ProtoInt64        = types.ProtoInt64
 	ProtoUint64       = types.ProtoUint64

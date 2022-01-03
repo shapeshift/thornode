@@ -53,6 +53,7 @@ const (
 type Client struct {
 	logger                zerolog.Logger
 	cfg                   config.ChainConfiguration
+	m                     *metrics.Metrics
 	client                *rpcclient.Client
 	chain                 common.Chain
 	privateKey            *bchec.PrivateKey
@@ -118,6 +119,7 @@ func NewClient(thorKeys *thorclient.Keys, cfg config.ChainConfiguration, server 
 	c := &Client{
 		logger:           log.Logger.With().Str("module", "bitcoincash").Logger(),
 		cfg:              cfg,
+		m:                m,
 		chain:            cfg.ChainID,
 		client:           client,
 		privateKey:       bchPrivateKey,
@@ -698,6 +700,12 @@ func (c *Client) sendNetworkFee(height int64) error {
 	if feeRate < 2 {
 		feeRate = 2
 	}
+
+	c.m.GetGauge(metrics.GasPrice(common.BCHChain)).Set(float64(feeRate))
+	if c.lastFeeRate != feeRate {
+		c.m.GetCounter(metrics.GasPriceChange(common.BCHChain)).Inc()
+	}
+
 	c.lastFeeRate = feeRate
 	txid, err := c.bridge.PostNetworkFee(height, common.BCHChain, uint64(EstimateAverageTxSize), feeRate)
 	if err != nil {

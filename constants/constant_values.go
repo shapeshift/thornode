@@ -66,6 +66,7 @@ const (
 	TNSFeeOnSale
 	TNSFeePerBlock
 	PermittedSolvencyGap
+	ValidatorMaxRewardRatio
 )
 
 var nameToString = map[ConstantName]string{
@@ -125,6 +126,7 @@ var nameToString = map[ConstantName]string{
 	TNSFeeOnSale:                  "TNSFeeOnSale",
 	TNSFeePerBlock:                "TNSFeePerBlock",
 	PermittedSolvencyGap:          "PermittedSolvencyGap",
+	ValidatorMaxRewardRatio:       "ValidatorMaxRewardRatio",
 }
 
 // String implement fmt.stringer
