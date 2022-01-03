@@ -158,7 +158,7 @@ func (c Chain) AddressPrefix(cn ChainNetwork) string {
 		case DOGEChain:
 			return dogchaincfg.TestNet3Params.Bech32HRPSegwit
 		}
-	case MainNet:
+	case MainNet, StageNet:
 		switch c {
 		case BNBChain:
 			return btypes.ProdNetwork.Bech32Prefixes()

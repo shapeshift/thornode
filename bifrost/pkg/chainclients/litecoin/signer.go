@@ -51,6 +51,8 @@ func (c *Client) getChainCfg() *chaincfg.Params {
 		return &chaincfg.TestNet4Params
 	case common.MainNet:
 		return &chaincfg.MainNetParams
+	case common.StageNet:
+		return &chaincfg.MainNetParams
 	}
 	return nil
 }

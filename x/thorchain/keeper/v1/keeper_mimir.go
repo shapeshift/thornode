@@ -1,14 +1,37 @@
 package keeperv1
 
 import (
+	"fmt"
+	"strings"
+
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
+
+	"github.com/blang/semver"
 )
 
 const KRAKEN string = "ReleaseTheKraken"
 
 // GetMimir get a mimir value from key value store
 func (k KVStore) GetMimir(ctx cosmos.Context, key string) (int64, error) {
+	// TODO: sync with chaosnet and see if this still causes a consensus failure or not
+	// ensure we don't cause a consensus failure and execute the following code
+	// in previous versions
+	if k.version.GTE(semver.MustParse("0.78.0")) {
+		nodeMimirs, err := k.GetNodeMimirs(ctx, key)
+		if err != nil {
+			return -1, err
+		}
+
+		activeNodes, err := k.ListActiveValidators(ctx)
+		if err != nil {
+			return -1, err
+		}
+		if i, ok := nodeMimirs.HasSuperMajority(key, activeNodes.GetNodeAddresses()); ok {
+			return i, nil
+		}
+	}
+
 	// if we have the kraken, mimir is no more, ignore him
 	if k.haveKraken(ctx) {
 		return -1, nil
@@ -35,9 +58,50 @@ func (k KVStore) SetMimir(ctx cosmos.Context, key string, value int64) {
 	k.setInt64(ctx, k.GetKey(ctx, prefixMimir, key), value)
 }
 
+// GetNodeMimirs get node mimirs value from key value store
+func (k KVStore) GetNodeMimirs(ctx cosmos.Context, key string) (NodeMimirs, error) {
+	key = strings.ToUpper(key)
+
+	record := NodeMimirs{}
+	store := ctx.KVStore(k.storeKey)
+	if !store.Has([]byte(k.GetKey(ctx, prefixNodeMimir, key))) {
+		return record, nil
+	}
+	bz := store.Get([]byte(k.GetKey(ctx, prefixNodeMimir, key)))
+	if err := k.cdc.UnmarshalBinaryBare(bz, &record); err != nil {
+		return NodeMimirs{}, dbError(ctx, fmt.Sprintf("Unmarshal kvstore: (%T) %s", record, key), err)
+	}
+	return record, nil
+}
+
+// SetNodeMimir save a mimir value to key value store for a specific node
+func (k KVStore) SetNodeMimir(ctx cosmos.Context, key string, value int64, acc cosmos.AccAddress) error {
+	key = strings.ToUpper(key)
+
+	kvkey := k.GetKey(ctx, prefixNodeMimir, key)
+	record, err := k.GetNodeMimirs(ctx, key)
+	if err != nil {
+		return err
+	}
+	record.Set(key, value, acc)
+	store := ctx.KVStore(k.storeKey)
+	buf := k.cdc.MustMarshalBinaryBare(&record)
+	if buf == nil || len(record.Mimirs) == 0 {
+		store.Delete([]byte(kvkey))
+	} else {
+		store.Set([]byte(kvkey), buf)
+	}
+	return err
+}
+
 // GetMimirIterator iterate gas units
 func (k KVStore) GetMimirIterator(ctx cosmos.Context) cosmos.Iterator {
 	return k.getIterator(ctx, prefixMimir)
+}
+
+// GetNodeMimirIterator iterate gas units
+func (k KVStore) GetNodeMimirIterator(ctx cosmos.Context) cosmos.Iterator {
+	return k.getIterator(ctx, prefixNodeMimir)
 }
 
 func (k KVStore) DeleteMimir(ctx cosmos.Context, key string) error {
