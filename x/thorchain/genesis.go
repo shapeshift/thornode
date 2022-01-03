@@ -348,6 +348,7 @@ func ExportGenesis(ctx cosmos.Context, k keeper.Keeper) GenesisState {
 		panic(err)
 	}
 	lastChainHeights := make([]LastChainHeight, 0)
+	// analyze-ignore(map-iteration)
 	for k, v := range chainHeights {
 		lastChainHeights = append(lastChainHeights, LastChainHeight{
 			Chain:  k.String(),

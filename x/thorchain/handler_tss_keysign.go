@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/armon/go-metrics"
 	"github.com/blang/semver"
+	"github.com/cosmos/cosmos-sdk/telemetry"
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
@@ -173,6 +175,15 @@ func (h TssKeysignHandler) handleV1(ctx cosmos.Context, msg MsgTssKeysignFail) (
 		}
 		if err := h.mgr.Keeper().IncNodeAccountSlashPoints(ctx, na.NodeAddress, slashPoints); err != nil {
 			ctx.Logger().Error("fail to inc slash points", "error", err)
+		} else {
+			telemetry.IncrCounterWithLabels(
+				[]string{"thornode", "point_slash"},
+				float32(slashPoints),
+				[]metrics.Label{
+					telemetry.NewLabel("address", na.NodeAddress.String()),
+					telemetry.NewLabel("reason", "failed_keysign"),
+				},
+			)
 		}
 
 		if err := h.mgr.EventMgr().EmitEvent(ctx, NewEventSlashPoint(na.NodeAddress, slashPoints, "fail keysign")); err != nil {

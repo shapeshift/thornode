@@ -47,13 +47,15 @@ func (h BondHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Result, erro
 
 func (h BondHandler) validate(ctx cosmos.Context, msg MsgBond) error {
 	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.1.0")) {
+	if version.GTE(semver.MustParse("0.78.0")) {
+		return h.validate78(ctx, msg)
+	} else if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, msg)
 	}
 	return errBadVersion
 }
 
-func (h BondHandler) validateV1(ctx cosmos.Context, msg MsgBond) error {
+func (h BondHandler) validate78(ctx cosmos.Context, msg MsgBond) error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
@@ -63,6 +65,10 @@ func (h BondHandler) validateV1(ctx cosmos.Context, msg MsgBond) error {
 	nodeAccount, err := h.mgr.Keeper().GetNodeAccount(ctx, msg.NodeAddress)
 	if err != nil {
 		return ErrInternal(err, fmt.Sprintf("fail to get node account(%s)", msg.NodeAddress))
+	}
+
+	if nodeAccount.Status == NodeActive || nodeAccount.Status == NodeReady {
+		return ErrInternal(err, "cannot add bond while node is active or ready status")
 	}
 
 	bond := msg.Bond.Add(nodeAccount.Bond)
