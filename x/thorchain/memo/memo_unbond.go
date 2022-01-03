@@ -3,6 +3,7 @@ package thorchain
 import (
 	"fmt"
 
+	"github.com/blang/semver"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
@@ -25,7 +26,15 @@ func NewUnbondMemo(addr, additional cosmos.AccAddress, amt cosmos.Uint) UnbondMe
 	}
 }
 
-func ParseUnbondMemo(parts []string) (UnbondMemo, error) {
+func ParseUnbondMemo(version semver.Version, parts []string) (UnbondMemo, error) {
+	if version.GTE(semver.MustParse("0.79.0")) {
+		return ParseUnbondMemoV79(parts)
+	} else {
+		return ParseUnbondMemoV1(parts)
+	}
+}
+
+func ParseUnbondMemoV79(parts []string) (UnbondMemo, error) {
 	additional := cosmos.AccAddress{}
 	if len(parts) < 3 {
 		return UnbondMemo{}, fmt.Errorf("not enough parameters")

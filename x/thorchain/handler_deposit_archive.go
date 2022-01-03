@@ -54,7 +54,7 @@ func (h DepositHandler) handleV1(ctx cosmos.Context, msg MsgDeposit) (*cosmos.Re
 
 	handler := NewInternalHandler(h.mgr)
 
-	memo, _ := ParseMemo(msg.Memo) // ignore err
+	memo, _ := ParseMemo(h.mgr.GetVersion(), msg.Memo) // ignore err
 	var targetModule string
 	switch memo.GetType() {
 	case TxBond:
@@ -191,7 +191,7 @@ func (h DepositHandler) handleV46(ctx cosmos.Context, msg MsgDeposit) (*cosmos.R
 
 	handler := NewInternalHandler(h.mgr)
 
-	memo, _ := ParseMemo(msg.Memo) // ignore err
+	memo, _ := ParseMemo(h.mgr.GetVersion(), msg.Memo) // ignore err
 	var targetModule string
 	switch memo.GetType() {
 	case TxBond:
@@ -328,7 +328,7 @@ func (h DepositHandler) handleV47(ctx cosmos.Context, msg MsgDeposit) (*cosmos.R
 
 	handler := NewInternalHandler(h.mgr)
 
-	memo, _ := ParseMemo(msg.Memo) // ignore err
+	memo, _ := ParseMemo(h.mgr.GetVersion(), msg.Memo) // ignore err
 	var targetModule string
 	switch memo.GetType() {
 	case TxBond:
