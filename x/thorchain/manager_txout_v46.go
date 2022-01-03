@@ -243,7 +243,7 @@ func (tos *TxOutStorageV46) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem) 
 		runeFee := transactionFeeRune // Fee is the prescribed fee
 
 		// Deduct OutboundTransactionFee from TOI and add to Reserve
-		memo, err := ParseMemo(outputs[i].Memo) // ignore err
+		memo, err := ParseMemo(tos.keeper.Version(), outputs[i].Memo) // ignore err
 		if err == nil && !memo.IsType(TxYggdrasilFund) && !memo.IsType(TxYggdrasilReturn) && !memo.IsType(TxMigrate) && !memo.IsType(TxRagnarok) {
 			if outputs[i].Coin.Asset.IsRune() {
 				if outputs[i].Coin.Amount.LTE(transactionFeeRune) {

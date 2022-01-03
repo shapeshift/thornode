@@ -4,6 +4,8 @@ import (
 	"fmt"
 
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+
+	"github.com/blang/semver"
 )
 
 type BondMemo struct {
@@ -22,7 +24,15 @@ func NewBondMemo(addr, additional cosmos.AccAddress) BondMemo {
 	}
 }
 
-func ParseBondMemo(parts []string) (BondMemo, error) {
+func ParseBondMemo(version semver.Version, parts []string) (BondMemo, error) {
+	if version.GTE(semver.MustParse("0.79.0")) {
+		return ParseBondMemoV79(parts)
+	} else {
+		return ParseBondMemoV1(parts)
+	}
+}
+
+func ParseBondMemoV79(parts []string) (BondMemo, error) {
 	additional := cosmos.AccAddress{}
 	if len(parts) < 2 {
 		return BondMemo{}, fmt.Errorf("not enough parameters")

@@ -192,6 +192,7 @@ func (s *MemoSuite) TestParseWithAbbreviated(c *C) {
 func (s *MemoSuite) TestParse(c *C) {
 	ctx := cosmos.Context{}
 	k := kv1.KVStore{}
+	k.SetVersion(types.GetCurrentVersion())
 
 	// happy paths
 	memo, err := ParseMemoWithTHORNames(ctx, k, "d:"+common.RuneAsset().String())
@@ -244,15 +245,17 @@ func (s *MemoSuite) TestParse(c *C) {
 	c.Check(memo.GetDestination().String(), Equals, "bnb1lejrrtta9cgr49fuh7ktu3sddhe0ff7wenlpn6")
 	c.Check(memo.GetSlipLimit().Uint64(), Equals, uint64(0))
 
+	fmt.Println("*************")
 	whiteListAddr := types.GetRandomBech32Addr()
 	bond_provider := types.GetRandomBech32Addr()
 	memo, err = ParseMemoWithTHORNames(ctx, k, fmt.Sprintf("BOND:%s:%s", whiteListAddr, bond_provider))
 	c.Assert(err, IsNil)
 	c.Assert(memo.IsType(TxBond), Equals, true)
 	c.Assert(memo.GetAccAddress().String(), Equals, whiteListAddr.String())
-	mem, err := ParseBondMemo([]string{"BOND", whiteListAddr.String(), bond_provider.String()})
+	mem, err := ParseBondMemo(k.Version(), []string{"BOND", whiteListAddr.String(), bond_provider.String()})
 	c.Assert(err, IsNil)
 	c.Assert(mem.BondProviderAddress.String(), Equals, bond_provider.String())
+	fmt.Println("*************")
 
 	memo, err = ParseMemoWithTHORNames(ctx, k, "leave:"+types.GetRandomBech32Addr().String())
 	c.Assert(err, IsNil)
@@ -263,7 +266,7 @@ func (s *MemoSuite) TestParse(c *C) {
 	c.Assert(memo.IsType(TxUnbond), Equals, true)
 	c.Assert(memo.GetAccAddress().String(), Equals, whiteListAddr.String())
 	c.Assert(memo.GetAmount().Equal(cosmos.NewUint(300)), Equals, true)
-	unbondMemo, err := ParseUnbondMemo([]string{"UNBOND", whiteListAddr.String(), "400", bond_provider.String()})
+	unbondMemo, err := ParseUnbondMemo(k.Version(), []string{"UNBOND", whiteListAddr.String(), "400", bond_provider.String()})
 	c.Assert(err, IsNil)
 	c.Assert(unbondMemo.BondProviderAddress.String(), Equals, bond_provider.String())
 

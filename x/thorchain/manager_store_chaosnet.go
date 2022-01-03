@@ -110,7 +110,7 @@ func purgeETHOutboundQueue(ctx cosmos.Context, mgr Manager) {
 			if !txOutItem.Chain.Equals(common.ETHChain) {
 				continue
 			}
-			m, err := ParseMemo(txOutItem.Memo)
+			m, err := ParseMemo(mgr.GetVersion(), txOutItem.Memo)
 			if err != nil {
 				ctx.Logger().Error("fail to parse memo", "error", err)
 				continue

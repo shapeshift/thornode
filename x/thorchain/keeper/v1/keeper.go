@@ -101,6 +101,10 @@ func (k KVStore) Version() semver.Version {
 	return k.version
 }
 
+func (k *KVStore) SetVersion(ver semver.Version) {
+	k.version = ver
+}
+
 // GetKey return a key that can be used to store into key value store
 func (k KVStore) GetKey(ctx cosmos.Context, prefix kvTypes.DbPrefix, key string) string {
 	return fmt.Sprintf("%s/%s", prefix, strings.ToUpper(key))

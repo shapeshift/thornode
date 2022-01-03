@@ -7,6 +7,8 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
+
+	"github.com/blang/semver"
 )
 
 // TXTYPE:STATE1:STATE2:STATE3:FINALMEMO
@@ -183,7 +185,7 @@ func (m MemoBase) IsInbound() bool                  { return m.TxType.IsInbound(
 func (m MemoBase) IsInternal() bool                 { return m.TxType.IsInternal() }
 func (m MemoBase) IsEmpty() bool                    { return m.TxType.IsEmpty() }
 
-func ParseMemo(memo string) (mem Memo, err error) {
+func ParseMemo(version semver.Version, memo string) (mem Memo, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("panicked parsing memo(%s), err: %s", memo, r)
@@ -227,9 +229,9 @@ func ParseMemo(memo string) (mem Memo, err error) {
 	case TxRefund:
 		return ParseRefundMemo(parts)
 	case TxBond:
-		return ParseBondMemo(parts)
+		return ParseBondMemo(version, parts)
 	case TxUnbond:
-		return ParseUnbondMemo(parts)
+		return ParseUnbondMemo(version, parts)
 	case TxYggdrasilFund:
 		return ParseYggdrasilFundMemo(parts)
 	case TxYggdrasilReturn:
@@ -295,9 +297,9 @@ func ParseMemoWithTHORNames(ctx cosmos.Context, keeper keeper.Keeper, memo strin
 	case TxRefund:
 		return ParseRefundMemo(parts)
 	case TxBond:
-		return ParseBondMemo(parts)
+		return ParseBondMemo(keeper.Version(), parts)
 	case TxUnbond:
-		return ParseUnbondMemo(parts)
+		return ParseUnbondMemo(keeper.Version(), parts)
 	case TxYggdrasilFund:
 		return ParseYggdrasilFundMemo(parts)
 	case TxYggdrasilReturn:

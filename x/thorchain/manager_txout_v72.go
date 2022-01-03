@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/armon/go-metrics"
+	"github.com/blang/semver"
 	"github.com/cosmos/cosmos-sdk/telemetry"
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
@@ -117,7 +118,7 @@ func (tos *TxOutStorageV72) TryAddTxOutItem(ctx cosmos.Context, mgr Manager, toi
 	outboundHeight := common.BlockHeight(ctx)
 	if !toi.Chain.IsTHORChain() && !toi.InHash.IsEmpty() && !toi.InHash.Equals(common.BlankTxID) {
 		toi.Memo = outputs[0].Memo
-		targetHeight, err := tos.calcTxOutHeight(ctx, toi)
+		targetHeight, err := tos.calcTxOutHeight(ctx, mgr.GetVersion(), toi)
 		if err != nil {
 			ctx.Logger().Error("failed to calc target block height for txout item", "error", err)
 		}
@@ -477,7 +478,7 @@ func (tos *TxOutStorageV72) addToBlockOut(ctx cosmos.Context, mgr Manager, item 
 	if err != nil {
 		ctx.Logger().Error("fail to get vault", "error", err)
 	}
-	memo, _ := ParseMemo(item.Memo) // ignore err
+	memo, _ := ParseMemo(mgr.GetVersion(), item.Memo) // ignore err
 	labels := []metrics.Label{
 		telemetry.NewLabel("vault_type", vault.Type.String()),
 		telemetry.NewLabel("pubkey", item.VaultPubKey.String()),
@@ -488,10 +489,10 @@ func (tos *TxOutStorageV72) addToBlockOut(ctx cosmos.Context, mgr Manager, item 
 	return tos.keeper.AppendTxOut(ctx, outboundHeight, item)
 }
 
-func (tos *TxOutStorageV72) calcTxOutHeight(ctx cosmos.Context, toi TxOutItem) (int64, error) {
+func (tos *TxOutStorageV72) calcTxOutHeight(ctx cosmos.Context, version semver.Version, toi TxOutItem) (int64, error) {
 	// non-outbound transactions are skipped. This is so this code does not
 	// affect internal transactions (ie consolidation and migrate txs)
-	memo, _ := ParseMemo(toi.Memo) // ignore err
+	memo, _ := ParseMemo(version, toi.Memo) // ignore err
 	if !memo.IsType(TxRefund) && !memo.IsType(TxOutbound) {
 		return common.BlockHeight(ctx), nil
 	}

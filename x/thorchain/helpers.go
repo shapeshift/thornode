@@ -1130,7 +1130,7 @@ func emitEndBlockTelemetry(ctx cosmos.Context, mgr Manager) error {
 		}
 		for _, tx := range txs.TxArray {
 			if tx.OutHash.IsEmpty() {
-				memo, _ := ParseMemo(tx.Memo)
+				memo, _ := ParseMemo(mgr.GetVersion(), tx.Memo)
 				if memo.IsInternal() {
 					query.Internal++
 				} else if memo.IsOutbound() {
