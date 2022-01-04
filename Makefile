@@ -59,7 +59,7 @@ clear:
 	clear
 
 test:
-	@go test -v ${TEST_BUILD_FLAGS} ${TEST_DIR}
+	@go test ${TEST_BUILD_FLAGS} ${TEST_DIR}
 
 test-watch: clear
 	@gow -c test ${TEST_BUILD_FLAGS} ${TEST_DIR}
