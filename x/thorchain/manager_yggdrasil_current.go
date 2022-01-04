@@ -142,12 +142,12 @@ func (ymgr YggMgrV79) Fund(ctx cosmos.Context, mgr Manager, constAccessor consta
 		yggFundLimit = constAccessor.GetInt64Value(constants.YggFundLimit)
 	}
 
-	yggFundLimit, err := ymgr.keeper.GetMimir(ctx, constants.YggFundLimit.String())
+	minRuneDepth, err := ymgr.keeper.GetMimir(ctx, constants.MinPoolRuneDepthForYggFunding.String())
 	if yggFundLimit < 0 || err != nil {
 		yggFundLimit = constAccessor.GetInt64Value(constants.YggFundLimit)
 	}
 
-	targetCoins, err := ymgr.calcTargetYggCoins(pools, ygg, na.Bond, totalBond, cosmos.NewUint(uint64(yggFundLimit)))
+	targetCoins, err := ymgr.calcTargetYggCoins(pools, ygg, na.Bond, totalBond, cosmos.NewUint(uint64(yggFundLimit)), cosmos.NewUint(uint64(minRuneDepth)))
 	if err != nil {
 		return err
 	}
@@ -344,7 +344,7 @@ func (ymgr YggMgrV79) calcTargetYggCoins(pools []Pool, ygg Vault, yggBond, total
 			continue
 		}
 		// Don't send an asset out to Yggs if the pool has less than MinPoolRuneDepthForYggFunding
-		if pool.BalanceRune.LT(500) {
+		if pool.BalanceRune.LT(minRuneDepth) {
 			continue
 		}
 		runeAmt := common.GetSafeShare(targetRune, totalLiquidityRune, pool.BalanceRune)
