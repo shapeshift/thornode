@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -38,23 +39,30 @@ import (
 	"gitlab.com/thorchain/thornode/x/thorchain"
 )
 
+const (
+	solvencyCheckerTimeout = time.Minute * 10
+)
+
 // Binance is a structure to sign and broadcast tx to binance chain used by signer mostly
 type Binance struct {
-	logger              zerolog.Logger
-	cfg                 config.ChainConfiguration
-	cdc                 *codec.LegacyAmino
-	chainID             string
-	isTestNet           bool
-	client              *http.Client
-	accts               *BinanceMetaDataStore
-	tssKeyManager       *tss.KeySign
-	localKeyManager     *keyManager
-	thorchainBridge     *thorclient.ThorchainBridge
-	storage             *blockscanner.BlockScannerStorage
-	blockScanner        *blockscanner.BlockScanner
-	bnbScanner          *BinanceBlockScanner
-	globalSolvencyQueue chan stypes.Solvency
-	signerCacheManager  *signercache.CacheManager
+	logger                  zerolog.Logger
+	cfg                     config.ChainConfiguration
+	cdc                     *codec.LegacyAmino
+	chainID                 string
+	isTestNet               bool
+	client                  *http.Client
+	accts                   *BinanceMetaDataStore
+	tssKeyManager           *tss.KeySign
+	localKeyManager         *keyManager
+	thorchainBridge         *thorclient.ThorchainBridge
+	storage                 *blockscanner.BlockScannerStorage
+	blockScanner            *blockscanner.BlockScanner
+	bnbScanner              *BinanceBlockScanner
+	globalSolvencyQueue     chan stypes.Solvency
+	signerCacheManager      *signercache.CacheManager
+	wg                      *sync.WaitGroup
+	stopchan                chan struct{}
+	lastSolvencyCheckHeight int64
 }
 
 // NewBinance create new instance of binance client
@@ -95,6 +103,8 @@ func NewBinance(thorKeys *thorclient.Keys, cfg config.ChainConfiguration, server
 		tssKeyManager:   tssKm,
 		localKeyManager: localKm,
 		thorchainBridge: thorchainBridge,
+		stopchan:        make(chan struct{}),
+		wg:              &sync.WaitGroup{},
 	}
 
 	if err := b.checkIsTestNet(); err != nil {
@@ -133,12 +143,16 @@ func (b *Binance) Start(globalTxsQueue chan stypes.TxIn, globalErrataQueue chan 
 	b.globalSolvencyQueue = globalSolvencyQueue
 	b.tssKeyManager.Start()
 	b.blockScanner.Start(globalTxsQueue)
+	b.wg.Add(1)
+	go b.solvencyCheckRunner()
 }
 
 // Stop Binance chain client
 func (b *Binance) Stop() {
 	b.tssKeyManager.Stop()
 	b.blockScanner.Stop()
+	close(b.stopchan)
+	b.wg.Wait()
 }
 
 // GetConfig return the configuration used by Binance chain client
@@ -585,6 +599,7 @@ func (b *Binance) reportSolvency(bnbBlockHeight int64) error {
 			b.logger.Info().Msgf("fail to send solvency info to THORChain, timeout")
 		}
 	}
+	b.lastSolvencyCheckHeight = bnbBlockHeight
 	return nil
 }
 func (b *Binance) OnObservedTxIn(txIn stypes.TxInItem, blockHeight int64) {
@@ -601,5 +616,38 @@ func (b *Binance) OnObservedTxIn(txIn stypes.TxInItem, blockHeight int64) {
 	}
 	if err := b.signerCacheManager.SetSigned(txIn.CacheHash(b.GetChain(), m.GetTxID().String()), txIn.Tx); err != nil {
 		b.logger.Err(err).Msg("fail to update signer cache")
+	}
+}
+
+// solvencyCheckRunner when a chain get marked as insolvent , and then get halt automatically , the chain client will stop scanning blocks , as a result , solvency checker will
+// not report current solvency status to THORNode anymore, this method is to ensure that the chain client will continue to do solvency check even when the chain has been halted
+func (b *Binance) solvencyCheckRunner() {
+	b.logger.Info().Msg("start solvency check runner")
+	defer func() {
+		b.wg.Done()
+		b.logger.Info().Msg("finish solvency check runner")
+	}()
+	for {
+		select {
+		case <-b.stopchan:
+			return
+		case <-time.After(solvencyCheckerTimeout):
+			// check every 10 minutes
+			if b.bnbScanner == nil {
+				break
+			}
+
+			currentBlockHeight, err := b.bnbScanner.GetHeight()
+			if err != nil {
+				b.logger.Err(err).Msg("fail to get current block height")
+				break
+			}
+			if currentBlockHeight-b.lastSolvencyCheckHeight > 900 {
+				b.logger.Info().Msgf("current block height: %d, last block height to report solvency: %d , report it again", currentBlockHeight, b.lastSolvencyCheckHeight)
+				if err := b.reportSolvency(currentBlockHeight); err != nil {
+					b.logger.Err(err).Msg("fail to report chain solvency")
+				}
+			}
+		}
 	}
 }
