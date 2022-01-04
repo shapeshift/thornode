@@ -143,8 +143,8 @@ func (ymgr YggMgrV79) Fund(ctx cosmos.Context, mgr Manager, constAccessor consta
 	}
 
 	minRuneDepth, err := ymgr.keeper.GetMimir(ctx, constants.MinPoolRuneDepthForYggFunding.String())
-	if yggFundLimit < 0 || err != nil {
-		yggFundLimit = constAccessor.GetInt64Value(constants.YggFundLimit)
+	if minRuneDepth < 0 || err != nil {
+		minRuneDepth = constAccessor.GetInt64Value(constants.MinPoolRuneDepthForYggFunding)
 	}
 
 	targetCoins, err := ymgr.calcTargetYggCoins(pools, ygg, na.Bond, totalBond, cosmos.NewUint(uint64(yggFundLimit)), cosmos.NewUint(uint64(minRuneDepth)))

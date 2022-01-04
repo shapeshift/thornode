@@ -145,8 +145,6 @@ func (s YggdrasilManagerV79Suite) TestCalcTargetAmounts4(c *C) {
 }
 
 func (s YggdrasilManagerV79Suite) TestCalcTargetAmounts5(c *C) {
-	// Adding specific test per PR request
-	// https://gitlab.com/thorchain/thornode/merge_requests/246#note_241913460
 	var pools []Pool
 	p := NewPool()
 	p.Asset = common.BNBAsset
