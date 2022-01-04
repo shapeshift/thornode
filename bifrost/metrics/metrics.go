@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"sync"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -44,7 +43,6 @@ type Metrics struct {
 	logger zerolog.Logger
 	cfg    config.MetricsConfiguration
 	s      *http.Server
-	wg     *sync.WaitGroup
 }
 
 var (
@@ -154,13 +152,15 @@ var (
 			Help:      "how long it takes to sign and broadcast to binance",
 		}),
 	}
+
+	gauges = map[MetricName]prometheus.Gauge{}
 )
 
 // NewMetrics create a new instance of Metrics
 func NewMetrics(cfg config.MetricsConfiguration) (*Metrics, error) {
 	// Add chain metrics
 	for _, chain := range cfg.Chains {
-		AddChainMetrics(chain, counters, counterVecs, histograms)
+		AddChainMetrics(chain, counters, counterVecs, gauges, histograms)
 	}
 	// Register metrics
 	for _, item := range counterVecs {
@@ -187,7 +187,6 @@ func NewMetrics(cfg config.MetricsConfiguration) (*Metrics, error) {
 		logger: log.With().Str("module", "metrics").Logger(),
 		cfg:    cfg,
 		s:      s,
-		wg:     &sync.WaitGroup{},
 	}, nil
 }
 
@@ -207,6 +206,14 @@ func (m *Metrics) GetHistograms(name MetricName) prometheus.Histogram {
 	return nil
 }
 
+// GetGauges return a gauge by name
+func (m *Metrics) GetGauge(name MetricName) prometheus.Gauge {
+	if g, ok := gauges[name]; ok {
+		return g
+	}
+	return nil
+}
+
 func (m *Metrics) GetCounterVec(name MetricName) *prometheus.CounterVec {
 	if c, ok := counterVecs[name]; ok {
 		return c
@@ -219,7 +226,6 @@ func (m *Metrics) Start() error {
 	if !m.cfg.Enabled {
 		return nil
 	}
-	m.wg.Add(1)
 	go func() {
 		m.logger.Info().Int("port", m.cfg.ListenPort).Msg("start metric server")
 		if err := m.s.ListenAndServe(); err != nil {
