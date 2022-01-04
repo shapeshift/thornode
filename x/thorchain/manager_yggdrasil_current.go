@@ -141,6 +141,12 @@ func (ymgr YggMgrV79) Fund(ctx cosmos.Context, mgr Manager, constAccessor consta
 	if yggFundLimit < 0 || err != nil {
 		yggFundLimit = constAccessor.GetInt64Value(constants.YggFundLimit)
 	}
+
+	yggFundLimit, err := ymgr.keeper.GetMimir(ctx, constants.YggFundLimit.String())
+	if yggFundLimit < 0 || err != nil {
+		yggFundLimit = constAccessor.GetInt64Value(constants.YggFundLimit)
+	}
+
 	targetCoins, err := ymgr.calcTargetYggCoins(pools, ygg, na.Bond, totalBond, cosmos.NewUint(uint64(yggFundLimit)))
 	if err != nil {
 		return err
@@ -302,7 +308,7 @@ func (ymgr YggMgrV79) shouldFundYggdrasil(ctx cosmos.Context, asgard, ygg Vault,
 // calcTargetYggCoins - calculate the amount of coins of each pool a yggdrasil
 // pool should have, relative to how much they have bonded (which should be
 // target == bond * yggFundLimit / 100).
-func (ymgr YggMgrV79) calcTargetYggCoins(pools []Pool, ygg Vault, yggBond, totalBond, yggFundLimit cosmos.Uint) (common.Coins, error) {
+func (ymgr YggMgrV79) calcTargetYggCoins(pools []Pool, ygg Vault, yggBond, totalBond, yggFundLimit, minRuneDepth cosmos.Uint) (common.Coins, error) {
 	var coins common.Coins
 
 	// calculate total liquidity provided rune in our pools
@@ -335,6 +341,10 @@ func (ymgr YggMgrV79) calcTargetYggCoins(pools []Pool, ygg Vault, yggBond, total
 	counter := cosmos.ZeroUint()
 	for _, pool := range pools {
 		if !pool.IsAvailable() {
+			continue
+		}
+		// Don't send an asset out to Yggs if the pool has less than MinPoolRuneDepthForYggFunding
+		if pool.BalanceRune.LT(500) {
 			continue
 		}
 		runeAmt := common.GetSafeShare(targetRune, totalLiquidityRune, pool.BalanceRune)
