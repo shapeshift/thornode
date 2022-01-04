@@ -76,36 +76,3 @@ func (s *GasSuite) TestCalcGasPrice(c *C) {
 	gas = CalcBinanceGasPrice(tx, BNBAsset, gasInfo)
 	c.Check(gas.Equals(Gas{NewCoin(BNBAsset, cosmos.NewUint(60000))}), Equals, true)
 }
-
-func (s *GasSuite) TestUpdateGasPrice(c *C) {
-	gasInfo := UpdateGasPrice(Tx{}, BNBAsset, []cosmos.Uint{cosmos.NewUint(33)})
-	c.Assert(gasInfo, HasLen, 1)
-	c.Check(gasInfo[0].Equal(cosmos.NewUint(33)), Equals, true)
-
-	tx := Tx{
-		Coins: Coins{
-			NewCoin(BNBAsset, cosmos.NewUint(80808080)),
-		},
-		Gas: Gas{
-			NewCoin(BNBAsset, cosmos.NewUint(222)),
-		},
-	}
-
-	gasInfo = UpdateGasPrice(tx, BNBAsset, nil)
-	c.Assert(gasInfo, HasLen, 2)
-	c.Check(gasInfo[0].Equal(cosmos.NewUint(222)), Equals, true)
-
-	tx = Tx{
-		Coins: Coins{
-			NewCoin(BNBAsset, cosmos.NewUint(80808080)),
-			NewCoin(BTCAsset, cosmos.NewUint(80808080)),
-		},
-		Gas: Gas{
-			NewCoin(BNBAsset, cosmos.NewUint(222)),
-		},
-	}
-
-	gasInfo = UpdateGasPrice(tx, BNBAsset, gasInfo)
-	c.Assert(gasInfo, HasLen, 2)
-	c.Check(gasInfo[1].Equal(cosmos.NewUint(111)), Equals, true)
-}
