@@ -8,6 +8,8 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	mem "gitlab.com/thorchain/thornode/x/thorchain/memo"
+
+	"github.com/blang/semver"
 )
 
 type TxIn struct {
@@ -82,7 +84,7 @@ func (t TxIn) GetTotalTransactionValue(asset common.Asset, excludeFrom []common.
 			continue
 		}
 		// skip confirmation counting if it is internal tx
-		m, err := mem.ParseMemo(item.Memo)
+		m, err := mem.ParseMemo(semver.MustParse("99999999999.0.0"), item.Memo)
 		if err == nil && m.IsInternal() {
 			continue
 		}

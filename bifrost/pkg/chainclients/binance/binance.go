@@ -14,6 +14,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/blang/semver"
 	"github.com/cosmos/cosmos-sdk/codec"
 	cryptocodec "github.com/cosmos/cosmos-sdk/crypto/codec"
 	"github.com/hashicorp/go-multierror"
@@ -611,7 +612,7 @@ func (b *Binance) ReportSolvency(bnbBlockHeight int64) error {
 }
 
 func (b *Binance) OnObservedTxIn(txIn stypes.TxInItem, blockHeight int64) {
-	m, err := memo.ParseMemo(txIn.Memo)
+	m, err := memo.ParseMemo(semver.MustParse("99999999999.0.0"), txIn.Memo)
 	if err != nil {
 		b.logger.Err(err).Msgf("fail to parse memo: %s", txIn.Memo)
 		return
