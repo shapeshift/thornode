@@ -169,7 +169,7 @@ func NewClient(thorKeys *thorclient.Keys, cfg config.ChainConfiguration, server 
 }
 
 // Start starts the block scanner
-func (c *Client) Start(globalTxsQueue chan types.TxIn, globalErrataQueue chan types.ErrataBlock, globalSolvencyQueue chan<- types.Solvency) {
+func (c *Client) Start(globalTxsQueue chan types.TxIn, globalErrataQueue chan types.ErrataBlock, globalSolvencyQueue chan types.Solvency) {
 	c.globalErrataQueue = globalErrataQueue
 	c.globalSolvencyQueue = globalSolvencyQueue
 	c.tssKeySigner.Start()
@@ -196,6 +196,11 @@ func (c *Client) GetChain() common.Chain {
 // GetHeight returns current block height
 func (c *Client) GetHeight() (int64, error) {
 	return c.client.GetBlockCount()
+}
+
+// IsBlockScannerHealthy checks if the block scanner is healthy
+func (c *Client) IsBlockScannerHealthy() bool {
+	return c.blockScanner.IsHealthy()
 }
 
 // GetAddress returns address from pubkey
@@ -672,7 +677,7 @@ func (c *Client) sendNetworkFee(height int64) error {
 	feeRate := uint64(EstimateAverageFeeRate)
 	result, err := c.client.EstimateSmartFee(1, &btcjson.EstimateModeConservative)
 	if err != nil {
-		return fmt.Errorf("fail to estimate smart fee: %w", err)
+		c.logger.Debug().Err(err).Msg("fail to estimate smart fee, using fixed estimate average fee rate")
 	}
 	if err == nil && *result.FeeRate != float64(-1) {
 		feeRate = uint64(*result.FeeRate * common.One)
