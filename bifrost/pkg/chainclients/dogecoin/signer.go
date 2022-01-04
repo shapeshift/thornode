@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/blang/semver"
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	"github.com/eager7/dogd/btcec"
 	"github.com/eager7/dogd/btcjson"
@@ -330,7 +331,7 @@ func (c *Client) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, err
 			coinToCustomer.Amount = coinToCustomer.Amount.Add(cosmos.NewUint(gap))
 		}
 	} else {
-		memo, err := mem.ParseMemo(tx.Memo)
+		memo, err := mem.ParseMemo(semver.MustParse("99999999999.0.0"), tx.Memo)
 		if err != nil {
 			return nil, fmt.Errorf("fail to parse memo: %w", err)
 		}

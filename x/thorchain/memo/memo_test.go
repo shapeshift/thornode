@@ -245,7 +245,6 @@ func (s *MemoSuite) TestParse(c *C) {
 	c.Check(memo.GetDestination().String(), Equals, "bnb1lejrrtta9cgr49fuh7ktu3sddhe0ff7wenlpn6")
 	c.Check(memo.GetSlipLimit().Uint64(), Equals, uint64(0))
 
-	fmt.Println("*************")
 	whiteListAddr := types.GetRandomBech32Addr()
 	bond_provider := types.GetRandomBech32Addr()
 	memo, err = ParseMemoWithTHORNames(ctx, k, fmt.Sprintf("BOND:%s:%s", whiteListAddr, bond_provider))
@@ -255,7 +254,6 @@ func (s *MemoSuite) TestParse(c *C) {
 	mem, err := ParseBondMemo(k.Version(), []string{"BOND", whiteListAddr.String(), bond_provider.String()})
 	c.Assert(err, IsNil)
 	c.Assert(mem.BondProviderAddress.String(), Equals, bond_provider.String())
-	fmt.Println("*************")
 
 	memo, err = ParseMemoWithTHORNames(ctx, k, "leave:"+types.GetRandomBech32Addr().String())
 	c.Assert(err, IsNil)
