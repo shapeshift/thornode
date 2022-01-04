@@ -128,7 +128,7 @@ func (s *BitcoinCashSuite) SetUpTest(c *C) {
 			case r.Method == "getblockstats":
 				httpTestHandler(c, rw, "../../../../test/fixtures/bch/blockstats.json")
 			}
-		} else if strings.HasPrefix(req.RequestURI, "/thorchain/nodeaccount/") {
+		} else if strings.HasPrefix(req.RequestURI, "/thorchain/node/") {
 			httpTestHandler(c, rw, "../../../../test/fixtures/endpoints/nodeaccount/template.json")
 		} else if req.RequestURI == "/thorchain/lastblock" {
 			httpTestHandler(c, rw, "../../../../test/fixtures/endpoints/lastblock/bch.json")

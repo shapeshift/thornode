@@ -49,35 +49,38 @@ const (
 	DefaultCoinbaseValue   = 10000
 	gasCacheBlocks         = 10
 	MaxMempoolScanPerTry   = 500
+	solvencyCheckerTimeout = time.Minute * 10
 )
 
 // Client observes dogecoin chain and allows to sign and broadcast tx
 type Client struct {
-	logger                zerolog.Logger
-	cfg                   config.ChainConfiguration
-	m                     *metrics.Metrics
-	client                *rpcclient.Client
-	chain                 common.Chain
-	privateKey            *btcec.PrivateKey
-	blockScanner          *blockscanner.BlockScanner
-	blockMetaAccessor     BlockMetaAccessor
-	ksWrapper             *KeySignWrapper
-	bridge                *thorclient.ThorchainBridge
-	globalErrataQueue     chan<- types.ErrataBlock
-	globalSolvencyQueue   chan<- types.Solvency
-	nodePubKey            common.PubKey
-	currentBlockHeight    int64
-	asgardAddresses       []common.Address
-	lastAsgard            time.Time
-	minRelayFeeSats       uint64
-	tssKeySigner          *tss.KeySign
-	lastFeeRate           uint64
-	feeRateCache          []uint64
-	wg                    *sync.WaitGroup
-	signerLock            *sync.Mutex
-	vaultSignerLocks      map[string]*sync.Mutex
-	consolidateInProgress bool
-	signerCacheManager    *signercache.CacheManager
+	logger                  zerolog.Logger
+	cfg                     config.ChainConfiguration
+	m                       *metrics.Metrics
+	client                  *rpcclient.Client
+	chain                   common.Chain
+	privateKey              *btcec.PrivateKey
+	blockScanner            *blockscanner.BlockScanner
+	blockMetaAccessor       BlockMetaAccessor
+	ksWrapper               *KeySignWrapper
+	bridge                  *thorclient.ThorchainBridge
+	globalErrataQueue       chan<- types.ErrataBlock
+	globalSolvencyQueue     chan<- types.Solvency
+	nodePubKey              common.PubKey
+	currentBlockHeight      int64
+	asgardAddresses         []common.Address
+	lastAsgard              time.Time
+	minRelayFeeSats         uint64
+	tssKeySigner            *tss.KeySign
+	lastFeeRate             uint64
+	feeRateCache            []uint64
+	wg                      *sync.WaitGroup
+	signerLock              *sync.Mutex
+	vaultSignerLocks        map[string]*sync.Mutex
+	consolidateInProgress   bool
+	signerCacheManager      *signercache.CacheManager
+	stopchan                chan struct{}
+	lastSolvencyCheckHeight int64
 }
 
 // NewClient generates a new Client
@@ -134,6 +137,7 @@ func NewClient(thorKeys *thorclient.Keys, cfg config.ChainConfiguration, server 
 		wg:               &sync.WaitGroup{},
 		signerLock:       &sync.Mutex{},
 		vaultSignerLocks: make(map[string]*sync.Mutex),
+		stopchan:         make(chan struct{}),
 	}
 
 	var path string // if not set later, will in memory storage
@@ -174,12 +178,15 @@ func (c *Client) Start(globalTxsQueue chan types.TxIn, globalErrataQueue chan ty
 	c.globalSolvencyQueue = globalSolvencyQueue
 	c.tssKeySigner.Start()
 	c.blockScanner.Start(globalTxsQueue)
+	c.wg.Add(1)
+	go c.solvencyCheckRunner()
 }
 
 // Stop stops the block scanner
 func (c *Client) Stop() {
 	c.blockScanner.Stop()
 	c.tssKeySigner.Stop()
+	close(c.stopchan)
 	c.wg.Wait()
 }
 
@@ -1174,5 +1181,38 @@ func (c *Client) reportSolvency(dogeBlockHeight int64) error {
 			c.logger.Info().Msgf("fail to send solvency info to THORChain, timeout")
 		}
 	}
+	c.lastSolvencyCheckHeight = dogeBlockHeight
 	return nil
+}
+
+// solvencyCheckRunner when a chain get marked as insolvent , and then get halt automatically , the chain client will stop scanning blocks , as a result , solvency checker will
+// not report current solvency status to THORNode anymore, this method is to ensure that the chain client will continue to do solvency check even when the chain has been halted
+func (c *Client) solvencyCheckRunner() {
+	c.logger.Info().Msg("start solvency check runner")
+	defer func() {
+		c.wg.Done()
+		c.logger.Info().Msg("finish  solvency check runner")
+	}()
+	for {
+		select {
+		case <-c.stopchan:
+			return
+		case <-time.After(solvencyCheckerTimeout):
+			// check every 10 minutes
+			if c.blockScanner == nil {
+				break
+			}
+			currentBlockHeight, err := c.GetHeight()
+			if err != nil {
+				c.logger.Err(err).Msg("fail to get current block height")
+				break
+			}
+			if currentBlockHeight-c.lastSolvencyCheckHeight > 1 {
+				c.logger.Info().Msgf("current block height: %d, last block height to report solvency: %d , report it again", currentBlockHeight, c.lastSolvencyCheckHeight)
+				if err := c.reportSolvency(currentBlockHeight); err != nil {
+					c.logger.Err(err).Msg("fail to report solvency")
+				}
+			}
+		}
+	}
 }

@@ -38,32 +38,34 @@ import (
 )
 
 const (
-	maxAsgardAddresses = 100
-	maxGasLimit        = 200000
+	maxAsgardAddresses     = 100
+	maxGasLimit            = 200000
+	solvencyCheckerTimeout = time.Minute * 10
 )
 
 var blockReward *big.Int = big.NewInt(2e18) // in Wei
 
 // Client is a structure to sign and broadcast tx to Ethereum chain used by signer mostly
 type Client struct {
-	logger              zerolog.Logger
-	cfg                 config.ChainConfiguration
-	localPubKey         common.PubKey
-	client              *ethclient.Client
-	kw                  *keySignWrapper
-	ethScanner          *ETHScanner
-	bridge              *thorclient.ThorchainBridge
-	blockScanner        *blockscanner.BlockScanner
-	vaultABI            *abi.ABI
-	pubkeyMgr           pubkeymanager.PubKeyValidator
-	poolMgr             thorclient.PoolManager
-	asgardAddresses     []common.Address
-	lastAsgard          time.Time
-	tssKeySigner        *tss.KeySign
-	wg                  *sync.WaitGroup
-	stopchan            chan struct{}
-	globalSolvencyQueue chan stypes.Solvency
-	signerCacheManager  *signercache.CacheManager
+	logger                  zerolog.Logger
+	cfg                     config.ChainConfiguration
+	localPubKey             common.PubKey
+	client                  *ethclient.Client
+	kw                      *keySignWrapper
+	ethScanner              *ETHScanner
+	bridge                  *thorclient.ThorchainBridge
+	blockScanner            *blockscanner.BlockScanner
+	vaultABI                *abi.ABI
+	pubkeyMgr               pubkeymanager.PubKeyValidator
+	poolMgr                 thorclient.PoolManager
+	asgardAddresses         []common.Address
+	lastAsgard              time.Time
+	tssKeySigner            *tss.KeySign
+	wg                      *sync.WaitGroup
+	stopchan                chan struct{}
+	globalSolvencyQueue     chan stypes.Solvency
+	signerCacheManager      *signercache.CacheManager
+	lastSolvencyCheckHeight int64
 }
 
 // NewClient create new instance of Ethereum client
@@ -192,6 +194,8 @@ func (c *Client) Start(globalTxsQueue chan stypes.TxIn, globalErrataQueue chan s
 	c.blockScanner.Start(globalTxsQueue)
 	c.wg.Add(1)
 	go c.unstuck()
+	c.wg.Add(1)
+	go c.solvencyCheckRunner()
 }
 
 // Stop ETH client
@@ -869,5 +873,38 @@ func (c *Client) reportSolvency(ethBlockHeight int64) error {
 			c.logger.Info().Msgf("fail to send solvency info to THORChain, timeout")
 		}
 	}
+	c.lastSolvencyCheckHeight = ethBlockHeight
 	return nil
+}
+
+// solvencyCheckRunner when a chain get marked as insolvent , and then get halt automatically , the chain client will stop scanning blocks , as a result , solvency checker will
+// not report current solvency status to THORNode anymore, this method is to ensure that the chain client will continue to do solvency check even when the chain has been halted
+func (c *Client) solvencyCheckRunner() {
+	c.logger.Info().Msg("start solvency check runner")
+	defer func() {
+		c.wg.Done()
+		c.logger.Info().Msg("finish  solvency check runner")
+	}()
+	for {
+		select {
+		case <-c.stopchan:
+			return
+		case <-time.After(solvencyCheckerTimeout):
+			// check every 10 minutes
+			if c.ethScanner == nil {
+				break
+			}
+			currentBlockHeight, err := c.ethScanner.GetHeight()
+			if err != nil {
+				c.logger.Err(err).Msg("fail to get current block height")
+				break
+			}
+			if currentBlockHeight-c.lastSolvencyCheckHeight > 20 {
+				c.logger.Info().Msgf("current block height: %d, last block height to report solvency: %d , report it again", currentBlockHeight, c.lastSolvencyCheckHeight)
+				if err := c.reportSolvency(currentBlockHeight); err != nil {
+					c.logger.Err(err).Msg("fail to report solvency")
+				}
+			}
+		}
+	}
 }
