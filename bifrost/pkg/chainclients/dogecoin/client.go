@@ -20,6 +20,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	txscript "gitlab.com/thorchain/bifrost/dogd-txscript"
+	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/runners"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/signercache"
 	mem "gitlab.com/thorchain/thornode/x/thorchain/memo"
 	tssp "gitlab.com/thorchain/tss/go-tss/tss"
@@ -179,7 +180,7 @@ func (c *Client) Start(globalTxsQueue chan types.TxIn, globalErrataQueue chan ty
 	c.tssKeySigner.Start()
 	c.blockScanner.Start(globalTxsQueue)
 	c.wg.Add(1)
-	go c.solvencyCheckRunner()
+	go runners.SolvencyCheckRunner(c.GetChain(), c, solvencyCheckerTimeout, c.stopchan, c.wg)
 }
 
 // Stop stops the block scanner
@@ -630,7 +631,7 @@ func (c *Client) FetchTxs(height int64) (types.TxIn, error) {
 		c.logger.Err(err).Msg("fail to send network fee")
 	}
 	if height%10 == 0 {
-		if err := c.reportSolvency(height); err != nil {
+		if err := c.ReportSolvency(height); err != nil {
 			c.logger.Err(err).Msg("fail to report solvency info")
 		}
 	}
@@ -1159,7 +1160,12 @@ func (c *Client) getVaultSignerLock(vaultPubKey string) *sync.Mutex {
 	}
 	return l
 }
-func (c *Client) reportSolvency(dogeBlockHeight int64) error {
+
+// ShouldReportSolvency based on the given block height , should the client report solvency to THORNode
+func (c *Client) ShouldReportSolvency(height int64) bool {
+	return height-c.lastSolvencyCheckHeight > 1
+}
+func (c *Client) ReportSolvency(dogeBlockHeight int64) error {
 	asgardVaults, err := c.bridge.GetAsgards()
 	if err != nil {
 		return fmt.Errorf("fail to get asgards,err: %w", err)
@@ -1183,36 +1189,4 @@ func (c *Client) reportSolvency(dogeBlockHeight int64) error {
 	}
 	c.lastSolvencyCheckHeight = dogeBlockHeight
 	return nil
-}
-
-// solvencyCheckRunner when a chain get marked as insolvent , and then get halt automatically , the chain client will stop scanning blocks , as a result , solvency checker will
-// not report current solvency status to THORNode anymore, this method is to ensure that the chain client will continue to do solvency check even when the chain has been halted
-func (c *Client) solvencyCheckRunner() {
-	c.logger.Info().Msg("start solvency check runner")
-	defer func() {
-		c.wg.Done()
-		c.logger.Info().Msg("finish  solvency check runner")
-	}()
-	for {
-		select {
-		case <-c.stopchan:
-			return
-		case <-time.After(solvencyCheckerTimeout):
-			// check every 10 minutes
-			if c.blockScanner == nil {
-				break
-			}
-			currentBlockHeight, err := c.GetHeight()
-			if err != nil {
-				c.logger.Err(err).Msg("fail to get current block height")
-				break
-			}
-			if currentBlockHeight-c.lastSolvencyCheckHeight > 1 {
-				c.logger.Info().Msgf("current block height: %d, last block height to report solvency: %d , report it again", currentBlockHeight, c.lastSolvencyCheckHeight)
-				if err := c.reportSolvency(currentBlockHeight); err != nil {
-					c.logger.Err(err).Msg("fail to report solvency")
-				}
-			}
-		}
-	}
 }

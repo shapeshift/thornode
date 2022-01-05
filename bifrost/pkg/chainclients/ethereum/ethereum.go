@@ -20,6 +20,7 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/runners"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/signercache"
 
 	tssp "gitlab.com/thorchain/tss/go-tss/tss"
@@ -163,7 +164,7 @@ func NewClient(thorKeys *thorclient.Keys,
 	}
 
 	c.signerCacheManager = signerCacheManager
-	c.ethScanner, err = NewETHScanner(c.cfg.BlockScanner, storage, chainID, c.client, c.bridge, m, pubkeyMgr, c.reportSolvency, signerCacheManager)
+	c.ethScanner, err = NewETHScanner(c.cfg.BlockScanner, storage, chainID, c.client, c.bridge, m, pubkeyMgr, c.ReportSolvency, signerCacheManager)
 	if err != nil {
 		return c, fmt.Errorf("fail to create eth block scanner: %w", err)
 	}
@@ -195,7 +196,7 @@ func (c *Client) Start(globalTxsQueue chan stypes.TxIn, globalErrataQueue chan s
 	c.wg.Add(1)
 	go c.unstuck()
 	c.wg.Add(1)
-	go c.solvencyCheckRunner()
+	go runners.SolvencyCheckRunner(c.GetChain(), c, solvencyCheckerTimeout, c.stopchan, c.wg)
 }
 
 // Stop ETH client
@@ -848,7 +849,7 @@ func (c *Client) OnObservedTxIn(txIn stypes.TxInItem, blockHeight int64) {
 	}
 }
 
-func (c *Client) reportSolvency(ethBlockHeight int64) error {
+func (c *Client) ReportSolvency(ethBlockHeight int64) error {
 	if ethBlockHeight%20 != 0 {
 		return nil
 	}
@@ -877,34 +878,7 @@ func (c *Client) reportSolvency(ethBlockHeight int64) error {
 	return nil
 }
 
-// solvencyCheckRunner when a chain get marked as insolvent , and then get halt automatically , the chain client will stop scanning blocks , as a result , solvency checker will
-// not report current solvency status to THORNode anymore, this method is to ensure that the chain client will continue to do solvency check even when the chain has been halted
-func (c *Client) solvencyCheckRunner() {
-	c.logger.Info().Msg("start solvency check runner")
-	defer func() {
-		c.wg.Done()
-		c.logger.Info().Msg("finish  solvency check runner")
-	}()
-	for {
-		select {
-		case <-c.stopchan:
-			return
-		case <-time.After(solvencyCheckerTimeout):
-			// check every 10 minutes
-			if c.ethScanner == nil {
-				break
-			}
-			currentBlockHeight, err := c.ethScanner.GetHeight()
-			if err != nil {
-				c.logger.Err(err).Msg("fail to get current block height")
-				break
-			}
-			if currentBlockHeight-c.lastSolvencyCheckHeight > 20 {
-				c.logger.Info().Msgf("current block height: %d, last block height to report solvency: %d , report it again", currentBlockHeight, c.lastSolvencyCheckHeight)
-				if err := c.reportSolvency(currentBlockHeight); err != nil {
-					c.logger.Err(err).Msg("fail to report solvency")
-				}
-			}
-		}
-	}
+// ShouldReportSolvency with given block height , should chain client report Solvency to THORNode?
+func (c *Client) ShouldReportSolvency(height int64) bool {
+	return height-c.lastSolvencyCheckHeight > 20
 }
