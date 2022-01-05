@@ -1,6 +1,7 @@
 package bitcoincash
 
 import (
+	"context"
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
@@ -140,6 +141,9 @@ func (s *BitcoinCashSuite) SetUpTest(c *C) {
 			c.Assert(err, IsNil)
 		} else if strings.HasPrefix(req.RequestURI, thorclient.AsgardVault) {
 			httpTestHandler(c, rw, "../../../../test/fixtures/endpoints/vaults/asgard.json")
+		} else if req.RequestURI == "/thorchain/mimir/key/MaxUTXOsToSpend" {
+			_, err := rw.Write([]byte(`-1`))
+			c.Assert(err, IsNil)
 		}
 	}))
 
@@ -176,6 +180,23 @@ func (s *BitcoinCashSuite) TestGetBlock(c *C) {
 }
 
 func (s *BitcoinCashSuite) TestFetchTxs(c *C) {
+	globalTxQueue := make(chan types.TxIn)
+	globalErrataQueue := make(chan types.ErrataBlock)
+	globalSolvencyCheckerQueue := make(chan types.Solvency)
+	s.client.Start(globalTxQueue, globalErrataQueue, globalSolvencyCheckerQueue)
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-globalTxQueue:
+			case <-globalErrataQueue:
+			case <-globalSolvencyCheckerQueue:
+				c.Log("receive solvency report")
+			}
+		}
+	}()
 	txs, err := s.client.FetchTxs(0)
 	c.Assert(err, IsNil)
 	c.Assert(txs.Chain, Equals, common.BCHChain)
@@ -187,6 +208,8 @@ func (s *BitcoinCashSuite) TestFetchTxs(c *C) {
 	c.Assert(txs.TxArray[0].Coins.EqualsEx(common.Coins{common.NewCoin(common.BCHAsset, cosmos.NewUint(10000000))}), Equals, true)
 	c.Assert(txs.TxArray[0].Gas.Equals(common.Gas{common.NewCoin(common.BCHAsset, cosmos.NewUint(22705334))}), Equals, true)
 	c.Assert(len(txs.TxArray), Equals, 13)
+	s.client.Stop()
+	cancel()
 }
 
 func (s *BitcoinCashSuite) TestGetSender(c *C) {

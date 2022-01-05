@@ -95,6 +95,9 @@ func (s *EthereumSuite) SetUpTest(c *C) {
 			httpTestHandler(c, rw, "../../../../test/fixtures/endpoints/lastblock/root.json")
 		case thorclient.NodeAccountEndpoint:
 			httpTestHandler(c, rw, "../../../../test/fixtures/endpoints/nodeaccount/template.json")
+		case "/thorchain/mimir/key/MaxUTXOsToSpend":
+			_, err := rw.Write([]byte(`-1`))
+			c.Assert(err, IsNil)
 		default:
 			body, err := ioutil.ReadAll(req.Body)
 			c.Assert(err, IsNil)

@@ -1,6 +1,7 @@
 package dogecoin
 
 import (
+	"context"
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
@@ -140,6 +141,9 @@ func (s *DogecoinSuite) SetUpTest(c *C) {
 			c.Assert(err, IsNil)
 		} else if strings.HasPrefix(req.RequestURI, thorclient.AsgardVault) {
 			httpTestHandler(c, rw, "../../../../test/fixtures/endpoints/vaults/asgard.json")
+		} else if req.RequestURI == "/thorchain/mimir/key/MaxUTXOsToSpend" {
+			_, err := rw.Write([]byte(`-1`))
+			c.Assert(err, IsNil)
 		}
 	}))
 	cfg.ChainHost = s.server.Listener.Addr().String()
@@ -175,6 +179,23 @@ func (s *DogecoinSuite) TestGetBlock(c *C) {
 }
 
 func (s *DogecoinSuite) TestFetchTxs(c *C) {
+	globalTxQueue := make(chan types.TxIn)
+	globalErrataQueue := make(chan types.ErrataBlock)
+	globalSolvencyCheckerQueue := make(chan types.Solvency)
+	s.client.Start(globalTxQueue, globalErrataQueue, globalSolvencyCheckerQueue)
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-globalTxQueue:
+			case <-globalErrataQueue:
+			case <-globalSolvencyCheckerQueue:
+				c.Log("receive solvency report")
+			}
+		}
+	}()
 	txs, err := s.client.FetchTxs(0)
 	c.Assert(err, IsNil)
 	c.Assert(txs.Chain, Equals, common.DOGEChain)
@@ -186,6 +207,8 @@ func (s *DogecoinSuite) TestFetchTxs(c *C) {
 	c.Assert(txs.TxArray[0].Coins.EqualsEx(common.Coins{common.NewCoin(common.DOGEAsset, cosmos.NewUint(4072503))}), Equals, true)
 	c.Assert(txs.TxArray[0].Gas.Equals(common.Gas{common.NewCoin(common.DOGEAsset, cosmos.NewUint(11083355))}), Equals, true)
 	c.Assert(len(txs.TxArray), Equals, 1)
+	s.client.Stop()
+	cancel()
 }
 
 func (s *DogecoinSuite) TestGetSender(c *C) {
