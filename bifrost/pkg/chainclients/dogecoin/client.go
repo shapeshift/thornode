@@ -1163,7 +1163,7 @@ func (c *Client) getVaultSignerLock(vaultPubKey string) *sync.Mutex {
 
 // ShouldReportSolvency based on the given block height , should the client report solvency to THORNode
 func (c *Client) ShouldReportSolvency(height int64) bool {
-	return height-c.lastSolvencyCheckHeight > 1
+	return height-c.lastSolvencyCheckHeight > 10
 }
 func (c *Client) ReportSolvency(dogeBlockHeight int64) error {
 	asgardVaults, err := c.bridge.GetAsgards()
