@@ -1161,6 +1161,7 @@ func (c *Client) ReportSolvency(bchBlockHeight int64) error {
 			c.logger.Info().Msgf("fail to send solvency info to THORChain, timeout")
 		}
 	}
+	c.lastSolvencyCheckHeight = bchBlockHeight
 	return nil
 }
 

@@ -1157,5 +1157,5 @@ func (c *Client) ReportSolvency(ltcBlockHeight int64) error {
 
 // ShouldReportSolvency based on the given block height , should the client report solvency to THORNode
 func (c *Client) ShouldReportSolvency(height int64) bool {
-	return height-c.lastSolvencyCheckHeight > 1
+	return height-c.lastSolvencyCheckHeight > 5
 }
