@@ -676,7 +676,11 @@ func (c *Client) sendNetworkFee(height int64) error {
 	feeRateSats := uint64(amount.ToUnit(dogutil.AmountSatoshi))
 
 	c.logger.Debug().Str("chain", "DOGE").Uint64("lastFeeRate", c.lastFeeRate).Uint64("feeRate", feeRateSats).Msg("sendNetworkFee")
-	if c.lastFeeRate != feeRateSats {
+	// Only send the fee if it has changed
+	// Because it is fixed, thorchain will not reach consensus unless it happens in the same block
+	// All node operators would start bifrost and then never report again because it does not change
+	// Therefore, also send network fee every 60 blocks (~60 minutes).
+	if c.lastFeeRate != feeRateSats || height%60 == 0 {
 		c.lastFeeRate = feeRateSats
 		txid, err := c.bridge.PostNetworkFee(height, common.DOGEChain, uint64(EstimateAverageTxSize), feeRateSats)
 		if err != nil {
