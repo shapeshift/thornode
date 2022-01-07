@@ -43,12 +43,12 @@ const (
 	BlockCacheSize      = 1440
 	MaximumConfirmation = 99999999
 	MaxAsgardAddresses  = 100
-	// EstimateAverageTxSize for THORChain the estimate tx size is hard code to 250 here , as most of time it will spend 1 input, have 3 output
-	EstimateAverageTxSize  = 1500
-	EstimateAverageFeeRate = 610000 // DOGE/byte
-	DefaultCoinbaseValue   = 10000
-	gasCacheBlocks         = 10
-	MaxMempoolScanPerTry   = 500
+	// EstimateAverageTxSize for THORChain the estimate tx size is hard code to 1000 here , as most of time it will spend 1 input, have 3 output
+	// which is average at 250 vbytes , however asgard will consolidate UTXOs , which will take up to 1000 vbytes
+	EstimateAverageTxSize = 1000
+	DefaultFeePerKB       = 0.01
+	DefaultCoinbaseValue  = 10000
+	MaxMempoolScanPerTry  = 500
 )
 
 // Client observes dogecoin chain and allows to sign and broadcast tx
@@ -71,8 +71,7 @@ type Client struct {
 	lastAsgard            time.Time
 	minRelayFeeSats       uint64
 	tssKeySigner          *tss.KeySign
-	lastFeeRate           uint64
-	feeRateCache          []uint64
+	lastFeeRate           int64
 	wg                    *sync.WaitGroup
 	signerLock            *sync.Mutex
 	vaultSignerLocks      map[string]*sync.Mutex
@@ -129,7 +128,6 @@ func NewClient(thorKeys *thorclient.Keys, cfg config.ChainConfiguration, server 
 		ksWrapper:        ksWrapper,
 		bridge:           bridge,
 		nodePubKey:       nodePubKey,
-		minRelayFeeSats:  1000, // 1000 sats is the default minimal relay fee
 		tssKeySigner:     tssKm,
 		wg:               &sync.WaitGroup{},
 		signerLock:       &sync.Mutex{},
@@ -266,7 +264,7 @@ func (c *Client) GetAccountByAddress(string) (common.Account, error) {
 }
 
 func (c *Client) getAsgardAddress() ([]common.Address, error) {
-	if time.Now().Sub(c.lastAsgard) < constants.ThorchainBlockTime && c.asgardAddresses != nil {
+	if time.Since(c.lastAsgard) < constants.ThorchainBlockTime && c.asgardAddresses != nil {
 		return c.asgardAddresses, nil
 	}
 	vaults, err := c.bridge.GetAsgards()
@@ -574,7 +572,6 @@ func (c *Client) FetchTxs(height int64) (types.TxIn, error) {
 		}
 		return txIn, fmt.Errorf("fail to get block: %w", err)
 	}
-
 	// if somehow the block is not valid
 	if block.Hash == "" && block.PreviousHash == "" {
 		return txIn, fmt.Errorf("fail to get block: %w", err)
@@ -623,6 +620,7 @@ func (c *Client) FetchTxs(height int64) (types.TxIn, error) {
 	if len(txInBlock.TxArray) > 0 {
 		txIn.TxArray = append(txIn.TxArray, txInBlock.TxArray...)
 	}
+
 	c.updateNetworkInfo()
 	if err := c.sendNetworkFee(height); err != nil {
 		c.logger.Err(err).Msg("fail to send network fee")
@@ -651,6 +649,7 @@ func (c *Client) canDeleteBlock(blockMeta *BlockMeta) bool {
 	}
 	return true
 }
+
 func (c *Client) updateNetworkInfo() {
 	networkInfo, err := c.client.GetNetworkInfo()
 	if err != nil {
@@ -664,51 +663,21 @@ func (c *Client) updateNetworkInfo() {
 	}
 	c.minRelayFeeSats = uint64(amt.ToUnit(dogutil.AmountSatoshi))
 }
-func (c *Client) getHighestFeeRate() uint64 {
-	var feeRate uint64
-	for _, item := range c.feeRateCache {
-		if item > feeRate {
-			feeRate = item
-		}
-	}
-	return feeRate
-}
+
 func (c *Client) sendNetworkFee(height int64) error {
-	feeRate := uint64(EstimateAverageFeeRate)
-	result, err := c.client.EstimateSmartFee(1, &btcjson.EstimateModeConservative)
+	feeRate := DefaultFeePerKB / 1000 / EstimateAverageTxSize
+	amount, err := dogutil.NewAmount(feeRate)
 	if err != nil {
-		c.logger.Debug().Err(err).Msg("fail to estimate smart fee, using fixed estimate average fee rate")
+		return fmt.Errorf("fail to parse float64: %w", err)
 	}
-	if err == nil && *result.FeeRate != float64(-1) {
-		feeRate = uint64(*result.FeeRate * common.One)
+	feeRateSats := uint64(amount.ToUnit(dogutil.AmountSatoshi))
+
+	c.logger.Debug().Str("chain", "DOGE").Uint64("feeRate", feeRateSats).Msg("sendNetworkFee")
+	txid, err := c.bridge.PostNetworkFee(height, common.DOGEChain, uint64(EstimateAverageTxSize), feeRateSats)
+	if err != nil {
+		return fmt.Errorf("fail to post network fee to thornode: %w", err)
 	}
-
-	c.m.GetGauge(metrics.GasPriceSuggested(common.DOGEChain)).Set(float64(feeRate))
-
-	if EstimateAverageTxSize*feeRate < c.minRelayFeeSats {
-		feeRate = c.minRelayFeeSats / EstimateAverageTxSize
-		if feeRate*EstimateAverageTxSize < c.minRelayFeeSats {
-			feeRate++
-		}
-	}
-	c.feeRateCache = append(c.feeRateCache, feeRate)
-	if len(c.feeRateCache) >= gasCacheBlocks {
-		c.feeRateCache = c.feeRateCache[len(c.feeRateCache)-gasCacheBlocks:]
-	}
-
-	feeRate = c.getHighestFeeRate()
-	c.m.GetGauge(metrics.GasPrice(common.DOGEChain)).Set(float64(feeRate))
-
-	if c.lastFeeRate != feeRate {
-		c.m.GetCounter(metrics.GasPriceChange(common.DOGEChain)).Inc()
-
-		txid, err := c.bridge.PostNetworkFee(height, common.DOGEChain, uint64(EstimateAverageTxSize), feeRate)
-		if err != nil {
-			return fmt.Errorf("fail to post network fee to thornode: %w", err)
-		}
-		c.logger.Debug().Str("txid", txid.String()).Msg("send network fee to THORNode successfully")
-		c.lastFeeRate = feeRate
-	}
+	c.logger.Debug().Str("txid", txid.String()).Msg("send network fee to THORNode successfully")
 	return nil
 }
 
