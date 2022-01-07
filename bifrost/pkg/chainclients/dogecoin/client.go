@@ -666,7 +666,7 @@ func (c *Client) updateNetworkInfo() {
 }
 
 func (c *Client) sendNetworkFee(height int64) error {
-	feeRate := DefaultFeePerKB / 1000 / EstimateAverageTxSize
+	feeRate := DefaultFeePerKB / 1000 * EstimateAverageTxSize
 	amount, err := dogutil.NewAmount(feeRate)
 	if err != nil {
 		return fmt.Errorf("fail to parse float64: %w", err)
