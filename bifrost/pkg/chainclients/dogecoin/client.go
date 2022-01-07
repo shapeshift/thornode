@@ -666,7 +666,9 @@ func (c *Client) updateNetworkInfo() {
 }
 
 func (c *Client) sendNetworkFee(height int64) error {
-	feeRate := DefaultFeePerKB / 1000 * EstimateAverageTxSize
+	// ex: default fee per kb = 0.01, average tx size is 500 bytes,
+	// fee rate in doge/vbyte = 0.000002, or 200 sats/vbye.
+	feeRate := DefaultFeePerKB / EstimateAverageTxSize
 	amount, err := dogutil.NewAmount(feeRate)
 	if err != nil {
 		return fmt.Errorf("fail to parse float64: %w", err)
@@ -674,9 +676,8 @@ func (c *Client) sendNetworkFee(height int64) error {
 	feeRateSats := uint64(amount.ToUnit(dogutil.AmountSatoshi))
 
 	c.logger.Debug().Str("chain", "DOGE").Uint64("lastFeeRate", c.lastFeeRate).Uint64("feeRate", feeRateSats).Msg("sendNetworkFee")
-	c.lastFeeRate = feeRateSats
-
 	if c.lastFeeRate != feeRateSats {
+		c.lastFeeRate = feeRateSats
 		txid, err := c.bridge.PostNetworkFee(height, common.DOGEChain, uint64(EstimateAverageTxSize), feeRateSats)
 		if err != nil {
 			return fmt.Errorf("fail to post network fee to thornode: %w", err)
