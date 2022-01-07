@@ -46,9 +46,10 @@ const (
 	// EstimateAverageTxSize for THORChain the estimate tx size is hard code to 1000 here , as most of time it will spend 1 input, have 3 output
 	// which is average at 250 vbytes , however asgard will consolidate UTXOs , which will take up to 1000 vbytes
 	EstimateAverageTxSize = 1000
-	DefaultFeePerKB       = 0.01
-	DefaultCoinbaseValue  = 10000
-	MaxMempoolScanPerTry  = 500
+	// DefaultFeePerKB is guidance set by dogecoin core team and adopted by miners: https://github.com/dogecoin/dogecoin/blob/master/doc/fee-recommendation.md
+	DefaultFeePerKB      = 0.01
+	DefaultCoinbaseValue = 10000
+	MaxMempoolScanPerTry = 500
 )
 
 // Client observes dogecoin chain and allows to sign and broadcast tx
@@ -71,7 +72,7 @@ type Client struct {
 	lastAsgard            time.Time
 	minRelayFeeSats       uint64
 	tssKeySigner          *tss.KeySign
-	lastFeeRate           int64
+	lastFeeRate           uint64
 	wg                    *sync.WaitGroup
 	signerLock            *sync.Mutex
 	vaultSignerLocks      map[string]*sync.Mutex
@@ -672,12 +673,16 @@ func (c *Client) sendNetworkFee(height int64) error {
 	}
 	feeRateSats := uint64(amount.ToUnit(dogutil.AmountSatoshi))
 
-	c.logger.Debug().Str("chain", "DOGE").Uint64("feeRate", feeRateSats).Msg("sendNetworkFee")
-	txid, err := c.bridge.PostNetworkFee(height, common.DOGEChain, uint64(EstimateAverageTxSize), feeRateSats)
-	if err != nil {
-		return fmt.Errorf("fail to post network fee to thornode: %w", err)
+	c.logger.Debug().Str("chain", "DOGE").Uint64("lastFeeRate", c.lastFeeRate).Uint64("feeRate", feeRateSats).Msg("sendNetworkFee")
+	c.lastFeeRate = feeRateSats
+
+	if c.lastFeeRate != feeRateSats {
+		txid, err := c.bridge.PostNetworkFee(height, common.DOGEChain, uint64(EstimateAverageTxSize), feeRateSats)
+		if err != nil {
+			return fmt.Errorf("fail to post network fee to thornode: %w", err)
+		}
+		c.logger.Debug().Str("txid", txid.String()).Msg("send network fee to THORNode successfully")
 	}
-	c.logger.Debug().Str("txid", txid.String()).Msg("send network fee to THORNode successfully")
 	return nil
 }
 
