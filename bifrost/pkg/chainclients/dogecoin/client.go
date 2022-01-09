@@ -214,13 +214,13 @@ func (c *Client) GetAddress(poolPubKey common.PubKey) string {
 
 // getUTXOs send a request to bitcond RPC endpoint to query all the UTXO
 func (c *Client) getUTXOs(minConfirm, MaximumConfirm int, pkey common.PubKey) ([]btcjson.ListUnspentResult, error) {
-	btcAddress, err := pkey.GetAddress(common.DOGEChain)
+	dogeAddress, err := pkey.GetAddress(common.DOGEChain)
 	if err != nil {
 		return nil, fmt.Errorf("fail to get DOGE Address for pubkey(%s): %w", pkey, err)
 	}
-	addr, err := dogutil.DecodeAddress(btcAddress.String(), c.getChainCfg())
+	addr, err := dogutil.DecodeAddress(dogeAddress.String(), c.getChainCfg())
 	if err != nil {
-		return nil, fmt.Errorf("fail to decode DOGE address(%s): %w", btcAddress.String(), err)
+		return nil, fmt.Errorf("fail to decode DOGE address(%s): %w", dogeAddress.String(), err)
 	}
 	return c.client.ListUnspentMinMaxAddresses(minConfirm, MaximumConfirm, []dogutil.Address{
 		addr,
@@ -684,6 +684,7 @@ func (c *Client) sendNetworkFee(height int64) error {
 		c.lastFeeRate = feeRateSats
 		txid, err := c.bridge.PostNetworkFee(height, common.DOGEChain, uint64(EstimateAverageTxSize), feeRateSats)
 		if err != nil {
+			c.logger.Error().Str("chain", "DOGE").Err(err).Msg("failed to post network fee to thornode")
 			return fmt.Errorf("fail to post network fee to thornode: %w", err)
 		}
 		c.logger.Debug().Str("txid", txid.String()).Msg("send network fee to THORNode successfully")
@@ -995,7 +996,7 @@ func (c *Client) getMemo(tx *btcjson.TxRawResult) (string, error) {
 	return opReturns, nil
 }
 
-// getGas returns gas for a btc tx (sum vin - sum vout)
+// getGas returns gas for a tx (sum vin - sum vout)
 func (c *Client) getGas(tx *btcjson.TxRawResult) (common.Gas, error) {
 	var sumVin uint64 = 0
 	for _, vin := range tx.Vin {

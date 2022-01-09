@@ -35,7 +35,7 @@ const (
 	MinUTXOConfirmation        = 1
 	defaultMaxDOGEFeeRate      = dogutil.SatoshiPerBitcoin * 10
 	maxUTXOsToSpend            = 10
-	minSpendableUTXOAmountSats = 10000 // If UTXO is less than this , it will not observed , and will not spend it either
+	minSpendableUTXOAmountSats = 1000000 // If UTXO is less than this , it will not observed , and will not spend it either
 )
 
 func getDOGEPrivateKey(key cryptotypes.PrivKey) (*btcec.PrivateKey, error) {
@@ -524,14 +524,14 @@ func (c *Client) consolidateUTXOs() {
 		}
 		addr, err := vault.PubKey.GetAddress(common.DOGEChain)
 		if err != nil {
-			c.logger.Err(err).Msgf("fail to get BTC address for pubkey:%s", vault.PubKey)
+			c.logger.Err(err).Msgf("fail to get DOGE address for pubkey:%s", vault.PubKey)
 			continue
 		}
 		// THORChain usually pay 1.5 of the last observed fee rate
 		feeRate := math.Ceil(float64(c.lastFeeRate) * 3 / 2)
 		amt, err := dogutil.NewAmount(total)
 		if err != nil {
-			c.logger.Err(err).Msgf("fail to convert to BTC amount: %f", total)
+			c.logger.Err(err).Msgf("fail to convert to DOGE amount: %f", total)
 			continue
 		}
 
