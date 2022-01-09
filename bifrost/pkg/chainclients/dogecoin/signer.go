@@ -35,7 +35,7 @@ const (
 	MinUTXOConfirmation        = 1
 	defaultMaxDOGEFeeRate      = dogutil.SatoshiPerBitcoin * 10
 	maxUTXOsToSpend            = 10
-	minSpendableUTXOAmountSats = 10000 // If UTXO is less than this , it will not observed , and will not spend it either
+	minSpendableUTXOAmountSats = 1000000 // If UTXO is less than this , it will not observed , and will not spend it either
 )
 
 func getDOGEPrivateKey(key cryptotypes.PrivKey) (*btcec.PrivateKey, error) {
