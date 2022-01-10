@@ -694,7 +694,7 @@
         "chain": "THOR",
         "from_address": "PROVIDER-2",
         "to_address": "VAULT",
-        "memo": "ADD:BNB.BNB",
+        "memo": "ADD:BNB.BNB:PROVIDER-2",
         "coins": [
             {
                 "asset": "THOR.RUNE",
