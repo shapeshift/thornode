@@ -53,7 +53,7 @@ func NewConstantValue010() *ConstantVals {
 			TNSFeePerBlock:                20,                 // per block cost for TNS, in rune
 			PermittedSolvencyGap:          100,                // the setting is in basis points
 			ValidatorMaxRewardRatio:       1,                  // the ratio to MinimumBondInRune at which validators stop receiving rewards proportional to their bond
-			MinPoolRuneDepthForYggFunding: 500_000_00000000,   // the minimum pool depth in RUNE required for ygg funding
+			PoolDepthForYggFundingMin:     500_000_00000000,   // the minimum pool depth in RUNE required for ygg funding
 		},
 		boolValues: map[ConstantName]bool{
 			StrictBondLiquidityRatio: true,

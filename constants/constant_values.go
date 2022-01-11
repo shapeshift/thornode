@@ -67,7 +67,7 @@ const (
 	TNSFeePerBlock
 	PermittedSolvencyGap
 	ValidatorMaxRewardRatio
-	MinPoolRuneDepthForYggFunding
+	PoolDepthForYggFundingMin
 )
 
 var nameToString = map[ConstantName]string{
@@ -128,7 +128,7 @@ var nameToString = map[ConstantName]string{
 	TNSFeePerBlock:                "TNSFeePerBlock",
 	PermittedSolvencyGap:          "PermittedSolvencyGap",
 	ValidatorMaxRewardRatio:       "ValidatorMaxRewardRatio",
-	MinPoolRuneDepthForYggFunding: "MinPoolRuneDepthForYggFunding",
+	PoolDepthForYggFundingMin:     "PoolDepthForYggFundingMin",
 }
 
 // String implement fmt.stringer
