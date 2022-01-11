@@ -142,9 +142,9 @@ func (ymgr YggMgrV79) Fund(ctx cosmos.Context, mgr Manager, constAccessor consta
 		yggFundLimit = constAccessor.GetInt64Value(constants.YggFundLimit)
 	}
 
-	minRuneDepth, err := ymgr.keeper.GetMimir(ctx, constants.MinPoolRuneDepthForYggFunding.String())
+	minRuneDepth, err := ymgr.keeper.GetMimir(ctx, constants.PoolDepthForYggFundingMin.String())
 	if minRuneDepth < 0 || err != nil {
-		minRuneDepth = constAccessor.GetInt64Value(constants.MinPoolRuneDepthForYggFunding)
+		minRuneDepth = constAccessor.GetInt64Value(constants.PoolDepthForYggFundingMin)
 	}
 
 	targetCoins, err := ymgr.calcTargetYggCoins(pools, ygg, na.Bond, totalBond, cosmos.NewUint(uint64(yggFundLimit)), cosmos.NewUint(uint64(minRuneDepth)))
@@ -343,7 +343,7 @@ func (ymgr YggMgrV79) calcTargetYggCoins(pools []Pool, ygg Vault, yggBond, total
 		if !pool.IsAvailable() {
 			continue
 		}
-		// Don't send an asset out to Yggs if the pool has less than MinPoolRuneDepthForYggFunding
+		// Don't send an asset out to Yggs if the pool has less than PoolDepthForYggFundingMin
 		if pool.BalanceRune.LT(minRuneDepth) {
 			continue
 		}
