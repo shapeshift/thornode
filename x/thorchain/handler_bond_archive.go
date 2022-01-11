@@ -32,7 +32,7 @@ func (h BondHandler) validateV1(ctx cosmos.Context, msg MsgBond) error {
 	return nil
 }
 
-func (h BondHandler) validate78(ctx cosmos.Context, msg MsgBond) error {
+func (h BondHandler) validateV78(ctx cosmos.Context, msg MsgBond) error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
