@@ -43,12 +43,13 @@ const (
 	BlockCacheSize      = 1440
 	MaximumConfirmation = 99999999
 	MaxAsgardAddresses  = 100
-	// EstimateAverageTxSize for THORChain the estimate tx size is hard code to 250 here , as most of time it will spend 1 input, have 3 output
-	EstimateAverageTxSize  = 1500
-	EstimateAverageFeeRate = 610000 // DOGE/byte
-	DefaultCoinbaseValue   = 10000
-	gasCacheBlocks         = 10
-	MaxMempoolScanPerTry   = 500
+	// EstimateAverageTxSize for THORChain the estimate tx size is hard code to 1000 here , as most of time it will spend 1 input, have 3 output
+	// which is average at 250 vbytes , however asgard will consolidate UTXOs , which will take up to 1000 vbytes
+	EstimateAverageTxSize = 1000
+	// DefaultFeePerKB is guidance set by dogecoin core team and adopted by miners: https://github.com/dogecoin/dogecoin/blob/master/doc/fee-recommendation.md
+	DefaultFeePerKB      = 0.01
+	DefaultCoinbaseValue = 10000
+	MaxMempoolScanPerTry = 500
 )
 
 // Client observes dogecoin chain and allows to sign and broadcast tx
@@ -72,7 +73,6 @@ type Client struct {
 	minRelayFeeSats       uint64
 	tssKeySigner          *tss.KeySign
 	lastFeeRate           uint64
-	feeRateCache          []uint64
 	wg                    *sync.WaitGroup
 	signerLock            *sync.Mutex
 	vaultSignerLocks      map[string]*sync.Mutex
@@ -129,7 +129,6 @@ func NewClient(thorKeys *thorclient.Keys, cfg config.ChainConfiguration, server 
 		ksWrapper:        ksWrapper,
 		bridge:           bridge,
 		nodePubKey:       nodePubKey,
-		minRelayFeeSats:  1000, // 1000 sats is the default minimal relay fee
 		tssKeySigner:     tssKm,
 		wg:               &sync.WaitGroup{},
 		signerLock:       &sync.Mutex{},
@@ -169,7 +168,7 @@ func NewClient(thorKeys *thorclient.Keys, cfg config.ChainConfiguration, server 
 }
 
 // Start starts the block scanner
-func (c *Client) Start(globalTxsQueue chan types.TxIn, globalErrataQueue chan types.ErrataBlock, globalSolvencyQueue chan<- types.Solvency) {
+func (c *Client) Start(globalTxsQueue chan types.TxIn, globalErrataQueue chan types.ErrataBlock, globalSolvencyQueue chan types.Solvency) {
 	c.globalErrataQueue = globalErrataQueue
 	c.globalSolvencyQueue = globalSolvencyQueue
 	c.tssKeySigner.Start()
@@ -198,6 +197,11 @@ func (c *Client) GetHeight() (int64, error) {
 	return c.client.GetBlockCount()
 }
 
+// IsBlockScannerHealthy checks if the block scanner is healthy
+func (c *Client) IsBlockScannerHealthy() bool {
+	return c.blockScanner.IsHealthy()
+}
+
 // GetAddress returns address from pubkey
 func (c *Client) GetAddress(poolPubKey common.PubKey) string {
 	addr, err := poolPubKey.GetAddress(common.DOGEChain)
@@ -210,13 +214,13 @@ func (c *Client) GetAddress(poolPubKey common.PubKey) string {
 
 // getUTXOs send a request to bitcond RPC endpoint to query all the UTXO
 func (c *Client) getUTXOs(minConfirm, MaximumConfirm int, pkey common.PubKey) ([]btcjson.ListUnspentResult, error) {
-	btcAddress, err := pkey.GetAddress(common.DOGEChain)
+	dogeAddress, err := pkey.GetAddress(common.DOGEChain)
 	if err != nil {
 		return nil, fmt.Errorf("fail to get DOGE Address for pubkey(%s): %w", pkey, err)
 	}
-	addr, err := dogutil.DecodeAddress(btcAddress.String(), c.getChainCfg())
+	addr, err := dogutil.DecodeAddress(dogeAddress.String(), c.getChainCfg())
 	if err != nil {
-		return nil, fmt.Errorf("fail to decode DOGE address(%s): %w", btcAddress.String(), err)
+		return nil, fmt.Errorf("fail to decode DOGE address(%s): %w", dogeAddress.String(), err)
 	}
 	return c.client.ListUnspentMinMaxAddresses(minConfirm, MaximumConfirm, []dogutil.Address{
 		addr,
@@ -261,7 +265,7 @@ func (c *Client) GetAccountByAddress(string) (common.Account, error) {
 }
 
 func (c *Client) getAsgardAddress() ([]common.Address, error) {
-	if time.Now().Sub(c.lastAsgard) < constants.ThorchainBlockTime && c.asgardAddresses != nil {
+	if time.Since(c.lastAsgard) < constants.ThorchainBlockTime && c.asgardAddresses != nil {
 		return c.asgardAddresses, nil
 	}
 	vaults, err := c.bridge.GetAsgards()
@@ -569,7 +573,6 @@ func (c *Client) FetchTxs(height int64) (types.TxIn, error) {
 		}
 		return txIn, fmt.Errorf("fail to get block: %w", err)
 	}
-
 	// if somehow the block is not valid
 	if block.Hash == "" && block.PreviousHash == "" {
 		return txIn, fmt.Errorf("fail to get block: %w", err)
@@ -618,6 +621,7 @@ func (c *Client) FetchTxs(height int64) (types.TxIn, error) {
 	if len(txInBlock.TxArray) > 0 {
 		txIn.TxArray = append(txIn.TxArray, txInBlock.TxArray...)
 	}
+
 	c.updateNetworkInfo()
 	if err := c.sendNetworkFee(height); err != nil {
 		c.logger.Err(err).Msg("fail to send network fee")
@@ -646,6 +650,7 @@ func (c *Client) canDeleteBlock(blockMeta *BlockMeta) bool {
 	}
 	return true
 }
+
 func (c *Client) updateNetworkInfo() {
 	networkInfo, err := c.client.GetNetworkInfo()
 	if err != nil {
@@ -659,50 +664,30 @@ func (c *Client) updateNetworkInfo() {
 	}
 	c.minRelayFeeSats = uint64(amt.ToUnit(dogutil.AmountSatoshi))
 }
-func (c *Client) getHighestFeeRate() uint64 {
-	var feeRate uint64
-	for _, item := range c.feeRateCache {
-		if item > feeRate {
-			feeRate = item
-		}
-	}
-	return feeRate
-}
+
 func (c *Client) sendNetworkFee(height int64) error {
-	feeRate := uint64(EstimateAverageFeeRate)
-	result, err := c.client.EstimateSmartFee(1, &btcjson.EstimateModeConservative)
+	// ex: default fee per kb = 0.01, average tx size is 500 bytes,
+	// fee rate in doge/vbyte = 0.000002, or 200 sats/vbye.
+	feeRate := DefaultFeePerKB / EstimateAverageTxSize
+	amount, err := dogutil.NewAmount(feeRate)
 	if err != nil {
-		return fmt.Errorf("fail to estimate smart fee: %w", err)
+		return fmt.Errorf("fail to parse float64: %w", err)
 	}
-	if err == nil && *result.FeeRate != float64(-1) {
-		feeRate = uint64(*result.FeeRate * common.One)
-	}
+	feeRateSats := uint64(amount.ToUnit(dogutil.AmountSatoshi))
 
-	c.m.GetGauge(metrics.GasPriceSuggested(common.DOGEChain)).Set(float64(feeRate))
-
-	if EstimateAverageTxSize*feeRate < c.minRelayFeeSats {
-		feeRate = c.minRelayFeeSats / EstimateAverageTxSize
-		if feeRate*EstimateAverageTxSize < c.minRelayFeeSats {
-			feeRate++
-		}
-	}
-	c.feeRateCache = append(c.feeRateCache, feeRate)
-	if len(c.feeRateCache) >= gasCacheBlocks {
-		c.feeRateCache = c.feeRateCache[len(c.feeRateCache)-gasCacheBlocks:]
-	}
-
-	feeRate = c.getHighestFeeRate()
-	c.m.GetGauge(metrics.GasPrice(common.DOGEChain)).Set(float64(feeRate))
-
-	if c.lastFeeRate != feeRate {
-		c.m.GetCounter(metrics.GasPriceChange(common.DOGEChain)).Inc()
-
-		txid, err := c.bridge.PostNetworkFee(height, common.DOGEChain, uint64(EstimateAverageTxSize), feeRate)
+	c.logger.Debug().Str("chain", "DOGE").Uint64("lastFeeRate", c.lastFeeRate).Uint64("feeRate", feeRateSats).Msg("sendNetworkFee")
+	// Only send the fee if it has changed
+	// Because it is fixed, thorchain will not reach consensus unless it happens in the same block
+	// All node operators would start bifrost and then never report again because it does not change
+	// Therefore, also send network fee every 60 blocks (~60 minutes).
+	if c.lastFeeRate != feeRateSats || height%60 == 0 {
+		c.lastFeeRate = feeRateSats
+		txid, err := c.bridge.PostNetworkFee(height, common.DOGEChain, uint64(EstimateAverageTxSize), feeRateSats)
 		if err != nil {
+			c.logger.Error().Str("chain", "DOGE").Err(err).Msg("failed to post network fee to thornode")
 			return fmt.Errorf("fail to post network fee to thornode: %w", err)
 		}
 		c.logger.Debug().Str("txid", txid.String()).Msg("send network fee to THORNode successfully")
-		c.lastFeeRate = feeRate
 	}
 	return nil
 }
@@ -1011,7 +996,7 @@ func (c *Client) getMemo(tx *btcjson.TxRawResult) (string, error) {
 	return opReturns, nil
 }
 
-// getGas returns gas for a btc tx (sum vin - sum vout)
+// getGas returns gas for a tx (sum vin - sum vout)
 func (c *Client) getGas(tx *btcjson.TxRawResult) (common.Gas, error) {
 	var sumVin uint64 = 0
 	for _, vin := range tx.Vin {
