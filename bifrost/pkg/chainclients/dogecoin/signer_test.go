@@ -293,7 +293,7 @@ func (s *DogecoinSignerSuite) TestSignTxWithTSS(c *C) {
 	txOutItem := stypes.TxOutItem{
 		Chain:       common.DOGEChain,
 		ToAddress:   addr,
-		VaultPubKey: "tthorpub1addwnpepqw2k68efthm08f0f5akhjs6fk5j2pze4wkwt4fmnymf9yd463puruhh0lyz",
+		VaultPubKey: "tthorpub1addwnpepqtvzm6wa6ezgjj9l4sdvzcf64wf0wzs8x9mgjfhjp6tkzcvkyfyqg9a9p8e",
 		Coins: common.Coins{
 			common.NewCoin(common.DOGEAsset, cosmos.NewUint(10)),
 		},
@@ -303,6 +303,7 @@ func (s *DogecoinSignerSuite) TestSignTxWithTSS(c *C) {
 		InHash:  "",
 		OutHash: "",
 	}
+
 	thorKeyManager := &tss.MockThorchainKeyManager{}
 	s.client.ksWrapper, err = NewKeySignWrapper(s.client.privateKey, thorKeyManager)
 	txHash := "66d2d6b5eb564972c59e4797683a1225a02515a41119f0a8919381236b63e948"
