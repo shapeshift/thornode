@@ -25,7 +25,7 @@
     ],
     "vout": [
       {
-        "value": 0.04072503,
+        "value": 4.072503,
         "n": 0,
         "scriptPubKey": {
           "asm": "0 a6eac1efcd03d067bdba35845830450901eaafd1",
@@ -38,7 +38,7 @@
         }
       },
       {
-        "value": 0.0443425,
+        "value": 4.43425,
         "n": 1,
         "scriptPubKey": {
           "asm": "0 d9dabd8962571ab8cf5086e79b588b6d5381b8fe",
