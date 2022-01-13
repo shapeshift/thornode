@@ -204,8 +204,8 @@ func (s *DogecoinSuite) TestFetchTxs(c *C) {
 	c.Assert(txs.TxArray[0].Tx, Equals, "54ef2f4679fb90af42e8d963a5d85645d0fd86e5fe8ea4e69dbf2d444cb26528")
 	c.Assert(txs.TxArray[0].Sender, Equals, "nfWiQeddE4zsYsDuYhvpgVC7y4gjr5RyqK")
 	c.Assert(txs.TxArray[0].To, Equals, "mv4rnyY3Su5gjcDNzbMLKBQkBicCtHUtFB")
-	c.Assert(txs.TxArray[0].Coins.EqualsEx(common.Coins{common.NewCoin(common.DOGEAsset, cosmos.NewUint(4072503))}), Equals, true)
-	c.Assert(txs.TxArray[0].Gas.Equals(common.Gas{common.NewCoin(common.DOGEAsset, cosmos.NewUint(11083355))}), Equals, true)
+	c.Assert(txs.TxArray[0].Coins.EqualsEx(common.Coins{common.NewCoin(common.DOGEAsset, cosmos.NewUint(407250300))}), Equals, true)
+	c.Assert(txs.TxArray[0].Gas.Equals(common.Gas{common.NewCoin(common.DOGEAsset, cosmos.NewUint(1108335500))}), Equals, true)
 	c.Assert(len(txs.TxArray), Equals, 1)
 	s.client.Stop()
 	cancel()
@@ -598,7 +598,7 @@ func (s *DogecoinSuite) TestGetGas(c *C) {
 	}
 	gas, err := s.client.getGas(&tx)
 	c.Assert(err, IsNil)
-	c.Assert(gas.Equals(common.Gas{common.NewCoin(common.DOGEAsset, cosmos.NewUint(7244430))}), Equals, true)
+	c.Assert(gas.Equals(common.Gas{common.NewCoin(common.DOGEAsset, cosmos.NewUint(1946665122))}), Equals, true)
 
 	tx = btcjson.TxRawResult{
 		Vin: []btcjson.Vin{
@@ -949,7 +949,7 @@ func (s *DogecoinSuite) TestGetConfirmationCount(c *C) {
 		Filtered:             true,
 		MemPool:              false,
 		ConfirmationRequired: 0,
-	}), Equals, int64(1))
+	}), Equals, int64(0))
 
 	c.Assert(s.client.GetConfirmationCount(types.TxIn{
 		Chain: common.DOGEChain,
@@ -960,7 +960,7 @@ func (s *DogecoinSuite) TestGetConfirmationCount(c *C) {
 				Sender:      "bc1q0s4mg25tu6termrk8egltfyme4q7sg3h0e56p3",
 				To:          "bc1q2gjc0rnhy4nrxvuklk6ptwkcs9kcr59mcl2q9j",
 				Coins: common.Coins{
-					common.NewCoin(common.DOGEAsset, cosmos.NewUint(1234560000)),
+					common.NewCoin(common.DOGEAsset, cosmos.NewUint(123456000000)),
 				},
 				Memo:                "MEMO",
 				ObservedVaultPubKey: pkey,
@@ -969,7 +969,7 @@ func (s *DogecoinSuite) TestGetConfirmationCount(c *C) {
 		Filtered:             true,
 		MemPool:              false,
 		ConfirmationRequired: 0,
-	}), Equals, int64(5))
+	}), Equals, int64(20))
 }
 
 func (s *DogecoinSuite) TestGetOutput(c *C) {
