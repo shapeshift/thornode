@@ -9,6 +9,7 @@ import (
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/binance"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/bitcoin"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/bitcoincash"
+	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/dogecoin"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/ethereum"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/litecoin"
 	"gitlab.com/thorchain/thornode/bifrost/pubkeymanager"
@@ -67,6 +68,14 @@ func LoadChains(thorKeys *thorclient.Keys,
 			}
 			pubKeyValidator.RegisterCallback(ltc.RegisterPublicKey)
 			chains[common.LTCChain] = ltc
+		case common.DOGEChain:
+			doge, err := dogecoin.NewClient(thorKeys, chain, server, thorchainBridge, m)
+			if err != nil {
+				logger.Fatal().Err(err).Str("chain_id", chain.ChainID.String()).Msg("fail to load chain")
+				continue
+			}
+			pubKeyValidator.RegisterCallback(doge.RegisterPublicKey)
+			chains[common.DOGEChain] = doge
 		default:
 			continue
 		}
