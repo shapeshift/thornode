@@ -131,6 +131,6 @@ func (s *KeeperVaultSuite) TestVaultSorBySecurity(c *C) {
 	sorted := k.SortBySecurity(ctx, Vaults{vault1, vault2, vault3}, 300)
 	c.Assert(sorted, HasLen, 3)
 	c.Assert(sorted[0].PubKey.Equals(vault2.PubKey), Equals, true)
-	c.Assert(sorted[1].PubKey.Equals(vault1.PubKey), Equals, true)
-	c.Assert(sorted[2].PubKey.Equals(vault3.PubKey), Equals, true)
+	c.Assert(sorted[1].PubKey.Equals(vault3.PubKey), Equals, true)
+	c.Assert(sorted[2].PubKey.Equals(vault1.PubKey), Equals, true)
 }
