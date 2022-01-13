@@ -1,7 +1,8 @@
-package cosmos
+package terra
 
 import (
 	"context"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"strconv"
@@ -16,6 +17,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"github.com/tendermint/tendermint/crypto/tmhash"
 	tmtypes "github.com/tendermint/tendermint/proto/tendermint/types"
 	grpc "google.golang.org/grpc"
 
@@ -31,10 +33,7 @@ import (
 type SolvencyReporter func(int64) error
 
 var (
-	FeeAssetMap = map[string]string{
-		"testnet": "umuon",
-		"mainnet": "uatom",
-	}
+	FeeAsset              = "uluna"
 	ErrInvalidScanStorage = errors.New("scan storage is empty or nil")
 	ErrInvalidMetrics     = errors.New("metrics is empty or nil")
 	ErrEmptyTx            = errors.New("empty tx")
@@ -50,6 +49,7 @@ type CosmosBlockScanner struct {
 	cdc              *codec.ProtoCodec
 	errCounter       *prometheus.CounterVec
 	tmService        tmservice.ServiceClient
+	grpc             *grpc.ClientConn
 	bridge           *thorclient.ThorchainBridge
 	solvencyReporter SolvencyReporter
 }
@@ -57,7 +57,6 @@ type CosmosBlockScanner struct {
 // NewCosmosBlockScanner create a new instance of BlockScan
 func NewCosmosBlockScanner(cfg config.BlockScannerConfiguration,
 	scanStorage blockscanner.ScannerStorage,
-	isTestNet bool,
 	bridge *thorclient.ThorchainBridge,
 	m *metrics.Metrics,
 	solvencyReporter SolvencyReporter) (*CosmosBlockScanner, error) {
@@ -68,16 +67,9 @@ func NewCosmosBlockScanner(cfg config.BlockScannerConfiguration,
 		return nil, errors.New("metrics is nil")
 	}
 
-	var feeAssetStr string
-	if isTestNet {
-		feeAssetStr = FeeAssetMap["testnet"]
-	} else {
-		feeAssetStr = FeeAssetMap["mainnet"]
-	}
-
-	feeAsset, err := common.NewAsset(feeAssetStr)
+	feeAsset, err := common.NewAsset(FeeAsset)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create asset (%s): %w", feeAssetStr, err)
+		return nil, fmt.Errorf("failed to create asset (%s): %w", feeAsset, err)
 	}
 
 	registry := bridge.GetContext().InterfaceRegistry
@@ -94,13 +86,14 @@ func NewCosmosBlockScanner(cfg config.BlockScannerConfiguration,
 
 	return &CosmosBlockScanner{
 		cfg:              cfg,
-		logger:           log.Logger.With().Str("module", "blockscanner").Str("chain", "GAIA").Logger(),
+		logger:           log.Logger.With().Str("module", "blockscanner").Str("chain", "TERRA").Logger(),
 		db:               scanStorage,
 		feeAsset:         feeAsset,
 		avgGasFee:        common.NewCoin(feeAsset, ctypes.NewUint(0)),
 		cdc:              cdc,
-		errCounter:       m.GetCounterVec(metrics.BlockScanError(common.GAIAChain)),
+		errCounter:       m.GetCounterVec(metrics.BlockScanError(common.TERRAChain)),
 		tmService:        tmService,
+		grpc:             conn,
 		bridge:           bridge,
 		solvencyReporter: solvencyReporter,
 	}, nil
@@ -168,7 +161,7 @@ func (b *CosmosBlockScanner) updateAverageGasFees(height int64, txs []types.TxIn
 	}
 
 	log.Info().Int64("height", height).Int64("gasFeeAmt", avgGasFeesAmt.Int64()).Msg("calculate gas fee")
-	// if _, err := b.bridge.PostNetworkFee(height, common.GAIAChain, 1, avgGasFeesAmt.Uint64()); err != nil {
+	// if _, err := b.bridge.PostNetworkFee(height, common.TERRAChain, 1, avgGasFeesAmt.Uint64()); err != nil {
 	// 	b.logger.Err(err).Int64("height", height).Msg("failed to post average network fee")
 	// 	return err
 	// }
@@ -195,8 +188,9 @@ func (b *CosmosBlockScanner) FetchTxs(height int64) (types.TxIn, error) {
 	var txs []types.TxInItem
 
 	for _, rawTx := range block.Data.Txs {
-		tx, err := decoder(rawTx)
 
+		hash := hex.EncodeToString(tmhash.Sum(rawTx))
+		tx, err := decoder(rawTx)
 		if err != nil {
 			if strings.Contains(err.Error(), "unable to resolve type URL") {
 				// couldn't find msg type in the interface registry, probably not relevant
@@ -244,7 +238,7 @@ func (b *CosmosBlockScanner) FetchTxs(height int64) (types.TxIn, error) {
 				}
 
 				txs = append(txs, types.TxInItem{
-					Tx:          "",
+					Tx:          string(hash[:]),
 					BlockHeight: height,
 					Memo:        memo,
 					Sender:      msg.FromAddress,
@@ -261,7 +255,7 @@ func (b *CosmosBlockScanner) FetchTxs(height int64) (types.TxIn, error) {
 
 	txIn := types.TxIn{
 		Count:    strconv.Itoa(int(len(txs))),
-		Chain:    common.GAIAChain,
+		Chain:    common.TERRAChain,
 		TxArray:  txs,
 		Filtered: false,
 		MemPool:  false,

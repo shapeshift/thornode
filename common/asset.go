@@ -12,8 +12,8 @@ import (
 var (
 	// EmptyAsset empty asset, not valid
 	EmptyAsset = Asset{Chain: EmptyChain, Symbol: "", Ticker: "", Synth: false}
-	// ATOMAsset ATOM
-	ATOMAsset = Asset{Chain: GAIAChain, Symbol: "ATOM", Ticker: "ATOM", Synth: false}
+	// LunaAsset LUNA
+	LunaAsset = Asset{Chain: TERRAChain, Symbol: "LUNA", Ticker: "LUNA", Synth: false}
 	// BNBAsset BNB
 	BNBAsset = Asset{Chain: BNBChain, Symbol: "BNB", Ticker: "BNB", Synth: false}
 	// BTCAsset BTC
