@@ -2,6 +2,7 @@ package types
 
 import (
 	"errors"
+	"fmt"
 
 	"gitlab.com/thorchain/thornode/common"
 )
@@ -21,7 +22,7 @@ func (m *NetworkFee) Valid() error {
 		return errors.New("chain can't be empty")
 	}
 	if m.TransactionSize <= 0 {
-		return errors.New("transaction size can't be negative")
+		return fmt.Errorf("transaction size can't be zero or negative: %v", m.TransactionSize)
 	}
 	if m.TransactionFeeRate <= 0 {
 		return errors.New("transaction fee rate can't be zero")

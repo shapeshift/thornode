@@ -71,5 +71,12 @@ func (k *MockThorchainKeyManager) RemoteSign(msg []byte, poolPubKey string) ([]b
 			return sig, nil, err
 		}
 	}
+	if poolPubKey == "tthorpub1addwnpepqtvzm6wa6ezgjj9l4sdvzcf64wf0wzs8x9mgjfhjp6tkzcvkyfyqg9a9p8e" {
+		msgToSign := base64.StdEncoding.EncodeToString(msg)
+		if msgToSign == "PIZUt687khEYQizRpYbLyQgDw1Ou+xzbSrLQ8fTKiaw=" {
+			sig, err := base64.StdEncoding.DecodeString("HxT9xOyBYuhHfK8iLSbPniJq6u6KYfJVmq28iO+/Sa44ocAuckpzs3g6zBelr4pUaxatoKixAaPt2UtlgPP2sA==")
+			return sig, nil, err
+		}
+	}
 	return nil, nil, nil
 }

@@ -736,15 +736,15 @@ func (s *HandlerObservedTxInSuite) TestVaultStatus(c *C) {
 		statusAtFinalisation VaultStatus
 	}{
 		{
-			name: "should observe if active on consensus and finalisation",
+			name:                 "should observe if active on consensus and finalisation",
 			statusAtConsensus:    ActiveVault,
 			statusAtFinalisation: ActiveVault,
-		},{
-			name: "should observe if active on consensus, inactive on finalisation",
+		}, {
+			name:                 "should observe if active on consensus, inactive on finalisation",
 			statusAtConsensus:    ActiveVault,
 			statusAtFinalisation: InactiveVault,
-		},{
-			name: "should not observe if inactive on consensus",
+		}, {
+			name:                 "should not observe if inactive on consensus",
 			statusAtConsensus:    InactiveVault,
 			statusAtFinalisation: InactiveVault,
 		},
@@ -759,9 +759,9 @@ func (s *HandlerObservedTxInSuite) TestVaultStatus(c *C) {
 		vault := GetRandomVault()
 		vault.PubKey = obTx.ObservedPubKey
 		keeper := &TestObservedTxInHandleKeeper{
-			nas:   NodeAccounts{GetRandomValidatorNode(NodeActive)},
-			voter: NewObservedTxVoter(tx.ID, make(ObservedTxs, 0)),
-			vault: vault,
+			nas:       NodeAccounts{GetRandomValidatorNode(NodeActive)},
+			voter:     NewObservedTxVoter(tx.ID, make(ObservedTxs, 0)),
+			vault:     vault,
 			yggExists: true,
 		}
 		mgr.K = keeper
