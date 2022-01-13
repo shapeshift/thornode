@@ -752,7 +752,6 @@ func (c *Client) getTxIn(tx *btcjson.TxRawResult, height int64, isMemPool bool) 
 	}
 	// RBF enabled transaction will not be observed until it get committed to block
 	if c.isRBFEnabled(tx) && isMemPool {
-		c.logger.Info().Msgf("RBF is enabled, ignore tx: %s,confirmation: %d", tx.Hash, tx.Confirmations)
 		return types.TxInItem{}, nil
 	}
 	sender, err := c.getSender(tx)
