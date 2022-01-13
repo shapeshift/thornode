@@ -20,6 +20,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"gitlab.com/thorchain/bifrost/txscript"
+	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/signercache"
 	mem "gitlab.com/thorchain/thornode/x/thorchain/memo"
 	tssp "gitlab.com/thorchain/tss/go-tss/tss"
 	"golang.org/x/sync/errgroup"
@@ -53,6 +54,7 @@ const (
 type Client struct {
 	logger                zerolog.Logger
 	cfg                   config.ChainConfiguration
+	m                     *metrics.Metrics
 	client                *rpcclient.Client
 	chain                 common.Chain
 	privateKey            *btcec.PrivateKey
@@ -73,6 +75,7 @@ type Client struct {
 	signerLock            *sync.Mutex
 	vaultSignerLocks      map[string]*sync.Mutex
 	consolidateInProgress bool
+	signerCacheManager    *signercache.CacheManager
 }
 
 // NewClient generates a new Client
@@ -117,6 +120,7 @@ func NewClient(thorKeys *thorclient.Keys, cfg config.ChainConfiguration, server 
 	c := &Client{
 		logger:           log.Logger.With().Str("module", "bitcoin").Logger(),
 		cfg:              cfg,
+		m:                m,
 		chain:            cfg.ChainID,
 		client:           client,
 		privateKey:       btcPrivateKey,
@@ -153,6 +157,11 @@ func NewClient(thorKeys *thorclient.Keys, cfg config.ChainConfiguration, server 
 	if err := c.registerAddressInWalletAsWatch(c.nodePubKey); err != nil {
 		return nil, fmt.Errorf("fail to register (%s): %w", c.nodePubKey, err)
 	}
+	signerCacheManager, err := signercache.NewSignerCacheManager(storage.GetInternalDb())
+	if err != nil {
+		return nil, fmt.Errorf("fail to create signer cache manager,err: %w", err)
+	}
+	c.signerCacheManager = signerCacheManager
 	c.updateNetworkInfo()
 	return c, nil
 }
@@ -332,6 +341,21 @@ func (c *Client) OnObservedTxIn(txIn types.TxInItem, blockHeight int64) {
 	if err := c.blockMetaAccessor.SaveBlockMeta(blockHeight, blockMeta); err != nil {
 		c.logger.Err(err).Msgf("fail to save block meta to storage,block height(%d)", blockHeight)
 	}
+	// update the signer cache
+	m, err := mem.ParseMemo(txIn.Memo)
+	if err != nil {
+		c.logger.Err(err).Msgf("fail to parse memo: %s", txIn.Memo)
+		return
+	}
+	if !m.IsOutbound() {
+		return
+	}
+	if m.GetTxID().IsEmpty() {
+		return
+	}
+	if err := c.signerCacheManager.SetSigned(txIn.CacheHash(c.GetChain(), m.GetTxID().String()), txIn.Tx); err != nil {
+		c.logger.Err(err).Msg("fail to update signer cache")
+	}
 }
 
 func (c *Client) processReorg(block *btcjson.GetBlockVerboseTxResult) ([]types.TxIn, error) {
@@ -504,7 +528,7 @@ func (c *Client) getMemPool(height int64) (types.TxIn, error) {
 				c.logger.Err(err).Msgf("fail to get raw transaction verbose with hash(%s)", txHash.String())
 				return nil
 			}
-			txInItem, err := c.getTxIn(result, height)
+			txInItem, err := c.getTxIn(result, height, true)
 			if err != nil {
 				c.logger.Error().Err(err).Msg("fail to get TxInItem")
 				return nil
@@ -681,6 +705,12 @@ func (c *Client) sendNetworkFee(height int64) error {
 			feeRate++
 		}
 	}
+
+	c.m.GetGauge(metrics.GasPrice(common.BTCChain)).Set(float64(feeRate))
+	if c.lastFeeRate != feeRate {
+		c.m.GetCounter(metrics.GasPriceChange(common.BTCChain)).Inc()
+	}
+
 	c.lastFeeRate = feeRate
 	txid, err := c.bridge.PostNetworkFee(height, common.BTCChain, uint64(EstimateAverageTxSize), uint64(feeRate))
 	if err != nil {
@@ -725,13 +755,13 @@ func (c *Client) isRBFEnabled(tx *btcjson.TxRawResult) bool {
 	}
 	return false
 }
-func (c *Client) getTxIn(tx *btcjson.TxRawResult, height int64) (types.TxInItem, error) {
+func (c *Client) getTxIn(tx *btcjson.TxRawResult, height int64, isMemPool bool) (types.TxInItem, error) {
 	if c.ignoreTx(tx) {
 		c.logger.Debug().Int64("height", height).Str("tx", tx.Hash).Msg("ignore tx not matching format")
 		return types.TxInItem{}, nil
 	}
 	// RBF enabled transaction will not be observed until it get committed to block
-	if c.isRBFEnabled(tx) && tx.Confirmations == 0 {
+	if c.isRBFEnabled(tx) && isMemPool {
 		return types.TxInItem{}, nil
 	}
 	sender, err := c.getSender(tx)
@@ -747,7 +777,7 @@ func (c *Client) getTxIn(tx *btcjson.TxRawResult, height int64) (types.TxInItem,
 	}
 	m, err := mem.ParseMemo(memo)
 	if err != nil {
-		c.logger.Err(err).Msgf("fail to parse memo: %s", memo)
+		c.logger.Debug().Msgf("fail to parse memo: %s,err : %s", memo, err)
 	}
 	output, err := c.getOutput(sender, tx, m.IsType(mem.TxConsolidate))
 	if err != nil {
@@ -802,7 +832,7 @@ func (c *Client) extractTxs(block *btcjson.GetBlockVerboseTxResult) (types.TxIn,
 	for idx, tx := range block.Tx {
 		// mempool transaction get committed to block , thus remove it from mempool cache
 		c.removeFromMemPoolCache(tx.Hash)
-		txInItem, err := c.getTxIn(&block.Tx[idx], block.Height)
+		txInItem, err := c.getTxIn(&block.Tx[idx], block.Height, false)
 		if err != nil {
 			c.logger.Err(err).Msg("fail to get TxInItem")
 			continue

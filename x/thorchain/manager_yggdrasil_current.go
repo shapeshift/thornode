@@ -11,20 +11,20 @@ import (
 	kvTypes "gitlab.com/thorchain/thornode/x/thorchain/keeper/types"
 )
 
-// YggMgrV65 is an implementation of YggManager
-type YggMgrV65 struct {
+// YggMgrV79 is an implementation of YggManager
+type YggMgrV79 struct {
 	keeper keeper.Keeper
 }
 
-// newYggMgrV65 create a new instance of YggMgrV65 which implement YggManager interface
-func newYggMgrV65(keeper keeper.Keeper) *YggMgrV65 {
-	return &YggMgrV65{
+// newYggMgrV79 create a new instance of YggMgrV79 which implement YggManager interface
+func newYggMgrV79(keeper keeper.Keeper) *YggMgrV79 {
+	return &YggMgrV79{
 		keeper: keeper,
 	}
 }
 
 // Fund is a method to fund yggdrasil pool
-func (ymgr YggMgrV65) Fund(ctx cosmos.Context, mgr Manager, constAccessor constants.ConstantValues) error {
+func (ymgr YggMgrV79) Fund(ctx cosmos.Context, mgr Manager, constAccessor constants.ConstantValues) error {
 	// Check if we have triggered the ragnarok protocol
 	ragnarokHeight, err := ymgr.keeper.GetRagnarokBlockHeight(ctx)
 	if err != nil {
@@ -141,7 +141,13 @@ func (ymgr YggMgrV65) Fund(ctx cosmos.Context, mgr Manager, constAccessor consta
 	if yggFundLimit < 0 || err != nil {
 		yggFundLimit = constAccessor.GetInt64Value(constants.YggFundLimit)
 	}
-	targetCoins, err := ymgr.calcTargetYggCoins(pools, ygg, na.Bond, totalBond, cosmos.NewUint(uint64(yggFundLimit)))
+
+	minRuneDepth, err := ymgr.keeper.GetMimir(ctx, constants.PoolDepthForYggFundingMin.String())
+	if minRuneDepth < 0 || err != nil {
+		minRuneDepth = constAccessor.GetInt64Value(constants.PoolDepthForYggFundingMin)
+	}
+
+	targetCoins, err := ymgr.calcTargetYggCoins(pools, ygg, na.Bond, totalBond, cosmos.NewUint(uint64(yggFundLimit)), cosmos.NewUint(uint64(minRuneDepth)))
 	if err != nil {
 		return err
 	}
@@ -183,7 +189,7 @@ func (ymgr YggMgrV65) Fund(ctx cosmos.Context, mgr Manager, constAccessor consta
 
 // sendCoinsToYggdrasil - adds outbound txs to send the given coins to a
 // yggdrasil pool
-func (ymgr YggMgrV65) sendCoinsToYggdrasil(ctx cosmos.Context, coins common.Coins, ygg Vault, mgr Manager, constAccessor constants.ConstantValues) (int, error) {
+func (ymgr YggMgrV79) sendCoinsToYggdrasil(ctx cosmos.Context, coins common.Coins, ygg Vault, mgr Manager, constAccessor constants.ConstantValues) (int, error) {
 	var count int
 
 	active, err := ymgr.keeper.GetAsgardVaultsByStatus(ctx, ActiveVault)
@@ -286,7 +292,7 @@ func (ymgr YggMgrV65) sendCoinsToYggdrasil(ctx cosmos.Context, coins common.Coin
 // new contract , once that happen and detected by THORChain, yggdrasil vault's smart contract will be updated to the new address
 // if there are different , means yggdrasil didn't transfer their fund from old control to new one
 // thus asgard should not send yggdrasil fund for the chain
-func (ymgr YggMgrV65) shouldFundYggdrasil(ctx cosmos.Context, asgard, ygg Vault, chain common.Chain) bool {
+func (ymgr YggMgrV79) shouldFundYggdrasil(ctx cosmos.Context, asgard, ygg Vault, chain common.Chain) bool {
 	asgardContract := asgard.GetContract(chain)
 	if asgardContract.IsEmpty() {
 		// the request chain doesn't support contract
@@ -302,7 +308,7 @@ func (ymgr YggMgrV65) shouldFundYggdrasil(ctx cosmos.Context, asgard, ygg Vault,
 // calcTargetYggCoins - calculate the amount of coins of each pool a yggdrasil
 // pool should have, relative to how much they have bonded (which should be
 // target == bond * yggFundLimit / 100).
-func (ymgr YggMgrV65) calcTargetYggCoins(pools []Pool, ygg Vault, yggBond, totalBond, yggFundLimit cosmos.Uint) (common.Coins, error) {
+func (ymgr YggMgrV79) calcTargetYggCoins(pools []Pool, ygg Vault, yggBond, totalBond, yggFundLimit, minRuneDepth cosmos.Uint) (common.Coins, error) {
 	var coins common.Coins
 
 	// calculate total liquidity provided rune in our pools
@@ -337,6 +343,10 @@ func (ymgr YggMgrV65) calcTargetYggCoins(pools []Pool, ygg Vault, yggBond, total
 		if !pool.IsAvailable() {
 			continue
 		}
+		// Don't send an asset out to Yggs if the pool has less than PoolDepthForYggFundingMin
+		if pool.BalanceRune.LT(minRuneDepth) {
+			continue
+		}
 		runeAmt := common.GetSafeShare(targetRune, totalLiquidityRune, pool.BalanceRune)
 		assetAmt := common.GetSafeShare(targetRune, totalLiquidityRune, pool.BalanceAsset)
 		// add rune amt (not asset since the two are considered to be equal)
@@ -360,7 +370,7 @@ func (ymgr YggMgrV65) calcTargetYggCoins(pools []Pool, ygg Vault, yggBond, total
 }
 
 // abandonYggdrasilVaults is going to find out those yggdrasil pool
-func (ymgr YggMgrV65) abandonYggdrasilVaults(ctx cosmos.Context, mgr Manager) error {
+func (ymgr YggMgrV79) abandonYggdrasilVaults(ctx cosmos.Context, mgr Manager) error {
 	activeVaults, err := ymgr.keeper.GetAsgardVaultsByStatus(ctx, ActiveVault)
 	if err != nil {
 		return fmt.Errorf("fail to get active asgard vaults: %w", err)
@@ -425,7 +435,7 @@ func (ymgr YggMgrV65) abandonYggdrasilVaults(ctx cosmos.Context, mgr Manager) er
 	return nil
 }
 
-func (ymgr YggMgrV65) slash(ctx cosmos.Context, slasher Slasher, mgr Manager, pk common.PubKey, ygg Vault) error {
+func (ymgr YggMgrV79) slash(ctx cosmos.Context, slasher Slasher, mgr Manager, pk common.PubKey, ygg Vault) error {
 	ctx.Logger().Info(fmt.Sprintf("slash, node account %s churned out , but fail to return yggdrasil fund", pk.String()), "coins", ygg.Coins.String())
 	err := slasher.SlashVault(ctx, pk, ygg.Coins, mgr)
 	ygg.SubFunds(ygg.Coins)

@@ -69,6 +69,12 @@ func (k *TestRefundBondKeeper) DeleteVault(_ cosmos.Context, key common.PubKey) 
 	}
 	return nil
 }
+func (k *TestRefundBondKeeper) SetVault(ctx cosmos.Context, vault Vault) error {
+	if k.ygg.PubKey.Equals(vault.PubKey) {
+		k.ygg = vault
+	}
+	return nil
+}
 
 func (s *HelperSuite) TestSubsidizePoolWithSlashBond(c *C) {
 	ctx, mgr := setupManagerForTest(c)
@@ -386,6 +392,28 @@ func (s *HelperSuite) TestAbandonPool(c *C) {
 		count++
 	}
 	c.Assert(count, Equals, 0)
+}
+
+func (s *HelperSuite) TestDollarInRune(c *C) {
+	ctx, k := setupKeeperForTest(c)
+	mgr := NewDummyMgrWithKeeper(k)
+	busd, err := common.NewAsset("BNB.BUSD-BD1")
+	c.Assert(err, IsNil)
+	pool := NewPool()
+	pool.Asset = busd
+	pool.Status = PoolAvailable
+	pool.BalanceRune = cosmos.NewUint(85515078103667)
+	pool.BalanceAsset = cosmos.NewUint(709802235538353)
+	c.Assert(k.SetPool(ctx, pool), IsNil)
+
+	runeUSDPrice := telem(DollarInRune(ctx, mgr))
+	c.Assert(runeUSDPrice, Equals, float32(0.12047733))
+}
+
+func (s *HelperSuite) TestTelem(c *C) {
+	value := cosmos.NewUint(12047733)
+	c.Assert(value.Uint64(), Equals, uint64(12047733))
+	c.Assert(telem(value), Equals, float32(0.12047733))
 }
 
 type addGasFeesKeeperHelper struct {

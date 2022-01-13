@@ -14,7 +14,7 @@ import (
 
 type Keeper interface {
 	Cdc() codec.BinaryMarshaler
-	Version() int64
+	Version() semver.Version
 	GetKey(ctx cosmos.Context, prefix kvTypes.DbPrefix, key string) string
 	GetStoreVersion(ctx cosmos.Context) int64
 	SetStoreVersion(ctx cosmos.Context, ver int64)
@@ -109,6 +109,7 @@ type KeeperNodeAccount interface {
 	ResetNodeAccountSlashPoints(_ cosmos.Context, _ cosmos.AccAddress)
 	GetNodeAccountJail(ctx cosmos.Context, addr cosmos.AccAddress) (Jail, error)
 	SetNodeAccountJail(ctx cosmos.Context, addr cosmos.AccAddress, height int64, reason string) error
+	ReleaseNodeAccountFromJail(ctx cosmos.Context, addr cosmos.AccAddress) error
 }
 
 type KeeperObserver interface {
@@ -222,7 +223,9 @@ type KeeperSwapQueue interface {
 type KeeperMimir interface {
 	GetMimir(_ cosmos.Context, key string) (int64, error)
 	SetMimir(_ cosmos.Context, key string, value int64)
+	SetNodeMimir(_ cosmos.Context, key string, value int64, acc cosmos.AccAddress) error
 	GetMimirIterator(ctx cosmos.Context) cosmos.Iterator
+	GetNodeMimirIterator(ctx cosmos.Context) cosmos.Iterator
 	DeleteMimir(_ cosmos.Context, key string) error
 	GetNodePauseChain(ctx cosmos.Context, acc cosmos.AccAddress) int64
 	SetNodePauseChain(ctx cosmos.Context, acc cosmos.AccAddress)
@@ -263,5 +266,6 @@ type KeeperTHORName interface {
 
 // NewKVStore creates new instances of the thorchain Keeper
 func NewKeeper(cdc codec.BinaryMarshaler, coinKeeper bankkeeper.Keeper, accountKeeper authkeeper.AccountKeeper, storeKey cosmos.StoreKey) Keeper {
-	return kv1.NewKVStore(cdc, coinKeeper, accountKeeper, storeKey)
+	version := semver.MustParse("0.0.0")
+	return kv1.NewKVStore(cdc, coinKeeper, accountKeeper, storeKey, version)
 }

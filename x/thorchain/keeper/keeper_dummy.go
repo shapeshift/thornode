@@ -27,7 +27,7 @@ func (k KVStoreDummy) Logger(ctx cosmos.Context) log.Logger {
 	return ctx.Logger().With("module", fmt.Sprintf("x/%s", ModuleName))
 }
 
-func (k KVStoreDummy) Version() int64 { return 0 }
+func (k KVStoreDummy) Version() semver.Version { return semver.MustParse("1.0.0") }
 func (k KVStoreDummy) GetKey(_ cosmos.Context, prefix kvTypes.DbPrefix, key string) string {
 	return fmt.Sprintf("%s/1/%s", prefix, key)
 }
@@ -215,6 +215,9 @@ func (k KVStoreDummy) GetNodeAccountJail(ctx cosmos.Context, addr cosmos.AccAddr
 func (k KVStoreDummy) SetNodeAccountJail(ctx cosmos.Context, addr cosmos.AccAddress, height int64, reason string) error {
 	return kaboom
 }
+func (k KVStoreDummy) ReleaseNodeAccountFromJail(ctx cosmos.Context, addr cosmos.AccAddress) error {
+	return kaboom
+}
 
 func (k KVStoreDummy) GetObservingAddresses(_ cosmos.Context) ([]cosmos.AccAddress, error) {
 	return nil, kaboom
@@ -328,8 +331,12 @@ func (k KVStoreDummy) GetSwapQueueItem(ctx cosmos.Context, txID common.TxID, _ i
 }
 func (k KVStoreDummy) GetMimir(_ cosmos.Context, key string) (int64, error) { return 0, kaboom }
 func (k KVStoreDummy) SetMimir(_ cosmos.Context, key string, value int64)   {}
-func (k KVStoreDummy) DeleteMimir(_ cosmos.Context, key string) error       { return kaboom }
-func (k KVStoreDummy) GetMimirIterator(ctx cosmos.Context) cosmos.Iterator  { return nil }
+func (k KVStoreDummy) SetNodeMimir(_ cosmos.Context, key string, value int64, acc cosmos.AccAddress) error {
+	return kaboom
+}
+func (k KVStoreDummy) DeleteMimir(_ cosmos.Context, key string) error          { return kaboom }
+func (k KVStoreDummy) GetMimirIterator(ctx cosmos.Context) cosmos.Iterator     { return nil }
+func (k KVStoreDummy) GetNodeMimirIterator(ctx cosmos.Context) cosmos.Iterator { return nil }
 func (k KVStoreDummy) GetNodePauseChain(ctx cosmos.Context, acc cosmos.AccAddress) int64 {
 	return int64(-1)
 }

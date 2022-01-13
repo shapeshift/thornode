@@ -1,13 +1,17 @@
 package thorchain
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
+	"github.com/armon/go-metrics"
 	"github.com/blang/semver"
+	"github.com/cosmos/cosmos-sdk/telemetry"
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/constants"
 	kvTypes "gitlab.com/thorchain/thornode/x/thorchain/keeper/types"
 )
 
@@ -56,10 +60,6 @@ func (h YggdrasilHandler) validate(ctx cosmos.Context, msg MsgYggdrasil) error {
 }
 
 func (h YggdrasilHandler) validateV1(ctx cosmos.Context, msg MsgYggdrasil) error {
-	return h.validateCurrent(ctx, msg)
-}
-
-func (h YggdrasilHandler) validateCurrent(ctx cosmos.Context, msg MsgYggdrasil) error {
 	return msg.ValidateBasic()
 }
 
@@ -183,7 +183,13 @@ func (h YggdrasilHandler) handleV1(ctx cosmos.Context, msg MsgYggdrasil) (*cosmo
 	if shouldSlash {
 		ctx.Logger().Info("slash node account, no matched tx out item", "outbound tx", msg.Tx)
 		toSlash := msg.Tx.Coins.Adds(msg.Tx.Gas.ToCoins())
-		if err := h.slashV1(ctx, msg.PubKey, toSlash); err != nil {
+
+		slashCtx := ctx.WithContext(context.WithValue(ctx.Context(), constants.CtxMetricLabels, []metrics.Label{
+			telemetry.NewLabel("reason", "failed_yggdrasil_return"),
+			telemetry.NewLabel("chain", string(msg.Tx.Chain)),
+		}))
+
+		if err := h.slashV1(slashCtx, msg.PubKey, toSlash); err != nil {
 			return nil, ErrInternal(err, "fail to slash account")
 		}
 	}
@@ -208,10 +214,6 @@ func (h YggdrasilHandler) handleV1(ctx cosmos.Context, msg MsgYggdrasil) (*cosmo
 }
 
 func (h YggdrasilHandler) handleYggdrasilReturnV1(ctx cosmos.Context, msg MsgYggdrasil, vault Vault) (*cosmos.Result, error) {
-	return h.handleCurrent(ctx, msg, vault)
-}
-
-func (h YggdrasilHandler) handleCurrent(ctx cosmos.Context, msg MsgYggdrasil, vault Vault) (*cosmos.Result, error) {
 	// observe an outbound tx from yggdrasil vault
 	switch vault.Type {
 	case YggdrasilVault:
@@ -237,9 +239,13 @@ func (h YggdrasilHandler) handleCurrent(ctx cosmos.Context, msg MsgYggdrasil, va
 		}
 
 		if !isAsgardReceipient {
-			ctx.Logger().Info("yggdrasil send fund to none asgard address")
+			ctx.Logger().Info("yggdrasil send fund to non-asgard address")
 			// not sending to asgard , slash the node account
-			if err := h.slashV1(ctx, msg.PubKey, msg.Tx.Coins); err != nil {
+			slashCtx := ctx.WithContext(context.WithValue(ctx.Context(), constants.CtxMetricLabels, []metrics.Label{
+				telemetry.NewLabel("reason", "bad_yggdrasil_return_address"),
+				telemetry.NewLabel("chain", string(msg.Tx.Chain)),
+			}))
+			if err := h.slashV1(slashCtx, msg.PubKey, msg.Tx.Coins); err != nil {
 				return nil, ErrInternal(err, "fail to slash account for sending fund to a none asgard vault using yggdrasil-")
 			}
 		}

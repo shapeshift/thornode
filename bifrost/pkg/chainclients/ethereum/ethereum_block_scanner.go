@@ -3,6 +3,7 @@ package ethereum
 import (
 	"context"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -22,6 +23,7 @@ import (
 	"gitlab.com/thorchain/thornode/bifrost/config"
 	"gitlab.com/thorchain/thornode/bifrost/metrics"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/ethereum/types"
+	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/signercache"
 	"gitlab.com/thorchain/thornode/bifrost/pubkeymanager"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient"
 	stypes "gitlab.com/thorchain/thornode/bifrost/thorclient/types"
@@ -48,12 +50,6 @@ const (
 	gasCacheBlocks         = 20
 )
 
-var (
-	whitelistSmartContractAddres = []common.Address{
-		common.Address(`0x69fa0feE221AD11012BAb0FdB45d444D3D2Ce71c`),
-	}
-)
-
 // ETHScanner is a scanner that understand how to interact with ETH chain ,and scan block , parse smart contract etc
 type ETHScanner struct {
 	cfg                  config.BlockScannerConfiguration
@@ -76,6 +72,8 @@ type ETHScanner struct {
 	currentBlockHeight   int64
 	gasCache             []*big.Int
 	solvencyReporter     SolvencyReporter
+	whitelistTokens      []ERC20Token
+	signerCacheManager   *signercache.CacheManager
 }
 
 // NewETHScanner create a new instance of ETHScanner
@@ -86,7 +84,8 @@ func NewETHScanner(cfg config.BlockScannerConfiguration,
 	bridge *thorclient.ThorchainBridge,
 	m *metrics.Metrics,
 	pubkeyMgr pubkeymanager.PubKeyValidator,
-	solvencyReporter SolvencyReporter) (*ETHScanner, error) {
+	solvencyReporter SolvencyReporter,
+	signerCacheManager *signercache.CacheManager) (*ETHScanner, error) {
 	if storage == nil {
 		return nil, errors.New("storage is nil")
 	}
@@ -115,6 +114,12 @@ func NewETHScanner(cfg config.BlockScannerConfiguration,
 	if err != nil {
 		return nil, fmt.Errorf("fail to create contract abi: %w", err)
 	}
+	// load token list
+	var whitelistTokens TokenList
+	if err := json.Unmarshal(tokenList, &whitelistTokens); err != nil {
+		return nil, fmt.Errorf("fail to load token list,err: %w", err)
+	}
+
 	return &ETHScanner{
 		cfg:                  cfg,
 		logger:               log.Logger.With().Str("module", "block_scanner").Str("chain", common.ETHChain.String()).Logger(),
@@ -134,6 +139,8 @@ func NewETHScanner(cfg config.BlockScannerConfiguration,
 		pubkeyMgr:            pubkeyMgr,
 		gasCache:             make([]*big.Int, 0),
 		solvencyReporter:     solvencyReporter,
+		whitelistTokens:      whitelistTokens.Tokens,
+		signerCacheManager:   signerCacheManager,
 	}, nil
 }
 
@@ -158,7 +165,7 @@ func (e *ETHScanner) GetHeight() (int64, error) {
 }
 
 // FetchMemPool get tx from mempool
-func (e *ETHScanner) FetchMemPool(height int64) (stypes.TxIn, error) {
+func (e *ETHScanner) FetchMemPool(_ int64) (stypes.TxIn, error) {
 	return stypes.TxIn{}, nil
 }
 
@@ -228,6 +235,10 @@ func (e *ETHScanner) updateGasPrice() {
 	ctx, cancel := e.getContext()
 	defer cancel()
 	gasPrice, err := e.client.SuggestGasPrice(ctx)
+
+	gasPriceFloat, _ := new(big.Float).SetInt(gasPrice).Float64()
+	e.m.GetGauge(metrics.GasPriceSuggested(common.ETHChain)).Set(gasPriceFloat)
+
 	if err != nil {
 		e.logger.Err(err).Msg("fail to get suggest gas price")
 		return
@@ -254,11 +265,15 @@ func (e *ETHScanner) updateGasPrice() {
 	}
 	halfPrevious := big.NewInt(1).Div(e.gasPrice, big.NewInt(2))
 	if gasPrice.Cmp(halfPrevious) < 0 {
-		e.logger.Info().Msgf("new gas price: %s less than half of previous price: %s , ignore", gasPrice, e.gasPrice)
-		return
+		e.logger.Info().Msgf("new gas price: %s less than half of previous price: %s , only half it", gasPrice, e.gasPrice)
+		e.gasPrice = halfPrevious
 	}
 	e.gasPriceChanged = true
 	e.gasPrice = gasPrice
+
+	gasPriceFloat, _ = new(big.Float).SetInt(gasPrice).Float64()
+	e.m.GetGauge(metrics.GasPrice(common.ETHChain)).Set(gasPriceFloat)
+	e.m.GetCounter(metrics.GasPriceChange(common.ETHChain)).Inc()
 }
 
 // get the highest gas price in the last 50 blocks , make sure we can pay enough fee
@@ -615,6 +630,16 @@ func (e *ETHScanner) getTokenMeta(token string) (types.TokenMeta, error) {
 		return types.TokenMeta{}, fmt.Errorf("fail to get token meta: %w", err)
 	}
 	if tokenMeta.IsEmpty() {
+		isWhiteListToken := false
+		for _, item := range e.whitelistTokens {
+			if strings.EqualFold(item.Address, token) {
+				isWhiteListToken = true
+				break
+			}
+		}
+		if !isWhiteListToken {
+			return types.TokenMeta{}, fmt.Errorf("token: %s is not whitelisted", token)
+		}
 		symbol, err := e.getSymbol(token)
 		if err != nil {
 			return types.TokenMeta{}, fmt.Errorf("fail to get symbol: %w", err)
@@ -795,6 +820,11 @@ func (e *ETHScanner) fromTxToTxIn(tx *etypes.Transaction) (*stypes.TxInItem, err
 		return nil, fmt.Errorf("fail to get transaction receipt: %w", err)
 	}
 	if receipt.Status != 1 {
+		// a transaction that is failed
+		// remove the Signer cache , so the tx out item can be retried
+		if e.signerCacheManager != nil {
+			e.signerCacheManager.RemoveSigned(tx.Hash().String())
+		}
 		e.logger.Debug().Msgf("tx(%s) state: %d means failed , ignore", tx.Hash().String(), receipt.Status)
 		return nil, nil
 	}

@@ -143,7 +143,7 @@ func (s YggdrasilManagerV63Suite) TestFund(c *C) {
 		common.NewCoin(common.RuneAsset(), cosmos.NewUint(10000*common.One)),
 		common.NewCoin(common.BNBAsset, cosmos.NewUint(10000*common.One)),
 	}
-	k.SetVault(ctx, vault)
+	c.Assert(k.SetVault(ctx, vault), IsNil)
 	mgr := NewDummyMgr()
 
 	// setup 6 active nodes
@@ -182,7 +182,7 @@ func (s YggdrasilManagerV63Suite) TestNotAvailablePoolAssetWillNotFundYggdrasil(
 		common.NewCoin(common.BNBAsset, cosmos.NewUint(10000*common.One)),
 		common.NewCoin(asset, cosmos.NewUint(10000*common.One)),
 	}
-	k.SetVault(ctx, vault)
+	c.Assert(k.SetVault(ctx, vault), IsNil)
 	mgr := NewDummyMgr()
 
 	// setup 6 active nodes
@@ -227,7 +227,7 @@ func (s YggdrasilManagerV63Suite) TestAbandonYggdrasil(c *C) {
 		common.NewCoin(common.RuneAsset(), cosmos.NewUint(10000*common.One)),
 		common.NewCoin(common.BNBAsset, cosmos.NewUint(10000*common.One)),
 	}
-	mgr.Keeper().SetVault(ctx, vault)
+	c.Assert(mgr.Keeper().SetVault(ctx, vault), IsNil)
 	// add a queue , if we don't have pool , we don't know how to slash
 	bnbPool := NewPool()
 	bnbPool.Asset = common.BNBAsset
@@ -267,7 +267,7 @@ func (s YggdrasilManagerV63Suite) TestAbandonYggdrasil(c *C) {
 	// make sure the node account had been slashed with bond
 	naDisabled, err = mgr.Keeper().GetNodeAccount(ctx, naDisabled.NodeAddress)
 	c.Assert(err, IsNil)
-	c.Assert(naDisabled.Bond.Equal(cosmos.NewUint(999325*common.One)), Equals, true, Commentf("%d != %d", naDisabled.Bond.Uint64(), 999325*common.One))
+	c.Assert(naDisabled.Bond.Equal(cosmos.NewUint(99925014062500)), Equals, true, Commentf("%d != %d", naDisabled.Bond.Uint64(), 99925014062500))
 }
 
 func (s YggdrasilManagerV63Suite) TestAbandonYggdrasilWithDifferentConditions(c *C) {
@@ -277,7 +277,7 @@ func (s YggdrasilManagerV63Suite) TestAbandonYggdrasilWithDifferentConditions(c 
 		common.NewCoin(common.RuneAsset(), cosmos.NewUint(10000*common.One)),
 		common.NewCoin(common.BNBAsset, cosmos.NewUint(10000*common.One)),
 	}
-	mgr.Keeper().SetVault(ctx, vault)
+	c.Assert(mgr.Keeper().SetVault(ctx, vault), IsNil)
 	// add a queue , if we don't have pool , we don't know how to slash
 	bnbPool := NewPool()
 	bnbPool.Asset = common.BNBAsset

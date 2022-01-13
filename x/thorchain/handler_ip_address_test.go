@@ -12,8 +12,8 @@ type HandlerIPAddressSuite struct{}
 
 type TestIPAddresslKeeper struct {
 	keeper.KVStoreDummy
-	na       NodeAccount
-	liteNode NodeAccount
+	na        NodeAccount
+	vaultNode NodeAccount
 }
 
 func (k *TestIPAddresslKeeper) SendFromAccountToModule(ctx cosmos.Context, from cosmos.AccAddress, to string, coins common.Coins) error {
@@ -21,8 +21,8 @@ func (k *TestIPAddresslKeeper) SendFromAccountToModule(ctx cosmos.Context, from 
 }
 
 func (k *TestIPAddresslKeeper) GetNodeAccount(_ cosmos.Context, addr cosmos.AccAddress) (NodeAccount, error) {
-	if k.liteNode.NodeAddress.Equals(addr) {
-		return NodeAccount{Type: NodeLite}, nil
+	if k.vaultNode.NodeAddress.Equals(addr) {
+		return NodeAccount{Type: NodeTypeVault}, nil
 	}
 	return k.na, nil
 }
@@ -49,8 +49,8 @@ func (s *HandlerIPAddressSuite) TestValidate(c *C) {
 	ctx, _ := setupKeeperForTest(c)
 
 	keeper := &TestIPAddresslKeeper{
-		na:       GetRandomValidatorNode(NodeActive),
-		liteNode: GetRandomLiteNode(NodeActive),
+		na:        GetRandomValidatorNode(NodeActive),
+		vaultNode: GetRandomVaultNode(NodeActive),
 	}
 
 	handler := NewIPAddressHandler(NewDummyMgrWithKeeper(keeper))
@@ -64,8 +64,8 @@ func (s *HandlerIPAddressSuite) TestValidate(c *C) {
 	err = handler.validate(ctx, *msg)
 	c.Assert(err, NotNil)
 
-	// lite nodes can't set ip address
-	msg = NewMsgSetIPAddress("8.8.8.8", keeper.liteNode.NodeAddress)
+	// vault nodes can't set ip address
+	msg = NewMsgSetIPAddress("8.8.8.8", keeper.vaultNode.NodeAddress)
 	err = handler.validate(ctx, *msg)
 	c.Assert(err, NotNil)
 }

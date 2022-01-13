@@ -3,9 +3,9 @@
   "chain_contracts": [],
   "errata_tx_voters": [],
   "keygen_blocks": [],
-  "last_chain_heights": {
-    "BNB": "390"
-  },
+  "last_chain_heights": [
+      { "chain": "BNB", "height": "390" }
+  ],
   "last_signed_height": "0",
   "liquidity_providers": [
     {

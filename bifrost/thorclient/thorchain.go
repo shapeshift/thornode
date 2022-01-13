@@ -69,6 +69,9 @@ type ThorchainBridge struct {
 	seqNumber     uint64
 	httpClient    *retryablehttp.Client
 	broadcastLock *sync.RWMutex
+
+	lastBlockHeightCheck     time.Time
+	lastThorchainBlockHeight int64
 }
 
 // NewThorchainBridge create a new instance of ThorchainBridge
@@ -118,7 +121,7 @@ func MakeLegacyCodec() *codec.LegacyAmino {
 func (b *ThorchainBridge) GetContext() client.Context {
 	ctx := client.Context{}
 	ctx = ctx.WithKeyring(b.keys.GetKeybase())
-	ctx = ctx.WithChainID("thorchain")
+	ctx = ctx.WithChainID(string(b.cfg.ChainID))
 	ctx = ctx.WithHomeDir(b.cfg.ChainHomeFolder)
 	ctx = ctx.WithFromName(b.cfg.SignerName)
 	ctx = ctx.WithFromAddress(b.keys.GetSignerInfo().GetAddress())
@@ -517,7 +520,7 @@ func (b *ThorchainBridge) GetThorchainVersion() (semver.Version, error) {
 
 // GetMimir - get mimir settings
 func (b *ThorchainBridge) GetMimir(key string) (int64, error) {
-	buf, s, err := b.getWithPath(MimirEndpoint + "/" + key)
+	buf, s, err := b.getWithPath(MimirEndpoint + "/key/" + key)
 	if err != nil {
 		return 0, fmt.Errorf("fail to get mimir: %w", err)
 	}

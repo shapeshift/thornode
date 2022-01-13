@@ -47,7 +47,7 @@ unit-tests:
     - go tool cover -html=coverage.out -o coverage.html
 
 lint-code:
-  image: golangci/golangci-lint:v1.32.0
+  image: golangci/golangci-lint:v1.42.1
   stage: test
   tags:
     - thorchain
@@ -56,11 +56,13 @@ lint-code:
   before_script:
     - go get mvdan.cc/gofumpt
     - apt update
-    - apt install -y protobuf-compiler
+    - apt install -y protobuf-compiler jq
     - make protob
   script:
     - make lint-handlers
+    - make lint-erc20-token-list
     - golangci-lint run -v --skip-files ".*\\.pb\\.go$"
+    - go run tools/analyze/main.go ./common/... ./constants/... ./x/...
 
 shellcheck:
   image: koalaman/shellcheck-alpine:latest
@@ -99,6 +101,7 @@ build-thornode:
     - testnet
     - chaosnet
     - mainnet
+    - stagenet
     - testnet-multichain
     - chaosnet-multichain
   services:

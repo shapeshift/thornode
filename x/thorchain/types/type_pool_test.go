@@ -21,8 +21,9 @@ func (PoolTestSuite) TestPool(c *C) {
 	p.BalanceRune = cosmos.NewUint(100 * common.One)
 	p.BalanceAsset = cosmos.NewUint(50 * common.One)
 	c.Check(p.AssetValueInRune(cosmos.NewUint(25*common.One)).Equal(cosmos.NewUint(50*common.One)), Equals, true)
+	c.Check(p.AssetValueInRuneWithSlip(cosmos.NewUint(25*common.One)).Equal(cosmos.NewUint(10000000000)), Equals, true, Commentf("%d", p.AssetValueInRuneWithSlip(cosmos.NewUint(25*common.One)).Uint64()))
 	c.Check(p.RuneValueInAsset(cosmos.NewUint(50*common.One)).Equal(cosmos.NewUint(25*common.One)), Equals, true)
-	c.Log(p.String())
+	c.Check(p.RuneValueInAssetWithSlip(cosmos.NewUint(50*common.One)).Equal(cosmos.NewUint(50*common.One)), Equals, true)
 
 	signer := GetRandomBech32Addr()
 	bnbAddress := GetRandomBNBAddress()
@@ -54,7 +55,9 @@ func (PoolTestSuite) TestPool(c *C) {
 	c.Check(p1.Valid(), NotNil)
 	p1.Asset = common.BNBAsset
 	c.Check(p1.AssetValueInRune(cosmos.NewUint(100)).Uint64(), Equals, cosmos.ZeroUint().Uint64())
+	c.Check(p1.AssetValueInRuneWithSlip(cosmos.NewUint(100)).Uint64(), Equals, cosmos.ZeroUint().Uint64())
 	c.Check(p1.RuneValueInAsset(cosmos.NewUint(100)).Uint64(), Equals, cosmos.ZeroUint().Uint64())
+	c.Check(p1.RuneValueInAssetWithSlip(cosmos.NewUint(100)).Uint64(), Equals, cosmos.ZeroUint().Uint64())
 	p1.BalanceRune = cosmos.NewUint(100 * common.One)
 	p1.BalanceAsset = cosmos.NewUint(50 * common.One)
 	c.Check(p1.Valid(), IsNil)
@@ -87,4 +90,33 @@ func (PoolTestSuite) TestPoolStatus(c *C) {
 	buf, err := json.Marshal(ps)
 	c.Check(err, IsNil)
 	c.Check(buf, NotNil)
+}
+
+func (PoolTestSuite) TestPools(c *C) {
+	pools := make(Pools, 0)
+	bnb := NewPool()
+	bnb.Asset = common.BNBAsset
+	btc := NewPool()
+	btc.Asset = common.BTCAsset
+	btc.BalanceRune = cosmos.NewUint(10)
+
+	pools = pools.Set(bnb)
+	pools = pools.Set(btc)
+	c.Assert(pools, HasLen, 2)
+
+	pool, ok := pools.Get(common.BNBAsset)
+	c.Check(ok, Equals, true)
+	c.Check(pool.Asset.Equals(common.BNBAsset), Equals, true)
+
+	pool, ok = pools.Get(common.BTCAsset)
+	c.Check(ok, Equals, true)
+	c.Check(pool.Asset.Equals(common.BTCAsset), Equals, true)
+	c.Check(pool.BalanceRune.Uint64(), Equals, uint64(10))
+
+	pool.BalanceRune = cosmos.NewUint(20)
+	pools = pools.Set(pool)
+	pool, ok = pools.Get(common.BTCAsset)
+	c.Check(ok, Equals, true)
+	c.Check(pool.Asset.Equals(common.BTCAsset), Equals, true)
+	c.Check(pool.BalanceRune.Uint64(), Equals, uint64(20))
 }

@@ -2,6 +2,7 @@ package ethereum
 
 import (
 	"context"
+	_ "embed"
 	"errors"
 	"fmt"
 	"math/big"
@@ -19,6 +20,7 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/signercache"
 
 	tssp "gitlab.com/thorchain/tss/go-tss/tss"
 
@@ -61,6 +63,7 @@ type Client struct {
 	wg                  *sync.WaitGroup
 	stopchan            chan struct{}
 	globalSolvencyQueue chan stypes.Solvency
+	signerCacheManager  *signercache.CacheManager
 }
 
 // NewClient create new instance of Ethereum client
@@ -139,6 +142,7 @@ func NewClient(thorKeys *thorclient.Keys,
 		wg:           &sync.WaitGroup{},
 		stopchan:     make(chan struct{}),
 	}
+
 	c.logger.Info().Msgf("current chain id: %d", chainID.Uint64())
 	if chainID.Uint64() == 0 {
 		return nil, fmt.Errorf("chain id is: %d , invalid", chainID.Uint64())
@@ -151,8 +155,13 @@ func NewClient(thorKeys *thorclient.Keys,
 	if err != nil {
 		return c, fmt.Errorf("fail to create blockscanner storage: %w", err)
 	}
+	signerCacheManager, err := signercache.NewSignerCacheManager(storage.GetInternalDb())
+	if err != nil {
+		return nil, fmt.Errorf("fail to create signer cache manager")
+	}
 
-	c.ethScanner, err = NewETHScanner(c.cfg.BlockScanner, storage, chainID, c.client, c.bridge, m, pubkeyMgr, c.reportSolvency)
+	c.signerCacheManager = signerCacheManager
+	c.ethScanner, err = NewETHScanner(c.cfg.BlockScanner, storage, chainID, c.client, c.bridge, m, pubkeyMgr, c.reportSolvency, signerCacheManager)
 	if err != nil {
 		return c, fmt.Errorf("fail to create eth block scanner: %w", err)
 	}
@@ -345,6 +354,11 @@ func (c *Client) SignTx(tx stypes.TxOutItem, height int64) ([]byte, error) {
 			return nil, nil
 		}
 	}
+	if c.signerCacheManager.HasSigned(tx.CacheHash()) {
+		c.logger.Info().Msgf("transaction(%+v), signed before , ignore", tx)
+		return nil, nil
+	}
+
 	if tx.ToAddress.IsEmpty() {
 		return nil, fmt.Errorf("to address is empty")
 	}
@@ -654,6 +668,9 @@ func (c *Client) BroadcastTx(txOutItem stypes.TxOutItem, hexTx []byte) (string, 
 	if err := c.AddSignedTxItem(txID, blockHeight, txOutItem.VaultPubKey.String()); err != nil {
 		c.logger.Err(err).Msgf("fail to add signed tx item,hash:%s", txID)
 	}
+	if err := c.signerCacheManager.SetSigned(txOutItem.CacheHash(), txID); err != nil {
+		c.logger.Err(err).Msgf("fail to mark tx out item (%+v) as signed", txOutItem)
+	}
 	return txID, nil
 }
 
@@ -811,6 +828,20 @@ func (c *Client) getAsgardAddress() ([]common.Address, error) {
 // OnObservedTxIn gets called from observer when we have a valid observation
 func (c *Client) OnObservedTxIn(txIn stypes.TxInItem, blockHeight int64) {
 	c.ethScanner.onObservedTxIn(txIn, blockHeight)
+	m, err := mem.ParseMemo(txIn.Memo)
+	if err != nil {
+		c.logger.Err(err).Msgf("fail to parse memo: %s", txIn.Memo)
+		return
+	}
+	if !m.IsOutbound() {
+		return
+	}
+	if m.GetTxID().IsEmpty() {
+		return
+	}
+	if err := c.signerCacheManager.SetSigned(txIn.CacheHash(c.GetChain(), m.GetTxID().String()), txIn.Tx); err != nil {
+		c.logger.Err(err).Msg("fail to update signer cache")
+	}
 }
 
 func (c *Client) reportSolvency(ethBlockHeight int64) error {
