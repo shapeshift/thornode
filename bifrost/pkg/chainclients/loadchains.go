@@ -84,7 +84,6 @@ func LoadChains(thorKeys *thorclient.Keys,
 				logger.Fatal().Err(err).Str("chain_id", chain.ChainID.String()).Msg("fail to load chain")
 				continue
 			}
-			pubKeyValidator.RegisterCallback(terra.RegisterPublicKey)
 			chains[common.TERRAChain] = terra
 		}
 	}
