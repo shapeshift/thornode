@@ -13,13 +13,13 @@ import (
 
 var (
 	EmptyChain = Chain("")
-	GAIAChain  = Chain("GAIA")
 	BNBChain   = Chain("BNB")
 	ETHChain   = Chain("ETH")
 	BTCChain   = Chain("BTC")
 	LTCChain   = Chain("LTC")
 	BCHChain   = Chain("BCH")
 	DOGEChain  = Chain("DOGE")
+	TERRAChain = Chain("TERRA")
 	THORChain  = Chain("THOR")
 
 	SigningAlgoSecp256k1 = SigninAlgo("secp256k1")
@@ -111,8 +111,8 @@ func (c Chain) GetGasAsset() Asset {
 		return DOGEAsset
 	case ETHChain:
 		return ETHAsset
-	case GAIAChain:
-		return ATOMAsset
+	case TERRAChain:
+		return LunaAsset
 	default:
 		return EmptyAsset
 	}

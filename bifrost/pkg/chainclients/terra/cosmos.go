@@ -1,20 +1,20 @@
-package cosmos
+package terra
 
 import (
+	"context"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
-	"net/http"
-	"net/url"
 	"strings"
 	"time"
 
 	cryptocodec "github.com/cosmos/cosmos-sdk/crypto/codec"
 	"github.com/cosmos/cosmos-sdk/types"
+	txtypes "github.com/cosmos/cosmos-sdk/types/tx"
 	"github.com/cosmos/cosmos-sdk/x/auth/legacy/legacytx"
+	atypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	btypes "github.com/cosmos/cosmos-sdk/x/bank/types"
+	grpc "google.golang.org/grpc"
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -37,8 +37,7 @@ type Cosmos struct {
 	logger              zerolog.Logger
 	cfg                 config.ChainConfiguration
 	chainID             string
-	isTestNet           bool
-	client              *http.Client
+	grpcConn            *grpc.ClientConn
 	accts               *CosmosMetaDataStore
 	tssKeyManager       *tss.KeySign
 	localKeyManager     *keyManager
@@ -90,16 +89,10 @@ func NewCosmos(
 		logger:          log.With().Str("module", "cosmos").Logger(),
 		cfg:             cfg,
 		accts:           NewCosmosMetaDataStore(),
-		client:          &http.Client{},
 		tssKeyManager:   tssKm,
 		localKeyManager: localKm,
 		thorchainBridge: thorchainBridge,
 	}
-
-	// if err := b.checkIsTestNet(); err != nil {
-	// 	b.logger.Error().Err(err).Msg("fail to check if is testnet")
-	// 	return b, err
-	// }
 
 	var path string // if not set later, will in memory storage
 	if len(b.cfg.BlockScanner.DBPath) > 0 {
@@ -113,7 +106,6 @@ func NewCosmos(
 	b.cosmosScanner, err = NewCosmosBlockScanner(
 		b.cfg.BlockScanner,
 		b.storage,
-		b.isTestNet,
 		b.thorchainBridge,
 		m,
 		b.reportSolvency,
@@ -153,7 +145,7 @@ func (b *Cosmos) IsBlockScannerHealthy() bool {
 }
 
 func (b *Cosmos) GetChain() common.Chain {
-	return common.GAIAChain
+	return common.TERRAChain
 }
 
 func (b *Cosmos) GetHeight() (int64, error) {
@@ -162,7 +154,7 @@ func (b *Cosmos) GetHeight() (int64, error) {
 
 // GetAddress return current signer address, it will be bech32 encoded address
 func (b *Cosmos) GetAddress(poolPubKey common.PubKey) string {
-	addr, err := poolPubKey.GetAddress(common.GAIAChain)
+	addr, err := poolPubKey.GetAddress(common.TERRAChain)
 	if err != nil {
 		b.logger.Error().Err(err).Str("pool_pub_key", poolPubKey.String()).Msg("fail to get pool address")
 		return ""
@@ -259,64 +251,56 @@ func (b *Cosmos) GetAccount(pkey common.PubKey) (common.Account, error) {
 }
 
 func (b *Cosmos) GetAccountByAddress(address string) (common.Account, error) {
-	u, err := url.Parse(b.cfg.RPCHost)
-	if err != nil {
-		log.Fatal().Msgf("Error parsing rpc (%s): %s", b.cfg.RPCHost, err)
-		return common.Account{}, err
+	bankClient := btypes.NewQueryClient(b.grpcConn)
+	bankReq := &btypes.QueryAllBalancesRequest{
+		Address: address,
 	}
-	u.Path = "/abci_query"
-	v := u.Query()
-	v.Set("path", fmt.Sprintf("\"/account/%s\"", address))
-	u.RawQuery = v.Encode()
-
-	resp, err := http.Get(u.String())
-	if err != nil {
-		return common.Account{}, err
-	}
-	defer func() {
-		if err := resp.Body.Close(); err != nil {
-			b.logger.Error().Err(err).Msg("fail to close response body")
-		}
-	}()
-
-	type queryResult struct {
-		Jsonrpc string `json:"jsonrpc"`
-		ID      string `json:"id"`
-		Result  struct {
-			Response struct {
-				Key         string `json:"key"`
-				Value       string `json:"value"`
-				BlockHeight string `json:"height"`
-			} `json:"response"`
-		} `json:"result"`
-	}
-
-	var result queryResult
-	body, err := ioutil.ReadAll(resp.Body)
+	balances, err := bankClient.AllBalances(context.Background(), bankReq)
 	if err != nil {
 		return common.Account{}, err
 	}
 
-	err = json.Unmarshal(body, &result)
+	c := atypes.NewQueryClient(b.grpcConn)
+	authReq := &atypes.QueryAccountRequest{
+		Address: address,
+	}
+	acc, err := c.Account(context.Background(), authReq)
+	log.Info().
+		Str("balances", fmt.Sprintf("%+v", balances)).
+		Str("address", address).
+		Str("account", fmt.Sprintf("%+v", acc.Account)).
+		Msg("GetAccountByAddress")
+
 	if err != nil {
 		return common.Account{}, err
 	}
 
-	// account := common.NewAccount(acc.BaseAccount.Sequence, acc.BaseAccount.AccountNumber, coins, acc.Flags > 0)
 	return common.Account{}, nil
 }
 
 // BroadcastTx is to broadcast the tx to cosmos chain
 func (b *Cosmos) BroadcastTx(tx stypes.TxOutItem, hexTx []byte) (string, error) {
-	return "txhash", nil
+	txClient := txtypes.NewServiceClient(b.grpcConn)
+	req := &txtypes.BroadcastTxRequest{
+		TxBytes: hexTx,
+		Mode:    txtypes.BroadcastMode_BROADCAST_MODE_SYNC,
+	}
+
+	res, err := txClient.BroadcastTx(context.Background(), req)
+	if err != nil {
+		log.Error().Err(err).Msg("unable to broadcast tx")
+		return "", err
+	}
+
+	return res.TxResponse.TxHash, nil
 }
 
-// ConfirmationCountReady cosmos chain has almost instant finality , so doesn't need to wait for confirmation
+// ConfirmationCountReady cosmos chain has almost instant finality, so doesn't need to wait for confirmation
 func (b *Cosmos) ConfirmationCountReady(txIn stypes.TxIn) bool {
 	return true
 }
 
-// GetConfirmationCount determinate how many confirmation it required
+// GetConfirmationCount determine how many confirmations are required
 func (b *Cosmos) GetConfirmationCount(txIn stypes.TxIn) int64 {
 	return 0
 }
@@ -337,7 +321,7 @@ func (b *Cosmos) reportSolvency(blockHeight int64) error {
 		select {
 		case b.globalSolvencyQueue <- stypes.Solvency{
 			Height: blockHeight,
-			Chain:  common.GAIAChain,
+			Chain:  common.TERRAChain,
 			PubKey: asgard.PubKey,
 			Coins:  acct.Coins,
 		}:

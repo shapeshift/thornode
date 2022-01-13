@@ -1,4 +1,4 @@
-package cosmos
+package terra
 
 import (
 	"encoding/hex"
