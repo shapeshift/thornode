@@ -15,6 +15,8 @@ const (
 	MainNet
 	// MockNet network for main net
 	MockNet
+	// Stagenet network for stage net
+	StageNet
 )
 
 // GetCurrentChainNetwork determinate what kind of network currently it is working with
@@ -24,6 +26,9 @@ func GetCurrentChainNetwork() ChainNetwork {
 	}
 	if strings.EqualFold(os.Getenv("NET"), "testnet") {
 		return TestNet
+	}
+	if strings.EqualFold(os.Getenv("NET"), "stagenet") {
+		return StageNet
 	}
 	return MainNet
 }
@@ -36,5 +41,6 @@ func (net ChainNetwork) SoftEquals(net2 ChainNetwork) bool {
 	if net != MainNet && net2 != MainNet {
 		return true
 	}
+
 	return false
 }

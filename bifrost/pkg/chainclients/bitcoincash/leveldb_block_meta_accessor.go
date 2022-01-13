@@ -147,6 +147,7 @@ func (t *LevelDBBlockMetaAccessor) GetTransactionFee() (float64, int32, error) {
 }
 
 // TryAddToMemPoolCache trying to add the given hash to mempool hash
+// return value bool indicated whether we added value to cache or not
 func (t *LevelDBBlockMetaAccessor) TryAddToMemPoolCache(hash string) (bool, error) {
 	key := t.getMemPoolHashKey(hash)
 	exist, err := t.db.Has([]byte(key), nil)

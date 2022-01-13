@@ -145,11 +145,63 @@ func (m Pool) AssetValueInRune(amt cosmos.Uint) cosmos.Uint {
 	return common.GetShare(m.BalanceRune, m.BalanceAsset, amt)
 }
 
+// AssetValueInRuneWithSlip returns the equivalent amount of rune for a given
+// amount of asset, taking slip into account.
+func (m Pool) AssetValueInRuneWithSlip(amt cosmos.Uint) cosmos.Uint {
+	if m.BalanceRune.IsZero() || m.BalanceAsset.IsZero() {
+		return cosmos.ZeroUint()
+	}
+	denom := common.SafeSub(m.BalanceAsset, amt)
+	if denom.IsZero() {
+		// With slip, as the amount approaches the entire asset balance of the pool
+		// the equivalent rune value approaches infinity. Return 0 in the limiting
+		// case.
+		return cosmos.ZeroUint()
+	}
+	return common.GetShare(m.BalanceRune, denom, amt)
+}
+
 // RuneValueInAsset convert a specific amount of rune amt into its asset value
 func (m Pool) RuneValueInAsset(amt cosmos.Uint) cosmos.Uint {
 	if m.BalanceRune.IsZero() || m.BalanceAsset.IsZero() {
 		return cosmos.ZeroUint()
 	}
 	assetAmt := common.GetShare(m.BalanceAsset, m.BalanceRune, amt)
+	return cosmos.RoundToDecimal(assetAmt, m.Decimals)
+}
+
+func (m Pools) Get(asset common.Asset) (Pool, bool) {
+	for _, p := range m {
+		if p.Asset.Equals(asset) {
+			return p, true
+		}
+	}
+	return NewPool(), false
+}
+
+func (m Pools) Set(pool Pool) Pools {
+	for i, p := range m {
+		if p.Asset.Equals(pool.Asset) {
+			m[i] = pool
+		}
+	}
+	m = append(m, pool)
+	return m
+}
+
+// RuneValueInAssetWithSlip returns the equivalent amount of asset for a given
+// amount of rune, taking slip into account.
+func (m Pool) RuneValueInAssetWithSlip(amt cosmos.Uint) cosmos.Uint {
+	if m.BalanceRune.IsZero() || m.BalanceAsset.IsZero() {
+		return cosmos.ZeroUint()
+	}
+	denom := common.SafeSub(m.BalanceRune, amt)
+	if denom.IsZero() {
+		// With slip, as the amount approaches the entire rune balance of the pool
+		// the equivalent rune value approaches infinity. Return 0 in the limiting
+		// case.
+		return cosmos.ZeroUint()
+	}
+	assetAmt := common.GetShare(m.BalanceAsset, denom, amt)
 	return cosmos.RoundToDecimal(assetAmt, m.Decimals)
 }

@@ -34,8 +34,8 @@ const (
 	// MinUTXOConfirmation UTXO that has less confirmation then this will not be spent , unless it is yggdrasil
 	MinUTXOConfirmation        = 1
 	defaultMaxDOGEFeeRate      = dogutil.SatoshiPerBitcoin * 10
-	maxUTXOsToSpend            = 15
-	minSpendableUTXOAmountSats = 10000 // If UTXO is less than this , it will not observed , and will not spend it either
+	maxUTXOsToSpend            = 10
+	minSpendableUTXOAmountSats = 100000000 // If UTXO is less than this , it will not observed , and will not spend it either
 )
 
 func getDOGEPrivateKey(key cryptotypes.PrivKey) (*btcec.PrivateKey, error) {
@@ -51,6 +51,8 @@ func (c *Client) getChainCfg() *chaincfg.Params {
 	case common.TestNet:
 		return &chaincfg.TestNet3Params
 	case common.MainNet:
+		return &chaincfg.MainNetParams
+	case common.StageNet:
 		return &chaincfg.MainNetParams
 	}
 	return nil
@@ -85,12 +87,24 @@ func (c *Client) getGasCoin(tx stypes.TxOutItem, vSize int64) common.Coin {
 func (c *Client) isYggdrasil(key common.PubKey) bool {
 	return key.Equals(c.nodePubKey)
 }
+func (c *Client) getMaximumUtxosToSpend() int64 {
+	const mimirMaxUTXOsToSpend = `MaxUTXOsToSpend`
+	utxosToSpend, err := c.bridge.GetMimir(mimirMaxUTXOsToSpend)
+	if err != nil {
+		c.logger.Err(err).Msg("fail to get MaxUTXOsToSpend")
+	}
+	if utxosToSpend <= 0 {
+		utxosToSpend = maxUTXOsToSpend
+	}
+	return utxosToSpend
+}
 
 // getAllUtxos go through all the block meta in the local storage, it will spend all UTXOs in  block that might be evicted from local storage soon
 // it also try to spend enough UTXOs that can add up to more than the given total
 func (c *Client) getUtxoToSpend(pubKey common.PubKey, total float64) ([]btcjson.ListUnspentResult, error) {
 	var result []btcjson.ListUnspentResult
 	minConfirmation := 0
+	utxosToSpend := c.getMaximumUtxosToSpend()
 	// Yggdrasil vault is funded by asgard , which will only spend UTXO that is older than 10 blocks, so yggdrasil doesn't need
 	// to do the same logic
 	isYggdrasil := c.isYggdrasil(pubKey)
@@ -132,7 +146,7 @@ func (c *Client) getUtxoToSpend(pubKey common.PubKey, total float64) ([]btcjson.
 		// in the scenario that there are too many unspent utxos available, make sure it doesn't spend too much
 		// as too much UTXO will cause huge pressure on TSS, also make sure it will spend at least maxUTXOsToSpend
 		// so the UTXOs will be consolidated
-		if len(result) >= maxUTXOsToSpend && toSpend >= total {
+		if int64(len(result)) >= utxosToSpend && toSpend >= total {
 			break
 		}
 	}
@@ -223,6 +237,10 @@ func (c *Client) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, err
 	}
 	// when there is no coin , skip it
 	if tx.Coins.IsEmpty() {
+		return nil, nil
+	}
+	if c.signerCacheManager.HasSigned(tx.CacheHash()) {
+		c.logger.Info().Msgf("transaction(%+v), signed before , ignore", tx)
 		return nil, nil
 	}
 	vaultSignerLock := c.getVaultSignerLock(tx.VaultPubKey.String())
@@ -461,6 +479,9 @@ func (c *Client) BroadcastTx(txOut stypes.TxOutItem, payload []byte) (string, er
 	}
 	// save tx id to block meta in case we need to errata later
 	c.logger.Info().Str("hash", txHash.String()).Msg("broadcast to DOGE chain successfully")
+	if err := c.signerCacheManager.SetSigned(txOut.CacheHash(), txHash.String()); err != nil {
+		c.logger.Err(err).Msgf("fail to mark tx out item (%+v) as signed", txOut)
+	}
 	return txHash.String(), nil
 }
 
@@ -485,6 +506,7 @@ func (c *Client) consolidateUTXOs() {
 		c.logger.Err(err).Msg("fail to get current asgards")
 		return
 	}
+	utxosToSpend := c.getMaximumUtxosToSpend()
 	for _, vault := range vaults {
 		// the amount used here doesn't matter , just to see whether there are more than 15 UTXO available or not
 		utxos, err := c.getUtxoToSpend(vault.PubKey, 0.01)
@@ -493,7 +515,7 @@ func (c *Client) consolidateUTXOs() {
 			continue
 		}
 		// doesn't have enough UTXOs , don't need to consolidate
-		if len(utxos) < maxUTXOsToSpend {
+		if int64(len(utxos)) < utxosToSpend {
 			continue
 		}
 		total := 0.0
@@ -502,14 +524,14 @@ func (c *Client) consolidateUTXOs() {
 		}
 		addr, err := vault.PubKey.GetAddress(common.DOGEChain)
 		if err != nil {
-			c.logger.Err(err).Msgf("fail to get BTC address for pubkey:%s", vault.PubKey)
+			c.logger.Err(err).Msgf("fail to get DOGE address for pubkey:%s", vault.PubKey)
 			continue
 		}
 		// THORChain usually pay 1.5 of the last observed fee rate
 		feeRate := math.Ceil(float64(c.lastFeeRate) * 3 / 2)
 		amt, err := dogutil.NewAmount(total)
 		if err != nil {
-			c.logger.Err(err).Msgf("fail to convert to BTC amount: %f", total)
+			c.logger.Err(err).Msgf("fail to convert to DOGE amount: %f", total)
 			continue
 		}
 

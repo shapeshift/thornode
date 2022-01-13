@@ -225,8 +225,8 @@ func (HandlerSuite) TestIsSignedByActiveNodeAccounts(c *C) {
 	c.Assert(mgr.Keeper().SetNodeAccount(ctx, nodeAccount1), IsNil)
 	c.Check(isSignedByActiveNodeAccounts(ctx, mgr, []cosmos.AccAddress{nodeAccount1.NodeAddress}), Equals, true)
 
-	// Update node to be a lite node, check should fail
-	nodeAccount1.Type = NodeLite
+	// Update node to be a vault node, check should fail
+	nodeAccount1.Type = NodeTypeVault
 	c.Assert(mgr.Keeper().SetNodeAccount(ctx, nodeAccount1), IsNil)
 	c.Check(isSignedByActiveNodeAccounts(ctx, mgr, []cosmos.AccAddress{nodeAccount1.NodeAddress}), Equals, false)
 }

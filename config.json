@@ -1,0 +1,31 @@
+{
+    "thorchain": {
+        "chain_id": "thorchain",
+        "chain_host": "localhost:1317",
+        "chain_rpc": "localhost:27147",
+        "signer_name": "thorchain"
+    },
+    "metrics": {
+        "enabled": true
+    },
+    "chains": [
+      {
+        "chain_id": "TERRA",
+        "rpc_host": "localhost:9090",
+        "block_scanner": {
+          "rpc_host": "localhost:9090",
+          "enforce_block_height": false,
+          "block_scan_processors": 1,
+          "block_height_discover_back_off": "0.3s",
+          "block_retry_interval": "10s",
+          "chain_id": "TERRA",
+          "http_request_timeout": "30s",
+          "http_request_read_timeout": "30s",
+          "http_request_write_timeout": "30s",
+          "max_http_request_retry": 10,
+          "start_block_height": 5623503,
+          "db_path": "data/observer"
+        }
+      }
+    ]
+}

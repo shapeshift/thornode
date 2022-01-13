@@ -36,7 +36,9 @@ func (s *HandlerMimirSuite) TestHandle(c *C) {
 
 	handler := NewMimirHandler(NewDummyMgrWithKeeper(keeper))
 
-	msg := NewMsgMimir("foo", 55, GetRandomBech32Addr())
+	addr, err := cosmos.AccAddressFromBech32(ADMINS[0])
+	c.Assert(err, IsNil)
+	msg := NewMsgMimir("foo", 55, addr)
 	sdkErr := handler.handle(ctx, *msg)
 	c.Assert(sdkErr, IsNil)
 	val, err := keeper.GetMimir(ctx, "foo")
@@ -48,12 +50,11 @@ func (s *HandlerMimirSuite) TestHandle(c *C) {
 	c.Check(err, NotNil)
 	c.Check(result, IsNil)
 
+	msg.Signer = GetRandomBech32Addr()
 	result, err = handler.Run(ctx, msg)
 	c.Assert(err, NotNil)
 	c.Assert(result, IsNil)
 
-	addr, err := cosmos.AccAddressFromBech32(ADMINS[0])
-	c.Check(err, IsNil)
 	msg1 := NewMsgMimir("hello", 1, addr)
 	result, err = handler.Run(ctx, msg1)
 	c.Check(err, IsNil)

@@ -1,10 +1,15 @@
 package thorchain
 
 import (
+	"context"
+
+	"github.com/armon/go-metrics"
 	"github.com/blang/semver"
+	"github.com/cosmos/cosmos-sdk/telemetry"
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/constants"
 )
 
 // MigrateHandler is a handler to process MsgMigrate
@@ -40,10 +45,6 @@ func (h MigrateHandler) validate(ctx cosmos.Context, msg MsgMigrate) error {
 }
 
 func (h MigrateHandler) validateV1(ctx cosmos.Context, msg MsgMigrate) error {
-	return h.validateCurrent(ctx, msg)
-}
-
-func (h MigrateHandler) validateCurrent(ctx cosmos.Context, msg MsgMigrate) error {
 	if err := msg.ValidateBasic(); nil != err {
 		return err
 	}
@@ -61,14 +62,16 @@ func (h MigrateHandler) handle(ctx cosmos.Context, msg MsgMigrate) (*cosmos.Resu
 
 func (h MigrateHandler) slashV1(ctx cosmos.Context, tx ObservedTx) error {
 	toSlash := tx.Tx.Coins.Adds(tx.Tx.Gas.ToCoins())
+
+	ctx = ctx.WithContext(context.WithValue(ctx.Context(), constants.CtxMetricLabels, []metrics.Label{
+		telemetry.NewLabel("reason", "failed_migration"),
+		telemetry.NewLabel("chain", string(tx.Tx.Chain)),
+	}))
+
 	return h.mgr.Slasher().SlashVault(ctx, tx.ObservedPubKey, toSlash, h.mgr)
 }
 
 func (h MigrateHandler) handleV1(ctx cosmos.Context, msg MsgMigrate) (*cosmos.Result, error) {
-	return h.handleCurrent(ctx, msg)
-}
-
-func (h MigrateHandler) handleCurrent(ctx cosmos.Context, msg MsgMigrate) (*cosmos.Result, error) {
 	// update txOut record with our TxID that sent funds out of the pool
 	txOut, err := h.mgr.Keeper().GetTxOut(ctx, msg.BlockHeight)
 	if err != nil {

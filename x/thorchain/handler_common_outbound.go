@@ -1,7 +1,11 @@
 package thorchain
 
 import (
+	"context"
+
+	"github.com/armon/go-metrics"
 	"github.com/blang/semver"
+	"github.com/cosmos/cosmos-sdk/telemetry"
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
@@ -25,6 +29,12 @@ func NewCommonOutboundTxHandler(mgr Manager) CommonOutboundTxHandler {
 
 func (h CommonOutboundTxHandler) slash(ctx cosmos.Context, tx ObservedTx) error {
 	toSlash := tx.Tx.Coins.Adds(tx.Tx.Gas.ToCoins())
+
+	ctx = ctx.WithContext(context.WithValue(ctx.Context(), constants.CtxMetricLabels, []metrics.Label{
+		telemetry.NewLabel("reason", "failed_outbound"),
+		telemetry.NewLabel("chain", string(tx.Tx.Chain)),
+	}))
+
 	return h.mgr.Slasher().SlashVault(ctx, tx.ObservedPubKey, toSlash, h.mgr)
 }
 
@@ -43,6 +53,7 @@ func (h CommonOutboundTxHandler) handle(ctx cosmos.Context, tx ObservedTx, inTxI
 
 }
 
+<<<<<<< HEAD
 func (h CommonOutboundTxHandler) handleV1(ctx cosmos.Context, tx ObservedTx, inTxID common.TxID) (*cosmos.Result, error) {
 	// note: Outbound tx usually it is related to an inbound tx except migration
 	// thus here try to get the ObservedTxInVoter,  and set the tx out hash accordingly
@@ -391,6 +402,9 @@ func (h CommonOutboundTxHandler) handleV69(ctx cosmos.Context, tx ObservedTx, in
 }
 
 func (h CommonOutboundTxHandler) handleCurrent(ctx cosmos.Context, tx ObservedTx, inTxID common.TxID) (*cosmos.Result, error) {
+=======
+func (h CommonOutboundTxHandler) handleV69(ctx cosmos.Context, tx ObservedTx, inTxID common.TxID) (*cosmos.Result, error) {
+>>>>>>> develop
 	// note: Outbound tx usually it is related to an inbound tx except migration
 	// thus here try to get the ObservedTxInVoter,  and set the tx out hash accordingly
 	voter, err := h.mgr.Keeper().GetObservedTxInVoter(ctx, inTxID)

@@ -21,8 +21,9 @@ enum NodeStatus {
 
 enum NodeType {
   option (gogoproto.goproto_enum_stringer) = true;
-  Validator = 0;
-  Lite =  1;
+  TypeValidator = 0;
+  TypeVault =  1;
+  TypeUnknown = 2;
 }
 
 message NodeAccount {

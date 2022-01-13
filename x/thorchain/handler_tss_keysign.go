@@ -2,8 +2,11 @@ package thorchain
 
 import (
 	"fmt"
+	"strings"
 
+	"github.com/armon/go-metrics"
 	"github.com/blang/semver"
+	"github.com/cosmos/cosmos-sdk/telemetry"
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
@@ -43,21 +46,26 @@ func (h TssKeysignHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Result
 
 func (h TssKeysignHandler) validate(ctx cosmos.Context, msg MsgTssKeysignFail) error {
 	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.1.0")) {
+	if version.GTE(semver.MustParse("0.70.0")) {
+		return h.validateV70(ctx, msg)
+	} else if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, msg)
 	}
 	return errBadVersion
 }
 
-func (h TssKeysignHandler) validateV1(ctx cosmos.Context, msg MsgTssKeysignFail) error {
-	return h.validateCurrent(ctx, msg)
-}
-
-func (h TssKeysignHandler) validateCurrent(ctx cosmos.Context, msg MsgTssKeysignFail) error {
+func (h TssKeysignHandler) validateV70(ctx cosmos.Context, msg MsgTssKeysignFail) error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
-
+	m, err := NewMsgTssKeysignFail(msg.Height, msg.Blame, msg.Memo, msg.Coins, msg.Signer, msg.PubKey)
+	if err != nil {
+		ctx.Logger().Error("fail to reconstruct keysign fail msg", "error", err)
+		return err
+	}
+	if !strings.EqualFold(m.ID, msg.ID) {
+		return cosmos.ErrUnknownRequest("invalid keysign fail message")
+	}
 	if !isSignedByActiveNodeAccounts(ctx, h.mgr, msg.GetSigners()) {
 		shouldAccept := false
 		vaults, err := h.mgr.Keeper().GetAsgardVaultsByStatus(ctx, RetiringVault)
@@ -111,10 +119,6 @@ func (h TssKeysignHandler) handle(ctx cosmos.Context, msg MsgTssKeysignFail) (*c
 }
 
 func (h TssKeysignHandler) handleV1(ctx cosmos.Context, msg MsgTssKeysignFail) (*cosmos.Result, error) {
-	return h.handleCurrent(ctx, msg)
-}
-
-func (h TssKeysignHandler) handleCurrent(ctx cosmos.Context, msg MsgTssKeysignFail) (*cosmos.Result, error) {
 	voter, err := h.mgr.Keeper().GetTssKeysignFailVoter(ctx, msg.ID)
 	if err != nil {
 		return nil, err
@@ -171,6 +175,15 @@ func (h TssKeysignHandler) handleCurrent(ctx cosmos.Context, msg MsgTssKeysignFa
 		}
 		if err := h.mgr.Keeper().IncNodeAccountSlashPoints(ctx, na.NodeAddress, slashPoints); err != nil {
 			ctx.Logger().Error("fail to inc slash points", "error", err)
+		} else {
+			telemetry.IncrCounterWithLabels(
+				[]string{"thornode", "point_slash"},
+				float32(slashPoints),
+				[]metrics.Label{
+					telemetry.NewLabel("address", na.NodeAddress.String()),
+					telemetry.NewLabel("reason", "failed_keysign"),
+				},
+			)
 		}
 
 		if err := h.mgr.EventMgr().EmitEvent(ctx, NewEventSlashPoint(na.NodeAddress, slashPoints, "fail keysign")); err != nil {

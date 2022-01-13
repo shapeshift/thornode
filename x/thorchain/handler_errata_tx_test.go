@@ -705,7 +705,7 @@ func (*HandlerErrataTxSuite) TestProcessErrortaOutboundTx_EnsureMigrateTxWillSet
 	errataVoter.Sign(node2.NodeAddress)
 	errataVoter.Sign(node3.NodeAddress)
 	helper.Keeper.SetErrataTxVoter(ctx, errataVoter)
-	result, err = handler.handleCurrent(ctx, *internalMigrationTx)
+	result, err = handler.handle(ctx, *internalMigrationTx)
 	c.Assert(result, NotNil)
 	c.Assert(err, IsNil)
 	v, err = helper.Keeper.GetVault(ctx, retiredPubKey)

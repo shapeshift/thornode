@@ -23,8 +23,9 @@ const (
 	NodeUnknown = types.NodeStatus_Unknown
 
 	// Node type
-	NodeValidator = types.NodeType_Validator
-	NodeLite      = types.NodeType_Lite
+	NodeTypeUnknown   = types.NodeType_TypeUnknown
+	NodeTypeValidator = types.NodeType_TypeValidator
+	NodeTypeVault     = types.NodeType_TypeVault
 
 	// Bond type
 	AsgardKeygen = types.KeygenType_AsgardKeygen
@@ -50,7 +51,7 @@ var (
 	NewTHORName                = types.NewTHORName
 	GetRandomTx                = types.GetRandomTx
 	GetRandomValidatorNode     = types.GetRandomValidatorNode
-	GetRandomLiteNode          = types.GetRandomLiteNode
+	GetRandomVaultNode         = types.GetRandomVaultNode
 	GetRandomBNBAddress        = types.GetRandomBNBAddress
 	GetRandomBTCAddress        = types.GetRandomBTCAddress
 	GetRandomBCHAddress        = types.GetRandomBCHAddress
@@ -60,6 +61,7 @@ var (
 	GetRandomBech32Addr        = types.GetRandomBech32Addr
 	GetRandomPubKey            = types.GetRandomPubKey
 	GetRandomPubKeySet         = types.GetRandomPubKeySet
+	GetCurrentVersion          = types.GetCurrentVersion
 	NewObservedNetworkFeeVoter = types.NewObservedNetworkFeeVoter
 	NewNetworkFee              = types.NewNetworkFee
 	NewTssKeysignFailVoter     = types.NewTssKeysignFailVoter
@@ -100,6 +102,8 @@ type (
 	THORName                 = types.THORName
 	THORNameAlias            = types.THORNameAlias
 	SolvencyVoter            = types.SolvencyVoter
+	NodeMimir                = types.NodeMimir
+	NodeMimirs               = types.NodeMimirs
 
 	ProtoInt64        = types.ProtoInt64
 	ProtoUint64       = types.ProtoUint64

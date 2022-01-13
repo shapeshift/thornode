@@ -42,8 +42,9 @@ const (
 	NodeUnknown     = types.NodeStatus_Unknown
 
 	// Node type
-	NodeValidator = types.NodeType_Validator
-	NodeLite      = types.NodeType_Lite
+	NodeTypeUnknown   = types.NodeType_TypeUnknown
+	NodeTypeValidator = types.NodeType_TypeValidator
+	NodeTypeVault     = types.NodeType_TypeVault
 
 	// Bond type
 	BondPaid     = types.BondType_bond_paid
@@ -151,7 +152,7 @@ var (
 	GetRandomTx                    = types.GetRandomTx
 	GetRandomObservedTx            = types.GetRandomObservedTx
 	GetRandomValidatorNode         = types.GetRandomValidatorNode
-	GetRandomLiteNode              = types.GetRandomLiteNode
+	GetRandomVaultNode             = types.GetRandomVaultNode
 	GetRandomTHORAddress           = types.GetRandomTHORAddress
 	GetRandomRUNEAddress           = types.GetRandomRUNEAddress
 	GetRandomBNBAddress            = types.GetRandomBNBAddress
@@ -280,6 +281,8 @@ type (
 	Node                           = types.Node
 	THORName                       = types.THORName
 	THORNameAlias                  = types.THORNameAlias
+	NodeMimir                      = types.NodeMimir
+	NodeMimirs                     = types.NodeMimirs
 
 	// Memo
 	SwapMemo              = mem.SwapMemo

@@ -605,8 +605,7 @@ func (vm *NetworkMgrV59) UpdateNetwork(ctx cosmos.Context, constAccessor constan
 		return fmt.Errorf("fail to get existing network data: %w", err)
 	}
 
-	totalReserve := cosmos.ZeroUint()
-	totalReserve = vm.k.GetRuneBalanceOfModule(ctx, ReserveName)
+	totalReserve := vm.k.GetRuneBalanceOfModule(ctx, ReserveName)
 
 	// when total reserve is zero , can't pay reward
 	if totalReserve.IsZero() {

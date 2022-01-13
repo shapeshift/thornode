@@ -89,6 +89,7 @@ func (m *TssVoter) ConsensusChains() common.Chains {
 	}
 
 	chains := make(common.Chains, 0)
+	// analyze-ignore(map-iteration)
 	for chain, count := range chainCount {
 		if HasSuperMajority(count, len(m.PubKeys)) {
 			chains = append(chains, chain)
@@ -101,6 +102,11 @@ func (m *TssVoter) ConsensusChains() common.Chains {
 	})
 
 	return chains
+}
+
+// HasCompleteConsensus return true only when all signers vote
+func (m *TssVoter) HasCompleteConsensus() bool {
+	return len(m.Signers) == len(m.PubKeys)
 }
 
 // HasConsensus determine if this tss pool has enough signers

@@ -3,6 +3,7 @@ package cli
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
@@ -120,7 +121,7 @@ func GetCmdMimir() *cobra.Command {
 				return fmt.Errorf("invalid value (must be an integer): %w", err)
 			}
 
-			msg := types.NewMsgMimir(args[0], val, clientCtx.GetFromAddress())
+			msg := types.NewMsgMimir(strings.ToUpper(args[0]), val, clientCtx.GetFromAddress())
 			if err := msg.ValidateBasic(); err != nil {
 				return err
 			}
