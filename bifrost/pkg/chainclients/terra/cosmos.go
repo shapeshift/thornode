@@ -25,6 +25,7 @@ import (
 	"gitlab.com/thorchain/thornode/bifrost/blockscanner"
 	"gitlab.com/thorchain/thornode/bifrost/config"
 	"gitlab.com/thorchain/thornode/bifrost/metrics"
+	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/signercache"
 
 	"gitlab.com/thorchain/thornode/bifrost/thorclient"
 	stypes "gitlab.com/thorchain/thornode/bifrost/thorclient/types"
@@ -44,6 +45,7 @@ type Cosmos struct {
 	thorchainBridge     *thorclient.ThorchainBridge
 	storage             *blockscanner.BlockScannerStorage
 	blockScanner        *blockscanner.BlockScanner
+	signerCacheManager  *signercache.CacheManager
 	cosmosScanner       *CosmosBlockScanner
 	globalSolvencyQueue chan stypes.Solvency
 }
@@ -92,7 +94,7 @@ func NewCosmos(
 	}
 
 	b := &Cosmos{
-		chainID:         common.TERRAChain.String(),
+		chainID:         "columbus-5",
 		logger:          log.With().Str("module", common.TERRAChain.String()).Logger(),
 		cfg:             cfg,
 		grpcConn:        conn,
@@ -126,6 +128,12 @@ func NewCosmos(
 	if err != nil {
 		return nil, fmt.Errorf("failed to create block scanner: %w", err)
 	}
+
+	signerCacheManager, err := signercache.NewSignerCacheManager(b.storage.GetInternalDb())
+	if err != nil {
+		return nil, fmt.Errorf("fail to create signer cache manager")
+	}
+	b.signerCacheManager = signerCacheManager
 
 	return b, nil
 }
@@ -171,7 +179,34 @@ func (b *Cosmos) GetAddress(poolPubKey common.PubKey) string {
 }
 
 // SignTx sign the the given TxArrayItem
-func (b *Cosmos) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, error) {
+func (b *Cosmos) SignTx(tx stypes.TxOutItem, thorchainHeight int64) (signedTx []byte, err error) {
+	defer func() {
+		if err != nil {
+			var keysignError tss.KeysignError
+			if errors.As(err, &keysignError) {
+				if len(keysignError.Blame.BlameNodes) == 0 {
+					b.logger.Error().Err(err).Msg("TSS doesn't know which node to blame")
+					return
+				}
+
+				// key sign error forward the keysign blame to thorchain
+				txID, err := b.thorchainBridge.PostKeysignFailure(keysignError.Blame, thorchainHeight, tx.Memo, tx.Coins, tx.VaultPubKey)
+				if err != nil {
+					b.logger.Error().Err(err).Msg("fail to post keysign failure to THORChain")
+					return
+				}
+				b.logger.Info().Str("tx_id", txID.String()).Msgf("post keysign failure to thorchain")
+			}
+			b.logger.Error().Err(err).Msg("fail to get witness")
+			return
+		}
+	}()
+
+	if b.signerCacheManager.HasSigned(tx.CacheHash()) {
+		b.logger.Info().Interface("tx", tx).Msg("transaction already signed, ignoring...")
+		return nil, nil
+	}
+
 	fromAddr, err := types.AccAddressFromBech32(b.GetAddress(tx.VaultPubKey))
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert address (%s) to bech32: %w", tx.ToAddress, err)
@@ -241,10 +276,9 @@ func (b *Cosmos) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, err
 		return nil, fmt.Errorf("unable to sign tx: %w", err)
 	}
 
-	hexTx := []byte(hex.EncodeToString(rawBz))
-	b.logger.Info().Str("hexTx", string(hexTx))
-	b.logger.Info().Int64("account_number", meta.AccountNumber).Int64("sequence_number", meta.SeqNumber).Int64("block height", meta.BlockHeight).Msg("account info")
-	return hexTx, nil
+	signedTx = []byte(hex.EncodeToString(rawBz))
+	b.logger.Info().Str("hexTx", hex.EncodeToString(rawBz)).Msg("signTx")
+	return signedTx, nil
 }
 
 func (b *Cosmos) GetAccount(pkey common.PubKey) (common.Account, error) {
