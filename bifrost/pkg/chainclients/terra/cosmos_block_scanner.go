@@ -33,7 +33,6 @@ import (
 type SolvencyReporter func(int64) error
 
 var (
-	FeeAsset              = "uluna"
 	ErrInvalidScanStorage = errors.New("scan storage is empty or nil")
 	ErrInvalidMetrics     = errors.New("metrics is empty or nil")
 	ErrEmptyTx            = errors.New("empty tx")
@@ -67,11 +66,6 @@ func NewCosmosBlockScanner(cfg config.BlockScannerConfiguration,
 		return nil, errors.New("metrics is nil")
 	}
 
-	feeAsset, err := common.NewAsset(FeeAsset)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create asset (%s): %w", feeAsset, err)
-	}
-
 	registry := bridge.GetContext().InterfaceRegistry
 	btypes.RegisterInterfaces(registry)
 
@@ -84,6 +78,7 @@ func NewCosmosBlockScanner(cfg config.BlockScannerConfiguration,
 	tmService := tmservice.NewServiceClient(conn)
 	cdc := codec.NewProtoCodec(registry)
 
+	feeAsset := common.TERRAChain.GetGasAsset()
 	return &CosmosBlockScanner{
 		cfg:              cfg,
 		logger:           log.Logger.With().Str("module", "blockscanner").Str("chain", "TERRA").Logger(),
@@ -169,16 +164,6 @@ func (b *CosmosBlockScanner) updateAverageGasFees(height int64, txs []types.TxIn
 	return nil
 }
 
-func sdkCoinToCommonCoin(c ctypes.Coin) (common.Coin, error) {
-	// Ignore the first character, "u", for most Cosmos assets
-	asset, err := common.NewAsset(c.Denom[1:])
-	if err != nil {
-		return common.Coin{}, fmt.Errorf("failed to create asset (%s): %w", c.Denom, err)
-	}
-
-	return common.NewCoin(asset, ctypes.NewUintFromBigInt(c.Amount.BigInt())), nil
-}
-
 func (b *CosmosBlockScanner) FetchTxs(height int64) (types.TxIn, error) {
 	block, err := b.GetBlock(height)
 	if err != nil {
@@ -258,10 +243,6 @@ func (b *CosmosBlockScanner) FetchTxs(height int64) (types.TxIn, error) {
 		TxArray:  txs,
 		Filtered: false,
 		MemPool:  false,
-	}
-
-	if len(txs) > 0 {
-		log.Info().Interface("txIn", txIn).Msg("processed txIn")
 	}
 
 	b.updateAverageGasFees(block.Header.Height, txIn.TxArray)
