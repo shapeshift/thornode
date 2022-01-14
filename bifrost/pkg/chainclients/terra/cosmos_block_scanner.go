@@ -43,7 +43,7 @@ type CosmosBlockScanner struct {
 	cfg              config.BlockScannerConfiguration
 	logger           zerolog.Logger
 	feeAsset         common.Asset
-	avgGasFee        common.Coin
+	avgGasFee        ctypes.Uint
 	db               blockscanner.ScannerStorage
 	cdc              *codec.ProtoCodec
 	errCounter       *prometheus.CounterVec
@@ -84,7 +84,7 @@ func NewCosmosBlockScanner(cfg config.BlockScannerConfiguration,
 		logger:           log.Logger.With().Str("module", "blockscanner").Str("chain", "TERRA").Logger(),
 		db:               scanStorage,
 		feeAsset:         feeAsset,
-		avgGasFee:        common.NewCoin(feeAsset, ctypes.NewUint(0)),
+		avgGasFee:        ctypes.NewUint(0),
 		cdc:              cdc,
 		errCounter:       m.GetCounterVec(metrics.BlockScanError(common.TERRAChain)),
 		tmService:        tmService,
@@ -128,10 +128,10 @@ func (b *CosmosBlockScanner) GetBlock(height int64) (*tmtypes.Block, error) {
 	return resultBlock.Block, nil
 }
 
-func (b *CosmosBlockScanner) updateAverageGasFees(height int64, txs []types.TxInItem) error {
+func (b *CosmosBlockScanner) updateAverageGasFees(height int64, txs []types.TxInItem) (string, error) {
 	numTxs := int64(len(txs))
 	if numTxs == 0 {
-		return nil
+		return "", nil
 	}
 
 	// sum all the gas fees for the FeeAsset only
@@ -139,29 +139,32 @@ func (b *CosmosBlockScanner) updateAverageGasFees(height int64, txs []types.TxIn
 	for _, tx := range txs {
 		fee := tx.Gas.ToCoins().GetCoin(b.feeAsset)
 		if err := fee.Valid(); err != nil {
-			return fmt.Errorf("invalid fee (%s): %w", fee, err)
+			return "", fmt.Errorf("invalid fee (%s): %w", fee, err)
 		}
-
 		totalGasFees = totalGasFees.Add(fee.Amount)
 	}
 
 	// compute the average (total / numTxs)
 	avgGasFeesAmt := (ctypes.NewDecFromBigInt(totalGasFees.BigInt()).QuoInt64(numTxs)).TruncateInt()
 	if avgGasFeesAmt.IsZero() {
-		return nil
+		return "", nil
 	}
 
 	if !avgGasFeesAmt.IsUint64() {
-		return fmt.Errorf("average gas fee exceeds uint64: %s", avgGasFeesAmt)
+		return "", fmt.Errorf("average gas fee exceeds uint64: %s", avgGasFeesAmt)
 	}
 
-	log.Info().Int64("height", height).Int64("gasFeeAmt", avgGasFeesAmt.Int64()).Msg("calculate gas fee")
-	if _, err := b.bridge.PostNetworkFee(height, common.TERRAChain, 1, avgGasFeesAmt.Uint64()); err != nil {
-		b.logger.Err(err).Int64("height", height).Msg("failed to post average network fee")
-		return err
+	// post the gas fee if it changed since last calculation
+	if !b.avgGasFee.Equal(ctypes.Uint(avgGasFeesAmt)) {
+		feeTx, err := b.bridge.PostNetworkFee(height, common.TERRAChain, 1, avgGasFeesAmt.Uint64())
+		if err != nil {
+			return "", err
+		}
+		b.avgGasFee = ctypes.NewUint(avgGasFeesAmt.Uint64())
+		return feeTx.String(), nil
 	}
 
-	return nil
+	return "", nil
 }
 
 func (b *CosmosBlockScanner) FetchTxs(height int64) (types.TxIn, error) {
@@ -245,6 +248,15 @@ func (b *CosmosBlockScanner) FetchTxs(height int64) (types.TxIn, error) {
 		MemPool:  false,
 	}
 
-	b.updateAverageGasFees(block.Header.Height, txIn.TxArray)
+	if feeTx, err := b.updateAverageGasFees(block.Header.Height, txIn.TxArray); err == nil || feeTx != "" {
+		log.Info().
+			Str("tx", feeTx).
+			Int64("height", height).
+			Int64("gasFeeAmt", b.avgGasFee.BigInt().Int64()).
+			Msg("sent network fee to THORChain")
+	} else {
+		b.logger.Err(err).Int64("height", height).Msg("failed to post average network fee")
+	}
+
 	return txIn, nil
 }

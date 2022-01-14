@@ -223,7 +223,7 @@ func (b *Cosmos) SignTx(tx stypes.TxOutItem, thorchainHeight int64) (signedTx []
 	// logic is per chain, given that different networks charge fees differently.
 	if strings.EqualFold(tx.Memo, thorchain.NewYggdrasilReturn(thorchainHeight).String()) {
 		gasFees = common.Coins{
-			common.NewCoin(b.cosmosScanner.avgGasFee.Asset, b.cosmosScanner.avgGasFee.Amount),
+			common.NewCoin(b.cosmosScanner.feeAsset, b.cosmosScanner.avgGasFee),
 		}
 	}
 
