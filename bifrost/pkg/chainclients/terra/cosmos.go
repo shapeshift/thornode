@@ -59,6 +59,8 @@ func NewCosmos(
 	m *metrics.Metrics,
 
 ) (*Cosmos, error) {
+	logger := log.With().Str("module", common.TERRAChain.String()).Logger()
+
 	tssKm, err := tss.NewKeySign(server, thorchainBridge)
 	if err != nil {
 		return nil, fmt.Errorf("fail to create tss signer: %w", err)
@@ -90,12 +92,12 @@ func NewCosmos(
 	host := strings.Replace(cfg.RPCHost, "http://", "", -1)
 	conn, err := grpc.Dial(host, grpc.WithInsecure())
 	if err != nil {
-		log.Fatal().Err(err).Msg("fail to dial")
+		logger.Fatal().Err(err).Msg("fail to dial")
 	}
 
 	b := &Cosmos{
 		chainID:         "columbus-5",
-		logger:          log.With().Str("module", common.TERRAChain.String()).Logger(),
+		logger:          logger,
 		cfg:             cfg,
 		grpcConn:        conn,
 		accts:           NewCosmosMetaDataStore(),
@@ -345,7 +347,7 @@ func (b *Cosmos) BroadcastTx(tx stypes.TxOutItem, hexTx []byte) (string, error) 
 
 	res, err := txClient.BroadcastTx(context.Background(), req)
 	if err != nil {
-		log.Error().Err(err).Msg("unable to broadcast tx")
+		b.logger.Error().Err(err).Msg("unable to broadcast tx")
 		return "", err
 	}
 
