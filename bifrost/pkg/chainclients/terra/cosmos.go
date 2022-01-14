@@ -92,7 +92,8 @@ func NewCosmos(
 	}
 
 	b := &Cosmos{
-		logger:          log.With().Str("module", "cosmos").Logger(),
+		chainID:         common.TERRAChain.String(),
+		logger:          log.With().Str("module", common.TERRAChain.String()).Logger(),
 		cfg:             cfg,
 		grpcConn:        conn,
 		accts:           NewCosmosMetaDataStore(),
@@ -227,7 +228,6 @@ func (b *Cosmos) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, err
 		b.accts.Set(tx.VaultPubKey, meta)
 	}
 
-	b.logger.Info().Int64("account_number", meta.AccountNumber).Int64("sequence_number", meta.SeqNumber).Int64("block height", meta.BlockHeight).Msg("account info")
 	signMsg := legacytx.StdSignMsg{
 		ChainID:       b.chainID,
 		Memo:          tx.Memo,
