@@ -33,6 +33,7 @@ import (
 type SolvencyReporter func(int64) error
 
 var (
+	WhitelistAssets       = map[string]bool{"LUNA": true, "USD": true}
 	ErrInvalidScanStorage = errors.New("scan storage is empty or nil")
 	ErrInvalidMetrics     = errors.New("metrics is empty or nil")
 	ErrEmptyTx            = errors.New("empty tx")
@@ -66,13 +67,15 @@ func NewCosmosBlockScanner(cfg config.BlockScannerConfiguration,
 		return nil, errors.New("metrics is nil")
 	}
 
+	logger := log.Logger.With().Str("module", "blockscanner").Str("chain", "TERRA").Logger()
+
 	registry := bridge.GetContext().InterfaceRegistry
 	btypes.RegisterInterfaces(registry)
 
 	host := strings.Replace(cfg.RPCHost, "http://", "", -1)
 	conn, err := grpc.Dial(host, grpc.WithInsecure())
 	if err != nil {
-		log.Fatal().Err(err).Msg("fail to dial")
+		logger.Fatal().Err(err).Msg("fail to dial")
 	}
 
 	tmService := tmservice.NewServiceClient(conn)
@@ -81,7 +84,7 @@ func NewCosmosBlockScanner(cfg config.BlockScannerConfiguration,
 	feeAsset := common.TERRAChain.GetGasAsset()
 	return &CosmosBlockScanner{
 		cfg:              cfg,
-		logger:           log.Logger.With().Str("module", "blockscanner").Str("chain", "TERRA").Logger(),
+		logger:           logger,
 		db:               scanStorage,
 		feeAsset:         feeAsset,
 		avgGasFee:        ctypes.NewUint(0),
@@ -189,7 +192,7 @@ func (b *CosmosBlockScanner) FetchTxs(height int64) (types.TxIn, error) {
 				}
 			}
 			// else we should log this as an error and continue
-			log.Error().Str("tx", string(rawTx)).Err(err).Msg("unable to decode msg")
+			b.logger.Error().Str("tx", string(rawTx)).Err(err).Msg("unable to decode msg")
 			continue
 		}
 
@@ -201,6 +204,14 @@ func (b *CosmosBlockScanner) FetchTxs(height int64) (types.TxIn, error) {
 			case *btypes.MsgSend:
 				coins := common.Coins{}
 				for _, c := range msg.Amount {
+
+					// ignore first character of denom, which is usually "u" in cosmos
+					ticker := c.Denom[1:]
+					if _, whitelisted := WhitelistAssets[ticker]; !whitelisted {
+						b.logger.Info().Str("tx", hash).Interface("coins", c).Msg("coin is not whitelisted, skipping")
+						continue
+					}
+
 					cCoin, err := sdkCoinToCommonCoin(c)
 					if err != nil {
 						return types.TxIn{}, fmt.Errorf("failed to create asset; %s is not valid: %w", c, err)
@@ -249,7 +260,7 @@ func (b *CosmosBlockScanner) FetchTxs(height int64) (types.TxIn, error) {
 	}
 
 	if feeTx, err := b.updateAverageGasFees(block.Header.Height, txIn.TxArray); err == nil || feeTx != "" {
-		log.Info().
+		b.logger.Info().
 			Str("tx", feeTx).
 			Int64("height", height).
 			Int64("gasFeeAmt", b.avgGasFee.BigInt().Int64()).
