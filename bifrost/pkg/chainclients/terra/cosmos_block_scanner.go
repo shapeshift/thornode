@@ -161,16 +161,17 @@ func (b *CosmosBlockScanner) updateAverageGasFees(height int64, txs []types.TxIn
 	}
 
 	log.Info().Int64("height", height).Int64("gasFeeAmt", avgGasFeesAmt.Int64()).Msg("calculate gas fee")
-	// if _, err := b.bridge.PostNetworkFee(height, common.TERRAChain, 1, avgGasFeesAmt.Uint64()); err != nil {
-	// 	b.logger.Err(err).Int64("height", height).Msg("failed to post average network fee")
-	// 	return err
-	// }
+	if _, err := b.bridge.PostNetworkFee(height, common.TERRAChain, 1, avgGasFeesAmt.Uint64()); err != nil {
+		b.logger.Err(err).Int64("height", height).Msg("failed to post average network fee")
+		return err
+	}
 
 	return nil
 }
 
 func sdkCoinToCommonCoin(c ctypes.Coin) (common.Coin, error) {
-	asset, err := common.NewAsset(c.Denom)
+	// Ignore the first character, "u", for most Cosmos assets
+	asset, err := common.NewAsset(c.Denom[1:])
 	if err != nil {
 		return common.Coin{}, fmt.Errorf("failed to create asset (%s): %w", c.Denom, err)
 	}
@@ -188,7 +189,6 @@ func (b *CosmosBlockScanner) FetchTxs(height int64) (types.TxIn, error) {
 	var txs []types.TxInItem
 
 	for _, rawTx := range block.Data.Txs {
-
 		hash := hex.EncodeToString(tmhash.Sum(rawTx))
 		tx, err := decoder(rawTx)
 		if err != nil {
@@ -197,7 +197,6 @@ func (b *CosmosBlockScanner) FetchTxs(height int64) (types.TxIn, error) {
 				if !strings.Contains(err.Error(), "MsgSend") {
 					// double check to make sure MsgSend isn't mentioned
 					// if it's not, we can safely ignore
-					log.Debug().Str("tx", string(rawTx)).Err(err).Msg("could not decode msg not existing in interface registry")
 					continue
 				}
 			}

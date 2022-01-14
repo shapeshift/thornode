@@ -85,9 +85,16 @@ func NewCosmos(
 		pubkey:  pk,
 	}
 
+	host := strings.Replace(cfg.RPCHost, "http://", "", -1)
+	conn, err := grpc.Dial(host, grpc.WithInsecure())
+	if err != nil {
+		log.Fatal().Err(err).Msg("fail to dial")
+	}
+
 	b := &Cosmos{
 		logger:          log.With().Str("module", "cosmos").Logger(),
 		cfg:             cfg,
+		grpcConn:        conn,
 		accts:           NewCosmosMetaDataStore(),
 		tssKeyManager:   tssKm,
 		localKeyManager: localKm,
@@ -260,22 +267,38 @@ func (b *Cosmos) GetAccountByAddress(address string) (common.Account, error) {
 		return common.Account{}, err
 	}
 
+	nativeCoins := make([]common.Coin, 0)
+	for _, coin := range balances.Balances {
+		c, _ := sdkCoinToCommonCoin(coin)
+		nativeCoins = append(nativeCoins, c)
+	}
+
 	c := atypes.NewQueryClient(b.grpcConn)
 	authReq := &atypes.QueryAccountRequest{
 		Address: address,
 	}
+
 	acc, err := c.Account(context.Background(), authReq)
-	log.Info().
-		Str("balances", fmt.Sprintf("%+v", balances)).
-		Str("address", address).
-		Str("account", fmt.Sprintf("%+v", acc.Account)).
-		Msg("GetAccountByAddress")
+	if err != nil {
+		return common.Account{}, err
+	}
+
+	ba := new(atypes.BaseAccount)
+	err = ba.Unmarshal(acc.GetAccount().Value)
+	if err != nil {
+		return common.Account{}, err
+	}
 
 	if err != nil {
 		return common.Account{}, err
 	}
 
-	return common.Account{}, nil
+	return common.Account{
+		Sequence:      int64(ba.Sequence),
+		AccountNumber: int64(ba.AccountNumber),
+		Coins:         nativeCoins,
+		HasMemoFlag:   false,
+	}, nil
 }
 
 // BroadcastTx is to broadcast the tx to cosmos chain
