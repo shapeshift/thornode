@@ -225,7 +225,7 @@ func (b *CosmosBlockScanner) FetchTxs(height int64) (types.TxIn, error) {
 				}
 
 				txs = append(txs, types.TxInItem{
-					Tx:          string(hash[:]),
+					Tx:          hash[:],
 					BlockHeight: height,
 					Memo:        memo,
 					Sender:      msg.FromAddress,
@@ -241,7 +241,7 @@ func (b *CosmosBlockScanner) FetchTxs(height int64) (types.TxIn, error) {
 	}
 
 	txIn := types.TxIn{
-		Count:    strconv.Itoa(int(len(txs))),
+		Count:    strconv.Itoa(len(txs)),
 		Chain:    common.TERRAChain,
 		TxArray:  txs,
 		Filtered: false,
