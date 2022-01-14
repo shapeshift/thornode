@@ -20,6 +20,7 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/runners"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/signercache"
 
 	tssp "gitlab.com/thorchain/tss/go-tss/tss"
@@ -38,32 +39,34 @@ import (
 )
 
 const (
-	maxAsgardAddresses = 100
-	maxGasLimit        = 200000
+	maxAsgardAddresses     = 100
+	maxGasLimit            = 200000
+	solvencyCheckerTimeout = time.Minute * 10
 )
 
 var blockReward *big.Int = big.NewInt(2e18) // in Wei
 
 // Client is a structure to sign and broadcast tx to Ethereum chain used by signer mostly
 type Client struct {
-	logger              zerolog.Logger
-	cfg                 config.ChainConfiguration
-	localPubKey         common.PubKey
-	client              *ethclient.Client
-	kw                  *keySignWrapper
-	ethScanner          *ETHScanner
-	bridge              *thorclient.ThorchainBridge
-	blockScanner        *blockscanner.BlockScanner
-	vaultABI            *abi.ABI
-	pubkeyMgr           pubkeymanager.PubKeyValidator
-	poolMgr             thorclient.PoolManager
-	asgardAddresses     []common.Address
-	lastAsgard          time.Time
-	tssKeySigner        *tss.KeySign
-	wg                  *sync.WaitGroup
-	stopchan            chan struct{}
-	globalSolvencyQueue chan stypes.Solvency
-	signerCacheManager  *signercache.CacheManager
+	logger                  zerolog.Logger
+	cfg                     config.ChainConfiguration
+	localPubKey             common.PubKey
+	client                  *ethclient.Client
+	kw                      *keySignWrapper
+	ethScanner              *ETHScanner
+	bridge                  *thorclient.ThorchainBridge
+	blockScanner            *blockscanner.BlockScanner
+	vaultABI                *abi.ABI
+	pubkeyMgr               pubkeymanager.PubKeyValidator
+	poolMgr                 thorclient.PoolManager
+	asgardAddresses         []common.Address
+	lastAsgard              time.Time
+	tssKeySigner            *tss.KeySign
+	wg                      *sync.WaitGroup
+	stopchan                chan struct{}
+	globalSolvencyQueue     chan stypes.Solvency
+	signerCacheManager      *signercache.CacheManager
+	lastSolvencyCheckHeight int64
 }
 
 // NewClient create new instance of Ethereum client
@@ -161,7 +164,7 @@ func NewClient(thorKeys *thorclient.Keys,
 	}
 
 	c.signerCacheManager = signerCacheManager
-	c.ethScanner, err = NewETHScanner(c.cfg.BlockScanner, storage, chainID, c.client, c.bridge, m, pubkeyMgr, c.reportSolvency, signerCacheManager)
+	c.ethScanner, err = NewETHScanner(c.cfg.BlockScanner, storage, chainID, c.client, c.bridge, m, pubkeyMgr, c.ReportSolvency, signerCacheManager)
 	if err != nil {
 		return c, fmt.Errorf("fail to create eth block scanner: %w", err)
 	}
@@ -192,6 +195,8 @@ func (c *Client) Start(globalTxsQueue chan stypes.TxIn, globalErrataQueue chan s
 	c.blockScanner.Start(globalTxsQueue)
 	c.wg.Add(1)
 	go c.unstuck()
+	c.wg.Add(1)
+	go runners.SolvencyCheckRunner(c.GetChain(), c, solvencyCheckerTimeout, c.stopchan, c.wg)
 }
 
 // Stop ETH client
@@ -844,7 +849,7 @@ func (c *Client) OnObservedTxIn(txIn stypes.TxInItem, blockHeight int64) {
 	}
 }
 
-func (c *Client) reportSolvency(ethBlockHeight int64) error {
+func (c *Client) ReportSolvency(ethBlockHeight int64) error {
 	if ethBlockHeight%20 != 0 {
 		return nil
 	}
@@ -869,5 +874,11 @@ func (c *Client) reportSolvency(ethBlockHeight int64) error {
 			c.logger.Info().Msgf("fail to send solvency info to THORChain, timeout")
 		}
 	}
+	c.lastSolvencyCheckHeight = ethBlockHeight
 	return nil
+}
+
+// ShouldReportSolvency with given block height , should chain client report Solvency to THORNode?
+func (c *Client) ShouldReportSolvency(height int64) bool {
+	return height-c.lastSolvencyCheckHeight > 20
 }
