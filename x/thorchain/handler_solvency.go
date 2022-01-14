@@ -65,7 +65,7 @@ func (h SolvencyHandler) validateV70(ctx cosmos.Context, msg MsgSolvency) error 
 }
 
 func (h SolvencyHandler) handle(ctx cosmos.Context, msg MsgSolvency) (*cosmos.Result, error) {
-	ctx.Logger().Info("handle Solvency request", "id", msg.Id.String(), "signer", msg.Signer.String())
+	ctx.Logger().Debug("handle Solvency request", "id", msg.Id.String(), "signer", msg.Signer.String())
 	version := h.mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.79.0")) {
 		return h.handleV79(ctx, msg)
