@@ -28,3 +28,5 @@ func migrateStoreV86(ctx cosmos.Context, mgr *Mgrs) {
 		}
 	}
 }
+
+func importPreRegistrationTHORNames(ctx cosmos.Context, mgr Manager) {}
