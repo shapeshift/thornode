@@ -11,7 +11,7 @@ import (
 func migrateStoreV86(ctx cosmos.Context, mgr *Mgrs) {}
 
 func importPreRegistrationTHORNames(ctx cosmos.Context, mgr Manager) error {
-	names, err := getPreRegisterTHORNames(common.BlockHeight(ctx))
+	names, err := getPreRegisterTHORNames(common.BlockHeight(ctx) + 5256000)
 	if err != nil {
 		return err
 	}
