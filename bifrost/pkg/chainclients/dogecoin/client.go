@@ -697,7 +697,6 @@ func (c *Client) sendNetworkFee(blockResult *btcjson.GetBlockVerboseTxResult) er
 
 	// average fee rate , sats/vbyte
 	avgFeeRate := uint64(amt.ToUnit(dogutil.AmountSatoshi) / float64(totalVSize))
-	c.logger.Info().Int64("height", blockResult.Height).Uint64("fee_rate", avgFeeRate).Msg("average fee rate")
 
 	// ex: default fee per kb = 0.01, average tx size is 500 bytes,
 	// fee rate in doge/vbyte = 0.000002, or 200 sats/vbye.
@@ -712,7 +711,7 @@ func (c *Client) sendNetworkFee(blockResult *btcjson.GetBlockVerboseTxResult) er
 		feeRateSats = avgFeeRate
 	}
 
-	c.logger.Debug().Uint64("lastFeeRate", c.lastFeeRate).Uint64("feeRate", feeRateSats).Msg("sendNetworkFee")
+	c.logger.Info().Int64("height", height).Uint64("lastFeeRate", c.lastFeeRate).Uint64("avgFeeRate", avgFeeRate).Msg("sendNetworkFee")
 	// Only send the fee if it has changed
 	if c.lastFeeRate != feeRateSats {
 		c.lastFeeRate = feeRateSats
