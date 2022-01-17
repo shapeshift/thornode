@@ -714,12 +714,12 @@ func (c *Client) sendNetworkFee(blockResult *btcjson.GetBlockVerboseTxResult) er
 	c.logger.Info().Int64("height", height).Uint64("lastFeeRate", c.lastFeeRate).Uint64("avgFeeRate", avgFeeRate).Msg("sendNetworkFee")
 	// Only send the fee if it has changed
 	if c.lastFeeRate != feeRateSats {
-		c.lastFeeRate = feeRateSats
 		txid, err := c.bridge.PostNetworkFee(height, common.DOGEChain, uint64(EstimateAverageTxSize), feeRateSats)
 		if err != nil {
 			c.logger.Error().Err(err).Msg("failed to post network fee to thornode")
 			return fmt.Errorf("fail to post network fee to thornode: %w", err)
 		}
+		c.lastFeeRate = feeRateSats
 		c.logger.Debug().Str("txid", txid.String()).Msg("send network fee to THORNode successfully")
 	}
 	return nil
