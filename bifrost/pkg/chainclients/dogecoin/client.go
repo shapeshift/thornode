@@ -712,16 +712,13 @@ func (c *Client) sendNetworkFee(blockResult *btcjson.GetBlockVerboseTxResult) er
 		feeRateSats = avgFeeRate
 	}
 
-	c.logger.Debug().Str("chain", "DOGE").Uint64("lastFeeRate", c.lastFeeRate).Uint64("feeRate", feeRateSats).Msg("sendNetworkFee")
+	c.logger.Debug().Uint64("lastFeeRate", c.lastFeeRate).Uint64("feeRate", feeRateSats).Msg("sendNetworkFee")
 	// Only send the fee if it has changed
-	// Because it is fixed, thorchain will not reach consensus unless it happens in the same block
-	// All node operators would start bifrost and then never report again because it does not change
-	// Therefore, also send network fee every 60 blocks (~60 minutes).
 	if c.lastFeeRate != feeRateSats {
 		c.lastFeeRate = feeRateSats
 		txid, err := c.bridge.PostNetworkFee(height, common.DOGEChain, uint64(EstimateAverageTxSize), feeRateSats)
 		if err != nil {
-			c.logger.Error().Str("chain", "DOGE").Err(err).Msg("failed to post network fee to thornode")
+			c.logger.Error().Err(err).Msg("failed to post network fee to thornode")
 			return fmt.Errorf("fail to post network fee to thornode: %w", err)
 		}
 		c.logger.Debug().Str("txid", txid.String()).Msg("send network fee to THORNode successfully")
