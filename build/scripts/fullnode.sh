@@ -2,25 +2,31 @@
 
 set -o pipefail
 
+# fullnodes default to mainnet
+
+export THORNODE_API_ENABLE="true"
+export SIGNER_NAME="${SIGNER_NAME:=thorchain}"
+export SIGNER_PASSWD="${SIGNER_PASSWD:=password}"
+
 . "$(dirname "$0")/core.sh"
 
-SEEDS="${SEEDS:=none}" # the hostname of multiple seeds set as tendermint seeds
 CHAIN_ID=${CHAIN_ID:=thorchain}
 
-if [ ! -f ~/.thornode/config/genesis.json ]; then
-  if [ "$PEER" = "none" ] && [ "$SEEDS" = "none" ]; then
-    echo "Missing PEER / SEEDS"
-    exit 1
+# auto populate seeds for fullnode if unprovided
+if [ -z "$SEEDS" ]; then
+  if [ "$NET" = "mainnet" ]; then
+    SEEDS=$(curl -s https://seed.thorchain.info/ | jq -r '. | join(",")')
+  elif [ "$NET" = "testnet" ]; then
+    SEEDS=$(curl -s https://testnet-seed.thorchain.info/ | jq -r '. | join(",")')
+  elif [ "$NET" = "stagenet" ]; then
+    SEEDS="stagenet-seed.ninerealms.com"
   fi
+fi
 
+if [ ! -f ~/.thornode/config/genesis.json ]; then
   init_chain
 
-  if [ "$SEEDS" != "none" ]; then
-    fetch_genesis_from_seeds $SEEDS
-
-    # add seeds tendermint config
-    seeds_list $SEEDS $CHAIN_ID
-  fi
+  fetch_genesis_from_seeds "$SEEDS"
 
   # enable telemetry through prometheus metrics endpoint
   enable_telemetry
@@ -30,12 +36,12 @@ if [ ! -f ~/.thornode/config/genesis.json ]; then
 
   # use external IP if available
   [ -n "$EXTERNAL_IP" ] && external_address "$EXTERNAL_IP" "$NET"
-
-else
-  if [ "$SEEDS" != "none" ]; then
-    # add seeds tendermint config
-    seeds_list $SEEDS $CHAIN_ID
-  fi
 fi
 
-exec "$@"
+seeds_list "$SEEDS" "$CHAIN_ID"
+
+if [ -z "$*" ]; then
+  exec thornode start
+else
+  exec "$@"
+fi

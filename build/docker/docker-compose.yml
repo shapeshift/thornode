@@ -1,0 +1,249 @@
+########################################################################################
+# Config
+########################################################################################
+
+version: "3.9"
+
+volumes:
+  thornode:
+  bifrost:
+
+
+########################################################################################
+# Services
+########################################################################################
+
+services:
+
+  _thorchain: &thorchain-defaults
+    profiles:
+      - _
+    restart: unless-stopped
+    build:
+      context: ../..
+      dockerfile: ./build/docker/Dockerfile
+      args:
+        TAG: mocknet
+    environment: &thorchain-environment
+      NET: mocknet
+      CHAIN_ID: thorchain
+    logging: &logging
+      driver: "json-file"
+      options:
+        max-size: "256m"
+        max-file: "3"
+
+
+  ######################################################################################
+  # THORChain
+  ######################################################################################
+
+  # ------------------------------ thornode ------------------------------
+
+  thornode:
+    <<: *thorchain-defaults
+    hostname: thornode  # required for genesis.sh
+    profiles:
+      - thornode
+      - mocknet
+    environment:
+      <<: *thorchain-environment
+      NODES: 1
+      SEED: thornode
+      THOR_BLOCK_TIME: ${THOR_BLOCK_TIME:-5s}
+      THORNODE_API_ENABLE: "true"
+      HARDFORK_BLOCK_HEIGHT: ${HARDFORK_BLOCK_HEIGHT:-}
+    ports:
+      - 26657:26657
+      - 26656:26656
+      - 1317:1317
+    volumes:
+      - "../scripts:/docker/scripts"
+      - thornode:/root/.thornode
+    entrypoint: /docker/scripts/genesis.sh
+    command:
+      - thornode
+      - start
+      - --log_level
+      - info
+      - --log_format
+      - plain
+      - --rpc.laddr
+      - tcp://0.0.0.0:26657
+
+  # ------------------------------ validator ------------------------------
+
+  thornode-validator:
+    <<: *thorchain-defaults
+    hostname: thornode
+    profiles:
+      - validator
+    environment:
+      <<: *thorchain-environment
+      NODES: 1
+      SEEDS: ${SEEDS:-}
+      PEER: ${PEER:-}
+      THORNODE_API_ENABLE: "true"
+      HARDFORK_BLOCK_HEIGHT: ${HARDFORK_BLOCK_HEIGHT:-}
+    ports:
+      - 26657:26657
+      - 26656:26656
+      - 1317:1317
+    volumes:
+      - "../scripts:/docker/scripts"
+      - thornode:/root/.thornode
+    entrypoint: /docker/scripts/validator.sh
+    command:
+      - thornode
+      - start
+      - --log_level
+      - info
+      - --log_format
+      - plain
+      - --rpc.laddr
+      - tcp://0.0.0.0:26657
+
+
+  # ------------------------------ bifrost ------------------------------
+
+  bifrost:
+    <<: *thorchain-defaults
+    profiles:
+      - mocknet
+      - bifrost
+      - validator
+    environment:
+      <<: *thorchain-environment
+      CHAIN_API: thornode:1317
+      CHAIN_RPC: thornode:26657
+      BINANCE_HOST: ${BINANCE_HOST:-http://binance:26660}
+      BTC_HOST: ${BTC_HOST:-bitcoin:18443}
+      DOGE_HOST: ${DOGE_HOST:-dogecoin:18332}
+      BCH_HOST: ${BCH_HOST:-bitcoin-cash:28443}
+      LTC_HOST: ${LTC_HOST:-litecoin:38443}
+      ETH_HOST: ${ETH_HOST:-http://ethereum:8545}
+      THOR_BLOCK_TIME: ${THOR_BLOCK_TIME:-5s}
+      BLOCK_SCANNER_BACKOFF: ${BLOCK_SCANNER_BACKOFF:-5s}
+    ports:
+      - 6040:6040
+    entrypoint: /docker/scripts/bifrost.sh
+    volumes:
+      - "../scripts:/docker/scripts"
+      - bifrost:/var/data/bifrost
+      - thornode:/root/.thornode
+    command: ["bifrost", "-c", "/etc/bifrost/config.json"]
+
+  # ------------------------------ midgard ------------------------------
+
+  midgard:
+    profiles:
+      - midgard
+    depends_on:
+      - midgard-db
+      - thornode
+    image: registry.gitlab.com/thorchain/midgard:develop
+    restart: unless-stopped
+    environment:
+      MIDGARD_THORCHAIN_THOR_NODE_URL: http://thornode:1317/thorchain
+      MIDGARD_THORCHAIN_TENDERMINT_URL: http://thornode:26657/websocket
+      MIDGARD_TIMESCALE_HOST: midgard-db
+      MIDGARD_THORCHAIN_LAST_CHAIN_BACKOFF: ${THOR_BLOCK_TIME:-5s}
+    ports:
+      - 8080:8080
+    logging: *logging
+
+  midgard-db:
+    profiles:
+      - midgard
+    image: timescale/timescaledb:2.2.0-pg13
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=midgard
+      - POSTGRES_PASSWORD=password
+    command: postgres -c 'max_connections=250'
+    logging: *logging
+
+  ######################################################################################
+  # Mock Clients
+  ######################################################################################
+
+  # ------------------------------ binance ------------------------------
+
+  binance:
+    profiles:
+      - mocknet
+    image: registry.gitlab.com/thorchain/bepswap/mock-binance
+    ports:
+      - 26660:26660
+
+  # ------------------------------ bitcoin ------------------------------
+
+  bitcoin:
+    profiles:
+      - mocknet
+    image: registry.gitlab.com/thorchain/devops/bitcoin-core:22.0
+    restart: unless-stopped
+    environment:
+      BLOCK_TIME: ${BLOCK_TIME:-1}
+    ports:
+      - 18443:18443
+      - 18444:18444
+    entrypoint: "/scripts/entrypoint-mock.sh"
+
+  # ------------------------------ bitcoin cash ------------------------------
+
+  bitcoin-cash:
+    profiles:
+      - mocknet
+    image: registry.gitlab.com/thorchain/devops/bitcoin-cash:23.0.0
+    restart: unless-stopped
+    environment:
+      RPC_PORT: "28443"
+      BLOCK_TIME: ${BLOCK_TIME:-1}
+    ports:
+      - 28443:28443
+    entrypoint: "/scripts/entrypoint-mock.sh"
+
+  # ------------------------------ dogecoin ------------------------------
+
+  dogecoin:
+    profiles:
+      - mocknet
+    image: registry.gitlab.com/thorchain/devops/dogecoin-core:1.14.2
+    restart: unless-stopped
+    environment:
+      BLOCK_TIME: ${BLOCK_TIME:-1}
+    ports:
+      - 18332:18332
+    entrypoint: "/scripts/entrypoint-mock.sh"
+
+  # ------------------------------ ethereum ------------------------------
+
+  ethereum:
+    profiles:
+      - mocknet
+    image: ethereum/client-go:v1.10.13
+    restart: unless-stopped
+    environment:
+      ETH_BLOCK_TIME: ${ETH_BLOCK_TIME:-5}
+    ports:
+      - 8545:8545
+      - 30301:30301
+      - 30303:30303
+    volumes:
+      - "../scripts:/docker/scripts"
+    entrypoint: /docker/scripts/eth/start-mock.sh
+
+  # ------------------------------ litecoin ------------------------------
+
+  litecoin:
+    profiles:
+      - mocknet
+    image: registry.gitlab.com/thorchain/devops/litecoin-core:0.18.1
+    restart: unless-stopped
+    environment:
+      RPC_PORT: "38443"
+      BLOCK_TIME: ${BLOCK_TIME:-1}
+    ports:
+      - 38443:38443
+    entrypoint: "/scripts/entrypoint-mock.sh"
