@@ -631,7 +631,7 @@ func (c *Client) FetchTxs(height int64) (types.TxIn, error) {
 	}
 
 	c.updateNetworkInfo()
-	if err := c.sendNetworkFee(height); err != nil {
+	if err := c.sendNetworkFee(block); err != nil {
 		c.logger.Err(err).Msg("fail to send network fee")
 	}
 	if height%10 == 0 {
@@ -673,7 +673,31 @@ func (c *Client) updateNetworkInfo() {
 	c.minRelayFeeSats = uint64(amt.ToUnit(dogutil.AmountSatoshi))
 }
 
-func (c *Client) sendNetworkFee(height int64) error {
+func (c *Client) sendNetworkFee(blockResult *btcjson.GetBlockVerboseTxResult) error {
+	height := blockResult.Height
+	var total float64 // total coinbase value , which is the block reward + all transaction fees in the block
+	var totalVSize int32
+	for _, tx := range blockResult.Tx {
+		if len(tx.Vin) == 1 && tx.Vin[0].IsCoinBase() {
+			for _, opt := range tx.Vout {
+				total += opt.Value
+			}
+		} else {
+			totalVSize += tx.Vsize
+		}
+	}
+	// When there is no transactions in the block , only coin base, we don't update network fee
+	if totalVSize == 0 {
+		return nil
+	}
+	amt, err := dogutil.NewAmount(total - DefaultCoinbaseValue)
+	if err != nil {
+		return fmt.Errorf("fail to parse total block fee amount,err: %w", err)
+	}
+
+	// average fee rate , sats/vbyte
+	avgFeeRate := uint64(amt.ToUnit(dogutil.AmountSatoshi) / float64(totalVSize))
+
 	// ex: default fee per kb = 0.01, average tx size is 500 bytes,
 	// fee rate in doge/vbyte = 0.000002, or 200 sats/vbye.
 	feeRate := DefaultFeePerKB / EstimateAverageTxSize
@@ -682,19 +706,20 @@ func (c *Client) sendNetworkFee(height int64) error {
 		return fmt.Errorf("fail to parse float64: %w", err)
 	}
 	feeRateSats := uint64(amount.ToUnit(dogutil.AmountSatoshi))
+	// feeRateSats is the minimum fee rate the network is going to pay
+	if avgFeeRate > feeRateSats {
+		feeRateSats = avgFeeRate
+	}
 
-	c.logger.Debug().Str("chain", "DOGE").Uint64("lastFeeRate", c.lastFeeRate).Uint64("feeRate", feeRateSats).Msg("sendNetworkFee")
+	c.logger.Info().Int64("height", height).Uint64("lastFeeRate", c.lastFeeRate).Uint64("avgFeeRate", avgFeeRate).Msg("sendNetworkFee")
 	// Only send the fee if it has changed
-	// Because it is fixed, thorchain will not reach consensus unless it happens in the same block
-	// All node operators would start bifrost and then never report again because it does not change
-	// Therefore, also send network fee every 60 blocks (~60 minutes).
-	if c.lastFeeRate != feeRateSats || height%60 == 0 {
-		c.lastFeeRate = feeRateSats
+	if c.lastFeeRate != feeRateSats {
 		txid, err := c.bridge.PostNetworkFee(height, common.DOGEChain, uint64(EstimateAverageTxSize), feeRateSats)
 		if err != nil {
-			c.logger.Error().Str("chain", "DOGE").Err(err).Msg("failed to post network fee to thornode")
+			c.logger.Error().Err(err).Msg("failed to post network fee to thornode")
 			return fmt.Errorf("fail to post network fee to thornode: %w", err)
 		}
+		c.lastFeeRate = feeRateSats
 		c.logger.Debug().Str("txid", txid.String()).Msg("send network fee to THORNode successfully")
 	}
 	return nil
