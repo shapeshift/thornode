@@ -3,13 +3,13 @@
 set -o pipefail
 
 . "$(dirname "$0")/core.sh"
-. "$(dirname "$0")/testnet-state.sh"
+. "$(dirname "$0")/testnet/state.sh"
 
 SIGNER_NAME="${SIGNER_NAME:=thorchain}"
 SIGNER_PASSWD="${SIGNER_PASSWD:=password}"
 NODES="${NODES:=1}"
 SEED="${SEED:=thornode}" # the hostname of the master node
-ETH_HOST="${ETH_HOST:=http://ethereum-localnet:8545}"
+ETH_HOST="${ETH_HOST:=http://ethereum:8545}"
 THOR_BLOCK_TIME="${THOR_BLOCK_TIME:=5s}"
 CHAIN_ID=${CHAIN_ID:=thorchain}
 
@@ -71,9 +71,6 @@ if [ "$SEED" = "$(hostname)" ]; then
         add_node_account "$(awk <"$f" '{print $1}')" "$(awk <"$f" '{print $2}')" "$(awk <"$f" '{print $3}')" "$(awk <"$f" '{print $4}')" "$(awk <"$f" '{print $5}')" "$(awk <"$f" '{print $6}')" "$NODE_IP_ADDRESS"
       fi
     done
-
-    # add gases
-    # add_gas_config "BNB.BNB" 37500 30000
 
     # disable default bank transfer, and opt to use our own custom one
     disable_bank_send
