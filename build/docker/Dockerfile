@@ -39,3 +39,10 @@ COPY --from=build /go/bin/thornode /usr/bin/
 COPY --from=build /go/bin/bifrost /usr/bin/
 
 COPY build/scripts /scripts
+
+# default to mainnet
+ARG TAG=mainnet
+ENV NET=$TAG
+
+# default to fullnode
+CMD ["/scripts/fullnode.sh"]

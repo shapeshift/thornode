@@ -20,6 +20,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"gitlab.com/thorchain/bifrost/txscript"
+	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/runners"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/signercache"
 	mem "gitlab.com/thorchain/thornode/x/thorchain/memo"
 	tssp "gitlab.com/thorchain/tss/go-tss/tss"
@@ -45,37 +46,40 @@ const (
 	MaxAsgardAddresses  = 100
 	// EstimateAverageTxSize for THORChain the estimate tx size is hard code to 1000 here , as most of time it will spend 1 input, have 3 output
 	// which is average at 250 vbytes , however asgard will consolidate UTXOs , which will take up to 1000 vbytes
-	EstimateAverageTxSize = 1000
-	DefaultCoinbaseValue  = 6.25
-	MaxMempoolScanPerTry  = 500
+	EstimateAverageTxSize  = 1000
+	DefaultCoinbaseValue   = 6.25
+	MaxMempoolScanPerTry   = 500
+	solvencyCheckerTimeout = time.Minute * 10
 )
 
 // Client observes bitcoin chain and allows to sign and broadcast tx
 type Client struct {
-	logger                zerolog.Logger
-	cfg                   config.ChainConfiguration
-	m                     *metrics.Metrics
-	client                *rpcclient.Client
-	chain                 common.Chain
-	privateKey            *btcec.PrivateKey
-	blockScanner          *blockscanner.BlockScanner
-	blockMetaAccessor     BlockMetaAccessor
-	ksWrapper             *KeySignWrapper
-	bridge                *thorclient.ThorchainBridge
-	globalErrataQueue     chan<- types.ErrataBlock
-	globalSolvencyQueue   chan<- types.Solvency
-	nodePubKey            common.PubKey
-	currentBlockHeight    int64
-	asgardAddresses       []common.Address
-	lastAsgard            time.Time
-	minRelayFeeSats       uint64
-	tssKeySigner          *tss.KeySign
-	wg                    *sync.WaitGroup
-	lastFeeRate           int64
-	signerLock            *sync.Mutex
-	vaultSignerLocks      map[string]*sync.Mutex
-	consolidateInProgress bool
-	signerCacheManager    *signercache.CacheManager
+	logger                  zerolog.Logger
+	cfg                     config.ChainConfiguration
+	m                       *metrics.Metrics
+	client                  *rpcclient.Client
+	chain                   common.Chain
+	privateKey              *btcec.PrivateKey
+	blockScanner            *blockscanner.BlockScanner
+	blockMetaAccessor       BlockMetaAccessor
+	ksWrapper               *KeySignWrapper
+	bridge                  *thorclient.ThorchainBridge
+	globalErrataQueue       chan<- types.ErrataBlock
+	globalSolvencyQueue     chan<- types.Solvency
+	nodePubKey              common.PubKey
+	currentBlockHeight      int64
+	asgardAddresses         []common.Address
+	lastAsgard              time.Time
+	minRelayFeeSats         uint64
+	tssKeySigner            *tss.KeySign
+	wg                      *sync.WaitGroup
+	lastFeeRate             int64
+	signerLock              *sync.Mutex
+	vaultSignerLocks        map[string]*sync.Mutex
+	consolidateInProgress   bool
+	signerCacheManager      *signercache.CacheManager
+	stopchan                chan struct{}
+	lastSolvencyCheckHeight int64
 }
 
 // NewClient generates a new Client
@@ -132,6 +136,7 @@ func NewClient(thorKeys *thorclient.Keys, cfg config.ChainConfiguration, server 
 		wg:               &sync.WaitGroup{},
 		signerLock:       &sync.Mutex{},
 		vaultSignerLocks: make(map[string]*sync.Mutex),
+		stopchan:         make(chan struct{}),
 	}
 
 	var path string // if not set later, will in memory storage
@@ -172,12 +177,15 @@ func (c *Client) Start(globalTxsQueue chan types.TxIn, globalErrataQueue chan ty
 	c.globalSolvencyQueue = globalSolvencyQueue
 	c.tssKeySigner.Start()
 	c.blockScanner.Start(globalTxsQueue)
+	c.wg.Add(1)
+	go runners.SolvencyCheckRunner(c.GetChain(), c, solvencyCheckerTimeout, c.stopchan, c.wg)
 }
 
 // Stop stops the block scanner
 func (c *Client) Stop() {
 	c.tssKeySigner.Stop()
 	c.blockScanner.Stop()
+	close(c.stopchan)
 	// wait for consolidate utxo to exit
 	c.wg.Wait()
 }
@@ -626,7 +634,7 @@ func (c *Client) FetchTxs(height int64) (types.TxIn, error) {
 	if err := c.sendNetworkFee(height); err != nil {
 		c.logger.Err(err).Msg("fail to send network fee")
 	}
-	if err := c.reportSolvency(height); err != nil {
+	if err := c.ReportSolvency(height); err != nil {
 		c.logger.Err(err).Msgf("fail to send solvency info to THORChain")
 	}
 	txIn.Count = strconv.Itoa(len(txIn.TxArray))
@@ -638,7 +646,7 @@ func (c *Client) FetchTxs(height int64) (types.TxIn, error) {
 	return txIn, nil
 }
 
-func (c *Client) reportSolvency(bitcoinBlockHeight int64) error {
+func (c *Client) ReportSolvency(bitcoinBlockHeight int64) error {
 	asgardVaults, err := c.bridge.GetAsgards()
 	if err != nil {
 		return fmt.Errorf("fail to get asgards,err: %w", err)
@@ -660,9 +668,14 @@ func (c *Client) reportSolvency(bitcoinBlockHeight int64) error {
 			c.logger.Info().Msgf("fail to send solvency info to THORChain, timeout")
 		}
 	}
+	c.lastSolvencyCheckHeight = bitcoinBlockHeight
 	return nil
 }
 
+// ShouldReportSolvency based on the given block height , should the client report solvency to THORNode
+func (c *Client) ShouldReportSolvency(height int64) bool {
+	return height-c.lastSolvencyCheckHeight > 1
+}
 func (c *Client) canDeleteBlock(blockMeta *BlockMeta) bool {
 	if blockMeta == nil {
 		return true

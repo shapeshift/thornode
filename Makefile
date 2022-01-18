@@ -1,5 +1,5 @@
 include Makefile.cicd
-.PHONY: build test tools export healthcheck
+.PHONY: build test tools export healthcheck run-mocknet reset-mocknet
 
 module = gitlab.com/thorchain/thornode
 GOBIN?=${GOPATH}/bin
@@ -24,10 +24,6 @@ BUILD_FLAGS := -ldflags '$(ldflags)' -tags ${TAG}
 TEST_BUILD_FLAGS :=  -tags mocknet
 
 BINARIES=./cmd/thornode ./cmd/bifrost ./tools/generate
-
-# variables default for healthcheck against full stack in docker
-CHAIN_API?=localhost:1317
-MIDGARD_API?=localhost:8080
 
 all: lint install
 
@@ -84,15 +80,9 @@ lint: lint-pre lint-managers
 lint-verbose: lint-pre lint-managers
 	golangci-lint run -v --skip-files ".*\\.pb\\.go$$"
 
-start-daemon:
-	thord start --log_level "main:info,state:debug,*:error"
-
-start-rest:
-	thorcli rest-server
-
 clean:
 	rm -rf ~/.thor*
-	rm -f ${GOBIN}/{generate,thorcli,thord,bifrost}
+	rm -f ${GOBIN}/{generate,thornode,bifrost}
 
 .envrc: install
 	@generate -t MASTER > .envrc
@@ -105,12 +95,18 @@ extract: tools
 tss:
 	go get gitlab.com/thorchain/tss/go-tss
 
-export:
-	thord export
-
 pull:
 	docker pull ${IMAGE}:mocknet
 	docker pull registry.gitlab.com/thorchain/midgard
 	docker pull registry.gitlab.com/thorchain/bepswap/bepswap-web-ui
 	docker pull registry.gitlab.com/thorchain/bepswap/mock-binance
 	docker pull registry.gitlab.com/thorchain/ethereum-mock
+
+run-mocknet:
+	docker compose -f build/docker/docker-compose.yml --profile mocknet --profile midgard up -d
+	docker compose -f build/docker/docker-compose.yml --profile mocknet logs -f thornode bifrost
+
+reset-mocknet:
+	docker compose -f build/docker/docker-compose.yml --profile mocknet --profile midgard down -v
+	docker compose -f build/docker/docker-compose.yml --profile mocknet --profile midgard up -d
+	docker compose -f build/docker/docker-compose.yml --profile mocknet logs -f thornode bifrost
