@@ -332,7 +332,7 @@ func (c *Client) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, err
 		if err != nil {
 			return nil, fmt.Errorf("fail to parse memo: %w", err)
 		}
-		if memo.GetType() == mem.TxYggdrasilReturn {
+		if memo.GetType() == mem.TxYggdrasilReturn || memo.GetType() == mem.TxConsolidate {
 			gap := gasAmtSats
 			c.logger.Info().Msgf("yggdrasil return asset , need gas: %d", gap)
 			coinToCustomer.Amount = common.SafeSub(coinToCustomer.Amount, cosmos.NewUint(gap))
