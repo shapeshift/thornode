@@ -2001,13 +2001,13 @@
         "height": null
     },
     {
-        "type": "add_liquidity",
+        "type": "pending_liquidity",
         "attributes": [
             {
                 "pool": "BNB.BNB"
             },
             {
-                "liquidity_provider_units": "10475858186"
+                "type": "add"
             },
             {
                 "rune_address": "PROVIDER-2"
@@ -2019,7 +2019,7 @@
                 "asset_amount": "0"
             },
             {
-                "asset_address": ""
+                "asset_address": "PROVIDER-2"
             },
             {
                 "THOR_txid": "TODO"
@@ -2028,127 +2028,58 @@
         "height": null
     },
     {
-        "type": "fee",
+        "type": "add_liquidity",
         "attributes": [
             {
-                "tx_id": "TODO"
+                "pool": "BNB.BNB"
             },
             {
-                "coins": "112500 BNB.BNB"
+                "liquidity_provider_units": "15997687722"
             },
             {
-                "pool_deduct": "53311537"
+                "rune_address": "PROVIDER-2"
+            },
+            {
+                "rune_amount": "30000000000"
+            },
+            {
+                "asset_amount": "30000000"
+            },
+            {
+                "asset_address": "PROVIDER-2"
+            },
+            {
+                "BNB_txid": "TODO"
+            },
+            {
+                "THOR_txid": "TODO"
             }
         ],
         "height": null
     },
     {
-        "type": "refund",
+        "type": "pending_liquidity",
         "attributes": [
             {
-                "code": "100"
+                "pool": "BNB.BNB"
             },
             {
-                "reason": "mismatch of asset address"
+                "type": "add"
             },
             {
-                "id": "TODO"
+                "rune_address": "PROVIDER-2"
             },
             {
-                "chain": "BNB"
+                "rune_amount": "0"
             },
             {
-                "from": "PROVIDER-2"
+                "asset_amount": "90000000"
             },
             {
-                "to": "VAULT"
+                "asset_address": "PROVIDER-2"
             },
             {
-                "coin": "30000000 BNB.BNB"
-            },
-            {
-                "memo": "ADD:BNB.BNB:PROVIDER-2"
-            }
-        ],
-        "height": null
-    },
-    {
-        "type": "gas",
-        "attributes": [
-            {
-                "asset": "BNB.BNB"
-            },
-            {
-                "asset_amt": "37500"
-            },
-            {
-                "rune_amt": "17760180"
-            },
-            {
-                "transaction_count": "1"
-            }
-        ],
-        "height": null
-    },
-    {
-        "type": "fee",
-        "attributes": [
-            {
-                "tx_id": "TODO"
-            },
-            {
-                "coins": "112500 BNB.BNB"
-            },
-            {
-                "pool_deduct": "53286735"
-            }
-        ],
-        "height": null
-    },
-    {
-        "type": "refund",
-        "attributes": [
-            {
-                "code": "100"
-            },
-            {
-                "reason": "mismatch of asset address"
-            },
-            {
-                "id": "TODO"
-            },
-            {
-                "chain": "BNB"
-            },
-            {
-                "from": "PROVIDER-2"
-            },
-            {
-                "to": "VAULT"
-            },
-            {
-                "coin": "90000000 BNB.BNB"
-            },
-            {
-                "memo": "ADD:BNB.BNB:PROVIDER-2"
-            }
-        ],
-        "height": null
-    },
-    {
-        "type": "gas",
-        "attributes": [
-            {
-                "asset": "BNB.BNB"
-            },
-            {
-                "asset_amt": "37500"
-            },
-            {
-                "rune_amt": "17751920"
-            },
-            {
-                "transaction_count": "1"
+                "BNB_txid": "TODO"
             }
         ],
         "height": null
@@ -2307,7 +2238,7 @@
                 "coins": "112500 BNB.BNB"
             },
             {
-                "pool_deduct": "50325217"
+                "pool_deduct": "46417807"
             }
         ],
         "height": null
@@ -2352,7 +2283,7 @@
                 "asset_amt": "37500"
             },
             {
-                "rune_amt": "16766153"
+                "rune_amt": "15465017"
             },
             {
                 "transaction_count": "1"
@@ -2370,7 +2301,7 @@
                 "coins": "30000 BTC.BTC"
             },
             {
-                "pool_deduct": "24301503"
+                "pool_deduct": "24413683"
             }
         ],
         "height": null
@@ -2394,7 +2325,7 @@
                 "to": "VAULT"
             },
             {
-                "coin": "38241482495 THOR.RUNE"
+                "coin": "38738128431 THOR.RUNE"
             },
             {
                 "memo": "SWAP:BTC.BTC:USER-1"
@@ -2412,16 +2343,16 @@
                 "swap_target": "0"
             },
             {
-                "swap_slip": "5864"
+                "swap_slip": "5666"
             },
             {
-                "liquidity_fee": "54223337386"
+                "liquidity_fee": "50640807806"
             },
             {
-                "liquidity_fee_in_rune": "54223337386"
+                "liquidity_fee_in_rune": "50640807806"
             },
             {
-                "emit_asset": "38241482495 THOR.RUNE"
+                "emit_asset": "38738128431 THOR.RUNE"
             },
             {
                 "id": "TODO"
@@ -2454,16 +2385,16 @@
                 "swap_target": "0"
             },
             {
-                "swap_slip": "2398"
+                "swap_slip": "2421"
             },
             {
-                "liquidity_fee": "13843154"
+                "liquidity_fee": "14116995"
             },
             {
-                "liquidity_fee_in_rune": "6970878463"
+                "liquidity_fee_in_rune": "7108774229"
             },
             {
-                "emit_asset": "43889468 BTC.BTC"
+                "emit_asset": "44183855 BTC.BTC"
             },
             {
                 "id": "TODO"
@@ -2478,7 +2409,7 @@
                 "to": "VAULT"
             },
             {
-                "coin": "38241482495 THOR.RUNE"
+                "coin": "38738128431 THOR.RUNE"
             },
             {
                 "memo": "SWAP:BTC.BTC:USER-1"
@@ -2496,7 +2427,7 @@
                 "asset_amt": "15000"
             },
             {
-                "rune_amt": "12147975"
+                "rune_amt": "12204048"
             },
             {
                 "transaction_count": "1"
@@ -2532,13 +2463,13 @@
                 "swap_slip": "76"
             },
             {
-                "liquidity_fee": "9115785"
+                "liquidity_fee": "9171368"
             },
             {
-                "liquidity_fee_in_rune": "9115785"
+                "liquidity_fee_in_rune": "9171368"
             },
             {
-                "emit_asset": "1196588981 THOR.RUNE"
+                "emit_asset": "1202085172 THOR.RUNE"
             },
             {
                 "id": "TODO"
@@ -2571,7 +2502,7 @@
                 "coins": "30000 BCH.BCH"
             },
             {
-                "pool_deduct": "20207915"
+                "pool_deduct": "20094039"
             }
         ],
         "height": null
@@ -2595,7 +2526,7 @@
                 "to": "VAULT"
             },
             {
-                "coin": "27829418609 THOR.RUNE"
+                "coin": "27475653020 THOR.RUNE"
             },
             {
                 "memo": "SWAP:BCH.BCH:USER-1"
@@ -2613,16 +2544,16 @@
                 "swap_target": "0"
             },
             {
-                "swap_slip": "3697"
+                "swap_slip": "3617"
             },
             {
-                "liquidity_fee": "16319763089"
+                "liquidity_fee": "15567306152"
             },
             {
-                "liquidity_fee_in_rune": "16319763089"
+                "liquidity_fee_in_rune": "15567306152"
             },
             {
-                "emit_asset": "27829418609 THOR.RUNE"
+                "emit_asset": "27475653020 THOR.RUNE"
             },
             {
                 "id": "TODO"
@@ -2655,16 +2586,16 @@
                 "swap_target": "0"
             },
             {
-                "swap_slip": "3576"
+                "swap_slip": "3546"
             },
             {
-                "liquidity_fee": "19178381"
+                "liquidity_fee": "18865000"
             },
             {
-                "liquidity_fee_in_rune": "6392793667"
+                "liquidity_fee_in_rune": "6288333333"
             },
             {
-                "emit_asset": "34457028 BCH.BCH"
+                "emit_asset": "34330394 BCH.BCH"
             },
             {
                 "id": "TODO"
@@ -2679,7 +2610,7 @@
                 "to": "VAULT"
             },
             {
-                "coin": "27829418609 THOR.RUNE"
+                "coin": "27475653020 THOR.RUNE"
             },
             {
                 "memo": "SWAP:BCH.BCH:USER-1"
@@ -2697,7 +2628,7 @@
                 "asset_amt": "15000"
             },
             {
-                "rune_amt": "10100023"
+                "rune_amt": "10043111"
             },
             {
                 "transaction_count": "1"
@@ -2715,7 +2646,7 @@
                 "coins": "30000 LTC.LTC"
             },
             {
-                "pool_deduct": "16904775"
+                "pool_deduct": "16835300"
             }
         ],
         "height": null
@@ -2739,7 +2670,7 @@
                 "to": "VAULT"
             },
             {
-                "coin": "18050676041 THOR.RUNE"
+                "coin": "17855080735 THOR.RUNE"
             },
             {
                 "memo": "SWAP:LTC.LTC:USER-1"
@@ -2757,16 +2688,16 @@
                 "swap_target": "0"
             },
             {
-                "swap_slip": "2699"
+                "swap_slip": "2656"
             },
             {
-                "liquidity_fee": "6672439788"
+                "liquidity_fee": "6457630086"
             },
             {
-                "liquidity_fee_in_rune": "6672439788"
+                "liquidity_fee_in_rune": "6457630086"
             },
             {
-                "emit_asset": "18050676041 THOR.RUNE"
+                "emit_asset": "17855080735 THOR.RUNE"
             },
             {
                 "id": "TODO"
@@ -2799,16 +2730,16 @@
                 "swap_target": "0"
             },
             {
-                "swap_slip": "2653"
+                "swap_slip": "2631"
             },
             {
-                "liquidity_fee": "10553908"
+                "liquidity_fee": "10386043"
             },
             {
-                "liquidity_fee_in_rune": "3517969333"
+                "liquidity_fee_in_rune": "3462014333"
             },
             {
-                "emit_asset": "29234108 LTC.LTC"
+                "emit_asset": "29084281 LTC.LTC"
             },
             {
                 "id": "TODO"
@@ -2823,7 +2754,7 @@
                 "to": "VAULT"
             },
             {
-                "coin": "18050676041 THOR.RUNE"
+                "coin": "17855080735 THOR.RUNE"
             },
             {
                 "memo": "SWAP:LTC.LTC:USER-1"
@@ -2841,7 +2772,7 @@
                 "asset_amt": "15000"
             },
             {
-                "rune_amt": "8449239"
+                "rune_amt": "8414518"
             },
             {
                 "transaction_count": "1"
@@ -2877,13 +2808,13 @@
                 "swap_slip": "123"
             },
             {
-                "liquidity_fee": "10238675"
+                "liquidity_fee": "10184276"
             },
             {
-                "liquidity_fee_in_rune": "10238675"
+                "liquidity_fee_in_rune": "10184276"
             },
             {
-                "emit_asset": "824424279 THOR.RUNE"
+                "emit_asset": "821061269 THOR.RUNE"
             },
             {
                 "id": "TODO"
@@ -3141,13 +3072,13 @@
                 "swap_slip": "128"
             },
             {
-                "liquidity_fee": "12778147"
+                "liquidity_fee": "12692591"
             },
             {
-                "liquidity_fee_in_rune": "12778147"
+                "liquidity_fee_in_rune": "12692591"
             },
             {
-                "emit_asset": "984411228 THOR.RUNE"
+                "emit_asset": "978891603 THOR.RUNE"
             },
             {
                 "id": "TODO"
@@ -3423,7 +3354,7 @@
                 "coins": "112500 BNB.BNB"
             },
             {
-                "pool_deduct": "4466583"
+                "pool_deduct": "4403312"
             }
         ],
         "height": null
@@ -3468,7 +3399,7 @@
                 "asset_amt": "37500"
             },
             {
-                "rune_amt": "1488710"
+                "rune_amt": "1467624"
             },
             {
                 "transaction_count": "1"
@@ -3486,7 +3417,7 @@
                 "coins": "112500 BNB.BNB"
             },
             {
-                "pool_deduct": "4478366"
+                "pool_deduct": "4414913"
             }
         ],
         "height": null
@@ -3504,13 +3435,13 @@
                 "swap_slip": "14"
             },
             {
-                "liquidity_fee": "3415"
+                "liquidity_fee": "3458"
             },
             {
-                "liquidity_fee_in_rune": "135575"
+                "liquidity_fee_in_rune": "135337"
             },
             {
-                "emit_asset": "2512097 BNB.BNB"
+                "emit_asset": "2548202 BNB.BNB"
             },
             {
                 "id": "TODO"
@@ -3543,7 +3474,7 @@
                 "asset_amt": "37500"
             },
             {
-                "rune_amt": "1492637"
+                "rune_amt": "1471491"
             },
             {
                 "transaction_count": "1"
@@ -3561,7 +3492,7 @@
                 "coins": "112500 BNB.BNB"
             },
             {
-                "pool_deduct": "5684331"
+                "pool_deduct": "5601790"
             }
         ],
         "height": null
@@ -3576,16 +3507,16 @@
                 "swap_target": "26572599"
             },
             {
-                "swap_slip": "1195"
+                "swap_slip": "1194"
             },
             {
-                "liquidity_fee": "26443197"
+                "liquidity_fee": "26788206"
             },
             {
-                "liquidity_fee_in_rune": "1052557359"
+                "liquidity_fee_in_rune": "1051183583"
             },
             {
-                "emit_asset": "194751249 BNB.BNB"
+                "emit_asset": "197631049 BNB.BNB"
             },
             {
                 "id": "TODO"
@@ -3618,7 +3549,7 @@
                 "asset_amt": "37500"
             },
             {
-                "rune_amt": "1894563"
+                "rune_amt": "1867055"
             },
             {
                 "transaction_count": "1"
@@ -3636,7 +3567,7 @@
                 "coins": "112500 BNB.BNB"
             },
             {
-                "pool_deduct": "7034282"
+                "pool_deduct": "6930161"
             }
         ],
         "height": null
@@ -3651,16 +3582,16 @@
                 "swap_target": "0"
             },
             {
-                "swap_slip": "1068"
+                "swap_slip": "1066"
             },
             {
-                "liquidity_fee": "18879167"
+                "liquidity_fee": "19134554"
             },
             {
-                "liquidity_fee_in_rune": "953828588"
+                "liquidity_fee_in_rune": "952695044"
             },
             {
-                "emit_asset": "157915005 BNB.BNB"
+                "emit_asset": "160293337 BNB.BNB"
             },
             {
                 "id": "TODO"
@@ -3693,7 +3624,7 @@
                 "asset_amt": "37500"
             },
             {
-                "rune_amt": "2344467"
+                "rune_amt": "2309769"
             },
             {
                 "transaction_count": "1"
@@ -3717,10 +3648,10 @@
                 "asymmetry": "0.000000000000000000"
             },
             {
-                "emit_asset": "18399239"
+                "emit_asset": "18369800"
             },
             {
-                "emit_rune": "14678396331"
+                "emit_rune": "14722226653"
             },
             {
                 "imp_loss_protection": "0"
@@ -3756,7 +3687,7 @@
                 "coins": "30000 BTC.BTC"
             },
             {
-                "pool_deduct": "23933158"
+                "pool_deduct": "24043092"
             }
         ],
         "height": null
@@ -3786,7 +3717,7 @@
                 "asset_amt": "15000"
             },
             {
-                "rune_amt": "11963588"
+                "rune_amt": "12018537"
             },
             {
                 "transaction_count": "1"
@@ -3810,10 +3741,10 @@
                 "asymmetry": "0.000000000000000000"
             },
             {
-                "emit_asset": "11705797"
+                "emit_asset": "11718461"
             },
             {
-                "emit_rune": "7683489949"
+                "emit_rune": "7648671049"
             },
             {
                 "imp_loss_protection": "0"
@@ -3849,7 +3780,7 @@
                 "coins": "30000 BCH.BCH"
             },
             {
-                "pool_deduct": "19691499"
+                "pool_deduct": "19581082"
             }
         ],
         "height": null
@@ -3879,7 +3810,7 @@
                 "asset_amt": "15000"
             },
             {
-                "rune_amt": "9841545"
+                "rune_amt": "9786364"
             },
             {
                 "transaction_count": "1"
@@ -3903,10 +3834,10 @@
                 "asymmetry": "0.000000000000000000"
             },
             {
-                "emit_asset": "12228089"
+                "emit_asset": "12243072"
             },
             {
-                "emit_rune": "6721779623"
+                "emit_rune": "6702559868"
             },
             {
                 "imp_loss_protection": "0"
@@ -3942,7 +3873,7 @@
                 "coins": "30000 LTC.LTC"
             },
             {
-                "pool_deduct": "16490997"
+                "pool_deduct": "16423721"
             }
         ],
         "height": null
@@ -3972,7 +3903,7 @@
                 "asset_amt": "15000"
             },
             {
-                "rune_amt": "8242128"
+                "rune_amt": "8208507"
             },
             {
                 "transaction_count": "1"
@@ -4005,16 +3936,16 @@
                 "swap_target": "0"
             },
             {
-                "swap_slip": "66"
+                "swap_slip": "65"
             },
             {
-                "liquidity_fee": "4119116"
+                "liquidity_fee": "3993546"
             },
             {
-                "liquidity_fee_in_rune": "4119116"
+                "liquidity_fee_in_rune": "3993546"
             },
             {
-                "emit_asset": "616941135 THOR.RUNE"
+                "emit_asset": "607940305 THOR.RUNE"
             },
             {
                 "id": "TODO"
@@ -4047,7 +3978,7 @@
                 "coins": "112500 BNB.BNB"
             },
             {
-                "pool_deduct": "8425479"
+                "pool_deduct": "8300435"
             }
         ],
         "height": null
@@ -4062,16 +3993,16 @@
                 "swap_target": "23853375"
             },
             {
-                "swap_slip": "971"
+                "swap_slip": "969"
             },
             {
-                "liquidity_fee": "14205521"
+                "liquidity_fee": "14398944"
             },
             {
-                "liquidity_fee_in_rune": "876435834"
+                "liquidity_fee_in_rune": "875407368"
             },
             {
-                "emit_asset": "132144707 BNB.BNB"
+                "emit_asset": "134139265 BNB.BNB"
             },
             {
                 "id": "TODO"
@@ -4104,7 +4035,7 @@
                 "asset_amt": "37500"
             },
             {
-                "rune_amt": "2808110"
+                "rune_amt": "2766441"
             },
             {
                 "transaction_count": "1"
@@ -4122,7 +4053,7 @@
                 "coins": "112500 BNB.BNB"
             },
             {
-                "pool_deduct": "10053149"
+                "pool_deduct": "9901873"
             }
         ],
         "height": null
@@ -4137,16 +4068,16 @@
                 "swap_target": "22460886"
             },
             {
-                "swap_slip": "885"
+                "swap_slip": "884"
             },
             {
-                "liquidity_fee": "10770196"
+                "liquidity_fee": "10920587"
             },
             {
-                "liquidity_fee_in_rune": "806525887"
+                "liquidity_fee_in_rune": "805652428"
             },
             {
-                "emit_asset": "110952268 BNB.BNB"
+                "emit_asset": "112649758 BNB.BNB"
             },
             {
                 "id": "TODO"
@@ -4179,7 +4110,7 @@
                 "asset_amt": "37500"
             },
             {
-                "rune_amt": "3350553"
+                "rune_amt": "3300143"
             },
             {
                 "transaction_count": "1"
@@ -4197,7 +4128,7 @@
                 "coins": "112500 BNB.BNB"
             },
             {
-                "pool_deduct": "10051957"
+                "pool_deduct": "9900718"
             }
         ],
         "height": null
@@ -4242,7 +4173,7 @@
                 "asset_amt": "37500"
             },
             {
-                "rune_amt": "3350156"
+                "rune_amt": "3299758"
             },
             {
                 "transaction_count": "1"
@@ -4314,10 +4245,10 @@
                 "tx_id": "TODO"
             },
             {
-                "coins": "8222318 BNB.LOK-3C0"
+                "coins": "8098622 BNB.LOK-3C0"
             },
             {
-                "pool_deduct": "10050765"
+                "pool_deduct": "9899562"
             }
         ],
         "height": null
@@ -4374,7 +4305,7 @@
                 "asset_amt": "37500"
             },
             {
-                "rune_amt": "3350354"
+                "rune_amt": "3299950"
             },
             {
                 "transaction_count": "1"
@@ -4392,7 +4323,7 @@
                 "coins": "112500 BNB.BNB"
             },
             {
-                "pool_deduct": "10913802"
+                "pool_deduct": "10748592"
             }
         ],
         "height": null
@@ -4416,7 +4347,7 @@
                 "to": "VAULT"
             },
             {
-                "coin": "4852510324 THOR.RUNE"
+                "coin": "4852536448 THOR.RUNE"
             },
             {
                 "memo": "SWAP:BNB.BNB"
@@ -4437,13 +4368,13 @@
                 "swap_slip": "1088"
             },
             {
-                "liquidity_fee": "592308957"
+                "liquidity_fee": "592313935"
             },
             {
-                "liquidity_fee_in_rune": "592308957"
+                "liquidity_fee_in_rune": "592313935"
             },
             {
-                "emit_asset": "4852510324 THOR.RUNE"
+                "emit_asset": "4852536448 THOR.RUNE"
             },
             {
                 "id": "TODO"
@@ -4476,16 +4407,16 @@
                 "swap_target": "0"
             },
             {
-                "swap_slip": "412"
+                "swap_slip": "411"
             },
             {
-                "liquidity_fee": "2144044"
+                "liquidity_fee": "2174417"
             },
             {
-                "liquidity_fee_in_rune": "191560531"
+                "liquidity_fee_in_rune": "191351401"
             },
             {
-                "emit_asset": "49931637 BNB.BNB"
+                "emit_asset": "50699587 BNB.BNB"
             },
             {
                 "id": "TODO"
@@ -4500,7 +4431,7 @@
                 "to": "VAULT"
             },
             {
-                "coin": "4852510324 THOR.RUNE"
+                "coin": "4852536448 THOR.RUNE"
             },
             {
                 "memo": "SWAP:BNB.BNB"
@@ -4518,7 +4449,7 @@
                 "asset_amt": "37500"
             },
             {
-                "rune_amt": "3637373"
+                "rune_amt": "3582320"
             },
             {
                 "transaction_count": "1"
@@ -4533,10 +4464,10 @@
                 "tx_id": "TODO"
             },
             {
-                "coins": "10776828 BNB.LOK-3C0"
+                "coins": "10618385 BNB.LOK-3C0"
             },
             {
-                "pool_deduct": "10823373"
+                "pool_deduct": "10660969"
             }
         ],
         "height": null
@@ -4560,7 +4491,7 @@
                 "to": "VAULT"
             },
             {
-                "coin": "481030680 THOR.RUNE"
+                "coin": "473813130 THOR.RUNE"
             },
             {
                 "memo": "SWAP:BNB.LOK-3C0"
@@ -4578,16 +4509,16 @@
                 "swap_target": "0"
             },
             {
-                "swap_slip": "41"
+                "swap_slip": "40"
             },
             {
-                "liquidity_fee": "1979574"
+                "liquidity_fee": "1918146"
             },
             {
-                "liquidity_fee_in_rune": "1979574"
+                "liquidity_fee_in_rune": "1918146"
             },
             {
-                "emit_asset": "481030680 THOR.RUNE"
+                "emit_asset": "473813130 THOR.RUNE"
             },
             {
                 "id": "TODO"
@@ -4620,16 +4551,16 @@
                 "swap_target": "0"
             },
             {
-                "swap_slip": "105"
+                "swap_slip": "104"
             },
             {
-                "liquidity_fee": "5096766"
+                "liquidity_fee": "4946489"
             },
             {
-                "liquidity_fee_in_rune": "5012103"
+                "liquidity_fee_in_rune": "4864348"
             },
             {
-                "emit_asset": "478908371 BNB.LOK-3C0"
+                "emit_asset": "471869217 BNB.LOK-3C0"
             },
             {
                 "id": "TODO"
@@ -4644,7 +4575,7 @@
                 "to": "VAULT"
             },
             {
-                "coin": "481030680 THOR.RUNE"
+                "coin": "473813130 THOR.RUNE"
             },
             {
                 "memo": "SWAP:BNB.LOK-3C0"
@@ -4662,7 +4593,7 @@
                 "asset_amt": "37500"
             },
             {
-                "rune_amt": "3607902"
+                "rune_amt": "3553764"
             },
             {
                 "transaction_count": "1"
@@ -4686,10 +4617,10 @@
                 "asymmetry": "0.000000000000000000"
             },
             {
-                "emit_asset": "542969420"
+                "emit_asset": "525784626"
             },
             {
-                "emit_rune": "52241082455"
+                "emit_rune": "49828558814"
             },
             {
                 "imp_loss_protection": "0"
@@ -4725,7 +4656,7 @@
                 "coins": "112500 BNB.BNB"
             },
             {
-                "pool_deduct": "10824038"
+                "pool_deduct": "10661614"
             }
         ],
         "height": null
@@ -4755,7 +4686,7 @@
                 "asset_amt": "37500"
             },
             {
-                "rune_amt": "3607014"
+                "rune_amt": "3552939"
             },
             {
                 "transaction_count": "1"
@@ -4791,10 +4722,10 @@
                 "asymmetry": "0.000000000000000000"
             },
             {
-                "emit_asset": "45494530424"
+                "emit_asset": "45501287439"
             },
             {
-                "emit_rune": "45669374614"
+                "emit_rune": "45662444547"
             },
             {
                 "imp_loss_protection": "0"
@@ -4845,7 +4776,7 @@
                 "asset_amt": "37500"
             },
             {
-                "rune_amt": "3607413"
+                "rune_amt": "3553312"
             },
             {
                 "transaction_count": "1"
@@ -4869,10 +4800,10 @@
                 "asymmetry": "0.000000000000000000"
             },
             {
-                "emit_asset": "543000424"
+                "emit_asset": "525813037"
             },
             {
-                "emit_rune": "52238276577"
+                "emit_rune": "49826017933"
             },
             {
                 "imp_loss_protection": "0"
@@ -4908,7 +4839,7 @@
                 "coins": "112500 BNB.BNB"
             },
             {
-                "pool_deduct": "10822839"
+                "pool_deduct": "10660495"
             }
         ],
         "height": null
@@ -4938,7 +4869,7 @@
                 "asset_amt": "37500"
             },
             {
-                "rune_amt": "3602568"
+                "rune_amt": "3549965"
             },
             {
                 "transaction_count": "1"
@@ -5151,16 +5082,16 @@
                 "swap_target": "0"
             },
             {
-                "swap_slip": "1312"
+                "swap_slip": "970"
             },
             {
-                "liquidity_fee": "443506420"
+                "liquidity_fee": "335724673"
             },
             {
-                "liquidity_fee_in_rune": "443506420"
+                "liquidity_fee_in_rune": "335724673"
             },
             {
-                "emit_asset": "2937254439 THOR.RUNE"
+                "emit_asset": "3126607086 THOR.RUNE"
             },
             {
                 "id": "TODO"
@@ -5208,16 +5139,16 @@
                 "swap_target": "0"
             },
             {
-                "swap_slip": "577"
+                "swap_slip": "578"
             },
             {
-                "liquidity_fee": "957369047"
+                "liquidity_fee": "963020083"
             },
             {
-                "liquidity_fee_in_rune": "957369047"
+                "liquidity_fee_in_rune": "963020083"
             },
             {
-                "emit_asset": "15623648735 THOR.RUNE"
+                "emit_asset": "15692739114 THOR.RUNE"
             },
             {
                 "id": "TODO"
@@ -5256,10 +5187,10 @@
                 "asymmetry": "0.000000000000000000"
             },
             {
-                "emit_asset": "176623861"
+                "emit_asset": "176358913"
             },
             {
-                "emit_rune": "125563334891"
+                "emit_rune": "125930816088"
             },
             {
                 "imp_loss_protection": "0"
@@ -5295,7 +5226,7 @@
                 "coins": "30000 BTC.BTC"
             },
             {
-                "pool_deduct": "21231080"
+                "pool_deduct": "21325202"
             }
         ],
         "height": null
@@ -5325,7 +5256,7 @@
                 "asset_amt": "15000"
             },
             {
-                "rune_amt": "10475258"
+                "rune_amt": "10521697"
             },
             {
                 "transaction_count": "1"
@@ -5361,10 +5292,10 @@
                 "asymmetry": "0.000000000000000000"
             },
             {
-                "emit_asset": "105352175"
+                "emit_asset": "105466145"
             },
             {
-                "emit_rune": "69141559586"
+                "emit_rune": "68828244722"
             },
             {
                 "imp_loss_protection": "0"
@@ -5451,10 +5382,10 @@
                 "asymmetry": "0.000000000000000000"
             },
             {
-                "emit_asset": "110052803"
+                "emit_asset": "110187647"
             },
             {
-                "emit_rune": "60487767734"
+                "emit_rune": "60314823602"
             },
             {
                 "imp_loss_protection": "0"
