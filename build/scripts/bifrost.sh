@@ -4,27 +4,27 @@ set -o pipefail
 
 CHAIN_ID="${CHAIN_ID:=thorchain}"
 # Binance chain config
-BINANCE_HOST="${BINANCE_HOST:=http://binance-mock:26660}"
+BINANCE_HOST="${BINANCE_HOST:=http://binance:26660}"
 BINANCE_START_BLOCK_HEIGHT="${BINANCE_START_BLOCK_HEIGHT:=0}"
 
 # Bitcoin core chain config
-BTC_HOST="${BTC_HOST:=bitcoin-regtest:18443}"
+BTC_HOST="${BTC_HOST:=bitcoin:18443}"
 BTC_START_BLOCK_HEIGHT="${BTC_START_BLOCK_HEIGHT:=0}"
 
 # Litecoin core chain config
-LTC_HOST="${LTC_HOST:=litecoin-regtest:18443}"
+LTC_HOST="${LTC_HOST:=litecoin:18443}"
 LTC_START_BLOCK_HEIGHT="${LTC_START_BLOCK_HEIGHT:=0}"
 
 # Ethereum chain config
-ETH_HOST="${ETH_HOST:=http://ethereum-localnet:8545}"
+ETH_HOST="${ETH_HOST:=http://ethereum:8545}"
 ETH_START_BLOCK_HEIGHT="${ETH_START_BLOCK_HEIGHT:=0}"
 
 # Dogecoin chain config
-DOGE_HOST="${DOGE_HOST:=dogecoin-regtest:18332}"
+DOGE_HOST="${DOGE_HOST:=dogecoin:18332}"
 DOGE_START_BLOCK_HEIGHT="${DOGE_START_BLOCK_HEIGHT:=0}"
 
 # Bitcoin Cash chain config
-BCH_HOST="${BCH_HOST:=bitcoin-cash-regtest:18443}"
+BCH_HOST="${BCH_HOST:=bitcoin-cash:18443}"
 BCH_START_BLOCK_HEIGHT="${BCH_START_BLOCK_HEIGHT:=0}"
 
 DB_PATH="${DB_PATH:=/var/data}"

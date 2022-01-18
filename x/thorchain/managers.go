@@ -407,7 +407,9 @@ func GetSlasher(keeper keeper.Keeper, version semver.Version, eventMgr EventMana
 
 // GetYggManager return an implementation of YggManager
 func GetYggManager(keeper keeper.Keeper, version semver.Version) (YggManager, error) {
-	if version.GTE(semver.MustParse("0.65.0")) {
+	if version.GTE(semver.MustParse("0.79.0")) {
+		return newYggMgrV79(keeper), nil
+	} else if version.GTE(semver.MustParse("0.65.0")) {
 		return newYggMgrV65(keeper), nil
 	} else if version.GTE(semver.MustParse("0.63.0")) {
 		return newYggMgrV63(keeper), nil

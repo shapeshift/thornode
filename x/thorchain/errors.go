@@ -25,12 +25,12 @@ const (
 	CodeSwapFailInvalidBalance   uint32 = 114
 	CodeSwapFailNotEnoughBalance uint32 = 115
 
-	CodeAddLiquidityFailValidation    uint32 = 120
-	CodeFailGetLiquidityProvider      uint32 = 122
-	CodeAddLiquidityMismatchAssetAddr uint32 = 123
-	CodeLiquidityInvalidPoolAsset     uint32 = 124
-	CodeAddLiquidityRUNEOverLimit     uint32 = 125
-	CodeAddLiquidityRUNEMoreThanBond  uint32 = 126
+	CodeAddLiquidityFailValidation   uint32 = 120
+	CodeFailGetLiquidityProvider     uint32 = 122
+	CodeAddLiquidityMismatchAddr     uint32 = 123
+	CodeLiquidityInvalidPoolAsset    uint32 = 124
+	CodeAddLiquidityRUNEOverLimit    uint32 = 125
+	CodeAddLiquidityRUNEMoreThanBond uint32 = 126
 
 	CodeWithdrawFailValidation uint32 = 130
 	CodeFailAddOutboundTx      uint32 = 131
@@ -42,30 +42,30 @@ const (
 )
 
 var (
-	notAuthorized                    = fmt.Errorf("not authorized")
-	errInvalidVersion                = fmt.Errorf("bad version")
-	errBadVersion                    = se.Register(DefaultCodespace, CodeBadVersion, errInvalidVersion.Error())
-	errInvalidMessage                = se.Register(DefaultCodespace, CodeInvalidMessage, "invalid message")
-	errConstNotAvailable             = se.Register(DefaultCodespace, CodeConstantsNotAvailable, "constant values not available")
-	errInvalidMemo                   = se.Register(DefaultCodespace, CodeInvalidMemo, "invalid memo")
-	errFailSaveEvent                 = se.Register(DefaultCodespace, CodeFailSaveEvent, "fail to save add events")
-	errAddLiquidityFailValidation    = se.Register(DefaultCodespace, CodeAddLiquidityFailValidation, "fail to validate add liquidity")
-	errAddLiquidityRUNEOverLimit     = se.Register(DefaultCodespace, CodeAddLiquidityRUNEOverLimit, "add liquidity rune is over limit")
-	errAddLiquidityRUNEMoreThanBond  = se.Register(DefaultCodespace, CodeAddLiquidityRUNEMoreThanBond, "add liquidity rune is more than bond")
-	errInvalidPoolStatus             = se.Register(DefaultCodespace, CodeInvalidPoolStatus, "invalid pool status")
-	errFailAddOutboundTx             = se.Register(DefaultCodespace, CodeFailAddOutboundTx, "prepare outbound tx not successful")
-	errWithdrawFailValidation        = se.Register(DefaultCodespace, CodeWithdrawFailValidation, "fail to validate withdraw")
-	errFailGetLiquidityProvider      = se.Register(DefaultCodespace, CodeFailGetLiquidityProvider, "fail to get liquidity provider")
-	errAddLiquidityMismatchAssetAddr = se.Register(DefaultCodespace, CodeAddLiquidityMismatchAssetAddr, "mismatch of asset address")
-	errSwapFailNotEnoughFee          = se.Register(DefaultCodespace, CodeSwapFailNotEnoughFee, "fail swap, not enough fee")
-	errSwapFail                      = se.Register(DefaultCodespace, CodeSwapFail, "fail swap")
-	errSwapFailInvalidAmount         = se.Register(DefaultCodespace, CodeSwapFailInvalidAmount, "fail swap, invalid amount")
-	errSwapFailInvalidBalance        = se.Register(DefaultCodespace, CodeSwapFailInvalidBalance, "fail swap, invalid balance")
-	errSwapFailNotEnoughBalance      = se.Register(DefaultCodespace, CodeSwapFailNotEnoughBalance, "fail swap, not enough balance")
-	errNoLiquidityUnitLeft           = se.Register(DefaultCodespace, CodeNoLiquidityUnitLeft, "nothing to withdraw")
-	errWithdrawWithin24Hours         = se.Register(DefaultCodespace, CodeWithdrawWithin24Hours, "you cannot withdraw for 24 hours after providing liquidity for this blockchain")
-	errWithdrawFail                  = se.Register(DefaultCodespace, CodeWithdrawFail, "fail to withdraw")
-	errInternal                      = se.Register(DefaultCodespace, CodeInternalError, "internal error")
+	notAuthorized                   = fmt.Errorf("not authorized")
+	errInvalidVersion               = fmt.Errorf("bad version")
+	errBadVersion                   = se.Register(DefaultCodespace, CodeBadVersion, errInvalidVersion.Error())
+	errInvalidMessage               = se.Register(DefaultCodespace, CodeInvalidMessage, "invalid message")
+	errConstNotAvailable            = se.Register(DefaultCodespace, CodeConstantsNotAvailable, "constant values not available")
+	errInvalidMemo                  = se.Register(DefaultCodespace, CodeInvalidMemo, "invalid memo")
+	errFailSaveEvent                = se.Register(DefaultCodespace, CodeFailSaveEvent, "fail to save add events")
+	errAddLiquidityFailValidation   = se.Register(DefaultCodespace, CodeAddLiquidityFailValidation, "fail to validate add liquidity")
+	errAddLiquidityRUNEOverLimit    = se.Register(DefaultCodespace, CodeAddLiquidityRUNEOverLimit, "add liquidity rune is over limit")
+	errAddLiquidityRUNEMoreThanBond = se.Register(DefaultCodespace, CodeAddLiquidityRUNEMoreThanBond, "add liquidity rune is more than bond")
+	errInvalidPoolStatus            = se.Register(DefaultCodespace, CodeInvalidPoolStatus, "invalid pool status")
+	errFailAddOutboundTx            = se.Register(DefaultCodespace, CodeFailAddOutboundTx, "prepare outbound tx not successful")
+	errWithdrawFailValidation       = se.Register(DefaultCodespace, CodeWithdrawFailValidation, "fail to validate withdraw")
+	errFailGetLiquidityProvider     = se.Register(DefaultCodespace, CodeFailGetLiquidityProvider, "fail to get liquidity provider")
+	errAddLiquidityMismatchAddr     = se.Register(DefaultCodespace, CodeAddLiquidityMismatchAddr, "mismatch of address")
+	errSwapFailNotEnoughFee         = se.Register(DefaultCodespace, CodeSwapFailNotEnoughFee, "fail swap, not enough fee")
+	errSwapFail                     = se.Register(DefaultCodespace, CodeSwapFail, "fail swap")
+	errSwapFailInvalidAmount        = se.Register(DefaultCodespace, CodeSwapFailInvalidAmount, "fail swap, invalid amount")
+	errSwapFailInvalidBalance       = se.Register(DefaultCodespace, CodeSwapFailInvalidBalance, "fail swap, invalid balance")
+	errSwapFailNotEnoughBalance     = se.Register(DefaultCodespace, CodeSwapFailNotEnoughBalance, "fail swap, not enough balance")
+	errNoLiquidityUnitLeft          = se.Register(DefaultCodespace, CodeNoLiquidityUnitLeft, "nothing to withdraw")
+	errWithdrawWithin24Hours        = se.Register(DefaultCodespace, CodeWithdrawWithin24Hours, "you cannot withdraw for 24 hours after providing liquidity for this blockchain")
+	errWithdrawFail                 = se.Register(DefaultCodespace, CodeWithdrawFail, "fail to withdraw")
+	errInternal                     = se.Register(DefaultCodespace, CodeInternalError, "internal error")
 )
 
 // ErrInternal return an error  of errInternal with additional message
