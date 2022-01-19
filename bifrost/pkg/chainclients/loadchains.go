@@ -30,7 +30,7 @@ func LoadChains(thorKeys *thorclient.Keys,
 
 	for _, chain := range cfg {
 		if chain.Disabled {
-			logger.Info().Msgf("chain %s disabled by configure", chain.ChainID)
+			logger.Info().Msgf("%s chain is disabled by configure", chain.ChainID)
 			continue
 		}
 		switch chain.ChainID {
