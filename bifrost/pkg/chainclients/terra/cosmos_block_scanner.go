@@ -132,19 +132,22 @@ func (b *CosmosBlockScanner) GetBlock(height int64) (*tmtypes.Block, error) {
 }
 
 func (b *CosmosBlockScanner) updateAverageGasFees(height int64, txs []types.TxInItem) (string, error) {
-	numTxs := int64(len(txs))
-	if numTxs == 0 {
-		return "", nil
-	}
+	var numTxs int64
 
 	// sum all the gas fees for the FeeAsset only
 	totalGasFees := ctypes.NewUint(0)
 	for _, tx := range txs {
 		fee := tx.Gas.ToCoins().GetCoin(b.feeAsset)
 		if err := fee.Valid(); err != nil {
-			return "", fmt.Errorf("invalid fee (%s): %w", fee, err)
+			// gas asset is not preferred fee asset, skip it...
+			continue
 		}
+		numTxs++
 		totalGasFees = totalGasFees.Add(fee.Amount)
+	}
+
+	if numTxs == 0 {
+		return "", nil
 	}
 
 	// compute the average (total / numTxs)
