@@ -22,6 +22,7 @@ ETH_START_BLOCK_HEIGHT="${ETH_START_BLOCK_HEIGHT:=0}"
 # Dogecoin chain config
 DOGE_HOST="${DOGE_HOST:=dogecoin:18332}"
 DOGE_START_BLOCK_HEIGHT="${DOGE_START_BLOCK_HEIGHT:=0}"
+DOGE_DISABLED="${DOGE_DISABLED:=false}"
 
 # Bitcoin Cash chain config
 BCH_HOST="${BCH_HOST:=bitcoin-cash:18443}"
@@ -130,6 +131,7 @@ echo "{
         \"password\": \"$RPC_PASSWD\",
         \"http_post_mode\": 1,
         \"disable_tls\": 1,
+        \"disabled\":$DOGE_DISABLED,
         \"block_scanner\": {
           \"rpc_host\": \"$DOGE_HOST\",
           \"enforce_block_height\": false,
