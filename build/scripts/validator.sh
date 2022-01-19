@@ -50,7 +50,7 @@ if [ ! -f ~/.thornode/config/genesis.json ]; then
     ADDRESS=$(cat ~/.bond/address.txt)
 
     # switch the BNB bond to native RUNE
-    "$(dirname "$0")/mock-switch.sh" $BINANCE "$ADDRESS" "$NODE_ADDRESS" $PEER
+    "$(dirname "$0")/mock/switch.sh" $BINANCE "$ADDRESS" "$NODE_ADDRESS" $PEER
 
     sleep 30 # wait for thorchain to register the new node account
 
@@ -102,7 +102,6 @@ else
   fi
 fi
 
-(
-  echo "$SIGNER_NAME"
-  echo "$SIGNER_PASSWD"
-) | exec "$@"
+export SIGNER_NAME
+export SIGNER_PASSWD
+exec "$@"

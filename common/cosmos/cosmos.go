@@ -18,7 +18,12 @@ import (
 	"github.com/hashicorp/go-multierror"
 )
 
-const DefaultCoinDecimals = 8
+const (
+	DefaultCoinDecimals = 8
+
+	EnvSignerName     = "SIGNER_NAME"
+	EnvSignerPassword = "SIGNER_PASSWD"
+)
 
 var (
 	KeyringServiceName      = sdk.KeyringServiceName
@@ -108,23 +113,6 @@ func ErrInsufficientCoins(err error, msg string) error {
 	return se.Wrap(multierror.Append(se.ErrInsufficientFunds, err), msg)
 }
 
-/*
-func SetupThorchainForTest(c *C) (config.ClientConfiguration, ckeys.Info, ckeys.Keybase) {
-	thorchain.SetupConfigForTest()
-	cfg := config.ClientConfiguration{
-		ChainID:         "thorchain",
-		ChainHost:       "localhost",
-		SignerName:      "bob",
-		SignerPasswd:    "password",
-		ChainHomeFolder: ".",
-	}
-	kb := ckeys.NewInMemory()
-	info, _, err := kb.NewMnemonic(cfg.SignerName, ckeys.English, cfg.SignerPasswd, hd.Secp256k1)
-	c.Assert(err, IsNil)
-	return cfg, info, kb
-}
-*/
-
 // RoundToDecimal round the given amt to the desire decimals
 func RoundToDecimal(amt Uint, dec int64) Uint {
 	if dec != 0 && dec < DefaultCoinDecimals {
@@ -146,9 +134,20 @@ type KeybaseStore struct {
 }
 
 func SignerCreds() (string, string) {
+	var username, password string
 	reader := bufio.NewReader(os.Stdin)
-	username, _ := input.GetString("Enter Signer name:", reader)
-	password, _ := input.GetPassword("Enter Signer password:", reader)
+
+	if signerName := os.Getenv(EnvSignerName); signerName != "" {
+		username = signerName
+	} else {
+		username, _ = input.GetString("Enter Signer name:", reader)
+	}
+
+	if signerPassword := os.Getenv(EnvSignerPassword); signerPassword != "" {
+		password = signerPassword
+	} else {
+		password, _ = input.GetPassword("Enter Signer password:", reader)
+	}
 
 	return strings.TrimSpace(username), strings.TrimSpace(password)
 }

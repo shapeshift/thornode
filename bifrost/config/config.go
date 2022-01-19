@@ -52,6 +52,7 @@ type ChainConfiguration struct {
 	BackOff             BackOff
 	OptToRetire         bool `json:"opt_to_retire" mapstructure:"opt_to_retire"` // don't emit support for this chain during keygen process
 	ParallelMempoolScan int  `json:"parallel_mempool_scan" mapstructure:"parallel_mempool_scan"`
+	Disabled            bool `json:"disabled" mapstructure:"disabled"`
 }
 
 // TSSConfiguration
