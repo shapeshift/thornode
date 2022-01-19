@@ -124,7 +124,7 @@ services:
       ETH_HOST: ${ETH_HOST:-http://ethereum:8545}
       THOR_BLOCK_TIME: ${THOR_BLOCK_TIME:-5s}
       BLOCK_SCANNER_BACKOFF: ${BLOCK_SCANNER_BACKOFF:-5s}
-      DOGE_DISABLED: true
+      DOGE_DISABLED: "true"
     ports:
       - 6040:6040
     entrypoint: /docker/scripts/bifrost.sh
