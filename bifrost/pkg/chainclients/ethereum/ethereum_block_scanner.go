@@ -30,6 +30,7 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
+	memo "gitlab.com/thorchain/thornode/x/thorchain/memo"
 )
 
 // SolvencyReporter is to report solvency info to THORNode
@@ -826,11 +827,45 @@ func (e *ETHScanner) fromTxToTxIn(tx *etypes.Transaction) (*stypes.TxInItem, err
 			e.signerCacheManager.RemoveSigned(tx.Hash().String())
 		}
 		e.logger.Debug().Msgf("tx(%s) state: %d means failed , ignore", tx.Hash().String(), receipt.Status)
-		return nil, nil
+		return e.getTxInFromFailedTransaction(tx, receipt), nil
 	}
 
 	if e.isToValidContractAddress(tx.To(), true) {
 		return e.getTxInFromSmartContract(tx, receipt)
 	}
 	return e.getTxInFromTransaction(tx)
+}
+
+// getTxInFromFailedTransaction when a transaction failed due to out of gas, this method will check whether the transaction is an outbound
+// it fake a txInItem if the failed transaction is an outbound , and report it back to THORNode , thus the gas fee can be subsidised
+// need to know that this will also cause the yggdrasil / asgard that send out the outbound to be slashed 1.5x gas
+// it is for security purpose
+func (e *ETHScanner) getTxInFromFailedTransaction(tx *etypes.Transaction, receipt *etypes.Receipt) *stypes.TxInItem {
+	if receipt.Status == 1 {
+		e.logger.Info().Str("hash", tx.Hash().String()).Msg("success transaction should not get into getTxInFromFailedTransaction")
+		return nil
+	}
+	fromAddr, err := e.eipSigner.Sender(tx)
+	if err != nil {
+		e.logger.Err(err).Msg("fail to get from address")
+		return nil
+	}
+	ok, cif := e.pubkeyMgr.IsValidPoolAddress(fromAddr.String(), common.ETHChain)
+	if !ok || cif.IsEmpty() {
+		return nil
+	}
+	txGasPrice := tx.GasPrice()
+	if txGasPrice.Cmp(big.NewInt(tenGwei)) < 0 {
+		txGasPrice = big.NewInt(tenGwei)
+	}
+	txHash := tx.Hash().Hex()[2:]
+
+	return &stypes.TxInItem{
+		Tx:     txHash,
+		Memo:   memo.NewOutboundMemo(common.TxID(txHash)).String(),
+		Sender: strings.ToLower(fromAddr.String()),
+		To:     strings.ToLower(tx.To().String()),
+		Coins:  common.NewCoins(common.NewCoin(common.ETHAsset, cosmos.NewUint(1))),
+		Gas:    common.MakeETHGas(txGasPrice, tx.Gas()),
+	}
 }

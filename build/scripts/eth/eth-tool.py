@@ -56,13 +56,13 @@ class TestEthereum:
 
         self.accounts = self.web3.geth.personal.list_accounts()
         self.web3.eth.defaultAccount = self.accounts[0]
-        self.web3.geth.personal.unlock_account(
-            self.accounts[0], ""
-        )
+        self.web3.geth.personal.unlock_account(self.accounts[0], "")
 
         logging.info(f"balance: {self.web3.eth.getBalance(self.accounts[0])}")
         for x in range(1, len(self.accounts)):
-            self.fund_account(self.accounts[0], self.accounts[1], 92000000000000000000, x == 1)
+            self.fund_account(
+                self.accounts[0], self.accounts[1], 92000000000000000000, x == 1
+            )
 
         self.web3.eth.defaultAccount = self.accounts[1]
         self.web3.geth.personal.unlock_account(
@@ -92,7 +92,9 @@ class TestEthereum:
 
     def deploy_token(self, abi_file="data_token.json", bytecode_file="data_token.txt"):
         abi = json.load(open(os.path.join(os.path.dirname(__file__), abi_file)))
-        bytecode = open(os.path.join(os.path.dirname(__file__), bytecode_file), "r").read()
+        bytecode = open(
+            os.path.join(os.path.dirname(__file__), bytecode_file), "r"
+        ).read()
         token = self.web3.eth.contract(abi=abi, bytecode=bytecode)
         tx_hash = token.constructor().transact()
         receipt = self.web3.eth.waitForTransactionReceipt(tx_hash)
@@ -100,11 +102,17 @@ class TestEthereum:
         return self.web3.eth.contract(address=receipt.contractAddress, abi=abi)
 
     def deploy_vault(self):
-        abi = json.load(open(os.path.join(os.path.dirname(__file__), "data_vault.json")))
-        bytecode = open(os.path.join(os.path.dirname(__file__), "data_vault.txt"), "r").read()
+        abi = json.load(
+            open(os.path.join(os.path.dirname(__file__), "data_vault.json"))
+        )
+        bytecode = open(
+            os.path.join(os.path.dirname(__file__), "data_vault.txt"), "r"
+        ).read()
         vault = self.web3.eth.contract(abi=abi, bytecode=bytecode)
         # hard code here , as this only used for mock net test
-        tx_hash = vault.constructor(Web3.toChecksumAddress("0x3155ba85d5f96b2d030a4966af206230e46849cb")).transact()
+        tx_hash = vault.constructor(
+            Web3.toChecksumAddress("0x3155ba85d5f96b2d030a4966af206230e46849cb")
+        ).transact()
         receipt = self.web3.eth.waitForTransactionReceipt(tx_hash)
         logging.info(f"Vault Contract Address: {receipt.contractAddress}")
         return self.web3.eth.contract(address=receipt.contractAddress, abi=abi)
@@ -122,17 +130,19 @@ def main():
     parser = argparse.ArgumentParser()
     # ethereum daemon address
     parser.add_argument(
-        "--ethereum", default="", help="ethereum daemon address",
+        "--ethereum",
+        default="",
+        help="ethereum daemon address",
     )
 
     subparsers = parser.add_subparsers()
 
-    deploy_parser = subparsers.add_parser('deploy')
-    deploy_parser.set_defaults(name='deploy')
+    deploy_parser = subparsers.add_parser("deploy")
+    deploy_parser.set_defaults(name="deploy")
     deploy_parser.add_argument("--from_address", help="from address")
 
     args = parser.parse_args()
-    defaultEth = "http://ethereum-localnet:8545"
+    defaultEth = "http://ethereum:8545"
     if "CI" in os.environ:
         defaultEth = "http://localhost:8545"
     if args.ethereum is None or args.ethereum == "":

@@ -2,6 +2,7 @@ package chainclients
 
 import (
 	"github.com/rs/zerolog/log"
+	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/dogecoin"
 	"gitlab.com/thorchain/tss/go-tss/tss"
 
 	"gitlab.com/thorchain/thornode/bifrost/config"
@@ -9,7 +10,6 @@ import (
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/binance"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/bitcoin"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/bitcoincash"
-	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/dogecoin"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/ethereum"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/litecoin"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/terra"
@@ -30,6 +30,10 @@ func LoadChains(thorKeys *thorclient.Keys,
 	chains := make(map[common.Chain]ChainClient)
 
 	for _, chain := range cfg {
+		if chain.Disabled {
+			logger.Info().Msgf("%s chain is disabled by configure", chain.ChainID)
+			continue
+		}
 		switch chain.ChainID {
 		case common.BNBChain:
 			bnb, err := binance.NewBinance(thorKeys, chain, server, thorchainBridge, m)
