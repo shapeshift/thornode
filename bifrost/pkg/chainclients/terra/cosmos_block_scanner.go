@@ -33,7 +33,7 @@ import (
 type SolvencyReporter func(int64) error
 
 var (
-	WhitelistAssets       = map[string]bool{"LUNA": true, "USD": true}
+	WhitelistAssets       = map[string]bool{"uluna": true, "uusd": true}
 	ErrInvalidScanStorage = errors.New("scan storage is empty or nil")
 	ErrInvalidMetrics     = errors.New("metrics is empty or nil")
 	ErrEmptyTx            = errors.New("empty tx")
@@ -206,8 +206,7 @@ func (b *CosmosBlockScanner) FetchTxs(height int64) (types.TxIn, error) {
 				for _, c := range msg.Amount {
 
 					// ignore first character of denom, which is usually "u" in cosmos
-					ticker := c.Denom[1:]
-					if _, whitelisted := WhitelistAssets[ticker]; !whitelisted {
+					if _, whitelisted := WhitelistAssets[c.Denom]; !whitelisted {
 						b.logger.Info().Str("tx", hash).Interface("coins", c).Msg("coin is not whitelisted, skipping")
 						continue
 					}
