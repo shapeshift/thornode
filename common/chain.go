@@ -87,8 +87,6 @@ func (c Chain) IsBNB() bool {
 // GetSigningAlgo get the signing algorithm for the given chain
 func (c Chain) GetSigningAlgo() SigninAlgo {
 	switch c {
-	case BNBChain, ETHChain, BTCChain, THORChain:
-		return SigningAlgoSecp256k1
 	default:
 		return SigningAlgoSecp256k1
 	}
@@ -133,6 +131,8 @@ func (c Chain) AddressPrefix(cn ChainNetwork) string {
 		switch c {
 		case BNBChain:
 			return btypes.TestNetwork.Bech32Prefixes()
+		case TERRAChain:
+			return "terra"
 		case ETHChain:
 			return "0x"
 		case THORChain:
@@ -149,6 +149,8 @@ func (c Chain) AddressPrefix(cn ChainNetwork) string {
 		switch c {
 		case BNBChain:
 			return btypes.TestNetwork.Bech32Prefixes()
+		case TERRAChain:
+			return "terra"
 		case ETHChain:
 			return "0x"
 		case THORChain:
@@ -165,6 +167,8 @@ func (c Chain) AddressPrefix(cn ChainNetwork) string {
 		switch c {
 		case BNBChain:
 			return btypes.ProdNetwork.Bech32Prefixes()
+		case TERRAChain:
+			return "terra"
 		case ETHChain:
 			return "0x"
 		case THORChain:
