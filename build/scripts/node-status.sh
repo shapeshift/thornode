@@ -103,7 +103,7 @@ if [ "$VALIDATOR" = "true" ]; then
   # calculate Terra chain sync progress
   if [ -n "$TERRA_DAEMON_SERVICE_PORT_RPC" ]; then
     TERRA_HEIGHT=$(curl -sL --fail -m 10 https://lcd.terra.dev/blocks/latest | jq -e -r ".block.header.height")
-    TERRA_SYNC_HEIGHT=$(curl -sL --fail -m 10 cosmos-terra-daemon:"$TERRA_DAEMON_SERVICE_PORT_RPC"/status | jq -r ".result.sync_info.latest_block_height")
+    TERRA_SYNC_HEIGHT=$(curl -sL --fail -m 10 terra-daemon:"$TERRA_DAEMON_SERVICE_PORT_RPC"/status | jq -r ".result.sync_info.latest_block_height")
     TERRA_PROGRESS=$(calc_progress "$TERRA_SYNC_HEIGHT" "$TERRA_HEIGHT")
   fi
 
