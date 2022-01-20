@@ -40,14 +40,23 @@ func (h DonateHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Result, er
 
 func (h DonateHandler) validate(ctx cosmos.Context, msg MsgDonate) error {
 	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.1.0")) {
+	if version.GTE(semver.MustParse("0.80.0")) {
+		return h.validateV80(ctx, msg)
+	} else if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, msg)
 	}
 	return errBadVersion
 }
 
-func (h DonateHandler) validateV1(ctx cosmos.Context, msg MsgDonate) error {
-	return msg.ValidateBasic()
+func (h DonateHandler) validateV80(ctx cosmos.Context, msg MsgDonate) error {
+	if err := msg.ValidateBasic(); err != nil {
+		return err
+	}
+	if msg.Asset.IsSyntheticAsset() {
+		ctx.Logger().Error("asset cannot be synth", "error", errInvalidMessage)
+		return errInvalidMessage
+	}
+	return nil
 }
 
 // handle process MsgDonate, MsgDonate add asset and RUNE to the asset pool

@@ -101,6 +101,11 @@ func (HandlerDonateSuite) TestHandleMsgDonateValidation(c *C) {
 			msg:         NewMsgDonate(GetRandomTx(), common.BNBAsset, cosmos.NewUint(common.One*5), cosmos.NewUint(common.One*5), w.activeNodeAccount.NodeAddress),
 			expectedErr: se.ErrUnknownRequest,
 		},
+		{
+			name:        "synth asset should fail",
+			msg:         NewMsgDonate(GetRandomTx(), common.BNBAsset.GetSyntheticAsset(), cosmos.NewUint(common.One*5), cosmos.NewUint(common.One*5), w.activeNodeAccount.NodeAddress),
+			expectedErr: errInvalidMessage,
+		},
 	}
 
 	donateHandler := NewDonateHandler(NewDummyMgrWithKeeper(w.keeper))

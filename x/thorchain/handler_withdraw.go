@@ -46,7 +46,9 @@ func (h WithdrawLiquidityHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos
 
 func (h WithdrawLiquidityHandler) validate(ctx cosmos.Context, msg MsgWithdrawLiquidity) error {
 	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.65.0")) {
+	if version.GTE(semver.MustParse("0.80.0")) {
+		return h.validateV80(ctx, msg)
+	} else if version.GTE(semver.MustParse("0.65.0")) {
 		return h.validateV65(ctx, msg)
 	} else if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, msg)
@@ -54,10 +56,15 @@ func (h WithdrawLiquidityHandler) validate(ctx cosmos.Context, msg MsgWithdrawLi
 	return errBadVersion
 }
 
-func (h WithdrawLiquidityHandler) validateV65(ctx cosmos.Context, msg MsgWithdrawLiquidity) error {
+func (h WithdrawLiquidityHandler) validateV80(ctx cosmos.Context, msg MsgWithdrawLiquidity) error {
 	if err := msg.ValidateBasic(); err != nil {
 		return errWithdrawFailValidation
 	}
+	if msg.Asset.IsSyntheticAsset() {
+		ctx.Logger().Error("asset cannot be synth", "error", errWithdrawFailValidation)
+		return errWithdrawFailValidation
+	}
+
 	pool, err := h.mgr.Keeper().GetPool(ctx, msg.Asset)
 	if err != nil {
 		errMsg := fmt.Sprintf("fail to get pool(%s)", msg.Asset)
