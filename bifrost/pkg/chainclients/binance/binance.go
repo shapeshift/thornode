@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -22,6 +23,7 @@ import (
 	ttypes "gitlab.com/thorchain/binance-sdk/types"
 	"gitlab.com/thorchain/binance-sdk/types/msg"
 	btx "gitlab.com/thorchain/binance-sdk/types/tx"
+	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/runners"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/signercache"
 	"gitlab.com/thorchain/thornode/constants"
 	memo "gitlab.com/thorchain/thornode/x/thorchain/memo"
@@ -38,23 +40,30 @@ import (
 	"gitlab.com/thorchain/thornode/x/thorchain"
 )
 
+const (
+	solvencyCheckerTimeout = time.Minute * 10
+)
+
 // Binance is a structure to sign and broadcast tx to binance chain used by signer mostly
 type Binance struct {
-	logger              zerolog.Logger
-	cfg                 config.ChainConfiguration
-	cdc                 *codec.LegacyAmino
-	chainID             string
-	isTestNet           bool
-	client              *http.Client
-	accts               *BinanceMetaDataStore
-	tssKeyManager       *tss.KeySign
-	localKeyManager     *keyManager
-	thorchainBridge     *thorclient.ThorchainBridge
-	storage             *blockscanner.BlockScannerStorage
-	blockScanner        *blockscanner.BlockScanner
-	bnbScanner          *BinanceBlockScanner
-	globalSolvencyQueue chan stypes.Solvency
-	signerCacheManager  *signercache.CacheManager
+	logger                  zerolog.Logger
+	cfg                     config.ChainConfiguration
+	cdc                     *codec.LegacyAmino
+	chainID                 string
+	isTestNet               bool
+	client                  *http.Client
+	accts                   *BinanceMetaDataStore
+	tssKeyManager           *tss.KeySign
+	localKeyManager         *keyManager
+	thorchainBridge         *thorclient.ThorchainBridge
+	storage                 *blockscanner.BlockScannerStorage
+	blockScanner            *blockscanner.BlockScanner
+	bnbScanner              *BinanceBlockScanner
+	globalSolvencyQueue     chan stypes.Solvency
+	signerCacheManager      *signercache.CacheManager
+	wg                      *sync.WaitGroup
+	stopchan                chan struct{}
+	lastSolvencyCheckHeight int64
 }
 
 // NewBinance create new instance of binance client
@@ -95,6 +104,8 @@ func NewBinance(thorKeys *thorclient.Keys, cfg config.ChainConfiguration, server
 		tssKeyManager:   tssKm,
 		localKeyManager: localKm,
 		thorchainBridge: thorchainBridge,
+		stopchan:        make(chan struct{}),
+		wg:              &sync.WaitGroup{},
 	}
 
 	if err := b.checkIsTestNet(); err != nil {
@@ -111,7 +122,7 @@ func NewBinance(thorKeys *thorclient.Keys, cfg config.ChainConfiguration, server
 		return nil, fmt.Errorf("fail to create scan storage: %w", err)
 	}
 
-	b.bnbScanner, err = NewBinanceBlockScanner(b.cfg.BlockScanner, b.storage, b.isTestNet, b.thorchainBridge, m, b.reportSolvency)
+	b.bnbScanner, err = NewBinanceBlockScanner(b.cfg.BlockScanner, b.storage, b.isTestNet, b.thorchainBridge, m, b.ReportSolvency)
 	if err != nil {
 		return nil, fmt.Errorf("fail to create block scanner: %w", err)
 	}
@@ -133,12 +144,16 @@ func (b *Binance) Start(globalTxsQueue chan stypes.TxIn, globalErrataQueue chan 
 	b.globalSolvencyQueue = globalSolvencyQueue
 	b.tssKeyManager.Start()
 	b.blockScanner.Start(globalTxsQueue)
+	b.wg.Add(1)
+	go runners.SolvencyCheckRunner(b.GetChain(), b, solvencyCheckerTimeout, b.stopchan, b.wg)
 }
 
 // Stop Binance chain client
 func (b *Binance) Stop() {
 	b.tssKeyManager.Stop()
 	b.blockScanner.Stop()
+	close(b.stopchan)
+	b.wg.Wait()
 }
 
 // GetConfig return the configuration used by Binance chain client
@@ -560,7 +575,7 @@ func (b *Binance) ConfirmationCountReady(txIn stypes.TxIn) bool {
 func (b *Binance) GetConfirmationCount(txIn stypes.TxIn) int64 {
 	return 0
 }
-func (b *Binance) reportSolvency(bnbBlockHeight int64) error {
+func (b *Binance) ReportSolvency(bnbBlockHeight int64) error {
 	if bnbBlockHeight%900 > 0 {
 		return nil
 	}
@@ -585,6 +600,7 @@ func (b *Binance) reportSolvency(bnbBlockHeight int64) error {
 			b.logger.Info().Msgf("fail to send solvency info to THORChain, timeout")
 		}
 	}
+	b.lastSolvencyCheckHeight = bnbBlockHeight
 	return nil
 }
 func (b *Binance) OnObservedTxIn(txIn stypes.TxInItem, blockHeight int64) {
@@ -602,4 +618,9 @@ func (b *Binance) OnObservedTxIn(txIn stypes.TxInItem, blockHeight int64) {
 	if err := b.signerCacheManager.SetSigned(txIn.CacheHash(b.GetChain(), m.GetTxID().String()), txIn.Tx); err != nil {
 		b.logger.Err(err).Msg("fail to update signer cache")
 	}
+}
+
+// ShouldReportSolvency given block height , should chain client report solvency to THORNode
+func (b *Binance) ShouldReportSolvency(height int64) bool {
+	return height-b.lastSolvencyCheckHeight > 900
 }

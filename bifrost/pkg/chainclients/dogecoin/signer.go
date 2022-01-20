@@ -125,6 +125,7 @@ func (c *Client) getUtxoToSpend(pubKey common.PubKey, total float64) ([]btcjson.
 	minUTXOAmt := dogutil.Amount(minSpendableUTXOAmountSats).ToBTC()
 	for _, item := range utxos {
 		if !c.isValidUTXO(item.ScriptPubKey) {
+			c.logger.Info().Msgf("invalid UTXO , can't spent it")
 			continue
 		}
 		isSelfTx := c.isSelfTransaction(item.TxID)
@@ -332,9 +333,9 @@ func (c *Client) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, err
 		if err != nil {
 			return nil, fmt.Errorf("fail to parse memo: %w", err)
 		}
-		if memo.GetType() == mem.TxYggdrasilReturn {
+		if memo.GetType() == mem.TxYggdrasilReturn || memo.GetType() == mem.TxConsolidate {
 			gap := gasAmtSats
-			c.logger.Info().Msgf("yggdrasil return asset , need gas: %d", gap)
+			c.logger.Info().Msgf("yggdrasil return asset or consolidate tx, need gas: %d", gap)
 			coinToCustomer.Amount = common.SafeSub(coinToCustomer.Amount, cosmos.NewUint(gap))
 		}
 	}
@@ -542,7 +543,7 @@ func (c *Client) consolidateUTXOs() {
 			Coins: common.Coins{
 				common.NewCoin(common.DOGEAsset, cosmos.NewUint(uint64(amt))),
 			},
-			Memo:    "consolidate",
+			Memo:    mem.NewConsolidateMemo().String(),
 			MaxGas:  nil,
 			GasRate: int64(feeRate),
 		}
