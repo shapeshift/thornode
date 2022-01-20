@@ -261,14 +261,16 @@ func (b *CosmosBlockScanner) FetchTxs(height int64) (types.TxIn, error) {
 		MemPool:  false,
 	}
 
-	if feeTx, err := b.updateAverageGasFees(block.Header.Height, txIn.TxArray); err == nil || feeTx != "" {
+	feeTx, err := b.updateAverageGasFees(block.Header.Height, txIn.TxArray)
+	if err != nil {
+		b.logger.Err(err).Int64("height", height).Msg("failed to post average network fee")
+	}
+	if feeTx != "" {
 		b.logger.Info().
 			Str("tx", feeTx).
 			Int64("height", height).
 			Int64("gasFeeAmt", b.avgGasFee.BigInt().Int64()).
 			Msg("sent network fee to THORChain")
-	} else {
-		b.logger.Err(err).Int64("height", height).Msg("failed to post average network fee")
 	}
 
 	return txIn, nil
