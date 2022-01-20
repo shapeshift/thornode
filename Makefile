@@ -1,5 +1,5 @@
 include Makefile.cicd
-.PHONY: build test tools export healthcheck run-mocknet reset-mocknet
+.PHONY: build test tools export healthcheck run-mocknet reset-mocknet logs-mocknet
 
 module = gitlab.com/thorchain/thornode
 GOBIN?=${GOPATH}/bin
@@ -104,9 +104,10 @@ pull:
 
 run-mocknet:
 	docker compose -f build/docker/docker-compose.yml --profile mocknet --profile midgard up -d
-	docker compose -f build/docker/docker-compose.yml --profile mocknet logs -f thornode bifrost
 
 reset-mocknet:
 	docker compose -f build/docker/docker-compose.yml --profile mocknet --profile midgard down -v
 	docker compose -f build/docker/docker-compose.yml --profile mocknet --profile midgard up -d
+
+logs-mocknet:
 	docker compose -f build/docker/docker-compose.yml --profile mocknet logs -f thornode bifrost
