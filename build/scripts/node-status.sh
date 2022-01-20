@@ -101,9 +101,9 @@ if [ "$VALIDATOR" = "true" ]; then
   fi
 
   # calculate Terra chain sync progress
-  if [ -n "$COSMOS_TERRA_DAEMON_SERVICE_PORT_RPC" ]; then
-    TERRA_HEIGHT=$(curl -sL --fail -m 10 http://public-node.terra.dev:26657/status | jq -e -r ".result.sync_info.latest_block_height")
-    TERRA_SYNC_HEIGHT=$(curl -sL --fail -m 10 cosmos-terra-daemon:"$COSMOS_TERRA_DAEMON_SERVICE_PORT_RPC"/status | jq -r ".result.sync_info.latest_block_height")
+  if [ -n "$TERRA_DAEMON_SERVICE_PORT_RPC" ]; then
+    TERRA_HEIGHT=$(curl -sL --fail -m 10 https://lcd.terra.dev/blocks/latest | jq -e -r ".block.header.height")
+    TERRA_SYNC_HEIGHT=$(curl -sL --fail -m 10 cosmos-terra-daemon:"$TERRA_DAEMON_SERVICE_PORT_RPC"/status | jq -r ".result.sync_info.latest_block_height")
     TERRA_PROGRESS=$(calc_progress "$TERRA_SYNC_HEIGHT" "$TERRA_HEIGHT")
   fi
 
@@ -161,7 +161,7 @@ printf "%-11s %-10s %-10s\n" THOR "$THOR_PROGRESS" "$(format_int "$THOR_SYNC_HEI
 if [ "$VALIDATOR" = "true" ] && [ -n "$DOGECOIN_DAEMON_SERVICE_PORT_RPC" ]; then
   printf "%-11s %-10s %-10s\n" DOGE "$DOGE_PROGRESS" "$(format_int "$DOGE_SYNC_HEIGHT")/$(format_int "$DOGE_HEIGHT")"
 fi
-if [ "$VALIDATOR" = "true" ] && [ -n "$COSMOS_TERRA_DAEMON_SERVICE_PORT_RPC" ]; then
+if [ "$VALIDATOR" = "true" ] && [ -n "$TERRA_DAEMON_SERVICE_PORT_RPC" ]; then
   printf "%-11s %-10s %-10s\n" TERRA "$TERRA_PROGRESS" "$(format_int "$TERRA_SYNC_HEIGHT")/$(format_int "$TERRA_HEIGHT")"
 fi
 exit 0
