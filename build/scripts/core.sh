@@ -25,26 +25,6 @@ add_node_account() {
   fi
 }
 
-add_last_event_id() {
-  echo "Adding last event id $1"
-  jq --arg ID "$1" '.app_state.thorchain.last_event_id = $ID' ~/.thornode/config/genesis.json >/tmp/genesis.json
-  mv /tmp/genesis.json ~/.thornode/config/genesis.json
-}
-
-add_gas_config() {
-  asset=$1
-  shift
-
-  # add asset to gas
-  jq --argjson path "[\"app_state\", \"thorchain\", \"gas\", \"$asset\"]" 'getpath($path) = []' ~/.thornode/config/genesis.json >/tmp/genesis.json
-  mv /tmp/genesis.json ~/.thornode/config/genesis.json
-
-  for unit in "$@"; do
-    jq --argjson path "[\"app_state\", \"thorchain\", \"gas\", \"$asset\"]" --arg unit "$unit" 'getpath($path) += [$unit]' ~/.thornode/config/genesis.json >/tmp/genesis.json
-    mv /tmp/genesis.json ~/.thornode/config/genesis.json
-  done
-}
-
 reserve() {
   jq --arg RESERVE "$1" '.app_state.thorchain.reserve = $RESERVE' <~/.thornode/config/genesis.json >/tmp/genesis.json
   mv /tmp/genesis.json ~/.thornode/config/genesis.json
@@ -83,16 +63,19 @@ add_vault() {
   jq --arg POOL_PUBKEY "$POOL_PUBKEY" '.app_state.thorchain.vaults += [{"block_height": "0", "pub_key": $POOL_PUBKEY, "coins":[], "type": "asgard", "status":"active", "status_since": "0", "membership":[]}]' <~/.thornode/config/genesis.json >/tmp/genesis.json
   mv /tmp/genesis.json ~/.thornode/config/genesis.json
 
-  export IFS=","
+  OLD_IFS=IFS
+  IFS=","
   for pubkey in "$@"; do # iterate over our list of comma separated pubkeys
     jq --arg PUBKEY "$pubkey" '.app_state.thorchain.vaults[0].membership += [$PUBKEY]' ~/.thornode/config/genesis.json >/tmp/genesis.json
     mv /tmp/genesis.json ~/.thornode/config/genesis.json
   done
+  IFS=OLD_IFS
 }
 
 # inits a thorchain with a comman separate list of usernames
 init_chain() {
-  export IFS=","
+  OLD_IFS=IFS
+  IFS=","
 
   echo "Init chain"
   thornode init local --chain-id "$CHAIN_ID"
@@ -101,6 +84,8 @@ init_chain() {
   for user in "$@"; do # iterate over our list of comma separated users "alice,jack"
     thornode add-genesis-account "$user" 100000000rune
   done
+
+  IFS=OLD_IFS
 
   # thornode config chain-id thorchain
   # thornode config output json

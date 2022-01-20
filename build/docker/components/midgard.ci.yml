@@ -1,8 +1,0 @@
-version: '3'
-
-services:
-  midgard:
-    #network_mode: "host"
-    environment:
-      MIDGARD_THORCHAIN_THOR_NODE_URL: http://thornode:1317/thorchain
-      MIDGARD_THORCHAIN_TENDERMINT_URL: http://thornode:26657/websocket
