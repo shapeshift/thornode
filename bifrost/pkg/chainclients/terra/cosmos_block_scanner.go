@@ -28,12 +28,14 @@ import (
 	"gitlab.com/thorchain/thornode/bifrost/thorclient"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient/types"
 	"gitlab.com/thorchain/thornode/common"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 // SolvencyReporter is to report solvency info to THORNode
 type SolvencyReporter func(int64) error
 
 var (
+	DefaultDecimals       = 6
 	WhitelistAssets       = map[string]int{"uluna": 6, "uusd": 6}
 	ErrInvalidScanStorage = errors.New("scan storage is empty or nil")
 	ErrInvalidMetrics     = errors.New("metrics is empty or nil")
@@ -68,7 +70,7 @@ func NewCosmosBlockScanner(cfg config.BlockScannerConfiguration,
 		return nil, errors.New("metrics is nil")
 	}
 
-	logger := log.Logger.With().Str("module", "blockscanner").Str("chain", "TERRA").Logger()
+	logger := log.Logger.With().Str("module", "blockscanner").Str("chain", string(common.TERRAChain.String())).Logger()
 
 	registry := bridge.GetContext().InterfaceRegistry
 	btypes.RegisterInterfaces(registry)
@@ -114,24 +116,25 @@ func (c *CosmosBlockScanner) FetchMemPool(height int64) (types.TxIn, error) {
 	return types.TxIn{}, nil
 }
 
-func sdkCoinToCommonCoin(c ctypes.Coin) (common.Coin, error) {
-	numDecimals := WhitelistAssets[c.Denom]
-
-	// c.Denom[1:] => Ignore the first character, "u", for most Cosmos assets
-	name := fmt.Sprintf("%s.%s", common.TERRAChain.String(), c.Denom[1:])
-	asset, err := common.NewAsset(name)
-	if err != nil {
-		return common.Coin{}, fmt.Errorf("failed to create asset (%s): %w", c.Denom, err)
+func sdkCoinToCommonCoin(c cosmos.Coin) common.Coin {
+	decimals := WhitelistAssets[c.Denom]
+	amount := c.Amount
+	var value *big.Int
+	// Decimals are more than native THORChain, so divide...
+	if decimals > 8 {
+		decimalDiff := int64(decimals - 8)
+		value = value.Exp(value, big.NewInt(10), big.NewInt(decimalDiff))
+		amount = c.Amount.Quo(cosmos.NewIntFromBigInt(value))
 	}
-
-	// adjust from decimals to 8
-	decimalDiff := 8 - numDecimals
-
-	var amtAdjusted *big.Int
-	amtAdjusted.Mul(c.Amount.BigInt(), big.NewInt(int64(10^decimalDiff)))
-	coin := common.NewCoin(asset, ctypes.NewUintFromBigInt(amtAdjusted))
-
-	return coin, nil
+	// Decimals are less than native THORChain, so multiply...
+	if decimals < 8 {
+		decimalDiff := int64(8 - decimals)
+		value = value.Exp(value, big.NewInt(10), big.NewInt(decimalDiff))
+		amount = c.Amount.Mul(cosmos.NewIntFromBigInt(value))
+	}
+	name := fmt.Sprintf("%s.%s", common.TERRAChain.String(), c.Denom[1:])
+	asset, _ := common.NewAsset(name)
+	return common.NewCoin(asset, ctypes.NewUintFromBigInt(amount.BigInt()))
 }
 
 // GetBlock returns a Tendermint block as a reference to a ResultBlock for a
@@ -235,11 +238,7 @@ func (c *CosmosBlockScanner) FetchTxs(height int64) (types.TxIn, error) {
 						continue
 					}
 
-					cCoin, err := sdkCoinToCommonCoin(coin)
-					if err != nil {
-						return types.TxIn{}, fmt.Errorf("failed to create asset; %s is not valid: %w", c, err)
-					}
-
+					cCoin := sdkCoinToCommonCoin(coin)
 					coins = append(coins, cCoin)
 				}
 
@@ -250,11 +249,7 @@ func (c *CosmosBlockScanner) FetchTxs(height int64) (types.TxIn, error) {
 
 				gasFees := common.Gas{}
 				for _, fee := range fees {
-					cCoin, err := sdkCoinToCommonCoin(fee)
-					if err != nil {
-						return types.TxIn{}, fmt.Errorf("failed to create fee asset; %s is not valid: %w", fee, err)
-					}
-
+					cCoin := sdkCoinToCommonCoin(fee)
 					gasFees = append(gasFees, cCoin)
 				}
 
