@@ -34,7 +34,7 @@ import (
 type SolvencyReporter func(int64) error
 
 var (
-	WhitelistAssets       = map[string]bool{"uluna": true, "uusd": true}
+	WhitelistAssets       = map[string]int{"uluna": 6, "uusd": 6}
 	ErrInvalidScanStorage = errors.New("scan storage is empty or nil")
 	ErrInvalidMetrics     = errors.New("metrics is empty or nil")
 	ErrEmptyTx            = errors.New("empty tx")
@@ -115,6 +115,8 @@ func (c *CosmosBlockScanner) FetchMemPool(height int64) (types.TxIn, error) {
 }
 
 func sdkCoinToCommonCoin(c ctypes.Coin) (common.Coin, error) {
+	numDecimals := WhitelistAssets[c.Denom]
+
 	// c.Denom[1:] => Ignore the first character, "u", for most Cosmos assets
 	name := fmt.Sprintf("%s.%s", common.TERRAChain.String(), c.Denom[1:])
 	asset, err := common.NewAsset(name)
@@ -122,9 +124,11 @@ func sdkCoinToCommonCoin(c ctypes.Coin) (common.Coin, error) {
 		return common.Coin{}, fmt.Errorf("failed to create asset (%s): %w", c.Denom, err)
 	}
 
-	// adjust from 6 decimals to 8
+	// adjust from decimals to 8
+	decimalDiff := 8 - numDecimals
+
 	var amtAdjusted *big.Int
-	amtAdjusted.Mul(c.Amount.BigInt(), big.NewInt(1e2))
+	amtAdjusted.Mul(c.Amount.BigInt(), big.NewInt(int64(10^decimalDiff)))
 	coin := common.NewCoin(asset, ctypes.NewUintFromBigInt(amtAdjusted))
 
 	return coin, nil
