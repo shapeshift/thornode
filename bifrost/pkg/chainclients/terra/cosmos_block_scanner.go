@@ -8,6 +8,7 @@ import (
 	"math/big"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/cosmos/cosmos-sdk/client/grpc/tmservice"
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -70,7 +71,7 @@ func NewCosmosBlockScanner(cfg config.BlockScannerConfiguration,
 		return nil, errors.New("metrics is nil")
 	}
 
-	logger := log.Logger.With().Str("module", "blockscanner").Str("chain", string(common.TERRAChain.String())).Logger()
+	logger := log.Logger.With().Str("module", "blockscanner").Str("chain", common.TERRAChain.String()).Logger()
 
 	registry := bridge.GetContext().InterfaceRegistry
 	btypes.RegisterInterfaces(registry)
@@ -101,8 +102,10 @@ func NewCosmosBlockScanner(cfg config.BlockScannerConfiguration,
 }
 
 func (c *CosmosBlockScanner) GetHeight() (int64, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
 	resultHeight, err := c.tmService.GetLatestBlock(
-		context.Background(),
+		ctx,
 		&tmservice.GetLatestBlockRequest{},
 	)
 	if err != nil {
@@ -145,8 +148,10 @@ func sdkCoinToCommonCoin(c cosmos.Coin) common.Coin {
 // GetBlock returns a Tendermint block as a reference to a ResultBlock for a
 // given height. An error is returned upon query failure.
 func (c *CosmosBlockScanner) GetBlock(height int64) (*tmtypes.Block, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
 	resultBlock, err := c.tmService.GetBlockByHeight(
-		context.Background(),
+		ctx,
 		&tmservice.GetBlockByHeightRequest{Height: height},
 	)
 
@@ -259,7 +264,7 @@ func (c *CosmosBlockScanner) FetchTxs(height int64) (types.TxIn, error) {
 				}
 
 				txs = append(txs, types.TxInItem{
-					Tx:          hash[:],
+					Tx:          hash,
 					BlockHeight: height,
 					Memo:        memo,
 					Sender:      msg.FromAddress,
