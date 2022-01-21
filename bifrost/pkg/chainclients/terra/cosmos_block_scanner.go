@@ -117,7 +117,14 @@ func (c *CosmosBlockScanner) FetchMemPool(height int64) (types.TxIn, error) {
 }
 
 func sdkCoinToCommonCoin(c cosmos.Coin) common.Coin {
-	decimals := WhitelistAssets[c.Denom]
+	name := fmt.Sprintf("%s.%s", common.TERRAChain.String(), c.Denom[1:])
+	asset, _ := common.NewAsset(name)
+
+	decimals, exists := WhitelistAssets[c.Denom]
+	if !exists {
+		return common.NewCoin(asset, ctypes.Uint(c.Amount))
+	}
+
 	amount := c.Amount
 	var value *big.Int
 	// Decimals are more than native THORChain, so divide...
@@ -132,8 +139,6 @@ func sdkCoinToCommonCoin(c cosmos.Coin) common.Coin {
 		value = value.Exp(value, big.NewInt(10), big.NewInt(decimalDiff))
 		amount = c.Amount.Mul(cosmos.NewIntFromBigInt(value))
 	}
-	name := fmt.Sprintf("%s.%s", common.TERRAChain.String(), c.Denom[1:])
-	asset, _ := common.NewAsset(name)
 	return common.NewCoin(asset, ctypes.NewUintFromBigInt(amount.BigInt()))
 }
 
