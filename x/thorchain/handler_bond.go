@@ -108,7 +108,9 @@ func (h BondHandler) validate80(ctx cosmos.Context, msg MsgBond) error {
 
 func (h BondHandler) handle(ctx cosmos.Context, msg MsgBond) error {
 	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.68.0")) {
+	if version.GTE(semver.MustParse("0.81.0")) {
+		return h.handleV81(ctx, msg)
+	} else if version.GTE(semver.MustParse("0.68.0")) {
 		return h.handleV68(ctx, msg)
 	} else if version.GTE(semver.MustParse("0.47.0")) {
 		return h.handleV47(ctx, msg)
@@ -118,7 +120,7 @@ func (h BondHandler) handle(ctx cosmos.Context, msg MsgBond) error {
 	return errBadVersion
 }
 
-func (h BondHandler) handleV68(ctx cosmos.Context, msg MsgBond) error {
+func (h BondHandler) handleV81(ctx cosmos.Context, msg MsgBond) error {
 	// THORNode will not have pub keys at the moment, so have to leave it empty
 	emptyPubKeySet := common.PubKeySet{
 		Secp256k1: common.EmptyPubKey,
@@ -152,6 +154,13 @@ func (h BondHandler) handleV68(ctx cosmos.Context, msg MsgBond) error {
 		}
 		nodeAccount.Bond = common.SafeSub(nodeAccount.Bond, cosmos.NewUint(common.One))
 		msg.Bond = common.SafeSub(msg.Bond, cosmos.NewUint(common.One))
+		tx := common.Tx{}
+		tx.ID = common.BlankTxID
+		tx.ToAddress = common.Address(nodeAccount.String())
+		bondEvent := NewEventBond(cosmos.NewUint(common.One), BondCost, tx)
+		if err := h.mgr.EventMgr().EmitEvent(ctx, bondEvent); err != nil {
+			ctx.Logger().Error("fail to emit bond event", "error", err)
+		}
 	}
 
 	if err := h.mgr.Keeper().SetNodeAccount(ctx, nodeAccount); err != nil {
@@ -160,7 +169,7 @@ func (h BondHandler) handleV68(ctx cosmos.Context, msg MsgBond) error {
 
 	bondEvent := NewEventBond(msg.Bond, BondPaid, msg.TxIn)
 	if err := h.mgr.EventMgr().EmitEvent(ctx, bondEvent); err != nil {
-		return cosmos.Wrapf(errFailSaveEvent, "fail to emit bond event: %w", err)
+		ctx.Logger().Error("fail to emit bond event", "error", err)
 	}
 
 	return nil
