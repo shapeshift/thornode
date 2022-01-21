@@ -293,11 +293,14 @@ func (c *Cosmos) GetAccount(pkey common.PubKey) (common.Account, error) {
 }
 
 func (c *Cosmos) GetAccountByAddress(address string) (common.Account, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+
 	bankClient := btypes.NewQueryClient(c.grpcConn)
 	bankReq := &btypes.QueryAllBalancesRequest{
 		Address: address,
 	}
-	balances, err := bankClient.AllBalances(context.Background(), bankReq)
+	balances, err := bankClient.AllBalances(ctx, bankReq)
 	if err != nil {
 		return common.Account{}, err
 	}
@@ -313,7 +316,7 @@ func (c *Cosmos) GetAccountByAddress(address string) (common.Account, error) {
 		Address: address,
 	}
 
-	acc, err := client.Account(context.Background(), authReq)
+	acc, err := client.Account(ctx, authReq)
 	if err != nil {
 		return common.Account{}, err
 	}
@@ -339,7 +342,9 @@ func (c *Cosmos) BroadcastTx(tx stypes.TxOutItem, hexTx []byte) (string, error) 
 		Mode:    txtypes.BroadcastMode_BROADCAST_MODE_SYNC,
 	}
 
-	res, err := txClient.BroadcastTx(context.Background(), req)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+	res, err := txClient.BroadcastTx(ctx, req)
 	if err != nil {
 		c.logger.Error().Err(err).Msg("unable to broadcast tx")
 		return "", err
