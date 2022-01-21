@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"math/big"
 	"strconv"
 	"strings"
 
@@ -33,7 +34,7 @@ import (
 type SolvencyReporter func(int64) error
 
 var (
-	WhitelistAssets       = map[string]bool{"uluna": true, "uusd": true}
+	WhitelistAssets       = map[string]int{"uluna": 6, "uusd": 6}
 	ErrInvalidScanStorage = errors.New("scan storage is empty or nil")
 	ErrInvalidMetrics     = errors.New("metrics is empty or nil")
 	ErrEmptyTx            = errors.New("empty tx")
@@ -97,8 +98,8 @@ func NewCosmosBlockScanner(cfg config.BlockScannerConfiguration,
 	}, nil
 }
 
-func (b *CosmosBlockScanner) GetHeight() (int64, error) {
-	resultHeight, err := b.tmService.GetLatestBlock(
+func (c *CosmosBlockScanner) GetHeight() (int64, error) {
+	resultHeight, err := c.tmService.GetLatestBlock(
 		context.Background(),
 		&tmservice.GetLatestBlockRequest{},
 	)
@@ -113,17 +114,37 @@ func (c *CosmosBlockScanner) FetchMemPool(height int64) (types.TxIn, error) {
 	return types.TxIn{}, nil
 }
 
+func sdkCoinToCommonCoin(c ctypes.Coin) (common.Coin, error) {
+	numDecimals := WhitelistAssets[c.Denom]
+
+	// c.Denom[1:] => Ignore the first character, "u", for most Cosmos assets
+	name := fmt.Sprintf("%s.%s", common.TERRAChain.String(), c.Denom[1:])
+	asset, err := common.NewAsset(name)
+	if err != nil {
+		return common.Coin{}, fmt.Errorf("failed to create asset (%s): %w", c.Denom, err)
+	}
+
+	// adjust from decimals to 8
+	decimalDiff := 8 - numDecimals
+
+	var amtAdjusted *big.Int
+	amtAdjusted.Mul(c.Amount.BigInt(), big.NewInt(int64(10^decimalDiff)))
+	coin := common.NewCoin(asset, ctypes.NewUintFromBigInt(amtAdjusted))
+
+	return coin, nil
+}
+
 // GetBlock returns a Tendermint block as a reference to a ResultBlock for a
 // given height. An error is returned upon query failure.
-func (b *CosmosBlockScanner) GetBlock(height int64) (*tmtypes.Block, error) {
-	resultBlock, err := b.tmService.GetBlockByHeight(
+func (c *CosmosBlockScanner) GetBlock(height int64) (*tmtypes.Block, error) {
+	resultBlock, err := c.tmService.GetBlockByHeight(
 		context.Background(),
 		&tmservice.GetBlockByHeightRequest{Height: height},
 	)
 
 	if err != nil {
-		b.logger.Error().Int64("height", height).Msgf("failed to get block: %v", err)
-		b.errCounter.WithLabelValues("fail_get_block", strconv.Itoa(int(height))).Inc()
+		c.logger.Error().Int64("height", height).Msgf("failed to get block: %v", err)
+		c.errCounter.WithLabelValues("fail_get_block", strconv.Itoa(int(height))).Inc()
 
 		return nil, fmt.Errorf("failed to get block: %w", err)
 	}
@@ -131,13 +152,13 @@ func (b *CosmosBlockScanner) GetBlock(height int64) (*tmtypes.Block, error) {
 	return resultBlock.Block, nil
 }
 
-func (b *CosmosBlockScanner) updateAverageGasFees(height int64, txs []types.TxInItem) (string, error) {
+func (c *CosmosBlockScanner) updateAverageGasFees(height int64, txs []types.TxInItem) (string, error) {
 	var numTxs int64
 
 	// sum all the gas fees for the FeeAsset only
 	totalGasFees := ctypes.NewUint(0)
 	for _, tx := range txs {
-		fee := tx.Gas.ToCoins().GetCoin(b.feeAsset)
+		fee := tx.Gas.ToCoins().GetCoin(c.feeAsset)
 		if err := fee.Valid(); err != nil {
 			// gas asset is not preferred fee asset, skip it...
 			continue
@@ -161,25 +182,25 @@ func (b *CosmosBlockScanner) updateAverageGasFees(height int64, txs []types.TxIn
 	}
 
 	// post the gas fee if it changed since last calculation
-	if !b.avgGasFee.Equal(ctypes.Uint(avgGasFeesAmt)) {
-		feeTx, err := b.bridge.PostNetworkFee(height, common.TERRAChain, 1, avgGasFeesAmt.Uint64())
+	if !c.avgGasFee.Equal(ctypes.Uint(avgGasFeesAmt)) {
+		feeTx, err := c.bridge.PostNetworkFee(height, common.TERRAChain, 1, avgGasFeesAmt.Uint64())
 		if err != nil {
 			return "", err
 		}
-		b.avgGasFee = ctypes.NewUint(avgGasFeesAmt.Uint64())
+		c.avgGasFee = ctypes.NewUint(avgGasFeesAmt.Uint64())
 		return feeTx.String(), nil
 	}
 
 	return "", nil
 }
 
-func (b *CosmosBlockScanner) FetchTxs(height int64) (types.TxIn, error) {
-	block, err := b.GetBlock(height)
+func (c *CosmosBlockScanner) FetchTxs(height int64) (types.TxIn, error) {
+	block, err := c.GetBlock(height)
 	if err != nil {
 		return types.TxIn{}, err
 	}
 
-	decoder := tx.DefaultTxDecoder(b.cdc)
+	decoder := tx.DefaultTxDecoder(c.cdc)
 	var txs []types.TxInItem
 
 	for _, rawTx := range block.Data.Txs {
@@ -195,7 +216,7 @@ func (b *CosmosBlockScanner) FetchTxs(height int64) (types.TxIn, error) {
 				}
 			}
 			// else we should log this as an error and continue
-			b.logger.Error().Str("tx", string(rawTx)).Err(err).Msg("unable to decode msg")
+			c.logger.Error().Str("tx", string(rawTx)).Err(err).Msg("unable to decode msg")
 			continue
 		}
 
@@ -206,15 +227,15 @@ func (b *CosmosBlockScanner) FetchTxs(height int64) (types.TxIn, error) {
 			switch msg := msg.(type) {
 			case *btypes.MsgSend:
 				coins := common.Coins{}
-				for _, c := range msg.Amount {
+				for _, coin := range msg.Amount {
 
 					// ignore first character of denom, which is usually "u" in cosmos
-					if _, whitelisted := WhitelistAssets[c.Denom]; !whitelisted {
-						b.logger.Info().Str("tx", hash).Interface("coins", c).Msg("coin is not whitelisted, skipping")
+					if _, whitelisted := WhitelistAssets[coin.Denom]; !whitelisted {
+						c.logger.Info().Str("tx", hash).Interface("coins", c).Msg("coin is not whitelisted, skipping")
 						continue
 					}
 
-					cCoin, err := sdkCoinToCommonCoin(c)
+					cCoin, err := sdkCoinToCommonCoin(coin)
 					if err != nil {
 						return types.TxIn{}, fmt.Errorf("failed to create asset; %s is not valid: %w", c, err)
 					}
@@ -261,15 +282,15 @@ func (b *CosmosBlockScanner) FetchTxs(height int64) (types.TxIn, error) {
 		MemPool:  false,
 	}
 
-	feeTx, err := b.updateAverageGasFees(block.Header.Height, txIn.TxArray)
+	feeTx, err := c.updateAverageGasFees(block.Header.Height, txIn.TxArray)
 	if err != nil {
-		b.logger.Err(err).Int64("height", height).Msg("failed to post average network fee")
+		c.logger.Err(err).Int64("height", height).Msg("failed to post average network fee")
 	}
 	if feeTx != "" {
-		b.logger.Info().
+		c.logger.Info().
 			Str("tx", feeTx).
 			Int64("height", height).
-			Int64("gasFeeAmt", b.avgGasFee.BigInt().Int64()).
+			Int64("gasFeeAmt", c.avgGasFee.BigInt().Int64()).
 			Msg("sent network fee to THORChain")
 	}
 

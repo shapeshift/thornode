@@ -18,6 +18,7 @@ import (
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 	"gitlab.com/thorchain/thornode/x/thorchain"
 	tssp "gitlab.com/thorchain/tss/go-tss/tss"
@@ -95,7 +96,7 @@ func NewCosmos(
 		logger.Fatal().Err(err).Msg("fail to dial")
 	}
 
-	b := &Cosmos{
+	c := &Cosmos{
 		chainID:         "columbus-5",
 		logger:          logger,
 		cfg:             cfg,
@@ -107,117 +108,119 @@ func NewCosmos(
 	}
 
 	var path string // if not set later, will in memory storage
-	if len(b.cfg.BlockScanner.DBPath) > 0 {
-		path = fmt.Sprintf("%s/%s", b.cfg.BlockScanner.DBPath, b.cfg.BlockScanner.ChainID)
+	if len(c.cfg.BlockScanner.DBPath) > 0 {
+		path = fmt.Sprintf("%s/%s", c.cfg.BlockScanner.DBPath, c.cfg.BlockScanner.ChainID)
 	}
-	b.storage, err = blockscanner.NewBlockScannerStorage(path)
+	c.storage, err = blockscanner.NewBlockScannerStorage(path)
 	if err != nil {
 		return nil, fmt.Errorf("fail to create scan storage: %w", err)
 	}
 
-	b.cosmosScanner, err = NewCosmosBlockScanner(
-		b.cfg.BlockScanner,
-		b.storage,
-		b.thorchainBridge,
+	c.cosmosScanner, err = NewCosmosBlockScanner(
+		c.cfg.BlockScanner,
+		c.storage,
+		c.thorchainBridge,
 		m,
-		b.reportSolvency,
+		c.reportSolvency,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create cosmos scanner: %w", err)
 	}
 
-	b.blockScanner, err = blockscanner.NewBlockScanner(b.cfg.BlockScanner, b.storage, m, b.thorchainBridge, b.cosmosScanner)
+	c.blockScanner, err = blockscanner.NewBlockScanner(c.cfg.BlockScanner, c.storage, m, c.thorchainBridge, c.cosmosScanner)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create block scanner: %w", err)
 	}
 
-	signerCacheManager, err := signercache.NewSignerCacheManager(b.storage.GetInternalDb())
+	signerCacheManager, err := signercache.NewSignerCacheManager(c.storage.GetInternalDb())
 	if err != nil {
 		return nil, fmt.Errorf("fail to create signer cache manager")
 	}
-	b.signerCacheManager = signerCacheManager
+	c.signerCacheManager = signerCacheManager
 
-	return b, nil
+	return c, nil
 }
 
 // Start Cosmos chain client
-func (b *Cosmos) Start(globalTxsQueue chan stypes.TxIn, globalErrataQueue chan stypes.ErrataBlock, globalSolvencyQueue chan stypes.Solvency) {
-	b.globalSolvencyQueue = globalSolvencyQueue
-	b.tssKeyManager.Start()
-	b.blockScanner.Start(globalTxsQueue)
+func (c *Cosmos) Start(globalTxsQueue chan stypes.TxIn, globalErrataQueue chan stypes.ErrataBlock, globalSolvencyQueue chan stypes.Solvency) {
+	c.globalSolvencyQueue = globalSolvencyQueue
+	c.tssKeyManager.Start()
+	c.blockScanner.Start(globalTxsQueue)
 }
 
 // Stop Cosmos chain client
-func (b *Cosmos) Stop() {
-	b.tssKeyManager.Stop()
-	b.blockScanner.Stop()
+func (c *Cosmos) Stop() {
+	c.tssKeyManager.Stop()
+	c.blockScanner.Stop()
 }
 
 // GetConfig return the configuration used by Cosmos chain client
-func (b *Cosmos) GetConfig() config.ChainConfiguration {
-	return b.cfg
+func (c *Cosmos) GetConfig() config.ChainConfiguration {
+	return c.cfg
 }
 
-func (b *Cosmos) IsBlockScannerHealthy() bool {
-	return b.blockScanner.IsHealthy()
+func (c *Cosmos) IsBlockScannerHealthy() bool {
+	return c.blockScanner.IsHealthy()
 }
 
-func (b *Cosmos) GetChain() common.Chain {
+func (c *Cosmos) GetChain() common.Chain {
 	return common.TERRAChain
 }
 
-func (b *Cosmos) GetHeight() (int64, error) {
-	return b.blockScanner.FetchLastHeight()
+func (c *Cosmos) GetHeight() (int64, error) {
+	return c.blockScanner.FetchLastHeight()
 }
 
 // GetAddress return current signer address, it will be bech32 encoded address
-func (b *Cosmos) GetAddress(poolPubKey common.PubKey) string {
+func (c *Cosmos) GetAddress(poolPubKey common.PubKey) string {
 	addr, err := poolPubKey.GetAddress(common.TERRAChain)
 	if err != nil {
-		b.logger.Error().Err(err).Str("pool_pub_key", poolPubKey.String()).Msg("fail to get pool address")
+		c.logger.Error().Err(err).Str("pool_pub_key", poolPubKey.String()).Msg("fail to get pool address")
 		return ""
 	}
 	return addr.String()
 }
 
 // SignTx sign the the given TxArrayItem
-func (b *Cosmos) SignTx(tx stypes.TxOutItem, thorchainHeight int64) (signedTx []byte, err error) {
+func (c *Cosmos) SignTx(tx stypes.TxOutItem, thorchainHeight int64) (signedTx []byte, err error) {
 	defer func() {
 		if err != nil {
 			var keysignError tss.KeysignError
 			if errors.As(err, &keysignError) {
 				if len(keysignError.Blame.BlameNodes) == 0 {
-					b.logger.Error().Err(err).Msg("TSS doesn't know which node to blame")
+					c.logger.Error().Err(err).Msg("TSS doesn't know which node to blame")
 					return
 				}
 
 				// key sign error forward the keysign blame to thorchain
-				txID, err := b.thorchainBridge.PostKeysignFailure(keysignError.Blame, thorchainHeight, tx.Memo, tx.Coins, tx.VaultPubKey)
+				txID, err := c.thorchainBridge.PostKeysignFailure(keysignError.Blame, thorchainHeight, tx.Memo, tx.Coins, tx.VaultPubKey)
 				if err != nil {
-					b.logger.Error().Err(err).Msg("fail to post keysign failure to THORChain")
+					c.logger.Error().Err(err).Msg("fail to post keysign failure to THORChain")
 					return
 				}
-				b.logger.Info().Str("tx_id", txID.String()).Msgf("post keysign failure to thorchain")
+				c.logger.Info().Str("tx_id", txID.String()).Msgf("post keysign failure to thorchain")
 			}
-			b.logger.Error().Err(err).Msg("fail to get witness")
+			c.logger.Error().Err(err).Msg("fail to get witness")
 			return
 		}
 	}()
 
-	if b.signerCacheManager.HasSigned(tx.CacheHash()) {
-		b.logger.Info().Interface("tx", tx).Msg("transaction already signed, ignoring...")
+	if c.signerCacheManager.HasSigned(tx.CacheHash()) {
+		c.logger.Info().Interface("tx", tx).Msg("transaction already signed, ignoring...")
 		return nil, nil
 	}
 
-	fromAddr, err := types.AccAddressFromBech32(b.GetAddress(tx.VaultPubKey))
+	fromBz, err := types.GetFromBech32(c.GetAddress(tx.VaultPubKey), "terra")
 	if err != nil {
-		return nil, fmt.Errorf("failed to convert address (%s) to bech32: %w", tx.ToAddress, err)
+		return nil, fmt.Errorf("failed to convert address (%s) to bech32: %w", c.GetAddress(tx.VaultPubKey), err)
 	}
+	fromAddr := cosmos.AccAddress(fromBz)
 
-	toAddr, err := types.AccAddressFromBech32(tx.ToAddress.String())
+	toBz, err := types.GetFromBech32(tx.ToAddress.String(), "terra")
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert address (%s) to bech32: %w", tx.ToAddress, err)
 	}
+	toAddr := cosmos.AccAddress(toBz)
 
 	var gasFees common.Coins
 
@@ -225,7 +228,7 @@ func (b *Cosmos) SignTx(tx stypes.TxOutItem, thorchainHeight int64) (signedTx []
 	// logic is per chain, given that different networks charge fees differently.
 	if strings.EqualFold(tx.Memo, thorchain.NewYggdrasilReturn(thorchainHeight).String()) {
 		gasFees = common.Coins{
-			common.NewCoin(b.cosmosScanner.feeAsset, b.cosmosScanner.avgGasFee),
+			common.NewCoin(c.cosmosScanner.feeAsset, c.cosmosScanner.avgGasFee),
 		}
 	}
 
@@ -246,14 +249,14 @@ func (b *Cosmos) SignTx(tx stypes.TxOutItem, thorchainHeight int64) (signedTx []
 		return nil, fmt.Errorf("invalid MsgSend: %w", err)
 	}
 
-	currentHeight, err := b.cosmosScanner.GetHeight()
+	currentHeight, err := c.cosmosScanner.GetHeight()
 	if err != nil {
-		b.logger.Error().Err(err).Msg("fail to get current binance block height")
+		c.logger.Error().Err(err).Msg("fail to get current binance block height")
 		return nil, err
 	}
-	meta := b.accts.Get(tx.VaultPubKey)
+	meta := c.accts.Get(tx.VaultPubKey)
 	if currentHeight > meta.BlockHeight {
-		acc, err := b.GetAccount(tx.VaultPubKey)
+		acc, err := c.GetAccount(tx.VaultPubKey)
 		if err != nil {
 			return nil, fmt.Errorf("fail to get account info: %w", err)
 		}
@@ -262,24 +265,24 @@ func (b *Cosmos) SignTx(tx stypes.TxOutItem, thorchainHeight int64) (signedTx []
 			SeqNumber:     acc.Sequence,
 			BlockHeight:   currentHeight,
 		}
-		b.accts.Set(tx.VaultPubKey, meta)
+		c.accts.Set(tx.VaultPubKey, meta)
 	}
 
 	signMsg := legacytx.StdSignMsg{
-		ChainID:       b.chainID,
+		ChainID:       c.chainID,
 		Memo:          tx.Memo,
 		Msgs:          []types.Msg{msg},
 		Sequence:      uint64(meta.SeqNumber),
 		AccountNumber: uint64(meta.AccountNumber),
 	}
 
-	rawBz, err := b.localKeyManager.Sign(signMsg)
+	rawBz, err := c.localKeyManager.Sign(signMsg)
 	if err != nil {
 		return nil, fmt.Errorf("unable to sign tx: %w", err)
 	}
 
 	signedTx = []byte(hex.EncodeToString(rawBz))
-	b.logger.Info().Str("hexTx", hex.EncodeToString(rawBz)).Msg("signTx")
+	c.logger.Info().Str("hexTx", hex.EncodeToString(rawBz)).Msg("signTx")
 	return signedTx, nil
 }
 
@@ -293,8 +296,8 @@ func (b *Cosmos) GetAccount(pkey common.PubKey) (common.Account, error) {
 	return b.GetAccountByAddress(address.String())
 }
 
-func (b *Cosmos) GetAccountByAddress(address string) (common.Account, error) {
-	bankClient := btypes.NewQueryClient(b.grpcConn)
+func (c *Cosmos) GetAccountByAddress(address string) (common.Account, error) {
+	bankClient := btypes.NewQueryClient(c.grpcConn)
 	bankReq := &btypes.QueryAllBalancesRequest{
 		Address: address,
 	}
@@ -304,17 +307,17 @@ func (b *Cosmos) GetAccountByAddress(address string) (common.Account, error) {
 	}
 
 	nativeCoins := make([]common.Coin, 0)
-	for _, coin := range balances.Balances {
-		c, _ := sdkCoinToCommonCoin(coin)
-		nativeCoins = append(nativeCoins, c)
+	for _, balance := range balances.Balances {
+		coin, _ := sdkCoinToCommonCoin(balance)
+		nativeCoins = append(nativeCoins, coin)
 	}
 
-	c := atypes.NewQueryClient(b.grpcConn)
+	client := atypes.NewQueryClient(c.grpcConn)
 	authReq := &atypes.QueryAccountRequest{
 		Address: address,
 	}
 
-	acc, err := c.Account(context.Background(), authReq)
+	acc, err := client.Account(context.Background(), authReq)
 	if err != nil {
 		return common.Account{}, err
 	}
@@ -338,8 +341,8 @@ func (b *Cosmos) GetAccountByAddress(address string) (common.Account, error) {
 }
 
 // BroadcastTx is to broadcast the tx to cosmos chain
-func (b *Cosmos) BroadcastTx(tx stypes.TxOutItem, hexTx []byte) (string, error) {
-	txClient := txtypes.NewServiceClient(b.grpcConn)
+func (c *Cosmos) BroadcastTx(tx stypes.TxOutItem, hexTx []byte) (string, error) {
+	txClient := txtypes.NewServiceClient(c.grpcConn)
 	req := &txtypes.BroadcastTxRequest{
 		TxBytes: hexTx,
 		Mode:    txtypes.BroadcastMode_BROADCAST_MODE_SYNC,
@@ -347,7 +350,7 @@ func (b *Cosmos) BroadcastTx(tx stypes.TxOutItem, hexTx []byte) (string, error) 
 
 	res, err := txClient.BroadcastTx(context.Background(), req)
 	if err != nil {
-		b.logger.Error().Err(err).Msg("unable to broadcast tx")
+		c.logger.Error().Err(err).Msg("unable to broadcast tx")
 		return "", err
 	}
 
@@ -355,37 +358,37 @@ func (b *Cosmos) BroadcastTx(tx stypes.TxOutItem, hexTx []byte) (string, error) 
 }
 
 // ConfirmationCountReady cosmos chain has almost instant finality, so doesn't need to wait for confirmation
-func (b *Cosmos) ConfirmationCountReady(txIn stypes.TxIn) bool {
+func (c *Cosmos) ConfirmationCountReady(txIn stypes.TxIn) bool {
 	return true
 }
 
 // GetConfirmationCount determine how many confirmations are required
-func (b *Cosmos) GetConfirmationCount(txIn stypes.TxIn) int64 {
+func (c *Cosmos) GetConfirmationCount(txIn stypes.TxIn) int64 {
 	return 0
 }
-func (b *Cosmos) reportSolvency(blockHeight int64) error {
+func (c *Cosmos) reportSolvency(blockHeight int64) error {
 	if blockHeight%900 > 0 {
 		return nil
 	}
-	asgardVaults, err := b.thorchainBridge.GetAsgards()
+	asgardVaults, err := c.thorchainBridge.GetAsgards()
 	if err != nil {
 		return fmt.Errorf("fail to get asgards,err: %w", err)
 	}
 	for _, asgard := range asgardVaults {
-		acct, err := b.GetAccount(asgard.PubKey)
+		acct, err := c.GetAccount(asgard.PubKey)
 		if err != nil {
-			b.logger.Err(err).Msgf("fail to get account balance")
+			c.logger.Err(err).Msgf("fail to get account balance")
 			continue
 		}
 		select {
-		case b.globalSolvencyQueue <- stypes.Solvency{
+		case c.globalSolvencyQueue <- stypes.Solvency{
 			Height: blockHeight,
 			Chain:  common.TERRAChain,
 			PubKey: asgard.PubKey,
 			Coins:  acct.Coins,
 		}:
 		case <-time.After(constants.ThorchainBlockTime):
-			b.logger.Info().Msgf("fail to send solvency info to THORChain, timeout")
+			c.logger.Info().Msgf("fail to send solvency info to THORChain, timeout")
 		}
 	}
 	return nil
