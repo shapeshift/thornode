@@ -341,8 +341,8 @@ func (c *Cosmos) GetAccountByAddress(address string) (common.Account, error) {
 }
 
 // BroadcastTx is to broadcast the tx to cosmos chain
-func (b *Cosmos) BroadcastTx(tx stypes.TxOutItem, hexTx []byte) (string, error) {
-	txClient := txtypes.NewServiceClient(b.grpcConn)
+func (c *Cosmos) BroadcastTx(tx stypes.TxOutItem, hexTx []byte) (string, error) {
+	txClient := txtypes.NewServiceClient(c.grpcConn)
 	req := &txtypes.BroadcastTxRequest{
 		TxBytes: hexTx,
 		Mode:    txtypes.BroadcastMode_BROADCAST_MODE_SYNC,
@@ -350,7 +350,7 @@ func (b *Cosmos) BroadcastTx(tx stypes.TxOutItem, hexTx []byte) (string, error) 
 
 	res, err := txClient.BroadcastTx(context.Background(), req)
 	if err != nil {
-		b.logger.Error().Err(err).Msg("unable to broadcast tx")
+		c.logger.Error().Err(err).Msg("unable to broadcast tx")
 		return "", err
 	}
 
@@ -358,37 +358,37 @@ func (b *Cosmos) BroadcastTx(tx stypes.TxOutItem, hexTx []byte) (string, error) 
 }
 
 // ConfirmationCountReady cosmos chain has almost instant finality, so doesn't need to wait for confirmation
-func (b *Cosmos) ConfirmationCountReady(txIn stypes.TxIn) bool {
+func (c *Cosmos) ConfirmationCountReady(txIn stypes.TxIn) bool {
 	return true
 }
 
 // GetConfirmationCount determine how many confirmations are required
-func (b *Cosmos) GetConfirmationCount(txIn stypes.TxIn) int64 {
+func (c *Cosmos) GetConfirmationCount(txIn stypes.TxIn) int64 {
 	return 0
 }
-func (b *Cosmos) reportSolvency(blockHeight int64) error {
+func (c *Cosmos) reportSolvency(blockHeight int64) error {
 	if blockHeight%900 > 0 {
 		return nil
 	}
-	asgardVaults, err := b.thorchainBridge.GetAsgards()
+	asgardVaults, err := c.thorchainBridge.GetAsgards()
 	if err != nil {
 		return fmt.Errorf("fail to get asgards,err: %w", err)
 	}
 	for _, asgard := range asgardVaults {
-		acct, err := b.GetAccount(asgard.PubKey)
+		acct, err := c.GetAccount(asgard.PubKey)
 		if err != nil {
-			b.logger.Err(err).Msgf("fail to get account balance")
+			c.logger.Err(err).Msgf("fail to get account balance")
 			continue
 		}
 		select {
-		case b.globalSolvencyQueue <- stypes.Solvency{
+		case c.globalSolvencyQueue <- stypes.Solvency{
 			Height: blockHeight,
 			Chain:  common.TERRAChain,
 			PubKey: asgard.PubKey,
 			Coins:  acct.Coins,
 		}:
 		case <-time.After(constants.ThorchainBlockTime):
-			b.logger.Info().Msgf("fail to send solvency info to THORChain, timeout")
+			c.logger.Info().Msgf("fail to send solvency info to THORChain, timeout")
 		}
 	}
 	return nil
