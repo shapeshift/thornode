@@ -120,3 +120,36 @@ func (PoolTestSuite) TestPools(c *C) {
 	c.Check(pool.Asset.Equals(common.BTCAsset), Equals, true)
 	c.Check(pool.BalanceRune.Uint64(), Equals, uint64(20))
 }
+
+func (PoolTestSuite) TestCalcUnits(c *C) {
+	version := GetCurrentVersion()
+
+	pool := NewPool()
+	pool.Asset = common.BNBAsset
+	pool.LPUnits = cosmos.NewUint(100)
+
+	// no asset balance
+	synthSupply := cosmos.NewUint(100)
+	units := pool.CalcUnits(version, synthSupply)
+	c.Assert(pool.SynthUnits.Uint64(), Equals, uint64(0),
+		Commentf("pool without asset balance should have zero synth units"))
+	c.Assert(units.Uint64(), Equals, uint64(100),
+		Commentf("pool without asset balance should return LPUnits"))
+
+	// asset balance <= synthSupply / 2
+	pool.BalanceAsset = cosmos.NewUint(100)
+	pool.BalanceRune = cosmos.NewUint(100)
+	pool.LPUnits = cosmos.NewUint(100)
+	synthSupply = cosmos.NewUint(200)
+	units = pool.CalcUnits(version, synthSupply)
+	c.Assert(pool.SynthUnits.Uint64(), Equals, uint64(20_000))
+	c.Assert(units.Uint64(), Equals, uint64(20_100))
+
+	// normal case
+	pool.BalanceAsset = cosmos.NewUint(1_000)
+	pool.BalanceRune = cosmos.NewUint(1_000)
+	synthSupply = cosmos.NewUint(100)
+	units = pool.CalcUnits(version, synthSupply)
+	c.Assert(pool.SynthUnits.Uint64(), Equals, uint64(5))
+	c.Assert(units.Uint64(), Equals, uint64(105))
+}
