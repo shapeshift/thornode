@@ -110,7 +110,7 @@ func (c Chain) GetGasAsset() Asset {
 	case ETHChain:
 		return ETHAsset
 	case TERRAChain:
-		return LunaAsset
+		return LUNAAsset
 	default:
 		return EmptyAsset
 	}
