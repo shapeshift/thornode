@@ -173,7 +173,7 @@ func (c *Cosmos) GetHeight() (int64, error) {
 
 // GetAddress return current signer address, it will be bech32 encoded address
 func (c *Cosmos) GetAddress(poolPubKey common.PubKey) string {
-	addr, err := poolPubKey.GetAddress(common.TERRAChain)
+	addr, err := poolPubKey.GetAddress(c.GetChain())
 	if err != nil {
 		c.logger.Error().Err(err).Str("pool_pub_key", poolPubKey.String()).Msg("fail to get pool address")
 		return ""
@@ -200,7 +200,7 @@ func (c *Cosmos) SignTx(tx stypes.TxOutItem, thorchainHeight int64) (signedTx []
 				}
 				c.logger.Info().Str("tx_id", txID.String()).Msgf("post keysign failure to thorchain")
 			}
-			c.logger.Error().Err(err).Msg("fail to get witness")
+			c.logger.Error().Err(err).Msg("failed to sign tx")
 			return
 		}
 	}()
@@ -210,13 +210,13 @@ func (c *Cosmos) SignTx(tx stypes.TxOutItem, thorchainHeight int64) (signedTx []
 		return nil, nil
 	}
 
-	fromBz, err := types.GetFromBech32(c.GetAddress(tx.VaultPubKey), "terra")
+	fromBz, err := types.GetFromBech32(c.GetAddress(tx.VaultPubKey), c.GetChain().AddressPrefix(common.GetCurrentChainNetwork()))
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert address (%s) to bech32: %w", c.GetAddress(tx.VaultPubKey), err)
 	}
 	fromAddr := cosmos.AccAddress(fromBz)
 
-	toBz, err := types.GetFromBech32(tx.ToAddress.String(), "terra")
+	toBz, err := types.GetFromBech32(tx.ToAddress.String(), c.GetChain().AddressPrefix(common.GetCurrentChainNetwork()))
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert address (%s) to bech32: %w", tx.ToAddress, err)
 	}
@@ -240,7 +240,6 @@ func (c *Cosmos) SignTx(tx stypes.TxOutItem, thorchainHeight int64) (signedTx []
 				coin.Amount = common.SafeSub(coin.Amount, gasFee.Amount)
 			}
 		}
-
 		coins = append(coins, types.NewCoin(coin.Asset.Symbol.String(), types.NewIntFromBigInt(coin.Amount.BigInt())))
 	}
 
@@ -282,18 +281,15 @@ func (c *Cosmos) SignTx(tx stypes.TxOutItem, thorchainHeight int64) (signedTx []
 	}
 
 	signedTx = []byte(hex.EncodeToString(rawBz))
-	c.logger.Info().Str("hexTx", hex.EncodeToString(rawBz)).Msg("signTx")
 	return signedTx, nil
 }
 
-func (b *Cosmos) GetAccount(pkey common.PubKey) (common.Account, error) {
-	addr := b.GetAddress(pkey)
-	address, err := types.AccAddressFromBech32(addr)
+func (c *Cosmos) GetAccount(pkey common.PubKey) (common.Account, error) {
+	addr, err := pkey.GetAddress(c.GetChain())
 	if err != nil {
-		b.logger.Error().Err(err).Msgf("fail to get parse address: %s", addr)
-		return common.Account{}, err
+		return common.Account{}, fmt.Errorf("failed to convert address (%s) from bech32: %w", pkey, err)
 	}
-	return b.GetAccountByAddress(address.String())
+	return c.GetAccountByAddress(addr.String())
 }
 
 func (c *Cosmos) GetAccountByAddress(address string) (common.Account, error) {
@@ -308,7 +304,7 @@ func (c *Cosmos) GetAccountByAddress(address string) (common.Account, error) {
 
 	nativeCoins := make([]common.Coin, 0)
 	for _, balance := range balances.Balances {
-		coin, _ := sdkCoinToCommonCoin(balance)
+		coin := sdkCoinToCommonCoin(balance)
 		nativeCoins = append(nativeCoins, coin)
 	}
 
@@ -328,15 +324,10 @@ func (c *Cosmos) GetAccountByAddress(address string) (common.Account, error) {
 		return common.Account{}, err
 	}
 
-	if err != nil {
-		return common.Account{}, err
-	}
-
 	return common.Account{
 		Sequence:      int64(ba.Sequence),
 		AccountNumber: int64(ba.AccountNumber),
 		Coins:         nativeCoins,
-		HasMemoFlag:   false,
 	}, nil
 }
 
