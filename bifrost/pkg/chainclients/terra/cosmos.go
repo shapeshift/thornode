@@ -210,15 +210,17 @@ func (c *Cosmos) SignTx(tx stypes.TxOutItem, thorchainHeight int64) (signedTx []
 		return nil, nil
 	}
 
-	fromAddr, err := types.AccAddressFromBech32(b.GetAddress(tx.VaultPubKey))
+	fromBz, err := types.GetFromBech32(c.GetAddress(tx.VaultPubKey), "terra")
 	if err != nil {
-		return nil, fmt.Errorf("failed to convert address (%s) to bech32: %w", tx.ToAddress, err)
+		return nil, fmt.Errorf("failed to convert address (%s) to bech32: %w", c.GetAddress(tx.VaultPubKey), err)
 	}
+	fromAddr := cosmos.AccAddress(fromBz)
 
-	toAddr, err := types.AccAddressFromBech32(tx.ToAddress.String())
+	toBz, err := types.GetFromBech32(tx.ToAddress.String(), "terra")
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert address (%s) to bech32: %w", tx.ToAddress, err)
 	}
+	toAddr := cosmos.AccAddress(toBz)
 
 	var gasFees common.Coins
 
