@@ -486,7 +486,12 @@ func (c *Client) SignTx(tx stypes.TxOutItem, height int64) ([]byte, error) {
 	createdTx := etypes.NewTransaction(nonce, ecommon.HexToAddress(contractAddr.String()), estimatedETHValue, MaxContractGas, gasRate, data)
 	estimatedGas, err := c.estimateGas(fromAddr.String(), createdTx)
 	if err != nil {
-		return nil, fmt.Errorf("fail to estimate gas: %w", err)
+		// in an edge case that vault doesn't have enough fund to fulfill an outbound transaction , it will fail to estimate gas
+		// the returned error is `execution reverted`
+		// when this fail , chain client should skip the outbound and move on to the next. The network will reschedule the outbound
+		// after 300 blocks
+		c.logger.Err(err).Msgf("fail to estimate gas")
+		return nil, nil
 	}
 	c.logger.Info().Msgf("memo:%s estimated gas unit: %d", tx.Memo, estimatedGas)
 
