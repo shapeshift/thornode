@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"math/big"
 	"strconv"
 	"strings"
 	"time"
@@ -29,15 +28,12 @@ import (
 	"gitlab.com/thorchain/thornode/bifrost/thorclient"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient/types"
 	"gitlab.com/thorchain/thornode/common"
-	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 // SolvencyReporter is to report solvency info to THORNode
 type SolvencyReporter func(int64) error
 
 var (
-	DefaultDecimals       = 6
-	WhitelistAssets       = map[string]int{"uluna": 6, "uusd": 6}
 	ErrInvalidScanStorage = errors.New("scan storage is empty or nil")
 	ErrInvalidMetrics     = errors.New("metrics is empty or nil")
 	ErrEmptyTx            = errors.New("empty tx")
@@ -117,32 +113,6 @@ func (c *CosmosBlockScanner) GetHeight() (int64, error) {
 
 func (c *CosmosBlockScanner) FetchMemPool(height int64) (types.TxIn, error) {
 	return types.TxIn{}, nil
-}
-
-func sdkCoinToCommonCoin(c cosmos.Coin) common.Coin {
-	name := fmt.Sprintf("%s.%s", common.TERRAChain.String(), c.Denom[1:])
-	asset, _ := common.NewAsset(name)
-
-	decimals, exists := WhitelistAssets[c.Denom]
-	if !exists {
-		return common.NewCoin(asset, ctypes.Uint(c.Amount))
-	}
-
-	amount := c.Amount
-	var value *big.Int
-	// Decimals are more than native THORChain, so divide...
-	if decimals > 8 {
-		decimalDiff := int64(decimals - 8)
-		value = value.Exp(value, big.NewInt(10), big.NewInt(decimalDiff))
-		amount = c.Amount.Quo(cosmos.NewIntFromBigInt(value))
-	}
-	// Decimals are less than native THORChain, so multiply...
-	if decimals < 8 {
-		decimalDiff := int64(8 - decimals)
-		value = value.Exp(value, big.NewInt(10), big.NewInt(decimalDiff))
-		amount = c.Amount.Mul(cosmos.NewIntFromBigInt(value))
-	}
-	return common.NewCoin(asset, ctypes.NewUintFromBigInt(amount.BigInt()))
 }
 
 // GetBlock returns a Tendermint block as a reference to a ResultBlock for a
@@ -248,7 +218,7 @@ func (c *CosmosBlockScanner) FetchTxs(height int64) (types.TxIn, error) {
 						continue
 					}
 
-					cCoin := sdkCoinToCommonCoin(coin)
+					cCoin := fromCosmosToThorchain(coin)
 					coins = append(coins, cCoin)
 				}
 
@@ -259,7 +229,7 @@ func (c *CosmosBlockScanner) FetchTxs(height int64) (types.TxIn, error) {
 
 				gasFees := common.Gas{}
 				for _, fee := range fees {
-					cCoin := sdkCoinToCommonCoin(fee)
+					cCoin := fromCosmosToThorchain(fee)
 					gasFees = append(gasFees, cCoin)
 				}
 
