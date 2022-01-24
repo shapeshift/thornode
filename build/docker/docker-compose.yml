@@ -26,7 +26,7 @@ services:
         TAG: mocknet
     environment: &thorchain-environment
       NET: mocknet
-      CHAIN_ID: ${CHAIN_ID:-thorchain}
+      CHAIN_ID: thorchain
     logging: &logging
       driver: "json-file"
       options:
