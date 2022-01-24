@@ -135,7 +135,7 @@ func (c *CosmosBlockScanner) GetBlock(height int64) (*tmtypes.Block, error) {
 	return resultBlock.Block, nil
 }
 
-func (c *CosmosBlockScanner) updateAverageGasFees(height int64, txs []types.TxInItem) (string, error) {
+func (c *CosmosBlockScanner) calculateAverageGasFees(height int64, txs []types.TxInItem) (ctypes.Int, error) {
 	var numTxs int64
 
 	// sum all the gas fees for the FeeAsset only
@@ -151,26 +151,27 @@ func (c *CosmosBlockScanner) updateAverageGasFees(height int64, txs []types.TxIn
 	}
 
 	if numTxs == 0 {
-		return "", nil
+		return ctypes.ZeroInt(), nil
 	}
 
 	// compute the average (total / numTxs)
 	avgGasFeesAmt := (ctypes.NewDecFromBigInt(totalGasFees.BigInt()).QuoInt64(numTxs)).TruncateInt()
-	if avgGasFeesAmt.IsZero() {
-		return "", nil
+	if !avgGasFeesAmt.IsUint64() {
+		return ctypes.ZeroInt(), fmt.Errorf("average gas fee exceeds uint64: %s", avgGasFeesAmt)
 	}
 
-	if !avgGasFeesAmt.IsUint64() {
-		return "", fmt.Errorf("average gas fee exceeds uint64: %s", avgGasFeesAmt)
-	}
+	return avgGasFeesAmt, nil
+}
+
+func (c *CosmosBlockScanner) updateGasFees(height int64, amt ctypes.Int) (string, error) {
 
 	// post the gas fee if it changed since last calculation
-	if !c.avgGasFee.Equal(ctypes.Uint(avgGasFeesAmt)) {
-		feeTx, err := c.bridge.PostNetworkFee(height, common.TERRAChain, 1, avgGasFeesAmt.Uint64())
+	if !c.avgGasFee.Equal(ctypes.Uint(amt)) {
+		feeTx, err := c.bridge.PostNetworkFee(height, common.TERRAChain, 1, amt.Uint64())
 		if err != nil {
 			return "", err
 		}
-		c.avgGasFee = ctypes.NewUint(avgGasFeesAmt.Uint64())
+		c.avgGasFee = ctypes.NewUint(amt.Uint64())
 		return feeTx.String(), nil
 	}
 
@@ -257,16 +258,22 @@ func (c *CosmosBlockScanner) FetchTxs(height int64) (types.TxIn, error) {
 		MemPool:  false,
 	}
 
-	feeTx, err := c.updateAverageGasFees(block.Header.Height, txIn.TxArray)
+	avgGasFee, err := c.calculateAverageGasFees(block.Header.Height, txIn.TxArray)
 	if err != nil {
-		c.logger.Err(err).Int64("height", height).Msg("failed to post average network fee")
+		c.logger.Err(err).Int64("height", height).Msg("failed to calculated average gas fees")
 	}
-	if feeTx != "" {
+
+	if !avgGasFee.IsZero() {
+		feeTx, err := c.updateGasFees(height, avgGasFee)
+		if err != nil {
+			c.logger.Err(err).Int64("height", height).Msg("failed to post average network fee")
+		}
 		c.logger.Info().
 			Str("tx", feeTx).
 			Int64("height", height).
 			Int64("gasFeeAmt", c.avgGasFee.BigInt().Int64()).
 			Msg("sent network fee to THORChain")
+
 	}
 
 	return txIn, nil
