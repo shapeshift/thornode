@@ -28,11 +28,11 @@ func fromCosmosToThorchain(c cosmos.Coin) common.Coin {
 	// Decimals are more than native THORChain, so divide...
 	if decimals > ThorchainDecimals {
 		decimalDiff := int64(decimals - ThorchainDecimals)
-		amount.Quo(amount, exp.Exp(big.NewInt(10), big.NewInt(int64(decimalDiff)), nil))
+		amount.Quo(amount, exp.Exp(big.NewInt(10), big.NewInt(decimalDiff), nil))
 	} else if decimals < ThorchainDecimals {
 		// Decimals are less than native THORChain, so multiply...
 		decimalDiff := int64(ThorchainDecimals - decimals)
-		amount.Mul(amount, exp.Exp(big.NewInt(10), big.NewInt(int64(decimalDiff)), nil))
+		amount.Mul(amount, exp.Exp(big.NewInt(10), big.NewInt(decimalDiff), nil))
 	}
 	return common.NewCoin(asset, ctypes.NewUintFromBigInt(amount))
 }
@@ -45,11 +45,11 @@ func fromThorchainToCosmos(coin common.Coin) cosmos.Coin {
 	var exp big.Int
 	if decimals > ThorchainDecimals {
 		decimalDiff := int64(decimals - ThorchainDecimals)
-		amount.Mul(amount, exp.Exp(big.NewInt(10), big.NewInt(int64(decimalDiff)), nil))
+		amount.Mul(amount, exp.Exp(big.NewInt(10), big.NewInt(decimalDiff), nil))
 	} else if decimals < ThorchainDecimals {
 		// Decimals are less than native THORChain, so multiply...
 		decimalDiff := int64(ThorchainDecimals - decimals)
-		amount.Quo(amount, exp.Exp(big.NewInt(10), big.NewInt(int64(decimalDiff)), nil))
+		amount.Quo(amount, exp.Exp(big.NewInt(10), big.NewInt(decimalDiff), nil))
 	}
 	return cosmos.NewCoin(denom, ctypes.NewIntFromBigInt(amount))
 }
