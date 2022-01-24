@@ -240,7 +240,8 @@ func (c *Cosmos) SignTx(tx stypes.TxOutItem, thorchainHeight int64) (signedTx []
 				coin.Amount = common.SafeSub(coin.Amount, gasFee.Amount)
 			}
 		}
-		coins = append(coins, types.NewCoin(coin.Asset.Symbol.String(), types.NewIntFromBigInt(coin.Amount.BigInt())))
+		cosmosCoin := fromThorchainToCosmos(coin)
+		coins = append(coins, cosmosCoin)
 	}
 
 	msg := btypes.NewMsgSend(fromAddr, toAddr, coins.Sort())
@@ -307,7 +308,7 @@ func (c *Cosmos) GetAccountByAddress(address string) (common.Account, error) {
 
 	nativeCoins := make([]common.Coin, 0)
 	for _, balance := range balances.Balances {
-		coin := sdkCoinToCommonCoin(balance)
+		coin := fromCosmosToThorchain(balance)
 		nativeCoins = append(nativeCoins, coin)
 	}
 
