@@ -3,6 +3,7 @@ package terra
 import (
 	"context"
 	"encoding/base64"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"strings"
@@ -14,13 +15,13 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/auth/legacy/legacytx"
 	atypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	btypes "github.com/cosmos/cosmos-sdk/x/bank/types"
+
 	grpc "google.golang.org/grpc"
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	"gitlab.com/thorchain/thornode/x/thorchain"
 	tssp "gitlab.com/thorchain/tss/go-tss/tss"
 
 	"gitlab.com/thorchain/thornode/bifrost/blockscanner"
@@ -187,15 +188,7 @@ func (c *Cosmos) processOutboundTx(tx stypes.TxOutItem, thorchainHeight int64) (
 		return nil, fmt.Errorf("failed to convert address (%s) to bech32: %w", tx.VaultPubKey.String(), err)
 	}
 
-	var gasFees common.Coins
-
-	// For yggdrasil, we need to leave some coins to pay for the fee. Note, this
-	// logic is per chain, given that different networks charge fees differently.
-	// if strings.EqualFold(tx.Memo, thorchain.NewYggdrasilReturn(thorchainHeight).String()) {
-	// 	gasFees = common.Coins{
-	// 		common.NewCoin(c.cosmosScanner.feeAsset, c.cosmosScanner.avgGasFee),
-	// 	}
-	// }
+	gasFees := common.Coins{common.NewCoin(c.cosmosScanner.feeAsset, c.cosmosScanner.avgGasFee)}
 
 	var coins types.Coins
 	for _, coin := range tx.Coins {
@@ -209,12 +202,11 @@ func (c *Cosmos) processOutboundTx(tx stypes.TxOutItem, thorchainHeight int64) (
 		coins = append(coins, cosmosCoin)
 	}
 
-	msg := &btypes.MsgSend{
+	return &btypes.MsgSend{
 		FromAddress: vaultPubKey.String(),
 		ToAddress:   tx.ToAddress.String(),
 		Amount:      coins.Sort(),
-	}
-	return msg, nil
+	}, nil
 }
 
 // SignTx sign the the given TxArrayItem
@@ -273,19 +265,54 @@ func (c *Cosmos) SignTx(tx stypes.TxOutItem, thorchainHeight int64) (signedTx []
 
 	signMsg := legacytx.StdSignMsg{
 		ChainID:       c.chainID,
-		Memo:          tx.Memo,
-		Msgs:          []types.Msg{msg},
-		Sequence:      uint64(meta.SeqNumber),
 		AccountNumber: uint64(meta.AccountNumber),
+		Sequence:      uint64(meta.SeqNumber),
+		Msgs:          []types.Msg{msg},
+		Memo:          tx.Memo,
 	}
 
-	rawBz, err := c.localKeyManager.Sign(signMsg)
+	rawBz, err := c.signMsg(signMsg, tx.VaultPubKey)
 	if err != nil {
-		return nil, fmt.Errorf("unable to sign tx: %w", err)
+		return nil, fmt.Errorf("failed to sign message: %w", err)
 	}
 
-	signedTx = []byte(hex.EncodeToString(rawBz))
-	return signedTx, nil
+	return []byte(hex.EncodeToString(rawBz)), nil
+}
+
+func (c *Cosmos) signMsg(msg legacytx.StdSignMsg, pubkey common.PubKey) (sigBz []byte, err error) {
+	if c.localKeyManager.Pubkey().Equals(pubkey) {
+		sigBz, err = c.localKeyManager.Sign(msg)
+		if err != nil {
+			return nil, fmt.Errorf("failed to sign using localKeyManager: %w", err)
+		}
+	} else {
+		sigBz, _, err = c.tssKeyManager.RemoteSign(msg.Bytes(), pubkey.String())
+		if err != nil {
+			return nil, fmt.Errorf("failed to sign using tssKeyManager: %w", err)
+		}
+	}
+
+	pk, err := types.GetPubKeyFromBech32(cosmos.Bech32PubKeyTypeAccPub, pubkey.String())
+	if err != nil {
+		return nil, fmt.Errorf("failed to get public key for signature verification: %w", err)
+	}
+
+	if !pk.VerifySignature(msg.Bytes(), sigBz) {
+		return nil, fmt.Errorf("signture verification failed, pk: %s, signature: %s", pk.String(), hex.EncodeToString(sigBz))
+	}
+
+	stdTx := legacytx.StdTx{
+		Msgs: msg.Msgs,
+		Signatures: []legacytx.StdSignature{
+			{
+				PubKey:    pk,
+				Signature: sigBz,
+			},
+		},
+		Memo: msg.Memo,
+	}
+	encoder := legacytx.DefaultTxEncoder(thorclient.MakeLegacyCodec())
+	return encoder(stdTx)
 }
 
 func (c *Cosmos) GetAccount(pkey common.PubKey) (common.Account, error) {
@@ -340,9 +367,11 @@ func (c *Cosmos) GetAccountByAddress(address string) (common.Account, error) {
 
 // BroadcastTx is to broadcast the tx to cosmos chain
 func (c *Cosmos) BroadcastTx(tx stypes.TxOutItem, hexTx []byte) (string, error) {
+	base64EncodedTx := base64.RawStdEncoding.EncodeToString(hexTx)
+
 	txClient := txtypes.NewServiceClient(c.grpcConn)
 	req := &txtypes.BroadcastTxRequest{
-		TxBytes: hexTx,
+		TxBytes: []byte(base64EncodedTx),
 		Mode:    txtypes.BroadcastMode_BROADCAST_MODE_SYNC,
 	}
 
