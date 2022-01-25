@@ -353,6 +353,10 @@ func (c *Cosmos) BroadcastTx(tx stypes.TxOutItem, hexTx []byte) (string, error) 
 		c.logger.Error().Err(err).Msg("unable to broadcast tx")
 		return "", err
 	}
+	if res.TxResponse.Code != 0 {
+		c.logger.Error().Interface("response", res).Msg("non-zero error code in transaction broadcast")
+		return "", errors.New("broadcast msg failed")
+	}
 
 	return res.TxResponse.TxHash, nil
 }
