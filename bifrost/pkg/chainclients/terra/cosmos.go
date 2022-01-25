@@ -2,7 +2,7 @@ package terra
 
 import (
 	"context"
-	"encoding/hex"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"strings"
@@ -181,6 +181,42 @@ func (c *Cosmos) GetAddress(poolPubKey common.PubKey) string {
 	return addr.String()
 }
 
+func (c *Cosmos) processOutboundTx(tx stypes.TxOutItem, thorchainHeight int64) (*btypes.MsgSend, error) {
+	vaultPubKey, err := tx.VaultPubKey.GetAddress(common.TERRAChain)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert address (%s) to bech32: %w", tx.VaultPubKey.String(), err)
+	}
+
+	var gasFees common.Coins
+
+	// For yggdrasil, we need to leave some coins to pay for the fee. Note, this
+	// logic is per chain, given that different networks charge fees differently.
+	// if strings.EqualFold(tx.Memo, thorchain.NewYggdrasilReturn(thorchainHeight).String()) {
+	// 	gasFees = common.Coins{
+	// 		common.NewCoin(c.cosmosScanner.feeAsset, c.cosmosScanner.avgGasFee),
+	// 	}
+	// }
+
+	var coins types.Coins
+	for _, coin := range tx.Coins {
+		// deduct gas coins
+		for _, gasFee := range gasFees {
+			if coin.Asset.Equals(gasFee.Asset) {
+				coin.Amount = common.SafeSub(coin.Amount, gasFee.Amount)
+			}
+		}
+		cosmosCoin := fromThorchainToCosmos(coin)
+		coins = append(coins, cosmosCoin)
+	}
+
+	msg := &btypes.MsgSend{
+		FromAddress: vaultPubKey.String(),
+		ToAddress:   tx.ToAddress.String(),
+		Amount:      coins.Sort(),
+	}
+	return msg, nil
+}
+
 // SignTx sign the the given TxArrayItem
 func (c *Cosmos) SignTx(tx stypes.TxOutItem, thorchainHeight int64) (signedTx []byte, err error) {
 	defer func() {
@@ -210,43 +246,10 @@ func (c *Cosmos) SignTx(tx stypes.TxOutItem, thorchainHeight int64) (signedTx []
 		return nil, nil
 	}
 
-	fromBz, err := types.GetFromBech32(c.GetAddress(tx.VaultPubKey), c.GetChain().AddressPrefix(common.GetCurrentChainNetwork()))
+	msg, err := c.processOutboundTx(tx, thorchainHeight)
 	if err != nil {
-		return nil, fmt.Errorf("failed to convert address (%s) to bech32: %w", c.GetAddress(tx.VaultPubKey), err)
-	}
-	fromAddr := cosmos.AccAddress(fromBz)
-
-	toBz, err := types.GetFromBech32(tx.ToAddress.String(), c.GetChain().AddressPrefix(common.GetCurrentChainNetwork()))
-	if err != nil {
-		return nil, fmt.Errorf("failed to convert address (%s) to bech32: %w", tx.ToAddress, err)
-	}
-	toAddr := cosmos.AccAddress(toBz)
-
-	var gasFees common.Coins
-
-	// For yggdrasil, we need to leave some coins to pay for the fee. Note, this
-	// logic is per chain, given that different networks charge fees differently.
-	if strings.EqualFold(tx.Memo, thorchain.NewYggdrasilReturn(thorchainHeight).String()) {
-		gasFees = common.Coins{
-			common.NewCoin(c.cosmosScanner.feeAsset, c.cosmosScanner.avgGasFee),
-		}
-	}
-
-	var coins types.Coins
-	for _, coin := range tx.Coins {
-		// deduct gas coins
-		for _, gasFee := range gasFees {
-			if coin.Asset.Equals(gasFee.Asset) {
-				coin.Amount = common.SafeSub(coin.Amount, gasFee.Amount)
-			}
-		}
-		cosmosCoin := fromThorchainToCosmos(coin)
-		coins = append(coins, cosmosCoin)
-	}
-
-	msg := btypes.NewMsgSend(fromAddr, toAddr, coins.Sort())
-	if err := msg.ValidateBasic(); err != nil {
-		return nil, fmt.Errorf("invalid MsgSend: %w", err)
+		c.logger.Error().Err(err).Msg("failed to process outbound tx")
+		return nil, err
 	}
 
 	currentHeight, err := c.cosmosScanner.GetHeight()
