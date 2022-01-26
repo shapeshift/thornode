@@ -2,6 +2,7 @@ package chainclients
 
 import (
 	"gitlab.com/thorchain/thornode/bifrost/config"
+	"gitlab.com/thorchain/thornode/bifrost/thorclient/types"
 	stypes "gitlab.com/thorchain/thornode/bifrost/thorclient/types"
 	"gitlab.com/thorchain/thornode/common"
 )
@@ -26,6 +27,7 @@ type ChainClient interface {
 	GetAccount(poolPubKey common.PubKey) (common.Account, error)
 	GetAccountByAddress(address string) (common.Account, error)
 	GetChain() common.Chain
+	OnObservedTxIn(txIn types.TxInItem, blockHeight int64)
 	Start(globalTxsQueue chan stypes.TxIn, globalErrataQueue chan stypes.ErrataBlock, globalSolvencyQueue chan stypes.Solvency)
 	GetConfig() config.ChainConfiguration
 	GetConfirmationCount(txIn stypes.TxIn) int64

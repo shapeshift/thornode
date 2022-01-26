@@ -2,17 +2,23 @@ package terra
 
 import (
 	"context"
-	"encoding/base64"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"strings"
 	"time"
 
+	"github.com/cosmos/cosmos-sdk/codec"
+	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	cryptocodec "github.com/cosmos/cosmos-sdk/crypto/codec"
 	"github.com/cosmos/cosmos-sdk/types"
+	errortypes "github.com/cosmos/cosmos-sdk/types/errors"
+	signingtypes "github.com/cosmos/cosmos-sdk/types/tx/signing"
+	"github.com/cosmos/cosmos-sdk/x/auth/signing"
+	"github.com/cosmos/cosmos-sdk/x/auth/tx"
+	"github.com/tendermint/tendermint/crypto"
+	memo "gitlab.com/thorchain/thornode/x/thorchain/memo"
+
 	txtypes "github.com/cosmos/cosmos-sdk/types/tx"
-	"github.com/cosmos/cosmos-sdk/x/auth/legacy/legacytx"
 	atypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	btypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 
@@ -35,8 +41,16 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 )
 
+// CosmosSuccessCodes a transaction is considered successful if it returns 0
+// or if tx is unauthorized or already in the mempool (another Bifrost already sent it)
+var CosmosSuccessCodes = map[uint32]bool{
+	errortypes.SuccessABCICode:                true,
+	errortypes.ErrTxInMempoolCache.ABCICode(): true,
+	errortypes.ErrUnauthorized.ABCICode():     true,
+}
+
 // Cosmos is a structure to sign and broadcast tx to atom chain used by signer mostly
-type Cosmos struct {
+type CosmosClient struct {
 	logger              zerolog.Logger
 	cfg                 config.ChainConfiguration
 	chainID             string
@@ -53,14 +67,14 @@ type Cosmos struct {
 }
 
 // NewClient create new instance of atom client
-func NewCosmos(
+func NewCosmosClient(
 	thorKeys *thorclient.Keys,
 	cfg config.ChainConfiguration,
 	server *tssp.TssServer,
 	thorchainBridge *thorclient.ThorchainBridge,
 	m *metrics.Metrics,
 
-) (*Cosmos, error) {
+) (*CosmosClient, error) {
 	logger := log.With().Str("module", common.TERRAChain.String()).Logger()
 
 	tssKm, err := tss.NewKeySign(server, thorchainBridge)
@@ -97,7 +111,7 @@ func NewCosmos(
 		logger.Fatal().Err(err).Msg("fail to dial")
 	}
 
-	c := &Cosmos{
+	c := &CosmosClient{
 		chainID:         "columbus-5",
 		logger:          logger,
 		cfg:             cfg,
@@ -143,37 +157,37 @@ func NewCosmos(
 }
 
 // Start Cosmos chain client
-func (c *Cosmos) Start(globalTxsQueue chan stypes.TxIn, globalErrataQueue chan stypes.ErrataBlock, globalSolvencyQueue chan stypes.Solvency) {
+func (c *CosmosClient) Start(globalTxsQueue chan stypes.TxIn, globalErrataQueue chan stypes.ErrataBlock, globalSolvencyQueue chan stypes.Solvency) {
 	c.globalSolvencyQueue = globalSolvencyQueue
 	c.tssKeyManager.Start()
 	c.blockScanner.Start(globalTxsQueue)
 }
 
 // Stop Cosmos chain client
-func (c *Cosmos) Stop() {
+func (c *CosmosClient) Stop() {
 	c.tssKeyManager.Stop()
 	c.blockScanner.Stop()
 }
 
 // GetConfig return the configuration used by Cosmos chain client
-func (c *Cosmos) GetConfig() config.ChainConfiguration {
+func (c *CosmosClient) GetConfig() config.ChainConfiguration {
 	return c.cfg
 }
 
-func (c *Cosmos) IsBlockScannerHealthy() bool {
+func (c *CosmosClient) IsBlockScannerHealthy() bool {
 	return c.blockScanner.IsHealthy()
 }
 
-func (c *Cosmos) GetChain() common.Chain {
+func (c *CosmosClient) GetChain() common.Chain {
 	return common.TERRAChain
 }
 
-func (c *Cosmos) GetHeight() (int64, error) {
+func (c *CosmosClient) GetHeight() (int64, error) {
 	return c.blockScanner.FetchLastHeight()
 }
 
 // GetAddress return current signer address, it will be bech32 encoded address
-func (c *Cosmos) GetAddress(poolPubKey common.PubKey) string {
+func (c *CosmosClient) GetAddress(poolPubKey common.PubKey) string {
 	addr, err := poolPubKey.GetAddress(c.GetChain())
 	if err != nil {
 		c.logger.Error().Err(err).Str("pool_pub_key", poolPubKey.String()).Msg("fail to get pool address")
@@ -182,7 +196,7 @@ func (c *Cosmos) GetAddress(poolPubKey common.PubKey) string {
 	return addr.String()
 }
 
-func (c *Cosmos) processOutboundTx(tx stypes.TxOutItem, thorchainHeight int64) (*btypes.MsgSend, error) {
+func (c *CosmosClient) processOutboundTx(tx stypes.TxOutItem) (*btypes.MsgSend, error) {
 	vaultPubKey, err := tx.VaultPubKey.GetAddress(common.TERRAChain)
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert address (%s) to bech32: %w", tx.VaultPubKey.String(), err)
@@ -210,7 +224,7 @@ func (c *Cosmos) processOutboundTx(tx stypes.TxOutItem, thorchainHeight int64) (
 }
 
 // SignTx sign the the given TxArrayItem
-func (c *Cosmos) SignTx(tx stypes.TxOutItem, thorchainHeight int64) (signedTx []byte, err error) {
+func (c *CosmosClient) SignTx(tx stypes.TxOutItem, thorchainHeight int64) (signedTx []byte, err error) {
 	defer func() {
 		if err != nil {
 			var keysignError tss.KeysignError
@@ -238,7 +252,7 @@ func (c *Cosmos) SignTx(tx stypes.TxOutItem, thorchainHeight int64) (signedTx []
 		return nil, nil
 	}
 
-	msg, err := c.processOutboundTx(tx, thorchainHeight)
+	msg, err := c.processOutboundTx(tx)
 	if err != nil {
 		c.logger.Error().Err(err).Msg("failed to process outbound tx")
 		return nil, err
@@ -263,59 +277,116 @@ func (c *Cosmos) SignTx(tx stypes.TxOutItem, thorchainHeight int64) (signedTx []
 		c.accts.Set(tx.VaultPubKey, meta)
 	}
 
-	signMsg := legacytx.StdSignMsg{
-		ChainID:       c.chainID,
-		AccountNumber: uint64(meta.AccountNumber),
-		Sequence:      uint64(meta.SeqNumber),
-		Msgs:          []types.Msg{msg},
-		Memo:          tx.Memo,
+	var gas types.Coins
+	for _, gasCoin := range tx.MaxGas.ToCoins() {
+		if gasCoin.Asset == c.GetChain().GetGasAsset() {
+			gas = append(gas, fromThorchainToCosmos(gasCoin))
+		}
 	}
 
-	rawBz, err := c.signMsg(signMsg, tx.VaultPubKey)
+	txBytes, err := c.signMsg(
+		msg,
+		tx.VaultPubKey,
+		tx.Memo,
+		gas,
+		uint64(tx.GasRate),
+		uint64(meta.SeqNumber),
+		uint64(meta.AccountNumber),
+	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign message: %w", err)
 	}
 
-	return []byte(hex.EncodeToString(rawBz)), nil
+	return txBytes, nil
 }
 
-func (c *Cosmos) signMsg(msg legacytx.StdSignMsg, pubkey common.PubKey) (sigBz []byte, err error) {
+func (c *CosmosClient) signMsg(
+	msg *btypes.MsgSend,
+	pubkey common.PubKey,
+	memo string,
+	gas types.Coins,
+	limit uint64,
+	sequence uint64,
+	account uint64,
+) ([]byte, error) {
+	interfaceRegistry := codectypes.NewInterfaceRegistry()
+	interfaceRegistry.RegisterImplementations((*types.Msg)(nil), msg)
+	marshaler := codec.NewProtoCodec(interfaceRegistry)
+
+	txConfig := tx.NewTxConfig(marshaler, []signingtypes.SignMode{signingtypes.SignMode_SIGN_MODE_DIRECT})
+	txBuilder := txConfig.NewTxBuilder()
+
+	cpk, err := cosmos.GetPubKeyFromBech32(cosmos.Bech32PubKeyTypeAccPub, pubkey.String())
+	if err != nil {
+		return nil, fmt.Errorf("unable to GetPubKeyFromBech32 from cosmos: %w", err)
+	}
+
+	err = txBuilder.SetMsgs(msg)
+	if err != nil {
+		return nil, fmt.Errorf("unable to SetMsgs on txBuilder: %w", err)
+	}
+
+	txBuilder.SetMemo(memo)
+	txBuilder.SetFeeAmount(gas)
+	txBuilder.SetGasLimit(limit)
+
+	sigData := &signingtypes.SingleSignatureData{
+		SignMode: signingtypes.SignMode_SIGN_MODE_DIRECT,
+	}
+	sig := signingtypes.SignatureV2{
+		PubKey:   cpk,
+		Data:     sigData,
+		Sequence: sequence,
+	}
+
+	err = txBuilder.SetSignatures(sig)
+	if err != nil {
+		return nil, fmt.Errorf("unable to initial SetSignatures on txBuilder: %w", err)
+	}
+
+	modeHandler := txConfig.SignModeHandler()
+	signingData := signing.SignerData{
+		ChainID:       c.chainID,
+		AccountNumber: account,
+		Sequence:      sequence,
+	}
+
+	signBytes, err := modeHandler.GetSignBytes(signingtypes.SignMode_SIGN_MODE_DIRECT, signingData, txBuilder.GetTx())
+	if err != nil {
+		return nil, fmt.Errorf("unable to GetSignBytes on modeHandler: %w", err)
+	}
+
 	if c.localKeyManager.Pubkey().Equals(pubkey) {
-		sigBz, err = c.localKeyManager.Sign(msg)
+		sigData.Signature, err = c.localKeyManager.Sign(signBytes)
 		if err != nil {
-			return nil, fmt.Errorf("failed to sign using localKeyManager: %w", err)
+			return nil, fmt.Errorf("unable to sign using localKeyManager: %w", err)
 		}
 	} else {
-		sigBz, _, err = c.tssKeyManager.RemoteSign(msg.Bytes(), pubkey.String())
+		hashedMsg := crypto.Sha256(signBytes)
+		sigData.Signature, _, err = c.tssKeyManager.RemoteSign(hashedMsg, pubkey.String())
 		if err != nil {
-			return nil, fmt.Errorf("failed to sign using tssKeyManager: %w", err)
+			return nil, err
 		}
 	}
 
-	pk, err := types.GetPubKeyFromBech32(cosmos.Bech32PubKeyTypeAccPub, pubkey.String())
+	if !cpk.VerifySignature(signBytes, sigData.Signature) {
+		return nil, fmt.Errorf("unable to verify signature with secpPubKey")
+	}
+
+	err = txBuilder.SetSignatures(sig)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get public key for signature verification: %w", err)
+		return nil, fmt.Errorf("unable to final SetSignatures on txBuilder: %w", err)
 	}
 
-	if !pk.VerifySignature(msg.Bytes(), sigBz) {
-		return nil, fmt.Errorf("signture verification failed, pk: %s, signature: %s", pk.String(), hex.EncodeToString(sigBz))
+	txBytes, err := txConfig.TxEncoder()(txBuilder.GetTx())
+	if err != nil {
+		return nil, fmt.Errorf("unable to encode tx: %w", err)
 	}
 
-	stdTx := legacytx.StdTx{
-		Msgs: msg.Msgs,
-		Signatures: []legacytx.StdSignature{
-			{
-				PubKey:    pk,
-				Signature: sigBz,
-			},
-		},
-		Memo: msg.Memo,
-	}
-	encoder := legacytx.DefaultTxEncoder(thorclient.MakeLegacyCodec())
-	return encoder(stdTx)
+	return txBytes, nil
 }
 
-func (c *Cosmos) GetAccount(pkey common.PubKey) (common.Account, error) {
+func (c *CosmosClient) GetAccount(pkey common.PubKey) (common.Account, error) {
 	addr, err := pkey.GetAddress(c.GetChain())
 	if err != nil {
 		return common.Account{}, fmt.Errorf("failed to convert address (%s) from bech32: %w", pkey, err)
@@ -323,7 +394,7 @@ func (c *Cosmos) GetAccount(pkey common.PubKey) (common.Account, error) {
 	return c.GetAccountByAddress(addr.String())
 }
 
-func (c *Cosmos) GetAccountByAddress(address string) (common.Account, error) {
+func (c *CosmosClient) GetAccountByAddress(address string) (common.Account, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
@@ -366,40 +437,44 @@ func (c *Cosmos) GetAccountByAddress(address string) (common.Account, error) {
 }
 
 // BroadcastTx is to broadcast the tx to cosmos chain
-func (c *Cosmos) BroadcastTx(tx stypes.TxOutItem, hexTx []byte) (string, error) {
-	base64EncodedTx := base64.RawStdEncoding.EncodeToString(hexTx)
-
+func (c *CosmosClient) BroadcastTx(tx stypes.TxOutItem, txBytes []byte) (string, error) {
 	txClient := txtypes.NewServiceClient(c.grpcConn)
 	req := &txtypes.BroadcastTxRequest{
-		TxBytes: []byte(base64EncodedTx),
+		TxBytes: txBytes,
 		Mode:    txtypes.BroadcastMode_BROADCAST_MODE_SYNC,
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 	res, err := txClient.BroadcastTx(ctx, req)
+	log.Info().Interface("req", req).Interface("res", res).Msg("BroadcastTx")
 	if err != nil {
 		c.logger.Error().Err(err).Msg("unable to broadcast tx")
 		return "", err
 	}
-	if res.TxResponse.Code != 0 {
-		c.logger.Error().Interface("response", res).Msg("non-zero error code in transaction broadcast")
+
+	if success := CosmosSuccessCodes[res.TxResponse.Code]; !success {
+		c.logger.Error().Interface("response", res).Msg("unsuccessful error code in transaction broadcast")
 		return "", errors.New("broadcast msg failed")
 	}
 
+	c.accts.SeqInc(tx.VaultPubKey)
+	if err := c.signerCacheManager.SetSigned(tx.CacheHash(), res.TxResponse.TxHash); err != nil {
+		c.logger.Err(err).Msg("fail to set signer cache")
+	}
 	return res.TxResponse.TxHash, nil
 }
 
 // ConfirmationCountReady cosmos chain has almost instant finality, so doesn't need to wait for confirmation
-func (c *Cosmos) ConfirmationCountReady(txIn stypes.TxIn) bool {
+func (c *CosmosClient) ConfirmationCountReady(txIn stypes.TxIn) bool {
 	return true
 }
 
 // GetConfirmationCount determine how many confirmations are required
-func (c *Cosmos) GetConfirmationCount(txIn stypes.TxIn) int64 {
+func (c *CosmosClient) GetConfirmationCount(txIn stypes.TxIn) int64 {
 	return 0
 }
-func (c *Cosmos) reportSolvency(blockHeight int64) error {
+func (c *CosmosClient) reportSolvency(blockHeight int64) error {
 	if blockHeight%900 > 0 {
 		return nil
 	}
@@ -425,4 +500,21 @@ func (c *Cosmos) reportSolvency(blockHeight int64) error {
 		}
 	}
 	return nil
+}
+
+func (c *CosmosClient) OnObservedTxIn(txIn stypes.TxInItem, blockHeight int64) {
+	m, err := memo.ParseMemo(txIn.Memo)
+	if err != nil {
+		c.logger.Err(err).Msgf("fail to parse memo: %s", txIn.Memo)
+		return
+	}
+	if !m.IsOutbound() {
+		return
+	}
+	if m.GetTxID().IsEmpty() {
+		return
+	}
+	if err := c.signerCacheManager.SetSigned(txIn.CacheHash(c.GetChain(), m.GetTxID().String()), txIn.Tx); err != nil {
+		c.logger.Err(err).Msg("fail to update signer cache")
+	}
 }
