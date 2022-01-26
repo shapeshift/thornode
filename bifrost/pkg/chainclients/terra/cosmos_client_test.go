@@ -9,8 +9,10 @@ import (
 	"testing"
 	"time"
 
+	cryptocodec "github.com/cosmos/cosmos-sdk/crypto/codec"
 	"github.com/cosmos/cosmos-sdk/crypto/hd"
 	cKeys "github.com/cosmos/cosmos-sdk/crypto/keyring"
+	"github.com/cosmos/cosmos-sdk/types"
 	"gitlab.com/thorchain/thornode/bifrost/config"
 	"gitlab.com/thorchain/thornode/bifrost/metrics"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient"
@@ -58,7 +60,7 @@ func (s *CosmosTestSuite) SetUpSuite(c *C) {
 	s.m = GetMetricForTest(c)
 	c.Assert(s.m, NotNil)
 	ns := strconv.Itoa(time.Now().Nanosecond())
-	c.Assert(os.Setenv("NET", "mainnet"), IsNil)
+	c.Assert(os.Setenv("NET", "stagenet"), IsNil)
 
 	s.thordir = filepath.Join(os.TempDir(), ns, ".thorcli")
 	cfg := config.ClientConfiguration{
@@ -89,7 +91,7 @@ func (s *CosmosTestSuite) TestProcessOutboundTx(c *C) {
 	server := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 	}))
 
-	client, err := NewCosmos(s.thorKeys, config.ChainConfiguration{
+	client, err := NewCosmosClient(s.thorKeys, config.ChainConfiguration{
 		RPCHost: server.URL,
 		BlockScanner: config.BlockScannerConfiguration{
 			RPCHost:          server.URL,
@@ -115,7 +117,7 @@ func (s *CosmosTestSuite) TestProcessOutboundTx(c *C) {
 		InHash:      "hash",
 	}
 
-	msg, err := client.processOutboundTx(txOut, 1)
+	msg, err := client.processOutboundTx(txOut)
 	c.Assert(err, IsNil)
 
 	expectedAmount := int64(245283)
@@ -124,4 +126,69 @@ func (s *CosmosTestSuite) TestProcessOutboundTx(c *C) {
 	c.Check(msg.Amount[0].Denom, Equals, expectedDenom)
 	c.Check(msg.FromAddress, Equals, "terra126kpfewtlc7agqjrwdl2wfg0txkphsaw65t39n")
 	c.Check(msg.ToAddress, Equals, toAddress.String())
+}
+
+func (s *CosmosTestSuite) TestSignMsg(c *C) {
+	priv, err := s.thorKeys.GetPrivateKey()
+	c.Assert(err, IsNil)
+
+	temp, err := cryptocodec.ToTmPubKeyInterface(priv.PubKey())
+	c.Assert(err, IsNil)
+
+	pk, err := common.NewPubKeyFromCrypto(temp)
+	c.Assert(err, IsNil)
+
+	localKm := &keyManager{
+		privKey: priv,
+		addr:    types.AccAddress(priv.PubKey().Address()),
+		pubkey:  pk,
+	}
+
+	feeAsset, err := common.NewAsset("TERRA.LUNA")
+	c.Assert(err, IsNil)
+	client := CosmosClient{
+		cosmosScanner: &CosmosBlockScanner{
+			feeAsset:  feeAsset,
+			avgGasFee: types.NewUint(100000000),
+		},
+		chainID:         "columbus-5",
+		localKeyManager: localKm,
+		accts:           NewCosmosMetaDataStore(),
+	}
+
+	vaultPubKey, err := common.NewPubKey(pk.String())
+	c.Assert(err, IsNil)
+	outAsset, err := common.NewAsset("TERRA.LUNA")
+	c.Assert(err, IsNil)
+	toAddress, err := common.NewAddress("terra1nrajxfwzc6s85h88vtwp9l4y3mnc5dx5uyas4u")
+	c.Assert(err, IsNil)
+	txOut := stypes.TxOutItem{
+		Chain:       common.TERRAChain,
+		ToAddress:   toAddress,
+		VaultPubKey: vaultPubKey,
+		Coins:       common.Coins{common.NewCoin(outAsset, cosmos.NewUint(24528352))},
+		Memo:        "memo",
+		MaxGas:      common.Gas{common.NewCoin(outAsset, cosmos.NewUint(235824))},
+		GasRate:     750000,
+		InHash:      "hash",
+	}
+
+	msg, err := client.processOutboundTx(txOut)
+	c.Assert(err, IsNil)
+
+	meta := client.accts.Get(pk)
+	c.Check(meta.AccountNumber, Equals, int64(0))
+	c.Check(meta.SeqNumber, Equals, int64(0))
+
+	gas := types.NewCoins(types.NewCoin("uluna", types.NewInt(100)))
+	_, err = client.signMsg(
+		msg,
+		vaultPubKey,
+		"memo",
+		gas,
+		100,
+		uint64(meta.SeqNumber),
+		uint64(meta.AccountNumber),
+	)
+	c.Assert(err, IsNil)
 }
