@@ -39,7 +39,7 @@ import (
 )
 
 // Cosmos is a structure to sign and broadcast tx to atom chain used by signer mostly
-type Cosmos struct {
+type CosmosClient struct {
 	logger              zerolog.Logger
 	cfg                 config.ChainConfiguration
 	chainID             string
@@ -56,14 +56,14 @@ type Cosmos struct {
 }
 
 // NewClient create new instance of atom client
-func NewCosmos(
+func NewCosmosClient(
 	thorKeys *thorclient.Keys,
 	cfg config.ChainConfiguration,
 	server *tssp.TssServer,
 	thorchainBridge *thorclient.ThorchainBridge,
 	m *metrics.Metrics,
 
-) (*Cosmos, error) {
+) (*CosmosClient, error) {
 	logger := log.With().Str("module", common.TERRAChain.String()).Logger()
 
 	tssKm, err := tss.NewKeySign(server, thorchainBridge)
@@ -100,7 +100,7 @@ func NewCosmos(
 		logger.Fatal().Err(err).Msg("fail to dial")
 	}
 
-	c := &Cosmos{
+	c := &CosmosClient{
 		chainID:         "columbus-5",
 		logger:          logger,
 		cfg:             cfg,
@@ -146,37 +146,37 @@ func NewCosmos(
 }
 
 // Start Cosmos chain client
-func (c *Cosmos) Start(globalTxsQueue chan stypes.TxIn, globalErrataQueue chan stypes.ErrataBlock, globalSolvencyQueue chan stypes.Solvency) {
+func (c *CosmosClient) Start(globalTxsQueue chan stypes.TxIn, globalErrataQueue chan stypes.ErrataBlock, globalSolvencyQueue chan stypes.Solvency) {
 	c.globalSolvencyQueue = globalSolvencyQueue
 	c.tssKeyManager.Start()
 	c.blockScanner.Start(globalTxsQueue)
 }
 
 // Stop Cosmos chain client
-func (c *Cosmos) Stop() {
+func (c *CosmosClient) Stop() {
 	c.tssKeyManager.Stop()
 	c.blockScanner.Stop()
 }
 
 // GetConfig return the configuration used by Cosmos chain client
-func (c *Cosmos) GetConfig() config.ChainConfiguration {
+func (c *CosmosClient) GetConfig() config.ChainConfiguration {
 	return c.cfg
 }
 
-func (c *Cosmos) IsBlockScannerHealthy() bool {
+func (c *CosmosClient) IsBlockScannerHealthy() bool {
 	return c.blockScanner.IsHealthy()
 }
 
-func (c *Cosmos) GetChain() common.Chain {
+func (c *CosmosClient) GetChain() common.Chain {
 	return common.TERRAChain
 }
 
-func (c *Cosmos) GetHeight() (int64, error) {
+func (c *CosmosClient) GetHeight() (int64, error) {
 	return c.blockScanner.FetchLastHeight()
 }
 
 // GetAddress return current signer address, it will be bech32 encoded address
-func (c *Cosmos) GetAddress(poolPubKey common.PubKey) string {
+func (c *CosmosClient) GetAddress(poolPubKey common.PubKey) string {
 	addr, err := poolPubKey.GetAddress(c.GetChain())
 	if err != nil {
 		c.logger.Error().Err(err).Str("pool_pub_key", poolPubKey.String()).Msg("fail to get pool address")
@@ -185,7 +185,7 @@ func (c *Cosmos) GetAddress(poolPubKey common.PubKey) string {
 	return addr.String()
 }
 
-func (c *Cosmos) processOutboundTx(tx stypes.TxOutItem) (*btypes.MsgSend, error) {
+func (c *CosmosClient) processOutboundTx(tx stypes.TxOutItem) (*btypes.MsgSend, error) {
 	vaultPubKey, err := tx.VaultPubKey.GetAddress(common.TERRAChain)
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert address (%s) to bech32: %w", tx.VaultPubKey.String(), err)
@@ -213,7 +213,7 @@ func (c *Cosmos) processOutboundTx(tx stypes.TxOutItem) (*btypes.MsgSend, error)
 }
 
 // SignTx sign the the given TxArrayItem
-func (c *Cosmos) SignTx(tx stypes.TxOutItem, thorchainHeight int64) (signedTx []byte, err error) {
+func (c *CosmosClient) SignTx(tx stypes.TxOutItem, thorchainHeight int64) (signedTx []byte, err error) {
 	defer func() {
 		if err != nil {
 			var keysignError tss.KeysignError
@@ -289,7 +289,7 @@ func (c *Cosmos) SignTx(tx stypes.TxOutItem, thorchainHeight int64) (signedTx []
 	return txBytes, nil
 }
 
-func (c *Cosmos) signMsg(
+func (c *CosmosClient) signMsg(
 	msg *btypes.MsgSend,
 	pubkey common.PubKey,
 	memo string,
@@ -377,7 +377,7 @@ func (c *Cosmos) signMsg(
 	return txBytes, nil
 }
 
-func (c *Cosmos) GetAccount(pkey common.PubKey) (common.Account, error) {
+func (c *CosmosClient) GetAccount(pkey common.PubKey) (common.Account, error) {
 	addr, err := pkey.GetAddress(c.GetChain())
 	if err != nil {
 		return common.Account{}, fmt.Errorf("failed to convert address (%s) from bech32: %w", pkey, err)
@@ -385,7 +385,7 @@ func (c *Cosmos) GetAccount(pkey common.PubKey) (common.Account, error) {
 	return c.GetAccountByAddress(addr.String())
 }
 
-func (c *Cosmos) GetAccountByAddress(address string) (common.Account, error) {
+func (c *CosmosClient) GetAccountByAddress(address string) (common.Account, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
@@ -428,7 +428,7 @@ func (c *Cosmos) GetAccountByAddress(address string) (common.Account, error) {
 }
 
 // BroadcastTx is to broadcast the tx to cosmos chain
-func (c *Cosmos) BroadcastTx(tx stypes.TxOutItem, txBytes []byte) (string, error) {
+func (c *CosmosClient) BroadcastTx(tx stypes.TxOutItem, txBytes []byte) (string, error) {
 	txClient := txtypes.NewServiceClient(c.grpcConn)
 	req := &txtypes.BroadcastTxRequest{
 		TxBytes: txBytes,
@@ -456,15 +456,15 @@ func (c *Cosmos) BroadcastTx(tx stypes.TxOutItem, txBytes []byte) (string, error
 }
 
 // ConfirmationCountReady cosmos chain has almost instant finality, so doesn't need to wait for confirmation
-func (c *Cosmos) ConfirmationCountReady(txIn stypes.TxIn) bool {
+func (c *CosmosClient) ConfirmationCountReady(txIn stypes.TxIn) bool {
 	return true
 }
 
 // GetConfirmationCount determine how many confirmations are required
-func (c *Cosmos) GetConfirmationCount(txIn stypes.TxIn) int64 {
+func (c *CosmosClient) GetConfirmationCount(txIn stypes.TxIn) int64 {
 	return 0
 }
-func (c *Cosmos) reportSolvency(blockHeight int64) error {
+func (c *CosmosClient) reportSolvency(blockHeight int64) error {
 	if blockHeight%900 > 0 {
 		return nil
 	}
