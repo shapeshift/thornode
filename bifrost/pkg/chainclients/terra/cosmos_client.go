@@ -41,6 +41,14 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 )
 
+// CosmosSuccessCodes a transaction is considered successful if it returns 0
+// or if tx is unauthorized or already in the mempool (another Bifrost already sent it)
+var CosmosSuccessCodes = map[uint32]bool{
+	errortypes.SuccessABCICode:                true,
+	errortypes.ErrTxInMempoolCache.ABCICode(): true,
+	errortypes.ErrUnauthorized.ABCICode():     true,
+}
+
 // Cosmos is a structure to sign and broadcast tx to atom chain used by signer mostly
 type CosmosClient struct {
 	logger              zerolog.Logger
@@ -445,20 +453,15 @@ func (c *CosmosClient) BroadcastTx(tx stypes.TxOutItem, txBytes []byte) (string,
 		return "", err
 	}
 
-	if res.TxResponse.Code == errortypes.ErrTxInMempoolCache.ABCICode() || res.TxResponse.Code == errortypes.ErrUnauthorized.ABCICode() {
-		// If tx already in mempool or unauthorized, it was submitted by another Bifrost
-		// Therefore, the transaction is processed OK, we can return with no error.
-		return res.TxResponse.TxHash, nil
-	}
-
-	if res.TxResponse.Code > 0 {
-		// If the trasnaction is non-zero, it may have failed
-		// However, if it's unauthorized, it means anothern node already sent this tx.
-		c.logger.Error().Interface("response", res).Msg("non-zero error code in transaction broadcast")
+	if success := CosmosSuccessCodes[res.TxResponse.Code]; !success {
+		c.logger.Error().Interface("response", res).Msg("unsuccessful error code in transaction broadcast")
 		return "", errors.New("broadcast msg failed")
 	}
 
 	c.accts.SeqInc(tx.VaultPubKey)
+	if err := c.signerCacheManager.SetSigned(tx.CacheHash(), res.TxResponse.TxHash); err != nil {
+		c.logger.Err(err).Msg("fail to set signer cache")
+	}
 	return res.TxResponse.TxHash, nil
 }
 
