@@ -48,9 +48,6 @@ func (m *mockServiceClient) GetLatestBlock(ctx context.Context, in *tmservice.Ge
 
 func (m *mockServiceClient) GetBlockByHeight(ctx context.Context, in *tmservice.GetBlockByHeightRequest, opts ...grpc.CallOption) (*tmservice.GetBlockByHeightResponse, error) {
 	out := new(tmservice.GetBlockByHeightResponse)
-
-	// bytes := fileToBytes("./test-data/block_by_height.json")
-	// err := out.Unmarshal(bytes)
 	err := unmarshalJsonToPb("./test-data/block_by_height.json", out)
 	if err != nil {
 		fmt.Printf(`Failed to unmarshal block by height: %s`, err)
@@ -84,22 +81,3 @@ func unmarshalJsonToPb(filePath string, msg proto.Message) error {
 
 	return nil
 }
-
-// func fileToBytes(filePath string) []byte {
-// 	jsonFile, err := os.Open(filePath)
-// 	if err != nil {
-// 		fmt.Println(err)
-// 	}
-// 	defer jsonFile.Close()
-
-// 	pbMessage := jsonpb.Unmarshal(jsonFile, )
-
-// 	byteValue, err := ioutil.ReadAll(jsonFile)
-
-// 	if err != nil {
-// 		fmt.Printf(`Failed to load file: %s`, err)
-// 		return nil
-// 	}
-
-// 	return byteValue
-// }
