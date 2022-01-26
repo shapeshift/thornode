@@ -577,7 +577,7 @@ func queryNodes(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *M
 	result := make([]QueryNodeAccount, len(nodeAccounts))
 	for i, na := range nodeAccounts {
 		if na.RequestedToLeave && na.Bond.LTE(cosmos.NewUint(common.One)) {
-			// ignore the node , because it
+			// ignore the node , it left and also has very little bond
 			continue
 		}
 		slashPts, err := mgr.Keeper().GetNodeAccountSlashPoints(ctx, na.NodeAddress)
