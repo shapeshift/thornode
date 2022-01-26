@@ -77,7 +77,7 @@ func (s *SwapV75Suite) TestSwap(c *C) {
 			requester:     "tester",
 			destination:   "whatever",
 			returnAmount:  cosmos.ZeroUint(),
-			expectedErr:   errors.New("Amount cannot be zero"),
+			expectedErr:   errors.New("amount cannot be zero"),
 		},
 		{
 			name:          "empty-requester",
