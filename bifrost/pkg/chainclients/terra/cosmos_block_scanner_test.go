@@ -1,9 +1,12 @@
 package terra
 
 import (
+	"github.com/cosmos/cosmos-sdk/client"
+	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/crypto/hd"
 	cKeys "github.com/cosmos/cosmos-sdk/crypto/keyring"
 	ctypes "github.com/cosmos/cosmos-sdk/types"
+	"gitlab.com/thorchain/thornode/app"
 	"gitlab.com/thorchain/thornode/bifrost/config"
 	"gitlab.com/thorchain/thornode/bifrost/metrics"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient"
@@ -101,4 +104,50 @@ func (s *BlockScannerTestSuite) TestCalculateAverageGasFees(c *C) {
 	avgGasFees, err := blockScanner.calculateAverageGasFees(blockHeight, txIn)
 	c.Assert(err, IsNil)
 	c.Check(avgGasFees.BigInt().Int64(), Equals, int64(200000000))
+}
+
+func (s *BlockScannerTestSuite) TestGetBlock(c *C) {
+	feeAsset, err := common.NewAsset("TERRA.LUNA")
+	c.Assert(err, IsNil)
+
+	mockRpc := NewMockServiceClient()
+
+	blockScanner := CosmosBlockScanner{
+		feeAsset:  feeAsset,
+		tmService: mockRpc,
+	}
+
+	block, err := blockScanner.GetBlock(1)
+
+	c.Assert(err, IsNil)
+	c.Assert(len(block.Data.Txs), Equals, 50)
+	c.Assert(block.Header.Height, Equals, int64(6000011))
+}
+
+func (s *BlockScannerTestSuite) TestProcessTxs(c *C) {
+	feeAsset, err := common.NewAsset("TERRA.LUNA")
+	c.Assert(err, IsNil)
+
+	mockRpc := NewMockServiceClient()
+
+	encodingConfig := app.MakeEncodingConfig()
+	ctx := client.Context{}
+	ctx = ctx.WithInterfaceRegistry(encodingConfig.InterfaceRegistry)
+	cdc := codec.NewProtoCodec(ctx.InterfaceRegistry)
+
+	blockScanner := CosmosBlockScanner{
+		feeAsset:  feeAsset,
+		tmService: mockRpc,
+		cdc:       cdc,
+		avgGasFee: ctypes.NewUint(0),
+	}
+
+	block, err := blockScanner.GetBlock(1)
+	c.Assert(err, IsNil)
+
+	txInItems, err := blockScanner.processTxs(1, block.Data.Txs)
+	c.Assert(err, IsNil)
+
+	// proccessTxs should filter out everything besides MsgSend
+	c.Assert(len(txInItems), Equals, 7)
 }
