@@ -11,9 +11,12 @@ import (
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	cryptocodec "github.com/cosmos/cosmos-sdk/crypto/codec"
 	"github.com/cosmos/cosmos-sdk/types"
+	errortypes "github.com/cosmos/cosmos-sdk/types/errors"
 	signingtypes "github.com/cosmos/cosmos-sdk/types/tx/signing"
 	"github.com/cosmos/cosmos-sdk/x/auth/signing"
 	"github.com/cosmos/cosmos-sdk/x/auth/tx"
+	"github.com/tendermint/tendermint/crypto"
+	memo "gitlab.com/thorchain/thornode/x/thorchain/memo"
 
 	txtypes "github.com/cosmos/cosmos-sdk/types/tx"
 	atypes "github.com/cosmos/cosmos-sdk/x/auth/types"
@@ -351,7 +354,8 @@ func (c *CosmosClient) signMsg(
 			return nil, fmt.Errorf("unable to sign using localKeyManager: %w", err)
 		}
 	} else {
-		sigData.Signature, _, err = c.tssKeyManager.RemoteSign(signBytes, pubkey.String())
+		hashedMsg := crypto.Sha256(signBytes)
+		sigData.Signature, _, err = c.tssKeyManager.RemoteSign(hashedMsg, pubkey.String())
 		if err != nil {
 			return nil, err
 		}
@@ -444,7 +448,13 @@ func (c *CosmosClient) BroadcastTx(tx stypes.TxOutItem, txBytes []byte) (string,
 		return "", err
 	}
 
-	if res.TxResponse.Code > 0 && res.TxResponse.Code != cosmos.CodeUnauthorized {
+	if res.TxResponse.Code == errortypes.ErrTxInMempoolCache.ABCICode() || res.TxResponse.Code == errortypes.ErrUnauthorized.ABCICode() {
+		// If tx already in mempool or unauthorized, it was submitted by another Bifrost
+		// Therefore, the transaction is processed OK, we can return with no error.
+		return res.TxResponse.TxHash, nil
+	}
+
+	if res.TxResponse.Code > 0 {
 		// If the trasnaction is non-zero, it may have failed
 		// However, if it's unauthorized, it means anothern node already sent this tx.
 		c.logger.Error().Interface("response", res).Msg("non-zero error code in transaction broadcast")
@@ -490,4 +500,21 @@ func (c *CosmosClient) reportSolvency(blockHeight int64) error {
 		}
 	}
 	return nil
+}
+
+func (c *CosmosClient) OnObservedTxIn(txIn stypes.TxInItem, blockHeight int64) {
+	m, err := memo.ParseMemo(txIn.Memo)
+	if err != nil {
+		c.logger.Err(err).Msgf("fail to parse memo: %s", txIn.Memo)
+		return
+	}
+	if !m.IsOutbound() {
+		return
+	}
+	if m.GetTxID().IsEmpty() {
+		return
+	}
+	if err := c.signerCacheManager.SetSigned(txIn.CacheHash(c.GetChain(), m.GetTxID().String()), txIn.Tx); err != nil {
+		c.logger.Err(err).Msg("fail to update signer cache")
+	}
 }
