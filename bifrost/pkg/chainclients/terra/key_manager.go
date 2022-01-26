@@ -6,7 +6,6 @@ import (
 
 	ctypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	"github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/auth/legacy/legacytx"
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
@@ -34,8 +33,8 @@ func (m *keyManager) ExportAsPrivateKey() (string, error) {
 	return hex.EncodeToString(m.privKey.Bytes()), nil
 }
 
-func (m *keyManager) Sign(msg legacytx.StdSignMsg) ([]byte, error) {
-	return m.privKey.Sign(msg.Bytes())
+func (m *keyManager) Sign(msg []byte) ([]byte, error) {
+	return m.privKey.Sign(msg)
 }
 
 func (m *keyManager) GetPrivKey() ctypes.PrivKey {
