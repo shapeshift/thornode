@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/btcsuite/btcd/btcec"
 	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	cryptocodec "github.com/cosmos/cosmos-sdk/crypto/codec"
@@ -311,19 +310,9 @@ func (c *Cosmos) signMsg(
 		return nil, fmt.Errorf("unable to GetPubKeyFromBech32 from cosmos: %w", err)
 	}
 
-	secpPubKey, err := cryptocodec.ToTmPubKeyInterface(cpk)
-	if err != nil {
-		return nil, fmt.Errorf("unable to get tendermint pubkey from cosmos pubkey: %w", err)
-	}
-
-	_, err = btcec.ParsePubKey(secpPubKey.Bytes(), btcec.S256())
-	if err != nil {
-		return nil, fmt.Errorf("unable to parse ecdsa pubkey from secPubKey: %w", err)
-	}
-
 	err = txBuilder.SetMsgs(msg)
 	if err != nil {
-		return nil, fmt.Errorf("failed to SetMsgs on txBuilder: %w", err)
+		return nil, fmt.Errorf("unable to SetMsgs on txBuilder: %w", err)
 	}
 
 	txBuilder.SetMemo(memo)
@@ -341,13 +330,14 @@ func (c *Cosmos) signMsg(
 
 	err = txBuilder.SetSignatures(sig)
 	if err != nil {
-		return nil, fmt.Errorf("failed to initial SetSignatures on txBuilder: %w", err)
+		return nil, fmt.Errorf("unable to initial SetSignatures on txBuilder: %w", err)
 	}
 
 	modeHandler := txConfig.SignModeHandler()
 	signingData := signing.SignerData{
 		ChainID:       c.chainID,
 		AccountNumber: account,
+		Sequence:      sequence,
 	}
 
 	signBytes, err := modeHandler.GetSignBytes(signingtypes.SignMode_SIGN_MODE_DIRECT, signingData, txBuilder.GetTx())
@@ -358,27 +348,27 @@ func (c *Cosmos) signMsg(
 	if c.localKeyManager.Pubkey().Equals(pubkey) {
 		sigData.Signature, err = c.localKeyManager.Sign(signBytes)
 		if err != nil {
-			return nil, fmt.Errorf("failed to sign using localKeyManager: %w", err)
+			return nil, fmt.Errorf("unable to sign using localKeyManager: %w", err)
 		}
 	} else {
 		sigData.Signature, _, err = c.tssKeyManager.RemoteSign(signBytes, pubkey.String())
 		if err != nil {
-			return nil, fmt.Errorf("failed to sign using tssKeyManager: %w", err)
+			return nil, err
 		}
 	}
 
 	if !cpk.VerifySignature(signBytes, sigData.Signature) {
-		return nil, fmt.Errorf("failed to verify signature with secpPubKey")
+		return nil, fmt.Errorf("unable to verify signature with secpPubKey")
 	}
 
 	err = txBuilder.SetSignatures(sig)
 	if err != nil {
-		return nil, fmt.Errorf("failed to final SetSignatures on txBuilder: %w", err)
+		return nil, fmt.Errorf("unable to final SetSignatures on txBuilder: %w", err)
 	}
 
 	txBytes, err := txConfig.TxEncoder()(txBuilder.GetTx())
 	if err != nil {
-		return nil, fmt.Errorf("unabled to encode tx: %w", err)
+		return nil, fmt.Errorf("unable to encode tx: %w", err)
 	}
 
 	txJson, err := txConfig.TxJSONEncoder()(txBuilder.GetTx())
