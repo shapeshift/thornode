@@ -2,17 +2,21 @@ package terra
 
 import (
 	"context"
-	"encoding/base64"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"strings"
 	"time"
 
+	"github.com/btcsuite/btcd/btcec"
+	"github.com/cosmos/cosmos-sdk/codec"
+	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	cryptocodec "github.com/cosmos/cosmos-sdk/crypto/codec"
 	"github.com/cosmos/cosmos-sdk/types"
+	signingtypes "github.com/cosmos/cosmos-sdk/types/tx/signing"
+	"github.com/cosmos/cosmos-sdk/x/auth/signing"
+	"github.com/cosmos/cosmos-sdk/x/auth/tx"
+
 	txtypes "github.com/cosmos/cosmos-sdk/types/tx"
-	"github.com/cosmos/cosmos-sdk/x/auth/legacy/legacytx"
 	atypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	btypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 
@@ -182,7 +186,7 @@ func (c *Cosmos) GetAddress(poolPubKey common.PubKey) string {
 	return addr.String()
 }
 
-func (c *Cosmos) processOutboundTx(tx stypes.TxOutItem, thorchainHeight int64) (*btypes.MsgSend, error) {
+func (c *Cosmos) processOutboundTx(tx stypes.TxOutItem) (*btypes.MsgSend, error) {
 	vaultPubKey, err := tx.VaultPubKey.GetAddress(common.TERRAChain)
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert address (%s) to bech32: %w", tx.VaultPubKey.String(), err)
@@ -238,7 +242,7 @@ func (c *Cosmos) SignTx(tx stypes.TxOutItem, thorchainHeight int64) (signedTx []
 		return nil, nil
 	}
 
-	msg, err := c.processOutboundTx(tx, thorchainHeight)
+	msg, err := c.processOutboundTx(tx)
 	if err != nil {
 		c.logger.Error().Err(err).Msg("failed to process outbound tx")
 		return nil, err
@@ -263,56 +267,124 @@ func (c *Cosmos) SignTx(tx stypes.TxOutItem, thorchainHeight int64) (signedTx []
 		c.accts.Set(tx.VaultPubKey, meta)
 	}
 
-	signMsg := legacytx.StdSignMsg{
-		ChainID:       c.chainID,
-		AccountNumber: uint64(meta.AccountNumber),
-		Sequence:      uint64(meta.SeqNumber),
-		Msgs:          []types.Msg{msg},
-		Memo:          tx.Memo,
+	var gas types.Coins
+	for _, gasCoin := range tx.MaxGas.ToCoins() {
+		if gasCoin.Asset == c.GetChain().GetGasAsset() {
+			gas = append(gas, fromThorchainToCosmos(gasCoin))
+		}
 	}
 
-	rawBz, err := c.signMsg(signMsg, tx.VaultPubKey)
+	txBytes, err := c.signMsg(
+		msg,
+		tx.VaultPubKey,
+		tx.Memo,
+		gas,
+		uint64(tx.GasRate),
+		uint64(meta.SeqNumber),
+		uint64(meta.AccountNumber),
+	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign message: %w", err)
 	}
 
-	return []byte(hex.EncodeToString(rawBz)), nil
+	return txBytes, nil
 }
 
-func (c *Cosmos) signMsg(msg legacytx.StdSignMsg, pubkey common.PubKey) (sigBz []byte, err error) {
+func (c *Cosmos) signMsg(
+	msg *btypes.MsgSend,
+	pubkey common.PubKey,
+	memo string,
+	gas types.Coins,
+	limit uint64,
+	sequence uint64,
+	account uint64,
+) ([]byte, error) {
+	interfaceRegistry := codectypes.NewInterfaceRegistry()
+	interfaceRegistry.RegisterImplementations((*types.Msg)(nil), msg)
+	marshaler := codec.NewProtoCodec(interfaceRegistry)
+
+	txConfig := tx.NewTxConfig(marshaler, []signingtypes.SignMode{signingtypes.SignMode_SIGN_MODE_DIRECT})
+	txBuilder := txConfig.NewTxBuilder()
+
+	cpk, err := cosmos.GetPubKeyFromBech32(cosmos.Bech32PubKeyTypeAccPub, pubkey.String())
+	if err != nil {
+		return nil, fmt.Errorf("unable to GetPubKeyFromBech32 from cosmos: %w", err)
+	}
+
+	secpPubKey, err := cryptocodec.ToTmPubKeyInterface(cpk)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get tendermint pubkey from cosmos pubkey: %w", err)
+	}
+
+	_, err = btcec.ParsePubKey(secpPubKey.Bytes(), btcec.S256())
+	if err != nil {
+		return nil, fmt.Errorf("unable to parse ecdsa pubkey from secPubKey: %w", err)
+	}
+
+	err = txBuilder.SetMsgs(msg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to SetMsgs on txBuilder: %w", err)
+	}
+
+	txBuilder.SetMemo(memo)
+	txBuilder.SetFeeAmount(gas)
+	txBuilder.SetGasLimit(limit)
+
+	sigData := &signingtypes.SingleSignatureData{
+		SignMode: signingtypes.SignMode_SIGN_MODE_DIRECT,
+	}
+	sig := signingtypes.SignatureV2{
+		PubKey:   cpk,
+		Data:     sigData,
+		Sequence: sequence,
+	}
+
+	err = txBuilder.SetSignatures(sig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initial SetSignatures on txBuilder: %w", err)
+	}
+
+	modeHandler := txConfig.SignModeHandler()
+	signingData := signing.SignerData{
+		ChainID:       c.chainID,
+		AccountNumber: account,
+	}
+
+	signBytes, err := modeHandler.GetSignBytes(signingtypes.SignMode_SIGN_MODE_DIRECT, signingData, txBuilder.GetTx())
+	if err != nil {
+		return nil, fmt.Errorf("unable to GetSignBytes on modeHandler: %w", err)
+	}
+
 	if c.localKeyManager.Pubkey().Equals(pubkey) {
-		sigBz, err = c.localKeyManager.Sign(msg)
+		sigData.Signature, err = c.localKeyManager.Sign(signBytes)
 		if err != nil {
 			return nil, fmt.Errorf("failed to sign using localKeyManager: %w", err)
 		}
 	} else {
-		sigBz, _, err = c.tssKeyManager.RemoteSign(msg.Bytes(), pubkey.String())
+		sigData.Signature, _, err = c.tssKeyManager.RemoteSign(signBytes, pubkey.String())
 		if err != nil {
 			return nil, fmt.Errorf("failed to sign using tssKeyManager: %w", err)
 		}
 	}
 
-	pk, err := types.GetPubKeyFromBech32(cosmos.Bech32PubKeyTypeAccPub, pubkey.String())
+	if !cpk.VerifySignature(signBytes, sigData.Signature) {
+		return nil, fmt.Errorf("failed to verify signature with secpPubKey")
+	}
+
+	err = txBuilder.SetSignatures(sig)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get public key for signature verification: %w", err)
+		return nil, fmt.Errorf("failed to final SetSignatures on txBuilder: %w", err)
 	}
 
-	if !pk.VerifySignature(msg.Bytes(), sigBz) {
-		return nil, fmt.Errorf("signture verification failed, pk: %s, signature: %s", pk.String(), hex.EncodeToString(sigBz))
+	txBytes, err := txConfig.TxEncoder()(txBuilder.GetTx())
+	if err != nil {
+		return nil, fmt.Errorf("unabled to encode tx: %w", err)
 	}
 
-	stdTx := legacytx.StdTx{
-		Msgs: msg.Msgs,
-		Signatures: []legacytx.StdSignature{
-			{
-				PubKey:    pk,
-				Signature: sigBz,
-			},
-		},
-		Memo: msg.Memo,
-	}
-	encoder := legacytx.DefaultTxEncoder(thorclient.MakeLegacyCodec())
-	return encoder(stdTx)
+	txJson, err := txConfig.TxJSONEncoder()(txBuilder.GetTx())
+	c.logger.Info().Err(err).Interface("txJson", txJson).Msg("txJson")
+
+	return txBytes, nil
 }
 
 func (c *Cosmos) GetAccount(pkey common.PubKey) (common.Account, error) {
@@ -366,27 +438,30 @@ func (c *Cosmos) GetAccountByAddress(address string) (common.Account, error) {
 }
 
 // BroadcastTx is to broadcast the tx to cosmos chain
-func (c *Cosmos) BroadcastTx(tx stypes.TxOutItem, hexTx []byte) (string, error) {
-	base64EncodedTx := base64.RawStdEncoding.EncodeToString(hexTx)
-
+func (c *Cosmos) BroadcastTx(tx stypes.TxOutItem, txBytes []byte) (string, error) {
 	txClient := txtypes.NewServiceClient(c.grpcConn)
 	req := &txtypes.BroadcastTxRequest{
-		TxBytes: []byte(base64EncodedTx),
+		TxBytes: txBytes,
 		Mode:    txtypes.BroadcastMode_BROADCAST_MODE_SYNC,
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 	res, err := txClient.BroadcastTx(ctx, req)
+	log.Info().Interface("req", req).Interface("res", res).Msg("BroadcastTx")
 	if err != nil {
 		c.logger.Error().Err(err).Msg("unable to broadcast tx")
 		return "", err
 	}
-	if res.TxResponse.Code != 0 {
+
+	if res.TxResponse.Code > 0 && res.TxResponse.Code != cosmos.CodeUnauthorized {
+		// If the trasnaction is non-zero, it may have failed
+		// However, if it's unauthorized, it means anothern node already sent this tx.
 		c.logger.Error().Interface("response", res).Msg("non-zero error code in transaction broadcast")
 		return "", errors.New("broadcast msg failed")
 	}
 
+	c.accts.SeqInc(tx.VaultPubKey)
 	return res.TxResponse.TxHash, nil
 }
 
