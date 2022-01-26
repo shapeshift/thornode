@@ -14,6 +14,7 @@ import (
 	signingtypes "github.com/cosmos/cosmos-sdk/types/tx/signing"
 	"github.com/cosmos/cosmos-sdk/x/auth/signing"
 	"github.com/cosmos/cosmos-sdk/x/auth/tx"
+	memo "gitlab.com/thorchain/thornode/x/thorchain/memo"
 
 	txtypes "github.com/cosmos/cosmos-sdk/types/tx"
 	atypes "github.com/cosmos/cosmos-sdk/x/auth/types"
@@ -490,4 +491,21 @@ func (c *CosmosClient) reportSolvency(blockHeight int64) error {
 		}
 	}
 	return nil
+}
+
+func (c *CosmosClient) OnObservedTxIn(txIn stypes.TxInItem, blockHeight int64) {
+	m, err := memo.ParseMemo(txIn.Memo)
+	if err != nil {
+		c.logger.Err(err).Msgf("fail to parse memo: %s", txIn.Memo)
+		return
+	}
+	if !m.IsOutbound() {
+		return
+	}
+	if m.GetTxID().IsEmpty() {
+		return
+	}
+	if err := c.signerCacheManager.SetSigned(txIn.CacheHash(c.GetChain(), m.GetTxID().String()), txIn.Tx); err != nil {
+		c.logger.Err(err).Msg("fail to update signer cache")
+	}
 }
