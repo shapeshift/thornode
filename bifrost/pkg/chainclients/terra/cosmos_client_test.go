@@ -91,7 +91,7 @@ func (s *CosmosTestSuite) TestProcessOutboundTx(c *C) {
 	server := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 	}))
 
-	client, err := NewCosmos(s.thorKeys, config.ChainConfiguration{
+	client, err := NewCosmosClient(s.thorKeys, config.ChainConfiguration{
 		RPCHost: server.URL,
 		BlockScanner: config.BlockScannerConfiguration{
 			RPCHost:          server.URL,
@@ -146,7 +146,7 @@ func (s *CosmosTestSuite) TestSignMsg(c *C) {
 
 	feeAsset, err := common.NewAsset("TERRA.LUNA")
 	c.Assert(err, IsNil)
-	client := Cosmos{
+	client := CosmosClient{
 		cosmosScanner: &CosmosBlockScanner{
 			feeAsset:  feeAsset,
 			avgGasFee: types.NewUint(100000000),
