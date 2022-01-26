@@ -354,7 +354,8 @@ func (c *CosmosClient) signMsg(
 			return nil, fmt.Errorf("unable to sign using localKeyManager: %w", err)
 		}
 	} else {
-		sigData.Signature, _, err = c.tssKeyManager.RemoteSign(signBytes, pubkey.String())
+		hashedMsg := crypto.Sha256(signBytes)
+		sigData.Signature, _, err = c.tssKeyManager.RemoteSign(hashedMsg, pubkey.String())
 		if err != nil {
 			return nil, err
 		}
