@@ -576,6 +576,10 @@ func queryNodes(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *M
 	lastChurnHeight := vaults[0].BlockHeight
 	result := make([]QueryNodeAccount, len(nodeAccounts))
 	for i, na := range nodeAccounts {
+		if na.RequestedToLeave && na.Bond.LTE(cosmos.NewUint(common.One)) {
+			// ignore the node , because it
+			continue
+		}
 		slashPts, err := mgr.Keeper().GetNodeAccountSlashPoints(ctx, na.NodeAddress)
 		if err != nil {
 			return nil, fmt.Errorf("fail to get node slash points: %w", err)
