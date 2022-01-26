@@ -375,9 +375,6 @@ func (c *CosmosClient) signMsg(
 		return nil, fmt.Errorf("unable to encode tx: %w", err)
 	}
 
-	txJson, err := txConfig.TxJSONEncoder()(txBuilder.GetTx())
-	c.logger.Info().Err(err).Interface("txJson", txJson).Msg("txJson")
-
 	return txBytes, nil
 }
 
