@@ -1399,7 +1399,7 @@ func (vm *validatorMgrV80) nextVaultNodeAccounts(ctx cosmos.Context, targetCount
 	// to be churn out , they can continue to accumulate slash points, in the scenario that an active node go offline , and consistently fail
 	// keygen / keysign for a while , we would like to churn it out first
 	lastChurnHeight := vm.getLastChurnHeight(ctx)
-	for _, item := range active {
+	for idx, item := range active {
 
 		if item.LeaveScore == 0 {
 			continue
@@ -1411,7 +1411,7 @@ func (vm *validatorMgrV80) nextVaultNodeAccounts(ctx cosmos.Context, targetCount
 		}
 		newScore := vm.getScore(ctx, slashPts, lastChurnHeight)
 		if !newScore.IsZero() {
-			item.LeaveScore = newScore.Uint64()
+			active[idx].LeaveScore = newScore.Uint64()
 		}
 	}
 
