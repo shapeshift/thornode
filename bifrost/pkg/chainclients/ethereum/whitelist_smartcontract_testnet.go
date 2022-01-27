@@ -12,8 +12,10 @@ var (
 		// THORSwap Faucet
 		common.Address(`0x83b0c5136790dDf6cA8D3fb3d220C757e0a91fBe`),
 		// aggregator for uniswap v2
-		common.Address(`0x1E181dF53d07B698C6a58Ca6308AB5D827F116e1`),
+		common.Address(`0x69ba883Af416fF5501D54D5e27A1f497fBD97156`),
 		// aggregator for uniswap v3
-		common.Address(`0x2F8aEdd149AFbDb5206ECaF8b1a3abB9186C8053`),
+		common.Address(`0x3b7DbdD635B99cEa39D3d95Dbd0217F05e55B212`),
+		// aggregator for sushiswap
+		common.Address(`0x7fD9bd7A2Cab44820DD2874859E461640F04542D`),
 	}
 )
