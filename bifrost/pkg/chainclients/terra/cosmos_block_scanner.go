@@ -15,7 +15,6 @@ import (
 
 	ctypes "github.com/cosmos/cosmos-sdk/types"
 	btypes "github.com/cosmos/cosmos-sdk/x/bank/types"
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/tendermint/tendermint/crypto/tmhash"
@@ -33,6 +32,8 @@ import (
 // SolvencyReporter is to report solvency info to THORNode
 type SolvencyReporter func(int64) error
 
+const gasCacheBlocks = 60
+
 var (
 	ErrInvalidScanStorage = errors.New("scan storage is empty or nil")
 	ErrInvalidMetrics     = errors.New("metrics is empty or nil")
@@ -44,10 +45,9 @@ type CosmosBlockScanner struct {
 	cfg              config.BlockScannerConfiguration
 	logger           zerolog.Logger
 	feeAsset         common.Asset
-	avgGasFee        ctypes.Uint
+	gasCache         []ctypes.Int
 	db               blockscanner.ScannerStorage
 	cdc              *codec.ProtoCodec
-	errCounter       *prometheus.CounterVec
 	tmService        tmservice.ServiceClient
 	grpc             *grpc.ClientConn
 	bridge           *thorclient.ThorchainBridge
@@ -87,9 +87,8 @@ func NewCosmosBlockScanner(cfg config.BlockScannerConfiguration,
 		logger:           logger,
 		db:               scanStorage,
 		feeAsset:         feeAsset,
-		avgGasFee:        ctypes.NewUint(0),
+		gasCache:         make([]ctypes.Int, 0),
 		cdc:              cdc,
-		errCounter:       m.GetCounterVec(metrics.BlockScanError(common.TERRAChain)),
 		tmService:        tmService,
 		grpc:             conn,
 		bridge:           bridge,
@@ -127,8 +126,6 @@ func (c *CosmosBlockScanner) GetBlock(height int64) (*tmtypes.Block, error) {
 
 	if err != nil {
 		c.logger.Error().Int64("height", height).Msgf("failed to get block: %v", err)
-		c.errCounter.WithLabelValues("fail_get_block", strconv.Itoa(int(height))).Inc()
-
 		return nil, fmt.Errorf("failed to get block: %w", err)
 	}
 
@@ -163,19 +160,43 @@ func (c *CosmosBlockScanner) calculateAverageGasFees(height int64, txs []types.T
 	return avgGasFeesAmt, nil
 }
 
-func (c *CosmosBlockScanner) updateGasFees(height int64, amt ctypes.Int) (string, error) {
-
-	// post the gas fee if it changed since last calculation
-	if !c.avgGasFee.Equal(ctypes.Uint(amt)) {
-		feeTx, err := c.bridge.PostNetworkFee(height, common.TERRAChain, 1, amt.Uint64())
-		if err != nil {
-			return "", err
-		}
-		c.avgGasFee = ctypes.NewUint(amt.Uint64())
-		return feeTx.String(), nil
+func (c *CosmosBlockScanner) getAverageGasFromCache() ctypes.Int {
+	if len(c.gasCache) == 0 {
+		return ctypes.NewInt(0)
 	}
 
-	return "", nil
+	totalGas := ctypes.NewInt(0)
+	for _, avgGas := range c.gasCache {
+		totalGas = totalGas.Add(avgGas)
+	}
+	return totalGas.Quo(ctypes.NewInt(gasCacheBlocks))
+}
+
+func (c *CosmosBlockScanner) updateGasFees(height int64, amt ctypes.Int) error {
+	if amt.IsZero() {
+		return nil
+	}
+
+	c.gasCache = append(c.gasCache, amt)
+	if len(c.gasCache) > gasCacheBlocks {
+		c.gasCache = c.gasCache[(len(c.gasCache) - gasCacheBlocks):]
+	}
+
+	// post the gas fee over every cache period
+	if height%gasCacheBlocks == 0 {
+		avgGas := c.getAverageGasFromCache()
+		feeTx, err := c.bridge.PostNetworkFee(height, common.TERRAChain, 1, avgGas.Uint64())
+		if err != nil {
+			return err
+		}
+		c.logger.Info().
+			Str("tx", feeTx.String()).
+			Int64("amount", avgGas.Int64()).
+			Int64("height", height).
+			Msg("sent network fee to THORChain")
+	}
+
+	return nil
 }
 
 func (c *CosmosBlockScanner) FetchTxs(height int64) (types.TxIn, error) {
@@ -263,17 +284,9 @@ func (c *CosmosBlockScanner) FetchTxs(height int64) (types.TxIn, error) {
 		c.logger.Err(err).Int64("height", height).Msg("failed to calculated average gas fees")
 	}
 
-	if !avgGasFee.IsZero() {
-		feeTx, err := c.updateGasFees(height, avgGasFee)
-		if err != nil {
-			c.logger.Err(err).Int64("height", height).Msg("failed to post average network fee")
-		}
-		c.logger.Info().
-			Str("tx", feeTx).
-			Int64("height", height).
-			Int64("gasFeeAmt", c.avgGasFee.BigInt().Int64()).
-			Msg("sent network fee to THORChain")
-
+	err = c.updateGasFees(height, avgGasFee)
+	if err != nil {
+		c.logger.Err(err).Int64("height", height).Msg("failed to post average network fee")
 	}
 
 	return txIn, nil
