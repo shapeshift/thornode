@@ -194,7 +194,6 @@ func (c *CosmosBlockScanner) updateGasFees(height int64, amt ctypes.Int) error {
 			Int64("amount", avgGas.Int64()).
 			Int64("height", height).
 			Msg("sent network fee to THORChain")
-		return nil
 	}
 
 	return nil
@@ -285,7 +284,7 @@ func (c *CosmosBlockScanner) FetchTxs(height int64) (types.TxIn, error) {
 		c.logger.Err(err).Int64("height", height).Msg("failed to calculated average gas fees")
 	}
 
-	err := c.updateGasFees(height, avgGasFee)
+	err = c.updateGasFees(height, avgGasFee)
 	if err != nil {
 		c.logger.Err(err).Int64("height", height).Msg("failed to post average network fee")
 	}
