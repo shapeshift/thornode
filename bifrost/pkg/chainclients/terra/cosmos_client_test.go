@@ -148,8 +148,7 @@ func (s *CosmosTestSuite) TestSignMsg(c *C) {
 	c.Assert(err, IsNil)
 	client := CosmosClient{
 		cosmosScanner: &CosmosBlockScanner{
-			feeAsset:  feeAsset,
-			avgGasFee: types.NewUint(100000000),
+			feeAsset: feeAsset,
 		},
 		chainID:         "columbus-5",
 		localKeyManager: localKm,
