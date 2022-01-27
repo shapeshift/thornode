@@ -139,7 +139,6 @@ func (s *BlockScannerTestSuite) TestProcessTxs(c *C) {
 		feeAsset:  feeAsset,
 		tmService: mockRpc,
 		cdc:       cdc,
-		avgGasFee: ctypes.NewUint(0),
 	}
 
 	block, err := blockScanner.GetBlock(1)
