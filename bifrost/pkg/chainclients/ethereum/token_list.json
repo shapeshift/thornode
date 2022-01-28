@@ -8950,6 +8950,14 @@
       "symbol": "XRUNE",
       "name": "XRUNE Token",
       "decimals": 18
+    },
+    {
+      "address": "0x72b886d09c117654ab7da13a14d603001de0b777",
+      "chainId": 1,
+      "name": "XDEFI Token",
+      "symbol": "XDEFI",
+      "decimals": 18,
+      "logoURI": "https://raw.githubusercontent.com/sushiswap/assets/master/blockchains/ethereum/assets/0x72B886d09C117654aB7dA13A14d603001dE0B777/logo.png"
     }
   ],
   "logoURI": "https://1inch.exchange/assets/images/logo.png"
