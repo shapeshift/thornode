@@ -40,10 +40,6 @@ import (
 	"gitlab.com/thorchain/thornode/x/thorchain"
 )
 
-const (
-	solvencyCheckerTimeout = time.Minute * 10
-)
-
 // Binance is a structure to sign and broadcast tx to binance chain used by signer mostly
 type Binance struct {
 	logger                  zerolog.Logger
@@ -145,7 +141,7 @@ func (b *Binance) Start(globalTxsQueue chan stypes.TxIn, globalErrataQueue chan 
 	b.tssKeyManager.Start()
 	b.blockScanner.Start(globalTxsQueue)
 	b.wg.Add(1)
-	go runners.SolvencyCheckRunner(b.GetChain(), b, solvencyCheckerTimeout, b.stopchan, b.wg)
+	go runners.SolvencyCheckRunner(b.GetChain(), b, b.thorchainBridge, b.stopchan, b.wg)
 }
 
 // Stop Binance chain client
@@ -576,7 +572,7 @@ func (b *Binance) GetConfirmationCount(txIn stypes.TxIn) int64 {
 	return 0
 }
 func (b *Binance) ReportSolvency(bnbBlockHeight int64) error {
-	if bnbBlockHeight%900 > 0 {
+	if !b.ShouldReportSolvency(bnbBlockHeight) {
 		return nil
 	}
 	asgardVaults, err := b.thorchainBridge.GetAsgards()
@@ -622,5 +618,5 @@ func (b *Binance) OnObservedTxIn(txIn stypes.TxInItem, blockHeight int64) {
 
 // ShouldReportSolvency given block height , should chain client report solvency to THORNode
 func (b *Binance) ShouldReportSolvency(height int64) bool {
-	return height-b.lastSolvencyCheckHeight > 900
+	return height%900 == 0
 }

@@ -46,10 +46,9 @@ const (
 	MaxAsgardAddresses  = 100
 	// EstimateAverageTxSize for THORChain the estimate tx size is hard code to 1000 here , as most of time it will spend 1 input, have 3 output
 	// which is average at 250 vbytes , however asgard will consolidate UTXOs , which will take up to 1000 vbytes
-	EstimateAverageTxSize  = 1000
-	DefaultCoinbaseValue   = 6.25
-	MaxMempoolScanPerTry   = 500
-	solvencyCheckerTimeout = time.Minute * 10
+	EstimateAverageTxSize = 1000
+	DefaultCoinbaseValue  = 6.25
+	MaxMempoolScanPerTry  = 500
 )
 
 // Client observes bitcoin chain and allows to sign and broadcast tx
@@ -178,7 +177,7 @@ func (c *Client) Start(globalTxsQueue chan types.TxIn, globalErrataQueue chan ty
 	c.tssKeySigner.Start()
 	c.blockScanner.Start(globalTxsQueue)
 	c.wg.Add(1)
-	go runners.SolvencyCheckRunner(c.GetChain(), c, solvencyCheckerTimeout, c.stopchan, c.wg)
+	go runners.SolvencyCheckRunner(c.GetChain(), c, c.bridge, c.stopchan, c.wg)
 }
 
 // Stop stops the block scanner
@@ -647,6 +646,9 @@ func (c *Client) FetchTxs(height int64) (types.TxIn, error) {
 }
 
 func (c *Client) ReportSolvency(bitcoinBlockHeight int64) error {
+	if !c.ShouldReportSolvency(bitcoinBlockHeight) {
+		return nil
+	}
 	asgardVaults, err := c.bridge.GetAsgards()
 	if err != nil {
 		return fmt.Errorf("fail to get asgards,err: %w", err)
