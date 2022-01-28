@@ -202,11 +202,8 @@ func (c *CosmosClient) processOutboundTx(tx stypes.TxOutItem) (*btypes.MsgSend, 
 		return nil, fmt.Errorf("failed to convert address (%s) to bech32: %w", tx.VaultPubKey.String(), err)
 	}
 
-	gasFee := common.NewCoin(c.cosmosScanner.feeAsset, types.Uint(c.cosmosScanner.getAverageGasFromCache()))
 	var coins types.Coins
 	for _, coin := range tx.Coins {
-		// deduct gas coins
-		coin.Amount = common.SafeSub(coin.Amount, gasFee.Amount)
 		// convert to cosmos coin
 		cosmosCoin := fromThorchainToCosmos(coin)
 		coins = append(coins, cosmosCoin)
