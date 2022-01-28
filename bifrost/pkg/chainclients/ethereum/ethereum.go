@@ -39,9 +39,8 @@ import (
 )
 
 const (
-	maxAsgardAddresses     = 100
-	maxGasLimit            = 200000
-	solvencyCheckerTimeout = time.Minute * 10
+	maxAsgardAddresses = 100
+	maxGasLimit        = 200000
 )
 
 var blockReward *big.Int = big.NewInt(2e18) // in Wei
@@ -196,7 +195,7 @@ func (c *Client) Start(globalTxsQueue chan stypes.TxIn, globalErrataQueue chan s
 	c.wg.Add(1)
 	go c.unstuck()
 	c.wg.Add(1)
-	go runners.SolvencyCheckRunner(c.GetChain(), c, solvencyCheckerTimeout, c.stopchan, c.wg)
+	go runners.SolvencyCheckRunner(c.GetChain(), c, c.bridge, c.stopchan, c.wg)
 }
 
 // Stop ETH client
@@ -850,7 +849,7 @@ func (c *Client) OnObservedTxIn(txIn stypes.TxInItem, blockHeight int64) {
 }
 
 func (c *Client) ReportSolvency(ethBlockHeight int64) error {
-	if ethBlockHeight%20 != 0 {
+	if !c.ShouldReportSolvency(ethBlockHeight) {
 		return nil
 	}
 	asgardVaults, err := c.bridge.GetAsgards()
@@ -880,5 +879,5 @@ func (c *Client) ReportSolvency(ethBlockHeight int64) error {
 
 // ShouldReportSolvency with given block height , should chain client report Solvency to THORNode?
 func (c *Client) ShouldReportSolvency(height int64) bool {
-	return height-c.lastSolvencyCheckHeight > 20
+	return height%20 == 0
 }

@@ -48,10 +48,9 @@ const (
 	// which is average at 250 vbytes , however asgard will consolidate UTXOs , which will take up to 1000 vbytes
 	EstimateAverageTxSize = 1000
 	// DefaultFeePerKB is guidance set by dogecoin core team and adopted by miners: https://github.com/dogecoin/dogecoin/blob/master/doc/fee-recommendation.md
-	DefaultFeePerKB        = 0.01
-	DefaultCoinbaseValue   = 10000
-	MaxMempoolScanPerTry   = 500
-	solvencyCheckerTimeout = time.Minute * 10
+	DefaultFeePerKB      = 0.01
+	DefaultCoinbaseValue = 10000
+	MaxMempoolScanPerTry = 500
 )
 
 // Client observes dogecoin chain and allows to sign and broadcast tx
@@ -179,7 +178,7 @@ func (c *Client) Start(globalTxsQueue chan types.TxIn, globalErrataQueue chan ty
 	c.tssKeySigner.Start()
 	c.blockScanner.Start(globalTxsQueue)
 	c.wg.Add(1)
-	go runners.SolvencyCheckRunner(c.GetChain(), c, solvencyCheckerTimeout, c.stopchan, c.wg)
+	go runners.SolvencyCheckRunner(c.GetChain(), c, c.bridge, c.stopchan, c.wg)
 }
 
 // Stop stops the block scanner
@@ -634,10 +633,8 @@ func (c *Client) FetchTxs(height int64) (types.TxIn, error) {
 	if err := c.sendNetworkFee(block); err != nil {
 		c.logger.Err(err).Msg("fail to send network fee")
 	}
-	if height%10 == 0 {
-		if err := c.ReportSolvency(height); err != nil {
-			c.logger.Err(err).Msg("fail to report solvency info")
-		}
+	if err := c.ReportSolvency(height); err != nil {
+		c.logger.Err(err).Msg("fail to report solvency info")
 	}
 	txIn.Count = strconv.Itoa(len(txIn.TxArray))
 	if !c.consolidateInProgress {
@@ -1173,9 +1170,12 @@ func (c *Client) getVaultSignerLock(vaultPubKey string) *sync.Mutex {
 
 // ShouldReportSolvency based on the given block height , should the client report solvency to THORNode
 func (c *Client) ShouldReportSolvency(height int64) bool {
-	return height-c.lastSolvencyCheckHeight > 10
+	return height%10 == 0
 }
 func (c *Client) ReportSolvency(dogeBlockHeight int64) error {
+	if !c.ShouldReportSolvency(dogeBlockHeight) {
+		return nil
+	}
 	asgardVaults, err := c.bridge.GetAsgards()
 	if err != nil {
 		return fmt.Errorf("fail to get asgards,err: %w", err)

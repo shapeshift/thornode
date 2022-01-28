@@ -44,11 +44,10 @@ const (
 	MaximumConfirmation = 99999999
 	MaxAsgardAddresses  = 100
 	// EstimateAverageTxSize for THORChain the estimate tx size is hard code to 250 here , as most of time it will spend 1 input, have 3 output
-	EstimateAverageTxSize  = 250
-	DefaultCoinbaseValue   = 12.5
-	gasCacheBlocks         = 10
-	MaxMempoolScanPerTry   = 500
-	solvencyCheckerTimeout = time.Minute * 10
+	EstimateAverageTxSize = 250
+	DefaultCoinbaseValue  = 12.5
+	gasCacheBlocks        = 10
+	MaxMempoolScanPerTry  = 500
 )
 
 // Client observes litecoin chain and allows to sign and broadcast tx
@@ -177,7 +176,7 @@ func (c *Client) Start(globalTxsQueue chan types.TxIn, globalErrataQueue chan ty
 	c.tssKeySigner.Start()
 	c.blockScanner.Start(globalTxsQueue)
 	c.wg.Add(1)
-	go runners.SolvencyCheckRunner(c.GetChain(), c, solvencyCheckerTimeout, c.stopchan, c.wg)
+	go runners.SolvencyCheckRunner(c.GetChain(), c, c.bridge, c.stopchan, c.wg)
 }
 
 // Stop stops the block scanner
@@ -1129,6 +1128,9 @@ func (c *Client) getVaultSignerLock(vaultPubKey string) *sync.Mutex {
 }
 
 func (c *Client) ReportSolvency(ltcBlockHeight int64) error {
+	if !c.ShouldReportSolvency(ltcBlockHeight) {
+		return nil
+	}
 	asgardVaults, err := c.bridge.GetAsgards()
 	if err != nil {
 		return fmt.Errorf("fail to get asgards,err: %w", err)
