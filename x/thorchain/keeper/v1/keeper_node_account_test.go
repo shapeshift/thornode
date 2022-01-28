@@ -1,6 +1,8 @@
 package keeperv1
 
 import (
+	"fmt"
+
 	"github.com/blang/semver"
 	. "gopkg.in/check.v1"
 
@@ -59,6 +61,15 @@ func (s *KeeperNodeAccountSuite) TestNodeAccount(c *C) {
 	c.Check(nodeAccounts.Len() > 0 && nodeAccounts.Len() < 3, Equals, true)
 }
 
+func (s *KeeperNodeAccountSuite) TestMinVersion(c *C) {
+	v1 := semver.MustParse("0.1.0")
+	v11 := semver.MustParse("0.1.0+b")
+	if v11.GTE(v1) {
+		fmt.Println("the same")
+	} else {
+		fmt.Println("not the same")
+	}
+}
 func (s *KeeperNodeAccountSuite) TestGetMinJoinVersion(c *C) {
 	type nodeInfo struct {
 		status   NodeStatus
@@ -162,6 +173,68 @@ func (s *KeeperNodeAccountSuite) TestGetMinJoinVersion(c *C) {
 			},
 			expectedVersion:       semver.MustParse("0.2.0"),
 			expectedActiveVersion: semver.MustParse("0.2.0"),
+		},
+		{
+			nodeInfoes: []nodeInfo{
+				{
+					status:   NodeActive,
+					nodeType: NodeTypeValidator,
+					version:  semver.MustParse("0.79.0"),
+				},
+				{
+					status:   NodeActive,
+					nodeType: NodeTypeValidator,
+					version:  semver.MustParse("0.79.0"),
+				},
+				{
+					status:   NodeActive,
+					nodeType: NodeTypeValidator,
+					version:  semver.MustParse("0.79.0"),
+				},
+				{
+					status:   NodeActive,
+					nodeType: NodeTypeValidator,
+					version:  semver.MustParse("0.79.0+a"),
+				},
+				{
+					status:   NodeActive,
+					nodeType: NodeTypeValidator,
+					version:  semver.MustParse("0.79.0+b"),
+				},
+			},
+			expectedVersion:       semver.MustParse("0.79.0"),
+			expectedActiveVersion: semver.MustParse("0.79.0"),
+		},
+		{
+			nodeInfoes: []nodeInfo{
+				{
+					status:   NodeActive,
+					nodeType: NodeTypeValidator,
+					version:  semver.MustParse("0.79.0"),
+				},
+				{
+					status:   NodeActive,
+					nodeType: NodeTypeValidator,
+					version:  semver.MustParse("0.79.0"),
+				},
+				{
+					status:   NodeActive,
+					nodeType: NodeTypeValidator,
+					version:  semver.MustParse("0.79.0-c"),
+				},
+				{
+					status:   NodeActive,
+					nodeType: NodeTypeValidator,
+					version:  semver.MustParse("0.79.0-a"),
+				},
+				{
+					status:   NodeActive,
+					nodeType: NodeTypeValidator,
+					version:  semver.MustParse("0.79.0-b"),
+				},
+			},
+			expectedVersion:       semver.MustParse("0.79.0-b"),
+			expectedActiveVersion: semver.MustParse("0.79.0-a"),
 		},
 	}
 
