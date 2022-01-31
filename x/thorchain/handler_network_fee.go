@@ -1,7 +1,11 @@
 package thorchain
 
 import (
+	"context"
+
+	"github.com/armon/go-metrics"
 	"github.com/blang/semver"
+	"github.com/cosmos/cosmos-sdk/telemetry"
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
@@ -80,7 +84,13 @@ func (h NetworkFeeHandler) handleV47(ctx cosmos.Context, msg MsgNetworkFee) (*co
 	}
 	observeSlashPoints := h.mgr.GetConstants().GetInt64Value(constants.ObserveSlashPoints)
 	observeFlex := h.mgr.GetConstants().GetInt64Value(constants.ObservationDelayFlexibility)
-	h.mgr.Slasher().IncSlashPoints(ctx, observeSlashPoints, msg.Signer)
+
+	slashCtx := ctx.WithContext(context.WithValue(ctx.Context(), constants.CtxMetricLabels, []metrics.Label{
+		telemetry.NewLabel("reason", "failed_observe_network_fee"),
+		telemetry.NewLabel("chain", string(msg.Chain)),
+	}))
+	h.mgr.Slasher().IncSlashPoints(slashCtx, observeSlashPoints, msg.Signer)
+
 	if !voter.Sign(msg.Signer) {
 		ctx.Logger().Info("signer already signed MsgNetworkFee", "signer", msg.Signer.String(), "block height", msg.BlockHeight, "chain", msg.Chain.String())
 		return &cosmos.Result{}, nil
@@ -93,7 +103,7 @@ func (h NetworkFeeHandler) handleV47(ctx cosmos.Context, msg MsgNetworkFee) (*co
 
 	if voter.BlockHeight > 0 {
 		if (voter.BlockHeight + observeFlex) >= common.BlockHeight(ctx) {
-			h.mgr.Slasher().DecSlashPoints(ctx, observeSlashPoints, msg.Signer)
+			h.mgr.Slasher().DecSlashPoints(slashCtx, observeSlashPoints, msg.Signer)
 		}
 		// MsgNetworkFee tx already processed
 		return &cosmos.Result{}, nil
@@ -102,7 +112,7 @@ func (h NetworkFeeHandler) handleV47(ctx cosmos.Context, msg MsgNetworkFee) (*co
 	voter.BlockHeight = common.BlockHeight(ctx)
 	h.mgr.Keeper().SetObservedNetworkFeeVoter(ctx, voter)
 	// decrease the slash points
-	h.mgr.Slasher().DecSlashPoints(ctx, observeSlashPoints, voter.GetSigners()...)
+	h.mgr.Slasher().DecSlashPoints(slashCtx, observeSlashPoints, voter.GetSigners()...)
 	ctx.Logger().Info("update network fee", "chain", msg.Chain.String(), "transaction-size", msg.TransactionSize, "fee-rate", msg.TransactionFeeRate)
 	if err := h.mgr.Keeper().SaveNetworkFee(ctx, msg.Chain, NetworkFee{
 		Chain:              msg.Chain,
