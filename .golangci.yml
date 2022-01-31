@@ -8,23 +8,26 @@ linters:
     - unconvert
     - misspell
     - govet
+
+    # TODO: Will enable and fix errors in subsequent merge request.
+    # - gosimple
+    # - staticcheck
+    # - structcheck
+    # - typecheck
+    # - unused
+    # - varcheck
+    # - exportloopref
+    # - forcetypeassert
+    # - gocritic
+    # - gosec
+    # - revive
+    # - promlinter
+    # - tagliatelle
 linters-settings:
-  gocyclo:
-    min-complexity: 11
-  errcheck:
-    ignore: fmt:.*,io/ioutil:^Read.*,github.com/spf13/cobra:MarkFlagRequired,github.com/spf13/viper:BindPFlag
-  golint:
-    min-confidence: 1.1
   exhaustive:
     check-generated: false
   exhaustivestruct:
     check-generated: false
-issues:
-  exclude:
-    - composite
 run:
-  tests: false
-  deadline: 15m
-  timeout: 5m
   skip-files:
     - ".*\\.pb\\.go$"
