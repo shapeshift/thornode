@@ -6,7 +6,9 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/armon/go-metrics"
 	"github.com/blang/semver"
+	"github.com/cosmos/cosmos-sdk/telemetry"
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
@@ -309,6 +311,17 @@ func (k KVStore) IncNodeAccountSlashPoints(ctx cosmos.Context, addr cosmos.AccAd
 		return err
 	}
 	k.SetNodeAccountSlashPoints(ctx, addr, current+pts)
+
+	metricLabels, _ := ctx.Context().Value(constants.CtxMetricLabels).([]metrics.Label)
+	telemetry.IncrCounterWithLabels(
+		[]string{"thornode", "point_slash"},
+		float32(pts),
+		append(
+			metricLabels,
+			telemetry.NewLabel("address", addr.String()),
+		),
+	)
+
 	return nil
 }
 
@@ -320,6 +333,22 @@ func (k KVStore) DecNodeAccountSlashPoints(ctx cosmos.Context, addr cosmos.AccAd
 		return err
 	}
 	k.SetNodeAccountSlashPoints(ctx, addr, current-pts)
+
+	dec := pts
+	if dec > current {
+		dec = current
+	}
+
+	metricLabels, _ := ctx.Context().Value(constants.CtxMetricLabels).([]metrics.Label)
+	telemetry.IncrCounterWithLabels(
+		[]string{"thornode", "point_slash_refund"},
+		float32(dec),
+		append(
+			metricLabels,
+			telemetry.NewLabel("address", addr.String()),
+		),
+	)
+
 	return nil
 }
 
