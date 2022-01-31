@@ -46,49 +46,24 @@ unit-tests:
     - go tool cover -func=coverage.out
     - go tool cover -html=coverage.out -o coverage.html
 
-lint-code:
-  image: golangci/golangci-lint:v1.42.1
+lint:
+  cache: []
   stage: test
   tags:
     - thorchain
   except:
     - schedules
   before_script:
-    - go get mvdan.cc/gofumpt
-    - apt update
-    - apt install -y protobuf-compiler jq
-    - make protob
+    - apt-get update && apt-get install -y curl git jq make protobuf-compiler sudo xz-utils
+    - go install mvdan.cc/gofumpt@latest
+    # trunk.io setup
+    - git fetch origin develop
+    - curl https://get.trunk.io -fsSLo /tmp/trunk-install
+    - chmod +x /tmp/trunk-install
+    - /tmp/trunk-install -y
+    - trunk check download
   script:
-    - make lint-handlers
-    - make lint-erc20-token-list
-    - golangci-lint run -v --skip-files ".*\\.pb\\.go$"
-    - go run tools/analyze/main.go ./common/... ./constants/... ./x/...
-
-shellcheck:
-  image: koalaman/shellcheck-alpine:latest
-  cache: {}
-  stage: test
-  tags:
-    - thorchain
-  except:
-    - schedules
-  before_script:
-    - shellcheck --version
-  script:
-    - find . -type f -name "*.*sh" | xargs shellcheck --exclude SC1091,SC3020,SC3040
-
-shfmt:
-  image: mvdan/shfmt:v3.3.0-alpine
-  cache: {}
-  stage: test
-  tags:
-    - thorchain
-  except:
-    - schedules
-  before_script:
-    - shfmt -version
-  script:
-    - find . -type f -name "*.*sh" | xargs shfmt -i 2 -ci -d
+    - make lint
 
 build-thornode:
   stage: build
