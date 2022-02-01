@@ -34,7 +34,9 @@ func fromCosmosToThorchain(c cosmos.Coin) common.Coin {
 		decimalDiff := int64(ThorchainDecimals - decimals)
 		amount.Mul(amount, exp.Exp(big.NewInt(10), big.NewInt(decimalDiff), nil))
 	}
-	return common.NewCoin(asset, ctypes.NewUintFromBigInt(amount))
+	cosmosCoin := common.NewCoin(asset, ctypes.NewUintFromBigInt(amount))
+	cosmosCoin.Decimals = int64(decimals)
+	return cosmosCoin
 }
 
 func fromThorchainToCosmos(coin common.Coin) cosmos.Coin {
