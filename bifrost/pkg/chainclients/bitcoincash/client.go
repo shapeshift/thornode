@@ -24,6 +24,7 @@ import (
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/signercache"
 	mem "gitlab.com/thorchain/thornode/x/thorchain/memo"
 	tssp "gitlab.com/thorchain/tss/go-tss/tss"
+	"go.uber.org/atomic"
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/semaphore"
 
@@ -74,7 +75,7 @@ type Client struct {
 	lastFeeRate             uint64
 	signerLock              *sync.Mutex
 	vaultSignerLocks        map[string]*sync.Mutex
-	consolidateInProgress   bool
+	consolidateInProgress   *atomic.Bool
 	signerCacheManager      *signercache.CacheManager
 	stopchan                chan struct{}
 	lastSolvencyCheckHeight int64
@@ -120,21 +121,22 @@ func NewClient(thorKeys *thorclient.Keys, cfg config.ChainConfiguration, server 
 	}
 
 	c := &Client{
-		logger:           log.Logger.With().Str("module", "bitcoincash").Logger(),
-		cfg:              cfg,
-		m:                m,
-		chain:            cfg.ChainID,
-		client:           client,
-		privateKey:       bchPrivateKey,
-		ksWrapper:        ksWrapper,
-		bridge:           bridge,
-		nodePubKey:       nodePubKey,
-		minRelayFeeSats:  1000, // 1000 sats is the default minimal relay fee
-		tssKeySigner:     tssKm,
-		wg:               &sync.WaitGroup{},
-		signerLock:       &sync.Mutex{},
-		vaultSignerLocks: make(map[string]*sync.Mutex),
-		stopchan:         make(chan struct{}),
+		logger:                log.Logger.With().Str("module", "bitcoincash").Logger(),
+		cfg:                   cfg,
+		m:                     m,
+		chain:                 cfg.ChainID,
+		client:                client,
+		privateKey:            bchPrivateKey,
+		ksWrapper:             ksWrapper,
+		bridge:                bridge,
+		nodePubKey:            nodePubKey,
+		minRelayFeeSats:       1000, // 1000 sats is the default minimal relay fee
+		tssKeySigner:          tssKm,
+		wg:                    &sync.WaitGroup{},
+		signerLock:            &sync.Mutex{},
+		vaultSignerLocks:      make(map[string]*sync.Mutex),
+		stopchan:              make(chan struct{}),
+		consolidateInProgress: atomic.NewBool(false),
 	}
 
 	var path string // if not set later, will in memory storage
@@ -634,9 +636,10 @@ func (c *Client) FetchTxs(height int64) (types.TxIn, error) {
 		c.logger.Err(err).Msg("fail to send solvency to THORChain")
 	}
 	txIn.Count = strconv.Itoa(len(txIn.TxArray))
-	if !c.consolidateInProgress {
+	if !c.consolidateInProgress.Load() {
 		// try to consolidate UTXOs
 		c.wg.Add(1)
+		c.consolidateInProgress.Store(true)
 		go c.consolidateUTXOs()
 	}
 	return txIn, nil
