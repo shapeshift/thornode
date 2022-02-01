@@ -25,14 +25,14 @@ func NewBondMemo(addr, additional cosmos.AccAddress) BondMemo {
 }
 
 func ParseBondMemo(version semver.Version, parts []string) (BondMemo, error) {
-	if version.GTE(semver.MustParse("0.79.0")) {
-		return ParseBondMemoV79(parts)
+	if version.GTE(semver.MustParse("0.80.0")) {
+		return ParseBondMemoV80(parts)
 	} else {
 		return ParseBondMemoV1(parts)
 	}
 }
 
-func ParseBondMemoV79(parts []string) (BondMemo, error) {
+func ParseBondMemoV80(parts []string) (BondMemo, error) {
 	additional := cosmos.AccAddress{}
 	if len(parts) < 2 {
 		return BondMemo{}, fmt.Errorf("not enough parameters")
