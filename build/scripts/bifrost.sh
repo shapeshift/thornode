@@ -136,7 +136,7 @@ echo "{
         \"password\": \"$RPC_PASSWD\",
         \"http_post_mode\": 1,
         \"disable_tls\": 1,
-        \"disabled\":$DOGE_DISABLED,
+        \"disabled\": $DOGE_DISABLED,
         \"block_scanner\": {
           \"rpc_host\": \"$DOGE_HOST\",
           \"enforce_block_height\": false,
