@@ -234,12 +234,10 @@ func (c *CosmosBlockScanner) FetchTxs(height int64) (types.TxIn, error) {
 				coins := common.Coins{}
 				for _, coin := range msg.Amount {
 
-					// ignore first character of denom, which is usually "u" in cosmos
 					if _, whitelisted := WhitelistAssets[coin.Denom]; !whitelisted {
 						c.logger.Debug().Str("tx", hash).Interface("coins", c).Msg("coin is not whitelisted, skipping")
 						continue
 					}
-
 					cCoin := fromCosmosToThorchain(coin)
 					coins = append(coins, cCoin)
 				}
