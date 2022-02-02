@@ -24,13 +24,18 @@ func (s *UtilTestSuite) TestFromCosmosToThorchain(c *C) {
 	expectedThorchainAmount := ctypes.NewUint(500000000)
 	c.Check(thorchainCoin.Asset.Symbol, Equals, expectedThorchainAsset.Symbol)
 	c.Check(thorchainCoin.Amount.BigInt().Int64(), Equals, expectedThorchainAmount.BigInt().Int64())
+	c.Check(thorchainCoin.Decimals, Equals, int64(6))
 }
 
 func (s *UtilTestSuite) TestFromThorchainToCosmos(c *C) {
 	// 6 TERRA.USD, 8 decimals
 	thorchainAsset, err := common.NewAsset("TERRA.USD")
 	c.Assert(err, IsNil)
-	thorchainCoin := common.NewCoin(thorchainAsset, cosmos.NewUint(600000000))
+	thorchainCoin := common.Coin{
+		Asset:    thorchainAsset,
+		Amount:   cosmos.NewUint(600000000),
+		Decimals: 6,
+	}
 	cosmosCoin := fromThorchainToCosmos(thorchainCoin)
 
 	// 6 uusd, 6 decimals
