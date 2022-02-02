@@ -181,8 +181,7 @@ func (gm *GasMgrV80) GetMaxGas(ctx cosmos.Context, chain common.Chain) (common.C
 	gasCoin := common.NewCoin(gasAsset, amount)
 	chainGasAssetPrecision := chain.GetGasAssetDecimal()
 	if chainGasAssetPrecision < cosmos.DefaultCoinDecimals {
-		amount = cosmos.RoundToDecimal(amount, chainGasAssetPrecision)
-		gasCoin.Amount = amount
+		gasCoin.Amount = cosmos.RoundToDecimal(amount, chainGasAssetPrecision)
 		gasCoin.Decimals = chainGasAssetPrecision
 	}
 	return gasCoin, nil
