@@ -67,7 +67,7 @@ func (s *BlockScannerTestSuite) TestCalculateAverageGasFees(c *C) {
 			To:          "recipient",
 			Coins:       common.NewCoins(),
 			Gas: common.Gas{
-				common.NewCoin(feeAsset, ctypes.NewUint(100000000)),
+				common.NewCoin(feeAsset, ctypes.NewUint(25000000)),
 			},
 			ObservedVaultPubKey: common.EmptyPubKey,
 		},
@@ -79,7 +79,7 @@ func (s *BlockScannerTestSuite) TestCalculateAverageGasFees(c *C) {
 			To:          "recipient",
 			Coins:       common.NewCoins(),
 			Gas: common.Gas{
-				common.NewCoin(feeAsset, ctypes.NewUint(300000000)),
+				common.NewCoin(feeAsset, ctypes.NewUint(16000000)),
 			},
 			ObservedVaultPubKey: common.EmptyPubKey,
 		},
@@ -98,7 +98,48 @@ func (s *BlockScannerTestSuite) TestCalculateAverageGasFees(c *C) {
 			ObservedVaultPubKey: common.EmptyPubKey,
 		},
 	}
-	avgGasFees, err := blockScanner.calculateAverageGasFees(blockHeight, txIn)
+
+	err = blockScanner.updateGasCache(txIn)
 	c.Assert(err, IsNil)
-	c.Check(avgGasFees.BigInt().Int64(), Equals, int64(200000000))
+
+	// Ensure only 2 transactions in the cache
+	c.Check(blockScanner.gasCacheNum, Equals, int64(2))
+
+	gasAmt := blockScanner.getAverageFromCache()
+	c.Check(gasAmt.BigInt().Int64(), Equals, int64(20988091))
+
+	// Add a few more txIn
+	txIn2 := []types.TxInItem{
+		{
+			BlockHeight: blockHeight,
+			Tx:          "hash4",
+			Memo:        "memo",
+			Sender:      "sender",
+			To:          "recipient",
+			Coins:       common.NewCoins(),
+			Gas: common.Gas{
+				common.NewCoin(feeAsset, ctypes.NewUint(881655)),
+			},
+			ObservedVaultPubKey: common.EmptyPubKey,
+		},
+		{
+			BlockHeight: blockHeight,
+			Tx:          "hash2",
+			Memo:        "memo",
+			Sender:      "sender",
+			To:          "recipient",
+			Coins:       common.NewCoins(),
+			Gas: common.Gas{
+				common.NewCoin(feeAsset, ctypes.NewUint(1999999929)),
+			},
+			ObservedVaultPubKey: common.EmptyPubKey,
+		},
+	}
+
+	err = blockScanner.updateGasCache(txIn2)
+	c.Assert(err, IsNil)
+	c.Check(blockScanner.gasCacheNum, Equals, int64(4))
+
+	newGasAmt := blockScanner.getAverageFromCache()
+	c.Check(newGasAmt.BigInt().Int64(), Equals, int64(1000110180))
 }
