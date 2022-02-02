@@ -9,6 +9,7 @@ import (
 	dogchaincfg "github.com/eager7/dogd/chaincfg"
 	ltcchaincfg "github.com/ltcsuite/ltcd/chaincfg"
 	btypes "gitlab.com/thorchain/binance-sdk/common/types"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 var (
@@ -21,6 +22,7 @@ var (
 	DOGEChain  = Chain("DOGE")
 	TERRAChain = Chain("TERRA")
 	THORChain  = Chain("THOR")
+	TERRAChain = Chain("TERRA")
 
 	SigningAlgoSecp256k1 = SigninAlgo("secp256k1")
 	SigningAlgoEd25519   = SigninAlgo("ed25519")
@@ -113,6 +115,18 @@ func (c Chain) GetGasAsset() Asset {
 		return LUNAAsset
 	default:
 		return EmptyAsset
+	}
+}
+
+// GetGasAssetDecimal for the gas asset of given chain , what kind of precision it is using
+// TERRA is using 1E6, all other gas asset so far using 1E8
+// THORChain is using 1E8, if an external chain's gas asset is larger than 1E8, just return cosmos.DefaultCoinDecimals
+func (c Chain) GetGasAssetDecimal() int64 {
+	switch c {
+	case TERRAChain:
+		return 6
+	default:
+		return cosmos.DefaultCoinDecimals
 	}
 }
 
