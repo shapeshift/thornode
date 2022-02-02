@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"math/big"
 	"strconv"
 	"strings"
 	"time"
@@ -45,7 +46,8 @@ type CosmosBlockScanner struct {
 	cfg              config.BlockScannerConfiguration
 	logger           zerolog.Logger
 	feeAsset         common.Asset
-	gasCache         []ctypes.Int
+	gasCacheSquares  []ctypes.Int
+	gasCacheNum      int64
 	db               blockscanner.ScannerStorage
 	cdc              *codec.ProtoCodec
 	tmService        tmservice.ServiceClient
@@ -87,7 +89,8 @@ func NewCosmosBlockScanner(cfg config.BlockScannerConfiguration,
 		logger:           logger,
 		db:               scanStorage,
 		feeAsset:         feeAsset,
-		gasCache:         make([]ctypes.Int, 0),
+		gasCacheSquares:  make([]ctypes.Int, 0),
+		gasCacheNum:      0,
 		cdc:              cdc,
 		tmService:        tmService,
 		grpc:             conn,
@@ -132,59 +135,42 @@ func (c *CosmosBlockScanner) GetBlock(height int64) (*tmtypes.Block, error) {
 	return resultBlock.Block, nil
 }
 
-func (c *CosmosBlockScanner) calculateAverageGasFees(height int64, txs []types.TxInItem) (ctypes.Int, error) {
-	var numTxs int64
-
-	// sum all the gas fees for the FeeAsset only
-	totalGasFees := ctypes.NewUint(0)
+func (c *CosmosBlockScanner) updateGasCache(txs []types.TxInItem) error {
+	// add gas fees for the FeeAsset only
 	for _, tx := range txs {
 		fee := tx.Gas.ToCoins().GetCoin(c.feeAsset)
 		if err := fee.Valid(); err != nil {
 			// gas asset is not preferred fee asset, skip it...
 			continue
 		}
-		numTxs++
-		totalGasFees = totalGasFees.Add(fee.Amount)
+		c.gasCacheNum++
+		c.gasCacheSquares = append(c.gasCacheSquares, ctypes.Int(fee.Amount).Mul(ctypes.Int(fee.Amount)))
 	}
 
-	if numTxs == 0 {
-		return ctypes.ZeroInt(), nil
-	}
-
-	// compute the average (total / numTxs)
-	avgGasFeesAmt := (ctypes.NewDecFromBigInt(totalGasFees.BigInt()).QuoInt64(numTxs)).TruncateInt()
-	if !avgGasFeesAmt.IsUint64() {
-		return ctypes.ZeroInt(), fmt.Errorf("average gas fee exceeds uint64: %s", avgGasFeesAmt)
-	}
-
-	return avgGasFeesAmt, nil
+	return nil
 }
 
-func (c *CosmosBlockScanner) getAverageGasFromCache() ctypes.Int {
-	if len(c.gasCache) == 0 {
+func (c *CosmosBlockScanner) getAverageFromCache() ctypes.Int {
+	if len(c.gasCacheSquares) == 0 || c.gasCacheNum == 0 {
 		return ctypes.NewInt(0)
 	}
 
-	totalGas := ctypes.NewInt(0)
-	for _, avgGas := range c.gasCache {
-		totalGas = totalGas.Add(avgGas)
+	sumOfSquares := ctypes.NewInt(0)
+	for _, val := range c.gasCacheSquares {
+		sumOfSquares = sumOfSquares.Add(val)
 	}
-	return totalGas.Quo(ctypes.NewInt(gasCacheBlocks))
+
+	averageSquares := sumOfSquares.Quo(ctypes.NewIntFromBigInt(big.NewInt(c.gasCacheNum)))
+	return ctypes.NewIntFromBigInt(big.NewInt(0).Sqrt(averageSquares.BigInt()))
 }
 
-func (c *CosmosBlockScanner) updateGasFees(height int64, amt ctypes.Int) error {
-	if amt.IsZero() {
-		return nil
-	}
-
-	c.gasCache = append(c.gasCache, amt)
-	if len(c.gasCache) > gasCacheBlocks {
-		c.gasCache = c.gasCache[(len(c.gasCache) - gasCacheBlocks):]
-	}
-
+func (c *CosmosBlockScanner) updateGasFees(height int64) error {
 	// post the gas fee over every cache period
 	if height%gasCacheBlocks == 0 {
-		avgGas := c.getAverageGasFromCache()
+		avgGas := c.getAverageFromCache()
+		if avgGas.IsZero() {
+			return nil
+		}
 		feeTx, err := c.bridge.PostNetworkFee(height, common.TERRAChain, 1, avgGas.Uint64())
 		if err != nil {
 			return err
@@ -194,6 +180,8 @@ func (c *CosmosBlockScanner) updateGasFees(height int64, amt ctypes.Int) error {
 			Int64("amount", avgGas.Int64()).
 			Int64("height", height).
 			Msg("sent network fee to THORChain")
+		c.gasCacheSquares = make([]ctypes.Int, 0)
+		c.gasCacheNum = 0
 	}
 
 	return nil
@@ -277,12 +265,12 @@ func (c *CosmosBlockScanner) FetchTxs(height int64) (types.TxIn, error) {
 		MemPool:  false,
 	}
 
-	avgGasFee, err := c.calculateAverageGasFees(block.Header.Height, txIn.TxArray)
+	err = c.updateGasCache(txIn.TxArray)
 	if err != nil {
-		c.logger.Err(err).Int64("height", height).Msg("failed to calculated average gas fees")
+		c.logger.Err(err).Int64("height", height).Msg("failed to update gas cache")
 	}
 
-	err = c.updateGasFees(height, avgGasFee)
+	err = c.updateGasFees(height)
 	if err != nil {
 		c.logger.Err(err).Int64("height", height).Msg("failed to post average network fee")
 	}
