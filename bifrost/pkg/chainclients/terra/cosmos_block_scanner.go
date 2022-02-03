@@ -181,9 +181,6 @@ func (c *CosmosBlockScanner) updateGasFees(height int64) error {
 			avgGas = MinimumGas
 		}
 
-		if avgGas.IsZero() {
-			return nil
-		}
 		feeTx, err := c.bridge.PostNetworkFee(height, common.TERRAChain, 1, avgGas.Uint64())
 		if err != nil {
 			return err
