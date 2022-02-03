@@ -33,7 +33,7 @@ import (
 // SolvencyReporter is to report solvency info to THORNode
 type SolvencyReporter func(int64) error
 
-const gasCacheBlocks = 60
+const gasCacheBlocks = 30
 
 var (
 	ErrInvalidScanStorage = errors.New("scan storage is empty or nil")
