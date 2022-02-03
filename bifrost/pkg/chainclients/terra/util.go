@@ -21,6 +21,8 @@ const ThorchainDecimals = 8
 
 var WhitelistAssets = map[string]int{"uluna": 6, "uusd": 6}
 
+// buildUnsigned takes a MsgSend and other parameters and returns a txBuilder
+// It can be used to simulateTx or as the input to signMsg before BraodcastTx
 func buildUnsigned(
 	txConfig client.TxConfig,
 	msg *btypes.MsgSend,
@@ -63,6 +65,8 @@ func buildUnsigned(
 	return txBuilder, nil
 }
 
+// simulateTx takes a transaction builder and client and returns a simulate response
+// useful for calculating how much gas a transaction would take
 func simulateTx(txb client.TxBuilder, txClient txtypes.ServiceClient) (*txtypes.SimulateResponse, error) {
 	protoProvider, ok := txb.(tx.ProtoTxProvider)
 	if !ok {
@@ -80,6 +84,11 @@ func simulateTx(txb client.TxBuilder, txClient txtypes.ServiceClient) (*txtypes.
 }
 
 func getDummyTxBuilderForSimulate(txConfig client.TxConfig) (client.TxBuilder, error) {
+	// The sender is a dead stagenet vault with some Luna dust left over
+	// It will always have a small balance and will its sequence will never change
+	// Thus, we use it as an account to craft a dummy tx that can be used to simulate gas
+	// This is more reliable than using gas averages.
+
 	msg := &btypes.MsgSend{
 		FromAddress: "terra126kpfewtlc7agqjrwdl2wfg0txkphsaw65t39n",
 		ToAddress:   "terra126kpfewtlc7agqjrwdl2wfg0txkphsaw65t39n",
