@@ -192,7 +192,8 @@ func (s *CosmosTestSuite) TestSignMsg(c *C) {
 
 	gas := types.NewCoins(types.NewCoin("uluna", types.NewInt(100)))
 
-	txb, err := client.buildUnsigned(
+	txb, err := buildUnsigned(
+		txConfig,
 		msg,
 		vaultPubKey,
 		"memo",

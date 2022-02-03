@@ -5,13 +5,16 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"math/big"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/grpc/tmservice"
 	"github.com/cosmos/cosmos-sdk/codec"
+	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
+	txtypes "github.com/cosmos/cosmos-sdk/types/tx"
+	signingtypes "github.com/cosmos/cosmos-sdk/types/tx/signing"
 	"github.com/cosmos/cosmos-sdk/x/auth/tx"
 
 	ctypes "github.com/cosmos/cosmos-sdk/types"
@@ -34,7 +37,7 @@ import (
 type SolvencyReporter func(int64) error
 
 const (
-	gasCacheBlocks = 10
+	GasUpdatePeriodBlocks = 10
 )
 
 var (
@@ -49,10 +52,10 @@ type CosmosBlockScanner struct {
 	cfg              config.BlockScannerConfiguration
 	logger           zerolog.Logger
 	feeAsset         common.Asset
-	gasCacheSquares  []ctypes.Int
-	gasCacheNum      int64
 	db               blockscanner.ScannerStorage
 	cdc              *codec.ProtoCodec
+	txClient         txtypes.ServiceClient
+	txConfig         client.TxConfig
 	tmService        tmservice.ServiceClient
 	grpc             *grpc.ClientConn
 	bridge           *thorclient.ThorchainBridge
@@ -86,15 +89,20 @@ func NewCosmosBlockScanner(cfg config.BlockScannerConfiguration,
 	tmService := tmservice.NewServiceClient(conn)
 	cdc := codec.NewProtoCodec(registry)
 
+	interfaceRegistry := codectypes.NewInterfaceRegistry()
+	interfaceRegistry.RegisterImplementations((*types.Msg)(nil), &btypes.MsgSend{})
+	marshaler := codec.NewProtoCodec(interfaceRegistry)
+	txConfig := tx.NewTxConfig(marshaler, []signingtypes.SignMode{signingtypes.SignMode_SIGN_MODE_DIRECT})
+
 	feeAsset := common.TERRAChain.GetGasAsset()
 	return &CosmosBlockScanner{
 		cfg:              cfg,
 		logger:           logger,
 		db:               scanStorage,
 		feeAsset:         feeAsset,
-		gasCacheSquares:  make([]ctypes.Int, 0),
-		gasCacheNum:      0,
 		cdc:              cdc,
+		txClient:         txtypes.NewServiceClient(conn),
+		txConfig:         txConfig,
 		tmService:        tmService,
 		grpc:             conn,
 		bridge:           bridge,
@@ -138,60 +146,30 @@ func (c *CosmosBlockScanner) GetBlock(height int64) (*tmtypes.Block, error) {
 	return resultBlock.Block, nil
 }
 
-func (c *CosmosBlockScanner) updateGasCache(txs []types.TxInItem) error {
-	// add gas fees for the FeeAsset only
-	for _, tx := range txs {
-		fee := tx.Gas.ToCoins().GetCoin(c.feeAsset)
-		if err := fee.Valid(); err != nil {
-			// gas asset is not preferred fee asset, skip it...
-			continue
-		}
-		c.gasCacheNum++
-		c.gasCacheSquares = append(c.gasCacheSquares, ctypes.Int(fee.Amount).Mul(ctypes.Int(fee.Amount)))
-	}
-
-	return nil
-}
-
-func (c *CosmosBlockScanner) getAverageFromCache() ctypes.Int {
-	if len(c.gasCacheSquares) == 0 || c.gasCacheNum == 0 {
-		return ctypes.NewInt(0)
-	}
-
-	sumOfSquares := ctypes.NewInt(0)
-	for _, val := range c.gasCacheSquares {
-		sumOfSquares = sumOfSquares.Add(val)
-	}
-
-	averageSquares := sumOfSquares.Quo(ctypes.NewIntFromBigInt(big.NewInt(c.gasCacheNum)))
-	return ctypes.NewIntFromBigInt(big.NewInt(0).Sqrt(averageSquares.BigInt()))
-}
-
 func (c *CosmosBlockScanner) updateGasFees(height int64) error {
 	// post the gas fee over every cache period
-	if height%gasCacheBlocks == 0 {
-
-		avgGas := c.getAverageFromCache()
-		// Add a 16.67% markup to the average
-		avgGas = avgGas.Mul(ctypes.NewInt(7))
-		avgGas = avgGas.Quo(ctypes.NewInt(6))
-
-		// floor to minimum gas amount
-		if avgGas.LT(MinimumGas) {
-			avgGas = MinimumGas
+	if height%GasUpdatePeriodBlocks == 0 {
+		dummyTxb, err := getDummyTxBuilderForSimulate(c.txConfig)
+		if err != nil {
+			return fmt.Errorf("unable to getDummyTxBuilderForSimulate: %w", err)
 		}
 
-		feeTx, err := c.bridge.PostNetworkFee(height, common.TERRAChain, 1, avgGas.Uint64())
+		simRes, err := simulateTx(dummyTxb, c.txClient)
+		if err != nil {
+			return fmt.Errorf("unable to SimulateTx: %w", err)
+		}
+
+		gasCoin := fromCosmosToThorchain(ctypes.NewCoin("udummycoin", ctypes.NewInt(int64(simRes.GasInfo.GasUsed))))
+		feeTx, err := c.bridge.PostNetworkFee(height, common.TERRAChain, 1, gasCoin.Amount.Uint64())
 		if err != nil {
 			return err
 		}
 		c.logger.Info().
 			Str("tx", feeTx.String()).
-			Int64("amount", avgGas.Int64()).
+			Int64("amount", gasCoin.Amount.BigInt().Int64()).
 			Int64("height", height).
 			Msg("sent network fee to THORChain")
-		c.gasCacheSquares = make([]ctypes.Int, 0)
-		c.gasCacheNum = 0
+
 	}
 
 	return nil
@@ -273,11 +251,6 @@ func (c *CosmosBlockScanner) FetchTxs(height int64) (types.TxIn, error) {
 		TxArray:  txs,
 		Filtered: false,
 		MemPool:  false,
-	}
-
-	err = c.updateGasCache(txIn.TxArray)
-	if err != nil {
-		c.logger.Err(err).Int64("height", height).Msg("failed to update gas cache")
 	}
 
 	err = c.updateGasFees(height)
