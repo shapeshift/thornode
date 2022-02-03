@@ -159,7 +159,7 @@ func (c *CosmosBlockScanner) updateGasFees(height int64) error {
 			return fmt.Errorf("unable to SimulateTx: %w", err)
 		}
 
-		gasCoin := fromCosmosToThorchain(ctypes.NewCoin("udummycoin", ctypes.NewInt(int64(simRes.GasInfo.GasUsed))))
+		gasCoin := fromCosmosToThorchain(ctypes.NewCoin("uluna", ctypes.NewInt(int64(simRes.GasInfo.GasUsed))))
 		feeTx, err := c.bridge.PostNetworkFee(height, common.TERRAChain, 1, gasCoin.Amount.Uint64())
 		if err != nil {
 			return err
