@@ -9,10 +9,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cosmos/cosmos-sdk/codec"
+	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	cryptocodec "github.com/cosmos/cosmos-sdk/crypto/codec"
 	"github.com/cosmos/cosmos-sdk/crypto/hd"
 	cKeys "github.com/cosmos/cosmos-sdk/crypto/keyring"
 	"github.com/cosmos/cosmos-sdk/types"
+	signingtypes "github.com/cosmos/cosmos-sdk/types/tx/signing"
+	"github.com/cosmos/cosmos-sdk/x/auth/tx"
+	btypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	"gitlab.com/thorchain/thornode/bifrost/config"
 	"gitlab.com/thorchain/thornode/bifrost/metrics"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient"
@@ -55,7 +60,6 @@ func GetMetricForTest(c *C) *metrics.Metrics {
 func (s *CosmosTestSuite) SetUpSuite(c *C) {
 	cosmosSDKConfg := cosmos.GetConfig()
 	cosmosSDKConfg.SetBech32PrefixForAccount("sthor", "sthorpub")
-	cosmosSDKConfg.Seal()
 
 	s.m = GetMetricForTest(c)
 	c.Assert(s.m, NotNil)
@@ -144,9 +148,16 @@ func (s *CosmosTestSuite) TestSignMsg(c *C) {
 		pubkey:  pk,
 	}
 
+	interfaceRegistry := codectypes.NewInterfaceRegistry()
+	interfaceRegistry.RegisterImplementations((*types.Msg)(nil), &btypes.MsgSend{})
+	marshaler := codec.NewProtoCodec(interfaceRegistry)
+
+	txConfig := tx.NewTxConfig(marshaler, []signingtypes.SignMode{signingtypes.SignMode_SIGN_MODE_DIRECT})
+
 	feeAsset, err := common.NewAsset("TERRA.LUNA")
 	c.Assert(err, IsNil)
 	client := CosmosClient{
+		txConfig: txConfig,
 		cosmosScanner: &CosmosBlockScanner{
 			feeAsset: feeAsset,
 		},
@@ -180,14 +191,37 @@ func (s *CosmosTestSuite) TestSignMsg(c *C) {
 	c.Check(meta.SeqNumber, Equals, int64(0))
 
 	gas := types.NewCoins(types.NewCoin("uluna", types.NewInt(100)))
-	_, err = client.signMsg(
+
+	txb, err := client.buildUnsigned(
 		msg,
 		vaultPubKey,
 		"memo",
 		gas,
 		100,
-		uint64(meta.SeqNumber),
 		uint64(meta.AccountNumber),
+		uint64(meta.SeqNumber),
+	)
+	c.Assert(err, IsNil)
+
+	c.Check(txb.GetTx().GetFee().IsEqual(gas), Equals, true)
+	c.Check(txb.GetTx().GetMemo(), Equals, "memo")
+	c.Check(txb.GetTx().GetPubKeys()[0].Address().String(), Equals, priv.PubKey().Address().String())
+
+	// Ensure the signature is present but tranasaction has not been signed yet
+	sigs, err := txb.GetTx().GetSignaturesV2()
+	c.Assert(err, IsNil)
+	c.Check(sigs[0].PubKey.String(), Equals, priv.PubKey().String())
+	sigData, ok := sigs[0].Data.(*signingtypes.SingleSignatureData)
+	c.Check(ok, Equals, true)
+	c.Check(sigData.SignMode, Equals, signingtypes.SignMode_SIGN_MODE_DIRECT)
+	c.Check(len(sigData.Signature), Equals, 0)
+
+	// Sign the message
+	_, err = client.signMsg(
+		txb,
+		vaultPubKey,
+		uint64(meta.AccountNumber),
+		uint64(meta.SeqNumber),
 	)
 	c.Assert(err, IsNil)
 }
