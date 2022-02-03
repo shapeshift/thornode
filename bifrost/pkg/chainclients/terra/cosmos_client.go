@@ -56,7 +56,9 @@ type CosmosClient struct {
 	cfg                 config.ChainConfiguration
 	chainID             string
 	txConfig            client.TxConfig
-	grpcConn            *grpc.ClientConn
+	txClient            txtypes.ServiceClient
+	bankClient          btypes.QueryClient
+	accountClient       atypes.QueryClient
 	accts               *CosmosMetaDataStore
 	tssKeyManager       *tss.KeySign
 	localKeyManager     *keyManager
@@ -116,7 +118,6 @@ func NewCosmosClient(
 	interfaceRegistry := codectypes.NewInterfaceRegistry()
 	interfaceRegistry.RegisterImplementations((*types.Msg)(nil), &btypes.MsgSend{})
 	marshaler := codec.NewProtoCodec(interfaceRegistry)
-
 	txConfig := tx.NewTxConfig(marshaler, []signingtypes.SignMode{signingtypes.SignMode_SIGN_MODE_DIRECT})
 
 	c := &CosmosClient{
@@ -124,7 +125,9 @@ func NewCosmosClient(
 		logger:          logger,
 		cfg:             cfg,
 		txConfig:        txConfig,
-		grpcConn:        conn,
+		txClient:        txtypes.NewServiceClient(conn),
+		bankClient:      btypes.NewQueryClient(conn),
+		accountClient:   atypes.NewQueryClient(conn),
 		accts:           NewCosmosMetaDataStore(),
 		tssKeyManager:   tssKm,
 		localKeyManager: localKm,
@@ -217,11 +220,10 @@ func (c *CosmosClient) GetAccountByAddress(address string) (common.Account, erro
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
-	bankClient := btypes.NewQueryClient(c.grpcConn)
 	bankReq := &btypes.QueryAllBalancesRequest{
 		Address: address,
 	}
-	balances, err := bankClient.AllBalances(ctx, bankReq)
+	balances, err := c.bankClient.AllBalances(ctx, bankReq)
 	if err != nil {
 		return common.Account{}, err
 	}
@@ -232,12 +234,11 @@ func (c *CosmosClient) GetAccountByAddress(address string) (common.Account, erro
 		nativeCoins = append(nativeCoins, coin)
 	}
 
-	client := atypes.NewQueryClient(c.grpcConn)
 	authReq := &atypes.QueryAccountRequest{
 		Address: address,
 	}
 
-	acc, err := client.Account(ctx, authReq)
+	acc, err := c.accountClient.Account(ctx, authReq)
 	if err != nil {
 		return common.Account{}, err
 	}
@@ -336,7 +337,8 @@ func (c *CosmosClient) SignTx(tx stypes.TxOutItem, thorchainHeight int64) (signe
 		}
 	}
 
-	txBuilder, err := c.buildUnsigned(
+	txBuilder, err := buildUnsigned(
+		c.txConfig,
 		msg,
 		tx.VaultPubKey,
 		tx.Memo,
@@ -360,47 +362,6 @@ func (c *CosmosClient) SignTx(tx stypes.TxOutItem, thorchainHeight int64) (signe
 	}
 
 	return txBytes, nil
-}
-
-func (c *CosmosClient) buildUnsigned(
-	msg *btypes.MsgSend,
-	pubkey common.PubKey,
-	memo string,
-	gas types.Coins,
-	limit uint64,
-	account uint64,
-	sequence uint64,
-) (client.TxBuilder, error) {
-	cpk, err := cosmos.GetPubKeyFromBech32(cosmos.Bech32PubKeyTypeAccPub, pubkey.String())
-	if err != nil {
-		return nil, fmt.Errorf("unable to GetPubKeyFromBech32 from cosmos: %w", err)
-	}
-	txBuilder := c.txConfig.NewTxBuilder()
-
-	err = txBuilder.SetMsgs(msg)
-	if err != nil {
-		return nil, fmt.Errorf("unable to SetMsgs on txBuilder: %w", err)
-	}
-
-	txBuilder.SetMemo(memo)
-	txBuilder.SetFeeAmount(gas)
-	txBuilder.SetGasLimit(limit)
-
-	sigData := &signingtypes.SingleSignatureData{
-		SignMode: signingtypes.SignMode_SIGN_MODE_DIRECT,
-	}
-	sig := signingtypes.SignatureV2{
-		PubKey:   cpk,
-		Data:     sigData,
-		Sequence: sequence,
-	}
-
-	err = txBuilder.SetSignatures(sig)
-	if err != nil {
-		return nil, fmt.Errorf("unable to initial SetSignatures on txBuilder: %w", err)
-	}
-
-	return txBuilder, nil
 }
 
 func (c *CosmosClient) signMsg(
@@ -465,37 +426,8 @@ func (c *CosmosClient) signMsg(
 	return txBytes, nil
 }
 
-func (c *CosmosClient) simulateTx(txb client.TxBuilder, txClient txtypes.ServiceClient) error {
-	protoProvider, ok := txb.(tx.ProtoTxProvider)
-	if !ok {
-		return fmt.Errorf("expected proto tx builder, got %T", txb)
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
-	defer cancel()
-	simRes, err := txClient.Simulate(
-		ctx,
-		&txtypes.SimulateRequest{
-			Tx: protoProvider.GetProtoTx(),
-		},
-	)
-	if err != nil {
-		return fmt.Errorf("unable to simulate tx: %w", err)
-	}
-
-	expectedFees := txb.GetTx().GetFee()
-	for _, coin := range expectedFees {
-		if coin.Amount.LT(types.NewIntFromUint64(simRes.GasInfo.GasWanted)) {
-			return fmt.Errorf("gas too low, expected (%d) got (%d)", simRes.GasInfo.GasWanted, coin.Amount.Int64())
-		}
-	}
-
-	return nil
-}
-
 // BroadcastTx is to broadcast the tx to cosmos chain
 func (c *CosmosClient) BroadcastTx(tx stypes.TxOutItem, txBytes []byte) (string, error) {
-	txClient := txtypes.NewServiceClient(c.grpcConn)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
@@ -516,21 +448,40 @@ func (c *CosmosClient) BroadcastTx(tx stypes.TxOutItem, txBytes []byte) (string,
 		return "", fmt.Errorf("unable to processOutboundTx for simulateTx: %w", err)
 	}
 
-	txb, err := c.buildUnsigned(out, tx.VaultPubKey, tx.Memo, gas, uint64(tx.GasRate), uint64(acc.AccountNumber), uint64(acc.Sequence))
+	txb, err := buildUnsigned(
+		c.txConfig,
+		out,
+		tx.VaultPubKey,
+		tx.Memo,
+		gas,
+		uint64(tx.GasRate),
+		uint64(acc.AccountNumber),
+		uint64(acc.Sequence),
+	)
 	if err != nil {
 		return "", fmt.Errorf("unable to buildUnsighed for simulateTx: %w", err)
 	}
 
-	err = c.simulateTx(txb, txClient)
+	simRes, err := simulateTx(txb, c.txClient)
 	if err != nil {
-		return "", fmt.Errorf("simulated tx would have failed: %w", err)
+		c.logger.Error().Err(err).Msg("simulateTx failed")
+		return "", err
+	}
+
+	log.Info().Interface("simRes", simRes).Msg("simulateTx")
+	expectedFees := txb.GetTx().GetFee()
+	for _, coin := range expectedFees {
+		if coin.Amount.LT(types.NewIntFromUint64(simRes.GasInfo.GasUsed)) {
+			// We dont have enough gas to pay this transaction. Let's update the gas rate...
+			return "", fmt.Errorf("gas too low, expected (%d) got (%d)", simRes.GasInfo.GasUsed, coin.Amount.Int64())
+		}
 	}
 
 	req := &txtypes.BroadcastTxRequest{
 		TxBytes: txBytes,
 		Mode:    txtypes.BroadcastMode_BROADCAST_MODE_SYNC,
 	}
-	broadcastRes, err := txClient.BroadcastTx(ctx, req)
+	broadcastRes, err := c.txClient.BroadcastTx(ctx, req)
 	log.Info().Interface("req", req).Interface("res", broadcastRes).Msg("BroadcastTx")
 	if err != nil {
 		c.logger.Error().Err(err).Msg("unable to broadcast tx")
