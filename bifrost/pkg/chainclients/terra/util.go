@@ -83,15 +83,15 @@ func getDummyTxBuilderForSimulate(txConfig client.TxConfig) (client.TxBuilder, e
 	msg := &btypes.MsgSend{
 		FromAddress: "terra126kpfewtlc7agqjrwdl2wfg0txkphsaw65t39n",
 		ToAddress:   "terra126kpfewtlc7agqjrwdl2wfg0txkphsaw65t39n",
-		Amount:      cosmos.NewCoins(cosmos.NewCoin("uluna", ctypes.NewInt(555555000000))),
+		Amount:      cosmos.NewCoins(cosmos.NewCoin("uluna", ctypes.NewInt(1))),
 	}
 	return buildUnsigned(
 		txConfig,
 		msg,
 		common.PubKey("sthorpub1addwnpepqwqwswthukczxyas0yhte2pn0r4g3uxux0d83mzfremvegs6lr7z2glhvdw"),
 		"ADD:TERRA.SOMELONGCOIN:sthor1x2nh4jevz7z54j9826sluzjjpvncmh3a399cec",
-		ctypes.NewCoins(ctypes.NewCoin("uluna", ctypes.NewInt(1000000))),
-		1000000,
+		ctypes.NewCoins(ctypes.NewCoin("uluna", ctypes.NewInt(1))),
+		1,
 		1,
 		1,
 	)
