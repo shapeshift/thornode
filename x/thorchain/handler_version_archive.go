@@ -61,3 +61,32 @@ func (h VersionHandler) handleV1(ctx cosmos.Context, msg MsgSetVersion) error {
 
 	return nil
 }
+func (h VersionHandler) validateV1(ctx cosmos.Context, msg MsgSetVersion) error {
+	if err := msg.ValidateBasic(); err != nil {
+		return err
+	}
+
+	nodeAccount, err := h.mgr.Keeper().GetNodeAccount(ctx, msg.Signer)
+	if err != nil {
+		ctx.Logger().Error("fail to get node account", "error", err, "address", msg.Signer.String())
+		return cosmos.ErrUnauthorized(fmt.Sprintf("%s is not authorizaed", msg.Signer))
+	}
+	if nodeAccount.IsEmpty() {
+		ctx.Logger().Error("unauthorized account", "address", msg.Signer.String())
+		return cosmos.ErrUnauthorized(fmt.Sprintf("%s is not authorizaed", msg.Signer))
+	}
+	if nodeAccount.Type != NodeTypeValidator {
+		ctx.Logger().Error("unauthorized account, node account must be a validator", "address", msg.Signer.String(), "type", nodeAccount.Type)
+		return cosmos.ErrUnauthorized(fmt.Sprintf("%s is not authorized", msg.Signer))
+	}
+
+	cost, err := h.mgr.Keeper().GetMimir(ctx, constants.NativeTransactionFee.String())
+	if err != nil || cost < 0 {
+		cost = h.mgr.GetConstants().GetInt64Value(constants.NativeTransactionFee)
+	}
+	if nodeAccount.Bond.LT(cosmos.NewUint(uint64(cost))) {
+		return cosmos.ErrUnauthorized("not enough bond")
+	}
+
+	return nil
+}
