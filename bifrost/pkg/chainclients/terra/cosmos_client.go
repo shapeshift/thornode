@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	cryptocodec "github.com/cosmos/cosmos-sdk/crypto/codec"
@@ -54,6 +55,7 @@ type CosmosClient struct {
 	logger              zerolog.Logger
 	cfg                 config.ChainConfiguration
 	chainID             string
+	txConfig            client.TxConfig
 	grpcConn            *grpc.ClientConn
 	accts               *CosmosMetaDataStore
 	tssKeyManager       *tss.KeySign
@@ -111,10 +113,17 @@ func NewCosmosClient(
 		logger.Fatal().Err(err).Msg("fail to dial")
 	}
 
+	interfaceRegistry := codectypes.NewInterfaceRegistry()
+	interfaceRegistry.RegisterImplementations((*types.Msg)(nil), &btypes.MsgSend{})
+	marshaler := codec.NewProtoCodec(interfaceRegistry)
+
+	txConfig := tx.NewTxConfig(marshaler, []signingtypes.SignMode{signingtypes.SignMode_SIGN_MODE_DIRECT})
+
 	c := &CosmosClient{
 		chainID:         "columbus-5",
 		logger:          logger,
 		cfg:             cfg,
+		txConfig:        txConfig,
 		grpcConn:        conn,
 		accts:           NewCosmosMetaDataStore(),
 		tssKeyManager:   tssKm,
@@ -302,17 +311,12 @@ func (c *CosmosClient) signMsg(
 	sequence uint64,
 	account uint64,
 ) ([]byte, error) {
-	interfaceRegistry := codectypes.NewInterfaceRegistry()
-	interfaceRegistry.RegisterImplementations((*types.Msg)(nil), msg)
-	marshaler := codec.NewProtoCodec(interfaceRegistry)
-
-	txConfig := tx.NewTxConfig(marshaler, []signingtypes.SignMode{signingtypes.SignMode_SIGN_MODE_DIRECT})
-	txBuilder := txConfig.NewTxBuilder()
-
 	cpk, err := cosmos.GetPubKeyFromBech32(cosmos.Bech32PubKeyTypeAccPub, pubkey.String())
 	if err != nil {
 		return nil, fmt.Errorf("unable to GetPubKeyFromBech32 from cosmos: %w", err)
 	}
+
+	txBuilder := c.txConfig.NewTxBuilder()
 
 	err = txBuilder.SetMsgs(msg)
 	if err != nil {
@@ -322,6 +326,11 @@ func (c *CosmosClient) signMsg(
 	txBuilder.SetMemo(memo)
 	txBuilder.SetFeeAmount(gas)
 	txBuilder.SetGasLimit(limit)
+
+	err = c.simulateTx(txBuilder, gas)
+	if err != nil {
+		return nil, fmt.Errorf("simulated tx would have failed: %w", err)
+	}
 
 	sigData := &signingtypes.SingleSignatureData{
 		SignMode: signingtypes.SignMode_SIGN_MODE_DIRECT,
@@ -337,7 +346,7 @@ func (c *CosmosClient) signMsg(
 		return nil, fmt.Errorf("unable to initial SetSignatures on txBuilder: %w", err)
 	}
 
-	modeHandler := txConfig.SignModeHandler()
+	modeHandler := c.txConfig.SignModeHandler()
 	signingData := signing.SignerData{
 		ChainID:       c.chainID,
 		AccountNumber: account,
@@ -371,12 +380,41 @@ func (c *CosmosClient) signMsg(
 		return nil, fmt.Errorf("unable to final SetSignatures on txBuilder: %w", err)
 	}
 
-	txBytes, err := txConfig.TxEncoder()(txBuilder.GetTx())
+	txBytes, err := c.txConfig.TxEncoder()(txBuilder.GetTx())
 	if err != nil {
 		return nil, fmt.Errorf("unable to encode tx: %w", err)
 	}
 
 	return txBytes, nil
+}
+
+func (c *CosmosClient) simulateTx(txBuilder client.TxBuilder, expectedGas types.Coins) error {
+	protoProvider, ok := txBuilder.(tx.ProtoTxProvider)
+	if !ok {
+		return fmt.Errorf("expected proto tx builder, got %T", txBuilder)
+	}
+
+	txClient := txtypes.NewServiceClient(c.grpcConn)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+
+	simRes, err := txClient.Simulate(
+		ctx,
+		&txtypes.SimulateRequest{
+			Tx: protoProvider.GetProtoTx(),
+		},
+	)
+	if err != nil {
+		return fmt.Errorf("unable to simulate tx: %w", err)
+	}
+
+	for _, coin := range expectedGas {
+		if coin.Amount.LT(types.NewIntFromUint64(simRes.GasInfo.GasWanted)) {
+			return fmt.Errorf("gas too low, expected (%d) got (%d)", simRes.GasInfo.GasWanted, coin.Amount.Int64())
+		}
+	}
+
+	return nil
 }
 
 func (c *CosmosClient) GetAccount(pkey common.PubKey) (common.Account, error) {
@@ -432,30 +470,30 @@ func (c *CosmosClient) GetAccountByAddress(address string) (common.Account, erro
 // BroadcastTx is to broadcast the tx to cosmos chain
 func (c *CosmosClient) BroadcastTx(tx stypes.TxOutItem, txBytes []byte) (string, error) {
 	txClient := txtypes.NewServiceClient(c.grpcConn)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+
 	req := &txtypes.BroadcastTxRequest{
 		TxBytes: txBytes,
 		Mode:    txtypes.BroadcastMode_BROADCAST_MODE_SYNC,
 	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
-	defer cancel()
-	res, err := txClient.BroadcastTx(ctx, req)
-	log.Info().Interface("req", req).Interface("res", res).Msg("BroadcastTx")
+	broadcastRes, err := txClient.BroadcastTx(ctx, req)
+	log.Info().Interface("req", req).Interface("res", broadcastRes).Msg("BroadcastTx")
 	if err != nil {
 		c.logger.Error().Err(err).Msg("unable to broadcast tx")
 		return "", err
 	}
 
-	if success := CosmosSuccessCodes[res.TxResponse.Code]; !success {
-		c.logger.Error().Interface("response", res).Msg("unsuccessful error code in transaction broadcast")
+	if success := CosmosSuccessCodes[broadcastRes.TxResponse.Code]; !success {
+		c.logger.Error().Interface("response", broadcastRes).Msg("unsuccessful error code in transaction broadcast")
 		return "", errors.New("broadcast msg failed")
 	}
 
 	c.accts.SeqInc(tx.VaultPubKey)
-	if err := c.signerCacheManager.SetSigned(tx.CacheHash(), res.TxResponse.TxHash); err != nil {
+	if err := c.signerCacheManager.SetSigned(tx.CacheHash(), broadcastRes.TxResponse.TxHash); err != nil {
 		c.logger.Err(err).Msg("fail to set signer cache")
 	}
-	return res.TxResponse.TxHash, nil
+	return broadcastRes.TxResponse.TxHash, nil
 }
 
 // ConfirmationCountReady cosmos chain has almost instant finality, so doesn't need to wait for confirmation
