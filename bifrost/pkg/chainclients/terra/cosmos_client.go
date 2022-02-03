@@ -327,11 +327,6 @@ func (c *CosmosClient) signMsg(
 	txBuilder.SetFeeAmount(gas)
 	txBuilder.SetGasLimit(limit)
 
-	err = c.simulateTx(txBuilder, gas)
-	if err != nil {
-		return nil, fmt.Errorf("simulated tx would have failed: %w", err)
-	}
-
 	sigData := &signingtypes.SingleSignatureData{
 		SignMode: signingtypes.SignMode_SIGN_MODE_DIRECT,
 	}
@@ -388,13 +383,22 @@ func (c *CosmosClient) signMsg(
 	return txBytes, nil
 }
 
-func (c *CosmosClient) simulateTx(txBuilder client.TxBuilder, expectedGas types.Coins) error {
-	protoProvider, ok := txBuilder.(tx.ProtoTxProvider)
-	if !ok {
-		return fmt.Errorf("expected proto tx builder, got %T", txBuilder)
+func (c *CosmosClient) simulateTx(txBytes []byte, txClient txtypes.ServiceClient) error {
+	origTx, err := c.txConfig.TxDecoder()(txBytes)
+	if err != nil {
+		return err
 	}
 
-	txClient := txtypes.NewServiceClient(c.grpcConn)
+	txb, err := c.txConfig.WrapTxBuilder(origTx)
+	if err != nil {
+		return err
+	}
+
+	protoProvider, ok := txb.(tx.ProtoTxProvider)
+	if !ok {
+		return fmt.Errorf("expected proto tx builder, got %T", txb)
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
@@ -408,7 +412,8 @@ func (c *CosmosClient) simulateTx(txBuilder client.TxBuilder, expectedGas types.
 		return fmt.Errorf("unable to simulate tx: %w", err)
 	}
 
-	for _, coin := range expectedGas {
+	expectedFees := origTx.(types.FeeTx).GetFee()
+	for _, coin := range expectedFees {
 		if coin.Amount.LT(types.NewIntFromUint64(simRes.GasInfo.GasWanted)) {
 			return fmt.Errorf("gas too low, expected (%d) got (%d)", simRes.GasInfo.GasWanted, coin.Amount.Int64())
 		}
@@ -472,6 +477,11 @@ func (c *CosmosClient) BroadcastTx(tx stypes.TxOutItem, txBytes []byte) (string,
 	txClient := txtypes.NewServiceClient(c.grpcConn)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
+
+	err := c.simulateTx(txBytes, txClient)
+	if err != nil {
+		return "", fmt.Errorf("simulated tx would have failed: %w", err)
+	}
 
 	req := &txtypes.BroadcastTxRequest{
 		TxBytes: txBytes,
