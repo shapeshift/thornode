@@ -167,7 +167,12 @@ func (c *CosmosBlockScanner) getAverageFromCache() ctypes.Int {
 func (c *CosmosBlockScanner) updateGasFees(height int64) error {
 	// post the gas fee over every cache period
 	if height%gasCacheBlocks == 0 {
+
 		avgGas := c.getAverageFromCache()
+		// Add a 16.67% markup to the average
+		avgGas = avgGas.Mul(ctypes.NewInt(7))
+		avgGas = avgGas.Quo(ctypes.NewInt(6))
+
 		if avgGas.IsZero() {
 			return nil
 		}
