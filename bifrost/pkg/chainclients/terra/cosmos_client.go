@@ -205,6 +205,56 @@ func (c *CosmosClient) GetAddress(poolPubKey common.PubKey) string {
 	return addr.String()
 }
 
+func (c *CosmosClient) GetAccount(pkey common.PubKey) (common.Account, error) {
+	addr, err := pkey.GetAddress(c.GetChain())
+	if err != nil {
+		return common.Account{}, fmt.Errorf("failed to convert address (%s) from bech32: %w", pkey, err)
+	}
+	return c.GetAccountByAddress(addr.String())
+}
+
+func (c *CosmosClient) GetAccountByAddress(address string) (common.Account, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+
+	bankClient := btypes.NewQueryClient(c.grpcConn)
+	bankReq := &btypes.QueryAllBalancesRequest{
+		Address: address,
+	}
+	balances, err := bankClient.AllBalances(ctx, bankReq)
+	if err != nil {
+		return common.Account{}, err
+	}
+
+	nativeCoins := make([]common.Coin, 0)
+	for _, balance := range balances.Balances {
+		coin := fromCosmosToThorchain(balance)
+		nativeCoins = append(nativeCoins, coin)
+	}
+
+	client := atypes.NewQueryClient(c.grpcConn)
+	authReq := &atypes.QueryAccountRequest{
+		Address: address,
+	}
+
+	acc, err := client.Account(ctx, authReq)
+	if err != nil {
+		return common.Account{}, err
+	}
+
+	ba := new(atypes.BaseAccount)
+	err = ba.Unmarshal(acc.GetAccount().Value)
+	if err != nil {
+		return common.Account{}, err
+	}
+
+	return common.Account{
+		Sequence:      int64(ba.Sequence),
+		AccountNumber: int64(ba.AccountNumber),
+		Coins:         nativeCoins,
+	}, nil
+}
+
 func (c *CosmosClient) processOutboundTx(tx stypes.TxOutItem) (*btypes.MsgSend, error) {
 	vaultPubKey, err := tx.VaultPubKey.GetAddress(common.TERRAChain)
 	if err != nil {
@@ -286,12 +336,22 @@ func (c *CosmosClient) SignTx(tx stypes.TxOutItem, thorchainHeight int64) (signe
 		}
 	}
 
-	txBytes, err := c.signMsg(
+	txBuilder, err := c.buildUnsigned(
 		msg,
 		tx.VaultPubKey,
 		tx.Memo,
 		gas,
 		uint64(tx.GasRate),
+		uint64(meta.SeqNumber),
+		uint64(meta.AccountNumber),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("unable to build unsigned tx: %w", err)
+	}
+
+	txBytes, err := c.signMsg(
+		txBuilder,
+		tx.VaultPubKey,
 		uint64(meta.SeqNumber),
 		uint64(meta.AccountNumber),
 	)
@@ -302,20 +362,19 @@ func (c *CosmosClient) SignTx(tx stypes.TxOutItem, thorchainHeight int64) (signe
 	return txBytes, nil
 }
 
-func (c *CosmosClient) signMsg(
+func (c *CosmosClient) buildUnsigned(
 	msg *btypes.MsgSend,
 	pubkey common.PubKey,
 	memo string,
 	gas types.Coins,
 	limit uint64,
-	sequence uint64,
 	account uint64,
-) ([]byte, error) {
+	sequence uint64,
+) (client.TxBuilder, error) {
 	cpk, err := cosmos.GetPubKeyFromBech32(cosmos.Bech32PubKeyTypeAccPub, pubkey.String())
 	if err != nil {
 		return nil, fmt.Errorf("unable to GetPubKeyFromBech32 from cosmos: %w", err)
 	}
-
 	txBuilder := c.txConfig.NewTxBuilder()
 
 	err = txBuilder.SetMsgs(msg)
@@ -341,6 +400,20 @@ func (c *CosmosClient) signMsg(
 		return nil, fmt.Errorf("unable to initial SetSignatures on txBuilder: %w", err)
 	}
 
+	return txBuilder, nil
+}
+
+func (c *CosmosClient) signMsg(
+	txBuilder client.TxBuilder,
+	pubkey common.PubKey,
+	account uint64,
+	sequence uint64,
+) ([]byte, error) {
+	cpk, err := cosmos.GetPubKeyFromBech32(cosmos.Bech32PubKeyTypeAccPub, pubkey.String())
+	if err != nil {
+		return nil, fmt.Errorf("unable to GetPubKeyFromBech32 from cosmos: %w", err)
+	}
+
 	modeHandler := c.txConfig.SignModeHandler()
 	signingData := signing.SignerData{
 		ChainID:       c.chainID,
@@ -351,6 +424,15 @@ func (c *CosmosClient) signMsg(
 	signBytes, err := modeHandler.GetSignBytes(signingtypes.SignMode_SIGN_MODE_DIRECT, signingData, txBuilder.GetTx())
 	if err != nil {
 		return nil, fmt.Errorf("unable to GetSignBytes on modeHandler: %w", err)
+	}
+
+	sigData := &signingtypes.SingleSignatureData{
+		SignMode: signingtypes.SignMode_SIGN_MODE_DIRECT,
+	}
+	sig := signingtypes.SignatureV2{
+		PubKey:   cpk,
+		Data:     sigData,
+		Sequence: sequence,
 	}
 
 	if c.localKeyManager.Pubkey().Equals(pubkey) {
@@ -383,17 +465,7 @@ func (c *CosmosClient) signMsg(
 	return txBytes, nil
 }
 
-func (c *CosmosClient) simulateTx(txBytes []byte, txClient txtypes.ServiceClient) error {
-	origTx, err := c.txConfig.TxDecoder()(txBytes)
-	if err != nil {
-		return err
-	}
-
-	txb, err := c.txConfig.WrapTxBuilder(origTx)
-	if err != nil {
-		return err
-	}
-
+func (c *CosmosClient) simulateTx(txb client.TxBuilder, txClient txtypes.ServiceClient) error {
 	protoProvider, ok := txb.(tx.ProtoTxProvider)
 	if !ok {
 		return fmt.Errorf("expected proto tx builder, got %T", txb)
@@ -401,7 +473,6 @@ func (c *CosmosClient) simulateTx(txBytes []byte, txClient txtypes.ServiceClient
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
-
 	simRes, err := txClient.Simulate(
 		ctx,
 		&txtypes.SimulateRequest{
@@ -412,7 +483,7 @@ func (c *CosmosClient) simulateTx(txBytes []byte, txClient txtypes.ServiceClient
 		return fmt.Errorf("unable to simulate tx: %w", err)
 	}
 
-	expectedFees := origTx.(types.FeeTx).GetFee()
+	expectedFees := txb.GetTx().GetFee()
 	for _, coin := range expectedFees {
 		if coin.Amount.LT(types.NewIntFromUint64(simRes.GasInfo.GasWanted)) {
 			return fmt.Errorf("gas too low, expected (%d) got (%d)", simRes.GasInfo.GasWanted, coin.Amount.Int64())
@@ -422,63 +493,35 @@ func (c *CosmosClient) simulateTx(txBytes []byte, txClient txtypes.ServiceClient
 	return nil
 }
 
-func (c *CosmosClient) GetAccount(pkey common.PubKey) (common.Account, error) {
-	addr, err := pkey.GetAddress(c.GetChain())
-	if err != nil {
-		return common.Account{}, fmt.Errorf("failed to convert address (%s) from bech32: %w", pkey, err)
-	}
-	return c.GetAccountByAddress(addr.String())
-}
-
-func (c *CosmosClient) GetAccountByAddress(address string) (common.Account, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
-	defer cancel()
-
-	bankClient := btypes.NewQueryClient(c.grpcConn)
-	bankReq := &btypes.QueryAllBalancesRequest{
-		Address: address,
-	}
-	balances, err := bankClient.AllBalances(ctx, bankReq)
-	if err != nil {
-		return common.Account{}, err
-	}
-
-	nativeCoins := make([]common.Coin, 0)
-	for _, balance := range balances.Balances {
-		coin := fromCosmosToThorchain(balance)
-		nativeCoins = append(nativeCoins, coin)
-	}
-
-	client := atypes.NewQueryClient(c.grpcConn)
-	authReq := &atypes.QueryAccountRequest{
-		Address: address,
-	}
-
-	acc, err := client.Account(ctx, authReq)
-	if err != nil {
-		return common.Account{}, err
-	}
-
-	ba := new(atypes.BaseAccount)
-	err = ba.Unmarshal(acc.GetAccount().Value)
-	if err != nil {
-		return common.Account{}, err
-	}
-
-	return common.Account{
-		Sequence:      int64(ba.Sequence),
-		AccountNumber: int64(ba.AccountNumber),
-		Coins:         nativeCoins,
-	}, nil
-}
-
 // BroadcastTx is to broadcast the tx to cosmos chain
 func (c *CosmosClient) BroadcastTx(tx stypes.TxOutItem, txBytes []byte) (string, error) {
 	txClient := txtypes.NewServiceClient(c.grpcConn)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
-	err := c.simulateTx(txBytes, txClient)
+	acc, err := c.GetAccount(tx.VaultPubKey)
+	if err != nil {
+		return "", fmt.Errorf("fail to get account info: %w", err)
+	}
+
+	var gas types.Coins
+	for _, gasCoin := range tx.MaxGas.ToCoins() {
+		if gasCoin.Asset == c.GetChain().GetGasAsset() {
+			gas = append(gas, fromThorchainToCosmos(gasCoin))
+		}
+	}
+
+	out, err := c.processOutboundTx(tx)
+	if err != nil {
+		return "", fmt.Errorf("unable to processOutboundTx for simulateTx: %w", err)
+	}
+
+	txb, err := c.buildUnsigned(out, tx.VaultPubKey, tx.Memo, gas, uint64(tx.GasRate), uint64(acc.AccountNumber), uint64(acc.Sequence))
+	if err != nil {
+		return "", fmt.Errorf("unable to buildUnsighed for simulateTx: %w", err)
+	}
+
+	err = c.simulateTx(txb, txClient)
 	if err != nil {
 		return "", fmt.Errorf("simulated tx would have failed: %w", err)
 	}
