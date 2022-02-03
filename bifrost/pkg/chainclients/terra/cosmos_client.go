@@ -11,7 +11,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	cryptocodec "github.com/cosmos/cosmos-sdk/crypto/codec"
-	"github.com/cosmos/cosmos-sdk/types"
 	errortypes "github.com/cosmos/cosmos-sdk/types/errors"
 	signingtypes "github.com/cosmos/cosmos-sdk/types/tx/signing"
 	"github.com/cosmos/cosmos-sdk/x/auth/signing"
@@ -19,6 +18,7 @@ import (
 	"github.com/tendermint/tendermint/crypto"
 	memo "gitlab.com/thorchain/thornode/x/thorchain/memo"
 
+	ctypes "github.com/cosmos/cosmos-sdk/types"
 	txtypes "github.com/cosmos/cosmos-sdk/types/tx"
 	atypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	btypes "github.com/cosmos/cosmos-sdk/x/bank/types"
@@ -105,7 +105,7 @@ func NewCosmosClient(
 
 	localKm := &keyManager{
 		privKey: priv,
-		addr:    types.AccAddress(priv.PubKey().Address()),
+		addr:    ctypes.AccAddress(priv.PubKey().Address()),
 		pubkey:  pk,
 	}
 
@@ -116,7 +116,7 @@ func NewCosmosClient(
 	}
 
 	interfaceRegistry := codectypes.NewInterfaceRegistry()
-	interfaceRegistry.RegisterImplementations((*types.Msg)(nil), &btypes.MsgSend{})
+	interfaceRegistry.RegisterImplementations((*ctypes.Msg)(nil), &btypes.MsgSend{})
 	marshaler := codec.NewProtoCodec(interfaceRegistry)
 	txConfig := tx.NewTxConfig(marshaler, []signingtypes.SignMode{signingtypes.SignMode_SIGN_MODE_DIRECT})
 
@@ -262,7 +262,7 @@ func (c *CosmosClient) processOutboundTx(tx stypes.TxOutItem) (*btypes.MsgSend, 
 		return nil, fmt.Errorf("failed to convert address (%s) to bech32: %w", tx.VaultPubKey.String(), err)
 	}
 
-	var coins types.Coins
+	var coins ctypes.Coins
 	for _, coin := range tx.Coins {
 		// convert to cosmos coin
 		cosmosCoin := fromThorchainToCosmos(coin)
@@ -330,7 +330,7 @@ func (c *CosmosClient) SignTx(tx stypes.TxOutItem, thorchainHeight int64) (signe
 		c.accts.Set(tx.VaultPubKey, meta)
 	}
 
-	var gas types.Coins
+	var gas ctypes.Coins
 	for _, gasCoin := range tx.MaxGas.ToCoins() {
 		if gasCoin.Asset == c.GetChain().GetGasAsset() {
 			gas = append(gas, fromThorchainToCosmos(gasCoin))
@@ -436,7 +436,7 @@ func (c *CosmosClient) BroadcastTx(tx stypes.TxOutItem, txBytes []byte) (string,
 		return "", fmt.Errorf("fail to get account info: %w", err)
 	}
 
-	var gas types.Coins
+	var gas ctypes.Coins
 	for _, gasCoin := range tx.MaxGas.ToCoins() {
 		if gasCoin.Asset == c.GetChain().GetGasAsset() {
 			gas = append(gas, fromThorchainToCosmos(gasCoin))
@@ -471,7 +471,7 @@ func (c *CosmosClient) BroadcastTx(tx stypes.TxOutItem, txBytes []byte) (string,
 	log.Info().Interface("simRes", simRes).Msg("simulateTx")
 	expectedFees := txb.GetTx().GetFee()
 	for _, coin := range expectedFees {
-		if coin.Amount.LT(types.NewIntFromUint64(simRes.GasInfo.GasUsed)) {
+		if coin.Amount.LT(ctypes.NewIntFromUint64(simRes.GasInfo.GasUsed)) {
 			// We dont have enough gas to pay this transaction. Let's update the gas rate...
 			return "", fmt.Errorf("gas too low, expected (%d) got (%d)", simRes.GasInfo.GasUsed, coin.Amount.Int64())
 		}
