@@ -479,7 +479,7 @@ func (c *CosmosClient) BroadcastTx(tx stypes.TxOutItem, txBytes []byte) (string,
 
 	req := &txtypes.BroadcastTxRequest{
 		TxBytes: txBytes,
-		Mode:    txtypes.BroadcastMode_BROADCAST_MODE_SYNC,
+		Mode:    txtypes.BroadcastMode_BROADCAST_MODE_BLOCK,
 	}
 	broadcastRes, err := c.txClient.BroadcastTx(ctx, req)
 	log.Info().Interface("req", req).Interface("res", broadcastRes).Msg("BroadcastTx")
