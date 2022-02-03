@@ -33,9 +33,12 @@ import (
 // SolvencyReporter is to report solvency info to THORNode
 type SolvencyReporter func(int64) error
 
-const gasCacheBlocks = 10
+const (
+	gasCacheBlocks = 10
+)
 
 var (
+	MinimumGas            = ctypes.NewInt(1000000)
 	ErrInvalidScanStorage = errors.New("scan storage is empty or nil")
 	ErrInvalidMetrics     = errors.New("metrics is empty or nil")
 	ErrEmptyTx            = errors.New("empty tx")
@@ -173,9 +176,11 @@ func (c *CosmosBlockScanner) updateGasFees(height int64) error {
 		avgGas = avgGas.Mul(ctypes.NewInt(7))
 		avgGas = avgGas.Quo(ctypes.NewInt(6))
 
-		if avgGas.IsZero() {
-			return nil
+		// floor to minimum gas amount
+		if avgGas.LT(MinimumGas) {
+			avgGas = MinimumGas
 		}
+
 		feeTx, err := c.bridge.PostNetworkFee(height, common.TERRAChain, 1, avgGas.Uint64())
 		if err != nil {
 			return err
