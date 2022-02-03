@@ -90,7 +90,7 @@ func NewCosmosBlockScanner(cfg config.BlockScannerConfiguration,
 	cdc := codec.NewProtoCodec(registry)
 
 	interfaceRegistry := codectypes.NewInterfaceRegistry()
-	interfaceRegistry.RegisterImplementations((*types.Msg)(nil), &btypes.MsgSend{})
+	interfaceRegistry.RegisterImplementations((*ctypes.Msg)(nil), &btypes.MsgSend{})
 	marshaler := codec.NewProtoCodec(interfaceRegistry)
 	txConfig := tx.NewTxConfig(marshaler, []signingtypes.SignMode{signingtypes.SignMode_SIGN_MODE_DIRECT})
 
