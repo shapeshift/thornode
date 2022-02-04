@@ -85,7 +85,7 @@ func simulateTx(txb client.TxBuilder, txClient txtypes.ServiceClient) (*txtypes.
 
 func getDummyTxBuilderForSimulate(txConfig client.TxConfig) (client.TxBuilder, error) {
 	// The sender is a dead stagenet vault with some Luna dust left over
-	// It will always have a small balance and will its sequence will never change
+	// It will always have a small balance and its sequence will never change
 	// Thus, we use it as an account to craft a dummy tx that can be used to simulate gas
 	// This is more reliable than using gas averages.
 
