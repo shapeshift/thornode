@@ -67,7 +67,7 @@ lint:
 
 build-thornode:
   stage: build
-  image: docker:19.03.12
+  image: docker:20.10.12
   tags:
     - thorchain
   only:
@@ -80,7 +80,7 @@ build-thornode:
     - testnet-multichain
     - chaosnet-multichain
   services:
-    - docker:19.03.12-dind
+    - docker:20.10.12-dind
   before_script:
     # https://gitlab.com/gitlab-org/gitlab-runner/-/issues/27384#note_497228752
     - |
@@ -103,7 +103,7 @@ smoke-test:
   tags:
     - thorchain
   services:
-    - docker:19.03.12-dind
+    - docker:20.10.12-dind
   artifacts:
     when: on_failure
     name: "$CI_JOB_NAME-$CI_COMMIT_REF_NAME"
