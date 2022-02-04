@@ -474,7 +474,6 @@ func (c *CosmosClient) BroadcastTx(tx stypes.TxOutItem, txBytes []byte) (string,
 	expectedFees := txb.GetTx().GetFee()
 	for _, coin := range expectedFees {
 		if coin.Amount.LT(ctypes.NewIntFromUint64(simRes.GasInfo.GasUsed)) {
-			// We dont have enough gas to pay this transaction. Let's update the gas rate...
 			return "", fmt.Errorf("gas too low, expected (%d) got (%d)", simRes.GasInfo.GasUsed, coin.Amount.Int64())
 		}
 	}
