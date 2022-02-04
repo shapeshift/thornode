@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"math/big"
 	"strconv"
 	"strings"
 	"time"
@@ -38,6 +39,8 @@ type SolvencyReporter func(int64) error
 
 const (
 	GasUpdatePeriodBlocks = 10
+	GasMethodAverage      = iota
+	GasMethodSimulate
 )
 
 var (
@@ -55,6 +58,9 @@ type CosmosBlockScanner struct {
 	cdc              *codec.ProtoCodec
 	txClient         txtypes.ServiceClient
 	txConfig         client.TxConfig
+	gasMethod        int
+	gasCacheSquares  []ctypes.Int
+	gasCacheNum      int64
 	tmService        tmservice.ServiceClient
 	grpc             *grpc.ClientConn
 	bridge           *thorclient.ThorchainBridge
@@ -103,6 +109,9 @@ func NewCosmosBlockScanner(cfg config.BlockScannerConfiguration,
 		txClient:         txtypes.NewServiceClient(conn),
 		txConfig:         txConfig,
 		tmService:        tmService,
+		gasMethod:        GasMethodAverage,
+		gasCacheSquares:  make([]ctypes.Int, 0),
+		gasCacheNum:      0,
 		grpc:             conn,
 		bridge:           bridge,
 		solvencyReporter: solvencyReporter,
@@ -145,27 +154,66 @@ func (c *CosmosBlockScanner) GetBlock(height int64) (*tmtypes.Block, error) {
 	return resultBlock.Block, nil
 }
 
+func (c *CosmosBlockScanner) updateGasCache(txs []types.TxInItem) error {
+	// add gas fees for the FeeAsset only
+	for _, tx := range txs {
+		fee := tx.Gas.ToCoins().GetCoin(c.feeAsset)
+		if err := fee.Valid(); err != nil {
+			// gas asset is not preferred fee asset, skip it...
+			continue
+		}
+		c.gasCacheNum++
+		c.gasCacheSquares = append(c.gasCacheSquares, ctypes.Int(fee.Amount).Mul(ctypes.Int(fee.Amount)))
+	}
+
+	return nil
+}
+
+func (c *CosmosBlockScanner) getAverageFromCache() ctypes.Int {
+	if len(c.gasCacheSquares) == 0 || c.gasCacheNum == 0 {
+		return ctypes.NewInt(0)
+	}
+
+	sumOfSquares := ctypes.NewInt(0)
+	for _, val := range c.gasCacheSquares {
+		sumOfSquares = sumOfSquares.Add(val)
+	}
+
+	averageSquares := sumOfSquares.Quo(ctypes.NewIntFromBigInt(big.NewInt(c.gasCacheNum)))
+	return ctypes.NewIntFromBigInt(big.NewInt(0).Sqrt(averageSquares.BigInt()))
+}
+
 func (c *CosmosBlockScanner) updateGasFees(height int64) error {
 	// post the gas fee over every cache period
+
 	if height%GasUpdatePeriodBlocks == 0 {
-		dummyTxb, err := getDummyTxBuilderForSimulate(c.txConfig)
-		if err != nil {
-			return fmt.Errorf("unable to getDummyTxBuilderForSimulate: %w", err)
+		var gas common.Coin
+		// Use the SimulateTx method with a dummy tx to calculate appropriate fee
+		if c.gasMethod == GasMethodSimulate {
+			dummyTxb, err := getDummyTxBuilderForSimulate(c.txConfig)
+			if err != nil {
+				return fmt.Errorf("unable to getDummyTxBuilderForSimulate: %w", err)
+			}
+
+			simRes, err := simulateTx(dummyTxb, c.txClient)
+			if err != nil {
+				return fmt.Errorf("unable to SimulateTx: %w", err)
+			}
+			gas = fromCosmosToThorchain(ctypes.NewCoin("uluna", ctypes.NewInt(int64(simRes.GasInfo.GasUsed))))
+		} else if c.gasMethod == GasMethodAverage {
+			gasInt := c.getAverageFromCache()
+			gas = common.NewCoin(c.feeAsset, ctypes.NewUint(gasInt.Uint64()))
+			c.gasCacheSquares = make([]ctypes.Int, 0)
+			c.gasCacheNum = 0
 		}
 
-		simRes, err := simulateTx(dummyTxb, c.txClient)
-		if err != nil {
-			return fmt.Errorf("unable to SimulateTx: %w", err)
-		}
-
-		gasCoin := fromCosmosToThorchain(ctypes.NewCoin("uluna", ctypes.NewInt(int64(simRes.GasInfo.GasUsed))))
-		feeTx, err := c.bridge.PostNetworkFee(height, common.TERRAChain, 1, gasCoin.Amount.Uint64())
+		feeTx, err := c.bridge.PostNetworkFee(height, common.TERRAChain, 1, gas.Amount.Uint64())
 		if err != nil {
 			return err
 		}
 		c.logger.Info().
 			Str("tx", feeTx.String()).
-			Int64("amount", gasCoin.Amount.BigInt().Int64()).
+			Int64("amount", gas.Amount.BigInt().Int64()).
 			Int64("height", height).
 			Msg("sent network fee to THORChain")
 
@@ -252,9 +300,15 @@ func (c *CosmosBlockScanner) FetchTxs(height int64) (types.TxIn, error) {
 		MemPool:  false,
 	}
 
+	err = c.updateGasCache(txs)
+	if err != nil {
+		c.logger.Err(err).Int64("height", height).Msg("unable to update gas cache")
+
+	}
+
 	err = c.updateGasFees(height)
 	if err != nil {
-		c.logger.Err(err).Int64("height", height).Msg("failed to post average network fee")
+		c.logger.Err(err).Int64("height", height).Msg("unable to update network fee")
 	}
 
 	return txIn, nil
