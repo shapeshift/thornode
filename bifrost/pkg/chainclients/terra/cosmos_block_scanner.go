@@ -41,7 +41,6 @@ const (
 )
 
 var (
-	MinimumGas            = ctypes.NewInt(1000000)
 	ErrInvalidScanStorage = errors.New("scan storage is empty or nil")
 	ErrInvalidMetrics     = errors.New("metrics is empty or nil")
 	ErrEmptyTx            = errors.New("empty tx")
