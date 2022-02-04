@@ -345,8 +345,8 @@ func (c *CosmosClient) SignTx(tx stypes.TxOutItem, thorchainHeight int64) (signe
 		tx.Memo,
 		gas,
 		gasRate.Amount.Uint64(),
-		uint64(meta.SeqNumber),
 		uint64(meta.AccountNumber),
+		uint64(meta.SeqNumber),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("unable to build unsigned tx: %w", err)
@@ -355,8 +355,8 @@ func (c *CosmosClient) SignTx(tx stypes.TxOutItem, thorchainHeight int64) (signe
 	txBytes, err := c.signMsg(
 		txBuilder,
 		tx.VaultPubKey,
-		uint64(meta.SeqNumber),
 		uint64(meta.AccountNumber),
+		uint64(meta.SeqNumber),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign message: %w", err)
