@@ -337,13 +337,14 @@ func (c *CosmosClient) SignTx(tx stypes.TxOutItem, thorchainHeight int64) (signe
 		}
 	}
 
+	gasRate := fromThorchainToCosmos(common.NewCoin(c.GetChain().GetGasAsset(), cosmos.NewUint(uint64(tx.GasRate))))
 	txBuilder, err := buildUnsigned(
 		c.txConfig,
 		msg,
 		tx.VaultPubKey,
 		tx.Memo,
 		gas,
-		uint64(tx.GasRate),
+		gasRate.Amount.Uint64(),
 		uint64(meta.SeqNumber),
 		uint64(meta.AccountNumber),
 	)
@@ -442,6 +443,7 @@ func (c *CosmosClient) BroadcastTx(tx stypes.TxOutItem, txBytes []byte) (string,
 			gas = append(gas, fromThorchainToCosmos(gasCoin))
 		}
 	}
+	gasRate := fromThorchainToCosmos(common.NewCoin(c.GetChain().GetGasAsset(), cosmos.NewUint(uint64(tx.GasRate))))
 
 	out, err := c.processOutboundTx(tx)
 	if err != nil {
@@ -454,7 +456,7 @@ func (c *CosmosClient) BroadcastTx(tx stypes.TxOutItem, txBytes []byte) (string,
 		tx.VaultPubKey,
 		tx.Memo,
 		gas,
-		uint64(tx.GasRate),
+		gasRate.Amount.Uint64(),
 		uint64(acc.AccountNumber),
 		uint64(acc.Sequence),
 	)
@@ -479,7 +481,7 @@ func (c *CosmosClient) BroadcastTx(tx stypes.TxOutItem, txBytes []byte) (string,
 
 	req := &txtypes.BroadcastTxRequest{
 		TxBytes: txBytes,
-		Mode:    txtypes.BroadcastMode_BROADCAST_MODE_BLOCK,
+		Mode:    txtypes.BroadcastMode_BROADCAST_MODE_SYNC,
 	}
 	broadcastRes, err := c.txClient.BroadcastTx(ctx, req)
 	log.Info().Interface("req", req).Interface("res", broadcastRes).Msg("BroadcastTx")
