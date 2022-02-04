@@ -48,8 +48,8 @@ func (h BondHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Result, erro
 
 func (h BondHandler) validate(ctx cosmos.Context, msg MsgBond) error {
 	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.79.0")) {
-		return h.validate79(ctx, msg)
+	if version.GTE(semver.MustParse("0.80.0")) {
+		return h.validate80(ctx, msg)
 	} else if version.GTE(semver.MustParse("0.78.0")) {
 		return h.validate78(ctx, msg)
 	} else if version.GTE(semver.MustParse("0.1.0")) {
@@ -58,7 +58,7 @@ func (h BondHandler) validate(ctx cosmos.Context, msg MsgBond) error {
 	return errBadVersion
 }
 
-func (h BondHandler) validate79(ctx cosmos.Context, msg MsgBond) error {
+func (h BondHandler) validate80(ctx cosmos.Context, msg MsgBond) error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
@@ -74,21 +74,20 @@ func (h BondHandler) validate79(ctx cosmos.Context, msg MsgBond) error {
 		return ErrInternal(err, "cannot add bond while node is ready status")
 	}
 
-	validatorMaxRewardRatio, err := h.mgr.Keeper().GetMimir(ctx, constants.ValidatorMaxRewardRatio.String())
-	if validatorMaxRewardRatio < 0 || err != nil {
-		validatorMaxRewardRatio = h.mgr.GetConstants().GetInt64Value(constants.ValidatorMaxRewardRatio)
-	}
+	if nodeAccount.Status == NodeActive {
+		validatorMaxRewardRatio, err := h.mgr.Keeper().GetMimir(ctx, constants.ValidatorMaxRewardRatio.String())
+		if validatorMaxRewardRatio < 0 || err != nil {
+			validatorMaxRewardRatio = h.mgr.GetConstants().GetInt64Value(constants.ValidatorMaxRewardRatio)
+		}
 
-	if validatorMaxRewardRatio > 1 {
-		if nodeAccount.Status == NodeActive {
-			active, err := h.mgr.Keeper().GetAsgardVaultsByStatus(ctx, ActiveVault)
+		if validatorMaxRewardRatio > 1 {
+			retiring, err := h.mgr.Keeper().GetAsgardVaultsByStatus(ctx, RetiringVault)
 			if err != nil {
 				return err
 			}
 
-			churnRetryInterval := h.mgr.GetConstants().GetInt64Value(constants.ChurnRetryInterval)
-			if (active[0].BlockHeight + (12 * churnRetryInterval)) < common.BlockHeight(ctx) {
-				return ErrInternal(err, "cannot add bond from an active node after 12 hours of a churn")
+			if len(retiring) == 0 {
+				return ErrInternal(err, "cannot add bond while the network is not churning")
 			}
 
 		}
