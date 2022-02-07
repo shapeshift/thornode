@@ -143,6 +143,7 @@ func (k KVStore) getMinJoinVersionV1(ctx cosmos.Context) semver.Version {
 	}
 	return version
 }
+
 func (k KVStore) getMinJoinVersionV80(ctx cosmos.Context) semver.Version {
 	type tmpVersionInfo struct {
 		version semver.Version
