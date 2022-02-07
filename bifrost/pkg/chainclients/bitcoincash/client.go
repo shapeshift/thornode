@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/big"
 	"strconv"
 	"strings"
 	"sync"
@@ -234,7 +235,11 @@ func (c *Client) getUTXOs(minConfirm, MaximumConfirm int, pkey common.PubKey) ([
 }
 
 // GetAccount returns account with balance for an address
-func (c *Client) GetAccount(pkey common.PubKey) (common.Account, error) {
+func (c *Client) GetAccount(pkey common.PubKey, height *big.Int) (common.Account, error) {
+	if height != nil {
+		c.logger.Error().Msg("height was provided but will be ignored")
+	}
+
 	acct := common.Account{}
 	if pkey.IsEmpty() {
 		return acct, errors.New("pubkey can't be empty")
@@ -265,7 +270,7 @@ func (c *Client) GetAccount(pkey common.PubKey) (common.Account, error) {
 	}, false), nil
 }
 
-func (c *Client) GetAccountByAddress(string) (common.Account, error) {
+func (c *Client) GetAccountByAddress(string, *big.Int) (common.Account, error) {
 	return common.Account{}, nil
 }
 
@@ -1150,7 +1155,7 @@ func (c *Client) ReportSolvency(bchBlockHeight int64) error {
 		return fmt.Errorf("fail to get asgards,err: %w", err)
 	}
 	for _, asgard := range asgardVaults {
-		acct, err := c.GetAccount(asgard.PubKey)
+		acct, err := c.GetAccount(asgard.PubKey, nil)
 		if err != nil {
 			c.logger.Err(err).Msgf("fail to get account balance")
 			continue

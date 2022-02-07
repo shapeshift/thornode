@@ -565,11 +565,11 @@ func (c *Client) sign(tx *etypes.Transaction, poolPubKey common.PubKey, height i
 }
 
 // GetBalance call smart contract to find out the balance of the given address and token
-func (c *Client) GetBalance(addr, token string) (*big.Int, error) {
+func (c *Client) GetBalance(addr, token string, height *big.Int) (*big.Int, error) {
 	ctx, cancel := c.getContext()
 	defer cancel()
 	if IsETH(token) {
-		return c.client.BalanceAt(ctx, ecommon.HexToAddress(addr), nil)
+		return c.client.BalanceAt(ctx, ecommon.HexToAddress(addr), height)
 	}
 	contractAddresses := c.pubkeyMgr.GetContracts(common.ETHChain)
 	if len(contractAddresses) == 0 {
@@ -585,7 +585,7 @@ func (c *Client) GetBalance(addr, token string) (*big.Int, error) {
 		From: ecommon.HexToAddress(addr),
 		To:   &toAddr,
 		Data: input,
-	}, nil)
+	}, height)
 	if err != nil {
 		return nil, err
 	}
@@ -598,7 +598,7 @@ func (c *Client) GetBalance(addr, token string) (*big.Int, error) {
 }
 
 // GetBalances gets all the balances of the given address
-func (c *Client) GetBalances(addr string) (common.Coins, error) {
+func (c *Client) GetBalances(addr string, height *big.Int) (common.Coins, error) {
 	// for all the tokens , this chain client have deal with before
 	tokens, err := c.ethScanner.GetTokens()
 	if err != nil {
@@ -606,7 +606,7 @@ func (c *Client) GetBalances(addr string) (common.Coins, error) {
 	}
 	coins := common.Coins{}
 	for _, token := range tokens {
-		balance, err := c.GetBalance(addr, token.Address)
+		balance, err := c.GetBalance(addr, token.Address, height)
 		if err != nil {
 			c.logger.Err(err).Msgf("fail to get balance for token:%s", token.Address)
 			continue
@@ -626,13 +626,13 @@ func (c *Client) GetBalances(addr string) (common.Coins, error) {
 }
 
 // GetAccount gets account by address in eth client
-func (c *Client) GetAccount(pk common.PubKey) (common.Account, error) {
+func (c *Client) GetAccount(pk common.PubKey, height *big.Int) (common.Account, error) {
 	addr := c.GetAddress(pk)
 	nonce, err := c.GetNonce(addr)
 	if err != nil {
 		return common.Account{}, err
 	}
-	coins, err := c.GetBalances(addr)
+	coins, err := c.GetBalances(addr, height)
 	if err != nil {
 		return common.Account{}, err
 	}
@@ -641,12 +641,12 @@ func (c *Client) GetAccount(pk common.PubKey) (common.Account, error) {
 }
 
 // GetAccountByAddress return account information
-func (c *Client) GetAccountByAddress(address string) (common.Account, error) {
+func (c *Client) GetAccountByAddress(address string, height *big.Int) (common.Account, error) {
 	nonce, err := c.GetNonce(address)
 	if err != nil {
 		return common.Account{}, err
 	}
-	coins, err := c.GetBalances(address)
+	coins, err := c.GetBalances(address, height)
 	if err != nil {
 		return common.Account{}, err
 	}
@@ -862,7 +862,7 @@ func (c *Client) ReportSolvency(ethBlockHeight int64) error {
 		return fmt.Errorf("fail to get asgards,err: %w", err)
 	}
 	for _, asgard := range asgardVaults {
-		acct, err := c.GetAccount(asgard.PubKey)
+		acct, err := c.GetAccount(asgard.PubKey, new(big.Int).SetInt64(ethBlockHeight))
 		if err != nil {
 			c.logger.Err(err).Msgf("fail to get account balance")
 			continue
