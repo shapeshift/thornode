@@ -578,6 +578,7 @@ func subsidizePoolWithSlashBondV46(ctx cosmos.Context, ygg Vault, yggTotalStolen
 	}
 	return nil
 }
+
 func refundBondV76(ctx cosmos.Context, tx common.Tx, amt cosmos.Uint, nodeAcc *NodeAccount, mgr Manager) error {
 	if nodeAcc.Status == NodeActive {
 		ctx.Logger().Info("node still active, cannot refund bond", "node address", nodeAcc.NodeAddress, "node pub key", nodeAcc.PubKeySet.Secp256k1)
