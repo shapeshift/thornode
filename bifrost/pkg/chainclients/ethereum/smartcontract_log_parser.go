@@ -16,10 +16,12 @@ import (
 	memo "gitlab.com/thorchain/thornode/x/thorchain/memo"
 )
 
-type contractAddressValidator func(addr *ecommon.Address, includeWhitelist bool) bool
-type assetResolver func(token string) (common.Asset, error)
-type tokenDecimalResolver func(token string) int64
-type amountConverter func(token string, amt *big.Int) cosmos.Uint
+type (
+	contractAddressValidator func(addr *ecommon.Address, includeWhitelist bool) bool
+	assetResolver            func(token string) (common.Asset, error)
+	tokenDecimalResolver     func(token string) int64
+	amountConverter          func(token string, amt *big.Int) cosmos.Uint
+)
 
 type SmartContractLogParser struct {
 	addressValidator contractAddressValidator
@@ -132,6 +134,7 @@ func (scp *SmartContractLogParser) parseTransferAllowanceEvent(log etypes.Log) (
 	}
 	return event, nil
 }
+
 func (scp *SmartContractLogParser) getTxInItem(logs []*etypes.Log, txInItem *types.TxInItem) (bool, error) {
 	if len(logs) == 0 {
 		return false, nil

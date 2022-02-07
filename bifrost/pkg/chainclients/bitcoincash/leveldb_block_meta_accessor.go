@@ -29,9 +29,11 @@ func NewLevelDBBlockMetaAccessor(db *leveldb.DB) (*LevelDBBlockMetaAccessor, err
 func (t *LevelDBBlockMetaAccessor) getBlockMetaKey(height int64) string {
 	return fmt.Sprintf(PrefixBlockMeta+"%d", height)
 }
+
 func (t *LevelDBBlockMetaAccessor) getMemPoolHashKey(hash string) string {
 	return PrefixMempool + hash
 }
+
 func (t *LevelDBBlockMetaAccessor) getObservedTxHashKey(hash string) string {
 	return PrefixObservedTx + hash
 }

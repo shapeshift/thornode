@@ -228,6 +228,7 @@ func cyclePoolsV1(ctx cosmos.Context, maxAvailablePools, minRunePoolDepth, stage
 
 	return nil
 }
+
 func refundBondV1(ctx cosmos.Context, tx common.Tx, amt cosmos.Uint, nodeAcc *NodeAccount, mgr Manager) error {
 	if nodeAcc.Status == NodeActive {
 		ctx.Logger().Info("node still active, cannot refund bond", "node address", nodeAcc.NodeAddress, "node pub key", nodeAcc.PubKeySet.Secp256k1)
@@ -330,6 +331,7 @@ func refundBondV1(ctx cosmos.Context, tx common.Tx, amt cosmos.Uint, nodeAcc *No
 	}
 	return nil
 }
+
 func refundBondV46(ctx cosmos.Context, tx common.Tx, amt cosmos.Uint, nodeAcc *NodeAccount, mgr Manager) error {
 	if nodeAcc.Status == NodeActive {
 		ctx.Logger().Info("node still active, cannot refund bond", "node address", nodeAcc.NodeAddress, "node pub key", nodeAcc.PubKeySet.Secp256k1)
@@ -435,6 +437,7 @@ func refundBondV46(ctx cosmos.Context, tx common.Tx, amt cosmos.Uint, nodeAcc *N
 	}
 	return nil
 }
+
 func subsidizePoolWithSlashBondV1(ctx cosmos.Context, ygg Vault, yggTotalStolen, slashRuneAmt cosmos.Uint, mgr Manager) error {
 	// Thorchain did not slash the node account
 	if slashRuneAmt.IsZero() {

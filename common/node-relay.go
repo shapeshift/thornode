@@ -43,12 +43,12 @@ func (n *NodeRelay) fetchUUid() error {
 	if err != nil {
 		return err
 	}
-	//We Read the response body on the line below.
+	// We Read the response body on the line below.
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return err
 	}
-	//Convert the body to type string
+	// Convert the body to type string
 	prefix := string(body)
 
 	// GENERATE RANDOM UUID, with PREFIX. This is to defense against replay attacks
@@ -96,14 +96,14 @@ func (n *NodeRelay) Broadcast() (string, error) {
 
 	// POST to discord bot
 	responseBody := bytes.NewBuffer(postBody)
-	//Leverage Go's HTTP Post function to make request
+	// Leverage Go's HTTP Post function to make request
 	resp, err := http.Post("https://node-relay-bot.herokuapp.com/msg", "application/json", responseBody)
-	//Handle Error
+	// Handle Error
 	if err != nil {
 		return "", err
 	}
 	defer resp.Body.Close()
-	//Read the response body
+	// Read the response body
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return "", err

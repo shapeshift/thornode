@@ -61,13 +61,12 @@ test-watch: clear
 	@gow -c test ${TEST_BUILD_FLAGS} ${TEST_DIR}
 
 format:
-	@gofumpt -w .
+	@git ls-files '*.go' | grep -v -e 'pb.go$$' -e '^docs/' | xargs gofumpt -w
 
 lint-pre: protob
-	# TODO: Will enable and fix errors in subsequent merge request.
-	# @gofumpt -d cmd x bifrost common constants tools # for display
-	# @test -z "$(shell gofumpt -l cmd x bifrost common constants tools)" # cause error
-	# @go mod verify
+	@git ls-files '*.go' | grep -v -e 'pb.go$$' -e '^docs/' | xargs gofumpt -d
+	@test -z "$(shell git ls-files '*.go' | grep -v -e 'pb.go$$' -e '^docs/' | xargs gofumpt -l)"
+	@go mod verify
 
 lint-handlers:
 	@./scripts/lint-handlers.bash

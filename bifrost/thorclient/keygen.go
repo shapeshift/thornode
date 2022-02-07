@@ -17,7 +17,7 @@ func (b *ThorchainBridge) GetKeygenBlock(blockHeight int64, pk string) (types.Ke
 	body, status, err := b.getWithPath(path)
 	if err != nil {
 		if status == http.StatusNotFound {
-			return types.KeygenBlock{}, btypes.UnavailableBlock
+			return types.KeygenBlock{}, btypes.ErrUnavailableBlock
 		}
 		return types.KeygenBlock{}, fmt.Errorf("failed to get keygen for a block height: %w", err)
 	}
