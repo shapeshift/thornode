@@ -184,7 +184,6 @@ func queryVault(ctx cosmos.Context, path []string, mgr *Mgrs) ([]byte, error) {
 		return nil, fmt.Errorf("fail to marshal response to json: %w", err)
 	}
 	return res, nil
-
 }
 
 func queryAsgardVaults(ctx cosmos.Context, mgr *Mgrs) ([]byte, error) {
@@ -1179,7 +1178,7 @@ func queryMimirValues(ctx cosmos.Context, path []string, req abci.RequestQuery, 
 	}
 
 	// analyze-ignore(map-iteration)
-	for k, _ := range values {
+	for k := range values {
 		v, err := mgr.Keeper().GetMimir(ctx, k)
 		if err != nil {
 			return nil, fmt.Errorf("fail to get mimir, err: %w", err)

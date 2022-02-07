@@ -135,6 +135,7 @@ func purgeETHOutboundQueue(ctx cosmos.Context, mgr Manager) {
 		}
 	}
 }
+
 func correctAsgardVaultBalanceV61(ctx cosmos.Context, mgr Manager, asgardPubKey common.PubKey) {
 	gaps := []struct {
 		name   string

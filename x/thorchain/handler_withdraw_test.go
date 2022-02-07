@@ -353,7 +353,7 @@ func (store *MockWithdrawTxOutStore) TryAddTxOutItem(ctx cosmos.Context, mgr Man
 	return true, nil
 }
 
-type MockWithdrawEventMgr struct{
+type MockWithdrawEventMgr struct {
 	EventManager
 	count int
 }
@@ -369,25 +369,25 @@ func (HandlerWithdrawSuite) TestWithdrawHandler_outboundFailures(c *C) {
 	na := GetRandomValidatorNode(NodeActive)
 	asset := common.BTCAsset
 
-	pool := Pool {
-		Asset:        asset,
-		BalanceAsset: cosmos.NewUint(10000),
-		BalanceRune:  cosmos.NewUint(10000),
-		LPUnits:      cosmos.NewUint(1000),
-		SynthUnits:   cosmos.ZeroUint(),
+	pool := Pool{
+		Asset:               asset,
+		BalanceAsset:        cosmos.NewUint(10000),
+		BalanceRune:         cosmos.NewUint(10000),
+		LPUnits:             cosmos.NewUint(1000),
+		SynthUnits:          cosmos.ZeroUint(),
 		PendingInboundRune:  cosmos.ZeroUint(),
 		PendingInboundAsset: cosmos.ZeroUint(),
-		Status:       PoolAvailable,
+		Status:              PoolAvailable,
 	}
 	c.Assert(pool.Valid(), IsNil)
 	_ = keeper.SetPool(ctx, pool)
 
 	runeAddr := GetRandomRUNEAddress()
-	lp := LiquidityProvider {
+	lp := LiquidityProvider{
 		Asset:              asset,
-		LastAddHeight:		common.BlockHeight(ctx),
-	    RuneAddress:        runeAddr,
-	    AssetAddress:       GetRandomBTCAddress(),
+		LastAddHeight:      common.BlockHeight(ctx),
+		RuneAddress:        runeAddr,
+		AssetAddress:       GetRandomBTCAddress(),
 		Units:              cosmos.NewUint(100),
 		LastWithdrawHeight: common.BlockHeight(ctx),
 	}
@@ -410,12 +410,12 @@ func (HandlerWithdrawSuite) TestWithdrawHandler_outboundFailures(c *C) {
 	handleCase := func(msg *MsgWithdrawLiquidity, errRune, errAsset error, name string, shouldFail bool) {
 		_ = keeper.SetPool(ctx, pool)
 		keeper.SetLiquidityProvider(ctx, lp)
-		mgr.txOutStore = &MockWithdrawTxOutStore {
+		mgr.txOutStore = &MockWithdrawTxOutStore{
 			TxOutStore: mgr.txOutStore,
-			errRune: errRune,
-			errAsset: errAsset,
+			errRune:    errRune,
+			errAsset:   errAsset,
 		}
-		eventMgr := &MockWithdrawEventMgr {
+		eventMgr := &MockWithdrawEventMgr{
 			EventManager: mgr.eventMgr,
 			count:        0,
 		}

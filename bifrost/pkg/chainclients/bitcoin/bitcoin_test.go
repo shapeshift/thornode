@@ -232,8 +232,8 @@ func (s *BitcoinSuite) TestGetSender(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(sender, Equals, "tb1qdxxlx4r4jk63cve3rjpj428m26xcukjn5yegff")
 }
-func (s *BitcoinSuite) TestGetAddressesFromScriptPubKeyResult(c *C) {
 
+func (s *BitcoinSuite) TestGetAddressesFromScriptPubKeyResult(c *C) {
 	addresses := s.client.getAddressesFromScriptPubKey(btcjson.ScriptPubKeyResult{
 		Asm:     "0 de4f4fce2642935d2b9fc7b28bcc9de20ebf2864",
 		Hex:     "0014de4f4fce2642935d2b9fc7b28bcc9de20ebf2864",

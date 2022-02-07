@@ -316,7 +316,6 @@ func (tos *TxOutStorageV58) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem) 
 								}
 							}
 						}
-
 					} else {
 						pool.BalanceAsset = pool.BalanceAsset.Add(assetFee) // Add Asset fee to Pool
 					}
@@ -374,7 +373,6 @@ func (tos *TxOutStorageV58) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem) 
 		if err := tos.eventMgr.EmitFeeEvent(ctx, feeEvent); err != nil {
 			ctx.Logger().Error("fail to emit fee event", "error", err)
 		}
-
 	}
 	if !finalRuneFee.IsZero() {
 		if err := tos.keeper.AddFeeToReserve(ctx, finalRuneFee); err != nil {

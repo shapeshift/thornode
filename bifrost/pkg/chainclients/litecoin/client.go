@@ -574,7 +574,7 @@ func (c *Client) FetchTxs(height int64) (types.TxIn, error) {
 	if err != nil {
 		if rpcErr, ok := err.(*btcjson.RPCError); ok && rpcErr.Code == btcjson.ErrRPCInvalidParameter {
 			// this means the tx had been broadcast to chain, it must be another signer finished quicker then us
-			return txIn, btypes.UnavailableBlock
+			return txIn, btypes.ErrUnavailableBlock
 		}
 		return txIn, fmt.Errorf("fail to get block: %w", err)
 	}
@@ -648,6 +648,7 @@ func (c *Client) FetchTxs(height int64) (types.TxIn, error) {
 	}
 	return txIn, nil
 }
+
 func (c *Client) canDeleteBlock(blockMeta *BlockMeta) bool {
 	if blockMeta == nil {
 		return true
@@ -660,6 +661,7 @@ func (c *Client) canDeleteBlock(blockMeta *BlockMeta) bool {
 	}
 	return true
 }
+
 func (c *Client) updateNetworkInfo() {
 	networkInfo, err := c.client.GetNetworkInfo()
 	if err != nil {
@@ -683,6 +685,7 @@ func (c *Client) getHighestFeeRate() uint64 {
 	}
 	return feeRate
 }
+
 func (c *Client) sendNetworkFee(height int64) error {
 	result, err := c.client.GetBlockStats(height, nil)
 	if err != nil {
@@ -749,6 +752,7 @@ func (c *Client) isValidUTXO(hexPubKey string) bool {
 		return len(addresses) == 1 && requireSigs == 1
 	}
 }
+
 func (c *Client) isRBFEnabled(tx *btcjson.TxRawResult) bool {
 	for _, vin := range tx.Vin {
 		if vin.Sequence < (0xffffffff - 1) {
@@ -757,6 +761,7 @@ func (c *Client) isRBFEnabled(tx *btcjson.TxRawResult) bool {
 	}
 	return false
 }
+
 func (c *Client) getTxIn(tx *btcjson.TxRawResult, height int64, isMemPool bool) (types.TxInItem, error) {
 	if c.ignoreTx(tx) {
 		c.logger.Debug().Int64("height", height).Str("tx", tx.Hash).Msg("ignore tx not matching format")
@@ -783,7 +788,7 @@ func (c *Client) getTxIn(tx *btcjson.TxRawResult, height int64, isMemPool bool) 
 	}
 	output, err := c.getOutput(sender, tx, m.IsType(mem.TxConsolidate))
 	if err != nil {
-		if errors.Is(err, btypes.FailOutputMatchCriteria) {
+		if errors.Is(err, btypes.ErrFailOutputMatchCriteria) {
 			c.logger.Debug().Int64("height", height).Str("tx", tx.Hash).Msg("ignore tx not matching format")
 			return types.TxInItem{}, nil
 		}
@@ -932,7 +937,7 @@ func (c *Client) getOutput(sender string, tx *btcjson.TxRawResult, consolidate b
 			}
 		}
 	}
-	return btcjson.Vout{}, btypes.FailOutputMatchCriteria
+	return btcjson.Vout{}, btypes.ErrFailOutputMatchCriteria
 }
 
 // getSender returns sender address for a ltc tx, using vin:0

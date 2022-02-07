@@ -383,6 +383,7 @@ func refundBondV80(ctx cosmos.Context, tx common.Tx, amt cosmos.Uint, nodeAcc *N
 	}
 	return mgr.Keeper().DeleteVault(ctx, ygg.PubKey)
 }
+
 func isSignedByActiveNodeAccounts(ctx cosmos.Context, mgr Manager, signers []cosmos.AccAddress) bool {
 	version := mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.1.0")) {
@@ -718,7 +719,6 @@ func isTradingHaltV1(ctx cosmos.Context, msg cosmos.Msg, mgr Manager) bool {
 		return false
 	}
 	return isChainTradingHalted(ctx, mgr, targetChain)
-
 }
 
 func isTradingHaltV63(ctx cosmos.Context, msg cosmos.Msg, mgr Manager) bool {
@@ -820,6 +820,7 @@ func isChainHaltedV65(ctx cosmos.Context, mgr Manager, chain common.Chain) bool 
 	}
 	return false
 }
+
 func isChainHaltedV1(ctx cosmos.Context, mgr Manager, chain common.Chain) bool {
 	mimirKey := fmt.Sprintf("Halt%sChain", chain)
 	haltChain, err := mgr.Keeper().GetMimir(ctx, mimirKey)
@@ -1024,7 +1025,6 @@ func emitEndBlockTelemetry(ctx cosmos.Context, mgr Manager) error {
 	// emit vault metrics
 	asgards, err := mgr.Keeper().GetAsgardVaults(ctx)
 	if err != nil {
-
 	}
 	for _, vault := range append(asgards, yggs...) {
 		if vault.Status != ActiveVault && vault.Status != RetiringVault {

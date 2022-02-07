@@ -23,6 +23,7 @@ func (s *EncryptionSuite) TestEncryption(c *C) {
 
 	c.Check(body, DeepEquals, decryp)
 }
+
 func BenchmarkEncrypt(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		body := fmt.Sprintf("hello world! %d", i)

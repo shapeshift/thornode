@@ -307,6 +307,7 @@ func (s *StoreManagerTestSuite) TestRemoveTransactions(c *C) {
 		c.Assert(txAfter.IsDone(len(voterAfter.Actions)), Equals, true)
 	}
 }
+
 func (s *StoreManagerTestSuite) TestCreditBackToVaultAndPool(c *C) {
 	ctx, mgr := setupManagerForTest(c)
 	storeMgr := newStoreMgr(mgr)
