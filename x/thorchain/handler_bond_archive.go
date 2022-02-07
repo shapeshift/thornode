@@ -76,7 +76,6 @@ func (h BondHandler) handleV1(ctx cosmos.Context, msg MsgBond) error {
 	}
 
 	return nil
-
 }
 
 func (h BondHandler) handleV47(ctx cosmos.Context, msg MsgBond) error {
@@ -124,5 +123,4 @@ func (h BondHandler) handleV47(ctx cosmos.Context, msg MsgBond) error {
 	}
 
 	return nil
-
 }

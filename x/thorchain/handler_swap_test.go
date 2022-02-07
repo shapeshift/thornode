@@ -245,7 +245,6 @@ func (s *HandlerSwapSuite) TestHandle(c *C) {
 	c.Assert(err, NotNil)
 	c.Assert(err.Error(), Equals, fmt.Sprintf("target asset can't be %s", msgSwap2.TargetAsset.String()))
 	c.Assert(result, IsNil)
-
 }
 
 func (s *HandlerSwapSuite) TestDoubleSwap(c *C) {

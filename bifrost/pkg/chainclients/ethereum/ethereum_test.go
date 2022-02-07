@@ -374,6 +374,7 @@ func (s *EthereumSuite) TestGetAccount(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(b, NotNil)
 }
+
 func (s *EthereumSuite) TestSignETHTx(c *C) {
 	pubkeyMgr, err := pubkeymanager.NewPubKeyManager(s.bridge, s.m)
 	c.Assert(err, IsNil)

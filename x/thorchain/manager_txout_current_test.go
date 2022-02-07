@@ -502,6 +502,7 @@ func (s TxOutStoreV78Suite) TestcalcTxOutHeight(c *C) {
 	c.Check(targetBlock, Equals, int64(738))
 	addValue(targetBlock, value)
 }
+
 func (s TxOutStoreV78Suite) TestAddOutTxItem_MultipleOutboundWillBeScheduledAtTheSameBlockHeight(c *C) {
 	SetupConfigForTest()
 	w := getHandlerTestWrapper(c, 1, true, true)

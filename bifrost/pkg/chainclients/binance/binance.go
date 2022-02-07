@@ -571,6 +571,7 @@ func (b *Binance) ConfirmationCountReady(txIn stypes.TxIn) bool {
 func (b *Binance) GetConfirmationCount(txIn stypes.TxIn) int64 {
 	return 0
 }
+
 func (b *Binance) ReportSolvency(bnbBlockHeight int64) error {
 	if !b.ShouldReportSolvency(bnbBlockHeight) {
 		return nil
@@ -599,6 +600,7 @@ func (b *Binance) ReportSolvency(bnbBlockHeight int64) error {
 	b.lastSolvencyCheckHeight = bnbBlockHeight
 	return nil
 }
+
 func (b *Binance) OnObservedTxIn(txIn stypes.TxInItem, blockHeight int64) {
 	m, err := memo.ParseMemo(txIn.Memo)
 	if err != nil {

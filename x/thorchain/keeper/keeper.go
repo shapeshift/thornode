@@ -250,6 +250,7 @@ type KeeperChainContract interface {
 	GetChainContracts(ctx cosmos.Context, chains common.Chains) []ChainContract
 	GetChainContractIterator(ctx cosmos.Context) cosmos.Iterator
 }
+
 type KeeperSolvencyVoter interface {
 	SetSolvencyVoter(_ cosmos.Context, _ SolvencyVoter)
 	GetSolvencyVoter(_ cosmos.Context, _ common.TxID, _ common.Chain) (SolvencyVoter, error)

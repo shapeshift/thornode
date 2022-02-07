@@ -31,7 +31,6 @@ func (h WithdrawLiquidityHandler) validateV1(ctx cosmos.Context, msg MsgWithdraw
 	}
 
 	return nil
-
 }
 
 func (h WithdrawLiquidityHandler) validateV65(ctx cosmos.Context, msg MsgWithdrawLiquidity) error {
@@ -167,7 +166,6 @@ func (h WithdrawLiquidityHandler) handleV1(ctx cosmos.Context, msg MsgWithdrawLi
 	}
 
 	return &cosmos.Result{}, nil
-
 }
 
 func (h WithdrawLiquidityHandler) handleV42(ctx cosmos.Context, msg MsgWithdrawLiquidity) (*cosmos.Result, error) {
@@ -526,7 +524,6 @@ func (h WithdrawLiquidityHandler) handleV47(ctx cosmos.Context, msg MsgWithdrawL
 	}
 
 	return &cosmos.Result{}, nil
-
 }
 
 func (h WithdrawLiquidityHandler) handleV49(ctx cosmos.Context, msg MsgWithdrawLiquidity) (*cosmos.Result, error) {
@@ -805,7 +802,6 @@ func (h WithdrawLiquidityHandler) handleV50(ctx cosmos.Context, msg MsgWithdrawL
 	}
 
 	return &cosmos.Result{}, nil
-
 }
 
 func (h WithdrawLiquidityHandler) handleV55(ctx cosmos.Context, msg MsgWithdrawLiquidity) (*cosmos.Result, error) {

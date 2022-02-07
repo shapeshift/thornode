@@ -482,7 +482,6 @@ func (s *SlasherV69) SlashVault(ctx cosmos.Context, vaultPK common.PubKey, coins
 			if err := s.keeper.SendFromModuleToModule(ctx, BondName, ReserveName, common.NewCoins(common.NewCoin(common.RuneAsset(), runeToReserve))); err != nil {
 				ctx.Logger().Error("fail to send slash funds to reserve module", "pk", vaultPK, "error", err)
 			}
-
 		}
 		if !runeToAsgard.IsZero() {
 			if err := s.keeper.SendFromModuleToModule(ctx, BondName, AsgardName, common.NewCoins(common.NewCoin(common.RuneAsset(), runeToAsgard))); err != nil {
