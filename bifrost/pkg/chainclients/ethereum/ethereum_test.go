@@ -292,7 +292,7 @@ func (s *EthereumSuite) TestClient(c *C) {
 	gasPrice := e2.GetGasPrice()
 	c.Check(gasPrice.Uint64(), Equals, uint64(0))
 
-	acct, err := e2.GetAccount(types2.GetRandomPubKey())
+	acct, err := e2.GetAccount(types2.GetRandomPubKey(), nil)
 	c.Assert(err, IsNil)
 	c.Check(acct.Sequence, Equals, int64(0))
 	c.Check(acct.Coins[0].Amount.Uint64(), Equals, uint64(0))
@@ -367,10 +367,10 @@ func (s *EthereumSuite) TestGetAccount(c *C) {
 	c.Assert(e, NotNil)
 	c.Assert(pubkeyMgr.Start(), IsNil)
 	defer func() { c.Assert(pubkeyMgr.Stop(), IsNil) }()
-	acct, err := e.GetAccountByAddress("0x9f4aab49a9cd8fc54dcb3701846f608a6f2c44da")
+	acct, err := e.GetAccountByAddress("0x9f4aab49a9cd8fc54dcb3701846f608a6f2c44da", nil)
 	c.Assert(err, IsNil)
 	c.Assert(acct.Sequence, Equals, int64(0))
-	b, err := e.GetBalance("0x9f4aab49a9cd8fc54dcb3701846f608a6f2c44da", "0x3b7FA4dd21c6f9BA3ca375217EAD7CAb9D6bF483")
+	b, err := e.GetBalance("0x9f4aab49a9cd8fc54dcb3701846f608a6f2c44da", "0x3b7FA4dd21c6f9BA3ca375217EAD7CAb9D6bF483", nil)
 	c.Assert(err, IsNil)
 	c.Assert(b, NotNil)
 }

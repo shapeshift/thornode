@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"math/big"
 	"net/http"
 	"net/url"
 	"strings"
@@ -287,7 +288,7 @@ func (b *Binance) getGasFee(count uint64) common.Gas {
 }
 
 func (b *Binance) checkAccountMemoFlag(addr string) bool {
-	acct, _ := b.GetAccountByAddress(addr)
+	acct, _ := b.GetAccountByAddress(addr, nil)
 	return acct.HasMemoFlag
 }
 
@@ -352,7 +353,7 @@ func (b *Binance) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, er
 	}
 	meta := b.accts.Get(tx.VaultPubKey)
 	if currentHeight > meta.BlockHeight {
-		acc, err := b.GetAccount(tx.VaultPubKey)
+		acc, err := b.GetAccount(tx.VaultPubKey, nil)
 		if err != nil {
 			return nil, fmt.Errorf("fail to get account info: %w", err)
 		}
@@ -418,17 +419,25 @@ func (b *Binance) signMsg(signMsg btx.StdSignMsg, from string, poolPubKey common
 	return nil, err
 }
 
-func (b *Binance) GetAccount(pkey common.PubKey) (common.Account, error) {
+func (b *Binance) GetAccount(pkey common.PubKey, height *big.Int) (common.Account, error) {
+	if height != nil {
+		b.logger.Error().Msg("height was provided but will be ignored")
+	}
+
 	addr := b.GetAddress(pkey)
 	address, err := types.AccAddressFromBech32(addr)
 	if err != nil {
 		b.logger.Error().Err(err).Msgf("fail to get parse address: %s", addr)
 		return common.Account{}, err
 	}
-	return b.GetAccountByAddress(address.String())
+	return b.GetAccountByAddress(address.String(), nil)
 }
 
-func (b *Binance) GetAccountByAddress(address string) (common.Account, error) {
+func (b *Binance) GetAccountByAddress(address string, height *big.Int) (common.Account, error) {
+	if height != nil {
+		b.logger.Error().Msg("height was provided but will be ignored")
+	}
+
 	u, err := url.Parse(b.cfg.RPCHost)
 	if err != nil {
 		log.Fatal().Msgf("Error parsing rpc (%s): %s", b.cfg.RPCHost, err)
@@ -580,7 +589,7 @@ func (b *Binance) ReportSolvency(bnbBlockHeight int64) error {
 		return fmt.Errorf("fail to get asgards,err: %w", err)
 	}
 	for _, asgard := range asgardVaults {
-		acct, err := b.GetAccount(asgard.PubKey)
+		acct, err := b.GetAccount(asgard.PubKey, nil)
 		if err != nil {
 			b.logger.Err(err).Msgf("fail to get account balance")
 			continue
