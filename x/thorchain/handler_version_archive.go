@@ -58,9 +58,9 @@ func (h VersionHandler) handleV1(ctx cosmos.Context, msg MsgSetVersion) error {
 		cosmos.NewEvent("set_version",
 			cosmos.NewAttribute("thor_address", msg.Signer.String()),
 			cosmos.NewAttribute("version", msg.Version)))
-
 	return nil
 }
+
 func (h VersionHandler) validateV1(ctx cosmos.Context, msg MsgSetVersion) error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
