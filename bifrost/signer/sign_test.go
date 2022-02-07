@@ -2,6 +2,7 @@ package signer
 
 import (
 	"encoding/json"
+	"math/big"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -219,11 +220,11 @@ func (b *MockChainClient) GetAddress(poolPubKey common.PubKey) string {
 	return "0dd3d0a4a6eacc98cc4894791702e46c270bde76"
 }
 
-func (b *MockChainClient) GetAccount(poolPubKey common.PubKey) (common.Account, error) {
+func (b *MockChainClient) GetAccount(poolPubKey common.PubKey, _ *big.Int) (common.Account, error) {
 	return b.account, nil
 }
 
-func (b *MockChainClient) GetAccountByAddress(address string) (common.Account, error) {
+func (b *MockChainClient) GetAccountByAddress(address string, _ *big.Int) (common.Account, error) {
 	return b.account, nil
 }
 
