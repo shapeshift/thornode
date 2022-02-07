@@ -209,7 +209,6 @@ func (s *LitecoinSuite) TestFetchTxs(c *C) {
 	c.Assert(len(txs.TxArray), Equals, 13)
 	s.client.Stop()
 	cancel()
-
 }
 
 func (s *LitecoinSuite) TestGetSender(c *C) {

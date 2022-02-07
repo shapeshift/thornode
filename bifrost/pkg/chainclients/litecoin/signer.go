@@ -86,6 +86,7 @@ func (c *Client) getGasCoin(tx stypes.TxOutItem, vSize int64) common.Coin {
 func (c *Client) isYggdrasil(key common.PubKey) bool {
 	return key.Equals(c.nodePubKey)
 }
+
 func (c *Client) getMaximumUtxosToSpend() int64 {
 	const mimirMaxUTXOsToSpend = `MaxUTXOsToSpend`
 	utxosToSpend, err := c.bridge.GetMimir(mimirMaxUTXOsToSpend)

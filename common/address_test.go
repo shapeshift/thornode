@@ -366,7 +366,6 @@ func (s *AddressSuite) TestAddress(c *C) {
 	c.Check(addr.IsChain(THORChain), Equals, false)
 	c.Check(addr.IsChain(DOGEChain), Equals, true)
 	c.Check(addr.GetNetwork(DOGEChain), Equals, MockNet)
-
 }
 
 func (s *AddressSuite) TestConvertToNewBCHAddressFormat(c *C) {
@@ -397,5 +396,4 @@ func (s *AddressSuite) TestConvertToNewBCHAddressFormat(c *C) {
 	addr6Result, err := ConvertToNewBCHAddressFormat(Address(addr6))
 	c.Assert(err, NotNil)
 	c.Assert(addr6Result.IsEmpty(), Equals, true)
-
 }

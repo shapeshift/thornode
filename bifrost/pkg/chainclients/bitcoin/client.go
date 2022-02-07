@@ -577,7 +577,7 @@ func (c *Client) FetchTxs(height int64) (types.TxIn, error) {
 	block, err := c.getBlock(height)
 	if err != nil {
 		if rpcErr, ok := err.(*btcjson.RPCError); ok && rpcErr.Code == btcjson.ErrRPCInvalidParameter {
-			return txIn, btypes.UnavailableBlock
+			return txIn, btypes.ErrUnavailableBlock
 		}
 		return txIn, fmt.Errorf("fail to get block: %w", err)
 	}
@@ -616,7 +616,6 @@ func (c *Client) FetchTxs(height int64) (types.TxIn, error) {
 	}
 	pruneHeight := height - BlockCacheSize
 	if pruneHeight > 0 {
-
 		defer func() {
 			if err := c.blockMetaAccessor.PruneBlockMeta(pruneHeight, c.canDeleteBlock); err != nil {
 				c.logger.Err(err).Msgf("fail to prune block meta, height(%d)", pruneHeight)
@@ -681,6 +680,7 @@ func (c *Client) ReportSolvency(bitcoinBlockHeight int64) error {
 func (c *Client) ShouldReportSolvency(height int64) bool {
 	return height-c.lastSolvencyCheckHeight > 1
 }
+
 func (c *Client) canDeleteBlock(blockMeta *BlockMeta) bool {
 	if blockMeta == nil {
 		return true
@@ -693,6 +693,7 @@ func (c *Client) canDeleteBlock(blockMeta *BlockMeta) bool {
 	}
 	return true
 }
+
 func (c *Client) updateNetworkInfo() {
 	networkInfo, err := c.client.GetNetworkInfo()
 	if err != nil {
@@ -746,6 +747,7 @@ func (c *Client) getBlock(height int64) (*btcjson.GetBlockVerboseTxResult, error
 	}
 	return c.client.GetBlockVerboseTx(hash)
 }
+
 func (c *Client) isValidUTXO(hexPubKey string) bool {
 	buf, err := hex.DecodeString(hexPubKey)
 	if err != nil {
@@ -765,6 +767,7 @@ func (c *Client) isValidUTXO(hexPubKey string) bool {
 		return len(addresses) == 1 && requireSigs == 1
 	}
 }
+
 func (c *Client) isRBFEnabled(tx *btcjson.TxRawResult) bool {
 	for _, vin := range tx.Vin {
 		if vin.Sequence < (0xffffffff - 1) {
@@ -773,6 +776,7 @@ func (c *Client) isRBFEnabled(tx *btcjson.TxRawResult) bool {
 	}
 	return false
 }
+
 func (c *Client) getTxIn(tx *btcjson.TxRawResult, height int64, isMemPool bool) (types.TxInItem, error) {
 	if c.ignoreTx(tx) {
 		c.logger.Debug().Int64("height", height).Str("tx", tx.Hash).Msg("ignore tx not matching format")
@@ -799,7 +803,7 @@ func (c *Client) getTxIn(tx *btcjson.TxRawResult, height int64, isMemPool bool) 
 	}
 	output, err := c.getOutput(sender, tx, m.IsType(mem.TxConsolidate))
 	if err != nil {
-		if errors.Is(err, btypes.FailOutputMatchCriteria) {
+		if errors.Is(err, btypes.ErrFailOutputMatchCriteria) {
 			c.logger.Debug().Int64("height", height).Str("tx", tx.Hash).Msg("ignore tx not matching format")
 			return types.TxInItem{}, nil
 		}
@@ -928,6 +932,7 @@ func (c *Client) ignoreTx(tx *btcjson.TxRawResult) bool {
 	}
 	return false
 }
+
 func (c *Client) getAddressesFromScriptPubKey(scriptPubKey btcjson.ScriptPubKeyResult) []string {
 	addresses := scriptPubKey.Addresses
 	if len(addresses) > 0 {
@@ -978,7 +983,7 @@ func (c *Client) getOutput(sender string, tx *btcjson.TxRawResult, consolidate b
 			}
 		}
 	}
-	return btcjson.Vout{}, btypes.FailOutputMatchCriteria
+	return btcjson.Vout{}, btypes.ErrFailOutputMatchCriteria
 }
 
 // getSender returns sender address for a btc tx, using vin:0

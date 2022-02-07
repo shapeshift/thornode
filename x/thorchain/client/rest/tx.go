@@ -35,6 +35,7 @@ func hasNilAmountInBaseRequestValid(req rest.BaseReq) bool {
 	}
 	return false
 }
+
 func newDepositHandler(cliCtx client.Context) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req deposit

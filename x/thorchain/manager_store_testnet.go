@@ -9,11 +9,10 @@ import (
 )
 
 func creditAssetBackToVaultAndPool(ctx cosmos.Context, mgr Manager) {
-
 }
+
 func purgeETHOutboundQueue(ctx cosmos.Context, mgr Manager) {
-
 }
-func correctAsgardVaultBalanceV61(ctx cosmos.Context, mgr Manager, asgardPubKey common.PubKey) {
 
+func correctAsgardVaultBalanceV61(ctx cosmos.Context, mgr Manager, asgardPubKey common.PubKey) {
 }

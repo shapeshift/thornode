@@ -34,9 +34,11 @@ func (s *CacheStore) SetSigned(hash string) error {
 	s.logger.Debug().Msgf("key:%s set to signed", key)
 	return s.db.Put([]byte(key), []byte{1}, nil)
 }
+
 func (s *CacheStore) getSignedKey(hash string) string {
 	return fmt.Sprintf("%s%s", signedCachePrefix, hash)
 }
+
 func (s *CacheStore) getMapKey(txHash string) string {
 	return fmt.Sprintf("%s%s", txMapPrefix, txHash)
 }

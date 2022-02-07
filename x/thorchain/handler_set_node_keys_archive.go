@@ -42,7 +42,6 @@ func (h SetNodeKeysHandler) validateV1(ctx cosmos.Context, msg MsgSetNodeKeys) e
 	}
 
 	return nil
-
 }
 
 // handleV1 a message to set node keys

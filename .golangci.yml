@@ -1,28 +1,24 @@
 linters:
-  disable-all: true
   enable:
     - deadcode
     - errcheck
+    - exportloopref
+    - forcetypeassert
+    - gocritic
     - golint
-    - ineffassign
-    - unconvert
-    - misspell
+    - gosec
+    - gosimple
     - govet
-
-    # TODO: Will enable and fix errors in subsequent merge request.
-    # - gosimple
-    # - staticcheck
-    # - structcheck
-    # - typecheck
-    # - unused
-    # - varcheck
-    # - exportloopref
-    # - forcetypeassert
-    # - gocritic
-    # - gosec
-    # - revive
-    # - promlinter
-    # - tagliatelle
+    - ineffassign
+    - misspell
+    - promlinter
+    - revive
+    - staticcheck
+    - structcheck
+    - typecheck
+    - unconvert
+    - unused
+    - varcheck
 linters-settings:
   exhaustive:
     check-generated: false
