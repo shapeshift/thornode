@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"math/big"
-	"strings"
 	"time"
 
 	"github.com/cosmos/cosmos-sdk/client"
@@ -18,8 +17,6 @@ import (
 )
 
 const ThorchainDecimals = 8
-
-var WhitelistAssets = map[string]int{"uluna": 6, "uusd": 6}
 
 // buildUnsigned takes a MsgSend and other parameters and returns a txBuilder
 // It can be used to simulateTx or as the input to signMsg before BraodcastTx
@@ -105,18 +102,20 @@ func getDummyTxBuilderForSimulate(txConfig client.TxConfig) (client.TxBuilder, e
 		3418297,
 		41,
 	)
-
 }
 
-func fromCosmosToThorchain(c cosmos.Coin) common.Coin {
-	name := fmt.Sprintf("%s.%s", common.TERRAChain.String(), c.Denom[1:])
-	asset, _ := common.NewAsset(name)
-
-	decimals, exists := WhitelistAssets[c.Denom]
+func fromCosmosToThorchain(c cosmos.Coin) (common.Coin, error) {
+	cosmosAsset, exists := GetAssetByCosmosDenom(c.Denom)
 	if !exists {
-		return common.NewCoin(asset, ctypes.Uint(c.Amount))
+		return common.Coin{}, fmt.Errorf("asset does not exist / not whitelisted by client")
 	}
 
+	thorAsset, err := common.NewAsset(fmt.Sprintf("%s.%s", common.TERRAChain.String(), cosmosAsset.THORChainSymbol))
+	if err != nil {
+		return common.Coin{}, fmt.Errorf("invalid thorchain asset: %w", err)
+	}
+
+	decimals := cosmosAsset.CosmosDecimals
 	amount := c.Amount.BigInt()
 	var exp big.Int
 	// Decimals are more than native THORChain, so divide...
@@ -129,16 +128,19 @@ func fromCosmosToThorchain(c cosmos.Coin) common.Coin {
 		amount.Mul(amount, exp.Exp(big.NewInt(10), big.NewInt(decimalDiff), nil))
 	}
 	return common.Coin{
-		Asset:    asset,
+		Asset:    thorAsset,
 		Amount:   ctypes.NewUintFromBigInt(amount),
 		Decimals: int64(decimals),
-	}
+	}, nil
 }
 
-func fromThorchainToCosmos(coin common.Coin) cosmos.Coin {
-	denom := fmt.Sprintf("u%s", strings.ToLower(coin.Asset.Symbol.String()))
-	decimals := WhitelistAssets[denom]
+func fromThorchainToCosmos(coin common.Coin) (cosmos.Coin, error) {
+	asset, exists := GetAssetByThorchainSymbol(coin.Asset.Symbol.String())
+	if !exists {
+		return cosmos.Coin{}, fmt.Errorf("asset does not exist / not whitelisted by client")
+	}
 
+	decimals := asset.CosmosDecimals
 	amount := coin.Amount.BigInt()
 	var exp big.Int
 	if decimals > ThorchainDecimals {
@@ -149,5 +151,5 @@ func fromThorchainToCosmos(coin common.Coin) cosmos.Coin {
 		decimalDiff := int64(ThorchainDecimals - decimals)
 		amount.Quo(amount, exp.Exp(big.NewInt(10), big.NewInt(decimalDiff), nil))
 	}
-	return cosmos.NewCoin(denom, ctypes.NewIntFromBigInt(amount))
+	return cosmos.NewCoin(asset.CosmosDenom, ctypes.NewIntFromBigInt(amount)), nil
 }

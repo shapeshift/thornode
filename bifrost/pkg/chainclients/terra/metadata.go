@@ -54,7 +54,7 @@ func (b *CosmosMetaDataStore) SeqInc(pk common.PubKey) {
 	b.lock.Lock()
 	defer b.lock.Unlock()
 	if meta, ok := b.accts[pk]; ok {
-		meta.SeqNumber += 1
+		meta.SeqNumber++
 		b.accts[pk] = meta
 	}
 }
