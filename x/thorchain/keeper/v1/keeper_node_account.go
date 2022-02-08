@@ -6,7 +6,9 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/armon/go-metrics"
 	"github.com/blang/semver"
+	"github.com/cosmos/cosmos-sdk/telemetry"
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
@@ -84,6 +86,14 @@ func (k KVStore) ListActiveValidators(ctx cosmos.Context) (NodeAccounts, error) 
 
 // GetMinJoinVersion - get min version to join. Min version is the most popular version
 func (k KVStore) GetMinJoinVersion(ctx cosmos.Context) semver.Version {
+	if k.version.GTE(semver.MustParse("0.80.0")) {
+		return k.getMinJoinVersionV80(ctx)
+	}
+	return k.getMinJoinVersionV1(ctx)
+}
+
+// getMinJoinVersionV1 - get min version to join. Min version is the most popular version
+func (k KVStore) getMinJoinVersionV1(ctx cosmos.Context) semver.Version {
 	type tmpVersionInfo struct {
 		version semver.Version
 		count   int
@@ -134,13 +144,12 @@ func (k KVStore) GetMinJoinVersion(ctx cosmos.Context) semver.Version {
 	return version
 }
 
-// GetMinJoinVersion - get min version to join. Min version is the most popular version
-func (k KVStore) GetMinJoinVersionV1(ctx cosmos.Context) semver.Version {
+func (k KVStore) getMinJoinVersionV80(ctx cosmos.Context) semver.Version {
 	type tmpVersionInfo struct {
 		version semver.Version
 		count   int
 	}
-	vCount := make(map[string]tmpVersionInfo, 0)
+	var vCount []tmpVersionInfo
 	nodes, err := k.ListActiveValidators(ctx)
 	if err != nil {
 		_ = dbError(ctx, "Unable to list active node accounts", err)
@@ -150,20 +159,23 @@ func (k KVStore) GetMinJoinVersionV1(ctx cosmos.Context) semver.Version {
 		return nodes[i].GetVersion().LT(nodes[j].GetVersion())
 	})
 	for _, na := range nodes {
-		v, ok := vCount[na.Version]
-		if ok {
-			v.count = v.count + 1
-			vCount[na.Version] = v
-		} else {
-			vCount[na.Version] = tmpVersionInfo{
-				version: na.GetVersion(),
-				count:   1,
+		exist := false
+		for _, item := range vCount {
+			if item.version.String() == na.Version {
+				exist = true
+				break
 			}
 		}
+		if !exist {
+			vCount = append(vCount, tmpVersionInfo{
+				version: na.GetVersion(),
+				count:   0,
+			})
+		}
+
 		// assume all versions are backward compatible
-		// analyze-ignore(map-iteration)
 		for k, v := range vCount {
-			if v.version.LT(na.GetVersion()) {
+			if v.version.LTE(na.GetVersion()) {
 				v.count = v.count + 1
 				vCount[k] = v
 			}
@@ -171,8 +183,11 @@ func (k KVStore) GetMinJoinVersionV1(ctx cosmos.Context) semver.Version {
 	}
 	totalCount := len(nodes)
 	version := semver.Version{}
+	// sort it by version descending
+	sort.SliceStable(vCount, func(i, j int) bool {
+		return vCount[i].version.GT(vCount[j].version)
+	})
 
-	// analyze-ignore(map-iteration)
 	for _, info := range vCount {
 		// skip those version that doesn't have majority
 		if !HasSuperMajority(info.count, totalCount) {
@@ -309,6 +324,17 @@ func (k KVStore) IncNodeAccountSlashPoints(ctx cosmos.Context, addr cosmos.AccAd
 		return err
 	}
 	k.SetNodeAccountSlashPoints(ctx, addr, current+pts)
+
+	metricLabels, _ := ctx.Context().Value(constants.CtxMetricLabels).([]metrics.Label)
+	telemetry.IncrCounterWithLabels(
+		[]string{"thornode", "point_slash"},
+		float32(pts),
+		append(
+			metricLabels,
+			telemetry.NewLabel("address", addr.String()),
+		),
+	)
+
 	return nil
 }
 
@@ -320,6 +346,22 @@ func (k KVStore) DecNodeAccountSlashPoints(ctx cosmos.Context, addr cosmos.AccAd
 		return err
 	}
 	k.SetNodeAccountSlashPoints(ctx, addr, current-pts)
+
+	dec := pts
+	if dec > current {
+		dec = current
+	}
+
+	metricLabels, _ := ctx.Context().Value(constants.CtxMetricLabels).([]metrics.Label)
+	telemetry.IncrCounterWithLabels(
+		[]string{"thornode", "point_slash_refund"},
+		float32(dec),
+		append(
+			metricLabels,
+			telemetry.NewLabel("address", addr.String()),
+		),
+	)
+
 	return nil
 }
 

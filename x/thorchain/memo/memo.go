@@ -153,7 +153,6 @@ type Memo interface {
 	IsInbound() bool
 	IsOutbound() bool
 	IsInternal() bool
-
 	String() string
 	GetAsset() common.Asset
 	GetAmount() cosmos.Uint

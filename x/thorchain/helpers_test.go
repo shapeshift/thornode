@@ -69,6 +69,7 @@ func (k *TestRefundBondKeeper) DeleteVault(_ cosmos.Context, key common.PubKey) 
 	}
 	return nil
 }
+
 func (k *TestRefundBondKeeper) SetVault(ctx cosmos.Context, vault Vault) error {
 	if k.ygg.PubKey.Equals(vault.PubKey) {
 		k.ygg = vault
@@ -273,6 +274,48 @@ func (s *HelperSuite) TestRefundBondHappyPath(c *C) {
 	c.Assert(p.BalanceRune.Equal(expectedPoolRune), Equals, true, Commentf("expect %s however we got %s", expectedPoolRune, p.BalanceRune))
 	expectedPoolBNB := cosmos.NewUint(167 * common.One).Sub(cosmos.NewUint(27 * common.One))
 	c.Assert(p.BalanceAsset.Equal(expectedPoolBNB), Equals, true, Commentf("expected BNB in pool %s , however we got %s", expectedPoolBNB, p.BalanceAsset))
+}
+
+func (s *HelperSuite) TestRefundBondDisableRequestToLeaveNode(c *C) {
+	ctx, _ := setupKeeperForTest(c)
+	na := GetRandomValidatorNode(NodeActive)
+	na.Bond = cosmos.NewUint(12098 * common.One)
+	pk := GetRandomPubKey()
+	na.PubKeySet.Secp256k1 = pk
+	ygg := NewVault(common.BlockHeight(ctx), ActiveVault, YggdrasilVault, pk, common.Chains{common.BNBChain}.Strings(), []ChainContract{})
+
+	ygg.Coins = common.Coins{
+		common.NewCoin(common.RuneAsset(), cosmos.NewUint(3946*common.One)),
+		common.NewCoin(common.BNBAsset, cosmos.NewUint(27*common.One)),
+	}
+	keeper := &TestRefundBondKeeper{
+		pool: Pool{
+			Asset:        common.BNBAsset,
+			BalanceRune:  cosmos.NewUint(23789 * common.One),
+			BalanceAsset: cosmos.NewUint(167 * common.One),
+		},
+		ygg:    ygg,
+		vaults: Vaults{GetRandomVault()},
+	}
+	na.Status = NodeStandby
+	na.RequestedToLeave = true
+	mgr := NewDummyMgrWithKeeper(keeper)
+	tx := GetRandomTx()
+	yggAssetInRune, err := getTotalYggValueInRune(ctx, keeper, ygg)
+	c.Assert(err, IsNil)
+	err = refundBond(ctx, tx, cosmos.ZeroUint(), &na, mgr)
+	c.Assert(err, IsNil)
+	slashAmt := yggAssetInRune.MulUint64(3).QuoUint64(2)
+	items, err := mgr.TxOutStore().GetOutboundItems(ctx)
+	c.Assert(err, IsNil)
+	c.Assert(items, HasLen, 0)
+	p, err := keeper.GetPool(ctx, common.BNBAsset)
+	c.Assert(err, IsNil)
+	expectedPoolRune := cosmos.NewUint(23789 * common.One).Sub(cosmos.NewUint(3946 * common.One)).Add(slashAmt)
+	c.Assert(p.BalanceRune.Equal(expectedPoolRune), Equals, true, Commentf("expect %s however we got %s", expectedPoolRune, p.BalanceRune))
+	expectedPoolBNB := cosmos.NewUint(167 * common.One).Sub(cosmos.NewUint(27 * common.One))
+	c.Assert(p.BalanceAsset.Equal(expectedPoolBNB), Equals, true, Commentf("expected BNB in pool %s , however we got %s", expectedPoolBNB, p.BalanceAsset))
+	c.Assert(keeper.na.Status == NodeDisabled, Equals, true)
 }
 
 func (s *HelperSuite) TestEnableNextPool(c *C) {

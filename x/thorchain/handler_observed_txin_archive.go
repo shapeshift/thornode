@@ -296,7 +296,6 @@ func (h ObservedTxInHandler) handleV36(ctx cosmos.Context, msg MsgObservedTxIn) 
 		}
 	}
 	return &cosmos.Result{}, nil
-
 }
 
 func (h ObservedTxInHandler) handleV46(ctx cosmos.Context, msg MsgObservedTxIn) (*cosmos.Result, error) {
@@ -440,7 +439,6 @@ func (h ObservedTxInHandler) handleV46(ctx cosmos.Context, msg MsgObservedTxIn) 
 		}
 	}
 	return &cosmos.Result{}, nil
-
 }
 
 func (h ObservedTxInHandler) handleV47(ctx cosmos.Context, msg MsgObservedTxIn) (*cosmos.Result, error) {
@@ -584,7 +582,6 @@ func (h ObservedTxInHandler) handleV47(ctx cosmos.Context, msg MsgObservedTxIn) 
 		}
 	}
 	return &cosmos.Result{}, nil
-
 }
 
 func (h ObservedTxInHandler) handleV58(ctx cosmos.Context, msg MsgObservedTxIn) (*cosmos.Result, error) {

@@ -102,6 +102,7 @@ func (h LeaveHandler) handleV1(ctx cosmos.Context, msg MsgLeave) error {
 
 	return nil
 }
+
 func (h LeaveHandler) handleV46(ctx cosmos.Context, msg MsgLeave) error {
 	nodeAcc, err := h.mgr.Keeper().GetNodeAccount(ctx, msg.NodeAddress)
 	if err != nil {

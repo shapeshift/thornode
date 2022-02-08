@@ -234,6 +234,7 @@ func (h TssHandler) handleV1(ctx cosmos.Context, msg MsgTssPool) (*cosmos.Result
 
 	return &cosmos.Result{}, nil
 }
+
 func (h TssHandler) handleV68(ctx cosmos.Context, msg MsgTssPool) (*cosmos.Result, error) {
 	ctx.Logger().Info("handler tss", "current version", h.mgr.GetVersion())
 	if !msg.Blame.IsEmpty() {

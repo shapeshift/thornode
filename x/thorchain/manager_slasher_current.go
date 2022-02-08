@@ -1,6 +1,7 @@
 package thorchain
 
 import (
+	"context"
 	"fmt"
 	"math/big"
 
@@ -181,17 +182,11 @@ func (s *SlasherV75) checkSignerAndSlash(ctx cosmos.Context, nodes NodeAccounts,
 		// this na is not found, therefore it should be slashed
 		if !found {
 			lackOfObservationPenalty := constAccessor.GetInt64Value(constants.LackOfObservationPenalty)
-			if err := s.keeper.IncNodeAccountSlashPoints(ctx, na.NodeAddress, lackOfObservationPenalty); err != nil {
+			slashCtx := ctx.WithContext(context.WithValue(ctx.Context(), constants.CtxMetricLabels, []metrics.Label{
+				telemetry.NewLabel("reason", "not_observing"),
+			}))
+			if err := s.keeper.IncNodeAccountSlashPoints(slashCtx, na.NodeAddress, lackOfObservationPenalty); err != nil {
 				ctx.Logger().Error("fail to inc slash points", "error", err)
-			} else {
-				telemetry.IncrCounterWithLabels(
-					[]string{"thornode", "point_slash"},
-					float32(lackOfObservationPenalty),
-					[]metrics.Label{
-						telemetry.NewLabel("address", na.NodeAddress.String()),
-						telemetry.NewLabel("reason", "not_observing"),
-					},
-				)
 			}
 		}
 	}
@@ -231,17 +226,12 @@ func (s *SlasherV75) LackSigning(ctx cosmos.Context, constAccessor constants.Con
 					continue
 				}
 				slashPoints := signingTransPeriod * 2
-				if err := s.keeper.IncNodeAccountSlashPoints(ctx, na.NodeAddress, slashPoints); err != nil {
+
+				slashCtx := ctx.WithContext(context.WithValue(ctx.Context(), constants.CtxMetricLabels, []metrics.Label{
+					telemetry.NewLabel("reason", "not_signing"),
+				}))
+				if err := s.keeper.IncNodeAccountSlashPoints(slashCtx, na.NodeAddress, slashPoints); err != nil {
 					ctx.Logger().Error("fail to inc slash points", "error", err, "node addr", na.NodeAddress.String())
-				} else {
-					telemetry.IncrCounterWithLabels(
-						[]string{"thornode", "point_slash"},
-						float32(slashPoints),
-						[]metrics.Label{
-							telemetry.NewLabel("address", na.NodeAddress.String()),
-							telemetry.NewLabel("reason", "not_signing"),
-						},
-					)
 				}
 				if err := mgr.EventMgr().EmitEvent(ctx, NewEventSlashPoint(na.NodeAddress, slashPoints, fmt.Sprintf("fail to sign out tx after %d blocks", signingTransPeriod))); err != nil {
 					ctx.Logger().Error("fail to emit slash point event")
@@ -536,7 +526,6 @@ func (s *SlasherV75) SlashVault(ctx cosmos.Context, vaultPK common.PubKey, coins
 			if err := s.keeper.SendFromModuleToModule(ctx, BondName, ReserveName, common.NewCoins(common.NewCoin(common.RuneAsset(), runeToReserve))); err != nil {
 				ctx.Logger().Error("fail to send slash funds to reserve module", "pk", vaultPK, "error", err)
 			}
-
 		}
 		if !runeToAsgard.IsZero() {
 			if err := s.keeper.SendFromModuleToModule(ctx, BondName, AsgardName, common.NewCoins(common.NewCoin(common.RuneAsset(), runeToAsgard))); err != nil {

@@ -159,7 +159,7 @@ func InitGenesis(ctx cosmos.Context, keeper keeper.Keeper, data GenesisState) []
 		keeper.SetObservedTxOutVoter(ctx, voter)
 	}
 
-	for idx, _ := range data.TxOuts {
+	for idx := range data.TxOuts {
 		if err := keeper.SetTxOut(ctx, &data.TxOuts[idx]); err != nil {
 			ctx.Logger().Error("fail to save tx out during genesis", "error", err)
 			panic(err)
@@ -262,6 +262,7 @@ func getLiquidityProviders(ctx cosmos.Context, k keeper.Keeper, asset common.Ass
 	}
 	return liquidityProviders
 }
+
 func getValidPools(ctx cosmos.Context, k keeper.Keeper) Pools {
 	var pools Pools
 	iterator := k.GetPoolIterator(ctx)
