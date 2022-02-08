@@ -96,3 +96,14 @@ func migrateStoreV81(ctx cosmos.Context, mgr Manager) {
 		}
 	}
 }
+
+func migrateStoreV82(ctx cosmos.Context, mgr Manager) {
+	// Remove TERRA.USD pool
+	usd, err := common.NewAsset("TERRA.USD")
+	if err != nil {
+		ctx.Logger().Error("unable to create TERRA.USD asset: %w", err)
+		return
+	}
+
+	mgr.Keeper().RemovePool(ctx, usd)
+}
