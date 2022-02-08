@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/big"
 	"strings"
 	"time"
 
@@ -208,15 +209,15 @@ func (c *CosmosClient) GetAddress(poolPubKey common.PubKey) string {
 	return addr.String()
 }
 
-func (c *CosmosClient) GetAccount(pkey common.PubKey) (common.Account, error) {
+func (c *CosmosClient) GetAccount(pkey common.PubKey, height *big.Int) (common.Account, error) {
 	addr, err := pkey.GetAddress(c.GetChain())
 	if err != nil {
 		return common.Account{}, fmt.Errorf("failed to convert address (%s) from bech32: %w", pkey, err)
 	}
-	return c.GetAccountByAddress(addr.String())
+	return c.GetAccountByAddress(addr.String(), height)
 }
 
-func (c *CosmosClient) GetAccountByAddress(address string) (common.Account, error) {
+func (c *CosmosClient) GetAccountByAddress(address string, height *big.Int) (common.Account, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
@@ -318,7 +319,7 @@ func (c *CosmosClient) SignTx(tx stypes.TxOutItem, thorchainHeight int64) (signe
 	}
 	meta := c.accts.Get(tx.VaultPubKey)
 	if currentHeight > meta.BlockHeight {
-		acc, err := c.GetAccount(tx.VaultPubKey)
+		acc, err := c.GetAccount(tx.VaultPubKey, big.NewInt(0))
 		if err != nil {
 			return nil, fmt.Errorf("fail to get account info: %w", err)
 		}
@@ -432,7 +433,7 @@ func (c *CosmosClient) BroadcastTx(tx stypes.TxOutItem, txBytes []byte) (string,
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
-	acc, err := c.GetAccount(tx.VaultPubKey)
+	acc, err := c.GetAccount(tx.VaultPubKey, big.NewInt(0))
 	if err != nil {
 		return "", fmt.Errorf("fail to get account info: %w", err)
 	}
@@ -519,7 +520,7 @@ func (c *CosmosClient) reportSolvency(blockHeight int64) error {
 		return fmt.Errorf("fail to get asgards,err: %w", err)
 	}
 	for _, asgard := range asgardVaults {
-		acct, err := c.GetAccount(asgard.PubKey)
+		acct, err := c.GetAccount(asgard.PubKey, big.NewInt(0))
 		if err != nil {
 			c.logger.Err(err).Msgf("fail to get account balance")
 			continue
