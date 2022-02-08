@@ -184,7 +184,6 @@ func queryVault(ctx cosmos.Context, path []string, mgr *Mgrs) ([]byte, error) {
 		return nil, fmt.Errorf("fail to marshal response to json: %w", err)
 	}
 	return res, nil
-
 }
 
 func queryAsgardVaults(ctx cosmos.Context, mgr *Mgrs) ([]byte, error) {
@@ -576,6 +575,10 @@ func queryNodes(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *M
 	lastChurnHeight := vaults[0].BlockHeight
 	result := make([]QueryNodeAccount, len(nodeAccounts))
 	for i, na := range nodeAccounts {
+		if na.RequestedToLeave && na.Bond.LTE(cosmos.NewUint(common.One)) {
+			// ignore the node , it left and also has very little bond
+			continue
+		}
 		slashPts, err := mgr.Keeper().GetNodeAccountSlashPoints(ctx, na.NodeAddress)
 		if err != nil {
 			return nil, fmt.Errorf("fail to get node slash points: %w", err)
@@ -1175,7 +1178,7 @@ func queryMimirValues(ctx cosmos.Context, path []string, req abci.RequestQuery, 
 	}
 
 	// analyze-ignore(map-iteration)
-	for k, _ := range values {
+	for k := range values {
 		v, err := mgr.Keeper().GetMimir(ctx, k)
 		if err != nil {
 			return nil, fmt.Errorf("fail to get mimir, err: %w", err)

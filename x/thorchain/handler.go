@@ -55,6 +55,7 @@ func getHandlerMapping(mgr Manager) map[string]MsgHandler {
 	}
 	return getHandlerMappingV1(mgr)
 }
+
 func getHandlerMappingV1(mgr Manager) map[string]MsgHandler {
 	m := make(map[string]MsgHandler)
 	// consensus handlers
@@ -321,6 +322,7 @@ func processOneTxInV1(ctx cosmos.Context, keeper keeper.Keeper, tx ObservedTx, s
 	}
 	return newMsg, newMsg.ValidateBasic()
 }
+
 func processOneTxInV46(ctx cosmos.Context, keeper keeper.Keeper, tx ObservedTx, signer cosmos.AccAddress) (cosmos.Msg, error) {
 	memo, err := ParseMemo(tx.Tx.Memo)
 	if err != nil {
@@ -440,6 +442,7 @@ func processOneTxInV57(ctx cosmos.Context, keeper keeper.Keeper, tx ObservedTx, 
 	}
 	return newMsg, newMsg.ValidateBasic()
 }
+
 func processOneTxInV63(ctx cosmos.Context, keeper keeper.Keeper, tx ObservedTx, signer cosmos.AccAddress) (cosmos.Msg, error) {
 	memo, err := ParseMemoWithTHORNames(ctx, keeper, tx.Tx.Memo)
 	if err != nil {
@@ -507,6 +510,7 @@ func processOneTxInV63(ctx cosmos.Context, keeper keeper.Keeper, tx ObservedTx, 
 	}
 	return newMsg, newMsg.ValidateBasic()
 }
+
 func fuzzyAssetMatch(ctx cosmos.Context, keeper keeper.Keeper, asset common.Asset) common.Asset {
 	// if its already an exact match, return it immediately
 	if keeper.PoolExist(ctx, asset) {

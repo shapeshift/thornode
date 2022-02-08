@@ -21,7 +21,6 @@ func (h SwitchHandler) handleV1(ctx cosmos.Context, msg MsgSwitch) (*cosmos.Resu
 	}
 
 	return nil, fmt.Errorf("only non-native rune can be 'switched' to native rune")
-
 }
 
 func (h SwitchHandler) toNative(ctx cosmos.Context, msg MsgSwitch) (*cosmos.Result, error) {

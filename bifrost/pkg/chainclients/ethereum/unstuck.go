@@ -41,8 +41,8 @@ func (c *Client) unstuck() {
 			c.unstuckAction()
 		}
 	}
-
 }
+
 func (c *Client) unstuckAction() {
 	height, err := c.bridge.GetBlockHeight()
 	if err != nil {

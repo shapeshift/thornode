@@ -143,6 +143,7 @@ func (h SwapHandler) validateV56(ctx cosmos.Context, msg MsgSwap) error {
 	}
 	return nil
 }
+
 func (h SwapHandler) validateV58(ctx cosmos.Context, msg MsgSwap) error {
 	if err := msg.ValidateBasicV56(); err != nil {
 		return err
@@ -260,7 +261,6 @@ func (h SwapHandler) handleV43(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result,
 		return nil, swapErr
 	}
 	return &cosmos.Result{}, nil
-
 }
 
 func (h SwapHandler) handleV44(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result, error) {
@@ -288,7 +288,6 @@ func (h SwapHandler) handleV44(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result,
 		return nil, swapErr
 	}
 	return &cosmos.Result{}, nil
-
 }
 
 func (h SwapHandler) handleV55(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result, error) {
@@ -316,5 +315,4 @@ func (h SwapHandler) handleV55(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result,
 		return nil, swapErr
 	}
 	return &cosmos.Result{}, nil
-
 }

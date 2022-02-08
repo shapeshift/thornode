@@ -50,6 +50,7 @@ func (TypeConvertTestSuite) TestSafeDivision(c *C) {
 	result6 := GetShare(cosmos.NewUint(1014), cosmos.NewUint(3), cosmos.NewUint(1000_000*One))
 	c.Check(result6.Equal(cosmos.NewUint(33799999999999997)), Equals, true, Commentf("%s", result6.String()))
 }
+
 func (TypeConvertTestSuite) TestGetShare(c *C) {
 	x := cosmos.NewUint(0)
 	data := []byte{

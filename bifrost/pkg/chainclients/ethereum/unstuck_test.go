@@ -170,6 +170,7 @@ func (s *UnstuckTestSuite) SetUpTest(c *C) {
 func (s *UnstuckTestSuite) TearDownTest(c *C) {
 	c.Assert(os.Unsetenv("NET"), IsNil)
 }
+
 func (s *UnstuckTestSuite) TestUnstuckProcess(c *C) {
 	pubkeyMgr, err := pubkeymanager.NewPubKeyManager(s.bridge, s.m)
 	c.Assert(err, IsNil)

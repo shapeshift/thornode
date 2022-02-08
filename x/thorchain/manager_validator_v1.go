@@ -1189,7 +1189,7 @@ func (vm *validatorMgrV1) markLowerVersion(ctx cosmos.Context, rate int64) error
 // findLowerVersionActor go through the active node account list , find the node account that has version
 // that is lower than the minimum join version
 func (vm *validatorMgrV1) findLowerVersionActor(ctx cosmos.Context) (NodeAccount, error) {
-	minimumVersion := vm.k.GetMinJoinVersionV1(ctx)
+	minimumVersion := vm.k.GetMinJoinVersion(ctx)
 	activeNodes, err := vm.k.ListValidatorsByStatus(ctx, NodeActive)
 	if err != nil {
 		return NodeAccount{}, err

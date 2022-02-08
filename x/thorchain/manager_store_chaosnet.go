@@ -1,5 +1,5 @@
-//go:build !testnet
-// +build !testnet
+//go:build !testnet && !stagenet
+// +build !testnet,!stagenet
 
 package thorchain
 
@@ -135,6 +135,7 @@ func purgeETHOutboundQueue(ctx cosmos.Context, mgr Manager) {
 		}
 	}
 }
+
 func correctAsgardVaultBalanceV61(ctx cosmos.Context, mgr Manager, asgardPubKey common.PubKey) {
 	gaps := []struct {
 		name   string
@@ -182,3 +183,5 @@ func correctAsgardVaultBalanceV61(ctx cosmos.Context, mgr Manager, asgardPubKey 
 		}
 	}
 }
+
+func migrateStoreV80(ctx cosmos.Context, mgr Manager) {}

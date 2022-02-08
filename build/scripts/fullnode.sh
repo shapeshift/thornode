@@ -17,7 +17,7 @@ if [ -z "$SEEDS" ]; then
   if [ "$NET" = "mainnet" ]; then
     SEEDS=$(curl -s https://seed.thorchain.info/ | jq -r '. | join(",")')
   elif [ "$NET" = "testnet" ]; then
-    SEEDS=$(curl -s https://testnet-seed.thorchain.info/ | jq -r '. | join(",")')
+    SEEDS=$(curl -s https://testnet.seed.thorchain.info/ | jq -r '. | join(",")')
   elif [ "$NET" = "stagenet" ]; then
     SEEDS="stagenet-seed.ninerealms.com"
   fi

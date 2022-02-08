@@ -315,6 +315,7 @@ func (s YggdrasilManagerV79Suite) TestChainTradingHaltWillNotFundYggdrasil(c *C)
 	c.Assert(err, IsNil)
 	c.Assert(items, HasLen, 2)
 }
+
 func (s YggdrasilManagerV79Suite) TestAbandonYggdrasil(c *C) {
 	ctx, mgr := setupManagerForTest(c)
 	vault := GetRandomVault()

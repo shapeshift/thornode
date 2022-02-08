@@ -458,7 +458,7 @@ func (s *Signer) handleYggReturn(height int64, tx types.TxOutItem) (types.TxOutI
 	}
 	// it is important to set the memo field to `yggdrasil-` , thus chain client can use it to decide leave some gas coin behind to pay the fees
 	tx.Memo = thorchain.NewYggdrasilReturn(height).String()
-	acct, err := chain.GetAccount(tx.VaultPubKey)
+	acct, err := chain.GetAccount(tx.VaultPubKey, nil)
 	if err != nil {
 		return tx, fmt.Errorf("fail to get chain account info: %w", err)
 	}

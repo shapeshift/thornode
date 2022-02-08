@@ -91,6 +91,7 @@ func (k *TestRagnarokKeeperHappyPath) SetTxOut(ctx cosmos.Context, blockOut *TxO
 	}
 	return kaboom
 }
+
 func (k *TestRagnarokKeeperHappyPath) GetVault(_ cosmos.Context, pk common.PubKey) (Vault, error) {
 	if pk.Equals(k.retireVault.PubKey) {
 		return k.retireVault, nil
@@ -100,6 +101,7 @@ func (k *TestRagnarokKeeperHappyPath) GetVault(_ cosmos.Context, pk common.PubKe
 	}
 	return Vault{}, fmt.Errorf("vault not found")
 }
+
 func (k *TestRagnarokKeeperHappyPath) GetNodeAccountByPubKey(_ cosmos.Context, _ common.PubKey) (NodeAccount, error) {
 	return k.activeNodeAccount, nil
 }
