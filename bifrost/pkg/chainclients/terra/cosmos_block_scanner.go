@@ -123,8 +123,7 @@ func (c *CosmosBlockScanner) GetHeight() (int64, error) {
 	defer cancel()
 	resultHeight, err := c.tmService.GetLatestBlock(
 		ctx,
-		&tmservice.GetLatestBlockRequest{},
-	)
+		&tmservice.GetLatestBlockRequest{})
 	if err != nil {
 		return 0, err
 	}
@@ -143,9 +142,7 @@ func (c *CosmosBlockScanner) GetBlock(height int64) (*tmtypes.Block, error) {
 	defer cancel()
 	resultBlock, err := c.tmService.GetBlockByHeight(
 		ctx,
-		&tmservice.GetBlockByHeightRequest{Height: height},
-	)
-
+		&tmservice.GetBlockByHeightRequest{Height: height})
 	if err != nil {
 		c.logger.Error().Int64("height", height).Msgf("failed to get block: %v", err)
 		return nil, fmt.Errorf("failed to get block: %w", err)
@@ -320,7 +317,6 @@ func (c *CosmosBlockScanner) FetchTxs(height int64) (types.TxIn, error) {
 	err = c.updateGasCache(txs)
 	if err != nil {
 		c.logger.Err(err).Int64("height", height).Msg("unable to update gas cache")
-
 	}
 
 	err = c.updateGasFees(height)

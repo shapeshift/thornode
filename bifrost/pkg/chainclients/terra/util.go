@@ -102,7 +102,6 @@ func getDummyTxBuilderForSimulate(txConfig client.TxConfig) (client.TxBuilder, e
 		3418297,
 		41,
 	)
-
 }
 
 func fromCosmosToThorchain(c cosmos.Coin) (common.Coin, error) {

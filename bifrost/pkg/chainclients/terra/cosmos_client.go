@@ -538,6 +538,7 @@ func (c *CosmosClient) ConfirmationCountReady(txIn stypes.TxIn) bool {
 func (c *CosmosClient) GetConfirmationCount(txIn stypes.TxIn) int64 {
 	return 0
 }
+
 func (c *CosmosClient) reportSolvency(blockHeight int64) error {
 	if blockHeight%900 > 0 {
 		return nil

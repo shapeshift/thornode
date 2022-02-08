@@ -50,7 +50,6 @@ func (s *UtilTestSuite) TestFromThorchainToCosmos(c *C) {
 	expectedCosmosAmount := int64(6000000)
 	c.Check(cosmosCoin.Denom, Equals, expectedCosmosDenom)
 	c.Check(cosmosCoin.Amount.Int64(), Equals, expectedCosmosAmount)
-
 }
 
 func (s UtilTestSuite) TestGetDummyTxBuilderForSimulate(c *C) {
