@@ -1,4 +1,4 @@
-# check for all bonded nodes that bond https://testnet-seed.thorchain.info/bonded_nodes.json
+# check for all bonded nodes that bond https://testnet.seed.thorchain.info/bonded_nodes.json
 
 # loop through the endpoint above and select the PUB_KEY one by one
 
@@ -14,7 +14,7 @@ thornode_env = 'testnet'
 
 s3_file = 'nodes.json'
 
-seed_bucket = "{}-seed.thorchain.info".format(thornode_env)
+seed_bucket = "{}.seed.thorchain.info".format(thornode_env)
 
 seed_endpoint = "https://{}".format(seed_bucket)
 

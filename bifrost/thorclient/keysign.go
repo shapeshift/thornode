@@ -24,7 +24,7 @@ func (b *ThorchainBridge) GetKeysign(blockHeight int64, pk string) (types.TxOut,
 	body, status, err := b.getWithPath(path)
 	if err != nil {
 		if status == http.StatusNotFound {
-			return types.TxOut{}, btypes.UnavailableBlock
+			return types.TxOut{}, btypes.ErrUnavailableBlock
 		}
 		return types.TxOut{}, fmt.Errorf("failed to get tx from a block height: %w", err)
 	}

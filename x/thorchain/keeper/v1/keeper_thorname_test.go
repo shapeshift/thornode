@@ -19,7 +19,7 @@ func (s *KeeperTHORNameSuite) TestTHORName(c *C) {
 
 	thorAddr := GetRandomTHORAddress()
 	bnbAddr := GetRandomBNBAddress()
-	name := NewTHORName(ref, 50, []THORNameAlias{THORNameAlias{Chain: common.THORChain, Address: thorAddr}, THORNameAlias{Chain: common.BNBChain, Address: bnbAddr}})
+	name := NewTHORName(ref, 50, []THORNameAlias{{Chain: common.THORChain, Address: thorAddr}, {Chain: common.BNBChain, Address: bnbAddr}})
 	k.SetTHORName(ctx, name)
 
 	ok = k.THORNameExists(ctx, ref)

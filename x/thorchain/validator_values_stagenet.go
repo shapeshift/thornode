@@ -5,10 +5,10 @@ package thorchain
 
 var VALIDATORS = []string{
 	"sthor1vzenszq5gh0rsnft55kwfgk3vzfme4pks8r0se",
-	"sthor13nsh0avlvcwq7u48kplj7xhxs05g0rpy3hjurm",
-	"sthor1ehp7k0vy7gajnar27r2vssgul99zluewft9lnv",
-	"sthor1ac26capz9ynpv6yl3344rmzcfrpf4mc2ekvl3t",
-	"sthor1emdpf0p84nd6gv5hzqsv6j453t294h2upuzajl",
-	"sthor19hwrc7xg9q0dk2hkhp2ezj99jprelkcpnd8pvy",
-	"sthor1uffvcgsemzd3nam33tzxsqk8sfltvglsxguwz7",
+	"sthor1d45uzetakjvdy5ynjjyp4nlnj89am88e3a057v",
+	"sthor1jp4r884zldfaxxh0klkxfljtrmxrcrk5vcn9r0",
+	"sthor1wj4984lfgterwxcjxp7hule7smpkaqp6fn8hjd",
+	"sthor1xgyuc9ccs4fdchky3uay7jcdquamas0hucxthx",
+	"sthor1wuwf6pmkwn3mzrmmx5ysy98a90h3kxsf49muw6",
+	"sthor1jckghmm30ral7uhmty97vaulxnmjl7ycmf4gn8",
 }

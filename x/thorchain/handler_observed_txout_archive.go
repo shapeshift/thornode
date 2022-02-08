@@ -132,7 +132,6 @@ func (h ObservedTxOutHandler) handleV1(ctx cosmos.Context, msg MsgObservedTxOut)
 		h.mgr.Keeper().SetObservedTxOutVoter(ctx, voter)
 	}
 	return &cosmos.Result{}, nil
-
 }
 
 // Handle a message to observe outbound tx
@@ -262,5 +261,4 @@ func (h ObservedTxOutHandler) handleV46(ctx cosmos.Context, msg MsgObservedTxOut
 		h.mgr.Keeper().SetObservedTxOutVoter(ctx, voter)
 	}
 	return &cosmos.Result{}, nil
-
 }

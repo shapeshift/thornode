@@ -50,7 +50,6 @@ func (h CommonOutboundTxHandler) handle(ctx cosmos.Context, tx ObservedTx, inTxI
 		return h.handleV1(ctx, tx, inTxID)
 	}
 	return nil, errBadVersion
-
 }
 
 func (h CommonOutboundTxHandler) handleV69(ctx cosmos.Context, tx ObservedTx, inTxID common.TxID) (*cosmos.Result, error) {

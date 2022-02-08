@@ -46,7 +46,6 @@ func (h AddLiquidityHandler) validateV1(ctx cosmos.Context, msg MsgAddLiquidity)
 	}
 
 	return nil
-
 }
 
 func (h AddLiquidityHandler) validateV55(ctx cosmos.Context, msg MsgAddLiquidity) error {
@@ -149,7 +148,6 @@ func (h AddLiquidityHandler) validateV63(ctx cosmos.Context, msg MsgAddLiquidity
 	}
 
 	return nil
-
 }
 
 func (h AddLiquidityHandler) validateV65(ctx cosmos.Context, msg MsgAddLiquidity) error {
@@ -205,7 +203,6 @@ func (h AddLiquidityHandler) validateV65(ctx cosmos.Context, msg MsgAddLiquidity
 	}
 
 	return nil
-
 }
 
 func (h AddLiquidityHandler) validateV68(ctx cosmos.Context, msg MsgAddLiquidity) error {
@@ -367,7 +364,6 @@ func (h AddLiquidityHandler) handleV1(ctx cosmos.Context, msg MsgAddLiquidity) (
 		ctx.Logger().Error("fail to add liquidity for affiliate", "address", msg.AffiliateAddress, "error", err)
 	}
 	return nil
-
 }
 
 func (h AddLiquidityHandler) handleV47(ctx cosmos.Context, msg MsgAddLiquidity) (errResult error) {
@@ -469,7 +465,6 @@ func (h AddLiquidityHandler) handleV47(ctx cosmos.Context, msg MsgAddLiquidity) 
 		ctx.Logger().Error("fail to add liquidity for affiliate", "address", msg.AffiliateAddress, "error", err)
 	}
 	return nil
-
 }
 
 func (h AddLiquidityHandler) handleV55(ctx cosmos.Context, msg MsgAddLiquidity) (errResult error) {
@@ -1151,6 +1146,7 @@ func (h AddLiquidityHandler) addLiquidityV63(ctx cosmos.Context,
 	}
 	return nil
 }
+
 func (h AddLiquidityHandler) addLiquidityV68(ctx cosmos.Context,
 	asset common.Asset,
 	addRuneAmount, addAssetAmount cosmos.Uint,

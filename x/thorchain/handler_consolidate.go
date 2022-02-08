@@ -69,11 +69,9 @@ func (h ConsolidateHandler) handle(ctx cosmos.Context, msg MsgConsolidate) (*cos
 		return h.handleV1(ctx, msg)
 	}
 	return nil, errBadVersion
-
 }
 
 func (h ConsolidateHandler) handleV1(ctx cosmos.Context, msg MsgConsolidate) (*cosmos.Result, error) {
-
 	shouldSlash := false
 
 	// ensure transaction is sending to/from same address
