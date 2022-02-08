@@ -69,7 +69,7 @@ func migrateStoreV81(ctx cosmos.Context, mgr Manager) {
 	}
 
 	pool.Asset = ust
-	err := mgr.Keeper().SetPool(ctx, pool)
+	err = mgr.Keeper().SetPool(ctx, pool)
 	if err != nil {
 		ctx.Logger().Error("unable to set pool: %w", err)
 		return
@@ -83,17 +83,16 @@ func migrateStoreV81(ctx cosmos.Context, mgr Manager) {
 	}
 
 	for _, vault := range vaults {
-		var vaultCoins common.Coins
-		for _, c := range vault.Coins {
-			if c.Asset.Equals(usd) {
-				c.Asset = ust
+		for i := range vault.Coins {
+			if vault.Coins[i].Asset.Equals(usd) {
+				vault.Coins[i].Asset = ust
+
+				err := mgr.Keeper().SetVault(ctx, vault)
+				if err != nil {
+					ctx.Logger().Error("unable to set vaults: %w", err)
+				}
+				break
 			}
-			vaultCoins = append(vaultCoins, c)
-		}
-		vault.Coins = vaultCoins
-		err := mgr.Keeper().SetVault(ctx, vault)
-		if err != nil {
-			ctx.Logger().Error("unable to set vaults: %w", err)
 		}
 	}
 }
