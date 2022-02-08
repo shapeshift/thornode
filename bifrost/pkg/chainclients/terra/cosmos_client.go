@@ -110,7 +110,7 @@ func NewCosmosClient(
 		pubkey:  pk,
 	}
 
-	host := strings.Replace(cfg.RPCHost, "http://", "", -1)
+	host := strings.ReplaceAll(cfg.RPCHost, "http://", "")
 	conn, err := grpc.Dial(host, grpc.WithInsecure())
 	if err != nil {
 		logger.Fatal().Err(err).Msg("fail to dial")
