@@ -231,7 +231,11 @@ func (c *CosmosClient) GetAccountByAddress(address string, _ *big.Int) (common.A
 
 	nativeCoins := make([]common.Coin, 0)
 	for _, balance := range balances.Balances {
-		coin := fromCosmosToThorchain(balance)
+		coin, err := fromCosmosToThorchain(balance)
+		if err != nil {
+			c.logger.Warn().Err(err).Interface("balances", balances.Balances).Msg("wasn't able to convert coins that passed whitelist")
+			continue
+		}
 		nativeCoins = append(nativeCoins, coin)
 	}
 
@@ -266,7 +270,11 @@ func (c *CosmosClient) processOutboundTx(tx stypes.TxOutItem) (*btypes.MsgSend, 
 	var coins ctypes.Coins
 	for _, coin := range tx.Coins {
 		// convert to cosmos coin
-		cosmosCoin := fromThorchainToCosmos(coin)
+		cosmosCoin, err := fromThorchainToCosmos(coin)
+		if err != nil {
+			c.logger.Warn().Err(err).Interface("tx", tx).Msg("wasn't able to convert coins that passed whitelist")
+			continue
+		}
 		coins = append(coins, cosmosCoin)
 	}
 
@@ -332,13 +340,23 @@ func (c *CosmosClient) SignTx(tx stypes.TxOutItem, thorchainHeight int64) (signe
 	}
 
 	var gas ctypes.Coins
-	for _, gasCoin := range tx.MaxGas.ToCoins() {
-		if gasCoin.Asset == c.GetChain().GetGasAsset() {
-			gas = append(gas, fromThorchainToCosmos(gasCoin))
+	for _, thorchainCoin := range tx.MaxGas.ToCoins() {
+		if thorchainCoin.Asset.Equals(c.GetChain().GetGasAsset()) {
+			cosmosCoin, err := fromThorchainToCosmos(thorchainCoin)
+			if err != nil {
+				c.logger.Warn().Err(err).Interface("tx", tx).Msg("wasn't able to convert coins that passed whitelist")
+				continue
+			}
+			gas = append(gas, cosmosCoin)
 		}
 	}
 
-	gasRate := fromThorchainToCosmos(common.NewCoin(c.GetChain().GetGasAsset(), cosmos.NewUint(uint64(tx.GasRate))))
+	gasRate, err := fromThorchainToCosmos(common.NewCoin(c.GetChain().GetGasAsset(), cosmos.NewUint(uint64(tx.GasRate))))
+	if err != nil {
+		c.logger.Error().Err(err).Interface("tx", tx).Msg("unable to convert gas rate in outbound tx")
+		return nil, fmt.Errorf("unable to convert gas rate in outbound tx: %w", err)
+	}
+
 	txBuilder, err := buildUnsigned(
 		c.txConfig,
 		msg,
@@ -439,12 +457,21 @@ func (c *CosmosClient) BroadcastTx(tx stypes.TxOutItem, txBytes []byte) (string,
 	}
 
 	var gas ctypes.Coins
-	for _, gasCoin := range tx.MaxGas.ToCoins() {
-		if gasCoin.Asset == c.GetChain().GetGasAsset() {
-			gas = append(gas, fromThorchainToCosmos(gasCoin))
+	for _, thorchainGas := range tx.MaxGas.ToCoins() {
+		if thorchainGas.Asset == c.GetChain().GetGasAsset() {
+			cosmosCoin, err := fromThorchainToCosmos(thorchainGas)
+			if err != nil {
+				c.logger.Warn().Err(err).Interface("tx", tx).Msg("wasn't able to convert coins that passed whitelist")
+				continue
+			}
+			gas = append(gas, cosmosCoin)
 		}
 	}
-	gasRate := fromThorchainToCosmos(common.NewCoin(c.GetChain().GetGasAsset(), cosmos.NewUint(uint64(tx.GasRate))))
+	gasRate, err := fromThorchainToCosmos(common.NewCoin(c.GetChain().GetGasAsset(), cosmos.NewUint(uint64(tx.GasRate))))
+	if err != nil {
+		c.logger.Warn().Err(err).Interface("tx", tx).Msg("wasn't able to convert coins that passed whitelist")
+		return "", err
+	}
 
 	out, err := c.processOutboundTx(tx)
 	if err != nil {
