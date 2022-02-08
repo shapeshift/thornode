@@ -8,14 +8,14 @@ import (
 	"gitlab.com/thorchain/thornode/constants"
 )
 
-type GasManagerTestSuiteV75 struct{}
+type GasManagerTestSuiteV80 struct{}
 
-var _ = Suite(&GasManagerTestSuiteV75{})
+var _ = Suite(&GasManagerTestSuiteV80{})
 
-func (GasManagerTestSuiteV75) TestGasManagerV75(c *C) {
+func (GasManagerTestSuiteV80) TestGasManagerV80(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	constAccessor := constants.GetConstantValues(GetCurrentVersion())
-	gasMgr := newGasMgrV75(constAccessor, k)
+	gasMgr := newGasMgrV80(constAccessor, k)
 	gasEvent := gasMgr.gasEvent
 	c.Assert(gasMgr, NotNil)
 	gasMgr.BeginBlock()
@@ -45,10 +45,10 @@ func (GasManagerTestSuiteV75) TestGasManagerV75(c *C) {
 	gasMgr.EndBlock(ctx, k, eventMgr)
 }
 
-func (GasManagerTestSuiteV75) TestGetFee(c *C) {
+func (GasManagerTestSuiteV80) TestGetFee(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	constAccessor := constants.GetConstantValues(GetCurrentVersion())
-	gasMgr := newGasMgrV75(constAccessor, k)
+	gasMgr := newGasMgrV80(constAccessor, k)
 	fee := gasMgr.GetFee(ctx, common.BNBChain, common.RuneAsset())
 	defaultTxFee := uint64(constAccessor.GetInt64Value(constants.OutboundTransactionFee))
 	// when there is no network fee available, it should just get from the constants
@@ -95,10 +95,10 @@ func (GasManagerTestSuiteV75) TestGetFee(c *C) {
 	c.Assert(synthAssetFee.Uint64(), Equals, uint64(400000))
 }
 
-func (GasManagerTestSuiteV75) TestDifferentValidations(c *C) {
+func (GasManagerTestSuiteV80) TestDifferentValidations(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	constAccessor := constants.GetConstantValues(GetCurrentVersion())
-	gasMgr := newGasMgrV75(constAccessor, k)
+	gasMgr := newGasMgrV80(constAccessor, k)
 	gasMgr.BeginBlock()
 	helper := newGasManagerTestHelper(k)
 	eventMgr := newEventMgrV1()
@@ -127,4 +127,23 @@ func (GasManagerTestSuiteV75) TestDifferentValidations(c *C) {
 		common.NewCoin(common.BNBAsset, cosmos.NewUint(37500)),
 	}, true)
 	gasMgr.EndBlock(ctx, helper, eventMgr)
+}
+func (GasManagerTestSuiteV80) TestGetMaxGas(c *C) {
+	ctx, k := setupKeeperForTest(c)
+	constAccessor := constants.GetConstantValues(GetCurrentVersion())
+	gasMgr := newGasMgrV80(constAccessor, k)
+	gasCoin, err := gasMgr.GetMaxGas(ctx, common.BTCChain)
+	c.Assert(err, IsNil)
+	c.Assert(gasCoin.Amount.IsZero(), Equals, true)
+	networkFee := NewNetworkFee(common.BTCChain, 1000, 127)
+	c.Assert(k.SaveNetworkFee(ctx, common.BTCChain, networkFee), IsNil)
+	gasCoin, err = gasMgr.GetMaxGas(ctx, common.BTCChain)
+	c.Assert(err, IsNil)
+	c.Assert(gasCoin.Amount.Uint64(), Equals, uint64(127*1000*3/2))
+
+	networkFee = NewNetworkFee(common.TERRAChain, 123, 127)
+	c.Assert(k.SaveNetworkFee(ctx, common.TERRAChain, networkFee), IsNil)
+	gasCoin, err = gasMgr.GetMaxGas(ctx, common.TERRAChain)
+	c.Assert(err, IsNil)
+	c.Assert(gasCoin.Amount.Uint64(), Equals, uint64(23400))
 }

@@ -1,6 +1,7 @@
 package thorchain
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -124,7 +125,12 @@ func (h TssKeysignHandler) handleV1(ctx cosmos.Context, msg MsgTssKeysignFail) (
 		return nil, err
 	}
 	observeSlashPoints := h.mgr.GetConstants().GetInt64Value(constants.ObserveSlashPoints)
-	h.mgr.Slasher().IncSlashPoints(ctx, observeSlashPoints, msg.Signer)
+
+	slashCtx := ctx.WithContext(context.WithValue(ctx.Context(), constants.CtxMetricLabels, []metrics.Label{
+		telemetry.NewLabel("reason", "failed_keysign"),
+	}))
+
+	h.mgr.Slasher().IncSlashPoints(slashCtx, observeSlashPoints, msg.Signer)
 	if !voter.Sign(msg.Signer) {
 		ctx.Logger().Info("signer already signed MsgTssKeysignFail", "signer", msg.Signer.String(), "txid", msg.ID)
 		return &cosmos.Result{}, nil
@@ -157,7 +163,7 @@ func (h TssKeysignHandler) handleV1(ctx cosmos.Context, msg MsgTssKeysignFail) (
 	}
 	ctx.Logger().Info("has tss keysign consensus!!")
 
-	h.mgr.Slasher().DecSlashPoints(ctx, observeSlashPoints, voter.GetSigners()...)
+	h.mgr.Slasher().DecSlashPoints(slashCtx, observeSlashPoints, voter.GetSigners()...)
 	voter.Signers = nil
 	h.mgr.Keeper().SetTssKeysignFailVoter(ctx, voter)
 
@@ -173,17 +179,8 @@ func (h TssKeysignHandler) handleV1(ctx cosmos.Context, msg MsgTssKeysignFail) (
 		if err != nil {
 			return nil, ErrInternal(err, fmt.Sprintf("fail to get node account,pub key: %s", nodePubKey.String()))
 		}
-		if err := h.mgr.Keeper().IncNodeAccountSlashPoints(ctx, na.NodeAddress, slashPoints); err != nil {
+		if err := h.mgr.Keeper().IncNodeAccountSlashPoints(slashCtx, na.NodeAddress, slashPoints); err != nil {
 			ctx.Logger().Error("fail to inc slash points", "error", err)
-		} else {
-			telemetry.IncrCounterWithLabels(
-				[]string{"thornode", "point_slash"},
-				float32(slashPoints),
-				[]metrics.Label{
-					telemetry.NewLabel("address", na.NodeAddress.String()),
-					telemetry.NewLabel("reason", "failed_keysign"),
-				},
-			)
 		}
 
 		if err := h.mgr.EventMgr().EmitEvent(ctx, NewEventSlashPoint(na.NodeAddress, slashPoints, "fail keysign")); err != nil {

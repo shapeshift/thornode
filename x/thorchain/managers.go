@@ -261,7 +261,9 @@ func GetKeeper(version semver.Version, cdc codec.BinaryMarshaler, coinKeeper ban
 // GetGasManager return GasManager
 func GetGasManager(version semver.Version, keeper keeper.Keeper) (GasManager, error) {
 	constAcessor := constants.GetConstantValues(version)
-	if version.GTE(semver.MustParse("0.75.0")) {
+	if version.GTE(semver.MustParse("0.80.0")) {
+		return newGasMgrV80(constAcessor, keeper), nil
+	} else if version.GTE(semver.MustParse("0.75.0")) {
 		return newGasMgrV75(constAcessor, keeper), nil
 	} else if version.GTE(semver.MustParse("0.1.0")) {
 		return newGasMgrV1(constAcessor, keeper), nil
@@ -338,7 +340,9 @@ func GetNetworkManager(keeper keeper.Keeper, version semver.Version, txOutStore 
 
 // GetValidatorManager create a new instance of Validator Manager
 func GetValidatorManager(keeper keeper.Keeper, version semver.Version, vaultMgr NetworkManager, txOutStore TxOutStore, eventMgr EventManager) (ValidatorManager, error) {
-	if version.GTE(semver.MustParse("0.78.0")) {
+	if version.GTE(semver.MustParse("0.80.0")) {
+		return newValidatorMgrV80(keeper, vaultMgr, txOutStore, eventMgr), nil
+	} else if version.GTE(semver.MustParse("0.78.0")) {
 		return newValidatorMgrV78(keeper, vaultMgr, txOutStore, eventMgr), nil
 	} else if version.GTE(semver.MustParse("0.76.0")) {
 		return newValidatorMgrV76(keeper, vaultMgr, txOutStore, eventMgr), nil

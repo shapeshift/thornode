@@ -92,6 +92,8 @@ func (smgr *StoreMgr) migrate(ctx cosmos.Context, i uint64) error {
 		migrateStoreV77(ctx, smgr.mgr)
 	case 79:
 		migrateStoreV79(ctx, smgr.mgr)
+	case 80:
+		migrateStoreV80(ctx, smgr.mgr)
 	}
 
 	smgr.mgr.Keeper().SetStoreVersion(ctx, int64(i))
@@ -144,6 +146,7 @@ func migrateStoreV56(ctx cosmos.Context, mgr Manager) {
 		}
 	}
 }
+
 func migrateStoreV55(ctx cosmos.Context, mgr Manager) {
 	assetToAdjust, err := common.NewAsset("BNB.USDT-6D8")
 	if err != nil {
@@ -159,8 +162,8 @@ func migrateStoreV55(ctx cosmos.Context, mgr Manager) {
 	if err := mgr.Keeper().SetPool(ctx, pool); err != nil {
 		ctx.Logger().Error("fail to save pool", "error", err)
 	}
-
 }
+
 func migrateStoreV49(ctx cosmos.Context, mgr Manager) {
 	// due to a withdrawal bug, this user lost their BTC. Recuperate a user's
 	// lost pending asset
@@ -179,6 +182,7 @@ func migrateStoreV49(ctx cosmos.Context, mgr Manager) {
 	}
 	mgr.Keeper().SetLiquidityProvider(ctx, lp)
 }
+
 func migrateStoreV46(ctx cosmos.Context, mgr Manager) {
 	// housekeeping, deleting unused mimir settings
 	_ = mgr.Keeper().DeleteMimir(ctx, "SIGNINGTRANSACTIONPERIOD")
@@ -236,12 +240,13 @@ func migrateStoreV46(ctx cosmos.Context, mgr Manager) {
 		ctx.Logger().Error("fail to save vault", "error", err)
 	}
 }
+
 func migrateStoreV43(ctx cosmos.Context, mgr Manager) {
 	// housekeeping, deleting unused mimir settings
 	_ = mgr.Keeper().DeleteMimir(ctx, "NEWPOOLCYCLE")
 	_ = mgr.Keeper().DeleteMimir(ctx, "ROTATEPERBLOCKHEIGHT")
-
 }
+
 func migrateStoreV42(ctx cosmos.Context, mgr Manager) {
 	vaultsToRetire := []struct {
 		PubKey     string
@@ -299,6 +304,7 @@ func migrateStoreV42(ctx cosmos.Context, mgr Manager) {
 		}
 	}
 }
+
 func migrateStoreV58Refund(ctx cosmos.Context, mgr *Mgrs) {
 	if err := mgr.BeginBlock(ctx); err != nil {
 		ctx.Logger().Error("fail to initialise block", "error", err)
@@ -541,6 +547,7 @@ func migrateStoreV59(ctx cosmos.Context, mgr Manager) {
 		}
 	}
 }
+
 func migrateStoreV60(ctx cosmos.Context, mgr Manager) {
 	// remove all the outbound transactions that caused by the attack transaction
 	removeTransactions(ctx, mgr,

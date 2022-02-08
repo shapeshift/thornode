@@ -215,6 +215,7 @@ func (k KVStoreDummy) GetNodeAccountJail(ctx cosmos.Context, addr cosmos.AccAddr
 func (k KVStoreDummy) SetNodeAccountJail(ctx cosmos.Context, addr cosmos.AccAddress, height int64, reason string) error {
 	return kaboom
 }
+
 func (k KVStoreDummy) ReleaseNodeAccountFromJail(ctx cosmos.Context, addr cosmos.AccAddress) error {
 	return kaboom
 }
@@ -364,6 +365,7 @@ func (k KVStoreDummy) GetObservedNetworkFeeVoterIterator(ctx cosmos.Context) cos
 func (k KVStoreDummy) GetObservedNetworkFeeVoter(ctx cosmos.Context, height int64, chain common.Chain) (ObservedNetworkFeeVoter, error) {
 	return ObservedNetworkFeeVoter{}, nil
 }
+
 func (k KVStoreDummy) GetObservedNetworkFeeVoterV47(ctx cosmos.Context, height int64, chain common.Chain, rate int64) (ObservedNetworkFeeVoter, error) {
 	return ObservedNetworkFeeVoter{}, nil
 }

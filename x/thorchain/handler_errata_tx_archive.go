@@ -261,7 +261,6 @@ func (h ErrataTxHandler) handleV42(ctx cosmos.Context, msg MsgErrataTx) (*cosmos
 		return nil, ErrInternal(err, "fail to emit errata event")
 	}
 	return &cosmos.Result{}, nil
-
 }
 
 func (h ErrataTxHandler) handleV45(ctx cosmos.Context, msg MsgErrataTx) (*cosmos.Result, error) {
@@ -406,7 +405,6 @@ func (h ErrataTxHandler) handleV45(ctx cosmos.Context, msg MsgErrataTx) (*cosmos
 		return nil, ErrInternal(err, "fail to emit errata event")
 	}
 	return &cosmos.Result{}, nil
-
 }
 
 // processErrataOutboundTx when the network detect an outbound tx which previously had been sent out to customer , however it get re-org , and it doesn't

@@ -804,5 +804,4 @@ func TestCalcImpLossV74(t *testing.T) {
 			assert.Equal(t1, redeemValue.String(), tc.expectedRedeemValue.String())
 		})
 	}
-
 }

@@ -1,9 +1,12 @@
 package thorchain
 
 import (
+	"context"
 	"fmt"
 
+	"github.com/armon/go-metrics"
 	"github.com/blang/semver"
+	"github.com/cosmos/cosmos-sdk/telemetry"
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
@@ -83,7 +86,13 @@ func (h ErrataTxHandler) handleV58(ctx cosmos.Context, msg MsgErrataTx) (*cosmos
 	}
 	observeSlashPoints := h.mgr.GetConstants().GetInt64Value(constants.ObserveSlashPoints)
 	observeFlex := h.mgr.GetConstants().GetInt64Value(constants.ObservationDelayFlexibility)
-	h.mgr.Slasher().IncSlashPoints(ctx, observeSlashPoints, msg.Signer)
+
+	slashCtx := ctx.WithContext(context.WithValue(ctx.Context(), constants.CtxMetricLabels, []metrics.Label{
+		telemetry.NewLabel("reason", "failed_observe_errata"),
+		telemetry.NewLabel("chain", string(msg.Chain)),
+	}))
+	h.mgr.Slasher().IncSlashPoints(slashCtx, observeSlashPoints, msg.Signer)
+
 	if !voter.Sign(msg.Signer) {
 		ctx.Logger().Info("signer already signed MsgErrataTx", "signer", msg.Signer.String(), "txid", msg.TxID)
 		return &cosmos.Result{}, nil
@@ -97,7 +106,7 @@ func (h ErrataTxHandler) handleV58(ctx cosmos.Context, msg MsgErrataTx) (*cosmos
 
 	if voter.BlockHeight > 0 {
 		if (voter.BlockHeight + observeFlex) >= common.BlockHeight(ctx) {
-			h.mgr.Slasher().DecSlashPoints(ctx, observeSlashPoints, msg.Signer)
+			h.mgr.Slasher().DecSlashPoints(slashCtx, observeSlashPoints, msg.Signer)
 		}
 		// errata tx already processed
 		return &cosmos.Result{}, nil
@@ -106,7 +115,7 @@ func (h ErrataTxHandler) handleV58(ctx cosmos.Context, msg MsgErrataTx) (*cosmos
 	voter.BlockHeight = common.BlockHeight(ctx)
 	h.mgr.Keeper().SetErrataTxVoter(ctx, voter)
 	// decrease the slash points
-	h.mgr.Slasher().DecSlashPoints(ctx, observeSlashPoints, voter.GetSigners()...)
+	h.mgr.Slasher().DecSlashPoints(slashCtx, observeSlashPoints, voter.GetSigners()...)
 	observedVoter, err := h.mgr.Keeper().GetObservedTxInVoter(ctx, msg.TxID)
 	if err != nil {
 		return nil, err

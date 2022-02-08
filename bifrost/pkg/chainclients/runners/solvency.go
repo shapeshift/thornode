@@ -1,11 +1,14 @@
 package runners
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
 	"github.com/rs/zerolog/log"
+	"gitlab.com/thorchain/thornode/bifrost/thorclient"
 	"gitlab.com/thorchain/thornode/common"
+	"gitlab.com/thorchain/thornode/constants"
 )
 
 // SolvencyCheckProvider methods that a SolvencyChecker implementation should have
@@ -19,7 +22,7 @@ type SolvencyCheckProvider interface {
 // not report current solvency status to THORNode anymore, this method is to ensure that the chain client will continue to do solvency check even when the chain has been halted
 func SolvencyCheckRunner(chain common.Chain,
 	provider SolvencyCheckProvider,
-	timeout time.Duration,
+	bridge *thorclient.ThorchainBridge,
 	stopper <-chan struct{},
 	wg *sync.WaitGroup) {
 	logger := log.Logger.With().Str("chain", chain.String()).Logger()
@@ -36,7 +39,18 @@ func SolvencyCheckRunner(chain common.Chain,
 		select {
 		case <-stopper:
 			return
-		case <-time.After(timeout):
+		case <-time.After(constants.ThorchainBlockTime):
+			// check whether the chain is halted or not
+			haltHeight, err := bridge.GetMimir(fmt.Sprintf("Halt%sChain", chain))
+			if err != nil {
+				logger.Err(err).Msg("fail to get mimir setting")
+				continue
+			}
+			// when HaltHeight == 1 means admin halt the chain , no need to do solvency check
+			// when Chain is not halted , the normal chain client will report solvency when it need to
+			if haltHeight <= 1 {
+				continue
+			}
 			currentBlockHeight, err := provider.GetHeight()
 			if err != nil {
 				logger.Err(err).Msg("fail to get current block height")

@@ -1,6 +1,8 @@
 package chainclients
 
 import (
+	"math/big"
+
 	"gitlab.com/thorchain/thornode/bifrost/config"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient/types"
 	stypes "gitlab.com/thorchain/thornode/bifrost/thorclient/types"
@@ -24,8 +26,8 @@ type ChainClient interface {
 	BroadcastTx(_ stypes.TxOutItem, _ []byte) (string, error)
 	GetHeight() (int64, error)
 	GetAddress(poolPubKey common.PubKey) string
-	GetAccount(poolPubKey common.PubKey) (common.Account, error)
-	GetAccountByAddress(address string) (common.Account, error)
+	GetAccount(poolPubKey common.PubKey, height *big.Int) (common.Account, error)
+	GetAccountByAddress(address string, height *big.Int) (common.Account, error)
 	GetChain() common.Chain
 	OnObservedTxIn(txIn types.TxInItem, blockHeight int64)
 	Start(globalTxsQueue chan stypes.TxIn, globalErrataQueue chan stypes.ErrataBlock, globalSolvencyQueue chan stypes.Solvency)
