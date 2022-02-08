@@ -18,6 +18,7 @@ func NewSolvencyVoter(id common.TxID, chain common.Chain, pubKey common.PubKey, 
 		},
 	}
 }
+
 func (m *SolvencyVoter) GetSigners() []cosmos.AccAddress {
 	addrs := make([]cosmos.AccAddress, 0)
 	for _, a := range m.Signers {

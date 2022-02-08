@@ -5,12 +5,17 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"math/big"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/grpc/tmservice"
 	"github.com/cosmos/cosmos-sdk/codec"
+	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
+	txtypes "github.com/cosmos/cosmos-sdk/types/tx"
+	signingtypes "github.com/cosmos/cosmos-sdk/types/tx/signing"
 	"github.com/cosmos/cosmos-sdk/x/auth/tx"
 
 	ctypes "github.com/cosmos/cosmos-sdk/types"
@@ -32,7 +37,11 @@ import (
 // SolvencyReporter is to report solvency info to THORNode
 type SolvencyReporter func(int64) error
 
-const gasCacheBlocks = 60
+const (
+	GasUpdatePeriodBlocks = 10
+	GasMethodAverage      = iota
+	GasMethodSimulate
+)
 
 var (
 	ErrInvalidScanStorage = errors.New("scan storage is empty or nil")
@@ -45,9 +54,13 @@ type CosmosBlockScanner struct {
 	cfg              config.BlockScannerConfiguration
 	logger           zerolog.Logger
 	feeAsset         common.Asset
-	gasCache         []ctypes.Int
 	db               blockscanner.ScannerStorage
 	cdc              *codec.ProtoCodec
+	txClient         txtypes.ServiceClient
+	txConfig         client.TxConfig
+	gasMethod        int
+	gasCacheSquares  []ctypes.Int
+	gasCacheNum      int64
 	tmService        tmservice.ServiceClient
 	grpc             *grpc.ClientConn
 	bridge           *thorclient.ThorchainBridge
@@ -72,7 +85,7 @@ func NewCosmosBlockScanner(cfg config.BlockScannerConfiguration,
 	registry := bridge.GetContext().InterfaceRegistry
 	btypes.RegisterInterfaces(registry)
 
-	host := strings.Replace(cfg.RPCHost, "http://", "", -1)
+	host := strings.ReplaceAll(cfg.RPCHost, "http://", "")
 	conn, err := grpc.Dial(host, grpc.WithInsecure())
 	if err != nil {
 		logger.Fatal().Err(err).Msg("fail to dial")
@@ -81,15 +94,24 @@ func NewCosmosBlockScanner(cfg config.BlockScannerConfiguration,
 	tmService := tmservice.NewServiceClient(conn)
 	cdc := codec.NewProtoCodec(registry)
 
+	interfaceRegistry := codectypes.NewInterfaceRegistry()
+	interfaceRegistry.RegisterImplementations((*ctypes.Msg)(nil), &btypes.MsgSend{})
+	marshaler := codec.NewProtoCodec(interfaceRegistry)
+	txConfig := tx.NewTxConfig(marshaler, []signingtypes.SignMode{signingtypes.SignMode_SIGN_MODE_DIRECT})
+
 	feeAsset := common.TERRAChain.GetGasAsset()
 	return &CosmosBlockScanner{
 		cfg:              cfg,
 		logger:           logger,
 		db:               scanStorage,
 		feeAsset:         feeAsset,
-		gasCache:         make([]ctypes.Int, 0),
 		cdc:              cdc,
+		txClient:         txtypes.NewServiceClient(conn),
+		txConfig:         txConfig,
 		tmService:        tmService,
+		gasMethod:        GasMethodAverage,
+		gasCacheSquares:  make([]ctypes.Int, 0),
+		gasCacheNum:      0,
 		grpc:             conn,
 		bridge:           bridge,
 		solvencyReporter: solvencyReporter,
@@ -101,8 +123,7 @@ func (c *CosmosBlockScanner) GetHeight() (int64, error) {
 	defer cancel()
 	resultHeight, err := c.tmService.GetLatestBlock(
 		ctx,
-		&tmservice.GetLatestBlockRequest{},
-	)
+		&tmservice.GetLatestBlockRequest{})
 	if err != nil {
 		return 0, err
 	}
@@ -121,9 +142,7 @@ func (c *CosmosBlockScanner) GetBlock(height int64) (*tmtypes.Block, error) {
 	defer cancel()
 	resultBlock, err := c.tmService.GetBlockByHeight(
 		ctx,
-		&tmservice.GetBlockByHeightRequest{Height: height},
-	)
-
+		&tmservice.GetBlockByHeightRequest{Height: height})
 	if err != nil {
 		c.logger.Error().Int64("height", height).Msgf("failed to get block: %v", err)
 		return nil, fmt.Errorf("failed to get block: %w", err)
@@ -132,68 +151,78 @@ func (c *CosmosBlockScanner) GetBlock(height int64) (*tmtypes.Block, error) {
 	return resultBlock.Block, nil
 }
 
-func (c *CosmosBlockScanner) calculateAverageGasFees(height int64, txs []types.TxInItem) (ctypes.Int, error) {
-	var numTxs int64
-
-	// sum all the gas fees for the FeeAsset only
-	totalGasFees := ctypes.NewUint(0)
+func (c *CosmosBlockScanner) updateGasCache(txs []types.TxInItem) error {
+	// add gas fees for the FeeAsset only
 	for _, tx := range txs {
 		fee := tx.Gas.ToCoins().GetCoin(c.feeAsset)
 		if err := fee.Valid(); err != nil {
 			// gas asset is not preferred fee asset, skip it...
 			continue
 		}
-		numTxs++
-		totalGasFees = totalGasFees.Add(fee.Amount)
+		c.gasCacheNum++
+		c.gasCacheSquares = append(c.gasCacheSquares, ctypes.Int(fee.Amount).Mul(ctypes.Int(fee.Amount)))
 	}
 
-	if numTxs == 0 {
-		return ctypes.ZeroInt(), nil
-	}
-
-	// compute the average (total / numTxs)
-	avgGasFeesAmt := (ctypes.NewDecFromBigInt(totalGasFees.BigInt()).QuoInt64(numTxs)).TruncateInt()
-	if !avgGasFeesAmt.IsUint64() {
-		return ctypes.ZeroInt(), fmt.Errorf("average gas fee exceeds uint64: %s", avgGasFeesAmt)
-	}
-
-	return avgGasFeesAmt, nil
+	return nil
 }
 
-func (c *CosmosBlockScanner) getAverageGasFromCache() ctypes.Int {
-	if len(c.gasCache) == 0 {
+func (c *CosmosBlockScanner) getAverageFromCache() ctypes.Int {
+	if len(c.gasCacheSquares) == 0 || c.gasCacheNum == 0 {
 		return ctypes.NewInt(0)
 	}
 
-	totalGas := ctypes.NewInt(0)
-	for _, avgGas := range c.gasCache {
-		totalGas = totalGas.Add(avgGas)
+	sumOfSquares := ctypes.NewInt(0)
+	for _, val := range c.gasCacheSquares {
+		sumOfSquares = sumOfSquares.Add(val)
 	}
-	return totalGas.Quo(ctypes.NewInt(gasCacheBlocks))
+
+	averageSquares := sumOfSquares.Quo(ctypes.NewIntFromBigInt(big.NewInt(c.gasCacheNum)))
+	return ctypes.NewIntFromBigInt(big.NewInt(0).Sqrt(averageSquares.BigInt()))
 }
 
-func (c *CosmosBlockScanner) updateGasFees(height int64, amt ctypes.Int) error {
-	if amt.IsZero() {
-		return nil
-	}
-
-	c.gasCache = append(c.gasCache, amt)
-	if len(c.gasCache) > gasCacheBlocks {
-		c.gasCache = c.gasCache[(len(c.gasCache) - gasCacheBlocks):]
-	}
-
+func (c *CosmosBlockScanner) updateGasFees(height int64) error {
 	// post the gas fee over every cache period
-	if height%gasCacheBlocks == 0 {
-		avgGas := c.getAverageGasFromCache()
-		feeTx, err := c.bridge.PostNetworkFee(height, common.TERRAChain, 1, avgGas.Uint64())
+
+	if height%GasUpdatePeriodBlocks == 0 {
+		var gas common.Coin
+		// Use the SimulateTx method with a dummy tx to calculate appropriate fee
+		if c.gasMethod == GasMethodSimulate {
+			dummyTxb, err := getDummyTxBuilderForSimulate(c.txConfig)
+			if err != nil {
+				return fmt.Errorf("unable to getDummyTxBuilderForSimulate: %w", err)
+			}
+
+			simRes, err := simulateTx(dummyTxb, c.txClient)
+			if err != nil {
+				return fmt.Errorf("unable to SimulateTx: %w", err)
+			}
+
+			gasAsset, exists := GetAssetByThorchainSymbol(c.feeAsset.String())
+			if !exists {
+				return fmt.Errorf("unable to get asset by thorchain symbol: %s", c.feeAsset.Symbol.String())
+			}
+
+			gas, err = fromCosmosToThorchain(ctypes.NewCoin(gasAsset.CosmosDenom, ctypes.NewInt(int64(simRes.GasInfo.GasUsed))))
+			if err != nil {
+				return fmt.Errorf("unable to convert cosmos coins to thorchain: %w", err)
+			}
+		} else if c.gasMethod == GasMethodAverage {
+			gasInt := c.getAverageFromCache()
+			gas = common.NewCoin(c.feeAsset, ctypes.NewUint(gasInt.Uint64()))
+			c.gasCacheSquares = make([]ctypes.Int, 0)
+			c.gasCacheNum = 0
+		}
+
+		feeTx, err := c.bridge.PostNetworkFee(height, common.TERRAChain, 1, gas.Amount.Uint64())
 		if err != nil {
 			return err
 		}
 		c.logger.Info().
 			Str("tx", feeTx.String()).
-			Int64("amount", avgGas.Int64()).
+			Int64("amount", gas.Amount.BigInt().Int64()).
 			Int64("height", height).
 			Msg("sent network fee to THORChain")
+
 	}
 
 	return nil
@@ -229,13 +258,15 @@ func (c *CosmosBlockScanner) processTxs(height int64, rawTxs [][]byte) ([]types.
 				coins := common.Coins{}
 				for _, coin := range msg.Amount {
 
-					// ignore first character of denom, which is usually "u" in cosmos
-					if _, whitelisted := WhitelistAssets[coin.Denom]; !whitelisted {
-						c.logger.Info().Str("tx", hash).Interface("coins", c).Msg("coin is not whitelisted, skipping")
+					if _, whitelisted := GetAssetByCosmosDenom(coin.Denom); !whitelisted {
+						c.logger.Debug().Str("tx", hash).Interface("coins", c).Msg("coin is not whitelisted, skipping")
 						continue
 					}
-
-					cCoin := fromCosmosToThorchain(coin)
+					cCoin, err := fromCosmosToThorchain(coin)
+					if err != nil {
+						c.logger.Warn().Err(err).Interface("coins", c).Msg("wasn't able to convert coins that passed whitelist")
+						continue
+					}
 					coins = append(coins, cCoin)
 				}
 
@@ -246,7 +277,11 @@ func (c *CosmosBlockScanner) processTxs(height int64, rawTxs [][]byte) ([]types.
 
 				gasFees := common.Gas{}
 				for _, fee := range fees {
-					cCoin := fromCosmosToThorchain(fee)
+					cCoin, err := fromCosmosToThorchain(fee)
+					if err != nil {
+						c.logger.Warn().Err(err).Interface("fees", fees).Msg("wasn't able to convert coins that passed whitelist")
+						continue
+					}
 					gasFees = append(gasFees, cCoin)
 				}
 
@@ -289,14 +324,14 @@ func (c *CosmosBlockScanner) FetchTxs(height int64) (types.TxIn, error) {
 		MemPool:  false,
 	}
 
-	avgGasFee, err := c.calculateAverageGasFees(block.Header.Height, txIn.TxArray)
+	err = c.updateGasCache(txs)
 	if err != nil {
-		c.logger.Err(err).Int64("height", height).Msg("failed to calculated average gas fees")
+		c.logger.Err(err).Int64("height", height).Msg("unable to update gas cache")
 	}
 
-	err = c.updateGasFees(height, avgGasFee)
+	err = c.updateGasFees(height)
 	if err != nil {
-		c.logger.Err(err).Int64("height", height).Msg("failed to post average network fee")
+		c.logger.Err(err).Int64("height", height).Msg("unable to update network fee")
 	}
 
 	return txIn, nil

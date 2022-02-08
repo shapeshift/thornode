@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/big"
 	"strconv"
 	"strings"
 	"sync"
@@ -24,6 +25,7 @@ import (
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/signercache"
 	mem "gitlab.com/thorchain/thornode/x/thorchain/memo"
 	tssp "gitlab.com/thorchain/tss/go-tss/tss"
+	"go.uber.org/atomic"
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/semaphore"
 
@@ -48,10 +50,9 @@ const (
 	// which is average at 250 vbytes , however asgard will consolidate UTXOs , which will take up to 1000 vbytes
 	EstimateAverageTxSize = 1000
 	// DefaultFeePerKB is guidance set by dogecoin core team and adopted by miners: https://github.com/dogecoin/dogecoin/blob/master/doc/fee-recommendation.md
-	DefaultFeePerKB        = 0.01
-	DefaultCoinbaseValue   = 10000
-	MaxMempoolScanPerTry   = 500
-	solvencyCheckerTimeout = time.Minute * 10
+	DefaultFeePerKB      = 0.01
+	DefaultCoinbaseValue = 10000
+	MaxMempoolScanPerTry = 500
 )
 
 // Client observes dogecoin chain and allows to sign and broadcast tx
@@ -78,7 +79,7 @@ type Client struct {
 	wg                      *sync.WaitGroup
 	signerLock              *sync.Mutex
 	vaultSignerLocks        map[string]*sync.Mutex
-	consolidateInProgress   bool
+	consolidateInProgress   *atomic.Bool
 	signerCacheManager      *signercache.CacheManager
 	stopchan                chan struct{}
 	lastSolvencyCheckHeight int64
@@ -124,20 +125,21 @@ func NewClient(thorKeys *thorclient.Keys, cfg config.ChainConfiguration, server 
 	}
 
 	c := &Client{
-		logger:           log.Logger.With().Str("module", "dogecoin").Logger(),
-		cfg:              cfg,
-		m:                m,
-		chain:            cfg.ChainID,
-		client:           client,
-		privateKey:       dogPrivateKey,
-		ksWrapper:        ksWrapper,
-		bridge:           bridge,
-		nodePubKey:       nodePubKey,
-		tssKeySigner:     tssKm,
-		wg:               &sync.WaitGroup{},
-		signerLock:       &sync.Mutex{},
-		vaultSignerLocks: make(map[string]*sync.Mutex),
-		stopchan:         make(chan struct{}),
+		logger:                log.Logger.With().Str("module", "dogecoin").Logger(),
+		cfg:                   cfg,
+		m:                     m,
+		chain:                 cfg.ChainID,
+		client:                client,
+		privateKey:            dogPrivateKey,
+		ksWrapper:             ksWrapper,
+		bridge:                bridge,
+		nodePubKey:            nodePubKey,
+		tssKeySigner:          tssKm,
+		wg:                    &sync.WaitGroup{},
+		signerLock:            &sync.Mutex{},
+		vaultSignerLocks:      make(map[string]*sync.Mutex),
+		stopchan:              make(chan struct{}),
+		consolidateInProgress: atomic.NewBool(false),
 	}
 
 	var path string // if not set later, will in memory storage
@@ -179,7 +181,7 @@ func (c *Client) Start(globalTxsQueue chan types.TxIn, globalErrataQueue chan ty
 	c.tssKeySigner.Start()
 	c.blockScanner.Start(globalTxsQueue)
 	c.wg.Add(1)
-	go runners.SolvencyCheckRunner(c.GetChain(), c, solvencyCheckerTimeout, c.stopchan, c.wg)
+	go runners.SolvencyCheckRunner(c.GetChain(), c, c.bridge, c.stopchan, c.wg)
 }
 
 // Stop stops the block scanner
@@ -236,7 +238,7 @@ func (c *Client) getUTXOs(minConfirm, MaximumConfirm int, pkey common.PubKey) ([
 }
 
 // GetAccount returns account with balance for an address
-func (c *Client) GetAccount(pkey common.PubKey) (common.Account, error) {
+func (c *Client) GetAccount(pkey common.PubKey, height *big.Int) (common.Account, error) {
 	acct := common.Account{}
 	if pkey.IsEmpty() {
 		return acct, errors.New("pubkey can't be empty")
@@ -268,7 +270,7 @@ func (c *Client) GetAccount(pkey common.PubKey) (common.Account, error) {
 		}, false), nil
 }
 
-func (c *Client) GetAccountByAddress(string) (common.Account, error) {
+func (c *Client) GetAccountByAddress(string, *big.Int) (common.Account, error) {
 	return common.Account{}, nil
 }
 
@@ -493,6 +495,7 @@ func (c *Client) tryAddToMemPoolCache(hash string) bool {
 	}
 	return exist
 }
+
 func (c *Client) getMemPool(height int64) (types.TxIn, error) {
 	hashes, err := c.client.GetRawMempool()
 	if err != nil {
@@ -577,7 +580,7 @@ func (c *Client) FetchTxs(height int64) (types.TxIn, error) {
 	if err != nil {
 		if rpcErr, ok := err.(*btcjson.RPCError); ok && rpcErr.Code == btcjson.ErrRPCInvalidParameter {
 			// this means the tx had been broadcast to chain, it must be another signer finished quicker then us
-			return txIn, btypes.UnavailableBlock
+			return txIn, btypes.ErrUnavailableBlock
 		}
 		return txIn, fmt.Errorf("fail to get block: %w", err)
 	}
@@ -634,18 +637,20 @@ func (c *Client) FetchTxs(height int64) (types.TxIn, error) {
 	if err := c.sendNetworkFee(block); err != nil {
 		c.logger.Err(err).Msg("fail to send network fee")
 	}
-	if height%10 == 0 {
-		if err := c.ReportSolvency(height); err != nil {
-			c.logger.Err(err).Msg("fail to report solvency info")
-		}
+	if err := c.ReportSolvency(height); err != nil {
+		c.logger.Err(err).Msg("fail to report solvency info")
 	}
 	txIn.Count = strconv.Itoa(len(txIn.TxArray))
-	if !c.consolidateInProgress {
+	if !c.consolidateInProgress.Load() {
 		c.wg.Add(1)
+		// This become necessary as DOGE has fast block time , sometimes it has one block and another follows quickly
+		// This is to avoid two consolidates to kick off back to back
+		c.consolidateInProgress.Store(true)
 		go c.consolidateUTXOs()
 	}
 	return txIn, nil
 }
+
 func (c *Client) canDeleteBlock(blockMeta *BlockMeta) bool {
 	if blockMeta == nil {
 		return true
@@ -774,6 +779,7 @@ func (c *Client) getBlock(height int64) (*btcjson.GetBlockVerboseTxResult, error
 	}
 	return &blockResult, nil
 }
+
 func (c *Client) isValidUTXO(hexPubKey string) bool {
 	buf, err := hex.DecodeString(hexPubKey)
 	if err != nil {
@@ -793,6 +799,7 @@ func (c *Client) isValidUTXO(hexPubKey string) bool {
 		return len(addresses) == 1 && requireSigs == 1
 	}
 }
+
 func (c *Client) isRBFEnabled(tx *btcjson.TxRawResult) bool {
 	for _, vin := range tx.Vin {
 		if vin.Sequence < (0xffffffff - 1) {
@@ -801,6 +808,7 @@ func (c *Client) isRBFEnabled(tx *btcjson.TxRawResult) bool {
 	}
 	return false
 }
+
 func (c *Client) getTxIn(tx *btcjson.TxRawResult, height int64, isMemPool bool) (types.TxInItem, error) {
 	if c.ignoreTx(tx) {
 		c.logger.Debug().Int64("height", height).Str("tx", tx.Hash).Msg("ignore tx not matching format")
@@ -827,7 +835,7 @@ func (c *Client) getTxIn(tx *btcjson.TxRawResult, height int64, isMemPool bool) 
 	}
 	output, err := c.getOutput(sender, tx, m.IsType(mem.TxConsolidate))
 	if err != nil {
-		if errors.Is(err, btypes.FailOutputMatchCriteria) {
+		if errors.Is(err, btypes.ErrFailOutputMatchCriteria) {
 			c.logger.Debug().Int64("height", height).Str("tx", tx.Hash).Msg("ignore tx not matching format")
 			return types.TxInItem{}, nil
 		}
@@ -975,7 +983,7 @@ func (c *Client) getOutput(sender string, tx *btcjson.TxRawResult, consolidate b
 			}
 		}
 	}
-	return btcjson.Vout{}, btypes.FailOutputMatchCriteria
+	return btcjson.Vout{}, btypes.ErrFailOutputMatchCriteria
 }
 
 // getSender returns sender address for a btc tx, using vin:0
@@ -1173,15 +1181,19 @@ func (c *Client) getVaultSignerLock(vaultPubKey string) *sync.Mutex {
 
 // ShouldReportSolvency based on the given block height , should the client report solvency to THORNode
 func (c *Client) ShouldReportSolvency(height int64) bool {
-	return height-c.lastSolvencyCheckHeight > 10
+	return height%10 == 0
 }
+
 func (c *Client) ReportSolvency(dogeBlockHeight int64) error {
+	if !c.ShouldReportSolvency(dogeBlockHeight) {
+		return nil
+	}
 	asgardVaults, err := c.bridge.GetAsgards()
 	if err != nil {
 		return fmt.Errorf("fail to get asgards,err: %w", err)
 	}
 	for _, asgard := range asgardVaults {
-		acct, err := c.GetAccount(asgard.PubKey)
+		acct, err := c.GetAccount(asgard.PubKey, nil)
 		if err != nil {
 			c.logger.Err(err).Msgf("fail to get account balance")
 			continue

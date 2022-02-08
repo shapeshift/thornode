@@ -89,7 +89,6 @@ func (h UnBondHandler) validateV1(ctx cosmos.Context, msg MsgUnBond) error {
 	}
 
 	return nil
-
 }
 
 func (h UnBondHandler) handleV1(ctx cosmos.Context, msg MsgUnBond) error {
@@ -174,8 +173,8 @@ func (h UnBondHandler) handleV46(ctx cosmos.Context, msg MsgUnBond) error {
 	}
 
 	return nil
-
 }
+
 func (h UnBondHandler) handleV55(ctx cosmos.Context, msg MsgUnBond) error {
 	na, err := h.mgr.Keeper().GetNodeAccount(ctx, msg.NodeAddress)
 	if err != nil {

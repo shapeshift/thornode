@@ -28,7 +28,7 @@ func (s *HandlerManageTHORNameSuite) TestValidator(c *C) {
 	coin := common.NewCoin(common.RuneAsset(), cosmos.NewUint(100*common.One))
 	addr := GetRandomTHORAddress()
 	acc, _ := addr.AccAddress()
-	name := NewTHORName("hello", 50, []THORNameAlias{THORNameAlias{Chain: common.THORChain, Address: addr}})
+	name := NewTHORName("hello", 50, []THORNameAlias{{Chain: common.THORChain, Address: addr}})
 	mgr.Keeper().SetTHORName(ctx, name)
 
 	// happy path

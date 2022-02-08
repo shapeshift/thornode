@@ -55,6 +55,7 @@ func (TypesSuite) TestHasSimpleMajority(c *C) {
 	c.Check(HasSimpleMajority(2, 4), Equals, true)
 	c.Check(HasSimpleMajority(100000, 3000000), Equals, false)
 }
+
 func (TypesSuite) TestHasMinority(c *C) {
 	c.Check(HasMinority(3, 4), Equals, true)
 	c.Check(HasMinority(2, 3), Equals, true)
