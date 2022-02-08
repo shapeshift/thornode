@@ -63,20 +63,16 @@ func migrateStoreV81(ctx cosmos.Context, mgr Manager) {
 	}
 
 	// Update TERRA.USD pool
-	pools, err := mgr.Keeper().GetPools(ctx)
+	pool, err := mgr.Keeper().GetPool(ctx, usd)
 	if err != nil {
 		ctx.Logger().Error("unable to get pools: %w", err)
 	}
 
-	for _, pool := range pools {
-		if pool.Asset.Equals(usd) {
-			pool.Asset = ust
-			err := mgr.Keeper().SetPool(ctx, pool)
-			if err != nil {
-				ctx.Logger().Error("unable to set pool: %w", err)
-				return
-			}
-		}
+	pool.Asset = ust
+	err := mgr.Keeper().SetPool(ctx, pool)
+	if err != nil {
+		ctx.Logger().Error("unable to set pool: %w", err)
+		return
 	}
 
 	// Update TERRA.USD vaults
