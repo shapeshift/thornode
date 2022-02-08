@@ -20,7 +20,6 @@ var (
 	LTCChain   = Chain("LTC")
 	BCHChain   = Chain("BCH")
 	DOGEChain  = Chain("DOGE")
-	TERRAChain = Chain("TERRA")
 	THORChain  = Chain("THOR")
 	TERRAChain = Chain("TERRA")
 
