@@ -234,7 +234,6 @@ func (b *MockChainClient) GetPubKey() crypto.PubKey {
 }
 
 func (b *MockChainClient) OnObservedTxIn(txIn types.TxInItem, blockHeight int64) {
-	return
 }
 
 func (b *MockChainClient) Start(globalTxsQueue chan stypes.TxIn, globalErrataQueue chan stypes.ErrataBlock, globalSolvencyQueue chan stypes.Solvency) {
