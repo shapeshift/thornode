@@ -209,15 +209,15 @@ func (c *CosmosClient) GetAddress(poolPubKey common.PubKey) string {
 	return addr.String()
 }
 
-func (c *CosmosClient) GetAccount(pkey common.PubKey, height *big.Int) (common.Account, error) {
+func (c *CosmosClient) GetAccount(pkey common.PubKey, _ *big.Int) (common.Account, error) {
 	addr, err := pkey.GetAddress(c.GetChain())
 	if err != nil {
 		return common.Account{}, fmt.Errorf("failed to convert address (%s) from bech32: %w", pkey, err)
 	}
-	return c.GetAccountByAddress(addr.String(), height)
+	return c.GetAccountByAddress(addr.String(), big.NewInt(0))
 }
 
-func (c *CosmosClient) GetAccountByAddress(address string, height *big.Int) (common.Account, error) {
+func (c *CosmosClient) GetAccountByAddress(address string, _ *big.Int) (common.Account, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
