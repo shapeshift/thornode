@@ -43,17 +43,26 @@ func (h VersionHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Result, e
 
 func (h VersionHandler) validate(ctx cosmos.Context, msg MsgSetVersion) error {
 	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.1.0")) {
+	if version.GTE(semver.MustParse("0.80.0")) {
+		return h.validateV80(ctx, msg)
+	} else if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, msg)
 	}
 	return errBadVersion
 }
 
-func (h VersionHandler) validateV1(ctx cosmos.Context, msg MsgSetVersion) error {
+func (h VersionHandler) validateV80(ctx cosmos.Context, msg MsgSetVersion) error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
-
+	v, err := semver.Parse(msg.Version)
+	if err != nil {
+		ctx.Logger().Info("invalid version", "version", msg.Version)
+		return cosmos.ErrUnknownRequest(fmt.Sprintf("%s is invalid", msg.Version))
+	}
+	if len(v.Build) > 0 || len(v.Pre) > 0 {
+		return cosmos.ErrUnknownRequest("THORChain doesn't use Pre/Build version")
+	}
 	nodeAccount, err := h.mgr.Keeper().GetNodeAccount(ctx, msg.Signer)
 	if err != nil {
 		ctx.Logger().Error("fail to get node account", "error", err, "address", msg.Signer.String())
@@ -98,7 +107,7 @@ func (h VersionHandler) handleV57(ctx cosmos.Context, msg MsgSetVersion) error {
 
 	version, err := msg.GetVersion()
 	if err != nil {
-		return fmt.Errorf("fail to save node account: %w", err)
+		return fmt.Errorf("fail to parse version: %w", err)
 	}
 
 	if nodeAccount.GetVersion().LT(version) {

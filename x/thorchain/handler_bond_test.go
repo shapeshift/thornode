@@ -37,6 +37,40 @@ func (k *TestBondKeeper) GetNodeAccount(_ cosmos.Context, addr cosmos.AccAddress
 
 var _ = Suite(&HandlerBondSuite{})
 
+func (HandlerBondSuite) TestBondHandler_ValidateActive(c *C) {
+	ctx, k := setupKeeperForTest(c)
+
+	activeNodeAccount := GetRandomValidatorNode(NodeActive)
+	c.Assert(k.SetNodeAccount(ctx, activeNodeAccount), IsNil)
+
+	vault := GetRandomVault()
+	vault.Status = RetiringVault
+	c.Assert(k.SetVault(ctx, vault), IsNil)
+
+	handler := NewBondHandler(NewDummyMgrWithKeeper(k))
+
+	txIn := common.NewTx(
+		GetRandomTxHash(),
+		GetRandomBNBAddress(),
+		GetRandomBNBAddress(),
+		common.Coins{
+			common.NewCoin(common.RuneAsset(), cosmos.NewUint(10*common.One)),
+		},
+		BNBGasFeeSingleton,
+		"bond",
+	)
+	msg := NewMsgBond(txIn, activeNodeAccount.NodeAddress, cosmos.NewUint(10*common.One), GetRandomBNBAddress(), activeNodeAccount.NodeAddress)
+
+	// happy path
+	c.Assert(handler.validate(ctx, *msg), IsNil)
+
+	vault.Status = ActiveVault
+	c.Assert(k.SetVault(ctx, vault), IsNil)
+
+	// unhappy path
+	c.Assert(handler.validate(ctx, *msg), NotNil)
+}
+
 func (HandlerBondSuite) TestBondHandler_Run(c *C) {
 	ctx, k1 := setupKeeperForTest(c)
 

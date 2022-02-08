@@ -259,7 +259,9 @@ func getTotalYggValueInRune(ctx cosmos.Context, keeper keeper.Keeper, ygg Vault)
 
 func refundBond(ctx cosmos.Context, tx common.Tx, amt cosmos.Uint, nodeAcc *NodeAccount, mgr Manager) error {
 	version := mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.76.0")) {
+	if version.GTE(semver.MustParse("0.80.0")) {
+		return refundBondV80(ctx, tx, amt, nodeAcc, mgr)
+	} else if version.GTE(semver.MustParse("0.76.0")) {
 		return refundBondV76(ctx, tx, amt, nodeAcc, mgr)
 	} else if version.GTE(semver.MustParse("0.46.0")) {
 		return refundBondV46(ctx, tx, amt, nodeAcc, mgr)
@@ -269,7 +271,7 @@ func refundBond(ctx cosmos.Context, tx common.Tx, amt cosmos.Uint, nodeAcc *Node
 	return errBadVersion
 }
 
-func refundBondV76(ctx cosmos.Context, tx common.Tx, amt cosmos.Uint, nodeAcc *NodeAccount, mgr Manager) error {
+func refundBondV80(ctx cosmos.Context, tx common.Tx, amt cosmos.Uint, nodeAcc *NodeAccount, mgr Manager) error {
 	if nodeAcc.Status == NodeActive {
 		ctx.Logger().Info("node still active, cannot refund bond", "node address", nodeAcc.NodeAddress, "node pub key", nodeAcc.PubKeySet.Secp256k1)
 		return nil
@@ -360,6 +362,11 @@ func refundBondV76(ctx cosmos.Context, tx common.Tx, amt cosmos.Uint, nodeAcc *N
 	}
 
 	nodeAcc.Bond = common.SafeSub(nodeAcc.Bond, amt)
+	if nodeAcc.RequestedToLeave {
+		// when node already request to leave , it can't come back , here means the node already unbond
+		// so set the node to disabled status
+		nodeAcc.UpdateStatus(NodeDisabled, common.BlockHeight(ctx))
+	}
 	if err := mgr.Keeper().SetNodeAccount(ctx, *nodeAcc); err != nil {
 		ctx.Logger().Error(fmt.Sprintf("fail to save node account(%s)", nodeAcc), "error", err)
 		return err
@@ -376,6 +383,7 @@ func refundBondV76(ctx cosmos.Context, tx common.Tx, amt cosmos.Uint, nodeAcc *N
 	}
 	return mgr.Keeper().DeleteVault(ctx, ygg.PubKey)
 }
+
 func isSignedByActiveNodeAccounts(ctx cosmos.Context, mgr Manager, signers []cosmos.AccAddress) bool {
 	version := mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.1.0")) {
@@ -711,7 +719,6 @@ func isTradingHaltV1(ctx cosmos.Context, msg cosmos.Msg, mgr Manager) bool {
 		return false
 	}
 	return isChainTradingHalted(ctx, mgr, targetChain)
-
 }
 
 func isTradingHaltV63(ctx cosmos.Context, msg cosmos.Msg, mgr Manager) bool {
@@ -813,6 +820,7 @@ func isChainHaltedV65(ctx cosmos.Context, mgr Manager, chain common.Chain) bool 
 	}
 	return false
 }
+
 func isChainHaltedV1(ctx cosmos.Context, mgr Manager, chain common.Chain) bool {
 	mimirKey := fmt.Sprintf("Halt%sChain", chain)
 	haltChain, err := mgr.Keeper().GetMimir(ctx, mimirKey)
@@ -1017,7 +1025,6 @@ func emitEndBlockTelemetry(ctx cosmos.Context, mgr Manager) error {
 	// emit vault metrics
 	asgards, err := mgr.Keeper().GetAsgardVaults(ctx)
 	if err != nil {
-
 	}
 	for _, vault := range append(asgards, yggs...) {
 		if vault.Status != ActiveVault && vault.Status != RetiringVault {

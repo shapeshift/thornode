@@ -113,7 +113,6 @@ func (h CommonOutboundTxHandler) handleV1(ctx cosmos.Context, tx ObservedTx, inT
 	}
 
 	return &cosmos.Result{}, nil
-
 }
 
 func (h CommonOutboundTxHandler) handleV48(ctx cosmos.Context, tx ObservedTx, inTxID common.TxID) (*cosmos.Result, error) {
@@ -228,7 +227,6 @@ func (h CommonOutboundTxHandler) handleV48(ctx cosmos.Context, tx ObservedTx, in
 	}
 
 	return &cosmos.Result{}, nil
-
 }
 
 func (h CommonOutboundTxHandler) handleV66(ctx cosmos.Context, tx ObservedTx, inTxID common.TxID) (*cosmos.Result, error) {

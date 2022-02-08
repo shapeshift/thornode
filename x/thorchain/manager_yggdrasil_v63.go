@@ -11,9 +11,7 @@ import (
 	kvTypes "gitlab.com/thorchain/thornode/x/thorchain/keeper/types"
 )
 
-var (
-	mimirStopFundYggdrasil = `StopFundYggdrasil`
-)
+var mimirStopFundYggdrasil = `StopFundYggdrasil`
 
 // YggMgrV63 is an implementation of YggManager
 type YggMgrV63 struct {

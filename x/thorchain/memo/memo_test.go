@@ -187,7 +187,6 @@ func (s *MemoSuite) TestParseWithAbbreviated(c *C) {
 	c.Assert(err, NotNil)
 	_, err = ParseMemoWithTHORNames(ctx, k, "switch:")
 	c.Assert(err, NotNil)
-
 }
 
 func (s *MemoSuite) TestParse(c *C) {

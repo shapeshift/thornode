@@ -109,6 +109,7 @@ func (t *LevelDBBlockMetaAccessor) PruneBlockMeta(height int64) error {
 	}
 	return nil
 }
+
 func (t *LevelDBBlockMetaAccessor) getSignedTxItemKey(hash string) string {
 	return PrefixSignedTxItem + hash
 }

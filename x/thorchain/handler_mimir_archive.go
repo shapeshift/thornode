@@ -29,7 +29,6 @@ func (h MimirHandler) handleV1(ctx cosmos.Context, msg MsgMimir) error {
 			cosmos.NewAttribute("value", strconv.FormatInt(msg.Value, 10))))
 
 	return nil
-
 }
 
 func (h MimirHandler) handleV65(ctx cosmos.Context, msg MsgMimir) error {

@@ -96,7 +96,6 @@ type KeeperNodeAccount interface {
 	ListActiveValidators(ctx cosmos.Context) (NodeAccounts, error)
 	GetLowestActiveVersion(ctx cosmos.Context) semver.Version
 	GetMinJoinVersion(ctx cosmos.Context) semver.Version
-	GetMinJoinVersionV1(ctx cosmos.Context) semver.Version
 	GetNodeAccount(ctx cosmos.Context, addr cosmos.AccAddress) (NodeAccount, error)
 	GetNodeAccountByPubKey(ctx cosmos.Context, pk common.PubKey) (NodeAccount, error)
 	SetNodeAccount(ctx cosmos.Context, na NodeAccount) error
@@ -250,6 +249,7 @@ type KeeperChainContract interface {
 	GetChainContracts(ctx cosmos.Context, chains common.Chains) []ChainContract
 	GetChainContractIterator(ctx cosmos.Context) cosmos.Iterator
 }
+
 type KeeperSolvencyVoter interface {
 	SetSolvencyVoter(_ cosmos.Context, _ SolvencyVoter)
 	GetSolvencyVoter(_ cosmos.Context, _ common.TxID, _ common.Chain) (SolvencyVoter, error)

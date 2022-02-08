@@ -350,7 +350,7 @@ func (o *Observer) filterBinanceMemoFlag(chain common.Chain, items []types.TxInI
 		}
 		skip := false
 		for _, item := range addressesToCheck {
-			account, err := bnbClient.GetAccountByAddress(item)
+			account, err := bnbClient.GetAccountByAddress(item, nil)
 			if err != nil {
 				o.logger.Error().Err(err).Msgf("fail to check account for %s", item)
 				continue

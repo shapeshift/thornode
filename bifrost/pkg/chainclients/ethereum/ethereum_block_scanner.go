@@ -532,13 +532,14 @@ func (e *ETHScanner) getBlock(height int64) (*etypes.Block, error) {
 func (e *ETHScanner) getRPCBlock(height int64) (*etypes.Block, error) {
 	block, err := e.getBlock(height)
 	if err == ethereum.NotFound {
-		return nil, btypes.UnavailableBlock
+		return nil, btypes.ErrUnavailableBlock
 	}
 	if err != nil {
 		return nil, fmt.Errorf("fail to fetch block: %w", err)
 	}
 	return block, nil
 }
+
 func (e *ETHScanner) getDecimals(token string) (uint64, error) {
 	if IsETH(token) {
 		return defaultDecimals, nil

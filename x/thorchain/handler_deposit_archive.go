@@ -146,7 +146,6 @@ func (h DepositHandler) handleV1(ctx cosmos.Context, msg MsgDeposit) (*cosmos.Re
 		h.mgr.Keeper().SetObservedTxInVoter(ctx, txInVoter)
 	}
 	return result, nil
-
 }
 
 func (h DepositHandler) handleV46(ctx cosmos.Context, msg MsgDeposit) (*cosmos.Result, error) {
@@ -284,7 +283,6 @@ func (h DepositHandler) handleV46(ctx cosmos.Context, msg MsgDeposit) (*cosmos.R
 		h.mgr.Keeper().SetObservedTxInVoter(ctx, txInVoter)
 	}
 	return result, nil
-
 }
 
 func (h DepositHandler) handleV47(ctx cosmos.Context, msg MsgDeposit) (*cosmos.Result, error) {
@@ -422,7 +420,6 @@ func (h DepositHandler) handleV47(ctx cosmos.Context, msg MsgDeposit) (*cosmos.R
 		h.mgr.Keeper().SetObservedTxInVoter(ctx, txInVoter)
 	}
 	return result, nil
-
 }
 
 func (h DepositHandler) handleV58(ctx cosmos.Context, msg MsgDeposit) (*cosmos.Result, error) {
@@ -705,7 +702,6 @@ func (h DepositHandler) handleV61(ctx cosmos.Context, msg MsgDeposit) (*cosmos.R
 		h.mgr.Keeper().SetObservedTxInVoter(ctx, txInVoter)
 	}
 	return result, nil
-
 }
 
 func (h DepositHandler) handleV63(ctx cosmos.Context, msg MsgDeposit) (*cosmos.Result, error) {
@@ -858,7 +854,6 @@ func (h DepositHandler) handleV63(ctx cosmos.Context, msg MsgDeposit) (*cosmos.R
 		h.mgr.Keeper().SetObservedTxInVoter(ctx, txInVoter)
 	}
 	return result, nil
-
 }
 
 func (h DepositHandler) handleV64(ctx cosmos.Context, msg MsgDeposit) (*cosmos.Result, error) {
@@ -1011,7 +1006,6 @@ func (h DepositHandler) handleV64(ctx cosmos.Context, msg MsgDeposit) (*cosmos.R
 		h.mgr.Keeper().SetObservedTxInVoter(ctx, txInVoter)
 	}
 	return result, nil
-
 }
 
 func (h DepositHandler) handleV65(ctx cosmos.Context, msg MsgDeposit) (*cosmos.Result, error) {
