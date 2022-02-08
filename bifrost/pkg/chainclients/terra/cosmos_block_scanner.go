@@ -199,7 +199,16 @@ func (c *CosmosBlockScanner) updateGasFees(height int64) error {
 			if err != nil {
 				return fmt.Errorf("unable to SimulateTx: %w", err)
 			}
-			gas = fromCosmosToThorchain(ctypes.NewCoin("uluna", ctypes.NewInt(int64(simRes.GasInfo.GasUsed))))
+
+			gasAsset, exists := GetAssetByThorchainSymbol(c.feeAsset.String())
+			if !exists {
+				return fmt.Errorf("unable to get asset by thorchain symbol: %s", c.feeAsset.Symbol.String())
+			}
+
+			gas, err = fromCosmosToThorchain(ctypes.NewCoin(gasAsset.CosmosDenom, ctypes.NewInt(int64(simRes.GasInfo.GasUsed))))
+			if err != nil {
+				return fmt.Errorf("unable to convert cosmos coins to thorchain: %w", err)
+			}
 		} else if c.gasMethod == GasMethodAverage {
 			gasInt := c.getAverageFromCache()
 			gas = common.NewCoin(c.feeAsset, ctypes.NewUint(gasInt.Uint64()))
@@ -257,11 +266,15 @@ func (c *CosmosBlockScanner) FetchTxs(height int64) (types.TxIn, error) {
 				coins := common.Coins{}
 				for _, coin := range msg.Amount {
 
-					if _, whitelisted := WhitelistAssets[coin.Denom]; !whitelisted {
+					if _, whitelisted := GetAssetByCosmosDenom(coin.Denom); !whitelisted {
 						c.logger.Debug().Str("tx", hash).Interface("coins", c).Msg("coin is not whitelisted, skipping")
 						continue
 					}
-					cCoin := fromCosmosToThorchain(coin)
+					cCoin, err := fromCosmosToThorchain(coin)
+					if err != nil {
+						c.logger.Warn().Err(err).Interface("coins", c).Msg("wasn't able to convert coins that passed whitelist")
+						continue
+					}
 					coins = append(coins, cCoin)
 				}
 
@@ -272,7 +285,11 @@ func (c *CosmosBlockScanner) FetchTxs(height int64) (types.TxIn, error) {
 
 				gasFees := common.Gas{}
 				for _, fee := range fees {
-					cCoin := fromCosmosToThorchain(fee)
+					cCoin, err := fromCosmosToThorchain(fee)
+					if err != nil {
+						c.logger.Warn().Err(err).Interface("fees", fees).Msg("wasn't able to convert coins that passed whitelist")
+						continue
+					}
 					gasFees = append(gasFees, cCoin)
 				}
 
