@@ -85,7 +85,7 @@ func NewCosmosBlockScanner(cfg config.BlockScannerConfiguration,
 	registry := bridge.GetContext().InterfaceRegistry
 	btypes.RegisterInterfaces(registry)
 
-	host := strings.Replace(cfg.RPCHost, "http://", "", -1)
+	host := strings.ReplaceAll(cfg.RPCHost, "http://", "")
 	conn, err := grpc.Dial(host, grpc.WithInsecure())
 	if err != nil {
 		logger.Fatal().Err(err).Msg("fail to dial")
