@@ -252,7 +252,7 @@ func queryYggdrasilVaults(ctx cosmos.Context, mgr *Mgrs) ([]byte, error) {
 	defer iter.Close()
 	for ; iter.Valid(); iter.Next() {
 		var vault Vault
-		if err := mgr.Keeper().Cdc().UnmarshalBinaryBare(iter.Value(), &vault); err != nil {
+		if err := mgr.Keeper().Cdc().Unmarshal(iter.Value(), &vault); err != nil {
 			ctx.Logger().Error("fail to unmarshal yggdrasil", "error", err)
 			return nil, fmt.Errorf("fail to unmarshal yggdrasil: %w", err)
 		}
@@ -323,7 +323,7 @@ func queryVaultsPubkeys(ctx cosmos.Context, mgr *Mgrs) ([]byte, error) {
 	defer iter.Close()
 	for ; iter.Valid(); iter.Next() {
 		var vault Vault
-		if err := mgr.Keeper().Cdc().UnmarshalBinaryBare(iter.Value(), &vault); err != nil {
+		if err := mgr.Keeper().Cdc().Unmarshal(iter.Value(), &vault); err != nil {
 			ctx.Logger().Error("fail to unmarshal vault", "error", err)
 			return nil, fmt.Errorf("fail to unmarshal vault: %w", err)
 		}
@@ -645,7 +645,7 @@ func queryLiquidityProviders(ctx cosmos.Context, path []string, req abci.Request
 	defer iterator.Close()
 	for ; iterator.Valid(); iterator.Next() {
 		var lp LiquidityProvider
-		mgr.Keeper().Cdc().MustUnmarshalBinaryBare(iterator.Value(), &lp)
+		mgr.Keeper().Cdc().MustUnmarshal(iterator.Value(), &lp)
 		lps = append(lps, lp)
 	}
 	res, err := json.MarshalIndent(lps, "", "	")
@@ -759,7 +759,7 @@ func queryPools(ctx cosmos.Context, req abci.RequestQuery, mgr *Mgrs) ([]byte, e
 	iterator := mgr.Keeper().GetPoolIterator(ctx)
 	for ; iterator.Valid(); iterator.Next() {
 		var pool Pool
-		if err := mgr.Keeper().Cdc().UnmarshalBinaryBare(iterator.Value(), &pool); err != nil {
+		if err := mgr.Keeper().Cdc().Unmarshal(iterator.Value(), &pool); err != nil {
 			return nil, fmt.Errorf("fail to unmarshal pool: %w", err)
 		}
 		// ignore pool if no liquidity provider units
@@ -1013,7 +1013,7 @@ func queryQueue(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *M
 	defer iterator.Close()
 	for ; iterator.Valid(); iterator.Next() {
 		var msg MsgSwap
-		if err := mgr.Keeper().Cdc().UnmarshalBinaryBare(iterator.Value(), &msg); err != nil {
+		if err := mgr.Keeper().Cdc().Unmarshal(iterator.Value(), &msg); err != nil {
 			continue
 		}
 		query.Swap++
@@ -1200,7 +1200,7 @@ func queryMimirAdminValues(ctx cosmos.Context, path []string, req abci.RequestQu
 	defer iter.Close()
 	for ; iter.Valid(); iter.Next() {
 		value := types.ProtoInt64{}
-		if err := mgr.Keeper().Cdc().UnmarshalBinaryBare(iter.Value(), &value); err != nil {
+		if err := mgr.Keeper().Cdc().Unmarshal(iter.Value(), &value); err != nil {
 			ctx.Logger().Error("fail to unmarshal mimir value", "error", err)
 			return nil, fmt.Errorf("fail to unmarshal mimir value: %w", err)
 		}
@@ -1221,7 +1221,7 @@ func queryMimirNodesAllValues(ctx cosmos.Context, path []string, req abci.Reques
 	defer iter.Close()
 	for ; iter.Valid(); iter.Next() {
 		m := NodeMimirs{}
-		if err := mgr.Keeper().Cdc().UnmarshalBinaryBare(iter.Value(), &m); err != nil {
+		if err := mgr.Keeper().Cdc().Unmarshal(iter.Value(), &m); err != nil {
 			ctx.Logger().Error("fail to unmarshal node mimir value", "error", err)
 			return nil, fmt.Errorf("fail to unmarshal node mimir value: %w", err)
 		}
@@ -1249,7 +1249,7 @@ func queryMimirNodesValues(ctx cosmos.Context, path []string, req abci.RequestQu
 	defer iter.Close()
 	for ; iter.Valid(); iter.Next() {
 		mimirs := NodeMimirs{}
-		if err := mgr.Keeper().Cdc().UnmarshalBinaryBare(iter.Value(), &mimirs); err != nil {
+		if err := mgr.Keeper().Cdc().Unmarshal(iter.Value(), &mimirs); err != nil {
 			ctx.Logger().Error("fail to unmarshal node mimir value", "error", err)
 			return nil, fmt.Errorf("fail to unmarshal node mimir value: %w", err)
 		}
@@ -1279,7 +1279,7 @@ func queryMimirNodeValues(ctx cosmos.Context, path []string, req abci.RequestQue
 	defer iter.Close()
 	for ; iter.Valid(); iter.Next() {
 		mimirs := NodeMimirs{}
-		if err := mgr.Keeper().Cdc().UnmarshalBinaryBare(iter.Value(), &mimirs); err != nil {
+		if err := mgr.Keeper().Cdc().Unmarshal(iter.Value(), &mimirs); err != nil {
 			ctx.Logger().Error("fail to unmarshal node mimir value", "error", err)
 			return nil, fmt.Errorf("fail to unmarshal node mimir value: %w", err)
 		}

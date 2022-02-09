@@ -88,6 +88,4 @@ func EnsureMsgBasicCorrect(m cosmos.Msg, c *C) {
 	c.Check(signers, NotNil)
 	c.Check(len(signers), Equals, 1)
 	c.Check(m.ValidateBasic(), IsNil)
-	c.Check(m.Route(), Equals, RouterKey)
-	c.Check(m.GetSignBytes(), NotNil)
 }

@@ -16,6 +16,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/input"
 	"github.com/cosmos/cosmos-sdk/crypto/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	bech32 "github.com/cosmos/cosmos-sdk/types/bech32/legacybech32"
 	"github.com/cosmos/go-bip39"
 	"github.com/decred/dcrd/dcrec/edwards"
 	"github.com/spf13/cobra"
@@ -84,7 +85,7 @@ func ed25519Keys(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("fail to get ED25519 key : %w", err)
 	}
-	pubKey, err := sdk.Bech32ifyPubKey(sdk.Bech32PubKeyTypeAccPub, tmp)
+	pubKey, err := bech32.MarshalPubKey(bech32.AccPK, tmp)
 	if err != nil {
 		return fmt.Errorf("fail generate bech32 account pub key")
 	}

@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/blang/semver"
+	"github.com/cosmos/cosmos-sdk/x/auth/legacy/legacytx"
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
@@ -27,9 +28,13 @@ func NewExternalHandler(mgr Manager) cosmos.Handler {
 			return nil, errConstNotAvailable
 		}
 		handlerMap := getHandlerMapping(mgr)
-		h, ok := handlerMap[msg.Type()]
+		legacyMsg, ok := msg.(legacytx.LegacyMsg)
 		if !ok {
-			errMsg := fmt.Sprintf("Unrecognized thorchain Msg type: %v", msg.Type())
+			return nil, cosmos.ErrUnknownRequest("unknown message type")
+		}
+		h, ok := handlerMap[legacyMsg.Type()]
+		if !ok {
+			errMsg := fmt.Sprintf("Unrecognized thorchain Msg type: %v", legacyMsg.Type())
 			return nil, cosmos.ErrUnknownRequest(errMsg)
 		}
 		result, err := h.Run(ctx, msg)
@@ -145,9 +150,13 @@ func NewInternalHandler(mgr Manager) cosmos.Handler {
 			return nil, errConstNotAvailable
 		}
 		handlerMap := getInternalHandlerMapping(mgr)
-		h, ok := handlerMap[msg.Type()]
+		legacyMsg, ok := msg.(legacytx.LegacyMsg)
 		if !ok {
-			errMsg := fmt.Sprintf("Unrecognized thorchain Msg type: %v", msg.Type())
+			return nil, cosmos.ErrUnknownRequest("invalid message type")
+		}
+		h, ok := handlerMap[legacyMsg.Type()]
+		if !ok {
+			errMsg := fmt.Sprintf("Unrecognized thorchain Msg type: %v", legacyMsg.Type())
 			return nil, cosmos.ErrUnknownRequest(errMsg)
 		}
 		return h.Run(ctx, msg)
@@ -523,7 +532,7 @@ func fuzzyAssetMatch(ctx cosmos.Context, keeper keeper.Keeper, asset common.Asse
 	defer iterator.Close()
 	for ; iterator.Valid(); iterator.Next() {
 		var pool Pool
-		if err := keeper.Cdc().UnmarshalBinaryBare(iterator.Value(), &pool); err != nil {
+		if err := keeper.Cdc().Unmarshal(iterator.Value(), &pool); err != nil {
 			ctx.Logger().Error("fail to fetch pool", "asset", asset, "err", err)
 			continue
 		}

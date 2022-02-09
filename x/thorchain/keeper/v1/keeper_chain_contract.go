@@ -9,7 +9,7 @@ import (
 
 func (k KVStore) setChainContract(ctx cosmos.Context, key string, record ChainContract) {
 	store := ctx.KVStore(k.storeKey)
-	buf := k.cdc.MustMarshalBinaryBare(&record)
+	buf := k.cdc.MustMarshal(&record)
 	if buf == nil {
 		store.Delete([]byte(key))
 	} else {
@@ -24,7 +24,7 @@ func (k KVStore) getChainContract(ctx cosmos.Context, key string, record *ChainC
 	}
 
 	bz := store.Get([]byte(key))
-	if err := k.cdc.UnmarshalBinaryBare(bz, record); err != nil {
+	if err := k.cdc.Unmarshal(bz, record); err != nil {
 		return true, dbError(ctx, fmt.Sprintf("Unmarshal kvstore: (%T) %s", record, key), err)
 	}
 	return true, nil

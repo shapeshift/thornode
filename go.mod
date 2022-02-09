@@ -50,15 +50,13 @@ require (
 	gitlab.com/thorchain/bifrost/ltcd-txscript v0.0.0-20210123055845-c0f9cad51f13
 	gitlab.com/thorchain/bifrost/txscript v0.0.0-20210123055850-29da989e6f5a
 	gitlab.com/thorchain/binance-sdk v1.2.3-0.20210117202539-d569b6b9ba5d
-	gitlab.com/thorchain/tss/go-tss v1.5.0
+	gitlab.com/thorchain/tss/go-tss v1.5.1-0.20220209042552-9900e94275ab
 	go.uber.org/atomic v1.7.0
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	google.golang.org/genproto v0.0.0-20220126215142-9970aeb2e350 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
 	gopkg.in/ini.v1 v1.63.2 // indirect
 )
-
-require github.com/cosmos/ibc-go/v2 v2.0.3
 
 require (
 	filippo.io/edwards25519 v1.0.0-beta.2 // indirect
@@ -81,6 +79,7 @@ require (
 	github.com/coreos/go-semver v0.3.0 // indirect
 	github.com/cosmos/btcutil v1.0.4 // indirect
 	github.com/cosmos/iavl v0.17.3 // indirect
+	github.com/cosmos/ibc-go/v2 v2.0.3
 	github.com/cosmos/ledger-cosmos-go v0.11.1 // indirect
 	github.com/cosmos/ledger-go v0.9.2 // indirect
 	github.com/danieljoos/wincred v1.0.2 // indirect
