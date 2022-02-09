@@ -12,7 +12,6 @@ import (
 	"strings"
 
 	"github.com/99designs/keyring"
-	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/client/input"
 	"github.com/cosmos/cosmos-sdk/crypto/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -20,7 +19,6 @@ import (
 	"github.com/cosmos/go-bip39"
 	"github.com/decred/dcrd/dcrec/edwards"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	"github.com/tendermint/tendermint/crypto/ed25519"
 
 	"gitlab.com/thorchain/thornode/app"
@@ -42,10 +40,10 @@ func GetEd25519Keys() *cobra.Command {
 		Args:  cobra.ExactArgs(0),
 		RunE:  ed25519Keys,
 	}
-	cmd.PersistentFlags().String(flags.FlagKeyringBackend, flags.DefaultKeyringBackend, "Select keyring's backend (os|file|test)")
-	if err := viper.BindPFlag(flags.FlagKeyringBackend, cmd.Flags().Lookup(flags.FlagKeyringBackend)); err != nil {
-		fmt.Println("fail to bind keyring backend flag", err)
-	}
+	// cmd.PersistentFlags().String(flags.FlagKeyringBackend, flags.DefaultKeyringBackend, "Select keyring's backend (os|file|test)")
+	// if err := viper.BindPFlag(flags.FlagKeyringBackend, cmd.Flags().Lookup(flags.FlagKeyringBackend)); err != nil {
+	// 	fmt.Println("fail to bind keyring backend flag", err)
+	// }
 	return cmd
 }
 
