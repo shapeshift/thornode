@@ -76,6 +76,7 @@ func initRootCmd(rootCmd *cobra.Command, encodingConfig params.EncodingConfig) {
 		tmcli.NewCompletionCmd(rootCmd, true),
 		debug.Cmd(),
 		GetEd25519Keys(),
+		GetPubKeyCmd(),
 	)
 
 	server.AddCommands(rootCmd, app.DefaultNodeHome(appName), newApp, createSimappAndExport, addModuleInitFlags)

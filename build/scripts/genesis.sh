@@ -24,9 +24,9 @@ fi
 
 create_thor_user "$SIGNER_NAME" "$SIGNER_PASSWD" "$SIGNER_SEED_PHRASE"
 
-VALIDATOR=$(thornode tendermint show-validator)
+VALIDATOR=$(thornode tendermint show-validator|thornode pubkey --bech cons)
 NODE_ADDRESS=$(echo "$SIGNER_PASSWD" | thornode keys show thorchain -a --keyring-backend file)
-NODE_PUB_KEY=$(echo "$SIGNER_PASSWD" | thornode keys show thorchain -p --keyring-backend file)
+NODE_PUB_KEY=$(echo "$SIGNER_PASSWD" | thornode keys show thorchain -p --keyring-backend file | thornode pubkey)
 VERSION=$(fetch_version)
 
 mkdir -p /tmp/shared
