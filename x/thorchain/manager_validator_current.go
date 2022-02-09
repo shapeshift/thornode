@@ -825,7 +825,7 @@ func (vm *validatorMgrV80) ragnarokPools(ctx cosmos.Context, nth int64, mgr Mana
 			if j == position.Number {
 				position.Number++
 				var lp LiquidityProvider
-				if err := vm.k.Cdc().UnmarshalBinaryBare(iterator.Value(), &lp); err != nil {
+				if err := vm.k.Cdc().Unmarshal(iterator.Value(), &lp); err != nil {
 					ctx.Logger().Error("fail to unmarshal liquidity provider", "error", err)
 					continue
 				}
@@ -973,7 +973,7 @@ func (vm *validatorMgrV80) recallYggFunds(ctx cosmos.Context, mgr Manager, const
 	vaults := Vaults{}
 	for ; iter.Valid(); iter.Next() {
 		var vault Vault
-		if err := vm.k.Cdc().UnmarshalBinaryBare(iter.Value(), &vault); err != nil {
+		if err := vm.k.Cdc().Unmarshal(iter.Value(), &vault); err != nil {
 			return fmt.Errorf("fail to unmarshal vault, %w", err)
 		}
 		if vault.IsYggdrasil() && vault.HasFunds() {
@@ -1012,7 +1012,7 @@ func (vm *validatorMgrV80) setupValidatorNodes(ctx cosmos.Context, height int64,
 	activeCandidateNodes := NodeAccounts{}
 	for ; iter.Valid(); iter.Next() {
 		var na NodeAccount
-		if err := vm.k.Cdc().UnmarshalBinaryBare(iter.Value(), &na); err != nil {
+		if err := vm.k.Cdc().Unmarshal(iter.Value(), &na); err != nil {
 			return fmt.Errorf("fail to unmarshal node account, %w", err)
 		}
 		// when THORNode first start , THORNode only care about these two status

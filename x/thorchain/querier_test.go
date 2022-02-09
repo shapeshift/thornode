@@ -43,7 +43,7 @@ func (s *QuerierSuite) SetUpTest(c *C) {
 	username := "thorchain"
 	password := "password"
 
-	_, _, err := kb.NewMnemonic(username, ckeys.English, cmd.THORChainHDPath, hd.Secp256k1)
+	_, _, err := kb.NewMnemonic(username, ckeys.English, cmd.THORChainHDPath, password, hd.Secp256k1)
 	c.Assert(err, IsNil)
 	s.kb = cosmos.KeybaseStore{
 		SignerName:   username,

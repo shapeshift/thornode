@@ -10,7 +10,7 @@ import (
 
 func (k KVStore) setLiquidityProvider(ctx cosmos.Context, key string, record LiquidityProvider) {
 	store := ctx.KVStore(k.storeKey)
-	buf := k.cdc.MustMarshalBinaryBare(&record)
+	buf := k.cdc.MustMarshal(&record)
 	if buf == nil {
 		store.Delete([]byte(key))
 	} else {
@@ -25,7 +25,7 @@ func (k KVStore) getLiquidityProvider(ctx cosmos.Context, key string, record *Li
 	}
 
 	bz := store.Get([]byte(key))
-	if err := k.cdc.UnmarshalBinaryBare(bz, record); err != nil {
+	if err := k.cdc.Unmarshal(bz, record); err != nil {
 		return true, dbError(ctx, fmt.Sprintf("Unmarshal kvstore: (%T) %s", record, key), err)
 	}
 	return true, nil
@@ -38,14 +38,8 @@ func (k KVStore) GetLiquidityProviderIterator(ctx cosmos.Context, asset common.A
 }
 
 func (k KVStore) GetTotalSupply(ctx cosmos.Context, asset common.Asset) cosmos.Uint {
-	supplier := k.coinKeeper.GetSupply(ctx)
-	nativeDenom := asset.Native()
-	for _, coin := range supplier.GetTotal() {
-		if coin.Denom == nativeDenom {
-			return cosmos.NewUint(coin.Amount.Uint64())
-		}
-	}
-	return cosmos.ZeroUint()
+	coin := k.coinKeeper.GetSupply(ctx, asset.Native())
+	return cosmos.NewUint(coin.Amount.Uint64())
 }
 
 // GetLiquidityProvider retrieve liquidity provider from the data store

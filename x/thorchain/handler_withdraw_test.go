@@ -62,7 +62,7 @@ func (mfp *MockWithdrawKeeper) GetNodeAccount(_ cosmos.Context, addr cosmos.AccA
 
 func (mfp *MockWithdrawKeeper) GetLiquidityProviderIterator(ctx cosmos.Context, _ common.Asset) cosmos.Iterator {
 	iter := keeper.NewDummyIterator()
-	iter.AddItem([]byte("key"), mfp.Cdc().MustMarshalBinaryBare(&mfp.lp))
+	iter.AddItem([]byte("key"), mfp.Cdc().MustMarshal(&mfp.lp))
 	return iter
 }
 

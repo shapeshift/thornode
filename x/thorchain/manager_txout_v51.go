@@ -454,7 +454,7 @@ func (tos *TxOutStorageV51) collectYggdrasilPools(ctx cosmos.Context, tx Observe
 	defer iterator.Close()
 	for ; iterator.Valid(); iterator.Next() {
 		var vault Vault
-		if err := tos.keeper.Cdc().UnmarshalBinaryBare(iterator.Value(), &vault); err != nil {
+		if err := tos.keeper.Cdc().Unmarshal(iterator.Value(), &vault); err != nil {
 			return nil, fmt.Errorf("fail to unmarshal vault: %w", err)
 		}
 		if !vault.IsYggdrasil() {

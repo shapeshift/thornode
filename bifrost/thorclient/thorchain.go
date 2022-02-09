@@ -128,7 +128,7 @@ func (b *ThorchainBridge) GetContext() client.Context {
 	ctx = ctx.WithBroadcastMode("sync")
 
 	encodingConfig := app.MakeEncodingConfig()
-	ctx = ctx.WithJSONMarshaler(encodingConfig.Marshaler)
+	ctx = ctx.WithCodec(encodingConfig.Marshaler)
 	ctx = ctx.WithInterfaceRegistry(encodingConfig.InterfaceRegistry)
 	ctx = ctx.WithTxConfig(encodingConfig.TxConfig)
 	ctx = ctx.WithLegacyAmino(encodingConfig.Amino)

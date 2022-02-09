@@ -15,6 +15,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/bech32/legacybech32"
 	se "github.com/cosmos/cosmos-sdk/types/errors"
+	"github.com/cosmos/cosmos-sdk/x/auth/legacy/legacytx"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/hashicorp/go-multierror"
 )
@@ -175,4 +176,8 @@ func GetKeybase(thorchainHome string) (KeybaseStore, error) {
 		SignerPasswd: password,
 		Keybase:      kb,
 	}, err
+}
+func GetTypeMsg(msg Msg) string {
+	legacy_msg := msg.(legacytx.LegacyMsg)
+	return legacy_msg.Type()
 }
