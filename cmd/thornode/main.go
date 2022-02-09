@@ -19,7 +19,8 @@ func main() {
 	config.SetBech32PrefixForValidator(prefix.Bech32PrefixValAddr, prefix.Bech32PrefixValPub)
 	config.SetBech32PrefixForConsensusNode(prefix.Bech32PrefixConsAddr, prefix.Bech32PrefixConsPub)
 	config.SetCoinType(prefix.THORChainCoinType)
-	config.SetFullFundraiserPath(prefix.THORChainHDPath)
+	config.SetPurpose(44)
+	config.SetCoinType(931)
 	config.Seal()
 	types.SetCoinDenomRegex(func() string {
 		return prefix.DenomRegex
