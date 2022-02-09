@@ -40,10 +40,6 @@ func GetEd25519Keys() *cobra.Command {
 		Args:  cobra.ExactArgs(0),
 		RunE:  ed25519Keys,
 	}
-	// cmd.PersistentFlags().String(flags.FlagKeyringBackend, flags.DefaultKeyringBackend, "Select keyring's backend (os|file|test)")
-	// if err := viper.BindPFlag(flags.FlagKeyringBackend, cmd.Flags().Lookup(flags.FlagKeyringBackend)); err != nil {
-	// 	fmt.Println("fail to bind keyring backend flag", err)
-	// }
 	return cmd
 }
 

@@ -241,44 +241,12 @@ func New(
 		auth.NewAppModule(appCodec, app.AccountKeeper, nil),
 		bank.NewAppModule(appCodec, app.BankKeeper, app.AccountKeeper),
 		capability.NewAppModule(appCodec, *app.CapabilityKeeper),
-		mint.NewAppModule(appCodec, app.MintKeeper, app.AccountKeeper),
-		// staking.NewAppModule(appCodec, app.StakingKeeper, app.AccountKeeper, app.BankKeeper),
 		upgrade.NewAppModule(app.UpgradeKeeper),
 		ibc.NewAppModule(app.IBCKeeper),
 		params.NewAppModule(app.ParamsKeeper),
 		transferModule,
 		thorchain.NewAppModule(app.thorchainKeeper, appCodec, app.BankKeeper, app.AccountKeeper, keys[thorchaintypes.StoreKey], telemetryEnabled),
 	)
-
-	// During begin block slashing happens after distr.BeginBlocker so that
-	// there is nothing left over in the validator fee pool, so as to keep the
-	// CanWithdrawInvariant invariant.
-	// NOTE: staking module is required if HistoricalEntries param > 0
-	app.mm.SetOrderBeginBlockers(
-		capabilitytypes.ModuleName,
-		authtypes.ModuleName,
-		genutiltypes.ModuleName,
-		banktypes.ModuleName,
-		minttypes.ModuleName,
-		paramstypes.ModuleName,
-		ibctransfertypes.ModuleName,
-		upgradetypes.ModuleName,
-		ibchost.ModuleName,
-		ibctransfertypes.ModuleName,
-		thorchain.ModuleName,
-	)
-
-	app.mm.SetOrderEndBlockers(
-		capabilitytypes.ModuleName,
-		authtypes.ModuleName,
-		banktypes.ModuleName,
-		minttypes.ModuleName,
-		paramstypes.ModuleName,
-		genutiltypes.ModuleName,
-		upgradetypes.ModuleName,
-		ibchost.ModuleName,
-		ibctransfertypes.ModuleName,
-		thorchain.ModuleName)
 
 	// NOTE: The genutils module must occur after staking so that pools are
 	// properly initialized with tokens from genesis accounts.
@@ -289,7 +257,6 @@ func New(
 		capabilitytypes.ModuleName,
 		authtypes.ModuleName,
 		banktypes.ModuleName,
-		minttypes.ModuleName,
 		paramstypes.ModuleName,
 		genutiltypes.ModuleName,
 		upgradetypes.ModuleName,
