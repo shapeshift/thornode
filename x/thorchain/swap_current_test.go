@@ -249,6 +249,47 @@ func (s *SwapV75Suite) TestSwap(c *C) {
 	}
 }
 
+func (s *SwapV75Suite) TestSixDecimalsSwap(c *C) {
+	ctx, k := setupKeeperForTest(c)
+	from := GetRandomTHORAddress()
+	to, err := common.NewAddress("terra1nrajxfwzc6s85h88vtwp9l4y3mnc5dx5uyas4u")
+	c.Check(err, IsNil)
+
+	tx := common.NewTx(
+		GetRandomTxHash(),
+		from,
+		to,
+		common.NewCoins(
+			common.NewCoin(common.RuneAsset(), cosmos.NewUint(10*common.One)),
+		),
+		common.Gas{common.NewCoin(common.LUNAAsset, cosmos.NewUint(9640300))},
+		"")
+
+	tx.Chain = common.TERRAChain
+	ctx, mgr := setupManagerForTest(c)
+	mgr.K = k
+	mgr.txOutStore = NewTxStoreDummy()
+
+	pool := NewPool()
+	pool.Asset = common.LUNAAsset
+	pool.Decimals = 6
+	pool.BalanceRune = cosmos.NewUint(13027699088)
+	pool.BalanceAsset = cosmos.NewUint(506861281)
+	pool.LPUnits = cosmos.NewUint(5879999997)
+	pool.SynthUnits = cosmos.ZeroUint()
+	pool.Status = PoolAvailable
+
+	c.Assert(pool.Valid(), IsNil)
+	c.Assert(mgr.Keeper().SetPool(ctx, pool), IsNil)
+
+	pool, err = mgr.Keeper().GetPool(ctx, common.LUNAAsset)
+	c.Check(err, IsNil)
+
+	amount, _, err := NewSwapperV75().swap(ctx, k, tx, common.LUNAAsset, to, cosmos.ZeroUint(), cosmos.NewUint(1000_000), 0, mgr)
+	c.Assert(err, IsNil)
+	c.Fatal(amount)
+}
+
 func (s *SwapV75Suite) TestSynthSwap(c *C) {
 	c.Skip("synthetics are temporarily disabled")
 	ctx, k := setupKeeperForTest(c)
