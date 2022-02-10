@@ -114,6 +114,11 @@ func setupManagerForTest(c *C) (cosmos.Context, *Mgrs) {
 		TransactionSize:    1,
 		TransactionFeeRate: 37500,
 	})
+	k.SaveNetworkFee(ctx, common.TERRAChain, NetworkFee{
+		Chain:              common.TERRAChain,
+		TransactionSize:    1,
+		TransactionFeeRate: 6423600,
+	})
 	os.Setenv("NET", "mocknet")
 	mgr := NewManagers(k, marshaler, bk, ak, keyThorchain)
 	constants.SWVersion = GetCurrentVersion()
@@ -165,6 +170,11 @@ func setupKeeperForTest(c *C) (cosmos.Context, keeper.Keeper) {
 		Chain:              common.BNBChain,
 		TransactionSize:    1,
 		TransactionFeeRate: 37500,
+	})
+	k.SaveNetworkFee(ctx, common.TERRAChain, NetworkFee{
+		Chain:              common.TERRAChain,
+		TransactionSize:    1,
+		TransactionFeeRate: 6423600,
 	})
 	os.Setenv("NET", "mocknet")
 	return ctx, k
