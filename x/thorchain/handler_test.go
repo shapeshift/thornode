@@ -98,9 +98,9 @@ func setupManagerForTest(c *C) (cosmos.Context, *Mgrs) {
 	})
 
 	bk := bankkeeper.NewBaseKeeper(marshaler, keyBank, ak, pk.Subspace(banktypes.ModuleName), nil)
-	bk.MintCoins(ctx, ModuleName, cosmos.Coins{
+	c.Assert(bk.MintCoins(ctx, ModuleName, cosmos.Coins{
 		cosmos.NewCoin(common.RuneAsset().Native(), cosmos.NewInt(200_000_000_00000000)),
-	})
+	}), IsNil)
 	k := keeper.NewKeeper(marshaler, bk, ak, keyThorchain)
 	FundModule(c, ctx, k, ModuleName, 1000000*common.One)
 	FundModule(c, ctx, k, AsgardName, common.One)
@@ -148,9 +148,9 @@ func setupKeeperForTest(c *C) (cosmos.Context, keeper.Keeper) {
 	})
 
 	bk := bankkeeper.NewBaseKeeper(marshaler, keyBank, ak, pk.Subspace(banktypes.ModuleName), nil)
-	bk.MintCoins(ctx, ModuleName, cosmos.Coins{
+	c.Assert(bk.MintCoins(ctx, ModuleName, cosmos.Coins{
 		cosmos.NewCoin(common.RuneAsset().Native(), cosmos.NewInt(200_000_000_00000000)),
-	})
+	}), IsNil)
 	k := keeper.NewKeeper(marshaler, bk, ak, keyThorchain)
 	FundModule(c, ctx, k, ModuleName, 1000000*common.One)
 	FundModule(c, ctx, k, AsgardName, common.One)
