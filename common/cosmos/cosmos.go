@@ -177,7 +177,8 @@ func GetKeybase(thorchainHome string) (KeybaseStore, error) {
 		Keybase:      kb,
 	}, err
 }
+
 func GetTypeMsg(msg Msg) string {
-	legacy_msg := msg.(legacytx.LegacyMsg)
-	return legacy_msg.Type()
+	legacyMsg := msg.(legacytx.LegacyMsg)
+	return legacyMsg.Type()
 }

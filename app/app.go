@@ -282,7 +282,6 @@ func New(
 		SigGasConsumer:  ante.DefaultSigVerificationGasConsumer,
 		SignModeHandler: encodingConfig.TxConfig.SignModeHandler(),
 	})
-
 	if err != nil {
 		tmos.Exit(err.Error())
 	}
