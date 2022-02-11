@@ -16,8 +16,8 @@ import (
 
 // BroadcastReq defines a tx broadcasting request.
 type BroadcastReq struct {
-	Tx   legacytx.StdTx `json:"tx" yaml:"tx"`
-	Mode string         `json:"mode" yaml:"mode"`
+	Tx   StdTx  `json:"tx" yaml:"tx"`
+	Mode string `json:"mode" yaml:"mode"`
 }
 
 var _ codectypes.UnpackInterfacesMessage = BroadcastReq{}
@@ -66,7 +66,7 @@ func BroadcastTxRequest(clientCtx client.Context) http.HandlerFunc {
 }
 
 // ConvertAndEncodeStdTx encodes the stdTx as a transaction in the format specified by txConfig
-func ConvertAndEncodeStdTx(txConfig client.TxConfig, stdTx legacytx.StdTx) ([]byte, error) {
+func ConvertAndEncodeStdTx(txConfig client.TxConfig, stdTx StdTx) ([]byte, error) {
 	builder := txConfig.NewTxBuilder()
 
 	var theTx sdk.Tx
