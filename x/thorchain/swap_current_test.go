@@ -250,7 +250,7 @@ func (s *SwapV75Suite) TestSwap(c *C) {
 }
 
 func (s *SwapV75Suite) TestSixDecimalsSwap(c *C) {
-	ctx, k := setupKeeperForTest(c)
+	_, k := setupKeeperForTest(c)
 	from := GetRandomTHORAddress()
 	to, err := common.NewAddress("terra1nrajxfwzc6s85h88vtwp9l4y3mnc5dx5uyas4u")
 	c.Check(err, IsNil)

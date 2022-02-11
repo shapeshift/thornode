@@ -152,11 +152,11 @@ func (s *BlockScannerTestSuite) TestGetBlock(c *C) {
 	feeAsset, err := common.NewAsset("TERRA.LUNA")
 	c.Assert(err, IsNil)
 
-	mockRpc := NewMockServiceClient()
+	mockRPC := NewMockServiceClient()
 
 	blockScanner := CosmosBlockScanner{
 		feeAsset:  feeAsset,
-		tmService: mockRpc,
+		tmService: mockRPC,
 	}
 
 	block, err := blockScanner.GetBlock(1)
