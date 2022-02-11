@@ -165,7 +165,10 @@ func (gm *GasMgrV81) GetGasRate(ctx cosmos.Context, chain common.Chain) cosmos.U
 		ctx.Logger().Error("network fee is invalid", "error", err, "chain", chain)
 		return transactionFee
 	}
-	return cosmos.NewUint(networkFee.TransactionFeeRate * 3 / 2)
+	return cosmos.RoundToDecimal(
+		cosmos.NewUint(networkFee.TransactionFeeRate*3/2),
+		chain.GetGasAssetDecimal(),
+	)
 }
 
 // GetMaxGas will calculate the maximum gas fee a tx can use
