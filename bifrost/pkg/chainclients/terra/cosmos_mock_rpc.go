@@ -27,8 +27,7 @@ type MockServiceClient interface {
 	GetValidatorSetByHeight(ctx context.Context, in *tmservice.GetValidatorSetByHeightRequest, opts ...grpc.CallOption) (*tmservice.GetValidatorSetByHeightResponse, error)
 }
 
-type mockServiceClient struct {
-}
+type mockServiceClient struct{}
 
 func NewMockServiceClient() MockServiceClient {
 	return &mockServiceClient{}
@@ -53,7 +52,6 @@ func (m *mockServiceClient) GetBlockByHeight(ctx context.Context, in *tmservice.
 		fmt.Printf(`Failed to unmarshal block by height: %s`, err)
 		return nil, err
 	}
-
 	return out, nil
 }
 
