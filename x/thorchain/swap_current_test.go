@@ -250,7 +250,6 @@ func (s *SwapV75Suite) TestSwap(c *C) {
 }
 
 func (s *SwapV75Suite) TestSixDecimalsSwap(c *C) {
-	_, k := setupKeeperForTest(c)
 	from := GetRandomTHORAddress()
 	to, err := common.NewAddress("terra1nrajxfwzc6s85h88vtwp9l4y3mnc5dx5uyas4u")
 	c.Check(err, IsNil)
@@ -267,7 +266,6 @@ func (s *SwapV75Suite) TestSixDecimalsSwap(c *C) {
 
 	tx.Chain = common.TERRAChain
 	ctx, mgr := setupManagerForTest(c)
-	mgr.K = k
 	mgr.txOutStore = NewTxStoreDummy()
 
 	pool := NewPool()
@@ -285,9 +283,9 @@ func (s *SwapV75Suite) TestSixDecimalsSwap(c *C) {
 	pool, err = mgr.Keeper().GetPool(ctx, common.LUNAAsset)
 	c.Check(err, IsNil)
 
-	amount, _, err := NewSwapperV75().swap(ctx, k, tx, common.LUNAAsset, to, cosmos.ZeroUint(), cosmos.NewUint(1000_000), 0, mgr)
+	amount, _, err := NewSwapperV75().swap(ctx, mgr.K, tx, common.LUNAAsset, to, cosmos.ZeroUint(), cosmos.NewUint(1000_000), 0, mgr)
 	c.Assert(err, IsNil)
-	c.Fatal(amount)
+	c.Check(amount.BigInt().Int64(), Equals, int64(33557000))
 }
 
 func (s *SwapV75Suite) TestSynthSwap(c *C) {
