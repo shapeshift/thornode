@@ -24,7 +24,7 @@ func newGasMgrV81(constantsAccessor constants.ConstantValues, k keeper.Keeper) *
 	return &GasMgrV81{
 		gasEvent:          NewEventGas(),
 		gas:               common.Gas{},
-		gasCount:          make(map[common.Asset]int64, 0),
+		gasCount:          make(map[common.Asset]int64),
 		constantsAccessor: constantsAccessor,
 		keeper:            k,
 	}
@@ -33,7 +33,7 @@ func newGasMgrV81(constantsAccessor constants.ConstantValues, k keeper.Keeper) *
 func (gm *GasMgrV81) reset() {
 	gm.gasEvent = NewEventGas()
 	gm.gas = common.Gas{}
-	gm.gasCount = make(map[common.Asset]int64, 0)
+	gm.gasCount = make(map[common.Asset]int64)
 }
 
 // BeginBlock need to be called when a new block get created , update the internal EventGas to new one
