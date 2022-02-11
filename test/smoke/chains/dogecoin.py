@@ -1,6 +1,7 @@
 import time
 import codecs
 import logging
+import threading
 
 from bitcointx import select_chain_params
 from bitcointx.wallet import CBitcoinRegtestKey
@@ -30,8 +31,8 @@ class MockDogecoin(HttpClient):
     ]
     default_gas = 100000
     block_stats = {
-        "tx_rate": 610000,
-        "tx_size": 1500,
+        "tx_rate": 1000,
+        "tx_size": 1000,
     }
 
     def __init__(self, base_url):
@@ -44,6 +45,7 @@ class MockDogecoin(HttpClient):
                 codecs.decode(key, "hex_codec")
             )
             self.call("importprivkey", str(seckey))
+        threading.Thread(target=self.scan_blocks, daemon=True).start()
 
     @classmethod
     def get_address_from_pubkey(cls, pubkey):
@@ -54,6 +56,39 @@ class MockDogecoin(HttpClient):
         :returns: string encoded address
         """
         return str(P2PKHDogecoinRegtestAddress.from_pubkey(pubkey))
+
+    def scan_blocks(self):
+        while True:
+            try:
+                result = self.get_block()
+                total = 0
+                total_vsize = 0
+                for tx_hash in result["tx"]:
+                    tx = self.get_transaction(tx_hash)
+                    if len(tx["vin"]) == 1 and "coinbase" in tx["vin"][0]:
+                        for vout in tx["vout"]:
+                            total += vout["value"]
+                    else:
+                        total_vsize += tx["vsize"]
+                if total_vsize > 0:
+                    amt = total - 10000
+                    avg_fee_rate = int(amt * Coin.ONE / total_vsize)
+                    if avg_fee_rate < 1000:
+                        avg_fee_rate = 1000
+                    self.block_stats["tx_rate"] = avg_fee_rate
+            except Exception:
+                continue
+            finally:
+                time.sleep(0.5)
+
+    def get_block(self, block_height=None):
+        """
+        Get the block data for a height
+        """
+        if not block_height:
+            block_height = self.get_block_height()
+        block_hash = self.get_block_hash(block_height)
+        return self.call("getblock", block_hash)
 
     def call(self, service, *args):
         payload = {
@@ -84,6 +119,12 @@ class MockDogecoin(HttpClient):
         Get the block hash for a height
         """
         return self.call("getblockhash", int(block_height))
+
+    def get_transaction(self, tx_hash):
+        """
+        Get the transaction data for a hash
+        """
+        return self.call("getrawtransaction", tx_hash, True)
 
     def estimate_smart_fee(self, nblocks=1):
         """
