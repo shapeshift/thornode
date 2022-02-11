@@ -128,6 +128,7 @@ func (GasManagerTestSuiteV80) TestDifferentValidations(c *C) {
 	}, true)
 	gasMgr.EndBlock(ctx, helper, eventMgr)
 }
+
 func (GasManagerTestSuiteV80) TestGetMaxGas(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	constAccessor := constants.GetConstantValues(GetCurrentVersion())
