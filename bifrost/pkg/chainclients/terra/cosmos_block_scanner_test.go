@@ -170,7 +170,7 @@ func (s *BlockScannerTestSuite) TestProcessTxs(c *C) {
 	feeAsset, err := common.NewAsset("TERRA.LUNA")
 	c.Assert(err, IsNil)
 
-	mockRpc := NewMockServiceClient()
+	mockRPC := NewMockServiceClient()
 
 	encodingConfig := app.MakeEncodingConfig()
 	ctx := client.Context{}
@@ -179,7 +179,7 @@ func (s *BlockScannerTestSuite) TestProcessTxs(c *C) {
 
 	blockScanner := CosmosBlockScanner{
 		feeAsset:  feeAsset,
-		tmService: mockRpc,
+		tmService: mockRPC,
 		cdc:       cdc,
 	}
 
