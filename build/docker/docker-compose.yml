@@ -118,7 +118,7 @@ services:
       BCH_HOST: ${BCH_HOST:-bitcoin-cash:28443}
       LTC_HOST: ${LTC_HOST:-litecoin:38443}
       ETH_HOST: ${ETH_HOST:-http://ethereum:8545}
-      TERRA_HOST: ${TERRA_HOST:-terra:9090}
+      TERRA_HOST: ${TERRA_HOST:-http://terra:24457}
       THOR_BLOCK_TIME: ${THOR_BLOCK_TIME:-5s}
       BLOCK_SCANNER_BACKOFF: ${BLOCK_SCANNER_BACKOFF:-5s}
       PEER: ${PEER:-}
@@ -185,7 +185,7 @@ services:
       - "./mocknet:/mocknet"
     image: terramoney/localterra-core:0.5.14
     ports:
-      - "9090:9090"
+      - "24457:26657"
     command: /mocknet/init-terra.sh
 
   # ------------------------------ bitcoin ------------------------------
