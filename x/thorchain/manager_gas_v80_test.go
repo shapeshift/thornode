@@ -8,11 +8,11 @@ import (
 	"gitlab.com/thorchain/thornode/constants"
 )
 
-type GasManagerTestSuiteV81 struct{}
+type GasManagerTestSuiteV80 struct{}
 
-var _ = Suite(&GasManagerTestSuiteV81{})
+var _ = Suite(&GasManagerTestSuiteV80{})
 
-func (GasManagerTestSuiteV81) TestGasManagerV81(c *C) {
+func (GasManagerTestSuiteV80) TestGasManagerV80(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	constAccessor := constants.GetConstantValues(GetCurrentVersion())
 	gasMgr := newGasMgrV80(constAccessor, k)
@@ -45,7 +45,7 @@ func (GasManagerTestSuiteV81) TestGasManagerV81(c *C) {
 	gasMgr.EndBlock(ctx, k, eventMgr)
 }
 
-func (GasManagerTestSuiteV81) TestGetFee(c *C) {
+func (GasManagerTestSuiteV80) TestGetFee(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	constAccessor := constants.GetConstantValues(GetCurrentVersion())
 	gasMgr := newGasMgrV80(constAccessor, k)
@@ -95,7 +95,7 @@ func (GasManagerTestSuiteV81) TestGetFee(c *C) {
 	c.Assert(synthAssetFee.Uint64(), Equals, uint64(400000))
 }
 
-func (GasManagerTestSuiteV81) TestDifferentValidations(c *C) {
+func (GasManagerTestSuiteV80) TestDifferentValidations(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	constAccessor := constants.GetConstantValues(GetCurrentVersion())
 	gasMgr := newGasMgrV80(constAccessor, k)
@@ -129,7 +129,7 @@ func (GasManagerTestSuiteV81) TestDifferentValidations(c *C) {
 	gasMgr.EndBlock(ctx, helper, eventMgr)
 }
 
-func (GasManagerTestSuiteV81) TestGetMaxGas(c *C) {
+func (GasManagerTestSuiteV80) TestGetMaxGas(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	constAccessor := constants.GetConstantValues(GetCurrentVersion())
 	gasMgr := newGasMgrV80(constAccessor, k)
