@@ -8,13 +8,11 @@ volumes:
   thornode:
   bifrost:
 
-
 ########################################################################################
 # Services
 ########################################################################################
 
 services:
-
   _thorchain: &thorchain-defaults
     profiles:
       - _
@@ -33,7 +31,6 @@ services:
         max-size: "256m"
         max-file: "3"
 
-
   ######################################################################################
   # THORChain
   ######################################################################################
@@ -42,7 +39,7 @@ services:
 
   thornode:
     <<: *thorchain-defaults
-    hostname: thornode  # required for genesis.sh
+    hostname: thornode # required for genesis.sh
     profiles:
       - thornode
       - mocknet
@@ -103,7 +100,6 @@ services:
       - --rpc.laddr
       - tcp://0.0.0.0:26657
 
-
   # ------------------------------ bifrost ------------------------------
 
   bifrost:
@@ -122,7 +118,7 @@ services:
       BCH_HOST: ${BCH_HOST:-bitcoin-cash:28443}
       LTC_HOST: ${LTC_HOST:-litecoin:38443}
       ETH_HOST: ${ETH_HOST:-http://ethereum:8545}
-      TERRA_HOST: ${TERRA_HOSt:-localhost:9090}
+      TERRA_HOST: ${TERRA_HOST:-terra:9090}
       THOR_BLOCK_TIME: ${THOR_BLOCK_TIME:-5s}
       BLOCK_SCANNER_BACKOFF: ${BLOCK_SCANNER_BACKOFF:-5s}
       PEER: ${PEER:-}
@@ -185,10 +181,12 @@ services:
   terra:
     profiles:
       - mocknet
+    volumes:
+      - "./mocknet:/mocknet"
     image: terramoney/localterra-core:0.5.14
     ports:
-    - "9090:9090"
-    command: terrad start
+      - "9090:9090"
+    command: /mocknet/init-terra.sh
 
   # ------------------------------ bitcoin ------------------------------
 
