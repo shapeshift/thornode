@@ -262,7 +262,7 @@ func GetKeeper(version semver.Version, cdc codec.BinaryMarshaler, coinKeeper ban
 func GetGasManager(version semver.Version, keeper keeper.Keeper) (GasManager, error) {
 	constAcessor := constants.GetConstantValues(version)
 	if version.GTE(semver.MustParse("0.81.0")) {
-		return newGasMgrV80(constAcessor, keeper), nil
+		return newGasMgrV81(constAcessor, keeper), nil
 	} else if version.GTE(semver.MustParse("0.80.0")) {
 		return newGasMgrV80(constAcessor, keeper), nil
 	} else if version.GTE(semver.MustParse("0.75.0")) {
