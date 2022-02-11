@@ -38,7 +38,6 @@ func BroadcastTxRequest(clientCtx client.Context) http.HandlerFunc {
 		if rest.CheckBadRequestError(w, err) {
 			return
 		}
-		fmt.Println("request:", string(body))
 		// NOTE: amino is used intentionally here, don't migrate it!
 		err = clientCtx.LegacyAmino.UnmarshalJSON(body, &req)
 		if err != nil {
@@ -62,7 +61,6 @@ func BroadcastTxRequest(clientCtx client.Context) http.HandlerFunc {
 		if rest.CheckInternalServerError(w, err) {
 			return
 		}
-		fmt.Println("resp:", res)
 		rest.PostProcessResponseBare(w, clientCtx, res)
 	}
 }
