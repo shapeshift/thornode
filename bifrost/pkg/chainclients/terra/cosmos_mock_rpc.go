@@ -47,7 +47,7 @@ func (m *mockServiceClient) GetLatestBlock(ctx context.Context, in *tmservice.Ge
 
 func (m *mockServiceClient) GetBlockByHeight(ctx context.Context, in *tmservice.GetBlockByHeightRequest, opts ...grpc.CallOption) (*tmservice.GetBlockByHeightResponse, error) {
 	out := new(tmservice.GetBlockByHeightResponse)
-	err := unmarshalJsonToPb("./test-data/block_by_height.json", out)
+	err := unmarshalJSONToPb("./test-data/block_by_height.json", out)
 	if err != nil {
 		fmt.Printf(`Failed to unmarshal block by height: %s`, err)
 		return nil, err
@@ -63,7 +63,7 @@ func (m *mockServiceClient) GetValidatorSetByHeight(ctx context.Context, in *tms
 	return nil, nil
 }
 
-func unmarshalJsonToPb(filePath string, msg proto.Message) error {
+func unmarshalJSONToPb(filePath string, msg proto.Message) error {
 	jsonFile, err := os.Open(filePath)
 	if err != nil {
 		fmt.Println(err)
