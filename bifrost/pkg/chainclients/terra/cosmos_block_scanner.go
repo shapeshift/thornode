@@ -228,16 +228,11 @@ func (c *CosmosBlockScanner) updateGasFees(height int64) error {
 	return nil
 }
 
-func (c *CosmosBlockScanner) FetchTxs(height int64) (types.TxIn, error) {
-	block, err := c.GetBlock(height)
-	if err != nil {
-		return types.TxIn{}, err
-	}
-
+func (c *CosmosBlockScanner) processTxs(height int64, rawTxs [][]byte) ([]types.TxInItem, error) {
 	decoder := tx.DefaultTxDecoder(c.cdc)
 	var txs []types.TxInItem
 
-	for _, rawTx := range block.Data.Txs {
+	for _, rawTx := range rawTxs {
 		hash := hex.EncodeToString(tmhash.Sum(rawTx))
 		tx, err := decoder(rawTx)
 		if err != nil {
@@ -304,6 +299,21 @@ func (c *CosmosBlockScanner) FetchTxs(height int64) (types.TxIn, error) {
 				continue
 			}
 		}
+	}
+
+	return txs, nil
+}
+
+func (c *CosmosBlockScanner) FetchTxs(height int64) (types.TxIn, error) {
+	block, err := c.GetBlock(height)
+	if err != nil {
+		return types.TxIn{}, err
+	}
+
+	txs, err := c.processTxs(height, block.Data.Txs)
+	if err != nil {
+		c.logger.Err(err).Int64("height", height).Msg("failed to processTxs")
+		return types.TxIn{}, err
 	}
 
 	txIn := types.TxIn{
