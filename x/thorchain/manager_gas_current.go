@@ -87,22 +87,26 @@ func (gm *GasMgrV81) GetFee(ctx cosmos.Context, chain common.Chain, asset common
 		return transactionFee
 	}
 
+	pool, err := gm.keeper.GetPool(ctx, chain.GetGasAsset())
+	if err != nil {
+		ctx.Logger().Error("fail to get pool", "asset", asset, "error", err)
+		return transactionFee
+	}
+
 	// Fee is calculated based on the network fee observed in previous block
 	// THORNode is going to charge 3 times the fee it takes to send out the tx
 	// 1.5 * fee will goes to vault
 	// 1.5 * fee will become the max gas used to send out the tx
-	fee := cosmos.NewUint(networkFee.TransactionSize * networkFee.TransactionFeeRate * 3)
+	fee := cosmos.RoundToDecimal(
+		cosmos.NewUint(networkFee.TransactionSize*networkFee.TransactionFeeRate*3),
+		pool.Decimals,
+	)
 
 	if asset.Equals(asset.GetChain().GetGasAsset()) && chain.Equals(asset.GetChain()) {
 		return fee
 	}
 
 	// convert gas asset value into rune
-	pool, err := gm.keeper.GetPool(ctx, chain.GetGasAsset())
-	if err != nil {
-		ctx.Logger().Error("fail to get pool", "asset", asset, "error", err)
-		return transactionFee
-	}
 	if pool.BalanceAsset.Equal(cosmos.ZeroUint()) || pool.BalanceRune.Equal(cosmos.ZeroUint()) {
 		return transactionFee
 	}
