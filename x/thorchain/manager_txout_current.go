@@ -667,6 +667,11 @@ func (tos *TxOutStorageV78) nativeTxOut(ctx cosmos.Context, mgr Manager, toi TxO
 		return err
 	}
 
+	if len(active) == 0 {
+		ctx.Logger().Error("no active asgard vaults")
+		return fmt.Errorf("no active asgard vaults")
+	}
+
 	observedTx := ObservedTx{
 		ObservedPubKey: active[0].PubKey,
 		BlockHeight:    common.BlockHeight(ctx),
