@@ -115,6 +115,7 @@ class ThorchainClient(HttpClient):
                 "coin_spent",
                 "coin_received",
                 "tx",
+                "coinbase"
             ]:
                 continue
             self.decode_event(event)
