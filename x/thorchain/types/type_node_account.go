@@ -251,7 +251,7 @@ func (nas NodeAccounts) GetNodeAddresses() []cosmos.AccAddress {
 	return addrs
 }
 
-func (p *BondProvider) IsEmpty() bool {
+func (m *BondProvider) IsEmpty() bool {
 	return p.BondAddress.Empty()
 }
 

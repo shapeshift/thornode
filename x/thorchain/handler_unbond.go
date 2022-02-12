@@ -47,8 +47,8 @@ func (h UnBondHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Result, er
 
 func (h UnBondHandler) validate(ctx cosmos.Context, msg MsgUnBond) error {
 	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.80.0")) {
-		return h.validateV80(ctx, msg)
+	if version.GTE(semver.MustParse("0.81.0")) {
+		return h.validateV81(ctx, msg)
 	} else if version.GTE(semver.MustParse("0.55.0")) {
 		return h.validateV55(ctx, msg)
 	} else if version.GTE(semver.MustParse("0.1.0")) {
@@ -57,7 +57,7 @@ func (h UnBondHandler) validate(ctx cosmos.Context, msg MsgUnBond) error {
 	return errBadVersion
 }
 
-func (h UnBondHandler) validateV80(ctx cosmos.Context, msg MsgUnBond) error {
+func (h UnBondHandler) validateV81(ctx cosmos.Context, msg MsgUnBond) error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
@@ -110,8 +110,8 @@ func (h UnBondHandler) validateV80(ctx cosmos.Context, msg MsgUnBond) error {
 
 func (h UnBondHandler) handle(ctx cosmos.Context, msg MsgUnBond) error {
 	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.80.0")) {
-		return h.handleV80(ctx, msg)
+	if version.GTE(semver.MustParse("0.81.0")) {
+		return h.handleV81(ctx, msg)
 	} else if version.GTE(semver.MustParse("0.76.0")) {
 		return h.handleV76(ctx, msg)
 	} else if version.GTE(semver.MustParse("0.55.0")) {
@@ -124,22 +124,15 @@ func (h UnBondHandler) handle(ctx cosmos.Context, msg MsgUnBond) error {
 	return errBadVersion
 }
 
-func (h UnBondHandler) handleV80(ctx cosmos.Context, msg MsgUnBond) error {
+func (h UnBondHandler) handleV81(ctx cosmos.Context, msg MsgUnBond) error {
 	na, err := h.mgr.Keeper().GetNodeAccount(ctx, msg.NodeAddress)
 	if err != nil {
 		return ErrInternal(err, fmt.Sprintf("fail to get node account(%s)", msg.NodeAddress))
 	}
 
-	ygg := Vault{}
-	if h.mgr.Keeper().VaultExists(ctx, na.PubKeySet.Secp256k1) {
-		var err error
-		ygg, err = h.mgr.Keeper().GetVault(ctx, na.PubKeySet.Secp256k1)
-		if err != nil {
-			return err
-		}
-		if !ygg.IsYggdrasil() {
-			return errors.New("this is not a Yggdrasil vault")
-		}
+	ygg, err := h.mgr.Keeper().GetVault(ctx, na.PubKeySet.Secp256k1)
+	if err != nil {
+		return err
 	}
 
 	if ygg.HasFunds() {
