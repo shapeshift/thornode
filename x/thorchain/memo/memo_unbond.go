@@ -27,14 +27,14 @@ func NewUnbondMemo(addr, additional cosmos.AccAddress, amt cosmos.Uint) UnbondMe
 }
 
 func ParseUnbondMemo(version semver.Version, parts []string) (UnbondMemo, error) {
-	if version.GTE(semver.MustParse("0.80.0")) {
-		return ParseUnbondMemoV80(parts)
+	if version.GTE(semver.MustParse("0.81.0")) {
+		return ParseUnbondMemoV81(parts)
 	} else {
 		return ParseUnbondMemoV1(parts)
 	}
 }
 
-func ParseUnbondMemoV80(parts []string) (UnbondMemo, error) {
+func ParseUnbondMemoV81(parts []string) (UnbondMemo, error) {
 	additional := cosmos.AccAddress{}
 	if len(parts) < 3 {
 		return UnbondMemo{}, fmt.Errorf("not enough parameters")
@@ -50,7 +50,7 @@ func ParseUnbondMemoV80(parts []string) (UnbondMemo, error) {
 	if len(parts) >= 4 {
 		additional, err = cosmos.AccAddressFromBech32(parts[3])
 		if err != nil {
-			return UnbondMemo{}, fmt.Errorf("%s is an invalid thorchain address: %w", parts[1], err)
+			return UnbondMemo{}, fmt.Errorf("%s is an invalid thorchain address: %w", parts[3], err)
 		}
 	}
 	return NewUnbondMemo(addr, additional, amt), nil
