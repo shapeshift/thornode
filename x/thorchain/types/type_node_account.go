@@ -252,7 +252,7 @@ func (nas NodeAccounts) GetNodeAddresses() []cosmos.AccAddress {
 }
 
 func (m *BondProvider) IsEmpty() bool {
-	return p.BondAddress.Empty()
+	return m.BondAddress.Empty()
 }
 
 func (bp *BondProviders) Has(acc cosmos.AccAddress) bool {
