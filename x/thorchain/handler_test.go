@@ -393,7 +393,8 @@ func (HandlerSuite) TestGetMsgWithdrawFromMemo(c *C) {
 	msg, err := processOneTxIn(w.ctx, GetCurrentVersion(), w.keeper, obTx, w.activeNodeAccount.NodeAddress)
 	c.Assert(err, IsNil)
 	c.Assert(msg, NotNil)
-	c.Assert(cosmos.GetTypeMsg(msg), Equals, MsgWithdrawLiquidity{}.Type())
+	_, isWithdraw := msg.(*MsgWithdrawLiquidity)
+	c.Assert(isWithdraw, Equals, true)
 }
 
 func (HandlerSuite) TestGetMsgMigrationFromMemo(c *C) {
@@ -404,7 +405,8 @@ func (HandlerSuite) TestGetMsgMigrationFromMemo(c *C) {
 	msg, err := processOneTxIn(w.ctx, GetCurrentVersion(), w.keeper, obTx, w.activeNodeAccount.NodeAddress)
 	c.Assert(err, IsNil)
 	c.Assert(msg, NotNil)
-	c.Assert(cosmos.GetTypeMsg(msg), Equals, MsgMigrate{}.Type())
+	_, isMigrate := msg.(*MsgMigrate)
+	c.Assert(isMigrate, Equals, true)
 }
 
 func (HandlerSuite) TestGetMsgBondFromMemo(c *C) {
@@ -418,7 +420,8 @@ func (HandlerSuite) TestGetMsgBondFromMemo(c *C) {
 	msg, err := processOneTxIn(w.ctx, GetCurrentVersion(), w.keeper, obTx, w.activeNodeAccount.NodeAddress)
 	c.Assert(err, IsNil)
 	c.Assert(msg, NotNil)
-	c.Assert(cosmos.GetTypeMsg(msg), Equals, MsgBond{}.Type())
+	_, isBond := msg.(*MsgBond)
+	c.Assert(isBond, Equals, true)
 }
 
 func (HandlerSuite) TestGetMsgUnBondFromMemo(c *C) {
@@ -432,7 +435,8 @@ func (HandlerSuite) TestGetMsgUnBondFromMemo(c *C) {
 	msg, err := processOneTxIn(w.ctx, GetCurrentVersion(), w.keeper, obTx, w.activeNodeAccount.NodeAddress)
 	c.Assert(err, IsNil)
 	c.Assert(msg, NotNil)
-	c.Assert(cosmos.GetTypeMsg(msg), Equals, MsgUnBond{}.Type())
+	_, isUnBond := msg.(*MsgUnBond)
+	c.Assert(isUnBond, Equals, true)
 }
 
 func (HandlerSuite) TestGetMsgLiquidityFromMemo(c *C) {
@@ -583,7 +587,8 @@ func (s *HandlerSuite) TestReserveContributor(c *C) {
 	msg, err := processOneTxIn(w.ctx, GetCurrentVersion(), w.keeper, txin, addr)
 	c.Assert(err, IsNil)
 	c.Check(msg.ValidateBasic(), IsNil)
-	c.Check(cosmos.GetTypeMsg(msg), Equals, MsgReserveContributor{}.Type())
+	_, isReserve := msg.(*MsgReserveContributor)
+	c.Assert(isReserve, Equals, true)
 }
 
 func (s *HandlerSuite) TestSwitch(c *C) {
@@ -606,7 +611,8 @@ func (s *HandlerSuite) TestSwitch(c *C) {
 	msg, err := processOneTxIn(w.ctx, GetCurrentVersion(), w.keeper, txin, addr)
 	c.Assert(err, IsNil)
 	c.Check(msg.ValidateBasic(), IsNil)
-	c.Check(cosmos.GetTypeMsg(msg), Equals, MsgSwitch{}.Type())
+	_, isSwitch := msg.(*MsgSwitch)
+	c.Assert(isSwitch, Equals, true)
 }
 
 func (s *HandlerSuite) TestExternalHandler(c *C) {
