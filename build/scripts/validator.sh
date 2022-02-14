@@ -38,6 +38,9 @@ if [ ! -f ~/.thornode/config/genesis.json ]; then
 	# enable telemetry through prometheus metrics endpoint
 	enable_telemetry
 
+	# set the minimum gas to 0 rune
+  set_minimum_gas
+
 	# enable internal traffic as well
 	enable_internal_traffic
 

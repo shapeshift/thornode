@@ -144,6 +144,10 @@ enable_telemetry() {
 	sed -i -e "s/prometheus-retention-time = 0/prometheus-retention-time = 600/g" ~/.thornode/config/app.toml
 }
 
+set_minimum_gas(){
+  sed -i -e "s/minimum-gas-prices = \"\"/minimum-gas-prices = \"0rune\"/g" ~/.thornode/config/app.toml
+}
+
 gen_bnb_address() {
 	if [ ! -f ~/.bond/private_key.txt ]; then
 		echo "Generating BNB address"
