@@ -37,7 +37,7 @@ func NewNodeRelay(channel, text string) *NodeRelay {
 	}
 }
 
-func (n *NodeRelay) fetchUUid() error {
+func (n *NodeRelay) fetchUUID() error {
 	// GET UUID PREFIX
 	resp, err := http.Get("https://node-relay-bot.herokuapp.com/uuid_prefix")
 	if err != nil {
@@ -82,7 +82,7 @@ func (n *NodeRelay) sign() error {
 }
 
 func (n *NodeRelay) Prepare() error {
-	if err := n.fetchUUid(); err != nil {
+	if err := n.fetchUUID(); err != nil {
 		return err
 	}
 	if err := n.sign(); err != nil {
