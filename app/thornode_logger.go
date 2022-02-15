@@ -48,7 +48,10 @@ func (z ThornodeLogWrapper) With(keyVals ...interface{}) tmlog.Logger {
 		}
 	}
 	for i := 0; i < len(keyVals); i += 2 {
-		name := keyVals[i].(string)
+		name, ok := keyVals[i].(string)
+		if !ok {
+			z.Logger.Error().Interface("key", keyVals[i]).Msg("non-string logging key provided")
+		}
 		if name != "module" {
 			continue
 		}
