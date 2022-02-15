@@ -11,9 +11,9 @@ import (
 	"golang.org/x/tools/go/ast/inspector"
 )
 
-////////////////////////////////////////////////////////////////////////////////////////
+// -------------------------------------------------------------------------------------
 // MapIteration
-////////////////////////////////////////////////////////////////////////////////////////
+// -------------------------------------------------------------------------------------
 
 func MapIteration(pass *analysis.Pass) (interface{}, error) {
 	inspect, ok := pass.ResultOf[inspect.Analyzer].(*inspector.Inspector)
@@ -30,7 +30,10 @@ func MapIteration(pass *analysis.Pass) (interface{}, error) {
 
 	// one pass to find all comments
 	inspect.Preorder([]ast.Node{(*ast.File)(nil)}, func(node ast.Node) {
-		n := node.(*ast.File)
+		n, ok := node.(*ast.File)
+		if !ok {
+			panic("node was not *ast.File")
+		}
 		for _, c := range n.Comments {
 			if strings.Contains(c.Text(), "analyze-ignore(map-iteration)") {
 				p := pass.Fset.Position(c.Pos())
@@ -40,7 +43,10 @@ func MapIteration(pass *analysis.Pass) (interface{}, error) {
 	})
 
 	inspect.Preorder([]ast.Node{(*ast.RangeStmt)(nil)}, func(node ast.Node) {
-		n := node.(*ast.RangeStmt)
+		n, ok := node.(*ast.RangeStmt)
+		if !ok {
+			panic("node was not *ast.RangeStmt")
+		}
 		// skip if this is not a range over a map
 		if !strings.HasPrefix(pass.TypesInfo.TypeOf(n.X).String(), "map") {
 			return
@@ -63,9 +69,9 @@ func MapIteration(pass *analysis.Pass) (interface{}, error) {
 	return nil, nil
 }
 
-////////////////////////////////////////////////////////////////////////////////////////
+// -------------------------------------------------------------------------------------
 // Main
-////////////////////////////////////////////////////////////////////////////////////////
+// -------------------------------------------------------------------------------------
 
 func main() {
 	multichecker.Main(

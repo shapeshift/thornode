@@ -35,13 +35,13 @@ var ETHGasFeeTransfer = Gas{
 // CalcBinanceGasPrice calculate gas price for Binance chain
 func CalcBinanceGasPrice(tx Tx, asset Asset, units []cosmos.Uint) Gas {
 	lenCoins := uint64(len(tx.Coins))
-	switch asset {
-	case BNBAsset:
-		if lenCoins == 0 {
+	if asset == BNBAsset {
+		switch {
+		case lenCoins == 0:
 			return nil
-		} else if lenCoins == 1 {
+		case lenCoins == 1:
 			return Gas{NewCoin(BNBAsset, units[0])}
-		} else if lenCoins > 1 {
+		case lenCoins > 1:
 			return Gas{NewCoin(BNBAsset, units[1].MulUint64(lenCoins))}
 		}
 	}
