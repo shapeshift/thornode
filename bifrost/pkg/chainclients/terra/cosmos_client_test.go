@@ -198,7 +198,6 @@ func (s *CosmosTestSuite) TestSignMsg(c *C) {
 		vaultPubKey,
 		"memo",
 		gas,
-		100,
 		uint64(meta.AccountNumber),
 		uint64(meta.SeqNumber),
 	)

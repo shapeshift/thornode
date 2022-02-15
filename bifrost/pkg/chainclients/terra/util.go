@@ -25,8 +25,7 @@ func buildUnsigned(
 	msg *btypes.MsgSend,
 	pubkey common.PubKey,
 	memo string,
-	gas ctypes.Coins,
-	limit uint64,
+	fee ctypes.Coins,
 	account uint64,
 	sequence uint64,
 ) (client.TxBuilder, error) {
@@ -42,8 +41,8 @@ func buildUnsigned(
 	}
 
 	txBuilder.SetMemo(memo)
-	txBuilder.SetFeeAmount(gas)
-	txBuilder.SetGasLimit(limit)
+	txBuilder.SetFeeAmount(fee)
+	txBuilder.SetGasLimit(GasLimit)
 
 	sigData := &signingtypes.SingleSignatureData{
 		SignMode: signingtypes.SignMode_SIGN_MODE_DIRECT,
@@ -98,7 +97,6 @@ func getDummyTxBuilderForSimulate(txConfig client.TxConfig) (client.TxBuilder, e
 		common.PubKey("sthorpub1addwnpepqwqwswthukczxyas0yhte2pn0r4g3uxux0d83mzfremvegs6lr7z2glhvdw"),
 		"ADD:TERRA.SOMELONGCOIN:sthor1x2nh4jevz7z54j9826sluzjjpvncmh3a399cec",
 		ctypes.NewCoins(ctypes.NewCoin("uluna", ctypes.NewInt(1000))),
-		1000,
 		3418297,
 		41,
 	)

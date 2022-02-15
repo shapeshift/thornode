@@ -10,12 +10,48 @@ import (
 	"gitlab.com/thorchain/thornode/bifrost/config"
 	"gitlab.com/thorchain/thornode/bifrost/metrics"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient"
-	"gitlab.com/thorchain/thornode/bifrost/thorclient/types"
 	"gitlab.com/thorchain/thornode/common"
 
 	"gitlab.com/thorchain/thornode/cmd"
 	. "gopkg.in/check.v1"
 )
+
+// -------------------------------------------------------------------------------------
+// Mock FeeTx
+// -------------------------------------------------------------------------------------
+
+type MockFeeTx struct {
+	fee ctypes.Coins
+	gas uint64
+}
+
+func (m *MockFeeTx) GetMsgs() []ctypes.Msg {
+	return nil
+}
+
+func (m *MockFeeTx) ValidateBasic() error {
+	return nil
+}
+
+func (m *MockFeeTx) GetGas() uint64 {
+	return m.gas
+}
+
+func (m *MockFeeTx) GetFee() ctypes.Coins {
+	return m.fee
+}
+
+func (m *MockFeeTx) FeePayer() ctypes.AccAddress {
+	return nil
+}
+
+func (m *MockFeeTx) FeeGranter() ctypes.AccAddress {
+	return nil
+}
+
+// -------------------------------------------------------------------------------------
+// Tests
+// -------------------------------------------------------------------------------------
 
 type BlockScannerTestSuite struct {
 	m      *metrics.Metrics
@@ -49,103 +85,80 @@ func (s *BlockScannerTestSuite) SetUpSuite(c *C) {
 func (s *BlockScannerTestSuite) TestCalculateAverageGasFees(c *C) {
 	feeAsset, err := common.NewAsset("TERRA.LUNA")
 	c.Assert(err, IsNil)
-
 	blockScanner := CosmosBlockScanner{
-		gasMethod: GasMethodAverage,
-		feeAsset:  feeAsset,
-	}
-	blockHeight := int64(1)
-
-	nonFeeAsset, err := common.NewAsset("TERRA.CW20")
-	c.Assert(err, IsNil)
-
-	// Only transactions with gas paid in the fee asset are relevant here.
-	// One for 1 LUNA and another for 3 LUNA.
-	// We should expect the average gas fee to be 2 LUNA.
-	txIn := []types.TxInItem{
-		{
-			BlockHeight: blockHeight,
-			Tx:          "hash1",
-			Memo:        "memo",
-			Sender:      "sender",
-			To:          "recipient",
-			Coins:       common.NewCoins(),
-			Gas: common.Gas{
-				common.NewCoin(feeAsset, ctypes.NewUint(25000000)),
-			},
-			ObservedVaultPubKey: common.EmptyPubKey,
-		},
-		{
-			BlockHeight: blockHeight,
-			Tx:          "hash2",
-			Memo:        "memo",
-			Sender:      "sender",
-			To:          "recipient",
-			Coins:       common.NewCoins(),
-			Gas: common.Gas{
-				common.NewCoin(feeAsset, ctypes.NewUint(16000000)),
-			},
-			ObservedVaultPubKey: common.EmptyPubKey,
-		},
-		{
-			BlockHeight: blockHeight,
-			Tx:          "hash3",
-			Memo:        "memo",
-			Sender:      "sender",
-			To:          "recipient",
-			Coins:       common.NewCoins(),
-			Gas: common.Gas{
-				// Make sure that transactions paid in asset other than fee asset
-				// are not included in the average
-				common.NewCoin(nonFeeAsset, ctypes.NewUint(500000000)),
-			},
-			ObservedVaultPubKey: common.EmptyPubKey,
-		},
+		feeAsset: feeAsset,
 	}
 
-	err = blockScanner.updateGasCache(txIn)
-	c.Assert(err, IsNil)
+	lunaToThorchain := int64(100)
 
-	// Ensure only 2 transactions in the cache
-	c.Check(blockScanner.gasCacheNum, Equals, int64(2))
+	blockScanner.updateGasCache(&MockFeeTx{
+		gas: GasLimit / 2,
+		fee: ctypes.Coins{ctypes.NewCoin("uluna", ctypes.NewInt(10000))},
+	})
+	c.Check(len(blockScanner.feeCache), Equals, 1)
+	c.Check(blockScanner.averageFee().Uint64(), Equals, uint64(20000*lunaToThorchain))
 
-	gasAmt := blockScanner.getAverageFromCache()
-	c.Check(gasAmt.BigInt().Int64(), Equals, int64(20988091))
+	blockScanner.updateGasCache(&MockFeeTx{
+		gas: GasLimit / 2,
+		fee: ctypes.Coins{ctypes.NewCoin("uluna", ctypes.NewInt(10000))},
+	})
+	c.Check(len(blockScanner.feeCache), Equals, 2)
+	c.Check(blockScanner.averageFee().Uint64(), Equals, uint64(20000*lunaToThorchain))
 
-	// Add a few more txIn
-	txIn2 := []types.TxInItem{
-		{
-			BlockHeight: blockHeight,
-			Tx:          "hash4",
-			Memo:        "memo",
-			Sender:      "sender",
-			To:          "recipient",
-			Coins:       common.NewCoins(),
-			Gas: common.Gas{
-				common.NewCoin(feeAsset, ctypes.NewUint(881655)),
-			},
-			ObservedVaultPubKey: common.EmptyPubKey,
+	// two blocks at half fee should average to 75% of last
+	blockScanner.updateGasCache(&MockFeeTx{
+		gas: GasLimit,
+		fee: ctypes.Coins{ctypes.NewCoin("uluna", ctypes.NewInt(10000))},
+	})
+	blockScanner.updateGasCache(&MockFeeTx{
+		gas: GasLimit,
+		fee: ctypes.Coins{ctypes.NewCoin("uluna", ctypes.NewInt(10000))},
+	})
+	c.Check(len(blockScanner.feeCache), Equals, 4)
+	c.Check(blockScanner.averageFee().Uint64(), Equals, uint64(15000*lunaToThorchain))
+
+	// skip transactions with multiple coins
+	blockScanner.updateGasCache(&MockFeeTx{
+		gas: GasLimit,
+		fee: ctypes.Coins{
+			ctypes.NewCoin("uluna", ctypes.NewInt(10000)),
+			ctypes.NewCoin("uusd", ctypes.NewInt(10000)),
 		},
-		{
-			BlockHeight: blockHeight,
-			Tx:          "hash2",
-			Memo:        "memo",
-			Sender:      "sender",
-			To:          "recipient",
-			Coins:       common.NewCoins(),
-			Gas: common.Gas{
-				common.NewCoin(feeAsset, ctypes.NewUint(1999999929)),
-			},
-			ObservedVaultPubKey: common.EmptyPubKey,
+	})
+	c.Check(len(blockScanner.feeCache), Equals, 4)
+	c.Check(blockScanner.averageFee().Uint64(), Equals, uint64(15000*lunaToThorchain))
+
+	// skip transactions with fees not in uluna
+	blockScanner.updateGasCache(&MockFeeTx{
+		gas: GasLimit,
+		fee: ctypes.Coins{
+			ctypes.NewCoin("uusd", ctypes.NewInt(10000)),
 		},
+	})
+	c.Check(len(blockScanner.feeCache), Equals, 4)
+	c.Check(blockScanner.averageFee().Uint64(), Equals, uint64(15000*lunaToThorchain))
+
+	// skip transactions with zero fee
+	blockScanner.updateGasCache(&MockFeeTx{
+		gas: GasLimit,
+		fee: ctypes.Coins{
+			ctypes.NewCoin("uusd", ctypes.NewInt(0)),
+		},
+	})
+	c.Check(len(blockScanner.feeCache), Equals, 4)
+	c.Check(blockScanner.averageFee().Uint64(), Equals, uint64(15000*lunaToThorchain))
+
+	// ensure we only cache the transaction limit number of blocks
+	for i := 0; i < GasCacheTransactions; i++ {
+		blockScanner.updateGasCache(&MockFeeTx{
+			gas: GasLimit,
+			fee: ctypes.Coins{
+				ctypes.NewCoin("uluna", ctypes.NewInt(10000)),
+			},
+		})
 	}
-
-	err = blockScanner.updateGasCache(txIn2)
-	c.Assert(err, IsNil)
-	c.Check(blockScanner.gasCacheNum, Equals, int64(4))
-
-	newGasAmt := blockScanner.getAverageFromCache()
-	c.Check(newGasAmt.BigInt().Int64(), Equals, int64(1000110180))
+	c.Check(len(blockScanner.feeCache), Equals, GasCacheTransactions)
+	c.Check(blockScanner.averageFee().Uint64(), Equals, uint64(10000*lunaToThorchain))
 }
 
 func (s *BlockScannerTestSuite) TestGetBlock(c *C) {
