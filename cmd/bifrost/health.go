@@ -45,20 +45,20 @@ func (s *HealthServer) pingHandler(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (t *HealthServer) getP2pIDHandler(w http.ResponseWriter, _ *http.Request) {
-	localPeerID := t.tssServer.GetLocalPeerID()
+func (s *HealthServer) getP2pIDHandler(w http.ResponseWriter, _ *http.Request) {
+	localPeerID := s.tssServer.GetLocalPeerID()
 	_, err := w.Write([]byte(localPeerID))
 	if err != nil {
-		t.logger.Error().Err(err).Msg("fail to write to response")
+		s.logger.Error().Err(err).Msg("fail to write to response")
 	}
 }
 
 // Start health server
-func (t *HealthServer) Start() error {
-	if t.s == nil {
+func (s *HealthServer) Start() error {
+	if s.s == nil {
 		return errors.New("invalid http server instance")
 	}
-	if err := t.s.ListenAndServe(); err != nil {
+	if err := s.s.ListenAndServe(); err != nil {
 		if err != http.ErrServerClosed {
 			return fmt.Errorf("fail to start http server: %w", err)
 		}
@@ -66,10 +66,10 @@ func (t *HealthServer) Start() error {
 	return nil
 }
 
-func (t *HealthServer) Stop() error {
+func (s *HealthServer) Stop() error {
 	c, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	err := t.s.Shutdown(c)
+	err := s.s.Shutdown(c)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to shutdown the Tss server gracefully")
 	}

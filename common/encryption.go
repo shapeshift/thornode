@@ -3,13 +3,16 @@ package common
 import (
 	"crypto/aes"
 	"crypto/cipher"
-	"crypto/md5"
 	"crypto/rand"
 	"encoding/hex"
 	"io"
+
+	// trunk-ignore(golangci-lint/gosec): only used for hashing
+	"crypto/md5"
 )
 
 func createHash(key string) (string, error) {
+	// trunk-ignore(golangci-lint/gosec): only used for hashing
 	hasher := md5.New()
 	_, err := hasher.Write([]byte(key))
 	return hex.EncodeToString(hasher.Sum(nil)), err

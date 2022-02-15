@@ -391,7 +391,13 @@ func (tos *TxOutStorageV78) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem) 
 					assetFee := transactionFeeAsset
 					if outputs[i].Coin.Amount.LTE(assetFee) {
 						assetFee = outputs[i].Coin.Amount // Fee is the full amount
-						runeFee = pool.AssetValueInRuneWithSlip(assetFee)
+						runeFee = pool.RuneReimbursementForAssetWithdrawal(assetFee)
+						// TODO(leifthelucky): "runeFee" is ultimately deducted from the pool
+						// and as such, it should be computed with RuneDisbursementForAssetAdd
+						// rather than RuneReimbursementForAssetWithdrawal. Currently the constant
+						// product rule is violated and there is a small decrease in the LUVI
+						// index, a price-independent measure of value. See:
+						// https://gitlab.com/thorchain/thornode/-/issues/1155
 					}
 
 					outputs[i].Coin.Amount = common.SafeSub(outputs[i].Coin.Amount, assetFee) // Deduct Asset fee
@@ -665,6 +671,11 @@ func (tos *TxOutStorageV78) nativeTxOut(ctx cosmos.Context, mgr Manager, toi TxO
 	if err != nil {
 		ctx.Logger().Error("fail to get active vaults", "err", err)
 		return err
+	}
+
+	if len(active) == 0 {
+		ctx.Logger().Error("no active asgard vaults")
+		return fmt.Errorf("no active asgard vaults")
 	}
 
 	observedTx := ObservedTx{

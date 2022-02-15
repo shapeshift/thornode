@@ -82,7 +82,9 @@ func (h MimirHandler) validateV78(ctx cosmos.Context, msg MsgMimir) error {
 func (h MimirHandler) handle(ctx cosmos.Context, msg MsgMimir) error {
 	ctx.Logger().Info("handleMsgMimir request", "key", msg.Key, "value", msg.Value)
 	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.78.0")) {
+	if version.GTE(semver.MustParse("0.81.0")) {
+		return h.handleV81(ctx, msg)
+	} else if version.GTE(semver.MustParse("0.78.0")) {
 		return h.handleV78(ctx, msg)
 	} else if version.GTE(semver.MustParse("0.65.0")) {
 		return h.handleV65(ctx, msg)
@@ -93,7 +95,7 @@ func (h MimirHandler) handle(ctx cosmos.Context, msg MsgMimir) error {
 	return errBadVersion
 }
 
-func (h MimirHandler) handleV78(ctx cosmos.Context, msg MsgMimir) error {
+func (h MimirHandler) handleV81(ctx cosmos.Context, msg MsgMimir) error {
 	if h.isAdmin(msg.Signer) {
 		if msg.Value < 0 {
 			_ = h.mgr.Keeper().DeleteMimir(ctx, msg.Key)
@@ -140,6 +142,14 @@ func (h MimirHandler) handleV78(ctx cosmos.Context, msg MsgMimir) error {
 				cosmos.NewAttribute("key", strings.ToUpper(msg.Key)),
 				cosmos.NewAttribute("value", strconv.FormatInt(msg.Value, 10)),
 				cosmos.NewAttribute("address", msg.Signer.String())))
+
+		tx := common.Tx{}
+		tx.ID = common.BlankTxID
+		tx.ToAddress = common.Address(nodeAccount.String())
+		bondEvent := NewEventBond(cost, BondCost, tx)
+		if err := h.mgr.EventMgr().EmitEvent(ctx, bondEvent); err != nil {
+			ctx.Logger().Error("fail to emit bond event", "error", err)
+		}
 	}
 
 	return nil
