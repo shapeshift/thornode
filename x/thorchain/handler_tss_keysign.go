@@ -126,9 +126,18 @@ func (h TssKeysignHandler) handleV1(ctx cosmos.Context, msg MsgTssKeysignFail) (
 	}
 	observeSlashPoints := h.mgr.GetConstants().GetInt64Value(constants.ObserveSlashPoints)
 
-	slashCtx := ctx.WithContext(context.WithValue(ctx.Context(), constants.CtxMetricLabels, []metrics.Label{
+	// add labels to telemetry context
+	labels := []metrics.Label{
 		telemetry.NewLabel("reason", "failed_keysign"),
-	}))
+	}
+	if len(msg.Coins) == 1 { // only label when slash is for single asset
+		labels = append(
+			labels,
+			telemetry.NewLabel("chain", string(msg.Coins[0].Asset.Chain)),
+			telemetry.NewLabel("symbol", string(msg.Coins[0].Asset.Symbol)),
+		)
+	}
+	slashCtx := ctx.WithContext(context.WithValue(ctx.Context(), constants.CtxMetricLabels, labels))
 
 	h.mgr.Slasher().IncSlashPoints(slashCtx, observeSlashPoints, msg.Signer)
 	if !voter.Sign(msg.Signer) {

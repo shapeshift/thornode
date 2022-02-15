@@ -120,13 +120,13 @@ func getKeyringConfig(appName, dir, password string) keyring.Config {
 	}
 }
 
-func i64(key, data []byte) (IL, IR [32]byte) {
+func i64(key, data []byte) (il, ir [32]byte) {
 	mac := hmac.New(sha512.New, key)
 	// sha512 does not err
 	_, _ = mac.Write(data)
-	I := mac.Sum(nil)
-	copy(IL[:], I[:32])
-	copy(IR[:], I[32:])
+	i := mac.Sum(nil)
+	copy(il[:], i[:32])
+	copy(ir[:], i[32:])
 	return
 }
 
@@ -149,7 +149,7 @@ func addScalars(a, b []byte) [32]byte {
 func derivePrivateKey(privKeyBytes, chainCode [32]byte, index uint32, harden bool) ([32]byte, [32]byte) {
 	var data []byte
 	if harden {
-		index = index | 0x80000000
+		index |= 0x80000000
 		data = append([]byte{byte(0)}, privKeyBytes[:]...)
 	} else {
 		// this can't return an error:

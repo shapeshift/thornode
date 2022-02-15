@@ -29,7 +29,6 @@ type KeyData struct {
 	addrBCH  KeyDataAddr
 	addrETH  KeyDataAddr
 	addrDOGE KeyDataAddr
-	addrTHOR KeyDataAddr
 }
 
 type PubKeyTestSuite struct {
