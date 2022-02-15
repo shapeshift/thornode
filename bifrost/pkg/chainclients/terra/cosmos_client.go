@@ -339,31 +339,32 @@ func (c *CosmosClient) SignTx(tx stypes.TxOutItem, thorchainHeight int64) (signe
 		c.accts.Set(tx.VaultPubKey, meta)
 	}
 
-	var gas ctypes.Coins
-	for _, thorchainCoin := range tx.MaxGas.ToCoins() {
-		if thorchainCoin.Asset.Equals(c.GetChain().GetGasAsset()) {
-			cosmosCoin, err := fromThorchainToCosmos(thorchainCoin)
-			if err != nil {
-				c.logger.Warn().Err(err).Interface("tx", tx).Msg("wasn't able to convert coins that passed whitelist")
-				continue
-			}
-			gas = append(gas, cosmosCoin)
-		}
+	// format the fee (the "MaxGas" set by thornode)
+	gasCoins := tx.MaxGas.ToCoins()
+	if len(gasCoins) != 1 {
+		err = errors.New("exactly one gas coin must be provided")
+		c.logger.Error().Err(err).Interface("fee", gasCoins).Msg(err.Error())
+		return nil, err
 	}
-
-	gasRate, err := fromThorchainToCosmos(common.NewCoin(c.GetChain().GetGasAsset(), cosmos.NewUint(uint64(tx.GasRate))))
+	if !gasCoins[0].Asset.Equals(c.GetChain().GetGasAsset()) {
+		err = errors.New("gas coin asset must match chain gas asset")
+		c.logger.Error().Err(err).Interface("coin", gasCoins[0]).Msg(err.Error())
+		return nil, err
+	}
+	cCoin, err := fromThorchainToCosmos(gasCoins[0])
 	if err != nil {
-		c.logger.Error().Err(err).Interface("tx", tx).Msg("unable to convert gas rate in outbound tx")
-		return nil, fmt.Errorf("unable to convert gas rate in outbound tx: %w", err)
+		err = errors.New("unable to convert coins that passed whitelist")
+		c.logger.Error().Err(err).Msg(err.Error())
+		return nil, err
 	}
+	fee := ctypes.Coins{cCoin}
 
 	txBuilder, err := buildUnsigned(
 		c.txConfig,
 		msg,
 		tx.VaultPubKey,
 		tx.Memo,
-		gas,
-		gasRate.Amount.Uint64(),
+		fee,
 		uint64(meta.AccountNumber),
 		uint64(meta.SeqNumber),
 	)
@@ -456,40 +457,42 @@ func (c *CosmosClient) BroadcastTx(tx stypes.TxOutItem, txBytes []byte) (string,
 		return "", fmt.Errorf("fail to get account info: %w", err)
 	}
 
-	var gas ctypes.Coins
-	for _, thorchainGas := range tx.MaxGas.ToCoins() {
-		if thorchainGas.Asset == c.GetChain().GetGasAsset() {
-			cosmosCoin, err := fromThorchainToCosmos(thorchainGas)
-			if err != nil {
-				c.logger.Warn().Err(err).Interface("tx", tx).Msg("wasn't able to convert coins that passed whitelist")
-				continue
-			}
-			gas = append(gas, cosmosCoin)
-		}
-	}
-	gasRate, err := fromThorchainToCosmos(common.NewCoin(c.GetChain().GetGasAsset(), cosmos.NewUint(uint64(tx.GasRate))))
-	if err != nil {
-		c.logger.Warn().Err(err).Interface("tx", tx).Msg("wasn't able to convert coins that passed whitelist")
-		return "", err
-	}
-
 	out, err := c.processOutboundTx(tx)
 	if err != nil {
 		return "", fmt.Errorf("unable to processOutboundTx for simulateTx: %w", err)
 	}
+
+	// format the fee (the "MaxGas" set by thornode)
+	gasCoins := tx.MaxGas.ToCoins()
+	if len(gasCoins) != 1 {
+		err = errors.New("exactly one gas coin must be provided")
+		c.logger.Error().Err(err).Interface("fee", gasCoins).Msg(err.Error())
+		return "", err
+	}
+	if !gasCoins[0].Asset.Equals(c.GetChain().GetGasAsset()) {
+		err = errors.New("gas coin asset must match chain gas asset")
+		c.logger.Error().Err(err).Interface("coin", gasCoins[0]).Msg(err.Error())
+		return "", err
+	}
+	cCoin, err := fromThorchainToCosmos(gasCoins[0])
+	if err != nil {
+		err = errors.New("unable to convert coins that passed whitelist")
+		c.logger.Error().Err(err).Msg(err.Error())
+		return "", err
+	}
+	fee := ctypes.Coins{cCoin}
 
 	txb, err := buildUnsigned(
 		c.txConfig,
 		out,
 		tx.VaultPubKey,
 		tx.Memo,
-		gas,
-		gasRate.Amount.Uint64(),
+		fee,
 		uint64(acc.AccountNumber),
 		uint64(acc.Sequence),
 	)
 	if err != nil {
-		return "", fmt.Errorf("unable to buildUnsighed for simulateTx: %w", err)
+		return "", fmt.Errorf("unable to buildUnsigned for simulateTx: %w", err)
 	}
 
 	simRes, err := simulateTx(txb, c.txClient)

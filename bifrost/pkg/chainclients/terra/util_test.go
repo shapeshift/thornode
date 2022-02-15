@@ -63,6 +63,6 @@ func (s UtilTestSuite) TestGetDummyTxBuilderForSimulate(c *C) {
 
 	tx := txb.GetTx()
 	c.Check(tx.GetMemo(), Equals, "ADD:TERRA.SOMELONGCOIN:sthor1x2nh4jevz7z54j9826sluzjjpvncmh3a399cec")
-	c.Check(tx.GetGas(), Equals, uint64(1000))
+	c.Check(tx.GetGas(), Equals, uint64(GasLimit))
 	c.Check(tx.GetFee().IsEqual(ctypes.NewCoins(ctypes.NewCoin("uluna", ctypes.NewInt(1000)))), Equals, true)
 }
