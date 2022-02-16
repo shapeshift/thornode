@@ -34,10 +34,8 @@ type (
 	PubKeys []PubKey
 )
 
-// EmptyPubKey
 var EmptyPubKey PubKey
 
-// EmptyPubKeySet
 var EmptyPubKeySet PubKeySet
 
 // NewPubKey create a new instance of PubKey
@@ -253,8 +251,12 @@ func (pks PubKeys) Equals(newPks PubKeys) bool {
 	if len(pks) != len(newPks) {
 		return false
 	}
-	source := append(pks[:0:0], pks...)
-	dest := append(newPks[:0:0], newPks...)
+
+	source := make(PubKeys, len(pks))
+	dest := make(PubKeys, len(newPks))
+	copy(source, pks)
+	copy(dest, newPks)
+
 	// sort both lists
 	sort.Slice(source[:], func(i, j int) bool {
 		return source[i].String() < source[j].String()
