@@ -1,14 +1,15 @@
 package terra
 
 import (
-	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/crypto/hd"
 	cKeys "github.com/cosmos/cosmos-sdk/crypto/keyring"
 	ctypes "github.com/cosmos/cosmos-sdk/types"
-	"gitlab.com/thorchain/thornode/app"
+	btypes "github.com/cosmos/cosmos-sdk/x/bank/types"
+	"github.com/rs/zerolog/log"
 	"gitlab.com/thorchain/thornode/bifrost/config"
 	"gitlab.com/thorchain/thornode/bifrost/metrics"
+	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/terra/wasm"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient"
 	"gitlab.com/thorchain/thornode/common"
 
@@ -175,7 +176,7 @@ func (s *BlockScannerTestSuite) TestGetBlock(c *C) {
 	block, err := blockScanner.GetBlock(1)
 
 	c.Assert(err, IsNil)
-	c.Assert(len(block.Data.Txs), Equals, 50)
+	c.Assert(len(block.Data.Txs), Equals, 61)
 	c.Assert(block.Header.Height, Equals, int64(6000011))
 }
 
@@ -185,15 +186,16 @@ func (s *BlockScannerTestSuite) TestProcessTxs(c *C) {
 
 	mockRPC := NewMockServiceClient()
 
-	encodingConfig := app.MakeEncodingConfig()
-	ctx := client.Context{}
-	ctx = ctx.WithInterfaceRegistry(encodingConfig.InterfaceRegistry)
-	cdc := codec.NewProtoCodec(ctx.InterfaceRegistry)
+	registry := s.bridge.GetContext().InterfaceRegistry
+	registry.RegisterImplementations((*ctypes.Msg)(nil), &wasm.MsgExecuteContract{})
+	btypes.RegisterInterfaces(registry)
+	cdc := codec.NewProtoCodec(registry)
 
 	blockScanner := CosmosBlockScanner{
 		feeAsset:  feeAsset,
 		tmService: mockRPC,
 		cdc:       cdc,
+		logger:    log.Logger.With().Str("module", "blockscanner").Str("chain", common.TERRAChain.String()).Logger(),
 	}
 
 	block, err := blockScanner.GetBlock(1)
@@ -203,5 +205,5 @@ func (s *BlockScannerTestSuite) TestProcessTxs(c *C) {
 	c.Assert(err, IsNil)
 
 	// proccessTxs should filter out everything besides MsgSend
-	c.Assert(len(txInItems), Equals, 7)
+	c.Assert(len(txInItems), Equals, 10)
 }

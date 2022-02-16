@@ -1,16 +1,12 @@
 package terra
 
 import (
-	"context"
 	"fmt"
 	"math/big"
-	"time"
 
 	"github.com/cosmos/cosmos-sdk/client"
 	ctypes "github.com/cosmos/cosmos-sdk/types"
-	txtypes "github.com/cosmos/cosmos-sdk/types/tx"
 	signingtypes "github.com/cosmos/cosmos-sdk/types/tx/signing"
-	"github.com/cosmos/cosmos-sdk/x/auth/tx"
 	btypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
@@ -59,47 +55,6 @@ func buildUnsigned(
 	}
 
 	return txBuilder, nil
-}
-
-// simulateTx takes a transaction builder and client and returns a simulate response
-// useful for calculating how much gas a transaction would take
-func simulateTx(txb client.TxBuilder, txClient txtypes.ServiceClient) (*txtypes.SimulateResponse, error) {
-	protoProvider, ok := txb.(tx.ProtoTxProvider)
-	if !ok {
-		return &txtypes.SimulateResponse{}, fmt.Errorf("expected proto tx builder, got %T", txb)
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
-	defer cancel()
-	return txClient.Simulate(
-		ctx,
-		&txtypes.SimulateRequest{
-			Tx: protoProvider.GetProtoTx(),
-		},
-	)
-}
-
-func getDummyTxBuilderForSimulate(txConfig client.TxConfig) (client.TxBuilder, error) {
-	// The sender is a dead stagenet vault with some Luna dust left over
-	// It will always have a small balance and its sequence will never change
-	// Thus, we use it as an account to craft a dummy tx that can be used to simulate gas
-	// This is more reliable than using gas averages.
-
-	msg := &btypes.MsgSend{
-		FromAddress: "terra126kpfewtlc7agqjrwdl2wfg0txkphsaw65t39n",
-		ToAddress:   "terra126kpfewtlc7agqjrwdl2wfg0txkphsaw65t39n",
-		Amount:      cosmos.NewCoins(cosmos.NewCoin("uluna", ctypes.NewInt(1000))),
-	}
-
-	return buildUnsigned(
-		txConfig,
-		msg,
-		common.PubKey("sthorpub1addwnpepqwqwswthukczxyas0yhte2pn0r4g3uxux0d83mzfremvegs6lr7z2glhvdw"),
-		"ADD:TERRA.SOMELONGCOIN:sthor1x2nh4jevz7z54j9826sluzjjpvncmh3a399cec",
-		ctypes.NewCoins(ctypes.NewCoin("uluna", ctypes.NewInt(1000))),
-		3418297,
-		41,
-	)
 }
 
 func fromCosmosToThorchain(c cosmos.Coin) (common.Coin, error) {

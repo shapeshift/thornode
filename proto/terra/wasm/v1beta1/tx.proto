@@ -1,0 +1,63 @@
+syntax = "proto3";
+package terra.wasm.v1beta1;
+
+import "gogoproto/gogo.proto";
+import "cosmos/base/v1beta1/coin.proto";
+
+option go_package = "bifrost/pkg/chainclients/terra/wasm";
+
+// Msg defines the oracle Msg service.
+service Msg {
+  // Execute submits the given message data to a smart contract
+  rpc ExecuteContract(MsgExecuteContract) returns (MsgExecuteContractResponse);
+}
+
+// MsgExecuteContract represents a message to
+// submits the given message data to a smart contract.
+message MsgExecuteContract {
+  option (gogoproto.equal)           = false;
+  option (gogoproto.goproto_getters) = false;
+
+  // Sender is the that actor that signed the messages
+  string sender = 1 [(gogoproto.moretags) = "yaml:\"sender\""];
+  // Contract is the address of the smart contract
+  string contract = 2 [(gogoproto.moretags) = "yaml:\"contract\""];
+  // ExecuteMsg json encoded message to be passed to the contract
+  bytes execute_msg = 3
+      [(gogoproto.moretags) = "yaml:\"execute_msg\"", (gogoproto.casttype) = "encoding/json.RawMessage"];
+  // Coins that are transferred to the contract on execution
+  repeated cosmos.base.v1beta1.Coin coins = 5 [
+    (gogoproto.moretags)     = "yaml:\"coins\"",
+    (gogoproto.nullable)     = false,
+    (gogoproto.castrepeated) = "github.com/cosmos/cosmos-sdk/types.Coins"
+  ];
+}
+
+// MsgExecuteContractResponse defines the Msg/ExecuteContract response type.
+message MsgExecuteContractResponse {
+  // Data contains base64-encoded bytes to returned from the contract
+  bytes data = 1 [(gogoproto.moretags) = "yaml:\"data\""];
+}
+
+// MsgMigrateContract represents a message to
+// runs a code upgrade/ downgrade for a smart contract
+message MsgMigrateContract {
+  option (gogoproto.equal)           = false;
+  option (gogoproto.goproto_getters) = false;
+
+  // Admin is the current contract admin
+  string admin = 1 [(gogoproto.moretags) = "yaml:\"admin\""];
+  // Contract is the address of the smart contract
+  string contract = 2 [(gogoproto.moretags) = "yaml:\"contract\""];
+  // NewCodeID references the new WASM code
+  uint64 new_code_id = 3 [(gogoproto.moretags) = "yaml:\"new_code_id\"", (gogoproto.customname) = "NewCodeID"];
+  // MigrateMsg is json encoded message to be passed to the contract on migration
+  bytes migrate_msg = 4
+      [(gogoproto.moretags) = "yaml:\"migrate_msg\"", (gogoproto.casttype) = "encoding/json.RawMessage"];
+}
+
+// MsgMigrateContractResponse defines the Msg/MigrateContract response type.
+message MsgMigrateContractResponse {
+  // Data contains base64-encoded bytes to returned from the contract
+  bytes data = 1 [(gogoproto.moretags) = "yaml:\"data\""];
+}
