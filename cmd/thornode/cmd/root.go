@@ -78,7 +78,7 @@ func initRootCmd(rootCmd *cobra.Command, encodingConfig params.EncodingConfig) {
 		GetEd25519Keys(),
 		GetPubKeyCmd(),
 	)
-
+	rootCmd.SetOut(rootCmd.OutOrStdout())
 	server.AddCommands(rootCmd, app.DefaultNodeHome(appName), newApp, createSimappAndExport, addModuleInitFlags)
 
 	// add keybase, auxiliary RPC, query, and tx child commands
