@@ -259,7 +259,9 @@ func getTotalYggValueInRune(ctx cosmos.Context, keeper keeper.Keeper, ygg Vault)
 
 func refundBond(ctx cosmos.Context, tx common.Tx, amt cosmos.Uint, nodeAcc *NodeAccount, mgr Manager) error {
 	version := mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.80.0")) {
+	if version.GTE(semver.MustParse("0.81.0")) {
+		return refundBondV81(ctx, tx, amt, nodeAcc, mgr)
+	} else if version.GTE(semver.MustParse("0.80.0")) {
 		return refundBondV80(ctx, tx, amt, nodeAcc, mgr)
 	} else if version.GTE(semver.MustParse("0.76.0")) {
 		return refundBondV76(ctx, tx, amt, nodeAcc, mgr)
@@ -271,7 +273,7 @@ func refundBond(ctx cosmos.Context, tx common.Tx, amt cosmos.Uint, nodeAcc *Node
 	return errBadVersion
 }
 
-func refundBondV80(ctx cosmos.Context, tx common.Tx, amt cosmos.Uint, nodeAcc *NodeAccount, mgr Manager) error {
+func refundBondV81(ctx cosmos.Context, tx common.Tx, amt cosmos.Uint, nodeAcc *NodeAccount, mgr Manager) error {
 	if nodeAcc.Status == NodeActive {
 		ctx.Logger().Info("node still active, cannot refund bond", "node address", nodeAcc.NodeAddress, "node pub key", nodeAcc.PubKeySet.Secp256k1)
 		return nil
@@ -337,7 +339,7 @@ func refundBondV80(ctx cosmos.Context, tx common.Tx, amt cosmos.Uint, nodeAcc *N
 
 		bondEvent := NewEventBond(amt, BondReturned, tx)
 		if err := mgr.EventMgr().EmitEvent(ctx, bondEvent); err != nil {
-			return fmt.Errorf("fail to emit bond event: %w", err)
+			ctx.Logger().Error("fail to emit bond event", "error", err)
 		}
 
 		refundAddress := common.Address(nodeAcc.BondAddress.String())
@@ -371,17 +373,34 @@ func refundBondV80(ctx cosmos.Context, tx common.Tx, amt cosmos.Uint, nodeAcc *N
 		ctx.Logger().Error(fmt.Sprintf("fail to save node account(%s)", nodeAcc), "error", err)
 		return err
 	}
+
 	if err := subsidizePoolWithSlashBond(ctx, ygg, yggRune, slashRune, mgr); err != nil {
 		ctx.Logger().Error("fail to subsidize pool with slashed bond", "error", err)
 		return err
 	}
+
 	// at this point , all coins in yggdrasil vault has been accounted for , and node already been slashed
 	ygg.SubFunds(ygg.Coins)
 	if err := mgr.Keeper().SetVault(ctx, ygg); err != nil {
 		ctx.Logger().Error("fail to save yggdrasil vault", "error", err)
 		return err
 	}
-	return mgr.Keeper().DeleteVault(ctx, ygg.PubKey)
+
+	if err := mgr.Keeper().DeleteVault(ctx, ygg.PubKey); err != nil {
+		return err
+	}
+
+	// Output bond events for the slashed and returned bond.
+	if !slashRune.IsZero() {
+		fakeTx := common.Tx{}
+		fakeTx.ID = common.BlankTxID
+		fakeTx.FromAddress = nodeAcc.BondAddress
+		bondEvent := NewEventBond(slashRune, BondCost, fakeTx)
+		if err := mgr.EventMgr().EmitEvent(ctx, bondEvent); err != nil {
+			ctx.Logger().Error("fail to emit bond event", "error", err)
+		}
+	}
+	return nil
 }
 
 func isSignedByActiveNodeAccounts(ctx cosmos.Context, mgr Manager, signers []cosmos.AccAddress) bool {
