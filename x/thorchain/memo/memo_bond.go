@@ -27,9 +27,8 @@ func NewBondMemo(addr, additional cosmos.AccAddress) BondMemo {
 func ParseBondMemo(version semver.Version, parts []string) (BondMemo, error) {
 	if version.GTE(semver.MustParse("0.81.0")) {
 		return ParseBondMemoV81(parts)
-	} else {
-		return ParseBondMemoV1(parts)
 	}
+	return ParseBondMemoV1(parts)
 }
 
 func ParseBondMemoV81(parts []string) (BondMemo, error) {

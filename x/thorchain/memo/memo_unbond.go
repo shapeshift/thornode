@@ -29,9 +29,8 @@ func NewUnbondMemo(addr, additional cosmos.AccAddress, amt cosmos.Uint) UnbondMe
 func ParseUnbondMemo(version semver.Version, parts []string) (UnbondMemo, error) {
 	if version.GTE(semver.MustParse("0.81.0")) {
 		return ParseUnbondMemoV81(parts)
-	} else {
-		return ParseUnbondMemoV1(parts)
 	}
+	return ParseUnbondMemoV1(parts)
 }
 
 func ParseUnbondMemoV81(parts []string) (UnbondMemo, error) {

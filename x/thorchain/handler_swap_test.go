@@ -211,6 +211,7 @@ func (s *HandlerSwapSuite) TestHandle(c *C) {
 	c.Assert(keeper.SetPool(ctx, poolTCAN), IsNil)
 	bnbAddr := GetRandomBNBAddress()
 	m, err := ParseMemo(mgr.GetVersion(), "swap:BNB.BNB:"+bnbAddr.String()+":121893238")
+	c.Assert(err, IsNil)
 	txIn := NewObservedTx(
 		common.NewTx(GetRandomTxHash(), signerBNBAddr, GetRandomBNBAddress(),
 			common.Coins{
