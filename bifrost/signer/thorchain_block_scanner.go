@@ -28,7 +28,6 @@ type ThorchainBlockScan struct {
 	cfg            config.BlockScannerConfiguration
 	scannerStorage blockscanner.ScannerStorage
 	thorchain      *thorclient.ThorchainBridge
-	m              *metrics.Metrics
 	errCounter     *prometheus.CounterVec
 	pubkeyMgr      pubkeymanager.PubKeyValidator
 }
