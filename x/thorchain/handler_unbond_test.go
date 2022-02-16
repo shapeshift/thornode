@@ -143,7 +143,7 @@ func (HandlerUnBondSuite) TestUnBondHandler_Run(c *C) {
 	c.Assert(err, IsNil)
 	na, err := k1.GetNodeAccount(ctx, standbyNodeAccount.NodeAddress)
 	c.Assert(err, IsNil)
-	c.Check(na.Bond.Equal(cosmos.NewUint(95*common.One+1)), Equals, true, Commentf("%d", na.Bond.Uint64()))
+	c.Assert(na.Bond.Equal(cosmos.NewUint(95*common.One+1)), Equals, true, Commentf("%d", na.Bond.Uint64()))
 
 	// test unbonding for 1 rune, should fail, and NOT increase bond with inbound rune
 	mgrBad := NewDummyMgr()
@@ -361,6 +361,14 @@ func (HandlerUnBondSuite) TestBondProviders_Handler(c *C) {
 	standbyNodeAccount := GetRandomValidatorNode(NodeStandby)
 	c.Assert(k.SetNodeAccount(ctx, activeNodeAccount), IsNil)
 	c.Assert(k.SetNodeAccount(ctx, standbyNodeAccount), IsNil)
+	vaultStandby := GetRandomVault()
+	vaultStandby.Type = YggdrasilVault
+	vaultStandby.PubKey = standbyNodeAccount.PubKeySet.Secp256k1
+	c.Assert(k.SetVault(ctx, vaultStandby), IsNil)
+	vaultActive := GetRandomVault()
+	vaultActive.Type = YggdrasilVault
+	vaultActive.PubKey = activeNodeAccount.PubKeySet.Secp256k1
+	c.Assert(k.SetVault(ctx, vaultActive), IsNil)
 	txIn := GetRandomTx()
 	txIn.Coins = common.NewCoins(common.NewCoin(common.RuneAsset(), cosmos.NewUint(0)))
 	handler := NewUnBondHandler(NewDummyMgrWithKeeper(k))
@@ -382,6 +390,7 @@ func (HandlerUnBondSuite) TestBondProviders_Handler(c *C) {
 	c.Assert(k.SetBondProviders(ctx, bp), IsNil)
 	c.Assert(k.SetNodeAccount(ctx, na), IsNil)
 
+	c.Assert(k.SetVault(ctx, vaultStandby), IsNil)
 	msg = NewMsgUnBond(txIn, standbyNodeAccount.NodeAddress, cosmos.ZeroUint(), standbyNodeAccount.BondAddress, p.BondAddress, activeNodeAccount.NodeAddress)
 	err = handler.handle(ctx, *msg)
 	c.Assert(err, IsNil)
@@ -398,6 +407,7 @@ func (HandlerUnBondSuite) TestBondProviders_Handler(c *C) {
 	c.Assert(k.SetBondProviders(ctx, bp), IsNil)
 	c.Assert(k.SetNodeAccount(ctx, na), IsNil)
 
+	c.Assert(k.SetVault(ctx, vaultStandby), IsNil)
 	msg = NewMsgUnBond(txIn, standbyNodeAccount.NodeAddress, cosmos.NewUint(10*common.One), common.Address(p.BondAddress.String()), nil, activeNodeAccount.NodeAddress)
 	err = handler.handle(ctx, *msg)
 	c.Assert(err, IsNil)

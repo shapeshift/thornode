@@ -313,7 +313,7 @@ func (s *HelperSuite) TestRefundBondDisableRequestToLeaveNode(c *C) {
 	tx := GetRandomTx()
 	yggAssetInRune, err := getTotalYggValueInRune(ctx, keeper, ygg)
 	c.Assert(err, IsNil)
-	err = refundBond(ctx, tx, cosmos.ZeroUint(), &na, mgr)
+	err = refundBond(ctx, tx, na.NodeAddress, cosmos.ZeroUint(), &na, mgr)
 	c.Assert(err, IsNil)
 	slashAmt := yggAssetInRune.MulUint64(3).QuoUint64(2)
 	items, err := mgr.TxOutStore().GetOutboundItems(ctx)

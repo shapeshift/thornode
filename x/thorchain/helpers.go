@@ -359,7 +359,6 @@ func refundBondV81(ctx cosmos.Context, tx common.Tx, amt cosmos.Uint, nodeAcc *N
 		}
 
 		bp.Unbond(amt, provider.BondAddress)
-		nodeAcc.Bond = common.SafeSub(nodeAcc.Bond, amt)
 
 		toAddress, err := common.NewAddress(provider.BondAddress.String())
 		if err != nil {
