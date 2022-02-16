@@ -60,7 +60,7 @@ func (HandlerBondSuite) TestBondHandler_ValidateActive(c *C) {
 		BNBGasFeeSingleton,
 		"bond",
 	)
-	msg := NewMsgBond(txIn, activeNodeAccount.NodeAddress, cosmos.NewUint(10*common.One), GetRandomBNBAddress(), activeNodeAccount.NodeAddress)
+	msg := NewMsgBond(txIn, activeNodeAccount.NodeAddress, cosmos.NewUint(10*common.One), activeNodeAccount.BondAddress, nil, activeNodeAccount.NodeAddress)
 
 	// happy path
 	c.Assert(handler.validate(ctx, *msg), IsNil)
@@ -204,7 +204,7 @@ func (HandlerBondSuite) TestBondProvider_Validate(c *C) {
 	additionalBondAddress := GetRandomBech32Addr()
 
 	errCheck := func(c *C, err error, str string) {
-		c.Check(strings.Contains(err.Error(), str), Equals, true, Commentf("%w", err))
+		c.Check(strings.Contains(err.Error(), str), Equals, true, Commentf("%s != %w", str, err))
 	}
 
 	// TEST VALIDATION //
@@ -216,7 +216,7 @@ func (HandlerBondSuite) TestBondProvider_Validate(c *C) {
 	// try to bond while node account is active
 	msg = NewMsgBond(txIn, activeNA, amt, activeNAAddress, nil, activeNA)
 	err = handler.validate(ctx, *msg)
-	errCheck(c, err, "node account is active or ready status")
+	errCheck(c, err, "cannot add bond while the network is not churning")
 
 	// try to bond with a bnb address
 	msg = NewMsgBond(txIn, standbyNA, amt, GetRandomBNBAddress(), nil, activeNA)
