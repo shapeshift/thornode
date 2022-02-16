@@ -17,6 +17,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/auth/signing"
 	"github.com/cosmos/cosmos-sdk/x/auth/tx"
 	"github.com/tendermint/tendermint/crypto"
+	"gitlab.com/thorchain/thornode/x/thorchain"
 	memo "gitlab.com/thorchain/thornode/x/thorchain/memo"
 
 	ctypes "github.com/cosmos/cosmos-sdk/types"
@@ -261,7 +262,7 @@ func (c *CosmosClient) GetAccountByAddress(address string, _ *big.Int) (common.A
 	}, nil
 }
 
-func (c *CosmosClient) processOutboundTx(tx stypes.TxOutItem) (*btypes.MsgSend, error) {
+func (c *CosmosClient) processOutboundTx(tx stypes.TxOutItem, thorchainHeight int64) (*btypes.MsgSend, error) {
 	vaultPubKey, err := tx.VaultPubKey.GetAddress(common.TERRAChain)
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert address (%s) to bech32: %w", tx.VaultPubKey.String(), err)
@@ -269,12 +270,18 @@ func (c *CosmosClient) processOutboundTx(tx stypes.TxOutItem) (*btypes.MsgSend, 
 
 	var coins ctypes.Coins
 	for _, coin := range tx.Coins {
+		if strings.EqualFold(tx.Memo, thorchain.NewYggdrasilReturn(thorchainHeight).String()) {
+			if coin.Asset == c.cosmosScanner.feeAsset {
+				coin.Amount.Sub(c.cosmosScanner.averageFee().Mul(ctypes.NewUint(3).Quo(ctypes.NewUint(2))))
+			}
+		}
 		// convert to cosmos coin
 		cosmosCoin, err := fromThorchainToCosmos(coin)
 		if err != nil {
 			c.logger.Warn().Err(err).Interface("tx", tx).Msg("wasn't able to convert coins that passed whitelist")
 			continue
 		}
+
 		coins = append(coins, cosmosCoin)
 	}
 
@@ -314,7 +321,7 @@ func (c *CosmosClient) SignTx(tx stypes.TxOutItem, thorchainHeight int64) (signe
 		return nil, nil
 	}
 
-	msg, err := c.processOutboundTx(tx)
+	msg, err := c.processOutboundTx(tx, thorchainHeight)
 	if err != nil {
 		c.logger.Error().Err(err).Msg("failed to process outbound tx")
 		return nil, err
