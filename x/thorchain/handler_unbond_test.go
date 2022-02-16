@@ -416,5 +416,4 @@ func (HandlerUnBondSuite) TestBondProviders_Handler(c *C) {
 	bp, _ = handler.mgr.Keeper().GetBondProviders(ctx, standbyNodeAccount.NodeAddress)
 	c.Check(bp.Has(p.BondAddress), Equals, true)
 	c.Check(bp.Get(p.BondAddress).Bond.Uint64(), Equals, uint64(40*common.One))
-
 }

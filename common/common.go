@@ -4,6 +4,4 @@ import (
 	"github.com/blang/semver"
 )
 
-var (
-	LatestVersion semver.Version = semver.MustParse("999.0.0")
-)
+var LatestVersion semver.Version = semver.MustParse("999.0.0")
