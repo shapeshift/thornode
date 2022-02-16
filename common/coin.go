@@ -115,21 +115,21 @@ func (cs Coins) Valid() error {
 // Note: quite a few places already using this method , which can't be changed, otherwise it will cause consensus failure
 // on CHAOSNET
 // Deprecated
-func (cs1 Coins) Equals(cs2 Coins) bool {
-	if len(cs1) != len(cs2) {
+func (cs Coins) Equals(cs2 Coins) bool {
+	if len(cs) != len(cs2) {
 		return false
 	}
 
 	// sort both lists
-	sort.Slice(cs1[:], func(i, j int) bool {
-		return cs1[i].Asset.String() < cs1[j].Asset.String()
+	sort.Slice(cs[:], func(i, j int) bool {
+		return cs[i].Asset.String() < cs[j].Asset.String()
 	})
 	sort.Slice(cs2[:], func(i, j int) bool {
 		return cs2[i].Asset.String() < cs2[j].Asset.String()
 	})
 
-	for i := range cs1 {
-		if !cs1[i].Equals(cs2[i]) {
+	for i := range cs {
+		if !cs[i].Equals(cs2[i]) {
 			return false
 		}
 	}
@@ -139,13 +139,16 @@ func (cs1 Coins) Equals(cs2 Coins) bool {
 
 // EqualsEx Check if two lists of coins are equal to each other.
 // This method will make a copy of cs1 & cs2 , thus the original coins order will not be changed
-func (cs1 Coins) EqualsEx(cs2 Coins) bool {
-	if len(cs1) != len(cs2) {
+func (cs Coins) EqualsEx(cs2 Coins) bool {
+	if len(cs) != len(cs2) {
 		return false
 	}
 
-	source := append(cs1[:0:0], cs1...)
-	dest := append(cs2[:0:0], cs2...)
+	source := make(Coins, len(cs))
+	dest := make(Coins, len(cs2))
+	copy(source, cs)
+	copy(dest, cs2)
+
 	// sort both lists
 	sort.Slice(source[:], func(i, j int) bool {
 		return source[i].Asset.String() < source[j].Asset.String()
