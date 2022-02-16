@@ -260,7 +260,7 @@ func getTotalYggValueInRune(ctx cosmos.Context, keeper keeper.Keeper, ygg Vault)
 func refundBond(ctx cosmos.Context, tx common.Tx, acc cosmos.AccAddress, amt cosmos.Uint, nodeAcc *NodeAccount, mgr Manager) error {
 	version := mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.81.0")) {
-		return refundBondV81(ctx, tx, amt, nodeAcc, mgr)
+		return refundBondV81(ctx, tx, acc, amt, nodeAcc, mgr)
 	} else if version.GTE(semver.MustParse("0.80.0")) {
 		return refundBondV80(ctx, tx, amt, nodeAcc, mgr)
 	} else if version.GTE(semver.MustParse("0.76.0")) {
@@ -273,7 +273,7 @@ func refundBond(ctx cosmos.Context, tx common.Tx, acc cosmos.AccAddress, amt cos
 	return errBadVersion
 }
 
-func refundBondV81(ctx cosmos.Context, tx common.Tx, amt cosmos.Uint, nodeAcc *NodeAccount, mgr Manager) error {
+func refundBondV81(ctx cosmos.Context, tx common.Tx, acc cosmos.AccAddress, amt cosmos.Uint, nodeAcc *NodeAccount, mgr Manager) error {
 	if nodeAcc.Status == NodeActive {
 		ctx.Logger().Info("node still active, cannot refund bond", "node address", nodeAcc.NodeAddress, "node pub key", nodeAcc.PubKeySet.Secp256k1)
 		return nil
