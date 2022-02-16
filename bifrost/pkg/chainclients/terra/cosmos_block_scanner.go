@@ -12,7 +12,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/grpc/tmservice"
 	"github.com/cosmos/cosmos-sdk/codec"
-	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	txtypes "github.com/cosmos/cosmos-sdk/types/tx"
 	signingtypes "github.com/cosmos/cosmos-sdk/types/tx/signing"
 	"github.com/cosmos/cosmos-sdk/x/auth/tx"
@@ -28,6 +27,7 @@ import (
 	"gitlab.com/thorchain/thornode/bifrost/blockscanner"
 	"gitlab.com/thorchain/thornode/bifrost/config"
 	"gitlab.com/thorchain/thornode/bifrost/metrics"
+	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/terra/wasm"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient/types"
 	"gitlab.com/thorchain/thornode/common"
@@ -56,9 +56,10 @@ const (
 )
 
 var (
-	ErrInvalidScanStorage = errors.New("scan storage is empty or nil")
-	ErrInvalidMetrics     = errors.New("metrics is empty or nil")
-	ErrEmptyTx            = errors.New("empty tx")
+	_                     ctypes.Msg = &wasm.MsgExecuteContract{}
+	ErrInvalidScanStorage            = errors.New("scan storage is empty or nil")
+	ErrInvalidMetrics                = errors.New("metrics is empty or nil")
+	ErrEmptyTx                       = errors.New("empty tx")
 )
 
 // CosmosBlockScanner is to scan the blocks
@@ -97,22 +98,22 @@ func NewCosmosBlockScanner(cfg config.BlockScannerConfiguration,
 
 	logger := log.Logger.With().Str("module", "blockscanner").Str("chain", common.TERRAChain.String()).Logger()
 
-	registry := bridge.GetContext().InterfaceRegistry
-	btypes.RegisterInterfaces(registry)
-
 	host := strings.ReplaceAll(cfg.RPCHost, "http://", "")
 	conn, err := grpc.Dial(host, grpc.WithInsecure())
 	if err != nil {
 		logger.Fatal().Err(err).Msg("fail to dial")
 	}
 
-	tmService := tmservice.NewServiceClient(conn)
+	// Registry for decoding txs
+	registry := bridge.GetContext().InterfaceRegistry
+	registry.RegisterImplementations((*ctypes.Msg)(nil), &wasm.MsgExecuteContract{})
+	btypes.RegisterInterfaces(registry)
 	cdc := codec.NewProtoCodec(registry)
 
-	interfaceRegistry := codectypes.NewInterfaceRegistry()
-	interfaceRegistry.RegisterImplementations((*ctypes.Msg)(nil), &btypes.MsgSend{})
-	marshaler := codec.NewProtoCodec(interfaceRegistry)
+	// Registry for encoding txs
+	marshaler := codec.NewProtoCodec(registry)
 	txConfig := tx.NewTxConfig(marshaler, []signingtypes.SignMode{signingtypes.SignMode_SIGN_MODE_DIRECT})
+	tmService := tmservice.NewServiceClient(conn)
 
 	feeAsset := common.TERRAChain.GetGasAsset()
 	return &CosmosBlockScanner{
@@ -247,14 +248,11 @@ func (c *CosmosBlockScanner) processTxs(height int64, rawTxs [][]byte) ([]types.
 		if err != nil {
 			if strings.Contains(err.Error(), "unable to resolve type URL") {
 				// couldn't find msg type in the interface registry, probably not relevant
-				if !strings.Contains(err.Error(), "MsgSend") {
-					// double check to make sure MsgSend isn't mentioned
-					// if it's not, we can safely ignore
-					continue
+				if strings.Contains(err.Error(), "MsgSend") || strings.Contains(err.Error(), "MsgExecuteContract") {
+					// double check to make sure MsgSend or MsgExecuteContract isn't mentioned
+					c.logger.Error().Str("tx", string(rawTx)).Err(err).Msg("unable to decode msg")
 				}
 			}
-			// else we should log this as an error and continue
-			c.logger.Error().Str("tx", string(rawTx)).Err(err).Msg("unable to decode msg")
 			continue
 		}
 
