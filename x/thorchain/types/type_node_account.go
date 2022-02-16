@@ -318,7 +318,7 @@ func (bp *BondProviders) Adjust(nodeBond cosmos.Uint) {
 	}
 	nodeBond = common.SafeSub(nodeBond, fee)
 
-	for i, _ := range bp.Providers {
+	for i := range bp.Providers {
 		bond := bp.Providers[i].Bond
 		bp.Providers[i].Bond = common.GetSafeShare(bond, totalBond, nodeBond)
 		if bp.Providers[i].BondAddress.Equals(bp.NodeAddress) {
