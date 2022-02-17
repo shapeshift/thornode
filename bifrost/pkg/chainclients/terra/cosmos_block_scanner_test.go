@@ -166,7 +166,7 @@ func (s *BlockScannerTestSuite) TestGetBlock(c *C) {
 	feeAsset, err := common.NewAsset("TERRA.LUNA")
 	c.Assert(err, IsNil)
 
-	mockRPC := NewMockServiceClient()
+	mockRPC := NewMockTmServiceClient()
 
 	blockScanner := CosmosBlockScanner{
 		feeAsset:  feeAsset,
@@ -176,15 +176,16 @@ func (s *BlockScannerTestSuite) TestGetBlock(c *C) {
 	block, err := blockScanner.GetBlock(1)
 
 	c.Assert(err, IsNil)
-	c.Assert(len(block.Data.Txs), Equals, 61)
-	c.Assert(block.Header.Height, Equals, int64(6000011))
+	c.Assert(len(block.Data.Txs), Equals, 3)
+	c.Assert(block.Header.Height, Equals, int64(6509672))
 }
 
 func (s *BlockScannerTestSuite) TestProcessTxs(c *C) {
 	feeAsset, err := common.NewAsset("TERRA.LUNA")
 	c.Assert(err, IsNil)
 
-	mockRPC := NewMockServiceClient()
+	mockTmServiceClient := NewMockTmServiceClient()
+	mockTxServiceClient := NewMockTxServiceClient()
 
 	registry := s.bridge.GetContext().InterfaceRegistry
 	registry.RegisterImplementations((*ctypes.Msg)(nil), &wasm.MsgExecuteContract{})
@@ -193,7 +194,8 @@ func (s *BlockScannerTestSuite) TestProcessTxs(c *C) {
 
 	blockScanner := CosmosBlockScanner{
 		feeAsset:  feeAsset,
-		tmService: mockRPC,
+		tmService: mockTmServiceClient,
+		txService: mockTxServiceClient,
 		cdc:       cdc,
 		logger:    log.Logger.With().Str("module", "blockscanner").Str("chain", common.TERRAChain.String()).Logger(),
 	}
@@ -204,6 +206,6 @@ func (s *BlockScannerTestSuite) TestProcessTxs(c *C) {
 	txInItems, err := blockScanner.processTxs(1, block.Data.Txs)
 	c.Assert(err, IsNil)
 
-	// proccessTxs should filter out everything besides MsgSend
-	c.Assert(len(txInItems), Equals, 10)
+	// proccessTxs should filter out everything besides the valid MsgSend
+	c.Assert(len(txInItems), Equals, 1)
 }

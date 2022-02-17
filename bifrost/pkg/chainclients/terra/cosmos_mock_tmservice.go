@@ -12,7 +12,7 @@ import (
 )
 
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
-type MockServiceClient interface {
+type MockTmServiceClient interface {
 	// GetNodeInfo queries the current node info.
 	GetNodeInfo(ctx context.Context, in *tmservice.GetNodeInfoRequest, opts ...grpc.CallOption) (*tmservice.GetNodeInfoResponse, error)
 	// GetSyncing queries node syncing.
@@ -27,53 +27,51 @@ type MockServiceClient interface {
 	GetValidatorSetByHeight(ctx context.Context, in *tmservice.GetValidatorSetByHeightRequest, opts ...grpc.CallOption) (*tmservice.GetValidatorSetByHeightResponse, error)
 }
 
-type mockServiceClient struct{}
+type mockTmServiceClient struct{}
 
-func NewMockServiceClient() MockServiceClient {
-	return &mockServiceClient{}
+func NewMockTmServiceClient() MockTmServiceClient {
+	return &mockTmServiceClient{}
 }
 
-func (m *mockServiceClient) GetNodeInfo(ctx context.Context, in *tmservice.GetNodeInfoRequest, opts ...grpc.CallOption) (*tmservice.GetNodeInfoResponse, error) {
+func (m *mockTmServiceClient) GetNodeInfo(ctx context.Context, in *tmservice.GetNodeInfoRequest, opts ...grpc.CallOption) (*tmservice.GetNodeInfoResponse, error) {
 	return nil, nil
 }
 
-func (m *mockServiceClient) GetSyncing(ctx context.Context, in *tmservice.GetSyncingRequest, opts ...grpc.CallOption) (*tmservice.GetSyncingResponse, error) {
+func (m *mockTmServiceClient) GetSyncing(ctx context.Context, in *tmservice.GetSyncingRequest, opts ...grpc.CallOption) (*tmservice.GetSyncingResponse, error) {
 	return nil, nil
 }
 
-func (m *mockServiceClient) GetLatestBlock(ctx context.Context, in *tmservice.GetLatestBlockRequest, opts ...grpc.CallOption) (*tmservice.GetLatestBlockResponse, error) {
+func (m *mockTmServiceClient) GetLatestBlock(ctx context.Context, in *tmservice.GetLatestBlockRequest, opts ...grpc.CallOption) (*tmservice.GetLatestBlockResponse, error) {
 	return nil, nil
 }
 
-func (m *mockServiceClient) GetBlockByHeight(ctx context.Context, in *tmservice.GetBlockByHeightRequest, opts ...grpc.CallOption) (*tmservice.GetBlockByHeightResponse, error) {
+func (m *mockTmServiceClient) GetBlockByHeight(ctx context.Context, in *tmservice.GetBlockByHeightRequest, opts ...grpc.CallOption) (*tmservice.GetBlockByHeightResponse, error) {
 	out := new(tmservice.GetBlockByHeightResponse)
-	err := unmarshalJSONToPb("./test-data/block_by_height.json", out)
+	err := unmarshalTmJSONToPb("./test-data/block_by_height.json", out)
 	if err != nil {
-		fmt.Printf(`Failed to unmarshal block by height: %s`, err)
-		return nil, err
+		return nil, fmt.Errorf("failed to unmarshal block by height: %s", err)
 	}
 	return out, nil
 }
 
-func (m *mockServiceClient) GetLatestValidatorSet(ctx context.Context, in *tmservice.GetLatestValidatorSetRequest, opts ...grpc.CallOption) (*tmservice.GetLatestValidatorSetResponse, error) {
+func (m *mockTmServiceClient) GetLatestValidatorSet(ctx context.Context, in *tmservice.GetLatestValidatorSetRequest, opts ...grpc.CallOption) (*tmservice.GetLatestValidatorSetResponse, error) {
 	return nil, nil
 }
 
-func (m *mockServiceClient) GetValidatorSetByHeight(ctx context.Context, in *tmservice.GetValidatorSetByHeightRequest, opts ...grpc.CallOption) (*tmservice.GetValidatorSetByHeightResponse, error) {
+func (m *mockTmServiceClient) GetValidatorSetByHeight(ctx context.Context, in *tmservice.GetValidatorSetByHeightRequest, opts ...grpc.CallOption) (*tmservice.GetValidatorSetByHeightResponse, error) {
 	return nil, nil
 }
 
-func unmarshalJSONToPb(filePath string, msg proto.Message) error {
+func unmarshalTmJSONToPb(filePath string, msg proto.Message) error {
 	jsonFile, err := os.Open(filePath)
 	if err != nil {
-		fmt.Println(err)
+		return err
 	}
 	defer jsonFile.Close()
 
 	err = jsonpb.Unmarshal(jsonFile, msg)
 
 	if err != nil {
-		fmt.Printf(`Failed to unmarshal message: %s`, err)
 		return err
 	}
 

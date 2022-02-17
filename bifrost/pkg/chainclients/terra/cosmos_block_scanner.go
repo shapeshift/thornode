@@ -69,8 +69,8 @@ type CosmosBlockScanner struct {
 	feeAsset         common.Asset
 	db               blockscanner.ScannerStorage
 	cdc              *codec.ProtoCodec
-	txClient         txtypes.ServiceClient
 	txConfig         client.TxConfig
+	txService        txtypes.ServiceClient
 	tmService        tmservice.ServiceClient
 	grpc             *grpc.ClientConn
 	bridge           *thorclient.ThorchainBridge
@@ -122,8 +122,8 @@ func NewCosmosBlockScanner(cfg config.BlockScannerConfiguration,
 		db:               scanStorage,
 		feeAsset:         feeAsset,
 		cdc:              cdc,
-		txClient:         txtypes.NewServiceClient(conn),
 		txConfig:         txConfig,
+		txService:        txtypes.NewServiceClient(conn),
 		tmService:        tmService,
 		feeCache:         make([]ctypes.Uint, 0),
 		grpc:             conn,
@@ -154,6 +154,7 @@ func (c *CosmosBlockScanner) FetchMemPool(height int64) (types.TxIn, error) {
 func (c *CosmosBlockScanner) GetBlock(height int64) (*tmtypes.Block, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
+
 	resultBlock, err := c.tmService.GetBlockByHeight(
 		ctx,
 		&tmservice.GetBlockByHeightRequest{Height: height})
@@ -239,8 +240,11 @@ func (c *CosmosBlockScanner) updateGasFees(height int64) error {
 }
 
 func (c *CosmosBlockScanner) processTxs(height int64, rawTxs [][]byte) ([]types.TxInItem, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+
 	decoder := tx.DefaultTxDecoder(c.cdc)
-	var txs []types.TxInItem
+	var possibleTxs []types.TxInItem
 
 	for _, rawTx := range rawTxs {
 		hash := hex.EncodeToString(tmhash.Sum(rawTx))
@@ -295,7 +299,7 @@ func (c *CosmosBlockScanner) processTxs(height int64, rawTxs [][]byte) ([]types.
 					gasFees = append(gasFees, cCoin)
 				}
 
-				txs = append(txs, types.TxInItem{
+				possibleTxs = append(possibleTxs, types.TxInItem{
 					Tx:          hash,
 					BlockHeight: height,
 					Memo:        memo,
@@ -311,7 +315,25 @@ func (c *CosmosBlockScanner) processTxs(height int64, rawTxs [][]byte) ([]types.
 		}
 	}
 
-	return txs, nil
+	c.logger.Info().Interface("possibleTxs", possibleTxs).Msg("process")
+
+	var verifiedTxs []types.TxInItem
+	for _, tx := range possibleTxs {
+		getTxResponse, err := c.txService.GetTx(ctx, &txtypes.GetTxRequest{Hash: tx.Tx})
+		if err != nil {
+			c.logger.Error().Err(err).Str("txhash", tx.Tx).Msg("unable to GetTx")
+			continue
+		}
+
+		if getTxResponse.TxResponse.Code != 0 {
+			c.logger.Warn().Interface("getTxResponse", getTxResponse).Str("txhash", tx.Tx).Msg("inbound tx has non-zero response code, ignoring...")
+			continue
+		}
+
+		verifiedTxs = append(verifiedTxs, tx)
+	}
+
+	return verifiedTxs, nil
 }
 
 func (c *CosmosBlockScanner) FetchTxs(height int64) (types.TxIn, error) {
