@@ -315,8 +315,6 @@ func (c *CosmosBlockScanner) processTxs(height int64, rawTxs [][]byte) ([]types.
 		}
 	}
 
-	c.logger.Info().Interface("possibleTxs", possibleTxs).Msg("process")
-
 	var verifiedTxs []types.TxInItem
 	for _, tx := range possibleTxs {
 		getTxResponse, err := c.txService.GetTx(ctx, &txtypes.GetTxRequest{Hash: tx.Tx})
