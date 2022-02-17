@@ -244,7 +244,7 @@ func (c *CosmosBlockScanner) processTxs(height int64, rawTxs [][]byte) ([]types.
 	defer cancel()
 
 	decoder := tx.DefaultTxDecoder(c.cdc)
-	var possibleTxs []types.TxInItem
+	var unverifiedTxs []types.TxInItem
 
 	for _, rawTx := range rawTxs {
 		hash := hex.EncodeToString(tmhash.Sum(rawTx))
@@ -299,7 +299,7 @@ func (c *CosmosBlockScanner) processTxs(height int64, rawTxs [][]byte) ([]types.
 					gasFees = append(gasFees, cCoin)
 				}
 
-				possibleTxs = append(possibleTxs, types.TxInItem{
+				unverifiedTxs = append(unverifiedTxs, types.TxInItem{
 					Tx:          hash,
 					BlockHeight: height,
 					Memo:        memo,
@@ -316,19 +316,24 @@ func (c *CosmosBlockScanner) processTxs(height int64, rawTxs [][]byte) ([]types.
 	}
 
 	var verifiedTxs []types.TxInItem
-	for _, tx := range possibleTxs {
-		getTxResponse, err := c.txService.GetTx(ctx, &txtypes.GetTxRequest{Hash: tx.Tx})
+	for _, unverifiedTx := range unverifiedTxs {
+		getTxResponse, err := c.txService.GetTx(ctx, &txtypes.GetTxRequest{Hash: unverifiedTx.Tx})
 		if err != nil {
-			c.logger.Error().Err(err).Str("txhash", tx.Tx).Msg("unable to GetTx")
-			continue
+			c.logger.Error().Err(err).Str("txhash", unverifiedTx.Tx).Msg("unable to GetTx")
+			return c.processTxs(height, rawTxs)
+		}
+
+		if getTxResponse == nil || getTxResponse.TxResponse == nil {
+			c.logger.Error().Str("txhash", unverifiedTx.Tx).Msg("nil getTx")
+			return c.processTxs(height, rawTxs)
 		}
 
 		if getTxResponse.TxResponse.Code != 0 {
-			c.logger.Warn().Interface("getTxResponse", getTxResponse).Str("txhash", tx.Tx).Msg("inbound tx has non-zero response code, ignoring...")
+			c.logger.Warn().Interface("getTxResponse", getTxResponse).Str("txhash", unverifiedTx.Tx).Msg("inbound tx has non-zero response code, ignoring...")
 			continue
 		}
 
-		verifiedTxs = append(verifiedTxs, tx)
+		verifiedTxs = append(verifiedTxs, unverifiedTx)
 	}
 
 	return verifiedTxs, nil
