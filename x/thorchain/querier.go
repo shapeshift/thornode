@@ -7,7 +7,9 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
+	"github.com/cosmos/cosmos-sdk/telemetry"
 	types2 "github.com/cosmos/cosmos-sdk/types"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"gitlab.com/thorchain/thornode/common"
@@ -20,6 +22,7 @@ import (
 // NewQuerier is the module level router for state queries
 func NewQuerier(mgr *Mgrs, kbs cosmos.KeybaseStore) cosmos.Querier {
 	return func(ctx cosmos.Context, path []string, req abci.RequestQuery) (res []byte, err error) {
+		defer telemetry.MeasureSince(time.Now(), path[0])
 		switch path[0] {
 		case q.QueryPool.Key:
 			return queryPool(ctx, path[1:], req, mgr)
