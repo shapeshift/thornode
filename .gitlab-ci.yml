@@ -27,7 +27,6 @@ stages:
   - test
   - build
   - smoke-test
-  - release
 
 unit-tests:
   stage: test
@@ -139,18 +138,6 @@ smoke-test:
     - cd ./heimdall && IMAGE_NAME=$HEIMDALL_IMAGE make smoke
   after_script:
     - ./scripts/docker_logs.sh
-
-release:
-  stage: release
-  tags:
-    - thorchain
-  image: registry.gitlab.com/thorchain/misc/release-tool:latest
-  only:
-    - develop
-  except:
-    - schedules
-  script:
-    - release-tool changelog
 
 gosec-sast:
   stage: test
