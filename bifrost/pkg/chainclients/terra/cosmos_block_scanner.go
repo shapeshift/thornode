@@ -319,13 +319,11 @@ func (c *CosmosBlockScanner) processTxs(height int64, rawTxs [][]byte) ([]types.
 	for _, unverifiedTx := range unverifiedTxs {
 		getTxResponse, err := c.txService.GetTx(ctx, &txtypes.GetTxRequest{Hash: unverifiedTx.Tx})
 		if err != nil {
-			c.logger.Error().Err(err).Str("txhash", unverifiedTx.Tx).Msg("unable to GetTx")
-			return c.processTxs(height, rawTxs)
+			return []types.TxInItem{}, fmt.Errorf("unable to GetTx for verification %s: %w", unverifiedTx.Tx, err)
 		}
 
 		if getTxResponse == nil || getTxResponse.TxResponse == nil {
-			c.logger.Error().Str("txhash", unverifiedTx.Tx).Msg("nil getTx")
-			return c.processTxs(height, rawTxs)
+			return []types.TxInItem{}, fmt.Errorf("unable to GetTx for verification %s: %w", unverifiedTx.Tx, err)
 		}
 
 		if getTxResponse.TxResponse.Code != 0 {
