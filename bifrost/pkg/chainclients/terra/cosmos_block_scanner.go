@@ -328,7 +328,7 @@ func (c *CosmosBlockScanner) processTxs(height int64, rawTxs [][]byte) ([]types.
 		}
 
 		if getTxResponse == nil || getTxResponse.TxResponse == nil {
-			c.logger.Warn().Interface("getTxResponse", getTxResponse).Interface("unverifiedTx", unverifiedTx).Msg("inbound tx has non-zero response code, ignoring...")
+			c.logger.Warn().Interface("getTxResponse", getTxResponse).Interface("unverifiedTx", unverifiedTx).Msg("inbound tx nil getTxResponse, ignoring...")
 			// the tx response is invalid. this transaction cannot be verified, skip it...
 			continue
 		}
