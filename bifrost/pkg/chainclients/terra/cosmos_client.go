@@ -358,8 +358,8 @@ func (c *CosmosClient) SignTx(tx stypes.TxOutItem, thorchainHeight int64) (signe
 			c.logger.Error().Err(err).Interface("fee", gasCoins).Msg(err.Error())
 			return nil, err
 		}
-
 	}
+
 	if !gasCoins[0].Asset.Equals(c.GetChain().GetGasAsset()) {
 		err = errors.New("gas coin asset must match chain gas asset")
 		c.logger.Error().Err(err).Interface("coin", gasCoins[0]).Msg(err.Error())
