@@ -494,22 +494,15 @@ func (c *CosmosClient) BroadcastTx(tx stypes.TxOutItem, txBytes []byte) (string,
 		return "", err
 	}
 
-	checkTx, err := c.txClient.GetTx(ctx, &txtypes.GetTxRequest{Hash: broadcastRes.TxResponse.TxHash})
-	if err != nil {
-		c.logger.Error().Err(err).Msg("unable to check broadcast tx")
-		return "", err
-	}
-
-	if success := CosmosSuccessCodes[checkTx.TxResponse.Code]; !success {
+	if success := CosmosSuccessCodes[broadcastRes.TxResponse.Code]; !success {
 		c.logger.Error().Interface("response", broadcastRes).Msg("unsuccessful error code in transaction broadcast")
 		return "", errors.New("broadcast msg failed")
 	}
 
-	c.accts.SeqInc(tx.VaultPubKey)
 	if err := c.signerCacheManager.SetSigned(tx.CacheHash(), broadcastRes.TxResponse.TxHash); err != nil {
 		c.logger.Err(err).Msg("fail to set signer cache")
 	}
-	return checkTx.TxResponse.TxHash, nil
+	return broadcastRes.TxResponse.TxHash, nil
 }
 
 // ConfirmationCountReady cosmos chain has almost instant finality, so doesn't need to wait for confirmation
