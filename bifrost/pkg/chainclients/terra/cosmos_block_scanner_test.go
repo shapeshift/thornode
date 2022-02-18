@@ -171,7 +171,7 @@ func (s *BlockScannerTestSuite) TestGetBlock(c *C) {
 	block, err := blockScanner.GetBlock(1)
 
 	c.Assert(err, IsNil)
-	c.Assert(len(block.Data.Txs), Equals, 4)
+	c.Assert(len(block.Data.Txs), Equals, 3)
 	c.Assert(block.Header.Height, Equals, int64(6509672))
 }
 
