@@ -283,7 +283,12 @@ func (c *CosmosClient) processOutboundTx(tx stypes.TxOutItem, thorchainHeight in
 	for _, coin := range tx.Coins {
 		if strings.EqualFold(tx.Memo, thorchain.NewYggdrasilReturn(thorchainHeight).String()) {
 			if coin.Asset == c.cosmosScanner.feeAsset {
-				coin.Amount.Sub(c.cosmosScanner.averageFee())
+				subtractFee := c.cosmosScanner.averageFee().Mul(ctypes.NewUint(3)).Quo(ctypes.NewUint(2))
+				if coin.Amount.LT(subtractFee) {
+					// not enough gas to pay for transaction
+					return &btypes.MsgSend{}, fmt.Errorf("not enough gas to pay for transaction, have %d want %d", coin.Amount.Uint64(), subtractFee.Uint64())
+				}
+				coin.Amount = coin.Amount.Sub(subtractFee)
 			}
 		}
 		// convert to cosmos coin
@@ -362,7 +367,7 @@ func (c *CosmosClient) SignTx(tx stypes.TxOutItem, thorchainHeight int64) (signe
 		if strings.EqualFold(tx.Memo, thorchain.NewYggdrasilReturn(thorchainHeight).String()) {
 			gasCoins = append(gasCoins, common.NewCoin(
 				c.GetChain().GetGasAsset(),
-				c.cosmosScanner.averageFee(),
+				c.cosmosScanner.averageFee().Mul(ctypes.NewUint(3)).Quo(ctypes.NewUint(2)),
 			))
 		} else {
 			err = errors.New("exactly one gas coin must be provided")
