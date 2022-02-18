@@ -461,16 +461,22 @@ func (c *CosmosClient) BroadcastTx(tx stypes.TxOutItem, txBytes []byte) (string,
 
 	req := &txtypes.BroadcastTxRequest{
 		TxBytes: txBytes,
-		Mode:    txtypes.BroadcastMode_BROADCAST_MODE_BLOCK,
+		Mode:    txtypes.BroadcastMode_BROADCAST_MODE_SYNC,
 	}
+
 	broadcastRes, err := c.txClient.BroadcastTx(ctx, req)
-	log.Info().Interface("req", req).Interface("res", broadcastRes).Msg("BroadcastTx")
 	if err != nil {
 		c.logger.Error().Err(err).Msg("unable to broadcast tx")
 		return "", err
 	}
 
-	if success := CosmosSuccessCodes[broadcastRes.TxResponse.Code]; !success {
+	checkTx, err := c.txClient.GetTx(ctx, &txtypes.GetTxRequest{Hash: broadcastRes.TxResponse.TxHash})
+	if err != nil {
+		c.logger.Error().Err(err).Msg("unable to check broadcast tx")
+		return "", err
+	}
+
+	if success := CosmosSuccessCodes[checkTx.TxResponse.Code]; !success {
 		c.logger.Error().Interface("response", broadcastRes).Msg("unsuccessful error code in transaction broadcast")
 		return "", errors.New("broadcast msg failed")
 	}
@@ -479,7 +485,7 @@ func (c *CosmosClient) BroadcastTx(tx stypes.TxOutItem, txBytes []byte) (string,
 	if err := c.signerCacheManager.SetSigned(tx.CacheHash(), broadcastRes.TxResponse.TxHash); err != nil {
 		c.logger.Err(err).Msg("fail to set signer cache")
 	}
-	return broadcastRes.TxResponse.TxHash, nil
+	return checkTx.TxResponse.TxHash, nil
 }
 
 // ConfirmationCountReady cosmos chain has almost instant finality, so doesn't need to wait for confirmation
