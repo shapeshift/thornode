@@ -3,11 +3,7 @@ package terra
 import (
 	"context"
 	"fmt"
-	"os"
 	"strings"
-
-	"github.com/gogo/protobuf/jsonpb"
-	"github.com/gogo/protobuf/proto"
 
 	txtypes "github.com/cosmos/cosmos-sdk/types/tx"
 	grpc "google.golang.org/grpc"
@@ -49,11 +45,11 @@ func (m *mockTxServiceClient) GetTx(ctx context.Context, in *txtypes.GetTxReques
 	var err error
 	switch strings.ToUpper(in.Hash) {
 	case "448DE9B1DEB0B6A8A5B66F760D4EC54A9FE7F4DE2A1422F373327AB6A58EB25B":
-		err = unmarshalTxJSONToPb("./test-data/tx_448DE9B1DEB0B6A8A5B66F760D4EC54A9FE7F4DE2A1422F373327AB6A58EB25B.json", out)
+		err = unmarshalJSONToPb("./test-data/tx_448DE9B1DEB0B6A8A5B66F760D4EC54A9FE7F4DE2A1422F373327AB6A58EB25B.json", out)
 	case "FD95AFE5D3C53479E0D12E74CBD1C4EE832AF69FDC6C45A4CA72815D5FBA7B1B":
-		err = unmarshalTxJSONToPb("./test-data/tx_FD95AFE5D3C53479E0D12E74CBD1C4EE832AF69FDC6C45A4CA72815D5FBA7B1B.json", out)
+		err = unmarshalJSONToPb("./test-data/tx_FD95AFE5D3C53479E0D12E74CBD1C4EE832AF69FDC6C45A4CA72815D5FBA7B1B.json", out)
 	case "9F17C25D24E3DAD66137E0FD2332D017C51890F54F1550ECEAE95EEB8187BC1D":
-		err = unmarshalTxJSONToPb("./test-data/tx_9F17C25D24E3DAD66137E0FD2332D017C51890F54F1550ECEAE95EEB8187BC1D.json", out)
+		err = unmarshalJSONToPb("./test-data/tx_9F17C25D24E3DAD66137E0FD2332D017C51890F54F1550ECEAE95EEB8187BC1D.json", out)
 	default:
 		return nil, fmt.Errorf("unable to find txhash %s", in.Hash)
 	}
@@ -63,20 +59,4 @@ func (m *mockTxServiceClient) GetTx(ctx context.Context, in *txtypes.GetTxReques
 	}
 
 	return out, nil
-}
-
-func unmarshalTxJSONToPb(filePath string, msg proto.Message) error {
-	jsonFile, err := os.Open(filePath)
-	if err != nil {
-		return err
-	}
-	defer jsonFile.Close()
-
-	err = jsonpb.Unmarshal(jsonFile, msg)
-
-	if err != nil {
-		return err
-	}
-
-	return nil
 }

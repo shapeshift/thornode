@@ -1,6 +1,7 @@
 package terra
 
 import (
+	"math/big"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -91,6 +92,41 @@ func (s *CosmosTestSuite) TearDownSuite(c *C) {
 	}
 }
 
+func (s *CosmosTestSuite) TestGetAddress(c *C) {
+	mockBankServiceClient := NewMockBankServiceClient()
+	mockAccountServiceClient := NewMockAccountServiceClient()
+
+	cc := CosmosClient{
+		cfg:           config.ChainConfiguration{ChainID: common.TERRAChain},
+		bankClient:    mockBankServiceClient,
+		accountClient: mockAccountServiceClient,
+	}
+
+	addr := "terra10tjz4ave7znpctgd2rfu6v2r6zkeup2del6t7z"
+	luna, _ := common.NewAsset("TERRA.LUNA")
+	ust, _ := common.NewAsset("TERRA.UST")
+	expectedCoins := common.NewCoins(
+		common.NewCoin(luna, cosmos.NewUint(496694100)),
+		common.NewCoin(ust, cosmos.NewUint(11168742300)),
+	)
+
+	acc, err := cc.GetAccountByAddress(addr, big.NewInt(0))
+	c.Assert(err, IsNil)
+	c.Check(acc.AccountNumber, Equals, int64(3530305))
+	c.Check(acc.Sequence, Equals, int64(3))
+	c.Check(acc.Coins.Equals(expectedCoins), Equals, true)
+
+	pk := common.PubKey("sthorpub1addwnpepqf72ur2e8zk8r5augtrly40cuy94f7e663zh798tyms6pu2k8qdswf4es66")
+	acc, err = cc.GetAccount(pk, big.NewInt(0))
+	c.Assert(err, IsNil)
+	c.Check(acc.AccountNumber, Equals, int64(3530305))
+	c.Check(acc.Sequence, Equals, int64(3))
+	c.Check(acc.Coins.Equals(expectedCoins), Equals, true)
+
+	resultAddr := cc.GetAddress(pk)
+	c.Check(addr, Equals, resultAddr)
+}
+
 func (s *CosmosTestSuite) TestProcessOutboundTx(c *C) {
 	server := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 	}))
@@ -132,7 +168,7 @@ func (s *CosmosTestSuite) TestProcessOutboundTx(c *C) {
 	c.Check(msg.ToAddress, Equals, toAddress.String())
 }
 
-func (s *CosmosTestSuite) TestSignMsg(c *C) {
+func (s *CosmosTestSuite) TestSign(c *C) {
 	priv, err := s.thorKeys.GetPrivateKey()
 	c.Assert(err, IsNil)
 
@@ -156,10 +192,16 @@ func (s *CosmosTestSuite) TestSignMsg(c *C) {
 	scannerConfig := config.BlockScannerConfiguration{ChainID: common.TERRAChain}
 	txConfig := tx.NewTxConfig(marshaler, []signingtypes.SignMode{signingtypes.SignMode_SIGN_MODE_DIRECT})
 
+	mockTmServiceClient := NewMockTmServiceClient()
+	mockAccountServiceClient := NewMockAccountServiceClient()
+	mockBankServiceClient := NewMockBankServiceClient()
+
 	client := CosmosClient{
 		cfg:             clientConfig,
 		txConfig:        txConfig,
-		cosmosScanner:   &CosmosBlockScanner{cfg: scannerConfig},
+		cosmosScanner:   &CosmosBlockScanner{cfg: scannerConfig, tmService: mockTmServiceClient},
+		bankClient:      mockBankServiceClient,
+		accountClient:   mockAccountServiceClient,
 		chainID:         "columbus-5",
 		localKeyManager: localKm,
 		accts:           NewCosmosMetaDataStore(),
