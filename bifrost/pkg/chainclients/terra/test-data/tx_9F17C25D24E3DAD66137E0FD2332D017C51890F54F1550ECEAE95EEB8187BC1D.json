@@ -4,14 +4,24 @@
       "messages": [
         {
           "@type": "/terra.wasm.v1beta1.MsgExecuteContract",
-          "coins": [{ "denom": "uusd", "amount": "5000000000" }],
+          "coins": [
+            {
+              "denom": "uusd",
+              "amount": "5000000000"
+            }
+          ],
           "contract": "terra1etdkg9p0fkl8zal6ecp98kypd32q8k3ryced9d",
           "executeMsg": "eyJzd2FwIjp7ImJlbGllZl9wcmljZSI6IjAuMDI1OTYzMjUyOTY3MjkxNTM0IiwibWF4X3NwcmVhZCI6IjAuMDA1Iiwib2ZmZXJfYXNzZXQiOnsiYW1vdW50IjoiNTAwMDAwMDAwMCIsImluZm8iOnsibmF0aXZlX3Rva2VuIjp7ImRlbm9tIjoidXVzZCJ9fX19fQ==",
           "sender": "terra1e3r0eezgjsfkk0pwlyhr4rlaz5n8yfp8qpnqgp"
         },
         {
           "@type": "/cosmos.bank.v1beta1.MsgSend",
-          "amount": [{ "denom": "uusd", "amount": "100000" }],
+          "amount": [
+            {
+              "denom": "uusd",
+              "amount": "100000"
+            }
+          ],
           "fromAddress": "terra1e3r0eezgjsfkk0pwlyhr4rlaz5n8yfp8qpnqgp",
           "toAddress": "terra1yqg0wzvkjn7c83ra83ksthwu6vd927kssrhwhn"
         }
@@ -63,12 +73,21 @@
               "@type": "/cosmos.crypto.secp256k1.PubKey",
               "key": "ApdrUiEPc/TOuxcWVV5ehXy5fzY+ZkZrhHEds1XUL/8i"
             },
-            "modeInfo": { "single": { "mode": "SIGN_MODE_DIRECT" } },
+            "modeInfo": {
+              "single": {
+                "mode": "SIGN_MODE_DIRECT"
+              }
+            },
             "sequence": "4299"
           }
         ],
         "fee": {
-          "amount": [{ "denom": "uusd", "amount": "50449" }],
+          "amount": [
+            {
+              "denom": "uusd",
+              "amount": "50449"
+            }
+          ],
           "gasLimit": "336324"
         }
       },
@@ -76,14 +95,24 @@
         "messages": [
           {
             "@type": "/terra.wasm.v1beta1.MsgExecuteContract",
-            "coins": [{ "denom": "uusd", "amount": "5000000000" }],
+            "coins": [
+              {
+                "denom": "uusd",
+                "amount": "5000000000"
+              }
+            ],
             "contract": "terra1etdkg9p0fkl8zal6ecp98kypd32q8k3ryced9d",
             "executeMsg": "eyJzd2FwIjp7ImJlbGllZl9wcmljZSI6IjAuMDI1OTYzMjUyOTY3MjkxNTM0IiwibWF4X3NwcmVhZCI6IjAuMDA1Iiwib2ZmZXJfYXNzZXQiOnsiYW1vdW50IjoiNTAwMDAwMDAwMCIsImluZm8iOnsibmF0aXZlX3Rva2VuIjp7ImRlbm9tIjoidXVzZCJ9fX19fQ==",
             "sender": "terra1e3r0eezgjsfkk0pwlyhr4rlaz5n8yfp8qpnqgp"
           },
           {
             "@type": "/cosmos.bank.v1beta1.MsgSend",
-            "amount": [{ "denom": "uusd", "amount": "100000" }],
+            "amount": [
+              {
+                "denom": "uusd",
+                "amount": "100000"
+              }
+            ],
             "fromAddress": "terra1e3r0eezgjsfkk0pwlyhr4rlaz5n8yfp8qpnqgp",
             "toAddress": "terra1yqg0wzvkjn7c83ra83ksthwu6vd927kssrhwhn"
           }
