@@ -544,7 +544,7 @@ func (c *CosmosClient) ReportSolvency(blockHeight int64) error {
 }
 
 func (c *CosmosClient) ShouldReportSolvency(height int64) bool {
-	return height%30 == 0
+	return height%900 == 0
 }
 
 func (c *CosmosClient) OnObservedTxIn(txIn stypes.TxInItem, blockHeight int64) {
