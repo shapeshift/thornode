@@ -3,11 +3,14 @@ package terra
 import (
 	"fmt"
 	"math/big"
+	"os"
 
 	"github.com/cosmos/cosmos-sdk/client"
 	ctypes "github.com/cosmos/cosmos-sdk/types"
 	signingtypes "github.com/cosmos/cosmos-sdk/types/tx/signing"
 	btypes "github.com/cosmos/cosmos-sdk/x/bank/types"
+	"github.com/gogo/protobuf/jsonpb"
+	"github.com/gogo/protobuf/proto"
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 )
@@ -105,4 +108,20 @@ func fromThorchainToCosmos(coin common.Coin) (cosmos.Coin, error) {
 		amount.Quo(amount, exp.Exp(big.NewInt(10), big.NewInt(decimalDiff), nil))
 	}
 	return cosmos.NewCoin(asset.CosmosDenom, ctypes.NewIntFromBigInt(amount)), nil
+}
+
+func unmarshalJSONToPb(filePath string, msg proto.Message) error {
+	jsonFile, err := os.Open(filePath)
+	if err != nil {
+		return err
+	}
+	defer jsonFile.Close()
+
+	err = jsonpb.Unmarshal(jsonFile, msg)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

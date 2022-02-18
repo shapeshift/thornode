@@ -3,11 +3,8 @@ package terra
 import (
 	"context"
 	"fmt"
-	"os"
 
 	"github.com/cosmos/cosmos-sdk/client/grpc/tmservice"
-	"github.com/gogo/protobuf/jsonpb"
-	"github.com/gogo/protobuf/proto"
 	grpc "google.golang.org/grpc"
 )
 
@@ -42,12 +39,17 @@ func (m *mockTmServiceClient) GetSyncing(ctx context.Context, in *tmservice.GetS
 }
 
 func (m *mockTmServiceClient) GetLatestBlock(ctx context.Context, in *tmservice.GetLatestBlockRequest, opts ...grpc.CallOption) (*tmservice.GetLatestBlockResponse, error) {
-	return nil, nil
+	out := new(tmservice.GetLatestBlockResponse)
+	err := unmarshalJSONToPb("./test-data/latest_block.json", out)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal block by height: %s", err)
+	}
+	return out, nil
 }
 
 func (m *mockTmServiceClient) GetBlockByHeight(ctx context.Context, in *tmservice.GetBlockByHeightRequest, opts ...grpc.CallOption) (*tmservice.GetBlockByHeightResponse, error) {
 	out := new(tmservice.GetBlockByHeightResponse)
-	err := unmarshalTmJSONToPb("./test-data/block_by_height.json", out)
+	err := unmarshalJSONToPb("./test-data/block_by_height.json", out)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal block by height: %s", err)
 	}
@@ -60,20 +62,4 @@ func (m *mockTmServiceClient) GetLatestValidatorSet(ctx context.Context, in *tms
 
 func (m *mockTmServiceClient) GetValidatorSetByHeight(ctx context.Context, in *tmservice.GetValidatorSetByHeightRequest, opts ...grpc.CallOption) (*tmservice.GetValidatorSetByHeightResponse, error) {
 	return nil, nil
-}
-
-func unmarshalTmJSONToPb(filePath string, msg proto.Message) error {
-	jsonFile, err := os.Open(filePath)
-	if err != nil {
-		return err
-	}
-	defer jsonFile.Close()
-
-	err = jsonpb.Unmarshal(jsonFile, msg)
-
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
