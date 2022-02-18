@@ -522,7 +522,7 @@ func (c *CosmosClient) GetConfirmationCount(txIn stypes.TxIn) int64 {
 }
 
 func (c *CosmosClient) ReportSolvency(blockHeight int64) error {
-	if blockHeight%900 > 0 {
+	if !c.ShouldReportSolvency(blockHeight) {
 		return nil
 	}
 	asgardVaults, err := c.thorchainBridge.GetAsgards()
@@ -550,7 +550,7 @@ func (c *CosmosClient) ReportSolvency(blockHeight int64) error {
 }
 
 func (c *CosmosClient) ShouldReportSolvency(height int64) bool {
-	return height%10 == 0
+	return height%30 == 0
 }
 
 func (c *CosmosClient) OnObservedTxIn(txIn stypes.TxInItem, blockHeight int64) {
