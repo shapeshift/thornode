@@ -117,7 +117,9 @@ func unmarshalJSONToPb(filePath string, msg proto.Message) error {
 	}
 	defer jsonFile.Close()
 
-	err = jsonpb.Unmarshal(jsonFile, msg)
+	u := new(jsonpb.Unmarshaler)
+	u.AllowUnknownFields = true
+	err = u.Unmarshal(jsonFile, msg)
 
 	if err != nil {
 		return err
