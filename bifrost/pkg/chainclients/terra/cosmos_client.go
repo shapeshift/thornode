@@ -272,7 +272,7 @@ func (c *CosmosClient) processOutboundTx(tx stypes.TxOutItem, thorchainHeight in
 	for _, coin := range tx.Coins {
 		if strings.EqualFold(tx.Memo, thorchain.NewYggdrasilReturn(thorchainHeight).String()) {
 			if coin.Asset == c.cosmosScanner.feeAsset {
-				coin.Amount.Sub(c.cosmosScanner.averageFee().Mul(ctypes.NewUint(3).Quo(ctypes.NewUint(2))))
+				coin.Amount.Sub(c.cosmosScanner.averageFee())
 			}
 		}
 		// convert to cosmos coin
@@ -346,12 +346,19 @@ func (c *CosmosClient) SignTx(tx stypes.TxOutItem, thorchainHeight int64) (signe
 		c.accts.Set(tx.VaultPubKey, meta)
 	}
 
-	// format the fee (the "MaxGas" set by thornode)
 	gasCoins := tx.MaxGas.ToCoins()
 	if len(gasCoins) != 1 {
-		err = errors.New("exactly one gas coin must be provided")
-		c.logger.Error().Err(err).Interface("fee", gasCoins).Msg(err.Error())
-		return nil, err
+		if strings.EqualFold(tx.Memo, thorchain.NewYggdrasilReturn(thorchainHeight).String()) {
+			gasCoins = append(gasCoins, common.NewCoin(
+				c.GetChain().GetGasAsset(),
+				c.cosmosScanner.averageFee(),
+			))
+		} else {
+			err = errors.New("exactly one gas coin must be provided")
+			c.logger.Error().Err(err).Interface("fee", gasCoins).Msg(err.Error())
+			return nil, err
+		}
+
 	}
 	if !gasCoins[0].Asset.Equals(c.GetChain().GetGasAsset()) {
 		err = errors.New("gas coin asset must match chain gas asset")
