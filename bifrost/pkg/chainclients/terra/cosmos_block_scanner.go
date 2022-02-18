@@ -66,7 +66,6 @@ var (
 type CosmosBlockScanner struct {
 	cfg              config.BlockScannerConfiguration
 	logger           zerolog.Logger
-	feeAsset         common.Asset
 	db               blockscanner.ScannerStorage
 	cdc              *codec.ProtoCodec
 	txConfig         client.TxConfig
@@ -115,12 +114,10 @@ func NewCosmosBlockScanner(cfg config.BlockScannerConfiguration,
 	txConfig := tx.NewTxConfig(marshaler, []signingtypes.SignMode{signingtypes.SignMode_SIGN_MODE_DIRECT})
 	tmService := tmservice.NewServiceClient(conn)
 
-	feeAsset := common.TERRAChain.GetGasAsset()
 	return &CosmosBlockScanner{
 		cfg:              cfg,
 		logger:           logger,
 		db:               scanStorage,
-		feeAsset:         feeAsset,
 		cdc:              cdc,
 		txConfig:         txConfig,
 		txService:        txtypes.NewServiceClient(conn),
@@ -176,7 +173,7 @@ func (c *CosmosBlockScanner) updateGasCache(tx ctypes.FeeTx) {
 
 	// only consider transactions with fee paid in uluna
 	coin, err := fromCosmosToThorchain(fees[0])
-	if err != nil || !coin.Asset.Equals(c.feeAsset) {
+	if err != nil || !coin.Asset.Equals(c.cfg.ChainID.GetGasAsset()) {
 		return
 	}
 

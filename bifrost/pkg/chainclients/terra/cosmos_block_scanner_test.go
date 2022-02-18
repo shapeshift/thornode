@@ -84,11 +84,8 @@ func (s *BlockScannerTestSuite) SetUpSuite(c *C) {
 }
 
 func (s *BlockScannerTestSuite) TestCalculateAverageGasFees(c *C) {
-	feeAsset, err := common.NewAsset("TERRA.LUNA")
-	c.Assert(err, IsNil)
-	blockScanner := CosmosBlockScanner{
-		feeAsset: feeAsset,
-	}
+	cfg := config.BlockScannerConfiguration{ChainID: common.TERRAChain}
+	blockScanner := CosmosBlockScanner{cfg: cfg}
 
 	lunaToThorchain := int64(100)
 
@@ -163,13 +160,11 @@ func (s *BlockScannerTestSuite) TestCalculateAverageGasFees(c *C) {
 }
 
 func (s *BlockScannerTestSuite) TestGetBlock(c *C) {
-	feeAsset, err := common.NewAsset("TERRA.LUNA")
-	c.Assert(err, IsNil)
-
+	cfg := config.BlockScannerConfiguration{ChainID: common.TERRAChain}
 	mockRPC := NewMockTmServiceClient()
 
 	blockScanner := CosmosBlockScanner{
-		feeAsset:  feeAsset,
+		cfg:       cfg,
 		tmService: mockRPC,
 	}
 
@@ -181,9 +176,7 @@ func (s *BlockScannerTestSuite) TestGetBlock(c *C) {
 }
 
 func (s *BlockScannerTestSuite) TestProcessTxs(c *C) {
-	feeAsset, err := common.NewAsset("TERRA.LUNA")
-	c.Assert(err, IsNil)
-
+	cfg := config.BlockScannerConfiguration{ChainID: common.TERRAChain}
 	mockTmServiceClient := NewMockTmServiceClient()
 	mockTxServiceClient := NewMockTxServiceClient()
 
@@ -193,7 +186,7 @@ func (s *BlockScannerTestSuite) TestProcessTxs(c *C) {
 	cdc := codec.NewProtoCodec(registry)
 
 	blockScanner := CosmosBlockScanner{
-		feeAsset:  feeAsset,
+		cfg:       cfg,
 		tmService: mockTmServiceClient,
 		txService: mockTxServiceClient,
 		cdc:       cdc,
