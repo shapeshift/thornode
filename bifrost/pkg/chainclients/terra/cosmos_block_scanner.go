@@ -319,21 +319,31 @@ func (c *CosmosBlockScanner) processTxs(height int64, rawTxs [][]byte) ([]types.
 	for _, unverifiedTx := range unverifiedTxs {
 		getTxResponse, err := c.txService.GetTx(ctx, &txtypes.GetTxRequest{Hash: unverifiedTx.Tx})
 		if err != nil {
+			if strings.Contains(err.Error(), "marshaling error") || strings.Contains(err.Error(), "unknown field") {
+				// we cannot intepret one of the messages in the tx response. this transaction cannot be verified, skip it...
+				c.logger.Warn().Err(err).Interface("getTxResponse", getTxResponse).Interface("unverifiedTx", unverifiedTx).Msg("marshaling error or unknown field")
+				continue
+			}
 			return c.processTxs(height, rawTxs)
 		}
 
 		if getTxResponse == nil || getTxResponse.TxResponse == nil {
-			return c.processTxs(height, rawTxs)
-		}
-
-		if getTxResponse.TxResponse.Code != 0 {
-			c.logger.Warn().Interface("getTxResponse", getTxResponse).Str("txhash", unverifiedTx.Tx).Msg("inbound tx has non-zero response code, ignoring...")
+			c.logger.Warn().Interface("getTxResponse", getTxResponse).Interface("unverifiedTx", unverifiedTx).Msg("inbound tx has non-zero response code, ignoring...")
+			// the tx response is invalid. this transaction cannot be verified, skip it...
 			continue
 		}
 
+		if getTxResponse.TxResponse.Code != 0 {
+			c.logger.Warn().Interface("getTxResponse", getTxResponse).Interface("unverifiedTx", unverifiedTx).Msg("inbound tx has non-zero response code, ignoring...")
+			continue
+		}
+
+		if len(getTxResponse.TxResponse.Logs) == 0 {
+			c.logger.Warn().Interface("getTxResponse", getTxResponse).Interface("unverifiedTx", unverifiedTx).Msg("inbound tx does not contain any logs, ignoring...")
+			continue
+		}
 		verifiedTxs = append(verifiedTxs, unverifiedTx)
 	}
-
 	return verifiedTxs, nil
 }
 
