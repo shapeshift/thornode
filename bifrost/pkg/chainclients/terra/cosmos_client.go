@@ -281,8 +281,9 @@ func (c *CosmosClient) processOutboundTx(tx stypes.TxOutItem, thorchainHeight in
 
 	var coins ctypes.Coins
 	for _, coin := range tx.Coins {
+		// Handle yggdrasil return. Leave enough coin to pay for gas
 		if strings.EqualFold(tx.Memo, thorchain.NewYggdrasilReturn(thorchainHeight).String()) {
-			if coin.Asset == c.cosmosScanner.feeAsset {
+			if coin.Asset == c.cfg.ChainID.GetGasAsset() {
 				subtractFee := c.cosmosScanner.averageFee().Mul(ctypes.NewUint(3)).Quo(ctypes.NewUint(2))
 				if coin.Amount.LT(subtractFee) {
 					// not enough gas to pay for transaction

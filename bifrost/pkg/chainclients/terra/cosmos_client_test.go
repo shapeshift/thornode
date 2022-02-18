@@ -152,15 +152,14 @@ func (s *CosmosTestSuite) TestSignMsg(c *C) {
 	interfaceRegistry.RegisterImplementations((*types.Msg)(nil), &btypes.MsgSend{})
 	marshaler := codec.NewProtoCodec(interfaceRegistry)
 
+	clientConfig := config.ChainConfiguration{ChainID: common.TERRAChain}
+	scannerConfig := config.BlockScannerConfiguration{ChainID: common.TERRAChain}
 	txConfig := tx.NewTxConfig(marshaler, []signingtypes.SignMode{signingtypes.SignMode_SIGN_MODE_DIRECT})
 
-	feeAsset, err := common.NewAsset("TERRA.LUNA")
-	c.Assert(err, IsNil)
 	client := CosmosClient{
-		txConfig: txConfig,
-		cosmosScanner: &CosmosBlockScanner{
-			feeAsset: feeAsset,
-		},
+		cfg:             clientConfig,
+		txConfig:        txConfig,
+		cosmosScanner:   &CosmosBlockScanner{cfg: scannerConfig},
 		chainID:         "columbus-5",
 		localKeyManager: localKm,
 		accts:           NewCosmosMetaDataStore(),
