@@ -271,14 +271,9 @@ func (c *CosmosBlockScanner) processTxs(height int64, rawTxs [][]byte) ([]types.
 			case *btypes.MsgSend:
 				coins := common.Coins{}
 				for _, coin := range msg.Amount {
-
-					if _, whitelisted := GetAssetByCosmosDenom(coin.Denom); !whitelisted {
-						c.logger.Debug().Str("tx", hash).Interface("coins", c).Msg("coin is not whitelisted, skipping")
-						continue
-					}
 					cCoin, err := fromCosmosToThorchain(coin)
 					if err != nil {
-						c.logger.Warn().Err(err).Interface("coins", c).Msg("wasn't able to convert coins that passed whitelist")
+						c.logger.Debug().Err(err).Interface("coins", c).Msg("unable to convert coin, not whitelisted. skipping...")
 						continue
 					}
 					coins = append(coins, cCoin)
@@ -293,7 +288,7 @@ func (c *CosmosBlockScanner) processTxs(height int64, rawTxs [][]byte) ([]types.
 				for _, fee := range fees {
 					cCoin, err := fromCosmosToThorchain(fee)
 					if err != nil {
-						c.logger.Warn().Err(err).Interface("fees", fees).Msg("wasn't able to convert coins that passed whitelist")
+						c.logger.Debug().Err(err).Interface("fees", fees).Msg("unable to convert coin, not whitelisted. skipping...")
 						continue
 					}
 					gasFees = append(gasFees, cCoin)

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/big"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/cosmos/cosmos-sdk/client"
@@ -36,6 +37,7 @@ import (
 	"gitlab.com/thorchain/thornode/bifrost/blockscanner"
 	"gitlab.com/thorchain/thornode/bifrost/config"
 	"gitlab.com/thorchain/thornode/bifrost/metrics"
+	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/runners"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/signercache"
 
 	"gitlab.com/thorchain/thornode/bifrost/thorclient"
@@ -70,6 +72,8 @@ type CosmosClient struct {
 	signerCacheManager  *signercache.CacheManager
 	cosmosScanner       *CosmosBlockScanner
 	globalSolvencyQueue chan stypes.Solvency
+	wg                  *sync.WaitGroup
+	stopchan            chan struct{}
 }
 
 // NewClient create new instance of atom client
@@ -134,6 +138,8 @@ func NewCosmosClient(
 		tssKeyManager:   tssKm,
 		localKeyManager: localKm,
 		thorchainBridge: thorchainBridge,
+		wg:              &sync.WaitGroup{},
+		stopchan:        make(chan struct{}),
 	}
 
 	var path string // if not set later, will in memory storage
@@ -150,7 +156,7 @@ func NewCosmosClient(
 		c.storage,
 		c.thorchainBridge,
 		m,
-		c.reportSolvency,
+		c.ReportSolvency,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create cosmos scanner: %w", err)
@@ -175,12 +181,17 @@ func (c *CosmosClient) Start(globalTxsQueue chan stypes.TxIn, globalErrataQueue 
 	c.globalSolvencyQueue = globalSolvencyQueue
 	c.tssKeyManager.Start()
 	c.blockScanner.Start(globalTxsQueue)
+	c.wg.Add(1)
+	go runners.SolvencyCheckRunner(c.GetChain(), c, c.thorchainBridge, c.stopchan, c.wg)
 }
 
 // Stop Cosmos chain client
 func (c *CosmosClient) Stop() {
 	c.tssKeyManager.Stop()
 	c.blockScanner.Stop()
+	c.cosmosScanner.grpc.Close()
+	close(c.stopchan)
+	c.wg.Wait()
 }
 
 // GetConfig return the configuration used by Cosmos chain client
@@ -505,7 +516,7 @@ func (c *CosmosClient) GetConfirmationCount(txIn stypes.TxIn) int64 {
 	return 0
 }
 
-func (c *CosmosClient) reportSolvency(blockHeight int64) error {
+func (c *CosmosClient) ReportSolvency(blockHeight int64) error {
 	if blockHeight%900 > 0 {
 		return nil
 	}
@@ -531,6 +542,10 @@ func (c *CosmosClient) reportSolvency(blockHeight int64) error {
 		}
 	}
 	return nil
+}
+
+func (c *CosmosClient) ShouldReportSolvency(height int64) bool {
+	return height%10 == 0
 }
 
 func (c *CosmosClient) OnObservedTxIn(txIn stypes.TxInItem, blockHeight int64) {
