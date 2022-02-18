@@ -1,7 +1,7 @@
 #!/bin/sh
 
 rm /root/.terra/config/*
-cd /root/.terra/config
+cd /root/.terra/config || exit
 
 wget https://raw.githubusercontent.com/terra-money/LocalTerra/main/config/app.toml
 wget https://raw.githubusercontent.com/terra-money/LocalTerra/main/config/client.toml
