@@ -57,7 +57,7 @@ func (b *ThorchainBridge) Broadcast(msgs ...stypes.Msg) (common.TxID, error) {
 	if err != nil {
 		return noTxID, err
 	}
-	builder.SetGasLimit(200000000)
+	builder.SetGasLimit(400000000)
 	err = clienttx.Sign(factory, ctx.GetFromName(), builder, true)
 	if err != nil {
 		return noTxID, err
