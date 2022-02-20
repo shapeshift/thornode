@@ -10,7 +10,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/blang/semver"
 	"github.com/cosmos/cosmos-sdk/crypto/codec"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -375,7 +374,7 @@ func (c *Client) SignTx(tx stypes.TxOutItem, height int64) ([]byte, error) {
 		return nil, fmt.Errorf("can't sign tx when it doesn't have memo")
 	}
 
-	memo, err := mem.ParseMemo(semver.MustParse("99999999999.0.0"), tx.Memo)
+	memo, err := mem.ParseMemo(common.LatestVersion, tx.Memo)
 	if err != nil {
 		return nil, fmt.Errorf("fail to parse memo(%s):%w", tx.Memo, err)
 	}
@@ -821,7 +820,7 @@ func (c *Client) getAsgardAddress() ([]common.Address, error) {
 // OnObservedTxIn gets called from observer when we have a valid observation
 func (c *Client) OnObservedTxIn(txIn stypes.TxInItem, blockHeight int64) {
 	c.ethScanner.onObservedTxIn(txIn, blockHeight)
-	m, err := mem.ParseMemo(semver.MustParse("99999999999.0.0"), txIn.Memo)
+	m, err := mem.ParseMemo(common.LatestVersion, txIn.Memo)
 	if err != nil {
 		c.logger.Err(err).Msgf("fail to parse memo: %s", txIn.Memo)
 		return
