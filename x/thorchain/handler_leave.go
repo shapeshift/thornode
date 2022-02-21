@@ -138,7 +138,11 @@ func (h LeaveHandler) handleV76(ctx cosmos.Context, msg MsgLeave) error {
 			// vault (it was destroyed when we successfully migrated funds from
 			// their address to a new TSS vault
 			if !h.mgr.Keeper().VaultExists(ctx, nodeAcc.PubKeySet.Secp256k1) {
-				if err := refundBond(ctx, msg.Tx, nodeAcc.NodeAddress, cosmos.ZeroUint(), &nodeAcc, h.mgr); err != nil {
+				bondAddr, err := nodeAcc.BondAddress.AccAddress()
+				if err != nil {
+					return ErrInternal(err, "fail to refund bond")
+				}
+				if err := refundBond(ctx, msg.Tx, bondAddr, cosmos.ZeroUint(), &nodeAcc, h.mgr); err != nil {
 					return ErrInternal(err, "fail to refund bond")
 				}
 				nodeAcc.UpdateStatus(NodeDisabled, common.BlockHeight(ctx))
