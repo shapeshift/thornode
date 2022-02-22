@@ -54,6 +54,7 @@ func (s *EthereumBlockMetaAccessorTestSuite) TestNewBlockMetaAccessor(c *C) {
 	dbBlockMetaAccessor, err := NewLevelDBBlockMetaAccessor(db)
 	c.Assert(err, IsNil)
 	c.Assert(dbBlockMetaAccessor, NotNil)
+	c.Assert(db.Close(), IsNil)
 }
 
 func (s *EthereumBlockMetaAccessorTestSuite) TestBlockMetaAccessor(c *C) {
@@ -93,4 +94,5 @@ func (s *EthereumBlockMetaAccessorTestSuite) TestBlockMetaAccessor(c *C) {
 	allBlockMetas, err := blockMetaAccessor.GetBlockMetas()
 	c.Assert(err, IsNil)
 	c.Assert(allBlockMetas, HasLen, 25)
+	c.Assert(db.Close(), IsNil)
 }
