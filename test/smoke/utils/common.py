@@ -160,6 +160,24 @@ class Asset(str, Jsonable):
         """
         return self.get_symbol().startswith("ETH")
 
+    def is_luna(self):
+        """
+        Is this asset luna?
+        """
+        return self.get_symbol().startswith("LUNA")
+
+    def is_terra(self):
+        """
+        Is this asset terra chain?
+        """
+        return self.get_chain() == "TERRA"
+
+    def is_ust(self):
+        """
+        Is this asset terra ust?
+        """
+        return self.get_symbol().startswith("UST")
+
     def is_erc(self):
         """
         Is this asset erc20?
@@ -267,6 +285,12 @@ class Coin(Jsonable):
             "denom": self.asset.get_symbol(),
             "amount": self.amount,
         }
+
+    def to_cosmos(self):
+        amount = int(self.amount / 100)
+        if self.asset.is_terra() and self.asset.get_symbol() == "UST":
+            return f"{amount}uusd"
+        return f"{amount}u{self.asset.get_symbol().lower()}"
 
     def __eq__(self, other):
         return self.asset == other.asset and self.amount == other.amount

@@ -210,6 +210,93 @@
         "height": null
     },
     {
+        "type": "pending_liquidity",
+        "attributes": [
+            {
+                "pool": "TERRA.LUNA"
+            },
+            {
+                "type": "add"
+            },
+            {
+                "rune_address": "PROVIDER-1"
+            },
+            {
+                "rune_amount": "1000000000"
+            },
+            {
+                "asset_amount": "0"
+            },
+            {
+                "asset_address": "PROVIDER-1"
+            },
+            {
+                "THOR_txid": "TODO"
+            }
+        ],
+        "height": null
+    },
+    {
+        "type": "rewards",
+        "attributes": [
+            {
+                "bond_reward": "0"
+            }
+        ],
+        "height": null
+    },
+    {
+        "type": "pool",
+        "attributes": [
+            {
+                "pool": "TERRA.LUNA"
+            },
+            {
+                "pool_status": "Available"
+            }
+        ],
+        "height": null
+    },
+    {
+        "type": "add_liquidity",
+        "attributes": [
+            {
+                "pool": "TERRA.LUNA"
+            },
+            {
+                "liquidity_provider_units": "1000000000"
+            },
+            {
+                "rune_address": "PROVIDER-1"
+            },
+            {
+                "rune_amount": "1000000000"
+            },
+            {
+                "asset_amount": "150000000000"
+            },
+            {
+                "asset_address": "PROVIDER-1"
+            },
+            {
+                "TERRA_txid": "TODO"
+            },
+            {
+                "THOR_txid": "TODO"
+            }
+        ],
+        "height": null
+    },
+    {
+        "type": "rewards",
+        "attributes": [
+            {
+                "bond_reward": "0"
+            }
+        ],
+        "height": null
+    },
+    {
         "type": "refund",
         "attributes": [
             {

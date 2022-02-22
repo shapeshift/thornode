@@ -20,6 +20,7 @@ from chains.aliases import get_alias, get_alias_address, get_aliases
 from chains.bitcoin import Bitcoin
 from chains.litecoin import Litecoin
 from chains.dogecoin import Dogecoin
+from chains.terra import Terra
 from chains.bitcoin_cash import BitcoinCash
 from chains.ethereum import Ethereum
 from chains.binance import Binance
@@ -340,6 +341,8 @@ class ThorchainState:
             return Litecoin.coin
         if chain == "DOGE":
             return Dogecoin.coin
+        if chain == "TERRA":
+            return Terra.coin
         if chain == "ETH":
             return Ethereum.coin
         return None
@@ -364,6 +367,8 @@ class ThorchainState:
         if chain == "DOGE":
             amount = int(self.doge_tx_rate * 3 / 2) * self.doge_estimate_size
         if chain == "BNB":
+            amount = pool.get_rune_in_asset(int(rune_fee / 3))
+        if chain == "TERRA":
             amount = pool.get_rune_in_asset(int(rune_fee / 3))
         return Coin(gas_asset, amount)
 

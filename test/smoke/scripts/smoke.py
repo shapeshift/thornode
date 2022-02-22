@@ -9,6 +9,7 @@ from tenacity import retry, stop_after_delay, wait_fixed
 
 from utils.segwit_addr import decode_address
 from chains.binance import Binance, MockBinance
+from chains.terra import Terra, MockTerra
 from chains.bitcoin import Bitcoin, MockBitcoin
 from chains.litecoin import Litecoin, MockLitecoin
 from chains.bitcoin_cash import BitcoinCash, MockBitcoinCash
@@ -35,6 +36,11 @@ def main():
         "--binance",
         default="http://localhost:26660",
         help="Mock binance server",
+    )
+    parser.add_argument(
+        "--terra",
+        default="http://localhost:11317",
+        help="Local terra server",
     )
     parser.add_argument(
         "--bitcoin",
@@ -103,6 +109,7 @@ def main():
 
     smoker = Smoker(
         args.binance,
+        args.terra,
         args.bitcoin,
         args.bitcoin_cash,
         args.litecoin,
@@ -130,6 +137,7 @@ class Smoker:
     def __init__(
         self,
         bnb,
+        terra_url,
         btc,
         bch,
         ltc,
@@ -145,6 +153,7 @@ class Smoker:
         ethereum_reorg=False,
     ):
         self.binance = Binance()
+        self.terra = Terra()
         self.bitcoin = Bitcoin()
         self.bitcoin_cash = BitcoinCash()
         self.litecoin = Litecoin()
@@ -197,6 +206,10 @@ class Smoker:
         # setup binance
         self.mock_binance = MockBinance(bnb)
         self.mock_binance.set_vault_address_by_pubkey(raw_pubkey)
+
+        # setup terra
+        self.mock_terra = MockTerra(terra_url)
+        self.mock_terra.set_vault_address_by_pubkey(raw_pubkey)
 
         self.generate_balances = gen_balances
         self.fast_fail = fast_fail
@@ -347,6 +360,8 @@ class Smoker:
             return self.mock_dogecoin.transfer(txn)
         if txn.chain == Ethereum.chain:
             return self.mock_ethereum.transfer(txn)
+        if txn.chain == Terra.chain:
+            return self.mock_terra.transfer(txn)
         if txn.chain == MockThorchain.chain:
             return self.mock_thorchain.transfer(txn)
 
@@ -356,6 +371,8 @@ class Smoker:
         """
         if txn.chain == Binance.chain:
             return self.binance.transfer(txn)
+        if txn.chain == Terra.chain:
+            return self.terra.transfer(txn)
         if txn.chain == Bitcoin.chain:
             return self.bitcoin.transfer(txn)
         if txn.chain == BitcoinCash.chain:
