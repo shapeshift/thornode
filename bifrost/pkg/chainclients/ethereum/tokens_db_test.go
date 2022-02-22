@@ -22,6 +22,7 @@ func (s *EthereumTokenMetaTestSuite) TestNewTokenMeta(c *C) {
 	dbTokenMeta, err := NewLevelDBTokenMeta(db)
 	c.Assert(err, IsNil)
 	c.Assert(dbTokenMeta, NotNil)
+	c.Assert(db.Close(), IsNil)
 }
 
 func (s *EthereumTokenMetaTestSuite) TestTokenMeta(c *C) {
@@ -56,4 +57,5 @@ func (s *EthereumTokenMetaTestSuite) TestTokenMeta(c *C) {
 	tokens, err = tokenMeta.GetTokens()
 	c.Assert(err, IsNil)
 	c.Assert(tokens, HasLen, 2)
+	c.Assert(db.Close(), IsNil)
 }
