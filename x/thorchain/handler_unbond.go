@@ -216,7 +216,11 @@ func (h UnBondHandler) handleV81(ctx cosmos.Context, msg MsgUnBond) error {
 		}
 
 		// remove bond provider (if bond is now zero)
-		if !na.NodeAddress.Equals(msg.BondProviderAddress) {
+		bondAddr, err := na.BondAddress.AccAddress()
+		if err != nil {
+			return ErrInternal(err, "fail to refund bond")
+		}
+		if !bondAddr.Equals(msg.BondProviderAddress) {
 			bp, err := h.mgr.Keeper().GetBondProviders(ctx, na.NodeAddress)
 			if err != nil {
 				return ErrInternal(err, fmt.Sprintf("fail to get bond providers(%s)", na.NodeAddress))
