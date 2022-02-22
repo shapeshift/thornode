@@ -1,7 +1,6 @@
 package dogecoin
 
 import (
-	"context"
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
@@ -29,6 +28,11 @@ import (
 	ttypes "gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
+const (
+	bob      = "bob"
+	password = "password"
+)
+
 func TestPackage(t *testing.T) { TestingT(t) }
 
 type DogecoinSuite struct {
@@ -37,6 +41,7 @@ type DogecoinSuite struct {
 	bridge *thorclient.ThorchainBridge
 	cfg    config.ChainConfiguration
 	m      *metrics.Metrics
+	keys   *thorclient.Keys
 }
 
 var _ = Suite(
@@ -61,12 +66,20 @@ func GetMetricForTest(c *C) *metrics.Metrics {
 	return m
 }
 
+func (s *DogecoinSuite) SetUpSuite(c *C) {
+	ttypes.SetupConfigForTest()
+	kb := cKeys.NewInMemory()
+	_, _, err := kb.NewMnemonic(bob, cKeys.English, cmd.THORChainHDPath, hd.Secp256k1)
+	c.Assert(err, IsNil)
+	s.keys = thorclient.NewKeysWithKeybase(kb, bob, password)
+}
+
 func (s *DogecoinSuite) SetUpTest(c *C) {
 	s.m = GetMetricForTest(c)
 	s.cfg = config.ChainConfiguration{
 		ChainID:     "DOGE",
-		UserName:    "bob",
-		Password:    "password",
+		UserName:    bob,
+		Password:    password,
 		DisableTLS:  true,
 		HTTPostMode: true,
 		BlockScanner: config.BlockScannerConfiguration{
@@ -74,7 +87,6 @@ func (s *DogecoinSuite) SetUpTest(c *C) {
 		},
 	}
 	ns := strconv.Itoa(time.Now().Nanosecond())
-	ttypes.SetupConfigForTest()
 	ctypes.Network = ctypes.TestNetwork
 	c.Assert(os.Setenv("NET", "testnet"), IsNil)
 
@@ -82,16 +94,10 @@ func (s *DogecoinSuite) SetUpTest(c *C) {
 	cfg := config.ClientConfiguration{
 		ChainID:         "thorchain",
 		ChainHost:       "localhost",
-		SignerName:      "bob",
-		SignerPasswd:    "password",
+		SignerName:      bob,
+		SignerPasswd:    password,
 		ChainHomeFolder: thordir,
 	}
-
-	kb := cKeys.NewInMemory()
-	_, _, err := kb.NewMnemonic(cfg.SignerName, cKeys.English, cmd.THORChainHDPath, hd.Secp256k1)
-	c.Assert(err, IsNil)
-	thorKeys := thorclient.NewKeysWithKeybase(kb, cfg.SignerName, cfg.SignerPasswd)
-	c.Assert(err, IsNil)
 
 	s.server = httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		if req.RequestURI == "/" {
@@ -146,11 +152,12 @@ func (s *DogecoinSuite) SetUpTest(c *C) {
 			c.Assert(err, IsNil)
 		}
 	}))
+	var err error
 	cfg.ChainHost = s.server.Listener.Addr().String()
-	s.bridge, err = thorclient.NewThorchainBridge(cfg, s.m, thorKeys)
+	s.bridge, err = thorclient.NewThorchainBridge(cfg, s.m, s.keys)
 	c.Assert(err, IsNil)
 	s.cfg.RPCHost = s.server.Listener.Addr().String()
-	s.client, err = NewClient(thorKeys, s.cfg, nil, s.bridge, s.m)
+	s.client, err = NewClient(s.keys, s.cfg, nil, s.bridge, s.m)
 	c.Assert(err, IsNil)
 	c.Assert(s.client, NotNil)
 }
@@ -179,23 +186,6 @@ func (s *DogecoinSuite) TestGetBlock(c *C) {
 }
 
 func (s *DogecoinSuite) TestFetchTxs(c *C) {
-	globalTxQueue := make(chan types.TxIn)
-	globalErrataQueue := make(chan types.ErrataBlock)
-	globalSolvencyCheckerQueue := make(chan types.Solvency)
-	s.client.Start(globalTxQueue, globalErrataQueue, globalSolvencyCheckerQueue)
-	ctx, cancel := context.WithCancel(context.Background())
-	go func() {
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-globalTxQueue:
-			case <-globalErrataQueue:
-			case <-globalSolvencyCheckerQueue:
-				c.Log("receive solvency report")
-			}
-		}
-	}()
 	txs, err := s.client.FetchTxs(0)
 	c.Assert(err, IsNil)
 	c.Assert(txs.Chain, Equals, common.DOGEChain)
@@ -207,8 +197,6 @@ func (s *DogecoinSuite) TestFetchTxs(c *C) {
 	c.Assert(txs.TxArray[0].Coins.EqualsEx(common.Coins{common.NewCoin(common.DOGEAsset, cosmos.NewUint(407250300))}), Equals, true)
 	c.Assert(txs.TxArray[0].Gas.Equals(common.Gas{common.NewCoin(common.DOGEAsset, cosmos.NewUint(1108335500))}), Equals, true)
 	c.Assert(len(txs.TxArray), Equals, 1)
-	s.client.Stop()
-	cancel()
 }
 
 func (s *DogecoinSuite) TestGetSender(c *C) {
@@ -818,7 +806,7 @@ func (s *DogecoinSuite) TestConfirmationCountReady(c *C) {
 		Filtered: true,
 		MemPool:  true,
 	}), Equals, true)
-	s.client.currentBlockHeight = 3
+	s.client.currentBlockHeight.Store(3)
 	c.Assert(s.client.ConfirmationCountReady(types.TxIn{
 		Chain: common.DOGEChain,
 		TxArray: []types.TxInItem{
