@@ -237,9 +237,6 @@ func (c *CosmosBlockScanner) updateGasFees(height int64) error {
 }
 
 func (c *CosmosBlockScanner) processTxs(height int64, rawTxs [][]byte) ([]types.TxInItem, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
-	defer cancel()
-
 	decoder := tx.DefaultTxDecoder(c.cdc)
 	var unverifiedTxs []types.TxInItem
 
@@ -309,6 +306,8 @@ func (c *CosmosBlockScanner) processTxs(height int64, rawTxs [][]byte) ([]types.
 
 	var verifiedTxs []types.TxInItem
 	for _, unverifiedTx := range unverifiedTxs {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+		defer cancel()
 		getTxResponse, err := c.txService.GetTx(ctx, &txtypes.GetTxRequest{Hash: unverifiedTx.Tx})
 		if err != nil {
 			if strings.Contains(err.Error(), "marshaling error") || strings.Contains(err.Error(), "unknown field") {
