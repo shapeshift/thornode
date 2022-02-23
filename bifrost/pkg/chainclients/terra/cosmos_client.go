@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -51,7 +52,6 @@ import (
 var CosmosSuccessCodes = map[uint32]bool{
 	errortypes.SuccessABCICode:                true,
 	errortypes.ErrTxInMempoolCache.ABCICode(): true,
-	errortypes.ErrUnauthorized.ABCICode():     true,
 }
 
 // Cosmos is a structure to sign and broadcast tx to atom chain used by signer mostly
@@ -125,8 +125,18 @@ func NewCosmosClient(
 	marshaler := codec.NewProtoCodec(interfaceRegistry)
 	txConfig := tx.NewTxConfig(marshaler, []signingtypes.SignMode{signingtypes.SignMode_SIGN_MODE_DIRECT})
 
+	chainID := ""
+	switch os.Getenv("NET") {
+	case "mainnet", "stagenet":
+		chainID = "columbus-5"
+	case "testnet":
+		chainID = "bombay-12"
+	case "mocknet":
+		chainID = "localterra"
+	}
+
 	c := &CosmosClient{
-		chainID:         "columbus-5",
+		chainID:         chainID,
 		logger:          logger,
 		cfg:             cfg,
 		txConfig:        txConfig,
