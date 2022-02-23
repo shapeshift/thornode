@@ -574,7 +574,8 @@ func (h AddLiquidityHandler) addLiquidityV1(ctx cosmos.Context,
 	runeAddr, assetAddr common.Address,
 	requestTxHash common.TxID,
 	stage bool,
-	constAccessor constants.ConstantValues) error {
+	constAccessor constants.ConstantValues,
+) error {
 	ctx.Logger().Info("liquidity provision", "asset", asset, "rune amount", addRuneAmount, "asset amount", addAssetAmount)
 	if err := h.validateAddLiquidityMessage(ctx, h.mgr.Keeper(), asset, requestTxHash, runeAddr, assetAddr); err != nil {
 		return fmt.Errorf("add liquidity message fail validation: %w", err)
@@ -710,7 +711,8 @@ func (h AddLiquidityHandler) addLiquidityV46(ctx cosmos.Context,
 	runeAddr, assetAddr common.Address,
 	requestTxHash common.TxID,
 	stage bool,
-	constAccessor constants.ConstantValues) error {
+	constAccessor constants.ConstantValues,
+) error {
 	ctx.Logger().Info("liquidity provision", "asset", asset, "rune amount", addRuneAmount, "asset amount", addAssetAmount)
 	if err := h.validateAddLiquidityMessage(ctx, h.mgr.Keeper(), asset, requestTxHash, runeAddr, assetAddr); err != nil {
 		return fmt.Errorf("add liquidity message fail validation: %w", err)
@@ -856,7 +858,8 @@ func (h AddLiquidityHandler) addLiquidityV55(ctx cosmos.Context,
 	runeAddr, assetAddr common.Address,
 	requestTxHash common.TxID,
 	stage bool,
-	constAccessor constants.ConstantValues) error {
+	constAccessor constants.ConstantValues,
+) error {
 	ctx.Logger().Info("liquidity provision", "asset", asset, "rune amount", addRuneAmount, "asset amount", addAssetAmount)
 	if err := h.validateAddLiquidityMessage(ctx, h.mgr.Keeper(), asset, requestTxHash, runeAddr, assetAddr); err != nil {
 		return fmt.Errorf("add liquidity message fail validation: %w", err)
@@ -1005,7 +1008,8 @@ func (h AddLiquidityHandler) addLiquidityV63(ctx cosmos.Context,
 	runeAddr, assetAddr common.Address,
 	requestTxHash common.TxID,
 	stage bool,
-	constAccessor constants.ConstantValues) error {
+	constAccessor constants.ConstantValues,
+) error {
 	ctx.Logger().Info("liquidity provision", "asset", asset, "rune amount", addRuneAmount, "asset amount", addAssetAmount)
 	if err := h.validateAddLiquidityMessage(ctx, h.mgr.Keeper(), asset, requestTxHash, runeAddr, assetAddr); err != nil {
 		return fmt.Errorf("add liquidity message fail validation: %w", err)
@@ -1153,7 +1157,8 @@ func (h AddLiquidityHandler) addLiquidityV68(ctx cosmos.Context,
 	runeAddr, assetAddr common.Address,
 	requestTxHash common.TxID,
 	stage bool,
-	constAccessor constants.ConstantValues) error {
+	constAccessor constants.ConstantValues,
+) error {
 	ctx.Logger().Info("liquidity provision", "asset", asset, "rune amount", addRuneAmount, "asset amount", addAssetAmount)
 	if err := h.validateAddLiquidityMessage(ctx, h.mgr.Keeper(), asset, requestTxHash, runeAddr, assetAddr); err != nil {
 		return fmt.Errorf("add liquidity message fail validation: %w", err)
@@ -1303,7 +1308,8 @@ func (h AddLiquidityHandler) addLiquidityV76(ctx cosmos.Context,
 	runeAddr, assetAddr common.Address,
 	requestTxHash common.TxID,
 	stage bool,
-	constAccessor constants.ConstantValues) error {
+	constAccessor constants.ConstantValues,
+) error {
 	ctx.Logger().Info("liquidity provision", "asset", asset, "rune amount", addRuneAmount, "asset amount", addAssetAmount)
 	if err := h.validateAddLiquidityMessage(ctx, h.mgr.Keeper(), asset, requestTxHash, runeAddr, assetAddr); err != nil {
 		return fmt.Errorf("add liquidity message fail validation: %w", err)

@@ -24,7 +24,8 @@ func LoadChains(thorKeys *thorclient.Keys,
 	thorchainBridge *thorclient.ThorchainBridge,
 	m *metrics.Metrics,
 	pubKeyValidator pubkeymanager.PubKeyValidator,
-	poolMgr thorclient.PoolManager) map[common.Chain]ChainClient {
+	poolMgr thorclient.PoolManager,
+) map[common.Chain]ChainClient {
 	logger := log.Logger.With().Str("module", "bifrost").Logger()
 	chains := make(map[common.Chain]ChainClient, 0)
 
