@@ -86,7 +86,8 @@ func NewETHScanner(cfg config.BlockScannerConfiguration,
 	m *metrics.Metrics,
 	pubkeyMgr pubkeymanager.PubKeyValidator,
 	solvencyReporter SolvencyReporter,
-	signerCacheManager *signercache.CacheManager) (*ETHScanner, error) {
+	signerCacheManager *signercache.CacheManager,
+) (*ETHScanner, error) {
 	if storage == nil {
 		return nil, errors.New("storage is nil")
 	}

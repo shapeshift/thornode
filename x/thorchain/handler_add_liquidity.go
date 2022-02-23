@@ -327,7 +327,8 @@ func (h AddLiquidityHandler) addLiquidity(ctx cosmos.Context,
 	runeAddr, assetAddr common.Address,
 	requestTxHash common.TxID,
 	stage bool,
-	constAccessor constants.ConstantValues) error {
+	constAccessor constants.ConstantValues,
+) error {
 	version := h.mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.79.0")) {
 		return h.addLiquidityV79(ctx, asset, addRuneAmount, addAssetAmount, runeAddr, assetAddr, requestTxHash, stage, constAccessor)
@@ -353,7 +354,8 @@ func (h AddLiquidityHandler) addLiquidityV79(ctx cosmos.Context,
 	runeAddr, assetAddr common.Address,
 	requestTxHash common.TxID,
 	stage bool,
-	constAccessor constants.ConstantValues) error {
+	constAccessor constants.ConstantValues,
+) error {
 	ctx.Logger().Info("liquidity provision", "asset", asset, "rune amount", addRuneAmount, "asset amount", addAssetAmount)
 	if err := h.validateAddLiquidityMessage(ctx, h.mgr.Keeper(), asset, requestTxHash, runeAddr, assetAddr); err != nil {
 		return fmt.Errorf("add liquidity message fail validation: %w", err)
