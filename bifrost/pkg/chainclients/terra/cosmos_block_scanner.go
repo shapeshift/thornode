@@ -106,6 +106,7 @@ func NewCosmosBlockScanner(cfg config.BlockScannerConfiguration,
 	// Registry for decoding txs
 	registry := bridge.GetContext().InterfaceRegistry
 	registry.RegisterImplementations((*ctypes.Msg)(nil), &wasm.MsgExecuteContract{})
+
 	btypes.RegisterInterfaces(registry)
 	cdc := codec.NewProtoCodec(registry)
 
@@ -113,6 +114,7 @@ func NewCosmosBlockScanner(cfg config.BlockScannerConfiguration,
 	marshaler := codec.NewProtoCodec(registry)
 	txConfig := tx.NewTxConfig(marshaler, []signingtypes.SignMode{signingtypes.SignMode_SIGN_MODE_DIRECT})
 	tmService := tmservice.NewServiceClient(conn)
+	txService := txtypes.NewServiceClient(conn)
 
 	return &CosmosBlockScanner{
 		cfg:              cfg,
@@ -120,7 +122,7 @@ func NewCosmosBlockScanner(cfg config.BlockScannerConfiguration,
 		db:               scanStorage,
 		cdc:              cdc,
 		txConfig:         txConfig,
-		txService:        txtypes.NewServiceClient(conn),
+		txService:        txService,
 		tmService:        tmService,
 		feeCache:         make([]ctypes.Uint, 0),
 		grpc:             conn,
@@ -238,8 +240,8 @@ func (c *CosmosBlockScanner) updateGasFees(height int64) error {
 
 func (c *CosmosBlockScanner) processTxs(height int64, rawTxs [][]byte) ([]types.TxInItem, error) {
 	decoder := tx.DefaultTxDecoder(c.cdc)
-	var unverifiedTxs []types.TxInItem
 
+	var possibleTxs []string
 	for _, rawTx := range rawTxs {
 		hash := hex.EncodeToString(tmhash.Sum(rawTx))
 		tx, err := decoder(rawTx)
@@ -254,10 +256,64 @@ func (c *CosmosBlockScanner) processTxs(height int64, rawTxs [][]byte) ([]types.
 			continue
 		}
 
-		memo := tx.(ctypes.TxWithMemo).GetMemo()
-		fees := tx.(ctypes.FeeTx).GetFee()
+		found := false
+		for _, msg := range tx.GetMsgs() {
+			switch msg.(type) {
+			case *btypes.MsgSend:
+				found = true
 
-		// record gas price across all transaction types
+			default:
+				continue
+			}
+		}
+		if found {
+			possibleTxs = append(possibleTxs, hash)
+		}
+	}
+
+	var txIn []types.TxInItem
+	for _, txhash := range possibleTxs {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+		defer cancel()
+		getTxResponse, err := c.txService.GetTx(ctx, &txtypes.GetTxRequest{Hash: txhash})
+		if err != nil {
+			if strings.Contains(err.Error(), "marshaling error") || strings.Contains(err.Error(), "unknown field") {
+				// we cannot intepret one of the messages in the tx response. this transaction cannot be verified, skip it...
+				c.logger.Warn().Err(err).Str("txhash", txhash).Msg("marshaling error or unknown field")
+				continue
+			}
+			return c.processTxs(height, rawTxs)
+		}
+
+		if getTxResponse == nil || getTxResponse.TxResponse == nil {
+			c.logger.Warn().Str("txhash", txhash).Msg("inbound tx nil getTxResponse, ignoring...")
+			// the tx response is invalid. this transaction cannot be verified, skip it...
+			continue
+		}
+
+		if getTxResponse.TxResponse.Code != 0 {
+			c.logger.Warn().Str("txhash", txhash).Msg("inbound tx has non-zero response code, ignoring...")
+			continue
+		}
+
+		if len(getTxResponse.TxResponse.Logs) == 0 {
+			c.logger.Warn().Str("txhash", txhash).Msg("inbound tx does not contain any logs, ignoring...")
+			continue
+		}
+
+		txBz, _ := getTxResponse.Tx.Marshal()
+		if err != nil {
+			c.logger.Error().Str("txhash", txhash).Msg("unable to marshal getTxResponse.Tx to bytes, ignoring...")
+			continue
+		}
+
+		tx, err := decoder(txBz)
+		if err != nil {
+			c.logger.Error().Str("txhash", txhash).Msg("unable to decode getTxResponse bytes, ignoring...")
+			continue
+		}
+
+		fees := tx.(ctypes.FeeTx).GetFee()
 		c.updateGasCache(tx.(ctypes.FeeTx))
 
 		for _, msg := range tx.GetMsgs() {
@@ -288,10 +344,10 @@ func (c *CosmosBlockScanner) processTxs(height int64, rawTxs [][]byte) ([]types.
 					gasFees = append(gasFees, cCoin)
 				}
 
-				unverifiedTxs = append(unverifiedTxs, types.TxInItem{
-					Tx:          hash,
+				txIn = append(txIn, types.TxInItem{
+					Tx:          txhash,
 					BlockHeight: height,
-					Memo:        memo,
+					Memo:        getTxResponse.Tx.Body.GetMemo(),
 					Sender:      msg.FromAddress,
 					To:          msg.ToAddress,
 					Coins:       coins,
@@ -302,40 +358,9 @@ func (c *CosmosBlockScanner) processTxs(height int64, rawTxs [][]byte) ([]types.
 				continue
 			}
 		}
+
 	}
-
-	var verifiedTxs []types.TxInItem
-	for _, unverifiedTx := range unverifiedTxs {
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
-		defer cancel()
-		getTxResponse, err := c.txService.GetTx(ctx, &txtypes.GetTxRequest{Hash: unverifiedTx.Tx})
-		if err != nil {
-			if strings.Contains(err.Error(), "marshaling error") || strings.Contains(err.Error(), "unknown field") {
-				// we cannot intepret one of the messages in the tx response. this transaction cannot be verified, skip it...
-				c.logger.Warn().Err(err).Interface("unverifiedTx", unverifiedTx).Msg("marshaling error or unknown field")
-				continue
-			}
-			return c.processTxs(height, rawTxs)
-		}
-
-		if getTxResponse == nil || getTxResponse.TxResponse == nil {
-			c.logger.Warn().Interface("unverifiedTx", unverifiedTx).Msg("inbound tx nil getTxResponse, ignoring...")
-			// the tx response is invalid. this transaction cannot be verified, skip it...
-			continue
-		}
-
-		if getTxResponse.TxResponse.Code != 0 {
-			c.logger.Warn().Interface("unverifiedTx", unverifiedTx).Msg("inbound tx has non-zero response code, ignoring...")
-			continue
-		}
-
-		if len(getTxResponse.TxResponse.Logs) == 0 {
-			c.logger.Warn().Interface("unverifiedTx", unverifiedTx).Msg("inbound tx does not contain any logs, ignoring...")
-			continue
-		}
-		verifiedTxs = append(verifiedTxs, unverifiedTx)
-	}
-	return verifiedTxs, nil
+	return txIn, nil
 }
 
 func (c *CosmosBlockScanner) FetchTxs(height int64) (types.TxIn, error) {
