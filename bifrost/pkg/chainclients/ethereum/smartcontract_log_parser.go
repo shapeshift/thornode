@@ -36,7 +36,8 @@ func NewSmartContractLogParser(validator contractAddressValidator,
 	resolver assetResolver,
 	decimalResolver tokenDecimalResolver,
 	amtConverter amountConverter,
-	vaultABI *abi.ABI) SmartContractLogParser {
+	vaultABI *abi.ABI,
+) SmartContractLogParser {
 	return SmartContractLogParser{
 		addressValidator: validator,
 		assetResolver:    resolver,

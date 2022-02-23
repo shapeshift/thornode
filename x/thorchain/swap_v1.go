@@ -63,7 +63,8 @@ func (s *SwapperV1) swap(ctx cosmos.Context,
 	target common.Asset,
 	destination common.Address,
 	swapTarget cosmos.Uint,
-	transactionFee cosmos.Uint, synthVirtualDepthMult int64, mgr Manager) (cosmos.Uint, []*EventSwap, error) {
+	transactionFee cosmos.Uint, synthVirtualDepthMult int64, mgr Manager,
+) (cosmos.Uint, []*EventSwap, error) {
 	var swapEvents []*EventSwap
 
 	// determine if target is layer1 vs synthetic asset
@@ -200,7 +201,8 @@ func (s *SwapperV1) swapOne(ctx cosmos.Context,
 	destination common.Address,
 	swapTarget cosmos.Uint,
 	transactionFee cosmos.Uint,
-	synthVirtualDepthMult int64) (amt cosmos.Uint, evt *EventSwap, swapErr error) {
+	synthVirtualDepthMult int64,
+) (amt cosmos.Uint, evt *EventSwap, swapErr error) {
 	source := tx.Coins[0].Asset
 	amount := tx.Coins[0].Amount
 
