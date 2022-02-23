@@ -44,6 +44,8 @@ CONTRACT="${CONTRACT:=0x8c2A90D36Ec9F745C9B28B588Cba5e2A978A1656}"
 RPC_USER="${RPC_USER:=thorchain}"
 RPC_PASSWD="${RPC_PASSWD:=password}"
 
+PPROF_ENABLED="${PPROF_ENABLED:=false}"
+
 THOR_BLOCK_TIME="${THOR_BLOCK_TIME:=5s}"
 BLOCK_SCANNER_BACKOFF="${BLOCK_SCANNER_BACKOFF:=5s}"
 . "$(dirname "$0")/core.sh"
@@ -86,7 +88,8 @@ echo "{
         \"signer_name\": \"$SIGNER_NAME\"
     },
     \"metrics\": {
-        \"enabled\": true
+        \"enabled\": true,
+        \"pprof_enabled\": $PPROF_ENABLED
     },
     \"chains\": [
       {

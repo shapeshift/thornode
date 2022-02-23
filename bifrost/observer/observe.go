@@ -52,7 +52,8 @@ func NewObserver(pubkeyMgr *pubkeymanager.PubKeyManager,
 	chains map[common.Chain]chainclients.ChainClient,
 	thorchainBridge *thorclient.ThorchainBridge,
 	m *metrics.Metrics, dataPath string,
-	tssKeysignMetricMgr *metrics.TssKeysignMetricMgr) (*Observer, error) {
+	tssKeysignMetricMgr *metrics.TssKeysignMetricMgr,
+) (*Observer, error) {
 	logger := log.Logger.With().Str("module", "observer").Logger()
 	storage, err := NewObserverStorage(dataPath)
 	if err != nil {

@@ -24,7 +24,8 @@ func SolvencyCheckRunner(chain common.Chain,
 	provider SolvencyCheckProvider,
 	bridge *thorclient.ThorchainBridge,
 	stopper <-chan struct{},
-	wg *sync.WaitGroup) {
+	wg *sync.WaitGroup,
+) {
 	logger := log.Logger.With().Str("chain", chain.String()).Logger()
 	logger.Info().Msg("start solvency check runner")
 	defer func() {
