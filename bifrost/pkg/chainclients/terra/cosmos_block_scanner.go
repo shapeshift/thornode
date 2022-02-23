@@ -302,7 +302,7 @@ func (c *CosmosBlockScanner) processTxs(height int64, rawTxs [][]byte) ([]types.
 			continue
 		}
 
-		txBz, _ := getTxResponse.Tx.Marshal()
+		txBz, err := getTxResponse.Tx.Marshal()
 		if err != nil {
 			c.logger.Error().Str("txhash", txhash).Msg("unable to marshal getTxResponse.Tx to bytes, ignoring...")
 			continue
