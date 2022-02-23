@@ -396,6 +396,7 @@ class Smoker:
         bch = self.mock_bitcoin_cash.block_stats
         ltc = self.mock_litecoin.block_stats
         doge = self.mock_dogecoin.block_stats
+        terra = self.mock_terra.block_stats
         fees = {
             "BNB": self.mock_binance.singleton_gas,
             "ETH": self.mock_ethereum.gas_price * self.mock_ethereum.default_gas,
@@ -403,12 +404,14 @@ class Smoker:
             "LTC": ltc["tx_size"] * ltc["tx_rate"],
             "BCH": bch["tx_size"] * bch["tx_rate"],
             "DOGE": doge["tx_size"] * doge["tx_rate"],
+            "TERRA": terra["tx_size"] * terra["tx_rate"],
         }
         self.thorchain_state.set_network_fees(fees)
         self.thorchain_state.set_btc_tx_rate(btc["tx_rate"])
         self.thorchain_state.set_bch_tx_rate(bch["tx_rate"])
         self.thorchain_state.set_ltc_tx_rate(ltc["tx_rate"])
         self.thorchain_state.set_doge_tx_rate(doge["tx_rate"])
+        self.thorchain_state.set_terra_tx_rate(terra["tx_rate"])
 
     def sim_trigger_tx(self, txn):
         # process transaction in thorchain

@@ -201,10 +201,12 @@ class ThorchainState:
         self.bch_estimate_size = 269
         self.ltc_estimate_size = 188
         self.doge_estimate_size = 269
+        self.terra_estimate_size = 1
         self.btc_tx_rate = 0
         self.bch_tx_rate = 0
         self.ltc_tx_rate = 0
         self.doge_tx_rate = 0
+        self.terra_tx_rate = 0
 
     def set_btc_tx_rate(self, tx_rate):
         """
@@ -229,6 +231,12 @@ class ThorchainState:
         Set median DOGE tx rate , used to calculate gas
         """
         self.doge_tx_rate = tx_rate
+
+    def set_terra_tx_rate(self, tx_rate):
+        """
+        Set median TERRA tx rate , used to calculate gas
+        """
+        self.terra_tx_rate = tx_rate
 
     def set_vault_pubkey(self, pubkey):
         """
@@ -366,9 +374,9 @@ class ThorchainState:
             amount = int(self.ltc_tx_rate * 3 / 2) * self.ltc_estimate_size
         if chain == "DOGE":
             amount = int(self.doge_tx_rate * 3 / 2) * self.doge_estimate_size
-        if chain == "BNB":
-            amount = pool.get_rune_in_asset(int(rune_fee / 3))
         if chain == "TERRA":
+            amount = self.terra_tx_rate * self.terra_estimate_size
+        if chain == "BNB":
             amount = pool.get_rune_in_asset(int(rune_fee / 3))
         return Coin(gas_asset, amount)
 
@@ -486,6 +494,16 @@ class ThorchainState:
                             tx.max_gas = [Coin(coin.asset, int(asset_fee / 2))]
                             gap = int(asset_fee / 2) - self.doge_estimate_size * int(
                                 self.doge_tx_rate * 3 / 2
+                            )
+                            if gap > 0:
+                                coin.amount += gap
+                            else:
+                                tx.gas = tx.max_gas
+
+                        if coin.asset.is_luna() and not asset_fee == 0:
+                            tx.max_gas = [Coin(coin.asset, int(asset_fee / 3))]
+                            gap = int(asset_fee / 3) - self.terra_estimate_size * int(
+                                self.terra_tx_rate
                             )
                             if gap > 0:
                                 coin.amount += gap
@@ -1368,6 +1386,9 @@ class ThorchainState:
 
         x = coin.amount
         emit = self._calc_asset_emission(X, x, Y)
+        # decimals to 6 if TERRA chain
+        if asset.chain == Terra.chain:
+            emit = int(emit / 100) * 100
 
         # calculate the liquidity fee (in rune)
         liquidity_fee = self._calc_liquidity_fee(X, x, Y)
@@ -1382,23 +1403,23 @@ class ThorchainState:
         if emit == 0:
             return Coin(asset, emit), 0, 0, 0, pool
 
-        newPool = deepcopy(pool)  # copy of pool
+        new_pool = deepcopy(pool)  # copy of pool
         if coin.is_rune():
-            newPool.add(x, 0)
+            new_pool.add(x, 0)
             if asset.is_synth:
-                newPool.synth_balance += emit
+                new_pool.synth_balance += emit
             else:
-                newPool.sub(0, emit)
+                new_pool.sub(0, emit)
             emit = Coin(asset, emit)
         else:
             if asset.is_synth:
-                newPool.synth_balance -= x
+                new_pool.synth_balance -= x
             else:
-                newPool.add(0, x)
-            newPool.sub(emit, 0)
+                new_pool.add(0, x)
+            new_pool.sub(emit, 0)
             emit = Coin(RUNE, emit)
 
-        return emit, liquidity_fee, liquidity_fee_in_rune, swap_slip, newPool
+        return emit, liquidity_fee, liquidity_fee_in_rune, swap_slip, new_pool
 
     def _calc_liquidity_fee(self, X, x, Y):
         """

@@ -9,7 +9,7 @@ aliases_bch = {
 
 aliases_terra = {
     "MASTER": "terra1x46rqay4d3cssq8gxxvqz8xt6nwlz4td20k38v",
-    "CONTRIB": "",
+    "CONTRIB": "terra1dcegyrekltswvyy0xy69ydgxn9x8x32zdtapd8",
     "USER-1": "terra17lmam6zguazs5q5u6z5mmx76uj63gldnse2pdp",
     "PROVIDER-1": "terra1757tkx08n0cqrw7p86ny9lnxsqeth0wgp0em95",
     "PROVIDER-2": "",
