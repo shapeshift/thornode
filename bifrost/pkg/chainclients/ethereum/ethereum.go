@@ -75,7 +75,8 @@ func NewClient(thorKeys *thorclient.Keys,
 	bridge *thorclient.ThorchainBridge,
 	m *metrics.Metrics,
 	pubkeyMgr pubkeymanager.PubKeyValidator,
-	poolMgr thorclient.PoolManager) (*Client, error) {
+	poolMgr thorclient.PoolManager,
+) (*Client, error) {
 	if thorKeys == nil {
 		return nil, fmt.Errorf("fail to create ETH client,thor keys is empty")
 	}

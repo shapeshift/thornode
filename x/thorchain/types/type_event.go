@@ -91,7 +91,8 @@ func NewEventAddLiquidity(pool common.Asset,
 	assetAmount cosmos.Uint,
 	runeTxID,
 	assetTxID common.TxID,
-	assetAddress common.Address) *EventAddLiquidity {
+	assetAddress common.Address,
+) *EventAddLiquidity {
 	return &EventAddLiquidity{
 		Pool:          pool,
 		ProviderUnits: su,
@@ -590,7 +591,8 @@ func NewEventPendingLiquidity(pool common.Asset,
 	assetAddress common.Address,
 	assetAmount cosmos.Uint,
 	runeTxID,
-	assetTxID common.TxID) *EventPendingLiquidity {
+	assetTxID common.TxID,
+) *EventPendingLiquidity {
 	return &EventPendingLiquidity{
 		Pool:         pool,
 		PendingType:  ptype,

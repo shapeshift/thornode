@@ -93,6 +93,7 @@ type ClientConfiguration struct {
 
 type MetricsConfiguration struct {
 	Enabled      bool           `json:"enabled" mapstructure:"enabled"`
+	PprofEnabled bool           `json:"pprof_enabled" mapstructure:"pprof_enabled"`
 	ListenPort   int            `json:"listen_port" mapstructure:"listen_port"`
 	ReadTimeout  time.Duration  `json:"read_timeout" mapstructure:"read_timeout"`
 	WriteTimeout time.Duration  `json:"write_timeout" mapstructure:"write_timeout"`
