@@ -54,7 +54,7 @@ lint:
     - schedules
   before_script:
     - apt-get update && apt-get install -y curl git jq make protobuf-compiler sudo xz-utils
-    - go install mvdan.cc/gofumpt@latest
+    - go install mvdan.cc/gofumpt@v0.3.0
     # trunk.io setup
     - git fetch origin develop
     - curl https://get.trunk.io -fsSLo /tmp/trunk-install
