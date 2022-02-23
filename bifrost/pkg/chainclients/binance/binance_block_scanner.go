@@ -55,7 +55,8 @@ func NewBinanceBlockScanner(cfg config.BlockScannerConfiguration,
 	scanStorage blockscanner.ScannerStorage,
 	isTestNet bool,
 	bridge *thorclient.ThorchainBridge,
-	m *metrics.Metrics, solvencyReporter SolvencyReporter) (*BinanceBlockScanner, error) {
+	m *metrics.Metrics, solvencyReporter SolvencyReporter,
+) (*BinanceBlockScanner, error) {
 	if scanStorage == nil {
 		return nil, errors.New("scanStorage is nil")
 	}
