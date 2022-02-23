@@ -83,7 +83,6 @@ func NewCosmosClient(
 	server *tssp.TssServer,
 	thorchainBridge *thorclient.ThorchainBridge,
 	m *metrics.Metrics,
-
 ) (*CosmosClient, error) {
 	logger := log.With().Str("module", common.TERRAChain.String()).Logger()
 

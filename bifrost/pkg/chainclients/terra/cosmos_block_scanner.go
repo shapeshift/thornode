@@ -87,7 +87,8 @@ func NewCosmosBlockScanner(cfg config.BlockScannerConfiguration,
 	scanStorage blockscanner.ScannerStorage,
 	bridge *thorclient.ThorchainBridge,
 	m *metrics.Metrics,
-	solvencyReporter SolvencyReporter) (*CosmosBlockScanner, error) {
+	solvencyReporter SolvencyReporter,
+) (*CosmosBlockScanner, error) {
 	if scanStorage == nil {
 		return nil, errors.New("scanStorage is nil")
 	}
