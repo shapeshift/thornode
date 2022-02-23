@@ -17,6 +17,7 @@ services:
     profiles:
       - _
     restart: unless-stopped
+    image: registry.gitlab.com/thorchain/thornode:mocknet
     build:
       context: ../..
       dockerfile: ./build/docker/Dockerfile
@@ -122,7 +123,7 @@ services:
       BCH_HOST: ${BCH_HOST:-bitcoin-cash:28443}
       LTC_HOST: ${LTC_HOST:-litecoin:38443}
       ETH_HOST: ${ETH_HOST:-http://ethereum:8545}
-      TERRA_HOST: ${TERRA_HOST:-http://terra:24457}
+      TERRA_HOST: ${TERRA_HOST:-http://terra:9090}
       THOR_BLOCK_TIME: ${THOR_BLOCK_TIME:-5s}
       BLOCK_SCANNER_BACKOFF: ${BLOCK_SCANNER_BACKOFF:-5s}
       PEER: ${PEER:-}
@@ -137,7 +138,7 @@ services:
       - "../scripts:/docker/scripts"
       - bifrost:/var/data/bifrost
       - thornode:/root/.thornode
-    command: ["bifrost", "-c", "/etc/bifrost/config.json"]
+    command: ["bifrost", "-c", "/etc/bifrost/config.json", "-p"]
 
   # ------------------------------ midgard ------------------------------
 
@@ -190,8 +191,12 @@ services:
     volumes:
       - "./mocknet:/mocknet"
     image: terramoney/localterra-core:0.5.14
+    environment:
+      BLOCK_TIME: ${BLOCK_TIME:-1s}
     ports:
       - "24457:26657"
+      - "9090:9090"
+      - "11317:1317"
     command: /mocknet/init-terra.sh
 
   # ------------------------------ bitcoin ------------------------------
