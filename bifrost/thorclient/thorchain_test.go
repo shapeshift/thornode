@@ -32,7 +32,7 @@ type ThorchainSuite struct {
 
 var _ = Suite(&ThorchainSuite{})
 
-func (s *ThorchainSuite) SetUpSuite(c *C) {
+func (s *ThorchainSuite) SetUpTest(c *C) {
 	cfg2 := cosmos.GetConfig()
 	cfg2.SetBech32PrefixForAccount(cmd.Bech32PrefixAccAddr, cmd.Bech32PrefixAccAddr)
 	cfg, _, kb := SetupThorchainForTest(c)
@@ -81,7 +81,7 @@ func (s *ThorchainSuite) SetUpSuite(c *C) {
 	c.Assert(s.bridge, NotNil)
 }
 
-func (s *ThorchainSuite) TearDownSuite(c *C) {
+func (s *ThorchainSuite) TearDownTest(c *C) {
 	s.server.Close()
 }
 

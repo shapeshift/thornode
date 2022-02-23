@@ -41,16 +41,24 @@ type DogecoinSignerSuite struct {
 	bridge *thorclient.ThorchainBridge
 	cfg    config.ChainConfiguration
 	m      *metrics.Metrics
+	keys   *thorclient.Keys
 }
 
 var _ = Suite(&DogecoinSignerSuite{})
+
+func (s *DogecoinSignerSuite) SetUpSuite(c *C) {
+	kb := cKeys.NewInMemory()
+	_, _, err := kb.NewMnemonic(bob, cKeys.English, cmd.THORChainHDPath, hd.Secp256k1)
+	c.Assert(err, IsNil)
+	s.keys = thorclient.NewKeysWithKeybase(kb, bob, password)
+}
 
 func (s *DogecoinSignerSuite) SetUpTest(c *C) {
 	s.m = GetMetricForTest(c)
 	s.cfg = config.ChainConfiguration{
 		ChainID:     "DOGE",
-		UserName:    "bob",
-		Password:    "password",
+		UserName:    bob,
+		Password:    password,
 		DisableTLS:  true,
 		HTTPostMode: true,
 		BlockScanner: config.BlockScannerConfiguration{
@@ -66,15 +74,10 @@ func (s *DogecoinSignerSuite) SetUpTest(c *C) {
 	cfg := config.ClientConfiguration{
 		ChainID:         "thorchain",
 		ChainHost:       "localhost",
-		SignerName:      "bob",
-		SignerPasswd:    "password",
+		SignerName:      bob,
+		SignerPasswd:    password,
 		ChainHomeFolder: thordir,
 	}
-
-	kb := cKeys.NewInMemory()
-	_, _, err := kb.NewMnemonic(cfg.SignerName, cKeys.English, cmd.THORChainHDPath, hd.Secp256k1)
-	c.Assert(err, IsNil)
-	thorKeys := thorclient.NewKeysWithKeybase(kb, cfg.SignerName, cfg.SignerPasswd)
 
 	s.server = httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		if req.RequestURI == "/thorchain/vaults/tthorpub1addwnpepqwznsrgk2t5vn2cszr6ku6zned6tqxknugzw3vhdcjza284d7djp5rql6vn/signers" {
@@ -119,12 +122,12 @@ func (s *DogecoinSignerSuite) SetUpTest(c *C) {
 			}
 		}
 	}))
-
+	var err error
 	s.cfg.RPCHost = s.server.Listener.Addr().String()
 	cfg.ChainHost = s.server.Listener.Addr().String()
-	s.bridge, err = thorclient.NewThorchainBridge(cfg, s.m, thorKeys)
+	s.bridge, err = thorclient.NewThorchainBridge(cfg, s.m, s.keys)
 	c.Assert(err, IsNil)
-	s.client, _ = NewClient(thorKeys, s.cfg, nil, s.bridge, s.m)
+	s.client, _ = NewClient(s.keys, s.cfg, nil, s.bridge, s.m)
 	storage := storage.NewMemStorage()
 	db, err := leveldb.Open(storage, nil)
 	c.Assert(err, IsNil)
@@ -137,6 +140,7 @@ func (s *DogecoinSignerSuite) SetUpTest(c *C) {
 
 func (s *DogecoinSignerSuite) TearDownTest(c *C) {
 	s.server.Close()
+	c.Assert(s.client.blockMetaAccessor.(*LevelDBBlockMetaAccessor).db.Close(), IsNil)
 }
 
 func (s *DogecoinSignerSuite) TestGetDOGEPrivateKey(c *C) {
