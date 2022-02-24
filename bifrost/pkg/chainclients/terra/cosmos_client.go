@@ -54,7 +54,7 @@ var CosmosSuccessCodes = map[uint32]bool{
 	errortypes.ErrTxInMempoolCache.ABCICode(): true,
 }
 
-// Cosmos is a structure to sign and broadcast tx to atom chain used by signer mostly
+// CosmosClient is a structure to sign and broadcast tx to atom chain used by signer mostly
 type CosmosClient struct {
 	logger              zerolog.Logger
 	cfg                 config.ChainConfiguration
@@ -76,7 +76,7 @@ type CosmosClient struct {
 	stopchan            chan struct{}
 }
 
-// NewClient create new instance of atom client
+// NewCosmosClient creates a new instance of a Cosmos-based chain client
 func NewCosmosClient(
 	thorKeys *thorclient.Keys,
 	cfg config.ChainConfiguration,
@@ -114,10 +114,11 @@ func NewCosmosClient(
 		pubkey:  pk,
 	}
 
-	host := strings.ReplaceAll(cfg.RPCHost, "http://", "")
-	conn, err := grpc.Dial(host, grpc.WithInsecure())
+	grpcHostParts := strings.Split(strings.ReplaceAll(cfg.RPCHost, "http://", ""), ":")
+	grpcHost := fmt.Sprintf("%s:9090", grpcHostParts[0])
+	grpcConn, err := grpc.Dial(grpcHost, grpc.WithInsecure())
 	if err != nil {
-		logger.Fatal().Err(err).Msg("fail to dial")
+		logger.Fatal().Err(err).Msg("fail to dial grpc")
 	}
 
 	interfaceRegistry := codectypes.NewInterfaceRegistry()
@@ -140,9 +141,9 @@ func NewCosmosClient(
 		logger:          logger,
 		cfg:             cfg,
 		txConfig:        txConfig,
-		txClient:        txtypes.NewServiceClient(conn),
-		bankClient:      btypes.NewQueryClient(conn),
-		accountClient:   atypes.NewQueryClient(conn),
+		txClient:        txtypes.NewServiceClient(grpcConn),
+		bankClient:      btypes.NewQueryClient(grpcConn),
+		accountClient:   atypes.NewQueryClient(grpcConn),
 		accts:           NewCosmosMetaDataStore(),
 		tssKeyManager:   tssKm,
 		localKeyManager: localKm,
@@ -224,7 +225,7 @@ func (c *CosmosClient) GetHeight() (int64, error) {
 func (c *CosmosClient) GetAddress(poolPubKey common.PubKey) string {
 	addr, err := poolPubKey.GetAddress(c.GetChain())
 	if err != nil {
-		c.logger.Error().Err(err).Str("pool_pub_key", poolPubKey.String()).Msg("fail to get pool address")
+		c.logger.Err(err).Str("pool_pub_key", poolPubKey.String()).Msg("fail to get pool address")
 		return ""
 	}
 	return addr.String()
@@ -254,7 +255,7 @@ func (c *CosmosClient) GetAccountByAddress(address string, _ *big.Int) (common.A
 	for _, balance := range balances.Balances {
 		coin, err := fromCosmosToThorchain(balance)
 		if err != nil {
-			c.logger.Warn().Err(err).Interface("balances", balances.Balances).Msg("wasn't able to convert coins that passed whitelist")
+			c.logger.Err(err).Interface("balances", balances.Balances).Msg("wasn't able to convert coins that passed whitelist")
 			continue
 		}
 		nativeCoins = append(nativeCoins, coin)
@@ -283,7 +284,7 @@ func (c *CosmosClient) GetAccountByAddress(address string, _ *big.Int) (common.A
 }
 
 func (c *CosmosClient) processOutboundTx(tx stypes.TxOutItem, thorchainHeight int64) (*btypes.MsgSend, error) {
-	vaultPubKey, err := tx.VaultPubKey.GetAddress(common.TERRAChain)
+	fromAddr, err := tx.VaultPubKey.GetAddress(common.TERRAChain)
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert address (%s) to bech32: %w", tx.VaultPubKey.String(), err)
 	}
@@ -291,7 +292,7 @@ func (c *CosmosClient) processOutboundTx(tx stypes.TxOutItem, thorchainHeight in
 	var coins ctypes.Coins
 	for _, coin := range tx.Coins {
 		// Handle yggdrasil return. Leave enough coin to pay for gas
-		if strings.EqualFold(tx.Memo, thorchain.NewYggdrasilReturn(thorchainHeight).String()) {
+		if strings.HasPrefix(tx.Memo, "YGGDRASIL-:") {
 			if coin.Asset == c.cfg.ChainID.GetGasAsset() {
 				subtractFee := c.cosmosScanner.averageFee().Mul(ctypes.NewUint(3)).Quo(ctypes.NewUint(2))
 				if coin.Amount.LT(subtractFee) {
@@ -312,7 +313,7 @@ func (c *CosmosClient) processOutboundTx(tx stypes.TxOutItem, thorchainHeight in
 	}
 
 	return &btypes.MsgSend{
-		FromAddress: vaultPubKey.String(),
+		FromAddress: fromAddr.String(),
 		ToAddress:   tx.ToAddress.String(),
 		Amount:      coins.Sort(),
 	}, nil
@@ -325,19 +326,19 @@ func (c *CosmosClient) SignTx(tx stypes.TxOutItem, thorchainHeight int64) (signe
 			var keysignError tss.KeysignError
 			if errors.As(err, &keysignError) {
 				if len(keysignError.Blame.BlameNodes) == 0 {
-					c.logger.Error().Err(err).Msg("TSS doesn't know which node to blame")
+					c.logger.Err(err).Msg("TSS doesn't know which node to blame")
 					return
 				}
 
 				// key sign error forward the keysign blame to thorchain
 				txID, err := c.thorchainBridge.PostKeysignFailure(keysignError.Blame, thorchainHeight, tx.Memo, tx.Coins, tx.VaultPubKey)
 				if err != nil {
-					c.logger.Error().Err(err).Msg("fail to post keysign failure to THORChain")
+					c.logger.Err(err).Msg("fail to post keysign failure to THORChain")
 					return
 				}
 				c.logger.Info().Str("tx_id", txID.String()).Msgf("post keysign failure to thorchain")
 			}
-			c.logger.Error().Err(err).Msg("failed to sign tx")
+			c.logger.Err(err).Msg("failed to sign tx")
 			return
 		}
 	}()
@@ -349,13 +350,13 @@ func (c *CosmosClient) SignTx(tx stypes.TxOutItem, thorchainHeight int64) (signe
 
 	msg, err := c.processOutboundTx(tx, thorchainHeight)
 	if err != nil {
-		c.logger.Error().Err(err).Msg("failed to process outbound tx")
+		c.logger.Err(err).Msg("failed to process outbound tx")
 		return nil, err
 	}
 
 	currentHeight, err := c.cosmosScanner.GetHeight()
 	if err != nil {
-		c.logger.Error().Err(err).Msg("fail to get current binance block height")
+		c.logger.Err(err).Msg("fail to get current terra block height")
 		return nil, err
 	}
 	meta := c.accts.Get(tx.VaultPubKey)
@@ -381,20 +382,20 @@ func (c *CosmosClient) SignTx(tx stypes.TxOutItem, thorchainHeight int64) (signe
 			))
 		} else {
 			err = errors.New("exactly one gas coin must be provided")
-			c.logger.Error().Err(err).Interface("fee", gasCoins).Msg(err.Error())
+			c.logger.Err(err).Interface("fee", gasCoins).Msg(err.Error())
 			return nil, err
 		}
 	}
 
 	if !gasCoins[0].Asset.Equals(c.GetChain().GetGasAsset()) {
 		err = errors.New("gas coin asset must match chain gas asset")
-		c.logger.Error().Err(err).Interface("coin", gasCoins[0]).Msg(err.Error())
+		c.logger.Err(err).Interface("coin", gasCoins[0]).Msg(err.Error())
 		return nil, err
 	}
 	cCoin, err := fromThorchainToCosmos(gasCoins[0])
 	if err != nil {
 		err = errors.New("unable to convert coins that passed whitelist")
-		c.logger.Error().Err(err).Msg(err.Error())
+		c.logger.Err(err).Msg(err.Error())
 		return nil, err
 	}
 	fee := ctypes.Coins{cCoin}
@@ -499,7 +500,7 @@ func (c *CosmosClient) BroadcastTx(tx stypes.TxOutItem, txBytes []byte) (string,
 
 	broadcastRes, err := c.txClient.BroadcastTx(ctx, req)
 	if err != nil {
-		c.logger.Error().Err(err).Msg("unable to broadcast tx")
+		c.logger.Err(err).Msg("unable to broadcast tx")
 		return "", err
 	}
 
