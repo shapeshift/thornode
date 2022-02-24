@@ -224,7 +224,7 @@ func (c *CosmosClient) GetHeight() (int64, error) {
 func (c *CosmosClient) GetAddress(poolPubKey common.PubKey) string {
 	addr, err := poolPubKey.GetAddress(c.GetChain())
 	if err != nil {
-		c.logger.Error().Err(err).Str("pool_pub_key", poolPubKey.String()).Msg("fail to get pool address")
+		c.logger.Err(err).Str("pool_pub_key", poolPubKey.String()).Msg("fail to get pool address")
 		return ""
 	}
 	return addr.String()
@@ -291,7 +291,7 @@ func (c *CosmosClient) processOutboundTx(tx stypes.TxOutItem, thorchainHeight in
 	var coins ctypes.Coins
 	for _, coin := range tx.Coins {
 		// Handle yggdrasil return. Leave enough coin to pay for gas
-		if strings.EqualFold(tx.Memo, thorchain.NewYggdrasilReturn(thorchainHeight).String()) {
+		if strings.HasPrefix(tx.Memo, "YGGDRASIL-:") {
 			if coin.Asset == c.cfg.ChainID.GetGasAsset() {
 				subtractFee := c.cosmosScanner.averageFee().Mul(ctypes.NewUint(3)).Quo(ctypes.NewUint(2))
 				if coin.Amount.LT(subtractFee) {
@@ -325,19 +325,19 @@ func (c *CosmosClient) SignTx(tx stypes.TxOutItem, thorchainHeight int64) (signe
 			var keysignError tss.KeysignError
 			if errors.As(err, &keysignError) {
 				if len(keysignError.Blame.BlameNodes) == 0 {
-					c.logger.Error().Err(err).Msg("TSS doesn't know which node to blame")
+					c.logger.Err(err).Msg("TSS doesn't know which node to blame")
 					return
 				}
 
 				// key sign error forward the keysign blame to thorchain
 				txID, err := c.thorchainBridge.PostKeysignFailure(keysignError.Blame, thorchainHeight, tx.Memo, tx.Coins, tx.VaultPubKey)
 				if err != nil {
-					c.logger.Error().Err(err).Msg("fail to post keysign failure to THORChain")
+					c.logger.Err(err).Msg("fail to post keysign failure to THORChain")
 					return
 				}
 				c.logger.Info().Str("tx_id", txID.String()).Msgf("post keysign failure to thorchain")
 			}
-			c.logger.Error().Err(err).Msg("failed to sign tx")
+			c.logger.Err(err).Msg("failed to sign tx")
 			return
 		}
 	}()
@@ -349,13 +349,13 @@ func (c *CosmosClient) SignTx(tx stypes.TxOutItem, thorchainHeight int64) (signe
 
 	msg, err := c.processOutboundTx(tx, thorchainHeight)
 	if err != nil {
-		c.logger.Error().Err(err).Msg("failed to process outbound tx")
+		c.logger.Err(err).Msg("failed to process outbound tx")
 		return nil, err
 	}
 
 	currentHeight, err := c.cosmosScanner.GetHeight()
 	if err != nil {
-		c.logger.Error().Err(err).Msg("fail to get current binance block height")
+		c.logger.Err(err).Msg("fail to get current terra block height")
 		return nil, err
 	}
 	meta := c.accts.Get(tx.VaultPubKey)
@@ -381,20 +381,20 @@ func (c *CosmosClient) SignTx(tx stypes.TxOutItem, thorchainHeight int64) (signe
 			))
 		} else {
 			err = errors.New("exactly one gas coin must be provided")
-			c.logger.Error().Err(err).Interface("fee", gasCoins).Msg(err.Error())
+			c.logger.Err(err).Interface("fee", gasCoins).Msg(err.Error())
 			return nil, err
 		}
 	}
 
 	if !gasCoins[0].Asset.Equals(c.GetChain().GetGasAsset()) {
 		err = errors.New("gas coin asset must match chain gas asset")
-		c.logger.Error().Err(err).Interface("coin", gasCoins[0]).Msg(err.Error())
+		c.logger.Err(err).Interface("coin", gasCoins[0]).Msg(err.Error())
 		return nil, err
 	}
 	cCoin, err := fromThorchainToCosmos(gasCoins[0])
 	if err != nil {
 		err = errors.New("unable to convert coins that passed whitelist")
-		c.logger.Error().Err(err).Msg(err.Error())
+		c.logger.Err(err).Msg(err.Error())
 		return nil, err
 	}
 	fee := ctypes.Coins{cCoin}
@@ -499,7 +499,7 @@ func (c *CosmosClient) BroadcastTx(tx stypes.TxOutItem, txBytes []byte) (string,
 
 	broadcastRes, err := c.txClient.BroadcastTx(ctx, req)
 	if err != nil {
-		c.logger.Error().Err(err).Msg("unable to broadcast tx")
+		c.logger.Err(err).Msg("unable to broadcast tx")
 		return "", err
 	}
 
