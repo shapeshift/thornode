@@ -10,4 +10,8 @@ wget https://raw.githubusercontent.com/terra-money/LocalTerra/main/config/genesi
 wget https://raw.githubusercontent.com/terra-money/LocalTerra/main/config/node_key.json
 wget https://raw.githubusercontent.com/terra-money/LocalTerra/main/config/priv_validator_key.json
 
-terrad start
+if [ -n "$BLOCK_TIME" ]; then
+  sed -E -i "/timeout_(propose|prevote|precommit|commit)/s/[0-9]+m?s/$BLOCK_TIME/" /root/.terra/config/config.toml
+fi
+
+terrad start --pruning=custom --pruning-keep-recent=100 --pruning-interval=100 --pruning-keep-every=100
