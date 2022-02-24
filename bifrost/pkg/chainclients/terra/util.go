@@ -58,17 +58,6 @@ func buildUnsigned(
 	return txBuilder, nil
 }
 
-func hasMsgSend(msgs []ctypes.Msg) bool {
-	for _, msg := range msgs {
-		switch msg.(type) {
-		case *btypes.MsgSend:
-			return true
-		default:
-		}
-	}
-	return false
-}
-
 func fromCosmosToThorchain(c cosmos.Coin) (common.Coin, error) {
 	cosmosAsset, exists := GetAssetByCosmosDenom(c.Denom)
 	if !exists {

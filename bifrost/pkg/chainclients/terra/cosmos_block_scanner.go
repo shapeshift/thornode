@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -12,9 +13,9 @@ import (
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/grpc/tmservice"
 	"github.com/cosmos/cosmos-sdk/codec"
-	txtypes "github.com/cosmos/cosmos-sdk/types/tx"
 	signingtypes "github.com/cosmos/cosmos-sdk/types/tx/signing"
 	"github.com/cosmos/cosmos-sdk/x/auth/tx"
+	rpcclient "github.com/tendermint/tendermint/rpc/client/http"
 
 	ctypes "github.com/cosmos/cosmos-sdk/types"
 	btypes "github.com/cosmos/cosmos-sdk/x/bank/types"
@@ -69,7 +70,7 @@ type CosmosBlockScanner struct {
 	db               blockscanner.ScannerStorage
 	cdc              *codec.ProtoCodec
 	txConfig         client.TxConfig
-	txService        txtypes.ServiceClient
+	txService        *rpcclient.HTTP
 	tmService        tmservice.ServiceClient
 	grpc             *grpc.ClientConn
 	bridge           *thorclient.ThorchainBridge
@@ -98,10 +99,13 @@ func NewCosmosBlockScanner(cfg config.BlockScannerConfiguration,
 
 	logger := log.Logger.With().Str("module", "blockscanner").Str("chain", common.TERRAChain.String()).Logger()
 
-	host := strings.ReplaceAll(cfg.RPCHost, "http://", "")
-	conn, err := grpc.Dial(host, grpc.WithInsecure())
+	// Bifrost only supports an "RPCHost" in its configuration.
+	// We also need to access GRPC for Cosmos chains
+	// Use a replace on port 9090 to obtain the GRPC URL
+	grpcHost := strings.SplitAfterN(cfg.RPCHost, ":", -1)[0] + ":9090"
+	grpcConn, err := grpc.Dial(grpcHost, grpc.WithInsecure())
 	if err != nil {
-		logger.Fatal().Err(err).Msg("fail to dial")
+		logger.Fatal().Err(err).Msg("fail to dial grpc")
 	}
 
 	// Registry for decoding txs
@@ -114,8 +118,18 @@ func NewCosmosBlockScanner(cfg config.BlockScannerConfiguration,
 	// Registry for encoding txs
 	marshaler := codec.NewProtoCodec(registry)
 	txConfig := tx.NewTxConfig(marshaler, []signingtypes.SignMode{signingtypes.SignMode_SIGN_MODE_DIRECT})
-	tmService := tmservice.NewServiceClient(conn)
-	txService := txtypes.NewServiceClient(conn)
+	tmService := tmservice.NewServiceClient(grpcConn)
+
+	httpClient := &http.Client{
+		Transport: http.DefaultTransport.(*http.Transport).Clone(),
+	}
+	httpClient.Transport.(*http.Transport).MaxIdleConns = 32
+	httpClient.Transport.(*http.Transport).MaxIdleConnsPerHost = 32
+
+	rpcClient, err := rpcclient.NewWithClient(cfg.RPCHost, "/websocket", httpClient)
+	if err != nil {
+		logger.Fatal().Err(err).Msg("fail to create tendemrint rpcclient")
+	}
 
 	return &CosmosBlockScanner{
 		cfg:              cfg,
@@ -123,10 +137,10 @@ func NewCosmosBlockScanner(cfg config.BlockScannerConfiguration,
 		db:               scanStorage,
 		cdc:              cdc,
 		txConfig:         txConfig,
-		txService:        txService,
+		txService:        rpcClient,
 		tmService:        tmService,
 		feeCache:         make([]ctypes.Uint, 0),
-		grpc:             conn,
+		grpc:             grpcConn,
 		bridge:           bridge,
 		solvencyReporter: solvencyReporter,
 	}, nil
@@ -183,7 +197,7 @@ func (c *CosmosBlockScanner) updateGasCache(tx ctypes.FeeTx) {
 	// sanity check to ensure fee is non-zero
 	err = coin.Valid()
 	if err != nil {
-		c.logger.Error().Err(err).Interface("fees", fees).Msg("transaction with zero fee")
+		c.logger.Err(err).Interface("fees", fees).Msg("transaction with zero fee")
 		return
 	}
 
@@ -216,7 +230,7 @@ func (c *CosmosBlockScanner) updateGasFees(height int64) error {
 		// sanity check the fee is not zero
 		if gasFee.Equal(ctypes.NewUint(0)) {
 			err := errors.New("suggested gas fee was zero")
-			c.logger.Error().Err(err).Msg(err.Error())
+			c.logger.Err(err).Msg(err.Error())
 			return err
 		}
 
@@ -242,9 +256,22 @@ func (c *CosmosBlockScanner) updateGasFees(height int64) error {
 func (c *CosmosBlockScanner) processTxs(height int64, rawTxs [][]byte) ([]types.TxInItem, error) {
 	decoder := tx.DefaultTxDecoder(c.cdc)
 
-	var possibleTxs []string
-	for _, rawTx := range rawTxs {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+	blockResults, err := c.txService.BlockResults(ctx, &height)
+	if err != nil {
+		c.logger.Err(err).Int64("height", height).Msg("unable to fetch BlockResults")
+	}
+
+	var txIn []types.TxInItem
+	for i, rawTx := range rawTxs {
 		hash := hex.EncodeToString(tmhash.Sum(rawTx))
+
+		if blockResults.TxsResults[i].Code != 0 {
+			c.logger.Warn().Str("txhash", hash).Int64("height", height).Msg("inbound tx has non-zero response code, ignoring...")
+			continue
+		}
+
 		tx, err := decoder(rawTx)
 		if err != nil {
 			if strings.Contains(err.Error(), "unable to resolve type URL") {
@@ -257,54 +284,8 @@ func (c *CosmosBlockScanner) processTxs(height int64, rawTxs [][]byte) ([]types.
 			continue
 		}
 
-		if hasMsgSend(tx.GetMsgs()) {
-			possibleTxs = append(possibleTxs, hash)
-		}
-	}
-
-	var txIn []types.TxInItem
-	for _, txhash := range possibleTxs {
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
-		defer cancel()
-		getTxResponse, err := c.txService.GetTx(ctx, &txtypes.GetTxRequest{Hash: txhash})
-		if err != nil {
-			if strings.Contains(err.Error(), "marshaling error") || strings.Contains(err.Error(), "unknown field") {
-				// we cannot intepret one of the messages in the tx response. this transaction cannot be verified, skip it...
-				c.logger.Warn().Err(err).Str("txhash", txhash).Msg("marshaling error or unknown field")
-				continue
-			}
-			return c.processTxs(height, rawTxs)
-		}
-
-		if getTxResponse == nil || getTxResponse.TxResponse == nil {
-			c.logger.Warn().Str("txhash", txhash).Msg("inbound tx nil getTxResponse, ignoring...")
-			// the tx response is invalid. this transaction cannot be verified, skip it...
-			continue
-		}
-
-		if getTxResponse.TxResponse.Code != 0 {
-			c.logger.Warn().Str("txhash", txhash).Msg("inbound tx has non-zero response code, ignoring...")
-			continue
-		}
-
-		if len(getTxResponse.TxResponse.Logs) == 0 {
-			c.logger.Warn().Str("txhash", txhash).Msg("inbound tx does not contain any logs, ignoring...")
-			continue
-		}
-
-		txBz, err := getTxResponse.Tx.Marshal()
-		if err != nil {
-			c.logger.Error().Str("txhash", txhash).Msg("unable to marshal getTxResponse.Tx to bytes, ignoring...")
-			continue
-		}
-
-		tx, err := decoder(txBz)
-		if err != nil {
-			c.logger.Error().Str("txhash", txhash).Msg("unable to decode getTxResponse bytes, ignoring...")
-			continue
-		}
-
 		fees := tx.(ctypes.FeeTx).GetFee()
+		memo := tx.(ctypes.TxWithMemo).GetMemo()
 		c.updateGasCache(tx.(ctypes.FeeTx))
 
 		for _, msg := range tx.GetMsgs() {
@@ -336,9 +317,9 @@ func (c *CosmosBlockScanner) processTxs(height int64, rawTxs [][]byte) ([]types.
 				}
 
 				txIn = append(txIn, types.TxInItem{
-					Tx:          txhash,
+					Tx:          hash,
 					BlockHeight: height,
-					Memo:        getTxResponse.Tx.Body.GetMemo(),
+					Memo:        memo,
 					Sender:      msg.FromAddress,
 					To:          msg.ToAddress,
 					Coins:       coins,
@@ -351,6 +332,7 @@ func (c *CosmosBlockScanner) processTxs(height int64, rawTxs [][]byte) ([]types.
 		}
 
 	}
+
 	return txIn, nil
 }
 
