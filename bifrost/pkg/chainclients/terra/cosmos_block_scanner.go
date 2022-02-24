@@ -262,21 +262,19 @@ func (c *CosmosBlockScanner) processTxs(height int64, rawTxs [][]byte) ([]types.
 	blockResults, err := c.txService.BlockResults(ctx, &height)
 	if err != nil {
 		c.logger.Err(err).Int64("height", height).Msg("unable to fetch BlockResults")
+		return []types.TxInItem{}, fmt.Errorf("unable to get BlockResults: %w", err)
 	}
 
 	var txIn []types.TxInItem
 	for i, rawTx := range rawTxs {
 		hash := hex.EncodeToString(tmhash.Sum(rawTx))
-
-		if blockResults.TxsResults[i].Code != 0 {
-			c.logger.Warn().Str("txhash", hash).Int64("height", height).Msg("inbound tx has non-zero response code, ignoring...")
-			continue
-		}
-
 		tx, err := decoder(rawTx)
 		if err != nil {
 			if strings.Contains(err.Error(), "unable to resolve type URL") {
-				// couldn't find msg type in the interface registry, probably not relevant
+				// One of the transaction message contains an unknown type
+				// Though the transaction may contain valid MsgSend, we only support transactions
+				// containing MsgSend and MsgExecuteContract.
+				// Check for these in the error before discarding the transaction.
 				if strings.Contains(err.Error(), "MsgSend") || strings.Contains(err.Error(), "MsgExecuteContract") {
 					// double check to make sure MsgSend or MsgExecuteContract isn't mentioned
 					c.logger.Error().Str("tx", string(rawTx)).Err(err).Msg("unable to decode msg")
@@ -292,6 +290,13 @@ func (c *CosmosBlockScanner) processTxs(height int64, rawTxs [][]byte) ([]types.
 		for _, msg := range tx.GetMsgs() {
 			switch msg := msg.(type) {
 			case *btypes.MsgSend:
+				// Transaction contains a relevant MsgSend, check if the transaction was successful...
+				if blockResults.TxsResults[i].Code != 0 {
+					c.logger.Warn().Str("txhash", hash).Int64("height", height).Msg("inbound tx has non-zero response code, ignoring...")
+					continue
+				}
+
+				// Convert cosmos coins to thorchain coins (taking into account asset decimal precision)
 				coins := common.Coins{}
 				for _, coin := range msg.Amount {
 					cCoin, err := fromCosmosToThorchain(coin)
@@ -302,11 +307,12 @@ func (c *CosmosBlockScanner) processTxs(height int64, rawTxs [][]byte) ([]types.
 					coins = append(coins, cCoin)
 				}
 
-				// ignore the tx when no coins exist
+				// Ignore the tx when no coins exist
 				if coins.IsEmpty() {
 					continue
 				}
 
+				// Convert cosmos gas to thorchain coins (taking into account gas asset decimal precision)
 				gasFees := common.Gas{}
 				for _, fee := range fees {
 					cCoin, err := fromCosmosToThorchain(fee)
