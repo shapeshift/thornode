@@ -188,7 +188,7 @@ class MockTerra(HttpClient):
 
         result = self.lcd_client.tx.broadcast(tx)
         txn.id = result.txhash
-        # txn.gas = [Coin("TERRA.LUNA", self.default_gas)]
+        txn.gas = [Coin("TERRA.LUNA", self.default_gas)]
 
 
 class Terra(GenericChain):
