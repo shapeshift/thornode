@@ -111,6 +111,12 @@ func NewCosmosBlockScanner(cfg config.BlockScannerConfiguration,
 
 	// Registry for decoding txs
 	registry := bridge.GetContext().InterfaceRegistry
+
+	// CHANGEME: if you need to be able to process messages containing non-standard messages
+	// e.g. those not shipped with CosmosSDK by default, they need to be defined in the "proto" directory
+	// And registered to the codec manually here.
+	// In this case, we are saying a MsgExecuteContract can be decoded as a ctypes.Msg,
+	// which is necessary when using the TxDecoder to decode the transaction bytes from Tendermint.
 	registry.RegisterImplementations((*ctypes.Msg)(nil), &wasm.MsgExecuteContract{})
 
 	btypes.RegisterInterfaces(registry)
@@ -260,8 +266,12 @@ func (c *CosmosBlockScanner) updateGasFees(height int64) error {
 }
 
 func (c *CosmosBlockScanner) processTxs(height int64, rawTxs [][]byte) ([]types.TxInItem, error) {
+	// Proto types for Cosmos chains that we are transacting with may not be included in this repo.
+	// Therefore, it is necessary to incude them in the "proto" directory and register them in
+	// the cdc (codec) that is passed below. Registry occurs in the NewCosmosBlockScanner function.
 	decoder := tx.DefaultTxDecoder(c.cdc)
 
+	// Fetch the block results so that we can ensure the transaction was successful before processing a TxInItem
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 	blockResults, err := c.txService.BlockResults(ctx, &height)
