@@ -132,6 +132,7 @@ func (s *CosmosTestSuite) TestProcessOutboundTx(c *C) {
 	}))
 
 	client, err := NewCosmosClient(s.thorKeys, config.ChainConfiguration{
+		ChainID: common.TERRAChain,
 		RPCHost: server.URL,
 		BlockScanner: config.BlockScannerConfiguration{
 			RPCHost:          server.URL,
