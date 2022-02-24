@@ -254,7 +254,7 @@ func (c *CosmosClient) GetAccountByAddress(address string, _ *big.Int) (common.A
 	for _, balance := range balances.Balances {
 		coin, err := fromCosmosToThorchain(balance)
 		if err != nil {
-			c.logger.Warn().Err(err).Interface("balances", balances.Balances).Msg("wasn't able to convert coins that passed whitelist")
+			c.logger.Err(err).Interface("balances", balances.Balances).Msg("wasn't able to convert coins that passed whitelist")
 			continue
 		}
 		nativeCoins = append(nativeCoins, coin)
