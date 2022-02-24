@@ -102,8 +102,8 @@ func NewCosmosBlockScanner(cfg config.BlockScannerConfiguration,
 	// Bifrost only supports an "RPCHost" in its configuration.
 	// We also need to access GRPC for Cosmos chains
 	// Use a replace on port 9090 to obtain the GRPC URL
-	grpcHostParts := strings.Split(cfg.RPCHost, ":")
-	grpcHost := fmt.Sprintf("%s:%s:9090", grpcHostParts[0], grpcHostParts[1])
+	grpcHostParts := strings.Split(strings.ReplaceAll(cfg.RPCHost, "http://", ""), ":")
+	grpcHost := fmt.Sprintf("%s:9090", grpcHostParts[0])
 	grpcConn, err := grpc.Dial(grpcHost, grpc.WithInsecure())
 	if err != nil {
 		logger.Fatal().Err(err).Msg("fail to dial grpc")
