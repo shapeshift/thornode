@@ -202,7 +202,6 @@ func (s *BlockScannerTestSuite) TestProcessTxs(c *C) {
 		if _, err := w.Write(res); err != nil {
 			c.Fatal("unable to write /block_result", err)
 		}
-
 	})
 	server := httptest.NewServer(h)
 	defer server.Close()
