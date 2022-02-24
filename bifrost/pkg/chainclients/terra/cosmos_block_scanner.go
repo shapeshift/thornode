@@ -261,7 +261,6 @@ func (c *CosmosBlockScanner) processTxs(height int64, rawTxs [][]byte) ([]types.
 	defer cancel()
 	blockResults, err := c.txService.BlockResults(ctx, &height)
 	if err != nil {
-		c.logger.Err(err).Int64("height", height).Msg("unable to fetch BlockResults")
 		return []types.TxInItem{}, fmt.Errorf("unable to get BlockResults: %w", err)
 	}
 
@@ -351,7 +350,6 @@ func (c *CosmosBlockScanner) FetchTxs(height int64) (types.TxIn, error) {
 
 	txs, err := c.processTxs(height, block.Data.Txs)
 	if err != nil {
-		c.logger.Err(err).Int64("height", height).Msg("failed to processTxs")
 		return types.TxIn{}, err
 	}
 
