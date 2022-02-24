@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -101,13 +100,6 @@ func NewCosmosBlockScanner(cfg config.BlockScannerConfiguration,
 
 	// Bifrost only supports an "RPCHost" in its configuration.
 	// We also need to access GRPC for Cosmos chains
-	// Use a replace on port 9090 to obtain the GRPC URL
-	grpcHostParts := strings.Split(strings.ReplaceAll(cfg.RPCHost, "http://", ""), ":")
-	grpcHost := fmt.Sprintf("%s:9090", grpcHostParts[0])
-	grpcConn, err := grpc.Dial(grpcHost, grpc.WithInsecure())
-	if err != nil {
-		logger.Fatal().Err(err).Msg("fail to dial grpc")
-	}
 
 	// Registry for decoding txs
 	registry := bridge.GetContext().InterfaceRegistry
@@ -122,18 +114,16 @@ func NewCosmosBlockScanner(cfg config.BlockScannerConfiguration,
 	btypes.RegisterInterfaces(registry)
 	cdc := codec.NewProtoCodec(registry)
 
+	grpcConn, err := getGRPCConn(cfg.RPCHost)
+	if err != nil {
+		logger.Fatal().Err(err).Msg("fail to create grpc connection")
+	}
+
 	// Registry for encoding txs
 	marshaler := codec.NewProtoCodec(registry)
 	txConfig := tx.NewTxConfig(marshaler, []signingtypes.SignMode{signingtypes.SignMode_SIGN_MODE_DIRECT})
 	tmService := tmservice.NewServiceClient(grpcConn)
-
-	httpClient := &http.Client{
-		Transport: http.DefaultTransport.(*http.Transport).Clone(),
-	}
-	httpClient.Transport.(*http.Transport).MaxIdleConns = 32
-	httpClient.Transport.(*http.Transport).MaxIdleConnsPerHost = 32
-
-	rpcClient, err := rpcclient.NewWithClient(cfg.RPCHost, "/websocket", httpClient)
+	rpcClient, err := rpcclient.New(cfg.RPCHost, "/websocket")
 	if err != nil {
 		logger.Fatal().Err(err).Msg("fail to create tendemrint rpcclient")
 	}
