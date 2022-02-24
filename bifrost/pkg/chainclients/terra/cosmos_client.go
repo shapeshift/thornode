@@ -54,7 +54,7 @@ var CosmosSuccessCodes = map[uint32]bool{
 	errortypes.ErrTxInMempoolCache.ABCICode(): true,
 }
 
-// Cosmos is a structure to sign and broadcast tx to atom chain used by signer mostly
+// CosmosClient is a structure to sign and broadcast tx to atom chain used by signer mostly
 type CosmosClient struct {
 	logger              zerolog.Logger
 	cfg                 config.ChainConfiguration
@@ -76,7 +76,7 @@ type CosmosClient struct {
 	stopchan            chan struct{}
 }
 
-// NewClient create new instance of atom client
+// NewCosmosClient creates a new instance of a Cosmos-based chain client
 func NewCosmosClient(
 	thorKeys *thorclient.Keys,
 	cfg config.ChainConfiguration,
