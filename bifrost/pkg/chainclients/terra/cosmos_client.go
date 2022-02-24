@@ -114,10 +114,11 @@ func NewCosmosClient(
 		pubkey:  pk,
 	}
 
-	host := strings.ReplaceAll(cfg.RPCHost, "http://", "")
-	conn, err := grpc.Dial(host, grpc.WithInsecure())
+	grpcHostParts := strings.Split(strings.ReplaceAll(cfg.RPCHost, "http://", ""), ":")
+	grpcHost := fmt.Sprintf("%s:9090", grpcHostParts[0])
+	grpcConn, err := grpc.Dial(grpcHost, grpc.WithInsecure())
 	if err != nil {
-		logger.Fatal().Err(err).Msg("fail to dial")
+		logger.Fatal().Err(err).Msg("fail to dial grpc")
 	}
 
 	interfaceRegistry := codectypes.NewInterfaceRegistry()
@@ -140,9 +141,9 @@ func NewCosmosClient(
 		logger:          logger,
 		cfg:             cfg,
 		txConfig:        txConfig,
-		txClient:        txtypes.NewServiceClient(conn),
-		bankClient:      btypes.NewQueryClient(conn),
-		accountClient:   atypes.NewQueryClient(conn),
+		txClient:        txtypes.NewServiceClient(grpcConn),
+		bankClient:      btypes.NewQueryClient(grpcConn),
+		accountClient:   atypes.NewQueryClient(grpcConn),
 		accts:           NewCosmosMetaDataStore(),
 		tssKeyManager:   tssKm,
 		localKeyManager: localKm,
