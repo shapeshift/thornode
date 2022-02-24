@@ -277,18 +277,6 @@ func (addr Address) GetNetwork(chain Chain) ChainNetwork {
 		}
 		return MainNet
 	}
-	terraNetPredicate := func() ChainNetwork {
-		if currentNetwork == MockNet {
-			return MockNet
-		}
-		if currentNetwork == TestNet {
-			return TestNet
-		}
-		if currentNetwork == StageNet {
-			return StageNet
-		}
-		return MainNet
-	}
 	switch chain {
 	case ETHChain:
 		return currentNetwork
@@ -301,10 +289,7 @@ func (addr Address) GetNetwork(chain Chain) ChainNetwork {
 			return TestNet
 		}
 	case TERRAChain:
-		prefix, _, _ := bech32.Decode(addr.String())
-		if strings.EqualFold(prefix, "terra") {
-			return terraNetPredicate()
-		}
+		return currentNetwork
 	case THORChain:
 		prefix, _, _ := bech32.Decode(addr.String())
 		if strings.EqualFold(prefix, "thor") {
