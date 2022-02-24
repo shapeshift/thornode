@@ -63,6 +63,7 @@ func hasMsgSend(msgs []ctypes.Msg) bool {
 		switch msg.(type) {
 		case *btypes.MsgSend:
 			return true
+		default:
 		}
 	}
 	return false
