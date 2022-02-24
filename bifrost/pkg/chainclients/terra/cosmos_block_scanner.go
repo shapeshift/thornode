@@ -97,7 +97,7 @@ func NewCosmosBlockScanner(cfg config.BlockScannerConfiguration,
 		return nil, errors.New("metrics is nil")
 	}
 
-	logger := log.Logger.With().Str("module", "blockscanner").Str("chain", common.TERRAChain.String()).Logger()
+	logger := log.Logger.With().Str("module", "blockscanner").Str("chain", cfg.ChainID.String()).Logger()
 
 	// Bifrost only supports an "RPCHost" in its configuration.
 	// We also need to access GRPC for Cosmos chains
@@ -147,6 +147,9 @@ func NewCosmosBlockScanner(cfg config.BlockScannerConfiguration,
 	}, nil
 }
 
+// GetHeight returns the height from the lastest block minus 1
+// NOTE: we must lag by one block due to a race condition fetching the block results
+// Since the GetLatestBlockRequests tells what transactions will be in the block at T+1
 func (c *CosmosBlockScanner) GetHeight() (int64, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
@@ -157,15 +160,17 @@ func (c *CosmosBlockScanner) GetHeight() (int64, error) {
 		return 0, err
 	}
 
-	return resultHeight.Block.Header.Height, nil
+	return resultHeight.Block.Header.Height - 1, nil
 }
 
+// FetchMemPool returns nothing since we are only concerned about finalized transactions in Cosmos
 func (c *CosmosBlockScanner) FetchMemPool(height int64) (types.TxIn, error) {
 	return types.TxIn{}, nil
 }
 
 // GetBlock returns a Tendermint block as a reference to a ResultBlock for a
-// given height. An error is returned upon query failure.
+// given height. As noted above, this is not necessarily the final state of transactions
+// and must be checked again for success by getting the BlockResults in FetchTxs
 func (c *CosmosBlockScanner) GetBlock(height int64) (*tmtypes.Block, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
@@ -240,7 +245,7 @@ func (c *CosmosBlockScanner) updateGasFees(height int64) error {
 		// correct fee. We cannot pass the proper size and rate without a deeper change to
 		// Thornode, as the rate on Cosmos chains is less than 1 and cannot be represented
 		// by the uint. This follows the pattern set in the BNB chain client.
-		feeTx, err := c.bridge.PostNetworkFee(height, common.TERRAChain, 1, gasFee.Uint64())
+		feeTx, err := c.bridge.PostNetworkFee(height, c.cfg.ChainID, 1, gasFee.Uint64())
 		if err != nil {
 			return err
 		}
@@ -355,7 +360,7 @@ func (c *CosmosBlockScanner) FetchTxs(height int64) (types.TxIn, error) {
 
 	txIn := types.TxIn{
 		Count:    strconv.Itoa(len(txs)),
-		Chain:    common.TERRAChain,
+		Chain:    c.cfg.ChainID,
 		TxArray:  txs,
 		Filtered: false,
 		MemPool:  false,

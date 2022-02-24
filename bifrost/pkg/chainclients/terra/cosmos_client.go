@@ -19,7 +19,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/auth/signing"
 	"github.com/cosmos/cosmos-sdk/x/auth/tx"
 	"github.com/tendermint/tendermint/crypto"
-	"gitlab.com/thorchain/thornode/x/thorchain"
 	memo "gitlab.com/thorchain/thornode/x/thorchain/memo"
 
 	ctypes "github.com/cosmos/cosmos-sdk/types"
@@ -54,7 +53,7 @@ var CosmosSuccessCodes = map[uint32]bool{
 	errortypes.ErrTxInMempoolCache.ABCICode(): true,
 }
 
-// CosmosClient is a structure to sign and broadcast tx to atom chain used by signer mostly
+// CosmosClient is a structure to sign and broadcast tx to Cosmos chain used by signer mostly
 type CosmosClient struct {
 	logger              zerolog.Logger
 	cfg                 config.ChainConfiguration
@@ -84,7 +83,7 @@ func NewCosmosClient(
 	thorchainBridge *thorclient.ThorchainBridge,
 	m *metrics.Metrics,
 ) (*CosmosClient, error) {
-	logger := log.With().Str("module", common.TERRAChain.String()).Logger()
+	logger := log.With().Str("module", cfg.ChainID.String()).Logger()
 
 	tssKm, err := tss.NewKeySign(server, thorchainBridge)
 	if err != nil {
@@ -114,6 +113,7 @@ func NewCosmosClient(
 		pubkey:  pk,
 	}
 
+	// CHANGEME: all Cosmos GRPC should be on port 9090. Update this if your chain uses something use else.
 	grpcHostParts := strings.Split(strings.ReplaceAll(cfg.RPCHost, "http://", ""), ":")
 	grpcHost := fmt.Sprintf("%s:9090", grpcHostParts[0])
 	grpcConn, err := grpc.Dial(grpcHost, grpc.WithInsecure())
@@ -126,6 +126,8 @@ func NewCosmosClient(
 	marshaler := codec.NewProtoCodec(interfaceRegistry)
 	txConfig := tx.NewTxConfig(marshaler, []signingtypes.SignMode{signingtypes.SignMode_SIGN_MODE_DIRECT})
 
+	// CHANGEME: each THORNode network (e.g. mainnet, testnet, etc.) may connect to a Cosmos chain with a different chain ID
+	// Implement the logic here for determinine which chain ID to use.
 	chainID := ""
 	switch os.Getenv("NET") {
 	case "mainnet", "stagenet":
@@ -214,7 +216,7 @@ func (c *CosmosClient) IsBlockScannerHealthy() bool {
 }
 
 func (c *CosmosClient) GetChain() common.Chain {
-	return common.TERRAChain
+	return c.cfg.ChainID
 }
 
 func (c *CosmosClient) GetHeight() (int64, error) {
@@ -284,7 +286,7 @@ func (c *CosmosClient) GetAccountByAddress(address string, _ *big.Int) (common.A
 }
 
 func (c *CosmosClient) processOutboundTx(tx stypes.TxOutItem, thorchainHeight int64) (*btypes.MsgSend, error) {
-	fromAddr, err := tx.VaultPubKey.GetAddress(common.TERRAChain)
+	fromAddr, err := tx.VaultPubKey.GetAddress(c.cfg.ChainID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert address (%s) to bech32: %w", tx.VaultPubKey.String(), err)
 	}
@@ -294,6 +296,9 @@ func (c *CosmosClient) processOutboundTx(tx stypes.TxOutItem, thorchainHeight in
 		// Handle yggdrasil return. Leave enough coin to pay for gas
 		if strings.HasPrefix(tx.Memo, "YGGDRASIL-:") {
 			if coin.Asset == c.cfg.ChainID.GetGasAsset() {
+				// CHANGEME: you may need to set aside for coins for Yggdrasil return if Thorchain
+				// will support a large # of assets (all returned in a single MsgSend).
+				// This subtractFee takes into account two assets being sent back. Test this thoroughly.
 				subtractFee := c.cosmosScanner.averageFee().Mul(ctypes.NewUint(3)).Quo(ctypes.NewUint(2))
 				if coin.Amount.LT(subtractFee) {
 					// not enough gas to pay for transaction
@@ -356,9 +361,12 @@ func (c *CosmosClient) SignTx(tx stypes.TxOutItem, thorchainHeight int64) (signe
 
 	currentHeight, err := c.cosmosScanner.GetHeight()
 	if err != nil {
-		c.logger.Err(err).Msg("fail to get current terra block height")
+		c.logger.Err(err).Msg("fail to get current block height")
 		return nil, err
 	}
+
+	// Check if we have CosmosMetadata for the current block height
+	// before fetching it from the GRPC server
 	meta := c.accts.Get(tx.VaultPubKey)
 	if currentHeight > meta.BlockHeight {
 		acc, err := c.GetAccount(tx.VaultPubKey, big.NewInt(0))
@@ -375,7 +383,8 @@ func (c *CosmosClient) SignTx(tx stypes.TxOutItem, thorchainHeight int64) (signe
 
 	gasCoins := tx.MaxGas.ToCoins()
 	if len(gasCoins) != 1 {
-		if strings.EqualFold(tx.Memo, thorchain.NewYggdrasilReturn(thorchainHeight).String()) {
+		// CHANGEME: same as above, you may need to tweak this depending on the chain / # of assets
+		if strings.HasPrefix(tx.Memo, "YGGDRASIL-:") {
 			gasCoins = append(gasCoins, common.NewCoin(
 				c.GetChain().GetGasAsset(),
 				c.cosmosScanner.averageFee().Mul(ctypes.NewUint(3)).Quo(ctypes.NewUint(2)),
@@ -426,6 +435,7 @@ func (c *CosmosClient) SignTx(tx stypes.TxOutItem, thorchainHeight int64) (signe
 	return txBytes, nil
 }
 
+// signMsg takes an unsigned msg in a txBuilder and signs it using either private key or TSS.
 func (c *CosmosClient) signMsg(
 	txBuilder client.TxBuilder,
 	pubkey common.PubKey,
@@ -471,6 +481,7 @@ func (c *CosmosClient) signMsg(
 		}
 	}
 
+	// Ensure the signature is valid
 	if !cpk.VerifySignature(signBytes, sigData.Signature) {
 		return nil, fmt.Errorf("unable to verify signature with secpPubKey")
 	}
@@ -521,6 +532,8 @@ func (c *CosmosClient) ConfirmationCountReady(txIn stypes.TxIn) bool {
 }
 
 // GetConfirmationCount determine how many confirmations are required
+// NOTE: Cosmos chains are instant finality, so confirmations are not needed.
+// If the transaction was successful, we know it is included in a block and thus immutable.
 func (c *CosmosClient) GetConfirmationCount(txIn stypes.TxIn) int64 {
 	return 0
 }
@@ -542,7 +555,7 @@ func (c *CosmosClient) ReportSolvency(blockHeight int64) error {
 		select {
 		case c.globalSolvencyQueue <- stypes.Solvency{
 			Height: blockHeight,
-			Chain:  common.TERRAChain,
+			Chain:  c.cfg.ChainID,
 			PubKey: asgard.PubKey,
 			Coins:  acct.Coins,
 		}:
@@ -554,9 +567,11 @@ func (c *CosmosClient) ReportSolvency(blockHeight int64) error {
 }
 
 func (c *CosmosClient) ShouldReportSolvency(height int64) bool {
-	return height%900 == 0
+	// Block time on Cosmos-based chains generally hovers around 6 seconds (10 blocks/min).
+	return height%10 == 0
 }
 
+// OnObservedTxIn update the signer cache (in case we haven't already)
 func (c *CosmosClient) OnObservedTxIn(txIn stypes.TxInItem, blockHeight int64) {
 	m, err := memo.ParseMemo(txIn.Memo)
 	if err != nil {

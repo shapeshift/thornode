@@ -6,6 +6,8 @@ type Asset struct {
 	THORChainSymbol string
 }
 
+// CosmosAssets maps a Cosmos denom to a THORChain symbol and provides the asset decimals
+// CHANGEME: define assets that should be observed by THORChain here. This also acts a whitelist.
 var CosmosAssets = []Asset{
 	{
 		CosmosDenom:     "uluna",
