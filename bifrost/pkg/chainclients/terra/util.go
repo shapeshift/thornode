@@ -1,8 +1,11 @@
 package terra
 
 import (
+	"errors"
 	"fmt"
 	"math/big"
+	"net"
+	"net/url"
 	"os"
 
 	"github.com/cosmos/cosmos-sdk/client"
@@ -13,6 +16,7 @@ import (
 	"github.com/gogo/protobuf/proto"
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
+	grpc "google.golang.org/grpc"
 )
 
 // buildUnsigned takes a MsgSend and other parameters and returns a txBuilder
@@ -106,6 +110,19 @@ func fromThorchainToCosmos(coin common.Coin) (cosmos.Coin, error) {
 		amount.Quo(amount, exp.Exp(big.NewInt(10), big.NewInt(decimalDiff), nil))
 	}
 	return cosmos.NewCoin(asset.CosmosDenom, ctypes.NewIntFromBigInt(amount)), nil
+}
+
+// Bifrost only supports an "RPCHost" in its configuration.
+// We also need to access GRPC for Cosmos chains
+func getGRPCConn(host string) (*grpc.ClientConn, error) {
+	url, err := url.Parse(host)
+	if err != nil {
+		return &grpc.ClientConn{}, errors.New("unable to parse RPCHost")
+	}
+	host, _, _ = net.SplitHostPort(url.Host)
+	// CHANGEME: all Cosmos GRPC should be on port 9090. Update this if your chain uses something use else.
+	grpcHost := fmt.Sprintf("%s:9090", host)
+	return grpc.Dial(grpcHost, grpc.WithInsecure())
 }
 
 func unmarshalJSONToPb(filePath string, msg proto.Message) error {

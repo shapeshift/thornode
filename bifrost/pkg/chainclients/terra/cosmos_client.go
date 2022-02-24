@@ -26,8 +26,6 @@ import (
 	atypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	btypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 
-	grpc "google.golang.org/grpc"
-
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"gitlab.com/thorchain/thornode/common/cosmos"
@@ -113,12 +111,9 @@ func NewCosmosClient(
 		pubkey:  pk,
 	}
 
-	// CHANGEME: all Cosmos GRPC should be on port 9090. Update this if your chain uses something use else.
-	grpcHostParts := strings.Split(strings.ReplaceAll(cfg.RPCHost, "http://", ""), ":")
-	grpcHost := fmt.Sprintf("%s:9090", grpcHostParts[0])
-	grpcConn, err := grpc.Dial(grpcHost, grpc.WithInsecure())
+	grpcConn, err := getGRPCConn(cfg.RPCHost)
 	if err != nil {
-		logger.Fatal().Err(err).Msg("fail to dial grpc")
+		return nil, errors.New("fail to create grpc connection")
 	}
 
 	interfaceRegistry := codectypes.NewInterfaceRegistry()
