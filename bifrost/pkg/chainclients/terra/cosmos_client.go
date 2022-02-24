@@ -286,7 +286,7 @@ func (c *CosmosClient) GetAccountByAddress(address string, _ *big.Int) (common.A
 }
 
 func (c *CosmosClient) processOutboundTx(tx stypes.TxOutItem, thorchainHeight int64) (*btypes.MsgSend, error) {
-	fromAddr, err := tx.VaultPubKey.GetAddress(c.cfg.ChainID)
+	fromAddr, err := tx.VaultPubKey.GetAddress(c.GetChain())
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert address (%s) to bech32: %w", tx.VaultPubKey.String(), err)
 	}
