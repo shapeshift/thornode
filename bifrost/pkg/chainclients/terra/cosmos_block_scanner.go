@@ -257,17 +257,7 @@ func (c *CosmosBlockScanner) processTxs(height int64, rawTxs [][]byte) ([]types.
 			continue
 		}
 
-		containsMsgSend := false
-		for _, msg := range tx.GetMsgs() {
-			switch msg.(type) {
-			case *btypes.MsgSend:
-				containsMsgSend = true
-
-			default:
-				continue
-			}
-		}
-		if containsMsgSend {
+		if hasMsgSend(tx.GetMsgs()) {
 			possibleTxs = append(possibleTxs, hash)
 		}
 	}
