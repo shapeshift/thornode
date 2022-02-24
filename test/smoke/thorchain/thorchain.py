@@ -1011,7 +1011,7 @@ class ThorchainState:
         self.ltc_estimate_size = 255
         self.doge_estimate_size = 417
         if pool.lp_units == 0:
-            if pool.asset.is_bnb():
+            if pool.asset.is_bnb() or pool.asset.is_luna():
                 gas_amt = gas.amount
                 if RUNE.get_chain() == "BNB":
                     gas_amt *= 2
