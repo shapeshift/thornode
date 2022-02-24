@@ -1,11 +1,18 @@
 package terra
 
 import (
+	"io/ioutil"
+	"net/http"
+	"net/http/httptest"
+	"os"
+
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/crypto/hd"
 	cKeys "github.com/cosmos/cosmos-sdk/crypto/keyring"
 	ctypes "github.com/cosmos/cosmos-sdk/types"
 	btypes "github.com/cosmos/cosmos-sdk/x/bank/types"
+	rpcclient "github.com/tendermint/tendermint/rpc/client/http"
+
 	"github.com/rs/zerolog/log"
 	"gitlab.com/thorchain/thornode/bifrost/config"
 	"gitlab.com/thorchain/thornode/bifrost/metrics"
@@ -178,17 +185,36 @@ func (s *BlockScannerTestSuite) TestGetBlock(c *C) {
 func (s *BlockScannerTestSuite) TestProcessTxs(c *C) {
 	cfg := config.BlockScannerConfiguration{ChainID: common.TERRAChain}
 	mockTmServiceClient := NewMockTmServiceClient()
-	mockTxServiceClient := NewMockTxServiceClient()
 
 	registry := s.bridge.GetContext().InterfaceRegistry
 	registry.RegisterImplementations((*ctypes.Msg)(nil), &wasm.MsgExecuteContract{})
 	btypes.RegisterInterfaces(registry)
 	cdc := codec.NewProtoCodec(registry)
 
+	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		jsonFile, err := os.Open("./test-data/tx_results_by_height.json")
+		if err != nil {
+			c.Fatal("unable to load tx_results_by_height.json")
+		}
+		defer jsonFile.Close()
+
+		res, _ := ioutil.ReadAll(jsonFile)
+		if _, err := w.Write(res); err != nil {
+			c.Fatal("unable to write /block_result", err)
+		}
+	})
+	server := httptest.NewServer(h)
+	defer server.Close()
+
+	rpcClient, err := rpcclient.NewWithClient(server.URL, "/websocket", server.Client())
+	if err != nil {
+		c.Fatal("fail to create tendermint rpcclient")
+	}
+
 	blockScanner := CosmosBlockScanner{
 		cfg:       cfg,
 		tmService: mockTmServiceClient,
-		txService: mockTxServiceClient,
+		txService: rpcClient,
 		cdc:       cdc,
 		logger:    log.Logger.With().Str("module", "blockscanner").Str("chain", common.TERRAChain.String()).Logger(),
 	}

@@ -15,8 +15,6 @@ import (
 	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
-const ThorchainDecimals = 8
-
 // buildUnsigned takes a MsgSend and other parameters and returns a txBuilder
 // It can be used to simulateTx or as the input to signMsg before BraodcastTx
 func buildUnsigned(
@@ -63,24 +61,24 @@ func buildUnsigned(
 func fromCosmosToThorchain(c cosmos.Coin) (common.Coin, error) {
 	cosmosAsset, exists := GetAssetByCosmosDenom(c.Denom)
 	if !exists {
-		return common.Coin{}, fmt.Errorf("asset does not exist / not whitelisted by client")
+		return common.NoCoin, fmt.Errorf("asset does not exist / not whitelisted by client")
 	}
 
 	thorAsset, err := common.NewAsset(fmt.Sprintf("%s.%s", common.TERRAChain.String(), cosmosAsset.THORChainSymbol))
 	if err != nil {
-		return common.Coin{}, fmt.Errorf("invalid thorchain asset: %w", err)
+		return common.NoCoin, fmt.Errorf("invalid thorchain asset: %w", err)
 	}
 
 	decimals := cosmosAsset.CosmosDecimals
 	amount := c.Amount.BigInt()
 	var exp big.Int
 	// Decimals are more than native THORChain, so divide...
-	if decimals > ThorchainDecimals {
-		decimalDiff := int64(decimals - ThorchainDecimals)
+	if decimals > common.THORChainDecimals {
+		decimalDiff := int64(decimals - common.THORChainDecimals)
 		amount.Quo(amount, exp.Exp(big.NewInt(10), big.NewInt(decimalDiff), nil))
-	} else if decimals < ThorchainDecimals {
+	} else if decimals < common.THORChainDecimals {
 		// Decimals are less than native THORChain, so multiply...
-		decimalDiff := int64(ThorchainDecimals - decimals)
+		decimalDiff := int64(common.THORChainDecimals - decimals)
 		amount.Mul(amount, exp.Exp(big.NewInt(10), big.NewInt(decimalDiff), nil))
 	}
 	return common.Coin{
@@ -99,12 +97,12 @@ func fromThorchainToCosmos(coin common.Coin) (cosmos.Coin, error) {
 	decimals := asset.CosmosDecimals
 	amount := coin.Amount.BigInt()
 	var exp big.Int
-	if decimals > ThorchainDecimals {
-		decimalDiff := int64(decimals - ThorchainDecimals)
+	if decimals > common.THORChainDecimals {
+		decimalDiff := int64(decimals - common.THORChainDecimals)
 		amount.Mul(amount, exp.Exp(big.NewInt(10), big.NewInt(decimalDiff), nil))
-	} else if decimals < ThorchainDecimals {
+	} else if decimals < common.THORChainDecimals {
 		// Decimals are less than native THORChain, so multiply...
-		decimalDiff := int64(ThorchainDecimals - decimals)
+		decimalDiff := int64(common.THORChainDecimals - decimals)
 		amount.Quo(amount, exp.Exp(big.NewInt(10), big.NewInt(decimalDiff), nil))
 	}
 	return cosmos.NewCoin(asset.CosmosDenom, ctypes.NewIntFromBigInt(amount)), nil
