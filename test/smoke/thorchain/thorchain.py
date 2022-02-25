@@ -500,8 +500,13 @@ class ThorchainState:
                             else:
                                 tx.gas = tx.max_gas
 
-                        if coin.asset.is_luna() and not asset_fee == 0:
-                            tx.max_gas = [Coin(coin.asset, int(asset_fee / 3))]
+                        if coin.asset.is_terra() and not asset_fee == 0:
+                            if coin.asset.is_luna():
+                                tx.max_gas = [Coin(coin.asset, int(asset_fee / 3))]
+                            else:
+                                fee_in_gas_asset = self.get_asset_fee(tx.chain)
+                                tx.max_gas = [Coin(Terra.coin, int(fee_in_gas_asset / 3))]
+
                             gap = int(asset_fee / 3) - self.terra_estimate_size * int(
                                 self.terra_tx_rate
                             )
@@ -1392,6 +1397,10 @@ class ThorchainState:
 
         # calculate the liquidity fee (in rune)
         liquidity_fee = self._calc_liquidity_fee(X, x, Y)
+        # decimals to 6 if TERRA chain
+        # if asset.chain == Terra.chain:
+        #     liquidity_fee = int(liquidity_fee / 100) * 100
+
         liquidity_fee_in_rune = liquidity_fee
         if coin.is_rune():
             liquidity_fee_in_rune = pool.get_asset_in_rune(liquidity_fee)
@@ -1544,7 +1553,10 @@ class Pool(Jsonable):
         if self.is_zero():
             return 0
 
-        return get_share(self.asset_balance, self.rune_balance, val)
+        amount = get_share(self.asset_balance, self.rune_balance, val)
+        if self.asset.chain == Terra.chain:
+            amount = int(amount / 100) * 100
+        return amount
 
     def get_rune_in_asset_with_slip(self, val):
         """
@@ -1688,6 +1700,9 @@ class Pool(Jsonable):
         units, rune_amt, asset_amt = self._calc_withdraw_units(
             lp.units, withdraw_basis_points
         )
+        # decimals to 6 if TERRA chain
+        if self.asset.chain == Terra.chain:
+            asset_amt = int(asset_amt / 100) * 100
         lp.units -= units
         lp.rune_deposit_value -= get_share(units, self.lp_units, self.rune_balance)
         lp.asset_deposit_value -= get_share(units, self.lp_units, self.asset_balance)

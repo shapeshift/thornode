@@ -382,6 +382,32 @@
         "chain": "THOR",
         "from_address": "PROVIDER-1",
         "to_address": "VAULT",
+        "memo": "ADD:TERRA.UST:PROVIDER-1",
+        "coins": [
+            {
+                "asset": "THOR.RUNE",
+                "amount": 10000000000
+            }
+        ],
+        "gas": null
+    },
+    {
+        "chain": "TERRA",
+        "from_address": "PROVIDER-1",
+        "to_address": "VAULT",
+        "memo": "ADD:TERRA.UST:PROVIDER-1",
+        "coins": [
+            {
+                "asset": "TERRA.UST",
+                "amount": 100000000000
+            }
+        ],
+        "gas": null
+    },
+    {
+        "chain": "THOR",
+        "from_address": "PROVIDER-1",
+        "to_address": "VAULT",
         "memo": "SWAP:BNB.BNB:PROVIDER-1-SYNTH",
         "coins": [
             {
@@ -958,7 +984,7 @@
         "coins": [
             {
                 "asset": "BNB.BNB",
-                "amount": 10000000
+                "amount": 100000000
             }
         ],
         "gas": null
@@ -972,6 +998,19 @@
             {
                 "asset": "TERRA.LUNA",
                 "amount": 10000000000
+            }
+        ],
+        "gas": null
+    },
+    {
+        "chain": "TERRA",
+        "from_address": "USER-1",
+        "to_address": "VAULT",
+        "memo": "SWAP:TERRA.UST:USER-1",
+        "coins": [
+            {
+                "asset": "TERRA.LUNA",
+                "amount": 20000000000
             }
         ],
         "gas": null
@@ -1193,6 +1232,19 @@
         "from_address": "PROVIDER-1",
         "to_address": "VAULT",
         "memo": "WITHDRAW:TERRA.LUNA:1000",
+        "coins": [
+            {
+                "asset": "THOR.RUNE",
+                "amount": 1
+            }
+        ],
+        "gas": null
+    },
+    {
+        "chain": "THOR",
+        "from_address": "PROVIDER-1",
+        "to_address": "VAULT",
+        "memo": "WITHDRAW:TERRA.UST:1000",
         "coins": [
             {
                 "asset": "THOR.RUNE",
@@ -1440,6 +1492,19 @@
         "from_address": "PROVIDER-1",
         "to_address": "VAULT",
         "memo": "WITHDRAW:DOGE.DOGE",
+        "coins": [
+            {
+                "asset": "THOR.RUNE",
+                "amount": 1
+            }
+        ],
+        "gas": null
+    },
+    {
+        "chain": "THOR",
+        "from_address": "PROVIDER-1",
+        "to_address": "VAULT",
+        "memo": "WITHDRAW:TERRA.UST",
         "coins": [
             {
                 "asset": "THOR.RUNE",
