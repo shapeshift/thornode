@@ -140,7 +140,6 @@ class MockTerra(HttpClient):
                 continue
             asset = f"{Terra.chain}.{symbol}"
             result.append(Coin(asset, coin.amount * 100))
-        logging.info(result)
         return result
 
     def get_block_txs(self, block_height=None):
