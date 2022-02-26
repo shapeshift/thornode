@@ -276,8 +276,24 @@ class Smoker:
                                 f"Bad binance balance: {name} {bnb_coin} != {sim_coin}"
                             )
 
+    def check_cosmos(self, chain, mock):
+        for addr, sim_acct in chain.accounts.items():
+            name = get_alias(chain.chain, addr)
+            if name == "MASTER":
+                continue  # don't care to compare MASTER account
+            if name == "VAULT" and chain.chain == "THOR":
+                continue  # don't care about vault for thorchain
+            mock_coins = mock.get_balance(addr)
+            for mock_coin in mock_coins:
+                sim_coin = sim_acct.get(mock_coin.asset)
+                sim_coin = Coin(mock_coin.asset, sim_acct.get(mock_coin.asset))
+                if sim_coin != mock_coin:
+                    self.error(
+                        f"Bad {chain.name} balance: {name} {mock_coin} != {sim_coin}"
+                    )
+
     def check_chain(self, chain, mock, reorg):
-        # compare simulation bitcoin vs mock bitcoin
+        # compare simulation account balances vs mock chain balances
         for addr, sim_acct in chain.accounts.items():
             name = get_alias(chain.chain, addr)
             if name == "MASTER":
@@ -578,6 +594,7 @@ class Smoker:
             self.check_pools()
 
             self.check_binance()
+            self.check_cosmos(self.terra, self.mock_terra)
             self.check_chain(self.bitcoin, self.mock_bitcoin, self.bitcoin_reorg)
             self.check_chain(self.litecoin, self.mock_litecoin, self.bitcoin_reorg)
             self.check_chain(self.dogecoin, self.mock_dogecoin, self.bitcoin_reorg)

@@ -1,4 +1,5 @@
 import time
+import logging
 
 from terra_sdk.client.lcd import LCDClient
 from terra_sdk.key.mnemonic import MnemonicKey
@@ -26,12 +27,12 @@ class MockTerra(HttpClient):
         "MASTER": "notice oak worry limit wrap speak medal online "
         + "prefer cluster roof addict wrist behave treat actual "
         + "wasp year salad speed social layer crew genius",
-        "USER-1": "quality vacuum heart guard buzz spike sight "
-        + "swarm shove special gym robust assume sudden deposit "
-        + "grid alcohol choice devote leader tilt noodle tide penalty",
-        "PROVIDER-1": "symbol force gallery make bulk round subway "
-        + "violin worry mixture penalty kingdom boring survey tool "
-        + "fringe patrol sausage hard admit remember broken alien absorb",
+        "USER-1": "vintage announce rapid clip spare stomach matter camp noble habit "
+        + "beef amateur chimney time fuel machine culture end toe oval isolate "
+        + "laptop solar gift",
+        "PROVIDER-1": "discover blue crunch cart club fish airport crazy roast hybrid "
+        + "scheme picnic veteran mango beach narrow luxury glory dynamic crawl symbol "
+        + "win sell dress",
     }
     block_stats = {
         "tx_rate": 2000000,
@@ -125,6 +126,23 @@ class MockTerra(HttpClient):
         """
         return self.lcd_client.tendermint.block_info(block_height)
 
+    def get_balance(self, account):
+        """
+        Get the balance account
+        """
+        coins = self.lcd_client.bank.balance(account)[0]
+        result = []
+        for coin in coins.to_list():
+            symbol = coin.denom[1:].upper()
+            if symbol == "USD":
+                symbol = "UST"
+            if symbol != "UST" and symbol != "LUNA":
+                continue
+            asset = f"{Terra.chain}.{symbol}"
+            result.append(Coin(asset, coin.amount * 100))
+        logging.info(result)
+        return result
+
     def get_block_txs(self, block_height=None):
         """
         Get the block txs data for a height
@@ -171,10 +189,6 @@ class MockTerra(HttpClient):
             addr = get_alias_address(chain, alias)
             txn.memo = txn.memo.replace(alias, addr)
 
-        fee = Fee(200000, "20000uluna")  # gas 0.2uluna fee 0.02uluna
-        if txn.coins[0].asset.is_ust():
-            fee = Fee(200000, "100000uluna,100000uusd")
-
         # create transaction
         tx = wallet.create_and_sign_tx(
             CreateTxOptions(
@@ -182,7 +196,7 @@ class MockTerra(HttpClient):
                     MsgSend(txn.from_address, txn.to_address, txn.coins[0].to_cosmos())
                 ],
                 memo=txn.memo,
-                fee=fee,
+                fee=Fee(200000, "20000uluna")  # gas 0.2uluna fee 0.02uluna,
             )
         )
 
