@@ -1,5 +1,4 @@
 import time
-import logging
 
 from terra_sdk.client.lcd import LCDClient
 from terra_sdk.key.mnemonic import MnemonicKey
