@@ -27,7 +27,6 @@ stages:
   - test
   - build
   - smoke-test
-  - release
 
 unit-tests:
   stage: test
@@ -53,9 +52,15 @@ lint:
     - thorchain
   except:
     - schedules
+    - testnet
+    - chaosnet
+    - mainnet
+    - stagenet
+    - testnet-multichain
+    - chaosnet-multichain
   before_script:
     - apt-get update && apt-get install -y curl git jq make protobuf-compiler sudo xz-utils
-    - go install mvdan.cc/gofumpt@latest
+    - go install mvdan.cc/gofumpt@v0.3.0
     # trunk.io setup
     - git fetch origin develop
     - curl https://get.trunk.io -fsSLo /tmp/trunk-install
@@ -139,18 +144,6 @@ smoke-test:
     - cd ./heimdall && IMAGE_NAME=$HEIMDALL_IMAGE make smoke
   after_script:
     - ./scripts/docker_logs.sh
-
-release:
-  stage: release
-  tags:
-    - thorchain
-  image: registry.gitlab.com/thorchain/misc/release-tool:latest
-  only:
-    - develop
-  except:
-    - schedules
-  script:
-    - release-tool changelog
 
 gosec-sast:
   stage: test

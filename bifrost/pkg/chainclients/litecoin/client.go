@@ -67,7 +67,7 @@ type Client struct {
 	globalErrataQueue       chan<- types.ErrataBlock
 	globalSolvencyQueue     chan<- types.Solvency
 	nodePubKey              common.PubKey
-	currentBlockHeight      int64
+	currentBlockHeight      *atomic.Int64
 	asgardAddresses         []common.Address
 	lastAsgard              time.Time
 	minRelayFeeSats         uint64
@@ -138,6 +138,7 @@ func NewClient(thorKeys *thorclient.Keys, cfg config.ChainConfiguration, server 
 		vaultSignerLocks:      make(map[string]*sync.Mutex),
 		stopchan:              make(chan struct{}),
 		consolidateInProgress: atomic.NewBool(false),
+		currentBlockHeight:    atomic.NewInt64(0),
 	}
 
 	var path string // if not set later, will in memory storage
@@ -583,7 +584,7 @@ func (c *Client) FetchTxs(height int64) (types.TxIn, error) {
 	if block.Hash == "" && block.PreviousHash == "" {
 		return txIn, fmt.Errorf("fail to get block: %w", err)
 	}
-	c.currentBlockHeight = height
+	c.currentBlockHeight.Store(height)
 	reScannedTxs, err := c.processReorg(block)
 	if err != nil {
 		c.logger.Err(err).Msg("fail to process litecoin re-org")
@@ -1117,7 +1118,7 @@ func (c *Client) ConfirmationCountReady(txIn types.TxIn) bool {
 	confirm := txIn.ConfirmationRequired
 	c.logger.Info().Msgf("confirmation required: %d", confirm)
 	// every tx in txIn already have at least 1 confirmation
-	return (c.currentBlockHeight - blockHeight) >= confirm
+	return (c.currentBlockHeight.Load() - blockHeight) >= confirm
 }
 
 // getVaultSignerLock , with consolidate UTXO process add into bifrost , there are two entry points for SignTx , one is from signer , signing the outbound tx

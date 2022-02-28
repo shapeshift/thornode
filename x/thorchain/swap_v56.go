@@ -65,7 +65,8 @@ func (s *SwapperV56) swap(ctx cosmos.Context,
 	target common.Asset,
 	destination common.Address,
 	swapTarget cosmos.Uint,
-	transactionFee cosmos.Uint, synthVirtualDepthMult int64, mgr Manager) (cosmos.Uint, []*EventSwap, error) {
+	transactionFee cosmos.Uint, synthVirtualDepthMult int64, mgr Manager,
+) (cosmos.Uint, []*EventSwap, error) {
 	var swapEvents []*EventSwap
 
 	if err := s.validateMessage(tx, target, destination); err != nil {
@@ -215,7 +216,8 @@ func (s *SwapperV56) swapOne(ctx cosmos.Context,
 	destination common.Address,
 	swapTarget cosmos.Uint,
 	transactionFee cosmos.Uint,
-	synthVirtualDepthMult int64) (amt cosmos.Uint, evt *EventSwap, swapErr error) {
+	synthVirtualDepthMult int64,
+) (amt cosmos.Uint, evt *EventSwap, swapErr error) {
 	source := tx.Coins[0].Asset
 	amount := tx.Coins[0].Amount
 

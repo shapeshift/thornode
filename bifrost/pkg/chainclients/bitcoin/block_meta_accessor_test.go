@@ -23,6 +23,7 @@ func (s *BitcoinBlockMetaAccessorTestSuite) TestNewBlockMetaAccessor(c *C) {
 	dbBlockMetaAccessor, err := NewLevelDBBlockMetaAccessor(db)
 	c.Assert(err, IsNil)
 	c.Assert(dbBlockMetaAccessor, NotNil)
+	c.Assert(db.Close(), IsNil)
 }
 
 func (s *BitcoinBlockMetaAccessorTestSuite) TestBlockMetaAccessor(c *C) {
@@ -79,4 +80,5 @@ func (s *BitcoinBlockMetaAccessorTestSuite) TestBlockMetaAccessor(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(fee, Equals, 1.0)
 	c.Assert(vSize, Equals, int32(1))
+	c.Assert(db.Close(), IsNil)
 }
