@@ -166,7 +166,7 @@ func getBCHAddress(address bchutil.Address, cfg *bchchaincfg.Params) (Address, e
 		}
 		return NewAddress(h.String())
 	case *bchutil.LegacyAddressScriptHash, *bchutil.AddressScriptHash:
-		h, err := bchutil.NewAddressScriptHash(address.ScriptAddress(), cfg)
+		h, err := bchutil.NewAddressScriptHashFromHash(address.ScriptAddress(), cfg)
 		if err != nil {
 			return NoAddress, fmt.Errorf("fail to convert to new address script hash address: %w", err)
 		}
