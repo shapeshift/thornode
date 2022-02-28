@@ -21,7 +21,7 @@ cp -r ~/.thornode/config ~/.thornode/config."$DATE".bak
 cp -r ~/.thornode/data ~/.thornode/data."$DATE".bak
 
 # export genesis file
-thornode export --height "$HARDFORK_BLOCK_HEIGHT" > thorchain_genesis_export."$DATE".json
+thornode export --height "$HARDFORK_BLOCK_HEIGHT" >thorchain_genesis_export."$DATE".json
 
 # reset the database
 thornode unsafe-reset-all
