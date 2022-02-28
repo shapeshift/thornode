@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/http/pprof"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -175,13 +176,29 @@ func NewMetrics(cfg config.MetricsConfiguration) (*Metrics, error) {
 	// create a new mux server
 	server := http.NewServeMux()
 	// register a new handler for the /metrics endpoint
-	server.Handle("/metrics", promhttp.Handler())
+	server.Handle("/metrics",
+		promhttp.InstrumentMetricHandler(
+			prometheus.DefaultRegisterer,
+			promhttp.HandlerFor(prometheus.DefaultGatherer, promhttp.HandlerOpts{
+				Timeout: cfg.WriteTimeout,
+			}),
+		),
+	)
+
+	// register pprof handlers if enabled
+	if cfg.PprofEnabled {
+		server.HandleFunc("/debug/pprof/", pprof.Index)
+		server.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+		server.HandleFunc("/debug/pprof/profile", pprof.Profile)
+		server.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+		server.HandleFunc("/debug/pprof/trace", pprof.Trace)
+	}
+
 	// start an http server using the mux server
 	s := &http.Server{
-		Addr:         fmt.Sprintf(":%d", cfg.ListenPort),
-		Handler:      server,
-		ReadTimeout:  cfg.ReadTimeout,
-		WriteTimeout: cfg.WriteTimeout,
+		Addr:        fmt.Sprintf(":%d", cfg.ListenPort),
+		Handler:     server,
+		ReadTimeout: cfg.ReadTimeout,
 	}
 	return &Metrics{
 		logger: log.With().Str("module", "metrics").Logger(),

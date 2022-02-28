@@ -27,6 +27,6 @@ thornode export --height "$HARDFORK_BLOCK_HEIGHT" > thorchain_genesis_export."$D
 thornode unsafe-reset-all
 
 # update chain id
-jq --arg CHAIN_ID "$CHAIN_ID" --arg NEW_GENESIS_TIME "$NEW_GENESIS_TIME" '.chain_id=$CHAIN_ID | .genesis_time=$NEW_GENESIS_TIME' thorchain_genesis_export."$DATE".json > temp.json
+jq --arg CHAIN_ID "$CHAIN_ID" --arg NEW_GENESIS_TIME "$NEW_GENESIS_TIME" '.chain_id=$CHAIN_ID | .genesis_time=$NEW_GENESIS_TIME' thorchain_genesis_export."$DATE".json >temp.json
 # copied exported genesis file to the config directory
 cp temp.json ~/.thornode/config/genesis.json

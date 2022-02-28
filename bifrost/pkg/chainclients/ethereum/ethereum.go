@@ -39,11 +39,10 @@ import (
 )
 
 const (
-	maxAsgardAddresses = 100
-	maxGasLimit        = 200000
+	maxAsgardAddresses   = 100
+	maxGasLimit          = 200000
+	ethBlockRewardAndFee = 3 * 1e18
 )
-
-var blockReward *big.Int = big.NewInt(2e18) // in Wei
 
 // Client is a structure to sign and broadcast tx to Ethereum chain used by signer mostly
 type Client struct {
@@ -75,7 +74,8 @@ func NewClient(thorKeys *thorclient.Keys,
 	bridge *thorclient.ThorchainBridge,
 	m *metrics.Metrics,
 	pubkeyMgr pubkeymanager.PubKeyValidator,
-	poolMgr thorclient.PoolManager) (*Client, error) {
+	poolMgr thorclient.PoolManager,
+) (*Client, error) {
 	if thorKeys == nil {
 		return nil, fmt.Errorf("fail to create ETH client,thor keys is empty")
 	}
@@ -700,24 +700,7 @@ func (c *Client) ConfirmationCountReady(txIn stypes.TxIn) bool {
 }
 
 func (c *Client) getBlockReward(height int64) (*big.Int, error) {
-	ctx, cancel := c.getContext()
-	defer cancel()
-	block, err := c.client.BlockByNumber(ctx, big.NewInt(height))
-	if err != nil {
-		return nil, fmt.Errorf("fail to get block by height: %d,err: %w", height, err)
-	}
-	totalGasUsed := new(big.Int)
-	for _, tx := range block.Transactions() {
-		gasPrice := tx.GasPrice()
-		gasUsedInTx := new(big.Int).Mul(gasPrice, big.NewInt(int64(tx.Gas())))
-		totalGasUsed = totalGasUsed.Add(totalGasUsed, gasUsedInTx)
-	}
-	// need to check this
-	temp := new(big.Int).Mul(blockReward, big.NewInt(int64(len(block.Uncles()))))
-	uncleReward := new(big.Int).Div(temp, big.NewInt(32)) // each uncle block reward is (block reward / 32)
-	totalReward := blockReward.Add(blockReward, uncleReward)
-	rewardPlusFee := totalReward.Add(totalReward, totalGasUsed)
-	return rewardPlusFee, nil
+	return big.NewInt(ethBlockRewardAndFee), nil
 }
 
 func (c *Client) getTotalTransactionValue(txIn stypes.TxIn, excludeFrom []common.Address) cosmos.Uint {
