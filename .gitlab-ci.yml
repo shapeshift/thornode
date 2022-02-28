@@ -52,6 +52,12 @@ lint:
     - thorchain
   except:
     - schedules
+    - testnet
+    - chaosnet
+    - mainnet
+    - stagenet
+    - testnet-multichain
+    - chaosnet-multichain
   before_script:
     - apt-get update && apt-get install -y curl git jq make protobuf-compiler sudo xz-utils
     - go install mvdan.cc/gofumpt@v0.3.0
