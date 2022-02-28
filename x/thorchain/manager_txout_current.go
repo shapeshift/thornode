@@ -166,7 +166,7 @@ func (tos *TxOutStorageV81) UnSafeAddTxOutItem(ctx cosmos.Context, mgr Manager, 
 	// BCH chain will convert legacy address to new format automatically , thus when observe it back can't be associated with the original inbound
 	// so here convert the legacy address to new format
 	if toi.Chain.Equals(common.BCHChain) {
-		newBCHAddress, err := common.ConvertToNewBCHAddressFormat(toi.ToAddress)
+		newBCHAddress, err := common.ConvertToNewBCHAddressFormatV81(toi.ToAddress)
 		if err != nil {
 			return fmt.Errorf("fail to convert BCH address to new format: %w", err)
 		}
@@ -238,7 +238,7 @@ func (tos *TxOutStorageV81) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem) 
 	// BCH chain will convert legacy address to new format automatically , thus when observe it back can't be associated with the original inbound
 	// so here convert the legacy address to new format
 	if toi.Chain.Equals(common.BCHChain) {
-		newBCHAddress, err := common.ConvertToNewBCHAddressFormat(toi.ToAddress)
+		newBCHAddress, err := common.ConvertToNewBCHAddressFormatV81(toi.ToAddress)
 		if err != nil {
 			return outputs, fmt.Errorf("fail to convert BCH address to new format: %w", err)
 		}
