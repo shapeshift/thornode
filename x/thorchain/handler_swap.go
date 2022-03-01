@@ -128,7 +128,9 @@ func (h SwapHandler) validateV65(ctx cosmos.Context, msg MsgSwap) error {
 func (h SwapHandler) handle(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result, error) {
 	ctx.Logger().Info("receive MsgSwap", "request tx hash", msg.Tx.ID, "source asset", msg.Tx.Coins[0].Asset, "target asset", msg.TargetAsset, "signer", msg.Signer.String())
 	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.56.0")) {
+	if version.GTE(semver.MustParse("0.75.0")) {
+		return h.handleV75(ctx, msg)
+	} else if version.GTE(semver.MustParse("0.56.0")) {
 		return h.handleV56(ctx, msg)
 	} else if version.GTE(semver.MustParse("0.55.0")) {
 		return h.handleV55(ctx, msg)
@@ -142,7 +144,7 @@ func (h SwapHandler) handle(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result, er
 	return nil, errBadVersion
 }
 
-func (h SwapHandler) handleV56(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result, error) {
+func (h SwapHandler) handleV75(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result, error) {
 	// test that the network we are running matches the destination network
 	if !common.GetCurrentChainNetwork().SoftEquals(msg.Destination.GetNetwork(msg.Destination.GetChain())) {
 		return nil, fmt.Errorf("address(%s) is not same network", msg.Destination)
@@ -157,7 +159,7 @@ func (h SwapHandler) handleV56(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result,
 		return nil, fmt.Errorf("target asset can't be %s", msg.TargetAsset.String())
 	}
 
-	swapper := NewSwapperV56()
+	swapper := newSwapperV75()
 	_, _, swapErr := swapper.swap(
 		ctx,
 		h.mgr.Keeper(),
