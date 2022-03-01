@@ -44,3 +44,16 @@ message NodeAccount {
   string version = 14;
   NodeType type = 15;
 }
+
+message BondProvider {
+  option (gogoproto.stringer) = true;
+  bytes bond_address = 1 [(gogoproto.casttype) = "github.com/cosmos/cosmos-sdk/types.AccAddress"];
+  string bond = 2 [(gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Uint", (gogoproto.nullable) = false];
+}
+
+message BondProviders {
+  option (gogoproto.stringer) = true;
+  bytes node_address = 1 [(gogoproto.casttype) = "github.com/cosmos/cosmos-sdk/types.AccAddress"];
+  string node_operator_fee = 2 [(gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Uint", (gogoproto.nullable) = false];
+  repeated BondProvider providers = 3 [(gogoproto.nullable) = false];
+}

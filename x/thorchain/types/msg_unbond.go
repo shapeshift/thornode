@@ -6,13 +6,14 @@ import (
 )
 
 // NewMsgUnBond create new MsgUnBond message
-func NewMsgUnBond(txin common.Tx, nodeAddr cosmos.AccAddress, amount cosmos.Uint, bondAddress common.Address, signer cosmos.AccAddress) *MsgUnBond {
+func NewMsgUnBond(txin common.Tx, nodeAddr cosmos.AccAddress, amount cosmos.Uint, bondAddress common.Address, provider, signer cosmos.AccAddress) *MsgUnBond {
 	return &MsgUnBond{
-		TxIn:        txin,
-		NodeAddress: nodeAddr,
-		Amount:      amount,
-		BondAddress: bondAddress,
-		Signer:      signer,
+		TxIn:                txin,
+		NodeAddress:         nodeAddr,
+		Amount:              amount,
+		BondAddress:         bondAddress,
+		BondProviderAddress: provider,
+		Signer:              signer,
 	}
 }
 
