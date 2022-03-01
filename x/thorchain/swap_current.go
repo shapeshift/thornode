@@ -345,6 +345,7 @@ func (s *SwapperV81) swapOne(ctx cosmos.Context,
 }
 
 // calculate the number of assets sent to the address (includes liquidity fee)
+// nolint
 func (s *SwapperV81) calcAssetEmission(X, x, Y cosmos.Uint) cosmos.Uint {
 	// ( x * X * Y ) / ( x + X )^2
 	numerator := x.Mul(X).Mul(Y)
@@ -356,6 +357,7 @@ func (s *SwapperV81) calcAssetEmission(X, x, Y cosmos.Uint) cosmos.Uint {
 }
 
 // calculateFee the fee of the swap
+// nolint
 func (s *SwapperV81) calcLiquidityFee(X, x, Y cosmos.Uint) cosmos.Uint {
 	// ( x^2 *  Y ) / ( x + X )^2
 	numerator := x.Mul(x).Mul(Y)
@@ -367,6 +369,7 @@ func (s *SwapperV81) calcLiquidityFee(X, x, Y cosmos.Uint) cosmos.Uint {
 }
 
 // calcSwapSlip - calculate the swap slip, expressed in basis points (10000)
+// nolint
 func (s *SwapperV81) calcSwapSlip(Xi, xi cosmos.Uint) cosmos.Uint {
 	// Cast to DECs
 	xD := cosmos.NewDecFromBigInt(xi.BigInt())
