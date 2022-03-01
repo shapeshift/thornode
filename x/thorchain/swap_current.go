@@ -19,8 +19,8 @@ type SwapperV81 struct {
 
 func newSwapperV81() *SwapperV81 {
 	return &SwapperV81{
-		pools:     make(Pools),
-		poolsOrig: make(Pools),
+		pools:     make(Pools, 0),
+		poolsOrig: make(Pools, 0),
 	}
 }
 
