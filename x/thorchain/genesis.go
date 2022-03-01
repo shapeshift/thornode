@@ -99,6 +99,7 @@ func DefaultGenesisState() GenesisState {
 	return GenesisState{
 		Pools:               make([]Pool, 0),
 		NodeAccounts:        NodeAccounts{},
+		BondProviders:       make([]BondProviders, 0),
 		TxOuts:              make([]TxOut, 0),
 		LiquidityProviders:  make(LiquidityProviders, 0),
 		Vaults:              make(Vaults, 0),
@@ -147,6 +148,12 @@ func InitGenesis(ctx cosmos.Context, keeper keeper.Keeper, data GenesisState) []
 
 	for _, vault := range data.Vaults {
 		if err := keeper.SetVault(ctx, vault); err != nil {
+			panic(err)
+		}
+	}
+
+	for _, bp := range data.BondProviders {
+		if err := keeper.SetBondProviders(ctx, bp); err != nil {
 			panic(err)
 		}
 	}
@@ -305,6 +312,15 @@ func ExportGenesis(ctx cosmos.Context, k keeper.Keeper) GenesisState {
 		nodeAccounts = append(nodeAccounts, na)
 	}
 
+	bps := make([]BondProviders, 0)
+	for _, na := range nodeAccounts {
+		bp, err := k.GetBondProviders(ctx, na.NodeAddress)
+		if err != nil {
+			panic(err)
+		}
+		bps = append(bps, bp)
+	}
+
 	var observedTxInVoters ObservedTxVoters
 	var outs []TxOut
 	startBlockHeight := common.BlockHeight(ctx)
@@ -433,6 +449,7 @@ func ExportGenesis(ctx cosmos.Context, k keeper.Keeper) GenesisState {
 		ObservedTxInVoters: observedTxInVoters,
 		TxOuts:             outs,
 		NodeAccounts:       nodeAccounts,
+		BondProviders:      bps,
 		Vaults:             vaults,
 		LastSignedHeight:   lastSignedHeight,
 		LastChainHeights:   lastChainHeights,

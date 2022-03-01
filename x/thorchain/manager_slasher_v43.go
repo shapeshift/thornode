@@ -286,7 +286,7 @@ func (s *SlasherV43) LackSigning(ctx cosmos.Context, constAccessor constants.Con
 			}
 			s.keeper.SetObservedTxInVoter(ctx, voter)
 
-			memo, _ := ParseMemo(tx.Memo) // ignore err
+			memo, _ := ParseMemo(mgr.GetVersion(), tx.Memo) // ignore err
 			if memo.IsInternal() {
 				// there is a different mechanism for rescheduling outbound
 				// transactions for migration transactions

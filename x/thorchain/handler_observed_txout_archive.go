@@ -49,7 +49,7 @@ func (h ObservedTxOutHandler) handleV1(ctx cosmos.Context, msg MsgObservedTxOut)
 
 		// if memo isn't valid or its an inbound memo, and its funds moving
 		// from a yggdrasil vault, slash the node
-		memo, _ := ParseMemo(tx.Tx.Memo)
+		memo, _ := ParseMemo(h.mgr.GetVersion(), tx.Tx.Memo)
 		if memo.IsEmpty() || memo.IsInbound() {
 			vault, err := h.mgr.Keeper().GetVault(ctx, tx.ObservedPubKey)
 			if err != nil {
@@ -178,7 +178,7 @@ func (h ObservedTxOutHandler) handleV46(ctx cosmos.Context, msg MsgObservedTxOut
 
 		// if memo isn't valid or its an inbound memo, and its funds moving
 		// from a yggdrasil vault, slash the node
-		memo, _ := ParseMemo(tx.Tx.Memo)
+		memo, _ := ParseMemo(h.mgr.GetVersion(), tx.Tx.Memo)
 		if memo.IsEmpty() || memo.IsInbound() {
 			vault, err := h.mgr.Keeper().GetVault(ctx, tx.ObservedPubKey)
 			if err != nil {

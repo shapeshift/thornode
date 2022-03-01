@@ -80,7 +80,7 @@ func (h ErrataTxHandler) handleV1(ctx cosmos.Context, msg MsgErrataTx) (*cosmos.
 		}
 	}
 
-	memo, _ := ParseMemo(tx.Memo)
+	memo, _ := ParseMemo(h.mgr.GetVersion(), tx.Memo)
 	if !memo.IsType(TxSwap) && !memo.IsType(TxAdd) {
 		// must be a swap or add transaction
 		return &cosmos.Result{}, nil
@@ -205,7 +205,7 @@ func (h ErrataTxHandler) handleV42(ctx cosmos.Context, msg MsgErrataTx) (*cosmos
 		}
 	}
 
-	memo, _ := ParseMemo(tx.Memo)
+	memo, _ := ParseMemo(h.mgr.GetVersion(), tx.Memo)
 	// if the tx is a migration , from old valut to new vault , then the inbound tx must have a related outbound tx as well
 	if memo.IsInternal() {
 		return h.processErrataOutboundTxV42(ctx, msg)
@@ -340,7 +340,7 @@ func (h ErrataTxHandler) handleV45(ctx cosmos.Context, msg MsgErrataTx) (*cosmos
 		return &cosmos.Result{}, nil
 	}
 
-	memo, _ := ParseMemo(tx.Memo)
+	memo, _ := ParseMemo(h.mgr.GetVersion(), tx.Memo)
 	// if the tx is a migration , from old valut to new vault , then the inbound tx must have a related outbound tx as well
 	if memo.IsInternal() {
 		return h.processErrataOutboundTxV42(ctx, msg)
@@ -425,7 +425,7 @@ func (h ErrataTxHandler) processErrataOutboundTxV1(ctx cosmos.Context, msg MsgEr
 		return &cosmos.Result{}, nil
 	}
 	// parse the outbound tx memo, so we can figure out which inbound tx triggered the outbound
-	m, err := ParseMemo(tx.Memo)
+	m, err := ParseMemo(h.mgr.GetVersion(), tx.Memo)
 	if err != nil {
 		return nil, fmt.Errorf("fail to parse memo(%s): %w", tx.Memo, err)
 	}
@@ -549,7 +549,7 @@ func (h ErrataTxHandler) processErrataOutboundTxV42(ctx cosmos.Context, msg MsgE
 		return &cosmos.Result{}, nil
 	}
 	// parse the outbound tx memo, so we can figure out which inbound tx triggered the outbound
-	m, err := ParseMemo(tx.Memo)
+	m, err := ParseMemo(h.mgr.GetVersion(), tx.Memo)
 	if err != nil {
 		return nil, fmt.Errorf("fail to parse memo(%s): %w", tx.Memo, err)
 	}

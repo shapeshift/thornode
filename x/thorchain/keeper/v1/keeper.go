@@ -35,6 +35,7 @@ const (
 	prefixLastSignedHeight       kvTypes.DbPrefix = "last_signed_height/"
 	prefixLastObserveHeight      kvTypes.DbPrefix = "last_observe_height/"
 	prefixNodeAccount            kvTypes.DbPrefix = "node_account/"
+	prefixBondProviders          kvTypes.DbPrefix = "bond_providers/"
 	prefixVault                  kvTypes.DbPrefix = "vault/"
 	prefixVaultAsgardIndex       kvTypes.DbPrefix = "vault_asgard_index/"
 	prefixNetwork                kvTypes.DbPrefix = "network/"
@@ -98,6 +99,10 @@ func (k KVStore) Cdc() codec.BinaryMarshaler {
 // Version return the current version
 func (k KVStore) Version() semver.Version {
 	return k.version
+}
+
+func (k *KVStore) SetVersion(ver semver.Version) {
+	k.version = ver
 }
 
 // GetKey return a key that can be used to store into key value store

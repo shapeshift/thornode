@@ -5,6 +5,7 @@ import (
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 type KeeperNodeAccountSuite struct{}
@@ -301,4 +302,21 @@ func (s *KeeperNodeAccountSuite) TestJail(c *C) {
 	c.Check(jail.NodeAddress.Equals(addr), Equals, true)
 	c.Check(jail.ReleaseHeight, Equals, int64(70))
 	c.Check(jail.Reason, Equals, "bar")
+}
+
+func (s *KeeperNodeAccountSuite) TestBondProviders(c *C) {
+	acc := GetRandomBech32Addr()
+	bp := NewBondProviders(acc)
+	bp.NodeOperatorFee = cosmos.NewUint(2000)
+	p := NewBondProvider(acc)
+	p.Bond = cosmos.NewUint(100)
+	bp.Providers = append(bp.Providers, p)
+	c.Assert(bp.Providers, HasLen, 1)
+
+	ctx, k := setupKeeperForTest(c)
+	c.Assert(k.SetBondProviders(ctx, bp), IsNil)
+
+	providers, err := k.GetBondProviders(ctx, acc)
+	c.Assert(err, IsNil)
+	c.Assert(providers.Providers, HasLen, 1)
 }
