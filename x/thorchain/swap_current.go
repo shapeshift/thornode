@@ -17,7 +17,7 @@ type SwapperV75 struct {
 	coinsToBurn common.Coins
 }
 
-func NewSwapperV75() *SwapperV75 {
+func newSwapperV75() *SwapperV75 {
 	return &SwapperV75{
 		pools:     make(Pools, 0),
 		poolsOrig: make(Pools, 0),
