@@ -197,11 +197,11 @@ func (h BondHandler) handleV81(ctx cosmos.Context, msg MsgBond) error {
 	// backfill bond provider information (passive migration code)
 	if len(bp.Providers) == 0 {
 		// no providers yet, add node operator bond address to the bond provider list
-		bondAddress, err := nodeAccount.BondAddress.AccAddress()
+		nodeOpBondAddr, err := nodeAccount.BondAddress.AccAddress()
 		if err != nil {
 			return ErrInternal(err, fmt.Sprintf("fail to parse bond address(%s)", msg.BondAddress))
 		}
-		p := NewBondProvider(bondAddress)
+		p := NewBondProvider(nodeOpBondAddr)
 		p.Bond = originalBond
 		bp.Providers = append(bp.Providers, p)
 	}
