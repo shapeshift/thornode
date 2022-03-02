@@ -374,7 +374,7 @@ func (c *Client) SignTx(tx stypes.TxOutItem, height int64) ([]byte, error) {
 		return nil, fmt.Errorf("can't sign tx when it doesn't have memo")
 	}
 
-	memo, err := mem.ParseMemo(tx.Memo)
+	memo, err := mem.ParseMemo(common.LatestVersion, tx.Memo)
 	if err != nil {
 		return nil, fmt.Errorf("fail to parse memo(%s):%w", tx.Memo, err)
 	}
@@ -820,7 +820,7 @@ func (c *Client) getAsgardAddress() ([]common.Address, error) {
 // OnObservedTxIn gets called from observer when we have a valid observation
 func (c *Client) OnObservedTxIn(txIn stypes.TxInItem, blockHeight int64) {
 	c.ethScanner.onObservedTxIn(txIn, blockHeight)
-	m, err := mem.ParseMemo(txIn.Memo)
+	m, err := mem.ParseMemo(common.LatestVersion, txIn.Memo)
 	if err != nil {
 		c.logger.Err(err).Msgf("fail to parse memo: %s", txIn.Memo)
 		return

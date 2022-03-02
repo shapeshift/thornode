@@ -4,23 +4,35 @@ import (
 	"fmt"
 
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+
+	"github.com/blang/semver"
 )
 
 type BondMemo struct {
 	MemoBase
-	NodeAddress cosmos.AccAddress
+	NodeAddress         cosmos.AccAddress
+	BondProviderAddress cosmos.AccAddress
 }
 
 func (m BondMemo) GetAccAddress() cosmos.AccAddress { return m.NodeAddress }
 
-func NewBondMemo(addr cosmos.AccAddress) BondMemo {
+func NewBondMemo(addr, additional cosmos.AccAddress) BondMemo {
 	return BondMemo{
-		MemoBase:    MemoBase{TxType: TxBond},
-		NodeAddress: addr,
+		MemoBase:            MemoBase{TxType: TxBond},
+		NodeAddress:         addr,
+		BondProviderAddress: additional,
 	}
 }
 
-func ParseBondMemo(parts []string) (BondMemo, error) {
+func ParseBondMemo(version semver.Version, parts []string) (BondMemo, error) {
+	if version.GTE(semver.MustParse("0.81.0")) {
+		return ParseBondMemoV81(parts)
+	}
+	return ParseBondMemoV1(parts)
+}
+
+func ParseBondMemoV81(parts []string) (BondMemo, error) {
+	additional := cosmos.AccAddress{}
 	if len(parts) < 2 {
 		return BondMemo{}, fmt.Errorf("not enough parameters")
 	}
@@ -28,5 +40,11 @@ func ParseBondMemo(parts []string) (BondMemo, error) {
 	if err != nil {
 		return BondMemo{}, fmt.Errorf("%s is an invalid thorchain address: %w", parts[1], err)
 	}
-	return NewBondMemo(addr), nil
+	if len(parts) >= 3 {
+		additional, err = cosmos.AccAddressFromBech32(parts[2])
+		if err != nil {
+			return BondMemo{}, fmt.Errorf("%s is an invalid thorchain address: %w", parts[2], err)
+		}
+	}
+	return NewBondMemo(addr, additional), nil
 }

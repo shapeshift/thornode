@@ -143,6 +143,7 @@ type QueryNodeAccount struct {
 	CurrentAward        cosmos.Uint                    `json:"current_award"`
 	ObserveChains       []QueryChainHeight             `json:"observe_chains"`
 	PreflightStatus     QueryNodeAccountPreflightCheck `json:"preflight_status"`
+	BondProviders       BondProviders                  `json:"bond_providers"`
 }
 
 // NewQueryNodeAccount create a new QueryNodeAccount based on the given node account parameter
