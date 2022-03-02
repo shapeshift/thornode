@@ -515,7 +515,7 @@ func (tos *TxOutStorageV78) addToBlockOut(ctx cosmos.Context, mgr Manager, item 
 	if err != nil {
 		ctx.Logger().Error("fail to get vault", "error", err)
 	}
-	memo, _ := ParseMemo(item.Memo) // ignore err
+	memo, _ := ParseMemo(mgr.GetVersion(), item.Memo) // ignore err
 	labels := []metrics.Label{
 		telemetry.NewLabel("vault_type", vault.Type.String()),
 		telemetry.NewLabel("pubkey", item.VaultPubKey.String()),
@@ -529,7 +529,7 @@ func (tos *TxOutStorageV78) addToBlockOut(ctx cosmos.Context, mgr Manager, item 
 func (tos *TxOutStorageV78) calcTxOutHeight(ctx cosmos.Context, toi TxOutItem) (int64, error) {
 	// non-outbound transactions are skipped. This is so this code does not
 	// affect internal transactions (ie consolidation and migrate txs)
-	memo, _ := ParseMemo(toi.Memo) // ignore err
+	memo, _ := ParseMemo(tos.keeper.Version(), toi.Memo) // ignore err
 	if !memo.IsType(TxRefund) && !memo.IsType(TxOutbound) {
 		return common.BlockHeight(ctx), nil
 	}

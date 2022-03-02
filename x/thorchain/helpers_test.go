@@ -77,6 +77,14 @@ func (k *TestRefundBondKeeper) SetVault(ctx cosmos.Context, vault Vault) error {
 	return nil
 }
 
+func (k *TestRefundBondKeeper) SetBondProviders(ctx cosmos.Context, _ BondProviders) error {
+	return nil
+}
+
+func (k *TestRefundBondKeeper) GetBondProviders(ctx cosmos.Context, add cosmos.AccAddress) (BondProviders, error) {
+	return BondProviders{}, nil
+}
+
 func (s *HelperSuite) TestSubsidizePoolWithSlashBond(c *C) {
 	ctx, mgr := setupManagerForTest(c)
 	ygg := GetRandomVault()
@@ -195,22 +203,23 @@ func (s *HelperSuite) TestRefundBondError(c *C) {
 	na.PubKeySet.Secp256k1 = pk
 	na.Bond = cosmos.NewUint(100 * common.One)
 	tx := GetRandomTx()
+	tx.FromAddress = GetRandomTHORAddress()
 	keeper1 := &TestRefundBondKeeper{}
 	mgr := NewDummyMgrWithKeeper(keeper1)
-	c.Assert(refundBond(ctx, tx, cosmos.ZeroUint(), &na, mgr), IsNil)
+	c.Assert(refundBond(ctx, tx, na.NodeAddress, cosmos.ZeroUint(), &na, mgr), IsNil)
 
 	// fail to get vault should return an error
 	na.UpdateStatus(NodeStandby, common.BlockHeight(ctx))
 	keeper1.na = na
 	mgr.K = keeper1
-	c.Assert(refundBond(ctx, tx, cosmos.ZeroUint(), &na, mgr), NotNil)
+	c.Assert(refundBond(ctx, tx, na.NodeAddress, cosmos.ZeroUint(), &na, mgr), NotNil)
 
 	// if the vault is not a yggdrasil pool , it should return an error
 	ygg := NewVault(common.BlockHeight(ctx), ActiveVault, AsgardVault, pk, common.Chains{common.BNBChain}.Strings(), []ChainContract{})
 	ygg.Coins = common.Coins{}
 	keeper1.ygg = ygg
 	mgr.K = keeper1
-	c.Assert(refundBond(ctx, tx, cosmos.ZeroUint(), &na, mgr), NotNil)
+	c.Assert(refundBond(ctx, tx, na.NodeAddress, cosmos.ZeroUint(), &na, mgr), NotNil)
 
 	// fail to get pool should fail
 	ygg = NewVault(common.BlockHeight(ctx), ActiveVault, YggdrasilVault, pk, common.Chains{common.BNBChain}.Strings(), []ChainContract{})
@@ -220,7 +229,7 @@ func (s *HelperSuite) TestRefundBondError(c *C) {
 	}
 	keeper1.ygg = ygg
 	mgr.K = keeper1
-	c.Assert(refundBond(ctx, tx, cosmos.ZeroUint(), &na, mgr), NotNil)
+	c.Assert(refundBond(ctx, tx, na.NodeAddress, cosmos.ZeroUint(), &na, mgr), NotNil)
 
 	// when ygg asset in RUNE is more then bond , thorchain should slash the node account with all their bond
 	keeper1.pool = Pool{
@@ -229,7 +238,7 @@ func (s *HelperSuite) TestRefundBondError(c *C) {
 		BalanceAsset: cosmos.NewUint(167 * common.One),
 	}
 	mgr.K = keeper1
-	c.Assert(refundBond(ctx, tx, cosmos.ZeroUint(), &na, mgr), IsNil)
+	c.Assert(refundBond(ctx, tx, na.NodeAddress, cosmos.ZeroUint(), &na, mgr), IsNil)
 	// make sure no tx has been generated for refund
 	items, err := mgr.TxOutStore().GetOutboundItems(ctx)
 	c.Assert(err, IsNil)
@@ -260,9 +269,10 @@ func (s *HelperSuite) TestRefundBondHappyPath(c *C) {
 	na.Status = NodeStandby
 	mgr := NewDummyMgrWithKeeper(keeper)
 	tx := GetRandomTx()
+	tx.FromAddress, _ = common.NewAddress(na.BondAddress.String())
 	yggAssetInRune, err := getTotalYggValueInRune(ctx, keeper, ygg)
 	c.Assert(err, IsNil)
-	err = refundBond(ctx, tx, cosmos.ZeroUint(), &na, mgr)
+	err = refundBond(ctx, tx, na.NodeAddress, cosmos.ZeroUint(), &na, mgr)
 	c.Assert(err, IsNil)
 	slashAmt := yggAssetInRune.MulUint64(3).QuoUint64(2)
 	items, err := mgr.TxOutStore().GetOutboundItems(ctx)
@@ -303,7 +313,7 @@ func (s *HelperSuite) TestRefundBondDisableRequestToLeaveNode(c *C) {
 	tx := GetRandomTx()
 	yggAssetInRune, err := getTotalYggValueInRune(ctx, keeper, ygg)
 	c.Assert(err, IsNil)
-	err = refundBond(ctx, tx, cosmos.ZeroUint(), &na, mgr)
+	err = refundBond(ctx, tx, na.NodeAddress, cosmos.ZeroUint(), &na, mgr)
 	c.Assert(err, IsNil)
 	slashAmt := yggAssetInRune.MulUint64(3).QuoUint64(2)
 	items, err := mgr.TxOutStore().GetOutboundItems(ctx)

@@ -354,7 +354,7 @@ func (c *Client) OnObservedTxIn(txIn types.TxInItem, blockHeight int64) {
 		c.logger.Err(err).Msgf("fail to save block meta to storage,block height(%d)", blockHeight)
 	}
 	// update the signer cache
-	m, err := mem.ParseMemo(txIn.Memo)
+	m, err := mem.ParseMemo(common.LatestVersion, txIn.Memo)
 	if err != nil {
 		c.logger.Err(err).Msgf("fail to parse memo: %s", txIn.Memo)
 		return
@@ -830,7 +830,7 @@ func (c *Client) getTxIn(tx *btcjson.TxRawResult, height int64, isMemPool bool) 
 	if len([]byte(memo)) > constants.MaxMemoSize {
 		return types.TxInItem{}, fmt.Errorf("memo (%s) longer than max allow length(%d)", memo, constants.MaxMemoSize)
 	}
-	m, err := mem.ParseMemo(memo)
+	m, err := mem.ParseMemo(common.LatestVersion, memo)
 	if err != nil {
 		c.logger.Debug().Msgf("fail to parse memo: %s,err : %s", memo, err)
 	}

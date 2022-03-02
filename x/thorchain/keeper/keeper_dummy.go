@@ -219,6 +219,10 @@ func (k KVStoreDummy) SetNodeAccountJail(ctx cosmos.Context, addr cosmos.AccAddr
 func (k KVStoreDummy) ReleaseNodeAccountFromJail(ctx cosmos.Context, addr cosmos.AccAddress) error {
 	return kaboom
 }
+func (k KVStoreDummy) SetBondProviders(ctx cosmos.Context, _ BondProviders) error { return kaboom }
+func (k KVStoreDummy) GetBondProviders(ctx cosmos.Context, _ cosmos.AccAddress) (BondProviders, error) {
+	return BondProviders{}, kaboom
+}
 
 func (k KVStoreDummy) GetObservingAddresses(_ cosmos.Context) ([]cosmos.AccAddress, error) {
 	return nil, kaboom

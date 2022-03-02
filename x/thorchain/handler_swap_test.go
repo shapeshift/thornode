@@ -210,7 +210,8 @@ func (s *HandlerSwapSuite) TestHandle(c *C) {
 	poolTCAN.BalanceRune = cosmos.NewUint(2349500000)
 	c.Assert(keeper.SetPool(ctx, poolTCAN), IsNil)
 	bnbAddr := GetRandomBNBAddress()
-	m, err := ParseMemo("swap:BNB.BNB:" + bnbAddr.String() + ":121893238")
+	m, err := ParseMemo(mgr.GetVersion(), "swap:BNB.BNB:"+bnbAddr.String()+":121893238")
+	c.Assert(err, IsNil)
 	txIn := NewObservedTx(
 		common.NewTx(GetRandomTxHash(), signerBNBAddr, GetRandomBNBAddress(),
 			common.Coins{
@@ -276,7 +277,7 @@ func (s *HandlerSwapSuite) TestDoubleSwap(c *C) {
 	observerAddr := keeper.activeNodeAccount.NodeAddress
 
 	// double swap - happy path
-	m, err := ParseMemo("swap:BNB.BNB:" + signerBNBAddr.String())
+	m, err := ParseMemo(mgr.GetVersion(), "swap:BNB.BNB:"+signerBNBAddr.String())
 	txIn := NewObservedTx(
 		common.NewTx(GetRandomTxHash(), signerBNBAddr, GetRandomBNBAddress(),
 			common.Coins{
@@ -303,7 +304,7 @@ func (s *HandlerSwapSuite) TestDoubleSwap(c *C) {
 	c.Assert(items, HasLen, 1)
 	// double swap , RUNE not enough to pay for transaction fee
 	testnetBNBAddr := GetRandomBNBAddress()
-	m1, err := ParseMemo("swap:BNB.BNB:" + testnetBNBAddr.String())
+	m1, err := ParseMemo(mgr.GetVersion(), "swap:BNB.BNB:"+testnetBNBAddr.String())
 	txIn1 := NewObservedTx(
 		common.NewTx(GetRandomTxHash(), signerBNBAddr, GetRandomBNBAddress(),
 			common.Coins{

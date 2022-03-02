@@ -10,17 +10,17 @@ import (
 	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
-type SwapV75Suite struct{}
+type SwapV81Suite struct{}
 
-var _ = Suite(&SwapV75Suite{})
+var _ = Suite(&SwapV81Suite{})
 
-func (s *SwapV75Suite) SetUpSuite(c *C) {
+func (s *SwapV81Suite) SetUpSuite(c *C) {
 	err := os.Setenv("NET", "other")
 	c.Assert(err, IsNil)
 	SetupConfigForTest()
 }
 
-func (s *SwapV75Suite) TestSwap(c *C) {
+func (s *SwapV81Suite) TestSwap(c *C) {
 	poolStorage := &TestSwapKeeper{}
 	inputs := []struct {
 		name          string
@@ -234,7 +234,7 @@ func (s *SwapV75Suite) TestSwap(c *C) {
 		mgr.K = poolStorage
 		mgr.txOutStore = NewTxStoreDummy()
 
-		amount, evts, err := NewSwapperV75().swap(ctx, poolStorage, tx, item.target, item.destination, item.tradeTarget, cosmos.NewUint(1000_000), 2, mgr)
+		amount, evts, err := newSwapperV81().swap(ctx, poolStorage, tx, item.target, item.destination, item.tradeTarget, cosmos.NewUint(1000_000), 2, mgr)
 		if item.expectedErr == nil {
 			c.Assert(err, IsNil)
 			c.Assert(evts, HasLen, item.events)
@@ -249,7 +249,7 @@ func (s *SwapV75Suite) TestSwap(c *C) {
 	}
 }
 
-func (s *SwapV75Suite) TestSynthSwap(c *C) {
+func (s *SwapV81Suite) TestSynthSwap(c *C) {
 	ctx, mgr := setupManagerForTest(c)
 	pool := NewPool()
 	pool.Asset = common.BNBAsset
@@ -275,7 +275,7 @@ func (s *SwapV75Suite) TestSynthSwap(c *C) {
 	tx.Chain = common.BNBChain
 
 	// swap rune --> synth
-	amount, _, err := NewSwapperV75().swap(ctx, mgr.Keeper(), tx, common.BNBAsset.GetSyntheticAsset(), addr, cosmos.ZeroUint(), cosmos.NewUint(1000_000), 2, mgr)
+	amount, _, err := newSwapperV81().swap(ctx, mgr.Keeper(), tx, common.BNBAsset.GetSyntheticAsset(), addr, cosmos.ZeroUint(), cosmos.NewUint(1000_000), 2, mgr)
 	c.Assert(err, IsNil)
 	c.Check(amount.Uint64(), Equals, uint64(146354579))
 	pool, err = mgr.Keeper().GetPool(ctx, common.BNBAsset)
@@ -290,7 +290,7 @@ func (s *SwapV75Suite) TestSynthSwap(c *C) {
 	c.Assert(mgr.Keeper().SendFromModuleToModule(ctx, ModuleName, AsgardName, common.NewCoins(coin)), IsNil)
 
 	// do another rune --> synth
-	amount, _, err = NewSwapperV75().swap(ctx, mgr.Keeper(), tx, common.BNBAsset.GetSyntheticAsset(), addr, cosmos.ZeroUint(), cosmos.NewUint(1000_000), 2, mgr)
+	amount, _, err = newSwapperV81().swap(ctx, mgr.Keeper(), tx, common.BNBAsset.GetSyntheticAsset(), addr, cosmos.ZeroUint(), cosmos.NewUint(1000_000), 2, mgr)
 	c.Assert(err, IsNil)
 	c.Check(amount.Uint64(), Equals, uint64(140319790), Commentf("%d", amount.Uint64()))
 	pool, err = mgr.Keeper().GetPool(ctx, common.BNBAsset)
@@ -306,7 +306,7 @@ func (s *SwapV75Suite) TestSynthSwap(c *C) {
 
 	// swap synth --> rune
 	tx.Coins = common.NewCoins(common.NewCoin(common.BNBAsset.GetSyntheticAsset(), cosmos.NewUint(146354579)))
-	amount, _, err = NewSwapperV75().swap(ctx, mgr.Keeper(), tx, common.RuneAsset(), addr, cosmos.ZeroUint(), cosmos.NewUint(1000_000), 2, mgr)
+	amount, _, err = newSwapperV81().swap(ctx, mgr.Keeper(), tx, common.RuneAsset(), addr, cosmos.ZeroUint(), cosmos.NewUint(1000_000), 2, mgr)
 	c.Assert(err, IsNil)
 	c.Check(amount.Uint64(), Equals, uint64(4995294812), Commentf("%d", amount.Uint64()))
 	pool, err = mgr.Keeper().GetPool(ctx, common.BNBAsset)
@@ -320,7 +320,7 @@ func (s *SwapV75Suite) TestSynthSwap(c *C) {
 	// swap synth --> rune again
 	totalSupply := mgr.Keeper().GetTotalSupply(ctx, common.BNBAsset.GetSyntheticAsset())
 	tx.Coins = common.NewCoins(common.NewCoin(common.BNBAsset.GetSyntheticAsset(), totalSupply))
-	amount, _, err = NewSwapperV75().swap(ctx, mgr.Keeper(), tx, common.RuneAsset(), addr, cosmos.ZeroUint(), cosmos.NewUint(1000_000), 2, mgr)
+	amount, _, err = newSwapperV81().swap(ctx, mgr.Keeper(), tx, common.RuneAsset(), addr, cosmos.ZeroUint(), cosmos.NewUint(1000_000), 2, mgr)
 	c.Assert(err, IsNil)
 	c.Check(amount.Uint64(), Equals, uint64(12905575651), Commentf("%d", amount.Uint64()))
 	pool, err = mgr.Keeper().GetPool(ctx, common.BNBAsset)
@@ -343,7 +343,7 @@ func (s *SwapV75Suite) TestSynthSwap(c *C) {
 		"",
 	)
 	tx.Chain = common.BNBChain
-	amount, _, err = NewSwapperV75().swap(ctx, mgr.Keeper(), tx1, common.BNBAsset.GetSyntheticAsset(), addr, cosmos.ZeroUint(), cosmos.NewUint(1000_000), 2, mgr)
+	amount, _, err = newSwapperV81().swap(ctx, mgr.Keeper(), tx1, common.BNBAsset.GetSyntheticAsset(), addr, cosmos.ZeroUint(), cosmos.NewUint(1000_000), 2, mgr)
 	c.Assert(err, IsNil)
 	c.Check(amount.Uint64(), Equals, uint64(1985844476), Commentf("%d", amount.Uint64()))
 	pool, err = mgr.Keeper().GetPool(ctx, common.BNBAsset)
@@ -374,7 +374,7 @@ func (s *SwapV75Suite) TestSynthSwap(c *C) {
 	btcPool.SynthUnits = cosmos.ZeroUint()
 	c.Assert(mgr.Keeper().SetPool(ctx, btcPool), IsNil)
 
-	amount, _, err = NewSwapperV75().swap(ctx, mgr.Keeper(), tx2, common.BTCAsset, addr, cosmos.ZeroUint(), cosmos.NewUint(1000_000_000_000), 2, mgr)
+	amount, _, err = newSwapperV81().swap(ctx, mgr.Keeper(), tx2, common.BTCAsset, addr, cosmos.ZeroUint(), cosmos.NewUint(1000_000_000_000), 2, mgr)
 	c.Assert(err, NotNil)
 	c.Check(amount.IsZero(), Equals, true)
 	pool, err = mgr.Keeper().GetPool(ctx, common.BTCAsset)

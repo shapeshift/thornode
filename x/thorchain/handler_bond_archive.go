@@ -5,6 +5,7 @@ import (
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/constants"
 )
 
 func (h BondHandler) validateV1(ctx cosmos.Context, msg MsgBond) error {
@@ -32,7 +33,7 @@ func (h BondHandler) validateV1(ctx cosmos.Context, msg MsgBond) error {
 	return nil
 }
 
-func (h BondHandler) validate78(ctx cosmos.Context, msg MsgBond) error {
+func (h BondHandler) validateV78(ctx cosmos.Context, msg MsgBond) error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
@@ -46,6 +47,54 @@ func (h BondHandler) validate78(ctx cosmos.Context, msg MsgBond) error {
 
 	if nodeAccount.Status == NodeActive || nodeAccount.Status == NodeReady {
 		return ErrInternal(err, "cannot add bond while node is active or ready status")
+	}
+
+	bond := msg.Bond.Add(nodeAccount.Bond)
+
+	maxBond, err := h.mgr.Keeper().GetMimir(ctx, "MaximumBondInRune")
+	if maxBond > 0 && err == nil {
+		maxValidatorBond := cosmos.NewUint(uint64(maxBond))
+		if bond.GT(maxValidatorBond) {
+			return cosmos.ErrUnknownRequest(fmt.Sprintf("too much bond, max validator bond (%s), bond(%s)", maxValidatorBond.String(), bond))
+		}
+	}
+
+	return nil
+}
+
+func (h BondHandler) validateV80(ctx cosmos.Context, msg MsgBond) error {
+	if err := msg.ValidateBasic(); err != nil {
+		return err
+	}
+	// When RUNE is on thorchain , pay bond doesn't need to be active node
+	// in fact , usually the node will not be active at the time it bond
+
+	nodeAccount, err := h.mgr.Keeper().GetNodeAccount(ctx, msg.NodeAddress)
+	if err != nil {
+		return ErrInternal(err, fmt.Sprintf("fail to get node account(%s)", msg.NodeAddress))
+	}
+
+	if nodeAccount.Status == NodeReady {
+		return ErrInternal(err, "cannot add bond while node is ready status")
+	}
+
+	if nodeAccount.Status == NodeActive {
+		validatorMaxRewardRatio, err := h.mgr.Keeper().GetMimir(ctx, constants.ValidatorMaxRewardRatio.String())
+		if validatorMaxRewardRatio < 0 || err != nil {
+			validatorMaxRewardRatio = h.mgr.GetConstants().GetInt64Value(constants.ValidatorMaxRewardRatio)
+		}
+
+		if validatorMaxRewardRatio > 1 {
+			retiring, err := h.mgr.Keeper().GetAsgardVaultsByStatus(ctx, RetiringVault)
+			if err != nil {
+				return err
+			}
+
+			if len(retiring) == 0 {
+				return ErrInternal(err, "cannot add bond while the network is not churning")
+			}
+
+		}
 	}
 
 	bond := msg.Bond.Add(nodeAccount.Bond)

@@ -57,6 +57,7 @@ const (
 	MinSlashPointsForBadValidator
 	FullImpLossProtectionBlocks
 	BondLockupPeriod
+	MaxBondProviders
 	NumberOfNewNodesPerChurn
 	MinTxOutVolumeThreshold
 	TxOutDelayRate
@@ -66,6 +67,7 @@ const (
 	TNSFeeOnSale
 	TNSFeePerBlock
 	PermittedSolvencyGap
+	NodeOperatorFee
 	ValidatorMaxRewardRatio
 	PoolDepthForYggFundingMin
 )
@@ -96,6 +98,7 @@ var nameToString = map[ConstantName]string{
 	SigningTransactionPeriod:      "SigningTransactionPeriod",
 	DoubleSignMaxAge:              "DoubleSignMaxAge",
 	MinimumBondInRune:             "MinimumBondInRune",
+	MaxBondProviders:              "MaxBondProviders",
 	FundMigrationInterval:         "FundMigrationInterval",
 	ArtificialRagnarokBlockHeight: "ArtificialRagnarokBlockHeight",
 	MaximumLiquidityRune:          "MaximumLiquidityRune",
@@ -128,6 +131,7 @@ var nameToString = map[ConstantName]string{
 	TNSFeePerBlock:                "TNSFeePerBlock",
 	PermittedSolvencyGap:          "PermittedSolvencyGap",
 	ValidatorMaxRewardRatio:       "ValidatorMaxRewardRatio",
+	NodeOperatorFee:               "NodeOperatorFee",
 	PoolDepthForYggFundingMin:     "PoolDepthForYggFundingMin",
 }
 

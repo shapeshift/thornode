@@ -47,7 +47,9 @@ func (h UnBondHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Result, er
 
 func (h UnBondHandler) validate(ctx cosmos.Context, msg MsgUnBond) error {
 	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.55.0")) {
+	if version.GTE(semver.MustParse("0.81.0")) {
+		return h.validateV81(ctx, msg)
+	} else if version.GTE(semver.MustParse("0.55.0")) {
 		return h.validateV55(ctx, msg)
 	} else if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, msg)
@@ -55,7 +57,7 @@ func (h UnBondHandler) validate(ctx cosmos.Context, msg MsgUnBond) error {
 	return errBadVersion
 }
 
-func (h UnBondHandler) validateV55(ctx cosmos.Context, msg MsgUnBond) error {
+func (h UnBondHandler) validateV81(ctx cosmos.Context, msg MsgUnBond) error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
@@ -65,11 +67,8 @@ func (h UnBondHandler) validateV55(ctx cosmos.Context, msg MsgUnBond) error {
 		return ErrInternal(err, fmt.Sprintf("fail to get node account(%s)", msg.NodeAddress))
 	}
 
-	if !na.BondAddress.Equals(msg.TxIn.FromAddress) {
-		return cosmos.ErrUnauthorized(fmt.Sprintf("%s are not authorized to manage %s", msg.TxIn.FromAddress, msg.NodeAddress))
-	}
-	if na.Status == NodeActive {
-		return cosmos.ErrUnknownRequest("cannot unbond while node is in active status")
+	if na.Status == NodeActive || na.Status == NodeReady {
+		return cosmos.ErrUnknownRequest("cannot unbond while node is in active or ready status")
 	}
 
 	ygg := Vault{}
@@ -94,12 +93,26 @@ func (h UnBondHandler) validateV55(ctx cosmos.Context, msg MsgUnBond) error {
 		return fmt.Errorf("failed to unbond due to jail status: (release height %d) %s", jail.ReleaseHeight, jail.Reason)
 	}
 
+	bp, err := h.mgr.Keeper().GetBondProviders(ctx, msg.NodeAddress)
+	if err != nil {
+		return ErrInternal(err, fmt.Sprintf("fail to get bond providers(%s)", msg.NodeAddress))
+	}
+	from, err := msg.BondAddress.AccAddress()
+	if err != nil {
+		return ErrInternal(err, fmt.Sprintf("fail to parse bond address(%s)", msg.BondAddress))
+	}
+	if !bp.Has(from) && !na.BondAddress.Equals(msg.BondAddress) {
+		return cosmos.ErrUnauthorized(fmt.Sprintf("%s are not authorized to manage %s", msg.BondAddress, msg.NodeAddress))
+	}
+
 	return nil
 }
 
 func (h UnBondHandler) handle(ctx cosmos.Context, msg MsgUnBond) error {
 	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.76.0")) {
+	if version.GTE(semver.MustParse("0.81.0")) {
+		return h.handleV81(ctx, msg)
+	} else if version.GTE(semver.MustParse("0.76.0")) {
 		return h.handleV76(ctx, msg)
 	} else if version.GTE(semver.MustParse("0.55.0")) {
 		return h.handleV55(ctx, msg)
@@ -111,22 +124,15 @@ func (h UnBondHandler) handle(ctx cosmos.Context, msg MsgUnBond) error {
 	return errBadVersion
 }
 
-func (h UnBondHandler) handleV76(ctx cosmos.Context, msg MsgUnBond) error {
+func (h UnBondHandler) handleV81(ctx cosmos.Context, msg MsgUnBond) error {
 	na, err := h.mgr.Keeper().GetNodeAccount(ctx, msg.NodeAddress)
 	if err != nil {
 		return ErrInternal(err, fmt.Sprintf("fail to get node account(%s)", msg.NodeAddress))
 	}
 
-	ygg := Vault{}
-	if h.mgr.Keeper().VaultExists(ctx, na.PubKeySet.Secp256k1) {
-		var err error
-		ygg, err = h.mgr.Keeper().GetVault(ctx, na.PubKeySet.Secp256k1)
-		if err != nil {
-			return err
-		}
-		if !ygg.IsYggdrasil() {
-			return errors.New("this is not a Yggdrasil vault")
-		}
+	ygg, err := h.mgr.Keeper().GetVault(ctx, na.PubKeySet.Secp256k1)
+	if err != nil {
+		return err
 	}
 
 	if ygg.HasFunds() {
@@ -196,8 +202,42 @@ func (h UnBondHandler) handleV76(ctx cosmos.Context, msg MsgUnBond) error {
 	if isMemberOfRetiringVault {
 		return ErrInternal(err, "fail to unbond, still part of the retiring vault")
 	}
-	if err := refundBond(ctx, msg.TxIn, msg.Amount, &na, h.mgr); err != nil {
-		return ErrInternal(err, "fail to unbond")
+
+	from, err := cosmos.AccAddressFromBech32(msg.BondAddress.String())
+	if err != nil {
+		return ErrInternal(err, "fail to parse from address")
+	}
+
+	// remove/unbonding bond provider
+	// check that 1) requester is node operator, 2) references
+	if msg.BondAddress.Equals(na.BondAddress) && !msg.BondProviderAddress.Empty() {
+		if err := refundBond(ctx, msg.TxIn, msg.BondProviderAddress, msg.Amount, &na, h.mgr); err != nil {
+			return ErrInternal(err, "fail to unbond")
+		}
+
+		// remove bond provider (if bond is now zero)
+		bondAddr, err := na.BondAddress.AccAddress()
+		if err != nil {
+			return ErrInternal(err, "fail to refund bond")
+		}
+		if !bondAddr.Equals(msg.BondProviderAddress) {
+			bp, err := h.mgr.Keeper().GetBondProviders(ctx, na.NodeAddress)
+			if err != nil {
+				return ErrInternal(err, fmt.Sprintf("fail to get bond providers(%s)", na.NodeAddress))
+			}
+			provider := bp.Get(msg.BondProviderAddress)
+			if !provider.IsEmpty() && provider.Bond.IsZero() {
+				if ok := bp.Remove(msg.BondProviderAddress); ok {
+					if err := h.mgr.Keeper().SetBondProviders(ctx, bp); err != nil {
+						return ErrInternal(err, fmt.Sprintf("fail to save bond providers(%s)", bp.NodeAddress.String()))
+					}
+				}
+			}
+		}
+	} else {
+		if err := refundBond(ctx, msg.TxIn, from, msg.Amount, &na, h.mgr); err != nil {
+			return ErrInternal(err, "fail to unbond")
+		}
 	}
 
 	coin := msg.TxIn.Coins.GetCoin(common.RuneAsset())
