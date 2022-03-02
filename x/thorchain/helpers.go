@@ -320,11 +320,11 @@ func refundBondV81(ctx cosmos.Context, tx common.Tx, acc cosmos.AccAddress, amt 
 	// backfil bond provider information (passive migration code)
 	if len(bp.Providers) == 0 {
 		// no providers yet, add node operator bond address to the bond provider list
-		bondAddress, err := nodeAcc.BondAddress.AccAddress()
+		nodeOpBondAddr, err := nodeAcc.BondAddress.AccAddress()
 		if err != nil {
 			return ErrInternal(err, fmt.Sprintf("fail to parse bond address(%s)", nodeAcc.BondAddress))
 		}
-		p := NewBondProvider(bondAddress)
+		p := NewBondProvider(nodeOpBondAddr)
 		p.Bond = nodeAcc.Bond
 		bp.Providers = append(bp.Providers, p)
 	}
@@ -353,11 +353,6 @@ func refundBondV81(ctx cosmos.Context, tx common.Tx, acc cosmos.AccAddress, amt 
 			amt = provider.Bond
 		}
 
-		bondEvent := NewEventBond(amt, BondReturned, tx)
-		if err := mgr.EventMgr().EmitEvent(ctx, bondEvent); err != nil {
-			ctx.Logger().Error("fail to emit bond event", "error", err)
-		}
-
 		bp.Unbond(amt, provider.BondAddress)
 
 		toAddress, err := common.NewAddress(provider.BondAddress.String())
@@ -377,13 +372,19 @@ func refundBondV81(ctx cosmos.Context, tx common.Tx, acc cosmos.AccAddress, amt 
 		if err != nil {
 			return fmt.Errorf("fail to add outbound tx: %w", err)
 		}
+
+		bondEvent := NewEventBond(amt, BondReturned, tx)
+		if err := mgr.EventMgr().EmitEvent(ctx, bondEvent); err != nil {
+			ctx.Logger().Error("fail to emit bond event", "error", err)
+		}
+
+		nodeAcc.Bond = common.SafeSub(nodeAcc.Bond, amt)
 	} else {
 		// if it get into here that means the node account doesn't have any bond left after slash.
 		// which means the real slashed RUNE could be the bond they have before slash
 		slashRune = bondBeforeSlash
 	}
 
-	nodeAcc.Bond = common.SafeSub(nodeAcc.Bond, amt)
 	if nodeAcc.RequestedToLeave {
 		// when node already request to leave , it can't come back , here means the node already unbond
 		// so set the node to disabled status
