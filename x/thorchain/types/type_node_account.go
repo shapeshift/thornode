@@ -290,6 +290,10 @@ func (bp *BondProviders) Unbond(bond cosmos.Uint, acc cosmos.AccAddress) {
 // remove provider (only if bond is zero)
 func (bp *BondProviders) Remove(acc cosmos.AccAddress) bool {
 	for i, provider := range bp.Providers {
+		if i == 0 {
+			// cannot remove the first bond provider
+			continue
+		}
 		if provider.BondAddress.Equals(acc) && provider.Bond.IsZero() {
 			bp.Providers = append(bp.Providers[:i], bp.Providers[i+1:]...)
 			return true
@@ -301,6 +305,11 @@ func (bp *BondProviders) Remove(acc cosmos.AccAddress) bool {
 // realigns the bond providers relative to the node bond
 func (bp *BondProviders) Adjust(nodeBond cosmos.Uint) {
 	totalBond := cosmos.ZeroUint()
+	if len(bp.Providers) == 0 {
+		// no adjustment needed
+		return
+	}
+
 	for _, provider := range bp.Providers {
 		totalBond = totalBond.Add(provider.Bond)
 	}
@@ -321,7 +330,7 @@ func (bp *BondProviders) Adjust(nodeBond cosmos.Uint) {
 	for i := range bp.Providers {
 		bond := bp.Providers[i].Bond
 		bp.Providers[i].Bond = common.GetSafeShare(bond, totalBond, nodeBond)
-		if bp.Providers[i].BondAddress.Equals(bp.NodeAddress) {
+		if i == 0 { // first bond provider is node operator
 			bp.Providers[i].Bond = bp.Providers[i].Bond.Add(fee)
 		}
 	}
