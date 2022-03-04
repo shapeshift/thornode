@@ -55,6 +55,9 @@ clear:
 	clear
 
 test:
+	@CGO_ENABLED=0 go test ${TEST_BUILD_FLAGS} ${TEST_DIR}
+
+test-race:
 	@go test -race ${TEST_BUILD_FLAGS} ${TEST_DIR}
 
 test-watch: clear
