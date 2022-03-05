@@ -37,7 +37,6 @@ func (NodeAccountSuite) TestNodeAccount(c *C) {
 	}
 	c.Assert(nas.IsNodeKeys(addr), Equals, false)
 	c.Assert(nas.IsNodeKeys(nodeAddress), Equals, true)
-	c.Logf("node account:%s", na)
 	naEmpty := NewNodeAccount(cosmos.AccAddress{}, NodeStatus_Active, pubKeys, bepConsPubKey, cosmos.NewUint(common.One), bondAddr, 1)
 	c.Assert(naEmpty.Valid(), NotNil)
 	c.Assert(naEmpty.IsEmpty(), Equals, true)
