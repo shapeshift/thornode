@@ -3,9 +3,7 @@
   "chain_contracts": [],
   "errata_tx_voters": [],
   "keygen_blocks": [],
-  "last_chain_heights": [
-      { "chain": "BNB", "height": "390" }
-  ],
+  "last_chain_heights": [{ "chain": "BNB", "height": "390" }],
   "last_signed_height": "0",
   "liquidity_providers": [
     {
@@ -54,17 +52,13 @@
       "block_height": "24",
       "chain": "BNB",
       "report_block_height": "258",
-      "signers": [
-        "tthor1gqjc7zqg03t5jxt804262chmyxz6vn2xydy3u5"
-      ]
+      "signers": ["tthor1gqjc7zqg03t5jxt804262chmyxz6vn2xydy3u5"]
     },
     {
       "block_height": "16",
       "chain": "ETH",
       "report_block_height": "8",
-      "signers": [
-        "tthor1gqjc7zqg03t5jxt804262chmyxz6vn2xydy3u5"
-      ]
+      "signers": ["tthor1gqjc7zqg03t5jxt804262chmyxz6vn2xydy3u5"]
     }
   ],
   "network_fees": [
@@ -113,9 +107,7 @@
         "keysign_ms": "0",
         "observed_pub_key": "tthorpub1addwnpepq0j6krtcxn2nf8pcgsfrme0xuujj428ky927amjhv5jx4xrl36jt2lt0wcy",
         "out_hashes": [],
-        "signers": [
-          "tthor1gqjc7zqg03t5jxt804262chmyxz6vn2xydy3u5"
-        ],
+        "signers": ["tthor1gqjc7zqg03t5jxt804262chmyxz6vn2xydy3u5"],
         "status": "done",
         "tx": {
           "chain": "BNB",
@@ -145,9 +137,7 @@
           "keysign_ms": "0",
           "observed_pub_key": "tthorpub1addwnpepq0j6krtcxn2nf8pcgsfrme0xuujj428ky927amjhv5jx4xrl36jt2lt0wcy",
           "out_hashes": [],
-          "signers": [
-            "tthor1gqjc7zqg03t5jxt804262chmyxz6vn2xydy3u5"
-          ],
+          "signers": ["tthor1gqjc7zqg03t5jxt804262chmyxz6vn2xydy3u5"],
           "status": "incomplete",
           "tx": {
             "chain": "BNB",
@@ -184,9 +174,7 @@
         "keysign_ms": "0",
         "observed_pub_key": "tthorpub1addwnpepq0j6krtcxn2nf8pcgsfrme0xuujj428ky927amjhv5jx4xrl36jt2lt0wcy",
         "out_hashes": [],
-        "signers": [
-          "tthor1gqjc7zqg03t5jxt804262chmyxz6vn2xydy3u5"
-        ],
+        "signers": ["tthor1gqjc7zqg03t5jxt804262chmyxz6vn2xydy3u5"],
         "status": "done",
         "tx": {
           "chain": "BNB",
@@ -216,9 +204,7 @@
           "keysign_ms": "0",
           "observed_pub_key": "tthorpub1addwnpepq0j6krtcxn2nf8pcgsfrme0xuujj428ky927amjhv5jx4xrl36jt2lt0wcy",
           "out_hashes": [],
-          "signers": [
-            "tthor1gqjc7zqg03t5jxt804262chmyxz6vn2xydy3u5"
-          ],
+          "signers": ["tthor1gqjc7zqg03t5jxt804262chmyxz6vn2xydy3u5"],
           "status": "incomplete",
           "tx": {
             "chain": "BNB",
@@ -255,9 +241,7 @@
         "keysign_ms": "0",
         "observed_pub_key": "tthorpub1addwnpepq0j6krtcxn2nf8pcgsfrme0xuujj428ky927amjhv5jx4xrl36jt2lt0wcy",
         "out_hashes": [],
-        "signers": [
-          "tthor1gqjc7zqg03t5jxt804262chmyxz6vn2xydy3u5"
-        ],
+        "signers": ["tthor1gqjc7zqg03t5jxt804262chmyxz6vn2xydy3u5"],
         "status": "done",
         "tx": {
           "chain": "BNB",
@@ -287,9 +271,7 @@
           "keysign_ms": "0",
           "observed_pub_key": "tthorpub1addwnpepq0j6krtcxn2nf8pcgsfrme0xuujj428ky927amjhv5jx4xrl36jt2lt0wcy",
           "out_hashes": [],
-          "signers": [
-            "tthor1gqjc7zqg03t5jxt804262chmyxz6vn2xydy3u5"
-          ],
+          "signers": ["tthor1gqjc7zqg03t5jxt804262chmyxz6vn2xydy3u5"],
           "status": "incomplete",
           "tx": {
             "chain": "BNB",
@@ -326,9 +308,7 @@
         "keysign_ms": "0",
         "observed_pub_key": "tthorpub1addwnpepq0j6krtcxn2nf8pcgsfrme0xuujj428ky927amjhv5jx4xrl36jt2lt0wcy",
         "out_hashes": [],
-        "signers": [
-          "tthor1gqjc7zqg03t5jxt804262chmyxz6vn2xydy3u5"
-        ],
+        "signers": ["tthor1gqjc7zqg03t5jxt804262chmyxz6vn2xydy3u5"],
         "status": "done",
         "tx": {
           "chain": "BNB",
@@ -358,9 +338,7 @@
           "keysign_ms": "0",
           "observed_pub_key": "tthorpub1addwnpepq0j6krtcxn2nf8pcgsfrme0xuujj428ky927amjhv5jx4xrl36jt2lt0wcy",
           "out_hashes": [],
-          "signers": [
-            "tthor1gqjc7zqg03t5jxt804262chmyxz6vn2xydy3u5"
-          ],
+          "signers": ["tthor1gqjc7zqg03t5jxt804262chmyxz6vn2xydy3u5"],
           "status": "incomplete",
           "tx": {
             "chain": "BNB",
@@ -397,9 +375,7 @@
         "keysign_ms": "0",
         "observed_pub_key": "",
         "out_hashes": [],
-        "signers": [
-          "tthor1gqjc7zqg03t5jxt804262chmyxz6vn2xydy3u5"
-        ],
+        "signers": ["tthor1gqjc7zqg03t5jxt804262chmyxz6vn2xydy3u5"],
         "status": "done",
         "tx": {
           "chain": "THOR",
@@ -429,9 +405,7 @@
           "keysign_ms": "0",
           "observed_pub_key": "",
           "out_hashes": [],
-          "signers": [
-            "tthor1gqjc7zqg03t5jxt804262chmyxz6vn2xydy3u5"
-          ],
+          "signers": ["tthor1gqjc7zqg03t5jxt804262chmyxz6vn2xydy3u5"],
           "status": "incomplete",
           "tx": {
             "chain": "THOR",
@@ -468,9 +442,7 @@
         "keysign_ms": "0",
         "observed_pub_key": "",
         "out_hashes": [],
-        "signers": [
-          "tthor1gqjc7zqg03t5jxt804262chmyxz6vn2xydy3u5"
-        ],
+        "signers": ["tthor1gqjc7zqg03t5jxt804262chmyxz6vn2xydy3u5"],
         "status": "done",
         "tx": {
           "chain": "THOR",
@@ -500,9 +472,7 @@
           "keysign_ms": "0",
           "observed_pub_key": "",
           "out_hashes": [],
-          "signers": [
-            "tthor1gqjc7zqg03t5jxt804262chmyxz6vn2xydy3u5"
-          ],
+          "signers": ["tthor1gqjc7zqg03t5jxt804262chmyxz6vn2xydy3u5"],
           "status": "incomplete",
           "tx": {
             "chain": "THOR",
@@ -539,9 +509,7 @@
         "keysign_ms": "0",
         "observed_pub_key": "",
         "out_hashes": [],
-        "signers": [
-          "tthor1gqjc7zqg03t5jxt804262chmyxz6vn2xydy3u5"
-        ],
+        "signers": ["tthor1gqjc7zqg03t5jxt804262chmyxz6vn2xydy3u5"],
         "status": "done",
         "tx": {
           "chain": "THOR",
@@ -571,9 +539,7 @@
           "keysign_ms": "0",
           "observed_pub_key": "",
           "out_hashes": [],
-          "signers": [
-            "tthor1gqjc7zqg03t5jxt804262chmyxz6vn2xydy3u5"
-          ],
+          "signers": ["tthor1gqjc7zqg03t5jxt804262chmyxz6vn2xydy3u5"],
           "status": "incomplete",
           "tx": {
             "chain": "THOR",
@@ -631,14 +597,7 @@
   "vaults": [
     {
       "block_height": "24",
-      "chains": [
-        "THOR",
-        "BTC",
-        "LTC",
-        "BCH",
-        "BNB",
-        "ETH"
-      ],
+      "chains": ["THOR", "BTC", "LTC", "BCH", "BNB", "ETH"],
       "coins": [
         {
           "amount": "1000000000000000",
