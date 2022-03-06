@@ -14,3 +14,8 @@ lint:
     - prettier@2.5.1
     - shellcheck@0.8.0
     - shfmt@3.4.0
+  ignore:
+    - linters:
+        - prettier
+      paths:
+        - "test/fixtures/endpoints/auth/accounts/malformed.json"
