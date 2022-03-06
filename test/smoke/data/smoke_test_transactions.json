@@ -21,7 +21,7 @@
         "coins": [
             {
                 "asset": "BNB.BNB",
-                "amount": 1600000000
+                "amount": 2600000000
             },
             {
                 "asset": "BNB.LOK-3C0",
@@ -88,6 +88,32 @@
             {
                 "asset": "BTC.BTC",
                 "amount": 500000000
+            }
+        ],
+        "gas": null
+    },
+    {
+        "chain": "DOGE",
+        "from_address": "MASTER",
+        "to_address": "USER-1",
+        "memo": "SEED",
+        "coins": [
+            {
+                "asset": "DOGE.DOGE",
+                "amount": 20000000000
+            }
+        ],
+        "gas": null
+    },
+    {
+        "chain": "DOGE",
+        "from_address": "MASTER",
+        "to_address": "PROVIDER-1",
+        "memo": "SEED",
+        "coins": [
+            {
+                "asset": "DOGE.DOGE",
+                "amount": 200000000000
             }
         ],
         "gas": null
@@ -270,6 +296,32 @@
             {
                 "asset": "BNB.BNB",
                 "amount": 250000000
+            }
+        ],
+        "gas": null
+    },
+    {
+        "chain": "THOR",
+        "from_address": "PROVIDER-1",
+        "to_address": "VAULT",
+        "memo": "ADD:DOGE.DOGE:PROVIDER-1",
+        "coins": [
+            {
+                "asset": "THOR.RUNE",
+                "amount": 1000000000
+            }
+        ],
+        "gas": null
+    },
+    {
+        "chain": "DOGE",
+        "from_address": "PROVIDER-1",
+        "to_address": "VAULT",
+        "memo": "ADD:DOGE.DOGE:PROVIDER-1",
+        "coins": [
+            {
+                "asset": "DOGE.DOGE",
+                "amount": 150000000000
             }
         ],
         "gas": null
@@ -824,6 +876,32 @@
         "chain": "BNB",
         "from_address": "USER-1",
         "to_address": "VAULT",
+        "memo": "SWAP:DOGE.DOGE:USER-1",
+        "coins": [
+            {
+                "asset": "BNB.BNB",
+                "amount": 100000000
+            }
+        ],
+        "gas": null
+    },
+    {
+        "chain": "DOGE",
+        "from_address": "USER-1",
+        "to_address": "VAULT",
+        "memo": "SWAP:THOR.RUNE:USER-1",
+        "coins": [
+            {
+                "asset": "DOGE.DOGE",
+                "amount": 10000000000
+            }
+        ],
+        "gas": null
+    },
+    {
+        "chain": "BNB",
+        "from_address": "USER-1",
+        "to_address": "VAULT",
         "memo": "SWAP:BCH.BCH:USER-1",
         "coins": [
             {
@@ -1011,6 +1089,19 @@
         "from_address": "PROVIDER-1",
         "to_address": "VAULT",
         "memo": "WITHDRAW:BTC.BTC:1000",
+        "coins": [
+            {
+                "asset": "THOR.RUNE",
+                "amount": 1
+            }
+        ],
+        "gas": null
+    },
+    {
+        "chain": "THOR",
+        "from_address": "PROVIDER-1",
+        "to_address": "VAULT",
+        "memo": "WITHDRAW:DOGE.DOGE:1000",
         "coins": [
             {
                 "asset": "THOR.RUNE",
@@ -1245,6 +1336,19 @@
         "from_address": "PROVIDER-1",
         "to_address": "VAULT",
         "memo": "WITHDRAW:BTC.BTC",
+        "coins": [
+            {
+                "asset": "THOR.RUNE",
+                "amount": 1
+            }
+        ],
+        "gas": null
+    },
+    {
+        "chain": "THOR",
+        "from_address": "PROVIDER-1",
+        "to_address": "VAULT",
+        "memo": "WITHDRAW:DOGE.DOGE",
         "coins": [
             {
                 "asset": "THOR.RUNE",
