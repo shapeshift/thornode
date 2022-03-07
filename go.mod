@@ -253,6 +253,8 @@ require (
 	nhooyr.io/websocket v1.8.6 // indirect
 )
 
+require golang.org/x/mod v0.5.1 // indirect
+
 replace (
 	github.com/agl/ed25519 => github.com/binance-chain/edwards25519 v0.0.0-20200305024217-f36fc4b53d43
 	github.com/binance-chain/tss-lib => gitlab.com/thorchain/tss/tss-lib v0.1.2
