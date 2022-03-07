@@ -182,8 +182,8 @@ func SetupConfigForTest() {
 	config.SetBech32PrefixForValidator(cmd.Bech32PrefixValAddr, cmd.Bech32PrefixValPub)
 	config.SetBech32PrefixForConsensusNode(cmd.Bech32PrefixConsAddr, cmd.Bech32PrefixConsPub)
 	config.SetCoinType(cmd.THORChainCoinType)
-	config.SetPurpose(44)
-	config.SetCoinType(931)
+	config.SetPurpose(cmd.THORChainCoinPurpose)
+	config.SetCoinType(cmd.THORChainCoinType)
 	types.SetCoinDenomRegex(func() string {
 		return cmd.DenomRegex
 	})
