@@ -20,7 +20,6 @@ func main() {
 	config.SetBech32PrefixForConsensusNode(prefix.Bech32PrefixConsAddr, prefix.Bech32PrefixConsPub)
 	config.SetCoinType(prefix.THORChainCoinType)
 	config.SetPurpose(prefix.THORChainCoinPurpose)
-	config.SetCoinType(prefix.THORChainCoinType)
 	config.Seal()
 	types.SetCoinDenomRegex(func() string {
 		return prefix.DenomRegex
