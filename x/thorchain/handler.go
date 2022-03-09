@@ -513,7 +513,6 @@ func processOneTxInV63(ctx cosmos.Context, keeper keeper.Keeper, tx ObservedTx, 
 
 func fuzzyAssetMatch(ctx cosmos.Context, keeper keeper.Keeper, asset common.Asset) common.Asset {
 	version := keeper.Version()
-	fmt.Printf("Version: %s\n", version)
 	if version.GTE(semver.MustParse("0.81.0")) {
 		return fuzzyAssetMatchV81(ctx, keeper, asset)
 	}
