@@ -69,6 +69,11 @@ make -C thornode/build/docker reset-mocknet-standalone
 
 ### Run smoke tests
 
+The smoke tests compare a mocknet against a simulator implemented in python.
+Changes to thornode, particularly to the calculations, will require also
+updating the python simulator, and subsequently the unit-tests for the
+simulator.
+
 ```bash
 make smoke
 ```

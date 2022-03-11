@@ -326,7 +326,7 @@ class ThorchainState:
         for asset, gas in gas_coins.items():
             pool = self.get_pool(gas.asset)
             # figure out how much rune is an equal amount to gas.amount
-            rune_amt = pool.get_asset_in_rune_with_slip(gas.amount)
+            rune_amt = pool.get_rune_reimbursement_for_asset_withdrawal(gas.amount)
             self.reserve -= rune_amt  # take rune from the reserve
 
             pool.add(rune_amt, 0)  # replenish gas costs with rune
@@ -461,10 +461,11 @@ class ThorchainState:
                             asset_fee = pool.get_rune_in_asset(rune_fee)
                         if coin.amount <= asset_fee:
                             asset_fee = coin.amount
-                            rune_fee = pool.get_asset_in_rune_with_slip(asset_fee)
 
-                        if pool.rune_balance >= rune_fee:
-                            pool.sub(rune_fee, 0)
+                        rune_fee = pool.get_rune_disbursement_for_asset_add(asset_fee)
+                        if rune_fee > pool.rune_balance:
+                            rune_fee = pool.rune_balance
+                        pool.sub(rune_fee, 0)
                         if coin.asset.is_synth:
                             if not tx.is_refund():
                                 pool.synth_balance -= asset_fee
@@ -546,18 +547,14 @@ class ThorchainState:
                                     Coin(gas_asset, int(fee_in_gas_asset / 2))
                                 ]
 
-                        pool_deduct = rune_fee
-                        if rune_fee > pool.rune_balance:
-                            pool_deduct = pool.rune_balance
-
-                        if pool_deduct > 0 or asset_fee > 0:
+                        if rune_fee > 0 or asset_fee > 0:
                             # add fee event
                             event = Event(
                                 "fee",
                                 [
                                     {"tx_id": in_tx.id},
                                     {"coins": f"{asset_fee} {coin.asset}"},
-                                    {"pool_deduct": pool_deduct},
+                                    {"pool_deduct": rune_fee},
                                 ],
                             )
                             self.events.append(event)
@@ -1569,9 +1566,11 @@ class Pool(Jsonable):
 
         return get_share(self.rune_balance, self.asset_balance, val)
 
-    def get_asset_in_rune_with_slip(self, val):
+    def get_rune_reimbursement_for_asset_withdrawal(self, val):
         """
-        Get an equal amount of given value in rune
+        Get equivalent amount of rune for a given amount of asset withdrawn
+        from the pool, taking slip into account. When this amount is added
+        to the pool, the constant product of depths rule is preserved.
         """
         if self.is_zero():
             return 0
@@ -1590,14 +1589,16 @@ class Pool(Jsonable):
             amount = int(amount / 100) * 100
         return amount
 
-    def get_rune_in_asset_with_slip(self, val):
+    def get_rune_disbursement_for_asset_add(self, val):
         """
-        Get an equal amount of given value in asset
+        Get the equivalent amount of rune for a given amount of asset added to
+        the pool, taking slip into account. When this amount is withdrawn from
+        the pool, the constant product of depths rule is preserved.
         """
         if self.is_zero():
             return 0
 
-        return get_share(self.asset_balance, self.rune_balance - val, val)
+        return get_share(self.rune_balance, self.asset_balance + val, val)
 
     def get_asset_fee(self):
         """
@@ -1645,7 +1646,7 @@ class Pool(Jsonable):
         numerator = self.lp_units * self.synth_balance
         denominator = 2 * self.asset_balance - self.synth_balance
         if denominator == 0:
-            return 0
+            denominator = 1
         return int(numerator / denominator)
 
     def pool_units(self):

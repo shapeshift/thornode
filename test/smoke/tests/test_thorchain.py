@@ -65,7 +65,7 @@ class TestThorchainState(unittest.TestCase):
 
         outbound = thorchain.handle(tx)
         self.assertEqual(outbound[0].coins[0].amount, 82532128)
-        self.assertEqual(thorchain.reserve, 1348986)
+        self.assertEqual(thorchain.reserve, 1348821)
 
     def test_swap_bep2(self):
         if RUNE.get_chain() == "THOR":
@@ -190,7 +190,7 @@ class TestThorchainState(unittest.TestCase):
         tx.coins = [Coin(RUNE, 1)]
         outbound = thorchain.handle(tx)
         self.assertEqual(len(outbound), 0)
-        self.assertEqual(thorchain.pools[0].rune_balance, 5999686460)
+        self.assertEqual(thorchain.pools[0].rune_balance, 5999686468)
 
         # check refund event generated for swap with zero return
         expected_events += [
@@ -205,7 +205,7 @@ class TestThorchainState(unittest.TestCase):
         tx.coins = [Coin(RUNE, 1)]
         outbound = thorchain.handle(tx)
         self.assertEqual(len(outbound), 0)
-        self.assertEqual(thorchain.pools[0].rune_balance, 5999686460)
+        self.assertEqual(thorchain.pools[0].rune_balance, 5999686468)
 
         # check refund event generated for swap with zero return
         expected_events += [
@@ -223,7 +223,7 @@ class TestThorchainState(unittest.TestCase):
         self.assertEqual(len(outbound), 1)
         self.assertEqual(outbound[0].memo, "REFUND:TODO")
         self.assertEqual(outbound[0].coins[0], Coin(RUNE, 499843242))
-        self.assertEqual(thorchain.pools[0].rune_balance, 5999686460)
+        self.assertEqual(thorchain.pools[0].rune_balance, 5999686468)
 
         # check refund event generated for swap with limit
         reason = "emit asset 305749416 less than price limit 999999999999999999999"
@@ -426,7 +426,7 @@ class TestThorchainState(unittest.TestCase):
                 [
                     {"tx_id": "TODO"},
                     {"coins": "112500 BNB.BNB"},
-                    {"pool_deduct": "156774"},
+                    {"pool_deduct": "156770"},
                 ],
             ),
             Event(
@@ -460,7 +460,7 @@ class TestThorchainState(unittest.TestCase):
                 [
                     {"tx_id": "TODO"},
                     {"coins": "112500 BNB.BNB"},
-                    {"pool_deduct": "156766"},
+                    {"pool_deduct": "156762"},
                 ],
             ),
             Event(
@@ -468,7 +468,7 @@ class TestThorchainState(unittest.TestCase):
                 [
                     {"tx_id": "TODO"},
                     {"coins": "156758 BNB.LOK-3C0"},
-                    {"pool_deduct": "156758"},
+                    {"pool_deduct": "156753"},
                 ],
             ),
             Event(
@@ -483,7 +483,7 @@ class TestThorchainState(unittest.TestCase):
         tx.coins = [Coin(RUNE, 1)]
         outbound = thorchain.handle(tx)
         self.assertEqual(len(outbound), 0)
-        self.assertEqual(thorchain.pools[0].rune_balance, 5999686460)
+        self.assertEqual(thorchain.pools[0].rune_balance, 5999686468)
 
         # check refund event generated for swap with zero return
         expected_events += [
@@ -510,7 +510,7 @@ class TestThorchainState(unittest.TestCase):
         tx.coins = [Coin(RUNE, 1)]
         outbound = thorchain.handle(tx)
         self.assertEqual(len(outbound), 0)
-        self.assertEqual(thorchain.pools[0].rune_balance, 5999686460)
+        self.assertEqual(thorchain.pools[0].rune_balance, 5999686468)
 
         # check refund event generated for swap with zero return
         expected_events += [
@@ -540,7 +540,7 @@ class TestThorchainState(unittest.TestCase):
         self.assertEqual(len(outbound), 1)
         self.assertEqual(outbound[0].memo, "REFUND:TODO")
         self.assertEqual(outbound[0].coins, [Coin(RUNE, 498000000)])
-        self.assertEqual(thorchain.pools[0].rune_balance, 5999686460)
+        self.assertEqual(thorchain.pools[0].rune_balance, 5999686468)
 
         # check refund event generated for swap with limit
         reason = "emit asset 305749416 less than price limit 999999999999999999999"
@@ -575,7 +575,7 @@ class TestThorchainState(unittest.TestCase):
                 [
                     {"tx_id": "TODO"},
                     {"coins": "112500 BNB.BNB"},
-                    {"pool_deduct": "182802"},
+                    {"pool_deduct": "182797"},
                 ],
             ),
             Event(
@@ -643,7 +643,7 @@ class TestThorchainState(unittest.TestCase):
                 [
                     {"tx_id": "TODO"},
                     {"coins": "63294 BNB.LOK-3C0"},
-                    {"pool_deduct": "80729"},
+                    {"pool_deduct": "80728"},
                 ],
             ),
             Event(
@@ -1146,14 +1146,14 @@ class TestThorchainState(unittest.TestCase):
                 [
                     {"tx_id": "TODO"},
                     {"coins": "112500 BNB.BNB"},
-                    {"pool_deduct": "37500000"},
+                    {"pool_deduct": "37471896"},
                 ],
             ),
             Event(
                 "fee",
                 [
                     {"tx_id": "TODO"},
-                    {"coins": "37443792 THOR.RUNE"},
+                    {"coins": "37443813 THOR.RUNE"},
                     {"pool_deduct": "0"},
                 ],
             ),
@@ -1180,7 +1180,7 @@ class TestThorchainState(unittest.TestCase):
                 [
                     {"asset": "BNB.BNB"},
                     {"asset_amt": "75000"},
-                    {"rune_amt": "24975006"},
+                    {"rune_amt": "24975020"},
                     {"transaction_count": "2"},
                 ],
             ),
@@ -1629,7 +1629,7 @@ class TestThorchainState(unittest.TestCase):
                 [
                     {"tx_id": "TODO"},
                     {"coins": "112500 BNB.BNB"},
-                    {"pool_deduct": "37500000"},
+                    {"pool_deduct": "37471896"},
                 ],
             ),
             Event(
@@ -1699,7 +1699,7 @@ class TestThorchainState(unittest.TestCase):
         self.assertEqual(outbounds[1].coins[0], Coin(RUNE, 548798597))
 
         pool = thorchain.get_pool("BNB.BNB")
-        self.assertEqual(pool.rune_balance, 54448798544)
+        self.assertEqual(pool.rune_balance, 54448798570)
         self.assertEqual(pool.asset_balance, 5098612500)
         self.assertEqual(pool.get_liquidity_provider("PROVIDER-1").units, 49500000000)
         self.assertEqual(pool.lp_units, 49500000000)
@@ -1711,7 +1711,7 @@ class TestThorchainState(unittest.TestCase):
                 [
                     {"tx_id": "TODO"},
                     {"coins": "112500 BNB.BNB"},
-                    {"pool_deduct": "1201456"},
+                    {"pool_deduct": "1201430"},
                 ],
             ),
             Event(
@@ -1820,7 +1820,7 @@ class TestThorchainState(unittest.TestCase):
                     {"basis_points": "10000"},
                     {"asymmetry": "0.000000000000000000"},
                     {"emit_asset": "5098537500"},
-                    {"emit_rune": "54448798544"},
+                    {"emit_rune": "54448798570"},
                     {"imp_loss_protection": "0"},
                     *tx.get_attributes(),
                 ],
@@ -1935,7 +1935,7 @@ class TestThorchainState(unittest.TestCase):
         self.assertEqual(outbounds[1].coins[0], Coin("BNB.BNB", 51387500))
 
         pool = thorchain.get_pool("BNB.BNB")
-        self.assertEqual(pool.rune_balance, 54448798544)
+        self.assertEqual(pool.rune_balance, 54448798570)
         self.assertEqual(pool.asset_balance, 5098612500)
         self.assertEqual(pool.get_liquidity_provider("PROVIDER-1").units, 49500000000)
         self.assertEqual(pool.lp_units, 49500000000)
@@ -1960,7 +1960,7 @@ class TestThorchainState(unittest.TestCase):
                 [
                     {"tx_id": "TODO"},
                     {"coins": "112500 BNB.BNB"},
-                    {"pool_deduct": "1201456"},
+                    {"pool_deduct": "1201430"},
                 ],
             ),
             Event(
@@ -2053,7 +2053,7 @@ class TestThorchainState(unittest.TestCase):
         outbounds = thorchain.handle(tx)
         self.assertEqual(len(outbounds), 2)
         self.assertEqual(outbounds[0].coins[0], Coin("BNB.BNB", 5098575000))
-        self.assertEqual(outbounds[1].coins[0], Coin("THOR.RUNE", 54446798544))
+        self.assertEqual(outbounds[1].coins[0], Coin("THOR.RUNE", 54446798570))
 
         pool = thorchain.get_pool("BNB.BNB")
         self.assertEqual(pool.rune_balance, 0)
@@ -2072,7 +2072,7 @@ class TestThorchainState(unittest.TestCase):
                     {"basis_points": "10000"},
                     {"asymmetry": "0.000000000000000000"},
                     {"emit_asset": "5098575000"},
-                    {"emit_rune": "54448798544"},
+                    {"emit_rune": "54448798570"},
                     {"imp_loss_protection": "0"},
                     *tx.get_attributes(),
                 ],
