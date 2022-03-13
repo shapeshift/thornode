@@ -135,14 +135,14 @@ type Mgrs struct {
 	ConstAccessor  constants.ConstantValues
 
 	K             keeper.Keeper
-	cdc           codec.BinaryMarshaler
+	cdc           codec.BinaryCodec
 	coinKeeper    bankkeeper.Keeper
 	accountKeeper authkeeper.AccountKeeper
 	storeKey      cosmos.StoreKey
 }
 
 // NewManagers  create a new Manager
-func NewManagers(keeper keeper.Keeper, cdc codec.BinaryMarshaler, coinKeeper bankkeeper.Keeper, accountKeeper authkeeper.AccountKeeper, storeKey cosmos.StoreKey) *Mgrs {
+func NewManagers(keeper keeper.Keeper, cdc codec.BinaryCodec, coinKeeper bankkeeper.Keeper, accountKeeper authkeeper.AccountKeeper, storeKey cosmos.StoreKey) *Mgrs {
 	return &Mgrs{
 		K:             keeper,
 		cdc:           cdc,
@@ -251,7 +251,7 @@ func (mgr *Mgrs) Slasher() Slasher { return mgr.slasher }
 func (mgr *Mgrs) YggManager() YggManager { return mgr.yggManager }
 
 // GetKeeper return Keeper
-func GetKeeper(version semver.Version, cdc codec.BinaryMarshaler, coinKeeper bankkeeper.Keeper, accountKeeper authkeeper.AccountKeeper, storeKey cosmos.StoreKey) (keeper.Keeper, error) {
+func GetKeeper(version semver.Version, cdc codec.BinaryCodec, coinKeeper bankkeeper.Keeper, accountKeeper authkeeper.AccountKeeper, storeKey cosmos.StoreKey) (keeper.Keeper, error) {
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return kv1.NewKVStore(cdc, coinKeeper, accountKeeper, storeKey, version), nil
 	}
