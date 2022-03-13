@@ -109,7 +109,15 @@ class ThorchainClient(HttpClient):
 
     def process_events(self, events, block_height):
         for event in events:
-            if event["type"] in ["message", "transfer"]:
+            if event["type"] in [
+                "message",
+                "transfer",
+                "coin_spent",
+                "coin_received",
+                "tx",
+                "coinbase",
+                "burn",
+            ]:
                 continue
             self.decode_event(event)
             event = Event(event["type"], event["attributes"], block_height)
