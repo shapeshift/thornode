@@ -53,6 +53,10 @@ func RegisterRoutes(cliCtx client.Context, r *mux.Router, storeName string) {
 		postTxsHandler(cliCtx),
 	).Methods(http.MethodPost)
 
+	r.HandleFunc("/txs",
+		BroadcastTxRequest(cliCtx),
+	).Methods(http.MethodPost)
+
 	r.HandleFunc(
 		fmt.Sprintf("/%s/tss", storeName),
 		newTssPoolHandler(cliCtx),

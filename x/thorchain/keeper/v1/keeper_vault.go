@@ -13,7 +13,7 @@ import (
 
 func (k KVStore) setVault(ctx cosmos.Context, key string, record Vault) {
 	store := ctx.KVStore(k.storeKey)
-	buf := k.cdc.MustMarshalBinaryBare(&record)
+	buf := k.cdc.MustMarshal(&record)
 	if buf == nil {
 		store.Delete([]byte(key))
 	} else {
@@ -28,7 +28,7 @@ func (k KVStore) getVault(ctx cosmos.Context, key string, record *Vault) (bool, 
 	}
 
 	bz := store.Get([]byte(key))
-	if err := k.cdc.UnmarshalBinaryBare(bz, record); err != nil {
+	if err := k.cdc.Unmarshal(bz, record); err != nil {
 		return true, dbError(ctx, fmt.Sprintf("Unmarshal kvstore: (%T) %s", record, key), err)
 	}
 	return true, nil
@@ -213,7 +213,7 @@ func (k KVStore) HasValidVaultPools(ctx cosmos.Context) (bool, error) {
 	defer iterator.Close()
 	for ; iterator.Valid(); iterator.Next() {
 		var vault Vault
-		if err := k.cdc.UnmarshalBinaryBare(iterator.Value(), &vault); err != nil {
+		if err := k.cdc.Unmarshal(iterator.Value(), &vault); err != nil {
 			return false, dbError(ctx, "fail to unmarshal vault", err)
 		}
 		if vault.HasFunds() {

@@ -561,7 +561,7 @@ func (vm *NetworkMgrV59) withdrawLiquidity(ctx cosmos.Context, pool Pool, na Nod
 	defer iterator.Close()
 	for ; iterator.Valid(); iterator.Next() {
 		var lp LiquidityProvider
-		if err := vm.k.Cdc().UnmarshalBinaryBare(iterator.Value(), &lp); err != nil {
+		if err := vm.k.Cdc().Unmarshal(iterator.Value(), &lp); err != nil {
 			ctx.Logger().Error("fail to unmarshal liquidity provider", "error", err)
 			continue
 		}
@@ -750,7 +750,7 @@ func (vm *NetworkMgrV59) getTotalProvidedLiquidityRune(ctx cosmos.Context) (Pool
 	defer iterator.Close()
 	for ; iterator.Valid(); iterator.Next() {
 		var pool Pool
-		if err := vm.k.Cdc().UnmarshalBinaryBare(iterator.Value(), &pool); err != nil {
+		if err := vm.k.Cdc().Unmarshal(iterator.Value(), &pool); err != nil {
 			return nil, cosmos.ZeroUint(), fmt.Errorf("fail to unmarhsl pool: %w", err)
 		}
 		if !pool.BalanceRune.IsZero() {

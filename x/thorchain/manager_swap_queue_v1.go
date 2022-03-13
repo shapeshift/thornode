@@ -38,7 +38,7 @@ func (vm *SwapQv1) FetchQueue(ctx cosmos.Context) (swapItems, error) {
 	defer iterator.Close()
 	for ; iterator.Valid(); iterator.Next() {
 		var msg MsgSwap
-		if err := vm.k.Cdc().UnmarshalBinaryBare(iterator.Value(), &msg); err != nil {
+		if err := vm.k.Cdc().Unmarshal(iterator.Value(), &msg); err != nil {
 			ctx.Logger().Error("fail to fetch swap msg from queue", "error", err)
 			continue
 		}
