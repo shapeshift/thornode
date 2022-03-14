@@ -54,11 +54,10 @@ require (
 	go.uber.org/atomic v1.7.0
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	google.golang.org/genproto v0.0.0-20220211171837-173942840c17 // indirect
+	google.golang.org/grpc v1.40.0
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
 	gopkg.in/ini.v1 v1.63.2 // indirect
 )
-
-require google.golang.org/grpc v1.40.0
 
 require (
 	filippo.io/edwards25519 v1.0.0-beta.2 // indirect
