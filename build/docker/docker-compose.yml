@@ -17,6 +17,7 @@ services:
     profiles:
       - _
     restart: unless-stopped
+    image: registry.gitlab.com/thorchain/thornode:mocknet
     build:
       context: ../..
       dockerfile: ./build/docker/Dockerfile
@@ -136,7 +137,7 @@ services:
       - '../scripts:/docker/scripts'
       - bifrost:/var/data/bifrost
       - thornode:/root/.thornode
-    command: ['bifrost', '-c', '/etc/bifrost/config.json']
+    command: ['bifrost', '-c', '/etc/bifrost/config.json', 'p']
 
   # ------------------------------ midgard ------------------------------
 
