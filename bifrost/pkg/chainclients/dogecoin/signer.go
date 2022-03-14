@@ -330,7 +330,7 @@ func (c *Client) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, err
 			coinToCustomer.Amount = coinToCustomer.Amount.Add(cosmos.NewUint(gap))
 		}
 	} else {
-		memo, err := mem.ParseMemo(tx.Memo)
+		memo, err := mem.ParseMemo(common.LatestVersion, tx.Memo)
 		if err != nil {
 			return nil, fmt.Errorf("fail to parse memo: %w", err)
 		}

@@ -274,7 +274,7 @@ func (tos *TxOutStorageV54) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem) 
 		runeFee := transactionFeeRune // Fee is the prescribed fee
 
 		// Deduct OutboundTransactionFee from TOI and add to Reserve
-		memo, err := ParseMemo(outputs[i].Memo) // ignore err
+		memo, err := ParseMemo(tos.keeper.Version(), outputs[i].Memo) // ignore err
 		if err == nil && !memo.IsType(TxYggdrasilFund) && !memo.IsType(TxYggdrasilReturn) && !memo.IsType(TxMigrate) && !memo.IsType(TxRagnarok) {
 			if outputs[i].Coin.Asset.IsRune() {
 				if outputs[i].Coin.Amount.LTE(transactionFeeRune) {
@@ -485,7 +485,7 @@ func (tos *TxOutStorageV54) collectYggdrasilPools(ctx cosmos.Context, tx Observe
 	defer iterator.Close()
 	for ; iterator.Valid(); iterator.Next() {
 		var vault Vault
-		if err := tos.keeper.Cdc().UnmarshalBinaryBare(iterator.Value(), &vault); err != nil {
+		if err := tos.keeper.Cdc().Unmarshal(iterator.Value(), &vault); err != nil {
 			return nil, fmt.Errorf("fail to unmarshal vault: %w", err)
 		}
 		if !vault.IsYggdrasil() {

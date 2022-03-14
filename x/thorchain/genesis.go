@@ -99,6 +99,7 @@ func DefaultGenesisState() GenesisState {
 	return GenesisState{
 		Pools:               make([]Pool, 0),
 		NodeAccounts:        NodeAccounts{},
+		BondProviders:       make([]BondProviders, 0),
 		TxOuts:              make([]TxOut, 0),
 		LiquidityProviders:  make(LiquidityProviders, 0),
 		Vaults:              make(Vaults, 0),
@@ -147,6 +148,12 @@ func InitGenesis(ctx cosmos.Context, keeper keeper.Keeper, data GenesisState) []
 
 	for _, vault := range data.Vaults {
 		if err := keeper.SetVault(ctx, vault); err != nil {
+			panic(err)
+		}
+	}
+
+	for _, bp := range data.BondProviders {
+		if err := keeper.SetBondProviders(ctx, bp); err != nil {
 			panic(err)
 		}
 	}
@@ -254,7 +261,7 @@ func getLiquidityProviders(ctx cosmos.Context, k keeper.Keeper, asset common.Ass
 	defer iterator.Close()
 	for ; iterator.Valid(); iterator.Next() {
 		var lp LiquidityProvider
-		k.Cdc().MustUnmarshalBinaryBare(iterator.Value(), &lp)
+		k.Cdc().MustUnmarshal(iterator.Value(), &lp)
 		if lp.Units.IsZero() && lp.PendingRune.IsZero() && lp.PendingAsset.IsZero() {
 			continue
 		}
@@ -269,7 +276,7 @@ func getValidPools(ctx cosmos.Context, k keeper.Keeper) Pools {
 	defer iterator.Close()
 	for ; iterator.Valid(); iterator.Next() {
 		var pool Pool
-		k.Cdc().MustUnmarshalBinaryBare(iterator.Value(), &pool)
+		k.Cdc().MustUnmarshal(iterator.Value(), &pool)
 		if pool.IsEmpty() {
 			continue
 		}
@@ -295,7 +302,7 @@ func ExportGenesis(ctx cosmos.Context, k keeper.Keeper) GenesisState {
 	defer iterator.Close()
 	for ; iterator.Valid(); iterator.Next() {
 		var na NodeAccount
-		k.Cdc().MustUnmarshalBinaryBare(iterator.Value(), &na)
+		k.Cdc().MustUnmarshal(iterator.Value(), &na)
 		if na.IsEmpty() {
 			continue
 		}
@@ -303,6 +310,15 @@ func ExportGenesis(ctx cosmos.Context, k keeper.Keeper) GenesisState {
 			continue
 		}
 		nodeAccounts = append(nodeAccounts, na)
+	}
+
+	bps := make([]BondProviders, 0)
+	for _, na := range nodeAccounts {
+		bp, err := k.GetBondProviders(ctx, na.NodeAddress)
+		if err != nil {
+			panic(err)
+		}
+		bps = append(bps, bp)
 	}
 
 	var observedTxInVoters ObservedTxVoters
@@ -370,7 +386,7 @@ func ExportGenesis(ctx cosmos.Context, k keeper.Keeper) GenesisState {
 	defer iterVault.Close()
 	for ; iterVault.Valid(); iterVault.Next() {
 		var vault Vault
-		k.Cdc().MustUnmarshalBinaryBare(iterVault.Value(), &vault)
+		k.Cdc().MustUnmarshal(iterVault.Value(), &vault)
 		if vault.Status == types.VaultStatus_InactiveVault || vault.Status == types.VaultStatus_InitVault {
 			continue
 		}
@@ -382,7 +398,7 @@ func ExportGenesis(ctx cosmos.Context, k keeper.Keeper) GenesisState {
 	defer iterMsgSwap.Close()
 	for ; iterMsgSwap.Valid(); iterMsgSwap.Next() {
 		var m MsgSwap
-		k.Cdc().MustUnmarshalBinaryBare(iterMsgSwap.Value(), &m)
+		k.Cdc().MustUnmarshal(iterMsgSwap.Value(), &m)
 		swapMsgs = append(swapMsgs, m)
 	}
 
@@ -391,7 +407,7 @@ func ExportGenesis(ctx cosmos.Context, k keeper.Keeper) GenesisState {
 	defer iterNetworkFee.Close()
 	for ; iterNetworkFee.Valid(); iterNetworkFee.Next() {
 		var nf NetworkFee
-		k.Cdc().MustUnmarshalBinaryBare(iterNetworkFee.Value(), &nf)
+		k.Cdc().MustUnmarshal(iterNetworkFee.Value(), &nf)
 		networkFees = append(networkFees, nf)
 	}
 
@@ -400,7 +416,7 @@ func ExportGenesis(ctx cosmos.Context, k keeper.Keeper) GenesisState {
 	defer iter.Close()
 	for ; iter.Valid(); iter.Next() {
 		var cc ChainContract
-		k.Cdc().MustUnmarshalBinaryBare(iter.Value(), &cc)
+		k.Cdc().MustUnmarshal(iter.Value(), &cc)
 		chainContracts = append(chainContracts, cc)
 	}
 
@@ -409,7 +425,7 @@ func ExportGenesis(ctx cosmos.Context, k keeper.Keeper) GenesisState {
 	defer iterNames.Close()
 	for ; iterNames.Valid(); iterNames.Next() {
 		var n THORName
-		k.Cdc().MustUnmarshalBinaryBare(iterNames.Value(), &n)
+		k.Cdc().MustUnmarshal(iterNames.Value(), &n)
 		names = append(names, n)
 	}
 	mimirs := make([]Mimir, 0)
@@ -417,7 +433,7 @@ func ExportGenesis(ctx cosmos.Context, k keeper.Keeper) GenesisState {
 	defer mimirIter.Close()
 	for ; mimirIter.Valid(); mimirIter.Next() {
 		value := types.ProtoInt64{}
-		if err := k.Cdc().UnmarshalBinaryBare(mimirIter.Value(), &value); err != nil {
+		if err := k.Cdc().Unmarshal(mimirIter.Value(), &value); err != nil {
 			ctx.Logger().Error("fail to unmarshal mimir value", "error", err)
 			continue
 		}
@@ -433,6 +449,7 @@ func ExportGenesis(ctx cosmos.Context, k keeper.Keeper) GenesisState {
 		ObservedTxInVoters: observedTxInVoters,
 		TxOuts:             outs,
 		NodeAccounts:       nodeAccounts,
+		BondProviders:      bps,
 		Vaults:             vaults,
 		LastSignedHeight:   lastSignedHeight,
 		LastChainHeights:   lastChainHeights,

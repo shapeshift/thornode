@@ -49,7 +49,7 @@ var _ = Suite(&LitecoinSignerSuite{})
 
 func (s *LitecoinSignerSuite) SetUpSuite(c *C) {
 	kb := cKeys.NewInMemory()
-	_, _, err := kb.NewMnemonic(bob, cKeys.English, cmd.THORChainHDPath, hd.Secp256k1)
+	_, _, err := kb.NewMnemonic(bob, cKeys.English, cmd.THORChainHDPath, password, hd.Secp256k1)
 	c.Assert(err, IsNil)
 	s.keys = thorclient.NewKeysWithKeybase(kb, bob, password)
 }

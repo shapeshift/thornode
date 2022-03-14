@@ -118,7 +118,7 @@ func cyclePoolsV1(ctx cosmos.Context, maxAvailablePools, minRunePoolDepth, stage
 	defer iterator.Close()
 	for ; iterator.Valid(); iterator.Next() {
 		var pool Pool
-		if err := mgr.Keeper().Cdc().UnmarshalBinaryBare(iterator.Value(), &pool); err != nil {
+		if err := mgr.Keeper().Cdc().Unmarshal(iterator.Value(), &pool); err != nil {
 			return err
 		}
 

@@ -1,5 +1,5 @@
 include Makefile.cicd
-.PHONY: build test tools export healthcheck run-mocknet reset-mocknet logs-mocknet
+.PHONY: build test tools export healthcheck run-mocknet build-mocknet stop-mocknet ps-mocknet reset-mocknet logs-mocknet
 
 module = gitlab.com/thorchain/thornode
 GOBIN?=${GOPATH}/bin
@@ -55,6 +55,9 @@ clear:
 	clear
 
 test:
+	@CGO_ENABLED=0 go test ${TEST_BUILD_FLAGS} ${TEST_DIR}
+
+test-race:
 	@go test -race ${TEST_BUILD_FLAGS} ${TEST_DIR}
 
 test-watch: clear
@@ -106,10 +109,17 @@ pull:
 
 run-mocknet:
 	@docker compose -f build/docker/docker-compose.yml --profile mocknet --profile midgard up -d
+<<<<<<< HEAD
 
 stop-mocknet:
 	@docker compose -f build/docker/docker-compose.yml --profile mocknet --profile midgard down -v
 
+=======
+
+stop-mocknet:
+	@docker compose -f build/docker/docker-compose.yml --profile mocknet --profile midgard down -v
+
+>>>>>>> develop
 build-mocknet:
 	@docker compose -f build/docker/docker-compose.yml --profile mocknet --profile midgard build
 

@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/blang/semver"
+	"github.com/cosmos/cosmos-sdk/x/auth/legacy/legacytx"
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
@@ -27,9 +28,13 @@ func NewExternalHandler(mgr Manager) cosmos.Handler {
 			return nil, errConstNotAvailable
 		}
 		handlerMap := getHandlerMapping(mgr)
-		h, ok := handlerMap[msg.Type()]
+		legacyMsg, ok := msg.(legacytx.LegacyMsg)
 		if !ok {
-			errMsg := fmt.Sprintf("Unrecognized thorchain Msg type: %v", msg.Type())
+			return nil, cosmos.ErrUnknownRequest("unknown message type")
+		}
+		h, ok := handlerMap[legacyMsg.Type()]
+		if !ok {
+			errMsg := fmt.Sprintf("Unrecognized thorchain Msg type: %v", legacyMsg.Type())
 			return nil, cosmos.ErrUnknownRequest(errMsg)
 		}
 		result, err := h.Run(ctx, msg)
@@ -145,9 +150,13 @@ func NewInternalHandler(mgr Manager) cosmos.Handler {
 			return nil, errConstNotAvailable
 		}
 		handlerMap := getInternalHandlerMapping(mgr)
-		h, ok := handlerMap[msg.Type()]
+		legacyMsg, ok := msg.(legacytx.LegacyMsg)
 		if !ok {
-			errMsg := fmt.Sprintf("Unrecognized thorchain Msg type: %v", msg.Type())
+			return nil, cosmos.ErrUnknownRequest("invalid message type")
+		}
+		h, ok := handlerMap[legacyMsg.Type()]
+		if !ok {
+			errMsg := fmt.Sprintf("Unrecognized thorchain Msg type: %v", legacyMsg.Type())
 			return nil, cosmos.ErrUnknownRequest(errMsg)
 		}
 		return h.Run(ctx, msg)
@@ -243,11 +252,11 @@ func getMsgLeaveFromMemo(memo LeaveMemo, tx ObservedTx, signer cosmos.AccAddress
 
 func getMsgBondFromMemo(memo BondMemo, tx ObservedTx, signer cosmos.AccAddress) (cosmos.Msg, error) {
 	coin := tx.Tx.Coins.GetCoin(common.RuneAsset())
-	return NewMsgBond(tx.Tx, memo.GetAccAddress(), coin.Amount, tx.Tx.FromAddress, signer), nil
+	return NewMsgBond(tx.Tx, memo.GetAccAddress(), coin.Amount, tx.Tx.FromAddress, memo.BondProviderAddress, signer), nil
 }
 
 func getMsgUnbondFromMemo(memo UnbondMemo, tx ObservedTx, signer cosmos.AccAddress) (cosmos.Msg, error) {
-	return NewMsgUnBond(tx.Tx, memo.GetAccAddress(), memo.GetAmount(), tx.Tx.FromAddress, signer), nil
+	return NewMsgUnBond(tx.Tx, memo.GetAccAddress(), memo.GetAmount(), tx.Tx.FromAddress, memo.BondProviderAddress, signer), nil
 }
 
 func getMsgManageTHORNameFromMemo(memo ManageTHORNameMemo, tx ObservedTx, signer cosmos.AccAddress) (cosmos.Msg, error) {
@@ -271,7 +280,7 @@ func processOneTxIn(ctx cosmos.Context, version semver.Version, keeper keeper.Ke
 }
 
 func processOneTxInV1(ctx cosmos.Context, keeper keeper.Keeper, tx ObservedTx, signer cosmos.AccAddress) (cosmos.Msg, error) {
-	memo, err := ParseMemo(tx.Tx.Memo)
+	memo, err := ParseMemo(keeper.Version(), tx.Tx.Memo)
 	if err != nil {
 		ctx.Logger().Error("fail to parse memo", "error", err)
 		return nil, err
@@ -324,7 +333,7 @@ func processOneTxInV1(ctx cosmos.Context, keeper keeper.Keeper, tx ObservedTx, s
 }
 
 func processOneTxInV46(ctx cosmos.Context, keeper keeper.Keeper, tx ObservedTx, signer cosmos.AccAddress) (cosmos.Msg, error) {
-	memo, err := ParseMemo(tx.Tx.Memo)
+	memo, err := ParseMemo(keeper.Version(), tx.Tx.Memo)
 	if err != nil {
 		ctx.Logger().Error("fail to parse memo", "error", err)
 		return nil, err
@@ -523,7 +532,7 @@ func fuzzyAssetMatch(ctx cosmos.Context, keeper keeper.Keeper, asset common.Asse
 	defer iterator.Close()
 	for ; iterator.Valid(); iterator.Next() {
 		var pool Pool
-		if err := keeper.Cdc().UnmarshalBinaryBare(iterator.Value(), &pool); err != nil {
+		if err := keeper.Cdc().Unmarshal(iterator.Value(), &pool); err != nil {
 			ctx.Logger().Error("fail to fetch pool", "asset", asset, "err", err)
 			continue
 		}

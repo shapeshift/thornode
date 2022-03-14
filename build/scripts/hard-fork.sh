@@ -1,6 +1,6 @@
 #!/bin/sh
 
-set -e
+set -ex
 
 HARDFORK_BLOCK_HEIGHT="${HARDFORK_BLOCK_HEIGHT:--1}"
 CHAIN_ID="${CHAIN_ID:-}"
@@ -18,7 +18,6 @@ echo "new chain id: $CHAIN_ID , genesis_time:$NEW_GENESIS_TIME"
 
 # backup first
 cp -r ~/.thornode/config ~/.thornode/config."$DATE".bak
-cp -r ~/.thornode/data ~/.thornode/data."$DATE".bak
 
 # export genesis file
 thornode export --height "$HARDFORK_BLOCK_HEIGHT" >thorchain_genesis_export."$DATE".json

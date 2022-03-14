@@ -8,7 +8,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/simapp"
 	"github.com/cosmos/cosmos-sdk/store"
-	cosmostypes "github.com/cosmos/cosmos-sdk/types"
 	se "github.com/cosmos/cosmos-sdk/types/errors"
 	authkeeper "github.com/cosmos/cosmos-sdk/x/auth/keeper"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
@@ -21,7 +20,6 @@ import (
 	dbm "github.com/tendermint/tm-db"
 	. "gopkg.in/check.v1"
 
-	"gitlab.com/thorchain/thornode/cmd"
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
@@ -70,9 +68,7 @@ var (
 )
 
 func setupManagerForTest(c *C) (cosmos.Context, *Mgrs) {
-	cosmostypes.SetCoinDenomRegex(func() string {
-		return cmd.DenomRegex
-	})
+	SetupConfigForTest()
 	keyAcc := cosmos.NewKVStoreKey(authtypes.StoreKey)
 	keyBank := cosmos.NewKVStoreKey(banktypes.StoreKey)
 	keyParams := cosmos.NewKVStoreKey(paramstypes.StoreKey)
@@ -102,9 +98,9 @@ func setupManagerForTest(c *C) (cosmos.Context, *Mgrs) {
 	})
 
 	bk := bankkeeper.NewBaseKeeper(marshaler, keyBank, ak, pk.Subspace(banktypes.ModuleName), nil)
-	bk.SetSupply(ctx, banktypes.NewSupply(cosmos.Coins{
+	c.Assert(bk.MintCoins(ctx, ModuleName, cosmos.Coins{
 		cosmos.NewCoin(common.RuneAsset().Native(), cosmos.NewInt(200_000_000_00000000)),
-	}))
+	}), IsNil)
 	k := keeper.NewKeeper(marshaler, bk, ak, keyThorchain)
 	FundModule(c, ctx, k, ModuleName, 1000000*common.One)
 	FundModule(c, ctx, k, AsgardName, common.One)
@@ -129,9 +125,7 @@ func setupManagerForTest(c *C) (cosmos.Context, *Mgrs) {
 }
 
 func setupKeeperForTest(c *C) (cosmos.Context, keeper.Keeper) {
-	cosmostypes.SetCoinDenomRegex(func() string {
-		return cmd.DenomRegex
-	})
+	SetupConfigForTest()
 	keyAcc := cosmos.NewKVStoreKey(authtypes.StoreKey)
 	keyBank := cosmos.NewKVStoreKey(banktypes.StoreKey)
 	keyParams := cosmos.NewKVStoreKey(paramstypes.StoreKey)
@@ -161,9 +155,9 @@ func setupKeeperForTest(c *C) (cosmos.Context, keeper.Keeper) {
 	})
 
 	bk := bankkeeper.NewBaseKeeper(marshaler, keyBank, ak, pk.Subspace(banktypes.ModuleName), nil)
-	bk.SetSupply(ctx, banktypes.NewSupply(cosmos.Coins{
+	c.Assert(bk.MintCoins(ctx, ModuleName, cosmos.Coins{
 		cosmos.NewCoin(common.RuneAsset().Native(), cosmos.NewInt(200_000_000_00000000)),
-	}))
+	}), IsNil)
 	k := keeper.NewKeeper(marshaler, bk, ak, keyThorchain)
 	FundModule(c, ctx, k, ModuleName, 1000000*common.One)
 	FundModule(c, ctx, k, AsgardName, common.One)
@@ -373,7 +367,7 @@ func (HandlerSuite) TestRefund(c *C) {
 }
 
 func (HandlerSuite) TestGetMsgSwapFromMemo(c *C) {
-	m, err := ParseMemo("swap:BNB.BNB")
+	m, err := ParseMemo(GetCurrentVersion(), "swap:BNB.BNB")
 	swapMemo, ok := m.(SwapMemo)
 	c.Assert(ok, Equals, true)
 	c.Assert(err, IsNil)
@@ -413,7 +407,8 @@ func (HandlerSuite) TestGetMsgWithdrawFromMemo(c *C) {
 	msg, err := processOneTxIn(w.ctx, GetCurrentVersion(), w.keeper, obTx, w.activeNodeAccount.NodeAddress)
 	c.Assert(err, IsNil)
 	c.Assert(msg, NotNil)
-	c.Assert(msg.Type(), Equals, MsgWithdrawLiquidity{}.Type())
+	_, isWithdraw := msg.(*MsgWithdrawLiquidity)
+	c.Assert(isWithdraw, Equals, true)
 }
 
 func (HandlerSuite) TestGetMsgMigrationFromMemo(c *C) {
@@ -424,7 +419,8 @@ func (HandlerSuite) TestGetMsgMigrationFromMemo(c *C) {
 	msg, err := processOneTxIn(w.ctx, GetCurrentVersion(), w.keeper, obTx, w.activeNodeAccount.NodeAddress)
 	c.Assert(err, IsNil)
 	c.Assert(msg, NotNil)
-	c.Assert(msg.Type(), Equals, MsgMigrate{}.Type())
+	_, isMigrate := msg.(*MsgMigrate)
+	c.Assert(isMigrate, Equals, true)
 }
 
 func (HandlerSuite) TestGetMsgBondFromMemo(c *C) {
@@ -438,7 +434,8 @@ func (HandlerSuite) TestGetMsgBondFromMemo(c *C) {
 	msg, err := processOneTxIn(w.ctx, GetCurrentVersion(), w.keeper, obTx, w.activeNodeAccount.NodeAddress)
 	c.Assert(err, IsNil)
 	c.Assert(msg, NotNil)
-	c.Assert(msg.Type(), Equals, MsgBond{}.Type())
+	_, isBond := msg.(*MsgBond)
+	c.Assert(isBond, Equals, true)
 }
 
 func (HandlerSuite) TestGetMsgUnBondFromMemo(c *C) {
@@ -452,13 +449,14 @@ func (HandlerSuite) TestGetMsgUnBondFromMemo(c *C) {
 	msg, err := processOneTxIn(w.ctx, GetCurrentVersion(), w.keeper, obTx, w.activeNodeAccount.NodeAddress)
 	c.Assert(err, IsNil)
 	c.Assert(msg, NotNil)
-	c.Assert(msg.Type(), Equals, MsgUnBond{}.Type())
+	_, isUnBond := msg.(*MsgUnBond)
+	c.Assert(isUnBond, Equals, true)
 }
 
 func (HandlerSuite) TestGetMsgLiquidityFromMemo(c *C) {
 	w := getHandlerTestWrapper(c, 1, true, false)
 	// provide BNB, however THORNode send T-CAN as coin , which is incorrect, should result in an error
-	m, err := ParseMemo(fmt.Sprintf("add:BNB.BNB:%s", GetRandomRUNEAddress()))
+	m, err := ParseMemo(GetCurrentVersion(), fmt.Sprintf("add:BNB.BNB:%s", GetRandomRUNEAddress()))
 	c.Assert(err, IsNil)
 	lpMemo, ok := m.(AddLiquidityMemo)
 	c.Assert(ok, Equals, true)
@@ -523,7 +521,7 @@ func (HandlerSuite) TestGetMsgLiquidityFromMemo(c *C) {
 	}
 
 	runeAddr := GetRandomRUNEAddress()
-	lokiAddLiquidityMemo, err := ParseMemo(fmt.Sprintf("add:BNB.LOKI:%s", runeAddr))
+	lokiAddLiquidityMemo, err := ParseMemo(GetCurrentVersion(), fmt.Sprintf("add:BNB.LOKI:%s", runeAddr))
 	c.Assert(err, IsNil)
 	msg4, err4 := getMsgAddLiquidityFromMemo(w.ctx, lokiAddLiquidityMemo.(AddLiquidityMemo), txin, GetRandomBech32Addr())
 	c.Assert(err4, IsNil)
@@ -603,7 +601,8 @@ func (s *HandlerSuite) TestReserveContributor(c *C) {
 	msg, err := processOneTxIn(w.ctx, GetCurrentVersion(), w.keeper, txin, addr)
 	c.Assert(err, IsNil)
 	c.Check(msg.ValidateBasic(), IsNil)
-	c.Check(msg.Type(), Equals, MsgReserveContributor{}.Type())
+	_, isReserve := msg.(*MsgReserveContributor)
+	c.Assert(isReserve, Equals, true)
 }
 
 func (s *HandlerSuite) TestSwitch(c *C) {
@@ -626,7 +625,8 @@ func (s *HandlerSuite) TestSwitch(c *C) {
 	msg, err := processOneTxIn(w.ctx, GetCurrentVersion(), w.keeper, txin, addr)
 	c.Assert(err, IsNil)
 	c.Check(msg.ValidateBasic(), IsNil)
-	c.Check(msg.Type(), Equals, MsgSwitch{}.Type())
+	_, isSwitch := msg.(*MsgSwitch)
+	c.Assert(isSwitch, Equals, true)
 }
 
 func (s *HandlerSuite) TestExternalHandler(c *C) {

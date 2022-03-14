@@ -1,7 +1,7 @@
 {
   "result": {
     "version": 180000,
-    "subversion": "\/Satoshi:0.18.0\/",
+    "subversion": "/Satoshi:0.18.0/",
     "protocolversion": 70015,
     "localservices": "000000000000040d",
     "localrelay": true,

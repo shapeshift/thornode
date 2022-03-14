@@ -3,7 +3,6 @@ package keeperv1
 import (
 	"testing"
 
-	"github.com/cosmos/cosmos-sdk/types"
 	. "gopkg.in/check.v1"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -15,16 +14,15 @@ import (
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	distrtypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
-	ibctransfertypes "github.com/cosmos/cosmos-sdk/x/ibc/applications/transfer/types"
 	minttypes "github.com/cosmos/cosmos-sdk/x/mint/types"
 	paramskeeper "github.com/cosmos/cosmos-sdk/x/params/keeper"
 	paramstypes "github.com/cosmos/cosmos-sdk/x/params/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
+	ibctransfertypes "github.com/cosmos/ibc-go/v2/modules/apps/transfer/types"
 	"github.com/tendermint/tendermint/libs/log"
 	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
 	dbm "github.com/tendermint/tm-db"
 
-	"gitlab.com/thorchain/thornode/cmd"
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 )
@@ -64,9 +62,7 @@ var (
 )
 
 func setupKeeperForTest(c *C) (cosmos.Context, KVStore) {
-	types.SetCoinDenomRegex(func() string {
-		return cmd.DenomRegex
-	})
+	SetupConfigForTest()
 	keys := cosmos.NewKVStoreKeys(
 		authtypes.StoreKey, banktypes.StoreKey, stakingtypes.StoreKey, paramstypes.StoreKey,
 	)
@@ -104,8 +100,6 @@ func setupKeeperForTest(c *C) (cosmos.Context, KVStore) {
 	pk := paramskeeper.NewKeeper(marshaler, legacyCodec, keys[paramstypes.StoreKey], tkeyParams)
 	ak := authkeeper.NewAccountKeeper(marshaler, keys[authtypes.StoreKey], pk.Subspace(authtypes.ModuleName), authtypes.ProtoBaseAccount, maccPerms)
 	bk := bankkeeper.NewBaseKeeper(marshaler, keys[banktypes.StoreKey], ak, pk.Subspace(banktypes.ModuleName), nil)
-	supply := banktypes.NewSupply(nil)
-	bk.SetSupply(ctx, supply)
 
 	k := NewKVStore(marshaler, bk, ak, keyThorchain, GetCurrentVersion())
 
