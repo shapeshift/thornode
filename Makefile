@@ -109,17 +109,10 @@ pull:
 
 run-mocknet:
 	@docker compose -f build/docker/docker-compose.yml --profile mocknet --profile midgard up -d
-<<<<<<< HEAD
 
 stop-mocknet:
 	@docker compose -f build/docker/docker-compose.yml --profile mocknet --profile midgard down -v
 
-=======
-
-stop-mocknet:
-	@docker compose -f build/docker/docker-compose.yml --profile mocknet --profile midgard down -v
-
->>>>>>> develop
 build-mocknet:
 	@docker compose -f build/docker/docker-compose.yml --profile mocknet --profile midgard build
 
