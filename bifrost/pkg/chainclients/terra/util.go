@@ -17,6 +17,7 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	grpc "google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 // buildUnsigned takes a MsgSend and other parameters and returns a txBuilder
@@ -122,7 +123,8 @@ func getGRPCConn(host string) (*grpc.ClientConn, error) {
 	host, _, _ = net.SplitHostPort(url.Host)
 	// CHANGEME: all Cosmos GRPC should be on port 9090. Update this if your chain uses something use else.
 	grpcHost := fmt.Sprintf("%s:9090", host)
-	return grpc.Dial(grpcHost, grpc.WithInsecure())
+
+	return grpc.Dial(grpcHost, grpc.WithTransportCredentials(insecure.NewCredentials()))
 }
 
 func unmarshalJSONToPb(filePath string, msg proto.Message) error {
