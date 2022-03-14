@@ -99,7 +99,7 @@ func (k *TestRagnarokChainKeeper) GetLiquidityProviderIterator(ctx cosmos.Contex
 	cdc := makeTestCodec()
 	iter := keeper.NewDummyIterator()
 	for _, lp := range k.lps {
-		iter.AddItem([]byte("key"), cdc.MustMarshalBinaryBare(lp))
+		iter.AddItem([]byte("key"), cdc.MustMarshal(lp))
 	}
 	return iter
 }

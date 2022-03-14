@@ -17,7 +17,7 @@ import (
 
 func (k KVStore) setNodeAccount(ctx cosmos.Context, key string, record NodeAccount) {
 	store := ctx.KVStore(k.storeKey)
-	buf := k.cdc.MustMarshalBinaryBare(&record)
+	buf := k.cdc.MustMarshal(&record)
 	if buf == nil {
 		store.Delete([]byte(key))
 	} else {
@@ -32,7 +32,7 @@ func (k KVStore) getNodeAccount(ctx cosmos.Context, key string, record *NodeAcco
 	}
 
 	bz := store.Get([]byte(key))
-	if err := k.cdc.UnmarshalBinaryBare(bz, record); err != nil {
+	if err := k.cdc.Unmarshal(bz, record); err != nil {
 		return true, dbError(ctx, fmt.Sprintf("Unmarshal kvstore: (%T) %s", record, key), err)
 	}
 	return true, nil
@@ -52,7 +52,7 @@ func (k KVStore) ListValidatorsWithBond(ctx cosmos.Context) (NodeAccounts, error
 	defer naIterator.Close()
 	for ; naIterator.Valid(); naIterator.Next() {
 		var na NodeAccount
-		if err := k.cdc.UnmarshalBinaryBare(naIterator.Value(), &na); err != nil {
+		if err := k.cdc.Unmarshal(naIterator.Value(), &na); err != nil {
 			return nodeAccounts, dbError(ctx, "Unmarshal: node account", err)
 		}
 		if na.Type == NodeTypeValidator && !na.Bond.IsZero() {
@@ -69,7 +69,7 @@ func (k KVStore) ListValidatorsByStatus(ctx cosmos.Context, status NodeStatus) (
 	defer naIterator.Close()
 	for ; naIterator.Valid(); naIterator.Next() {
 		var na NodeAccount
-		if err := k.cdc.UnmarshalBinaryBare(naIterator.Value(), &na); err != nil {
+		if err := k.cdc.Unmarshal(naIterator.Value(), &na); err != nil {
 			return nodeAccounts, dbError(ctx, "Unmarshal: node account", err)
 		}
 		if na.Type == NodeTypeValidator && na.Status == status {
@@ -256,7 +256,6 @@ func (k KVStore) SetNodeAccount(ctx cosmos.Context, na NodeAccount) error {
 	}
 
 	k.setNodeAccount(ctx, k.GetKey(ctx, prefixNodeAccount, na.NodeAddress.String()), na)
-
 	return nil
 }
 
@@ -267,7 +266,7 @@ func (k KVStore) EnsureNodeKeysUnique(ctx cosmos.Context, consensusPubKey string
 	defer iter.Close()
 	for ; iter.Valid(); iter.Next() {
 		var na NodeAccount
-		if err := k.cdc.UnmarshalBinaryBare(iter.Value(), &na); err != nil {
+		if err := k.cdc.Unmarshal(iter.Value(), &na); err != nil {
 			return dbError(ctx, "Unmarshal: node account", err)
 		}
 		if strings.EqualFold("", consensusPubKey) {
@@ -367,7 +366,7 @@ func (k KVStore) DecNodeAccountSlashPoints(ctx cosmos.Context, addr cosmos.AccAd
 
 func (k KVStore) setJail(ctx cosmos.Context, key string, record Jail) {
 	store := ctx.KVStore(k.storeKey)
-	buf := k.cdc.MustMarshalBinaryBare(&record)
+	buf := k.cdc.MustMarshal(&record)
 	if buf == nil {
 		store.Delete([]byte(key))
 	} else {
@@ -382,7 +381,7 @@ func (k KVStore) getJail(ctx cosmos.Context, key string, record *Jail) (bool, er
 	}
 
 	bz := store.Get([]byte(key))
-	if err := k.cdc.UnmarshalBinaryBare(bz, record); err != nil {
+	if err := k.cdc.Unmarshal(bz, record); err != nil {
 		return true, dbError(ctx, fmt.Sprintf("Unmarshal kvstore: (%T) %s", record, key), err)
 	}
 	return true, nil
@@ -421,5 +420,41 @@ func (k KVStore) ReleaseNodeAccountFromJail(ctx cosmos.Context, addr cosmos.AccA
 	jail.ReleaseHeight = ctx.BlockHeight()
 	jail.Reason = ""
 	k.setJail(ctx, k.GetKey(ctx, prefixNodeJail, addr.String()), jail)
+	return nil
+}
+
+func (k KVStore) setBondProviders(ctx cosmos.Context, key string, record BondProviders) {
+	store := ctx.KVStore(k.storeKey)
+	buf := k.cdc.MustMarshal(&record)
+	if buf == nil {
+		store.Delete([]byte(key))
+	} else {
+		store.Set([]byte(key), buf)
+	}
+}
+
+func (k KVStore) getBondProviders(ctx cosmos.Context, key string, record *BondProviders) (bool, error) {
+	store := ctx.KVStore(k.storeKey)
+	if !store.Has([]byte(key)) {
+		return false, nil
+	}
+
+	bz := store.Get([]byte(key))
+	if err := k.cdc.Unmarshal(bz, record); err != nil {
+		return true, dbError(ctx, fmt.Sprintf("Unmarshal kvstore: (%T) %s", record, key), err)
+	}
+	return true, nil
+}
+
+// GetBondProviders - gets bond providers for a node account
+func (k KVStore) GetBondProviders(ctx cosmos.Context, addr cosmos.AccAddress) (BondProviders, error) {
+	record := NewBondProviders(addr)
+	_, err := k.getBondProviders(ctx, k.GetKey(ctx, prefixBondProviders, addr.String()), &record)
+	return record, err
+}
+
+// SetBondProviders - update the bond providers of a node account
+func (k KVStore) SetBondProviders(ctx cosmos.Context, record BondProviders) error {
+	k.setBondProviders(ctx, k.GetKey(ctx, prefixBondProviders, record.NodeAddress.String()), record)
 	return nil
 }

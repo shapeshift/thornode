@@ -85,14 +85,6 @@ func (c Chain) IsBNB() bool {
 	return c.Equals(BNBChain)
 }
 
-func (c Chain) IsProofOfWork() bool {
-	return c.Equals(BTCChain) ||
-		c.Equals(BCHChain) ||
-		c.Equals(LTCChain) ||
-		c.Equals(ETHChain) ||
-		c.Equals(DOGEChain)
-}
-
 // GetSigningAlgo get the signing algorithm for the given chain
 func (c Chain) GetSigningAlgo() SigninAlgo {
 	switch c {

@@ -52,6 +52,8 @@ type (
 	Vault                    = types.Vault
 	Vaults                   = types.Vaults
 	Jail                     = types.Jail
+	BondProvider             = types.BondProvider
+	BondProviders            = types.BondProviders
 	NodeAccount              = types.NodeAccount
 	NodeAccounts             = types.NodeAccounts
 	NodeStatus               = types.NodeStatus

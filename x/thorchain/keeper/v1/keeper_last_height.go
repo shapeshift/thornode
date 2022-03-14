@@ -60,7 +60,7 @@ func (k KVStore) GetLastChainHeights(ctx cosmos.Context) (map[common.Chain]int64
 			return nil, fmt.Errorf("fail to parse chain: %w", err)
 		}
 		value := ProtoInt64{}
-		k.cdc.MustUnmarshalBinaryBare(iter.Value(), &value)
+		k.cdc.MustUnmarshal(iter.Value(), &value)
 		result[chain] = value.Value
 	}
 	return result, nil
@@ -97,7 +97,7 @@ func (k KVStore) GetLastObserveHeight(ctx cosmos.Context, address cosmos.AccAddr
 			return nil, fmt.Errorf("fail to parse chain: %w", err)
 		}
 		value := ProtoInt64{}
-		k.cdc.MustUnmarshalBinaryBare(iter.Value(), &value)
+		k.cdc.MustUnmarshal(iter.Value(), &value)
 		result[chain] = value.Value
 	}
 	return result, nil

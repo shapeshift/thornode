@@ -10,7 +10,7 @@ import (
 
 func (k KVStore) setPool(ctx cosmos.Context, key string, record Pool) {
 	store := ctx.KVStore(k.storeKey)
-	buf := k.cdc.MustMarshalBinaryBare(&record)
+	buf := k.cdc.MustMarshal(&record)
 	if buf == nil {
 		store.Delete([]byte(key))
 	} else {
@@ -25,7 +25,7 @@ func (k KVStore) getPool(ctx cosmos.Context, key string, record *Pool) (bool, er
 	}
 
 	bz := store.Get([]byte(key))
-	if err := k.cdc.UnmarshalBinaryBare(bz, record); err != nil {
+	if err := k.cdc.Unmarshal(bz, record); err != nil {
 		return true, dbError(ctx, fmt.Sprintf("Unmarshal kvstore: (%T) %s", record, key), err)
 	}
 	return true, nil
@@ -43,7 +43,7 @@ func (k KVStore) GetPools(ctx cosmos.Context) (Pools, error) {
 	defer iterator.Close()
 	for ; iterator.Valid(); iterator.Next() {
 		var pool Pool
-		err := k.Cdc().UnmarshalBinaryBare(iterator.Value(), &pool)
+		err := k.Cdc().Unmarshal(iterator.Value(), &pool)
 		if err != nil {
 			return nil, dbError(ctx, "Unmarsahl: pool", err)
 		}

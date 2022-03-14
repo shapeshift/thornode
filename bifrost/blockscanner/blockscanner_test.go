@@ -54,7 +54,7 @@ func (s *BlockScannerTestSuite) SetUpSuite(c *C) {
 		ChainHomeFolder: ".",
 	}
 	kb := ckeys.NewInMemory()
-	_, _, err = kb.NewMnemonic(cfg.SignerName, ckeys.English, cmd.THORChainHDPath, hd.Secp256k1)
+	_, _, err = kb.NewMnemonic(cfg.SignerName, ckeys.English, cmd.THORChainHDPath, cfg.SignerPasswd, hd.Secp256k1)
 	c.Assert(err, IsNil)
 
 	s.cfg = cfg

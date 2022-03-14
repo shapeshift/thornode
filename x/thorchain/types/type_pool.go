@@ -147,12 +147,11 @@ func (m Pool) EnsureValidPoolStatus(msg cosmos.Msg) error {
 	case PoolStatus_Available:
 		return nil
 	case PoolStatus_Staged:
-		switch msg.Type() {
-		case "swap":
+		_, ok := msg.(*MsgSwap)
+		if ok {
 			return errors.New("pool is in staged status, can't swap")
-		default:
-			return nil
 		}
+		return nil
 	case PoolStatus_Suspended:
 		return errors.New("pool suspended")
 	default:

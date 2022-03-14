@@ -528,7 +528,7 @@ func migrateStoreV59(ctx cosmos.Context, mgr Manager) {
 	defer vaultIter.Close()
 	for ; vaultIter.Valid(); vaultIter.Next() {
 		var vault Vault
-		if err := mgr.Keeper().Cdc().UnmarshalBinaryBare(vaultIter.Value(), &vault); err != nil {
+		if err := mgr.Keeper().Cdc().Unmarshal(vaultIter.Value(), &vault); err != nil {
 			ctx.Logger().Error("fail to unmarshal vault", "error", err)
 			continue
 		}

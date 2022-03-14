@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/blang/semver"
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
@@ -115,7 +116,7 @@ func (tos *TxOutStorageV68) TryAddTxOutItem(ctx cosmos.Context, mgr Manager, toi
 	outboundHeight := common.BlockHeight(ctx)
 	if !toi.Chain.IsTHORChain() && !toi.InHash.IsEmpty() && !toi.InHash.Equals(common.BlankTxID) {
 		toi.Memo = outputs[0].Memo
-		targetHeight, err := tos.calcTxOutHeight(ctx, toi)
+		targetHeight, err := tos.calcTxOutHeight(ctx, mgr.GetVersion(), toi)
 		if err != nil {
 			ctx.Logger().Error("failed to calc target block height for txout item", "error", err)
 		}
@@ -474,10 +475,10 @@ func (tos *TxOutStorageV68) addToBlockOut(ctx cosmos.Context, mgr Manager, item 
 	return tos.keeper.AppendTxOut(ctx, outboundHeight, item)
 }
 
-func (tos *TxOutStorageV68) calcTxOutHeight(ctx cosmos.Context, toi TxOutItem) (int64, error) {
+func (tos *TxOutStorageV68) calcTxOutHeight(ctx cosmos.Context, version semver.Version, toi TxOutItem) (int64, error) {
 	// non-outbound transactions are skipped. This is so this code does not
 	// affect internal transactions (ie consolidation and migrate txs)
-	memo, _ := ParseMemo(toi.Memo) // ignore err
+	memo, _ := ParseMemo(version, toi.Memo) // ignore err
 	if !memo.IsType(TxRefund) && !memo.IsType(TxOutbound) {
 		return common.BlockHeight(ctx), nil
 	}
@@ -651,7 +652,7 @@ func (tos *TxOutStorageV68) collectYggdrasilPools(ctx cosmos.Context, tx Observe
 	}()
 	for ; iterator.Valid(); iterator.Next() {
 		var vault Vault
-		if err := tos.keeper.Cdc().UnmarshalBinaryBare(iterator.Value(), &vault); err != nil {
+		if err := tos.keeper.Cdc().Unmarshal(iterator.Value(), &vault); err != nil {
 			return nil, fmt.Errorf("fail to unmarshal vault: %w", err)
 		}
 		if !vault.IsYggdrasil() {

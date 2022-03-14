@@ -48,17 +48,19 @@ func (h BondHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Result, erro
 
 func (h BondHandler) validate(ctx cosmos.Context, msg MsgBond) error {
 	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.80.0")) {
-		return h.validate80(ctx, msg)
+	if version.GTE(semver.MustParse("0.81.0")) {
+		return h.validateV81(ctx, msg)
+	} else if version.GTE(semver.MustParse("0.80.0")) {
+		return h.validateV80(ctx, msg)
 	} else if version.GTE(semver.MustParse("0.78.0")) {
-		return h.validate78(ctx, msg)
+		return h.validateV78(ctx, msg)
 	} else if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, msg)
 	}
 	return errBadVersion
 }
 
-func (h BondHandler) validate80(ctx cosmos.Context, msg MsgBond) error {
+func (h BondHandler) validateV81(ctx cosmos.Context, msg MsgBond) error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
@@ -94,13 +96,37 @@ func (h BondHandler) validate80(ctx cosmos.Context, msg MsgBond) error {
 	}
 
 	bond := msg.Bond.Add(nodeAccount.Bond)
-
 	maxBond, err := h.mgr.Keeper().GetMimir(ctx, "MaximumBondInRune")
 	if maxBond > 0 && err == nil {
 		maxValidatorBond := cosmos.NewUint(uint64(maxBond))
 		if bond.GT(maxValidatorBond) {
 			return cosmos.ErrUnknownRequest(fmt.Sprintf("too much bond, max validator bond (%s), bond(%s)", maxValidatorBond.String(), bond))
 		}
+	}
+
+	if !msg.BondAddress.IsChain(common.THORChain) {
+		return cosmos.ErrUnknownRequest(fmt.Sprintf("bonding address is NOT a THORChain address: %s", msg.BondAddress.String()))
+	}
+
+	if msg.BondAddress.Equals(nodeAccount.BondAddress) {
+		return nil
+	}
+
+	if nodeAccount.BondAddress.IsEmpty() {
+		// no bond address yet, allow it to be bonded by any address
+		return nil
+	}
+
+	bp, err := h.mgr.Keeper().GetBondProviders(ctx, msg.NodeAddress)
+	if err != nil {
+		return ErrInternal(err, fmt.Sprintf("fail to get bond providers(%s)", msg.NodeAddress))
+	}
+	from, err := msg.BondAddress.AccAddress()
+	if err != nil {
+		return ErrInternal(err, fmt.Sprintf("fail to parse bond address(%s)", msg.BondAddress))
+	}
+	if !bp.Has(from) {
+		return cosmos.ErrUnknownRequest("bond address is not valid for node account")
 	}
 
 	return nil
@@ -121,18 +147,17 @@ func (h BondHandler) handle(ctx cosmos.Context, msg MsgBond) error {
 }
 
 func (h BondHandler) handleV81(ctx cosmos.Context, msg MsgBond) error {
-	// THORNode will not have pub keys at the moment, so have to leave it empty
-	emptyPubKeySet := common.PubKeySet{
-		Secp256k1: common.EmptyPubKey,
-		Ed25519:   common.EmptyPubKey,
-	}
-
 	nodeAccount, err := h.mgr.Keeper().GetNodeAccount(ctx, msg.NodeAddress)
 	if err != nil {
 		return ErrInternal(err, fmt.Sprintf("fail to get node account(%s)", msg.NodeAddress))
 	}
 
 	if nodeAccount.Status == NodeUnknown {
+		// THORNode will not have pub keys at the moment, so have to leave it empty
+		emptyPubKeySet := common.PubKeySet{
+			Secp256k1: common.EmptyPubKey,
+			Ed25519:   common.EmptyPubKey,
+		}
 		// white list the given bep address
 		nodeAccount = NewNodeAccount(msg.NodeAddress, NodeWhiteListed, emptyPubKeySet, "", cosmos.ZeroUint(), msg.BondAddress, common.BlockHeight(ctx))
 		ctx.EventManager().EmitEvent(
@@ -140,6 +165,7 @@ func (h BondHandler) handleV81(ctx cosmos.Context, msg MsgBond) error {
 				cosmos.NewAttribute("address", msg.NodeAddress.String()),
 			))
 	}
+	originalBond := nodeAccount.Bond
 	nodeAccount.Bond = nodeAccount.Bond.Add(msg.Bond)
 
 	acct := h.mgr.Keeper().GetAccount(ctx, msg.NodeAddress)
@@ -163,8 +189,51 @@ func (h BondHandler) handleV81(ctx cosmos.Context, msg MsgBond) error {
 		}
 	}
 
+	bp, err := h.mgr.Keeper().GetBondProviders(ctx, nodeAccount.NodeAddress)
+	if err != nil {
+		return ErrInternal(err, fmt.Sprintf("fail to get bond providers(%s)", msg.NodeAddress))
+	}
+
+	// backfill bond provider information (passive migration code)
+	if len(bp.Providers) == 0 {
+		// no providers yet, add node operator bond address to the bond provider list
+		nodeOpBondAddr, err := nodeAccount.BondAddress.AccAddress()
+		if err != nil {
+			return ErrInternal(err, fmt.Sprintf("fail to parse bond address(%s)", msg.BondAddress))
+		}
+		p := NewBondProvider(nodeOpBondAddr)
+		p.Bond = originalBond
+		bp.Providers = append(bp.Providers, p)
+	}
+
+	// if bonder is node operator, add additional bonding address
+	if msg.BondAddress.Equals(nodeAccount.BondAddress) && !msg.BondProviderAddress.Empty() {
+		max, err := h.mgr.Keeper().GetMimir(ctx, constants.MaxBondProviders.String())
+		if err != nil || max < 0 {
+			max = h.mgr.GetConstants().GetInt64Value(constants.MaxBondProviders)
+		}
+		if int64(len(bp.Providers)) >= max {
+			return fmt.Errorf("additional bond providers are not allowed, maximum reached")
+		}
+		if !bp.Has(msg.BondProviderAddress) {
+			bp.Providers = append(bp.Providers, NewBondProvider(msg.BondProviderAddress))
+		}
+	}
+
+	from, err := msg.BondAddress.AccAddress()
+	if err != nil {
+		return ErrInternal(err, fmt.Sprintf("fail to parse bond address(%s)", msg.BondAddress))
+	}
+	if bp.Has(from) {
+		bp.Bond(msg.Bond, from)
+	}
+
 	if err := h.mgr.Keeper().SetNodeAccount(ctx, nodeAccount); err != nil {
 		return ErrInternal(err, fmt.Sprintf("fail to save node account(%s)", nodeAccount.String()))
+	}
+
+	if err := h.mgr.Keeper().SetBondProviders(ctx, bp); err != nil {
+		return ErrInternal(err, fmt.Sprintf("fail to save bond providers(%s)", bp.NodeAddress.String()))
 	}
 
 	bondEvent := NewEventBond(msg.Bond, BondPaid, msg.TxIn)

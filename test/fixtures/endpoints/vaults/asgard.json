@@ -50,21 +50,10 @@
       "tthorpub1addwnpepqt8j3lmacayajv4uwey7mrzf87zwj8jmhd3922j9dhjm79tcjtm52pwj7rq",
       "tthorpub1addwnpepqwuxxttdzav8ukwdpq5za69tfmq7ax99tjnzr7f7w94h6hpvdsr267ds6gw"
     ],
-    "chains": [
-      "BCH",
-      "BNB",
-      "BTC",
-      "ETH",
-      "LTC",
-      "THOR"
-    ],
+    "chains": ["BCH", "BNB", "BTC", "ETH", "LTC", "THOR"],
     "inbound_tx_count": 120,
     "outbound_tx_count": 94,
-    "pending_tx_block_heights": [
-      267190,
-      267190,
-      267190
-    ],
+    "pending_tx_block_heights": [267190, 267190, 267190],
     "routers": [
       {
         "chain": "ETH",
@@ -150,20 +139,10 @@
       "tthorpub1addwnpepqv2plf6vrvu9lw57hkwl00n7u9c9evmzxsnnegm5tcstf2lp5en0wmmgwz3",
       "tthorpub1addwnpepqvfxu5clq0cupuvep6gqr0yzylthu6hzqf6tlz52eu0gw9qwetv57e05puz"
     ],
-    "chains": [
-      "BCH",
-      "BNB",
-      "BTC",
-      "ETH",
-      "LTC",
-      "THOR"
-    ],
+    "chains": ["BCH", "BNB", "BTC", "ETH", "LTC", "THOR"],
     "inbound_tx_count": 131,
     "outbound_tx_count": 80,
-    "pending_tx_block_heights": [
-      267190,
-      267190
-    ],
+    "pending_tx_block_heights": [267190, 267190],
     "routers": [
       {
         "chain": "ETH",
@@ -232,14 +211,7 @@
       "tthorpub1addwnpepqv2plf6vrvu9lw57hkwl00n7u9c9evmzxsnnegm5tcstf2lp5en0wmmgwz3",
       "tthorpub1addwnpepqwuxxttdzav8ukwdpq5za69tfmq7ax99tjnzr7f7w94h6hpvdsr267ds6gw"
     ],
-    "chains": [
-      "BCH",
-      "BNB",
-      "BTC",
-      "ETH",
-      "LTC",
-      "THOR"
-    ],
+    "chains": ["BCH", "BNB", "BTC", "ETH", "LTC", "THOR"],
     "inbound_tx_count": 10,
     "routers": [
       {
@@ -326,14 +298,7 @@
       "tthorpub1addwnpepqv04qarz0n4ppcuthux9png363cepmg83ej2t2lphdjpzxgu5lhzvr93vqg",
       "tthorpub1addwnpepqvfxu5clq0cupuvep6gqr0yzylthu6hzqf6tlz52eu0gw9qwetv57e05puz"
     ],
-    "chains": [
-      "BCH",
-      "BNB",
-      "BTC",
-      "ETH",
-      "LTC",
-      "THOR"
-    ],
+    "chains": ["BCH", "BNB", "BTC", "ETH", "LTC", "THOR"],
     "inbound_tx_count": 94,
     "outbound_tx_count": 6,
     "routers": [
