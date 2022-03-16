@@ -3,6 +3,7 @@ package common
 import (
 	"errors"
 	"strings"
+	"unicode"
 
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/cosmos/cosmos-sdk/types"
@@ -23,11 +24,11 @@ var (
 	THORChain  = Chain("THOR")
 	TERRAChain = Chain("TERRA")
 
-	SigningAlgoSecp256k1 = SigninAlgo("secp256k1")
-	SigningAlgoEd25519   = SigninAlgo("ed25519")
+	SigningAlgoSecp256k1 = SigningAlgo("secp256k1")
+	SigningAlgoEd25519   = SigningAlgo("ed25519")
 )
 
-type SigninAlgo string
+type SigningAlgo string
 
 // Chain is an alias of string , represent a block chain
 type Chain string
@@ -44,7 +45,7 @@ func (c Chain) Validate() error {
 		return errors.New("chain id len is more than 10")
 	}
 	for _, ch := range string(c) {
-		if ch < 'A' || ch > 'Z' {
+		if !unicode.IsUpper(ch) {
 			return errors.New("chain id can consist only of uppercase letters")
 		}
 	}
@@ -86,11 +87,9 @@ func (c Chain) IsBNB() bool {
 }
 
 // GetSigningAlgo get the signing algorithm for the given chain
-func (c Chain) GetSigningAlgo() SigninAlgo {
-	switch c {
-	default:
-		return SigningAlgoSecp256k1
-	}
+func (c Chain) GetSigningAlgo() SigningAlgo {
+	// Only SigningAlgoSecp256k1 is supported for now
+	return SigningAlgoSecp256k1
 }
 
 // GetGasAsset chain's base asset
