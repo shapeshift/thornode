@@ -1,6 +1,6 @@
 #!/bin/sh
 
-set -e
+set -ex
 
 HARDFORK_BLOCK_HEIGHT="${HARDFORK_BLOCK_HEIGHT:--1}"
 CHAIN_ID="${CHAIN_ID:-}"

@@ -509,7 +509,7 @@ func cyclePoolsV73(ctx cosmos.Context, maxAvailablePools, minRunePoolDepth, stag
 	defer iterator.Close()
 	for ; iterator.Valid(); iterator.Next() {
 		var pool Pool
-		if err := mgr.Keeper().Cdc().UnmarshalBinaryBare(iterator.Value(), &pool); err != nil {
+		if err := mgr.Keeper().Cdc().Unmarshal(iterator.Value(), &pool); err != nil {
 			return err
 		}
 
@@ -626,7 +626,7 @@ func removeAssetFromVault(ctx cosmos.Context, asset common.Asset, mgr Manager) {
 	defer vaultIter.Close()
 	for ; vaultIter.Valid(); vaultIter.Next() {
 		var vault Vault
-		if err := mgr.Keeper().Cdc().UnmarshalBinaryBare(vaultIter.Value(), &vault); err != nil {
+		if err := mgr.Keeper().Cdc().Unmarshal(vaultIter.Value(), &vault); err != nil {
 			ctx.Logger().Error("fail to unmarshal vault", "error", err)
 			continue
 		}
@@ -649,7 +649,7 @@ func removeLiquidityProviders(ctx cosmos.Context, asset common.Asset, mgr Manage
 	defer iterator.Close()
 	for ; iterator.Valid(); iterator.Next() {
 		var lp LiquidityProvider
-		if err := mgr.Keeper().Cdc().UnmarshalBinaryBare(iterator.Value(), &lp); err != nil {
+		if err := mgr.Keeper().Cdc().Unmarshal(iterator.Value(), &lp); err != nil {
 			ctx.Logger().Error("fail to unmarshal liquidity provider", "error", err)
 			continue
 		}
@@ -1118,7 +1118,7 @@ func emitEndBlockTelemetry(ctx cosmos.Context, mgr Manager) error {
 	defer iterator.Close()
 	for ; iterator.Valid(); iterator.Next() {
 		var msg MsgSwap
-		if err := mgr.Keeper().Cdc().UnmarshalBinaryBare(iterator.Value(), &msg); err != nil {
+		if err := mgr.Keeper().Cdc().Unmarshal(iterator.Value(), &msg); err != nil {
 			continue
 		}
 		query.Swap++

@@ -12,14 +12,13 @@ import (
 	"strings"
 
 	"github.com/99designs/keyring"
-	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/client/input"
 	"github.com/cosmos/cosmos-sdk/crypto/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	bech32 "github.com/cosmos/cosmos-sdk/types/bech32/legacybech32" // nolint
 	"github.com/cosmos/go-bip39"
 	"github.com/decred/dcrd/dcrec/edwards"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	"github.com/tendermint/tendermint/crypto/ed25519"
 
 	"gitlab.com/thorchain/thornode/app"
@@ -40,10 +39,6 @@ func GetEd25519Keys() *cobra.Command {
 		Long:  ``,
 		Args:  cobra.ExactArgs(0),
 		RunE:  ed25519Keys,
-	}
-	cmd.PersistentFlags().String(flags.FlagKeyringBackend, flags.DefaultKeyringBackend, "Select keyring's backend (os|file|test)")
-	if err := viper.BindPFlag(flags.FlagKeyringBackend, cmd.Flags().Lookup(flags.FlagKeyringBackend)); err != nil {
-		fmt.Println("fail to bind keyring backend flag", err)
 	}
 	return cmd
 }
@@ -84,7 +79,8 @@ func ed25519Keys(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("fail to get ED25519 key : %w", err)
 	}
-	pubKey, err := sdk.Bech32ifyPubKey(sdk.Bech32PubKeyTypeAccPub, tmp)
+	// nolint
+	pubKey, err := bech32.MarshalPubKey(bech32.AccPK, tmp)
 	if err != nil {
 		return fmt.Errorf("fail generate bech32 account pub key")
 	}

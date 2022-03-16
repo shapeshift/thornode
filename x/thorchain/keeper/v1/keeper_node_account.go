@@ -17,7 +17,7 @@ import (
 
 func (k KVStore) setNodeAccount(ctx cosmos.Context, key string, record NodeAccount) {
 	store := ctx.KVStore(k.storeKey)
-	buf := k.cdc.MustMarshalBinaryBare(&record)
+	buf := k.cdc.MustMarshal(&record)
 	if buf == nil {
 		store.Delete([]byte(key))
 	} else {
@@ -32,7 +32,7 @@ func (k KVStore) getNodeAccount(ctx cosmos.Context, key string, record *NodeAcco
 	}
 
 	bz := store.Get([]byte(key))
-	if err := k.cdc.UnmarshalBinaryBare(bz, record); err != nil {
+	if err := k.cdc.Unmarshal(bz, record); err != nil {
 		return true, dbError(ctx, fmt.Sprintf("Unmarshal kvstore: (%T) %s", record, key), err)
 	}
 	return true, nil
@@ -52,7 +52,7 @@ func (k KVStore) ListValidatorsWithBond(ctx cosmos.Context) (NodeAccounts, error
 	defer naIterator.Close()
 	for ; naIterator.Valid(); naIterator.Next() {
 		var na NodeAccount
-		if err := k.cdc.UnmarshalBinaryBare(naIterator.Value(), &na); err != nil {
+		if err := k.cdc.Unmarshal(naIterator.Value(), &na); err != nil {
 			return nodeAccounts, dbError(ctx, "Unmarshal: node account", err)
 		}
 		if na.Type == NodeTypeValidator && !na.Bond.IsZero() {
@@ -69,7 +69,7 @@ func (k KVStore) ListValidatorsByStatus(ctx cosmos.Context, status NodeStatus) (
 	defer naIterator.Close()
 	for ; naIterator.Valid(); naIterator.Next() {
 		var na NodeAccount
-		if err := k.cdc.UnmarshalBinaryBare(naIterator.Value(), &na); err != nil {
+		if err := k.cdc.Unmarshal(naIterator.Value(), &na); err != nil {
 			return nodeAccounts, dbError(ctx, "Unmarshal: node account", err)
 		}
 		if na.Type == NodeTypeValidator && na.Status == status {
@@ -266,7 +266,7 @@ func (k KVStore) EnsureNodeKeysUnique(ctx cosmos.Context, consensusPubKey string
 	defer iter.Close()
 	for ; iter.Valid(); iter.Next() {
 		var na NodeAccount
-		if err := k.cdc.UnmarshalBinaryBare(iter.Value(), &na); err != nil {
+		if err := k.cdc.Unmarshal(iter.Value(), &na); err != nil {
 			return dbError(ctx, "Unmarshal: node account", err)
 		}
 		if strings.EqualFold("", consensusPubKey) {
@@ -366,7 +366,7 @@ func (k KVStore) DecNodeAccountSlashPoints(ctx cosmos.Context, addr cosmos.AccAd
 
 func (k KVStore) setJail(ctx cosmos.Context, key string, record Jail) {
 	store := ctx.KVStore(k.storeKey)
-	buf := k.cdc.MustMarshalBinaryBare(&record)
+	buf := k.cdc.MustMarshal(&record)
 	if buf == nil {
 		store.Delete([]byte(key))
 	} else {
@@ -381,7 +381,7 @@ func (k KVStore) getJail(ctx cosmos.Context, key string, record *Jail) (bool, er
 	}
 
 	bz := store.Get([]byte(key))
-	if err := k.cdc.UnmarshalBinaryBare(bz, record); err != nil {
+	if err := k.cdc.Unmarshal(bz, record); err != nil {
 		return true, dbError(ctx, fmt.Sprintf("Unmarshal kvstore: (%T) %s", record, key), err)
 	}
 	return true, nil
@@ -425,7 +425,7 @@ func (k KVStore) ReleaseNodeAccountFromJail(ctx cosmos.Context, addr cosmos.AccA
 
 func (k KVStore) setBondProviders(ctx cosmos.Context, key string, record BondProviders) {
 	store := ctx.KVStore(k.storeKey)
-	buf := k.cdc.MustMarshalBinaryBare(&record)
+	buf := k.cdc.MustMarshal(&record)
 	if buf == nil {
 		store.Delete([]byte(key))
 	} else {
@@ -440,7 +440,7 @@ func (k KVStore) getBondProviders(ctx cosmos.Context, key string, record *BondPr
 	}
 
 	bz := store.Get([]byte(key))
-	if err := k.cdc.UnmarshalBinaryBare(bz, record); err != nil {
+	if err := k.cdc.Unmarshal(bz, record); err != nil {
 		return true, dbError(ctx, fmt.Sprintf("Unmarshal kvstore: (%T) %s", record, key), err)
 	}
 	return true, nil

@@ -21,7 +21,7 @@ func (k KVStore) SetObservedTxOutVoter(ctx cosmos.Context, tx ObservedTxVoter) {
 func (k KVStore) setObservedTxVoter(ctx cosmos.Context, prefix types.DbPrefix, tx ObservedTxVoter) {
 	store := ctx.KVStore(k.storeKey)
 	key := k.GetKey(ctx, prefix, tx.String())
-	buf := k.cdc.MustMarshalBinaryBare(&tx)
+	buf := k.cdc.MustMarshal(&tx)
 	if buf == nil {
 		store.Delete([]byte(key))
 	} else {
@@ -62,7 +62,7 @@ func (k KVStore) getObservedTxVoter(ctx cosmos.Context, prefix types.DbPrefix, h
 	}
 
 	bz := store.Get([]byte(key))
-	if err := k.cdc.UnmarshalBinaryBare(bz, &record); err != nil {
+	if err := k.cdc.Unmarshal(bz, &record); err != nil {
 		return record, dbError(ctx, fmt.Sprintf("Unmarshal kvstore: (%T) %s", record, key), err)
 	}
 	return record, nil
