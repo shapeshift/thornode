@@ -295,8 +295,7 @@ func (c *CosmosBlockScanner) processTxs(height int64, rawTxs [][]byte) ([]types.
 		c.updateGasCache(tx.(ctypes.FeeTx))
 
 		for _, msg := range tx.GetMsgs() {
-			switch msg := msg.(type) {
-			case *btypes.MsgSend:
+			if msg, isMsgSend := msg.(*btypes.MsgSend); isMsgSend {
 				// Transaction contains a relevant MsgSend, check if the transaction was successful...
 				if blockResults.TxsResults[i].Code != 0 {
 					c.logger.Warn().Str("txhash", hash).Int64("height", height).Msg("inbound tx has non-zero response code, ignoring...")
