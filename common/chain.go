@@ -3,7 +3,6 @@ package common
 import (
 	"errors"
 	"strings"
-	"unicode"
 
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/cosmos/cosmos-sdk/types"
@@ -45,7 +44,7 @@ func (c Chain) Validate() error {
 		return errors.New("chain id len is more than 10")
 	}
 	for _, ch := range string(c) {
-		if !unicode.IsUpper(ch) {
+		if ch < 'A' || ch > 'Z' {
 			return errors.New("chain id can consist only of uppercase letters")
 		}
 	}
