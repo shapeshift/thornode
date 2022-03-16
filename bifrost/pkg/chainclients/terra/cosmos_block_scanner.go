@@ -217,6 +217,9 @@ func (c *CosmosBlockScanner) updateGasCache(tx ctypes.FeeTx) {
 }
 
 func (c *CosmosBlockScanner) averageFee() ctypes.Uint {
+	if len(c.feeCache) == 0 {
+		return ctypes.NewUint(0)
+	}
 	sum := ctypes.NewUint(0)
 	for _, val := range c.feeCache {
 		sum = sum.Add(val)
