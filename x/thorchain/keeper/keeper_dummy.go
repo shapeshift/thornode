@@ -20,7 +20,7 @@ var kaboom = errors.New("Kaboom!!!")
 
 type KVStoreDummy struct{}
 
-func (k KVStoreDummy) Cdc() codec.BinaryMarshaler              { return simapp.MakeTestEncodingConfig().Marshaler }
+func (k KVStoreDummy) Cdc() codec.BinaryCodec                  { return simapp.MakeTestEncodingConfig().Marshaler }
 func (k KVStoreDummy) CoinKeeper() bankkeeper.Keeper           { return bankkeeper.BaseKeeper{} }
 func (k KVStoreDummy) AccountKeeper() authkeeper.AccountKeeper { return authkeeper.AccountKeeper{} }
 func (k KVStoreDummy) Logger(ctx cosmos.Context) log.Logger {

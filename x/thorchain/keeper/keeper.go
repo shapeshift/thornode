@@ -13,7 +13,7 @@ import (
 )
 
 type Keeper interface {
-	Cdc() codec.BinaryMarshaler
+	Cdc() codec.BinaryCodec
 	Version() semver.Version
 	GetKey(ctx cosmos.Context, prefix kvTypes.DbPrefix, key string) string
 	GetStoreVersion(ctx cosmos.Context) int64
@@ -267,7 +267,7 @@ type KeeperTHORName interface {
 }
 
 // NewKVStore creates new instances of the thorchain Keeper
-func NewKeeper(cdc codec.BinaryMarshaler, coinKeeper bankkeeper.Keeper, accountKeeper authkeeper.AccountKeeper, storeKey cosmos.StoreKey) Keeper {
+func NewKeeper(cdc codec.BinaryCodec, coinKeeper bankkeeper.Keeper, accountKeeper authkeeper.AccountKeeper, storeKey cosmos.StoreKey) Keeper {
 	version := semver.MustParse("0.0.0")
 	return kv1.NewKVStore(cdc, coinKeeper, accountKeeper, storeKey, version)
 }

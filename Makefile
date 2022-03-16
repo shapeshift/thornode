@@ -1,5 +1,5 @@
 include Makefile.cicd
-.PHONY: build test tools export healthcheck run-mocknet reset-mocknet logs-mocknet
+.PHONY: build test tools export healthcheck run-mocknet build-mocknet stop-mocknet ps-mocknet reset-mocknet logs-mocknet
 
 module = gitlab.com/thorchain/thornode
 GOBIN?=${GOPATH}/bin
@@ -108,11 +108,19 @@ pull:
 	docker pull registry.gitlab.com/thorchain/ethereum-mock
 
 run-mocknet:
-	docker compose -f build/docker/docker-compose.yml --profile mocknet --profile midgard up -d
+	@docker compose -f build/docker/docker-compose.yml --profile mocknet --profile midgard up -d
 
-reset-mocknet:
-	docker compose -f build/docker/docker-compose.yml --profile mocknet --profile midgard down -v
-	docker compose -f build/docker/docker-compose.yml --profile mocknet --profile midgard up -d
+stop-mocknet:
+	@docker compose -f build/docker/docker-compose.yml --profile mocknet --profile midgard down -v
+
+build-mocknet:
+	@docker compose -f build/docker/docker-compose.yml --profile mocknet --profile midgard build
+
+ps-mocknet:
+	@docker compose -f build/docker/docker-compose.yml --profile mocknet --profile midgard images
+	@docker compose -f build/docker/docker-compose.yml --profile mocknet --profile midgard ps
 
 logs-mocknet:
-	docker compose -f build/docker/docker-compose.yml --profile mocknet logs -f thornode bifrost
+	@docker compose -f build/docker/docker-compose.yml --profile mocknet logs -f thornode bifrost
+
+reset-mocknet: stop-mocknet run-mocknet

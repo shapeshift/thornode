@@ -68,7 +68,7 @@ func (k KVStore) GetNodeMimirs(ctx cosmos.Context, key string) (NodeMimirs, erro
 		return record, nil
 	}
 	bz := store.Get([]byte(k.GetKey(ctx, prefixNodeMimir, key)))
-	if err := k.cdc.UnmarshalBinaryBare(bz, &record); err != nil {
+	if err := k.cdc.Unmarshal(bz, &record); err != nil {
 		return NodeMimirs{}, dbError(ctx, fmt.Sprintf("Unmarshal kvstore: (%T) %s", record, key), err)
 	}
 	return record, nil
@@ -85,7 +85,7 @@ func (k KVStore) SetNodeMimir(ctx cosmos.Context, key string, value int64, acc c
 	}
 	record.Set(key, value, acc)
 	store := ctx.KVStore(k.storeKey)
-	buf := k.cdc.MustMarshalBinaryBare(&record)
+	buf := k.cdc.MustMarshal(&record)
 	if buf == nil || len(record.Mimirs) == 0 {
 		store.Delete([]byte(kvkey))
 	} else {

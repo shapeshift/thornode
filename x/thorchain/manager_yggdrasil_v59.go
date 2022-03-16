@@ -374,7 +374,7 @@ func (ymgr YggMgrV59) abandonYggdrasilVaults(ctx cosmos.Context, mgr Manager) er
 	defer vaultIter.Close()
 	for ; vaultIter.Valid(); vaultIter.Next() {
 		var v Vault
-		if err := ymgr.keeper.Cdc().UnmarshalBinaryBare(vaultIter.Value(), &v); err != nil {
+		if err := ymgr.keeper.Cdc().Unmarshal(vaultIter.Value(), &v); err != nil {
 			ctx.Logger().Error("fail to unmarshal vault", "error", err)
 			continue
 		}

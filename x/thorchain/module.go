@@ -51,12 +51,12 @@ func (a AppModuleBasic) RegisterInterfaces(reg cdctypes.InterfaceRegistry) {
 }
 
 // DefaultGenesis returns default genesis state as raw bytes for the module.
-func (AppModuleBasic) DefaultGenesis(cdc codec.JSONMarshaler) json.RawMessage {
+func (AppModuleBasic) DefaultGenesis(cdc codec.JSONCodec) json.RawMessage {
 	return cdc.MustMarshalJSON(DefaultGenesis())
 }
 
 // ValidateGenesis check of the Genesis
-func (AppModuleBasic) ValidateGenesis(cdc codec.JSONMarshaler, config client.TxEncodingConfig, bz json.RawMessage) error {
+func (AppModuleBasic) ValidateGenesis(cdc codec.JSONCodec, config client.TxEncodingConfig, bz json.RawMessage) error {
 	var data GenesisState
 	if err := cdc.UnmarshalJSON(bz, &data); err != nil {
 		return err
@@ -99,7 +99,7 @@ type AppModule struct {
 }
 
 // NewAppModule creates a new AppModule Object
-func NewAppModule(k keeper.Keeper, cdc codec.BinaryMarshaler, coinKeeper bankkeeper.Keeper, accountKeeper authkeeper.AccountKeeper, storeKey cosmos.StoreKey, telemetryEnabled bool) AppModule {
+func NewAppModule(k keeper.Keeper, cdc codec.BinaryCodec, coinKeeper bankkeeper.Keeper, accountKeeper authkeeper.AccountKeeper, storeKey cosmos.StoreKey, telemetryEnabled bool) AppModule {
 	kb, err := cosmos.GetKeybase(os.Getenv("CHAIN_HOME_FOLDER"))
 	if err != nil {
 		panic(err)
@@ -114,6 +114,10 @@ func NewAppModule(k keeper.Keeper, cdc codec.BinaryMarshaler, coinKeeper bankkee
 
 func (AppModule) Name() string {
 	return ModuleName
+}
+
+func (AppModule) ConsensusVersion() uint64 {
+	return 1
 }
 
 func (am AppModule) RegisterInvariants(ir sdk.InvariantRegistry) {}
@@ -265,14 +269,14 @@ func (am AppModule) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.V
 }
 
 // InitGenesis initialise genesis
-func (am AppModule) InitGenesis(ctx sdk.Context, cdc codec.JSONMarshaler, data json.RawMessage) []abci.ValidatorUpdate {
+func (am AppModule) InitGenesis(ctx sdk.Context, cdc codec.JSONCodec, data json.RawMessage) []abci.ValidatorUpdate {
 	var genState GenesisState
 	ModuleCdc.MustUnmarshalJSON(data, &genState)
 	return InitGenesis(ctx, am.mgr.Keeper(), genState)
 }
 
 // ExportGenesis export genesis
-func (am AppModule) ExportGenesis(ctx sdk.Context, cdc codec.JSONMarshaler) json.RawMessage {
+func (am AppModule) ExportGenesis(ctx sdk.Context, cdc codec.JSONCodec) json.RawMessage {
 	gs := ExportGenesis(ctx, am.mgr.Keeper())
 	return ModuleCdc.MustMarshalJSON(&gs)
 }

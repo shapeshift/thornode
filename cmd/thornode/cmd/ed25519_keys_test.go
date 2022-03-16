@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/cosmos/cosmos-sdk/crypto/codec"
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	bech32 "github.com/cosmos/cosmos-sdk/types/bech32/legacybech32" // nolint
 	"github.com/decred/dcrd/dcrec/edwards"
 	"github.com/tendermint/tendermint/crypto/ed25519"
 	. "gopkg.in/check.v1"
@@ -33,7 +33,8 @@ func (*ED25519TestSuite) TestGetEd25519Keys(c *C) {
 	pkey := ed25519.PubKey(pk.Serialize())
 	tmp, err := codec.FromTmPubKeyInterface(pkey)
 	c.Assert(err, IsNil)
-	pubKey, err := sdk.Bech32ifyPubKey(sdk.Bech32PubKeyTypeAccPub, tmp)
+	// nolint
+	pubKey, err := bech32.MarshalPubKey(bech32.AccPK, tmp)
 	c.Assert(err, IsNil)
 	c.Assert(pubKey, Equals, "tthorpub1zcjduepqkh2q3agpupf9w3kqpgqfe0n3crtn8jljzds777x4x9tw9tngmk6s4vfcz5")
 
