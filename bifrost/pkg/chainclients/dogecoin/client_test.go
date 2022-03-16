@@ -181,7 +181,14 @@ func (s *DogecoinSuite) TestGetBlock(c *C) {
 	block, err := s.client.getBlock(1696761)
 	c.Assert(err, IsNil)
 	c.Assert(block.Hash, Equals, "000000008de7a25f64f9780b6c894016d2c63716a89f7c9e704ebb7e8377a0c8")
-	c.Assert(block.Tx[0].Txid, Equals, "31f8699ce9028e9cd37f8a6d58a79e614a96e3fdd0f58be5fc36d2d95484716f")
+	exist := false
+	for _, item := range block.Tx {
+		if item.Txid == "31f8699ce9028e9cd37f8a6d58a79e614a96e3fdd0f58be5fc36d2d95484716f" {
+			exist = true
+			break
+		}
+	}
+	c.Assert(exist, Equals, true)
 	c.Assert(len(block.Tx), Equals, 4)
 }
 

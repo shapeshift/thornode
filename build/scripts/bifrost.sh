@@ -10,10 +10,12 @@ BINANCE_START_BLOCK_HEIGHT="${BINANCE_START_BLOCK_HEIGHT:=0}"
 # Bitcoin core chain config
 BTC_HOST="${BTC_HOST:=bitcoin:18443}"
 BTC_START_BLOCK_HEIGHT="${BTC_START_BLOCK_HEIGHT:=0}"
+BTC_PARALLEL_MEMPOOL_SCAN="${BTC_PARALLEL_MEMPOOL_SCAN:=5}"
 
 # Litecoin core chain config
 LTC_HOST="${LTC_HOST:=litecoin:18443}"
 LTC_START_BLOCK_HEIGHT="${LTC_START_BLOCK_HEIGHT:=0}"
+LTC_PARALLEL_MEMPOOL_SCAN="${LTC_PARALLEL_MEMPOOL_SCAN:=5}"
 
 # Ethereum chain config
 ETH_HOST="${ETH_HOST:=http://ethereum:8545}"
@@ -23,10 +25,12 @@ ETH_START_BLOCK_HEIGHT="${ETH_START_BLOCK_HEIGHT:=0}"
 DOGE_HOST="${DOGE_HOST:=dogecoin:18332}"
 DOGE_START_BLOCK_HEIGHT="${DOGE_START_BLOCK_HEIGHT:=0}"
 DOGE_DISABLED="${DOGE_DISABLED:=false}"
+DOGE_PARALLEL_MEMPOOL_SCAN="${DOGE_PARALLEL_MEMPOOL_SCAN:=5}"
 
 # Bitcoin Cash chain config
 BCH_HOST="${BCH_HOST:=bitcoin-cash:18443}"
 BCH_START_BLOCK_HEIGHT="${BCH_START_BLOCK_HEIGHT:=0}"
+BCH_PARALLEL_MEMPOOL_SCAN="${BCH_PARALLEL_MEMPOOL_SCAN:=5}"
 
 DB_PATH="${DB_PATH:=/var/data}"
 CHAIN_API="${CHAIN_API:=127.0.0.1:1317}"
@@ -112,6 +116,7 @@ echo "{
         \"password\": \"$RPC_PASSWD\",
         \"http_post_mode\": 1,
         \"disable_tls\": 1,
+        \"parallel_mempool_scan\":$BTC_PARALLEL_MEMPOOL_SCAN,
         \"block_scanner\": {
           \"rpc_host\": \"$BTC_HOST\",
           \"enforce_block_height\": false,
@@ -134,6 +139,7 @@ echo "{
         \"password\": \"$RPC_PASSWD\",
         \"http_post_mode\": 1,
         \"disable_tls\": 1,
+        \"parallel_mempool_scan\":$DOGE_PARALLEL_MEMPOOL_SCAN,
         \"disabled\": $DOGE_DISABLED,
         \"block_scanner\": {
           \"rpc_host\": \"$DOGE_HOST\",
@@ -157,6 +163,7 @@ echo "{
         \"password\": \"$RPC_PASSWD\",
         \"http_post_mode\": 1,
         \"disable_tls\": 1,
+        \"parallel_mempool_scan\":$LTC_PARALLEL_MEMPOOL_SCAN,
         \"block_scanner\": {
           \"rpc_host\": \"$LTC_HOST\",
           \"enforce_block_height\": false,
@@ -179,6 +186,7 @@ echo "{
         \"password\": \"$RPC_PASSWD\",
         \"http_post_mode\": 1,
         \"disable_tls\": 1,
+        \"parallel_mempool_scan\":$BCH_PARALLEL_MEMPOOL_SCAN,
         \"block_scanner\": {
           \"rpc_host\": \"$BCH_HOST\",
           \"enforce_block_height\": false,
