@@ -339,9 +339,6 @@ func (c *CosmosBlockScanner) processTxs(height int64, rawTxs [][]byte) ([]types.
 					Coins:       coins,
 					Gas:         gasFees,
 				})
-
-			default:
-				continue
 			}
 		}
 

@@ -398,7 +398,7 @@ func (c *CosmosClient) SignTx(tx stypes.TxOutItem, thorchainHeight int64) (signe
 	}
 	cCoin, err := fromThorchainToCosmos(gasCoins[0])
 	if err != nil {
-		err = errors.New("gas coin is not defined in cosmos_assets.go, unable to pay fee...")
+		err = errors.New("gas coin is not defined in cosmos_assets.go, unable to pay fee")
 		c.logger.Err(err).Msg(err.Error())
 		return nil, err
 	}
