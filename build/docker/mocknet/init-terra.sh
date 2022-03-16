@@ -16,7 +16,7 @@ fi
 
 # disable tax policy to be able to sign UST txs with only LUNA
 apk add jq
-jq '.app_state.treasury.tax_rate="0.0" | .app_state.treasury.params.tax_policy.rate_min="0.0" | .app_state.treasury.params.tax_policy.rate_max="0.0" | .app_state.treasury.params.tax_policy.change_rate_max="0.0"' genesis.json > temp.json
+jq '.app_state.treasury.tax_rate="0.0" | .app_state.treasury.params.tax_policy.rate_min="0.0" | .app_state.treasury.params.tax_policy.rate_max="0.0" | .app_state.treasury.params.tax_policy.change_rate_max="0.0"' genesis.json >temp.json
 rm -rf genesis.json
 mv temp.json genesis.json
 
