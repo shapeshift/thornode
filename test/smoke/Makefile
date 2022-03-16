@@ -9,7 +9,10 @@ clean:
 
 build:
 	@docker pull ${IMAGE_NAME} || true
-	@docker build --cache-from ${IMAGE_NAME} -t ${IMAGE_NAME} .
+	@docker build -t ${IMAGE_NAME} .
+
+proto-gen:
+	@scripts/proto-gen.sh
 
 lint:
 	@docker run --rm -v ${PWD}:/app pipelinecomponents/flake8:latest flake8

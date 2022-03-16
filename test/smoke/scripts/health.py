@@ -111,12 +111,12 @@ class Health:
         self.thorchain_asgards = self.thorchain_client.get_asgard_vaults()
         for vault in self.thorchain_asgards:
             if vault["coins"]:
-                vault["coins"] = [Coin.from_dict(c) for c in vault["coins"]]
+                vault["coins"] = [Coin.from_data(c) for c in vault["coins"]]
 
         self.thorchain_yggdrasils = self.thorchain_client.get_yggdrasil_vaults()
         for vault in self.thorchain_yggdrasils:
             if vault["coins"]:
-                vault["coins"] = [Coin.from_dict(c) for c in vault["coins"]]
+                vault["coins"] = [Coin.from_data(c) for c in vault["coins"]]
 
         if not self.binance_api.base_url:
             self.binance_accounts = []

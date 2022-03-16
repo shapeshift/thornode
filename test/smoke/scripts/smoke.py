@@ -512,7 +512,7 @@ class Smoker:
 
     def run(self):
         for i, txn in enumerate(self.txns):
-            txn = Transaction.from_dict(txn)
+            txn = Transaction.from_data(txn)
 
             if self.bitcoin_reorg:
                 # get block hash from bitcoin we are going to invalidate later

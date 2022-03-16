@@ -88,7 +88,7 @@ class TestSmoke(unittest.TestCase):
             loaded = json.loads(contents)
 
         for i, txn in enumerate(loaded):
-            txn = Transaction.from_dict(txn)
+            txn = Transaction.from_data(txn)
             logging.info(f"{i} {txn}")
 
             if txn.chain == Binance.chain:
