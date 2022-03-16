@@ -103,10 +103,11 @@ func fromThorchainToCosmos(coin common.Coin) (cosmos.Coin, error) {
 	amount := coin.Amount.BigInt()
 	var exp big.Int
 	if decimals > common.THORChainDecimals {
+		// Decimals are more than native THORChain, so multiply...
 		decimalDiff := int64(decimals - common.THORChainDecimals)
 		amount.Mul(amount, exp.Exp(big.NewInt(10), big.NewInt(decimalDiff), nil))
 	} else if decimals < common.THORChainDecimals {
-		// Decimals are less than native THORChain, so multiply...
+		// Decimals are less than native THORChain, so divide...
 		decimalDiff := int64(common.THORChainDecimals - decimals)
 		amount.Quo(amount, exp.Exp(big.NewInt(10), big.NewInt(decimalDiff), nil))
 	}
