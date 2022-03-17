@@ -43,6 +43,14 @@ class TestAsset(unittest.TestCase):
         asset = Asset("LOK-3C0")
         self.assertEqual(asset.get_symbol(), "LOK-3C0")
 
+    def test_get_ticker(self):
+        asset = Asset("BNB.BNB")
+        self.assertEqual(asset.get_ticker(), "BNB")
+        asset = Asset(RUNE)
+        self.assertEqual(asset.get_ticker(), "RUNE")
+        asset = Asset("LOK-3C0")
+        self.assertEqual(asset.get_ticker(), "LOK")
+
     def test_get_chain(self):
         asset = Asset("BNB.BNB")
         self.assertEqual(asset.get_chain(), "BNB")
@@ -174,19 +182,19 @@ class TestCoin(unittest.TestCase):
         coin = Coin("BNB.LOK-3C0", 1000000)
         self.assertEqual(coin.to_json(), '{"asset": "BNB.LOK-3C0", "amount": 1000000}')
 
-    def test_from_dict(self):
+    def test_from_data(self):
         value = {
             "asset": "BNB.BNB",
             "amount": 1000,
         }
-        coin = Coin.from_dict(value)
+        coin = Coin.from_data(value)
         self.assertEqual(coin.asset, "BNB.BNB")
         self.assertEqual(coin.amount, 1000)
         value = {
             "asset": RUNE,
             "amount": "1000",
         }
-        coin = Coin.from_dict(value)
+        coin = Coin.from_data(value)
         self.assertEqual(coin.asset, RUNE)
         self.assertEqual(coin.amount, 1000)
 
@@ -480,7 +488,7 @@ class TestTransaction(unittest.TestCase):
             '"max_gas": null, "fee": null}',
         )
 
-    def test_from_dict(self):
+    def test_from_data(self):
         value = {
             "chain": "BNB",
             "from_address": "USER",
@@ -491,7 +499,7 @@ class TestTransaction(unittest.TestCase):
             ],
             "memo": "ADD:BNB.BNB",
         }
-        txn = Transaction.from_dict(value)
+        txn = Transaction.from_data(value)
         self.assertEqual(txn.chain, "BNB")
         self.assertEqual(txn.from_address, "USER")
         self.assertEqual(txn.to_address, "VAULT")
@@ -503,7 +511,7 @@ class TestTransaction(unittest.TestCase):
         self.assertEqual(txn.gas, None)
         value["coins"] = None
         value["gas"] = [{"asset": "BNB.BNB", "amount": "37500"}]
-        txn = Transaction.from_dict(value)
+        txn = Transaction.from_data(value)
         self.assertEqual(txn.chain, "BNB")
         self.assertEqual(txn.from_address, "USER")
         self.assertEqual(txn.to_address, "VAULT")

@@ -6,6 +6,9 @@ import hashlib
 
 from decimal import Decimal, getcontext
 
+from thornode_proto.common import Coin as Coin_pb
+from thornode_proto.common import Asset as Asset_pb
+
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 
@@ -178,6 +181,12 @@ class Asset(str, Jsonable):
         """
         return self.symbol
 
+    def get_ticker(self):
+        """
+        Return ticker part of the asset
+        """
+        return self.symbol.split("-")[0]
+
     def get_chain(self):
         """
         Return chain part of the asset string
@@ -216,10 +225,25 @@ class Asset(str, Jsonable):
     def __hash__(self):
         return hash(str(self))
 
-    def from_dict(cls, value):
+    @classmethod
+    def from_data(cls, value):
         if value["is_synth"]:
             return cls(f"{value['chain']}/{value['symbol']}")
         return cls(f"{value['chain']}.{value['symbol']}")
+
+    @classmethod
+    def from_proto(cls, proto):
+        if proto.synth:
+            return cls(f"{proto.chain}/{proto.symbol}")
+        return cls(f"{proto.chain}.{proto.symbol}")
+
+    def to_proto(self):
+        asset = Asset_pb()
+        asset.chain = self.chain
+        asset.symbol = self.symbol
+        asset.synth = self.is_synth
+        asset.ticker = self.get_ticker()
+        return asset
 
 
 class Coin(Jsonable):
@@ -268,6 +292,9 @@ class Coin(Jsonable):
             "amount": self.amount,
         }
 
+    def to_cosmos_str(self):
+        return f"{self.amount}u{self.asset.get_symbol().lower()}"
+
     def __eq__(self, other):
         return self.asset == other.asset and self.amount == other.amount
 
@@ -284,8 +311,27 @@ class Coin(Jsonable):
         return hash(str(self))
 
     @classmethod
-    def from_dict(cls, value):
+    def from_proto(cls, proto):
+        return cls(Asset.from_proto(proto.asset), proto.amount)
+
+    def to_proto(self):
+        coin = Coin_pb()
+        coin.asset = self.asset.to_proto()
+        coin.amount = str(self.amount)
+        return coin
+
+    @classmethod
+    def from_data(cls, value):
         return cls(str(value["asset"]), value["amount"])
+
+    def to_data(self):
+        """
+        Convert the class to an dictionary
+        """
+        return {
+            "asset": str(self.asset),
+            "amount": self.amount,
+        }
 
     def __repr__(self):
         return f"<Coin {self.amount:0,.0f}_{self.asset}>"
@@ -295,6 +341,40 @@ class Coin(Jsonable):
 
     def str_amt(self):
         return f"{self.amount:0,.0f}"
+
+
+class Coins(Jsonable):
+    def __init__(self, coins):
+        self.coins = coins
+
+    @classmethod
+    def from_data(cls, data):
+        """Converts list of Coin-data objects to :class:`Coins`.
+
+        Args:
+            data (list): list of Coin-data objects
+        """
+        coins = map(Coin.from_data, data)
+        return cls(coins)
+
+    def to_data(self):
+        return [coin.to_data() for coin in self]
+
+    @classmethod
+    def from_proto(cls, proto):
+        """Converts list of Coin-data objects to :class:`Coins`.
+
+        Args:
+            data (list): list of Coin-data objects
+        """
+        coins = map(Coin.from_proto, proto)
+        return cls(coins)
+
+    def to_proto(self):
+        return [coin.to_proto() for coin in self]
+
+    def __iter__(self):
+        return iter(self.coins)
 
 
 class Transaction(Jsonable):
@@ -442,7 +522,7 @@ class Transaction(Jsonable):
         return ", ".join([f"{c.amount} {c.asset}" for c in self.coins])
 
     @classmethod
-    def from_dict(cls, value):
+    def from_data(cls, value):
         txn = cls(
             value["chain"],
             value["from_address"],
@@ -453,9 +533,9 @@ class Transaction(Jsonable):
         if "id" in value and value["id"]:
             txn.id = value["id"].upper()
         if "coins" in value and value["coins"]:
-            txn.coins = [Coin.from_dict(c) for c in value["coins"]]
+            txn.coins = [Coin.from_data(c) for c in value["coins"]]
         if "gas" in value and value["gas"]:
-            txn.gas = [Coin.from_dict(g) for g in value["gas"]]
+            txn.gas = [Coin.from_data(g) for g in value["gas"]]
         return txn
 
     @classmethod

@@ -11,8 +11,11 @@ build:
 	@docker pull ${IMAGE_NAME} || true
 	@docker build --cache-from ${IMAGE_NAME} -t ${IMAGE_NAME} .
 
+proto-gen:
+	@scripts/proto-gen.sh
+
 lint:
-	@docker run --rm -v ${PWD}:/app pipelinecomponents/flake8:latest flake8
+	@docker run --rm -v ${PWD}:/app pipelinecomponents/flake8:latest flake8 --exclude ./thornode_proto
 
 format:
 	@docker run --rm -v ${PWD}:/app cytopia/black /app
