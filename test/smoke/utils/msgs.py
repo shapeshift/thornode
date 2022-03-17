@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from bech32 import decode, bech32_decode, convertbits
+
 from thornode_proto.types import MsgDeposit as MsgDeposit_pb
 
 from utils.common import Coins
@@ -13,6 +15,7 @@ __all__ = ["MsgDeposit"]
 
 import attr
 
+import logging
 
 @attr.s
 class MsgDeposit(Msg):
@@ -33,7 +36,7 @@ class MsgDeposit(Msg):
 
     coins: Coins = attr.ib(converter=Coins)
     memo: str = attr.ib()
-    signer: bytes = attr.ib()
+    signer: str = attr.ib()
 
     @classmethod
     def from_data(cls, data: dict) -> MsgDeposit:
@@ -60,10 +63,12 @@ class MsgDeposit(Msg):
         )
 
     def to_proto(self) -> MsgDeposit_pb:
+        data = bech32_decode(self.signer)[1]
+        signer = convertbits(data, 5, 8, False)
         proto = MsgDeposit_pb()
         proto.coins = self.coins.to_proto()
         proto.memo = self.memo
-        proto.signer = self.signer
+        proto.signer = bytes(signer)
         return proto
 
     @classmethod

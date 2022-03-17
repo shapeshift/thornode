@@ -135,10 +135,6 @@ class MockThorchain(HttpClient):
             if not isinstance(txn.coins, list):
                 txn.coins = [txn.coins]
             wallet = self.wallets[txn.from_address]
-            logging.info(wallet.key.acc_address)
-            logging.info(wallet.key)
-            logging.info(wallet.key.public_key)
-            logging.info(wallet.key.acc_pubkey)
             txn.gas = [Coin("THOR.RUNE", 2000000)]
             if txn.from_address in get_aliases():
                 txn.from_address = get_alias_address(txn.chain, txn.from_address)
@@ -158,18 +154,11 @@ class MockThorchain(HttpClient):
             coins = Coins(txn.coins)
             tx_options = CreateTxOptions(
                 msgs=[
-                    MsgDeposit(coins, txn.memo, bytes(txn.from_address, encoding='utf-8'))
+                    MsgDeposit(coins, txn.memo, txn.from_address)
                 ],
-                fee=Fee(2000000, "0urune")
             )
-            logging.info(tx_options)
             tx = wallet.create_and_sign_tx(tx_options)
-            logging.info(tx)
-            logging.info(tx.auth_info.signer_infos[0].public_key.key)
-            logging.info(tx.auth_info.to_data())
-            logging.info(tx.auth_info.signer_infos[0].public_key.to_data())
             result = self.lcd_client.tx.broadcast(tx)
-            logging.info(result)
             txn.id = result.txhash
 
 
