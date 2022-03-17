@@ -1,14 +1,19 @@
-import base64
-import hashlib
 import os
-import json
 import logging
-import requests
 
 import ecdsa
 
+from terra_sdk.core import AccAddress, AccPubKey
+from terra_sdk.client.lcd import LCDClient
+from terra_sdk.core.fee import Fee
+from terra_sdk.core.bech32 import get_bech
+from terra_sdk.key.mnemonic import MnemonicKey as TerraMnemonicKey
+from utils.msgs import MsgDeposit
+
+from terra_sdk.client.lcd.api.tx import CreateTxOptions
+
 from utils.segwit_addr import address_from_public_key
-from utils.common import HttpClient, Coin, Asset
+from utils.common import HttpClient, Coins, Coin, Asset
 from chains.aliases import get_alias_address, get_aliases, get_alias
 from chains.chain import GenericChain
 from chains.account import Account
@@ -42,26 +47,69 @@ def privkey_to_address(privkey):
     return address_from_public_key(pubkey)
 
 
+# override mnemonickey class from Terra to get a thor address
+class MnemonicKey(TerraMnemonicKey):
+    @property
+    def acc_address(self) -> AccAddress:
+        """Thorchain Bech32 account address.
+        Default derivation via :data:`public_key` is provided.
+
+        Raises:
+            ValueError: if Key was not initialized with proper public key
+
+        Returns:
+            AccAddress: account address
+        """
+        if not self.raw_address:
+            raise ValueError("could not compute acc_address: missing raw_address")
+        return AccAddress(get_bech("tthor", self.raw_address.hex()))
+
+    @property
+    def acc_pubkey(self) -> AccPubKey:
+        """Thorchain Bech32 account pubkey.
+        Default derivation via :data:`public_key` is provided.
+        Raises:
+            ValueError: if Key was not initialized with proper public key
+        Returns:
+            AccPubKey: account pubkey
+        """
+        if not self.raw_pubkey:
+            raise ValueError("could not compute acc_pubkey: missing raw_pubkey")
+        return AccPubKey(get_bech("tthorpub", self.raw_pubkey.hex()))
+
+
 class MockThorchain(HttpClient):
     """
     A local simple implementation of thorchain chain
     """
 
     chain = "THOR"
-    private_keys = {
-        # vintage announce rapid clip spare stomach matter camp noble habit
-        # beef amateur chimney time fuel machine culture end toe oval isolate
-        # laptop solar gift
-        "USER-1": "8c9ae14956daa9854fea2e33c0a50e039d5943de142d1153ceb9ea8c671b04dc",
-        # discover blue crunch cart club fish airport crazy roast hybrid scheme
-        # picnic veteran mango beach narrow luxury glory dynamic crawl symbol
-        # win sell dress
-        "PROVIDER-1": "f65ebc1bdb78067923bb9e839360e2925478780779c8caf69c0b45f80e9c1501",
-        # sock true leave evil budget lonely foster danger reopen anxiety dash
-        # naive list advance unhappy trust inmate culture bounce museum light
-        # more pear story
-        "PROVIDER-2": "e00609419daa4a0e9e9668921bf0b746e1c72090a6a0ce2206f3abcb56b8c1d1",
+    mnemonic = {
+        "USER-1": "vintage announce rapid clip spare stomach matter camp noble habit "
+        + "beef amateur chimney time fuel machine culture end toe oval isolate "
+        + "laptop solar gift",
+        "PROVIDER-1": "discover blue crunch cart club fish airport crazy roast hybrid "
+        + "scheme picnic veteran mango beach narrow luxury glory dynamic crawl symbol "
+        + "win sell dress",
+        "PROVIDER-2": "sock true leave evil budget lonely foster danger reopen anxiety "
+        + "dash naive list advance unhappy trust inmate culture bounce museum light "
+        + "more pear story",
     }
+
+    def __init__(self, base_url):
+        self.base_url = base_url
+        self.lcd_client = LCDClient(base_url, "localterra")
+        self.lcd_client.chain_id = "thorchain"
+        self.init_wallets()
+
+    def init_wallets(self):
+        """
+        Init wallet instances
+        """
+        self.wallets = {}
+        for alias in self.mnemonic:
+            mk = MnemonicKey(mnemonic=self.mnemonic[alias], coin_type=118)
+            self.wallets[alias] = self.lcd_client.wallet(mk)
 
     def get_balance(self, address, asset=Asset("THOR.RUNE")):
         """
@@ -73,8 +121,8 @@ class MockThorchain(HttpClient):
                 if coin["denom"] == asset.get_symbol().lower():
                     return int(coin["amount"])
         else:
-            balance = self.fetch("/bank/balances/" + address)
-            for coin in balance["result"]:
+            result = self.fetch("/cosmos/bank/v1beta1/balances/" + address)
+            for coin in result["balances"]:
                 if coin["denom"] == asset.get_symbol().lower():
                     return int(coin["amount"])
         return 0
@@ -86,8 +134,7 @@ class MockThorchain(HttpClient):
         for txn in txns:
             if not isinstance(txn.coins, list):
                 txn.coins = [txn.coins]
-
-            name = txn.from_address
+            wallet = self.wallets[txn.from_address]
             txn.gas = [Coin("THOR.RUNE", 2000000)]
             if txn.from_address in get_aliases():
                 txn.from_address = get_alias_address(txn.chain, txn.from_address)
@@ -104,100 +151,16 @@ class MockThorchain(HttpClient):
                 addr = get_alias_address(chain, alias)
                 txn.memo = txn.memo.replace(alias, addr)
 
-            acct = self._get_account(txn.from_address)
-
-            payload = {
-                "coins": [coin.to_thorchain_fmt() for coin in txn.coins],
-                "memo": txn.memo,
-                "base_req": {"chain_id": "thorchain", "from": txn.from_address},
-            }
-
-            payload = self.post("/thorchain/deposit", payload)
-            msgs = payload["value"]["msg"]
-            fee = payload["value"]["fee"]
-            acct_num = acct["result"]["value"]["account_number"]
-            seq = acct["result"]["value"].get("sequence", 0)
-            sig = self._sign(
-                name,
-                self._get_sign_message("thorchain", acct_num, fee, seq, msgs),
+            coins = Coins(txn.coins)
+            tx_options = CreateTxOptions(
+                msgs=[MsgDeposit(coins, txn.memo, txn.from_address)],
+                fee=Fee(20000000, "0urune"),  # gas limit 0.2urune fee 0urune,
             )
-            pushable = self.get_pushable(name, msgs, sig, fee, acct_num, seq)
-            result = self.send(pushable)
-            txn.id = result["txhash"]
-
-    def send(self, payload):
-        resp = requests.post(self.get_url("/txs"), data=payload)
-        if resp.status_code >= 400:
-            logging.info(
-                f"Failed to broadcast to THORChain ({resp.status_code}): {resp.json()}"
-            )
-        resp.raise_for_status()
-        if "status_code" in resp.json() and resp.json()["status_code"] > 0:
-            raise Exception(f"Failed to broadcast to THORChain: {resp.json()}")
-        return resp.json()
-
-    def get_pushable(self, name, msgs, sig, fee, acct_num, seq) -> str:
-        pubkey = privkey_to_pubkey(self.private_keys[name])
-        base64_pubkey = base64.b64encode(bytes.fromhex(pubkey)).decode("utf-8")
-        pushable_tx = {
-            "tx": {
-                "msg": msgs,
-                "fee": fee,
-                "memo": "",
-                "signatures": [
-                    {
-                        "signature": sig,
-                        "pub_key": {
-                            "type": "tendermint/PubKeySecp256k1",
-                            "value": base64_pubkey,
-                        },
-                        "account_number": str(acct_num),
-                        "sequence": str(seq),
-                    }
-                ],
-            },
-            "mode": "sync",
-        }
-        return json.dumps(pushable_tx, separators=(",", ":"))
-
-    def _sign(self, name, body):
-        message_str = json.dumps(body, separators=(",", ":"), sort_keys=True)
-        message_bytes = message_str.encode("utf-8")
-
-        privkey = ecdsa.SigningKey.from_string(
-            bytes.fromhex(self.private_keys[name]), curve=ecdsa.SECP256k1
-        )
-        signature_compact = privkey.sign_deterministic(
-            message_bytes,
-            hashfunc=hashlib.sha256,
-            sigencode=ecdsa.util.sigencode_string_canonize,
-        )
-
-        signature_base64_str = base64.b64encode(signature_compact).decode("utf-8")
-        return signature_base64_str
-
-    def _get_sign_message(self, chain_id, acct_num, fee, seq, msgs):
-        return {
-            "chain_id": chain_id,
-            "account_number": str(acct_num),
-            "fee": fee,
-            "memo": "",
-            "sequence": str(seq),
-            "msgs": msgs,
-        }
-
-    def _get_account(self, address):
-        return self.fetch("/auth/accounts/" + address)
-
-    def _post_encode(self, payload):
-        resp = requests.post(self.get_url("/txs/encode"), data=payload)
-        if resp.status_code >= 400:
-            logging.info(
-                f"Failed to broadcast to THORChain ({resp.status_code}): {resp.json()}"
-            )
-        resp.raise_for_status()
-        logging.info(f"Successful Encode: {resp.json()}")
-        return resp.json()["tx"]
+            tx = wallet.create_and_sign_tx(tx_options)
+            result = self.lcd_client.tx.broadcast(tx)
+            if result.code:
+                raise Exception(result)
+            txn.id = result.txhash
 
 
 class Thorchain(GenericChain):

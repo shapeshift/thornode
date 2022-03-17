@@ -191,7 +191,9 @@ class MockTerra(HttpClient):
         tx = wallet.create_and_sign_tx(
             CreateTxOptions(
                 msgs=[
-                    MsgSend(txn.from_address, txn.to_address, txn.coins[0].to_cosmos())
+                    MsgSend(
+                        txn.from_address, txn.to_address, txn.coins[0].to_cosmos_terra()
+                    )
                 ],
                 memo=txn.memo,
                 fee=Fee(200000, "20000uluna")  # gas 0.2uluna fee 0.02uluna,
