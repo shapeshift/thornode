@@ -344,7 +344,6 @@ class Coin(Jsonable):
 
 
 class Coins(Jsonable):
-
     def __init__(self, coins):
         self.coins = coins
 

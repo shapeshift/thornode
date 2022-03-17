@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from bech32 import decode, bech32_decode, convertbits
+from bech32 import bech32_decode, convertbits
 
 from thornode_proto.types import MsgDeposit as MsgDeposit_pb
 
@@ -15,7 +15,6 @@ __all__ = ["MsgDeposit"]
 
 import attr
 
-import logging
 
 @attr.s
 class MsgDeposit(Msg):

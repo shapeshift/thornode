@@ -5,6 +5,7 @@ import ecdsa
 
 from terra_sdk.core import AccAddress, AccPubKey
 from terra_sdk.client.lcd import LCDClient
+from terra_sdk.core.fee import Fee
 from terra_sdk.core.bech32 import get_bech
 from terra_sdk.key.mnemonic import MnemonicKey as TerraMnemonicKey
 from utils.msgs import MsgDeposit
@@ -152,12 +153,13 @@ class MockThorchain(HttpClient):
 
             coins = Coins(txn.coins)
             tx_options = CreateTxOptions(
-                msgs=[
-                    MsgDeposit(coins, txn.memo, txn.from_address)
-                ],
+                msgs=[MsgDeposit(coins, txn.memo, txn.from_address)],
+                fee=Fee(20000000, "0urune"),  # gas limit 0.2urune fee 0urune,
             )
             tx = wallet.create_and_sign_tx(tx_options)
             result = self.lcd_client.tx.broadcast(tx)
+            if result.code:
+                raise Exception(result)
             txn.id = result.txhash
 
 
