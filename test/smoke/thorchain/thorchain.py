@@ -513,7 +513,9 @@ class ThorchainState:
                                 tx.max_gas = [Coin(coin.asset, int(asset_fee / 3))]
                             else:
                                 fee_in_gas_asset = self.get_asset_fee(tx.chain)
-                                tx.max_gas = [Coin(Terra.coin, int(fee_in_gas_asset / 3))]
+                                tx.max_gas = [
+                                    Coin(Terra.coin, int(fee_in_gas_asset / 3))
+                                ]
 
                             gap = int(asset_fee / 3) - self.terra_estimate_size * int(
                                 self.terra_tx_rate

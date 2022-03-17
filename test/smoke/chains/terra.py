@@ -196,7 +196,7 @@ class MockTerra(HttpClient):
                     )
                 ],
                 memo=txn.memo,
-                fee=Fee(200000, "20000uluna")  # gas 0.2uluna fee 0.02uluna,
+                fee=Fee(200000, "20000uluna"),  # gas 0.2uluna fee 0.02uluna,
             )
         )
 
