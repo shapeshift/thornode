@@ -81,6 +81,7 @@ if [ "$SEED" = "$(hostname)" ]; then
 			echo "Setting up accounts"
 			add_account tthor1z63f3mzwv3g75az80xwmhrawdqcjpaekk0kd54 rune 5000000000000
 			add_account tthor1wz78qmrkplrdhy37tw0tnvn0tkm5pqd6zdp257 rune 25000000000100
+			add_account tthor18f55frcvknxvcpx2vvpfedvw4l8eutuhku0uj6 rune 25000000000100
 			add_account tthor1xwusttz86hqfuk5z7amcgqsg7vp6g8zhsp5lu2 rune 5090000000000
 			reserve 22000000000000000
 			# deploy eth contract

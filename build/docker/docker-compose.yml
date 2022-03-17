@@ -138,7 +138,7 @@ services:
       - "../scripts:/docker/scripts"
       - bifrost:/var/data/bifrost
       - thornode:/root/.thornode
-    command: ["bifrost", "-c", "/etc/bifrost/config.json", "p"]
+    command: ['bifrost', '-c', '/etc/bifrost/config.json', '-p']
 
   # ------------------------------ midgard ------------------------------
 
