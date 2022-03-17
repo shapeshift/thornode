@@ -181,6 +181,12 @@ class Asset(str, Jsonable):
         """
         return self.symbol
 
+    def get_ticker(self):
+        """
+        Return ticker part of the asset
+        """
+        return self.symbol.split("-")[0]
+
     def get_chain(self):
         """
         Return chain part of the asset string
@@ -231,11 +237,12 @@ class Asset(str, Jsonable):
             return cls(f"{proto.chain}/{proto.symbol}")
         return cls(f"{proto.chain}.{proto.symbol}")
 
-    def to_proto(self) -> Coin_pb:
+    def to_proto(self):
         asset = Asset_pb()
         asset.chain = self.chain
         asset.symbol = self.symbol
         asset.synth = self.is_synth
+        asset.ticker = self.get_ticker()
         return asset
 
 

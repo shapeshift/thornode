@@ -43,6 +43,14 @@ class TestAsset(unittest.TestCase):
         asset = Asset("LOK-3C0")
         self.assertEqual(asset.get_symbol(), "LOK-3C0")
 
+    def test_get_ticker(self):
+        asset = Asset("BNB.BNB")
+        self.assertEqual(asset.get_ticker(), "BNB")
+        asset = Asset(RUNE)
+        self.assertEqual(asset.get_ticker(), "RUNE")
+        asset = Asset("LOK-3C0")
+        self.assertEqual(asset.get_ticker(), "LOK")
+
     def test_get_chain(self):
         asset = Asset("BNB.BNB")
         self.assertEqual(asset.get_chain(), "BNB")
