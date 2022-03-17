@@ -9,7 +9,7 @@ clean:
 
 build:
 	@docker pull ${IMAGE_NAME} || true
-	@docker build -t ${IMAGE_NAME} .
+	@docker build --cache-from ${IMAGE_NAME} -t ${IMAGE_NAME} .
 
 proto-gen:
 	@scripts/proto-gen.sh
