@@ -7,7 +7,6 @@ from terra_sdk.core import AccAddress, AccPubKey
 from terra_sdk.client.lcd import LCDClient
 from terra_sdk.core.bech32 import get_bech
 from terra_sdk.key.mnemonic import MnemonicKey as TerraMnemonicKey
-from terra_sdk.core.fee import Fee
 from utils.msgs import MsgDeposit
 
 from terra_sdk.client.lcd.api.tx import CreateTxOptions
