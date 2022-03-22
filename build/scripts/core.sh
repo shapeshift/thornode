@@ -109,8 +109,9 @@ seeds_list() {
 	IFS=","
 	SEED_LIST=""
 	for SEED in $1; do
-		NODE_ID=$(curl -sL --fail -m 10 "$SEED:$PORT_RPC/status" | jq -r .result.node_info.id) || continue
-		NETWORK=$(curl -sL --fail -m 10 "$SEED:$PORT_RPC/status" | jq -r .result.node_info.network) || continue
+		RESULT=$(curl -sL --fail -m 2 "$SEED:$PORT_RPC/status") || continue
+		NODE_ID=$(echo "$RESULT" | jq -r .result.node_info.id)
+		NETWORK=$(echo "$RESULT" | jq -r .result.node_info.network)
 		# make sure the seeds are on the same network
 		if [ "$NETWORK" = "$EXPECTED_NETWORK" ]; then
 			SEED="$NODE_ID@$SEED:$PORT_P2P"
