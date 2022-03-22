@@ -203,6 +203,11 @@ func (c *CosmosBlockScanner) updateGasCache(tx ctypes.FeeTx) {
 		return
 	}
 
+	if tx.GetGas() == 0 {
+		c.logger.Err(err).Interface("tx", tx).Msg("transaction with zero gas")
+		return
+	}
+
 	// add the fee to our cache
 	amount := coin.Amount.Mul(ctypes.NewUint(GasPriceFactor)) // multiply to handle price < 1
 	price := amount.Quo(ctypes.NewUint(tx.GetGas()))          // divide by gas to get the price
