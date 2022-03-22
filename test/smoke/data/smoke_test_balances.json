@@ -4994,12 +4994,12 @@
             "THOR.RUNE": 7587566729
         },
         "POOL.TERRA.UST": {
-            "TERRA.UST": 82587053000,
-            "THOR.RUNE": 9896296760
+            "TERRA.UST": 0,
+            "THOR.RUNE": 0
         },
         "POOL.BTC.BTC": {
-            "BTC.BTC": 3405283,
-            "THOR.RUNE": 2399145537
+            "BTC.BTC": 179749196,
+            "THOR.RUNE": 128340765130
         },
         "POOL.BCH.BCH": {
             "BCH.BCH": 108037880,
@@ -5050,16 +5050,16 @@
             "THOR.RUNE": 13517245022
         },
         "POOL.DOGE.DOGE": {
-            "DOGE.DOGE": 0,
-            "THOR.RUNE": 0
+            "DOGE.DOGE": 133593317041,
+            "THOR.RUNE": 10020631600
         },
         "POOL.TERRA.LUNA": {
             "TERRA.LUNA": 149921447400,
             "THOR.RUNE": 7587566729
         },
         "POOL.TERRA.UST": {
-            "TERRA.UST": 82587053000,
-            "THOR.RUNE": 9896296760
+            "TERRA.UST": 0,
+            "THOR.RUNE": 0
         },
         "POOL.BTC.BTC": {
             "BTC.BTC": 3405283,

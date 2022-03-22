@@ -6258,6 +6258,96 @@
         "height": null
     },
     {
+        "type": "pool",
+        "attributes": [
+            {
+                "pool": "TERRA.UST"
+            },
+            {
+                "pool_status": "Staged"
+            }
+        ],
+        "height": null
+    },
+    {
+        "type": "withdraw",
+        "attributes": [
+            {
+                "pool": "TERRA.UST"
+            },
+            {
+                "liquidity_provider_units": "9000000000"
+            },
+            {
+                "basis_points": "10000"
+            },
+            {
+                "asymmetry": "0.000000000000000000"
+            },
+            {
+                "emit_asset": "82587053000"
+            },
+            {
+                "emit_rune": "9896296760"
+            },
+            {
+                "imp_loss_protection": "0"
+            },
+            {
+                "id": "TODO"
+            },
+            {
+                "chain": "THOR"
+            },
+            {
+                "from": "PROVIDER-1"
+            },
+            {
+                "to": "VAULT"
+            },
+            {
+                "coin": "1 THOR.RUNE"
+            },
+            {
+                "memo": "WITHDRAW:TERRA.UST"
+            }
+        ],
+        "height": null
+    },
+    {
+        "type": "fee",
+        "attributes": [
+            {
+                "tx_id": "TODO"
+            },
+            {
+                "coins": "2000000 THOR.RUNE"
+            },
+            {
+                "pool_deduct": "0"
+            }
+        ],
+        "height": null
+    },
+    {
+        "type": "gas",
+        "attributes": [
+            {
+                "asset": "TERRA.LUNA"
+            },
+            {
+                "asset_amt": "0"
+            },
+            {
+                "rune_amt": "0"
+            },
+            {
+                "transaction_count": "1"
+            }
+        ],
+        "height": null
+    },
+    {
         "type": "withdraw",
         "attributes": [
             {
@@ -6430,96 +6520,6 @@
             },
             {
                 "asset_amt": "15000"
-            },
-            {
-                "rune_amt": "0"
-            },
-            {
-                "transaction_count": "1"
-            }
-        ],
-        "height": null
-    },
-    {
-        "type": "pool",
-        "attributes": [
-            {
-                "pool": "TERRA.UST"
-            },
-            {
-                "pool_status": "Staged"
-            }
-        ],
-        "height": null
-    },
-    {
-        "type": "withdraw",
-        "attributes": [
-            {
-                "pool": "TERRA.UST"
-            },
-            {
-                "liquidity_provider_units": "9000000000"
-            },
-            {
-                "basis_points": "10000"
-            },
-            {
-                "asymmetry": "0.000000000000000000"
-            },
-            {
-                "emit_asset": "82587053000"
-            },
-            {
-                "emit_rune": "9896296760"
-            },
-            {
-                "imp_loss_protection": "0"
-            },
-            {
-                "id": "TODO"
-            },
-            {
-                "chain": "THOR"
-            },
-            {
-                "from": "PROVIDER-1"
-            },
-            {
-                "to": "VAULT"
-            },
-            {
-                "coin": "1 THOR.RUNE"
-            },
-            {
-                "memo": "WITHDRAW:TERRA.UST"
-            }
-        ],
-        "height": null
-    },
-    {
-        "type": "fee",
-        "attributes": [
-            {
-                "tx_id": "TODO"
-            },
-            {
-                "coins": "2000000 THOR.RUNE"
-            },
-            {
-                "pool_deduct": "0"
-            }
-        ],
-        "height": null
-    },
-    {
-        "type": "gas",
-        "attributes": [
-            {
-                "asset": "TERRA.LUNA"
-            },
-            {
-                "asset_amt": "0"
             },
             {
                 "rune_amt": "0"
