@@ -5182,7 +5182,7 @@
             "THOR.RUNE": 0
         },
         "POOL.TERRA.LUNA": {
-            "TERRA.LUNA": 0,
+            "TERRA.LUNA": 30000,
             "THOR.RUNE": 0
         },
         "POOL.TERRA.UST": {
@@ -5246,7 +5246,7 @@
             "THOR.RUNE": 0
         },
         "POOL.TERRA.LUNA": {
-            "TERRA.LUNA": 0,
+            "TERRA.LUNA": 30000,
             "THOR.RUNE": 0
         },
         "POOL.TERRA.UST": {
@@ -5310,7 +5310,7 @@
             "THOR.RUNE": 0
         },
         "POOL.TERRA.LUNA": {
-            "TERRA.LUNA": 0,
+            "TERRA.LUNA": 30000,
             "THOR.RUNE": 0
         },
         "POOL.TERRA.UST": {

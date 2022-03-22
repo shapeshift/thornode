@@ -1,4 +1,6 @@
 import time
+import asyncio
+import threading
 
 from terra_sdk.client.lcd import LCDClient
 from terra_sdk.key.mnemonic import MnemonicKey
@@ -37,15 +39,16 @@ class MockTerra(HttpClient):
         "tx_rate": 2000000,
         "tx_size": 1,
     }
-    gas_price_factor = 1e9
+    gas_price_factor = 1000000000
     gas_limit = 200000
     default_gas = 2000000
 
     def __init__(self, base_url):
+        self.base_url = base_url
         self.lcd_client = LCDClient(base_url, "localterra")
+        threading.Thread(target=self.scan_blocks, daemon=True).start()
         self.init_wallets()
         self.broadcast_fee_txs()
-        # threading.Thread(target=self.scan_blocks, daemon=True).start()
 
     def init_wallets(self):
         """
@@ -80,20 +83,24 @@ class MockTerra(HttpClient):
             self.lcd_client.tx.broadcast_sync(tx)
 
     def scan_blocks(self):
-        height = int(self.get_block()["block"]["header"]["height"])
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        lcd_client = LCDClient(self.base_url, "localterra")
+        height = int(lcd_client.tendermint.block_info()["block"]["header"]["height"])
         fee_cache = []
         while True:
             try:
-                txs = self.get_block_txs(height)
+                txs = lcd_client.tx.tx_infos_by_height(height)
+                height += 1
                 for tx in txs:
                     fee = tx.auth_info.fee
                     if len(fee.amount) != 1:
                         continue
-                    fee = fee.amount[0]
-                    if fee.denom != "uluna":
+                    fee_coin = fee.amount[0]
+                    if fee_coin.denom != "uluna":
                         continue
                     gas = fee.gas_limit
-                    amount = fee * self.gas_price_factor
+                    amount = int(fee_coin.amount) * 100 * self.gas_price_factor
                     price = amount / gas
                     fee = price * self.gas_limit
                     fee = fee / self.gas_price_factor
@@ -102,12 +109,13 @@ class MockTerra(HttpClient):
                         fee_cache.pop(0)
                 if len(fee_cache) != 100:
                     continue
-                self.block_stats["tx_rate"] = sum(fee_cache) / 100
+                if (height - 1) % 10 == 0:
+                    tx_rate = int(sum(fee_cache) / 100)
+                    self.block_stats["tx_rate"] = tx_rate
             except Exception:
                 continue
             finally:
-                height += 1
-                time.sleep(1)
+                time.sleep(0.3)
 
     @classmethod
     def get_address_from_pubkey(cls, pubkey, prefix="terra"):

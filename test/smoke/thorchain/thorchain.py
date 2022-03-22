@@ -384,6 +384,7 @@ class ThorchainState:
             amount = int(self.doge_tx_rate * 3 / 2) * self.doge_estimate_size
         if chain == "TERRA":
             amount = int(self.terra_tx_rate * 3 / 2) * self.terra_estimate_size
+            amount = int(amount / 100) * 100  # round TERRA to 6 digits max
         if chain == "BNB":
             amount = pool.get_rune_in_asset(int(rune_fee / 3))
         return Coin(gas_asset, amount)
@@ -398,11 +399,17 @@ class ThorchainState:
         pool = self.get_pool(gas_asset)
         if pool.asset_balance == 0 or pool.rune_balance == 0:
             return self.rune_fee
-        return pool.get_asset_in_rune(chain_fee * 3)
+        chain_fee = chain_fee * 3
+        if chain == "TERRA":
+            chain_fee = int(chain_fee / 100) * 100
+        return pool.get_asset_in_rune(chain_fee)
 
     def get_asset_fee(self, chain):
         if chain in self.network_fees:
-            return self.network_fees[chain] * 3
+            asset_fee = self.network_fees[chain] * 3
+            if chain == "TERRA":
+                asset_fee = int(asset_fee / 100) * 100
+            return asset_fee
         gas_asset = self.get_gas_asset(chain)
         pool = self.get_pool(gas_asset)
         return pool.get_rune_in_asset(self.rune_fee)
@@ -509,6 +516,7 @@ class ThorchainState:
                                 tx.gas = tx.max_gas
 
                         if coin.asset.is_terra() and not asset_fee == 0:
+                            asset_fee = int(asset_fee / 100) * 100
                             if coin.asset.is_luna():
                                 tx.max_gas = [Coin(coin.asset, int(asset_fee / 2))]
                             else:
@@ -517,9 +525,11 @@ class ThorchainState:
                                     Coin(Terra.coin, int(fee_in_gas_asset / 2))
                                 ]
 
+                            tx.max_gas[0].amount = int(tx.max_gas[0].amount / 100) * 100
                             gap = int(asset_fee / 2) - self.terra_estimate_size * int(
                                 self.terra_tx_rate * 3 / 2
                             )
+                            gap = int(gap / 100) * 100
                             if gap > 0:
                                 coin.amount += gap
                             else:
@@ -1026,7 +1036,7 @@ class ThorchainState:
         self.ltc_estimate_size = 255
         self.doge_estimate_size = 417
         if pool.lp_units == 0:
-            if pool.asset.is_bnb() or pool.asset.is_luna():
+            if pool.asset.is_bnb():
                 gas_amt = gas.amount
                 if RUNE.get_chain() == "BNB":
                     gas_amt *= 2
@@ -1091,6 +1101,18 @@ class ThorchainState:
                 outbound_asset_amt -= int(estimate_gas_asset)
                 pool.asset_balance += dynamic_fee
                 asset_amt -= dynamic_fee
+            elif pool.asset.is_luna():
+                # the last withdraw tx , it need to spend everything
+                # left enough gas asset otherwise it will get into negative
+                emit_asset -= dynamic_fee
+                estimate_gas_asset = (
+                    int(self.terra_tx_rate * 3 / 2) * self.terra_estimate_size
+                )
+                estimate_gas_asset = int(estimate_gas_asset / 100) * 100
+                gas = Coin(gas.asset, estimate_gas_asset)
+                outbound_asset_amt -= int(estimate_gas_asset)
+                pool.asset_balance += dynamic_fee
+                asset_amt = outbound_asset_amt
         self.set_pool(pool)
 
         # get from address VAULT cross chain
