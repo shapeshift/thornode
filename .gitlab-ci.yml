@@ -62,7 +62,7 @@ lint:
     - apt-get update && apt-get install -y curl git jq make protobuf-compiler sudo xz-utils
     - go install mvdan.cc/gofumpt@v0.3.0
     # trunk.io setup
-    - git fetch origin develop
+    - git fetch origin develop $CI_MERGE_REQUEST_TARGET_BRANCH_NAME
     - curl https://get.trunk.io -fsSLo /tmp/trunk-install
     - chmod +x /tmp/trunk-install
     - /tmp/trunk-install -y
