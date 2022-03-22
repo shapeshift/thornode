@@ -388,7 +388,7 @@ func (s *AddressSuite) TestConvertToNewBCHAddressFormat(c *C) {
 	c.Assert(addr4Result.String(), Equals, "qpg09septgjye6rw6lp3wep6s7j73je2tg5sea68x9")
 
 	addr5 := "qrwz8uegrdd08x57uxzapthc6lm4fxmnwv0apsganr"
-	addr5Result, err := ConvertToNewBCHAddressFormatV81(Address(addr5))
+	addr5Result, err := ConvertToNewBCHAddressFormatV83(Address(addr5))
 	c.Assert(err, NotNil)
 	c.Assert(addr5Result.IsEmpty(), Equals, true)
 
