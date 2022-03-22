@@ -370,19 +370,19 @@ func (s *AddressSuite) TestAddress(c *C) {
 
 func (s *AddressSuite) TestConvertToNewBCHAddressFormat(c *C) {
 	addr1 := "1EFJFJm7Y9mTVsCBXA9PKuRuzjgrdBe4rR"
-	addr1Result, err := ConvertToNewBCHAddressFormatV81(Address(addr1))
+	addr1Result, err := ConvertToNewBCHAddressFormatV83(Address(addr1))
 	c.Assert(err, IsNil)
 	c.Assert(addr1Result.IsEmpty(), Equals, false)
 	c.Assert(addr1Result.String(), Equals, "qzg5mkh7rkw3y8kw47l3rrnvhmenvctmd56xg38a70")
 
 	addr3 := "qzg5mkh7rkw3y8kw47l3rrnvhmenvctmd56xg38a70"
-	addr3Result, err := ConvertToNewBCHAddressFormatV81(Address(addr3))
+	addr3Result, err := ConvertToNewBCHAddressFormatV83(Address(addr3))
 	c.Assert(err, IsNil)
 	c.Assert(addr3Result.IsEmpty(), Equals, false)
 	c.Assert(addr3Result.String(), Equals, "qzg5mkh7rkw3y8kw47l3rrnvhmenvctmd56xg38a70")
 
 	addr4 := "18P1smBRB8zgfHT2qU9mnrbkHuinL1VRQe"
-	addr4Result, err := ConvertToNewBCHAddressFormatV81(Address(addr4))
+	addr4Result, err := ConvertToNewBCHAddressFormatV83(Address(addr4))
 	c.Assert(err, IsNil)
 	c.Assert(addr4Result.IsEmpty(), Equals, false)
 	c.Assert(addr4Result.String(), Equals, "qpg09septgjye6rw6lp3wep6s7j73je2tg5sea68x9")
@@ -393,12 +393,12 @@ func (s *AddressSuite) TestConvertToNewBCHAddressFormat(c *C) {
 	c.Assert(addr5Result.IsEmpty(), Equals, true)
 
 	addr6 := "whatever"
-	addr6Result, err := ConvertToNewBCHAddressFormatV81(Address(addr6))
+	addr6Result, err := ConvertToNewBCHAddressFormatV83(Address(addr6))
 	c.Assert(err, NotNil)
 	c.Assert(addr6Result.IsEmpty(), Equals, true)
 
 	addr7 := "3PLcoeUdBbYjQ3FZ98bSBdszNfXyEK3n91"
-	addr7Result, err := ConvertToNewBCHAddressFormatV81(Address(addr7))
+	addr7Result, err := ConvertToNewBCHAddressFormatV83(Address(addr7))
 	c.Assert(err, IsNil)
 	c.Assert(addr7Result.IsEmpty(), Equals, false)
 	c.Assert(addr7Result.String(), Equals, "prkhwf3etusv88eu7fekcxgce7pj0vuf4sys9u2mns")
