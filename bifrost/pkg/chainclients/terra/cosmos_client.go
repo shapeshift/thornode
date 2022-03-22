@@ -515,6 +515,7 @@ func (c *CosmosClient) BroadcastTx(tx stypes.TxOutItem, txBytes []byte) (string,
 		return "", errors.New("broadcast msg failed")
 	}
 
+	c.accts.SeqInc(tx.VaultPubKey)
 	if err := c.signerCacheManager.SetSigned(tx.CacheHash(), broadcastRes.TxResponse.TxHash); err != nil {
 		c.logger.Err(err).Msg("fail to set signer cache")
 	}
