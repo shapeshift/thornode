@@ -1,6 +1,6 @@
 package terra
 
-type Asset struct {
+type CosmosAssetMapping struct {
 	CosmosDenom     string
 	CosmosDecimals  int
 	THORChainSymbol string
@@ -8,7 +8,7 @@ type Asset struct {
 
 // CosmosAssets maps a Cosmos denom to a THORChain symbol and provides the asset decimals
 // CHANGEME: define assets that should be observed by THORChain here. This also acts a whitelist.
-var CosmosAssets = []Asset{
+var CosmosAssetMappings = []CosmosAssetMapping{
 	{
 		CosmosDenom:     "uluna",
 		CosmosDecimals:  6,
@@ -21,20 +21,20 @@ var CosmosAssets = []Asset{
 	},
 }
 
-func GetAssetByCosmosDenom(denom string) (Asset, bool) {
-	for _, asset := range CosmosAssets {
+func GetAssetByCosmosDenom(denom string) (CosmosAssetMapping, bool) {
+	for _, asset := range CosmosAssetMappings {
 		if asset.CosmosDenom == denom {
 			return asset, true
 		}
 	}
-	return Asset{}, false
+	return CosmosAssetMapping{}, false
 }
 
-func GetAssetByThorchainSymbol(symbol string) (Asset, bool) {
-	for _, asset := range CosmosAssets {
+func GetAssetByThorchainSymbol(symbol string) (CosmosAssetMapping, bool) {
+	for _, asset := range CosmosAssetMappings {
 		if asset.THORChainSymbol == symbol {
 			return asset, true
 		}
 	}
-	return Asset{}, false
+	return CosmosAssetMapping{}, false
 }
