@@ -175,8 +175,8 @@ func getBCHAddress(address bchutil.Address, cfg *bchchaincfg.Params) (Address, e
 	return NoAddress, fmt.Errorf("invalid address type")
 }
 
-// ConvertToNewBCHAddressFormatV81 convert the given BCH to new address format
-func ConvertToNewBCHAddressFormatV81(addr Address) (Address, error) {
+// ConvertToNewBCHAddressFormatV83 convert the given BCH to new address format
+func ConvertToNewBCHAddressFormatV83(addr Address) (Address, error) {
 	if !addr.IsChain(BCHChain) {
 		return NoAddress, fmt.Errorf("address(%s) is not BCH chain", addr)
 	}
@@ -196,10 +196,10 @@ func ConvertToNewBCHAddressFormatV81(addr Address) (Address, error) {
 	if err != nil {
 		return NoAddress, fmt.Errorf("fail to decode address(%s), %w", addr, err)
 	}
-	return getBCHAddressV81(bchAddr, param)
+	return getBCHAddressV83(bchAddr, param)
 }
 
-func getBCHAddressV81(address bchutil.Address, cfg *bchchaincfg.Params) (Address, error) {
+func getBCHAddressV83(address bchutil.Address, cfg *bchchaincfg.Params) (Address, error) {
 	switch address.(type) {
 	case *bchutil.LegacyAddressPubKeyHash, *bchutil.AddressPubKeyHash:
 		h, err := bchutil.NewAddressPubKeyHash(address.ScriptAddress(), cfg)
