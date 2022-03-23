@@ -167,7 +167,7 @@ func (s TxOutStoreV84Suite) TestAddOutTxItem(c *C) {
 	result, err := txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item)
 	c.Assert(result, Equals, true)
 	c.Assert(err, IsNil)
-	msgs, err = txOutStore.GetOutboundItems(w.ctx)
+	msgs, _ = txOutStore.GetOutboundItems(w.ctx)
 	// this should be a mocknet address
 	c.Assert(msgs[0].ToAddress.String(), Equals, "qzg5mkh7rkw3y8kw47l3rrnvhmenvctmd5yg6hxe64")
 }
@@ -249,7 +249,7 @@ func (s TxOutStoreV84Suite) TestAddOutTxItem_OutboundHeightDoesNotGetOverride(c 
 	c.Assert(msgs, HasLen, 0)
 	//  the outbound has been delayed
 	newCtx := w.ctx.WithBlockHeight(4)
-	msgs, err = txOutStore.GetOutboundItems(newCtx)
+	msgs, _ = txOutStore.GetOutboundItems(newCtx)
 	c.Assert(msgs, HasLen, 1)
 	c.Assert(msgs[0].VaultPubKey.String(), Equals, vault.PubKey.String())
 	c.Assert(msgs[0].Coin.Amount.Equal(cosmos.NewUint(7999887500)), Equals, true, Commentf("%d", msgs[0].Coin.Amount.Uint64()))
@@ -591,7 +591,7 @@ func (s TxOutStoreV84Suite) TestAddOutTxItem_MultipleOutboundWillBeScheduledAtTh
 	c.Assert(msgs, HasLen, 0)
 	//  the outbound has been delayed
 	newCtx := w.ctx.WithBlockHeight(4)
-	msgs, err = txOutStore.GetOutboundItems(newCtx)
+	msgs, _ = txOutStore.GetOutboundItems(newCtx)
 	c.Assert(msgs, HasLen, 2)
 	c.Assert(msgs[0].VaultPubKey.String(), Equals, vault.PubKey.String())
 	c.Assert(msgs[0].Coin.Amount.Equal(cosmos.NewUint(7999887500)), Equals, true, Commentf("%d", msgs[0].Coin.Amount.Uint64()))
@@ -612,4 +612,49 @@ func (s TxOutStoreV84Suite) TestAddOutTxItem_MultipleOutboundWillBeScheduledAtTh
 	afterVoter1, err := w.keeper.GetObservedTxInVoter(w.ctx, inTxID)
 	c.Assert(err, IsNil)
 	c.Assert(afterVoter1.OutboundHeight, Equals, int64(4))
+}
+
+func (s TxOutStoreV84Suite) TestAddOutTxItemInteractionWithPool(c *C) {
+	w := getHandlerTestWrapper(c, 1, true, true)
+	pool, err := w.keeper.GetPool(w.ctx, common.BNBAsset)
+	c.Assert(err, IsNil)
+	// Set unequal values for the pool balances for this test.
+	pool.BalanceAsset = cosmos.NewUint(50 * common.One)
+	pool.BalanceRune = cosmos.NewUint(100 * common.One)
+	err = w.keeper.SetPool(w.ctx, pool)
+	c.Assert(err, IsNil)
+
+	vault := GetRandomVault()
+	vault.Coins = common.Coins{
+		common.NewCoin(common.BNBAsset, cosmos.NewUint(100*common.One)),
+	}
+	c.Assert(w.keeper.SetVault(w.ctx, vault), IsNil)
+
+	inTxID := GetRandomTxHash()
+	item := TxOutItem{
+		Chain:     common.BNBChain,
+		ToAddress: GetRandomBNBAddress(),
+		InHash:    inTxID,
+		Coin:      common.NewCoin(common.BNBAsset, cosmos.NewUint(20*common.One)),
+	}
+	txOutStore := newTxOutStorageV84(w.keeper, w.mgr.GetConstants(), w.mgr.EventMgr(), w.mgr.GasMgr())
+	success, err := txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item)
+	c.Assert(err, IsNil)
+	c.Assert(success, Equals, true)
+	msgs, err := txOutStore.GetOutboundItems(w.ctx)
+	c.Assert(err, IsNil)
+	c.Assert(msgs, HasLen, 1)
+	c.Assert(msgs[0].Coin.Amount.Equal(cosmos.NewUint(1999887500)), Equals, true, Commentf("%d", msgs[0].Coin.Amount.Uint64()))
+	pool, err = w.keeper.GetPool(w.ctx, common.BNBAsset)
+	c.Assert(err, IsNil)
+	// Let:
+	//   R_0 := the initial pool Rune balance
+	//   A_0 := the initial pool Asset balance
+	//   a   := the gas amount in Asset
+	// Then the expected pool balances are:
+	//   A_1 = A_0 + a = 50e8 + (20e8 - 1999887500) = 5000112500
+	//   R_1 = R_0 - R_0 * a / (A_0 + a)  // slip formula
+	//       = 100e8 - 100e8 * (20e8 - 1999887500) / (50e8 + (20e8 - 1999887500)) = 9999775005
+	c.Assert(pool.BalanceAsset.Equal(cosmos.NewUint(5000112500)), Equals, true, Commentf("%d", pool.BalanceAsset.Uint64()))
+	c.Assert(pool.BalanceRune.Equal(cosmos.NewUint(9999775005)), Equals, true, Commentf("%d", pool.BalanceRune.Uint64()))
 }

@@ -103,6 +103,8 @@ And have `GOBIN` in your `PATH`
 export GOBIN=$GOPATH/bin
 ```
 
+Install Docker and Docker Compose V2. 
+
 ### Automated Install Locally
 Install via this `make` command.
 
