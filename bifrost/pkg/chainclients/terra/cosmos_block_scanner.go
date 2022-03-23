@@ -138,6 +138,7 @@ func NewCosmosBlockScanner(cfg config.BlockScannerConfiguration,
 		txService:        rpcClient,
 		tmService:        tmService,
 		feeCache:         make([]ctypes.Uint, 0),
+		lastFee:          ctypes.NewUint(0),
 		grpc:             grpcConn,
 		bridge:           bridge,
 		solvencyReporter: solvencyReporter,
@@ -237,13 +238,15 @@ func (c *CosmosBlockScanner) updateGasFees(height int64) error {
 	// post the gas fee over every cache period when we have a full gas cache
 	if height%GasUpdatePeriodBlocks == 0 && len(c.feeCache) == GasCacheTransactions {
 		gasFee := c.averageFee()
-		if gasFee.Equal(c.lastFee) {
-			return nil
-		}
 
 		// sanity check the fee is not zero
 		if gasFee.IsZero() {
 			return errors.New("suggested gas fee was zero")
+		}
+
+		// don't update gas fee equal to the last one we sent
+		if gasFee.Equal(c.lastFee) {
+			return nil
 		}
 
 		// NOTE: We post the fee to the network instead of the transaction rate, and set the
