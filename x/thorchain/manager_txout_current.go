@@ -367,7 +367,7 @@ func (tos *TxOutStorageV84) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem) 
 		runeFee := transactionFeeRune // Fee is the prescribed fee
 
 		// Deduct OutboundTransactionFee from TOI and add to Reserve
-		memo, err := ParseMemoWithTHORNames(ctx, tos.keeper, outputs[i].Memo) // ignore err
+		memo, err := ParseMemoWithTHORNames(ctx, tos.keeper, outputs[i].Memo)
 		if err == nil && !memo.IsType(TxYggdrasilFund) && !memo.IsType(TxYggdrasilReturn) && !memo.IsType(TxMigrate) && !memo.IsType(TxRagnarok) {
 			if outputs[i].Coin.Asset.IsRune() {
 				if outputs[i].Coin.Amount.LTE(transactionFeeRune) {
@@ -392,13 +392,6 @@ func (tos *TxOutStorageV84) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem) 
 					assetFee := transactionFeeAsset
 					if outputs[i].Coin.Amount.LTE(assetFee) {
 						assetFee = outputs[i].Coin.Amount // Fee is the full amount
-						runeFee = pool.RuneReimbursementForAssetWithdrawal(assetFee)
-						// TODO(leifthelucky): "runeFee" is ultimately deducted from the pool
-						// and as such, it should be computed with RuneDisbursementForAssetAdd
-						// rather than RuneReimbursementForAssetWithdrawal. Currently the constant
-						// product rule is violated and there is a small decrease in the LUVI
-						// index, a price-independent measure of value. See:
-						// https://gitlab.com/thorchain/thornode/-/issues/1155
 					}
 
 					outputs[i].Coin.Amount = common.SafeSub(outputs[i].Coin.Amount, assetFee) // Deduct Asset fee
@@ -416,17 +409,19 @@ func (tos *TxOutStorageV84) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem) 
 								}
 							}
 						}
-					} else {
-						pool.BalanceAsset = pool.BalanceAsset.Add(assetFee) // Add Asset fee to Pool
 					}
 					var poolDeduct cosmos.Uint
+					runeFee = pool.RuneDisbursementForAssetAdd(assetFee)
 					if runeFee.GT(pool.BalanceRune) {
 						poolDeduct = pool.BalanceRune
 					} else {
 						poolDeduct = runeFee
 					}
-					finalRuneFee = finalRuneFee.Add(runeFee)
-					pool.BalanceRune = common.SafeSub(pool.BalanceRune, runeFee) // Deduct Rune from Pool
+					finalRuneFee = finalRuneFee.Add(poolDeduct)
+					if !outputs[i].Coin.Asset.IsSyntheticAsset() {
+						pool.BalanceAsset = pool.BalanceAsset.Add(assetFee) // Add Asset fee to Pool
+					}
+					pool.BalanceRune = common.SafeSub(pool.BalanceRune, poolDeduct) // Deduct Rune from Pool
 					fee := common.NewFee(common.Coins{common.NewCoin(outputs[i].Coin.Asset, assetFee)}, poolDeduct)
 					feeEvents = append(feeEvents, NewEventFee(outputs[i].InHash, fee, cosmos.ZeroUint()))
 				}
