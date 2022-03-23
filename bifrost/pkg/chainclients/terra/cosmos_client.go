@@ -113,7 +113,7 @@ func NewCosmosClient(
 
 	grpcConn, err := getGRPCConn(cfg.RPCHost)
 	if err != nil {
-		return nil, errors.New("fail to create grpc connection")
+		return nil, fmt.Errorf("fail to create grpc connection,err: %w", err)
 	}
 
 	interfaceRegistry := codectypes.NewInterfaceRegistry()

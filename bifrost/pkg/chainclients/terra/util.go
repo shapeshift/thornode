@@ -119,7 +119,7 @@ func fromThorchainToCosmos(coin common.Coin) (cosmos.Coin, error) {
 func getGRPCConn(host string) (*grpc.ClientConn, error) {
 	url, err := url.Parse(host)
 	if err != nil {
-		return &grpc.ClientConn{}, errors.New("unable to parse RPCHost")
+		return &grpc.ClientConn{}, fmt.Errorf("unable to parse RPCHost,err: %w", err)
 	}
 	host, _, _ = net.SplitHostPort(url.Host)
 	// CHANGEME: all Cosmos GRPC should be on port 9090. Update this if your chain uses something use else.
@@ -137,11 +137,6 @@ func unmarshalJSONToPb(filePath string, msg proto.Message) error {
 
 	u := new(jsonpb.Unmarshaler)
 	u.AllowUnknownFields = true
-	err = u.Unmarshal(jsonFile, msg)
+        return u.Unmarshal(jsonFile, msg)
 
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
