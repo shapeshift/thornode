@@ -1,5 +1,7 @@
 package terra
 
+import "strings"
+
 type CosmosAssetMapping struct {
 	CosmosDenom     string
 	CosmosDecimals  int
@@ -23,7 +25,7 @@ var CosmosAssetMappings = []CosmosAssetMapping{
 
 func GetAssetByCosmosDenom(denom string) (CosmosAssetMapping, bool) {
 	for _, asset := range CosmosAssetMappings {
-		if asset.CosmosDenom == denom {
+		if strings.EqualFold(asset.CosmosDenom, denom) {
 			return asset, true
 		}
 	}
@@ -32,7 +34,7 @@ func GetAssetByCosmosDenom(denom string) (CosmosAssetMapping, bool) {
 
 func GetAssetByThorchainSymbol(symbol string) (CosmosAssetMapping, bool) {
 	for _, asset := range CosmosAssetMappings {
-		if asset.THORChainSymbol == symbol {
+		if strings.EqualFold(asset.THORChainSymbol, symbol) {
 			return asset, true
 		}
 	}
