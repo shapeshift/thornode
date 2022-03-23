@@ -349,6 +349,11 @@ func (c *CosmosBlockScanner) processTxs(height int64, rawTxs [][]byte) ([]types.
 					Coins:       coins,
 					Gas:         gasFees,
 				})
+
+				// If there are more than one TxIn item per transaction hash,
+				// thornode will fail to process any after the first.
+				// Therefore, limit to 1 MsgSend per transaction.
+				break
 			}
 		}
 
