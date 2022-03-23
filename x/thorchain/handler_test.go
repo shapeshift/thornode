@@ -633,7 +633,8 @@ func (s *HandlerSuite) TestExternalHandler(c *C) {
 }
 
 func (s *HandlerSuite) TestFuzzyMatching(c *C) {
-	ctx, k := setupKeeperForTest(c)
+	ctx, mgr := setupManagerForTest(c)
+	k := mgr.Keeper()
 	p1 := NewPool()
 	p1.Asset = common.BNBAsset
 	p1.BalanceRune = cosmos.NewUint(10 * common.One)
@@ -683,6 +684,11 @@ func (s *HandlerSuite) TestFuzzyMatching(c *C) {
 	check, _ = common.NewAsset("ETH.USDT-1EC7")
 	result = fuzzyAssetMatch(ctx, k, check)
 	c.Check(result.Equals(p2.Asset), Equals, true)
+
+	check, _ = common.NewAsset("ETH/USDT-1EC7")
+	result = fuzzyAssetMatch(ctx, k, check)
+	c.Check(result.Synth, Equals, true)
+	c.Check(result.Equals(p2.Asset.GetSyntheticAsset()), Equals, true)
 }
 
 func (s *HandlerSuite) TestMemoFetchAddress(c *C) {
