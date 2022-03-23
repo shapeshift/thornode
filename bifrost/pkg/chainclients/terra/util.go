@@ -1,7 +1,6 @@
 package terra
 
 import (
-	"errors"
 	"fmt"
 	"math/big"
 	"net"
@@ -137,6 +136,5 @@ func unmarshalJSONToPb(filePath string, msg proto.Message) error {
 
 	u := new(jsonpb.Unmarshaler)
 	u.AllowUnknownFields = true
-        return u.Unmarshal(jsonFile, msg)
-
+	return u.Unmarshal(jsonFile, msg)
 }
