@@ -49,6 +49,7 @@ import (
 var CosmosSuccessCodes = map[uint32]bool{
 	errortypes.SuccessABCICode:                true,
 	errortypes.ErrTxInMempoolCache.ABCICode(): true,
+	errortypes.ErrWrongSequence.ABCICode():    true,
 }
 
 // CosmosClient is a structure to sign and broadcast tx to Cosmos chain used by signer mostly
