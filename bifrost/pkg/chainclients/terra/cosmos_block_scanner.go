@@ -242,10 +242,8 @@ func (c *CosmosBlockScanner) updateGasFees(height int64) error {
 		}
 
 		// sanity check the fee is not zero
-		if gasFee.Equal(ctypes.NewUint(0)) {
-			err := errors.New("suggested gas fee was zero")
-			c.logger.Err(err).Msg(err.Error())
-			return err
+		if gasFee.IsZero() {
+			return errors.New("suggested gas fee was zero")
 		}
 
 		// NOTE: We post the fee to the network instead of the transaction rate, and set the
