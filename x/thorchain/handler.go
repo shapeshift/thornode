@@ -521,9 +521,18 @@ func processOneTxInV63(ctx cosmos.Context, keeper keeper.Keeper, tx ObservedTx, 
 }
 
 func fuzzyAssetMatch(ctx cosmos.Context, keeper keeper.Keeper, asset common.Asset) common.Asset {
+	version := keeper.Version()
+	if version.GTE(semver.MustParse("0.81.0")) {
+		return fuzzyAssetMatchV81(ctx, keeper, asset)
+	}
+	return fuzzyAssetMatchV1(ctx, keeper, asset)
+}
+
+func fuzzyAssetMatchV81(ctx cosmos.Context, keeper keeper.Keeper, origAsset common.Asset) common.Asset {
+	asset := origAsset.GetLayer1Asset()
 	// if its already an exact match, return it immediately
 	if keeper.PoolExist(ctx, asset) {
-		return asset
+		return origAsset
 	}
 
 	matches := make(Pools, 0)
@@ -563,7 +572,7 @@ func fuzzyAssetMatch(ctx cosmos.Context, keeper keeper.Keeper, asset common.Asse
 
 	// if we found no matches, return the argument given
 	if len(matches) == 0 {
-		return asset
+		return origAsset
 	}
 
 	// find the deepest pool
@@ -573,6 +582,8 @@ func fuzzyAssetMatch(ctx cosmos.Context, keeper keeper.Keeper, asset common.Asse
 			winner = pool
 		}
 	}
+
+	winner.Asset.Synth = origAsset.Synth
 
 	return winner.Asset
 }
