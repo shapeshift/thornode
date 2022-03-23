@@ -80,6 +80,7 @@ type CosmosBlockScanner struct {
 	// Fees are stored at 100x the values on the observed chain due to compensate for the
 	// difference in base chain decimals (thorchain:1e8, terra:1e6).
 	feeCache []ctypes.Uint
+	lastFee  ctypes.Uint
 }
 
 // NewCosmosBlockScanner create a new instance of BlockScan
@@ -236,6 +237,9 @@ func (c *CosmosBlockScanner) updateGasFees(height int64) error {
 	// post the gas fee over every cache period when we have a full gas cache
 	if height%GasUpdatePeriodBlocks == 0 && len(c.feeCache) == GasCacheTransactions {
 		gasFee := c.averageFee()
+		if gasFee.Equal(c.lastFee) {
+			return nil
+		}
 
 		// sanity check the fee is not zero
 		if gasFee.Equal(ctypes.NewUint(0)) {
@@ -253,6 +257,7 @@ func (c *CosmosBlockScanner) updateGasFees(height int64) error {
 		if err != nil {
 			return err
 		}
+		c.lastFee = gasFee
 		c.logger.Info().
 			Str("tx", feeTx.String()).
 			Uint64("fee", gasFee.Uint64()).
