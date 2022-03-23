@@ -10,7 +10,6 @@ from chains.binance import Binance
 from chains.bitcoin import Bitcoin
 from chains.litecoin import Litecoin
 from chains.dogecoin import Dogecoin
-from chains.terra import Terra
 from chains.bitcoin_cash import BitcoinCash
 from chains.ethereum import Ethereum
 from thorchain.thorchain import ThorchainState, Event
@@ -70,7 +69,6 @@ class TestSmoke(unittest.TestCase):
         btc = Bitcoin()  # init local bitcoin chain
         ltc = Litecoin()  # init local litecoin chain
         doge = Dogecoin()  # init local dogecoin chain
-        terra = Terra()  # init local terra chain
         bch = BitcoinCash()  # init local bitcoin cash chain
         eth = Ethereum()  # init local ethereum chain
         thorchain = ThorchainState()  # init local thorchain
@@ -80,7 +78,6 @@ class TestSmoke(unittest.TestCase):
             "LTC": 10000,
             "BCH": 10000,
             "DOGE": 10000,
-            "TERRA": 20000,
             "ETH": 65000,
         }
 
@@ -102,8 +99,6 @@ class TestSmoke(unittest.TestCase):
                 ltc.transfer(txn)  # send transfer on litecoin chain
             if txn.chain == Dogecoin.chain:
                 doge.transfer(txn)  # send transfer on dogecoin chain
-            if txn.chain == Terra.chain:
-                terra.transfer(txn)  # send transfer on terra chain
             if txn.chain == BitcoinCash.chain:
                 bch.transfer(txn)  # send transfer on bitcoin cash chain
             if txn.chain == Ethereum.chain:
@@ -127,8 +122,6 @@ class TestSmoke(unittest.TestCase):
                     ltc.transfer(txn)  # send outbound txns back to Litecoin
                 if txn.chain == Dogecoin.chain:
                     doge.transfer(txn)  # send outbound txns back to Dogecoin
-                if txn.chain == Terra.chain:
-                    terra.transfer(txn)  # send outbound txns back to Terra
                 if txn.chain == BitcoinCash.chain:
                     bch.transfer(txn)  # send outbound txns back to Bitcoin Cash
                 if txn.chain == Ethereum.chain:
@@ -142,41 +135,36 @@ class TestSmoke(unittest.TestCase):
 
             thorchain.handle_rewards()
 
-            bnb_out = []
+            bnbOut = []
             for out in outbounds:
                 if out.coins[0].asset.get_chain() == "BNB":
-                    bnb_out.append(out)
-            btc_out = []
+                    bnbOut.append(out)
+            btcOut = []
             for out in outbounds:
                 if out.coins[0].asset.get_chain() == "BTC":
-                    btc_out.append(out)
-            ltc_out = []
+                    btcOut.append(out)
+            ltcOut = []
             for out in outbounds:
                 if out.coins[0].asset.get_chain() == "LTC":
-                    ltc_out.append(out)
-            doge_out = []
+                    ltcOut.append(out)
+            dogeOut = []
             for out in outbounds:
                 if out.coins[0].asset.get_chain() == "DOGE":
-                    doge_out.append(out)
-            terra_out = []
-            for out in outbounds:
-                if out.coins[0].asset.get_chain() == "TERRA":
-                    terra_out.append(out)
-            bch_out = []
+                    dogeOut.append(out)
+            bchOut = []
             for out in outbounds:
                 if out.coins[0].asset.get_chain() == "BCH":
-                    bch_out.append(out)
-            eth_out = []
+                    bchOut.append(out)
+            ethOut = []
             for out in outbounds:
                 if out.coins[0].asset.get_chain() == "ETH":
-                    eth_out.append(out)
-            thorchain.handle_gas(bnb_out)  # subtract gas from pool(s)
-            thorchain.handle_gas(btc_out)  # subtract gas from pool(s)
-            thorchain.handle_gas(ltc_out)  # subtract gas from pool(s)
-            thorchain.handle_gas(doge_out)  # subtract gas from pool(s)
-            thorchain.handle_gas(terra_out)  # subtract gas from pool(s)
-            thorchain.handle_gas(bch_out)  # subtract gas from pool(s)
-            thorchain.handle_gas(eth_out)  # subtract gas from pool(s)
+                    ethOut.append(out)
+            thorchain.handle_gas(bnbOut)  # subtract gas from pool(s)
+            thorchain.handle_gas(btcOut)  # subtract gas from pool(s)
+            thorchain.handle_gas(ltcOut)  # subtract gas from pool(s)
+            thorchain.handle_gas(dogeOut)  # subtract gas from pool(s)
+            thorchain.handle_gas(bchOut)  # subtract gas from pool(s)
+            thorchain.handle_gas(ethOut)  # subtract gas from pool(s)
 
             # generated a snapshop picture of thorchain and bnb
             snap = Breakpoint(thorchain, bnb).snapshot(i, len(outbounds))
