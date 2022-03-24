@@ -5,11 +5,11 @@ import (
 	"fmt"
 
 	"github.com/blang/semver"
-	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 func validateWithdrawV1(ctx cosmos.Context, keeper keeper.Keeper, msg MsgWithdrawLiquidity) error {
@@ -280,4 +280,31 @@ func calcImpLossV76(lp LiquidityProvider, withdrawBasisPoints cosmos.Uint, prote
 	// taking protection basis points, calculate how much of the coverage the user actually receives
 	result := coverage.MulUint64(uint64(protectionBasisPoints)).QuoUint64(10000)
 	return result, depositValue, redeemValue
+}
+
+func calcAsymWithdrawalV1(s, T, A cosmos.Uint) cosmos.Uint {
+	// share = (s * A * (2 * T^2 - 2 * T * s + s^2))/T^3
+	// s = liquidity provider units for member (after factoring in withdrawBasisPoints)
+	// T = totalPoolUnits for pool
+	// A = assetDepth to be withdrawn
+	// (part1 * (part2 - part3 + part4)) / part5
+	part1 := s.Mul(A)
+	part2 := T.Mul(T).MulUint64(2)
+	part3 := T.Mul(s).MulUint64(2)
+	part4 := s.Mul(s)
+	numerator := part1.Mul(common.SafeSub(part2, part3).Add(part4))
+	part5 := T.Mul(T).Mul(T)
+	return numerator.Quo(part5)
+}
+
+// calculate percentage (in basis points) of the amount of impermanent loss protection
+func calcImpLossProtectionAmtV1(ctx cosmos.Context, lastDepositHeight, target int64) int64 {
+	age := common.BlockHeight(ctx) - lastDepositHeight
+	if age < 17280 { // set minimum age to 1 day (17280 blocks)
+		return 0
+	}
+	if age >= target {
+		return 10000
+	}
+	return (age * 10000) / target
 }

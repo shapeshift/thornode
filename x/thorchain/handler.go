@@ -510,13 +510,7 @@ func processOneTxInV63(ctx cosmos.Context, keeper keeper.Keeper, tx ObservedTx, 
 	if err != nil {
 		return newMsg, err
 	}
-	// MsgAddLiquidity & MsgSwap has a new version of validateBasic
-	switch m := newMsg.(type) {
-	case *MsgAddLiquidity:
-		return newMsg, m.ValidateBasicV63()
-	case *MsgSwap:
-		return newMsg, m.ValidateBasicV63()
-	}
+
 	return newMsg, newMsg.ValidateBasic()
 }
 
