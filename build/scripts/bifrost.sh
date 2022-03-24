@@ -27,6 +27,11 @@ DOGE_START_BLOCK_HEIGHT="${DOGE_START_BLOCK_HEIGHT:=0}"
 DOGE_DISABLED="${DOGE_DISABLED:=false}"
 DOGE_PARALLEL_MEMPOOL_SCAN="${DOGE_PARALLEL_MEMPOOL_SCAN:=5}"
 
+# Terra chain config
+TERRA_HOST="${TERRA_HOST:=cosmos-terra-daemon:9090}"
+TERRA_START_BLOCK_HEIGHT="${TERRA_START_BLOCK_HEIGHT:=0}"
+TERRA_DISABLED="${TERRA_DISABLED:=false}"
+
 # Bitcoin Cash chain config
 BCH_HOST="${BCH_HOST:=bitcoin-cash:18443}"
 BCH_START_BLOCK_HEIGHT="${BCH_START_BLOCK_HEIGHT:=0}"
@@ -153,6 +158,29 @@ echo "{
           \"http_request_write_timeout\": \"30s\",
           \"max_http_request_retry\": 10,
           \"start_block_height\": $DOGE_START_BLOCK_HEIGHT,
+          \"db_path\": \"$OBSERVER_PATH\"
+        }
+      },
+      {
+        \"chain_id\": \"TERRA\",
+        \"rpc_host\": \"$TERRA_HOST\",
+        \"username\": \"$RPC_USER\",
+        \"password\": \"$RPC_PASSWD\",
+        \"http_post_mode\": 1,
+        \"disable_tls\": 1,
+        \"disabled\":$TERRA_DISABLED,
+        \"block_scanner\": {
+          \"rpc_host\": \"$TERRA_HOST\",
+          \"enforce_block_height\": false,
+          \"block_scan_processors\": 1,
+          \"block_height_discover_back_off\": \"$BLOCK_SCANNER_BACKOFF\",
+          \"block_retry_interval\": \"10s\",
+          \"chain_id\": \"TERRA\",
+          \"http_request_timeout\": \"30s\",
+          \"http_request_read_timeout\": \"30s\",
+          \"http_request_write_timeout\": \"30s\",
+          \"max_http_request_retry\": 10,
+          \"start_block_height\": $TERRA_START_BLOCK_HEIGHT,
           \"db_path\": \"$OBSERVER_PATH\"
         }
       },

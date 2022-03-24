@@ -207,7 +207,7 @@ func (s *Signer) processTransactions() {
 						continue
 					}
 
-					s.logger.Info().Msgf("Signing transaction (Num: %d | Height: %d | Status: %d): %+v", i, item.Height, item.Status, item.TxOutItem)
+					s.logger.Info().Int("num", i).Int64("height", item.Height).Int("status", int(item.Status)).Interface("tx", item.TxOutItem).Msgf("Signing transaction")
 					// a single keysign should not take longer than 5 minutes , regardless TSS or local
 					ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 					if err := s.runWithContext(ctx, func() error {

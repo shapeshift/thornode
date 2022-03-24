@@ -128,6 +128,14 @@ func GetRandomBNBAddress() common.Address {
 	return bnb
 }
 
+// GetRandomTERRAAddress will just create a random terra address used for test purpose
+func GetRandomTERRAAddress() common.Address {
+	name := common.RandStringBytesMask(10)
+	str, _ := common.ConvertAndEncode("terra", crypto.AddressHash([]byte(name)))
+	terra, _ := common.NewAddress(str)
+	return terra
+}
+
 func GetRandomBTCAddress() common.Address {
 	pubKey := GetRandomPubKey()
 	addr, _ := pubKey.GetAddress(common.BTCChain)
