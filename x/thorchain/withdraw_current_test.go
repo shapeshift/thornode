@@ -36,10 +36,7 @@ func NewWithdrawTestKeeperV76(keeper keeper.Keeper) *WithdrawTestKeeperV76 {
 }
 
 func (k *WithdrawTestKeeperV76) PoolExist(ctx cosmos.Context, asset common.Asset) bool {
-	if asset.Equals(common.Asset{Chain: common.BNBChain, Symbol: "NOTEXIST", Ticker: "NOTEXIST"}) {
-		return false
-	}
-	return true
+	return !asset.Equals(common.Asset{Chain: common.BNBChain, Symbol: "NOTEXIST", Ticker: "NOTEXIST"})
 }
 
 func (k *WithdrawTestKeeperV76) GetPool(ctx cosmos.Context, asset common.Asset) (types.Pool, error) {

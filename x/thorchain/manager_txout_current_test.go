@@ -483,6 +483,7 @@ func (k *TestCalcKeeper) GetTxOutValue(ctx cosmos.Context, height int64) (cosmos
 	}
 	return val, nil
 }
+
 func (s TxOutStoreV83Suite) TestcalcTxOutHeight(c *C) {
 	keeper := &TestCalcKeeper{
 		value: make(map[int64]cosmos.Uint, 0),
