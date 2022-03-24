@@ -28,7 +28,6 @@ type TestSlashingLackKeeper struct {
 	na                         NodeAccount
 	vaults                     Vaults
 	voter                      ObservedTxVoter
-	failToGetAllPendingEvents  bool
 	failGetTxOut               bool
 	failGetVault               bool
 	failGetNodeAccountByPubKey bool

@@ -129,6 +129,7 @@ func (g *gasManagerTestHelper) SetPool(ctx cosmos.Context, p Pool) error {
 	}
 	return g.Keeper.SetPool(ctx, p)
 }
+
 func (GasManagerTestSuiteV81) TestDifferentValidations(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	constAccessor := constants.GetConstantValues(GetCurrentVersion())

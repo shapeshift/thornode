@@ -2,8 +2,9 @@ package chainclients
 
 import (
 	"github.com/rs/zerolog/log"
-	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/dogecoin"
 	"gitlab.com/thorchain/tss/go-tss/tss"
+
+	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/dogecoin"
 
 	"gitlab.com/thorchain/thornode/bifrost/config"
 	"gitlab.com/thorchain/thornode/bifrost/metrics"
@@ -27,7 +28,7 @@ func LoadChains(thorKeys *thorclient.Keys,
 	poolMgr thorclient.PoolManager,
 ) map[common.Chain]ChainClient {
 	logger := log.Logger.With().Str("module", "bifrost").Logger()
-	chains := make(map[common.Chain]ChainClient, 0)
+	chains := make(map[common.Chain]ChainClient)
 
 	for _, chain := range cfg {
 		if chain.Disabled {
