@@ -387,28 +387,6 @@ func GetSwapQueue(keeper keeper.Keeper, version semver.Version) (SwapQueue, erro
 func GetSlasher(keeper keeper.Keeper, version semver.Version, eventMgr EventManager) (Slasher, error) {
 	if version.GTE(semver.MustParse("0.75.0")) {
 		return newSlasherV75(keeper, eventMgr), nil
-	} else if version.GTE(semver.MustParse("0.72.0")) {
-		return newSlasherV72(keeper, eventMgr), nil
-	} else if version.GTE(semver.MustParse("0.69.0")) {
-		return newSlasherV69(keeper, eventMgr), nil
-	} else if version.GTE(semver.MustParse("0.65.0")) {
-		return newSlasherV65(keeper, eventMgr), nil
-	} else if version.GTE(semver.MustParse("0.63.0")) {
-		return newSlasherV63(keeper, eventMgr), nil
-	} else if version.GTE(semver.MustParse("0.58.0")) {
-		return newSlasherV58(keeper, eventMgr), nil
-	} else if version.GTE(semver.MustParse("0.54.0")) {
-		return newSlasherV54(keeper, eventMgr), nil
-	} else if version.GTE(semver.MustParse("0.48.0")) {
-		return newSlasherV48(keeper, eventMgr), nil
-	} else if version.GTE(semver.MustParse("0.47.0")) {
-		return newSlasherV47(keeper, eventMgr), nil
-	} else if version.GTE(semver.MustParse("0.44.0")) {
-		return newSlasherV44(keeper, eventMgr), nil
-	} else if version.GTE(semver.MustParse("0.43.0")) {
-		return newSlasherV43(keeper, eventMgr), nil
-	} else if version.GTE(semver.MustParse("0.1.0")) {
-		return newSlasherV1(keeper, eventMgr), nil
 	}
 	return nil, errInvalidVersion
 }

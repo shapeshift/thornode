@@ -50,8 +50,6 @@ func (h MimirHandler) validate(ctx cosmos.Context, msg MsgMimir) error {
 	version := h.mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.78.0")) {
 		return h.validateV78(ctx, msg)
-	} else if version.GTE(semver.MustParse("0.1.0")) {
-		return h.validateV1(ctx, msg)
 	}
 	return errBadVersion
 }
@@ -84,12 +82,6 @@ func (h MimirHandler) handle(ctx cosmos.Context, msg MsgMimir) error {
 	version := h.mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.81.0")) {
 		return h.handleV81(ctx, msg)
-	} else if version.GTE(semver.MustParse("0.78.0")) {
-		return h.handleV78(ctx, msg)
-	} else if version.GTE(semver.MustParse("0.65.0")) {
-		return h.handleV65(ctx, msg)
-	} else if version.GTE(semver.MustParse("0.1.0")) {
-		return h.handleV1(ctx, msg)
 	}
 	ctx.Logger().Error(errInvalidVersion.Error())
 	return errBadVersion
