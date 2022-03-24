@@ -6,6 +6,7 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 type GasManagerTestSuiteV81 struct{}
@@ -15,7 +16,7 @@ var _ = Suite(&GasManagerTestSuiteV81{})
 func (GasManagerTestSuiteV81) TestGasManagerV81(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	constAccessor := constants.GetConstantValues(GetCurrentVersion())
-	gasMgr := newGasMgrV80(constAccessor, k)
+	gasMgr := newGasMgrV81(constAccessor, k)
 	gasEvent := gasMgr.gasEvent
 	c.Assert(gasMgr, NotNil)
 	gasMgr.BeginBlock()
@@ -48,7 +49,7 @@ func (GasManagerTestSuiteV81) TestGasManagerV81(c *C) {
 func (GasManagerTestSuiteV81) TestGetFee(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	constAccessor := constants.GetConstantValues(GetCurrentVersion())
-	gasMgr := newGasMgrV80(constAccessor, k)
+	gasMgr := newGasMgrV81(constAccessor, k)
 	fee := gasMgr.GetFee(ctx, common.BNBChain, common.RuneAsset())
 	defaultTxFee := uint64(constAccessor.GetInt64Value(constants.OutboundTransactionFee))
 	// when there is no network fee available, it should just get from the constants
@@ -95,10 +96,43 @@ func (GasManagerTestSuiteV81) TestGetFee(c *C) {
 	c.Assert(synthAssetFee.Uint64(), Equals, uint64(400000))
 }
 
+type gasManagerTestHelper struct {
+	keeper.Keeper
+	failGetNetwork bool
+	failGetPool    bool
+	failSetPool    bool
+}
+
+func newGasManagerTestHelper(k keeper.Keeper) *gasManagerTestHelper {
+	return &gasManagerTestHelper{
+		Keeper: k,
+	}
+}
+
+func (g *gasManagerTestHelper) GetNetwork(ctx cosmos.Context) (Network, error) {
+	if g.failGetNetwork {
+		return Network{}, kaboom
+	}
+	return g.Keeper.GetNetwork(ctx)
+}
+
+func (g *gasManagerTestHelper) GetPool(ctx cosmos.Context, asset common.Asset) (Pool, error) {
+	if g.failGetPool {
+		return NewPool(), kaboom
+	}
+	return g.Keeper.GetPool(ctx, asset)
+}
+
+func (g *gasManagerTestHelper) SetPool(ctx cosmos.Context, p Pool) error {
+	if g.failSetPool {
+		return kaboom
+	}
+	return g.Keeper.SetPool(ctx, p)
+}
 func (GasManagerTestSuiteV81) TestDifferentValidations(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	constAccessor := constants.GetConstantValues(GetCurrentVersion())
-	gasMgr := newGasMgrV80(constAccessor, k)
+	gasMgr := newGasMgrV81(constAccessor, k)
 	gasMgr.BeginBlock()
 	helper := newGasManagerTestHelper(k)
 	eventMgr := newEventMgrV1()
@@ -132,7 +166,7 @@ func (GasManagerTestSuiteV81) TestDifferentValidations(c *C) {
 func (GasManagerTestSuiteV81) TestGetMaxGas(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	constAccessor := constants.GetConstantValues(GetCurrentVersion())
-	gasMgr := newGasMgrV80(constAccessor, k)
+	gasMgr := newGasMgrV81(constAccessor, k)
 	gasCoin, err := gasMgr.GetMaxGas(ctx, common.BTCChain)
 	c.Assert(err, IsNil)
 	c.Assert(gasCoin.Amount.IsZero(), Equals, true)
