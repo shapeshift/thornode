@@ -104,6 +104,9 @@ func (h SwapHandler) validateV65(ctx cosmos.Context, msg MsgSwap) error {
 		if err != nil {
 			return ErrInternal(err, "fail to get pool")
 		}
+		if pool.BalanceAsset.IsZero() {
+			return fmt.Errorf("pool(%s) has zero asset balance", pool.Asset.String())
+		}
 		coverage := int64(synthSupply.MulUint64(MaxWithdrawBasisPoints).Quo(pool.BalanceAsset).Uint64())
 		if coverage > maxSynths {
 			return fmt.Errorf("synth quantity is too high relative to asset depth of related pool (%d/%d)", coverage, maxSynths)
