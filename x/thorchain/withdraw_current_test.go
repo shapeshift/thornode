@@ -6,8 +6,9 @@ import (
 	"testing"
 
 	"github.com/magiconair/properties/assert"
-	"gitlab.com/thorchain/thornode/constants"
 	. "gopkg.in/check.v1"
+
+	"gitlab.com/thorchain/thornode/constants"
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
@@ -305,7 +306,7 @@ func (s WithdrawSuiteV76) TestCalculateUnsake(c *C) {
 
 	for _, item := range inputs {
 		c.Logf("name:%s", item.name)
-		withDrawRune, withDrawAsset, unitAfter, err := calculateWithdrawV1(item.poolUnit, item.poolRune, item.poolAsset, item.lpUnit, item.percentage, common.EmptyAsset)
+		withDrawRune, withDrawAsset, unitAfter, err := calculateWithdrawV76(item.poolUnit, item.poolRune, item.poolAsset, item.lpUnit, cosmos.ZeroUint(), item.percentage, common.EmptyAsset)
 		if item.expectedErr == nil {
 			c.Assert(err, IsNil)
 		} else {
@@ -633,7 +634,7 @@ func (s *WithdrawSuiteV76) TestWithdrawWithImpermanentLossProtection(c *C) {
 	// add some liquidity
 	// add some liquidity
 	for i := 0; i <= 10; i++ {
-		c.Assert(addHandler.addLiquidityV68(ctx,
+		c.Assert(addHandler.addLiquidity(ctx,
 			common.BTCAsset,
 			cosmos.NewUint(common.One),
 			cosmos.NewUint(common.One),
@@ -644,7 +645,7 @@ func (s *WithdrawSuiteV76) TestWithdrawWithImpermanentLossProtection(c *C) {
 			constantAccessor), IsNil)
 	}
 	lpAddr := GetRandomTHORAddress()
-	c.Assert(addHandler.addLiquidityV68(ctx,
+	c.Assert(addHandler.addLiquidity(ctx,
 		common.BTCAsset,
 		cosmos.NewUint(common.One),
 		cosmos.NewUint(common.One),
@@ -805,4 +806,27 @@ func TestCalcImpLossV76(t *testing.T) {
 			assert.Equal(t1, redeemValue.String(), tc.expectedRedeemValue.String())
 		})
 	}
+}
+
+// this one has an extra liquidity provider already set
+func getWithdrawTestKeeper2(c *C, ctx cosmos.Context, k keeper.Keeper, runeAddress common.Address) keeper.Keeper {
+	store := NewWithdrawTestKeeperV76(k)
+	pool := Pool{
+		BalanceRune:  cosmos.NewUint(100 * common.One),
+		BalanceAsset: cosmos.NewUint(100 * common.One),
+		Asset:        common.BNBAsset,
+		LPUnits:      cosmos.NewUint(200 * common.One),
+		SynthUnits:   cosmos.ZeroUint(),
+		Status:       PoolAvailable,
+	}
+	c.Assert(store.SetPool(ctx, pool), IsNil)
+	lp := LiquidityProvider{
+		Asset:        pool.Asset,
+		RuneAddress:  runeAddress,
+		AssetAddress: runeAddress,
+		Units:        cosmos.NewUint(100 * common.One),
+		PendingRune:  cosmos.ZeroUint(),
+	}
+	store.SetLiquidityProvider(ctx, lp)
+	return store
 }
