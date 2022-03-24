@@ -201,7 +201,7 @@ func newOutboundTxHandlerTestHelper(c *C) outboundTxHandlerTestHelper {
 		Chain:       common.RuneAsset().Chain,
 		Coins:       common.Coins{common.NewCoin(common.BNBAsset, cosmos.NewUint(1*common.One))},
 		Memo:        "SWAP:" + common.RuneAsset().String(),
-		FromAddress: GetRandomRUNEAddress(),
+		FromAddress: GetRandomBNBAddress(),
 		ToAddress:   addr,
 		Gas:         BNBGasFeeSingleton,
 	}, 12, GetRandomPubKey(), 12)
@@ -225,7 +225,7 @@ func newOutboundTxHandlerTestHelper(c *C) outboundTxHandlerTestHelper {
 	keeperHelper.SetObservedTxOutVoter(ctx, voter)
 
 	constAccessor := constants.GetConstantValues(version)
-	txOutStorage := newTxOutStorageV1(keeperHelper, constAccessor, NewDummyEventMgr(), newGasMgrV1(constAccessor, keeperHelper))
+	txOutStorage := newTxOutStorageV83(keeperHelper, constAccessor, NewDummyEventMgr(), newGasMgrV1(constAccessor, keeperHelper))
 	toi := TxOutItem{
 		Chain:       common.BNBChain,
 		ToAddress:   tx.Tx.FromAddress,
@@ -472,7 +472,7 @@ func (s *HandlerOutboundTxSuite) TestOutboundTxHandlerETHChainSpendTooMuchGasSho
 	usdtAsset, err := common.NewAsset("ETH.USDT-0XA3910454BF2CB59B8B3A401589A3BACC5CA42306")
 	c.Assert(err, IsNil)
 
-	txOutStorage := newTxOutStorageV1(helper.keeper, helper.constAccessor, NewDummyEventMgr(), newGasMgrV1(helper.constAccessor, helper.keeper))
+	txOutStorage := newTxOutStorageV83(helper.keeper, helper.constAccessor, NewDummyEventMgr(), newGasMgrV1(helper.constAccessor, helper.keeper))
 	pubKey := GetRandomPubKey()
 	toAddr, err := pubKey.GetAddress(common.ETHChain)
 	c.Assert(err, IsNil)
