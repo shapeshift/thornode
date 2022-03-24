@@ -13,7 +13,7 @@ type SwapQueueV58Suite struct{}
 var _ = Suite(&SwapQueueV58Suite{})
 
 func (s SwapQueueV58Suite) TestGetTodoNum(c *C) {
-	queue := newSwapQv47(keeper.KVStoreDummy{})
+	queue := newSwapQv58(keeper.KVStoreDummy{})
 
 	c.Check(queue.getTodoNum(50, 10, 100), Equals, int64(25))     // halves it
 	c.Check(queue.getTodoNum(11, 10, 100), Equals, int64(5))      // halves it
@@ -38,7 +38,7 @@ func (s SwapQueueV58Suite) TestScoreMsgs(c *C) {
 	pool.BalanceAsset = cosmos.NewUint(1000 * common.One)
 	c.Assert(k.SetPool(ctx, pool), IsNil)
 
-	queue := newSwapQv47(k)
+	queue := newSwapQv58(k)
 
 	// check that we sort by liquidity ok
 	msgs := []*MsgSwap{
