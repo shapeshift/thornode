@@ -64,8 +64,6 @@ func (h NetworkFeeHandler) handle(ctx cosmos.Context, msg MsgNetworkFee) (*cosmo
 	version := h.mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.47.0")) {
 		return h.handleV47(ctx, msg)
-	} else if version.GTE(semver.MustParse("0.1.0")) {
-		return h.handleV1(ctx, msg)
 	}
 	return nil, errBadVersion
 }

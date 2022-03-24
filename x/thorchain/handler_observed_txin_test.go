@@ -721,7 +721,7 @@ func (s HandlerObservedTxInSuite) TestSwapWithAffiliate(c *C) {
 	}, common.BNBAsset, GetRandomBNBAddress(), cosmos.ZeroUint(), GetRandomTHORAddress(), cosmos.NewUint(1000),
 		GetRandomBech32Addr(),
 	)
-	handler.addSwapV1(ctx, *msg)
+	handler.addSwap(ctx, *msg)
 	swaps, err := queue.FetchQueue(ctx)
 	c.Assert(err, IsNil)
 	c.Assert(swaps, HasLen, 2, Commentf("%d", len(swaps)))
