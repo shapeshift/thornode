@@ -27,6 +27,7 @@ import (
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients"
 	"gitlab.com/thorchain/thornode/bifrost/pubkeymanager"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient"
+	"gitlab.com/thorchain/thornode/bifrost/thorclient/types"
 	stypes "gitlab.com/thorchain/thornode/bifrost/thorclient/types"
 	"gitlab.com/thorchain/thornode/cmd"
 	"gitlab.com/thorchain/thornode/common"
@@ -230,6 +231,9 @@ func (b *MockChainClient) GetAccountByAddress(address string, _ *big.Int) (commo
 
 func (b *MockChainClient) GetPubKey() crypto.PubKey {
 	return nil
+}
+
+func (b *MockChainClient) OnObservedTxIn(txIn types.TxInItem, blockHeight int64) {
 }
 
 func (b *MockChainClient) Start(globalTxsQueue chan stypes.TxIn, globalErrataQueue chan stypes.ErrataBlock, globalSolvencyQueue chan stypes.Solvency) {

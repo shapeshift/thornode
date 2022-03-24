@@ -44,7 +44,7 @@ func (s *SwapV56Suite) TestSwap(c *C) {
 			requester:     "tester",
 			destination:   "whatever",
 			returnAmount:  cosmos.ZeroUint(),
-			expectedErr:   errors.New("Denom cannot be empty"),
+			expectedErr:   errors.New("denom cannot be empty"),
 		},
 		{
 			name:          "empty-target",
@@ -77,7 +77,7 @@ func (s *SwapV56Suite) TestSwap(c *C) {
 			requester:     "tester",
 			destination:   "whatever",
 			returnAmount:  cosmos.ZeroUint(),
-			expectedErr:   errors.New("Amount cannot be zero"),
+			expectedErr:   errors.New("amount cannot be zero"),
 		},
 		{
 			name:          "empty-requester",

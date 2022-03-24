@@ -148,7 +148,7 @@ func applyDefaultConfig() {
 	viper.SetDefault("metrics.listen_port", "9000")
 	viper.SetDefault("metrics.read_timeout", "30s")
 	viper.SetDefault("metrics.write_timeout", "30s")
-	viper.SetDefault("metrics.chains", common.Chains{common.BNBChain, common.BTCChain, common.LTCChain, common.BCHChain, common.ETHChain, common.DOGEChain})
+	viper.SetDefault("metrics.chains", common.Chains{common.BNBChain, common.BTCChain, common.LTCChain, common.BCHChain, common.ETHChain, common.DOGEChain, common.TERRAChain})
 	viper.SetDefault("thorchain.chain_id", "thorchain")
 	viper.SetDefault("thorchain.chain_host", "localhost:1317")
 	viper.SetDefault("back_off.initial_interval", 500*time.Millisecond)
