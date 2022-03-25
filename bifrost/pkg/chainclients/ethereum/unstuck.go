@@ -77,7 +77,7 @@ func (c *Client) unstuckAction() {
 
 // unstuckTx is the method used to unstuck ETH address
 // when unstuckTx return an err , then the same hash should retry otherwise it can be removed
-func (c *Client) unstuckTx(vaultPubKey string, hash string) error {
+func (c *Client) unstuckTx(vaultPubKey, hash string) error {
 	ctx, cancel := c.getContext()
 	defer cancel()
 	tx, pending, err := c.client.TransactionByHash(ctx, ecommon.HexToHash(hash))

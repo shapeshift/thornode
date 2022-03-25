@@ -13,11 +13,11 @@ cache:
 variables:
   DOCKER_DRIVER: overlay2
   DOCKER_HOST: tcp://docker:2376
-  DOCKER_TLS_CERTDIR: '/certs'
+  DOCKER_TLS_CERTDIR: "/certs"
   DOCKER_TLS_VERIFY: 1
-  DOCKER_CERT_PATH: '$DOCKER_TLS_CERTDIR/client'
-  SAST_EXCLUDED_ANALYZERS: 'eslint,bandit,semgrep'
-  SAST_EXCLUDED_PATHS: 'spec, test, tests, tmp,.cache'
+  DOCKER_CERT_PATH: "$DOCKER_TLS_CERTDIR/client"
+  SAST_EXCLUDED_ANALYZERS: "eslint,bandit,semgrep"
+  SAST_EXCLUDED_PATHS: "spec, test, tests, tmp,.cache"
 
 before_script:
   - mkdir -p .cache
@@ -111,7 +111,7 @@ smoke-test:
     - docker:20.10.12-dind
   artifacts:
     when: on_failure
-    name: '$CI_JOB_NAME-$CI_COMMIT_REF_NAME'
+    name: "$CI_JOB_NAME-$CI_COMMIT_REF_NAME"
     paths:
       - ./logs/
   except:
@@ -127,7 +127,7 @@ smoke-test:
     BLOCK_TIME: 0.8s
     TERRA_BLOCK_TIME: 0.8s
     BLOCK_SCANNER_BACKOFF: 0.8s
-    ETH_BLOCK_TIME: '0'
+    ETH_BLOCK_TIME: "0"
   before_script:
     # https://gitlab.com/gitlab-org/gitlab-runner/-/issues/27384#note_497228752
     - |
