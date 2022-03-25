@@ -715,56 +715,8 @@ func isTradingHalt(ctx cosmos.Context, msg cosmos.Msg, mgr Manager) bool {
 	version := mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.65.0")) {
 		return isTradingHaltV65(ctx, msg, mgr)
-	} else if version.GTE(semver.MustParse("0.63.0")) {
-		return isTradingHaltV63(ctx, msg, mgr)
-	} else if version.GTE(semver.MustParse("0.1.0")) {
-		return isTradingHaltV1(ctx, msg, mgr)
 	}
 	return false
-}
-
-func isTradingHaltV1(ctx cosmos.Context, msg cosmos.Msg, mgr Manager) bool {
-	if isGlobalTradingHalted(ctx, mgr) {
-		return true
-	}
-	var targetChain common.Chain
-	switch m := msg.(type) {
-	case *MsgSwap:
-		sourceChain := m.Tx.Chain
-		// check the source chain is halted or not
-		if isChainTradingHalted(ctx, mgr, sourceChain) {
-			return true
-		}
-		if m.TargetAsset.IsSyntheticAsset() {
-			targetChain = m.TargetAsset.GetLayer1Asset().Chain
-		} else {
-			targetChain = m.TargetAsset.GetChain()
-		}
-	case *MsgAddLiquidity:
-		targetChain = m.Asset.GetChain()
-	default:
-		return false
-	}
-	return isChainTradingHalted(ctx, mgr, targetChain)
-}
-
-func isTradingHaltV63(ctx cosmos.Context, msg cosmos.Msg, mgr Manager) bool {
-	if isGlobalTradingHalted(ctx, mgr) {
-		return true
-	}
-	switch m := msg.(type) {
-	case *MsgSwap:
-		source := common.EmptyChain
-		if len(m.Tx.Coins) > 0 {
-			source = m.Tx.Coins[0].Asset.GetLayer1Asset().Chain
-		}
-		target := m.TargetAsset.GetLayer1Asset().Chain
-		return isChainTradingHalted(ctx, mgr, source) || isChainTradingHalted(ctx, mgr, target)
-	case *MsgAddLiquidity:
-		return isChainTradingHalted(ctx, mgr, m.Asset.Chain)
-	default:
-		return false
-	}
 }
 
 func isTradingHaltV65(ctx cosmos.Context, msg cosmos.Msg, mgr Manager) bool {
@@ -818,9 +770,8 @@ func isChainHalted(ctx cosmos.Context, mgr Manager, chain common.Chain) bool {
 	version := mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.65.0")) {
 		return isChainHaltedV65(ctx, mgr, chain)
-	} else {
-		return isChainHaltedV1(ctx, mgr, chain)
 	}
+	return false
 }
 
 // isChainHalted check whether the given chain is halt
@@ -841,16 +792,6 @@ func isChainHaltedV65(ctx cosmos.Context, mgr Manager, chain common.Chain) bool 
 
 	mimirKey := fmt.Sprintf("Halt%sChain", chain)
 	haltChain, err = mgr.Keeper().GetMimir(ctx, mimirKey)
-	if err == nil && (haltChain > 0 && haltChain < common.BlockHeight(ctx)) {
-		ctx.Logger().Info("chain is halt", "chain", chain)
-		return true
-	}
-	return false
-}
-
-func isChainHaltedV1(ctx cosmos.Context, mgr Manager, chain common.Chain) bool {
-	mimirKey := fmt.Sprintf("Halt%sChain", chain)
-	haltChain, err := mgr.Keeper().GetMimir(ctx, mimirKey)
 	if err == nil && (haltChain > 0 && haltChain < common.BlockHeight(ctx)) {
 		ctx.Logger().Info("chain is halt", "chain", chain)
 		return true

@@ -3,7 +3,7 @@ package thorchain
 import (
 	"fmt"
 
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 
 	"github.com/blang/semver"
 )
@@ -28,7 +28,7 @@ func ParseBondMemo(version semver.Version, parts []string) (BondMemo, error) {
 	if version.GTE(semver.MustParse("0.81.0")) {
 		return ParseBondMemoV81(parts)
 	}
-	return ParseBondMemoV1(parts)
+	return BondMemo{}, fmt.Errorf("invalid version(%s)", version.String())
 }
 
 func ParseBondMemoV81(parts []string) (BondMemo, error) {

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/blang/semver"
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	kvTypes "gitlab.com/thorchain/thornode/x/thorchain/keeper/types"
@@ -90,9 +89,7 @@ func (k KVStore) SortBySecurity(ctx cosmos.Context, vaults Vaults, signingTransP
 		totalValue := cosmos.ZeroUint()
 		for _, coin := range vault.Coins {
 			if coin.Asset.IsRune() {
-				if k.version.LT(semver.MustParse("0.79.0")) {
-					totalValue = totalValue.Add(coin.Amount)
-				}
+				continue
 			} else {
 				pool, err := k.GetPool(ctx, coin.Asset)
 				if err != nil {
