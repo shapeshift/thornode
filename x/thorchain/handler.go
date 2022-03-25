@@ -52,66 +52,7 @@ func NewExternalHandler(mgr Manager) cosmos.Handler {
 }
 
 func getHandlerMapping(mgr Manager) map[string]MsgHandler {
-	version := mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.65.0")) {
-		return getHandlerMappingV65(mgr)
-	} else if version.GTE(semver.MustParse("0.63.0")) {
-		return getHandlerMappingV63(mgr)
-	}
-	return getHandlerMappingV1(mgr)
-}
-
-func getHandlerMappingV1(mgr Manager) map[string]MsgHandler {
-	m := make(map[string]MsgHandler)
-	// consensus handlers
-	m[MsgTssPool{}.Type()] = NewTssHandler(mgr)
-	m[MsgObservedTxIn{}.Type()] = NewObservedTxInHandler(mgr)
-	m[MsgObservedTxOut{}.Type()] = NewObservedTxOutHandler(mgr)
-	m[MsgTssKeysignFail{}.Type()] = NewTssKeysignHandler(mgr)
-	m[MsgErrataTx{}.Type()] = NewErrataTxHandler(mgr)
-	m[MsgMimir{}.Type()] = NewMimirHandler(mgr)
-	m[MsgBan{}.Type()] = NewBanHandler(mgr)
-	m[MsgNetworkFee{}.Type()] = NewNetworkFeeHandler(mgr)
-
-	// cli handlers (non-consensus)
-	m[MsgSetNodeKeys{}.Type()] = NewSetNodeKeysHandler(mgr)
-	m[MsgSetVersion{}.Type()] = NewVersionHandler(mgr)
-	m[MsgSetIPAddress{}.Type()] = NewIPAddressHandler(mgr)
-
-	// native handlers (non-consensus)
-	m[MsgSend{}.Type()] = NewSendHandler(mgr)
-	m[MsgDeposit{}.Type()] = NewDepositHandler(mgr)
-	return m
-}
-
-func getHandlerMappingV63(mgr Manager) map[string]MsgHandler {
-	// New arch handlers
-	m := make(map[string]MsgHandler)
-
-	// consensus handlers
-	m[MsgTssPool{}.Type()] = NewTssHandler(mgr)
-	m[MsgObservedTxIn{}.Type()] = NewObservedTxInHandler(mgr)
-	m[MsgObservedTxOut{}.Type()] = NewObservedTxOutHandler(mgr)
-	m[MsgTssKeysignFail{}.Type()] = NewTssKeysignHandler(mgr)
-	m[MsgErrataTx{}.Type()] = NewErrataTxHandler(mgr)
-	m[MsgBan{}.Type()] = NewBanHandler(mgr)
-	m[MsgNetworkFee{}.Type()] = NewNetworkFeeHandler(mgr)
-	m[MsgSolvency{}.Type()] = NewSolvencyHandler(mgr)
-
-	// cli handlers (non-consensus)
-	m[MsgSetNodeKeys{}.Type()] = NewSetNodeKeysHandler(mgr)
-	m[MsgSetVersion{}.Type()] = NewVersionHandler(mgr)
-	m[MsgSetIPAddress{}.Type()] = NewIPAddressHandler(mgr)
-	m[MsgMimir{}.Type()] = NewMimirHandler(mgr)
-
-	// native handlers (non-consensus)
-	m[MsgSend{}.Type()] = NewSendHandler(mgr)
-	m[MsgDeposit{}.Type()] = NewDepositHandler(mgr)
-	// TODO: uncomment this line once THORNames is deployed (post version
-	// 0.57.0). If this is done, gas is paid with deposit handler, so we'll
-	// need to charge for gas, but not twice
-	// m[MsgManageTHORName{}.Type()] = NewManageTHORNameHandler(mgr)
-	return m
+	return getHandlerMappingV65(mgr)
 }
 
 func getHandlerMappingV65(mgr Manager) map[string]MsgHandler {
@@ -269,187 +210,8 @@ func getMsgManageTHORNameFromMemo(memo ManageTHORNameMemo, tx ObservedTx, signer
 func processOneTxIn(ctx cosmos.Context, version semver.Version, keeper keeper.Keeper, tx ObservedTx, signer cosmos.AccAddress) (cosmos.Msg, error) {
 	if version.GTE(semver.MustParse("0.63.0")) {
 		return processOneTxInV63(ctx, keeper, tx, signer)
-	} else if version.GTE(semver.MustParse("0.57.0")) {
-		return processOneTxInV57(ctx, keeper, tx, signer)
-	} else if version.GTE(semver.MustParse("0.47.0")) {
-		return processOneTxInV46(ctx, keeper, tx, signer)
-	} else if version.GTE(semver.MustParse("0.1.0")) {
-		return processOneTxInV1(ctx, keeper, tx, signer)
 	}
 	return nil, errBadVersion
-}
-
-func processOneTxInV1(ctx cosmos.Context, keeper keeper.Keeper, tx ObservedTx, signer cosmos.AccAddress) (cosmos.Msg, error) {
-	memo, err := ParseMemo(keeper.Version(), tx.Tx.Memo)
-	if err != nil {
-		ctx.Logger().Error("fail to parse memo", "error", err)
-		return nil, err
-	}
-	// THORNode should not have one tx across chain, if it is cross chain it should be separate tx
-	var newMsg cosmos.Msg
-	// interpret the memo and initialize a corresponding msg event
-	switch m := memo.(type) {
-	case AddLiquidityMemo:
-		newMsg, err = getMsgAddLiquidityFromMemo(ctx, m, tx, signer)
-	case WithdrawLiquidityMemo:
-		newMsg, err = getMsgWithdrawFromMemo(m, tx, signer)
-	case SwapMemo:
-		newMsg, err = getMsgSwapFromMemo(m, tx, signer)
-	case DonateMemo:
-		newMsg, err = getMsgDonateFromMemo(m, tx, signer)
-	case RefundMemo:
-		newMsg, err = getMsgRefundFromMemo(m, tx, signer)
-	case OutboundMemo:
-		newMsg, err = getMsgOutboundFromMemo(m, tx, signer)
-	case MigrateMemo:
-		newMsg, err = getMsgMigrateFromMemo(m, tx, signer)
-	case BondMemo:
-		newMsg, err = getMsgBondFromMemo(m, tx, signer)
-	case UnbondMemo:
-		newMsg, err = getMsgUnbondFromMemo(m, tx, signer)
-	case RagnarokMemo:
-		newMsg, err = getMsgRagnarokFromMemo(m, tx, signer)
-	case LeaveMemo:
-		newMsg, err = getMsgLeaveFromMemo(m, tx, signer)
-	case YggdrasilFundMemo:
-		newMsg = NewMsgYggdrasil(tx.Tx, tx.ObservedPubKey, m.GetBlockHeight(), true, tx.Tx.Coins, signer)
-	case YggdrasilReturnMemo:
-		newMsg = NewMsgYggdrasil(tx.Tx, tx.ObservedPubKey, m.GetBlockHeight(), false, tx.Tx.Coins, signer)
-	case ReserveMemo:
-		res := NewReserveContributor(tx.Tx.FromAddress, tx.Tx.Coins.GetCoin(common.RuneAsset()).Amount)
-		newMsg = NewMsgReserveContributor(tx.Tx, res, signer)
-	case SwitchMemo:
-		newMsg = NewMsgSwitch(tx.Tx, memo.GetDestination(), signer)
-	case NoOpMemo:
-		newMsg = NewMsgNoOp(tx, signer, m.Action)
-	default:
-		return nil, errInvalidMemo
-	}
-
-	if err != nil {
-		return newMsg, err
-	}
-	return newMsg, newMsg.ValidateBasic()
-}
-
-func processOneTxInV46(ctx cosmos.Context, keeper keeper.Keeper, tx ObservedTx, signer cosmos.AccAddress) (cosmos.Msg, error) {
-	memo, err := ParseMemo(keeper.Version(), tx.Tx.Memo)
-	if err != nil {
-		ctx.Logger().Error("fail to parse memo", "error", err)
-		return nil, err
-	}
-	// THORNode should not have one tx across chain, if it is cross chain it should be separate tx
-	var newMsg cosmos.Msg
-	// interpret the memo and initialize a corresponding msg event
-	switch m := memo.(type) {
-	case AddLiquidityMemo:
-		m.Asset = fuzzyAssetMatch(ctx, keeper, m.Asset)
-		newMsg, err = getMsgAddLiquidityFromMemo(ctx, m, tx, signer)
-	case WithdrawLiquidityMemo:
-		m.Asset = fuzzyAssetMatch(ctx, keeper, m.Asset)
-		newMsg, err = getMsgWithdrawFromMemo(m, tx, signer)
-	case SwapMemo:
-		m.Asset = fuzzyAssetMatch(ctx, keeper, m.Asset)
-		newMsg, err = getMsgSwapFromMemo(m, tx, signer)
-	case DonateMemo:
-		m.Asset = fuzzyAssetMatch(ctx, keeper, m.Asset)
-		newMsg, err = getMsgDonateFromMemo(m, tx, signer)
-	case RefundMemo:
-		newMsg, err = getMsgRefundFromMemo(m, tx, signer)
-	case OutboundMemo:
-		newMsg, err = getMsgOutboundFromMemo(m, tx, signer)
-	case MigrateMemo:
-		newMsg, err = getMsgMigrateFromMemo(m, tx, signer)
-	case BondMemo:
-		newMsg, err = getMsgBondFromMemo(m, tx, signer)
-	case UnbondMemo:
-		newMsg, err = getMsgUnbondFromMemo(m, tx, signer)
-	case RagnarokMemo:
-		newMsg, err = getMsgRagnarokFromMemo(m, tx, signer)
-	case LeaveMemo:
-		newMsg, err = getMsgLeaveFromMemo(m, tx, signer)
-	case YggdrasilFundMemo:
-		newMsg = NewMsgYggdrasil(tx.Tx, tx.ObservedPubKey, m.GetBlockHeight(), true, tx.Tx.Coins, signer)
-	case YggdrasilReturnMemo:
-		newMsg = NewMsgYggdrasil(tx.Tx, tx.ObservedPubKey, m.GetBlockHeight(), false, tx.Tx.Coins, signer)
-	case ReserveMemo:
-		res := NewReserveContributor(tx.Tx.FromAddress, tx.Tx.Coins.GetCoin(common.RuneAsset()).Amount)
-		newMsg = NewMsgReserveContributor(tx.Tx, res, signer)
-	case SwitchMemo:
-		newMsg = NewMsgSwitch(tx.Tx, memo.GetDestination(), signer)
-	case NoOpMemo:
-		newMsg = NewMsgNoOp(tx, signer, m.Action)
-	case ConsolidateMemo:
-		newMsg = NewMsgConsolidate(tx, signer)
-	default:
-		return nil, errInvalidMemo
-	}
-
-	if err != nil {
-		return newMsg, err
-	}
-	return newMsg, newMsg.ValidateBasic()
-}
-
-func processOneTxInV57(ctx cosmos.Context, keeper keeper.Keeper, tx ObservedTx, signer cosmos.AccAddress) (cosmos.Msg, error) {
-	memo, err := ParseMemoWithTHORNames(ctx, keeper, tx.Tx.Memo)
-	if err != nil {
-		ctx.Logger().Error("fail to parse memo", "error", err)
-		return nil, err
-	}
-	// THORNode should not have one tx across chain, if it is cross chain it should be separate tx
-	var newMsg cosmos.Msg
-	// interpret the memo and initialize a corresponding msg event
-	switch m := memo.(type) {
-	case AddLiquidityMemo:
-		m.Asset = fuzzyAssetMatch(ctx, keeper, m.Asset)
-		newMsg, err = getMsgAddLiquidityFromMemo(ctx, m, tx, signer)
-	case WithdrawLiquidityMemo:
-		m.Asset = fuzzyAssetMatch(ctx, keeper, m.Asset)
-		newMsg, err = getMsgWithdrawFromMemo(m, tx, signer)
-	case SwapMemo:
-		m.Asset = fuzzyAssetMatch(ctx, keeper, m.Asset)
-		newMsg, err = getMsgSwapFromMemo(m, tx, signer)
-	case DonateMemo:
-		m.Asset = fuzzyAssetMatch(ctx, keeper, m.Asset)
-		newMsg, err = getMsgDonateFromMemo(m, tx, signer)
-	case RefundMemo:
-		newMsg, err = getMsgRefundFromMemo(m, tx, signer)
-	case OutboundMemo:
-		newMsg, err = getMsgOutboundFromMemo(m, tx, signer)
-	case MigrateMemo:
-		newMsg, err = getMsgMigrateFromMemo(m, tx, signer)
-	case BondMemo:
-		newMsg, err = getMsgBondFromMemo(m, tx, signer)
-	case UnbondMemo:
-		newMsg, err = getMsgUnbondFromMemo(m, tx, signer)
-	case RagnarokMemo:
-		newMsg, err = getMsgRagnarokFromMemo(m, tx, signer)
-	case LeaveMemo:
-		newMsg, err = getMsgLeaveFromMemo(m, tx, signer)
-	case YggdrasilFundMemo:
-		newMsg = NewMsgYggdrasil(tx.Tx, tx.ObservedPubKey, m.GetBlockHeight(), true, tx.Tx.Coins, signer)
-	case YggdrasilReturnMemo:
-		newMsg = NewMsgYggdrasil(tx.Tx, tx.ObservedPubKey, m.GetBlockHeight(), false, tx.Tx.Coins, signer)
-	case ReserveMemo:
-		res := NewReserveContributor(tx.Tx.FromAddress, tx.Tx.Coins.GetCoin(common.RuneAsset()).Amount)
-		newMsg = NewMsgReserveContributor(tx.Tx, res, signer)
-	case SwitchMemo:
-		newMsg = NewMsgSwitch(tx.Tx, memo.GetDestination(), signer)
-	case NoOpMemo:
-		newMsg = NewMsgNoOp(tx, signer, m.Action)
-	case ConsolidateMemo:
-		newMsg = NewMsgConsolidate(tx, signer)
-	case ManageTHORNameMemo:
-		newMsg, err = getMsgManageTHORNameFromMemo(m, tx, signer)
-	default:
-		return nil, errInvalidMemo
-	}
-
-	if err != nil {
-		return newMsg, err
-	}
-	return newMsg, newMsg.ValidateBasic()
 }
 
 func processOneTxInV63(ctx cosmos.Context, keeper keeper.Keeper, tx ObservedTx, signer cosmos.AccAddress) (cosmos.Msg, error) {
@@ -510,7 +272,13 @@ func processOneTxInV63(ctx cosmos.Context, keeper keeper.Keeper, tx ObservedTx, 
 	if err != nil {
 		return newMsg, err
 	}
-
+	// MsgAddLiquidity & MsgSwap has a new version of validateBasic
+	switch m := newMsg.(type) {
+	case *MsgAddLiquidity:
+		return newMsg, m.ValidateBasicV63()
+	case *MsgSwap:
+		return newMsg, m.ValidateBasicV63()
+	}
 	return newMsg, newMsg.ValidateBasic()
 }
 
