@@ -1,0 +1,15 @@
+{
+  "balances": [
+    {
+      "denom": "uluna",
+      "amount": "4966941"
+    },
+    {
+      "denom": "uusd",
+      "amount": "111687423"
+    }
+  ],
+  "pagination": {
+    "total": "2"
+  }
+}
