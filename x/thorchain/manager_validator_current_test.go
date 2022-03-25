@@ -472,6 +472,30 @@ func (vts *ValidatorMgrV84TestSuite) TestFindNextVaultNodeAccounts(c *C) {
 	c.Assert(nasAfter, HasLen, 10)
 }
 
+func (vts *ValidatorMgrV84TestSuite) TestFindNextVaultNodeAccountsMax(c *C) {
+	// test that we don't exceed the targetCount
+	ctx, mgr := setupManagerForTest(c)
+	vMgr := newValidatorMgrV84(mgr.Keeper(), mgr.VaultMgr(), mgr.TxOutStore(), mgr.EventMgr())
+	c.Assert(vMgr, NotNil)
+	// create active nodes
+	for i := 0; i < 12; i++ {
+		na := GetRandomValidatorNode(NodeActive)
+		if i < 3 {
+			na.LeaveScore = 1024
+		}
+		c.Assert(mgr.Keeper().SetNodeAccount(ctx, na), IsNil)
+	}
+	// create standby nodes
+	for i := 0; i < 12; i++ {
+		na := GetRandomValidatorNode(NodeStandby)
+		c.Assert(mgr.Keeper().SetNodeAccount(ctx, na), IsNil)
+	}
+	nasAfter, rotate, err := vMgr.nextVaultNodeAccounts(ctx, 12, mgr.GetConstants())
+	c.Assert(err, IsNil)
+	c.Assert(rotate, Equals, true)
+	c.Assert(nasAfter, HasLen, 12, Commentf("%d", len(nasAfter)))
+}
+
 func (vts *ValidatorMgrV84TestSuite) TestWeightedBondReward(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	ctx = ctx.WithBlockHeight(20)
