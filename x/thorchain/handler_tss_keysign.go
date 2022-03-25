@@ -49,8 +49,6 @@ func (h TssKeysignHandler) validate(ctx cosmos.Context, msg MsgTssKeysignFail) e
 	version := h.mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.70.0")) {
 		return h.validateV70(ctx, msg)
-	} else if version.GTE(semver.MustParse("0.1.0")) {
-		return h.validateV1(ctx, msg)
 	}
 	return errBadVersion
 }

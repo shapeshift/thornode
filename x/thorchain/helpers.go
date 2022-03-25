@@ -30,8 +30,6 @@ func refundTx(ctx cosmos.Context, tx ObservedTx, mgr Manager, constAccessor cons
 	version := mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.47.0")) {
 		return refundTxV47(ctx, tx, mgr, constAccessor, refundCode, refundReason, nativeRuneModuleName)
-	} else if version.GTE(semver.MustParse("0.1.0")) {
-		return refundTxV1(ctx, tx, mgr, constAccessor, refundCode, refundReason, nativeRuneModuleName)
 	}
 	return errBadVersion
 }
@@ -146,10 +144,6 @@ func subsidizePoolWithSlashBond(ctx cosmos.Context, ygg Vault, yggTotalStolen, s
 	version := mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.74.0")) {
 		return subsidizePoolWithSlashBondV74(ctx, ygg, yggTotalStolen, slashRuneAmt, mgr)
-	} else if version.GTE(semver.MustParse("0.46.0")) {
-		return subsidizePoolWithSlashBondV46(ctx, ygg, yggTotalStolen, slashRuneAmt, mgr)
-	} else if version.GTE(semver.MustParse("0.1.0")) {
-		return subsidizePoolWithSlashBondV1(ctx, ygg, yggTotalStolen, slashRuneAmt, mgr)
 	}
 	return errBadVersion
 }
@@ -261,14 +255,6 @@ func refundBond(ctx cosmos.Context, tx common.Tx, acc cosmos.AccAddress, amt cos
 	version := mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.81.0")) {
 		return refundBondV81(ctx, tx, acc, amt, nodeAcc, mgr)
-	} else if version.GTE(semver.MustParse("0.80.0")) {
-		return refundBondV80(ctx, tx, amt, nodeAcc, mgr)
-	} else if version.GTE(semver.MustParse("0.76.0")) {
-		return refundBondV76(ctx, tx, amt, nodeAcc, mgr)
-	} else if version.GTE(semver.MustParse("0.46.0")) {
-		return refundBondV46(ctx, tx, amt, nodeAcc, mgr)
-	} else if version.GTE(semver.MustParse("0.1.0")) {
-		return refundBondV1(ctx, tx, amt, nodeAcc, mgr)
 	}
 	return errBadVersion
 }
@@ -468,8 +454,6 @@ func cyclePools(ctx cosmos.Context, maxAvailablePools, minRunePoolDepth, stagedP
 	version := mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.73.0")) {
 		return cyclePoolsV73(ctx, maxAvailablePools, minRunePoolDepth, stagedPoolCost, mgr)
-	} else if version.GTE(semver.MustParse("0.1.0")) {
-		return cyclePoolsV1(ctx, maxAvailablePools, minRunePoolDepth, stagedPoolCost, mgr)
 	}
 	return errBadVersion
 }

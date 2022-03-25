@@ -30,16 +30,14 @@ type TestSwapKeeper struct {
 }
 
 func (k *TestSwapKeeper) PoolExist(ctx cosmos.Context, asset common.Asset) bool {
-	if asset.Equals(common.Asset{Chain: common.BNBChain, Symbol: "NOTEXIST", Ticker: "NOTEXIST"}) {
-		return false
-	}
-	return true
+	return !asset.Equals(common.Asset{Chain: common.BNBChain, Symbol: "NOTEXIST", Ticker: "NOTEXIST"})
 }
 
 func (k *TestSwapKeeper) GetPool(ctx cosmos.Context, asset common.Asset) (thorchaintypes.Pool, error) {
 	if asset.Equals(common.Asset{Chain: common.BNBChain, Symbol: "NOTEXIST", Ticker: "NOTEXIST"}) {
 		return thorchaintypes.Pool{}, nil
-	} else if asset.Equals(common.BCHAsset) {
+	}
+	if asset.Equals(common.BCHAsset) {
 		return thorchaintypes.Pool{
 			BalanceRune:  cosmos.NewUint(100).MulUint64(common.One),
 			BalanceAsset: cosmos.NewUint(100).MulUint64(common.One),
@@ -48,17 +46,17 @@ func (k *TestSwapKeeper) GetPool(ctx cosmos.Context, asset common.Asset) (thorch
 			Status:       PoolStaged,
 			Asset:        asset,
 		}, nil
-	} else {
-		return thorchaintypes.Pool{
-			BalanceRune:  cosmos.NewUint(100).MulUint64(common.One),
-			BalanceAsset: cosmos.NewUint(100).MulUint64(common.One),
-			LPUnits:      cosmos.NewUint(100).MulUint64(common.One),
-			SynthUnits:   cosmos.ZeroUint(),
-			Status:       PoolAvailable,
-			Asset:        asset,
-		}, nil
 	}
+	return thorchaintypes.Pool{
+		BalanceRune:  cosmos.NewUint(100).MulUint64(common.One),
+		BalanceAsset: cosmos.NewUint(100).MulUint64(common.One),
+		LPUnits:      cosmos.NewUint(100).MulUint64(common.One),
+		SynthUnits:   cosmos.ZeroUint(),
+		Status:       PoolAvailable,
+		Asset:        asset,
+	}, nil
 }
+
 func (k *TestSwapKeeper) SetPool(ctx cosmos.Context, ps thorchaintypes.Pool) error { return nil }
 
 func (k *TestSwapKeeper) GetLiquidityProvider(ctx cosmos.Context, asset common.Asset, addr common.Address) (thorchaintypes.LiquidityProvider, error) {

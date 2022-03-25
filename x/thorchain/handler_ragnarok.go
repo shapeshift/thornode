@@ -58,8 +58,6 @@ func (h RagnarokHandler) handle(ctx cosmos.Context, msg MsgRagnarok) (*cosmos.Re
 	version := h.mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.65.0")) {
 		return h.handleV65(ctx, msg)
-	} else if version.GTE(semver.MustParse("0.1.0")) {
-		return h.handleV1(ctx, msg)
 	}
 	return nil, errBadVersion
 }
