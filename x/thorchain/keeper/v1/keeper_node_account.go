@@ -86,65 +86,10 @@ func (k KVStore) ListActiveValidators(ctx cosmos.Context) (NodeAccounts, error) 
 
 // GetMinJoinVersion - get min version to join. Min version is the most popular version
 func (k KVStore) GetMinJoinVersion(ctx cosmos.Context) semver.Version {
-	if k.version.GTE(semver.MustParse("0.80.0")) {
-		return k.getMinJoinVersionV80(ctx)
-	}
 	return k.getMinJoinVersionV1(ctx)
 }
 
-// getMinJoinVersionV1 - get min version to join. Min version is the most popular version
 func (k KVStore) getMinJoinVersionV1(ctx cosmos.Context) semver.Version {
-	type tmpVersionInfo struct {
-		version semver.Version
-		count   int
-	}
-	vCount := make(map[string]tmpVersionInfo, 0)
-	nodes, err := k.ListActiveValidators(ctx)
-	if err != nil {
-		_ = dbError(ctx, "Unable to list active node accounts", err)
-		return semver.Version{}
-	}
-	sort.SliceStable(nodes, func(i, j int) bool {
-		return nodes[i].GetVersion().LT(nodes[j].GetVersion())
-	})
-	for _, na := range nodes {
-		v, ok := vCount[na.Version]
-		if ok {
-			v.count = v.count + 1
-			vCount[na.Version] = v
-		} else {
-			vCount[na.Version] = tmpVersionInfo{
-				version: na.GetVersion(),
-				count:   1,
-			}
-		}
-		// assume all versions are backward compatible
-		// analyze-ignore(map-iteration)
-		for k, v := range vCount {
-			if v.version.LT(na.GetVersion()) {
-				v.count = v.count + 1
-				vCount[k] = v
-			}
-		}
-	}
-	totalCount := len(nodes)
-	version := semver.Version{}
-
-	// analyze-ignore(map-iteration)
-	for _, info := range vCount {
-		// skip those version that doesn't have majority
-		if !HasSuperMajority(info.count, totalCount) {
-			continue
-		}
-		if info.version.GT(version) {
-			version = info.version
-		}
-
-	}
-	return version
-}
-
-func (k KVStore) getMinJoinVersionV80(ctx cosmos.Context) semver.Version {
 	type tmpVersionInfo struct {
 		version semver.Version
 		count   int

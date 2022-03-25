@@ -6,30 +6,23 @@ import (
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
-
-	"github.com/blang/semver"
 )
 
 const KRAKEN string = "ReleaseTheKraken"
 
 // GetMimir get a mimir value from key value store
 func (k KVStore) GetMimir(ctx cosmos.Context, key string) (int64, error) {
-	// TODO: sync with chaosnet and see if this still causes a consensus failure or not
-	// ensure we don't cause a consensus failure and execute the following code
-	// in previous versions
-	if k.version.GTE(semver.MustParse("0.78.0")) {
-		nodeMimirs, err := k.GetNodeMimirs(ctx, key)
-		if err != nil {
-			return -1, err
-		}
+	nodeMimirs, err := k.GetNodeMimirs(ctx, key)
+	if err != nil {
+		return -1, err
+	}
 
-		activeNodes, err := k.ListActiveValidators(ctx)
-		if err != nil {
-			return -1, err
-		}
-		if i, ok := nodeMimirs.HasSuperMajority(key, activeNodes.GetNodeAddresses()); ok {
-			return i, nil
-		}
+	activeNodes, err := k.ListActiveValidators(ctx)
+	if err != nil {
+		return -1, err
+	}
+	if i, ok := nodeMimirs.HasSuperMajority(key, activeNodes.GetNodeAddresses()); ok {
+		return i, nil
 	}
 
 	// if we have the kraken, mimir is no more, ignore him
@@ -38,7 +31,7 @@ func (k KVStore) GetMimir(ctx cosmos.Context, key string) (int64, error) {
 	}
 
 	record := int64(-1)
-	_, err := k.getInt64(ctx, k.GetKey(ctx, prefixMimir, key), &record)
+	_, err = k.getInt64(ctx, k.GetKey(ctx, prefixMimir, key), &record)
 	return record, err
 }
 
