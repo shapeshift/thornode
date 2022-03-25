@@ -55,7 +55,7 @@ func (h AddLiquidityHandler) validate(ctx cosmos.Context, msg MsgAddLiquidity) e
 }
 
 func (h AddLiquidityHandler) validateV76(ctx cosmos.Context, msg MsgAddLiquidity) error {
-	if err := msg.ValidateBasic(); err != nil {
+	if err := msg.ValidateBasicV63(); err != nil {
 		ctx.Logger().Error(err.Error())
 		return errAddLiquidityFailValidation
 	}
