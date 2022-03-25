@@ -384,7 +384,7 @@ func (s *SwapV81Suite) TestSwap(c *C) {
 	}
 }
 
-func QuoUint(num types.Uint, denom types.Uint) types.Dec {
+func QuoUint(num, denom types.Uint) types.Dec {
 	res := cosmos.NewDecFromBigInt(num.BigInt()).Quo(cosmos.NewDecFromBigInt(denom.BigInt()))
 	return res
 }

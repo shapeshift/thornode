@@ -60,7 +60,7 @@ func mockAmountConverter(_ string, amt *big.Int) cosmos.Uint {
 	return cosmos.NewUintFromBigInt(amt)
 }
 
-func (t *SmartContractLogParserTestSuite) getDepositEvent(smartContractAddr string, to string, asset string, amount *big.Int, memo string) *etypes.Log {
+func (t *SmartContractLogParserTestSuite) getDepositEvent(smartContractAddr, to, asset string, amount *big.Int, memo string) *etypes.Log {
 	evt, err := t.abi.EventByID(ecommon.HexToHash(depositEvent))
 	if err != nil {
 		return nil
