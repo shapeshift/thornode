@@ -34,7 +34,7 @@ func NewAddress(address string) (Address, error) {
 		return Address(address), nil
 	}
 
-	// Check bech32 addresses, would succeed any string bech32 encoded
+	// Check bech32 addresses, would succeed any string bech32 encoded (e.g. BNB, TERRA, ATOM)
 	_, _, err := bech32.Decode(address)
 	if err == nil {
 		return Address(address), nil
@@ -224,6 +224,10 @@ func (addr Address) IsChain(chain Chain) bool {
 	case BNBChain:
 		prefix, _, _ := bech32.Decode(addr.String())
 		return prefix == "bnb" || prefix == "tbnb"
+	case TERRAChain:
+		// Note: Terra does not use a special prefix for testnet
+		prefix, _, _ := bech32.Decode(addr.String())
+		return prefix == "terra"
 	case THORChain:
 		prefix, _, _ := bech32.Decode(addr.String())
 		return prefix == "thor" || prefix == "tthor" || prefix == "sthor"
@@ -299,7 +303,7 @@ func (addr Address) IsChain(chain Chain) bool {
 }
 
 func (addr Address) GetChain() Chain {
-	for _, chain := range []Chain{ETHChain, BNBChain, THORChain, BTCChain, LTCChain, BCHChain, DOGEChain} {
+	for _, chain := range []Chain{ETHChain, BNBChain, THORChain, BTCChain, LTCChain, BCHChain, DOGEChain, TERRAChain} {
 		if addr.IsChain(chain) {
 			return chain
 		}
@@ -326,6 +330,8 @@ func (addr Address) GetNetwork(chain Chain) ChainNetwork {
 		if strings.EqualFold(prefix, "tbnb") {
 			return TestNet
 		}
+	case TERRAChain:
+		return currentNetwork
 	case THORChain:
 		prefix, _, _ := bech32.Decode(addr.String())
 		if strings.EqualFold(prefix, "thor") {
