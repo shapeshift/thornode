@@ -44,8 +44,6 @@ func (h SetNodeKeysHandler) validate(ctx cosmos.Context, msg MsgSetNodeKeys) err
 	version := h.mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.64.0")) {
 		return h.validateV64(ctx, msg)
-	} else if version.GTE(semver.MustParse("0.1.0")) {
-		return h.validateV1(ctx, msg)
 	}
 	return errInvalidVersion
 }
@@ -96,13 +94,10 @@ func (h SetNodeKeysHandler) handle(ctx cosmos.Context, msg MsgSetNodeKeys) (*cos
 	version := h.mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.57.0")) {
 		return h.handleV57(ctx, msg)
-	} else if version.GTE(semver.MustParse("0.1.0")) {
-		return h.handleV1(ctx, msg)
 	}
 	return nil, errBadVersion
 }
 
-// handleV57 a message to set node keys
 func (h SetNodeKeysHandler) handleV57(ctx cosmos.Context, msg MsgSetNodeKeys) (*cosmos.Result, error) {
 	nodeAccount, err := h.mgr.Keeper().GetNodeAccount(ctx, msg.Signer)
 	if err != nil {

@@ -69,8 +69,6 @@ func (h SwitchHandler) handle(ctx cosmos.Context, msg MsgSwitch) (*cosmos.Result
 	version := h.mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.56.0")) {
 		return h.handleV56(ctx, msg)
-	} else if version.GTE(semver.MustParse("0.1.0")) {
-		return h.handleV1(ctx, msg)
 	}
 	return nil, errBadVersion
 }

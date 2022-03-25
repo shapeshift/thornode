@@ -158,13 +158,13 @@ func (HandlerRagnarokSuite) TestRagnarokHappyPath(c *C) {
 	}, 1, retireVault.PubKey, 1)
 
 	msgRagnarok := NewMsgRagnarok(tx, 1, keeper.activeNodeAccount.NodeAddress)
-	_, err = handler.handleV1(ctx, *msgRagnarok)
+	_, err = handler.handle(ctx, *msgRagnarok)
 	c.Assert(err, IsNil)
 	c.Assert(keeper.txout.TxArray[0].OutHash.Equals(tx.Tx.ID), Equals, true)
 
 	// fail to get tx out
 	msgRagnarok1 := NewMsgRagnarok(tx, 1024, keeper.activeNodeAccount.NodeAddress)
-	result, err := handler.handleV1(ctx, *msgRagnarok1)
+	result, err := handler.handle(ctx, *msgRagnarok1)
 	c.Assert(err, NotNil)
 	c.Assert(result, IsNil)
 }
@@ -214,7 +214,7 @@ func (HandlerRagnarokSuite) TestSlash(c *C) {
 	}, 1, retireVault.PubKey, 1)
 
 	msgRagnarok := NewMsgRagnarok(tx, 1, keeper.activeNodeAccount.NodeAddress)
-	_, err = handler.handleV1(ctx, *msgRagnarok)
+	_, err = handler.handle(ctx, *msgRagnarok)
 	c.Assert(err, IsNil)
 	c.Assert(keeper.activeNodeAccount.Bond.Equal(cosmos.NewUint(9999942214)), Equals, true, Commentf("%d", keeper.activeNodeAccount.Bond.Uint64()))
 }

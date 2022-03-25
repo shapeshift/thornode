@@ -48,10 +48,6 @@ func (h WithdrawLiquidityHandler) validate(ctx cosmos.Context, msg MsgWithdrawLi
 	version := h.mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.80.0")) {
 		return h.validateV80(ctx, msg)
-	} else if version.GTE(semver.MustParse("0.65.0")) {
-		return h.validateV65(ctx, msg)
-	} else if version.GTE(semver.MustParse("0.1.0")) {
-		return h.validateV1(ctx, msg)
 	}
 	return errBadVersion
 }
@@ -91,22 +87,6 @@ func (h WithdrawLiquidityHandler) handle(ctx cosmos.Context, msg MsgWithdrawLiqu
 	version := h.mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.75.0")) {
 		return h.handleV75(ctx, msg)
-	} else if version.GTE(semver.MustParse("0.65.0")) {
-		return h.handleV65(ctx, msg)
-	} else if version.GTE(semver.MustParse("0.55.0")) {
-		return h.handleV55(ctx, msg)
-	} else if version.GTE(semver.MustParse("0.50.0")) {
-		return h.handleV50(ctx, msg)
-	} else if version.GTE(semver.MustParse("0.49.0")) {
-		return h.handleV49(ctx, msg)
-	} else if version.GTE(semver.MustParse("0.47.0")) {
-		return h.handleV47(ctx, msg)
-	} else if version.GTE(semver.MustParse("0.45.0")) {
-		return h.handleV45(ctx, msg)
-	} else if version.GTE(semver.MustParse("0.42.0")) {
-		return h.handleV42(ctx, msg)
-	} else if version.GTE(semver.MustParse("0.1.0")) {
-		return h.handleV1(ctx, msg)
 	}
 	return nil, errBadVersion
 }

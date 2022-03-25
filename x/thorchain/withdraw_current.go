@@ -282,18 +282,18 @@ func calcImpLossV76(lp LiquidityProvider, withdrawBasisPoints cosmos.Uint, prote
 	return result, depositValue, redeemValue
 }
 
-func calcAsymWithdrawalV1(s, T, A cosmos.Uint) cosmos.Uint {
+func calcAsymWithdrawalV1(s, t, a cosmos.Uint) cosmos.Uint {
 	// share = (s * A * (2 * T^2 - 2 * T * s + s^2))/T^3
 	// s = liquidity provider units for member (after factoring in withdrawBasisPoints)
 	// T = totalPoolUnits for pool
 	// A = assetDepth to be withdrawn
 	// (part1 * (part2 - part3 + part4)) / part5
-	part1 := s.Mul(A)
-	part2 := T.Mul(T).MulUint64(2)
-	part3 := T.Mul(s).MulUint64(2)
+	part1 := s.Mul(a)
+	part2 := t.Mul(t).MulUint64(2)
+	part3 := t.Mul(s).MulUint64(2)
 	part4 := s.Mul(s)
 	numerator := part1.Mul(common.SafeSub(part2, part3).Add(part4))
-	part5 := T.Mul(T).Mul(T)
+	part5 := t.Mul(t).Mul(t)
 	return numerator.Quo(part5)
 }
 
