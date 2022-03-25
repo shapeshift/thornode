@@ -1450,7 +1450,7 @@ func (vm *validatorMgrV84) nextVaultNodeAccounts(ctx cosmos.Context, targetCount
 	if len(active)+limit < int(minimumNodesForBFT) {
 		limit = int(minimumNodesForBFT) - len(active)
 	}
-	for i := 1; targetCount >= len(active); i++ {
+	for i := 1; targetCount > len(active); i++ {
 		if len(ready) >= i {
 			rotation = true
 			active = append(active, ready[i-1])
