@@ -22,10 +22,3 @@ func FundAccount(c *C, ctx cosmos.Context, k Keeper, addr cosmos.AccAddress, amt
 	err = k.SendFromModuleToAccount(ctx, ModuleName, addr, common.NewCoins(coin))
 	c.Assert(err, IsNil)
 }
-
-var (
-	multiPerm    = "multiple permissions account"
-	randomPerm   = "random permission"
-	holder       = "holder"
-	keyThorchain = cosmos.NewKVStoreKey(StoreKey)
-)
