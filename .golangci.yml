@@ -5,7 +5,7 @@ linters:
     - exportloopref
     - forcetypeassert
     - gocritic
-    - golint
+    - revive
     - gosec
     - gosimple
     - govet
