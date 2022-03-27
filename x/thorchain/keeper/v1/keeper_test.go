@@ -55,9 +55,6 @@ func makeTestCodec() *codec.LegacyAmino {
 }
 
 var (
-	multiPerm    = "multiple permissions account"
-	randomPerm   = "random permission"
-	holder       = "holder"
 	keyThorchain = cosmos.NewKVStoreKey(StoreKey)
 )
 
