@@ -322,14 +322,14 @@ func setupAnObservedTxOut(ctx cosmos.Context, helper *HandlerObservedTxOutTestHe
 	vault := GetRandomVault()
 	vault.PubKey = obTx.ObservedPubKey
 	vault.Membership = []string{vault.PubKey.String()}
-	helper.Keeper.SetNodeAccount(ctx, activeNodeAccount)
+	c.Assert(helper.Keeper.SetNodeAccount(ctx, activeNodeAccount), IsNil)
 	c.Assert(helper.SetVault(ctx, vault), IsNil)
 	p := NewPool()
 	p.Asset = common.BNBAsset
 	p.BalanceRune = cosmos.NewUint(100 * common.One)
 	p.BalanceAsset = cosmos.NewUint(100 * common.One)
 	p.Status = PoolAvailable
-	helper.Keeper.SetPool(ctx, p)
+	c.Assert(helper.Keeper.SetPool(ctx, p), IsNil)
 	return NewMsgObservedTxOut(txs, activeNodeAccount.NodeAddress)
 }
 

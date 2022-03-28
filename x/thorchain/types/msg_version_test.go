@@ -34,7 +34,6 @@ func (MsgSetVersionSuite) TestMsgSetVersionSuite(c *C) {
 		"whatever",
 		"",
 	}
-	v.Validate()
 	msg2 := NewMsgSetVersion(v.String(), acc1)
 	err2 := msg2.ValidateBasic()
 	c.Check(err2, NotNil)

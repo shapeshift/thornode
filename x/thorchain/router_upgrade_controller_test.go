@@ -21,11 +21,11 @@ func (s *RouterUpgradeControllerTestSuite) TestUpgradeProcess(c *C) {
 	// create
 	ctx, mgr := setupManagerForTest(c)
 	ctx = ctx.WithBlockHeight(1024)
-	mgr.Keeper().SaveNetworkFee(ctx, common.ETHChain, NetworkFee{
+	c.Assert(mgr.Keeper().SaveNetworkFee(ctx, common.ETHChain, NetworkFee{
 		Chain:              common.ETHChain,
 		TransactionSize:    80000,
 		TransactionFeeRate: 10,
-	})
+	}), IsNil)
 	activeNodes := make(NodeAccounts, 4)
 	for i := 0; i < 4; i++ {
 		activeNodes[i] = GetRandomValidatorNode(NodeActive)

@@ -359,7 +359,7 @@ func (s *HandlerYggdrasilSuite) TestYggdrasilHandler(c *C) {
 					VaultPubKey: helper.yggVault.PubKey,
 					InHash:      common.BlankTxID,
 				})
-				helper.keeper.SetTxOut(helper.ctx, txOut)
+				c.Assert(helper.keeper.SetTxOut(helper.ctx, txOut), IsNil)
 				return NewMsgYggdrasil(tx, helper.asgardVault.PubKey, 30, false, coins, helper.nodeAccount.NodeAddress)
 			},
 			runner: func(handler YggdrasilHandler, msg cosmos.Msg, helper yggdrasilHandlerTestHelper) (*cosmos.Result, error) {
@@ -378,7 +378,7 @@ func (s *HandlerYggdrasilSuite) TestYggdrasilHandler(c *C) {
 				asgardVault := GetRandomVault()
 				asgardVault.Status = RetiringVault
 				asgardVault.Type = AsgardVault
-				helper.keeper.SetVault(helper.ctx, asgardVault)
+				c.Assert(helper.keeper.SetVault(helper.ctx, asgardVault), IsNil)
 				addr, _ := asgardVault.PubKey.GetAddress(common.BNBChain)
 				tx := common.Tx{
 					ID:          GetRandomTxHash(),
@@ -396,7 +396,7 @@ func (s *HandlerYggdrasilSuite) TestYggdrasilHandler(c *C) {
 					VaultPubKey: helper.yggVault.PubKey,
 					InHash:      common.BlankTxID,
 				})
-				helper.keeper.SetTxOut(helper.ctx, txOut)
+				c.Assert(helper.keeper.SetTxOut(helper.ctx, txOut), IsNil)
 				return NewMsgYggdrasil(tx, helper.yggVault.PubKey, 30, false, coins, helper.nodeAccount.NodeAddress)
 			},
 			runner: func(handler YggdrasilHandler, msg cosmos.Msg, helper yggdrasilHandlerTestHelper) (*cosmos.Result, error) {

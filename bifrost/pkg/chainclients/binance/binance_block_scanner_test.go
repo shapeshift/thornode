@@ -421,7 +421,7 @@ func (s *BlockScannerTestSuite) TestUpdateGasFees(c *C) {
 		case strings.HasPrefix(req.RequestURI, "/thorchain/node/"):
 			httpTestHandler(c, rw, "../../../../test/fixtures/endpoints/nodeaccount/template.json")
 		case req.RequestURI == `/abci_query?path="/param/fees"&height=10`:
-			rw.Write([]byte(`
+			_, err := rw.Write([]byte(`
 {
   "jsonrpc": "2.0",
   "id": "",
@@ -431,6 +431,7 @@ func (s *BlockScannerTestSuite) TestUpdateGasFees(c *C) {
     }
   }
 }`))
+			c.Assert(err, IsNil)
 		}
 	}))
 	// Close the server when test finishes

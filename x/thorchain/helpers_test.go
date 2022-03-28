@@ -747,7 +747,7 @@ func (s *HelperSuite) TestIsTradingHalt(c *C) {
 	c.Assert(isTradingHalt(ctx, mAddRUNE, mgr), Equals, true)
 	c.Assert(isTradingHalt(ctx, mWithThorname, mgr), Equals, true)
 	c.Assert(isTradingHalt(ctx, mRedeemSynth, mgr), Equals, true)
-	mgr.Keeper().DeleteMimir(ctx, "HaltTrading")
+	c.Assert(mgr.Keeper().DeleteMimir(ctx, "HaltTrading"), IsNil)
 
 	mgr.Keeper().SetMimir(ctx, "HaltBNBTrading", 1)
 	c.Assert(isTradingHalt(ctx, m, mgr), Equals, true)
@@ -755,7 +755,7 @@ func (s *HelperSuite) TestIsTradingHalt(c *C) {
 	c.Assert(isTradingHalt(ctx, mAddRUNE, mgr), Equals, false)
 	c.Assert(isTradingHalt(ctx, mWithThorname, mgr), Equals, true)
 	c.Assert(isTradingHalt(ctx, mRedeemSynth, mgr), Equals, true)
-	mgr.Keeper().DeleteMimir(ctx, "HaltBNBTrading")
+	c.Assert(mgr.Keeper().DeleteMimir(ctx, "HaltBNBTrading"), IsNil)
 
 	mgr.Keeper().SetMimir(ctx, "HaltBTCTrading", 1)
 	c.Assert(isTradingHalt(ctx, m, mgr), Equals, true)
@@ -763,5 +763,5 @@ func (s *HelperSuite) TestIsTradingHalt(c *C) {
 	c.Assert(isTradingHalt(ctx, mAddRUNE, mgr), Equals, true)
 	c.Assert(isTradingHalt(ctx, mWithThorname, mgr), Equals, true)
 	c.Assert(isTradingHalt(ctx, mRedeemSynth, mgr), Equals, false)
-	mgr.Keeper().DeleteMimir(ctx, "HaltBTCTrading")
+	c.Assert(mgr.Keeper().DeleteMimir(ctx, "HaltBTCTrading"), IsNil)
 }

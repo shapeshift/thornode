@@ -105,7 +105,7 @@ func (s *LitecoinSuite) SetUpTest(c *C) {
 				Method string   `json:"method"`
 				Params []string `json:"params"`
 			}{}
-			json.NewDecoder(req.Body).Decode(&r)
+			_ = json.NewDecoder(req.Body).Decode(&r)
 
 			switch {
 			case r.Method == "getnetworkinfo":
