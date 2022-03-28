@@ -110,10 +110,10 @@ func (s *ObserverSuite) NewMockBinanceInstance(c *C, jsonData string) {
 		BlockHeightDiscoverBackoff: blockHeightDiscoverBackoff,
 		BlockRetryInterval:         blockRetryInterval,
 		ChainID:                    common.BNBChain,
-		HttpRequestTimeout:         httpRequestTimeout,
-		HttpRequestReadTimeout:     httpRequestTimeout,
-		HttpRequestWriteTimeout:    httpRequestTimeout,
-		MaxHttpRequestRetry:        10,
+		HTTPRequestTimeout:         httpRequestTimeout,
+		HTTPRequestReadTimeout:     httpRequestTimeout,
+		HTTPRequestWriteTimeout:    httpRequestTimeout,
+		MaxHTTPRequestRetry:        10,
 		StartBlockHeight:           1, // avoids querying thorchain for block height
 		EnforceBlockHeight:         true,
 	}}, nil, s.bridge, s.m)

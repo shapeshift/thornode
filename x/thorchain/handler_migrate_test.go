@@ -85,7 +85,7 @@ func (k *TestMigrateKeeperHappyPath) GetTxOut(ctx cosmos.Context, blockHeight in
 	if k.txout != nil && k.txout.Height == blockHeight {
 		return k.txout, nil
 	}
-	return nil, kaboom
+	return nil, errKaboom
 }
 
 func (k *TestMigrateKeeperHappyPath) SetTxOut(ctx cosmos.Context, blockOut *TxOut) error {
@@ -93,7 +93,7 @@ func (k *TestMigrateKeeperHappyPath) SetTxOut(ctx cosmos.Context, blockOut *TxOu
 		k.txout = blockOut
 		return nil
 	}
-	return kaboom
+	return errKaboom
 }
 
 func (k *TestMigrateKeeperHappyPath) GetNodeAccountByPubKey(_ cosmos.Context, _ common.PubKey) (NodeAccount, error) {

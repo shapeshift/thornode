@@ -359,7 +359,7 @@ type MockWithdrawEventMgr struct {
 }
 
 func (m *MockWithdrawEventMgr) EmitEvent(ctx cosmos.Context, evt EmitEventItem) error {
-	m.count += 1
+	m.count++
 	return nil
 }
 

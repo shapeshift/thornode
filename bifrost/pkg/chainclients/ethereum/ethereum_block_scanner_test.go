@@ -64,10 +64,10 @@ func getConfigForTest(rpcHost string) config.BlockScannerConfiguration {
 		RPCHost:                    rpcHost,
 		StartBlockHeight:           1, // avoids querying thorchain for block height
 		BlockScanProcessors:        1,
-		HttpRequestTimeout:         time.Second,
-		HttpRequestReadTimeout:     time.Second * 30,
-		HttpRequestWriteTimeout:    time.Second * 30,
-		MaxHttpRequestRetry:        3,
+		HTTPRequestTimeout:         time.Second,
+		HTTPRequestReadTimeout:     time.Second * 30,
+		HTTPRequestWriteTimeout:    time.Second * 30,
+		MaxHTTPRequestRetry:        3,
 		BlockHeightDiscoverBackoff: time.Second,
 		BlockRetryInterval:         time.Second,
 	}

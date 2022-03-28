@@ -994,7 +994,7 @@ func (c *Client) getMemo(tx *btcjson.TxRawResult) (string, error) {
 
 // getGas returns gas for a ltc tx (sum vin - sum vout)
 func (c *Client) getGas(tx *btcjson.TxRawResult) (common.Gas, error) {
-	var sumVin uint64 = 0
+	var sumVin uint64
 	for _, vin := range tx.Vin {
 		txHash, err := chainhash.NewHashFromStr(vin.Txid)
 		if err != nil {
@@ -1011,7 +1011,7 @@ func (c *Client) getGas(tx *btcjson.TxRawResult) (common.Gas, error) {
 		}
 		sumVin += uint64(amount.ToUnit(ltcutil.AmountSatoshi))
 	}
-	var sumVout uint64 = 0
+	var sumVout uint64
 	for _, vout := range tx.Vout {
 		amount, err := ltcutil.NewAmount(vout.Value)
 		if err != nil {

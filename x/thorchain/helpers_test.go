@@ -36,7 +36,7 @@ func (k *TestRefundBondKeeper) GetVault(_ cosmos.Context, pk common.PubKey) (Vau
 	if k.ygg.PubKey.Equals(pk) {
 		return k.ygg, nil
 	}
-	return Vault{}, kaboom
+	return Vault{}, errKaboom
 }
 
 func (k *TestRefundBondKeeper) GetLeastSecure(ctx cosmos.Context, vaults Vaults, signingTransPeriod int64) Vault {
@@ -47,7 +47,7 @@ func (k *TestRefundBondKeeper) GetPool(_ cosmos.Context, asset common.Asset) (Po
 	if k.pool.Asset.Equals(asset) {
 		return k.pool, nil
 	}
-	return NewPool(), kaboom
+	return NewPool(), errKaboom
 }
 
 func (k *TestRefundBondKeeper) SetNodeAccount(_ cosmos.Context, na NodeAccount) error {
@@ -60,7 +60,7 @@ func (k *TestRefundBondKeeper) SetPool(_ cosmos.Context, p Pool) error {
 		k.pool = p
 		return nil
 	}
-	return kaboom
+	return errKaboom
 }
 
 func (k *TestRefundBondKeeper) DeleteVault(_ cosmos.Context, key common.PubKey) error {
@@ -485,28 +485,28 @@ func newAddGasFeesKeeperHelper(keeper keeper.Keeper) *addGasFeesKeeperHelper {
 
 func (h *addGasFeesKeeperHelper) GetNetwork(ctx cosmos.Context) (Network, error) {
 	if h.errGetNetwork {
-		return Network{}, kaboom
+		return Network{}, errKaboom
 	}
 	return h.Keeper.GetNetwork(ctx)
 }
 
 func (h *addGasFeesKeeperHelper) SetNetwork(ctx cosmos.Context, data Network) error {
 	if h.errSetNetwork {
-		return kaboom
+		return errKaboom
 	}
 	return h.Keeper.SetNetwork(ctx, data)
 }
 
 func (h *addGasFeesKeeperHelper) SetPool(ctx cosmos.Context, pool Pool) error {
 	if h.errSetPool {
-		return kaboom
+		return errKaboom
 	}
 	return h.Keeper.SetPool(ctx, pool)
 }
 
 func (h *addGasFeesKeeperHelper) GetPool(ctx cosmos.Context, asset common.Asset) (Pool, error) {
 	if h.errGetPool {
-		return Pool{}, kaboom
+		return Pool{}, errKaboom
 	}
 	return h.Keeper.GetPool(ctx, asset)
 }

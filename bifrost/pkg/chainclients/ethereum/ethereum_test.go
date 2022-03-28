@@ -245,7 +245,7 @@ func (s *EthereumSuite) TestConvertSigningAmount(c *C) {
 		RPCHost: "http://" + s.server.Listener.Addr().String(),
 		BlockScanner: config.BlockScannerConfiguration{
 			StartBlockHeight:   1, // avoids querying thorchain for block height
-			HttpRequestTimeout: time.Second,
+			HTTPRequestTimeout: time.Second,
 		},
 	}, nil, s.bridge, s.m, pubkeyMgr, poolMgr)
 	c.Assert(err, IsNil)
@@ -278,7 +278,7 @@ func (s *EthereumSuite) TestClient(c *C) {
 		RPCHost: "http://" + s.server.Listener.Addr().String(),
 		BlockScanner: config.BlockScannerConfiguration{
 			StartBlockHeight:   1, // avoids querying thorchain for block height
-			HttpRequestTimeout: time.Second,
+			HTTPRequestTimeout: time.Second,
 		},
 	}, nil, s.bridge, s.m, pubkeyMgr, poolMgr)
 	c.Assert(err2, IsNil)
@@ -360,7 +360,7 @@ func (s *EthereumSuite) TestGetAccount(c *C) {
 		RPCHost: "http://" + s.server.Listener.Addr().String(),
 		BlockScanner: config.BlockScannerConfiguration{
 			StartBlockHeight:   1, // avoids querying thorchain for block height
-			HttpRequestTimeout: time.Second,
+			HTTPRequestTimeout: time.Second,
 		},
 	}, nil, s.bridge, s.m, pubkeyMgr, poolMgr)
 	c.Assert(err, IsNil)
@@ -383,7 +383,7 @@ func (s *EthereumSuite) TestSignETHTx(c *C) {
 		RPCHost: "http://" + s.server.Listener.Addr().String(),
 		BlockScanner: config.BlockScannerConfiguration{
 			StartBlockHeight:   1, // avoids querying thorchain for block height
-			HttpRequestTimeout: time.Second,
+			HTTPRequestTimeout: time.Second,
 		},
 	}, nil, s.bridge, s.m, pubkeyMgr, poolMgr)
 	c.Assert(err, IsNil)
@@ -609,7 +609,7 @@ func (s *EthereumSuite) TestGetAsgardAddresses(c *C) {
 		RPCHost: "http://" + s.server.Listener.Addr().String(),
 		BlockScanner: config.BlockScannerConfiguration{
 			StartBlockHeight:   1, // avoids querying thorchain for block height
-			HttpRequestTimeout: time.Second,
+			HTTPRequestTimeout: time.Second,
 		},
 	}, nil, s.bridge, s.m, pubkeyMgr, poolMgr)
 	c.Assert(err, IsNil)
@@ -629,7 +629,7 @@ func (s *EthereumSuite) TestGetConfirmationCount(c *C) {
 		RPCHost: "http://" + s.server.Listener.Addr().String(),
 		BlockScanner: config.BlockScannerConfiguration{
 			StartBlockHeight:   1, // avoids querying thorchain for block height
-			HttpRequestTimeout: time.Second,
+			HTTPRequestTimeout: time.Second,
 		},
 	}, nil, s.bridge, s.m, pubkeyMgr, poolMgr)
 	c.Assert(err, IsNil)

@@ -28,7 +28,7 @@ import (
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
-var kaboom = errors.New("kaboom!!!!!")
+var errKaboom = errors.New("kaboom")
 
 type HandlerSuite struct{}
 

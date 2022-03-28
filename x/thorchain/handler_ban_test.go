@@ -183,48 +183,48 @@ func NewTestBanKeeperHelper(k keeper.Keeper) *TestBanKeeperHelper {
 
 func (k *TestBanKeeperHelper) GetNodeAccount(ctx cosmos.Context, addr cosmos.AccAddress) (NodeAccount, error) {
 	if addr.Equals(k.toBanNodeAddr) && k.failToGetToBanAddr {
-		return NodeAccount{}, kaboom
+		return NodeAccount{}, errKaboom
 	}
 	if addr.Equals(k.bannerNodeAddr) && k.failToGetBannerNodeAccount {
-		return NodeAccount{}, kaboom
+		return NodeAccount{}, errKaboom
 	}
 	return k.Keeper.GetNodeAccount(ctx, addr)
 }
 
 func (k *TestBanKeeperHelper) ListActiveValidators(ctx cosmos.Context) (NodeAccounts, error) {
 	if k.failToListActiveValidators {
-		return NodeAccounts{}, kaboom
+		return NodeAccounts{}, errKaboom
 	}
 	return k.Keeper.ListActiveValidators(ctx)
 }
 
 func (k *TestBanKeeperHelper) GetBanVoter(ctx cosmos.Context, addr cosmos.AccAddress) (BanVoter, error) {
 	if k.failToGetBanVoter {
-		return BanVoter{}, kaboom
+		return BanVoter{}, errKaboom
 	}
 	return k.Keeper.GetBanVoter(ctx, addr)
 }
 
 func (k *TestBanKeeperHelper) GetNetwork(ctx cosmos.Context) (Network, error) {
 	if k.failToGetNetwork {
-		return Network{}, kaboom
+		return Network{}, errKaboom
 	}
 	return k.Keeper.GetNetwork(ctx)
 }
 
 func (k *TestBanKeeperHelper) SetNetwork(ctx cosmos.Context, network Network) error {
 	if k.failToSetNetwork {
-		return kaboom
+		return errKaboom
 	}
 	return k.Keeper.SetNetwork(ctx, network)
 }
 
 func (k *TestBanKeeperHelper) SetNodeAccount(ctx cosmos.Context, na NodeAccount) error {
 	if k.failToSaveBanner && na.NodeAddress.Equals(k.bannerNodeAddr) {
-		return kaboom
+		return errKaboom
 	}
 	if k.failToSaveToBan && na.NodeAddress.Equals(k.toBanNodeAddr) {
-		return kaboom
+		return errKaboom
 	}
 	return k.Keeper.SetNodeAccount(ctx, na)
 }

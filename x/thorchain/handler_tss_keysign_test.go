@@ -44,28 +44,28 @@ func newTssKeysignFailKeeperHelper(keeper keeper.Keeper) *tssKeysignKeeperHelper
 
 func (k *tssKeysignKeeperHelper) GetNodeAccountByPubKey(ctx cosmos.Context, pk common.PubKey) (NodeAccount, error) {
 	if k.errFailToGetNodeAccountByPubKey {
-		return NodeAccount{}, kaboom
+		return NodeAccount{}, errKaboom
 	}
 	return k.Keeper.GetNodeAccountByPubKey(ctx, pk)
 }
 
 func (k *tssKeysignKeeperHelper) SetNodeAccount(ctx cosmos.Context, na NodeAccount) error {
 	if k.errFailSetNodeAccount {
-		return kaboom
+		return errKaboom
 	}
 	return k.Keeper.SetNodeAccount(ctx, na)
 }
 
 func (k *tssKeysignKeeperHelper) GetTssKeysignFailVoter(ctx cosmos.Context, id string) (TssKeysignFailVoter, error) {
 	if k.errGetTssVoter {
-		return TssKeysignFailVoter{}, kaboom
+		return TssKeysignFailVoter{}, errKaboom
 	}
 	return k.Keeper.GetTssKeysignFailVoter(ctx, id)
 }
 
 func (k *tssKeysignKeeperHelper) ListActiveValidators(ctx cosmos.Context) (NodeAccounts, error) {
 	if k.errListActiveAccounts {
-		return NodeAccounts{}, kaboom
+		return NodeAccounts{}, errKaboom
 	}
 	return k.Keeper.ListActiveValidators(ctx)
 }
@@ -229,7 +229,7 @@ func (h HandlerTssKeysignSuite) TestTssKeysignFailHandler(c *C) {
 				helper.keeper.errListActiveAccounts = true
 				return handler.Run(helper.ctx, msg)
 			},
-			expectedResult: kaboom,
+			expectedResult: errKaboom,
 		},
 		{
 			name: "fail to get Tss Keysign fail voter should return an error",
@@ -242,7 +242,7 @@ func (h HandlerTssKeysignSuite) TestTssKeysignFailHandler(c *C) {
 				helper.keeper.errGetTssVoter = true
 				return handler.Run(helper.ctx, msg)
 			},
-			expectedResult: kaboom,
+			expectedResult: errKaboom,
 		},
 		{
 			name: "fail to get node account should return an error",

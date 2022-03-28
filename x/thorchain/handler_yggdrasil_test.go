@@ -29,14 +29,14 @@ type yggdrasilTestKeeper struct {
 
 func (k yggdrasilTestKeeper) GetAsgardVaultsByStatus(ctx cosmos.Context, vs VaultStatus) (Vaults, error) {
 	if k.errGetAsgardVaults {
-		return Vaults{}, kaboom
+		return Vaults{}, errKaboom
 	}
 	return k.Keeper.GetAsgardVaultsByStatus(ctx, vs)
 }
 
 func (k yggdrasilTestKeeper) GetTxOut(ctx cosmos.Context, height int64) (*TxOut, error) {
 	if k.errGetTxOut {
-		return nil, kaboom
+		return nil, errKaboom
 	}
 	return k.Keeper.GetTxOut(ctx, height)
 }
@@ -44,7 +44,7 @@ func (k yggdrasilTestKeeper) GetTxOut(ctx cosmos.Context, height int64) (*TxOut,
 func (k yggdrasilTestKeeper) GetNodeAccountByPubKey(ctx cosmos.Context, pk common.PubKey) (NodeAccount, error) {
 	addr, _ := pk.GetThorAddress()
 	if k.errGetNodeAccount.Equals(addr) {
-		return NodeAccount{}, kaboom
+		return NodeAccount{}, errKaboom
 	}
 	return k.Keeper.GetNodeAccountByPubKey(ctx, pk)
 }
@@ -55,7 +55,7 @@ func (k *yggdrasilTestKeeper) SetNodeAccount(ctx cosmos.Context, na NodeAccount)
 
 func (k yggdrasilTestKeeper) GetPool(ctx cosmos.Context, asset common.Asset) (Pool, error) {
 	if k.errGetPool {
-		return Pool{}, kaboom
+		return Pool{}, errKaboom
 	}
 	return k.Keeper.GetPool(ctx, asset)
 }
@@ -66,7 +66,7 @@ func (k *yggdrasilTestKeeper) SetPool(ctx cosmos.Context, p Pool) error {
 
 func (k yggdrasilTestKeeper) GetVault(ctx cosmos.Context, pk common.PubKey) (Vault, error) {
 	if k.errGetVault {
-		return Vault{}, kaboom
+		return Vault{}, errKaboom
 	}
 	return k.Keeper.GetVault(ctx, pk)
 }
@@ -205,7 +205,7 @@ func (s *HandlerYggdrasilSuite) TestYggdrasilHandler(c *C) {
 				helper.keeper.errGetVault = true
 				return handler.Run(helper.ctx, msg)
 			},
-			expectedResult: kaboom,
+			expectedResult: errKaboom,
 		},
 		{
 			name: "asgard fund yggdrasil should return success",

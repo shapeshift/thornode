@@ -116,7 +116,7 @@ func NewClient(thorKeys *thorclient.Keys,
 	if err != nil {
 		return nil, fmt.Errorf("fail to dial ETH rpc host(%s): %w", cfg.RPCHost, err)
 	}
-	chainID, err := getChainID(ethClient, cfg.BlockScanner.HttpRequestTimeout)
+	chainID, err := getChainID(ethClient, cfg.BlockScanner.HTTPRequestTimeout)
 	if err != nil {
 		return nil, err
 	}
@@ -217,7 +217,7 @@ func (c *Client) GetConfig() config.ChainConfiguration {
 }
 
 func (c *Client) getContext() (context.Context, context.CancelFunc) {
-	return context.WithTimeout(context.Background(), c.cfg.BlockScanner.HttpRequestTimeout)
+	return context.WithTimeout(context.Background(), c.cfg.BlockScanner.HTTPRequestTimeout)
 }
 
 // getChainID retrieve the chain id from ETH node, and determinate whether we are running on test net by checking the status

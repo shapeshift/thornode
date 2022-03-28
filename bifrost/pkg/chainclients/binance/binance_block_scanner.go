@@ -70,7 +70,7 @@ func NewBinanceBlockScanner(cfg config.BlockScannerConfiguration,
 	}
 
 	netClient := &http.Client{
-		Timeout: cfg.HttpRequestTimeout,
+		Timeout: cfg.HTTPRequestTimeout,
 	}
 
 	return &BinanceBlockScanner{
@@ -253,7 +253,7 @@ func (b *BinanceBlockScanner) processBlock(block blockscanner.Block) (stypes.TxI
 	return txIn, nil
 }
 
-func (b *BinanceBlockScanner) getFromHttp(url string) ([]byte, error) {
+func (b *BinanceBlockScanner) getFromHTTP(url string) ([]byte, error) {
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("fail to create http request: %w", err)
@@ -308,7 +308,7 @@ func (b *BinanceBlockScanner) getRPCBlock(height int64) ([]string, error) {
 		b.m.GetHistograms(metrics.BlockDiscoveryDuration).Observe(duration.Seconds())
 	}()
 	url := b.BlockRequest(height)
-	buf, err := b.getFromHttp(url)
+	buf, err := b.getFromHTTP(url)
 	if err != nil {
 		if strings.Contains(err.Error(), "Height must be less than or equal to the current blockchain height") {
 			return nil, bltypes.ErrUnavailableBlock

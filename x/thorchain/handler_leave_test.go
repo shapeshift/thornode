@@ -200,21 +200,21 @@ func NewLeaveHandlerTestHelper(k keeper.Keeper) *LeaveHandlerTestHelper {
 
 func (h *LeaveHandlerTestHelper) GetNodeAccount(ctx cosmos.Context, addr cosmos.AccAddress) (NodeAccount, error) {
 	if h.failGetNodeAccount {
-		return NodeAccount{}, kaboom
+		return NodeAccount{}, errKaboom
 	}
 	return h.Keeper.GetNodeAccount(ctx, addr)
 }
 
 func (h *LeaveHandlerTestHelper) SetNodeAccount(ctx cosmos.Context, na NodeAccount) error {
 	if h.failSetNodeAccount {
-		return kaboom
+		return errKaboom
 	}
 	return h.Keeper.SetNodeAccount(ctx, na)
 }
 
 func (h *LeaveHandlerTestHelper) GetVault(ctx cosmos.Context, pk common.PubKey) (Vault, error) {
 	if h.failGetVault {
-		return Vault{}, kaboom
+		return Vault{}, errKaboom
 	}
 	return h.Keeper.GetVault(ctx, pk)
 }

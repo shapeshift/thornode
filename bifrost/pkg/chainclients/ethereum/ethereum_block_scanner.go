@@ -152,7 +152,7 @@ func (e *ETHScanner) GetGasPrice() *big.Int {
 }
 
 func (e *ETHScanner) getContext() (context.Context, context.CancelFunc) {
-	return context.WithTimeout(context.Background(), e.cfg.HttpRequestTimeout)
+	return context.WithTimeout(context.Background(), e.cfg.HTTPRequestTimeout)
 }
 
 // GetHeight return latest block height

@@ -619,8 +619,8 @@ func (tos *TxOutStorageV83) calcTxOutHeight(ctx cosmos.Context, version semver.V
 			// the txout + this txout item has enough space to fit, lets use this one
 			break
 		}
-		targetBlock += 1
-		count += 1
+		targetBlock++
+		count++
 	}
 
 	return targetBlock, nil
