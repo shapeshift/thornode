@@ -214,6 +214,7 @@ func (s *HandlerObservedTxInSuite) testHandleWithConfirmation(c *C) {
 	txs := ObservedTxs{obTx}
 	pk := GetRandomPubKey()
 	txs[0].Tx.ToAddress, err = pk.GetAddress(txs[0].Tx.Coins[0].Asset.Chain)
+	c.Assert(err, IsNil)
 	vault := GetRandomVault()
 	vault.PubKey = obTx.ObservedPubKey
 

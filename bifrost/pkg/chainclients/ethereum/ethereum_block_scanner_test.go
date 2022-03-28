@@ -569,6 +569,7 @@ func (s *BlockScannerTestSuite) TestProcessReOrg(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(bridge, NotNil)
 	pkeyMgr, err := pubkeymanager.NewPubKeyManager(bridge, s.m)
+	c.Assert(err, IsNil)
 	c.Assert(pkeyMgr.Start(), IsNil)
 	defer func() {
 		c.Assert(pkeyMgr.Stop(), IsNil)

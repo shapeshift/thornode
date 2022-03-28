@@ -109,6 +109,7 @@ func (s *EthereumSuite) SetUpTest(c *C) {
 			}
 			var rpcRequest RPCRequest
 			err = json.Unmarshal(body, &rpcRequest)
+			c.Assert(err, IsNil)
 			if rpcRequest.Method == "eth_getBalance" {
 				_, err := rw.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":"0x3b9aca00"}`))
 				c.Assert(err, IsNil)
@@ -640,6 +641,7 @@ func (s *EthereumSuite) TestGetConfirmationCount(c *C) {
 	}()
 
 	asgardAddresses, err := e.getAsgardAddress()
+	c.Assert(err, IsNil)
 	pubkey := types2.GetRandomPubKey()
 	addr, err := pubkey.GetAddress(common.ETHChain)
 	c.Assert(err, IsNil)

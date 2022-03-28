@@ -261,6 +261,7 @@ func (s *HandlerSwapSuite) TestSwapSynthERC20(c *C) {
 	c.Assert(mgr.K.SetPool(ctx, pool), IsNil)
 
 	m, err := ParseMemo(mgr.GetVersion(), "=:ETH/AAVE-0X7FC66:thor1x0jkvqdh2hlpeztd5zyyk70n3efx6mhudkmnn2::thor1a427q3v96psuj4fnughdw8glt5r7j38lj7rkp8:100")
+	c.Assert(err, IsNil)
 	swapM, ok := m.(SwapMemo)
 	c.Assert(ok, Equals, true)
 	swapM.Asset = fuzzyAssetMatch(ctx, mgr.K, swapM.Asset)
@@ -276,6 +277,7 @@ func (s *HandlerSwapSuite) TestSwapSynthERC20(c *C) {
 		GetRandomPubKey(), 1,
 	)
 	observerAddr, err := GetRandomTHORAddress().AccAddress()
+	c.Assert(err, IsNil)
 	msgSwapFromTxIn, err := getMsgSwapFromMemo(m.(SwapMemo), txIn, observerAddr)
 	c.Assert(err, IsNil)
 	res, err := handler.Run(ctx, msgSwapFromTxIn)
@@ -313,6 +315,7 @@ func (s *HandlerSwapSuite) TestDoubleSwap(c *C) {
 
 	// double swap - happy path
 	m, err := ParseMemo(mgr.GetVersion(), "swap:BNB.BNB:"+signerBNBAddr.String())
+	c.Assert(err, IsNil)
 	txIn := NewObservedTx(
 		common.NewTx(GetRandomTxHash(), signerBNBAddr, GetRandomBNBAddress(),
 			common.Coins{
@@ -340,6 +343,7 @@ func (s *HandlerSwapSuite) TestDoubleSwap(c *C) {
 	// double swap , RUNE not enough to pay for transaction fee
 	testnetBNBAddr := GetRandomBNBAddress()
 	m1, err := ParseMemo(mgr.GetVersion(), "swap:BNB.BNB:"+testnetBNBAddr.String())
+	c.Assert(err, IsNil)
 	txIn1 := NewObservedTx(
 		common.NewTx(GetRandomTxHash(), signerBNBAddr, GetRandomBNBAddress(),
 			common.Coins{
