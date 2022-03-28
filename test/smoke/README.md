@@ -67,10 +67,27 @@ docker pull registry.gitlab.com/thorchain/thornode:mocknet
 make -C thornode/build/docker reset-mocknet-standalone
 ```
 
-### Run smoke tests
+### Smoke tests
+
+The smoke tests compare a mocknet against a simulator implemented in python.
+Changes to thornode, particularly to the calculations, will require also
+updating the python simulator, and subsequently the unit-tests for the
+simulator.
+
+The smoke-test currently requires that all synth balances be cleared be
+liquidity is withdrawn at the end of the smoke-test. so it is possible the
+transactions in data/smoke_test_transactions.json may need to be changed.
+
+**Run smoke tests**
 
 ```bash
 make smoke
+```
+
+**Update balances and events**
+
+```
+EXPORT=data/smoke_test_balances.json EXPORT_EVENTS=data/smoke_test_events.json make test
 ```
 
 ### Run health tests
