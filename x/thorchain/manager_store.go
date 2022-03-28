@@ -96,6 +96,8 @@ func (smgr *StoreMgr) migrate(ctx cosmos.Context, i uint64) error {
 		migrateStoreV80(ctx, smgr.mgr)
 	case 84:
 		migrateStoreV84(ctx, smgr.mgr)
+	case 85:
+		migrateStoreV85(ctx, smgr.mgr)
 	}
 
 	smgr.mgr.Keeper().SetStoreVersion(ctx, int64(i))
@@ -1435,4 +1437,14 @@ func migrateStoreV84(ctx cosmos.Context, mgr *Mgrs) {
 	}()
 	removeTransactions(ctx, mgr,
 		"956AE0EDE6285E9125AE4AAC1ECB249FF327977DFE5792896FD866B1274F9BF8")
+}
+
+func migrateStoreV85(ctx cosmos.Context, mgr *Mgrs) {
+	defer func() {
+		if err := recover(); err != nil {
+			ctx.Logger().Error("fail to migrate store to v84", "error", err)
+		}
+	}()
+	removeTransactions(ctx, mgr,
+		"DDE93247EAEF9B8DBC10605FA611AB2DC5E174C9099A319D6B0E6C7B2864CD5A")
 }
