@@ -142,7 +142,9 @@ func (s *BitcoinCashSignerSuite) SetUpTest(c *C) {
 
 func (s *BitcoinCashSignerSuite) TearDownTest(c *C) {
 	s.server.Close()
-	c.Assert(s.client.blockMetaAccessor.(*LevelDBBlockMetaAccessor).db.Close(), IsNil)
+	acc, ok := s.client.blockMetaAccessor.(*LevelDBBlockMetaAccessor)
+	c.Assert(ok, Equals, true)
+	c.Assert(acc.db.Close(), IsNil)
 }
 
 func (s *BitcoinCashSignerSuite) TestGetBCHPrivateKey(c *C) {

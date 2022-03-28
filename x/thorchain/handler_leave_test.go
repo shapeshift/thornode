@@ -375,7 +375,8 @@ func (HandlerLeaveSuite) TestLeaveDifferentValidations(c *C) {
 				return NewMsgLeave(tx, nodeAccount.NodeAddress, GetRandomBech32Addr())
 			},
 			validator: func(c *C, ctx cosmos.Context, result *cosmos.Result, err error, helper *LeaveHandlerTestHelper, name string, msg cosmos.Msg) {
-				leaveMsg := msg.(*MsgLeave)
+				leaveMsg, ok := msg.(*MsgLeave)
+				c.Assert(ok, Equals, true)
 				na, err := helper.GetNodeAccount(ctx, leaveMsg.NodeAddress)
 				c.Assert(err, IsNil)
 				c.Assert(na.Bond.Equal(cosmos.NewUint(100)), Equals, true)
