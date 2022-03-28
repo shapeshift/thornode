@@ -80,7 +80,7 @@ func getStdTx(f, t string, coins []types.Coin, memo string) (tx.StdTx, error) {
 	if err != nil {
 		return tx.StdTx{}, err
 	}
-	transfers := []msg.Transfer{{to, coins}}
+	transfers := []msg.Transfer{{ToAddr: to, Coins: coins}}
 	ms := msg.CreateSendMsg(from, coins, transfers)
 	return tx.NewStdTx([]msg.Msg{ms}, nil, memo, 0, nil), nil
 }
@@ -100,8 +100,8 @@ func getMultiSendStdTx(f, t string, coins []types.Coin, memo string) (tx.StdTx, 
 		return tx.StdTx{}, err
 	}
 	transfers := []msg.Transfer{
-		{to, coins},
-		{second, coins},
+		{ToAddr: to, Coins: coins},
+		{ToAddr: second, Coins: coins},
 	}
 	ms := msg.CreateSendMsg(from, coins, transfers)
 	return tx.NewStdTx([]msg.Msg{ms}, nil, memo, 0, nil), nil

@@ -707,11 +707,11 @@ func (s *HelperSuite) TestIsTradingHalt(c *C) {
 	c.Assert(err, IsNil)
 
 	mgr.Keeper().SetTHORName(ctx, THORName{
-		"testtest",
-		common.BlockHeight(ctx) + 1024,
-		GetRandomBech32Addr(),
-		common.BNBAsset,
-		[]THORNameAlias{
+		Name:              "testtest",
+		ExpireBlockHeight: common.BlockHeight(ctx) + 1024,
+		Owner:             GetRandomBech32Addr(),
+		PreferredAsset:    common.BNBAsset,
+		Aliases: []THORNameAlias{
 			{
 				Chain:   common.BNBChain,
 				Address: GetRandomBNBAddress(),
