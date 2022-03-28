@@ -164,7 +164,7 @@ func (s *HandlerIPAddressSuite) TestHandlerSetIPAddress_validation(c *C) {
 			messageProvider: func(ctx cosmos.Context, helper *HandlerIPAddressTestHelper) cosmos.Msg {
 				helper.failSaveNodeAccount = true
 				nodeAccount := GetRandomValidatorNode(NodeWhiteListed)
-				helper.Keeper.SetNodeAccount(ctx, nodeAccount)
+				c.Assert(helper.Keeper.SetNodeAccount(ctx, nodeAccount), IsNil)
 				return NewMsgSetIPAddress("192.168.0.1", nodeAccount.NodeAddress)
 			},
 			validator: func(c *C, ctx cosmos.Context, result *cosmos.Result, err error, helper *HandlerIPAddressTestHelper, name string) {
@@ -177,10 +177,10 @@ func (s *HandlerIPAddressSuite) TestHandlerSetIPAddress_validation(c *C) {
 			messageProvider: func(ctx cosmos.Context, helper *HandlerIPAddressTestHelper) cosmos.Msg {
 				nodeAccount := GetRandomValidatorNode(NodeWhiteListed)
 				FundModule(c, ctx, helper, BondName, common.One*100)
-				helper.SendFromModuleToAccount(ctx, ModuleName, nodeAccount.NodeAddress, common.Coins{
+				c.Assert(helper.SendFromModuleToAccount(ctx, ModuleName, nodeAccount.NodeAddress, common.Coins{
 					common.NewCoin(common.RuneAsset(), cosmos.NewUint(1000*common.One)),
-				})
-				helper.Keeper.SetNodeAccount(ctx, nodeAccount)
+				}), IsNil)
+				c.Assert(helper.Keeper.SetNodeAccount(ctx, nodeAccount), IsNil)
 				return NewMsgSetIPAddress("192.168.0.1", nodeAccount.NodeAddress)
 			},
 			validator: func(c *C, ctx cosmos.Context, result *cosmos.Result, err error, helper *HandlerIPAddressTestHelper, name string) {

@@ -368,5 +368,6 @@ func (s *SignSuite) TestProcess(c *C) {
 	err = sign.Start()
 	c.Assert(err, IsNil)
 	time.Sleep(time.Second * 2)
+	// nolint
 	go sign.Stop()
 }

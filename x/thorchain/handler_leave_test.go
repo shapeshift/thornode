@@ -19,7 +19,7 @@ var _ = Suite(&HandlerLeaveSuite{})
 func (HandlerLeaveSuite) TestLeaveHandler_NotActiveNodeLeave(c *C) {
 	w := getHandlerTestWrapper(c, 1, true, false)
 	vault := GetRandomVault()
-	w.keeper.SetVault(w.ctx, vault)
+	c.Assert(w.keeper.SetVault(w.ctx, vault), IsNil)
 	leaveHandler := NewLeaveHandler(NewDummyMgrWithKeeper(w.keeper))
 	acc2 := GetRandomValidatorNode(NodeStandby)
 	acc2.Bond = cosmos.NewUint(100 * common.One)
@@ -74,13 +74,13 @@ func (HandlerLeaveSuite) TestLeaveHandler_ActiveNodeLeave(c *C) {
 func (HandlerLeaveSuite) TestLeaveJail(c *C) {
 	w := getHandlerTestWrapper(c, 1, true, false)
 	vault := GetRandomVault()
-	w.keeper.SetVault(w.ctx, vault)
+	c.Assert(w.keeper.SetVault(w.ctx, vault), IsNil)
 	leaveHandler := NewLeaveHandler(NewDummyMgrWithKeeper(w.keeper))
 	acc2 := GetRandomValidatorNode(NodeStandby)
 	acc2.Bond = cosmos.NewUint(100 * common.One)
 	c.Assert(w.keeper.SetNodeAccount(w.ctx, acc2), IsNil)
 
-	w.keeper.SetNodeAccountJail(w.ctx, acc2.NodeAddress, common.BlockHeight(w.ctx)+100, "test it")
+	c.Assert(w.keeper.SetNodeAccountJail(w.ctx, acc2.NodeAddress, common.BlockHeight(w.ctx)+100, "test it"), IsNil)
 
 	ygg := NewVault(common.BlockHeight(w.ctx), ActiveVault, YggdrasilVault, acc2.PubKeySet.Secp256k1, common.Chains{common.RuneAsset().Chain}.Strings(), []ChainContract{})
 	c.Assert(w.keeper.SetVault(w.ctx, ygg), IsNil)
@@ -261,8 +261,8 @@ func (HandlerLeaveSuite) TestLeaveDifferentValidations(c *C) {
 			messageProvider: func(ctx cosmos.Context, helper *LeaveHandlerTestHelper) cosmos.Msg {
 				nodeAccount := GetRandomValidatorNode(NodeStandby)
 				activeNodeAccount := GetRandomValidatorNode(NodeActive)
-				helper.Keeper.SetNodeAccount(ctx, activeNodeAccount)
-				helper.Keeper.SetNodeAccount(ctx, nodeAccount)
+				c.Assert(helper.Keeper.SetNodeAccount(ctx, activeNodeAccount), IsNil)
+				c.Assert(helper.Keeper.SetNodeAccount(ctx, nodeAccount), IsNil)
 				tx := GetRandomTx()
 				tx.FromAddress = nodeAccount.BondAddress
 				// when there is no asgard vault to refund, refund should fail
@@ -278,13 +278,13 @@ func (HandlerLeaveSuite) TestLeaveDifferentValidations(c *C) {
 			messageProvider: func(ctx cosmos.Context, helper *LeaveHandlerTestHelper) cosmos.Msg {
 				nodeAccount := GetRandomValidatorNode(NodeStandby)
 				activeNodeAccount := GetRandomValidatorNode(NodeActive)
-				helper.Keeper.SetNodeAccount(ctx, activeNodeAccount)
-				helper.Keeper.SetNodeAccount(ctx, nodeAccount)
+				c.Assert(helper.Keeper.SetNodeAccount(ctx, activeNodeAccount), IsNil)
+				c.Assert(helper.Keeper.SetNodeAccount(ctx, nodeAccount), IsNil)
 				tx := GetRandomTx()
 				tx.FromAddress = nodeAccount.BondAddress
 				// add an asgard vault , otherwise we won't be able to send out fund
 				vault := GetRandomVault()
-				helper.SetVault(ctx, vault)
+				c.Assert(helper.SetVault(ctx, vault), IsNil)
 				return NewMsgLeave(tx, nodeAccount.NodeAddress, GetRandomBech32Addr())
 			},
 			validator: func(c *C, ctx cosmos.Context, result *cosmos.Result, err error, helper *LeaveHandlerTestHelper, name string, msg cosmos.Msg) {
@@ -297,12 +297,12 @@ func (HandlerLeaveSuite) TestLeaveDifferentValidations(c *C) {
 			messageProvider: func(ctx cosmos.Context, helper *LeaveHandlerTestHelper) cosmos.Msg {
 				nodeAccount := GetRandomValidatorNode(NodeStandby)
 				activeNodeAccount := GetRandomValidatorNode(NodeActive)
-				helper.Keeper.SetNodeAccount(ctx, activeNodeAccount)
-				helper.Keeper.SetNodeAccount(ctx, nodeAccount)
+				c.Assert(helper.Keeper.SetNodeAccount(ctx, activeNodeAccount), IsNil)
+				c.Assert(helper.Keeper.SetNodeAccount(ctx, nodeAccount), IsNil)
 				tx := GetRandomTx()
 				tx.FromAddress = nodeAccount.BondAddress
 				vault := NewVault(1024, ActiveVault, YggdrasilVault, nodeAccount.PubKeySet.Secp256k1, common.Chains{common.BNBChain, common.BTCChain}.Strings(), []ChainContract{})
-				helper.Keeper.SetVault(ctx, vault)
+				c.Assert(helper.Keeper.SetVault(ctx, vault), IsNil)
 				helper.failGetVault = true
 				return NewMsgLeave(tx, nodeAccount.NodeAddress, GetRandomBech32Addr())
 			},
@@ -316,17 +316,17 @@ func (HandlerLeaveSuite) TestLeaveDifferentValidations(c *C) {
 			messageProvider: func(ctx cosmos.Context, helper *LeaveHandlerTestHelper) cosmos.Msg {
 				nodeAccount := GetRandomValidatorNode(NodeStandby)
 				activeNodeAccount := GetRandomValidatorNode(NodeActive)
-				helper.Keeper.SetNodeAccount(ctx, activeNodeAccount)
-				helper.Keeper.SetNodeAccount(ctx, nodeAccount)
+				c.Assert(helper.Keeper.SetNodeAccount(ctx, activeNodeAccount), IsNil)
+				c.Assert(helper.Keeper.SetNodeAccount(ctx, nodeAccount), IsNil)
 				tx := GetRandomTx()
 				tx.FromAddress = nodeAccount.BondAddress
 				vault := NewVault(1024, ActiveVault, YggdrasilVault, nodeAccount.PubKeySet.Secp256k1, common.Chains{common.BNBChain, common.BTCChain}.Strings(), []ChainContract{})
 				vault.AddFunds(common.Coins{
 					common.NewCoin(common.BNBAsset, cosmos.NewUint(common.One*100)),
 				})
-				helper.Keeper.SetVault(ctx, vault)
+				c.Assert(helper.Keeper.SetVault(ctx, vault), IsNil)
 				asgardVault := NewVault(1024, ActiveVault, AsgardVault, GetRandomPubKey(), common.Chains{common.BNBChain, common.BTCChain}.Strings(), []ChainContract{})
-				helper.Keeper.SetVault(ctx, asgardVault)
+				c.Assert(helper.Keeper.SetVault(ctx, asgardVault), IsNil)
 				return NewMsgLeave(tx, nodeAccount.NodeAddress, GetRandomBech32Addr())
 			},
 			validator: func(c *C, ctx cosmos.Context, result *cosmos.Result, err error, helper *LeaveHandlerTestHelper, name string, msg cosmos.Msg) {
@@ -339,12 +339,12 @@ func (HandlerLeaveSuite) TestLeaveDifferentValidations(c *C) {
 			messageProvider: func(ctx cosmos.Context, helper *LeaveHandlerTestHelper) cosmos.Msg {
 				nodeAccount := GetRandomValidatorNode(NodeStandby)
 				activeNodeAccount := GetRandomValidatorNode(NodeActive)
-				helper.Keeper.SetNodeAccount(ctx, activeNodeAccount)
-				helper.Keeper.SetNodeAccount(ctx, nodeAccount)
+				c.Assert(helper.Keeper.SetNodeAccount(ctx, activeNodeAccount), IsNil)
+				c.Assert(helper.Keeper.SetNodeAccount(ctx, nodeAccount), IsNil)
 				tx := GetRandomTx()
 				tx.FromAddress = nodeAccount.BondAddress
 				asgardVault := NewVault(1024, ActiveVault, AsgardVault, GetRandomPubKey(), common.Chains{common.BNBChain, common.BTCChain}.Strings(), []ChainContract{})
-				helper.Keeper.SetVault(ctx, asgardVault)
+				c.Assert(helper.Keeper.SetVault(ctx, asgardVault), IsNil)
 				helper.failSetNodeAccount = true
 				return NewMsgLeave(tx, nodeAccount.NodeAddress, GetRandomBech32Addr())
 			},
@@ -359,19 +359,19 @@ func (HandlerLeaveSuite) TestLeaveDifferentValidations(c *C) {
 				nodeAccount := GetRandomValidatorNode(NodeDisabled)
 				nodeAccount.Bond = cosmos.NewUint(100)
 				activeNodeAccount := GetRandomValidatorNode(NodeActive)
-				helper.Keeper.SetNodeAccount(ctx, activeNodeAccount)
-				helper.Keeper.SetNodeAccount(ctx, nodeAccount)
+				c.Assert(helper.Keeper.SetNodeAccount(ctx, activeNodeAccount), IsNil)
+				c.Assert(helper.Keeper.SetNodeAccount(ctx, nodeAccount), IsNil)
 				tx := GetRandomTx()
 				tx.FromAddress = nodeAccount.BondAddress
 				asgardVault := NewVault(1024, ActiveVault, AsgardVault, GetRandomPubKey(), common.Chains{common.BNBChain, common.BTCChain}.Strings(), []ChainContract{})
-				helper.Keeper.SetVault(ctx, asgardVault)
+				c.Assert(helper.Keeper.SetVault(ctx, asgardVault), IsNil)
 
 				retiringVault := NewVault(1000, RetiringVault, AsgardVault, GetRandomPubKey(), common.Chains{common.BNBChain, common.BTCChain}.Strings(), []ChainContract{})
 				retiringVault.Membership = common.PubKeys{
 					nodeAccount.PubKeySet.Secp256k1,
 					GetRandomPubKey(),
 				}.Strings()
-				helper.Keeper.SetVault(ctx, retiringVault)
+				c.Assert(helper.Keeper.SetVault(ctx, retiringVault), IsNil)
 				return NewMsgLeave(tx, nodeAccount.NodeAddress, GetRandomBech32Addr())
 			},
 			validator: func(c *C, ctx cosmos.Context, result *cosmos.Result, err error, helper *LeaveHandlerTestHelper, name string, msg cosmos.Msg) {
@@ -408,24 +408,24 @@ func (HandlerLeaveSuite) TestLeaveHandler_AbandonYggdrasilVault(c *C) {
 	c.Assert(mgr.Keeper().SetPool(ctx, pool), IsNil)
 	FundModule(c, ctx, mgr.Keeper(), BondName, 1000)
 
-	mgr.Keeper().SaveNetworkFee(ctx, common.ETHChain, NetworkFee{
+	c.Assert(mgr.Keeper().SaveNetworkFee(ctx, common.ETHChain, NetworkFee{
 		Chain:              common.ETHChain,
 		TransactionSize:    80000,
 		TransactionFeeRate: 300,
-	})
+	}), IsNil)
 	nodeAccount := GetRandomValidatorNode(NodeStandby)
 	activeNodeAccount := GetRandomValidatorNode(NodeActive)
-	mgr.Keeper().SetNodeAccount(ctx, activeNodeAccount)
-	mgr.Keeper().SetNodeAccount(ctx, nodeAccount)
+	c.Assert(mgr.Keeper().SetNodeAccount(ctx, activeNodeAccount), IsNil)
+	c.Assert(mgr.Keeper().SetNodeAccount(ctx, nodeAccount), IsNil)
 	tx := GetRandomTx()
 	tx.FromAddress = nodeAccount.BondAddress
 	vault := NewVault(1024, ActiveVault, YggdrasilVault, nodeAccount.PubKeySet.Secp256k1, common.Chains{common.BNBChain, common.BTCChain, common.ETHChain}.Strings(), []ChainContract{})
 	vault.AddFunds(common.Coins{
 		common.NewCoin(common.ETHAsset, cosmos.NewUint(12000000)),
 	})
-	mgr.Keeper().SetVault(ctx, vault)
+	c.Assert(mgr.Keeper().SetVault(ctx, vault), IsNil)
 	asgardVault := NewVault(1024, ActiveVault, AsgardVault, GetRandomPubKey(), common.Chains{common.BNBChain, common.BTCChain, common.ETHChain}.Strings(), []ChainContract{})
-	mgr.Keeper().SetVault(ctx, asgardVault)
+	c.Assert(mgr.Keeper().SetVault(ctx, asgardVault), IsNil)
 	msgLeave := NewMsgLeave(tx, nodeAccount.NodeAddress, GetRandomBech32Addr())
 	handler := NewLeaveHandler(mgr)
 	result, err := handler.Run(ctx, msgLeave)
@@ -448,24 +448,24 @@ func (HandlerLeaveSuite) TestLeaveHandler_WhenTooMuchGasAssetLeft_LeaveShouldNot
 	pool.Status = PoolAvailable
 	c.Assert(mgr.Keeper().SetPool(ctx, pool), IsNil)
 	FundModule(c, ctx, mgr.Keeper(), BondName, 1000)
-	mgr.Keeper().SaveNetworkFee(ctx, common.ETHChain, NetworkFee{
+	c.Assert(mgr.Keeper().SaveNetworkFee(ctx, common.ETHChain, NetworkFee{
 		Chain:              common.ETHChain,
 		TransactionSize:    80000,
 		TransactionFeeRate: 300,
-	})
+	}), IsNil)
 	nodeAccount := GetRandomValidatorNode(NodeStandby)
 	activeNodeAccount := GetRandomValidatorNode(NodeActive)
-	mgr.Keeper().SetNodeAccount(ctx, activeNodeAccount)
-	mgr.Keeper().SetNodeAccount(ctx, nodeAccount)
+	c.Assert(mgr.Keeper().SetNodeAccount(ctx, activeNodeAccount), IsNil)
+	c.Assert(mgr.Keeper().SetNodeAccount(ctx, nodeAccount), IsNil)
 	tx := GetRandomTx()
 	tx.FromAddress = nodeAccount.BondAddress
 	vault := NewVault(1024, ActiveVault, YggdrasilVault, nodeAccount.PubKeySet.Secp256k1, common.Chains{common.BNBChain, common.BTCChain, common.ETHChain}.Strings(), []ChainContract{})
 	vault.AddFunds(common.Coins{
 		common.NewCoin(common.ETHAsset, cosmos.NewUint(500000000)),
 	})
-	mgr.Keeper().SetVault(ctx, vault)
+	c.Assert(mgr.Keeper().SetVault(ctx, vault), IsNil)
 	asgardVault := NewVault(1024, ActiveVault, AsgardVault, GetRandomPubKey(), common.Chains{common.BNBChain, common.BTCChain, common.ETHChain}.Strings(), []ChainContract{})
-	mgr.Keeper().SetVault(ctx, asgardVault)
+	c.Assert(mgr.Keeper().SetVault(ctx, asgardVault), IsNil)
 	msgLeave := NewMsgLeave(tx, nodeAccount.NodeAddress, GetRandomBech32Addr())
 	handler := NewLeaveHandler(mgr)
 	result, err := handler.Run(ctx, msgLeave)

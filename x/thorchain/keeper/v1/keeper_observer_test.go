@@ -15,7 +15,8 @@ func (s *KeeperObserverSuite) TestObserver(c *C) {
 
 	addr := GetRandomBech32Addr()
 
-	k.AddObservingAddresses(ctx, []cosmos.AccAddress{addr})
+	err := k.AddObservingAddresses(ctx, []cosmos.AccAddress{addr})
+	c.Assert(err, IsNil)
 	addrs, err := k.GetObservingAddresses(ctx)
 	c.Assert(err, IsNil)
 	c.Assert(addrs, HasLen, 1)

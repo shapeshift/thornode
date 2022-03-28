@@ -498,14 +498,14 @@ func setupAnLegitObservedTx(ctx cosmos.Context, helper *ObservedTxInHandlerTestH
 	c.Assert(err, IsNil)
 	vault := GetRandomVault()
 	vault.PubKey = obTx.ObservedPubKey
-	helper.Keeper.SetNodeAccount(ctx, activeNodeAccount)
+	c.Assert(helper.Keeper.SetNodeAccount(ctx, activeNodeAccount), IsNil)
 	c.Assert(helper.SetVault(ctx, vault), IsNil)
 	p := NewPool()
 	p.Asset = common.BNBAsset
 	p.BalanceRune = cosmos.NewUint(100 * common.One)
 	p.BalanceAsset = cosmos.NewUint(100 * common.One)
 	p.Status = PoolAvailable
-	helper.Keeper.SetPool(ctx, p)
+	c.Assert(helper.Keeper.SetPool(ctx, p), IsNil)
 	return NewMsgObservedTxIn(ObservedTxs{
 		obTx,
 	}, activeNodeAccount.NodeAddress)
@@ -637,7 +637,7 @@ func (HandlerObservedTxInSuite) TestObservedTxHandler_validations(c *C) {
 				vault, err := helper.Keeper.GetVault(ctx, m.Txs[0].ObservedPubKey)
 				c.Assert(err, IsNil)
 				vault.Type = YggdrasilVault
-				helper.Keeper.SetVault(ctx, vault)
+				c.Assert(helper.Keeper.SetVault(ctx, vault), IsNil)
 				return m
 			},
 			validator: func(c *C, ctx cosmos.Context, result *cosmos.Result, err error, helper *ObservedTxInHandlerTestHelper, name string) {
@@ -652,7 +652,7 @@ func (HandlerObservedTxInSuite) TestObservedTxHandler_validations(c *C) {
 				vault, err := helper.Keeper.GetVault(ctx, m.Txs[0].ObservedPubKey)
 				c.Assert(err, IsNil)
 				vault.Status = InactiveVault
-				helper.Keeper.SetVault(ctx, vault)
+				c.Assert(helper.Keeper.SetVault(ctx, vault), IsNil)
 				return m
 			},
 			validator: func(c *C, ctx cosmos.Context, result *cosmos.Result, err error, helper *ObservedTxInHandlerTestHelper, name string) {

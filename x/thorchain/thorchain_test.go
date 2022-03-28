@@ -369,7 +369,7 @@ func (s *ThorchainSuite) TestRagnarok(c *C) {
 	c.Assert(err, IsNil)
 	// this should trigger stage 1 of the ragnarok protocol. We should see a tx
 	// out per node account
-	mgr.ValidatorMgr().processRagnarok(ctx, mgr, consts)
+	c.Assert(mgr.ValidatorMgr().processRagnarok(ctx, mgr, consts), IsNil)
 	// after ragnarok get trigged , we pay bond reward immediately
 	for idx, bonder := range bonders {
 		na, err := mgr.Keeper().GetNodeAccount(ctx, bonder.NodeAddress)

@@ -280,8 +280,8 @@ func (s *NetworkManagerV76TestSuite) TestRagnarokChain(c *C) {
 
 	// no active nodes , should error
 	c.Assert(vaultMgr1.ragnarokChain(ctx, common.BNBChain, 1, mgr, constAccessor), NotNil)
-	helper.Keeper.SetNodeAccount(ctx, GetRandomValidatorNode(NodeActive))
-	helper.Keeper.SetNodeAccount(ctx, GetRandomValidatorNode(NodeActive))
+	c.Assert(helper.Keeper.SetNodeAccount(ctx, GetRandomValidatorNode(NodeActive)), IsNil)
+	c.Assert(helper.Keeper.SetNodeAccount(ctx, GetRandomValidatorNode(NodeActive)), IsNil)
 
 	// fail to get pools should error out
 	helper.failGetPools = true
@@ -320,12 +320,12 @@ func (s *NetworkManagerV76TestSuite) TestUpdateNetwork(c *C) {
 	c.Assert(vaultMgr.UpdateNetwork(ctx, constAccessor, mgr.GasMgr(), mgr.EventMgr()), IsNil)
 
 	// with liquidity fee , and bonds
-	helper.Keeper.AddToLiquidityFees(ctx, common.BNBAsset, cosmos.NewUint(50*common.One))
+	c.Assert(helper.Keeper.AddToLiquidityFees(ctx, common.BNBAsset, cosmos.NewUint(50*common.One)), IsNil)
 
 	c.Assert(vaultMgr.UpdateNetwork(ctx, constAccessor, mgr.GasMgr(), mgr.EventMgr()), IsNil)
 	// add bond
-	helper.Keeper.SetNodeAccount(ctx, GetRandomValidatorNode(NodeActive))
-	helper.Keeper.SetNodeAccount(ctx, GetRandomValidatorNode(NodeActive))
+	c.Assert(helper.Keeper.SetNodeAccount(ctx, GetRandomValidatorNode(NodeActive)), IsNil)
+	c.Assert(helper.Keeper.SetNodeAccount(ctx, GetRandomValidatorNode(NodeActive)), IsNil)
 	c.Assert(vaultMgr.UpdateNetwork(ctx, constAccessor, mgr.GasMgr(), mgr.EventMgr()), IsNil)
 
 	// fail to get total liquidity fee should result an error
@@ -493,7 +493,7 @@ func (*NetworkManagerV76TestSuite) TestProcessGenesisSetup(c *C) {
 	c.Assert(vaultMgr.EndBlock(ctx, mgr, constAccessor), NotNil)
 
 	nodeAccount := GetRandomValidatorNode(NodeActive)
-	mgr.Keeper().SetNodeAccount(ctx, nodeAccount)
+	c.Assert(mgr.Keeper().SetNodeAccount(ctx, nodeAccount), IsNil)
 	c.Assert(vaultMgr.EndBlock(ctx, mgr, constAccessor), IsNil)
 	// make sure asgard vault get created
 	vaults, err := mgr.Keeper().GetAsgardVaults(ctx)
@@ -541,7 +541,7 @@ func (*NetworkManagerV76TestSuite) TestGetTotalActiveBond(c *C) {
 	c.Assert(err, NotNil)
 	c.Assert(bond.Equal(cosmos.ZeroUint()), Equals, true)
 	helper.failToListActiveAccounts = false
-	helper.Keeper.SetNodeAccount(ctx, GetRandomValidatorNode(NodeActive))
+	c.Assert(helper.Keeper.SetNodeAccount(ctx, GetRandomValidatorNode(NodeActive)), IsNil)
 	bond, err = vaultMgr.getTotalActiveBond(ctx)
 	c.Assert(err, IsNil)
 	c.Assert(bond.Uint64() > 0, Equals, true)
@@ -575,7 +575,7 @@ func (*NetworkManagerV76TestSuite) TestPayPoolRewards(c *C) {
 	p.BalanceAsset = cosmos.NewUint(common.One * 100)
 	p.Status = PoolAvailable
 	c.Assert(helper.SetPool(ctx, p), IsNil)
-	vaultMgr.payPoolRewards(ctx, []cosmos.Uint{cosmos.NewUint(100 * common.One)}, Pools{p})
+	c.Assert(vaultMgr.payPoolRewards(ctx, []cosmos.Uint{cosmos.NewUint(100 * common.One)}, Pools{p}), IsNil)
 	helper.failToSetPool = true
 	c.Assert(vaultMgr.payPoolRewards(ctx, []cosmos.Uint{cosmos.NewUint(100 * common.One)}, Pools{p}), NotNil)
 }

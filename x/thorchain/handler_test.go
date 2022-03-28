@@ -116,7 +116,7 @@ func setupManagerForTest(c *C) (cosmos.Context, *Mgrs) {
 	os.Setenv("NET", "mocknet")
 	mgr := NewManagers(k, marshaler, bk, ak, keyThorchain)
 	constants.SWVersion = GetCurrentVersion()
-	mgr.BeginBlock(ctx)
+	c.Assert(mgr.BeginBlock(ctx), IsNil)
 	return ctx, mgr
 }
 
@@ -243,7 +243,7 @@ func (HandlerSuite) TestHandleTxInWithdrawLiquidityMemo(c *C) {
 		common.NewCoin(common.BNBAsset, cosmos.NewUint(100*common.One)),
 		common.NewCoin(common.RuneAsset(), cosmos.NewUint(100*common.One)),
 	}
-	w.keeper.SetVault(w.ctx, vault)
+	c.Assert(w.keeper.SetVault(w.ctx, vault), IsNil)
 	vaultAddr, err := vault.PubKey.GetAddress(common.BNBChain)
 
 	pool := NewPool()
@@ -281,11 +281,11 @@ func (HandlerSuite) TestHandleTxInWithdrawLiquidityMemo(c *C) {
 	handler := NewInternalHandler(w.mgr)
 
 	FundModule(c, w.ctx, w.keeper, AsgardName, 500)
-	w.keeper.SaveNetworkFee(w.ctx, common.BNBChain, NetworkFee{
+	c.Assert(w.keeper.SaveNetworkFee(w.ctx, common.BNBChain, NetworkFee{
 		Chain:              common.BNBChain,
 		TransactionSize:    1,
 		TransactionFeeRate: bnbSingleTxFee.Uint64(),
-	})
+	}), IsNil)
 
 	_, err = handler(w.ctx, msg)
 	c.Assert(err, IsNil)
@@ -635,7 +635,7 @@ func (s *HandlerSuite) TestExternalHandler(c *C) {
 	c.Check(errors.Is(err, se.ErrUnauthorized), Equals, true)
 	c.Check(result, IsNil)
 	na := GetRandomValidatorNode(NodeActive)
-	mgr.Keeper().SetNodeAccount(ctx, na)
+	c.Assert(mgr.Keeper().SetNodeAccount(ctx, na), IsNil)
 	FundModule(c, ctx, mgr.Keeper(), BondName, 10*common.One)
 	result, err = handler(ctx, NewMsgSetVersion("0.1.0", na.NodeAddress))
 	c.Assert(err, IsNil)

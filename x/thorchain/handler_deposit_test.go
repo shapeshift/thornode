@@ -46,7 +46,7 @@ func (s *HandlerDepositSuite) TestHandle(c *C) {
 		constants.NativeTransactionFee: 1000_000,
 	}, map[constants.ConstantName]bool{}, map[constants.ConstantName]string{})
 	activeNode := GetRandomValidatorNode(NodeActive)
-	k.SetNodeAccount(ctx, activeNode)
+	c.Assert(k.SetNodeAccount(ctx, activeNode), IsNil)
 	dummyMgr := NewDummyMgrWithKeeper(k)
 	dummyMgr.gasMgr = newGasMgrV81(constAccessor, k)
 	handler := NewDepositHandler(dummyMgr)
@@ -226,8 +226,8 @@ func (s *HandlerDepositSuite) TestAddSwapV64(c *C) {
 		"",
 	)
 
-	mgr.Keeper().MintToModule(ctx, ModuleName, tx1.Coins[0])
-	mgr.Keeper().SendFromModuleToModule(ctx, ModuleName, AsgardName, tx1.Coins)
+	c.Assert(mgr.Keeper().MintToModule(ctx, ModuleName, tx1.Coins[0]), IsNil)
+	c.Assert(mgr.Keeper().SendFromModuleToModule(ctx, ModuleName, AsgardName, tx1.Coins), IsNil)
 	msg3 := NewMsgSwap(tx1, common.BTCAsset, GetRandomBTCAddress(), cosmos.ZeroUint(), GetRandomTHORAddress(), cosmos.NewUint(1000), GetRandomBech32Addr())
 	handler.addSwapV65(ctx, *msg3)
 	swap, err = mgr.Keeper().GetSwapQueueItem(ctx, tx1.ID, 0)

@@ -462,11 +462,11 @@ func (WithdrawSuiteV84) TestWithdraw(c *C) {
 		c.Logf("name:%s", tc.name)
 		version := GetCurrentVersion()
 		mgr.K = tc.ps
-		tc.ps.SaveNetworkFee(ctx, common.BNBChain, NetworkFee{
+		c.Assert(tc.ps.SaveNetworkFee(ctx, common.BNBChain, NetworkFee{
 			Chain:              common.BNBChain,
 			TransactionSize:    1,
 			TransactionFeeRate: bnbSingleTxFee.Uint64(),
-		})
+		}), IsNil)
 		r, asset, _, _, _, err := withdrawV84(ctx, version, tc.msg, mgr)
 		if tc.expectedError != nil {
 			c.Assert(err, NotNil)
@@ -527,11 +527,11 @@ func (WithdrawSuiteV84) TestWithdrawAsym(c *C) {
 		ctx, mgr := setupManagerForTest(c)
 		ps := getWithdrawTestKeeper2(c, ctx, mgr.Keeper(), runeAddress)
 		mgr.K = ps
-		ps.SaveNetworkFee(ctx, common.BNBChain, NetworkFee{
+		c.Assert(ps.SaveNetworkFee(ctx, common.BNBChain, NetworkFee{
 			Chain:              common.BNBChain,
 			TransactionSize:    1,
 			TransactionFeeRate: bnbSingleTxFee.Uint64(),
-		})
+		}), IsNil)
 		r, asset, _, _, _, err := withdrawV84(ctx, version, tc.msg, mgr)
 		if tc.expectedError != nil {
 			c.Assert(err, NotNil)

@@ -145,7 +145,7 @@ func (HandlerWithdrawSuite) TestAsymmetricWithdraw(c *C) {
 	pool.BalanceAsset = cosmos.ZeroUint()
 	pool.BalanceRune = cosmos.ZeroUint()
 	pool.Status = PoolAvailable
-	keeper.SetPool(ctx, pool)
+	c.Assert(keeper.SetPool(ctx, pool), IsNil)
 	// Happy path , this is a round trip , first we provide liquidity, then we withdraw
 	// Let's stake some BTC first
 	runeAddr := GetRandomRUNEAddress()
