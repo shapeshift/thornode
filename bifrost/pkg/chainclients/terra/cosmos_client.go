@@ -507,7 +507,8 @@ func (c *CosmosClient) BroadcastTx(tx stypes.TxOutItem, txBytes []byte) (string,
 		c.logger.Err(err).Msg("unable to broadcast tx")
 		return "", err
 	}
-	c.logger.Info().Msgf("broadcast response: %+v", broadcastRes)
+
+	c.logger.Info().Interface("broadcastRes", broadcastRes).Msg("BroadcasTx success")
 	if success := CosmosSuccessCodes[broadcastRes.TxResponse.Code]; !success {
 		c.logger.Error().Interface("response", broadcastRes).Msg("unsuccessful error code in transaction broadcast")
 		return "", errors.New("broadcast msg failed")
