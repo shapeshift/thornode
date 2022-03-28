@@ -195,8 +195,7 @@ func (s *BlockScannerTestSuite) TestBadBlock(c *C) {
 
 func (s *BlockScannerTestSuite) TestBadConnection(c *C) {
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch {
-		case strings.HasPrefix(r.RequestURI, thorclient.MimirEndpoint):
+		if strings.HasPrefix(r.RequestURI, thorclient.MimirEndpoint) {
 			buf, err := ioutil.ReadFile("../../test/fixtures/endpoints/mimir/mimir.json")
 			c.Assert(err, IsNil)
 			_, err = w.Write(buf)

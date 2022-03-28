@@ -381,7 +381,7 @@ func (ymgr YggMgrV79) abandonYggdrasilVaults(ctx cosmos.Context, mgr Manager) er
 	if err != nil {
 		return fmt.Errorf("fail to get retiring asgard vaults: %w", err)
 	}
-	allVaults := append(activeVaults, retiringAsgards...)
+	allVaults := append(activeVaults, retiringAsgards...) // nolint
 
 	slasher := mgr.Slasher()
 	vaultIter := ymgr.keeper.GetVaultIterator(ctx)

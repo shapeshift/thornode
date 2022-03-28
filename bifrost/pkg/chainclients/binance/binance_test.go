@@ -224,7 +224,7 @@ func (s *BinancechainSuite) TestGetHeight(c *C) {
 func (s *BinancechainSuite) TestSignTx(c *C) {
 	count := 0
 	server := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		if strings.HasPrefix(req.RequestURI, "/abci_query?") {
+		if strings.HasPrefix(req.RequestURI, "/abci_query?") { // nolint
 			if _, err := rw.Write([]byte(accountInfo)); err != nil {
 				c.Error(err)
 			}
