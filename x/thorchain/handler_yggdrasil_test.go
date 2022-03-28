@@ -73,7 +73,6 @@ func (k yggdrasilTestKeeper) GetVault(ctx cosmos.Context, pk common.PubKey) (Vau
 
 type yggdrasilHandlerTestHelper struct {
 	ctx           cosmos.Context
-	pool          Pool
 	version       semver.Version
 	keeper        *yggdrasilTestKeeper
 	asgardVault   Vault
