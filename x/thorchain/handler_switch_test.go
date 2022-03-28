@@ -25,11 +25,10 @@ func (s *HandlerSwitchSuite) TestValidate(c *C) {
 	tx.Coins = common.Coins{
 		common.NewCoin(common.Rune67CAsset, cosmos.NewUint(100*common.One)),
 	}
-	destination := GetRandomBNBAddress()
 
 	handler := NewSwitchHandler(NewDummyMgrWithKeeper(k))
 
-	destination = GetRandomTHORAddress()
+	destination := GetRandomTHORAddress()
 	// happy path
 	msg := NewMsgSwitch(tx, destination, na.NodeAddress)
 	result, err := handler.Run(ctx, msg)

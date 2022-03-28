@@ -79,7 +79,7 @@ func (s *HandlerSolvencyTestSuite) TestValidate(c *C) {
 		),
 		1024,
 		GetRandomBech32Addr())
-
+	c.Assert(err, IsNil)
 	msgSolvency1.Signer = activeNodes[0].NodeAddress
 	result, err = handler.Run(ctx, msgSolvency1)
 	c.Assert(err, IsNil)
@@ -118,6 +118,7 @@ func (s *HandlerSolvencyTestSuite) TestValidate(c *C) {
 		1024,
 		GetRandomBech32Addr())
 
+	c.Assert(err, IsNil)
 	msgSolvency2.Signer = activeNodes[0].NodeAddress
 	result, err = handler.Run(ctx, msgSolvency2)
 	c.Assert(err, IsNil)

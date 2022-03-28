@@ -80,6 +80,7 @@ func (s *UnstuckTestSuite) SetUpTest(c *C) {
 			}
 			var rpcRequest RPCRequest
 			err = json.Unmarshal(body, &rpcRequest)
+			c.Assert(err, IsNil)
 			fmt.Println("rpc request:", rpcRequest.Method)
 			switch rpcRequest.Method {
 			case "eth_chainId":

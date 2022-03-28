@@ -558,6 +558,7 @@ func (s *SlashingV86Suite) TestSlashVault(c *C) {
 	reserveBeforeSlash := mgr.Keeper().GetRuneBalanceOfModule(ctx, ReserveName)
 
 	err = slasher.SlashVault(ctx, vault.PubKey, common.NewCoins(common.NewCoin(common.BTCAsset, cosmos.NewUint(common.One))), mgr)
+	c.Assert(err, IsNil)
 	nodeTemp, err = mgr.Keeper().GetNodeAccountByPubKey(ctx, vault.PubKey)
 	c.Assert(err, IsNil)
 	expectedBond := cosmos.NewUint(99848484849)
@@ -591,6 +592,7 @@ func (s *SlashingV86Suite) TestSlashVault(c *C) {
 	node1BondBeforeSlash := node1.Bond
 	mgr.Keeper().SetMimir(ctx, "PauseOnSlashThreshold", 1)
 	err = slasher.SlashVault(ctx, vault1.PubKey, common.NewCoins(common.NewCoin(common.BTCAsset, cosmos.NewUint(common.One))), mgr)
+	c.Assert(err, IsNil)
 
 	nodeAfterSlash, err := mgr.Keeper().GetNodeAccount(ctx, node.NodeAddress)
 	c.Assert(err, IsNil)

@@ -174,6 +174,7 @@ func (s *BlockScannerTestSuite) TestBadBlock(c *C) {
 		SignerPasswd:    "password",
 		ChainHomeFolder: ".",
 	}, s.m, s.keys)
+	c.Assert(err, IsNil)
 	cbs, err := NewBlockScanner(config.BlockScannerConfiguration{
 		RPCHost:                    server.URL,
 		StartBlockHeight:           1, // avoids querying thorchain for block height

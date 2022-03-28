@@ -46,6 +46,7 @@ func (s *MsgObservedTxInSuite) TestMsgObservedTxIn(c *C) {
 
 	tx5 := NewObservedTx(GetRandomTx(), 1, pk, 1)
 	tx5.Tx.ToAddress, err = pk.GetAddress(tx.Tx.Coins[0].Asset.Chain)
+	c.Assert(err, IsNil)
 	tx5.OutHashes = []string{
 		GetRandomTxHash().String(),
 	}

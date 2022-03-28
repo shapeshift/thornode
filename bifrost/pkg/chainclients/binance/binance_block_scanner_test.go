@@ -396,6 +396,7 @@ func (s *BlockScannerTestSuite) TestFromStdTx(c *C) {
 		"tbnb1yxfyeda8pnlxlmx0z3cwx74w9xevspwdpzdxpj",
 		types.Coins{types.Coin{Denom: "BNB", Amount: 194765912}},
 		"whatever")
+	c.Assert(err, IsNil)
 	items, err = bs.fromStdTx("abcd", mStdTx, 1024)
 	c.Assert(err, IsNil)
 	c.Assert(items, HasLen, 1)

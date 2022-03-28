@@ -623,7 +623,7 @@ func (s *HandlerAddLiquiditySuite) TestAddLiquidityV1(c *C) {
 	// add rune
 	err = h.addLiquidity(ctx, common.BTCAsset, cosmos.NewUint(100*common.One), cosmos.ZeroUint(), runeAddress, btcAddress, txID, true, constAccessor)
 	c.Assert(err, IsNil)
-	su, err = ps.GetLiquidityProvider(ctx, common.BTCAsset, runeAddress)
+	_, err = ps.GetLiquidityProvider(ctx, common.BTCAsset, runeAddress)
 	c.Assert(err, IsNil)
 	// c.Check(su.Units.IsZero(), Equals, true)
 	// add btc

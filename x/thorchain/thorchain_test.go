@@ -398,7 +398,7 @@ func (s *ThorchainSuite) TestRagnarok(c *C) {
 
 	for i := 1; i <= 11; i++ { // simulate each round of ragnarok (max of ten)
 		c.Assert(mgr.ValidatorMgr().processRagnarok(ctx, mgr, consts), IsNil)
-		items, err := mgr.TxOutStore().GetOutboundItems(ctx)
+		_, err := mgr.TxOutStore().GetOutboundItems(ctx)
 		c.Assert(err, IsNil)
 		// validate liquidity providers get their returns
 		for j, lp := range lpsAssets {

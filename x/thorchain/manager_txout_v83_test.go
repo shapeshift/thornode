@@ -168,6 +168,7 @@ func (s TxOutStoreV83Suite) TestAddOutTxItem(c *C) {
 	c.Assert(result, Equals, true)
 	c.Assert(err, IsNil)
 	msgs, err = txOutStore.GetOutboundItems(w.ctx)
+	c.Assert(err, IsNil)
 	// this should be a mocknet address
 	c.Assert(msgs[0].ToAddress.String(), Equals, "qzg5mkh7rkw3y8kw47l3rrnvhmenvctmd5yg6hxe64")
 }
@@ -250,6 +251,7 @@ func (s TxOutStoreV83Suite) TestAddOutTxItem_OutboundHeightDoesNotGetOverride(c 
 	//  the outbound has been delayed
 	newCtx := w.ctx.WithBlockHeight(4)
 	msgs, err = txOutStore.GetOutboundItems(newCtx)
+	c.Assert(err, IsNil)
 	c.Assert(msgs, HasLen, 1)
 	c.Assert(msgs[0].VaultPubKey.String(), Equals, vault.PubKey.String())
 	c.Assert(msgs[0].Coin.Amount.Equal(cosmos.NewUint(7999887500)), Equals, true, Commentf("%d", msgs[0].Coin.Amount.Uint64()))
@@ -592,6 +594,7 @@ func (s TxOutStoreV83Suite) TestAddOutTxItem_MultipleOutboundWillBeScheduledAtTh
 	//  the outbound has been delayed
 	newCtx := w.ctx.WithBlockHeight(4)
 	msgs, err = txOutStore.GetOutboundItems(newCtx)
+	c.Assert(err, IsNil)
 	c.Assert(msgs, HasLen, 2)
 	c.Assert(msgs[0].VaultPubKey.String(), Equals, vault.PubKey.String())
 	c.Assert(msgs[0].Coin.Amount.Equal(cosmos.NewUint(7999887500)), Equals, true, Commentf("%d", msgs[0].Coin.Amount.Uint64()))
