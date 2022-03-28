@@ -264,7 +264,11 @@ func (HandlerBondSuite) TestBondProvider_Handler(c *C) {
 	bp, _ := k.GetBondProviders(ctx, standbyNA)
 	c.Assert(bp.Providers, HasLen, 2)
 	c.Assert(bp.Has(additionalBondAddress), Equals, true)
+	// New BP should have no bond
 	c.Assert(bp.Get(additionalBondAddress).Bond.Uint64(), Equals, uint64(0), Commentf("%d", bp.Get(additionalBondAddress).Bond.Uint64()))
+	// First BP should have its added bond, and it should have the orignal 100 bond that the node was created with - bond is re-distributed
+	// to current BPs before new bond is added
+	c.Assert(bp.Get(standbyNA).Bond.Uint64(), Equals, cosmos.NewUint(200*common.One).Uint64(), Commentf("%d", bp.Get(standbyNA).Bond.Uint64()))
 
 	// bond with additional bonder
 	msg = NewMsgBond(txIn, standbyNA, amt, common.Address(additionalBondAddress.String()), nil, standbyNA)
@@ -275,14 +279,14 @@ func (HandlerBondSuite) TestBondProvider_Handler(c *C) {
 	c.Assert(bp.Has(additionalBondAddress), Equals, true)
 	c.Assert(bp.Get(additionalBondAddress).Bond.Uint64(), Equals, amt.Uint64(), Commentf("%d", bp.Get(additionalBondAddress).Bond.Uint64()))
 
-	// bond with random bonder (doesnt' add new provider, still 2)
+	// bond with random bonder (doesnt' add new provider, still 2) - effectively adding to rewards, since this random address is not a BP
 	msg = NewMsgBond(txIn, standbyNA, amt, GetRandomTHORAddress(), nil, activeNA)
 	err = handler.handle(ctx, *msg)
 	c.Assert(err, IsNil)
 	bp, _ = k.GetBondProviders(ctx, standbyNA)
 	c.Assert(bp.Providers, HasLen, 2)
 
-	// Set the operator fee to 5%
+	// Set the node operator fee to 5%
 	bp, _ = k.GetBondProviders(ctx, standbyNA)
 	bp.NodeOperatorFee = cosmos.NewUint(500)
 	c.Assert(k.SetBondProviders(ctx, bp), IsNil)
@@ -292,17 +296,25 @@ func (HandlerBondSuite) TestBondProvider_Handler(c *C) {
 	na.Bond = na.Bond.Add(cosmos.NewUint(200 * common.One))
 	c.Assert(k.SetNodeAccount(ctx, na), IsNil)
 
+	// Check total bond - 600 RUNE
 	na, _ = handler.mgr.Keeper().GetNodeAccount(ctx, standbyNA)
 	c.Check(na.Bond.Uint64(), Equals, cosmos.NewUint(600*common.One).Uint64(), Commentf("%d", na.Bond.Uint64()))
 
-	// Add more bond after rewards were earned
+	// Check BP bond - Node Operator should have 200 (2/3rd share), BP #2 should have 100 (1/3rd share)
+	// This means there are 300 RUNE in rewards to distribute (NodeAccount.Bond - sum(BondProviders bond))
+	bp, _ = k.GetBondProviders(ctx, standbyNA)
+	c.Assert(bp.Get(additionalBondAddress).Bond.Uint64(), Equals, cosmos.NewUint(100*common.One).Uint64(), Commentf("%d", bp.Get(additionalBondAddress).Bond.Uint64()))
+	c.Assert(bp.Get(standbyNA).Bond.Uint64(), Equals, cosmos.NewUint(200*common.One).Uint64(), Commentf("%d", bp.Get(standbyNA).Bond.Uint64()))
+
+	// BP #2 Adds more bond after rewards were earned - rewards should be distributed first
 	msg = NewMsgBond(txIn, standbyNA, amt, common.Address(additionalBondAddress.String()), nil, additionalBondAddress)
 	err = handler.handle(ctx, *msg)
 	c.Assert(err, IsNil)
 
-	// Check Bond Provider got rewards minus operator fee
+	// Check BP Bond - Node Operator Should have 2/3rd rewards + 5% operator fee of BP#2 rewards (405)
+	// BP#2 should have 1/3rd rewards - 5% operator fee + the 100 RUNE new bond (295)
 	bp, _ = k.GetBondProviders(ctx, standbyNA)
 	c.Assert(bp.Providers, HasLen, 2)
-	c.Assert(bp.NodeOperatorFee.Uint64(), Equals, cosmos.NewUint(500).Uint64())
 	c.Assert(bp.Get(additionalBondAddress).Bond.Uint64(), Equals, cosmos.NewUint(295*common.One).Uint64(), Commentf("%d", bp.Get(additionalBondAddress).Bond.Uint64()))
+	c.Assert(bp.Get(standbyNA).Bond.Uint64(), Equals, cosmos.NewUint(405*common.One).Uint64(), Commentf("%d", bp.Get(standbyNA).Bond.Uint64()))
 }
