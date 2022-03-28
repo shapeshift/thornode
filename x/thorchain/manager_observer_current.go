@@ -33,7 +33,7 @@ func (om *ObserverMgrV1) reset() {
 // AppendObserver add the address
 func (om *ObserverMgrV1) AppendObserver(chain common.Chain, addrs []cosmos.AccAddress) {
 	// combine addresses
-	all := append(om.chains[chain], addrs...)
+	all := append(om.chains[chain], addrs...) // nolint
 
 	// ensure uniqueness
 	uniq := make([]cosmos.AccAddress, 0, len(all))

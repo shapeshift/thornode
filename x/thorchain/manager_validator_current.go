@@ -859,18 +859,16 @@ func (vm *validatorMgrV84) ragnarokPools(ctx cosmos.Context, nth int64, mgr Mana
 				_, err = withdrawHandler.Run(ctx, withdrawMsg)
 				if err != nil {
 					ctx.Logger().Error("fail to withdraw", "liquidity provider", lp.RuneAddress, "error", err)
-				} else {
+				} else if !withdrawAsset.Equals(common.RuneAsset()) {
 					// when withdraw asset is only RUNE , then it should process more , because RUNE asset doesn't leave THORChain
-					if !withdrawAsset.Equals(common.RuneAsset()) {
-						count++
-						pending, err := vm.k.GetRagnarokPending(ctx)
-						if err != nil {
-							return fmt.Errorf("fail to get ragnarok pending: %w", err)
-						}
-						vm.k.SetRagnarokPending(ctx, pending+1)
-						if count >= maxWithdrawsPerBlock {
-							break
-						}
+					count++
+					pending, err := vm.k.GetRagnarokPending(ctx)
+					if err != nil {
+						return fmt.Errorf("fail to get ragnarok pending: %w", err)
+					}
+					vm.k.SetRagnarokPending(ctx, pending+1)
+					if count >= maxWithdrawsPerBlock {
+						break
 					}
 				}
 			}

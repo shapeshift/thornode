@@ -204,7 +204,7 @@ func postTxsHandler(cliCtx client.Context) http.HandlerFunc {
 				rest.WriteErrorResponse(w, http.StatusBadRequest, err.Error())
 				return
 			}
-			if tx.Tx.ToAddress.Equals(obAddr) {
+			if tx.Tx.ToAddress.Equals(obAddr) { // nolint
 				inbound = append(inbound, tx)
 			} else if tx.Tx.FromAddress.Equals(obAddr) {
 				outbound = append(outbound, tx)

@@ -21,8 +21,7 @@ var _ = Suite(&NodeAccountSuite{})
 
 func (s *NodeAccountSuite) SetUpSuite(c *C) {
 	s.server = httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		switch {
-		case strings.HasPrefix(req.RequestURI, NodeAccountEndpoint):
+		if strings.HasPrefix(req.RequestURI, NodeAccountEndpoint) {
 			httpTestHandler(c, rw, s.fixture)
 		}
 	}))

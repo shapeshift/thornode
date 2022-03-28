@@ -512,12 +512,10 @@ func cyclePoolsV73(ctx cosmos.Context, maxAvailablePools, minRunePoolDepth, stag
 			// min rune, moves back to staged status
 			if valid_pool(pool) {
 				availblePoolCount += 1
-			} else {
-				if !pool.Asset.IsGasAsset() {
-					pool.Status = PoolStaged
-					if err := set_pool(pool); err != nil {
-						return err
-					}
+			} else if !pool.Asset.IsGasAsset() {
+				pool.Status = PoolStaged
+				if err := set_pool(pool); err != nil {
+					return err
 				}
 			}
 			if pool.BalanceRune.LT(choppingBlock.BalanceRune) || choppingBlock.IsEmpty() {
@@ -574,10 +572,8 @@ func cyclePoolsV73(ctx cosmos.Context, maxAvailablePools, minRunePoolDepth, stag
 				// remove asset from Vault
 				removeAssetFromVault(ctx, pool.Asset, mgr)
 
-			} else {
-				if valid_pool(pool) && onDeck.BalanceRune.LT(pool.BalanceRune) {
-					onDeck = pool
-				}
+			} else if valid_pool(pool) && onDeck.BalanceRune.LT(pool.BalanceRune) {
+				onDeck = pool
 			}
 		}
 	}

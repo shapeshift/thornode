@@ -158,7 +158,7 @@ func (s *ThorchainSuite) TestChurn(c *C) {
 	keygenBlock, err := mgr.Keeper().GetKeygenBlock(ctx, common.BlockHeight(ctx))
 	c.Assert(err, IsNil)
 	c.Assert(keygenBlock.IsEmpty(), Equals, false)
-	expected := append(vault.Membership[1:], na.PubKeySet.Secp256k1.String())
+	expected := append(vault.Membership[1:], na.PubKeySet.Secp256k1.String()) // nolint
 	c.Assert(keygenBlock.Keygens, HasLen, 1)
 	keygen := keygenBlock.Keygens[0]
 	// sort our slices so they are in the same order
@@ -403,7 +403,7 @@ func (s *ThorchainSuite) TestRagnarok(c *C) {
 		// validate liquidity providers get their returns
 		for j, lp := range lpsAssets {
 			items := mgr.TxOutStore().GetOutboundItemByToAddress(ctx, lp)
-			if i == 1 {
+			if i == 1 { // nolint
 				if j >= len(lps)-1 {
 					c.Assert(items, HasLen, 0, Commentf("%d", len(items)))
 				} else {

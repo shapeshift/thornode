@@ -25,8 +25,7 @@ var _ = Suite(&KeygenSuite{})
 
 func (s *KeygenSuite) SetUpSuite(c *C) {
 	s.server = httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		switch {
-		case strings.HasPrefix(req.RequestURI, KeygenEndpoint):
+		if strings.HasPrefix(req.RequestURI, KeygenEndpoint) {
 			httpTestHandler(c, rw, s.fixture)
 		}
 	}))
