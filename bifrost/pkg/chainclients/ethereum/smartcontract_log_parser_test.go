@@ -28,10 +28,7 @@ func (t *SmartContractLogParserTestSuite) SetUpSuite(c *C) {
 }
 
 func mockIsValidContractAddr(addr *ecommon.Address, _ bool) bool {
-	if addr.String() == "0xE65e9d372F8cAcc7b6dfcd4af6507851Ed31bb44" {
-		return true
-	}
-	return false
+	return addr.String() == "0xE65e9d372F8cAcc7b6dfcd4af6507851Ed31bb44"
 }
 
 const (

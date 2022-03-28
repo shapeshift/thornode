@@ -174,10 +174,7 @@ func (k *TestObservedTxInHandleKeeper) GetLowestActiveVersion(_ cosmos.Context) 
 }
 
 func (k *TestObservedTxInHandleKeeper) IsActiveObserver(_ cosmos.Context, addr cosmos.AccAddress) bool {
-	if addr.Equals(k.nas[0].NodeAddress) {
-		return true
-	}
-	return false
+	return addr.Equals(k.nas[0].NodeAddress)
 }
 
 func (k *TestObservedTxInHandleKeeper) GetTxOut(ctx cosmos.Context, blockHeight int64) (*TxOut, error) {

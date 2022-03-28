@@ -137,10 +137,7 @@ func (m *ObservedTx) SetDone(hash common.TxID, numOuts int) {
 
 // IsDone will only return true when the number of out hashes is larger or equals the input number
 func (m *ObservedTx) IsDone(numOuts int) bool {
-	if len(m.OutHashes) >= numOuts {
-		return true
-	}
-	return false
+	return len(m.OutHashes) >= numOuts
 }
 
 // ObservedTxVoters a list of observed tx voter

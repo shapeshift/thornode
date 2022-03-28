@@ -58,18 +58,12 @@ func (m *SolvencyVoter) HasConsensus(nas NodeAccounts) bool {
 			count++
 		}
 	}
-	if HasMinority(count, len(nas)) {
-		return true
-	}
-	return false
+	return HasMinority(count, len(nas))
 }
 
 // Empty check whether TxID or Chain is empty
 func (m *SolvencyVoter) Empty() bool {
-	if m.Id.IsEmpty() || m.Chain.IsEmpty() || m.Height <= 0 || len(m.Signers) == 0 {
-		return true
-	}
-	return false
+	return m.Id.IsEmpty() || m.Chain.IsEmpty() || m.Height <= 0 || len(m.Signers) == 0
 }
 
 // String implement fmt.Stinger , return a string representation of solvency tx voter
