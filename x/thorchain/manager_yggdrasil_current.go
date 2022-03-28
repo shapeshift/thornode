@@ -301,10 +301,7 @@ func (ymgr YggMgrV79) shouldFundYggdrasil(ctx cosmos.Context, asgard, ygg Vault,
 		return true
 	}
 	yggContract := ygg.GetContract(chain)
-	if asgardContract.Router.Equals(yggContract.Router) {
-		return true
-	}
-	return false
+	return asgardContract.Router.Equals(yggContract.Router)
 }
 
 // calcTargetYggCoins - calculate the amount of coins of each pool a yggdrasil

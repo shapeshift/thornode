@@ -75,10 +75,7 @@ func (k *TestUnBondKeeper) GetVault(ctx cosmos.Context, pk common.PubKey) (Vault
 }
 
 func (k *TestUnBondKeeper) VaultExists(ctx cosmos.Context, pkey common.PubKey) bool {
-	if k.vault.PubKey.Equals(pkey) {
-		return true
-	}
-	return false
+	return k.vault.PubKey.Equals(pkey)
 }
 
 func (k *TestUnBondKeeper) GetNodeAccountJail(ctx cosmos.Context, addr cosmos.AccAddress) (Jail, error) {

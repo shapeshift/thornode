@@ -337,7 +337,7 @@ func (HandlerSuite) TestRefund(c *C) {
 
 	// check THORNode DONT create a refund transaction when THORNode don't have a pool for
 	// the asset sent.
-	lokiAsset, _ := common.NewAsset(fmt.Sprintf("BNB.LOKI"))
+	lokiAsset, _ := common.NewAsset("BNB.LOKI")
 	txin.Tx.Coins = common.Coins{
 		common.NewCoin(lokiAsset, cosmos.NewUint(100*common.One)),
 	}
@@ -507,7 +507,7 @@ func (HandlerSuite) TestGetMsgLiquidityFromMemo(c *C) {
 	c.Assert(msg2, NotNil)
 	c.Assert(err2, IsNil)
 
-	lokiAsset, _ := common.NewAsset(fmt.Sprintf("BNB.LOKI"))
+	lokiAsset, _ := common.NewAsset("BNB.LOKI")
 	// Make sure the RUNE Address and Asset Address set correctly
 	txin.Tx.Coins = common.Coins{
 		common.NewCoin(runeAsset,
