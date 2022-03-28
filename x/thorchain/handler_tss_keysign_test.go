@@ -24,7 +24,6 @@ type tssKeysignFailHandlerTestHelper struct {
 	constAccessor constants.ConstantValues
 	nodeAccount   NodeAccount
 	mgr           Manager
-	members       common.PubKeys
 	blame         Blame
 	retiringVault Vault
 }

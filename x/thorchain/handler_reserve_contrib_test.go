@@ -19,10 +19,8 @@ var _ = Suite(&HandlerReserveContributorSuite{})
 
 type reserveContributorKeeper struct {
 	keeper.Keeper
-	errGetReserveContributors bool
-	errSetReserveContributors bool
-	errGetNetwork             bool
-	errSetNetwork             bool
+	errGetNetwork bool
+	errSetNetwork bool
 }
 
 func newReserveContributorKeeper(k keeper.Keeper) *reserveContributorKeeper {

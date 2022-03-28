@@ -28,7 +28,6 @@ type tssHandlerTestHelper struct {
 	mgr           Manager
 	members       common.PubKeys
 	signer        cosmos.AccAddress
-	keygenBlock   KeygenBlock
 }
 
 type tssKeeperHelper struct {

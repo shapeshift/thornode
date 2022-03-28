@@ -475,7 +475,6 @@ type addGasFeesKeeperHelper struct {
 	errSetNetwork bool
 	errGetPool    bool
 	errSetPool    bool
-	errSetEvent   bool
 }
 
 func newAddGasFeesKeeperHelper(keeper keeper.Keeper) *addGasFeesKeeperHelper {

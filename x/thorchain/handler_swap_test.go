@@ -52,7 +52,6 @@ type TestSwapHandleKeeper struct {
 	keeper.KVStoreDummy
 	pools             map[common.Asset]Pool
 	activeNodeAccount NodeAccount
-	hasEvent          bool
 	synthSupply       cosmos.Uint
 }
 
