@@ -720,6 +720,7 @@ func (s *WithdrawSuiteV84) TestWithdrawPendingLiquidityShouldRoundToPoolDecimals
 	c.Assert(protectoinRuneAmt.IsZero(), Equals, true)
 	c.Assert(unitsClaimed.IsZero(), Equals, true)
 }
+
 func getWithdrawTestKeeperV84(c *C, ctx cosmos.Context, k keeper.Keeper, runeAddress common.Address) keeper.Keeper {
 	store := NewWithdrawTestKeeperV84(k)
 	pool := Pool{
