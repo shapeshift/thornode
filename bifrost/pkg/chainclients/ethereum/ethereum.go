@@ -593,8 +593,11 @@ func (c *Client) GetBalance(addr, token string, height *big.Int) (*big.Int, erro
 	if err != nil {
 		return nil, err
 	}
-	value := *abi.ConvertType(output[0], new(*big.Int)).(**big.Int)
-	return value, nil
+	value, ok := abi.ConvertType(output[0], new(*big.Int)).(**big.Int)
+	if !ok {
+		return *value, fmt.Errorf("dev error: unable to get big.Int")
+	}
+	return *value, nil
 }
 
 // GetBalances gets all the balances of the given address

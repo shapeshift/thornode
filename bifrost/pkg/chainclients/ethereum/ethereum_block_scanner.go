@@ -565,10 +565,16 @@ func (e *ETHScanner) getDecimals(token string) (uint64, error) {
 	}
 	switch output[0].(type) {
 	case uint8:
-		decimals := *abi.ConvertType(output[0], new(uint8)).(*uint8)
-		return uint64(decimals), nil
+		decimals, ok := abi.ConvertType(output[0], new(uint8)).(*uint8)
+		if !ok {
+			return defaultDecimals, fmt.Errorf("dev error: fail to cast uint8")
+		}
+		return uint64(*decimals), nil
 	case *big.Int:
-		decimals := *abi.ConvertType(output[0], new(*big.Int)).(**big.Int)
+		decimals, ok := abi.ConvertType(output[0], new(*big.Int)).(*big.Int)
+		if !ok {
+			return defaultDecimals, fmt.Errorf("dev error: fail to cast big.Int")
+		}
 		return decimals.Uint64(), nil
 	}
 	return defaultDecimals, fmt.Errorf("%s is %T fail to parse it", output[0], output[0])
@@ -607,6 +613,7 @@ func (e *ETHScanner) getSymbol(token string) (string, error) {
 		e.logger.Err(err).Msgf("fail to unpack symbol method call,token address: %s , symbol: %s", token, symbol)
 		return sanitiseSymbol(symbol), nil
 	}
+	// nolint
 	symbol = *abi.ConvertType(output[0], new(string)).(*string)
 	return sanitiseSymbol(symbol), nil
 }

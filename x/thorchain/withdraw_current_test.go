@@ -43,7 +43,7 @@ func (k *WithdrawTestKeeperV84) GetPool(ctx cosmos.Context, asset common.Asset) 
 		return types.Pool{}, nil
 	} else {
 		if val, ok := k.store[asset.String()]; ok {
-			p := val.(types.Pool)
+			p, _ := val.(types.Pool)
 			return p, nil
 		}
 		return types.Pool{

@@ -175,7 +175,10 @@ func (b *BinanceBlockScanner) updateFees(height int64) error {
 				return err
 			}
 
-			transferFee := fee.(*types.TransferFeeParam)
+			transferFee, ok := fee.(*types.TransferFeeParam)
+			if !ok {
+				return fmt.Errorf("dev error: fail to type cast TransferFeeParam")
+			}
 			if transferFee.FixedFeeParams.Fee > 0 {
 				if b.singleFee != uint64(transferFee.FixedFeeParams.Fee) {
 					changed = true

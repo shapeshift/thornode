@@ -253,7 +253,8 @@ func (h HandlerTssKeysignSuite) TestTssKeysignFailHandler(c *C) {
 				return msg
 			},
 			runner: func(handler TssKeysignHandler, msg cosmos.Msg, helper tssKeysignFailHandlerTestHelper) (*cosmos.Result, error) {
-				mmsg := msg.(*MsgTssKeysignFail)
+				mmsg, ok := msg.(*MsgTssKeysignFail)
+				c.Assert(ok, Equals, true)
 				// prepopulate the voter with other signers
 				voter, _ := helper.keeper.GetTssKeysignFailVoter(helper.ctx, mmsg.ID)
 				signers := signVoter(helper.ctx, helper.keeper, mmsg.Signer)

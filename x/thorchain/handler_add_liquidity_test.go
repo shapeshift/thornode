@@ -2,6 +2,7 @@ package thorchain
 
 import (
 	"errors"
+	"fmt"
 
 	. "gopkg.in/check.v1"
 
@@ -388,7 +389,11 @@ var notExistLiquidityProviderAsset, _ = common.NewAsset("BNB.NotExistLiquidityPr
 
 func (p *AddLiquidityTestKeeper) GetPool(ctx cosmos.Context, asset common.Asset) (Pool, error) {
 	if p, ok := p.store[asset.String()]; ok {
-		return p.(Pool), nil
+		pool, ok := p.(Pool)
+		if !ok {
+			return pool, fmt.Errorf("dev error: failed to cast pool")
+		}
+		return pool, nil
 	}
 	return NewPool(), nil
 }
@@ -413,7 +418,11 @@ func (p *AddLiquidityTestKeeper) GetLiquidityProvider(ctx cosmos.Context, asset 
 	}
 	key := p.GetKey(ctx, "lp/", lp.Key())
 	if res, ok := p.store[key]; ok {
-		return res.(LiquidityProvider), nil
+		lp, ok := res.(LiquidityProvider)
+		if !ok {
+			return lp, fmt.Errorf("dev error: failed to cast liquidity provider")
+		}
+		return lp, nil
 	}
 	lp.Units = p.liquidityUnits
 	return lp, nil
