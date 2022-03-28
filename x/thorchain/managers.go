@@ -284,7 +284,9 @@ func GetEventManager(version semver.Version) (EventManager, error) {
 // GetTxOutStore will return an implementation of the txout store that
 func GetTxOutStore(keeper keeper.Keeper, version semver.Version, eventMgr EventManager, gasManager GasManager) (TxOutStore, error) {
 	constAccessor := constants.GetConstantValues(version)
-	if version.GTE(semver.MustParse("1.83.0")) {
+	if version.GTE(semver.MustParse("1.84.0")) {
+		return newTxOutStorageV84(keeper, constAccessor, eventMgr, gasManager), nil
+	} else if version.GTE(semver.MustParse("1.83.0")) {
 		return newTxOutStorageV83(keeper, constAccessor, eventMgr, gasManager), nil
 	} else if version.GTE(semver.MustParse("0.78.0")) {
 		return newTxOutStorageV78(keeper, constAccessor, eventMgr, gasManager), nil
@@ -344,7 +346,9 @@ func GetNetworkManager(keeper keeper.Keeper, version semver.Version, txOutStore 
 
 // GetValidatorManager create a new instance of Validator Manager
 func GetValidatorManager(keeper keeper.Keeper, version semver.Version, vaultMgr NetworkManager, txOutStore TxOutStore, eventMgr EventManager) (ValidatorManager, error) {
-	if version.GTE(semver.MustParse("0.80.0")) {
+	if version.GTE(semver.MustParse("1.84.0")) {
+		return newValidatorMgrV84(keeper, vaultMgr, txOutStore, eventMgr), nil
+	} else if version.GTE(semver.MustParse("0.80.0")) {
 		return newValidatorMgrV80(keeper, vaultMgr, txOutStore, eventMgr), nil
 	} else if version.GTE(semver.MustParse("0.78.0")) {
 		return newValidatorMgrV78(keeper, vaultMgr, txOutStore, eventMgr), nil

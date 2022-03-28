@@ -305,7 +305,7 @@ func (s *SwapV81Suite) TestSynthSwap_RuneSynthRune(c *C) {
 		newBalanceAsset := initialBalanceAsset // BalanceAsset doesn't change for RUNE->Synth swap.
 		nativeRuneFee := cosmos.NewUint(2 * 1e6)
 		// The spot rate is used to convert the transaction fee.
-		transactionFee := cosmos.NewUint(
+		assetFee := cosmos.NewUint(
 			uint64(QuoUint(nativeRuneFee.Mul(newBalanceAsset),
 				initialBalanceRune.Add(swapAmt)).RoundInt64()))
 		// For synths, the pool depths are double to decrease the fee.
@@ -315,18 +315,11 @@ func (s *SwapV81Suite) TestSynthSwap_RuneSynthRune(c *C) {
 		denom := swapAmt.Add(TWO.Mul(initialBalanceRune))
 		denom = denom.Mul(denom)
 		swapResult := cosmos.NewUint(uint64(QuoUint(numerator, denom).TruncateInt64()))
-		// TODO(leifthelucky): There is currently an issue in the code (#1155): the runeDisbursement is
-		// computed without taking slip into account. The test expects this incorrect behaviour
-		//  (this will be fixed in a follow-up commit).
-		// assetFee := cosmos.NewUint(
-		// 	uint64(QuoUint(nativeRuneFee.Mul(newBalanceAsset),
-		// 		initialBalanceRune.Add(swapAmt)).RoundInt64()))
-		// runeDisbursement := cosmos.NewUint(
-		//     uint64(QuoUint(assetFee.Mul(initialBalanceRune.Add(swapAmt)),
-		// 	       newBalanceAsset.Add(assetFee)).RoundInt64()))
-		runeDisbursement := nativeRuneFee
+		runeDisbursement := cosmos.NewUint(
+			uint64(QuoUint(assetFee.Mul(initialBalanceRune.Add(swapAmt)),
+				newBalanceAsset.Add(assetFee)).RoundInt64()))
 		expectedRuneBalance := initialBalanceRune.Add(swapAmt).Sub(runeDisbursement)
-		expectedSynthSupply := swapResult.Sub(transactionFee)
+		expectedSynthSupply := swapResult.Sub(assetFee)
 
 		amount, _, err := newSwapperV81().swap(ctx, mgr.Keeper(), tx, common.BNBAsset.GetSyntheticAsset(), addr, cosmos.ZeroUint(), cosmos.NewUint(1000_000), 2, mgr)
 		c.Assert(err, IsNil)
@@ -343,7 +336,7 @@ func (s *SwapV81Suite) TestSynthSwap_RuneSynthRune(c *C) {
 		c.Check(pool.BalanceAsset.Uint64(), Equals, newBalanceAsset.Uint64())
 		c.Check(pool.BalanceRune.Uint64(), Equals, expectedRuneBalance.Uint64(),
 			Commentf("Actual: %d Exp: %d", pool.BalanceRune.Uint64(), expectedRuneBalance.Uint64()))
-		c.Check(pool.BalanceRune.Uint64(), Equals, uint64(116098000000), Commentf("%d", pool.BalanceRune.Uint64()))
+		c.Check(pool.BalanceRune.Uint64(), Equals, uint64(116098000041), Commentf("%d", pool.BalanceRune.Uint64()))
 		c.Check(pool.LPUnits.Uint64(), Equals, uint64(111100000000), Commentf("%d", pool.LPUnits.Uint64()))
 		// We don't check pool.SynthUnits to not duplicate the calculation here,
 		// but we did check BalanceAsset, LPUnits, and totalSynthSupply, the
@@ -445,36 +438,38 @@ func (s *SwapV81Suite) TestSynthSwap_AssetSynth(c *C) {
 
 	// Expectations:
 	// This is a double swap, so we need to compute the expectations as a result of two swaps.
-	swapAmt := cosmos.NewUint(50 * 1e8)
+	// 1st swap: BNB.BNB -> Rune
+	// 1st swapResult: (swapAmt * BalanceRune * BalanceAsset ) / (swapAmt + BalanceAsset )^2
+	swapAmtAsset := cosmos.NewUint(50 * 1e8)
 	initialBalanceRune := pool.BalanceRune
 	initialBalanceAsset := pool.BalanceAsset
 	expLPUnits := pool.LPUnits // Shouldn't change for a swap.
 	nativeRuneFee := cosmos.NewUint(2 * 1e6)
-	// 1st swap: BNB.BNB -> Rune
-	// 1st swapResult: (swapAmt * BalanceRune * BalanceAsset ) / (swapAmt + BalanceAsset )^2
-	numerator := swapAmt.Mul(initialBalanceRune).Mul(initialBalanceAsset)
-	denom := swapAmt.Add(initialBalanceAsset)
+	numerator := swapAmtAsset.Mul(initialBalanceRune).Mul(initialBalanceAsset)
+	denom := swapAmtAsset.Add(initialBalanceAsset)
 	denom = denom.Mul(denom)
 	swapResult1 := cosmos.NewUint(uint64(QuoUint(numerator, denom).TruncateInt64()))
-	newBalanceRune := initialBalanceRune.Sub(swapResult1)
-	newBalanceAsset := initialBalanceAsset.Add(swapAmt)
+	balanceRune1 := initialBalanceRune.Sub(swapResult1)
+	balanceAsset1 := initialBalanceAsset.Add(swapAmtAsset)
 	// 2nd swap: Rune -> BNB/BNB (synth)
 	// 2nd swapResult: (swapResult1 * 2*NewBalanceRune * 2*NewBalanceAsset ) / (swapResult1 + 2*NewBalanceRune )^2
 	TWO := cosmos.NewUint(2)
-	numerator = swapResult1.Mul(TWO).Mul(newBalanceRune).Mul(TWO).Mul(newBalanceAsset)
-	denom = swapResult1.Add(TWO.Mul(newBalanceRune))
+	numerator = swapResult1.Mul(TWO).Mul(balanceRune1).Mul(TWO).Mul(balanceAsset1)
+	denom = swapResult1.Add(TWO.Mul(balanceRune1))
 	denom = denom.Mul(denom)
 	swapResult2 := cosmos.NewUint(uint64(QuoUint(numerator, denom).TruncateInt64()))
-	expBalanceRune := newBalanceRune.Add(swapResult1).Sub(nativeRuneFee) // BalanceRune after the second swap (rune->synth)
-	expBalanceAsset := initialBalanceAsset.Add(swapAmt)
+	balanceRune2 := balanceRune1.Add(swapResult1)
+	balanceAsset2 := balanceAsset1
+	assetFee := cosmos.NewUint(
+		uint64(QuoUint(nativeRuneFee.Mul(balanceAsset2),
+			balanceRune2).RoundInt64()))
+	runeDisbursement := cosmos.NewUint(
+		uint64(QuoUint(assetFee.Mul(balanceRune2),
+			balanceAsset2.Add(assetFee)).RoundInt64()))
+	expBalanceRune := balanceRune2.Sub(runeDisbursement) // BalanceRune after the second swap (rune->synth)
+	expBalanceAsset := balanceAsset2
 
-	// The spot rate used to compute the transaction fee is derived from the
-	// intiialBalanceRune and the newBalanceAsset. This is because the rune depth
-	// is unaffected by the double swap: BNB.BNB -> BNB/BNB (synthetic)
-	transactionFee := cosmos.NewUint(
-		uint64(QuoUint(nativeRuneFee.Mul(newBalanceAsset),
-			initialBalanceRune).RoundInt64()))
-	expectedSynthSupply := swapResult2.Sub(transactionFee)
+	expectedSynthSupply := swapResult2.Sub(assetFee)
 
 	// Check LUVI (Liquidity Unit Value Index) before and after the swap.
 	//   LUVI := sqrt(BalanceRune * BalanceAsset) / PoolUnits
