@@ -29,14 +29,14 @@ func NewHandlerDonateTestHelper(k keeper.Keeper) *HandlerDonateTestHelper {
 
 func (h *HandlerDonateTestHelper) GetPool(ctx cosmos.Context, asset common.Asset) (Pool, error) {
 	if h.failToGetPool {
-		return NewPool(), kaboom
+		return NewPool(), errKaboom
 	}
 	return h.Keeper.GetPool(ctx, asset)
 }
 
 func (h *HandlerDonateTestHelper) SetPool(ctx cosmos.Context, p Pool) error {
 	if h.failToSavePool {
-		return kaboom
+		return errKaboom
 	}
 	return h.Keeper.SetPool(ctx, p)
 }

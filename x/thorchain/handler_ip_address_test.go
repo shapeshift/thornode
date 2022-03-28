@@ -100,14 +100,14 @@ func NewHandlerIPAddressTestHelper(k keeper.Keeper) *HandlerIPAddressTestHelper 
 
 func (h *HandlerIPAddressTestHelper) GetNodeAccount(ctx cosmos.Context, addr cosmos.AccAddress) (NodeAccount, error) {
 	if h.failGetNodeAccount {
-		return NodeAccount{}, kaboom
+		return NodeAccount{}, errKaboom
 	}
 	return h.Keeper.GetNodeAccount(ctx, addr)
 }
 
 func (h *HandlerIPAddressTestHelper) SetNodeAccount(ctx cosmos.Context, na NodeAccount) error {
 	if h.failSaveNodeAccount {
-		return kaboom
+		return errKaboom
 	}
 	return h.Keeper.SetNodeAccount(ctx, na)
 }

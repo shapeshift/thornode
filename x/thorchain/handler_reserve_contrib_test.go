@@ -31,14 +31,14 @@ func newReserveContributorKeeper(k keeper.Keeper) *reserveContributorKeeper {
 
 func (k *reserveContributorKeeper) GetNetwork(ctx cosmos.Context) (Network, error) {
 	if k.errGetNetwork {
-		return Network{}, kaboom
+		return Network{}, errKaboom
 	}
 	return k.Keeper.GetNetwork(ctx)
 }
 
 func (k *reserveContributorKeeper) SetNetwork(ctx cosmos.Context, data Network) error {
 	if k.errSetNetwork {
-		return kaboom
+		return errKaboom
 	}
 	return k.Keeper.SetNetwork(ctx, data)
 }

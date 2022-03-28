@@ -28,7 +28,7 @@ func (k *TestObservedTxInValidateKeeper) GetNodeAccount(_ cosmos.Context, addr c
 	if addr.Equals(k.activeNodeAccount.NodeAddress) {
 		return k.activeNodeAccount, nil
 	}
-	return NodeAccount{}, kaboom
+	return NodeAccount{}, errKaboom
 }
 
 func (k *TestObservedTxInValidateKeeper) SetNodeAccount(_ cosmos.Context, na NodeAccount) error {
@@ -36,7 +36,7 @@ func (k *TestObservedTxInValidateKeeper) SetNodeAccount(_ cosmos.Context, na Nod
 		k.standbyAccount = na
 		return nil
 	}
-	return kaboom
+	return errKaboom
 }
 
 var _ = Suite(&HandlerObservedTxInSuite{})
@@ -158,7 +158,7 @@ func (k *TestObservedTxInHandleKeeper) GetVault(_ cosmos.Context, key common.Pub
 	if k.vault.PubKey.Equals(key) {
 		return k.vault, nil
 	}
-	return GetRandomVault(), kaboom
+	return GetRandomVault(), errKaboom
 }
 
 func (k *TestObservedTxInHandleKeeper) SetVault(_ cosmos.Context, vault Vault) error {
@@ -166,7 +166,7 @@ func (k *TestObservedTxInHandleKeeper) SetVault(_ cosmos.Context, vault Vault) e
 		k.vault = vault
 		return nil
 	}
-	return kaboom
+	return errKaboom
 }
 
 func (k *TestObservedTxInHandleKeeper) GetLowestActiveVersion(_ cosmos.Context) semver.Version {
@@ -184,7 +184,7 @@ func (k *TestObservedTxInHandleKeeper) GetTxOut(ctx cosmos.Context, blockHeight 
 	if k.txOut != nil && k.txOut.Height == blockHeight {
 		return k.txOut, nil
 	}
-	return nil, kaboom
+	return nil, errKaboom
 }
 
 func (k *TestObservedTxInHandleKeeper) SetTxOut(ctx cosmos.Context, blockOut *TxOut) error {
@@ -192,7 +192,7 @@ func (k *TestObservedTxInHandleKeeper) SetTxOut(ctx cosmos.Context, blockOut *Tx
 		k.txOut = blockOut
 		return nil
 	}
-	return kaboom
+	return errKaboom
 }
 
 func (k *TestObservedTxInHandleKeeper) SetLastObserveHeight(ctx cosmos.Context, chain common.Chain, address cosmos.AccAddress, height int64) error {
@@ -448,7 +448,7 @@ func NewObservedTxInHandlerTestHelper(k keeper.Keeper) *ObservedTxInHandlerTestH
 
 func (h *ObservedTxInHandlerTestHelper) ListActiveValidators(ctx cosmos.Context) (NodeAccounts, error) {
 	if h.failListActiveValidators {
-		return NodeAccounts{}, kaboom
+		return NodeAccounts{}, errKaboom
 	}
 	return h.Keeper.ListActiveValidators(ctx)
 }
@@ -462,21 +462,21 @@ func (h *ObservedTxInHandlerTestHelper) VaultExists(ctx cosmos.Context, pk commo
 
 func (h *ObservedTxInHandlerTestHelper) GetObservedTxInVoter(ctx cosmos.Context, hash common.TxID) (ObservedTxVoter, error) {
 	if h.failGetObservedTxInVote {
-		return ObservedTxVoter{}, kaboom
+		return ObservedTxVoter{}, errKaboom
 	}
 	return h.Keeper.GetObservedTxInVoter(ctx, hash)
 }
 
 func (h *ObservedTxInHandlerTestHelper) GetVault(ctx cosmos.Context, pk common.PubKey) (Vault, error) {
 	if h.failGetVault {
-		return Vault{}, kaboom
+		return Vault{}, errKaboom
 	}
 	return h.Keeper.GetVault(ctx, pk)
 }
 
 func (h *ObservedTxInHandlerTestHelper) SetVault(ctx cosmos.Context, vault Vault) error {
 	if h.failSetVault {
-		return kaboom
+		return errKaboom
 	}
 	return h.Keeper.SetVault(ctx, vault)
 }

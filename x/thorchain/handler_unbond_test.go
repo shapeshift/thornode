@@ -16,7 +16,7 @@ import (
 
 type HandlerUnBondSuite struct{}
 
-var returnYggErr = errors.New("returnYgg")
+var errReturnYgg = errors.New("returnYgg")
 
 type BlankValidatorManager struct {
 	ValidatorDummyMgr
@@ -31,7 +31,7 @@ func (vm BlankValidatorManager) EndBlock(_ cosmos.Context, _ Manager, _ constant
 }
 
 func (vm BlankValidatorManager) RequestYggReturn(_ cosmos.Context, _ NodeAccount, _ Manager, _ constants.ConstantValues) error {
-	return returnYggErr
+	return errReturnYgg
 }
 
 func (vm BlankValidatorManager) processRagnarok(_ cosmos.Context, _ Manager, _ constants.ConstantValues) error {
@@ -182,7 +182,7 @@ func (HandlerUnBondSuite) TestUnBondHandler_Run(c *C) {
 	}
 	msg = NewMsgUnBond(txIn, standbyNodeAccount.NodeAddress, cosmos.NewUint(uint64(1)), common.Address(standbyNodeAccount.NodeAddress.String()), nil, standbyNodeAccount.NodeAddress)
 	_, err = handler.Run(ctx, msg)
-	c.Assert(errors.Is(err, returnYggErr), Equals, true)
+	c.Assert(errors.Is(err, errReturnYgg), Equals, true)
 
 	// simulate fail to get vault
 	k.vault = GetRandomVault()

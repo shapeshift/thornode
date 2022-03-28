@@ -161,42 +161,42 @@ func NewErrataTxHandlerTestHelper(k keeper.Keeper) *ErrataTxHandlerTestHelper {
 
 func (k *ErrataTxHandlerTestHelper) ListActiveValidators(ctx cosmos.Context) (NodeAccounts, error) {
 	if k.failListActiveNodeAccount {
-		return NodeAccounts{}, kaboom
+		return NodeAccounts{}, errKaboom
 	}
 	return k.Keeper.ListActiveValidators(ctx)
 }
 
 func (k *ErrataTxHandlerTestHelper) GetErrataTxVoter(ctx cosmos.Context, txID common.TxID, chain common.Chain) (ErrataTxVoter, error) {
 	if k.failGetErrataTxVoter {
-		return ErrataTxVoter{}, kaboom
+		return ErrataTxVoter{}, errKaboom
 	}
 	return k.Keeper.GetErrataTxVoter(ctx, txID, chain)
 }
 
 func (k *ErrataTxHandlerTestHelper) GetObservedTxInVoter(ctx cosmos.Context, txID common.TxID) (ObservedTxVoter, error) {
 	if k.failGetObserveTxVoter {
-		return ObservedTxVoter{}, kaboom
+		return ObservedTxVoter{}, errKaboom
 	}
 	return k.Keeper.GetObservedTxInVoter(ctx, txID)
 }
 
 func (k *ErrataTxHandlerTestHelper) GetPool(ctx cosmos.Context, asset common.Asset) (Pool, error) {
 	if k.failGetPool {
-		return NewPool(), kaboom
+		return NewPool(), errKaboom
 	}
 	return k.Keeper.GetPool(ctx, asset)
 }
 
 func (k *ErrataTxHandlerTestHelper) GetLiquidityProvider(ctx cosmos.Context, asset common.Asset, addr common.Address) (LiquidityProvider, error) {
 	if k.failGetLiquidityProvider {
-		return LiquidityProvider{}, kaboom
+		return LiquidityProvider{}, errKaboom
 	}
 	return k.Keeper.GetLiquidityProvider(ctx, asset, addr)
 }
 
 func (k *ErrataTxHandlerTestHelper) SetPool(ctx cosmos.Context, pool Pool) error {
 	if k.failSetPool {
-		return kaboom
+		return errKaboom
 	}
 	return k.Keeper.SetPool(ctx, pool)
 }

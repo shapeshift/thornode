@@ -42,7 +42,7 @@ const (
 )
 
 var (
-	notAuthorized                   = fmt.Errorf("not authorized")
+	errNotAuthorized                = fmt.Errorf("not authorized")
 	errInvalidVersion               = fmt.Errorf("bad version")
 	errBadVersion                   = se.Register(DefaultCodespace, CodeBadVersion, errInvalidVersion.Error())
 	errInvalidMessage               = se.Register(DefaultCodespace, CodeInvalidMessage, "invalid message")

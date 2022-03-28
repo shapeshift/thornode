@@ -54,42 +54,42 @@ func newRefundTxHandlerKeeperTestHelper(keeper keeper.Keeper) *refundTxHandlerKe
 
 func (k *refundTxHandlerKeeperTestHelper) GetObservedTxInVoter(ctx cosmos.Context, hash common.TxID) (ObservedTxVoter, error) {
 	if hash.Equals(k.observeTxVoterErrHash) {
-		return ObservedTxVoter{}, kaboom
+		return ObservedTxVoter{}, errKaboom
 	}
 	return k.Keeper.GetObservedTxOutVoter(ctx, hash)
 }
 
 func (k *refundTxHandlerKeeperTestHelper) GetTxOut(ctx cosmos.Context, height int64) (*TxOut, error) {
 	if k.errGetTxOut {
-		return nil, kaboom
+		return nil, errKaboom
 	}
 	return k.Keeper.GetTxOut(ctx, height)
 }
 
 func (k *refundTxHandlerKeeperTestHelper) GetNodeAccountByPubKey(ctx cosmos.Context, pk common.PubKey) (NodeAccount, error) {
 	if k.errGetNodeAccount {
-		return NodeAccount{}, kaboom
+		return NodeAccount{}, errKaboom
 	}
 	return k.Keeper.GetNodeAccountByPubKey(ctx, pk)
 }
 
 func (k *refundTxHandlerKeeperTestHelper) GetPool(ctx cosmos.Context, asset common.Asset) (Pool, error) {
 	if k.errGetPool {
-		return NewPool(), kaboom
+		return NewPool(), errKaboom
 	}
 	return k.Keeper.GetPool(ctx, asset)
 }
 
 func (k *refundTxHandlerKeeperTestHelper) SetPool(ctx cosmos.Context, pool Pool) error {
 	if k.errSetPool {
-		return kaboom
+		return errKaboom
 	}
 	return k.Keeper.SetPool(ctx, pool)
 }
 
 func (k *refundTxHandlerKeeperTestHelper) SetNodeAccount(ctx cosmos.Context, na NodeAccount) error {
 	if k.errSetNodeAccount {
-		return kaboom
+		return errKaboom
 	}
 	return k.Keeper.SetNodeAccount(ctx, na)
 }
@@ -105,14 +105,14 @@ func (k *refundTxHandlerKeeperTestHelper) SetVault(_ cosmos.Context, v Vault) er
 
 func (k *refundTxHandlerKeeperTestHelper) GetNetwork(ctx cosmos.Context) (Network, error) {
 	if k.errGetNetwork {
-		return Network{}, kaboom
+		return Network{}, errKaboom
 	}
 	return k.Keeper.GetNetwork(ctx)
 }
 
 func (k *refundTxHandlerKeeperTestHelper) SetNetwork(ctx cosmos.Context, data Network) error {
 	if k.errSetNetwork {
-		return kaboom
+		return errKaboom
 	}
 	return k.Keeper.SetNetwork(ctx, data)
 }

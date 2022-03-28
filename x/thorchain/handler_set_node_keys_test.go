@@ -132,28 +132,28 @@ func (k *TestSetNodeKeysHandleKeeper) SendFromAccountToModule(ctx cosmos.Context
 
 func (k *TestSetNodeKeysHandleKeeper) GetNodeAccount(ctx cosmos.Context, signer cosmos.AccAddress) (NodeAccount, error) {
 	if k.failGetNodeAccount {
-		return NodeAccount{}, kaboom
+		return NodeAccount{}, errKaboom
 	}
 	return k.Keeper.GetNodeAccount(ctx, signer)
 }
 
 func (k *TestSetNodeKeysHandleKeeper) SetNodeAccount(ctx cosmos.Context, na NodeAccount) error {
 	if k.failSetNodeAccount {
-		return kaboom
+		return errKaboom
 	}
 	return k.Keeper.SetNodeAccount(ctx, na)
 }
 
 func (k *TestSetNodeKeysHandleKeeper) GetNetwork(ctx cosmos.Context) (Network, error) {
 	if k.failGetNetwork {
-		return Network{}, kaboom
+		return Network{}, errKaboom
 	}
 	return k.Keeper.GetNetwork(ctx)
 }
 
 func (k *TestSetNodeKeysHandleKeeper) SetNetwork(ctx cosmos.Context, data Network) error {
 	if k.failSetNetwork {
-		return kaboom
+		return errKaboom
 	}
 	return k.Keeper.SetNetwork(ctx, data)
 }

@@ -99,7 +99,7 @@ func newSwapQv58(k keeper.Keeper) *SwapQv58 {
 }
 
 // FetchQueue - grabs all swap queue items from the kvstore and returns them
-func (vm *SwapQv58) FetchQueue(ctx cosmos.Context) (swapItems, error) {
+func (vm *SwapQv58) FetchQueue(ctx cosmos.Context) (swapItems, error) { // nolint
 	items := make(swapItems, 0)
 	iterator := vm.k.GetSwapQueueIterator(ctx)
 	defer iterator.Close()

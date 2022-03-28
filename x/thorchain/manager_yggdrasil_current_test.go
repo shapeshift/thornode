@@ -375,14 +375,14 @@ type abandonYggdrasilTestHelper struct {
 
 func (a *abandonYggdrasilTestHelper) GetNodeAccountByPubKey(ctx cosmos.Context, pk common.PubKey) (NodeAccount, error) {
 	if a.failToGetNodeAccount {
-		return NodeAccount{}, kaboom
+		return NodeAccount{}, errKaboom
 	}
 	return a.Keeper.GetNodeAccountByPubKey(ctx, pk)
 }
 
 func (a *abandonYggdrasilTestHelper) GetAsgardVaultsByStatus(ctx cosmos.Context, status VaultStatus) (Vaults, error) {
 	if a.failToGetAsgardVaultByStatus {
-		return Vaults{}, kaboom
+		return Vaults{}, errKaboom
 	}
 	return a.Keeper.GetAsgardVaultsByStatus(ctx, status)
 }

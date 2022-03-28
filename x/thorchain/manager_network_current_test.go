@@ -424,59 +424,59 @@ func NewVaultGenesisSetupTestHelper(k keeper.Keeper) *VaultManagerTestHelpKeeper
 
 func (h *VaultManagerTestHelpKeeper) GetNetwork(ctx cosmos.Context) (Network, error) {
 	if h.failGetNetwork {
-		return Network{}, kaboom
+		return Network{}, errKaboom
 	}
 	return h.Keeper.GetNetwork(ctx)
 }
 
 func (h *VaultManagerTestHelpKeeper) GetAsgardVaults(ctx cosmos.Context) (Vaults, error) {
 	if h.failToGetAsgardVaults {
-		return Vaults{}, kaboom
+		return Vaults{}, errKaboom
 	}
 	return h.Keeper.GetAsgardVaults(ctx)
 }
 
 func (h *VaultManagerTestHelpKeeper) ListActiveValidators(ctx cosmos.Context) (NodeAccounts, error) {
 	if h.failToListActiveAccounts {
-		return NodeAccounts{}, kaboom
+		return NodeAccounts{}, errKaboom
 	}
 	return h.Keeper.ListActiveValidators(ctx)
 }
 
 func (h *VaultManagerTestHelpKeeper) SetVault(ctx cosmos.Context, v Vault) error {
 	if h.failToSetVault {
-		return kaboom
+		return errKaboom
 	}
 	return h.Keeper.SetVault(ctx, v)
 }
 
 func (h *VaultManagerTestHelpKeeper) GetAsgardVaultsByStatus(ctx cosmos.Context, vs VaultStatus) (Vaults, error) {
 	if h.failGetRetiringAsgardVault && vs == RetiringVault {
-		return Vaults{}, kaboom
+		return Vaults{}, errKaboom
 	}
 	if h.failGetActiveAsgardVault && vs == ActiveVault {
-		return Vaults{}, kaboom
+		return Vaults{}, errKaboom
 	}
 	return h.Keeper.GetAsgardVaultsByStatus(ctx, vs)
 }
 
 func (h *VaultManagerTestHelpKeeper) SetPool(ctx cosmos.Context, p Pool) error {
 	if h.failToSetPool {
-		return kaboom
+		return errKaboom
 	}
 	return h.Keeper.SetPool(ctx, p)
 }
 
 func (h *VaultManagerTestHelpKeeper) GetTotalLiquidityFees(ctx cosmos.Context, height uint64) (cosmos.Uint, error) {
 	if h.failGetTotalLiquidityFee {
-		return cosmos.ZeroUint(), kaboom
+		return cosmos.ZeroUint(), errKaboom
 	}
 	return h.Keeper.GetTotalLiquidityFees(ctx, height)
 }
 
 func (h *VaultManagerTestHelpKeeper) GetPools(ctx cosmos.Context) (Pools, error) {
 	if h.failGetPools {
-		return Pools{}, kaboom
+		return Pools{}, errKaboom
 	}
 	return h.Keeper.GetPools(ctx)
 }

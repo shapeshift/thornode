@@ -41,20 +41,19 @@ func (k *WithdrawTestKeeperV84) PoolExist(ctx cosmos.Context, asset common.Asset
 func (k *WithdrawTestKeeperV84) GetPool(ctx cosmos.Context, asset common.Asset) (types.Pool, error) {
 	if asset.Equals(common.Asset{Chain: common.BNBChain, Symbol: "NOTEXIST", Ticker: "NOTEXIST"}) {
 		return types.Pool{}, nil
-	} else {
-		if val, ok := k.store[asset.String()]; ok {
-			p, _ := val.(types.Pool)
-			return p, nil
-		}
-		return types.Pool{
-			BalanceRune:  cosmos.NewUint(100).MulUint64(common.One),
-			BalanceAsset: cosmos.NewUint(100).MulUint64(common.One),
-			LPUnits:      cosmos.NewUint(100).MulUint64(common.One),
-			SynthUnits:   cosmos.ZeroUint(),
-			Status:       PoolAvailable,
-			Asset:        asset,
-		}, nil
 	}
+	if val, ok := k.store[asset.String()]; ok {
+		p, _ := val.(types.Pool)
+		return p, nil
+	}
+	return types.Pool{
+		BalanceRune:  cosmos.NewUint(100).MulUint64(common.One),
+		BalanceAsset: cosmos.NewUint(100).MulUint64(common.One),
+		LPUnits:      cosmos.NewUint(100).MulUint64(common.One),
+		SynthUnits:   cosmos.ZeroUint(),
+		Status:       PoolAvailable,
+		Asset:        asset,
+	}, nil
 }
 
 func (k *WithdrawTestKeeperV84) SetPool(ctx cosmos.Context, ps Pool) error {
