@@ -245,10 +245,9 @@ func (HandlerBondSuite) TestBondProvider_Handler(c *C) {
 	c.Assert(k.SetNodeAccount(ctx, standbyNodeAccount), IsNil)
 	handler := NewBondHandler(NewDummyMgrWithKeeper(k))
 	txIn := GetRandomTx()
-	amt := cosmos.NewUint(105 * common.One)
+	amt := cosmos.NewUint(100 * common.One)
 	txIn.Coins = common.NewCoins(common.NewCoin(common.RuneAsset(), amt))
 	activeNA := activeNodeAccount.NodeAddress
-	// activeNAAddress := common.Address(activeNA.String())
 	standbyNA := standbyNodeAccount.NodeAddress
 	standbyNAAddress := common.Address(standbyNA.String())
 	additionalBondAddress := GetRandomBech32Addr()
@@ -268,7 +267,7 @@ func (HandlerBondSuite) TestBondProvider_Handler(c *C) {
 	c.Assert(bp.Get(additionalBondAddress).Bond.Uint64(), Equals, uint64(0), Commentf("%d", bp.Get(additionalBondAddress).Bond.Uint64()))
 
 	// bond with additional bonder
-	msg = NewMsgBond(txIn, standbyNA, amt, common.Address(additionalBondAddress.String()), nil, activeNA)
+	msg = NewMsgBond(txIn, standbyNA, amt, common.Address(additionalBondAddress.String()), nil, standbyNA)
 	err = handler.handle(ctx, *msg)
 	c.Assert(err, IsNil)
 	bp, _ = k.GetBondProviders(ctx, standbyNA)
@@ -282,4 +281,28 @@ func (HandlerBondSuite) TestBondProvider_Handler(c *C) {
 	c.Assert(err, IsNil)
 	bp, _ = k.GetBondProviders(ctx, standbyNA)
 	c.Assert(bp.Providers, HasLen, 2)
+
+	// Set the operator fee to 5%
+	bp, _ = k.GetBondProviders(ctx, standbyNA)
+	bp.NodeOperatorFee = cosmos.NewUint(500)
+	c.Assert(k.SetBondProviders(ctx, bp), IsNil)
+
+	// Simulate Network Rewards by adding to the bond
+	na, _ = handler.mgr.Keeper().GetNodeAccount(ctx, standbyNA)
+	na.Bond = na.Bond.Add(cosmos.NewUint(200 * common.One))
+	c.Assert(k.SetNodeAccount(ctx, na), IsNil)
+
+	na, _ = handler.mgr.Keeper().GetNodeAccount(ctx, standbyNA)
+	c.Check(na.Bond.Uint64(), Equals, cosmos.NewUint(600*common.One).Uint64(), Commentf("%d", na.Bond.Uint64()))
+
+	// Add more bond after rewards were earned
+	msg = NewMsgBond(txIn, standbyNA, amt, common.Address(additionalBondAddress.String()), nil, additionalBondAddress)
+	err = handler.handle(ctx, *msg)
+	c.Assert(err, IsNil)
+
+	// Check Bond Provider got rewards minus operator fee
+	bp, _ = k.GetBondProviders(ctx, standbyNA)
+	c.Assert(bp.Providers, HasLen, 2)
+	c.Assert(bp.NodeOperatorFee.Uint64(), Equals, cosmos.NewUint(500).Uint64())
+	c.Assert(bp.Get(additionalBondAddress).Bond.Uint64(), Equals, cosmos.NewUint(295*common.One).Uint64(), Commentf("%d", bp.Get(additionalBondAddress).Bond.Uint64()))
 }
