@@ -51,31 +51,31 @@ var (
 		TotalBlockScanned: prometheus.NewCounter(prometheus.CounterOpts{
 			Namespace: "block_scanner",
 			Subsystem: "common_block_scanner",
-			Name:      "total_block_scanned",
+			Name:      "total_block_scanned_total",
 			Help:      "Total number of block scanned",
 		}),
 		CurrentPosition: prometheus.NewCounter(prometheus.CounterOpts{
 			Namespace: "block_scanner",
 			Subsystem: "common_block_scanner",
-			Name:      "current_position",
+			Name:      "current_position_total",
 			Help:      "current block scan position",
 		}),
 		TotalRetryBlocks: prometheus.NewCounter(prometheus.CounterOpts{
 			Namespace: "block_scanner",
 			Subsystem: "common_block_scanner",
-			Name:      "total_retry_blocks",
+			Name:      "total_retry_blocks_total",
 			Help:      "total blocks retried ",
 		}),
 		TxToThorchain: prometheus.NewCounter(prometheus.CounterOpts{
 			Namespace: "observer",
 			Subsystem: "thorchain_client",
-			Name:      "tx_to_thorchain",
+			Name:      "tx_to_thorchain_total",
 			Help:      "number of tx observer post to thorchain successfully",
 		}),
 		TxToThorchainSigned: prometheus.NewCounter(prometheus.CounterOpts{
 			Namespace: "observer",
 			Subsystem: "thorchain_client",
-			Name:      "tx_to_thorchain_signed",
+			Name:      "tx_to_thorchain_signed_total",
 			Help:      "number of tx observer signed successfully",
 		}),
 	}
@@ -83,7 +83,7 @@ var (
 		CommonBlockScannerError: prometheus.NewCounterVec(prometheus.CounterOpts{
 			Namespace: "block_scanner",
 			Subsystem: "common_block_scanner",
-			Name:      "errors",
+			Name:      "errors_total",
 			Help:      "errors in common block scanner",
 		}, []string{
 			"error_name", "additional",
@@ -92,7 +92,7 @@ var (
 		ThorchainBlockScannerError: prometheus.NewCounterVec(prometheus.CounterOpts{
 			Namespace: "block_scanner",
 			Subsystem: "thorchain_block_scanner",
-			Name:      "errors",
+			Name:      "errors_total",
 			Help:      "errors in thorchain block scanner",
 		}, []string{
 			"error_name", "additional",
@@ -101,7 +101,7 @@ var (
 		ThorchainClientError: prometheus.NewCounterVec(prometheus.CounterOpts{
 			Namespace: "thorchain",
 			Subsystem: "thorchain_client",
-			Name:      "errors",
+			Name:      "errors_total",
 			Help:      "errors in thorchain client",
 		}, []string{
 			"error_name", "additional",
@@ -110,7 +110,7 @@ var (
 		ObserverError: prometheus.NewCounterVec(prometheus.CounterOpts{
 			Namespace: "observer",
 			Subsystem: "observer",
-			Name:      "errors",
+			Name:      "errors_total",
 			Help:      "errors in observer",
 		}, []string{
 			"error_name", "additional",
@@ -118,7 +118,7 @@ var (
 		SignerError: prometheus.NewCounterVec(prometheus.CounterOpts{
 			Namespace: "signer",
 			Subsystem: "signer",
-			Name:      "errors",
+			Name:      "errors_total",
 			Help:      "errors in signer",
 		}, []string{
 			"error_name", "additional",
@@ -126,7 +126,7 @@ var (
 		PubKeyManagerError: prometheus.NewCounterVec(prometheus.CounterOpts{
 			Namespace: "pubkey_manager",
 			Subsystem: "pubkey_manager",
-			Name:      "errors",
+			Name:      "errors_total",
 			Help:      "errors in pubkey manager",
 		}, []string{
 			"error_name", "additional",
