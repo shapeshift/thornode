@@ -1003,9 +1003,7 @@ func emitEndBlockTelemetry(ctx cosmos.Context, mgr Manager) error {
 	}
 
 	// emit vault metrics
-	asgards, err := mgr.Keeper().GetAsgardVaults(ctx)
-	if err != nil {
-	}
+	asgards, _ := mgr.Keeper().GetAsgardVaults(ctx)
 	for _, vault := range append(asgards, yggs...) {
 		if vault.Status != ActiveVault && vault.Status != RetiringVault {
 			continue
