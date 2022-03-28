@@ -1271,13 +1271,13 @@ func queryMimirValues(ctx cosmos.Context, path []string, req abci.RequestQuery, 
 	iter := mgr.Keeper().GetMimirIterator(ctx)
 	defer iter.Close()
 	for ; iter.Valid(); iter.Next() {
-		k := strings.TrimLeft(string(iter.Key()), "mimir//")
+		k := strings.TrimPrefix(string(iter.Key()), "mimir//")
 		values[k] = 0
 	}
 	iterNode := mgr.Keeper().GetNodeMimirIterator(ctx)
 	defer iterNode.Close()
 	for ; iterNode.Valid(); iterNode.Next() {
-		k := strings.TrimLeft(string(iterNode.Key()), "nodemimir//")
+		k := strings.TrimPrefix(string(iterNode.Key()), "nodemimir//")
 		values[k] = 0
 	}
 
@@ -1308,7 +1308,7 @@ func queryMimirAdminValues(ctx cosmos.Context, path []string, req abci.RequestQu
 			ctx.Logger().Error("fail to unmarshal mimir value", "error", err)
 			return nil, fmt.Errorf("fail to unmarshal mimir value: %w", err)
 		}
-		k := strings.TrimLeft(string(iter.Key()), "mimir//")
+		k := strings.TrimPrefix(string(iter.Key()), "mimir//")
 		values[k] = value.GetValue()
 	}
 	res, err := json.MarshalIndent(values, "", "	")
@@ -1357,7 +1357,7 @@ func queryMimirNodesValues(ctx cosmos.Context, path []string, req abci.RequestQu
 			ctx.Logger().Error("fail to unmarshal node mimir value", "error", err)
 			return nil, fmt.Errorf("fail to unmarshal node mimir value: %w", err)
 		}
-		k := strings.TrimLeft(string(iter.Key()), "nodemimir//")
+		k := strings.TrimPrefix(string(iter.Key()), "nodemimir//")
 		if v, ok := mimirs.HasSuperMajority(k, active); ok {
 			values[k] = v
 		}
@@ -1388,7 +1388,7 @@ func queryMimirNodeValues(ctx cosmos.Context, path []string, req abci.RequestQue
 			return nil, fmt.Errorf("fail to unmarshal node mimir value: %w", err)
 		}
 
-		k := strings.TrimLeft(string(iter.Key()), "nodemimir//")
+		k := strings.TrimPrefix(string(iter.Key()), "nodemimir//")
 		if v, ok := mimirs.Get(k, acc); ok {
 			values[k] = v
 		}

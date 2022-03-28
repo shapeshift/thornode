@@ -130,7 +130,6 @@ func (s *SignSuite) SetUpSuite(c *C) {
   "tthorpub1addwnpepqwhnus6xs4208d4ynm05lv493amz3fexfjfx4vptntedd7k0ajlcunlfxxs"
 ]`))
 			c.Assert(err, IsNil)
-		} else {
 		}
 	}))
 

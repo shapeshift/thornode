@@ -110,7 +110,6 @@ func (s *ThorchainBlockScanSuite) SetUpSuite(c *C) {
 				"thorpub1addwnpepqfgfxharps79pqv8fv9ndqh90smw8c3slrtrssn58ryc5g3p9sx856x07yn"
 		]`))
 			c.Assert(err, IsNil)
-		} else {
 		}
 	}))
 
