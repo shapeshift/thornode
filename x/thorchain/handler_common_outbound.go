@@ -121,7 +121,7 @@ func (h CommonOutboundTxHandler) handleV85(ctx cosmos.Context, tx ObservedTx, in
 
 				matchCoin := tx.Tx.Coins.EqualsEx(common.Coins{txOutItem.Coin})
 				if !matchCoin {
-					// In case the mismatch is cased by mismatch decimals , round the tx out item's amount , and compare it again
+					// In case the mismatch is caused by decimals , round the tx out item's amount , and compare it again
 					p, err := h.mgr.Keeper().GetPool(ctx, txOutItem.Coin.Asset)
 					if err != nil {
 						ctx.Logger().Error("fail to get pool", "error", err)
