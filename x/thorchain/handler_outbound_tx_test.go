@@ -508,3 +508,55 @@ func (s *HandlerOutboundTxSuite) TestOutboundTxHandlerETHChainSpendTooMuchGasSho
 	na, err := helper.keeper.GetNodeAccount(helper.ctx, helper.nodeAccount.NodeAddress)
 	c.Assert(na.Bond.Equal(expectedBond), Equals, true, Commentf("%d/%d", na.Bond.Uint64(), expectedBond.Uint64()))
 }
+
+func (s *HandlerOutboundTxSuite) TestOutboundTxHandlerMismatchDecimalShouldNotSlash(c *C) {
+	usdtAsset, err := common.NewAsset("ETH.USDT-0XA3910454BF2CB59B8B3A401589A3BACC5CA42306")
+	c.Assert(err, IsNil)
+
+	helper := newOutboundTxHandlerTestHelper(c)
+	handler := NewOutboundTxHandler(helper.mgr)
+	pool := NewPool()
+	pool.Asset = usdtAsset
+	pool.BalanceAsset = cosmos.NewUint(100 * common.One)
+	pool.BalanceRune = cosmos.NewUint(100 * common.One)
+	pool.Decimals = 6
+	pool.LPUnits = pool.BalanceRune
+	c.Assert(helper.keeper.SetPool(helper.ctx, pool), IsNil)
+	fromAddr, err := helper.yggVault.PubKey.GetAddress(common.ETHChain)
+	c.Assert(err, IsNil)
+
+	txOutStorage := newTxOutStorageV1(helper.keeper, helper.constAccessor, NewDummyEventMgr(), newGasMgrV1(helper.constAccessor, helper.keeper))
+	pubKey := GetRandomPubKey()
+	toAddr, err := pubKey.GetAddress(common.ETHChain)
+	c.Assert(err, IsNil)
+	toi := TxOutItem{
+		Chain:       common.ETHChain,
+		ToAddress:   toAddr,
+		VaultPubKey: helper.yggVault.PubKey,
+		Coin:        common.NewCoin(usdtAsset, cosmos.NewUint(418847787978)),
+		Memo:        NewOutboundMemo(helper.inboundTx.Tx.ID).String(),
+		InHash:      helper.inboundTx.Tx.ID,
+	}
+	c.Assert(txOutStorage.UnSafeAddTxOutItem(helper.ctx, helper.mgr, toi), IsNil)
+	tx := NewObservedTx(common.Tx{
+		ID:    GetRandomTxHash(),
+		Chain: common.ETHChain,
+		Coins: common.Coins{
+			common.NewCoin(usdtAsset, cosmos.NewUint(418847787900)),
+		},
+		Memo:        NewOutboundMemo(helper.inboundTx.Tx.ID).String(),
+		FromAddress: fromAddr,
+		ToAddress:   toAddr,
+		Gas: common.Gas{
+			common.NewCoin(common.ETHAsset, cosmos.NewUint(1*common.One/100)),
+		},
+	}, common.BlockHeight(helper.ctx), helper.nodeAccount.PubKeySet.Secp256k1, common.BlockHeight(helper.ctx))
+	// no bond should be slashed
+	expectedBond := cosmos.NewUint(10000000000)
+
+	outMsg := NewMsgOutboundTx(tx, helper.inboundTx.Tx.ID, helper.nodeAccount.NodeAddress)
+	_, err = handler.Run(helper.ctx, outMsg)
+	c.Assert(err, IsNil)
+	na, err := helper.keeper.GetNodeAccount(helper.ctx, helper.nodeAccount.NodeAddress)
+	c.Assert(na.Bond.Equal(expectedBond), Equals, true, Commentf("%d/%d", na.Bond.Uint64(), expectedBond.Uint64()))
+}
