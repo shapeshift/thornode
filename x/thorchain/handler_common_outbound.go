@@ -40,7 +40,9 @@ func (h CommonOutboundTxHandler) slash(ctx cosmos.Context, tx ObservedTx) error 
 
 func (h CommonOutboundTxHandler) handle(ctx cosmos.Context, tx ObservedTx, inTxID common.TxID) (*cosmos.Result, error) {
 	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.69.0")) {
+	if version.GTE(semver.MustParse("1.85.0")) {
+		return h.handleV85(ctx, tx, inTxID)
+	} else if version.GTE(semver.MustParse("0.69.0")) {
 		return h.handleV69(ctx, tx, inTxID)
 	} else if version.GTE(semver.MustParse("0.66.0")) {
 		return h.handleV66(ctx, tx, inTxID)
@@ -52,7 +54,7 @@ func (h CommonOutboundTxHandler) handle(ctx cosmos.Context, tx ObservedTx, inTxI
 	return nil, errBadVersion
 }
 
-func (h CommonOutboundTxHandler) handleV69(ctx cosmos.Context, tx ObservedTx, inTxID common.TxID) (*cosmos.Result, error) {
+func (h CommonOutboundTxHandler) handleV85(ctx cosmos.Context, tx ObservedTx, inTxID common.TxID) (*cosmos.Result, error) {
 	// note: Outbound tx usually it is related to an inbound tx except migration
 	// thus here try to get the ObservedTxInVoter,  and set the tx out hash accordingly
 	voter, err := h.mgr.Keeper().GetObservedTxInVoter(ctx, inTxID)
@@ -118,6 +120,18 @@ func (h CommonOutboundTxHandler) handleV69(ctx cosmos.Context, tx ObservedTx, in
 				tx.ObservedPubKey.Equals(txOutItem.VaultPubKey) {
 
 				matchCoin := tx.Tx.Coins.EqualsEx(common.Coins{txOutItem.Coin})
+				if !matchCoin {
+					// In case the mismatch is caused by decimals , round the tx out item's amount , and compare it again
+					p, err := h.mgr.Keeper().GetPool(ctx, txOutItem.Coin.Asset)
+					if err != nil {
+						ctx.Logger().Error("fail to get pool", "error", err)
+					}
+					if !p.IsEmpty() {
+						matchCoin = tx.Tx.Coins.EqualsEx(common.Coins{
+							common.NewCoin(txOutItem.Coin.Asset, cosmos.RoundToDecimal(txOutItem.Coin.Amount, p.Decimals)),
+						})
+					}
+				}
 				// when outbound is gas asset
 				if !matchCoin && txOutItem.Coin.Asset.Equals(txOutItem.Chain.GetGasAsset()) {
 					asset := txOutItem.Chain.GetGasAsset()
