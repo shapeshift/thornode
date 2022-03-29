@@ -3,7 +3,7 @@ cli:
   version: 0.5.0-beta
 lint:
   enabled:
-    - black-py@21.12b0
+    - black-py@22.3.0
     - flake8@4.0.1
     - gitleaks@8.2.5
     - gofmt@1.16.7
