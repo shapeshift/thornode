@@ -508,13 +508,30 @@ func queryNode(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mg
 			return nil, fmt.Errorf("no active vaults")
 		}
 
-		lastChurnHeight := vaults[0].BlockHeight
-		// find number of blocks they were well behaved (ie active - slash points)
-		earnedBlocks := common.BlockHeight(ctx) - lastChurnHeight - slashPts
-		if earnedBlocks < 0 {
-			earnedBlocks = 0
+		// Determine current bond-weighted hard cap
+		constAccessor := mgr.GetConstants()
+
+		minBondInRune, err := mgr.Keeper().GetMimir(ctx, constants.MinimumBondInRune.String())
+		if minBondInRune < 0 || err != nil {
+			minBondInRune = constAccessor.GetInt64Value(constants.MinimumBondInRune)
 		}
-		result.CurrentAward = network.CalcNodeRewards(cosmos.NewUint(uint64(earnedBlocks)))
+
+		validatorMaxRewardRatio, err := mgr.Keeper().GetMimir(ctx, constants.ValidatorMaxRewardRatio.String())
+		if validatorMaxRewardRatio < 0 || err != nil {
+			validatorMaxRewardRatio = constAccessor.GetInt64Value(constants.ValidatorMaxRewardRatio)
+		}
+
+		bondHardCap := cosmos.NewUint(uint64(validatorMaxRewardRatio)).MulUint64(uint64(minBondInRune))
+		totalEffectiveBond, err := getTotalEffectiveBond(ctx, mgr, bondHardCap)
+
+		lastChurnHeight := vaults[0].BlockHeight
+
+		reward, err := getNodeCurrentRewards(ctx, mgr, nodeAcc, lastChurnHeight, network.BondRewardRune, totalEffectiveBond, bondHardCap)
+		if err != nil {
+			return nil, fmt.Errorf("fail to get current node rewards: %w", err)
+		}
+
+		result.CurrentAward = reward
 	}
 
 	chainHeights, err := mgr.Keeper().GetLastObserveHeight(ctx, addr)
@@ -590,6 +607,8 @@ func getNodeCurrentRewards(ctx cosmos.Context, mgr *Mgrs, nodeAcc NodeAccount, l
 	return reward, nil
 }
 
+// Calculates total "effective bond" - the total bond when taking into account the
+// Bond-weighted hard-cap
 func getTotalEffectiveBond(ctx cosmos.Context, mgr *Mgrs, bondHardCap cosmos.Uint) (cosmos.Uint, error) {
 	activeNodes, err := mgr.Keeper().ListValidatorsByStatus(ctx, NodeActive)
 	if err != nil {
@@ -644,6 +663,11 @@ func queryNodes(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *M
 	}
 
 	bondHardCap := cosmos.NewUint(uint64(validatorMaxRewardRatio)).MulUint64(uint64(minBondInRune))
+	totalEffectiveBond, err := getTotalEffectiveBond(ctx, mgr, bondHardCap)
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to calculate total effective bond: %w", err)
+	}
 
 	lastChurnHeight := vaults[0].BlockHeight
 	result := make([]QueryNodeAccount, len(nodeAccounts))
@@ -660,12 +684,12 @@ func queryNodes(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *M
 		result[i] = NewQueryNodeAccount(na)
 		result[i].SlashPoints = slashPts
 		if na.Status == NodeActive {
-			// find number of blocks they were well behaved (ie active - slash points)
-			earnedBlocks := common.BlockHeight(ctx) - lastChurnHeight - slashPts
-			if earnedBlocks < 0 {
-				earnedBlocks = 0
+			reward, err := getNodeCurrentRewards(ctx, mgr, na, lastChurnHeight, network.BondRewardRune, totalEffectiveBond, bondHardCap)
+			if err != nil {
+				return nil, fmt.Errorf("fail to get current node rewards: %w", err)
 			}
-			result[i].CurrentAward = network.CalcNodeRewards(cosmos.NewUint(uint64(earnedBlocks)))
+
+			result[i].CurrentAward = reward
 		}
 
 		jail, err := mgr.Keeper().GetNodeAccountJail(ctx, na.NodeAddress)
