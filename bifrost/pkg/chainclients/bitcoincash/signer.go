@@ -18,6 +18,7 @@ import (
 	"github.com/gcash/bchutil"
 	"github.com/hashicorp/go-multierror"
 	txscript "gitlab.com/thorchain/bifrost/bchd-txscript"
+
 	stypes "gitlab.com/thorchain/thornode/bifrost/thorclient/types"
 	"gitlab.com/thorchain/thornode/bifrost/tss"
 	"gitlab.com/thorchain/thornode/common"
@@ -278,6 +279,16 @@ func (c *Client) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, err
 	outputAddr, err := bchutil.DecodeAddress(tx.ToAddress.String(), c.getChainCfg())
 	if err != nil {
 		return nil, fmt.Errorf("fail to decode next address: %w", err)
+	}
+	if outputAddr.String() != tx.ToAddress.String() {
+		c.logger.Info().Msgf("output address: %s, to address: %s can't roundtrip", outputAddr.String(), tx.ToAddress.String())
+		return nil, nil
+	}
+	switch outputAddr.(type) {
+	case *bchutil.AddressPubKey:
+		c.logger.Info().Msgf("address: %s is address pubkey type, should not be used", outputAddr)
+		return nil, nil
+	default: // keep lint happy
 	}
 	buf, err := txscript.PayToAddrScript(outputAddr)
 	if err != nil {

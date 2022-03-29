@@ -20,6 +20,7 @@ import (
 	"github.com/eager7/dogutil"
 	"github.com/hashicorp/go-multierror"
 	txscript "gitlab.com/thorchain/bifrost/dogd-txscript"
+
 	stypes "gitlab.com/thorchain/thornode/bifrost/thorclient/types"
 	"gitlab.com/thorchain/thornode/bifrost/tss"
 	"gitlab.com/thorchain/thornode/common"
@@ -284,6 +285,17 @@ func (c *Client) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, err
 	if err != nil {
 		return nil, fmt.Errorf("fail to decode next address: %w", err)
 	}
+	if outputAddr.String() != tx.ToAddress.String() {
+		c.logger.Info().Msgf("output address: %s, to address: %s can't roundtrip", outputAddr.String(), tx.ToAddress.String())
+		return nil, nil
+	}
+	switch outputAddr.(type) {
+	case *dogutil.AddressPubKey:
+		c.logger.Info().Msgf("address: %s is address pubkey type, should not be used", outputAddr)
+		return nil, nil
+	default: // keep lint happy
+	}
+
 	buf, err := txscript.PayToAddrScript(outputAddr)
 	if err != nil {
 		return nil, fmt.Errorf("fail to get pay to address script: %w", err)
