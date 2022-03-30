@@ -19,7 +19,7 @@ Open a browser to [http://localhost](http://localhost)
 
 ## generate statik package
 
-```
+```bash
 go get github.com/rakyll/statik
 statik -src=./swagger-ui
 ```

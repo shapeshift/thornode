@@ -19,7 +19,7 @@
 
 THORChain is a decentralised liquidity network built with [CosmosSDK](cosmos.network).
 
-### THORNodes
+## THORNodes
 
 The THORNode software allows a node to join and service the network, which will run with a minimum of four nodes. The only limitation to the number of nodes that can participate is set by the `minimumBondAmount`, which is the minimum amount of capital required to join. Nodes are not permissioned; any node that can bond the required amount of capital can be scheduled to churn in.
 
@@ -29,7 +29,7 @@ This is described as a "1-way state peg", where only state enters the system, de
 
 All funds in the system are fully accounted for and can be audited. All logic is fully transparent.
 
-### Churn
+## Churn
 
 THORChain actively churns its validator set to prevent stagnation and capture, and ensure liveness in signing committees. Churning is also the mechanism by which the THORNode software can safely facilitate non-contentious upgrades.
 
@@ -42,7 +42,7 @@ During a churn event the following happens:
 - If successful, the vaults are rolled forward, moving all assets from the old vault to the new vault.
 - The outgoing nodes are refunded their bond and removed from the system.
 
-### Bifröst
+## Bifröst
 
 The Bifröst faciliates connections with external networks, such as Binance Chain, Ethereum and Bitcoin. The Bifröst is generally well-abstracted, needing only minor changes between different chains. The Bifröst handles observations of incoming transactions, which are passed into THORChain via special witness transactions. The Bifröst also handles multi-party computation to sign outgoing transactions via a Genarro-Goldfeder TSS scheme. Only 2/3rds of nodes are required to be in each signing ceremony on a first-come-first-serve basis, and there is no log of who is present. In this way, each node maintains plausible deniabilty around involvement with every transaction.
 
@@ -50,7 +50,7 @@ To add a new chain, adapt one of the existing modules to the new chain, and subm
 
 To remove a chain, nodes can stop witnessing it. If a super-majority of nodes do not promptly follow suit, the non-witnessing nodes will attract penalties during the time they do not witness it. If a super-majority of nodes stop witnessing a chain it will invoke a chain-specific Ragnörok, where all funds attributed to that chain will be returned and the chain delisted.
 
-### Transactions
+## Transactions
 
 The THORChain facilitates the following transactions, which are made on external networks and replayed into the THORChain via witness transactions:
 
@@ -61,7 +61,7 @@ The THORChain facilitates the following transactions, which are made on external
 - **LEAVE**: Nodes can voluntarily leave the system and their bond and rewards will be paid out. Leaving takes 6 hours.
 - **RESERVE**: Anyone can add assets to the Protocol Reserve, which pays out to Nodes and Liquidity Providers. 220,447,472 Rune will be funded in this way.
 
-### Continuous Liquidity Pools
+## Continuous Liquidity Pools
 
 The Provision of liquidity logic is based on the `CLP` Continuous Liquidity Pool algorithm.
 
@@ -85,14 +85,14 @@ The provier units awarded to a liquidity provider is given by:
 
 This allows them to provide liquidity asymmetrically since it has no opinion on price.
 
-### Incentives
+## Incentives
 
 The system is safest and most capital-efficient when 67% of Rune is bonded and 33% is provided liquidity in pools. At this point, nodes will be paid 67% of the System Income, and liquidity providers will be paid 33% of the income. The Sytem Income is the block rewards (`blockReward = totalReserve / 6 / 6311390`) plus the liquidity fees collected in that block.
 
 An Incentive Pendulum ensures that liquidity providers receive 100% of the income when 0% is provided liquidity (inefficent), and 0% of the income when `totalLiquidity >= totalBonded` (unsafe).
 The Total Reserve accumulates the `transactionFee`, which pays for outgoing gas fees and stabilises long-term value accrual.
 
-### Governance
+## Governance
 
 There is strictly minimal goverance possible through THORNode software. Each THORNode can only generate valid blocks that is fully-compliant with the binary run by the super-majority.
 
@@ -109,7 +109,7 @@ Emergency changes to the protocol may be difficult to coordinate, since there is
 Ensure you have a recent version of go (ie `1.16`) and enabled go modules
 And have `GOBIN` in your `PATH`
 
-```
+```bash
 export GOBIN=$GOPATH/bin
 ```
 
@@ -161,14 +161,14 @@ make test
 
 To run test live when you change a file, use...
 
-```
+```bash
 go get -u github.com/mitranim/gow
 make test-watch
 ```
 
 Ledger cli support:
 
-```
+```bash
 cd cmd/thornode
 go build -tags cgo,ledger
 ./thornode keys add ledger1 --ledger
@@ -202,7 +202,7 @@ A scripts/changelog is available to generate the changelog entry file automatica
 
 Its simplest usage is to provide the value for title:
 
-```
+```bash
 ./scripts/changelog "my super amazing change"
 ```
 
@@ -224,7 +224,7 @@ The entry filename is based on the name of the current Git branch. If you run th
 
 The command will output the path of the generated file and its contents:
 
-```
+```bash
 create changelogs/unreleased/my-feature.yml
 ---
 title: Hey DZ, I added a feature to GitLab!
@@ -268,7 +268,7 @@ type:
 
 Use --force or -f to overwrite an existing changelog entry if it already exists.
 
-```
+```bash
 $ scripts/changelog 'Hey DZ, I added a feature to GitLab!'
 error changelogs/unreleased/feature-hey-dz.yml already exists! Use `--force` to overwrite.
 
@@ -284,7 +284,7 @@ type:
 ####--merge-request or -m
 Use the --merge-request or -m argument to provide the merge_request value:
 
-```
+```bash
 $ scripts/changelog 'Hey DZ, I added a feature to GitLab!' -m 1983
 create changelogs/unreleased/feature-hey-dz.yml
 ---
@@ -298,7 +298,7 @@ type:
 
 Use the --dry-run or -n argument to prevent actually writing or committing anything:
 
-```
+```bash
 $ scripts/changelog --amend --dry-run
 create changelogs/unreleased/feature-hey-dz.yml
 ---
@@ -314,7 +314,7 @@ $ ls changelogs/unreleased/
 
 Use the --git-username or -u argument to automatically fill in the author value with your configured Git user.name value:
 
-```
+```bash
 $ git config user.name
 Jane Doe
 
@@ -331,7 +331,7 @@ type:
 
 Use the --type or -t argument to provide the type value:
 
-```
+```bash
 $ bin/changelog 'Hey DZ, I added a feature to GitLab!' -t added
 create changelogs/unreleased/feature-hey-dz.yml
 ---

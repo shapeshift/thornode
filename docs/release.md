@@ -1,4 +1,4 @@
-## Versioning
+# Versioning
 
 THORNode is following semantic version. MAJOR.MINOR.PATCH(0.77.1)
 
@@ -45,7 +45,7 @@ Patch version , is backward compatible, usually changes only in bifrost
    for example: https://gitlab.com/thorchain/thornode/-/pipelines/433627075
 2. If you click "build-thornode" pipeline step , you should be able to see the docker image has been build and tagged successfully
 
-```
+```logs
 Successfully built a15350678d3e
 Successfully tagged registry.gitlab.com/thorchain/thornode:testnet
 Successfully tagged registry.gitlab.com/thorchain/thornode:testnet-0
@@ -60,7 +60,7 @@ Successfully tagged registry.gitlab.com/thorchain/thornode:8be434a
    for example: https://gitlab.com/thorchain/thornode/-/pipelines/433627314
 2. Make sure "build-thornode" pipeline step is successful, when you click the step , inside you should be able to see
 
-```
+```logs
 Successfully built fdfd001f96ba
 Successfully tagged registry.gitlab.com/thorchain/thornode:chaosnet-multichain
 Successfully tagged registry.gitlab.com/thorchain/thornode:chaosnet-multichain-0
