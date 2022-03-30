@@ -493,6 +493,7 @@ func queryNode(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mg
 	result.SlashPoints = slashPts
 	result.Jail = jail
 	result.BondProviders = bp
+
 	// CurrentAward is an estimation of reward for node in active status
 	// Node in other status should not have current reward
 	if nodeAcc.Status == NodeActive && !nodeAcc.Bond.IsZero() {
