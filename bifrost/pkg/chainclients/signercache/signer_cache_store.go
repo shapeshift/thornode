@@ -10,8 +10,8 @@ import (
 )
 
 const (
-	signedCachePrefix = "signed-v5-"
-	txMapPrefix       = "tx-map-v5-"
+	signedCachePrefix = "signed-v4-"
+	txMapPrefix       = "tx-map-v4-"
 )
 
 // CacheStore manage the key value store used to store what tx out items have been signed before
