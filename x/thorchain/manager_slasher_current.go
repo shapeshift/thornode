@@ -259,6 +259,16 @@ func (s *SlasherV86) LackSigning(ctx cosmos.Context, constAccessor constants.Con
 				}
 			}
 
+			maxOutboundAttempts := fetchConfigInt64(ctx, mgr, constants.MaxOutboundAttempts)
+			if maxOutboundAttempts > 0 {
+				age := common.BlockHeight(ctx) - voter.FinalisedHeight
+				attempts := age % signingTransPeriod
+				if attempts >= maxOutboundAttempts {
+					ctx.Logger().Info("txn dropped, too many retries", "hash", tx.InHash)
+					continue
+				}
+			}
+
 			active, err := s.keeper.GetAsgardVaultsByStatus(ctx, ActiveVault)
 			if err != nil {
 				return fmt.Errorf("fail to get active asgard vaults: %w", err)
