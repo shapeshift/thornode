@@ -523,7 +523,7 @@ func (s *HandlerOutboundTxSuite) TestOutboundTxHandlerMismatchDecimalShouldNotSl
 	fromAddr, err := helper.yggVault.PubKey.GetAddress(common.ETHChain)
 	c.Assert(err, IsNil)
 
-	txOutStorage := newTxOutStorageV1(helper.keeper, helper.constAccessor, NewDummyEventMgr(), newGasMgrV1(helper.constAccessor, helper.keeper))
+	txOutStorage := newTxOutStorageV85(helper.keeper, helper.constAccessor, NewDummyEventMgr(), newGasMgrV81(helper.constAccessor, helper.keeper))
 	pubKey := GetRandomPubKey()
 	toAddr, err := pubKey.GetAddress(common.ETHChain)
 	c.Assert(err, IsNil)
