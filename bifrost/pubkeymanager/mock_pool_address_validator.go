@@ -35,7 +35,6 @@ func matchTestAddress(addr, testAddr string, chain common.Chain) (bool, common.C
 	return false, common.EmptyChainPoolInfo
 }
 
-func (mpa *MockPoolAddressValidator) fetchPubKeys()              {}
 func (mpa *MockPoolAddressValidator) GetPubKeys() common.PubKeys { return nil }
 func (mpa *MockPoolAddressValidator) GetSignPubKeys() common.PubKeys {
 	pubKey, _ := common.NewPubKey(validpb)
