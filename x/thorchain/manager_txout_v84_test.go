@@ -6,29 +6,28 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
-type TxOutStoreV85Suite struct{}
+type TxOutStoreV84Suite struct{}
 
-var _ = Suite(&TxOutStoreV85Suite{})
+var _ = Suite(&TxOutStoreV84Suite{})
 
-func (s TxOutStoreV85Suite) TestAddGasFees(c *C) {
+func (s TxOutStoreV84Suite) TestAddGasFees(c *C) {
 	ctx, mgr := setupManagerForTest(c)
 	tx := GetRandomObservedTx()
 
 	version := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(version)
-	mgr.gasMgr = newGasMgrV81(constAccessor, mgr.Keeper())
+	mgr.gasMgr = newGasMgrV1(constAccessor, mgr.Keeper())
 	err := addGasFees(ctx, mgr, tx)
 	c.Assert(err, IsNil)
 	c.Assert(mgr.GasMgr().GetGas(), HasLen, 1)
 }
 
-func (s TxOutStoreV85Suite) TestEndBlock(c *C) {
+func (s TxOutStoreV84Suite) TestEndBlock(c *C) {
 	w := getHandlerTestWrapper(c, 1, true, true)
-	txOutStore := newTxOutStorageV85(w.keeper, w.mgr.GetConstants(), w.mgr.EventMgr(), w.mgr.GasMgr())
+	txOutStore := newTxOutStorageV84(w.keeper, w.mgr.GetConstants(), w.mgr.EventMgr(), w.mgr.GasMgr())
 
 	item := TxOutItem{
 		Chain:     common.BNBChain,
@@ -50,7 +49,7 @@ func (s TxOutStoreV85Suite) TestEndBlock(c *C) {
 	c.Check(items[0].MaxGas[0].Amount.Uint64(), Equals, uint64(37500))
 }
 
-func (s TxOutStoreV85Suite) TestAddOutTxItem(c *C) {
+func (s TxOutStoreV84Suite) TestAddOutTxItem(c *C) {
 	w := getHandlerTestWrapper(c, 1, true, true)
 	vault := GetRandomVault()
 	vault.Coins = common.Coins{
@@ -114,7 +113,7 @@ func (s TxOutStoreV85Suite) TestAddOutTxItem(c *C) {
 		InHash:    inTxID,
 		Coin:      common.NewCoin(common.BNBAsset, cosmos.NewUint(20*common.One)),
 	}
-	txOutStore := newTxOutStorageV85(w.keeper, w.mgr.GetConstants(), w.mgr.EventMgr(), w.mgr.GasMgr())
+	txOutStore := newTxOutStorageV84(w.keeper, w.mgr.GetConstants(), w.mgr.EventMgr(), w.mgr.GasMgr())
 	ok, err := txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item)
 	c.Assert(err, IsNil)
 	c.Assert(ok, Equals, true)
@@ -173,7 +172,7 @@ func (s TxOutStoreV85Suite) TestAddOutTxItem(c *C) {
 	c.Assert(msgs[0].ToAddress.String(), Equals, "qzg5mkh7rkw3y8kw47l3rrnvhmenvctmd5yg6hxe64")
 }
 
-func (s TxOutStoreV85Suite) TestAddOutTxItem_OutboundHeightDoesNotGetOverride(c *C) {
+func (s TxOutStoreV84Suite) TestAddOutTxItem_OutboundHeightDoesNotGetOverride(c *C) {
 	SetupConfigForTest()
 	w := getHandlerTestWrapper(c, 1, true, true)
 	vault := GetRandomVault()
@@ -240,7 +239,7 @@ func (s TxOutStoreV85Suite) TestAddOutTxItem_OutboundHeightDoesNotGetOverride(c 
 		InHash:    inTxID,
 		Coin:      common.NewCoin(common.BNBAsset, cosmos.NewUint(80*common.One)),
 	}
-	txOutStore := newTxOutStorageV85(w.keeper, w.mgr.GetConstants(), w.mgr.EventMgr(), w.mgr.GasMgr())
+	txOutStore := newTxOutStorageV84(w.keeper, w.mgr.GetConstants(), w.mgr.EventMgr(), w.mgr.GasMgr())
 	ok, err := txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item)
 	c.Assert(err, IsNil)
 	c.Assert(ok, Equals, true)
@@ -273,7 +272,7 @@ func (s TxOutStoreV85Suite) TestAddOutTxItem_OutboundHeightDoesNotGetOverride(c 
 	c.Assert(afterVoter1.OutboundHeight, Equals, int64(4))
 }
 
-func (s TxOutStoreV85Suite) TestAddOutTxItemNotEnoughForFee(c *C) {
+func (s TxOutStoreV84Suite) TestAddOutTxItemNotEnoughForFee(c *C) {
 	w := getHandlerTestWrapper(c, 1, true, true)
 	vault := GetRandomVault()
 	vault.Coins = common.Coins{
@@ -333,7 +332,7 @@ func (s TxOutStoreV85Suite) TestAddOutTxItemNotEnoughForFee(c *C) {
 		InHash:    inTxID,
 		Coin:      common.NewCoin(common.BNBAsset, cosmos.NewUint(30000)),
 	}
-	txOutStore := newTxOutStorageV85(w.keeper, w.mgr.GetConstants(), w.mgr.EventMgr(), w.mgr.GasMgr())
+	txOutStore := newTxOutStorageV84(w.keeper, w.mgr.GetConstants(), w.mgr.EventMgr(), w.mgr.GasMgr())
 	ok, err := txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item)
 	c.Assert(err, NotNil)
 	c.Assert(err, Equals, ErrNotEnoughToPayFee)
@@ -343,7 +342,7 @@ func (s TxOutStoreV85Suite) TestAddOutTxItemNotEnoughForFee(c *C) {
 	c.Assert(msgs, HasLen, 0)
 }
 
-func (s TxOutStoreV85Suite) TestAddOutTxItemWithoutBFT(c *C) {
+func (s TxOutStoreV84Suite) TestAddOutTxItemWithoutBFT(c *C) {
 	w := getHandlerTestWrapper(c, 1, true, true)
 	vault := GetRandomVault()
 	vault.Coins = common.Coins{
@@ -358,7 +357,7 @@ func (s TxOutStoreV85Suite) TestAddOutTxItemWithoutBFT(c *C) {
 		InHash:    inTxID,
 		Coin:      common.NewCoin(common.BNBAsset, cosmos.NewUint(20*common.One)),
 	}
-	txOutStore := newTxOutStorageV85(w.keeper, w.mgr.GetConstants(), w.mgr.EventMgr(), w.mgr.GasMgr())
+	txOutStore := newTxOutStorageV84(w.keeper, w.mgr.GetConstants(), w.mgr.EventMgr(), w.mgr.GasMgr())
 	success, err := txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item)
 	c.Assert(err, IsNil)
 	c.Assert(success, Equals, true)
@@ -368,7 +367,7 @@ func (s TxOutStoreV85Suite) TestAddOutTxItemWithoutBFT(c *C) {
 	c.Assert(msgs[0].Coin.Amount.Equal(cosmos.NewUint(1999887500)), Equals, true, Commentf("%d", msgs[0].Coin.Amount.Uint64()))
 }
 
-func (s TxOutStoreV85Suite) TestAddOutTxItemDeductMaxGasFromYggdrasil(c *C) {
+func (s TxOutStoreV84Suite) TestAddOutTxItemDeductMaxGasFromYggdrasil(c *C) {
 	w := getHandlerTestWrapper(c, 1, true, true)
 	vault := GetRandomVault()
 	vault.Coins = common.Coins{
@@ -432,7 +431,7 @@ func (s TxOutStoreV85Suite) TestAddOutTxItemDeductMaxGasFromYggdrasil(c *C) {
 			common.NewCoin(common.BNBAsset, cosmos.NewUint(100000000)),
 		},
 	}
-	txOutStore := newTxOutStorageV85(w.keeper, w.mgr.GetConstants(), w.mgr.EventMgr(), w.mgr.GasMgr())
+	txOutStore := newTxOutStorageV84(w.keeper, w.mgr.GetConstants(), w.mgr.EventMgr(), w.mgr.GasMgr())
 	ok, err := txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item)
 	c.Assert(err, IsNil)
 	c.Assert(ok, Equals, true)
@@ -458,33 +457,7 @@ func (s TxOutStoreV85Suite) TestAddOutTxItemDeductMaxGasFromYggdrasil(c *C) {
 	c.Assert(msgs[1].VaultPubKey.Equals(acc1.PubKeySet.Secp256k1), Equals, true)
 }
 
-type TestCalcKeeper struct {
-	keeper.KVStoreDummy
-	value map[int64]cosmos.Uint
-	mimir map[string]int64
-}
-
-func (k *TestCalcKeeper) GetPool(ctx cosmos.Context, asset common.Asset) (types.Pool, error) {
-	pool := NewPool()
-	pool.Asset = asset
-	pool.BalanceRune = cosmos.NewUint(90527581399649)
-	pool.BalanceAsset = cosmos.NewUint(1402011488988)
-	return pool, nil
-}
-
-func (k *TestCalcKeeper) GetMimir(ctx cosmos.Context, key string) (int64, error) {
-	return k.mimir[key], nil
-}
-
-func (k *TestCalcKeeper) GetTxOutValue(ctx cosmos.Context, height int64) (cosmos.Uint, error) {
-	val, ok := k.value[height]
-	if !ok {
-		return cosmos.ZeroUint(), nil
-	}
-	return val, nil
-}
-
-func (s TxOutStoreV85Suite) TestcalcTxOutHeight(c *C) {
+func (s TxOutStoreV84Suite) TestcalcTxOutHeight(c *C) {
 	keeper := &TestCalcKeeper{
 		value: make(map[int64]cosmos.Uint, 0),
 		mimir: make(map[string]int64, 0),
@@ -504,7 +477,7 @@ func (s TxOutStoreV85Suite) TestcalcTxOutHeight(c *C) {
 
 	ctx, _ := setupManagerForTest(c)
 
-	txout := TxOutStorageV83{keeper: keeper}
+	txout := TxOutStorageV66{keeper: keeper}
 
 	toi := TxOutItem{
 		Coin: common.NewCoin(common.BNBAsset, cosmos.NewUint(50*common.One)),
@@ -530,7 +503,7 @@ func (s TxOutStoreV85Suite) TestcalcTxOutHeight(c *C) {
 	addValue(targetBlock, value)
 }
 
-func (s TxOutStoreV85Suite) TestAddOutTxItem_MultipleOutboundWillBeScheduledAtTheSameBlockHeight(c *C) {
+func (s TxOutStoreV84Suite) TestAddOutTxItem_MultipleOutboundWillBeScheduledAtTheSameBlockHeight(c *C) {
 	SetupConfigForTest()
 	w := getHandlerTestWrapper(c, 1, true, true)
 	vault := GetRandomVault()
@@ -597,7 +570,7 @@ func (s TxOutStoreV85Suite) TestAddOutTxItem_MultipleOutboundWillBeScheduledAtTh
 		InHash:    inTxID,
 		Coin:      common.NewCoin(common.BNBAsset, cosmos.NewUint(80*common.One)),
 	}
-	txOutStore := newTxOutStorageV85(w.keeper, w.mgr.GetConstants(), w.mgr.EventMgr(), w.mgr.GasMgr())
+	txOutStore := newTxOutStorageV84(w.keeper, w.mgr.GetConstants(), w.mgr.EventMgr(), w.mgr.GasMgr())
 	ok, err := txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item)
 	c.Assert(err, IsNil)
 	c.Assert(ok, Equals, true)
@@ -641,7 +614,7 @@ func (s TxOutStoreV85Suite) TestAddOutTxItem_MultipleOutboundWillBeScheduledAtTh
 	c.Assert(afterVoter1.OutboundHeight, Equals, int64(4))
 }
 
-func (s TxOutStoreV85Suite) TestAddOutTxItemInteractionWithPool(c *C) {
+func (s TxOutStoreV84Suite) TestAddOutTxItemInteractionWithPool(c *C) {
 	w := getHandlerTestWrapper(c, 1, true, true)
 	pool, err := w.keeper.GetPool(w.ctx, common.BNBAsset)
 	c.Assert(err, IsNil)
@@ -664,7 +637,7 @@ func (s TxOutStoreV85Suite) TestAddOutTxItemInteractionWithPool(c *C) {
 		InHash:    inTxID,
 		Coin:      common.NewCoin(common.BNBAsset, cosmos.NewUint(20*common.One)),
 	}
-	txOutStore := newTxOutStorageV85(w.keeper, w.mgr.GetConstants(), w.mgr.EventMgr(), w.mgr.GasMgr())
+	txOutStore := newTxOutStorageV84(w.keeper, w.mgr.GetConstants(), w.mgr.EventMgr(), w.mgr.GasMgr())
 	success, err := txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item)
 	c.Assert(err, IsNil)
 	c.Assert(success, Equals, true)
