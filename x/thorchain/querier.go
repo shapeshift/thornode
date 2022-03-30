@@ -583,7 +583,6 @@ func getNodePreflightResult(ctx cosmos.Context, mgr *Mgrs, nodeAcc NodeAccount) 
 
 // Estimates current rewards for the NodeAccount taking into account bond-weighted rewards and slash points
 func getNodeCurrentRewards(ctx cosmos.Context, mgr *Mgrs, nodeAcc NodeAccount, lastChurnHeight int64, totalBondReward, totalEffectiveBond, bondHardCap cosmos.Uint) (cosmos.Uint, error) {
-
 	slashPts, err := mgr.Keeper().GetNodeAccountSlashPoints(ctx, nodeAcc.NodeAddress)
 	if err != nil {
 		return cosmos.ZeroUint(), fmt.Errorf("fail to get node slash points: %w", err)
@@ -665,7 +664,6 @@ func queryNodes(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *M
 
 	bondHardCap := cosmos.NewUint(uint64(validatorMaxRewardRatio)).MulUint64(uint64(minBondInRune))
 	totalEffectiveBond, err := getTotalEffectiveBond(ctx, mgr, bondHardCap)
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to calculate total effective bond: %w", err)
 	}
