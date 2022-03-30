@@ -12,7 +12,7 @@ ENV GOPATH=/go
 ENV CGO_ENABLED=0
 ENV GOOS=linux
 
-RUN apt update -q && apt install -y protobuf-compiler
+RUN apt-get update -q && apt-get install -y protobuf-compiler
 
 WORKDIR /app
 COPY go.mod go.sum ./
@@ -26,12 +26,11 @@ RUN make install
 #
 # Main
 #
-FROM alpine
+FROM alpine:latest
 
-RUN apk add --update gcc musl-dev python3-dev libffi-dev openssl-dev jq curl bind-tools py3-pip protoc && \
-    rm -rf /var/cache/apk/*
+RUN apk add --no-cache gcc musl-dev python3-dev libffi-dev openssl-dev jq curl bind-tools py3-pip protoc
 
-RUN pip3 install requests==2.22.0 web3==5.12.0
+RUN pip3 install --no-cache-dir requests==2.22.0 web3==5.12.0
 
 # Copy the compiled binaires over.
 COPY --from=build /go/bin/generate /usr/bin/
