@@ -6,23 +6,23 @@
 set -e
 
 if [ -z "$1" ]; then
-  echo "Missing mock binance address (address:port)"
-  exit 1
+	echo "Missing mock binance address (address:port)"
+	exit 1
 fi
 
 if [ -z "$2" ]; then
-  echo "Missing bnb address argument"
-  exit 1
+	echo "Missing bnb address argument"
+	exit 1
 fi
 
 if [ -z "$3" ]; then
-  echo "Missing node address argument (thor address)"
-  exit 1
+	echo "Missing node address argument (thor address)"
+	exit 1
 fi
 
 if [ -z "$4" ]; then
-  echo "Missing thor API address (IP/hostname)"
-  exit 1
+	echo "Missing thor API address (IP/hostname)"
+	exit 1
 fi
 
 INBOUND_ADDRESS=$(curl -s "$4:1317/thorchain/inbound_addresses" | jq -r '.[]|select(.chain=="BNB") .address')

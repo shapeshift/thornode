@@ -20,27 +20,26 @@ Note: At the moment, THORChain only support ECDSA keys, ED25519 will be supporte
 
 There are some changes need to be made in Thornode, detail as following
 
-|file                                        |func                                                                      |logic                                                                                                                 |
-|--------------------------------------------|--------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------|
-|common/address.go                           |func NewAddress(address string) (Address, error)                          |Add logic to parse an address                                                                                         |
-|common/chain.go                             |func (c Chain) GetGasAsset() Asset                                        |Return gas asset for the chain                                                                                        |
-|common/chain.go                             |define a chain variable at the top                                        |like https://gitlab.com/thorchain/thornode/-/blob/develop/common/chain.go#L22                                         |
-|common/gas.go                               |func UpdateGasPrice(tx Tx, asset Asset, units []cosmos.Uint) []cosmos.Uint|add logic in regards to how to update gas                                                                             |
-|common/asset.go                             |define an asset                                                           |like https://gitlab.com/thorchain/thornode/-/blob/develop/common/asset.go#L22                                         |
-|common/pubkey.go                            |func (pubKey PubKey) GetAddress(chain Chain) (Address, error)             |add logic to get address from a pubic key                                                                             |
-|build/docker/components/newchain.yml        |                                                                          |docker composer file to run the chain client , run it in regtest mode , so as the client will be used for mocknet test|
-|build/docker/components/validator.yml       |                                                                          |Update the files according to run chain client in docker composer, used it for test purpose                           |
-|build/docker/components/validator.linux.yml |                                                                          |                                                                                                                      |
-|build/docker/components/standalone.base.yml |                                                                          |                                                                                                                      |
-|build/docker/components/standalone.linux.yml|                                                                          |                                                                                                                      |
-
+| file                                         | func                                                                       | logic                                                                                                                  |
+| -------------------------------------------- | -------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| common/address.go                            | func NewAddress(address string) (Address, error)                           | Add logic to parse an address                                                                                          |
+| common/chain.go                              | func (c Chain) GetGasAsset() Asset                                         | Return gas asset for the chain                                                                                         |
+| common/chain.go                              | define a chain variable at the top                                         | like https://gitlab.com/thorchain/thornode/-/blob/develop/common/chain.go#L22                                          |
+| common/gas.go                                | func UpdateGasPrice(tx Tx, asset Asset, units []cosmos.Uint) []cosmos.Uint | add logic in regards to how to update gas                                                                              |
+| common/asset.go                              | define an asset                                                            | like https://gitlab.com/thorchain/thornode/-/blob/develop/common/asset.go#L22                                          |
+| common/pubkey.go                             | func (pubKey PubKey) GetAddress(chain Chain) (Address, error)              | add logic to get address from a pubic key                                                                              |
+| build/docker/components/newchain.yml         |                                                                            | docker composer file to run the chain client , run it in regtest mode , so as the client will be used for mocknet test |
+| build/docker/components/validator.yml        |                                                                            | Update the files according to run chain client in docker composer, used it for test purpose                            |
+| build/docker/components/validator.linux.yml  |                                                                            |                                                                                                                        |
+| build/docker/components/standalone.base.yml  |                                                                            |                                                                                                                        |
+| build/docker/components/standalone.linux.yml |                                                                            |                                                                                                                        |
 
 ## Node launcher changes
 
 Node launcher is the repository used to launch thorchain node, [https://gitlab.com/thorchain/devops/node-launcher.git](https://gitlab.com/thorchain/devops/node-launcher.git)
 
 1. Create a new folder under the root folder, like "newchain-daemon"
-2. Add new helm chart  to run the chain client daemon
+2. Add new helm chart to run the chain client daemon
 3. Make sure the autoscaling capabilities are still enough on the max nodes configuration.
 
 ## Bifrost changes
@@ -48,7 +47,7 @@ Node launcher is the repository used to launch thorchain node, [https://gitlab.c
 Bifrost is a key component in THORChain, it is a bridge between THORChain and external chains
 
 1. First, create a new folder under bifrost\pkg\chainclients
-2. Implement interface `ChainClient` interface, refer to [here](../bifrost/pkg/chainclients/chainclient.go) 
+2. Implement interface `ChainClient` interface, refer to [here](../bifrost/pkg/chainclients/chainclient.go)
 
 ```go
 // ChainClient is the interface that wraps basic chain client methods
@@ -81,7 +80,9 @@ type ChainClient interface {
 	Stop()
 }
 ```
+
 3. implement interface [BlockScannerFetcher](../bifrost/blockscanner/blockscanner.go) in the chain client you implement
+
 ```go
 
 // BlockScannerFetcher define the methods a block scanner need to implement
@@ -95,6 +96,7 @@ type BlockScannerFetcher interface {
 }
 
 ```
+
 4. update bifrost/pkg/chainclients/loadchains.go to initialise new chain client
 
 This is a sample PR to add bitcoin cash support, in thornode & bifrost

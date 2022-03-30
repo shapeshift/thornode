@@ -9,4 +9,4 @@ echo "$missing"
 
 [ -z "$missing" ] && echo "OK" && exit 0
 
-[[ -n "$missing" ]] && echo "Not OK" && exit 1
+[[ -n $missing ]] && echo "Not OK" && exit 1
