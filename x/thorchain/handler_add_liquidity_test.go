@@ -17,11 +17,10 @@ var _ = Suite(&HandlerAddLiquiditySuite{})
 
 type MockAddLiquidityKeeper struct {
 	keeper.KVStoreDummy
-	currentPool        Pool
-	activeNodeAccount  NodeAccount
-	failGetPool        bool
-	failGetNextEventID bool
-	lp                 LiquidityProvider
+	currentPool       Pool
+	activeNodeAccount NodeAccount
+	failGetPool       bool
+	lp                LiquidityProvider
 }
 
 func (m *MockAddLiquidityKeeper) PoolExist(_ cosmos.Context, asset common.Asset) bool {
