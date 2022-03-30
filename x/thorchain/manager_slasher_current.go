@@ -264,7 +264,7 @@ func (s *SlasherV86) LackSigning(ctx cosmos.Context, constAccessor constants.Con
 				age := common.BlockHeight(ctx) - voter.FinalisedHeight
 				attempts := age / signingTransPeriod
 				if attempts >= maxOutboundAttempts {
-					ctx.Logger().Info("txn dropped, too many retries", "hash", tx.InHash)
+					ctx.Logger().Info("txn dropped, too many attempts", "hash", tx.InHash)
 					continue
 				}
 			}
