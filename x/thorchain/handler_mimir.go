@@ -33,7 +33,6 @@ func (h MimirHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Result, err
 	if !ok {
 		return nil, errInvalidMessage
 	}
-	ctx.Logger().Info("receive mimir", "key", msg.Key, "value", msg.Value)
 	if err := h.validate(ctx, *msg); err != nil {
 		ctx.Logger().Error("msg mimir failed validation", "error", err)
 		return nil, err
@@ -78,7 +77,7 @@ func (h MimirHandler) validateV78(ctx cosmos.Context, msg MsgMimir) error {
 }
 
 func (h MimirHandler) handle(ctx cosmos.Context, msg MsgMimir) error {
-	ctx.Logger().Info("handleMsgMimir request", "key", msg.Key, "value", msg.Value)
+	ctx.Logger().Info("handleMsgMimir request", "node", msg.Signer, "key", msg.Key, "value", msg.Value)
 	version := h.mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.81.0")) {
 		return h.handleV81(ctx, msg)
@@ -113,6 +112,7 @@ func (h MimirHandler) handleV81(ctx cosmos.Context, msg MsgMimir) error {
 		cost := cosmos.NewUint(uint64(c))
 		nodeAccount.Bond = common.SafeSub(nodeAccount.Bond, cost)
 		if err := h.mgr.Keeper().SetNodeAccount(ctx, nodeAccount); err != nil {
+			ctx.Logger().Error("fail to save node account", "error", err)
 			return fmt.Errorf("fail to save node account: %w", err)
 		}
 
@@ -126,6 +126,7 @@ func (h MimirHandler) handleV81(ctx cosmos.Context, msg MsgMimir) error {
 		}
 
 		if err := h.mgr.Keeper().SetNodeMimir(ctx, msg.Key, msg.Value, msg.Signer); err != nil {
+			ctx.Logger().Error("fail to save node mimir", "error", err)
 			return err
 		}
 
