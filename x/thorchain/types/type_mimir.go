@@ -48,8 +48,8 @@ func (m *NodeMimirs) Delete(key string, acc cosmos.AccAddress) {
 }
 
 func (m NodeMimirs) countActive(key string, active []cosmos.AccAddress, maj func(_, _ int) bool) (int64, bool) {
-	counter := make(map[int64]int, 0) // count how many votes are for each value
-	voted := make(map[string]bool, 0) // track signers that have already voted
+	counter := make(map[int64]int) // count how many votes are for each value
+	voted := make(map[string]bool) // track signers that have already voted
 	for _, mimir := range m.Mimirs {
 		// skip mismatching keys
 		if !strings.EqualFold(mimir.Key, key) {

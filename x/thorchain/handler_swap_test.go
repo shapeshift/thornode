@@ -110,7 +110,7 @@ func (s *HandlerSwapSuite) TestValidation(c *C) {
 	pool.Asset = common.BNBAsset
 	pool.BalanceAsset = cosmos.NewUint(100 * common.One)
 	pool.BalanceRune = cosmos.NewUint(100 * common.One)
-	pools := make(map[common.Asset]Pool, 0)
+	pools := make(map[common.Asset]Pool)
 	pools[pool.Asset] = pool
 	keeper := &TestSwapHandleKeeper{
 		pools:             pools,

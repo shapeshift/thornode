@@ -17,7 +17,7 @@ type ObserverMgrV1 struct {
 // newObserverMgrV1 create a new instance of ObserverManager
 func newObserverMgrV1() *ObserverMgrV1 {
 	return &ObserverMgrV1{
-		chains: make(map[common.Chain][]cosmos.AccAddress, 0),
+		chains: make(map[common.Chain][]cosmos.AccAddress),
 	}
 }
 
@@ -27,7 +27,7 @@ func (om *ObserverMgrV1) BeginBlock() {
 }
 
 func (om *ObserverMgrV1) reset() {
-	om.chains = make(map[common.Chain][]cosmos.AccAddress, 0)
+	om.chains = make(map[common.Chain][]cosmos.AccAddress)
 }
 
 // AppendObserver add the address
@@ -51,7 +51,7 @@ func (om *ObserverMgrV1) AppendObserver(chain common.Chain, addrs []cosmos.AccAd
 // List - gets a list of addresses that have been observed in all chains
 func (om *ObserverMgrV1) List() []cosmos.AccAddress {
 	result := make([]cosmos.AccAddress, 0)
-	tracker := make(map[string]int, 0)
+	tracker := make(map[string]int)
 
 	// analyze-ignore(map-iteration)
 	for _, addrs := range om.chains {

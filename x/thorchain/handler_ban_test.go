@@ -127,7 +127,7 @@ func (s *HandlerBanSuite) TestHandle(c *C) {
 		banner1: banner1,
 		banner2: banner2,
 		network: NewNetwork(),
-		modules: make(map[string]int64, 0),
+		modules: make(map[string]int64),
 	}
 
 	handler := NewBanHandler(NewDummyMgrWithKeeper(keeper))

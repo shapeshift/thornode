@@ -1265,7 +1265,7 @@ func queryMimirWithKey(ctx cosmos.Context, path []string, req abci.RequestQuery,
 }
 
 func queryMimirValues(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mgrs) ([]byte, error) {
-	values := make(map[string]int64, 0)
+	values := make(map[string]int64)
 
 	// collect keys
 	iter := mgr.Keeper().GetMimirIterator(ctx)
@@ -1299,7 +1299,7 @@ func queryMimirValues(ctx cosmos.Context, path []string, req abci.RequestQuery, 
 }
 
 func queryMimirAdminValues(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mgrs) ([]byte, error) {
-	values := make(map[string]int64, 0)
+	values := make(map[string]int64)
 	iter := mgr.Keeper().GetMimirIterator(ctx)
 	defer iter.Close()
 	for ; iter.Valid(); iter.Next() {
@@ -1348,7 +1348,7 @@ func queryMimirNodesValues(ctx cosmos.Context, path []string, req abci.RequestQu
 	}
 	active := activeNodes.GetNodeAddresses()
 
-	values := make(map[string]int64, 0)
+	values := make(map[string]int64)
 	iter := mgr.Keeper().GetNodeMimirIterator(ctx)
 	defer iter.Close()
 	for ; iter.Valid(); iter.Next() {
@@ -1378,7 +1378,7 @@ func queryMimirNodeValues(ctx cosmos.Context, path []string, req abci.RequestQue
 		return nil, fmt.Errorf("fail to parse thor address: %w", err)
 	}
 
-	values := make(map[string]int64, 0)
+	values := make(map[string]int64)
 	iter := mgr.Keeper().GetNodeMimirIterator(ctx)
 	defer iter.Close()
 	for ; iter.Valid(); iter.Next() {
