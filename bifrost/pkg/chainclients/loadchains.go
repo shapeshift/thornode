@@ -83,7 +83,6 @@ func LoadChains(thorKeys *thorclient.Keys,
 			}
 			pubKeyValidator.RegisterCallback(doge.RegisterPublicKey)
 			chains[common.DOGEChain] = doge
-		default:
 		case common.TERRAChain:
 			terra, err := terra.NewCosmosClient(thorKeys, chain, server, thorchainBridge, m)
 			if err != nil {
