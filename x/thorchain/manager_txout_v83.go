@@ -411,7 +411,8 @@ func (tos *TxOutStorageV83) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem) 
 								common.NewCoins(common.NewCoin(outputs[i].Coin.Asset, assetFee))); err != nil {
 								ctx.Logger().Error("fail to move synth asset fee from asgard to Module", "error", err)
 							} else {
-								if err := tos.keeper.BurnFromModule(ctx, ModuleName, common.NewCoin(outputs[i].Coin.Asset, assetFee)); err != nil {
+								err := tos.keeper.BurnFromModule(ctx, ModuleName, common.NewCoin(outputs[i].Coin.Asset, assetFee))
+								if err != nil {
 									ctx.Logger().Error("fail to burn synth asset", "error", err)
 								}
 							}

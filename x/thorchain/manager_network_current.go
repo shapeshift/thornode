@@ -69,7 +69,8 @@ func (vm *NetworkMgrV76) processGenesisSetup(ctx cosmos.Context) error {
 		}
 	} else {
 		// Trigger a keygen ceremony
-		if err := vm.TriggerKeygen(ctx, active); err != nil {
+		err := vm.TriggerKeygen(ctx, active)
+		if err != nil {
 			return fmt.Errorf("fail to trigger a keygen: %w", err)
 		}
 	}
