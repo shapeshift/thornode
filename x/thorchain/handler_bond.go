@@ -128,13 +128,15 @@ func (h BondHandler) validateV81(ctx cosmos.Context, msg MsgBond) error {
 
 func (h BondHandler) handle(ctx cosmos.Context, msg MsgBond) error {
 	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.81.0")) {
+	if version.GTE(semver.MustParse("1.86.0")) {
+		return h.handleV86(ctx, msg)
+	} else if version.GTE(semver.MustParse("0.81.0")) {
 		return h.handleV81(ctx, msg)
 	}
 	return errBadVersion
 }
 
-func (h BondHandler) handleV81(ctx cosmos.Context, msg MsgBond) error {
+func (h BondHandler) handleV86(ctx cosmos.Context, msg MsgBond) error {
 	nodeAccount, err := h.mgr.Keeper().GetNodeAccount(ctx, msg.NodeAddress)
 	if err != nil {
 		return ErrInternal(err, fmt.Sprintf("fail to get node account(%s)", msg.NodeAddress))
@@ -181,6 +183,9 @@ func (h BondHandler) handleV81(ctx cosmos.Context, msg MsgBond) error {
 	if err != nil {
 		return ErrInternal(err, fmt.Sprintf("fail to get bond providers(%s)", msg.NodeAddress))
 	}
+
+	// Re-distribute current bond if needed
+	bp.Adjust(originalBond)
 
 	// backfill bond provider information (passive migration code)
 	if len(bp.Providers) == 0 {
