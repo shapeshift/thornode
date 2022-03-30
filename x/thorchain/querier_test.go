@@ -183,14 +183,6 @@ func (s *QuerierSuite) TestVaultss(c *C) {
 	c.Assert(err, NotNil)
 }
 
-type NodeAccountResp struct {
-	NodeAddress  cosmos.AccAddress `protobuf:"bytes,1,opt,name=node_address,json=nodeAddress,proto3,casttype=github.com/cosmos/cosmos-sdk/types.AccAddress" json:"node_address,omitempty"`
-	CurrentAward cosmos.Uint       `protobuf:"bytes,1,opt,name=current_award,json=currentAward,proto3,customtype=github.com/cosmos/cosmos-sdk/types.Uint" json:"current_award,omitempty"`
-}
-
-// NodeAccountsResp just a list of NodeAccountResp
-type NodeAccountsResp []NodeAccountResp
-
 func (s *QuerierSuite) TestQueryNodeAccounts(c *C) {
 	ctx, keeper := setupKeeperForTest(c)
 
