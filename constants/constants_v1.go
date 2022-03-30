@@ -29,6 +29,7 @@ func NewConstantValue010() *ConstantVals {
 			DoubleSignMaxAge:              24,                 // number of blocks to limit double signing a block
 			MinimumBondInRune:             1_000_000_00000000, // 1 million rune
 			MaxBondProviders:              6,                  // maximum number of bond providers
+			MaxOutboundAttempts:           0,                  // maximum retries to reschedule a transaction
 			PauseOnSlashThreshold:         100_00000000,       // number of rune to pause the network on the event a vault is slash for theft
 			FailKeygenSlashPoints:         720,                // slash for 720 blocks , which equals 1 hour
 			FailKeysignSlashPoints:        2,                  // slash for 2 blocks
