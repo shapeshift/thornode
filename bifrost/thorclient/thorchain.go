@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -173,29 +172,6 @@ func (b *ThorchainBridge) get(url string) ([]byte, int, error) {
 		return nil, resp.StatusCode, fmt.Errorf("failed to read response body: %w", err)
 	}
 	return buf, resp.StatusCode, nil
-}
-
-// post handle all the low level http POST calls using retryablehttp.ThorchainBridge
-func (b *ThorchainBridge) post(path, bodyType string, body interface{}) ([]byte, error) {
-	resp, err := b.httpClient.Post(b.getThorChainURL(path), bodyType, body)
-	if err != nil {
-		b.errCounter.WithLabelValues("fail_post_to_thorchain", "").Inc()
-		return nil, fmt.Errorf("failed to POST to thorchain: %w", err)
-	}
-	defer func() {
-		if err := resp.Body.Close(); err != nil {
-			b.logger.Error().Err(err).Msg("failed to close response body")
-		}
-	}()
-	if resp.StatusCode != http.StatusOK {
-		return nil, errors.New("Status code: " + strconv.Itoa(resp.StatusCode) + " returned")
-	}
-	buf, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		b.errCounter.WithLabelValues("fail_read_thorchain_resp", "").Inc()
-		return nil, fmt.Errorf("failed to read response body: %w", err)
-	}
-	return buf, nil
 }
 
 // getThorChainURL with the given path
