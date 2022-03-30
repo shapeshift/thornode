@@ -437,7 +437,7 @@ func (s *SlasherV86) SlashVault(ctx cosmos.Context, vaultPK common.PubKey, coins
 		}
 
 		pauseOnSlashThreshold := fetchConfigInt64(ctx, mgr, constants.PauseOnSlashThreshold)
-		if totalSlashAmountInRune.GTE(cosmos.NewUint(uint64(pauseOnSlashThreshold))) {
+		if pauseOnSlashThreshold > 0 && totalSlashAmountInRune.GTE(cosmos.NewUint(uint64(pauseOnSlashThreshold))) {
 			// set mimirs to pause the chain and ygg funding
 			s.keeper.SetMimir(ctx, mimirStopFundYggdrasil, common.BlockHeight(ctx))
 			s.keeper.SetMimir(ctx, fmt.Sprintf("Halt%sChain", coin.Asset.Chain), common.BlockHeight(ctx))
