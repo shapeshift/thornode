@@ -524,6 +524,9 @@ func queryNode(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mg
 
 		bondHardCap := cosmos.NewUint(uint64(validatorMaxRewardRatio)).MulUint64(uint64(minBondInRune))
 		totalEffectiveBond, err := getTotalEffectiveBond(ctx, mgr, bondHardCap)
+		if err != nil {
+			return nil, fmt.Errorf("fail to get total effective bond: %w", err)
+		}
 
 		lastChurnHeight := vaults[0].BlockHeight
 
