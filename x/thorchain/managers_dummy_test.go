@@ -38,15 +38,16 @@ func NewDummyMgrWithKeeper(k keeper.Keeper) *DummyMgr {
 
 func NewDummyMgr() *DummyMgr {
 	return &DummyMgr{
-		K:            keeper.KVStoreDummy{},
-		gasMgr:       NewDummyGasManager(),
-		eventMgr:     NewDummyEventMgr(),
-		txOutStore:   NewTxStoreDummy(),
-		vaultMgr:     NewVaultMgrDummy(),
-		validatorMgr: NewValidatorDummyMgr(),
-		obMgr:        NewDummyObserverManager(),
-		slasher:      NewDummySlasher(),
-		yggManager:   NewDummyYggManger(),
+		K:             keeper.KVStoreDummy{},
+		constAccessor: constants.GetConstantValues(GetCurrentVersion()),
+		gasMgr:        NewDummyGasManager(),
+		eventMgr:      NewDummyEventMgr(),
+		txOutStore:    NewTxStoreDummy(),
+		vaultMgr:      NewVaultMgrDummy(),
+		validatorMgr:  NewValidatorDummyMgr(),
+		obMgr:         NewDummyObserverManager(),
+		slasher:       NewDummySlasher(),
+		yggManager:    NewDummyYggManger(),
 		// TODO add dummy swap queue
 	}
 }
