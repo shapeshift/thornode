@@ -488,8 +488,8 @@ func (k *TestCalcKeeper) GetTxOutValue(ctx cosmos.Context, height int64) (cosmos
 
 func (s TxOutStoreV85Suite) TestcalcTxOutHeight(c *C) {
 	keeper := &TestCalcKeeper{
-		value: make(map[int64]cosmos.Uint, 0),
-		mimir: make(map[string]int64, 0),
+		value: make(map[int64]cosmos.Uint),
+		mimir: make(map[string]int64),
 	}
 
 	keeper.mimir["MinTxOutVolumeThreshold"] = 25_00000000

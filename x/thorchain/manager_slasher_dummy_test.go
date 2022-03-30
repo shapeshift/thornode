@@ -14,7 +14,7 @@ type DummySlasher struct {
 
 func NewDummySlasher() *DummySlasher {
 	return &DummySlasher{
-		pts: make(map[string]int64, 0),
+		pts: make(map[string]int64),
 	}
 }
 

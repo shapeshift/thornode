@@ -283,7 +283,7 @@ func (s *SlashingV86Suite) TestLackObservingErrors(c *C) {
 	keeper := &TestSlashObservingKeeper{
 		nas:      nas,
 		addrs:    []cosmos.AccAddress{nas[0].NodeAddress},
-		slashPts: make(map[string]int64, 0),
+		slashPts: make(map[string]int64),
 	}
 	ver := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(ver)
@@ -381,7 +381,7 @@ func (s *SlashingV86Suite) TestNodeSignSlashErrors(c *C) {
 			voter: ObservedTxVoter{
 				Actions: []TxOutItem{txOutItem},
 			},
-			slashPts: make(map[string]int64, 0),
+			slashPts: make(map[string]int64),
 		}
 		signingTransactionPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
 		ctx = ctx.WithBlockHeight(3 + signingTransactionPeriod)
@@ -438,7 +438,7 @@ func (s *SlashingV86Suite) TestNotSigningSlash(c *C) {
 		voter: ObservedTxVoter{
 			Actions: []TxOutItem{txOutItem},
 		},
-		slashPts: make(map[string]int64, 0),
+		slashPts: make(map[string]int64),
 	}
 	signingTransactionPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
 	ctx = ctx.WithBlockHeight(3 + signingTransactionPeriod)
@@ -468,7 +468,7 @@ func (s *SlashingV86Suite) TestNewSlasher(c *C) {
 	keeper := &TestSlashObservingKeeper{
 		nas:      nas,
 		addrs:    []cosmos.AccAddress{nas[0].NodeAddress},
-		slashPts: make(map[string]int64, 0),
+		slashPts: make(map[string]int64),
 	}
 	slasher := newSlasherV86(keeper, NewDummyEventMgr())
 	c.Assert(slasher, NotNil)
@@ -484,7 +484,7 @@ func (s *SlashingV86Suite) TestDoubleSign(c *C) {
 	keeper := &TestDoubleSlashKeeper{
 		na:      na,
 		network: NewNetwork(),
-		modules: make(map[string]int64, 0),
+		modules: make(map[string]int64),
 	}
 	slasher := newSlasherV86(keeper, NewDummyEventMgr())
 
