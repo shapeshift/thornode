@@ -40,6 +40,8 @@ const (
 	MaximumLiquidityRune
 	StrictBondLiquidityRatio
 	DefaultPoolStatus
+	MaxOutboundAttempts
+	PauseOnSlashThreshold
 	FailKeygenSlashPoints
 	FailKeysignSlashPoints
 	LiquidityLockUpBlocks
@@ -104,6 +106,8 @@ var nameToString = map[ConstantName]string{
 	MaximumLiquidityRune:          "MaximumLiquidityRune",
 	StrictBondLiquidityRatio:      "StrictBondLiquidityRatio",
 	DefaultPoolStatus:             "DefaultPoolStatus",
+	MaxOutboundAttempts:           "MaxOutboundAttempts",
+	PauseOnSlashThreshold:         "PauseOnSlashThreshold",
 	FailKeygenSlashPoints:         "FailKeygenSlashPoints",
 	FailKeysignSlashPoints:        "FailKeysignSlashPoints",
 	LiquidityLockUpBlocks:         "LiquidityLockUpBlocks",
