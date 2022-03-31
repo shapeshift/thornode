@@ -185,3 +185,6 @@ func correctAsgardVaultBalanceV61(ctx cosmos.Context, mgr Manager, asgardPubKey 
 }
 
 func migrateStoreV80(ctx cosmos.Context, mgr Manager) {}
+
+func migrateStoreV86(ctx cosmos.Context, mgr *Mgrs) {
+}
