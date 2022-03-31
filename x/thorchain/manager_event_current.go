@@ -56,10 +56,6 @@ func (m *EventMgrV1) EmitFeeEvent(ctx cosmos.Context, feeEvent *EventFee) error 
 	if feeEvent.Fee.Coins.IsEmpty() && feeEvent.Fee.PoolDeduct.IsZero() {
 		return nil
 	}
-
-	if feeEvent.Fee.Coins.IsEmpty() && feeEvent.Fee.PoolDeduct.IsZero() {
-		return nil
-	}
 	events, err := feeEvent.Events()
 	if err != nil {
 		return fmt.Errorf("fail to emit fee event: %w", err)
