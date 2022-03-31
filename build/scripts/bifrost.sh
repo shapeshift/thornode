@@ -16,6 +16,7 @@ BTC_PARALLEL_MEMPOOL_SCAN="${BTC_PARALLEL_MEMPOOL_SCAN:=5}"
 LTC_HOST="${LTC_HOST:=litecoin:18443}"
 LTC_START_BLOCK_HEIGHT="${LTC_START_BLOCK_HEIGHT:=0}"
 LTC_PARALLEL_MEMPOOL_SCAN="${LTC_PARALLEL_MEMPOOL_SCAN:=5}"
+LTC_DISABLED="${LTC_DISABLED:=false}"
 
 # Ethereum chain config
 ETH_HOST="${ETH_HOST:=http://ethereum:8545}"
@@ -192,6 +193,7 @@ echo "{
         \"http_post_mode\": 1,
         \"disable_tls\": 1,
         \"parallel_mempool_scan\":$LTC_PARALLEL_MEMPOOL_SCAN,
+        \"disabled\": $LTC_DISABLED,
         \"block_scanner\": {
           \"rpc_host\": \"$LTC_HOST\",
           \"enforce_block_height\": false,
