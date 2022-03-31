@@ -28,6 +28,9 @@ func NewAddress(address string) (Address, error) {
 	if len(address) == 0 {
 		return NoAddress, nil
 	}
+	if len(address) > 150 {
+		return NoAddress, nil
+	}
 
 	// Check is eth address
 	if eth.IsHexAddress(address) {
