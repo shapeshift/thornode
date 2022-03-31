@@ -8,3 +8,6 @@ import (
 )
 
 func migrateStoreV80(ctx cosmos.Context, mgr Manager) {}
+
+func migrateStoreV86(ctx cosmos.Context, mgr *Mgrs) {
+}
