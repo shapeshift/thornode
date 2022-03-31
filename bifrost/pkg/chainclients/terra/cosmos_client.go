@@ -366,12 +366,16 @@ func (c *CosmosClient) SignTx(tx stypes.TxOutItem, thorchainHeight int64) (signe
 		if err != nil {
 			return nil, fmt.Errorf("fail to get account info: %w", err)
 		}
-		meta = CosmosMetadata{
-			AccountNumber: acc.AccountNumber,
-			SeqNumber:     acc.Sequence,
-			BlockHeight:   currentHeight,
+		// Only update local sequence # if it is less than what is on chain
+		// When local sequence # is larger than on chain , that could be there are transactions in mempool not commit yet
+		if meta.SeqNumber <= acc.Sequence {
+			meta = CosmosMetadata{
+				AccountNumber: acc.AccountNumber,
+				SeqNumber:     acc.Sequence,
+				BlockHeight:   currentHeight,
+			}
+			c.accts.Set(tx.VaultPubKey, meta)
 		}
-		c.accts.Set(tx.VaultPubKey, meta)
 	}
 
 	gasCoins := tx.MaxGas.ToCoins()
