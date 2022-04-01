@@ -963,6 +963,9 @@ func DollarInRune(ctx cosmos.Context, mgr Manager) cosmos.Uint {
 }
 
 func telem(input cosmos.Uint) float32 {
+	if !input.BigInt().IsUint64() {
+		return 0
+	}
 	i := input.Uint64()
 	return float32(i) / 100000000
 }
