@@ -90,7 +90,11 @@ func (b *ThorchainBridge) Broadcast(msgs ...stypes.Msg) (common.TxID, error) {
 			}
 		}
 		b.logger.Info().Msgf("messages: %+v", msgs)
-		return txHash, fmt.Errorf("fail to broadcast to THORChain,code:%d, log:%s", commit.Code, commit.RawLog)
+		// commit code 6 means `unknown request` , which means the tx can't be accepted by thorchain
+		// if that's the case, let's just ignore it and move on
+		if commit.Code != 6 {
+			return txHash, fmt.Errorf("fail to broadcast to THORChain,code:%d, log:%s", commit.Code, commit.RawLog)
+		}
 	}
 	b.m.GetCounter(metrics.TxToThorchain).Inc()
 	b.logger.Info().Msgf("Received a TxHash of %v from the thorchain", commit.TxHash)
