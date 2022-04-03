@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -369,4 +370,78 @@ func (s *BitcoinCashSignerSuite) TestEstimateTxSize(c *C) {
 		},
 	})
 	c.Assert(size, Equals, int64(417))
+}
+
+func (s *BitcoinCashSignerSuite) TestSignAddressPubKeyShouldFail(c *C) {
+	txOutItem := stypes.TxOutItem{
+		Chain:       common.BCHChain,
+		ToAddress:   "04ae1a62fe09c5f51b13905f07f06b99a2f7159b2225f374cd378d71302fa28414e7aab37397f554a7df5f142c21c1b7303b8a0626f1baded5c72a704f7e6cd84c",
+		VaultPubKey: "tthorpub1addwnpepqw2k68efthm08f0f5akhjs6fk5j2pze4wkwt4fmnymf9yd463puruhh0lyz",
+		Coins: common.Coins{
+			common.NewCoin(common.BCHAsset, cosmos.NewUint(10)),
+		},
+		MaxGas: common.Gas{
+			common.NewCoin(common.BCHAsset, cosmos.NewUint(1000)),
+		},
+		InHash:  "",
+		OutHash: "",
+	}
+	txHash := "256222fb25a9950479bb26049a2c00e75b89abbb7f0cf646c623b93e942c4c34"
+	blockMeta := NewBlockMeta("000000000000008a0da55afa8432af3b15c225cc7e04d32f0de912702dd9e2ae",
+		100,
+		"0000000000000068f0710c510e94bd29aa624745da43e32a1de887387306bfda")
+	blockMeta.AddCustomerTransaction(txHash)
+	c.Assert(s.client.blockMetaAccessor.SaveBlockMeta(blockMeta.Height, blockMeta), IsNil)
+	priKeyBuf, err := hex.DecodeString("b404c5ec58116b5f0fe13464a92e46626fc5db130e418cbce98df86ffe9317c5")
+	c.Assert(err, IsNil)
+	pkey, _ := bchec.PrivKeyFromBytes(bchec.S256(), priKeyBuf)
+	c.Assert(pkey, NotNil)
+	ksw, err := NewKeySignWrapper(pkey, s.client.ksWrapper.tssKeyManager)
+	c.Assert(err, IsNil)
+	s.client.privateKey = pkey
+	s.client.ksWrapper = ksw
+	vaultPubKey, err := GetBech32AccountPubKey(pkey)
+	fmt.Println(vaultPubKey)
+	c.Assert(err, IsNil)
+	txOutItem.VaultPubKey = vaultPubKey
+	buf, err := s.client.SignTx(txOutItem, 1)
+	c.Assert(err, IsNil)
+	c.Assert(buf, IsNil)
+}
+
+func (s *BitcoinCashSignerSuite) TestToAddressCanNotRoundTripShouldBlock(c *C) {
+	txOutItem := stypes.TxOutItem{
+		Chain:       common.BCHChain,
+		ToAddress:   "05ae1a62fe09c5f51b13905f07f06b99a2f7159b2225f374cd378d71302fa28414e7aab37397f554a7df5f142c21c1b7303b8a0626f1baded5c72a704f7e6cd84c",
+		VaultPubKey: "tthorpub1addwnpepqw2k68efthm08f0f5akhjs6fk5j2pze4wkwt4fmnymf9yd463puruhh0lyz",
+		Coins: common.Coins{
+			common.NewCoin(common.BCHAsset, cosmos.NewUint(10)),
+		},
+		MaxGas: common.Gas{
+			common.NewCoin(common.BCHAsset, cosmos.NewUint(1000)),
+		},
+		InHash:  "",
+		OutHash: "",
+	}
+	txHash := "256222fb25a9950479bb26049a2c00e75b89abbb7f0cf646c623b93e942c4c34"
+	blockMeta := NewBlockMeta("000000000000008a0da55afa8432af3b15c225cc7e04d32f0de912702dd9e2ae",
+		100,
+		"0000000000000068f0710c510e94bd29aa624745da43e32a1de887387306bfda")
+	blockMeta.AddCustomerTransaction(txHash)
+	c.Assert(s.client.blockMetaAccessor.SaveBlockMeta(blockMeta.Height, blockMeta), IsNil)
+	priKeyBuf, err := hex.DecodeString("b404c5ec58116b5f0fe13464a92e46626fc5db130e418cbce98df86ffe9317c5")
+	c.Assert(err, IsNil)
+	pkey, _ := bchec.PrivKeyFromBytes(bchec.S256(), priKeyBuf)
+	c.Assert(pkey, NotNil)
+	ksw, err := NewKeySignWrapper(pkey, s.client.ksWrapper.tssKeyManager)
+	c.Assert(err, IsNil)
+	s.client.privateKey = pkey
+	s.client.ksWrapper = ksw
+	vaultPubKey, err := GetBech32AccountPubKey(pkey)
+	c.Assert(err, IsNil)
+	txOutItem.VaultPubKey = vaultPubKey
+	// The transaction will not signed, but ignored instead
+	buf, err := s.client.SignTx(txOutItem, 1)
+	c.Assert(err, IsNil)
+	c.Assert(buf, IsNil)
 }
