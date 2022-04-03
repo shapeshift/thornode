@@ -464,6 +464,15 @@ func isSignedByActiveNodeAccountsV1(ctx cosmos.Context, mgr Manager, signers []c
 	return true
 }
 
+func fetchConfigInt64(ctx cosmos.Context, mgr Manager, key constants.ConstantName) int64 {
+	val, err := mgr.Keeper().GetMimir(ctx, key.String())
+	if val < 0 || err != nil {
+		val = mgr.GetConstants().GetInt64Value(key)
+		ctx.Logger().Error("fail to fetch mimir value", "key", key.String(), "error", err)
+	}
+	return val
+}
+
 func cyclePools(ctx cosmos.Context, maxAvailablePools, minRunePoolDepth, stagedPoolCost int64, mgr Manager) error {
 	version := mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.73.0")) {
@@ -954,6 +963,9 @@ func DollarInRune(ctx cosmos.Context, mgr Manager) cosmos.Uint {
 }
 
 func telem(input cosmos.Uint) float32 {
+	if !input.BigInt().IsUint64() {
+		return 0
+	}
 	i := input.Uint64()
 	return float32(i) / 100000000
 }
