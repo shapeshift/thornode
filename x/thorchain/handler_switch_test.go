@@ -5,6 +5,7 @@ import (
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/constants"
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
@@ -40,6 +41,29 @@ func (s *HandlerSwitchSuite) TestValidate(c *C) {
 	result, err = handler.Run(ctx, msg)
 	c.Assert(err, NotNil)
 	c.Assert(result, IsNil)
+}
+
+func (s *HandlerSwitchSuite) TestValidateKillSwitch(c *C) {
+	ctx, mgr := setupManagerForTest(c)
+
+	mgr.Keeper().SetMimir(ctx, constants.KillSwitchStart.String(), 1)
+	mgr.Keeper().SetMimir(ctx, constants.KillSwitchDuration.String(), 1)
+
+	na := GetRandomValidatorNode(NodeActive)
+	c.Assert(mgr.Keeper().SetNodeAccount(ctx, na), IsNil)
+	tx := GetRandomTx()
+	tx.Coins = common.Coins{
+		common.NewCoin(common.Rune67CAsset, cosmos.NewUint(100*common.One)),
+	}
+	destination := GetRandomBNBAddress()
+
+	handler := NewSwitchHandler(mgr)
+
+	destination = GetRandomTHORAddress()
+	msg := NewMsgSwitch(tx, destination, na.NodeAddress)
+	err := handler.validate(ctx, *msg)
+	c.Assert(err, NotNil)
+	c.Check(err.Error(), Equals, "switch is deprecated")
 }
 
 func (s *HandlerSwitchSuite) TestGettingNativeTokens(c *C) {
@@ -149,4 +173,40 @@ func (s *HandlerSwitchSuite) TestSwitchHandlerDifferentValidations(c *C) {
 		result, err := handler.Run(ctx, msg)
 		tc.validator(c, ctx, result, err, helper, tc.name)
 	}
+}
+
+func (s *HandlerSwitchSuite) TestCalcCoin(c *C) {
+	ctx, mgr := setupManagerForTest(c)
+	handler := NewSwitchHandler(mgr)
+	in := cosmos.NewUint(100)
+
+	// no kill switch
+	c.Check(handler.calcCoin(ctx, in).Uint64(), Equals, in.Uint64())
+
+	// with kill switch
+	mgr.Keeper().SetMimir(ctx, constants.KillSwitchStart.String(), 1)
+	mgr.Keeper().SetMimir(ctx, constants.KillSwitchDuration.String(), 101)
+	ctx = ctx.WithBlockHeight(1)
+	amt := handler.calcCoin(ctx, in).Uint64()
+	c.Check(amt, Equals, uint64(100), Commentf("%d", amt))
+
+	ctx = ctx.WithBlockHeight(25 + 1)
+	amt = handler.calcCoin(ctx, in).Uint64()
+	c.Check(amt, Equals, uint64(75), Commentf("%d", amt))
+
+	ctx = ctx.WithBlockHeight(50 + 1)
+	amt = handler.calcCoin(ctx, in).Uint64()
+	c.Check(amt, Equals, uint64(50), Commentf("%d", amt))
+
+	ctx = ctx.WithBlockHeight(75 + 1)
+	amt = handler.calcCoin(ctx, in).Uint64()
+	c.Check(amt, Equals, uint64(26), Commentf("%d", amt))
+
+	ctx = ctx.WithBlockHeight(100 + 1)
+	amt = handler.calcCoin(ctx, in).Uint64()
+	c.Check(amt, Equals, uint64(1), Commentf("%d", amt))
+
+	ctx = ctx.WithBlockHeight(200 + 1)
+	amt = handler.calcCoin(ctx, in).Uint64()
+	c.Check(amt, Equals, uint64(0), Commentf("%d", amt))
 }
