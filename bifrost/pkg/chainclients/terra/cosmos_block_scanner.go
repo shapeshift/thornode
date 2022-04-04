@@ -22,7 +22,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/tendermint/tendermint/crypto/tmhash"
 	tmtypes "github.com/tendermint/tendermint/proto/tendermint/types"
-	grpc "google.golang.org/grpc"
+	"google.golang.org/grpc"
 
 	"gitlab.com/thorchain/thornode/bifrost/blockscanner"
 	"gitlab.com/thorchain/thornode/bifrost/config"
@@ -31,6 +31,7 @@ import (
 	"gitlab.com/thorchain/thornode/bifrost/thorclient"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient/types"
 	"gitlab.com/thorchain/thornode/common"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 // SolvencyReporter is to report solvency info to THORNode
@@ -339,7 +340,12 @@ func (c *CosmosBlockScanner) processTxs(height int64, rawTxs [][]byte) ([]types.
 					}
 					gasFees = append(gasFees, cCoin)
 				}
-
+				// On TERRA , fee can be paid in any asset , however THORChain only support LUNA & UST
+				// If Fee is paid in other asset, then just fake a gas as `0.000001 LUNA`
+				// THORNode doesn't use Gas , but it can't be empty
+				if gasFees.IsEmpty() {
+					gasFees = append(gasFees, common.NewCoin(c.cfg.ChainID.GetGasAsset(), cosmos.NewUint(1)))
+				}
 				txIn = append(txIn, types.TxInItem{
 					Tx:          hash,
 					BlockHeight: height,
