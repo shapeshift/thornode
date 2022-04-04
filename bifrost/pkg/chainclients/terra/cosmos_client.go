@@ -366,12 +366,16 @@ func (c *CosmosClient) SignTx(tx stypes.TxOutItem, thorchainHeight int64) (signe
 		if err != nil {
 			return nil, fmt.Errorf("fail to get account info: %w", err)
 		}
-		meta = CosmosMetadata{
-			AccountNumber: acc.AccountNumber,
-			SeqNumber:     acc.Sequence,
-			BlockHeight:   currentHeight,
+		// Only update local sequence # if it is less than what is on chain
+		// When local sequence # is larger than on chain , that could be there are transactions in mempool not commit yet
+		if meta.SeqNumber <= acc.Sequence {
+			meta = CosmosMetadata{
+				AccountNumber: acc.AccountNumber,
+				SeqNumber:     acc.Sequence,
+				BlockHeight:   currentHeight,
+			}
+			c.accts.Set(tx.VaultPubKey, meta)
 		}
-		c.accts.Set(tx.VaultPubKey, meta)
 	}
 
 	gasCoins := tx.MaxGas.ToCoins()
@@ -515,8 +519,12 @@ func (c *CosmosClient) BroadcastTx(tx stypes.TxOutItem, txBytes []byte) (string,
 	}
 
 	c.accts.SeqInc(tx.VaultPubKey)
-	if err := c.signerCacheManager.SetSigned(tx.CacheHash(), broadcastRes.TxResponse.TxHash); err != nil {
-		c.logger.Err(err).Msg("fail to set signer cache")
+	// Only add the transaction to signer cache when it is sure the transaction has been broadcast successfully.
+	// So for other scenario , like transaction already in mempool , invalid account sequence # , the transaction can be rescheduled , and retried
+	if broadcastRes.TxResponse.Code == errortypes.SuccessABCICode {
+		if err := c.signerCacheManager.SetSigned(tx.CacheHash(), broadcastRes.TxResponse.TxHash); err != nil {
+			c.logger.Err(err).Msg("fail to set signer cache")
+		}
 	}
 	return broadcastRes.TxResponse.TxHash, nil
 }
