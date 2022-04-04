@@ -81,6 +81,8 @@
 `MinRunePoolDepth`: Minimum number of rune to be considered to become active
 `PoolCycle`: Number of blocks the network will churn the pools (add/remove new available pools)
 `StagedPoolCost`: Number of rune (1e8 notation) that a stage pool is deducted on each pool cycle.
+`KillSwitchStart`: Block height to start to kill BEP2 and ERC20 RUNE
+`KillSwitchDuration`: Duration (in blocks) until switching is deprecated
 
 ## Miscellaneous
 
