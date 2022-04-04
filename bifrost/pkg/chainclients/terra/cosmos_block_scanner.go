@@ -344,7 +344,7 @@ func (c *CosmosBlockScanner) processTxs(height int64, rawTxs [][]byte) ([]types.
 				// If Fee is paid in other asset, then just fake a gas as `0.000001 LUNA`
 				// THORNode doesn't use Gas , but it can't be empty
 				if gasFees.IsEmpty() {
-					gasFees = append(gasFees, common.NewCoin(common.LUNAAsset, cosmos.NewUint(1)))
+					gasFees = append(gasFees, common.NewCoin(c.cfg.ChainID.GetGasAsset(), cosmos.NewUint(1)))
 				}
 				txIn = append(txIn, types.TxInItem{
 					Tx:          hash,
