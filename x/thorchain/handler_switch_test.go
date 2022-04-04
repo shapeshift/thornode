@@ -59,7 +59,6 @@ func (s *HandlerSwitchSuite) TestValidateKillSwitch(c *C) {
 
 	handler := NewSwitchHandler(mgr)
 
-	destination = GetRandomTHORAddress()
 	msg := NewMsgSwitch(tx, destination, na.NodeAddress)
 	err := handler.validate(ctx, *msg)
 	c.Assert(err, NotNil)
