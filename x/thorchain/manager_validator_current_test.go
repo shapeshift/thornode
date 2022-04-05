@@ -167,6 +167,8 @@ func (vts *ValidatorMgrV87TestSuite) TestLowerVersion(c *C) {
 			markedCount++
 		}
 	}
+
+	c.Assert(markedCount, Equals, 3)
 }
 
 func (vts *ValidatorMgrV87TestSuite) TestBadActors(c *C) {
