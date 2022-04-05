@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/blang/semver"
+
 	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
@@ -30,7 +31,7 @@ func ParseUnbondMemo(version semver.Version, parts []string) (UnbondMemo, error)
 	if version.GTE(semver.MustParse("0.81.0")) {
 		return ParseUnbondMemoV81(parts)
 	}
-	return ParseUnbondMemoV1(parts)
+	return UnbondMemo{}, fmt.Errorf("invalid version(%s)", version.String())
 }
 
 func ParseUnbondMemoV81(parts []string) (UnbondMemo, error) {

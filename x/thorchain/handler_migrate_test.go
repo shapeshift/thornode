@@ -7,8 +7,8 @@ import (
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
-	keeper "gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	"gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 type HandlerMigrateSuite struct{}
@@ -185,7 +185,7 @@ func (HandlerMigrateSuite) TestSlash(c *C) {
 	addr, err := keeper.retireVault.PubKey.GetAddress(common.BNBChain)
 	c.Assert(err, IsNil)
 	mgr := NewDummyMgrWithKeeper(keeper)
-	mgr.slasher = newSlasherV1(keeper, NewDummyEventMgr())
+	mgr.slasher = newSlasherV75(keeper, NewDummyEventMgr())
 	handler := NewMigrateHandler(mgr)
 	tx := NewObservedTx(common.Tx{
 		ID:    GetRandomTxHash(),

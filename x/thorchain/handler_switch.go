@@ -69,8 +69,6 @@ func (h SwitchHandler) handle(ctx cosmos.Context, msg MsgSwitch) (*cosmos.Result
 	version := h.mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.56.0")) {
 		return h.handleV56(ctx, msg)
-	} else if version.GTE(semver.MustParse("0.1.0")) {
-		return h.handleV1(ctx, msg)
 	}
 	return nil, errBadVersion
 }
@@ -119,7 +117,7 @@ func (h SwitchHandler) toNativeV56(ctx cosmos.Context, msg MsgSwitch) (*cosmos.R
 		ctx.Logger().Error("failed to set network", "error", err)
 	}
 
-	switchEvent := NewEventSwitchV56(msg.Tx.FromAddress, addr, msg.Tx.Coins[0], msg.Tx.ID)
+	switchEvent := NewEventSwitch(msg.Tx.FromAddress, addr, msg.Tx.Coins[0], msg.Tx.ID)
 	if err := h.mgr.EventMgr().EmitEvent(ctx, switchEvent); err != nil {
 		ctx.Logger().Error("fail to emit switch event", "error", err)
 	}

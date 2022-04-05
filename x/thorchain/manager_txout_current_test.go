@@ -6,6 +6,7 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
@@ -19,7 +20,7 @@ func (s TxOutStoreV85Suite) TestAddGasFees(c *C) {
 
 	version := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(version)
-	mgr.gasMgr = newGasMgrV1(constAccessor, mgr.Keeper())
+	mgr.gasMgr = newGasMgrV81(constAccessor, mgr.Keeper())
 	err := addGasFees(ctx, mgr, tx)
 	c.Assert(err, IsNil)
 	c.Assert(mgr.GasMgr().GetGas(), HasLen, 1)
@@ -457,6 +458,32 @@ func (s TxOutStoreV85Suite) TestAddOutTxItemDeductMaxGasFromYggdrasil(c *C) {
 	c.Assert(msgs[1].VaultPubKey.Equals(acc1.PubKeySet.Secp256k1), Equals, true)
 }
 
+type TestCalcKeeper struct {
+	keeper.KVStoreDummy
+	value map[int64]cosmos.Uint
+	mimir map[string]int64
+}
+
+func (k *TestCalcKeeper) GetPool(ctx cosmos.Context, asset common.Asset) (types.Pool, error) {
+	pool := NewPool()
+	pool.Asset = asset
+	pool.BalanceRune = cosmos.NewUint(90527581399649)
+	pool.BalanceAsset = cosmos.NewUint(1402011488988)
+	return pool, nil
+}
+
+func (k *TestCalcKeeper) GetMimir(ctx cosmos.Context, key string) (int64, error) {
+	return k.mimir[key], nil
+}
+
+func (k *TestCalcKeeper) GetTxOutValue(ctx cosmos.Context, height int64) (cosmos.Uint, error) {
+	val, ok := k.value[height]
+	if !ok {
+		return cosmos.ZeroUint(), nil
+	}
+	return val, nil
+}
+
 func (s TxOutStoreV85Suite) TestcalcTxOutHeight(c *C) {
 	keeper := &TestCalcKeeper{
 		value: make(map[int64]cosmos.Uint, 0),
@@ -477,7 +504,7 @@ func (s TxOutStoreV85Suite) TestcalcTxOutHeight(c *C) {
 
 	ctx, _ := setupManagerForTest(c)
 
-	txout := TxOutStorageV66{keeper: keeper}
+	txout := TxOutStorageV83{keeper: keeper}
 
 	toi := TxOutItem{
 		Coin: common.NewCoin(common.BNBAsset, cosmos.NewUint(50*common.One)),

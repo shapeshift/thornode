@@ -2,8 +2,9 @@ package chainclients
 
 import (
 	"github.com/rs/zerolog/log"
-	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/dogecoin"
 	"gitlab.com/thorchain/tss/go-tss/tss"
+
+	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/dogecoin"
 
 	"gitlab.com/thorchain/thornode/bifrost/config"
 	"gitlab.com/thorchain/thornode/bifrost/metrics"

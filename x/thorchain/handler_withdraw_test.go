@@ -112,7 +112,7 @@ func (HandlerWithdrawSuite) TestWithdrawHandler(c *C) {
 	// Happy path , this is a round trip , first we provide liquidity, then we withdraw
 	runeAddr := GetRandomRUNEAddress()
 	addHandler := NewAddLiquidityHandler(NewDummyMgrWithKeeper(k))
-	err := addHandler.addLiquidityV1(ctx,
+	err := addHandler.addLiquidity(ctx,
 		common.BNBAsset,
 		cosmos.NewUint(common.One*100),
 		cosmos.NewUint(common.One*100),
@@ -177,7 +177,7 @@ func (HandlerWithdrawSuite) TestAsymmetricWithdraw(c *C) {
 	c.Assert(lp.Units.IsZero(), Equals, false)
 
 	runeAddr1 := GetRandomRUNEAddress()
-	err = addHandler.addLiquidityV1(ctx, common.BTCAsset, cosmos.NewUint(50*common.One), cosmos.ZeroUint(), runeAddr1, common.NoAddress, GetRandomTxHash(), false, constAccessor)
+	err = addHandler.addLiquidity(ctx, common.BTCAsset, cosmos.NewUint(50*common.One), cosmos.ZeroUint(), runeAddr1, common.NoAddress, GetRandomTxHash(), false, constAccessor)
 	c.Assert(err, IsNil)
 	lp, err = keeper.GetLiquidityProvider(ctx, common.BTCAsset, runeAddr1)
 	c.Assert(err, IsNil)
@@ -197,7 +197,7 @@ func (HandlerWithdrawSuite) TestAsymmetricWithdraw(c *C) {
 
 	// stake some BTC only
 	btcAddress1 := GetRandomBTCAddress()
-	err = addHandler.addLiquidityV1(ctx, common.BTCAsset, cosmos.ZeroUint(), cosmos.NewUint(50*common.One),
+	err = addHandler.addLiquidity(ctx, common.BTCAsset, cosmos.ZeroUint(), cosmos.NewUint(50*common.One),
 		common.NoAddress, btcAddress1, GetRandomTxHash(), false, constAccessor)
 	c.Assert(err, IsNil)
 	lp, err = keeper.GetLiquidityProvider(ctx, common.BTCAsset, btcAddress1)

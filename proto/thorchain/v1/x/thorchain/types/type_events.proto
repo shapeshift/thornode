@@ -168,12 +168,6 @@ message EventSwitch {
   bytes to_address = 1 [(gogoproto.casttype) = "github.com/cosmos/cosmos-sdk/types.AccAddress"];
   string from_address = 2 [(gogoproto.casttype) = "gitlab.com/thorchain/thornode/common.Address"];
   common.Coin burn = 3 [(gogoproto.nullable) = false];
-}
-
-message EventSwitchV56 {
-  bytes to_address = 1 [(gogoproto.casttype) = "github.com/cosmos/cosmos-sdk/types.AccAddress"];
-  string from_address = 2 [(gogoproto.casttype) = "gitlab.com/thorchain/thornode/common.Address"];
-  common.Coin burn = 3 [(gogoproto.nullable) = false];
   string tx_id = 4 [(gogoproto.casttype) = "gitlab.com/thorchain/thornode/common.TxID", (gogoproto.customname) = "TxID"];
 }
 

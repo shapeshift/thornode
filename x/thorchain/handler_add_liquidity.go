@@ -50,16 +50,6 @@ func (h AddLiquidityHandler) validate(ctx cosmos.Context, msg MsgAddLiquidity) e
 	version := h.mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.76.0")) {
 		return h.validateV76(ctx, msg)
-	} else if version.GTE(semver.MustParse("0.68.0")) {
-		return h.validateV68(ctx, msg)
-	} else if version.GTE(semver.MustParse("0.65.0")) {
-		return h.validateV65(ctx, msg)
-	} else if version.GTE(semver.MustParse("0.63.0")) {
-		return h.validateV63(ctx, msg)
-	} else if version.GTE(semver.MustParse("0.55.0")) {
-		return h.validateV55(ctx, msg)
-	} else if version.GTE(semver.MustParse("0.1.0")) {
-		return h.validateV1(ctx, msg)
 	}
 	return errBadVersion
 }
@@ -138,12 +128,6 @@ func (h AddLiquidityHandler) handle(ctx cosmos.Context, msg MsgAddLiquidity) err
 	version := h.mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.63.0")) {
 		return h.handleV63(ctx, msg)
-	} else if version.GTE(semver.MustParse("0.55.0")) {
-		return h.handleV55(ctx, msg)
-	} else if version.GTE(semver.MustParse("0.47.0")) {
-		return h.handleV47(ctx, msg)
-	} else if version.GTE(semver.MustParse("0.1.0")) {
-		return h.handleV1(ctx, msg)
 	}
 	return errBadVersion
 }
@@ -332,18 +316,6 @@ func (h AddLiquidityHandler) addLiquidity(ctx cosmos.Context,
 	version := h.mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.79.0")) {
 		return h.addLiquidityV79(ctx, asset, addRuneAmount, addAssetAmount, runeAddr, assetAddr, requestTxHash, stage, constAccessor)
-	} else if version.GTE(semver.MustParse("0.76.0")) {
-		return h.addLiquidityV76(ctx, asset, addRuneAmount, addAssetAmount, runeAddr, assetAddr, requestTxHash, stage, constAccessor)
-	} else if version.GTE(semver.MustParse("0.68.0")) {
-		return h.addLiquidityV68(ctx, asset, addRuneAmount, addAssetAmount, runeAddr, assetAddr, requestTxHash, stage, constAccessor)
-	} else if version.GTE(semver.MustParse("0.63.0")) {
-		return h.addLiquidityV63(ctx, asset, addRuneAmount, addAssetAmount, runeAddr, assetAddr, requestTxHash, stage, constAccessor)
-	} else if version.GTE(semver.MustParse("0.55.0")) {
-		return h.addLiquidityV55(ctx, asset, addRuneAmount, addAssetAmount, runeAddr, assetAddr, requestTxHash, stage, constAccessor)
-	} else if version.GTE(semver.MustParse("0.46.0")) {
-		return h.addLiquidityV46(ctx, asset, addRuneAmount, addAssetAmount, runeAddr, assetAddr, requestTxHash, stage, constAccessor)
-	} else if version.GTE(semver.MustParse("0.1.0")) {
-		return h.addLiquidityV1(ctx, asset, addRuneAmount, addAssetAmount, runeAddr, assetAddr, requestTxHash, stage, constAccessor)
 	}
 	return errBadVersion
 }

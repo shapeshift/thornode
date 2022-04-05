@@ -44,14 +44,6 @@ func (h SwapHandler) validate(ctx cosmos.Context, msg MsgSwap) error {
 	version := h.mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.65.0")) {
 		return h.validateV65(ctx, msg)
-	} else if version.GTE(semver.MustParse("0.58.0")) {
-		return h.validateV58(ctx, msg)
-	} else if version.GTE(semver.MustParse("0.56.0")) {
-		return h.validateV56(ctx, msg)
-	} else if version.GTE(semver.MustParse("0.55.0")) {
-		return h.validateV55(ctx, msg)
-	} else if version.GTE(semver.MustParse("0.1.0")) {
-		return h.validateV1(ctx, msg)
 	}
 	return errInvalidVersion
 }
@@ -133,16 +125,6 @@ func (h SwapHandler) handle(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result, er
 	version := h.mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.81.0")) {
 		return h.handleV81(ctx, msg)
-	} else if version.GTE(semver.MustParse("0.56.0")) {
-		return h.handleV56(ctx, msg)
-	} else if version.GTE(semver.MustParse("0.55.0")) {
-		return h.handleV55(ctx, msg)
-	} else if version.GTE(semver.MustParse("0.44.0")) {
-		return h.handleV44(ctx, msg)
-	} else if version.GTE(semver.MustParse("0.43.0")) {
-		return h.handleV43(ctx, msg)
-	} else if version.GTE(semver.MustParse("0.1.0")) {
-		return h.handleV1(ctx, msg)
 	}
 	return nil, errBadVersion
 }

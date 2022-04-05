@@ -45,8 +45,6 @@ func (h VersionHandler) validate(ctx cosmos.Context, msg MsgSetVersion) error {
 	version := h.mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.80.0")) {
 		return h.validateV80(ctx, msg)
-	} else if version.GTE(semver.MustParse("0.1.0")) {
-		return h.validateV1(ctx, msg)
 	}
 	return errBadVersion
 }
@@ -93,8 +91,6 @@ func (h VersionHandler) handle(ctx cosmos.Context, msg MsgSetVersion) error {
 	version := h.mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.57.0")) {
 		return h.handleV57(ctx, msg)
-	} else if version.GTE(semver.MustParse("0.1.0")) {
-		return h.handleV1(ctx, msg)
 	}
 	return errBadVersion
 }

@@ -7,6 +7,7 @@ import (
 	"github.com/armon/go-metrics"
 	"github.com/blang/semver"
 	"github.com/cosmos/cosmos-sdk/telemetry"
+
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
@@ -43,8 +44,6 @@ func (h SolvencyHandler) validate(ctx cosmos.Context, msg MsgSolvency) error {
 	version := h.mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.70.0")) {
 		return h.validateV70(ctx, msg)
-	} else if version.GTE(semver.MustParse("0.1.0")) {
-		return h.validateV1(ctx, msg)
 	}
 	return errBadVersion
 }
@@ -72,10 +71,6 @@ func (h SolvencyHandler) handle(ctx cosmos.Context, msg MsgSolvency) (*cosmos.Re
 	version := h.mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.79.0")) {
 		return h.handleV79(ctx, msg)
-	} else if version.GTE(semver.MustParse("0.70.0")) {
-		return h.handleV70(ctx, msg)
-	} else if version.GTE(semver.MustParse("0.1.0")) {
-		return h.handleV1(ctx, msg)
 	}
 	ctx.Logger().Error(errInvalidVersion.Error())
 	return nil, errBadVersion

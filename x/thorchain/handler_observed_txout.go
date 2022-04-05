@@ -66,10 +66,6 @@ func (h ObservedTxOutHandler) handle(ctx cosmos.Context, msg MsgObservedTxOut) (
 	version := h.mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.58.0")) {
 		return h.handleV58(ctx, msg)
-	} else if version.GTE(semver.MustParse("0.46.0")) {
-		return h.handleV46(ctx, msg)
-	} else if version.GTE(semver.MustParse("0.1.0")) {
-		return h.handleV1(ctx, msg)
 	}
 	return nil, errBadVersion
 }

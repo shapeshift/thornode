@@ -64,13 +64,10 @@ func (h NetworkFeeHandler) handle(ctx cosmos.Context, msg MsgNetworkFee) (*cosmo
 	version := h.mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.47.0")) {
 		return h.handleV47(ctx, msg)
-	} else if version.GTE(semver.MustParse("0.1.0")) {
-		return h.handleV1(ctx, msg)
 	}
 	return nil, errBadVersion
 }
 
-// handleV47 process MsgNetworkFee
 func (h NetworkFeeHandler) handleV47(ctx cosmos.Context, msg MsgNetworkFee) (*cosmos.Result, error) {
 	active, err := h.mgr.Keeper().ListActiveValidators(ctx)
 	if err != nil {
@@ -78,7 +75,7 @@ func (h NetworkFeeHandler) handleV47(ctx cosmos.Context, msg MsgNetworkFee) (*co
 		return nil, err
 	}
 
-	voter, err := h.mgr.Keeper().GetObservedNetworkFeeVoterV47(ctx, msg.BlockHeight, msg.Chain, int64(msg.TransactionFeeRate))
+	voter, err := h.mgr.Keeper().GetObservedNetworkFeeVoter(ctx, msg.BlockHeight, msg.Chain, int64(msg.TransactionFeeRate))
 	if err != nil {
 		return nil, err
 	}

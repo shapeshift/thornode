@@ -306,7 +306,7 @@ func (s WithdrawSuiteV76) TestCalculateUnsake(c *C) {
 
 	for _, item := range inputs {
 		c.Logf("name:%s", item.name)
-		withDrawRune, withDrawAsset, unitAfter, err := calculateWithdrawV1(item.poolUnit, item.poolRune, item.poolAsset, item.lpUnit, item.percentage, common.EmptyAsset)
+		withDrawRune, withDrawAsset, unitAfter, err := calculateWithdrawV76(item.poolUnit, item.poolRune, item.poolAsset, item.lpUnit, cosmos.ZeroUint(), item.percentage, common.EmptyAsset)
 		if item.expectedErr == nil {
 			c.Assert(err, IsNil)
 		} else {
@@ -634,7 +634,7 @@ func (s *WithdrawSuiteV76) TestWithdrawWithImpermanentLossProtection(c *C) {
 	// add some liquidity
 	// add some liquidity
 	for i := 0; i <= 10; i++ {
-		c.Assert(addHandler.addLiquidityV68(ctx,
+		c.Assert(addHandler.addLiquidity(ctx,
 			common.BTCAsset,
 			cosmos.NewUint(common.One),
 			cosmos.NewUint(common.One),
@@ -645,7 +645,7 @@ func (s *WithdrawSuiteV76) TestWithdrawWithImpermanentLossProtection(c *C) {
 			constantAccessor), IsNil)
 	}
 	lpAddr := GetRandomTHORAddress()
-	c.Assert(addHandler.addLiquidityV68(ctx,
+	c.Assert(addHandler.addLiquidity(ctx,
 		common.BTCAsset,
 		cosmos.NewUint(common.One),
 		cosmos.NewUint(common.One),
