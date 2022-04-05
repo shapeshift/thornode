@@ -54,9 +54,7 @@ func makeTestCodec() *codec.LegacyAmino {
 	return cdc
 }
 
-var (
-	keyThorchain = cosmos.NewKVStoreKey(StoreKey)
-)
+var keyThorchain = cosmos.NewKVStoreKey(StoreKey)
 
 func setupKeeperForTest(c *C) (cosmos.Context, KVStore) {
 	SetupConfigForTest()
