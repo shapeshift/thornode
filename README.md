@@ -1,5 +1,7 @@
-[![pipeline status](https://gitlab.com/thorchain/thornode/badges/master/pipeline.svg)](https://gitlab.com/thorchain/thornode/commits/master)
-[![coverage report](https://gitlab.com/thorchain/thornode/badges/master/coverage.svg)](https://gitlab.com/thorchain/thornode/-/commits/master)
+<!-- markdownlint-disable MD041 -->
+
+[![pipeline status](https://gitlab.com/thorchain/thornode/badges/develop/pipeline.svg)](https://gitlab.com/thorchain/thornode/commits/develop)
+[![coverage report](https://gitlab.com/thorchain/thornode/badges/develop/coverage.svg)](https://gitlab.com/thorchain/thornode/-/commits/develop)
 [![Go Report Card](https://goreportcard.com/badge/gitlab.com/thorchain/thornode)](https://goreportcard.com/report/gitlab.com/thorchain/thornode)
 
 # THORChain
@@ -113,7 +115,7 @@ And have `GOBIN` in your `PATH`
 export GOBIN=$GOPATH/bin
 ```
 
-Install Docker and Docker Compose V2. 
+Install Docker and Docker Compose V2.
 
 ### Automated Install Locally
 

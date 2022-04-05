@@ -88,7 +88,7 @@ else
 ifdef CI_PROJECT_ID
 	trunk check --no-progress --monitor=false --upstream origin/develop
 else
-	trunk check --upstream origin/develop
+	trunk check --no-fix --upstream origin/develop
 endif
 endif
 
