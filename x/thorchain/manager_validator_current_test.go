@@ -159,6 +159,7 @@ func (vts *ValidatorMgrV87TestSuite) TestLowerVersion(c *C) {
 		for _, addr := range lowVersionAddresses {
 			if addr == na.BondAddress {
 				isCorrectNode = true
+				break
 			}
 		}
 
