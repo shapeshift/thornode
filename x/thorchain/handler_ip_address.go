@@ -84,8 +84,6 @@ func (h IPAddressHandler) handle(ctx cosmos.Context, msg MsgSetIPAddress) error 
 	version := h.mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.57.0")) {
 		return h.handleV57(ctx, msg)
-	} else if version.GTE(semver.MustParse("0.1.0")) {
-		return h.handleV1(ctx, msg)
 	}
 	ctx.Logger().Error(errInvalidVersion.Error())
 	return errBadVersion

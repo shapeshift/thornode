@@ -10,6 +10,12 @@ import (
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
+// const values used to emit events
+const (
+	EventTypeActiveVault   = "ActiveVault"
+	EventTypeInactiveVault = "InactiveVault"
+)
+
 // NetworkMgrV76 is going to manage the vaults
 type NetworkMgrV76 struct {
 	k          keeper.Keeper
@@ -865,4 +871,18 @@ func (vm *NetworkMgrV76) getPoolShare(incentiveCurve int64, totalProvidedLiquidi
 	}
 	part := common.SafeSub(totalBonded, totalProvidedLiquidity)
 	return common.GetSafeShare(part, total, totalRewards)
+}
+
+func getTotalActiveNodeWithBond(ctx cosmos.Context, k keeper.Keeper) (int64, error) {
+	nas, err := k.ListActiveValidators(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("fail to get active node accounts: %w", err)
+	}
+	var total int64
+	for _, item := range nas {
+		if !item.Bond.IsZero() {
+			total++
+		}
+	}
+	return total, nil
 }

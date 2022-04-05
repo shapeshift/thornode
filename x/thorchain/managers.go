@@ -263,12 +263,6 @@ func GetGasManager(version semver.Version, keeper keeper.Keeper) (GasManager, er
 	constAcessor := constants.GetConstantValues(version)
 	if version.GTE(semver.MustParse("0.81.0")) {
 		return newGasMgrV81(constAcessor, keeper), nil
-	} else if version.GTE(semver.MustParse("0.80.0")) {
-		return newGasMgrV80(constAcessor, keeper), nil
-	} else if version.GTE(semver.MustParse("0.75.0")) {
-		return newGasMgrV75(constAcessor, keeper), nil
-	} else if version.GTE(semver.MustParse("0.1.0")) {
-		return newGasMgrV1(constAcessor, keeper), nil
 	}
 	return nil, errInvalidVersion
 }
@@ -290,38 +284,6 @@ func GetTxOutStore(keeper keeper.Keeper, version semver.Version, eventMgr EventM
 		return newTxOutStorageV84(keeper, constAccessor, eventMgr, gasManager), nil
 	} else if version.GTE(semver.MustParse("1.83.0")) {
 		return newTxOutStorageV83(keeper, constAccessor, eventMgr, gasManager), nil
-	} else if version.GTE(semver.MustParse("0.78.0")) {
-		return newTxOutStorageV78(keeper, constAccessor, eventMgr, gasManager), nil
-	} else if version.GTE(semver.MustParse("0.75.0")) {
-		return newTxOutStorageV75(keeper, constAccessor, eventMgr, gasManager), nil
-	} else if version.GTE(semver.MustParse("0.72.0")) {
-		return newTxOutStorageV72(keeper, constAccessor, eventMgr, gasManager), nil
-	} else if version.GTE(semver.MustParse("0.68.0")) {
-		return newTxOutStorageV68(keeper, constAccessor, eventMgr, gasManager), nil
-	} else if version.GTE(semver.MustParse("0.67.0")) {
-		return newTxOutStorageV67(keeper, constAccessor, eventMgr, gasManager), nil
-	} else if version.GTE(semver.MustParse("0.66.0")) {
-		return newTxOutStorageV66(keeper, constAccessor, eventMgr, gasManager), nil
-	} else if version.GTE(semver.MustParse("0.65.0")) {
-		return newTxOutStorageV65(keeper, constAccessor, eventMgr, gasManager), nil
-	} else if version.GTE(semver.MustParse("0.64.0")) {
-		return newTxOutStorageV64(keeper, constAccessor, eventMgr, gasManager), nil
-	} else if version.GTE(semver.MustParse("0.58.0")) {
-		return newTxOutStorageV58(keeper, constAccessor, eventMgr, gasManager), nil
-	} else if version.GTE(semver.MustParse("0.55.0")) {
-		return newTxOutStorageV55(keeper, constAccessor, eventMgr, gasManager), nil
-	} else if version.GTE(semver.MustParse("0.54.0")) {
-		return newTxOutStorageV54(keeper, constAccessor, eventMgr, gasManager), nil
-	} else if version.GTE(semver.MustParse("0.53.0")) {
-		return newTxOutStorageV53(keeper, constAccessor, eventMgr, gasManager), nil
-	} else if version.GTE(semver.MustParse("0.52.0")) {
-		return newTxOutStorageV52(keeper, constAccessor, eventMgr, gasManager), nil
-	} else if version.GTE(semver.MustParse("0.51.0")) {
-		return newTxOutStorageV51(keeper, constAccessor, eventMgr, gasManager), nil
-	} else if version.GTE(semver.MustParse("0.46.0")) {
-		return newTxOutStorageV46(keeper, constAccessor, eventMgr, gasManager), nil
-	} else if version.GTE(semver.MustParse("0.1.0")) {
-		return newTxOutStorageV1(keeper, constAccessor, eventMgr, gasManager), nil
 	}
 	return nil, errInvalidVersion
 }
@@ -330,18 +292,6 @@ func GetTxOutStore(keeper keeper.Keeper, version semver.Version, eventMgr EventM
 func GetNetworkManager(keeper keeper.Keeper, version semver.Version, txOutStore TxOutStore, eventMgr EventManager) (NetworkManager, error) {
 	if version.GTE(semver.MustParse("0.76.0")) {
 		return newNetworkMgrV76(keeper, txOutStore, eventMgr), nil
-	} else if version.GTE(semver.MustParse("0.75.0")) {
-		return newNetworkMgrV75(keeper, txOutStore, eventMgr), nil
-	} else if version.GTE(semver.MustParse("0.69.0")) {
-		return newNetworkMgrV69(keeper, txOutStore, eventMgr), nil
-	} else if version.GTE(semver.MustParse("0.63.0")) {
-		return newNetworkMgrV63(keeper, txOutStore, eventMgr), nil
-	} else if version.GTE(semver.MustParse("0.59.0")) {
-		return newNetworkMgrV59(keeper, txOutStore, eventMgr), nil
-	} else if version.GTE(semver.MustParse("0.57.0")) {
-		return newNetworkMgrV57(keeper, txOutStore, eventMgr), nil
-	} else if version.GTE(semver.MustParse("0.1.0")) {
-		return newNetworkMgrV1(keeper, txOutStore, eventMgr), nil
 	}
 	return nil, errInvalidVersion
 }
@@ -352,18 +302,6 @@ func GetValidatorManager(keeper keeper.Keeper, version semver.Version, vaultMgr 
 		return newValidatorMgrV84(keeper, vaultMgr, txOutStore, eventMgr), nil
 	} else if version.GTE(semver.MustParse("0.80.0")) {
 		return newValidatorMgrV80(keeper, vaultMgr, txOutStore, eventMgr), nil
-	} else if version.GTE(semver.MustParse("0.78.0")) {
-		return newValidatorMgrV78(keeper, vaultMgr, txOutStore, eventMgr), nil
-	} else if version.GTE(semver.MustParse("0.76.0")) {
-		return newValidatorMgrV76(keeper, vaultMgr, txOutStore, eventMgr), nil
-	} else if version.GTE(semver.MustParse("0.58.0")) {
-		return newValidatorMgrV58(keeper, vaultMgr, txOutStore, eventMgr), nil
-	} else if version.GTE(semver.MustParse("0.56.0")) {
-		return newValidatorMgrV56(keeper, vaultMgr, txOutStore, eventMgr), nil
-	} else if version.GTE(semver.MustParse("0.51.0")) {
-		return newValidatorMgrV51(keeper, vaultMgr, txOutStore, eventMgr), nil
-	} else if version.GTE(semver.MustParse("0.1.0")) {
-		return newValidatorMgrV1(keeper, vaultMgr, txOutStore, eventMgr), nil
 	}
 	return nil, errInvalidVersion
 }
@@ -381,10 +319,6 @@ func GetObserverManager(version semver.Version) (ObserverManager, error) {
 func GetSwapQueue(keeper keeper.Keeper, version semver.Version) (SwapQueue, error) {
 	if version.GTE(semver.MustParse("0.58.0")) {
 		return newSwapQv58(keeper), nil
-	} else if version.GTE(semver.MustParse("0.47.0")) {
-		return newSwapQv47(keeper), nil
-	} else if version.GTE(semver.MustParse("0.1.0")) {
-		return newSwapQv1(keeper), nil
 	}
 	return nil, errInvalidVersion
 }
@@ -395,28 +329,6 @@ func GetSlasher(keeper keeper.Keeper, version semver.Version, eventMgr EventMana
 		return newSlasherV86(keeper, eventMgr), nil
 	} else if version.GTE(semver.MustParse("0.75.0")) {
 		return newSlasherV75(keeper, eventMgr), nil
-	} else if version.GTE(semver.MustParse("0.72.0")) {
-		return newSlasherV72(keeper, eventMgr), nil
-	} else if version.GTE(semver.MustParse("0.69.0")) {
-		return newSlasherV69(keeper, eventMgr), nil
-	} else if version.GTE(semver.MustParse("0.65.0")) {
-		return newSlasherV65(keeper, eventMgr), nil
-	} else if version.GTE(semver.MustParse("0.63.0")) {
-		return newSlasherV63(keeper, eventMgr), nil
-	} else if version.GTE(semver.MustParse("0.58.0")) {
-		return newSlasherV58(keeper, eventMgr), nil
-	} else if version.GTE(semver.MustParse("0.54.0")) {
-		return newSlasherV54(keeper, eventMgr), nil
-	} else if version.GTE(semver.MustParse("0.48.0")) {
-		return newSlasherV48(keeper, eventMgr), nil
-	} else if version.GTE(semver.MustParse("0.47.0")) {
-		return newSlasherV47(keeper, eventMgr), nil
-	} else if version.GTE(semver.MustParse("0.44.0")) {
-		return newSlasherV44(keeper, eventMgr), nil
-	} else if version.GTE(semver.MustParse("0.43.0")) {
-		return newSlasherV43(keeper, eventMgr), nil
-	} else if version.GTE(semver.MustParse("0.1.0")) {
-		return newSlasherV1(keeper, eventMgr), nil
 	}
 	return nil, errInvalidVersion
 }
@@ -425,16 +337,6 @@ func GetSlasher(keeper keeper.Keeper, version semver.Version, eventMgr EventMana
 func GetYggManager(keeper keeper.Keeper, version semver.Version) (YggManager, error) {
 	if version.GTE(semver.MustParse("0.79.0")) {
 		return newYggMgrV79(keeper), nil
-	} else if version.GTE(semver.MustParse("0.65.0")) {
-		return newYggMgrV65(keeper), nil
-	} else if version.GTE(semver.MustParse("0.63.0")) {
-		return newYggMgrV63(keeper), nil
-	} else if version.GTE(semver.MustParse("0.59.0")) {
-		return newYggMgrV59(keeper), nil
-	} else if version.GTE(semver.MustParse("0.45.0")) {
-		return newYggMgrV45(keeper), nil
-	} else if version.GTE(semver.MustParse("0.1.0")) {
-		return newYggMgrV1(keeper), nil
 	}
 	return nil, errInvalidVersion
 }

@@ -44,12 +44,6 @@ func (h CommonOutboundTxHandler) handle(ctx cosmos.Context, tx ObservedTx, inTxI
 		return h.handleV85(ctx, tx, inTxID)
 	} else if version.GTE(semver.MustParse("0.69.0")) {
 		return h.handleV69(ctx, tx, inTxID)
-	} else if version.GTE(semver.MustParse("0.66.0")) {
-		return h.handleV66(ctx, tx, inTxID)
-	} else if version.GTE(semver.MustParse("0.48.0")) {
-		return h.handleV48(ctx, tx, inTxID)
-	} else if version.GTE(semver.MustParse("0.1.0")) {
-		return h.handleV1(ctx, tx, inTxID)
 	}
 	return nil, errBadVersion
 }

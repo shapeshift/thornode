@@ -538,7 +538,7 @@ func (s *HandlerAddLiquiditySuite) TestAddLiquidityV1(c *C) {
 	c.Assert(err, IsNil)
 	constAccessor := constants.GetConstantValues(GetCurrentVersion())
 	h := NewAddLiquidityHandler(NewDummyMgrWithKeeper(ps))
-	err = h.addLiquidityV1(ctx, common.Asset{}, cosmos.NewUint(100*common.One), cosmos.NewUint(100*common.One), runeAddress, assetAddress, txID, false, constAccessor)
+	err = h.addLiquidity(ctx, common.Asset{}, cosmos.NewUint(100*common.One), cosmos.NewUint(100*common.One), runeAddress, assetAddress, txID, false, constAccessor)
 	c.Assert(err, NotNil)
 	c.Assert(ps.SetPool(ctx, Pool{
 		BalanceRune:         cosmos.ZeroUint(),
@@ -550,7 +550,7 @@ func (s *HandlerAddLiquiditySuite) TestAddLiquidityV1(c *C) {
 		PendingInboundRune:  cosmos.ZeroUint(),
 		Status:              PoolAvailable,
 	}), IsNil)
-	err = h.addLiquidityV1(ctx, common.BNBAsset, cosmos.NewUint(100*common.One), cosmos.NewUint(100*common.One), runeAddress, assetAddress, txID, false, constAccessor)
+	err = h.addLiquidity(ctx, common.BNBAsset, cosmos.NewUint(100*common.One), cosmos.NewUint(100*common.One), runeAddress, assetAddress, txID, false, constAccessor)
 	c.Assert(err, IsNil)
 	su, err := ps.GetLiquidityProvider(ctx, common.BNBAsset, runeAddress)
 	c.Assert(err, IsNil)
@@ -567,12 +567,12 @@ func (s *HandlerAddLiquiditySuite) TestAddLiquidityV1(c *C) {
 		Status:              PoolAvailable,
 	}), IsNil)
 	// add asymmetically
-	err = h.addLiquidityV1(ctx, common.BNBAsset, cosmos.NewUint(100*common.One), cosmos.ZeroUint(), runeAddress, assetAddress, txID, false, constAccessor)
+	err = h.addLiquidity(ctx, common.BNBAsset, cosmos.NewUint(100*common.One), cosmos.ZeroUint(), runeAddress, assetAddress, txID, false, constAccessor)
 	c.Assert(err, IsNil)
-	err = h.addLiquidityV1(ctx, common.BNBAsset, cosmos.ZeroUint(), cosmos.NewUint(100*common.One), runeAddress, assetAddress, txID, false, constAccessor)
+	err = h.addLiquidity(ctx, common.BNBAsset, cosmos.ZeroUint(), cosmos.NewUint(100*common.One), runeAddress, assetAddress, txID, false, constAccessor)
 	c.Assert(err, IsNil)
 
-	err = h.addLiquidityV1(ctx, notExistLiquidityProviderAsset, cosmos.NewUint(100*common.One), cosmos.NewUint(100*common.One), runeAddress, assetAddress, txID, false, constAccessor)
+	err = h.addLiquidity(ctx, notExistLiquidityProviderAsset, cosmos.NewUint(100*common.One), cosmos.NewUint(100*common.One), runeAddress, assetAddress, txID, false, constAccessor)
 	c.Assert(err, NotNil)
 	c.Assert(ps.SetPool(ctx, Pool{
 		BalanceRune:         cosmos.NewUint(100 * common.One),
@@ -589,10 +589,10 @@ func (s *HandlerAddLiquiditySuite) TestAddLiquidityV1(c *C) {
 		lp := LiquidityProvider{Units: cosmos.NewUint(common.One / 5000)}
 		ps.SetLiquidityProvider(ctx, lp)
 	}
-	err = h.addLiquidityV1(ctx, common.BNBAsset, cosmos.NewUint(common.One), cosmos.NewUint(common.One), runeAddress, assetAddress, txID, false, constAccessor)
+	err = h.addLiquidity(ctx, common.BNBAsset, cosmos.NewUint(common.One), cosmos.NewUint(common.One), runeAddress, assetAddress, txID, false, constAccessor)
 	c.Assert(err, IsNil)
 
-	err = h.addLiquidityV1(ctx, common.BNBAsset, cosmos.NewUint(100*common.One), cosmos.NewUint(100*common.One), runeAddress, assetAddress, txID, false, constAccessor)
+	err = h.addLiquidity(ctx, common.BNBAsset, cosmos.NewUint(100*common.One), cosmos.NewUint(100*common.One), runeAddress, assetAddress, txID, false, constAccessor)
 	c.Assert(err, IsNil)
 	p, err := ps.GetPool(ctx, common.BNBAsset)
 	c.Assert(err, IsNil)
@@ -612,13 +612,13 @@ func (s *HandlerAddLiquiditySuite) TestAddLiquidityV1(c *C) {
 	}), IsNil)
 
 	// add rune
-	err = h.addLiquidityV1(ctx, common.BTCAsset, cosmos.NewUint(100*common.One), cosmos.ZeroUint(), runeAddress, btcAddress, txID, true, constAccessor)
+	err = h.addLiquidity(ctx, common.BTCAsset, cosmos.NewUint(100*common.One), cosmos.ZeroUint(), runeAddress, btcAddress, txID, true, constAccessor)
 	c.Assert(err, IsNil)
 	su, err = ps.GetLiquidityProvider(ctx, common.BTCAsset, runeAddress)
 	c.Assert(err, IsNil)
 	// c.Check(su.Units.IsZero(), Equals, true)
 	// add btc
-	err = h.addLiquidityV1(ctx, common.BTCAsset, cosmos.ZeroUint(), cosmos.NewUint(100*common.One), runeAddress, btcAddress, txID, false, constAccessor)
+	err = h.addLiquidity(ctx, common.BTCAsset, cosmos.ZeroUint(), cosmos.NewUint(100*common.One), runeAddress, btcAddress, txID, false, constAccessor)
 	c.Assert(err, IsNil)
 	su, err = ps.GetLiquidityProvider(ctx, common.BTCAsset, runeAddress)
 	c.Assert(err, IsNil)
@@ -646,7 +646,7 @@ func (HandlerAddLiquiditySuite) TestRuneOnlyLiquidity(c *C) {
 	runeAddr := GetRandomRUNEAddress()
 	constAccessor := constants.GetConstantValues(GetCurrentVersion())
 	h := NewAddLiquidityHandler(NewDummyMgrWithKeeper(k))
-	err := h.addLiquidityV1(ctx, common.BTCAsset, cosmos.NewUint(100*common.One), cosmos.ZeroUint(), runeAddr, common.NoAddress, txID, false, constAccessor)
+	err := h.addLiquidity(ctx, common.BTCAsset, cosmos.NewUint(100*common.One), cosmos.ZeroUint(), runeAddr, common.NoAddress, txID, false, constAccessor)
 	c.Assert(err, IsNil)
 
 	su, err := k.GetLiquidityProvider(ctx, common.BTCAsset, runeAddr)
@@ -674,7 +674,7 @@ func (HandlerAddLiquiditySuite) TestAssetOnlyProvidedLiquidity(c *C) {
 	assetAddr := GetRandomBTCAddress()
 	constAccessor := constants.GetConstantValues(GetCurrentVersion())
 	h := NewAddLiquidityHandler(NewDummyMgrWithKeeper(k))
-	err := h.addLiquidityV1(ctx, common.BTCAsset, cosmos.ZeroUint(), cosmos.NewUint(100*common.One), common.NoAddress, assetAddr, txID, false, constAccessor)
+	err := h.addLiquidity(ctx, common.BTCAsset, cosmos.ZeroUint(), cosmos.NewUint(100*common.One), common.NoAddress, assetAddr, txID, false, constAccessor)
 	c.Assert(err, IsNil)
 
 	su, err := k.GetLiquidityProvider(ctx, common.BTCAsset, assetAddr)

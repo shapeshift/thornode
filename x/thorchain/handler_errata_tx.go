@@ -63,12 +63,6 @@ func (h ErrataTxHandler) handle(ctx cosmos.Context, msg MsgErrataTx) (*cosmos.Re
 	version := h.mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.58.0")) {
 		return h.handleV58(ctx, msg)
-	} else if version.GTE(semver.MustParse("0.45.0")) {
-		return h.handleV45(ctx, msg)
-	} else if version.GTE(semver.MustParse("0.42.0")) {
-		return h.handleV42(ctx, msg)
-	} else if version.GTE(semver.MustParse("0.1.0")) {
-		return h.handleV1(ctx, msg)
 	}
 	ctx.Logger().Error(errInvalidVersion.Error())
 	return nil, errBadVersion
@@ -228,12 +222,6 @@ func (h ErrataTxHandler) processErrataOutboundTx(ctx cosmos.Context, msg MsgErra
 	version := h.mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.65.0")) {
 		return h.processErrataOutboundTxV65(ctx, msg)
-	} else if version.GTE(semver.MustParse("0.58.0")) {
-		return h.processErrataOutboundTxV58(ctx, msg)
-	} else if version.GTE(semver.MustParse("0.42.0")) {
-		return h.processErrataOutboundTxV42(ctx, msg)
-	} else if version.GTE(semver.MustParse("0.1.0")) {
-		return h.processErrataOutboundTxV1(ctx, msg)
 	}
 	return nil, errBadVersion
 }

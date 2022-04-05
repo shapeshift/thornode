@@ -42,8 +42,6 @@ func (h DonateHandler) validate(ctx cosmos.Context, msg MsgDonate) error {
 	version := h.mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.80.0")) {
 		return h.validateV80(ctx, msg)
-	} else if version.GTE(semver.MustParse("0.1.0")) {
-		return h.validateV1(ctx, msg)
 	}
 	return errBadVersion
 }

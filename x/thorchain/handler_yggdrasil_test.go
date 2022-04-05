@@ -112,8 +112,8 @@ func newYggdrasilHandlerTestHelper(c *C) yggdrasilHandlerTestHelper {
 	constAccessor := constants.GetConstantValues(version)
 
 	mgr := NewDummyMgrWithKeeper(keeper)
-	mgr.validatorMgr = newValidatorMgrV1(k, mgr.VaultMgr(), mgr.TxOutStore(), mgr.EventMgr())
-	mgr.slasher = newSlasherV1(keeper, NewDummyEventMgr())
+	mgr.validatorMgr = newValidatorMgrV80(k, mgr.VaultMgr(), mgr.TxOutStore(), mgr.EventMgr())
+	mgr.slasher = newSlasherV75(keeper, NewDummyEventMgr())
 	c.Assert(mgr.ValidatorMgr().BeginBlock(ctx, constAccessor, nil), IsNil)
 	asgardVault := GetRandomVault()
 	asgardVault.Type = AsgardVault
@@ -252,7 +252,7 @@ func (s *HandlerYggdrasilSuite) TestYggdrasilHandler(c *C) {
 			},
 			expectedResult: nil,
 			validator: func(helper yggdrasilHandlerTestHelper, msg cosmos.Msg, result *cosmos.Result, c *C) {
-				expectedBond := cosmos.NewUint(9396096766)
+				expectedBond := cosmos.NewUint(9398425586)
 				na, err := helper.keeper.GetNodeAccountByPubKey(helper.ctx, helper.yggVault.PubKey)
 				c.Assert(err, IsNil)
 				c.Assert(na.Bond.Equal(expectedBond), Equals, true, Commentf("%d/%d", na.Bond.Uint64(), expectedBond.Uint64()))

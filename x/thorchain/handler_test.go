@@ -105,18 +105,17 @@ func setupManagerForTest(c *C) (cosmos.Context, *Mgrs) {
 	FundModule(c, ctx, k, ModuleName, 1000000*common.One)
 	FundModule(c, ctx, k, AsgardName, common.One)
 	FundModule(c, ctx, k, ReserveName, 10000*common.One)
-	err = k.SaveNetworkFee(ctx, common.BNBChain, NetworkFee{
+	c.Assert(k.SaveNetworkFee(ctx, common.BNBChain, NetworkFee{
 		Chain:              common.BNBChain,
 		TransactionSize:    1,
 		TransactionFeeRate: 37500,
-	})
-	c.Assert(err, IsNil)
-	err = k.SaveNetworkFee(ctx, common.TERRAChain, NetworkFee{
+	}), IsNil)
+
+	c.Assert(k.SaveNetworkFee(ctx, common.TERRAChain, NetworkFee{
 		Chain:              common.TERRAChain,
 		TransactionSize:    1,
 		TransactionFeeRate: 6423600,
-	})
-	c.Assert(err, IsNil)
+	}), IsNil)
 	os.Setenv("NET", "mocknet")
 	mgr := NewManagers(k, marshaler, bk, ak, keyThorchain)
 	constants.SWVersion = GetCurrentVersion()
