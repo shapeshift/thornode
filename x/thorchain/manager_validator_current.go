@@ -133,7 +133,7 @@ func (vm *validatorMgrV87) BeginBlock(ctx cosmos.Context, constAccessor constant
 				}
 			}
 			// when the active nodes didn't upgrade , boot them out one at a time
-			if err := vm.markLowerVersion(ctx); err != nil {
+			if err := vm.markLowVersionValidators(ctx, constAccessor); err != nil {
 				return err
 			}
 		}
@@ -1246,34 +1246,47 @@ func (vm *validatorMgrV87) markBadActor(ctx cosmos.Context, minSlashPointsForBad
 	return nil
 }
 
-// Mark an old version actor to be churned out
-func (vm *validatorMgrV87) markLowerVersion(ctx cosmos.Context) error {
-	na, err := vm.findLowerVersionActor(ctx)
+// Mark up to `MaxNodeToChurnOutForLowVersion` nodes as low version
+// This will slate them to churn out. `MaxNodeToChurnOutForLowVersion`
+// is a Mimir setting that defaults in constants to 1
+func (vm *validatorMgrV87) markLowVersionValidators(ctx cosmos.Context, constAccessor constants.ConstantValues) error {
+	// Get max number of nodes to mark as low version
+	maxNodes, err := vm.k.GetMimir(ctx, constants.MaxNodeToChurnOutForLowVersion.String())
+	if maxNodes < 0 || err != nil {
+		maxNodes = constAccessor.GetInt64Value(constants.MaxNodeToChurnOutForLowVersion)
+	}
+
+	nodeAccs, err := vm.findLowVersionValidators(ctx, maxNodes)
 	if err != nil {
 		return err
 	}
-	if !na.IsEmpty() {
-		if err := vm.markActor(ctx, na, "for version lower than minimum join version"); err != nil {
-			return err
+	if len(nodeAccs) > 0 {
+		for _, na := range nodeAccs {
+			if err := vm.markActor(ctx, na, "for version lower than minimum join version"); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
 }
 
-// findLowerVersionActor go through the active node account list , find the node account that has version
-// that is lower than the minimum join version
-func (vm *validatorMgrV87) findLowerVersionActor(ctx cosmos.Context) (NodeAccount, error) {
+// Finds up to `maxNodesToFind` active validators with version lower than the most "popular" version
+func (vm *validatorMgrV87) findLowVersionValidators(ctx cosmos.Context, maxNodesToFind int64) (NodeAccounts, error) {
 	minimumVersion := vm.k.GetMinJoinVersion(ctx)
 	activeNodes, err := vm.k.ListValidatorsByStatus(ctx, NodeActive)
 	if err != nil {
-		return NodeAccount{}, err
+		return NodeAccounts{}, err
 	}
+	nodeAccs := NodeAccounts{}
 	for _, na := range activeNodes {
 		if na.GetVersion().LT(minimumVersion) {
-			return na, nil
+			nodeAccs = append(nodeAccs, na)
+		}
+		if len(nodeAccs) == int(maxNodesToFind) {
+			return nodeAccs, nil
 		}
 	}
-	return NodeAccount{}, nil
+	return nodeAccs, nil
 }
 
 // find any actor that are ready to become "ready" status

@@ -107,23 +107,65 @@ func (vts *ValidatorMgrV87TestSuite) TestLowerVersion(c *C) {
 	ctx, mgr := setupManagerForTest(c)
 	ctx = ctx.WithBlockHeight(1440)
 
+	constAccessor := constants.NewDummyConstants(map[constants.ConstantName]int64{
+		constants.DesiredValidatorSet:            12,
+		constants.ArtificialRagnarokBlockHeight:  1024,
+		constants.MinimumNodesForBFT:             4,
+		constants.ChurnInterval:                  256,
+		constants.ChurnRetryInterval:             720,
+		constants.AsgardSize:                     30,
+		constants.MaxNodeToChurnOutForLowVersion: 3,
+	}, map[constants.ConstantName]bool{
+		constants.StrictBondLiquidityRatio: false,
+	}, map[constants.ConstantName]string{})
+
 	vMgr := newValidatorMgrV87(mgr.Keeper(), mgr.VaultMgr(), mgr.TxOutStore(), mgr.EventMgr())
 	c.Assert(vMgr, NotNil)
-	c.Assert(vMgr.markLowerVersion(ctx), IsNil)
+	c.Assert(vMgr.markLowVersionValidators(ctx, constAccessor), IsNil)
 
-	for i := 0; i < 5; i++ {
+	for i := 0; i < 12; i++ {
 		activeNode := GetRandomValidatorNode(NodeActive)
 		activeNode.Version = "0.5.0"
 		c.Assert(mgr.Keeper().SetNodeAccount(ctx, activeNode), IsNil)
 	}
+
+	// Add 4 low version nodes
 	activeNode1 := GetRandomValidatorNode(NodeActive)
 	activeNode1.Version = "0.4.0"
 	c.Assert(mgr.Keeper().SetNodeAccount(ctx, activeNode1), IsNil)
 
-	c.Assert(vMgr.markLowerVersion(ctx), IsNil)
-	na, err := mgr.Keeper().GetNodeAccount(ctx, activeNode1.NodeAddress)
-	c.Assert(err, IsNil)
-	c.Assert(na.LeaveScore, Equals, uint64(144000000000))
+	activeNode2 := GetRandomValidatorNode(NodeActive)
+	activeNode2.Version = "0.4.0"
+	c.Assert(mgr.Keeper().SetNodeAccount(ctx, activeNode2), IsNil)
+
+	activeNode3 := GetRandomValidatorNode(NodeActive)
+	activeNode3.Version = "0.4.0"
+	c.Assert(mgr.Keeper().SetNodeAccount(ctx, activeNode3), IsNil)
+
+	activeNode4 := GetRandomValidatorNode(NodeActive)
+	activeNode4.Version = "0.4.0"
+	c.Assert(mgr.Keeper().SetNodeAccount(ctx, activeNode4), IsNil)
+	c.Assert(vMgr.markLowVersionValidators(ctx, constAccessor), IsNil)
+
+	activeNas, _ := vMgr.k.ListActiveValidators(ctx)
+	markedCount := 0
+	lowVersionAddresses := []common.Address{activeNode1.BondAddress, activeNode2.BondAddress, activeNode3.BondAddress, activeNode4.BondAddress}
+
+	// should have marked 3 of the correct validators as low version
+	for _, na := range activeNas {
+
+		isCorrectNode := false
+
+		for _, addr := range lowVersionAddresses {
+			if addr == na.BondAddress {
+				isCorrectNode = true
+			}
+		}
+
+		if na.LeaveScore == uint64(144000000000) && isCorrectNode {
+			markedCount++
+		}
+	}
 }
 
 func (vts *ValidatorMgrV87TestSuite) TestBadActors(c *C) {
