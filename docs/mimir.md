@@ -55,6 +55,7 @@ Mimir Abilities
 `DesiredValidatorSet`: Max number of validators
 `FundMigrationInterval`: Number of blocks between attempts to migrate funds between asgard vaults during a migration
 `NumberOfNewNodesPerChurn`: Number of targeted additional nodes added to the validator set each churn
+`MaxNodeToChurnOutForLowVersion`: Max number of validators to churn out for low version each churn
 
 ## Economics
 `EmissionCurve`: How quickly rune is emitted from the reserve in block rewards
