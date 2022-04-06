@@ -67,6 +67,7 @@ format:
 	@git ls-files '*.go' | grep -v -e 'pb.go$$' -e '^docs/' | xargs gofumpt -w
 
 lint-pre: protob
+	@./scripts/check-build-env.sh
 	@git ls-files '*.go' | grep -v -e 'pb.go$$' -e '^docs/' | xargs gofumpt -d
 	@test -z "$(shell git ls-files '*.go' | grep -v -e 'pb.go$$' -e '^docs/' | xargs gofumpt -l)"
 	@go mod verify
