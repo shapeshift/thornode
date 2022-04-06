@@ -143,8 +143,8 @@ func (vm *validatorMgrV87) BeginBlock(ctx cosmos.Context, constAccessor constant
 			return err
 		}
 		if ok {
-			for _, nodeacc_set := range vm.splitNext(ctx, next, asgardSize) {
-				if err := vm.vaultMgr.TriggerKeygen(ctx, nodeacc_set); err != nil {
+			for _, nodeAccSet := range vm.splitNext(ctx, next, asgardSize) {
+				if err := vm.vaultMgr.TriggerKeygen(ctx, nodeAccSet); err != nil {
 					return err
 				}
 			}
