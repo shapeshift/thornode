@@ -25,7 +25,8 @@ func (s *KeeperLastHeightSuite) TestLastHeight_EmptyKeeper(c *C) {
 func (s *KeeperLastHeightSuite) TestLastHeight_SetKeeperSingleChain(c *C) {
 	ctx, k := setupKeeperForTest(c)
 
-	k.SetLastSignedHeight(ctx, 12)
+	err := k.SetLastSignedHeight(ctx, 12)
+	c.Assert(err, IsNil)
 	last, err := k.GetLastSignedHeight(ctx)
 	c.Assert(err, IsNil)
 	c.Check(last, Equals, int64(12))

@@ -98,11 +98,9 @@ func (h SolvencyHandler) handleV79(ctx cosmos.Context, msg MsgSolvency) (*cosmos
 
 	if voter.Empty() {
 		voter = NewSolvencyVoter(msg.Id, msg.Chain, msg.PubKey, msg.Coins, msg.Height, msg.Signer)
-	} else {
-		if !voter.Sign(msg.Signer) {
-			ctx.Logger().Info("signer already signed MsgSolvency", "signer", msg.Signer.String(), "id", msg.Id)
-			return &cosmos.Result{}, nil
-		}
+	} else if !voter.Sign(msg.Signer) {
+		ctx.Logger().Info("signer already signed MsgSolvency", "signer", msg.Signer.String(), "id", msg.Id)
+		return &cosmos.Result{}, nil
 	}
 	h.mgr.Keeper().SetSolvencyVoter(ctx, voter)
 	active, err := h.mgr.Keeper().ListActiveValidators(ctx)

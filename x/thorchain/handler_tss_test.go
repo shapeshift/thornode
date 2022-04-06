@@ -28,7 +28,6 @@ type tssHandlerTestHelper struct {
 	mgr           Manager
 	members       common.PubKeys
 	signer        cosmos.AccAddress
-	keygenBlock   KeygenBlock
 }
 
 type tssKeeperHelper struct {
@@ -44,49 +43,49 @@ type tssKeeperHelper struct {
 
 func (k *tssKeeperHelper) GetNodeAccountByPubKey(ctx cosmos.Context, pk common.PubKey) (NodeAccount, error) {
 	if k.errFailGetNodeAccount {
-		return NodeAccount{}, kaboom
+		return NodeAccount{}, errKaboom
 	}
 	return k.Keeper.GetNodeAccountByPubKey(ctx, pk)
 }
 
 func (k *tssKeeperHelper) SetVault(ctx cosmos.Context, vault Vault) error {
 	if k.errFailSaveVault {
-		return kaboom
+		return errKaboom
 	}
 	return k.Keeper.SetVault(ctx, vault)
 }
 
 func (k *tssKeeperHelper) GetTssVoter(ctx cosmos.Context, id string) (TssVoter, error) {
 	if k.errGetTssVoter {
-		return TssVoter{}, kaboom
+		return TssVoter{}, errKaboom
 	}
 	return k.Keeper.GetTssVoter(ctx, id)
 }
 
 func (k *tssKeeperHelper) ListActiveValidators(ctx cosmos.Context) (NodeAccounts, error) {
 	if k.errListActiveAccounts {
-		return NodeAccounts{}, kaboom
+		return NodeAccounts{}, errKaboom
 	}
 	return k.Keeper.ListActiveValidators(ctx)
 }
 
 func (k *tssKeeperHelper) GetNetwork(ctx cosmos.Context) (Network, error) {
 	if k.errFailGetNetwork {
-		return Network{}, kaboom
+		return Network{}, errKaboom
 	}
 	return k.Keeper.GetNetwork(ctx)
 }
 
 func (k *tssKeeperHelper) SetNetwork(ctx cosmos.Context, data Network) error {
 	if k.errFailSetNetwork {
-		return kaboom
+		return errKaboom
 	}
 	return k.Keeper.SetNetwork(ctx, data)
 }
 
 func (k *tssKeeperHelper) SetNodeAccount(ctx cosmos.Context, na NodeAccount) error {
 	if k.errFailSetNodeAccount {
-		return kaboom
+		return errKaboom
 	}
 	return k.Keeper.SetNodeAccount(ctx, na)
 }
@@ -279,7 +278,7 @@ func (s *HandlerTssSuite) TestTssHandler(c *C) {
 				helper.keeper.errGetTssVoter = true
 				return handler.Run(helper.ctx, msg)
 			},
-			expectedResult: kaboom,
+			expectedResult: errKaboom,
 		},
 		{
 			name: "fail to save vault should return an error",
@@ -303,7 +302,7 @@ func (s *HandlerTssSuite) TestTssHandler(c *C) {
 				helper.keeper.errFailSaveVault = true
 				return handler.Run(helper.ctx, msg)
 			},
-			expectedResult: kaboom,
+			expectedResult: errKaboom,
 		},
 		{
 			name: "not having consensus should not perform any actions",
@@ -481,7 +480,7 @@ func (s *HandlerTssSuite) TestTssHandler(c *C) {
 				helper.keeper.errFailGetNetwork = true
 				return handler.Run(helper.ctx, msg)
 			},
-			expectedResult: kaboom,
+			expectedResult: errKaboom,
 		},
 		{
 			name: "fail to keygen retry and none active account should be slashed with bond",
@@ -590,7 +589,7 @@ func (s *HandlerTssSuite) TestTssHandler(c *C) {
 				helper.keeper.errFailGetNodeAccount = true
 				return handler.Run(helper.ctx, msg)
 			},
-			expectedResult: kaboom,
+			expectedResult: errKaboom,
 		},
 		{
 			name: "fail to keygen and fail to set node account should return an error",
@@ -620,7 +619,7 @@ func (s *HandlerTssSuite) TestTssHandler(c *C) {
 				helper.keeper.errFailSetNodeAccount = true
 				return handler.Run(helper.ctx, msg)
 			},
-			expectedResult: kaboom,
+			expectedResult: errKaboom,
 		},
 		{
 			name: "When members in message doesn't match members in keygen blocks should fail",
@@ -661,7 +660,8 @@ func (s *HandlerTssSuite) TestKeygenSuccessHandler(c *C) {
 	helper := newTssHandlerTestHelper(c)
 	handler := NewTssHandler(NewDummyMgrWithKeeper(helper.keeper))
 	slasher := handler.mgr.Slasher()
-	dummySlasher := slasher.(*DummySlasher)
+	dummySlasher, ok := slasher.(*DummySlasher)
+	c.Assert(ok, Equals, true)
 	keygenTime := int64(1024)
 	poolPubKey := GetRandomPubKey()
 	failKeyGenSlashPoints := helper.constAccessor.GetInt64Value(constants.FailKeygenSlashPoints)

@@ -41,6 +41,7 @@ func (s *ETHKeysignWrapperTestSuite) SetUpSuite(c *C) {
 	s.thorKeys = thorclient.NewKeysWithKeybase(kb, cfg.SignerName, cfg.SignerPasswd)
 
 	privateKey, err := s.thorKeys.GetPrivateKey()
+	c.Assert(err, IsNil)
 	temp, err := codec.ToTmPubKeyInterface(privateKey.PubKey())
 	c.Assert(err, IsNil)
 	pk, err := common.NewPubKeyFromCrypto(temp)
@@ -71,7 +72,7 @@ func (s *ETHKeysignWrapperTestSuite) TestSign(c *C) {
 	buf, err = s.wrapper.Sign(createdTx, common.EmptyPubKey)
 	c.Assert(err, NotNil)
 	c.Assert(buf, IsNil)
-	buf, err = s.wrapper.Sign(createdTx, s.wrapper.pubKey)
+	_, err = s.wrapper.Sign(createdTx, s.wrapper.pubKey)
 	c.Assert(err, IsNil)
 	// test sign with TSS
 	buf, err = s.wrapper.Sign(createdTx, types.GetRandomPubKey())

@@ -25,12 +25,12 @@ func (k KVStore) AddObservingAddresses(ctx cosmos.Context, inAddresses []cosmos.
 	if err != nil {
 		return err
 	}
-	all := append(curr, inAddresses...)
+	curr = append(curr, inAddresses...)
 
 	// ensure uniqueness
-	uniq := make([]cosmos.AccAddress, 0, len(all))
+	uniq := make([]cosmos.AccAddress, 0, len(curr))
 	m := make(map[string]bool)
-	for _, val := range all {
+	for _, val := range curr {
 		if _, ok := m[val.String()]; !ok {
 			m[val.String()] = true
 			uniq = append(uniq, val)

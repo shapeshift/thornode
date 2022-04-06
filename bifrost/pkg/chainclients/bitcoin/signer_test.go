@@ -80,7 +80,7 @@ func (s *BitcoinSignerSuite) SetUpTest(c *C) {
 	}
 
 	s.server = httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		if req.RequestURI == "/thorchain/vaults/tthorpub1addwnpepqwznsrgk2t5vn2cszr6ku6zned6tqxknugzw3vhdcjza284d7djp5rql6vn/signers" {
+		if req.RequestURI == "/thorchain/vaults/tthorpub1addwnpepqwznsrgk2t5vn2cszr6ku6zned6tqxknugzw3vhdcjza284d7djp5rql6vn/signers" { // nolint
 			_, err := rw.Write([]byte("[]"))
 			c.Assert(err, IsNil)
 		} else if strings.HasPrefix(req.RequestURI, "/thorchain/vaults") && strings.HasSuffix(req.RequestURI, "/signers") {
@@ -93,7 +93,7 @@ func (s *BitcoinSignerSuite) SetUpTest(c *C) {
 			}{}
 			buf, err := ioutil.ReadAll(req.Body)
 			c.Assert(err, IsNil)
-			json.Unmarshal(buf, &r)
+			c.Assert(json.Unmarshal(buf, &r), IsNil)
 			defer func() {
 				c.Assert(req.Body.Close(), IsNil)
 			}()
@@ -144,7 +144,9 @@ func (s *BitcoinSignerSuite) SetUpTest(c *C) {
 
 func (s *BitcoinSignerSuite) TearDownTest(c *C) {
 	s.server.Close()
-	c.Assert(s.client.blockMetaAccessor.(*LevelDBBlockMetaAccessor).db.Close(), IsNil)
+	acc, ok := s.client.blockMetaAccessor.(*LevelDBBlockMetaAccessor)
+	c.Assert(ok, Equals, true)
+	c.Assert(acc.db.Close(), IsNil)
 }
 
 func (s *BitcoinSignerSuite) TestGetBTCPrivateKey(c *C) {
@@ -287,7 +289,7 @@ func (s *BitcoinSignerSuite) TestSignTxWithoutPredefinedMaxGas(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(buf, NotNil)
 
-	s.client.blockMetaAccessor.UpsertTransactionFee(0.001, 10)
+	c.Assert(s.client.blockMetaAccessor.UpsertTransactionFee(0.001, 10), IsNil)
 	buf, err = s.client.SignTx(txOutItem, 1)
 	c.Assert(err, IsNil)
 	c.Assert(buf, NotNil)
@@ -354,7 +356,7 @@ func (s *BitcoinSignerSuite) TestIsSelfTransaction(c *C) {
 	bm := NewBlockMeta("", 1024, "")
 	hash := "66d2d6b5eb564972c59e4797683a1225a02515a41119f0a8919381236b63e948"
 	bm.AddSelfTransaction(hash)
-	s.client.blockMetaAccessor.SaveBlockMeta(1024, bm)
+	c.Assert(s.client.blockMetaAccessor.SaveBlockMeta(1024, bm), IsNil)
 	c.Check(s.client.isSelfTransaction("66d2d6b5eb564972c59e4797683a1225a02515a41119f0a8919381236b63e948"), Equals, true)
 }
 

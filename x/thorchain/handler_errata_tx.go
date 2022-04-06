@@ -52,7 +52,7 @@ func (h ErrataTxHandler) validateV1(ctx cosmos.Context, msg MsgErrataTx) error {
 	}
 
 	if !isSignedByActiveNodeAccounts(ctx, h.mgr, msg.GetSigners()) {
-		return cosmos.ErrUnauthorized(notAuthorized.Error())
+		return cosmos.ErrUnauthorized(errNotAuthorized.Error())
 	}
 
 	return nil
@@ -81,7 +81,7 @@ func (h ErrataTxHandler) handleV58(ctx cosmos.Context, msg MsgErrataTx) (*cosmos
 	observeSlashPoints := h.mgr.GetConstants().GetInt64Value(constants.ObserveSlashPoints)
 	observeFlex := h.mgr.GetConstants().GetInt64Value(constants.ObservationDelayFlexibility)
 
-	slashCtx := ctx.WithContext(context.WithValue(ctx.Context(), constants.CtxMetricLabels, []metrics.Label{
+	slashCtx := ctx.WithContext(context.WithValue(ctx.Context(), constants.CtxMetricLabels, []metrics.Label{ // nolint
 		telemetry.NewLabel("reason", "failed_observe_errata"),
 		telemetry.NewLabel("chain", string(msg.Chain)),
 	}))

@@ -80,6 +80,7 @@ func (s *UnstuckTestSuite) SetUpTest(c *C) {
 			}
 			var rpcRequest RPCRequest
 			err = json.Unmarshal(body, &rpcRequest)
+			c.Assert(err, IsNil)
 			fmt.Println("rpc request:", rpcRequest.Method)
 			switch rpcRequest.Method {
 			case "eth_chainId":
@@ -179,7 +180,7 @@ func (s *UnstuckTestSuite) TestUnstuckProcess(c *C) {
 		RPCHost: "http://" + s.server.Listener.Addr().String(),
 		BlockScanner: config.BlockScannerConfiguration{
 			StartBlockHeight:   1, // avoids querying thorchain for block height
-			HttpRequestTimeout: time.Second * 10,
+			HTTPRequestTimeout: time.Second * 10,
 		},
 	}, nil, s.bridge, s.m, pubkeyMgr, poolMgr)
 	c.Assert(err, IsNil)
@@ -206,18 +207,18 @@ func (s *UnstuckTestSuite) TestUnstuckProcess(c *C) {
 	items, err := e.ethScanner.blockMetaAccessor.GetSignedTxItems()
 	c.Assert(err, IsNil)
 	c.Assert(items, HasLen, 2)
-	e.ethScanner.blockMetaAccessor.RemoveSignedTxItem(txID1)
-	e.ethScanner.blockMetaAccessor.RemoveSignedTxItem(txID2)
-	e.ethScanner.blockMetaAccessor.AddSignedTxItem(SignedTxItem{
+	c.Assert(e.ethScanner.blockMetaAccessor.RemoveSignedTxItem(txID1), IsNil)
+	c.Assert(e.ethScanner.blockMetaAccessor.RemoveSignedTxItem(txID2), IsNil)
+	c.Assert(e.ethScanner.blockMetaAccessor.AddSignedTxItem(SignedTxItem{
 		Hash:        "0x88df016429689c079f3b2f6ad39fa052532c56795b733da78a91ebe6a713944b",
 		Height:      800,
 		VaultPubKey: pubkey,
-	})
-	e.ethScanner.blockMetaAccessor.AddSignedTxItem(SignedTxItem{
+	}), IsNil)
+	c.Assert(e.ethScanner.blockMetaAccessor.AddSignedTxItem(SignedTxItem{
 		Hash:        "0x96395fbdb39e33293999dc1a0a3b87c8a9e51185e177760d1482c2155bb35b87",
 		Height:      800,
 		VaultPubKey: pubkey,
-	})
+	}), IsNil)
 	// this should try to check 0x88df016429689c079f3b2f6ad39fa052532c56795b733da78a91ebe6a713944b
 	e.unstuckAction()
 	items, err = e.ethScanner.blockMetaAccessor.GetSignedTxItems()

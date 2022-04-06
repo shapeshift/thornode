@@ -22,8 +22,7 @@ func (s *PoolManagerTestSuite) SetUpSuite(c *C) {
 	thorchain.SetupConfigForTest()
 	cfg, _, kb := SetupThorchainForTest(c)
 	s.server = httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		switch req.RequestURI {
-		case PoolsEndpoint:
+		if req.RequestURI == PoolsEndpoint {
 			httpTestHandler(c, rw, "../../test/fixtures/endpoints/pools/pools.json")
 		}
 	}))

@@ -99,7 +99,7 @@ func newSwapQv58(k keeper.Keeper) *SwapQv58 {
 }
 
 // FetchQueue - grabs all swap queue items from the kvstore and returns them
-func (vm *SwapQv58) FetchQueue(ctx cosmos.Context) (swapItems, error) {
+func (vm *SwapQv58) FetchQueue(ctx cosmos.Context) (swapItems, error) { // nolint
 	items := make(swapItems, 0)
 	iterator := vm.k.GetSwapQueueIterator(ctx)
 	defer iterator.Close()
@@ -185,7 +185,7 @@ func (vm *SwapQv58) getTodoNum(queueLen, minSwapsPerBlock, maxSwapsPerBlock int6
 // scoreMsgs - this takes a list of MsgSwap, and converts them to a scored
 // swapItem list
 func (vm *SwapQv58) scoreMsgs(ctx cosmos.Context, items swapItems) (swapItems, error) {
-	pools := make(map[common.Asset]Pool, 0)
+	pools := make(map[common.Asset]Pool)
 	for i, item := range items {
 		// the asset customer send
 		sourceAsset := item.msg.Tx.Coins[0].Asset

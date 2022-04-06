@@ -61,10 +61,10 @@ func getConfigForTest(rpcHost string) config.BlockScannerConfiguration {
 		RPCHost:                    rpcHost,
 		StartBlockHeight:           1, // avoids querying thorchain for block height
 		BlockScanProcessors:        1,
-		HttpRequestTimeout:         time.Second,
-		HttpRequestReadTimeout:     time.Second * 30,
-		HttpRequestWriteTimeout:    time.Second * 30,
-		MaxHttpRequestRetry:        3,
+		HTTPRequestTimeout:         time.Second,
+		HTTPRequestReadTimeout:     time.Second * 30,
+		HTTPRequestWriteTimeout:    time.Second * 30,
+		MaxHTTPRequestRetry:        3,
 		BlockHeightDiscoverBackoff: time.Second,
 		BlockRetryInterval:         time.Second,
 	}
@@ -80,7 +80,7 @@ func getStdTx(f, t string, coins []types.Coin, memo string) (tx.StdTx, error) {
 	if err != nil {
 		return tx.StdTx{}, err
 	}
-	transfers := []msg.Transfer{{to, coins}}
+	transfers := []msg.Transfer{{ToAddr: to, Coins: coins}}
 	ms := msg.CreateSendMsg(from, coins, transfers)
 	return tx.NewStdTx([]msg.Msg{ms}, nil, memo, 0, nil), nil
 }
@@ -100,8 +100,8 @@ func getMultiSendStdTx(f, t string, coins []types.Coin, memo string) (tx.StdTx, 
 		return tx.StdTx{}, err
 	}
 	transfers := []msg.Transfer{
-		{to, coins},
-		{second, coins},
+		{ToAddr: to, Coins: coins},
+		{ToAddr: second, Coins: coins},
 	}
 	ms := msg.CreateSendMsg(from, coins, transfers)
 	return tx.NewStdTx([]msg.Msg{ms}, nil, memo, 0, nil), nil
@@ -396,6 +396,7 @@ func (s *BlockScannerTestSuite) TestFromStdTx(c *C) {
 		"tbnb1yxfyeda8pnlxlmx0z3cwx74w9xevspwdpzdxpj",
 		types.Coins{types.Coin{Denom: "BNB", Amount: 194765912}},
 		"whatever")
+	c.Assert(err, IsNil)
 	items, err = bs.fromStdTx("abcd", mStdTx, 1024)
 	c.Assert(err, IsNil)
 	c.Assert(items, HasLen, 1)
@@ -421,7 +422,7 @@ func (s *BlockScannerTestSuite) TestUpdateGasFees(c *C) {
 		case strings.HasPrefix(req.RequestURI, "/thorchain/node/"):
 			httpTestHandler(c, rw, "../../../../test/fixtures/endpoints/nodeaccount/template.json")
 		case req.RequestURI == `/abci_query?path="/param/fees"&height=10`:
-			rw.Write([]byte(`
+			_, err := rw.Write([]byte(`
 {
   "jsonrpc": "2.0",
   "id": "",
@@ -431,6 +432,7 @@ func (s *BlockScannerTestSuite) TestUpdateGasFees(c *C) {
     }
   }
 }`))
+			c.Assert(err, IsNil)
 		}
 	}))
 	// Close the server when test finishes

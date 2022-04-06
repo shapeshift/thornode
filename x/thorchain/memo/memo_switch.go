@@ -28,7 +28,7 @@ func ParseSwitchMemo(ctx cosmos.Context, keeper keeper.Keeper, parts []string) (
 	if len(parts) < 2 {
 		return SwitchMemo{}, errors.New("not enough parameters")
 	}
-	destination := common.NoAddress
+	var destination common.Address
 	var err error
 	if keeper == nil {
 		destination, err = common.NewAddress(parts[1])

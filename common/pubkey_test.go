@@ -392,7 +392,7 @@ func (s *PubKeyTestSuite) TestEquals(c *C) {
 		pk4, pk3, pk2, pk1,
 	}), Equals, true)
 
-	c.Assert(PubKeys{
+	c.Assert(PubKeys{ // nolint
 		pk1, pk2, pk3, pk4,
 	}.Equals(PubKeys{
 		pk1, pk2, pk3, pk4,

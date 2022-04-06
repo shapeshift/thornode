@@ -121,7 +121,7 @@ func (k KVStore) getMinJoinVersionV1(ctx cosmos.Context) semver.Version {
 		// assume all versions are backward compatible
 		for k, v := range vCount {
 			if v.version.LTE(na.GetVersion()) {
-				v.count = v.count + 1
+				v.count++
 				vCount[k] = v
 			}
 		}

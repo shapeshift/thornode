@@ -25,8 +25,7 @@ var _ = Suite(&KeygenSuite{})
 
 func (s *KeygenSuite) SetUpSuite(c *C) {
 	s.server = httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		switch {
-		case strings.HasPrefix(req.RequestURI, KeygenEndpoint):
+		if strings.HasPrefix(req.RequestURI, KeygenEndpoint) {
 			httpTestHandler(c, rw, s.fixture)
 		}
 	}))
@@ -47,7 +46,7 @@ func (s *KeygenSuite) TearDownSuite(c *C) {
 func (s *KeygenSuite) TestGetKeygen(c *C) {
 	s.fixture = "../../test/fixtures/endpoints/keygen/template.json"
 
-	/// GENERATE SIGNATURE
+	// GENERATE SIGNATURE
 	// block := types.NewKeygenBlock(1718)
 	// members := []string{
 	// 	"tthorpub1addwnpepq2kdyjkm6y9aa3kxl8wfaverka6pvkek2ygrmhx6sj3ec6h0fegws6fcmjl",

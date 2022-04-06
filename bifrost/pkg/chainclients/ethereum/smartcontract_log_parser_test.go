@@ -28,15 +28,14 @@ func (t *SmartContractLogParserTestSuite) SetUpSuite(c *C) {
 }
 
 func mockIsValidContractAddr(addr *ecommon.Address, _ bool) bool {
-	if addr.String() == "0xE65e9d372F8cAcc7b6dfcd4af6507851Ed31bb44" {
-		return true
-	}
-	return false
+	return addr.String() == "0xE65e9d372F8cAcc7b6dfcd4af6507851Ed31bb44"
 }
 
 const (
-	errAssetToken = "0x983e2cC84Bb8eA7b75685F285A28Bde2b4D5aCDA"
-	tknTestToken  = "0X3B7FA4DD21C6F9BA3CA375217EAD7CAB9D6BF483"
+	// trunk-ignore-begin(gitleaks/generic-api-key)
+	errAssetToken = "0x983e2cC84Bb8eA7b75685F285A28Bde2b4D5aCDA" // nolint
+	tknTestToken  = "0X3B7FA4DD21C6F9BA3CA375217EAD7CAB9D6BF483" // nolint
+	// trunk-ignore-end(gitleaks/generic-api-key)
 )
 
 func mockAssetResolver(token string) (common.Asset, error) {
@@ -60,7 +59,7 @@ func mockAmountConverter(_ string, amt *big.Int) cosmos.Uint {
 	return cosmos.NewUintFromBigInt(amt)
 }
 
-func (t *SmartContractLogParserTestSuite) getDepositEvent(smartContractAddr string, to string, asset string, amount *big.Int, memo string) *etypes.Log {
+func (t *SmartContractLogParserTestSuite) getDepositEvent(smartContractAddr, to, asset string, amount *big.Int, memo string) *etypes.Log {
 	evt, err := t.abi.EventByID(ecommon.HexToHash(depositEvent))
 	if err != nil {
 		return nil
@@ -192,6 +191,7 @@ func (t *SmartContractLogParserTestSuite) TestGetTxInItem_DepositEvents(c *C) {
 	isVaultTransfer, err = parser.getTxInItem([]*etypes.Log{
 		t.getDepositEvent("0xE65e9d372F8cAcc7b6dfcd4af6507851Ed31bb44", "0x6c4a2eeb8531e3c18bca51104df7eb2377708263", ethToken, big.NewInt(1024000), "ADD:ETH.ETH:tthor16xxn0cadruuw6a2qwpv35av0mehryvdzzjz3af"),
 	}, txInItem)
+	c.Assert(err, IsNil)
 	c.Assert(isVaultTransfer, Equals, false)
 	c.Assert(txInItem.To, Equals, "0x6C4a2eEB8531E3C18BcA51104Df7eb2377708263")
 	c.Assert(txInItem.Memo, Equals, "ADD:ETH.ETH:tthor16xxn0cadruuw6a2qwpv35av0mehryvdzzjz3af")
@@ -275,6 +275,7 @@ func (t *SmartContractLogParserTestSuite) TestGetTxInItem_DepositEvents(c *C) {
 			big.NewInt(2048000),
 			"yggdrasil-:1024"),
 	}, txInItem)
+	c.Assert(err, IsNil)
 	tknAsset, err := common.NewAsset("ETH.TKN-0X3B7FA4DD21C6F9BA3CA375217EAD7CAB9D6BF483")
 	c.Assert(err, IsNil)
 	c.Assert(tknAsset.IsEmpty(), Equals, false)

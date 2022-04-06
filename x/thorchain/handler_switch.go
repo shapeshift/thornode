@@ -57,7 +57,7 @@ func (h SwitchHandler) validateV1(ctx cosmos.Context, msg MsgSwitch) error {
 	// node account
 	if !msg.Tx.Coins[0].IsNative() {
 		if !isSignedByActiveNodeAccounts(ctx, h.mgr, msg.GetSigners()) {
-			return cosmos.ErrUnauthorized(notAuthorized.Error())
+			return cosmos.ErrUnauthorized(errNotAuthorized.Error())
 		}
 	}
 

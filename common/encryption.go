@@ -7,13 +7,11 @@ import (
 	"encoding/hex"
 	"io"
 
-	// trunk-ignore(golangci-lint/gosec): only used for hashing
-	"crypto/md5"
+	"crypto/md5" // nolint
 )
 
 func createHash(key string) (string, error) {
-	// trunk-ignore(golangci-lint/gosec): only used for hashing
-	hasher := md5.New()
+	hasher := md5.New() // nolint
 	_, err := hasher.Write([]byte(key))
 	return hex.EncodeToString(hasher.Sum(nil)), err
 }
