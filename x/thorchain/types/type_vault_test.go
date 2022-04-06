@@ -63,7 +63,7 @@ func (s *VaultSuite) TestVault(c *C) {
 	c.Assert(vault.GetChains().Has(common.BTCChain), Equals, true)
 
 	vault1 := NewVault(1024, VaultStatus_ActiveVault, VaultType_AsgardVault, pk, common.Chains{common.BNBChain, common.BTCChain, common.ETHChain}.Strings(), []ChainContract{})
-	vault1.Membership = append(vault.Membership, pk.String())
+	vault1.Membership = append(vault.Membership, pk.String()) // nolint
 	c.Check(vault1.IsType(VaultType_AsgardVault), Equals, true)
 	c.Check(vault1.IsType(VaultType_YggdrasilVault), Equals, false)
 	c.Check(vault1.IsAsgard(), Equals, true)

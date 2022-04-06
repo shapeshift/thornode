@@ -79,7 +79,7 @@ func NewTxStoreFailDummy() *TxOutStoreFailDummy {
 func (tos *TxOutStoreFailDummy) EndBlock(_ cosmos.Context, _ Manager) error { return nil }
 
 func (tos *TxOutStoreFailDummy) GetBlockOut(_ cosmos.Context) (*TxOut, error) {
-	return tos.blockOut, kaboom
+	return tos.blockOut, errKaboom
 }
 
 func (tos *TxOutStoreFailDummy) ClearOutboundItems(ctx cosmos.Context) {
@@ -87,7 +87,7 @@ func (tos *TxOutStoreFailDummy) ClearOutboundItems(ctx cosmos.Context) {
 }
 
 func (tos *TxOutStoreFailDummy) GetOutboundItems(ctx cosmos.Context) ([]TxOutItem, error) {
-	return tos.blockOut.TxArray, kaboom
+	return tos.blockOut.TxArray, errKaboom
 }
 
 func (tos *TxOutStoreFailDummy) GetOutboundItemByToAddress(_ cosmos.Context, to common.Address) []TxOutItem {
@@ -105,14 +105,14 @@ func (tos *TxOutStoreFailDummy) TryAddTxOutItem(ctx cosmos.Context, mgr Manager,
 	if !toi.Chain.Equals(common.THORChain) {
 		tos.addToBlockOut(ctx, toi)
 	}
-	return false, kaboom
+	return false, errKaboom
 }
 
 func (tos *TxOutStoreFailDummy) UnSafeAddTxOutItem(ctx cosmos.Context, mgr Manager, toi TxOutItem) error {
 	if !toi.Chain.Equals(common.THORChain) {
 		tos.addToBlockOut(ctx, toi)
 	}
-	return kaboom
+	return errKaboom
 }
 
 func (tos *TxOutStoreFailDummy) addToBlockOut(_ cosmos.Context, toi TxOutItem) {

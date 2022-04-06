@@ -57,16 +57,17 @@ func (k *MockThorchainKeyManager) RemoteSign(msg []byte, poolPubKey string) ([]b
 	}
 	if poolPubKey == "tthorpub1addwnpepqw2k68efthm08f0f5akhjs6fk5j2pze4wkwt4fmnymf9yd463puruhh0lyz" {
 		msgToSign := base64.StdEncoding.EncodeToString(msg)
-		if msgToSign == "BMxXf+K+1dYu3qGgvH59GXoxwwFfTnLjB7hHf3qflPk=" {
+		switch msgToSign {
+		case "BMxXf+K+1dYu3qGgvH59GXoxwwFfTnLjB7hHf3qflPk=":
 			sig, err := getSignature("WGSFUPPCN0kTcXcylAIQXyAxO7OUC5YRjDRz9wmzpkk=", "RUIoqdza5Od9nMfU2teqbZJAeC+pTyHIbKq+72jJMfM=")
 			return sig, nil, err
-		} else if msgToSign == "7zpXFp0KDBebXPNc2ZGim8NQAY7GMwS7iwr4hl2tFZQ=" {
+		case "7zpXFp0KDBebXPNc2ZGim8NQAY7GMwS7iwr4hl2tFZQ=":
 			sig, err := getSignature("tCR9TWnSxn/HPr0T3I9XeneJ0dRmi2DqbOkcFPWIkNs=", "VAxipOj6ogfBci+WwJy4n9QfAjjhJk6WhQ1I8n6xEo4=")
 			return sig, nil, err
-		} else if msgToSign == "isIqvmEs/otDI3NC2C8zFr1DGu3k/p8g/1RdlE0KzBI=" {
+		case "isIqvmEs/otDI3NC2C8zFr1DGu3k/p8g/1RdlE0KzBI=":
 			sig, err := getSignature("Nkb9ZFkPpSi1i/GaJe6FkMZmx1IH2oDtnr0jGsycBF8=", "ZAQ0qbPtPtdAin5HVOMmMO6oJxwWT4T0GvqpeyGG168=")
 			return sig, nil, err
-		} else {
+		default:
 			sig, err := getSignature("gVxKdVgWR+4OZLxFAu5uWWOPCxhGPqFtQAyVujqSuh8=", "JXPU4Li4spnonssxJS52r/hEBwt1iPFlvjwu8ZOe+F0=")
 			return sig, nil, err
 		}

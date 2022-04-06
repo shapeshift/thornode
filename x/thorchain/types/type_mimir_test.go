@@ -38,9 +38,9 @@ func (MimirTestSuite) TestNodeMimir(c *C) {
 	c.Check(ok, Equals, true)
 
 	// test key2
-	val, ok = m.HasSuperMajority(key2, active)
+	_, ok = m.HasSuperMajority(key2, active)
 	c.Check(ok, Equals, false)
-	val, ok = m.HasSimpleMajority(key2, active)
+	_, ok = m.HasSimpleMajority(key2, active)
 	c.Check(ok, Equals, false)
 
 	// test key3

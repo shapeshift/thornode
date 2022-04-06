@@ -42,8 +42,8 @@ func (tos *TxOutStorageV85) EndBlock(ctx cosmos.Context, mgr Manager) error {
 		return err
 	}
 
-	maxGasCache := make(map[common.Chain]common.Coin, 0)
-	gasRateCache := make(map[common.Chain]int64, 0)
+	maxGasCache := make(map[common.Chain]common.Coin)
+	gasRateCache := make(map[common.Chain]int64)
 
 	for i, tx := range txOut.TxArray {
 		// update max gas, take the larger of the current gas, or the last gas used
@@ -410,10 +410,8 @@ func (tos *TxOutStorageV85) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem) 
 								ModuleName,
 								common.NewCoins(common.NewCoin(outputs[i].Coin.Asset, assetFee))); err != nil {
 								ctx.Logger().Error("fail to move synth asset fee from asgard to Module", "error", err)
-							} else {
-								if err := tos.keeper.BurnFromModule(ctx, ModuleName, common.NewCoin(outputs[i].Coin.Asset, assetFee)); err != nil {
-									ctx.Logger().Error("fail to burn synth asset", "error", err)
-								}
+							} else if err := tos.keeper.BurnFromModule(ctx, ModuleName, common.NewCoin(outputs[i].Coin.Asset, assetFee)); err != nil {
+								ctx.Logger().Error("fail to burn synth asset", "error", err)
 							}
 						}
 					}
@@ -624,8 +622,8 @@ func (tos *TxOutStorageV85) calcTxOutHeight(ctx cosmos.Context, version semver.V
 			// the txout + this txout item has enough space to fit, lets use this one
 			break
 		}
-		targetBlock += 1
-		count += 1
+		targetBlock++
+		count++
 	}
 
 	return targetBlock, nil

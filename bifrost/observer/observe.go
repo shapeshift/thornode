@@ -408,7 +408,7 @@ func (o *Observer) filterErrataTx(block types.ErrataBlock) {
 			}
 			if idx != -1 {
 				o.logger.Info().Msgf("drop tx (%s) from ondeck memory due to errata", tx.TxID)
-				o.onDeck[deckIdx].TxArray = append(txIn.TxArray[:idx], txIn.TxArray[idx+1:]...)
+				o.onDeck[deckIdx].TxArray = append(txIn.TxArray[:idx], txIn.TxArray[idx+1:]...) // nolint
 			}
 		}
 	}
@@ -541,7 +541,7 @@ func (o *Observer) getThorchainTxIns(txIn types.TxIn) (stypes.ObservedTxs, error
 		}
 		height := item.BlockHeight
 		if txIn.Finalised {
-			height = height + txIn.ConfirmationRequired
+			height += txIn.ConfirmationRequired
 		}
 		tx := stypes.NewObservedTx(
 			common.NewTx(txID, sender, to, item.Coins.NoneEmpty(), item.Gas, item.Memo),

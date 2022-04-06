@@ -83,11 +83,11 @@ func (vm *validatorMgrV84) BeginBlock(ctx cosmos.Context, constAccessor constant
 	if err != nil {
 		return err
 	}
-	expected_active_vaults := int64(len(nas)) / asgardSize
+	expectedActiveVaults := int64(len(nas)) / asgardSize
 	if int64(len(nas))%asgardSize > 0 {
-		expected_active_vaults += 1
+		expectedActiveVaults++
 	}
-	incompleteChurnCheck := int64(len(vaults)) != expected_active_vaults
+	incompleteChurnCheck := int64(len(vaults)) != expectedActiveVaults
 	oldVaultCheck := common.BlockHeight(ctx)-lastChurnHeight > churnInterval
 	onChurnTick := (common.BlockHeight(ctx)-lastChurnHeight-churnInterval)%churnRetryInterval == 0
 	retryChurn := (oldVaultCheck || incompleteChurnCheck) && onChurnTick
@@ -143,8 +143,8 @@ func (vm *validatorMgrV84) BeginBlock(ctx cosmos.Context, constAccessor constant
 			return err
 		}
 		if ok {
-			for _, nodeacc_set := range vm.splitNext(ctx, next, asgardSize) {
-				if err := vm.vaultMgr.TriggerKeygen(ctx, nodeacc_set); err != nil {
+			for _, nodeaccSet := range vm.splitNext(ctx, next, asgardSize) {
+				if err := vm.vaultMgr.TriggerKeygen(ctx, nodeaccSet); err != nil {
 					return err
 				}
 			}
@@ -159,9 +159,9 @@ func (vm *validatorMgrV84) BeginBlock(ctx cosmos.Context, constAccessor constant
 func (vm *validatorMgrV84) splitNext(ctx cosmos.Context, nas NodeAccounts, asgardSize int64) []NodeAccounts {
 	// calculate the number of asgard vaults we'll need to support the given
 	// list of node accounts
-	group_num := int64(len(nas)) / asgardSize
+	groupNum := int64(len(nas)) / asgardSize
 	if int64(len(nas))%asgardSize > 0 {
-		group_num += 1
+		groupNum++
 	}
 
 	// sort by bond size, descending. This should help ensure that bond
@@ -171,7 +171,7 @@ func (vm *validatorMgrV84) splitNext(ctx cosmos.Context, nas NodeAccounts, asgar
 		return nas[i].Bond.GT(nas[j].Bond)
 	})
 
-	groups := make([]NodeAccounts, group_num)
+	groups := make([]NodeAccounts, groupNum)
 	for i, na := range nas {
 		groups[i%len(groups)] = append(groups[i%len(groups)], na)
 	}
@@ -859,18 +859,16 @@ func (vm *validatorMgrV84) ragnarokPools(ctx cosmos.Context, nth int64, mgr Mana
 				_, err = withdrawHandler.Run(ctx, withdrawMsg)
 				if err != nil {
 					ctx.Logger().Error("fail to withdraw", "liquidity provider", lp.RuneAddress, "error", err)
-				} else {
+				} else if !withdrawAsset.Equals(common.RuneAsset()) {
 					// when withdraw asset is only RUNE , then it should process more , because RUNE asset doesn't leave THORChain
-					if !withdrawAsset.Equals(common.RuneAsset()) {
-						count++
-						pending, err := vm.k.GetRagnarokPending(ctx)
-						if err != nil {
-							return fmt.Errorf("fail to get ragnarok pending: %w", err)
-						}
-						vm.k.SetRagnarokPending(ctx, pending+1)
-						if count >= maxWithdrawsPerBlock {
-							break
-						}
+					count++
+					pending, err := vm.k.GetRagnarokPending(ctx)
+					if err != nil {
+						return fmt.Errorf("fail to get ragnarok pending: %w", err)
+					}
+					vm.k.SetRagnarokPending(ctx, pending+1)
+					if count >= maxWithdrawsPerBlock {
+						break
 					}
 				}
 			}
@@ -1065,7 +1063,7 @@ func (vm *validatorMgrV84) getLastChurnHeight(ctx cosmos.Context) int64 {
 	return lastChurnHeight
 }
 
-func (vm *validatorMgrV84) getScore(ctx cosmos.Context, slashPts int64, lastChurnHeight int64) cosmos.Uint {
+func (vm *validatorMgrV84) getScore(ctx cosmos.Context, slashPts, lastChurnHeight int64) cosmos.Uint {
 	// get to the 8th decimal point, but keep numbers integers for safer math
 	score := cosmos.NewUint(uint64((common.BlockHeight(ctx) - lastChurnHeight) * common.One))
 	if slashPts == 0 {
@@ -1075,7 +1073,7 @@ func (vm *validatorMgrV84) getScore(ctx cosmos.Context, slashPts int64, lastChur
 }
 
 // Iterate over active node accounts, finding bad actors with high slash points
-func (vm *validatorMgrV84) findBadActors(ctx cosmos.Context, minSlashPointsForBadValidator int64, badValidatorRedline int64) (NodeAccounts, error) {
+func (vm *validatorMgrV84) findBadActors(ctx cosmos.Context, minSlashPointsForBadValidator, badValidatorRedline int64) (NodeAccounts, error) {
 	badActors := make(NodeAccounts, 0)
 	nas, err := vm.k.ListActiveValidators(ctx)
 	if err != nil {
@@ -1233,7 +1231,7 @@ func (vm *validatorMgrV84) markLowBondActor(ctx cosmos.Context) error {
 }
 
 // Mark a bad actor to be churned out
-func (vm *validatorMgrV84) markBadActor(ctx cosmos.Context, minSlashPointsForBadValidator int64, redline int64) error {
+func (vm *validatorMgrV84) markBadActor(ctx cosmos.Context, minSlashPointsForBadValidator, redline int64) error {
 	nas, err := vm.findBadActors(ctx, minSlashPointsForBadValidator, redline)
 	if err != nil {
 		return err

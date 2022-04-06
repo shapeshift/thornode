@@ -1,5 +1,6 @@
 # How to run a private chain(mocknet)
-mocknet is a special mode in THORNode which is used for test purpose, in mocknet mode, Binance daemon will be running a custom implementation which mock binance interface,refer to [here](https://gitlab.com/thorchain/bepswap/mock-binance) for the source code 
+
+mocknet is a special mode in THORNode which is used for test purpose, in mocknet mode, Binance daemon will be running a custom implementation which mock binance interface,refer to [here](https://gitlab.com/thorchain/bepswap/mock-binance) for the source code
 BTC/LTC/BCH will be running in regtest mode
 
 In order to run mocknet in a private chain , we will need four linux machine , these days , it is very easy to get that from any of the cloud platform. It can by AWS, DigitalOcean , Google cloud etc.
@@ -8,11 +9,11 @@ Here I assume you already have 4 linux machine
 
 ## Prerequisite
 
-Each of the linux machine you will have the following  installed
+Each of the linux machine you will have the following installed
 
 - Docker - you will need user docker to build the image that will be running on the machine
 - Docker compose
-- [Jq](https://stedolan.github.io/jq/) 
+- [Jq](https://stedolan.github.io/jq/)
 
 If your linux machine doesn't have these , you can run the following command to install it
 
@@ -73,7 +74,7 @@ Let's use `192.168.0.1` as the genesis node, run the following command in ~/thor
 BLOCK_TIME=2m make -C build/docker reset-mocknet-standalone
 ```
 
-This will start the node as genesis node , also run Bitcoin / Bitcoin Cash / Litecoin / Mock Binance / ETH  chain in test mode
+This will start the node as genesis node , also run Bitcoin / Bitcoin Cash / Litecoin / Mock Binance / ETH chain in test mode
 
 ## Start validator nodes
 
@@ -89,7 +90,7 @@ Start validator node
 ETH_HOST=http://192.168.0.1:8545 SEEDS=$SEEDS PEER=192.168.0.1 BINANCE_HOST=http://192.168.0.1:26660 BTC_HOST=192.168.0.1:18443 BCH_HOST=192.168.0.1:28443 LTC_HOST=192.168.0.1:38443 make -C build/docker reset-mocknet-validator
 ```
 
-Now you will have a private chain (MockNet) working ,  the validator node will automatically bond itself  , set ip address , and node keys etc etc.
+Now you will have a private chain (MockNet) working , the validator node will automatically bond itself , set ip address , and node keys etc etc.
 
 ## Create some pools, and add some fund
 
@@ -106,7 +107,7 @@ if [ -z $1 ]; then
     exit 1
 fi
 for i in $(seq 1 1 1)
-do 
+do
 SIGNER_PASSWD=password
 SIGNER_NAME="whatever$i"
 THOR_ADDRESS=$(printf "$SIGNER_PASSWD\n" | thornode keys show $SIGNER_NAME --keyring-backend=file --output json | jq -r '.address')

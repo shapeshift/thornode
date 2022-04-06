@@ -81,7 +81,10 @@ func getLogFields(keyVals ...interface{}) map[string]interface{} {
 
 	fields := make(map[string]interface{})
 	for i := 0; i < len(keyVals); i += 2 {
-		fields[keyVals[i].(string)] = keyVals[i+1]
+		val, ok := keyVals[i].(string)
+		if ok {
+			fields[val] = keyVals[i+1]
+		}
 	}
 
 	return fields

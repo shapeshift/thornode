@@ -54,11 +54,7 @@ func (m *ObservedNetworkFeeVoter) HasConsensus(nas NodeAccounts) bool {
 			count++
 		}
 	}
-	if HasSuperMajority(count, len(nas)) {
-		return true
-	}
-
-	return false
+	return HasSuperMajority(count, len(nas))
 }
 
 // IsEmpty return true when chain is empty and block height is 0

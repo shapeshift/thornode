@@ -1,28 +1,27 @@
 import json
-import requests
-import boto3
 
-prefix = 'node_ip_'
-s3_resource = boto3.resource('s3')
-buckets = ['seed.thorchain.info']
+import boto3
+import requests
+
+prefix = "node_ip_"
+s3_resource = boto3.resource("s3")
+buckets = ["seed.thorchain.info"]
 
 
 def get_rpc_url(ip_addr, path):
     # change port to 26657 for TESTNET
-    return 'http://' + ip_addr + ':27147' + path
+    return "http://" + ip_addr + ":27147" + path
 
 
 def get_api_url(ip_addr, path):
-    return 'http://' + ip_addr + ':1317' + path
+    return "http://" + ip_addr + ":1317" + path
 
 
 def get_new_ip_list(ip_addr):
     results = []
     try:
-        r = requests.get(
-            get_api_url(ip_addr, "/thorchain/nodes"), timeout=3
-        )
-        peers = [x['ip_address'] for x in r.json() if x['status'] == "Active"]
+        r = requests.get(get_api_url(ip_addr, "/thorchain/nodes"), timeout=3)
+        peers = [x["ip_address"] for x in r.json() if x["status"] == "Active"]
         peers.append(ip_addr)
         peers = list(set(peers))  # uniqify
     except Exception as e:
@@ -34,7 +33,7 @@ def get_new_ip_list(ip_addr):
     for peer in peers:
         try:
             resp = requests.get(get_rpc_url(peer, "/status"), timeout=3)
-            if not resp.json()['result']['sync_info']['catching_up']:
+            if not resp.json()["result"]["sync_info"]["catching_up"]:
                 results.append(peer)
         except Exception as e:
             print(e)
@@ -49,7 +48,7 @@ def lambda_handler(event, context):
             for obj in thorchain_bucket.objects.all():
                 if not obj.key.startswith(prefix):
                     continue
-                body = obj.get()['Body'].read()
+                body = obj.get()["Body"].read()
                 ip_list = json.loads(body)
                 new_ips = []
                 for ip_addr in ip_list:
@@ -59,8 +58,8 @@ def lambda_handler(event, context):
                 if len(new_ips) != 0:
                     new_body = json.dumps(sorted(new_ips))
                     print("New IPs list " + new_body)
-                    obj.put(Body=new_body, ContentType='application/json')
-        return {'message': 'successfully updated!'}
+                    obj.put(Body=new_body, ContentType="application/json")
+        return {"message": "successfully updated!"}
     except Exception as e:
         print(e)
-        return {'message': 'exception occured!'}
+        return {"message": "exception occured!"}

@@ -113,7 +113,6 @@ func (HandlerBondSuite) TestBondHandler_Run(c *C) {
 
 	// simulate fail to get node account
 	handler = NewBondHandler(NewDummyMgrWithKeeper(k))
-	ver = GetCurrentVersion()
 	msg = NewMsgBond(txIn, k.failGetNodeAccount.NodeAddress, cosmos.NewUint(uint64(minimumBondInRune)), GetRandomTHORAddress(), nil, standbyNodeAccount.NodeAddress)
 	_, err = handler.Run(ctx, msg)
 	c.Assert(errors.Is(err, errInternal), Equals, true)

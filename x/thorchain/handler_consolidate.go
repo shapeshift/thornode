@@ -55,7 +55,7 @@ func (h ConsolidateHandler) validateV1(ctx cosmos.Context, msg MsgConsolidate) e
 func (h ConsolidateHandler) slash(ctx cosmos.Context, tx ObservedTx) error {
 	toSlash := tx.Tx.Coins.Adds(tx.Tx.Gas.ToCoins())
 
-	ctx = ctx.WithContext(context.WithValue(ctx.Context(), constants.CtxMetricLabels, []metrics.Label{
+	ctx = ctx.WithContext(context.WithValue(ctx.Context(), constants.CtxMetricLabels, []metrics.Label{ // nolint
 		telemetry.NewLabel("reason", "failed_consolidation"),
 		telemetry.NewLabel("chain", string(tx.Tx.Chain)),
 	}))
@@ -82,7 +82,7 @@ func (h ConsolidateHandler) handleV1(ctx cosmos.Context, msg MsgConsolidate) (*c
 	vault, err := h.mgr.Keeper().GetVault(ctx, msg.ObservedTx.ObservedPubKey)
 	if err != nil {
 		ctx.Logger().Error("unable to get vault for consolidation", "error", err)
-	} else {
+	} else { // nolint
 		if !vault.IsAsgard() {
 			shouldSlash = true
 		}

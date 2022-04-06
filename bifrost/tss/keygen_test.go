@@ -77,6 +77,7 @@ func (kts *KeyGenTestSuite) TestNewTssKenGen(c *C) {
 		SignerName:   "bob",
 		SignerPasswd: "password",
 	}, nil, k)
+	c.Assert(err, IsNil)
 	kg, err := NewTssKeyGen(k, nil, b)
 	c.Assert(err, IsNil)
 	c.Assert(kg, NotNil)

@@ -22,8 +22,7 @@ var _ = Suite(&BlockHeightSuite{})
 
 func (s *BlockHeightSuite) SetUpSuite(c *C) {
 	s.server = httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		switch {
-		case strings.HasPrefix(req.RequestURI, LastBlockEndpoint):
+		if strings.HasPrefix(req.RequestURI, LastBlockEndpoint) {
 			httpTestHandler(c, rw, s.fixture)
 		}
 	}))

@@ -226,10 +226,8 @@ func (h UnBondHandler) handleV81(ctx cosmos.Context, msg MsgUnBond) error {
 				}
 			}
 		}
-	} else {
-		if err := refundBond(ctx, msg.TxIn, from, msg.Amount, &na, h.mgr); err != nil {
-			return ErrInternal(err, "fail to unbond")
-		}
+	} else if err := refundBond(ctx, msg.TxIn, from, msg.Amount, &na, h.mgr); err != nil {
+		return ErrInternal(err, "fail to unbond")
 	}
 
 	coin := msg.TxIn.Coins.GetCoin(common.RuneAsset())

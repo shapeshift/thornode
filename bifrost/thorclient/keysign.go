@@ -11,7 +11,7 @@ import (
 	"gitlab.com/thorchain/thornode/bifrost/thorclient/types"
 )
 
-var ErrNotFound error = fmt.Errorf("not found")
+var ErrNotFound = fmt.Errorf("not found")
 
 type QueryKeysign struct {
 	Keysign   types.TxOut `json:"keysign"`

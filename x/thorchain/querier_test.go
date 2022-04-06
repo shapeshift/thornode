@@ -327,7 +327,7 @@ func (s *QuerierSuite) TestQueryTx(c *C) {
 	c.Assert(result, IsNil)
 	c.Assert(err, NotNil)
 	nodeAccount := GetRandomValidatorNode(NodeActive)
-	s.k.SetNodeAccount(s.ctx, nodeAccount)
+	c.Assert(s.k.SetNodeAccount(s.ctx, nodeAccount), IsNil)
 	voter, err := s.k.GetObservedTxInVoter(s.ctx, tx.ID)
 	c.Assert(err, IsNil)
 	voter.Add(NewObservedTx(tx, s.ctx.BlockHeight(), nodeAccount.PubKeySet.Secp256k1, s.ctx.BlockHeight()), nodeAccount.NodeAddress)
@@ -540,7 +540,7 @@ func (s *QuerierSuite) TestQueryNodeAccount(c *C) {
 
 func (s *QuerierSuite) TestQueryPoolAddresses(c *C) {
 	na := GetRandomValidatorNode(NodeActive)
-	s.k.SetNodeAccount(s.ctx, na)
+	c.Assert(s.k.SetNodeAccount(s.ctx, na), IsNil)
 	result, err := s.querier(s.ctx, []string{
 		query.QueryInboundAddresses.Key,
 		na.NodeAddress.String(),
@@ -561,7 +561,7 @@ func (s *QuerierSuite) TestQueryPoolAddresses(c *C) {
 
 func (s *QuerierSuite) TestQueryKeysignArrayPubKey(c *C) {
 	na := GetRandomValidatorNode(NodeActive)
-	s.k.SetNodeAccount(s.ctx, na)
+	c.Assert(s.k.SetNodeAccount(s.ctx, na), IsNil)
 	result, err := s.querier(s.ctx, []string{
 		query.QueryKeysignArrayPubkey.Key,
 	}, abci.RequestQuery{})
@@ -596,7 +596,7 @@ func (s *QuerierSuite) TestQueryNetwork(c *C) {
 }
 
 func (s *QuerierSuite) TestQueryAsgardVault(c *C) {
-	s.k.SetVault(s.ctx, GetRandomVault())
+	c.Assert(s.k.SetVault(s.ctx, GetRandomVault()), IsNil)
 	result, err := s.querier(s.ctx, []string{
 		query.QueryVaultsAsgard.Key,
 	}, abci.RequestQuery{})
@@ -612,7 +612,7 @@ func (s *QuerierSuite) TestQueryYggdrasilVault(c *C) {
 	vault.AddFunds(common.Coins{
 		common.NewCoin(common.BNBAsset, cosmos.NewUint(common.One*100)),
 	})
-	s.k.SetVault(s.ctx, vault)
+	c.Assert(s.k.SetVault(s.ctx, vault), IsNil)
 	result, err := s.querier(s.ctx, []string{
 		query.QueryVaultsYggdrasil.Key,
 	}, abci.RequestQuery{})
@@ -651,7 +651,7 @@ func (s *QuerierSuite) TestQueryVaultPubKeys(c *C) {
 }
 
 func (s *QuerierSuite) TestQueryBalanceModule(c *C) {
-	s.k.SetVault(s.ctx, GetRandomVault())
+	c.Assert(s.k.SetVault(s.ctx, GetRandomVault()), IsNil)
 	result, err := s.querier(s.ctx, []string{
 		query.QueryBalanceModule.Key,
 		"asgard",
@@ -678,7 +678,7 @@ func (s *QuerierSuite) TestQueryVault(c *C) {
 	c.Assert(result, IsNil)
 	c.Assert(err, NotNil)
 
-	s.k.SetVault(s.ctx, vault)
+	c.Assert(s.k.SetVault(s.ctx, vault), IsNil)
 	result, err = s.querier(s.ctx, []string{
 		query.QueryVault.Key,
 		vault.PubKey.String(),
