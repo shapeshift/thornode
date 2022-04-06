@@ -773,8 +773,43 @@ func isChainTradingHalted(ctx cosmos.Context, mgr Manager, chain common.Chain) b
 
 func isChainHalted(ctx cosmos.Context, mgr Manager, chain common.Chain) bool {
 	version := mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.65.0")) {
+	switch {
+	case version.GTE(semver.MustParse("1.87.0")):
+		return isChainHaltedV87(ctx, mgr, chain)
+	case version.GTE(semver.MustParse("0.65.0")):
 		return isChainHaltedV65(ctx, mgr, chain)
+	}
+	return false
+}
+
+// isChainHalted check whether the given chain is halt
+// chain halt is different as halt trading , when a chain is halt , there is no observation on the given chain
+// outbound will not be signed and broadcast
+func isChainHaltedV87(ctx cosmos.Context, mgr Manager, chain common.Chain) bool {
+	haltChain, err := mgr.Keeper().GetMimir(ctx, "HaltChainGlobal")
+	if err == nil && (haltChain > 0 && haltChain < common.BlockHeight(ctx)) {
+		ctx.Logger().Info("global is halt")
+		return true
+	}
+
+	haltChain, err = mgr.Keeper().GetMimir(ctx, "NodePauseChainGlobal")
+	if err == nil && haltChain > common.BlockHeight(ctx) {
+		ctx.Logger().Info("node global is halt")
+		return true
+	}
+
+	haltMimirKey := fmt.Sprintf("Halt%sChain", chain)
+	haltChain, err = mgr.Keeper().GetMimir(ctx, haltMimirKey)
+	if err == nil && (haltChain > 0 && haltChain < common.BlockHeight(ctx)) {
+		ctx.Logger().Info("chain is halt via admin or double-spend check", "chain", chain)
+		return true
+	}
+
+	solvencyHaltMimirKey := fmt.Sprintf("SolvencyHalt%sChain", chain)
+	haltChain, err = mgr.Keeper().GetMimir(ctx, solvencyHaltMimirKey)
+	if err == nil && (haltChain > 0 && haltChain < common.BlockHeight(ctx)) {
+		ctx.Logger().Info("chain is halt via solvency check", "chain", chain)
+		return true
 	}
 	return false
 }
