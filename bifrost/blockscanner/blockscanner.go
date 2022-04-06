@@ -148,7 +148,7 @@ func (b *BlockScanner) scanBlocks() {
 	defer b.wg.Done()
 
 	lastMimirCheck := time.Now().Add(-constants.ThorchainBlockTime)
-	var haltHeight, nodeHaltHeight, thorHeight int64
+	var haltHeight, solvencyHaltHeight, nodeHaltHeight, thorHeight int64
 	var err error
 
 	// start up to grab those blocks
@@ -162,6 +162,10 @@ func (b *BlockScanner) scanBlocks() {
 			// check if mimir has disabled this chain
 			if time.Since(lastMimirCheck) >= constants.ThorchainBlockTime {
 				haltHeight, err = b.thorchainBridge.GetMimir(fmt.Sprintf("Halt%sChain", b.cfg.ChainID))
+				if err != nil {
+					b.logger.Error().Err(err).Msg("fail to get mimir setting")
+				}
+				solvencyHaltHeight, err = b.thorchainBridge.GetMimir(fmt.Sprintf("SolvencyHalt%sChain", b.cfg.ChainID))
 				if err != nil {
 					b.logger.Error().Err(err).Msg("fail to get mimir setting")
 				}
@@ -186,8 +190,8 @@ func (b *BlockScanner) scanBlocks() {
 			if nodeHaltHeight > 0 && thorHeight < nodeHaltHeight {
 				haltHeight = 1
 			}
-			if haltHeight > 0 && thorHeight > haltHeight {
-				// since current chain has been halted , so mark it as not healthy
+			// Chain has been halted automatically (solvency/double-spend), or via Node-Mimir or Admin-Mimir, mark as unhealthy
+			if (haltHeight > 0 && thorHeight > haltHeight) || (solvencyHaltHeight > 0 && thorHeight > solvencyHaltHeight) {
 				b.healthy = false
 				time.Sleep(constants.ThorchainBlockTime)
 				continue

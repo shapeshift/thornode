@@ -149,7 +149,7 @@ func (h SolvencyHandler) handleV87(ctx cosmos.Context, msg MsgSolvency) (*cosmos
 	if stopSolvencyCheckChain > 0 && stopSolvencyCheckChain < common.BlockHeight(ctx) {
 		return &cosmos.Result{}, nil
 	}
-	haltChainKey := fmt.Sprintf(`Halt%sChain`, voter.Chain)
+	haltChainKey := fmt.Sprintf(`SolvencyHalt%sChain`, voter.Chain)
 	haltChain, err := h.mgr.Keeper().GetMimir(ctx, haltChainKey)
 	if err != nil {
 		ctx.Logger().Error("fail to get mimir", "error", err)
