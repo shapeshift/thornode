@@ -30,7 +30,7 @@ func (k *TestVersionlKeeper) SendFromAccountToModule(ctx cosmos.Context, from co
 
 func (k *TestVersionlKeeper) GetNodeAccount(_ cosmos.Context, addr cosmos.AccAddress) (NodeAccount, error) {
 	if k.failNodeAccount.NodeAddress.Equals(addr) {
-		return NodeAccount{}, kaboom
+		return NodeAccount{}, errKaboom
 	}
 	if k.emptyNodeAccount.NodeAddress.Equals(addr) {
 		return NodeAccount{}, nil
@@ -43,7 +43,7 @@ func (k *TestVersionlKeeper) GetNodeAccount(_ cosmos.Context, addr cosmos.AccAdd
 
 func (k *TestVersionlKeeper) SetNodeAccount(_ cosmos.Context, na NodeAccount) error {
 	if k.failSaveNodeAccount {
-		return kaboom
+		return errKaboom
 	}
 	k.na = na
 	return nil
@@ -51,14 +51,14 @@ func (k *TestVersionlKeeper) SetNodeAccount(_ cosmos.Context, na NodeAccount) er
 
 func (k *TestVersionlKeeper) GetNetwork(ctx cosmos.Context) (Network, error) {
 	if k.failGetNetwork {
-		return NewNetwork(), kaboom
+		return NewNetwork(), errKaboom
 	}
 	return NewNetwork(), nil
 }
 
 func (k *TestVersionlKeeper) SetNetwork(ctx cosmos.Context, data Network) error {
 	if k.failSetNetwork {
-		return kaboom
+		return errKaboom
 	}
 	return nil
 }

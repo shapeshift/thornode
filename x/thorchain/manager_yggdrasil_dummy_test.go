@@ -12,5 +12,5 @@ func NewDummyYggManger() *DummyYggManager {
 }
 
 func (DummyYggManager) Fund(ctx cosmos.Context, mgr Manager, constAccessor constants.ConstantValues) error {
-	return kaboom
+	return errKaboom
 }

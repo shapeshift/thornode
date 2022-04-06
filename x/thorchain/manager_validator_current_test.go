@@ -220,7 +220,7 @@ func (vts *ValidatorMgrV87TestSuite) TestBadActors(c *C) {
 	var count int
 	for _, bad := range nas {
 		if bad.Equals(bad1) || bad.Equals(bad2) {
-			count += 1
+			count++
 		}
 	}
 	c.Check(count, Equals, 2)

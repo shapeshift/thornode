@@ -271,7 +271,7 @@ func NewHandlerObservedTxOutHelper(k keeper.Keeper) *HandlerObservedTxOutTestHel
 
 func (h *HandlerObservedTxOutTestHelper) ListActiveValidators(ctx cosmos.Context) (NodeAccounts, error) {
 	if h.failListActiveValidators {
-		return NodeAccounts{}, kaboom
+		return NodeAccounts{}, errKaboom
 	}
 	return h.Keeper.ListActiveValidators(ctx)
 }
@@ -285,21 +285,21 @@ func (h *HandlerObservedTxOutTestHelper) VaultExists(ctx cosmos.Context, pk comm
 
 func (h *HandlerObservedTxOutTestHelper) GetObservedTxOutVoter(ctx cosmos.Context, hash common.TxID) (ObservedTxVoter, error) {
 	if h.failGetObservedTxOutVote {
-		return ObservedTxVoter{}, kaboom
+		return ObservedTxVoter{}, errKaboom
 	}
 	return h.Keeper.GetObservedTxOutVoter(ctx, hash)
 }
 
 func (h *HandlerObservedTxOutTestHelper) GetVault(ctx cosmos.Context, pk common.PubKey) (Vault, error) {
 	if h.failGetVault {
-		return Vault{}, kaboom
+		return Vault{}, errKaboom
 	}
 	return h.Keeper.GetVault(ctx, pk)
 }
 
 func (h *HandlerObservedTxOutTestHelper) SetVault(ctx cosmos.Context, vault Vault) error {
 	if h.failSetVault {
-		return kaboom
+		return errKaboom
 	}
 	return h.Keeper.SetVault(ctx, vault)
 }
@@ -322,14 +322,14 @@ func setupAnObservedTxOut(ctx cosmos.Context, helper *HandlerObservedTxOutTestHe
 	vault := GetRandomVault()
 	vault.PubKey = obTx.ObservedPubKey
 	vault.Membership = []string{vault.PubKey.String()}
-	helper.Keeper.SetNodeAccount(ctx, activeNodeAccount)
+	c.Assert(helper.Keeper.SetNodeAccount(ctx, activeNodeAccount), IsNil)
 	c.Assert(helper.SetVault(ctx, vault), IsNil)
 	p := NewPool()
 	p.Asset = common.BNBAsset
 	p.BalanceRune = cosmos.NewUint(100 * common.One)
 	p.BalanceAsset = cosmos.NewUint(100 * common.One)
 	p.Status = PoolAvailable
-	helper.Keeper.SetPool(ctx, p)
+	c.Assert(helper.Keeper.SetPool(ctx, p), IsNil)
 	return NewMsgObservedTxOut(txs, activeNodeAccount.NodeAddress)
 }
 

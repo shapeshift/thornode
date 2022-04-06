@@ -31,7 +31,7 @@ func (m *DummyGasManager) GetMaxGas(ctx cosmos.Context, chain common.Chain) (com
 	if chain.Equals(common.BTCChain) {
 		return common.NewCoin(common.BTCAsset, cosmos.NewUint(1000)), nil
 	}
-	return common.NoCoin, kaboom
+	return common.NoCoin, errKaboom
 }
 
 func (m *DummyGasManager) GetGasRate(ctx cosmos.Context, chain common.Chain) cosmos.Uint {

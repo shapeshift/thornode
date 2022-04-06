@@ -189,7 +189,7 @@ func (b *Binance) checkIsTestNet() error {
 
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.Fatal().Err(err).Msg("fail to read body")
+		log.Fatal().Err(err).Msg("fail to read body") // nolint
 	}
 
 	type Status struct {

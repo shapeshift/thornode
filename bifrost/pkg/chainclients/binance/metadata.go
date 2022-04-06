@@ -20,7 +20,7 @@ type BinanceMetaDataStore struct {
 func NewBinanceMetaDataStore() *BinanceMetaDataStore {
 	return &BinanceMetaDataStore{
 		lock:  &sync.Mutex{},
-		accts: make(map[common.PubKey]BinanceMetadata, 0),
+		accts: make(map[common.PubKey]BinanceMetadata),
 	}
 }
 

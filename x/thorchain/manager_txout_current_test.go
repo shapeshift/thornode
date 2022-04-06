@@ -168,7 +168,8 @@ func (s TxOutStoreV85Suite) TestAddOutTxItem(c *C) {
 	result, err := txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item)
 	c.Assert(result, Equals, true)
 	c.Assert(err, IsNil)
-	msgs, _ = txOutStore.GetOutboundItems(w.ctx)
+	msgs, err = txOutStore.GetOutboundItems(w.ctx)
+	c.Assert(err, IsNil)
 	// this should be a mocknet address
 	c.Assert(msgs[0].ToAddress.String(), Equals, "qzg5mkh7rkw3y8kw47l3rrnvhmenvctmd5yg6hxe64")
 }
@@ -250,7 +251,8 @@ func (s TxOutStoreV85Suite) TestAddOutTxItem_OutboundHeightDoesNotGetOverride(c 
 	c.Assert(msgs, HasLen, 0)
 	//  the outbound has been delayed
 	newCtx := w.ctx.WithBlockHeight(4)
-	msgs, _ = txOutStore.GetOutboundItems(newCtx)
+	msgs, err = txOutStore.GetOutboundItems(newCtx)
+	c.Assert(err, IsNil)
 	c.Assert(msgs, HasLen, 1)
 	c.Assert(msgs[0].VaultPubKey.String(), Equals, vault.PubKey.String())
 	c.Assert(msgs[0].Coin.Amount.Equal(cosmos.NewUint(7999887500)), Equals, true, Commentf("%d", msgs[0].Coin.Amount.Uint64()))
@@ -486,8 +488,8 @@ func (k *TestCalcKeeper) GetTxOutValue(ctx cosmos.Context, height int64) (cosmos
 
 func (s TxOutStoreV85Suite) TestcalcTxOutHeight(c *C) {
 	keeper := &TestCalcKeeper{
-		value: make(map[int64]cosmos.Uint, 0),
-		mimir: make(map[string]int64, 0),
+		value: make(map[int64]cosmos.Uint),
+		mimir: make(map[string]int64),
 	}
 
 	keeper.mimir["MinTxOutVolumeThreshold"] = 25_00000000
@@ -618,7 +620,8 @@ func (s TxOutStoreV85Suite) TestAddOutTxItem_MultipleOutboundWillBeScheduledAtTh
 	c.Assert(msgs, HasLen, 0)
 	//  the outbound has been delayed
 	newCtx := w.ctx.WithBlockHeight(4)
-	msgs, _ = txOutStore.GetOutboundItems(newCtx)
+	msgs, err = txOutStore.GetOutboundItems(newCtx)
+	c.Assert(err, IsNil)
 	c.Assert(msgs, HasLen, 2)
 	c.Assert(msgs[0].VaultPubKey.String(), Equals, vault.PubKey.String())
 	c.Assert(msgs[0].Coin.Amount.Equal(cosmos.NewUint(7999887500)), Equals, true, Commentf("%d", msgs[0].Coin.Amount.Uint64()))

@@ -516,7 +516,7 @@ func (s *SlasherV86) SlashVault(ctx cosmos.Context, vaultPK common.PubKey, coins
 					for _, pk := range vault.GetMembership() {
 						member, _ := s.keeper.GetNodeAccountByPubKey(ctx, pk)
 						if member.Status == NodeActive {
-							activeMembers += 1
+							activeMembers++
 						}
 					}
 					if !HasSuperMajority(activeMembers, len(vault.GetMembership())) {

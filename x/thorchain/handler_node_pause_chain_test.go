@@ -12,7 +12,7 @@ func (s *HandlerNodePauseChainSuite) TestValidate(c *C) {
 	ctx, k := setupKeeperForTest(c)
 
 	node := GetRandomValidatorNode(NodeActive)
-	k.SetNodeAccount(ctx, node)
+	c.Assert(k.SetNodeAccount(ctx, node), IsNil)
 
 	handler := NewNodePauseChainHandler(NewDummyMgrWithKeeper(k))
 	// happy path
@@ -32,9 +32,9 @@ func (s *HandlerNodePauseChainSuite) TestHandle(c *C) {
 	node := GetRandomValidatorNode(NodeActive)
 	node2 := GetRandomValidatorNode(NodeActive)
 	node3 := GetRandomValidatorNode(NodeActive)
-	k.SetNodeAccount(ctx, node)
-	k.SetNodeAccount(ctx, node2)
-	k.SetNodeAccount(ctx, node3)
+	c.Assert(k.SetNodeAccount(ctx, node), IsNil)
+	c.Assert(k.SetNodeAccount(ctx, node2), IsNil)
+	c.Assert(k.SetNodeAccount(ctx, node3), IsNil)
 
 	handler := NewNodePauseChainHandler(NewDummyMgrWithKeeper(k))
 

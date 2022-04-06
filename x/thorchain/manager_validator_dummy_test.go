@@ -15,7 +15,7 @@ func NewValidatorDummyMgr() *ValidatorDummyMgr {
 }
 
 func (vm *ValidatorDummyMgr) BeginBlock(_ cosmos.Context, _ constants.ConstantValues, _ []string) error {
-	return kaboom
+	return errKaboom
 }
 
 func (vm *ValidatorDummyMgr) EndBlock(_ cosmos.Context, _ Manager, _ constants.ConstantValues) []abci.ValidatorUpdate {
@@ -23,13 +23,13 @@ func (vm *ValidatorDummyMgr) EndBlock(_ cosmos.Context, _ Manager, _ constants.C
 }
 
 func (vm *ValidatorDummyMgr) RequestYggReturn(_ cosmos.Context, _ NodeAccount, _ Manager, _ constants.ConstantValues) error {
-	return kaboom
+	return errKaboom
 }
 
 func (vm *ValidatorDummyMgr) processRagnarok(_ cosmos.Context, _ Manager, _ constants.ConstantValues) error {
-	return kaboom
+	return errKaboom
 }
 
 func (vm *ValidatorDummyMgr) NodeAccountPreflightCheck(ctx cosmos.Context, na NodeAccount, constAccessor constants.ConstantValues) (NodeStatus, error) {
-	return NodeDisabled, kaboom
+	return NodeDisabled, errKaboom
 }

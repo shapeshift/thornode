@@ -69,10 +69,10 @@ type BlockScannerConfiguration struct {
 	RPCHost                    string        `json:"rpc_host" mapstructure:"rpc_host"`
 	StartBlockHeight           int64         `json:"start_block_height" mapstructure:"start_block_height"`
 	BlockScanProcessors        int           `json:"block_scan_processors" mapstructure:"block_scan_processors"`
-	HttpRequestTimeout         time.Duration `json:"http_request_timeout" mapstructure:"http_request_timeout"`
-	HttpRequestReadTimeout     time.Duration `json:"http_request_read_timeout" mapstructure:"http_request_read_timeout"`
-	HttpRequestWriteTimeout    time.Duration `json:"http_request_write_timeout" mapstructure:"http_request_write_timeout"`
-	MaxHttpRequestRetry        int           `json:"max_http_request_retry" mapstructure:"max_http_request_retry"`
+	HTTPRequestTimeout         time.Duration `json:"http_request_timeout" mapstructure:"http_request_timeout"`
+	HTTPRequestReadTimeout     time.Duration `json:"http_request_read_timeout" mapstructure:"http_request_read_timeout"`
+	HTTPRequestWriteTimeout    time.Duration `json:"http_request_write_timeout" mapstructure:"http_request_write_timeout"`
+	MaxHTTPRequestRetry        int           `json:"max_http_request_retry" mapstructure:"max_http_request_retry"`
 	BlockHeightDiscoverBackoff time.Duration `json:"block_height_discover_back_off" mapstructure:"block_height_discover_back_off"`
 	BlockRetryInterval         time.Duration `json:"block_retry_interval" mapstructure:"block_retry_interval"`
 	EnforceBlockHeight         bool          `json:"enforce_block_height" mapstructure:"enforce_block_height"`

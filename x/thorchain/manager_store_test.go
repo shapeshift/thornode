@@ -19,7 +19,7 @@ func (s *StoreManagerTestSuite) TestRemoveTransactions(c *C) {
 	}, nil)
 
 	c.Assert(storeMgr.mgr.Keeper().SaveNetworkFee(ctx, common.ETHChain, NetworkFee{
-		common.ETHChain, 80000, 30,
+		Chain: common.ETHChain, TransactionSize: 80000, TransactionFeeRate: 30,
 	}), IsNil)
 
 	inTxID, err := common.NewTxID("BC68035CE2C8A2C549604FF7DB59E07931F39040758B138190338FA697338DB3")

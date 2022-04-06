@@ -25,11 +25,10 @@ func (s *HandlerSwitchSuite) TestValidate(c *C) {
 	tx.Coins = common.Coins{
 		common.NewCoin(common.Rune67CAsset, cosmos.NewUint(100*common.One)),
 	}
-	destination := GetRandomBNBAddress()
 
 	handler := NewSwitchHandler(NewDummyMgrWithKeeper(k))
 
-	destination = GetRandomTHORAddress()
+	destination := GetRandomTHORAddress()
 	// happy path
 	msg := NewMsgSwitch(tx, destination, na.NodeAddress)
 	result, err := handler.Run(ctx, msg)
@@ -92,16 +91,16 @@ func (s *HandlerSwitchSuite) getAValidSwitchMsg(ctx cosmos.Context, helper *Hand
 		common.NewCoin(common.BEP2RuneAsset(), cosmos.NewUint(100*common.One)),
 	}
 	destination := GetRandomBech32Addr()
-	helper.Keeper.SetNodeAccount(ctx, na)
+	_ = helper.Keeper.SetNodeAccount(ctx, na)
 	coin, _ := common.NewCoin(common.RuneNative, cosmos.NewUint(800*common.One)).Native()
-	helper.Keeper.AddCoins(ctx, destination, cosmos.NewCoins(coin))
+	_ = helper.Keeper.AddCoins(ctx, destination, cosmos.NewCoins(coin))
 	vault := GetRandomVault()
 	vault.Type = AsgardVault
 	vault.Status = ActiveVault
 	vault.AddFunds(common.Coins{
 		common.NewCoin(common.BEP2RuneAsset(), cosmos.NewUint(100*common.One)),
 	})
-	helper.Keeper.SetVault(ctx, vault)
+	_ = helper.Keeper.SetVault(ctx, vault)
 	return NewMsgSwitch(tx, common.Address(destination.String()), na.NodeAddress)
 }
 

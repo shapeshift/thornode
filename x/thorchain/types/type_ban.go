@@ -68,9 +68,5 @@ func (m *BanVoter) HasConsensus(nodeAccounts NodeAccounts) bool {
 			count++
 		}
 	}
-	if HasSuperMajority(count, len(nodeAccounts)) {
-		return true
-	}
-
-	return false
+	return HasSuperMajority(count, len(nodeAccounts))
 }

@@ -61,10 +61,7 @@ func (s *LitecoinBlockMetaAccessorTestSuite) TestBlockMetaAccessor(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(blockMetas, HasLen, 1025)
 	c.Assert(blockMetaAccessor.PruneBlockMeta(1000, func(meta *BlockMeta) bool {
-		if meta.TransactionHashExist(hash.String()) {
-			return false
-		}
-		return true
+		return !meta.TransactionHashExist(hash.String())
 	}), IsNil)
 	allBlockMetas, err := blockMetaAccessor.GetBlockMetas()
 	c.Assert(err, IsNil)

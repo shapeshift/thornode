@@ -111,21 +111,21 @@ func newGasManagerTestHelper(k keeper.Keeper) *gasManagerTestHelper {
 
 func (g *gasManagerTestHelper) GetNetwork(ctx cosmos.Context) (Network, error) {
 	if g.failGetNetwork {
-		return Network{}, kaboom
+		return Network{}, errKaboom
 	}
 	return g.Keeper.GetNetwork(ctx)
 }
 
 func (g *gasManagerTestHelper) GetPool(ctx cosmos.Context, asset common.Asset) (Pool, error) {
 	if g.failGetPool {
-		return NewPool(), kaboom
+		return NewPool(), errKaboom
 	}
 	return g.Keeper.GetPool(ctx, asset)
 }
 
 func (g *gasManagerTestHelper) SetPool(ctx cosmos.Context, p Pool) error {
 	if g.failSetPool {
-		return kaboom
+		return errKaboom
 	}
 	return g.Keeper.SetPool(ctx, p)
 }

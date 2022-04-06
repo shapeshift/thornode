@@ -159,7 +159,7 @@ func (k KVStore) SortBySecurity(ctx cosmos.Context, vaults Vaults, signingTransP
 	}
 
 	// sort by how far total bond and total value are from each other
-	sort.SliceStable(vaultSecurity[:], func(i, j int) bool {
+	sort.SliceStable(vaultSecurity, func(i, j int) bool {
 		return vaultSecurity[i].Diff < vaultSecurity[j].Diff
 	})
 

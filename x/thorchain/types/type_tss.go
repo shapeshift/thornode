@@ -80,7 +80,7 @@ func (m *TssVoter) Sign(signer cosmos.AccAddress, chains []string) bool {
 
 // ConsensusChains - get a list of chains that have 2/3rds majority
 func (m *TssVoter) ConsensusChains() common.Chains {
-	chainCount := make(map[common.Chain]int, 0)
+	chainCount := make(map[common.Chain]int)
 	for _, chain := range m.GetChains() {
 		if _, ok := chainCount[chain]; !ok {
 			chainCount[chain] = 0

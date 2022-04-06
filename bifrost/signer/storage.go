@@ -230,7 +230,7 @@ func (s *SignerStore) List() []TxOutStoreItem {
 
 // OrderedLists
 func (s *SignerStore) OrderedLists() map[string][]TxOutStoreItem {
-	lists := make(map[string][]TxOutStoreItem, 0)
+	lists := make(map[string][]TxOutStoreItem)
 	for _, item := range s.List() {
 		key := fmt.Sprintf("%s-%s", item.TxOutItem.Chain.String(), item.TxOutItem.VaultPubKey.String())
 		if _, ok := lists[key]; !ok {

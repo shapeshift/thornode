@@ -23,8 +23,7 @@ var _ = Suite(&KeysignSuite{})
 
 func (s *KeysignSuite) SetUpSuite(c *C) {
 	s.server = httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		switch {
-		case strings.HasPrefix(req.RequestURI, KeysignEndpoint):
+		if strings.HasPrefix(req.RequestURI, KeysignEndpoint) {
 			httpTestHandler(c, rw, s.fixture)
 		}
 	}))

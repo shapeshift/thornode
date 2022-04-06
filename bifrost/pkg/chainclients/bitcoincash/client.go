@@ -221,7 +221,7 @@ func (c *Client) GetAddress(poolPubKey common.PubKey) string {
 }
 
 // getUTXOs send a request to bitcond RPC endpoint to query all the UTXO
-func (c *Client) getUTXOs(minConfirm, MaximumConfirm int, pkey common.PubKey) ([]btcjson.ListUnspentResult, error) {
+func (c *Client) getUTXOs(minConfirm, maximumConfirm int, pkey common.PubKey) ([]btcjson.ListUnspentResult, error) {
 	bchAddress, err := pkey.GetAddress(common.BCHChain)
 	if err != nil {
 		return nil, fmt.Errorf("fail to get BCH Address for pubkey(%s): %w", pkey, err)
@@ -230,7 +230,7 @@ func (c *Client) getUTXOs(minConfirm, MaximumConfirm int, pkey common.PubKey) ([
 	if err != nil {
 		return nil, fmt.Errorf("fail to decode BCH address(%s): %w", bchAddress.String(), err)
 	}
-	return c.client.ListUnspentMinMaxAddresses(minConfirm, MaximumConfirm, []bchutil.Address{
+	return c.client.ListUnspentMinMaxAddresses(minConfirm, maximumConfirm, []bchutil.Address{
 		addr,
 	})
 }

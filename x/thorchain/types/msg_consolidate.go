@@ -5,9 +5,9 @@ import (
 )
 
 // NewMsgConsolidate is a constructor function for MsgConsolidate
-func NewMsgConsolidate(ObservedTx ObservedTx, signer cosmos.AccAddress) *MsgConsolidate {
+func NewMsgConsolidate(observedTx ObservedTx, signer cosmos.AccAddress) *MsgConsolidate {
 	return &MsgConsolidate{
-		ObservedTx: ObservedTx,
+		ObservedTx: observedTx,
 		Signer:     signer,
 	}
 }

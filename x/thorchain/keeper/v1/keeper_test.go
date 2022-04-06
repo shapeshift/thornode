@@ -54,12 +54,7 @@ func makeTestCodec() *codec.LegacyAmino {
 	return cdc
 }
 
-var (
-	multiPerm    = "multiple permissions account"
-	randomPerm   = "random permission"
-	holder       = "holder"
-	keyThorchain = cosmos.NewKVStoreKey(StoreKey)
-)
+var keyThorchain = cosmos.NewKVStoreKey(StoreKey)
 
 func setupKeeperForTest(c *C) (cosmos.Context, KVStore) {
 	SetupConfigForTest()

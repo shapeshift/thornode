@@ -145,7 +145,7 @@ func (h ManageTHORNameHandler) handleV1(ctx cosmos.Context, msg MsgManageTHORNam
 		}
 		feePerBlock := h.mgr.GetConstants().GetInt64Value(constants.TNSFeePerBlock)
 		fundPaid = msg.Coin.Amount
-		addBlocks = addBlocks + (int64(msg.Coin.Amount.Uint64()) / feePerBlock)
+		addBlocks += (int64(msg.Coin.Amount.Uint64()) / feePerBlock)
 		if tn.ExpireBlockHeight < common.BlockHeight(ctx) {
 			tn.ExpireBlockHeight = common.BlockHeight(ctx) + addBlocks
 		} else {

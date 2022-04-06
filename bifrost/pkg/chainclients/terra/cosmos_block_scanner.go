@@ -302,9 +302,11 @@ func (c *CosmosBlockScanner) processTxs(height int64, rawTxs [][]byte) ([]types.
 			continue
 		}
 
-		fees := tx.(ctypes.FeeTx).GetFee()
-		memo := tx.(ctypes.TxWithMemo).GetMemo()
-		c.updateGasCache(tx.(ctypes.FeeTx))
+		feeTx, _ := tx.(ctypes.FeeTx)
+		fees := feeTx.GetFee()
+		mem, _ := tx.(ctypes.TxWithMemo)
+		memo := mem.GetMemo()
+		c.updateGasCache(feeTx)
 
 		for _, msg := range tx.GetMsgs() {
 			if msg, isMsgSend := msg.(*btypes.MsgSend); isMsgSend {
