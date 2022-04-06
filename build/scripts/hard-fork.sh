@@ -6,12 +6,12 @@ HARDFORK_BLOCK_HEIGHT="${HARDFORK_BLOCK_HEIGHT:--1}"
 CHAIN_ID="${CHAIN_ID:-}"
 NEW_GENESIS_TIME="${NEW_GENESIS_TIME:-}"
 if [ -z "$CHAIN_ID" ]; then
-	echo "CHAIN_ID is empty"
-	exit 1
+  echo "CHAIN_ID is empty"
+  exit 1
 fi
 if [ -z "$NEW_GENESIS_TIME" ]; then
-	echo "NEW_GENESIS_TIME is empty"
-	exit 1
+  echo "NEW_GENESIS_TIME is empty"
+  exit 1
 fi
 DATE=$(date +%s)
 echo "new chain id: $CHAIN_ID , genesis_time:$NEW_GENESIS_TIME"
