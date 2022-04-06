@@ -6,33 +6,33 @@
 set -e
 
 if [ -z "$1" ]; then
-	echo "Missing mock binance address (address:port)"
-	exit 1
+  echo "Missing mock binance address (address:port)"
+  exit 1
 fi
 
 if [ -z "$2" ]; then
-	echo "Missing bnb from address argument"
-	exit 1
+  echo "Missing bnb from address argument"
+  exit 1
 fi
 
 if [ -z "$3" ]; then
-	echo "Missing bnb to address argument"
-	exit 1
+  echo "Missing bnb to address argument"
+  exit 1
 fi
 
 if [ -z "$4" ]; then
-	echo "Missing coin amount argument"
-	exit 1
+  echo "Missing coin amount argument"
+  exit 1
 fi
 
 if [ -z "$5" ]; then
-	echo "Missing coin asset argument"
-	exit 1
+  echo "Missing coin asset argument"
+  exit 1
 fi
 
 if [ -z "$6" ]; then
-	echo "Missing memo argument"
-	exit 1
+  echo "Missing memo argument"
+  exit 1
 fi
 
 # POOL_ADDRESS=$(curl -s $1:1317/thorchain/pool_addresses | jq -r ".current[0].address")
