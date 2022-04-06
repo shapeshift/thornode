@@ -5,10 +5,10 @@ import os
 import sys
 import time
 
-from tqdm import tqdm
 import requests
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
+from tqdm import tqdm
 
 # Init logging
 logging.basicConfig(
@@ -18,6 +18,7 @@ logging.basicConfig(
 
 SLEEP = 5
 RETRIES = 6
+
 
 def retry(func, args=None, kwargs=None, max_tries=10):
     pass_on_args = args if args else []
@@ -31,8 +32,12 @@ def retry(func, args=None, kwargs=None, max_tries=10):
             time.sleep(i)
             continue
 
+
 def requests_retry_session(
-    retries=6, backoff_factor=1, status_forcelist=(500, 502, 504), session=None,
+    retries=6,
+    backoff_factor=1,
+    status_forcelist=(500, 502, 504),
+    session=None,
 ):
     """
     Creates a request session that has auto retry
@@ -83,10 +88,9 @@ class Tendermint(HttpClient):
     def __init__(self, base):
         self.base_url = base
 
-
     def get_height(self):
         resp = self.fetch("/block")
-        return int(resp['result']['block']['header']['height'])
+        return int(resp["result"]["block"]["header"]["height"])
 
 
 def main():
@@ -105,10 +109,10 @@ def main():
         try:
             net_current_height = netNode.get_height()
             my_current_height = myNode.get_height()
-            
+
             # update progress bar
             pbar.total = net_current_height
-            pbar.update(my_current_height-last_height)
+            pbar.update(my_current_height - last_height)
 
             # check that we've reached the tip
             if net_current_height == my_current_height:
@@ -118,7 +122,7 @@ def main():
             if my_current_height <= last_height:
                 failures += 1
                 if failures >= 6:
-                    logging.error('same block height, chain may be broken')
+                    logging.error("same block height, chain may be broken")
                     exit(1)
 
             last_height = my_current_height

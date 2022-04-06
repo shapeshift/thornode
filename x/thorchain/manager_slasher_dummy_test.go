@@ -14,7 +14,7 @@ type DummySlasher struct {
 
 func NewDummySlasher() *DummySlasher {
 	return &DummySlasher{
-		pts: make(map[string]int64, 0),
+		pts: make(map[string]int64),
 	}
 }
 
@@ -22,19 +22,19 @@ func (d DummySlasher) BeginBlock(ctx cosmos.Context, req abci.RequestBeginBlock,
 }
 
 func (d DummySlasher) HandleDoubleSign(ctx cosmos.Context, addr crypto.Address, infractionHeight int64, constAccessor constants.ConstantValues) error {
-	return kaboom
+	return errKaboom
 }
 
 func (d DummySlasher) LackObserving(ctx cosmos.Context, constAccessor constants.ConstantValues) error {
-	return kaboom
+	return errKaboom
 }
 
 func (d DummySlasher) LackSigning(ctx cosmos.Context, constAccessor constants.ConstantValues, mgr Manager) error {
-	return kaboom
+	return errKaboom
 }
 
 func (d DummySlasher) SlashVault(ctx cosmos.Context, vaultPK common.PubKey, coins common.Coins, mgr Manager) error {
-	return kaboom
+	return errKaboom
 }
 
 func (d DummySlasher) IncSlashPoints(ctx cosmos.Context, point int64, addresses ...cosmos.AccAddress) {

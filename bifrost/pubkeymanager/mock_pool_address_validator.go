@@ -45,8 +45,8 @@ func (mpa *MockPoolAddressValidator) HasPubKey(pk common.PubKey) bool    { retur
 func (mpa *MockPoolAddressValidator) AddPubKey(pk common.PubKey, _ bool) {}
 func (mpa *MockPoolAddressValidator) AddNodePubKey(pk common.PubKey)     {}
 func (mpa *MockPoolAddressValidator) RemovePubKey(pk common.PubKey)      {}
-func (mpa *MockPoolAddressValidator) Start() error                       { return errors.New("Kaboom!") }
-func (mpa *MockPoolAddressValidator) Stop() error                        { return errors.New("Kaboom!") }
+func (mpa *MockPoolAddressValidator) Start() error                       { return errors.New("kaboom") }
+func (mpa *MockPoolAddressValidator) Stop() error                        { return errors.New("kaboom") }
 
 func (mpa *MockPoolAddressValidator) IsValidPoolAddress(addr string, chain common.Chain) (bool, common.ChainPoolInfo) {
 	matchCurrent, cpi := matchTestAddress(addr, current, chain)

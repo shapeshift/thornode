@@ -30,7 +30,7 @@ func NewCommonOutboundTxHandler(mgr Manager) CommonOutboundTxHandler {
 func (h CommonOutboundTxHandler) slash(ctx cosmos.Context, tx ObservedTx) error {
 	toSlash := tx.Tx.Coins.Adds(tx.Tx.Gas.ToCoins())
 
-	ctx = ctx.WithContext(context.WithValue(ctx.Context(), constants.CtxMetricLabels, []metrics.Label{
+	ctx = ctx.WithContext(context.WithValue(ctx.Context(), constants.CtxMetricLabels, []metrics.Label{ // nolint
 		telemetry.NewLabel("reason", "failed_outbound"),
 		telemetry.NewLabel("chain", string(tx.Tx.Chain)),
 	}))

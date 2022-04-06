@@ -158,7 +158,7 @@ func (s *ThorchainSuite) TestChurn(c *C) {
 	keygenBlock, err := mgr.Keeper().GetKeygenBlock(ctx, common.BlockHeight(ctx))
 	c.Assert(err, IsNil)
 	c.Assert(keygenBlock.IsEmpty(), Equals, false)
-	expected := append(vault.Membership[1:], na.PubKeySet.Secp256k1.String())
+	expected := append(vault.Membership[1:], na.PubKeySet.Secp256k1.String()) // nolint
 	c.Assert(keygenBlock.Keygens, HasLen, 1)
 	keygen := keygenBlock.Keygens[0]
 	// sort our slices so they are in the same order
@@ -369,7 +369,7 @@ func (s *ThorchainSuite) TestRagnarok(c *C) {
 	c.Assert(err, IsNil)
 	// this should trigger stage 1 of the ragnarok protocol. We should see a tx
 	// out per node account
-	mgr.ValidatorMgr().processRagnarok(ctx, mgr, consts)
+	c.Assert(mgr.ValidatorMgr().processRagnarok(ctx, mgr, consts), IsNil)
 	// after ragnarok get trigged , we pay bond reward immediately
 	for idx, bonder := range bonders {
 		na, err := mgr.Keeper().GetNodeAccount(ctx, bonder.NodeAddress)
@@ -398,12 +398,12 @@ func (s *ThorchainSuite) TestRagnarok(c *C) {
 
 	for i := 1; i <= 11; i++ { // simulate each round of ragnarok (max of ten)
 		c.Assert(mgr.ValidatorMgr().processRagnarok(ctx, mgr, consts), IsNil)
-		items, err := mgr.TxOutStore().GetOutboundItems(ctx)
+		_, err := mgr.TxOutStore().GetOutboundItems(ctx)
 		c.Assert(err, IsNil)
 		// validate liquidity providers get their returns
 		for j, lp := range lpsAssets {
 			items := mgr.TxOutStore().GetOutboundItemByToAddress(ctx, lp)
-			if i == 1 {
+			if i == 1 { // nolint
 				if j >= len(lps)-1 {
 					c.Assert(items, HasLen, 0, Commentf("%d", len(items)))
 				} else {

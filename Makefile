@@ -74,10 +74,13 @@ lint-pre: protob
 lint-handlers:
 	@./scripts/lint-handlers.bash
 
+lint-managers:
+	@./scripts/lint-managers.bash
+
 lint-erc20s:
 	@./scripts/lint-erc20s.bash
 
-lint: lint-pre lint-handlers lint-erc20s
+lint: lint-pre lint-handlers lint-managers lint-erc20s
 	@go run tools/analyze/main.go ./common/... ./constants/... ./x/...
 ifdef CI_MERGE_REQUEST_TARGET_BRANCH_NAME
 	trunk check --no-progress --monitor=false --upstream origin/$(CI_MERGE_REQUEST_TARGET_BRANCH_NAME)
@@ -85,7 +88,7 @@ else
 ifdef CI_PROJECT_ID
 	trunk check --no-progress --monitor=false --upstream origin/develop
 else
-	trunk check --upstream origin/develop
+	trunk check --no-fix --upstream origin/develop
 endif
 endif
 

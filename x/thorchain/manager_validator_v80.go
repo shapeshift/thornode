@@ -1065,7 +1065,7 @@ func (vm *validatorMgrV80) getLastChurnHeight(ctx cosmos.Context) int64 {
 	return lastChurnHeight
 }
 
-func (vm *validatorMgrV80) getScore(ctx cosmos.Context, slashPts int64, lastChurnHeight int64) cosmos.Uint {
+func (vm *validatorMgrV80) getScore(ctx cosmos.Context, slashPts, lastChurnHeight int64) cosmos.Uint {
 	// get to the 8th decimal point, but keep numbers integers for safer math
 	score := cosmos.NewUint(uint64((common.BlockHeight(ctx) - lastChurnHeight) * common.One))
 	if slashPts == 0 {
@@ -1075,7 +1075,7 @@ func (vm *validatorMgrV80) getScore(ctx cosmos.Context, slashPts int64, lastChur
 }
 
 // Iterate over active node accounts, finding bad actors with high slash points
-func (vm *validatorMgrV80) findBadActors(ctx cosmos.Context, minSlashPointsForBadValidator int64, badValidatorRedline int64) (NodeAccounts, error) {
+func (vm *validatorMgrV80) findBadActors(ctx cosmos.Context, minSlashPointsForBadValidator, badValidatorRedline int64) (NodeAccounts, error) {
 	badActors := make(NodeAccounts, 0)
 	nas, err := vm.k.ListActiveValidators(ctx)
 	if err != nil {
@@ -1233,7 +1233,7 @@ func (vm *validatorMgrV80) markLowBondActor(ctx cosmos.Context) error {
 }
 
 // Mark a bad actor to be churned out
-func (vm *validatorMgrV80) markBadActor(ctx cosmos.Context, minSlashPointsForBadValidator int64, redline int64) error {
+func (vm *validatorMgrV80) markBadActor(ctx cosmos.Context, minSlashPointsForBadValidator, redline int64) error {
 	nas, err := vm.findBadActors(ctx, minSlashPointsForBadValidator, redline)
 	if err != nil {
 		return err

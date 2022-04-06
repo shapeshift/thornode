@@ -114,7 +114,7 @@ func (k KVStore) GetKey(ctx cosmos.Context, prefix kvTypes.DbPrefix, key string)
 func (k KVStore) SetStoreVersion(ctx cosmos.Context, value int64) {
 	key := k.GetKey(ctx, prefixStoreVersion, "")
 	store := ctx.KVStore(k.storeKey)
-	ver := ProtoInt64{value}
+	ver := ProtoInt64{Value: value}
 	store.Set([]byte(key), k.cdc.MustMarshal(&ver))
 }
 
@@ -154,7 +154,7 @@ func (k KVStore) has(ctx cosmos.Context, key string) bool {
 
 func (k KVStore) setInt64(ctx cosmos.Context, key string, record int64) {
 	store := ctx.KVStore(k.storeKey)
-	value := ProtoInt64{record}
+	value := ProtoInt64{Value: record}
 	buf := k.cdc.MustMarshal(&value)
 	if buf == nil {
 		store.Delete([]byte(key))
@@ -180,7 +180,7 @@ func (k KVStore) getInt64(ctx cosmos.Context, key string, record *int64) (bool, 
 
 func (k KVStore) setUint64(ctx cosmos.Context, key string, record uint64) {
 	store := ctx.KVStore(k.storeKey)
-	value := ProtoUint64{record}
+	value := ProtoUint64{Value: record}
 	buf := k.cdc.MustMarshal(&value)
 	if buf == nil {
 		store.Delete([]byte(key))
@@ -195,7 +195,7 @@ func (k KVStore) getUint64(ctx cosmos.Context, key string, record *uint64) (bool
 		return false, nil
 	}
 
-	value := ProtoUint64{*record}
+	value := ProtoUint64{Value: *record}
 	bz := store.Get([]byte(key))
 	if err := k.cdc.Unmarshal(bz, &value); err != nil {
 		return true, dbError(ctx, fmt.Sprintf("Unmarshal kvstore: (%T) %s", record, key), err)
@@ -206,7 +206,7 @@ func (k KVStore) getUint64(ctx cosmos.Context, key string, record *uint64) (bool
 
 func (k KVStore) setAccAddresses(ctx cosmos.Context, key string, record []cosmos.AccAddress) {
 	store := ctx.KVStore(k.storeKey)
-	value := ProtoAccAddresses{record}
+	value := ProtoAccAddresses{Value: record}
 	buf := k.cdc.MustMarshal(&value)
 	if buf == nil {
 		store.Delete([]byte(key))

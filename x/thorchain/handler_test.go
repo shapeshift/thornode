@@ -28,7 +28,7 @@ import (
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
-var kaboom = errors.New("kaboom!!!!!")
+var errKaboom = errors.New("kaboom")
 
 type HandlerSuite struct{}
 
@@ -60,12 +60,7 @@ func makeTestCodec() *codec.LegacyAmino {
 	return types.MakeTestCodec()
 }
 
-var (
-	multiPerm    = "multiple permissions account"
-	randomPerm   = "random permission"
-	holder       = "holder"
-	keyThorchain = cosmos.NewKVStoreKey(StoreKey)
-)
+var keyThorchain = cosmos.NewKVStoreKey(StoreKey)
 
 func setupManagerForTest(c *C) (cosmos.Context, *Mgrs) {
 	SetupConfigForTest()
@@ -119,7 +114,7 @@ func setupManagerForTest(c *C) (cosmos.Context, *Mgrs) {
 	os.Setenv("NET", "mocknet")
 	mgr := NewManagers(k, marshaler, bk, ak, keyThorchain)
 	constants.SWVersion = GetCurrentVersion()
-	mgr.BeginBlock(ctx)
+	c.Assert(mgr.BeginBlock(ctx), IsNil)
 	return ctx, mgr
 }
 
@@ -246,7 +241,7 @@ func (HandlerSuite) TestHandleTxInWithdrawLiquidityMemo(c *C) {
 		common.NewCoin(common.BNBAsset, cosmos.NewUint(100*common.One)),
 		common.NewCoin(common.RuneAsset(), cosmos.NewUint(100*common.One)),
 	}
-	w.keeper.SetVault(w.ctx, vault)
+	c.Assert(w.keeper.SetVault(w.ctx, vault), IsNil)
 	vaultAddr, err := vault.PubKey.GetAddress(common.BNBChain)
 
 	pool := NewPool()
@@ -284,11 +279,11 @@ func (HandlerSuite) TestHandleTxInWithdrawLiquidityMemo(c *C) {
 	handler := NewInternalHandler(w.mgr)
 
 	FundModule(c, w.ctx, w.keeper, AsgardName, 500)
-	w.keeper.SaveNetworkFee(w.ctx, common.BNBChain, NetworkFee{
+	c.Assert(w.keeper.SaveNetworkFee(w.ctx, common.BNBChain, NetworkFee{
 		Chain:              common.BNBChain,
 		TransactionSize:    1,
 		TransactionFeeRate: bnbSingleTxFee.Uint64(),
-	})
+	}), IsNil)
 
 	_, err = handler(w.ctx, msg)
 	c.Assert(err, IsNil)
@@ -340,7 +335,7 @@ func (HandlerSuite) TestRefund(c *C) {
 
 	// check THORNode DONT create a refund transaction when THORNode don't have a pool for
 	// the asset sent.
-	lokiAsset, _ := common.NewAsset(fmt.Sprintf("BNB.LOKI"))
+	lokiAsset, _ := common.NewAsset("BNB.LOKI")
 	txin.Tx.Coins = common.Coins{
 		common.NewCoin(lokiAsset, cosmos.NewUint(100*common.One)),
 	}
@@ -510,7 +505,7 @@ func (HandlerSuite) TestGetMsgLiquidityFromMemo(c *C) {
 	c.Assert(msg2, NotNil)
 	c.Assert(err2, IsNil)
 
-	lokiAsset, _ := common.NewAsset(fmt.Sprintf("BNB.LOKI"))
+	lokiAsset, _ := common.NewAsset("BNB.LOKI")
 	// Make sure the RUNE Address and Asset Address set correctly
 	txin.Tx.Coins = common.Coins{
 		common.NewCoin(runeAsset,
@@ -525,7 +520,8 @@ func (HandlerSuite) TestGetMsgLiquidityFromMemo(c *C) {
 	msg4, err4 := getMsgAddLiquidityFromMemo(w.ctx, lokiAddLiquidityMemo.(AddLiquidityMemo), txin, GetRandomBech32Addr())
 	c.Assert(err4, IsNil)
 	c.Assert(msg4, NotNil)
-	msgAddLiquidity := msg4.(*MsgAddLiquidity)
+	msgAddLiquidity, ok := msg4.(*MsgAddLiquidity)
+	c.Assert(ok, Equals, true)
 	c.Assert(msgAddLiquidity, NotNil)
 	c.Assert(msgAddLiquidity.RuneAddress, Equals, runeAddr)
 	c.Assert(msgAddLiquidity.AssetAddress, Equals, txin.Tx.FromAddress)
@@ -638,7 +634,7 @@ func (s *HandlerSuite) TestExternalHandler(c *C) {
 	c.Check(errors.Is(err, se.ErrUnauthorized), Equals, true)
 	c.Check(result, IsNil)
 	na := GetRandomValidatorNode(NodeActive)
-	mgr.Keeper().SetNodeAccount(ctx, na)
+	c.Assert(mgr.Keeper().SetNodeAccount(ctx, na), IsNil)
 	FundModule(c, ctx, mgr.Keeper(), BondName, 10*common.One)
 	result, err = handler(ctx, NewMsgSetVersion("0.1.0", na.NodeAddress))
 	c.Assert(err, IsNil)

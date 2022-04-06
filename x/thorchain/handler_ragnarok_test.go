@@ -81,7 +81,7 @@ func (k *TestRagnarokKeeperHappyPath) GetTxOut(ctx cosmos.Context, blockHeight i
 	if k.txout != nil && k.txout.Height == blockHeight {
 		return k.txout, nil
 	}
-	return nil, kaboom
+	return nil, errKaboom
 }
 
 func (k *TestRagnarokKeeperHappyPath) SetTxOut(ctx cosmos.Context, blockOut *TxOut) error {
@@ -89,7 +89,7 @@ func (k *TestRagnarokKeeperHappyPath) SetTxOut(ctx cosmos.Context, blockOut *TxO
 		k.txout = blockOut
 		return nil
 	}
-	return kaboom
+	return errKaboom
 }
 
 func (k *TestRagnarokKeeperHappyPath) GetVault(_ cosmos.Context, pk common.PubKey) (Vault, error) {

@@ -474,7 +474,7 @@ func cyclePoolsV73(ctx cosmos.Context, maxAvailablePools, minRunePoolDepth, stag
 	minRuneDepth := cosmos.NewUint(uint64(minRunePoolDepth))
 
 	// quick func to check the validity of a pool
-	valid_pool := func(pool Pool) bool {
+	validPool := func(pool Pool) bool {
 		if pool.BalanceAsset.IsZero() || pool.BalanceRune.IsZero() || pool.BalanceRune.LT(minRuneDepth) {
 			return false
 		}
@@ -482,7 +482,7 @@ func cyclePoolsV73(ctx cosmos.Context, maxAvailablePools, minRunePoolDepth, stag
 	}
 
 	// quick func to save a pool status and emit event
-	set_pool := func(pool Pool) error {
+	setPool := func(pool Pool) error {
 		poolEvt := NewEventPool(pool.Asset, pool.Status)
 		if err := mgr.EventMgr().EmitEvent(ctx, poolEvt); err != nil {
 			return fmt.Errorf("fail to emit pool event: %w", err)
@@ -510,14 +510,12 @@ func cyclePoolsV73(ctx cosmos.Context, maxAvailablePools, minRunePoolDepth, stag
 		case PoolAvailable:
 			// any available pools that have no asset, no rune, or less than
 			// min rune, moves back to staged status
-			if valid_pool(pool) {
+			if validPool(pool) {
 				availblePoolCount += 1
-			} else {
-				if !pool.Asset.IsGasAsset() {
-					pool.Status = PoolStaged
-					if err := set_pool(pool); err != nil {
-						return err
-					}
+			} else if !pool.Asset.IsGasAsset() {
+				pool.Status = PoolStaged
+				if err := setPool(pool); err != nil {
+					return err
 				}
 			}
 			if pool.BalanceRune.LT(choppingBlock.BalanceRune) || choppingBlock.IsEmpty() {
@@ -574,10 +572,8 @@ func cyclePoolsV73(ctx cosmos.Context, maxAvailablePools, minRunePoolDepth, stag
 				// remove asset from Vault
 				removeAssetFromVault(ctx, pool.Asset, mgr)
 
-			} else {
-				if valid_pool(pool) && onDeck.BalanceRune.LT(pool.BalanceRune) {
-					onDeck = pool
-				}
+			} else if validPool(pool) && onDeck.BalanceRune.LT(pool.BalanceRune) {
+				onDeck = pool
 			}
 		}
 	}
@@ -598,14 +594,14 @@ func cyclePoolsV73(ctx cosmos.Context, maxAvailablePools, minRunePoolDepth, stag
 
 	if !onDeck.IsEmpty() {
 		onDeck.Status = PoolAvailable
-		if err := set_pool(onDeck); err != nil {
+		if err := setPool(onDeck); err != nil {
 			return err
 		}
 	}
 
 	if !choppingBlock.IsEmpty() {
 		choppingBlock.Status = PoolStaged
-		if err := set_pool(choppingBlock); err != nil {
+		if err := setPool(choppingBlock); err != nil {
 			return err
 		}
 	}
@@ -1003,9 +999,7 @@ func emitEndBlockTelemetry(ctx cosmos.Context, mgr Manager) error {
 	}
 
 	// emit vault metrics
-	asgards, err := mgr.Keeper().GetAsgardVaults(ctx)
-	if err != nil {
-	}
+	asgards, _ := mgr.Keeper().GetAsgardVaults(ctx)
 	for _, vault := range append(asgards, yggs...) {
 		if vault.Status != ActiveVault && vault.Status != RetiringVault {
 			continue

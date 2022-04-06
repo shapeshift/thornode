@@ -72,22 +72,22 @@ func (m *Pool) GetPoolUnits() cosmos.Uint {
 	return m.LPUnits.Add(m.SynthUnits)
 }
 
-func (m *Pool) CalcUnits(version semver.Version, S cosmos.Uint) cosmos.Uint {
+func (m *Pool) CalcUnits(version semver.Version, s cosmos.Uint) cosmos.Uint {
 	if version.GTE(semver.MustParse("0.80.0")) {
-		return m.CalcUnitsV80(S)
+		return m.CalcUnitsV80(s)
 	}
 	return m.GetPoolUnits()
 }
 
-func (m *Pool) CalcUnitsV80(S cosmos.Uint) cosmos.Uint {
+func (m *Pool) CalcUnitsV80(s cosmos.Uint) cosmos.Uint {
 	// Calculate synth units
 	// (L*S)/(2*A-S)
 	// S := k.GetTotalSupply(ctx, p.Asset.GetSyntheticAsset())
 	if m.BalanceAsset.IsZero() {
 		m.SynthUnits = cosmos.ZeroUint()
 	} else {
-		numerator := m.LPUnits.Mul(S)
-		denominator := common.SafeSub(m.BalanceAsset.MulUint64(2), S)
+		numerator := m.LPUnits.Mul(s)
+		denominator := common.SafeSub(m.BalanceAsset.MulUint64(2), s)
 		if denominator.IsZero() {
 			denominator = cosmos.OneUint()
 		}

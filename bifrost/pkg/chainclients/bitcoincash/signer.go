@@ -142,7 +142,7 @@ func (c *Client) getUtxoToSpend(pubKey common.PubKey, total float64) ([]btcjson.
 		}
 		if isYggdrasil || item.Confirmations >= MinUTXOConfirmation || isSelfTx {
 			result = append(result, item)
-			toSpend = toSpend + item.Amount
+			toSpend += item.Amount
 		}
 		// in the scenario that there are too many unspent utxos available, make sure it doesn't spend too much
 		// as too much UTXO will cause huge pressure on TSS, also make sure it will spend at least maxUTXOsToSpend

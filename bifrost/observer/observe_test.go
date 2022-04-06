@@ -78,7 +78,7 @@ func (s *ObserverSuite) NewMockBinanceInstance(c *C, jsonData string) {
 	var err error
 	server := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		c.Logf("requestUri:%s", req.RequestURI)
-		if strings.EqualFold(req.RequestURI, "/abci_query?path=%22%2Faccount%2Ftbnb1yeuljgpkg2c2qvx3nlmgv7gvnyss6ye2u8rasf%22") {
+		if strings.EqualFold(req.RequestURI, "/abci_query?path=%22%2Faccount%2Ftbnb1yeuljgpkg2c2qvx3nlmgv7gvnyss6ye2u8rasf%22") { // nolint
 			_, err := rw.Write([]byte(accountInfoWithMemoFlag))
 			c.Assert(err, IsNil)
 		} else if strings.HasPrefix(req.RequestURI, "/abci_query?") {
@@ -110,10 +110,10 @@ func (s *ObserverSuite) NewMockBinanceInstance(c *C, jsonData string) {
 		BlockHeightDiscoverBackoff: blockHeightDiscoverBackoff,
 		BlockRetryInterval:         blockRetryInterval,
 		ChainID:                    common.BNBChain,
-		HttpRequestTimeout:         httpRequestTimeout,
-		HttpRequestReadTimeout:     httpRequestTimeout,
-		HttpRequestWriteTimeout:    httpRequestTimeout,
-		MaxHttpRequestRetry:        10,
+		HTTPRequestTimeout:         httpRequestTimeout,
+		HTTPRequestReadTimeout:     httpRequestTimeout,
+		HTTPRequestWriteTimeout:    httpRequestTimeout,
+		MaxHTTPRequestRetry:        10,
 		StartBlockHeight:           1, // avoids querying thorchain for block height
 		EnforceBlockHeight:         true,
 	}}, nil, s.bridge, s.m)
@@ -139,7 +139,7 @@ func (s *ObserverSuite) SetUpSuite(c *C) {
 	c.Assert(os.Setenv("NET", "testnet"), IsNil)
 
 	server := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		if strings.HasPrefix(req.RequestURI, "/errata") {
+		if strings.HasPrefix(req.RequestURI, "/errata") { // nolint
 			_, err := rw.Write([]byte(`{ "jsonrpc": "2.0", "id": "E7FDA9DE4D0AD37D823813CB5BC0D6E69AB0D41BB666B65B965D12D24A3AE83C", "result": { "height": "1", "txhash": "AAAA000000000000000000000000000000000000000000000000000000000000", "logs": [{"success": "true", "log": ""}] } }`))
 			c.Assert(err, IsNil)
 		} else if strings.HasPrefix(req.RequestURI, thorclient.MimirEndpoint) {

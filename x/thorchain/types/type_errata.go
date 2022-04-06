@@ -55,19 +55,12 @@ func (m *ErrataTxVoter) HasConsensus(nas NodeAccounts) bool {
 			count++
 		}
 	}
-	if HasSuperMajority(count, len(nas)) {
-		return true
-	}
-
-	return false
+	return HasSuperMajority(count, len(nas))
 }
 
 // Empty check whether TxID or Chain is empty
 func (m *ErrataTxVoter) Empty() bool {
-	if m.TxID.IsEmpty() || m.Chain.IsEmpty() {
-		return true
-	}
-	return false
+	return m.TxID.IsEmpty() || m.Chain.IsEmpty()
 }
 
 // String implement fmt.Stinger , return a string representation of errata tx voter

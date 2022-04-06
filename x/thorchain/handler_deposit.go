@@ -185,8 +185,10 @@ func (h DepositHandler) handleV67(ctx cosmos.Context, msg MsgDeposit) (*cosmos.R
 
 	// if its a swap, send it to our queue for processing later
 	if isSwap {
-		msg := m.(*MsgSwap)
-		h.addSwap(ctx, *msg)
+		msg, ok := m.(*MsgSwap)
+		if ok {
+			h.addSwap(ctx, *msg)
+		}
 		return &cosmos.Result{}, nil
 	}
 
