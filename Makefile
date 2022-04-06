@@ -49,7 +49,7 @@ test-coverage:
 	@go test ${TEST_BUILD_FLAGS} -v -coverprofile coverage.out ${TEST_DIR}
 
 coverage-report: test-coverage
-	@go tool cover -html=cover.txt
+	@go tool cover -html=coverage.out
 
 clear:
 	clear
