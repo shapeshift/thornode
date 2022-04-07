@@ -47,11 +47,6 @@ func SolvencyCheckRunner(chain common.Chain,
 				logger.Err(err).Msg("fail to get chain halt height")
 				continue
 			}
-			// when HaltHeight == 1 means admin halt the chain , no need to do solvency check
-			// when Chain is not halted , the normal chain client will report solvency when it need to
-			if haltHeight <= 1 {
-				continue
-			}
 
 			// check whether the chain is halted via solvency check
 			solvencyHaltHeight, err := bridge.GetMimir(fmt.Sprintf("SolvencyHalt%sChain", chain))
@@ -59,9 +54,11 @@ func SolvencyCheckRunner(chain common.Chain,
 				logger.Err(err).Msg("fail to get solvency halt height")
 				continue
 			}
-			// If SolvencyHalt<bnb>Chain <= 0, the chain is not halted, so the chain client will report solvency
-			// If SolvencyHalt<bnb>Chain > 0 the chain has been halted via solvency, so we should report solvency here
-			if solvencyHaltHeight <= 0 {
+
+			// when HaltHeight == 1 means admin halt the chain, no need to do solvency check
+			// when Chain is not halted, the normal chain client will report solvency when it need to
+			// But if SolvencyHalt<chain>Chain > 0 this means the chain is halted, and we need to report solvency here
+			if haltHeight <= 1 && solvencyHaltHeight <= 0 {
 				continue
 			}
 
