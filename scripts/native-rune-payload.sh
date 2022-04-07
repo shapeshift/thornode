@@ -5,28 +5,28 @@
 set -e
 
 if [ -z "$1" ]; then
-	echo "Missing thor api address"
-	exit 1
+  echo "Missing thor api address"
+  exit 1
 fi
 
 if [ -z "$2" ]; then
-	echo "Missing coins"
-	exit 1
+  echo "Missing coins"
+  exit 1
 fi
 
 if [ -z "$3" ]; then
-	echo "Missing memo"
-	exit 1
+  echo "Missing memo"
+  exit 1
 fi
 
 if [ -z "$4" ]; then
-	echo "Missing from address"
-	exit 1
+  echo "Missing from address"
+  exit 1
 fi
 
 if [ -z "$5" ]; then
-	echo "Missing local file name"
-	exit 1
+  echo "Missing local file name"
+  exit 1
 fi
 
 curl -v -s -X POST -d "{

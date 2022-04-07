@@ -1,3 +1,5 @@
+<!-- markdownlint-disable MD024 -->
+
 # Versioning
 
 THORNode is following semantic version. MAJOR.MINOR.PATCH(0.77.1)
@@ -81,6 +83,8 @@ node-launcher repository: https://gitlab.com/thorchain/devops/node-launcher/
 3. Start a new validator on testnet , using the new image tag, let it sync from genesis to the tip, make sure thornode pod doesn't get consensus failure
 
 ## Release to chaosnet
+
+How to release to chaosnet.
 
 ### Raise PR in node-launcher
 
