@@ -1,7 +1,9 @@
+import os
 import time
 import codecs
 import logging
 import threading
+import durationpy
 
 from bitcointx import select_chain_params
 from bitcointx.wallet import CBitcoinRegtestKey, P2WPKHBitcoinRegtestAddress
@@ -67,7 +69,9 @@ class MockBitcoin(HttpClient):
             except Exception:
                 continue
             finally:
-                time.sleep(0.3)
+                backoff = os.environ.get("BLOCK_SCANNER_BACKOFF", "0.3s")
+                backoff = durationpy.from_str(backoff).total_seconds()
+                time.sleep(backoff)
 
     @classmethod
     def get_address_from_pubkey(cls, pubkey):
