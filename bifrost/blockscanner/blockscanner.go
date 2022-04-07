@@ -149,17 +149,17 @@ func (b *BlockScanner) isThorchainHalted() bool {
 	// Check if chain has been halted via mimir
 	haltHeight, err := b.thorchainBridge.GetMimir(fmt.Sprintf("Halt%sChain", b.cfg.ChainID))
 	if err != nil {
-		b.logger.Error().Err(err).Msg("fail to get mimir setting")
+		b.logger.Error().Err(err).Msgf("fail to get mimir setting %s", fmt.Sprintf("Halt%sChain", b.cfg.ChainID))
 	}
 	// Check if chain has been halted by auto solvency checks
 	solvencyHaltHeight, err = b.thorchainBridge.GetMimir(fmt.Sprintf("SolvencyHalt%sChain", b.cfg.ChainID))
 	if err != nil {
-		b.logger.Error().Err(err).Msg("fail to get mimir setting")
+		b.logger.Error().Err(err).Msgf("fail to get mimir %s", fmt.Sprintf("SolvencyHalt%sChain", b.cfg.ChainID))
 	}
 	// Check if THORChain is halted globally
 	globalHaltHeight, err := b.thorchainBridge.GetMimir("HaltChainGlobal")
 	if err != nil {
-		b.logger.Error().Err(err).Msg("fail to get halt chain globalmimir setting")
+		b.logger.Error().Err(err).Msg("fail to get mimir setting HaltChainGlobal")
 	}
 	if globalHaltHeight > haltHeight {
 		haltHeight = globalHaltHeight
@@ -167,7 +167,7 @@ func (b *BlockScanner) isThorchainHalted() bool {
 	// Check if a node paused THORChain
 	nodeHaltHeight, err = b.thorchainBridge.GetMimir("NodePauseChainGlobal")
 	if err != nil {
-		b.logger.Error().Err(err).Msg("fail to get mimir setting")
+		b.logger.Error().Err(err).Msg("fail to get mimir setting NodePauseChainGlobal")
 	}
 	thorHeight, err = b.thorchainBridge.GetBlockHeight()
 	if err != nil {
