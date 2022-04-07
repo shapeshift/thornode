@@ -22,11 +22,10 @@ import (
 func TestPackage(t *testing.T) { TestingT(t) }
 
 type SolvencyTestSuite struct {
-	sp     *DummySolvencyCheckProvider
-	m      *metrics.Metrics
-	bridge *thorclient.ThorchainBridge
-	cfg    config.ClientConfiguration
-	keys   *thorclient.Keys
+	sp   *DummySolvencyCheckProvider
+	m    *metrics.Metrics
+	cfg  config.ClientConfiguration
+	keys *thorclient.Keys
 }
 
 var _ = Suite(&SolvencyTestSuite{})
@@ -35,7 +34,7 @@ func (s *SolvencyTestSuite) SetUpSuite(c *C) {
 	sp := &DummySolvencyCheckProvider{}
 	s.sp = sp
 
-	m, err := metrics.NewMetrics(config.MetricsConfiguration{
+	m, _ := metrics.NewMetrics(config.MetricsConfiguration{
 		Enabled:      false,
 		ListenPort:   9090,
 		ReadTimeout:  time.Second,
@@ -52,7 +51,7 @@ func (s *SolvencyTestSuite) SetUpSuite(c *C) {
 		ChainHomeFolder: ".",
 	}
 	kb := ckeys.NewInMemory()
-	_, _, err = kb.NewMnemonic(cfg.SignerName, ckeys.English, cmd.THORChainHDPath, cfg.SignerPasswd, hd.Secp256k1)
+	_, _, err := kb.NewMnemonic(cfg.SignerName, ckeys.English, cmd.THORChainHDPath, cfg.SignerPasswd, hd.Secp256k1)
 	c.Assert(err, IsNil)
 	s.cfg = cfg
 	s.keys = thorclient.NewKeysWithKeybase(kb, cfg.SignerName, cfg.SignerPasswd)
@@ -68,8 +67,7 @@ func (s *SolvencyTestSuite) TestSolvencyCheck(c *C) {
 
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		c.Logf("================>:%s", r.RequestURI)
-		switch {
-		case strings.HasPrefix(r.RequestURI, thorclient.MimirEndpoint):
+		if strings.HasPrefix(r.RequestURI, thorclient.MimirEndpoint) {
 			parts := strings.Split(r.RequestURI, "/key/")
 			mimirKey := parts[1]
 
