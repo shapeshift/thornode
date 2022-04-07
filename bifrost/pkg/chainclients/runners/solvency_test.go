@@ -61,7 +61,6 @@ func (s *SolvencyTestSuite) SetUpSuite(c *C) {
 }
 
 func (s *SolvencyTestSuite) TestSolvencyCheck(c *C) {
-
 	mimirMap := map[string]int{
 		"HaltBNBChain":         0,
 		"SolvencyHaltBNBChain": 0,
