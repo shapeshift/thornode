@@ -1,3 +1,4 @@
+import os
 import time
 import codecs
 import logging
@@ -67,7 +68,8 @@ class MockBitcoin(HttpClient):
             except Exception:
                 continue
             finally:
-                time.sleep(0.3)
+                backoff = os.environ.get("BLOCK_SCANNER_BACKOFF", 0.3)
+                time.sleep(backoff)
 
     @classmethod
     def get_address_from_pubkey(cls, pubkey):
