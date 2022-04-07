@@ -7,11 +7,11 @@ import (
 	. "gopkg.in/check.v1"
 )
 
-type HandlerSendSuiteV87 struct{}
+type HandlerSendSuiteV1 struct{}
 
-var _ = Suite(&HandlerSendSuiteV87{})
+var _ = Suite(&HandlerSendSuiteV1{})
 
-func (s *HandlerSendSuiteV87) TestValidate(c *C) {
+func (s *HandlerSendSuiteV1) TestValidate(c *C) {
 	ctx, k := setupKeeperForTest(c)
 
 	addr1 := GetRandomBech32Addr()
@@ -26,19 +26,13 @@ func (s *HandlerSendSuiteV87) TestValidate(c *C) {
 	err := handler.validate(ctx, msg)
 	c.Assert(err, IsNil)
 
-	for _, moduleName := range []string{AsgardName, BondName, ReserveName, ModuleName} {
-		msg.ToAddress = k.GetModuleAccAddress(moduleName)
-		err := handler.validate(ctx, msg)
-		c.Assert(err, NotNil, Commentf("cannot send to module: %s", moduleName))
-	}
-
 	// invalid msg
 	msg = MsgSend{}
 	err = handler.validate(ctx, msg)
 	c.Assert(err, NotNil)
 }
 
-func (s *HandlerSendSuiteV87) TestHandle(c *C) {
+func (s *HandlerSendSuiteV1) TestHandle(c *C) {
 	ctx, k := setupKeeperForTest(c)
 
 	addr1 := GetRandomBech32Addr()

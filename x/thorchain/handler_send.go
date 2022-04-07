@@ -43,20 +43,25 @@ func (h SendHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Result, erro
 
 func (h SendHandler) validate(ctx cosmos.Context, msg MsgSend) error {
 	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.1.0")) {
+	if version.GTE(semver.MustParse("1.87.0")) {
+		return h.validateV87(ctx, msg)
+	} else if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, msg)
 	}
 	return errInvalidVersion
 }
 
-func (h SendHandler) validateV1(ctx cosmos.Context, msg MsgSend) error {
+func (h SendHandler) validateV87(ctx cosmos.Context, msg MsgSend) error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
 
-	// check if we're sending to asgard, bond modules. If we are, forward to the native tx handler
-	if msg.ToAddress.Equals(h.mgr.Keeper().GetModuleAccAddress(AsgardName)) || msg.ToAddress.Equals(h.mgr.Keeper().GetModuleAccAddress(BondName)) {
-		return errors.New("cannot use MsgSend for Asgard or Bond transactions, use MsgDeposit instead")
+	// disallow sends to modules, they should only be interacted with via deposit messages
+	if msg.ToAddress.Equals(h.mgr.Keeper().GetModuleAccAddress(AsgardName)) ||
+		msg.ToAddress.Equals(h.mgr.Keeper().GetModuleAccAddress(BondName)) ||
+		msg.ToAddress.Equals(h.mgr.Keeper().GetModuleAccAddress(ReserveName)) ||
+		msg.ToAddress.Equals(h.mgr.Keeper().GetModuleAccAddress(ModuleName)) {
+		return errors.New("cannot use MsgSend for Module transactions, use MsgDeposit instead")
 	}
 
 	return nil
