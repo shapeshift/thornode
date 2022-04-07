@@ -118,6 +118,17 @@ func (s *SolvencyTestSuite) TestSolvencyCheck(c *C) {
 	c.Assert(s.sp.ShouldReportSolvencyRan, Equals, false)
 	c.Assert(s.sp.ReportSolvencyRun, Equals, false)
 
+	// Double-spend check halted chain client, check solvency here
+	mimirMap["HaltBNBChain"] = 10
+	s.sp.ResetChecks()
+	wg.Add(1)
+	go SolvencyCheckRunner(common.BNBChain, s.sp, bridge, stopchan, wg)
+	time.Sleep(time.Second * 6)
+
+	c.Assert(s.sp.ShouldReportSolvencyRan, Equals, true)
+	c.Assert(s.sp.ReportSolvencyRun, Equals, true)
+	mimirMap["HaltBNBChain"] = 0
+
 	// Solvency halted chain, need to report solvency here as chain client is paused
 	mimirMap["SolvencyHaltBNBChain"] = 1
 	s.sp.ResetChecks()
