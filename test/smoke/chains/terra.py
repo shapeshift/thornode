@@ -2,6 +2,7 @@ import os
 import time
 import asyncio
 import threading
+import durationpy
 
 from terra_sdk.client.lcd import LCDClient
 from terra_sdk.key.mnemonic import MnemonicKey
@@ -116,7 +117,8 @@ class MockTerra(HttpClient):
             except Exception:
                 continue
             finally:
-                backoff = float(os.environ.get("BLOCK_SCANNER_BACKOFF", "0.3"))
+                backoff = os.environ.get("BLOCK_SCANNER_BACKOFF", "0.3s")
+                backoff = durationpy.from_str(backoff).total_seconds()
                 time.sleep(backoff)
 
     @classmethod
