@@ -141,9 +141,9 @@ func (b *BlockScanner) scanMempool() {
 	}
 }
 
-// Checks current mimir settings to determine if THORChain is halted globally
-// or if this chain is halted specifically
-func (b *BlockScanner) isThorchainHalted() bool {
+// Checks current mimir settings to determine if the current chain is paused
+// either globally or specifically
+func (b *BlockScanner) isChainPaused() bool {
 	var haltHeight, solvencyHaltHeight, nodeHaltHeight, thorHeight int64
 
 	// Check if chain has been halted via mimir
@@ -156,7 +156,7 @@ func (b *BlockScanner) isThorchainHalted() bool {
 	if err != nil {
 		b.logger.Error().Err(err).Msgf("fail to get mimir %s", fmt.Sprintf("SolvencyHalt%sChain", b.cfg.ChainID))
 	}
-	// Check if THORChain is halted globally
+	// Check if all chains halted globally
 	globalHaltHeight, err := b.thorchainBridge.GetMimir("HaltChainGlobal")
 	if err != nil {
 		b.logger.Error().Err(err).Msg("fail to get mimir setting HaltChainGlobal")
@@ -164,7 +164,7 @@ func (b *BlockScanner) isThorchainHalted() bool {
 	if globalHaltHeight > haltHeight {
 		haltHeight = globalHaltHeight
 	}
-	// Check if a node paused THORChain
+	// Check if a node paused all chains
 	nodeHaltHeight, err = b.thorchainBridge.GetMimir("NodePauseChainGlobal")
 	if err != nil {
 		b.logger.Error().Err(err).Msg("fail to get mimir setting NodePauseChainGlobal")
@@ -188,7 +188,7 @@ func (b *BlockScanner) scanBlocks() {
 	defer b.wg.Done()
 
 	lastMimirCheck := time.Now().Add(-constants.ThorchainBlockTime)
-	isThorchainHalted := false
+	isChainPaused := false
 
 	// start up to grab those blocks
 	for {
@@ -200,12 +200,12 @@ func (b *BlockScanner) scanBlocks() {
 			currentBlock := preBlockHeight + 1
 			// check if mimir has disabled this chain
 			if time.Since(lastMimirCheck) >= constants.ThorchainBlockTime {
-				isThorchainHalted = b.isThorchainHalted()
+				isChainPaused = b.isChainPaused()
 				lastMimirCheck = time.Now()
 			}
 
-			// THORChain is halted, mark as unhealthy
-			if isThorchainHalted {
+			// Chain is paused, mark as unhealthy
+			if isChainPaused {
 				b.healthy = false
 				time.Sleep(constants.ThorchainBlockTime)
 				continue
