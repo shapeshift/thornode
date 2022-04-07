@@ -2,6 +2,8 @@ package thorchain
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
 
 	"github.com/blang/semver"
 
@@ -64,13 +66,16 @@ func (h NodePauseChainHandler) validateV1(ctx cosmos.Context, msg MsgNodePauseCh
 func (h NodePauseChainHandler) handle(ctx cosmos.Context, msg MsgNodePauseChain) error {
 	ctx.Logger().Info("handleMsgNodePauseChain request", "node", msg.Signer, "value", msg.Value)
 	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.1.0")) {
+	switch {
+	case version.GTE(semver.MustParse("1.87.0")):
+		return h.handleV87(ctx, msg)
+	case version.GTE(semver.MustParse("0.1.0")):
 		return h.handleV1(ctx, msg)
 	}
 	return nil
 }
 
-func (h NodePauseChainHandler) handleV1(ctx cosmos.Context, msg MsgNodePauseChain) error {
+func (h NodePauseChainHandler) handleV87(ctx cosmos.Context, msg MsgNodePauseChain) error {
 	// get block height of last churn
 	active, err := h.mgr.Keeper().GetAsgardVaultsByStatus(ctx, ActiveVault)
 	if err != nil {
@@ -115,7 +120,12 @@ func (h NodePauseChainHandler) handleV1(ctx cosmos.Context, msg MsgNodePauseChai
 		}
 	}
 
-	h.mgr.Keeper().SetMimir(ctx, "NodePauseChainGlobal", pauseHeight)
+	key := "NodePauseChainGlobal"
+	h.mgr.Keeper().SetMimir(ctx, key, pauseHeight)
+	mimirEvent := NewEventSetMimir(strings.ToUpper(key), strconv.FormatInt(pauseHeight, 10))
+	if err := h.mgr.EventMgr().EmitEvent(ctx, mimirEvent); err != nil {
+		ctx.Logger().Error("fail to emit set_mimir event", "error", err)
+	}
 
 	return nil
 }
