@@ -180,3 +180,15 @@ message EventTHORName {
   int64 expire = 6;
   bytes owner = 7 [(gogoproto.casttype) = "github.com/cosmos/cosmos-sdk/types.AccAddress"];
 }
+
+message EventSetMimir {
+  string key = 1;
+  string value = 2;
+}
+
+message EventSetNodeMimir {
+  string key = 1;
+  string value = 2;
+  string address = 3;
+}
+
