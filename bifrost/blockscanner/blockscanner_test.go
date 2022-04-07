@@ -236,7 +236,7 @@ func (s *BlockScannerTestSuite) TestBadConnection(c *C) {
 	cbs.Stop()
 }
 
-func (s *BlockScannerTestSuite) TestIsThorChainHalted(c *C) {
+func (s *BlockScannerTestSuite) TestIsChainPaused(c *C) {
 	mimirMap := map[string]int{
 		"HaltBNBChain":         0,
 		"SolvencyHaltBNBChain": 0,
@@ -294,30 +294,30 @@ func (s *BlockScannerTestSuite) TestIsThorChainHalted(c *C) {
 	c.Check(cbs, NotNil)
 	c.Check(err, IsNil)
 
-	// Should not be halted
-	isHalted := cbs.isThorchainHalted()
+	// Should not be paused
+	isHalted := cbs.isChainPaused()
 	c.Assert(isHalted, Equals, false)
 
-	// Setting Halt<chain>Chain should halt
+	// Setting Halt<chain>Chain should pause
 	mimirMap["HaltBNBChain"] = 2
-	isHalted = cbs.isThorchainHalted()
+	isHalted = cbs.isChainPaused()
 	c.Assert(isHalted, Equals, true)
 	mimirMap["HaltBNBChain"] = 0
 
-	// Setting SolvencyHalt<chain>Chain should halt
+	// Setting SolvencyHalt<chain>Chain should pause
 	mimirMap["SolvencyHaltBNBChain"] = 2
-	isHalted = cbs.isThorchainHalted()
+	isHalted = cbs.isChainPaused()
 	c.Assert(isHalted, Equals, true)
 	mimirMap["SolvencyHaltBNBChain"] = 0
 
-	// Setting HaltChainGlobal should halt
+	// Setting HaltChainGlobal should pause
 	mimirMap["HaltChainGlobal"] = 2
-	isHalted = cbs.isThorchainHalted()
+	isHalted = cbs.isChainPaused()
 	c.Assert(isHalted, Equals, true)
 	mimirMap["HaltChainGlobal"] = 0
 
-	// Setting NodePauseChainGlobal should halt
+	// Setting NodePauseChainGlobal should pause
 	mimirMap["NodePauseChainGlobal"] = 4 // node pause only halts for an hour, so pause height needs to be larger than thor height
-	isHalted = cbs.isThorchainHalted()
+	isHalted = cbs.isChainPaused()
 	c.Assert(isHalted, Equals, true)
 }
