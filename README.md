@@ -253,7 +253,7 @@ You can pass the --amend argument to automatically stage the generated file and 
 
 If you use --amend and don’t provide a title, it will automatically use the “subject” of the previous commit, which is the first line of the commit message:
 
-```
+```bash
 $ git show --oneline
 ab88683 Added an awesome new feature to GitLab
 

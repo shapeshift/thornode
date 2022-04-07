@@ -49,7 +49,7 @@ test-coverage:
 	@go test ${TEST_BUILD_FLAGS} -v -coverprofile coverage.out ${TEST_DIR}
 
 coverage-report: test-coverage
-	@go tool cover -html=cover.txt
+	@go tool cover -html=coverage.out
 
 clear:
 	clear
@@ -67,6 +67,7 @@ format:
 	@git ls-files '*.go' | grep -v -e 'pb.go$$' -e '^docs/' | xargs gofumpt -w
 
 lint-pre: protob
+	@./scripts/check-build-env.sh
 	@git ls-files '*.go' | grep -v -e 'pb.go$$' -e '^docs/' | xargs gofumpt -d
 	@test -z "$(shell git ls-files '*.go' | grep -v -e 'pb.go$$' -e '^docs/' | xargs gofumpt -l)"
 	@go mod verify

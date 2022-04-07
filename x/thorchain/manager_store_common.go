@@ -32,6 +32,7 @@ func removeTransactions(ctx cosmos.Context, mgr Manager, hashes ...string) {
 	}
 }
 
+// nolint
 type adhocRefundTx struct {
 	inboundHash string
 	toAddr      string
@@ -40,6 +41,7 @@ type adhocRefundTx struct {
 }
 
 // refundTransactions is design to use store migration to refund adhoc transactions
+// nolint
 func refundTransactions(ctx cosmos.Context, mgr *Mgrs, pubKey string, adhocRefundTxes ...adhocRefundTx) {
 	defer func() {
 		if err := recover(); err != nil {
