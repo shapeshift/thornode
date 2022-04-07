@@ -47,7 +47,7 @@ Node launcher is the repository used to launch thorchain node, [https://gitlab.c
 Bifrost is a key component in THORChain, it is a bridge between THORChain and external chains
 
 1. First, create a new folder under bifrost\pkg\chainclients
-2. Implement interface `ChainClient` interface, refer to [here](../bifrost/pkg/chainclients/chainclient.go)
+1. Implement interface `ChainClient` interface, refer to [here](../bifrost/pkg/chainclients/chainclient.go)
 
 ```go
 // ChainClient is the interface that wraps basic chain client methods
@@ -81,7 +81,7 @@ type ChainClient interface {
 }
 ```
 
-3. implement interface [BlockScannerFetcher](../bifrost/blockscanner/blockscanner.go) in the chain client you implement
+1. implement interface [BlockScannerFetcher](../bifrost/blockscanner/blockscanner.go) in the chain client you implement
 
 ```go
 
@@ -97,7 +97,7 @@ type BlockScannerFetcher interface {
 
 ```
 
-4. update bifrost/pkg/chainclients/loadchains.go to initialise new chain client
+1. update bifrost/pkg/chainclients/loadchains.go to initialise new chain client
 
 This is a sample PR to add bitcoin cash support, in thornode & bifrost
 

@@ -6,18 +6,18 @@
 set -e
 
 if [ -z "$1" ]; then
-	echo "Missing mock binance address (address:port)"
-	exit 1
+  echo "Missing mock binance address (address:port)"
+  exit 1
 fi
 
 if [ -z "$2" ]; then
-	echo "Missing bnb address argument"
-	exit 1
+  echo "Missing bnb address argument"
+  exit 1
 fi
 
 if [ -z "$3" ]; then
-	echo "Missing rune amount"
-	exit 1
+  echo "Missing rune amount"
+  exit 1
 fi
 
 INBOUND_ADDRESS=$(curl -s "$1:1317/thorchain/INBOUND_addresses" | jq -r ".current[0].address")

@@ -558,5 +558,6 @@ func (s *HandlerOutboundTxSuite) TestOutboundTxHandlerMismatchDecimalShouldNotSl
 	_, err = handler.Run(helper.ctx, outMsg)
 	c.Assert(err, IsNil)
 	na, err := helper.keeper.GetNodeAccount(helper.ctx, helper.nodeAccount.NodeAddress)
+	c.Assert(err, IsNil)
 	c.Assert(na.Bond.Equal(expectedBond), Equals, true, Commentf("%d/%d", na.Bond.Uint64(), expectedBond.Uint64()))
 }

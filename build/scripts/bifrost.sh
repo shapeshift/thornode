@@ -59,24 +59,24 @@ BLOCK_SCANNER_BACKOFF="${BLOCK_SCANNER_BACKOFF:=5s}"
 create_thor_user "$SIGNER_NAME" "$SIGNER_PASSWD" "$SIGNER_SEED_PHRASE"
 
 if [ -n "$PEER" ]; then
-	OLD_IFS=$IFS
-	IFS=","
-	SEED_LIST=""
-	for SEED in $PEER; do
-		# check if we have a hostname we extract the IP
-		if ! expr "$SEED" : '[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*$' >/dev/null; then
-			SEED=$(host "$SEED" | awk '{print $4}')
-		fi
-		SEED_ID=$(curl -m 10 -sL --fail "http://$SEED:6040/p2pid") || continue
-		SEED="/ip4/$SEED/tcp/5040/ipfs/$SEED_ID"
-		if [ -z "$SEED_LIST" ]; then
-			SEED_LIST="\"$SEED\""
-		else
-			SEED_LIST="$SEED_LIST,\"$SEED\""
-		fi
-	done
-	IFS=$OLD_IFS
-	PEER=$SEED_LIST
+  OLD_IFS=$IFS
+  IFS=","
+  SEED_LIST=""
+  for SEED in $PEER; do
+    # check if we have a hostname we extract the IP
+    if ! expr "$SEED" : '[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*$' >/dev/null; then
+      SEED=$(host "$SEED" | awk '{print $4}')
+    fi
+    SEED_ID=$(curl -m 10 -sL --fail "http://$SEED:6040/p2pid") || continue
+    SEED="/ip4/$SEED/tcp/5040/ipfs/$SEED_ID"
+    if [ -z "$SEED_LIST" ]; then
+      SEED_LIST="\"$SEED\""
+    else
+      SEED_LIST="$SEED_LIST,\"$SEED\""
+    fi
+  done
+  IFS=$OLD_IFS
+  PEER=$SEED_LIST
 fi
 
 OBSERVER_PATH=$DB_PATH/bifrost/observer/

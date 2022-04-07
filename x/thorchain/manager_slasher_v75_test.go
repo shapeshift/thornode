@@ -107,7 +107,7 @@ func (s *SlashingV75Suite) TestLackObservingErrors(c *C) {
 	keeper := &TestSlashObservingKeeper{
 		nas:      nas,
 		addrs:    []cosmos.AccAddress{nas[0].NodeAddress},
-		slashPts: make(map[string]int64, 0),
+		slashPts: make(map[string]int64),
 	}
 	ver := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(ver)
@@ -205,7 +205,7 @@ func (s *SlashingV75Suite) TestNodeSignSlashErrors(c *C) {
 			voter: ObservedTxVoter{
 				Actions: []TxOutItem{txOutItem},
 			},
-			slashPts: make(map[string]int64, 0),
+			slashPts: make(map[string]int64),
 		}
 		signingTransactionPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
 		ctx = ctx.WithBlockHeight(3 + signingTransactionPeriod)
@@ -262,7 +262,7 @@ func (s *SlashingV75Suite) TestNotSigningSlash(c *C) {
 		voter: ObservedTxVoter{
 			Actions: []TxOutItem{txOutItem},
 		},
-		slashPts: make(map[string]int64, 0),
+		slashPts: make(map[string]int64),
 	}
 	signingTransactionPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
 	ctx = ctx.WithBlockHeight(3 + signingTransactionPeriod)
@@ -292,7 +292,7 @@ func (s *SlashingV75Suite) TestNewSlasher(c *C) {
 	keeper := &TestSlashObservingKeeper{
 		nas:      nas,
 		addrs:    []cosmos.AccAddress{nas[0].NodeAddress},
-		slashPts: make(map[string]int64, 0),
+		slashPts: make(map[string]int64),
 	}
 	slasher := newSlasherV75(keeper, NewDummyEventMgr())
 	c.Assert(slasher, NotNil)
@@ -308,7 +308,7 @@ func (s *SlashingV75Suite) TestDoubleSign(c *C) {
 	keeper := &TestDoubleSlashKeeper{
 		na:      na,
 		network: NewNetwork(),
-		modules: make(map[string]int64, 0),
+		modules: make(map[string]int64),
 	}
 	slasher := newSlasherV75(keeper, NewDummyEventMgr())
 
@@ -382,6 +382,7 @@ func (s *SlashingV75Suite) TestSlashVault(c *C) {
 	reserveBeforeSlash := mgr.Keeper().GetRuneBalanceOfModule(ctx, ReserveName)
 
 	err = slasher.SlashVault(ctx, vault.PubKey, common.NewCoins(common.NewCoin(common.BTCAsset, cosmos.NewUint(common.One))), mgr)
+	c.Assert(err, IsNil)
 	nodeTemp, err = mgr.Keeper().GetNodeAccountByPubKey(ctx, vault.PubKey)
 	c.Assert(err, IsNil)
 	expectedBond := cosmos.NewUint(99848484849)
@@ -414,6 +415,7 @@ func (s *SlashingV75Suite) TestSlashVault(c *C) {
 	nodeBondBeforeSlash := nodeBeforeSlash.Bond
 	node1BondBeforeSlash := node1.Bond
 	err = slasher.SlashVault(ctx, vault1.PubKey, common.NewCoins(common.NewCoin(common.BTCAsset, cosmos.NewUint(common.One))), mgr)
+	c.Assert(err, IsNil)
 
 	nodeAfterSlash, err := mgr.Keeper().GetNodeAccount(ctx, node.NodeAddress)
 	c.Assert(err, IsNil)
