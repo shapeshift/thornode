@@ -147,7 +147,6 @@ func (s *BlockScannerTestSuite) TestBlockScanner(c *C) {
 	cbs.Start(globalChan)
 	time.Sleep(time.Second * 1)
 	cbs.Stop()
-	// c.Check(counter, Equals, 11)
 }
 
 func (s *BlockScannerTestSuite) TestBadBlock(c *C) {
@@ -240,7 +239,7 @@ func (s *BlockScannerTestSuite) TestBadConnection(c *C) {
 func (s *BlockScannerTestSuite) TestIsThorChainHalted(c *C) {
 	mimirMap := map[string]int{
 		"HaltBNBChain":         0,
-		"HaltBNBChainSolvency": 0,
+		"SolvencyHaltBNBChain": 0,
 		"HaltChainGlobal":      0,
 		"NodePauseChainGlobal": 0,
 	}
