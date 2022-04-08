@@ -85,6 +85,8 @@
 
 `DollarInRune`: Manual override of amount of rune in a dollar. Used for metrics data collection
 `THORNames`: Enable/Disable THORNames
+`TNSRegisterFee`: TNS registration fee of new names
+`TNSFeePerBlock`: TNS cost per block to retain ownership of a name
 `ArtificialRagnarokBlockHeight`: Triggers a chain shutodwn and ragnarok
 `NativeTransactionFee`: The rune fee for a native transaction (gas cost in 1e8 notation)
 
