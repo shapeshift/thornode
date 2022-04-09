@@ -10,29 +10,30 @@ import (
 
 // all event types support by THORChain
 const (
-	SwapEventType              = "swap"
 	AddLiquidityEventType      = "add_liquidity"
-	WithdrawEventType          = "withdraw"
-	PendingLiquidity           = "pending_liquidity"
-	DonateEventType            = "donate"
-	PoolEventType              = "pool"
-	RewardEventType            = "rewards"
-	RefundEventType            = "refund"
 	BondEventType              = "bond"
-	GasEventType               = "gas"
-	ReserveEventType           = "reserve"
-	SlashEventType             = "slash"
+	DonateEventType            = "donate"
 	ErrataEventType            = "errata"
 	FeeEventType               = "fee"
+	GasEventType               = "gas"
 	OutboundEventType          = "outbound"
-	TSSKeygenMetricEventType   = "tss_keygen"
-	TSSKeysignMetricEventType  = "tss_keysign"
-	SlashPointEventType        = "slash_points"
+	PendingLiquidity           = "pending_liquidity"
 	PoolBalanceChangeEventType = "pool_balance_change"
-	SwitchEventType            = "switch"
-	THORNameEventType          = "thorname"
+	PoolEventType              = "pool"
+	RefundEventType            = "refund"
+	ReserveEventType           = "reserve"
+	RewardEventType            = "rewards"
+	SecurityEventType          = "security"
 	SetMimirEventType          = "set_mimir"
 	SetNodeMimirEventType      = "set_node_mimir"
+	SlashEventType             = "slash"
+	SlashPointEventType        = "slash_points"
+	SwapEventType              = "swap"
+	SwitchEventType            = "switch"
+	THORNameEventType          = "thorname"
+	TSSKeygenMetricEventType   = "tss_keygen"
+	TSSKeysignMetricEventType  = "tss_keysign"
+	WithdrawEventType          = "withdraw"
 )
 
 // PoolMods a list of pool modifications
@@ -344,6 +345,26 @@ func (m *EventReserve) Events() (cosmos.Events, error) {
 	return cosmos.Events{
 		evt,
 	}, nil
+}
+
+// NewEventSecurity creates a new security event.
+func NewEventSecurity(tx common.Tx, msg string) *EventSecurity {
+	return &EventSecurity{
+		Msg: msg,
+		Tx:  tx,
+	}
+}
+
+// Type returns the security event type.
+func (m *EventSecurity) Type() string {
+	return SecurityEventType
+}
+
+// Events returns the cosmos events for the security event.
+func (m *EventSecurity) Events() (cosmos.Events, error) {
+	evt := cosmos.NewEvent(m.Type(), cosmos.NewAttribute("msg", m.Msg))
+	evt = evt.AppendAttributes(m.Tx.ToAttributes()...)
+	return cosmos.Events{evt}, nil
 }
 
 // NewEventSlash create a new slash event

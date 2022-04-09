@@ -109,6 +109,7 @@ var (
 	NewEventBond                   = types.NewEventBond
 	NewEventSwitch                 = types.NewEventSwitch
 	NewEventGas                    = types.NewEventGas
+	NewEventSecurity               = types.NewEventSecurity
 	NewEventSlash                  = types.NewEventSlash
 	NewEventSlashPoint             = types.NewEventSlashPoint
 	NewEventReserve                = types.NewEventReserve
