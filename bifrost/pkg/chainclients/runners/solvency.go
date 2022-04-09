@@ -41,17 +41,27 @@ func SolvencyCheckRunner(chain common.Chain,
 		case <-stopper:
 			return
 		case <-time.After(constants.ThorchainBlockTime):
-			// check whether the chain is halted or not
+			// check whether the chain is halted via mimir or not
 			haltHeight, err := bridge.GetMimir(fmt.Sprintf("Halt%sChain", chain))
 			if err != nil {
-				logger.Err(err).Msg("fail to get mimir setting")
+				logger.Err(err).Msg("fail to get chain halt height")
 				continue
 			}
-			// when HaltHeight == 1 means admin halt the chain , no need to do solvency check
-			// when Chain is not halted , the normal chain client will report solvency when it need to
-			if haltHeight <= 1 {
+
+			// check whether the chain is halted via solvency check
+			solvencyHaltHeight, err := bridge.GetMimir(fmt.Sprintf("SolvencyHalt%sChain", chain))
+			if err != nil {
+				logger.Err(err).Msg("fail to get solvency halt height")
 				continue
 			}
+
+			// when HaltHeight == 1 means admin halt the chain, no need to do solvency check
+			// when Chain is not halted, the normal chain client will report solvency when it need to
+			// But if SolvencyHalt<chain>Chain > 0 this means the chain is halted, and we need to report solvency here
+			if haltHeight <= 1 && solvencyHaltHeight <= 0 {
+				continue
+			}
+
 			currentBlockHeight, err := provider.GetHeight()
 			if err != nil {
 				logger.Err(err).Msg("fail to get current block height")
