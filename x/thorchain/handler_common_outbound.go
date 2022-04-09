@@ -2,10 +2,12 @@ package thorchain
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/armon/go-metrics"
 	"github.com/blang/semver"
 	"github.com/cosmos/cosmos-sdk/telemetry"
+	"github.com/cosmos/cosmos-sdk/types"
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
@@ -40,15 +42,18 @@ func (h CommonOutboundTxHandler) slash(ctx cosmos.Context, tx ObservedTx) error 
 
 func (h CommonOutboundTxHandler) handle(ctx cosmos.Context, tx ObservedTx, inTxID common.TxID) (*cosmos.Result, error) {
 	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("1.85.0")) {
+	switch {
+	case version.GTE(semver.MustParse("1.87.0")):
+		return h.handleV87(ctx, tx, inTxID)
+	case version.GTE(semver.MustParse("1.85.0")):
 		return h.handleV85(ctx, tx, inTxID)
-	} else if version.GTE(semver.MustParse("0.69.0")) {
+	case version.GTE(semver.MustParse("0.69.0")):
 		return h.handleV69(ctx, tx, inTxID)
 	}
 	return nil, errBadVersion
 }
 
-func (h CommonOutboundTxHandler) handleV85(ctx cosmos.Context, tx ObservedTx, inTxID common.TxID) (*cosmos.Result, error) {
+func (h CommonOutboundTxHandler) handleV87(ctx cosmos.Context, tx ObservedTx, inTxID common.TxID) (*cosmos.Result, error) {
 	// note: Outbound tx usually it is related to an inbound tx except migration
 	// thus here try to get the ObservedTxInVoter,  and set the tx out hash accordingly
 	voter, err := h.mgr.Keeper().GetObservedTxInVoter(ctx, inTxID)
@@ -173,6 +178,15 @@ func (h CommonOutboundTxHandler) handleV85(ctx cosmos.Context, tx ObservedTx, in
 
 	if shouldSlash {
 		ctx.Logger().Info("slash node account, no matched tx out item", "inbound txid", inTxID, "outbound tx", tx.Tx)
+
+		// send security alert for events that are not eth burn
+		if len(tx.Tx.Coins) != 1 || !tx.Tx.Coins[0].Amount.Equal(types.NewUint(1)) || !tx.Tx.Coins[0].Asset.Equals(common.ETHAsset) {
+			msg := fmt.Sprintf("missing tx out in=%s", inTxID)
+			if err := h.mgr.EventMgr().EmitEvent(ctx, NewEventSecurity(tx.Tx, msg)); err != nil {
+				ctx.Logger().Error("fail to emit security event", "error", err)
+			}
+		}
+
 		if err := h.slash(ctx, tx); err != nil {
 			return nil, ErrInternal(err, "fail to slash account")
 		}

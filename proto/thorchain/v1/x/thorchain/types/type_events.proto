@@ -122,6 +122,11 @@ message EventReserve {
   common.Tx in_tx = 2 [(gogoproto.nullable) = false];
 }
 
+message EventSecurity {
+  string msg = 1;
+  common.Tx tx = 2 [(gogoproto.nullable) = false];
+}
+
 message EventSlash {
   common.Asset pool = 1 [(gogoproto.nullable) = false];
   repeated PoolAmt slash_amount = 2 [(gogoproto.nullable) = false];
