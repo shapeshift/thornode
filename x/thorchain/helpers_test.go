@@ -772,4 +772,12 @@ func (s *HelperSuite) TestIsTradingHalt(c *C) {
 	c.Assert(isTradingHalt(ctx, mWithThorname, mgr), Equals, true)
 	c.Assert(isTradingHalt(ctx, mRedeemSynth, mgr), Equals, false)
 	c.Assert(mgr.Keeper().DeleteMimir(ctx, "HaltBTCTrading"), IsNil)
+
+	mgr.Keeper().SetMimir(ctx, "SolvencyHaltBTCChain", 1)
+	c.Assert(isTradingHalt(ctx, m, mgr), Equals, true)
+	c.Assert(isTradingHalt(ctx, mAddExternal, mgr), Equals, true)
+	c.Assert(isTradingHalt(ctx, mAddRUNE, mgr), Equals, true)
+	c.Assert(isTradingHalt(ctx, mWithThorname, mgr), Equals, true)
+	c.Assert(isTradingHalt(ctx, mRedeemSynth, mgr), Equals, false)
+	c.Assert(mgr.Keeper().DeleteMimir(ctx, "SolvencyHaltBTCChain"), IsNil)
 }

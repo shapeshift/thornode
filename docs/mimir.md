@@ -39,7 +39,8 @@
 ## Chain Management
 
 `HaltChainGlobal`: Pause all chains (chain clients)
-`Halt<chain>Chain`: Pause a specific blockchain
+`Halt<chain>Chain`: Pause a specific blockchain via mimir or detected double-spend
+`SolvencyHalt<chain>Chain`: Solvency checker auto halts chain. Chain will be auto un-halted once solvency is regained
 `NodePauseChainGlobal`: Inidividual node controlled means to pause all chains
 `NodePauseChainBlocks`: Number of block a node operator can pause/resume the chains for
 
