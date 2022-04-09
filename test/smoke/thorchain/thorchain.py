@@ -658,6 +658,7 @@ class ThorchainState:
                 if share == 0:
                     continue
                 pool.rune_balance -= share
+                self.reserve += share
                 self.set_pool(pool)
 
                 # Append pool reward to event
