@@ -91,12 +91,12 @@ func migrateStoreV85(ctx cosmos.Context, mgr *Mgrs) {
 func migrateStoreV87(ctx cosmos.Context, mgr *Mgrs) {
 	opFee := cosmos.NewUint(uint64(fetchConfigInt64(ctx, mgr, constants.NodeOperatorFee)))
 
-	active, err := mgr.Keeper().ListValidatorsWithBond(ctx)
+	bonded, err := mgr.Keeper().ListValidatorsWithBond(ctx)
 	if err != nil {
 		ctx.Logger().Error("fail to get node accounts with bond", "error", err)
 		return
 	}
-	for _, na := range active {
+	for _, na := range bonded {
 		bp, err := mgr.Keeper().GetBondProviders(ctx, na.NodeAddress)
 		if err != nil {
 			ctx.Logger().Error("fail to get bond provider", "error", err)
