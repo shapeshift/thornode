@@ -1,4 +1,4 @@
-image: golang:1.17.0
+image: registry.gitlab.com/thorchain/thornode:ci-v1
 
 workflow:
   rules:
@@ -37,8 +37,6 @@ unit-tests:
     - schedules
   coverage: '/total:\s+\(statements\)\s+(\d+.\d+\%)/'
   before_script:
-    - apt update
-    - apt install -y protobuf-compiler
     - make protob
   script:
     - make test-coverage
@@ -59,13 +57,7 @@ lint:
     - testnet-multichain
     - chaosnet-multichain
   before_script:
-    - apt-get update && apt-get install -y curl git jq make protobuf-compiler sudo xz-utils
-    - go install mvdan.cc/gofumpt@v0.3.0
-    # trunk.io setup
     - git fetch origin develop $CI_MERGE_REQUEST_TARGET_BRANCH_NAME
-    - curl https://get.trunk.io -fsSLo /tmp/trunk-install
-    - chmod +x /tmp/trunk-install
-    - /tmp/trunk-install -y
     - trunk check download
   script:
     - make lint
