@@ -128,11 +128,12 @@ func (h BondHandler) validateV81(ctx cosmos.Context, msg MsgBond) error {
 
 func (h BondHandler) handle(ctx cosmos.Context, msg MsgBond) error {
 	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("1.87.0")) {
+	switch {
+	case version.GTE(semver.MustParse("1.87.0")):
 		return h.handleV87(ctx, msg)
-	} else if version.GTE(semver.MustParse("1.86.0")) {
+	case version.GTE(semver.MustParse("1.86.0")):
 		return h.handleV86(ctx, msg)
-	} else if version.GTE(semver.MustParse("0.81.0")) {
+	case version.GTE(semver.MustParse("0.81.0")):
 		return h.handleV81(ctx, msg)
 	}
 	return errBadVersion
