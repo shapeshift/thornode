@@ -117,6 +117,32 @@ func (s *ThorchainSuite) TestGet(c *C) {
 	c.Assert(buf, NotNil)
 }
 
+func (s *ThorchainSuite) TestGetObservationStdTx_OutboundShouldHaveNotConfirmationCounting(c *C) {
+	pk := stypes.GetRandomPubKey()
+	vaultAddr, err := pk.GetAddress(common.BNBChain)
+	c.Assert(err, IsNil)
+	tx := stypes.NewObservedTx(
+		common.Tx{
+			Coins: common.Coins{
+				common.NewCoin(common.BNBAsset, cosmos.NewUint(123400000)),
+			},
+			Memo:        "This is my memo!",
+			FromAddress: vaultAddr,
+			ToAddress:   "bnb1ntqj0v0sv62ut0ehxt7jqh7lenfrd3hmfws0aq",
+		},
+		1,
+		pk,
+		100,
+	)
+
+	signedMsg, err := s.bridge.GetObservationsStdTx(stypes.ObservedTxs{tx})
+	c.Assert(signedMsg, NotNil)
+	c.Assert(err, IsNil)
+	m, ok := signedMsg[0].(*stypes.MsgObservedTxOut)
+	c.Assert(ok, Equals, true)
+	c.Assert(m.Txs[0].FinaliseHeight == m.Txs[0].BlockHeight, Equals, true)
+}
+
 func (s *ThorchainSuite) TestSign(c *C) {
 	pk := stypes.GetRandomPubKey()
 	vaultAddr, err := pk.GetAddress(common.BNBChain)
