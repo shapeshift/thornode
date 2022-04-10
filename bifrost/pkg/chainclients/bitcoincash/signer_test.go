@@ -94,6 +94,9 @@ func (s *BitcoinCashSignerSuite) SetUpTest(c *C) {
 			}{}
 			buf, err := ioutil.ReadAll(req.Body)
 			c.Assert(err, IsNil)
+			if len(buf) == 0 {
+				return
+			}
 			c.Assert(json.Unmarshal(buf, &r), IsNil)
 			defer func() {
 				c.Assert(req.Body.Close(), IsNil)
