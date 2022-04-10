@@ -264,6 +264,8 @@ func (b *ThorchainBridge) GetObservationsStdTx(txIns stypes.ObservedTxs) ([]cosm
 		if tx.Tx.ToAddress.Equals(obAddr) && !inbound.Contains(tx) { // nolint
 			inbound = append(inbound, tx)
 		} else if tx.Tx.FromAddress.Equals(obAddr) && !outbound.Contains(tx) {
+			// for outbound transaction , there is no need to do confirmation counting
+			tx.FinaliseHeight = tx.BlockHeight
 			outbound = append(outbound, tx)
 		} else {
 			return nil, errors.New("could not determine if this tx as inbound or outbound")
