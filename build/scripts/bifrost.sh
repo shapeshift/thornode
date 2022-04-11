@@ -21,6 +21,7 @@ LTC_DISABLED="${LTC_DISABLED:=false}"
 # Ethereum chain config
 ETH_HOST="${ETH_HOST:=http://ethereum:8545}"
 ETH_START_BLOCK_HEIGHT="${ETH_START_BLOCK_HEIGHT:=0}"
+ETH_SUGGESTED_FEE_VERSION="${ETH_SUGGESTED_FEE_VERSION:=1}"
 
 # Dogecoin chain config
 DOGE_HOST="${DOGE_HOST:=dogecoin:18332}"
@@ -252,7 +253,8 @@ echo "{
           \"http_request_write_timeout\": \"30s\",
           \"max_http_request_retry\": 10,
           \"start_block_height\": $ETH_START_BLOCK_HEIGHT,
-          \"db_path\": \"$OBSERVER_PATH\"
+          \"db_path\": \"$OBSERVER_PATH\",
+          \"suggested_fee_version\": $ETH_SUGGESTED_FEE_VERSION
         }
       }
     ],
