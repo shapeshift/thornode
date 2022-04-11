@@ -78,6 +78,7 @@ type BlockScannerConfiguration struct {
 	EnforceBlockHeight         bool          `json:"enforce_block_height" mapstructure:"enforce_block_height"`
 	DBPath                     string        `json:"db_path" mapstructure:"db_path"`
 	ChainID                    common.Chain  `json:"chain_id" mapstructure:"chain_id"`
+	SuggestedFeeVersion        int           `json:"suggested_fee_version" mapstructure:"suggested_fee_version"`
 }
 
 // ClientConfiguration

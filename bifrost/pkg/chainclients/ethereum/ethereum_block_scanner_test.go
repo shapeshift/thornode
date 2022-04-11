@@ -70,6 +70,7 @@ func getConfigForTest(rpcHost string) config.BlockScannerConfiguration {
 		MaxHTTPRequestRetry:        3,
 		BlockHeightDiscoverBackoff: time.Second,
 		BlockRetryInterval:         time.Second,
+		SuggestedFeeVersion:        1,
 	}
 }
 
@@ -601,4 +602,82 @@ func (s *BlockScannerTestSuite) TestProcessReOrg(c *C) {
 	blockMeta, err = bs.blockMetaAccessor.GetBlockMeta(0)
 	c.Assert(err, IsNil)
 	c.Assert(blockMeta, NotNil)
+}
+
+// -------------------------------------------------------------------------------------
+// GasPriceV2
+// -------------------------------------------------------------------------------------
+
+func (s *BlockScannerTestSuite) TestGasPriceV2(c *C) {
+	storage, err := blockscanner.NewBlockScannerStorage("")
+	c.Assert(err, IsNil)
+	server := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		body, err := ioutil.ReadAll(req.Body)
+		c.Assert(err, IsNil)
+		type RPCRequest struct {
+			JSONRPC string          `json:"jsonrpc"`
+			ID      interface{}     `json:"id"`
+			Method  string          `json:"method"`
+			Params  json.RawMessage `json:"params"`
+		}
+		var rpcRequest RPCRequest
+		err = json.Unmarshal(body, &rpcRequest)
+		c.Assert(err, IsNil)
+		if rpcRequest.Method == "eth_chainId" {
+			_, err := rw.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":"0x539"}`))
+			c.Assert(err, IsNil)
+		}
+		if rpcRequest.Method == "eth_gasPrice" {
+			_, err := rw.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":"0x1"}`))
+			c.Assert(err, IsNil)
+		}
+	}))
+	ethClient, err := ethclient.Dial(server.URL)
+	c.Assert(err, IsNil)
+	pubKeyManager, err := pubkeymanager.NewPubKeyManager(s.bridge, s.m)
+	c.Assert(err, IsNil)
+	solvencyReporter := func(height int64) error {
+		return nil
+	}
+	conf := getConfigForTest("127.0.0.1")
+	conf.SuggestedFeeVersion = 2
+	bs, err := NewETHScanner(conf, storage, big.NewInt(int64(types.Mainnet)), ethClient, s.bridge, s.m, pubKeyManager, solvencyReporter, nil)
+	c.Assert(err, IsNil)
+	c.Assert(bs, NotNil)
+
+	// almost fill gas cache
+	for i := 0; i < 39; i++ {
+		bs.updateGasPriceV2([]*big.Int{big.NewInt(1), big.NewInt(2), big.NewInt(3), big.NewInt(4)})
+	}
+
+	// empty blocks should not count
+	bs.updateGasPriceV2([]*big.Int{})
+	c.Assert(len(bs.gasCache), Equals, 39)
+	c.Assert(bs.gasPrice.Cmp(big.NewInt(0)), Equals, 0)
+
+	// now we should get the average of the 25th percentile gas (2)
+	bs.updateGasPriceV2([]*big.Int{big.NewInt(1), big.NewInt(2), big.NewInt(3), big.NewInt(4)})
+	c.Assert(len(bs.gasCache), Equals, 40)
+	c.Assert(bs.gasPrice.Uint64(), Equals, big.NewInt(2).Uint64())
+
+	// add 20 more blocks with 2x the 25th percentile and we should get 6 (3 + 3x stddev)
+	for i := 0; i < 20; i++ {
+		bs.updateGasPriceV2([]*big.Int{big.NewInt(2), big.NewInt(4), big.NewInt(6), big.NewInt(8)})
+	}
+	c.Assert(len(bs.gasCache), Equals, 40)
+	c.Assert(bs.gasPrice.Uint64(), Equals, big.NewInt(6).Uint64())
+
+	// add 20 more blocks with 2x the 25th percentile and we should get 4
+	for i := 0; i < 20; i++ {
+		bs.updateGasPriceV2([]*big.Int{big.NewInt(2), big.NewInt(4), big.NewInt(6), big.NewInt(8)})
+	}
+	c.Assert(len(bs.gasCache), Equals, 40)
+	c.Assert(bs.gasPrice.Uint64(), Equals, big.NewInt(4).Uint64())
+
+	// add 20 more blocks with 2x the 25th percentile and we should get 12 (6 + 3x stddev)
+	for i := 0; i < 20; i++ {
+		bs.updateGasPriceV2([]*big.Int{big.NewInt(4), big.NewInt(8), big.NewInt(12), big.NewInt(16)})
+	}
+	c.Assert(len(bs.gasCache), Equals, 40)
+	c.Assert(bs.gasPrice.Uint64(), Equals, big.NewInt(12).Uint64())
 }
