@@ -5,14 +5,12 @@
 #
 # Build
 #
-FROM golang:1.17.0 AS build
+FROM registry.gitlab.com/thorchain/thornode:builder-v1@sha256:6a7fb4e4ba636ca8ae6b7db93ae8838a8393ddbc8dfc2b99eb706fb18f50d635 AS build
 
 ENV GOBIN=/go/bin
 ENV GOPATH=/go
 ENV CGO_ENABLED=0
 ENV GOOS=linux
-
-RUN apt-get update -q && apt-get install -y protobuf-compiler
 
 WORKDIR /app
 COPY go.mod go.sum ./
@@ -26,16 +24,10 @@ RUN make install
 #
 # Main
 #
-FROM alpine:latest
+FROM registry.gitlab.com/thorchain/thornode:runner-base-v1@sha256:8fc433efa3e853b59cafe920654705e37c94228ae99cba6892933a61594c11f3
 
-RUN apk add --no-cache gcc musl-dev python3-dev libffi-dev openssl-dev jq curl bind-tools py3-pip protoc
-
-RUN pip3 install --no-cache-dir requests==2.22.0 web3==5.12.0
-
-# Copy the compiled binaires over.
-COPY --from=build /go/bin/generate /usr/bin/
-COPY --from=build /go/bin/thornode /usr/bin/
-COPY --from=build /go/bin/bifrost /usr/bin/
+# Copy the compiled binaries over.
+COPY --from=build /go/bin/generate /go/bin/thornode /go/bin/bifrost /usr/bin/
 
 COPY build/scripts /scripts
 
