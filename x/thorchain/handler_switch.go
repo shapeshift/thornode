@@ -7,6 +7,7 @@ import (
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/constants"
 )
 
 // SwitchHandler is to handle Switch message
@@ -42,15 +43,24 @@ func (h SwitchHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Result, er
 
 func (h SwitchHandler) validate(ctx cosmos.Context, msg MsgSwitch) error {
 	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.1.0")) {
+	if version.GTE(semver.MustParse("1.87.0")) {
+		return h.validateV87(ctx, msg)
+	} else if version.GTE(semver.MustParse("0.1.0")) {
 		return h.validateV1(ctx, msg)
 	}
 	return errBadVersion
 }
 
-func (h SwitchHandler) validateV1(ctx cosmos.Context, msg MsgSwitch) error {
+func (h SwitchHandler) validateV87(ctx cosmos.Context, msg MsgSwitch) error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
+	}
+
+	killSwitchStart := fetchConfigInt64(ctx, h.mgr, constants.KillSwitchStart)
+	killSwitchDuration := fetchConfigInt64(ctx, h.mgr, constants.KillSwitchDuration)
+
+	if killSwitchStart > 0 && common.BlockHeight(ctx) > killSwitchStart+killSwitchDuration {
+		return fmt.Errorf("switch is deprecated")
 	}
 
 	// if we are getting a non-native asset, ensure its signed by an active
@@ -67,13 +77,15 @@ func (h SwitchHandler) validateV1(ctx cosmos.Context, msg MsgSwitch) error {
 func (h SwitchHandler) handle(ctx cosmos.Context, msg MsgSwitch) (*cosmos.Result, error) {
 	ctx.Logger().Info("handleMsgSwitch request", "destination address", msg.Destination.String())
 	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.56.0")) {
+	if version.GTE(semver.MustParse("1.87.0")) {
+		return h.handleV87(ctx, msg)
+	} else if version.GTE(semver.MustParse("0.56.0")) {
 		return h.handleV56(ctx, msg)
 	}
 	return nil, errBadVersion
 }
 
-func (h SwitchHandler) handleV56(ctx cosmos.Context, msg MsgSwitch) (*cosmos.Result, error) {
+func (h SwitchHandler) handleV87(ctx cosmos.Context, msg MsgSwitch) (*cosmos.Result, error) {
 	haltHeight, err := h.mgr.Keeper().GetMimir(ctx, "HaltTHORChain")
 	if err != nil {
 		return nil, fmt.Errorf("failed to get mimir setting: %w", err)
@@ -83,14 +95,27 @@ func (h SwitchHandler) handleV56(ctx cosmos.Context, msg MsgSwitch) (*cosmos.Res
 	}
 
 	if !msg.Tx.Coins[0].IsNative() && msg.Tx.Coins[0].Asset.IsRune() {
-		return h.toNativeV56(ctx, msg)
+		return h.toNativeV87(ctx, msg)
 	}
 
 	return nil, fmt.Errorf("only non-native rune can be 'switched' to native rune")
 }
 
-func (h SwitchHandler) toNativeV56(ctx cosmos.Context, msg MsgSwitch) (*cosmos.Result, error) {
-	coin := common.NewCoin(common.RuneNative, msg.Tx.Coins[0].Amount)
+func (h SwitchHandler) calcCoin(ctx cosmos.Context, in cosmos.Uint) cosmos.Uint {
+	killSwitchStart := fetchConfigInt64(ctx, h.mgr, constants.KillSwitchStart)
+	killSwitchDuration := fetchConfigInt64(ctx, h.mgr, constants.KillSwitchDuration)
+	if killSwitchStart > 0 {
+		remainBlocks := (killSwitchStart + killSwitchDuration) - common.BlockHeight(ctx)
+		if remainBlocks <= 0 {
+			return cosmos.ZeroUint()
+		}
+		return common.GetShare(cosmos.NewUint(uint64(remainBlocks)), cosmos.NewUint(uint64(killSwitchDuration)), in)
+	}
+	return in
+}
+
+func (h SwitchHandler) toNativeV87(ctx cosmos.Context, msg MsgSwitch) (*cosmos.Result, error) {
+	coin := common.NewCoin(common.RuneNative, h.calcCoin(ctx, msg.Tx.Coins[0].Amount))
 
 	addr, err := cosmos.AccAddressFromBech32(msg.Destination.String())
 	if err != nil {
@@ -109,15 +134,15 @@ func (h SwitchHandler) toNativeV56(ctx cosmos.Context, msg MsgSwitch) (*cosmos.R
 
 	switch msg.Tx.Chain {
 	case common.BNBChain:
-		network.BurnedBep2Rune = network.BurnedBep2Rune.Add(coin.Amount)
+		network.BurnedBep2Rune = network.BurnedBep2Rune.Add(msg.Tx.Coins[0].Amount)
 	case common.ETHChain:
-		network.BurnedErc20Rune = network.BurnedErc20Rune.Add(coin.Amount)
+		network.BurnedErc20Rune = network.BurnedErc20Rune.Add(msg.Tx.Coins[0].Amount)
 	}
 	if err := h.mgr.Keeper().SetNetwork(ctx, network); err != nil {
 		ctx.Logger().Error("failed to set network", "error", err)
 	}
 
-	switchEvent := NewEventSwitch(msg.Tx.FromAddress, addr, msg.Tx.Coins[0], msg.Tx.ID)
+	switchEvent := NewEventSwitchV87(msg.Tx.FromAddress, addr, msg.Tx.Coins[0], msg.Tx.ID, coin.Amount)
 	if err := h.mgr.EventMgr().EmitEvent(ctx, switchEvent); err != nil {
 		ctx.Logger().Error("fail to emit switch event", "error", err)
 	}
