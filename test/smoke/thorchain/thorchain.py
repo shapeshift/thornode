@@ -147,6 +147,8 @@ class ThorchainClient(HttpClient):
         Get the current block height of thorchain
         """
         data = self.fetch("/thorchain/lastblock")
+        if data is None:
+            return 0
         return int(data[0]["thorchain"])
 
     def get_vault_address(self, chain):
