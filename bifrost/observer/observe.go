@@ -312,7 +312,7 @@ func (o *Observer) filterBinanceMemoFlag(chain common.Chain, items []types.TxInI
 		m, err := mem.ParseMemo(common.LatestVersion, memo)
 		if err != nil {
 			o.logger.Error().Err(err).Msgf("Unable to parse memo: %s", memo)
-			return common.NoAddress
+			// don't return yet, in case a thorname destination caused the error
 		}
 		if !m.GetDestination().IsEmpty() {
 			return m.GetDestination()
@@ -321,15 +321,18 @@ func (o *Observer) filterBinanceMemoFlag(chain common.Chain, items []types.TxInI
 		// could not find an address, check THORNames
 		var raw string
 		parts := strings.Split(memo, ":")
-		switch m.GetType() {
-		case mem.TxAdd:
+		switch m.(type) {
+		case mem.AddLiquidityMemo:
 			if len(parts) > 2 {
 				raw = parts[2]
 			}
-		case mem.TxSwap:
-			if len(parts) > 3 {
-				raw = parts[3]
+		case mem.SwapMemo:
+			if len(parts) > 2 {
+				raw = parts[2]
 			}
+		}
+		if len(raw) == 0 {
+			return common.NoAddress
 		}
 		name, _ := bridge.GetTHORName(raw)
 		return name.GetAlias(common.BNBChain)

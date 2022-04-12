@@ -71,6 +71,7 @@ const (
 	TxUnBond          = mem.TxUnbond
 	TxLeave           = mem.TxLeave
 	TxWithdraw        = mem.TxWithdraw
+	TxTHORName        = mem.TxTHORName
 )
 
 var (

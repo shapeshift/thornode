@@ -169,6 +169,31 @@ func (s *ObserverSuite) SetUpSuite(c *C) {
   "tthorpub1addwnpepqwhnus6xs4208d4ynm05lv493amz3fexfjfx4vptntedd7k0ajlcunlfxxs"
 ]`))
 			c.Assert(err, IsNil)
+
+		} else if req.RequestURI == "/thorchain/thorname/all-good" {
+			_, err := rw.Write([]byte(`{
+				"name": "all-good",
+				"expire_block_height": 10000,
+				"owner": "tthor1tdfqy34uptx207scymqsy4k5uzfmry5sf7z3dw",
+				"aliases": [
+					{"chain": "BNB", "address": "tbnb1yycn4mh6ffwpjf584t8lpp7c27ghu03gpvqkfjw"}
+				]
+			}`))
+			c.Assert(err, IsNil)
+		} else if req.RequestURI == "/thorchain/thorname/unknown" {
+			_, err := rw.Write([]byte(`{"error": "internal"}`))
+			c.Assert(err, IsNil)
+		} else if req.RequestURI == "/thorchain/thorname/bnb-memo" {
+			_, err := rw.Write([]byte(`{
+				"name": "bnb-memo",
+				"expire_block_height": 10000,
+				"owner": "tthor1tdfqy34uptx207scymqsy4k5uzfmry5sf7z3dw",
+				"aliases": [
+					{"chain": "BNB", "address": "tbnb1yeuljgpkg2c2qvx3nlmgv7gvnyss6ye2u8rasf"}
+				]
+			}`))
+			c.Assert(err, IsNil)
+
 		} else if strings.HasPrefix(req.RequestURI, "/") {
 			_, err := rw.Write([]byte(`{ "jsonrpc": "2.0", "id": 0, "result": { "height": "1", "hash": "E7FDA9DE4D0AD37D823813CB5BC0D6E69AB0D41BB666B65B965D12D24A3AE83C", "logs": [{"success": "true", "log": ""}] } }`))
 			c.Assert(err, IsNil)
@@ -280,6 +305,7 @@ func (s *ObserverSuite) TestFilterMemoFlag(c *C) {
 	}, s.bridge, s.m, "", metrics.NewTssKeysignMetricMgr())
 	c.Assert(obs, NotNil)
 	c.Assert(err, IsNil)
+
 	// swap destination
 	result := obs.filterBinanceMemoFlag(common.BNBChain, []types.TxInItem{
 		{
@@ -347,6 +373,74 @@ func (s *ObserverSuite) TestFilterMemoFlag(c *C) {
 		},
 	})
 	c.Assert(result, HasLen, 1)
+
+	// thorname resolves to a good bnb address, should pass filter
+	result = obs.filterBinanceMemoFlag(common.BNBChain, []types.TxInItem{
+		{
+			BlockHeight: 1024,
+			Tx:          "tx1",
+			Memo:        "swap:BNB.RUNE-67C:all-good",
+			Sender:      thorchain.GetRandomBNBAddress().String(),
+			To:          thorchain.GetRandomBNBAddress().String(),
+			Coins: common.Coins{
+				common.NewCoin(common.BNBAsset, cosmos.NewUint(1024)),
+			},
+			Gas:                 nil,
+			ObservedVaultPubKey: thorchain.GetRandomPubKey(),
+		},
+	})
+	c.Assert(result, HasLen, 1)
+
+	// thorname is not known, should pass filter
+	result = obs.filterBinanceMemoFlag(common.BNBChain, []types.TxInItem{
+		{
+			BlockHeight: 1024,
+			Tx:          "tx1",
+			Memo:        "swap:BNB.RUNE-67C:unknown",
+			Sender:      thorchain.GetRandomBNBAddress().String(),
+			To:          thorchain.GetRandomBNBAddress().String(),
+			Coins: common.Coins{
+				common.NewCoin(common.BNBAsset, cosmos.NewUint(1024)),
+			},
+			Gas:                 nil,
+			ObservedVaultPubKey: thorchain.GetRandomPubKey(),
+		},
+	})
+	c.Assert(result, HasLen, 1)
+
+	// thorname resolves to a bnb addr that requires a memo, should be filtered
+	result = obs.filterBinanceMemoFlag(common.BNBChain, []types.TxInItem{
+		{
+			BlockHeight: 1024,
+			Tx:          "tx1",
+			Memo:        "swap:BNB.RUNE-67C:bnb-memo",
+			Sender:      thorchain.GetRandomBNBAddress().String(),
+			To:          thorchain.GetRandomBNBAddress().String(),
+			Coins: common.Coins{
+				common.NewCoin(common.BNBAsset, cosmos.NewUint(1024)),
+			},
+			Gas:                 nil,
+			ObservedVaultPubKey: thorchain.GetRandomPubKey(),
+		},
+	})
+	c.Assert(result, HasLen, 0)
+
+	// thorname resolves to a bnb addr that requires a memo, should be filtered
+	result = obs.filterBinanceMemoFlag(common.BNBChain, []types.TxInItem{
+		{
+			BlockHeight: 1024,
+			Tx:          "tx1",
+			Memo:        "ADD:BNB.BNB:bnb-memo",
+			Sender:      thorchain.GetRandomBNBAddress().String(),
+			To:          thorchain.GetRandomBNBAddress().String(),
+			Coins: common.Coins{
+				common.NewCoin(common.BNBAsset, cosmos.NewUint(1024)),
+			},
+			Gas:                 nil,
+			ObservedVaultPubKey: thorchain.GetRandomPubKey(),
+		},
+	})
+	c.Assert(result, HasLen, 0)
 
 	// when there is no binance client , the check will be ignored
 	obs, err = NewObserver(pubkeyMgr, nil, s.bridge, s.m, "", metrics.NewTssKeysignMetricMgr())
