@@ -59,6 +59,8 @@ func (smgr *StoreMgr) migrate(ctx cosmos.Context, i uint64) error {
 		migrateStoreV85(ctx, smgr.mgr)
 	case 86:
 		migrateStoreV86(ctx, smgr.mgr)
+	case 87:
+		migrateStoreV87(ctx, smgr.mgr)
 	}
 
 	smgr.mgr.Keeper().SetStoreVersion(ctx, int64(i))
@@ -84,4 +86,33 @@ func migrateStoreV85(ctx cosmos.Context, mgr *Mgrs) {
 	}()
 	removeTransactions(ctx, mgr,
 		"DDE93247EAEF9B8DBC10605FA611AB2DC5E174C9099A319D6B0E6C7B2864CD5A")
+}
+
+func migrateStoreV87(ctx cosmos.Context, mgr *Mgrs) {
+	defer func() {
+		if err := recover(); err != nil {
+			ctx.Logger().Error("fail to migrate store to v87", "error", err)
+		}
+	}()
+
+	opFee := cosmos.NewUint(uint64(fetchConfigInt64(ctx, mgr, constants.NodeOperatorFee)))
+
+	bonded, err := mgr.Keeper().ListValidatorsWithBond(ctx)
+	if err != nil {
+		ctx.Logger().Error("fail to get node accounts with bond", "error", err)
+		return
+	}
+	for _, na := range bonded {
+		bp, err := mgr.Keeper().GetBondProviders(ctx, na.NodeAddress)
+		if err != nil {
+			ctx.Logger().Error("fail to get bond provider", "error", err)
+			return
+		}
+		bp.NodeOperatorFee = opFee
+
+		if err := mgr.Keeper().SetBondProviders(ctx, bp); err != nil {
+			ctx.Logger().Error("fail to save bond provider", "error", err)
+			return
+		}
+	}
 }
