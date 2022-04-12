@@ -1,4 +1,4 @@
-image: registry.gitlab.com/thorchain/thornode:ci-v1
+image: registry.gitlab.com/thorchain/thornode:builder-v1@sha256:6a7fb4e4ba636ca8ae6b7db93ae8838a8393ddbc8dfc2b99eb706fb18f50d635
 
 workflow:
   rules:
@@ -11,7 +11,6 @@ cache:
     - .cache
 
 variables:
-  DOCKER_DRIVER: overlay2
   DOCKER_HOST: tcp://docker:2376
   DOCKER_TLS_CERTDIR: "/certs"
   DOCKER_TLS_VERIFY: 1
