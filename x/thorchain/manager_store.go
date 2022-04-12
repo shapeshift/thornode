@@ -89,6 +89,12 @@ func migrateStoreV85(ctx cosmos.Context, mgr *Mgrs) {
 }
 
 func migrateStoreV87(ctx cosmos.Context, mgr *Mgrs) {
+	defer func() {
+		if err := recover(); err != nil {
+			ctx.Logger().Error("fail to migrate store to v87", "error", err)
+		}
+	}()
+
 	opFee := cosmos.NewUint(uint64(fetchConfigInt64(ctx, mgr, constants.NodeOperatorFee)))
 
 	bonded, err := mgr.Keeper().ListValidatorsWithBond(ctx)
