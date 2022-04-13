@@ -364,7 +364,16 @@ func (s *Signer) signAndBroadcast(item TxOutStoreItem) error {
 		s.logger.Error().Err(err).Msgf("not supported %s", tx.Chain.String())
 		return err
 	}
-
+	mimirKey := fmt.Sprintf("HALTSIGNING%s", tx.Chain)
+	haltSigningMimir, err := s.thorchainBridge.GetMimir(mimirKey)
+	if err != nil {
+		s.logger.Err(err).Msgf("fail to get %s", mimirKey)
+		return err
+	}
+	if haltSigningMimir > 0 {
+		s.logger.Info().Msgf("signing for %s is halted", tx.Chain)
+		return nil
+	}
 	if !s.shouldSign(tx) {
 		s.logger.Info().Str("signer_address", chain.GetAddress(tx.VaultPubKey)).Msg("different pool address, ignore")
 		return nil
