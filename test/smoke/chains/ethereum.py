@@ -265,7 +265,7 @@ class Ethereum(GenericChain):
         if txn.gas is not None and txn.gas[0].asset.is_eth():
             gas = txn.gas[0].amount
         if txn.memo == "WITHDRAW:ETH.ETH:1000":
-            gas = 39839
+            gas = 39836
         elif txn.memo.startswith("SWAP:ETH.ETH:"):
             gas = 39824
         elif txn.memo.startswith(
