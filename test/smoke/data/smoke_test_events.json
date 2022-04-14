@@ -6042,10 +6042,10 @@
                 "asset": "ETH.ETH"
             },
             {
-                "asset_amt": "134466"
+                "asset_amt": "134460"
             },
             {
-                "rune_amt": "234899229"
+                "rune_amt": "234888713"
             },
             {
                 "transaction_count": "1"
@@ -6081,10 +6081,10 @@
                 "asymmetry": "0.000000000000000000"
             },
             {
-                "emit_asset": "40108157"
+                "emit_asset": "40108163"
             },
             {
-                "emit_rune": "70470333013"
+                "emit_rune": "70470322497"
             },
             {
                 "imp_loss_protection": "0"
