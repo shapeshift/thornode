@@ -94,7 +94,10 @@ func migrateStoreV87(ctx cosmos.Context, mgr *Mgrs) {
 			ctx.Logger().Error("fail to migrate store to v87", "error", err)
 		}
 	}()
-
+	if err := mgr.BeginBlock(ctx); err != nil {
+		ctx.Logger().Error("fail to initialise manager", "error", err)
+		return
+	}
 	opFee := cosmos.NewUint(uint64(fetchConfigInt64(ctx, mgr, constants.NodeOperatorFee)))
 
 	bonded, err := mgr.Keeper().ListValidatorsWithBond(ctx)
