@@ -276,7 +276,7 @@ class Ethereum(GenericChain):
             txn.memo
             == "WITHDRAW:ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A:1000"
         ):
-            gas = 53227
+            gas = 53224
         elif txn.memo == "WITHDRAW:ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A":
             gas = 44822
         elif txn.memo == "WITHDRAW:ETH.ETH":
