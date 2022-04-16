@@ -219,7 +219,7 @@ func (h WithdrawLiquidityHandler) handleV75(ctx cosmos.Context, msg MsgWithdrawL
 
 	// Get rune (if any) and donate it to the reserve
 	if !reserveCoin.IsEmpty() {
-		if err := h.mgr.Keeper().AddFeeToReserve(ctx, reserveCoin.Amount); err != nil {
+		if err := h.mgr.Keeper().AddPoolFeeToReserve(ctx, reserveCoin.Amount); err != nil {
 			// Add to reserve
 			ctx.Logger().Error("fail to add fee to reserve", "error", err)
 		}
