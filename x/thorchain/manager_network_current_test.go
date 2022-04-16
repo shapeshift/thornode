@@ -161,7 +161,7 @@ func (k *TestRagnarokChainKeeper) GetLowestActiveVersion(_ cosmos.Context) semve
 	return GetCurrentVersion()
 }
 
-func (k *TestRagnarokChainKeeper) AddFeeToReserve(_ cosmos.Context, _ cosmos.Uint) error {
+func (k *TestRagnarokChainKeeper) AddPoolFeeToReserve(_ cosmos.Context, _ cosmos.Uint) error {
 	return k.err
 }
 

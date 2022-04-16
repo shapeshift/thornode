@@ -83,7 +83,7 @@ func (k *TestSwapKeeper) GetLowestActiveVersion(ctx cosmos.Context) semver.Versi
 	return GetCurrentVersion()
 }
 
-func (k *TestSwapKeeper) AddFeeToReserve(ctx cosmos.Context, fee cosmos.Uint) error { return nil }
+func (k *TestSwapKeeper) AddPoolFeeToReserve(ctx cosmos.Context, fee cosmos.Uint) error { return nil }
 
 func (k *TestSwapKeeper) GetGas(ctx cosmos.Context, _ common.Asset) ([]cosmos.Uint, error) {
 	return []cosmos.Uint{cosmos.NewUint(37500), cosmos.NewUint(30000)}, nil
