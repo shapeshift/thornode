@@ -158,7 +158,8 @@ type KeeperVault interface {
 }
 
 type KeeperReserveContributors interface {
-	AddFeeToReserve(ctx cosmos.Context, fee cosmos.Uint) error
+	AddPoolFeeToReserve(ctx cosmos.Context, fee cosmos.Uint) error
+	AddBondFeeToReserve(ctx cosmos.Context, fee cosmos.Uint) error
 }
 
 // KeeperNetwork func to access network data in key value store

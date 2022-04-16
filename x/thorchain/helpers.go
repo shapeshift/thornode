@@ -538,7 +538,7 @@ func cyclePoolsV73(ctx cosmos.Context, maxAvailablePools, minRunePoolDepth, stag
 					ctx.Logger().Error("fail to save pool", "pool", pool.Asset, "err", err)
 				}
 
-				if err := mgr.Keeper().AddFeeToReserve(ctx, fee); err != nil {
+				if err := mgr.Keeper().AddPoolFeeToReserve(ctx, fee); err != nil {
 					ctx.Logger().Error("fail to add rune to reserve", "from pool", pool.Asset, "err", err)
 				}
 
