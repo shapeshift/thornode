@@ -18,19 +18,19 @@ import (
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
-// SlasherV87 is v54 implementation of slasher
-type SlasherV87 struct {
+// SlasherV88 is v88 implementation of slasher
+type SlasherV88 struct {
 	keeper   keeper.Keeper
 	eventMgr EventManager
 }
 
-// newSlasherV87 create a new instance of Slasher
-func newSlasherV87(keeper keeper.Keeper, eventMgr EventManager) *SlasherV87 {
-	return &SlasherV87{keeper: keeper, eventMgr: eventMgr}
+// newSlasherV88 create a new instance of Slasher
+func newSlasherV88(keeper keeper.Keeper, eventMgr EventManager) *SlasherV88 {
+	return &SlasherV88{keeper: keeper, eventMgr: eventMgr}
 }
 
 // BeginBlock called when a new block get proposed to detect whether there are duplicate vote
-func (s *SlasherV87) BeginBlock(ctx cosmos.Context, req abci.RequestBeginBlock, constAccessor constants.ConstantValues) {
+func (s *SlasherV88) BeginBlock(ctx cosmos.Context, req abci.RequestBeginBlock, constAccessor constants.ConstantValues) {
 	// Iterate through any newly discovered evidence of infraction
 	// Slash any validators (and since-unbonded liquidity within the unbonding period)
 	// who contributed to valid infractions
@@ -49,7 +49,7 @@ func (s *SlasherV87) BeginBlock(ctx cosmos.Context, req abci.RequestBeginBlock, 
 // HandleDoubleSign - slashes a validator for signing two blocks at the same
 // block height
 // https://blog.cosmos.network/consensus-compare-casper-vs-tendermint-6df154ad56ae
-func (s *SlasherV87) HandleDoubleSign(ctx cosmos.Context, addr crypto.Address, infractionHeight int64, constAccessor constants.ConstantValues) error {
+func (s *SlasherV88) HandleDoubleSign(ctx cosmos.Context, addr crypto.Address, infractionHeight int64, constAccessor constants.ConstantValues) error {
 	// check if we're recent enough to slash for this behavior
 	maxAge := constAccessor.GetInt64Value(constants.DoubleSignMaxAge)
 	if (common.BlockHeight(ctx) - infractionHeight) > maxAge {
@@ -106,7 +106,7 @@ func (s *SlasherV87) HandleDoubleSign(ctx cosmos.Context, addr crypto.Address, i
 }
 
 // LackObserving Slash node accounts that didn't observe a single inbound txn
-func (s *SlasherV87) LackObserving(ctx cosmos.Context, constAccessor constants.ConstantValues) error {
+func (s *SlasherV88) LackObserving(ctx cosmos.Context, constAccessor constants.ConstantValues) error {
 	signingTransPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
 	height := common.BlockHeight(ctx)
 	if height < signingTransPeriod {
@@ -136,7 +136,7 @@ func (s *SlasherV87) LackObserving(ctx cosmos.Context, constAccessor constants.C
 	return nil
 }
 
-func (s *SlasherV87) slashNotObserving(ctx cosmos.Context, txHash common.TxID, constAccessor constants.ConstantValues) error {
+func (s *SlasherV88) slashNotObserving(ctx cosmos.Context, txHash common.TxID, constAccessor constants.ConstantValues) error {
 	voter, err := s.keeper.GetObservedTxInVoter(ctx, txHash)
 	if err != nil {
 		return fmt.Errorf("fail to get observe txin voter (%s): %w", txHash.String(), err)
@@ -168,7 +168,7 @@ func (s *SlasherV87) slashNotObserving(ctx cosmos.Context, txHash common.TxID, c
 	return nil
 }
 
-func (s *SlasherV87) checkSignerAndSlash(ctx cosmos.Context, nodes NodeAccounts, blockHeight int64, signers []cosmos.AccAddress, constAccessor constants.ConstantValues) {
+func (s *SlasherV88) checkSignerAndSlash(ctx cosmos.Context, nodes NodeAccounts, blockHeight int64, signers []cosmos.AccAddress, constAccessor constants.ConstantValues) {
 	for _, na := range nodes {
 		// the node is active after the tx finalised
 		if na.ActiveBlockHeight > blockHeight {
@@ -195,7 +195,7 @@ func (s *SlasherV87) checkSignerAndSlash(ctx cosmos.Context, nodes NodeAccounts,
 }
 
 // LackSigning slash account that fail to sign tx
-func (s *SlasherV87) LackSigning(ctx cosmos.Context, constAccessor constants.ConstantValues, mgr Manager) error {
+func (s *SlasherV88) LackSigning(ctx cosmos.Context, constAccessor constants.ConstantValues, mgr Manager) error {
 	var resultErr error
 	signingTransPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
 	if common.BlockHeight(ctx) < signingTransPeriod {
@@ -378,7 +378,7 @@ func (s *SlasherV87) LackSigning(ctx cosmos.Context, constAccessor constants.Con
 // discover signer send out fund more than the amount specified in TxOutItem,
 // it will slash the node account who does that by taking 1.5 * extra fund from
 // node account's bond and subsidise the pool that actually lost it.
-func (s *SlasherV87) SlashVault(ctx cosmos.Context, vaultPK common.PubKey, coins common.Coins, mgr Manager) error {
+func (s *SlasherV88) SlashVault(ctx cosmos.Context, vaultPK common.PubKey, coins common.Coins, mgr Manager) error {
 	if coins.IsEmpty() {
 		return nil
 	}
@@ -406,47 +406,20 @@ func (s *SlasherV87) SlashVault(ctx cosmos.Context, vaultPK common.PubKey, coins
 		if coin.IsEmpty() {
 			continue
 		}
-		totalSlashAmountInRune := cosmos.ZeroUint()
+
+		// rune value is the value in RUNE of the missing funds
+		runeValue := cosmos.ZeroUint()
 		if coin.Asset.IsRune() {
-			totalSlashAmountInRune = coin.Amount.MulUint64(3).QuoUint64(2)
+			runeValue = coin.Amount
 		} else {
-			pool, err := s.keeper.GetPool(ctx, coin.Asset)
-			if err != nil {
-				ctx.Logger().Error("fail to get pool for slash", "asset", coin.Asset, "error", err)
-				continue
-			}
-			// THORChain doesn't even have a pool for the asset
-			if pool.IsEmpty() {
-				ctx.Logger().Error("cannot slash for an empty pool", "asset", coin.Asset)
-				continue
-			}
-			coinAmount := coin.Amount
-			if coinAmount.GT(pool.BalanceAsset) {
-				coinAmount = pool.BalanceAsset
-			}
-			runeValue := pool.RuneReimbursementForAssetWithdrawal(coinAmount)
-			totalSlashAmountInRune = runeValue.MulUint64(3).QuoUint64(2)
-			pool.BalanceAsset = common.SafeSub(pool.BalanceAsset, coinAmount)
-			pool.BalanceRune = pool.BalanceRune.Add(runeValue)
-			if err := s.keeper.SetPool(ctx, pool); err != nil {
-				ctx.Logger().Error("fail to save pool for slash", "asset", coin.Asset, "error", err)
-				continue
-			}
-			poolSlashAmt := []PoolAmt{
-				{
-					Asset:  pool.Asset,
-					Amount: 0 - int64(coinAmount.Uint64()),
-				},
-				{
-					Asset:  common.RuneAsset(),
-					Amount: int64(runeValue.Uint64()),
-				},
-			}
-			eventSlash := NewEventSlash(pool.Asset, poolSlashAmt)
-			if err := mgr.EventMgr().EmitEvent(ctx, eventSlash); err != nil {
-				ctx.Logger().Error("fail to emit slash event", "error", err)
-			}
+			runeValue = s.adjustPoolForSlashedAsset(ctx, coin, mgr)
 		}
+		if runeValue.IsZero() {
+			continue
+		}
+
+		// total slash amount is 1.5x the RUNE value of the missing funds
+		totalSlashAmountInRune := runeValue.MulUint64(3).QuoUint64(2)
 
 		pauseOnSlashThreshold := fetchConfigInt64(ctx, mgr, constants.PauseOnSlashThreshold)
 		if pauseOnSlashThreshold > 0 && totalSlashAmountInRune.GTE(cosmos.NewUint(uint64(pauseOnSlashThreshold))) {
@@ -547,9 +520,9 @@ func (s *SlasherV87) SlashVault(ctx cosmos.Context, vaultPK common.PubKey, coins
 			}
 		}
 
-		//  2/3 of the RUNE value to asgard
-		//  1/3 of the RUNE value to reserve
-		runeToAsgard := totalSlashAmountInRune.MulUint64(2).QuoUint64(3)
+		//  2/3 of the total slashed RUNE value to asgard
+		//  1/3 of the total slashed RUNE value to reserve
+		runeToAsgard := runeValue
 		runeToReserve := common.SafeSub(totalSlashAmountInRune, runeToAsgard)
 
 		if !runeToReserve.IsZero() {
@@ -569,7 +542,7 @@ func (s *SlasherV87) SlashVault(ctx cosmos.Context, vaultPK common.PubKey, coins
 }
 
 // IncSlashPoints will increase the given account's slash points
-func (s *SlasherV87) IncSlashPoints(ctx cosmos.Context, point int64, addresses ...cosmos.AccAddress) {
+func (s *SlasherV88) IncSlashPoints(ctx cosmos.Context, point int64, addresses ...cosmos.AccAddress) {
 	for _, addr := range addresses {
 		if err := s.keeper.IncNodeAccountSlashPoints(ctx, addr, point); err != nil {
 			ctx.Logger().Error("fail to increase node account slash point", "error", err, "address", addr.String())
@@ -578,10 +551,52 @@ func (s *SlasherV87) IncSlashPoints(ctx cosmos.Context, point int64, addresses .
 }
 
 // DecSlashPoints will decrease the given account's slash points
-func (s *SlasherV87) DecSlashPoints(ctx cosmos.Context, point int64, addresses ...cosmos.AccAddress) {
+func (s *SlasherV88) DecSlashPoints(ctx cosmos.Context, point int64, addresses ...cosmos.AccAddress) {
 	for _, addr := range addresses {
 		if err := s.keeper.DecNodeAccountSlashPoints(ctx, addr, point); err != nil {
 			ctx.Logger().Error("fail to decrease node account slash point", "error", err, "address", addr.String())
 		}
 	}
+}
+
+// adjustPoolForSlashedAsset - deduct the asset coin amount from the pool and
+// reimburse with the RUNE value of the deducted amount. Returns the RUNE value
+// but does not transfer RUNE to the Asgard module.
+func (s *SlasherV88) adjustPoolForSlashedAsset(ctx cosmos.Context, coin common.Coin, mgr Manager) cosmos.Uint {
+	pool, err := s.keeper.GetPool(ctx, coin.Asset)
+	if err != nil {
+		ctx.Logger().Error("fail to get pool for slash", "asset", coin.Asset, "error", err)
+		return cosmos.ZeroUint()
+	}
+	// THORChain doesn't even have a pool for the asset
+	if pool.IsEmpty() {
+		ctx.Logger().Error("cannot slash for an empty pool", "asset", coin.Asset)
+		return cosmos.ZeroUint()
+	}
+	coinAmount := coin.Amount
+	if coinAmount.GT(pool.BalanceAsset) {
+		coinAmount = pool.BalanceAsset
+	}
+	runeValue := pool.RuneReimbursementForAssetWithdrawal(coinAmount)
+	pool.BalanceAsset = common.SafeSub(pool.BalanceAsset, coinAmount)
+	pool.BalanceRune = pool.BalanceRune.Add(runeValue)
+	if err := s.keeper.SetPool(ctx, pool); err != nil {
+		ctx.Logger().Error("fail to save pool for slash", "asset", coin.Asset, "error", err)
+		return cosmos.ZeroUint()
+	}
+	poolSlashAmt := []PoolAmt{
+		{
+			Asset:  pool.Asset,
+			Amount: 0 - int64(coinAmount.Uint64()),
+		},
+		{
+			Asset:  common.RuneAsset(),
+			Amount: int64(runeValue.Uint64()),
+		},
+	}
+	eventSlash := NewEventSlash(pool.Asset, poolSlashAmt)
+	if err := mgr.EventMgr().EmitEvent(ctx, eventSlash); err != nil {
+		ctx.Logger().Error("fail to emit slash event", "error", err)
+	}
+	return runeValue
 }
