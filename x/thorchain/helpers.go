@@ -454,7 +454,9 @@ func fetchConfigInt64(ctx cosmos.Context, mgr Manager, key constants.ConstantNam
 	val, err := mgr.Keeper().GetMimir(ctx, key.String())
 	if val < 0 || err != nil {
 		val = mgr.GetConstants().GetInt64Value(key)
-		ctx.Logger().Error("fail to fetch mimir value", "key", key.String(), "error", err)
+		if err != nil {
+			ctx.Logger().Error("fail to fetch mimir value", "key", key.String(), "error", err)
+		}
 	}
 	return val
 }
