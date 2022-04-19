@@ -28,7 +28,7 @@ func getPreRegisterTHORNames(blockheight int64) ([]THORName, error) {
 		if err != nil {
 			return nil, err
 		}
-		names = append(names, NewTHORName(reg.Name, blockheight, []THORNameAlias{THORNameAlias{Chain: common.THORChain, Address: addr}}))
+		names = append(names, NewTHORName(reg.Name, blockheight, []THORNameAlias{{Chain: common.THORChain, Address: addr}}))
 	}
 	return names, nil
 }
