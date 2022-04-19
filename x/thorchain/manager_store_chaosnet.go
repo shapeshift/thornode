@@ -21,3 +21,10 @@ func importPreRegistrationTHORNames(ctx cosmos.Context, mgr Manager) error {
 	}
 	return nil
 }
+
+func migrateStoreV88(ctx cosmos.Context, mgr Manager) {
+	err := importPreRegistrationTHORNames(ctx, mgr)
+	if err != nil {
+		ctx.Logger().Error("fail to migrate store to v88", "error", err)
+	}
+}
