@@ -15,6 +15,7 @@ import (
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
 var WhitelistedArbs = []string{ // treasury addresses
@@ -1126,5 +1127,48 @@ func emitEndBlockTelemetry(ctx cosmos.Context, mgr Manager) error {
 	telemetry.SetGauge(telem(query.ScheduledOutboundValue), "thornode", "queue", "scheduled", "value", "rune")
 	telemetry.SetGauge(telem(query.ScheduledOutboundValue)*runeUSDPrice, "thornode", "queue", "scheduled", "value", "usd")
 
+	return nil
+}
+
+// In the case where the max gas of the chain of a queued outbound tx has changed
+// Update the ObservedTxVoter so the network can still match the outbound with
+// the observed inbound
+func updateTxOutGas(ctx cosmos.Context, keeper keeper.Keeper, txOut types.TxOutItem, gas common.Gas) error {
+	version := keeper.GetLowestActiveVersion(ctx)
+	switch {
+	case version.GTE(semver.MustParse("1.88.0")):
+		return updateTxOutGasV88(ctx, keeper, txOut, gas)
+	case version.GTE(semver.MustParse("0.1.0")):
+		return updateTxOutGasV1(ctx, keeper, txOut, gas)
+	default:
+		return fmt.Errorf("updateTxOutGas: invalid version")
+	}
+}
+
+func updateTxOutGasV88(ctx cosmos.Context, keeper keeper.Keeper, txOut types.TxOutItem, gas common.Gas) error {
+	voter, err := keeper.GetObservedTxInVoter(ctx, txOut.InHash)
+	if err != nil {
+		return err
+	}
+
+	txOutIndex := -1
+	for i, tx := range voter.Actions {
+		if tx.Equals(txOut) {
+			txOutIndex = i
+			voter.Actions[txOutIndex].MaxGas = gas
+			keeper.SetObservedTxInVoter(ctx, voter)
+			break
+		}
+	}
+
+	if txOutIndex == -1 {
+		return fmt.Errorf("Fail to find tx out in ObservedTxVoter %s", txOut.InHash)
+	}
+
+	return nil
+}
+
+// No-op
+func updateTxOutGasV1(ctx cosmos.Context, keeper keeper.Keeper, txOut types.TxOutItem, gas common.Gas) error {
 	return nil
 }

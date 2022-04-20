@@ -77,6 +77,29 @@ func GetRandomObservedTx() ObservedTx {
 	return NewObservedTx(GetRandomTx(), 33, GetRandomPubKey(), 33)
 }
 
+func GetRandomTxOutItem() TxOutItem {
+	return TxOutItem{
+		Chain:       common.TERRAChain,
+		ToAddress:   GetRandomTERRAAddress(),
+		VaultPubKey: GetRandomPubKey(),
+		Coin:        common.NewCoin(common.LUNAAsset, cosmos.NewUint(100000)),
+		Memo:        "OUT:xyz",
+		MaxGas:      common.Gas{common.NewCoin(common.LUNAAsset, cosmos.NewUint(100))},
+		InHash:      GetRandomTxHash(),
+	}
+}
+
+func GetRandomObservedTxVoter() ObservedTxVoter {
+	observedTx := GetRandomObservedTx()
+	return ObservedTxVoter{
+		TxID:    GetRandomTxHash(),
+		Tx:      observedTx,
+		Height:  10,
+		Txs:     ObservedTxs{observedTx},
+		Actions: []TxOutItem{GetRandomTxOutItem()},
+	}
+}
+
 // GetRandomTx
 func GetRandomTx() common.Tx {
 	return common.NewTx(
