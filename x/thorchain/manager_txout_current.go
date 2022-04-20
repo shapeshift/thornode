@@ -60,6 +60,11 @@ func (tos *TxOutStorageV88) EndBlock(ctx cosmos.Context, mgr Manager) error {
 		gasRate := gasRateCache[tx.Chain]
 		if len(tx.MaxGas) == 0 || maxGas.Amount.GT(tx.MaxGas[0].Amount) {
 			txOut.TxArray[i].MaxGas = common.Gas{maxGas}
+			// Update MaxGas in ObservedTxVoter action as well
+			err := updateTxOutGas(ctx, tos.keeper, tx, common.Gas{maxGas})
+			if err != nil {
+				ctx.Logger().Error("Failed to update MaxGas of action in ObservedTxVoter", "hash", tx.InHash, "error", err)
+			}
 		}
 		txOut.TxArray[i].GasRate = gasRate
 	}
