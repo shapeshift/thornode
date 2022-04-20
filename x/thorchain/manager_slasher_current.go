@@ -342,6 +342,11 @@ func (s *SlasherV88) LackSigning(ctx cosmos.Context, constAccessor constants.Con
 			maxGas, _ := mgr.GasMgr().GetMaxGas(ctx, tx.Chain)
 			if len(tx.MaxGas) == 0 || maxGas.Amount.GT(tx.MaxGas[0].Amount) {
 				tx.MaxGas = common.Gas{maxGas}
+				// Update MaxGas in ObservedTxVoter action as well
+				err := updateTxOutGas(ctx, s.keeper, tx, common.Gas{maxGas})
+				if err != nil {
+					ctx.Logger().Error("Failed to update MaxGas of action in ObservedTxVoter", "hash", tx.InHash, "error", err)
+				}
 			}
 			tx.GasRate = int64(mgr.GasMgr().GetGasRate(ctx, tx.Chain).Uint64())
 
