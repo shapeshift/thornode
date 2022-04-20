@@ -1,6 +1,7 @@
 package thorchain
 
 import (
+	"fmt"
 	"strings"
 
 	. "gopkg.in/check.v1"
@@ -780,4 +781,42 @@ func (s *HelperSuite) TestIsTradingHalt(c *C) {
 	c.Assert(isTradingHalt(ctx, mWithThorname, mgr), Equals, true)
 	c.Assert(isTradingHalt(ctx, mRedeemSynth, mgr), Equals, false)
 	c.Assert(mgr.Keeper().DeleteMimir(ctx, "SolvencyHaltBTCChain"), IsNil)
+}
+
+func (s *HelperSuite) TestUpdateTxOutGas(c *C) {
+	ctx, mgr := setupManagerForTest(c)
+
+	// Create ObservedVoter and add a TxOut
+	txVoter := GetRandomObservedTxVoter()
+	txOut := GetRandomTxOutItem()
+	txVoter.Actions = append(txVoter.Actions, txOut)
+	mgr.Keeper().SetObservedTxInVoter(ctx, txVoter)
+
+	// Try to set new gas, should return error as TxOut InHash doesn't match
+	newGas := common.Gas{common.NewCoin(common.LUNAAsset, cosmos.NewUint(2000000))}
+	err := updateTxOutGas(ctx, mgr.K, txOut, newGas)
+	c.Assert(err.Error(), Equals, fmt.Sprintf("Fail to find tx out in ObservedTxVoter %s", txOut.InHash))
+
+	// Update TxOut InHash to match, should update gas
+	txOut.InHash = txVoter.TxID
+	txVoter.Actions[1] = txOut
+	mgr.Keeper().SetObservedTxInVoter(ctx, txVoter)
+
+	// Err should be Nil
+	err = updateTxOutGas(ctx, mgr.K, txOut, newGas)
+	c.Assert(err, IsNil)
+
+	// Keeper should have updated gas of TxOut in Actions
+	txVoter, err = mgr.Keeper().GetObservedTxInVoter(ctx, txVoter.TxID)
+	c.Assert(err, IsNil)
+
+	didUpdate := false
+	for _, item := range txVoter.Actions {
+		if item.Equals(txOut) && item.MaxGas.Equals(newGas) {
+			didUpdate = true
+			break
+		}
+	}
+
+	c.Assert(didUpdate, Equals, true)
 }
