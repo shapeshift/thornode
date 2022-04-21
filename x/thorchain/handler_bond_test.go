@@ -60,7 +60,7 @@ func (HandlerBondSuite) TestBondHandler_ValidateActive(c *C) {
 		BNBGasFeeSingleton,
 		"bond",
 	)
-	msg := NewMsgBond(txIn, activeNodeAccount.NodeAddress, cosmos.NewUint(10*common.One), activeNodeAccount.BondAddress, nil, activeNodeAccount.NodeAddress)
+	msg := NewMsgBond(txIn, activeNodeAccount.NodeAddress, cosmos.NewUint(10*common.One), activeNodeAccount.BondAddress, nil, activeNodeAccount.NodeAddress, -1)
 
 	// happy path
 	c.Assert(handler.validate(ctx, *msg), IsNil)
@@ -99,7 +99,7 @@ func (HandlerBondSuite) TestBondHandler_Run(c *C) {
 		"bond",
 	)
 	FundModule(c, ctx, k1, BondName, uint64(minimumBondInRune))
-	msg := NewMsgBond(txIn, GetRandomValidatorNode(NodeStandby).NodeAddress, cosmos.NewUint(uint64(minimumBondInRune)+common.One), GetRandomTHORAddress(), nil, standbyNodeAccount.NodeAddress)
+	msg := NewMsgBond(txIn, GetRandomValidatorNode(NodeStandby).NodeAddress, cosmos.NewUint(uint64(minimumBondInRune)+common.One), GetRandomTHORAddress(), nil, standbyNodeAccount.NodeAddress, -1)
 	_, err := handler.Run(ctx, msg)
 	c.Assert(err, IsNil)
 	coin := common.NewCoin(common.RuneNative, cosmos.NewUint(common.One))
@@ -113,12 +113,12 @@ func (HandlerBondSuite) TestBondHandler_Run(c *C) {
 
 	// simulate fail to get node account
 	handler = NewBondHandler(NewDummyMgrWithKeeper(k))
-	msg = NewMsgBond(txIn, k.failGetNodeAccount.NodeAddress, cosmos.NewUint(uint64(minimumBondInRune)), GetRandomTHORAddress(), nil, standbyNodeAccount.NodeAddress)
+	msg = NewMsgBond(txIn, k.failGetNodeAccount.NodeAddress, cosmos.NewUint(uint64(minimumBondInRune)), GetRandomTHORAddress(), nil, standbyNodeAccount.NodeAddress, -1)
 	_, err = handler.Run(ctx, msg)
 	c.Assert(errors.Is(err, errInternal), Equals, true)
 
 	// When node account is standby , it is ok to bond
-	msg = NewMsgBond(txIn, k.notEmptyNodeAccount.NodeAddress, cosmos.NewUint(uint64(minimumBondInRune)), common.Address(k.notEmptyNodeAccount.NodeAddress.String()), nil, standbyNodeAccount.NodeAddress)
+	msg = NewMsgBond(txIn, k.notEmptyNodeAccount.NodeAddress, cosmos.NewUint(uint64(minimumBondInRune)), common.Address(k.notEmptyNodeAccount.NodeAddress.String()), nil, standbyNodeAccount.NodeAddress, -1)
 	_, err = handler.Run(ctx, msg)
 	c.Assert(err, IsNil)
 }
@@ -150,32 +150,32 @@ func (HandlerBondSuite) TestBondHandlerFailValidation(c *C) {
 	}{
 		{
 			name:        "empty node address",
-			msg:         NewMsgBond(txIn, cosmos.AccAddress{}, cosmos.NewUint(uint64(minimumBondInRune)), GetRandomTHORAddress(), nil, standbyNodeAccount.NodeAddress),
+			msg:         NewMsgBond(txIn, cosmos.AccAddress{}, cosmos.NewUint(uint64(minimumBondInRune)), GetRandomTHORAddress(), nil, standbyNodeAccount.NodeAddress, -1),
 			expectedErr: se.ErrInvalidAddress,
 		},
 		{
 			name:        "zero bond",
-			msg:         NewMsgBond(txIn, GetRandomValidatorNode(NodeStandby).NodeAddress, cosmos.ZeroUint(), GetRandomTHORAddress(), nil, standbyNodeAccount.NodeAddress),
+			msg:         NewMsgBond(txIn, GetRandomValidatorNode(NodeStandby).NodeAddress, cosmos.ZeroUint(), GetRandomTHORAddress(), nil, standbyNodeAccount.NodeAddress, -1),
 			expectedErr: se.ErrUnknownRequest,
 		},
 		{
 			name:        "empty bond address",
-			msg:         NewMsgBond(txIn, GetRandomValidatorNode(NodeStandby).NodeAddress, cosmos.NewUint(uint64(minimumBondInRune)), common.Address(""), nil, standbyNodeAccount.NodeAddress),
+			msg:         NewMsgBond(txIn, GetRandomValidatorNode(NodeStandby).NodeAddress, cosmos.NewUint(uint64(minimumBondInRune)), common.Address(""), nil, standbyNodeAccount.NodeAddress, -1),
 			expectedErr: se.ErrInvalidAddress,
 		},
 		{
 			name:        "empty request hash",
-			msg:         NewMsgBond(txInNoTxID, GetRandomValidatorNode(NodeStandby).NodeAddress, cosmos.NewUint(uint64(minimumBondInRune)), GetRandomTHORAddress(), nil, standbyNodeAccount.NodeAddress),
+			msg:         NewMsgBond(txInNoTxID, GetRandomValidatorNode(NodeStandby).NodeAddress, cosmos.NewUint(uint64(minimumBondInRune)), GetRandomTHORAddress(), nil, standbyNodeAccount.NodeAddress, -1),
 			expectedErr: se.ErrUnknownRequest,
 		},
 		{
 			name:        "empty signer",
-			msg:         NewMsgBond(txIn, GetRandomValidatorNode(NodeStandby).NodeAddress, cosmos.NewUint(uint64(minimumBondInRune)), GetRandomTHORAddress(), nil, cosmos.AccAddress{}),
+			msg:         NewMsgBond(txIn, GetRandomValidatorNode(NodeStandby).NodeAddress, cosmos.NewUint(uint64(minimumBondInRune)), GetRandomTHORAddress(), nil, cosmos.AccAddress{}, -1),
 			expectedErr: se.ErrInvalidAddress,
 		},
 		{
 			name:        "active node",
-			msg:         NewMsgBond(txIn, GetRandomValidatorNode(NodeActive).NodeAddress, cosmos.NewUint(uint64(minimumBondInRune)), GetRandomBNBAddress(), nil, cosmos.AccAddress{}),
+			msg:         NewMsgBond(txIn, GetRandomValidatorNode(NodeActive).NodeAddress, cosmos.NewUint(uint64(minimumBondInRune)), GetRandomBNBAddress(), nil, cosmos.AccAddress{}, -1),
 			expectedErr: se.ErrInvalidAddress,
 		},
 	}
@@ -208,17 +208,17 @@ func (HandlerBondSuite) TestBondProvider_Validate(c *C) {
 
 	// TEST VALIDATION //
 	// happy path
-	msg := NewMsgBond(txIn, standbyNA, amt, standbyNAAddress, additionalBondAddress, activeNA)
+	msg := NewMsgBond(txIn, standbyNA, amt, standbyNAAddress, additionalBondAddress, activeNA, -1)
 	err := handler.validate(ctx, *msg)
 	c.Assert(err, IsNil)
 
 	// try to bond while node account is active
-	msg = NewMsgBond(txIn, activeNA, amt, activeNAAddress, nil, activeNA)
+	msg = NewMsgBond(txIn, activeNA, amt, activeNAAddress, nil, activeNA, -1)
 	err = handler.validate(ctx, *msg)
 	errCheck(c, err, "cannot add bond while the network is not churning")
 
 	// try to bond with a bnb address
-	msg = NewMsgBond(txIn, standbyNA, amt, GetRandomBNBAddress(), nil, activeNA)
+	msg = NewMsgBond(txIn, standbyNA, amt, GetRandomBNBAddress(), nil, activeNA, -1)
 	err = handler.validate(ctx, *msg)
 	errCheck(c, err, "bonding address is NOT a THORChain address")
 
@@ -226,14 +226,82 @@ func (HandlerBondSuite) TestBondProvider_Validate(c *C) {
 	bp := NewBondProviders(standbyNA)
 	bp.Providers = []BondProvider{NewBondProvider(additionalBondAddress)}
 	c.Assert(k.SetBondProviders(ctx, bp), IsNil)
-	msg = NewMsgBond(txIn, standbyNA, amt, common.Address(additionalBondAddress.String()), nil, activeNA)
+	msg = NewMsgBond(txIn, standbyNA, amt, common.Address(additionalBondAddress.String()), nil, activeNA, -1)
 	err = handler.validate(ctx, *msg)
 	c.Assert(err, IsNil)
 
 	// try to bond with an invalid additional bond provider
-	msg = NewMsgBond(txIn, standbyNA, amt, GetRandomTHORAddress(), nil, activeNA)
+	msg = NewMsgBond(txIn, standbyNA, amt, GetRandomTHORAddress(), nil, activeNA, -1)
 	err = handler.validate(ctx, *msg)
 	errCheck(c, err, "bond address is not valid for node account")
+}
+
+func (HandlerBondSuite) TestBondProvider_OperatorFee(c *C) {
+	ctx, k := setupKeeperForTest(c)
+	handler := NewBondHandler(NewDummyMgrWithKeeper(k))
+
+	standbyNodeAccount := GetRandomValidatorNode(NodeStandby)
+	operatorBondAddress := GetRandomRUNEAddress()
+	operatorAccAddress, _ := operatorBondAddress.AccAddress()
+	providerBondAddress := GetRandomRUNEAddress()
+	providerAccAddr, _ := providerBondAddress.AccAddress()
+	standbyNodeAccount.BondAddress = operatorBondAddress
+
+	c.Assert(k.SetNodeAccount(ctx, standbyNodeAccount), IsNil)
+
+	standbyNodeAddr := standbyNodeAccount.NodeAddress
+	amt := cosmos.NewUint(100 * common.One)
+	txIn := GetRandomTx()
+	txIn.Coins = common.NewCoins(common.NewCoin(common.RuneAsset(), amt))
+
+	/* Test Validation and Handling */
+
+	// happy path should be able to set node operator fee
+	msg := NewMsgBond(txIn, standbyNodeAddr, amt, operatorBondAddress, providerAccAddr, operatorAccAddress, 5000)
+	err := handler.validate(ctx, *msg)
+	c.Assert(err, IsNil)
+
+	err = handler.handle(ctx, *msg)
+	c.Assert(err, IsNil)
+	bp, _ := k.GetBondProviders(ctx, standbyNodeAccount.NodeAddress)
+	c.Assert(bp.NodeOperatorFee.Uint64(), Equals, uint64(5000))
+
+	// Check that a bond provider for the operator + new provider was added
+	c.Assert(len(bp.Providers), Equals, 2)
+
+	// try to increase operator fee after provider has bonded, should fail
+	bp.Providers[1].Bond = cosmos.NewUint(100)
+	bp.NodeOperatorFee = cosmos.NewUint(5000)
+	c.Assert(k.SetBondProviders(ctx, bp), IsNil)
+	msg = NewMsgBond(txIn, standbyNodeAddr, amt, operatorBondAddress, providerAccAddr, operatorAccAddress, 6000)
+	err = handler.validate(ctx, *msg)
+	c.Assert(err.Error(), Equals, "can't increase operator fee after a provider has bonded: unknown request")
+
+	// Should be able to decrease operator fee after provider has bonded
+	msg = NewMsgBond(txIn, standbyNodeAddr, amt, operatorBondAddress, providerAccAddr, operatorAccAddress, 4000)
+	err = handler.validate(ctx, *msg)
+	c.Assert(err, IsNil)
+
+	err = handler.handle(ctx, *msg)
+	c.Assert(err, IsNil)
+	bp, _ = k.GetBondProviders(ctx, standbyNodeAccount.NodeAddress)
+	c.Assert(bp.NodeOperatorFee.Uint64(), Equals, uint64(4000))
+
+	// Only operator can set operator fee
+	msg = NewMsgBond(txIn, standbyNodeAddr, amt, providerBondAddress, providerAccAddr, providerAccAddr, 0)
+	err = handler.validate(ctx, *msg)
+	c.Assert(err.Error(), Equals, "only node operator can set fee: unknown request")
+
+	msg = NewMsgBond(txIn, standbyNodeAddr, amt, providerBondAddress, providerAccAddr, providerAccAddr, 4000)
+	err = handler.validate(ctx, *msg)
+	c.Assert(err.Error(), Equals, "only node operator can set fee: unknown request")
+
+	// If nodeAcc.BondAddress is empty, any address should be able to set operator fee (and become bonder address)
+	standbyNodeAccount.BondAddress = common.NoAddress
+	c.Assert(k.SetNodeAccount(ctx, standbyNodeAccount), IsNil)
+	msg = NewMsgBond(txIn, standbyNodeAddr, amt, providerBondAddress, providerAccAddr, providerAccAddr, 4000)
+	err = handler.validate(ctx, *msg)
+	c.Assert(err, IsNil)
 }
 
 func (HandlerBondSuite) TestBondProvider_Handler(c *C) {
@@ -255,7 +323,7 @@ func (HandlerBondSuite) TestBondProvider_Handler(c *C) {
 
 	// TEST HANDLER //
 	// happy path, and add a whitelisted address
-	msg := NewMsgBond(txIn, standbyNA, amt, standbyNAAddress, additionalBondAddress, activeNA)
+	msg := NewMsgBond(txIn, standbyNA, amt, standbyNAAddress, additionalBondAddress, activeNA, -1)
 	err := handler.handle(ctx, *msg)
 	c.Assert(err, IsNil)
 	na, _ := handler.mgr.Keeper().GetNodeAccount(ctx, standbyNA)
@@ -270,7 +338,7 @@ func (HandlerBondSuite) TestBondProvider_Handler(c *C) {
 	c.Assert(bp.Get(standbyNA).Bond.Uint64(), Equals, cosmos.NewUint(200*common.One).Uint64(), Commentf("%d", bp.Get(standbyNA).Bond.Uint64()))
 
 	// bond with additional bonder
-	msg = NewMsgBond(txIn, standbyNA, amt, common.Address(additionalBondAddress.String()), nil, standbyNA)
+	msg = NewMsgBond(txIn, standbyNA, amt, common.Address(additionalBondAddress.String()), nil, standbyNA, -1)
 	err = handler.handle(ctx, *msg)
 	c.Assert(err, IsNil)
 	bp, _ = k.GetBondProviders(ctx, standbyNA)
@@ -279,7 +347,7 @@ func (HandlerBondSuite) TestBondProvider_Handler(c *C) {
 	c.Assert(bp.Get(additionalBondAddress).Bond.Uint64(), Equals, amt.Uint64(), Commentf("%d", bp.Get(additionalBondAddress).Bond.Uint64()))
 
 	// bond with random bonder (doesnt' add new provider, still 2) - effectively adding to rewards, since this random address is not a BP
-	msg = NewMsgBond(txIn, standbyNA, amt, GetRandomTHORAddress(), nil, activeNA)
+	msg = NewMsgBond(txIn, standbyNA, amt, GetRandomTHORAddress(), nil, activeNA, -1)
 	err = handler.handle(ctx, *msg)
 	c.Assert(err, IsNil)
 	bp, _ = k.GetBondProviders(ctx, standbyNA)
@@ -306,7 +374,7 @@ func (HandlerBondSuite) TestBondProvider_Handler(c *C) {
 	c.Assert(bp.Get(standbyNA).Bond.Uint64(), Equals, cosmos.NewUint(200*common.One).Uint64(), Commentf("%d", bp.Get(standbyNA).Bond.Uint64()))
 
 	// BP #2 Adds more bond after rewards were earned - rewards should be distributed first
-	msg = NewMsgBond(txIn, standbyNA, amt, common.Address(additionalBondAddress.String()), nil, additionalBondAddress)
+	msg = NewMsgBond(txIn, standbyNA, amt, common.Address(additionalBondAddress.String()), nil, additionalBondAddress, -1)
 	err = handler.handle(ctx, *msg)
 	c.Assert(err, IsNil)
 

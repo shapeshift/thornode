@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/blang/semver"
+	"github.com/cosmos/cosmos-sdk/types"
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
@@ -48,13 +49,17 @@ func (h BondHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Result, erro
 
 func (h BondHandler) validate(ctx cosmos.Context, msg MsgBond) error {
 	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.81.0")) {
+	switch {
+	case version.GTE(semver.MustParse("1.88.0")):
+		return h.validateV88(ctx, msg)
+	case version.GTE(semver.MustParse("0.81.0")):
 		return h.validateV81(ctx, msg)
+	default:
+		return errBadVersion
 	}
-	return errBadVersion
 }
 
-func (h BondHandler) validateV81(ctx cosmos.Context, msg MsgBond) error {
+func (h BondHandler) validateV88(ctx cosmos.Context, msg MsgBond) error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
@@ -102,6 +107,28 @@ func (h BondHandler) validateV81(ctx cosmos.Context, msg MsgBond) error {
 		return cosmos.ErrUnknownRequest(fmt.Sprintf("bonding address is NOT a THORChain address: %s", msg.BondAddress.String()))
 	}
 
+	bp, err := h.mgr.Keeper().GetBondProviders(ctx, msg.NodeAddress)
+	if err != nil {
+		return ErrInternal(err, fmt.Sprintf("fail to get bond providers(%s)", msg.NodeAddress))
+	}
+
+	// Attemping to set Operator Fee
+	if msg.OperatorFee > -1 {
+
+		// Only Node Operator can set fee
+		if !msg.BondAddress.Equals(nodeAccount.BondAddress) && !nodeAccount.BondAddress.IsEmpty() {
+			return cosmos.ErrUnknownRequest("only node operator can set fee")
+		}
+
+		// Can't increase operator fee after a provider has bonded
+		if msg.OperatorFee > bp.NodeOperatorFee.BigInt().Int64() {
+			if bp.HasProviderBonded(types.AccAddress(nodeAccount.BondAddress)) {
+				return cosmos.ErrUnknownRequest("can't increase operator fee after a provider has bonded")
+			}
+		}
+	}
+
+	// Validate bond address
 	if msg.BondAddress.Equals(nodeAccount.BondAddress) {
 		return nil
 	}
@@ -111,10 +138,6 @@ func (h BondHandler) validateV81(ctx cosmos.Context, msg MsgBond) error {
 		return nil
 	}
 
-	bp, err := h.mgr.Keeper().GetBondProviders(ctx, msg.NodeAddress)
-	if err != nil {
-		return ErrInternal(err, fmt.Sprintf("fail to get bond providers(%s)", msg.NodeAddress))
-	}
 	from, err := msg.BondAddress.AccAddress()
 	if err != nil {
 		return ErrInternal(err, fmt.Sprintf("fail to parse bond address(%s)", msg.BondAddress))
@@ -129,6 +152,8 @@ func (h BondHandler) validateV81(ctx cosmos.Context, msg MsgBond) error {
 func (h BondHandler) handle(ctx cosmos.Context, msg MsgBond) error {
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.88.0")):
+		return h.handleV88(ctx, msg)
 	case version.GTE(semver.MustParse("1.87.0")):
 		return h.handleV87(ctx, msg)
 	case version.GTE(semver.MustParse("1.86.0")):
@@ -139,7 +164,7 @@ func (h BondHandler) handle(ctx cosmos.Context, msg MsgBond) error {
 	return errBadVersion
 }
 
-func (h BondHandler) handleV87(ctx cosmos.Context, msg MsgBond) error {
+func (h BondHandler) handleV88(ctx cosmos.Context, msg MsgBond) error {
 	nodeAccount, err := h.mgr.Keeper().GetNodeAccount(ctx, msg.NodeAddress)
 	if err != nil {
 		return ErrInternal(err, fmt.Sprintf("fail to get node account(%s)", msg.NodeAddress))
@@ -189,7 +214,6 @@ func (h BondHandler) handleV87(ctx cosmos.Context, msg MsgBond) error {
 
 	// Re-distribute current bond if needed
 	bp.Adjust(originalBond)
-	bp.NodeOperatorFee = cosmos.NewUint(uint64(fetchConfigInt64(ctx, h.mgr, constants.NodeOperatorFee)))
 
 	// backfill bond provider information (passive migration code)
 	if len(bp.Providers) == 0 {
@@ -223,6 +247,11 @@ func (h BondHandler) handleV87(ctx cosmos.Context, msg MsgBond) error {
 	}
 	if bp.Has(from) {
 		bp.Bond(msg.Bond, from)
+	}
+
+	// Update operator fee (-1 means operator fee is not being set)
+	if msg.OperatorFee > -1 {
+		bp.NodeOperatorFee = cosmos.NewUint(uint64(msg.OperatorFee))
 	}
 
 	if err := h.mgr.Keeper().SetNodeAccount(ctx, nodeAccount); err != nil {
