@@ -335,3 +335,14 @@ func (bp *BondProviders) Adjust(nodeBond cosmos.Uint) {
 		}
 	}
 }
+
+// HasProviderBonded: Checks if a bond provider (not the operator) has bonded to the node
+func (bp *BondProviders) HasProviderBonded(opBondAddress cosmos.AccAddress) bool {
+	for i := range bp.Providers {
+		if !bp.Providers[i].BondAddress.Equals(opBondAddress) && bp.Providers[i].Bond.GT(cosmos.ZeroUint()) {
+			return true
+		}
+	}
+
+	return false
+}

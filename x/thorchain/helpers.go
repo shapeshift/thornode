@@ -253,13 +253,17 @@ func getTotalYggValueInRune(ctx cosmos.Context, keeper keeper.Keeper, ygg Vault)
 
 func refundBond(ctx cosmos.Context, tx common.Tx, acc cosmos.AccAddress, amt cosmos.Uint, nodeAcc *NodeAccount, mgr Manager) error {
 	version := mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.81.0")) {
+	switch {
+	case version.GTE(semver.MustParse("1.88.0")):
+		return refundBondV88(ctx, tx, acc, amt, nodeAcc, mgr)
+	case version.GTE(semver.MustParse("0.81.0")):
 		return refundBondV81(ctx, tx, acc, amt, nodeAcc, mgr)
+	default:
+		return errBadVersion
 	}
-	return errBadVersion
 }
 
-func refundBondV81(ctx cosmos.Context, tx common.Tx, acc cosmos.AccAddress, amt cosmos.Uint, nodeAcc *NodeAccount, mgr Manager) error {
+func refundBondV88(ctx cosmos.Context, tx common.Tx, acc cosmos.AccAddress, amt cosmos.Uint, nodeAcc *NodeAccount, mgr Manager) error {
 	if nodeAcc.Status == NodeActive {
 		ctx.Logger().Info("node still active, cannot refund bond", "node address", nodeAcc.NodeAddress, "node pub key", nodeAcc.PubKeySet.Secp256k1)
 		return nil
@@ -293,17 +297,7 @@ func refundBondV81(ctx cosmos.Context, tx common.Tx, acc cosmos.AccAddress, amt 
 		return ErrInternal(err, fmt.Sprintf("fail to get bond providers(%s)", nodeAcc.NodeAddress))
 	}
 
-	// enforce node operator fee
-	// TODO: allow a node to change this while node is in standby. Should also
-	// have a "cool down" period where the node cannot churn in for a while to
-	// enure bond providers don't get rug pulled of their rewards.
-	defaultNodeOperatorFee, err := mgr.Keeper().GetMimir(ctx, constants.NodeOperatorFee.String())
-	if defaultNodeOperatorFee <= 0 || err != nil {
-		defaultNodeOperatorFee = mgr.GetConstants().GetInt64Value(constants.NodeOperatorFee)
-	}
-	bp.NodeOperatorFee = cosmos.NewUint(uint64(defaultNodeOperatorFee))
-
-	// backfil bond provider information (passive migration code)
+	// backfill bond provider information (passive migration code)
 	if len(bp.Providers) == 0 {
 		// no providers yet, add node operator bond address to the bond provider list
 		nodeOpBondAddr, err := nodeAcc.BondAddress.AccAddress()

@@ -6,7 +6,7 @@ import (
 )
 
 // NewMsgBond create new MsgBond message
-func NewMsgBond(txin common.Tx, nodeAddr cosmos.AccAddress, bond cosmos.Uint, bondAddress common.Address, provider, signer cosmos.AccAddress) *MsgBond {
+func NewMsgBond(txin common.Tx, nodeAddr cosmos.AccAddress, bond cosmos.Uint, bondAddress common.Address, provider, signer cosmos.AccAddress, operatorFee int64) *MsgBond {
 	return &MsgBond{
 		TxIn:                txin,
 		NodeAddress:         nodeAddr,
@@ -14,6 +14,7 @@ func NewMsgBond(txin common.Tx, nodeAddr cosmos.AccAddress, bond cosmos.Uint, bo
 		BondAddress:         bondAddress,
 		BondProviderAddress: provider,
 		Signer:              signer,
+		OperatorFee:         operatorFee,
 	}
 }
 
@@ -48,6 +49,9 @@ func (m *MsgBond) ValidateBasic() error {
 	}
 	if m.Signer.Empty() {
 		return cosmos.ErrInvalidAddress("empty signer address")
+	}
+	if m.OperatorFee < -1 || m.OperatorFee > 10000 {
+		return cosmos.ErrUnknownRequest("operator fee must be 0-10000")
 	}
 	return nil
 }
