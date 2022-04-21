@@ -173,8 +173,16 @@ func (s *NodeAccountSuite) TestBondProviders(c *C) {
 	bp := NewBondProviders(acc1)
 	bp.NodeOperatorFee = cosmos.NewUint(2000)
 	bp.Providers = []BondProvider{p1, p2, p3}
+
+	// Provider hasn't bonded yet
+	c.Assert(bp.HasProviderBonded(acc1), Equals, false)
+
 	bp.Bond(cosmos.NewUint(300000), acc1)
+	// Provider still hasn't bonded
+	c.Assert(bp.HasProviderBonded(acc1), Equals, false)
 	bp.Bond(cosmos.NewUint(100000), acc2)
+	// Provider has bonded
+	c.Assert(bp.HasProviderBonded(acc1), Equals, true)
 	bp.Bond(cosmos.NewUint(50000), acc3)
 
 	c.Assert(bp.Has(acc1), Equals, true)
