@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"gitlab.com/thorchain/thornode/common"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 //go:embed preregister_thornames.json
@@ -19,6 +20,7 @@ type PreRegisterTHORName struct {
 func getPreRegisterTHORNames(blockheight int64) ([]THORName, error) {
 	var register []PreRegisterTHORName
 	if err := json.Unmarshal(preregisterTHORNames, &register); err != nil {
+		fmt.Printf("Err3: %s\n", err)
 		return nil, fmt.Errorf("fail to load preregistation thorname list,err: %w", err)
 	}
 
@@ -26,9 +28,17 @@ func getPreRegisterTHORNames(blockheight int64) ([]THORName, error) {
 	for _, reg := range register {
 		addr, err := common.NewAddress(reg.Address)
 		if err != nil {
-			return nil, err
+			fmt.Printf("Err1: %s\n", err)
+			continue
 		}
-		names = append(names, NewTHORName(reg.Name, blockheight, []THORNameAlias{{Chain: common.THORChain, Address: addr}}))
+		name := NewTHORName(reg.Name, blockheight, []THORNameAlias{{Chain: common.THORChain, Address: addr}})
+		acc, err := cosmos.AccAddressFromBech32(reg.Address)
+		if err != nil {
+			fmt.Printf("Err2: %s\n", err)
+			continue
+		}
+		name.Owner = acc
+		names = append(names, name)
 	}
 	return names, nil
 }
