@@ -719,6 +719,31 @@ class ThorchainState:
                 self.events.append(event)
         return out_txs
 
+    def generate_scheduled_outbound_events(self, in_tx, evt, outbound):
+        """
+        Generate scheduled outbound events for txs
+        """
+        event = Event(
+            "scheduled_outbound",
+            [
+                {"chain": outbound.chain},
+                {"to_address": outbound.to_address},
+                {"vault_pub_key": self.vault_pubkey},
+                {"coin_asset": outbound.coins[0].asset},
+                {"coin_amount": evt.get("coin_amount")},
+                {"coin_decimals": "0"},
+                {"memo": outbound.memo},
+                {"gas_rate": evt.get("gas_rate")},
+                {"in_hash": in_tx.id},
+                {"out_hash": ""},
+                {"module_name": ""},
+                {"max_gas_asset_0": outbound.gas[0].asset},
+                {"max_gas_amount_0": evt.get("max_gas_amount_0")},
+                {"max_gas_decimals_0": evt.get("max_gas_decimals_0")},
+            ],
+        )
+        self.events.append(event)
+
     def generate_outbound_events(self, in_tx, txs):
         """
         Generate outbound events for txs
@@ -1472,7 +1497,7 @@ class ThorchainState:
         :returns: (int) liquidity fee
 
         """
-        return int(float((x ** 2) * Y) / float((x + X) ** 2))
+        return int(float((x**2) * Y) / float((x + X) ** 2))
 
     def _calc_swap_slip(self, X, x):
         """
