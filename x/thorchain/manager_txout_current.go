@@ -532,6 +532,10 @@ func (tos *TxOutStorageV88) addToBlockOut(ctx cosmos.Context, mgr Manager, item 
 	}
 	telemetry.SetGaugeWithLabels([]string{"thornode", "vault", "out_txn"}, float32(1), labels)
 
+	if err := tos.eventMgr.EmitEvent(ctx, NewEventScheduledOutbound(item)); err != nil {
+		ctx.Logger().Error("fail to emit scheduled outbound event", "error", err)
+	}
+
 	return tos.keeper.AppendTxOut(ctx, outboundHeight, item)
 }
 
