@@ -22540,7 +22540,10 @@
     "name": "felixyanezb",
     "address": "thor1xtuzshqu0ppczgvcre75ugj7nr3rn5pg22ywz6"
   },
-  { "name": "dao", "address": "thor1frcu83xzhhc998qq9mjwmt7anp3ys6dwpp2jtt" },
+  { 
+    "name": "dao", 
+    "address": "thor1frcu83xzhhc998qq9mjwmt7anp3ys6dwpp2jtt"
+  },
   {
     "name": "knownscoundrei",
     "address": "thor1v6fnlg384ldx58vsxmec40dll6q0q2yhz760xs"
@@ -35461,7 +35464,9 @@
     "name": "coinblockgreece",
     "address": "thor1yxav6mhpjs5frd7m2n86mw3dx7jktnach2sa0u"
   },
-  { "name": "_ca0", "address": "thor1vcmeqdwu02ulczj8yx0hvq6r7ujksjcl62en23" },
+  { 
+    "name": "_ca0", 
+    "address": "thor1vcmeqdwu02ulczj8yx0hvq6r7ujksjcl62en23" },
   {
     "name": "cryton_capital",
     "address": "thor1ke2y6nf6t4g4mkm7j62yujcwuqg8duktenw29n"
@@ -36489,5 +36494,197 @@
   {
     "name": "anthpakpmtlakyx",
     "address": "thor1r2pl7mmvlrfrpplpfnqdrx0cszuhv49e9e4cp0"
+  },
+    {
+    "name": "ss",
+    "address": "thor1kue5wlk5nkf8l7c5vg5cj5r7dmc0zyfmst4rqs"
+  },
+  {
+    "name": "perklin",
+    "address": "thor1kue5wlk5nkf8l7c5vg5cj5r7dmc0zyfmst4rqs"
+  },
+  {
+    "name": "voorhees",
+    "address": "thor1kue5wlk5nkf8l7c5vg5cj5r7dmc0zyfmst4rqs"
+  },
+  {
+    "name": "evoorhees",
+    "address": "thor1kue5wlk5nkf8l7c5vg5cj5r7dmc0zyfmst4rqs"
+  },
+  {
+    "name": "erikvoorhees",
+    "address": "thor1kue5wlk5nkf8l7c5vg5cj5r7dmc0zyfmst4rqs"
+  },
+  {
+    "name": "shapeshift",
+    "address": "thor1kue5wlk5nkf8l7c5vg5cj5r7dmc0zyfmst4rqs"
+  },
+  {
+    "name": "shapeshiftfox",
+    "address": "thor1kue5wlk5nkf8l7c5vg5cj5r7dmc0zyfmst4rqs"
+  },
+  {
+    "name": "fox",
+    "address": "thor1kue5wlk5nkf8l7c5vg5cj5r7dmc0zyfmst4rqs"
+  },
+  {
+    "name": "portis.io",
+    "address": "thor1kue5wlk5nkf8l7c5vg5cj5r7dmc0zyfmst4rqs"
+  },
+  {
+    "name": "portis_io",
+    "address": "thor1kue5wlk5nkf8l7c5vg5cj5r7dmc0zyfmst4rqs"
+  },
+  {
+    "name": "portis_com",
+    "address": "thor1kue5wlk5nkf8l7c5vg5cj5r7dmc0zyfmst4rqs"
+  },
+  {
+    "name": "portis.com",
+    "address": "thor1kue5wlk5nkf8l7c5vg5cj5r7dmc0zyfmst4rqs"
+  },
+  {
+    "name": "portis",
+    "address": "thor1kue5wlk5nkf8l7c5vg5cj5r7dmc0zyfmst4rqs"
+  },
+  {
+    "name": "coincap.com",
+    "address": "thor1kue5wlk5nkf8l7c5vg5cj5r7dmc0zyfmst4rqs"
+  },
+  {
+    "name": "coincap",
+    "address": "thor1kue5wlk5nkf8l7c5vg5cj5r7dmc0zyfmst4rqs"
+  },
+  {
+    "name": "keepkey.com",
+    "address": "thor1kue5wlk5nkf8l7c5vg5cj5r7dmc0zyfmst4rqs"
+  },
+  {
+    "name": "keepkey",
+    "address": "thor1kue5wlk5nkf8l7c5vg5cj5r7dmc0zyfmst4rqs"
+  },
+  {
+    "name": "shapeshift.com",
+    "address": "thor1kue5wlk5nkf8l7c5vg5cj5r7dmc0zyfmst4rqs"
+  },
+  {
+    "name": "shapeshift_com",
+    "address": "thor1kue5wlk5nkf8l7c5vg5cj5r7dmc0zyfmst4rqs"
+  },
+  {
+    "name": "shapeshaft.com",
+    "address": "thor1kue5wlk5nkf8l7c5vg5cj5r7dmc0zyfmst4rqs"
+  },
+  {
+    "name": "shapeshaft",
+    "address": "thor1kue5wlk5nkf8l7c5vg5cj5r7dmc0zyfmst4rqs"
+  },
+  {
+    "name": "shapeshift_io",
+    "address": "thor1kue5wlk5nkf8l7c5vg5cj5r7dmc0zyfmst4rqs"
+  },
+  {
+    "name": "shapeshift.io",
+    "address": "thor1kue5wlk5nkf8l7c5vg5cj5r7dmc0zyfmst4rqs"
+  },
+  {
+    "name": "thorswap",
+    "address": "thor126x4m8crn58zmg4twa7kwan3zfmf3qv9525kr0"
+  },
+  {
+    "name": "thorswap.finance",
+    "address": "thor126x4m8crn58zmg4twa7kwan3zfmf3qv9525kr0"
+  },
+  {
+    "name": "thorswap.fi",
+    "address": "thor126x4m8crn58zmg4twa7kwan3zfmf3qv9525kr0"
+  },
+  {
+    "name": "thorswapdex",
+    "address": "thor126x4m8crn58zmg4twa7kwan3zfmf3qv9525kr0"
+  },
+  {
+    "name": "ts",
+    "address": "thor126x4m8crn58zmg4twa7kwan3zfmf3qv9525kr0"
+  },
+  {
+    "name": "a",
+    "address": "thor126x4m8crn58zmg4twa7kwan3zfmf3qv9525kr0"
+  },
+  {
+    "name": "b",
+    "address": "thor126x4m8crn58zmg4twa7kwan3zfmf3qv9525kr0"
+  },
+  {
+    "name": "c",
+    "address": "thor126x4m8crn58zmg4twa7kwan3zfmf3qv9525kr0"
+  },
+  {
+    "name": "t",
+    "address": "thor126x4m8crn58zmg4twa7kwan3zfmf3qv9525kr0"
+  },
+  {
+    "name": "f",
+    "address": "thor126x4m8crn58zmg4twa7kwan3zfmf3qv9525kr0"
+  },
+  {
+    "name": "tsa",
+    "address": "thor126x4m8crn58zmg4twa7kwan3zfmf3qv9525kr0"
+  },
+  {
+    "name": "t1",
+    "address": "thor126x4m8crn58zmg4twa7kwan3zfmf3qv9525kr0"
+  },
+  {
+    "name": "t2",
+    "address": "thor126x4m8crn58zmg4twa7kwan3zfmf3qv9525kr0"
+  },
+  {
+    "name": "t3",
+    "address": "thor126x4m8crn58zmg4twa7kwan3zfmf3qv9525kr0"
+  },
+  {
+    "name": "t4",
+    "address": "thor126x4m8crn58zmg4twa7kwan3zfmf3qv9525kr0"
+  },
+  {
+    "name": "t5",
+    "address": "thor126x4m8crn58zmg4twa7kwan3zfmf3qv9525kr0"
+  },
+  {
+    "name": "t6",
+    "address": "thor126x4m8crn58zmg4twa7kwan3zfmf3qv9525kr0"
+  },
+  {
+    "name": "t7",
+    "address": "thor126x4m8crn58zmg4twa7kwan3zfmf3qv9525kr0"
+  },
+  {
+    "name": "t8",
+    "address": "thor126x4m8crn58zmg4twa7kwan3zfmf3qv9525kr0"
+  },
+  {
+    "name": "t9",
+    "address": "thor126x4m8crn58zmg4twa7kwan3zfmf3qv9525kr0"
+  },
+  {
+    "name": "ty",
+    "address": "thor126x4m8crn58zmg4twa7kwan3zfmf3qv9525kr0"
+  },
+  {
+    "name": "thoryield",
+    "address": "thor126x4m8crn58zmg4twa7kwan3zfmf3qv9525kr0"
+  },
+  {
+    "name": "thoryieldapp",
+    "address": "thor126x4m8crn58zmg4twa7kwan3zfmf3qv9525kr0"
+  },
+  {
+    "name": "hammer",
+    "address": "thor126x4m8crn58zmg4twa7kwan3zfmf3qv9525kr0"
+  },
+  {
+    "name": "hammer_wallet",
+    "address": "thor126x4m8crn58zmg4twa7kwan3zfmf3qv9525kr0"
   }
 ]
