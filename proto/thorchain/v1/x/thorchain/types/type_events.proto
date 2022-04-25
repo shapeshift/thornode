@@ -4,8 +4,9 @@ package types;
 option go_package = "gitlab.com/thorchain/thornode/x/thorchain/types";
 
 import "thorchain/v1/common/common.proto";
-import "thorchain/v1/x/thorchain/types/type_reserve_contributor.proto";
 import "thorchain/v1/x/thorchain/types/type_pool.proto";
+import "thorchain/v1/x/thorchain/types/type_reserve_contributor.proto";
+import "thorchain/v1/x/thorchain/types/type_tx_out.proto";
 import "gogoproto/gogo.proto";
 
 message PoolMod {
@@ -120,6 +121,10 @@ message EventGas {
 message EventReserve {
   types.ReserveContributor reserve_contributor = 1 [(gogoproto.nullable) = false];
   common.Tx in_tx = 2 [(gogoproto.nullable) = false];
+}
+
+message EventScheduledOutbound {
+  TxOutItem out_tx = 1 [(gogoproto.nullable) = false];
 }
 
 message EventSecurity {

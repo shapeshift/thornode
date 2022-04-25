@@ -23,6 +23,7 @@ const (
 	RefundEventType            = "refund"
 	ReserveEventType           = "reserve"
 	RewardEventType            = "rewards"
+	ScheduledOutboundEventType = "scheduled_outbound"
 	SecurityEventType          = "security"
 	SetMimirEventType          = "set_mimir"
 	SetNodeMimirEventType      = "set_node_mimir"
@@ -345,6 +346,43 @@ func (m *EventReserve) Events() (cosmos.Events, error) {
 	return cosmos.Events{
 		evt,
 	}, nil
+}
+
+// NewEventScheduledOutbound creates a new scheduled outbound event.
+func NewEventScheduledOutbound(tx TxOutItem) *EventScheduledOutbound {
+	return &EventScheduledOutbound{
+		OutTx: tx,
+	}
+}
+
+// Type returns the scheduled outbound event type.
+func (m *EventScheduledOutbound) Type() string {
+	return ScheduledOutboundEventType
+}
+
+// Events returns the cosmos events for the scheduled outbound event.
+func (m *EventScheduledOutbound) Events() (cosmos.Events, error) {
+	attrs := []cosmos.Attribute{
+		cosmos.NewAttribute("chain", m.OutTx.Chain.String()),
+		cosmos.NewAttribute("to_address", m.OutTx.ToAddress.String()),
+		cosmos.NewAttribute("vault_pub_key", m.OutTx.VaultPubKey.String()),
+		cosmos.NewAttribute("coin_asset", m.OutTx.Coin.Asset.String()),
+		cosmos.NewAttribute("coin_amount", m.OutTx.Coin.Amount.String()),
+		cosmos.NewAttribute("coin_decimals", strconv.FormatInt(m.OutTx.Coin.Decimals, 10)),
+		cosmos.NewAttribute("memo", m.OutTx.Memo),
+		cosmos.NewAttribute("gas_rate", strconv.FormatInt(m.OutTx.GasRate, 10)),
+		cosmos.NewAttribute("in_hash", m.OutTx.InHash.String()),
+		cosmos.NewAttribute("out_hash", m.OutTx.OutHash.String()),
+		cosmos.NewAttribute("module_name", m.OutTx.ModuleName),
+	}
+
+	for i, gas := range m.OutTx.MaxGas {
+		attrs = append(attrs, cosmos.NewAttribute(fmt.Sprintf("max_gas_asset_%d", i), gas.Asset.String()))
+		attrs = append(attrs, cosmos.NewAttribute(fmt.Sprintf("max_gas_amount_%d", i), gas.Amount.String()))
+		attrs = append(attrs, cosmos.NewAttribute(fmt.Sprintf("max_gas_decimals_%d", i), strconv.FormatInt(gas.Decimals, 10)))
+	}
+
+	return cosmos.Events{cosmos.NewEvent(m.Type(), attrs...)}, nil
 }
 
 // NewEventSecurity creates a new security event.
