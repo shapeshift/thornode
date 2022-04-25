@@ -346,15 +346,16 @@ class Smoker:
             self.error(f"Mismatching bond reward: {sim} != {real}")
 
     def check_events(self, events, sim_events):
-        events.sort()
-        sim_events.sort()
+        events = set(events)
+        sim_events = set(sim_events)
         if events != sim_events:
-            for (evt_t, evt_s) in zip(events, sim_events):
-                if evt_t != evt_s:
-                    logging.error(">>>>>>>>>>>>>>> MISMATCH!")
-                logging.error(f"Evt THO  {evt_t}")
-                logging.error(f"Evt SIM  {evt_s}")
-            self.error("Events mismatch")
+            for e in events - sim_events:
+                print(">>>>>>>>>>>>>>> MISSING SIM EVENT")
+                print(e)
+            for e in sim_events - events:
+                print("<<<<<<<<<<<<<<< EXTRA SIM EVENT")
+                print(e)
+            self.error("Events mismatch\n")
 
     @retry(stop=stop_after_delay(30), wait=wait_fixed(0.3), reraise=True)
     def run_health(self):
@@ -511,6 +512,19 @@ class Smoker:
                             msg = f"out coins not matching {coin_o} != {coin_e}"
                             logging.error(msg)
                             break
+
+                elif evt_t.type == "scheduled_outbound":
+                    for out in outbounds:
+                        if out.coins[0].asset != evt_t.get("coin_asset"):
+                            continue
+
+                        # this races too much, so we just use event amounts in some cases
+                        self.thorchain_state.generate_scheduled_outbound_events(
+                            txn,
+                            evt_t,
+                            out,
+                        )
+
                 elif not processed:
                     outbounds = self.sim_trigger_tx(txn)
                     pending_txs = len(outbounds)
