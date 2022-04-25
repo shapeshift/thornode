@@ -17,5 +17,5 @@ func (s *PreTHORNameTestSuite) SetUpSuite(c *C) {
 func (s *PreTHORNameTestSuite) TestLoadingJson(c *C) {
 	names, err := getPreRegisterTHORNames(100)
 	c.Assert(err, IsNil)
-	c.Check(names, HasLen, 9167, Commentf("%d", len(names)))
+	c.Check(names, HasLen, 9195, Commentf("%d", len(names)))
 }
