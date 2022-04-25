@@ -111,6 +111,7 @@ var (
 	NewEventSwitch                 = types.NewEventSwitch
 	NewEventSwitchV87              = types.NewEventSwitchV87
 	NewEventGas                    = types.NewEventGas
+	NewEventScheduledOutbound      = types.NewEventScheduledOutbound
 	NewEventSecurity               = types.NewEventSecurity
 	NewEventSlash                  = types.NewEventSlash
 	NewEventSlashPoint             = types.NewEventSlashPoint
