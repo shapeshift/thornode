@@ -143,13 +143,15 @@ func getFee(input, output common.Coins, transactionFee cosmos.Uint) common.Fee {
 
 func subsidizePoolWithSlashBond(ctx cosmos.Context, ygg Vault, yggTotalStolen, slashRuneAmt cosmos.Uint, mgr Manager) error {
 	version := mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.74.0")) {
+	if version.GTE(semver.MustParse("1.88.0")) {
+		return subsidizePoolWithSlashBondV88(ctx, ygg, yggTotalStolen, slashRuneAmt, mgr)
+	} else if version.GTE(semver.MustParse("0.74.0")) {
 		return subsidizePoolWithSlashBondV74(ctx, ygg, yggTotalStolen, slashRuneAmt, mgr)
 	}
 	return errBadVersion
 }
 
-func subsidizePoolWithSlashBondV74(ctx cosmos.Context, ygg Vault, yggTotalStolen, slashRuneAmt cosmos.Uint, mgr Manager) error {
+func subsidizePoolWithSlashBondV88(ctx cosmos.Context, ygg Vault, yggTotalStolen, slashRuneAmt cosmos.Uint, mgr Manager) error {
 	// Thorchain did not slash the node account
 	if slashRuneAmt.IsZero() {
 		return nil
@@ -216,6 +218,14 @@ func subsidizePoolWithSlashBondV74(ctx cosmos.Context, ygg Vault, yggTotalStolen
 			ctx.Logger().Error("fail to save pool", "asset", pool.Asset, "error", err)
 			continue
 		}
+
+		// Send the subsidized RUNE from the Bond module to Asgard
+		runeToAsgard := common.NewCoin(common.RuneNative, f.subsidiseRune)
+		if err := mgr.Keeper().SendFromModuleToModule(ctx, BondName, AsgardName, common.NewCoins(runeToAsgard)); err != nil {
+			ctx.Logger().Error("fail to send subsidy from bond to asgard", "error", err)
+			return err
+		}
+
 		poolSlashAmt := []PoolAmt{
 			{
 				Asset:  pool.Asset,
