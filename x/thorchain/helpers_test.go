@@ -19,10 +19,11 @@ var _ = Suite(&HelperSuite{})
 
 type TestRefundBondKeeper struct {
 	keeper.KVStoreDummy
-	ygg    Vault
-	pool   Pool
-	na     NodeAccount
-	vaults Vaults
+	ygg     Vault
+	pool    Pool
+	na      NodeAccount
+	vaults  Vaults
+	modules map[string]int64
 }
 
 func (k *TestRefundBondKeeper) GetAsgardVaultsByStatus(_ cosmos.Context, _ VaultStatus) (Vaults, error) {
@@ -86,6 +87,12 @@ func (k *TestRefundBondKeeper) GetBondProviders(ctx cosmos.Context, add cosmos.A
 	return BondProviders{}, nil
 }
 
+func (k *TestRefundBondKeeper) SendFromModuleToModule(_ cosmos.Context, from, to string, coins common.Coins) error {
+	k.modules[from] -= int64(coins[0].Amount.Uint64())
+	k.modules[to] += int64(coins[0].Amount.Uint64())
+	return nil
+}
+
 func (s *HelperSuite) TestSubsidizePoolWithSlashBond(c *C) {
 	ctx, mgr := setupManagerForTest(c)
 	ygg := GetRandomVault()
@@ -124,6 +131,12 @@ func (s *HelperSuite) TestSubsidizePoolWithSlashBond(c *C) {
 
 	totalRuneStolen := ygg.GetCoin(common.RuneAsset()).Amount
 	slashAmt := totalRuneLeft.MulUint64(3).QuoUint64(2)
+
+	FundModule(c, ctx, mgr.Keeper(), BondName, slashAmt.Uint64())
+	asgardBeforeSlash := mgr.Keeper().GetRuneBalanceOfModule(ctx, AsgardName)
+	bondBeforeSlash := mgr.Keeper().GetRuneBalanceOfModule(ctx, BondName)
+	poolsBeforeSlash := poolBNB.BalanceRune.Add(poolTCAN.BalanceRune).Add(poolBTC.BalanceRune)
+
 	c.Assert(subsidizePoolWithSlashBond(ctx, ygg, totalRuneLeft, slashAmt, mgr), IsNil)
 
 	slashAmt = common.SafeSub(slashAmt, totalRuneStolen)
@@ -150,6 +163,14 @@ func (s *HelperSuite) TestSubsidizePoolWithSlashBond(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(poolBTC.BalanceRune.Equal(runeBTC), Equals, true)
 	c.Assert(poolBTC.BalanceAsset.Equal(btcPoolAsset), Equals, true)
+
+	asgardAfterSlash := mgr.Keeper().GetRuneBalanceOfModule(ctx, AsgardName)
+	bondAfterSlash := mgr.Keeper().GetRuneBalanceOfModule(ctx, BondName)
+	poolsAfterSlash := poolBNB.BalanceRune.Add(poolTCAN.BalanceRune).Add(poolBTC.BalanceRune)
+
+	// subsidized RUNE should move from bond to asgard
+	c.Assert(poolsAfterSlash.Sub(poolsBeforeSlash).Uint64(), Equals, asgardAfterSlash.Sub(asgardBeforeSlash).Uint64())
+	c.Assert(asgardAfterSlash.Sub(asgardBeforeSlash).Uint64(), Equals, bondBeforeSlash.Sub(bondAfterSlash).Uint64())
 
 	ygg1 := GetRandomVault()
 	ygg1.Type = YggdrasilVault
@@ -206,7 +227,9 @@ func (s *HelperSuite) TestRefundBondError(c *C) {
 	na.Bond = cosmos.NewUint(100 * common.One)
 	tx := GetRandomTx()
 	tx.FromAddress = GetRandomTHORAddress()
-	keeper1 := &TestRefundBondKeeper{}
+	keeper1 := &TestRefundBondKeeper{
+		modules: make(map[string]int64),
+	}
 	mgr := NewDummyMgrWithKeeper(keeper1)
 	c.Assert(refundBond(ctx, tx, na.NodeAddress, cosmos.ZeroUint(), &na, mgr), IsNil)
 
@@ -265,8 +288,9 @@ func (s *HelperSuite) TestRefundBondHappyPath(c *C) {
 			BalanceRune:  cosmos.NewUint(23789 * common.One),
 			BalanceAsset: cosmos.NewUint(167 * common.One),
 		},
-		ygg:    ygg,
-		vaults: Vaults{GetRandomVault()},
+		ygg:     ygg,
+		vaults:  Vaults{GetRandomVault()},
+		modules: make(map[string]int64),
 	}
 	na.Status = NodeStandby
 	mgr := NewDummyMgrWithKeeper(keeper)
@@ -306,8 +330,9 @@ func (s *HelperSuite) TestRefundBondDisableRequestToLeaveNode(c *C) {
 			BalanceRune:  cosmos.NewUint(23789 * common.One),
 			BalanceAsset: cosmos.NewUint(167 * common.One),
 		},
-		ygg:    ygg,
-		vaults: Vaults{GetRandomVault()},
+		ygg:     ygg,
+		vaults:  Vaults{GetRandomVault()},
+		modules: make(map[string]int64),
 	}
 	na.Status = NodeStandby
 	na.RequestedToLeave = true
