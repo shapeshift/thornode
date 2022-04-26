@@ -17,7 +17,7 @@ type PreRegisterTHORName struct {
 	Address string
 }
 
-func getPreRegisterTHORNames(blockheight int64) ([]THORName, error) {
+func getPreRegisterTHORNames(ctx cosmos.Context, blockheight int64) ([]THORName, error) {
 	var register []PreRegisterTHORName
 	if err := json.Unmarshal(preregisterTHORNames, &register); err != nil {
 		return nil, fmt.Errorf("fail to load preregistation thorname list,err: %w", err)
@@ -27,11 +27,15 @@ func getPreRegisterTHORNames(blockheight int64) ([]THORName, error) {
 	for _, reg := range register {
 		addr, err := common.NewAddress(reg.Address)
 		if err != nil {
+			ctx.Logger().Error("fail to parse address", "address", reg.Address, "error", err)
+			fmt.Printf("er1: %s\n", err)
 			continue
 		}
 		name := NewTHORName(reg.Name, blockheight, []THORNameAlias{{Chain: common.THORChain, Address: addr}})
 		acc, err := cosmos.AccAddressFromBech32(reg.Address)
 		if err != nil {
+			ctx.Logger().Error("fail to parse acc address", "address", reg.Address, "error", err)
+			fmt.Printf("er2: %s\n", err)
 			continue
 		}
 		name.Owner = acc

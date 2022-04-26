@@ -9,13 +9,11 @@ type PreTHORNameTestSuite struct{}
 
 var _ = Suite(&PreTHORNameTestSuite{})
 
-func (s *PreTHORNameTestSuite) SetUpSuite(c *C) {
+func (s *PreTHORNameTestSuite) TestLoadingJson(c *C) {
+	ctx, _ := setupKeeperForTest(c)
 	config := cosmos.GetConfig()
 	config.SetBech32PrefixForAccount("thor", "thorpub")
-}
-
-func (s *PreTHORNameTestSuite) TestLoadingJson(c *C) {
-	names, err := getPreRegisterTHORNames(100)
+	names, err := getPreRegisterTHORNames(ctx, 100)
 	c.Assert(err, IsNil)
 	c.Check(names, HasLen, 9195, Commentf("%d", len(names)))
 }

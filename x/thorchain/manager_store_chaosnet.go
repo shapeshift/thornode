@@ -13,7 +13,7 @@ func migrateStoreV86(ctx cosmos.Context, mgr *Mgrs) {}
 
 func importPreRegistrationTHORNames(ctx cosmos.Context, mgr Manager) error {
 	oneYear := fetchConfigInt64(ctx, mgr, constants.BlocksPerYear)
-	names, err := getPreRegisterTHORNames(common.BlockHeight(ctx) + oneYear)
+	names, err := getPreRegisterTHORNames(ctx, common.BlockHeight(ctx)+oneYear)
 	if err != nil {
 		return err
 	}
