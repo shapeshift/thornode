@@ -446,7 +446,7 @@ func (HandlerWithdrawSuite) TestWithdrawHandler_outboundFailures(c *C) {
 	handleCase(msg, nil, errInternal, "asym asset fail", true)
 
 	msg.WithdrawalAsset = common.EmptyAsset
-	handleCase(msg, errInternal, nil, "sym rune fail/asset success", false)
+	handleCase(msg, errInternal, nil, "sym rune fail/asset success", true)
 	handleCase(msg, nil, errInternal, "sym rune success/asset fail", true)
 	handleCase(msg, errInternal, errInternal, "sym rune/asset fail", true)
 	handleCase(msg, nil, nil, "sym rune/asset success", false)
