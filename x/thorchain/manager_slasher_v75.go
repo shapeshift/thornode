@@ -193,9 +193,9 @@ func (s *SlasherV75) checkSignerAndSlash(ctx cosmos.Context, nodes NodeAccounts,
 }
 
 // LackSigning slash account that fail to sign tx
-func (s *SlasherV75) LackSigning(ctx cosmos.Context, constAccessor constants.ConstantValues, mgr Manager) error {
+func (s *SlasherV75) LackSigning(ctx cosmos.Context, mgr Manager) error {
 	var resultErr error
-	signingTransPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
+	signingTransPeriod := mgr.GetConstants().GetInt64Value(constants.SigningTransactionPeriod)
 	if common.BlockHeight(ctx) < signingTransPeriod {
 		return nil
 	}

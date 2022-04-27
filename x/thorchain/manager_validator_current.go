@@ -18,17 +18,17 @@ import (
 // validatorMgrV87 is to manage a list of validators , and rotate them
 type validatorMgrV87 struct {
 	k                  keeper.Keeper
-	vaultMgr           NetworkManager
+	networkMgr         NetworkManager
 	txOutStore         TxOutStore
 	eventMgr           EventManager
 	existingValidators []string
 }
 
 // newValidatorMgrV87 create a new instance of validatorMgrV87
-func newValidatorMgrV87(k keeper.Keeper, vaultMgr NetworkManager, txOutStore TxOutStore, eventMgr EventManager) *validatorMgrV87 {
+func newValidatorMgrV87(k keeper.Keeper, networkMgr NetworkManager, txOutStore TxOutStore, eventMgr EventManager) *validatorMgrV87 {
 	return &validatorMgrV87{
 		k:          k,
-		vaultMgr:   vaultMgr,
+		networkMgr: networkMgr,
 		txOutStore: txOutStore,
 		eventMgr:   eventMgr,
 	}
@@ -144,7 +144,7 @@ func (vm *validatorMgrV87) BeginBlock(ctx cosmos.Context, constAccessor constant
 		}
 		if ok {
 			for _, nodeAccSet := range vm.splitNext(ctx, next, asgardSize) {
-				if err := vm.vaultMgr.TriggerKeygen(ctx, nodeAccSet); err != nil {
+				if err := vm.networkMgr.TriggerKeygen(ctx, nodeAccSet); err != nil {
 					return err
 				}
 			}
@@ -205,7 +205,7 @@ func (vm *validatorMgrV87) splitNext(ctx cosmos.Context, nas NodeAccounts, asgar
 }
 
 // EndBlock when block commit
-func (vm *validatorMgrV87) EndBlock(ctx cosmos.Context, mgr Manager, constAccessor constants.ConstantValues) []abci.ValidatorUpdate {
+func (vm *validatorMgrV87) EndBlock(ctx cosmos.Context, mgr Manager) []abci.ValidatorUpdate {
 	height := common.BlockHeight(ctx)
 	activeNodes, err := vm.k.ListActiveValidators(ctx)
 	if err != nil {
@@ -215,7 +215,7 @@ func (vm *validatorMgrV87) EndBlock(ctx cosmos.Context, mgr Manager, constAccess
 	// when ragnarok is in progress, just process ragnarok
 	if vm.k.RagnarokInProgress(ctx) {
 		// process ragnarok
-		if err := vm.processRagnarok(ctx, mgr, constAccessor); err != nil {
+		if err := vm.processRagnarok(ctx, mgr); err != nil {
 			ctx.Logger().Error("fail to process ragnarok protocol", "error", err)
 		}
 		return nil
@@ -229,12 +229,12 @@ func (vm *validatorMgrV87) EndBlock(ctx cosmos.Context, mgr Manager, constAccess
 
 	artificialRagnarokBlockHeight, err := vm.k.GetMimir(ctx, constants.ArtificialRagnarokBlockHeight.String())
 	if artificialRagnarokBlockHeight < 0 || err != nil {
-		artificialRagnarokBlockHeight = constAccessor.GetInt64Value(constants.ArtificialRagnarokBlockHeight)
+		artificialRagnarokBlockHeight = mgr.GetConstants().GetInt64Value(constants.ArtificialRagnarokBlockHeight)
 	}
 	if artificialRagnarokBlockHeight > 0 {
 		ctx.Logger().Info("Artificial Ragnarok is planned", "height", artificialRagnarokBlockHeight)
 	}
-	minimumNodesForBFT := constAccessor.GetInt64Value(constants.MinimumNodesForBFT)
+	minimumNodesForBFT := mgr.GetConstants().GetInt64Value(constants.MinimumNodesForBFT)
 	nodesAfterChange := len(activeNodes) + len(newNodes) - len(removedNodes)
 	if (len(activeNodes) >= int(minimumNodesForBFT) && nodesAfterChange < int(minimumNodesForBFT)) ||
 		(artificialRagnarokBlockHeight > 0 && common.BlockHeight(ctx) >= artificialRagnarokBlockHeight) {
@@ -247,7 +247,7 @@ func (vm *validatorMgrV87) EndBlock(ctx cosmos.Context, mgr Manager, constAccess
 		}
 
 		if len(retiring) == 0 { // wait until all funds are migrated before starting ragnarok
-			if err := vm.processRagnarok(ctx, mgr, constAccessor); err != nil {
+			if err := vm.processRagnarok(ctx, mgr); err != nil {
 				ctx.Logger().Error("fail to process ragnarok protocol", "error", err)
 			}
 			return nil
@@ -310,7 +310,7 @@ func (vm *validatorMgrV87) EndBlock(ctx cosmos.Context, mgr Manager, constAccess
 		}
 
 		// return yggdrasil funds
-		if err := vm.RequestYggReturn(ctx, nodeRemove, mgr, constAccessor); err != nil {
+		if err := vm.RequestYggReturn(ctx, nodeRemove, mgr); err != nil {
 			ctx.Logger().Error("fail to request yggdrasil funds return", "error", err)
 		}
 
@@ -391,7 +391,7 @@ func (vm *validatorMgrV87) checkContractUpgrade(ctx cosmos.Context, mgr Manager,
 	}
 
 	for _, c := range chains.Distinct() {
-		if err := vm.vaultMgr.RecallChainFunds(ctx, c, mgr, removedNodeKeys); err != nil {
+		if err := vm.networkMgr.RecallChainFunds(ctx, c, mgr, removedNodeKeys); err != nil {
 			ctx.Logger().Error("fail to recall chain fund", "error", err, "chain", c.String())
 		}
 	}
@@ -515,7 +515,7 @@ func (vm *validatorMgrV87) payNodeAccountBondAward(ctx cosmos.Context, lastChurn
 }
 
 // determines when/if to run each part of the ragnarok process
-func (vm *validatorMgrV87) processRagnarok(ctx cosmos.Context, mgr Manager, constAccessor constants.ConstantValues) error {
+func (vm *validatorMgrV87) processRagnarok(ctx cosmos.Context, mgr Manager) error {
 	// execute Ragnarok protocol, no going back
 	// THORNode have to request the fund back now, because once it get to the rotate block height ,
 	// THORNode won't have validators anymore
@@ -527,7 +527,7 @@ func (vm *validatorMgrV87) processRagnarok(ctx cosmos.Context, mgr Manager, cons
 	if ragnarokHeight == 0 {
 		ragnarokHeight = common.BlockHeight(ctx)
 		vm.k.SetRagnarokBlockHeight(ctx, ragnarokHeight)
-		if err := vm.ragnarokProtocolStage1(ctx, mgr, constAccessor); err != nil {
+		if err := vm.ragnarokProtocolStage1(ctx, mgr); err != nil {
 			return fmt.Errorf("fail to execute ragnarok protocol step 1: %w", err)
 		}
 		if err := vm.ragnarokBondReward(ctx, mgr); err != nil {
@@ -546,7 +546,7 @@ func (vm *validatorMgrV87) processRagnarok(ctx cosmos.Context, mgr Manager, cons
 		return fmt.Errorf("fail to get ragnarok position: %w", err)
 	}
 	if !position.IsEmpty() {
-		if err := vm.ragnarokPools(ctx, nth, mgr, constAccessor); err != nil {
+		if err := vm.ragnarokPools(ctx, nth, mgr); err != nil {
 			ctx.Logger().Error("fail to ragnarok pools", "error", err)
 		}
 		return nil
@@ -558,7 +558,7 @@ func (vm *validatorMgrV87) processRagnarok(ctx cosmos.Context, mgr Manager, cons
 		return fmt.Errorf("fail to get ragnarok pending: %w", err)
 	}
 	if pending > 0 {
-		txOutQueue, err := vm.getPendingTxOut(ctx, constAccessor)
+		txOutQueue, err := vm.getPendingTxOut(ctx, mgr.GetConstants())
 		if err != nil {
 			ctx.Logger().Error("fail to get pending tx out item", "error", err)
 			return nil
@@ -571,7 +571,7 @@ func (vm *validatorMgrV87) processRagnarok(ctx cosmos.Context, mgr Manager, cons
 
 	nth++ // increment by 1
 	ctx.Logger().Info("starting next ragnarok iteration", "iteration", nth)
-	err = vm.ragnarokProtocolStage2(ctx, nth, mgr, constAccessor)
+	err = vm.ragnarokProtocolStage2(ctx, nth, mgr)
 	if err != nil {
 		ctx.Logger().Error("fail to execute ragnarok protocol step 2", "error", err)
 		return err
@@ -602,11 +602,11 @@ func (vm *validatorMgrV87) getPendingTxOut(ctx cosmos.Context, constAccessor con
 
 // ragnarokProtocolStage1 - request all yggdrasil pool to return the fund
 // when THORNode observe the node return fund successfully, the node's bound will be refund.
-func (vm *validatorMgrV87) ragnarokProtocolStage1(ctx cosmos.Context, mgr Manager, constAccessor constants.ConstantValues) error {
-	return vm.recallYggFunds(ctx, mgr, constAccessor)
+func (vm *validatorMgrV87) ragnarokProtocolStage1(ctx cosmos.Context, mgr Manager) error {
+	return vm.recallYggFunds(ctx, mgr)
 }
 
-func (vm *validatorMgrV87) ragnarokProtocolStage2(ctx cosmos.Context, nth int64, mgr Manager, constAccessor constants.ConstantValues) error {
+func (vm *validatorMgrV87) ragnarokProtocolStage2(ctx cosmos.Context, nth int64, mgr Manager) error {
 	// Ragnarok Protocol
 	// If THORNode can no longer be BFT, do a graceful shutdown of the entire network.
 	// 1) THORNode will request all yggdrasil pool to return fund , if THORNode don't have yggdrasil pool THORNode will go to step 3 directly
@@ -620,7 +620,7 @@ func (vm *validatorMgrV87) ragnarokProtocolStage2(ctx cosmos.Context, nth int64,
 
 	// refund liquidity providers. This is last to ensure there is likely gas for the
 	// returning bond and reserve
-	if err := vm.ragnarokPools(ctx, nth, mgr, constAccessor); err != nil {
+	if err := vm.ragnarokPools(ctx, nth, mgr); err != nil {
 		ctx.Logger().Error("fail to ragnarok pools", "error", err)
 	}
 
@@ -756,7 +756,7 @@ func (vm *validatorMgrV87) ragnarokBond(ctx cosmos.Context, nth int64, mgr Manag
 	return nil
 }
 
-func (vm *validatorMgrV87) ragnarokPools(ctx cosmos.Context, nth int64, mgr Manager, constAccessor constants.ConstantValues) error {
+func (vm *validatorMgrV87) ragnarokPools(ctx cosmos.Context, nth int64, mgr Manager) error {
 	nas, err := vm.k.ListActiveValidators(ctx)
 	if err != nil {
 		return fmt.Errorf("fail to get active nodes: %w", err)
@@ -891,7 +891,7 @@ func (vm *validatorMgrV87) ragnarokPools(ctx cosmos.Context, nth int64, mgr Mana
 }
 
 // RequestYggReturn request the node that had been removed (yggdrasil) to return their fund
-func (vm *validatorMgrV87) RequestYggReturn(ctx cosmos.Context, node NodeAccount, mgr Manager, constAccessor constants.ConstantValues) error {
+func (vm *validatorMgrV87) RequestYggReturn(ctx cosmos.Context, node NodeAccount, mgr Manager) error {
 	if !vm.k.VaultExists(ctx, node.PubKeySet.Secp256k1) {
 		return nil
 	}
@@ -923,7 +923,7 @@ func (vm *validatorMgrV87) RequestYggReturn(ctx cosmos.Context, node NodeAccount
 	}
 	chains = chains.Distinct()
 
-	signingTransactionPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
+	signingTransactionPeriod := mgr.GetConstants().GetInt64Value(constants.SigningTransactionPeriod)
 	// select vault that is most secure
 	vault := vm.k.GetMostSecure(ctx, active, signingTransactionPeriod)
 	if vault.IsEmpty() {
@@ -965,7 +965,7 @@ func (vm *validatorMgrV87) RequestYggReturn(ctx cosmos.Context, node NodeAccount
 	return nil
 }
 
-func (vm *validatorMgrV87) recallYggFunds(ctx cosmos.Context, mgr Manager, constAccessor constants.ConstantValues) error {
+func (vm *validatorMgrV87) recallYggFunds(ctx cosmos.Context, mgr Manager) error {
 	iter := vm.k.GetVaultIterator(ctx)
 	defer iter.Close()
 	vaults := Vaults{}
@@ -989,7 +989,7 @@ func (vm *validatorMgrV87) recallYggFunds(ctx cosmos.Context, mgr Manager, const
 			ctx.Logger().Error("fail to get node account", "error", err)
 			continue
 		}
-		if err := vm.RequestYggReturn(ctx, na, mgr, constAccessor); err != nil {
+		if err := vm.RequestYggReturn(ctx, na, mgr); err != nil {
 			return fmt.Errorf("fail to request yggdrasil fund back: %w", err)
 		}
 	}

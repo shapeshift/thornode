@@ -72,7 +72,7 @@ func (vm *NetworkMgrV76) processGenesisSetup(ctx cosmos.Context) error {
 }
 
 // EndBlock move funds from retiring asgard vaults
-func (vm *NetworkMgrV76) EndBlock(ctx cosmos.Context, mgr Manager, constAccessor constants.ConstantValues) error {
+func (vm *NetworkMgrV76) EndBlock(ctx cosmos.Context, mgr Manager) error {
 	if common.BlockHeight(ctx) == genesisBlockHeight {
 		return vm.processGenesisSetup(ctx)
 	}
@@ -81,7 +81,7 @@ func (vm *NetworkMgrV76) EndBlock(ctx cosmos.Context, mgr Manager, constAccessor
 
 	migrateInterval, err := vm.k.GetMimir(ctx, constants.FundMigrationInterval.String())
 	if migrateInterval < 0 || err != nil {
-		migrateInterval = constAccessor.GetInt64Value(constants.FundMigrationInterval)
+		migrateInterval = mgr.GetConstants().GetInt64Value(constants.FundMigrationInterval)
 	}
 
 	retiring, err := vm.k.GetAsgardVaultsByStatus(ctx, RetiringVault)
@@ -108,7 +108,7 @@ func (vm *NetworkMgrV76) EndBlock(ctx cosmos.Context, mgr Manager, constAccessor
 		}
 	}
 	for _, vault := range retiring {
-		if vault.LenPendingTxBlockHeights(common.BlockHeight(ctx), constAccessor.GetInt64Value(constants.SigningTransactionPeriod)) > 0 {
+		if vault.LenPendingTxBlockHeights(common.BlockHeight(ctx), mgr.GetConstants().GetInt64Value(constants.SigningTransactionPeriod)) > 0 {
 			ctx.Logger().Info("Skipping the migration of funds while transactions are still pending")
 			return nil
 		}
@@ -156,7 +156,7 @@ func (vm *NetworkMgrV76) EndBlock(ctx cosmos.Context, mgr Manager, constAccessor
 				if target.IsEmpty() {
 					// determine which active asgard vault to send funds to. Select
 					// based on which has the most security
-					signingTransactionPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
+					signingTransactionPeriod := mgr.GetConstants().GetInt64Value(constants.SigningTransactionPeriod)
 					target = vm.k.GetMostSecure(ctx, active, signingTransactionPeriod)
 					if target.PubKey.Equals(vault.PubKey) {
 						continue
@@ -260,7 +260,7 @@ func (vm *NetworkMgrV76) EndBlock(ctx cosmos.Context, mgr Manager, constAccessor
 					return err
 				}
 				if ok {
-					vault.AppendPendingTxBlockHeights(common.BlockHeight(ctx), constAccessor)
+					vault.AppendPendingTxBlockHeights(common.BlockHeight(ctx), mgr.GetConstants())
 					if err := vm.k.SetVault(ctx, vault); err != nil {
 						return fmt.Errorf("fail to save vault: %w", err)
 					}
@@ -376,7 +376,7 @@ func (vm *NetworkMgrV76) RotateVault(ctx cosmos.Context, vault Vault) error {
 
 // manageChains - checks to see if we have any chains that we are ragnaroking,
 // and ragnaroks them
-func (vm *NetworkMgrV76) manageChains(ctx cosmos.Context, mgr Manager, constAccessor constants.ConstantValues) error {
+func (vm *NetworkMgrV76) manageChains(ctx cosmos.Context, mgr Manager) error {
 	chains, err := vm.findChainsToRetire(ctx)
 	if err != nil {
 		return err
@@ -393,7 +393,7 @@ func (vm *NetworkMgrV76) manageChains(ctx cosmos.Context, mgr Manager, constAcce
 
 	migrateInterval, err := vm.k.GetMimir(ctx, constants.FundMigrationInterval.String())
 	if migrateInterval < 0 || err != nil {
-		migrateInterval = constAccessor.GetInt64Value(constants.FundMigrationInterval)
+		migrateInterval = mgr.GetConstants().GetInt64Value(constants.FundMigrationInterval)
 	}
 	nth := (common.BlockHeight(ctx)-vault.StatusSince)/migrateInterval + 1
 	if nth > 10 {
@@ -411,7 +411,7 @@ func (vm *NetworkMgrV76) manageChains(ctx cosmos.Context, mgr Manager, constAcce
 		// only refund after the first nth. This gives yggs time to send funds
 		// back to asgard
 		if nth > 1 {
-			if err := vm.ragnarokChain(ctx, chain, nth, mgr, constAccessor); err != nil {
+			if err := vm.ragnarokChain(ctx, chain, nth, mgr); err != nil {
 				continue
 			}
 		}
@@ -471,8 +471,10 @@ func (vm *NetworkMgrV76) RecallChainFunds(ctx cosmos.Context, chain common.Chain
 		return err
 	}
 
-	version := vm.k.GetLowestActiveVersion(ctx)
-	constAccessor := constants.GetConstantValues(version)
+	// TODO: need to leave this here so we don't cause a consensus failure.
+	// Remove calling this func in a future version
+	_ = vm.k.GetLowestActiveVersion(ctx)
+	constAccessor := mgr.GetConstants()
 	signingTransactionPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
 	vault := vm.k.GetMostSecure(ctx, active, signingTransactionPeriod)
 	if vault.IsEmpty() {
@@ -529,7 +531,7 @@ func (vm *NetworkMgrV76) RecallChainFunds(ctx cosmos.Context, chain common.Chain
 
 // ragnarokChain - ends a chain by withdrawing all liquidity providers of any pool that's
 // asset is on the given chain
-func (vm *NetworkMgrV76) ragnarokChain(ctx cosmos.Context, chain common.Chain, nth int64, mgr Manager, constAccessor constants.ConstantValues) error {
+func (vm *NetworkMgrV76) ragnarokChain(ctx cosmos.Context, chain common.Chain, nth int64, mgr Manager) error {
 	nas, err := vm.k.ListActiveValidators(ctx)
 	if err != nil {
 		ctx.Logger().Error("can't get active nodes", "error", err)
@@ -550,7 +552,7 @@ func (vm *NetworkMgrV76) ragnarokChain(ctx cosmos.Context, chain common.Chain, n
 		if !pool.Asset.GetChain().Equals(chain) || pool.LPUnits.IsZero() {
 			continue
 		}
-		if err := vm.withdrawLiquidity(ctx, pool, na, nth, mgr, constAccessor); err != nil {
+		if err := vm.withdrawLiquidity(ctx, pool, na, nth, mgr); err != nil {
 			ctx.Logger().Error("fail to ragnarok liquidity", "error", err)
 		}
 	}
@@ -558,7 +560,7 @@ func (vm *NetworkMgrV76) ragnarokChain(ctx cosmos.Context, chain common.Chain, n
 	return nil
 }
 
-func (vm *NetworkMgrV76) withdrawLiquidity(ctx cosmos.Context, pool Pool, na NodeAccount, nth int64, mgr Manager, constAccessor constants.ConstantValues) error {
+func (vm *NetworkMgrV76) withdrawLiquidity(ctx cosmos.Context, pool Pool, na NodeAccount, nth int64, mgr Manager) error {
 	withdrawHandler := NewWithdrawLiquidityHandler(mgr)
 	iterator := vm.k.GetLiquidityProviderIterator(ctx, pool.Asset)
 	defer iterator.Close()

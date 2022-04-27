@@ -162,7 +162,7 @@ func (h LeaveHandler) handleV76(ctx cosmos.Context, msg MsgLeave) error {
 								return ErrInternal(err, "fail to refund bond")
 							}
 						} else {
-							if err := h.mgr.ValidatorMgr().RequestYggReturn(ctx, nodeAcc, h.mgr, h.mgr.GetConstants()); err != nil {
+							if err := h.mgr.ValidatorMgr().RequestYggReturn(ctx, nodeAcc, h.mgr); err != nil {
 								return ErrInternal(err, "fail to request yggdrasil return fund")
 							}
 						}

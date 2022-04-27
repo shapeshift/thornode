@@ -197,7 +197,7 @@ func (am AppModule) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.V
 		ctx.Logger().Error("constants is not available", "version", version)
 		return nil
 	}
-	if err := am.mgr.SwapQ().EndBlock(ctx, am.mgr, version, constantValues); err != nil {
+	if err := am.mgr.SwapQ().EndBlock(ctx, am.mgr); err != nil {
 		ctx.Logger().Error("fail to process swap queue", "error", err)
 	}
 
@@ -205,7 +205,7 @@ func (am AppModule) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.V
 	if err := am.mgr.Slasher().LackObserving(ctx, constantValues); err != nil {
 		ctx.Logger().Error("Unable to slash for lack of observing:", "error", err)
 	}
-	if err := am.mgr.Slasher().LackSigning(ctx, constantValues, am.mgr); err != nil {
+	if err := am.mgr.Slasher().LackSigning(ctx, am.mgr); err != nil {
 		ctx.Logger().Error("Unable to slash for lack of signing:", "error", err)
 	}
 
@@ -235,20 +235,20 @@ func (am AppModule) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.V
 	am.mgr.ObMgr().EndBlock(ctx, am.mgr.Keeper())
 
 	// update network data to account for block rewards and reward units
-	if err := am.mgr.VaultMgr().UpdateNetwork(ctx, constantValues, am.mgr.GasMgr(), am.mgr.EventMgr()); err != nil {
+	if err := am.mgr.NetworkMgr().UpdateNetwork(ctx, constantValues, am.mgr.GasMgr(), am.mgr.EventMgr()); err != nil {
 		ctx.Logger().Error("fail to update network data", "error", err)
 	}
 
-	if err := am.mgr.VaultMgr().EndBlock(ctx, am.mgr, constantValues); err != nil {
+	if err := am.mgr.NetworkMgr().EndBlock(ctx, am.mgr); err != nil {
 		ctx.Logger().Error("fail to end block for vault manager", "error", err)
 	}
 
-	validators := am.mgr.ValidatorMgr().EndBlock(ctx, am.mgr, constantValues)
+	validators := am.mgr.ValidatorMgr().EndBlock(ctx, am.mgr)
 
 	// Fill up Yggdrasil vaults
 	// We do this AFTER validatorMgr.EndBlock, because we don't want to send
 	// funds to a yggdrasil vault that is being churned out this block.
-	if err := am.mgr.YggManager().Fund(ctx, am.mgr, constantValues); err != nil {
+	if err := am.mgr.YggManager().Fund(ctx, am.mgr); err != nil {
 		ctx.Logger().Error("unable to fund yggdrasil", "error", err)
 	}
 

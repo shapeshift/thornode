@@ -18,7 +18,7 @@ func (h WithdrawLiquidityHandler) handleV75(ctx cosmos.Context, msg MsgWithdrawL
 	if err != nil {
 		return nil, ErrInternal(err, "fail to get pool")
 	}
-	runeAmt, assetAmount, impLossProtection, units, gasAsset, err := withdraw(ctx, h.mgr.GetVersion(), msg, h.mgr)
+	runeAmt, assetAmount, impLossProtection, units, gasAsset, err := withdraw(ctx, msg, h.mgr)
 	if err != nil {
 		return nil, ErrInternal(err, "fail to process withdraw request")
 	}
