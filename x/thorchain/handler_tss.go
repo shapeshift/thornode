@@ -217,7 +217,7 @@ func (h TssHandler) handleV73(ctx cosmos.Context, msg MsgTssPool) (*cosmos.Resul
 					if err := h.mgr.Keeper().SetVault(ctx, v); err != nil {
 						return nil, fmt.Errorf("fail to save vault: %w", err)
 					}
-					if err := h.mgr.VaultMgr().RotateVault(ctx, v); err != nil {
+					if err := h.mgr.NetworkMgr().RotateVault(ctx, v); err != nil {
 						return nil, fmt.Errorf("fail to rotate vault: %w", err)
 					}
 				}

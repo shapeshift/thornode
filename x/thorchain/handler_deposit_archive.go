@@ -109,7 +109,7 @@ func (h DepositHandler) handleV67(ctx cosmos.Context, msg MsgDeposit) (*cosmos.R
 		if txIn.Tx.Coins.IsEmpty() {
 			return &cosmos.Result{}, nil
 		}
-		if newErr := refundTx(ctx, txIn, h.mgr, h.mgr.GetConstants(), CodeInvalidMemo, txErr.Error(), targetModule); nil != newErr {
+		if newErr := refundTx(ctx, txIn, h.mgr, CodeInvalidMemo, txErr.Error(), targetModule); nil != newErr {
 			return nil, newErr
 		}
 
@@ -124,7 +124,7 @@ func (h DepositHandler) handleV67(ctx cosmos.Context, msg MsgDeposit) (*cosmos.R
 			if txIn.Tx.Coins.IsEmpty() {
 				return &cosmos.Result{}, nil
 			}
-			if newErr := refundTx(ctx, txIn, h.mgr, h.mgr.GetConstants(), se.ErrUnauthorized.ABCICode(), "trading halted", targetModule); nil != newErr {
+			if newErr := refundTx(ctx, txIn, h.mgr, se.ErrUnauthorized.ABCICode(), "trading halted", targetModule); nil != newErr {
 				return nil, ErrInternal(newErr, "trading is halted, fail to refund")
 			}
 			return &cosmos.Result{}, nil
@@ -150,7 +150,7 @@ func (h DepositHandler) handleV67(ctx cosmos.Context, msg MsgDeposit) (*cosmos.R
 		if txIn.Tx.Coins.IsEmpty() {
 			return &cosmos.Result{}, nil
 		}
-		if err := refundTx(ctx, txIn, h.mgr, h.mgr.GetConstants(), code, err.Error(), targetModule); err != nil {
+		if err := refundTx(ctx, txIn, h.mgr, code, err.Error(), targetModule); err != nil {
 			return nil, fmt.Errorf("fail to refund tx: %w", err)
 		}
 		return &cosmos.Result{}, nil

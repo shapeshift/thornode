@@ -26,15 +26,15 @@ func (vm BlankValidatorManager) BeginBlock(_ cosmos.Context, _ constants.Constan
 	return nil
 }
 
-func (vm BlankValidatorManager) EndBlock(_ cosmos.Context, _ Manager, _ constants.ConstantValues) []abci.ValidatorUpdate {
+func (vm BlankValidatorManager) EndBlock(_ cosmos.Context, _ Manager) []abci.ValidatorUpdate {
 	return nil
 }
 
-func (vm BlankValidatorManager) RequestYggReturn(_ cosmos.Context, _ NodeAccount, _ Manager, _ constants.ConstantValues) error {
+func (vm BlankValidatorManager) RequestYggReturn(_ cosmos.Context, _ NodeAccount, _ Manager) error {
 	return errReturnYgg
 }
 
-func (vm BlankValidatorManager) processRagnarok(_ cosmos.Context, _ Manager, _ constants.ConstantValues) error {
+func (vm BlankValidatorManager) processRagnarok(_ cosmos.Context, _ Manager) error {
 	return nil
 }
 

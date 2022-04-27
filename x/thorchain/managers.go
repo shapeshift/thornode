@@ -33,7 +33,7 @@ type Manager interface {
 	GasMgr() GasManager
 	EventMgr() EventManager
 	TxOutStore() TxOutStore
-	VaultMgr() NetworkManager
+	NetworkMgr() NetworkManager
 	ValidatorMgr() ValidatorManager
 	ObMgr() ObserverManager
 	SwapQ() SwapQueue
@@ -84,24 +84,24 @@ type ObserverManager interface {
 // ValidatorManager define the method to manage validators
 type ValidatorManager interface {
 	BeginBlock(ctx cosmos.Context, constAccessor constants.ConstantValues, existingValidators []string) error
-	EndBlock(ctx cosmos.Context, mgr Manager, constAccessor constants.ConstantValues) []abci.ValidatorUpdate
-	RequestYggReturn(ctx cosmos.Context, node NodeAccount, mgr Manager, constAccessor constants.ConstantValues) error
-	processRagnarok(ctx cosmos.Context, mgr Manager, constAccessor constants.ConstantValues) error
+	EndBlock(ctx cosmos.Context, mgr Manager) []abci.ValidatorUpdate
+	RequestYggReturn(ctx cosmos.Context, node NodeAccount, mgr Manager) error
+	processRagnarok(ctx cosmos.Context, mgr Manager) error
 	NodeAccountPreflightCheck(ctx cosmos.Context, na NodeAccount, constAccessor constants.ConstantValues) (NodeStatus, error)
 }
 
-// NetworkManager interface define the contract of Vault Manager
+// NetworkManager interface define the contract of network Manager
 type NetworkManager interface {
 	TriggerKeygen(ctx cosmos.Context, nas NodeAccounts) error
 	RotateVault(ctx cosmos.Context, vault Vault) error
-	EndBlock(ctx cosmos.Context, mgr Manager, constAccessor constants.ConstantValues) error
+	EndBlock(ctx cosmos.Context, mgr Manager) error
 	UpdateNetwork(ctx cosmos.Context, constAccessor constants.ConstantValues, gasManager GasManager, eventMgr EventManager) error
 	RecallChainFunds(ctx cosmos.Context, chain common.Chain, mgr Manager, excludeNode common.PubKeys) error
 }
 
 // SwapQueue interface define the contract of Swap Queue
 type SwapQueue interface {
-	EndBlock(ctx cosmos.Context, mgr Manager, version semver.Version, constAccessor constants.ConstantValues) error
+	EndBlock(ctx cosmos.Context, mgr Manager) error
 }
 
 // Slasher define all the method to perform slash
@@ -109,7 +109,7 @@ type Slasher interface {
 	BeginBlock(ctx cosmos.Context, req abci.RequestBeginBlock, constAccessor constants.ConstantValues)
 	HandleDoubleSign(ctx cosmos.Context, addr crypto.Address, infractionHeight int64, constAccessor constants.ConstantValues) error
 	LackObserving(ctx cosmos.Context, constAccessor constants.ConstantValues) error
-	LackSigning(ctx cosmos.Context, constAccessor constants.ConstantValues, mgr Manager) error
+	LackSigning(ctx cosmos.Context, mgr Manager) error
 	SlashVault(ctx cosmos.Context, vaultPK common.PubKey, coins common.Coins, mgr Manager) error
 	IncSlashPoints(ctx cosmos.Context, point int64, addresses ...cosmos.AccAddress)
 	DecSlashPoints(ctx cosmos.Context, point int64, addresses ...cosmos.AccAddress)
@@ -117,12 +117,13 @@ type Slasher interface {
 
 // YggManager define method to fund yggdrasil
 type YggManager interface {
-	Fund(ctx cosmos.Context, mgr Manager, constAccessor constants.ConstantValues) error
+	Fund(ctx cosmos.Context, mgr Manager) error
 }
 
 // Mgrs is an implementation of Manager interface
 type Mgrs struct {
-	CurrentVersion semver.Version
+	currentVersion semver.Version
+	constAccessor  constants.ConstantValues
 	gasMgr         GasManager
 	eventMgr       EventManager
 	txOutStore     TxOutStore
@@ -132,7 +133,6 @@ type Mgrs struct {
 	swapQ          SwapQueue
 	slasher        Slasher
 	yggManager     YggManager
-	ConstAccessor  constants.ConstantValues
 
 	K             keeper.Keeper
 	cdc           codec.BinaryCodec
@@ -153,22 +153,22 @@ func NewManagers(keeper keeper.Keeper, cdc codec.BinaryCodec, coinKeeper bankkee
 }
 
 func (mgr *Mgrs) GetVersion() semver.Version {
-	return mgr.CurrentVersion
+	return mgr.currentVersion
 }
 
 func (mgr *Mgrs) GetConstants() constants.ConstantValues {
-	return mgr.ConstAccessor
+	return mgr.constAccessor
 }
 
 // BeginBlock detect whether there are new version available, if it is available then create a new version of Mgr
 func (mgr *Mgrs) BeginBlock(ctx cosmos.Context) error {
 	v := mgr.K.GetLowestActiveVersion(ctx)
-	if v.Equals(mgr.CurrentVersion) {
+	if v.Equals(mgr.GetVersion()) {
 		return nil
 	}
 	// version is different , thus all the manager need to re-create
-	mgr.CurrentVersion = v
-	mgr.ConstAccessor = constants.GetConstantValues(v)
+	mgr.currentVersion = v
+	mgr.constAccessor = constants.GetConstantValues(v)
 	var err error
 
 	mgr.K, err = GetKeeper(v, mgr.cdc, mgr.coinKeeper, mgr.accountKeeper, mgr.storeKey)
@@ -183,17 +183,17 @@ func (mgr *Mgrs) BeginBlock(ctx cosmos.Context) error {
 	if err != nil {
 		return fmt.Errorf("fail to get event manager: %w", err)
 	}
-	mgr.txOutStore, err = GetTxOutStore(mgr.K, v, mgr.eventMgr, mgr.gasMgr)
+	mgr.txOutStore, err = GetTxOutStore(v, mgr.K, mgr.eventMgr, mgr.gasMgr)
 	if err != nil {
 		return fmt.Errorf("fail to get tx out store: %w", err)
 	}
 
-	mgr.networkMgr, err = GetNetworkManager(mgr.K, v, mgr.txOutStore, mgr.eventMgr)
+	mgr.networkMgr, err = GetNetworkManager(v, mgr.K, mgr.txOutStore, mgr.eventMgr)
 	if err != nil {
 		return fmt.Errorf("fail to get vault manager: %w", err)
 	}
 
-	mgr.validatorMgr, err = GetValidatorManager(mgr.K, v, mgr.networkMgr, mgr.txOutStore, mgr.eventMgr)
+	mgr.validatorMgr, err = GetValidatorManager(v, mgr.K, mgr.networkMgr, mgr.txOutStore, mgr.eventMgr)
 	if err != nil {
 		return fmt.Errorf("fail to get validator manager: %w", err)
 	}
@@ -203,17 +203,17 @@ func (mgr *Mgrs) BeginBlock(ctx cosmos.Context) error {
 		return fmt.Errorf("fail to get observer manager: %w", err)
 	}
 
-	mgr.swapQ, err = GetSwapQueue(mgr.K, v)
+	mgr.swapQ, err = GetSwapQueue(v, mgr.K)
 	if err != nil {
 		return fmt.Errorf("fail to create swap queue: %w", err)
 	}
 
-	mgr.slasher, err = GetSlasher(mgr.K, v, mgr.eventMgr)
+	mgr.slasher, err = GetSlasher(v, mgr.K, mgr.eventMgr)
 	if err != nil {
 		return fmt.Errorf("fail to create swap queue: %w", err)
 	}
 
-	mgr.yggManager, err = GetYggManager(mgr.K, v)
+	mgr.yggManager, err = GetYggManager(v, mgr.K)
 	if err != nil {
 		return fmt.Errorf("fail to create swap queue: %w", err)
 	}
@@ -233,7 +233,7 @@ func (mgr *Mgrs) EventMgr() EventManager { return mgr.eventMgr }
 func (mgr *Mgrs) TxOutStore() TxOutStore { return mgr.txOutStore }
 
 // VaultMgr return a valid NetworkManager
-func (mgr *Mgrs) VaultMgr() NetworkManager { return mgr.networkMgr }
+func (mgr *Mgrs) NetworkMgr() NetworkManager { return mgr.networkMgr }
 
 // ValidatorMgr return an implementation of ValidatorManager
 func (mgr *Mgrs) ValidatorMgr() ValidatorManager { return mgr.validatorMgr }
@@ -276,7 +276,7 @@ func GetEventManager(version semver.Version) (EventManager, error) {
 }
 
 // GetTxOutStore will return an implementation of the txout store that
-func GetTxOutStore(keeper keeper.Keeper, version semver.Version, eventMgr EventManager, gasManager GasManager) (TxOutStore, error) {
+func GetTxOutStore(version semver.Version, keeper keeper.Keeper, eventMgr EventManager, gasManager GasManager) (TxOutStore, error) {
 	constAccessor := constants.GetConstantValues(version)
 	switch {
 	case version.GTE(semver.MustParse("1.88.0")):
@@ -295,7 +295,7 @@ func GetTxOutStore(keeper keeper.Keeper, version semver.Version, eventMgr EventM
 }
 
 // GetNetworkManager  retrieve a NetworkManager that is compatible with the given version
-func GetNetworkManager(keeper keeper.Keeper, version semver.Version, txOutStore TxOutStore, eventMgr EventManager) (NetworkManager, error) {
+func GetNetworkManager(version semver.Version, keeper keeper.Keeper, txOutStore TxOutStore, eventMgr EventManager) (NetworkManager, error) {
 	if version.GTE(semver.MustParse("1.87.0")) {
 		return newNetworkMgrV87(keeper, txOutStore, eventMgr), nil
 	} else if version.GTE(semver.MustParse("0.76.0")) {
@@ -305,14 +305,14 @@ func GetNetworkManager(keeper keeper.Keeper, version semver.Version, txOutStore 
 }
 
 // GetValidatorManager create a new instance of Validator Manager
-func GetValidatorManager(keeper keeper.Keeper, version semver.Version, vaultMgr NetworkManager, txOutStore TxOutStore, eventMgr EventManager) (ValidatorManager, error) {
+func GetValidatorManager(version semver.Version, keeper keeper.Keeper, networkMgr NetworkManager, txOutStore TxOutStore, eventMgr EventManager) (ValidatorManager, error) {
 	switch {
 	case version.GTE(semver.MustParse("1.87.0")):
-		return newValidatorMgrV87(keeper, vaultMgr, txOutStore, eventMgr), nil
+		return newValidatorMgrV87(keeper, networkMgr, txOutStore, eventMgr), nil
 	case version.GTE(semver.MustParse("1.84.0")):
-		return newValidatorMgrV84(keeper, vaultMgr, txOutStore, eventMgr), nil
+		return newValidatorMgrV84(keeper, networkMgr, txOutStore, eventMgr), nil
 	case version.GTE(semver.MustParse("0.80.0")):
-		return newValidatorMgrV80(keeper, vaultMgr, txOutStore, eventMgr), nil
+		return newValidatorMgrV80(keeper, networkMgr, txOutStore, eventMgr), nil
 
 	}
 	return nil, errInvalidVersion
@@ -328,7 +328,7 @@ func GetObserverManager(version semver.Version) (ObserverManager, error) {
 }
 
 // GetSwapQueue retrieve a SwapQueue that is compatible with the given version
-func GetSwapQueue(keeper keeper.Keeper, version semver.Version) (SwapQueue, error) {
+func GetSwapQueue(version semver.Version, keeper keeper.Keeper) (SwapQueue, error) {
 	if version.GTE(semver.MustParse("0.58.0")) {
 		return newSwapQv58(keeper), nil
 	}
@@ -336,7 +336,7 @@ func GetSwapQueue(keeper keeper.Keeper, version semver.Version) (SwapQueue, erro
 }
 
 // GetSlasher return an implementation of Slasher
-func GetSlasher(keeper keeper.Keeper, version semver.Version, eventMgr EventManager) (Slasher, error) {
+func GetSlasher(version semver.Version, keeper keeper.Keeper, eventMgr EventManager) (Slasher, error) {
 	switch {
 	case version.GTE(semver.MustParse("1.88.0")):
 		return newSlasherV88(keeper, eventMgr), nil
@@ -350,7 +350,7 @@ func GetSlasher(keeper keeper.Keeper, version semver.Version, eventMgr EventMana
 }
 
 // GetYggManager return an implementation of YggManager
-func GetYggManager(keeper keeper.Keeper, version semver.Version) (YggManager, error) {
+func GetYggManager(version semver.Version, keeper keeper.Keeper) (YggManager, error) {
 	if version.GTE(semver.MustParse("0.79.0")) {
 		return newYggMgrV79(keeper), nil
 	}

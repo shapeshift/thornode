@@ -5,7 +5,6 @@ import (
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
-	"gitlab.com/thorchain/thornode/constants"
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
@@ -192,11 +191,9 @@ func (s YggdrasilManagerV79Suite) TestFund(c *C) {
 		na.Bond = cosmos.NewUint(common.One * 1000000)
 		c.Assert(k.SetNodeAccount(ctx, na), IsNil)
 	}
-	ver := GetCurrentVersion()
-	constAccessor := constants.GetConstantValues(ver)
 	ymgr := newYggMgrV79(k)
 	ymgr.keeper.SetMimir(ctx, "PoolDepthForYggFundingMin", 100000_00000000)
-	err := ymgr.Fund(ctx, mgr, constAccessor)
+	err := ymgr.Fund(ctx, mgr)
 	c.Assert(err, IsNil)
 	na1 := GetRandomValidatorNode(NodeActive)
 	na1.Bond = cosmos.NewUint(1000000 * common.One)
@@ -206,7 +203,7 @@ func (s YggdrasilManagerV79Suite) TestFund(c *C) {
 	bnbPool.BalanceAsset = cosmos.NewUint(100000 * common.One)
 	bnbPool.BalanceRune = cosmos.NewUint(100000 * common.One)
 	c.Assert(k.SetPool(ctx, bnbPool), IsNil)
-	err1 := ymgr.Fund(ctx, mgr, constAccessor)
+	err1 := ymgr.Fund(ctx, mgr)
 	c.Assert(err1, IsNil)
 	items, err := mgr.TxOutStore().GetOutboundItems(ctx)
 	c.Assert(err, IsNil)
@@ -232,11 +229,9 @@ func (s YggdrasilManagerV79Suite) TestNotAvailablePoolAssetWillNotFundYggdrasil(
 		na.Bond = cosmos.NewUint(common.One * 1000000)
 		c.Assert(k.SetNodeAccount(ctx, na), IsNil)
 	}
-	ver := GetCurrentVersion()
-	constAccessor := constants.GetConstantValues(ver)
 	ymgr := newYggMgrV79(k)
 	ymgr.keeper.SetMimir(ctx, "PoolDepthForYggFundingMin", 100000_00000000)
-	err = ymgr.Fund(ctx, mgr, constAccessor)
+	err = ymgr.Fund(ctx, mgr)
 	c.Assert(err, IsNil)
 	na1 := GetRandomValidatorNode(NodeActive)
 	na1.Bond = cosmos.NewUint(1000000 * common.One)
@@ -254,7 +249,7 @@ func (s YggdrasilManagerV79Suite) TestNotAvailablePoolAssetWillNotFundYggdrasil(
 	busdPool.Status = PoolStaged
 	c.Assert(k.SetPool(ctx, busdPool), IsNil)
 
-	err1 := ymgr.Fund(ctx, mgr, constAccessor)
+	err1 := ymgr.Fund(ctx, mgr)
 	c.Assert(err1, IsNil)
 	items, err := mgr.TxOutStore().GetOutboundItems(ctx)
 	c.Assert(err, IsNil)
@@ -281,8 +276,6 @@ func (s YggdrasilManagerV79Suite) TestChainTradingHaltWillNotFundYggdrasil(c *C)
 		na.Bond = cosmos.NewUint(common.One * 1000000)
 		c.Assert(k.SetNodeAccount(ctx, na), IsNil)
 	}
-	ver := GetCurrentVersion()
-	constAccessor := constants.GetConstantValues(ver)
 	ymgr := newYggMgrV79(k)
 	ymgr.keeper.SetMimir(ctx, "PoolDepthForYggFundingMin", 100000_00000000)
 
@@ -309,7 +302,7 @@ func (s YggdrasilManagerV79Suite) TestChainTradingHaltWillNotFundYggdrasil(c *C)
 	ethPool.Status = PoolAvailable
 	c.Assert(k.SetPool(ctx, ethPool), IsNil)
 	ymgr.keeper.SetMimir(ctx, "HaltETHTrading", 1)
-	err1 := ymgr.Fund(ctx, mgr, constAccessor)
+	err1 := ymgr.Fund(ctx, mgr)
 	c.Assert(err1, IsNil)
 	items, err := mgr.TxOutStore().GetOutboundItems(ctx)
 	c.Assert(err, IsNil)
@@ -354,10 +347,8 @@ func (s YggdrasilManagerV79Suite) TestAbandonYggdrasil(c *C) {
 	yggdrasilVault.Type = YggdrasilVault
 	yggdrasilVault.Status = ActiveVault
 	c.Assert(mgr.Keeper().SetVault(ctx, yggdrasilVault), IsNil)
-	ver := GetCurrentVersion()
-	constAccessor := constants.GetConstantValues(ver)
 	ymgr := newYggMgrV79(mgr.Keeper())
-	err := ymgr.Fund(ctx, mgr, constAccessor)
+	err := ymgr.Fund(ctx, mgr)
 	c.Assert(err, IsNil)
 	// make sure the yggdrasil vault had been removed
 	c.Assert(mgr.Keeper().VaultExists(ctx, naDisabled.PubKeySet.Secp256k1), Equals, false)

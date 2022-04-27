@@ -12,7 +12,7 @@ type DummyMgr struct {
 	gasMgr        GasManager
 	eventMgr      EventManager
 	txOutStore    TxOutStore
-	vaultMgr      NetworkManager
+	networkMgr    NetworkManager
 	validatorMgr  ValidatorManager
 	obMgr         ObserverManager
 	swapQ         SwapQueue
@@ -27,7 +27,7 @@ func NewDummyMgrWithKeeper(k keeper.Keeper) *DummyMgr {
 		gasMgr:        NewDummyGasManager(),
 		eventMgr:      NewDummyEventMgr(),
 		txOutStore:    NewTxStoreDummy(),
-		vaultMgr:      NewVaultMgrDummy(),
+		networkMgr:    NewNetworkMgrDummy(),
 		validatorMgr:  NewValidatorDummyMgr(),
 		obMgr:         NewDummyObserverManager(),
 		slasher:       NewDummySlasher(),
@@ -43,7 +43,7 @@ func NewDummyMgr() *DummyMgr {
 		gasMgr:        NewDummyGasManager(),
 		eventMgr:      NewDummyEventMgr(),
 		txOutStore:    NewTxStoreDummy(),
-		vaultMgr:      NewVaultMgrDummy(),
+		networkMgr:    NewNetworkMgrDummy(),
 		validatorMgr:  NewValidatorDummyMgr(),
 		obMgr:         NewDummyObserverManager(),
 		slasher:       NewDummySlasher(),
@@ -58,7 +58,7 @@ func (m DummyMgr) Keeper() keeper.Keeper                  { return m.K }
 func (m DummyMgr) GasMgr() GasManager                     { return m.gasMgr }
 func (m DummyMgr) EventMgr() EventManager                 { return m.eventMgr }
 func (m DummyMgr) TxOutStore() TxOutStore                 { return m.txOutStore }
-func (m DummyMgr) VaultMgr() NetworkManager               { return m.vaultMgr }
+func (m DummyMgr) NetworkMgr() NetworkManager             { return m.networkMgr }
 func (m DummyMgr) ValidatorMgr() ValidatorManager         { return m.validatorMgr }
 func (m DummyMgr) ObMgr() ObserverManager                 { return m.obMgr }
 func (m DummyMgr) SwapQ() SwapQueue                       { return m.swapQ }

@@ -5,8 +5,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/blang/semver"
-
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
@@ -129,16 +127,16 @@ func (vm *SwapQv58) FetchQueue(ctx cosmos.Context) (swapItems, error) { // nolin
 }
 
 // EndBlock trigger the real swap to be processed
-func (vm *SwapQv58) EndBlock(ctx cosmos.Context, mgr Manager, version semver.Version, constAccessor constants.ConstantValues) error {
+func (vm *SwapQv58) EndBlock(ctx cosmos.Context, mgr Manager) error {
 	handler := NewSwapHandler(mgr)
 
 	minSwapsPerBlock, err := vm.k.GetMimir(ctx, constants.MinSwapsPerBlock.String())
 	if minSwapsPerBlock < 0 || err != nil {
-		minSwapsPerBlock = constAccessor.GetInt64Value(constants.MinSwapsPerBlock)
+		minSwapsPerBlock = mgr.GetConstants().GetInt64Value(constants.MinSwapsPerBlock)
 	}
 	maxSwapsPerBlock, err := vm.k.GetMimir(ctx, constants.MaxSwapsPerBlock.String())
 	if maxSwapsPerBlock < 0 || err != nil {
-		maxSwapsPerBlock = constAccessor.GetInt64Value(constants.MaxSwapsPerBlock)
+		maxSwapsPerBlock = mgr.GetConstants().GetInt64Value(constants.MaxSwapsPerBlock)
 	}
 
 	swaps, err := vm.FetchQueue(ctx)
@@ -158,7 +156,7 @@ func (vm *SwapQv58) EndBlock(ctx cosmos.Context, mgr Manager, version semver.Ver
 		_, err := handler.Run(ctx, &pick.msg)
 		if err != nil {
 			ctx.Logger().Error("fail to swap", "msg", pick.msg.Tx.String(), "error", err)
-			if newErr := refundTx(ctx, ObservedTx{Tx: pick.msg.Tx}, mgr, constAccessor, CodeSwapFail, err.Error(), ""); nil != newErr {
+			if newErr := refundTx(ctx, ObservedTx{Tx: pick.msg.Tx}, mgr, CodeSwapFail, err.Error(), ""); nil != newErr {
 				ctx.Logger().Error("fail to refund swap", "error", err)
 			}
 		}
