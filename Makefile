@@ -21,7 +21,7 @@ ldflags = -X gitlab.com/thorchain/thornode/constants.Version=$(VERSION) \
 		  -X github.com/cosmos/cosmos-sdk/version.BuildTags=$(TAG)
 
 BUILD_FLAGS := -ldflags '$(ldflags)' -tags ${TAG}
-TEST_BUILD_FLAGS := -parallel 1 -tags mocknet
+TEST_BUILD_FLAGS := -parallel=1 -tags=mocknet
 
 BINARIES=./cmd/thornode ./cmd/bifrost ./tools/generate
 
@@ -46,10 +46,16 @@ go.sum: go.mod
 	go mod verify
 
 test-coverage:
-	@go test ${TEST_BUILD_FLAGS} -v -coverprofile coverage.out ${TEST_DIR}
+	@go test ${TEST_BUILD_FLAGS} -v -coverprofile=coverage.txt -covermode count ${TEST_DIR}
 
 coverage-report: test-coverage
-	@go tool cover -html=coverage.out
+	@go tool cover -html=coverage.txt
+
+test-coverage-sum:
+	@go run gotest.tools/gotestsum --junitfile report.xml --format testname -- ${TEST_BUILD_FLAGS} -v -coverprofile=coverage.txt -covermode count ${TEST_DIR}
+	@GOFLAGS='${TEST_BUILD_FLAGS}' go run github.com/boumenot/gocover-cobertura < coverage.txt > coverage.xml
+	@go tool cover -func=coverage.txt
+	@go tool cover -html=coverage.txt -o coverage.html
 
 clear:
 	clear
