@@ -37,10 +37,17 @@ unit-tests:
   coverage: '/total:\s+\(statements\)\s+(\d+.\d+\%)/'
   before_script:
     - make protob
+    - go get github.com/boumenot/gocover-cobertura
+    - go get gotest.tools/gotestsum
   script:
-    - make test-coverage
-    - go tool cover -func=coverage.out
-    - go tool cover -html=coverage.out -o coverage.html
+    - make test-coverage-sum
+  artifacts:
+    when: always
+    reports:
+      junit: report.xml
+      cobertura: coverage.xml
+    paths:
+      - coverage*
 
 lint:
   cache: []

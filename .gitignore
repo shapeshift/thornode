@@ -74,3 +74,6 @@ preparam.data
 **/btc_observer/*
 
 .vscode/
+
+coverage.xml
+report.xml
