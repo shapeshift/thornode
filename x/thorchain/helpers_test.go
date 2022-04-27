@@ -820,7 +820,7 @@ func (s *HelperSuite) TestUpdateTxOutGas(c *C) {
 	// Try to set new gas, should return error as TxOut InHash doesn't match
 	newGas := common.Gas{common.NewCoin(common.LUNAAsset, cosmos.NewUint(2000000))}
 	err := updateTxOutGas(ctx, mgr.K, txOut, newGas)
-	c.Assert(err.Error(), Equals, fmt.Sprintf("Fail to find tx out in ObservedTxVoter %s", txOut.InHash))
+	c.Assert(err.Error(), Equals, fmt.Sprintf("fail to find tx out in ObservedTxVoter %s", txOut.InHash))
 
 	// Update TxOut InHash to match, should update gas
 	txOut.InHash = txVoter.TxID
