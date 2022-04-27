@@ -48,7 +48,11 @@ During a churn event the following happens:
 
 The Bifröst faciliates connections with external networks, such as Binance Chain, Ethereum and Bitcoin. The Bifröst is generally well-abstracted, needing only minor changes between different chains. The Bifröst handles observations of incoming transactions, which are passed into THORChain via special witness transactions. The Bifröst also handles multi-party computation to sign outgoing transactions via a Genarro-Goldfeder TSS scheme. Only 2/3rds of nodes are required to be in each signing ceremony on a first-come-first-serve basis, and there is no log of who is present. In this way, each node maintains plausible deniabilty around involvement with every transaction.
 
-To add a new chain, adapt one of the existing modules to the new chain, and submit a merge request to be tested and validated. Once merged, new nodes can start signalling support for the new chain. Once a super-majority (67%) of nodes support the new chain it will be added to the network.
+### Adding a New Chain
+
+To add a new chain, the process and guidelines defined in [this doc](docs/chains/README.md) must be followed.
+
+### Removing a Chain
 
 To remove a chain, nodes can stop witnessing it. If a super-majority of nodes do not promptly follow suit, the non-witnessing nodes will attract penalties during the time they do not witness it. If a super-majority of nodes stop witnessing a chain it will invoke a chain-specific Ragnörok, where all funds attributed to that chain will be returned and the chain delisted.
 
