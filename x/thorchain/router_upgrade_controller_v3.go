@@ -29,8 +29,8 @@ func (r *RouterUpgradeControllerV3) recallYggdrasilFund(ctx cosmos.Context) erro
 		// mimir has not been set , return
 		return nil
 	}
-	vaultMgr := r.mgr.VaultMgr()
-	if err := vaultMgr.RecallChainFunds(ctx, common.ETHChain, r.mgr, common.PubKeys{}); err != nil {
+	networkMgr := r.mgr.NetworkMgr()
+	if err := networkMgr.RecallChainFunds(ctx, common.ETHChain, r.mgr, common.PubKeys{}); err != nil {
 		return fmt.Errorf("fail to recall chain funds, err:%w", err)
 	}
 	return r.mgr.Keeper().DeleteMimir(ctx, MimirRecallFund)

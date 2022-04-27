@@ -213,9 +213,9 @@ func (s *SlashingV86Suite) TestNodeSignSlashErrors(c *C) {
 		slasher := newSlasherV86(keeper, NewDummyEventMgr())
 		item.condition(keeper)
 		if item.shouldError {
-			c.Assert(slasher.LackSigning(ctx, constAccessor, NewDummyMgr()), NotNil)
+			c.Assert(slasher.LackSigning(ctx, NewDummyMgr()), NotNil)
 		} else {
-			c.Assert(slasher.LackSigning(ctx, constAccessor, NewDummyMgr()), IsNil)
+			c.Assert(slasher.LackSigning(ctx, NewDummyMgr()), IsNil)
 		}
 	}
 }
@@ -270,7 +270,7 @@ func (s *SlashingV86Suite) TestNotSigningSlash(c *C) {
 	mgr := NewDummyMgr()
 	mgr.txOutStore = txOutStore
 	slasher := newSlasherV86(keeper, NewDummyEventMgr())
-	c.Assert(slasher.LackSigning(ctx, constAccessor, mgr), IsNil)
+	c.Assert(slasher.LackSigning(ctx, mgr), IsNil)
 
 	c.Check(keeper.slashPts[na.NodeAddress.String()], Equals, int64(600), Commentf("%+v\n", na))
 

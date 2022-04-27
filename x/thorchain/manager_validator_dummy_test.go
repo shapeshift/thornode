@@ -18,15 +18,15 @@ func (vm *ValidatorDummyMgr) BeginBlock(_ cosmos.Context, _ constants.ConstantVa
 	return errKaboom
 }
 
-func (vm *ValidatorDummyMgr) EndBlock(_ cosmos.Context, _ Manager, _ constants.ConstantValues) []abci.ValidatorUpdate {
+func (vm *ValidatorDummyMgr) EndBlock(_ cosmos.Context, _ Manager) []abci.ValidatorUpdate {
 	return nil
 }
 
-func (vm *ValidatorDummyMgr) RequestYggReturn(_ cosmos.Context, _ NodeAccount, _ Manager, _ constants.ConstantValues) error {
+func (vm *ValidatorDummyMgr) RequestYggReturn(_ cosmos.Context, _ NodeAccount, _ Manager) error {
 	return errKaboom
 }
 
-func (vm *ValidatorDummyMgr) processRagnarok(_ cosmos.Context, _ Manager, _ constants.ConstantValues) error {
+func (vm *ValidatorDummyMgr) processRagnarok(_ cosmos.Context, _ Manager) error {
 	return errKaboom
 }
 

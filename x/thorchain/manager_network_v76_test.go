@@ -20,8 +20,6 @@ func (s *NetworkManagerV76TestSuite) SetUpSuite(c *C) {
 func (s *NetworkManagerV76TestSuite) TestRagnarokChain(c *C) {
 	ctx, _ := setupKeeperForTest(c)
 	ctx = ctx.WithBlockHeight(100000)
-	ver := GetCurrentVersion()
-	constAccessor := constants.GetConstantValues(ver)
 
 	activeVault := GetRandomVault()
 	activeVault.StatusSince = common.BlockHeight(ctx) - 10
@@ -87,7 +85,7 @@ func (s *NetworkManagerV76TestSuite) TestRagnarokChain(c *C) {
 	vaultMgr := newNetworkMgrV76(keeper, mgr.TxOutStore(), mgr.EventMgr())
 
 	// the first round should just recall yggdrasil fund
-	err := vaultMgr.manageChains(ctx, mgr, constAccessor)
+	err := vaultMgr.manageChains(ctx, mgr)
 	c.Assert(err, IsNil)
 	c.Check(keeper.pools[1].Asset.Equals(common.BTCAsset), Equals, true)
 	c.Check(keeper.pools[1].LPUnits.IsZero(), Equals, false, Commentf("%d\n", keeper.pools[1].LPUnits.Uint64()))
@@ -98,7 +96,7 @@ func (s *NetworkManagerV76TestSuite) TestRagnarokChain(c *C) {
 
 	// the first round should just recall yggdrasil fund
 	ctx = ctx.WithBlockHeight(200000)
-	err = vaultMgr.manageChains(ctx, mgr, constAccessor)
+	err = vaultMgr.manageChains(ctx, mgr)
 	c.Assert(err, IsNil)
 	c.Check(keeper.pools[1].Asset.Equals(common.BTCAsset), Equals, true)
 	c.Check(keeper.pools[1].LPUnits.IsZero(), Equals, true, Commentf("%d\n", keeper.pools[1].LPUnits.Uint64()))
@@ -123,17 +121,17 @@ func (s *NetworkManagerV76TestSuite) TestRagnarokChain(c *C) {
 	vaultMgr1 := newNetworkMgrV76(helper, mgr1.TxOutStore(), mgr1.EventMgr())
 	// fail to get active nodes should error out
 	helper.failToListActiveAccounts = true
-	c.Assert(vaultMgr1.ragnarokChain(ctx, common.BNBChain, 1, mgr, constAccessor), NotNil)
+	c.Assert(vaultMgr1.ragnarokChain(ctx, common.BNBChain, 1, mgr), NotNil)
 	helper.failToListActiveAccounts = false
 
 	// no active nodes , should error
-	c.Assert(vaultMgr1.ragnarokChain(ctx, common.BNBChain, 1, mgr, constAccessor), NotNil)
+	c.Assert(vaultMgr1.ragnarokChain(ctx, common.BNBChain, 1, mgr), NotNil)
 	c.Assert(helper.Keeper.SetNodeAccount(ctx, GetRandomValidatorNode(NodeActive)), IsNil)
 	c.Assert(helper.Keeper.SetNodeAccount(ctx, GetRandomValidatorNode(NodeActive)), IsNil)
 
 	// fail to get pools should error out
 	helper.failGetPools = true
-	c.Assert(vaultMgr1.ragnarokChain(ctx, common.BNBChain, 1, mgr, constAccessor), NotNil)
+	c.Assert(vaultMgr1.ragnarokChain(ctx, common.BNBChain, 1, mgr), NotNil)
 	helper.failGetPools = false
 }
 
@@ -253,18 +251,16 @@ func (s *NetworkManagerV76TestSuite) TestCalcPoolDeficit(c *C) {
 
 func (*NetworkManagerV76TestSuite) TestProcessGenesisSetup(c *C) {
 	ctx, mgr := setupManagerForTest(c)
-	ver := GetCurrentVersion()
-	constAccessor := constants.GetConstantValues(ver)
 	helper := NewVaultGenesisSetupTestHelper(mgr.Keeper())
 	ctx = ctx.WithBlockHeight(1)
 	mgr.K = helper
 	vaultMgr := newNetworkMgrV76(helper, mgr.TxOutStore(), mgr.EventMgr())
 	// no active account
-	c.Assert(vaultMgr.EndBlock(ctx, mgr, constAccessor), NotNil)
+	c.Assert(vaultMgr.EndBlock(ctx, mgr), NotNil)
 
 	nodeAccount := GetRandomValidatorNode(NodeActive)
 	c.Assert(mgr.Keeper().SetNodeAccount(ctx, nodeAccount), IsNil)
-	c.Assert(vaultMgr.EndBlock(ctx, mgr, constAccessor), IsNil)
+	c.Assert(vaultMgr.EndBlock(ctx, mgr), IsNil)
 	// make sure asgard vault get created
 	vaults, err := mgr.Keeper().GetAsgardVaults(ctx)
 	c.Assert(err, IsNil)
@@ -272,11 +268,11 @@ func (*NetworkManagerV76TestSuite) TestProcessGenesisSetup(c *C) {
 
 	// fail to get asgard vaults should return an error
 	helper.failToGetAsgardVaults = true
-	c.Assert(vaultMgr.EndBlock(ctx, mgr, constAccessor), NotNil)
+	c.Assert(vaultMgr.EndBlock(ctx, mgr), NotNil)
 	helper.failToGetAsgardVaults = false
 
 	// vault already exist , it should not do anything , and should not error
-	c.Assert(vaultMgr.EndBlock(ctx, mgr, constAccessor), IsNil)
+	c.Assert(vaultMgr.EndBlock(ctx, mgr), IsNil)
 
 	ctx, mgr = setupManagerForTest(c)
 	helper = NewVaultGenesisSetupTestHelper(mgr.Keeper())
@@ -284,20 +280,20 @@ func (*NetworkManagerV76TestSuite) TestProcessGenesisSetup(c *C) {
 	mgr.K = helper
 	vaultMgr = newNetworkMgrV76(helper, mgr.TxOutStore(), mgr.EventMgr())
 	helper.failToListActiveAccounts = true
-	c.Assert(vaultMgr.EndBlock(ctx, mgr, constAccessor), NotNil)
+	c.Assert(vaultMgr.EndBlock(ctx, mgr), NotNil)
 	helper.failToListActiveAccounts = false
 
 	helper.failToSetVault = true
-	c.Assert(vaultMgr.EndBlock(ctx, mgr, constAccessor), NotNil)
+	c.Assert(vaultMgr.EndBlock(ctx, mgr), NotNil)
 	helper.failToSetVault = false
 
 	helper.failGetRetiringAsgardVault = true
 	ctx = ctx.WithBlockHeight(1024)
-	c.Assert(vaultMgr.EndBlock(ctx, mgr, constAccessor), NotNil)
+	c.Assert(vaultMgr.EndBlock(ctx, mgr), NotNil)
 	helper.failGetRetiringAsgardVault = false
 
 	helper.failGetActiveAsgardVault = true
-	c.Assert(vaultMgr.EndBlock(ctx, mgr, constAccessor), NotNil)
+	c.Assert(vaultMgr.EndBlock(ctx, mgr), NotNil)
 	helper.failGetActiveAsgardVault = false
 }
 
