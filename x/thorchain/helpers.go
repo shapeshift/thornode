@@ -1140,6 +1140,11 @@ func updateTxOutGas(ctx cosmos.Context, keeper keeper.Keeper, txOut types.TxOutI
 }
 
 func updateTxOutGasV88(ctx cosmos.Context, keeper keeper.Keeper, txOut types.TxOutItem, gas common.Gas) error {
+	// When txOut.InHash is 0000000000000000000000000000000000000000000000000000000000000000 , which means the outbound is trigger by the network internally
+	// For example , migration , yggdrasil funding etc. there is no related inbound observation , thus doesn't need to try to find it and update anything
+	if txOut.InHash == common.BlankTxID {
+		return nil
+	}
 	voter, err := keeper.GetObservedTxInVoter(ctx, txOut.InHash)
 	if err != nil {
 		return err
@@ -1156,7 +1161,7 @@ func updateTxOutGasV88(ctx cosmos.Context, keeper keeper.Keeper, txOut types.TxO
 	}
 
 	if txOutIndex == -1 {
-		return fmt.Errorf("Fail to find tx out in ObservedTxVoter %s", txOut.InHash)
+		return fmt.Errorf("fail to find tx out in ObservedTxVoter %s", txOut.InHash)
 	}
 
 	return nil
