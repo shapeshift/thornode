@@ -177,7 +177,7 @@ func (s *HandlerAddLiquiditySuite) TestAddLiquidityHandler_NoPool_ShouldCreateNe
 		BNBGasFeeSingleton,
 		"add:BNB",
 	)
-	mgr.ConstAccessor = constants.NewDummyConstants(map[constants.ConstantName]int64{
+	mgr.constAccessor = constants.NewDummyConstants(map[constants.ConstantName]int64{
 		constants.MaximumLiquidityRune: 600_000_00000000,
 	}, map[constants.ConstantName]bool{
 		constants.StrictBondLiquidityRatio: true,

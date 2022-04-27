@@ -29,7 +29,7 @@ func (d DummySlasher) LackObserving(ctx cosmos.Context, constAccessor constants.
 	return errKaboom
 }
 
-func (d DummySlasher) LackSigning(ctx cosmos.Context, constAccessor constants.ConstantValues, mgr Manager) error {
+func (d DummySlasher) LackSigning(ctx cosmos.Context, mgr Manager) error {
 	return errKaboom
 }
 

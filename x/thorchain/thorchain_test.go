@@ -59,10 +59,9 @@ func (s *ThorchainSuite) TestLiquidityProvision(c *C) {
 	c.Assert(err, IsNil)
 	c.Check(lp2.Units.IsZero(), Equals, false)
 
-	version := GetCurrentVersion()
 	// withdraw for user1
 	msg := NewMsgWithdrawLiquidity(GetRandomTx(), user1rune, cosmos.NewUint(10000), common.BNBAsset, common.EmptyAsset, GetRandomBech32Addr())
-	_, _, _, _, _, err = withdraw(ctx, version, *msg, NewDummyMgrWithKeeper(keeper))
+	_, _, _, _, _, err = withdraw(ctx, *msg, NewDummyMgrWithKeeper(keeper))
 	c.Assert(err, IsNil)
 	lp1, err = keeper.GetLiquidityProvider(ctx, common.BNBAsset, user1rune)
 	c.Assert(err, IsNil)
@@ -70,7 +69,7 @@ func (s *ThorchainSuite) TestLiquidityProvision(c *C) {
 
 	// withdraw for user2
 	msg = NewMsgWithdrawLiquidity(GetRandomTx(), user2rune, cosmos.NewUint(10000), common.BNBAsset, common.EmptyAsset, GetRandomBech32Addr())
-	_, _, _, _, _, err = withdraw(ctx, version, *msg, NewDummyMgrWithKeeper(keeper))
+	_, _, _, _, _, err = withdraw(ctx, *msg, NewDummyMgrWithKeeper(keeper))
 	c.Assert(err, IsNil)
 	lp2, err = keeper.GetLiquidityProvider(ctx, common.BNBAsset, user2rune)
 	c.Assert(err, IsNil)
@@ -151,7 +150,7 @@ func (s *ThorchainSuite) TestChurn(c *C) {
 	// trigger marking bad actors as well as a keygen
 	rotateHeight := consts.GetInt64Value(constants.ChurnInterval) + vault.BlockHeight
 	ctx = ctx.WithBlockHeight(rotateHeight)
-	valMgr := newValidatorMgrV80(mgr.Keeper(), mgr.VaultMgr(), mgr.TxOutStore(), mgr.EventMgr())
+	valMgr := newValidatorMgrV80(mgr.Keeper(), mgr.NetworkMgr(), mgr.TxOutStore(), mgr.EventMgr())
 	c.Assert(valMgr.BeginBlock(ctx, consts, existingValidators), IsNil)
 
 	// check we've created a keygen, with the correct members
@@ -205,7 +204,7 @@ func (s *ThorchainSuite) TestChurn(c *C) {
 	c.Assert(vault2.Membership, HasLen, 4)
 
 	// check our validators get rotated appropriately
-	validators := valMgr.EndBlock(ctx, mgr, consts)
+	validators := valMgr.EndBlock(ctx, mgr)
 	nas, err := mgr.Keeper().ListActiveValidators(ctx)
 	c.Assert(err, IsNil)
 	c.Assert(nas, HasLen, 4)
@@ -221,7 +220,7 @@ func (s *ThorchainSuite) TestChurn(c *C) {
 	// check that the funds can be migrated from the retiring vault to the new
 	// vault
 	ctx = ctx.WithBlockHeight(vault1.StatusSince)
-	err = mgr.VaultMgr().EndBlock(ctx, mgr, consts) // should attempt to send 20% of the coin values
+	err = mgr.NetworkMgr().EndBlock(ctx, mgr) // should attempt to send 20% of the coin values
 	c.Assert(err, IsNil)
 	vault, err = mgr.Keeper().GetVault(ctx, vault1.PubKey)
 	c.Assert(err, IsNil)
@@ -237,7 +236,7 @@ func (s *ThorchainSuite) TestChurn(c *C) {
 	c.Assert(err, IsNil)
 	vault.PendingTxBlockHeights = nil
 	c.Assert(mgr.Keeper().SetVault(ctx, vault), IsNil)
-	c.Check(mgr.VaultMgr().EndBlock(ctx, mgr, consts), IsNil) // should attempt to send 100% of the coin values
+	c.Check(mgr.NetworkMgr().EndBlock(ctx, mgr), IsNil) // should attempt to send 100% of the coin values
 	items, err = mgr.TxOutStore().GetOutboundItems(ctx)
 	c.Assert(err, IsNil)
 	c.Assert(items, HasLen, 1, Commentf("%d", len(items)))
@@ -369,7 +368,7 @@ func (s *ThorchainSuite) TestRagnarok(c *C) {
 	c.Assert(err, IsNil)
 	// this should trigger stage 1 of the ragnarok protocol. We should see a tx
 	// out per node account
-	c.Assert(mgr.ValidatorMgr().processRagnarok(ctx, mgr, consts), IsNil)
+	c.Assert(mgr.ValidatorMgr().processRagnarok(ctx, mgr), IsNil)
 	// after ragnarok get trigged , we pay bond reward immediately
 	for idx, bonder := range bonders {
 		na, err := mgr.Keeper().GetNodeAccount(ctx, bonder.NodeAddress)
@@ -397,7 +396,7 @@ func (s *ThorchainSuite) TestRagnarok(c *C) {
 	mgr.TxOutStore().ClearOutboundItems(ctx) // clear out txs
 
 	for i := 1; i <= 11; i++ { // simulate each round of ragnarok (max of ten)
-		c.Assert(mgr.ValidatorMgr().processRagnarok(ctx, mgr, consts), IsNil)
+		c.Assert(mgr.ValidatorMgr().processRagnarok(ctx, mgr), IsNil)
 		_, err := mgr.TxOutStore().GetOutboundItems(ctx)
 		c.Assert(err, IsNil)
 		// validate liquidity providers get their returns
@@ -520,7 +519,7 @@ func (s *ThorchainSuite) TestRagnarokNoOneLeave(c *C) {
 	asgard.Membership = asgard.Membership[:len(asgard.Membership)-1]
 	c.Assert(mgr.Keeper().SetVault(ctx, asgard), IsNil)
 	// no validator should leave, because it trigger ragnarok
-	updates := mgr.ValidatorMgr().EndBlock(ctx, mgr, consts)
+	updates := mgr.ValidatorMgr().EndBlock(ctx, mgr)
 	c.Assert(updates, IsNil)
 	ragnarokHeight, err := mgr.Keeper().GetRagnarokBlockHeight(ctx)
 	c.Assert(err, IsNil)
@@ -530,5 +529,5 @@ func (s *ThorchainSuite) TestRagnarokNoOneLeave(c *C) {
 	ctx = ctx.WithBlockHeight(currentHeight + migrateInterval)
 	c.Assert(mgr.ValidatorMgr().BeginBlock(ctx, consts, nil), IsNil)
 	mgr.TxOutStore().ClearOutboundItems(ctx)
-	c.Assert(mgr.ValidatorMgr().EndBlock(ctx, mgr, consts), IsNil)
+	c.Assert(mgr.ValidatorMgr().EndBlock(ctx, mgr), IsNil)
 }

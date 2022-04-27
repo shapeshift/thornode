@@ -105,7 +105,7 @@ func (h WithdrawLiquidityHandler) handleV88(origCtx cosmos.Context, msg MsgWithd
 	if err != nil {
 		return nil, multierror.Append(errFailGetLiquidityProvider, err)
 	}
-	runeAmt, assetAmount, impLossProtection, units, gasAsset, err := withdraw(ctx, h.mgr.GetVersion(), msg, h.mgr)
+	runeAmt, assetAmount, impLossProtection, units, gasAsset, err := withdraw(ctx, msg, h.mgr)
 	if err != nil {
 		return nil, ErrInternal(err, "fail to process withdraw request")
 	}

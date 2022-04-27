@@ -454,8 +454,8 @@ func (s *HandlerBanSuite) TestBanHandlerValidation(c *C) {
 			helper.toBanNodeAddr = toBanAddr
 			helper.bannerNodeAddr = bannerNodeAddr
 			mgr.K = helper
-			mgr.CurrentVersion = ver
-			mgr.ConstAccessor = constants.GetConstantValues(ver)
+			mgr.currentVersion = ver
+			mgr.constAccessor = constants.GetConstantValues(ver)
 			handler := NewBanHandler(mgr)
 			result, err := handler.Run(ctx, tc.messageProvider(ctx, helper))
 			tc.validator(c, result, err, helper, tc.name)

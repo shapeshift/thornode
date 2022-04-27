@@ -9,7 +9,6 @@ import (
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
-	"gitlab.com/thorchain/thornode/constants"
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
@@ -96,9 +95,7 @@ func (s *HandlerObservedTxInSuite) TestFailure(c *C) {
 	mgr := NewDummyMgrWithKeeper(keeper)
 
 	tx := NewObservedTx(GetRandomTx(), 12, GetRandomPubKey(), 12)
-	ver := GetCurrentVersion()
-	constAccessor := constants.GetConstantValues(ver)
-	err := refundTx(ctx, tx, mgr, constAccessor, CodeInvalidMemo, "Invalid memo", "")
+	err := refundTx(ctx, tx, mgr, CodeInvalidMemo, "Invalid memo", "")
 	c.Assert(err, IsNil)
 	items, err := mgr.TxOutStore().GetOutboundItems(ctx)
 	c.Assert(err, IsNil)
@@ -694,7 +691,7 @@ func (HandlerObservedTxInSuite) TestObservedTxHandler_validations(c *C) {
 			ctx, mgr := setupManagerForTest(c)
 			helper := NewObservedTxInHandlerTestHelper(mgr.Keeper())
 			mgr.K = helper
-			mgr.CurrentVersion = ver
+			mgr.currentVersion = ver
 			handler := NewObservedTxInHandler(mgr)
 			msg := tc.messageProvider(c, ctx, helper)
 			result, err := handler.Run(ctx, msg)

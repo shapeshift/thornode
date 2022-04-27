@@ -160,7 +160,7 @@ func (h UnBondHandler) handleV81(ctx cosmos.Context, msg MsgUnBond) error {
 		}
 		if !canUnbond {
 			ctx.Logger().Error("cannot unbond while yggdrasil vault still has funds")
-			if err := h.mgr.ValidatorMgr().RequestYggReturn(ctx, na, h.mgr, h.mgr.GetConstants()); err != nil {
+			if err := h.mgr.ValidatorMgr().RequestYggReturn(ctx, na, h.mgr); err != nil {
 				return ErrInternal(err, "fail to request yggdrasil return fund")
 			}
 			return nil

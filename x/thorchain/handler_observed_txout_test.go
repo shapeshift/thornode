@@ -473,7 +473,7 @@ func (HandlerObservedTxOutSuite) TestHandlerObservedTxOut_DifferentValidations(c
 			ctx, mgr := setupManagerForTest(c)
 			helper := NewHandlerObservedTxOutHelper(mgr.Keeper())
 			mgr.K = helper
-			mgr.CurrentVersion = ver
+			mgr.currentVersion = ver
 			handler := NewObservedTxOutHandler(mgr)
 			msg := tc.messageProvider(c, ctx, helper)
 			result, err := handler.Run(ctx, msg)
