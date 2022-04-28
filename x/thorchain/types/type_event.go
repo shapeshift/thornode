@@ -3,6 +3,7 @@ package types
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
@@ -718,7 +719,7 @@ func (m *EventTHORName) Type() string {
 // Events return cosmos sdk events
 func (m *EventTHORName) Events() (cosmos.Events, error) {
 	evt := cosmos.NewEvent(m.Type(),
-		cosmos.NewAttribute("name", m.Name),
+		cosmos.NewAttribute("name", strings.ToLower(m.Name)),
 		cosmos.NewAttribute("chain", m.Chain.String()),
 		cosmos.NewAttribute("address", m.Address.String()),
 		cosmos.NewAttribute("registration_fee", m.RegistrationFee.String()),
