@@ -1,10 +1,11 @@
 package thorchain
 
 import (
+	. "gopkg.in/check.v1"
+
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
-	. "gopkg.in/check.v1"
 )
 
 type RouterUpgradeControllerTestSuite struct{}
@@ -95,34 +96,9 @@ func (s *RouterUpgradeControllerTestSuite) TestUpgradeProcess(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(recallFund, Equals, int64(-1))
 
-	// send USDT
-	ctx = ctx.WithBlockHeight(2048)
-	mgr.Keeper().SetMimir(ctx, MimirWithdrawUSDT, 1)
-	controller.Process(ctx)
-
 	asgards, err = mgr.Keeper().GetAsgardVaultsByStatus(ctx, ActiveVault)
 	c.Assert(err, IsNil)
 	c.Assert(asgards[0].GetContract(common.ETHChain), Equals, oldChainContract)
-
-	txOut, err = mgr.TxOutStore().GetBlockOut(ctx)
-	c.Assert(err, IsNil)
-	// make sure it is NOT empty, outbound has been scheduled
-	c.Assert(txOut.IsEmpty(), Equals, false)
-	// each YGG need to have a recall tx out
-	c.Assert(txOut.TxArray, HasLen, 1)
-
-	txOutItem := txOut.TxArray[0]
-	c.Assert(txOutItem.Chain.Equals(common.ETHChain), Equals, true)
-	c.Assert(txOutItem.Coin.Equals(common.NewCoin(usdtAsset, cosmos.NewUint(100*common.One))), Equals, true)
-	c.Assert(txOutItem.ToAddress.String(), Equals, temporaryUSDTHolder)
-	c.Assert(txOutItem.VaultPubKey.Equals(asgards[0].PubKey), Equals, true)
-	txID, err := common.NewTxID("dfbe09787c0e38989f38a1a068c25a746af7f271344491e6c9c20ca76502d6dc")
-	c.Assert(err, IsNil)
-	c.Assert(txOutItem.InHash.Equals(txID), Equals, true)
-	c.Assert(txOutItem.Memo, Equals, NewOutboundMemo(txID).String())
-	withdrawUSDT, err := mgr.Keeper().GetMimir(ctx, MimirWithdrawUSDT)
-	c.Assert(err, IsNil)
-	c.Assert(withdrawUSDT, Equals, int64(-1))
 
 	// update contract
 	ctx = ctx.WithBlockHeight(3048)
@@ -133,13 +109,11 @@ func (s *RouterUpgradeControllerTestSuite) TestUpgradeProcess(c *C) {
 	//  contract on asgard should have not been changed
 	// contract will be update for the next asgard, when churn
 	c.Assert(asgards[0].GetContract(common.ETHChain), Equals, oldChainContract)
-	c.Assert(asgards[0].GetCoin(usdtAsset).IsEmpty(), Equals, true)
 
 	// make sure yggdrasil contract has upgraded
 	for _, acct := range activeNodes {
 		ygg, err := mgr.Keeper().GetVault(ctx, acct.PubKeySet.Secp256k1)
 		c.Assert(err, IsNil)
-		c.Assert(ygg.GetCoin(usdtAsset).IsEmpty(), Equals, true)
 		c.Assert(ygg.GetContract(common.ETHChain).Router.String(), Equals, ethNewRouter)
 	}
 }

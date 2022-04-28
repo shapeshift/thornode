@@ -76,7 +76,7 @@ func (vm *NetworkMgrV76) EndBlock(ctx cosmos.Context, mgr Manager) error {
 	if common.BlockHeight(ctx) == genesisBlockHeight {
 		return vm.processGenesisSetup(ctx)
 	}
-	controller := NewRouterUpgradeControllerV3(mgr)
+	controller := NewRouterUpgradeController(mgr)
 	controller.Process(ctx)
 
 	migrateInterval, err := vm.k.GetMimir(ctx, constants.FundMigrationInterval.String())
