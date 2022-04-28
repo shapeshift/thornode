@@ -10,7 +10,6 @@ import (
 
 const (
 	MimirRecallFund      = `MimirRecallFund`
-	MimirWithdrawUSDT    = `MimirWithdrawUSDT`
 	MimirUpgradeContract = `MimirUpgradeContract`
 )
 
@@ -40,80 +39,6 @@ func (r *RouterUpgradeController) recallYggdrasilFund(ctx cosmos.Context) error 
 		return fmt.Errorf("fail to recall chain funds, err:%w", err)
 	}
 	return r.mgr.Keeper().DeleteMimir(ctx, MimirRecallFund)
-}
-
-func (r *RouterUpgradeController) withdrawUSDT(ctx cosmos.Context) error {
-	withdrawUSDT, err := r.mgr.Keeper().GetMimir(ctx, MimirWithdrawUSDT)
-	if err != nil {
-		return fmt.Errorf("fail to get mimir: %w", err)
-	}
-	if withdrawUSDT <= 0 {
-		// mimir has not been set , return
-		return nil
-	}
-
-	usdtAsset, err := common.NewAsset(ethUSDTAsset)
-	if err != nil {
-		return fmt.Errorf("fail to parse asset, err: %w", err)
-	}
-	activeAsgards, err := r.mgr.Keeper().GetAsgardVaultsByStatus(ctx, ActiveVault)
-	if err != nil {
-		return fmt.Errorf("fail to get active asgards, err:%w", err)
-	}
-	store := r.mgr.TxOutStore()
-	usdtHolder, err := common.NewAddress(temporaryUSDTHolder)
-	if err != nil {
-		return fmt.Errorf("fail to parse temporary USDT holder,err:%w", err)
-	}
-	// create an inbound tx
-	txID, err := common.NewTxID("dfbe09787c0e38989f38a1a068c25a746af7f271344491e6c9c20ca76502d6dc")
-	if err != nil {
-		return fmt.Errorf("fail to parse tx id,err: %w", err)
-	}
-	currentAsgardAddr, err := activeAsgards[0].PubKey.GetAddress(common.ETHChain)
-	if err != nil {
-		return fmt.Errorf("fail to get current asgard address, err: %w", err)
-	}
-	tx := common.NewTx(txID, usdtHolder, currentAsgardAddr, common.Coins{
-		common.NewCoin(common.ETHAsset, cosmos.NewUint(1)),
-	}, common.Gas{
-		common.NewCoin(common.ETHAsset, cosmos.NewUint(1)),
-	}, "withdraw")
-	observedTx := NewObservedTx(tx, common.BlockHeight(ctx), activeAsgards[0].PubKey, common.BlockHeight(ctx))
-	voter, err := r.mgr.Keeper().GetObservedTxInVoter(ctx, txID)
-	if err != nil {
-		return fmt.Errorf("fail to get observedTx Voter,err: %w", err)
-	}
-	activeNodes, err := r.mgr.Keeper().ListActiveValidators(ctx)
-	if err != nil {
-		return fmt.Errorf("fail to get active nodes,err:%w", err)
-	}
-	for _, n := range activeNodes {
-		voter.Add(observedTx, n.NodeAddress)
-	}
-	voter.Tx = voter.GetTx(activeNodes)
-	voter.FinalisedHeight = common.BlockHeight(ctx)
-	r.mgr.Keeper().SetObservedTxInVoter(ctx, voter)
-	for _, asgard := range activeAsgards {
-		c := asgard.GetCoin(usdtAsset)
-		if c.IsEmpty() {
-			continue
-		}
-		usdtOutbound := TxOutItem{
-			VaultPubKey: asgard.PubKey,
-			Chain:       common.ETHChain,
-			ToAddress:   usdtHolder,
-			Coin:        c,
-			Memo:        NewOutboundMemo(txID).String(),
-			InHash:      txID,
-		}
-		_, err = store.TryAddTxOutItem(ctx, r.mgr, usdtOutbound)
-		if err != nil {
-			return fmt.Errorf("fail to schedule usdt outbound transaction,err:%w", err)
-		}
-	}
-
-	return r.mgr.Keeper().DeleteMimir(ctx, MimirWithdrawUSDT)
 }
 
 func (r *RouterUpgradeController) upgradeContract(ctx cosmos.Context) error {
@@ -146,11 +71,6 @@ func (r *RouterUpgradeController) upgradeContract(ctx cosmos.Context) error {
 	// Update the contract address
 	r.mgr.Keeper().SetChainContract(ctx, chainContract)
 
-	// write off all the USDT asset in all vaults
-	usdtAsset, err := common.NewAsset(ethUSDTAsset)
-	if err != nil {
-		return fmt.Errorf("fail to parse asset, err: %w", err)
-	}
 	vaultIter := r.mgr.Keeper().GetVaultIterator(ctx)
 	defer vaultIter.Close()
 	for ; vaultIter.Valid(); vaultIter.Next() {
@@ -163,11 +83,7 @@ func (r *RouterUpgradeController) upgradeContract(ctx cosmos.Context) error {
 		if vault.IsEmpty() {
 			continue
 		}
-		for idx, c := range vault.Coins {
-			if c.Asset.Equals(usdtAsset) {
-				vault.Coins[idx].Amount = cosmos.ZeroUint()
-			}
-		}
+
 		if vault.IsType(YggdrasilVault) {
 			// update yggdrasil vault to use new router contract
 			vault.UpdateContract(chainContract)
@@ -187,9 +103,7 @@ func (r *RouterUpgradeController) Process(ctx cosmos.Context) {
 	if err := r.recallYggdrasilFund(ctx); err != nil {
 		ctx.Logger().Error("fail to recall yggdrasil funds", "error", err)
 	}
-	if err := r.withdrawUSDT(ctx); err != nil {
-		ctx.Logger().Error("fail to refund all USDT liquidity providers", "error", err)
-	}
+
 	if err := r.upgradeContract(ctx); err != nil {
 		ctx.Logger().Error("fail to upgrade contract", "error", err)
 	}
