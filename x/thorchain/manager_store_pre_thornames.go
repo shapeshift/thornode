@@ -28,14 +28,12 @@ func getPreRegisterTHORNames(ctx cosmos.Context, blockheight int64) ([]THORName,
 		addr, err := common.NewAddress(reg.Address)
 		if err != nil {
 			ctx.Logger().Error("fail to parse address", "address", reg.Address, "error", err)
-			fmt.Printf("er1: %s\n", err)
 			continue
 		}
 		name := NewTHORName(reg.Name, blockheight, []THORNameAlias{{Chain: common.THORChain, Address: addr}})
 		acc, err := cosmos.AccAddressFromBech32(reg.Address)
 		if err != nil {
 			ctx.Logger().Error("fail to parse acc address", "address", reg.Address, "error", err)
-			fmt.Printf("er2: %s\n", err)
 			continue
 		}
 		name.Owner = acc
