@@ -19,6 +19,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+
 	"gitlab.com/thorchain/thornode/bifrost/blockscanner"
 	btypes "gitlab.com/thorchain/thornode/bifrost/blockscanner/types"
 	"gitlab.com/thorchain/thornode/bifrost/config"
@@ -728,7 +729,7 @@ func (e *ETHScanner) isToValidContractAddress(addr *ecommon.Address, includeWhit
 	// get the smart contract used by thornode
 	contractAddresses := e.pubkeyMgr.GetContracts(common.ETHChain)
 	if includeWhiteList {
-		contractAddresses = append(contractAddresses, whitelistSmartContractAddres...)
+		contractAddresses = append(contractAddresses, whitelistSmartContractAddress...)
 	}
 	// combine the whitelist smart contract address
 	for _, item := range contractAddresses {

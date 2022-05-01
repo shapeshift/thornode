@@ -7,7 +7,7 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 )
 
-var whitelistSmartContractAddres = []common.Address{
+var whitelistSmartContractAddress = []common.Address{
 	// XRUNE
 	common.Address(`0x69fa0feE221AD11012BAb0FdB45d444D3D2Ce71c`),
 	// THORSwap Faucet
@@ -24,4 +24,6 @@ var whitelistSmartContractAddres = []common.Address{
 	common.Address(`0xE308B9562de7689B2d31C76a41649933F38ab761`),
 	// TSAggregator2LegUniswapV2 USDC
 	common.Address(`0x3660dE6C56cFD31998397652941ECe42118375DA`),
+	// TSAggregator SUSHIswap
+	common.Address(`0x0F2CD5dF82959e00BE7AfeeF8245900FC4414199`),
 }
