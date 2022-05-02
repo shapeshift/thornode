@@ -21,13 +21,14 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"gitlab.com/thorchain/bifrost/txscript"
-	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/runners"
-	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/signercache"
-	mem "gitlab.com/thorchain/thornode/x/thorchain/memo"
 	tssp "gitlab.com/thorchain/tss/go-tss/tss"
 	"go.uber.org/atomic"
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/semaphore"
+
+	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/runners"
+	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/signercache"
+	mem "gitlab.com/thorchain/thornode/x/thorchain/memo"
 
 	"gitlab.com/thorchain/thornode/bifrost/blockscanner"
 	btypes "gitlab.com/thorchain/thornode/bifrost/blockscanner/types"
@@ -640,8 +641,10 @@ func (c *Client) FetchTxs(height int64) (types.TxIn, error) {
 	if err := c.sendNetworkFee(height); err != nil {
 		c.logger.Err(err).Msg("fail to send network fee")
 	}
-	if err := c.ReportSolvency(height); err != nil {
-		c.logger.Err(err).Msgf("fail to send solvency info to THORChain")
+	if c.IsBlockScannerHealthy() {
+		if err := c.ReportSolvency(height); err != nil {
+			c.logger.Err(err).Msgf("fail to send solvency info to THORChain")
+		}
 	}
 	txIn.Count = strconv.Itoa(len(txIn.TxArray))
 	if !c.consolidateInProgress.Load() {
