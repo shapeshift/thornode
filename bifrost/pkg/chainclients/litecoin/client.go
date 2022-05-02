@@ -20,13 +20,14 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	txscript "gitlab.com/thorchain/bifrost/ltcd-txscript"
-	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/runners"
-	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/signercache"
-	mem "gitlab.com/thorchain/thornode/x/thorchain/memo"
 	tssp "gitlab.com/thorchain/tss/go-tss/tss"
 	"go.uber.org/atomic"
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/semaphore"
+
+	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/runners"
+	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/signercache"
+	mem "gitlab.com/thorchain/thornode/x/thorchain/memo"
 
 	"gitlab.com/thorchain/thornode/bifrost/blockscanner"
 	btypes "gitlab.com/thorchain/thornode/bifrost/blockscanner/types"
@@ -634,7 +635,7 @@ func (c *Client) FetchTxs(height int64) (types.TxIn, error) {
 	}
 
 	// LTC has faster block time, report every 5 blocks seems fine
-	if height%5 == 0 {
+	if height%5 == 0 && c.IsBlockScannerHealthy() {
 		if err := c.ReportSolvency(height); err != nil {
 			c.logger.Err(err).Msg("fail to report solvency to THORChain")
 		}
