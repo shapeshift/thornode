@@ -20,6 +20,7 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/runners"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/signercache"
 
@@ -841,6 +842,11 @@ func (c *Client) OnObservedTxIn(txIn stypes.TxInItem, blockHeight int64) {
 
 func (c *Client) ReportSolvency(ethBlockHeight int64) error {
 	if !c.ShouldReportSolvency(ethBlockHeight) {
+		return nil
+	}
+	// when block scanner is not healthy , falling behind , we don't report solvency , unless the request is coming from
+	// auto-unhalt solvency runner
+	if !c.IsBlockScannerHealthy() && ethBlockHeight == c.ethScanner.currentBlockHeight {
 		return nil
 	}
 	asgardVaults, err := c.bridge.GetAsgards()

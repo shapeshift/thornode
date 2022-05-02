@@ -38,16 +38,17 @@ type SolvencyReporter func(int64) error
 
 // BinanceBlockScanner is to scan the blocks
 type BinanceBlockScanner struct {
-	cfg              config.BlockScannerConfiguration
-	logger           zerolog.Logger
-	db               blockscanner.ScannerStorage
-	m                *metrics.Metrics
-	errCounter       *prometheus.CounterVec
-	http             *http.Client
-	singleFee        uint64
-	multiFee         uint64
-	bridge           *thorclient.ThorchainBridge
-	solvencyReporter SolvencyReporter
+	cfg                   config.BlockScannerConfiguration
+	logger                zerolog.Logger
+	db                    blockscanner.ScannerStorage
+	m                     *metrics.Metrics
+	errCounter            *prometheus.CounterVec
+	http                  *http.Client
+	singleFee             uint64
+	multiFee              uint64
+	bridge                *thorclient.ThorchainBridge
+	solvencyReporter      SolvencyReporter
+	currentScanningHeight int64
 }
 
 // NewBinanceBlockScanner create a new instance of BlockScan
@@ -355,7 +356,7 @@ func (b *BinanceBlockScanner) FetchTxs(height int64) (stypes.TxIn, error) {
 	if err != nil {
 		return stypes.TxIn{}, err
 	}
-
+	b.currentScanningHeight = height
 	block := blockscanner.Block{Height: height, Txs: rawTxs}
 	b.logger.Debug().Int64("block", block.Height).Msg("processing block")
 	txIn, err := b.processBlock(block)
