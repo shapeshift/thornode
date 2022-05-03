@@ -338,13 +338,14 @@ func (s *SlasherV88) LackSigning(ctx cosmos.Context, mgr Manager) error {
 			// Save the tx to as a new tx, select Asgard to send it this time.
 			tx.VaultPubKey = vault.PubKey
 
-			// update max gas, take the larger of the current gas, or the last gas used
-			maxGas, _ := mgr.GasMgr().GetMaxGas(ctx, tx.Chain)
-			if len(tx.MaxGas) == 0 || maxGas.Amount.GT(tx.MaxGas[0].Amount) {
+			// update max gas
+			maxGas, err := mgr.GasMgr().GetMaxGas(ctx, tx.Chain)
+			if err != nil {
+				ctx.Logger().Error("fail to get max gas", "error", err)
+			} else {
 				tx.MaxGas = common.Gas{maxGas}
 				// Update MaxGas in ObservedTxVoter action as well
-				err := updateTxOutGas(ctx, s.keeper, tx, common.Gas{maxGas})
-				if err != nil {
+				if err := updateTxOutGas(ctx, s.keeper, tx, common.Gas{maxGas}); err != nil {
 					ctx.Logger().Error("Failed to update MaxGas of action in ObservedTxVoter", "hash", tx.InHash, "error", err)
 				}
 			}
