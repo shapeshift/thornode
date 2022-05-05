@@ -358,13 +358,13 @@ class Coin(Jsonable):
         }
 
     def __repr__(self):
-        return f"<Coin {self.amount:0,.0f}_{self.asset}>"
+        return f"<Coin {self.amount/1e8:0,.8f} {self.asset}>"
 
     def __str__(self):
-        return f"{self.amount:0,.0f}_{self.asset}"
+        return f"{self.amount/1e8:0,.8f} {self.asset}"
 
     def str_amt(self):
-        return f"{self.amount:0,.0f}"
+        return f"{self.amount/1e8:0,.8f}"
 
 
 class Coins(Jsonable):

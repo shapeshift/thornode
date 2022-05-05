@@ -69,7 +69,10 @@ class MockBitcoin(HttpClient):
             except Exception:
                 continue
             finally:
-                backoff = os.environ.get("BLOCK_SCANNER_BACKOFF", "0.3s")
+                default = "1.0s"
+                backoff = os.environ.get("BLOCK_SCANNER_BACKOFF", default)
+                if backoff == "" or backoff is None:
+                    backoff = default
                 backoff = durationpy.from_str(backoff).total_seconds()
                 time.sleep(backoff)
 
