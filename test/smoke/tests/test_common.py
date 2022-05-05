@@ -160,19 +160,19 @@ class TestCoin(unittest.TestCase):
 
     def test_str(self):
         coin = Coin("BNB.BNB")
-        self.assertEqual(str(coin), "0_BNB.BNB")
+        self.assertEqual(str(coin), "0.00000000 BNB.BNB")
         coin = Coin(RUNE, 1000000)
-        self.assertEqual(str(coin), "1,000,000_" + RUNE)
+        self.assertEqual(str(coin), "0.01000000 " + RUNE)
         coin = Coin("BNB.LOK-3C0", 1000000)
-        self.assertEqual(str(coin), "1,000,000_BNB.LOK-3C0")
+        self.assertEqual(str(coin), "0.01000000 BNB.LOK-3C0")
 
     def test_repr(self):
         coin = Coin("BNB.BNB")
-        self.assertEqual(repr(coin), "<Coin 0_BNB.BNB>")
+        self.assertEqual(repr(coin), "<Coin 0.00000000 BNB.BNB>")
         coin = Coin(RUNE, 1000000)
-        self.assertEqual(repr(coin), f"<Coin 1,000,000_{RUNE}>")
+        self.assertEqual(repr(coin), f"<Coin 0.01000000 {RUNE}>")
         coin = Coin("BNB.LOK-3C0", 1000000)
-        self.assertEqual(repr(coin), "<Coin 1,000,000_BNB.LOK-3C0>")
+        self.assertEqual(repr(coin), "<Coin 0.01000000 BNB.LOK-3C0>")
 
     def test_to_json(self):
         coin = Coin("BNB.BNB")
@@ -228,12 +228,12 @@ class TestTransaction(unittest.TestCase):
             Coin("BNB.BNB", 100),
             "MEMO",
         )
-        self.assertEqual(str(txn), "      USER => VAULT      [MEMO] 100_BNB.BNB")
+        self.assertEqual(str(txn), "      USER => VAULT      [MEMO] 0.00000100 BNB.BNB")
         txn.coins = [Coin("BNB.BNB", 1000000000), Coin(RUNE, 1000000000)]
         self.assertEqual(
             str(txn),
-            "      USER => VAULT      [MEMO] 1,000,000,000_BNB.BNB"
-            f", 1,000,000,000_{RUNE}",
+            "      USER => VAULT      [MEMO] 10.00000000 BNB.BNB"
+            f", 10.00000000 {RUNE}",
         )
         txn.coins = None
         self.assertEqual(
@@ -243,7 +243,7 @@ class TestTransaction(unittest.TestCase):
         txn.gas = [Coin("BNB.BNB", 37500)]
         self.assertEqual(
             str(txn),
-            "      USER => VAULT      [MEMO] No Coins | Gas 37,500_BNB.BNB",
+            "      USER => VAULT      [MEMO] No Coins | Gas 0.00037500 BNB.BNB",
         )
 
     def test_repr(self):
@@ -255,13 +255,13 @@ class TestTransaction(unittest.TestCase):
             "MEMO",
         )
         self.assertEqual(
-            repr(txn), "<Tx       USER => VAULT      [MEMO] [<Coin 100_BNB.BNB>]>"
+            repr(txn), "<Tx       USER => VAULT      [MEMO] [<Coin 0.00000100 BNB.BNB>]>"
         )
         txn.coins = [Coin("BNB.BNB", 1000000000), Coin(RUNE, 1000000000)]
         self.assertEqual(
             repr(txn),
-            "<Tx       USER => VAULT      [MEMO] [<Coin 1,000,000,000_BNB.BNB>,"
-            f" <Coin 1,000,000,000_{RUNE}>]>",
+            "<Tx       USER => VAULT      [MEMO] [<Coin 10.00000000 BNB.BNB>,"
+            f" <Coin 10.00000000 {RUNE}>]>",
         )
         txn.coins = None
         self.assertEqual(repr(txn), "<Tx       USER => VAULT      [MEMO] No Coins>")
@@ -269,7 +269,7 @@ class TestTransaction(unittest.TestCase):
         self.assertEqual(
             repr(txn),
             "<Tx       USER => VAULT      [MEMO] No Coins |"
-            " Gas [<Coin 37,500_BNB.BNB>]>",
+            " Gas [<Coin 0.00037500 BNB.BNB>]>",
         )
 
     def test_is_cross_chain_provision(self):
