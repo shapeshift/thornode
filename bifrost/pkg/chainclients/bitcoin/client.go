@@ -1099,8 +1099,18 @@ func (c *Client) createWallet(name string) error {
 	if err != nil {
 		return err
 	}
+	falseJSON, err := json.Marshal(false)
+	if err != nil {
+		return err
+	}
+
 	_, err = c.client.RawRequest("createwallet", []json.RawMessage{
 		walletNameJSON,
+		falseJSON,
+		falseJSON,
+		json.RawMessage([]byte("\"\"")),
+		falseJSON,
+		falseJSON,
 	})
 	if err != nil {
 		// ignore code -4 which means wallet already exists
