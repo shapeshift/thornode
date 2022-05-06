@@ -21,13 +21,14 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"gitlab.com/thorchain/bifrost/txscript"
-	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/runners"
-	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/signercache"
-	mem "gitlab.com/thorchain/thornode/x/thorchain/memo"
 	tssp "gitlab.com/thorchain/tss/go-tss/tss"
 	"go.uber.org/atomic"
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/semaphore"
+
+	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/runners"
+	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/signercache"
+	mem "gitlab.com/thorchain/thornode/x/thorchain/memo"
 
 	"gitlab.com/thorchain/thornode/bifrost/blockscanner"
 	btypes "gitlab.com/thorchain/thornode/bifrost/blockscanner/types"
@@ -1096,8 +1097,18 @@ func (c *Client) createWallet(name string) error {
 	if err != nil {
 		return err
 	}
+	falseJSON, err := json.Marshal(false)
+	if err != nil {
+		return err
+	}
+
 	_, err = c.client.RawRequest("createwallet", []json.RawMessage{
 		walletNameJSON,
+		falseJSON,
+		falseJSON,
+		json.RawMessage([]byte("\"\"")),
+		falseJSON,
+		falseJSON,
 	})
 	if err != nil {
 		// ignore code -4 which means wallet already exists
