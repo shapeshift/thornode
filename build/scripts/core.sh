@@ -191,7 +191,7 @@ set_eth_contract() {
 }
 
 fetch_genesis() {
-  echo "Fetching genesis"
+  echo "Fetching genesis from $1:$PORT_RPC"
   until curl -s "$1:$PORT_RPC" &>/dev/null; do
     sleep 3
   done

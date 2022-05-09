@@ -85,6 +85,11 @@ SIGNER_PATH=$DB_PATH/bifrost/signer/
 
 mkdir -p $SIGNER_PATH $OBSERVER_PATH /etc/bifrost
 
+# dynamically set external ip if mocknet and unset
+if [ "$NET" = "mocknet" ] && [ -z "$EXTERNAL_IP" ]; then
+  EXTERNAL_IP=$(hostname -i)
+fi
+
 # Generate bifrost config file
 echo "{
     \"thorchain\": {
