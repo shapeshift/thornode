@@ -36,6 +36,8 @@ const (
 	LackOfObservationPenalty
 	SigningTransactionPeriod
 	DoubleSignMaxAge
+	PauseBond
+	PauseUnbond
 	MinimumBondInRune
 	FundMigrationInterval
 	ArtificialRagnarokBlockHeight
@@ -104,6 +106,8 @@ var nameToString = map[ConstantName]string{
 	LackOfObservationPenalty:       "LackOfObservationPenalty",
 	SigningTransactionPeriod:       "SigningTransactionPeriod",
 	DoubleSignMaxAge:               "DoubleSignMaxAge",
+	PauseBond:                      "PauseBond",
+	PauseUnbond:                    "PauseUnbond",
 	MinimumBondInRune:              "MinimumBondInRune",
 	MaxBondProviders:               "MaxBondProviders",
 	FundMigrationInterval:          "FundMigrationInterval",
