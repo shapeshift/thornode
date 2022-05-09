@@ -41,6 +41,19 @@ midgard  => midgard and thornode dependency
 mocknet  => all mocknet dependencies
 ```
 
+### Keys
+
+We leverage the following keys for testing and local mocknet setup, created with a simplified mnemonic for ease of reference. We refer to these keys by the name of the animal used:
+
+```text
+cat => cat cat cat cat cat cat cat cat cat cat cat cat cat cat cat cat cat cat cat cat cat cat cat crawl
+dog => dog dog dog dog dog dog dog dog dog dog dog dog dog dog dog dog dog dog dog dog dog dog dog fossil
+fox => fox fox fox fox fox fox fox fox fox fox fox fox fox fox fox fox fox fox fox fox fox fox fox filter
+pig => pig pig pig pig pig pig pig pig pig pig pig pig pig pig pig pig pig pig pig pig pig pig pig quick
+```
+
+### Examples
+
 Example commands are provided below for those less familiar with Docker Compose features:
 
 ```bash
@@ -82,4 +95,24 @@ docker compose --profile mocknet down
 
 # clear mocknet docker volumes
 docker compose --profile mocknet down -v
+```
+
+## Multi-Node Mocknet
+
+The Docker Compose configuration has been extended to support a multi-node local network. Starting the multinode network requires the `mocknet-cluster` profile:
+
+```bash
+docker compose --profile mocknet-cluster up -d
+```
+
+Once the mocknet is running, you can open open a shell in the `cli` service to access CLIs for interacting with the mocknet:
+
+```bash
+docker compose run cli
+
+# increase default 60 block churn (keyring password is "password")
+thornode tx thorchain mimir CHURNINTERVAL 1000 --from dog $TX_FLAGS
+
+# set limit to 1 new node per churn (keyring password is "password")
+thornode tx thorchain mimir NUMBEROFNEWNODESPERCHURN 1 --from dog $TX_FLAGS
 ```

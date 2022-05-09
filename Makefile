@@ -121,6 +121,11 @@ pull:
 	docker pull registry.gitlab.com/thorchain/bepswap/mock-binance
 	docker pull registry.gitlab.com/thorchain/ethereum-mock
 
+# ------------------------------ Single Node Mocknet ------------------------------
+
+cli-mocknet:
+	@docker-compose -f build/docker/docker-compose.yml run --rm cli
+
 run-mocknet:
 	@docker-compose -f build/docker/docker-compose.yml --profile mocknet --profile midgard up -d
 
@@ -138,3 +143,20 @@ logs-mocknet:
 	@docker-compose -f build/docker/docker-compose.yml --profile mocknet logs -f thornode bifrost
 
 reset-mocknet: stop-mocknet run-mocknet
+
+# ------------------------------ Multi Node Mocknet ------------------------------
+
+run-mocknet-cluster:
+	@docker-compose -f build/docker/docker-compose.yml --profile mocknet-cluster --profile midgard up -d
+
+stop-mocknet-cluster:
+	@docker-compose -f build/docker/docker-compose.yml --profile mocknet-cluster --profile midgard down -v
+
+build-mocknet-cluster:
+	@docker-compose -f build/docker/docker-compose.yml --profile mocknet-cluster --profile midgard build
+
+ps-mocknet-cluster:
+	@docker-compose -f build/docker/docker-compose.yml --profile mocknet-cluster --profile midgard images
+	@docker-compose -f build/docker/docker-compose.yml --profile mocknet-cluster --profile midgard ps
+
+reset-mocknet-cluster: stop-mocknet-cluster build-mocknet-cluster run-mocknet-cluster

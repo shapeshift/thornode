@@ -140,7 +140,36 @@ thornode help
 For development and running a full chain locally (your own separate network), use the following command on the project root folder:
 
 ```bash
-docker compose -f build/docker/docker-compose.yml --profile mocknet up -d
+make run-mocknet
+```
+
+See [build/docker/README.md](./build/docker/README.md) for more detailed documentation on the THORNode images and local mocknet environment.
+
+### Simulate Local Churn
+
+```bash
+# reset mocknet cluster
+make reset-mocknet-cluster
+
+# increase churn interval as desired from the default 60 blocks
+make cli-mocknet
+> thornode tx thorchain mimir CHURNINTERVAL 1000 --from dog $TX_FLAGS
+
+# bootstrap vaults from the `heimdall` repo
+make bootstrap
+
+# verify vault balances
+curl -s localhost:1317/thorchain/vaults/asgard | jq '.[0].coins'
+
+# watch logs for churn
+make logs-mocknet
+
+# verify active nodes
+curl -s localhost:1317/thorchain/nodes | jq '[.[]|select(.status=="Active")]|length'
+
+# disable future churns if desired
+make cli-mocknet
+> thornode tx thorchain mimir CHURNINTERVAL 1000000 --from dog $TX_FLAGS
 ```
 
 See [build/docker/README.md](./build/docker/README.md) for more detailed documentation on the THORNode images and local mocknet environment.
@@ -352,4 +381,5 @@ type: added
 The process to integrate a new chain into THORChain is multifaceted. As it requires changes to multiple repos in multiple languages (`golang`, `python`, and `javascript`).
 
 To learn more about how to add a new chain, follow [this doc](docs/newchain.md)
+To learn more about creating your own private chain as a testing and development environment, follow [this doc](docs/private_mock_chain.d)
 To learn more about creating your own private chain as a testing and development environment, follow [this doc](docs/private_mock_chain.d)

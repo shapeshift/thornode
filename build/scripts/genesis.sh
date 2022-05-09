@@ -75,14 +75,23 @@ if [ "$SEED" = "$(hostname)" ]; then
     # disable default bank transfer, and opt to use our own custom one
     disable_bank_send
 
-    # for mocknet, add heimdall balances
+    # for mocknet, add initial balances
     echo "Using NET $NET"
     if [ "$NET" = "mocknet" ]; then
       echo "Setting up accounts"
+
+      # heimdall accounts
       add_account tthor1z63f3mzwv3g75az80xwmhrawdqcjpaekk0kd54 rune 5000000000000
       add_account tthor1wz78qmrkplrdhy37tw0tnvn0tkm5pqd6zdp257 rune 25000000000100
       add_account tthor18f55frcvknxvcpx2vvpfedvw4l8eutuhku0uj6 rune 25000000000100
       add_account tthor1xwusttz86hqfuk5z7amcgqsg7vp6g8zhsp5lu2 rune 5090000000000
+
+      # local cluster accounts (2M RUNE)
+      add_account tthor1uuds8pd92qnnq0udw0rpg0szpgcslc9p8lluej rune 200000000000000 # cat
+      add_account tthor1zf3gsk7edzwl9syyefvfhle37cjtql35h6k85m rune 200000000000000 # dog
+      add_account tthor13wrmhnh2qe98rjse30pl7u6jxszjjwl4f6yycr rune 200000000000000 # fox
+      add_account tthor1qk8c8sfrmfm0tkncs0zxeutc8v5mx3pjj07k4u rune 200000000000000 # pig
+
       reserve 22000000000000000
       # deploy eth contract
       deploy_eth_contract $ETH_HOST
