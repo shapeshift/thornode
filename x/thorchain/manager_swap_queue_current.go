@@ -128,7 +128,7 @@ func (vm *SwapQv58) FetchQueue(ctx cosmos.Context) (swapItems, error) { // nolin
 
 // EndBlock trigger the real swap to be processed
 func (vm *SwapQv58) EndBlock(ctx cosmos.Context, mgr Manager) error {
-	handler := NewSwapHandler(mgr)
+	handler := NewInternalHandler(mgr)
 
 	minSwapsPerBlock, err := vm.k.GetMimir(ctx, constants.MinSwapsPerBlock.String())
 	if minSwapsPerBlock < 0 || err != nil {
@@ -153,7 +153,7 @@ func (vm *SwapQv58) EndBlock(ctx cosmos.Context, mgr Manager) error {
 
 	for i := int64(0); i < vm.getTodoNum(int64(len(swaps)), minSwapsPerBlock, maxSwapsPerBlock); i++ {
 		pick := swaps[i]
-		_, err := handler.Run(ctx, &pick.msg)
+		_, err := handler(ctx, &pick.msg)
 		if err != nil {
 			ctx.Logger().Error("fail to swap", "msg", pick.msg.Tx.String(), "error", err)
 			if newErr := refundTx(ctx, ObservedTx{Tx: pick.msg.Tx}, mgr, CodeSwapFail, err.Error(), ""); nil != newErr {
