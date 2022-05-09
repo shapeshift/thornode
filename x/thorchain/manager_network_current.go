@@ -565,7 +565,7 @@ func (vm *NetworkMgrV87) ragnarokChain(ctx cosmos.Context, chain common.Chain, n
 }
 
 func (vm *NetworkMgrV87) withdrawLiquidity(ctx cosmos.Context, pool Pool, na NodeAccount, nth int64, mgr Manager) error {
-	withdrawHandler := NewWithdrawLiquidityHandler(mgr)
+	handler := NewInternalHandler(mgr)
 	iterator := vm.k.GetLiquidityProviderIterator(ctx, pool.Asset)
 	defer iterator.Close()
 	for ; iterator.Valid(); iterator.Next() {
@@ -599,7 +599,7 @@ func (vm *NetworkMgrV87) withdrawLiquidity(ctx cosmos.Context, pool Pool, na Nod
 			na.NodeAddress,
 		)
 
-		_, err := withdrawHandler.Run(ctx, withdrawMsg)
+		_, err := handler(ctx, withdrawMsg)
 		if err != nil {
 			ctx.Logger().Error("fail to withdraw", "liquidity provider", lp.RuneAddress, "error", err)
 		}
