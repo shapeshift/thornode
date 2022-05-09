@@ -100,6 +100,20 @@ func NewInternalHandler(mgr Manager) cosmos.Handler {
 			errMsg := fmt.Sprintf("Unrecognized thorchain Msg type: %v", legacyMsg.Type())
 			return nil, cosmos.ErrUnknownRequest(errMsg)
 		}
+		if version.GTE(semver.MustParse("1.88.1")) {
+			// CacheContext() returns a context which caches all changes and only forwards
+			// to the underlying context when commit() is called. Call commit() only when
+			// the handler succeeds, otherwise return error and the changes will be discarded.
+			// On commit, cached events also have to be explicitly emitted.
+			cacheCtx, commit := ctx.CacheContext()
+			res, err := h.Run(cacheCtx, msg)
+			if err == nil {
+				// Success, commit the cached changes and events
+				commit()
+				ctx.EventManager().EmitEvents(cacheCtx.EventManager().Events())
+			}
+			return res, err
+		}
 		return h.Run(ctx, msg)
 	}
 }
