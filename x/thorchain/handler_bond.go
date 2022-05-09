@@ -74,6 +74,10 @@ func (h BondHandler) validateV88(ctx cosmos.Context, msg MsgBond) error {
 		return ErrInternal(err, "cannot add bond while node is ready status")
 	}
 
+	if fetchConfigInt64(ctx, h.mgr, constants.PauseBond) > 0 {
+		return ErrInternal(err, "bonding has been paused")
+	}
+
 	if nodeAccount.Status == NodeActive {
 		validatorMaxRewardRatio, err := h.mgr.Keeper().GetMimir(ctx, constants.ValidatorMaxRewardRatio.String())
 		if validatorMaxRewardRatio < 0 || err != nil {

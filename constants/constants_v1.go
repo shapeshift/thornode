@@ -29,6 +29,8 @@ func NewConstantValue010() *ConstantVals {
 			LackOfObservationPenalty:       2,                  // add two slash point for each block where a node does not observe
 			SigningTransactionPeriod:       300,                // how many blocks before a request to sign a tx by yggdrasil pool, is counted as delinquent.
 			DoubleSignMaxAge:               24,                 // number of blocks to limit double signing a block
+			PauseBond:                      0,                  // pauses the ability to bond
+			PauseUnbond:                    0,                  // pauses the ability to unbond
 			MinimumBondInRune:              1_000_000_00000000, // 1 million rune
 			MaxBondProviders:               6,                  // maximum number of bond providers
 			MaxOutboundAttempts:            0,                  // maximum retries to reschedule a transaction
