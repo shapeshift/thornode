@@ -53,6 +53,7 @@ type TestSwapHandleKeeper struct {
 	pools             map[common.Asset]Pool
 	activeNodeAccount NodeAccount
 	synthSupply       cosmos.Uint
+	haltChain         int64
 }
 
 func (k *TestSwapHandleKeeper) PoolExist(_ cosmos.Context, asset common.Asset) bool {
@@ -102,6 +103,10 @@ func (k *TestSwapHandleKeeper) AddToLiquidityFees(_ cosmos.Context, _ common.Ass
 
 func (k *TestSwapHandleKeeper) GetTotalSupply(_ cosmos.Context, _ common.Asset) cosmos.Uint {
 	return k.synthSupply
+}
+
+func (k *TestSwapHandleKeeper) GetMimir(ctx cosmos.Context, key string) (int64, error) {
+	return k.haltChain, nil
 }
 
 func (s *HandlerSwapSuite) TestValidation(c *C) {
@@ -245,6 +250,13 @@ func (s *HandlerSwapSuite) TestHandle(c *C) {
 	c.Assert(err, NotNil)
 	c.Assert(err.Error(), Equals, fmt.Sprintf("target asset can't be %s", msgSwap2.TargetAsset.String()))
 	c.Assert(result, IsNil)
+
+	// When chain is halted , swap should respect it
+	keeper.haltChain = 1
+	result, err = handler.Run(ctx, msgSwapFromTxIn)
+	c.Assert(err, NotNil)
+	c.Assert(result, IsNil)
+	keeper.haltChain = 0
 }
 
 func (s *HandlerSwapSuite) TestSwapSynthERC20(c *C) {
