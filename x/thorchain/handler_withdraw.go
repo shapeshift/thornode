@@ -85,22 +85,25 @@ func (h WithdrawLiquidityHandler) validateV80(ctx cosmos.Context, msg MsgWithdra
 
 func (h WithdrawLiquidityHandler) handle(ctx cosmos.Context, msg MsgWithdrawLiquidity) (*cosmos.Result, error) {
 	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("1.88.0")) {
+	switch {
+	case version.GTE(semver.MustParse("1.88.1")):
 		return h.handleV88(ctx, msg)
-	} else if version.GTE(semver.MustParse("0.75.0")) {
+	case version.GTE(semver.MustParse("1.88.0")):
+		// only change in 1.88.1 is moving cacheCtx to the caller
+		cacheCtx, commit := ctx.CacheContext()
+		res, err := h.handleV88(cacheCtx, msg)
+		if err == nil {
+			commit()
+			ctx.EventManager().EmitEvents(cacheCtx.EventManager().Events())
+		}
+		return res, err
+	case version.GTE(semver.MustParse("0.75.0")):
 		return h.handleV75(ctx, msg)
 	}
 	return nil, errBadVersion
 }
 
-func (h WithdrawLiquidityHandler) handleV88(origCtx cosmos.Context, msg MsgWithdrawLiquidity) (*cosmos.Result, error) {
-	// CacheContext() returns a context which caches all changes and only forwards
-	// to the underlying context when commit() is called. Call commit() only when
-	// the handler succeeds, otherwise return error and the changes will be discarded.
-	// On commit, cached events also have to be explicitly emitted (see end of function).
-	// TODO once all handlers are converted, caching will move up a layer in the stack.
-	ctx, commit := origCtx.CacheContext()
-
+func (h WithdrawLiquidityHandler) handleV88(ctx cosmos.Context, msg MsgWithdrawLiquidity) (*cosmos.Result, error) {
 	lp, err := h.mgr.Keeper().GetLiquidityProvider(ctx, msg.Asset, msg.WithdrawAddress)
 	if err != nil {
 		return nil, multierror.Append(errFailGetLiquidityProvider, err)
@@ -216,10 +219,6 @@ func (h WithdrawLiquidityHandler) handleV88(origCtx cosmos.Context, msg MsgWithd
 		telem(impLossProtection),
 		[]metrics.Label{telemetry.NewLabel("asset", msg.Asset.String())},
 	)
-
-	// Success, commit the cached changes and events
-	commit()
-	origCtx.EventManager().EmitEvents(ctx.EventManager().Events())
 
 	return &cosmos.Result{}, nil
 }

@@ -855,8 +855,8 @@ func (vm *validatorMgrV87) ragnarokPools(ctx cosmos.Context, nth int64, mgr Mana
 					na.NodeAddress,
 				)
 
-				withdrawHandler := NewWithdrawLiquidityHandler(mgr)
-				_, err = withdrawHandler.Run(ctx, withdrawMsg)
+				handler := NewInternalHandler(mgr)
+				_, err = handler(ctx, withdrawMsg)
 				if err != nil {
 					ctx.Logger().Error("fail to withdraw", "liquidity provider", lp.RuneAddress, "error", err)
 				} else if !withdrawAsset.Equals(common.RuneAsset()) {
