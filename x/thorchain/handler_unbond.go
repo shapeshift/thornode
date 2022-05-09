@@ -71,8 +71,10 @@ func (h UnBondHandler) validateV88(ctx cosmos.Context, msg MsgUnBond) error {
 		return cosmos.ErrUnknownRequest("cannot unbond while node is in active or ready status")
 	}
 
-	if fetchConfigInt64(ctx, h.mgr, constants.PauseUnbond) > 0 {
-		return ErrInternal(err, "unbonding has been paused")
+	if h.mgr.GetVersion().GTE(semver.MustParse("1.88.1")) {
+		if fetchConfigInt64(ctx, h.mgr, constants.PauseUnbond) > 0 {
+			return ErrInternal(err, "unbonding has been paused")
+		}
 	}
 
 	ygg := Vault{}

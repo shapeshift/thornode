@@ -74,8 +74,10 @@ func (h BondHandler) validateV88(ctx cosmos.Context, msg MsgBond) error {
 		return ErrInternal(err, "cannot add bond while node is ready status")
 	}
 
-	if fetchConfigInt64(ctx, h.mgr, constants.PauseBond) > 0 {
-		return ErrInternal(err, "bonding has been paused")
+	if h.mgr.GetVersion().GTE(semver.MustParse("1.88.1")) {
+		if fetchConfigInt64(ctx, h.mgr, constants.PauseBond) > 0 {
+			return ErrInternal(err, "bonding has been paused")
+		}
 	}
 
 	if nodeAccount.Status == NodeActive {
