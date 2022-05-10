@@ -41,6 +41,9 @@ benchmark-swap:
 smoke:
 	@docker run ${DOCKER_OPTS} -e BLOCK_SCANNER_BACKOFF=${BLOCK_SCANNER_BACKOFF} ${IMAGE_NAME} python scripts/smoke.py --fast-fail=True
 
+bootstrap:
+	@docker run ${DOCKER_OPTS} -e BLOCK_SCANNER_BACKOFF=${BLOCK_SCANNER_BACKOFF} ${IMAGE_NAME} python scripts/smoke.py --bootstrap-only=True
+
 kube-smoke:
 	@kubectl replace --force -f kube/smoke.yml
 
