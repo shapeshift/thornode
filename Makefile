@@ -7,9 +7,7 @@ NOW=$(shell date +'%Y-%m-%d_%T')
 COMMIT:=$(shell git log -1 --format='%H')
 VERSION:=$(shell cat version)
 TAG?=testnet
-IMAGE?=registry.gitlab.com/thorchain/thornode
 TEST_DIR?="./..."
-# native coin denom string
 
 ldflags = -X gitlab.com/thorchain/thornode/constants.Version=$(VERSION) \
 		  -X gitlab.com/thorchain/thornode/constants.GitCommit=$(COMMIT) \
@@ -38,7 +36,6 @@ install: go.sum protob
 
 tools:
 	go install -tags ${TAG} ./tools/generate
-	go install -tags ${TAG} ./tools/extract
 	go install -tags ${TAG} ./tools/pubkey2address
 
 go.sum: go.mod
@@ -103,23 +100,9 @@ clean:
 	rm -rf ~/.thor*
 	rm -f ${GOBIN}/{generate,thornode,bifrost}
 
-.envrc: install
-	@generate -t MASTER > .envrc
-	@generate -t POOL >> .envrc
-
-extract: tools
-	@extract -f "${FILE}" -p "${PASSWORD}" -t ${TYPE}
-
 # updates our tss dependency
 tss:
 	go get gitlab.com/thorchain/tss/go-tss
-
-pull:
-	docker pull ${IMAGE}:mocknet
-	docker pull registry.gitlab.com/thorchain/midgard
-	docker pull registry.gitlab.com/thorchain/bepswap/bepswap-web-ui
-	docker pull registry.gitlab.com/thorchain/bepswap/mock-binance
-	docker pull registry.gitlab.com/thorchain/ethereum-mock
 
 # ------------------------------ Single Node Mocknet ------------------------------
 
