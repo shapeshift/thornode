@@ -358,6 +358,7 @@ services:
   bitcoin:
     profiles:
       - mocknet
+      - mocknet-cluster
     image: registry.gitlab.com/thorchain/devops/node-launcher:bitcoin-daemon-22.0
     restart: unless-stopped
     environment:
@@ -372,6 +373,7 @@ services:
   bitcoin-cash:
     profiles:
       - mocknet
+      - mocknet-cluster
     image: registry.gitlab.com/thorchain/devops/node-launcher:bitcoin-cash-daemon-24.0.0
     restart: unless-stopped
     environment:
@@ -386,6 +388,7 @@ services:
   dogecoin:
     profiles:
       - mocknet
+      - mocknet-cluster
     image: registry.gitlab.com/thorchain/devops/node-launcher:dogecoin-daemon-1.14.5
     restart: unless-stopped
     environment:
@@ -417,6 +420,7 @@ services:
   litecoin:
     profiles:
       - mocknet
+      - mocknet-cluster
     image: registry.gitlab.com/thorchain/devops/node-launcher:litecoin-daemon-0.18.1
     restart: unless-stopped
     environment:

@@ -5,7 +5,7 @@
 The default image will start a fullnode:
 
 ```bash
-docker run -e NET=mainnet registry.gitlab.com/thorchain/thornode:chaosnet-multichain
+docker run -e CHAIN_ID=thorchain-mainnet-v1 -e NET=mainnet registry.gitlab.com/thorchain/thornode:chaosnet-multichain
 ```
 
 Since this image tag contains the latest version of THORNode, the node can auto update by simply placing this in a loop to re-pull the image on exit:
@@ -115,4 +115,12 @@ thornode tx thorchain mimir CHURNINTERVAL 1000 --from dog $TX_FLAGS
 
 # set limit to 1 new node per churn (keyring password is "password")
 thornode tx thorchain mimir NUMBEROFNEWNODESPERCHURN 1 --from dog $TX_FLAGS
+```
+
+## Bootstrap Mocknet Data
+
+You can leverage the [Heimdall](https://gitlab.com/thorchain/heimdall) repo to bootstrap local vaults with a subset of smoke test data. Checkout the repo and run:
+
+```bash
+make bootstrap
 ```
