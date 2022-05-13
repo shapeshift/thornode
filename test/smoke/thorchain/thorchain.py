@@ -464,7 +464,7 @@ class ThorchainState:
                         if coin.amount <= asset_fee:
                             asset_fee = coin.amount
 
-                        rune_fee = pool.get_asset_in_rune(asset_fee)
+                        rune_fee = pool.get_rune_disbursement_for_asset_add(asset_fee)
                         if rune_fee > pool.rune_balance:
                             rune_fee = pool.rune_balance
                         pool.sub(rune_fee, 0)
@@ -1604,6 +1604,17 @@ class Pool(Jsonable):
         if self.asset.chain == Terra.chain:
             amount = int(amount / 100) * 100
         return amount
+
+    def get_rune_disbursement_for_asset_add(self, val):
+        """
+        Get the equivalent amount of rune for a given amount of asset added to
+        the pool, taking slip into account. When this amount is withdrawn from
+        the pool, the constant product of depths rule is preserved.
+        """
+        if self.is_zero():
+            return 0
+
+        return get_share(self.rune_balance, self.asset_balance + val, val)
 
     def get_asset_fee(self):
         """
