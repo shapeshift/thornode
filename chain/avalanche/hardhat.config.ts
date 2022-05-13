@@ -11,7 +11,7 @@ import "hardhat-deploy";
 import "solidity-coverage";
 
 const FORK_FUJI = false;
-const FORK_MAINNET = false;
+const FORK_MAINNET = true;
 const forkingData = FORK_FUJI
   ? {
       url: "https://api.avax-test.network/ext/bc/C/rpc",
@@ -60,7 +60,7 @@ export default {
   networks: {
     hardhat: {
       gasPrice: 225000000000,
-      chainId: !forkingData ? 43112 : undefined, //Only specify a chainId if we are not forking
+      chainId: !forkingData ? 43112 : 43114,
       forking: forkingData,
     },
     local: {
