@@ -328,7 +328,7 @@ class ThorchainState:
         for asset, gas in gas_coins.items():
             pool = self.get_pool(gas.asset)
             # figure out how much rune is an equal amount to gas.amount
-            rune_amt = pool.get_rune_reimbursement_for_asset_withdrawal(gas.amount)
+            rune_amt = pool.get_asset_in_rune(gas.amount)
             self.reserve -= rune_amt  # take rune from the reserve
 
             pool.add(rune_amt, 0)  # replenish gas costs with rune
@@ -464,7 +464,7 @@ class ThorchainState:
                         if coin.amount <= asset_fee:
                             asset_fee = coin.amount
 
-                        rune_fee = pool.get_rune_disbursement_for_asset_add(asset_fee)
+                        rune_fee = pool.get_asset_in_rune(asset_fee)
                         if rune_fee > pool.rune_balance:
                             rune_fee = pool.rune_balance
                         pool.sub(rune_fee, 0)
@@ -1593,17 +1593,6 @@ class Pool(Jsonable):
 
         return get_share(self.rune_balance, self.asset_balance, val)
 
-    def get_rune_reimbursement_for_asset_withdrawal(self, val):
-        """
-        Get equivalent amount of rune for a given amount of asset withdrawn
-        from the pool, taking slip into account. When this amount is added
-        to the pool, the constant product of depths rule is preserved.
-        """
-        if self.is_zero():
-            return 0
-
-        return get_share(self.rune_balance, self.asset_balance - val, val)
-
     def get_rune_in_asset(self, val):
         """
         Get an equal amount of given value in asset
@@ -1615,17 +1604,6 @@ class Pool(Jsonable):
         if self.asset.chain == Terra.chain:
             amount = int(amount / 100) * 100
         return amount
-
-    def get_rune_disbursement_for_asset_add(self, val):
-        """
-        Get the equivalent amount of rune for a given amount of asset added to
-        the pool, taking slip into account. When this amount is withdrawn from
-        the pool, the constant product of depths rule is preserved.
-        """
-        if self.is_zero():
-            return 0
-
-        return get_share(self.rune_balance, self.asset_balance + val, val)
 
     def get_asset_fee(self):
         """
