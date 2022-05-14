@@ -6228,13 +6228,13 @@
                 "swap_slip": "578"
             },
             {
-                "liquidity_fee": "963021077"
+                "liquidity_fee": "963020995"
             },
             {
-                "liquidity_fee_in_rune": "963021077"
+                "liquidity_fee_in_rune": "963020995"
             },
             {
-                "emit_asset": "15692748676 THOR.RUNE"
+                "emit_asset": "15692748047 THOR.RUNE"
             },
             {
                 "id": "TODO"
@@ -6366,7 +6366,7 @@
                 "emit_asset": "176358902"
             },
             {
-                "emit_rune": "125930839701"
+                "emit_rune": "125930839961"
             },
             {
                 "imp_loss_protection": "0"
@@ -6402,7 +6402,7 @@
                 "coins": "30000 BTC.BTC"
             },
             {
-                "pool_deduct": "21138160"
+                "pool_deduct": "21138163"
             }
         ],
         "height": null
@@ -6432,7 +6432,7 @@
                 "asset_amt": "15000"
             },
             {
-                "rune_amt": "10476376"
+                "rune_amt": "10476378"
             },
             {
                 "transaction_count": "1"
