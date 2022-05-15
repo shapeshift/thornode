@@ -64,7 +64,10 @@ func (h ObservedTxOutHandler) validateV1(ctx cosmos.Context, msg MsgObservedTxOu
 
 func (h ObservedTxOutHandler) handle(ctx cosmos.Context, msg MsgObservedTxOut) (*cosmos.Result, error) {
 	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.58.0")) {
+	switch {
+	case version.GTE(semver.MustParse("1.89.0")):
+		return h.handleV89(ctx, msg)
+	case version.GTE(semver.MustParse("0.58.0")):
 		return h.handleV58(ctx, msg)
 	}
 	return nil, errBadVersion
@@ -108,7 +111,7 @@ func (h ObservedTxOutHandler) preflightV1(ctx cosmos.Context, voter ObservedTxVo
 }
 
 // Handle a message to observe outbound tx
-func (h ObservedTxOutHandler) handleV58(ctx cosmos.Context, msg MsgObservedTxOut) (*cosmos.Result, error) {
+func (h ObservedTxOutHandler) handleV89(ctx cosmos.Context, msg MsgObservedTxOut) (*cosmos.Result, error) {
 	activeNodeAccounts, err := h.mgr.Keeper().ListActiveValidators(ctx)
 	if err != nil {
 		return nil, wrapError(ctx, err, "fail to get list of active node accounts")
@@ -192,29 +195,6 @@ func (h ObservedTxOutHandler) handleV58(ctx cosmos.Context, msg MsgObservedTxOut
 			continue
 		}
 
-		// If sending from one of our vaults, decrement coins
-		vault, err := h.mgr.Keeper().GetVault(ctx, tx.ObservedPubKey)
-		if err != nil {
-			ctx.Logger().Error("fail to get vault", "error", err)
-			continue
-		}
-		vault.SubFunds(tx.Tx.Coins)
-		vault.OutboundTxCount++
-		if vault.IsAsgard() && memo.IsType(TxMigrate) {
-			// only remove the block height that had been specified in the memo
-			vault.RemovePendingTxBlockHeights(memo.GetBlockHeight())
-		}
-
-		if !vault.HasFunds() && vault.Status == RetiringVault {
-			// we have successfully removed all funds from a retiring vault,
-			// mark it as inactive
-			vault.Status = InactiveVault
-		}
-		if err := h.mgr.Keeper().SetVault(ctx, vault); err != nil {
-			ctx.Logger().Error("fail to save vault", "error", err)
-			continue
-		}
-
 		// add addresses to observing addresses. This is used to detect
 		// active/inactive observing node accounts
 		h.mgr.ObMgr().AppendObserver(tx.Tx.Chain, txOut.GetSigners())
@@ -238,6 +218,29 @@ func (h ObservedTxOutHandler) handleV58(ctx cosmos.Context, msg MsgObservedTxOut
 		}
 		voter.SetDone()
 		h.mgr.Keeper().SetObservedTxOutVoter(ctx, voter)
+		// process the msg first , and then deduct the fund from vault last
+		// If sending from one of our vaults, decrement coins
+		vault, err := h.mgr.Keeper().GetVault(ctx, tx.ObservedPubKey)
+		if err != nil {
+			ctx.Logger().Error("fail to get vault", "error", err)
+			continue
+		}
+		vault.SubFunds(tx.Tx.Coins)
+		vault.OutboundTxCount++
+		if vault.IsAsgard() && memo.IsType(TxMigrate) {
+			// only remove the block height that had been specified in the memo
+			vault.RemovePendingTxBlockHeights(memo.GetBlockHeight())
+		}
+
+		if !vault.HasFunds() && vault.Status == RetiringVault {
+			// we have successfully removed all funds from a retiring vault,
+			// mark it as inactive
+			vault.Status = InactiveVault
+		}
+		if err := h.mgr.Keeper().SetVault(ctx, vault); err != nil {
+			ctx.Logger().Error("fail to save vault", "error", err)
+			continue
+		}
 	}
 	return &cosmos.Result{}, nil
 }

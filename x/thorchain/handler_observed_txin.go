@@ -67,7 +67,10 @@ func (h ObservedTxInHandler) validateV1(ctx cosmos.Context, msg MsgObservedTxIn)
 
 func (h ObservedTxInHandler) handle(ctx cosmos.Context, msg MsgObservedTxIn) (*cosmos.Result, error) {
 	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.78.0")) {
+	switch {
+	case version.GTE(semver.MustParse("1.89.0")):
+		return h.handleV89(ctx, msg)
+	case version.GTE(semver.MustParse("0.78.0")):
 		return h.handleV78(ctx, msg)
 	}
 	return nil, errBadVersion
@@ -125,7 +128,7 @@ func (h ObservedTxInHandler) preflightV1(ctx cosmos.Context, voter ObservedTxVot
 	return voter, ok
 }
 
-func (h ObservedTxInHandler) handleV78(ctx cosmos.Context, msg MsgObservedTxIn) (*cosmos.Result, error) {
+func (h ObservedTxInHandler) handleV89(ctx cosmos.Context, msg MsgObservedTxIn) (*cosmos.Result, error) {
 	activeNodeAccounts, err := h.mgr.Keeper().ListActiveValidators(ctx)
 	if err != nil {
 		return nil, wrapError(ctx, err, "fail to get list of active node accounts")
@@ -193,7 +196,12 @@ func (h ObservedTxInHandler) handleV78(ctx cosmos.Context, msg MsgObservedTxIn) 
 			// no one should send fund to yggdrasil vault , if somehow scammer / airdrop send fund to yggdrasil vault
 			// those will be ignored
 			// also only asgard will send fund to yggdrasil , thus doesn't need to have confirmation counting
-			if !voter.UpdatedVault {
+			fromAsgard, err := h.isFromAsgard(ctx, tx)
+			if err != nil {
+				ctx.Logger().Error("fail to determinate whether fund is from asgard or not, let's assume it is not", "error", err)
+			}
+			// make sure only funds replenished from asgard will be added to vault
+			if !voter.UpdatedVault && fromAsgard {
 				vault.AddFunds(tx.Tx.Coins)
 				voter.UpdatedVault = true
 			}
@@ -314,4 +322,12 @@ func (h ObservedTxInHandler) addSwapV63(ctx cosmos.Context, msg MsgSwap) {
 			ctx.Logger().Error("fail to add swap to queue", "error", err)
 		}
 	}
+}
+
+func (h ObservedTxInHandler) isFromAsgard(ctx cosmos.Context, tx ObservedTx) (bool, error) {
+	asgardVaults, err := h.mgr.Keeper().GetAsgardVaults(ctx)
+	if err != nil {
+		return false, err
+	}
+	return asgardVaults.HasAddress(tx.Tx.Chain, tx.Tx.FromAddress)
 }
