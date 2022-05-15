@@ -69,6 +69,7 @@ type TestObservedTxOutHandleKeeper struct {
 	nas        NodeAccounts
 	na         NodeAccount
 	voter      ObservedTxVoter
+	txInVoter  ObservedTxVoter
 	yggExists  bool
 	ygg        Vault
 	height     int64
@@ -154,6 +155,14 @@ func (k *TestObservedTxOutHandleKeeper) SetPool(ctx cosmos.Context, pool Pool) e
 	return nil
 }
 
+func (k *TestObservedTxOutHandleKeeper) GetObservedTxInVoter(ctx cosmos.Context, hash common.TxID) (ObservedTxVoter, error) {
+	return k.txInVoter, nil
+}
+
+func (k *TestObservedTxOutHandleKeeper) SetObservedTxInVoter(ctx cosmos.Context, tx ObservedTxVoter) {
+	k.txInVoter = tx
+}
+
 func (s *HandlerObservedTxOutSuite) TestHandle(c *C) {
 	var err error
 	ctx, mgr := setupManagerForTest(c)
@@ -171,8 +180,9 @@ func (s *HandlerObservedTxOutSuite) TestHandle(c *C) {
 		common.NewCoin(common.BNBAsset, cosmos.NewUint(200*common.One)),
 	}
 	keeper := &TestObservedTxOutHandleKeeper{
-		nas:   NodeAccounts{GetRandomValidatorNode(NodeActive)},
-		voter: NewObservedTxVoter(tx.ID, make(ObservedTxs, 0)),
+		nas:       NodeAccounts{GetRandomValidatorNode(NodeActive)},
+		voter:     NewObservedTxVoter(tx.ID, make(ObservedTxs, 0)),
+		txInVoter: NewObservedTxVoter(tx.ID, make(ObservedTxs, 0)),
 		pool: Pool{
 			Asset:        common.BNBAsset,
 			BalanceRune:  cosmos.NewUint(200),
@@ -199,7 +209,7 @@ func (s *HandlerObservedTxOutSuite) TestHandle(c *C) {
 	c.Assert(items, HasLen, 0)
 	c.Check(keeper.observing, HasLen, 1)
 	// make sure the coin has been subtract from the vault
-	c.Check(ygg.Coins.GetCoin(common.BNBAsset).Amount.Equal(cosmos.NewUint(19999962499)), Equals, true, Commentf("%d", ygg.Coins.GetCoin(common.BNBAsset).Amount.Uint64()))
+	c.Check(ygg.Coins.GetCoin(common.BNBAsset).Amount.Equal(cosmos.NewUint(19999962500)), Equals, true, Commentf("%d", ygg.Coins.GetCoin(common.BNBAsset).Amount.Uint64()))
 }
 
 func (s *HandlerObservedTxOutSuite) TestHandleStolenFunds(c *C) {

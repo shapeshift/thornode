@@ -112,6 +112,7 @@ type TestObservedTxInHandleKeeper struct {
 	pool                 Pool
 	observing            []cosmos.AccAddress
 	vault                Vault
+	yggVault             Vault
 	txOut                *TxOut
 	setLastObserveHeight bool
 }
@@ -154,14 +155,22 @@ func (k *TestObservedTxInHandleKeeper) AddObservingAddresses(_ cosmos.Context, a
 func (k *TestObservedTxInHandleKeeper) GetVault(_ cosmos.Context, key common.PubKey) (Vault, error) {
 	if k.vault.PubKey.Equals(key) {
 		return k.vault, nil
+	} else if k.yggVault.PubKey.Equals(key) {
+		return k.yggVault, nil
 	}
 	return GetRandomVault(), errKaboom
+}
+
+func (k *TestObservedTxInHandleKeeper) GetAsgardVaults(_ cosmos.Context) (Vaults, error) {
+	return Vaults{k.vault}, nil
 }
 
 func (k *TestObservedTxInHandleKeeper) SetVault(_ cosmos.Context, vault Vault) error {
 	if k.vault.PubKey.Equals(vault.PubKey) {
 		k.vault = vault
 		return nil
+	} else if k.yggVault.PubKey.Equals(vault.PubKey) {
+		k.yggVault = vault
 	}
 	return errKaboom
 }
@@ -792,4 +801,72 @@ func (s *HandlerObservedTxInSuite) TestVaultStatus(c *C) {
 			c.Check(keeper.vault.InboundTxCount, Equals, int64(1), Commentf(tc.name))
 		}
 	}
+}
+
+func (s *HandlerObservedTxInSuite) TestYggFundedOnlyFromAsgard(c *C) {
+	ctx, mgr := setupManagerForTest(c)
+
+	tx := GetRandomTx()
+	vault := GetRandomVault()
+	obTx := NewObservedTx(tx, 12, GetRandomPubKey(), 15)
+
+	vault.PubKey = obTx.ObservedPubKey
+	asgardFromAddr, err := vault.PubKey.GetAddress(common.BNBChain)
+	c.Assert(err, IsNil)
+	obTx.Tx.FromAddress = asgardFromAddr
+
+	keeper := &TestObservedTxInHandleKeeper{
+		nas:       NodeAccounts{GetRandomValidatorNode(NodeActive)},
+		voter:     NewObservedTxVoter(tx.ID, make(ObservedTxs, 0)),
+		vault:     vault,
+		yggExists: true,
+	}
+	mgr.K = keeper
+	handler := NewObservedTxInHandler(mgr)
+
+	// Test isFromAsgard func
+	isFromAsgard, err := handler.isFromAsgard(ctx, obTx)
+	c.Assert(err, IsNil)
+	c.Assert(isFromAsgard, Equals, true)
+
+	obTx.Tx.FromAddress = GetRandomBNBAddress()
+	isFromAsgard, err = handler.isFromAsgard(ctx, obTx)
+	c.Assert(err, IsNil)
+	c.Assert(isFromAsgard, Equals, false)
+
+	// TX is not from Asgard, shouldn't fund Ygg
+	fundTx := GetRandomTx()
+	fundTx.Memo = "yggdrasil+:15"
+	obTx = NewObservedTx(fundTx, 12, GetRandomPubKey(), 15)
+	ygg := GetRandomVault()
+	ygg.Type = YggdrasilVault
+	ygg.PubKey = obTx.ObservedPubKey
+
+	txValue := tx.Coins[0].Amount
+	yggBnbBalanceBefore := ygg.GetCoin(common.BNBAsset).Amount
+
+	keeper.yggVault = ygg
+	keeper.voter = NewObservedTxVoter(tx.ID, make(ObservedTxs, 0))
+	mgr.K = keeper
+
+	handler = NewObservedTxInHandler(mgr)
+	txs := ObservedTxs{obTx}
+	txs[0].BlockHeight = 15
+	msg := NewMsgObservedTxIn(txs, keeper.nas[0].NodeAddress)
+
+	_, err = handler.handle(ctx, *msg)
+	c.Assert(err, IsNil)
+	c.Assert(keeper.yggVault.GetCoin(common.BNBAsset).Amount.Sub(yggBnbBalanceBefore).Uint64(), Equals, cosmos.ZeroUint().Uint64())
+
+	// TX is from asgard, should fund Ygg
+	keeper.voter = NewObservedTxVoter(tx.ID, make(ObservedTxs, 0))
+	mgr.K = keeper
+
+	handler = NewObservedTxInHandler(mgr)
+	txs[0].Tx.FromAddress = asgardFromAddr
+	msg = NewMsgObservedTxIn(txs, keeper.nas[0].NodeAddress)
+
+	_, err = handler.handle(ctx, *msg)
+	c.Assert(err, IsNil)
+	c.Assert(keeper.yggVault.GetCoin(common.BNBAsset).Amount.Sub(yggBnbBalanceBefore).Uint64(), Equals, txValue.Uint64())
 }

@@ -338,6 +338,8 @@ func GetSwapQueue(version semver.Version, keeper keeper.Keeper) (SwapQueue, erro
 // GetSlasher return an implementation of Slasher
 func GetSlasher(version semver.Version, keeper keeper.Keeper, eventMgr EventManager) (Slasher, error) {
 	switch {
+	case version.GTE(semver.MustParse("1.89.0")):
+		return newSlasherV89(keeper, eventMgr), nil
 	case version.GTE(semver.MustParse("1.88.0")):
 		return newSlasherV88(keeper, eventMgr), nil
 	case version.GTE(semver.MustParse("1.86.0")):
