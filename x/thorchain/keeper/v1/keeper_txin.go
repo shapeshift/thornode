@@ -67,3 +67,39 @@ func (k KVStore) getObservedTxVoter(ctx cosmos.Context, prefix types.DbPrefix, h
 	}
 	return record, nil
 }
+
+func (k KVStore) SetObservedLink(ctx cosmos.Context, inhash, outhash common.TxID) {
+	k.setObservedLink(ctx, inhash, outhash)
+}
+
+func (k KVStore) setObservedLink(ctx cosmos.Context, inhash, outhash common.TxID) {
+	key := k.GetKey(ctx, prefixObservedLink, inhash.String())
+	record := make([]string, 0)
+	_, _ = k.getStrings(ctx, key, &record)
+	for _, s := range record {
+		if s == outhash.String() {
+			return
+		}
+	}
+
+	record = append(record, outhash.String())
+	k.setStrings(ctx, key, record)
+}
+
+func (k KVStore) GetObservedLink(ctx cosmos.Context, inhash common.TxID) []common.TxID {
+	hashes := make([]common.TxID, 0)
+	strs := make([]string, 0)
+
+	key := k.GetKey(ctx, prefixObservedLink, inhash.String())
+	_, _ = k.getStrings(ctx, key, &strs)
+
+	for _, s := range strs {
+		hash, err := common.NewTxID(s)
+		if err != nil {
+			ctx.Logger().Error("failed to parse TXID", "txid", s, "error", err)
+			continue
+		}
+		hashes = append(hashes, hash)
+	}
+	return hashes
+}
