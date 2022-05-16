@@ -595,7 +595,7 @@ func (s *SlasherV89) adjustPoolForSlashedAsset(ctx cosmos.Context, coin common.C
 		coinAmount = pool.BalanceAsset
 	}
 
-	runeValue := pool.RuneReimbursementForAssetWithdrawal(coinAmount)
+	runeValue := pool.AssetValueInRune(coinAmount)
 	pool.BalanceAsset = common.SafeSub(pool.BalanceAsset, coinAmount)
 	pool.BalanceRune = pool.BalanceRune.Add(runeValue)
 	if err := s.keeper.SetPool(ctx, pool); err != nil {
