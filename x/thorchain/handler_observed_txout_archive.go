@@ -145,3 +145,40 @@ func (h ObservedTxOutHandler) handleV58(ctx cosmos.Context, msg MsgObservedTxOut
 	}
 	return &cosmos.Result{}, nil
 }
+
+func (h ObservedTxOutHandler) preflightV1(ctx cosmos.Context, voter ObservedTxVoter, nas NodeAccounts, tx ObservedTx, signer cosmos.AccAddress) (ObservedTxVoter, bool) {
+	observeSlashPoints := h.mgr.GetConstants().GetInt64Value(constants.ObserveSlashPoints)
+	observeFlex := h.mgr.GetConstants().GetInt64Value(constants.ObservationDelayFlexibility)
+	ok := false
+
+	slashCtx := ctx.WithContext(context.WithValue(ctx.Context(), constants.CtxMetricLabels, []metrics.Label{
+		telemetry.NewLabel("reason", "failed_observe_txout"),
+		telemetry.NewLabel("chain", string(tx.Tx.Chain)),
+	}))
+	h.mgr.Slasher().IncSlashPoints(slashCtx, observeSlashPoints, signer)
+
+	if err := h.mgr.Keeper().SetLastObserveHeight(ctx, tx.Tx.Chain, signer, tx.BlockHeight); err != nil {
+		ctx.Logger().Error("fail to save last observe height", "error", err, "signer", signer, "chain", tx.Tx.Chain)
+	}
+	if !voter.Add(tx, signer) {
+		// when the signer already sign it
+		return voter, ok
+	}
+	if voter.HasFinalised(nas) {
+		if voter.FinalisedHeight == 0 {
+			ok = true
+			voter.FinalisedHeight = common.BlockHeight(ctx)
+			voter.Tx = voter.GetTx(nas)
+			// tx has consensus now, so decrease the slashing point for all the signers whom voted for it
+			h.mgr.Slasher().DecSlashPoints(slashCtx, observeSlashPoints, voter.Tx.GetSigners()...)
+
+		} else if common.BlockHeight(ctx) <= (voter.FinalisedHeight+observeFlex) && voter.Tx.Equals(tx) {
+			// event the tx had been processed , given the signer just a bit late , so we still take away their slash points
+			h.mgr.Slasher().DecSlashPoints(slashCtx, observeSlashPoints, signer)
+		}
+	}
+	h.mgr.Keeper().SetObservedTxOutVoter(ctx, voter)
+
+	// Check to see if we have enough identical observations to process the transaction
+	return voter, ok
+}

@@ -76,6 +76,7 @@ type TestObservedTxOutHandleKeeper struct {
 	pool       Pool
 	txOutStore TxOutStore
 	observing  []cosmos.AccAddress
+	hashes     []common.TxID
 }
 
 func (k *TestObservedTxOutHandleKeeper) ListActiveValidators(_ cosmos.Context) (NodeAccounts, error) {
@@ -163,6 +164,14 @@ func (k *TestObservedTxOutHandleKeeper) SetObservedTxInVoter(ctx cosmos.Context,
 	k.txInVoter = tx
 }
 
+func (k *TestObservedTxOutHandleKeeper) SetObservedLink(ctx cosmos.Context, _, outhash common.TxID) {
+	k.hashes = append(k.hashes, outhash)
+}
+
+func (k *TestObservedTxOutHandleKeeper) GetObservedLink(ctx cosmos.Context, inhash common.TxID) []common.TxID {
+	return k.hashes
+}
+
 func (s *HandlerObservedTxOutSuite) TestHandle(c *C) {
 	var err error
 	ctx, mgr := setupManagerForTest(c)
@@ -190,6 +199,7 @@ func (s *HandlerObservedTxOutSuite) TestHandle(c *C) {
 		},
 		yggExists: true,
 		ygg:       ygg,
+		hashes:    make([]common.TxID, 0),
 	}
 	txOutStore := NewTxStoreDummy()
 	keeper.txOutStore = txOutStore
@@ -210,6 +220,9 @@ func (s *HandlerObservedTxOutSuite) TestHandle(c *C) {
 	c.Check(keeper.observing, HasLen, 1)
 	// make sure the coin has been subtract from the vault
 	c.Check(ygg.Coins.GetCoin(common.BNBAsset).Amount.Equal(cosmos.NewUint(19999962500)), Equals, true, Commentf("%d", ygg.Coins.GetCoin(common.BNBAsset).Amount.Uint64()))
+
+	hashes := keeper.GetObservedLink(ctx, tx.ID)
+	c.Assert(hashes, HasLen, 1)
 }
 
 func (s *HandlerObservedTxOutSuite) TestHandleStolenFunds(c *C) {
